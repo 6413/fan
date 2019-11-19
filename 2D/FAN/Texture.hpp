@@ -29,13 +29,17 @@ using namespace Settings;
 using namespace WindowNamespace;
 using namespace CursorNamespace;
 
-constexpr float triangle_vertices[] = {
+#define LINEVERT 4
+#define TRIANGLEVERT 6
+#define SQUAREVERT 8
+
+constexpr float triangle_vertices[TRIANGLEVERT] = {
 	-0.433, 0.25,
 	 0.433, 0.25,
 	 0.0,  -0.5f
 };
 
-constexpr float square_vertices[] = {
+constexpr float square_vertices[SQUAREVERT] = {
 	0.5f, 0.5f,
 	0.5f, -0.5f,
    -0.5f, -0.5f,
@@ -78,6 +82,8 @@ protected:
 	Vec2 position;
 };
 
+#define MIDDLE 0xDEADBEEF
+
 class Shape {
 public:
 	Shape() {}
@@ -88,11 +94,9 @@ public:
 
 	void Draw();
 
-	void SetPosition(const Vec2& position);
-
 	void SetColor(Color color);
 
-
+	void Rotatef(float angle, Vec2 point = Vec2(MIDDLE));
 
 protected:
 	std::vector<float> vertices;
@@ -102,27 +106,49 @@ protected:
 	Vec2 position;
 	Vec2 size;
 	Color color;
+	Vec3 rotatexyz;
+	float angle;
 	long long type;
 	uint64_t points;
+	uint64_t vertSize;
 };
 
 class Triangle : public Shape {
 public:
-	Triangle(Camera* camera, const Vec2& position, const Vec2& pixelSize, const Color& color) :
-		Shape(camera, position, pixelSize, color, std::vector<float>(triangle_vertices, triangle_vertices + ArrLen(triangle_vertices))) {
+	Triangle(Camera* camera, const Vec2& position, const Vec2& size, const Color& color) :
+		Shape(camera, position, size, color, std::vector<float> {
+		position.x - (size.x / 2), position.y + (size.y / 2),
+		position.x + (size.x / 2), position.y + (size.y / 2),
+		position.x, position.y - (size.y / 2)
+	}) {
+		this->size = size;
+		vertSize = TRIANGLEVERT;
 		type = GL_TRIANGLES;
 		points = 3;
 	}
-	void Add(const Vec2& position, Vec2 size = Vec2(), Color color = Color());
+	void Add(const Vec2& position, Vec2 size = Vec2());
+
+	void SetPosition(size_t _Where, const Vec2& position);
 };
 
 class Square : public Shape {
 public:
-	Square(Camera* camera, const Vec2& position, const Vec2& pixelSize, const Color& color) :
-		Shape(camera, position, pixelSize, color, std::vector<float>(square_vertices, square_vertices + ArrLen(square_vertices))) {
+	Square(Camera* camera, const Vec2& position, const Vec2& size, const Color& color) :
+		Shape(camera, position, size, color, std::vector<float> {
+		position.x - (size.x / 2), position.y - (size.y / 2),
+		position.x + (size.x / 2), position.y - (size.y / 2),
+		position.x + (size.x / 2), position.y + (size.y / 2),
+		position.x - (size.x / 2), position.y + (size.y / 2)
+	}) {
+		this->size = size;
+		vertSize = SQUAREVERT;
 		type = GL_QUADS;
 		points = 4;
 	}
+	
+	void Add(const Vec2& position, const Vec2& size);
+
+	void SetPosition(size_t _Where, const Vec2& position);
 };
 
 class Line : public Shape {
@@ -138,13 +164,16 @@ public:
 		begin_end.vec[1].x, begin_end.vec[1].y
 
 	}){
-		type = GL_LINES;
-		points = 2;
+		this->size = Vec2(abs(begin_end.vec[0].x - begin_end.vec[1].x), abs(begin_end.vec[0].y - begin_end.vec[1].y));
+		this->vertSize = LINEVERT;
+		this->type = GL_LINES;
+		this->points = 2;
 	}
 
 	void Add(const Mat2x2& begin_end);
 
-	void SetPosition(size_t where, const Mat2x2& begin_end);
+	void SetPosition(size_t _Where, const Mat2x2& begin_end);
+	void SetPosition(size_t _Where, const Vec2& v);
 };
 
 enum class GroupId {
