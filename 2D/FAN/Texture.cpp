@@ -95,8 +95,8 @@ void Sprite::Draw(Main& _Main, const Vec3& rotation, float angle, const Vec2& sc
 	glBindVertexArray(0);
 }
 
-Shape::Shape(Camera* camera, const Vec2& position, const Vec2& pixelSize, const Color& color, std::vector<float> vec) : shader(Shader("GLSL/shapes.vs", "GLSL/shapes.frag")), position(position), size(pixelSize), color(color),
-camera(camera) {
+Shape::Shape(Camera* camera, const Vec2& position, const Vec2& pixelSize, const Color& color, std::vector<float> vec) : 
+	shader(Shader("GLSL/shapes.vs", "GLSL/shapes.frag")), position(position), size(pixelSize), color(color), camera(camera), angle(0) {
 	glGenVertexArrays(1, &this->object.VAO);
 	glGenBuffers(1, &this->object.VBO);
 	glBindVertexArray(this->object.VAO);
@@ -136,14 +136,7 @@ void Shape::Draw() {
 	static int viewLoc = glGetUniformLocation(shader.Program, "view");
 	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view.vec[0].x);
 	glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection.vec[0].x);
-	static int modelLoc = glGetUniformLocation(shader.Program, "model");
-	Mat4x4 model(1);
-	model = Translate(model, Vec3(position.x, position.y, 0));
-	if (size.x != 0 || size.y != 0) {
-		model = Scale(model, Vec3(size.x, size.y, 0));
-	}
-	//model = Rotate(model, PI, Vec3(0, 0, 1));
-	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model.vec[0].x);
+
 	static int colorLoc = glGetUniformLocation(shader.Program, "color");
 	glUniform4f(colorLoc, this->color.r / 0xff, this->color.g / 0xff, this->color.b / 0xff, this->color.a / 0xff);
 
@@ -151,29 +144,89 @@ void Shape::Draw() {
 	glBindVertexArray(0);
 }
 
-void Shape::SetPosition(const Vec2& position) {
-	this->position = position;
-}
-
 void Shape::SetColor(Color color) {
 	this->color = color;
 }
 
-void Triangle::Add(const Vec2& position, Vec2 size, Color color) {
-	if (size.x != 0 || size.y != 0) {
-		
+void Shape::Rotatef(float angle, Vec2 point) {
+	angle = -angle;
+	float c1 = this->vertices[2] - this->vertices[0];
+	float c2 = this->vertices[3] - this->vertices[1];
+	Vec2 middle;
+	if (point != MIDDLE) {
+		middle = point;
 	}
-	if (color.r != 0 && color.g != 0 && color.b != 0 && color.a != 0) {
-		
+	else {
+		middle = Vec2(this->vertices[0] + 0.5 * c1, this->vertices[1] + 0.5 * c2);
 	}
-	//this->size = size;
-	//this->color = color;
-	this->vertices.insert(this->vertices.end(), std::begin(triangle_vertices), std::end(triangle_vertices));
+
+	this->vertices[0] = -(cos(Radians(angle)) * c1 - sin(Radians(angle)) * c2) * 0.5 + middle.x;
+	this->vertices[1] = -(sin(Radians(angle)) * c1 + cos(Radians(angle)) * c2) * 0.5 + middle.y;
+	this->vertices[2] = (cos(Radians(angle)) * c1 - sin(Radians(angle)) * c2) * 0.5 + middle.x;
+	this->vertices[3] = (sin(Radians(angle)) * c1 + cos(Radians(angle)) * c2) * 0.5 + middle.y;
+
+	glBindBuffer(GL_ARRAY_BUFFER, this->object.VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(this->vertices[0]) * this->vertices.size(), this->vertices.data(), GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+void Triangle::Add(const Vec2& position, Vec2 size) {
+	this->vertices.push_back(position.x - (size.x / 2));
+	this->vertices.push_back(position.y + (size.y / 2));
+	this->vertices.push_back(position.x + (size.x / 2));
+	this->vertices.push_back(position.y + (size.y / 2));
+	this->vertices.push_back(position.x);
+	this->vertices.push_back(position.y - (size.y / 2));
 
 	glBindBuffer(GL_ARRAY_BUFFER, this->object.VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(this->vertices[0]) * this->vertices.size(), this->vertices.data(), GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	this->points += 3;
+}
+
+void Triangle::SetPosition(size_t _Where, const Vec2& position) {
+	this->vertices[_Where * TRIANGLEVERT + 0] = position.x - (size.x / 2);
+	this->vertices[_Where * TRIANGLEVERT + 1] = position.y + (size.y / 2);
+	this->vertices[_Where * TRIANGLEVERT + 2] = position.x + (size.x / 2);
+	this->vertices[_Where * TRIANGLEVERT + 3] = position.y + (size.y / 2);
+	this->vertices[_Where * TRIANGLEVERT + 4] = position.x;
+	this->vertices[_Where * TRIANGLEVERT + 5] = position.y - (size.y / 2);
+
+	glBindBuffer(GL_ARRAY_BUFFER, this->object.VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(this->vertices[0]) * this->vertices.size(), this->vertices.data(), GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+void Square::Add(const Vec2& position, const Vec2& size) {
+	this->vertices.push_back(position.x - (this->size.x / 2));
+	this->vertices.push_back(position.y - (this->size.y / 2));
+	this->vertices.push_back(position.x + (this->size.x / 2));
+	this->vertices.push_back(position.y - (this->size.y / 2));
+	this->vertices.push_back(position.x + (this->size.x / 2));
+	this->vertices.push_back(position.y + (this->size.y / 2));
+	this->vertices.push_back(position.x - (this->size.x / 2));
+	this->vertices.push_back(position.y + (this->size.y / 2));
+
+	glBindBuffer(GL_ARRAY_BUFFER, this->object.VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(this->vertices[0]) * this->vertices.size(), this->vertices.data(), GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	this->points += SQUAREVERT / 2;
+}
+
+void Square::SetPosition(size_t _Where, const Vec2& position) {
+	this->vertices[_Where * SQUAREVERT + 0] = position.x - (this->size.x / 2);
+	this->vertices[_Where * SQUAREVERT + 1] = position.y - (this->size.y / 2);
+	this->vertices[_Where * SQUAREVERT + 2] = position.x + (this->size.x / 2);
+	this->vertices[_Where * SQUAREVERT + 3] = position.y - (this->size.y / 2);
+	this->vertices[_Where * SQUAREVERT + 4] = position.x + (this->size.x / 2);
+	this->vertices[_Where * SQUAREVERT + 5] = position.y + (this->size.y / 2);
+	this->vertices[_Where * SQUAREVERT + 6] = position.x - (this->size.x / 2);
+	this->vertices[_Where * SQUAREVERT + 7] = position.y + (this->size.y / 2);
+
+	glBindBuffer(GL_ARRAY_BUFFER, this->object.VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(this->vertices[0]) * this->vertices.size(), this->vertices.data(), GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void Line::Add(const Mat2x2& begin_end) {
@@ -187,8 +240,8 @@ void Line::Add(const Mat2x2& begin_end) {
 	this->points += 2;
 }
 
-void Line::SetPosition(size_t where, const Mat2x2& begin_end) {
-	for (int i = where * 4, j = 0; i < where * 4 + 4; i++, j++) {
+void Line::SetPosition(size_t _Where, const Mat2x2& begin_end) {
+	for (int i = _Where * 4, j = 0; i < _Where * 4 + 4; i++, j++) {
 		this->vertices[i] = begin_end.vec[(i & 2) >> 1][i & 1];
 	}
 	 
@@ -197,6 +250,15 @@ void Line::SetPosition(size_t where, const Mat2x2& begin_end) {
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
+void Line::SetPosition(size_t _Where, const Vec2& v) {
+	for (int i = 0; i < this->vertSize; i++) {
+		this->vertices[_Where * this->vertSize + i] = i < this->vertSize / 2 ? v[i & 1] - size[i & 1]  / 2 : v[i & 1] + size[i & 1] / 2;
+	}
+
+	glBindBuffer(GL_ARRAY_BUFFER, this->object.VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(this->vertices[0]) * this->vertices.size(), this->vertices.data(), GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
 
 Entity::Entity(const char* path, GroupId _groupId = GroupId::NotAssigned) : velocity(0), groupId(_groupId) {
 	texture.IntializeImage(texture);

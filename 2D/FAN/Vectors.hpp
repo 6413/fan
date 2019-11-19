@@ -39,6 +39,9 @@ public:
 		this->y *= v.y;
 		return *this;
 	}
+	constexpr bool operator!=(const __Vec2<_Ty>& v) {
+		return v.x != x && v.y != y;
+	}
 };
 
 using Vec2 = __Vec2<float>;

@@ -3,6 +3,7 @@
 #include <cmath>
 #include <vector>
 #include <ctime>
+#include <Windows.h>
 
 #include "FAN/Texture.hpp"
 
@@ -25,7 +26,8 @@ int main() {
 	glfwSetFramebufferSizeCallback(window, FrameSizeCallback);
 	glfwSetCursorPosCallback(window, CursorPositionCallback);
 
-	Line line(&_Main.camera, Mat2x2(Vec2(), windowSize), Color(255, 0, 0, 255));
+	Square triangle(&_Main.camera, windowSize / 2, Vec2(100, 100), Color(255, 0, 0, 255));
+
 
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
@@ -35,7 +37,9 @@ int main() {
 		glClearColor(0, 0, 0, 1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		line.Draw();
+		//triangle.SetPosition(0, cursorPos);
+		
+		triangle.Draw();
 
 		if (KeyPress(GLFW_KEY_ESCAPE)) {
 			glfwSetWindowShouldClose(window, true);

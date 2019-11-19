@@ -1,5 +1,32 @@
-﻿  Source.cpp
-C:\Users\123\source\repos\2D\2D\FAN\Texture.hpp(36,1): warning C4305: 'initializing': truncation from 'double' to 'const float'
+﻿  Functions.cpp
+  Texture.cpp
+  Source.cpp
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.hpp(40,1): warning C4305: 'initializing': truncation from 'double' to 'const float' (compiling source file FAN\Functions.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.hpp(40,1): warning C4305: 'initializing': truncation from 'double' to 'const float' (compiling source file FAN\Texture.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.hpp(99,53): warning C4305: 'argument': truncation from 'unsigned int' to 'const _Ty'
+          with
+          [
+              _Ty=float
+          ] (compiling source file FAN\Functions.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.hpp(99,53): warning C4305: 'argument': truncation from 'unsigned int' to 'const _Ty'
+          with
+          [
+              _Ty=float
+          ] (compiling source file FAN\Texture.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.cpp(74,140): warning C4305: 'argument': truncation from 'double' to 'float'
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.cpp(134,139): warning C4305: 'argument': truncation from 'double' to 'float'
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.cpp(156,21): warning C4305: 'argument': truncation from 'unsigned int' to 'const _Ty'
+          with
+          [
+              _Ty=float
+          ]
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.cpp(244,32): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.hpp(40,1): warning C4305: 'initializing': truncation from 'double' to 'const float' (compiling source file Source.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.hpp(99,53): warning C4305: 'argument': truncation from 'unsigned int' to 'const _Ty'
+          with
+          [
+              _Ty=float
+          ] (compiling source file Source.cpp)
 LINK : warning LNK4098: defaultlib 'LIBCMT' conflicts with use of other libs; use /NODEFAULTLIB:library
   LINK : /LTCG specified but no code generation required; remove /LTCG from the link command line to improve linker performance
-  2D.vcxproj -> C:\Users\123\source\repos\2D\x64\Release\2D.exe
+  2D.vcxproj -> C:\Users\123\Documents\GitHub\2D\x64\Release\2D.exe
