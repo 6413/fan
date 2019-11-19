@@ -3,7 +3,6 @@
 #include <cmath>
 #include <vector>
 #include <ctime>
-#include <Windows.h>
 
 #include "FAN/Texture.hpp"
 
