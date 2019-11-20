@@ -78,7 +78,7 @@ constexpr auto V3ToV2(const T& _v) {
 }
 
 template <typename T>
-constexpr auto V2ToV3(const T& _v) {
+constexpr auto V2ToV3(const T _v) {
 	return Vec3(_v.x, _v.y, 0);
 }
 
@@ -93,17 +93,12 @@ constexpr auto GridCoord(const __Vec2<_Ty>& world, const __Vec2<_Ty>& offSet) {
 }
 
 template <typename _Ty>
-__Vec2<_Ty> CursorToWorldCoordinates(const Vec2& object, const Vec2& cursor, const Vec2& screen) {
-	return __Vec2<_Ty>(object + (cursor - screen / 2));
-}
-
-template <typename _Ty>
 constexpr auto Distance(const __Vec2<_Ty>& src, const __Vec2<_Ty>& dst) {
 	return sqrtf(powf((src.x - dst.x), 2) + powf(((src.y - dst.y)), 2));
 }
 
 template <typename T1, typename T2>
-constexpr auto Translate(const T1& m, const T2& v) {
+constexpr auto Translate(T1& m, T2 v) {
 	T1 Result(m);
 	Result.vec[3] =
 		(m.vec[0] * v.x) +

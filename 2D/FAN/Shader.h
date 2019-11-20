@@ -105,6 +105,9 @@ public:
 			this->Use();
 		glUniform2f(glGetUniformLocation(this->Program, name), value.x, value.y);
 	}
+	void SetVec3(const char* name, const Vec3& value) {
+		glUniform3f(glGetUniformLocation(this->Program, name), value.x, value.y, value.z);
+	}
 	void SetVector4f(const GLchar* name, const Vec4& value, GLboolean useShader)
 	{
 		if (useShader)
