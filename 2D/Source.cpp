@@ -25,20 +25,28 @@ int main() {
 	glfwSetFramebufferSizeCallback(window, FrameSizeCallback);
 	glfwSetCursorPosCallback(window, CursorPositionCallback);
 
-	Square triangle(&_Main.camera, windowSize / 2, Vec2(100, 100), Color(255, 0, 0, 255));
+	Square grass(&_Main.camera, Vec2(windowSize.x / 2, windowSize.y - GRASSHEIGHT / 2), Vec2(windowSize.x, GRASSHEIGHT), Color(0x7c, 0xfc, 0, 255));
 
+	Sprite player_left(&_Main.camera, "Pictures/guy_left.bmp");
+	
+	Entity player(&_Main.camera, "Pictures/guy_right.bmp", PLAYERSIZE, Vec2(windowSize.x / 2, windowSize.y - GRASSHEIGHT));
+
+	player.SetImage(player_left);
 
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
 		float currentFrame = glfwGetTime();
 		deltaTime = currentFrame - lastFrame;
+		
 		lastFrame = currentFrame;
-		glClearColor(0, 0, 0, 1);
+		glClearColor(0.0, 0.0, 0.1, 1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		//triangle.SetPosition(0, cursorPos);
-		
-		triangle.Draw();
+		player.Move();
+		player.Draw();
+
+		grass.Draw(player);
+		grass.SetPosition(0, Vec2(windowSize.x / 2, windowSize.y - GRASSHEIGHT / 2));
 
 		if (KeyPress(GLFW_KEY_ESCAPE)) {
 			glfwSetWindowShouldClose(window, true);

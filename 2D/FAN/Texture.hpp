@@ -23,6 +23,7 @@ class Object;
 class Texture;
 class Sprite;
 class Main;
+class Entity;
 enum class GroupId;
 
 using namespace Settings;
@@ -32,6 +33,8 @@ using namespace CursorNamespace;
 #define LINEVERT 4
 #define TRIANGLEVERT 6
 #define SQUAREVERT 8
+#define GRASSHEIGHT 100
+#define PLAYERSIZE Vec2(6, 6)
 
 constexpr float triangle_vertices[TRIANGLEVERT] = {
 	-0.433, 0.25,
@@ -60,7 +63,12 @@ class Texture {
 public:
 	Texture() : vertices{ 0 } { }
 	void IntializeImage(Texture& texture);
-	float vertices[32];
+	float vertices[30];
+};
+
+class Physics {
+protected:
+	const float gravity = 3000;
 };
 
 class Sprite {
@@ -69,17 +77,28 @@ public:
 
 	Sprite(const Sprite& info);
 
-	Sprite(Object const& _object, Texture const& _texture, Vec2 const& _position);
-
-	Sprite(const char* path);
+	Sprite(Camera* camera, const char* path, Vec2 size = Vec2(), Vec2 position = Vec2(), float angle = 0);
 
 	void SetPosition(const Vec2& position);
 
-	void Draw(Main& _Main, const Vec3& rotation, float angle, const Vec2& scale);
+	void Draw();
+
+	Texture GetTexture() const {
+		return this->texture;
+	}
+
+	Object GetObject() const {
+		return this->object;
+	}
+
 protected:
+	Camera* camera;
+	Shader shader;
 	Object object;
 	Texture texture;
 	Vec2 position;
+	Vec2 size;
+	float angle;
 };
 
 #define MIDDLE 0xDEADBEEF
@@ -92,11 +111,20 @@ public:
 
 	~Shape();
 
-	void Draw();
+	void Draw(Entity& player);
 
 	void SetColor(Color color);
 
 	void Rotatef(float angle, Vec2 point = Vec2(MIDDLE));
+
+	Vec2 Size() const;
+
+	Color GetColor(bool div) {
+		if (div) {
+			return this->color / 0xff;
+		}
+		return this->color;
+	}
 
 protected:
 	std::vector<float> vertices;
@@ -154,10 +182,12 @@ public:
 class Line : public Shape {
 public:
 	Line() {};
-	Line(Camera* camera, const Color& color = Color(255, 0, 0, 255)) : Shape(camera, Vec2(), Vec2(), color, std::vector<float>{}) {
+	/*Line(Camera* camera, const Vec2& size, const Color& color = Color(255, 0, 0, 255)) : Shape(camera, Vec2(), Vec2(), color, std::vector<float>{}) {
+		this->size = size;
+		this->vertSize = LINEVERT;
 		type = GL_LINES;
 		points = 0;
-	};
+	};*/
 	Line(Camera* camera, const Mat2x2& begin_end, const Color& color) : 
 		Shape(camera, Vec2(), Vec2(), color, std::vector<float> {
 		begin_end.vec[0].x, begin_end.vec[0].y,
@@ -173,7 +203,7 @@ public:
 	void Add(const Mat2x2& begin_end);
 
 	void SetPosition(size_t _Where, const Mat2x2& begin_end);
-	void SetPosition(size_t _Where, const Vec2& v);
+	void SetPosition(size_t _Where, const Vec2& position);
 };
 
 enum class GroupId {
@@ -182,26 +212,45 @@ enum class GroupId {
 	Enemy = 1
 };
 
-class Entity : public Sprite {
+class Entity : public Sprite, public Physics {
 public:
 	Entity() : groupId(GroupId::NotAssigned) {}
 
 	Entity(const char* path, GroupId _groupId);
 
-	Entity(const char* path, Vec2 pos, GroupId _groupId);
+	Entity(const Object& object) {
+		this->object = object;
+	}
+
+	Entity(Camera* camera, const char* path, const Vec2& size, Vec2 position = Vec2(), GroupId _groupId = GroupId::LocalPlayer) : 
+		velocity(0), groupId(_groupId), Sprite(camera, path, size, position) {
+		this->objects.push_back(this->object);
+		this->textures.push_back(this->texture);
+	}
 
 	GroupId GetGroupId();
 
 	void SetGroupId(GroupId groupId);
+	void Move();
 
-	void Move(Main& _Main);
+	Vec2 GetPosition() const {
+		return this->position;
+	}
+
+	void SetImage(const Sprite& sprite) {
+		this->objects.push_back(sprite.GetObject());
+		this->textures.push_back(sprite.GetTexture());
+	}
 
 private:
+	std::vector<Object> objects;
+	std::vector<Texture> textures;
 	GroupId groupId;
 	Vec2 velocity;
 	float health;
-	float movementSpeed = 2000;
-	float friction = 5;
+	const float movementSpeed = 2000;
+	const float friction = 5;
+	const float jumpForce = 10000;
 };
 
 class Main {

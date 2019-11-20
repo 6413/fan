@@ -74,7 +74,8 @@ constexpr void FrameSizeCallback(_Ty window, int width, int height) {
 template <typename _Ty>
 constexpr void WindowInit(_Ty& window) {
 	using namespace WindowNamespace;
-	windowSize = Vec2(1080, 1080);
+	//windowSize = Vec2(1080, 1080);
+	windowSize = Vec2(glfwGetVideoMode(glfwGetPrimaryMonitor())->width, glfwGetVideoMode(glfwGetPrimaryMonitor())->height);
 	window = glfwCreateWindow(windowSize.x, windowSize.y, "Window", fullScreen ? glfwGetPrimaryMonitor() : NULL, NULL);
 	if (!window) {
 		printf("Window ded\n");
