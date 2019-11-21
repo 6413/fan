@@ -1,5 +1,5 @@
 #include "Texture.hpp"
-#include "FAN/bmp.hpp"
+#include "FAN/Bmp.hpp"
 
 void WriteImageData(ImageData imagedata) {
 	std::ofstream data("data");
