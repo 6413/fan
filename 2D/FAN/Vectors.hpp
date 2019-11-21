@@ -76,6 +76,7 @@ public:
 		this->y = _Value.g;
 		this->z = _Value.b;
 	}
+
 	__Vec3(const __Vec2<_Ty> _x) {
 		x = _x.x; y = _x.y; z = 0;
 	}

@@ -1,6 +1,62 @@
 #include "Texture.hpp"
+#include "FAN/bmp.hpp"
+
+void WriteImageData(ImageData imagedata) {
+	std::ofstream data("data");
+	for (int i = 0; i < sizeof(imagedata.image) / sizeof(*imagedata.image); i++) {
+		data << imagedata.image[i] << std::endl;
+	}
+	data << imagedata.object.EBO << std::endl;
+	data << imagedata.object.height << std::endl;
+	data << imagedata.object.texture << std::endl;
+	data << imagedata.object.VAO << std::endl;
+	data << imagedata.object.VBO << std::endl;
+	data << imagedata.object.width << std::endl;
+	data.close();
+}
+
+ImageData GetImageData() {
+	ImageData imagedata;
+	std::ifstream data;
+	data.open("data");
+
+	size_t i = 0;
+	unsigned char* image;
+	std::string line;
+	while (getline(data, line)) {
+		// using printf() in all tests for consiste8ncy
+		for (int j = 0; j < 8; j++) {
+			imagedata.image = reinterpret_cast<const unsigned char*>(line.c_str());
+		}
+
+		if (i == 8) {
+			imagedata.object.EBO = atoi(line.c_str());
+		}
+		else if (i == 9) {
+			imagedata.object.height = atoi(line.c_str());
+		}
+		else if (i == 10) {
+			imagedata.object.texture = atoi(line.c_str());
+		}
+		else if (i == 11) {
+			imagedata.object.VAO = atoi(line.c_str());
+		}
+		else if (i == 12) {
+			imagedata.object.VBO = atoi(line.c_str());
+		}
+		else if (i == 13) {
+			imagedata.object.width = atoi(line.c_str());
+		}
+		i++;
+	}
+	data.close();
+	return imagedata;
+}
 
 void LoadImg(const char* path, Object& object, Texture& texture) {
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_ALPHA);
 	std::ifstream file(path);
 	if (!file.good()) {
 		printf("File path does not exist\n");
@@ -10,7 +66,7 @@ void LoadImg(const char* path, Object& object, Texture& texture) {
 	glGenBuffers(1, &object.VBO);
 	glBindVertexArray(object.VAO);
 	glBindBuffer(GL_ARRAY_BUFFER, object.VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(texture.vertices), texture.vertices, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(texture.vertices), texture.vertices, GL_STATIC_DRAW); //almost xd colors are durnk
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)0);
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
@@ -22,15 +78,9 @@ void LoadImg(const char* path, Object& object, Texture& texture) {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	stbi_set_flip_vertically_on_load(true);
-	unsigned char* image = SOIL_load_image(path, &object.width, &object.height, 0, SOIL_LOAD_RGBA);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, object.width, object.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, object.width, object.height, 0, GL_BGRA, GL_UNSIGNED_BYTE, LoadBMP(path, object));
 	glGenerateMipmap(GL_TEXTURE_2D);
-	SOIL_free_image_data(image);
 	glBindTexture(GL_TEXTURE_2D, 0);
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_ALPHA);
 }
 
 void Texture::IntializeImage(Texture& texture) {
@@ -51,8 +101,7 @@ Sprite::Sprite(const Sprite& info) {
 	this->position = info.position;
 }
 
-Sprite::Sprite(Camera* camera, const char* path, Vec2 size, Vec2 position, float angle) : camera(camera), angle(angle), position(0), texture(), object() {
-	shader = Shader("GLSL/core.vs", "GLSL/core.frag");
+Sprite::Sprite(Camera* camera, const char* path, Vec2 size, Vec2 position, Shader shader, float angle) : shader(shader), camera(camera), angle(angle), position(0), texture(), object() {
 	texture.IntializeImage(texture);
 	LoadImg(path, object, texture);
 	this->size = Vec2(object.width * size.x, object.height * size.y);
@@ -65,16 +114,17 @@ void Sprite::SetPosition(const Vec2& position) {
 
 void Sprite::Draw() {
 	shader.Use();
+
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, object.texture);
-	glUniform1i(glGetUniformLocation(shader.Program, "ourTexture"), 0);
+	glUniform1i(glGetUniformLocation(shader.ID, "ourTexture"), 0);
 	Mat4x4 view(1);
 	view = camera->GetViewMatrix(Translate(view, Vec3(windowSize.x / 2, windowSize.y / 2, -700.0f)));
 	Mat4x4 projection(1);
 	projection = Ortho(windowSize.x / 2, windowSize.x  + windowSize.x * 0.5, windowSize.y + windowSize.y * 0.5, windowSize.y / 2, 0.1, 1000.0f);
-	GLint projLoc = glGetUniformLocation(shader.Program, "projection");
-	GLint viewLoc = glGetUniformLocation(shader.Program, "view");
-	GLint modelLoc = glGetUniformLocation(shader.Program, "model");
+	GLint projLoc = glGetUniformLocation(shader.ID, "projection");
+	GLint viewLoc = glGetUniformLocation(shader.ID, "view");
+	GLint modelLoc = glGetUniformLocation(shader.ID, "model");
 	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view.vec[0].x);
 	glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection.vec[0].x);
 	Mat4x4 model(1);
@@ -95,8 +145,8 @@ void Sprite::Draw() {
 	glBindVertexArray(0);
 }
 
-Shape::Shape(Camera* camera, const Vec2& position, const Vec2& pixelSize, const Color& color, std::vector<float> vec) : 
-	shader(Shader("GLSL/shapes.vs", "GLSL/shapes.frag")), position(position), size(pixelSize), color(color), camera(camera), angle(0) {
+Shape::Shape(Camera* camera, const Vec2& position, const Vec2& pixelSize, const Color& color, std::vector<float> vec, 
+	Shader shader) : shader(shader), position(position), size(pixelSize), color(color), camera(camera), angle(0) {
 	glGenVertexArrays(1, &this->object.VAO);
 	glGenBuffers(1, &this->object.VBO);
 	glBindVertexArray(this->object.VAO);
@@ -120,26 +170,53 @@ Shape::~Shape() {
 	glDeleteBuffers(1, &this->object.VBO);
 }
 
-void Shape::Draw(Entity& player) {
+void Shape::Draw() {
 	this->shader.Use();
-
-	this->shader.SetVec3("objectColor", this->GetColor(true));
-	this->shader.SetVec3("lightColor", Vec3(1.0f, 1.0f, 1.0f));
-	this->shader.SetVec3("lightPos", Vec2(player.GetPosition().x + 1000, player.GetPosition().y));
-
 	Mat4x4 view(1);
 
 	view = camera->GetViewMatrix(Translate(view, Vec3(windowSize.x / 2, windowSize.y / 2, -700.0f)));
 	
 	Mat4x4 projection(1);
 	projection = Ortho(windowSize.x / 2, windowSize.x + windowSize.x * 0.5, windowSize.y + windowSize.y * 0.5, windowSize.y / 2, 0.1, 1000.0f);
-	static int projLoc = glGetUniformLocation(shader.Program, "projection");
-	static int viewLoc = glGetUniformLocation(shader.Program, "view");
+	static int projLoc = glGetUniformLocation(shader.ID, "projection");
+	static int viewLoc = glGetUniformLocation(shader.ID, "view");
+	static int modelLoc = glGetUniformLocation(shader.ID, "model");
 	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view.vec[0].x);
 	glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection.vec[0].x);
 
-	static int colorLoc = glGetUniformLocation(shader.Program, "color");
+	static int colorLoc = glGetUniformLocation(shader.ID, "color");
 	glUniform4f(colorLoc, this->color.r / 0xff, this->color.g / 0xff, this->color.b / 0xff, this->color.a / 0xff);
+
+	Mat4x4 model(1);
+	model = Translate(model, Vec3(this->position));
+	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &view.vec[0].x);
+
+	glBindVertexArray(this->object.VAO);
+	glDrawArrays(this->type, 0, this->points);
+	glBindVertexArray(0);
+}
+
+void Shape::DrawLight(Square& light) {
+	this->shader.Use();
+
+	Mat4x4 view(1);
+
+	view = camera->GetViewMatrix(Translate(view, Vec3(windowSize.x / 2, windowSize.y / 2, -700.0f)));
+
+	Mat4x4 projection(1);
+	projection = Ortho(windowSize.x / 2, windowSize.x + windowSize.x * 0.5, windowSize.y + windowSize.y * 0.5, windowSize.y / 2, 0.1, 1000.0f);
+	static int projLoc = glGetUniformLocation(shader.ID, "projection");
+	static int viewLoc = glGetUniformLocation(shader.ID, "view");
+	static int modelLoc = glGetUniformLocation(shader.ID, "model");
+	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view.vec[0].x);
+	glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection.vec[0].x);
+
+	static int colorLoc = glGetUniformLocation(shader.ID, "color");
+	glUniform4f(colorLoc, this->color.r / 0xff, this->color.g / 0xff, this->color.b / 0xff, this->color.a / 0xff);
+
+	Mat4x4 model(1);
+	model = Translate(model, Vec3(this->position));
+	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model.vec[0].x);
 
 	glBindVertexArray(this->object.VAO);
 	glDrawArrays(this->type, 0, this->points);
@@ -174,6 +251,10 @@ void Shape::Rotatef(float angle, Vec2 point) {
 
 Vec2 Shape::Size() const {
 	return this->size;
+}
+
+Vec2 Shape::GetPosition() const {
+	return this->position;
 }
 
 void Triangle::Add(const Vec2& position, Vec2 size) {
@@ -221,18 +302,33 @@ void Square::Add(const Vec2& position, const Vec2& size) {
 }
 
 void Square::SetPosition(size_t _Where, const Vec2& position) {
-	this->vertices[_Where * SQUAREVERT + 0] = position.x - (this->size.x / 2);
-	this->vertices[_Where * SQUAREVERT + 1] = position.y - (this->size.y / 2);
-	this->vertices[_Where * SQUAREVERT + 2] = position.x + (this->size.x / 2);
-	this->vertices[_Where * SQUAREVERT + 3] = position.y - (this->size.y / 2);
-	this->vertices[_Where * SQUAREVERT + 4] = position.x + (this->size.x / 2);
-	this->vertices[_Where * SQUAREVERT + 5] = position.y + (this->size.y / 2);
-	this->vertices[_Where * SQUAREVERT + 6] = position.x - (this->size.x / 2);
-	this->vertices[_Where * SQUAREVERT + 7] = position.y + (this->size.y / 2);
+
+	if (position.x == cursorPos.x && position.y == cursorPos.y) {
+		this->vertices[_Where * SQUAREVERT + 0] = camera->position.x + position.x - (this->size.x / 2);
+		this->vertices[_Where * SQUAREVERT + 1] = camera->position.y + position.y - (this->size.y / 2);
+		this->vertices[_Where * SQUAREVERT + 2] = camera->position.x + position.x + (this->size.x / 2);
+		this->vertices[_Where * SQUAREVERT + 3] = camera->position.y + position.y - (this->size.y / 2);
+		this->vertices[_Where * SQUAREVERT + 4] = camera->position.x + position.x + (this->size.x / 2);
+		this->vertices[_Where * SQUAREVERT + 5] = camera->position.y + position.y + (this->size.y / 2);
+		this->vertices[_Where * SQUAREVERT + 6] = camera->position.x + position.x - (this->size.x / 2);
+		this->vertices[_Where * SQUAREVERT + 7] = camera->position.y + position.y + (this->size.y / 2);
+
+	}
+	else {
+		this->vertices[_Where * SQUAREVERT + 0] = position.x - (this->size.x / 2);
+		this->vertices[_Where * SQUAREVERT + 1] = position.y - (this->size.y / 2);
+		this->vertices[_Where * SQUAREVERT + 2] = position.x + (this->size.x / 2);
+		this->vertices[_Where * SQUAREVERT + 3] = position.y - (this->size.y / 2);
+		this->vertices[_Where * SQUAREVERT + 4] = position.x + (this->size.x / 2);
+		this->vertices[_Where * SQUAREVERT + 5] = position.y + (this->size.y / 2);
+		this->vertices[_Where * SQUAREVERT + 6] = position.x - (this->size.x / 2);
+		this->vertices[_Where * SQUAREVERT + 7] = position.y + (this->size.y / 2);
+	}
 
 	glBindBuffer(GL_ARRAY_BUFFER, this->object.VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(this->vertices[0]) * this->vertices.size(), this->vertices.data(), GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	this->position = position;
 }
 
 void Line::Add(const Mat2x2& begin_end) {
@@ -302,24 +398,21 @@ void Entity::Move() {
 	const float onGrass = windowSize.y - GRASSHEIGHT - this->size.y / 2;
 
 	if (KeyPressA(GLFW_KEY_SPACE) && position.y == onGrass) {
-		jumpTime = glfwGetTime();
-		jump = true;
+		this->velocity.y -= this->jumpForce;
 	}
 
-	if (jump) {
+	static float oldY;
 
-		if ((glfwGetTime() - jumpTime) > 0.2) {
-			jump = false;
-		}
-		this->velocity.y -= deltaTime * this->jumpForce;
-	}
-
+	static float downAccel = 0;
+	printf("%f\n", this->velocity.y);
 	if (position.y > onGrass) {
 		this->position.y = onGrass;
 		this->velocity.y = 0;
+		downAccel = 0;
 	}
 	else if (position.y < onGrass) {
-		this->velocity.y += deltaTime * this->gravity;
+		downAccel += deltaTime * (this->gravity);
+		this->velocity.y += deltaTime * downAccel;
 	}
 
 	position += (velocity * deltaTime);
