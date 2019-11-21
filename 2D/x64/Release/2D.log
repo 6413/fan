@@ -2,33 +2,33 @@
   Functions.cpp
   Texture.cpp
   Source.cpp
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.hpp(43,1): warning C4305: 'initializing': truncation from 'double' to 'const float' (compiling source file FAN\Bmp.cpp)
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.hpp(133,53): warning C4305: 'argument': truncation from 'unsigned int' to 'const _Ty'
-          with
-          [
-              _Ty=float
-          ] (compiling source file FAN\Bmp.cpp)
 C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.hpp(43,1): warning C4305: 'initializing': truncation from 'double' to 'const float' (compiling source file FAN\Functions.cpp)
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.hpp(133,53): warning C4305: 'argument': truncation from 'unsigned int' to 'const _Ty'
-          with
-          [
-              _Ty=float
-          ] (compiling source file FAN\Functions.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.hpp(43,1): warning C4305: 'initializing': truncation from 'double' to 'const float' (compiling source file Source.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.hpp(43,1): warning C4305: 'initializing': truncation from 'double' to 'const float' (compiling source file FAN\Bmp.cpp)
 C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.hpp(43,1): warning C4305: 'initializing': truncation from 'double' to 'const float' (compiling source file FAN\Texture.cpp)
 C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.hpp(133,53): warning C4305: 'argument': truncation from 'unsigned int' to 'const _Ty'
           with
           [
               _Ty=float
-          ] (compiling source file FAN\Texture.cpp)
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.hpp(43,1): warning C4305: 'initializing': truncation from 'double' to 'const float' (compiling source file Source.cpp)
+          ] (compiling source file FAN\Functions.cpp)
 C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.hpp(133,53): warning C4305: 'argument': truncation from 'unsigned int' to 'const _Ty'
           with
           [
               _Ty=float
           ] (compiling source file Source.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.hpp(133,53): warning C4305: 'argument': truncation from 'unsigned int' to 'const _Ty'
+          with
+          [
+              _Ty=float
+          ] (compiling source file FAN\Bmp.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.hpp(133,53): warning C4305: 'argument': truncation from 'unsigned int' to 'const _Ty'
+          with
+          [
+              _Ty=float
+          ] (compiling source file FAN\Texture.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\Source.cpp(44,32): warning C4305: 'argument': truncation from 'double' to 'GLclampf'
 C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.cpp(24,17): warning C4101: 'image': unreferenced local variable
 C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.cpp(124,140): warning C4305: 'argument': truncation from 'double' to 'float'
-C:\Users\123\Documents\GitHub\2D\2D\Source.cpp(44,32): warning C4305: 'argument': truncation from 'double' to 'GLclampf'
 C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.cpp(180,139): warning C4305: 'argument': truncation from 'double' to 'float'
 C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.cpp(207,139): warning C4305: 'argument': truncation from 'double' to 'float'
 C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.cpp(235,21): warning C4305: 'argument': truncation from 'unsigned int' to 'const _Ty'

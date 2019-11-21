@@ -376,16 +376,23 @@ void Entity::SetGroupId(GroupId groupId) {
 }
 
 void Entity::Move() {
-	velocity.x /= (deltaTime * friction) + 1;
-	velocity.y /= (deltaTime * friction) + 1;
-	if (KeyPress(GLFW_KEY_A)) {
+	
+	auto groundPosition = windowSize.y - GRASSHEIGHT - size.y / 2;
+	bool playerOnGround = this->position.y == groundPosition;
+
+	if (playerOnGround) {
+		velocity.x /= (deltaTime * friction) + 1;
+		velocity.y /= (deltaTime * friction) + 1;
+	}
+
+	if (KeyPress(GLFW_KEY_A) && playerOnGround) {
 		if (this->object.texture != this->objects[1].texture) {
 			this->object = this->objects[1];
 			this->texture = this->textures[1];
 		}
 		velocity.x -= deltaTime * this->movementSpeed;
 	}
-	if (KeyPress(GLFW_KEY_D)) {
+	if (KeyPress(GLFW_KEY_D) && playerOnGround) {
 		if (this->object.texture != this->objects[0].texture) {
 			this->object = this->objects[0];
 			this->texture = this->textures[0];
@@ -395,22 +402,18 @@ void Entity::Move() {
 	
 	static bool jump = false;
 	static double jumpTime;
-	const float onGrass = windowSize.y - GRASSHEIGHT - this->size.y / 2;
 
-	if (KeyPressA(GLFW_KEY_SPACE) && position.y == onGrass) {
+	if (KeyPressA(GLFW_KEY_SPACE) && playerOnGround) {
 		this->velocity.y -= this->jumpForce;
 	}
 
-	static float oldY;
-
 	static float downAccel = 0;
-	printf("%f\n", this->velocity.y);
-	if (position.y > onGrass) {
-		this->position.y = onGrass;
+	if (position.y > groundPosition) {
+		this->position.y = groundPosition;
 		this->velocity.y = 0;
 		downAccel = 0;
 	}
-	else if (position.y < onGrass) {
+	else if (position.y < groundPosition) {
 		downAccel += deltaTime * (this->gravity);
 		this->velocity.y += deltaTime * downAccel;
 	}

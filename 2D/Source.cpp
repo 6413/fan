@@ -47,9 +47,8 @@ int main() {
 		player.Move();
 		player.Draw();
 
-		grass.Draw();
-
 		grass.SetPosition(0, Vec2(windowSize.x / 2, windowSize.y - GRASSHEIGHT / 2));
+		grass.Draw();
 
 		if (KeyPress(GLFW_KEY_ESCAPE)) {
 			glfwSetWindowShouldClose(window, true);
