@@ -1,4 +1,4 @@
-#include "FAN/bmp.hpp"
+#include "FAN/Bmp.hpp"
 
 #include <iostream>
 #include <fstream>
