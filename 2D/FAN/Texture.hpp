@@ -2,9 +2,7 @@
 #define GLEW_STATIC
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
-#include "../SOIL2/SOIL2.h"
 #include <vector>
-#include "../SOIL2/stb_image.h"
 
 #include "Input.hpp"
 #include "Settings.hpp"
@@ -24,6 +22,8 @@ class Texture;
 class Sprite;
 class Main;
 class Entity;
+class Square;
+struct ImageData;
 enum class GroupId;
 
 using namespace Settings;
@@ -49,7 +49,11 @@ constexpr float square_vertices[SQUAREVERT] = {
    -0.5f, 0.5f
 };
 
+
+
+void WriteImageData(ImageData imagedata);
 void LoadImg(const char* path, Object& object, Texture& texture);
+ImageData GetImageData();
 
 class Object {
 public:
@@ -57,6 +61,13 @@ public:
 	int width, height;
 	unsigned int VBO, VAO, EBO;
 	Object() : texture(0), width(0), height(0), VBO(0), VAO(0), EBO(0) { }
+};
+
+struct ImageData {
+	ImageData() : image(0), object() {}
+	ImageData(const unsigned char* image, Object& object) : image(image), object(object) {}
+	const unsigned char* image;
+	Object object;
 };
 
 class Texture {
@@ -68,7 +79,7 @@ public:
 
 class Physics {
 protected:
-	const float gravity = 3000;
+	const float gravity = 5000;
 };
 
 class Sprite {
@@ -77,7 +88,7 @@ public:
 
 	Sprite(const Sprite& info);
 
-	Sprite(Camera* camera, const char* path, Vec2 size = Vec2(), Vec2 position = Vec2(), float angle = 0);
+	Sprite(Camera* camera, const char* path, Vec2 size = Vec2(), Vec2 position = Vec2(), Shader shader = Shader("GLSL/core.vs", "GLSL/core.frag"), float angle = 0);
 
 	void SetPosition(const Vec2& position);
 
@@ -105,19 +116,25 @@ protected:
 
 class Shape {
 public:
+
 	Shape() {}
 
-	Shape(Camera* camera, const Vec2& position, const Vec2& pixelSize, const Color& color, std::vector<float> vec);
+	Shape(Camera* camera, const Vec2& position, const Vec2& pixelSize, const Color& color, std::vector<float> vec, 
+		Shader shader = Shader("GLSL/shapes.vs", "GLSL/shapes.frag"));
 
 	~Shape();
 
-	void Draw(Entity& player);
+	void Draw();
+	
+	void DrawLight(Square& light);
 
 	void SetColor(Color color);
 
 	void Rotatef(float angle, Vec2 point = Vec2(MIDDLE));
 
 	Vec2 Size() const;
+
+	Vec2 GetPosition() const;
 
 	Color GetColor(bool div) {
 		if (div) {
@@ -161,13 +178,15 @@ public:
 
 class Square : public Shape {
 public:
-	Square(Camera* camera, const Vec2& position, const Vec2& size, const Color& color) :
+	Square() {}
+
+	Square(Camera* camera, const Vec2& position, const Vec2& size, const Color& color, Shader shader = Shader("GLSL/shapes.vs", "GLSL/shapes.frag")) :
 		Shape(camera, position, size, color, std::vector<float> {
 		position.x - (size.x / 2), position.y - (size.y / 2),
 		position.x + (size.x / 2), position.y - (size.y / 2),
 		position.x + (size.x / 2), position.y + (size.y / 2),
 		position.x - (size.x / 2), position.y + (size.y / 2)
-	}) {
+	}, shader) {
 		this->size = size;
 		vertSize = SQUAREVERT;
 		type = GL_QUADS;
@@ -250,7 +269,7 @@ private:
 	float health;
 	const float movementSpeed = 2000;
 	const float friction = 5;
-	const float jumpForce = 10000;
+	const float jumpForce = 1000;
 };
 
 class Main {
