@@ -79,7 +79,7 @@ public:
 
 class Physics {
 protected:
-	const float gravity = 5000;
+	const float gravity = 10000;
 };
 
 class Sprite {
