@@ -3,7 +3,7 @@
 #include <cmath>
 #include <vector>
 #include <ctime>
-#include "FAN/bmp.hpp"
+#include "FAN/Bmp.hpp"
 
 #include "FAN/Texture.hpp"
 
