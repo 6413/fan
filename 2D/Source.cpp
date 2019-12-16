@@ -3,9 +3,14 @@
 #include <cmath>
 #include <vector>
 #include <ctime>
+#include <Windows.h>
 #include "FAN/Bmp.hpp"
 
 #include "FAN/Texture.hpp"
+
+#define CORRECTPOSITION(x) (floor(x / BLOCKSIZE) * BLOCKSIZE)
+
+Collision collision;
 
 int main() {
 	glfwSetErrorCallback(GlfwErrorCallback);
@@ -26,36 +31,33 @@ int main() {
 	glfwSetFramebufferSizeCallback(window, FrameSizeCallback);
 	glfwSetCursorPosCallback(window, CursorPositionCallback);
 
-	Square grass(&_Main.camera, Vec2(windowSize.x / 2, windowSize.y - GRASSHEIGHT / 2), Vec2(windowSize.x, GRASSHEIGHT), Color(0x7c, 0xfc, 0, 255));
+	const float blockSize = 64;
 
-	Sprite player_left(&_Main.camera, "Pictures/guy_left.bmp");
+	Square square(&_Main.camera, Vec2(16), Vec2(blockSize), Color(0, 0, 0, 255));
 
-	Entity player(&_Main.camera, "Pictures/guy_right.bmp", PLAYERSIZE, Vec2(windowSize.x / 2, windowSize.y - GRASSHEIGHT));
-
-	player.SetImage(player_left);
+	for (int columns = 0; columns < windowSize.y; columns += blockSize) {
+		for (int rows = 0; rows < windowSize.x; rows += blockSize) {
+			square.Add(Vec2(blockSize / 2 + rows, blockSize / 2 + columns), Vec2(blockSize));
+		}
+	}
 
 	while (!glfwWindowShouldClose(window)) {
-
 		glfwPollEvents();
 		float currentFrame = glfwGetTime();
 		deltaTime = currentFrame - lastFrame;
 		lastFrame = currentFrame;
-
-		glClearColor(0.0, 0.0, 0.1, 1);
+		 
+		glClearColor(1, 1, 1, 1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		player.Move();
-		player.Draw();
-
-		grass.SetPosition(0, Vec2(windowSize.x / 2, windowSize.y - GRASSHEIGHT / 2));
-		grass.Draw();
+		square.Draw();
+		//square.SetColor(Color(255, 0, 0, 255));
 
 		if (KeyPress(GLFW_KEY_ESCAPE)) {
 			glfwSetWindowShouldClose(window, true);
 		}
 
 		GetFps();
-
 		glfwSwapBuffers(window);
 	}
 

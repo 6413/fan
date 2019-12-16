@@ -108,4 +108,8 @@
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="GLSL\vert.spv" />
+    <None Include="GLSL\frag.spv" />
+  </ItemGroup>
 </Project>

@@ -1,0 +1,13 @@
+﻿  Bmp.cpp
+  Color.cpp
+  Functions.cpp
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Bmp.cpp(1,10): fatal error C1083: Cannot open include file: 'FAN/Bmp.hpp': No such file or directory
+  Input.cpp
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Vectors.hpp(9,10): fatal error C1083: Cannot open include file: 'FAN/Color.hpp': No such file or directory
+  Settings.cpp
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Input.hpp(3,10): fatal error C1083: Cannot open include file: 'GL/glew.h': No such file or directory
+  Texture.cpp
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Vectors.hpp(9,10): fatal error C1083: Cannot open include file: 'FAN/Color.hpp': No such file or directory
+  Source.cpp
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.hpp(4,10): fatal error C1083: Cannot open include file: 'GL/glew.h': No such file or directory
+C:\Users\123\Documents\GitHub\2D\2D\Source.cpp(2,10): fatal error C1083: Cannot open include file: 'GLFW/glfw3.h': No such file or directory

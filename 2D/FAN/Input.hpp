@@ -27,9 +27,9 @@ constexpr void GlfwErrorCallback(_Ty Num, _Ty2 Desc) {
 	printf("GLFW Error %d : %s\n", Num, Desc);
 }
 
-constexpr void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+constexpr void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) { // what you mean
 	if (!action) {
-		Input::key[key] = false;
+		Input::key[key % 1024] = false;
 		return;
 	}
 	Input::key[key] = true;
@@ -61,21 +61,21 @@ constexpr void CharacterCallback(_Ty window, unsigned int key) {
 	}
 }
 
-template <typename _Ty, typename _Ty2 = Mat4x4>
+template <typename _Ty>
 constexpr void FrameSizeCallback(_Ty window, int width, int height) {
 	using namespace WindowNamespace;
-	_Ty2 projection(1);
-	GLuint projLoc = glGetUniformLocation(3, "projection");
-	glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection.vec[0].x);
 	glViewport(0, 0, width, height);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+
 	windowSize = Vec2(width, height);
 }
 
 template <typename _Ty>
 constexpr void WindowInit(_Ty& window) {
 	using namespace WindowNamespace;
-	//windowSize = Vec2(1080, 1080);
-	windowSize = Vec2(glfwGetVideoMode(glfwGetPrimaryMonitor())->width, glfwGetVideoMode(glfwGetPrimaryMonitor())->height);
+	windowSize = Vec2(800, 800);
+	//windowSize = Vec2(glfwGetVideoMode(glfwGetPrimaryMonitor())->width, glfwGetVideoMode(glfwGetPrimaryMonitor())->height);
 	window = glfwCreateWindow(windowSize.x, windowSize.y, "Window", fullScreen ? glfwGetPrimaryMonitor() : NULL, NULL);
 	if (!window) {
 		printf("Window ded\n");

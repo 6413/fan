@@ -1,58 +1,6 @@
 #include "Texture.hpp"
 #include "FAN/Bmp.hpp"
 
-void WriteImageData(ImageData imagedata) {
-	std::ofstream data("data");
-	for (int i = 0; i < sizeof(imagedata.image) / sizeof(*imagedata.image); i++) {
-		data << imagedata.image[i] << std::endl;
-	}
-	data << imagedata.object.EBO << std::endl;
-	data << imagedata.object.height << std::endl;
-	data << imagedata.object.texture << std::endl;
-	data << imagedata.object.VAO << std::endl;
-	data << imagedata.object.VBO << std::endl;
-	data << imagedata.object.width << std::endl;
-	data.close();
-}
-
-ImageData GetImageData() {
-	ImageData imagedata;
-	std::ifstream data;
-	data.open("data");
-
-	size_t i = 0;
-	unsigned char* image;
-	std::string line;
-	while (getline(data, line)) {
-		// using printf() in all tests for consiste8ncy
-		for (int j = 0; j < 8; j++) {
-			imagedata.image = reinterpret_cast<const unsigned char*>(line.c_str());
-		}
-
-		if (i == 8) {
-			imagedata.object.EBO = atoi(line.c_str());
-		}
-		else if (i == 9) {
-			imagedata.object.height = atoi(line.c_str());
-		}
-		else if (i == 10) {
-			imagedata.object.texture = atoi(line.c_str());
-		}
-		else if (i == 11) {
-			imagedata.object.VAO = atoi(line.c_str());
-		}
-		else if (i == 12) {
-			imagedata.object.VBO = atoi(line.c_str());
-		}
-		else if (i == 13) {
-			imagedata.object.width = atoi(line.c_str());
-		}
-		i++;
-	}
-	data.close();
-	return imagedata;
-}
-
 void LoadImg(const char* path, Object& object, Texture& texture) {
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -376,57 +324,67 @@ void Entity::SetGroupId(GroupId groupId) {
 }
 
 void Entity::Move() {
-	
-	auto groundPosition = windowSize.y - GRASSHEIGHT - size.y / 2;
-	bool playerOnGround = this->position.y == groundPosition;
+	static float groundPosition = floor((windowSize.y - BLOCKSIZE * BLOCKAMOUNT) - this->size.y / 2);
+	bool playerOnGround = collision.IsColliding(position);
 
-	if (playerOnGround) {
-		velocity.x /= (deltaTime * friction) + 1;
-		velocity.y /= (deltaTime * friction) + 1;
-	}
+//	if (playerOnGround) {
 
-	if (KeyPress(GLFW_KEY_A) && playerOnGround) {
+	//}
+
+	bool moving = false;
+	if (KeyPress(GLFW_KEY_A)) {
 		if (this->object.texture != this->objects[1].texture) {
 			this->object = this->objects[1];
 			this->texture = this->textures[1];
 		}
 		velocity.x -= deltaTime * this->movementSpeed;
+		moving = true;
 	}
-	if (KeyPress(GLFW_KEY_D) && playerOnGround) {
+	if (KeyPress(GLFW_KEY_D)) {
 		if (this->object.texture != this->objects[0].texture) {
 			this->object = this->objects[0];
 			this->texture = this->textures[0];
 		}
 		velocity.x += deltaTime * this->movementSpeed;
+		moving = true;
 	}
-	
-	static bool jump = false;
-	static double jumpTime;
+	velocity.x /= (deltaTime * friction) + 1;
+	velocity.y /= (deltaTime * friction) + 1;
+	static float downAccel = 0;
+	if (playerOnGround) {
+		//position.y = groundPosition;
+		velocity.y = 0;
+		downAccel = 0;
+	}
+	else {
+		downAccel += deltaTime * (this->gravity);
+		//this->velocity.y += deltaTime * downAccel;
+	}
 
-	if (KeyPressA(GLFW_KEY_SPACE) && playerOnGround) {
+	if (KeyPress(GLFW_KEY_SPACE) && playerOnGround) {
 		this->velocity.y -= this->jumpForce;
 	}
 
-	static float downAccel = 0;
-	if (position.y > groundPosition) {
-		this->position.y = groundPosition;
-		this->velocity.y = 0;
-		downAccel = 0;
+	Vec2 newPosition = position + velocity * deltaTime;
+	//printf("%x\n", playerOnGround);
+	if (collision.isCollidingCustom(this->position, newPosition) || collision.IsColliding(newPosition)) {
+		if (!playerOnGround) {
+			velocity = Vec2();
+		}
 	}
-	else if (position.y < groundPosition) {
-		downAccel += deltaTime * (this->gravity);
-		this->velocity.y += deltaTime * downAccel;
+	else {
+		position += (velocity * deltaTime);
 	}
 
-	position += (velocity * deltaTime);
 
-	const float middle = position.x - windowSize.x / 2;
-	const float cameraMoveOffset = 200;
 
-	if (camera->position.x < middle - cameraMoveOffset) {
-		camera->position.x = middle - cameraMoveOffset;
-	}
-	else if (camera->position.x > middle + cameraMoveOffset) {
-		camera->position.x = middle + cameraMoveOffset;
-	}
+	//const float middle = position.x - windowSize.x / 2;
+	//const float cameraMoveOffset = 200;
+
+	//if (camera->position.x < middle - cameraMoveOffset) {
+	//	camera->position.x = middle - cameraMoveOffset;
+	//}
+	//else if (camera->position.x > middle + cameraMoveOffset) {
+	//	camera->position.x = middle + cameraMoveOffset;
+	//}
 }
