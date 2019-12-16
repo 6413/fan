@@ -4,3 +4,6 @@
 .vs/2D/v16/Preview/Browse.VC.db
 .vs/2D/v16/Preview/ipch/AutoPCH/482f79ba8572ba6f/TEXTURE.ipch
 .vs/2D/v16/.suo
+*.ipch
+*.db
+*.opendb
