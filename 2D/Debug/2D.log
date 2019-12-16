@@ -1,0 +1,68 @@
+﻿  Bmp.cpp
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.hpp(44,1): warning C4305: 'initializing': truncation from 'double' to 'const float'
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.hpp(154,53): warning C4305: 'argument': truncation from 'unsigned int' to 'const _Ty'
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.hpp(154,53): warning C4305:         with
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.hpp(154,53): warning C4305:         [
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.hpp(154,53): warning C4305:             _Ty=float
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.hpp(154,53): warning C4305:         ]
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Bmp.cpp(15,1): error C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.18362.0\ucrt\stdio.h(208): message : see declaration of 'fopen'
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Vectors.hpp(282,22): warning C4018: '<': signed/unsigned mismatch
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Camera.hpp(29): message : see reference to function template instantiation '__Vec3<float> operator +<__Vec3,float>(__Vec3<float>,__Vec3<float>)' being compiled
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Vectors.hpp(291,22): warning C4018: '<': signed/unsigned mismatch
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Math.hpp(166): message : see reference to function template instantiation '__Vec3<float> operator -<__Vec3,float>(const __Vec3<float> &,const __Vec3<float> &)' being compiled
+  Color.cpp
+  Functions.cpp
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Camera.hpp(29): message : see reference to function template instantiation '_Ty2 LookAt<Vec3,Mat4x4>(const _Ty &,const _Ty &,const _Ty &)' being compiled
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Camera.hpp(29): message :         with
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Camera.hpp(29): message :         [
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Camera.hpp(29): message :             _Ty2=Mat4x4,
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Camera.hpp(29): message :             _Ty=Vec3
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Camera.hpp(29): message :         ]
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.hpp(44,1): warning C4305: 'initializing': truncation from 'double' to 'const float'
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.hpp(154,53): warning C4305: 'argument': truncation from 'unsigned int' to 'const _Ty'
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.hpp(154,53): warning C4305:         with
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.hpp(154,53): warning C4305:         [
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.hpp(154,53): warning C4305:             _Ty=float
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.hpp(154,53): warning C4305:         ]
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Vectors.hpp(282,22): warning C4018: '<': signed/unsigned mismatch
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Camera.hpp(29): message : see reference to function template instantiation '__Vec3<float> operator +<__Vec3,float>(__Vec3<float>,__Vec3<float>)' being compiled
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Vectors.hpp(291,22): warning C4018: '<': signed/unsigned mismatch
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Math.hpp(166): message : see reference to function template instantiation '__Vec3<float> operator -<__Vec3,float>(const __Vec3<float> &,const __Vec3<float> &)' being compiled
+  Input.cpp
+  Settings.cpp
+  Texture.cpp
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Camera.hpp(29): message : see reference to function template instantiation '_Ty2 LookAt<Vec3,Mat4x4>(const _Ty &,const _Ty &,const _Ty &)' being compiled
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Camera.hpp(29): message :         with
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Camera.hpp(29): message :         [
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Camera.hpp(29): message :             _Ty2=Mat4x4,
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Camera.hpp(29): message :             _Ty=Vec3
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Camera.hpp(29): message :         ]
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.hpp(44,1): warning C4305: 'initializing': truncation from 'double' to 'const float'
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.hpp(154,53): warning C4305: 'argument': truncation from 'unsigned int' to 'const _Ty'
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.hpp(154,53): warning C4305:         with
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.hpp(154,53): warning C4305:         [
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.hpp(154,53): warning C4305:             _Ty=float
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.hpp(154,53): warning C4305:         ]
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.cpp(72,140): warning C4305: 'argument': truncation from 'double' to 'float'
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.cpp(128,139): warning C4305: 'argument': truncation from 'double' to 'float'
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.cpp(155,139): warning C4305: 'argument': truncation from 'double' to 'float'
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.cpp(183,21): warning C4305: 'argument': truncation from 'unsigned int' to 'const _Ty'
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.cpp(183,21): warning C4305:         with
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.cpp(183,21): warning C4305:         [
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.cpp(183,21): warning C4305:             _Ty=float
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.cpp(183,21): warning C4305:         ]
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Texture.cpp(294,36): warning C4018: '<': signed/unsigned mismatch
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Vectors.hpp(282,22): warning C4018: '<': signed/unsigned mismatch
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Camera.hpp(29): message : see reference to function template instantiation '__Vec3<float> operator +<__Vec3,float>(__Vec3<float>,__Vec3<float>)' being compiled
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Vectors.hpp(291,22): warning C4018: '<': signed/unsigned mismatch
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Math.hpp(166): message : see reference to function template instantiation '__Vec3<float> operator -<__Vec3,float>(const __Vec3<float> &,const __Vec3<float> &)' being compiled
+  Source.cpp
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Camera.hpp(29): message : see reference to function template instantiation '_Ty2 LookAt<Vec3,Mat4x4>(const _Ty &,const _Ty &,const _Ty &)' being compiled
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Camera.hpp(29): message :         with
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Camera.hpp(29): message :         [
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Camera.hpp(29): message :             _Ty2=Mat4x4,
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Camera.hpp(29): message :             _Ty=Vec3
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Camera.hpp(29): message :         ]
+  Generating Code...
+C:\Users\123\Documents\GitHub\2D\External sources\GLFW\include\GLFW\glfw3.h(215,12): fatal error C1083: Cannot open include file: 'vulkan/vulkan.h': No such file or directory

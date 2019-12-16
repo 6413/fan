@@ -87,7 +87,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)External libraries\include;$(SolutionDir)External sources\GLEW\include;$(SolutionDir)External sources\GLFW\include;$(SolutionDir)2D;$(SolutionDir)freetype-2.10.1\include;$(SolutionDir)irrKlang-64bit-1.6.0\include;$(SolutionDir)2D\imgui-master;C:\Users\123\source\repos\2D\2D\imgui-master\examples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)External libraries\include;$(SolutionDir)External sources\GLEW\include;$(SolutionDir)External sources\GLFW\include;$(SolutionDir)2D;$(SolutionDir)freetype-2.10.1\include;$(SolutionDir)irrKlang-64bit-1.6.0\include;$(SolutionDir)2D\imgui-master;C:\Users\123\Documents\GitHub\2D\External sources\VULKAN\1.1.126.0\Include</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
       <OmitFramePointers>false</OmitFramePointers>
@@ -98,8 +98,8 @@
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <AdditionalLibraryDirectories>$(SolutionDir)External sources\GLEW\lib\Release\x64;$(SolutionDir)External libraries\lib\assimp;$(SolutionDir)External sources\GLFW\lib-vc2019;$(SolutionDir)irrKlang-64bit-1.6.0\lib\Winx64-visualStudio;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opengl32.lib;glew32s.lib;freetype.lib;glfw3.lib;irrklang.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)External sources\GLEW\lib\Release\x64;$(SolutionDir)External libraries\lib\assimp;$(SolutionDir)External sources\GLFW\lib-vc2019;$(SolutionDir)irrKlang-64bit-1.6.0\lib\Winx64-visualStudio;C:\Users\123\Documents\GitHub\2D\External sources\VULKAN\1.1.126.0\Lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opengl32.lib;glew32s.lib;glfw3.lib;vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/ignore:4286 /ignore:4099 </AdditionalOptions>
       <LinkTimeCodeGeneration>UseFastLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
@@ -128,7 +128,7 @@
       <IntrinsicFunctions>false</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>false</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)External libraries\include;$(SolutionDir)External sources\GLEW\include;$(SolutionDir)External sources\GLFW\include;$(SolutionDir)2D;$(SolutionDir)freetype-2.10.1\include;$(SolutionDir)irrKlang-64bit-1.6.0\include;$(SolutionDir)2D\imgui-master;$(SolutionDir)2D\OpenAL\include;$(SolutionDir)External sources\SFML-2.5.1\include;C:\Users\123\Documents\GitHub\2D\External sources\ASSIMP\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)External libraries\include;$(SolutionDir)External sources\GLEW\include;$(SolutionDir)External sources\GLFW\include;$(SolutionDir)2D;$(SolutionDir)freetype-2.10.1\include;$(SolutionDir)irrKlang-64bit-1.6.0\include;$(SolutionDir)2D\imgui-master;C:\Users\123\Documents\GitHub\2D\External sources\VULKAN\1.1.126.0\Include</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;GLFW_INCLUDE_NONE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -147,8 +147,8 @@
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>false</EnableCOMDATFolding>
       <OptimizeReferences>false</OptimizeReferences>
-      <AdditionalLibraryDirectories>$(SolutionDir)External sources\GLEW\lib\Release\x64;$(SolutionDir)External libraries\lib\assimp;$(SolutionDir)External sources\GLFW\lib-vc2019;$(SolutionDir)irrKlang-64bit-1.6.0\lib\Winx64-visualStudio;$(SolutionDir)OpenAL\libs\Win64;$(SolutionDir)External sources\SFML-2.5.1\lib;C:\Users\123\Documents\GitHub\2D\External sources\ASSIMP\lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>OpenAL32.lib;opengl32.lib;glew32s.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)External sources\GLEW\lib\Release\x64;$(SolutionDir)External libraries\lib\assimp;$(SolutionDir)External sources\GLFW\lib-vc2019;$(SolutionDir)irrKlang-64bit-1.6.0\lib\Winx64-visualStudio;C:\Users\123\Documents\GitHub\2D\External sources\VULKAN\1.1.126.0\Lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opengl32.lib;glew32s.lib;glfw3.lib;vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/ignore:4286 /ignore:4099 %(AdditionalOptions)</AdditionalOptions>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
       <Profile>true</Profile>
@@ -187,6 +187,10 @@
     <ClCompile Include="FAN\Settings.cpp" />
     <ClCompile Include="FAN\Texture.cpp" />
     <ClCompile Include="Source.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="GLSL\frag.spv" />
+    <None Include="GLSL\vert.spv" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -1,4 +1,5 @@
 #pragma once
+#define GLFW_INCLUDE_VULKAN
 #define GLEW_STATIC
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -33,8 +34,9 @@ using namespace CursorNamespace;
 #define LINEVERT 4
 #define TRIANGLEVERT 6
 #define SQUAREVERT 8
-#define GRASSHEIGHT 100
-#define PLAYERSIZE Vec2(6, 6)
+#define BLOCKAMOUNT 4
+#define BLOCKSIZE 64
+#define PLAYERSIZE Vec2(90, 90)
 
 constexpr float triangle_vertices[TRIANGLEVERT] = {
 	-0.433, 0.25,
@@ -49,11 +51,57 @@ constexpr float square_vertices[SQUAREVERT] = {
    -0.5f, 0.5f
 };
 
+class Collision {
+public:
+	void AddCollidable(const Vec2& position, size_t _id) {
 
+		Vec2 object(floor((position.x - BLOCKSIZE / 2) / BLOCKSIZE), floor((position.y - BLOCKSIZE) / BLOCKSIZE));
+		this->collidable.push_back(object);
+		object = Vec2(floor((position.x + BLOCKSIZE / 2) / BLOCKSIZE), floor((position.y + BLOCKSIZE) / BLOCKSIZE));
+		this->collidable.push_back(object);
+		this->id.push_back(_id);
+	}
 
-void WriteImageData(ImageData imagedata);
-void LoadImg(const char* path, Object& object, Texture& texture);
-ImageData GetImageData();
+	void AddCollidableCustom(const Vec2& position, const Vec2& size, size_t _id) {
+		Vec2 object(floor((position.x - BLOCKSIZE / 2 - size.x) / BLOCKSIZE), floor((position.y - BLOCKSIZE) / BLOCKSIZE));
+		this->collidable.push_back(object);
+		object = Vec2(floor((position.x + BLOCKSIZE / 2 - size.x) / BLOCKSIZE), floor((position.y + BLOCKSIZE) / BLOCKSIZE));
+		this->collidable.push_back(object);
+		this->id.push_back(_id);
+	}
+
+	void DeleteCollidable(size_t _id) {
+		this->collidable.erase(collidable.begin() + _id - 1);
+		this->collidable.erase(collidable.begin() + _id);
+		this->id.erase(id.begin() + _id);
+	}
+
+	bool IsColliding(const Vec2& position) const {
+		Vec2 formatted(floor((position.x) / BLOCKSIZE), floor((position.y + BLOCKSIZE / 2) / BLOCKSIZE));
+		for (auto i : collidable) {
+			if (formatted.x == i.x && formatted.y == i.y) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	bool isCollidingCustom(const Vec2& position, const Vec2& old) const {
+		Vec2 formatted(floor((position.x) / BLOCKSIZE), floor((position.y + BLOCKSIZE / 2) / BLOCKSIZE));
+		Vec2 formatOld(floor((old.x) / BLOCKSIZE), floor((old.y + BLOCKSIZE / 2) / BLOCKSIZE));
+		for (auto i : collidable) {
+			if (formatted.x < i.x && formatted.y == i.y && formatOld.x > i.x) {
+				return true;
+			}
+		}
+		return false;
+	}
+private:
+	std::vector<Vec2> collidable;
+	std::vector<size_t> id;
+};
+
+extern Collision collision;
 
 class Object {
 public:
@@ -79,7 +127,7 @@ public:
 
 class Physics {
 protected:
-	const float gravity = 10000;
+	const float gravity = 100;
 };
 
 class Sprite {
@@ -93,6 +141,10 @@ public:
 	void SetPosition(const Vec2& position);
 
 	void Draw();
+
+	Vec2 Size() const {
+		return this->size;
+	}
 
 	Texture GetTexture() const {
 		return this->texture;
@@ -267,9 +319,9 @@ private:
 	GroupId groupId;
 	Vec2 velocity;
 	float health;
-	const float movementSpeed = 2000;
-	const float friction = 5;
-	const float jumpForce = 1000;
+	const float movementSpeed = 10000;
+	const float friction = 10;
+	const float jumpForce = 800;
 };
 
 class Main {
