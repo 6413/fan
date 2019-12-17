@@ -1,9 +1,0 @@
-﻿  Source.cpp
-C:\Users\123\source\repos\2D\2D\FAN\Texture.hpp(36,1): warning C4305: 'initializing': truncation from 'double' to 'const float'
-  etc1_utils.c
-  image_DXT.c
-  image_helper.c
-  SOIL2.c
-  Generating Code...
-LINK : warning LNK4075: ignoring '/INCREMENTAL' due to '/LTCG' specification
-LINK : fatal error LNK1181: cannot open input file 'freetype.lib'

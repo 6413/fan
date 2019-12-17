@@ -29,6 +29,9 @@ constexpr void GlfwErrorCallback(_Ty Num, _Ty2 Desc) {
 
 constexpr void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) { // what you mean
 	if (!action) {
+		if (key < 0) {
+			return;
+		}
 		Input::key[key % 1024] = false;
 		return;
 	}
@@ -82,17 +85,22 @@ constexpr void WindowInit(_Ty& window) {
 		glfwTerminate();
 		exit(EXIT_SUCCESS);
 	}
-	glfwWindowHint(GLFW_DOUBLEBUFFER, 1);
+	//glfwWindowHint(GLFW_DOUBLEBUFFER, 1);
 	glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-	glfwWindowHint(GLFW_SAMPLES, 4);
-	glEnable(GL_MULTISAMPLE);
-	//glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
-	//glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // 3.0+ only
 	glViewport(0, 0, windowSize.x, windowSize.y);
 	glfwMakeContextCurrent(window);
 	glewInit();
+	//glfwWindowHint(GLFW_SAMPLES, 4);
+//	glEnable(GL_MULTISAMPLE);
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	//glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_ALPHA);
+	//glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
+	//glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // 3.0+ only
 }
 
 inline bool KeyPress(int key) {
