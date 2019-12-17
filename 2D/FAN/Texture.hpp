@@ -234,10 +234,10 @@ public:
 
 	Square(Camera* camera, const Vec2& position, const Vec2& size, const Color& color, Shader shader = Shader("GLSL/shapes.vs", "GLSL/shapes.frag")) :
 		Shape(camera, position, size, color, std::vector<float> {
-		position.x - (size.x / 2), position.y - (size.y / 2),
-		position.x + (size.x / 2), position.y - (size.y / 2),
-		position.x + (size.x / 2), position.y + (size.y / 2),
-		position.x - (size.x / 2), position.y + (size.y / 2)
+		position.x - (size.x / 2), position.y - (size.y / 2), 1, 1, 0,
+		position.x + (size.x / 2), position.y - (size.y / 2), 0, 1, 0,
+		position.x + (size.x / 2), position.y + (size.y / 2), 0, 1, 0,
+		position.x - (size.x / 2), position.y + (size.y / 2), 
 	}, shader) {
 		this->size = size;
 		vertSize = SQUAREVERT;
@@ -261,17 +261,18 @@ public:
 	};*/
 	Line(Camera* camera, const Mat2x2& begin_end, const Color& color) : 
 		Shape(camera, Vec2(), Vec2(), color, std::vector<float> {
-		begin_end.vec[0].x, begin_end.vec[0].y,
-		begin_end.vec[1].x, begin_end.vec[1].y
+		begin_end.vec[0].x, begin_end.vec[0].y, color.r, color.g, color.b, color.a,
+		begin_end.vec[1].x, begin_end.vec[1].y, color.r, color.g, color.b, color.a
 
 	}){
 		this->size = Vec2(abs(begin_end.vec[0].x - begin_end.vec[1].x), abs(begin_end.vec[0].y - begin_end.vec[1].y));
 		this->vertSize = LINEVERT;
 		this->type = GL_LINES;
 		this->points = 2;
+		this->color = color;
 	}
 
-	void Add(const Mat2x2& begin_end);
+	void Add(const Mat2x2& begin_end, const Color& color = Color(-1, -1, -1, -1));
 
 	void SetPosition(size_t _Where, const Mat2x2& begin_end);
 	void SetPosition(size_t _Where, const Vec2& position);

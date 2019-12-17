@@ -2,9 +2,6 @@
 #include "FAN/Bmp.hpp"
 
 void LoadImg(const char* path, Object& object, Texture& texture) {
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_ALPHA);
 	std::ifstream file(path);
 	if (!file.good()) {
 		printf("File path does not exist\n");
@@ -102,12 +99,16 @@ Shape::Shape(Camera* camera, const Vec2& position, const Vec2& pixelSize, const 
 	for (auto i : vec) {
 		vertices.push_back(i);
 	}
-
+	  
 	glBindBuffer(GL_ARRAY_BUFFER, this->object.VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices[0]) * vertices.size(), vertices.data(), GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices[0]) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
 
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
+
+	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(2 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
@@ -126,18 +127,17 @@ void Shape::Draw() {
 	
 	Mat4x4 projection(1);
 	projection = Ortho(windowSize.x / 2, windowSize.x + windowSize.x * 0.5, windowSize.y + windowSize.y * 0.5, windowSize.y / 2, 0.1, 1000.0f);
-	static int projLoc = glGetUniformLocation(shader.ID, "projection");
-	static int viewLoc = glGetUniformLocation(shader.ID, "view");
-	static int modelLoc = glGetUniformLocation(shader.ID, "model");
+	int projLoc = glGetUniformLocation(shader.ID, "projection");
+	int viewLoc = glGetUniformLocation(shader.ID, "view");
 	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view.vec[0].x);
 	glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection.vec[0].x);
 
-	static int colorLoc = glGetUniformLocation(shader.ID, "color");
-	glUniform4f(colorLoc, this->color.r / 0xff, this->color.g / 0xff, this->color.b / 0xff, this->color.a / 0xff);
+	//static int colorLoc = glGetUniformLocation(shader.ID, "color");
+	//glUniform4f(colorLoc, this->color.r / 0xff, this->color.g / 0xff, this->color.b / 0xff, this->color.a / 0xff);
 
-	Mat4x4 model(1);
-	model = Translate(model, Vec3(this->position));
-	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &view.vec[0].x);
+	//Mat4x4 model(1);
+	//model = Translate(model, Vec3(this->position));
+	//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &view.vec[0].x);
 
 	glBindVertexArray(this->object.VAO);
 	glDrawArrays(this->type, 0, this->points);
@@ -279,10 +279,35 @@ void Square::SetPosition(size_t _Where, const Vec2& position) {
 	this->position = position;
 }
 
-void Line::Add(const Mat2x2& begin_end) {
+void Line::Add(const Mat2x2& begin_end, const Color& color) {
 	for (int i = 0; i < 4; i++) {
 		this->vertices.push_back(begin_end.vec[(i & 2) >> 1][i & 1]);
+		if (color.r != -1 && ((i & 2) == 0 && i)) {
+			this->vertices.push_back(color.r);
+			this->vertices.push_back(color.g);
+			this->vertices.push_back(color.b);
+			this->vertices.push_back(color.a);
+		}
+		else if ((i & 2) == 0 && i) {
+			this->vertices.push_back(this->color.r);
+			this->vertices.push_back(this->color.g);
+			this->vertices.push_back(this->color.b);
+			this->vertices.push_back(this->color.a);
+		}
 	}
+	if (color.r != -1) {
+		this->vertices.push_back(color.r);
+		this->vertices.push_back(color.g);
+		this->vertices.push_back(color.b);
+		this->vertices.push_back(color.a);
+	}
+	else {
+		this->vertices.push_back(this->color.r);
+		this->vertices.push_back(this->color.g);
+		this->vertices.push_back(this->color.b);
+		this->vertices.push_back(this->color.a);
+	}
+
 
 	glBindBuffer(GL_ARRAY_BUFFER, this->object.VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(this->vertices[0]) * this->vertices.size(), this->vertices.data(), GL_DYNAMIC_DRAW);

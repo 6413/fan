@@ -188,10 +188,6 @@
     <ClCompile Include="FAN\Texture.cpp" />
     <ClCompile Include="Source.cpp" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="GLSL\frag.spv" />
-    <None Include="GLSL\vert.spv" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
