@@ -271,12 +271,7 @@ constexpr _Vec_t<_Type> Round(const _Vec_t<_Type>& v) {
 	return _Vec_t<_Type>(round(v.x), round(v.y), round(v.z));
 }
 
-//template <typename _Type, typename _Type2>
-//constexpr __Vec2<_Type> operator+(const __Vec2<_Type>& _Lhs, const __Vec2<_Type2>& _Rhs) {
-//	return __Vec2<_Type>(_Lhs.x + _Rhs.x, _Lhs.y + _Rhs.y);
-//}
-
-template <template<typename> typename _Vec_t, typename _Type> //
+template <template<typename> typename _Vec_t, typename _Type>
 constexpr _Vec_t<_Type> operator+(_Vec_t<_Type> _Lhs, _Vec_t<_Type> _Rhs) {
 	_Vec_t<_Type> _Vec;
 	for (int _I = 0; _I < _Vec.Size(); _I++) {
@@ -285,8 +280,8 @@ constexpr _Vec_t<_Type> operator+(_Vec_t<_Type> _Lhs, _Vec_t<_Type> _Rhs) {
 	return _Vec;
 }
 
-template <template<typename> typename _Vec_t, typename _Type> // 
-constexpr _Vec_t<_Type> operator-(const _Vec_t<_Type>& _Lhs, const _Vec_t<_Type>& _Rhs) { // 
+template <template<typename> typename _Vec_t, typename _Type> 
+constexpr _Vec_t<_Type> operator-(const _Vec_t<_Type>& _Lhs, const _Vec_t<_Type>& _Rhs) { 
 	_Vec_t<_Type> _Vec;
 	for (int _I = 0; _I < _Lhs.Size(); _I++) {
 		_Vec[_I] = _Lhs[_I] - _Rhs[_I];

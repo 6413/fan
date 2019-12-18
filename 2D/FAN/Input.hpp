@@ -40,9 +40,9 @@ constexpr void KeyCallback(GLFWwindow* window, int key, int scancode, int action
 
 template <typename _Ty>
 constexpr void MouseButtonCallback(_Ty window, int button, int action, int mods) {
-	if (Input::key[button]) {
-		return;
-	}
+	//if (Input::key[button]) {
+	//	return;
+	//}
 	if ((button == GLFW_MOUSE_BUTTON_LEFT ||
 		button == GLFW_MOUSE_BUTTON_RIGHT)
 		&& action == GLFW_PRESS) {
@@ -77,7 +77,7 @@ constexpr void FrameSizeCallback(_Ty window, int width, int height) {
 template <typename _Ty>
 constexpr void WindowInit(_Ty& window) {
 	using namespace WindowNamespace;
-	windowSize = Vec2(800, 800);
+	windowSize = Vec2(896, 896);
 	//windowSize = Vec2(glfwGetVideoMode(glfwGetPrimaryMonitor())->width, glfwGetVideoMode(glfwGetPrimaryMonitor())->height);
 	window = glfwCreateWindow(windowSize.x, windowSize.y, "Window", fullScreen ? glfwGetPrimaryMonitor() : NULL, NULL);
 	if (!window) {

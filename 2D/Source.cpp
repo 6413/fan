@@ -31,16 +31,21 @@ int main() {
 
 	const float blockSize = 64;
 
-	Line line(&_Main.camera, Mat2x2(Vec2(0, 0), Vec2(400, 400)), Color(1, 0, 0, 1));
+	Line line(&_Main.camera, Mat2x2(Vec2(0, 0), Vec2(0, 0)), Color(1, 0, 0, 1));
 
-	//for (int columns = 0; columns < windowSize.y; columns += blockSize) {
-	//	for (int rows = 0; rows < windowSize.x; rows += blockSize) {
-	//		square.Add(Vec2(blockSize / 2 + rows, blockSize / 2 + columns), Vec2(blockSize));
-	//	}
-	//}
+	Square square(&_Main.camera, Vec2(blockSize, blockSize), Color(0, 0, 0, 1));
 
-	line.Add(Mat2x2(Vec2(0, 800), Vec2(400, 400)), Color(0, 1, 0, 0.5));
-
+	for (int rows = 0; rows < windowSize.x; rows += blockSize) {
+		line.Add(Mat2x2(Vec2(0, rows), Vec2(windowSize.x, rows)));
+	}
+	for (int rows = 0; rows < windowSize.x; rows += blockSize) {
+		line.Add(Mat2x2(Vec2(rows, 0), Vec2(rows, windowSize.y)));
+	}
+	for (int colums = 0; colums < windowSize.y; colums += blockSize) {
+		for (int rows = 0; rows < windowSize.x; rows += blockSize) {
+			square.Add(Vec2(blockSize / 2 + rows, blockSize / 2 + colums), Vec2(blockSize));
+		}
+	}
 
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
@@ -50,10 +55,13 @@ int main() {
 		 
 		glClearColor(0, 0, 0, 1); 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
 		line.Draw();
+	
+		square.Draw();
 
-		//square.SetColor(Color(255, 0, 0, 255));
+		if (KeyPressA(GLFW_MOUSE_BUTTON_LEFT)) {
+			square.SetColor(floor(cursorPos.x / blockSize) + floor(cursorPos.y / blockSize) * (windowSize.y / blockSize), '^', 1);
+		}
 
 		if (KeyPress(GLFW_KEY_ESCAPE)) {
 			glfwSetWindowShouldClose(window, true);
