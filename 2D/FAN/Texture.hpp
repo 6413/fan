@@ -171,7 +171,7 @@ public:
 
 	Shape() {}
 
-	Shape(Camera* camera, const Vec2& position, const Vec2& pixelSize, const Color& color, std::vector<float> vec, 
+	Shape(Camera* camera, const Vec2& position, const Vec2& pixelSize, const Color& color, size_t _vertSize, std::vector<float> vec, 
 		Shader shader = Shader("GLSL/shapes.vs", "GLSL/shapes.frag"));
 
 	~Shape();
@@ -180,7 +180,9 @@ public:
 	
 	void DrawLight(Square& light);
 
-	void SetColor(Color color);
+	void SetColor(size_t _Where, Color color);
+
+	void SetColor(size_t _Where, char _operator, int value);
 
 	void Rotatef(float angle, Vec2 point = Vec2(MIDDLE));
 
@@ -213,10 +215,10 @@ protected:
 class Triangle : public Shape {
 public:
 	Triangle(Camera* camera, const Vec2& position, const Vec2& size, const Color& color) :
-		Shape(camera, position, size, color, std::vector<float> {
-		position.x - (size.x / 2), position.y + (size.y / 2),
-		position.x + (size.x / 2), position.y + (size.y / 2),
-		position.x, position.y - (size.y / 2)
+		Shape(camera, position, size, color, TRIANGLEVERT, std::vector<float> {
+		position.x - (size.x / 2), position.y + (size.y / 2), color.r, color.g, color.b, color.a,
+		position.x + (size.x / 2), position.y + (size.y / 2), color.r, color.g, color.b, color.a,
+		position.x, position.y - (size.y / 2), color.r, color.g, color.b, color.a
 	}) {
 		this->size = size;
 		vertSize = TRIANGLEVERT;
@@ -232,12 +234,19 @@ class Square : public Shape {
 public:
 	Square() {}
 
+	Square(Camera* camera, const Vec2& size, const Color& color) : Shape(camera, Vec2(), size, color, SQUAREVERT, std::vector<float>{}, Shader("GLSL/shapes.vs", "GLSL/shapes.frag")) {
+		this->size = size;
+		vertSize = SQUAREVERT;
+		type = GL_QUADS;
+		points = 4;
+	}
+
 	Square(Camera* camera, const Vec2& position, const Vec2& size, const Color& color, Shader shader = Shader("GLSL/shapes.vs", "GLSL/shapes.frag")) :
-		Shape(camera, position, size, color, std::vector<float> {
-		position.x - (size.x / 2), position.y - (size.y / 2), 1, 1, 0,
-		position.x + (size.x / 2), position.y - (size.y / 2), 0, 1, 0,
-		position.x + (size.x / 2), position.y + (size.y / 2), 0, 1, 0,
-		position.x - (size.x / 2), position.y + (size.y / 2), 
+		Shape(camera, position, size, color, SQUAREVERT, std::vector<float> {
+		position.x - (size.x / 2), position.y - (size.y / 2), color.r, color.g, color.b, color.a,
+		position.x + (size.x / 2), position.y - (size.y / 2), color.r, color.g, color.b, color.a,
+		position.x + (size.x / 2), position.y + (size.y / 2), color.r, color.g, color.b, color.a,
+		position.x - (size.x / 2), position.y + (size.y / 2), color.r, color.g, color.b, color.a
 	}, shader) {
 		this->size = size;
 		vertSize = SQUAREVERT;
@@ -245,7 +254,7 @@ public:
 		points = 4;
 	}
 	
-	void Add(const Vec2& position, const Vec2& size);
+	void Add(const Vec2& position, const Vec2& size, const Color& color = Color(-1, -1, -1, -1));
 
 	void SetPosition(size_t _Where, const Vec2& position);
 };
@@ -260,7 +269,7 @@ public:
 		points = 0;
 	};*/
 	Line(Camera* camera, const Mat2x2& begin_end, const Color& color) : 
-		Shape(camera, Vec2(), Vec2(), color, std::vector<float> {
+		Shape(camera, Vec2(), Vec2(), color, LINEVERT, std::vector<float> {
 		begin_end.vec[0].x, begin_end.vec[0].y, color.r, color.g, color.b, color.a,
 		begin_end.vec[1].x, begin_end.vec[1].y, color.r, color.g, color.b, color.a
 
@@ -269,7 +278,6 @@ public:
 		this->vertSize = LINEVERT;
 		this->type = GL_LINES;
 		this->points = 2;
-		this->color = color;
 	}
 
 	void Add(const Mat2x2& begin_end, const Color& color = Color(-1, -1, -1, -1));

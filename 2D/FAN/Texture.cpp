@@ -1,5 +1,6 @@
 #include "Texture.hpp"
 #include "FAN/Bmp.hpp"
+#include <functional>
 
 void LoadImg(const char* path, Object& object, Texture& texture) {
 	std::ifstream file(path);
@@ -90,8 +91,8 @@ void Sprite::Draw() {
 	glBindVertexArray(0);
 }
 
-Shape::Shape(Camera* camera, const Vec2& position, const Vec2& pixelSize, const Color& color, std::vector<float> vec, 
-	Shader shader) : shader(shader), position(position), size(pixelSize), color(color), camera(camera), angle(0) {
+Shape::Shape(Camera* camera, const Vec2& position, const Vec2& pixelSize, const Color& color, size_t _vertSize, std::vector<float> vec,
+		Shader shader) : shader(shader), position(position), size(pixelSize), color(color), camera(camera), angle(0), vertSize(_vertSize) {
 	glGenVertexArrays(1, &this->object.VAO);
 	glGenBuffers(1, &this->object.VBO);
 	glBindVertexArray(this->object.VAO);
@@ -126,7 +127,7 @@ void Shape::Draw() {
 	view = camera->GetViewMatrix(Translate(view, Vec3(windowSize.x / 2, windowSize.y / 2, -700.0f)));
 	
 	Mat4x4 projection(1);
-	projection = Ortho(windowSize.x / 2, windowSize.x + windowSize.x * 0.5, windowSize.y + windowSize.y * 0.5, windowSize.y / 2, 0.1, 1000.0f);
+	projection = Ortho(windowSize.x / 2, windowSize.x + windowSize.x * 0.5, windowSize.y + windowSize.y * 0.5f, windowSize.y / 2, 0.1f, 1000.0f);
 	int projLoc = glGetUniformLocation(shader.ID, "projection");
 	int viewLoc = glGetUniformLocation(shader.ID, "view");
 	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view.vec[0].x);
@@ -171,8 +172,34 @@ void Shape::DrawLight(Square& light) {
 	glBindVertexArray(0);
 }
 
-void Shape::SetColor(Color color) {
-	this->color = color;
+void Shape::SetColor(size_t _Where, Color color) {
+	for (int i = 0; i < 24; i+=6) {
+		this->vertices[(i +_Where * (24)) + 2] = color.r;
+		this->vertices[(i +_Where * (24)) + 3] = color.g;
+		this->vertices[(i +_Where * (24)) + 4] = color.b;
+		this->vertices[(i +_Where * (24)) + 5] = color.a;
+	}
+
+	glBindBuffer(GL_ARRAY_BUFFER, this->object.VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(this->vertices[0]) * this->vertices.size(), this->vertices.data(), GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+void Shape::SetColor(size_t _Where, char _operator, int value) {
+	for (int i = 0; i < 24; i += 6) {
+		switch (_operator) {
+		case '^': {
+			this->vertices[(i + _Where * (24)) + 2] = (int)vertices[(i + _Where * (24)) + 2] ^ value;
+			this->vertices[(i + _Where * (24)) + 3] = (int)vertices[(i + _Where * (24)) + 3] ^ value;
+			this->vertices[(i + _Where * (24)) + 4] = (int)vertices[(i + _Where * (24)) + 4] ^ value;
+			break;
+		}
+		}
+
+	}
+	glBindBuffer(GL_ARRAY_BUFFER, this->object.VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(this->vertices[0]) * this->vertices.size(), this->vertices.data(), GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void Shape::Rotatef(float angle, Vec2 point) {
@@ -193,7 +220,7 @@ void Shape::Rotatef(float angle, Vec2 point) {
 	this->vertices[3] = (sin(Radians(angle)) * c1 + cos(Radians(angle)) * c2) * 0.5 + middle.y;
 
 	glBindBuffer(GL_ARRAY_BUFFER, this->object.VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(this->vertices[0]) * this->vertices.size(), this->vertices.data(), GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(this->vertices[0]) * this->vertices.size(), this->vertices.data(), GL_STATIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
@@ -232,16 +259,27 @@ void Triangle::SetPosition(size_t _Where, const Vec2& position) {
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void Square::Add(const Vec2& position, const Vec2& size) {
-	this->vertices.push_back(position.x - (this->size.x / 2));
-	this->vertices.push_back(position.y - (this->size.y / 2));
-	this->vertices.push_back(position.x + (this->size.x / 2));
-	this->vertices.push_back(position.y - (this->size.y / 2));
-	this->vertices.push_back(position.x + (this->size.x / 2));
-	this->vertices.push_back(position.y + (this->size.y / 2));
-	this->vertices.push_back(position.x - (this->size.x / 2));
-	this->vertices.push_back(position.y + (this->size.y / 2));
+void Square::Add(const Vec2& position, const Vec2& size, const Color& color) {
+	const bool arr[] = { 0, 0, 1, 0, 1, 1, 0, 1 };
 
+	for (int i = 0; i < 8; i++) {
+		if (color.r != -1 && ((i % 2) == 0 && i)) {
+			this->vertices.push_back(color.r);
+			this->vertices.push_back(color.g);
+			this->vertices.push_back(color.b);
+			this->vertices.push_back(color.a);
+		}
+		else if ((i % 2) == 0 && i) {
+			this->vertices.push_back(this->color.r);
+			this->vertices.push_back(this->color.g);
+			this->vertices.push_back(this->color.b);
+			this->vertices.push_back(this->color.a);
+		}
+		this->vertices.push_back(!arr[i] ? position[i & 1] - (this->size[i & 1] / 2) : position[i & 1] + (this->size[i & 1] / 2));
+	}
+	for (int i = 0; i < 4; i++) {
+		this->vertices.push_back(color.r != -1 ? color[i] : this->color[i]);
+	}
 	glBindBuffer(GL_ARRAY_BUFFER, this->object.VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(this->vertices[0]) * this->vertices.size(), this->vertices.data(), GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -292,20 +330,12 @@ void Line::Add(const Mat2x2& begin_end, const Color& color) {
 			this->vertices.push_back(this->color.r);
 			this->vertices.push_back(this->color.g);
 			this->vertices.push_back(this->color.b);
-			this->vertices.push_back(this->color.a);
+			this->vertices.push_back(this->color.a);	
 		}
 	}
-	if (color.r != -1) {
-		this->vertices.push_back(color.r);
-		this->vertices.push_back(color.g);
-		this->vertices.push_back(color.b);
-		this->vertices.push_back(color.a);
-	}
-	else {
-		this->vertices.push_back(this->color.r);
-		this->vertices.push_back(this->color.g);
-		this->vertices.push_back(this->color.b);
-		this->vertices.push_back(this->color.a);
+
+	for (int i = 0; i < 4; i++) {
+		this->vertices.push_back(color.r != -1 ? color[i] : this->color[i]);
 	}
 
 
