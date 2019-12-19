@@ -18,10 +18,8 @@ struct LightDirection {
 
 template <typename _Ty>
 bool Trace(const __Vec2<_Ty> start, const float angle, const __Vec2<_Ty> pStart, const __Vec2<_Ty> pEnd) {
-	Vec2 inter = IntersectionPoint(start, Vec2(start.x + DirectionVector(angle).x, start.y),
-		Vec2(pStart.x, pStart.y), Vec2(pEnd.x, pEnd.y));
-	//	printf("%f %f\n", start.x, inter.x);
-	if (inter.x != INFINITY && start.x < inter.x) {
+	Vec2 inter = IntersectionPoint(start, start + Vec2(1000, 0), pStart, pEnd);
+	if (inter.x != -1 ) {
 		return true;
 	}
 	return false;

@@ -59,8 +59,13 @@ public:
 		return *this;
 	}
 
-	constexpr bool operator!=(const __Vec2<_Ty>& v) {
+	constexpr bool operator!=(const __Vec2<_Ty>& v) const {
 		return v.x != x && v.y != y;
+	}
+
+	template <typename _Type>
+	constexpr bool operator==(const __Vec2<_Type>& v) const {
+		return v.x == x && v.y == y;
 	}
 
 	constexpr size_t Size() const {

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <iostream>
+
 class Color {
 public:
 	float r, g, b, a;
