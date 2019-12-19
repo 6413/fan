@@ -2,6 +2,8 @@
 #include "FAN/Bmp.hpp"
 #include <functional>
 
+Collision collision;
+
 void LoadImg(const char* path, Object& object, Texture& texture) {
 	std::ifstream file(path);
 	if (!file.good()) {
@@ -228,8 +230,12 @@ Vec2 Shape::Size() const {
 	return this->size;
 }
 
-Vec2 Shape::GetPosition() const {
-	return this->position;
+Vec2 Shape::GetPosition(size_t _Where) const {
+	float xstart = this->vertices[_Where * this->vertSize];
+	float xend = this->vertices[_Where * this->vertSize + 2 + 4];
+	float ystart = this->vertices[_Where * this->vertSize + 1];
+	float yend = this->vertices[(_Where * this->vertSize + 3 + 4) * 2 - 1];
+	return Vec2(xstart + (xend - xstart) / 2, ystart + (yend - ystart) / 2);
 }
 
 void Triangle::Add(const Vec2& position, Vec2 size) {
@@ -290,29 +296,29 @@ void Square::Add(const Vec2& position, const Vec2& size, const Color& color) {
 void Square::SetPosition(size_t _Where, const Vec2& position) {
 
 	if (position.x == cursorPos.x && position.y == cursorPos.y) {
-		this->vertices[_Where * SQUAREVERT + 0] = camera->position.x + position.x - (this->size.x / 2);
-		this->vertices[_Where * SQUAREVERT + 1] = camera->position.y + position.y - (this->size.y / 2);
-		this->vertices[_Where * SQUAREVERT + 2] = camera->position.x + position.x + (this->size.x / 2);
-		this->vertices[_Where * SQUAREVERT + 3] = camera->position.y + position.y - (this->size.y / 2);
-		this->vertices[_Where * SQUAREVERT + 4] = camera->position.x + position.x + (this->size.x / 2);
-		this->vertices[_Where * SQUAREVERT + 5] = camera->position.y + position.y + (this->size.y / 2);
-		this->vertices[_Where * SQUAREVERT + 6] = camera->position.x + position.x - (this->size.x / 2);
-		this->vertices[_Where * SQUAREVERT + 7] = camera->position.y + position.y + (this->size.y / 2);
+		this->vertices[_Where * SQUAREVERT + 0 + COLORSIZE * 0] = camera->position.x + position.x - (this->size.x / 2);
+		this->vertices[_Where * SQUAREVERT + 1 + COLORSIZE * 0] = camera->position.y + position.y - (this->size.y / 2);
+		this->vertices[_Where * SQUAREVERT + 2 + COLORSIZE * 1] = camera->position.x + position.x + (this->size.x / 2);
+		this->vertices[_Where * SQUAREVERT + 3 + COLORSIZE * 1] = camera->position.y + position.y - (this->size.y / 2);
+		this->vertices[_Where * SQUAREVERT + 4 + COLORSIZE * 2] = camera->position.x + position.x + (this->size.x / 2);
+		this->vertices[_Where * SQUAREVERT + 5 + COLORSIZE * 2] = camera->position.y + position.y + (this->size.y / 2);
+		this->vertices[_Where * SQUAREVERT + 6 + COLORSIZE * 3] = camera->position.x + position.x - (this->size.x / 2);
+		this->vertices[_Where * SQUAREVERT + 7 + COLORSIZE * 3] = camera->position.y + position.y + (this->size.y / 2);
 
 	}
 	else {
-		this->vertices[_Where * SQUAREVERT + 0] = position.x - (this->size.x / 2);
-		this->vertices[_Where * SQUAREVERT + 1] = position.y - (this->size.y / 2);
-		this->vertices[_Where * SQUAREVERT + 2] = position.x + (this->size.x / 2);
-		this->vertices[_Where * SQUAREVERT + 3] = position.y - (this->size.y / 2);
-		this->vertices[_Where * SQUAREVERT + 4] = position.x + (this->size.x / 2);
-		this->vertices[_Where * SQUAREVERT + 5] = position.y + (this->size.y / 2);
-		this->vertices[_Where * SQUAREVERT + 6] = position.x - (this->size.x / 2);
-		this->vertices[_Where * SQUAREVERT + 7] = position.y + (this->size.y / 2);
+		this->vertices[_Where * SQUAREVERT + 0 + COLORSIZE * 0] = position.x - (this->size.x / 2);
+		this->vertices[_Where * SQUAREVERT + 1 + COLORSIZE * 0] = position.y - (this->size.y / 2);
+		this->vertices[_Where * SQUAREVERT + 2 + COLORSIZE * 1] = position.x + (this->size.x / 2);
+		this->vertices[_Where * SQUAREVERT + 3 + COLORSIZE * 1] = position.y - (this->size.y / 2);
+		this->vertices[_Where * SQUAREVERT + 4 + COLORSIZE * 2] = position.x + (this->size.x / 2);
+		this->vertices[_Where * SQUAREVERT + 5 + COLORSIZE * 2] = position.y + (this->size.y / 2);
+		this->vertices[_Where * SQUAREVERT + 6 + COLORSIZE * 3] = position.x - (this->size.x / 2);
+		this->vertices[_Where * SQUAREVERT + 7 + COLORSIZE * 3] = position.y + (this->size.y / 2);
 	}
 
 	glBindBuffer(GL_ARRAY_BUFFER, this->object.VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(this->vertices[0]) * this->vertices.size(), this->vertices.data(), GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(this->vertices[0]) * this->vertices.size(), this->vertices.data(), GL_STATIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	this->position = position;
 }
@@ -346,9 +352,16 @@ void Line::Add(const Mat2x2& begin_end, const Color& color) {
 }
 
 void Line::SetPosition(size_t _Where, const Mat2x2& begin_end) {
-	for (int i = _Where * 4, j = 0; i < _Where * 4 + 4; i++, j++) {
-		this->vertices[i] = begin_end.vec[(i & 2) >> 1][i & 1];
-	}
+
+	this->vertices[_Where * LINEVERT + 0] = begin_end.vec[0][0];
+	this->vertices[_Where * LINEVERT + 1] = begin_end.vec[0][1];
+	this->vertices[_Where * LINEVERT + COLORSIZE + 2] = begin_end.vec[1][0];
+	this->vertices[_Where * LINEVERT + COLORSIZE + 3] = begin_end.vec[1][1];
+
+
+	//for (int i = _Where * 4; i < _Where * 4 + 4; i++) {
+	//	this->vertices[i] = begin_end.vec[(i & 2) >> 1][i & 1];
+	//}
 	 
 	glBindBuffer(GL_ARRAY_BUFFER, this->object.VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(this->vertices[0]) * this->vertices.size(), this->vertices.data(), GL_DYNAMIC_DRAW);

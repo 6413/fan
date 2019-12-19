@@ -19,7 +19,7 @@ constexpr auto IntersectionPoint(const T& p1Start, const T& p1End, const T& p2St
 	}
 	float t = ((p1Start.x - p2Start.x) * (p2Start.y - p2End.y) - (p1Start.y - p2Start.y) * (p2Start.x - p2End.x)) / den;
 	float u = -((p1Start.x - p1End.x) * (p1Start.y - p2Start.y) - (p1Start.y - p1End.y) * (p1Start.x - p2Start.x)) / den;
-	if (t > 0 && t < 1 && u > 0 && u < 1) {
+	if (t > 0 && t < 1 && u > 0) {
 		//return true;
 		return Vec2(p1Start.x + t * (p1End.x - p1Start.x), p1Start.y + t * (p1End.y - p1Start.y));
 	}

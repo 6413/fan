@@ -4,6 +4,7 @@
 #include <GLFW/glfw3.h>
 #include "Vectors.hpp"
 #include <string>
+#include <vector>
 
 constexpr bool fullScreen = false;
 
@@ -19,7 +20,8 @@ namespace Input {
 	extern bool key[1024];
 	extern bool readchar;
 	extern std::string characters;
-	extern bool action;
+	extern bool action[348];
+	extern bool released[1024];
 }
 
 template <typename _Ty, typename _Ty2>
@@ -27,22 +29,9 @@ constexpr void GlfwErrorCallback(_Ty Num, _Ty2 Desc) {
 	printf("GLFW Error %d : %s\n", Num, Desc);
 }
 
-constexpr void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) { // what you mean
-	if (!action) {
-		if (key < 0) {
-			return;
-		}
-		Input::key[key % 1024] = false;
-		return;
-	}
-	Input::key[key] = true;
-}
+void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 
-template <typename _Ty>
-constexpr void MouseButtonCallback(_Ty window, int button, int action, int mods) {
-	//if (Input::key[button]) {
-	//	return;
-	//}
+constexpr void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
 	if ((button == GLFW_MOUSE_BUTTON_LEFT ||
 		button == GLFW_MOUSE_BUTTON_RIGHT)
 		&& action == GLFW_PRESS) {
@@ -51,6 +40,12 @@ constexpr void MouseButtonCallback(_Ty window, int button, int action, int mods)
 	else {
 		Input::key[button] = false;
 	}
+	for (int i = 0; i < GLFW_MOUSE_BUTTON_8; i++) {
+		if (i == button && action == 1) {
+			Input::action[button] = true;
+		}
+	}
+	
 }
 
 static void CursorPositionCallback(GLFWwindow* window, double xpos, double ypos) {
@@ -111,17 +106,14 @@ inline bool KeyPress(int key) {
 }
 
 inline bool KeyPressA(int key) {
-	bool localkey = KeyPress(key);
-	if (localkey && !Input::action) {
-		Input::action = true;
+	if (Input::action[key]) {
 		return true;
-	}
-	else if (!localkey) {
-		Input::action = false;
 	}
 	return false;
 }
 
-constexpr void ReadCharacters(bool condition) {
-	Input::readchar = condition;
+constexpr void KeysReset() {
+	for (int i = 0; i < 348; i++) {
+		Input::action[i] = false;
+	}
 }

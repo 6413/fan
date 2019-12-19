@@ -31,6 +31,7 @@ using namespace Settings;
 using namespace WindowNamespace;
 using namespace CursorNamespace;
 
+#define COLORSIZE 4
 #define LINEVERT 4
 #define TRIANGLEVERT 6
 #define SQUAREVERT 8
@@ -188,13 +189,14 @@ public:
 
 	Vec2 Size() const;
 
-	Vec2 GetPosition() const;
+	Vec2 GetPosition(size_t _Where) const;
 
-	Color GetColor(bool div) {
-		if (div) {
-			return this->color / 0xff;
-		}
-		return this->color;
+	Color GetColor(size_t _Where) const {
+		return Color(this->vertices[_Where * this->vertSize + 2], 
+			this->vertices[_Where * this->vertSize + 3], 
+			this->vertices[_Where * this->vertSize + 4], 
+			this->vertices[_Where * this->vertSize + 5]
+		);
 	}
 
 protected:

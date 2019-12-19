@@ -6,10 +6,9 @@
 #include "FAN/Bmp.hpp"
 
 #include "FAN/Texture.hpp"
+#include "FAN/Functions.hpp"
 
-#define CORRECTPOSITION(x) (floor(x / BLOCKSIZE) * BLOCKSIZE)
-
-Collision collision;
+float LINELENGTH = 500;
 
 int main() {
 	glfwSetErrorCallback(GlfwErrorCallback);
@@ -31,36 +30,86 @@ int main() {
 
 	const float blockSize = 64;
 
-	Line line(&_Main.camera, Mat2x2(Vec2(0, 0), Vec2(0, 0)), Color(1, 0, 0, 1));
+	Line grid(&_Main.camera, Mat2x2(Vec2(0, 0), Vec2(0, 0)), Color(1, 0, 0, 1));
 
-	Square square(&_Main.camera, Vec2(blockSize, blockSize), Color(0, 0, 0, 1));
+	Square gridSquares(&_Main.camera, Vec2(blockSize, blockSize), Color(0, 0, 0, 1));
+
+	Square light(&_Main.camera, Vec2(windowSize / 2), Vec2(16, 16), Color(1, 0, 1, 1));
+
+	Line rays(&_Main.camera, Mat2x2(light.GetPosition(0), light.GetPosition(0) + Vec2(100, 0)), Color(0, 1, 1, 1));
 
 	for (int rows = 0; rows < windowSize.x; rows += blockSize) {
-		line.Add(Mat2x2(Vec2(0, rows), Vec2(windowSize.x, rows)));
+		grid.Add(Mat2x2(Vec2(0, rows), Vec2(windowSize.x, rows)));
 	}
 	for (int rows = 0; rows < windowSize.x; rows += blockSize) {
-		line.Add(Mat2x2(Vec2(rows, 0), Vec2(rows, windowSize.y)));
+		grid.Add(Mat2x2(Vec2(rows, 0), Vec2(rows, windowSize.y)));
 	}
 	for (int colums = 0; colums < windowSize.y; colums += blockSize) {
 		for (int rows = 0; rows < windowSize.x; rows += blockSize) {
-			square.Add(Vec2(blockSize / 2 + rows, blockSize / 2 + colums), Vec2(blockSize));
+			gridSquares.Add(Vec2(blockSize / 2 + rows, blockSize / 2 + colums), Vec2(blockSize));
 		}
 	}
+
+	bool wall[196] = {};
+
+	//Raytra
 
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
 		float currentFrame = glfwGetTime();
 		deltaTime = currentFrame - lastFrame;
 		lastFrame = currentFrame;
-		 
-		glClearColor(0, 0, 0, 1); 
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		line.Draw();
-	
-		square.Draw();
 
-		if (KeyPressA(GLFW_MOUSE_BUTTON_LEFT)) {
-			square.SetColor(floor(cursorPos.x / blockSize) + floor(cursorPos.y / blockSize) * (windowSize.y / blockSize), '^', 1);
+		glClearColor(0, 0, 0, 1);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		Vec2 view = windowSize / blockSize;
+
+		bool colliding = false;
+
+		rays.Draw();
+		light.Draw();
+		grid.Draw();
+		gridSquares.Draw();
+
+		if (KeyPressA(GLFW_MOUSE_BUTTON_RIGHT)) {
+			gridSquares.GetColor(0);
+			const size_t at = int(cursorPos.x / blockSize) + int(cursorPos.y / blockSize) * (windowSize.y / blockSize);
+			gridSquares.SetColor(at, '^', 1);
+			wall[at] ^= 1;
+		}
+		const float accuracy = 128;
+
+		rays.SetPosition(0, Mat2x2(light.GetPosition(0), light.GetPosition(0) + Vec2(LINELENGTH, 0)));
+
+		for (int i = 0; i < 196; i++) {
+			if (!wall[i]) {
+				continue;
+			}
+			printf("%d\n", i);
+			if (Trace(light.GetPosition(0), 0, Vec2((i % 14) * view.x - 16, (i / 14) * view.y - 16), Vec2((i % 14) * view.x - 16, (i / 14) * view.y + 16))) {
+				printf("colliding\n");
+			}
+		}
+
+
+		//float distance = LINELENGTH / view.x;
+		//for (float i = 0; distance >= 0 ? i < distance : i > distance; i += distance / accuracy) {
+		//	if (wall[int(int((cursorPos.x + i * view.x) / blockSize) + int(cursorPos.y / blockSize) * view.y) % 196]) {
+		//		if (KeyPress(GLFW_MOUSE_BUTTON_LEFT)) {
+		//			rays.SetPosition(0, Mat2x2(light.GetPosition(0), Vec2(cursorPos.x + i * view.y, cursorPos.y)));
+		//			break;
+		//		}
+		//	}
+		//}
+
+		if (KeyPressA(GLFW_MOUSE_BUTTON_MIDDLE)) {
+			LINELENGTH = -LINELENGTH;
+		}
+
+		if (KeyPress(GLFW_MOUSE_BUTTON_LEFT)) {
+			if (light.GetPosition(0).x != cursorPos.x || light.GetPosition(0).y != cursorPos.y) {
+				light.SetPosition(0, cursorPos);
+			}
 		}
 
 		if (KeyPress(GLFW_KEY_ESCAPE)) {
@@ -69,6 +118,7 @@ int main() {
 
 		GetFps();
 		glfwSwapBuffers(window);
+		KeysReset();
 	}
 
 	glfwTerminate();
