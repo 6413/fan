@@ -353,10 +353,10 @@ void Line::Add(const Mat2x2& begin_end, const Color& color) {
 
 void Line::SetPosition(size_t _Where, const Mat2x2& begin_end) {
 
-	this->vertices[_Where * LINEVERT + 0] = begin_end.vec[0][0];
-	this->vertices[_Where * LINEVERT + 1] = begin_end.vec[0][1];
-	this->vertices[_Where * LINEVERT + COLORSIZE + 2] = begin_end.vec[1][0];
-	this->vertices[_Where * LINEVERT + COLORSIZE + 3] = begin_end.vec[1][1];
+	this->vertices[_Where + COLORSIZE + LINEVERT / 2 * LINEVERT + 0] = begin_end.vec[0][0];
+	this->vertices[_Where + COLORSIZE + LINEVERT / 2 * LINEVERT + 1] = begin_end.vec[0][1];
+	this->vertices[_Where + COLORSIZE + LINEVERT / 2 * LINEVERT + 4 + 2] = begin_end.vec[1][0];
+	this->vertices[_Where + COLORSIZE + LINEVERT / 2 * LINEVERT + 4 + 3] = begin_end.vec[1][1];
 
 
 	//for (int i = _Where * 4; i < _Where * 4 + 4; i++) {

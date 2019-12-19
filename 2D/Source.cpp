@@ -51,8 +51,14 @@ int main() {
 	}
 
 	bool wall[196] = {};
+	rays.Add(Mat2x2(Vec2(), Vec2(800, 800)), Color(0, 0, 1, 1));
 
-	//Raytra
+	//for (int iray = 0; iray < 1024; iray++) {
+	//	float progress = (float)iray / (float)1024;
+	//	Vec2 HDG = Vec2(sin(progress), cos(progress));
+	//	Vec2 Start = light.GetPosition(0);
+	//	rays.Add(Mat2x2(Start, HDG * 9999), Color(0, 0, 1, 1));
+	//}
 
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
@@ -79,17 +85,30 @@ int main() {
 		}
 		const float accuracy = 128;
 
-		rays.SetPosition(0, Mat2x2(light.GetPosition(0), light.GetPosition(0) + Vec2(LINELENGTH, 0)));
-
-		for (int i = 0; i < 196; i++) {
-			if (!wall[i]) {
-				continue;
-			}
-			printf("%d\n", i);
-			if (Trace(light.GetPosition(0), 0, Vec2((i % 14) * view.x - 16, (i / 14) * view.y - 16), Vec2((i % 14) * view.x - 16, (i / 14) * view.y + 16))) {
-				printf("colliding\n");
-			}
+		for (int iray = 0; iray < 1024; iray++) {
+			float progress = (float)iray / (float)1024;
+			Vec2 HDG = Vec2(sin(progress), cos(progress));
+			Vec2 Start = light.GetPosition(0);
+		//	rays.SetPosition(iray, (Mat2x2(Start, HDG * 9999)));
 		}
+		rays.SetPosition(1, (Mat2x2(light.GetPosition(0), Vec2(800, 800))));
+		//for (int i = 0; i < LINELENGTH; i++) {
+		//	Vec2 lightPos = light.GetPosition(0);
+		//	if (wall[int(int((lightPos.x + i) / blockSize) + int(lightPos.y / blockSize) * view.y)]) {
+		//		break;
+		//	}
+		//	rays.SetPosition(0, Mat2x2(lightPos, lightPos + Vec2(i, 0)));
+		//}
+
+		//for (int i = 0; i < 196; i++) {
+		//	if (!wall[i]) {
+		//		continue;
+		//	}
+		//	printf("%d\n", i);
+		//	if (Trace(light.GetPosition(0), 0, Vec2((i % 14) * view.x - 16, (i / 14) * view.y - 16), Vec2((i % 14) * view.x - 16, (i / 14) * view.y + 16))) {
+		//		printf("colliding\n");
+		//	}
+		//}
 
 
 		//float distance = LINELENGTH / view.x;
