@@ -6,7 +6,7 @@
 #include <iostream>
 #include <cmath>
 
-#include "FAN/Color.hpp"
+class Color;
 
 template <typename _Ty>
 class __Vec2 {
@@ -68,7 +68,7 @@ public:
 		return v.x == x && v.y == y;
 	}
 
-	constexpr size_t Size() const {
+	static constexpr size_t Size() {
 		return 2;
 	}
 
@@ -181,7 +181,7 @@ public:
 		return !x ? this->x : x == 1 ? this->y : x == 2 ? this->z : x == 3 ? this->a : this->a;
 	}
 
-	constexpr size_t Size() const {
+	static constexpr size_t Size() {
 		return 4;
 	}
 };
@@ -191,18 +191,27 @@ using Vec4 = __Vec4<float>;
 template <typename _Ty>
 struct __Mat2x2 {
 	Vec2 vec[2];
+	__Mat2x2(_Ty x) : vec{ Vec2(x, 0, 0, 0),
+__Vec2<_Ty>(0, x, 0, 0) } {};
+	__Mat2x2() : vec{ Vec2(), Vec2() } {};
 	__Mat2x2(const __Mat2x2& m) {
 		vec[0] = m.vec[0];
 		vec[1] = m.vec[1];
 		vec[2] = m.vec[2];
 		vec[3] = m.vec[3];
 	}
-	__Mat2x2(const Vec2& x, const Vec2& y) {
+	template <typename _Type>
+	__Mat2x2(const __Vec2<_Ty>& x, const __Vec2< _Type >& y) {
 		vec[0] = x; vec[1] = y;
 	}
-	__Mat2x2(_Ty x) : vec{ Vec2(x, 0, 0, 0),
-	__Vec2<_Ty>(0, x, 0, 0) } {};
-	__Mat2x2() : vec{ Vec2(), Vec2() } {};
+	
+	constexpr __Vec2<_Ty> operator[](size_t _Where) const {
+		return vec[_Where];
+	}
+
+	constexpr size_t size() const {
+		return 4;
+	}
 };
 
 using Mat2x2 = __Mat2x2<float>;
@@ -210,6 +219,12 @@ using Mat2x2 = __Mat2x2<float>;
 template <typename _Ty>
 struct __Mat2x3 {
 	Vec2 vec[3];
+	__Mat2x3(_Ty x) : vec{ 
+	__Vec2<_Ty>(x, 0, 0, 0),
+	__Vec2<_Ty>(0, x, 0, 0),
+	__Vec2<_Ty>(0, 0, x, 0) } {};
+	__Mat2x3() : vec{ Vec2(), Vec2(), Vec2() } {};
+
 	__Mat2x3(const __Mat2x3& m) {
 		vec[0] = m.vec[0];
 		vec[1] = m.vec[1];
@@ -220,11 +235,6 @@ struct __Mat2x3 {
 		vec[1] = m1;
 		vec[2] = m2;
 	}
-	__Mat2x3(_Ty x) : vec{ 
-	__Vec2<_Ty>(x, 0, 0, 0),
-	__Vec2<_Ty>(0, x, 0, 0),
-	__Vec2<_Ty>(0, 0, x, 0) } {};
-	__Mat2x3() : vec{ Vec2(), Vec2(), Vec2() } {};
 };
 
 using Mat2x3 = __Mat2x3<float>;
@@ -265,6 +275,28 @@ struct __Mat4x4 {
 };
 
 using Mat4x4 = __Mat4x4<float>;
+
+class Color {
+public:
+	float r, g, b, a;
+	Color() : r(0), g(0), b(0), a(0) {}
+
+	Color(float r, float g, float b, float a) {
+		this->r = r;
+		this->g = g;
+		this->b = b;
+		this->a = a;
+	}
+
+	constexpr float operator[](size_t x) const {
+		return !x ? this->r : x == 1 ? this->g : x == 2 ? this->b : x == 3 ? this->a : this->a;
+	}
+};
+
+template <typename color_t, typename _Type>
+constexpr color_t operator/(const color_t& c, _Type value) {
+	return color_t(c.r / value, c.g / value, c.b / value, c.a / value);
+}
 
 template <typename _Casted, template<typename> typename _Vec_t, typename _Old>
 constexpr _Vec_t<_Casted> Cast(_Vec_t<_Old> v) {
