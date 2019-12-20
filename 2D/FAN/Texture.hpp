@@ -3,20 +3,21 @@
 #define GLEW_STATIC
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
-#include <vector>
 
-#include "Input.hpp"
-#include "Settings.hpp"
-#include "Math.hpp"
-#include "Shader.h"
+#include "Alloc.hpp"
 #include "Camera.hpp"
-#include "Color.hpp"
+#include "Input.hpp"
+#include "Math.hpp"
+#include "Settings.hpp"
+#include "Shader.h"
+
 
 #ifdef _MSC_VER
 #pragma warning (disable : 26495)
 #endif
 
 #define BackgroundSize 1500
+#define COLORSIZE 4
 
 class Object;
 class Texture;
@@ -31,79 +32,6 @@ using namespace Settings;
 using namespace WindowNamespace;
 using namespace CursorNamespace;
 
-#define COLORSIZE 4
-#define LINEVERT 4
-#define TRIANGLEVERT 6
-#define SQUAREVERT 8
-#define BLOCKAMOUNT 4
-#define BLOCKSIZE 64
-#define PLAYERSIZE Vec2(90, 90)
-
-constexpr float triangle_vertices[TRIANGLEVERT] = {
-	-0.433, 0.25,
-	 0.433, 0.25,
-	 0.0,  -0.5f
-};
-
-constexpr float square_vertices[SQUAREVERT] = {
-	0.5f, 0.5f,
-	0.5f, -0.5f,
-   -0.5f, -0.5f,
-   -0.5f, 0.5f
-};
-
-class Collision {
-public:
-	void AddCollidable(const Vec2& position, size_t _id) {
-
-		Vec2 object(floor((position.x - BLOCKSIZE / 2) / BLOCKSIZE), floor((position.y - BLOCKSIZE) / BLOCKSIZE));
-		this->collidable.push_back(object);
-		object = Vec2(floor((position.x + BLOCKSIZE / 2) / BLOCKSIZE), floor((position.y + BLOCKSIZE) / BLOCKSIZE));
-		this->collidable.push_back(object);
-		this->id.push_back(_id);
-	}
-
-	void AddCollidableCustom(const Vec2& position, const Vec2& size, size_t _id) {
-		Vec2 object(floor((position.x - BLOCKSIZE / 2 - size.x) / BLOCKSIZE), floor((position.y - BLOCKSIZE) / BLOCKSIZE));
-		this->collidable.push_back(object);
-		object = Vec2(floor((position.x + BLOCKSIZE / 2 - size.x) / BLOCKSIZE), floor((position.y + BLOCKSIZE) / BLOCKSIZE));
-		this->collidable.push_back(object);
-		this->id.push_back(_id);
-	}
-
-	void DeleteCollidable(size_t _id) {
-		this->collidable.erase(collidable.begin() + _id - 1);
-		this->collidable.erase(collidable.begin() + _id);
-		this->id.erase(id.begin() + _id);
-	}
-
-	bool IsColliding(const Vec2& position) const {
-		Vec2 formatted(floor((position.x) / BLOCKSIZE), floor((position.y + BLOCKSIZE / 2) / BLOCKSIZE));
-		for (auto i : collidable) {
-			if (formatted.x == i.x && formatted.y == i.y) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	bool isCollidingCustom(const Vec2& position, const Vec2& old) const {
-		Vec2 formatted(floor((position.x) / BLOCKSIZE), floor((position.y + BLOCKSIZE / 2) / BLOCKSIZE));
-		Vec2 formatOld(floor((old.x) / BLOCKSIZE), floor((old.y + BLOCKSIZE / 2) / BLOCKSIZE));
-		for (auto i : collidable) {
-			if (formatted.x < i.x && formatted.y == i.y && formatOld.x > i.x) {
-				return true;
-			}
-		}
-		return false;
-	}
-private:
-	std::vector<Vec2> collidable;
-	std::vector<size_t> id;
-};
-
-extern Collision collision;
-
 class Object {
 public:
 	unsigned int texture;
@@ -112,23 +40,11 @@ public:
 	Object() : texture(0), width(0), height(0), VBO(0), VAO(0), EBO(0) { }
 };
 
-struct ImageData {
-	ImageData() : image(0), object() {}
-	ImageData(const unsigned char* image, Object& object) : image(image), object(object) {}
-	const unsigned char* image;
-	Object object;
-};
-
 class Texture {
 public:
 	Texture() : vertices{ 0 } { }
 	void IntializeImage(Texture& texture);
 	float vertices[30];
-};
-
-class Physics {
-protected:
-	const float gravity = 100;
 };
 
 class Sprite {
@@ -165,128 +81,164 @@ protected:
 	float angle;
 };
 
-#define MIDDLE 0xDEADBEEF
+struct VerCol {
+	VerCol() : vertices(), colors(){}
+	VerCol(const Alloc<float>& _Vec, const Color& _Col) {
+		for (int i = 0; i < _Vec.size(); i++) {
+			this->vertices.push_back(_Vec[i]);
+		}
+		this->colors = _Col;
+	}
+	Alloc<float> vertices;
+	Color colors;
+};
 
-class Shape {
+class ShapeDefault {
 public:
+	void draw() {
+		this->shader.Use();
+		Mat4x4 view(1);
 
-	Shape() {}
+		view = camera->GetViewMatrix(Translate(view, Vec3(windowSize.x / 2, windowSize.y / 2, -700.0f)));
 
-	Shape(Camera* camera, const Vec2& position, const Vec2& pixelSize, const Color& color, size_t _vertSize, std::vector<float> vec, 
-		Shader shader = Shader("GLSL/shapes.vs", "GLSL/shapes.frag"));
+		Mat4x4 projection(1);
+		projection = Ortho(windowSize.x / 2, windowSize.x + windowSize.x * 0.5, windowSize.y + windowSize.y * 0.5f, windowSize.y / 2, 0.1f, 1000.0f);
+		int projLoc = glGetUniformLocation(shader.ID, "projection");
+		int viewLoc = glGetUniformLocation(shader.ID, "view");
+		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view.vec[0].x);
+		glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection.vec[0].x);
 
-	~Shape();
-
-	void Draw();
-	
-	void DrawLight(Square& light);
-
-	void SetColor(size_t _Where, Color color);
-
-	void SetColor(size_t _Where, char _operator, int value);
-
-	void Rotatef(float angle, Vec2 point = Vec2(MIDDLE));
-
-	Vec2 Size() const;
-
-	Vec2 GetPosition(size_t _Where) const;
-
-	Color GetColor(size_t _Where) const {
-		return Color(this->vertices[_Where * this->vertSize + 2], 
-			this->vertices[_Where * this->vertSize + 3], 
-			this->vertices[_Where * this->vertSize + 4], 
-			this->vertices[_Where * this->vertSize + 5]
-		);
+		glBindVertexArray(this->object.VAO);
+		glDrawArrays(this->type, 0, this->points);
+		glBindVertexArray(0);
 	}
 
 protected:
-	std::vector<float> vertices;
+	void init(Camera* camera) {
+		this->camera = camera;
+		glGenVertexArrays(1, &this->object.VAO);
+		glGenBuffers(1, &this->object.VBO);
+		glBindVertexArray(this->object.VAO);
+
+		merge();
+		
+		glBindBuffer(GL_ARRAY_BUFFER, this->object.VBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(data[0]) * data.size(), data.data(), GL_STATIC_DRAW);
+
+		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+		glEnableVertexAttribArray(0);
+
+		glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(2 * sizeof(float)));
+		glEnableVertexAttribArray(1);
+
+
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBindVertexArray(0);
+	}
+
+	void writeToGpu(const Alloc<float>& v) {
+		glBindBuffer(GL_ARRAY_BUFFER, this->object.VBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(v[0]) * v.size(), v.data(), GL_STATIC_DRAW);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+	}
+
+	void merge() {
+		size_t at = verCol.size() - 1;
+		float* ptr = NULL;
+		for (int i = 0; i < this->pointSize; i++) {
+			for (int vert = i & 1 ? verCol[at].vertices.size() / 2 : 0; i & 1 ? vert < verCol[at].vertices.size() : vert < verCol[at].vertices.size() / 2; vert++) {
+				float vertAt = verCol[at].vertices[vert];
+				data.push_back(vertAt);
+				static bool once = false;
+				verticeMemory.push_back(data.size() - 1);
+			}
+			for (int color = 0; color < COLORSIZE; color++) {
+				data.push_back(verCol[at].colors[color]);
+			}
+		}
+	}
+
+	void edit(size_t _Where, const std::vector<float>& v, const Color& color = Color(-1, 0, 0, 0)) {
+		if (color.r != -1) {
+			
+		}
+		else {
+			for (int i = 0; i < v.size(); i++) {
+				data[verticeMemory[i + _Where * v.size()]] = v[i];
+			}
+		}
+		writeToGpu(data);
+	}
+
+	size_t type;
 	Object object;
-	Shader shader;
 	Camera* camera;
-	Vec2 position;
-	Vec2 size;
-	Color color;
-	Vec3 rotatexyz;
-	float angle;
-	long long type;
-	uint64_t points;
-	uint64_t vertSize;
+	Shader shader = Shader("GLSL/shapes.vs", "GLSL/shapes.frag");
+	Alloc<VerCol> verCol;
+	Alloc<float> data;
+	Alloc<size_t> verticeMemory;
+	size_t points;
+	size_t pointSize;
 };
 
-class Triangle : public Shape {
+class Line : public ShapeDefault {
 public:
-	Triangle(Camera* camera, const Vec2& position, const Vec2& size, const Color& color) :
-		Shape(camera, position, size, color, TRIANGLEVERT, std::vector<float> {
-		position.x - (size.x / 2), position.y + (size.y / 2), color.r, color.g, color.b, color.a,
-		position.x + (size.x / 2), position.y + (size.y / 2), color.r, color.g, color.b, color.a,
-		position.x, position.y - (size.y / 2), color.r, color.g, color.b, color.a
-	}) {
-		this->size = size;
-		vertSize = TRIANGLEVERT;
-		type = GL_TRIANGLES;
-		points = 3;
-	}
-	void Add(const Vec2& position, Vec2 size = Vec2());
-
-	void SetPosition(size_t _Where, const Vec2& position);
-};
-
-class Square : public Shape {
-public:
-	Square() {}
-
-	Square(Camera* camera, const Vec2& size, const Color& color) : Shape(camera, Vec2(), size, color, SQUAREVERT, std::vector<float>{}, Shader("GLSL/shapes.vs", "GLSL/shapes.frag")) {
-		this->size = size;
-		vertSize = SQUAREVERT;
-		type = GL_QUADS;
-		points = 4;
-	}
-
-	Square(Camera* camera, const Vec2& position, const Vec2& size, const Color& color, Shader shader = Shader("GLSL/shapes.vs", "GLSL/shapes.frag")) :
-		Shape(camera, position, size, color, SQUAREVERT, std::vector<float> {
-		position.x - (size.x / 2), position.y - (size.y / 2), color.r, color.g, color.b, color.a,
-		position.x + (size.x / 2), position.y - (size.y / 2), color.r, color.g, color.b, color.a,
-		position.x + (size.x / 2), position.y + (size.y / 2), color.r, color.g, color.b, color.a,
-		position.x - (size.x / 2), position.y + (size.y / 2), color.r, color.g, color.b, color.a
-	}, shader) {
-		this->size = size;
-		vertSize = SQUAREVERT;
-		type = GL_QUADS;
-		points = 4;
-	}
-	
-	void Add(const Vec2& position, const Vec2& size, const Color& color = Color(-1, -1, -1, -1));
-
-	void SetPosition(size_t _Where, const Vec2& position);
-};
-
-class Line : public Shape {
-public:
-	Line() {};
-	/*Line(Camera* camera, const Vec2& size, const Color& color = Color(255, 0, 0, 255)) : Shape(camera, Vec2(), Vec2(), color, std::vector<float>{}) {
-		this->size = size;
-		this->vertSize = LINEVERT;
-		type = GL_LINES;
-		points = 0;
-	};*/
-	Line(Camera* camera, const Mat2x2& begin_end, const Color& color) : 
-		Shape(camera, Vec2(), Vec2(), color, LINEVERT, std::vector<float> {
-		begin_end.vec[0].x, begin_end.vec[0].y, color.r, color.g, color.b, color.a,
-		begin_end.vec[1].x, begin_end.vec[1].y, color.r, color.g, color.b, color.a
-
-	}){
-		this->size = Vec2(abs(begin_end.vec[0].x - begin_end.vec[1].x), abs(begin_end.vec[0].y - begin_end.vec[1].y));
-		this->vertSize = LINEVERT;
+	Line(Camera* camera, const Mat2x2& position, const Color& color) {
 		this->type = GL_LINES;
 		this->points = 2;
+		this->pointSize = this->points;
+		Alloc<float> _Temp;
+		for (int i = 0; i < pointSize * 2; i++) {
+			_Temp.push_back(position.vec[!!(i & 2)][i & 1]);
+		}
+		this->verCol.push_back(VerCol(_Temp, color));
+		this->init(camera);
 	}
 
-	void Add(const Mat2x2& begin_end, const Color& color = Color(-1, -1, -1, -1));
+	void push_back(const Mat2x2& position, const Color& color = Color(-1, 0, 0, 0)) {
 
-	void SetPosition(size_t _Where, const Mat2x2& begin_end);
-	void SetPosition(size_t _Where, const Vec2& position);
+		Alloc<float> _Temp;
+		for (int i = 0; i < pointSize * 2; i++) {
+			_Temp.push_back(position.vec[!!(i & 2)][i & 1]);
+		}
+		this->verCol.push_back(VerCol(_Temp, color));
+
+		merge();
+
+		this->writeToGpu(data);
+		this->points += 2;
+	}
+
+	Vec2 getPosition(size_t _Where) const {
+		return Vec2(verCol[_Where].vertices[2] - verCol[_Where].vertices[0], verCol[_Where].vertices[3] - verCol[_Where].vertices[1]);
+	}
+
+	void setPosition(size_t _Where, const Mat2x2& position) {
+		std::vector<float> vec;
+
+		for (int i = 0; i < position.size() * 0.5; i++) {
+			for (int j = 0; j < position.size() * 0.5; j++) {
+				vec.push_back(position.vec[i][j]);
+			}
+		}
+		edit(_Where, vec);
+	}
 };
+
+class Triangle {
+public:
+	void setPos(Vec2 x) {}
+};
+
+class Square {
+public:
+	void setPos(Mat2x2 x) {}
+};
+
+//template <typename shape_t>
+//class Shape : public shape_t {
+//	Shape(Camera* camera, const Mat2x2& position, const Vec2 size, const Color& color) : shape_t(camera, position, size, color) {}
+//};
 
 enum class GroupId {
 	NotAssigned = -1,
@@ -294,7 +246,7 @@ enum class GroupId {
 	Enemy = 1
 };
 
-class Entity : public Sprite, public Physics {
+class Entity : public Sprite {
 public:
 	Entity() : groupId(GroupId::NotAssigned) {}
 
@@ -330,6 +282,7 @@ private:
 	GroupId groupId;
 	Vec2 velocity;
 	float health;
+	float gravity;
 	const float movementSpeed = 10000;
 	const float friction = 10;
 	const float jumpForce = 800;

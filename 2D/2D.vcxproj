@@ -157,9 +157,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="FAN\Alloc.hpp" />
     <ClInclude Include="FAN\bmp.hpp" />
     <ClInclude Include="FAN\Camera.hpp" />
-    <ClInclude Include="FAN\Color.hpp" />
     <ClInclude Include="FAN\Functions.hpp" />
     <ClInclude Include="FAN\Input.hpp" />
     <ClInclude Include="FAN\Math.hpp" />
@@ -183,7 +183,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="FAN\Bmp.cpp" />
-    <ClCompile Include="FAN\Color.cpp" />
     <ClCompile Include="FAN\Functions.cpp" />
     <ClCompile Include="FAN\Input.cpp" />
     <ClCompile Include="FAN\Settings.cpp" />
