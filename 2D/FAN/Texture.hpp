@@ -1,5 +1,5 @@
 #pragma once
-#define GLFW_INCLUDE_VULKAN
+
 #define GLEW_STATIC
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -18,6 +18,7 @@
 
 #define BackgroundSize 1500
 #define COLORSIZE 4
+#define COORDSIZE 2
 
 class Object;
 class Texture;
@@ -83,15 +84,17 @@ protected:
 
 struct VerCol {
 	VerCol() : vertices(), colors(){}
-	VerCol(const Alloc<float>& _Vec, const Color& _Col) {
+	VerCol(const std::vector<float>& _Vec, const Color& _Col) {
 		for (int i = 0; i < _Vec.size(); i++) {
 			this->vertices.push_back(_Vec[i]);
 		}
 		this->colors = _Col;
 	}
-	Alloc<float> vertices;
+	std::vector<float> vertices;
 	Color colors;
 };
+
+std::vector<Vec2> LoadMap(float blockSize);
 
 class ShapeDefault {
 public:
@@ -113,6 +116,48 @@ public:
 		glBindVertexArray(0);
 	}
 
+	Color GetColor(size_t _Index) const {
+		return Color(this->data[_Index * this->pointSize + 2],
+			this->data[_Index * this->pointSize + 3],
+			this->data[_Index * this->pointSize + 4],
+			this->data[_Index * this->pointSize + 5]
+		);
+	}
+
+	void SetColor(size_t _Index, char _operator, int value) {
+		for (int i = 0; i < pointSize * COLORSIZE + COLORSIZE; i += (COORDSIZE + COLORSIZE)) {
+			switch (_operator) {
+			case '^': {
+				//this->data[i + _Index] 
+				this->data[(i + _Index * (24)) + 2] = (int)data[(i + _Index * (24)) + 2] ^ value;
+				this->data[(i + _Index * (24)) + 3] = (int)data[(i + _Index * (24)) + 3] ^ value;
+				this->data[(i + _Index * (24)) + 4] = (int)data[(i + _Index * (24)) + 4] ^ value;
+				break;
+			}
+			}
+
+		}
+		writeToGpu(data);
+	}
+
+	void SaveMap(float blockSize) {
+		std::ofstream file;
+		file.open("data");
+		std::vector<int> blocks;
+		for (int i = 0; i < objectAmount; i++) {
+			if (wall[i]) {
+				blocks.push_back(i);
+			}
+		}
+
+		for (int i = 0; i < blocks.size(); i++) {
+			file << blocks[i] << std::endl;
+		}
+
+		file.close();
+	}
+
+	bool wall[14 * 14];
 protected:
 	void init(Camera* camera) {
 		this->camera = camera;
@@ -120,7 +165,9 @@ protected:
 		glGenBuffers(1, &this->object.VBO);
 		glBindVertexArray(this->object.VAO);
 
-		merge();
+		if (objectAmount) {
+			merge();
+		}
 		
 		glBindBuffer(GL_ARRAY_BUFFER, this->object.VBO);
 		glBufferData(GL_ARRAY_BUFFER, sizeof(data[0]) * data.size(), data.data(), GL_STATIC_DRAW);
@@ -136,7 +183,7 @@ protected:
 		glBindVertexArray(0);
 	}
 
-	void writeToGpu(const Alloc<float>& v) {
+	void writeToGpu(const std::vector<float>& v) {
 		glBindBuffer(GL_ARRAY_BUFFER, this->object.VBO);
 		glBufferData(GL_ARRAY_BUFFER, sizeof(v[0]) * v.size(), v.data(), GL_STATIC_DRAW);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -144,13 +191,12 @@ protected:
 
 	void merge() {
 		size_t at = verCol.size() - 1;
-		float* ptr = NULL;
+		int vertIndex = 0;
 		for (int i = 0; i < this->pointSize; i++) {
-			for (int vert = i & 1 ? verCol[at].vertices.size() / 2 : 0; i & 1 ? vert < verCol[at].vertices.size() : vert < verCol[at].vertices.size() / 2; vert++) {
-				float vertAt = verCol[at].vertices[vert];
-				data.push_back(vertAt);
-				static bool once = false;
-				verticeMemory.push_back(data.size() - 1);
+			for (int vertices = 0; vertices < 2; vertices++) {
+				data.push_back(verCol[at].vertices[vertIndex]);
+				verticeMemory.push_back(vertIndex + objectAmount * verCol[at].vertices.size());
+				vertIndex++;
 			}
 			for (int color = 0; color < COLORSIZE; color++) {
 				data.push_back(verCol[at].colors[color]);
@@ -169,16 +215,17 @@ protected:
 		}
 		writeToGpu(data);
 	}
-
+	Vec2 size;
 	size_t type;
 	Object object;
 	Camera* camera;
 	Shader shader = Shader("GLSL/shapes.vs", "GLSL/shapes.frag");
-	Alloc<VerCol> verCol;
-	Alloc<float> data;
-	Alloc<size_t> verticeMemory;
+	std::vector<VerCol> verCol;
+	std::vector<float> data;
+	std::vector<size_t> verticeMemory;
 	size_t points;
 	size_t pointSize;
+	size_t objectAmount;
 };
 
 class Line : public ShapeDefault {
@@ -187,33 +234,27 @@ public:
 		this->type = GL_LINES;
 		this->points = 2;
 		this->pointSize = this->points;
-		Alloc<float> _Temp;
+		std::vector<float> _Temp;
 		for (int i = 0; i < pointSize * 2; i++) {
 			_Temp.push_back(position.vec[!!(i & 2)][i & 1]);
 		}
 		this->verCol.push_back(VerCol(_Temp, color));
 		this->init(camera);
+		objectAmount++;
 	}
-
 	void push_back(const Mat2x2& position, const Color& color = Color(-1, 0, 0, 0)) {
-
-		Alloc<float> _Temp;
-		for (int i = 0; i < pointSize * 2; i++) {
-			_Temp.push_back(position.vec[!!(i & 2)][i & 1]);
-		}
-		this->verCol.push_back(VerCol(_Temp, color));
-
+		this->verCol.push_back(VerCol(std::vector<float>{position.vec[0].x, position.vec[0].y, position.vec[1].x, position.vec[1].y} , color.r != -1 ? color : GetColor(0)));
 		merge();
-
 		this->writeToGpu(data);
-		this->points += 2;
+		this->points += pointSize;
+		objectAmount++;
 	}
 
-	Vec2 getPosition(size_t _Where) const {
-		return Vec2(verCol[_Where].vertices[2] - verCol[_Where].vertices[0], verCol[_Where].vertices[3] - verCol[_Where].vertices[1]);
+	Vec2 getPosition(size_t _Index) const {
+		return Vec2(verCol[_Index].vertices[2] - verCol[_Index].vertices[0], verCol[_Index].vertices[3] - verCol[_Index].vertices[1]);
 	}
 
-	void setPosition(size_t _Where, const Mat2x2& position) {
+	void setPosition(size_t _Index, const Mat2x2& position) {
 		std::vector<float> vec;
 
 		for (int i = 0; i < position.size() * 0.5; i++) {
@@ -221,7 +262,7 @@ public:
 				vec.push_back(position.vec[i][j]);
 			}
 		}
-		edit(_Where, vec);
+		edit(_Index, vec);
 	}
 };
 
@@ -230,9 +271,58 @@ public:
 	void setPos(Vec2 x) {}
 };
 
-class Square {
+class Square : public ShapeDefault {
 public:
-	void setPos(Mat2x2 x) {}
+	Square(Camera* camera, const Vec2& position, const Vec2& size, const Color& color) {
+		this->size = size;
+		points = 4;
+		pointSize = points;
+		type = GL_QUADS;
+		verCol.push_back(VerCol(std::vector<float>{
+			position.x - (size.x / 2), position.y - (size.y / 2),
+			position.x + (size.x / 2), position.y - (size.y / 2),
+			position.x + (size.x / 2), position.y + (size.y / 2),
+			position.x - (size.x / 2), position.y + (size.y / 2)
+
+		}, color));
+		objectAmount++;
+		this->init(camera);
+	}
+
+	Square(Camera* camera, const Vec2& size, const Color& color) {
+		this->size = size;
+		type = GL_QUADS;
+		points = 4;
+		pointSize = points;
+		objectAmount = 0;
+		init(camera);
+	}
+
+	void push_back(const Vec2& position, const Color& color = Color(-1, 0, 0, 0)) {
+		this->verCol.push_back(VerCol(std::vector<float> {
+			position.x - (size.x / 2), position.y - (size.y / 2),
+			position.x + (size.x / 2), position.y - (size.y / 2),
+			position.x + (size.x / 2), position.y + (size.y / 2),
+			position.x - (size.x / 2), position.y + (size.y / 2)
+		}, color.r != -1 ? color : GetColor(0)));
+		merge();
+		this->writeToGpu(data);
+		this->points += pointSize;
+		objectAmount++;
+	}
+
+	Vec2 getPosition(size_t _Index) const {
+		return Vec2(verCol[_Index].vertices[2] - verCol[_Index].vertices[0], verCol[_Index].vertices[3] - verCol[_Index].vertices[1]);
+	}
+
+	void setPosition(size_t _Index, const Vec2& position) {
+		edit(_Index, std::vector<float> {
+				position.x - (size.x / 2), position.y - (size.y / 2),
+				position.x + (size.x / 2), position.y - (size.y / 2),
+				position.x + (size.x / 2), position.y + (size.y / 2),
+				position.x - (size.x / 2), position.y + (size.y / 2)
+		});
+	}
 };
 
 //template <typename shape_t>
