@@ -100,7 +100,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <AdditionalLibraryDirectories>$(SolutionDir)External sources\GLEW\lib\Release\x64;$(SolutionDir)External libraries\lib\assimp;$(SolutionDir)External sources\GLFW\lib-vc2019;$(SolutionDir)irrKlang-64bit-1.6.0\lib\Winx64-visualStudio;C:\Users\123\Documents\GitHub\2D\External sources\VULKAN\1.1.126.0\Lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opengl32.lib;glew32s.lib;glfw3.lib;vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;glew32s.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/ignore:4286 /ignore:4099 </AdditionalOptions>
       <LinkTimeCodeGeneration>UseFastLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
@@ -150,7 +150,7 @@
       <EnableCOMDATFolding>false</EnableCOMDATFolding>
       <OptimizeReferences>false</OptimizeReferences>
       <AdditionalLibraryDirectories>$(SolutionDir)External sources\GLEW\lib\Release\x64;$(SolutionDir)External libraries\lib\assimp;$(SolutionDir)External sources\GLFW\lib-vc2019;$(SolutionDir)irrKlang-64bit-1.6.0\lib\Winx64-visualStudio;C:\Users\123\Documents\GitHub\2D\External sources\VULKAN\1.1.126.0\Lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opengl32.lib;glew32s.lib;glfw3.lib;vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;glew32s.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/ignore:4286 /ignore:4099 %(AdditionalOptions)</AdditionalOptions>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
       <Profile>true</Profile>
