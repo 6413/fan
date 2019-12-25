@@ -187,6 +187,8 @@
     <ClCompile Include="FAN\Input.cpp" />
     <ClCompile Include="FAN\Settings.cpp" />
     <ClCompile Include="FAN\Texture.cpp" />
+    <ClCompile Include="Math.cpp" />
+    <ClCompile Include="NotwindowThings.cpp" />
     <ClCompile Include="Source.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

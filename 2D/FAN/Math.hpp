@@ -88,8 +88,8 @@ constexpr auto AbsAngle(const T& src, const T& dst, float deltaTime) {
 }
 
 template <typename _Ty>
-constexpr auto GridCoord(const __Vec2<_Ty>& world, const __Vec2<_Ty>& offSet) {
-	return __Vec2<_Ty>(floor((world.x + offSet.x) / 64), floor((world.y + offSet.y) / 64));
+constexpr auto Grid(const __Vec2<_Ty>& world, const __Vec2<_Ty>& offSet, float blockSize) {
+	return __Vec2<_Ty>(floor((world.x + offSet.x) / blockSize), floor(((world.y + offSet.y) / blockSize)));
 }
 
 template <typename _Ty>
@@ -215,24 +215,4 @@ constexpr auto Rotate(_Ty m, float angle, _Ty2 v) {
 	return Result;
 }
 
-template <class T>
-constexpr auto operator*(const T& lhs, const T& rhs) {
-	return Mat4x4(
-		Vec4(lhs.vec[0].x * rhs.vec[0].x + lhs.vec[0].y * rhs.vec[1].x + lhs.vec[0].z * rhs.vec[2].x + lhs.vec[0].a * rhs.vec[3].x,
-			 lhs.vec[0].x * rhs.vec[0].y + lhs.vec[0].y * rhs.vec[1].y + lhs.vec[0].z * rhs.vec[2].y + lhs.vec[0].a * rhs.vec[3].y,
-			 lhs.vec[0].x * rhs.vec[0].z + lhs.vec[0].y * rhs.vec[1].z + lhs.vec[0].z * rhs.vec[2].z + lhs.vec[0].a * rhs.vec[3].z,
-			 lhs.vec[0].x * rhs.vec[0].a + lhs.vec[0].y * rhs.vec[1].a + lhs.vec[0].z * rhs.vec[2].a + lhs.vec[0].a * rhs.vec[3].a),
-		Vec4(lhs.vec[1].x * rhs.vec[0].x + lhs.vec[1].y * rhs.vec[1].x + lhs.vec[1].z * rhs.vec[2].x + lhs.vec[1].a * rhs.vec[3].x,
-			 lhs.vec[1].x * rhs.vec[0].y + lhs.vec[1].y * rhs.vec[1].y + lhs.vec[1].z * rhs.vec[2].y + lhs.vec[1].a * rhs.vec[3].y,
-			 lhs.vec[1].x * rhs.vec[0].z + lhs.vec[1].y * rhs.vec[1].z + lhs.vec[1].z * rhs.vec[2].z + lhs.vec[1].a * rhs.vec[3].z,
-			 lhs.vec[1].x * rhs.vec[0].a + lhs.vec[1].y * rhs.vec[1].a + lhs.vec[1].z * rhs.vec[2].a + lhs.vec[1].a * rhs.vec[3].a),
-		Vec4(lhs.vec[2].x * rhs.vec[0].x + lhs.vec[2].y * rhs.vec[1].x + lhs.vec[2].z * rhs.vec[2].x + lhs.vec[2].a * rhs.vec[3].x,
-			 lhs.vec[2].x * rhs.vec[0].y + lhs.vec[2].y * rhs.vec[1].y + lhs.vec[2].z * rhs.vec[2].y + lhs.vec[2].a * rhs.vec[3].y,
-			 lhs.vec[2].x * rhs.vec[0].z + lhs.vec[2].y * rhs.vec[1].z + lhs.vec[2].z * rhs.vec[2].z + lhs.vec[2].a * rhs.vec[3].z,
-			 lhs.vec[2].x * rhs.vec[0].a + lhs.vec[2].y * rhs.vec[1].a + lhs.vec[2].z * rhs.vec[2].a + lhs.vec[2].a * rhs.vec[3].a),
-		Vec4(lhs.vec[3].x * rhs.vec[0].x + lhs.vec[3].y * rhs.vec[1].x + lhs.vec[3].z * rhs.vec[2].x + lhs.vec[3].a * rhs.vec[3].x,
-			 lhs.vec[3].x * rhs.vec[0].y + lhs.vec[3].y * rhs.vec[1].y + lhs.vec[3].z * rhs.vec[2].y + lhs.vec[3].a * rhs.vec[3].y,
-			 lhs.vec[3].x * rhs.vec[0].z + lhs.vec[3].y * rhs.vec[1].z + lhs.vec[3].z * rhs.vec[2].z + lhs.vec[3].a * rhs.vec[3].z,
-			 lhs.vec[3].x * rhs.vec[0].a + lhs.vec[3].y * rhs.vec[1].a + lhs.vec[3].z * rhs.vec[2].a + lhs.vec[3].a * rhs.vec[3].a)
-	);
-}
+Mat4x4 operator*(const Mat4x4& lhs, const Mat4x4& rhs);

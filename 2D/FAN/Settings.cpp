@@ -16,6 +16,10 @@ namespace FanColors {
 void GetFps(){
 	static int fps = 0;
 	static double start = glfwGetTime();
+	float currentFrame = glfwGetTime();
+	static float lastFrame = 0;
+	Settings::deltaTime = currentFrame - lastFrame;
+	lastFrame = currentFrame;
 	if ((glfwGetTime() - start) > 1.0) {
 		printf("%d\n", fps);
 
