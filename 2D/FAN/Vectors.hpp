@@ -72,6 +72,10 @@ public:
 		return 2;
 	}
 
+	constexpr auto Abs() {
+		return __Vec2<_Ty>(abs(x), abs(y));
+	}
+
 	constexpr void Print() const {
 		std::cout << this->x << " " << this->y << std::endl;
 	}
@@ -317,6 +321,25 @@ constexpr _Vec_t<_Type> operator+(_Vec_t<_Type> _Lhs, _Vec_t<_Type> _Rhs) {
 	return _Vec;
 }
 
+
+template <template<typename> typename _Vec_t, typename _Type>
+constexpr _Vec_t<_Type> operator+(_Vec_t<_Type> _Lhs, float _Rhs) {
+	_Vec_t<_Type> _Vec;
+	for (int _I = 0; _I < _Vec.Size(); _I++) {
+		_Vec[_I] = _Lhs[_I] + _Rhs;
+	}
+	return _Vec;
+}
+
+template <template<typename> typename _Vec_t, typename _Type>
+constexpr _Vec_t<_Type> operator*(_Vec_t<_Type> _Lhs, float _Rhs) {
+	_Vec_t<_Type> _Vec;
+	for (int _I = 0; _I < _Vec.Size(); _I++) {
+		_Vec[_I] = _Lhs[_I] * _Rhs;
+	}
+	return _Vec;
+}
+
 template <template<typename> typename _Vec_t, typename _Type> 
 constexpr _Vec_t<_Type> operator-(const _Vec_t<_Type>& _Lhs, const _Vec_t<_Type>& _Rhs) { 
 	_Vec_t<_Type> _Vec;
@@ -325,6 +348,35 @@ constexpr _Vec_t<_Type> operator-(const _Vec_t<_Type>& _Lhs, const _Vec_t<_Type>
 	}
 	return _Vec;
 }
+
+
+template <template<typename> typename _Vec_t, typename _Type>
+constexpr _Vec_t<_Type> operator*(const _Vec_t<_Type>& _Lhs, const _Vec_t<_Type>& _Rhs) {
+	_Vec_t<_Type> _Vec;
+	for (int _I = 0; _I < _Lhs.Size(); _I++) {
+		_Vec[_I] = _Lhs[_I] * _Rhs[_I];
+	}
+	return _Vec;
+}
+
+template <template<typename> typename _Vec_t, typename _Type>
+constexpr _Vec_t<_Type> operator-(const _Vec_t<_Type>& _Lhs, float _Rhs) {
+	_Vec_t<_Type> _Vec;
+	for (int _I = 0; _I < _Lhs.Size(); _I++) {
+		_Vec[_I] = _Lhs[_I] - _Rhs;
+	}
+	return _Vec;
+}
+
+template <template<typename> typename _Vec_t, typename _Type>
+constexpr _Vec_t<_Type> operator%(const _Vec_t<_Type>& _Lhs, float _Rhs) {
+	_Vec_t<_Type> _Vec;
+	for (int _I = 0; _I < _Lhs.Size(); _I++) {
+		_Vec[_I] = fmodf(_Lhs[_I], _Rhs);
+	}
+	return _Vec;
+}
+
 
 //template <template<typename> typename _Vec_t, typename _Type, typename _Val>
 //constexpr _Vec_t<_Type> operator/(const _Vec_t<_Type>& _Lhs, _Val _Value) {
@@ -355,30 +407,30 @@ constexpr _Vec_t<_Type> operator-(const _Vec_t<_Type>& _Lhs, const _Vec_t<_Type>
 //	return __Vec2<_Ty>(lhs.x + rhs, lhs.y + rhs);
 //}
 
-template <typename _Ty, typename _Ty2>
-constexpr auto operator*(const __Vec2<_Ty>& lhs, const _Ty2 rhs) {
-	return __Vec2<_Ty>(lhs.x * rhs, lhs.y * rhs);
-}
+//template <typename _Ty, typename _Ty2>
+//constexpr auto operator*(const __Vec2<_Ty>& lhs, const _Ty2 rhs) {
+//	return __Vec2<_Ty>(lhs.x * rhs, lhs.y * rhs);
+//}
 
 template <typename _Ty, typename _Ty2>
 constexpr auto operator/(const __Vec2<_Ty>& lhs, const _Ty2 rhs) {
 	return __Vec2<_Ty>(lhs.x / rhs, lhs.y / rhs); 
 }
-
-template <typename _Ty>
-constexpr auto operator*(const __Vec3<_Ty>& lhs, const float rhs) {
-	return __Vec3<_Ty>(lhs.x * rhs, lhs.y * rhs, lhs.z * rhs);
-}
+//
+//template <typename _Ty>
+//constexpr auto operator*(const __Vec3<_Ty>& lhs, const float rhs) {
+//	return __Vec3<_Ty>(lhs.x * rhs, lhs.y * rhs, lhs.z * rhs);
+//}
 
 //template <typename _Ty>
 //constexpr auto operator+(const __Vec4<_Ty>& lhs, const __Vec4<_Ty>& rhs) {
 //	return __Vec4<_Ty>(lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z, lhs.a + rhs.a);
 //}
 
-template <typename _Ty, typename _Ty2>
-constexpr auto operator*(const __Vec4<_Ty>& lhs, const _Ty2 rhs) {
-	return __Vec4<_Ty>(lhs.x * rhs, lhs.y * rhs, lhs.z * rhs, lhs.a * rhs);
-}
+//template <typename _Ty, typename _Ty2>
+//constexpr auto operator*(const __Vec4<_Ty>& lhs, const _Ty2 rhs) {
+//	return __Vec4<_Ty>(lhs.x * rhs, lhs.y * rhs, lhs.z * rhs, lhs.a * rhs);
+//}
 
 template <typename _Ty>
 constexpr auto operator+(const __Vec4<_Ty>& lhs, const _Ty rhs) {

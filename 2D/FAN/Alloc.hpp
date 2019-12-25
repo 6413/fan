@@ -11,11 +11,7 @@ public:
 	Alloc(size_t _Reserve) : _Last(_Reserve - 1), _Current(0) {
 		resize(_Reserve);
 	}
-	~Alloc() {
-		if (_Data != NULL) {
-			//delete[] _Data;
-		}
-	}
+	~Alloc() {}
 	constexpr _Type& operator[](size_t _Where) {
 		return _Data[_Where];
 	}
@@ -39,9 +35,7 @@ public:
 			_Size += ALLOC_BUFFER;
 			_Data = new _Type[_Size];
 			this->copy(_Temp, _Data, _Last);
-			if (_Temp != NULL) {
-				delete[] _Temp;
-			}
+			delete[] _Temp;
 		}
 		_Data[_Current] = _Value;
 		_Last = _Size;
@@ -71,6 +65,9 @@ public:
 	constexpr void resize(size_t _Reserve) {
 		_Data = new _Type[_Reserve];
 		_Size = _Reserve;
+	}
+	constexpr void free() const {
+		delete[] _Data;
 	}
 private:
 	size_t _Last;

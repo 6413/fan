@@ -73,6 +73,9 @@ template <typename _Ty>
 constexpr void WindowInit(_Ty& window) {
 	using namespace WindowNamespace;
 	windowSize = Vec2(896, 896);
+	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 	//windowSize = Vec2(glfwGetVideoMode(glfwGetPrimaryMonitor())->width, glfwGetVideoMode(glfwGetPrimaryMonitor())->height);
 	window = glfwCreateWindow(windowSize.x, windowSize.y, "Window", fullScreen ? glfwGetPrimaryMonitor() : NULL, NULL);
 	if (!window) {
@@ -81,12 +84,9 @@ constexpr void WindowInit(_Ty& window) {
 		exit(EXIT_SUCCESS);
 	}
 	//glfwWindowHint(GLFW_DOUBLEBUFFER, 1);
-	glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-	glViewport(0, 0, windowSize.x, windowSize.y);
 	glfwMakeContextCurrent(window);
 	glewInit();
+	glViewport(0, 0, windowSize.x, windowSize.y);
 	//glfwWindowHint(GLFW_SAMPLES, 4);
 //	glEnable(GL_MULTISAMPLE);
 	glEnable(GL_DEPTH_TEST);

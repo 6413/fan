@@ -124,14 +124,14 @@ public:
 		);
 	}
 
-	void SetColor(size_t _Index, char _operator, int value) {
+	void SetColor(size_t _Index, char _operator, const __Vec3<int>& value) {
 		for (int i = 0; i < pointSize * COLORSIZE + COLORSIZE; i += (COORDSIZE + COLORSIZE)) {
 			switch (_operator) {
 			case '^': {
 				//this->data[i + _Index] 
-				this->data[(i + _Index * (24)) + 2] = (int)data[(i + _Index * (24)) + 2] ^ value;
-				this->data[(i + _Index * (24)) + 3] = (int)data[(i + _Index * (24)) + 3] ^ value;
-				this->data[(i + _Index * (24)) + 4] = (int)data[(i + _Index * (24)) + 4] ^ value;
+				this->data[(i + _Index * (24)) + 2] = (int)data[(i + _Index * (24)) + 2] ^ value.x;
+				this->data[(i + _Index * (24)) + 3] = (int)data[(i + _Index * (24)) + 3] ^ value.y;
+				this->data[(i + _Index * (24)) + 4] = (int)data[(i + _Index * (24)) + 4] ^ value.z;
 				break;
 			}
 			}
@@ -155,6 +155,10 @@ public:
 		}
 
 		file.close();
+	}
+
+	Vec2 Size() const {
+		return size;
 	}
 
 	bool wall[14 * 14];
@@ -195,7 +199,7 @@ protected:
 		for (int i = 0; i < this->pointSize; i++) {
 			for (int vertices = 0; vertices < 2; vertices++) {
 				data.push_back(verCol[at].vertices[vertIndex]);
-				verticeMemory.push_back(vertIndex + objectAmount * verCol[at].vertices.size());
+				verticeMemory.push_back(data.size() - 1);
 				vertIndex++;
 			}
 			for (int color = 0; color < COLORSIZE; color++) {
@@ -204,13 +208,13 @@ protected:
 		}
 	}
 
-	void edit(size_t _Where, const std::vector<float>& v, const Color& color = Color(-1, 0, 0, 0)) {
+	void edit(size_t _Index, const std::vector<float>& v, const Color& color = Color(-1, 0, 0, 0)) {
 		if (color.r != -1) {
 			
 		}
 		else {
 			for (int i = 0; i < v.size(); i++) {
-				data[verticeMemory[i + _Where * v.size()]] = v[i];
+				data[verticeMemory[i + _Index * v.size()]] = v[i];
 			}
 		}
 		writeToGpu(data);
@@ -234,16 +238,62 @@ public:
 		this->type = GL_LINES;
 		this->points = 2;
 		this->pointSize = this->points;
-		std::vector<float> _Temp;
-		for (int i = 0; i < pointSize * 2; i++) {
-			_Temp.push_back(position.vec[!!(i & 2)][i & 1]);
-		}
-		this->verCol.push_back(VerCol(_Temp, color));
-		this->init(camera);
+		this->verCol.push_back(VerCol(std::vector<float> {
+			position[0].x, position[0].y,
+			position[1].x, position[1].y
+		}, color));
 		objectAmount++;
+		this->init(camera);
 	}
 	void push_back(const Mat2x2& position, const Color& color = Color(-1, 0, 0, 0)) {
 		this->verCol.push_back(VerCol(std::vector<float>{position.vec[0].x, position.vec[0].y, position.vec[1].x, position.vec[1].y} , color.r != -1 ? color : GetColor(0)));
+		merge();
+		this->writeToGpu(data);
+		this->points += pointSize;
+		objectAmount++;
+	}
+
+	Mat2x2 getPositionMat(size_t _Index) const {
+		auto size = verCol[0].vertices.size();
+		return Mat2x2(Vec2(data[verticeMemory[0 + _Index * size]], data[verticeMemory[1 + _Index * size]]),
+			Vec2(data[verticeMemory[2 + _Index * size]], data[verticeMemory[3 + _Index * size]]));
+	}
+
+	Vec2 getPosition(size_t _Index) const {
+		return Vec2(verCol[_Index].vertices[2] - verCol[_Index].vertices[0], verCol[_Index].vertices[3] - verCol[_Index].vertices[1]);
+	}
+
+	void setPosition(size_t _Index, const Mat2x2& position) {
+		std::vector<float> vec{
+			position[0].x, position[0].y,
+			position[1].x, position[1].y
+		};
+		edit(_Index, vec);
+	}
+};
+
+class Triangle : public ShapeDefault {
+public:
+	Triangle(Camera* camera, const Vec2& position, const Vec2& size, const Color& color) {
+		this->size = size;
+		points = 3;
+		pointSize = points;
+		type = GL_TRIANGLES;
+		verCol.push_back(VerCol(std::vector<float>{
+			position.x - (size.x / 2), position.y + (size.y / 2),
+			position.x + (size.x / 2), position.y + (size.y / 2),
+			position.x, position.y - (size.y / 2)
+		}, color));
+		objectAmount++;
+		this->init(camera);
+	}
+
+	void push_back(const Vec2& position, const Color& color = Color(-1, 0, 0, 0)) {
+		this->verCol.push_back(VerCol(std::vector<float> {
+			position.x - (size.x / 2), position.y + (size.y / 2),
+			position.x + (size.x / 2), position.y + (size.y / 2),
+			position.x, position.y - (size.y / 2)
+		}, color.r != -1 ? color : GetColor(0)));
 		merge();
 		this->writeToGpu(data);
 		this->points += pointSize;
@@ -254,21 +304,14 @@ public:
 		return Vec2(verCol[_Index].vertices[2] - verCol[_Index].vertices[0], verCol[_Index].vertices[3] - verCol[_Index].vertices[1]);
 	}
 
-	void setPosition(size_t _Index, const Mat2x2& position) {
-		std::vector<float> vec;
-
-		for (int i = 0; i < position.size() * 0.5; i++) {
-			for (int j = 0; j < position.size() * 0.5; j++) {
-				vec.push_back(position.vec[i][j]);
-			}
-		}
-		edit(_Index, vec);
+	void setPosition(size_t _Index, const Vec2& position) {
+		edit(_Index, std::vector<float> {
+			position.x - (size.x / 2), position.y + (size.y / 2),
+			position.x + (size.x / 2), position.y + (size.y / 2),
+			position.x, position.y - (size.y / 2)
+		});
 	}
-};
 
-class Triangle {
-public:
-	void setPos(Vec2 x) {}
 };
 
 class Square : public ShapeDefault {
@@ -299,6 +342,7 @@ public:
 	}
 
 	void push_back(const Vec2& position, const Color& color = Color(-1, 0, 0, 0)) {
+		//for (int i = 0; i < )
 		this->verCol.push_back(VerCol(std::vector<float> {
 			position.x - (size.x / 2), position.y - (size.y / 2),
 			position.x + (size.x / 2), position.y - (size.y / 2),
@@ -312,7 +356,7 @@ public:
 	}
 
 	Vec2 getPosition(size_t _Index) const {
-		return Vec2(verCol[_Index].vertices[2] - verCol[_Index].vertices[0], verCol[_Index].vertices[3] - verCol[_Index].vertices[1]);
+		return Vec2(data[verticeMemory[0 + _Index * (pointSize * 2)]] + size.x / 2, (data[verticeMemory[1 + _Index * (pointSize * 2)]] + size.y / 2));
 	}
 
 	void setPosition(size_t _Index, const Vec2& position) {
