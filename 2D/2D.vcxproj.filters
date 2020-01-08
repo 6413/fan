@@ -57,9 +57,6 @@
     <ClInclude Include="FAN\Alloc.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="a.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="FAN\DBT.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>

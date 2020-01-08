@@ -1,9 +1,9 @@
 #pragma once
 #include <iostream>
 
-#define DBT
+//#define DBT
 
-#define ALLOC_BUFFER 0xffff
+#define ALLOC_BUFFER 0xfffffff
 
 
 template <typename _Type>
@@ -95,7 +95,6 @@ public:
 			_Current++;
 			return;
 		}
-		//printf("moi%d %d\n", _Size, _Current);
 		if (!_Size) {
 			_Data = new _Type[++_Size];
 			_Data[_Size - 1] = _Value;
@@ -106,6 +105,7 @@ public:
 			_Type* _Temp = new _Type[_Size];
 			copy(_Data, _Temp, _Size);
 			_Size += ALLOC_BUFFER;
+			delete[] _Data;
 			_Data = new _Type[_Size];
 			copy(_Temp, _Data, _Size - ALLOC_BUFFER);
 			delete[] _Temp;
@@ -126,6 +126,9 @@ public:
 		return _Data;
 	}
 	constexpr void resize(size_t _Reserve) {
+		if (_Data) {
+			delete[] _Data;
+		}
 		_Data = new _Type[_Reserve];
 		_Size = _Reserve;
 	}
