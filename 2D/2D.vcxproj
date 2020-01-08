@@ -76,6 +76,14 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <OmitFramePointers>true</OmitFramePointers>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -88,14 +96,18 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)External libraries\include;$(SolutionDir)External sources\GLEW\include;$(SolutionDir)External sources\GLFW\include;$(SolutionDir)2D;$(SolutionDir)freetype-2.10.1\include;$(SolutionDir)irrKlang-64bit-1.6.0\include;$(SolutionDir)2D\imgui-master;C:\Users\123\Documents\GitHub\2D\External sources\VULKAN\1.1.126.0\Include;C:\Users\123\Documents\GitHub\2D\2D</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
-      <OmitFramePointers>false</OmitFramePointers>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_SILENCE_ALLCXX17_DEPRECATION_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <OmitFramePointers>true</OmitFramePointers>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
-      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -108,11 +120,16 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <Optimization>MaxSpeed</Optimization>
+      <Optimization>Disabled</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <OmitFramePointers>true</OmitFramePointers>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -126,18 +143,18 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>false</IntrinsicFunctions>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>false</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)External libraries\include;$(SolutionDir)External sources\GLEW\include;$(SolutionDir)External sources\GLFW\include;$(SolutionDir)2D;$(SolutionDir)freetype-2.10.1\include;$(SolutionDir)irrKlang-64bit-1.6.0\include;$(SolutionDir)2D\imgui-master;C:\Users\123\Documents\GitHub\2D\External sources\VULKAN\1.1.126.0\Include;C:\Users\123\Documents\GitHub\2D\2D</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;GLFW_INCLUDE_NONE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
-      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
-      <OmitFramePointers>false</OmitFramePointers>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_SILENCE_ALLCXX17_DEPRECATION_WARNINGS;_CRT_SECURE_NO_DEPRECATE;GLFW_INCLUDE_NONE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <OmitFramePointers>true</OmitFramePointers>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
-      <EnableFiberSafeOptimizations>false</EnableFiberSafeOptimizations>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -157,8 +174,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="a.h" />
     <ClInclude Include="FAN\Alloc.hpp" />
     <ClInclude Include="FAN\bmp.hpp" />
+    <ClInclude Include="FAN\DBT.hpp" />
     <ClInclude Include="FAN\Camera.hpp" />
     <ClInclude Include="FAN\Functions.hpp" />
     <ClInclude Include="FAN\Input.hpp" />
@@ -169,26 +188,16 @@
     <ClInclude Include="FAN\Vectors.hpp" />
     <ClInclude Include="WITCH\Alloc.h" />
     <ClInclude Include="WITCH\DBT.h" />
-    <ClInclude Include="WITCH\DT.h" />
-    <ClInclude Include="WITCH\FIO.h" />
-    <ClInclude Include="WITCH\Math.h" />
-    <ClInclude Include="WITCH\Memory.h" />
-    <ClInclude Include="WITCH\Network.h" />
-    <ClInclude Include="WITCH\OpenGL.h" />
     <ClInclude Include="WITCH\PT.h" />
-    <ClInclude Include="WITCH\Random.h" />
     <ClInclude Include="WITCH\Time.h" />
-    <ClInclude Include="WITCH\Types.h" />
-    <ClInclude Include="WITCH\VAS.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="FAN\Bmp.cpp" />
     <ClCompile Include="FAN\Functions.cpp" />
     <ClCompile Include="FAN\Input.cpp" />
+    <ClCompile Include="FAN\Math.cpp" />
     <ClCompile Include="FAN\Settings.cpp" />
     <ClCompile Include="FAN\Texture.cpp" />
-    <ClCompile Include="Math.cpp" />
-    <ClCompile Include="NotwindowThings.cpp" />
     <ClCompile Include="Source.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
