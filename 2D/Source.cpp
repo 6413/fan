@@ -1,12 +1,19 @@
 #include <iostream>
-#include <FAN/Alloc.hpp>
+#include <FAN/DBT.hpp>
 
 int main() {
-	Alloc<int> x;
-	uint64_t i = 250000000;
+	dbt<int> x;
+	int i = 1000000;
 	while (i--) {
-		x.push_back(i);
+		x.push((unsigned char*)&i, sizeof(i) * 8, i);
 	}
-	printf("im done!\n");
-	getchar();
+	//Alloc<keytype<int>> x;
+	//int i = 1000000;
+
+	//while (i--) {
+	//	x.push_back(keytype<int>());
+	//}
+
+	x.nodes.free();
+	//getchar();
 }
