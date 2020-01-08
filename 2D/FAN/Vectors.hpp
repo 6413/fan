@@ -10,7 +10,7 @@
 class Color;
 
 template <typename _Type>
-class __Vec2 :public iterator<_Type> {
+class __Vec2 : public iterator<_Type> {
 public:
 	_Type x, y;
 

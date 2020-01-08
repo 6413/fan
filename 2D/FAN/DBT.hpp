@@ -23,19 +23,19 @@ struct keytype {
 template <typename type>
 struct dbt {
 	Alloc<keytype<type>> nodes;
-	constexpr dbt() : nodes(1) { }
-	constexpr dbt(size_t reserve) : nodes(reserve) {}
+	constexpr dbt() : nodes(1, true) { }
+	constexpr dbt(size_t reserve) : nodes(reserve, true) {}
 
-	constexpr void find_road(size_t& node, unsigned char* in, size_t& inlen, size_t& seek) {
-		while (inlen) {
-			size_t tnode = nodes[node].nextnode[separate_bits(*(unsigned char*)in, seek)];
-			if (!tnode)
-				return;
-			node = tnode;
-			D_magic(in, inlen, seek);
+		constexpr void find_road(size_t& node, unsigned char*& in, size_t& inlen, size_t& seek) {
+			while (inlen) {
+				size_t tnode = nodes[node].nextnode[separate_bits(*(unsigned char*)in, seek)];
+				if (!tnode)
+					return;
+				node = tnode;
+				D_magic(in, inlen, seek);
+			}
 		}
-	}
-	constexpr void push(unsigned char* in, size_t inlen, type output) {
+	constexpr void insert(unsigned char* in, size_t inlen, type output) {
 		size_t node = 0;
 		size_t seek = 0;
 		find_road(node, in, inlen, seek);
@@ -47,7 +47,7 @@ struct dbt {
 		nodes[node].output = output;
 		nodes[node].init = true;
 	}
-	constexpr auto search(unsigned char* in, size_t inlen) {
+	auto search(unsigned char* in, size_t inlen) {
 		size_t node = 0;
 		size_t seek = 0;
 		find_road(node, in, inlen, seek);
