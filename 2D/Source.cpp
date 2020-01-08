@@ -1,12 +1,12 @@
 #include <iostream>
-#include <FAN/DBT.hpp>
-
-#include <ctime>
+#include <FAN/Alloc.hpp>
 
 int main() {
-	dbt<int> tree(1);
-	int x = 5;
-	tree.push((unsigned char*)&x, sizeof(x) * 8, x);
-
-	printf("%d\n", tree.search((unsigned char*)&x, sizeof(x) * 8));
+	Alloc<int> x;
+	uint64_t i = 250000000;
+	while (i--) {
+		x.push_back(i);
+	}
+	printf("im done!\n");
+	getchar();
 }
