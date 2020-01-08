@@ -42,34 +42,7 @@
     <ClInclude Include="WITCH\DBT.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="WITCH\DT.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="WITCH\FIO.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="WITCH\Math.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="WITCH\Memory.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="WITCH\Network.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="WITCH\OpenGL.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="WITCH\Random.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="WITCH\Time.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="WITCH\Types.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="WITCH\VAS.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="FAN\Camera.hpp">
@@ -84,6 +57,12 @@
     <ClInclude Include="FAN\Alloc.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="a.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FAN\DBT.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="FAN\Functions.cpp">
@@ -95,19 +74,16 @@
     <ClCompile Include="FAN\Settings.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Source.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="FAN\Texture.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="FAN\Bmp.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="NotwindowThings.cpp">
+    <ClCompile Include="FAN\Math.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Math.cpp">
+    <ClCompile Include="Source.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

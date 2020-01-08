@@ -22,3 +22,6 @@
 *.pdb
 *.spv
 2D/x64/Debug/2D.tlog/unsuccessfulbuild
+*.obj
+*.html
+*.js

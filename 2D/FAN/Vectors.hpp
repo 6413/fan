@@ -5,66 +5,61 @@
 
 #include <iostream>
 #include <cmath>
+#include "Alloc.hpp"
 
 class Color;
 
-template <typename _Ty>
-class __Vec2 {
+template <typename _Type>
+class __Vec2 :public iterator<_Type> {
 public:
-	_Ty x, y;
+	_Type x, y;
 
-	__Vec2(const _Ty& _x) {
-		x = _x; y = _x;
-	}
-	__Vec2(const __Vec2<float>& v) {
-		x = v.x; y = v.y;
-	}
-	template <typename _Ty2>
-	__Vec2(const __Vec2<_Ty2>& v) {
-		this->x = v.x; this->y = v.y;
-	}
-	__Vec2(const _Ty& _x, const _Ty& _y) {
-		x = _x; y = _y;
-	}
 	__Vec2() : x(0), y(0) {}
+
+	__Vec2(const _Type& _Value) : x(_Value), y(_Value) {}
+
+	template <typename _InIt>
+	__Vec2(const __Vec2<_InIt>& _Value) : x(_Value.x), y(_Value.y) {}
+
+	__Vec2(_Type _x, _Type _y) : x(_x), y(_y) {}
 
 	constexpr bool Empty() const {
 		return !((int)this->x & (int)this->y);
 	}
 
-	constexpr _Ty& operator[](const int x) {
+	constexpr _Type& operator[](const int x) {
 		return !x ? this->x : this->y;
 	}
 
-	constexpr _Ty operator[](const int x) const {
+	constexpr _Type operator[](const int x) const {
 		return !x ? this->x : this->y;
 	}
 
-	constexpr __Vec2<_Ty>& operator+=(const __Vec2<_Ty>& v) {
+	constexpr __Vec2<_Type>& operator+=(const __Vec2<_Type>& v) {
 		x += v.x;
 		y += v.y;
 		return *this;
 	}
 
-	template <typename _Type>
-	constexpr __Vec2<_Type>& operator-=(const __Vec2<_Type>& v) {
-		this->x -= v.x;
-		this->y -= v.y;
+	template <typename _Typepe>
+	constexpr __Vec2<_Typepe>& operator-=(const __Vec2<_Typepe>& v) {
+		x -= v.x;
+		y -= v.y;
 		return *this;
 	}
 
-	constexpr __Vec2<_Ty>& operator*=(const __Vec2<_Ty>& v) {
-		this->x *= v.x;
-		this->y *= v.y;
+	constexpr __Vec2<_Type>& operator*=(const __Vec2<_Type>& v) {
+		x *= v.x;
+		y *= v.y;
 		return *this;
 	}
 
-	constexpr bool operator!=(const __Vec2<_Ty>& v) const {
+	constexpr bool operator!=(const __Vec2<_Type>& v) const {
 		return v.x != x && v.y != y;
 	}
 
-	template <typename _Type>
-	constexpr bool operator==(const __Vec2<_Type>& v) const {
+	template <typename _Typepe>
+	constexpr bool operator==(const __Vec2<_Typepe>& v) const {
 		return v.x == x && v.y == y;
 	}
 
@@ -73,7 +68,7 @@ public:
 	}
 
 	constexpr auto Abs() {
-		return __Vec2<_Ty>(abs(x), abs(y));
+		return __Vec2<_Type>(abs(x), abs(y));
 	}
 
 	constexpr void Print() const {
@@ -83,11 +78,11 @@ public:
 
 using Vec2 = __Vec2<float>;
 
-template <typename _Ty> 
+template <typename _Type> 
 class __Vec3 {
 public:
-	_Ty x, y, z;
-	__Vec3(const _Ty& _x) {
+	_Type x, y, z;
+	__Vec3(const _Type& _x) {
 		x = _x; y = _x; z = _x;
 	}
 	__Vec3(const Color& _Value) {
@@ -96,57 +91,57 @@ public:
 		this->z = _Value.b;
 	}
 
-	__Vec3(const __Vec2<_Ty> _x) {
+	__Vec3(const __Vec2<_Type> _x) {
 		x = _x.x; y = _x.y; z = 0;
 	}
-	__Vec3(const __Vec3<_Ty>& v) {
+	__Vec3(const __Vec3<_Type>& v) {
 		x = v.x; y = v.y; z = v.z;
 	}
-	__Vec3(const _Ty& _x, const _Ty& _y, const _Ty& _z) {
+	__Vec3(const _Type& _x, const _Type& _y, const _Type& _z) {
 		x = _x; y = _y; z = _z;
 	}
 
 	__Vec3() : x(0), y(0), z(0) {}
-	constexpr auto operator-(const __Vec3<_Ty>& v) {
+	constexpr auto operator-(const __Vec3<_Type>& v) {
 		this->x = -v.x;
 		this->y = -v.y;
 		this->z = -v.z;
 		return *this;
 	}
 
-	constexpr void operator+=(const __Vec3<_Ty>& v) {
+	constexpr void operator+=(const __Vec3<_Type>& v) {
 		this->x += v.x;
 		this->y += v.y;
 		this->z += v.z;
 	}
 
-	constexpr void operator-=(const __Vec3<_Ty>& v) {
+	constexpr void operator-=(const __Vec3<_Type>& v) {
 		this->x -= v.x;
 		this->y -= v.y;
 		this->z -= v.z;
 	}
 	
-	constexpr void operator/=(_Ty f) {
+	constexpr void operator/=(_Type f) {
 		this->x /= f;
 		this->y /= f;
 		this->z /= f;
 	}
 
-	constexpr void operator/=(const __Vec3<_Ty>& v) {
+	constexpr void operator/=(const __Vec3<_Type>& v) {
 		this->x /= v.x;
 		this->y /= v.y;
 		this->z /= v.z;
 	}
 	
-	constexpr _Ty at(size_t x) {
+	constexpr _Type at(size_t x) {
 		return !x ? this->x : x == 1 ? this->y : this->z;
 	}
 
-	constexpr _Ty operator[](size_t x) const {
+	constexpr _Type operator[](size_t x) const {
 		return !x ? this->x : x == 1 ? this->y : this->z;
 	}
 
-	constexpr _Ty& operator[](size_t x) {
+	constexpr _Type& operator[](size_t x) {
 		return !x ? this->x : x == 1 ? this->y : this->z;
 	}
 
@@ -157,13 +152,13 @@ public:
 
 using Vec3 = __Vec3<float>;
 
-template <typename _Ty>
+template <typename _Type>
 class __Vec4 {
 public:
 
-	_Ty x, y, z, a;
+	_Type x, y, z, a;
 
-	__Vec4(const _Ty& _x) {
+	__Vec4(const _Type& _x) {
 		x = _x; y = _x; z = _x; a = _x;
 	}
 
@@ -171,17 +166,17 @@ public:
 		x = v.x; y = v.y; z = v.z; a = v.a;
 	}
 
-	__Vec4(const _Ty& _x, const _Ty& _y, const _Ty& _z, const _Ty& _a) {
+	__Vec4(const _Type& _x, const _Type& _y, const _Type& _z, const _Type& _a) {
 		x = _x; y = _y; z = _z; a = _a;
 	}
 
 	__Vec4() : x(0), y(0), z(0), a(0) {}
 
-	constexpr _Ty operator[](const int x) const {
+	constexpr _Type operator[](const int x) const {
 		return !x ? this->x : x == 1 ? this->y : x == 2 ? this->z : x == 3 ? this->a : this->a;
 	}
 
-	constexpr _Ty& operator[](const int x) {
+	constexpr _Type& operator[](const int x) {
 		return !x ? this->x : x == 1 ? this->y : x == 2 ? this->z : x == 3 ? this->a : this->a;
 	}
 

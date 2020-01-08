@@ -116,15 +116,25 @@ public:
 		glBindVertexArray(0);
 	}
 
-	Color GetColor(size_t _Index) const {
-		return Color(this->data[_Index * this->pointSize + 2],
-			this->data[_Index * this->pointSize + 3],
-			this->data[_Index * this->pointSize + 4],
-			this->data[_Index * this->pointSize + 5]
+	Color getColor(size_t _Index) const {
+		return Color(
+			this->data[_Index * 24 + 2],
+			this->data[_Index * 24 + 3],
+			this->data[_Index * 24 + 4],
+			this->data[_Index * 24 + 5]
 		);
 	}
 
-	void SetColor(size_t _Index, char _operator, const __Vec3<int>& value) {
+	Color getColor(Vec2 _Index) const {
+		return Color(
+			this->data[(_Index.x + _Index.y * (windowSize.x / 64)) * 24 + 2],
+			this->data[(_Index.x + _Index.y * (windowSize.x / 64)) * 24 + 3],
+			this->data[(_Index.x + _Index.y * (windowSize.x / 64)) * 24 + 4],
+			this->data[(_Index.x + _Index.y * (windowSize.x / 64)) * 24 + 5]
+		);
+	}
+
+	void setColor(size_t _Index, char _operator, const __Vec3<int>& value) {
 		for (int i = 0; i < pointSize * COLORSIZE + COLORSIZE; i += (COORDSIZE + COLORSIZE)) {
 			switch (_operator) {
 			case '^': {
@@ -135,6 +145,26 @@ public:
 				break;
 			}
 			}
+
+		}
+		writeToGpu(data);
+	}
+
+	void setColor(size_t _Index, const Color& value) {
+		for (int i = 0; i < pointSize * COLORSIZE + COLORSIZE; i += (COORDSIZE + COLORSIZE)) {
+			this->data[(i + _Index * (24)) + 2] = data[(i + _Index * (24)) + 2] = value.r;
+			this->data[(i + _Index * (24)) + 3] = data[(i + _Index * (24)) + 3] = value.g;
+			this->data[(i + _Index * (24)) + 4] = data[(i + _Index * (24)) + 4] = value.b;
+
+		}
+		writeToGpu(data);
+	}
+
+	void setColor(const __Vec2<int> _Index, const Color& value) {
+		for (int i = 0; i < pointSize * COLORSIZE + COLORSIZE; i += (COORDSIZE + COLORSIZE)) {
+			this->data[(i + (_Index.x + _Index.y * (windowSize.x / 64)) * (24)) + 2] = data[(i + (_Index.x + _Index.y * (windowSize.x / 64)) * (24)) + 2] = value.r;
+			this->data[(i + (_Index.x + _Index.y * (windowSize.x / 64)) * (24)) + 3] = data[(i + (_Index.x + _Index.y * (windowSize.x / 64)) * (24)) + 3] = value.g;
+			this->data[(i + (_Index.x + _Index.y * (windowSize.x / 64)) * (24)) + 4] = data[(i + (_Index.x + _Index.y * (windowSize.x / 64)) * (24)) + 4] = value.b;
 
 		}
 		writeToGpu(data);
@@ -246,7 +276,7 @@ public:
 		this->init(camera);
 	}
 	void push_back(const Mat2x2& position, const Color& color = Color(-1, 0, 0, 0)) {
-		this->verCol.push_back(VerCol(std::vector<float>{position.vec[0].x, position.vec[0].y, position.vec[1].x, position.vec[1].y} , color.r != -1 ? color : GetColor(0)));
+		this->verCol.push_back(VerCol(std::vector<float>{position.vec[0].x, position.vec[0].y, position.vec[1].x, position.vec[1].y} , color.r != -1 ? color : getColor(0)));
 		merge();
 		this->writeToGpu(data);
 		this->points += pointSize;
@@ -293,7 +323,7 @@ public:
 			position.x - (size.x / 2), position.y + (size.y / 2),
 			position.x + (size.x / 2), position.y + (size.y / 2),
 			position.x, position.y - (size.y / 2)
-		}, color.r != -1 ? color : GetColor(0)));
+		}, color.r != -1 ? color : getColor(0)));
 		merge();
 		this->writeToGpu(data);
 		this->points += pointSize;
@@ -322,10 +352,10 @@ public:
 		pointSize = points;
 		type = GL_QUADS;
 		verCol.push_back(VerCol(std::vector<float>{
-			position.x - (size.x / 2), position.y - (size.y / 2),
-			position.x + (size.x / 2), position.y - (size.y / 2),
-			position.x + (size.x / 2), position.y + (size.y / 2),
-			position.x - (size.x / 2), position.y + (size.y / 2)
+			position.x - (size.x / 2) + (size.x / 2), position.y - (size.y / 2) + (size.y / 2),
+			position.x + (size.x / 2) + (size.x / 2), position.y - (size.y / 2) + (size.y / 2),
+			position.x + (size.x / 2) + (size.x / 2), position.y + (size.y / 2) + (size.y / 2),
+			position.x - (size.x / 2) + (size.x / 2), position.y + (size.y / 2) + (size.y / 2)
 
 		}, color));
 		objectAmount++;
@@ -344,11 +374,11 @@ public:
 	void push_back(const Vec2& position, const Color& color = Color(-1, 0, 0, 0)) {
 		//for (int i = 0; i < )
 		this->verCol.push_back(VerCol(std::vector<float> {
-			position.x - (size.x / 2), position.y - (size.y / 2),
-			position.x + (size.x / 2), position.y - (size.y / 2),
-			position.x + (size.x / 2), position.y + (size.y / 2),
-			position.x - (size.x / 2), position.y + (size.y / 2)
-		}, color.r != -1 ? color : GetColor(0)));
+			position.x - (size.x / 2) + (size.x / 2), position.y - (size.y / 2) + (size.y / 2),
+			position.x + (size.x / 2) + (size.x / 2), position.y - (size.y / 2) + (size.y / 2),
+			position.x + (size.x / 2) + (size.x / 2), position.y + (size.y / 2) + (size.y / 2),
+			position.x - (size.x / 2) + (size.x / 2), position.y + (size.y / 2) + (size.y / 2)
+		}, color.r != -1 ? color : getColor(0)));
 		merge();
 		this->writeToGpu(data);
 		this->points += pointSize;

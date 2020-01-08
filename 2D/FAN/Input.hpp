@@ -112,7 +112,7 @@ inline bool KeyPressA(int key) {
 	return false;
 }
 
-constexpr void KeysReset() {
+inline void KeysReset() {
 	for (int i = 0; i < 348; i++) {
 		Input::action[i] = false;
 	}
