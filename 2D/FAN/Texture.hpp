@@ -82,327 +82,107 @@ protected:
 	float angle;
 };
 
-struct VerCol {
-	VerCol() : vertices(), colors(){}
-	VerCol(const std::vector<float>& _Vec, const Color& _Col) {
-		for (int i = 0; i < _Vec.size(); i++) {
-			this->vertices.push_back(_Vec[i]);
+struct lineVertices {
+	lineVertices() : v(), color() {}
+	lineVertices(float* vec, size_t vecSize, float* c) {
+		for (size_t i = 0; i < vecSize; i++) {
+			v[i] = vec[i];
 		}
-		this->colors = _Col;
+		for (int i = 0; i < 4; i++) {
+			color[i] = c[i];
+		}
 	}
-	std::vector<float> vertices;
-	Color colors;
+	float v[4];
+	float color[4];
 };
 
-std::vector<Vec2> LoadMap(float blockSize);
+#include <vector>
 
-class ShapeDefault {
+template <typename Shape>
+class DefaultShape {
 public:
+
 	void draw() {
-		this->shader.Use();
+		shader.Use();
 		Mat4x4 view(1);
+		Mat4x4 projection(1);
 
 		view = camera->GetViewMatrix(Translate(view, Vec3(windowSize.x / 2, windowSize.y / 2, -700.0f)));
-
-		Mat4x4 projection(1);
 		projection = Ortho(windowSize.x / 2, windowSize.x + windowSize.x * 0.5, windowSize.y + windowSize.y * 0.5f, windowSize.y / 2, 0.1f, 1000.0f);
 		int projLoc = glGetUniformLocation(shader.ID, "projection");
 		int viewLoc = glGetUniformLocation(shader.ID, "view");
-		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view.vec[0].x);
 		glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection.vec[0].x);
-
-		glBindVertexArray(this->object.VAO);
-		glDrawArrays(this->type, 0, this->points);
+		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view.vec[0].x);
+		glBindVertexArray(shapeBuffer.VAO);
+		glDrawArrays(mode, 0, points);
 		glBindVertexArray(0);
 	}
 
-	Color getColor(size_t _Index) const {
-		return Color(
-			this->data[_Index * 24 + 2],
-			this->data[_Index * 24 + 3],
-			this->data[_Index * 24 + 4],
-			this->data[_Index * 24 + 5]
-		);
+	~DefaultShape() {
+		//vertices.free();
+		//colors.free();
 	}
-
-	Color getColor(Vec2 _Index) const {
-		return Color(
-			this->data[(_Index.x + _Index.y * (windowSize.x / 64)) * 24 + 2],
-			this->data[(_Index.x + _Index.y * (windowSize.x / 64)) * 24 + 3],
-			this->data[(_Index.x + _Index.y * (windowSize.x / 64)) * 24 + 4],
-			this->data[(_Index.x + _Index.y * (windowSize.x / 64)) * 24 + 5]
-		);
-	}
-
-	void setColor(size_t _Index, char _operator, const __Vec3<int>& value) {
-		for (int i = 0; i < pointSize * COLORSIZE + COLORSIZE; i += (COORDSIZE + COLORSIZE)) {
-			switch (_operator) {
-			case '^': {
-				//this->data[i + _Index] 
-				this->data[(i + _Index * (24)) + 2] = (int)data[(i + _Index * (24)) + 2] ^ value.x;
-				this->data[(i + _Index * (24)) + 3] = (int)data[(i + _Index * (24)) + 3] ^ value.y;
-				this->data[(i + _Index * (24)) + 4] = (int)data[(i + _Index * (24)) + 4] ^ value.z;
-				break;
-			}
-			}
-
-		}
-		writeToGpu(data);
-	}
-
-	void setColor(size_t _Index, const Color& value) {
-		for (int i = 0; i < pointSize * COLORSIZE + COLORSIZE; i += (COORDSIZE + COLORSIZE)) {
-			this->data[(i + _Index * (24)) + 2] = data[(i + _Index * (24)) + 2] = value.r;
-			this->data[(i + _Index * (24)) + 3] = data[(i + _Index * (24)) + 3] = value.g;
-			this->data[(i + _Index * (24)) + 4] = data[(i + _Index * (24)) + 4] = value.b;
-
-		}
-		writeToGpu(data);
-	}
-
-	void setColor(const __Vec2<int> _Index, const Color& value) {
-		for (int i = 0; i < pointSize * COLORSIZE + COLORSIZE; i += (COORDSIZE + COLORSIZE)) {
-			this->data[(i + (_Index.x + _Index.y * (windowSize.x / 64)) * (24)) + 2] = data[(i + (_Index.x + _Index.y * (windowSize.x / 64)) * (24)) + 2] = value.r;
-			this->data[(i + (_Index.x + _Index.y * (windowSize.x / 64)) * (24)) + 3] = data[(i + (_Index.x + _Index.y * (windowSize.x / 64)) * (24)) + 3] = value.g;
-			this->data[(i + (_Index.x + _Index.y * (windowSize.x / 64)) * (24)) + 4] = data[(i + (_Index.x + _Index.y * (windowSize.x / 64)) * (24)) + 4] = value.b;
-
-		}
-		writeToGpu(data);
-	}
-
-	void SaveMap(float blockSize) {
-		std::ofstream file;
-		file.open("data");
-		std::vector<int> blocks;
-		for (int i = 0; i < objectAmount; i++) {
-			if (wall[i]) {
-				blocks.push_back(i);
-			}
-		}
-
-		for (int i = 0; i < blocks.size(); i++) {
-			file << blocks[i] << std::endl;
-		}
-
-		file.close();
-	}
-
-	Vec2 Size() const {
-		return size;
-	}
-
-	bool wall[14 * 14];
 protected:
 	void init(Camera* camera) {
 		this->camera = camera;
-		glGenVertexArrays(1, &this->object.VAO);
-		glGenBuffers(1, &this->object.VBO);
-		glBindVertexArray(this->object.VAO);
+		this->shader = Shader("GLSL/shapes.vs", "GLSL/shapes.frag");
+		glGenVertexArrays(1, &shapeBuffer.VAO);
+		glBindVertexArray(shapeBuffer.VAO);
 
-		if (objectAmount) {
-			merge();
-		}
-		
-		glBindBuffer(GL_ARRAY_BUFFER, this->object.VBO);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(data[0]) * data.size(), data.data(), GL_STATIC_DRAW);
-
+		glGenBuffers(1, &verticeBuffer.VBO);
+		glBindBuffer(GL_ARRAY_BUFFER, verticeBuffer.VBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices[0]) * vertices.current(), vertices.data(), GL_STATIC_DRAW);
+		// (sizeof(float) * 3
 		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
 		glEnableVertexAttribArray(0);
 
-		glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(2 * sizeof(float)));
-		glEnableVertexAttribArray(1);
 
+		glGenBuffers(1, &colorBuffer.VBO);
+		glBindBuffer(GL_ARRAY_BUFFER, colorBuffer.VBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(colors[0]) * colors.size(), colors.data(), GL_STATIC_DRAW);
+		glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(vertices[0])* vertices.current() * sizeof(float), (void*)(sizeof(vertices[0]) * vertices.current() * sizeof(float)));
+		glEnableVertexAttribArray(1);
 
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		glBindVertexArray(0);
 	}
 
-	void writeToGpu(const std::vector<float>& v) {
-		glBindBuffer(GL_ARRAY_BUFFER, this->object.VBO);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(v[0]) * v.size(), v.data(), GL_STATIC_DRAW);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
+	void write() {
+	/*	glBindBuffer(GL_ARRAY_BUFFER, this->object.VBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices[0]) * vertices.current(), vertices.data(), GL_STATIC_DRAW);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);*/
 	}
 
-	void merge() {
-		size_t at = verCol.size() - 1;
-		int vertIndex = 0;
-		for (int i = 0; i < this->pointSize; i++) {
-			for (int vertices = 0; vertices < 2; vertices++) {
-				data.push_back(verCol[at].vertices[vertIndex]);
-				verticeMemory.push_back(data.size() - 1);
-				vertIndex++;
-			}
-			for (int color = 0; color < COLORSIZE; color++) {
-				data.push_back(verCol[at].colors[color]);
-			}
-		}
-	}
-
-	void edit(size_t _Index, const std::vector<float>& v, const Color& color = Color(-1, 0, 0, 0)) {
-		if (color.r != -1) {
-			
-		}
-		else {
-			for (int i = 0; i < v.size(); i++) {
-				data[verticeMemory[i + _Index * v.size()]] = v[i];
-			}
-		}
-		writeToGpu(data);
-	}
-	Vec2 size;
-	size_t type;
-	Object object;
+	Object verticeBuffer;
+	Object colorBuffer;
+	Object shapeBuffer;
+	Shader shader;
 	Camera* camera;
-	Shader shader = Shader("GLSL/shapes.vs", "GLSL/shapes.frag");
-	std::vector<VerCol> verCol;
-	std::vector<float> data;
-	std::vector<size_t> verticeMemory;
+	Alloc<float> vertices;
+	Alloc<float> colors;
+	size_t mode;
 	size_t points;
-	size_t pointSize;
-	size_t objectAmount;
 };
 
-class Line : public ShapeDefault {
+class Line : public DefaultShape<lineVertices> {
 public:
-	Line(Camera* camera, const Mat2x2& position, const Color& color) {
-		this->type = GL_LINES;
-		this->points = 2;
-		this->pointSize = this->points;
-		this->verCol.push_back(VerCol(std::vector<float> {
-			position[0].x, position[0].y,
-			position[1].x, position[1].y
-		}, color));
-		objectAmount++;
+	template <typename Cam, typename Mat, typename Col>
+	constexpr Line(Cam camera, const Mat& m, const Col& color) {
+		vertices.push_back(m[0].x);
+		vertices.push_back(m[0].y);
+		vertices.push_back(m[1].x);
+		vertices.push_back(m[1].y);
+		colors.push_back(color.r);
+		colors.push_back(color.g);
+		colors.push_back(color.b);
+		colors.push_back(color.a);
+		mode = GL_LINES;
+		points = 2;
 		this->init(camera);
-	}
-	void push_back(const Mat2x2& position, const Color& color = Color(-1, 0, 0, 0)) {
-		this->verCol.push_back(VerCol(std::vector<float>{position.vec[0].x, position.vec[0].y, position.vec[1].x, position.vec[1].y} , color.r != -1 ? color : getColor(0)));
-		merge();
-		this->writeToGpu(data);
-		this->points += pointSize;
-		objectAmount++;
-	}
-
-	Mat2x2 getPositionMat(size_t _Index) const {
-		auto size = verCol[0].vertices.size();
-		return Mat2x2(Vec2(data[verticeMemory[0 + _Index * size]], data[verticeMemory[1 + _Index * size]]),
-			Vec2(data[verticeMemory[2 + _Index * size]], data[verticeMemory[3 + _Index * size]]));
-	}
-
-	Vec2 getPosition(size_t _Index) const {
-		return Vec2(verCol[_Index].vertices[2] - verCol[_Index].vertices[0], verCol[_Index].vertices[3] - verCol[_Index].vertices[1]);
-	}
-
-	void setPosition(size_t _Index, const Mat2x2& position) {
-		std::vector<float> vec{
-			position[0].x, position[0].y,
-			position[1].x, position[1].y
-		};
-		edit(_Index, vec);
-	}
-};
-
-class Triangle : public ShapeDefault {
-public:
-	Triangle(Camera* camera, const Vec2& position, const Vec2& size, const Color& color) {
-		this->size = size;
-		points = 3;
-		pointSize = points;
-		type = GL_TRIANGLES;
-		verCol.push_back(VerCol(std::vector<float>{
-			position.x - (size.x / 2), position.y + (size.y / 2),
-			position.x + (size.x / 2), position.y + (size.y / 2),
-			position.x, position.y - (size.y / 2)
-		}, color));
-		objectAmount++;
-		this->init(camera);
-	}
-
-	void push_back(const Vec2& position, const Color& color = Color(-1, 0, 0, 0)) {
-		this->verCol.push_back(VerCol(std::vector<float> {
-			position.x - (size.x / 2), position.y + (size.y / 2),
-			position.x + (size.x / 2), position.y + (size.y / 2),
-			position.x, position.y - (size.y / 2)
-		}, color.r != -1 ? color : getColor(0)));
-		merge();
-		this->writeToGpu(data);
-		this->points += pointSize;
-		objectAmount++;
-	}
-
-	Vec2 getPosition(size_t _Index) const {
-		return Vec2(verCol[_Index].vertices[2] - verCol[_Index].vertices[0], verCol[_Index].vertices[3] - verCol[_Index].vertices[1]);
-	}
-
-	void setPosition(size_t _Index, const Vec2& position) {
-		edit(_Index, std::vector<float> {
-			position.x - (size.x / 2), position.y + (size.y / 2),
-			position.x + (size.x / 2), position.y + (size.y / 2),
-			position.x, position.y - (size.y / 2)
-		});
+		write();
 	}
 
 };
-
-class Square : public ShapeDefault {
-public:
-	Square(Camera* camera, const Vec2& position, const Vec2& size, const Color& color) {
-		this->size = size;
-		points = 4;
-		pointSize = points;
-		type = GL_QUADS;
-		verCol.push_back(VerCol(std::vector<float>{
-			position.x - (size.x / 2) + (size.x / 2), position.y - (size.y / 2) + (size.y / 2),
-			position.x + (size.x / 2) + (size.x / 2), position.y - (size.y / 2) + (size.y / 2),
-			position.x + (size.x / 2) + (size.x / 2), position.y + (size.y / 2) + (size.y / 2),
-			position.x - (size.x / 2) + (size.x / 2), position.y + (size.y / 2) + (size.y / 2)
-
-		}, color));
-		objectAmount++;
-		this->init(camera);
-	}
-
-	Square(Camera* camera, const Vec2& size, const Color& color) {
-		this->size = size;
-		type = GL_QUADS;
-		points = 4;
-		pointSize = points;
-		objectAmount = 0;
-		init(camera);
-	}
-
-	void push_back(const Vec2& position, const Color& color = Color(-1, 0, 0, 0)) {
-		//for (int i = 0; i < )
-		this->verCol.push_back(VerCol(std::vector<float> {
-			position.x - (size.x / 2) + (size.x / 2), position.y - (size.y / 2) + (size.y / 2),
-			position.x + (size.x / 2) + (size.x / 2), position.y - (size.y / 2) + (size.y / 2),
-			position.x + (size.x / 2) + (size.x / 2), position.y + (size.y / 2) + (size.y / 2),
-			position.x - (size.x / 2) + (size.x / 2), position.y + (size.y / 2) + (size.y / 2)
-		}, color.r != -1 ? color : getColor(0)));
-		merge();
-		this->writeToGpu(data);
-		this->points += pointSize;
-		objectAmount++;
-	}
-
-	Vec2 getPosition(size_t _Index) const {
-		return Vec2(data[verticeMemory[0 + _Index * (pointSize * 2)]] + size.x / 2, (data[verticeMemory[1 + _Index * (pointSize * 2)]] + size.y / 2));
-	}
-
-	void setPosition(size_t _Index, const Vec2& position) {
-		edit(_Index, std::vector<float> {
-				position.x - (size.x / 2), position.y - (size.y / 2),
-				position.x + (size.x / 2), position.y - (size.y / 2),
-				position.x + (size.x / 2), position.y + (size.y / 2),
-				position.x - (size.x / 2), position.y + (size.y / 2)
-		});
-	}
-};
-
-//template <typename shape_t>
-//class Shape : public shape_t {
-//	Shape(Camera* camera, const Mat2x2& position, const Vec2 size, const Color& color) : shape_t(camera, position, size, color) {}
-//};
 
 enum class GroupId {
 	NotAssigned = -1,

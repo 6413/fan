@@ -1,10 +1,7 @@
 #pragma once
 #include <iostream>
 
-//#define DBT
-
-#define ALLOC_BUFFER 0xfffffff
-
+#define ALLOC_BUFFER 0xfffff
 
 template <typename _Type>
 class Alloc;
@@ -43,17 +40,10 @@ protected:
 template <typename _Type>
 class Alloc : public iterator<_Type> {
 public:
-#ifdef DBT
-	Alloc() : _Size(0), _Data(NULL), _Current(1) {}
-	Alloc(size_t _Reserve) : _Data(NULL), _Current(1) {
+	Alloc(bool DBT = false) : _Size(0), _Data(NULL), _Current(DBT ? 1 : 0) {}
+	Alloc(size_t _Reserve, bool DBT = false) : _Data(NULL), _Current(DBT ? 1 : 0) {
 		resize(_Reserve);
 	}
-#else
-	Alloc() : _Size(0), _Data(NULL), _Current(0) {}
-	Alloc(size_t _Reserve) : _Data(NULL), _Current(0) {
-		resize(_Reserve);
-	}
-#endif
 
 	~Alloc() {}
 	constexpr _Type& operator[](size_t _Index) const {
