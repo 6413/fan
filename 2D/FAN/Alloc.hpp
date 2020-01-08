@@ -89,6 +89,17 @@ public:
 			_Data[_I] = _Value;
 		}
 	}
+	constexpr void free_to_max() {
+		if (_Size > _Current) {
+			_Type* _Temp = new _Type[_Current];
+			copy(_Data, _Temp, _Current);
+			delete[] _Data;
+			_Size = _Current;
+			_Data = new _Type[_Current];
+			copy(_Temp, _Data, _Current);
+			delete[] _Temp;
+		}
+	}
 	constexpr void push_back(_Type _Value) {
 		if (_Size > _Current) {
 			_Data[_Current] = _Value;
@@ -126,9 +137,7 @@ public:
 		return _Data;
 	}
 	constexpr void resize(size_t _Reserve) {
-		if (_Data) {
-			delete[] _Data;
-		}
+		delete[] _Data;
 		_Data = new _Type[_Reserve];
 		_Size = _Reserve;
 	}
@@ -137,6 +146,7 @@ public:
 		copy(_Data, _Temp, _Size);
 		this->resize(_Reserve);
 		copy(_Temp, _Data, _Size);
+		delete[] _Temp;
 	}
 	constexpr void free() const {
 		delete[] _Data;
@@ -147,7 +157,7 @@ public:
 	constexpr iterator<_Type> end() const {
 		return _Data + _Current;
 	}
-//private:
+private:
 	_Type* _Data;
 	size_t _Size;
 	size_t _Current;

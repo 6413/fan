@@ -24,7 +24,7 @@ template <typename type>
 struct dbt {
 	Alloc<keytype<type>> nodes;
 	constexpr dbt() : nodes(1) { }
-	constexpr dbt(size_t reserve) : nodes(reserve) { }
+	constexpr dbt(size_t reserve) : nodes(reserve) {}
 
 	constexpr void find_road(size_t& node, unsigned char* in, size_t& inlen, size_t& seek) {
 		while (inlen) {
