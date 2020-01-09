@@ -1,6 +1,6 @@
 #pragma once
-#include "Math.hpp"
-#include "Texture.hpp"
+#include <FAN/Math.hpp>
+#include <FAN/Graphics.hpp>
 #include <map>
 
 

@@ -1,7 +1,7 @@
 #pragma once
 #include <iostream>
 
-#define ALLOC_BUFFER 0xfffff
+#define ALLOC_BUFFER 0x1
 
 template <typename _Type>
 class Alloc;

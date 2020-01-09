@@ -1,6 +1,5 @@
 #pragma once
 
-#include <vector>
-#include "FAN/Texture.hpp"
+#include "FAN/Graphics.hpp"
 
-char* LoadBMP(const char* path, Object& object);
+char* LoadBMP(const char* path, Texture& object);

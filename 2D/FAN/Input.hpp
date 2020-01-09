@@ -4,7 +4,6 @@
 #include <GLFW/glfw3.h>
 #include "Vectors.hpp"
 #include <string>
-#include <vector>
 
 constexpr bool fullScreen = false;
 
