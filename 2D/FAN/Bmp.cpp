@@ -11,7 +11,7 @@ namespace BMP_Offsets {
 	constexpr::ptrdiff_t HEIGHT = 0x16;
 }
 
-char* LoadBMP(const char* path, Object& object) {
+char* LoadBMP(const char* path, Texture& texture) {
 	FILE* file = fopen(path, "rb");
 	if (!file) {
 		printf("wrong path %s", path);
@@ -25,8 +25,8 @@ char* LoadBMP(const char* path, Object& object) {
 	fclose(file);
 
 	uint32_t pixelOffset =  *(uint32_t*)(data + BMP_Offsets::PIXELDATA);
-	object.width =  *(uint32_t*)(data + BMP_Offsets::WIDTH);
-	object.height = *(uint32_t*)(data + BMP_Offsets::HEIGHT);
+	texture.width =  *(uint32_t*)(data + BMP_Offsets::WIDTH);
+	texture.height = *(uint32_t*)(data + BMP_Offsets::HEIGHT);
 
 	return data + pixelOffset;
 }

@@ -175,13 +175,28 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="FAN\Alloc.hpp" />
+    <ClInclude Include="FAN\bmp.hpp" />
+    <ClInclude Include="FAN\Camera.hpp" />
     <ClInclude Include="FAN\DBT.hpp" />
+    <ClInclude Include="FAN\Functions.hpp" />
+    <ClInclude Include="FAN\Input.hpp" />
+    <ClInclude Include="FAN\Math.hpp" />
+    <ClInclude Include="FAN\Settings.hpp" />
+    <ClInclude Include="FAN\Shader.h" />
+    <ClInclude Include="FAN\Graphics.hpp" />
+    <ClInclude Include="FAN\Vectors.hpp" />
     <ClInclude Include="WITCH\Alloc.h" />
     <ClInclude Include="WITCH\DBT.h" />
     <ClInclude Include="WITCH\PT.h" />
     <ClInclude Include="WITCH\Time.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="FAN\Bmp.cpp" />
+    <ClCompile Include="FAN\Functions.cpp" />
+    <ClCompile Include="FAN\Input.cpp" />
+    <ClCompile Include="FAN\Math.cpp" />
+    <ClCompile Include="FAN\Settings.cpp" />
+    <ClCompile Include="FAN\Graphics.cpp" />
     <ClCompile Include="Source.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
