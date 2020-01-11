@@ -1,7 +1,7 @@
 #pragma once
 #include <iostream>
 
-#define ALLOC_BUFFER 0x1
+#define ALLOC_BUFFER 0xfff
 
 template <typename _Type>
 class Alloc;
@@ -41,12 +41,13 @@ template <typename _Type>
 class Alloc : public iterator<_Type> {
 public:
 	Alloc(bool DBT = false) : _Size(0), _Data(NULL), _Current(DBT ? 1 : 0) {}
-	Alloc(size_t _Reserve, bool DBT = false) : _Data(NULL), _Current(DBT ? 1 : 0) {
+	template <typename type>
+	Alloc(type _Reserve, bool DBT = false) : _Data(NULL), _Current(DBT ? 1 : 0) {
 		resize(_Reserve);
 	}
 
 	~Alloc() {}
-	constexpr _Type& operator[](size_t _Index) const {
+	_Type& operator[](size_t _Index) const {
 		return _Data[_Index];
 	}
 	constexpr _Type operator[](const iterator<_Type>& _Index) const {

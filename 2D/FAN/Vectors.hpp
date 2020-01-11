@@ -286,7 +286,14 @@ public:
 		this->b = b;
 		this->a = a;
 	}
-
+	Color& operator&=(const Color& color) {
+		Color ret;
+		ret.r = (int)r & (int)color.r;
+		ret.g = (int)g & (int)color.g;
+		ret.b = (int)b & (int)color.b;
+		ret.a = (int)a & (int)color.a;
+		return *this;
+	}
 	constexpr float operator[](size_t x) const {
 		return !x ? this->r : x == 1 ? this->g : x == 2 ? this->b : x == 3 ? this->a : this->a;
 	}
