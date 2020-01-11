@@ -82,19 +82,22 @@ protected:
 
 class DefaultShape {
 public:
-	template <typename _Color>
-	constexpr _Color get_color(size_t _Index) {
+	template <typename _Color = Color>
+	constexpr _Color get_color(size_t _Index) const {
 		return Color(
-			_Colors[_Index * COLORSIZE    ], 
-			_Colors[_Index * COLORSIZE + 1], 
-			_Colors[_Index * COLORSIZE + 2], 
-			_Colors[_Index * COLORSIZE + 3]
-		)
+			_Colors[_Index * COLORSIZE * (_PointSize / 2)    ],
+			_Colors[_Index * COLORSIZE * (_PointSize / 2) + 1],
+			_Colors[_Index * COLORSIZE * (_PointSize / 2) + 2],
+			_Colors[_Index * COLORSIZE * (_PointSize / 2) + 3]
+		);
+	}
+	constexpr Alloc<float>& get_color_ptr() {
+		return _Colors;
 	}
 	template <typename _Color>
 	constexpr void set_color(size_t _Index, const _Color& color) {
-		for (int i = 0; i < COLORSIZE * 2; i++) {
-			_Colors[_Index * (COLORSIZE * 2) + i] = color[i % 4];
+		for (int i = 0; i < COLORSIZE * (_PointSize / 2); i++) {
+			_Colors[_Index * (COLORSIZE * (_PointSize / 2)) + i] = color[i % 4];
 		}
 		write(false, true);
 	}
@@ -139,7 +142,7 @@ protected:
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		glBindVertexArray(0);
 	}
-	constexpr void write(bool _EditVertices, bool _EditColor) {
+	void write(bool _EditVertices, bool _EditColor) {
 		if (_EditVertices) {
 			glBindBuffer(GL_ARRAY_BUFFER, _VerticeBuffer.VBO);
 			glBufferData(GL_ARRAY_BUFFER, sizeof(_Vertices[0]) * _Vertices.current(), _Vertices.data(), GL_STATIC_DRAW);
@@ -164,6 +167,13 @@ protected:
 
 class Line : public DefaultShape {
 public:
+	template <typename _Camera>
+	constexpr Line(_Camera camera) {
+		_Mode = GL_LINES;
+		_Points = 0;
+		_PointSize = 2 * 2;
+		init(camera);
+	}
 	template <typename _Camera, typename _Matrix, typename _Color>
 	constexpr Line(_Camera camera, const _Matrix& _M, const _Color& color) {
 		_Mode = GL_LINES;
@@ -241,7 +251,7 @@ public:
 		_Size.free();
 	}
 	template <typename _Vec2, typename _Color = Color>
-	constexpr void push_back(const _Vec2& _Position, _Vec2& _Size = Vec2(), _Color& color = Color(-1, -1, -1, -1)) {
+	constexpr void push_back(const _Vec2 _Position, _Vec2 _Size = Vec2(), _Color color = Color(-1, -1, -1, -1)) {
 		if (!_Size.x) {
 			_Size = this->_Size[0];
 		}
@@ -293,13 +303,21 @@ private:
 
 class Square : public DefaultShape {
 public:
+	template <typename _Camera>
+	constexpr Square(_Camera camera) {
+		_Mode = GL_QUADS;
+		_Points = 0;
+		_PointSize = 4 * 2;
+		init(camera);
+	}
+
 	template <typename _Camera, typename _Vec2, typename _Color>
 	constexpr Square(_Camera camera, const _Vec2& _Position, const _Vec2& _Size, const _Color& color) {
 		_Mode = GL_QUADS;
 		_Points = 4;
 		_PointSize = _Points * 2;
 		this->_Size.push_back(_Size);
-		this->_Position.push_back(_Position);
+		this->_Position.push_back(_Position - _Size / 2);
 		_Vertices.push_back(_Position.x);
 		_Vertices.push_back(_Position.y);
 		_Vertices.push_back(_Position.x + _Size.x);
@@ -314,12 +332,12 @@ public:
 		init(camera);
 	}
 	template <typename _Vec2, typename _Color = Color>
-	constexpr void push_back(const _Vec2& _Position, _Vec2& _Size = Vec2(), _Color& color = Color(-1, -1, -1, -1)) {
+	constexpr void push_back(const _Vec2& _Position, _Vec2 _Size = Vec2(), _Color color = Color(-1, -1, -1, -1)) {
 		if (!_Size.x) {
 			_Size = this->_Size[0];
 		}
 		this->_Size.push_back(_Size);
-		this->_Position.push_back(_Position);
+		this->_Position.push_back(_Position - _Size / 2);
 		_Vertices.push_back(_Position.x);
 		_Vertices.push_back(_Position.y);
 		_Vertices.push_back(_Position.x + _Size.x);
@@ -340,7 +358,7 @@ public:
 			}
 		}
 		else {
-			for (int i = 0; i < COLORSIZE * 2; i++) {
+			for (int i = 0; i < COLORSIZE * _PointSize; i++) {
 				_Colors.push_back(color[i % 4]);
 			}
 		}
@@ -358,10 +376,15 @@ public:
 		_Vertices[_Index * _PointSize + 6] = _Position.x;
 		_Vertices[_Index * _PointSize + 7] = _Position.y + _Size[_Index].y;
 		write(true, false);
+		this->_Position[_Index] = _Position;
 	}
-	template <typename _Vec2>
+	template <typename _Vec2 = Vec2>
 	constexpr _Vec2 get_position(size_t _Index) {
 		return _Position[_Index];
+	}
+	template <typename _Vec2 = Vec2>
+	constexpr _Vec2 get_size(size_t _Index) {
+		return _Size[_Index];
 	}
 private:
 	Alloc<Vec2> _Position;

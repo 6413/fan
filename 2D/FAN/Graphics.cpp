@@ -2,22 +2,22 @@
 #include <FAN/Bmp.hpp>
 #include <functional>
 
-std::vector<Vec2> LoadMap(float blockSize) {
-	std::ifstream file("data");
-	std::vector<float> coordinates;
-	int coordinate = 0;
-	while (file >> coordinate) {
-		coordinates.push_back(coordinate);
-	}
-
-	std::vector<Vec2> grid;
-
-	for (auto i : coordinates) {
-		grid.push_back(Vec2((int(i) % 14) * blockSize + blockSize / 2, int(i / 14) * blockSize + blockSize / 2));
-	}
-
-	return grid;
-}
+//std::vector<Vec2> LoadMap(float blockSize) {
+//	std::ifstream file("data");
+//	std::vector<float> coordinates;
+//	int coordinate = 0;
+//	while (file >> coordinate) {
+//		coordinates.push_back(coordinate);
+//	}
+//
+//	std::vector<Vec2> grid;
+//
+//	for (auto i : coordinates) {
+//		grid.push_back(Vec2((int(i) % 14) * blockSize + blockSize / 2, int(i / 14) * blockSize + blockSize / 2));
+//	}
+//
+//	return grid;
+//}
 
 //void LoadImg(const char* path, Object& object, Texture& texture) {
 //	std::ifstream file(path);

@@ -66,11 +66,17 @@ constexpr auto AimAngle(const __Vec2<_Ty>& src, const __Vec2<_Ty2>& dst) {
 	return Degrees(atan2f(dst.y - src.y, dst.x - src.x));
 }
 
-template <typename _Ty>
-constexpr auto DirectionVector(const _Ty& aimAngle)
-{
-	return __Vec2<_Ty>(cos(aimAngle), sin(aimAngle));
-}
+//template <typename _Ty>
+//constexpr auto DirectionVector(const _Ty& aimAngle)
+//{
+//	return __Vec2<_Ty>(cos(aimAngle), sin(aimAngle));
+//}
+
+//template <typename _Ty>
+//constexpr auto DirectionVector(const _Ty& aimAngle)
+//{
+//	return __Vec2<_Ty>(cos(aimAngle.x), sin(aimAngle.y));
+//}
 
 template <typename T>
 constexpr auto V3ToV2(const T& _v) {
