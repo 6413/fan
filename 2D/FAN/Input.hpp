@@ -32,7 +32,8 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 
 constexpr void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
 	if ((button == GLFW_MOUSE_BUTTON_LEFT ||
-		button == GLFW_MOUSE_BUTTON_RIGHT)
+		button == GLFW_MOUSE_BUTTON_RIGHT || 
+		button == GLFW_MOUSE_BUTTON_MIDDLE)
 		&& action == GLFW_PRESS) {
 		Input::key[button] = true;
 	}
