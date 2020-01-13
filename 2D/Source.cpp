@@ -1,7 +1,6 @@
 #include <iostream>
 #include <FAN/Graphics.hpp>
 #include <FAN/DBT.hpp>
-#include <Windows.h>
 
 size_t _2D1D() {
 	return (int(cursorPos.x / blockSize)) + int(cursorPos.y / blockSize) * (windowSize.y / blockSize);
@@ -176,6 +175,5 @@ int main() {
 		glfwSwapBuffers(window);
 		KeysReset();
 		collision.free();
-		//Sleep(1000);
 	}
 }
