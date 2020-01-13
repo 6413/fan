@@ -24,7 +24,7 @@ public:
 	__Vec2(_Type _x, _Type _y) : x(_x), y(_y) {}
 
 	constexpr bool Empty() const {
-		return !((int)this->x & (int)this->y);
+		return this->x == 0 && this->y == 0;
 	}
 
 	constexpr _Type& operator[](const int x) {
@@ -255,6 +255,9 @@ struct __Mat2x4 {
 	__Vec2<_Ty>(0, 0, x, 0),
 	__Vec2<_Ty>(0, 0, 0, x) } {};
 	__Mat2x4() : vec{ Vec2(), Vec2(), Vec2(), Vec2() } {};
+	constexpr __Vec2<_Ty> operator[](size_t _Where) const {
+		return vec[_Where];
+	}
 };
 
 using Mat2x4 = __Mat2x4<float>;

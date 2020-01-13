@@ -108,8 +108,8 @@ public:
 		_Matrix projection(1);
 		view = _Camera->GetViewMatrix(Translate(view, Vec3(windowSize.x / 2, windowSize.y / 2, -700.0f)));
 		projection = Ortho(windowSize.x / 2, windowSize.x + windowSize.x * 0.5, windowSize.y + windowSize.y * 0.5f, windowSize.y / 2, 0.1f, 1000.0f);
-		int projLoc = glGetUniformLocation(_Shader.ID, "projection");
-		int viewLoc = glGetUniformLocation(_Shader.ID, "view");
+		static int projLoc = glGetUniformLocation(_Shader.ID, "projection");
+		static int viewLoc = glGetUniformLocation(_Shader.ID, "view");
 		glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection.vec[0].x);
 		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view.vec[0].x);
 		glBindVertexArray(_ShapeBuffer.VAO);
@@ -179,6 +179,7 @@ public:
 		_Mode = GL_LINES;
 		_Points = 2;
 		_PointSize = _Points * 2;
+		_Size.push_back(Vec2(_M[1] - _M[0]));
 		for (int i = 0; i < 4; i++) {
 			_Vertices.push_back(_M[(i & 2) >> 1][i & 1]);
 		}
@@ -190,8 +191,8 @@ public:
 	template <typename _Matrix = Mat2x2>
 	constexpr _Matrix get_position(size_t _Index) const {
 		return Mat2x2(
-			Vec2(_Vertices[_Index * _PointSize / 2], _Vertices[_Index * _PointSize + 1]),
-			Vec2(_Vertices[_Index * _PointSize / 2 + 2], _Vertices[_Index * _PointSize + 3])
+			Vec2(_Vertices[_Index * _PointSize    ], _Vertices[_Index * _PointSize + 1]),
+			Vec2(_Vertices[_Index * _PointSize + 2], _Vertices[_Index * _PointSize + 3])
 		);
 	}
 	template <typename _Matrix>
@@ -200,9 +201,11 @@ public:
 			_Vertices[_Index * _PointSize + i] = _M[(i & 2) >> 1][i & 1];
 		}
 		write(true, false);
+		_Size[_Index] = Vec2(_M[1] - _M[0]);
 	}
 	template <typename _Matrix, typename _Color = Color>
 	constexpr void push_back(const _Matrix& _M, _Color& color = Color(-1, -1, -1, -1)) {
+		_Size.push_back(Vec2(_M[1] - _M[0]));
 		for (int i = 0; i < 4; i++) {
 			_Vertices.push_back(_M[(i & 2) >> 1][i & 1]);
 		}
@@ -225,6 +228,12 @@ public:
 		_Points += 2;
 		write(true, true);
 	}
+	template <typename _Vec2 = Vec2>
+	constexpr _Vec2 get_size(size_t _Index) {
+		return _Size[_Index];
+	}
+private:
+	Alloc<Vec2> _Size;
 };
 
 class Triangle : public DefaultShape {
@@ -317,7 +326,7 @@ public:
 		_Points = 4;
 		_PointSize = _Points * 2;
 		this->_Size.push_back(_Size);
-		this->_Position.push_back(_Position - _Size / 2);
+		this->_Position.push_back(_Position);
 		_Vertices.push_back(_Position.x);
 		_Vertices.push_back(_Position.y);
 		_Vertices.push_back(_Position.x + _Size.x);
@@ -326,6 +335,7 @@ public:
 		_Vertices.push_back(_Position.y + _Size.y);
 		_Vertices.push_back(_Position.x);
 		_Vertices.push_back(_Position.y + _Size.y);
+
 		for (int i = 0; i < COLORSIZE * _PointSize; i++) {
 			_Colors.push_back(color[i % 4]);
 		}
@@ -378,6 +388,15 @@ public:
 		write(true, false);
 		this->_Position[_Index] = _Position;
 	}
+	//template <typename _Matrix = Mat2x4>
+	inline Mat2x4 get_corners(size_t _Index) const {
+		return Mat2x4(
+			Vec2(_Vertices[_Index * _PointSize    ], _Vertices[_Index * _PointSize + 1]),
+			Vec2(_Vertices[_Index * _PointSize + 2], _Vertices[_Index * _PointSize + 3]),
+			Vec2(_Vertices[_Index * _PointSize + 4], _Vertices[_Index * _PointSize + 5]),
+			Vec2(_Vertices[_Index * _PointSize + 6], _Vertices[_Index * _PointSize + 7])
+		);
+	}
 	template <typename _Vec2 = Vec2>
 	constexpr _Vec2 get_position(size_t _Index) {
 		return _Position[_Index];
@@ -390,6 +409,40 @@ private:
 	Alloc<Vec2> _Position;
 	Alloc<Vec2> _Size;
 };
+
+template <typename _Square, typename _Matrix, typename _Alloc, typename _ReturnType = Vec2>
+constexpr _ReturnType Raycast(const _Square& grid, const _Matrix& direction, const _Alloc& walls, size_t gridSize, bool right) {
+	for (int i = right ? 0 : gridSize - 1; right ? i < gridSize : i-- ; right ? i++ : 0) {
+		if (!walls[i]) {
+			continue;
+		}
+		if (direction[1].x >= direction[0].x) {
+			Vec2 inter = IntersectionPoint(direction[0], direction[1], grid.get_corners(i)[0], grid.get_corners(i)[3]);
+			if (inter.x != -1) {
+				return inter;
+			}
+		}
+		else {
+			Vec2 inter = IntersectionPoint(direction[0], direction[1], grid.get_corners(i)[1], grid.get_corners(i)[2]);
+			if (inter.x != -1) {
+				return inter;
+			}
+		}
+		if (direction[1].y <= direction[0].y) {
+			Vec2 inter = IntersectionPoint(direction[0], direction[1], grid.get_corners(i)[2], grid.get_corners(i)[3]);
+			if (inter.x != -1) {
+				return inter;
+			}
+		}
+		else {
+			Vec2 inter = IntersectionPoint(direction[0], direction[1], grid.get_corners(i)[0], grid.get_corners(i)[1]);
+			if (inter.x != -1) {
+				return inter;
+			}
+		}
+	}
+	return Vec2(-1, -1);
+}
 
 //enum class GroupId {
 //	NotAssigned = -1,
