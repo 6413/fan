@@ -10,7 +10,7 @@ size_t _2D1D(Vec2 pos) {
 	return (int(floor(pos.x / blockSize))) + int(floor(pos.y / blockSize)) * (windowSize.y / blockSize);
 }
 
-#define movement_speed 1000000000
+#define movement_speed 10000
 
 #define lineLength 300
 
@@ -80,18 +80,18 @@ int main() {
 
 	Square collidable(&_Main.camera, Vec2(), Vec2(blockSize), Color(.415, 0.05, .67, 1));
 
-	Line line(&_Main.camera, Mat2x2(), Color(0, 1, 0, 1));
+	Square square(&_Main.camera, Cast<float>(windowSize) / 2, Vec2(blockSize), Color(0, 1, 0, 1));
 
 	Square dot(&_Main.camera, Vec2(), Vec2(16), Color(0, 0, 1, 1));
 
-	line.push_back(Mat2x2(Vec2(windowSize.x / 3, blockSize), Vec2(windowSize.x / 3, blockSize + lineLength)));
-
 	collidable.set_position(0, windowSize / 2);
-	line.set_position(0, Mat2x2(Vec2(blockSize, windowSize.y / 3), Vec2(blockSize + lineLength, windowSize.y / 3)));
+	//line.set_position(0, Mat2x2(Vec2(blockSize, windowSize.y / 3), Vec2(blockSize + lineLength, windowSize.y / 3)));
 
 	const uint8_t movement[] = { GLFW_KEY_W, GLFW_KEY_A, GLFW_KEY_S, GLFW_KEY_D };
 
-	while (!glfwWindowShouldClose(window)) {
+	
+
+	while (!glfwWindowShouldClose(window)) {  
 		glfwPollEvents();
 		glClearColor(0, 0, 0, 1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -105,67 +105,148 @@ int main() {
 		}
 
 		Alloc<Vec2> collision;
-		collision.resize(4);
+		collision.resize(12);
 
-		for (int i = 0; i < 4; i++) {
-			if (i < 2) {
-				collision[i] = Raycast(grid, Mat2x2(
-					Vec2(line.get_position(i % 2)[0]), Vec2(line.get_position(i % 2)[1] +
-						Vec2(!i ? movement_speed : 0, i == 1 ? movement_speed : 0))
-				), walls, view.x * view.y, true);
-			}
-			else if ( i > 1) {
-				collision[i] = Raycast(grid, Mat2x2(
-					Vec2(line.get_position(i % 2)[1]),
-					Vec2(line.get_position(i % 2)[0] + Vec2(i == 2 ? -movement_speed : 0, i == 3 ? -movement_speed : 0))
-				), walls, view.x * view.y, false);
-			}
 
-		}
+		//a
+		collision[0] = Raycast(grid, Mat2x2(
+			Vec2(square.get_position(0).x + 1, square.get_position(0).y),
+			Vec2(square.get_position(0).x - movement_speed * deltaTime, square.get_position(0).y)),
+			walls, view.x * view.y, false);
+		collision[1] = Raycast(grid, Mat2x2(
+			Vec2(square.get_position(0).x + 1, square.get_position(0).y + square.get_size(0).y / 2),
+			Vec2(square.get_position(0).x - movement_speed * deltaTime, square.get_position(0).y + square.get_size(0).y / 2)),
+			walls, view.x * view.y, false);
+		collision[2] = Raycast(grid, Mat2x2(
+			Vec2(square.get_position(0).x + 1, square.get_position(0).y + square.get_size(0).y),
+			Vec2(square.get_position(0).x - movement_speed * deltaTime, square.get_position(0).y + square.get_size(0).y)),
+			walls, view.x * view.y, false);
+
+		//d
+		collision[3] = Raycast(grid, Mat2x2(
+			Vec2(square.get_position(0).x + square.get_size(0).x - 1, square.get_position(0).y),
+			Vec2(square.get_position(0).x + square.get_size(0).x + movement_speed * deltaTime, square.get_position(0).y)),
+			walls, view.x * view.y, true);
+		collision[4] = Raycast(grid, Mat2x2(
+			Vec2(square.get_position(0).x + square.get_size(0).x - 1, square.get_position(0).y + square.get_size(0).y / 2),
+			Vec2(square.get_position(0).x + square.get_size(0).x + movement_speed * deltaTime, square.get_position(0).y + square.get_size(0).y / 2)),
+			walls, view.x * view.y, true);
+		collision[5] = Raycast(grid, Mat2x2(
+			Vec2(square.get_position(0).x + square.get_size(0).x - 1, square.get_position(0).y + square.get_size(0).y),
+			Vec2(square.get_position(0).x + square.get_size(0).x + movement_speed * deltaTime, square.get_position(0).y + square.get_size(0).y)),
+			walls, view.x * view.y, true);
+
+		//s
+		collision[6] = Raycast(grid, Mat2x2(
+			Vec2(square.get_position(0).x, square.get_position(0).y + square.get_size(0).y - 1),
+			Vec2(square.get_position(0).x, square.get_position(0).y + square.get_size(0).y + movement_speed * deltaTime)),
+			walls, view.x * view.y, true);
+		collision[7] = Raycast(grid, Mat2x2(
+			Vec2(square.get_position(0).x + square.get_size(0).x / 2, square.get_position(0).y + square.get_size(0).y - 1),
+			Vec2(square.get_position(0).x + square.get_size(0).x / 2, square.get_position(0).y + square.get_size(0).y + movement_speed * deltaTime)),
+			walls, view.x * view.y, true);
+		collision[8] = Raycast(grid, Mat2x2(
+			Vec2(square.get_position(0).x + square.get_size(0).x, square.get_position(0).y + square.get_size(0).y - 1),
+			Vec2(square.get_position(0).x + square.get_size(0).x, square.get_position(0).y + square.get_size(0).y + movement_speed * deltaTime)),
+			walls, view.x * view.y, true);
+
+		//w
+		collision[9] = Raycast(grid, Mat2x2(
+			Vec2(square.get_position(0).x, square.get_position(0).y + 1),
+			Vec2(square.get_position(0).x, square.get_position(0).y - movement_speed * deltaTime)),
+			walls, view.x * view.y, true);
+		collision[10] = Raycast(grid, Mat2x2(
+			Vec2(square.get_position(0).x + square.get_size(0).x / 2, square.get_position(0).y + 1),
+			Vec2(square.get_position(0).x + square.get_size(0).x / 2, square.get_position(0).y - movement_speed * deltaTime)),
+			walls, view.x * view.y, true);
+		collision[11] = Raycast(grid, Mat2x2(
+			Vec2(square.get_position(0).x + square.get_size(0).x, square.get_position(0).y + 1),
+			Vec2(square.get_position(0).x + square.get_size(0).x, square.get_position(0).y - movement_speed * deltaTime)),
+			walls, view.x * view.y, true);
 		
 		if (KeyPress(GLFW_MOUSE_BUTTON_LEFT)) {
-			line.set_position(0, Mat2x2(cursorPos, Cast<float>(cursorPos) + line.get_size(0)));
-		}
-
-		if (KeyPress(GLFW_MOUSE_BUTTON_MIDDLE)) {
-			line.set_position(1, Mat2x2(cursorPos, Cast<float>(cursorPos) + line.get_size(1)));
+			square.set_position(0, Cast<float>(cursorPos) - square.get_size(0) / 2);
 		}
 
 		if (KeyPress(GLFW_KEY_A)) {
-			if (collision[2].x != -1) {
-				
-				line.set_position(0, Mat2x2(collision[2], Vec2(collision[2].x + line.get_size(0).x, line.get_position(0)[0].y)));
+			int index = -1;
+			float smallest = -INFINITY;
+			for (int i = 0; i < 3; i++) {
+				if (collision[i].x == -1) {
+					continue;
+				}
+				if (collision[i].x > smallest) {
+					smallest = collision[i].x;
+					index = i;
+				}
+			}
+			if (index != -1) {
+				square.set_position(0, Vec2(collision[index].x, square.get_position(0).y));
 			}
 			else {
-				line.set_position(0, Mat2x2(Vec2(line.get_position(0)[0].x - movement_speed, line.get_position(0)[0].y), Vec2(line.get_position(0)[1].x - movement_speed, line.get_position(0)[1].y)));
+				square.set_position(0, Vec2(square.get_position(0).x - movement_speed * deltaTime, square.get_position(0).y));
 			}
 		}
 		if (KeyPress(GLFW_KEY_D)) {
-			if (collision[0].x != -1) {
-				line.set_position(0, Mat2x2(Vec2(collision[0].x - line.get_size(0).x, line.get_position(0)[0].y), collision[0]));
+			int index = -1;
+			float smallest = INFINITY;
+			for (int i = 3; i < 6; i++) {
+				if (collision[i].x == -1) {
+					continue;
+				}
+				if (collision[i].x < smallest) {
+					smallest = collision[i].x;
+					index = i;
+				}
+			}
+			if (index != -1) {
+				square.set_position(0, Vec2(collision[index].x - square.get_size(0).x, square.get_position(0).y));
 			}
 			else {
-				line.set_position(0, Mat2x2(Vec2(line.get_position(0)[0].x + movement_speed, line.get_position(0)[0].y), Vec2(line.get_position(0)[1].x + movement_speed, line.get_position(0)[1].y)));
+				square.set_position(0, Vec2(square.get_position(0).x + movement_speed * deltaTime, square.get_position(0).y));
 			}
 		}
 		if (KeyPress(GLFW_KEY_S)) {
-			if (collision[1].x != -1) {
-				line.set_position(1, Mat2x2(Vec2(line.get_position(1)[0].x, collision[1].y - line.get_size(1).y), collision[1]));
+			int index = -1;
+			float smallest = INFINITY;
+			for (int i = 6; i < 9; i++) {
+				if (collision[i].x == -1) {
+					continue;
+				}
+				if (collision[i].y < smallest) {
+					smallest = collision[i].y;
+					index = i;
+				}
+			}
+			if (index != -1) {
+				square.set_position(0, Vec2(square.get_position(0).x, collision[index].y - square.get_size(0).y));
 			}
 			else {
-				line.set_position(1, Mat2x2(Vec2(line.get_position(1)[0].x, line.get_position(1)[0].y + movement_speed), Vec2(line.get_position(1)[1].x, line.get_position(1)[1].y + movement_speed)));
+				square.set_position(0, Vec2(square.get_position(0).x, square.get_position(0).y + movement_speed * deltaTime));
 			}
 		}
 		if (KeyPress(GLFW_KEY_W)) {
-			if (collision[3].x != -1) {
-				line.set_position(1, Mat2x2(collision[3], Vec2(line.get_position(1)[0].x, collision[3].y + line.get_size(1).y)));
+			int index = -1;
+			float smallest = -INFINITY;
+			for (int i = 9; i < 12; i++) {
+				if (collision[i].y == -1) {
+					continue;
+				}
+				if (collision[i].y > smallest) {
+					smallest = collision[i].y;
+					index = i;
+				}
+			}
+			if (index != -1) {
+				square.set_position(0, Vec2(square.get_position(0).x, collision[index].y));
 			}
 			else {
-				line.set_position(1, Mat2x2(Vec2(line.get_position(1)[0].x, line.get_position(1)[0].y - movement_speed), Vec2(line.get_position(1)[1].x, line.get_position(1)[1].y - movement_speed)));
+				square.set_position(0, Vec2(square.get_position(0).x, square.get_position(0).y - movement_speed * deltaTime));
 			}
 		}
 
-		line.draw();
+		//line.draw();
+		square.draw();
 		grid.draw();
 		if (KeyPress(GLFW_KEY_ESCAPE)) {
 			glfwSetWindowShouldClose(window, true);
@@ -174,6 +255,5 @@ int main() {
 		GetFps();
 		glfwSwapBuffers(window);
 		KeysReset();
-		collision.free();
 	}
 }

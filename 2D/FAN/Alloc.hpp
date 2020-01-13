@@ -1,7 +1,8 @@
 #pragma once
 #include <iostream>
+#include <memory>
 
-#define ALLOC_BUFFER 0xffff
+#define ALLOC_BUFFER 0xfff
 
 template <typename _Type>
 class Alloc;
@@ -54,9 +55,9 @@ public:
 		return _Data + _Index;
 	}
 	constexpr _Type operator*() const {
-		return *_Data;
+		return _Data[0];
 	}
-	constexpr void insert(size_t _Where, _Type _Value) { 
+	constexpr void insert(size_t _Where, _Type _Value) {
 		if (!_Size) {
 			resize(1);
 			_Data[_Where] = _Value;
@@ -68,7 +69,6 @@ public:
 				_Data[_I] = _Data[_I - 1];
 			}
 		}
-
 		_Data[_Where] = _Value;
 		_Current++;
 	}
@@ -80,17 +80,17 @@ public:
 			_Data[_I] = _Value;
 		}
 	}
-	constexpr void free_to_max() {
-		if (_Size > _Current) {
-			_Type* _Temp = new _Type[_Current];
-			copy(_Data, _Temp, _Current);
-			delete[] _Data;
-			_Size = _Current;
-			_Data = new _Type[_Current];
-			copy(_Temp, _Data, _Current);
-			delete[] _Temp;
-		}
-	}
+	//constexpr void free_to_max() {
+	//	if (_Size > _Current) {
+	//		_Type* _Temp = new _Type[_Current];
+	//		copy(_Data, _Temp, _Current);
+	//		delete[] _Data;
+	//		_Size = _Current;
+	//		_Data = new _Type[_Current];
+	//		copy(_Temp, _Data, _Current);
+	//		delete[] _Temp;
+	//	}
+	//}
 	constexpr void push_back(_Type _Value) {
 		if (_Size > _Current) {
 			_Data[_Current] = _Value;
@@ -98,19 +98,17 @@ public:
 			return;
 		}
 		if (!_Size) {
-			_Data = new _Type[++_Size];
+			_Data = std::make_unique<_Type[]>(++_Size);
 			_Data[_Size - 1] = _Value;
 			_Current++;
 			return;
 		}
 		if (_Size <= _Current) {
-			_Type* _Temp = new _Type[_Size];
+			std::unique_ptr<_Type[]> _Temp = std::make_unique<_Type[]>(_Size);
 			copy(_Data, _Temp, _Size);
 			_Size += ALLOC_BUFFER;
-			delete[] _Data;
-			_Data = new _Type[_Size];
+			_Data = std::make_unique<_Type[]>(_Size);
 			copy(_Temp, _Data, _Size - ALLOC_BUFFER);
-			delete[] _Temp;
 		}
 		_Data[_Current] = _Value;
 		_Current++;
@@ -125,22 +123,17 @@ public:
 		return !this->_Size;
 	}
 	constexpr _Type* data() const {
-		return _Data;
+		return _Data.get();
 	}
 	constexpr void resize(size_t _Reserve) {
-		delete[] _Data;
-		_Data = new _Type[_Reserve];
+		_Data = std::make_unique<_Type[]>(_Reserve);
 		_Size = _Reserve;
 	}
 	constexpr void copyresize(size_t _Reserve) {
-		_Type* _Temp = new _Type[_Reserve];
+		std::unique_ptr<_Type[]> _Temp = std::make_unique<_Type[]>(_Size);
 		copy(_Data, _Temp, _Size);
 		this->resize(_Reserve);
 		copy(_Temp, _Data, _Size);
-		delete[] _Temp;
-	}
-	constexpr void free() const {
-		delete[] _Data;
 	}
 	constexpr iterator<_Type> begin() const {
 		return _Data;
@@ -149,7 +142,7 @@ public:
 		return _Data + _Current;
 	}
 private:
-	_Type* _Data;
+	std::unique_ptr<_Type[]> _Data;
 	size_t _Size;
 	size_t _Current;
 };
