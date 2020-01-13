@@ -247,7 +247,7 @@ struct __Mat2x4 {
 		vec[2] = m.vec[2];
 		vec[3] = m.vec[3];
 	}
-	__Mat2x4(const Vec2& x, const Vec2& y, const Vec2& z, const Vec2& a) {
+	constexpr __Mat2x4(const Vec2& x, const Vec2& y, const Vec2& z, const Vec2& a) {
 		vec[0] = x; vec[1] = y; vec[2] = z; vec[3] = a;
 	}
 	__Mat2x4(_Ty x) : vec{ Vec2(x, 0, 0, 0),

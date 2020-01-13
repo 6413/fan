@@ -102,7 +102,7 @@ public:
 		write(false, true);
 	}
 	template <typename _Matrix = Mat4x4>
-	constexpr void draw() {
+	void draw() {
 		_Shader.Use();
 		_Matrix view(1);
 		_Matrix projection(1);
@@ -119,10 +119,6 @@ public:
 		glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, 0);
 		glDrawArrays(_Mode, 0, _Points);
 		glBindVertexArray(0);
-	}
-	~DefaultShape() {
-		_Vertices.free();
-		_Colors.free();
 	}
 protected:
 	template <typename _Camera>
@@ -204,7 +200,7 @@ public:
 		_Size[_Index] = Vec2(_M[1] - _M[0]);
 	}
 	template <typename _Matrix, typename _Color = Color>
-	constexpr void push_back(const _Matrix& _M, _Color& color = Color(-1, -1, -1, -1)) {
+	constexpr void push_back(const _Matrix& _M, _Color color = Color(-1, -1, -1, -1)) {
 		_Size.push_back(Vec2(_M[1] - _M[0]));
 		for (int i = 0; i < 4; i++) {
 			_Vertices.push_back(_M[(i & 2) >> 1][i & 1]);
@@ -256,9 +252,7 @@ public:
 		}
 		init(camera);
 	}
-	~Triangle() {
-		_Size.free();
-	}
+	~Triangle() {}
 	template <typename _Vec2, typename _Color = Color>
 	constexpr void push_back(const _Vec2 _Position, _Vec2 _Size = Vec2(), _Color color = Color(-1, -1, -1, -1)) {
 		if (!_Size.x) {
