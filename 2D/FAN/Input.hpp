@@ -21,6 +21,7 @@ namespace Input {
 	extern std::string characters;
 	extern bool action[348];
 	extern bool released[1024];
+	static double* ptr;
 }
 
 template <typename _Ty, typename _Ty2>
@@ -30,7 +31,7 @@ constexpr void GlfwErrorCallback(_Ty Num, _Ty2 Desc) {
 
 void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 
-constexpr void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
+static void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
 	if ((button == GLFW_MOUSE_BUTTON_LEFT ||
 		button == GLFW_MOUSE_BUTTON_RIGHT || 
 		button == GLFW_MOUSE_BUTTON_MIDDLE)
@@ -45,11 +46,23 @@ constexpr void MouseButtonCallback(GLFWwindow* window, int button, int action, i
 			Input::action[button] = true;
 		}
 	}
-	
 }
 
 static void CursorPositionCallback(GLFWwindow* window, double xpos, double ypos) {
+
 	CursorNamespace::cursorPos = Vec2(xpos, ypos);
+}
+
+#define GLFW_MOUSE_SCROLL_UP 200
+#define GLFW_MOUSE_SCROLL_DOWN 201
+
+static void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
+	if (yoffset == 1) {
+		Input::action[GLFW_MOUSE_SCROLL_UP] = true;
+	}
+	else if (yoffset == -1) {
+		Input::action[GLFW_MOUSE_SCROLL_DOWN] = true;
+	}
 }
 
 template <typename _Ty>
@@ -105,7 +118,7 @@ inline bool KeyPress(int key) {
 	return false;
 }
 
-inline bool KeyPressA(int key) {
+static bool KeyPressA(int key) {
 	if (Input::action[key]) {
 		return true;
 	}
