@@ -5,5 +5,5 @@ void GetFps();
 
 namespace Settings {
 	extern float deltaTime;
-	constexpr int blockSize = 64;
+	static int blockSize = 64;
 }

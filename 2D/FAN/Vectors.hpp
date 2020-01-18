@@ -7,7 +7,34 @@
 #include <cmath>
 #include "Alloc.hpp"
 
-class Color;
+class Color {
+public:
+	float r, g, b, a;
+	Color() : r(0), g(0), b(0), a(0) {}
+
+	Color(float r, float g, float b, float a) {
+		this->r = r;
+		this->g = g;
+		this->b = b;
+		this->a = a;
+	}
+	Color& operator&=(const Color& color) {
+		Color ret;
+		ret.r = (int)r & (int)color.r;
+		ret.g = (int)g & (int)color.g;
+		ret.b = (int)b & (int)color.b;
+		ret.a = (int)a & (int)color.a;
+		return *this;
+	}
+	constexpr float operator[](size_t x) const {
+		return !x ? this->r : x == 1 ? this->g : x == 2 ? this->b : x == 3 ? this->a : this->a;
+	}
+};
+
+template <typename color_t, typename _Type>
+constexpr color_t operator/(const color_t& c, _Type value) {
+	return color_t(c.r / value, c.g / value, c.b / value, c.a / value);
+}
 
 template <typename _Type>
 class __Vec2 : public iterator<_Type> {
@@ -277,35 +304,6 @@ struct __Mat4x4 {
 };
 
 using Mat4x4 = __Mat4x4<float>;
-
-class Color {
-public:
-	float r, g, b, a;
-	Color() : r(0), g(0), b(0), a(0) {}
-
-	Color(float r, float g, float b, float a) {
-		this->r = r;
-		this->g = g;
-		this->b = b;
-		this->a = a;
-	}
-	Color& operator&=(const Color& color) {
-		Color ret;
-		ret.r = (int)r & (int)color.r;
-		ret.g = (int)g & (int)color.g;
-		ret.b = (int)b & (int)color.b;
-		ret.a = (int)a & (int)color.a;
-		return *this;
-	}
-	constexpr float operator[](size_t x) const {
-		return !x ? this->r : x == 1 ? this->g : x == 2 ? this->b : x == 3 ? this->a : this->a;
-	}
-};
-
-template <typename color_t, typename _Type>
-constexpr color_t operator/(const color_t& c, _Type value) {
-	return color_t(c.r / value, c.g / value, c.b / value, c.a / value);
-}
 
 template <typename _Casted, template<typename> typename _Vec_t, typename _Old>
 constexpr _Vec_t<_Casted> Cast(_Vec_t<_Old> v) {
