@@ -21,7 +21,9 @@ char* LoadBMP(const char* path, Texture& texture) {
 	size_t size = ftell(file);
 	fseek(file, 0, SEEK_SET);
 	char* data = (char*)malloc(size);
-	fread(data, 1, size, file);
+	if (data) {
+		fread(data, 1, size, file);
+	}
 	fclose(file);
 
 	uint32_t pixelOffset =  *(uint32_t*)(data + BMP_Offsets::PIXELDATA);

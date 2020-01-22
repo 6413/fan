@@ -13,7 +13,7 @@ namespace FanColors {
 	Vec3 Blue(0.0, 0.0, 1.0);
 }
 
-void GetFps(){
+void GetFps() {
 	static int fps = 0;
 	static double start = glfwGetTime();
 	float currentFrame = glfwGetTime();

@@ -21,16 +21,13 @@ constexpr auto IntersectionPoint(const T& p1Start, const T& p1End, const T& p2St
 	}
 	float t = ((p1Start.x - p2Start.x) * (p2Start.y - p2End.y) - (p1Start.y - p2Start.y) * (p2Start.x - p2End.x)) / den;
 	float u = -((p1Start.x - p1End.x) * (p1Start.y - p2Start.y) - (p1Start.y - p1End.y) * (p1Start.x - p2Start.x)) / den;
-	//if (p1Start.x == p1End.x && p1Start.x == p2Start.x || p1Start.x == p2End.x) {
-	//	return Vec2(1, 1);
-	//}
-
 	if (t > 0 && t < 1 && u > 0 && u < 1) {
 		//return true;
 		return Vec2(p1Start.x + t * (p1End.x - p1Start.x), p1Start.y + t * (p1End.y - p1Start.y));
 	}
 	return Vec2(-1, -1);
 }
+
 
 template<std::size_t N, class T>
 constexpr std::size_t ArrLen(T(&)[N]) { return N; }
@@ -85,16 +82,6 @@ constexpr auto AimAngle(const __Vec2<_Ty>& src, const __Vec2<_Ty2>& dst) {
 //}
 
 template <typename T>
-constexpr auto V3ToV2(const T& _v) {
-	return Vec2(_v.x, _v.y);
-}
-
-template <typename T>
-constexpr auto V2ToV3(const T _v) {
-	return Vec3(_v.x, _v.y, 0);
-}
-
-template <typename T>
 constexpr auto AbsAngle(const T& src, const T& dst, float deltaTime) {
 	return V3ToV2(Normalize(Vec3(src.x - dst.x, src.y - dst.y, 0))) * deltaTime;
 }
@@ -128,20 +115,6 @@ auto Scale(const T1& m, const T2& v) {
 	Result.vec[2] = m.vec[2] * v.z;
 	Result.vec[3] = m.vec[3];
 	return Result;
-}
-
-template<typename _Ty>
-constexpr auto GetCorners(const _Ty& middle, float scale) {
-	return Mat2x4(Vec2(middle.x - scale, middle.y + scale),
-		Vec2(middle.x + scale, middle.y + scale), Vec2(middle.x - scale, middle.y - scale),
-		Vec2(middle.x + scale, middle.y - scale));
-}
-
-template<typename _Ty>
-constexpr auto GetMuhdeCorners(const _Ty& middle, float scale) {
-	return Mat2x4(Vec2(middle.x, middle.y),
-		Vec2(middle.x + scale, middle.y), Vec2(middle.x, middle.y + scale),
-		Vec2(middle.x + scale, middle.y + scale));
 }
 
 template <typename _Ty> constexpr auto PixelsToSomething(_Ty pixels, _Ty screen) {

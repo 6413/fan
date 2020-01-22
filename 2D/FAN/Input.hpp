@@ -2,8 +2,11 @@
 #define GLEW_STATIC
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
-#include "Vectors.hpp"
+#include <FAN/Vectors.hpp>
+#include <FAN/Settings.hpp>
 #include <string>
+
+using namespace Settings;
 
 constexpr bool fullScreen = false;
 
@@ -82,8 +85,7 @@ constexpr void FrameSizeCallback(_Ty window, int width, int height) {
 	windowSize = Vec2(width, height);
 }
 
-template <typename _Ty>
-constexpr void WindowInit(_Ty& window) {
+static void WindowInit() {
 	using namespace WindowNamespace;
 	windowSize = Vec2(896, 896);
 	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
