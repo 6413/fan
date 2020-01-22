@@ -87,7 +87,7 @@ int main() {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		for (int i = 0; i < ray_amount; i++) {
-			float theta = 2.0f * 3.1415926f * float(i) / float(line_amount);
+			float theta = 2.0f * 3.1415926f * float(i) / float(ray_amount);
 			Vec2 direction(line.get_position(i)[1] + Vec2(sin(theta) * 1000, cos(theta) * 1000));
 			inter[i] = Raycast(grid, Mat2x2(line.get_position(0)[0], direction), walls, view.x * view.y, true);
 			line.set_position_queue(i, Mat2x2(line.get_position(i)[0], inter[i].x != -1 ? inter[i] : direction));
