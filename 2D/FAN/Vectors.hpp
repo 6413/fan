@@ -316,14 +316,14 @@ constexpr _Vec_t<_Type> operator-(const _Vec_t<_Type>& _Lhs, const _Vec_t<_Type>
 	return _Vec;
 }
 
-template <template<typename> typename _Vec_t, typename _Type, typename _Type2>
-constexpr _Vec_t<_Type> operator-(const _Vec_t<_Type>& _Lhs, _Type2 _Rhs) {
-	_Vec_t<_Type> _Vec;
-	for (int _I = 0; _I < _Lhs.size(); _I++) {
-		_Vec[_I] = _Lhs[_I] - _Rhs;
-	}
-	return _Vec;
-}
+//template <template<typename> typename _Vec_t, typename _Type, typename _Type2>
+//constexpr _Vec_t<_Type> operator-(const _Vec_t<_Type>& _Lhs, _Type2 _Rhs) {
+//	_Vec_t<_Type> _Vec;
+//	for (int _I = 0; _I < _Lhs.size(); _I++) {
+//		_Vec[_I] = _Lhs[_I] - _Rhs;
+//	}
+//	return _Vec;
+//}
 
 template <template<typename> typename _Vec_t, typename _Type, typename _Type2>
 constexpr _Vec_t<_Type> operator-(const _Vec_t<_Type>& _Vec) {
