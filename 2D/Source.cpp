@@ -7,7 +7,7 @@ size_t _2D1D() {
 	return (int(cursorPos.x / blockSize)) + int(cursorPos.y / blockSize) * (windowSize.y / blockSize);
 }
 
-#define ray_amount 100
+#define ray_amount 500
 
 int main() {
 	glfwSetErrorCallback(GlfwErrorCallback);
@@ -65,15 +65,17 @@ int main() {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		for (int i = 0; i < ray_amount; i++) {
+			Mat2x2 linePos = line.get_position(i);
 			float theta = 2.0f * 3.1415926f * float(i) / float(ray_amount);
-			Vec2 direction(line.get_position(i)[1] + Vec2(sin(theta) * 1000, cos(theta) * 1000));
-			inter[i] = Raycast(squares, Mat2x2(line.get_position(0)[0], direction), walls, view.x * view.y, KeyPress(GLFW_KEY_LEFT_CONTROL) ? false : true);
+			Vec2 direction(linePos[1] + Vec2(sin(theta) * 1000, cos(theta) * 1000));
+			inter[i] = Raycast(squares, Mat2x2(linePos[0], direction), walls, view.x * view.y);
+			
 			if (inter[i].x != -1) {
-				line.set_position_queue(i, Mat2x2(line.get_position(i)[0], inter[i]));
-				//break;
+				line.set_position_queue(i, Mat2x2(linePos[0], inter[i]));
+				
 			}
 			else {
-				line.set_position_queue(i, Mat2x2(line.get_position(i)[0], direction));
+				line.set_position_queue(i, Mat2x2(linePos[0], direction));
 			}
 		}
 		line.break_queue(); 
