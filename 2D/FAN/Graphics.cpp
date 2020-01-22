@@ -84,14 +84,14 @@ void Sprite::Draw() {
 	Mat4x4 view(1);
 	view = camera->GetViewMatrix(Translate(view, Vec3(windowSize.x / 2, windowSize.y / 2, -700.0f)));
 	Mat4x4 projection(1);
-	projection = Ortho(windowSize.x / 2, windowSize.x  + windowSize.x * 0.5, windowSize.y + windowSize.y * 0.5, windowSize.y / 2, 0.1, 1000.0f);
+	projection = Ortho(windowSize.x / 2, windowSize.x  + windowSize.x * 0.5f, windowSize.y + windowSize.y * 0.5f, windowSize.y / 2.f, 0.1f, 1000.0f);
 	GLint projLoc = glGetUniformLocation(shader.ID, "projection");
 	GLint viewLoc = glGetUniformLocation(shader.ID, "view");
 	GLint modelLoc = glGetUniformLocation(shader.ID, "model");
 	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view.vec[0].x);
 	glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection.vec[0].x);
 	Mat4x4 model(1);
-	model = Translate(model, V2ToV3(position));
+	model = Translate(model, Vec2ToVec3(position));
 	if (size.x || size.y) {
 		model = Scale(model, Vec3(size.x, size.y, 0));
 	}

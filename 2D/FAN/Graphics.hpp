@@ -10,7 +10,7 @@
 #include "Math.hpp"
 #include "Settings.hpp"
 #include "Shader.h"
-
+#include <vector>
 
 #ifdef _MSC_VER
 #pragma warning (disable : 26495)
@@ -85,13 +85,13 @@ public:
 	template <typename _Color = Color>
 	constexpr _Color get_color(size_t _Index) const {
 		return Color(
-			_Colors[_Index * COLORSIZE * (_PointSize / 2)    ],
+			_Colors[_Index * COLORSIZE * (_PointSize / 2)],
 			_Colors[_Index * COLORSIZE * (_PointSize / 2) + 1],
 			_Colors[_Index * COLORSIZE * (_PointSize / 2) + 2],
 			_Colors[_Index * COLORSIZE * (_PointSize / 2) + 3]
 		);
 	}
-	constexpr Alloc<float>& get_color_ptr() {
+	constexpr auto& get_color_ptr() {
 		return _Colors;
 	}
 	template <typename _Color>
@@ -102,7 +102,10 @@ public:
 		write(false, true);
 	}
 	template <typename _Matrix = Mat4x4>
-	void draw() {
+	constexpr void draw() {
+		if (_Vertices.empty()) {
+			return;
+		}
 		_Shader.Use();
 		_Matrix view(1);
 		_Matrix projection(1);
@@ -121,13 +124,12 @@ public:
 		glBindVertexArray(0);
 	}
 protected:
-	template <typename _Camera>
-	constexpr void init(_Camera camera) {
-		this->_Camera = camera;
+	void init() {
+		this->_Camera = (Camera*)glfwGetWindowUserPointer(window);
 		this->_Shader = Shader("GLSL/shapes.vs", "GLSL/shapes.frag");
 		glGenBuffers(1, &_VerticeBuffer.VBO);
 		glBindBuffer(GL_ARRAY_BUFFER, _VerticeBuffer.VBO);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(_Vertices[0]) * _Vertices.current(), _Vertices.data(), GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(_Vertices[0]) * _Vertices.size(), _Vertices.data(), GL_STATIC_DRAW);
 		glGenBuffers(1, &_ColorBuffer.VBO);
 		glBindBuffer(GL_ARRAY_BUFFER, _ColorBuffer.VBO);
 		glBufferData(GL_ARRAY_BUFFER, sizeof(_Colors[0]) * _Colors.size(), _Colors.data(), GL_STATIC_DRAW);
@@ -138,10 +140,10 @@ protected:
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		glBindVertexArray(0);
 	}
-	void write(bool _EditVertices, bool _EditColor) {
+	constexpr void write(bool _EditVertices, bool _EditColor) {
 		if (_EditVertices) {
 			glBindBuffer(GL_ARRAY_BUFFER, _VerticeBuffer.VBO);
-			glBufferData(GL_ARRAY_BUFFER, sizeof(_Vertices[0]) * _Vertices.current(), _Vertices.data(), GL_STATIC_DRAW);
+			glBufferData(GL_ARRAY_BUFFER, sizeof(_Vertices[0]) * _Vertices.size(), _Vertices.data(), GL_STATIC_DRAW);
 		}
 		if (_EditColor) {
 			glBindBuffer(GL_ARRAY_BUFFER, _ColorBuffer.VBO);
@@ -154,42 +156,52 @@ protected:
 	Texture _ShapeBuffer;
 	Shader _Shader;
 	Camera* _Camera;
-	Alloc<float> _Vertices;
-	Alloc<float> _Colors;
-	size_t _Mode;
-	size_t _Points;
+	std::vector<float> _Vertices;
+	std::vector<float> _Colors;
+	unsigned int _Mode;
+	int _Points;
 	size_t _PointSize;
 };
 
 class Line : public DefaultShape {
 public:
-	template <typename _Camera>
-	constexpr Line(_Camera camera) {
+	Line() {
 		_Mode = GL_LINES;
 		_Points = 0;
 		_PointSize = 2 * 2;
-		init(camera);
+		init();
 	}
-	template <typename _Camera, typename _Matrix, typename _Color>
-	constexpr Line(_Camera camera, const _Matrix& _M, const _Color& color) {
+
+	template <typename _Matrix, typename _Color>
+	constexpr Line(const _Matrix& _M, const _Color& color) {
 		_Mode = GL_LINES;
 		_Points = 2;
 		_PointSize = _Points * 2;
-		_Size.push_back(Vec2(_M[1] - _M[0]));
+		_Length.push_back(Vec2(_M[1] - _M[0]));
 		for (int i = 0; i < 4; i++) {
 			_Vertices.push_back(_M[(i & 2) >> 1][i & 1]);
 		}
 		for (int i = 0; i < COLORSIZE * _PointSize; i++) {
 			_Colors.push_back(color[i % 4]);
 		}
-		init(camera);
+		init();
 	}
 	template <typename _Matrix = Mat2x2>
 	constexpr _Matrix get_position(size_t _Index) const {
 		return Mat2x2(
-			Vec2(_Vertices[_Index * _PointSize    ], _Vertices[_Index * _PointSize + 1]),
+			Vec2(_Vertices[_Index * _PointSize], _Vertices[_Index * _PointSize + 1]),
 			Vec2(_Vertices[_Index * _PointSize + 2], _Vertices[_Index * _PointSize + 3])
 		);
+	}
+	template <typename _Matrix>
+	constexpr void set_position_queue(size_t _Index, const _Matrix& _M) {
+		for (int i = 0; i < 4; i++) {
+			_Vertices[_Index * _PointSize + i] = _M[(i & 2) >> 1][i & 1];
+		}
+		_Length[_Index] = Vec2(_M[1] - _M[0]);
+	}
+	constexpr void break_queue() {
+		write(true, true);
 	}
 	template <typename _Matrix>
 	constexpr void set_position(size_t _Index, const _Matrix& _M) {
@@ -197,16 +209,16 @@ public:
 			_Vertices[_Index * _PointSize + i] = _M[(i & 2) >> 1][i & 1];
 		}
 		write(true, false);
-		_Size[_Index] = Vec2(_M[1] - _M[0]);
+		_Length[_Index] = Vec2(_M[1] - _M[0]);
 	}
 	template <typename _Matrix, typename _Color = Color>
-	constexpr void push_back(const _Matrix& _M, _Color color = Color(-1, -1, -1, -1)) {
-		_Size.push_back(Vec2(_M[1] - _M[0]));
+	constexpr void push_back(const _Matrix& _M, _Color color = Color(-1, -1, -1, -1), bool queue = false) {
+		_Length.push_back(Vec2(_M[1] - _M[0]));
 		for (int i = 0; i < 4; i++) {
 			_Vertices.push_back(_M[(i & 2) >> 1][i & 1]);
 		}
 		if (color.r == -1) {
-			if (_Colors.current() > COLORSIZE) {
+			if (_Colors.size() > COLORSIZE) {
 				color = Color(_Colors[0], _Colors[1], _Colors[2], _Colors[3]);
 			}
 			else {
@@ -222,31 +234,33 @@ public:
 			}
 		}
 		_Points += 2;
-		write(true, true);
+		if (!queue) {
+			write(true, true);
+		}
 	}
 	template <typename _Vec2 = Vec2>
-	constexpr _Vec2 get_size(size_t _Index) {
-		return _Size[_Index];
+	constexpr _Vec2 get_length(size_t _Index) {
+		return _Length[_Index];
 	}
 private:
-	Alloc<Vec2> _Size;
+	Alloc<Vec2> _Length;
 };
 
 class Triangle : public DefaultShape {
 public:
 	template <typename _Camera, typename _Vec2, typename _Color>
-	constexpr Triangle(_Camera camera, const _Vec2& _Position, const _Vec2& _Size, const _Color& color) {
+	constexpr Triangle(_Camera camera, const _Vec2& _Position, const _Vec2& _Length, const _Color& color) {
 		_Mode = GL_TRIANGLES;
 		_Points = 3;
 		_PointSize = _Points * 2;
-		this->_Size.push_back(_Size);
+		this->_Length.push_back(_Length);
 		this->_Position.push_back(_Position);
-		_Vertices.push_back(_Position.x - (_Size.x / 2));
-		_Vertices.push_back(_Position.y + (_Size.y / 2));
-		_Vertices.push_back(_Position.x + (_Size.x / 2));
-		_Vertices.push_back(_Position.y + (_Size.y / 2));
+		_Vertices.push_back(_Position.x - (_Length.x / 2));
+		_Vertices.push_back(_Position.y + (_Length.y / 2));
+		_Vertices.push_back(_Position.x + (_Length.x / 2));
+		_Vertices.push_back(_Position.y + (_Length.y / 2));
 		_Vertices.push_back(_Position.x);
-		_Vertices.push_back(_Position.y - (_Size.y / 2));
+		_Vertices.push_back(_Position.y - (_Length.y / 2));
 		for (int i = 0; i < COLORSIZE * _PointSize; i++) {
 			_Colors.push_back(color[i % 4]);
 		}
@@ -254,20 +268,20 @@ public:
 	}
 	~Triangle() {}
 	template <typename _Vec2, typename _Color = Color>
-	constexpr void push_back(const _Vec2 _Position, _Vec2 _Size = Vec2(), _Color color = Color(-1, -1, -1, -1)) {
-		if (!_Size.x) {
-			_Size = this->_Size[0];
+	constexpr void push_back(const _Vec2 _Position, _Vec2 _Length = Vec2(), _Color color = Color(-1, -1, -1, -1)) {
+		if (!_Length.x) {
+			_Length = this->_Length[0];
 		}
-		this->_Size.push_back(_Size);
+		this->_Length.push_back(_Length);
 		this->_Position.push_back(_Position);
-		_Vertices.push_back(_Position.x - (_Size.x / 2));
-		_Vertices.push_back(_Position.y + (_Size.y / 2));
-		_Vertices.push_back(_Position.x + (_Size.x / 2));
-		_Vertices.push_back(_Position.y + (_Size.y / 2));
+		_Vertices.push_back(_Position.x - (_Length.x / 2));
+		_Vertices.push_back(_Position.y + (_Length.y / 2));
+		_Vertices.push_back(_Position.x + (_Length.x / 2));
+		_Vertices.push_back(_Position.y + (_Length.y / 2));
 		_Vertices.push_back(_Position.x);
-		_Vertices.push_back(_Position.y - (_Size.y / 2));
+		_Vertices.push_back(_Position.y - (_Length.y / 2));
 		if (color.r == -1) {
-			if (_Colors.current() > COLORSIZE) {
+			if (_Colors.size() > COLORSIZE) {
 				color = Color(_Colors[0], _Colors[1], _Colors[2], _Colors[3]);
 			}
 			else {
@@ -287,12 +301,12 @@ public:
 	}
 	template <typename _Vec2>
 	constexpr void set_position(size_t _Index, const _Vec2& _Position) {
-		_Vertices[_Index * _PointSize    ] = (_Position.x - (_Size[_Index].x / 2));
-		_Vertices[_Index * _PointSize + 1] = (_Position.y + (_Size[_Index].y / 2));
-		_Vertices[_Index * _PointSize + 2] = (_Position.x + (_Size[_Index].x / 2));
-		_Vertices[_Index * _PointSize + 3] = (_Position.y + (_Size[_Index].y / 2));
+		_Vertices[_Index * _PointSize] = (_Position.x - (_Length[_Index].x / 2));
+		_Vertices[_Index * _PointSize + 1] = (_Position.y + (_Length[_Index].y / 2));
+		_Vertices[_Index * _PointSize + 2] = (_Position.x + (_Length[_Index].x / 2));
+		_Vertices[_Index * _PointSize + 3] = (_Position.y + (_Length[_Index].y / 2));
 		_Vertices[_Index * _PointSize + 4] = (_Position.x);
-		_Vertices[_Index * _PointSize + 5] = (_Position.y - (_Size[_Index].y / 2));
+		_Vertices[_Index * _PointSize + 5] = (_Position.y - (_Length[_Index].y / 2));
 		write(true, false);
 	}
 	template <typename _Vec2>
@@ -301,57 +315,56 @@ public:
 	}
 private:
 	Alloc<Vec2> _Position;
-	Alloc<Vec2> _Size;
+	Alloc<Vec2> _Length;
 };
 
 class Square : public DefaultShape {
 public:
-	template <typename _Camera>
-	constexpr Square(_Camera camera) {
+	Square() {
 		_Mode = GL_QUADS;
 		_Points = 0;
 		_PointSize = 4 * 2;
-		init(camera);
+		init();
 	}
 
-	template <typename _Camera, typename _Vec2, typename _Color>
-	constexpr Square(_Camera camera, const _Vec2& _Position, const _Vec2& _Size, const _Color& color) {
+	template <typename _Vec2, typename _Color>
+	constexpr Square(const _Vec2& _Position, const _Vec2& _Length, const _Color& color) {
 		_Mode = GL_QUADS;
 		_Points = 4;
 		_PointSize = _Points * 2;
-		this->_Size.push_back(_Size);
+		this->_Length.push_back(_Length);
 		this->_Position.push_back(_Position);
 		_Vertices.push_back(_Position.x);
 		_Vertices.push_back(_Position.y);
-		_Vertices.push_back(_Position.x + _Size.x);
+		_Vertices.push_back(_Position.x + _Length.x);
 		_Vertices.push_back(_Position.y);
-		_Vertices.push_back(_Position.x + _Size.x);
-		_Vertices.push_back(_Position.y + _Size.y);
+		_Vertices.push_back(_Position.x + _Length.x);
+		_Vertices.push_back(_Position.y + _Length.y);
 		_Vertices.push_back(_Position.x);
-		_Vertices.push_back(_Position.y + _Size.y);
+		_Vertices.push_back(_Position.y + _Length.y);
 
 		for (int i = 0; i < COLORSIZE * _PointSize; i++) {
 			_Colors.push_back(color[i % 4]);
 		}
-		init(camera);
+		init();
 	}
 	template <typename _Vec2, typename _Color = Color>
-	constexpr void push_back(const _Vec2& _Position, _Vec2 _Size = Vec2(), _Color color = Color(-1, -1, -1, -1)) {
-		if (!_Size.x) {
-			_Size = this->_Size[0];
+	constexpr void push_back(const _Vec2& _Position, _Vec2 _Length = Vec2(), _Color color = Color(-1, -1, -1, -1)) {
+		if (!_Length.x) {
+			_Length = this->_Length[0];
 		}
-		this->_Size.push_back(_Size);
-		this->_Position.push_back(_Position - _Size / 2);
+		this->_Length.push_back(_Length);
+		this->_Position.push_back(_Position - _Length / 2);
 		_Vertices.push_back(_Position.x);
 		_Vertices.push_back(_Position.y);
-		_Vertices.push_back(_Position.x + _Size.x);
+		_Vertices.push_back(_Position.x + _Length.x);
 		_Vertices.push_back(_Position.y);
-		_Vertices.push_back(_Position.x + _Size.x);
-		_Vertices.push_back(_Position.y + _Size.y);
+		_Vertices.push_back(_Position.x + _Length.x);
+		_Vertices.push_back(_Position.y + _Length.y);
 		_Vertices.push_back(_Position.x);
-		_Vertices.push_back(_Position.y + _Size.y);
+		_Vertices.push_back(_Position.y + _Length.y);
 		if (color.r == -1) {
-			if (_Colors.current() > COLORSIZE) {
+			if (_Colors.size() > COLORSIZE) {
 				color = Color(_Colors[0], _Colors[1], _Colors[2], _Colors[3]);
 			}
 			else {
@@ -371,21 +384,20 @@ public:
 	}
 	template <typename _Vec2>
 	constexpr void set_position(size_t _Index, const _Vec2& _Position) {
-		_Vertices[_Index * _PointSize    ] = _Position.x;
+		_Vertices[_Index * _PointSize] = _Position.x;
 		_Vertices[_Index * _PointSize + 1] = _Position.y;
-		_Vertices[_Index * _PointSize + 2] = _Position.x + _Size[_Index].x;
+		_Vertices[_Index * _PointSize + 2] = _Position.x + _Length[_Index].x;
 		_Vertices[_Index * _PointSize + 3] = _Position.y;
-		_Vertices[_Index * _PointSize + 4] = _Position.x + _Size[_Index].x;
-		_Vertices[_Index * _PointSize + 5] = _Position.y + _Size[_Index].y;
+		_Vertices[_Index * _PointSize + 4] = _Position.x + _Length[_Index].x;
+		_Vertices[_Index * _PointSize + 5] = _Position.y + _Length[_Index].y;
 		_Vertices[_Index * _PointSize + 6] = _Position.x;
-		_Vertices[_Index * _PointSize + 7] = _Position.y + _Size[_Index].y;
+		_Vertices[_Index * _PointSize + 7] = _Position.y + _Length[_Index].y;
 		write(true, false);
 		this->_Position[_Index] = _Position;
 	}
-	//template <typename _Matrix = Mat2x4>
 	inline Mat2x4 get_corners(size_t _Index) const {
 		return Mat2x4(
-			Vec2(_Vertices[_Index * _PointSize    ], _Vertices[_Index * _PointSize + 1]),
+			Vec2(_Vertices[_Index * _PointSize], _Vertices[_Index * _PointSize + 1]),
 			Vec2(_Vertices[_Index * _PointSize + 2], _Vertices[_Index * _PointSize + 3]),
 			Vec2(_Vertices[_Index * _PointSize + 4], _Vertices[_Index * _PointSize + 5]),
 			Vec2(_Vertices[_Index * _PointSize + 6], _Vertices[_Index * _PointSize + 7])
@@ -396,47 +408,25 @@ public:
 		return _Position[_Index];
 	}
 	template <typename _Vec2 = Vec2>
-	constexpr _Vec2 get_size(size_t _Index) {
-		return _Size[_Index];
+	constexpr _Vec2 get_length(size_t _Index) {
+		return _Length[_Index];
+	}
+	void erase(size_t _Index) {
+		//_Index += 1;
+		for (int i = 0; i < 8; i++) {
+			_Vertices.erase(_Vertices.begin() + _Index * _PointSize);
+		}
+		for (int i = 0; i < COLORSIZE * _PointSize; i++) {
+			_Colors.erase(_Vertices.begin() + _Index * _PointSize);
+		}
+		write(true, true);
 	}
 private:
 	Alloc<Vec2> _Position;
-	Alloc<Vec2> _Size;
+	Alloc<Vec2> _Length;
 };
 
-template <typename _Square, typename _Matrix, typename _Alloc, typename _ReturnType = Vec2>
-constexpr _ReturnType Raycast(const _Square& grid, const _Matrix& direction, const _Alloc& walls, size_t gridSize, bool right) {
-	for (int i = right ? 0 : gridSize - 1; right ? i < gridSize : i-- ; right ? i++ : 0) {
-		if (!walls[i]) {
-			continue;
-		}
-		if (direction[1].x >= direction[0].x) {
-			Vec2 inter = IntersectionPoint(direction[0], direction[1], grid.get_corners(i)[0], grid.get_corners(i)[3]);
-			if (inter.x != -1) {
-				return inter;
-			}
-		}
-		else {
-			Vec2 inter = IntersectionPoint(direction[0], direction[1], grid.get_corners(i)[1], grid.get_corners(i)[2]);
-			if (inter.x != -1) {
-				return inter;
-			}
-		}
-		if (direction[1].y <= direction[0].y) {
-			Vec2 inter = IntersectionPoint(direction[0], direction[1], grid.get_corners(i)[2], grid.get_corners(i)[3]);
-			if (inter.x != -1) {
-				return inter;
-			}
-		}
-		else {
-			Vec2 inter = IntersectionPoint(direction[0], direction[1], grid.get_corners(i)[0], grid.get_corners(i)[1]);
-			if (inter.x != -1) {
-				return inter;
-			}
-		}
-	}
-	return Vec2(-1, -1);
-}
+
 
 //enum class GroupId {
 //	NotAssigned = -1,

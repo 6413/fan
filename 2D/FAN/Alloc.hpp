@@ -2,18 +2,10 @@
 #include <iostream>
 #include <memory>
 
-#define ALLOC_BUFFER 0xfff
+#define ALLOC_BUFFER 0xffff
 
 template <typename _Type>
 class Alloc;
-
-template <typename _Type>
-constexpr void copy(const _Type& _Src, _Type& _Dest, const size_t _Buffer) {
-	int _Index = 0;
-	for (; _Index != _Buffer; ++_Index) {
-		_Dest[_Index] = _Src[_Index];
-	}
-}
 
 template <typename _Type>
 class iterator {
@@ -46,7 +38,6 @@ public:
 	Alloc(type _Reserve, bool DBT = false) : _Data(NULL), _Current(DBT ? 1 : 0) {
 		resize(_Reserve);
 	}
-
 	~Alloc() {}
 	_Type& operator[](size_t _Index) const {
 		return _Data[_Index];
@@ -57,20 +48,34 @@ public:
 	constexpr _Type operator*() const {
 		return _Data[0];
 	}
-	constexpr void insert(size_t _Where, _Type _Value) {
-		if (!_Size) {
+	constexpr void insert(size_t _Index, _Type _Value) {
+		//if (!_Size) {
+		//	resize(1);
+		//	id[_Index] = _Current;
+		//	_Data[_Current] = _Value;
+		//	_Current++;
+		//	return;
+		//}
+		//else if (_Size <= _Current){
+		//	std::unique_ptr<_Type[]> _Temp = std::make_unique<_Type[]>(_Size);
+		//	copy(_Data, _Temp, _Size);
+		//	_Size += ALLOC_BUFFER;
+		//	_Data = std::make_unique<_Type[]>(_Size);
+		//	copy(_Temp, _Data, _Size - ALLOC_BUFFER);
+		//}
+		/*if (!_Size) {
 			resize(1);
-			_Data[_Where] = _Value;
+			_Data[_Index] = _Value;
 			return;
 		}
-		if (_Size - 1 <= _Where) {
-			copyresize(_Where + 1);
-			for (size_t _I = _Size; _I > _Where; _I--) {
+		if (_Size - 1 <= _Index) {
+			copyresize(_Index + 1);
+			for (size_t _I = _Size; _I > _Index; _I--) {
 				_Data[_I] = _Data[_I - 1];
 			}
 		}
-		_Data[_Where] = _Value;
-		_Current++;
+		_Data[_Index] = _Value;
+		_Current++;*/
 	}
 	constexpr void insert(size_t _From, size_t _To, _Type _Value) {
 		if (_Size <= _To) {
@@ -113,6 +118,14 @@ public:
 		_Data[_Current] = _Value;
 		_Current++;
 	}
+	template <typename _Alloc>
+	constexpr void copy(const _Alloc& _Src, _Alloc& _Dest, const size_t _Buffer) {
+		int _Index = 0;
+		for (; _Index != _Buffer; ++_Index) {
+			_Dest[_Index] = _Src[_Index];
+		}
+	}
+
 	constexpr size_t size() const {
 		return this->_Size;
 	}
@@ -133,13 +146,20 @@ public:
 		std::unique_ptr<_Type[]> _Temp = std::make_unique<_Type[]>(_Size);
 		copy(_Data, _Temp, _Size);
 		this->resize(_Reserve);
-		copy(_Temp, _Data, _Size);
+		copy(_Temp, _Data, _Reserve);
 	}
 	constexpr iterator<_Type> begin() const {
-		return _Data;
+		return _Data.get();
 	}
 	constexpr iterator<_Type> end() const {
-		return _Data + _Current;
+		return _Data.get() + _Current;
+	}
+	constexpr void erase(size_t _Index) {
+		for (size_t _I = _Index; _I < current() - 1; _I++) {
+			_Data[_I] = _Data[_I + 1];
+		}
+		copyresize(current() - 1);
+		_Current--;
 	}
 private:
 	std::unique_ptr<_Type[]> _Data;

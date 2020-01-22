@@ -21,10 +21,11 @@ struct keytype {
 };
 
 template <typename type>
-struct dbt {
+class dbt {
+public:
 	Alloc<keytype<type>> nodes;
-	constexpr dbt() : nodes(1, true) { }
-	constexpr dbt(size_t reserve) : nodes(reserve, true) {}
+	constexpr dbt() : nodes(1, true), _Size(0) { }
+	constexpr dbt(size_t _Reserve) : nodes(_Reserve, true), _Size(_Reserve) {}
 
 	constexpr void find_road(size_t& node, unsigned char*& in, size_t& inlen, size_t& seek) {
 		while (inlen) {
@@ -46,6 +47,7 @@ struct dbt {
 		}
 		nodes[node].output = output;
 		nodes[node].init = true;
+		_Size++;
 	}
 	constexpr auto search(unsigned char* in, size_t inlen) {
 		size_t node = 0;
@@ -53,4 +55,12 @@ struct dbt {
 		find_road(node, in, inlen, seek);
 		return inlen ? 0 : nodes[node].init ? nodes[node].output : 0;
 	}
+	constexpr bool empty() const {
+		return !_Size;
+	}
+	constexpr size_t size() const {
+		return _Size;
+	}
+private:
+	size_t _Size;
 };

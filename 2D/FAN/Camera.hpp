@@ -58,19 +58,6 @@ public:
 		return this->front;
 	}
 
-	void ProcessKeyboard(Camera_Movement direction, float deltaTime)
-	{
-		float velocity = 0.25 * deltaTime;
-		if (direction == FORWARD)
-			position += front * velocity;
-		if (direction == BACKWARD)
-			position -= front * velocity;
-		if (direction == LEFT)
-			position -= right * velocity;
-		if (direction == RIGHT)
-			position += right * velocity;
-	}
-
 	GLfloat yaw;
 	GLfloat pitch;
 private:
