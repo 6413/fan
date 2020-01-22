@@ -19,3 +19,5 @@
 *.ipdb
 *.log
 *.pdb
+*.zip
+*.obj

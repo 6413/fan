@@ -102,7 +102,7 @@ public:
 		write(false, true);
 	}
 	template <typename _Matrix = Mat4x4>
-	constexpr void draw() {
+	void draw() {
 		if (_Vertices.empty()) {
 			return;
 		}
@@ -111,8 +111,8 @@ public:
 		_Matrix projection(1);
 		view = _Camera->GetViewMatrix(Translate(view, Vec3(windowSize.x / 2, windowSize.y / 2, -700.0f)));
 		projection = Ortho(windowSize.x / 2, windowSize.x + windowSize.x * 0.5, windowSize.y + windowSize.y * 0.5f, windowSize.y / 2, 0.1f, 1000.0f);
-		static int projLoc = glGetUniformLocation(_Shader.ID, "projection");
-		static int viewLoc = glGetUniformLocation(_Shader.ID, "view");
+		int projLoc = glGetUniformLocation(_Shader.ID, "projection");
+		int viewLoc = glGetUniformLocation(_Shader.ID, "view");
 		glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection.vec[0].x);
 		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view.vec[0].x);
 		glBindVertexArray(_ShapeBuffer.VAO);
@@ -140,7 +140,7 @@ protected:
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		glBindVertexArray(0);
 	}
-	constexpr void write(bool _EditVertices, bool _EditColor) {
+	void write(bool _EditVertices, bool _EditColor) {
 		if (_EditVertices) {
 			glBindBuffer(GL_ARRAY_BUFFER, _VerticeBuffer.VBO);
 			glBufferData(GL_ARRAY_BUFFER, sizeof(_Vertices[0]) * _Vertices.size(), _Vertices.data(), GL_STATIC_DRAW);
@@ -200,7 +200,7 @@ public:
 		}
 		_Length[_Index] = Vec2(_M[1] - _M[0]);
 	}
-	constexpr void break_queue() {
+	void break_queue() {
 		write(true, true);
 	}
 	template <typename _Matrix>
@@ -349,7 +349,7 @@ public:
 		init();
 	}
 	template <typename _Vec2, typename _Color = Color>
-	constexpr void push_back(const _Vec2& _Position, _Vec2 _Length = Vec2(), _Color color = Color(-1, -1, -1, -1)) {
+	constexpr void push_back(const _Vec2& _Position, _Vec2 _Length = Vec2(), _Color color = Color(-1, -1, -1, -1), bool queue = false) {
 		if (!_Length.x) {
 			_Length = this->_Length[0];
 		}
@@ -380,6 +380,11 @@ public:
 			}
 		}
 		_Points += 4;
+		if (!queue) {
+			write(true, true);
+		}
+	}
+	void break_queue() {
 		write(true, true);
 	}
 	template <typename _Vec2>
@@ -426,6 +431,70 @@ private:
 	Alloc<Vec2> _Length;
 };
 
+static std::vector<size_t> ind;
+
+template <typename _Square, typename _Matrix, typename _Alloc, typename _ReturnType = Vec2>
+constexpr _ReturnType Raycast(const _Square& grid, const _Matrix& direction, const _Alloc& walls, size_t gridSize, bool right) {
+	//_ReturnType best = 
+	if (right) {
+		for (auto i = ind.begin(); i != ind.end(); ++i) {
+			if (direction[1].x >= direction[0].x) {
+				Vec2 inter = IntersectionPoint(direction[0], direction[1], grid.get_corners(*i)[0], grid.get_corners(*i)[3]);
+				if (inter.x != -1) {
+					return inter;
+				}
+			}
+			else {
+				Vec2 inter = IntersectionPoint(direction[0], direction[1], grid.get_corners(*i)[1], grid.get_corners(*i)[2]);
+				if (inter.x != -1) {
+					return inter;
+				}
+			}
+			if (direction[1].y <= direction[0].y) {
+				Vec2 inter = IntersectionPoint(direction[0], direction[1], grid.get_corners(*i)[2], grid.get_corners(*i)[3]);
+				if (inter.x != -1) {
+					return inter;
+				}
+			}
+			else {
+				Vec2 inter = IntersectionPoint(direction[0], direction[1], grid.get_corners(*i)[0], grid.get_corners(*i)[1]);
+				if (inter.x != -1) {
+					return inter;
+				}
+			}
+		}
+	}
+	else {
+		for (auto i = ind.rbegin(); i != ind.rend(); ++i) {
+			if (direction[1].x >= direction[0].x) {
+				Vec2 inter = IntersectionPoint(direction[0], direction[1], grid.get_corners(*i)[0], grid.get_corners(*i)[3]);
+				if (inter.x != -1) {
+					return inter;
+				}
+			}
+			else {
+				Vec2 inter = IntersectionPoint(direction[0], direction[1], grid.get_corners(*i)[1], grid.get_corners(*i)[2]);
+				if (inter.x != -1) {
+					return inter;
+				}
+			}
+			if (direction[1].y <= direction[0].y) {
+				Vec2 inter = IntersectionPoint(direction[0], direction[1], grid.get_corners(*i)[2], grid.get_corners(*i)[3]);
+				if (inter.x != -1) {
+					return inter;
+				}
+			}
+			else {
+				Vec2 inter = IntersectionPoint(direction[0], direction[1], grid.get_corners(*i)[0], grid.get_corners(*i)[1]);
+				if (inter.x != -1) {
+					return inter;
+				}
+			}
+		}
+	}
+	
+	return Vec2(-1, -1);
+}
 
 
 //enum class GroupId {
