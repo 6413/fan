@@ -129,10 +129,10 @@ protected:
 		this->_Shader = Shader("GLSL/shapes.vs", "GLSL/shapes.frag");
 		glGenBuffers(1, &_VerticeBuffer.VBO);
 		glBindBuffer(GL_ARRAY_BUFFER, _VerticeBuffer.VBO);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(_Vertices[0]) * _Vertices.size(), _Vertices.data(), GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(_Vertices[0]) * _Vertices.current(), _Vertices.data(), GL_STATIC_DRAW);
 		glGenBuffers(1, &_ColorBuffer.VBO);
 		glBindBuffer(GL_ARRAY_BUFFER, _ColorBuffer.VBO);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(_Colors[0]) * _Colors.size(), _Colors.data(), GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(_Colors[0]) * _Colors.current(), _Colors.data(), GL_STATIC_DRAW);
 		glGenVertexArrays(1, &_ShapeBuffer.VAO);
 		glBindVertexArray(_ShapeBuffer.VAO);
 		glEnableVertexAttribArray(0);
@@ -143,11 +143,11 @@ protected:
 	void write(bool _EditVertices, bool _EditColor) {
 		if (_EditVertices) {
 			glBindBuffer(GL_ARRAY_BUFFER, _VerticeBuffer.VBO);
-			glBufferData(GL_ARRAY_BUFFER, sizeof(_Vertices[0]) * _Vertices.size(), _Vertices.data(), GL_STATIC_DRAW);
+			glBufferData(GL_ARRAY_BUFFER, sizeof(_Vertices[0]) * _Vertices.current(), _Vertices.data(), GL_STATIC_DRAW);
 		}
 		if (_EditColor) {
 			glBindBuffer(GL_ARRAY_BUFFER, _ColorBuffer.VBO);
-			glBufferData(GL_ARRAY_BUFFER, sizeof(_Colors[0]) * _Colors.size(), _Colors.data(), GL_STATIC_DRAW);
+			glBufferData(GL_ARRAY_BUFFER, sizeof(_Colors[0]) * _Colors.current(), _Colors.data(), GL_STATIC_DRAW);
 		}
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
@@ -156,8 +156,8 @@ protected:
 	Texture _ShapeBuffer;
 	Shader _Shader;
 	Camera* _Camera;
-	std::vector<float> _Vertices;
-	std::vector<float> _Colors;
+	Alloc<float> _Vertices;
+	Alloc<float> _Colors;
 	unsigned int _Mode;
 	int _Points;
 	size_t _PointSize;
@@ -400,7 +400,7 @@ public:
 		write(true, false);
 		this->_Position[_Index] = _Position;
 	}
-	inline Mat2x4 get_corners(size_t _Index) const {
+	constexpr Mat2x4 get_corners(size_t _Index) const {
 		return Mat2x4(
 			Vec2(_Vertices[_Index * _PointSize], _Vertices[_Index * _PointSize + 1]),
 			Vec2(_Vertices[_Index * _PointSize + 2], _Vertices[_Index * _PointSize + 3]),
@@ -416,16 +416,16 @@ public:
 	constexpr _Vec2 get_length(size_t _Index) {
 		return _Length[_Index];
 	}
-	void erase(size_t _Index) {
-		//_Index += 1;
-		for (int i = 0; i < 8; i++) {
-			_Vertices.erase(_Vertices.begin() + _Index * _PointSize);
-		}
-		for (int i = 0; i < COLORSIZE * _PointSize; i++) {
-			_Colors.erase(_Vertices.begin() + _Index * _PointSize);
-		}
-		write(true, true);
-	}
+	//void erase(size_t _Index) {
+	//	//_Index += 1;
+	//	for (int i = 0; i < 8; i++) {
+	//		_Vertices.erase(_Vertices.begin() + _Index * _PointSize);
+	//	}
+	//	for (int i = 0; i < COLORSIZE * _PointSize; i++) {
+	//		_Colors.erase(_Vertices.begin() + _Index * _PointSize);
+	//	}
+	//	write(true, true);
+	//}
 private:
 	Alloc<Vec2> _Position;
 	Alloc<Vec2> _Length;
@@ -434,66 +434,46 @@ private:
 static std::vector<size_t> ind;
 
 template <typename _Square, typename _Matrix, typename _Alloc, typename _ReturnType = Vec2>
-constexpr _ReturnType Raycast(const _Square& grid, const _Matrix& direction, const _Alloc& walls, size_t gridSize, bool right) {
-	//_ReturnType best = 
-	if (right) {
-		for (auto i = ind.begin(); i != ind.end(); ++i) {
-			if (direction[1].x >= direction[0].x) {
-				Vec2 inter = IntersectionPoint(direction[0], direction[1], grid.get_corners(*i)[0], grid.get_corners(*i)[3]);
-				if (inter.x != -1) {
-					return inter;
-				}
+constexpr _ReturnType Raycast(const _Square& grid, const _Matrix& direction, const _Alloc& walls, size_t gridSize) {
+	Vec2 best(-1, -1);
+	float closest = 10000000000;
+	for (auto&& i : ind) {
+		Mat2x4 corners = grid.get_corners(i);
+		float distance = Distance(direction[0], corners[2]);
+		if (direction[1].x >= direction[0].x) {
+			Vec2 inter = IntersectionPoint(direction[0], direction[1], corners[0], corners[3]);
+			if (inter.x != -1 && distance < closest) {
+				closest = distance;
+				best = inter;
+				continue;
 			}
-			else {
-				Vec2 inter = IntersectionPoint(direction[0], direction[1], grid.get_corners(*i)[1], grid.get_corners(*i)[2]);
-				if (inter.x != -1) {
-					return inter;
-				}
+		}
+		else {
+			Vec2 inter = IntersectionPoint(direction[0], direction[1], corners[1], corners[2]);
+			if (inter.x != -1 && distance < closest) {
+				closest = distance;
+				best = inter;
+				continue;
 			}
-			if (direction[1].y <= direction[0].y) {
-				Vec2 inter = IntersectionPoint(direction[0], direction[1], grid.get_corners(*i)[2], grid.get_corners(*i)[3]);
-				if (inter.x != -1) {
-					return inter;
-				}
+		}
+		if (direction[1].y <= direction[0].y) {
+			Vec2 inter = IntersectionPoint(direction[0], direction[1], corners[2], corners[3]);
+			if (inter.x != -1 && distance < closest) {
+				closest = distance;
+				best = inter;
+				continue;
 			}
-			else {
-				Vec2 inter = IntersectionPoint(direction[0], direction[1], grid.get_corners(*i)[0], grid.get_corners(*i)[1]);
-				if (inter.x != -1) {
-					return inter;
-				}
+		}
+		else {
+			Vec2 inter = IntersectionPoint(direction[0], direction[1], corners[0], corners[1]);
+			if (inter.x != -1 && distance < closest) {
+				closest = distance;
+				best = inter;
+				continue;
 			}
 		}
 	}
-	else {
-		for (auto i = ind.rbegin(); i != ind.rend(); ++i) {
-			if (direction[1].x >= direction[0].x) {
-				Vec2 inter = IntersectionPoint(direction[0], direction[1], grid.get_corners(*i)[0], grid.get_corners(*i)[3]);
-				if (inter.x != -1) {
-					return inter;
-				}
-			}
-			else {
-				Vec2 inter = IntersectionPoint(direction[0], direction[1], grid.get_corners(*i)[1], grid.get_corners(*i)[2]);
-				if (inter.x != -1) {
-					return inter;
-				}
-			}
-			if (direction[1].y <= direction[0].y) {
-				Vec2 inter = IntersectionPoint(direction[0], direction[1], grid.get_corners(*i)[2], grid.get_corners(*i)[3]);
-				if (inter.x != -1) {
-					return inter;
-				}
-			}
-			else {
-				Vec2 inter = IntersectionPoint(direction[0], direction[1], grid.get_corners(*i)[0], grid.get_corners(*i)[1]);
-				if (inter.x != -1) {
-					return inter;
-				}
-			}
-		}
-	}
-	
-	return Vec2(-1, -1);
+	return best;
 }
 
 
