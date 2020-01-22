@@ -15,3 +15,7 @@
 *.db
 *.ipch
 *.tga
+*.tlog
+*.ipdb
+*.log
+*.pdb
