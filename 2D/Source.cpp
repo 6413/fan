@@ -76,17 +76,17 @@ int main() {
 
 	Line line(Mat2x2(), Color(1, 0, 1, 1));
 
-	for (int i = 0; i < line_amount; i++)
+	for (int i = 0; i < ray_amount; i++)
 	line.push_back(Mat2x2(),Color(-1, -1, -1, -1), true);
 	line.break_queue();
-	Alloc<Vec2> inter(line_amount);
+	Alloc<Vec2> inter(ray_amount);
 
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
 		glClearColor(0, 0, 0, 1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		for (int i = 0; i < line_amount; i++) {
+		for (int i = 0; i < ray_amount; i++) {
 			float theta = 2.0f * 3.1415926f * float(i) / float(line_amount);
 			Vec2 direction(line.get_position(i)[1] + Vec2(sin(theta) * 1000, cos(theta) * 1000));
 			inter[i] = Raycast(grid, Mat2x2(line.get_position(0)[0], direction), walls, view.x * view.y, true);
@@ -113,7 +113,7 @@ int main() {
 		}
 
 		if (KeyPress(GLFW_KEY_SPACE)) {
-			for (int i = 0; i < line_amount; i++) {
+			for (int i = 0; i < ray_amount; i++) {
 				line.set_position_queue(i, Mat2x2(cursorPos, cursorPos));
 			}
 			line.break_queue();
