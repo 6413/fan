@@ -56,6 +56,11 @@ public:
 
 using Vec2 = __Vec2<float>;
 
+class myvec {
+public:
+	float x, y;
+};
+
 template <typename _Type> 
 class __Vec3 {
 public:
@@ -78,11 +83,18 @@ public:
 	}
 
 	constexpr auto operator-(const __Vec3<_Type>& v) {
-		this->x = -v.x;
-		this->y = -v.y;
-		this->z = -v.z;
+		this->x -= v.x;
+		this->y -= v.y;
+		this->z -= v.z;
 		return *this;
 	}
+
+	//constexpr auto operator-(const __Vec3<_Type>& v) {
+	//	this->x = -v.x;
+	//	this->y = -v.y;
+	//	this->z = -v.z;
+	//	return *this;
+	//}
 	
 	constexpr _Type at(size_t x) {
 		return !x ? this->x : x == 1 ? this->y : this->z;
@@ -199,7 +211,10 @@ struct __Mat2x4 {
 		vec[3] = m.vec[3];
 	}
 	constexpr __Mat2x4(const Vec2& x, const Vec2& y, const Vec2& z, const Vec2& a) {
-		vec[0] = x; vec[1] = y; vec[2] = z; vec[3] = a;
+		vec[0] = x; 
+		vec[1] = y; 
+		vec[2] = z; 
+		vec[3] = a;
 	}
 	__Mat2x4(_Ty x) : vec{ Vec2(x, 0, 0, 0),
 	__Vec2<_Ty>(0, x, 0, 0),
@@ -281,6 +296,16 @@ constexpr _Vec_t<_Type> operator+(_Vec_t<_Type> _Lhs, _Vec_t<_Type2> _Rhs) {
 	}
 	return _Vec;
 }
+
+//template <typename _Type>
+//constexpr auto operator-(const __Vec3<_Type>& v, const __Vec3<_Type>& v2) {
+//	__Vec3<_Type> _Return;
+//	_Return.x = v.x - v2.x;
+//	_Return.x = v.y - v2.y;
+//	_Return.x = v.z - v2.z;
+//
+//	return _Return;
+//}
 
 //template <template<typename> typename _Vec_t, typename _Type, typename _Type2>
 //constexpr _Vec_t<_Type> operator+(_Vec_t<_Type> _Lhs, _Type2 _Rhs) {

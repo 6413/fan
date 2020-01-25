@@ -2,7 +2,7 @@
 #include <iostream>
 #include <memory>
 
-#define ALLOC_BUFFER 0xffff
+#define ALLOC_BUFFER 0xfff
 
 template <typename _Type>
 class Alloc;
@@ -18,6 +18,18 @@ public:
 	}
 	constexpr iterator operator++() {
 		++_Ptr;
+		return *this;
+	}
+	constexpr iterator operator--() {
+		--_Ptr;
+		return *this;
+	}
+	constexpr iterator operator-(iterator<_Type> _Index) {
+		_Ptr = (_Type*)(_Ptr - _Index._Ptr);
+		return *this;
+	}
+	constexpr iterator operator-(size_t _Index) {
+		_Ptr = (_Type*)(_Ptr - _Index);
 		return *this;
 	}
 	constexpr _Type& operator*() const {
@@ -69,7 +81,7 @@ public:
 			return;
 		}
 		if (_Size - 1 <= _Index) {
-			copyresize(_Index + 1);
+			copy_resize(_Index + 1);
 			for (size_t _I = _Size; _I > _Index; _I--) {
 				_Data[_I] = _Data[_I - 1];
 			}
@@ -79,7 +91,7 @@ public:
 	}
 	constexpr void insert(size_t _From, size_t _To, _Type _Value) {
 		if (_Size <= _To) {
-			copyresize(_To);
+			copy_resize(_To);
 		}
 		for (int _I = _From; _I < _To; _I++) {
 			_Data[_I] = _Value;
@@ -96,7 +108,7 @@ public:
 	//		delete[] _Temp;
 	//	}
 	//}
-	constexpr void push_back(_Type _Value) {
+	void push_back(_Type _Value) {
 		if (_Size > _Current) {
 			_Data[_Current] = _Value;
 			_Current++;
@@ -142,7 +154,7 @@ public:
 		_Data = std::make_unique<_Type[]>(_Reserve);
 		_Size = _Reserve;
 	}
-	constexpr void copyresize(size_t _Reserve) {
+	constexpr void copy_resize(size_t _Reserve) {
 		std::unique_ptr<_Type[]> _Temp = std::make_unique<_Type[]>(_Size);
 		copy(_Data, _Temp, _Size);
 		this->resize(_Reserve);
@@ -158,8 +170,18 @@ public:
 		for (size_t _I = _Index; _I < current() - 1; _I++) {
 			_Data[_I] = _Data[_I + 1];
 		}
-		copyresize(current() - 1);
+		copy_resize(current() - 1);
 		_Current--;
+	}
+	constexpr void erase(iterator<_Type> _Index) {
+		for (auto _I = _Index; _I != end() - 1; ++_I) {
+			*_I = *(_I + 1);
+		}
+		copy_resize(current() - 1);
+		_Current--;
+	}
+	constexpr void erase_all() {
+		_Data.reset();
 	}
 private:
 	std::unique_ptr<_Type[]> _Data;

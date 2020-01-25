@@ -4,6 +4,7 @@
 
 namespace Settings {
 	float deltaTime = 0;
+	GLFWwindow* window;
 }
 
 namespace FanColors {
