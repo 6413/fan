@@ -10,19 +10,15 @@
 #include <assert.h>
 constexpr float PI = 3.1415926535f;
 
-
-
 template <typename T>
 constexpr auto IntersectionPoint(const T& p1Start, const T& p1End, const T& p2Start, const T& p2End) {
 	float den = (p1Start.x - p1End.x) * (p2Start.y - p2End.y) - (p1Start.y - p1End.y) * (p2Start.x - p2End.x);
 	if (!den) {
-		//return false;
 		return Vec2(-1, -1);
 	}
 	float t = ((p1Start.x - p2Start.x) * (p2Start.y - p2End.y) - (p1Start.y - p2Start.y) * (p2Start.x - p2End.x)) / den;
 	float u = -((p1Start.x - p1End.x) * (p1Start.y - p2Start.y) - (p1Start.y - p1End.y) * (p1Start.x - p2Start.x)) / den;
 	if (t > 0 && t < 1 && u > 0 && u < 1) {
-		//return true;
 		return Vec2(p1Start.x + t * (p1End.x - p1Start.x), p1Start.y + t * (p1End.y - p1Start.y));
 	}
 	return Vec2(-1, -1);
@@ -94,6 +90,19 @@ constexpr auto Grid(const __Vec2<_Ty>& world, const __Vec2<_Ty>& offSet, float b
 template <typename _Ty>
 constexpr auto Distance(const __Vec2<_Ty>& src, const __Vec2<_Ty>& dst) {
 	return sqrtf(powf((src.x - dst.x), 2) + powf(((src.y - dst.y)), 2));
+}
+
+template <typename _Type>
+constexpr auto Abs(const _Type _Value) {
+	if (_Value < 0) {
+		return -_Value;
+	}
+	return _Value;
+}
+
+template <typename _Ty>
+constexpr auto ManhattanDistance(const __Vec2<_Ty>& src, const __Vec2<_Ty>& dst) {
+	return Abs(src.x - dst.x) + Abs(src.y - dst.y);
 }
 
 template <typename T1, typename T2>

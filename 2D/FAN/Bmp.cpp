@@ -3,8 +3,6 @@
 #include <iostream>
 #include <fstream>
 
-#include <stdint.h>
-
 namespace BMP_Offsets {
 	constexpr::ptrdiff_t PIXELDATA = 0xA;
 	constexpr::ptrdiff_t WIDTH = 0x12;
@@ -18,7 +16,7 @@ char* LoadBMP(const char* path, Texture& texture) {
 		exit(1);
 	}
 	fseek(file, 0, SEEK_END);
-	size_t size = ftell(file);
+	std::size_t size = ftell(file);
 	fseek(file, 0, SEEK_SET);
 	char* data = (char*)malloc(size);
 	if (data) {

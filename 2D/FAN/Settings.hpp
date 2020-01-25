@@ -7,5 +7,5 @@ void GetFps();
 namespace Settings {
 	extern float deltaTime;
 	static int blockSize = 64;
-	static GLFWwindow* window;
+	extern GLFWwindow* window;
 }

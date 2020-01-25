@@ -46,39 +46,6 @@ public:
 //	float vertices[30];
 //};
 
-class Sprite {
-public:
-	Sprite() : texture()/*,texture()*/, position(0) {}
-
-	Sprite(const Sprite& info);
-
-	Sprite(Camera* camera, const char* path, Vec2 size = Vec2(), Vec2 position = Vec2(), Shader shader = Shader("GLSL/core.vs", "GLSL/core.frag"), float angle = 0);
-
-	void SetPosition(const Vec2& position);
-
-	void Draw();
-
-	Vec2 Size() const {
-		return this->size;
-	}
-
-	//Texture GetTexture() const {
-	//	return this->texture;
-	//}
-
-	//Texture GetObject() const {
-	//	return this->object;
-	//}
-
-protected:
-	Camera* camera;
-	Shader shader;
-	Texture texture;
-	//Texture texture;
-	Vec2 position;
-	Vec2 size;
-	float angle;
-};
 
 class DefaultShape {
 public:
@@ -95,11 +62,13 @@ public:
 		return _Colors;
 	}
 	template <typename _Color>
-	constexpr void set_color(size_t _Index, const _Color& color) {
+	constexpr void set_color(size_t _Index, const _Color& color, bool queue = false) {
 		for (int i = 0; i < COLORSIZE * (_PointSize / 2); i++) {
 			_Colors[_Index * (COLORSIZE * (_PointSize / 2)) + i] = color[i % 4];
 		}
-		write(false, true);
+		if (!queue) {
+			write(false, true);
+		}
 	}
 	template <typename _Matrix = Mat4x4>
 	void draw() {
@@ -193,26 +162,21 @@ public:
 			Vec2(_Vertices[_Index * _PointSize + 2], _Vertices[_Index * _PointSize + 3])
 		);
 	}
-	template <typename _Matrix>
-	constexpr void set_position_queue(size_t _Index, const _Matrix& _M) {
-		for (int i = 0; i < 4; i++) {
-			_Vertices[_Index * _PointSize + i] = _M[(i & 2) >> 1][i & 1];
-		}
-		_Length[_Index] = Vec2(_M[1] - _M[0]);
-	}
 	void break_queue() {
 		write(true, true);
 	}
 	template <typename _Matrix>
-	constexpr void set_position(size_t _Index, const _Matrix& _M) {
+	constexpr void set_position(size_t _Index, const _Matrix& _M, bool _Queue = false) {
 		for (int i = 0; i < 4; i++) {
 			_Vertices[_Index * _PointSize + i] = _M[(i & 2) >> 1][i & 1];
 		}
-		write(true, false);
+		if (!_Queue) {
+			write(true, false);
+		}
 		_Length[_Index] = Vec2(_M[1] - _M[0]);
 	}
 	template <typename _Matrix, typename _Color = Color>
-	constexpr void push_back(const _Matrix& _M, _Color color = Color(-1, -1, -1, -1), bool queue = false) {
+	constexpr void push_back(const _Matrix& _M, _Color color = Color(-1, -1, -1, -1), bool _Queue = false) {
 		_Length.push_back(Vec2(_M[1] - _M[0]));
 		for (int i = 0; i < 4; i++) {
 			_Vertices.push_back(_M[(i & 2) >> 1][i & 1]);
@@ -234,7 +198,7 @@ public:
 			}
 		}
 		_Points += 2;
-		if (!queue) {
+		if (!_Queue) {
 			write(true, true);
 		}
 	}
@@ -248,6 +212,13 @@ private:
 
 class Triangle : public DefaultShape {
 public:
+	Triangle() {
+		_Mode = GL_TRIANGLES;
+		_Points = 0;
+		_PointSize = 3 * 2;
+		init();
+	}
+
 	template <typename _Camera, typename _Vec2, typename _Color>
 	constexpr Triangle(_Camera camera, const _Vec2& _Position, const _Vec2& _Length, const _Color& color) {
 		_Mode = GL_TRIANGLES;
@@ -400,12 +371,14 @@ public:
 		write(true, false);
 		this->_Position[_Index] = _Position;
 	}
-	constexpr Mat2x4 get_corners(size_t _Index) const {
-		return Mat2x4(
-			Vec2(_Vertices[_Index * _PointSize], _Vertices[_Index * _PointSize + 1]),
-			Vec2(_Vertices[_Index * _PointSize + 2], _Vertices[_Index * _PointSize + 3]),
-			Vec2(_Vertices[_Index * _PointSize + 4], _Vertices[_Index * _PointSize + 5]),
-			Vec2(_Vertices[_Index * _PointSize + 6], _Vertices[_Index * _PointSize + 7])
+	template <typename _Matrix = Mat2x4>
+	constexpr _Matrix get_corners(size_t _Index) const {
+		size_t _Multiplier = _Index * _PointSize;
+		return _Matrix(
+			Vec2(_Vertices[_Multiplier    ], _Vertices[_Multiplier + 1]),
+			Vec2(_Vertices[_Multiplier + 2], _Vertices[_Multiplier + 3]),
+			Vec2(_Vertices[_Multiplier + 4], _Vertices[_Multiplier + 5]),
+			Vec2(_Vertices[_Multiplier + 6], _Vertices[_Multiplier + 7])
 		);
 	}
 	template <typename _Vec2 = Vec2>
@@ -415,6 +388,9 @@ public:
 	template <typename _Vec2 = Vec2>
 	constexpr _Vec2 get_length(size_t _Index) {
 		return _Length[_Index];
+	}
+	constexpr std::size_t amount() {
+		return _Points / 4;
 	}
 	//void erase(size_t _Index) {
 	//	//_Index += 1;
@@ -431,45 +407,108 @@ private:
 	Alloc<Vec2> _Length;
 };
 
-static std::vector<size_t> ind;
+class Sprite {
+public:
+	Sprite() : texture()/*,texture()*/, position(0) {}
 
-template <typename _Square, typename _Matrix, typename _Alloc, typename _ReturnType = Vec2>
-constexpr _ReturnType Raycast(const _Square& grid, const _Matrix& direction, const _Alloc& walls, size_t gridSize) {
+	Sprite(const char* path, Vec2 position = Vec2(), Vec2 size = Vec2(), float angle = 0, Shader shader = Shader("GLSL/core.vs", "GLSL/core.frag")) : shader(shader), angle(angle), position(0), texture() {
+		this->camera = (Camera*)glfwGetWindowUserPointer(window);
+		init_image();
+		LoadImg(path, texture);
+		this->size = Vec2(size.x, size.y);
+		this->position = Vec2(position.x - this->size.x / 2, position.y - this->size.y / 2);
+	}
+	void SetPosition(const Vec2& position);
+
+	void LoadImg(const char* path, Texture& object);
+
+	void Draw();
+
+	void init_image();
+
+	Vec2 Size() const {
+		return this->size;
+	}
+
+	Vec2 get_position() const {
+		return this->position;
+	}
+
+	//Texture GetTexture() const {
+	//	return this->texture;
+	//}
+
+	//Texture GetObject() const {
+	//	return this->object;
+	//}
+
+protected:
+	Camera* camera;
+	Shader shader;
+	Texture texture;
+	Vec2 position;
+	Vec2 size;
+	float angle;
+	Alloc<float> _Vertices;
+};
+
+static Alloc<size_t> ind;
+
+template <typename _Square, typename _Matrix, typename _ReturnType = Vec2>
+constexpr _ReturnType Raycast(_Square& grid, const _Matrix& direction, size_t gridSize) {
 	Vec2 best(-1, -1);
-	float closest = 10000000000;
-	for (auto&& i : ind) {
-		Mat2x4 corners = grid.get_corners(i);
-		float distance = Distance(direction[0], corners[2]);
-		if (direction[1].x >= direction[0].x) {
-			Vec2 inter = IntersectionPoint(direction[0], direction[1], corners[0], corners[3]);
-			if (inter.x != -1 && distance < closest) {
-				closest = distance;
-				best = inter;
-				continue;
+	for (int i = 0; i < ind.current(); i++) {
+		const Mat2x4 corners = grid.get_corners(ind[i]);
+		if (direction[0].x < direction[1].x) {
+			const Vec2 inter = IntersectionPoint(direction[0], direction[1], corners[0], corners[3]);
+			if (inter.x != -1) {
+				if (best.x != -1) {
+					if (ManhattanDistance(direction[0], inter) < ManhattanDistance(direction[0], best)) {
+						best = inter;
+					}
+				}
+				else {
+					best = inter;
+				}
 			}
 		}
 		else {
-			Vec2 inter = IntersectionPoint(direction[0], direction[1], corners[1], corners[2]);
-			if (inter.x != -1 && distance < closest) {
-				closest = distance;
-				best = inter;
-				continue;
+			const Vec2 inter = IntersectionPoint(direction[0], direction[1], corners[1], corners[2]);
+			if (inter.x != -1) {
+				if (best.x != -1) {
+					if (ManhattanDistance(direction[0], inter) < ManhattanDistance(direction[0], best)) {
+						best = inter;
+					}
+				}
+				else {
+					best = inter;
+				}
 			}
 		}
-		if (direction[1].y <= direction[0].y) {
-			Vec2 inter = IntersectionPoint(direction[0], direction[1], corners[2], corners[3]);
-			if (inter.x != -1 && distance < closest) {
-				closest = distance;
-				best = inter;
-				continue;
+		if (direction[1].y < direction[0].y) {
+			const Vec2 inter = IntersectionPoint(direction[0], direction[1], corners[2], corners[3]);
+			if (inter.x != -1) {
+				if (best.x != -1) {
+					if (ManhattanDistance(direction[0], inter) < ManhattanDistance(direction[0], best)) {
+						best = inter;
+					}
+				}
+				else {
+					best = inter;
+				}
 			}
 		}
 		else {
-			Vec2 inter = IntersectionPoint(direction[0], direction[1], corners[0], corners[1]);
-			if (inter.x != -1 && distance < closest) {
-				closest = distance;
-				best = inter;
-				continue;
+			const Vec2 inter = IntersectionPoint(direction[0], direction[1], corners[0], corners[1]);
+			if (inter.x != -1) {
+				if (best.x != -1) {
+					if (ManhattanDistance(direction[0], inter) < ManhattanDistance(direction[0], best)) {
+						best = inter;
+					}
+				}
+				else {
+					best = inter;
+				}
 			}
 		}
 	}
