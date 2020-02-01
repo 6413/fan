@@ -36,9 +36,6 @@
     <ClCompile Include="FAN\Settings.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="wintoastlib.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="FAN\Alloc.hpp">
@@ -74,7 +71,7 @@
     <ClInclude Include="FAN\Vectors.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="wintoastlib.h">
+    <ClInclude Include="WITCH\OpenGL.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

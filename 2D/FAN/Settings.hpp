@@ -4,8 +4,10 @@
 
 void GetFps();
 
+constexpr auto gridSize = __Vec2<int>(5, 5);
+
 namespace Settings {
 	extern float deltaTime;
-	static int blockSize = 64;
+	static int blockSize = 900 / gridSize.x;
 	extern GLFWwindow* window;
 }

@@ -1,13 +1,68 @@
 #include <iostream>
+#include <Windows.h>
 #include <FAN/Graphics.hpp>
-#include <FAN/DBT.hpp>
-#include <vector>
 
-size_t _2D1D() {
-	return (int(cursorPos.x / blockSize)) + int(cursorPos.y / blockSize) * (windowSize.y / blockSize);
+typedef struct {
+	__Vec2<int> Size;
+	GLubyte* Data;
+}LT_GLFont;
+
+typedef struct {
+	unsigned int Size;
+	unsigned char* Data;
+}LT_File;
+
+#define LDC_File LDC_WITCH(LT_File){0, 0}
+
+#define LDF_FileReadAll(M_Path) LF_FileReadAll((T_ptr)M_Path)
+LT_File LF_FileReadAll(const char* Path) {
+	FILE* in = fopen((const char*)Path, "rb");
+	if (!in)
+		return LT_File();
+	LT_File RET = LT_File();
+	fseek(in, 0, SEEK_END);
+	RET.Size = ftell(in);
+	fseek(in, 0, SEEK_SET);
+	RET.Data = (unsigned char*)malloc(RET.Size);
+	fread(RET.Data, RET.Size, 1, in);
+	fclose(in);
+	return RET;
 }
 
-constexpr auto ray_amount = 100;
+void LF_GLCharacter(LT_GLFont Font, Color Color, Vec2 Coordinate, char Character) {
+	glColor3d(Color.r, Color.g, Color.b);
+	glRasterPos2i(Coordinate.x, Coordinate.y);
+	glBitmap(Font.Size.x, Font.Size.y, 0, 0, 0, 0, (GLubyte*)Font.Data + (Character * (((Font.Size.x / 8) + ((Font.Size.x % 8) > 0))* Font.Size.y)));
+}
+
+class Button : public Square {
+public:
+	Button(const Vec2& position, const Vec2& size, const Color& color) : Square(position, size, color), count(1) {};
+	template <typename _Vec2 = Vec2, typename _Color = Color>
+	constexpr void add(const _Vec2& _Position = Vec2(), _Vec2 _Length = Vec2(), _Color color = Color(-1, -1, -1, -1), bool queue = false) {
+		this->push_back(_Position, _Length, color, queue);
+		count++;
+	}
+
+	bool pressed(size_t index) {
+		return cursorPos.x >= get_position(index).x && cursorPos.x <= get_position(index).x + get_length(index).x &&
+			   cursorPos.y >= get_position(index).y && cursorPos.y <= get_position(index).y + get_length(index).y && 
+			   KeyPressA(GLFW_MOUSE_BUTTON_LEFT);
+	}
+	Vec2 get_size() const {
+		return this->_Size;
+	}
+
+	size_t size() const {
+		return count;
+	}
+
+
+private:
+	using Square::push_back;
+	size_t count;
+	Vec2 _Size;
+};
 
 int main() {
 	glfwSetErrorCallback(GlfwErrorCallback);
@@ -17,7 +72,6 @@ int main() {
 	}
 	WindowInit();
 	Main _Main;
-	_Main.shader.Use();
 	glfwSetKeyCallback(window, KeyCallback);
 	glfwSetCharCallback(window, CharacterCallback);
 	glfwSetScrollCallback(window, ScrollCallback);
@@ -26,76 +80,25 @@ int main() {
 	glfwSetMouseButtonCallback(window, MouseButtonCallback);
 	glfwSetFramebufferSizeCallback(window, FrameSizeCallback);
 
-	__Vec2<int> view(windowSize.x / blockSize, windowSize.y / blockSize);
-	Square squares;
+	Button button(Vec2(windowSize / 2), Vec2(100, 50), Color(1, 0.4, 0, 1));
 
-	for (int y = 0; y < view.y; y++) {
-		for (int x = 0; x < view.x; x++) {
-			squares.push_back(Vec2(x * blockSize, y * blockSize), Vec2(blockSize), Color(0, 0, 0, 1), true);
-		}
-	}
-	squares.break_queue();
+	button.add();
 
-	Line line(Mat2x2(), Color(1, 1, 1, 1));
-
-	for (int i = 0; i < ray_amount; i++) {
-		line.push_back(Mat2x2(), Color(1, 1, 1, 1), true);
-	}
-
-	line.break_queue();
-	Alloc<Vec2> inter(ray_amount);
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
 		glClearColor(0, 0, 0, 1);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);	
 
-		for (int i = 0; i < ray_amount; i++) {
-			Mat2x2 linePos = line.get_position(i);
-			float theta = 2.0f * 3.1415926f * float(i) / float(ray_amount);
-			Vec2 direction(linePos[1] + Vec2(sin(theta) * 1000, cos(theta) * 1000));
-			inter[i] = Raycast(squares, Mat2x2(linePos[0], direction), view.x * view.y);
+		button.draw();
 
-			if (inter[i].x != -1) {
-				line.set_position(i, Mat2x2(linePos[0], inter[i]), true);
-
-			}
-			else {
-				line.set_position(i, Mat2x2(linePos[0], direction), true);
+		for (int i = 0; i < button.size(); i++) {
+			if (button.pressed(i)) {
+				printf("pressed button: %d\n", i);
 			}
 		}
-		line.break_queue();
-
-		//grid.draw();
-		line.draw();
-		squares.draw();
-
-
-		if (KeyPressA(GLFW_MOUSE_BUTTON_RIGHT)) {
-			Color newColor;
-			newColor.r = (unsigned int)squares.get_color(_2D1D()).r ^ (unsigned int)1;
-			newColor.a = 1;
-			squares.set_color(_2D1D(), newColor);
-			auto it = std::find(ind.begin(), ind.end(), _2D1D());
-
-			if (it != ind.end()) {
-				ind.erase(it);
-			}
-			else {
-				ind.push_back(_2D1D());
-			}
-		}
-
-		if (KeyPress(GLFW_KEY_SPACE)) {
-			for (int i = 0; i < ray_amount; i++) {
-				line.set_position(i, Mat2x2(cursorPos, cursorPos), true);
-			}
-			line.break_queue();
-		}
-
 		if (KeyPress(GLFW_KEY_ESCAPE)) {
 			glfwSetWindowShouldClose(window, true);
 		}
-
 		GetFps();
 		glfwSwapBuffers(window);
 		KeysReset();

@@ -87,8 +87,8 @@ constexpr void FrameSizeCallback(_Ty window, int width, int height) {
 
 static void WindowInit() {
 	using namespace WindowNamespace;
-	windowSize = Vec2(896, 896);
-	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
+	windowSize = Vec2(900, 900);
+	glfwWindowHint(GLFW_RESIZABLE, true);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 	//windowSize = Vec2(glfwGetVideoMode(glfwGetPrimaryMonitor())->width, glfwGetVideoMode(glfwGetPrimaryMonitor())->height);

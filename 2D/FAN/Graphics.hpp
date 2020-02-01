@@ -92,6 +92,9 @@ public:
 		glDrawArrays(_Mode, 0, _Points);
 		glBindVertexArray(0);
 	}
+	void break_queue() {
+		write(true, true);
+	}
 protected:
 	void init() {
 		this->_Camera = (Camera*)glfwGetWindowUserPointer(window);
@@ -162,9 +165,6 @@ public:
 			Vec2(_Vertices[_Index * _PointSize + 2], _Vertices[_Index * _PointSize + 3])
 		);
 	}
-	void break_queue() {
-		write(true, true);
-	}
 	template <typename _Matrix>
 	constexpr void set_position(size_t _Index, const _Matrix& _M, bool _Queue = false) {
 		for (int i = 0; i < 4; i++) {
@@ -202,6 +202,33 @@ public:
 			write(true, true);
 		}
 	}
+	//template <typename _Color = Color>
+	//constexpr void copy_push_back(std::size_t _Index, bool _Queue = false) {
+	//	//_Length.push_back(Vec2(_Vertices[_M[1] - _M[0]));
+	//	for (int i = 0; i < 4; i++) {
+	//		_Vertices.push_back(_Vertices[_Index * _PointSize][(i & 2) >> 1][i & 1]);
+	//	}
+	//	if (color.r == -1) {
+	//		if (_Colors.size() > COLORSIZE) {
+	//			color = Color(_Colors[0], _Colors[1], _Colors[2], _Colors[3]);
+	//		}
+	//		else {
+	//			color = Color(1, 1, 1, 1);
+	//		}
+	//		for (int i = 0; i < COLORSIZE * 2; i++) {
+	//			_Colors.push_back(color[i % 4]);
+	//		}
+	//	}
+	//	else {
+	//		for (int i = 0; i < COLORSIZE * 2; i++) {
+	//			_Colors.push_back(color[i % 4]);
+	//		}
+	//	}
+	//	_Points += 2;
+	//	if (!_Queue) {
+	//		write(true, true);
+	//	}
+	//}
 	template <typename _Vec2 = Vec2>
 	constexpr _Vec2 get_length(size_t _Index) {
 		return _Length[_Index];
@@ -219,8 +246,8 @@ public:
 		init();
 	}
 
-	template <typename _Camera, typename _Vec2, typename _Color>
-	constexpr Triangle(_Camera camera, const _Vec2& _Position, const _Vec2& _Length, const _Color& color) {
+	template <typename _Vec2, typename _Color>
+	constexpr Triangle(const _Vec2& _Position, const _Vec2& _Length, const _Color& color) {
 		_Mode = GL_TRIANGLES;
 		_Points = 3;
 		_PointSize = _Points * 2;
@@ -235,7 +262,7 @@ public:
 		for (int i = 0; i < COLORSIZE * _PointSize; i++) {
 			_Colors.push_back(color[i % 4]);
 		}
-		init(camera);
+		init();
 	}
 	~Triangle() {}
 	template <typename _Vec2, typename _Color = Color>
@@ -321,11 +348,11 @@ public:
 	}
 	template <typename _Vec2, typename _Color = Color>
 	constexpr void push_back(const _Vec2& _Position, _Vec2 _Length = Vec2(), _Color color = Color(-1, -1, -1, -1), bool queue = false) {
-		if (!_Length.x) {
+		if (!_Length.x || !_Position.x && !_Position.y) {
 			_Length = this->_Length[0];
 		}
 		this->_Length.push_back(_Length);
-		this->_Position.push_back(_Position - _Length / 2);
+		this->_Position.push_back(_Position);
 		_Vertices.push_back(_Position.x);
 		_Vertices.push_back(_Position.y);
 		_Vertices.push_back(_Position.x + _Length.x);
@@ -355,9 +382,6 @@ public:
 			write(true, true);
 		}
 	}
-	void break_queue() {
-		write(true, true);
-	}
 	template <typename _Vec2>
 	constexpr void set_position(size_t _Index, const _Vec2& _Position) {
 		_Vertices[_Index * _PointSize] = _Position.x;
@@ -382,14 +406,14 @@ public:
 		);
 	}
 	template <typename _Vec2 = Vec2>
-	constexpr _Vec2 get_position(size_t _Index) {
+	constexpr _Vec2 get_position(size_t _Index) const {
 		return _Position[_Index];
 	}
 	template <typename _Vec2 = Vec2>
-	constexpr _Vec2 get_length(size_t _Index) {
+	constexpr _Vec2 get_length(size_t _Index) const {
 		return _Length[_Index];
 	}
-	constexpr std::size_t amount() {
+	constexpr std::size_t amount() const {
 		return _Points / 4;
 	}
 	//void erase(size_t _Index) {
@@ -405,6 +429,79 @@ public:
 private:
 	Alloc<Vec2> _Position;
 	Alloc<Vec2> _Length;
+};
+
+class Circle : public DefaultShape {
+public:
+	Circle(std::size_t _Number_Of_Points, float _Radius) {
+		_Mode = GL_LINES;
+		_Points = 0;
+		_PointSize = _Number_Of_Points * 2;
+		this->_Radius.push_back(_Radius);
+		init();
+	}
+	Circle(Vec2 _Position, float _Radius, std::size_t _Number_Of_Points, Color _Color) {
+		_Mode = GL_LINES;
+		_Points = _Number_Of_Points;
+		_PointSize = _Number_Of_Points * 2;
+		this->_Position.push_back(_Position);
+		this->_Radius.push_back(_Radius);
+		for (int ii = 0; ii < _Points; ii++) {
+			float theta = 2.0f * 3.1415926f * float(ii) / float(_Points);
+
+			float x = _Radius * cosf(theta);
+			float y = _Radius * sinf(theta);
+
+			_Vertices.push_back(_Position.x + x);
+			_Vertices.push_back(_Position.y + y);
+		}
+		
+		for (int i = 0; i < COLORSIZE * _PointSize; i++) {
+			_Colors.push_back(_Color[i % 4]);
+		}
+		init();
+	}
+	void push_back(Vec2 _Position, float _Radius, Color _Color, bool _Queue = false) {
+		const std::size_t _LPoints = _PointSize / 2;
+		this->_Position.push_back(_Position);
+		this->_Radius.push_back(_Radius);
+		for (int ii = 0; ii < _Points; ii++) {
+			float theta = 2.0f * 3.1415926f * float(ii) / float(_Points);
+
+			float x = _Radius * cosf(theta);
+			float y = _Radius * sinf(theta);
+
+			_Vertices.push_back(_Position.x + x);
+			_Vertices.push_back(_Position.y + y);
+		}
+		for (int i = 0; i < COLORSIZE * _PointSize; i++) {
+			_Colors.push_back(_Color[i % 4]);
+		}
+		_Points += _PointSize / 2;
+		if (_Queue) {
+			write(true, true);
+		}
+	}
+	template <typename _Vec2>
+	constexpr void set_position(size_t _Index, const _Vec2& _Position) {
+		int x = 0;
+		for (int ii = 0; ii < _PointSize; ii+= 2) {
+			float theta = _Double_Pi * float(ii) / float(_PointSize);
+
+			float x = _Radius[_Index] * cosf(theta);
+			float y = _Radius[_Index] * sinf(theta);
+			_Vertices[_Index * _PointSize + ii] = _Position.x + x;
+			_Vertices[_Index * _PointSize + ii + 1] = _Position.y + y;
+		}
+		this->_Position[_Index] = _Position;
+		write(true, false);
+	}
+private:
+	Alloc<float> things;
+	Alloc<Vec2> _Position;
+	Alloc<float> _Radius;
+	const float _Double_Pi = 2.0f * PI;
+	const float diameter = windowSize.x / 3;
 };
 
 class Sprite {
