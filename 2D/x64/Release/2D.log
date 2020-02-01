@@ -4,9 +4,15 @@ C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.hpp(480,1): warning C4267: '+='
 C:\Users\123\Documents\GitHub\2D\2D\Source.cpp(83,72): warning C4305: 'argument': truncation from 'double' to 'float'
 LINK : warning LNK4098: defaultlib 'LIBCMT' conflicts with use of other libs; use /NODEFAULTLIB:library
   Generating code
+<<<<<<< HEAD
   6 of 368 functions ( 1.6%) were compiled, the rest were copied from previous compilation.
     3 functions were new in current compilation
     7 functions had inline decision re-evaluated but remain unchanged
+=======
+  3 of 473 functions ( 0.6%) were compiled, the rest were copied from previous compilation.
+    0 functions were new in current compilation
+    1 functions had inline decision re-evaluated but remain unchanged
+>>>>>>> parent of d698677... Revert "Revert "Fixed errors""
   Finished generating code
 glew32s.lib(glew.obj) : warning LNK4099: PDB 'vc120.pdb' was not found with 'glew32s.lib(glew.obj)' or at 'C:\Users\123\Documents\GitHub\2D\2D\x64\Release\vc120.pdb'; linking object as if no debug info
   2D.vcxproj -> C:\Users\123\Documents\GitHub\2D\2D\x64\Release\2D.exe

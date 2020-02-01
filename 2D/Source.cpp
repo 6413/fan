@@ -89,7 +89,35 @@ int main() {
 		glClearColor(0, 0, 0, 1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);	
 
+<<<<<<< HEAD
 		button.draw();
+=======
+		for (int i = 0; i < ray_amount; i++) {
+			float theta = 2.0f * 3.1415926f * float(i) / float(line_amount);
+			Vec2 direction(line.get_position(i)[1] + Vec2(sin(theta) * 1000, cos(theta) * 1000));
+			inter[i] = Raycast(grid, Mat2x2(line.get_position(0)[0], direction), walls, view.x * view.y, true);
+			line.set_position_queue(i, Mat2x2(line.get_position(i)[0], inter[i].x != -1 ? inter[i] : direction));
+		}
+		line.break_queue();
+
+		line.draw();
+		grid.draw();
+
+		if (KeyPressA(GLFW_MOUSE_BUTTON_RIGHT)) {
+			Color newColor;
+			newColor.r = (unsigned int)grid.get_color(_2D1D()).r ^ (unsigned int)1;
+			newColor.a = 1;
+			auto it = std::find(ind.begin(), ind.end(), _2D1D());
+			walls[_2D1D()] = !walls[_2D1D()];
+			grid.set_color(_2D1D(), newColor);
+			if (it != ind.end()) {
+				ind.erase(it);
+			}
+			else {
+				ind.push_back(_2D1D());
+			}
+		}
+>>>>>>> parent of d698677... Revert "Revert "Fixed errors""
 
 		for (int i = 0; i < button.size(); i++) {
 			if (button.pressed(i)) {
