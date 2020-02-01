@@ -13,7 +13,7 @@ public:
 
 	constexpr __Vec2() : x(0), y(0) {}
 
-	constexpr __Vec2(const _Type& _Value) noexcept : x(_Value), y(_Value) {}
+	constexpr __Vec2(const _Type& _Value) : x(_Value), y(_Value) {}
 
 	template <typename _InIt>
 	constexpr __Vec2(const __Vec2<_InIt>& _Value) : x(_Value.x), y(_Value.y) {}

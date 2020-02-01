@@ -2,7 +2,7 @@
 #include <iostream>
 #include <memory>
 
-#define ALLOC_BUFFER 0xfff
+#define ALLOC_BUFFER 0xffff
 
 template <typename _Type>
 class Alloc;
@@ -166,8 +166,16 @@ public:
 	constexpr iterator<_Type> end() const {
 		return _Data.get() + _Current;
 	}
+	constexpr bool find(_Type _Value) const {
+		for (int _I = 0; _I < _Current; _I++) {
+			if (_Data[_I] == _Value) {
+				return true;
+			}
+		}
+		return false;
+	}
 	constexpr void erase(size_t _Index) {
-		for (size_t _I = _Index; _I < current() - 1; _I++) {
+		for (size_t _I = _Index; _I < _Current - 1; _I++) {
 			_Data[_I] = _Data[_I + 1];
 		}
 		copy_resize(current() - 1);
