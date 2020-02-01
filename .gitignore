@@ -15,6 +15,7 @@
 *.db
 *.ipch
 *.tga
+<<<<<<< HEAD
 *.tlog
 *.ipdb
 *.log
@@ -44,3 +45,5 @@
 *.pdb
 *.idb
 *.filters
+=======
+>>>>>>> parent of d698677... Revert "Revert "Fixed errors""
