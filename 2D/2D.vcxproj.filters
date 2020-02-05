@@ -71,8 +71,5 @@
     <ClInclude Include="FAN\Vectors.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="WITCH\OpenGL.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
 </Project>

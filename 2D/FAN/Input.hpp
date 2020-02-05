@@ -11,19 +11,19 @@ using namespace Settings;
 constexpr bool fullScreen = false;
 
 namespace CursorNamespace{
-	extern __Vec2<int> cursorPos;
+	static __Vec2<int> cursorPos;
 }
 
 namespace WindowNamespace {
-	extern __Vec2<int> windowSize;
+	static __Vec2<int> windowSize;
 }
 
 namespace Input {
-	extern bool key[1024];
-	extern bool readchar;
-	extern std::string characters;
-	extern bool action[348];
-	extern bool released[1024];
+	static bool key[1024];
+	static bool readchar;
+	static std::string characters;
+	static bool action[348];
+	static bool released[1024];
 	static double* ptr;
 }
 
@@ -32,7 +32,29 @@ constexpr void GlfwErrorCallback(_Ty Num, _Ty2 Desc) {
 	printf("GLFW Error %d : %s\n", Num, Desc);
 }
 
-void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
+static void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+	if (!action) {
+		if (key < 0) {
+			return;
+		}
+		Input::key[key % 1024] = false;
+		return;
+	}
+
+	Input::key[key] = true;
+
+	for (int i = 32; i < 162; i++) {
+		if (key == i && action == 1) {
+			Input::action[key] = true;
+		}
+	}
+
+	for (int i = 256; i < 384; i++) {
+		if (key == i && action == 1) {
+			Input::action[key] = true;
+		}
+	}
+}
 
 static void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
 	if ((button == GLFW_MOUSE_BUTTON_LEFT ||
@@ -83,11 +105,12 @@ constexpr void FrameSizeCallback(_Ty window, int width, int height) {
 	glLoadIdentity();
 
 	windowSize = Vec2(width, height);
+//	view = windowSize / blockSize;
 }
 
 static void WindowInit() {
 	using namespace WindowNamespace;
-	windowSize = Vec2(900, 900);
+	windowSize = WINDOWSIZE;
 	glfwWindowHint(GLFW_RESIZABLE, true);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
@@ -98,6 +121,7 @@ static void WindowInit() {
 		glfwTerminate();
 		exit(EXIT_SUCCESS);
 	}
+	//view = windowSize / blockSize;
 	//glfwWindowHint(GLFW_DOUBLEBUFFER, 1);
 	glfwMakeContextCurrent(window);
 	glewInit();

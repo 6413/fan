@@ -130,9 +130,21 @@ template <typename _Ty> constexpr auto PixelsToSomething(_Ty pixels, _Ty screen)
 	return _Ty((2.0f / screen.x * pixels.x - 1.0f), -(2.0f / screen.y * pixels.y - 1.0f));
 }
 
-template <typename T = bool, typename T2 = Mat4x4> constexpr
+template<typename T = Mat4x4>
+auto Ortho(float left, float right, float bottom, float top) {
+	T Result(static_cast<T>(1));
+	Result.vec[0][0] = static_cast<float>(2) / (right - left);
+	Result.vec[1][1] = static_cast<float>(2) / (top - bottom);
+	Result.vec[2][2] = -static_cast<float>(1);
+	Result.vec[3][0] = -(right + left) / (right - left);
+	Result.vec[3][1] = -(top + bottom) / (top - bottom);
+	return Result;
+}
+
+
+template <typename T = Mat4x4> constexpr
 auto Ortho(float left, float right, float bottom, float top, float zNear, float zFar) {
-	T2 Result(1);
+	T Result(1);
 	Result.vec[0].x = static_cast<float>(2) / (right - left);
 	Result.vec[1].y = static_cast<float>(2) / (top - bottom);
 	Result.vec[2].z = static_cast<float>(1) / (zFar - zNear);

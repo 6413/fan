@@ -4,12 +4,17 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
+//#include <ft2build.h>
+//#include FT_FREETYPE_H  
+
 #include "Alloc.hpp"
 #include "Camera.hpp"
 #include "Input.hpp"
 #include "Math.hpp"
 #include "Settings.hpp"
 #include "Shader.h"
+
+#include <map>
 #include <vector>
 
 #ifdef _MSC_VER
@@ -348,7 +353,7 @@ public:
 	}
 	template <typename _Vec2, typename _Color = Color>
 	constexpr void push_back(const _Vec2& _Position, _Vec2 _Length = Vec2(), _Color color = Color(-1, -1, -1, -1), bool queue = false) {
-		if (!_Length.x || !_Position.x && !_Position.y) {
+		if (!_Length.x && !_Position.x && !_Position.y) {
 			_Length = this->_Length[0];
 		}
 		this->_Length.push_back(_Length);
@@ -513,7 +518,7 @@ public:
 		init_image();
 		LoadImg(path, texture);
 		this->size = Vec2(size.x, size.y);
-		this->position = Vec2(position.x - this->size.x / 2, position.y - this->size.y / 2);
+		this->position = Vec2(position.x + this->size.x / 2, position.y + this->size.y / 2);
 	}
 	void SetPosition(const Vec2& position);
 
@@ -523,12 +528,12 @@ public:
 
 	void init_image();
 
-	Vec2 Size() const {
+	Vec2 get_size() const {
 		return this->size;
 	}
 
 	Vec2 get_position() const {
-		return this->position;
+		return this->position - this->size / 2;
 	}
 
 	//Texture GetTexture() const {
@@ -612,6 +617,156 @@ constexpr _ReturnType Raycast(_Square& grid, const _Matrix& direction, size_t gr
 	return best;
 }
 
+
+#ifdef FT_FREETYPE_H
+struct Character {
+	GLuint TextureID;   // ID handle of the glyph texture
+	__Vec2<int> Size;    // Size of glyph
+	__Vec2<int> Bearing;  // Offset from baseline to left/top of glyph
+	GLuint Advance;    // Horizontal offset to advance to next glyph
+};
+
+class TextRenderer {
+public:
+	TextRenderer() : shader(Shader("GLSL/text.vs", "GLSL/text.frag")) {
+		shader.Use();
+		Mat4x4 projection = Ortho(0, windowSize.x, windowSize.y, 0);
+		glUniformMatrix4fv(glGetUniformLocation(shader.ID, "projection"), 1, GL_FALSE, &projection.vec[0][0]);
+		// FreeType
+		FT_Library ft;
+		// All functions return a value different than 0 whenever an error occurred
+		if (FT_Init_FreeType(&ft))
+			std::cout << "ERROR::FREETYPE: Could not init FreeType Library" << std::endl;
+
+		// Load font as face
+		FT_Face face;
+		if (FT_New_Face(ft, "fonts/arial.ttf", 0, &face))
+			std::cout << "ERROR::FREETYPE: Failed to load font" << std::endl;
+
+		// Set size to load glyphs as
+		FT_Set_Pixel_Sizes(face, 0, 48);
+
+		// Disable byte-alignment restriction
+		glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+		// 246 = ö in unicode
+		for (GLubyte c = 0; c < 247; c++) 
+		{
+			// Load character glyph 
+			if (FT_Load_Char(face, c, FT_LOAD_RENDER))
+			{
+				std::cout << "ERROR::FREETYTPE: Failed to load Glyph" << std::endl;
+				continue;
+			}
+			// Generate texture
+			GLuint texture;
+			glGenTextures(1, &texture);
+			glBindTexture(GL_TEXTURE_2D, texture);
+			glTexImage2D(
+				GL_TEXTURE_2D,
+				0,
+				GL_RED,
+				face->glyph->bitmap.width,
+				face->glyph->bitmap.rows,
+				0,
+				GL_RED,
+				GL_UNSIGNED_BYTE,
+				face->glyph->bitmap.buffer
+			);
+			// Set texture options
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			// Now store character for later use
+			Character character = {
+				texture,
+				__Vec2<int>(face->glyph->bitmap.width, face->glyph->bitmap.rows),
+				__Vec2<int>(face->glyph->bitmap_left, face->glyph->bitmap_top),
+				face->glyph->advance.x
+			};
+			Characters.insert(std::pair<GLchar, Character>(c, character));
+		}
+		glBindTexture(GL_TEXTURE_2D, 0);
+		// Destroy FreeType once we're finished
+		FT_Done_Face(face);
+		FT_Done_FreeType(ft);
+
+
+		// Configure VAO/VBO for texture quads
+		glGenVertexArrays(1, &VAO);
+		glGenBuffers(1, &VBO);
+		glBindVertexArray(VAO);
+		glBindBuffer(GL_ARRAY_BUFFER, VBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 4, NULL, GL_DYNAMIC_DRAW);
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBindVertexArray(0);
+	}
+	void render(std::string text, Vec2 position, float scale, const Color& color) {
+		Mat4x4 projection(1);
+		projection = Ortho(0, windowSize.x, windowSize.y, 0);
+		//printf("%d\n", windowSize.x);
+		glUniformMatrix4fv(glGetUniformLocation(shader.ID, "projection"), 1, GL_FALSE, &projection.vec[0][0]);
+		shader.Use();
+		glUniform4f(glGetUniformLocation(shader.ID, "textColor"), color.r, color.g, color.b, color.a);
+		glActiveTexture(GL_TEXTURE0);
+		glBindVertexArray(VAO);
+		// Iterate through all characters
+		float biggest = 0;
+		for (std::string::const_iterator c = text.begin(); c != text.end(); c++) {
+			biggest = std::max(Characters[*c].Size.y * scale, biggest);
+		}
+		position.y += biggest;
+		std::string::const_iterator c;
+
+		Alloc<float(*)[4]> vert;
+		for (c = text.begin(); c != text.end(); c++)
+		{
+			Character ch = Characters[*c];
+
+
+
+			GLfloat w = ch.Size.x * scale;
+			GLfloat h = ch.Size.y * scale;
+
+			GLfloat xpos = position.x + ch.Bearing.x * scale;
+			GLfloat ypos = position.y + (ch.Size.y - ch.Bearing.y) * scale;
+
+			// Update VBO for each character
+			GLfloat vertices[6][4] = {
+				{ xpos,     ypos - h,   0.0, 0.0 },
+				{ xpos,     ypos,       0.0, 1.0 },
+				{ xpos + w, ypos,       1.0, 1.0 },
+
+				{ xpos,     ypos - h,   0.0, 0.0 },
+				{ xpos + w, ypos,       1.0, 1.0 },
+				{ xpos + w, ypos - h,   1.0, 0.0 }
+			};
+			vert.push_back(vertices);
+			
+			// Render glyph texture over quad
+			glBindTexture(GL_TEXTURE_2D, ch.TextureID);
+			// Update content of VBO memory
+			glBindBuffer(GL_ARRAY_BUFFER, VBO);
+			glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices); // Be sure to use glBufferSubData and not glBufferData
+
+			glBindBuffer(GL_ARRAY_BUFFER, 0);
+			// Render quad
+			glDrawArrays(GL_TRIANGLES, 0, 6);
+			// Now advance cursors for next glyph (note that advance is number of 1/64 pixels)
+			position.x += (ch.Advance >> 6)* scale; // Bitshift by 6 to get value in pixels (2^6 = 64 (divide amount of 1/64th pixels by 64 to get amount of pixels))
+		}
+		glBindVertexArray(0);
+		glBindTexture(GL_TEXTURE_2D, 0);
+	}
+private:
+	std::map<GLchar, Character> Characters;
+	Shader shader;
+	unsigned int VAO, VBO;
+};
+#endif
 
 //enum class GroupId {
 //	NotAssigned = -1,
