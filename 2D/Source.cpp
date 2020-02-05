@@ -1,68 +1,53 @@
 #include <iostream>
-#include <Windows.h>
 #include <FAN/Graphics.hpp>
+#include <FAN/DBT.hpp>
+#include <vector>
 
-typedef struct {
-	__Vec2<int> Size;
-	GLubyte* Data;
-}LT_GLFont;
-
-typedef struct {
-	unsigned int Size;
-	unsigned char* Data;
-}LT_File;
-
-#define LDC_File LDC_WITCH(LT_File){0, 0}
-
-#define LDF_FileReadAll(M_Path) LF_FileReadAll((T_ptr)M_Path)
-LT_File LF_FileReadAll(const char* Path) {
-	FILE* in = fopen((const char*)Path, "rb");
-	if (!in)
-		return LT_File();
-	LT_File RET = LT_File();
-	fseek(in, 0, SEEK_END);
-	RET.Size = ftell(in);
-	fseek(in, 0, SEEK_SET);
-	RET.Data = (unsigned char*)malloc(RET.Size);
-	fread(RET.Data, RET.Size, 1, in);
-	fclose(in);
-	return RET;
+size_t _2D1D() {
+	return (int(cursorPos.x / blockSize)) + int(cursorPos.y / blockSize) * (windowSize.y / blockSize);
 }
 
-void LF_GLCharacter(LT_GLFont Font, Color Color, Vec2 Coordinate, char Character) {
-	glColor3d(Color.r, Color.g, Color.b);
-	glRasterPos2i(Coordinate.x, Coordinate.y);
-	glBitmap(Font.Size.x, Font.Size.y, 0, 0, 0, 0, (GLubyte*)Font.Data + (Character * (((Font.Size.x / 8) + ((Font.Size.x % 8) > 0))* Font.Size.y)));
+constexpr auto movement_speed = 400;
+
+bool walls[view.x][view.y];
+
+size_t find_closest(float start, float end, bool x, int x_or_y, bool direction) {
+	if (x) {
+		if (direction) {
+			for (int i = start; i < end; i++) {
+				if (walls[i][x_or_y]) {
+					return i;
+				}
+			}
+		}
+		else {
+			for (int i = start; i--; ) {
+				if (walls[i][x_or_y]) {
+					return i;
+				}
+			}
+		}
+	}
+	else {
+		if (direction) {
+			for (int i = start; i < end; i++) {
+				if (walls[x_or_y][i]) {
+					return i;
+				}
+			}
+		}
+		else {
+			for (int i = start; i--; ) {
+				if (walls[x_or_y][i]) {
+					return i;
+				}
+			}
+		}
+	}
+	return -1;
 }
 
-class Button : public Square {
-public:
-	Button(const Vec2& position, const Vec2& size, const Color& color) : Square(position, size, color), count(1) {};
-	template <typename _Vec2 = Vec2, typename _Color = Color>
-	constexpr void add(const _Vec2& _Position = Vec2(), _Vec2 _Length = Vec2(), _Color color = Color(-1, -1, -1, -1), bool queue = false) {
-		this->push_back(_Position, _Length, color, queue);
-		count++;
-	}
-
-	bool pressed(size_t index) {
-		return cursorPos.x >= get_position(index).x && cursorPos.x <= get_position(index).x + get_length(index).x &&
-			   cursorPos.y >= get_position(index).y && cursorPos.y <= get_position(index).y + get_length(index).y && 
-			   KeyPressA(GLFW_MOUSE_BUTTON_LEFT);
-	}
-	Vec2 get_size() const {
-		return this->_Size;
-	}
-
-	size_t size() const {
-		return count;
-	}
-
-
-private:
-	using Square::push_back;
-	size_t count;
-	Vec2 _Size;
-};
+#include <ctime>
 
 int main() {
 	glfwSetErrorCallback(GlfwErrorCallback);
@@ -72,6 +57,7 @@ int main() {
 	}
 	WindowInit();
 	Main _Main;
+	_Main.shader.Use();
 	glfwSetKeyCallback(window, KeyCallback);
 	glfwSetCharCallback(window, CharacterCallback);
 	glfwSetScrollCallback(window, ScrollCallback);
@@ -80,53 +66,109 @@ int main() {
 	glfwSetMouseButtonCallback(window, MouseButtonCallback);
 	glfwSetFramebufferSizeCallback(window, FrameSizeCallback);
 
-	Button button(Vec2(windowSize / 2), Vec2(100, 50), Color(1, 0.4, 0, 1));
+	Square squares;
 
-	button.add();
+	for (int y = 0; y < view.y; y++) {
+		for (int x = 0; x < view.x; x++) {
+			squares.push_back(Vec2(x * blockSize, y * blockSize), Vec2(blockSize), Color(0, 0, 0, 1), true);
+		}
+	}
+	squares.break_queue();
+
+
+	Line line;
+	for (int i = 1; i < view.x + 1; i++) {
+		line.push_back(Mat2x2(Vec2(0, i * blockSize), Vec2(windowSize.x, i * blockSize)), Color(1, 0, 0), true);
+	}
+	for (int i = 1; i < view.y + 1; i++) {
+		line.push_back(Mat2x2(Vec2(i * blockSize, 0), Vec2(i * blockSize, windowSize.y)), Color(1, 0, 0), true);
+	}
+	line.break_queue();
+
+	Square player(Vec2(blockSize * 6, blockSize * 6), Vec2(blockSize), Color(1, 1, 1));
+
+	for (int i = 0; i < view.x; i++) {
+		for (int j = 0; j < view.y; j++) {
+			walls[i][j] = false;
+		}
+	}
 
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
 		glClearColor(0, 0, 0, 1);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);	
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-<<<<<<< HEAD
-		button.draw();
-=======
-		for (int i = 0; i < ray_amount; i++) {
-			float theta = 2.0f * 3.1415926f * float(i) / float(line_amount);
-			Vec2 direction(line.get_position(i)[1] + Vec2(sin(theta) * 1000, cos(theta) * 1000));
-			inter[i] = Raycast(grid, Mat2x2(line.get_position(0)[0], direction), walls, view.x * view.y, true);
-			line.set_position_queue(i, Mat2x2(line.get_position(i)[0], inter[i].x != -1 ? inter[i] : direction));
-		}
-		line.break_queue();
-
-		line.draw();
-		grid.draw();
+		Vec2 player_pos(floor(player.get_position(0).x / blockSize), floor(player.get_position(0).y / blockSize));
 
 		if (KeyPressA(GLFW_MOUSE_BUTTON_RIGHT)) {
 			Color newColor;
-			newColor.r = (unsigned int)grid.get_color(_2D1D()).r ^ (unsigned int)1;
+			newColor.r = (unsigned int)squares.get_color(_2D1D()).r ^ (unsigned int)1;
 			newColor.a = 1;
-			auto it = std::find(ind.begin(), ind.end(), _2D1D());
-			walls[_2D1D()] = !walls[_2D1D()];
-			grid.set_color(_2D1D(), newColor);
-			if (it != ind.end()) {
-				ind.erase(it);
+			squares.set_color(_2D1D(), newColor);
+			walls[_2D1D() % view.x][_2D1D() / view.y] = !walls[_2D1D() % view.x][_2D1D() / view.y];
+		}
+
+		if (KeyPress(GLFW_KEY_A)) {
+			int point = find_closest(player_pos.x, view.x, true, player_pos.y, false);
+			int point2 = find_closest(player_pos.x, view.x, true, (player.get_position(0).y + blockSize - 1) / blockSize, false);
+			if (int((player.get_position(0).x / blockSize) - (movement_speed / blockSize) * deltaTime) <= point && point != -1) {
+				player.set_position(0, Vec2((point + 1) * blockSize, player.get_position(0).y));
+			}
+			else if (int((player.get_position(0).x / blockSize) - (movement_speed / blockSize) * deltaTime) <= point2 && point2 != -1) {
+				player.set_position(0, Vec2((point2 + 1) * blockSize, player.get_position(0).y));
 			}
 			else {
-				ind.push_back(_2D1D());
+				player.set_position(0, Vec2(player.get_position(0).x - (movement_speed * deltaTime), player.get_position(0).y));
 			}
 		}
->>>>>>> parent of d698677... Revert "Revert "Fixed errors""
+		if (KeyPress(GLFW_KEY_D)) {
+			int point = find_closest(player_pos.x, view.x, true, player_pos.y, true);
+			int point2 = find_closest(player_pos.x, view.x, true, (player.get_position(0).y + blockSize - 1) / blockSize, true);
+			if (int((player.get_position(0).x / blockSize + 1) + (movement_speed / blockSize) * deltaTime) >= point && point != -1) {
+				player.set_position(0, Vec2((point - 1) * blockSize, player.get_position(0).y));
+			}
+			else if (int((player.get_position(0).x / blockSize + 1) + (movement_speed / blockSize) * deltaTime) >= point2 && point2 != -1) {
+				player.set_position(0, Vec2((point2 - 1) * blockSize, player.get_position(0).y));
+			}
+			else {
+				player.set_position(0, Vec2(player.get_position(0).x + (movement_speed * deltaTime), player.get_position(0).y));
+			}
+		}
+		if (KeyPress(GLFW_KEY_W)) {
+			int point = find_closest(player_pos.y, view.y, false, player_pos.x, false);
+			int point2 = find_closest(player_pos.y, view.y, false, (player.get_position(0).x + blockSize - 1) / blockSize, false);
+			if (int((player.get_position(0).y / blockSize) - (movement_speed / blockSize) * deltaTime) <= point && point != -1) {
+				player.set_position(0, Vec2(player.get_position(0).x, (point + 1) * blockSize));
+			}
+			else if (int((player.get_position(0).y / blockSize) - (movement_speed / blockSize) * deltaTime) <= point2 && point2 != -1) {
+				player.set_position(0, Vec2(player.get_position(0).x, (point2 + 1) * blockSize));
+			}
+			else {
+				player.set_position(0, Vec2(player.get_position(0).x, player.get_position(0).y - (movement_speed * deltaTime)));
+			}
+		}
+		if (KeyPress(GLFW_KEY_S)) {
+			int point = find_closest(player_pos.y, view.y, false, player_pos.x, true);
+			int point2 = find_closest(player_pos.y, view.y, false, (player.get_position(0).x + blockSize - 1) / blockSize, true);
+			if (int((player.get_position(0).y / blockSize + 1) + (movement_speed / blockSize) * deltaTime) >= point && point != -1) {
+				player.set_position(0, Vec2(player.get_position(0).x, (point - 1) * blockSize));
+			}
+			else if (int((player.get_position(0).y / blockSize + 1) + (movement_speed / blockSize) * deltaTime) >= point2 && point2 != -1) {
+				player.set_position(0, Vec2(player.get_position(0).x, (point2 - 1) * blockSize));
+			}
+			else {
+				player.set_position(0, Vec2(player.get_position(0).x, player.get_position(0).y + (movement_speed * deltaTime)));
+			}
+		}
 
-		for (int i = 0; i < button.size(); i++) {
-			if (button.pressed(i)) {
-				printf("pressed button: %d\n", i);
-			}
-		}
+		line.draw();
+		player.draw();
+		squares.draw();
+
 		if (KeyPress(GLFW_KEY_ESCAPE)) {
 			glfwSetWindowShouldClose(window, true);
 		}
+
 		GetFps();
 		glfwSwapBuffers(window);
 		KeysReset();

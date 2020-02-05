@@ -4,7 +4,7 @@
 
 namespace Settings {
 	float deltaTime = 0;
-	GLFWwindow* window;
+	//GLFWwindow* window;
 }
 
 namespace FanColors {
@@ -14,7 +14,7 @@ namespace FanColors {
 	Vec3 Blue(0.0, 0.0, 1.0);
 }
 
-void GetFps() {
+void GetFps(bool print) {
 	static int fps = 0;
 	static double start = glfwGetTime();
 	float currentFrame = glfwGetTime();
@@ -22,7 +22,9 @@ void GetFps() {
 	Settings::deltaTime = currentFrame - lastFrame;
 	lastFrame = currentFrame;
 	if ((glfwGetTime() - start) > 1.0) {
-		printf("%d\n", fps);
+		if (print) {
+			printf("%d\n", fps);
+		}
 
 		fps = 0;
 		start = glfwGetTime();

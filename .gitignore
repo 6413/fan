@@ -15,35 +15,8 @@
 *.db
 *.ipch
 *.tga
-<<<<<<< HEAD
 *.tlog
 *.ipdb
 *.log
 *.pdb
-*.zip
-*.obj
-*.obj
-2D/x64/Release/Source.obj
-2D/x64/Release/Settings.obj
-2D/x64/Release/Math.obj
-2D/x64/Release/Input.obj
-2D/x64/Release/Graphics.obj
-2D/x64/Release/Functions.obj
-2D/x64/Release/Bmp.obj
-2D/x64/Release/2D.tlog/link.delete.1.tlog
-2D/x64/Release/2D.tlog/CL.write.1.tlog
-2D/x64/Release/2D.tlog/CL.read.1.tlog
-2D/x64/Release/2D.tlog/CL.command.1.tlog
-2D/x64/Release/2D.tlog/2D.write.1u.tlog
-2D/x64/Release/2D.pdb
-2D/x64/Release/2D.log
-2D/x64/Release/2D.ipdb
-2D/x64/Release/2D.iobj
-*.db
-*.tlog
-*.obj
-*.pdb
-*.idb
 *.filters
-=======
->>>>>>> parent of d698677... Revert "Revert "Fixed errors""

@@ -2,7 +2,7 @@
 #include <iostream>
 #include <memory>
 
-#define ALLOC_BUFFER 0xffff
+constexpr auto ALLOC_BUFFER = 0xfffff;
 
 template <typename _Type>
 class Alloc;
@@ -45,10 +45,20 @@ protected:
 template <typename _Type>
 class Alloc : public iterator<_Type> {
 public:
-	Alloc(bool DBT = false) : _Size(0), _Data(NULL), _Current(DBT ? 1 : 0) {}
+	Alloc() : _Size(0), _Data(NULL), _Current(0) {
+#ifdef DBT
+		_Current = 1;
+#endif
+	}
 	template <typename type>
-	Alloc(type _Reserve, bool DBT = false) : _Data(NULL), _Current(DBT ? 1 : 0) {
+	Alloc(type _Reserve, _Type _InIt) : _Data(NULL), _Current(0) {
+#ifdef DBT
+		_Current = 1;
+#endif
 		resize(_Reserve);
+		for (int _I = 0; _I < _Reserve; _I++) {
+			_Data[_I] = _InIt;
+		}
 	}
 	~Alloc() {}
 	_Type& operator[](size_t _Index) const {
@@ -154,6 +164,13 @@ public:
 		_Data = std::make_unique<_Type[]>(_Reserve);
 		_Size = _Reserve;
 	}
+	constexpr void init_resize(size_t _Reserve, _Type _InIt) {
+		_Data = std::make_unique<_Type[]>(_Reserve);
+		_Size = _Reserve;
+		for (int _I = 0; _I < _Size; _I++) {
+			_Data[_I] = _InIt;
+		}
+	}
 	constexpr void copy_resize(size_t _Reserve) {
 		std::unique_ptr<_Type[]> _Temp = std::make_unique<_Type[]>(_Size);
 		copy(_Data, _Temp, _Size);
@@ -164,6 +181,9 @@ public:
 		return _Data.get();
 	}
 	constexpr iterator<_Type> end() const {
+		if (!_Current) {
+			return _Data.get() + _Size;
+		}
 		return _Data.get() + _Current;
 	}
 	constexpr bool find(_Type _Value) const {

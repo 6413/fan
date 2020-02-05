@@ -1,6 +1,14 @@
 #pragma once
 #include <FAN/Alloc.hpp>
 
+/*
+////////////
+
+DEFINE DBT BEFORE USING - #define DBT
+
+////////////
+*/
+
 template<typename T1, typename T2>
 constexpr auto separate_bits(T1 px, T2  py) {
 	return (((px) >> (py)) & 1);
