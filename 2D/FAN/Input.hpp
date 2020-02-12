@@ -138,14 +138,14 @@ static void WindowInit() {
 }
 
 inline bool KeyPress(int key) {
-	if (Input::key[key]) {
+	if (Input::key[key % 1024]) {
 		return true;
 	}
 	return false;
 }
 
 static bool KeyPressA(int key) {
-	if (Input::action[key]) {
+	if (Input::action[key % 348]) {
 		return true;
 	}
 	return false;
