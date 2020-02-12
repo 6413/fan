@@ -36,6 +36,10 @@ public:
 		return v.x != x && v.y != y;
 	}
 
+	constexpr __Vec2<_Type> operator-() const {
+		return { -this->x, -this->y };
+	}
+
 	template <typename _Typepe>
 	constexpr bool operator==(const __Vec2<_Typepe>& v) const {
 		return v.x == x && v.y == y;

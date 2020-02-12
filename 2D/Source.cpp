@@ -2,52 +2,83 @@
 #include <FAN/Graphics.hpp>
 #include <FAN/DBT.hpp>
 #include <vector>
+#include <chrono>
 
-size_t _2D1D() {
-	return (int(cursorPos.x / blockSize)) + int(cursorPos.y / blockSize) * (windowSize.y / blockSize);
-}
+struct Particle {
+	float life_time;
+	decltype(std::chrono::high_resolution_clock::now()) time;
+	bool display;
+	Vec2 particle_speed;
+};
 
-constexpr auto movement_speed = 400;
-
-bool walls[view.x][view.y];
-
-size_t find_closest(float start, float end, bool x, int x_or_y, bool direction) {
-	if (x) {
-		if (direction) {
-			for (int i = start; i < end; i++) {
-				if (walls[i][x_or_y]) {
-					return i;
-				}
-			}
+class Particles {
+public:
+	Particles(std::size_t particles_amount, Vec2 particle_size, Vec2 particle_speed, float life_time) :
+		particles(particles_amount, -particle_size, 
+		Vec2(particle_size), Color(/*105.f / 255.f, 105.f / 255.f, 105.f / 255.f, 1)*/1, 0, 0)), particle(), particleIndex(particles_amount) {
+		for (int i = 0; i < particles_amount; i++) {
+			//float theta = 2.0f * 3.1415926f * float(i) / float(100);
+			float x = particle_speed.x * cosf(i);
+			float y = particle_speed.y * sinf(i);
+			particle.push_back({ life_time, decltype(std::chrono::high_resolution_clock::now())(), 0, Vec2(x, y) });
+			particles.rotate(i, rand(), true);
 		}
-		else {
-			for (int i = start; i--; ) {
-				if (walls[i][x_or_y]) {
-					return i;
-				}
-			}
+		particles.break_queue();
+	}
+
+	void add(Vec2 position) {
+		if (!particle[particleIndex].time.time_since_epoch().count()) {
+			particles.set_position(particleIndex, position);
+			particle[particleIndex].time = std::chrono::high_resolution_clock::now();
+			particle[particleIndex].display = true;
+			particleIndex = (particleIndex - 1) % particles.amount();
 		}
 	}
-	else {
-		if (direction) {
-			for (int i = start; i < end; i++) {
-				if (walls[x_or_y][i]) {
-					return i;
-				}
-			}
-		}
-		else {
-			for (int i = start; i--; ) {
-				if (walls[x_or_y][i]) {
-					return i;
-				}
-			}
-		}
-	}
-	return -1;
-}
 
-#include <ctime>
+	void draw() {
+		using namespace std::chrono;
+		for (int i = 0; i < particles.amount(); i++) {
+			if (!particle[i].display) {
+				continue;
+			}
+			if (duration_cast<milliseconds>(high_resolution_clock::now() - particle[i].time).count() >= particle[i].life_time) {
+				particles.set_position(i, Vec2(-particles.get_length(0)), true);
+				particle[i].display = false;
+				particle[i].time = decltype(high_resolution_clock::now())();
+				continue;
+			}
+			Color color = particles.get_color(i);
+			particles.set_color(i, Color(color.r, color.g, (float)duration_cast<milliseconds>((high_resolution_clock::now() - particle[i].time)).count() / 1000.f, 
+				(particle[i].life_time - (float)duration_cast<milliseconds>((high_resolution_clock::now() - particle[i].time)).count() / 1.f) / particle[i].life_time), true);
+			particles.set_position(i, particles.get_position(i) + Vec2(particle[i].particle_speed.x * deltaTime, particle[i].particle_speed.y * deltaTime), true);
+		}
+
+		particles.break_queue();
+		particles.draw();
+	}
+
+private:
+	std::size_t particleIndex;
+	Square particles;
+	Alloc<Particle> particle;
+};
+
+class Timer {
+public:
+	void start(int time) {
+		this->timer = std::chrono::high_resolution_clock::now();
+		this->time = time;
+	}
+	void restart() {
+		this->timer = std::chrono::high_resolution_clock::now();
+	}
+	bool finished() {
+		return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - timer).count() >= time;
+	}
+private:
+	decltype(std::chrono::high_resolution_clock::now()) timer;
+	int time;
+};
 
 int main() {
 	glfwSetErrorCallback(GlfwErrorCallback);
@@ -66,104 +97,28 @@ int main() {
 	glfwSetMouseButtonCallback(window, MouseButtonCallback);
 	glfwSetFramebufferSizeCallback(window, FrameSizeCallback);
 
-	Square squares;
+	using namespace std::chrono;
 
-	for (int y = 0; y < view.y; y++) {
-		for (int x = 0; x < view.x; x++) {
-			squares.push_back(Vec2(x * blockSize, y * blockSize), Vec2(blockSize), Color(0, 0, 0, 1), true);
-		}
-	}
-	squares.break_queue();
+	Particles particles(10000, Vec2(20), Vec2(100), 2000);
 
+	Timer timer;
+	timer.start(10);
 
-	Line line;
-	for (int i = 1; i < view.x + 1; i++) {
-		line.push_back(Mat2x2(Vec2(0, i * blockSize), Vec2(windowSize.x, i * blockSize)), Color(1, 0, 0), true);
-	}
-	for (int i = 1; i < view.y + 1; i++) {
-		line.push_back(Mat2x2(Vec2(i * blockSize, 0), Vec2(i * blockSize, windowSize.y)), Color(1, 0, 0), true);
-	}
-	line.break_queue();
+	auto time = high_resolution_clock::now();
 
-	Square player(Vec2(blockSize * 6, blockSize * 6), Vec2(blockSize), Color(1, 1, 1));
-
-	for (int i = 0; i < view.x; i++) {
-		for (int j = 0; j < view.y; j++) {
-			walls[i][j] = false;
-		}
-	}
+	Square mycar(Vec2(900 / 2), Vec2(64), Color(1, 0, 0, 1));
 
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
 		glClearColor(0, 0, 0, 1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		Vec2 player_pos(floor(player.get_position(0).x / blockSize), floor(player.get_position(0).y / blockSize));
 
-		if (KeyPressA(GLFW_MOUSE_BUTTON_RIGHT)) {
-			Color newColor;
-			newColor.r = (unsigned int)squares.get_color(_2D1D()).r ^ (unsigned int)1;
-			newColor.a = 1;
-			squares.set_color(_2D1D(), newColor);
-			walls[_2D1D() % view.x][_2D1D() / view.y] = !walls[_2D1D() % view.x][_2D1D() / view.y];
+		if (KeyPress(GLFW_MOUSE_BUTTON_LEFT)) {
+			particles.add(cursorPos);
 		}
 
-		if (KeyPress(GLFW_KEY_A)) {
-			int point = find_closest(player_pos.x, view.x, true, player_pos.y, false);
-			int point2 = find_closest(player_pos.x, view.x, true, (player.get_position(0).y + blockSize - 1) / blockSize, false);
-			if (int((player.get_position(0).x / blockSize) - (movement_speed / blockSize) * deltaTime) <= point && point != -1) {
-				player.set_position(0, Vec2((point + 1) * blockSize, player.get_position(0).y));
-			}
-			else if (int((player.get_position(0).x / blockSize) - (movement_speed / blockSize) * deltaTime) <= point2 && point2 != -1) {
-				player.set_position(0, Vec2((point2 + 1) * blockSize, player.get_position(0).y));
-			}
-			else {
-				player.set_position(0, Vec2(player.get_position(0).x - (movement_speed * deltaTime), player.get_position(0).y));
-			}
-		}
-		if (KeyPress(GLFW_KEY_D)) {
-			int point = find_closest(player_pos.x, view.x, true, player_pos.y, true);
-			int point2 = find_closest(player_pos.x, view.x, true, (player.get_position(0).y + blockSize - 1) / blockSize, true);
-			if (int((player.get_position(0).x / blockSize + 1) + (movement_speed / blockSize) * deltaTime) >= point && point != -1) {
-				player.set_position(0, Vec2((point - 1) * blockSize, player.get_position(0).y));
-			}
-			else if (int((player.get_position(0).x / blockSize + 1) + (movement_speed / blockSize) * deltaTime) >= point2 && point2 != -1) {
-				player.set_position(0, Vec2((point2 - 1) * blockSize, player.get_position(0).y));
-			}
-			else {
-				player.set_position(0, Vec2(player.get_position(0).x + (movement_speed * deltaTime), player.get_position(0).y));
-			}
-		}
-		if (KeyPress(GLFW_KEY_W)) {
-			int point = find_closest(player_pos.y, view.y, false, player_pos.x, false);
-			int point2 = find_closest(player_pos.y, view.y, false, (player.get_position(0).x + blockSize - 1) / blockSize, false);
-			if (int((player.get_position(0).y / blockSize) - (movement_speed / blockSize) * deltaTime) <= point && point != -1) {
-				player.set_position(0, Vec2(player.get_position(0).x, (point + 1) * blockSize));
-			}
-			else if (int((player.get_position(0).y / blockSize) - (movement_speed / blockSize) * deltaTime) <= point2 && point2 != -1) {
-				player.set_position(0, Vec2(player.get_position(0).x, (point2 + 1) * blockSize));
-			}
-			else {
-				player.set_position(0, Vec2(player.get_position(0).x, player.get_position(0).y - (movement_speed * deltaTime)));
-			}
-		}
-		if (KeyPress(GLFW_KEY_S)) {
-			int point = find_closest(player_pos.y, view.y, false, player_pos.x, true);
-			int point2 = find_closest(player_pos.y, view.y, false, (player.get_position(0).x + blockSize - 1) / blockSize, true);
-			if (int((player.get_position(0).y / blockSize + 1) + (movement_speed / blockSize) * deltaTime) >= point && point != -1) {
-				player.set_position(0, Vec2(player.get_position(0).x, (point - 1) * blockSize));
-			}
-			else if (int((player.get_position(0).y / blockSize + 1) + (movement_speed / blockSize) * deltaTime) >= point2 && point2 != -1) {
-				player.set_position(0, Vec2(player.get_position(0).x, (point2 - 1) * blockSize));
-			}
-			else {
-				player.set_position(0, Vec2(player.get_position(0).x, player.get_position(0).y + (movement_speed * deltaTime)));
-			}
-		}
-
-		line.draw();
-		player.draw();
-		squares.draw();
+		particles.draw();
 
 		if (KeyPress(GLFW_KEY_ESCAPE)) {
 			glfwSetWindowShouldClose(window, true);

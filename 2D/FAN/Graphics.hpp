@@ -331,6 +331,14 @@ public:
 	}
 
 	template <typename _Vec2, typename _Color>
+	Square(std::size_t _Reserve, const _Vec2& _Position, const _Vec2& _Length, const _Color& color) : Square() {
+		for (int i = 0; i < _Reserve; i++) {
+			push_back(_Position, _Length, color, true);
+		}
+		break_queue();
+	}
+
+	template <typename _Vec2, typename _Color>
 	constexpr Square(const _Vec2& _Position, const _Vec2& _Length, const _Color& color) {
 		_Mode = GL_QUADS;
 		_Points = 4;
@@ -388,16 +396,14 @@ public:
 		}
 	}
 	template <typename _Vec2>
-	constexpr void set_position(size_t _Index, const _Vec2& _Position) {
-		_Vertices[_Index * _PointSize] = _Position.x;
-		_Vertices[_Index * _PointSize + 1] = _Position.y;
-		_Vertices[_Index * _PointSize + 2] = _Position.x + _Length[_Index].x;
-		_Vertices[_Index * _PointSize + 3] = _Position.y;
-		_Vertices[_Index * _PointSize + 4] = _Position.x + _Length[_Index].x;
-		_Vertices[_Index * _PointSize + 5] = _Position.y + _Length[_Index].y;
-		_Vertices[_Index * _PointSize + 6] = _Position.x;
-		_Vertices[_Index * _PointSize + 7] = _Position.y + _Length[_Index].y;
-		write(true, false);
+	constexpr void set_position(size_t _Index, const _Vec2& _Position, bool _Queue = false) {
+		Vec2 _Distance(_Position[0] - _Vertices[_Index * _PointSize + 0], _Position[1] - _Vertices[_Index * _PointSize + 1]);
+		for (int i = 0; i < _PointSize; i++) {
+			_Vertices[_Index * _PointSize + i] += _Distance[i % 2];
+		}
+		if (!_Queue) {
+			write(true, false);
+		}
 		this->_Position[_Index] = _Position;
 	}
 	template <typename _Matrix = Mat2x4>
@@ -410,6 +416,28 @@ public:
 			Vec2(_Vertices[_Multiplier + 6], _Vertices[_Multiplier + 7])
 		);
 	}
+	void rotate(std::size_t _Index, double _Angle, bool queue = false) {
+		constexpr double offset = 3 * PI / 4;
+		const Vec2 position(get_position(_Index));
+		const Vec2 _Radius(_Length[_Index] / 2);
+		double r = Distance(get_position(_Index), get_position(_Index) + _Length[_Index] / 2);
+
+		Mat2x4 corners(
+			Vec2(r * cos(Radians(_Angle) + offset), r * sin(Radians(_Angle) + offset)),
+			Vec2(r * cos(Radians(_Angle) + offset - PI / 2.f), r * sin(Radians(_Angle) + offset - PI / 2.f)), 
+			Vec2(r * cos(Radians(_Angle) + offset - PI), r * sin(Radians(_Angle) + offset - PI)),
+			Vec2(r * cos(Radians(_Angle) + offset - PI * 3.f / 2.f), r * sin(Radians(_Angle) + offset - PI * 3.f / 2.f))
+			);
+
+		for (int i = 0; i < _PointSize; i++) {
+			_Vertices[_Index * _PointSize + i] = corners[(i & 7) >> 1][i & 1] + position[i & 1] + _Radius[i & 1];
+		}
+
+		if (!queue) {
+			write(true, false);
+		}
+	}
+
 	template <typename _Vec2 = Vec2>
 	constexpr _Vec2 get_position(size_t _Index) const {
 		return _Position[_Index];
@@ -451,8 +479,8 @@ public:
 		_PointSize = _Number_Of_Points * 2;
 		this->_Position.push_back(_Position);
 		this->_Radius.push_back(_Radius);
-		for (int ii = 0; ii < _Points; ii++) {
-			float theta = 2.0f * 3.1415926f * float(ii) / float(_Points);
+		for (int i = 0; i < _Points; i++) {
+			float theta = 2.0f * 3.1415926f * float(i) / float(_Points);
 
 			float x = _Radius * cosf(theta);
 			float y = _Radius * sinf(theta);
