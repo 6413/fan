@@ -16,6 +16,7 @@
 
 #include <map>
 #include <vector>
+#include <chrono>
 
 #ifdef _MSC_VER
 #pragma warning (disable : 26495)
@@ -645,6 +646,102 @@ constexpr _ReturnType Raycast(_Square& grid, const _Matrix& direction, size_t gr
 	return best;
 }
 
+using namespace std::chrono;
+
+class Timer {
+public:
+	Timer() {}
+	Timer(const decltype(high_resolution_clock::now())& timer, std::size_t time) : timer(timer), time(time) {}
+	void start(int time) {
+		this->timer = high_resolution_clock::now();
+		this->time = time;
+	}
+	void restart() {
+		this->timer = high_resolution_clock::now();
+	}
+	bool finished() {
+		return duration_cast<milliseconds>(high_resolution_clock::now() - timer).count() >= time;
+	}
+	std::size_t passed() {
+		return duration_cast<milliseconds>(high_resolution_clock::now() - timer).count();
+	}
+private:
+	decltype(high_resolution_clock::now()) timer;
+	std::size_t time;
+};
+
+struct Particle {
+	float life_time;
+	Timer time;
+	bool display;
+	Vec2 particle_speed;
+};
+
+class Particles {
+public:
+	std::size_t particles_per_second = 100;
+	Particles(std::size_t particles_amount, Vec2 particle_size, Vec2 particle_speed, float life_time, Color begin, Color end) :
+		particles(particles_amount, -particle_size,
+			Vec2(particle_size), begin), particle(), particleIndex(particles_amount - 1), begin(begin), end(end), life_time(life_time) {
+		for (int i = 0; i < particles_amount; i++) {
+			float x = particle_speed.x * cosf(i);
+			float y = particle_speed.y * sinf(i);
+			particle.push_back({ life_time, Timer(high_resolution_clock::now(), 0), 0, Vec2(x, y) });
+			particles.rotate(i, rand(), true);
+		}
+		particles.break_queue();
+	}
+
+	void add(Vec2 position) {
+		static Timer click_timer = { 
+			high_resolution_clock::now(),
+			particles_per_second ? 1000 / particles_per_second : std::size_t(1e+10) 
+		};
+		if (particle[particleIndex].time.finished() && click_timer.finished()) {
+			particles.set_position(particleIndex, position);
+			particle[particleIndex].time.start(life_time);
+			particle[particleIndex].display = true;
+			if (--particleIndex <= -1) {
+				particleIndex = particles.amount() - 1;
+			}
+			click_timer.restart();
+		}
+	}
+
+	void draw() {
+		for (int i = 0; i < particles.amount(); i++) {
+			if (!particle[i].display) {
+				continue;
+			}
+			if (particle[i].time.finished()) {
+				particles.set_position(i, Vec2(-particles.get_length(0)), true);
+				particle[i].display = false;
+				particle[i].time.start(life_time);
+				continue;
+			}
+			Color color = particles.get_color(i);
+			const float passed_time = particle[i].time.passed();
+			float life_time = particle[i].life_time;
+
+			color.r = ((end.r - begin.r) / life_time) * passed_time + begin.r;
+			color.g = ((end.g - begin.g) / life_time) * passed_time + begin.g;
+			color.b = ((end.b - begin.b) / life_time) * passed_time + begin.b;
+			color.a = (particle[i].life_time - passed_time / 1.f) / particle[i].life_time;
+			particles.set_color(i, color, true);
+			particles.set_position(i, particles.get_position(i) + particle[i].particle_speed * deltaTime, true);
+		}
+		particles.break_queue();
+		particles.draw();
+	}
+
+private:
+	int64_t particleIndex;
+	Square particles;
+	Alloc<Particle> particle;
+	Color begin;
+	Color end;
+	float life_time;
+};
 
 #ifdef FT_FREETYPE_H
 struct Character {

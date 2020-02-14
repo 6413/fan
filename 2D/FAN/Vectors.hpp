@@ -253,7 +253,14 @@ public:
 	float r, g, b, a;
 	Color() : r(0), g(0), b(0), a(0) {}
 
-	Color(float r, float g, float b, float a = 1) {
+	Color(float r, float g, float b, float a = 1, bool index = false) {
+		if (index) {
+			this->r = r / 255.f;
+			this->g = g / 255.f;
+			this->b = b / 255.f;
+			this->a = a / 255.f;
+			return;
+		}
 		this->r = r;
 		this->g = g;
 		this->b = b;
