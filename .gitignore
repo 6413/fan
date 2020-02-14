@@ -20,3 +20,8 @@
 *.log
 *.pdb
 *.filters
+*.log
+*.iobj
+*.tlog
+*.obj
+*.pdb
