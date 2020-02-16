@@ -1,27 +1,6 @@
-﻿  Bmp.cpp
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.hpp(479,1): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.hpp(514,1): warning C4267: '+=': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.hpp(663,84): warning C4018: '>=': signed/unsigned mismatch
-  Functions.cpp
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.hpp(479,1): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.hpp(514,1): warning C4267: '+=': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.hpp(663,84): warning C4018: '>=': signed/unsigned mismatch
-  Graphics.cpp
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.hpp(479,1): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.hpp(514,1): warning C4267: '+=': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.hpp(663,84): warning C4018: '>=': signed/unsigned mismatch
-  Input.cpp
-  Math.cpp
-  Settings.cpp
-  Source.cpp
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.hpp(479,1): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.hpp(514,1): warning C4267: '+=': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.hpp(663,84): warning C4018: '>=': signed/unsigned mismatch
+﻿  Source.cpp
+Bmp.obj : warning LNK4075: ignoring '/EDITANDCONTINUE' due to '/OPT:ICF' specification
 LINK : warning LNK4098: defaultlib 'LIBCMT' conflicts with use of other libs; use /NODEFAULTLIB:library
-  Generating code
-  3 of 440 functions ( 0.7%) were compiled, the rest were copied from previous compilation.
-    1 functions were new in current compilation
-    1 functions had inline decision re-evaluated but remain unchanged
-  Finished generating code
+  LINK : /LTCG specified but no code generation required; remove /LTCG from the link command line to improve linker performance
 glew32s.lib(glew.obj) : warning LNK4099: PDB 'vc120.pdb' was not found with 'glew32s.lib(glew.obj)' or at 'C:\Users\123\Documents\GitHub\2D\2D\x64\Release\vc120.pdb'; linking object as if no debug info
   2D.vcxproj -> C:\Users\123\Documents\GitHub\2D\2D\x64\Release\2D.exe

@@ -2,12 +2,11 @@
 #ifdef _MSC_VER
 #pragma warning (disable : 4244)
 #endif
-#include <iostream>
-#include <cmath>
-#include <algorithm>
-#include <cfloat>
 #include "Vectors.hpp"
-#include <assert.h>
+
+
+#include <cfloat>
+#include <random>
 constexpr float PI = 3.1415926535f;
 
 template <typename T>
@@ -24,6 +23,13 @@ constexpr auto IntersectionPoint(const T& p1Start, const T& p1End, const T& p2St
 	return Vec2(-1, -1);
 }
 
+template <typename first, typename second>
+auto random(first min, second max) {
+	static std::random_device device;
+	static std::mt19937_64 random(device());
+	std::uniform_int_distribution<first> distance(min, max);
+	return distance(random);
+}
 
 template<std::size_t N, class T>
 constexpr std::size_t ArrLen(T(&)[N]) { return N; }

@@ -24,8 +24,8 @@ char* LoadBMP(const char* path, Texture& texture) {
 	}
 	fclose(file);
 
-	uint32_t pixelOffset =  *(uint32_t*)(data + BMP_Offsets::PIXELDATA);
-	texture.width =  *(uint32_t*)(data + BMP_Offsets::WIDTH);
+	uint32_t pixelOffset = *(uint32_t*)(data + BMP_Offsets::PIXELDATA);
+	texture.width = *(uint32_t*)(data + BMP_Offsets::WIDTH);
 	texture.height = *(uint32_t*)(data + BMP_Offsets::HEIGHT);
 
 	return data + pixelOffset;

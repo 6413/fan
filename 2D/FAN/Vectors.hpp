@@ -86,12 +86,12 @@ public:
 		x = _x; y = _y; z = _z;
 	}
 
-	constexpr auto operator-(const __Vec3<_Type>& v) {
+	/*constexpr auto operator-(const __Vec3<_Type>& v) {
 		this->x -= v.x;
 		this->y -= v.y;
 		this->z -= v.z;
 		return *this;
-	}
+	}*/
 
 	//constexpr auto operator-(const __Vec3<_Type>& v) {
 	//	this->x = -v.x;
