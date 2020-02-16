@@ -1,8 +1,5 @@
 #pragma once
 #include <iostream>
-#include <memory>
-
-constexpr auto ALLOC_BUFFER = 0xfffff;
 
 template <typename _Type>
 class Alloc;
@@ -45,6 +42,7 @@ protected:
 template <typename _Type>
 class Alloc : public iterator<_Type> {
 public:
+	std::size_t ALLOC_BUFFER = 0xfffff;
 	Alloc() : _Size(0), _Data(NULL), _Current(0) {
 #ifdef DBT
 		_Current = 1;
@@ -107,17 +105,17 @@ public:
 			_Data[_I] = _Value;
 		}
 	}
-	//constexpr void free_to_max() {
-	//	if (_Size > _Current) {
-	//		_Type* _Temp = new _Type[_Current];
-	//		copy(_Data, _Temp, _Current);
-	//		delete[] _Data;
-	//		_Size = _Current;
-	//		_Data = new _Type[_Current];
-	//		copy(_Temp, _Data, _Current);
-	//		delete[] _Temp;
-	//	}
-	//}
+	constexpr void free_to_max() {
+		if (_Size > _Current) {
+			auto _Temp = std::make_unique<_Type[]>(_Current);
+			copy(_Data, _Temp, _Current);
+			_Data.reset();
+			_Size = _Current;
+			_Data = std::make_unique<_Type[]>(_Current);
+			copy(_Temp, _Data, _Current);
+			_Temp.reset();
+		}
+	}
 	void push_back(_Type _Value) {
 		if (_Size > _Current) {
 			_Data[_Current] = _Value;
@@ -134,8 +132,10 @@ public:
 			std::unique_ptr<_Type[]> _Temp = std::make_unique<_Type[]>(_Size);
 			copy(_Data, _Temp, _Size);
 			_Size += ALLOC_BUFFER;
+			_Data.reset();
 			_Data = std::make_unique<_Type[]>(_Size);
 			copy(_Temp, _Data, _Size - ALLOC_BUFFER);
+			_Temp.reset();
 		}
 		_Data[_Current] = _Value;
 		_Current++;
@@ -205,7 +205,7 @@ public:
 		for (auto _I = _Index; _I != end() - 1; ++_I) {
 			*_I = *(_I + 1);
 		}
-		copy_resize(current() - 1);
+	//	copy_resize(current() - 1);
 		_Current--;
 	}
 	constexpr void erase_all() {
