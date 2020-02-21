@@ -31,7 +31,7 @@ struct keytype {
 template <typename type>
 class dbt {
 public:
-	Alloc<keytype<type>> nodes;
+	std::vector<keytype<type>> nodes;
 	constexpr dbt() : nodes(1, true), _Size(0) { }
 	constexpr dbt(size_t _Reserve) : nodes(_Reserve, true), _Size(_Reserve) {}
 

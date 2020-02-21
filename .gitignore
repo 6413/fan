@@ -25,3 +25,14 @@
 *.tlog
 *.obj
 *.pdb
+*.log
+*.ipdb
+*.ipdb
+*.iobj
+*.iobj
+*.tlog
+*.pdb
+*.obj
+*.idb
+*.pdb
+*.filters

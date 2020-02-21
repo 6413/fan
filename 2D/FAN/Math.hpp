@@ -4,23 +4,32 @@
 #endif
 #include "Vectors.hpp"
 
-
 #include <cfloat>
 #include <random>
+#include <functional>
+
+
+template <typename T>
+void debugger(std::function<T> functionPtr) {
+	printf("start\n");
+	functionPtr();
+	printf("end\n");
+}
+
 constexpr float PI = 3.1415926535f;
 
 template <typename T>
 constexpr auto IntersectionPoint(const T& p1Start, const T& p1End, const T& p2Start, const T& p2End) {
 	float den = (p1Start.x - p1End.x) * (p2Start.y - p2End.y) - (p1Start.y - p1End.y) * (p2Start.x - p2End.x);
 	if (!den) {
-		return Vec2(-1, -1);
+		return vec2(-1, -1);
 	}
 	float t = ((p1Start.x - p2Start.x) * (p2Start.y - p2End.y) - (p1Start.y - p2Start.y) * (p2Start.x - p2End.x)) / den;
 	float u = -((p1Start.x - p1End.x) * (p1Start.y - p2Start.y) - (p1Start.y - p1End.y) * (p1Start.x - p2Start.x)) / den;
 	if (t > 0 && t < 1 && u > 0 && u < 1) {
-		return Vec2(p1Start.x + t * (p1End.x - p1Start.x), p1Start.y + t * (p1End.y - p1Start.y));
+		return vec2(p1Start.x + t * (p1End.x - p1Start.x), p1Start.y + t * (p1End.y - p1Start.y));
 	}
-	return Vec2(-1, -1);
+	return vec2(-1, -1);
 }
 
 template <typename first, typename second>
@@ -48,7 +57,7 @@ template <typename T> int sgn(T val) {
 
 template <typename T>
 constexpr auto Cross(const T& x, const T& y) {
-	return Vec3(
+	return vec3(
 		x.y * y.z - y.y * x.z,
 		x.z * y.x - y.z * x.x,
 		x.x * y.y - y.x * x.y
@@ -60,41 +69,58 @@ constexpr auto Dot(const T& x, const T& y) {
 	return (x.x * y.x) + (x.y * y.y) + (x.z * y.z);
 }
 
+constexpr float fast_sqrt(float number) {
+	long i = 0;
+	float x2 = 0, y = 0;
+	const float threehalfs = 1.5F;
+
+	x2 = number * 0.5F;
+	y = number;
+	i = *(long*)&y;                     // floating point bit level hacking [sic]
+	i = 0x5f3759df - (i >> 1);             // Newton's approximation
+	y = *(float*)&i;
+	y = y * (threehalfs - (x2 * y * y)); // 1st iteration
+	y = y * (threehalfs - (x2 * y * y)); // 2nd iteration
+	y = y * (threehalfs - (x2 * y * y)); // 3rd iteration
+
+	return 1 / y;
+}
+
 template <typename T>
 constexpr auto Normalize(const T& x) {
-	float length = sqrtf(x.x * x.x + x.y * x.y + x.z * x.z);
-	return Vec3(x.x / length, x.y / length, x.z / length);
+	float length = fast_sqrt(x.x * x.x + x.y * x.y + x.z * x.z);
+	return vec3(x.x / length, x.y / length, x.z / length);
 }
 
 template <typename _Ty, typename _Ty2>
-constexpr auto AimAngle(const __Vec2<_Ty>& src, const __Vec2<_Ty2>& dst) {
+constexpr auto AimAngle(const _vec2<_Ty>& src, const _vec2<_Ty2>& dst) {
 	return Degrees(atan2f(dst.y - src.y, dst.x - src.x));
 }
 
 //template <typename _Ty>
 //constexpr auto DirectionVector(const _Ty& aimAngle)
 //{
-//	return __Vec2<_Ty>(cos(aimAngle), sin(aimAngle));
+//	return _vec2<_Ty>(cos(aimAngle), sin(aimAngle));
 //}
 
 //template <typename _Ty>
 //constexpr auto DirectionVector(const _Ty& aimAngle)
 //{
-//	return __Vec2<_Ty>(cos(aimAngle.x), sin(aimAngle.y));
+//	return _vec2<_Ty>(cos(aimAngle.x), sin(aimAngle.y));
 //}
 
-template <typename T>
-constexpr auto AbsAngle(const T& src, const T& dst, float deltaTime) {
-	return V3ToV2(Normalize(Vec3(src.x - dst.x, src.y - dst.y, 0))) * deltaTime;
+//template <typename T>
+//constexpr auto AbsAngle(const T& src, const T& dst, float deltaTime) {
+//	return V3ToV2(Normalize(vec3(src.x - dst.x, src.y - dst.y, 0))) * deltaTime;
+//}
+
+template <typename _Ty>
+constexpr auto Grid(const _vec2<_Ty>& world, const _vec2<_Ty>& offSet, float blockSize) {
+	return _vec2<_Ty>(floor((world.x + offSet.x) / blockSize), floor(((world.y + offSet.y) / blockSize)));
 }
 
 template <typename _Ty>
-constexpr auto Grid(const __Vec2<_Ty>& world, const __Vec2<_Ty>& offSet, float blockSize) {
-	return __Vec2<_Ty>(floor((world.x + offSet.x) / blockSize), floor(((world.y + offSet.y) / blockSize)));
-}
-
-template <typename _Ty>
-constexpr auto Distance(const __Vec2<_Ty>& src, const __Vec2<_Ty>& dst) {
+constexpr auto Distance(const _vec2<_Ty>& src, const _vec2<_Ty>& dst) {
 	return sqrtf(powf((src.x - dst.x), 2) + powf(((src.y - dst.y)), 2));
 }
 
@@ -107,28 +133,29 @@ constexpr auto Abs(const _Type _Value) {
 }
 
 template <typename _Ty>
-constexpr auto ManhattanDistance(const __Vec2<_Ty>& src, const __Vec2<_Ty>& dst) {
+constexpr auto ManhattanDistance(const _vec2<_Ty>& src, const _vec2<_Ty>& dst) {
 	return Abs(src.x - dst.x) + Abs(src.y - dst.y);
 }
 
 template <typename T1, typename T2>
-constexpr auto Translate(T1& m, T2 v) {
+constexpr matrix<4, 4> Translate(T1& m, T2 v) {
 	T1 Result(m);
-	Result.vec[3] =
-		(m.vec[0] * v.x) +
-		(m.vec[1] * v.y) +
-		(m.vec[2] * v.z) +
-		m.vec[3];
+	Result[3] =
+		(m[0] * v.x) +
+		(m[1] * v.y) +
+		(m[2] * v.z) +
+		 m[3];
 	return Result;
 }
 
 template <typename T1, typename T2> constexpr 
 auto Scale(const T1& m, const T2& v) {
 	T1 Result;
-	Result.vec[0] = m.vec[0] * v.x;
-	Result.vec[1] = m.vec[1] * v.y;
-	Result.vec[2] = m.vec[2] * v.z;
-	Result.vec[3] = m.vec[3];
+	Result[0] = m[0] * v.x;
+	Result[1] = m[1] * v.y;
+	Result[2] = m[2] * v.z;
+	
+	Result[3] = m[3];
 	return Result;
 }
 
@@ -136,7 +163,7 @@ template <typename _Ty> constexpr auto PixelsToSomething(_Ty pixels, _Ty screen)
 	return _Ty((2.0f / screen.x * pixels.x - 1.0f), -(2.0f / screen.y * pixels.y - 1.0f));
 }
 
-template<typename T = Mat4x4>
+template<typename T = matrix<4, 4>>
 auto Ortho(float left, float right, float bottom, float top) {
 	T Result(static_cast<T>(1));
 	Result.vec[0][0] = static_cast<float>(2) / (right - left);
@@ -148,19 +175,19 @@ auto Ortho(float left, float right, float bottom, float top) {
 }
 
 
-template <typename T = Mat4x4> constexpr
+template <typename T = matrix<4, 4>> constexpr
 auto Ortho(float left, float right, float bottom, float top, float zNear, float zFar) {
 	T Result(1);
-	Result.vec[0].x = static_cast<float>(2) / (right - left);
-	Result.vec[1].y = static_cast<float>(2) / (top - bottom);
-	Result.vec[2].z = static_cast<float>(1) / (zFar - zNear);
-	Result.vec[3].x = -(right + left) / (right - left);
-	Result.vec[3].y = -(top + bottom) / (top - bottom);
-	Result.vec[3].z = -zNear / (zFar - zNear);
+	Result.m[0][0] = 2.f / (right - left);
+	Result.m[1][1] = 2.f / (top - bottom);
+	Result.m[2][2] = 1.f / (zFar - zNear);
+	Result.m[3][0] = -(right + left) / (right - left);
+	Result.m[3][1] = -(top + bottom) / (top - bottom);
+	Result.m[3][2] = -zNear / (zFar - zNear);
 	return Result;
 }
 
-template <typename T, typename T2 = Mat4x4> 
+template <typename T, typename T2 = matrix<4, 4>> 
 constexpr T2 perspectiveRH_NO(T fovy, T aspect, T zNear, T zFar) {
 	abs(aspect - std::numeric_limits<T>::epsilon()) > static_cast<T>(0);
 	T const tanHalfFovy = tan(fovy / static_cast<T>(2));
@@ -173,58 +200,62 @@ constexpr T2 perspectiveRH_NO(T fovy, T aspect, T zNear, T zFar) {
 	return Result;
 }
 
-template <typename _Ty, typename _Ty2 = Mat4x4>
+template <typename _Ty = vec3, typename _Ty2 = matrix<4, 4>>
 constexpr auto LookAt(const _Ty& eye, const _Ty& center, const _Ty& up) {
-	_Ty const f(Normalize(center - eye));
-	_Ty const s(Normalize(Cross(f, up)));
-	_Ty const u(Cross(s, f));
+
+	//vec3 ne();
+	//debugger<void()>([center, eye]() { Normalize((center - eye)).print(); });
+
+	vec3 f(Normalize(center - eye));
+	vec3 s(Normalize(Cross(f, up)));
+	vec3 u(Cross(s, f));
 
 	_Ty2 Result(1);
-	Result.vec[0].x = s.x;
-	Result.vec[1].x = s.y;
-	Result.vec[2].x = s.z;
-	Result.vec[0].y = u.x;
-	Result.vec[1].y = u.y;
-	Result.vec[2].y = u.z;
-	Result.vec[0].z = -f.x;
-	Result.vec[1].z = -f.y;
-	Result.vec[2].z = -f.z;
+	Result.m[0][0] = s[0];
+	Result.m[1][0] = s[1];
+	Result.m[2][0] = s[2];
+	Result.m[0][1] = u[0];
+	Result.m[1][1] = u[1];
+	Result.m[2][1] = u[2];
+	Result.m[0][2] = -f[0];
+	Result.m[1][2] = -f[1];
+	Result.m[2][2] = -f[2];
 	float x = -Dot(s, eye);
 	float y = -Dot(u, eye);
 	float z = Dot(f, eye);
-	Result.vec[3].x = x;
-	Result.vec[3].y = y;
-	Result.vec[3].z = z;
+	Result.m[3][0] = x;
+	Result.m[3][1] = y;
+	Result.m[3][2] = z;
 	return Result;
 }
 
-template <typename _Ty, typename _Ty2>
-constexpr auto Rotate(_Ty m, float angle, _Ty2 v) {
+
+static matrix<4, 4> Rotate(matrix<4, 4> m, float angle, const vec3& v) {
 	const float a = angle;
 	const float c = cos(a);
 	const float s = sin(a);
-	_Ty2 axis(Normalize(v));
-	_Ty2 temp(axis * (1.0f - c));
+	vec3 axis(Normalize(v));
+	vec3 temp(axis * (1.0f - c));
 
-	_Ty Rotate;
-	Rotate.vec[0].x = c + temp.x * axis.x;
-	Rotate.vec[0].y = temp.x * axis.y + s * axis.z;
-	Rotate.vec[0].z = temp.x * axis.z - s * axis.y;
+	matrix<4, 4> Rotate;
+	Rotate.m[0][0] = c + temp[0] * axis[0];
+	Rotate.m[0][1] = temp[0] * axis[1] + s * axis[2];
+	Rotate.m[0][2] = temp[0] * axis[2] - s * axis[1];
 
-	Rotate.vec[1].x = temp.y * axis.x - s * axis.z;
-	Rotate.vec[1].y = c + temp.y * axis.y;
-	Rotate.vec[1].z = temp.y * axis.z + s * axis.x;
+	Rotate.m[1][0] = temp[1] * axis[0] - s * axis[2];
+	Rotate.m[1][1] = c + temp[1] * axis[1];
+	Rotate.m[1][2] = temp[1] * axis[2] + s * axis[0];
 
-	Rotate.vec[2].x = temp.z * axis.x + s * axis.y;
-	Rotate.vec[2].y = temp.z * axis.y - s * axis.x;
-	Rotate.vec[2].z = c + temp.z * axis.z;
+	Rotate.m[2][0] = temp[2] * axis[0] + s * axis[1];
+	Rotate.m[2][1] = temp[2] * axis[1] - s * axis[0];
+	Rotate.m[2][2] = c + temp[2] * axis[2];
 
-	_Ty Result;
-	Result.vec[0] = (m.vec[0] * Rotate.vec[0].x) + (m.vec[1] * Rotate.vec[0].y) + (m.vec[2] * Rotate.vec[0].z);
-	Result.vec[1] = (m.vec[0] * Rotate.vec[1].x) + (m.vec[1] * Rotate.vec[1].y) + (m.vec[2] * Rotate.vec[1].z);
-	Result.vec[2] = (m.vec[0] * Rotate.vec[2].x) + (m.vec[1] * Rotate.vec[2].y) + (m.vec[2] * Rotate.vec[2].z);
-	Result.vec[3] = m.vec[3];
+	matrix<4, 4> Result;
+	Result[0] = (m[0] * Rotate.m[0][0]) + (m[1] * Rotate.m[0][1]) + (m[2] * Rotate.m[0][2]);
+	Result[1] = (m[0] * Rotate.m[1][0]) + (m[1] * Rotate.m[1][1]) + (m[2] * Rotate.m[1][2]);
+	Result[2] = (m[0] * Rotate.m[2][0]) + (m[1] * Rotate.m[2][1]) + (m[2] * Rotate.m[2][2]);
+	Result[3] = m[3];
 	return Result;
 }
 
-Mat4x4 operator*(const Mat4x4& lhs, const Mat4x4& rhs);
+//Mat4x4 operator*(const Mat4x4& lhs, const Mat4x4& rhs);

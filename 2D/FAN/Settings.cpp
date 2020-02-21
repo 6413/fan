@@ -8,10 +8,10 @@ namespace Settings {
 }
 
 namespace FanColors {
-	Vec3 White = Vec3(1.0, 1.0, 1.0);
-	Vec3 Red(1.0, 0.0, 0.0);
-	Vec3 Green(0.0, 1.0, 0.0);
-	Vec3 Blue(0.0, 0.0, 1.0);
+	vec3 White = vec3(1.0, 1.0, 1.0);
+	vec3 Red(1.0, 0.0, 0.0);
+	vec3 Green(0.0, 1.0, 0.0);
+	vec3 Blue(0.0, 0.0, 1.0);
 }
 
 void GetFps(bool print) {

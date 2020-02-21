@@ -5,11 +5,11 @@
 using namespace Settings;
 
 namespace CursorNamespace {
-	__Vec2<int> cursorPos;
+	_vec2<int> cursorPos;
 }
 
 namespace WindowNamespace {
-	__Vec2<int> windowSize;
+	_vec2<int> windowSize;
 }
 
 namespace Input {
@@ -66,7 +66,7 @@ void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
 }
 
 void CursorPositionCallback(GLFWwindow* window, double xpos, double ypos) {
-	CursorNamespace::cursorPos = Vec2(xpos, ypos);
+	CursorNamespace::cursorPos = vec2(xpos, ypos);
 }
 
 void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
@@ -85,7 +85,8 @@ void CharacterCallback(GLFWwindow* window, unsigned int key) {
 }
 
 void FrameSizeCallback(GLFWwindow* window, int width, int height) {
-	WindowNamespace::windowSize = Vec2(width, height);
+	glViewport(0, 0, width, height);
+	WindowNamespace::windowSize = vec2(width, height);
 }
 
 void WindowInit() {
@@ -94,7 +95,7 @@ void WindowInit() {
 	glfwWindowHint(GLFW_RESIZABLE, true);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-	//windowSize = Vec2(glfwGetVideoMode(glfwGetPrimaryMonitor())->width, glfwGetVideoMode(glfwGetPrimaryMonitor())->height);
+	//windowSize = vec2(glfwGetVideoMode(glfwGetPrimaryMonitor())->width, glfwGetVideoMode(glfwGetPrimaryMonitor())->height);
 	window = glfwCreateWindow(windowSize.x, windowSize.y, "Window", fullScreen ? glfwGetPrimaryMonitor() : NULL, NULL);
 	if (!window) {
 		printf("Window ded\n");
