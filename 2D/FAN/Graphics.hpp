@@ -8,15 +8,15 @@
 //#include FT_FREETYPE_H  
 
 #include "Alloc.hpp"
-#include "Camera.hpp"
 #include "Input.hpp"
 #include "Math.hpp"
 #include "Settings.hpp"
 #include "Shader.h"
+#include "Vectors.hpp"
+#include "Time.hpp"
 
 #include <map>
 #include <vector>
-#include <chrono>
 
 #ifdef _MSC_VER
 #pragma warning (disable : 26495)
@@ -45,6 +45,50 @@ struct Texture {
 	unsigned int VBO, VAO, EBO;
 };
 
+namespace BMP_Offsets {
+	constexpr::ptrdiff_t PIXELDATA = 0xA;
+	constexpr::ptrdiff_t WIDTH = 0x12;
+	constexpr::ptrdiff_t HEIGHT = 0x16;
+}
+
+unsigned char* LoadBMP(const char* path, Texture& texture);
+
+class Camera {
+public:
+	vec3 position;
+
+	Camera(vec3 position = vec3(0.0f, 0.0f, 0.0f), vec3 up = vec3(0.0f, 1.0f, 0.0f), float yaw = -90.0f, float pitch = 0.0f);
+
+	constexpr matrix<4, 4> GetViewMatrix(matrix<4, 4> m) {
+		return m * LookAt(this->position, (this->position + Round(this->front)), Round(this->up));
+	}
+
+	constexpr vec3 GetPosition() const {
+		return this->position;
+	}
+
+	constexpr vec3 GetFront() const {
+		return this->front;
+	}
+
+	GLfloat yaw;
+	GLfloat pitch;
+private:
+	vec3 front;
+	vec3 up;
+	vec3 right;
+	vec3 worldUp;
+
+	void updateCameraVectors() {
+		front.x = cos(Radians(this->yaw)) * cos(Radians(this->pitch));
+		front.y = sin(Radians(this->pitch));
+		front.z = sin(Radians(this->yaw)) * cos(Radians(this->pitch));
+		this->front = Normalize(front);
+		this->right = Normalize(Cross(this->front, this->worldUp));
+		this->up = Normalize(Cross(this->right, this->front));
+	}
+};
+
 class DefaultShape {
 public:
 	Color get_color(std::size_t _Index) const;
@@ -65,8 +109,8 @@ protected:
 	Texture _ShapeBuffer;
 	Shader _Shader;
 	Camera* _Camera;
-	Alloc<float> _Vertices;
-	Alloc<float> _Colors;
+	std::vector<float> _Vertices;
+	std::vector<float> _Colors;
 	unsigned int _Mode;
 	int _Points;
 	std::size_t _PointSize;
@@ -75,40 +119,40 @@ protected:
 class Line : public DefaultShape {
 public:
 	Line();
-	Line(const Mat2x2& _M, const Color& color);
+	Line(const mat2x2& _M, const Color& color);
 
-	Mat2x2 get_position(std::size_t _Index) const;
-	void set_position(std::size_t _Index, const Mat2x2& _M, bool _Queue = false);
+	mat2x2 get_position(std::size_t _Index) const;
+	void set_position(std::size_t _Index, const mat2x2& _M, bool _Queue = false);
 
-	void push_back(const Mat2x2& _M, Color _Color = Color(-1, -1, -1, -1), bool _Queue = false);
+	void push_back(const mat2x2& _M, Color _Color = Color(-1, -1, -1, -1), bool _Queue = false);
 
-	Vec2 get_length(std::size_t _Index) const;
+	vec2 get_length(std::size_t _Index) const;
 
 private:
-	Alloc<Vec2> _Length;
+	std::vector<vec2> _Length;
 };
 
 class Triangle : public DefaultShape {
 public:
 	Triangle();
-	Triangle(const Vec2& _Position, const Vec2& _Length, const Color& _Color);
+	Triangle(const vec2& _Position, const vec2& _Length, const Color& _Color);
 	~Triangle() {}
 
-	void set_position(std::size_t _Index, const Vec2& _Position);
-	Vec2 get_position(std::size_t _Index) const;
+	void set_position(std::size_t _Index, const vec2& _Position);
+	vec2 get_position(std::size_t _Index) const;
 
-	void push_back(const Vec2 _Position, Vec2 _Length = Vec2(), Color _Color = Color(-1, -1, -1, -1));
+	void push_back(const vec2 _Position, vec2 _Length = vec2(), Color _Color = Color(-1, -1, -1, -1));
 
 private:
-	Alloc<Vec2> _Position;
-	Alloc<Vec2> _Length;
+	std::vector<vec2> _Position;
+	std::vector<vec2> _Length;
 };
 static std::size_t counter = 0;
 class Square : public DefaultShape {
 public:
 	Square();
-	Square(const Vec2& _Position, const Vec2& _Length, const Color& color);
-	Square(std::size_t _Reserve, const Vec2& _Position, const Vec2& _Length, const Color& color);
+	Square(const vec2& _Position, const vec2& _Length, const Color& color);
+	Square(std::size_t _Reserve, const vec2& _Position, const vec2& _Length, const Color& color);
 
 	std::size_t amount() const;
 
@@ -116,114 +160,96 @@ public:
 
 	void erase(std::size_t _Index);
 
-	Vec2 get_length(std::size_t _Index) const;
-	Mat2x4 get_corners(std::size_t _Index) const;
+	vec2 get_length(std::size_t _Index) const;
+	mat2x4 get_corners(std::size_t _Index) const;
 
-	Vec2 get_position(std::size_t _Index) const;
-	void set_position(std::size_t _Index, const Vec2& _Position, bool _Queue = false);
+	vec2 get_position(std::size_t _Index) const;
+	void set_position(std::size_t _Index, const vec2& _Position, bool _Queue = false);
 
-	void push_back(const Vec2& _Position, Vec2 _Length = Vec2(), Color color = Color(-1, -1, -1, -1), bool _Queue = false);
+	void push_back(const vec2& _Position, vec2 _Length = vec2(), Color color = Color(-1, -1, -1, -1), bool _Queue = false);
 
 	void rotate(std::size_t _Index, double _Angle, bool queue = false);
 
 private:
-	Alloc<Vec2> _Position;
-	Alloc<Vec2> _Length;
+	std::vector<vec2> _Position;
+	std::vector<vec2> _Length;
 };
 
 class Circle : public DefaultShape {
 public:
 	Circle(std::size_t _Number_Of_Points, float _Radius);
-	Circle(const Vec2& _Position, float _Radius, std::size_t _Number_Of_Points, const Color& _Color);
+	Circle(const vec2& _Position, float _Radius, std::size_t _Number_Of_Points, const Color& _Color);
 
-	void set_position(std::size_t _Index, const Vec2& _Position);
+	void set_position(std::size_t _Index, const vec2& _Position);
 
-	void push_back(Vec2 _Position, float _Radius, Color _Color, bool _Queue = false);
+	void push_back(vec2 _Position, float _Radius, Color _Color, bool _Queue = false);
 
 private:
-	Alloc<Vec2> _Position;
-	Alloc<float> _Radius;
+	std::vector<vec2> _Position;
+	std::vector<float> _Radius;
 	const float _Double_Pi = 2.0f * PI;
 };
 
 class Sprite {
 public:
 	Sprite();
-	Sprite(const char* path, Vec2 position = Vec2(), Vec2 size = Vec2(), float angle = 0, Shader shader = Shader("GLSL/core.vs", "GLSL/core.frag"));
+	Sprite(const char* path, vec2 position = vec2(), vec2 size = vec2(), float angle = 0, Shader shader = Shader("GLSL/core.vs", "GLSL/core.frag"));
 
 	void draw();
 	void init_image();
 	void load_image(const char* path, Texture& object);
 
 	Texture& get_texture();
-	Vec2 get_size() const;
+	vec2 get_size() const;
 
-	Vec2 get_position() const;
-	void set_position(const Vec2& position);
+	vec2 get_position() const;
+	void set_position(const vec2& position);
 
 protected:
 	Camera* camera;
 	Shader shader;
 	Texture texture;
-	Vec2 position;
-	Vec2 size;
+	vec2 position;
+	vec2 size;
 	float angle;
-	Alloc<float> _Vertices;
-};
-
-using namespace std::chrono;
-
-class Timer {
-public:
-	Timer();
-	Timer(const decltype(high_resolution_clock::now())& timer, std::size_t time);
-
-	void start(int time);
-	void restart();
-
-	bool finished();
-	std::size_t passed();
-
-private:
-	decltype(high_resolution_clock::now()) timer;
-	std::size_t time;
+	std::vector<float> _Vertices;
 };
 
 struct Particle {
 	float life_time;
 	Timer time;
 	bool display;
-	Vec2 particle_speed;
+	vec2 particle_speed;
 };
 
 class Particles {
 public:
 	std::size_t particles_per_second = 1000;
 
-	Particles(std::size_t particles_amount, Vec2 particle_size, Vec2 particle_speed, float life_time, Color begin, Color end);
+	Particles(std::size_t particles_amount, vec2 particle_size, vec2 particle_speed, float life_time, Color begin, Color end);
 
-	void add(Vec2 position);
+	void add(vec2 position);
 
 	void draw();
 
 private:
 	int64_t particleIndex;
 	Square particles;
-	Alloc<Particle> particle;
+	std::vector<Particle> particle;
 	Color begin;
 	Color end;
 	float life_time;
 };
 
-extern Alloc<std::size_t> blocks;
+extern std::vector<std::size_t> blocks;
 
-Vec2 Raycast(Square& grid, const Mat2x2& direction, std::size_t gridSize);
+vec2 Raycast(Square& grid, const mat2x2& direction);
 
 #ifdef FT_FREETYPE_H
 struct Character {
 	GLuint TextureID;   // ID handle of the glyph texture
-	__Vec2<int> Size;    // Size of glyph
-	__Vec2<int> Bearing;  // Offset from baseline to left/top of glyph
+	_vec2<int> Size;    // Size of glyph
+	_vec2<int> Bearing;  // Offset from baseline to left/top of glyph
 	GLuint Advance;    // Horizontal offset to advance to next glyph
 };
 
@@ -282,8 +308,8 @@ public:
 			// Now store character for later use
 			Character character = {
 				texture,
-				__Vec2<int>(face->glyph->bitmap.width, face->glyph->bitmap.rows),
-				__Vec2<int>(face->glyph->bitmap_left, face->glyph->bitmap_top),
+				_vec2<int>(face->glyph->bitmap.width, face->glyph->bitmap.rows),
+				_vec2<int>(face->glyph->bitmap_left, face->glyph->bitmap_top),
 				face->glyph->advance.x
 			};
 			Characters.insert(std::pair<GLchar, Character>(c, character));
@@ -305,7 +331,7 @@ public:
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		glBindVertexArray(0);
 	}
-	void render(std::string text, Vec2 position, float scale, const Color& color) {
+	void render(std::string text, vec2 position, float scale, const Color& color) {
 		Mat4x4 projection(1);
 		projection = Ortho(0, windowSize.x, windowSize.y, 0);
 		//printf("%d\n", windowSize.x);
@@ -322,7 +348,7 @@ public:
 		position.y += biggest;
 		std::string::const_iterator c;
 
-		Alloc<float(*)[4]> vert;
+		std::vector<float(*)[4]> vert;
 		for (c = text.begin(); c != text.end(); c++)
 		{
 			Character ch = Characters[*c];
@@ -385,7 +411,7 @@ private:
 //		this->object = object;
 //	}
 //
-//	Entity(Camera* camera, const char* path, const Vec2& size, Vec2 position = Vec2(), GroupId _groupId = GroupId::LocalPlayer) : 
+//	Entity(Camera* camera, const char* path, const vec2& size, vec2 position = vec2(), GroupId _groupId = GroupId::LocalPlayer) : 
 //		velocity(0), groupId(_groupId), Sprite(camera, path, size, position) {
 //		this->objects.push_back(this->object);
 ////		this->textures.push_back(this->texture);
@@ -396,7 +422,7 @@ private:
 //	void SetGroupId(GroupId groupId);
 //	void Move();
 //
-//	Vec2 GetPosition() const {
+//	vec2 GetPosition() const {
 //		return this->position;
 //	}
 //
@@ -409,7 +435,7 @@ private:
 //	std::vector<Object> objects;
 //	std::vector<Texture> textures;
 //	GroupId groupId;
-//	Vec2 velocity;
+//	vec2 velocity;
 //	float health;
 //	float gravity;
 //	const float movementSpeed = 10000;
@@ -421,5 +447,5 @@ private:
 //public:
 //	Shader shader = Shader("GLSL/core.vs", "GLSL/core.frag");
 //	Camera camera;
-//	Main() : camera(Vec3()) {}
+//	Main() : camera(vec3()) {}
 //};

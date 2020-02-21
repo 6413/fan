@@ -15,12 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="FAN\Bmp.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="FAN\Functions.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="FAN\Graphics.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -41,16 +35,7 @@
     <ClInclude Include="FAN\Alloc.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="FAN\Bmp.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="FAN\Camera.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="FAN\DBT.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="FAN\Functions.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="FAN\Graphics.hpp">
@@ -68,8 +53,11 @@
     <ClInclude Include="FAN\Shader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="FAN\Vectors.hpp">
+    <ClInclude Include="FAN\Time.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="FAN\Vectors.hpp" />
   </ItemGroup>
 </Project>

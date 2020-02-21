@@ -9,7 +9,6 @@ class iterator {
 public:
 	iterator() : _Ptr(0) {}
 	iterator(_Type* _Temp) : _Ptr(_Temp) {}
-	//iterator(const Alloc<_Type>& _InIt) : _Ptr(_InIt._Data) {}
 	constexpr bool operator!=(const iterator& _It) {
 		return _It._Ptr != _Ptr;
 	}
@@ -39,180 +38,126 @@ protected:
 	_Type* _Ptr;
 };
 
-template <typename _Type>
-class Alloc : public iterator<_Type> {
+template <typename _Ty, typename _Ty2>
+_Ty* operator*(_Ty* _Arr, _Ty2 _Val) {
+	_Ty* Arr[ArrLen(_Arr)];
+	for (int i = 0; i < ArrLen(_Arr); i++) {
+		Arr[i] = _Arr[i] * _Val;
+	}
+	return Arr;
+}
+
+template <typename _Ty>
+class Alloc : public iterator<_Ty> {
 public:
-	std::size_t ALLOC_BUFFER = 0xfffff;
-	Alloc() : _Size(0), _Data(NULL), _Current(0) {
-#ifdef DBT
-		_Current = 1;
+	Alloc() : _Cur(0), _Allocated(0) {
+#ifdef _DBT
+		_Cur = 1;
 #endif
 	}
-	template <typename type>
-	Alloc(type _Reserve, _Type _InIt) : _Data(NULL), _Current(0) {
-#ifdef DBT
-		_Current = 1;
-#endif
+
+	Alloc(std::size_t _Reserve) : _Cur(0) {
 		resize(_Reserve);
-		for (int _I = 0; _I < _Reserve; _I++) {
-			_Data[_I] = _InIt;
-		}
 	}
-	~Alloc() {}
-	_Type& operator[](size_t _Index) const {
-		return _Data[_Index];
-	}
-	constexpr _Type operator[](const iterator<_Type>& _Index) const {
-		return _Data + _Index;
-	}
-	constexpr _Type operator*() const {
-		return _Data[0];
-	}
-	constexpr void insert(size_t _Index, _Type _Value) {
-		//if (!_Size) {
-		//	resize(1);
-		//	id[_Index] = _Current;
-		//	_Data[_Current] = _Value;
-		//	_Current++;
-		//	return;
-		//}
-		//else if (_Size <= _Current){
-		//	std::unique_ptr<_Type[]> _Temp = std::make_unique<_Type[]>(_Size);
-		//	copy(_Data, _Temp, _Size);
-		//	_Size += ALLOC_BUFFER;
-		//	_Data = std::make_unique<_Type[]>(_Size);
-		//	copy(_Temp, _Data, _Size - ALLOC_BUFFER);
-		//}
-		/*if (!_Size) {
-			resize(1);
-			_Data[_Index] = _Value;
-			return;
-		}
-		if (_Size - 1 <= _Index) {
-			copy_resize(_Index + 1);
-			for (size_t _I = _Size; _I > _Index; _I--) {
-				_Data[_I] = _Data[_I - 1];
-			}
-		}
-		_Data[_Index] = _Value;
-		_Current++;*/
-	}
-	constexpr void insert(size_t _From, size_t _To, _Type _Value) {
-		if (_Size <= _To) {
-			copy_resize(_To);
-		}
-		for (int _I = _From; _I < _To; _I++) {
-			_Data[_I] = _Value;
-		}
-	}
-	constexpr void free_to_max() {
-		if (_Size > _Current) {
-			auto _Temp = std::make_unique<_Type[]>(_Current);
-			copy(_Data, _Temp, _Current);
-			_Data.reset();
-			_Size = _Current;
-			_Data = std::make_unique<_Type[]>(_Current);
-			copy(_Temp, _Data, _Current);
-			_Temp.reset();
-		}
-	}
-	void push_back(_Type _Value) {
-		if (_Size > _Current) {
-			_Data[_Current] = _Value;
-			_Current++;
-			return;
-		}
-		if (!_Size) {
-			_Data = std::make_unique<_Type[]>(++_Size);
-			_Data[_Size - 1] = _Value;
-			_Current++;
-			return;
-		}
-		if (_Size <= _Current) {
-			std::unique_ptr<_Type[]> _Temp = std::make_unique<_Type[]>(_Size);
-			copy(_Data, _Temp, _Size);
-			_Size += ALLOC_BUFFER;
-			_Data.reset();
-			_Data = std::make_unique<_Type[]>(_Size);
-			copy(_Temp, _Data, _Size - ALLOC_BUFFER);
-			_Temp.reset();
-		}
-		_Data[_Current] = _Value;
-		_Current++;
-	}
-	template <typename _Alloc>
-	constexpr void copy(const _Alloc& _Src, _Alloc& _Dest, const size_t _Buffer) {
-		int _Index = 0;
-		for (; _Index != _Buffer; ++_Index) {
-			_Dest[_Index] = _Src[_Index];
+
+	Alloc(std::size_t _Reserve, _Ty _InIt) : _Cur(0) {
+		resize(_Reserve);
+		for (std::size_t _I = 0; _I < _Reserve; _I++) {
+			push_back(_InIt);
 		}
 	}
 
-	constexpr size_t size() const {
-		return this->_Size;
-	}
-	constexpr size_t current() const {
-		return this->_Current;
-	}
-	constexpr bool empty() const {
-		return !this->_Size;
-	}
-	constexpr _Type* data() const {
-		return _Data.get();
-	}
-	constexpr void resize(size_t _Reserve) {
-		_Data = std::make_unique<_Type[]>(_Reserve);
-		_Size = _Reserve;
-	}
-	constexpr void init_resize(size_t _Reserve, _Type _InIt) {
-		_Data = std::make_unique<_Type[]>(_Reserve);
-		_Size = _Reserve;
-		for (int _I = 0; _I < _Size; _I++) {
-			_Data[_I] = _InIt;
+	~Alloc() {
+		if (_Data) {
+			//_Data = 0;
+			delete[] _Data;
 		}
 	}
-	constexpr void copy_resize(size_t _Reserve) {
-		std::unique_ptr<_Type[]> _Temp = std::make_unique<_Type[]>(_Size);
-		copy(_Data, _Temp, _Size);
-		this->resize(_Reserve);
-		copy(_Temp, _Data, _Reserve);
+
+	_Ty& operator[](std::size_t _Idx) {
+		return _Data[_Idx];
 	}
-	constexpr iterator<_Type> begin() const {
-		return _Data.get();
-	}
-	constexpr iterator<_Type> end() const {
-		if (!_Current) {
-			return _Data.get() + _Size;
+
+	void free_to_max() {
+		if (_Allocated > _Cur) {
+			_Ty* _Temp = new _Ty[_Cur];
+			std::copy(_Data, _Data + _Cur, _Temp);
+			delete[] _Data;
+			_Allocated = _Cur;
+			_Data = new _Ty[_Cur];
+			std::copy(_Temp, _Temp + _Cur, _Data);
+			delete[] _Temp;
 		}
-		return _Data.get() + _Current;
 	}
-	constexpr bool find(_Type _Value) const {
-		for (int _I = 0; _I < _Current; _I++) {
-			if (_Data[_I] == _Value) {
-				return true;
-			}
+
+	template <class... _Valty>
+	decltype(auto) emplace_back(_Valty&&... _Val) {
+		if (_Cur >= _Allocated) {
+			resize(_Cur + 1);
 		}
-		return false;
+		*end() = _Ty(std::forward<_Valty>(_Val)...);
+		_Cur++;
+		return _Data;
 	}
-	constexpr void erase(size_t _Index) {
-		for (size_t _I = _Index; _I < _Current - 1; _I++) {
+
+	void push_back(const _Ty& _Val) {
+		emplace_back(_Val);
+	}
+
+	void push_back(_Ty&& _Val) {
+		emplace_back(std::move(_Val));
+	}
+
+	void resize(std::size_t _Reserve) {
+		if (!_Cur) {
+			_Data = new _Ty[_Reserve];
+			_Allocated = _Reserve;
+		}
+		else if (_Reserve > _Allocated) {
+			_Ty* _Temp = new _Ty[_Allocated];
+			std::copy(_Data, _Data + _Allocated, _Temp);
+			delete[] _Data;
+			_Data = new _Ty[_Reserve + _Buffer];
+			std::copy(_Temp, _Temp + _Allocated, _Data);
+			_Allocated = _Reserve + _Buffer;
+			delete[] _Temp;
+		}
+	}
+
+	iterator<_Ty> begin() const {
+		return _Data;
+	}
+
+	iterator<_Ty> end() const {
+		return _Data + _Cur;
+	}
+
+	std::size_t current() const {
+		return _Cur;
+	}
+
+	bool empty() const {
+		return !_Allocated;
+	}
+
+	constexpr void erase(size_t _Idx) {
+		for (size_t _I = _Idx; _I < _Cur - 1; _I++) {
 			_Data[_I] = _Data[_I + 1];
 		}
-		copy_resize(current() - 1);
-		_Current--;
+		resize(--_Cur);
 	}
-	constexpr void erase(iterator<_Type> _Index) {
-		for (auto _I = _Index; _I != end() - 1; ++_I) {
-			*_I = *(_I + 1);
-		}
-	//	copy_resize(current() - 1);
-		_Current--;
+
+	_Ty* data() const {
+		return _Data;
 	}
-	constexpr void erase_all() {
-		_Data.reset();
+
+	std::size_t size() const {
+		return _Allocated;
 	}
+
+	std::size_t _Buffer = 0x1;
 private:
-	std::unique_ptr<_Type[]> _Data;
-	size_t _Size;
-	size_t _Current;
+	_Ty* _Data;
+	std::size_t _Cur;
+	std::size_t _Allocated;
 };
