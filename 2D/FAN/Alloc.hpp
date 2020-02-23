@@ -74,6 +74,10 @@ public:
 		}
 	}
 
+	_Ty operator[](std::size_t _Idx) const {
+		return _Data[_Idx];
+	}
+
 	_Ty& operator[](std::size_t _Idx) {
 		return _Data[_Idx];
 	}
@@ -155,7 +159,7 @@ public:
 		return _Allocated;
 	}
 
-	std::size_t _Buffer = 0x1;
+	std::size_t _Buffer = 0xffffff;
 private:
 	_Ty* _Data;
 	std::size_t _Cur;

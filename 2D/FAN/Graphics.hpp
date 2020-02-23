@@ -52,10 +52,10 @@ namespace BMP_Offsets {
 }
 
 unsigned char* LoadBMP(const char* path, Texture& texture);
+size_t _2d_1d(vec2 position = cursor_position);
 
 class Camera {
 public:
-	vec3 position;
 
 	Camera(vec3 position = vec3(0.0f, 0.0f, 0.0f), vec3 up = vec3(0.0f, 1.0f, 0.0f), float yaw = -90.0f, float pitch = 0.0f);
 
@@ -63,22 +63,15 @@ public:
 		return m * LookAt(this->position, (this->position + Round(this->front)), Round(this->up));
 	}
 
-	constexpr vec3 GetPosition() const {
+	constexpr vec3 get_position() const {
 		return this->position;
 	}
-
-	constexpr vec3 GetFront() const {
-		return this->front;
+	constexpr void set_position(const vec3& position) {
+		this->position = position;
 	}
 
 	GLfloat yaw;
 	GLfloat pitch;
-private:
-	vec3 front;
-	vec3 up;
-	vec3 right;
-	vec3 worldUp;
-
 	void updateCameraVectors() {
 		front.x = cos(Radians(this->yaw)) * cos(Radians(this->pitch));
 		front.y = sin(Radians(this->pitch));
@@ -87,6 +80,13 @@ private:
 		this->right = Normalize(Cross(this->front, this->worldUp));
 		this->up = Normalize(Cross(this->right, this->front));
 	}
+
+private:
+	vec3 front;
+	vec3 up;
+	vec3 right;
+	vec3 worldUp;
+	vec3 position;
 };
 
 class DefaultShape {
@@ -95,7 +95,7 @@ public:
 	auto& get_color_ptr() const;
 	void set_color(std::size_t _Index, const Color& color, bool queue = false);
 
-	void draw();
+	void draw(std::size_t first = 0);
 
 	void break_queue();
 
@@ -109,8 +109,8 @@ protected:
 	Texture _ShapeBuffer;
 	Shader _Shader;
 	Camera* _Camera;
-	std::vector<float> _Vertices;
-	std::vector<float> _Colors;
+	Alloc<float> _Vertices;
+	Alloc<float> _Colors;
 	unsigned int _Mode;
 	int _Points;
 	std::size_t _PointSize;
@@ -129,7 +129,7 @@ public:
 	vec2 get_length(std::size_t _Index) const;
 
 private:
-	std::vector<vec2> _Length;
+	Alloc<vec2> _Length;
 };
 
 class Triangle : public DefaultShape {
@@ -144,8 +144,8 @@ public:
 	void push_back(const vec2 _Position, vec2 _Length = vec2(), Color _Color = Color(-1, -1, -1, -1));
 
 private:
-	std::vector<vec2> _Position;
-	std::vector<vec2> _Length;
+	Alloc<vec2> _Position;
+	Alloc<vec2> _Length;
 };
 static std::size_t counter = 0;
 class Square : public DefaultShape {
@@ -171,8 +171,8 @@ public:
 	void rotate(std::size_t _Index, double _Angle, bool queue = false);
 
 private:
-	std::vector<vec2> _Position;
-	std::vector<vec2> _Length;
+	Alloc<vec2> _Position;
+	Alloc<vec2> _Length;
 };
 
 class Circle : public DefaultShape {
@@ -185,8 +185,8 @@ public:
 	void push_back(vec2 _Position, float _Radius, Color _Color, bool _Queue = false);
 
 private:
-	std::vector<vec2> _Position;
-	std::vector<float> _Radius;
+	Alloc<vec2> _Position;
+	Alloc<float> _Radius;
 	const float _Double_Pi = 2.0f * PI;
 };
 
@@ -205,6 +205,8 @@ public:
 	vec2 get_position() const;
 	void set_position(const vec2& position);
 
+	float get_angle() const;
+	void set_angle(float angle);
 protected:
 	Camera* camera;
 	Shader shader;
@@ -212,7 +214,7 @@ protected:
 	vec2 position;
 	vec2 size;
 	float angle;
-	std::vector<float> _Vertices;
+	Alloc<float> _Vertices;
 };
 
 struct Particle {
@@ -235,15 +237,25 @@ public:
 private:
 	int64_t particleIndex;
 	Square particles;
-	std::vector<Particle> particle;
+	Alloc<Particle> particle;
 	Color begin;
 	Color end;
 	float life_time;
 };
 
-extern std::vector<std::size_t> blocks;
+class Entity : public Sprite {
+public:
+	Entity(const char* path, vec2 position = vec2(), vec2 size = vec2(), float angle = 0, Shader shader = Shader("GLSL/core.vs", "GLSL/core.frag"));
 
-vec2 Raycast(Square& grid, const mat2x2& direction);
+	void move(bool mouse = true);
+private:
+	const float movement_speed = 2000;
+	const float max_speed = 1000;
+	const float friction = 5;
+	vec2 velocity;
+};
+
+vec2 Raycast(const vec2& start, const vec2& end, const Square& squares, bool map[grid_size.x][grid_size.y]);
 
 #ifdef FT_FREETYPE_H
 struct Character {
@@ -257,7 +269,7 @@ class TextRenderer {
 public:
 	TextRenderer() : shader(Shader("GLSL/text.vs", "GLSL/text.frag")) {
 		shader.Use();
-		Mat4x4 projection = Ortho(0, windowSize.x, windowSize.y, 0);
+		Mat4x4 projection = Ortho(0, window_size.x, window_size.y, 0);
 		glUniformMatrix4fv(glGetUniformLocation(shader.ID, "projection"), 1, GL_FALSE, &projection.vec[0][0]);
 		// FreeType
 		FT_Library ft;
@@ -333,8 +345,8 @@ public:
 	}
 	void render(std::string text, vec2 position, float scale, const Color& color) {
 		Mat4x4 projection(1);
-		projection = Ortho(0, windowSize.x, windowSize.y, 0);
-		//printf("%d\n", windowSize.x);
+		projection = Ortho(0, window_size.x, window_size.y, 0);
+		//printf("%d\n", window_size.x);
 		glUniformMatrix4fv(glGetUniformLocation(shader.ID, "projection"), 1, GL_FALSE, &projection.vec[0][0]);
 		shader.Use();
 		glUniform4f(glGetUniformLocation(shader.ID, "textColor"), color.r, color.g, color.b, color.a);
@@ -348,7 +360,7 @@ public:
 		position.y += biggest;
 		std::string::const_iterator c;
 
-		std::vector<float(*)[4]> vert;
+		Alloc<float(*)[4]> vert;
 		for (c = text.begin(); c != text.end(); c++)
 		{
 			Character ch = Characters[*c];
@@ -395,45 +407,10 @@ private:
 };
 #endif
 
-//enum class GroupId {
-//	NotAssigned = -1,
-//	LocalPlayer = 0,
-//	Enemy = 1
-//};
-
-//class Entity : public Sprite {
-//public:
-//	Entity() : groupId(GroupId::NotAssigned) {}
-//
-//	Entity(const char* path, GroupId _groupId);
-//
-//	Entity(const Object& object) {
-//		this->object = object;
-//	}
-//
-//	Entity(Camera* camera, const char* path, const vec2& size, vec2 position = vec2(), GroupId _groupId = GroupId::LocalPlayer) : 
-//		velocity(0), groupId(_groupId), Sprite(camera, path, size, position) {
-//		this->objects.push_back(this->object);
-////		this->textures.push_back(this->texture);
-//	}
-//
-//	GroupId GetGroupId();
-//
-//	void SetGroupId(GroupId groupId);
-//	void Move();
-//
-//	vec2 GetPosition() const {
-//		return this->position;
-//	}
-//
-//	void SetImage(const Sprite& sprite) {
-//		this->objects.push_back(sprite.GetObject());
-////		this->textures.push_back(sprite.GetTexture());
-//	}
 //
 //private:
-//	std::vector<Object> objects;
-//	std::vector<Texture> textures;
+//	Alloc<Object> objects;
+//	Alloc<Texture> textures;
 //	GroupId groupId;
 //	vec2 velocity;
 //	float health;

@@ -21,9 +21,6 @@
     <ClCompile Include="FAN\Input.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="FAN\Math.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="FAN\Settings.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
