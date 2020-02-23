@@ -17,6 +17,19 @@ void debugger(std::function<T> functionPtr) {
 }
 
 constexpr float PI = 3.1415926535f;
+constexpr float HALF_PI = PI / 2;
+
+constexpr bool ray_hit(const vec2& point) {
+	return point != -1;
+}
+
+constexpr bool on_hit(const vec2& point, std::function<void()>&& lambda) {
+	if (ray_hit(point)) {
+		lambda();
+		return true;
+	}
+	return false;
+}
 
 template <typename T>
 constexpr auto IntersectionPoint(const T& p1Start, const T& p1End, const T& p2Start, const T& p2End) {
@@ -69,32 +82,15 @@ constexpr auto Dot(const T& x, const T& y) {
 	return (x.x * y.x) + (x.y * y.y) + (x.z * y.z);
 }
 
-constexpr float fast_sqrt(float number) {
-	long i = 0;
-	float x2 = 0, y = 0;
-	const float threehalfs = 1.5F;
-
-	x2 = number * 0.5F;
-	y = number;
-	i = *(long*)&y;                     // floating point bit level hacking [sic]
-	i = 0x5f3759df - (i >> 1);             // Newton's approximation
-	y = *(float*)&i;
-	y = y * (threehalfs - (x2 * y * y)); // 1st iteration
-	y = y * (threehalfs - (x2 * y * y)); // 2nd iteration
-	y = y * (threehalfs - (x2 * y * y)); // 3rd iteration
-
-	return 1 / y;
-}
-
 template <typename T>
 constexpr auto Normalize(const T& x) {
-	float length = fast_sqrt(x.x * x.x + x.y * x.y + x.z * x.z);
+	float length = sqrtf(x.x * x.x + x.y * x.y + x.z * x.z);
 	return vec3(x.x / length, x.y / length, x.z / length);
 }
 
 template <typename _Ty, typename _Ty2>
 constexpr auto AimAngle(const _vec2<_Ty>& src, const _vec2<_Ty2>& dst) {
-	return Degrees(atan2f(dst.y - src.y, dst.x - src.x));
+	return atan2f(dst.y - src.y, dst.x - src.x);
 }
 
 //template <typename _Ty>
@@ -110,13 +106,13 @@ constexpr auto AimAngle(const _vec2<_Ty>& src, const _vec2<_Ty2>& dst) {
 //}
 
 //template <typename T>
-//constexpr auto AbsAngle(const T& src, const T& dst, float deltaTime) {
-//	return V3ToV2(Normalize(vec3(src.x - dst.x, src.y - dst.y, 0))) * deltaTime;
+//constexpr auto AbsAngle(const T& src, const T& dst, float delta_time) {
+//	return V3ToV2(Normalize(vec3(src.x - dst.x, src.y - dst.y, 0))) * delta_time;
 //}
 
 template <typename _Ty>
-constexpr auto Grid(const _vec2<_Ty>& world, const _vec2<_Ty>& offSet, float blockSize) {
-	return _vec2<_Ty>(floor((world.x + offSet.x) / blockSize), floor(((world.y + offSet.y) / blockSize)));
+constexpr auto Grid(const _vec2<_Ty>& world, const _vec2<_Ty>& offSet, float block_size) {
+	return _vec2<_Ty>(floor((world.x + offSet.x) / block_size), floor(((world.y + offSet.y) / block_size)));
 }
 
 template <typename _Ty>
@@ -230,7 +226,7 @@ constexpr auto LookAt(const _Ty& eye, const _Ty& center, const _Ty& up) {
 }
 
 
-static matrix<4, 4> Rotate(matrix<4, 4> m, float angle, const vec3& v) {
+static auto Rotate(const matrix<4, 4>& m, float angle, const vec3& v) {
 	const float a = angle;
 	const float c = cos(a);
 	const float s = sin(a);
@@ -238,24 +234,22 @@ static matrix<4, 4> Rotate(matrix<4, 4> m, float angle, const vec3& v) {
 	vec3 temp(axis * (1.0f - c));
 
 	matrix<4, 4> Rotate;
-	Rotate.m[0][0] = c + temp[0] * axis[0];
-	Rotate.m[0][1] = temp[0] * axis[1] + s * axis[2];
-	Rotate.m[0][2] = temp[0] * axis[2] - s * axis[1];
+	Rotate[0][0] = c + temp[0] * axis[0];
+	Rotate[0][1] = temp[0] * axis[1] + s * axis[2];
+	Rotate[0][2] = temp[0] * axis[2] - s * axis[1];
 
-	Rotate.m[1][0] = temp[1] * axis[0] - s * axis[2];
-	Rotate.m[1][1] = c + temp[1] * axis[1];
-	Rotate.m[1][2] = temp[1] * axis[2] + s * axis[0];
+	Rotate[1][0] = temp[1] * axis[0] - s * axis[2];
+	Rotate[1][1] = c + temp[1] * axis[1];
+	Rotate[1][2] = temp[1] * axis[2] + s * axis[0];
 
-	Rotate.m[2][0] = temp[2] * axis[0] + s * axis[1];
-	Rotate.m[2][1] = temp[2] * axis[1] - s * axis[0];
-	Rotate.m[2][2] = c + temp[2] * axis[2];
+	Rotate[2][0] = temp[2] * axis[0] + s * axis[1];
+	Rotate[2][1] = temp[2] * axis[1] - s * axis[0];
+	Rotate[2][2] = c + temp[2] * axis[2];
 
 	matrix<4, 4> Result;
-	Result[0] = (m[0] * Rotate.m[0][0]) + (m[1] * Rotate.m[0][1]) + (m[2] * Rotate.m[0][2]);
-	Result[1] = (m[0] * Rotate.m[1][0]) + (m[1] * Rotate.m[1][1]) + (m[2] * Rotate.m[1][2]);
-	Result[2] = (m[0] * Rotate.m[2][0]) + (m[1] * Rotate.m[2][1]) + (m[2] * Rotate.m[2][2]);
+	Result[0] = (m[0] * Rotate[0][0]) + (m[1] * Rotate[0][1]) + (m[2] * Rotate[0][2]);
+	Result[1] = (m[0] * Rotate[1][0]) + (m[1] * Rotate[1][1]) + (m[2] * Rotate[1][2]);
+	Result[2] = (m[0] * Rotate[2][0]) + (m[1] * Rotate[2][1]) + (m[2] * Rotate[2][2]);
 	Result[3] = m[3];
 	return Result;
 }
-
-//Mat4x4 operator*(const Mat4x4& lhs, const Mat4x4& rhs);

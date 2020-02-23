@@ -25,6 +25,11 @@ unsigned char* LoadBMP(const char* path, Texture& texture) {
 	return data + pixelOffset;
 }
 
+size_t _2d_1d(vec2 position) {
+	return (int(position.x / block_size)) +
+		int(position.y / block_size) * (window_size.y / block_size);
+}
+
 Camera::Camera(vec3 position, vec3 up, float yaw, float pitch) : front(vec3(0.0f, 0.0f, -1.0f)) {
 	this->position = position;
 	this->worldUp = up;
@@ -55,7 +60,7 @@ void DefaultShape::set_color(size_t _Index, const Color& color, bool queue) {
 	}
 }
 
-void DefaultShape::draw() {
+void DefaultShape::draw(std::size_t first) {
 	if (_Vertices.empty()) {
 		return;
 	}
@@ -63,8 +68,8 @@ void DefaultShape::draw() {
 	matrix<4, 4> view(1);
 	matrix<4, 4> projection(1);
 
-	view = _Camera->GetViewMatrix(Translate(view, vec3(windowSize.x / 2, windowSize.y / 2, -700.0f)));
-	projection = Ortho(windowSize.x / 2, windowSize.x + windowSize.x * 0.5f, windowSize.y + windowSize.y * 0.5f, windowSize.y / 2.f, 0.1f, 1000.0f);
+	view = _Camera->GetViewMatrix(Translate(view, vec3(window_size.x / 2, window_size.y / 2, -700.0f)));
+	projection = Ortho(window_size.x / 2, window_size.x + window_size.x * 0.5f, window_size.y + window_size.y * 0.5f, window_size.y / 2.f, 0.1f, 1000.0f);
 
 	int projLoc = glGetUniformLocation(_Shader.ID, "projection");
 	int viewLoc = glGetUniformLocation(_Shader.ID, "view");
@@ -75,7 +80,7 @@ void DefaultShape::draw() {
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
 	glBindBuffer(GL_ARRAY_BUFFER, _ColorBuffer.VBO);
 	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, 0);
-	glDrawArrays(_Mode, 0, _Points);
+	glDrawArrays(_Mode, first, _Points);
 	glBindVertexArray(0);
 }
 
@@ -101,15 +106,17 @@ void DefaultShape::init() {
 }
 
 void DefaultShape::write(bool _EditVertices, bool _EditColor) {
-	if (_EditVertices) {
-		glBindBuffer(GL_ARRAY_BUFFER, _VerticeBuffer.VBO);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(_Vertices[0]) * _Vertices.size(), _Vertices.data(), GL_STATIC_DRAW);
+	if (!_Vertices.empty() && !_Colors.empty()) {
+		if (_EditVertices) {
+			glBindBuffer(GL_ARRAY_BUFFER, _VerticeBuffer.VBO);
+			glBufferData(GL_ARRAY_BUFFER, sizeof(_Vertices[0]) * _Vertices.current(), _Vertices.data(), GL_STATIC_DRAW);
+		}
+		if (_EditColor) {
+			glBindBuffer(GL_ARRAY_BUFFER, _ColorBuffer.VBO);
+			glBufferData(GL_ARRAY_BUFFER, sizeof(_Colors[0]) * _Colors.current(), _Colors.data(), GL_STATIC_DRAW);
+		}
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
-	if (_EditColor) {
-		glBindBuffer(GL_ARRAY_BUFFER, _ColorBuffer.VBO);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(_Colors[0]) * _Colors.size(), _Colors.data(), GL_STATIC_DRAW);
-	}
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 Line::Line() {
@@ -158,7 +165,7 @@ void Line::push_back(const mat2x2& _M, Color _Color, bool _Queue) {
 		_Vertices.push_back(_M[(i & 2) >> 1][i & 1]);
 	}
 	if (_Color.r == -1) {
-		if (_Colors.size() > COLORSIZE) {
+		if (_Colors.current() > COLORSIZE) {
 			_Color = Color(_Colors[0], _Colors[1], _Colors[2], _Colors[3]);
 		}
 		else {
@@ -235,7 +242,7 @@ void Triangle::push_back(const vec2 _Position, vec2 _Length, Color _Color) {
 	_Vertices.push_back(_Position.x);
 	_Vertices.push_back(_Position.y - (_Length.y / 2));
 	if (_Color.r == -1) {
-		if (_Colors.size() > COLORSIZE) {
+		if (_Colors.current() > COLORSIZE) {
 			_Color = Color(_Colors[0], _Colors[1], _Colors[2], _Colors[3]);
 		}
 		else {
@@ -294,12 +301,13 @@ std::size_t Square::amount() const {
 }
 
 void Square::erase(std::size_t _Index) {
-	for (int i = 0; i < 8; i++) {
-		_Vertices.erase(_Vertices.begin() + _Index * _PointSize);
+	for (int i = 0; i < _PointSize; i++) {
+		_Vertices.erase(_Index * _PointSize);
 	}
 	for (int i = 0; i < COLORSIZE * _PointSize; i++) {
-		_Colors.erase(_Vertices.begin() + _Index * _PointSize);
+		_Colors.erase(_Index * _PointSize);
 	}
+	_Points -= 4;
 	write(true, true);
 }
 
@@ -308,6 +316,9 @@ vec2 Square::get_length(std::size_t _Index) const {
 }
 
 mat2x4 Square::get_corners(std::size_t _Index) const {
+	if (_Index >= amount()) {
+		return mat2x4();
+	}
 	std::size_t _Multiplier = _Index * _PointSize;
 	return mat2x4(
 		vec2(_Vertices[_Multiplier], _Vertices[_Multiplier + 1]),
@@ -318,6 +329,9 @@ mat2x4 Square::get_corners(std::size_t _Index) const {
 }
 
 vec2 Square::get_position(std::size_t _Index) const {
+	if (_Index >= amount()) {
+		return vec2(-1);
+	}
 	return _Position[_Index];
 }
 
@@ -348,7 +362,7 @@ void Square::push_back(const vec2& _Position, vec2 _Length, Color color, bool _Q
 	_Vertices.push_back(_Position.y + _Length.y);
 
 	if (color.r == -1) {
-		if (_Colors.size() > COLORSIZE) {
+		if (_Colors.current() > COLORSIZE) {
 			color = Color(_Colors[0], _Colors[1], _Colors[2], _Colors[3]);
 		}
 		else {
@@ -373,7 +387,7 @@ void Square::rotate(std::size_t _Index, double _Angle, bool _Queue) {
 	constexpr double offset = 3 * PI / 4;
 	const vec2 position(get_position(_Index));
 	const vec2 _Radius(_Length[_Index] / 2);
-	double r = Distance(get_position(_Index), get_position(_Index) + _Length[_Index] / 2);
+	const double r = Distance(get_position(_Index), get_position(_Index) + _Length[_Index] / 2);
 
 	mat2x4 corners(
 		vec2(r * cos(Radians(_Angle) + offset), r * sin(Radians(_Angle) + offset)),
@@ -459,7 +473,7 @@ void Circle::push_back(vec2 _Position, float _Radius, Color _Color, bool _Queue)
 Sprite::Sprite() : texture(), position(0) {}
 
 Sprite::Sprite(const char* path, vec2 position, vec2 size, float angle, Shader shader) :
-		shader(shader), angle(angle), position(position + size / 2), size(size), texture() {
+		shader(shader), angle(angle), position(position), size(size), texture() {
 	this->camera = (Camera*)glfwGetWindowUserPointer(window);
 	init_image();
 	load_image(path, texture);
@@ -471,9 +485,9 @@ void Sprite::draw() {
 	glBindTexture(GL_TEXTURE_2D, texture.texture);
 	glUniform1i(glGetUniformLocation(shader.ID, "ourTexture"), 0);
 	matrix<4, 4> view(1);
-	view = camera->GetViewMatrix(Translate(view, vec3(windowSize.x / 2, windowSize.y / 2, -700.0f)));
 	matrix<4, 4> projection(1);
-	projection = Ortho(0, windowSize.x, windowSize.y, 0, 0.1f, 1000.0f);
+	view = camera->GetViewMatrix(Translate(view, vec3(window_size.x / 2, window_size.y / 2, -700.0f)));
+	projection = Ortho(window_size.x / 2, window_size.x + window_size.x * 0.5f, window_size.y + window_size.y * 0.5f, window_size.y / 2.f, 0.1f, 1000.0f);
 	GLint projLoc = glGetUniformLocation(shader.ID, "projection");
 	GLint viewLoc = glGetUniformLocation(shader.ID, "view");
 	GLint modelLoc = glGetUniformLocation(shader.ID, "model");
@@ -488,7 +502,7 @@ void Sprite::draw() {
 		model = Scale(model, vec3(texture.width, texture.height, 0));
 	}
 	if (angle) {
-		//model = Rotate(model, angle, vec3(0, 0, 1));
+		model = Rotate(model, angle, vec3(0, 0, 1));
 	}
 	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
 	glBindVertexArray(texture.VAO);
@@ -506,34 +520,32 @@ void Sprite::init_image() {
 		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f
 	};
 	_Vertices.resize(30);
-	for (int i = 0; i < _Vertices.size(); i++) {
-		_Vertices[i] = vertices[i];
-	}
+	std::copy(std::begin(vertices), std::end(vertices), _Vertices.begin());
 }
 
-void Sprite::load_image(const char* path, Texture& object) {
+void Sprite::load_image(const char* path, Texture& texture) {
 	std::ifstream file(path);
 	if (!file.good()) {
 		printf("File path does not exist\n");
 		return;
 	}
-	glGenVertexArrays(1, &object.VAO);
-	glGenBuffers(1, &object.VBO);
-	glBindVertexArray(object.VAO);
-	glBindBuffer(GL_ARRAY_BUFFER, object.VBO);
+	glGenVertexArrays(1, &texture.VAO);
+	glGenBuffers(1, &texture.VBO);
+	glBindVertexArray(texture.VAO);
+	glBindBuffer(GL_ARRAY_BUFFER, texture.VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(_Vertices[0]) * _Vertices.size(), _Vertices.data(), GL_STATIC_DRAW);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)0);
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
 	glEnableVertexAttribArray(2);
 	glBindVertexArray(0);
-	glGenTextures(1, &object.texture);
-	glBindTexture(GL_TEXTURE_2D, object.texture);
+	glGenTextures(1, &texture.texture);
+	glBindTexture(GL_TEXTURE_2D, texture.texture);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, object.width, object.height, 0, GL_BGRA, GL_UNSIGNED_BYTE, LoadBMP(path, object));
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texture.width, texture.height, 0, GL_BGRA, GL_UNSIGNED_BYTE, LoadBMP(path, texture));
 	glGenerateMipmap(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
@@ -547,11 +559,19 @@ vec2 Sprite::get_size() const {
 }
 
 vec2 Sprite::get_position() const {
-	return this->position - this->size / 2;
+	return this->position;
 }
 
 void Sprite::set_position(const vec2& position) {
 	this->position = position;
+}
+
+float Sprite::get_angle() const {
+	return angle;
+}
+
+void Sprite::set_angle(float angle) {
+	this->angle = angle;
 }
 
 Particles::Particles(std::size_t particles_amount, vec2 particle_size, vec2 particle_speed, float life_time, Color begin, Color end) :
@@ -598,87 +618,50 @@ void Particles::draw() {
 		color.b = ((end.b - begin.b) / life_time) * passed_time + begin.b;
 		color.a = (particle[i].life_time - passed_time / 1.f) / particle[i].life_time;
 		particles.set_color(i, color, true);
-		particles.set_position(i, particles.get_position(i) + particle[i].particle_speed * deltaTime, true);
+		particles.set_position(i, particles.get_position(i) + particle[i].particle_speed * delta_time, true);
 	}
 	particles.break_queue();
 	particles.draw();
 }
 
-std::vector<vec2> LoadMap() {
-	std::ifstream file("data");
-	std::vector<float> coordinates;
-	int coordinate = 0;
-	while (file >> coordinate) {
-		coordinates.push_back(coordinate);
+Entity::Entity(const char* path, vec2 position, vec2 size, float angle, Shader shader) :
+	Sprite(path, position, size, angle, shader), velocity(0) { }
+
+void Entity::move(bool mouse) {
+	velocity /= (delta_time * friction) + 1;
+
+	if (KeyPress(GLFW_KEY_W)) velocity.y -= movement_speed * delta_time;
+	if (KeyPress(GLFW_KEY_S)) velocity.y += movement_speed * delta_time;
+	if (KeyPress(GLFW_KEY_A)) velocity.x -= movement_speed * delta_time;
+	if (KeyPress(GLFW_KEY_D)) velocity.x += movement_speed * delta_time;
+
+	position += (velocity * delta_time);
+
+	if (mouse) {
+		angle = AimAngle(position, cursor_position) + PI / 2;
 	}
-
-	std::vector<vec2> grid;
-
-	for (auto i : coordinates) {
-		grid.push_back(vec2((int(i) % 14) * blockSize + blockSize / 2, int(i / 14) * blockSize + blockSize / 2));
-	}
-
-	return grid;
 }
 
-std::vector<std::size_t> blocks;
+vec2 Raycast(const vec2& start, const vec2& end, const Square& squares, bool map[grid_size.x][grid_size.y]) {
+	const float angle = -Degrees(AimAngle(start, end));
+	const bool left = angle < 90 && angle > -90;
+	const bool top = angle > 0 && angle < 180;
 
-vec2 Raycast(Square& grid, const mat2x2& direction) {
-	vec2 best(-1, -1);
-	for (int i = 0; i < blocks.size(); i++) {
-		const mat2x4 corners = grid.get_corners(blocks[i]);
-		if (direction[0][0] < direction[1][0]) {
-			const vec2 inter = IntersectionPoint(direction[0], direction[1], corners[0], corners[3]);
-			if (inter.x != -1) {
-				if (best.x != -1) {
-					if (ManhattanDistance(direction[0], inter) < ManhattanDistance(direction[0], best)) {
-						best = inter;
-					}
-				}
-				else {
-					best = inter;
-				}
+	for (int i = start.x / block_size; left ? i < end.x / block_size : i > end.x / block_size - 1; left ? i++ : i--) {
+		for (int j = start.y / block_size; top ? j > end.y / block_size - 1 : j < end.y / block_size; top ? j-- : j++) {
+			if (i < 0 || j < 0 || i > grid_size.x || j > grid_size.y) {
+				return vec2(-1);
 			}
-		}
-		else {
-			const vec2 inter = IntersectionPoint(direction[0], direction[1], corners[1], corners[2]);
-			if (inter.x != -1) {
-				if (best.x != -1) {
-					if (ManhattanDistance(direction[0], inter) < ManhattanDistance(direction[0], best)) {
-						best = inter;
-					}
-				}
-				else {
-					best = inter;
-				}
-			}
-		}
-		if (direction[1].y < direction[0].y) {
-			const vec2 inter = IntersectionPoint(direction[0], direction[1], corners[2], corners[3]);
-			if (inter.x != -1) {
-				if (best.x != -1) {
-					if (ManhattanDistance(direction[0], inter) < ManhattanDistance(direction[0], best)) {
-						best = inter;
-					}
-				}
-				else {
-					best = inter;
-				}
-			}
-		}
-		else {
-			const vec2 inter = IntersectionPoint(direction[0], direction[1], corners[0], corners[1]);
-			if (inter.x != -1) {
-				if (best.x != -1) {
-					if (ManhattanDistance(direction[0], inter) < ManhattanDistance(direction[0], best)) {
-						best = inter;
-					}
-				}
-				else {
-					best = inter;
-				}
+			if (map[i][j]) {
+				const mat2x4 corners = squares.get_corners(_2d_1d(vec2(i * block_size, j * block_size)));
+				bool left_right = start.x < end.x;
+				bool up_down = end.y < start.y;
+				vec2 point = IntersectionPoint(start, end, corners[!left_right], corners[left_right ? 3 : 2]);
+				if (ray_hit(point)) { return point; }
+				point = IntersectionPoint(start, end, corners[up_down ? 2 : 0], corners[up_down ? 3 : 1]);
+				if (ray_hit(point)) { return point; }
 			}
 		}
 	}
-	return best;
+	return vec2(-1);
 }

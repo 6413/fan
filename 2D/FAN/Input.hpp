@@ -11,11 +11,11 @@ constexpr bool fullScreen = false;
 #define GLFW_MOUSE_SCROLL_DOWN 201
 
 namespace CursorNamespace{
-	extern _vec2<int> cursorPos;
+	extern _vec2<int> cursor_position;
 }
 
 namespace WindowNamespace {
-	extern _vec2<int> windowSize;
+	extern _vec2<int> window_size;
 }
 
 namespace Input {

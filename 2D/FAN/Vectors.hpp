@@ -52,7 +52,15 @@ public:
 	constexpr _Ty operator[](std::size_t idx) const { return !idx ? x : y; }
 	constexpr _vec2<_Ty> operator-() const { return _vec2<_Ty>(-x, -y); }
 	constexpr _vec2<_Ty> operator-(_Ty val) const { return _vec2<_Ty>(x - val, y - val); }
-	
+	constexpr _vec2<_Ty> operator-(const _vec2<_Ty>& val) const { return _vec2<_Ty>(x - val.x, y - val.y); }
+	constexpr _vec2<_Ty> operator/=(_Ty val) { x /= val; y /= val; return *this; }
+
+	constexpr bool operator!=(const _vec2<_Ty> vec) const { return x != vec.x && y != vec.y; }
+	constexpr bool operator==(const _vec2<_Ty> vec) const { return x == vec.x && y == vec.y; }
+
+	constexpr _vec2<_Ty> floored() const { return _vec2<_Ty>(floor(x), floor(y)); }
+	constexpr _vec2<_Ty> floored(_Ty value) const { return _vec2<_Ty>(floor(x / value), floor(y / value)); }
+
 	constexpr std::size_t size() const { return 2; }
 
 	constexpr void print() const { std::cout << x << " " << y << std::endl; }
@@ -70,6 +78,8 @@ public:
 
 	constexpr _Ty& operator[](std::size_t idx) { return !idx ? x : idx == 1 ? y : z; }
 	constexpr _Ty operator[](std::size_t idx) const { return !idx ? x : idx == 1 ? y : z; }
+	constexpr _vec3<_Ty> operator-(const _vec3<_Ty>& val) const { return _vec3<_Ty>(x - val.x, y - val.y, z - val.z); }
+
 	constexpr std::size_t size() const { return 3; }
 };
 
@@ -79,7 +89,7 @@ public:
 	array<_Ty, Cols> m[Rows];
 	using type = _Ty;
 
-	constexpr matrix() : _InIt_I(0) {
+	constexpr matrix() : m{ }, _InIt_I(0) {
 		for (int _I = 0; _I < Cols; _I++) {
 			for (int _J = 0; _J < Rows; _J++) {
 				m[_I][_J] = 0;
@@ -168,11 +178,18 @@ public:
 		return v[idx];
 	}
 
+	constexpr _mat2x2() : v{ 0 } {}
+
 	constexpr _mat2x2(_Ty x, _Ty y, _Ty z, _Ty a) : init_index(0) {
 		v[0][0] = x;
 		v[0][1] = y;
 		v[1][0] = z;
 		v[1][1] = a;
+	}
+
+	constexpr _mat2x2(const _vec2<_Ty>& first, const _vec2<_Ty> second) {
+		v[0] = first;
+		v[1] = second;
 	}
 
 private:
@@ -183,6 +200,8 @@ private:
 template <typename _Ty>
 class _mat2x4 {
 public:
+	_mat2x4() : v {} {}
+
 	template <typename T, typename ...type>
 	constexpr _mat2x4(T value, type&&... args) : init_index(0) {
 		initialize(value, args...);
@@ -217,7 +236,7 @@ using vec3 = _vec3<float>;
 class Color {
 public:
 	float r, g, b, a;
-	Color() : r(0), g(0), b(0), a(0) {}
+	Color() : r(0), g(0), b(0), a(1) {}
 
 	Color(float r, float g, float b, float a = 1, bool index = false) {
 		if (index) {
@@ -232,12 +251,31 @@ public:
 		this->b = b;
 		this->a = a;
 	}
+	Color(float value, bool index = false) {
+		if (index) {
+			this->r = r / value;
+			this->g = g / value;
+			this->b = b / value;
+			this->a = a / value;
+			return;
+		}
+		this->r = value;
+		this->g = value;
+		this->b = value;
+		this->a = 1;
+	}
 	Color& operator&=(const Color& color) {
 		Color ret;
 		ret.r = (unsigned int)r & (unsigned int)color.r;
 		ret.g = (unsigned int)g & (unsigned int)color.g;
 		ret.b = (unsigned int)b & (unsigned int)color.b;
 		ret.a = (unsigned int)a & (unsigned int)color.a;
+		return *this;
+	}
+	Color operator^=(const Color& color) {
+		r = (int)r ^ (int)color.r;
+		g = (int)g ^ (int)color.g;
+		b = (int)b ^ (int)color.b;
 		return *this;
 	}
 	constexpr float operator[](size_t x) const {
@@ -290,14 +328,14 @@ constexpr _Vec_t<_Type>& operator-=(_Vec_t<_Type>& _Lhs, const _Vec_t<_Type2>& _
 	return _Lhs;
 }
 
-template <template<typename> typename _Vec_t, typename _Type>
-constexpr _Vec_t<_Type> operator-(const _Vec_t<_Type>& _Lhs, const _Vec_t<_Type>& _Rhs) {
-	_Vec_t<_Type> _Vec;
-	for (int _I = 0; _I < _Lhs.size(); _I++) {
-		_Vec[_I] = _Lhs[_I] - _Rhs[_I];
-	}
-	return _Vec;
-}
+//template <template<typename> typename _Vec_t, typename _Type>
+//constexpr _Vec_t<_Type> operator-(const _Vec_t<_Type>& _Lhs, const _Vec_t<_Type>& _Rhs) {
+//	_Vec_t<_Type> _Vec;
+//	for (int _I = 0; _I < _Lhs.size(); _I++) {
+//		_Vec[_I] = _Lhs[_I] - _Rhs[_I];
+//	}
+//	return _Vec;
+//}
 
 template <template<typename> typename _Vec_t, typename _Type, typename _Type2>
 constexpr _Vec_t<_Type> operator-(const _Vec_t<_Type>& _Vec) {

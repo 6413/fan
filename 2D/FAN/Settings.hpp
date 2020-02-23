@@ -4,13 +4,14 @@
 
 void GetFps(bool print = true);
 
-constexpr static auto WINDOWSIZE = _vec2<int>(900, 900);
+constexpr auto WINDOWSIZE = _vec2<int>(1024, 1024);
 
-//constexpr auto gridSize = _vec2<int>(10, 10);
 
 namespace Settings {
-	extern float deltaTime;
-	static constexpr int blockSize = 64;
+	extern float delta_time;
+	static constexpr int block_size = 64;
 	extern GLFWwindow* window;
-	//static constexpr _vec2<int> view(WINDOWSIZE.x / blockSize, WINDOWSIZE.y / blockSize);
+	static constexpr _vec2<int> view(WINDOWSIZE.x / block_size, WINDOWSIZE.y / block_size);
 }
+
+constexpr auto grid_size = _vec2<int>(WINDOWSIZE.x / Settings::block_size, WINDOWSIZE.y / Settings::block_size);
