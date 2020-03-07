@@ -26,12 +26,17 @@ using SOCKET = uintptr_t;
 #include <FAN/Time.hpp>
 
 constexpr auto PORT = 43254;
+constexpr auto SERVER_IP = "192.168.1.143";
 
 class File {
 public:
 	File(const char* file_name) : name(file_name) {}
 	void read() {
 		std::ifstream file(name.c_str(), std::ifstream::ate | std::ifstream::binary);
+		if (!file.good()) {
+			puts("unknown file path");
+			exit(EXIT_FAILURE);
+		}
 		file.seekg(0, std::ios::end);
 		data.resize(file.tellg());
 		file.seekg(0, std::ios::beg);
