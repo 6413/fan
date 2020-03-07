@@ -4,7 +4,7 @@
 
 void GetFps(bool print = true);
 
-constexpr auto WINDOWSIZE = _vec2<int>(1024, 1024);
+constexpr auto WINDOWSIZE = _vec2<int>(800, 800);
 
 
 namespace Settings {

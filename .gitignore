@@ -1,4 +1,3 @@
-
 *.ipch
 *.db
 *.sarif
@@ -6,8 +5,6 @@
 *.db
 *.opendb
 *.ipch
-*.tlog
-*.tlog
 *.txt
 *.obj
 *.pdb
@@ -18,21 +15,10 @@
 *.tlog
 *.ipdb
 *.log
-*.pdb
 *.filters
 *.log
 *.iobj
-*.tlog
-*.obj
-*.pdb
 *.log
-*.ipdb
-*.ipdb
 *.iobj
-*.iobj
-*.tlog
-*.pdb
-*.obj
 *.idb
-*.pdb
 *.filters

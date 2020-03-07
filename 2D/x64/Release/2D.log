@@ -1,14 +1,22 @@
 ﻿  Source.cpp
 C:\Users\123\Documents\GitHub\2D\2D\FAN\Time.hpp(13,23): warning C4458: declaration of 'time' hides class member
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Time.hpp(32,14): message : see declaration of 'Timer::time'
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Time.hpp(23,84): warning C4018: '>=': signed/unsigned mismatch
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.hpp(69,52): warning C4458: declaration of 'position' hides class member
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.hpp(89,7): message : see declaration of 'Camera::position'
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Math.hpp(229,13): warning C4505: 'Rotate': unreferenced local function has been removed
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Time.hpp(36,14): message : see declaration of 'Timer::time'
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Time.hpp(27,84): warning C4018: '>=': signed/unsigned mismatch
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(115,45): warning C4474: 'printf' : too many arguments passed for format string
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(115,45): message : placeholders and their parameters expect 0 variadic arguments, but 1 were provided
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(154,1): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(147,67): warning C4100: 'index': unreferenced formal parameter
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(173,1): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(197,1): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(217,1): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(283,18): warning C4389: '!=': signed/unsigned mismatch
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(284,1): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(303,18): warning C4389: '!=': signed/unsigned mismatch
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(304,1): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(323,1): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
   Graphics.obj : MSIL .netmodule or module compiled with /GL found; restarting link with /LTCG; add /LTCG to the link command line to improve linker performance
 LINK : warning LNK4098: defaultlib 'LIBCMT' conflicts with use of other libs; use /NODEFAULTLIB:library
   Generating code
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Shader.h(90): warning C4701: potentially uninitialized local variable 'geometry' used
   Finished generating code
 glew32s.lib(glew.obj) : warning LNK4099: PDB 'vc120.pdb' was not found with 'glew32s.lib(glew.obj)' or at 'C:\Users\123\Documents\GitHub\2D\2D\x64\Release\vc120.pdb'; linking object as if no debug info
   2D.vcxproj -> C:\Users\123\Documents\GitHub\2D\2D\x64\Release\2D.exe

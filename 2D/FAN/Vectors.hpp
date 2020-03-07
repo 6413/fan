@@ -53,6 +53,7 @@ public:
 	constexpr _vec2<_Ty> operator-() const { return _vec2<_Ty>(-x, -y); }
 	constexpr _vec2<_Ty> operator-(_Ty val) const { return _vec2<_Ty>(x - val, y - val); }
 	constexpr _vec2<_Ty> operator-(const _vec2<_Ty>& val) const { return _vec2<_Ty>(x - val.x, y - val.y); }
+	constexpr _vec2<_Ty> operator+(const _vec2<_Ty>& val) const { return _vec2<_Ty>(x + val.x, y + val.y); }
 	constexpr _vec2<_Ty> operator/=(_Ty val) { x /= val; y /= val; return *this; }
 
 	constexpr bool operator!=(const _vec2<_Ty> vec) const { return x != vec.x && y != vec.y; }
@@ -277,6 +278,9 @@ public:
 		g = (int)g ^ (int)color.g;
 		b = (int)b ^ (int)color.b;
 		return *this;
+	}
+	bool operator!=(const Color& color) const {
+		return r != color.r && g != color.g && b != color.b;
 	}
 	constexpr float operator[](size_t x) const {
 		return !x ? this->r : x == 1 ? this->g : x == 2 ? this->b : x == 3 ? this->a : this->a;

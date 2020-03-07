@@ -4,8 +4,8 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
-//#include <ft2build.h>
-//#include FT_FREETYPE_H  
+#include <ft2build.h>
+#include FT_FREETYPE_H  
 
 #include "Alloc.hpp"
 #include "Input.hpp"
@@ -28,7 +28,7 @@
 
 class Sprite;
 class Main;
-class Entity;
+
 class Square;
 struct ImageData;
 enum class GroupId;
@@ -91,7 +91,7 @@ private:
 
 class DefaultShape {
 public:
-	Color get_color(std::size_t _Index) const;
+	Color get_color(std::size_t _Index = 0) const;
 	auto& get_color_ptr() const;
 	void set_color(std::size_t _Index, const Color& color, bool queue = false);
 
@@ -163,8 +163,11 @@ public:
 	vec2 get_length(std::size_t _Index) const;
 	mat2x4 get_corners(std::size_t _Index) const;
 
-	vec2 get_position(std::size_t _Index) const;
+	vec2 get_position(std::size_t _Index = 0) const;
 	void set_position(std::size_t _Index, const vec2& _Position, bool _Queue = false);
+
+	vec2 get_size(std::size_t _Index = 0) const;
+	void set_size(std::size_t _Index, const vec2& _Size, bool _Queue = false);
 
 	void push_back(const vec2& _Position, vec2 _Length = vec2(), Color color = Color(-1, -1, -1, -1), bool _Queue = false);
 
@@ -243,14 +246,47 @@ private:
 	float life_time;
 };
 
-class Entity : public Sprite {
+template <typename shape>
+class Entity : public shape {
 public:
-	Entity(const char* path, vec2 position = vec2(), vec2 size = vec2(), float angle = 0, Shader shader = Shader("GLSL/core.vs", "GLSL/core.frag"));
+	template<typename T = shape, typename _Shader = Shader, std::enable_if_t<std::is_same<Sprite, T>::value> * = nullptr>
+	constexpr Entity(const char* path, vec2 position, vec2 size, float angle, _Shader shader = _Shader("GLSL/core.frag", "GLSL/core.vs")) :
+		Sprite(path, position, size, angle, shader), velocity(0) { }
 
-	void move(bool mouse = true);
+	template<typename T = shape, std::enable_if_t<std::is_same<Square, T>::value> * = nullptr>
+	constexpr Entity(const vec2& _Position, const vec2& _Length, const Color& color) :
+		Square(_Position, _Length, color), velocity(0) { }
+
+	template<typename T = shape, std::enable_if_t<std::is_same<Square, T>::value> * = nullptr>
+	void move(bool mouse, Line& my_ray, const Square& squares, bool map[grid_size.x][grid_size.y]) {
+		velocity /= (delta_time * friction) + 1;
+
+		if (KeyPress(GLFW_KEY_W)) velocity.y -= movement_speed * delta_time;
+		if (KeyPress(GLFW_KEY_S)) velocity.y += movement_speed * delta_time;
+		if (KeyPress(GLFW_KEY_A)) velocity.x -= movement_speed * delta_time;
+		if (KeyPress(GLFW_KEY_D)) velocity.x += movement_speed * delta_time;
+
+		position += velocity * delta_time;
+
+		this->set_position(0, position);
+
+
+		if (mouse) {
+			this->rotate(0, Degrees(AimAngle(this->get_position(0), cursor_position) + PI / 2));
+		}
+	}
+
+	constexpr vec2 get_velocity() const {
+		return movement_speed;
+	}
+
+	constexpr void set_velocity(const vec2& new_velocity) {
+		velocity = new_velocity;
+	}
+
 private:
+	vec2 position = this->get_position();
 	const float movement_speed = 2000;
-	const float max_speed = 1000;
 	const float friction = 5;
 	vec2 velocity;
 };
@@ -269,8 +305,8 @@ class TextRenderer {
 public:
 	TextRenderer() : shader(Shader("GLSL/text.vs", "GLSL/text.frag")) {
 		shader.Use();
-		Mat4x4 projection = Ortho(0, window_size.x, window_size.y, 0);
-		glUniformMatrix4fv(glGetUniformLocation(shader.ID, "projection"), 1, GL_FALSE, &projection.vec[0][0]);
+		matrix<4,4> projection = Ortho(0, window_size.x, window_size.y, 0);
+		glUniformMatrix4fv(glGetUniformLocation(shader.ID, "projection"), 1, GL_FALSE, &projection[0][0]);
 		// FreeType
 		FT_Library ft;
 		// All functions return a value different than 0 whenever an error occurred
@@ -279,7 +315,7 @@ public:
 
 		// Load font as face
 		FT_Face face;
-		if (FT_New_Face(ft, "fonts/arial.ttf", 0, &face))
+		if (FT_New_Face(ft, "fonts/calibri.ttf", 0, &face))
 			std::cout << "ERROR::FREETYPE: Failed to load font" << std::endl;
 
 		// Set size to load glyphs as
@@ -343,36 +379,68 @@ public:
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		glBindVertexArray(0);
 	}
-	void render(std::string text, vec2 position, float scale, const Color& color) {
-		Mat4x4 projection(1);
-		projection = Ortho(0, window_size.x, window_size.y, 0);
-		//printf("%d\n", window_size.x);
-		glUniformMatrix4fv(glGetUniformLocation(shader.ID, "projection"), 1, GL_FALSE, &projection.vec[0][0]);
-		shader.Use();
-		glUniform4f(glGetUniformLocation(shader.ID, "textColor"), color.r, color.g, color.b, color.a);
-		glActiveTexture(GL_TEXTURE0);
-		glBindVertexArray(VAO);
-		// Iterate through all characters
-		float biggest = 0;
-		for (std::string::const_iterator c = text.begin(); c != text.end(); c++) {
-			biggest = std::max(Characters[*c].Size.y * scale, biggest);
-		}
-		position.y += biggest;
+	vec2 get_length(std::string text, float scale) {
+		vec2 start_position;
+		vec2 end_position;
+
 		std::string::const_iterator c;
 
-		Alloc<float(*)[4]> vert;
+		bool get_start = true;
+
 		for (c = text.begin(); c != text.end(); c++)
 		{
 			Character ch = Characters[*c];
 
+			GLfloat w = ch.Size.x * scale;
+			GLfloat h = ch.Size.y * scale;
 
+			GLfloat xpos = ch.Bearing.x * scale + w;
+			GLfloat ypos = (ch.Size.y - ch.Bearing.y) * scale - h;
+			if (get_start) {
+				start_position = { xpos, ypos };
+				get_start = false;
+			}
+
+			end_position.x += (ch.Advance >> 6)* scale;
+		}
+		return vec2(end_position - start_position);
+	}
+	void render(std::string text, vec2 position, float scale, const Color& color) {
+		shader.Use();
+		matrix<4, 4> projection = Ortho(0, window_size.x, window_size.y, 0);
+		glUniformMatrix4fv(glGetUniformLocation(shader.ID, "projection"), 1, GL_FALSE, &projection[0][0]);
+		glUniform4f(glGetUniformLocation(shader.ID, "textColor"), color.r, color.g, color.b, color.a);
+		glActiveTexture(GL_TEXTURE0);
+		glBindVertexArray(VAO);
+
+		std::string::const_iterator c;
+
+		float originalX = position.x;
+
+		for (c = text.begin(); c != text.end(); c++)
+		{
+			Character ch = Characters[*c];
 
 			GLfloat w = ch.Size.x * scale;
 			GLfloat h = ch.Size.y * scale;
 
+			if (position.y - (ch.Size.y - ch.Bearing.y) * scale + h < 0) {
+				continue;
+			}
+			if (*c == '\n') {
+				position.x = originalX;
+				position.y += (ch.Size.y - ch.Bearing.y) * scale + h;
+				continue;
+			}
+			else if (*c == '\b') {
+				position.x = originalX;
+				position.y -= (ch.Size.y - ch.Bearing.y) * scale + h;
+				continue;
+			}
+
 			GLfloat xpos = position.x + ch.Bearing.x * scale;
 			GLfloat ypos = position.y + (ch.Size.y - ch.Bearing.y) * scale;
-
+			std::vector<float**> _Vertices;
 			// Update VBO for each character
 			GLfloat vertices[6][4] = {
 				{ xpos,     ypos - h,   0.0, 0.0 },
@@ -383,14 +451,11 @@ public:
 				{ xpos + w, ypos,       1.0, 1.0 },
 				{ xpos + w, ypos - h,   1.0, 0.0 }
 			};
-			vert.push_back(vertices);
-
 			// Render glyph texture over quad
 			glBindTexture(GL_TEXTURE_2D, ch.TextureID);
 			// Update content of VBO memory
 			glBindBuffer(GL_ARRAY_BUFFER, VBO);
 			glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices); // Be sure to use glBufferSubData and not glBufferData
-
 			glBindBuffer(GL_ARRAY_BUFFER, 0);
 			// Render quad
 			glDrawArrays(GL_TRIANGLES, 0, 6);
