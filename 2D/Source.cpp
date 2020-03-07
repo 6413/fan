@@ -1,11 +1,11 @@
 #include <FAN/Network.hpp>
 
-int main() {
+int main(int argc, char** argv) {
+#ifdef _WIN64
 	init_winsock();
-
-	tcp_server server(PORT);
-
-	server.receive_file();
-
+#endif
+	client client(SERVER_IP, PORT);
+	printf("connected\n");
+	client.send_file(File(argv[1]));
 	return 0;
 }
