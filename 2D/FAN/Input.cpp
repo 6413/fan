@@ -14,10 +14,10 @@ namespace WindowNamespace {
 
 namespace Input {
 	bool key[1024];
-	bool readchar;
 	std::string characters;
 	bool action[348];
 	bool released[1024];
+	bool cursor_inside_window;
 }
 
 void GlfwErrorCallback(int id, const char* error) {
@@ -78,10 +78,10 @@ void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
 	}
 }
 
+//bool render_one = true;
 void CharacterCallback(GLFWwindow* window, unsigned int key) {
-	if (Input::readchar) {
-		Input::characters.push_back(key);
-	}
+	Input::characters.push_back(key);
+	//render_one = true;
 }
 
 void FrameSizeCallback(GLFWwindow* window, int width, int height) {
@@ -89,14 +89,19 @@ void FrameSizeCallback(GLFWwindow* window, int width, int height) {
 	WindowNamespace::window_size = vec2(width, height);
 }
 
+void CursorEnterCallback(GLFWwindow* window, int entered) {
+	Input::cursor_inside_window = entered;
+}
+
 void WindowInit() {
 	using namespace WindowNamespace;
 	window_size = WINDOWSIZE;
+	glfwWindowHint(GLFW_DECORATED, false);
 	glfwWindowHint(GLFW_RESIZABLE, true);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 	//window_size = vec2(glfwGetVideoMode(glfwGetPrimaryMonitor())->width, glfwGetVideoMode(glfwGetPrimaryMonitor())->height);
-	window = glfwCreateWindow(window_size.x, window_size.y, "Window", fullScreen ? glfwGetPrimaryMonitor() : NULL, NULL);
+	window = glfwCreateWindow(window_size.x, window_size.y, "Server", fullScreen ? glfwGetPrimaryMonitor() : NULL, NULL);
 	if (!window) {
 		printf("Window ded\n");
 		glfwTerminate();
@@ -107,6 +112,27 @@ void WindowInit() {
 	glViewport(0, 0, window_size.x, window_size.y);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+}
+
+std::string& textInput() {
+	return Input::characters;
+}
+
+void OnKeyPress(int key, std::function<void()> lambda, bool once) {
+	if (once) {
+		if (KeyPressA(key)) {
+			lambda();
+		}
+	}
+	else {
+		if (KeyPress(key)) {
+			lambda();
+		}
+	}
+}
+
+bool cursor_inside_window() {
+	return Input::cursor_inside_window;
 }
 
 bool KeyPress(int key) {

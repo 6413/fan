@@ -15,6 +15,10 @@ public:
 		this->time = time;
 	}
 
+	static decltype(high_resolution_clock::now()) start() {
+		return high_resolution_clock::now();
+	}
+
 	void restart() {
 		this->timer = high_resolution_clock::now();
 	}

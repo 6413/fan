@@ -162,11 +162,11 @@ template <typename _Ty> constexpr auto PixelsToSomething(_Ty pixels, _Ty screen)
 template<typename T = matrix<4, 4>>
 auto Ortho(float left, float right, float bottom, float top) {
 	T Result(static_cast<T>(1));
-	Result.vec[0][0] = static_cast<float>(2) / (right - left);
-	Result.vec[1][1] = static_cast<float>(2) / (top - bottom);
-	Result.vec[2][2] = -static_cast<float>(1);
-	Result.vec[3][0] = -(right + left) / (right - left);
-	Result.vec[3][1] = -(top + bottom) / (top - bottom);
+	Result[0][0] = static_cast<float>(2) / (right - left);
+	Result[1][1] = static_cast<float>(2) / (top - bottom);
+	Result[2][2] = -static_cast<float>(1);
+	Result[3][0] = -(right + left) / (right - left);
+	Result[3][1] = -(top + bottom) / (top - bottom);
 	return Result;
 }
 

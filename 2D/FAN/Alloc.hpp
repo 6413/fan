@@ -159,7 +159,7 @@ public:
 		return _Allocated;
 	}
 
-	std::size_t _Buffer = 0xffffff;
+	std::size_t _Buffer = 0x1;
 private:
 	_Ty* _Data;
 	std::size_t _Cur;

@@ -4,6 +4,7 @@
 #include <GLFW/glfw3.h>
 #include <FAN/Vectors.hpp>
 #include <string>
+#include <functional>
 
 constexpr bool fullScreen = false;
 
@@ -31,9 +32,16 @@ void CursorPositionCallback(GLFWwindow* window, double xpos, double ypos);
 void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset);
 void CharacterCallback(GLFWwindow* window, unsigned int key);
 void FrameSizeCallback(GLFWwindow* window, int width, int height);
+void CursorEnterCallback(GLFWwindow* window, int entered);
 
 void WindowInit();
 
+std::string& textInput();
+
+bool cursor_inside_window();
+void OnKeyPress(int key, std::function<void()> lambda = std::function<void()>(), bool once = false);
 bool KeyPress(int key);
 bool KeyPressA(int key);
 void KeysReset();
+
+//extern bool render_one;

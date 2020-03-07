@@ -71,8 +71,8 @@ void DefaultShape::draw(std::size_t first) {
 	view = _Camera->GetViewMatrix(Translate(view, vec3(window_size.x / 2, window_size.y / 2, -700.0f)));
 	projection = Ortho(window_size.x / 2, window_size.x + window_size.x * 0.5f, window_size.y + window_size.y * 0.5f, window_size.y / 2.f, 0.1f, 1000.0f);
 
-	int projLoc = glGetUniformLocation(_Shader.ID, "projection");
-	int viewLoc = glGetUniformLocation(_Shader.ID, "view");
+	static int projLoc = glGetUniformLocation(_Shader.ID, "projection");
+	static int viewLoc = glGetUniformLocation(_Shader.ID, "view");
 	glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection[0][0]);
 	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]);
 	glBindVertexArray(_ShapeBuffer.VAO);
@@ -332,7 +332,7 @@ vec2 Square::get_position(std::size_t _Index) const {
 	if (_Index >= amount()) {
 		return vec2(-1);
 	}
-	return _Position[_Index];
+	return vec2(_Vertices[_PointSize * _Index], _Vertices[_PointSize * _Index + 1]);
 }
 
 void Square::set_position(std::size_t _Index, const vec2& _Position, bool _Queue) {
@@ -344,6 +344,25 @@ void Square::set_position(std::size_t _Index, const vec2& _Position, bool _Queue
 		write(true, false);
 	}
 	this->_Position[_Index] = _Position;
+}
+
+vec2 Square::get_size(std::size_t _Index) const {
+	return this->_Length[_Index];
+}
+
+void Square::set_size(std::size_t _Index, const vec2& _Size, bool _Queue) {
+	_Vertices[_Index * _PointSize + 0] = _Position[_Index].x;
+	_Vertices[_Index * _PointSize + 1] = _Position[_Index].y;
+	_Vertices[_Index * _PointSize + 2] = _Position[_Index].x + _Size.x;
+	_Vertices[_Index * _PointSize + 3] = _Position[_Index].y;
+	_Vertices[_Index * _PointSize + 4] = _Position[_Index].x + _Size.x;
+	_Vertices[_Index * _PointSize + 5] = _Position[_Index].y + _Size.y;
+	_Vertices[_Index * _PointSize + 6] = _Position[_Index].x;
+	_Vertices[_Index * _PointSize + 7] = _Position[_Index].y + _Size.y;
+	if (!_Queue) {
+		write(true, false);
+	}
+	this->_Length[_Index] = _Size;
 }
 
 void Square::push_back(const vec2& _Position, vec2 _Length, Color color, bool _Queue) {
@@ -397,8 +416,10 @@ void Square::rotate(std::size_t _Index, double _Angle, bool _Queue) {
 	);
 
 	for (int i = 0; i < _PointSize; i++) {
-		_Vertices[_Index * _PointSize + i] = corners[(i & 7) >> 1][i & 1] + position[i & 1] + _Radius[i & 1];
+		_Vertices[_Index * _PointSize + i] = corners[(i & (_PointSize - 1)) >> 1][i & 1] + position[i & 1] + _Radius[i & 1];
 	}
+
+	//_Position[_Index] = _Position[_Index] + (_Position[_Index] - vec2(_Vertices[_Index * _PointSize], _Vertices[_Index * _PointSize + 1]));
 
 	if (!_Queue) {
 		write(true, false);
@@ -520,7 +541,9 @@ void Sprite::init_image() {
 		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f
 	};
 	_Vertices.resize(30);
-	std::copy(std::begin(vertices), std::end(vertices), _Vertices.begin());
+	for (int i = 0; i < sizeof(vertices) / sizeof(*vertices); i++) {
+		_Vertices[i] = vertices[i];
+	}
 }
 
 void Sprite::load_image(const char* path, Texture& texture) {
@@ -622,24 +645,6 @@ void Particles::draw() {
 	}
 	particles.break_queue();
 	particles.draw();
-}
-
-Entity::Entity(const char* path, vec2 position, vec2 size, float angle, Shader shader) :
-	Sprite(path, position, size, angle, shader), velocity(0) { }
-
-void Entity::move(bool mouse) {
-	velocity /= (delta_time * friction) + 1;
-
-	if (KeyPress(GLFW_KEY_W)) velocity.y -= movement_speed * delta_time;
-	if (KeyPress(GLFW_KEY_S)) velocity.y += movement_speed * delta_time;
-	if (KeyPress(GLFW_KEY_A)) velocity.x -= movement_speed * delta_time;
-	if (KeyPress(GLFW_KEY_D)) velocity.x += movement_speed * delta_time;
-
-	position += (velocity * delta_time);
-
-	if (mouse) {
-		angle = AimAngle(position, cursor_position) + PI / 2;
-	}
 }
 
 vec2 Raycast(const vec2& start, const vec2& end, const Square& squares, bool map[grid_size.x][grid_size.y]) {
