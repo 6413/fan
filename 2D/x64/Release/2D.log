@@ -1,19 +1,18 @@
 ﻿  Source.cpp
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(2,1): warning C4005: '_CRT_SECURE_NO_WARNINGS': macro redefinition
+C:\Users\123\Documents\GitHub\2D\2D\Source.cpp : message : see previous definition of '_CRT_SECURE_NO_WARNINGS'
 C:\Users\123\Documents\GitHub\2D\2D\FAN\Time.hpp(13,23): warning C4458: declaration of 'time' hides class member
 C:\Users\123\Documents\GitHub\2D\2D\FAN\Time.hpp(36,14): message : see declaration of 'Timer::time'
 C:\Users\123\Documents\GitHub\2D\2D\FAN\Time.hpp(27,84): warning C4018: '>=': signed/unsigned mismatch
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(115,45): warning C4474: 'printf' : too many arguments passed for format string
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(115,45): message : placeholders and their parameters expect 0 variadic arguments, but 1 were provided
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(154,1): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(147,67): warning C4100: 'index': unreferenced formal parameter
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(173,1): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(197,1): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(217,1): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(283,18): warning C4389: '!=': signed/unsigned mismatch
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(284,1): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(303,18): warning C4389: '!=': signed/unsigned mismatch
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(304,1): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(323,1): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(113,45): warning C4244: 'argument': conversion from 'uint64_t' to 'int', possible loss of data
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(133,1): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(173,45): warning C4244: 'argument': conversion from 'uint64_t' to 'int', possible loss of data
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(192,18): warning C4389: '!=': signed/unsigned mismatch
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(193,50): warning C4244: 'argument': conversion from 'uint64_t' to 'int', possible loss of data
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(189,12): warning C4189: 'file_name_size': local variable is initialized but not referenced
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(212,45): warning C4244: 'argument': conversion from 'uint64_t' to 'int', possible loss of data
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(348,1): warning C4458: declaration of 'username' hides class member
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(86,14): message : see declaration of 'Username::username'
   Graphics.obj : MSIL .netmodule or module compiled with /GL found; restarting link with /LTCG; add /LTCG to the link command line to improve linker performance
 LINK : warning LNK4098: defaultlib 'LIBCMT' conflicts with use of other libs; use /NODEFAULTLIB:library
   Generating code

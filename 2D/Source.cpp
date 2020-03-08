@@ -1,11 +1,15 @@
 #include <FAN/Network.hpp>
 
-int main(int argc, char** argv) {
-#ifdef _WIN64
+constexpr auto PORT = 43254;
+
+int main() {
+#ifdef FAN_WINDOWS
 	init_winsock();
 #endif
-	client client(SERVER_IP, PORT);
-	printf("connected\n");
-	client.send_file(File(argv[1]));
+
+	tcp_server server(PORT);
+
+	server.get_file(server.get_socket(0));
+
 	return 0;
 }
