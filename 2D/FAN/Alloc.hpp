@@ -70,7 +70,7 @@ public:
 	~Alloc() {
 		if (_Data) {
 			//_Data = 0;
-			delete[] _Data;
+//			delete[] _Data;
 		}
 	}
 
