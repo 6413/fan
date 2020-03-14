@@ -239,7 +239,7 @@ public:
 	float r, g, b, a;
 	Color() : r(0), g(0), b(0), a(1) {}
 
-	Color(float r, float g, float b, float a = 1, bool index = false) {
+	constexpr Color(float r, float g, float b, float a = 1, bool index = false) : r(0), g(0), b(0), a(0) {
 		if (index) {
 			this->r = r / 255.f;
 			this->g = g / 255.f;
@@ -252,7 +252,7 @@ public:
 		this->b = b;
 		this->a = a;
 	}
-	Color(float value, bool index = false) {
+	constexpr Color(float value, bool index = false) : r(0), g(0), b(0), a(0) {
 		if (index) {
 			this->r = r / value;
 			this->g = g / value;
@@ -284,6 +284,12 @@ public:
 	}
 	constexpr float operator[](size_t x) const {
 		return !x ? this->r : x == 1 ? this->g : x == 2 ? this->b : x == 3 ? this->a : this->a;
+	}
+	constexpr Color operator-(const Color& color) const {
+		return Color(r - color.r, g - color.g, b - color.b, a - color.a);
+	}
+	constexpr Color operator+(const Color& color) const {
+		return Color(r + color.r, g + color.g, b + color.b);
 	}
 };
 

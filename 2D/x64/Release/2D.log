@@ -1,21 +1,38 @@
-﻿  Source.cpp
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(2,1): warning C4005: '_CRT_SECURE_NO_WARNINGS': macro redefinition
-C:\Users\123\Documents\GitHub\2D\2D\Source.cpp : message : see previous definition of '_CRT_SECURE_NO_WARNINGS'
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Time.hpp(13,23): warning C4458: declaration of 'time' hides class member
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Time.hpp(36,14): message : see declaration of 'Timer::time'
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Time.hpp(27,84): warning C4018: '>=': signed/unsigned mismatch
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(113,45): warning C4244: 'argument': conversion from 'uint64_t' to 'int', possible loss of data
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(133,1): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(173,45): warning C4244: 'argument': conversion from 'uint64_t' to 'int', possible loss of data
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(192,18): warning C4389: '!=': signed/unsigned mismatch
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(193,50): warning C4244: 'argument': conversion from 'uint64_t' to 'int', possible loss of data
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(189,12): warning C4189: 'file_name_size': local variable is initialized but not referenced
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(212,45): warning C4244: 'argument': conversion from 'uint64_t' to 'int', possible loss of data
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(348,1): warning C4458: declaration of 'username' hides class member
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(86,14): message : see declaration of 'Username::username'
-  Graphics.obj : MSIL .netmodule or module compiled with /GL found; restarting link with /LTCG; add /LTCG to the link command line to improve linker performance
+﻿  Graphics.cpp
+  Input.cpp
+  Settings.cpp
+  Source.cpp
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Input.cpp(22,45): warning C4805: '==': unsafe mix of type 'bool' and type 'int' in operation
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Input.cpp(50,45): warning C4805: '==': unsafe mix of type 'bool' and type 'int' in operation
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Time.hpp(79,84): warning C4018: '>=': signed/unsigned mismatch (compiling source file FAN\Graphics.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Time.hpp(79,84): warning C4018: '>=': signed/unsigned mismatch (compiling source file Source.cpp)
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.18362.0\shared\minwindef.h(130,1): warning C4005: 'APIENTRY': macro redefinition (compiling source file FAN\Graphics.cpp)
+C:\Users\123\Documents\GitHub\2D\External sources\GLFW\include\GLFW\glfw3.h(104): message : see previous definition of 'APIENTRY' (compiling source file FAN\Graphics.cpp)
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.18362.0\shared\minwindef.h(130,1): warning C4005: 'APIENTRY': macro redefinition (compiling source file Source.cpp)
+C:\Users\123\Documents\GitHub\2D\External sources\GLFW\include\GLFW\glfw3.h(104): message : see previous definition of 'APIENTRY' (compiling source file Source.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(202,1): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data (compiling source file FAN\Graphics.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(202,1): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data (compiling source file Source.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.hpp(660,49): warning C4305: 'argument': truncation from 'double' to 'float' (compiling source file FAN\Graphics.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.hpp(662,67): warning C4305: 'argument': truncation from 'double' to 'float' (compiling source file FAN\Graphics.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.hpp(663,64): warning C4305: 'argument': truncation from 'double' to 'float' (compiling source file FAN\Graphics.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.hpp(660,49): warning C4305: 'argument': truncation from 'double' to 'float' (compiling source file Source.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.hpp(662,67): warning C4305: 'argument': truncation from 'double' to 'float' (compiling source file Source.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.hpp(663,64): warning C4305: 'argument': truncation from 'double' to 'float' (compiling source file Source.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.hpp(938,1): warning C4305: 'argument': truncation from 'double' to 'float' (compiling source file FAN\Graphics.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.hpp(963,1): warning C4305: 'argument': truncation from 'const double' to 'float' (compiling source file FAN\Graphics.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.hpp(969,1): warning C4305: 'argument': truncation from 'const double' to 'float' (compiling source file FAN\Graphics.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.hpp(973,1): warning C4305: 'argument': truncation from 'const double' to 'float' (compiling source file FAN\Graphics.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.hpp(938,1): warning C4305: 'argument': truncation from 'double' to 'float' (compiling source file Source.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.hpp(963,1): warning C4305: 'argument': truncation from 'const double' to 'float' (compiling source file Source.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.hpp(969,1): warning C4305: 'argument': truncation from 'const double' to 'float' (compiling source file Source.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.hpp(973,1): warning C4305: 'argument': truncation from 'const double' to 'float' (compiling source file Source.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\Source.cpp(127,1): warning C4305: 'argument': truncation from 'const double' to 'float'
+C:\Users\123\Documents\GitHub\2D\2D\Source.cpp(235,114): warning C4305: 'argument': truncation from 'const double' to 'float'
+C:\Users\123\Documents\GitHub\2D\2D\Source.cpp(235,146): warning C4305: 'argument': truncation from 'const double' to 'float'
+C:\Users\123\Documents\GitHub\2D\2D\Source.cpp(237,126): warning C4305: 'argument': truncation from 'const double' to 'float'
+C:\Users\123\Documents\GitHub\2D\2D\Source.cpp(237,186): warning C4305: 'argument': truncation from 'const double' to 'float'
+C:\Users\123\Documents\GitHub\2D\2D\Source.cpp(240,128): warning C4305: 'argument': truncation from 'const double' to 'float'
 LINK : warning LNK4098: defaultlib 'LIBCMT' conflicts with use of other libs; use /NODEFAULTLIB:library
-  Generating code
-  Finished generating code
+  LINK : /LTCG specified but no code generation required; remove /LTCG from the link command line to improve linker performance
 glew32s.lib(glew.obj) : warning LNK4099: PDB 'vc120.pdb' was not found with 'glew32s.lib(glew.obj)' or at 'C:\Users\123\Documents\GitHub\2D\2D\x64\Release\vc120.pdb'; linking object as if no debug info
   2D.vcxproj -> C:\Users\123\Documents\GitHub\2D\2D\x64\Release\2D.exe

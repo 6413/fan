@@ -3,6 +3,12 @@
 
 Texture::Texture() : texture(0), width(0), height(0), VBO(0), VAO(0), EBO(0) { }
 
+_vec2<int> window_position() {
+	_vec2<int> position;
+	glfwGetWindowPos(window, &position.x, &position.y);
+	return position;
+}
+
 unsigned char* LoadBMP(const char* path, Texture& texture) {
 	FILE* file = fopen(path, "rb");
 	if (!file) {
@@ -10,7 +16,7 @@ unsigned char* LoadBMP(const char* path, Texture& texture) {
 		exit(1);
 	}
 	fseek(file, 0, SEEK_END);
-	std::size_t size = ftell(file);
+	uint64_t size = ftell(file);
 	fseek(file, 0, SEEK_SET);
 	unsigned char* data = (unsigned char*)malloc(size);
 	if (data) {
@@ -25,7 +31,7 @@ unsigned char* LoadBMP(const char* path, Texture& texture) {
 	return data + pixelOffset;
 }
 
-size_t _2d_1d(vec2 position) {
+uint64_t _2d_1d(vec2 position) {
 	return (int(position.x / block_size)) +
 		int(position.y / block_size) * (window_size.y / block_size);
 }
@@ -38,7 +44,7 @@ Camera::Camera(vec3 position, vec3 up, float yaw, float pitch) : front(vec3(0.0f
 	this->updateCameraVectors();
 }
 
-Color DefaultShape::get_color(std::size_t _Index) const {
+Color DefaultShape::get_color(uint64_t _Index) const {
 	return Color(
 		_Colors[_Index * COLORSIZE * (_PointSize / 2)    ],
 		_Colors[_Index * COLORSIZE * (_PointSize / 2) + 1],
@@ -51,7 +57,7 @@ auto& DefaultShape::get_color_ptr() const {
 	return _Colors;
 }
 
-void DefaultShape::set_color(size_t _Index, const Color& color, bool queue) {
+void DefaultShape::set_color(uint64_t _Index, const Color& color, bool queue) {
 	for (int i = 0; i < COLORSIZE * (_PointSize / 2); i++) {
 		_Colors[_Index * (COLORSIZE * (_PointSize / 2)) + i] = color[i % 4];
 	}
@@ -60,7 +66,7 @@ void DefaultShape::set_color(size_t _Index, const Color& color, bool queue) {
 	}
 }
 
-void DefaultShape::draw(std::size_t first) {
+void DefaultShape::draw(uint64_t first, uint64_t last) const {
 	if (_Vertices.empty()) {
 		return;
 	}
@@ -80,7 +86,7 @@ void DefaultShape::draw(std::size_t first) {
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
 	glBindBuffer(GL_ARRAY_BUFFER, _ColorBuffer.VBO);
 	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, 0);
-	glDrawArrays(_Mode, first, _Points);
+	glDrawArrays(_Mode, first * (_PointSize / 2), !last ? _Points : last * (_PointSize / 2));
 	glBindVertexArray(0);
 }
 
@@ -140,7 +146,7 @@ Line::Line(const mat2x2& _M, const Color& color) {
 	init();
 }
 
-mat2x2 Line::get_position(size_t _Index) const {
+mat2x2 Line::get_position(uint64_t _Index) const {
 	return mat2x2(
 		_Vertices[_Index * _PointSize], 
 		_Vertices[_Index * _PointSize + 1],
@@ -149,7 +155,7 @@ mat2x2 Line::get_position(size_t _Index) const {
 	);
 }
 
-void Line::set_position(size_t _Index, const mat2x2& _M, bool _Queue) {
+void Line::set_position(uint64_t _Index, const mat2x2& _M, bool _Queue) {
 	for (int i = 0; i < 4; i++) {
 		_Vertices[_Index * _PointSize + i] = _M[(i & 2) >> 1][i & 1];
 	}
@@ -186,7 +192,7 @@ void Line::push_back(const mat2x2& _M, Color _Color, bool _Queue) {
 	}
 }
 
-vec2 Line::get_length(size_t _Index) const {
+vec2 Line::get_length(uint64_t _Index) const {
 	return _Length[_Index];
 }
 
@@ -215,7 +221,7 @@ Triangle::Triangle(const vec2& _Position, const vec2& _Length, const Color& _Col
 	init();
 }
 
-void Triangle::set_position(size_t _Index, const vec2& _Position) {
+void Triangle::set_position(uint64_t _Index, const vec2& _Position) {
 	_Vertices[_Index * _PointSize] = (_Position.x - (_Length[_Index].x / 2));
 	_Vertices[_Index * _PointSize + 1] = (_Position.y + (_Length[_Index].y / 2));
 	_Vertices[_Index * _PointSize + 2] = (_Position.x + (_Length[_Index].x / 2));
@@ -225,7 +231,7 @@ void Triangle::set_position(size_t _Index, const vec2& _Position) {
 	write(true, false);
 }
 
-vec2 Triangle::get_position(std::size_t _Index) const {
+vec2 Triangle::get_position(uint64_t _Index) const {
 	return _Position[_Index];
 }
 
@@ -289,18 +295,22 @@ Square::Square(const vec2& _Position, const vec2& _Length, const Color& color) {
 	init();
 }
 
-Square::Square(std::size_t _Reserve, const vec2& _Position, const vec2& _Length, const Color& color) : Square() {
+Square::Square(uint64_t _Reserve, const vec2& _Position, const vec2& _Length, const Color& color) : Square() {
 	for (int i = 0; i < _Reserve; i++) {
 		push_back(_Position, _Length, color, true);
 	}
 	break_queue();
 }
 
-std::size_t Square::amount() const {
+uint64_t Square::amount() const {
 	return _Points / 4;
 }
 
-void Square::erase(std::size_t _Index) {
+bool Square::empty() const {
+	return amount();
+}
+
+void Square::erase(uint64_t _Index) {
 	for (int i = 0; i < _PointSize; i++) {
 		_Vertices.erase(_Index * _PointSize);
 	}
@@ -311,15 +321,15 @@ void Square::erase(std::size_t _Index) {
 	write(true, true);
 }
 
-vec2 Square::get_length(std::size_t _Index) const {
+vec2 Square::get_length(uint64_t _Index) const {
 	return _Length[_Index];
 }
 
-mat2x4 Square::get_corners(std::size_t _Index) const {
+mat2x4 Square::get_corners(uint64_t _Index) const {
 	if (_Index >= amount()) {
 		return mat2x4();
 	}
-	std::size_t _Multiplier = _Index * _PointSize;
+	uint64_t _Multiplier = _Index * _PointSize;
 	return mat2x4(
 		vec2(_Vertices[_Multiplier], _Vertices[_Multiplier + 1]),
 		vec2(_Vertices[_Multiplier + 2], _Vertices[_Multiplier + 3]),
@@ -328,14 +338,14 @@ mat2x4 Square::get_corners(std::size_t _Index) const {
 	);
 }
 
-vec2 Square::get_position(std::size_t _Index) const {
+vec2 Square::get_position(uint64_t _Index) const {
 	if (_Index >= amount()) {
 		return vec2(-1);
 	}
 	return vec2(_Vertices[_PointSize * _Index], _Vertices[_PointSize * _Index + 1]);
 }
 
-void Square::set_position(std::size_t _Index, const vec2& _Position, bool _Queue) {
+void Square::set_position(uint64_t _Index, const vec2& _Position, bool _Queue) {
 	vec2 _Distance(_Position[0] - _Vertices[_Index * _PointSize + 0], _Position[1] - _Vertices[_Index * _PointSize + 1]);
 	for (int i = 0; i < _PointSize; i++) {
 		_Vertices[_Index * _PointSize + i] += _Distance[i % 2];
@@ -346,11 +356,11 @@ void Square::set_position(std::size_t _Index, const vec2& _Position, bool _Queue
 	this->_Position[_Index] = _Position;
 }
 
-vec2 Square::get_size(std::size_t _Index) const {
+vec2 Square::get_size(uint64_t _Index) const {
 	return this->_Length[_Index];
 }
 
-void Square::set_size(std::size_t _Index, const vec2& _Size, bool _Queue) {
+void Square::set_size(uint64_t _Index, const vec2& _Size, bool _Queue) {
 	_Vertices[_Index * _PointSize + 0] = _Position[_Index].x;
 	_Vertices[_Index * _PointSize + 1] = _Position[_Index].y;
 	_Vertices[_Index * _PointSize + 2] = _Position[_Index].x + _Size.x;
@@ -402,7 +412,7 @@ void Square::push_back(const vec2& _Position, vec2 _Length, Color color, bool _Q
 	}
 }
 
-void Square::rotate(std::size_t _Index, double _Angle, bool _Queue) {
+void Square::rotate(uint64_t _Index, double _Angle, bool _Queue) {
 	constexpr double offset = 3 * PI / 4;
 	const vec2 position(get_position(_Index));
 	const vec2 _Radius(_Length[_Index] / 2);
@@ -426,7 +436,7 @@ void Square::rotate(std::size_t _Index, double _Angle, bool _Queue) {
 	}
 }
 
-Circle::Circle(std::size_t _Number_Of_Points, float _Radius) {
+Circle::Circle(uint64_t _Number_Of_Points, float _Radius) {
 	_Mode = GL_LINES;
 	_Points = 0;
 	_PointSize = _Number_Of_Points * 2;
@@ -434,7 +444,7 @@ Circle::Circle(std::size_t _Number_Of_Points, float _Radius) {
 	init();
 }
 
-Circle::Circle(const vec2& _Position, float _Radius, std::size_t _Number_Of_Points, const Color& _Color) {
+Circle::Circle(const vec2& _Position, float _Radius, uint64_t _Number_Of_Points, const Color& _Color) {
 	_Mode = GL_TRIANGLE_FAN;
 	_Points = _Number_Of_Points;
 	_PointSize = _Number_Of_Points * 2;
@@ -456,7 +466,7 @@ Circle::Circle(const vec2& _Position, float _Radius, std::size_t _Number_Of_Poin
 	init();
 }
 
-void Circle::set_position(std::size_t _Index, const vec2& _Position) {
+void Circle::set_position(uint64_t _Index, const vec2& _Position) {
 	for (int ii = 0; ii < _PointSize; ii += 2) {
 		float theta = _Double_Pi * float(ii) / float(_PointSize);
 
@@ -470,7 +480,7 @@ void Circle::set_position(std::size_t _Index, const vec2& _Position) {
 }
 
 void Circle::push_back(vec2 _Position, float _Radius, Color _Color, bool _Queue) {
-	const std::size_t _LPoints = _PointSize / 2;
+	const uint64_t _LPoints = _PointSize / 2;
 	this->_Position.push_back(_Position);
 	this->_Radius.push_back(_Radius);
 	for (int ii = 0; ii < _Points; ii++) {
@@ -597,7 +607,7 @@ void Sprite::set_angle(float angle) {
 	this->angle = angle;
 }
 
-Particles::Particles(std::size_t particles_amount, vec2 particle_size, vec2 particle_speed, float life_time, Color begin, Color end) :
+Particles::Particles(uint64_t particles_amount, vec2 particle_size, vec2 particle_speed, float life_time, Color begin, Color end) :
 	particles(particles_amount, -particle_size,
 		vec2(particle_size), begin), particle(), particleIndex(particles_amount - 1), begin(begin), end(end), life_time(life_time) {
 	for (int i = 0; i < particles_amount; i++) {
@@ -608,7 +618,7 @@ Particles::Particles(std::size_t particles_amount, vec2 particle_size, vec2 part
 void Particles::add(vec2 position) {
 	static Timer click_timer = {
 		high_resolution_clock::now(),
-		particles_per_second ? 1000 / particles_per_second : std::size_t(1e+10)
+		particles_per_second ? 1000 / particles_per_second : uint64_t(1e+10)
 	};
 	if (particle[particleIndex].time.finished() && click_timer.finished()) {
 		particles.set_position(particleIndex, position - particles.get_length(0) / 2);

@@ -5,25 +5,59 @@
 #include <FAN/Vectors.hpp>
 #include <string>
 #include <functional>
+#include <any>
+#include <vector>
 
 constexpr bool fullScreen = false;
 
 #define GLFW_MOUSE_SCROLL_UP 200
 #define GLFW_MOUSE_SCROLL_DOWN 201
 
-namespace CursorNamespace{
-	extern _vec2<int> cursor_position;
-}
+extern _vec2<int> cursor_position;
+extern _vec2<int> window_size;
 
-namespace WindowNamespace {
-	extern _vec2<int> window_size;
-}
+template <typename T>
+struct default_callback {
+public:
+	default_callback() : functions() {}
+	void add(const std::function<T>& function) {
+		functions.push_back(function);
+	}
+	inline auto get_function(uint64_t ind) const {
+		return functions[ind];
+	}
+	inline uint64_t size() const {
+		return functions.size();
+	}
+protected:
+	std::vector<std::function<T>> functions;
+};
 
-namespace Input {
-	extern bool key[1024];
-	extern bool action[348];
-	extern bool released[1024];
-}
+class KeyCallback : public default_callback<void()> {
+public:
+	KeyCallback() : action(), key() {}
+	void add(int key, int action, const std::function<void()>& function) {
+		this->action.push_back(action);
+		this->key.push_back(key);
+		functions.push_back(function);
+	}
+	inline bool get_action(uint64_t ind) const {
+		return action[ind];
+	}
+	inline int get_key(uint64_t ind) const {
+		return key[ind];
+	}
+private:
+	using default_callback::add;
+	std::vector<int> action;
+	std::vector<int> key;
+};
+
+extern class KeyCallback key_callback;
+extern struct default_callback<void()> window_resize_callback;
+extern struct default_callback<void()> cursor_move_callback;
+extern struct default_callback<void(int key)> character_callback;
+extern class KeyCallback key_release_callback;
 
 void GlfwErrorCallback(int id, const char* error);
 void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
@@ -32,16 +66,8 @@ void CursorPositionCallback(GLFWwindow* window, double xpos, double ypos);
 void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset);
 void CharacterCallback(GLFWwindow* window, unsigned int key);
 void FrameSizeCallback(GLFWwindow* window, int width, int height);
-void CursorEnterCallback(GLFWwindow* window, int entered);
+//void CursorEnterCallback(GLFWwindow* window, int entered);
 
 void WindowInit();
 
-std::string& textInput();
-
 bool cursor_inside_window();
-void OnKeyPress(int key, std::function<void()> lambda = std::function<void()>(), bool once = false);
-bool KeyPress(int key);
-bool KeyPressA(int key);
-void KeysReset();
-
-//extern bool render_one;

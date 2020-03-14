@@ -15,6 +15,9 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="FAN\Graphics.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -22,9 +25,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="FAN\Settings.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Source.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -44,6 +44,9 @@
     <ClInclude Include="FAN\Math.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="FAN\Network.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="FAN\Settings.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -53,11 +56,8 @@
     <ClInclude Include="FAN\Time.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="FAN\Network.hpp">
+    <ClInclude Include="FAN\Vectors.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="FAN\Vectors.hpp" />
   </ItemGroup>
 </Project>
