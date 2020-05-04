@@ -1,7 +1,6 @@
 #pragma once
 
 #include <chrono>
-#include <functional>
 
 using namespace std::chrono;
 
@@ -16,7 +15,7 @@ public:
 
 	Timer(
 		const decltype(high_resolution_clock::now())& timer, 
-		uint64_t time,
+		std::size_t time,
 		mode mode = mode::WAIT_FINISH,
 		const std::function<void()>& function = 
 		std::function<void()>()
@@ -80,7 +79,7 @@ public:
 		return duration_cast<milliseconds>(high_resolution_clock::now() - timer).count() >= time;
 	}
 
-	uint64_t elapsed() {
+	std::size_t passed() {
 		return duration_cast<milliseconds>(high_resolution_clock::now() - timer).count();
 	}
 
@@ -88,5 +87,5 @@ private:
 	std::vector<std::function<void()>> functions;
 	std::vector<mode> modes;
 	decltype(high_resolution_clock::now()) timer;
-	uint64_t time;
+	std::size_t time;
 };
