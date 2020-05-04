@@ -4,16 +4,12 @@
 #endif
 #endif
 
-#include <iostream>
+#include <FAN/File.hpp>
+
 #include <functional>
-#include <string>
 #include <cstring>
-#include <fstream>
 #include <thread>
-#include <vector>
-#include <cstdint>
 #include <map>
-#include <regex>
 
 #if defined(_WIN64) || defined(_WIN32)
 #define FAN_WINDOWS
@@ -24,6 +20,8 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #pragma comment(lib,"ws2_32.lib")
+static WSADATA wsa;
+static int wsa_error = WSAStartup(MAKEWORD(2, 2), &wsa);
 #else
 using SOCKET = uintptr_t;
 #include <sys/types.h>
@@ -39,49 +37,6 @@ using SOCKET = uintptr_t;
 
 #define stringify(name) #name
 
-struct File {
-	File(const std::string& file_name) : name(file_name) {}
-	File(const char* file_name) : name(file_name) {}
-	bool read() {
-		std::ifstream file(name.c_str(), std::ifstream::ate | std::ifstream::binary);
-		if (!file.good()) {
-			return 0;
-		}
-		data.resize(file.tellg());
-		file.seekg(0, std::ios::beg);
-		file.read(&data[0], data.size());
-		file.close();
-		return 1;
-	}
-
-	static inline void write(
-		std::string path,
-		const std::string& data,
-		int mode = std::ifstream::binary | std::ifstream::app
-	) {
-		std::ofstream file(path, std::ifstream::binary);
-		file << data;
-		file.close();
-	}
-	static inline bool file_exists(const std::string& name) {
-		std::ifstream file(name);
-		return file.good();
-	}
-	std::string data;
-	std::string name;
-};
-
-#ifdef FAN_WINDOWS
-static void init_winsock() {
-	int err;
-	WSADATA wsa;
-	if ((err = WSAStartup(MAKEWORD(2, 2), &wsa)) != 0) {
-		printf("WSAStartup failed with error: %d\n", err);
-		exit(EXIT_FAILURE);
-	}
-}
-#endif
-
 enum class packet_type {
 	get_file,
 	send_file,
@@ -94,11 +49,13 @@ enum class packet_type {
 	get_username,
 	set_username,
 	get_password,
-	set_password
+	set_password,
+	exit
 };
 
+// converts enum to int
 template <typename Enumeration>
-auto enum_to_int(Enumeration const value)
+constexpr auto eti(Enumeration const value)
 -> typename std::underlying_type<Enumeration>::type
 {
 	return static_cast<
@@ -118,7 +75,8 @@ static const char* packet_type_str[]{
 	stringify(get_username),
 	stringify(set_username),
 	stringify(get_password),
-	stringify(set_password)
+	stringify(set_password),
+	stringify(exit)
 };
 
 class User {
@@ -362,13 +320,6 @@ public:
 	}
 	~tcp_server() {
 		exit_program = true;
-		for (int i = 0; i < socket_size(); i++) {
-			send_data(
-				sockets[i],
-				"exit",
-				strlen("exit")
-			);
-		}
 #ifdef FAN_WINDOWS
 		for (auto& i : sockets) {
 			closesocket(i);
@@ -427,10 +378,10 @@ public:
 
 		while (1) {
 			packet_type job = *(packet_type*)m_get_message(socket).data();
-			if (enum_to_int(job) >= sizeof(packet_type_str) / sizeof(*packet_type_str)) {
+			if (eti(job) >= sizeof(packet_type_str) / sizeof(*packet_type_str)) {
 				continue;
 			}
-			printf("packet type: %s\n", packet_type_str[enum_to_int(job)]);
+			printf("packet type: %s\n", packet_type_str[eti(job)]);
 
 			switch (job) {
 			case packet_type::send_file: {
@@ -460,6 +411,17 @@ public:
 			case packet_type::send_message_user: {
 				redirect_message(socket);
 				break;
+			}
+			case packet_type::exit: {
+				std::string user = m_get_message(socket);
+				send_message(socket, "exit");
+				printf("%s has left\n", user.c_str());
+#ifdef FAN_WINDOWS
+				closesocket(socket);
+#else
+				close(socket);
+#endif
+				return;
 			}
 			}
 		}
@@ -577,9 +539,9 @@ private:
 	bool exit_program = false;
 };
 
-class client : public data_handler {
+class tcp_client : public data_handler {
 public:
-	client(const char* ip, unsigned short port, std::string username = std::string()) {
+	tcp_client(const char* ip, unsigned short port, std::string username = std::string()) {
 		this->set_username(username);
 
 		int error;
@@ -619,23 +581,23 @@ public:
 		}
 	}
 
-	~client() {
-		if (m_get_data(connect_socket, strlen("exit")) != "exit") {
-			puts("failed to receive exit message");
-			exit(EXIT_FAILURE);
-		}
+	~tcp_client() {
+		packet_type type = packet_type::exit;
+		send_message(std::string((const char*)&type, sizeof(type)));
+		send_message(get_username());
+
 #ifdef FAN_WINDOWS
-		closesocket(connect_socket);
-		WSACleanup();
+		//closesocket(connect_socket);
+	//	WSACleanup();
 #else
-		close(connect_socket);
+		//close(connect_socket);
 #endif
 	}
 
 	void process_handler() {
 		while (1) {
 			packet_type job = *(packet_type*)m_get_message(connect_socket).data();
-			printf("packet type: %s\n", packet_type_str[enum_to_int(job)]);
+			printf("packet type: %s\n", packet_type_str[eti(job)]);
 
 			switch (job) {
 			case packet_type::send_file: {
@@ -673,4 +635,82 @@ public:
 
 private:
 	SOCKET connect_socket;
+};
+
+class UDP {
+public:
+	void send_message(const std::string& message) const {
+		if (sendto(_socket, message.c_str(), message.size(), 0, (sockaddr*)&peer, socket_length) == SOCKET_ERROR) {
+			printf("failed to send data %d\n", WSAGetLastError());
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	void send_messagen(const std::string& message) const {
+		send_message((const char*)message.size());
+		send_message(message);
+	}
+
+	void listen(std::function<void()> execute = std::function<void()>([]() {})) {
+		std::vector<char> buffer(max_buffer);
+		if (recvfrom(_socket, &buffer[0], buffer.size(), 0, (sockaddr*)&peer, &socket_length) == SOCKET_ERROR) {
+			printf("failed to receive %d\n", WSAGetLastError());
+			exit(EXIT_FAILURE);
+		}
+		data.append(buffer.cbegin(), buffer.cend());
+		execute();
+	}
+
+	std::string data;
+protected:
+	SOCKET _socket;
+	int socket_length;
+	sockaddr_in this_sockaddr, peer;
+	const int max_buffer = 1024;
+};
+
+class udp_client : public UDP {
+public:
+	udp_client(const char* ip, unsigned short port) {
+		socket_length = sizeof(this_sockaddr);
+		if ((_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == INVALID_SOCKET) {
+			printf("failed to create socket\n");
+		}
+		memset((char*)&this_sockaddr, 0, sizeof(this_sockaddr));
+		this_sockaddr.sin_family = AF_INET;
+#ifdef _WIN64
+		this_sockaddr.sin_addr.S_un.S_addr = inet_addr(ip);
+#else
+		this_sockaddr.sin_addr.s_addr = inet_addr(SERVER_IP);
+#endif
+		this_sockaddr.sin_port = htons(port);
+	}
+	~udp_client() {
+		closesocket(_socket);
+		WSACleanup();
+	}
+};
+
+class udp_server : public UDP {
+public:
+	udp_server(unsigned short port) {
+		socket_length = sizeof(peer);
+
+		if ((_socket = socket(AF_INET, SOCK_DGRAM, 0)) == INVALID_SOCKET) {
+			printf("failed to create socket\n");
+		}
+
+		this_sockaddr.sin_family = AF_INET;
+		this_sockaddr.sin_addr.s_addr = INADDR_ANY;
+		this_sockaddr.sin_port = htons(port);
+
+		if (bind(_socket, (sockaddr*)&this_sockaddr, sizeof(this_sockaddr)) == SOCKET_ERROR) {
+			printf("bind failed\n");
+		}
+	}
+
+	~udp_server() {
+		closesocket(_socket);
+		WSACleanup();
+	}
 };
