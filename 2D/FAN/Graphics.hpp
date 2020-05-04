@@ -1,4 +1,5 @@
 ﻿#pragma once
+//#ifndef __INTELLISENSE__ 
 
 #define GLEW_STATIC
 #include <GL/glew.h>
@@ -29,11 +30,8 @@
 #define COORDSIZE 2
 
 class Sprite;
-class Main;
 
-class Square;
-struct ImageData;
-enum class GroupId;
+class SquareVector;
 
 struct Texture {
 	Texture();
@@ -52,37 +50,26 @@ namespace BMP_Offsets {
 unsigned char* LoadBMP(const char* path, Texture& texture);
 uint64_t _2d_1d(vec2 position = cursor_position);
 
-
 _vec2<int> window_position();
 
-typedef std::map<std::string, std::deque<std::string>> message_t;
 
 class Camera {
 public:
+	Camera(
+		vec3 position = vec3(0.0f, 0.0f, 0.0f),
+		vec3 up = vec3(0.0f, 1.0f, 0.0f),
+		float yaw = -90.0f,
+		float pitch = 0.0f
+	);
 
-	Camera(vec3 position = vec3(0.0f, 0.0f, 0.0f), vec3 up = vec3(0.0f, 1.0f, 0.0f), float yaw = -90.0f, float pitch = 0.0f);
+	matrix<4, 4> GetViewMatrix(matrix<4, 4> m);
 
-	constexpr matrix<4, 4> GetViewMatrix(matrix<4, 4> m) {
-		return m * LookAt(this->position, (this->position + Round(this->front)), Round(this->up));
-	}
-
-	constexpr vec3 get_position() const {
-		return this->position;
-	}
-	constexpr void set_position(const vec3& position) {
-		this->position = position;
-	}
+	vec3 get_position() const;
+	void set_position(const vec3& position);
 
 	GLfloat yaw;
 	GLfloat pitch;
-	void updateCameraVectors() {
-		front.x = cos(Radians(this->yaw)) * cos(Radians(this->pitch));
-		front.y = sin(Radians(this->pitch));
-		front.z = sin(Radians(this->yaw)) * cos(Radians(this->pitch));
-		this->front = Normalize(front);
-		this->right = Normalize(Cross(this->front, this->worldUp));
-		this->up = Normalize(Cross(this->right, this->front));
-	}
+	void updateCameraVectors();
 
 private:
 	vec3 front;
@@ -92,8 +79,109 @@ private:
 	vec3 position;
 };
 
-class DefaultShape {
+
+enum class shapes {
+	line,
+	triangle,
+	square,
+	circle,
+	size
+};
+
+template <shapes shape>
+class vertice_handler {
 public:
+
+	~vertice_handler();
+
+	int draw_id = 0;
+
+	void init(
+		const std::vector<float>& l_vertices,
+		const std::vector<float>& l_colors,
+		bool queue = false
+	);
+
+	void write(bool _EditVertices, bool _EditColor);
+
+	void draw(uint64_t shape_id = -1) const;
+
+	std::vector<float> vertices;
+	std::vector<float> colors;
+private:
+	Texture vertice_buffer;
+	Texture color_buffer;
+	Texture shape_buffer;
+	unsigned int mode;
+	int points;
+	uint64_t point_size;
+	Shader shader;
+	Camera* camera;
+};
+
+static vertice_handler<shapes::line> line_handler;
+static vertice_handler<shapes::square> square_handler;
+
+static void draw_all() {
+	line_handler.draw();
+	square_handler.draw();
+}
+
+class Line;
+class Square;
+
+template <shapes shape>
+class default_shape {
+public:
+	using shape_type = std::remove_const_t<decltype(shape)>;
+
+	virtual void draw();
+
+protected:
+	int draw_id;
+	Color color;
+	vec2 position;
+	vec2 size;
+};
+
+struct Line : public default_shape<shapes::line> {
+
+	Line(const mat2x2& m, const Color& color);
+
+	vec2 get_position() const;
+	void set_position(const mat2x2& m);
+
+	Color get_color() const;
+	void set_color(const Color& color);
+
+	vec2 get_size() const;
+	void set_size(const vec2& size);
+};
+
+class Square : public default_shape<shapes::square> {
+public:
+
+	Square(const vec2& position, const vec2& size, const Color& color, bool queue = false);
+	~Square();
+
+	vec2 get_position() const;
+
+	virtual void set_position(const vec2& position, bool queue = false);
+
+	Color get_color() const;
+	void set_color(const Color& color);
+
+	vec2 get_size() const;
+	void set_size(const vec2& size, bool queue = false);
+
+	static void break_queue();
+};
+
+
+class DefaultShapeVector {
+public:
+	~DefaultShapeVector();
+
 	Color get_color(uint64_t _Index = 0) const;
 	auto& get_color_ptr() const;
 	void set_color(uint64_t _Index, const Color& color, bool queue = false);
@@ -119,13 +207,11 @@ protected:
 	uint64_t _PointSize;
 };
 
-class Line : public DefaultShape {
+class LineVector : public DefaultShapeVector {
 public:
-	Line();
-	Line(const mat2x2& _M, const Color& color);
-	Line(const Line& line) {
-		*this = line;
-	}
+	LineVector();
+	LineVector(const mat2x2& _M, const Color& color);
+	LineVector(const LineVector& line);
 
 	mat2x2 get_position(uint64_t _Index = 0) const;
 	void set_position(uint64_t _Index, const mat2x2& _M, bool _Queue = false);
@@ -138,11 +224,11 @@ private:
 	Alloc<vec2> _Length;
 };
 
-class Triangle : public DefaultShape {
+class TriangleVector : public DefaultShapeVector {
 public:
-	Triangle();
-	Triangle(const vec2& _Position, const vec2& _Length, const Color& _Color);
-	~Triangle() {}
+	TriangleVector();
+	TriangleVector(const vec2& _Position, const vec2& _Length, const Color& _Color);
+	~TriangleVector() {}
 
 	void set_position(uint64_t _Index, const vec2& _Position);
 	vec2 get_position(uint64_t _Index) const;
@@ -154,14 +240,14 @@ private:
 	Alloc<vec2> _Length;
 };
 
-class Square : public DefaultShape {
+class SquareVector : public DefaultShapeVector {
 public:
-	Square();
-	Square(const Square& square) {
+	SquareVector();
+	SquareVector(const SquareVector& square) {
 		*this = square;
 	}
-	Square(const vec2& _Position, const vec2& _Length, const Color& color);
-	Square(uint64_t _Reserve, const vec2& _Position, const vec2& _Length, const Color& color);
+	SquareVector(const vec2& _Position, const vec2& _Length, const Color& color);
+	SquareVector(uint64_t _Reserve, const vec2& _Position, const vec2& _Length, const Color& color);
 
 	uint64_t amount() const;
 	bool empty() const;
@@ -177,29 +263,20 @@ public:
 	vec2 get_size(uint64_t _Index = 0) const;
 	void set_size(uint64_t _Index, const vec2& _Size, bool _Queue = false);
 
-	void push_back(const Square& square) {
-		for (int i = 0; i < square.amount(); i++) {
-			push_back(square.get_position(i), square.get_length(i), square.get_color(i), true);
-		}
-		break_queue();
-	}
+	void push_back(const SquareVector& square);
 	void push_back(const vec2& _Position, vec2 _Length = vec2(), Color color = Color(-1, -1, -1, -1), bool _Queue = false);
 
 	void rotate(uint64_t _Index, double _Angle, bool queue = false);
-
-	Square get_this() const {
-		return *this;
-	}
 
 private:
 	Alloc<vec2> _Position;
 	Alloc<vec2> _Length;
 };
 
-class Circle : public DefaultShape {
+class CircleVector : public DefaultShapeVector {
 public:
-	Circle(uint64_t _Number_Of_Points, float _Radius);
-	Circle(const vec2& _Position, float _Radius, uint64_t _Number_Of_Points, const Color& _Color);
+	CircleVector(uint64_t _Number_Of_Points, float _Radius);
+	CircleVector(const vec2& _Position, float _Radius, uint64_t _Number_Of_Points, const Color& _Color);
 
 	void set_position(uint64_t _Index, const vec2& _Position);
 
@@ -214,7 +291,13 @@ private:
 class Sprite {
 public:
 	Sprite();
-	Sprite(const char* path, vec2 position = vec2(), vec2 size = vec2(), float angle = 0, Shader shader = Shader("GLSL/core.vs", "GLSL/core.frag"));
+	Sprite(
+		const char* path,
+		vec2 position = vec2(),
+		vec2 size = vec2(),
+		float angle = 0,
+		Shader shader = Shader("GLSL/core.vs", "GLSL/core.frag")
+	);
 
 	void draw();
 	void init_image();
@@ -257,7 +340,7 @@ public:
 
 private:
 	int64_t particleIndex;
-	Square particles;
+	SquareVector particles;
 	Alloc<Particle> particle;
 	Color begin;
 	Color end;
@@ -267,32 +350,30 @@ private:
 template <typename shape>
 class Entity : public shape {
 public:
-	template<typename T = shape, typename _Shader = Shader, std::enable_if_t<std::is_same<Sprite, T>::value> * = nullptr>
-	constexpr Entity(const char* path, vec2 position, vec2 size, float angle, _Shader shader = _Shader("GLSL/core.frag", "GLSL/core.vs")) :
+	template<
+		typename T = shape,
+		typename _Shader = Shader,
+		std::enable_if_t<std::is_same<Sprite, T>::value>* = nullptr
+	>
+		constexpr Entity(
+			const char* path,
+			vec2 position,
+			vec2 size,
+			float angle,
+			_Shader shader = _Shader("GLSL/core.frag", "GLSL/core.vs")
+		) :
 		Sprite(path, position, size, angle, shader), velocity(0) { }
 
-	template<typename T = shape, std::enable_if_t<std::is_same<Square, T>::value> * = nullptr>
-	constexpr Entity(const vec2& _Position, const vec2& _Length, const Color& color) :
-		Square(_Position, _Length, color), velocity(0) { }
-
-	//template<typename T = shape, std::enable_if_t<std::is_same<Square, T>::value> * = nullptr>
-	//void move(bool mouse, Line& my_ray, const Square& squares, bool map[grid_size.x][grid_size.y]) {
-	//	velocity /= (delta_time * friction) + 1;
-
-	//	if (KeyPress(GLFW_KEY_W)) velocity.y -= movement_speed * delta_time;
-	//	if (KeyPress(GLFW_KEY_S)) velocity.y += movement_speed * delta_time;
-	//	if (KeyPress(GLFW_KEY_A)) velocity.x -= movement_speed * delta_time;
-	//	if (KeyPress(GLFW_KEY_D)) velocity.x += movement_speed * delta_time;
-
-	//	position += velocity * delta_time;
-
-	//	this->set_position(0, position);
-
-
-	//	if (mouse) {
-	//		this->rotate(0, Degrees(AimAngle(this->get_position(0), cursor_position) + PI / 2));
-	//	}
-	//}
+	template<
+		typename T = shape,
+		std::enable_if_t<std::is_same<SquareVector, T>::value>* = nullptr
+	>
+		constexpr Entity(
+			const vec2& _Position,
+			const vec2& _Length,
+			const Color& color
+		) :
+		SquareVector(_Position, _Length, color), velocity(0) { }
 
 	constexpr vec2 get_velocity() const {
 		return movement_speed;
@@ -309,18 +390,15 @@ private:
 	vec2 velocity;
 };
 
-class button : public Square {
+class button : public SquareVector {
 public:
 	button() {}
-
 	button(
 		const vec2& position,
 		const vec2& size,
 		const Color& color,
 		std::function<void()> lambda = std::function<void()>()
-	) : Square(position, size, color), count(1) {
-		callbacks.push_back(lambda);
-	};
+	);
 
 	void add(
 		const vec2& _Position,
@@ -328,115 +406,54 @@ public:
 		Color color = Color(-1, -1, -1, -1),
 		std::function<void()> lambda = std::function<void()>(),
 		bool queue = false
-	) {
-		this->push_back(_Position, _Length, color, queue);
-		callbacks.push_back(lambda);
-		count++;
-	}
+	);
+	void add(const button& button);
 
-	void add(const button& button) {
-		*this = button;
-	}
+	void button_press_callback(uint64_t index = 0);
 
-	void button_press_callback(uint64_t index = 0) {
-		if (inside(index)) {
-			if (callbacks[index]) {
-				callbacks[index]();
-			}
-		}
-	}
+	bool inside(uint64_t index = 0) const;
 
-	bool inside(uint64_t index = 0) const {
-		return cursor_position.x >= get_position(index).x &&
-			cursor_position.x <= get_position(index).x + get_length(index).x &&
-			cursor_position.y >= get_position(index).y &&
-			cursor_position.y <= get_position(index).y + get_length(index).y;
-	}
-
-	uint64_t amount() const {
-		return count;
-	}
+	uint64_t amount() const;
 
 private:
-	using Square::push_back;
+	using SquareVector::push_back;
 	std::vector<std::function<void()>> callbacks;
 	uint64_t count;
 };
 
+class button_single : public Square {
+public:
+	button_single() : Square(vec2(), vec2(), Color()) {}
+	button_single(
+		const vec2& position,
+		const vec2& size,
+		const Color& color,
+		std::function<void()> lambda = std::function<void()>(),
+		bool queue = false
+	);
+
+	void button_press_callback(uint64_t index = 0);
+
+	bool inside() const;
+
+private:
+	std::function<void()> callback;
+};
+
 class Box {
 public:
-	Box(const vec2& position, const vec2& size, const Color& color) :
-		box_lines(
-			Line(
-				mat2x2(
-					position,
-					vec2(position.x + size.x, position.y)
-				), color
-			)
-		) {
-		box_lines.push_back(
-			mat2x2(
-				position,
-				vec2(position.x, position.y + size.y)
-			)
-		);
-		box_lines.push_back(
-			mat2x2(
-				position + size - vec2(0, 1),
-				vec2(position.x - 1, position.y + size.y - 1)
-			)
-		);
-		box_lines.push_back(
-			mat2x2(position + size,
-				vec2(position.x + size.x, position.y)
-			)
-		);
-		this->size.push_back(size);
-	}
-	void set_position(uint64_t index, const vec2& position) {
-		box_lines.set_position(
-			index,
-			mat2x2(
-				position,
-				vec2(position.x + size[index].x, position.y)
-			), true
-		);
-		box_lines.set_position(
-			index + 1,
-			mat2x2(
-				position,
-				vec2(position.x, position.y + size[index].y)
-			), true
-		);
-		box_lines.set_position(
-			index + 2,
-			mat2x2(
-				position + size[index] - vec2(0, 1),
-				vec2(position.x - 1, position.y + size[index].y - 1)
-			), true
-		);
-		box_lines.set_position(
-			index + 3,
-			mat2x2(position + size[index],
-				vec2(position.x + size[index].x, position.y)
-			)
-		);
-		box_lines.break_queue();
-	}
-	void draw() const {
-		box_lines.draw();
-	}
+	Box(const vec2& position, const vec2& size, const Color& color);
+
+	void set_position(uint64_t index, const vec2& position);
+
+	void draw() const;
+
 private:
-	Line box_lines;
+	LineVector box_lines;
 	std::vector<vec2> size;
 };
 
-//#ifndef FAN_WINDOWS 
-//static int _XlibErrorHandler(Display* display, XErrorEvent* event) {
-//	fprintf(stderr, "An error occured detecting the mouse position\n");
-//	return True;
-//}
-//#endif
+
 #ifdef FAN_WINDOWS
 static _vec2<int> cursor_screen_position() {
 	POINT p;
@@ -445,7 +462,12 @@ static _vec2<int> cursor_screen_position() {
 }
 #endif
 
-vec2 Raycast(const vec2& start, const vec2& end, const Square& squares, bool map[grid_size.x][grid_size.y]);
+vec2 Raycast(
+	const vec2& start,
+	const vec2& end,
+	const SquareVector& squares,
+	bool map[grid_size.x][grid_size.y]
+);
 
 #ifdef FT_FREETYPE_H
 struct Character {
@@ -455,177 +477,56 @@ struct Character {
 	GLuint Advance;    // Horizontal offset to advance to next glyph
 };
 
+template <typename T>
+constexpr Color lighter_color(const T& color, float offset) {
+	return T(color + offset);
+}
+
+template <typename T>
+constexpr Color darker_color(const T& color, float offset) {
+	return T(color - offset);
+}
+
+constexpr auto blink_rate = 500; // ms
+constexpr auto blinker_height = 15.f;
+constexpr auto scroll_sensitivity = 50.f;
+constexpr auto chat_begin_height = 100.f;
+constexpr auto erase_speedlimit = 100; // ms
+constexpr auto font_size = 0.4;
+constexpr auto user_divider_x(300);
+constexpr auto text_position_x = user_divider_x + 50.f;
+constexpr auto title_bar_height = 25.f;
+constexpr auto type_box_height = 50.f;
+constexpr auto chat_box_max_width = 200.f;
+constexpr auto text_gap = 20.f;
+constexpr auto chat_boxes_gap = 3.f;
+constexpr auto user_box_size = vec2(user_divider_x, 80);
+constexpr auto scroll_max_gap = 100.f;
+constexpr vec2 gap_between_text_and_box(8, 15);
+constexpr auto chat_box_height = 18.f + gap_between_text_and_box.y;
+
+constexpr Color background_color((float)0x0e, 0x16, (float)0x21, 0xff, true);
+constexpr Color exit_cross_color(0.8, 0.8, 0.8);
+constexpr auto user_box_color = Color(0x17, 0x21, 0x2b, 0xff, true);
+constexpr Color title_bar_color(darker_color(user_box_color, 0.05));
+constexpr Color highlight_color = title_bar_color + Color(0.1);
+constexpr Color select_color(0x2b, 0x52, 0x78, 0xff, true);
+constexpr Color white_color(1);
+constexpr Color red_color(1, 0, 0);
+constexpr Color green_color(0, 1, 0);
+constexpr Color blue_color(0, 0, 1);
+
+constexpr auto my_chat_path = "my_chat";
+constexpr auto their_chat_path = "their_chat";
+
 class TextRenderer {
 public:
-	TextRenderer() : shader(Shader("GLSL/text.vs", "GLSL/text.frag")) {
-		shader.Use();
-		matrix<4,4> projection = Ortho(0, window_size.x, window_size.y, 0);
-		glUniformMatrix4fv(glGetUniformLocation(shader.ID, "projection"), 1, GL_FALSE, &projection[0][0]);
-		// FreeType
-		FT_Library ft;
-		// All functions return a value different than 0 whenever an error occurred
-		if (FT_Init_FreeType(&ft))
-			std::cout << "ERROR::FREETYPE: Could not init FreeType Library" << std::endl;
+	TextRenderer();
 
-		// Load font as face
-		FT_Face face;
-		if (FT_New_Face(ft, "fonts/calibri.ttf", 0, &face))
-			std::cout << "ERROR::FREETYPE: Failed to load font" << std::endl;
+	vec2 get_length(std::string text, float scale, bool include_endl = false);
 
-		// Set size to load glyphs as
-		FT_Set_Pixel_Sizes(face, 0, 48);
+	void render(std::string text, vec2 position, float scale, const Color& color);
 
-		// Disable byte-alignment restriction
-		glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-
-		// 246 = � in unicode
-		for (GLubyte c = 0; c < 247; c++)
-		{
-			// Load character glyph 
-			if (FT_Load_Char(face, c, FT_LOAD_RENDER))
-			{
-				std::cout << "ERROR::FREETYTPE: Failed to load Glyph" << std::endl;
-				continue;
-			}
-			// Generate texture
-			GLuint texture;
-			glGenTextures(1, &texture);
-			glBindTexture(GL_TEXTURE_2D, texture);
-			glTexImage2D(
-				GL_TEXTURE_2D,
-				0,
-				GL_RED,
-				face->glyph->bitmap.width,
-				face->glyph->bitmap.rows,
-				0,
-				GL_RED,
-				GL_UNSIGNED_BYTE,
-				face->glyph->bitmap.buffer
-			);
-			// Set texture options
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			// Now store character for later use
-			Character character = {
-				texture,
-				_vec2<int>(face->glyph->bitmap.width, face->glyph->bitmap.rows),
-				_vec2<int>(face->glyph->bitmap_left, face->glyph->bitmap_top),
-				(unsigned int)face->glyph->advance.x
-			};
-			Characters.insert(std::pair<GLchar, Character>(c, character));
-		}
-		glBindTexture(GL_TEXTURE_2D, 0);
-		// Destroy FreeType once we're finished
-		FT_Done_Face(face);
-		FT_Done_FreeType(ft);
-
-
-		// Configure VAO/VBO for texture quads
-		glGenVertexArrays(1, &VAO);
-		glGenBuffers(1, &VBO);
-		glBindVertexArray(VAO);
-		glBindBuffer(GL_ARRAY_BUFFER, VBO);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 4, NULL, GL_DYNAMIC_DRAW);
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		glBindVertexArray(0);
-	}
-	vec2 get_length(std::string text, float scale) {
-		vec2 start_position;
-		vec2 end_position;
-
-		std::string::const_iterator c;
-
-		bool get_start = true;
-
-		float length = 0;
-
-		for (c = text.begin(); c != text.end(); c++)
-		{
-			Character ch = Characters[*c];
-
-			GLfloat w = ch.Size.x * scale;
-			GLfloat h = ch.Size.y * scale;
-
-			GLfloat xpos = ch.Bearing.x * scale + w;
-			GLfloat ypos = (ch.Size.y - ch.Bearing.y) * scale - h;
-			if (get_start) {
-				start_position = { xpos, ypos };
-				get_start = false;
-			}
-
-			end_position.x += (ch.Advance >> 6) * scale;
-			length = end_position.x + ch.Bearing.x * scale;
-			end_position.y = ch.Size.y * scale;
-		}
-		return vec2(length, end_position.y);
-	}
-	void render(std::string text, vec2 position, float scale, const Color& color) {
-		if (text.empty()) {
-			return;
-		}
-		shader.Use();
-		matrix<4, 4> projection = Ortho(0, window_size.x, window_size.y, 0);
-		glUniformMatrix4fv(glGetUniformLocation(shader.ID, "projection"), 1, GL_FALSE, &projection[0][0]);
-		glUniform4f(glGetUniformLocation(shader.ID, "textColor"), color.r, color.g, color.b, color.a);
-		glActiveTexture(GL_TEXTURE0);
-		glBindVertexArray(VAO);
-
-		std::string::const_iterator c;
-
-		float originalX = position.x;
-
-		for (c = text.begin(); c != text.end(); c++)
-		{
-			Character ch = Characters[*c];
-
-			GLfloat w = ch.Size.x * scale;
-			GLfloat h = ch.Size.y * scale;
-
-			if (position.y - (ch.Size.y - ch.Bearing.y) * scale + h < 0) {
-				continue;
-			}
-			if (*c == '\n') {
-				position.x = originalX;
-				position.y += (ch.Size.y - ch.Bearing.y) * scale + h;
-				continue;
-			}
-			else if (*c == '\b') {
-				position.x = originalX;
-				position.y -= (ch.Size.y - ch.Bearing.y) * scale + h;
-				continue;
-			}
-
-			GLfloat xpos = position.x + ch.Bearing.x * scale;
-			GLfloat ypos = position.y + (ch.Size.y - ch.Bearing.y) * scale;
-			std::vector<float**> _Vertices;
-			// Update VBO for each character
-			GLfloat vertices[6][4] = {
-				{ xpos,     ypos - h,   0.0, 0.0 },
-				{ xpos,     ypos,       0.0, 1.0 },
-				{ xpos + w, ypos,       1.0, 1.0 },
-
-				{ xpos,     ypos - h,   0.0, 0.0 },
-				{ xpos + w, ypos,       1.0, 1.0 },
-				{ xpos + w, ypos - h,   1.0, 0.0 }
-			};
-			// Render glyph texture over quad
-			glBindTexture(GL_TEXTURE_2D, ch.TextureID);
-			// Update content of VBO memory
-			glBindBuffer(GL_ARRAY_BUFFER, VBO);
-			glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices); // Be sure to use glBufferSubData and not glBufferData
-			glBindBuffer(GL_ARRAY_BUFFER, 0);
-			// Render quad
-			glDrawArrays(GL_TRIANGLES, 0, 6);
-			// Now advance cursors for next glyph (note that advance is number of 1/64 pixels)
-			position.x += (ch.Advance >> 6)* scale; // Bitshift by 6 to get value in pixels (2^6 = 64 (divide amount of 1/64th pixels by 64 to get amount of pixels))
-		}
-		glBindVertexArray(0);
-		glBindTexture(GL_TEXTURE_2D, 0);
-	}
 private:
 	std::map<GLchar, Character> Characters;
 	Shader shader;
@@ -634,39 +535,6 @@ private:
 #endif
 
 namespace fan_gui {
-	template <typename T>
-	constexpr Color lighter_color(const T& color, float offset) {
-		return T(color + offset);
-	}
-
-	template <typename T>
-	constexpr Color darker_color(const T& color, float offset) {
-		return T(color - offset);
-	}
-
-	constexpr auto blink_rate = 500; // ms
-	constexpr auto blinker_height = 15.f;
-	constexpr auto chat_begin_height = 100.f;
-	constexpr auto erase_speedlimit = 100; // ms
-	constexpr auto font_size = 0.35;
-	constexpr auto user_divider_x(300);
-	constexpr auto text_position_x = user_divider_x + 50.f;
-	constexpr auto text_gap = 30.f;
-	constexpr auto title_bar_height = 25.f;
-	constexpr auto type_box_height = 50.f;
-	constexpr auto user_box_size = vec2(user_divider_x, 80);
-
-	constexpr Color background_color((float)0x0e, 0x16, (float)0x21, 0xff, true);
-	constexpr Color exit_cross_color(0.8, 0.8, 0.8);
-	constexpr auto user_box_color = Color(0x17, 0x21, 0x2b, 0xff, true);
-	constexpr Color title_bar_color(darker_color(user_box_color, 0.05));
-	constexpr Color highlight_color = title_bar_color + Color(0.1);
-	constexpr Color select_color(0x2b, 0x52, 0x78, 0xff, true);
-	constexpr Color white_color(1);
-	constexpr Color red_color(1, 0, 0);
-	constexpr Color green_color(0, 1, 0);
-	constexpr Color blue_color(0, 0, 1);
-
 	enum class e_button {
 		title_bar,
 		exit,
@@ -674,172 +542,68 @@ namespace fan_gui {
 		minimize
 	};
 
+	enum class text_box_side {
+		LEFT,
+		RIGHT
+	};
+
+	class text_box : public button_single {
+	public:
+
+		text_box();
+		text_box(TextRenderer* renderer, std::string text, const vec2& position, const Color& color);
+
+		std::string get_text() const;
+		void set_text(std::string new_text, std::deque<std::string>& messages, uint64_t at);
+
+		vec2 get_position() const;
+		void set_position(const vec2& position, bool queue = false);
+
+		void draw();
+
+		static std::string get_finished_string(TextRenderer* renderer, std::string text);
+		static vec2 get_size_all(TextRenderer* renderer, std::string text);
+
+		static void refresh(
+			std::vector<text_box>& chat_boxes,
+			const std::deque<std::string>& messages,
+			TextRenderer* tr,
+			text_box_side side = text_box_side::RIGHT,
+			int offset = -1
+		);
+
+		static void refresh(
+			std::vector<text_box>& chat_boxes,
+			const std::deque<std::string>& messages,
+			std::vector<text_box>& second_boxes,
+			const std::deque<std::string>& second_messages,
+			TextRenderer* tr,
+			int offset = -1
+		);
+
+	private:
+		TextRenderer* renderer;
+		std::string text;
+		float first_line_size;
+	};
+
 	class Titlebar {
 	public:
-		Titlebar() {
-			exit_cross.push_back(
-			mat2x2(
-				vec2(buttons.get_position(enum_to_int(e_button::exit)).x +
-					title_bar_shapes_size,
-					title_bar_button_size.y - title_bar_shapes_size),
-				vec2(buttons.get_position(enum_to_int(e_button::exit)).x +
-					title_bar_button_size.x - title_bar_shapes_size,
-					buttons.get_position(enum_to_int(e_button::exit)).y +
-					title_bar_shapes_size)
-			)
-			);
-			buttons.add(
-				vec2(window_size.x - title_bar_button_size.x, 0),
-				title_bar_button_size,
-				title_bar_color,
-				[] {
-					glfwSetWindowShouldClose(window, true);
-				}
-			);
-			buttons.add(
-				vec2(window_size.x - title_bar_button_size.x * 2, 0),
-				title_bar_button_size,
-				title_bar_color,
-				[&] {
-					if (m_bMaximized) {
-						glfwRestoreWindow(window);
-					}
-					else {
-						glfwMaximizeWindow(window);
-					}
-					m_bMaximized = !m_bMaximized;
-				}
-			);
-			buttons.add(
-				vec2(window_size.x - title_bar_button_size.x * 3, 0),
-				title_bar_button_size,
-				title_bar_color,
-				[] {
-					glfwIconifyWindow(window);
-				}
-			);
-		}
-		void cursor_update() {
-			if (buttons.inside(enum_to_int(e_button::exit))) {
-				if (buttons.get_color(enum_to_int(e_button::exit)) != Color(1, 0, 0)) {
-					buttons.set_color(enum_to_int(e_button::exit), Color(1, 0, 0));
-				}
-			}
-			else {
-				if (buttons.get_color(enum_to_int(e_button::exit)) != title_bar_color) {
-					buttons.set_color(enum_to_int(e_button::exit), title_bar_color);
-				}
-			}
-			if (buttons.inside(enum_to_int(e_button::minimize))) {
-				if (buttons.get_color(enum_to_int(e_button::minimize)) != highlight_color) {
-					buttons.set_color(enum_to_int(e_button::minimize), highlight_color);
-				}
-			}
-			else {
-				if (buttons.get_color(enum_to_int(e_button::minimize)) != title_bar_color) {
-					buttons.set_color(enum_to_int(e_button::minimize), title_bar_color);
-				}
-			}
-			if (buttons.inside(enum_to_int(e_button::maximize))) {
-				if (buttons.get_color(enum_to_int(e_button::maximize)) != highlight_color) {
-					buttons.set_color(enum_to_int(e_button::maximize), highlight_color);
-				}
-			}
-			else {
-				if (buttons.get_color(enum_to_int(e_button::maximize)) != title_bar_color) {
-					buttons.set_color(enum_to_int(e_button::maximize), title_bar_color);
-				}
-			}
-			if (allow_move()) {
-#ifdef FAN_WINDOWS
-				vec2 new_pos(cursor_screen_position() - old_cursor_offset);
-#else
-				vec2 new_pos(cursor_position - old_cursor_offset);
-#endif
-				glfwSetWindowPos(window, new_pos.x, new_pos.y);
-			}
-		}
-		void resize_update() {
-			buttons.set_size(enum_to_int(e_button::title_bar), vec2(window_size.x, title_bar_height));
+		Titlebar();
 
-			buttons.set_position(enum_to_int(e_button::exit), vec2(window_size.x - title_bar_button_size.x, 0));
-			exit_cross.set_position(
-				0,
-				mat2x2(
-					buttons.get_position(enum_to_int(e_button::exit)) + title_bar_shapes_size,
-					buttons.get_position(enum_to_int(e_button::exit)) + title_bar_button_size - title_bar_shapes_size
-				)
-			);
-			exit_cross.set_position(
-				1,
-				mat2x2(
-					vec2(buttons.get_position(enum_to_int(e_button::exit)).x + title_bar_shapes_size,
-						title_bar_button_size.y - title_bar_shapes_size),
-					vec2(buttons.get_position(enum_to_int(e_button::exit)).x + title_bar_button_size.x - title_bar_shapes_size,
-						buttons.get_position(enum_to_int(e_button::exit)).y + title_bar_shapes_size)
-				)
-			);
-			buttons.set_position(
-				enum_to_int(e_button::minimize),
-				vec2(window_size.x - title_bar_button_size.x * 3, 0)
-			);
-			minimize_line.set_position(
-				0,
-				mat2x2(
-					vec2(buttons.get_position(enum_to_int(e_button::minimize)).x +
-						title_bar_shapes_size,
-						title_bar_button_size.y / 2),
-					vec2(buttons.get_position(enum_to_int(e_button::minimize)).x +
-						title_bar_button_size.x - title_bar_shapes_size,
-						title_bar_button_size.y / 2)
-				)
-			);
-			buttons.set_position(
-				enum_to_int(e_button::maximize),
-				vec2(window_size.x - title_bar_button_size.x * 2, 0)
-			);
-			//buttons.get_position(enum_to_int(e_button::maximize)).print();
-			maximize_box.set_position(
-				0,
-				buttons.get_position(enum_to_int(e_button::maximize)) +
-				exit_cross.get_length() / 2
-			);
-		}
+		void cursor_update();
+		void resize_update();
 
-		vec2 get_position(e_button button) {
-			return buttons.get_position(enum_to_int(button));
-		}
+		vec2 get_position(e_button button);
 
-		void callbacks() {
-			for (int i = buttons.amount(); i--; ) {
-				buttons.button_press_callback(i);
-			}
-			if (buttons.inside(enum_to_int(e_button::title_bar))) {
-				_vec2<int> l_window_position;
-				glfwGetWindowPos(window, &l_window_position.x, &l_window_position.y);
-#ifdef FAN_WINDOWS
-				old_cursor_offset = cursor_screen_position() - l_window_position;
-#else
-				old_cursor_offset = cursor_position - l_window_position;
-#endif
-				move_window(true);
-			}
-		}
+		void move_window();
 
-		void move_window(bool state) {
-			m_bAllowMoving = state;
-		}
+		void callbacks();
 
-		bool allow_move() const {
-			return m_bAllowMoving;
-		}
+		void move_window(bool state);
+		bool allow_move() const;
 
-		void draw() {
-			buttons.draw();
-			exit_cross.draw();
-			minimize_line.draw();
-			maximize_box.draw();
-		}
+		void draw();
 
 	private:
 		vec2 title_bar_button_size{
@@ -853,11 +617,11 @@ namespace fan_gui {
 			title_bar_color
 		};
 
-		Line exit_cross{
+		LineVector exit_cross{
 			mat2x2(
-				buttons.get_position(enum_to_int(e_button::exit)) +
+				buttons.get_position(eti(e_button::exit)) +
 				title_bar_shapes_size,
-				buttons.get_position(enum_to_int(e_button::exit)) +
+				buttons.get_position(eti(e_button::exit)) +
 				title_bar_button_size - title_bar_shapes_size
 			),
 			exit_cross_color
@@ -869,154 +633,61 @@ namespace fan_gui {
 			exit_cross_color
 		};
 
-		Line minimize_line{
+		LineVector minimize_line{
 			mat2x2(),
 			exit_cross_color
 		};
 
 		vec2 old_cursor_offset;
 		float title_bar_shapes_size = 6;
-		vec2 maximize_box_size { title_bar_shapes_size * 2 };
+		vec2 maximize_box_size{ title_bar_shapes_size * 2 };
 		bool m_bMaximized = false;
 		bool m_bAllowMoving = false;
 	};
 
+	typedef std::map<std::string, std::vector<fan_gui::text_box>> chat_box_t;
+	typedef std::map<std::string, std::deque<std::string>> message_t;
+
+
+
 	class Users {
 	public:
-		Users(const std::string& username, message_t chat) : user_divider(
-			mat2x2(
-				vec2(user_divider_x, title_bar_height),
-				vec2(user_divider_x, window_size.y)
-			),
-			Color()
-		), user_boxes(vec2(0, user_box_size.y), user_box_size, user_box_color),
-			background(vec2(0, title_bar_height), 
-				vec2(user_box_size.x, window_size.y - type_box_height + title_bar_height), user_box_color) {
-			usernames.push_back(username);
-			background.push_back(
-				vec2(user_box_size.x, title_bar_height), 
-				vec2(window_size.x - user_box_size.x, 
-				user_box_size.y - title_bar_height), user_box_color);
-			chat[username].push_back(std::string());
-		}
-		Users() : user_divider(
-			mat2x2(
-				vec2(user_divider_x, title_bar_height),
-				vec2(user_divider_x, window_size.y)
-			),
-			Color()
-		), user_boxes(vec2(0, user_box_size.y), user_box_size, user_box_color),
-			background(vec2(0, title_bar_height),
-				vec2(user_box_size.x, window_size.y - type_box_height + title_bar_height), user_box_color) {
-			background.push_back(
-				vec2(user_box_size.x, title_bar_height),
-				vec2(window_size.x - user_box_size.x,
-					user_box_size.y - title_bar_height), user_box_color);
-		}
+		Users(const std::string& username, message_t chat);
 
-		void add(const std::string& username, message_t chat) {
-			user_boxes.add(
-				user_boxes.get_position(user_boxes.amount() - 1) +
-				vec2(0, user_box_size.y), user_box_size, user_box_color
-			);
-			usernames.push_back(username);
-			chat[username].push_back(std::string());
-		}
+		void add(const std::string& username, message_t chat);
 
-		void draw() {
-			background.draw(
-				0, 
-				selected() ? 
-				background.amount() : background.amount() - 1
-			);
-			user_boxes.draw();
-			user_divider.draw();
-		}
+		void draw();
 
-		void color_callback() {
-			bool selected = false;
-			Color color = lighter_color(user_box_color, 0.1);
-			for (int i = 0; i < user_boxes.amount(); i++) {
-				if (user_boxes.inside(i) && !selected) {
-					Color temp_color = user_boxes.get_color(i);
-					if (temp_color != color && temp_color != select_color) {
-						user_boxes.set_color(i, color);
-						selected = true;
-					}
-				}
-				else {
-					Color temp_color = user_boxes.get_color(i);
-					if (temp_color != user_box_color && temp_color != select_color) {
-						user_boxes.set_color(i, user_box_color);
-					}
-				}
-			}
-		}
+		void color_callback();
 
-		void render_text(TextRenderer& renderer) {
-			for (int i = 0; i < usernames.size(); i++) {
-				renderer.render(
-					usernames[i], 
-					user_boxes.get_position(i) + vec2(20, 50), 
-					font_size, 
-					white_color
-				);
-			}
-			renderer.render(current_user, 
-				vec2(
-					user_box_size.x + 20, 
-					title_bar_height + 
-					renderer.get_length(current_user, font_size).y + 20
-					), 
-				font_size, 
-				white_color
-			);
-		}
+		void resize_update();
 
-		void select() {
- 			for (int i = 0; i < user_boxes.amount(); i++) {
-				if (user_boxes.inside(i)) {
-					current_user = usernames[i];
-					user_boxes.set_color(get_user_i() , user_box_color);
-					high_light(i);
-					break;
-				}
-			}
-		}
+		void render_text(TextRenderer& renderer);
 
-		void high_light(int i) {
-			current_user_i = i;
-			user_boxes.set_color(i, select_color);
-			printf("ye\n");
-		}
+		void select();
 
-		int get_user_i() const {
-			return current_user_i;
-		}
+		void high_light(int i);
 
-		bool selected() const{
-			return !current_user.empty();
-		}
+		int get_user_i() const;
 
-		void reset() {
-			current_user = std::string();
-			user_boxes.set_color(get_user_i(), user_box_color);
-		}
+		bool selected() const;
 
-		std::string get_user() const {
-			return current_user;
-		}
+		std::string get_username(int i);
 
-		inline bool size() const {
-			return user_boxes.amount();
-		}
+		void reset();
 
+		std::string get_user() const;
+
+		uint64_t size() const;
+		std::vector<std::string> usernames;
 	private:
 		Line user_divider;
 		button user_boxes;
-		Square background;
-		std::vector<std::string> usernames;
+		SquareVector background;
+
 		std::string current_user;
 		int current_user_i = 0;
 	};
 }
+
+//#endif

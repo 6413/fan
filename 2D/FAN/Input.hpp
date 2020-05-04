@@ -58,6 +58,8 @@ extern struct default_callback<void()> window_resize_callback;
 extern struct default_callback<void()> cursor_move_callback;
 extern struct default_callback<void(int key)> character_callback;
 extern class KeyCallback key_release_callback;
+extern struct KeyCallback scroll_callback;
+extern struct default_callback<void(int file_count, const char** path)> drop_callback;
 
 void GlfwErrorCallback(int id, const char* error);
 void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
@@ -66,8 +68,10 @@ void CursorPositionCallback(GLFWwindow* window, double xpos, double ypos);
 void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset);
 void CharacterCallback(GLFWwindow* window, unsigned int key);
 void FrameSizeCallback(GLFWwindow* window, int width, int height);
-//void CursorEnterCallback(GLFWwindow* window, int entered);
+void FocusCallback(GLFWwindow* window, int focused);
+void DropCallback(GLFWwindow* window, int path_count, const char* paths[]);
 
 void WindowInit();
 
 bool cursor_inside_window();
+bool window_focused();

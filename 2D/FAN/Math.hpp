@@ -53,8 +53,8 @@ auto random(first min, second max) {
 	return distance(random);
 }
 
-template<std::size_t N, class T>
-constexpr std::size_t ArrLen(T(&)[N]) { return N; }
+template<uint64_t N, class T>
+constexpr uint64_t ArrLen(T(&)[N]) { return N; }
 
 // converts degrees to radians
 template<typename T>
@@ -62,7 +62,17 @@ constexpr auto Radians(T x) { return (x * PI / 180.0f); }
 
  // converts radians to degrees
 template<typename T>
-constexpr auto Degrees(T x) { return (x * 180.0f / PI); }
+constexpr auto Degrees(T x) { return (x * 180.0f / PI); }      
+
+template <typename T>
+constexpr auto Min(T first, T second) {
+	return first < second ? first : second;
+}
+
+template <typename T>
+constexpr auto Max(T first, T second) {
+	return first > second ? first : second;
+}
 
 template <typename T> int sgn(T val) {
 	return (T(0) < val) - (val < T(0));
