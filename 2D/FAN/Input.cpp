@@ -1,5 +1,5 @@
 #include "Input.hpp"
-#include <FAN/Settings.hpp>
+#include <FAN/Graphics.hpp>
 #include <string>
 
 _vec2<int> cursor_position;
@@ -10,6 +10,8 @@ struct default_callback<void()> window_resize_callback;
 struct default_callback<void()> cursor_move_callback;
 struct default_callback<void(int key)> character_callback;
 class KeyCallback key_release_callback;
+struct KeyCallback scroll_callback;
+struct default_callback<void(int file_count, const char** path)> drop_callback;
 
 void GlfwErrorCallback(int id, const char* error) {
 	printf("GLFW Error %d : %s\n", id, error);
@@ -78,12 +80,14 @@ void CursorPositionCallback(GLFWwindow* window, double xpos, double ypos) {
 }
 
 void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
-	/*if (yoffset == 1) {
-		Input::action[GLFW_MOUSE_SCROLL_UP] = true;
+	for (int i = 0; i < scroll_callback.size(); i++) {
+		if (scroll_callback.get_key(i) == GLFW_MOUSE_SCROLL_UP && yoffset == 1) {
+			scroll_callback.get_function(i)();
+		}
+		else if (scroll_callback.get_key(i) == GLFW_MOUSE_SCROLL_DOWN && yoffset == -1) {
+			scroll_callback.get_function(i)();
+		}
 	}
-	else if (yoffset == -1) {
-		Input::action[GLFW_MOUSE_SCROLL_DOWN] = true;
-	}*/
 }
 
 void CharacterCallback(GLFWwindow* window, unsigned int key) {
@@ -100,30 +104,69 @@ void FrameSizeCallback(GLFWwindow* window, int width, int height) {
 	}
 }
 
+void DropCallback(GLFWwindow* window, int path_count, const char* paths[]) {
+	for (int i = 0; i < drop_callback.size(); i++) {
+		drop_callback.get_function(i)(path_count, paths);
+	}
+}
+
+bool g_focused = true;
+
+void FocusCallback(GLFWwindow* window, int focused)
+{
+	if (focused) {
+		g_focused = true;
+	}
+	else {
+		g_focused = false;
+	}
+}
+
 //void CursorEnterCallback(GLFWwindow* window, int entered) {
 //
 //}
 
 void WindowInit() {
 	window_size = WINDOWSIZE;
-	glfwWindowHint(GLFW_DECORATED, false);
+//	glfwWindowHint(GLFW_DECORATED, false);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_RESIZABLE, true);
+	glfwWindowHint(GLFW_RESIZABLE, false);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-	glfwWindowHint(GLFW_SAMPLES, 16);
+	//glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+	glfwWindowHint(GLFW_SAMPLES, 32);
 	glEnable(GL_MULTISAMPLE);
 	//window_size = vec2(glfwGetVideoMode(glfwGetPrimaryMonitor())->width, glfwGetVideoMode(glfwGetPrimaryMonitor())->height);
-	window = glfwCreateWindow(window_size.x, window_size.y, "Server", fullScreen ? glfwGetPrimaryMonitor() : NULL, NULL);
+	window = glfwCreateWindow(window_size.x, window_size.y, "123", fullScreen ? glfwGetPrimaryMonitor() : NULL, NULL);
+	auto window_mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+	glfwSetWindowMonitor(window, NULL, window_size.x / 2, window_size.y / 2, window_size.x, window_size.y, window_mode->refreshRate);
+
 	if (!window) {
 		printf("Window ded\n");
+		system("pause");
 		glfwTerminate();
 		exit(EXIT_SUCCESS);
 	}
 	glfwMakeContextCurrent(window);
-	glewInit();
+	/*if (!) {
+		system("pause");
+		glfwTerminate();
+		exit(EXIT_SUCCESS);
+	}*/
+	if (GLEW_OK != glewInit())
+	{
+		std::cout << "Failed to initialize GLEW" << std::endl;
+		system("pause");
+		glfwTerminate();
+		exit(EXIT_SUCCESS);
+	}
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	glViewport(0, 0, window_size.x, window_size.y);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+}
+
+bool window_focused() {
+	return g_focused;
 }
 
 //bool cursor_inside_window() {

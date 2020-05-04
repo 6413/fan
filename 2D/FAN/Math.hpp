@@ -7,6 +7,7 @@
 #include <cfloat>
 #include <random>
 #include <functional>
+#include <cmath>
 
 
 template <typename T>
@@ -20,6 +21,10 @@ constexpr float PI = 3.1415926535f;
 constexpr float HALF_PI = PI / 2;
 
 constexpr bool ray_hit(const vec2& point) {
+	return point != -1;
+}
+
+constexpr bool ray_hit(const vec3& point) {
 	return point != -1;
 }
 
@@ -53,8 +58,8 @@ auto random(first min, second max) {
 	return distance(random);
 }
 
-template<std::size_t N, class T>
-constexpr std::size_t ArrLen(T(&)[N]) { return N; }
+template<uint64_t N, class T>
+constexpr uint64_t ArrLen(T(&)[N]) { return N; }
 
 // converts degrees to radians
 template<typename T>
@@ -62,7 +67,17 @@ constexpr auto Radians(T x) { return (x * PI / 180.0f); }
 
  // converts radians to degrees
 template<typename T>
-constexpr auto Degrees(T x) { return (x * 180.0f / PI); }
+constexpr auto Degrees(T x) { return (x * 180.0f / PI); }      
+
+template <typename T>
+constexpr auto Min(T first, T second) {
+	return first < second ? first : second;
+}
+
+template <typename T>
+constexpr auto Max(T first, T second) {
+	return first > second ? first : second;
+}
 
 template <typename T> int sgn(T val) {
 	return (T(0) < val) - (val < T(0));
@@ -77,14 +92,21 @@ constexpr auto Cross(const T& x, const T& y) {
 	);
 }
 
-template <typename T>
-constexpr auto Dot(const T& x, const T& y) {
+constexpr float Dot(const vec2& x, const vec2& y) {
+	return (x.x * y.x) + (x.y * y.y);
+}
+
+constexpr float Dot(const vec3& x, const vec3& y) {
 	return (x.x * y.x) + (x.y * y.y) + (x.z * y.z);
 }
 
-template <typename T>
-constexpr auto Normalize(const T& x) {
-	float length = sqrtf(x.x * x.x + x.y * x.y + x.z * x.z);
+inline vec2 Normalize(const vec2& x) {
+	float length = sqrtf(Dot(x, x));
+	return vec2(x.x / length, x.y / length);
+}
+
+inline vec3 Normalize(const vec3& x) {
+	float length = sqrtf(Dot(x, x));
 	return vec3(x.x / length, x.y / length, x.z / length);
 }
 
@@ -93,11 +115,23 @@ constexpr auto AimAngle(const _vec2<_Ty>& src, const _vec2<_Ty2>& dst) {
 	return atan2f(dst.y - src.y, dst.x - src.x);
 }
 
-//template <typename _Ty>
-//constexpr auto DirectionVector(const _Ty& aimAngle)
-//{
-//	return _vec2<_Ty>(cos(aimAngle), sin(aimAngle));
-//}
+constexpr vec2 DirectionVector(float angle)
+{
+	return vec2(
+		cos(angle),
+		sin(angle)
+	);
+}
+
+
+constexpr vec3 DirectionVector(float alpha, float beta)
+{
+	return vec3(
+		cos(Radians(alpha)) * cos(Radians(beta)), 
+		sin(Radians(beta)),
+		sin(Radians(alpha)) * cos(Radians(beta))
+	);
+}
 
 //template <typename _Ty>
 //constexpr auto DirectionVector(const _Ty& aimAngle)
@@ -120,6 +154,11 @@ constexpr auto Distance(const _vec2<_Ty>& src, const _vec2<_Ty>& dst) {
 	return sqrtf(powf((src.x - dst.x), 2) + powf(((src.y - dst.y)), 2));
 }
 
+
+static auto Distance3d(const vec3& src, const vec3& dst) {
+	return sqrtf(powf((src.x - dst.x), 2) + powf(((src.y - dst.y)), 2) + powf((src.z - dst.z), 2));
+}
+
 template <typename _Type>
 constexpr auto Abs(const _Type _Value) {
 	if (_Value < 0) {
@@ -128,13 +167,17 @@ constexpr auto Abs(const _Type _Value) {
 	return _Value;
 }
 
-template <typename _Ty>
-constexpr auto ManhattanDistance(const _vec2<_Ty>& src, const _vec2<_Ty>& dst) {
-	return Abs(src.x - dst.x) + Abs(src.y - dst.y);
+//template <typename _Ty>
+//constexpr auto ManhattanDistance(const _vec2<_Ty>& src, const _vec2<_Ty>& dst) {
+//	return std::abs(src.x - dst.x) + std::abs(src.y - dst.y);
+//}
+
+static auto ManhattanDistance(const vec3& src, const vec3& dst) {
+	return std::abs(src.x - dst.x) + std::abs(src.y - dst.y) + std::abs(src.z - dst.z);
 }
 
 template <typename T1, typename T2>
-constexpr matrix<4, 4> Translate(T1& m, T2 v) {
+constexpr matrix<4, 4> Translate(const T1& m, const T2 v) {
 	T1 Result(m);
 	Result[3] =
 		(m[0] * v.x) +
@@ -188,20 +231,16 @@ constexpr T2 perspectiveRH_NO(T fovy, T aspect, T zNear, T zFar) {
 	abs(aspect - std::numeric_limits<T>::epsilon()) > static_cast<T>(0);
 	T const tanHalfFovy = tan(fovy / static_cast<T>(2));
 	T2 Result(static_cast<T>(1));
-	Result.vec[0].x = static_cast<T>(1) / (aspect * tanHalfFovy);
-	Result.vec[1].y = static_cast<T>(1) / (tanHalfFovy);
-	Result.vec[2].z = -(zFar + zNear) / (zFar - zNear);
-	Result.vec[2].a = -static_cast<T>(1);
-	Result.vec[3].z = -(static_cast<T>(2)* zFar* zNear) / (zFar - zNear);
+	Result[0][0] = static_cast<T>(1) / (aspect * tanHalfFovy);
+	Result[1][1] = static_cast<T>(1) / (tanHalfFovy);
+	Result[2][2] = -(zFar + zNear) / (zFar - zNear);
+	Result[2][3] = -static_cast<T>(1);
+	Result[3][2] = -(static_cast<T>(2)* zFar* zNear) / (zFar - zNear);
 	return Result;
 }
 
 template <typename _Ty = vec3, typename _Ty2 = matrix<4, 4>>
 constexpr auto LookAt(const _Ty& eye, const _Ty& center, const _Ty& up) {
-
-	//vec3 ne();
-	//debugger<void()>([center, eye]() { Normalize((center - eye)).print(); });
-
 	vec3 f(Normalize(center - eye));
 	vec3 s(Normalize(Cross(f, up)));
 	vec3 u(Cross(s, f));

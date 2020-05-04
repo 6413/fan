@@ -56,29 +56,29 @@ public:
 #endif
 	}
 
-	Alloc(std::size_t _Reserve) : _Cur(0) {
+	Alloc(uint64_t _Reserve) : _Cur(0) {
 		resize(_Reserve);
 	}
 
-	Alloc(std::size_t _Reserve, _Ty _InIt) : _Cur(0) {
+	Alloc(uint64_t _Reserve, _Ty _InIt) : _Cur(0) {
 		resize(_Reserve);
-		for (std::size_t _I = 0; _I < _Reserve; _I++) {
+		for (uint64_t _I = 0; _I < _Reserve; _I++) {
 			push_back(_InIt);
 		}
 	}
 
 	~Alloc() {
 		if (_Data) {
-			//_Data = 0;
-//			delete[] _Data;
+			delete[] _Data;
+			_Data = nullptr;
 		}
 	}
 
-	_Ty operator[](std::size_t _Idx) const {
+	_Ty operator[](uint64_t _Idx) const {
 		return _Data[_Idx];
 	}
 
-	_Ty& operator[](std::size_t _Idx) {
+	_Ty& operator[](uint64_t _Idx) {
 		return _Data[_Idx];
 	}
 
@@ -112,7 +112,7 @@ public:
 		emplace_back(std::move(_Val));
 	}
 
-	void resize(std::size_t _Reserve) {
+	void resize(uint64_t _Reserve) {
 		if (!_Cur) {
 			_Data = new _Ty[_Reserve];
 			_Allocated = _Reserve;
@@ -136,7 +136,7 @@ public:
 		return _Data + _Cur;
 	}
 
-	std::size_t current() const {
+	uint64_t current() const {
 		return _Cur;
 	}
 
@@ -151,17 +151,31 @@ public:
 		resize(--_Cur);
 	}
 
+	constexpr void erase_all() {
+		*this = Alloc();
+	}
+
 	_Ty* data() const {
 		return _Data;
 	}
 
-	std::size_t size() const {
+	uint64_t reserved() const {
 		return _Allocated;
 	}
 
-	std::size_t _Buffer = 0x1;
+	uint64_t size() const {
+		return _Cur;
+	}
+
+	void free() {
+		delete[] _Data;
+		_Cur = 0;
+		_Allocated = 0;
+	}
+
+	uint64_t _Buffer = 0xffffff;
 private:
 	_Ty* _Data;
-	std::size_t _Cur;
-	std::size_t _Allocated;
+	uint64_t _Cur;
+	uint64_t _Allocated;
 };
