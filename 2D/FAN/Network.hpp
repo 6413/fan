@@ -57,9 +57,9 @@ struct File {
 	static inline void write(
 		std::string path,
 		const std::string& data,
-		int mode = std::ifstream::binary | std::ifstream::app
+		decltype(std::ios_base::binary | std::ios_base::app) mode = std::ios_base::binary | std::ios_base::app
 	) {
-		std::ofstream file(path, std::ifstream::binary);
+		std::ofstream file(path, mode);
 		file << data;
 		file.close();
 	}
@@ -94,11 +94,13 @@ enum class packet_type {
 	get_username,
 	set_username,
 	get_password,
-	set_password
+	set_password,
+	exit
 };
 
+// converts enum to int
 template <typename Enumeration>
-auto enum_to_int(Enumeration const value)
+constexpr auto eti(Enumeration const value)
 -> typename std::underlying_type<Enumeration>::type
 {
 	return static_cast<
@@ -118,7 +120,8 @@ static const char* packet_type_str[]{
 	stringify(get_username),
 	stringify(set_username),
 	stringify(get_password),
-	stringify(set_password)
+	stringify(set_password),
+	stringify(exit)
 };
 
 class User {
@@ -362,13 +365,6 @@ public:
 	}
 	~tcp_server() {
 		exit_program = true;
-		for (int i = 0; i < socket_size(); i++) {
-			send_data(
-				sockets[i],
-				"exit",
-				strlen("exit")
-			);
-		}
 #ifdef FAN_WINDOWS
 		for (auto& i : sockets) {
 			closesocket(i);
@@ -427,10 +423,10 @@ public:
 
 		while (1) {
 			packet_type job = *(packet_type*)m_get_message(socket).data();
-			if (enum_to_int(job) >= sizeof(packet_type_str) / sizeof(*packet_type_str)) {
+			if (eti(job) >= sizeof(packet_type_str) / sizeof(*packet_type_str)) {
 				continue;
 			}
-			printf("packet type: %s\n", packet_type_str[enum_to_int(job)]);
+			printf("packet type: %s\n", packet_type_str[eti(job)]);
 
 			switch (job) {
 			case packet_type::send_file: {
@@ -460,6 +456,17 @@ public:
 			case packet_type::send_message_user: {
 				redirect_message(socket);
 				break;
+			}
+			case packet_type::exit: {
+				std::string user = m_get_message(socket);
+				send_message(socket, "exit");
+				printf("%s has left\n", user.c_str());
+#ifdef FAN_WINDOWS
+				closesocket(socket);
+#else
+				close(socket);
+#endif
+				return;
 			}
 			}
 		}
@@ -620,22 +627,22 @@ public:
 	}
 
 	~client() {
-		if (m_get_data(connect_socket, strlen("exit")) != "exit") {
-			puts("failed to receive exit message");
-			exit(EXIT_FAILURE);
-		}
+		packet_type type = packet_type::exit;
+		send_message(std::string((const char*)&type, sizeof(type)));
+		send_message(get_username());
+
 #ifdef FAN_WINDOWS
-		closesocket(connect_socket);
-		WSACleanup();
+		//closesocket(connect_socket);
+	//	WSACleanup();
 #else
-		close(connect_socket);
+		//close(connect_socket);
 #endif
 	}
 
 	void process_handler() {
 		while (1) {
 			packet_type job = *(packet_type*)m_get_message(connect_socket).data();
-			printf("packet type: %s\n", packet_type_str[enum_to_int(job)]);
+			printf("packet type: %s\n", packet_type_str[eti(job)]);
 
 			switch (job) {
 			case packet_type::send_file: {
