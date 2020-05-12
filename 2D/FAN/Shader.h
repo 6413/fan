@@ -122,7 +122,7 @@ public:
     // ------------------------------------------------------------------------
     void setVec2(const std::string& name, const vec2& value) const
     {
-        glUniform2fv(glGetUniformLocation(ID, name.c_str()), 1, &value.x);
+        glUniform2fv(glGetUniformLocation(ID, name.c_str()), 1, (float*)&value.x);
     }
     void setVec2(const std::string& name, float x, float y) const
     {

@@ -138,7 +138,7 @@ void WindowInit() {
 	//window_size = vec2(glfwGetVideoMode(glfwGetPrimaryMonitor())->width, glfwGetVideoMode(glfwGetPrimaryMonitor())->height);
 	window = glfwCreateWindow(window_size.x, window_size.y, "123", fullScreen ? glfwGetPrimaryMonitor() : NULL, NULL);
 	auto window_mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
-	glfwSetWindowMonitor(window, NULL, window_size.x / 2, window_size.y / 2, window_size.x, window_size.y, window_mode->refreshRate);
+	glfwSetWindowMonitor(window, NULL, window_size.x / 2, window_size.y / 2, window_size.x, window_size.y, 0);
 
 	if (!window) {
 		printf("Window ded\n");

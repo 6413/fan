@@ -20,12 +20,14 @@ void debugger(std::function<T> functionPtr) {
 constexpr float PI = 3.1415926535f;
 constexpr float HALF_PI = PI / 2;
 
+constexpr int RAY_DID_NOT_HIT = -1;
+
 constexpr bool ray_hit(const vec2& point) {
-	return point != -1;
+	return point != RAY_DID_NOT_HIT;
 }
 
 constexpr bool ray_hit(const vec3& point) {
-	return point != -1;
+	return operator!=(point, RAY_DID_NOT_HIT);
 }
 
 constexpr bool on_hit(const vec2& point, std::function<void()>&& lambda) {
@@ -96,17 +98,21 @@ constexpr float Dot(const vec2& x, const vec2& y) {
 	return (x.x * y.x) + (x.y * y.y);
 }
 
-constexpr float Dot(const vec3& x, const vec3& y) {
+constexpr auto Dot(const vec3& x, const vec3& y) {
 	return (x.x * y.x) + (x.y * y.y) + (x.z * y.z);
 }
 
 inline vec2 Normalize(const vec2& x) {
-	float length = sqrtf(Dot(x, x));
+	float length = sqrt(Dot(x, x));
 	return vec2(x.x / length, x.y / length);
 }
 
+static auto Distance3d(const vec3& src, const vec3& dst) {
+	return sqrtf(powf((src.x - dst.x), 2) + powf(((src.y - dst.y)), 2) + powf((src.z - dst.z), 2));
+}
+
 inline vec3 Normalize(const vec3& x) {
-	float length = sqrtf(Dot(x, x));
+	auto length = sqrt(Dot(x, x));
 	return vec3(x.x / length, x.y / length, x.z / length);
 }
 
@@ -155,9 +161,7 @@ constexpr auto Distance(const _vec2<_Ty>& src, const _vec2<_Ty>& dst) {
 }
 
 
-static auto Distance3d(const vec3& src, const vec3& dst) {
-	return sqrtf(powf((src.x - dst.x), 2) + powf(((src.y - dst.y)), 2) + powf((src.z - dst.z), 2));
-}
+
 
 template <typename _Type>
 constexpr auto Abs(const _Type _Value) {
@@ -176,9 +180,8 @@ static auto ManhattanDistance(const vec3& src, const vec3& dst) {
 	return std::abs(src.x - dst.x) + std::abs(src.y - dst.y) + std::abs(src.z - dst.z);
 }
 
-template <typename T1, typename T2>
-constexpr matrix<4, 4> Translate(const T1& m, const T2 v) {
-	T1 Result(m);
+inline matrix<4, 4> Translate(const matrix<4, 4>& m, const vec3& v) {
+	matrix<4, 4> Result(m);
 	Result[3] =
 		(m[0] * v.x) +
 		(m[1] * v.y) +
