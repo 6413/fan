@@ -67,7 +67,7 @@ Camera::Camera(vec3 position, vec3 up, float yaw, float pitch) : front(vec3(0.0f
 }
 
 matrix<4, 4> Camera::GetViewMatrix(matrix<4, 4> m) {
-	return m * LookAt(this->position, Round(this->position + (this->front)), Round(this->up));
+	return m * LookAt(this->position, (this->position + (this->front)).rounded(), (this->up).rounded());
 }
 
 matrix<4, 4> Camera::GetViewMatrix() {
@@ -102,7 +102,7 @@ Camera2D::Camera2D(vec3 position, vec3 up, float yaw, float pitch) : front(vec3(
 }
 
 matrix<4, 4> Camera2D::GetViewMatrix(matrix<4, 4> m) {
-	return m * LookAt(this->position, Round(this->position + (this->front)), Round(this->up));
+	return m * LookAt(this->position, (this->position + (this->front)).rounded(), (this->up).rounded());
 }
 
 matrix<4, 4> Camera2D::GetViewMatrix() {
@@ -733,14 +733,12 @@ mat2x4 SquareVector::get_corners(uint64_t _Index) const {
 }
 
 vec2 SquareVector::get_position(uint64_t _Index) const {
-	if (_Index >= amount()) {
-		return vec2(-1);
-	}
-	return vec2(_Vertices[_PointSize * _Index], _Vertices[_PointSize * _Index + 1]);
+	return _Position[_Index];
 }
 
 void SquareVector::set_position(uint64_t _Index, const vec2& _Position, bool _Queue) {
 	vec2 _Distance(_Position[0] - _Vertices[_Index * _PointSize + 0], _Position[1] - _Vertices[_Index * _PointSize + 1]);
+	_Distance = _Distance.floored();
 	for (int i = 0; i < _PointSize; i++) {
 		_Vertices[_Index * _PointSize + i] += _Distance[i % 2];
 	}
@@ -944,7 +942,7 @@ void Sprite::draw() {
 	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]);
 	glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection[0][0]);
 	matrix<4, 4> model(1);
-	model = Translate(model, Vec2ToVec3(position));
+	model = Translate(model, position);
 	if (size.x || size.y) {
 		model = Scale(model, vec3(size.x, size.y, 0));
 	}
@@ -1030,13 +1028,13 @@ Particles::Particles(uint64_t particles_amount, vec2 particle_size, vec2 particl
 	particles(particles_amount, -particle_size,
 		vec2(particle_size), begin), particle(), particleIndex(particles_amount - 1), begin(begin), end(end), life_time(life_time) {
 	for (int i = 0; i < particles_amount; i++) {
-		particle.push_back({ life_time, Timer(high_resolution_clock::now(), 0), 0, particle_speed * vec2(cosf(i), sinf(i)) });
+		particle.push_back({ life_time, Timer(chrono_t::now(), 0), 0, particle_speed * vec2(cosf(i), sinf(i)) });
 	}
 }
 
 void Particles::add(vec2 position) {
 	static Timer click_timer = {
-		high_resolution_clock::now(),
+		chrono_t::now(),
 		particles_per_second ? uint64_t(1000 / particles_per_second) : uint64_t(1e+10)
 	};
 	if (particle[particleIndex].time.finished() && click_timer.finished()) {
@@ -1215,6 +1213,8 @@ void Box::set_position(uint64_t index, const vec2& position) {
 void Box::draw() const {
 	box_lines.draw();
 }
+
+#ifdef FT_FREETYPE_H
 
 TextRenderer::TextRenderer() : shader(Shader("GLSL/text.vs", "GLSL/text.frag")) {
 	shader.Use();
@@ -1883,4 +1883,550 @@ std::string fan_gui::Users::get_user() const {
 
 uint64_t fan_gui::Users::size() const {
 	return usernames.size();
+}
+
+#endif
+
+Camera camera3d;
+
+LineVector3D::LineVector3D() {
+	_Mode = GL_LINES;
+	_Points = 0;
+	_PointSize = 2 * 2;
+	init();
+}
+
+LineVector3D::LineVector3D(const matrix<3, 2>& _M, const Color& color) {
+	_Mode = GL_LINES;
+	_Points = 2;
+	_PointSize = _Points * 2;
+	for (int i = 0; i < 6; i++) {
+		_Vertices.push_back(_M[i / 3][i % 3]);
+	}
+	for (int i = 0; i < COLORSIZE * 2; i++) {
+		_Colors.push_back(color[i % 4]);
+	}
+	init();
+	this->_Camera = &camera3d;
+}
+
+matrix<2, 3> LineVector3D::get_position(uint64_t _Index) const {
+	return matrix<2, 3>(
+		_Vertices[_Index * _PointSize],
+		_Vertices[_Index * _PointSize + 1],
+		_Vertices[_Index * _PointSize + 2],
+		_Vertices[_Index * _PointSize + 3],
+		_Vertices[_Index * _PointSize + 4],
+		_Vertices[_Index * _PointSize + 5]
+	);
+}
+
+void LineVector3D::set_position(uint64_t _Index, const matrix<3, 2>& _M, bool _Queue) {
+	for (int i = 0; i < 6; i++) {
+		_Vertices[_Index * _PointSize + i] = _M[i / 3][i % 3];
+	}
+	if (!_Queue) {
+		write(true, false);
+	}
+}
+
+void LineVector3D::push_back(const matrix<3, 2>& _M, Color _Color, bool _Queue) {
+	for (int i = 0; i < 6; i++) {
+		_Vertices.push_back(_M[i / 3][i % 3]);
+	}
+	if (_Color.r == -1) {
+		if (_Colors.size() > COLORSIZE) {
+			_Color = Color(_Colors[0], _Colors[1], _Colors[2], _Colors[3]);
+		}
+		else {
+			_Color = Color(1, 1, 1, 1);
+		}
+		for (int i = 0; i < COLORSIZE * 2; i++) {
+			_Colors.push_back(_Color[i % 4]);
+		}
+	}
+	else {
+		for (int i = 0; i < COLORSIZE * 2; i++) {
+			_Colors.push_back(_Color[i % 4]);
+		}
+	}
+	_Points += 2;
+	if (!_Queue) {
+		write(true, true);
+	}
+}
+
+//LineVector::LineVector(const mat2x2& _M, const Color& color) {
+//	_Mode = GL_LINES;
+//	_Points = 2;
+//	_PointSize = _Points * 2;
+//	_Length.push_back(vec2(_M[1] - _M[0]));
+//	for (int i = 0; i < 4; i++) {
+//		_Vertices.push_back(_M[(i & 2) >> 1][i & 1]);
+//	}
+//	for (int i = 0; i < COLORSIZE * _PointSize; i++) {
+//		_Colors.push_back(color[i % 4]);
+//	}
+//	init();
+//}
+
+SquareVector3D::SquareVector3D(const vec3& position, const vec3& size, const char* path, const vec2& texture_id) {
+	_Mode = GL_TRIANGLES;
+	_Points = 36;
+	_PointSize = _Points * 2;
+
+	this->position.push_back(position);
+	this->size.push_back(size);
+
+	for (int i = 0; i < ArrLen(square_vertices); i++) {
+		_Vertices.push_back(square_vertices[i] / 0.5f * (size[i % 3] / 2));
+		_Vertices[i] += position[i % 3];
+	}
+
+	init_texture(path, texture_id);
+}
+
+SquareVector3D::SquareVector3D(const char* path, const vec2& texture_id) {
+	_Mode = GL_TRIANGLES;
+	_Points = 36;
+	_PointSize = _Points * 2;
+	init_texture(path, texture_id, false);
+}
+
+SquareVector3D::SquareVector3D(uint64_t reserve, const char* path, const vec2& texture_id) {
+	_Mode = GL_TRIANGLES;
+	_Points = 36;
+	_PointSize = _Points * 2;
+	init_texture(path, texture_id, false);
+	_Vertices.resize(reserve * ArrLen(square_vertices));
+	_Textures.resize(reserve * texture_coordinate_size);
+	this->position.resize(reserve);
+	this->size.resize(reserve);
+}
+
+void SquareVector3D::break_queue(bool vertices, bool color, bool texture) {
+	if (vertices) {
+		glBindBuffer(GL_ARRAY_BUFFER, _VerticeBuffer.VBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(_Vertices[0]) * _Vertices.size(), _Vertices.data(), GL_DYNAMIC_DRAW);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+	}
+	if (color) {
+		glBindBuffer(GL_ARRAY_BUFFER, _ColorBuffer.VBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(_Colors[0]) * _Colors.size(), _Colors.data(), GL_DYNAMIC_DRAW);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+	}
+	if (texture) {
+		glBindBuffer(GL_ARRAY_BUFFER, _Texture_Coordinates_Buffer.VBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(_Textures[0]) * _Textures.size(), _Textures.data(), GL_DYNAMIC_DRAW);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+	}
+}
+
+void SquareVector3D::init(bool init_shape) {
+	this->_Camera = &camera3d;
+	this->_Shader = Shader("GLSL/tests.vs", "GLSL/tests.frag");
+
+	glGenBuffers(1, &_VerticeBuffer.VBO);
+	glBindBuffer(GL_ARRAY_BUFFER, _VerticeBuffer.VBO);
+	glBufferData(GL_ARRAY_BUFFER, 69120000 * 1.5, nullptr, GL_STATIC_DRAW);
+	if (init_shape) {
+		glGenBuffers(1, &_ColorBuffer.VBO);
+		glBindBuffer(GL_ARRAY_BUFFER, _ColorBuffer.VBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(_Colors[0]) * _Colors.size(), _Colors.data(), GL_STATIC_DRAW);
+		glGenVertexArrays(1, &_ShapeBuffer.VAO);
+		glBindVertexArray(_ShapeBuffer.VAO);
+		glEnableVertexAttribArray(0);
+		glEnableVertexAttribArray(1);
+	}
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+}
+
+template <typename T>
+std::vector<T> SquareVector3D::get_texture_onsided(_vec2<uint32_t> size, _vec2<uint32_t> position) {
+	vec2 b(1.f / size.x, 1.f / size.y);
+	vec2 x(position.x * b.x, position.y * b.y);
+
+	return std::vector<T>{
+		x.x, 1.f - x.y,
+			x.x, 1.f - (x.y + b.y),
+			x.x + b.x, 1.f - (x.y + b.y),
+			x.x + b.x, 1.f - (x.y + b.y),
+			x.x + b.x, 1.f - x.y,
+			x.x, 1.f - x.y
+	};
+}
+
+void SquareVector3D::init_texture(const char* path, vec2 texture_id, bool push_texture) {
+
+	init(false);
+
+	auto& buffer = _Texture_Buffer;
+
+	glGenTextures(1, &buffer.VBO);
+	glBindTexture(GL_TEXTURE_2D, buffer.VBO);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	stbi_set_flip_vertically_on_load(true);
+	unsigned char* data = SOIL_load_image(path, &buffer.width, &buffer.height, 0, SOIL_LOAD_RGBA);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, buffer.width, buffer.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+	glGenerateMipmap(GL_TEXTURE_2D);
+	SOIL_free_image_data(data);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	texturepack_size = vec2(buffer.width / texture_size.x, buffer.height / texture_size.y);
+	if (push_texture) {
+		static const int side_order[] = { 0, 1, 4, 5, 3, 2 };
+		for (int side = 0; side < ArrLen(side_order); side++) {
+			vec2 begin(1.f / texturepack_size.x, 1.f / texturepack_size.y);
+			float left = begin.x * side_order[side] + ((begin.x * (texture_id.x)) * 6);
+			float right = begin.x * (side_order[side] + 1) + ((begin.x * (texture_id.x)) * 6);
+			float up = 1 - begin.y * texture_id.y;
+			float down = 1 - begin.y * (texture_id.y + 1);
+			float texture_coordinates[] = {
+				left,  up,
+				left,  down,
+				right, down,
+				right, down,
+				right, up,
+				left,  up
+			};
+			for (auto coordinate : texture_coordinates) {
+				_Textures.push_back(coordinate);
+			}
+		}
+	}
+
+	glGenBuffers(1, &_Texture_Coordinates_Buffer.VBO);
+	glBindBuffer(GL_ARRAY_BUFFER, _Texture_Coordinates_Buffer.VBO);
+	glBufferData(GL_ARRAY_BUFFER, 46080000 * 2, NULL, GL_STATIC_DRAW);
+	glGenVertexArrays(1, &_ShapeBuffer.VAO);
+	glBindVertexArray(_ShapeBuffer.VAO);
+	glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(1);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+}
+
+void SquareVector3D::edit_texture(uint64_t index, const vec2& texture_id) {
+	static const int side_order[] = { 0, 1, 4, 5, 3, 2 };
+	std::vector<float> new_text;
+	for (int side = 0; side < ArrLen(side_order); side++) {
+		vec2 begin(1.f / texturepack_size.x, 1.f / texturepack_size.y);
+		float left = begin.x * side_order[side] + ((begin.x * (texture_id.x)) * 6);
+		float right = begin.x * (side_order[side] + 1) + ((begin.x * (texture_id.x)) * 6);
+		float up = 1 - begin.y * texture_id.y;
+		float down = 1 - begin.y * (texture_id.y + 1);
+		float texture_coordinates[] = {
+			left,  up,
+			left,  down,
+			right, down,
+			right, down,
+			right, up,
+			left,  up
+		};
+		for (auto i : texture_coordinates) {
+			new_text.push_back(i);
+		}
+	}
+	for (int i = 0; i < 6 * 12; i++) {
+		_Textures[index * (6 * 12) + i] = new_text[i];
+	}
+
+	break_queue(false, false, true);
+}
+
+void SquareVector3D::push_back(const vec3& position, const vec3& size, const vec2& texture_id, bool queue, bool beta) {
+	this->position.push_back(position);
+	this->size.push_back(size);
+
+	for (int i = 0; i < ArrLen(square_vertices); i++) {
+		_Vertices.push_back(square_vertices[i] / 0.5f * (size[i % 3] / 2));
+		*(_Vertices.end() - 1) += position[i % 3];
+	}
+
+	static const int side_order[] = { 0, 1, 4, 5, 3, 2 };
+	for (int side = 0; side < ArrLen(side_order); side++) {
+		vec2 begin(1.f / texturepack_size.x, 1.f / texturepack_size.y);
+		float left = begin.x * side_order[side] + ((begin.x * (texture_id.x)) * 6);
+		float right = begin.x * (side_order[side] + 1) + ((begin.x * (texture_id.x)) * 6);
+		float up = 1 - begin.y * texture_id.y;
+		float down = 1 - begin.y * (texture_id.y + 1);
+		float texture_coordinates[] = {
+			left,  up,
+			left,  down,
+			right, down,
+			right, down,
+			right, up,
+			left,  up
+		};
+		for (auto coordinate : texture_coordinates) {
+			_Textures.push_back(coordinate);
+		}
+	}
+
+	glBindBuffer(GL_ARRAY_BUFFER, _VerticeBuffer.VBO);
+	glBufferSubData(
+		GL_ARRAY_BUFFER,
+		(amount() - 1) * sizeof(_Vertices[0]) * ArrLen(square_vertices), 
+		sizeof(_Vertices[0]) * ArrLen(square_vertices),
+		&_Vertices[_Vertices.size() - ArrLen(square_vertices)]
+	);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	const uint8_t texture_array_size = 72;
+	glBindBuffer(GL_ARRAY_BUFFER, _Texture_Coordinates_Buffer.VBO);
+	glBufferSubData(
+		GL_ARRAY_BUFFER, 
+		(amount() - 1) * sizeof(_Textures[0]) * texture_array_size,
+		sizeof(_Textures[0]) * texture_array_size,
+		&_Textures[_Textures.size() - texture_array_size]
+	);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	_Points += 36;
+}
+
+void SquareVector3D::draw() {
+	if (_Vertices.empty()) {
+		return;
+	}
+
+	_Shader.Use();
+
+	matrix<4, 4> projection(1);
+	matrix<4, 4> view(1);
+
+	view = _Camera->GetViewMatrix();
+	projection = perspectiveRH_NO(Radians(90.f), ((float)window_size.x / (float)window_size.y), 0.1f, 1000.0f);
+
+	static GLint viewLoc = glGetUniformLocation(_Shader.ID, "view");
+	static GLint projLoc = glGetUniformLocation(_Shader.ID, "projection");
+	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]);
+	glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection[0][0]);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, _Texture_Buffer.VBO);
+
+	glUniform1i(glGetUniformLocation(_Shader.ID, "texture_sampler"), 0);
+
+	glBindVertexArray(_ShapeBuffer.VAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, _VerticeBuffer.VBO);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	glBindBuffer(GL_ARRAY_BUFFER, _Texture_Coordinates_Buffer.VBO);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, 0);
+
+	glDrawArrays(_Mode, 0, _Points);
+	glBindVertexArray(0);
+}
+
+void SquareVector3D::erase(uint64_t first, uint64_t last) {
+	if (last == -1) {
+		this->position[first] = vec3();
+		for (int i = 0; i < ArrLen(square_vertices); i++) {
+			_Vertices[first * ArrLen(square_vertices)] = 0;
+		}
+		for (int i = 0; i < texture_coordinate_size; i++) {
+			_Textures[first * texture_coordinate_size] = 0;
+		}
+		/*this->position.erase(this->position.begin() + first);
+		_Vertices.erase(
+			_Vertices.begin() + first * ArrLen(square_vertices),
+			_Vertices.begin() + first * ArrLen(square_vertices) + ArrLen(square_vertices)
+		);
+
+		_Textures.erase(
+			_Textures.begin() + first * texture_coordinate_size,
+			_Textures.begin() + first * texture_coordinate_size + texture_coordinate_size
+		);*/
+	}
+	else {
+
+		this->position.erase(this->position.begin() + first, this->position.begin() + last);
+#ifdef FAN_PERFORMANCE
+		for (int i = 0; i < ArrLen(square_vertices); i++) {
+			_Vertices.erase(index * ArrLen(square_vertices));
+		}
+		for (int i = 0; i < texture_coordinate_size; i++) {
+			_Textures.erase(index * texture_coordinate_size);
+		}
+#else
+		_Vertices.erase(
+			_Vertices.begin() + first * ArrLen(square_vertices),
+			_Vertices.begin() + last * ArrLen(square_vertices)
+		);
+
+		_Textures.erase(
+			_Textures.begin() + first * texture_coordinate_size,
+			_Textures.begin() + last * texture_coordinate_size
+		);
+#endif
+	}
+
+	std::vector<float> data(ArrLen(square_vertices), 0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, _VerticeBuffer.VBO);
+	glBufferSubData(
+		GL_ARRAY_BUFFER,
+		first * sizeof(_Vertices[0]) * ArrLen(square_vertices),
+		sizeof(_Vertices[0]) * ArrLen(square_vertices),
+		data.data()
+	);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindBuffer(GL_ARRAY_BUFFER, _Texture_Coordinates_Buffer.VBO);
+	glBufferSubData(
+		GL_ARRAY_BUFFER,
+		first * sizeof(_Textures[0]) * texture_coordinate_size,
+		sizeof(_Textures[0]) * texture_coordinate_size,
+		data.data()
+	);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	//_Points -= 36;
+}
+
+void SquareVector3D::set_position(const vec3& position, uint64_t index, bool queue) {
+	vec3 distance(
+		position[0] - _Vertices[index * ArrLen(square_vertices) + 0],
+		position[1] - _Vertices[index * ArrLen(square_vertices) + 1],
+		position[2] - _Vertices[index * ArrLen(square_vertices) + 2]
+	);
+	for (int i = 0; i < ArrLen(square_vertices); i++) {
+		_Vertices[index * ArrLen(square_vertices) + i] += distance[i % 3];
+	}
+	if (!queue) {
+		write(true, false);
+	}
+	this->position[index] = position;
+}
+
+vec3 SquareVector3D::get_size(uint64_t i) const {
+	return this->size[i];
+}
+
+vec3 SquareVector3D::get_position(uint64_t i) const {
+	return this->position[i];
+}
+
+std::vector<vec3>& SquareVector3D::get_positions() {
+	return position;
+}
+
+uint64_t SquareVector3D::amount() const {
+	return this->position.size();
+}
+
+void move_camera(vec3& pos, bool noclip, float movement_speed) {
+	if (glfwGetKey(window, GLFW_KEY_W)) {
+		pos.x += camera3d.front.x * (movement_speed * delta_time);
+		pos.z += camera3d.front.z * (movement_speed * delta_time);
+	}
+	if (glfwGetKey(window, GLFW_KEY_S)) {
+		pos.x -= camera3d.front.x * (movement_speed * delta_time);
+		pos.z -= camera3d.front.z * (movement_speed * delta_time);
+	}
+	if (glfwGetKey(window, GLFW_KEY_A)) {
+		pos -= camera3d.right * (movement_speed * delta_time);
+	}
+	if (glfwGetKey(window, GLFW_KEY_D)) {
+		pos += camera3d.right * (movement_speed * delta_time);
+	}
+	if (glfwGetKey(window, GLFW_KEY_SPACE)) {
+		pos.y += movement_speed * delta_time;
+	}
+	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT)) {
+		pos.y -= movement_speed * delta_time;
+	}
+	camera3d.updateCameraVectors();
+	camera3d.set_position(pos);
+}
+
+std::initializer_list<e_cube> e_cube_loop = {
+	e_cube::left,
+	e_cube::right,
+	e_cube::front,
+	e_cube::back,
+	e_cube::down,
+	e_cube::up
+};
+
+std::vector<float> g_distances(6);
+
+int numX = 512,
+numY = 512,
+numOctaves = 7;
+
+double persistence = 0.5;
+
+#define maxPrimeIndex 10
+int primeIndex = 0;
+
+int primes[maxPrimeIndex][3] = {
+  { 995615039, 600173719, 701464987 },
+  { 831731269, 162318869, 136250887 },
+  { 174329291, 946737083, 245679977 },
+  { 362489573, 795918041, 350777237 },
+  { 457025711, 880830799, 909678923 },
+  { 787070341, 177340217, 593320781 },
+  { 405493717, 291031019, 391950901 },
+  { 458904767, 676625681, 424452397 },
+  { 531736441, 939683957, 810651871 },
+  { 997169939, 842027887, 423882827 }
+};
+
+double Noise(int i, int x, int y) {
+	int n = x + y * 57;
+	n = (n << 13) ^ n;
+	int a = primes[i][0], b = primes[i][1], c = primes[i][2];
+	int t = (n * (n * n * a + b) + c) & 0x7fffffff;
+	return 1.0 - (double)(t) / 1073741824.0;
+}
+
+double SmoothedNoise(int i, int x, int y) {
+	double corners = (Noise(i, x - 1, y - 1) + Noise(i, x + 1, y - 1) +
+		Noise(i, x - 1, y + 1) + Noise(i, x + 1, y + 1)) / 16,
+		sides = (Noise(i, x - 1, y) + Noise(i, x + 1, y) + Noise(i, x, y - 1) +
+			Noise(i, x, y + 1)) / 8,
+		center = Noise(i, x, y) / 4;
+	return corners + sides + center;
+}
+
+static Alloc<size_t> ind;
+
+double Interpolate(double a, double b, double x) {
+	double ft = x * 3.1415927,
+		f = (1 - cos(ft)) * 0.5;
+	return  a * (1 - f) + b * f;
+}
+
+double InterpolatedNoise(int i, double x, double y) {
+	int integer_X = x;
+	double fractional_X = x - integer_X;
+	int integer_Y = y;
+	double fractional_Y = y - integer_Y;
+
+	double v1 = SmoothedNoise(i, integer_X, integer_Y),
+		v2 = SmoothedNoise(i, integer_X + 1, integer_Y),
+		v3 = SmoothedNoise(i, integer_X, integer_Y + 1),
+		v4 = SmoothedNoise(i, integer_X + 1, integer_Y + 1),
+		i1 = Interpolate(v1, v2, fractional_X),
+		i2 = Interpolate(v3, v4, fractional_X);
+	return Interpolate(i1, i2, fractional_Y);
+}
+
+double ValueNoise_2D(double x, double y) {
+	double total = 0,
+		frequency = pow(2, numOctaves),
+		amplitude = 1;
+	for (int i = 0; i < numOctaves; ++i) {
+		frequency /= 2;
+		amplitude *= persistence;
+		total += InterpolatedNoise((primeIndex + i) % maxPrimeIndex,
+			x / frequency, y / frequency) * amplitude;
+	}
+	return total / frequency;
 }

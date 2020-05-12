@@ -5,8 +5,9 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
-#include <ft2build.h>
-#include FT_FREETYPE_H  
+//#include <ft2build.h>
+//#include FT_FREETYPE_H  
+
 
 //#define FAN_PERFORMANCE
 
@@ -17,8 +18,8 @@
 #include "Vectors.hpp"
 #include "Time.hpp"
 #include "Network.hpp"
-#include "SOIL2/SOIL2.h"
-#include "SOIL2/stb_image.h"
+#include <SOIL2/SOIL2.h>
+#include <SOIL2/stb_image.h>
 
 #include <map>
 #include <vector>
@@ -26,6 +27,13 @@
 
 #ifdef _MSC_VER
 #pragma warning (disable : 26495)
+#endif
+
+#ifdef min
+#undef min
+#endif
+#ifdef max
+#undef max
 #endif
 
 #define BackgroundSize 1500
@@ -37,11 +45,10 @@ class SquareVector;
 
 void GetFps(bool print = true);
 
-constexpr auto WINDOWSIZE = _vec2<int>(896, 896);
+constexpr auto WINDOWSIZE = _vec2<int>(800, 800);
 extern float delta_time;
-static constexpr int block_size = 64;
+static constexpr int block_size = 50;
 extern GLFWwindow* window;
-static constexpr _vec2<int> view(WINDOWSIZE.x / block_size, WINDOWSIZE.y / block_size);
 constexpr auto grid_size = _vec2<int>(WINDOWSIZE.x / block_size, WINDOWSIZE.y / block_size);
 
 struct Texture {
@@ -268,6 +275,8 @@ public:
 	void push_back(const mat2x2& _M, Color _Color = Color(-1, -1, -1, -1), bool _Queue = false);
 
 	vec2 get_length(uint64_t _Index = 0) const;
+
+	uint64_t amount() const { return _Length.size(); }
 
 private:
 	std::vector<vec2> _Length;
@@ -584,7 +593,6 @@ private:
 	Shader shader;
 	unsigned int VAO, VBO;
 };
-#endif
 
 namespace fan_gui {
 	enum class e_button {
@@ -742,416 +750,142 @@ namespace fan_gui {
 	};
 }
 
-static Camera camera3d;
+#endif
 
-constexpr auto texture_coordinate_size = 72;
+extern Camera camera3d;
 
-static float square_vertices[108] = {
-
-	 0.5,  0.5, -0.5, // left
-	 0.5, -0.5, -0.5,
-	-0.5, -0.5, -0.5,
-
-	-0.5, -0.5, -0.5,
-	-0.5,  0.5, -0.5,
-	 0.5,  0.5, -0.5,
-
-
-	-0.5,  0.5,  0.5, // right
-	-0.5, -0.5,  0.5,
-	 0.5, -0.5,  0.5,
-
-	 0.5, -0.5,  0.5,
-	 0.5,  0.5,  0.5,
-	-0.5,  0.5,  0.5,
-
-	-0.5,  0.5, -0.5,
-	-0.5, -0.5, -0.5,
-	-0.5, -0.5,  0.5, // front
-
-	-0.5, -0.5,  0.5,
-	-0.5,  0.5,  0.5,
-	-0.5,  0.5, -0.5,
-
-
-	 0.5, 0.5, -0.5,
-	 0.5, -0.5, -0.5,
-	 0.5, -0.5, 0.5, // back
-
-	 0.5, -0.5, 0.5,
-	 0.5, 0.5, 0.5,
-	0.5, 0.5, -0.5,
-
-
-	-0.5, -0.5, -0.5, // down
-	 0.5, -0.5, -0.5,
-	 0.5, -0.5,  0.5,
-
-	 0.5, -0.5,  0.5,
-	-0.5, -0.5,  0.5,
-	-0.5, -0.5, -0.5,
-
-	 0.5,  0.5, -0.5, // up
-	-0.5,  0.5, -0.5,
-	-0.5,  0.5,  0.5,
-
-	-0.5,  0.5,  0.5,
-	 0.5,  0.5,  0.5,
-	 0.5,  0.5, -0.5,
-};
-
-class SquareVector3D : public DefaultShapeVector {
+class LineVector3D : public DefaultShapeVector {
 public:
-	SquareVector3D(const vec3& position, const vec3& size, const char* path, const vec2& texture_id) {
-		_Mode = GL_TRIANGLES;
-		_Points = 36;
-		_PointSize = _Points * 2;
+	LineVector3D();
+	LineVector3D(const matrix<3, 2>& _M, const Color& color);
 
-		this->position.push_back(position);
-		this->size.push_back(size);
+	matrix<2, 3> get_position(uint64_t _Index = 0) const;
+	void set_position(uint64_t _Index, const matrix<3, 2>& _M, bool _Queue = false);
 
-		for (int i = 0; i < ArrLen(square_vertices); i++) {
-			_Vertices.push_back(square_vertices[i] / 0.5f * (size[i % 3] / 2));
-			_Vertices[i] += position[i % 3];
-		}
+	void push_back(const matrix<3, 2>& _M, Color _Color = Color(-1, -1, -1, -1), bool _Queue = false);
 
-		init_texture(path, texture_id);
-	}
-
-	SquareVector3D(const char* path, const vec2& texture_id) {
-		_Mode = GL_TRIANGLES;
-		_Points = 36;
-		_PointSize = _Points * 2;
-		init_texture(path, texture_id, false);
-	}
-
-	SquareVector3D(uint64_t reserve, const char* path, const vec2& texture_id) {
-		_Mode = GL_TRIANGLES;
-		_Points = 36;
-		_PointSize = _Points * 2;
-		init_texture(path, texture_id, false);
-		_Vertices.resize(reserve * ArrLen(square_vertices));
-		_Textures.resize(reserve * texture_coordinate_size);
-		this->position.resize(reserve);
-		this->size.resize(reserve);
-	}
-
-	void break_queue(bool vertices = true, bool color = true, bool texture = true) {
-		if (vertices) {
-			glBindBuffer(GL_ARRAY_BUFFER, _VerticeBuffer.VBO);
-			glBufferData(GL_ARRAY_BUFFER, sizeof(_Vertices[0]) * _Vertices.size(), _Vertices.data(), GL_STATIC_DRAW);
-			glBindBuffer(GL_ARRAY_BUFFER, 0);
-		}
-		if (color) {
-			glBindBuffer(GL_ARRAY_BUFFER, _ColorBuffer.VBO);
-			glBufferData(GL_ARRAY_BUFFER, sizeof(_Colors[0]) * _Colors.size(), _Colors.data(), GL_STATIC_DRAW);
-			glBindBuffer(GL_ARRAY_BUFFER, 0);
-		}
-		if (texture) {
-			glBindBuffer(GL_ARRAY_BUFFER, _Texture_Coordinates_Buffer.VBO);
-			glBufferData(GL_ARRAY_BUFFER, sizeof(_Textures[0]) * _Textures.size(), _Textures.data(), GL_STATIC_DRAW);
-			glBindBuffer(GL_ARRAY_BUFFER, 0);
-		}
-	}
-
-	void init(bool init_shape = true) {
-		this->_Camera = &camera3d;
-		this->_Shader = Shader("GLSL/tests.vs", "GLSL/tests.frag");
-
-		glGenBuffers(1, &_VerticeBuffer.VBO);
-		glBindBuffer(GL_ARRAY_BUFFER, _VerticeBuffer.VBO);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(_Vertices[0]) * _Vertices.size(), _Vertices.data(), GL_STATIC_DRAW);
-		if (init_shape) {
-			glGenBuffers(1, &_ColorBuffer.VBO);
-			glBindBuffer(GL_ARRAY_BUFFER, _ColorBuffer.VBO);
-			glBufferData(GL_ARRAY_BUFFER, sizeof(_Colors[0]) * _Colors.size(), _Colors.data(), GL_STATIC_DRAW);
-			glGenVertexArrays(1, &_ShapeBuffer.VAO);
-			glBindVertexArray(_ShapeBuffer.VAO);
-			glEnableVertexAttribArray(0);
-			glEnableVertexAttribArray(1);
-		}
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		glBindVertexArray(0);
-	}	
-
-	std::vector<float> get_texture_onsided(_vec2<uint32_t> size, _vec2<uint32_t> position) {
-		vec2 b(1.f / size.x, 1.f / size.y);
-		vec2 x(position.x * b.x, position.y * b.y);
-
-		return std::vector<float>{
-			x.x,       1.f -  x.y,
-			x.x,       1.f - (x.y + b.y),
-			x.x + b.x, 1.f - (x.y + b.y),
-			x.x + b.x, 1.f - (x.y + b.y),
-			x.x + b.x, 1.f -  x.y,
-			x.x,       1.f -  x.y
-		};
-	}
-
-	const vec2 texture_size = vec2(32, 32);
-
-	void init_texture(const char* path, vec2 texture_id, bool push_texture = true) {
-
-		init(false);
-
-		auto& buffer = _Texture_Buffer;
-
-		glGenTextures(1, &buffer.VBO);
-		glBindTexture(GL_TEXTURE_2D, buffer.VBO);
-
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		
-		stbi_set_flip_vertically_on_load(true);
-		unsigned char* data = SOIL_load_image(path, &buffer.width, &buffer.height, 0, SOIL_LOAD_RGBA);
-		
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, buffer.width, buffer.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-		glGenerateMipmap(GL_TEXTURE_2D);
-		SOIL_free_image_data(data);
-		glBindTexture(GL_TEXTURE_2D, 0);
-
-		texturepack_size = vec2(buffer.width / texture_size.x, buffer.height / texture_size.y);
-		if (push_texture) {
-			static const int side_order[] = { 0, 1, 4, 5, 3, 2 };
-			for (int side = 0; side < ArrLen(side_order); side++) {
-				vec2 begin(1.f / texturepack_size.x, 1.f / texturepack_size.y);
-				float left = begin.x * side_order[side] + ((begin.x * (texture_id.x)) * 6);
-				float right = begin.x * (side_order[side] + 1) + ((begin.x * (texture_id.x)) * 6);
-				float up = 1 - begin.y * texture_id.y;
-				float down = 1 - begin.y * (texture_id.y + 1);
-				float texture_coordinates[] = {
-					left,  up,
-					left,  down,
-					right, down,
-					right, down,
-					right, up,
-					left,  up
-				};
-				for (auto coordinate : texture_coordinates) {
-					_Textures.push_back(coordinate);
-				}
-			}
-		}
-
-		glGenBuffers(1, &_Texture_Coordinates_Buffer.VBO);
-		glBindBuffer(GL_ARRAY_BUFFER, _Texture_Coordinates_Buffer.VBO);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(_Textures[0]) * _Textures.size(), _Textures.data(), GL_STATIC_DRAW);
-		glGenVertexArrays(1, &_ShapeBuffer.VAO);
-		glBindVertexArray(_ShapeBuffer.VAO);
-		glEnableVertexAttribArray(0);
-		glEnableVertexAttribArray(1);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		glBindVertexArray(0);
-	}
-
-	void edit_texture(uint64_t index, const vec2& texture_id) {
-		static const int side_order[] = { 0, 1, 4, 5, 3, 2 };
-		std::vector<float> new_text;
-		for (int side = 0; side < ArrLen(side_order); side++) {
-			vec2 begin(1.f / texturepack_size.x, 1.f / texturepack_size.y);
-			float left = begin.x * side_order[side] + ((begin.x * (texture_id.x)) * 6);
-			float right = begin.x * (side_order[side] + 1) + ((begin.x * (texture_id.x)) * 6);
-			float up = 1 - begin.y * texture_id.y;
-			float down = 1 - begin.y * (texture_id.y + 1);
-			float texture_coordinates[] = {
-				left,  up,
-				left,  down,
-				right, down,
-				right, down,
-				right, up,
-				left,  up
-			};
-			for (auto i : texture_coordinates) {
-				new_text.push_back(i);
-			}
-		}
-		for (int i = 0; i < 6 * 12; i++) {
-			_Textures[index * (6 * 12) + i] = new_text[i];
-		}
-
-		break_queue(false, false, true);
-	}
-
-	void assign(uint64_t index, const vec3& position, const vec3& size, const vec2& texture_id, bool queue = false) {
-		this->position[index] = position;
-		this->size[index] = size;
-
-		for (int i = 0; i < ArrLen(square_vertices); i++) {
-			_Vertices[index * ArrLen(square_vertices) + i] = (square_vertices[i] / 0.5f * (size[i % 3] / 2)) + position[i % 3];
-		}
-
-		static const int side_order[] = { 0, 1, 4, 5, 3, 2 };
-		for (int side = 0; side < ArrLen(side_order); side++) {
-			vec2 begin(1.f / texturepack_size.x, 1.f / texturepack_size.y);
-			float left = begin.x * side_order[side] + ((begin.x * (texture_id.x)) * 6);
-			float right = begin.x * (side_order[side] + 1) + ((begin.x * (texture_id.x)) * 6);
-			float up = 1 - begin.y * texture_id.y;
-			float down = 1 - begin.y * (texture_id.y + 1);
-			float texture_coordinates[] = {
-				left,  up,
-				left,  down,
-				right, down,
-				right, down,
-				right, up,
-				left,  up
-			};
-			int i = 0;
-			for (auto coordinate : texture_coordinates) {
-				_Textures[index * texture_coordinate_size + i] = coordinate;
-				i++;
-			}
-		}
-
-		if (!queue) {
-			break_queue(true, false, true);
-		}
-
-		_Points += 36;
-	}
-
-	void push_back(const vec3& position, const vec3& size, const vec2& texture_id, bool queue = false) {
-		this->position.push_back(position);
-		this->size.push_back(size);
-
-		for (int i = 0; i < ArrLen(square_vertices); i++) {
-			_Vertices.push_back(square_vertices[i] / 0.5f * (size[i % 3] / 2));
-			*(_Vertices.end() - 1) += position[i % 3];
-		}
-
-		static const int side_order[] = { 0, 1, 4, 5, 3, 2 };
-		for (int side = 0; side < ArrLen(side_order); side++) {
-			vec2 begin(1.f / texturepack_size.x, 1.f / texturepack_size.y);
-			float left = begin.x * side_order[side] + ((begin.x * (texture_id.x)) * 6);
-			float right = begin.x * (side_order[side] + 1) + ((begin.x * (texture_id.x)) * 6);
-			float up = 1 - begin.y * texture_id.y;
-			float down = 1 - begin.y * (texture_id.y + 1);
-			float texture_coordinates[] = {
-				left,  up,
-				left,  down,
-				right, down,
-				right, down,
-				right, up,
-				left,  up
-			};
-			for (auto coordinate : texture_coordinates) {
-				_Textures.push_back(coordinate);
-			}
-		}
-
-		if (!queue) {
-			break_queue(true, false, true);
-		}
-
-		_Points += 36;
-	}
+	vec2 get_length(uint64_t _Index = 0) const;
 
 	void draw() {
 		if (_Vertices.empty()) {
 			return;
 		}
-
 		_Shader.Use();
 
 		matrix<4, 4> projection(1);
 		matrix<4, 4> view(1);
 
 		view = _Camera->GetViewMatrix();
+
 		projection = perspectiveRH_NO(Radians(90.f), ((float)window_size.x / (float)window_size.y), 0.1f, 1000.0f);
 
-		static GLint viewLoc = glGetUniformLocation(_Shader.ID, "view");
-		static GLint projLoc = glGetUniformLocation(_Shader.ID, "projection");
-		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]);
+		static int projLoc = glGetUniformLocation(_Shader.ID, "projection");
+		static int viewLoc = glGetUniformLocation(_Shader.ID, "view");
 		glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection[0][0]);
-
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, _Texture_Buffer.VBO);
-	
-		glUniform1i(glGetUniformLocation(_Shader.ID, "texture_sampler"), 0);
-
+		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]);
 		glBindVertexArray(_ShapeBuffer.VAO);
-		
 		glBindBuffer(GL_ARRAY_BUFFER, _VerticeBuffer.VBO);
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-		glBindBuffer(GL_ARRAY_BUFFER, _Texture_Coordinates_Buffer.VBO);
-		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, 0);
-
+		glBindBuffer(GL_ARRAY_BUFFER, _ColorBuffer.VBO);
+		glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, 0);
 		glDrawArrays(_Mode, 0, _Points);
 		glBindVertexArray(0);
 	}
 
-	/*void erase(uint64_t index) { // std::vector
-		this->position.erase(this->position.begin() + index);
-		for (int i = 0; i < ArrLen(square_vertices); i++) {
-			_Vertices.erase(_Vertices.begin() + index * ArrLen(square_vertices));
-		}
-		for (int i = 0; i < texture_coordinate_size; i++) {
-			_Textures.erase(_Textures.begin() + index * texture_coordinate_size);
-		}
-		break_queue(true, false, true);
-	}*/
+};
 
-	void erase(uint64_t index) {
-		this->position.erase(this->position.begin() + index);
-#ifdef FAN_PERFORMANCE
-		for (int i = 0; i < ArrLen(square_vertices); i++) {
-			_Vertices.erase(index * ArrLen(square_vertices));
-		}
-		for (int i = 0; i < texture_coordinate_size; i++) {
-			_Textures.erase(index * texture_coordinate_size);
-		}
-#else
-		_Vertices.erase(
-			_Vertices.begin() + index * ArrLen(square_vertices),
-			_Vertices.begin() + index * ArrLen(square_vertices) + ArrLen(square_vertices)
-		);
+constexpr auto texture_coordinate_size = 72;
 
-		_Textures.erase(
-			_Textures.begin() + index * texture_coordinate_size,
-			_Textures.begin() + index * texture_coordinate_size + texture_coordinate_size
-		);
-#endif
-		break_queue(true, false, true);
-	}
+static float square_vertices[108] = {
 
-	/*void erase_all() {
-		this->position.erase(this->position.begin(), this->position.end());
-		_Vertices.erase(_Vertices.begin(), _Vertices.end());
-		_Textures.erase(_Textures.begin(), _Textures.end());
-		write(true, false);
-	}*/
+	 1,  1, 0, // left
+	 1, 0, 0,
+	0, 0, 0,
 
-	void set_position(const vec3& position, uint64_t index, bool queue = false) {
-		vec3 distance(
-			position[0] - _Vertices[index * ArrLen(square_vertices) + 0],
-			position[1] - _Vertices[index * ArrLen(square_vertices) + 1],
-			position[2] - _Vertices[index * ArrLen(square_vertices) + 2]
-		);
-		for (int i = 0; i < ArrLen(square_vertices); i++) {
-			_Vertices[index * ArrLen(square_vertices) + i] += distance[i % 3];
-		}
-		if (!queue) {
-			write(true, false);
-		}
-		this->position[index] = position;
-	}
+	0, 0, 0,
+	0,  1, 0,
+	 1,  1, 0,
 
-	vec3 get_size(uint64_t i) const {
-		return this->size[i];
-	}
 
-	vec3 get_position(uint64_t i) const {
-		return this->position[i];
-	}
+	0,  1,  1, // right
+	0, 0,  1,
+	 1, 0,  1,
 
-	std::vector<vec3>& get_positions() {
-		return position;
-	}
+	 1, 0,  1,
+	 1,  1,  1,
+	0,  1,  1,
 
-	uint64_t amount() const {
-		return this->position.size();
-	}
+	0,  1, 0,
+	0, 0, 0,
+	0, 0,  1, // front
+
+	0, 0,  1,
+	0,  1,  1,
+	0,  1, 0,
+
+
+	 1, 1, 0,
+	 1, 0, 0,
+	 1, 0, 1, // back
+
+	 1, 0, 1,
+	 1, 1, 1,
+	1, 1, 0,
+
+
+	0, 0, 0, // down
+	 1, 0, 0,
+	 1, 0,  1,
+
+	 1, 0,  1,
+	0, 0,  1,
+	0, 0, 0,
+
+	 1,  1, 0, // up
+	0,  1, 0,
+	0,  1,  1,
+
+	0,  1,  1,
+	 1,  1,  1,
+	 1,  1, 0,
+};
+
+class SquareVector3D : public DefaultShapeVector {
+public:
+	SquareVector3D(const vec3& position, const vec3& size, const char* path, const vec2& texture_id);
+
+	SquareVector3D(const char* path, const vec2& texture_id);
+
+	SquareVector3D(uint64_t reserve, const char* path, const vec2& texture_id);
+
+	void break_queue(bool vertices = true, bool color = true, bool texture = true);
+
+	void init(bool init_shape = true);
+
+	template <typename T>
+	std::vector<T> get_texture_onsided(_vec2<uint32_t> size, _vec2<uint32_t> position);
+
+	const vec2 texture_size = vec2(32, 32);
+
+	void init_texture(const char* path, vec2 texture_id, bool push_texture = true);
+
+	void edit_texture(uint64_t index, const vec2& texture_id);
+
+	void push_back(const vec3& position, const vec3& size, const vec2& texture_id, bool queue = false, bool beta = false);
+
+	void draw();
+
+	void erase(uint64_t first, uint64_t last = -1);
+
+	void set_position(const vec3& position, uint64_t index, bool queue = false);
+
+	vec3 get_size(uint64_t i) const;
+
+	vec3 get_position(uint64_t i) const;
+
+	std::vector<vec3>& get_positions();
+
+	uint64_t amount() const;
 
 private:
 	vec2 texturepack_size;
@@ -1257,31 +991,9 @@ private:
 //	Color begin;
 //	Color end;
 //	float life_time;
-//};
+//};	
 
-
-static void move_camera(vec3& pos, bool noclip, float movement_speed) {
-	if (glfwGetKey(window, GLFW_KEY_W)) {
-		pos += camera3d.front * movement_speed * delta_time;
-	}
-	if (glfwGetKey(window, GLFW_KEY_S)) {
-		pos -= camera3d.front * movement_speed * delta_time;
-	}
-	if (glfwGetKey(window, GLFW_KEY_A)) {
-		pos -= camera3d.right * movement_speed * delta_time;
-	}
-	if (glfwGetKey(window, GLFW_KEY_D)) {
-		pos += camera3d.right * movement_speed * delta_time;
-	}
-	if (glfwGetKey(window, GLFW_KEY_SPACE)) {
-		pos.y += movement_speed * delta_time;
-	}
-	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT)) {
-		pos.y -= movement_speed * delta_time;
-	}
-	camera3d.updateCameraVectors();
-	camera3d.set_position(pos);
-}
+void move_camera(vec3& pos, bool noclip, float movement_speed);
 
 enum class e_cube {
 	left,
@@ -1292,19 +1004,12 @@ enum class e_cube {
 	up
 };
 
-static auto e_cube_loop = {
-	e_cube::left,
-	e_cube::right,
-	e_cube::front,
-	e_cube::back,
-	e_cube::down,
-	e_cube::up
-};
+extern std::initializer_list<e_cube> e_cube_loop;
 
-static std::vector<float> g_distances(6);
+extern std::vector<float> g_distances;
 
 template <typename T>
-constexpr auto intersection_point3d(const T& plane_position, const T& plane_size, const T& position, e_cube side) {
+inline vec3 intersection_point3d(const T& plane_position, const T& plane_size, const T& position, e_cube side) {
 	T p0;
 	T a;
 	T b;
@@ -1397,103 +1102,10 @@ constexpr auto intersection_point3d(const T& plane_position, const T& plane_size
 	return T(-1);
 }
 
-static int numX = 512,
-numY = 512,
-numOctaves = 7;
-static double persistence = 0.5;
-
-#define maxPrimeIndex 10
-static int primeIndex = 0;
-
-static int primes[maxPrimeIndex][3] = {
-  { 995615039, 600173719, 701464987 },
-  { 831731269, 162318869, 136250887 },
-  { 174329291, 946737083, 245679977 },
-  { 362489573, 795918041, 350777237 },
-  { 457025711, 880830799, 909678923 },
-  { 787070341, 177340217, 593320781 },
-  { 405493717, 291031019, 391950901 },
-  { 458904767, 676625681, 424452397 },
-  { 531736441, 939683957, 810651871 },
-  { 997169939, 842027887, 423882827 }
-};
-
-static double Noise(int i, int x, int y) {
-	int n = x + y * 57;
-	n = (n << 13) ^ n;
-	int a = primes[i][0], b = primes[i][1], c = primes[i][2];
-	int t = (n * (n * n * a + b) + c) & 0x7fffffff;
-	return 1.0 - (double)(t) / 1073741824.0;
-}
-
-static double SmoothedNoise(int i, int x, int y) {
-	double corners = (Noise(i, x - 1, y - 1) + Noise(i, x + 1, y - 1) +
-		Noise(i, x - 1, y + 1) + Noise(i, x + 1, y + 1)) / 16,
-		sides = (Noise(i, x - 1, y) + Noise(i, x + 1, y) + Noise(i, x, y - 1) +
-			Noise(i, x, y + 1)) / 8,
-		center = Noise(i, x, y) / 4;
-	return corners + sides + center;
-}
-
-static double Interpolate(double a, double b, double x) {
-	double ft = x * 3.1415927,
-		f = (1 - cos(ft)) * 0.5;
-	return  a * (1 - f) + b * f;
-}
-
-static double InterpolatedNoise(int i, double x, double y) {
-	int integer_X = x;
-	double fractional_X = x - integer_X;
-	int integer_Y = y;
-	double fractional_Y = y - integer_Y;
-
-	double v1 = SmoothedNoise(i, integer_X, integer_Y),
-		v2 = SmoothedNoise(i, integer_X + 1, integer_Y),
-		v3 = SmoothedNoise(i, integer_X, integer_Y + 1),
-		v4 = SmoothedNoise(i, integer_X + 1, integer_Y + 1),
-		i1 = Interpolate(v1, v2, fractional_X),
-		i2 = Interpolate(v3, v4, fractional_X);
-	return Interpolate(i1, i2, fractional_Y);
-}
-
-static double ValueNoise_2D(double x, double y) {
-	double total = 0,
-		frequency = pow(2, numOctaves),
-		amplitude = 1;
-	for (int i = 0; i < numOctaves; ++i) {
-		frequency /= 2;
-		amplitude *= persistence;
-		total += InterpolatedNoise((primeIndex + i) % maxPrimeIndex,
-			x / frequency, y / frequency) * amplitude;
-	}
-	return total / frequency;
-}
+double ValueNoise_2D(double x, double y);
 
 template <typename T>
-vec3 raycast3d(const T& map, vec3 position, vec3 length) {
-	vec3 ray_begin;
-	position += vec3(0.5);
-	position = position.floored();
-	auto minimum = std::min_element(length.data(), length.data() + length.size());
-	auto maximum = std::max_element(length.data(), length.data() + length.size());
-	auto loop = *minimum > * maximum ? *minimum : *maximum;
-
-	for (int i = 0; i < loop; i++) {
-		if (floor(position.x + ray_begin.x) < 0) {
-			goto summing;
-		}
-		if (map[floor(position.x + ray_begin.x)][ceil(position.y + ray_begin.y)][(position.z + ray_begin.z)]) {
-			return position + ray_begin;
-		}
-	summing:
-		vec3 sum = Normalize(length);
-		ray_begin += sum;
-		if (position.x + ray_begin.x >= 400) {
-			break;
-		}
-	}
-	return vec3(-1);
-}
+vec3 raycast3d(const T& map, vec3 position, vec3 length);
 
 struct hash_vector_operators {
 	size_t operator()(const vec3& k) const {
@@ -1505,4 +1117,55 @@ struct hash_vector_operators {
 	}
 };
 
+constexpr int world_size = 150;
+
+#define pass_array(d_map, d_position) \
+		d_map[d_position.x] \
+			 [d_position.y] \
+			 [d_position.z]
+
+typedef std::vector<std::vector<std::vector<bool>>> map_t;
+
+constexpr auto grid_direction(const vec3& src, const vec3& dst) {
+	vec3 x(src.x - dst.x, src.y - dst.y, src.z - dst.z);
+	return x / x.abs().max();
+}
+
+struct grid_raycast_s {
+	vec3 direction, begin;
+	vec3i grid;
+};
+
+constexpr bool grid_raycast_single(grid_raycast_s& caster, float grid_size) {
+	vec3 position(caster.begin % grid_size);
+	for (uint8_t i = 0; i < vec3::size(); i++) {
+		position[i] = ((caster.direction[i] < 0) ? position[i] : grid_size - position[i]);
+		position[i] = std::abs((!position[i] ? grid_size : position[i]) / caster.direction[i]);
+	}
+	caster.grid = (caster.begin += caster.direction * position.min()) / grid_size;
+	for (uint8_t i = 0; i < vec3::size(); i++)
+		caster.grid[i] -= ((caster.direction[i] < 0) & (position[i] == position.min()));
+	return 1;
+}
+
+constexpr vec3i grid_raycast(const vec3& start, const vec3& end, const map_t& map, float block_size) {
+	if (start == end) {
+		return vec3(RAY_DID_NOT_HIT);
+	}
+	grid_raycast_s raycast = { grid_direction(end, start), start, vec3() };
+	vec3 distance = end - start;
+	auto max = *std::max_element(distance.begin(), distance.end());
+
+	for (int i = 0; i < 500; i++) {
+		grid_raycast_single(raycast, block_size);
+		if (raycast.grid[0] < 0 || raycast.grid[1] < 0 || raycast.grid[2] < 0 ||
+			raycast.grid[0] >= world_size || raycast.grid[1] >= world_size || raycast.grid[2] >= world_size) {
+			continue;
+		}
+		if (map[raycast.grid[0]][raycast.grid[1]][raycast.grid[2]]) {
+			return raycast.grid;
+		}
+	}
+	return vec3(RAY_DID_NOT_HIT);
+}
 //#endif

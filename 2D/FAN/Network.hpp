@@ -637,80 +637,88 @@ private:
 	SOCKET connect_socket;
 };
 
-class UDP {
-public:
-	void send_message(const std::string& message) const {
-		if (sendto(_socket, message.c_str(), message.size(), 0, (sockaddr*)&peer, socket_length) == SOCKET_ERROR) {
-			printf("failed to send data %d\n", WSAGetLastError());
-			exit(EXIT_FAILURE);
-		}
-	}
-
-	void send_messagen(const std::string& message) const {
-		send_message((const char*)message.size());
-		send_message(message);
-	}
-
-	void listen(std::function<void()> execute = std::function<void()>([]() {})) {
-		std::vector<char> buffer(max_buffer);
-		if (recvfrom(_socket, &buffer[0], buffer.size(), 0, (sockaddr*)&peer, &socket_length) == SOCKET_ERROR) {
-			printf("failed to receive %d\n", WSAGetLastError());
-			exit(EXIT_FAILURE);
-		}
-		data.append(buffer.cbegin(), buffer.cend());
-		execute();
-	}
-
-	std::string data;
-protected:
-	SOCKET _socket;
-	int socket_length;
-	sockaddr_in this_sockaddr, peer;
-	const int max_buffer = 1024;
-};
-
-class udp_client : public UDP {
-public:
-	udp_client(const char* ip, unsigned short port) {
-		socket_length = sizeof(this_sockaddr);
-		if ((_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == INVALID_SOCKET) {
-			printf("failed to create socket\n");
-		}
-		memset((char*)&this_sockaddr, 0, sizeof(this_sockaddr));
-		this_sockaddr.sin_family = AF_INET;
-#ifdef _WIN64
-		this_sockaddr.sin_addr.S_un.S_addr = inet_addr(ip);
-#else
-		this_sockaddr.sin_addr.s_addr = inet_addr(SERVER_IP);
-#endif
-		this_sockaddr.sin_port = htons(port);
-	}
-	~udp_client() {
-		closesocket(_socket);
-		WSACleanup();
-	}
-};
-
-class udp_server : public UDP {
-public:
-	udp_server(unsigned short port) {
-		socket_length = sizeof(peer);
-
-		if ((_socket = socket(AF_INET, SOCK_DGRAM, 0)) == INVALID_SOCKET) {
-			printf("failed to create socket\n");
-		}
-
-		this_sockaddr.sin_family = AF_INET;
-		this_sockaddr.sin_addr.s_addr = INADDR_ANY;
-		this_sockaddr.sin_port = htons(port);
-
-		if (bind(_socket, (sockaddr*)&this_sockaddr, sizeof(this_sockaddr)) == SOCKET_ERROR) {
-			printf("bind failed\n");
-		}
-	}
-
-	~udp_server() {
-		closesocket(_socket);
-		WSACleanup();
-	}
-};
+//class UDP {
+//public:
+//	void send_message(const std::string& message) const {
+//		if (sendto(_socket, message.c_str(), message.size(), 0, (sockaddr*)&peer, socket_length) == SOCKET_ERROR) {
+//#ifdef FAN_WINDOWS
+//			printf("failed to send data %d\n", WSAGetLastError());
+//#else
+//			puts("failed to send data %d");
+//#endif
+//			exit(EXIT_FAILURE);
+//		}
+//	}
+//
+//	void send_messagen(const std::string& message) const {
+//		send_message((const char*)message.size());
+//		send_message(message);
+//	}
+//
+//	void listen(std::function<void()> execute = std::function<void()>([]() {})) {
+//		std::vector<char> buffer(max_buffer);
+//		if (recvfrom(_socket, &buffer[0], buffer.size(), 0, (sockaddr*)&peer, &socket_length) == SOCKET_ERROR) {
+//#ifdef FAN_WINDOWS
+//			printf("failed to receive %d\n", WSAGetLastError());
+//#else
+//			puts("failed to send data %d");
+//#endif
+//			exit(EXIT_FAILURE);
+//		}
+//		data.append(buffer.cbegin(), buffer.cend());
+//		execute();
+//	}
+//
+//	std::string data;
+//protected:
+//	SOCKET _socket;
+//	int socket_length;
+//	sockaddr_in this_sockaddr, peer;
+//	const int max_buffer = 1024;
+//};
+//
+//class udp_client : public UDP {
+//public:
+//	udp_client(const char* ip, unsigned short port) {
+//		socket_length = sizeof(this_sockaddr);
+//		if ((_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == INVALID_SOCKET) {
+//			printf("failed to create socket\n");
+//		}
+//		memset((char*)&this_sockaddr, 0, sizeof(this_sockaddr));
+//		this_sockaddr.sin_family = AF_INET;
+//#ifdef _WIN64
+//		this_sockaddr.sin_addr.S_un.S_addr = inet_addr(ip);
+//#else
+//		this_sockaddr.sin_addr.s_addr = inet_addr(SERVER_IP);
+//#endif
+//		this_sockaddr.sin_port = htons(port);
+//	}
+//	~udp_client() {
+//		closesocket(_socket);
+//		WSACleanup();
+//	}
+//};
+//
+//class udp_server : public UDP {
+//public:
+//	udp_server(unsigned short port) {
+//		socket_length = sizeof(peer);
+//
+//		if ((_socket = socket(AF_INET, SOCK_DGRAM, 0)) == INVALID_SOCKET) {
+//			printf("failed to create socket\n");
+//		}
+//
+//		this_sockaddr.sin_family = AF_INET;
+//		this_sockaddr.sin_addr.s_addr = INADDR_ANY;
+//		this_sockaddr.sin_port = htons(port);
+//
+//		if (bind(_socket, (sockaddr*)&this_sockaddr, sizeof(this_sockaddr)) == SOCKET_ERROR) {
+//			printf("bind failed\n");
+//		}
+//	}
+//
+//	~udp_server() {
+//		closesocket(_socket);
+//		WSACleanup();
+//	}
+//};

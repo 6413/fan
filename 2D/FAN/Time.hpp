@@ -3,7 +3,7 @@
 #include <chrono>
 #include <functional>
 
-using namespace std::chrono;
+typedef std::chrono::high_resolution_clock chrono_t;
 
 class Timer {
 public:
@@ -15,7 +15,7 @@ public:
 	};
 
 	Timer(
-		const decltype(high_resolution_clock::now())& timer, 
+		const decltype(chrono_t::now())& timer, 
 		uint64_t time,
 		mode mode = mode::WAIT_FINISH,
 		const std::function<void()>& function = 
@@ -64,29 +64,29 @@ public:
 	}
 
 	void start(int time) {
-		this->timer = high_resolution_clock::now();
+		this->timer = chrono_t::now();
 		this->time = time;
 	}
 
-	static decltype(high_resolution_clock::now()) start() {
-		return high_resolution_clock::now();
+	static decltype(chrono_t::now()) start() {
+		return chrono_t::now();
 	}
 
 	void restart() {
-		this->timer = high_resolution_clock::now();
+		this->timer = chrono_t::now();
 	}
 
 	bool finished() {
-		return duration_cast<milliseconds>(high_resolution_clock::now() - timer).count() >= time;
+		return duration_cast<std::chrono::milliseconds>(chrono_t::now() - timer).count() >= time;
 	}
 
 	uint64_t elapsed() {
-		return duration_cast<milliseconds>(high_resolution_clock::now() - timer).count();
+		return duration_cast<std::chrono::milliseconds>(chrono_t::now() - timer).count();
 	}
 
 private:
 	std::vector<std::function<void()>> functions;
 	std::vector<mode> modes;
-	decltype(high_resolution_clock::now()) timer;
+	decltype(chrono_t::now()) timer;
 	uint64_t time;
 };
