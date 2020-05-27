@@ -121,7 +121,7 @@ constexpr auto AimAngle(const _vec2<_Ty>& src, const _vec2<_Ty2>& dst) {
 	return atan2f(dst.y - src.y, dst.x - src.x);
 }
 
-constexpr vec2 DirectionVector(float angle)
+inline vec2 DirectionVector(float angle)
 {
 	return vec2(
 		cos(angle),
@@ -129,8 +129,7 @@ constexpr vec2 DirectionVector(float angle)
 	);
 }
 
-
-constexpr vec3 DirectionVector(float alpha, float beta)
+inline vec3 DirectionVector(float alpha, float beta)
 {
 	return vec3(
 		cos(Radians(alpha)) * cos(Radians(beta)), 
@@ -160,8 +159,10 @@ constexpr auto Distance(const _vec2<_Ty>& src, const _vec2<_Ty>& dst) {
 	return sqrtf(powf((src.x - dst.x), 2) + powf(((src.y - dst.y)), 2));
 }
 
-
-
+template <typename _Ty, typename _Ty2>
+constexpr auto Distance(const _vec3<_Ty>& src, const _vec3<_Ty2>& dst) {
+	return sqrtf(powf((src.x - dst.x), 2) + powf(((src.y - dst.y)), 2) + powf(((src.z - dst.z)), 2));
+}
 
 template <typename _Type>
 constexpr auto Abs(const _Type _Value) {
@@ -230,10 +231,9 @@ auto Ortho(float left, float right, float bottom, float top, float zNear, float 
 }
 
 template <typename T, typename T2 = matrix<4, 4>> 
-constexpr T2 perspectiveRH_NO(T fovy, T aspect, T zNear, T zFar) {
-	abs(aspect - std::numeric_limits<T>::epsilon()) > static_cast<T>(0);
+constexpr T2 Perspective(T fovy, T aspect, T zNear, T zFar) {
 	T const tanHalfFovy = tan(fovy / static_cast<T>(2));
-	T2 Result(static_cast<T>(1));
+	T2 Result;
 	Result[0][0] = static_cast<T>(1) / (aspect * tanHalfFovy);
 	Result[1][1] = static_cast<T>(1) / (tanHalfFovy);
 	Result[2][2] = -(zFar + zNear) / (zFar - zNear);

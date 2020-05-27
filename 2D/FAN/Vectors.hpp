@@ -40,6 +40,9 @@ public:
 };
 
 template <typename _Ty>
+class _vec3;
+
+template <typename _Ty>
 class _vec2 {
 public:
 	_Ty x, y;
@@ -52,6 +55,8 @@ public:
 	constexpr _vec2(_Ty x, _Ty y) : x(x), y(y) { }
 	template <typename type>
 	constexpr _vec2(const _vec2<type>& vec) : x(vec.x), y(vec.y) { }
+	template <typename type>
+	constexpr _vec2(const _vec3<type>& vec, bool init) : x(vec.x), y(vec.y) { }
 
 	constexpr _Ty& operator[](uint64_t idx) { return !idx ? x : y; }
 	constexpr _Ty operator[](uint64_t idx) const { return !idx ? x : y; }
@@ -191,6 +196,10 @@ public:
 		return Cols;
 	}
 
+	constexpr uint64_t size() const {
+		return Rows * Cols;
+	}
+
 	matrix<Cols, Rows> operator-(const matrix<Cols, Rows>& m) {
 		matrix<Cols, Rows> ret;
 		for (int _I = 0; _I < Rows; _I++) {
@@ -290,12 +299,12 @@ private:
 	uint64_t init_index;
 };
 
-using mat2x2 = _mat2x2<double>;
-using mat2x3 = _vec3<double>[2];
-using mat2x4 = _mat2x4<double>;
-using vec2 = _vec2<double>;
-using vec3 = _vec3<double>;
-using vec4 = _vec4<double>;
+using mat2x2 = _mat2x2<float>;
+using mat2x3 = _vec3<float>[2];
+using mat2x4 = _mat2x4<float>;
+using vec2 = _vec2<float>;
+using vec3 = _vec3<float>;
+using vec4 = _vec4<float>;
 using vec2i = _vec2<int>;
 using vec3i = _vec3<int>;
 using vec4i = _vec4<int>;
@@ -305,18 +314,19 @@ public:
 	float r, g, b, a;
 	Color() : r(0), g(0), b(0), a(1) {}
 
-	constexpr Color(float r, float g, float b, float a = 1, bool index = false) : r(r), g(g), b(b), a(a) {
-		if (index) {
+	constexpr Color(float r, float g, float b, float a = 1, bool rgb = false) : r(r), g(g), b(b), a(a) {
+		if (rgb) {
 			this->r = r / 255.f;
 			this->g = g / 255.f;
 			this->b = b / 255.f;
 			this->a = a / 255.f;
-			return;
 		}
-		this->r = r;
-		this->g = g;
-		this->b = b;
-		this->a = 1;
+		else {
+			this->r = r;
+			this->g = g;
+			this->b = b;
+			this->a = a;
+		}
 	}
 	constexpr Color(float value, bool index = false) : r(0), g(0), b(0), a(0) {
 		if (index) {
@@ -324,12 +334,13 @@ public:
 			this->g = g / value;
 			this->b = b / value;
 			this->a = a / value;
-			return;
 		}
-		this->r = value;
-		this->g = value;
-		this->b = value;
-		this->a = 1;
+		else {
+			this->r = value;
+			this->g = value;
+			this->b = value;
+			this->a = 1;
+		}
 	}
 	Color& operator&=(const Color& color) {
 		Color ret;
@@ -376,7 +387,35 @@ constexpr _Vec_t<_Casted> Cast(_Vec_t<_Old> v) {
 	return _Vec_t<_Casted>(v);
 }
 
-template <template<typename> typename _Vec_t, typename _Type>
+template <class, class>
+constexpr bool is_same_v = false;
+template <class _Ty>
+constexpr bool is_same_v<_Ty, _Ty> = true;
+
+template<typename T, typename... Rest>
+struct is_any : std::false_type {};
+
+template<typename T, typename First>
+struct is_any<T, First> : std::is_same<T, First> {};
+
+template<typename T, typename First, typename... Rest>
+struct is_any<T, First, Rest...>
+	: std::integral_constant<bool, std::is_same<T, First>::value || is_any<T, Rest...>::value>
+{};
+
+template<typename T, typename... Rest>
+struct are_same : std::false_type {};
+
+template<typename T, typename First>
+struct are_same<T, First> : std::is_same<T, First> {};
+
+template<typename T, typename First, typename... Rest>
+struct are_same<T, First, Rest...>
+	: std::integral_constant<bool, std::is_same<T, First>::value && is_any<T, Rest...>::value>
+{};
+
+template <template<typename> typename _Vec_t, typename _Type,
+	std::enable_if_t<is_any<_Vec_t<_Type>, _vec2<_Type>, _vec3<_Type>, _vec4<_Type>>::value>* = nullptr>
 constexpr std::ostream& operator<<(std::ostream& _Os, const _Vec_t<_Type>& _Lhs) { 
 	for (int i = 0; i < _Lhs.size(); i++) {
 		if (i - 1 != _Lhs.size()) {
@@ -388,12 +427,6 @@ constexpr std::ostream& operator<<(std::ostream& _Os, const _Vec_t<_Type>& _Lhs)
 	}
 	return _Os;
 }
-
-template <class T, class... Ts>
-struct is_any : std::bool_constant<(std::is_same_v<T, Ts> || ...)> {};
-
-template <class T, class... Ts>
-struct are_same : std::bool_constant<(std::is_same_v<T, Ts>&& ...)> {};
 
 template <template<typename> typename _Vec_t, typename _Type, typename _Type2>
 constexpr _Vec_t<_Type> operator+(const _Vec_t<_Type>& _Lhs, _Vec_t<_Type2> _Rhs) {
@@ -425,6 +458,15 @@ constexpr _Vec_t<_Type>& operator+=(_Vec_t<_Type>& _Lhs, const _Vec_t<_Type2>& _
 
 template <template<typename> typename _Vec_t, typename _Type, typename _Type2,
 	std::enable_if_t<is_any<_Vec_t<_Type>, _vec2<_Type>, _vec3<_Type>, _vec4<_Type>>::value>* = nullptr>
+	constexpr _Vec_t<_Type>& operator+=(_Vec_t<_Type>& _Lhs, _Type2 _Rhs) {
+	for (int _I = 0; _I < _Lhs.size(); _I++) {
+		_Lhs[_I] = _Lhs[_I] + _Rhs;
+	}
+	return _Lhs;
+}
+
+template <template<typename> typename _Vec_t, typename _Type, typename _Type2,
+	std::enable_if_t<is_any<_Vec_t<_Type>, _vec2<_Type>, _vec3<_Type>, _vec4<_Type>>::value>* = nullptr>
 constexpr _Vec_t<_Type>& operator-=(_Vec_t<_Type>& _Lhs, const _Vec_t<_Type2>& _Rhs) {
 	for (int _I = 0; _I < _Lhs.size(); _I++) {
 		_Lhs[_I] = _Lhs[_I] - _Rhs[_I];
@@ -432,9 +474,9 @@ constexpr _Vec_t<_Type>& operator-=(_Vec_t<_Type>& _Lhs, const _Vec_t<_Type2>& _
 	return _Lhs;
 }
 
-template <template<typename> typename _Vec_t, typename _Type,
+template <template<typename> typename _Vec_t, typename _Type, typename _Type2,
 	std::enable_if_t<is_any<_Vec_t<_Type>, _vec2<_Type>, _vec3<_Type>, _vec4<_Type>>::value>* = nullptr>
-constexpr _Vec_t<_Type> operator-(const _Vec_t<_Type>& _Lhs, _Vec_t<_Type> _Rhs) {
+constexpr _Vec_t<_Type> operator-(const _Vec_t<_Type>& _Lhs, _Vec_t<_Type2> _Rhs) {
 	_Vec_t<_Type> _Vec;
 	for (int _I = 0; _I < _Vec.size(); _I++) {
 		_Vec[_I] = _Lhs[_I] - _Rhs[_I];
@@ -442,10 +484,20 @@ constexpr _Vec_t<_Type> operator-(const _Vec_t<_Type>& _Lhs, _Vec_t<_Type> _Rhs)
 	return _Vec;
 }
 
-template <template<typename> typename _Vec_t, typename _Type, typename _Type2,
-	std::enable_if_t<is_any<_Vec_t<_Type>, _vec2<_Type>, _vec3<_Type>, _vec4<_Type>>::value &&
-	!is_any<_Type2, vec2, vec3, vec4>::value>* = nullptr>
-constexpr _Vec_t<_Type> operator-(const _Vec_t<_Type>& _Lhs, _Type2 _Rhs) {
+//template <template<typename> typename _Vec_t, typename _Type, typename _Type2,
+//	std::enable_if_t<is_any<_Vec_t<_Type>, _vec2<_Type>, _vec3<_Type>, _vec4<_Type>>::value &&
+//	!is_any<_Type2, _vec2<_Type2>, _vec3<_Type2>, _vec4<_Type2>>::value>* = nullptr>
+//constexpr _Vec_t<_Type> operator-(const _Vec_t<_Type>& _Lhs, _Type2 _Rhs) {
+//	_Vec_t<_Type> _Vec;
+//	for (int _I = 0; _I < _Vec.size(); _I++) {
+//		_Vec[_I] = _Lhs[_I] - _Rhs;
+//	}
+//	return _Vec;
+//}
+
+template <template<typename> typename _Vec_t, typename _Type,
+	std::enable_if_t<is_any<_Vec_t<_Type>, _vec2<_Type>, _vec3<_Type>, _vec4<_Type>>::value>* = nullptr>
+	constexpr _Vec_t<_Type> operator-(const _Vec_t<_Type>& _Lhs, double _Rhs) {
 	_Vec_t<_Type> _Vec;
 	for (int _I = 0; _I < _Vec.size(); _I++) {
 		_Vec[_I] = _Lhs[_I] - _Rhs;
@@ -474,7 +526,7 @@ constexpr _Vec_t<_Type> operator*(const _Vec_t<_Type>& _Lhs, const _Vec_t<_Type2
 
 template <template<typename> typename _Vec_t, typename _Type, typename _Type2,
 	std::enable_if_t<is_any<_Vec_t<_Type>, _vec2<_Type>, _vec3<_Type>, _vec4<_Type>>::value &&
-	!is_any<_Type2, vec2, vec3, vec4>::value>* = nullptr>
+	!is_any<_Type2, _vec2<_Type2>, _vec3<_Type2>, _vec4<_Type2>>::value>* = nullptr>
 constexpr _Vec_t<_Type> operator*(const _Vec_t<_Type>& _Lhs, _Type2 _Rhs) {
 	_Vec_t<_Type> _Vec;
 	for (int _I = 0; _I < _Vec.size(); _I++) {
@@ -495,7 +547,17 @@ constexpr _Vec_t<_Type> operator/(const _Vec_t<_Type>& _Lhs, const _Vec_t<_Type2
 
 template <template<typename> typename _Vec_t, typename _Type, typename _Type2,
 	std::enable_if_t<is_any<_Vec_t<_Type>, _vec2<_Type>, _vec3<_Type>, _vec4<_Type>>::value &&
-	!is_any<_Type2, vec2, vec3, vec4>::value>* = nullptr>
+	!is_any<_Type2, _vec2<_Type2>, _vec3<_Type2>, _vec4<_Type2>>::value>* = nullptr>
+	constexpr _Vec_t<_Type> operator/=(_Vec_t<_Type>& _Lhs, _Type2 _Rhs) {
+	for (int _I = 0; _I < _Lhs.size(); _I++) {
+		_Lhs[_I] /= _Rhs;
+	}
+	return _Lhs;
+}
+
+template <template<typename> typename _Vec_t, typename _Type, typename _Type2,
+	std::enable_if_t<is_any<_Vec_t<_Type>, _vec2<_Type>, _vec3<_Type>, _vec4<_Type>>::value &&
+	!is_any<_Type2, _vec2<_Type2>, _vec3<_Type2>, _vec4<_Type2>>::value>* = nullptr>
 constexpr _Vec_t<_Type> operator/(const _Vec_t<_Type>& _Lhs, _Type2 _Rhs) {
 	_Vec_t<_Type> _Vec;
 	for (int _I = 0; _I < _Vec.size(); _I++) {
@@ -506,7 +568,7 @@ constexpr _Vec_t<_Type> operator/(const _Vec_t<_Type>& _Lhs, _Type2 _Rhs) {
 
 template <template<typename> typename _Vec_t, typename _Type, typename _Type2,
 	std::enable_if_t<is_any<_Vec_t<_Type>, _vec2<_Type>, _vec3<_Type>, _vec4<_Type>>::value &&
-	!is_any<_Type2, vec2, vec3, vec4>::value>* = nullptr>
+	!is_any<_Type2, _vec2<_Type2>, _vec3<_Type2>, _vec4<_Type2>>::value>* = nullptr>
 constexpr _Vec_t<_Type> operator%(const _Vec_t<_Type>& _Lhs, _Type2 _Rhs) {
 	_Vec_t<_Type> _Vec;
 	for (int _I = 0; _I < _Lhs.size(); _I++) {
@@ -528,7 +590,7 @@ constexpr bool operator!(const _Vec_t<_Type>& _Lhs) {
 
 template <template<typename> typename _Vec_t = _vec3, typename _Type, typename _Type2,
 	std::enable_if_t<is_any<_Vec_t<_Type>, _vec2<_Type>, _vec3<_Type>, _vec4<_Type>>::value && 
-	!is_any<_Type2, vec2, vec3, vec4>::value>* = nullptr>
+	!is_any<_Type2, _vec2<_Type>, _vec3<_Type>, _vec4<_Type>>::value>* = nullptr>
 constexpr bool operator!=(const _Vec_t<_Type>& _Lhs, _Type2 _Rhs) {
 	for (int _I = 0; _I < _Lhs.size(); _I++) {
 		if (_Lhs[_I] == _Rhs) {
@@ -540,7 +602,7 @@ constexpr bool operator!=(const _Vec_t<_Type>& _Lhs, _Type2 _Rhs) {
 
 template <template<typename> typename _Vec_t, typename _Type, typename _Type2,
 	std::enable_if_t<is_any<_Vec_t<_Type>, _vec2<_Type>, _vec3<_Type>, _vec4<_Type>>::value &&
-	!is_any<_Type2, vec2, vec3, vec4>::value>* = nullptr >
+	!is_any<_Type2, _vec2<_Type2>, _vec3<_Type2>, _vec4<_Type2>>::value>* = nullptr >
 constexpr bool operator==(const _Vec_t<_Type>& _Lhs, _Type2 _Rhs) {
 	for (int _I = 0; _I < _Lhs.size(); _I++) {
 		if (_Lhs[_I] != _Rhs) {
@@ -555,6 +617,50 @@ template <template<typename> typename _Vec_t, typename _Type, typename _Type2,
 constexpr bool operator==(const _Vec_t<_Type>& _Lhs, const _Vec_t<_Type2>& _Rhs) {
 	for (int _I = 0; _I < _Lhs.size(); _I++) {
 		if (_Lhs[_I] != _Rhs[_I]) {
+			return false;
+		}
+	}
+	return true;
+}
+
+template <template<typename> typename _Vec_t, typename _Type, typename _Type2,
+	std::enable_if_t<is_any<_Vec_t<_Type>, _vec2<_Type>, _vec3<_Type>, _vec4<_Type>>::value>* = nullptr>
+	constexpr bool operator<(const _Vec_t<_Type>& _Lhs, const _Vec_t<_Type2>& _Rhs) {
+	for (int _I = 0; _I < _Lhs.size(); _I++) {
+		if (_Lhs[_I] >= _Rhs[_I]) {
+			return false;
+		}
+	}
+	return true;
+}
+
+template <template<typename> typename _Vec_t, typename _Type, typename _Type2,
+	std::enable_if_t<is_any<_Vec_t<_Type>, _vec2<_Type>, _vec3<_Type>, _vec4<_Type>>::value>* = nullptr>
+	constexpr bool operator>(const _Vec_t<_Type>& _Lhs, const _Vec_t<_Type2>& _Rhs) {
+	for (int _I = 0; _I < _Lhs.size(); _I++) {
+		if (_Lhs[_I] <= _Rhs[_I]) {
+			return false;
+		}
+	}
+	return true;
+}
+
+template <template<typename> typename _Vec_t, typename _Type, typename _Type2,
+	std::enable_if_t<is_any<_Vec_t<_Type>, _vec2<_Type>, _vec3<_Type>, _vec4<_Type>>::value>* = nullptr>
+	constexpr bool operator>=(const _Vec_t<_Type>& _Lhs, const _Vec_t<_Type2>& _Rhs) {
+	for (int _I = 0; _I < _Lhs.size(); _I++) {
+		if (_Lhs[_I] < _Rhs[_I]) {
+			return false;
+		}
+	}
+	return true;
+}
+
+template <template<typename> typename _Vec_t, typename _Type, typename _Type2,
+	std::enable_if_t<is_any<_Vec_t<_Type>, _vec2<_Type>, _vec3<_Type>, _vec4<_Type>>::value>* = nullptr>
+	constexpr bool operator<=(const _Vec_t<_Type>& _Lhs, const _Vec_t<_Type2>& _Rhs) {
+	for (int _I = 0; _I < _Lhs.size(); _I++) {
+		if (_Lhs[_I] > _Rhs[_I]) {
 			return false;
 		}
 	}

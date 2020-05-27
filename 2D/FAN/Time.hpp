@@ -3,18 +3,21 @@
 #include <chrono>
 #include <functional>
 
-typedef std::chrono::high_resolution_clock chrono_t;
+using namespace std::chrono;
 
-class Timer {
+typedef high_resolution_clock chrono_t;
+
+template <typename T = milliseconds>
+class _Timer {
 public:
-	Timer() : time(0) {}
+	_Timer() : time(0) {}
 
 	enum class mode {
 		WAIT_FINISH,
 		EVERY_OTHER
 	};
 
-	Timer(
+	_Timer(
 		const decltype(chrono_t::now())& timer, 
 		uint64_t time,
 		mode mode = mode::WAIT_FINISH,
@@ -77,11 +80,11 @@ public:
 	}
 
 	bool finished() {
-		return duration_cast<std::chrono::milliseconds>(chrono_t::now() - timer).count() >= time;
+		return duration_cast<T>(chrono_t::now() - timer).count() >= time;
 	}
 
 	uint64_t elapsed() {
-		return duration_cast<std::chrono::milliseconds>(chrono_t::now() - timer).count();
+		return duration_cast<T>(chrono_t::now() - timer).count();
 	}
 
 private:
@@ -90,3 +93,5 @@ private:
 	decltype(chrono_t::now()) timer;
 	uint64_t time;
 };
+
+using Timer = _Timer<milliseconds>;
