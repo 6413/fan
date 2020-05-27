@@ -12,6 +12,8 @@
 //#define FAN_PERFORMANCE
 
 #include <vector>
+#include <array>
+
 #include "Input.hpp"
 #include "Math.hpp"
 #include "Shader.h"
@@ -45,11 +47,19 @@ class SquareVector;
 
 void GetFps(bool print = true);
 
+extern bool window_init;
 constexpr auto WINDOWSIZE = _vec2<int>(800, 800);
 extern float delta_time;
 static constexpr int block_size = 50;
 extern GLFWwindow* window;
 constexpr auto grid_size = _vec2<int>(WINDOWSIZE.x / block_size, WINDOWSIZE.y / block_size);
+
+typedef std::vector<std::vector<std::vector<bool>>> map_t;
+
+struct bmp {
+	unsigned char* data;
+	unsigned char* image;
+};
 
 struct Texture {
 	Texture();
@@ -65,7 +75,7 @@ namespace BMP_Offsets {
 	constexpr::ptrdiff_t HEIGHT = 0x16;
 }
 
-unsigned char* LoadBMP(const char* path, Texture& texture);
+bmp LoadBMP(const char* path, Texture& texture);
 uint64_t _2d_1d(vec2 position = cursor_position);
 
 _vec2<int> window_position();
@@ -92,6 +102,9 @@ public:
 	float pitch;
 	vec3 right;
 	vec3 up;
+	vec3 velocity;
+	static constexpr auto friction = 12;
+
 	void updateCameraVectors();
 
 private:
@@ -165,7 +178,7 @@ private:
 	int points;
 	uint64_t point_size;
 	Shader shader;
-	Camera* camera;
+	Camera2D* camera;
 };
 
 static vertice_handler<shapes::line> line_handler;
@@ -189,7 +202,7 @@ public:
 	virtual void draw();
 
 protected:
-	int draw_id;
+	unsigned int draw_id;
 	Color color;
 	vec2 position;
 	vec2 size;
@@ -250,7 +263,7 @@ protected:
 	Texture _ColorBuffer;
 	Texture _ShapeBuffer;
 	Shader _Shader;
-	Camera* _Camera;
+	Camera2D* _Camera;
 #ifdef FAN_PERFORMANCE
 	Alloc<float> _Vertices;
 	Alloc<float> _Colors;
@@ -359,10 +372,24 @@ public:
 		float angle = 0,
 		Shader shader = Shader("GLSL/core.vs", "GLSL/core.frag")
 	);
-
+	Sprite(
+		unsigned char* pixels,
+		const vec2& image_size,
+		const vec2& position,
+		const vec2& size,
+		Shader shader = Shader("GLSL/core.vs", "GLSL/core.frag")
+	);
+	~Sprite() {
+		glDeleteTextures(1, &texture.texture);
+		glDeleteVertexArrays(1, &texture.VAO);
+		glDeleteBuffers(1, &texture.VBO);
+		glDeleteBuffers(1, &texture.EBO);
+	}
 	void draw();
 	void init_image();
 	void load_image(const char* path, Texture& object);
+	void load_image(unsigned char* pixels, Texture& object);
+	void reload_image(unsigned char* pixels);
 
 	Texture& get_texture();
 	vec2 get_size() const;
@@ -372,8 +399,8 @@ public:
 
 	float get_angle() const;
 	void set_angle(float angle);
+	Camera2D* camera;
 protected:
-	Camera* camera;
 	Shader shader;
 	Texture texture;
 	vec2 position;
@@ -770,14 +797,14 @@ public:
 		if (_Vertices.empty()) {
 			return;
 		}
-		_Shader.Use();
+		_Shader.use();
 
 		matrix<4, 4> projection(1);
 		matrix<4, 4> view(1);
 
 		view = _Camera->GetViewMatrix();
 
-		projection = perspectiveRH_NO(Radians(90.f), ((float)window_size.x / (float)window_size.y), 0.1f, 1000.0f);
+		projection = Perspective(Radians(90.f), ((float)window_size.x / (float)window_size.y), 0.1f, 1000.0f);
 
 		static int projLoc = glGetUniformLocation(_Shader.ID, "projection");
 		static int viewLoc = glGetUniformLocation(_Shader.ID, "view");
@@ -796,7 +823,7 @@ public:
 
 constexpr auto texture_coordinate_size = 72;
 
-static float square_vertices[108] = {
+constexpr float square_vertices[108] = {
 
 	 1,  1, 0, // left
 	 1, 0, 0,
@@ -824,13 +851,13 @@ static float square_vertices[108] = {
 	0,  1, 0,
 
 
-	 1, 1, 0,
-	 1, 0, 0,
-	 1, 0, 1, // back
-
-	 1, 0, 1,
 	 1, 1, 1,
-	1, 1, 0,
+	 1, 0, 1,
+	 1, 0, 0, // back
+
+	 1, 0, 0,
+	 1, 1, 0,
+	 1, 1, 1,
 
 
 	0, 0, 0, // down
@@ -850,55 +877,62 @@ static float square_vertices[108] = {
 	 1,  1, 0,
 };
 
-class SquareVector3D : public DefaultShapeVector {
+class SquareVector3D {
 public:
-	SquareVector3D(const vec3& position, const vec3& size, const char* path, const vec2& texture_id);
+	SquareVector3D(std::string_view path);
 
-	SquareVector3D(const char* path, const vec2& texture_id);
+	SquareVector3D(const vec3& position, const vec3& size, const char* path, const vec2& texture_id);
 
 	SquareVector3D(uint64_t reserve, const char* path, const vec2& texture_id);
 
-	void break_queue(bool vertices = true, bool color = true, bool texture = true);
+	void init(std::string_view path);
 
-	void init(bool init_shape = true);
+	void free_queue(bool vertices = true, bool texture = true);
+
+	void free_queue_sub(uint64_t first, uint64_t count, bool vertices = true, bool color = true, bool texture = true) const;
 
 	template <typename T>
 	std::vector<T> get_texture_onsided(_vec2<uint32_t> size, _vec2<uint32_t> position);
 
-	const vec2 texture_size = vec2(32, 32);
-
-	void init_texture(const char* path, vec2 texture_id, bool push_texture = true);
-
 	void edit_texture(uint64_t index, const vec2& texture_id);
 
-	void push_back(const vec3& position, const vec3& size, const vec2& texture_id, bool queue = false, bool beta = false);
+	void push_back(const vec3& position, const vec3& size, const vec2& texture_id, bool queue = false);
 
 	void draw();
 
-	void erase(uint64_t first, uint64_t last = -1);
+	void erase(uint64_t first, uint64_t last = -1, bool queue = false);
 
-	void set_position(const vec3& position, uint64_t index, bool queue = false);
+	void set_position(uint64_t index, const vec3& position, bool queue = false);
 
 	vec3 get_size(uint64_t i) const;
 
 	vec3 get_position(uint64_t i) const;
 
-	std::vector<vec3>& get_positions();
+	uint64_t size() const;
 
-	uint64_t amount() const;
+	static constexpr vec2 texture_size = vec2(32, 32);
 
 private:
+	void generate_textures(std::string_view path);
+
+	uint64_t _Points;
 	vec2 texturepack_size;
 
-	Texture _Texture_Buffer;
-	Texture _Texture_Coordinates_Buffer;
-#ifdef FAN_PERFORMANCE
-	Alloc<float> _Textures;
-#else
-	std::vector<float> _Textures;
-#endif
-	std::vector<vec3> position;
-	std::vector<vec3> size;
+	unsigned int _Shape_VAO;
+	unsigned int _Shape_Vertices_VBO;
+	unsigned int _Shape_Matrix_VAO;
+	unsigned int _Shape_Matrix_VBO;
+
+	unsigned int _Texture_VBO;
+	unsigned int _Texture_Position_VBO;
+
+	std::vector<std::vector<vec2::type>> _Textures;
+	std::vector<vec2::type> _Texture_Position;
+
+	Camera* _Camera;
+	Shader _Shader;
+
+	std::vector<matrix<4, 4>> object_matrix;
 };
 
 //struct Particle3D {
@@ -993,7 +1027,8 @@ private:
 //	float life_time;
 //};	
 
-void move_camera(vec3& pos, bool noclip, float movement_speed);
+void move_camera(bool noclip, float movement_speed);
+void rotate_camera();
 
 enum class e_cube {
 	left,
@@ -1104,9 +1139,6 @@ inline vec3 intersection_point3d(const T& plane_position, const T& plane_size, c
 
 double ValueNoise_2D(double x, double y);
 
-template <typename T>
-vec3 raycast3d(const T& map, vec3 position, vec3 length);
-
 struct hash_vector_operators {
 	size_t operator()(const vec3& k) const {
 		return std::hash<float>()(k.x) ^ std::hash<float>()(k.y) ^ std::hash<float>()(k.z);
@@ -1123,8 +1155,6 @@ constexpr int world_size = 150;
 		d_map[d_position.x] \
 			 [d_position.y] \
 			 [d_position.z]
-
-typedef std::vector<std::vector<std::vector<bool>>> map_t;
 
 constexpr auto grid_direction(const vec3& src, const vec3& dst) {
 	vec3 x(src.x - dst.x, src.y - dst.y, src.z - dst.z);
@@ -1148,15 +1178,14 @@ constexpr bool grid_raycast_single(grid_raycast_s& caster, float grid_size) {
 	return 1;
 }
 
-constexpr vec3i grid_raycast(const vec3& start, const vec3& end, const map_t& map, float block_size) {
+inline vec3i grid_raycast(const vec3& start, const vec3& end, const map_t& map, float block_size) {
 	if (start == end) {
-		return vec3(RAY_DID_NOT_HIT);
+		return start;
 	}
 	grid_raycast_s raycast = { grid_direction(end, start), start, vec3() };
 	vec3 distance = end - start;
-	auto max = *std::max_element(distance.begin(), distance.end());
-
-	for (int i = 0; i < 500; i++) {
+	auto max = distance.abs().max();
+	for (int i = 0; i < max; i++) {
 		grid_raycast_single(raycast, block_size);
 		if (raycast.grid[0] < 0 || raycast.grid[1] < 0 || raycast.grid[2] < 0 ||
 			raycast.grid[0] >= world_size || raycast.grid[1] >= world_size || raycast.grid[2] >= world_size) {
@@ -1168,4 +1197,9 @@ constexpr vec3i grid_raycast(const vec3& start, const vec3& end, const map_t& ma
 	}
 	return vec3(RAY_DID_NOT_HIT);
 }
+
+#define d_grid_raycast(start, end, raycast, block_size) \
+	grid_raycast_s raycast = { grid_direction(end, start), start, vec3() }; \
+	if (!(start == end)) \
+		while(grid_raycast_single(raycast, block_size))
 //#endif

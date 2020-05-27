@@ -1,6 +1,5 @@
 #include "Input.hpp"
 #include <FAN/Graphics.hpp>
-#include <string>
 
 _vec2<int> cursor_position;
 _vec2<int> window_size;
@@ -126,17 +125,23 @@ void FocusCallback(GLFWwindow* window, int focused)
 //
 //}
 
-void WindowInit() {
+bool WindowInit() {
+	glfwSetErrorCallback(GlfwErrorCallback);
+	if (!glfwInit()) {
+		printf("GLFW ded\n");
+		system("pause");
+		return 0;
+	}
 	window_size = WINDOWSIZE;
-//	glfwWindowHint(GLFW_DECORATED, false);
+	//glfwWindowHint(GLFW_DECORATED, false);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_RESIZABLE, false);
+//	glfwWindowHint(GLFW_RESIZABLE, false);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 	//glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	glfwWindowHint(GLFW_SAMPLES, 32);
 	glEnable(GL_MULTISAMPLE);
 	//window_size = vec2(glfwGetVideoMode(glfwGetPrimaryMonitor())->width, glfwGetVideoMode(glfwGetPrimaryMonitor())->height);
-	window = glfwCreateWindow(window_size.x, window_size.y, "123", fullScreen ? glfwGetPrimaryMonitor() : NULL, NULL);
+	window = glfwCreateWindow(window_size.x, window_size.y, "FPS: ", fullScreen ? glfwGetPrimaryMonitor() : NULL, NULL);
 	auto window_mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
 	glfwSetWindowMonitor(window, NULL, window_size.x / 2, window_size.y / 2, window_size.x, window_size.y, 0);
 
@@ -147,11 +152,6 @@ void WindowInit() {
 		exit(EXIT_SUCCESS);
 	}
 	glfwMakeContextCurrent(window);
-	/*if (!) {
-		system("pause");
-		glfwTerminate();
-		exit(EXIT_SUCCESS);
-	}*/
 	if (GLEW_OK != glewInit())
 	{
 		std::cout << "Failed to initialize GLEW" << std::endl;
@@ -161,8 +161,20 @@ void WindowInit() {
 	}
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	glViewport(0, 0, window_size.x, window_size.y);
+	glEnable(GL_DEPTH_TEST);
+
+	glfwSetKeyCallback(window, KeyCallback);
+	glewExperimental = GL_TRUE;
+	static Camera2D cam;
+	glfwSetWindowUserPointer(window, &cam);
+	glfwSetCharCallback(window, CharacterCallback);
+	glfwSetWindowFocusCallback(window, FocusCallback);
+	glfwSetMouseButtonCallback(window, MouseButtonCallback);
+	glfwSetCursorPosCallback(window, CursorPositionCallback);
+	glfwSetFramebufferSizeCallback(window, FrameSizeCallback);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	return 1;
 }
 
 bool window_focused() {

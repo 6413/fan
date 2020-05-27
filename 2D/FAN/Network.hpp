@@ -7,8 +7,9 @@
 #include <FAN/File.hpp>
 
 #include <functional>
-#include <cstring>
 #include <thread>
+#include <cstring>
+#include <cmath>
 #include <map>
 
 #if defined(_WIN64) || defined(_WIN32)
@@ -34,6 +35,8 @@ using SOCKET = uintptr_t;
 #define SOCKET_ERROR -1
 #define INVALID_SOCKET (uintptr_t)(~0)
 #endif
+
+const int max_packet_size = 1024;
 
 #define stringify(name) #name
 
@@ -116,7 +119,7 @@ class client;
 
 class data_handler : public User {
 protected:
-	const char* m_get_file(SOCKET socket, std::string path = std::string(), bool forced = false) const {
+	const char* m_get_file(SOCKET socket, bool overwrite, std::string path = std::string()) const {
 		std::string data;
 		uint64_t file_size = *(size_t*)m_get_data(socket, sizeof(uint64_t)).data();
 		uint64_t file_name_size = *(size_t*)m_get_data(socket, sizeof(uint64_t)).data();
@@ -138,44 +141,55 @@ protected:
 			remaining = file_size - totalsend;
 		}
 
-		if (!path.empty()) {
-			path.push_back('\\');
+		if (overwrite) {
+			goto skip;
 		}
-		file_name.insert(0, path);
-		int rename_count = 1;
-		while (File::file_exists(file_name.c_str())) {
-			std::string rename_str = std::to_string(rename_count);
-			if (rename_count > 1) {
-				for (int i = 0; i < rename_str.length(); i++) {
-					char& l_path = file_name[file_name.find_last_of('(') + 1 + i];
-					auto found = file_name.find_last_of(l_path);
-					if (file_name[found] == ')') {
-						file_name.insert(file_name.begin() + found, ' ');
-					}
-					l_path = rename_str[i];
-				}
-			}
-			else {
-				std::string file_type;
-				for (int i = file_name.find_last_of('.'); i < file_name.length(); i++) {
-					if (i != std::string::npos) {
-						file_type.push_back(file_name[i]);
-					}
-				}
-				auto found = file_name.find_last_of('.');
-				if (found != std::string::npos) {
-					file_name.erase(file_name.find_last_of('.'), file_name.length());
-				}
-				file_name.push_back(' ');
-				file_name.push_back('(');
-				file_name.append(rename_str);
-				file_name.push_back(')');
-				file_name.append(file_type);
-			}
-			rename_count++;
-		}
+		{
 
-		File::write(file_name.c_str(), data);
+			if (!path.empty()) {
+				path.push_back('\\');
+			}
+			file_name.insert(0, path);
+			int rename_count = 1;
+			while (File::file_exists(file_name.c_str())) {
+				std::string rename_str = std::to_string(rename_count);
+				if (rename_count > 1) {
+					for (int i = 0; i < rename_str.length(); i++) {
+						char& l_path = file_name[file_name.find_last_of('(') + 1 + i];
+						auto found = file_name.find_last_of(l_path);
+						if (file_name[found] == ')') {
+							file_name.insert(file_name.begin() + found, ' ');
+						}
+						l_path = rename_str[i];
+					}
+				}
+				else {
+					std::string file_type;
+					for (int i = file_name.find_last_of('.'); i < file_name.length(); i++) {
+						if (i != std::string::npos) {
+							file_type.push_back(file_name[i]);
+						}
+					}
+					auto found = file_name.find_last_of('.');
+					if (found != std::string::npos) {
+						file_name.erase(file_name.find_last_of('.'), file_name.length());
+					}
+					file_name.push_back(' ');
+					file_name.push_back('(');
+					file_name.append(rename_str);
+					file_name.push_back(')');
+					file_name.append(file_type);
+				}
+				rename_count++;
+			}
+		}
+	skip:
+		if (overwrite) {
+			File::write(file_name.c_str(), data, std::ios_base::binary);
+		}
+		else {
+			File::write(file_name.c_str(), data);
+		}
 
 		puts("received file");
 		return file_name.c_str();
@@ -193,21 +207,32 @@ protected:
 		return Message_Info(User(sender_username), message);
 	}
 	std::string m_get_data(SOCKET socket, uint64_t size) const {
+		uint64_t amount_of_packets = std::ceil(size / max_packet_size) + 1;
+		uint64_t received = 0;
+		std::string data;
+		for (int i = 0; i < amount_of_packets; i++) {
+			uint16_t packet_size = (!(size % max_packet_size) && size ? max_packet_size : size % max_packet_size);
+			data.append(m_get_single_packet(socket, packet_size));
+			received += packet_size;
+			size -= packet_size;
+		}
+		return data;
+	}
+	std::string m_get_single_packet(SOCKET socket, uint16_t size) const {
 		std::string data;
 		data.resize(size);
 
-		uint64_t recvlen = 0;
-		uint64_t totalsend = 0;
-		uint64_t remaining = size;
-
-		while (recvlen != size) {
-			recvlen = recv(socket, &data[totalsend], remaining, 0);
-			if (recvlen == INVALID_SOCKET) {
+		uint16_t receive_length = 0;
+		uint16_t received = 0;
+		uint16_t remaining = size;
+		while (received < size) {
+			receive_length = recv(socket, &data[received], remaining, 0);
+			if (receive_length == INVALID_SOCKET) {
 				puts("recv failed");
 				return std::string();
 			}
-			totalsend = totalsend + recvlen;
-			remaining = recvlen - totalsend;
+			received += receive_length;
+			remaining -= receive_length;
 		}
 		return data;
 	}
@@ -259,6 +284,46 @@ protected:
 			remaining = file.data.size() - totalsend;
 		}
 	}
+	template <typename type>
+	void m_send_vector(SOCKET socket, const std::vector<type>& vector) const {
+		std::string str(vector.begin(), vector.end());
+		m_send_message(socket, str);
+	}
+	template <typename type>
+	std::vector<type> m_get_vector(SOCKET socket) const {
+		std::string input = m_get_message(socket);
+		std::vector<type> data(input.begin(), input.end());
+		return data;
+	}
+	void m_send_data(SOCKET socket, const char* data, uint64_t size) const {
+		uint64_t amount_of_packets = std::ceil(size / max_packet_size) + 1;
+		uint64_t sent = 0;
+		for (int i = 0; i < amount_of_packets; i++) {
+			uint16_t packet_size = (!(size % max_packet_size) && size ? max_packet_size : size % max_packet_size);
+			std::string packet(data + sent, data + sent + packet_size);
+			m_send_single_packet(socket, packet.c_str(), packet_size);
+			sent += packet_size;
+			size -= packet_size;
+		}
+	}
+	inline void m_send_single_packet(SOCKET socket, const char* data, uint16_t size) const {
+		uint16_t sent = 0;
+		uint16_t send_length = 0;
+		uint16_t remaining = size;
+		while (sent < size) {
+			send_length = send(socket, &data[sent], remaining, 0);
+			if (send_length == SOCKET_ERROR) {
+#ifdef FAN_WINDOWS
+				printf("send failed: %d\n", WSAGetLastError());
+#else
+				fprintf(stderr, "send failed: %s\n", strerror(errno));
+#endif
+				send_length = 0;
+			}
+			sent += send_length;
+			remaining -= send_length;
+		}
+	}
 	void m_send_message(SOCKET socket, std::string message) const {
 		uint64_t message_size = message.size();
 		m_send_data(socket, (const char*)&message_size, sizeof(uint64_t));
@@ -279,20 +344,6 @@ protected:
 		uint64_t message_size = message.size();
 		m_send_data(socket, (const char*)&message_size, sizeof(uint64_t));
 		m_send_data(socket, message.c_str(), message_size);
-	}
-	void m_send_data(SOCKET socket, const char* data, uint64_t size) const {
-		uint64_t sendlen = 0;
-		uint64_t totalsend = 0;
-		uint64_t remaining = size;
-
-		while (sendlen != size) {
-			sendlen = send(socket, &data[totalsend], remaining, 0);
-			if (sendlen == SOCKET_ERROR) {
-				puts("error");
-			}
-			totalsend = totalsend + sendlen;
-			remaining = sendlen - totalsend;
-		}
 	}
 	void m_send_registeration(SOCKET socket, const User& user_info, const std::string& code) const {
 		packet_type send_type = packet_type::send_registeration;
@@ -338,11 +389,15 @@ public:
 	inline Message_Info get_message_user(SOCKET socket) const { return m_get_message_user(socket); }
 	inline void send_message(SOCKET socket, std::string message) const { m_send_message(socket, message); }
 
-	inline void get_file(std::string path = std::string(), SOCKET socket = 0) const {
-		m_get_file(!socket ? sockets[0] : socket, path);
+	inline void get_file(bool overwrite = false, std::string path = std::string(), SOCKET socket = 0) const {
+		m_get_file(!socket ? sockets[0] : socket, overwrite, path);
 	}
 	inline void send_file(File file, SOCKET socket = 0) const { m_send_file(!socket ? sockets[0] : socket, file); }
 
+	template <typename type>
+	inline void send_vector(SOCKET socket, const std::vector<type>& vector) const { return m_send_vector<type>(socket, vector); }
+	template <typename type>
+	inline std::vector<type> get_vector(SOCKET socket) const { return m_get_vector<type>(socket); }
 	inline std::string get_data(SOCKET socket, uint64_t size) const { return m_get_data(socket, size); }
 	inline void send_data(SOCKET socket, const char* data, uint64_t size) const { m_send_data(socket, data, size); }
 
@@ -397,7 +452,7 @@ public:
 					break;
 				}
 				m_send_message(receiver, std::string((const char*)&type, sizeof(type)));
-				m_send_file(receiver, m_get_file(socket, std::string("temp"), true));
+				m_send_file(receiver, m_get_file(socket, false, std::string("temp")));
 				break;
 			}
 			case packet_type::send_message: {
@@ -443,8 +498,6 @@ public:
 		return socket_size();
 	}
 
-	std::vector<sockaddr_in> info;
-	std::vector<std::thread> threads;
 private:
 
 	void initialize(unsigned short port, bool multithread = false) {
@@ -587,10 +640,10 @@ public:
 		send_message(get_username());
 
 #ifdef FAN_WINDOWS
-		//closesocket(connect_socket);
-	//	WSACleanup();
+		closesocket(connect_socket);
+		WSACleanup();
 #else
-		//close(connect_socket);
+		close(connect_socket);
 #endif
 	}
 
@@ -601,7 +654,7 @@ public:
 
 			switch (job) {
 			case packet_type::send_file: {
-				m_get_file(connect_socket);
+				m_get_file(connect_socket, false);
 				break;
 			}
 			case packet_type::send_message: {
@@ -626,7 +679,12 @@ public:
 	inline void send_message(std::string message) const { m_send_message(connect_socket, message); }
 	inline void send_message(const std::string& message, const std::string& user) { m_send_message(connect_socket, message, user); }
 
-	inline void get_file() const { m_get_file(connect_socket); }
+	template <typename type>
+	inline void send_vector(const std::vector<type>& vector) const { m_send_vector<type>(connect_socket, vector); }
+	template <typename type>
+	inline std::vector<type> get_vector() const { return m_get_vector<type>(connect_socket); }
+
+	inline void get_file(bool overwrite = false) const { m_get_file(connect_socket, overwrite); }
 	inline void send_file(File file, const std::string& username) const { m_send_file(connect_socket, file, username); }
 	inline void send_file(File file) const { m_send_file(connect_socket, file); }
 
@@ -637,88 +695,96 @@ private:
 	SOCKET connect_socket;
 };
 
-//class UDP {
-//public:
-//	void send_message(const std::string& message) const {
-//		if (sendto(_socket, message.c_str(), message.size(), 0, (sockaddr*)&peer, socket_length) == SOCKET_ERROR) {
-//#ifdef FAN_WINDOWS
-//			printf("failed to send data %d\n", WSAGetLastError());
-//#else
-//			puts("failed to send data %d");
-//#endif
-//			exit(EXIT_FAILURE);
-//		}
-//	}
-//
-//	void send_messagen(const std::string& message) const {
-//		send_message((const char*)message.size());
-//		send_message(message);
-//	}
-//
-//	void listen(std::function<void()> execute = std::function<void()>([]() {})) {
-//		std::vector<char> buffer(max_buffer);
-//		if (recvfrom(_socket, &buffer[0], buffer.size(), 0, (sockaddr*)&peer, &socket_length) == SOCKET_ERROR) {
-//#ifdef FAN_WINDOWS
-//			printf("failed to receive %d\n", WSAGetLastError());
-//#else
-//			puts("failed to send data %d");
-//#endif
-//			exit(EXIT_FAILURE);
-//		}
-//		data.append(buffer.cbegin(), buffer.cend());
-//		execute();
-//	}
-//
-//	std::string data;
-//protected:
-//	SOCKET _socket;
-//	int socket_length;
-//	sockaddr_in this_sockaddr, peer;
-//	const int max_buffer = 1024;
-//};
-//
-//class udp_client : public UDP {
-//public:
-//	udp_client(const char* ip, unsigned short port) {
-//		socket_length = sizeof(this_sockaddr);
-//		if ((_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == INVALID_SOCKET) {
-//			printf("failed to create socket\n");
-//		}
-//		memset((char*)&this_sockaddr, 0, sizeof(this_sockaddr));
-//		this_sockaddr.sin_family = AF_INET;
-//#ifdef _WIN64
-//		this_sockaddr.sin_addr.S_un.S_addr = inet_addr(ip);
-//#else
-//		this_sockaddr.sin_addr.s_addr = inet_addr(SERVER_IP);
-//#endif
-//		this_sockaddr.sin_port = htons(port);
-//	}
-//	~udp_client() {
-//		closesocket(_socket);
-//		WSACleanup();
-//	}
-//};
-//
-//class udp_server : public UDP {
-//public:
-//	udp_server(unsigned short port) {
-//		socket_length = sizeof(peer);
-//
-//		if ((_socket = socket(AF_INET, SOCK_DGRAM, 0)) == INVALID_SOCKET) {
-//			printf("failed to create socket\n");
-//		}
-//
-//		this_sockaddr.sin_family = AF_INET;
-//		this_sockaddr.sin_addr.s_addr = INADDR_ANY;
-//		this_sockaddr.sin_port = htons(port);
-//
-//		if (bind(_socket, (sockaddr*)&this_sockaddr, sizeof(this_sockaddr)) == SOCKET_ERROR) {
-//			printf("bind failed\n");
-//		}
-//	}
-//
-//	~udp_server() {
-//		closesocket(_socket);
-//		WSACleanup();
-//	}
-//};
+class UDP {
+public:
+	void send_message(const std::string& message) const {
+		if (sendto(_socket, message.c_str(), message.size(), 0, (sockaddr*)&this_sockaddr, socket_length) == SOCKET_ERROR) {
+#ifdef FAN_WINDOWS
+			printf("failed to send data %d\n", WSAGetLastError());
+#else
+			puts("failed to send data %d");
+#endif
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	void send_messagen(const std::string& message) const {
+		send_message((const char*)message.size());
+		send_message(message);
+	}
+
+	void listen(std::function<void()> execute = std::function<void()>([]() {})) {
+		std::vector<char> buffer(max_packet_size);
+#ifdef FAN_WINDOWS
+		if (recvfrom(_socket, &buffer[0], buffer.size(), 0, (sockaddr*)&this_sockaddr, &socket_length) == SOCKET_ERROR) {
+			printf("failed to receive %d\n", WSAGetLastError());
+#else
+		if (recvfrom(_socket, &buffer[0], buffer.size(), 0, (sockaddr*)&this_sockaddr, (unsigned int*)&socket_length) == SOCKET_ERROR) {
+			puts("failed to send data %d");
+#endif
+			exit(EXIT_FAILURE);
+		}
+		data.append(buffer.cbegin(), buffer.cend());
+		execute();
+	}
+
+	std::string data;
+protected:
+	SOCKET _socket;
+	int socket_length;
+	sockaddr_in this_sockaddr;
+};
+
+class udp_client : public UDP {
+public:
+	udp_client(const char* ip, unsigned short port) {
+		socket_length = sizeof(this_sockaddr);
+		if ((_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == INVALID_SOCKET) {
+			printf("failed to create socket\n");
+		}
+		memset((char*)&this_sockaddr, 0, sizeof(this_sockaddr));
+		this_sockaddr.sin_family = AF_INET;
+#ifdef _WIN64
+		this_sockaddr.sin_addr.S_un.S_addr = inet_addr(ip);
+#else
+		this_sockaddr.sin_addr.s_addr = inet_addr(ip);
+#endif
+		this_sockaddr.sin_port = htons(port);
+	}
+	~udp_client() {
+#ifdef FAN_WINDOWS
+		closesocket(_socket);
+		WSACleanup();
+#else
+		close(_socket);
+#endif
+	}
+};
+
+class udp_server : public UDP {
+public:
+	udp_server(unsigned short port) {
+		socket_length = sizeof(this_sockaddr);
+
+		if ((_socket = socket(AF_INET, SOCK_DGRAM, 0)) == INVALID_SOCKET) {
+			printf("failed to create socket\n");
+		}
+
+		this_sockaddr.sin_family = AF_INET;
+		this_sockaddr.sin_addr.s_addr = INADDR_ANY;
+		this_sockaddr.sin_port = htons(port);
+
+		if (bind(_socket, (sockaddr*)&this_sockaddr, sizeof(this_sockaddr)) == SOCKET_ERROR) {
+			printf("bind failed\n");
+		}
+	}
+
+	~udp_server() {
+#ifdef FAN_WINDOWS
+		closesocket(_socket);
+		WSACleanup();
+#else
+		close(_socket);
+#endif
+	}
+};
