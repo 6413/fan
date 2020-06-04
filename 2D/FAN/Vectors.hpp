@@ -289,6 +289,7 @@ using float_t = float;
 using mat2x2 = _mat2x2<float_t>;
 using mat2x3 = _vec3<float_t>[2];
 using mat2x4 = _mat2x4<float_t>;
+using mat2 = mat2x2;
 using mat3 = matrix<3, 3>;
 using mat4 = matrix<4, 4>;
 using vec2 = _vec2<float_t>;

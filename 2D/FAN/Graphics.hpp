@@ -42,12 +42,7 @@
 #undef max
 #endif
 
-#define BackgroundSize 1500
 #define COLORSIZE 4
-#define COORDSIZE 2
-
-class Sprite;
-class SquareVector;
 
 void GetFps(bool print = true);
 
@@ -116,33 +111,87 @@ private:
 	vec3 worldUp;
 };
 
-class Camera2D {
+extern Shader shape_shader2d;
+extern Camera camera3d;
+
+class basic_2dshape_vector {
 public:
-	Camera2D(
-		vec3 position = vec3(0.0f, 0.0f, 0.0f),
-		vec3 up = vec3(0.0f, 1.0f, 0.0f),
-		float yaw = -90.f,
-		float pitch = 0.0f
-	);
 
-	mat4 get_view_matrix(mat4 m);
-	mat4 get_view_matrix();
+	template <typename _Type, uint64_t N>
+	basic_2dshape_vector(const std::array<_Type, N>& init_vertices);
 
-	vec3 get_position() const;
-	void set_position(const vec3& position);
+	~basic_2dshape_vector();
 
-	vec3 position;
-	vec3 front;
+	Color get_color(uint64_t index) const;
+	void set_color(uint64_t index, const Color& color, bool queue);
 
-	GLfloat yaw;
-	GLfloat pitch;
-	vec3 right;
-	vec3 up;
-	void updateCameraVectors();
+	void free_queue(bool colors = true, bool matrices = true);
+
+	void realloc_copy_data(unsigned int& buffer, uint64_t buffer_type, int size, GLenum usage, unsigned int& allocator);
+	void copy_data(unsigned int& buffer, uint64_t buffer_type, int size, GLenum usage, unsigned int& allocator);
+	void realloc_buffer(unsigned int& buffer, uint64_t buffer_type, int location, int size, GLenum usage, unsigned int& allocator);
+
+	int size() const;
+
+	// shape functions
+	void erase(uint64_t first, uint64_t last = -1);
+
+	void push_back(const vec2& position, const vec2& size, const Color& color, bool queue = false);
+
+	vec2 get_position(uint64_t index) const;
+	void set_position(uint64_t index, const vec2& position, bool queue = false);
+
+	vec2 get_size(uint64_t index) const;
+	void set_size(uint64_t index, const vec2& size, bool queue = false);
+
+protected:
+
+	void basic_shape_draw(unsigned int mode, uint64_t points) const;
+
+	unsigned int shape_vao;
+	unsigned int matrix_vbo;
+	unsigned int vertex_vbo;
+	unsigned int color_vbo;
+	unsigned int color_allocator_vbo;
+	unsigned int matrix_allocator_vbo;
+
+	bool color_allocated;
+	bool matrix_allocated;
+
+	uint64_t shapes_size;
+
+};
+
+class line_vector2d : public basic_2dshape_vector {
+public:
+
+	line_vector2d();
+	line_vector2d(const mat2& position, const Color& color);
+
+	void push_back(const mat2& position, const Color& color, bool queue = false);
+
+	mat2 get_position(uint64_t index) const;
+	void set_position(uint64_t index, const mat2& position, bool queue = false);
+
+	void draw() const;
 
 private:
 
-	vec3 worldUp;
+	using basic_2dshape_vector::push_back;
+	using basic_2dshape_vector::get_size;
+	using basic_2dshape_vector::set_size;
+	using basic_2dshape_vector::get_position;
+	using basic_2dshape_vector::set_position;
+
+};
+
+struct square_vector2d : basic_2dshape_vector {
+
+	square_vector2d();
+	square_vector2d(const vec2& position, const vec2& size, const Color& color);
+
+	void draw();
+
 };
 
 
@@ -158,16 +207,7 @@ template <shapes shape>
 class vertice_handler {
 public:
 
-	~vertice_handler() {
-		if (!this->vertices.empty()) {
-			glDeleteVertexArrays(1, &vertice_buffer.VAO);
-			glDeleteVertexArrays(1, &color_buffer.VAO);
-			glDeleteVertexArrays(1, &shape_buffer.VAO);
-			glDeleteBuffers(1, &vertice_buffer.VBO);
-			glDeleteBuffers(1, &color_buffer.VBO);
-			glDeleteBuffers(1, &shape_buffer.VBO);
-		}
-	}
+	~vertice_handler();
 
 	int draw_id = 0;
 
@@ -191,7 +231,7 @@ private:
 	int points;
 	uint64_t point_size;
 	Shader shader;
-	Camera2D* camera;
+	Camera* camera;
 };
 
 static vertice_handler<shapes::line> line_handler;
@@ -254,181 +294,6 @@ public:
 	static void break_queue();
 };
 
-extern Shader shape_shader2d;
-
-class basic_2dshape_vector {
-public:
-
-	basic_2dshape_vector();
-
-	~basic_2dshape_vector();
-
-	Color get_color(uint64_t index) const;
-	void set_color(uint64_t index, const Color& color, bool queue);
-
-	void free_queue(bool colors = true, bool matrices = true);
-
-	void realloc_copy_data(unsigned int& buffer, uint64_t buffer_type, int size, GLenum usage, unsigned int& allocator);
-	void copy_data(unsigned int& buffer, uint64_t buffer_type, int size, GLenum usage, unsigned int& allocator);
-	void realloc_buffer(unsigned int& buffer, uint64_t buffer_type, int location, int size, GLenum usage, unsigned int& allocator);
-
-	int size();
-protected:
-
-	void basic_shape_draw(unsigned int mode, uint64_t points);
-
-	unsigned int shape_vao;
-	unsigned int matrix_vbo;
-	unsigned int vertex_vbo;
-	unsigned int color_vbo;
-	unsigned int color_allocator_vbo;
-	unsigned int matrix_allocator_vbo;
-
-	bool color_allocated;
-	bool matrix_allocated;
-
-	uint64_t shapes_size;
-};
-
-struct square_vector2d : basic_2dshape_vector {
-
-	square_vector2d();
-	square_vector2d(const vec2& position, const vec2& size, const Color& color);
-
-	void draw();
-
-	void erase(uint64_t first, uint64_t last = -1);
-
-	void push_back(const vec2& position, const vec2& size, const Color& color, bool queue = false);
-
-	vec2 get_position(uint64_t index) const;
-	void set_position(uint64_t index, const vec2& position);
-
-	vec2 get_size(uint64_t index) const;
-	void set_size(uint64_t index, const vec2& size);
-
-};
-
-class DefaultShapeVector {
-public:
-	~DefaultShapeVector();
-
-	virtual Color get_color(uint64_t _Index = 0) const;
-	auto& get_color_ptr() const;
-	void set_color(uint64_t _Index, const Color& color, bool queue = false);
-
-	void draw(uint64_t first = 0, uint64_t last = 0) const;
-
-	virtual void break_queue(bool vertices = true, bool color = true);
-
-protected:
-	virtual void init();
-
-	void write(bool _EditVertices, bool _EditColor);
-
-	Texture _VerticeBuffer;
-	Texture _ColorBuffer;
-	Texture _ShapeBuffer;
-	Shader _Shader;
-	Camera2D* _Camera;
-#ifdef FAN_PERFORMANCE
-	Alloc<float> _Vertices;
-	Alloc<float> _Colors;
-#else
-	std::vector<float> _Vertices;
-	std::vector<float> _Colors;
-#endif
-	unsigned int _Mode;
-	int _Points;
-	uint64_t _PointSize;
-};
-
-class LineVector : public DefaultShapeVector {
-public:
-	LineVector();
-	LineVector(const mat2x2& _M, const Color& color);
-	LineVector(const LineVector& line);
-
-	mat2x2 get_position(uint64_t _Index = 0) const;
-	void set_position(uint64_t _Index, const mat2x2& _M, bool _Queue = false);
-
-	void push_back(const mat2x2& _M, Color _Color = Color(-1, -1, -1, -1), bool _Queue = false);
-
-	vec2 get_length(uint64_t _Index = 0) const;
-
-	uint64_t amount() const { return _Length.size(); }
-
-private:
-	std::vector<vec2> _Length;
-};
-
-class TriangleVector : public DefaultShapeVector {
-public:
-	TriangleVector();
-	TriangleVector(const vec2& _Position, const vec2& _Length, const Color& _Color);
-	~TriangleVector() {}
-
-	void set_position(uint64_t _Index, const vec2& _Position);
-	vec2 get_position(uint64_t _Index) const;
-
-	void push_back(const vec2 _Position, vec2 _Length = vec2(), Color _Color = Color(-1, -1, -1, -1));
-
-private:
-	std::vector<vec2> _Position;
-	std::vector<vec2> _Length;
-};
-
-class SquareVector : public DefaultShapeVector {
-public:
-	SquareVector();
-	SquareVector(const SquareVector& square) {
-		*this = square;
-	}
-	SquareVector(const vec2& _Position, const vec2& _Length, const Color& color);
-	SquareVector(uint64_t _Reserve, const vec2& _Position, const vec2& _Length, const Color& color);
-
-	uint64_t amount() const;
-	bool empty() const;
-
-	void erase(uint64_t _Index);
-	void erase_all(uint64_t _Index);
-
-	vec2 get_length(uint64_t _Index) const;
-	mat2x4 get_corners(uint64_t _Index) const;
-
-	vec2 get_position(uint64_t _Index = 0) const;
-	void set_position(uint64_t _Index, const vec2& _Position, bool _Queue = false);
-
-	vec2 get_size(uint64_t _Index = 0) const;
-	void set_size(uint64_t _Index, const vec2& _Size, bool _Queue = false);
-
-	void push_back(const SquareVector& square);
-	void push_back(const vec2& _Position, vec2 _Length = vec2(), Color color = Color(-1, -1, -1, -1), bool _Queue = false);
-
-	void rotate(uint64_t _Index, double _Angle, bool queue = false);
-
-private:
-	std::vector<vec2> _Position;
-	std::vector<vec2> _Length;
-};
-
-class CircleVector : public DefaultShapeVector {
-public:
-	CircleVector(uint64_t _Number_Of_Points, float _Radius);
-	CircleVector(const vec2& _Position, float _Radius, uint64_t _Number_Of_Points, const Color& _Color);
-
-	void set_radius(float _Radius, uint64_t index);
-
-	void set_position(uint64_t _Index, const vec2& _Position);
-
-	void push_back(vec2 _Position, float _Radius, Color _Color, bool _Queue = false);
-
-private:
-	std::vector<vec2> _Position;
-	std::vector<float> _Radius;
-	const float _Double_Pi = 2.0f * PI;
-};
-
 class Sprite {
 public:
 	Sprite();
@@ -466,7 +331,7 @@ public:
 
 	float get_angle() const;
 	void set_angle(float angle);
-	Camera2D* camera;
+	Camera* camera;
 protected:
 	Shader shader;
 	Texture texture;
@@ -495,7 +360,7 @@ public:
 
 private:
 	int64_t particleIndex;
-	SquareVector particles;
+	square_vector2d particles;
 	std::vector<Particle> particle;
 	Color begin;
 	Color end;
@@ -521,14 +386,14 @@ public:
 
 	template<
 		typename T = shape,
-		std::enable_if_t<std::is_same<SquareVector, T>::value>* = nullptr
+		std::enable_if_t<std::is_same<square_vector2d, T>::value>* = nullptr
 	>
 		constexpr Entity(
 			const vec2& _Position,
 			const vec2& _Length,
 			const Color& color
 		) :
-		SquareVector(_Position, _Length, color), velocity(0) { }
+		square_vector2d(_Position, _Length, color), velocity(0) { }
 
 	constexpr vec2 get_velocity() const {
 		return movement_speed;
@@ -545,7 +410,7 @@ private:
 	vec2 velocity;
 };
 
-class button : public SquareVector {
+class button : public square_vector2d {
 public:
 	button() {}
 	button(
@@ -571,7 +436,7 @@ public:
 	uint64_t amount() const;
 
 private:
-	using SquareVector::push_back;
+	using square_vector2d::push_back;
 	std::vector<std::function<void()>> callbacks;
 	uint64_t count;
 };
@@ -604,7 +469,7 @@ public:
 	void draw() const;
 
 private:
-	LineVector box_lines;
+	line_vector2d box_lines;
 	std::vector<vec2> size;
 };
 
@@ -620,7 +485,7 @@ static _vec2<int> cursor_screen_position() {
 vec2 Raycast(
 	const vec2& start,
 	const vec2& end,
-	const SquareVector& squares,
+	const square_vector2d& squares,
 	bool map[grid_size.x][grid_size.y]
 );
 
@@ -771,7 +636,7 @@ namespace fan_gui {
 			title_bar_color
 		};
 
-		LineVector exit_cross{
+		line_vector2d exit_cross{
 			mat2x2(
 				buttons.get_position(eti(e_button::exit)) +
 				title_bar_shapes_size,
@@ -787,7 +652,7 @@ namespace fan_gui {
 			exit_cross_color
 		};
 
-		LineVector minimize_line{
+		line_vector2d minimize_line{
 			mat2x2(),
 			exit_cross_color
 		};
@@ -837,7 +702,7 @@ namespace fan_gui {
 	private:
 		Line user_divider;
 		button user_boxes;
-		SquareVector background;
+		square_vector2d background;
 
 		std::string current_user;
 		int current_user_i = 0;
@@ -846,47 +711,46 @@ namespace fan_gui {
 
 #endif
 
-extern Camera camera3d;
-
-class LineVector3D : public DefaultShapeVector {
-public:
-	LineVector3D();
-	LineVector3D(const matrix<3, 2>& _M, const Color& color);
-
-	matrix<2, 3> get_position(uint64_t _Index = 0) const;
-	void set_position(uint64_t _Index, const matrix<3, 2>& _M, bool _Queue = false);
-
-	void push_back(const matrix<3, 2>& _M, Color _Color = Color(-1, -1, -1, -1), bool _Queue = false);
-
-	vec2 get_length(uint64_t _Index = 0) const;
-
-	void draw() {
-		if (_Vertices.empty()) {
-			return;
-		}
-		_Shader.use();
-
-		mat4 projection(1);
-		mat4 view(1);
-
-		view = _Camera->get_view_matrix();
-
-		projection = Perspective(Radians(90.f), ((float)window_size.x / (float)window_size.y), 0.1f, 1000.0f);
-
-		static int projLoc = glGetUniformLocation(_Shader.ID, "projection");
-		static int viewLoc = glGetUniformLocation(_Shader.ID, "view");
-		glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection[0][0]);
-		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]);
-		glBindVertexArray(_ShapeBuffer.VAO);
-		glBindBuffer(GL_ARRAY_BUFFER, _VerticeBuffer.VBO);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-		glBindBuffer(GL_ARRAY_BUFFER, _ColorBuffer.VBO);
-		glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, 0);
-		glDrawArrays(_Mode, 0, _Points);
-		glBindVertexArray(0);
-	}
-
-};
+//class LineVector3D : public basic_3d {
+//public:
+//	LineVector3D();
+//	LineVector3D(const matrix<3, 2>& _M, const Color& color);
+//
+//	matrix<2, 3> get_position(uint64_t _Index = 0) const;
+//	void set_position(uint64_t _Index, const matrix<3, 2>& _M, bool _Queue = false);
+//
+//	void push_back(const matrix<3, 2>& _M, Color _Color = Color(-1, -1, -1, -1), bool _Queue = false);
+//
+//	vec2 get_length(uint64_t _Index = 0) const;
+//	
+//	void draw() {
+//
+//		if (_Vertices.empty()) {
+//			return;
+//		}
+//		_Shader.use();
+//
+//		mat4 projection(1);
+//		mat4 view(1);
+//
+//		view = _Camera->get_view_matrix();
+//
+//		projection = Perspective(Radians(90.f), ((float)window_size.x / (float)window_size.y), 0.1f, 1000.0f);
+//
+//		static int projLoc = glGetUniformLocation(_Shader.ID, "projection");
+//		static int viewLoc = glGetUniformLocation(_Shader.ID, "view");
+//		glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection[0][0]);
+//		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]);
+//		glBindVertexArray(_ShapeBuffer.VAO);
+//		glBindBuffer(GL_ARRAY_BUFFER, _VerticeBuffer.VBO);
+//		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+//		glBindBuffer(GL_ARRAY_BUFFER, _ColorBuffer.VBO);
+//		glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, 0);
+//		glDrawArrays(_Mode, 0, _Points);
+//		glBindVertexArray(0);
+//	}
+//
+//};
 
 constexpr auto texture_coordinate_size = 72;
 
@@ -998,7 +862,7 @@ private:
 
 class basic_3d {
 public:
-	basic_3d() : _Camera(nullptr), _Shape_Matrix_VAO(0), _Shape_Matrix_VBO(0) {}
+	basic_3d() : _Shape_Matrix_VAO(0), _Shape_Matrix_VBO(0) {}
 
 	void init(const std::string& vs, const std::string& fs);
 	void init_matrices();
@@ -1020,7 +884,6 @@ protected:
 
 	void set_projection();
 
-	Camera* _Camera;
 	Shader _Shader;
 
 	std::vector<mat4> object_matrix;
@@ -1265,99 +1128,7 @@ extern std::initializer_list<e_cube> e_cube_loop;
 
 extern std::vector<float> g_distances;
 
-template <typename T>
-inline vec3 intersection_point3d(const T& plane_position, const T& plane_size, const T& position, e_cube side) {
-	T p0;
-	T a;
-	T b;
-	const T l0 = position;
-
-	switch (side) {
-	case e_cube::left: {
-		p0 = plane_position - T(plane_size.x / 2, plane_size.y / 2, plane_size.z / 2);
-		a = p0 + vec3(0, plane_size.y, 0);
-		b = p0 + vec3(plane_size.x, 0, 0);
-		break;
-	}
-	case e_cube::right: {
-		p0 = plane_position - T(plane_size.x / 2, plane_size.y / 2, -plane_size.z / 2);
-		a = p0 + vec3(0, plane_size.y, 0);
-		b = p0 + vec3(plane_size.x, 0, 0);
-		break;
-	}
-	case e_cube::front: {
-		p0 = plane_position - T(plane_size.x / 2, plane_size.y / 2, plane_size.z / 2);
-		a = p0 + vec3(0, plane_size.y, 0);
-		b = p0 + vec3(0, 0, plane_size.z);
-		break;
-	}
-	case e_cube::back: {
-		p0 = plane_position - T(-plane_size.x / 2, plane_size.y / 2, plane_size.z / 2);
-		a = p0 + vec3(0, plane_size.y, 0);
-		b = p0 + vec3(0, 0, plane_size.z);
-		break;
-	}
-	case e_cube::up: {
-		p0 = plane_position - T(plane_size.x / 2, -plane_size.y / 2, plane_size.z / 2);
-		a = p0 + vec3(plane_size.x, 0, 0);
-		b = p0 + vec3(0, 0, plane_size.z);
-		break;
-	}
-	case e_cube::down: {
-		p0 = plane_position - T(plane_size.x / 2, plane_size.y / 2, plane_size.z / 2);
-		a = p0 + vec3(plane_size.x, 0, 0);
-		b = p0 + vec3(0, 0, plane_size.z);
-		break;
-	}
-	}
-
-	const T n = Normalize(Cross((a - p0), (b - p0)));
-
-	const T l = DirectionVector(camera3d.yaw, camera3d.pitch);
-
-	const float nl_dot(Dot(n, l));
-
-	if (!nl_dot) {
-		return T(-1);
-	}
-
-	const float d = Dot(p0 - l0, n) / nl_dot;
-	if (d <= 0) {
-		return T(-1);
-	}
-
-	g_distances[eti(side)] = d;
-
-	const T intersect(l0 + l * d);
-	switch (side) {
-	case e_cube::right:
-	case e_cube::left: {
-		if (intersect.y > b.y && intersect.y < a.y &&
-			intersect.x > a.x && intersect.x < b.x) {
-			return intersect;
-		}
-		break;
-	}
-	case e_cube::back:
-	case e_cube::front: {
-		if (intersect.y > b.y && intersect.y < a.y &&
-			intersect.z > a.z && intersect.z < b.z) {
-			return intersect;
-		}
-		break;
-	}
-	case e_cube::up:
-	case e_cube::down: {
-		if (intersect.x > b.x && intersect.x < a.x &&
-			intersect.z > a.z && intersect.z < b.z) {
-			return intersect;
-		}
-		break;
-	}
-	}
-
-	return T(-1);
-}
+vec3 intersection_point3d(const vec3& plane_position, const vec3& plane_size, const vec3& position, e_cube side);
 
 double ValueNoise_2D(double x, double y);
 

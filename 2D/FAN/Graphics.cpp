@@ -104,46 +104,381 @@ void Camera::updateCameraVectors() {
 	this->up = Normalize(Cross(this->right, this->front));
 }
 
-Camera2D::Camera2D(vec3 position, vec3 up, float yaw, float pitch) : front(vec3(0.0f, 0.0f, -1.0f)) {
-	this->position = position;
-	this->worldUp = up;
-	this->yaw = yaw;
-	this->pitch = pitch;
-	this->updateCameraVectors();
-}
-
-mat4 Camera2D::get_view_matrix(mat4 m) {
-	return m * LookAt(this->position.rounded(), (this->position + (this->front)).rounded(), (this->up).rounded());
-}
-
-mat4 Camera2D::get_view_matrix() {
-	return LookAt(this->position, ((this->position) + (this->front)), (this->up));
-}
-
-vec3 Camera2D::get_position() const {
-	return this->position;
-}
-
-void Camera2D::set_position(const vec3& position) {
-	this->position = position;
-}
-
-void Camera2D::updateCameraVectors() {
-	vec3 front;
-    front.x = cos( Radians( this->yaw ) ) * cos( Radians( this->pitch ) );
-    front.y = sin( Radians( this->pitch ) );
-    front.z = sin( Radians( this->yaw ) ) * cos( Radians( this->pitch ) );
-    this->front = Normalize( front );
-    // Also re-calculate the Right and Up vector
-    this->right = Normalize( Cross( this->front, this->worldUp ) );  // Normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
-    this->up = Normalize( Cross( this->right, this->front ) );
-}
-
+Camera camera2d(vec3(), vec3(0, 1, 0), -90, 0);
 Camera camera3d;
-Camera2D camera2d;
+
+Shader shape_shader2d("GLSL/shapes.vs", "GLSL/shapes.frag");
+
+template <typename _Type, uint64_t N>
+basic_2dshape_vector::basic_2dshape_vector(const std::array<_Type, N>& init_vertices) :
+	color_allocated(false), matrix_allocated(false), shapes_size(0)
+{
+	glGenVertexArrays(1, &shape_vao);
+	std::array<unsigned int*, 3> vbos{
+		&matrix_vbo, &vertex_vbo, &color_vbo
+	};
+	glGenBuffers(vbos.size(), *vbos.data());
+
+	glBindVertexArray(shape_vao);
+	glBindBuffer(GL_ARRAY_BUFFER, vertex_vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(_Type) * init_vertices.size(), init_vertices.data(), GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, color_vbo);
+	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(1);
+	glVertexAttribDivisor(1, 1);
+
+	glBindBuffer(GL_ARRAY_BUFFER, matrix_vbo);
+	for (int i = 3; i < 7; i++) {
+		glVertexAttribPointer(i, 4, GL_FLOAT, GL_FALSE, sizeof(mat4), reinterpret_cast<void*>((i - 3) * sizeof(vec4)));
+		glEnableVertexAttribArray(i);
+		glVertexAttribDivisor(i, 1);
+	}
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+}
+
+basic_2dshape_vector::~basic_2dshape_vector()
+{
+	glDeleteBuffers(1, &color_vbo);
+	glDeleteBuffers(1, &matrix_vbo);
+	glDeleteBuffers(1, &vertex_vbo);
+	if (this->color_allocated) {
+		glDeleteBuffers(1, &color_allocator_vbo);
+	}
+	if (this->matrix_allocated) {
+		glDeleteBuffers(1, &matrix_allocator_vbo);
+	}
+}
+
+Color basic_2dshape_vector::get_color(uint64_t index) const
+{
+	Color color;
+	glBindBuffer(GL_ARRAY_BUFFER, color_vbo);
+	glGetBufferSubData(GL_ARRAY_BUFFER, index * sizeof(Color), sizeof(Color), color.data());
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	return color;
+}
+
+void basic_2dshape_vector::set_color(uint64_t index, const Color& color, bool queue)
+{
+	glBindBuffer(GL_ARRAY_BUFFER, color_vbo);
+	glBufferSubData(GL_ARRAY_BUFFER, index * sizeof(Color), sizeof(Color), &color.r);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+void basic_2dshape_vector::free_queue(bool colors, bool matrices)
+{
+	if (colors) {
+		glBindBuffer(GL_ARRAY_BUFFER, color_vbo);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(Color) * this->size(), nullptr, GL_DYNAMIC_DRAW);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		this->copy_data(color_allocator_vbo, GL_ARRAY_BUFFER, sizeof(Color) * this->size(), GL_DYNAMIC_DRAW, color_vbo);
+
+		glBindBuffer(GL_ARRAY_BUFFER, color_allocator_vbo);
+		Color data;
+		glGetBufferSubData(GL_ARRAY_BUFFER, sizeof(Color), sizeof(Color), data.data());
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		printf("%f %f %f %f\n", data.r, data.g, data.b, data.a);
+
+		glDeleteBuffers(1, &color_allocator_vbo);
+		this->color_allocated = false;
+	}
+
+	if (matrices) {
+		glBindBuffer(GL_ARRAY_BUFFER, matrix_vbo);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(mat4) * this->size(), nullptr, GL_DYNAMIC_DRAW);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		this->copy_data(matrix_allocator_vbo, GL_ARRAY_BUFFER, sizeof(mat4) * this->size(), GL_DYNAMIC_DRAW, matrix_vbo);
+		glDeleteBuffers(1, &matrix_allocator_vbo);
+		this->matrix_allocated = false;
+	}
+}
+
+constexpr auto copy_buffer = 5000000;
+
+void basic_2dshape_vector::realloc_copy_data(unsigned int& buffer, uint64_t buffer_type, int size, GLenum usage, unsigned int& allocator)
+{
+	int old_buffer_size = 0;
+	glBindBuffer(buffer_type, buffer);
+	glGetBufferParameteriv(buffer_type, GL_BUFFER_SIZE, (int*)&old_buffer_size);
+
+	const int new_size = size * copy_buffer;
+
+	glGenBuffers(1, &allocator);
+	glBindBuffer(GL_COPY_WRITE_BUFFER, allocator);
+	glBufferData(GL_COPY_WRITE_BUFFER, new_size, nullptr, usage);
+
+	glBindBuffer(GL_COPY_READ_BUFFER, buffer);
+	glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, old_buffer_size);
+	glBindBuffer(GL_COPY_READ_BUFFER, 0);
+	glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
+}
+
+void basic_2dshape_vector::copy_data(unsigned int& buffer, uint64_t buffer_type, int size, GLenum usage, unsigned int& allocator)
+{
+	glBindBuffer(GL_COPY_WRITE_BUFFER, allocator);
+	glBindBuffer(GL_COPY_READ_BUFFER, buffer);
+	glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, size);
+	glBindBuffer(GL_COPY_READ_BUFFER, 0);
+	glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
+}
+
+void basic_2dshape_vector::realloc_buffer(unsigned int& buffer, uint64_t buffer_type, int location, int size, GLenum usage, unsigned int& allocator) {
+	int old_buffer_size = 0;
+
+	glBindBuffer(buffer_type, buffer);
+	glGetBufferParameteriv(buffer_type, GL_BUFFER_SIZE, (int*)&old_buffer_size);
+
+	glGenBuffers(1, &allocator);
+
+	glBindBuffer(GL_COPY_WRITE_BUFFER, allocator);
+	glBufferData(GL_COPY_WRITE_BUFFER, old_buffer_size, nullptr, usage);
+
+	glBindBuffer(GL_COPY_READ_BUFFER, buffer);
+	glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, old_buffer_size);
+	const int new_size = size + old_buffer_size;
+
+	glBufferData(GL_COPY_READ_BUFFER, new_size, nullptr, usage);
+
+	if (buffer_type == GL_SHADER_STORAGE_BUFFER) {
+		glBindBufferBase(GL_COPY_READ_BUFFER, location, buffer);
+	}
+
+	glCopyBufferSubData(GL_COPY_WRITE_BUFFER, GL_COPY_READ_BUFFER, 0, 0, old_buffer_size);
+
+	glBindBuffer(GL_COPY_READ_BUFFER, 0);
+	glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
+	glBindBuffer(buffer_type, 0);
+}
+
+int basic_2dshape_vector::size() const
+{
+	return shapes_size;
+}
+
+// shape functions
+void basic_2dshape_vector::erase(uint64_t first, uint64_t last)
+{
+	std::vector<Color> colors(this->size());
+	std::vector<mat4> matrices(this->size());
+	glBindBuffer(GL_ARRAY_BUFFER, color_vbo);
+	glGetBufferSubData(GL_ARRAY_BUFFER, 0, this->size() * sizeof(Color), colors.data());
+	if (last != -1) {
+		colors.erase(colors.begin() + first, colors.begin() + last + 1);
+	}
+	else {
+		colors.erase(colors.begin() + first);
+	}
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Color) * colors.size(), colors.data(), GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, matrix_vbo);
+	glGetBufferSubData(GL_ARRAY_BUFFER, 0, this->size() * sizeof(mat4), matrices.data());
+	if (last != -1) {
+		matrices.erase(matrices.begin() + first, matrices.begin() + last + 1);
+	}
+	else {
+		matrices.erase(matrices.begin() + first);
+	}
+	glBufferData(GL_ARRAY_BUFFER, sizeof(mat4) * matrices.size(), matrices.data(), GL_DYNAMIC_DRAW);
+	shapes_size -= (last == -1 ? 1 : (last - first));
+}
+
+void basic_2dshape_vector::push_back(const vec2& position, const vec2& size, const Color& color, bool queue)
+{
+	mat4 model(1);
+	model = Translate(model, position);
+	model = Scale(model, size);
+
+	if (queue) {
+		if (!this->color_allocated) {
+			this->realloc_copy_data(color_vbo, GL_ARRAY_BUFFER, sizeof(Color), GL_DYNAMIC_DRAW, color_allocator_vbo);
+			this->color_allocated = true;
+			this->realloc_copy_data(matrix_vbo, GL_ARRAY_BUFFER, sizeof(mat4), GL_DYNAMIC_DRAW, matrix_allocator_vbo);
+			this->matrix_allocated = true;
+		}
+		glBindBuffer(GL_ARRAY_BUFFER, color_allocator_vbo);
+		glBufferSubData(GL_ARRAY_BUFFER, sizeof(Color) * this->size(), sizeof(Color), &color);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+		glBindBuffer(GL_ARRAY_BUFFER, matrix_allocator_vbo);
+		glBufferSubData(GL_ARRAY_BUFFER, sizeof(mat4) * this->size(), sizeof(mat4), &model);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+	}
+	else {
+		realloc_buffer(color_vbo, GL_ARRAY_BUFFER, 0, sizeof(Color), GL_DYNAMIC_DRAW, color_allocator_vbo);
+
+		glBindBuffer(GL_ARRAY_BUFFER, color_vbo);
+		glBufferSubData(GL_ARRAY_BUFFER, sizeof(Color) * this->size(), sizeof(Color), &color);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glDeleteBuffers(1, &color_allocator_vbo);
+
+		realloc_buffer(matrix_vbo, GL_ARRAY_BUFFER, 0, sizeof(mat4), GL_DYNAMIC_DRAW, matrix_allocator_vbo);
+		glBindBuffer(GL_ARRAY_BUFFER, matrix_vbo);
+		glBufferSubData(GL_ARRAY_BUFFER, sizeof(mat4) * this->size(), sizeof(mat4), model.data());
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glDeleteBuffers(1, &matrix_allocator_vbo);
+	}
+
+	shapes_size++;
+}
+
+vec2 basic_2dshape_vector::get_position(uint64_t index) const
+{
+	mat4 matrix;
+	vec2 position;
+	glBindBuffer(GL_ARRAY_BUFFER, matrix_vbo);
+	glGetBufferSubData(GL_ARRAY_BUFFER, index * sizeof(mat4), sizeof(mat4), matrix.data());
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	position.x = matrix[3][0];
+	position.y = matrix[3][1];
+
+	return position;
+}
+
+void basic_2dshape_vector::set_position(uint64_t index, const vec2& position, bool queue)
+{
+	mat4 matrix(1);
+	matrix = Translate(matrix, position);
+	matrix = Scale(matrix, get_size(index));
+	glBindBuffer(GL_ARRAY_BUFFER, matrix_vbo);
+	glBufferSubData(GL_ARRAY_BUFFER, sizeof(mat4) * index, sizeof(mat4), matrix.data());
+}
+
+vec2 basic_2dshape_vector::get_size(uint64_t index) const
+{
+	vec2 size;
+	mat4 matrix;
+	glBindBuffer(GL_ARRAY_BUFFER, matrix_vbo);
+	glGetBufferSubData(GL_ARRAY_BUFFER, index * sizeof(mat4), sizeof(mat4), matrix.data());
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	size.x = matrix[0][0];
+	size.y = matrix[1][1];
+	return size;
+}
+
+void basic_2dshape_vector::set_size(uint64_t index, const vec2& size, bool queue)
+{
+	mat4 matrix(1);
+	matrix = Translate(matrix, get_position(index));
+	matrix = Scale(matrix, size);
+	glBindBuffer(GL_ARRAY_BUFFER, matrix_vbo);
+	glBufferSubData(GL_ARRAY_BUFFER, sizeof(mat4) * index, sizeof(mat4), matrix.data());
+}
+
+void basic_2dshape_vector::basic_shape_draw(unsigned int mode, uint64_t points) const
+{
+	int amount_of_objects = size();
+	if (!amount_of_objects) {
+		return;
+	}
+
+	mat4 view(1);
+	mat4 projection(1);
+
+	view = camera2d.get_view_matrix(Translate(view, vec3(window_size.x / 2, window_size.y / 2, -700.0f)));
+	projection = Ortho(window_size.x / 2, window_size.x + window_size.x * 0.5f, window_size.y + window_size.y * 0.5f, window_size.y / 2.f, 0.001f, 1000.0f);
+
+	shape_shader2d.use();
+	shape_shader2d.set_mat4("projection", projection);
+	shape_shader2d.set_mat4("view", view);
+
+
+	glBindVertexArray(shape_vao);
+	glDrawArraysInstanced(mode, 0, points, amount_of_objects);
+	glBindVertexArray(0);
+}
+
+constexpr std::array<float_t, 12> square_2d_vertices{
+	0, 0,
+	0, 1,
+	1, 1,
+	1, 1,
+	1, 0,
+	0, 0
+};
+
+constexpr std::array<float_t, 4> line_2d_vertices{
+	0, 0,
+	1, 1
+};
+
+line_vector2d::line_vector2d() : basic_2dshape_vector(line_2d_vertices) {}
+
+line_vector2d::line_vector2d(const mat2& position, const Color& color) :
+	basic_2dshape_vector(line_2d_vertices)
+{
+	line_vector2d::push_back(position, color);
+}
+
+void line_vector2d::push_back(const mat2& position, const Color& color, bool queue)
+{
+	if (position[0] < position[1]) {
+		basic_2dshape_vector::push_back(position[0], position[1], color, queue);
+	}
+	else {
+		basic_2dshape_vector::push_back(position[1], position[0] - position[1], color, queue);
+	}
+}
+
+mat2 line_vector2d::get_position(uint64_t index) const
+{
+	return mat2(
+		basic_2dshape_vector::get_position(index),
+		basic_2dshape_vector::get_size(index)
+	);
+}
+
+void line_vector2d::set_position(uint64_t index, const mat2& position, bool queue)
+{
+	if (position[0] < position[1]) {
+		basic_2dshape_vector::set_position(index, position[0]);
+		basic_2dshape_vector::set_size(index, position[1]);
+	}
+	else {
+		basic_2dshape_vector::set_position(index, position[1]);
+		basic_2dshape_vector::set_size(index, position[0] - position[1]);
+	}
+}
+
+void line_vector2d::draw() const
+{
+	this->basic_shape_draw(GL_LINES, 2);
+}
+
+square_vector2d::square_vector2d() : basic_2dshape_vector(square_2d_vertices) {}
+
+square_vector2d::square_vector2d(
+	const vec2& position,
+	const vec2& size,
+	const Color& color
+) : basic_2dshape_vector(square_2d_vertices)
+{
+	this->push_back(position, size, color);
+}
+
+void square_vector2d::draw()
+{
+	this->basic_shape_draw(GL_TRIANGLES, 6);
+}
 
 template class vertice_handler<shapes::line>;
 template class vertice_handler<shapes::square>;
+
+template<shapes shape>
+vertice_handler<shape>::~vertice_handler()
+{
+	if (!this->vertices.empty()) {
+		glDeleteVertexArrays(1, &vertice_buffer.VAO);
+		glDeleteVertexArrays(1, &color_buffer.VAO);
+		glDeleteVertexArrays(1, &shape_buffer.VAO);
+		glDeleteBuffers(1, &vertice_buffer.VBO);
+		glDeleteBuffers(1, &color_buffer.VBO);
+		glDeleteBuffers(1, &shape_buffer.VBO);
+	}
+}
 
 template<shapes shape>
 void vertice_handler<shape>::init(const std::vector<float>& l_vertices, const std::vector<float>& l_colors, bool queue) {
@@ -168,7 +503,7 @@ void vertice_handler<shape>::init(const std::vector<float>& l_vertices, const st
 	points += point_size;
 	static bool once = false;
 	if (!once) {
-		camera = (Camera2D*)glfwGetWindowUserPointer(window);
+		camera = (Camera*)glfwGetWindowUserPointer(window);
 		shader = Shader("GLSL/shapes.vs", "GLSL/shapes.frag");
 		glGenBuffers(1, &vertice_buffer.VBO);
 		glBindBuffer(GL_ARRAY_BUFFER, vertice_buffer.VBO);
@@ -409,850 +744,11 @@ void Square::break_queue() {
 	square_handler.write(true, true);
 }
 
-Shader shape_shader2d("GLSL/shapes.vs", "GLSL/shapes.frag");
-
-basic_2dshape_vector::basic_2dshape_vector() : color_allocated(false), matrix_allocated(false)
-{
-	glGenVertexArrays(1, &shape_vao);
-	std::array<unsigned int*, 3> vbos{
-		&matrix_vbo, &vertex_vbo, &color_vbo
-	};
-	glGenBuffers(vbos.size(), *vbos.data());
-}
-
-basic_2dshape_vector::~basic_2dshape_vector()
-{
-	glDeleteBuffers(1, &color_vbo);
-	glDeleteBuffers(1, &matrix_vbo);
-	glDeleteBuffers(1, &vertex_vbo);
-	if (this->color_allocated) {
-		glDeleteBuffers(1, &color_allocator_vbo);
-	}
-	if (this->matrix_allocated) {
-		glDeleteBuffers(1, &matrix_allocator_vbo);
-	}
-}
-
-Color basic_2dshape_vector::get_color(uint64_t index) const
-{
-	Color color;
-	glBindBuffer(GL_ARRAY_BUFFER, color_vbo);
-	glGetBufferSubData(GL_ARRAY_BUFFER, index * sizeof(Color), sizeof(Color), color.data());
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	return color;
-}
-
-void basic_2dshape_vector::set_color(uint64_t index, const Color& color, bool queue)
-{
-	glBindBuffer(GL_ARRAY_BUFFER, color_vbo);
-	glBufferSubData(GL_ARRAY_BUFFER, index * sizeof(Color), sizeof(Color), &color.r);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-}
-
-void basic_2dshape_vector::free_queue(bool colors, bool matrices)
-{
-	if (colors) {
-		glBindBuffer(GL_ARRAY_BUFFER, color_vbo);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(Color) * this->size(), nullptr, GL_DYNAMIC_DRAW);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		this->copy_data(color_allocator_vbo, GL_ARRAY_BUFFER, sizeof(Color) * this->size(), GL_DYNAMIC_DRAW, color_vbo);
-
-		glBindBuffer(GL_ARRAY_BUFFER, color_allocator_vbo);
-		Color data;
-		glGetBufferSubData(GL_ARRAY_BUFFER, sizeof(Color), sizeof(Color), data.data());
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		printf("%f %f %f %f\n", data.r, data.g, data.b, data.a);
-
-		glDeleteBuffers(1, &color_allocator_vbo);
-		this->color_allocated = false;
-	}
-
-	if (matrices) {
-		glBindBuffer(GL_ARRAY_BUFFER, matrix_vbo);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(mat4) * this->size(), nullptr, GL_DYNAMIC_DRAW);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		this->copy_data(matrix_allocator_vbo, GL_ARRAY_BUFFER, sizeof(mat4) * this->size(), GL_DYNAMIC_DRAW, matrix_vbo);
-		glDeleteBuffers(1, &matrix_allocator_vbo);
-		this->matrix_allocated = false;
-	}
-}
-
-constexpr auto copy_buffer = 5000000;
-
-void basic_2dshape_vector::realloc_copy_data(unsigned int& buffer, uint64_t buffer_type, int size, GLenum usage, unsigned int& allocator)
-{
-	int old_buffer_size = 0;
-	glBindBuffer(buffer_type, buffer);
-	glGetBufferParameteriv(buffer_type, GL_BUFFER_SIZE, (int*)&old_buffer_size);
-
-	const int new_size = size * copy_buffer;
-
-	glGenBuffers(1, &allocator);
-	glBindBuffer(GL_COPY_WRITE_BUFFER, allocator);
-	glBufferData(GL_COPY_WRITE_BUFFER, new_size, nullptr, usage);
-
-	glBindBuffer(GL_COPY_READ_BUFFER, buffer);
-	glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, old_buffer_size);
-	glBindBuffer(GL_COPY_READ_BUFFER, 0);
-	glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
-}
-
-void basic_2dshape_vector::copy_data(unsigned int& buffer, uint64_t buffer_type, int size, GLenum usage, unsigned int& allocator)
-{
-	glBindBuffer(GL_COPY_WRITE_BUFFER, allocator);
-	glBindBuffer(GL_COPY_READ_BUFFER, buffer);
-	glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, size);
-	glBindBuffer(GL_COPY_READ_BUFFER, 0);
-	glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
-}
-
-void basic_2dshape_vector::realloc_buffer(unsigned int& buffer, uint64_t buffer_type, int location, int size, GLenum usage, unsigned int& allocator) {
-	int old_buffer_size = 0;
-
-	glBindBuffer(buffer_type, buffer);
-	glGetBufferParameteriv(buffer_type, GL_BUFFER_SIZE, (int*)&old_buffer_size);
-	
-	glGenBuffers(1, &allocator);
-
-	glBindBuffer(GL_COPY_WRITE_BUFFER, allocator);
-	glBufferData(GL_COPY_WRITE_BUFFER, old_buffer_size, nullptr, usage);
-
-	glBindBuffer(GL_COPY_READ_BUFFER, buffer);
-	glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, old_buffer_size);
-	const int new_size = size + old_buffer_size;
-
-	glBufferData(GL_COPY_READ_BUFFER, new_size, nullptr, usage);
-
-	if (buffer_type == GL_SHADER_STORAGE_BUFFER) {
-		glBindBufferBase(GL_COPY_READ_BUFFER, location, buffer);
-	}
-
-	glCopyBufferSubData(GL_COPY_WRITE_BUFFER, GL_COPY_READ_BUFFER, 0, 0, old_buffer_size);
-
-	glBindBuffer(GL_COPY_READ_BUFFER, 0);
-	glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
-	glBindBuffer(buffer_type, 0);
-}
-
-int basic_2dshape_vector::size()
-{
-	return shapes_size;
-}
-
-void basic_2dshape_vector::basic_shape_draw(unsigned int mode, uint64_t points)
-{
-	int amount_of_objects = size();
-	if (!amount_of_objects) {
-		return;
-	}
-
-	mat4 view(1);
-	mat4 projection(1);
-
-	view = camera2d.get_view_matrix(Translate(view, vec3(window_size.x / 2, window_size.y / 2, -700.0f)));
-	projection = Ortho(window_size.x / 2, window_size.x + window_size.x * 0.5f, window_size.y + window_size.y * 0.5f, window_size.y / 2.f, 0.001f, 1000.0f);
-
-	shape_shader2d.use();
-	shape_shader2d.set_mat4("projection", projection);
-	shape_shader2d.set_mat4("view", view);
-
-
-	glBindVertexArray(shape_vao);
-	glDrawArraysInstanced(mode, 0, points, amount_of_objects);
-	glBindVertexArray(0);
-}
-
-constexpr std::array<float_t, 12> square_2d_vertices{
-	0, 0,
-	0, 1,
-	1, 1,
-	1, 1,
-	1, 0,
-	0, 0
-};
-
-square_vector2d::square_vector2d() : basic_2dshape_vector() {
-	glBindVertexArray(shape_vao);
-	glBindBuffer(GL_ARRAY_BUFFER, vertex_vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float_t) * square_2d_vertices.size(), square_2d_vertices.data(), GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
-	glEnableVertexAttribArray(0);
-
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, color_vbo);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, color_vbo);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-	glBindBuffer(GL_ARRAY_BUFFER, matrix_vbo);
-	for (int i = 3; i < 7; i++) {
-		glVertexAttribPointer(i, 4, GL_FLOAT, GL_FALSE, sizeof(mat4), reinterpret_cast<void*>((i - 3) * sizeof(vec4)));
-		glEnableVertexAttribArray(i);
-		glVertexAttribDivisor(i, 1);
-	}
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
-}
-
-square_vector2d::square_vector2d(
-	const vec2& position,
-	const vec2& size,
-	const Color& color
-) : basic_2dshape_vector()
-{
-	shapes_size = 0;
-	glBindVertexArray(shape_vao);
-	glBindBuffer(GL_ARRAY_BUFFER, vertex_vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float_t) * square_2d_vertices.size(), square_2d_vertices.data(), GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
-	glEnableVertexAttribArray(0);
-
-	glBindBuffer(GL_ARRAY_BUFFER, color_vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(Color), &color, GL_DYNAMIC_DRAW);
-	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, 0);
-	glEnableVertexAttribArray(1);
-	glVertexAttribDivisor(1, 1);
-
-	mat4 model(1);
-	model = Translate(model, position);
-	model = Scale(model, size);
-
-	glBindBuffer(GL_ARRAY_BUFFER, matrix_vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(model), &model, GL_DYNAMIC_DRAW);
-	for (int i = 3; i < 7; i++) {
-		glVertexAttribPointer(i, 4, GL_FLOAT, GL_FALSE, sizeof(mat4), reinterpret_cast<void*>((i - 3) * sizeof(vec4)));
-		glEnableVertexAttribArray(i);
-		glVertexAttribDivisor(i, 1);
-	}
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
-	shapes_size++;
-}
-
-void square_vector2d::draw()
-{
-	this->basic_shape_draw(GL_TRIANGLES, 6);
-}
-
-void square_vector2d::erase(uint64_t first, uint64_t last)
-{
-	
-}
-
-void square_vector2d::push_back(const vec2& position, const vec2& size, const Color& color, bool queue)
-{
-	mat4 model(1);
-	model = Translate(model, position);
-	model = Scale(model, size);
-
-	if (queue) {
-		if (!this->color_allocated) {
-			this->realloc_copy_data(color_vbo, GL_ARRAY_BUFFER, sizeof(Color), GL_DYNAMIC_DRAW, color_allocator_vbo);
-			this->color_allocated = true;
-			this->realloc_copy_data(matrix_vbo, GL_ARRAY_BUFFER, sizeof(mat4), GL_DYNAMIC_DRAW, matrix_allocator_vbo);
-			this->matrix_allocated = true;
-		}
-		glBindBuffer(GL_ARRAY_BUFFER, color_allocator_vbo);
-		glBufferSubData(GL_ARRAY_BUFFER, sizeof(Color) * this->size(), sizeof(Color), &color);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-		glBindBuffer(GL_ARRAY_BUFFER, matrix_allocator_vbo);
-		glBufferSubData(GL_ARRAY_BUFFER, sizeof(mat4) * this->size(), sizeof(mat4), &model);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-	}
-	else {
-		realloc_buffer(color_vbo, GL_ARRAY_BUFFER, 0, sizeof(Color), GL_DYNAMIC_DRAW, color_allocator_vbo);
-
-		glBindBuffer(GL_ARRAY_BUFFER, color_vbo);
-		glBufferSubData(GL_ARRAY_BUFFER, sizeof(Color) * this->size(), sizeof(Color), &color);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		glDeleteBuffers(1, &color_allocator_vbo);
-
-		realloc_buffer(matrix_vbo, GL_ARRAY_BUFFER, 0, sizeof(mat4), GL_DYNAMIC_DRAW, matrix_allocator_vbo);
-		glBindBuffer(GL_ARRAY_BUFFER, matrix_vbo);
-		glBufferSubData(GL_ARRAY_BUFFER, sizeof(mat4) * this->size(), sizeof(mat4), model.data());
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		glDeleteBuffers(1, &matrix_allocator_vbo);
-	}
-
-	shapes_size++;
-}
-
-vec2 square_vector2d::get_position(uint64_t index) const
-{
-	mat4 matrix;
-	vec2 position;
-	glBindBuffer(GL_ARRAY_BUFFER, matrix_vbo);
-	glGetBufferSubData(GL_ARRAY_BUFFER, index * sizeof(mat4), sizeof(mat4), matrix.data());
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	
-	position.x = matrix[3][0];
-	position.y = matrix[3][1];
-
-	return position;
-}
-
-void square_vector2d::set_position(uint64_t index, const vec2& position)
-{
-	mat4 matrix(1);
-	matrix = Translate(matrix, position);
-	matrix = Scale(matrix, get_size(index));
-	glBindBuffer(GL_ARRAY_BUFFER, matrix_vbo);
-	glBufferSubData(GL_ARRAY_BUFFER, sizeof(mat4) * index, sizeof(mat4), matrix.data());
-}
-
-vec2 square_vector2d::get_size(uint64_t index) const
-{
-	vec2 size;
-	mat4 matrix;
-	glBindBuffer(GL_ARRAY_BUFFER, matrix_vbo);
-	glGetBufferSubData(GL_ARRAY_BUFFER, index * sizeof(mat4), sizeof(mat4), matrix.data());
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	size.x = matrix[0][0];
-	size.y = matrix[1][1];
-	return size;
-}
-
-void square_vector2d::set_size(uint64_t index, const vec2& size)
-{
-	mat4 matrix(1);
-	matrix = Translate(matrix, get_position(index));
-	matrix = Scale(matrix, size);
-	glBindBuffer(GL_ARRAY_BUFFER, matrix_vbo);
-	glBufferSubData(GL_ARRAY_BUFFER, sizeof(mat4) * index, sizeof(mat4), matrix.data());
-}
-
-DefaultShapeVector::~DefaultShapeVector() {
-	glDeleteVertexArrays(1, &_VerticeBuffer.VAO);
-	glDeleteVertexArrays(1, &_ColorBuffer.VAO);
-	glDeleteVertexArrays(1, &_ShapeBuffer.VAO);
-	glDeleteBuffers(1, &_VerticeBuffer.VBO);
-	glDeleteBuffers(1, &_ColorBuffer.VBO);
-	glDeleteBuffers(1, &_ShapeBuffer.VBO);
-}
-
-Color DefaultShapeVector::get_color(uint64_t _Index) const {
-	return Color(
-		_Colors[_Index * COLORSIZE * (_PointSize / 2)],
-		_Colors[_Index * COLORSIZE * (_PointSize / 2) + 1],
-		_Colors[_Index * COLORSIZE * (_PointSize / 2) + 2],
-		_Colors[_Index * COLORSIZE * (_PointSize / 2) + 3]
-	);
-}
-
-auto& DefaultShapeVector::get_color_ptr() const {
-	return _Colors;
-}
-
-void DefaultShapeVector::set_color(uint64_t _Index, const Color& color, bool queue) {
-	for (int i = 0; i < COLORSIZE * (_PointSize / 2); i++) {
-		_Colors[_Index * (COLORSIZE * (_PointSize / 2)) + i] = color[i % 4];
-	}
-	if (!queue) {
-		write(false, true);
-	}
-}
-
-void DefaultShapeVector::draw(uint64_t first, uint64_t last) const {
-	if (_Vertices.empty()) {
-		return;
-	}
-
-	_Shader.use();
-	mat4 view(1);
-	mat4 projection(1);
-
-	view = _Camera->get_view_matrix(Translate(view, vec3(window_size.x / 2, window_size.y / 2, -700.0f)));
-	projection = Ortho(window_size.x / 2, window_size.x + window_size.x * 0.5f, window_size.y + window_size.y * 0.5f, window_size.y / 2.f, 0.1f, 1000.0f);
-
-	static int projLoc = glGetUniformLocation(_Shader.ID, "projection");
-	static int viewLoc = glGetUniformLocation(_Shader.ID, "view");
-	glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection[0][0]);
-	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]);
-	glBindVertexArray(_ShapeBuffer.VAO);
-	glBindBuffer(GL_ARRAY_BUFFER, _VerticeBuffer.VBO);
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
-	glBindBuffer(GL_ARRAY_BUFFER, _ColorBuffer.VBO);
-	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, 0);
-	glDrawArrays(_Mode, first * (_PointSize / 2), !last ? _Points : last * (_PointSize / 2));
-	glBindVertexArray(0);
-}
-
-void DefaultShapeVector::break_queue(bool vertices, bool color) {
-	write(vertices, color);
-}
-
-void DefaultShapeVector::init() {
-	this->_Camera = (Camera2D*)glfwGetWindowUserPointer(window);
-	this->_Shader = Shader("GLSL/shapes.vs", "GLSL/shapes.frag");
-	glGenBuffers(1, &_VerticeBuffer.VBO);
-	glBindBuffer(GL_ARRAY_BUFFER, _VerticeBuffer.VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(_Vertices[0]) * _Vertices.size(), _Vertices.data(), GL_STATIC_DRAW);
-	glGenBuffers(1, &_ColorBuffer.VBO);
-	glBindBuffer(GL_ARRAY_BUFFER, _ColorBuffer.VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(_Colors[0]) * _Colors.size(), _Colors.data(), GL_STATIC_DRAW);
-	glGenVertexArrays(1, &_ShapeBuffer.VAO);
-	glBindVertexArray(_ShapeBuffer.VAO);
-	glEnableVertexAttribArray(0);
-	glEnableVertexAttribArray(1);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
-}
-
-void DefaultShapeVector::write(bool _EditVertices, bool _EditColor) {
-	if (_EditVertices) {
-		glBindBuffer(GL_ARRAY_BUFFER, _VerticeBuffer.VBO);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(_Vertices[0]) * _Vertices.size(), _Vertices.data(), GL_STATIC_DRAW);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-	}
-	if (_EditColor) {
-		glBindBuffer(GL_ARRAY_BUFFER, _ColorBuffer.VBO);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(_Colors[0]) * _Colors.size(), _Colors.data(), GL_STATIC_DRAW);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-	}
-}
-
-LineVector::LineVector() {
-	_Mode = GL_LINES;
-	_Points = 0;
-	_PointSize = 2 * 2;
-	init();
-}
-
-LineVector::LineVector(const mat2x2& _M, const Color& color) {
-	_Mode = GL_LINES;
-	_Points = 2;
-	_PointSize = _Points * 2;
-	_Length.push_back(vec2(_M[1] - _M[0]));
-	for (int i = 0; i < 4; i++) {
-		_Vertices.push_back(_M[(i & 2) >> 1][i & 1]);
-	}
-	for (int i = 0; i < COLORSIZE * _PointSize; i++) {
-		_Colors.push_back(color[i % 4]);
-	}
-	init();
-}
-
-LineVector::LineVector(const LineVector& line) {
-	*this = line;
-}
-
-mat2x2 LineVector::get_position(uint64_t _Index) const {
-	return mat2x2(
-		_Vertices[_Index * _PointSize],
-		_Vertices[_Index * _PointSize + 1],
-		_Vertices[_Index * _PointSize + 2],
-		_Vertices[_Index * _PointSize + 3]
-	);
-}
-
-void LineVector::set_position(uint64_t _Index, const mat2x2& _M, bool _Queue) {
-	for (int i = 0; i < 4; i++) {
-		_Vertices[_Index * _PointSize + i] = _M[(i & 2) >> 1][i & 1];
-	}
-	if (!_Queue) {
-		write(true, false);
-	}
-	_Length[_Index] = vec2(_M[1] - _M[0]);
-}
-
-void LineVector::push_back(const mat2x2& _M, Color _Color, bool _Queue) {
-	_Length.push_back(vec2(_M[1] - _M[0]));
-	for (int i = 0; i < 4; i++) {
-		_Vertices.push_back(_M[(i & 2) >> 1][i & 1]);
-	}
-	if (_Color.r == -1) {
-		if (_Colors.size() > COLORSIZE) {
-			_Color = Color(_Colors[0], _Colors[1], _Colors[2], _Colors[3]);
-		}
-		else {
-			_Color = Color(1, 1, 1, 1);
-		}
-		for (int i = 0; i < COLORSIZE * 2; i++) {
-			_Colors.push_back(_Color[i % 4]);
-		}
-	}
-	else {
-		for (int i = 0; i < COLORSIZE * 2; i++) {
-			_Colors.push_back(_Color[i % 4]);
-		}
-	}
-	_Points += 2;
-	if (!_Queue) {
-		write(true, true);
-	}
-}
-
-vec2 LineVector::get_length(uint64_t _Index) const {
-	return _Length[_Index];
-}
-
-TriangleVector::TriangleVector() {
-	_Mode = GL_TRIANGLES;
-	_Points = 0;
-	_PointSize = 3 * 2;
-	init();
-}
-
-TriangleVector::TriangleVector(const vec2& _Position, const vec2& _Length, const Color& _Color) {
-	_Mode = GL_TRIANGLES;
-	_Points = 3;
-	_PointSize = _Points * 2;
-	this->_Length.push_back(_Length);
-	this->_Position.push_back(_Position);
-	_Vertices.push_back(_Position.x - (_Length.x / 2));
-	_Vertices.push_back(_Position.y + (_Length.y / 2));
-	_Vertices.push_back(_Position.x + (_Length.x / 2));
-	_Vertices.push_back(_Position.y + (_Length.y / 2));
-	_Vertices.push_back(_Position.x);
-	_Vertices.push_back(_Position.y - (_Length.y / 2));
-	for (int i = 0; i < COLORSIZE * _PointSize; i++) {
-		_Colors.push_back(_Color[i % 4]);
-	}
-	init();
-}
-
-void TriangleVector::set_position(uint64_t _Index, const vec2& _Position) {
-	_Vertices[_Index * _PointSize] = (_Position.x - (_Length[_Index].x / 2));
-	_Vertices[_Index * _PointSize + 1] = (_Position.y + (_Length[_Index].y / 2));
-	_Vertices[_Index * _PointSize + 2] = (_Position.x + (_Length[_Index].x / 2));
-	_Vertices[_Index * _PointSize + 3] = (_Position.y + (_Length[_Index].y / 2));
-	_Vertices[_Index * _PointSize + 4] = (_Position.x);
-	_Vertices[_Index * _PointSize + 5] = (_Position.y - (_Length[_Index].y / 2));
-	write(true, false);
-}
-
-vec2 TriangleVector::get_position(uint64_t _Index) const {
-	return _Position[_Index];
-}
-
-void TriangleVector::push_back(const vec2 _Position, vec2 _Length, Color _Color) {
-	if (!_Length.x) {
-		_Length = this->_Length[0];
-	}
-	this->_Length.push_back(_Length);
-	this->_Position.push_back(_Position);
-	_Vertices.push_back(_Position.x - (_Length.x / 2));
-	_Vertices.push_back(_Position.y + (_Length.y / 2));
-	_Vertices.push_back(_Position.x + (_Length.x / 2));
-	_Vertices.push_back(_Position.y + (_Length.y / 2));
-	_Vertices.push_back(_Position.x);
-	_Vertices.push_back(_Position.y - (_Length.y / 2));
-	if (_Color.r == -1) {
-		if (_Colors.size() > COLORSIZE) {
-			_Color = Color(_Colors[0], _Colors[1], _Colors[2], _Colors[3]);
-		}
-		else {
-			_Color = Color(1, 1, 1, 1);
-		}
-		for (int i = 0; i < COLORSIZE * 2; i++) {
-			_Colors.push_back(_Color[i % 4]);
-		}
-	}
-	else {
-		for (int i = 0; i < COLORSIZE * 2; i++) {
-			_Colors.push_back(_Color[i % 4]);
-		}
-	}
-	_Points += 3;
-	write(true, true);
-}
-
-SquareVector::SquareVector() {
-	_Mode = GL_QUADS;
-	_Points = 0;
-	_PointSize = 4 * 2;
-	init();
-}
-
-/*
-
-_Mode = GL_TRIANGLES;
-	_Points = 3;
-	_PointSize = _Points * 2;
-	this->_Length.push_back(_Length);
-	this->_Position.push_back(_Position);
-	_Vertices.push_back(_Position.x - (_Length.x / 2));
-	_Vertices.push_back(_Position.y + (_Length.y / 2));
-	_Vertices.push_back(_Position.x + (_Length.x / 2));
-	_Vertices.push_back(_Position.y + (_Length.y / 2));
-	_Vertices.push_back(_Position.x);
-	_Vertices.push_back(_Position.y - (_Length.y / 2));
-	for (int i = 0; i < COLORSIZE * _PointSize; i++) {
-		_Colors.push_back(_Color[i % 4]);
-	}
-	init();
-*/
-
-SquareVector::SquareVector(const vec2& _Position, const vec2& _Length, const Color& color) {
-	_Mode = GL_QUADS;
-	_Points = 4;
-	_PointSize = _Points * 2;
-	this->_Length.push_back(_Length);
-	this->_Position.push_back(_Position);
-	_Vertices.push_back(_Position.x);
-	_Vertices.push_back(_Position.y);
-	_Vertices.push_back(_Position.x + _Length.x);
-	_Vertices.push_back(_Position.y);
-	_Vertices.push_back(_Position.x + _Length.x);
-	_Vertices.push_back(_Position.y + _Length.y);
-	_Vertices.push_back(_Position.x);
-	_Vertices.push_back(_Position.y + _Length.y);
-
-	for (int i = 0; i < COLORSIZE * _PointSize; i++) {
-		_Colors.push_back(color[i % 4]);
-	}
-	init();
-}
-
-SquareVector::SquareVector(uint64_t _Reserve, const vec2& _Position, const vec2& _Length, const Color& color) : SquareVector() {
-	for (int i = 0; i < _Reserve; i++) {
-		push_back(_Position, _Length, color, true);
-	}
-	break_queue();
-}
-
-uint64_t SquareVector::amount() const {
-	return _Points / 4;
-}
-
-bool SquareVector::empty() const {
-	return amount();
-}
-
-void SquareVector::erase(uint64_t _Index) {
-#ifdef FAN_PERFORMANCE
-	for (int i = 0; i < _PointSize; i++) {
-		_Vertices.erase(_Index * _PointSize);
-	}
-	for (int i = 0; i < COLORSIZE * _PointSize; i++) {
-		_Colors.erase(_Index * _PointSize);
-	}
-#else
-	for (int i = 0; i < _PointSize; i++) {
-		_Vertices.erase(_Vertices.begin() + _Index * _PointSize);
-	}
-	for (int i = 0; i < COLORSIZE * _PointSize; i++) {
-		_Colors.erase(_Colors.begin() + _Index * _PointSize);
-	}
-#endif
-	_Points -= 4;
-	write(true, true);
-}
-
-void SquareVector::erase_all(uint64_t _Index) {
-#ifdef FAN_PERFORMANCE
-	_Vertices.erase_all();
-	_Colors.erase_all();
-#else
-	_Vertices.erase(_Vertices.begin(), _Vertices.end());
-	_Colors.erase(_Colors.begin(), _Colors.end());
-#endif
-	_Points -= 4;
-	write(true, true);
-}
-
-vec2 SquareVector::get_length(uint64_t _Index) const {
-	return _Length[_Index];
-}
-
-mat2x4 SquareVector::get_corners(uint64_t _Index) const {
-	if (_Index >= amount()) {
-		return mat2x4();
-	}
-	uint64_t _Multiplier = _Index * _PointSize;
-	return mat2x4(
-		vec2(_Vertices[_Multiplier], _Vertices[_Multiplier + 1]),
-		vec2(_Vertices[_Multiplier + 2], _Vertices[_Multiplier + 3]),
-		vec2(_Vertices[_Multiplier + 4], _Vertices[_Multiplier + 5]),
-		vec2(_Vertices[_Multiplier + 6], _Vertices[_Multiplier + 7])
-	);
-}
-
-vec2 SquareVector::get_position(uint64_t _Index) const {
-	return _Position[_Index];
-}
-
-void SquareVector::set_position(uint64_t _Index, const vec2& _Position, bool _Queue) {
-	vec2 _Distance(_Position[0] - _Vertices[_Index * _PointSize + 0], _Position[1] - _Vertices[_Index * _PointSize + 1]);
-	_Distance = _Distance.floored();
-	for (int i = 0; i < _PointSize; i++) {
-		_Vertices[_Index * _PointSize + i] += _Distance[i % 2];
-	}
-	if (!_Queue) {
-		write(true, false);
-	}
-	this->_Position[_Index] = _Position;
-}
-
-vec2 SquareVector::get_size(uint64_t _Index) const {
-	return this->_Length[_Index];
-}
-
-void SquareVector::set_size(uint64_t _Index, const vec2& _Size, bool _Queue) {
-	_Vertices[_Index * _PointSize + 0] = _Position[_Index].x;
-	_Vertices[_Index * _PointSize + 1] = _Position[_Index].y;
-	_Vertices[_Index * _PointSize + 2] = _Position[_Index].x + _Size.x;
-	_Vertices[_Index * _PointSize + 3] = _Position[_Index].y;
-	_Vertices[_Index * _PointSize + 4] = _Position[_Index].x + _Size.x;
-	_Vertices[_Index * _PointSize + 5] = _Position[_Index].y + _Size.y;
-	_Vertices[_Index * _PointSize + 6] = _Position[_Index].x;
-	_Vertices[_Index * _PointSize + 7] = _Position[_Index].y + _Size.y;
-	if (!_Queue) {
-		write(true, false);
-	}
-	this->_Length[_Index] = _Size;
-}
-
-void SquareVector::push_back(const SquareVector& square) {
-	for (int i = 0; i < square.amount(); i++) {
-		push_back(square.get_position(i), square.get_length(i), square.get_color(i), true);
-	}
-	break_queue();
-}
-
-void SquareVector::push_back(const vec2& _Position, vec2 _Length, Color color, bool _Queue) {
-	if (!_Length.x && !_Position.x && !_Position.y) {
-		_Length = this->_Length[0];
-	}
-	this->_Length.push_back(_Length);
-	this->_Position.push_back(_Position);
-	_Vertices.push_back(_Position.x);
-	_Vertices.push_back(_Position.y);
-	_Vertices.push_back(_Position.x + _Length.x);
-	_Vertices.push_back(_Position.y);
-	_Vertices.push_back(_Position.x + _Length.x);
-	_Vertices.push_back(_Position.y + _Length.y);
-	_Vertices.push_back(_Position.x);
-	_Vertices.push_back(_Position.y + _Length.y);
-
-	if (color.r == -1) {
-		if (_Colors.size() > COLORSIZE) {
-			color = Color(_Colors[0], _Colors[1], _Colors[2], _Colors[3]);
-		}
-		else {
-			color = Color(1, 1, 1, 1);
-		}
-		for (int i = 0; i < COLORSIZE * 2; i++) {
-			_Colors.push_back(color[i % 4]);
-		}
-	}
-	else {
-		for (int i = 0; i < COLORSIZE * _PointSize; i++) {
-			_Colors.push_back(color[i % 4]);
-		}
-	}
-	_Points += 4;
-	if (!_Queue) {
-		write(true, true);
-	}
-}
-
-void SquareVector::rotate(uint64_t _Index, double _Angle, bool _Queue) {
-	constexpr double offset = 3 * PI / 4;
-	const vec2 position(get_position(_Index));
-	const vec2 _Radius(_Length[_Index] / 2);
-	const double r = Distance(get_position(_Index), get_position(_Index) + _Length[_Index] / 2);
-
-	mat2x4 corners(
-		vec2(r * cos(Radians(_Angle) + offset), r * sin(Radians(_Angle) + offset)),
-		vec2(r * cos(Radians(_Angle) + offset - PI / 2.f), r * sin(Radians(_Angle) + offset - PI / 2.f)),
-		vec2(r * cos(Radians(_Angle) + offset - PI), r * sin(Radians(_Angle) + offset - PI)),
-		vec2(r * cos(Radians(_Angle) + offset - PI * 3.f / 2.f), r * sin(Radians(_Angle) + offset - PI * 3.f / 2.f))
-	);
-
-	for (int i = 0; i < _PointSize; i++) {
-		_Vertices[_Index * _PointSize + i] = corners[(i & (_PointSize - 1)) >> 1][i & 1] + position[i & 1] + _Radius[i & 1];
-	}
-
-	if (!_Queue) {
-		write(true, false);
-	}
-}
-
-CircleVector::CircleVector(uint64_t _Number_Of_Points, float _Radius) {
-	_Mode = GL_TRIANGLE_FAN;
-	_Points = 0;
-	_PointSize = _Number_Of_Points * 2;
-	this->_Radius.push_back(_Radius);
-	init();
-}
-
-CircleVector::CircleVector(const vec2& _Position, float _Radius, uint64_t _Number_Of_Points, const Color& _Color) {
-	_Mode = GL_LINE_LOOP;
-	_Points = _Number_Of_Points;
-	_PointSize = _Number_Of_Points * 2;
-	this->_Position.push_back(_Position);
-	this->_Radius.push_back(_Radius);
-	for (int i = 0; i < _Points; i++) {
-		float theta = 2.0f * PI * float(i) / float(_Points);
-
-		float x = _Radius * cosf(theta);
-		float y = _Radius * sinf(theta);
-
-		_Vertices.push_back(_Position.x + x);
-		_Vertices.push_back(_Position.y + y);
-	}
-
-	for (int i = 0; i < COLORSIZE * _PointSize; i++) {
-		_Colors.push_back(_Color[i % 4]);
-	}
-	init();
-}
-
-void CircleVector::set_radius(float _Radius, uint64_t index) {
-	for (int i = 0; i < _Points * 2; i++) {
-		float theta = 2.0f * 3.1415926f * float(i) / float(_Points * 2);
-
-		if (i & 1) {
-			float x = _Radius * cosf(theta);
-			_Vertices[i] = (_Position[index].x + x);
-		}
-		else {
-			float y = _Radius * sinf(theta);
-			_Vertices[i] = (_Position[index].y + y);
-		}
-	}
-	write(true, false);
-}
-
-void CircleVector::set_position(uint64_t _Index, const vec2& _Position) {
-	for (int ii = 0; ii < _PointSize; ii += 2) {
-		float theta = _Double_Pi * float(ii) / float(_PointSize);
-
-		float x = _Radius[_Index] * cosf(theta);
-		float y = _Radius[_Index] * sinf(theta);
-		_Vertices[_Index * _PointSize + ii] = _Position.x + x;
-		_Vertices[_Index * _PointSize + ii + 1] = _Position.y + y;
-	}
-	this->_Position[_Index] = _Position;
-	write(true, false);
-}
-
-void CircleVector::push_back(vec2 _Position, float _Radius, Color _Color, bool _Queue) {
-	this->_Position.push_back(_Position);
-	this->_Radius.push_back(_Radius);
-	for (int ii = 0; ii < _Points; ii++) {
-		float theta = 2.0f * 3.1415926f * float(ii) / float(_Points);
-
-		float x = _Radius * cosf(theta);
-		float y = _Radius * sinf(theta);
-
-		_Vertices.push_back(_Position.x + x);
-		_Vertices.push_back(_Position.y + y);
-	}
-	for (int i = 0; i < COLORSIZE * _PointSize; i++) {
-		_Colors.push_back(_Color[i % 4]);
-	}
-	_Points += _PointSize / 2;
-	if (_Queue) {
-		write(true, true);
-	}
-}
-
 Sprite::Sprite() : texture(), position(0) {}
 
 Sprite::Sprite(const char* path, vec2 position, vec2 size, float angle, Shader shader) :
 	shader(shader), angle(angle), position(position), size(size), texture() {
-	this->camera = (Camera2D*)glfwGetWindowUserPointer(window);
+	this->camera = (Camera*)glfwGetWindowUserPointer(window);
 	init_image();
 	load_image(path, texture);
 	if (size.x != 0 && size.y != 0) {
@@ -1263,7 +759,7 @@ Sprite::Sprite(const char* path, vec2 position, vec2 size, float angle, Shader s
 
 Sprite::Sprite(unsigned char* pixels, const vec2& image_size, const vec2& position, const vec2& size, Shader shader) :
 	shader(shader), position(position), size(size), texture() {
-	this->camera = (Camera2D*)glfwGetWindowUserPointer(window);
+	this->camera = (Camera*)glfwGetWindowUserPointer(window);
 	init_image();
 	texture.width = image_size.x;
 	texture.height = image_size.y;
@@ -1412,13 +908,13 @@ void Sprite::set_angle(float angle) {
 	this->angle = angle;
 }
 
-Particles::Particles(uint64_t particles_amount, vec2 particle_size, vec2 particle_speed, float life_time, Color begin, Color end) :
-	particles(particles_amount, -particle_size,
-		vec2(particle_size), begin), particle(), particleIndex(particles_amount - 1), begin(begin), end(end), life_time(life_time) {
-	for (int i = 0; i < particles_amount; i++) {
-		particle.push_back({ life_time, Timer(chrono_t::now(), 0), 0, particle_speed * vec2(cosf(i), sinf(i)) });
-	}
-}
+//Particles::Particles(uint64_t particles_amount, vec2 particle_size, vec2 particle_speed, float life_time, Color begin, Color end) :
+//	particles(particles_amount, -particle_size,
+//		vec2(particle_size), begin), particle(), particleIndex(particles_amount - 1), begin(begin), end(end), life_time(life_time) {
+//	for (int i = 0; i < particles_amount; i++) {
+//		particle.push_back({ life_time, Timer(chrono_t::now(), 0), 0, particle_speed * vec2(cosf(i), sinf(i)) });
+//	}
+//}
 
 void Particles::add(vec2 position) {
 	static Timer click_timer = {
@@ -1426,23 +922,23 @@ void Particles::add(vec2 position) {
 		particles_per_second ? uint64_t(1000 / particles_per_second) : uint64_t(1e+10)
 	};
 	if (particle[particleIndex].time.finished() && click_timer.finished()) {
-		particles.set_position(particleIndex, position - particles.get_length(0) / 2);
+		particles.set_position(particleIndex, position - particles.get_size(0) / 2);
 		particle[particleIndex].time.start(life_time);
 		particle[particleIndex].display = true;
 		if (--particleIndex <= -1) {
-			particleIndex = particles.amount() - 1;
+			particleIndex = particles.size() - 1;
 		}
 		click_timer.restart();
 	}
 }
 
 void Particles::draw() {
-	for (int i = 0; i < particles.amount(); i++) {
+	for (int i = 0; i < particles.size(); i++) {
 		if (!particle[i].display) {
 			continue;
 		}
 		if (particle[i].time.finished()) {
-			particles.set_position(i, vec2(-particles.get_length(0)), true);
+			particles.set_position(i, vec2(-particles.get_size(0)), true);
 			particle[i].display = false;
 			particle[i].time.start(life_time);
 			continue;
@@ -1458,36 +954,12 @@ void Particles::draw() {
 		particles.set_color(i, color, true);
 		particles.set_position(i, particles.get_position(i) + particle[i].particle_speed * delta_time, true);
 	}
-	particles.break_queue();
+	particles.free_queue();
 	particles.draw();
 }
 
-vec2 Raycast(const vec2& start, const vec2& end, const SquareVector& squares, bool map[grid_size.x][grid_size.y]) {
-	const float angle = -Degrees(AimAngle(start, end));
-	const bool left = angle < 90 && angle > -90;
-	const bool top = angle > 0 && angle < 180;
-
-	for (int i = start.x / block_size; left ? i < end.x / block_size : i > end.x / block_size - 1; left ? i++ : i--) {
-		for (int j = start.y / block_size; top ? j > end.y / block_size - 1 : j < end.y / block_size; top ? j-- : j++) {
-			if (i < 0 || j < 0 || i > grid_size.x || j > grid_size.y) {
-				return vec2(-1);
-			}
-			if (map[i][j]) {
-				const mat2x4 corners = squares.get_corners(_2d_1d(vec2(i * block_size, j * block_size)));
-				bool left_right = start.x < end.x;
-				bool up_down = end.y < start.y;
-				vec2 point = IntersectionPoint(start, end, corners[!left_right], corners[left_right ? 3 : 2]);
-				if (ray_hit(point)) { return point; }
-				point = IntersectionPoint(start, end, corners[up_down ? 2 : 0], corners[up_down ? 3 : 1]);
-				if (ray_hit(point)) { return point; }
-			}
-		}
-	}
-	return vec2(-1);
-}
-
 button::button(const vec2& position, const vec2& size, const Color& color, std::function<void()> lambda) :
-	SquareVector(position, size, color), count(1) {
+	square_vector2d(position, size, color), count(1) {
 	callbacks.push_back(lambda);
 }
 
@@ -1511,9 +983,9 @@ void button::button_press_callback(uint64_t index) {
 
 bool button::inside(uint64_t index) const {
 	return cursor_position.x >= get_position(index).x &&
-		cursor_position.x <= get_position(index).x + get_length(index).x &&
+		cursor_position.x <= get_position(index).x + get_size(index).x &&
 		cursor_position.y >= get_position(index).y &&
-		cursor_position.y <= get_position(index).y + get_length(index).y;
+		cursor_position.y <= get_position(index).y + get_size(index).y;
 }
 
 uint64_t button::amount() const {
@@ -1540,7 +1012,7 @@ bool button_single::inside() const {
 
 Box::Box(const vec2& position, const vec2& size, const Color& color) :
 	box_lines(
-		LineVector(
+		line_vector2d(
 			mat2x2(
 				position,
 				vec2(position.x + size.x, position.y)
@@ -1551,18 +1023,21 @@ Box::Box(const vec2& position, const vec2& size, const Color& color) :
 		mat2x2(
 			position,
 			vec2(position.x, position.y + size.y)
-		)
+		),
+		color
 	);
 	box_lines.push_back(
 		mat2x2(
 			position + size - vec2(0, 1),
 			vec2(position.x - 1, position.y + size.y - 1)
-		)
+		),
+		color
 	);
 	box_lines.push_back(
 		mat2x2(position + size,
 			vec2(position.x + size.x, position.y)
-		)
+		),
+		color
 	);
 	this->size.push_back(size);
 }
@@ -1595,7 +1070,7 @@ void Box::set_position(uint64_t index, const vec2& position) {
 			vec2(position.x + size[index].x, position.y)
 		)
 	);
-	box_lines.break_queue();
+	box_lines.free_queue();
 }
 
 void Box::draw() const {
@@ -1681,7 +1156,7 @@ TextRenderer::TextRenderer() : shader(Shader("GLSL/text.vs", "GLSL/text.frag")) 
 	glBindVertexArray(0);
 }
 
-vec2 TextRenderer::get_length(std::string text, float scale, bool include_endl) {
+vec2 TextRenderer::get_size(std::string text, float scale, bool include_endl) {
 	vec2 end_position;
 
 	std::string::const_iterator c;
@@ -1790,8 +1265,8 @@ fan_gui::text_box::text_box(TextRenderer* renderer, std::string text, const vec2
 	int counter = 0;
 	float size = 0;
 	for (int i = 0; i < this->text.size(); i++) {
-		size = this->renderer->get_length(this->text.substr(offset, i - offset), font_size).x;
-		if (chat_box_max_width <= size + this->renderer->get_length(this->text.substr(i, 1), font_size).x) {
+		size = this->renderer->get_size(this->text.substr(offset, i - offset), font_size).x;
+		if (chat_box_max_width <= size + this->renderer->get_size(this->text.substr(i, 1), font_size).x) {
 			this->text.insert(this->text.begin() + i, '\n');
 			offset = i;
 			counter++;
@@ -1839,7 +1314,7 @@ void fan_gui::text_box::draw() {
 
 	renderer->render(
 		text,
-		position + vec2(gap_between_text_and_box.x / 2, ceil(renderer->get_length(text, font_size).y) * 1.8),
+		position + vec2(gap_between_text_and_box.x / 2, ceil(renderer->get_size(text, font_size).y) * 1.8),
 		font_size,
 		white_color
 	);
@@ -1849,7 +1324,7 @@ std::string fan_gui::text_box::get_finished_string(TextRenderer* renderer, std::
 	int offset = 0;
 	float size = 0;
 	for (int i = 0; i < text.size(); i++) {
-		size = renderer->get_length(text.substr(offset, i - offset), font_size).x;
+		size = renderer->get_size(text.substr(offset, i - offset), font_size).x;
 		if (chat_box_max_width <= size) {
 			text.insert(text.begin() + i, '\n');
 			offset = i;
@@ -1863,7 +1338,7 @@ vec2 fan_gui::text_box::get_size_all(TextRenderer* renderer, std::string text) {
 	int counter = 0;
 	float size = 0;
 	for (int i = 0; i < text.size(); i++) {
-		size = renderer->get_length(text.substr(offset, i - offset), font_size).x;
+		size = renderer->get_size(text.substr(offset, i - offset), font_size).x;
 		if (chat_box_max_width <= size) {
 			offset = i;
 			counter++;
@@ -2078,7 +1553,7 @@ void fan_gui::Titlebar::resize_update() {
 	maximize_box.set_position(
 		0,
 		buttons.get_position(eti(e_button::maximize)) +
-		exit_cross.get_length() / 2
+		exit_cross.get_size() / 2
 	);
 }
 
@@ -2103,7 +1578,7 @@ void fan_gui::Titlebar::move_window() {
 }
 
 void fan_gui::Titlebar::callbacks() {
-	for (int i = buttons.amount(); i--; ) {
+	for (int i = buttons.size(); i--; ) {
 		buttons.button_press_callback(i);
 	}
 }
@@ -2147,7 +1622,7 @@ fan_gui::Users::Users(const std::string& username, message_t chat)
 
 void fan_gui::Users::add(const std::string& username, message_t chat) {
 	user_boxes.add(
-		user_boxes.get_position(user_boxes.amount() - 1) +
+		user_boxes.get_position(user_boxes.size() - 1) +
 		vec2(0, user_box_size.y),
 		user_box_size,
 		user_box_color
@@ -2160,7 +1635,7 @@ void fan_gui::Users::draw() {
 	background.draw(
 		0,
 		selected() ?
-		background.amount() : background.amount() - 1
+		background.size() : background.size() - 1
 	);
 	user_boxes.draw();
 	user_divider.draw();
@@ -2169,7 +1644,7 @@ void fan_gui::Users::draw() {
 void fan_gui::Users::color_callback() {
 	bool selected = false;
 	Color color = lighter_color(user_box_color, 0.1);
-	for (int i = 0; i < user_boxes.amount(); i++) {
+	for (int i = 0; i < user_boxes.size(); i++) {
 		if (user_boxes.inside(i) && !selected) {
 			Color temp_color = user_boxes.get_color(i);
 			if (temp_color != color && temp_color != select_color) {
@@ -2225,7 +1700,7 @@ void fan_gui::Users::render_text(TextRenderer& renderer) {
 		vec2(
 			user_box_size.x + 20,
 			title_bar_height +
-			renderer.get_length(current_user, font_size).y + 20
+			renderer.get_size(current_user, font_size).y + 20
 		),
 		font_size,
 		white_color
@@ -2233,7 +1708,7 @@ void fan_gui::Users::render_text(TextRenderer& renderer) {
 }
 
 void fan_gui::Users::select() {
-	for (int i = 0; i < user_boxes.amount(); i++) {
+	for (int i = 0; i < user_boxes.size(); i++) {
 		if (user_boxes.inside(i)) {
 			current_user = usernames[i];
 			user_boxes.set_color(get_user_i(), user_box_color);
@@ -2275,72 +1750,72 @@ uint64_t fan_gui::Users::size() const {
 
 #endif
 
-LineVector3D::LineVector3D() {
-	_Mode = GL_LINES;
-	_Points = 0;
-	_PointSize = 2 * 2;
-	init();
-}
-
-LineVector3D::LineVector3D(const matrix<3, 2>& _M, const Color& color) {
-	_Mode = GL_LINES;
-	_Points = 2;
-	_PointSize = _Points * 2;
-	for (int i = 0; i < 6; i++) {
-		_Vertices.push_back(_M[i / 3][i % 3]);
-	}
-	for (int i = 0; i < COLORSIZE * 2; i++) {
-		_Colors.push_back(color[i % 4]);
-	}
-	init();
-	this->_Camera = (Camera2D*)&camera3d;
-}
-
-matrix<2, 3> LineVector3D::get_position(uint64_t _Index) const {
-	return matrix<2, 3>(
-		_Vertices[_Index * _PointSize],
-		_Vertices[_Index * _PointSize + 1],
-		_Vertices[_Index * _PointSize + 2],
-		_Vertices[_Index * _PointSize + 3],
-		_Vertices[_Index * _PointSize + 4],
-		_Vertices[_Index * _PointSize + 5]
-	);
-}
-
-void LineVector3D::set_position(uint64_t _Index, const matrix<3, 2>& _M, bool _Queue) {
-	for (int i = 0; i < 6; i++) {
-		_Vertices[_Index * _PointSize + i] = _M[i / 3][i % 3];
-	}
-	if (!_Queue) {
-		write(true, false);
-	}
-}
-
-void LineVector3D::push_back(const matrix<3, 2>& _M, Color _Color, bool _Queue) {
-	for (int i = 0; i < 6; i++) {
-		_Vertices.push_back(_M[i / 3][i % 3]);
-	}
-	if (_Color.r == -1) {
-		if (_Colors.size() > COLORSIZE) {
-			_Color = Color(_Colors[0], _Colors[1], _Colors[2], _Colors[3]);
-		}
-		else {
-			_Color = Color(1, 1, 1, 1);
-		}
-		for (int i = 0; i < COLORSIZE * 2; i++) {
-			_Colors.push_back(_Color[i % 4]);
-		}
-	}
-	else {
-		for (int i = 0; i < COLORSIZE * 2; i++) {
-			_Colors.push_back(_Color[i % 4]);
-		}
-	}
-	_Points += 2;
-	if (!_Queue) {
-		write(true, true);
-	}
-}
+//LineVector3D::LineVector3D() {
+//	_Mode = GL_LINES;
+//	_Points = 0;
+//	_PointSize = 2 * 2;
+//	init();
+//}
+//
+//LineVector3D::LineVector3D(const matrix<3, 2>& _M, const Color& color) {
+//	_Mode = GL_LINES;
+//	_Points = 2;
+//	_PointSize = _Points * 2;
+//	for (int i = 0; i < 6; i++) {
+//		_Vertices.push_back(_M[i / 3][i % 3]);
+//	}
+//	for (int i = 0; i < COLORSIZE * 2; i++) {
+//		_Colors.push_back(color[i % 4]);
+//	}
+//	init();
+//	this->_Camera = (Camera*)&camera3d;
+//}
+//
+//matrix<2, 3> LineVector3D::get_position(uint64_t _Index) const {
+//	return matrix<2, 3>(
+//		_Vertices[_Index * _PointSize],
+//		_Vertices[_Index * _PointSize + 1],
+//		_Vertices[_Index * _PointSize + 2],
+//		_Vertices[_Index * _PointSize + 3],
+//		_Vertices[_Index * _PointSize + 4],
+//		_Vertices[_Index * _PointSize + 5]
+//	);
+//}
+//
+//void LineVector3D::set_position(uint64_t _Index, const matrix<3, 2>& _M, bool _Queue) {
+//	for (int i = 0; i < 6; i++) {
+//		_Vertices[_Index * _PointSize + i] = _M[i / 3][i % 3];
+//	}
+//	if (!_Queue) {
+//		write(true, false);
+//	}
+//}
+//
+//void LineVector3D::push_back(const matrix<3, 2>& _M, Color _Color, bool _Queue) {
+//	for (int i = 0; i < 6; i++) {
+//		_Vertices.push_back(_M[i / 3][i % 3]);
+//	}
+//	if (_Color.r == -1) {
+//		if (_Colors.size() > COLORSIZE) {
+//			_Color = Color(_Colors[0], _Colors[1], _Colors[2], _Colors[3]);
+//		}
+//		else {
+//			_Color = Color(1, 1, 1, 1);
+//		}
+//		for (int i = 0; i < COLORSIZE * 2; i++) {
+//			_Colors.push_back(_Color[i % 4]);
+//		}
+//	}
+//	else {
+//		for (int i = 0; i < COLORSIZE * 2; i++) {
+//			_Colors.push_back(_Color[i % 4]);
+//		}
+//	}
+//	_Points += 2;
+//	if (!_Queue) {
+//		write(true, true);
+//	}
+//}
 
 //LineVector::LineVector(const mat2x2& _M, const Color& color) {
 //	_Mode = GL_LINES;
@@ -2550,7 +2025,6 @@ std::vector<mesh_texture> model_loader::load_material_textures(aiMaterial* mat, 
 }
 
 void basic_3d::init(const std::string& vs, const std::string& fs) {
-	_Camera = &camera3d;
 	_Shader = Shader(vs.c_str(), fs.c_str());
 
 	glGenBuffers(1, &_Shape_Matrix_VBO);
@@ -2582,7 +2056,7 @@ void basic_3d::set_projection() {
 	mat4 projection(1);
 	mat4 view(1);
 
-	view = _Camera->get_view_matrix();
+	view = camera3d.get_view_matrix();
 	projection = Perspective(Radians(90.f), (float_t)window_size.x / (float_t)window_size.y, 0.1f, 1000.0f);
 
 	_Shader.use();
@@ -2975,8 +2449,8 @@ void Model::draw() {
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, this->textures_loaded[0].id);
 
-	_Shader.set_vec3("light_position", _Camera->get_position());
-	_Shader.set_vec3("view_position", _Camera->get_position());
+	_Shader.set_vec3("light_position", camera3d.get_position());
+	_Shader.set_vec3("view_position", camera3d.get_position());
 	_Shader.set_vec3("light_color", vec3(1, 1, 1));
 	_Shader.set_int("texture_diffuse", 0);
 	//_Shader.set_vec3("sky_color", vec3(220.f / 255.f, 219.f / 255.f, 223.f / 255.f));
@@ -3012,12 +2486,14 @@ void move_camera(bool noclip, float movement_speed) {
 		camera3d.velocity.z = 0;
 	}
 	if (glfwGetKey(window, GLFW_KEY_W)) {
-		camera3d.velocity.x += camera3d.front.x * (movement_speed * delta_time);
-		camera3d.velocity.z += camera3d.front.z * (movement_speed * delta_time);
+		const vec2 direction(DirectionVector(Radians(camera3d.yaw)));
+		camera3d.velocity.x += direction.x * (movement_speed * delta_time);
+		camera3d.velocity.z += direction.y * (movement_speed * delta_time);
 	}
 	if (glfwGetKey(window, GLFW_KEY_S)) {
-		camera3d.velocity.x -= camera3d.front.x * (movement_speed * delta_time);
-		camera3d.velocity.z -= camera3d.front.z * (movement_speed * delta_time);
+		const vec2 direction(DirectionVector(Radians(camera3d.yaw)));
+		camera3d.velocity.x -= direction.x * (movement_speed * delta_time);
+		camera3d.velocity.z -= direction.y * (movement_speed * delta_time);
 	}
 	if (glfwGetKey(window, GLFW_KEY_A)) {
 		camera3d.velocity -= camera3d.right * (movement_speed * delta_time);
@@ -3150,6 +2626,100 @@ double InterpolatedNoise(int i, double x, double y) {
 	return Interpolate(i1, i2, fractional_Y);
 }
 
+vec3 intersection_point3d(const vec3& plane_position, const vec3& plane_size, const vec3& position, e_cube side)
+{
+	vec3 p0;
+	vec3 a;
+	vec3 b;
+	const vec3 l0 = position;
+
+	switch (side) {
+	case e_cube::left: {
+		p0 = plane_position - vec3(plane_size.x / 2, plane_size.y / 2, plane_size.z / 2);
+		a = p0 + vec3(0, plane_size.y, 0);
+		b = p0 + vec3(plane_size.x, 0, 0);
+		break;
+	}
+	case e_cube::right: {
+		p0 = plane_position - vec3(plane_size.x / 2, plane_size.y / 2, -plane_size.z / 2);
+		a = p0 + vec3(0, plane_size.y, 0);
+		b = p0 + vec3(plane_size.x, 0, 0);
+		break;
+	}
+	case e_cube::front: {
+		p0 = plane_position - vec3(plane_size.x / 2, plane_size.y / 2, plane_size.z / 2);
+		a = p0 + vec3(0, plane_size.y, 0);
+		b = p0 + vec3(0, 0, plane_size.z);
+		break;
+	}
+	case e_cube::back: {
+		p0 = plane_position - vec3(-plane_size.x / 2, plane_size.y / 2, plane_size.z / 2);
+		a = p0 + vec3(0, plane_size.y, 0);
+		b = p0 + vec3(0, 0, plane_size.z);
+		break;
+	}
+	case e_cube::up: {
+		p0 = plane_position - vec3(plane_size.x / 2, -plane_size.y / 2, plane_size.z / 2);
+		a = p0 + vec3(plane_size.x, 0, 0);
+		b = p0 + vec3(0, 0, plane_size.z);
+		break;
+	}
+	case e_cube::down: {
+		p0 = plane_position - vec3(plane_size.x / 2, plane_size.y / 2, plane_size.z / 2);
+		a = p0 + vec3(plane_size.x, 0, 0);
+		b = p0 + vec3(0, 0, plane_size.z);
+		break;
+	}
+	}
+
+	const vec3 n = Normalize(Cross((a - p0), (b - p0)));
+
+	const vec3 l = DirectionVector(camera3d.yaw, camera3d.pitch);
+
+	const float nl_dot(Dot(n, l));
+
+	if (!nl_dot) {
+		return vec3(-1);
+	}
+
+	const float d = Dot(p0 - l0, n) / nl_dot;
+	if (d <= 0) {
+		return vec3(-1);
+	}
+
+	g_distances[eti(side)] = d;
+
+	const vec3 intersect(l0 + l * d);
+	switch (side) {
+	case e_cube::right:
+	case e_cube::left: {
+		if (intersect.y > b.y && intersect.y < a.y &&
+			intersect.x > a.x && intersect.x < b.x) {
+			return intersect;
+		}
+		break;
+	}
+	case e_cube::back:
+	case e_cube::front: {
+		if (intersect.y > b.y && intersect.y < a.y &&
+			intersect.z > a.z && intersect.z < b.z) {
+			return intersect;
+		}
+		break;
+	}
+	case e_cube::up:
+	case e_cube::down: {
+		if (intersect.x > b.x && intersect.x < a.x &&
+			intersect.z > a.z && intersect.z < b.z) {
+			return intersect;
+		}
+		break;
+	}
+	}
+
+	return vec3(-1);
+}
+
 double ValueNoise_2D(double x, double y) {
 	double total = 0,
 		frequency = pow(2, numOctaves),
@@ -3236,7 +2806,7 @@ void model_skybox::draw() {
 	mat4 projection(1);
 	mat4 view(1);
 
-	view = mat4(mat3(_Camera->get_view_matrix()));
+	view = mat4(mat3(camera3d.get_view_matrix()));
 	projection = Perspective(Radians(90.f), (float_t)window_size.x / (float_t)window_size.y, 0.1f, 1000.0f);
 
 	_Shader.use();
