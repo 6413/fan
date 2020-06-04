@@ -3,11 +3,11 @@
   <ItemGroup>
     <Filter Include="Source Files">
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+      <Extensions>cpp;c;cc;cxx;c++;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
     <Filter Include="Header Files">
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
     </Filter>
     <Filter Include="Resource Files">
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
@@ -15,16 +15,25 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="FAN\Graphics.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="FAN\Input.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="FAN\Settings.cpp">
+    <ClCompile Include="Source.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SOIL2\etc1_utils.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SOIL2\image_DXT.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SOIL2\image_helper.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SOIL2\SOIL2.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -47,9 +56,6 @@
     <ClInclude Include="FAN\Network.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="FAN\Settings.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="FAN\Shader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -59,5 +65,66 @@
     <ClInclude Include="FAN\Vectors.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="SOIL2\etc1_utils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SOIL2\image_DXT.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SOIL2\image_helper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SOIL2\jo_jpeg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SOIL2\pkm_helper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SOIL2\pvr_helper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SOIL2\SOIL2.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SOIL2\stb_image.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SOIL2\stb_image_write.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SOIL2\stbi_DDS.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SOIL2\stbi_DDS_c.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SOIL2\stbi_ext.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SOIL2\stbi_ext_c.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SOIL2\stbi_pkm.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SOIL2\stbi_pkm_c.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SOIL2\stbi_pvr.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SOIL2\stbi_pvr_c.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FAN\File.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="GLSL\vertex.vert" />
+    <None Include="GLSL\frag.vert" />
+    <None Include="GLSL\fs.glsl" />
+    <None Include="GLSL\inst.vs" />
+    <None Include="GLSL\inst.fs" />
   </ItemGroup>
 </Project>
