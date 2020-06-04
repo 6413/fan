@@ -2,25 +2,34 @@
 #include <functional>
 #include <numeric>
 
-
 float delta_time = 0;
 GLFWwindow* window;
 bool window_init = WindowInit();
 
 void GetFps(bool print) {
 	static int fps = 0;
-	static double start = glfwGetTime();
-	float currentFrame = glfwGetTime();
-	static float lastFrame = 0;
-	delta_time = currentFrame - lastFrame;
-	lastFrame = currentFrame;
-	if ((glfwGetTime() - start) > 1.0) {
-		if (print) {
-			glfwSetWindowTitle(window, (std::string("FPS: ") + std::to_string(fps)).c_str());
-		}
+	static Timer timer(Timer::start(), 1000);
+	static _Timer<microseconds> frame_time(Timer::start());
+	static int old_fps = 0;
+	float current_frame = glfwGetTime();
+	static float last_frame = 0;
+	delta_time = current_frame - last_frame;
+	last_frame = current_frame;
+	if (timer.finished()) {
+		old_fps = fps;
 		fps = 0;
-		start = glfwGetTime();
+		if (print) {
+			glfwSetWindowTitle(window, (
+				std::string("FPS: ") + 
+				std::to_string(old_fps) + 
+				std::string(" frame time: ") + 
+				std::to_string(static_cast<float_t>(frame_time.elapsed()) / static_cast<float_t>(1000)) + 
+				std::string(" ms")
+			).c_str());
+		}
+		timer.restart();
 	}
+	frame_time.restart();
 	fps++;
 }
 
@@ -44,7 +53,7 @@ bmp LoadBMP(const char* path, Texture& texture) {
 	bmp data;
 	data.data = (unsigned char*)malloc(size);
 	if (data.data) {
-		fread(data.data, 1, size, file);
+		static_cast<void>(fread(data.data, 1, size, file) + 1);
 	}
 	fclose(file);
 
@@ -68,11 +77,11 @@ Camera::Camera(vec3 position, vec3 up, float yaw, float pitch) : front(vec3(0.0f
 	this->updateCameraVectors();
 }
 
-matrix<4, 4> Camera::GetViewMatrix(matrix<4, 4> m) {
+mat4 Camera::get_view_matrix(mat4 m) {
 	return m * LookAt(this->position, (this->position + (this->front)).rounded(), (this->up).rounded());
 }
 
-matrix<4, 4> Camera::GetViewMatrix() {
+mat4 Camera::get_view_matrix() {
 	return LookAt(this->position, (this->position + (this->front)), (this->up));
 }
 
@@ -103,11 +112,11 @@ Camera2D::Camera2D(vec3 position, vec3 up, float yaw, float pitch) : front(vec3(
 	this->updateCameraVectors();
 }
 
-matrix<4, 4> Camera2D::GetViewMatrix(matrix<4, 4> m) {
-	return m * LookAt(this->position, (this->position + (this->front)).rounded(), (this->up).rounded());
+mat4 Camera2D::get_view_matrix(mat4 m) {
+	return m * LookAt(this->position.rounded(), (this->position + (this->front)).rounded(), (this->up).rounded());
 }
 
-matrix<4, 4> Camera2D::GetViewMatrix() {
+mat4 Camera2D::get_view_matrix() {
 	return LookAt(this->position, ((this->position) + (this->front)), (this->up));
 }
 
@@ -130,20 +139,11 @@ void Camera2D::updateCameraVectors() {
     this->up = Normalize( Cross( this->right, this->front ) );
 }
 
+Camera camera3d;
+Camera2D camera2d;
+
 template class vertice_handler<shapes::line>;
 template class vertice_handler<shapes::square>;
-
-template<shapes shape>
-vertice_handler<shape>::~vertice_handler() {
-	if (!this->vertices.empty()) {
-		glDeleteVertexArrays(1, &vertice_buffer.VAO);
-		glDeleteVertexArrays(1, &color_buffer.VAO);
-		glDeleteVertexArrays(1, &shape_buffer.VAO);
-		glDeleteBuffers(1, &vertice_buffer.VBO);
-		glDeleteBuffers(1, &color_buffer.VBO);
-		glDeleteBuffers(1, &shape_buffer.VBO);
-	}
-}
 
 template<shapes shape>
 void vertice_handler<shape>::init(const std::vector<float>& l_vertices, const std::vector<float>& l_colors, bool queue) {
@@ -231,10 +231,10 @@ void vertice_handler<shape>::draw(uint64_t shape_id) const {
 		return;
 	}
 	shader.use();
-	matrix<4, 4> view(1);
-	matrix<4, 4> projection(1);
+	mat4 view(1);
+	mat4 projection(1);
 
-	view = camera->GetViewMatrix(Translate(
+	view = camera->get_view_matrix(Translate(
 		view,
 		vec3(
 			window_size.x / 2,
@@ -409,6 +409,317 @@ void Square::break_queue() {
 	square_handler.write(true, true);
 }
 
+Shader shape_shader2d("GLSL/shapes.vs", "GLSL/shapes.frag");
+
+basic_2dshape_vector::basic_2dshape_vector() : color_allocated(false), matrix_allocated(false)
+{
+	glGenVertexArrays(1, &shape_vao);
+	std::array<unsigned int*, 3> vbos{
+		&matrix_vbo, &vertex_vbo, &color_vbo
+	};
+	glGenBuffers(vbos.size(), *vbos.data());
+}
+
+basic_2dshape_vector::~basic_2dshape_vector()
+{
+	glDeleteBuffers(1, &color_vbo);
+	glDeleteBuffers(1, &matrix_vbo);
+	glDeleteBuffers(1, &vertex_vbo);
+	if (this->color_allocated) {
+		glDeleteBuffers(1, &color_allocator_vbo);
+	}
+	if (this->matrix_allocated) {
+		glDeleteBuffers(1, &matrix_allocator_vbo);
+	}
+}
+
+Color basic_2dshape_vector::get_color(uint64_t index) const
+{
+	Color color;
+	glBindBuffer(GL_ARRAY_BUFFER, color_vbo);
+	glGetBufferSubData(GL_ARRAY_BUFFER, index * sizeof(Color), sizeof(Color), color.data());
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	return color;
+}
+
+void basic_2dshape_vector::set_color(uint64_t index, const Color& color, bool queue)
+{
+	glBindBuffer(GL_ARRAY_BUFFER, color_vbo);
+	glBufferSubData(GL_ARRAY_BUFFER, index * sizeof(Color), sizeof(Color), &color.r);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+void basic_2dshape_vector::free_queue(bool colors, bool matrices)
+{
+	if (colors) {
+		glBindBuffer(GL_ARRAY_BUFFER, color_vbo);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(Color) * this->size(), nullptr, GL_DYNAMIC_DRAW);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		this->copy_data(color_allocator_vbo, GL_ARRAY_BUFFER, sizeof(Color) * this->size(), GL_DYNAMIC_DRAW, color_vbo);
+
+		glBindBuffer(GL_ARRAY_BUFFER, color_allocator_vbo);
+		Color data;
+		glGetBufferSubData(GL_ARRAY_BUFFER, sizeof(Color), sizeof(Color), data.data());
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		printf("%f %f %f %f\n", data.r, data.g, data.b, data.a);
+
+		glDeleteBuffers(1, &color_allocator_vbo);
+		this->color_allocated = false;
+	}
+
+	if (matrices) {
+		glBindBuffer(GL_ARRAY_BUFFER, matrix_vbo);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(mat4) * this->size(), nullptr, GL_DYNAMIC_DRAW);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		this->copy_data(matrix_allocator_vbo, GL_ARRAY_BUFFER, sizeof(mat4) * this->size(), GL_DYNAMIC_DRAW, matrix_vbo);
+		glDeleteBuffers(1, &matrix_allocator_vbo);
+		this->matrix_allocated = false;
+	}
+}
+
+constexpr auto copy_buffer = 5000000;
+
+void basic_2dshape_vector::realloc_copy_data(unsigned int& buffer, uint64_t buffer_type, int size, GLenum usage, unsigned int& allocator)
+{
+	int old_buffer_size = 0;
+	glBindBuffer(buffer_type, buffer);
+	glGetBufferParameteriv(buffer_type, GL_BUFFER_SIZE, (int*)&old_buffer_size);
+
+	const int new_size = size * copy_buffer;
+
+	glGenBuffers(1, &allocator);
+	glBindBuffer(GL_COPY_WRITE_BUFFER, allocator);
+	glBufferData(GL_COPY_WRITE_BUFFER, new_size, nullptr, usage);
+
+	glBindBuffer(GL_COPY_READ_BUFFER, buffer);
+	glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, old_buffer_size);
+	glBindBuffer(GL_COPY_READ_BUFFER, 0);
+	glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
+}
+
+void basic_2dshape_vector::copy_data(unsigned int& buffer, uint64_t buffer_type, int size, GLenum usage, unsigned int& allocator)
+{
+	glBindBuffer(GL_COPY_WRITE_BUFFER, allocator);
+	glBindBuffer(GL_COPY_READ_BUFFER, buffer);
+	glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, size);
+	glBindBuffer(GL_COPY_READ_BUFFER, 0);
+	glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
+}
+
+void basic_2dshape_vector::realloc_buffer(unsigned int& buffer, uint64_t buffer_type, int location, int size, GLenum usage, unsigned int& allocator) {
+	int old_buffer_size = 0;
+
+	glBindBuffer(buffer_type, buffer);
+	glGetBufferParameteriv(buffer_type, GL_BUFFER_SIZE, (int*)&old_buffer_size);
+	
+	glGenBuffers(1, &allocator);
+
+	glBindBuffer(GL_COPY_WRITE_BUFFER, allocator);
+	glBufferData(GL_COPY_WRITE_BUFFER, old_buffer_size, nullptr, usage);
+
+	glBindBuffer(GL_COPY_READ_BUFFER, buffer);
+	glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, old_buffer_size);
+	const int new_size = size + old_buffer_size;
+
+	glBufferData(GL_COPY_READ_BUFFER, new_size, nullptr, usage);
+
+	if (buffer_type == GL_SHADER_STORAGE_BUFFER) {
+		glBindBufferBase(GL_COPY_READ_BUFFER, location, buffer);
+	}
+
+	glCopyBufferSubData(GL_COPY_WRITE_BUFFER, GL_COPY_READ_BUFFER, 0, 0, old_buffer_size);
+
+	glBindBuffer(GL_COPY_READ_BUFFER, 0);
+	glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
+	glBindBuffer(buffer_type, 0);
+}
+
+int basic_2dshape_vector::size()
+{
+	return shapes_size;
+}
+
+void basic_2dshape_vector::basic_shape_draw(unsigned int mode, uint64_t points)
+{
+	int amount_of_objects = size();
+	if (!amount_of_objects) {
+		return;
+	}
+
+	mat4 view(1);
+	mat4 projection(1);
+
+	view = camera2d.get_view_matrix(Translate(view, vec3(window_size.x / 2, window_size.y / 2, -700.0f)));
+	projection = Ortho(window_size.x / 2, window_size.x + window_size.x * 0.5f, window_size.y + window_size.y * 0.5f, window_size.y / 2.f, 0.001f, 1000.0f);
+
+	shape_shader2d.use();
+	shape_shader2d.set_mat4("projection", projection);
+	shape_shader2d.set_mat4("view", view);
+
+
+	glBindVertexArray(shape_vao);
+	glDrawArraysInstanced(mode, 0, points, amount_of_objects);
+	glBindVertexArray(0);
+}
+
+constexpr std::array<float_t, 12> square_2d_vertices{
+	0, 0,
+	0, 1,
+	1, 1,
+	1, 1,
+	1, 0,
+	0, 0
+};
+
+square_vector2d::square_vector2d() : basic_2dshape_vector() {
+	glBindVertexArray(shape_vao);
+	glBindBuffer(GL_ARRAY_BUFFER, vertex_vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float_t) * square_2d_vertices.size(), square_2d_vertices.data(), GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(0);
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, color_vbo);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, color_vbo);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, matrix_vbo);
+	for (int i = 3; i < 7; i++) {
+		glVertexAttribPointer(i, 4, GL_FLOAT, GL_FALSE, sizeof(mat4), reinterpret_cast<void*>((i - 3) * sizeof(vec4)));
+		glEnableVertexAttribArray(i);
+		glVertexAttribDivisor(i, 1);
+	}
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+}
+
+square_vector2d::square_vector2d(
+	const vec2& position,
+	const vec2& size,
+	const Color& color
+) : basic_2dshape_vector()
+{
+	shapes_size = 0;
+	glBindVertexArray(shape_vao);
+	glBindBuffer(GL_ARRAY_BUFFER, vertex_vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float_t) * square_2d_vertices.size(), square_2d_vertices.data(), GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, color_vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Color), &color, GL_DYNAMIC_DRAW);
+	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(1);
+	glVertexAttribDivisor(1, 1);
+
+	mat4 model(1);
+	model = Translate(model, position);
+	model = Scale(model, size);
+
+	glBindBuffer(GL_ARRAY_BUFFER, matrix_vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(model), &model, GL_DYNAMIC_DRAW);
+	for (int i = 3; i < 7; i++) {
+		glVertexAttribPointer(i, 4, GL_FLOAT, GL_FALSE, sizeof(mat4), reinterpret_cast<void*>((i - 3) * sizeof(vec4)));
+		glEnableVertexAttribArray(i);
+		glVertexAttribDivisor(i, 1);
+	}
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+	shapes_size++;
+}
+
+void square_vector2d::draw()
+{
+	this->basic_shape_draw(GL_TRIANGLES, 6);
+}
+
+void square_vector2d::erase(uint64_t first, uint64_t last)
+{
+	
+}
+
+void square_vector2d::push_back(const vec2& position, const vec2& size, const Color& color, bool queue)
+{
+	mat4 model(1);
+	model = Translate(model, position);
+	model = Scale(model, size);
+
+	if (queue) {
+		if (!this->color_allocated) {
+			this->realloc_copy_data(color_vbo, GL_ARRAY_BUFFER, sizeof(Color), GL_DYNAMIC_DRAW, color_allocator_vbo);
+			this->color_allocated = true;
+			this->realloc_copy_data(matrix_vbo, GL_ARRAY_BUFFER, sizeof(mat4), GL_DYNAMIC_DRAW, matrix_allocator_vbo);
+			this->matrix_allocated = true;
+		}
+		glBindBuffer(GL_ARRAY_BUFFER, color_allocator_vbo);
+		glBufferSubData(GL_ARRAY_BUFFER, sizeof(Color) * this->size(), sizeof(Color), &color);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+		glBindBuffer(GL_ARRAY_BUFFER, matrix_allocator_vbo);
+		glBufferSubData(GL_ARRAY_BUFFER, sizeof(mat4) * this->size(), sizeof(mat4), &model);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+	}
+	else {
+		realloc_buffer(color_vbo, GL_ARRAY_BUFFER, 0, sizeof(Color), GL_DYNAMIC_DRAW, color_allocator_vbo);
+
+		glBindBuffer(GL_ARRAY_BUFFER, color_vbo);
+		glBufferSubData(GL_ARRAY_BUFFER, sizeof(Color) * this->size(), sizeof(Color), &color);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glDeleteBuffers(1, &color_allocator_vbo);
+
+		realloc_buffer(matrix_vbo, GL_ARRAY_BUFFER, 0, sizeof(mat4), GL_DYNAMIC_DRAW, matrix_allocator_vbo);
+		glBindBuffer(GL_ARRAY_BUFFER, matrix_vbo);
+		glBufferSubData(GL_ARRAY_BUFFER, sizeof(mat4) * this->size(), sizeof(mat4), model.data());
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glDeleteBuffers(1, &matrix_allocator_vbo);
+	}
+
+	shapes_size++;
+}
+
+vec2 square_vector2d::get_position(uint64_t index) const
+{
+	mat4 matrix;
+	vec2 position;
+	glBindBuffer(GL_ARRAY_BUFFER, matrix_vbo);
+	glGetBufferSubData(GL_ARRAY_BUFFER, index * sizeof(mat4), sizeof(mat4), matrix.data());
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	
+	position.x = matrix[3][0];
+	position.y = matrix[3][1];
+
+	return position;
+}
+
+void square_vector2d::set_position(uint64_t index, const vec2& position)
+{
+	mat4 matrix(1);
+	matrix = Translate(matrix, position);
+	matrix = Scale(matrix, get_size(index));
+	glBindBuffer(GL_ARRAY_BUFFER, matrix_vbo);
+	glBufferSubData(GL_ARRAY_BUFFER, sizeof(mat4) * index, sizeof(mat4), matrix.data());
+}
+
+vec2 square_vector2d::get_size(uint64_t index) const
+{
+	vec2 size;
+	mat4 matrix;
+	glBindBuffer(GL_ARRAY_BUFFER, matrix_vbo);
+	glGetBufferSubData(GL_ARRAY_BUFFER, index * sizeof(mat4), sizeof(mat4), matrix.data());
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	size.x = matrix[0][0];
+	size.y = matrix[1][1];
+	return size;
+}
+
+void square_vector2d::set_size(uint64_t index, const vec2& size)
+{
+	mat4 matrix(1);
+	matrix = Translate(matrix, get_position(index));
+	matrix = Scale(matrix, size);
+	glBindBuffer(GL_ARRAY_BUFFER, matrix_vbo);
+	glBufferSubData(GL_ARRAY_BUFFER, sizeof(mat4) * index, sizeof(mat4), matrix.data());
+}
+
 DefaultShapeVector::~DefaultShapeVector() {
 	glDeleteVertexArrays(1, &_VerticeBuffer.VAO);
 	glDeleteVertexArrays(1, &_ColorBuffer.VAO);
@@ -444,11 +755,12 @@ void DefaultShapeVector::draw(uint64_t first, uint64_t last) const {
 	if (_Vertices.empty()) {
 		return;
 	}
-	_Shader.use();
-	matrix<4, 4> view(1);
-	matrix<4, 4> projection(1);
 
-	view = _Camera->GetViewMatrix(Translate(view, vec3(window_size.x / 2, window_size.y / 2, -700.0f)));
+	_Shader.use();
+	mat4 view(1);
+	mat4 projection(1);
+
+	view = _Camera->get_view_matrix(Translate(view, vec3(window_size.x / 2, window_size.y / 2, -700.0f)));
 	projection = Ortho(window_size.x / 2, window_size.x + window_size.x * 0.5f, window_size.y + window_size.y * 0.5f, window_size.y / 2.f, 0.1f, 1000.0f);
 
 	static int projLoc = glGetUniformLocation(_Shader.ID, "projection");
@@ -651,6 +963,25 @@ SquareVector::SquareVector() {
 	init();
 }
 
+/*
+
+_Mode = GL_TRIANGLES;
+	_Points = 3;
+	_PointSize = _Points * 2;
+	this->_Length.push_back(_Length);
+	this->_Position.push_back(_Position);
+	_Vertices.push_back(_Position.x - (_Length.x / 2));
+	_Vertices.push_back(_Position.y + (_Length.y / 2));
+	_Vertices.push_back(_Position.x + (_Length.x / 2));
+	_Vertices.push_back(_Position.y + (_Length.y / 2));
+	_Vertices.push_back(_Position.x);
+	_Vertices.push_back(_Position.y - (_Length.y / 2));
+	for (int i = 0; i < COLORSIZE * _PointSize; i++) {
+		_Colors.push_back(_Color[i % 4]);
+	}
+	init();
+*/
+
 SquareVector::SquareVector(const vec2& _Position, const vec2& _Length, const Color& color) {
 	_Mode = GL_QUADS;
 	_Points = 4;
@@ -838,7 +1169,7 @@ void SquareVector::rotate(uint64_t _Index, double _Angle, bool _Queue) {
 }
 
 CircleVector::CircleVector(uint64_t _Number_Of_Points, float _Radius) {
-	_Mode = GL_LINES;
+	_Mode = GL_TRIANGLE_FAN;
 	_Points = 0;
 	_PointSize = _Number_Of_Points * 2;
 	this->_Radius.push_back(_Radius);
@@ -852,7 +1183,7 @@ CircleVector::CircleVector(const vec2& _Position, float _Radius, uint64_t _Numbe
 	this->_Position.push_back(_Position);
 	this->_Radius.push_back(_Radius);
 	for (int i = 0; i < _Points; i++) {
-		float theta = 2.0f * 3.1415926f * float(i) / float(_Points);
+		float theta = 2.0f * PI * float(i) / float(_Points);
 
 		float x = _Radius * cosf(theta);
 		float y = _Radius * sinf(theta);
@@ -897,7 +1228,6 @@ void CircleVector::set_position(uint64_t _Index, const vec2& _Position) {
 }
 
 void CircleVector::push_back(vec2 _Position, float _Radius, Color _Color, bool _Queue) {
-	const uint64_t _LPoints = _PointSize / 2;
 	this->_Position.push_back(_Position);
 	this->_Radius.push_back(_Radius);
 	for (int ii = 0; ii < _Points; ii++) {
@@ -948,17 +1278,17 @@ void Sprite::draw() {
 	shader.use();
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, texture.texture);
-	glUniform1i(glGetUniformLocation(shader.ID, "ourTexture"), 0);
-	matrix<4, 4> view(1);
-	matrix<4, 4> projection(1);
-	view = camera->GetViewMatrix(Translate(view, vec3(window_size.x / 2, window_size.y / 2, -700.0f)));
+	glUniform1i(glGetUniformLocation(shader.ID, "ourTexture1"), 0);
+	mat4 view(1);
+	mat4 projection(1);
+	view = camera->get_view_matrix(Translate(view, vec3(window_size.x / 2, window_size.y / 2, -700.0f)));
 	projection = Ortho(window_size.x / 2, window_size.x + window_size.x * 0.5f, window_size.y + window_size.y * 0.5f, window_size.y / 2.f, 0.1f, 1000.0f);
 	GLint projLoc = glGetUniformLocation(shader.ID, "projection");
 	GLint viewLoc = glGetUniformLocation(shader.ID, "view");
 	GLint modelLoc = glGetUniformLocation(shader.ID, "model");
 	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]);
 	glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection[0][0]);
-	matrix<4, 4> model(1);
+	mat4 model(1);
 	model = Translate(model, position);
 	if (size.x || size.y) {
 		model = Scale(model, vec3(size.x, size.y, 0));
@@ -1276,7 +1606,7 @@ void Box::draw() const {
 
 TextRenderer::TextRenderer() : shader(Shader("GLSL/text.vs", "GLSL/text.frag")) {
 	shader.Use();
-	matrix<4, 4> projection = Ortho(0, window_size.x, window_size.y, 0);
+	mat4 projection = Ortho(0, window_size.x, window_size.y, 0);
 	glUniformMatrix4fv(glGetUniformLocation(shader.ID, "projection"), 1, GL_FALSE, &projection[0][0]);
 	// FreeType
 	FT_Library ft;
@@ -1390,7 +1720,7 @@ void TextRenderer::render(const std::string& text, vec2 position, float scale, c
 		return;
 	}
 	shader.Use();
-	matrix<4, 4> projection = Ortho(0, window_size.x, window_size.y, 0);
+	mat4 projection = Ortho(0, window_size.x, window_size.y, 0);
 	glUniformMatrix4fv(glGetUniformLocation(shader.ID, "projection"), 1, GL_FALSE, &projection[0][0]);
 	glUniform4f(glGetUniformLocation(shader.ID, "textColor"), color.r, color.g, color.b, color.a);
 	glActiveTexture(GL_TEXTURE0);
@@ -1945,8 +2275,6 @@ uint64_t fan_gui::Users::size() const {
 
 #endif
 
-Camera camera3d;
-
 LineVector3D::LineVector3D() {
 	_Mode = GL_LINES;
 	_Points = 0;
@@ -2028,62 +2356,407 @@ void LineVector3D::push_back(const matrix<3, 2>& _M, Color _Color, bool _Queue) 
 //	init();
 //}
 
-SquareVector3D::SquareVector3D(std::string_view path) {
-	this->init(path);
+model_mesh::model_mesh(
+	const std::vector<mesh_vertex>& vertices,
+	const std::vector<unsigned int>& indices,
+	const std::vector<mesh_texture>& textures
+) : vertices(vertices), indices(indices), textures(textures) {
+	initialize_mesh();
 }
 
-void SquareVector3D::init(std::string_view path) {
-	_Camera = &camera3d;
-	_Shader = Shader("GLSL/instancing.vs", "GLSL/instancing.frag");
+void model_mesh::initialize_mesh() {
+	glGenVertexArrays(1, &vao);
+	glGenBuffers(1, &vbo);
+	glGenBuffers(1, &ebo);
 
-	glGenVertexArrays(1, &_Shape_VAO);
-	glGenBuffers(1, &_Shape_Vertices_VBO);
-	glBindVertexArray(_Shape_VAO);
-	glBindBuffer(GL_ARRAY_BUFFER, _Shape_Vertices_VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(square_vertices), square_vertices, GL_STATIC_DRAW);
+	glBindVertexArray(vao);
+
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(mesh_vertex), &vertices[0], GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), &indices[0], GL_STATIC_DRAW);
+
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vec3::size() * sizeof(vec3::type), 0);
-	//glVertexAttribDivisor(0, 1);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(mesh_vertex), 0);
 
-	generate_textures(path);
 	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, vec2::size() * sizeof(vec2::type), 0);
-	//glBindBuffer(GL_ARRAY_BUFFER, 0);
-	//glVertexAttribDivisor(1, 1);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(mesh_vertex), reinterpret_cast<void*>(offsetof(mesh_vertex, normal)));
+
+	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(mesh_vertex), reinterpret_cast<void*>(offsetof(mesh_vertex, texture_coordinates)));
+	glBindVertexArray(0);
+}
+
+int load_texture(const std::string_view path, const std::string& directory) {
+	std::string file_name = std::string(directory + '/' + path.data());
+	GLuint texture_id;
+	glGenTextures(1, &texture_id);
+
+	int width, height;
+
+	stbi_set_flip_vertically_on_load(false);
+	unsigned char* image = SOIL_load_image(file_name.c_str(), &width, &height, 0, SOIL_LOAD_RGBA);
+
+	glBindTexture(GL_TEXTURE_2D, texture_id);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+	glGenerateMipmap(GL_TEXTURE_2D);
+	SOIL_free_image_data(image);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	return texture_id;
+}
+
+model_loader::model_loader(const std::string& path) {
+	load_model(path);
+}
+
+void model_loader::load_model(const std::string& path) {
+	Assimp::Importer importer;
+	const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs);
+
+	if (scene == nullptr || scene->mFlags == AI_SCENE_FLAGS_INCOMPLETE || scene->mRootNode == nullptr) {
+		std::cout << "assimp error: " << importer.GetErrorString() << '\n';
+		return;
+	}
+
+	directory = path.substr(0, path.find_last_of('/'));
+
+	process_node(scene->mRootNode, scene);
+}
+
+void model_loader::process_node(aiNode* node, const aiScene* scene) {
+	for (GLuint i = 0; i < node->mNumMeshes; i++) {
+		aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
+
+		meshes.emplace_back(process_mesh(mesh, scene));
+	}
+
+	for (GLuint i = 0; i < node->mNumChildren; i++) {
+		process_node(node->mChildren[i], scene);
+	}
+}
+
+model_mesh model_loader::process_mesh(aiMesh* mesh, const aiScene* scene) {
+	std::vector<mesh_vertex> vertices;
+	std::vector<GLuint> indices;
+	std::vector<mesh_texture> textures;
+
+	for (GLuint i = 0; i < mesh->mNumVertices; i++)
+	{
+		mesh_vertex vertex;
+		vec3 vector;
+
+		vector.x = mesh->mVertices[i].x / 2;
+		vector.y = mesh->mVertices[i].y / 2;
+		vector.z = mesh->mVertices[i].z / 2;
+		vertex.position = vector;
+		if (mesh->mNormals != nullptr) {
+			vector.x = mesh->mNormals[i].x;
+			vector.y = mesh->mNormals[i].y;
+			vector.z = mesh->mNormals[i].z;
+			vertex.normal = vector;
+		}
+		else {
+			vertex.normal = vec3();
+		}
+
+		if (mesh->mTextureCoords[0]) {
+			vec2 vec;
+			vec.x = mesh->mTextureCoords[0][i].x;
+			vec.y = mesh->mTextureCoords[0][i].y;
+			vertex.texture_coordinates = vec;
+		}
+
+		vertices.emplace_back(vertex);
+	}
+
+	for (GLuint i = 0; i < mesh->mNumFaces; i++) {
+		aiFace face = mesh->mFaces[i];
+		for (GLuint j = 0; j < face.mNumIndices; j++) {
+			indices.emplace_back(face.mIndices[j]);
+		}
+	}
+
+	aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
+
+	std::vector<mesh_texture> diffuseMaps = this->load_material_textures(material, aiTextureType_DIFFUSE, "texture_diffuse");
+	textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
+
+	std::vector<mesh_texture> specularMaps = this->load_material_textures(material, aiTextureType_SPECULAR, "texture_specular");
+	textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
+
+	if (textures.empty()) {
+		mesh_texture texture;
+		unsigned int texture_id;
+		glGenTextures(1, &texture_id);
+
+		aiColor4D color(0.f, 0.f, 0.f, 0.f);
+		aiGetMaterialColor(material, AI_MATKEY_COLOR_DIFFUSE, &color);
+		std::vector<unsigned char> pixels;
+		pixels.emplace_back(color.r * 255.f);
+		pixels.emplace_back(color.g * 255.f);
+		pixels.emplace_back(color.b * 255.f);
+		pixels.emplace_back(color.a * 255.f);
+
+		glBindTexture(GL_TEXTURE_2D, texture_id);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+		glGenerateMipmap(GL_TEXTURE_2D);
+
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+		texture.id = texture_id;
+		textures.emplace_back(texture);
+		textures_loaded.emplace_back(texture);
+	}
+	return model_mesh(vertices, indices, textures);
+}
+
+std::vector<mesh_texture> model_loader::load_material_textures(aiMaterial* mat, aiTextureType type, const std::string& type_name) {
+	std::vector<mesh_texture> textures;
+
+	for (int i = 0; i < mat->GetTextureCount(type); i++) {
+		aiString a_str;
+		mat->GetTexture(type, i, &a_str);
+		bool skip = false;
+		for (auto j : textures_loaded) {
+			if (j.path == a_str) {
+				textures.emplace_back(j);
+				skip = true;
+				break;
+			}
+		}
+
+		if (!skip) {
+			mesh_texture texture;
+			texture.id = load_texture(a_str.C_Str(), directory);
+			texture.type = type_name;
+			texture.path = a_str;
+			textures.emplace_back(texture);
+			textures_loaded.emplace_back(texture);
+		}
+	}
+	return textures;
+}
+
+void basic_3d::init(const std::string& vs, const std::string& fs) {
+	_Camera = &camera3d;
+	_Shader = Shader(vs.c_str(), fs.c_str());
 
 	glGenBuffers(1, &_Shape_Matrix_VBO);
-	glEnableVertexAttribArray(3);
+}
+
+void basic_3d::init_matrices() {
 	glBindBuffer(GL_ARRAY_BUFFER, _Shape_Matrix_VBO);
-    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(matrix<4, 4>), (void*)0);
-    glEnableVertexAttribArray(4);						   
-    glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(matrix<4, 4>), (void*)(sizeof(vec4)));
-    glEnableVertexAttribArray(5);						   
-    glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(matrix<4, 4>), (void*)(2 * sizeof(vec4)));
-    glEnableVertexAttribArray(6);						   
-    glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(matrix<4, 4>), (void*)(3 * sizeof(vec4)));
+	glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(mat4), (void*)0);
+	glEnableVertexAttribArray(3);
+	glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(mat4), (void*)(sizeof(vec4)));
+	glEnableVertexAttribArray(4);
+	glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(mat4), (void*)(2 * sizeof(vec4)));
+	glEnableVertexAttribArray(5);
+	glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(mat4), (void*)(3 * sizeof(vec4)));
+	glEnableVertexAttribArray(6);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	glVertexAttribDivisor(3, 1);
 	glVertexAttribDivisor(4, 1);
 	glVertexAttribDivisor(5, 1);
 	glVertexAttribDivisor(6, 1);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+void basic_3d::set_projection() {
+	if (this->object_matrix.empty()) {
+		return;
+	}
+	mat4 projection(1);
+	mat4 view(1);
+
+	view = _Camera->get_view_matrix();
+	projection = Perspective(Radians(90.f), (float_t)window_size.x / (float_t)window_size.y, 0.1f, 1000.0f);
+
+	_Shader.use();
+	_Shader.set_mat4("view", view);
+	_Shader.set_mat4("projection", projection);
+}
+
+void basic_3d::set_position(uint64_t index, const vec3& position, bool queue) {
+	this->object_matrix[index] = Translate(mat4(1), position);
+	if (!queue) {
+		glBindBuffer(GL_ARRAY_BUFFER, _Shape_Matrix_VBO);
+		glBufferSubData(
+			GL_ARRAY_BUFFER,
+			index * sizeof(this->object_matrix[index]),
+			sizeof(this->object_matrix[index]),
+			&this->object_matrix[index]
+		);
+	}
+}
+
+vec3 basic_3d::get_size(uint64_t i) const {
+	vec3 size;
+	size.x = object_matrix[i][0][0];
+	size.y = object_matrix[i][1][1];
+	size.z = object_matrix[i][2][2];
+	return size;
+}
+
+vec3 basic_3d::get_position(uint64_t i) const {
+	vec3 position;
+	position.x = object_matrix[i][3][0];
+	position.y = object_matrix[i][3][1];
+	position.z = object_matrix[i][3][2];
+	return position;
+}
+
+void basic_3d::push_back(const vec3& position, const vec3& size, bool queue) {
+	mat4 object(1);
+	object = Translate(object, position);
+	
+	if (size != vec3(1)) {
+		object = Scale(object, size);
+	}
+
+	object_matrix.push_back(object);
+
+	if (!queue) {
+#ifdef RAM_SAVER
+		basic_3d::free_queue();
+#else 
+		glBufferSubData(
+			GL_ARRAY_BUFFER,
+			sizeof(this->object_matrix[0]) * (object_matrix.size() - 1),
+			sizeof(this->object_matrix[0]),
+			&this->object_matrix[object_matrix.size() - 1]
+		);
+#endif
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+	}
+}
+
+void basic_3d::insert(const std::vector<mat4> positions, const vec3& size, bool queue) {
+	object_matrix.insert(object_matrix.end(), positions.begin(), positions.end());
+	if (!queue) {
+#ifdef RAM_SAVER 
+		basic_3d::free_queue();
+#else
+		glBufferSubData(
+			GL_ARRAY_BUFFER,
+			sizeof(this->object_matrix[0]) * (object_matrix.size() - objects.size()),
+			sizeof(this->object_matrix[0]) * objects.size(),
+			&this->object_matrix[object_matrix.size() - objects.size()]
+		);
+#endif
+	}
+}
+
+void basic_3d::free_queue() {
+	glBindBuffer(GL_ARRAY_BUFFER, _Shape_Matrix_VBO);
+	glBufferData(
+		GL_ARRAY_BUFFER,
+		sizeof(this->object_matrix[0]) * object_matrix.size(),
+		&this->object_matrix[0],
+		GL_DYNAMIC_DRAW
+	);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+uint64_t basic_3d::size() const {
+	return this->object_matrix.size();
+}
+
+SquareVector3D::SquareVector3D(std::string_view path) {
+	this->init(path);
+}
+
+void SquareVector3D::init(std::string_view path)  {
+	glGenVertexArrays(1, &_Shape_VAO);
+	glGenBuffers(1, &_Shape_Vertices_VBO);
+	glBindVertexArray(_Shape_VAO);
+	glBindBuffer(GL_ARRAY_BUFFER, _Shape_Vertices_VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(square_vertices), square_vertices, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vec3::size() * sizeof(float_t), 0);
+
+	basic_3d::init("GLSL/instancing.vs", "GLSL/instancing.frag");
+	basic_3d::init_matrices();
+
+	generate_textures(path);
+
+	glGenBuffers(1, &_Texture_Id_SSBO);
+	glGenBuffers(1, &_Texture_SSBO);
+
+	std::vector<vec2> textures(texture_coordinate_size * ceil(_Textures.size() / 2));
+	for (int j = 0; j < texture_coordinate_size * _Textures.size(); j++) {
+		textures[j / 2][j & 1] = _Textures[j / texture_coordinate_size][j % texture_coordinate_size];
+	}
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, _Texture_SSBO);
+	glBufferData(
+		GL_SHADER_STORAGE_BUFFER,
+		sizeof(textures[0]) * textures.size(),
+		textures.data(),
+		GL_STATIC_DRAW
+	);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _Texture_SSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+#ifndef RAM_SAVER
+	constexpr auto gpu_prealloc = sizeof(float) * 100000000;
+	glBindBuffer(GL_ARRAY_BUFFER, _Shape_Matrix_VBO);
+	glBufferData(
+		GL_ARRAY_BUFFER,
+		gpu_prealloc,
+		nullptr,
+		GL_DYNAMIC_DRAW
+	);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, _Texture_Id_SSBO);
+	glBufferData(
+		GL_SHADER_STORAGE_BUFFER,
+		gpu_prealloc,
+		nullptr,
+		GL_DYNAMIC_DRAW
+	);
+#endif
 
 	glBindVertexArray(0);
 }
 
 void SquareVector3D::free_queue(bool vertices, bool texture) {
 	if (vertices) {
-		glBindBuffer(GL_ARRAY_BUFFER, _Shape_Matrix_VBO);
-		glBufferData(
-			GL_ARRAY_BUFFER,
-			sizeof(this->object_matrix[0]) * object_matrix.size(),
-			&this->object_matrix[0],
-			GL_STATIC_DRAW
-		);
+		basic_3d::free_queue();
 	}
 	if (texture) {
-
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, _Texture_Id_SSBO);
+		glBufferData(
+			GL_SHADER_STORAGE_BUFFER,
+			sizeof(_Texture_Ids[0]) * _Texture_Ids.size(),
+			_Texture_Ids.data(),
+			GL_DYNAMIC_DRAW
+		);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, _Texture_Id_SSBO);
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 	}
+}
+
+void SquareVector3D::draw() {
+	basic_3d::set_projection();
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, _Texture_VBO);
+	_Shader.set_int("texture_sampler", 0);
+
+	glBindVertexArray(_Shape_VAO);
+	glDrawArraysInstanced(GL_TRIANGLES, 0, 36, this->size());
+	glBindVertexArray(0);
 }
 
 template <typename T>
@@ -2101,46 +2774,74 @@ std::vector<T> SquareVector3D::get_texture_onsided(_vec2<uint32_t> size, _vec2<u
 	};
 }
 
-void SquareVector3D::push_back(const vec3& position, const vec3& size, const vec2& texture_id, bool queue) {
-	matrix<4, 4> object(1);
-	object = Translate(object, position);
-	object = Scale(object, size);
-
-	this->object_matrix.push_back(object);
+void SquareVector3D::insert(const std::vector<mat4> objects, const vec3& size, const vec2& texture_id, bool queue) {
+	object_matrix.insert(object_matrix.end(), objects.begin(), objects.end());
+	_Texture_Ids.insert(_Texture_Ids.end(), objects.size(), texturepack_size.x / 6 * texture_id.y + texture_id.x);
 
 	if (!queue) {
-		glBindBuffer(GL_ARRAY_BUFFER, _Shape_Matrix_VBO);
-		glBufferData(
-			GL_ARRAY_BUFFER,
-			sizeof(this->object_matrix[0]) * object_matrix.size(),
-			&this->object_matrix[0],
-			GL_STATIC_DRAW
-		);
-	}
+#ifdef RAM_SAVER 
+		basic_3d::free_queue();
 
-	_Points++;
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, _Texture_Id_SSBO);
+		glBufferData(
+			GL_SHADER_STORAGE_BUFFER,
+			sizeof(_Texture_Ids[0]) * _Texture_Ids.size(),
+			&_Texture_Ids[0],
+			GL_DYNAMIC_DRAW
+		);
+#else
+		glBufferSubData(
+			GL_ARRAY_BUFFER,
+			sizeof(this->object_matrix[0]) * (object_matrix.size() - objects.size()),
+			sizeof(this->object_matrix[0]) * objects.size(),
+			&this->object_matrix[object_matrix.size() - objects.size()]
+		);
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, _Texture_Id_SSBO);
+		glBufferSubData(
+			GL_SHADER_STORAGE_BUFFER,
+			sizeof(this->_Texture_Ids[0]) * (_Texture_Ids.size() - objects.size()),
+			sizeof(this->_Texture_Ids[0]) * objects.size(),
+			&this->_Texture_Ids[_Texture_Ids.size() - objects.size()]
+		);
+#endif
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, _Texture_Id_SSBO);
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+	}
 }
 
-void SquareVector3D::draw() {
-	_Shader.use();
-	matrix<4, 4> projection(1);
-	matrix<4, 4> view(1);
+void SquareVector3D::push_back(const vec3& position, const vec3& size, const vec2& texture_id, bool queue) {
+	basic_3d::push_back(position, size, queue);
+	_Texture_Ids.push_back(texturepack_size.x / 6 * texture_id.y + texture_id.x);
+	if (!queue) {
+#ifdef RAM_SAVER 
+		basic_3d::free_queue();
 
-	view = _Camera->GetViewMatrix();
-	projection = Perspective(Radians(90.f), (float)window_size.x / (float)window_size.y, 0.1f, 1000.0f);
-
-	_Shader.set_mat4("view", view);
-	_Shader.set_mat4("projection", projection);
-
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, _Texture_VBO);
-
-	static GLint textureLoc = glGetUniformLocation(_Shader.ID, "texture_sampler");
-	glUniform1i(textureLoc, 0);
-
-	glBindVertexArray(_Shape_VAO);
-	glDrawArraysInstanced(GL_TRIANGLES, 0, 36, _Points);
-	glBindVertexArray(0);
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, _Texture_Id_SSBO);
+		glBufferData(
+			GL_SHADER_STORAGE_BUFFER,
+			sizeof(_Texture_Ids[0]) * _Texture_Ids.size(),
+			_Texture_Ids.data(),
+			GL_DYNAMIC_DRAW
+		);
+#else
+		glBufferSubData(
+			GL_ARRAY_BUFFER,
+			sizeof(this->object_matrix[0]) * (object_matrix.size() - 1),
+			sizeof(this->object_matrix[0]),
+			&this->object_matrix[object_matrix.size() - 1]
+		);
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, _Texture_Id_SSBO);
+		glBufferSubData(
+			GL_SHADER_STORAGE_BUFFER,
+			sizeof(this->_Texture_Ids[0]) * (_Texture_Ids.size() - 1),
+			sizeof(this->_Texture_Ids[0]),
+			&this->_Texture_Ids[_Texture_Ids.size() - 1]
+		);
+#endif
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, _Texture_Id_SSBO);
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+	}
 }
 
 void SquareVector3D::erase(uint64_t first, uint64_t last, bool queue) {
@@ -2156,7 +2857,6 @@ void SquareVector3D::erase(uint64_t first, uint64_t last, bool queue) {
 			sizeof(this->object_matrix[first]) * (last - first),
 			0
 		);
-		_Points -= (last - first);
 	}
 	else {
 		this->object_matrix.erase(this->object_matrix.begin() + first);
@@ -2167,40 +2867,7 @@ void SquareVector3D::erase(uint64_t first, uint64_t last, bool queue) {
 			sizeof(this->object_matrix[first]),
 			0
 		);
-		_Points--;
 	}
-}
-
-void SquareVector3D::set_position(uint64_t index, const vec3& position, bool queue) {
-	this->object_matrix[index] = Translate(matrix<4, 4>(1), position);
-	if (!queue) {
-		glBufferSubData(
-			GL_ARRAY_BUFFER,
-			index * sizeof(this->object_matrix[index]),
-			sizeof(this->object_matrix[index]),
-			&this->object_matrix[index]
-		);
-	}
-}
-
-vec3 SquareVector3D::get_size(uint64_t i) const {
-	vec3 size;
-	size.x = object_matrix[i][0][0];
-	size.y = object_matrix[i][1][1];
-	size.z = object_matrix[i][2][2];
-	return size;
-}
-
-vec3 SquareVector3D::get_position(uint64_t i) const {
-	vec3 position;
-	position.x = object_matrix[i][3][0];
-	position.y = object_matrix[i][3][1];
-	position.z = object_matrix[i][3][2];
-	return position;
-}
-
-uint64_t SquareVector3D::size() const {
-	return this->object_matrix.size();
 }
 
 void SquareVector3D::generate_textures(std::string_view path) {
@@ -2208,7 +2875,7 @@ void SquareVector3D::generate_textures(std::string_view path) {
 	glBindTexture(GL_TEXTURE_2D, _Texture_VBO);
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
@@ -2249,16 +2916,78 @@ void SquareVector3D::generate_textures(std::string_view path) {
 			current_texture++;
 		}		
 	}
-	int texture = 0;
-	for (int i = 0; i < _Textures[texture].size(); i++) {
-		_Texture_Position.push_back(_Textures[texture][i]);
+}
+
+void add_chunk(SquareVector3D& square_vector, const vec3& position, const vec3& chunk_size, const vec2& texture_id, bool queue) {
+	const matrix<4, 4> base_matrix(1);
+	std::vector<matrix<4, 4>> objects(chunk_size.x * chunk_size.y * chunk_size.z, matrix<4, 4>(1));
+	int index = 0;
+	for (int i = 0; i < chunk_size.x; i++) {
+		for (int j = 0; j < chunk_size.y; j++) {
+			for (int k = 0; k < chunk_size.z; k++) {
+				const vec3 temp_vector = vec3(i, j, k) + position;
+				objects[index][3] =
+					(base_matrix[0] * temp_vector.x) +
+					(base_matrix[1] * temp_vector.y) +
+					(base_matrix[2] * temp_vector.z) +
+					base_matrix[3];
+				index++;
+			}
+		}
 	}
-	for (int i = 0; i < _Textures[1].size(); i++) {
-		_Texture_Position.push_back(_Textures[1][i]);
+	square_vector.insert(objects, vec3(1), texture_id, queue);
+}
+
+void remove_chunk(SquareVector3D& square_vector, uint64_t chunk) {
+	square_vector.erase(chunk, chunk + 16 * 16 * 16);
+}
+
+Model::Model(
+	const std::string& path, 
+	const std::string& vs,
+	const std::string& frag
+) : model_loader(path) {
+
+	basic_3d::init(vs, frag);
+
+	for (int i = 0; i < this->meshes.size(); i++) {
+		glBindVertexArray(this->meshes[i].vao);
+		init_matrices();
 	}
-	glGenBuffers(1, &_Texture_Position_VBO);
-	glBindBuffer(GL_ARRAY_BUFFER, _Texture_Position_VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(_Texture_Position[0]) * _Texture_Position.size(), &_Texture_Position[0], GL_STATIC_DRAW);
+	glBindVertexArray(0);
+
+#ifndef RAM_SAVER
+	constexpr auto gpu_prealloc = sizeof(float) * 100000000;
+	glBindBuffer(GL_ARRAY_BUFFER, _Shape_Matrix_VBO);
+	glBufferData(
+		GL_ARRAY_BUFFER,
+		gpu_prealloc,
+		nullptr,
+		GL_DYNAMIC_DRAW
+	);
+#endif
+}
+
+void Model::draw() {
+	basic_3d::set_projection();
+
+	_Shader.set_int("texture_sampler", 0);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, this->textures_loaded[0].id);
+
+	_Shader.set_vec3("light_position", _Camera->get_position());
+	_Shader.set_vec3("view_position", _Camera->get_position());
+	_Shader.set_vec3("light_color", vec3(1, 1, 1));
+	_Shader.set_int("texture_diffuse", 0);
+	//_Shader.set_vec3("sky_color", vec3(220.f / 255.f, 219.f / 255.f, 223.f / 255.f));
+	glDepthFunc(GL_LEQUAL);
+	for (int i = 0; i < this->meshes.size(); i++) {
+		glBindVertexArray(this->meshes[i].vao);
+		glDrawElementsInstanced(GL_TRIANGLES, this->meshes[i].indices.size(), GL_UNSIGNED_INT, 0, this->size());
+	}
+	glDepthFunc(GL_LESS);
+
+	glBindVertexArray(0);
 }
 
 void move_camera(bool noclip, float movement_speed) {
@@ -2432,4 +3161,98 @@ double ValueNoise_2D(double x, double y) {
 			x / frequency, y / frequency) * amplitude;
 	}
 	return total / frequency;
+}
+
+skybox::skybox(
+	const std::string& left, 
+	const std::string& right, 
+	const std::string& front, 
+	const std::string back, 
+	const std::string bottom, 
+	const std::string& top
+) : shader("GLSL/skybox.vs", "GLSL/skybox.frag"), camera(&camera3d) {
+	std::array<std::string, 6> images{ right, left, top, bottom, back, front };
+	glGenTextures(1, &texture_id);
+
+	glBindTexture(GL_TEXTURE_CUBE_MAP, texture_id);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_NEAREST);
+
+	for (int i = 0; i < images.size(); i++) {
+		vec2i image_size;
+		unsigned char* image = SOIL_load_image(images[i].c_str(), image_size.data(), image_size.data() + 1, 0, SOIL_LOAD_RGB);
+		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, image_size.x, image_size.y, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+		SOIL_free_image_data(image);
+	}
+
+	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+
+	glGenVertexArrays(1, &skybox_vao);
+	glGenBuffers(1, &skybox_vbo);
+	glBindVertexArray(skybox_vao);
+	glBindBuffer(GL_ARRAY_BUFFER, skybox_vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
+	glBindVertexArray(0);
+}
+
+skybox::~skybox() {
+	glDeleteVertexArrays(1, &skybox_vao);
+	glDeleteBuffers(1, &skybox_vbo);
+	glDeleteTextures(1, &texture_id);
+}
+
+void skybox::draw() {
+	shader.use();
+
+	mat4 view(1);
+	mat4 projection(1);
+
+	view = mat4(mat3(camera->get_view_matrix()));
+	projection = Perspective(Radians(90.f), (float_t)window_size.x / (float_t)window_size.y, 0.1f, 1000.0f);
+
+	shader.set_mat4("view", view);
+	shader.set_mat4("projection", projection);
+	shader.set_vec3("fog_color", vec3(220.f / 255.f, 219.f / 255.f, 223.f / 255.f));
+
+	glDepthFunc(GL_LEQUAL);
+	glBindVertexArray(skybox_vao);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, texture_id);
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+	glBindVertexArray(0);
+	glDepthFunc(GL_LESS);
+}
+
+model_skybox::model_skybox(const std::string& path) : Model(path, "GLSL/skybox_model.vs", "GLSL/skybox_model.frag") {}
+
+void model_skybox::draw() {
+	if (this->object_matrix.empty()) {
+		return;
+	}
+	mat4 projection(1);
+	mat4 view(1);
+
+	view = mat4(mat3(_Camera->get_view_matrix()));
+	projection = Perspective(Radians(90.f), (float_t)window_size.x / (float_t)window_size.y, 0.1f, 1000.0f);
+
+	_Shader.use();
+	_Shader.set_mat4("view", view);
+	_Shader.set_mat4("projection", projection);
+
+	_Shader.set_int("texture_sampler", 0);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, this->textures_loaded[0].id);
+
+	glDepthFunc(GL_LEQUAL);
+	for (int i = 0; i < this->meshes.size(); i++) {
+		glBindVertexArray(this->meshes[i].vao);
+		glDrawElementsInstanced(GL_TRIANGLES, this->meshes[i].indices.size(), GL_UNSIGNED_INT, 0, this->size());
+	}
+	glDepthFunc(GL_LESS);
+
+	glBindVertexArray(0);
 }

@@ -19,7 +19,7 @@ public:
 
 	_Timer(
 		const decltype(chrono_t::now())& timer, 
-		uint64_t time,
+		uint64_t time = 0,
 		mode mode = mode::WAIT_FINISH,
 		const std::function<void()>& function = 
 		std::function<void()>()

@@ -191,9 +191,8 @@ inline matrix<4, 4> Translate(const matrix<4, 4>& m, const vec3& v) {
 	return Result;
 }
 
-template <typename T1, typename T2> constexpr 
-auto Scale(const T1& m, const T2& v) {
-	T1 Result;
+inline auto Scale(const mat4& m, const vec3& v) {
+	mat4 Result;
 	Result[0] = m[0] * v.x;
 	Result[1] = m[1] * v.y;
 	Result[2] = m[2] * v.z;
@@ -218,8 +217,8 @@ auto Ortho(float left, float right, float bottom, float top) {
 }
 
 
-template <typename T = matrix<4, 4>> constexpr
-auto Ortho(float left, float right, float bottom, float top, float zNear, float zFar) {
+template <typename T = matrix<4, 4>> 
+constexpr auto Ortho(float_t left, float_t right, float_t bottom, float_t top, float_t zNear, float_t zFar) {
 	T Result(1);
 	Result.m[0][0] = 2.f / (right - left);
 	Result.m[1][1] = 2.f / (top - bottom);
@@ -230,15 +229,15 @@ auto Ortho(float left, float right, float bottom, float top, float zNear, float 
 	return Result;
 }
 
-template <typename T, typename T2 = matrix<4, 4>> 
-constexpr T2 Perspective(T fovy, T aspect, T zNear, T zFar) {
-	T const tanHalfFovy = tan(fovy / static_cast<T>(2));
-	T2 Result;
-	Result[0][0] = static_cast<T>(1) / (aspect * tanHalfFovy);
-	Result[1][1] = static_cast<T>(1) / (tanHalfFovy);
+template <typename T = matrix<4, 4>> 
+constexpr T Perspective(float_t fovy, float_t aspect, float_t zNear, float_t zFar) {
+	float_t const tanHalfFovy = tan(fovy / static_cast<float_t>(2));
+	T Result;
+	Result[0][0] = static_cast<float_t>(1) / (aspect * tanHalfFovy);
+	Result[1][1] = static_cast<float_t>(1) / (tanHalfFovy);
 	Result[2][2] = -(zFar + zNear) / (zFar - zNear);
-	Result[2][3] = -static_cast<T>(1);
-	Result[3][2] = -(static_cast<T>(2)* zFar* zNear) / (zFar - zNear);
+	Result[2][3] = -static_cast<float_t>(1);
+	Result[3][2] = -(static_cast<float_t>(2)* zFar* zNear) / (zFar - zNear);
 	return Result;
 }
 

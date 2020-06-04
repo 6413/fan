@@ -9,7 +9,7 @@ struct default_callback<void()> window_resize_callback;
 struct default_callback<void()> cursor_move_callback;
 struct default_callback<void(int key)> character_callback;
 class KeyCallback key_release_callback;
-struct KeyCallback scroll_callback;
+class KeyCallback scroll_callback;
 struct default_callback<void(int file_count, const char** path)> drop_callback;
 
 void GlfwErrorCallback(int id, const char* error) {
@@ -129,25 +129,24 @@ bool WindowInit() {
 	glfwSetErrorCallback(GlfwErrorCallback);
 	if (!glfwInit()) {
 		printf("GLFW ded\n");
-		system("pause");
+		static_cast<void>(system("pause") + 1);
 		return 0;
 	}
 	window_size = WINDOWSIZE;
 	//glfwWindowHint(GLFW_DECORATED, false);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 //	glfwWindowHint(GLFW_RESIZABLE, false);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	//glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	glfwWindowHint(GLFW_SAMPLES, 32);
 	glEnable(GL_MULTISAMPLE);
 	//window_size = vec2(glfwGetVideoMode(glfwGetPrimaryMonitor())->width, glfwGetVideoMode(glfwGetPrimaryMonitor())->height);
 	window = glfwCreateWindow(window_size.x, window_size.y, "FPS: ", fullScreen ? glfwGetPrimaryMonitor() : NULL, NULL);
-	auto window_mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
 	glfwSetWindowMonitor(window, NULL, window_size.x / 2, window_size.y / 2, window_size.x, window_size.y, 0);
 
 	if (!window) {
 		printf("Window ded\n");
-		system("pause");
+		static_cast<void>(system("pause") + 1);
 		glfwTerminate();
 		exit(EXIT_SUCCESS);
 	}
@@ -155,7 +154,7 @@ bool WindowInit() {
 	if (GLEW_OK != glewInit())
 	{
 		std::cout << "Failed to initialize GLEW" << std::endl;
-		system("pause");
+		static_cast<void>(system("pause") + 1);
 		glfwTerminate();
 		exit(EXIT_SUCCESS);
 	}
@@ -165,15 +164,13 @@ bool WindowInit() {
 
 	glfwSetKeyCallback(window, KeyCallback);
 	glewExperimental = GL_TRUE;
-	static Camera2D cam;
-	glfwSetWindowUserPointer(window, &cam);
 	glfwSetCharCallback(window, CharacterCallback);
 	glfwSetWindowFocusCallback(window, FocusCallback);
 	glfwSetMouseButtonCallback(window, MouseButtonCallback);
 	glfwSetCursorPosCallback(window, CursorPositionCallback);
 	glfwSetFramebufferSizeCallback(window, FrameSizeCallback);
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	//glEnable(GL_BLEND);
+	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	return 1;
 }
 

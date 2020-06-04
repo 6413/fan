@@ -119,7 +119,7 @@ class client;
 
 class data_handler : public User {
 protected:
-	const char* m_get_file(SOCKET socket, bool overwrite, std::string path = std::string()) const {
+	std::string m_get_file(SOCKET socket, bool overwrite, std::string path = std::string()) const {
 		std::string data;
 		uint64_t file_size = *(size_t*)m_get_data(socket, sizeof(uint64_t)).data();
 		uint64_t file_name_size = *(size_t*)m_get_data(socket, sizeof(uint64_t)).data();
@@ -192,7 +192,7 @@ protected:
 		}
 
 		puts("received file");
-		return file_name.c_str();
+		return file_name;
 	}
 	std::string m_get_message(SOCKET socket) const {
 		uint64_t message_size = *(uint64_t*)m_get_data(
@@ -222,7 +222,7 @@ protected:
 		std::string data;
 		data.resize(size);
 
-		uint16_t receive_length = 0;
+		int receive_length = 0;
 		uint16_t received = 0;
 		uint16_t remaining = size;
 		while (received < size) {
@@ -272,7 +272,6 @@ protected:
 		uint64_t totalsend(0);
 		uint64_t remaining = file.data.size();
 		m_send_data(socket, (const char*)&remaining, sizeof(remaining));
-		uint64_t file_name_size = file.name.size();
 		m_send_message(socket, file.name.c_str());
 
 		while (sendlen != file.data.size()) {
@@ -308,7 +307,7 @@ protected:
 	}
 	inline void m_send_single_packet(SOCKET socket, const char* data, uint16_t size) const {
 		uint16_t sent = 0;
-		uint16_t send_length = 0;
+		int send_length = 0;
 		uint16_t remaining = size;
 		while (sent < size) {
 			send_length = send(socket, &data[sent], remaining, 0);
@@ -477,6 +476,9 @@ public:
 				close(socket);
 #endif
 				return;
+			}
+			default: {
+				break;
 			}
 			}
 		}
@@ -668,6 +670,9 @@ public:
 			case packet_type::send_message_user: {
 				Message_Info info = m_get_message_user(connect_socket);
 				printf("received message from %s: %s\n", info.get_username().c_str(), info.message.c_str());
+				break;
+			}
+			default: {
 				break;
 			}
 			}

@@ -7,37 +7,7 @@
 #include <iostream>
 #include <cmath>
 #include <algorithm>
-
-template <typename _Ty, uint64_t N>
-class array {
-public:
-	_Ty _array[N];
-
-	constexpr array<_Ty, N> operator*(_Ty value) {
-		for (int i = 0; i < N; i++) {
-			_array[i] *= value;
-		}
-		return *this;
-	}
-	constexpr array<_Ty, N> operator+(const array<_Ty, N>& lhs) {
-		for (int i = 0; i < N; i++) {
-			_array[i] += lhs[i];
-		}
-		return *this;
-	}
-	constexpr array<_Ty, N> operator+(_Ty value) {
-		for (int i = 0; i < N; i++) {
-			_array[i] += value;
-		}
-		return *this;
-	}
-	constexpr auto& operator[](uint64_t idx) {
-		return _array[idx];
-	}
-	constexpr auto operator[](uint64_t idx) const {
-		return _array[idx];
-	}
-};
+#include <array>
 
 template <typename _Ty>
 class _vec3;
@@ -65,11 +35,14 @@ public:
 	constexpr vec_t floored() const { return vec_t(floor(x), floor(y)); }
 	constexpr vec_t floored(_Ty value) const { return vec_t(floor(x / value), floor(y / value)); }
 
-	static constexpr uint64_t size() { return 2; }
-	constexpr vec_t abs() const { return vec_t(std::abs(x), std::abs(y)); }
 	constexpr _Ty min() const { return std::min(x, y); }
 	constexpr _Ty max() const { return std::max(x, y); }
+	constexpr vec_t abs() const { return vec_t(std::abs(x), std::abs(y)); }
 
+	auto begin() { return &operator[](0); }
+	auto end() { return &operator[](size() - 1); }
+	auto data() { return begin(); }
+	static constexpr uint64_t size() { return 2; }
 	constexpr void print() const { std::cout << x << " " << y << std::endl; }
 };
 
@@ -137,7 +110,7 @@ public:
 template <int Cols, int Rows, typename _Ty = float>
 class matrix {
 public:
-	array<_Ty, Cols> m[Rows];
+	std::array<_Ty, Cols> m[Rows];
 	using type = _Ty;
 
 	constexpr matrix() : m{ } {
@@ -180,7 +153,19 @@ public:
 		}
 	}
 
-	array<_Ty, Rows>& operator[](uint64_t _Idx) {
+	template <int m_cols, int m_rows>
+	matrix(const matrix<m_cols, m_rows>& matrix) {
+		for (int i = 0; i < matrix.cols(); i++) {
+			for (int j = 0; j < matrix.rows(); j++) {
+				if (i >= Cols || j >= Rows) {
+					break;
+				}
+				this->m[i][j] = matrix[i][j];
+			}
+		}
+	}
+
+	std::array<_Ty, Rows>& operator[](uint64_t _Idx) {
 		return m[_Idx];
 	}
 
@@ -234,7 +219,7 @@ public:
 		return *this;
 	}
 
-	_Ty* data() const {
+	_Ty* data() {
 		return &m[0][0];
 	}
 };
@@ -299,19 +284,23 @@ private:
 	uint64_t init_index;
 };
 
-using mat2x2 = _mat2x2<float>;
-using mat2x3 = _vec3<float>[2];
-using mat2x4 = _mat2x4<float>;
-using vec2 = _vec2<float>;
-using vec3 = _vec3<float>;
-using vec4 = _vec4<float>;
+using float_t = float;
+
+using mat2x2 = _mat2x2<float_t>;
+using mat2x3 = _vec3<float_t>[2];
+using mat2x4 = _mat2x4<float_t>;
+using mat3 = matrix<3, 3>;
+using mat4 = matrix<4, 4>;
+using vec2 = _vec2<float_t>;
+using vec3 = _vec3<float_t>;
+using vec4 = _vec4<float_t>;
 using vec2i = _vec2<int>;
 using vec3i = _vec3<int>;
 using vec4i = _vec4<int>;
 
 class Color {
 public:
-	float r, g, b, a;
+	float_t r, g, b, a;
 	Color() : r(0), g(0), b(0), a(1) {}
 
 	constexpr Color(float r, float g, float b, float a = 1, bool rgb = false) : r(r), g(g), b(b), a(a) {
@@ -359,7 +348,7 @@ public:
 	bool operator!=(const Color& color) const {
 		return r != color.r && g != color.g && b != color.b;
 	}
-	constexpr float operator[](size_t x) const {
+	constexpr float_t operator[](size_t x) const {
 		return !x ? this->r : x == 1 ? this->g : x == 2 ? this->b : x == 3 ? this->a : this->a;
 	}
 	constexpr Color operator-(const Color& color) const {
@@ -370,6 +359,9 @@ public:
 	}
 	void print() const {
 		std::cout << r << " " << g << " " << b << " " << a << std::endl;
+	}
+	void* data() {
+		return &r;
 	}
 };
 
@@ -600,6 +592,17 @@ constexpr bool operator!=(const _Vec_t<_Type>& _Lhs, _Type2 _Rhs) {
 	return true;
 }
 
+template <template<typename> typename _Vec_t = _vec3, typename _Type, typename _Type2,
+	std::enable_if_t<is_any<_Vec_t<_Type>, _vec2<_Type>, _vec3<_Type>>::value>* = nullptr>
+	constexpr bool operator!=(const _Vec_t<_Type>& _Lhs, const _Vec_t<_Type2>& _Rhs) {
+	for (int _I = 0; _I < _Lhs.size(); _I++) {
+		if (_Lhs[_I] == _Rhs[_I]) {
+			return false;
+		}
+	}
+	return true;
+}
+
 template <template<typename> typename _Vec_t, typename _Type, typename _Type2,
 	std::enable_if_t<is_any<_Vec_t<_Type>, _vec2<_Type>, _vec3<_Type>, _vec4<_Type>>::value &&
 	!is_any<_Type2, _vec2<_Type2>, _vec3<_Type2>, _vec4<_Type2>>::value>* = nullptr >
@@ -665,4 +668,22 @@ template <template<typename> typename _Vec_t, typename _Type, typename _Type2,
 		}
 	}
 	return true;
+}
+
+template <typename _Type, std::uint64_t N>
+constexpr std::array<_Type, N> operator*(const std::array<_Type, N>& _Lhs, _Type value) {
+	std::array<_Type, N> return_array;
+	for (int i = 0; i < N; i++) {
+		return_array[i] = _Lhs[i] * value;
+	}
+	return return_array;
+}
+
+template <typename _Type, std::uint64_t N>
+constexpr std::array<_Type, N> operator+(const std::array<_Type, N>& _Lhs, const std::array<_Type, N>& _Rhs) {
+	std::array<_Type, N> return_array;
+	for (int i = 0; i < N; i++) {
+		return_array[i] = _Lhs[i] + _Rhs[i];
+	}
+	return return_array;
 }
