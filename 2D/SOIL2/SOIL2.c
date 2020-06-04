@@ -263,7 +263,7 @@ void * SOIL_GL_GetProcAddress(const char *proc)
 	CFRelease( extensionName );
 	CFRelease( bundle );
 #elif defined( SOIL_X11_PLATFORM )
-	func =
+	func = (void*)
 #if !defined(GLX_VERSION_1_4)
 	glXGetProcAddressARB
 #else

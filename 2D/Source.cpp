@@ -1,78 +1,52 @@
 ﻿#include <FAN/Graphics.hpp>
 
-auto lambda_update_crosshair = [&](float crosshair_size) {
-	return mat2x4(
-		vec2(
-			window_size.x / 2 - crosshair_size,
-			window_size.y / 2
-		),
-		vec2(
-			window_size.x / 2 + crosshair_size,
-			window_size.y / 2
-		),
-		vec2(
-				window_size.x / 2,
-				window_size.y / 2 - crosshair_size
-			),
-		vec2(
-			window_size.x / 2,
-			window_size.y / 2 + crosshair_size
-		)
-	);
-};
-
-void create_crosshair(LineVector& crosshair, float crosshair_size) {
-	auto position = lambda_update_crosshair(crosshair_size);
-    crosshair.push_back(mat2x2(position[0], position[1]));
-	crosshair.push_back(mat2x2(position[2], position[3]));
-}
-
-void update_crosshair(LineVector& crosshair, float crosshair_size) {
-	auto position = lambda_update_crosshair(crosshair_size);
-	crosshair.set_position(0, mat2x2(position[0], position[1]));
-	crosshair.set_position(1, mat2x2(position[0], position[1]));
-}
-
 int main() {
-	bool noclip = true;
-	vec3& position = camera3d.position;
-	key_callback.add(GLFW_KEY_LEFT_CONTROL, true, [&] {
-		noclip = !noclip;
-		});
+    bool noclip = true;
+    vec3& position = camera3d.position;
+    key_callback.add(GLFW_KEY_LEFT_CONTROL, true, [&] {
+        noclip = !noclip;
+    });
 
-	key_callback.add(GLFW_KEY_ESCAPE, true, [&] {
-		glfwSetWindowShouldClose(window, true);
-		});
+    key_callback.add(GLFW_KEY_ESCAPE, true, [&] {
+        glfwSetWindowShouldClose(window, true);
+    });
 
-	float crosshair_size = 10;
-	LineVector crosshair;
-	create_crosshair(crosshair, crosshair_size);
+    glfwSetWindowPos(window, window_size.x / 2, window_size.y / 2 - window_size.y / 4);
 
-	window_resize_callback.add([&] {
-		update_crosshair(crosshair, crosshair_size);
-	});
+    float crosshair_size = 3;
+    CircleVector crosshair(window_size / 2, crosshair_size, 60, Color(1, 1, 1));
 
-	cursor_move_callback.add(rotate_camera);
+    window_resize_callback.add([&] {
+        crosshair.set_position(0, window_size / 2);
+    });
 
-	SquareVector3D grass("sides_05.png");
+    cursor_move_callback.add(rotate_camera);
 
-	for (int i = 0; i < 100; i++) {
-		for (int j = 0; j < 100; j++) {
-			grass.push_back(vec3(i, 0, j), vec3(1), vec2());
-		}
-	}
+    glEnable(GL_CULL_FACE);
 
-	while (!glfwWindowShouldClose(window)) {
-		glClearColor(0, 0, 0, 1);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    square_vector2d s(window_size / 2 - 50, vec2(100), Color(0, 1, 0));
 
-		move_camera(noclip, 200);
+    s.push_back(vec2(100, 100), vec2(10), Color(1, 0, 0));
+    s.push_back(vec2(200, 200), vec2(20), Color(0, 0, 1));
 
-		crosshair.draw();
 
-		grass.draw();
+    s.set_size(0, vec2(100));
+    s.set_color(0, Color(1, 1, 1), false);
+    s.set_color(1, Color(0.5, 0.5, 0.5), false);
+    s.set_position(1, window_size - s.get_size(1));
+    s.get_position(1).print();
 
+
+    while (!glfwWindowShouldClose(window)) {
         GetFps();
+
+        glClearColor(0, 0, 0, 1);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        move_camera(noclip, 2000);
+
+        s.draw();
+
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
