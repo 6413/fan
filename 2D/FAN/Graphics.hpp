@@ -17,6 +17,7 @@
 
 #include <vector>
 #include <array>
+#include <map>
 
 #include "Input.hpp"
 #include "Math.hpp"
@@ -27,9 +28,7 @@
 #include <SOIL2/SOIL2.h>
 #include <SOIL2/stb_image.h>
 
-#include <map>
-#include <vector>
-#include <deque>
+
 
 #ifdef _MSC_VER
 #pragma warning (disable : 26495)
@@ -65,7 +64,7 @@ struct Texture {
 
 	unsigned int texture;
 	int width, height;
-	unsigned int VBO, VAO, EBO;
+	unsigned int VBO, VAO;
 };
 
 namespace BMP_Offsets {
@@ -88,8 +87,11 @@ public:
 		float pitch = 0.0f
 	);
 
-	mat4 get_view_matrix(mat4 m);
+	void move(bool noclip, float_t movement_speed);
+	void rotate_camera();
+
 	mat4 get_view_matrix();
+	mat4 get_view_matrix(mat4 m);
 
 	vec3 get_position() const;
 	void set_position(const vec3& position);
@@ -114,8 +116,54 @@ private:
 extern Shader shape_shader2d;
 extern Camera camera3d;
 
-class basic_2dshape_vector {
+class default_2d_base_vector {
 public:
+
+	default_2d_base_vector();
+
+	template <typename _Type, uint64_t N>
+	default_2d_base_vector(const std::array<_Type, N>& init_vertices);
+
+	~default_2d_base_vector();
+
+	void free_queue();
+
+	vec2 get_position(uint64_t index) const;
+	void set_position(uint64_t index, const vec2& position, bool queue = false);
+
+	vec2 get_size(uint64_t index) const;
+	void set_size(uint64_t index, const vec2& size, bool queue = false);
+
+	void realloc_copy_data(unsigned int& buffer, uint64_t buffer_type, int size, GLenum usage, unsigned int& allocator) const;
+	void copy_data(unsigned int& buffer, uint64_t buffer_type, int size, GLenum usage, unsigned int& allocator) const;
+	void realloc_buffer(unsigned int& buffer, uint64_t buffer_type, int location, int size, GLenum usage, unsigned int& allocator) const;
+
+	int size() const;
+
+	virtual void erase(uint64_t first, uint64_t last = -1);
+
+protected:
+
+	void basic_shape_draw(unsigned int mode, uint64_t points, const Shader& shader = shape_shader2d) const;
+
+	unsigned int shape_vao;
+	unsigned int matrix_vbo;
+	unsigned int vertex_vbo;
+
+	unsigned int matrix_allocator_vbo;
+	unsigned int matrix_allocator_size;
+
+	bool matrix_allocated;
+
+	uint64_t shapes_size;
+
+	static constexpr auto copy_buffer = 5000000; // * sizeof(type)
+};
+
+class basic_2dshape_vector : public default_2d_base_vector {
+public:
+
+	basic_2dshape_vector();
 
 	template <typename _Type, uint64_t N>
 	basic_2dshape_vector(const std::array<_Type, N>& init_vertices);
@@ -127,39 +175,20 @@ public:
 
 	void free_queue(bool colors = true, bool matrices = true);
 
-	void realloc_copy_data(unsigned int& buffer, uint64_t buffer_type, int size, GLenum usage, unsigned int& allocator);
-	void copy_data(unsigned int& buffer, uint64_t buffer_type, int size, GLenum usage, unsigned int& allocator);
-	void realloc_buffer(unsigned int& buffer, uint64_t buffer_type, int location, int size, GLenum usage, unsigned int& allocator);
-
-	int size() const;
-
-	// shape functions
-	void erase(uint64_t first, uint64_t last = -1);
+	void erase(uint64_t first, uint64_t last = -1) override;
 
 	void push_back(const vec2& position, const vec2& size, const Color& color, bool queue = false);
 
-	vec2 get_position(uint64_t index) const;
-	void set_position(uint64_t index, const vec2& position, bool queue = false);
-
-	vec2 get_size(uint64_t index) const;
-	void set_size(uint64_t index, const vec2& size, bool queue = false);
-
 protected:
 
-	void basic_shape_draw(unsigned int mode, uint64_t points) const;
-
-	unsigned int shape_vao;
-	unsigned int matrix_vbo;
-	unsigned int vertex_vbo;
 	unsigned int color_vbo;
 	unsigned int color_allocator_vbo;
-	unsigned int matrix_allocator_vbo;
+	unsigned int color_allocator_size;
 
 	bool color_allocated;
-	bool matrix_allocated;
 
-	uint64_t shapes_size;
-
+private:
+	using default_2d_base_vector::erase;
 };
 
 class line_vector2d : public basic_2dshape_vector {
@@ -177,7 +206,6 @@ public:
 
 private:
 
-	using basic_2dshape_vector::push_back;
 	using basic_2dshape_vector::get_size;
 	using basic_2dshape_vector::set_size;
 	using basic_2dshape_vector::get_position;
@@ -194,6 +222,35 @@ struct square_vector2d : basic_2dshape_vector {
 
 };
 
+int load_texture(const std::string_view path, const std::string& directory = std::string(), bool flip_image = false, bool alpha = false);
+
+class sprite_vector2d : public default_2d_base_vector {
+public:
+
+	sprite_vector2d();
+	sprite_vector2d(const char* path, const vec2& position, const vec2& size);
+
+	~sprite_vector2d();
+
+	void free_queue(bool textures, bool matrices);
+	void draw() const;
+
+	void push_back(const vec2& position, const vec2& size, bool queue = false);
+
+	void erase(uint64_t first, uint64_t last = -1) override;
+
+private:
+
+	using default_2d_base_vector::free_queue;
+	using default_2d_base_vector::erase;
+
+	unsigned int texture_ssbo;
+	unsigned int texture_allocator;
+	uint64_t texture_allocator_size;
+	bool texture_allocated;
+
+	unsigned int texture_id;
+};
 
 enum class shapes {
 	line,
@@ -244,8 +301,6 @@ static void draw_all() {
 
 struct Line;
 class Square;
-
-#include <FAN/Alloc.hpp>
 
 template <shapes shape>
 class default_shape {
@@ -315,7 +370,6 @@ public:
 		glDeleteTextures(1, &texture.texture);
 		glDeleteVertexArrays(1, &texture.VAO);
 		glDeleteBuffers(1, &texture.VBO);
-		glDeleteBuffers(1, &texture.EBO);
 	}
 	void draw();
 	void init_image();
@@ -340,376 +394,6 @@ protected:
 	float angle;
 	std::vector<float> _Vertices;
 };
-
-struct Particle {
-	float life_time;
-	Timer time;
-	bool display;
-	vec2 particle_speed;
-};
-
-class Particles {
-public:
-	uint64_t particles_per_second = 1000;
-
-	Particles(uint64_t particles_amount, vec2 particle_size, vec2 particle_speed, float life_time, Color begin, Color end);
-
-	void add(vec2 position);
-
-	void draw();
-
-private:
-	int64_t particleIndex;
-	square_vector2d particles;
-	std::vector<Particle> particle;
-	Color begin;
-	Color end;
-	float life_time;
-};
-
-template <typename shape>
-class Entity : public shape {
-public:
-	template<
-		typename T = shape,
-		typename _Shader = Shader,
-		std::enable_if_t<std::is_same<Sprite, T>::value>* = nullptr
-	>
-		constexpr Entity(
-			const char* path,
-			vec2 position,
-			vec2 size,
-			float angle,
-			_Shader shader = _Shader("GLSL/core.frag", "GLSL/core.vs")
-		) :
-		Sprite(path, position, size, angle, shader), velocity(0) { }
-
-	template<
-		typename T = shape,
-		std::enable_if_t<std::is_same<square_vector2d, T>::value>* = nullptr
-	>
-		constexpr Entity(
-			const vec2& _Position,
-			const vec2& _Length,
-			const Color& color
-		) :
-		square_vector2d(_Position, _Length, color), velocity(0) { }
-
-	constexpr vec2 get_velocity() const {
-		return movement_speed;
-	}
-
-	constexpr void set_velocity(const vec2& new_velocity) {
-		velocity = new_velocity;
-	}
-
-private:
-	vec2 position = this->get_position();
-	const float movement_speed = 2000;
-	const float friction = 5;
-	vec2 velocity;
-};
-
-class button : public square_vector2d {
-public:
-	button() {}
-	button(
-		const vec2& position,
-		const vec2& size,
-		const Color& color,
-		std::function<void()> lambda = std::function<void()>()
-	);
-
-	void add(
-		const vec2& _Position,
-		vec2 _Length = vec2(),
-		Color color = Color(-1, -1, -1, -1),
-		std::function<void()> lambda = std::function<void()>(),
-		bool queue = false
-	);
-	void add(const button& button);
-
-	void button_press_callback(uint64_t index = 0);
-
-	bool inside(uint64_t index = 0) const;
-
-	uint64_t amount() const;
-
-private:
-	using square_vector2d::push_back;
-	std::vector<std::function<void()>> callbacks;
-	uint64_t count;
-};
-
-class button_single : public Square {
-public:
-	button_single() : Square(vec2(), vec2(), Color()) {}
-	button_single(
-		const vec2& position,
-		const vec2& size,
-		const Color& color,
-		std::function<void()> lambda = std::function<void()>(),
-		bool queue = false
-	);
-
-	void button_press_callback(uint64_t index = 0);
-
-	bool inside() const;
-
-private:
-	std::function<void()> callback;
-};
-
-class Box {
-public:
-	Box(const vec2& position, const vec2& size, const Color& color);
-
-	void set_position(uint64_t index, const vec2& position);
-
-	void draw() const;
-
-private:
-	line_vector2d box_lines;
-	std::vector<vec2> size;
-};
-
-
-#ifdef FAN_WINDOWS
-static _vec2<int> cursor_screen_position() {
-	POINT p;
-	GetCursorPos(&p);
-	return _vec2<int>(p.x, p.y);
-}
-#endif
-
-vec2 Raycast(
-	const vec2& start,
-	const vec2& end,
-	const square_vector2d& squares,
-	bool map[grid_size.x][grid_size.y]
-);
-
-#ifdef FT_FREETYPE_H
-struct Character {
-	GLuint TextureID;   // ID handle of the glyph texture
-	_vec2<int> Size;    // Size of glyph
-	_vec2<int> Bearing;  // Offset from baseline to left/top of glyph
-	GLuint Advance;    // Horizontal offset to advance to next glyph
-};
-
-template <typename T>
-constexpr Color lighter_color(const T& color, float offset) {
-	return T(color + offset);
-}
-
-template <typename T>
-constexpr Color darker_color(const T& color, float offset) {
-	return T(color - offset);
-}
-
-constexpr auto blink_rate = 500; // ms
-constexpr auto blinker_height = 15.f;
-constexpr auto scroll_sensitivity = 50.f;
-constexpr auto chat_begin_height = 100.f;
-constexpr auto erase_speedlimit = 100; // ms
-constexpr auto font_size = 0.4;
-constexpr auto user_divider_x(300);
-constexpr auto text_position_x = user_divider_x + 50.f;
-constexpr auto title_bar_height = 25.f;
-constexpr auto type_box_height = 50.f;
-constexpr auto chat_box_max_width = 200.f;
-constexpr auto text_gap = 20.f;
-constexpr auto chat_boxes_gap = 3.f;
-constexpr auto user_box_size = vec2(user_divider_x, 80);
-constexpr auto scroll_max_gap = 100.f;
-constexpr vec2 gap_between_text_and_box(8, 15);
-constexpr auto chat_box_height = 18.f + gap_between_text_and_box.y;
-
-constexpr Color background_color((float)0x0e, 0x16, (float)0x21, 0xff, true);
-constexpr Color exit_cross_color(0.8, 0.8, 0.8);
-constexpr auto user_box_color = Color(0x17, 0x21, 0x2b, 0xff, true);
-constexpr Color title_bar_color(darker_color(user_box_color, 0.05));
-constexpr Color highlight_color = title_bar_color + Color(0.1);
-constexpr Color select_color(0x2b, 0x52, 0x78, 0xff, true);
-constexpr Color white_color(1);
-constexpr Color red_color(1, 0, 0);
-constexpr Color green_color(0, 1, 0);
-constexpr Color blue_color(0, 0, 1);
-
-constexpr auto my_chat_path = "my_chat";
-constexpr auto their_chat_path = "their_chat";
-
-class TextRenderer {
-public:
-	TextRenderer();
-
-	vec2 get_length(std::string text, float scale, bool include_endl = false);
-
-	void render(const std::string& text, vec2 position, float scale, const Color& color);
-
-private:
-	std::map<GLchar, Character> Characters;
-	Shader shader;
-	unsigned int VAO, VBO;
-};
-
-namespace fan_gui {
-	enum class e_button {
-		title_bar,
-		exit,
-		maximize,
-		minimize
-	};
-
-	enum class text_box_side {
-		LEFT,
-		RIGHT
-	};
-
-	class text_box : public button_single {
-	public:
-
-		text_box();
-		text_box(TextRenderer* renderer, std::string text, const vec2& position, const Color& color);
-
-		std::string get_text() const;
-		void set_text(std::string new_text, std::deque<std::string>& messages, uint64_t at);
-
-		vec2 get_position() const;
-		void set_position(const vec2& position, bool queue = false);
-
-		void draw();
-
-		static std::string get_finished_string(TextRenderer* renderer, std::string text);
-		static vec2 get_size_all(TextRenderer* renderer, std::string text);
-
-		static void refresh(
-			std::vector<text_box>& chat_boxes,
-			const std::deque<std::string>& messages,
-			TextRenderer* tr,
-			text_box_side side = text_box_side::RIGHT,
-			int offset = -1
-		);
-
-		static void refresh(
-			std::vector<text_box>& chat_boxes,
-			const std::deque<std::string>& messages,
-			std::vector<text_box>& second_boxes,
-			const std::deque<std::string>& second_messages,
-			TextRenderer* tr,
-			int offset = -1
-		);
-
-	private:
-		TextRenderer* renderer;
-		std::string text;
-		float first_line_size;
-	};
-
-	class Titlebar {
-	public:
-		Titlebar();
-
-		void cursor_update();
-		void resize_update();
-
-		vec2 get_position(e_button button);
-
-		void move_window();
-
-		void callbacks();
-
-		void move_window(bool state);
-		bool allow_move() const;
-
-		void draw();
-
-	private:
-		vec2 title_bar_button_size{
-			title_bar_height,
-			title_bar_height
-		};
-
-		button buttons{
-			vec2(0, 0),
-			vec2(window_size.x, title_bar_height),
-			title_bar_color
-		};
-
-		line_vector2d exit_cross{
-			mat2x2(
-				buttons.get_position(eti(e_button::exit)) +
-				title_bar_shapes_size,
-				buttons.get_position(eti(e_button::exit)) +
-				title_bar_button_size - title_bar_shapes_size
-			),
-			exit_cross_color
-		};
-
-		Box maximize_box{
-			vec2(),
-			exit_cross.get_length() / 2,
-			exit_cross_color
-		};
-
-		line_vector2d minimize_line{
-			mat2x2(),
-			exit_cross_color
-		};
-
-		vec2 old_cursor_offset;
-		float title_bar_shapes_size = 6;
-		vec2 maximize_box_size{ title_bar_shapes_size * 2 };
-		bool m_bMaximized = false;
-		bool m_bAllowMoving = false;
-	};
-
-	typedef std::map<std::string, std::vector<fan_gui::text_box>> chat_box_t;
-	typedef std::map<std::string, std::deque<std::string>> message_t;
-
-
-
-	class Users {
-	public:
-		Users(const std::string& username, message_t chat);
-
-		void add(const std::string& username, message_t chat);
-
-		void draw();
-
-		void color_callback();
-
-		void resize_update();
-
-		void render_text(TextRenderer& renderer);
-
-		void select();
-
-		void high_light(int i);
-
-		int get_user_i() const;
-
-		bool selected() const;
-
-		std::string get_username(int i);
-
-		void reset();
-
-		std::string get_user() const;
-
-		uint64_t size() const;
-		std::vector<std::string> usernames;
-	private:
-		Line user_divider;
-		button user_boxes;
-		square_vector2d background;
-
-		std::string current_user;
-		int current_user_i = 0;
-	};
-}
-
-#endif
 
 //class LineVector3D : public basic_3d {
 //public:
@@ -820,8 +504,6 @@ struct mesh_texture {
 	aiString path;
 };
 
-#include <cstddef>
-
 class model_mesh {
 public:
 	std::vector<mesh_vertex> vertices;
@@ -839,8 +521,6 @@ private:
 
 	void initialize_mesh();
 };
-
-int load_texture(const std::string_view path, const std::string& directory);
 
 class model_loader {
 protected:
@@ -1020,101 +700,6 @@ public:
 	void draw();
 };
 
-//struct Particle3D {
-//	float life_time;
-//	Timer time;
-//	bool display;
-//	vec3 particle_speed;
-//};
-//
-//class Particles3D {
-//public:
-//	uint64_t particles_per_second = 1000;
-//	//Color begin;
-//	Particles3D(uint64_t particles_amount, const vec3& particle_size, const vec3& particle_speed, float life_time, const char* path) :
-//		particles(particles_amount, -particle_size,
-//			vec3(particle_size), path), particle(), particleIndex(particles_amount - 1), begin(begin), end(end), life_time(life_time) {
-//		for (int i = 0; i < particles_amount; i++) {
-//			particle.push_back({
-//				life_time,
-//				Timer(high_resolution_clock::now(), 0),
-//				0,
-//				vec3(random(1, 10) / 10) * vec3(random(1, 10) / 10, 0, 0)
-//			});
-//		}
-//	}
-//
-//	void add(const vec3& position) {
-//		static Timer click_timer = {
-//			high_resolution_clock::now(),
-//			particles_per_second ? uint64_t(1000 / particles_per_second) : uint64_t(1e+10)
-//		};
-//			if (particle[particleIndex].time.finished() && click_timer.finished()) {
-//				//(position - particles.get_size(0) / 2).print();
-//		particles.set_position(position - particles.get_size(0) / 2, particleIndex, true);
-//		particle[particleIndex].time.start(life_time);
-//		particle[particleIndex].display = true;
-//		if (--particleIndex <= -1) {
-//			particleIndex = particles.amount() - 1;
-//		}
-//		click_timer.restart();
-//		}
-//	}
-//
-//	void draw() {
-//		for (int i = 0; i < particles.amount(); i++) {
-//			/*if (!particle[i].display) {
-//				continue;
-//			}
-//			if (particle[i].time.finished()) {
-//				particles.set_position(vec3(-particles.get_size(0)), i,  true);
-//				particle[i].display = false;
-//				particle[i].time.start(life_time);
-//				continue;
-//			}*/
-//			/*Color color = particles.get_color(i);
-//			const float passed_time = particle[i].time.elapsed();
-//			float life_time = particle[i].life_time;
-//
-//			color.r = ((end.r - begin.r) / life_time) * passed_time + begin.r;
-//			color.g = ((end.g - begin.g) / life_time) * passed_time + begin.g;
-//			color.b = ((end.b - begin.b) / life_time) * passed_time + begin.b;
-//			color.a = (particle[i].life_time - passed_time / 1.f) / particle[i].life_time;
-//			particles.set_color(i, color, true);*/
-//			particles.set_position(particles.get_position(i) + particle[i].particle_speed * delta_time, i, true);
-//		}
-//		particles.break_queue();
-//		particles.draw();
-//	}
-//
-//	uint64_t size() {
-//		return particle.size();
-//	}
-//
-//	void break_queue() {
-//		this->particles.break_queue();
-//	}
-//
-//	void set_color(const Color& color, uint64_t i, bool queue = false) {
-//		particles.set_color(i, color, queue);
-//	}
-//
-//	void set_speed(const vec3& speed, uint64_t i) {
-//		particle[i].particle_speed = speed;
-//	}
-//
-//private:
-//	int64_t particleIndex;
-//	SquareVector3D particles;
-//	std::vector<Particle3D> particle;
-//	Color begin;
-//	Color end;
-//	float life_time;
-//};	
-
-void move_camera(bool noclip, float movement_speed);
-void rotate_camera();
-
 enum class e_cube {
 	left,
 	right,
@@ -1123,8 +708,6 @@ enum class e_cube {
 	down,
 	up
 };
-
-extern std::initializer_list<e_cube> e_cube_loop;
 
 extern std::vector<float> g_distances;
 
@@ -1195,4 +778,31 @@ inline vec3i grid_raycast(const vec3& start, const vec3& end, const map_t& map, 
 	grid_raycast_s raycast = { grid_direction(end, start), start, vec3() }; \
 	if (!(start == end)) \
 		while(grid_raycast_single(raycast, block_size))
+
+#include <map>
+
+struct Character {
+	GLuint TextureID;
+	vec2i Size;
+	vec2i Bearing;
+	GLuint Advance;
+};
+
+class TextRenderer {
+public:
+	TextRenderer();
+
+	vec2 get_length(std::string text, float scale, bool include_endl = false);
+
+	void render(const std::string& text, vec2 position, float_t scale, const Color& color);
+
+private:
+	std::vector<Character> Characters;
+	//std::map<GLchar, Character> Characters;
+	Shader shader;
+	unsigned int VAO, VBO;
+
+	static constexpr float_t text_gap = 10;
+};
+
 //#endif

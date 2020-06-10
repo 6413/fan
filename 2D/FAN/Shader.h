@@ -13,7 +13,7 @@
 class Shader
 {
 public:
-    Shader() {}
+    Shader() : ID(-1) {}
     unsigned int ID;
     // constructor generates the shader on the fly
     // ------------------------------------------------------------------------

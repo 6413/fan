@@ -7,7 +7,8 @@ out vec2 texture_coordinate;
 uniform mat4 view;
 uniform mat4 projection;
 
-layout(std430, binding = 0) buffer texture_coordinate_layout {
+layout(std430, binding = 0) buffer texture_coordinate_layout 
+{
     vec2 texture_coordinates[];
 };
 

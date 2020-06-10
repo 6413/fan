@@ -12,6 +12,7 @@ struct File {
 			return 0;
 		}
 		data.resize(file.tellg());
+		data.resize(file.tellg());
 		file.seekg(0, std::ios::beg);
 		file.read(&data[0], data.size());
 		file.close();

@@ -7,7 +7,7 @@ int main() {
     key_callback.add(GLFW_KEY_LEFT_CONTROL, true, [&] {
         noclip = !noclip;
     });
-
+    
     key_callback.add(GLFW_KEY_ESCAPE, true, [&] {
         glfwSetWindowShouldClose(window, true);
     });
@@ -16,15 +16,11 @@ int main() {
 
     float crosshair_size = 3;
 
-    cursor_move_callback.add(rotate_camera);
+    cursor_move_callback.add(std::bind(&Camera::rotate_camera, camera3d));
 
     glEnable(GL_CULL_FACE);
 
-    square_vector2d s(window_size / 2, vec2(100), Color(0, 0, 1));
-
-    SquareVector3D test("sides_05.png");
-
-    test.push_back(vec3(1, 0, 0), vec3(1), vec2());
+    TextRenderer r;
 
     while (!glfwWindowShouldClose(window)) {
         GetFps();
@@ -32,11 +28,19 @@ int main() {
         glClearColor(0, 0, 0, 1);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        move_camera(noclip, 200);
+        camera3d.move(noclip, 200);
+        r.render("bbbbb", vec2(100, window_size.y / 2 + 200), 0.5, Color(1, 0, 0));
+      //  r.render("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", vec2(100, window_size.y / 2+10), 1, Color(1, 0, 0));
+      //  r.render("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", vec2(100, window_size.y / 2+20), 1, Color(1, 0, 0));
+      //  r.render("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", vec2(100, window_size.y / 2+30), 1, Color(1, 0, 0));
+      //  r.render("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", vec2(100, window_size.y / 2+40), 1, Color(1, 0, 0));
 
-        test.draw();
+      /*  r.render("yofsdaasdfflsökdjasdlköfjasdölkjfdaskjafsdkfasdlöjafsdkjlafsdlalkfsjdhfadlsjhafdsl", vec2(0, window_size.y / 2+10), 0.4, Color(1, 0, 0));
+        r.render("yofsdaasdfflsökdjasdlköfjasdölkjfdaskjafsdkfasdlöjafsdkjlafsdlalkfsjdhfadlsjhafdsl", vec2(0, window_size.y / 2+20), 0.4, Color(1, 0, 0));
+        r.render("yofsdaasdfflsökdjasdlköfjasdölkjfdaskjafsdkfasdlöjafsdkjlafsdlalkfsjdhfadlsjhafdsl", vec2(0, window_size.y / 2+30), 0.4, Color(1, 0, 0));
+        r.render("yofsdaasdfflsökdjasdlköfjasdölkjfdaskjafsdkfasdlöjafsdkjlafsdlalkfsjdhfadlsjhafdsl", vec2(0, window_size.y / 2+40), 0.4, Color(1, 0, 0));*/
 
-        s.draw();
+       // sp.draw();
 
         glfwSwapBuffers(window);
         glfwPollEvents();

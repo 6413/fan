@@ -4,6 +4,17 @@
 #endif
 #endif
 
+// converts enum to int
+template <typename Enumeration>
+constexpr auto eti(Enumeration const value)
+-> typename std::underlying_type<Enumeration>::type
+{
+	return static_cast<
+		typename std::underlying_type<Enumeration>::type
+	>(value);
+}
+
+#ifdef ENABLE_NETWORKING
 #include <FAN/File.hpp>
 
 #include <functional>
@@ -55,16 +66,6 @@ enum class packet_type {
 	set_password,
 	exit
 };
-
-// converts enum to int
-template <typename Enumeration>
-constexpr auto eti(Enumeration const value)
--> typename std::underlying_type<Enumeration>::type
-{
-	return static_cast<
-		typename std::underlying_type<Enumeration>::type
-	>(value);
-}
 
 static const char* packet_type_str[]{
 	stringify(get_file),
@@ -702,6 +703,8 @@ private:
 
 class UDP {
 public:
+	UDP() : _socket(-1), socket_length(-1), this_sockaddr() {}
+
 	void send_message(const std::string& message) const {
 		if (sendto(_socket, message.c_str(), message.size(), 0, (sockaddr*)&this_sockaddr, socket_length) == SOCKET_ERROR) {
 #ifdef FAN_WINDOWS
@@ -793,3 +796,5 @@ public:
 #endif
 	}
 };
+
+#endif
