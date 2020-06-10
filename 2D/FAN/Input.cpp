@@ -4,6 +4,28 @@
 _vec2<int> cursor_position;
 _vec2<int> window_size;
 
+template<typename T>
+auto default_callback<T>::get_function(uint64_t ind) const
+{
+	return functions[ind];
+}
+
+template<typename T>
+uint64_t default_callback<T>::size() const
+{
+	return functions.size();
+}
+
+bool KeyCallback::get_action(uint64_t ind) const
+{
+	return action[ind];
+}
+
+int KeyCallback::get_key(uint64_t ind) const
+{
+	return key[ind];
+}
+
 class KeyCallback key_callback;
 struct default_callback<void()> window_resize_callback;
 struct default_callback<void()> cursor_move_callback;
@@ -20,7 +42,7 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 	for (int i = 0; i < key_callback.size(); i++) {
 		if (key == key_callback.get_key(i)) {
 			if (key_callback.get_action(i)) {
-				if (key_callback.get_action(i) == action) {
+				if (key_callback.get_action(i) == static_cast<bool>(action)) {
 					key_callback.get_function(i)();
 				}
 			}
@@ -48,7 +70,7 @@ void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
 	for (int i = 0; i < key_callback.size(); i++) {
 		if (button == key_callback.get_key(i)) {
 			if (key_callback.get_action(i)) {
-				if (key_callback.get_action(i) == action) {
+				if (key_callback.get_action(i) == static_cast<bool>(action)) {
 					key_callback.get_function(i)();
 				}
 			}
@@ -109,22 +131,6 @@ void DropCallback(GLFWwindow* window, int path_count, const char* paths[]) {
 	}
 }
 
-bool g_focused = true;
-
-void FocusCallback(GLFWwindow* window, int focused)
-{
-	if (focused) {
-		g_focused = true;
-	}
-	else {
-		g_focused = false;
-	}
-}
-
-//void CursorEnterCallback(GLFWwindow* window, int entered) {
-//
-//}
-
 bool WindowInit() {
 	glfwSetErrorCallback(GlfwErrorCallback);
 	if (!glfwInit()) {
@@ -133,11 +139,9 @@ bool WindowInit() {
 		return 0;
 	}
 	window_size = WINDOWSIZE;
-	//glfwWindowHint(GLFW_DECORATED, false);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 //	glfwWindowHint(GLFW_RESIZABLE, false);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	//glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	glfwWindowHint(GLFW_SAMPLES, 32);
 	glEnable(GL_MULTISAMPLE);
 	//window_size = vec2(glfwGetVideoMode(glfwGetPrimaryMonitor())->width, glfwGetVideoMode(glfwGetPrimaryMonitor())->height);
@@ -158,26 +162,17 @@ bool WindowInit() {
 		glfwTerminate();
 		exit(EXIT_SUCCESS);
 	}
-	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	//glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	glViewport(0, 0, window_size.x, window_size.y);
 	glEnable(GL_DEPTH_TEST);
 
 	glfwSetKeyCallback(window, KeyCallback);
 	glewExperimental = GL_TRUE;
 	glfwSetCharCallback(window, CharacterCallback);
-	glfwSetWindowFocusCallback(window, FocusCallback);
 	glfwSetMouseButtonCallback(window, MouseButtonCallback);
 	glfwSetCursorPosCallback(window, CursorPositionCallback);
 	glfwSetFramebufferSizeCallback(window, FrameSizeCallback);
-	//glEnable(GL_BLEND);
-	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	return 1;
 }
-
-bool window_focused() {
-	return g_focused;
-}
-
-//bool cursor_inside_window() {
-//	return Input::cursor_inside_window;
-//}

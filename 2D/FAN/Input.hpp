@@ -3,9 +3,7 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <FAN/Vectors.hpp>
-#include <string>
 #include <functional>
-#include <any>
 #include <vector>
 
 constexpr bool fullScreen = false;
@@ -19,35 +17,33 @@ extern _vec2<int> window_size;
 template <typename T>
 struct default_callback {
 public:
-	default_callback() : functions() {}
+
 	void add(const std::function<T>& function) {
 		functions.push_back(function);
 	}
-	inline auto get_function(uint64_t ind) const {
-		return functions[ind];
-	}
-	inline uint64_t size() const {
-		return functions.size();
-	}
+
+	auto get_function(uint64_t ind) const;
+
+	uint64_t size() const;
+
 protected:
 	std::vector<std::function<T>> functions;
 };
 
 class KeyCallback : public default_callback<void()> {
 public:
-	KeyCallback() : action(), key() {}
+
 	void add(int key, int action, const std::function<void()>& function) {
 		this->action.push_back(action);
 
 		this->key.push_back(key);
 		functions.push_back(function);
 	}
-	inline bool get_action(uint64_t ind) const {
-		return action[ind];
-	}
-	inline int get_key(uint64_t ind) const {
-		return key[ind];
-	}
+
+	bool get_action(uint64_t ind) const;
+
+	int get_key(uint64_t ind) const;
+
 private:
 	using default_callback::add;
 	std::vector<int> action;
@@ -73,6 +69,3 @@ void FocusCallback(GLFWwindow* window, int focused);
 void DropCallback(GLFWwindow* window, int path_count, const char* paths[]);
 
 bool WindowInit();
-
-bool cursor_inside_window();
-bool window_focused();
