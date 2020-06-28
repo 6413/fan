@@ -4,41 +4,29 @@
 _vec2<int> cursor_position;
 _vec2<int> window_size;
 
-template<typename T>
-auto default_callback<T>::get_function(uint64_t ind) const
+KeyCallback key_callback;
+KeyCallback key_release_callback;
+KeyCallback scroll_callback;
+default_callback window_resize_callback;
+default_callback cursor_move_callback;
+default_callback character_callback;
+default_callback drop_callback;
+
+auto& default_callback::get_function(uint64_t i)
 {
-	return functions[ind];
+	return functions[i];
 }
 
-template<typename T>
-uint64_t default_callback<T>::size() const
+uint64_t default_callback::size() const
 {
 	return functions.size();
 }
 
-bool KeyCallback::get_action(uint64_t ind) const
-{
-	return action[ind];
-}
-
-int KeyCallback::get_key(uint64_t ind) const
-{
-	return key[ind];
-}
-
-class KeyCallback key_callback;
-struct default_callback<void()> window_resize_callback;
-struct default_callback<void()> cursor_move_callback;
-struct default_callback<void(int key)> character_callback;
-class KeyCallback key_release_callback;
-class KeyCallback scroll_callback;
-struct default_callback<void(int file_count, const char** path)> drop_callback;
-
-void GlfwErrorCallback(int id, const char* error) {
+void glfwErrorCallback(int id, const char* error) {
 	printf("GLFW Error %d : %s\n", id, error);
 }
 
-void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+void glfwKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	for (int i = 0; i < key_callback.size(); i++) {
 		if (key == key_callback.get_key(i)) {
 			if (key_callback.get_action(i)) {
@@ -50,8 +38,8 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 				key_callback.get_function(i)();
 			}
 		}
-		
 	}
+
 	static int release = 0;
 	if (release) {
 		for (int i = 0; i < key_release_callback.size(); i++) {
@@ -79,6 +67,7 @@ void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
 			}
 		}
 	}
+
 	static int release = 0;
 	if (release) {
 		for (int i = 0; i < key_release_callback.size(); i++) {
@@ -113,7 +102,7 @@ void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
 
 void CharacterCallback(GLFWwindow* window, unsigned int key) {
 	for (int i = 0; i < character_callback.size(); i++) {
-		character_callback.get_function(i)(key);
+		(*(std::function<void(int, int)>*)(character_callback.get_function_ptr(i)))(std::any_cast<int>(character_callback.get_parameter(i, 0)), key);
 	}
 }
 
@@ -127,12 +116,20 @@ void FrameSizeCallback(GLFWwindow* window, int width, int height) {
 
 void DropCallback(GLFWwindow* window, int path_count, const char* paths[]) {
 	for (int i = 0; i < drop_callback.size(); i++) {
-		drop_callback.get_function(i)(path_count, paths);
+		drop_callback.get_function(i)();
 	}
 }
 
+bool key_press(int key)
+{
+	if (key <= GLFW_MOUSE_BUTTON_8) {
+		return glfwGetMouseButton(window, key);
+	}
+	return glfwGetKey(window, key);
+}
+
 bool WindowInit() {
-	glfwSetErrorCallback(GlfwErrorCallback);
+	glfwSetErrorCallback(glfwErrorCallback);
 	if (!glfwInit()) {
 		printf("GLFW ded\n");
 		static_cast<void>(system("pause") + 1);
@@ -142,8 +139,8 @@ bool WindowInit() {
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 //	glfwWindowHint(GLFW_RESIZABLE, false);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	glfwWindowHint(GLFW_SAMPLES, 32);
-	glEnable(GL_MULTISAMPLE);
+	//glfwWindowHint(GLFW_SAMPLES, 32);
+	//glEnable(GL_MULTISAMPLE);
 	//window_size = vec2(glfwGetVideoMode(glfwGetPrimaryMonitor())->width, glfwGetVideoMode(glfwGetPrimaryMonitor())->height);
 	window = glfwCreateWindow(window_size.x, window_size.y, "FPS: ", fullScreen ? glfwGetPrimaryMonitor() : NULL, NULL);
 	glfwSetWindowMonitor(window, NULL, window_size.x / 2, window_size.y / 2, window_size.x, window_size.y, 0);
@@ -166,7 +163,7 @@ bool WindowInit() {
 	glViewport(0, 0, window_size.x, window_size.y);
 	glEnable(GL_DEPTH_TEST);
 
-	glfwSetKeyCallback(window, KeyCallback);
+	glfwSetKeyCallback(window, glfwKeyCallback);
 	glewExperimental = GL_TRUE;
 	glfwSetCharCallback(window, CharacterCallback);
 	glfwSetMouseButtonCallback(window, MouseButtonCallback);

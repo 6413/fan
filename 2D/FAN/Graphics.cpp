@@ -251,6 +251,22 @@ void default_2d_base_vector::free_queue()
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
+std::vector<vec2> default_2d_base_vector::get_positions() const
+{
+	int size = this->size();
+	std::vector<mat4> matrix(size);
+	std::vector<vec2> positions(size);
+	glBindBuffer(GL_ARRAY_BUFFER, matrix_vbo);
+	glGetBufferSubData(GL_ARRAY_BUFFER, 0, size * sizeof(mat4), matrix.data());
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	
+	for (int i = 0; i < size; i++) {
+		positions[i].x = matrix[i][3][0];
+		positions[i].y = matrix[i][3][1];
+	}
+	return positions;
+}
+
 vec2 default_2d_base_vector::get_position(uint64_t index) const
 {
 	mat4 matrix;
@@ -274,10 +290,33 @@ void default_2d_base_vector::set_position(uint64_t index, const vec2& position, 
 	glBufferSubData(GL_ARRAY_BUFFER, sizeof(mat4) * index, sizeof(mat4), matrix.data());
 }
 
+std::vector<vec2> default_2d_base_vector::get_sizes(bool half) const
+{
+	int size = this->size();
+	std::vector<mat4> matrix(size);
+	std::vector<vec2> sizes(size);
+	glBindBuffer(GL_ARRAY_BUFFER, matrix_vbo);
+	glGetBufferSubData(GL_ARRAY_BUFFER, 0, size * sizeof(mat4), matrix.data());
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	
+	for (int i = 0; i < size; i++) {
+		if (half) {
+			sizes[i].x = matrix[i][0][0] * 0.5;
+			sizes[i].y = matrix[i][1][1] * 0.5;
+		}
+		else {
+			sizes[i].x = matrix[i][0][0];
+			sizes[i].y = matrix[i][1][1];
+		}
+	}
+
+	return sizes;
+}
+
 vec2 default_2d_base_vector::get_size(uint64_t index) const
 {
-	vec2 size;
 	mat4 matrix;
+	vec2 size;
 	glBindBuffer(GL_ARRAY_BUFFER, matrix_vbo);
 	glGetBufferSubData(GL_ARRAY_BUFFER, index * sizeof(mat4), sizeof(mat4), matrix.data());
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -293,6 +332,17 @@ void default_2d_base_vector::set_size(uint64_t index, const vec2& size, bool que
 	matrix = Scale(matrix, size);
 	glBindBuffer(GL_ARRAY_BUFFER, matrix_vbo);
 	glBufferSubData(GL_ARRAY_BUFFER, sizeof(mat4) * index, sizeof(mat4), matrix.data());
+}
+
+int default_2d_base_vector::get_buffer_size(int buffer) const
+{
+	int size = 0;
+
+	glBindBuffer(GL_ARRAY_BUFFER, buffer);
+	glGetBufferParameteriv(GL_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	return size;
 }
 
 void default_2d_base_vector::realloc_copy_data(unsigned int& buffer, uint64_t buffer_type, int size, GLenum usage, unsigned int& allocator) const
@@ -384,15 +434,35 @@ void default_2d_base_vector::basic_shape_draw(unsigned int mode, uint64_t points
 	mat4 projection(1);
 
 	view = camera2d.get_view_matrix(Translate(view, vec3(window_size.x / 2, window_size.y / 2, -700.0f)));
+
 	projection = Ortho(window_size.x / 2, window_size.x + window_size.x * 0.5f, window_size.y + window_size.y * 0.5f, window_size.y / 2.f, 0.1f, 1000.0f);
+
 
 	shader.use();
 	shader.set_mat4("projection", projection);
 	shader.set_mat4("view", view);
 
+	static float pos;
+	shader.set_float("position_multiplier", pos);
+	pos += delta_time * 5;
+
 	glBindVertexArray(shape_vao);
 	glDrawArraysInstanced(mode, 0, points, amount_of_objects);
 	glBindVertexArray(0);
+
+	//for (int i = 0; i < 2; i++) { // for bloom
+	//	shader.use();
+	//	shader.set_mat4("projection", projection);
+	//	shader.set_mat4("view", view);
+	//	shader.set_int("vert", 0);
+	//	static float pos;
+	//	shader.set_float("position_multiplier", pos);
+	//	pos += delta_time;
+
+	//	glBindVertexArray(shape_vao);
+	//	glDrawArraysInstanced(mode, 0, points, amount_of_objects);
+	//	glBindVertexArray(0);
+	//}
 }
 
 basic_2dshape_vector::basic_2dshape_vector() : 
@@ -418,6 +488,15 @@ basic_2dshape_vector::~basic_2dshape_vector()
 	if (this->color_allocated) {
 		glDeleteBuffers(1, &color_allocator_vbo);
 	}
+}
+
+std::vector<Color> basic_2dshape_vector::get_colors() const
+{
+	std::vector<Color> colors(this->size());
+	glBindBuffer(GL_ARRAY_BUFFER, color_vbo);
+	glGetBufferSubData(GL_ARRAY_BUFFER, 0, size() * sizeof(Color), colors.data());
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	return colors;
 }
 
 Color basic_2dshape_vector::get_color(uint64_t index) const
@@ -536,6 +615,30 @@ void basic_2dshape_vector::push_back(const vec2& position, const vec2& size, con
 	shapes_size++;
 }
 
+void basic_2dshape_vector::insert(const vec2& position, const vec2& size, const Color& color, uint64_t how_many)
+{
+	mat4 model(1);
+	model = Translate(model, position);
+	model = Scale(model, size);
+
+	std::vector<Color> colors(how_many, color);
+	std::vector<mat4> matrices(how_many, model);
+
+	glBindBuffer(GL_ARRAY_BUFFER, color_vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Color) * how_many, colors.data(), GL_DYNAMIC_DRAW);
+	//glBufferSubData(GL_ARRAY_BUFFER, sizeof(Color) * how_many, sizeof(Color), &color);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glDeleteBuffers(1, &color_allocator_vbo);
+
+	glBindBuffer(GL_ARRAY_BUFFER, matrix_vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(mat4) * how_many, matrices.data(), GL_DYNAMIC_DRAW);
+	//glBufferSubData(GL_ARRAY_BUFFER, sizeof(mat4) * how_many, sizeof(mat4), model.data());
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glDeleteBuffers(1, &matrix_allocator_vbo);
+
+	shapes_size += how_many;
+}
+
 constexpr std::array<float_t, 12> square_2d_vertices{
 	0, 0,
 	0, 1,
@@ -564,7 +667,7 @@ void line_vector2d::push_back(const mat2& position, const Color& color, bool que
 		basic_2dshape_vector::push_back(position[0], position[1], color, queue);
 	}
 	else {
-		basic_2dshape_vector::push_back(position[1], position[0] - position[1], color, queue);
+		basic_2dshape_vector::push_back(position[1], position[0] - position[1], color, queue); // TODO KORJAJAAJAJADSJAJ
 	}
 }
 
@@ -604,7 +707,7 @@ square_vector2d::square_vector2d(
 	this->push_back(position, size, color);
 }
 
-void square_vector2d::draw()
+void square_vector2d::draw() const
 {
 	this->basic_shape_draw(GL_TRIANGLES, 6);
 }
@@ -652,7 +755,7 @@ sprite_vector2d::sprite_vector2d() : default_2d_base_vector(square_2d_vertices),
 sprite_vector2d::sprite_vector2d(const char* path, const vec2& position, const vec2& size) : 
 	default_2d_base_vector(square_2d_vertices), texture_allocated(0), texture_allocator_size(0)
 {
-	texture_id = load_texture("sides_05.png", "", true, true);
+	texture_id = load_texture(path, "", true, true);
 
 	auto textures = get_texture_onsided(vec2i(1, 1), vec2i());
 	glGenBuffers(1, &texture_ssbo);
@@ -780,19 +883,6 @@ template class vertice_handler<shapes::line>;
 template class vertice_handler<shapes::square>;
 
 template<shapes shape>
-vertice_handler<shape>::~vertice_handler()
-{
-	if (!this->vertices.empty()) {
-		glDeleteVertexArrays(1, &vertice_buffer.VAO);
-		glDeleteVertexArrays(1, &color_buffer.VAO);
-		glDeleteVertexArrays(1, &shape_buffer.VAO);
-		glDeleteBuffers(1, &vertice_buffer.VBO);
-		glDeleteBuffers(1, &color_buffer.VBO);
-		glDeleteBuffers(1, &shape_buffer.VBO);
-	}
-}
-
-template<shapes shape>
 void vertice_handler<shape>::init(const std::vector<float>& l_vertices, const std::vector<float>& l_colors, bool queue) {
 	for (int i = 0; i < l_vertices.size(); i++) {
 		vertices.push_back(l_vertices[i]);
@@ -815,7 +905,7 @@ void vertice_handler<shape>::init(const std::vector<float>& l_vertices, const st
 	points += point_size;
 	static bool once = false;
 	if (!once) {
-		camera = (Camera*)glfwGetWindowUserPointer(window);
+		camera = &camera2d;
 		shader = Shader("GLSL/shapes.vs", "GLSL/shapes.frag");
 		glGenBuffers(1, &vertice_buffer.VBO);
 		glBindBuffer(GL_ARRAY_BUFFER, vertice_buffer.VBO);
@@ -1524,6 +1614,14 @@ void basic_3d::set_position(uint64_t index, const vec3& position, bool queue) {
 	}
 }
 
+vec3 basic_3d::get_position(uint64_t i) const {
+	return vec3(
+		object_matrix[i][3][0],
+		object_matrix[i][3][1],
+		object_matrix[i][3][2]
+	);
+}
+
 vec3 basic_3d::get_size(uint64_t i) const {
 	vec3 size;
 	size.x = object_matrix[i][0][0];
@@ -1532,13 +1630,6 @@ vec3 basic_3d::get_size(uint64_t i) const {
 	return size;
 }
 
-vec3 basic_3d::get_position(uint64_t i) const {
-	vec3 position;
-	position.x = object_matrix[i][3][0];
-	position.y = object_matrix[i][3][1];
-	position.z = object_matrix[i][3][2];
-	return position;
-}
 
 void basic_3d::push_back(const vec3& position, const vec3& size, bool queue) {
 	mat4 object(1);
@@ -2176,200 +2267,596 @@ void model_skybox::draw() {
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
+#include <FAN/File.hpp>
 
-TextRenderer::TextRenderer() : shader(Shader("GLSL/text.vs", "GLSL/text.frag")) {
+std::vector<unsigned int> advance_data;
+
+//void load_to_ram() {
+//	FT_Library ft;
+//
+//	if (FT_Init_FreeType(&ft))
+//		std::cout << "Could not init FreeType Library" << std::endl;
+//
+//	FT_Face face;
+//	if (FT_New_Face(ft, "fonts/arial.ttf", 0, &face))
+//		std::cout << "Failed to load font" << std::endl;
+//
+//	for (int i = 0; i < 100; i++) {
+//		for (int j = 0; j < max_ascii; j++) {
+//			FT_Set_Pixel_Sizes(face, i, i);
+//			advance_data.push_back(suckless_getwidth(ft, face, j, i));
+//		}
+//	}
+//}
+//
+//void update_advance_data() {
+//	FT_Library ft;
+//
+//	if (FT_Init_FreeType(&ft))
+//		std::cout << "Could not init FreeType Library" << std::endl;
+//
+//	FT_Face face;
+//	if (FT_New_Face(ft, "fonts/arial.ttf", 0, &face))
+//		std::cout << "Failed to load font" << std::endl;
+//
+//	std::vector<unsigned int> data;
+//	for (int i = 0; i < max_font_size; i++) {
+//		for (int j = 0; j < max_ascii; j++) {
+//			FT_Set_Pixel_Sizes(face, i, i);
+//			data.push_back(suckless_getwidth(ft, face, j, i));
+//		}
+//	}
+//
+//	File::write<unsigned int>("fonts/advance", data, std::ios::binary);
+//}
+
+
+suckless_font_t suckless_font_fr(uint_t datasize, uint_t fontsize) {
+	suckless_font_t font;
+	font.offset = { 0, 0 };
+	font.datasize = datasize;
+	font.fontsize = fontsize;
+	font.data.resize(font.datasize * font.datasize);
+	return font;
+}
+
+letter_info_t suckless_font_add_f(FT_Library ft, suckless_font_t* font, uint8_t letter) {
+	FT_Face face;
+	if (FT_New_Face(ft, "fonts/calibri.ttf", 0, &face))
+		printf("err new face\n");
+
+	FT_Set_Pixel_Sizes(face, 0, font->fontsize);
+	FT_Load_Char(face, letter, FT_LOAD_RENDER);
+
+	uint_t tx = face->glyph->bitmap.width;
+	uint_t ty = face->glyph->bitmap.rows;
+
+	letter_info_t letter_info;
+
+	letter_info.width = tx;
+	letter_info.height = ty;
+
+	uint_t bx = face->glyph->bitmap_left;
+	/* extreme hardcoded */
+	uint_t by = (font->fontsize / 1.33) - face->glyph->bitmap_top;
+
+	/* check if offsets are in limit */
+	if ((font->offset.x + tx) > font->datasize) {
+		font->offset.x = 0;
+		font->offset.y += font->fontsize;
+	}
+	if ((font->offset.y + font->fontsize) > font->datasize) {
+		fprintf(stderr, "data cant hold more\n");
+		return { 0 };
+	}
+
+	letter_info.pos = font->offset;
+
+	/* transfer face buffer to data */
+	for (uint_t iy = by; iy < (by + ty); iy++) {
+		for (uint_t ix = 0; ix < tx; ix++) {
+			font->data[(font->datasize * (iy + font->offset.y)) + (ix + font->offset.x)] = face->glyph->bitmap.buffer[(tx * (iy - by)) + ix];
+		}
+	}
+
+	/* calculate offset for next character */
+	if ((font->offset.x + tx) > font->datasize) {
+		font->offset.x = 0;
+		font->offset.y += font->fontsize;
+	}
+	else {
+		font->offset.x += tx;
+	}
+
+	FT_Done_Face(face);
+	return letter_info;
+}
+
+void suckless_letter_render(suckless_font_t* font) {
+	for (uint_t iy = 0; iy < font->datasize; iy++) {
+		for (uint_t ix = 0; ix < font->datasize; ix++) {
+			if (font->data[(font->datasize * iy) + ix] > 128) /* if more than half solid */
+				printf("W");
+			else
+				printf(" ");
+		}
+		printf("\n");
+	}
+}
+
+text_renderer::text_renderer(float_t font_size) : shader(Shader("GLSL/text.vs", "GLSL/text.frag")) {
 	FT_Library ft;
 
 	if (FT_Init_FreeType(&ft))
-		std::cout << "ERROR::FREETYPE: Could not init FreeType Library" << std::endl;
+		std::cout << "Could not init FreeType Library" << std::endl;
 
 	FT_Face face;
-	if (FT_New_Face(ft, "fonts/calibri.ttf", 0, &face))
-		std::cout << "ERROR::FREETYPE: Failed to load font" << std::endl;
+	if (FT_New_Face(ft, "fonts/arial.ttf", 0, &face))
+		std::cout << "Failed to load font" << std::endl;
 
-	float_t font_size = 24.0;
-
-	vec2 pixel_size(font_size * window_size.x / 72, font_size * window_size.y / 72);
-
-	//Font height and width in pixels
-	int font_height = round((face->bbox.yMax - face->bbox.yMin) * pixel_size.x / face->units_per_EM);
-	int font_width = round((face->bbox.xMax - face->bbox.xMin) * pixel_size.y / face->units_per_EM);
-
-	FT_Set_Char_Size(face, font_height, font_width, window_size.x, window_size.y);
-
-	// Disable byte-alignment restriction
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-	// 246 = ö in unicode
-	for (GLubyte c = 0; c < 247; c++)
-	{
-		// Load character glyph 
-		if (FT_Load_Char(face, c, FT_LOAD_RENDER))
-		{
-			std::cout << "ERROR::FREETYTPE: Failed to load Glyph" << std::endl;
-			continue;
-		}
-		// Generate texture
-		if (!c) {
-			auto width = face->glyph->bitmap.width;
-			auto height = face->glyph->bitmap.rows;
-			auto pixels = face->glyph->bitmap.buffer;
-			
-			GLuint texture;
-			glGenTextures(1, &texture);
-			glBindTexture(GL_TEXTURE_2D, texture);
-			glTexImage2D(
-				GL_TEXTURE_2D,
-				0,
-				GL_RED,
-				face->glyph->bitmap.width,
-				face->glyph->bitmap.rows,
-				0,
-				GL_RED,
-				GL_UNSIGNED_BYTE,
-				face->glyph->bitmap.buffer
-			);
-			// Set texture options
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			// Now store character for later use
-			Character character = {
-				texture,
-				_vec2<int>(face->glyph->bitmap.width, face->glyph->bitmap.rows),
-				_vec2<int>(face->glyph->bitmap_left, face->glyph->bitmap_top),
-				(unsigned int)face->glyph->advance.x
-			};
-			Characters.push_back(character);
-		}
-		else {
-			GLuint texture;
-			glGenTextures(1, &texture);
-			glBindTexture(GL_TEXTURE_2D, texture);
-			glTexImage2D(
-				GL_TEXTURE_2D,
-				0,
-				GL_RED,
-				face->glyph->bitmap.width,
-				face->glyph->bitmap.rows,
-				0,
-				GL_RED,
-				GL_UNSIGNED_BYTE,
-				face->glyph->bitmap.buffer
-			);
-			// Set texture options
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			// Now store character for later use
-			Character character = {
-				texture,
-				_vec2<int>(face->glyph->bitmap.width, face->glyph->bitmap.rows),
-				_vec2<int>(face->glyph->bitmap_left, face->glyph->bitmap_top),
-				(unsigned int)face->glyph->advance.x
-			};
-			Characters.push_back(character);
-		}
-		
+	FT_Set_Pixel_Sizes(face, 0, font_size);
+
+	font = suckless_font_fr(1024, font_size);
+
+	for (int i = 33; i < 248; i++) {
+		infos[i] = suckless_font_add_f(ft, &font, i);
 	}
+
+	glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	glTexImage2D(
+		GL_TEXTURE_2D,
+		0,
+		GL_RED,
+		font.datasize,
+		font.datasize,
+		0,
+		GL_RED,
+		GL_UNSIGNED_BYTE,
+		font.data.data()
+	);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
 	glBindTexture(GL_TEXTURE_2D, 0);
-	// Destroy FreeType once we're finished
+
 	FT_Done_Face(face);
 	FT_Done_FreeType(ft);
 
-
-	// Configure VAO/VBO for texture quads
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
 	glBindVertexArray(VAO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 4, NULL, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 4, nullptr, GL_DYNAMIC_DRAW);
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 }
 
-void TextRenderer::render(const std::string& text, vec2 position, float_t scale, const Color& color) {
-	if (text.empty()) {
-		return;
-	}
+//void TextRenderer::update(const std::string& text, float_t font_size)
+//{
+//	if (text == current_str) {
+//		return;
+//	}
+//
+//	current_str = text;
+//
+//	static FT_Library ft;
+//	static FT_Face face;
+//
+//	static bool once = false;
+//
+//	if (!once) {
+//		if (FT_Init_FreeType(&ft))
+//			std::cout << "Could not init FreeType Library" << std::endl;
+//		if (FT_New_Face(ft, "fonts/arial.ttf", 0, &face))
+//			std::cout << "ERROR::FREETYPE: Failed to load font" << std::endl;
+//		once = true;
+//	}
+//
+//	FT_Set_Pixel_Sizes(face, 0, font_size);
+//	suckless_font_t font = suckless_font_fr(ft, face, font_size, text.data());
+//
+//	glBindTexture(GL_TEXTURE_2D, texture);
+//	glTexImage2D(
+//		GL_TEXTURE_2D,
+//		0,
+//		GL_RED,
+//		font.datasize,
+//		font.datasize,
+//		0,
+//		GL_RED,
+//		GL_UNSIGNED_BYTE,
+//		font.data.data()
+//	);
+//
+//	glBindTexture(GL_TEXTURE_2D, 0);
+//
+//	string = Character{
+//		texture,
+//		vec2(font.datasize),
+//		vec2i(0, 0),
+//		(unsigned int)font.datasize
+//	};
+//}
 
+void text_renderer::render(const std::string& text, vec2 position, const Color& color, float_t scale) {
 	shader.use();
 	shader.set_mat4("projection", Ortho(0, window_size.x, window_size.y, 0));
 	shader.set_vec4("textColor", color);
 
 	glBindVertexArray(VAO);
 
-	std::string::const_iterator c;
+	std::vector<std::array<std::array<float_t, 4>, 6>> datas;
 
-	float originalX = position.x;
+	letter_info_t _letter;
 
-	std::vector<std::array<std::array<float_t, 4>, 6>> vertices(text.size());
-	{
-		int i = 0;
-		for (c = text.begin(); c != text.end(); c++)
-		{
-			Character ch = Characters[*c];
+	const float_t begin = position.x;
 
-			GLfloat w = ch.Size.x * scale;
-			GLfloat h = ch.Size.y * scale;
+	for (int i = 0; i < text.size(); i++) {
+		_letter = infos[text[i]];
 
-			/*if (position.y - (ch.Size.y - ch.Bearing.y) * scale + h < title_bar_height) {
-				continue;
+		float_t xpos = position.x;
+		float_t ypos = position.y - 1;
+		vec2 size(_letter.width, font.fontsize);
+		size = size / size.max() * scale;
+
+		if (text[i] == ' ') {
+			position.x += 10;
+		}
+		else {
+			position.x += size.x + 2;
+		}
+
+		if (text[i] == '\n') {
+			position.x = begin;
+			position.y += button_text_gap;
+		}
+
+		letter_info_opengl_t letter = letter_to_opengl(font, _letter);
+		float_t height = letter.pos.y + ((float_t)font.fontsize / font.datasize);
+
+		std::array<std::array<float_t, 4>, 6> vertices = { {
+			{ xpos,          ypos,                     letter.pos.x, letter.pos.y },
+			{ xpos,          ypos + size.y,            letter.pos.x, height },
+			{ xpos + size.x, ypos + size.y,            letter.pos.x + letter.width, height },
+
+			{ xpos,          ypos,                     letter.pos.x, letter.pos.y },
+			{ xpos + size.x, ypos + size.y,            letter.pos.x + letter.width, height },
+			{ xpos + size.x, ypos,                     letter.pos.x + letter.width, letter.pos.y }
+		}
+		};
+		datas.push_back(vertices);
+	}
+
+	glBindTexture(GL_TEXTURE_2D, texture);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(datas[0]) * datas.size(), datas.data(), GL_DYNAMIC_DRAW);
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glDrawArrays(GL_TRIANGLES, 0, 6 * datas.size());
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glBindVertexArray(0);
+}
+
+void text_renderer::render(const std::vector<std::string>& text, std::vector<vec2> position, const std::vector<Color>& color, const std::vector<float_t>& scale)
+{
+	shader.use();
+	shader.set_mat4("projection", Ortho(0, window_size.x, window_size.y, 0));
+	shader.set_vec4("textColor", color[0]);
+
+	std::vector<std::array<std::array<float_t, 4>, 6>> datas(text.size());
+	glBindVertexArray(VAO);
+
+	for (int instance = 0; instance < text.size(); instance++) {
+
+		letter_info_t _letter;
+
+		float_t x_position = position[instance].x;
+
+		float_t begin = x_position;
+
+		for (int i = 0; i < text[instance].size(); i++) {
+			_letter = infos[text[instance][i]];
+
+			vec2 size(_letter.width, font.fontsize);
+			size = size / size.max() * scale[instance];
+
+			float_t xpos = x_position;
+			float_t ypos = position[instance].y;
+
+			if (text[instance][i] == ' ') {
+				x_position += 10;
 			}
-			else if (position.y - (ch.Size.y - ch.Bearing.y) * scale + h > window_size.y) {
-				continue;
-			}*/
-			if (*c == '\n') {
-				position.x = originalX;
-				position.y += text_gap;
-				continue;
-			}
-			else if (*c == '\b') {
-				position.x = originalX;
-				position.y -= text_gap;
-				continue;
+			else {
+				x_position += size.x + 2;
 			}
 
-			float_t xpos = position.x + ch.Bearing.x * scale;
-			float_t ypos = position.y + (ch.Size.y - ch.Bearing.y) * scale;
-			// Update VBO for each character
-			vertices[i] = std::array<std::array<float_t, 4>, 6>{
-				{
-					{xpos, ypos - h,		0.0, 0.0 },
-					{ xpos,     ypos,       0.0, 1.0 },
-					{ xpos + w, ypos,       1.0, 1.0 },
+			if (text[instance][i] == '\n') {
+				x_position = begin;
+				position[instance].y += button_text_gap;
+			}
 
-					{ xpos,     ypos - h,   0.0, 0.0 },
-					{ xpos + w, ypos,       1.0, 1.0 },
-					{ xpos + w, ypos - h,   1.0, 0.0 }
-				}
+			letter_info_opengl_t letter = letter_to_opengl(font, _letter);
+			float_t height = letter.pos.y + ((float_t)font.fontsize / font.datasize);
+
+			std::array<std::array<float_t, 4>, 6> vertices = { {
+				{ xpos,          ypos,                     letter.pos.x,     letter.pos.y },
+				{ xpos,          ypos + size.y,            letter.pos.x, height },
+				{ xpos + size.x, ypos + size.y,            letter.pos.x + letter.width, height },
+
+				{ xpos,          ypos,                     letter.pos.x, letter.pos.y },
+				{ xpos + size.x, ypos + size.y,            letter.pos.x + letter.width, height },
+				{ xpos + size.x, ypos,                     letter.pos.x + letter.width, letter.pos.y }
+			}
 			};
-
-			position.x += (Characters[*c].Advance >> 6) * scale; // Bitshift by 6 to get value in pixels (2^6 = 64 (divide amount of 1/64th pixels by 64 to get amount of pixels))
-			i++;
+			datas.push_back(vertices);
 		}
 	}
 
+	glBindTexture(GL_TEXTURE_2D, texture);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices[0]) * vertices.size(), vertices.data(), GL_DYNAMIC_DRAW); // Be sure to use glBufferSubData and not glBufferData
+	glBufferData(GL_ARRAY_BUFFER, sizeof(datas[0]) * datas.size(), datas.data(), GL_DYNAMIC_DRAW);
+
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	int i = 0;
-	glBindTexture(GL_TEXTURE_2D, Characters[*text.begin()].TextureID);
-	glDrawArrays(GL_TRIANGLES, 0, 6 * text.size());
+	glDrawArrays(GL_TRIANGLES, 0, 6 * datas.size());
 
-	/*for (c = text.begin(); c != text.end(); c++) {
-
-		glBindTexture(GL_TEXTURE_2D, Characters[*c].TextureID);
-		glDrawArrays(GL_TRIANGLES, 0, 6);
-
-		i++;
-	}*/
-
-	// Render glyph texture over quad
 	glBindVertexArray(0);
 	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+vec2 text_renderer::get_length(const std::string& text, float_t scale)
+{
+	letter_info_t _letter;
+
+	vec2 string_size;
+
+	float_t new_line = 0;
+
+	string_size.y = -1;
+
+	for (int i = 0; i < text.size(); i++) {
+		_letter = infos[text[i]];
+		if (text[i] == ' ') {
+			string_size.x += 10;
+		}
+		else if (text[i] == '\n') {
+			new_line += button_text_gap;
+		}
+		else {
+			vec2 size(_letter.width, font.fontsize);
+			size = size / size.max() * scale;
+
+			if (i != text.size() - 1) {
+				string_size.x += size.x + 2;
+			}
+			else {
+				string_size.x += size.x;
+			}
+		}
+		string_size.y = std::max(static_cast<float_t>(_letter.height), string_size.y);
+	}
+
+	return string_size + vec2(0, new_line);
+}
+
+std::vector<vec2> text_renderer::get_length(const std::vector<std::string>& texts, const std::vector<float_t>& scales, bool half)
+{
+	letter_info_t _letter;
+	std::vector<vec2> string_size(texts.size());
+
+	for (int text = 0; text < texts.size(); text++) {
+		for (int i = 0; i < texts[text].size(); i++) {
+			_letter = infos[texts[text][i]];
+
+			if (texts[text][i] == ' ') {
+				if (half) {
+					string_size[text].x += 2.5;
+				}
+				else {
+					string_size[text].x += 5;
+				}
+			}
+			else {
+				vec2 size(_letter.width, font.fontsize);
+				size = size / size.max() * scales[text];
+
+				if (half) {
+					string_size[text].x += (size.x + 2) * 0.5;
+				}
+				else {
+					string_size[text].x += size.x + 2;
+				}
+			}
+
+		}
+		if (half) {
+			string_size[text].y = -(int)font.fontsize / 2;
+		}
+		else {
+			string_size[text].y = font.fontsize / 2;
+		}
+	}
+
+	return string_size;
+}
+
+fan_gui::button_vector::button_vector() : square_vector2d(), renderer(font_size) {}
+
+fan_gui::button_vector::button_vector(const vec2& position, const Color& color)
+	: square_vector2d(position, button_text_gap, color), renderer(font_size), max_width(INF)
+{
+	texts.push_back("");
+	button_character_callbacks.push_back([this](int button_id, int key) {
+		texts[button_id].push_back(key);
+		edit_size(button_id, texts[button_id]);
+	});
+}
+
+fan_gui::button_vector::button_vector(const std::string& text, const vec2& position, const Color& color)
+	: square_vector2d(position, button_text_gap, color), renderer(font_size), max_width(INF)
+{
+	texts.push_back(text);
+	button_character_callbacks.push_back([this](int button_id, int key) {
+		texts[button_id].push_back(key);
+		edit_size(button_id, texts[button_id]);
+	});
+}
+
+fan_gui::button_vector::button_vector(const vec2& position, float_t max_width, const Color& color)
+	: renderer(text_renderer(font_size)), max_width(max_width), square_vector2d(position, vec2(), color)
+{
+	set_size(0, button_text_gap);
+	texts.push_back("");
+	button_character_callbacks.push_back([&](int button_id, int key) {
+		auto found = texts[button_id].find_last_of('\n');
+		if (get_length(texts[button_id].substr(found == std::string::npos ? 0 : found + 1) + (char)key, font_size).x + button_text_gap > this->max_width) {
+			texts[button_id].push_back('\n');
+		}
+		texts[button_id].push_back(key);
+		edit_size(button_id, texts[button_id]);
+	});
+}
+
+fan_gui::button_vector::button_vector(const std::string& text, const vec2& position, float_t max_width, const Color& color)
+	: renderer(text_renderer(font_size)), max_width(max_width), square_vector2d(position, vec2(), color)
+{
+	set_size(0, vec2(renderer.get_length(text, font_size).x, font_size) + button_text_gap);
+	texts.push_back(text);
+	button_character_callbacks.push_back([&] (int button_id, int key) {
+		auto found = texts[button_id].find_last_of('\n');
+		if (get_length(texts[button_id].substr(found == std::string::npos ? 0 : found + 1) + (char)key, font_size).x + button_text_gap > this->max_width) {
+			texts[button_id].push_back('\n');
+		}
+		texts[button_id].push_back(key);
+		edit_size(button_id, texts[button_id]);
+	});
+}
+
+fan_gui::button_vector::button_vector(const std::string& text, const vec2& position, const vec2& size, const Color& color)
+	: square_vector2d(position, size, color), renderer(font_size), max_width(INF) {
+	button_character_callbacks.push_back([&](int button_id, int key) {
+		texts[button_id].push_back(key);
+		edit_size(button_id, texts[button_id]);
+	});
+	texts.push_back(text);
+}
+
+void fan_gui::button_vector::add(const std::string& text, const vec2& position, const vec2& size, const Color& color)
+{
+	push_back(position, size, color);
+	texts.push_back(text);
+}
+
+void fan_gui::button_vector::add(const vec2& position, const Color& color)
+{
+	button_character_callbacks.push_back(std::function([&](int button_id, int key) {
+		texts[button_id].push_back(key);
+		edit_size(button_id, texts[button_id]);
+	}));
+	push_back(position, button_text_gap, color);
+	texts.push_back("");
+}
+
+void fan_gui::button_vector::add(const std::string& text, const vec2& position, const Color& color)
+{
+	push_back(position, renderer.get_length(text, font_size) + button_text_gap, color);
+	texts.push_back(text);
+}
+
+void fan_gui::button_vector::edit_size(uint64_t i, const std::string& text)
+{
+	std::vector<std::string> lines;
+	int offset = 0;
+	for (int i = 0; i < text.size(); i++) {
+		if (text[i] == '\n') {
+			lines.push_back(text.substr(offset, i - offset));
+			offset = i + 1;
+		}
+	}
+	lines.push_back(text.substr(offset, text.size()));
+	float_t largest = -9999999;
+	for (auto i : lines) {
+		float_t size = renderer.get_length(i, font_size).x;
+		if (size > largest) {
+			largest = size;
+		}
+	}
+	vec2 square_size(vec2(largest, font_size * lines.size()) + vec2(button_text_gap, button_text_gap));
+	set_size(i, square_size);
+	texts[i] = text;
+}
+
+void fan_gui::button_vector::draw(uint64_t i)
+{
+	square_vector2d::draw();
+	glDisable(GL_DEPTH_TEST);
+	auto pos = get_position(i) + button_text_gap / 2;
+	renderer.render(texts[i], pos, default_text_color, font_size);
+	glEnable(GL_DEPTH_TEST);
+}
+
+void fan_gui::button_vector::draw()
+{
+	square_vector2d::draw();
+	glDisable(GL_DEPTH_TEST);
+	std::vector<vec2> positions = get_positions();
+	std::vector<vec2> gaps(size(), button_text_gap / 2);
+	std::transform(positions.begin(), positions.end(), gaps.begin(), positions.begin(), std::plus<vec2>());
+	renderer.render(texts, positions, std::vector<Color>(size(), default_text_color), std::vector<float_t>(size(), font_size));
+	glEnable(GL_DEPTH_TEST);
+}
+
+bool fan_gui::button_vector::inside(uint64_t i) const
+{
+	const vec2 size = get_size(i);
+	const vec2 position = get_position(i);
+	return cursor_position.x > position.x && cursor_position.x < position.x + size.x &&
+		cursor_position.y > position.y && cursor_position.y < position.y + size.y;
+}
+
+void fan_gui::button_vector::on_click(uint64_t i, int key, std::function<void()> function) const
+{
+	if (inside(i) && key_press(key)) {
+		function();
+	}
+}
+
+void fan_gui::button_vector::on_click(const std::string& button_id, int key, std::function<void()> function) const
+{
+	auto found = std::find(texts.begin(), texts.end(), button_id);
+
+	if (found != texts.end()) {
+		if (inside(std::distance(texts.begin(), found)) && key_press(key)) {
+			function();
+		}
+	}
+
+}
+
+vec2 fan_gui::button_vector::get_length(const std::string& text, float_t font_size)
+{
+	return renderer.get_length(text, font_size);
+}
+
+std::function<void(int, int)> fan_gui::button_vector::get_character_callback(uint64_t i) const
+{
+	return this->button_character_callbacks[i];
+}
+
+std::function<void(int)> fan_gui::button_vector::get_newline_callback() const
+{
+	return this->button_newline_callback;
+}
+
+std::function<void(int)> fan_gui::button_vector::get_erase_callback() const
+{
+	return this->button_erase_callback;
 }
