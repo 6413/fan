@@ -10,6 +10,13 @@
 #include <array>
 #include <functional>
 
+template <class T, class... Ts>
+struct is_any : std::bool_constant<(std::is_same_v<T, Ts> || ...)> {};
+
+using float_t = float;
+using uint_t = unsigned int;
+constexpr float_t INF = INFINITY;
+
 template <typename _Ty>
 class _vec3;
 
@@ -33,6 +40,147 @@ public:
 	constexpr _Ty& operator[](uint64_t idx) { return !idx ? x : y; }
 	constexpr _Ty operator[](uint64_t idx) const { return !idx ? x : y; }
 
+	template <typename _Type>
+	constexpr _vec2<type> operator%(_Type single_value) const noexcept {
+		return _vec2<type>(fmod(this->x, single_value), fmod(this->y, single_value));
+	}
+
+	template <typename _Type>
+	constexpr bool operator==(const _vec2<_Type>& vector) const noexcept {
+		return this->x == vector.x && this->y == vector.y;
+	}
+
+	template <typename _Type>
+	constexpr bool operator==(_Type single_value) const noexcept {
+		return this->x == single_value && this->y == single_value;
+	}
+
+	template <typename _Type>
+	constexpr bool operator!=(const _vec2<_Type>& vector) const noexcept {
+		return this->x != vector.x || this->y != vector.y;
+	}
+
+	template <typename _Type>
+	constexpr bool operator!=(_Type single_value) const noexcept {
+		return this->x != single_value || this->y != single_value;
+	}
+
+	// math operators
+	template <typename _Type>
+	constexpr _vec2<type> operator+(const _vec2<_Type>& vector) const noexcept
+	{
+		return _vec2<type>(this->x + vector.x, this->y + vector.y);
+	}
+
+	template <typename _Type>
+	constexpr _vec2<type> operator+(_Type single_value) const noexcept
+	{
+		return _vec2<_Type>(this->x + single_value, this->y + single_value);
+	}
+
+	template <typename _Type>
+	constexpr _vec2<type> operator+=(const _vec2<_Type>& vector) noexcept
+	{
+		this->x += vector.x;
+		this->y += vector.y;
+		return *this;
+	}
+
+	template <typename _Type>
+	constexpr _vec2<type> operator+=(_Type single_value) noexcept
+	{
+		this->x += single_value;
+		this->y += single_value;
+		return *this;
+	}
+
+
+	template <typename _Type>
+	constexpr _vec2<type> operator-(const _vec2<_Type>& vector) const noexcept
+	{
+		return _vec2<type>(this->x - vector.x, this->y - vector.y);
+	}
+
+	template <typename _Type>
+	constexpr _vec2<type> operator-(_Type single_value) const noexcept
+	{
+		return _vec2<_Type>(this->x - single_value, this->y - single_value);
+	}
+
+	template <typename _Type>
+	constexpr _vec2<type> operator-=(const _vec2<_Type>& vector) noexcept
+	{
+		this->x -= vector.x;
+		this->y -= vector.y;
+		return *this;
+	}
+
+	template <typename _Type>
+	constexpr _vec2<type> operator-=(_Type single_value) noexcept
+	{
+		this->x -= single_value;
+		this->y -= single_value;
+		return *this;
+	}
+
+
+	template <typename _Type>
+	constexpr _vec2<type> operator*(const _vec2<_Type>& vector) const noexcept
+	{
+		return _vec2<type>(this->x * vector.x, this->y * vector.y);
+	}
+
+	template <typename _Type>
+	constexpr _vec2<type> operator*(_Type single_value) const noexcept
+	{
+		return _vec2<_Type>(this->x * single_value, this->y * single_value);
+	}
+
+	template <typename _Type>
+	constexpr _vec2<type> operator*=(const _vec2<_Type>& vector) noexcept
+	{
+		this->x *= vector.x;
+		this->y *= vector.y;
+		return *this;
+	}
+
+	template <typename _Type>
+	constexpr _vec2<type> operator*=(_Type single_value) noexcept
+	{
+		this->x *= single_value;
+		this->y *= single_value;
+		return *this;
+	}
+
+
+	template <typename _Type>
+	constexpr _vec2<type> operator/(const _vec2<_Type>& vector) const noexcept
+	{
+		return _vec2<type>(this->x / vector.x, this->y / vector.y);
+	}
+
+	template <typename _Type>
+	constexpr _vec2<type> operator/(_Type single_value) const noexcept
+	{
+		return _vec2<_Type>(this->x / single_value, this->y / single_value);
+	}
+
+	template <typename _Type>
+	constexpr _vec2<type> operator/=(const _vec2<_Type>& vector) noexcept
+	{
+		this->x /= vector.x;
+		this->y /= vector.y;
+		return *this;
+	}
+
+	template <typename _Type>
+	constexpr _vec2<type> operator/=(_Type single_value) noexcept
+	{
+		this->x /= single_value;
+		this->y /= single_value;
+		return *this;
+	}
+
 	constexpr vec_t floored() const { return vec_t(floor(x), floor(y)); }
 	constexpr vec_t floored(_Ty value) const { return vec_t(floor(x / value), floor(y / value)); }
 
@@ -50,9 +198,13 @@ public:
 
 	static constexpr uint64_t size() { return 2; }
 	constexpr void print() const { std::cout << x << " " << y << std::endl; }
+
+	template <typename T>
+	friend std::ostream& operator<<(std::ostream& os, const _vec2<T>& vector) noexcept;
+
 };
 
-template <typename _Ty = float>
+template <typename _Ty = float_t>
 class _vec3 {
 public:
 	_Ty x, y, z;
@@ -70,6 +222,155 @@ public:
 
 	constexpr _Ty& operator[](uint64_t idx) { return !idx ? x : idx == 1 ? y : z; }
 	constexpr _Ty operator[](uint64_t idx) const { return !idx ? x : idx == 1 ? y : z; }
+
+	template <typename _Type>
+	constexpr _vec3<type> operator%(_Type single_value) const noexcept {
+		return _vec3<type>(fmod(this->x, single_value), fmod(this->y, single_value), fmod(this->z, single_value));
+	}
+
+	template <typename _Type>
+	constexpr bool operator==(const _vec3<_Type>& vector) const noexcept {
+		return this->x == vector.x && this->y == vector.y && this->y == vector.z;
+	}
+
+	template <typename _Type>
+	constexpr bool operator==(_Type single_value) const noexcept {
+		return this->x == single_value && this->y == single_value && this->z == single_value;
+	}
+
+	template <typename _Type>
+	constexpr bool operator!=(const _vec3<_Type>& vector) const noexcept {
+		return this->x != vector.x && this->y != vector.y && this->z != vector.z;
+	}
+
+	template <typename _Type>
+	constexpr bool operator!=(_Type single_value) const noexcept {
+		return this->x != single_value && this->y != single_value;
+	}
+
+	// math operators
+	template <typename _Type>
+	constexpr _vec3<type> operator+(const _vec3<_Type>& vector) const noexcept
+	{
+		return _vec3<type>(this->x + vector.x, this->y + vector.y, this->z + vector.z);
+	}
+
+	template <typename _Type>
+	constexpr _vec3<type> operator+(_Type single_value) const noexcept
+	{
+		return _vec3<_Type>(this->x + single_value, this->y + single_value, this->z + single_value);
+	}
+
+	template <typename _Type>
+	constexpr _vec3<type> operator+=(const _vec3<_Type>& vector) noexcept
+	{
+		this->x += vector.x;
+		this->y += vector.y;
+		this->z += vector.z;
+		return *this;
+	}
+
+	template <typename _Type>
+	constexpr _vec3<type> operator+=(_Type single_value) noexcept
+	{
+		this->x += single_value;
+		this->y += single_value;
+		this->z += single_value;
+		return *this;
+	}
+
+
+	template <typename _Type>
+	constexpr _vec3<type> operator-(const _vec3<_Type>& vector) const noexcept
+	{
+		return _vec3<type>(this->x - vector.x, this->y - vector.y, this->z - vector.z);
+	}
+
+	template <typename _Type>
+	constexpr _vec3<type> operator-(_Type single_value) const noexcept
+	{
+		return _vec3<_Type>(this->x - single_value, this->y - single_value, this->z - single_value);
+	}
+
+	template <typename _Type>
+	constexpr _vec3<type> operator-=(const _vec3<_Type>& vector) noexcept
+	{
+		this->x -= vector.x;
+		this->y -= vector.y;
+		this->z -= vector.z;
+		return *this;
+	}
+
+	template <typename _Type>
+	constexpr _vec3<type> operator-=(_Type single_value) noexcept
+	{
+		this->x -= single_value;
+		this->y -= single_value;
+		this->z -= single_value;
+		return *this;
+	}
+
+
+	template <typename _Type>
+	constexpr _vec3<type> operator*(const _vec3<_Type>& vector) const noexcept
+	{
+		return _vec3<type>(this->x * vector.x, this->y * vector.y, this->z * vector.z);
+	}
+
+	template <typename _Type>
+	constexpr _vec3<type> operator*(_Type single_value) const noexcept
+	{
+		return _vec3<_Type>(this->x * single_value, this->y * single_value, this->z * single_value);
+	}
+
+	template <typename _Type>
+	constexpr _vec3<type> operator*=(const _vec3<_Type>& vector) noexcept
+	{
+		this->x *= vector.x;
+		this->y *= vector.y;
+		this->z *= vector.z;
+		return *this;
+	}
+
+	template <typename _Type>
+	constexpr _vec3<type> operator*=(_Type single_value) noexcept
+	{
+		this->x *= single_value;
+		this->y *= single_value;
+		this->z *= single_value;
+		return *this;
+	}
+
+
+	template <typename _Type>
+	constexpr _vec3<type> operator/(const _vec3<_Type>& vector) const noexcept
+	{
+		return _vec3<type>(this->x / vector.x, this->y / vector.y, this->z / vector.z);
+	}
+
+	template <typename _Type>
+	constexpr _vec3<type> operator/(_Type single_value) const noexcept
+	{
+		return _vec3<_Type>(this->x / single_value, this->y / single_value, this->z / single_value);
+	}
+
+	template <typename _Type>
+	constexpr _vec3<type> operator/=(const _vec3<_Type>& vector) noexcept
+	{
+		this->x /= vector.x;
+		this->y /= vector.y;
+		this->z /= vector.z;
+		return *this;
+	}
+
+	template <typename _Type>
+	constexpr _vec3<type> operator/=(_Type single_value) noexcept
+	{
+		this->x /= single_value;
+		this->y /= single_value;
+		this->z /= single_value;
+		return *this;
+	}
 
 	constexpr vec_t floored() const { return vec_t(floor(x), floor(y), floor(z)); }
 	constexpr vec_t floored(_Ty value) const { return vec_t(floor(x / value), floor(y / value), floor(z / value)); }
@@ -92,9 +393,13 @@ public:
 	static constexpr uint64_t size() { return 3; }
 
 	constexpr void print() const { std::cout << x << " " << y << " " << z << std::endl; }
+
+	template <typename T>
+	friend std::ostream& operator<<(std::ostream& os, const _vec3<T>& vector) noexcept;
+
 };
 
-template <typename _Ty = float>
+template <typename _Ty = float_t>
 class _vec4 {
 public:
 	_Ty x, y, z, w;
@@ -113,13 +418,201 @@ public:
 	constexpr _Ty& operator[](uint64_t idx) { return !idx ? x : idx == 1 ? y : idx == 2 ? z : w; }
 	constexpr _Ty operator[](uint64_t idx) const { return !idx ? x : idx == 1 ? y : idx == 2 ? z : w; }
 
+	template <typename _Type>
+	constexpr _vec3<type> operator%(_Type single_value) const noexcept {
+		return _vec3<type>(fmod(this->x, single_value), fmod(this->y, single_value), fmod(this->z, single_value), fmod(this->w, single_value));
+	}
+
+	template <typename _Type>
+	constexpr bool operator==(const _vec4<_Type>& vector) const noexcept {
+		return this->x == vector.x && this->y == vector.y && this->y == vector.z && this->w == vector.w;
+	}
+
+	template <typename _Type>
+	constexpr bool operator==(_Type single_value) const noexcept {
+		return this->x == single_value && this->y == single_value && this->z == single_value && this->w == single_value;
+	}
+
+	template <typename _Type>
+	constexpr bool operator!=(const _vec4<_Type>& vector) const noexcept {
+		return this->x != vector.x || this->y != vector.y || this->z != vector.z || this->w != vector.w;
+	}
+
+	template <typename _Type>
+	constexpr bool operator!=(_Type single_value) const noexcept {
+		return this->x != single_value || this->y != single_value || this->w != single_value;
+	}
+
+	// math operators
+	template <typename _Type>
+	constexpr _vec4<type> operator+(const _vec4<_Type>& vector) const noexcept
+	{
+		return _vec4<type>(this->x + vector.x, this->y + vector.y, this->z + vector.z, this->w + vector.w);
+	}
+
+	template <typename _Type>
+	constexpr _vec4<type> operator+(_Type single_value) const noexcept
+	{
+		return _vec4<_Type>(this->x + single_value, this->y + single_value, this->z + single_value, this->w + single_value);
+	}
+
+	template <typename _Type>
+	constexpr _vec4<type> operator+=(const _vec4<_Type>& vector) noexcept
+	{
+		this->x += vector.x;
+		this->y += vector.y;
+		this->z += vector.z;
+		this->w += vector.w;
+		return *this;
+	}
+
+	template <typename _Type>
+	constexpr _vec4<type> operator+=(_Type single_value) noexcept
+	{
+		this->x += single_value;
+		this->y += single_value;
+		this->z += single_value;
+		this->w += single_value;
+		return *this;
+	}
+
+
+	template <typename _Type>
+	constexpr _vec4<type> operator-(const _vec4<_Type>& vector) const noexcept
+	{
+		return _vec4<type>(this->x - vector.x, this->y - vector.y, this->z - vector.z, this->w - vector.w);
+	}
+
+	template <typename _Type>
+	constexpr _vec4<type> operator-(_Type single_value) const noexcept
+	{
+		return _vec4<_Type>(this->x - single_value, this->y - single_value, this->z - single_value, this->w - single_value);
+	}
+
+	template <typename _Type>
+	constexpr _vec4<type> operator-=(const _vec4<_Type>& vector) noexcept
+	{
+		this->x -= vector.x;
+		this->y -= vector.y;
+		this->z -= vector.z;
+		this->z -= vector.w;
+		return *this;
+	}
+
+	template <typename _Type>
+	constexpr _vec4<type> operator-=(_Type single_value) noexcept
+	{
+		this->x -= single_value;
+		this->y -= single_value;
+		this->z -= single_value;
+		this->w -= single_value;
+		return *this;
+	}
+
+
+	template <typename _Type>
+	constexpr _vec4<type> operator*(const _vec4<_Type>& vector) const noexcept
+	{
+		return _vec4<type>(this->x * vector.x, this->y * vector.y, this->z * vector.z, this->w * vector.w);
+	}
+
+	template <typename _Type>
+	constexpr _vec4<type> operator*(_Type single_value) const noexcept
+	{
+		return _vec4<_Type>(this->x * single_value, this->y * single_value, this->z * single_value, this->w * single_value);
+	}
+
+	template <typename _Type>
+	constexpr _vec4<type> operator*=(const _vec4<_Type>& vector) noexcept
+	{
+		this->x *= vector.x;
+		this->y *= vector.y;
+		this->z *= vector.z;
+		this->w *= vector.w;
+		return *this;
+	}
+
+	template <typename _Type>
+	constexpr _vec4<type> operator*=(_Type single_value) noexcept
+	{
+		this->x *= single_value;
+		this->y *= single_value;
+		this->z *= single_value;
+		this->w *= single_value;
+		return *this;
+	}
+
+
+	template <typename _Type>
+	constexpr _vec4<type> operator/(const _vec4<_Type>& vector) const noexcept
+	{
+		return _vec4<type>(this->x / vector.x, this->y / vector.y, this->z / vector.z, this->w / vector.w);
+	}
+
+	template <typename _Type>
+	constexpr _vec4<type> operator/(_Type single_value) const noexcept
+	{
+		return _vec4<_Type>(this->x / single_value, this->y / single_value, this->z / single_value, this->w / single_value);
+	}
+
+	template <typename _Type>
+	constexpr _vec4<type> operator/=(const _vec4<_Type>& vector) noexcept
+	{
+		this->x /= vector.x;
+		this->y /= vector.y;
+		this->z /= vector.z;
+		this->w /= vector.w;
+		return *this;
+	}
+
+	template <typename _Type>
+	constexpr _vec4<type> operator/=(_Type single_value) noexcept
+	{
+		this->x /= single_value;
+		this->y /= single_value;
+		this->z /= single_value;
+		this->w /= single_value;
+		return *this;
+	}
+
 	constexpr _vec4<_Ty> floored() const { return _vec4<_Ty>(floor(x), floor(y), floor(z), floor(w)); }
 	constexpr _vec4<_Ty> floored(_Ty value) const { return _vec4<_Ty>(floor(x / value), floor(y / value), floor(z / value), floor(w / value)); }
 
 	static constexpr uint64_t size() { return 4; }
 
 	constexpr void print() const { std::cout << x << " " << y << " " << z << " " << w << std::endl; }
+
+	template <typename T>
+	friend std::ostream& operator<<(std::ostream& os, const _vec4<T>& vector) noexcept;
+
 };
+
+template <typename T>
+std::ostream& operator<<(std::ostream& os, const _vec2<T>& vector) noexcept
+{
+	os << vector.x << " " << vector.y;
+	return os;
+}
+
+template <typename T>
+std::ostream& operator<<(std::ostream& os, const _vec3<T>& vector) noexcept
+{
+	os << vector.x << " " << vector.y << " " << vector.z;
+	return os;
+}
+
+template <typename T>
+std::ostream& operator<<(std::ostream& os, const _vec4<T>& vector) noexcept
+{
+	os << vector.x << " " << vector.y << " " << vector.z << " " << vector.w;
+	return os;
+}
+
+template <typename Arg, typename ...Args>
+void LOG(const Arg& arg, const Args&... args) {
+	std::cout << arg;
+	((std::cout << " " << args), ...) << '\n';
+}
 
 template <int Cols, int Rows, typename _Ty = float>
 class matrix {
@@ -127,18 +620,12 @@ public:
 	std::array<_Ty, Cols> m[Rows];
 	using type = _Ty;
 
-	constexpr matrix() : m{ } {
-		for (int _I = 0; _I < Cols; _I++) {
-			for (int _J = 0; _J < Rows; _J++) {
-				m[_I][_J] = 0;
-			}
-		}
-	}
+	constexpr matrix() : m{ 0 } { }
 
 	template <template<typename> typename _Vec_t, typename _Type>
-	matrix(const _Vec_t<_Type>& lhs, const _Vec_t<_Type>& rhs) {
+	constexpr matrix(const _Vec_t<_Type>& lhs, const _Vec_t<_Type>& rhs) : m{ 0 } {
 		static_assert(Rows == 2, "No support for more or less than 2x size matrix");
-		static_assert(Cols == lhs.size(), "vector size and rows do not match");
+		static_assert(Cols == _Vec_t<_Type>::size(), "vector size and rows do not match");
 		for (int i = 0; i < lhs.size(); i++) {
 			m[0][i] = lhs[i];
 		}
@@ -148,13 +635,8 @@ public:
 	}
 
 	template <typename ..._Type>
-	matrix(_Ty _Val, _Type&&... _array) {
+	constexpr matrix(_Ty _Val, _Type&&... _array) : m{ 0 } {
 		if constexpr (!sizeof...(_array)) {
-			for (int _I = 0; _I < Rows; _I++) {
-				for (int _J = 0; _J < Cols; _J++) {
-					m[_I][_J] = 0;
-				}
-			}
 			for (int _I = 0; _I < Rows; _I++) {
 				m[_I][_I] = _Val;
 			}
@@ -168,7 +650,7 @@ public:
 	}
 
 	template <int m_cols, int m_rows>
-	matrix(const matrix<m_cols, m_rows>& matrix) {
+	constexpr matrix(const matrix<m_cols, m_rows>& matrix) : m{ 0 } {
 		for (int i = 0; i < matrix.cols(); i++) {
 			for (int j = 0; j < matrix.rows(); j++) {
 				if (i >= Cols || j >= Rows) {
@@ -238,8 +720,6 @@ public:
 	}
 };
 
-using float_t = float;
-
 using mat2x2 = matrix<2, 2>;
 using mat2x3 = _vec3<float_t>[2];
 using mat2x4 = matrix<2, 4>;
@@ -301,7 +781,7 @@ public:
 		return *this;
 	}
 	bool operator!=(const Color& color) const {
-		return r != color.r && g != color.g && b != color.b;
+		return r != color.r || g != color.g || b != color.b;
 	}
 	constexpr float_t operator[](size_t x) const {
 		return !x ? this->r : x == 1 ? this->g : x == 2 ? this->b : x == 3 ? this->a : this->a;
@@ -320,59 +800,19 @@ public:
 	}
 };
 
-template <class, class>
-constexpr bool is_same_v = false;
-template <class _Ty>
-constexpr bool is_same_v<_Ty, _Ty> = true;
-
-template<typename T, typename... Rest>
-struct is_any : std::false_type {};
-
-template<typename T, typename First>
-struct is_any<T, First> : std::is_same<T, First> {};
-
-template<typename T, typename First, typename... Rest>
-struct is_any<T, First, Rest...>
-	: std::integral_constant<bool, std::is_same<T, First>::value || is_any<T, Rest...>::value>
-{};
-
-template<typename T, typename... Rest>
-struct are_same : std::false_type {};
-
-template<typename T, typename First>
-struct are_same<T, First> : std::is_same<T, First> {};
-
-template<typename T, typename First, typename... Rest>
-struct are_same<T, First, Rest...>
-	: std::integral_constant<bool, std::is_same<T, First>::value&& is_any<T, Rest...>::value>
-{};
-
-template <template<typename> typename _Vec_t, typename _Type>
-concept is_vector = is_any<_Vec_t<_Type>, _vec2<_Type>, _vec3<_Type>, _vec4<_Type>>::value;
-
-template <typename _Vec_t, typename _Type>
-concept is_not_vector = !is_any<_Vec_t, _vec2<_Type>, _vec3<_Type>, _vec4<_Type>>::value;
-
-template <typename _Array, typename _Type, uint64_t _Size>
-concept is_array = std::is_same<_Array, std::array<_Type, _Size>>::value;
-
-template <typename _Array, typename _Type, uint64_t _Size>
-concept is_not_array = !std::is_same<_Array, std::array<_Type, _Size>>::value;
-
 template <typename _Type, uint64_t _Size>
 constexpr std::array<_Type, _Size> operator+=(std::array<_Type, _Size>& _Lhs, const std::array<_Type, _Size>& _Rhs) noexcept
 {
-	std::transform(_Lhs.begin(), _Lhs.end(), _Rhs.cbegin(), _Lhs.begin(), std::plus());
+	std::transform(_Lhs.begin(), _Lhs.end(), _Rhs.cbegin(), _Lhs.begin(), std::plus<void>());
 	return _Lhs;
 }
 
 template <typename _Type, uint64_t _Size, typename _Type2>
 constexpr std::array<_Type, _Size> operator+=(const std::array<_Type, _Size>& _Lhs, _Type2 _Rhs) noexcept
-	requires is_not_array<_Type2, _Type, _Size>
 {
 	std::array<_Type, _Size> _Multiplication;
 	_Multiplication.fill(_Rhs);
-	std::transform(_Lhs.begin(), _Lhs.end(), _Multiplication.cbegin(), _Lhs.begin(), std::plus());
+	std::transform(_Lhs.begin(), _Lhs.end(), _Multiplication.cbegin(), _Lhs.begin(), std::plus<void>());
 	return _Lhs;
 }
 
@@ -380,35 +820,33 @@ template <typename _Type, uint64_t _Size>
 constexpr std::array<_Type, _Size> operator+(const std::array<_Type, _Size>& _Lhs, const std::array<_Type, _Size>& _Rhs) noexcept
 {
 	std::array<_Type, _Size> _Array(_Lhs);
-	std::transform(_Array.begin(), _Array.end(), _Rhs.cbegin(), _Array.begin(), std::plus());
+	std::transform(_Array.begin(), _Array.end(), _Rhs.cbegin(), _Array.begin(), std::plus<void>());
 	return _Array;
 }
 
 template <typename _Type, uint64_t _Size, typename _Type2>
 constexpr std::array<_Type, _Size> operator+(const std::array<_Type, _Size>& _Lhs, _Type2 _Rhs) noexcept  
-	requires is_not_array<_Type2, _Type, _Size>
 {
 	std::array<_Type, _Size> _Array(_Lhs);
 	std::array<_Type, _Size> _Addition;
 	_Addition.fill(_Rhs);
-	std::transform(_Array.begin(), _Array.end(), _Addition.cbegin(), _Array.begin(), std::plus());
+	std::transform(_Array.begin(), _Array.end(), _Addition.cbegin(), _Array.begin(), std::plus<void>());
 	return _Array;
 }
 
 template <typename _Type, uint64_t _Size>
 constexpr std::array<_Type, _Size> operator-=(std::array<_Type, _Size>& _Lhs, const std::array<_Type, _Size>& _Rhs) noexcept
 {
-	std::transform(_Lhs.begin(), _Lhs.end(), _Rhs.cbegin(), _Lhs.begin(), std::minus());
+	std::transform(_Lhs.begin(), _Lhs.end(), _Rhs.cbegin(), _Lhs.begin(), std::minus<void>());
 	return _Lhs;
 }
 
 template <typename _Type, uint64_t _Size, typename _Type2>
 constexpr std::array<_Type, _Size> operator-=(const std::array<_Type, _Size>& _Lhs, _Type2 _Rhs) noexcept
-	requires is_not_array<_Type2, _Type, _Size>
 {
 	std::array<_Type, _Size> _Multiplication;
 	_Multiplication.fill(_Rhs);
-	std::transform(_Lhs.begin(), _Lhs.end(), _Multiplication.cbegin(), _Lhs.begin(), std::minus());
+	std::transform(_Lhs.begin(), _Lhs.end(), _Multiplication.cbegin(), _Lhs.begin(), std::minus<void>());
 	return _Lhs;
 }
 
@@ -416,35 +854,33 @@ template <typename _Type, uint64_t _Size>
 constexpr std::array<_Type, _Size> operator-(const std::array<_Type, _Size>& _Lhs, const std::array<_Type, _Size>& _Rhs) noexcept
 {
 	std::array<_Type, _Size> _Array(_Lhs);
-	std::transform(_Array.begin(), _Array.end(), _Rhs.cbegin(), _Array.begin(), std::minus());
+	std::transform(_Array.begin(), _Array.end(), _Rhs.cbegin(), _Array.begin(), std::minus<void>());
 	return _Array;
 }
 
 template <typename _Type, uint64_t _Size, typename _Type2>
 constexpr std::array<_Type, _Size> operator-(const std::array<_Type, _Size>& _Lhs, _Type2 _Rhs) noexcept
-	requires is_not_array<_Type2, _Type, _Size>
 {
 	std::array<_Type, _Size> _Array(_Lhs);
 	std::array<_Type, _Size> _Subtraction;
 	_Subtraction.fill(_Rhs);
-	std::transform(_Array.begin(), _Array.end(), _Subtraction.cbegin(), _Array.begin(), std::minus());
+	std::transform(_Array.begin(), _Array.end(), _Subtraction.cbegin(), _Array.begin(), std::minus<void>());
 	return _Array;
 }
 
 template <typename _Type, uint64_t _Size>
 constexpr std::array<_Type, _Size> operator*=(std::array<_Type, _Size>& _Lhs, const std::array<_Type, _Size>& _Rhs) noexcept
 {
-	std::transform(_Lhs.begin(), _Lhs.end(), _Rhs.cbegin(), _Lhs.begin(), std::multiplies());
+	std::transform(_Lhs.begin(), _Lhs.end(), _Rhs.cbegin(), _Lhs.begin(), std::multiplies<void>());
 	return _Lhs;
 }
 
 template <typename _Type, uint64_t _Size, typename _Type2>
 constexpr std::array<_Type, _Size> operator*=(std::array<_Type, _Size>& _Lhs, _Type2 _Rhs) noexcept
-	requires is_not_array<_Type2, _Type, _Size>
 {
 	std::array<_Type, _Size> _Multiplication;
 	_Multiplication.fill(_Rhs);
-	std::transform(_Lhs.begin(), _Lhs.end(), _Multiplication.cbegin(), _Lhs.begin(), std::multiplies());
+	std::transform(_Lhs.begin(), _Lhs.end(), _Multiplication.cbegin(), _Lhs.begin(), std::multiplies<void>());
 	return _Lhs;
 }
 
@@ -452,35 +888,33 @@ template <typename _Type, uint64_t _Size>
 constexpr std::array<_Type, _Size> operator*(const std::array<_Type, _Size>& _Lhs, const std::array<_Type, _Size>& _Rhs) noexcept
 {
 	std::array<_Type, _Size> _Array(_Lhs);
-	std::transform(_Array.begin(), _Array.end(), _Rhs.cbegin(), _Array.begin(), std::multiplies());
+	std::transform(_Array.begin(), _Array.end(), _Rhs.cbegin(), _Array.begin(), std::multiplies<void>());
 	return _Array;
 }
 
 template <typename _Type, uint64_t _Size, typename _Type2>
-constexpr std::array<_Type, _Size> operator*(const std::array<_Type, _Size>& _Lhs, _Type2 _Rhs) noexcept
-	requires is_not_array<_Type2, _Type, _Size>
+constexpr std::array<_Type, _Size> operator*(const std::array<_Type, _Size>& _Lhs, _Type2 _Rhs) noexcept 
 {
 	std::array<_Type, _Size> _Array(_Lhs);
-	std::array<_Type, _Size> _Multiplication;
+	std::array<_Type, _Size> _Multiplication{ 0 }; // gcc note implicitly-defined constructor does not initialize - fix {0}
 	_Multiplication.fill(_Rhs);
-	std::transform(_Array.begin(), _Array.end(), _Multiplication.cbegin(), _Array.begin(), std::multiplies());
+	std::transform(_Array.begin(), _Array.end(), _Multiplication.cbegin(), _Array.begin(), std::multiplies<void>());
 	return _Array;
 }
 
 template <typename _Type, uint64_t _Size>
 constexpr std::array<_Type, _Size> operator/=(std::array<_Type, _Size>& _Lhs, const std::array<_Type, _Size>& _Rhs) noexcept
 {
-	std::transform(_Lhs.begin(), _Lhs.end(), _Rhs.cbegin(), _Lhs.begin(), std::divides());
+	std::transform(_Lhs.begin(), _Lhs.end(), _Rhs.cbegin(), _Lhs.begin(), std::divides<void>());
 	return _Lhs;
 }
 
 template <typename _Type, uint64_t _Size, typename _Type2>
 constexpr std::array<_Type, _Size> operator/=(const std::array<_Type, _Size>& _Lhs, _Type2 _Rhs) noexcept
-	requires is_not_array<_Type2, _Type, _Size>
 {
 	std::array<_Type, _Size> _Division;
 	_Division.fill(_Rhs);
-	std::transform(_Lhs.begin(), _Lhs.end(), _Division.cbegin(), _Lhs.begin(), std::divides());
+	std::transform(_Lhs.begin(), _Lhs.end(), _Division.cbegin(), _Lhs.begin(), std::divides<void>());
 	return _Lhs;
 }
 
@@ -488,310 +922,22 @@ template <typename _Type, uint64_t _Size>
 constexpr std::array<_Type, _Size> operator/(const std::array<_Type, _Size>& _Lhs, const std::array<_Type, _Size>& _Rhs) noexcept
 {
 	std::array<_Type, _Size> _Array(_Lhs);
-	std::transform(_Array.begin(), _Array.end(), _Rhs.cbegin(), _Array.begin(), std::divides());
+	std::transform(_Array.begin(), _Array.end(), _Rhs.cbegin(), _Array.begin(), std::divides<void>());
 	return _Array;
 }
 
 template <typename _Type, uint64_t _Size, typename _Type2>
 constexpr std::array<_Type, _Size> operator/(const std::array<_Type, _Size>& _Lhs, _Type2 _Rhs) noexcept
-	requires is_not_array<_Type2, _Type, _Size>
 {
 	std::array<_Type, _Size> _Array(_Lhs);
 	std::array<_Type, _Size> _Division;
 	_Division.fill(_Rhs);
-	std::transform(_Array.begin(), _Array.end(), _Division.cbegin(), _Array.begin(), std::divides());
+	std::transform(_Array.begin(), _Array.end(), _Division.cbegin(), _Array.begin(), std::divides<void>());
 	return _Array;
 }
 
 template <typename _Casted, template<typename> typename _Vec_t, typename _Old>
 constexpr _Vec_t<_Casted> Cast(_Vec_t<_Old> v) noexcept
-requires is_vector<_Vec_t, _Old>
 {
 	return _Vec_t<_Casted>(v);
-}
-
-template <template<typename> typename _Vec_t, typename _Type>
-constexpr std::ostream& operator<<(std::ostream& _Os, const _Vec_t<_Type>& _Lhs) noexcept
-	requires is_vector<_Vec_t, _Type> 
-{ 
-	for (int i = 0; i < _Lhs.size(); i++) {
-		if (i - 1 != _Lhs.size()) {
-			_Os << _Lhs[i] << ' ';
-		}
-		else {
-			_Os << _Lhs[i];
-		}
-	}
-	return _Os;
-}
-
-template <template<typename> typename _Vec_t, typename _Type, typename _Type2>
-constexpr _Vec_t<_Type> operator+(const _Vec_t<_Type>& _Lhs, const _Vec_t<_Type2>& _Rhs) noexcept
-	requires is_vector<_Vec_t, _Type>
-{
-	_Vec_t<_Type> _Vec = _Lhs;
-	std::transform(_Vec.begin(), _Vec.end(), _Rhs.begin(), _Vec.begin(), std::plus());
-	return _Vec;
-}
-
-template <template<typename> typename _Vec_t, typename _Type, typename _Type2>
-constexpr _Vec_t<_Type> operator+(const _Vec_t<_Type>& _Lhs, _Type2 _Rhs) noexcept
-	requires is_vector<_Vec_t, _Type> && is_not_vector<_Type2, _Type>
-{
-	_Vec_t<_Type> _Vec = _Lhs;
-	const _Vec_t<_Type> _Vec_Addition(_Rhs);
-	std::transform(_Vec.begin(), _Vec.end(), _Vec_Addition.begin(), _Vec.begin(), std::plus());
-	return _Vec;
-}
-
-template <template<typename> typename _Vec_t, typename _Type, typename _Type2>
-constexpr _Vec_t<_Type>& operator+=(_Vec_t<_Type>& _Lhs, const _Vec_t<_Type2>& _Rhs) noexcept
-	requires is_vector<_Vec_t, _Type> 
-{
-	std::transform(_Lhs.begin(), _Lhs.end(), _Rhs.begin(), _Lhs.begin(), std::plus());
-	return _Lhs;
-}
-
-template <template<typename> typename _Vec_t, typename _Type, typename _Type2>
-constexpr _Vec_t<_Type>& operator+=(_Vec_t<_Type>& _Lhs, _Type2 _Rhs) noexcept
-	requires is_vector<_Vec_t, _Type> && is_not_vector<_Type2, _Type>
-{
-	const _Vec_t<_Type> _Vec_Addition(_Rhs);
-	std::transform(_Lhs.begin(), _Lhs.end(), _Vec_Addition.begin(), _Lhs.begin(), std::plus());
-	return _Lhs;
-}
-
-template <template<typename> typename _Vec_t, typename _Type, typename _Type2>
-constexpr _Vec_t<_Type>& operator-=(_Vec_t<_Type>& _Lhs, const _Vec_t<_Type2>& _Rhs) noexcept
-	requires is_vector<_Vec_t, _Type> 
-{
-	std::transform(_Lhs.begin(), _Lhs.end(), _Rhs.begin(), _Lhs.begin(), std::minus());
-	return _Lhs;
-}
-
-template <template<typename> typename _Vec_t, typename _Type, typename _Type2>
-constexpr _Vec_t<_Type>& operator-=(_Vec_t<_Type>& _Lhs, _Type2 _Rhs) noexcept
-requires is_vector<_Vec_t, _Type> && is_not_vector<_Type2, _Type>
-{
-	_Vec_t<_Type> _Vec = _Lhs;
-	const _Vec_t<_Type> _Vec_Subtraction(_Rhs);
-	std::transform(_Vec.begin(), _Vec.end(), _Vec_Subtraction.begin(), _Vec.begin(), std::plus());
-	return _Vec;
-}
-
-template <template<typename> typename _Vec_t, typename _Type, typename _Type2>
-constexpr _Vec_t<_Type> operator-(const _Vec_t<_Type>& _Lhs, const _Vec_t<_Type2>& _Rhs) noexcept
-	requires is_vector<_Vec_t, _Type>
-{
-	_Vec_t<_Type> _Vec = _Lhs;
-	std::transform(_Vec.begin(), _Vec.end(), _Rhs.begin(), _Vec.begin(), std::minus());
-	return _Vec;
-}
-
-template <template<typename> typename _Vec_t, typename _Type, typename _Type2>
-constexpr _Vec_t<_Type> operator-(const _Vec_t<_Type>& _Lhs, _Type2 _Rhs) noexcept
-	requires is_vector<_Vec_t, _Type> && is_not_vector<_Type2, _Type>
-{
-	_Vec_t<_Type> _Vec = _Lhs;
-	const _Vec_t<_Type> _Vec_Subtraction(_Rhs);
-	std::transform(_Vec.begin(), _Vec.end(), _Vec_Subtraction.begin(), _Vec.begin(), std::minus());
-	return _Vec;
-}
-
-template <template<typename> typename _Vec_t, typename _Type>
-constexpr _Vec_t<_Type> operator-(const _Vec_t<_Type>& _Lhs) noexcept
-	requires is_vector<_Vec_t, _Type> 
-{
-	return operator*(_Lhs, -1);
-}
-
-template <template<typename> typename _Vec_t, typename _Type, typename _Type2>
-constexpr _Vec_t<_Type> operator*(const _Vec_t<_Type>& _Lhs, const _Vec_t<_Type2>& _Rhs) noexcept
-	requires is_vector<_Vec_t, _Type> 
-{
-	_Vec_t<_Type> _Vec = _Lhs;
-	std::transform(_Vec.begin(), _Vec.end(), _Rhs.begin(), _Vec.begin(), std::multiplies());
-	return _Vec;
-}
-
-template <template<typename> typename _Vec_t, typename _Type, typename _Type2>
-constexpr _Vec_t<_Type> operator*(const _Vec_t<_Type>& _Lhs, _Type2 _Rhs) noexcept
-	requires is_vector<_Vec_t, _Type> && is_not_vector<_Type2, _Type>
-{
-	_Vec_t<_Type> _Vec = _Lhs;
-	const _Vec_t<_Type> _Vec_Multiplication(_Rhs);
-	std::transform(_Vec.begin(), _Vec.end(), _Vec_Multiplication.begin(), _Vec.begin(), std::multiplies());
-	return _Vec;
-}
-
-template <template<typename> typename _Vec_t, typename _Type, typename _Type2>
-constexpr _Vec_t<_Type> operator*=(_Vec_t<_Type>& _Lhs, const _Vec_t<_Type2>& _Rhs) noexcept
-requires is_vector<_Vec_t, _Type>
-{
-	std::transform(_Lhs.begin(), _Lhs.end(), _Rhs.begin(), _Lhs.begin(), std::multiplies());
-	return _Lhs;
-}
-
-template <template<typename> typename _Vec_t, typename _Type, typename _Type2>
-constexpr _Vec_t<_Type> operator*=(_Vec_t<_Type>& _Lhs, _Type2 _Rhs) noexcept
-requires is_vector<_Vec_t, _Type> && is_not_vector<_Type2, _Type>
-{
-	const _Vec_t<_Type> _Vec_Multiplication(_Rhs);
-	std::transform(_Lhs.begin(), _Lhs.end(), _Vec_Multiplication.begin(), _Lhs.begin(), std::multiplies());
-	return _Lhs;
-}
-
-template <template<typename> typename _Vec_t, typename _Type, typename _Type2>
-constexpr _Vec_t<_Type> operator/(const _Vec_t<_Type>& _Lhs, const _Vec_t<_Type2>& _Rhs) noexcept
-	requires is_vector<_Vec_t, _Type>
-{
-	_Vec_t<_Type> _Vec = _Lhs;
-	std::transform(_Vec.begin(), _Vec.end(), _Rhs.begin(), _Vec.begin(), std::divides());
-	return _Vec;
-}
-
-template <template<typename> typename _Vec_t, typename _Type, typename _Type2>
-constexpr _Vec_t<_Type> operator/(const _Vec_t<_Type>& _Lhs, _Type2 _Rhs) noexcept
-requires is_vector<_Vec_t, _Type> && is_not_vector<_Type2, _Type>
-{
-	_Vec_t<_Type> _Vec = _Lhs;
-	_Vec_t<_Type> _Vec_Division(_Rhs);
-	std::transform(_Vec.begin(), _Vec.end(), _Vec_Division.begin(), _Vec.begin(), std::divides());
-	return _Vec;
-}
-
-template <template<typename> typename _Vec_t, typename _Type, typename _Type2>
-constexpr _Vec_t<_Type> operator/=(_Vec_t<_Type>& _Lhs, const _Vec_t<_Type2>& _Rhs) noexcept
-requires is_vector<_Vec_t, _Type> && is_not_vector<_Type2, _Type>
-{
-	std::transform(_Lhs.begin(), _Lhs.end(), _Rhs.begin(), _Lhs.begin(), std::divides());
-	return _Lhs;
-}
-
-template <template<typename> typename _Vec_t, typename _Type, typename _Type2>
-constexpr _Vec_t<_Type> operator/=(_Vec_t<_Type>& _Lhs, _Type2 _Rhs) noexcept
-	requires is_vector<_Vec_t, _Type> && is_not_vector<_Type2, _Type>
-{
-	_Vec_t<_Type> _Vec_Division(_Rhs);
-	std::transform(_Lhs.begin(), _Lhs.end(), _Vec_Division.begin(), _Lhs.begin(), std::divides());
-	return _Lhs;
-}
-
-template <template<typename> typename _Vec_t, typename _Type, typename _Type2>
-constexpr _Vec_t<_Type> operator%(const _Vec_t<_Type>& _Lhs, _Type2 _Rhs) noexcept
-	requires is_vector<_Vec_t, _Type> && is_not_vector<_Type2, _Type>
-{
-	_Vec_t<_Type> _Vec;
-	for (int _I = 0; _I < _Lhs.size(); _I++) {
-		_Vec[_I] = fmod(_Lhs[_I], _Rhs);
-	}
-	return _Vec;
-}
-
-template <template<typename> typename _Vec_t, typename _Type>
-constexpr bool operator!(const _Vec_t<_Type>& _Lhs) noexcept
-	requires is_vector<_Vec_t, _Type>
-{
-	for (int _I = 0; _I < _Lhs.size() - 1; _I+=2) {
-		if (_Lhs[_I] || _Lhs[_I + 1]) {
-			return true;
-		}
-	}
-	return false;
-}
-
-template <template<typename> typename _Vec_t = _vec3, typename _Type, typename _Type2>
-constexpr bool operator!=(const _Vec_t<_Type>& _Lhs, _Type2 _Rhs) noexcept
-	requires is_vector<_Vec_t, _Type> && is_not_vector<_Type2, _Type>
-{
-	for (int _I = 0; _I < _Lhs.size(); _I++) {
-		if (_Lhs[_I] == _Rhs) {
-			return false;
-		}	
-	}
-	return true;
-}
-
-template <template<typename> typename _Vec_t = _vec3, typename _Type, typename _Type2>
-constexpr bool operator!=(const _Vec_t<_Type>& _Lhs, const _Vec_t<_Type2>& _Rhs) noexcept
-	requires is_vector<_Vec_t, _Type>
-{
-	for (int _I = 0; _I < _Lhs.size(); _I++) {
-		if (_Lhs[_I] == _Rhs[_I]) {
-			return false;
-		}
-	}
-	return true;
-}
-
-template <template<typename> typename _Vec_t, typename _Type, typename _Type2>
-constexpr bool operator==(const _Vec_t<_Type>& _Lhs, _Type2 _Rhs) noexcept
-	requires is_vector<_Vec_t, _Type> && is_not_vector<_Type2, _Type>
-{
-	for (int _I = 0; _I < _Lhs.size(); _I++) {
-		if (_Lhs[_I] != _Rhs) {
-			return false;
-		}
-	}
-	return true;
-}
-
-template <template<typename> typename _Vec_t, typename _Type, typename _Type2>
-constexpr bool operator==(const _Vec_t<_Type>& _Lhs, const _Vec_t<_Type2>& _Rhs) noexcept
-	requires is_vector<_Vec_t, _Type>
-{
-	for (int _I = 0; _I < _Lhs.size(); _I++) {
-		if (_Lhs[_I] != _Rhs[_I]) {
-			return false;
-		}
-	}
-	return true;
-}
-
-template <template<typename> typename _Vec_t, typename _Type, typename _Type2>
-constexpr bool operator<(const _Vec_t<_Type>& _Lhs, const _Vec_t<_Type2>& _Rhs) noexcept
-	requires is_vector<_Vec_t, _Type>
-{
-	for (int _I = 0; _I < _Lhs.size(); _I++) {
-		if (_Lhs[_I] >= _Rhs[_I]) {
-			return false;
-		}
-	}
-	return true;
-}
-
-template <template<typename> typename _Vec_t, typename _Type, typename _Type2>
-constexpr bool operator>(const _Vec_t<_Type>& _Lhs, const _Vec_t<_Type2>& _Rhs) noexcept
-	requires is_vector<_Vec_t, _Type>
-{
-	for (int _I = 0; _I < _Lhs.size(); _I++) {
-		if (_Lhs[_I] <= _Rhs[_I]) {
-			return false;
-		}
-	}
-	return true;
-}
-
-template <template<typename> typename _Vec_t, typename _Type, typename _Type2>
-constexpr bool operator>=(const _Vec_t<_Type>& _Lhs, const _Vec_t<_Type2>& _Rhs) noexcept
-	requires is_vector<_Vec_t, _Type>
-{
-	for (int _I = 0; _I < _Lhs.size(); _I++) {
-		if (_Lhs[_I] < _Rhs[_I]) {
-			return false;
-		}
-	}
-	return true;
-}
-
-template <template<typename> typename _Vec_t, typename _Type, typename _Type2>
-constexpr bool operator<=(const _Vec_t<_Type>& _Lhs, const _Vec_t<_Type2>& _Rhs) noexcept
-	requires is_vector<_Vec_t, _Type>
-{
-	for (int _I = 0; _I < _Lhs.size(); _I++) {
-		if (_Lhs[_I] > _Rhs[_I]) {
-			return false;
-		}
-	}
-	return true;
 }

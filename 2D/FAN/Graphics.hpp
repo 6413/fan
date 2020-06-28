@@ -28,8 +28,6 @@
 #include <SOIL2/SOIL2.h>
 #include <SOIL2/stb_image.h>
 
-
-
 #ifdef _MSC_VER
 #pragma warning (disable : 26495)
 #endif
@@ -46,7 +44,7 @@
 void GetFps(bool print = true);
 
 extern bool window_init;
-constexpr auto WINDOWSIZE = _vec2<int>(1024, 1024);
+constexpr auto WINDOWSIZE = _vec2<int>(800, 800);
 extern float delta_time;
 static constexpr int block_size = 50;
 extern GLFWwindow* window;
@@ -134,6 +132,8 @@ public:
 	vec2 get_size(uint64_t index) const;
 	void set_size(uint64_t index, const vec2& size, bool queue = false);
 
+	int get_buffer_size(int buffer) const;
+
 	void realloc_copy_data(unsigned int& buffer, uint64_t buffer_type, int size, GLenum usage, unsigned int& allocator) const;
 	void copy_data(unsigned int& buffer, uint64_t buffer_type, int size, GLenum usage, unsigned int& allocator) const;
 	void realloc_buffer(unsigned int& buffer, uint64_t buffer_type, int location, int size, GLenum usage, unsigned int& allocator) const;
@@ -143,6 +143,10 @@ public:
 	virtual void erase(uint64_t first, uint64_t last = -1);
 
 protected:
+
+	std::vector<vec2> get_positions() const;
+
+	std::vector<vec2> get_sizes(bool half = false) const;
 
 	void basic_shape_draw(unsigned int mode, uint64_t points, const Shader& shader = shape_shader2d) const;
 
@@ -178,8 +182,11 @@ public:
 	void erase(uint64_t first, uint64_t last = -1) override;
 
 	void push_back(const vec2& position, const vec2& size, const Color& color, bool queue = false);
+	void insert(const vec2& position, const vec2& size, const Color& color, uint64_t how_many);
 
 protected:
+
+	std::vector<Color> get_colors() const;
 
 	unsigned int color_vbo;
 	unsigned int color_allocator_vbo;
@@ -218,7 +225,7 @@ struct square_vector2d : basic_2dshape_vector {
 	square_vector2d();
 	square_vector2d(const vec2& position, const vec2& size, const Color& color);
 
-	void draw();
+	void draw() const;
 
 };
 
@@ -264,7 +271,16 @@ template <shapes shape>
 class vertice_handler {
 public:
 
-	~vertice_handler();
+	~vertice_handler() { // clang doesn't allow declaring in cpp
+		if (!this->vertices.empty()) {
+			glDeleteVertexArrays(1, &vertice_buffer.VAO);
+			glDeleteVertexArrays(1, &color_buffer.VAO);
+			glDeleteVertexArrays(1, &shape_buffer.VAO);
+			glDeleteBuffers(1, &vertice_buffer.VBO);
+			glDeleteBuffers(1, &color_buffer.VBO);
+			glDeleteBuffers(1, &shape_buffer.VBO);
+		}
+	}
 
 	int draw_id = 0;
 
@@ -732,34 +748,38 @@ constexpr int world_size = 150;
 			 [d_position.y] \
 			 [d_position.z]
 
-constexpr auto grid_direction(const vec3& src, const vec3& dst) {
-	vec3 x(src.x - dst.x, src.y - dst.y, src.z - dst.z);
-	return x / x.abs().max();
+template <typename T>
+constexpr auto grid_direction(const T& src, const T& dst) {
+	T vector(src - dst);
+	return vector / vector.abs().max();
 }
 
+template <template <typename> typename T>
 struct grid_raycast_s {
-	vec3 direction, begin;
-	vec3i grid;
+	T<float_t> direction, begin;
+	T<int> grid;
 };
 
-constexpr bool grid_raycast_single(grid_raycast_s& caster, float grid_size) {
-	vec3 position(caster.begin % grid_size);
-	for (uint8_t i = 0; i < vec3::size(); i++) {
+template <template <typename> typename T>
+constexpr bool grid_raycast_single(grid_raycast_s<T>& caster, float_t grid_size) {
+	T position(caster.begin % grid_size);
+	for (uint8_t i = 0; i < T<float_t>::size(); i++) {
 		position[i] = ((caster.direction[i] < 0) ? position[i] : grid_size - position[i]);
 		position[i] = std::abs((!position[i] ? grid_size : position[i]) / caster.direction[i]);
 	}
 	caster.grid = (caster.begin += caster.direction * position.min()) / grid_size;
-	for (uint8_t i = 0; i < vec3::size(); i++)
+	for (uint8_t i = 0; i < T<float_t>::size(); i++)
 		caster.grid[i] -= ((caster.direction[i] < 0) & (position[i] == position.min()));
 	return 1;
 }
 
-inline vec3i grid_raycast(const vec3& start, const vec3& end, const map_t& map, float block_size) {
+template <template <typename> typename T>
+constexpr T<int> grid_raycast(const T<float_t>& start, const T<float_t>& end, const map_t& map, float_t block_size) {
 	if (start == end) {
 		return start;
 	}
-	grid_raycast_s raycast = { grid_direction(end, start), start, vec3() };
-	vec3 distance = end - start;
+	grid_raycast_s raycast = { grid_direction(end, start), start, T<int>() };
+	T distance = end - start;
 	auto max = distance.abs().max();
 	for (int i = 0; i < max; i++) {
 		grid_raycast_single(raycast, block_size);
@@ -771,7 +791,7 @@ inline vec3i grid_raycast(const vec3& start, const vec3& end, const map_t& map, 
 			return raycast.grid;
 		}
 	}
-	return vec3(RAY_DID_NOT_HIT);
+	return T(RAY_DID_NOT_HIT);
 }
 
 #define d_grid_raycast(start, end, raycast, block_size) \
@@ -779,30 +799,131 @@ inline vec3i grid_raycast(const vec3& start, const vec3& end, const map_t& map, 
 	if (!(start == end)) \
 		while(grid_raycast_single(raycast, block_size))
 
-#include <map>
+#include <ft2build.h>
+#include FT_FREETYPE_H
 
-struct Character {
-	GLuint TextureID;
-	vec2i Size;
-	vec2i Bearing;
-	GLuint Advance;
-};
+typedef struct {
+	std::vector<uint8_t> data;
+	uint_t datasize;
 
-class TextRenderer {
+	uint_t fontsize;
+	vec2i offset;
+}suckless_font_t;
+
+typedef struct {
+	vec2i pos;
+	uint_t width;
+	uint_t height;
+}letter_info_t;
+
+typedef struct {
+	vec2 pos;
+	float_t width;
+}letter_info_opengl_t;
+
+static letter_info_opengl_t letter_to_opengl(suckless_font_t& font, letter_info_t letter) {
+	letter_info_opengl_t ret;
+	ret.pos = (vec2)letter.pos / (vec2)font.datasize;
+	ret.width = (float_t)letter.width / font.datasize;
+	return ret;
+}
+
+constexpr Color default_text_color(1);
+constexpr float_t font_size(20);
+
+constexpr float_t button_text_gap = font_size;
+
+class text_renderer {
 public:
-	TextRenderer();
+	text_renderer(float_t font_size);
 
-	vec2 get_length(std::string text, float scale, bool include_endl = false);
+	void render(const std::string& text, vec2 position, const Color& color, float_t scale);
+	void render(const std::vector<std::string>& text, std::vector<vec2> position, const std::vector<Color>& color, const std::vector<float_t>& scale);
 
-	void render(const std::string& text, vec2 position, float_t scale, const Color& color);
+	vec2 get_length(const std::string& text, float_t scale);
+	std::vector<vec2> get_length(const std::vector<std::string>& texts, const std::vector<float_t>& scales, bool half = false);
+
+	std::unordered_map<char, letter_info_t> infos;
+
+	suckless_font_t font;
 
 private:
-	std::vector<Character> Characters;
-	//std::map<GLchar, Character> Characters;
+
 	Shader shader;
 	unsigned int VAO, VBO;
-
-	static constexpr float_t text_gap = 10;
+	unsigned int texture;
+	unsigned int texture_id;
 };
+
+constexpr uint_t max_ascii = 248;
+constexpr uint_t max_font_size = 1024;
+
+namespace fan_gui {
+
+	class button_vector : public square_vector2d {
+	public:
+
+		button_vector();
+
+		button_vector(const vec2& position, const Color& color);
+
+		button_vector(const std::string& text, const vec2& position, const Color& color);
+
+		button_vector(const vec2& position, float_t max_width, const Color& color);
+
+		button_vector(const std::string& text, const vec2& position, float_t max_width, const Color& color);
+
+		button_vector(const std::string& text, const vec2& position, const vec2& size, const Color& color);
+
+		void add(const vec2& position, const Color& color);
+		void add(const std::string& text, const vec2& position, const Color& color);
+		void add(const std::string& text, const vec2& position, const vec2& size, const Color& color);
+
+		void edit_size(uint64_t i, const std::string& text);
+
+		void draw(uint64_t i);
+
+		void draw();
+
+		bool inside(uint64_t i) const;
+
+		void on_click(uint64_t i, int key, std::function<void()> function) const;
+
+		void on_click(const std::string& button_id, int key, std::function<void()> function) const;
+
+		vec2 get_length(const std::string& text, float_t font_size);
+
+		std::function<void(int, int)> get_character_callback(uint64_t i) const;
+
+		std::function<void(int)> get_newline_callback() const;
+
+		std::function<void(int)> get_erase_callback() const;
+
+	private:
+
+		using square_vector2d::push_back;
+
+		text_renderer renderer = text_renderer(20);
+
+		std::vector<std::string> texts;
+
+		std::vector<std::function<void(int, int)>> button_character_callbacks;
+
+		std::function<void(int button_id)> button_newline_callback = [&] (int button_id) {
+			texts[button_id].push_back('\n');
+			edit_size(button_id, texts[button_id]);
+		};
+
+		std::function<void(int button_id)> button_erase_callback = [&] (int button_id) {
+			if (texts[button_id].empty()) {
+				return;
+			}
+			texts[button_id].pop_back();
+			edit_size(button_id, texts[button_id]);
+		};
+
+		float_t max_width;
+	};
+}
 
 //#endif

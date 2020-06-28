@@ -27,7 +27,7 @@ constexpr bool ray_hit(const vec2& point) {
 }
 
 constexpr bool ray_hit(const vec3& point) {
-	return operator!=(point, RAY_DID_NOT_HIT);
+	return point != RAY_DID_NOT_HIT;
 }
 
 constexpr bool on_hit(const vec2& point, std::function<void()>&& lambda) {
@@ -181,13 +181,13 @@ static auto ManhattanDistance(const vec3& src, const vec3& dst) {
 	return std::abs(src.x - dst.x) + std::abs(src.y - dst.y) + std::abs(src.z - dst.z);
 }
 
-inline matrix<4, 4> Translate(const matrix<4, 4>& m, const vec3& v) {
-	matrix<4, 4> Result(m);
-	Result[3] =
-		(m[0] * v.x) +
-		(m[1] * v.y) +
-		(m[2] * v.z) +
-		 m[3];
+template <typename _Matrix>
+constexpr _Matrix Translate(const _Matrix& m, const vec3& v) {
+	_Matrix Result(m);
+	Result[3][0] = m[0][0] * v.x + m[1][0] * v.y + m[2][0] * v.z + m[3][0];
+	Result[3][1] = m[0][1] * v.x + m[1][1] * v.y + m[2][1] * v.z + m[3][1];
+	Result[3][2] = m[0][2] * v.x + m[1][2] * v.y + m[2][2] * v.z + m[3][2];
+	Result[3][3] = m[0][3] * v.x + m[1][3] * v.y + m[2][3] * v.z + m[3][3];
 	return Result;
 }
 
