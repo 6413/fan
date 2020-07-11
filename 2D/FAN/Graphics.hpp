@@ -14,6 +14,9 @@
 
 //#define FAN_PERFORMANCE
 #define RAM_SAVER
+#if defined(_WIN64) || defined(_WIN32) && !defined(FAN_WINDOWS)
+#define FAN_WINDOWS
+#endif
 
 #include <vector>
 #include <array>
@@ -41,14 +44,20 @@
 
 #define COLORSIZE 4
 
-void GetFps(bool print = true);
+class Camera;
+extern Camera camera2d;
+
+void GetFps(bool title = true, bool print = false);
 
 extern bool window_init;
-constexpr auto WINDOWSIZE = _vec2<int>(800, 800);
+constexpr auto WINDOWSIZE = vec2i(800, 800);
 extern float delta_time;
 static constexpr int block_size = 50;
 extern GLFWwindow* window;
-constexpr auto grid_size = _vec2<int>(WINDOWSIZE.x / block_size, WINDOWSIZE.y / block_size);
+constexpr auto grid_size = vec2i(WINDOWSIZE.x / block_size, WINDOWSIZE.y / block_size);
+
+extern mat4 frame_projection;
+extern mat4 frame_view;
 
 typedef std::vector<std::vector<std::vector<bool>>> map_t;
 
@@ -74,7 +83,7 @@ namespace BMP_Offsets {
 bmp LoadBMP(const char* path, Texture& texture);
 uint64_t _2d_1d(vec2 position = cursor_position);
 
-_vec2<int> window_position();
+vec2i window_position();
 
 class Camera {
 public:
@@ -111,346 +120,240 @@ private:
 	vec3 worldUp;
 };
 
-extern Shader shape_shader2d;
-extern Camera camera3d;
-
-class default_2d_base_vector {
-public:
-
-	default_2d_base_vector();
-
-	template <typename _Type, uint64_t N>
-	default_2d_base_vector(const std::array<_Type, N>& init_vertices);
-
-	~default_2d_base_vector();
-
-	void free_queue();
-
-	vec2 get_position(uint64_t index) const;
-	void set_position(uint64_t index, const vec2& position, bool queue = false);
-
-	vec2 get_size(uint64_t index) const;
-	void set_size(uint64_t index, const vec2& size, bool queue = false);
-
-	int get_buffer_size(int buffer) const;
-
-	void realloc_copy_data(unsigned int& buffer, uint64_t buffer_type, int size, GLenum usage, unsigned int& allocator) const;
-	void copy_data(unsigned int& buffer, uint64_t buffer_type, int size, GLenum usage, unsigned int& allocator) const;
-	void realloc_buffer(unsigned int& buffer, uint64_t buffer_type, int location, int size, GLenum usage, unsigned int& allocator) const;
-
-	int size() const;
-
-	virtual void erase(uint64_t first, uint64_t last = -1);
-
-protected:
-
-	std::vector<vec2> get_positions() const;
-
-	std::vector<vec2> get_sizes(bool half = false) const;
-
-	void basic_shape_draw(unsigned int mode, uint64_t points, const Shader& shader = shape_shader2d) const;
-
-	unsigned int shape_vao;
-	unsigned int matrix_vbo;
-	unsigned int vertex_vbo;
-
-	unsigned int matrix_allocator_vbo;
-	unsigned int matrix_allocator_size;
-
-	bool matrix_allocated;
-
-	uint64_t shapes_size;
-
-	static constexpr auto copy_buffer = 5000000; // * sizeof(type)
-};
-
-class basic_2dshape_vector : public default_2d_base_vector {
-public:
-
-	basic_2dshape_vector();
-
-	template <typename _Type, uint64_t N>
-	basic_2dshape_vector(const std::array<_Type, N>& init_vertices);
-
-	~basic_2dshape_vector();
-
-	Color get_color(uint64_t index) const;
-	void set_color(uint64_t index, const Color& color, bool queue);
-
-	void free_queue(bool colors = true, bool matrices = true);
-
-	void erase(uint64_t first, uint64_t last = -1) override;
-
-	void push_back(const vec2& position, const vec2& size, const Color& color, bool queue = false);
-	void insert(const vec2& position, const vec2& size, const Color& color, uint64_t how_many);
-
-protected:
-
-	std::vector<Color> get_colors() const;
-
-	unsigned int color_vbo;
-	unsigned int color_allocator_vbo;
-	unsigned int color_allocator_size;
-
-	bool color_allocated;
-
-private:
-	using default_2d_base_vector::erase;
-};
-
-class line_vector2d : public basic_2dshape_vector {
-public:
-
-	line_vector2d();
-	line_vector2d(const mat2& position, const Color& color);
-
-	void push_back(const mat2& position, const Color& color, bool queue = false);
-
-	mat2 get_position(uint64_t index) const;
-	void set_position(uint64_t index, const mat2& position, bool queue = false);
-
-	void draw() const;
-
-private:
-
-	using basic_2dshape_vector::get_size;
-	using basic_2dshape_vector::set_size;
-	using basic_2dshape_vector::get_position;
-	using basic_2dshape_vector::set_position;
-
-};
-
-struct square_vector2d : basic_2dshape_vector {
-
-	square_vector2d();
-	square_vector2d(const vec2& position, const vec2& size, const Color& color);
-
-	void draw() const;
-
-};
-
 int load_texture(const std::string_view path, const std::string& directory = std::string(), bool flip_image = false, bool alpha = false);
 
-class sprite_vector2d : public default_2d_base_vector {
-public:
+namespace fan_2d {
+	class basic_single_shape {
+	public:
 
-	sprite_vector2d();
-	sprite_vector2d(const char* path, const vec2& position, const vec2& size);
+		basic_single_shape();
 
-	~sprite_vector2d();
+		basic_single_shape(const Shader& shader, const vec2& position, const vec2& size);
 
-	void free_queue(bool textures, bool matrices);
-	void draw() const;
+		vec2 get_position();
+		vec2 get_size();
 
-	void push_back(const vec2& position, const vec2& size, bool queue = false);
+		void set_size(const vec2& size);
+		void set_position(const vec2& position);
 
-	void erase(uint64_t first, uint64_t last = -1) override;
+		void basic_draw(GLenum mode, GLsizei count);
 
-private:
+	protected:
+		vec2 position;
+		vec2 size;
 
-	using default_2d_base_vector::free_queue;
-	using default_2d_base_vector::erase;
+		Shader shader;
 
-	unsigned int texture_ssbo;
-	unsigned int texture_allocator;
-	uint64_t texture_allocator_size;
-	bool texture_allocated;
+		unsigned int vao;
+	};
 
-	unsigned int texture_id;
-};
+	struct basic_single_color {
 
-enum class shapes {
-	line,
-	triangle,
-	square,
-	circle,
-	size
-};
+		basic_single_color();
+		basic_single_color(const Color& color);
 
-template <shapes shape>
-class vertice_handler {
-public:
+		Color get_color();
+		void set_color(const Color& color);
 
-	~vertice_handler() { // clang doesn't allow declaring in cpp
-		if (!this->vertices.empty()) {
-			glDeleteVertexArrays(1, &vertice_buffer.VAO);
-			glDeleteVertexArrays(1, &color_buffer.VAO);
-			glDeleteVertexArrays(1, &shape_buffer.VAO);
-			glDeleteBuffers(1, &vertice_buffer.VBO);
-			glDeleteBuffers(1, &color_buffer.VBO);
-			glDeleteBuffers(1, &shape_buffer.VBO);
-		}
-	}
+		Color color;
 
-	int draw_id = 0;
+	};
 
-	void init(
-		const std::vector<float>& l_vertices,
-		const std::vector<float>& l_colors,
-		bool queue = false
-	);
+	enum class shape_types {
+		LINE,
+		SQUARE
+	};
 
-	void write(bool _EditVertices, bool _EditColor);
+	struct line : public basic_single_shape, basic_single_color {
 
-	void draw(uint64_t shape_id = -1) const;
+		line();
+		line(const vec2& begin, const vec2& end, const Color& color);
 
-	std::vector<float> vertices;
-	std::vector<float> colors;
-private:
-	Texture vertice_buffer;
-	Texture color_buffer;
-	Texture shape_buffer;
-	unsigned int mode;
-	int points;
-	uint64_t point_size;
-	Shader shader;
-	Camera* camera;
-};
+		void draw();
 
-static vertice_handler<shapes::line> line_handler;
-static vertice_handler<shapes::square> square_handler;
+		void set_position(const vec2& begin, const vec2& end);
 
-static void draw_all() {
-	line_handler.draw();
-	square_handler.draw();
+	private:
+		using basic_single_shape::set_position;
+		using basic_single_shape::set_size;
+	};
+
+	struct square : public basic_single_shape, basic_single_color {
+		square();
+		square(const vec2& position, const vec2& size, const Color& color);
+
+		void draw();
+	};
+
+	struct image_info {
+		vec2i image_size;
+		unsigned int texture_id;
+	};
+
+	class sprite : public basic_single_shape {
+	public:
+		sprite();
+
+		// scale with default is sprite size
+		sprite(const std::string& path, const vec2& position, const vec2& size = vec2());
+
+		void draw();
+
+		image_info load_image(const std::string& path);
+
+	private:
+
+		unsigned int texture;
+	};
+
+	extern Shader shape_shader2d;
+
+	class default_2d_base_vector {
+	public:
+
+		default_2d_base_vector();
+
+		template <typename _Type, uint64_t N>
+		default_2d_base_vector(const std::array<_Type, N>& init_vertices);
+
+		~default_2d_base_vector();
+
+		void free_queue();
+
+		vec2 get_position(uint64_t index) const;
+		virtual void set_position(uint64_t index, const vec2& position, bool queue = false);
+
+		vec2 get_size(uint64_t index) const;
+		void set_size(uint64_t index, const vec2& size, bool queue = false);
+
+		int get_buffer_size(int buffer) const;
+
+		void realloc_copy_data(unsigned int& buffer, uint64_t buffer_type, int size, GLenum usage, unsigned int& allocator) const;
+		void copy_data(unsigned int& buffer, uint64_t buffer_type, int size, GLenum usage, unsigned int& allocator) const;
+		void realloc_buffer(unsigned int& buffer, uint64_t buffer_type, int location, int size, GLenum usage, unsigned int& allocator) const;
+
+		int size() const;
+
+		virtual void erase(uint64_t first, uint64_t last = -1);
+
+		std::vector<vec2> get_positions() const;
+
+	protected:
+
+		std::vector<vec2> get_sizes(bool half = false) const;
+
+		void basic_shape_draw(unsigned int mode, uint64_t points, uint64_t i = -1, const Shader& shader = fan_2d::shape_shader2d) const;
+
+		unsigned int shape_vao;
+		unsigned int matrix_vbo;
+		unsigned int vertex_vbo;
+
+		unsigned int matrix_allocator_vbo;
+		unsigned int matrix_allocator_size;
+
+		bool matrix_allocated;
+
+		uint64_t shapes_size;
+
+		static constexpr auto copy_buffer = 5000000; // * sizeof(type)
+	};
+
+	class basic_2dshape_vector : public default_2d_base_vector {
+	public:
+
+		basic_2dshape_vector();
+
+		template <typename _Type, uint64_t N>
+		basic_2dshape_vector(const std::array<_Type, N>& init_vertices);
+
+		~basic_2dshape_vector();
+
+		Color get_color(uint64_t index) const;
+		void set_color(uint64_t index, const Color& color, bool queue = false);
+
+		void free_queue(bool colors = true, bool matrices = true);
+
+		void erase(uint64_t first, uint64_t last = -1) override;
+
+		void push_back(const vec2& position, const vec2& size, const Color& color, bool queue = false);
+		void insert(const vec2& position, const vec2& size, const Color& color, uint64_t how_many);
+
+	protected:
+
+		std::vector<Color> get_colors() const;
+
+		unsigned int color_vbo;
+		unsigned int color_allocator_vbo;
+		unsigned int color_allocator_size;
+
+		bool color_allocated;
+
+	private:
+		using default_2d_base_vector::erase;
+	};
+
+	class line_vector2d : public basic_2dshape_vector {
+	public:
+
+		line_vector2d();
+		line_vector2d(const mat2& position, const Color& color);
+
+		void push_back(const mat2& position, const Color& color, bool queue = false);
+
+		mat2 get_position(uint64_t index) const;
+		void set_position(uint64_t index, const mat2& position, bool queue = false);
+
+		void draw() const;
+
+	private:
+
+		using basic_2dshape_vector::get_size;
+		using basic_2dshape_vector::set_size;
+		using basic_2dshape_vector::get_position;
+		using basic_2dshape_vector::set_position;
+
+	};
+
+	struct square_vector2d : public basic_2dshape_vector {
+
+		square_vector2d();
+		square_vector2d(const vec2& position, const vec2& size, const Color& color);
+
+		void draw() const;
+		void draw(uint64_t i) const;
+
+	};
+
+	class sprite_vector2d : public default_2d_base_vector {
+	public:
+
+		sprite_vector2d();
+		sprite_vector2d(const char* path, const vec2& position, const vec2& size);
+
+		~sprite_vector2d();
+
+		void free_queue(bool textures, bool matrices);
+		void draw() const;
+
+		void push_back(const vec2& position, const vec2& size, bool queue = false);
+
+		void erase(uint64_t first, uint64_t last = -1) override;
+
+	private:
+
+		using default_2d_base_vector::free_queue;
+		using default_2d_base_vector::erase;
+
+		unsigned int texture_ssbo;
+		unsigned int texture_allocator;
+		uint64_t texture_allocator_size;
+		bool texture_allocated;
+
+		unsigned int texture_id;
+	};
 }
 
-struct Line;
-class Square;
-
-template <shapes shape>
-class default_shape {
-public:
-	using shape_type = std::remove_const_t<decltype(shape)>;
-
-	virtual void draw();
-
-protected:
-	unsigned int draw_id;
-	Color color;
-	vec2 position;
-	vec2 size;
-};
-
-struct Line : public default_shape<shapes::line> {
-
-	Line(const mat2x2& m, const Color& color);
-
-	vec2 get_position() const;
-	void set_position(const mat2x2& m);
-
-	Color get_color() const;
-	void set_color(const Color& color);
-
-	vec2 get_size() const;
-	void set_size(const vec2& size);
-};
-
-class Square : public default_shape<shapes::square> {
-public:
-
-	Square(const vec2& position, const vec2& size, const Color& color, bool queue = false);
-	~Square();
-
-	vec2 get_position() const;
-
-	virtual void set_position(const vec2& position, bool queue = false);
-
-	Color get_color() const;
-	void set_color(const Color& color);
-
-	vec2 get_size() const;
-	void set_size(const vec2& size, bool queue = false);
-
-	static void break_queue();
-};
-
-class Sprite {
-public:
-	Sprite();
-	Sprite(
-		const char* path,
-		vec2 position = vec2(),
-		vec2 size = vec2(),
-		float angle = 0,
-		Shader shader = Shader("GLSL/core.vs", "GLSL/core.frag")
-	);
-	Sprite(
-		unsigned char* pixels,
-		const vec2& image_size,
-		const vec2& position,
-		const vec2& size,
-		Shader shader = Shader("GLSL/core.vs", "GLSL/core.frag")
-	);
-	~Sprite() {
-		glDeleteTextures(1, &texture.texture);
-		glDeleteVertexArrays(1, &texture.VAO);
-		glDeleteBuffers(1, &texture.VBO);
-	}
-	void draw();
-	void init_image();
-	void load_image(const char* path, Texture& object);
-	void load_image(unsigned char* pixels, Texture& object);
-	void reload_image(unsigned char* pixels);
-
-	Texture& get_texture();
-	vec2 get_size() const;
-
-	vec2 get_position() const;
-	void set_position(const vec2& position);
-
-	float get_angle() const;
-	void set_angle(float angle);
-	Camera* camera;
-protected:
-	Shader shader;
-	Texture texture;
-	vec2 position;
-	vec2 size;
-	float angle;
-	std::vector<float> _Vertices;
-};
-
-//class LineVector3D : public basic_3d {
-//public:
-//	LineVector3D();
-//	LineVector3D(const matrix<3, 2>& _M, const Color& color);
-//
-//	matrix<2, 3> get_position(uint64_t _Index = 0) const;
-//	void set_position(uint64_t _Index, const matrix<3, 2>& _M, bool _Queue = false);
-//
-//	void push_back(const matrix<3, 2>& _M, Color _Color = Color(-1, -1, -1, -1), bool _Queue = false);
-//
-//	vec2 get_length(uint64_t _Index = 0) const;
-//	
-//	void draw() {
-//
-//		if (_Vertices.empty()) {
-//			return;
-//		}
-//		_Shader.use();
-//
-//		mat4 projection(1);
-//		mat4 view(1);
-//
-//		view = _Camera->get_view_matrix();
-//
-//		projection = Perspective(Radians(90.f), ((float)window_size.x / (float)window_size.y), 0.1f, 1000.0f);
-//
-//		static int projLoc = glGetUniformLocation(_Shader.ID, "projection");
-//		static int viewLoc = glGetUniformLocation(_Shader.ID, "view");
-//		glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection[0][0]);
-//		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]);
-//		glBindVertexArray(_ShapeBuffer.VAO);
-//		glBindBuffer(GL_ARRAY_BUFFER, _VerticeBuffer.VBO);
-//		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-//		glBindBuffer(GL_ARRAY_BUFFER, _ColorBuffer.VBO);
-//		glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, 0);
-//		glDrawArrays(_Mode, 0, _Points);
-//		glBindVertexArray(0);
-//	}
-//
-//};
+extern Camera camera3d;
 
 constexpr auto texture_coordinate_size = 72;
 
@@ -634,7 +537,7 @@ void remove_chunk(SquareVector3D& square_vector, uint64_t chunk);
 
 class Model : public model_loader, public basic_3d {
 public:
-	Model(const std::string& path, 
+	Model(const std::string& path,
 		const std::string& vs = "GLSL/models.vs",
 		const std::string& frag = "GLSL/models.frag"
 	);
@@ -821,109 +724,166 @@ typedef struct {
 	float_t width;
 }letter_info_opengl_t;
 
-static letter_info_opengl_t letter_to_opengl(suckless_font_t& font, letter_info_t letter) {
+static letter_info_opengl_t letter_to_opengl(const suckless_font_t& font, const letter_info_t& letter) 
+{
 	letter_info_opengl_t ret;
 	ret.pos = (vec2)letter.pos / (vec2)font.datasize;
 	ret.width = (float_t)letter.width / font.datasize;
 	return ret;
 }
 
-constexpr Color default_text_color(1);
-constexpr float_t font_size(20);
+inline void emplace_vertex_data(std::vector<vec2>& vector, const vec2& position, const vec2& size) 
+{
+	vector.emplace_back(vec2(position.x, position.y));
+	vector.emplace_back(vec2(position.x, position.y + size.y));
+	vector.emplace_back(vec2(position.x + size.x, position.y + size.y));
+	vector.emplace_back(vec2(position.x, position.y));
+	vector.emplace_back(vec2(position.x + size.x, position.y + size.y));
+	vector.emplace_back(vec2(position.x + size.x, position.y));
+}
 
-constexpr float_t button_text_gap = font_size;
+inline void edit_vertex_data(std::uint64_t offset, std::vector<vec2>& vector, const vec2& position, const vec2& size) 
+{
+	vector[offset] =     vec2(position.x, position.y);
+	vector[offset + 1] = vec2(position.x, position.y + size.y);
+	vector[offset + 2] = vec2(position.x + size.x, position.y + size.y);
+	vector[offset + 3] = vec2(position.x, position.y);
+	vector[offset + 4] = vec2(position.x + size.x, position.y + size.y);
+	vector[offset + 5] = vec2(position.x + size.x, position.y);
+}
 
-class text_renderer {
-public:
-	text_renderer(float_t font_size);
+inline void erase_vertex_data(std::uint64_t offset, std::vector<vec2>& vector, std::uint64_t size) {
+	vector.erase(vector.begin() + offset * (size * 6), vector.begin() + (offset * ((size * 6))) + size * 6);
+}
 
-	void render(const std::string& text, vec2 position, const Color& color, float_t scale);
-	void render(const std::vector<std::string>& text, std::vector<vec2> position, const std::vector<Color>& color, const std::vector<float_t>& scale);
-
-	vec2 get_length(const std::string& text, float_t scale);
-	std::vector<vec2> get_length(const std::vector<std::string>& texts, const std::vector<float_t>& scales, bool half = false);
-
-	std::unordered_map<char, letter_info_t> infos;
-
-	suckless_font_t font;
-
-private:
-
-	Shader shader;
-	unsigned int VAO, VBO;
-	unsigned int texture;
-	unsigned int texture_id;
-};
+template <typename T>
+constexpr auto vector_2d_to_1d(const std::vector<std::vector<T>>& vector) {
+	std::vector<T> new_vector(vector.size());
+	for (auto i : vector) {
+		new_vector.insert(new_vector.end(), i.begin(), i.end());
+	}
+	return new_vector;
+}
 
 constexpr uint_t max_ascii = 248;
 constexpr uint_t max_font_size = 1024;
 
 namespace fan_gui {
 
-	class button_vector : public square_vector2d {
+	constexpr Color default_text_color(1);
+	constexpr float_t font_size(128);
+
+	class text_renderer {
 	public:
+		text_renderer();
 
-		button_vector();
+		~text_renderer();
 
-		button_vector(const vec2& position, const Color& color);
+		void alloc_storage(const std::vector<std::wstring>& vector);
+		void realloc_storage(const std::vector<std::wstring>& vector);
 
-		button_vector(const std::string& text, const vec2& position, const Color& color);
+		void store_to_renderer(std::wstring& text, vec2 position, const Color& color, float_t scale, float_t max_width = -1);
+		void edit_storage(uint64_t i, const std::wstring& text, vec2 position, const Color& color, float_t scale);
 
-		button_vector(const vec2& position, float_t max_width, const Color& color);
+		void upload_stored();
+		void upload_stored(uint64_t i);
 
-		button_vector(const std::string& text, const vec2& position, float_t max_width, const Color& color);
+		void render_stored();
+		void set_scale(uint64_t i, float_t font_size, vec2 position);
 
-		button_vector(const std::string& text, const vec2& position, const vec2& size, const Color& color);
+		void clear_storage();
 
-		void add(const vec2& position, const Color& color);
-		void add(const std::string& text, const vec2& position, const Color& color);
-		void add(const std::string& text, const vec2& position, const vec2& size, const Color& color);
+		void render(const std::vector<std::wstring>& text, std::vector<vec2> position, const std::vector<Color>& color, const std::vector<float_t>& scale);
+		void render(const std::wstring& text, vec2 position, const Color& color, float_t scale, bool use_old = true);
 
-		void edit_size(uint64_t i, const std::string& text);
+		vec2 get_length(const std::wstring& text, float_t scale);
+		std::vector<vec2> get_length(const std::vector<std::wstring>& texts, const std::vector<float_t>& scales, bool half = false);
 
-		void draw(uint64_t i);
+		std::array<float_t, 248> widths;
+		std::vector<std::vector<int>> characters;
+		std::vector<std::vector<Color>> colors;
+		std::vector<std::vector<vec2>> draw_data;
+		std::vector<float_t> scales;
 
-		void draw();
+		int storage_id;
 
-		bool inside(uint64_t i) const;
-
-		void on_click(uint64_t i, int key, std::function<void()> function) const;
-
-		void on_click(const std::string& button_id, int key, std::function<void()> function) const;
-
-		vec2 get_length(const std::string& text, float_t font_size);
-
-		std::function<void(int, int)> get_character_callback(uint64_t i) const;
-
-		std::function<void(int)> get_newline_callback() const;
-
-		std::function<void(int)> get_erase_callback() const;
+		suckless_font_t font;
 
 	private:
 
-		using square_vector2d::push_back;
+		Shader shader;
+		unsigned int VAO, vertex_ssbo;
+		unsigned int texture;
+		unsigned int text_ssbo;
+		unsigned int _Texture_Id_SSBO;
+		unsigned int colors_ssbo;
 
-		text_renderer renderer = text_renderer(20);
-
-		std::vector<std::string> texts;
-
-		std::vector<std::function<void(int, int)>> button_character_callbacks;
-
-		std::function<void(int button_id)> button_newline_callback = [&] (int button_id) {
-			texts[button_id].push_back('\n');
-			edit_size(button_id, texts[button_id]);
-		};
-
-		std::function<void(int button_id)> button_erase_callback = [&] (int button_id) {
-			if (texts[button_id].empty()) {
-				return;
-			}
-			texts[button_id].pop_back();
-			edit_size(button_id, texts[button_id]);
-		};
-
-		float_t max_width;
 	};
+
+	namespace text_button {
+		constexpr vec2 gap_scale(0.25, 0.25);
+		constexpr float_t space_width = 10;
+		constexpr float_t space_between_characters = 5;
+
+		constexpr vec2 get_gap_scale(const vec2& size) {
+			return size * gap_scale;
+		}
+
+		constexpr float_t get_gap_scale_x(float_t width) {
+			return width * gap_scale.x;
+		}
+
+		constexpr float_t get_gap_scale_y(float_t height) {
+			return height * gap_scale.y;
+		}
+
+		constexpr float_t get_character_x_offset(float_t width, float_t scale) {
+			return width * scale + space_between_characters;
+		}
+
+		constexpr float_t get_space(float_t scale) {
+			return scale / (font_size / 2) * space_width;
+		}
+
+		class basic_text_button_vector : public text_renderer {
+		public:
+
+			basic_text_button_vector();
+
+			vec2 edit_size(uint64_t i, const std::wstring& text, float_t scale);
+
+		protected:
+			std::vector<std::wstring> texts;
+		};
+
+		class text_button_vector : public basic_text_button_vector, public fan_2d::square_vector2d {
+		public:
+
+			text_button_vector();
+
+			text_button_vector(const std::wstring& text, const vec2& position, const Color& box_color, float_t font_scale, float_t left_offset, float_t max_width);
+
+			text_button_vector(const std::wstring& text, const vec2& position, const Color& color, float_t scale);
+
+			void add(const std::wstring& text, const vec2& position, const Color& color, float_t scale);
+
+			void edit_string(uint64_t i, const std::wstring& text, float_t scale);
+
+			vec2 get_string_length(const std::wstring& text, float_t scale);
+
+			float_t get_scale(uint64_t i);
+
+			void set_font_size(uint64_t i, float_t scale);
+			void set_position(uint64_t i, const vec2& position);
+
+			void draw();
+
+		private:
+			//using 
+			using square_vector2d::draw;
+			using square_vector2d::set_size;
+		};
+	}
 }
 
 //#endif

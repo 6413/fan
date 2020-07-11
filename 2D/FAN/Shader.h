@@ -148,6 +148,12 @@ public:
         glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
     }
 
+    void upload_data(GLuint buffer, GLsizeiptr size, const void* data, GLenum usage) {
+        glBindBuffer(GL_ARRAY_BUFFER, buffer);
+        glBufferData(GL_ARRAY_BUFFER, size, data, usage);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
+
 private:
     // utility function for checking shader compilation/linking errors.
     // ------------------------------------------------------------------------

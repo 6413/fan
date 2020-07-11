@@ -9,11 +9,13 @@
 
 constexpr bool fullScreen = false;
 
+//#define FAN_CUSTOM_WINDOW
+
 #define GLFW_MOUSE_SCROLL_UP 200
 #define GLFW_MOUSE_SCROLL_DOWN 201
 
-extern _vec2<int> cursor_position;
-extern _vec2<int> window_size;
+extern vec2i cursor_position;
+extern vec2i window_size;
 
 template <typename T>
 void variadic_vector_emplace(std::vector<T>&) {}
@@ -30,7 +32,7 @@ public:
 
 	~default_callback() {
 		for (auto i : function_pointers) {
-			delete i;
+			delete (char*)i;
 		}
 	}
 
@@ -38,8 +40,7 @@ public:
 	void add(const T& function, Args... args) {
 		functions.emplace_back(std::bind(function, args...));
 
-		T* function_adder = new T;
-		*function_adder = T(function);
+		T* function_adder = new T{ function };
 		function_pointers.emplace_back((void*)&*function_adder);
 
 		parameters.resize(parameters.size() + 1);
@@ -119,24 +120,26 @@ private:
 	std::vector<int> key;
 };
 
-extern KeyCallback key_callback;
-extern KeyCallback key_release_callback;
-extern KeyCallback scroll_callback;
-extern default_callback window_resize_callback;
-extern default_callback cursor_move_callback;
-extern default_callback character_callback;
-extern default_callback drop_callback;
+namespace callbacks {
+	extern KeyCallback key_callback;
+	extern KeyCallback key_release_callback;
+	extern KeyCallback scroll_callback;
+	extern default_callback window_resize_callback;
+	extern default_callback cursor_move_callback;
+	extern default_callback character_callback;
+	extern default_callback drop_callback;
 
-void glfwErrorCallback(int id, const char* error);
-void glfwKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
-void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
-void CursorPositionCallback(GLFWwindow* window, double xpos, double ypos);
-void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset);
-void CharacterCallback(GLFWwindow* window, unsigned int key);
+	void glfwErrorCallback(int id, const char* error);
+	void glfwKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
+	void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
+	void CursorPositionCallback(GLFWwindow* window, double xpos, double ypos);
+	void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset);
+	void CharacterCallback(GLFWwindow* window, unsigned int key);
 
-void FrameSizeCallback(GLFWwindow* window, int width, int height);
-void FocusCallback(GLFWwindow* window, int focused);
-void DropCallback(GLFWwindow* window, int path_count, const char* paths[]);
+	void FrameSizeCallback(GLFWwindow* window, int width, int height);
+	void FocusCallback(GLFWwindow* window, int focused);
+	void DropCallback(GLFWwindow* window, int path_count, const char* paths[]);
+}
 
 bool key_press(int key);
 
