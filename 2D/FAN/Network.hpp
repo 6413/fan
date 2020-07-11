@@ -14,6 +14,12 @@ constexpr auto eti(Enumeration const value)
 	>(value);
 }
 
+#if defined(_WIN64) || defined(_WIN32)
+#ifndef FAN_WINDOWS
+#define FAN_WINDOWS
+#endif
+#endif
+
 #ifdef ENABLE_NETWORKING
 #include <FAN/File.hpp>
 
@@ -22,10 +28,6 @@ constexpr auto eti(Enumeration const value)
 #include <cstring>
 #include <cmath>
 #include <map>
-
-#if defined(_WIN64) || defined(_WIN32)
-#define FAN_WINDOWS
-#endif
 
 #ifdef FAN_WINDOWS
 #define _WINSOCK_DEPRECATED_NO_WARNINGS

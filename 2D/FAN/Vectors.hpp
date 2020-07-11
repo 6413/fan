@@ -94,6 +94,10 @@ public:
 		return *this;
 	}
 
+	constexpr _vec2<type> operator-() const noexcept
+	{
+		return _vec2<type>(-this->x, -this->y);
+	}
 
 	template <typename _Type>
 	constexpr _vec2<type> operator-(const _vec2<_Type>& vector) const noexcept
