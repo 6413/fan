@@ -219,10 +219,15 @@ public:
 	constexpr _vec3() : x(0), y(0), z(0) { }
 	constexpr _vec3(_Ty x, _Ty y, _Ty z) : x(x), y(y), z(z) { }
 	constexpr _vec3(_Ty value) : x(value), y(value), z(value) { }
+
 	template <typename type>
 	constexpr _vec3(const _vec3<type>& vec) : x(vec.x), y(vec.y), z(vec.z) { }
+
 	template <typename type>
 	constexpr _vec3(const _vec2<type>& vec) : x(vec.x), y(vec.y), z(0) { }
+
+	template <typename type>
+	constexpr _vec3(const std::array<type, 3>& array) : x(array[0]), y(array[1]), z(array[2]) {}
 
 	constexpr _Ty& operator[](uint64_t idx) { return !idx ? x : idx == 1 ? y : z; }
 	constexpr _Ty operator[](uint64_t idx) const { return !idx ? x : idx == 1 ? y : z; }
@@ -414,10 +419,15 @@ public:
 	constexpr _vec4() : x(0), y(0), z(0), w(0) { }
 	constexpr _vec4(_Ty x, _Ty y, _Ty z, _Ty w) : x(x), y(y), z(z), w(w) { }
 	constexpr _vec4(_Ty value) : x(value), y(value), z(value), w(value) { }
+
 	template <typename type, typename type2>
 	constexpr _vec4(const _vec3<type> vec, type2 value) : x(vec.x), y(vec.y), z(vec.z), w(value) { }
+
 	template <typename type>
 	constexpr _vec4(const _vec4<type>& vec) : x(vec.x), y(vec.y), z(vec.z), w(vec.w) { }
+
+	template <typename type>
+	constexpr _vec4(const std::array<type, 4>& array) : x(array[0]), y(array[1]), z(array[2]), w(array[3]) {}
 
 	constexpr _Ty& operator[](uint64_t idx) { return !idx ? x : idx == 1 ? y : idx == 2 ? z : w; }
 	constexpr _Ty operator[](uint64_t idx) const { return !idx ? x : idx == 1 ? y : idx == 2 ? z : w; }
@@ -626,8 +636,8 @@ public:
 
 	constexpr matrix() : m{ 0 } { }
 
-	template <template<typename> typename _Vec_t, typename _Type>
-	constexpr matrix(const _Vec_t<_Type>& lhs, const _Vec_t<_Type>& rhs) : m{ 0 } {
+	template <template<typename> typename _Vec_t, typename _Type, typename _Type2>
+	constexpr matrix(const _Vec_t<_Type>& lhs, const _Vec_t<_Type2>& rhs) : m{ 0 } {
 		static_assert(Rows == 2, "No support for more or less than 2x size matrix");
 		static_assert(Cols == _Vec_t<_Type>::size(), "vector size and rows do not match");
 		for (int i = 0; i < lhs.size(); i++) {
@@ -725,10 +735,11 @@ public:
 };
 
 using mat2x2 = matrix<2, 2>;
-using mat2x3 = _vec3<float_t>[2];
-using mat2x4 = matrix<2, 4>;
+using mat2x3 = matrix<3, 2>;
+using mat2x4 = matrix<4, 2>;
+using mat3x3 = matrix<3, 3>;
 using mat2 = mat2x2;
-using mat3 = matrix<3, 3>;
+using mat3 = mat3x3;
 using mat4 = matrix<4, 4>;
 using vec2 = _vec2<float_t>;
 using vec3 = _vec3<float_t>;
@@ -944,4 +955,22 @@ template <typename _Casted, template<typename> typename _Vec_t, typename _Old>
 constexpr _Vec_t<_Casted> Cast(_Vec_t<_Old> v) noexcept
 {
 	return _Vec_t<_Casted>(v);
+}
+
+template <typename T>
+constexpr uint64_t vector_size(const std::vector<std::vector<T>>& vector) {
+	uint64_t size = 0;
+	for (auto i : vector) {
+		size += i.size();
+	}
+	return size;
+}
+
+template <typename T>
+constexpr uint64_t vector_size(const std::vector<T>& vector) {
+	uint64_t size = 0;
+	for (auto i : vector) {
+		size += i.size();
+	}
+	return size;
 }

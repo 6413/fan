@@ -154,6 +154,7 @@ bool WindowInit() {
 		glfwTerminate();
 		exit(EXIT_SUCCESS);
 	}
+
 	glfwMakeContextCurrent(window);
 	if (GLEW_OK != glewInit())
 	{
@@ -162,7 +163,7 @@ bool WindowInit() {
 		glfwTerminate();
 		exit(EXIT_SUCCESS);
 	}
-	//glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	glViewport(0, 0, window_size.x, window_size.y);
 	glEnable(GL_DEPTH_TEST);
 
