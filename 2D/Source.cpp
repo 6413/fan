@@ -4,9 +4,6 @@
 #include <FAN/Graphics.hpp>
 #include <GLFW/glfw3native.h>
 
-using namespace fan_gui;
-using namespace fan_gui::text_button;
-
 int main() {
 
     callbacks::key_callback.add(GLFW_KEY_ESCAPE, true, [&] {
@@ -20,24 +17,29 @@ int main() {
 #endif
 #endif
 
-    fan_2d::line line;
-    fan_2d::square square;
+    callbacks::cursor_move_callback.add(std::bind(&Camera::rotate_camera, fan_3d::camera));
 
-    line.set_color(Color(0, 0, 1));
-    square.set_color(Color(1, 0, 0));
-    square.set_size(vec2(100, 100));
-    
+    fan_3d::square_vector s("sides_05.png", 32);
+    fan_3d::line_vector l(mat2x3(vec3(), vec3(100)), Color(1, 0, 0));
+
+    l.push_back(mat2x3(vec3(), vec3(-100)), Color(0, 0, 1));
+
+    s.push_back(vec3(1, 0, 0), vec3(0.5), vec2());
+    s.push_back(vec3(0, 0, 3), vec3(0.5), vec2(0, 1));
+
+    s.set_texture(0, vec2(1, 0));
+
     while (!glfwWindowShouldClose(window)) {
         GetFps(true, true);
 
         glClearColor(0, 0, 0, 1);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        square.set_position(cursor_position);
-        line.set_position(vec2(), cursor_position);
+        fan_3d::camera.move(true, 200);
 
-        square.draw();
-        line.draw();
+        l.draw();
+
+        s.draw();
 
         glfwSwapBuffers(window);
         glfwPollEvents();
