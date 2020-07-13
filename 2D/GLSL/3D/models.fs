@@ -1,7 +1,7 @@
 #version 330 core
 
 in vec2 texture_coordinates;
-in vec3 normal;
+in vec3 normals;
 in vec3 fragment_position;
 
 uniform vec3 light_position; 
@@ -18,7 +18,7 @@ void main() {
     float ambientStrength = 0.1;
     vec3 ambient = ambientStrength * light_color;
 
-    vec3 norm = normalize(normal);
+    vec3 norm = normalize(normals);
     vec3 light_direction = normalize(light_position - fragment_position);
     float diff = max(dot(norm, light_direction), 0.0);
     vec3 diffuse = diff * light_color;
@@ -31,6 +31,6 @@ void main() {
 
     vec3 result = (ambient + diffuse + specular) * texture(texture_sampler, texture_coordinates).xyz;
 
-    color = vec4(result, 1);
+    color = texture(texture_sampler, texture_coordinates);
    // color = mix(vec4(sky_color, 1), color, visibility);
 }

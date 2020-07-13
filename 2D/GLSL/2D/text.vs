@@ -1,6 +1,5 @@
 #version 430 core
 
-//layout (location = 0) in vec2 vertex;
 layout (location = 4) in int characters;
 layout (location = 6) in vec4 character_color;
 

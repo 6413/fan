@@ -1,6 +1,11 @@
 ﻿#include <FAN/Graphics.hpp>
+
+#include <ft2build.h>
+#include FT_FREETYPE_H
+
 #include <functional>
 #include <numeric>
+
 
 float delta_time = 0;
 GLFWwindow* window;
@@ -10,54 +15,6 @@ mat4 fan_2d::frame_projection;
 mat4 fan_2d::frame_view;
 mat4 fan_3d::frame_projection;
 mat4 fan_3d::frame_view;
-
-void GetFps(bool title, bool print) {
-	static int fps = 0;
-	static Timer timer(Timer::start(), 1000);
-	static _Timer<microseconds> frame_time(Timer::start());
-	static int old_fps = 0;
-	float current_frame = glfwGetTime();
-	static float last_frame = 0;
-	delta_time = current_frame - last_frame;
-	last_frame = current_frame;
-
-	fan_2d::frame_view = mat4(1);
-	fan_2d::frame_view = camera2d.get_view_matrix(Translate(fan_2d::frame_view, vec3(window_size.x / 2, window_size.y / 2, -700.0f)));
-
-	fan_2d::frame_projection = mat4(1);
-	fan_2d::frame_projection = Ortho(window_size.x / 2, window_size.x + window_size.x * 0.5f, window_size.y + window_size.y * 0.5f, window_size.y / 2.f, 0.1f, 1000.0f);
-
-	fan_3d::frame_view = mat4(1);
-	fan_3d::frame_view = fan_3d::camera.get_view_matrix();
-
-	fan_3d::frame_projection = mat4(1);
-	fan_3d::frame_projection = Perspective(Radians(90.f), (float_t)window_size.x / (float_t)window_size.y, 0.1f, 1000.0f);
-
-	if (timer.finished()) {
-		old_fps = fps;
-		fps = 0;
-		if (title) {
-			glfwSetWindowTitle(window, (
-				std::string("FPS: ") +
-				std::to_string(old_fps) +
-				std::string(" frame time: ") +
-				std::to_string(static_cast<float_t>(frame_time.elapsed()) / static_cast<float_t>(1000)) +
-				std::string(" ms")
-				).c_str());
-		}
-		if (print) {
-			std::cout << (std::string("FPS: ") +
-				std::to_string(old_fps) +
-				std::string(" frame time: ") +
-				std::to_string(static_cast<float_t>(frame_time.elapsed()) / static_cast<float_t>(1000)) +
-				std::string(" ms")
-				) << '\n';
-		}
-		timer.restart();
-	}
-	frame_time.restart();
-	fps++;
-}
 
 Texture::Texture() : texture(0), width(0), height(0), VBO(0), VAO(0) { }
 
@@ -159,9 +116,12 @@ void Camera::move(bool noclip, float_t movement_speed)
 	this->updateCameraVectors();
 }
 
-void Camera::rotate_camera() // this->updateCameraVectors(); move function updates
+void Camera::rotate_camera(bool when) // this->updateCameraVectors(); move function updates
 {
-	static bool firstMouse = true;
+	if (when) {
+		return;
+	}
+
 	static float lastX, lastY;
 	float xpos = cursor_position.x;
 	float ypos = cursor_position.y;
@@ -221,7 +181,7 @@ void Camera::updateCameraVectors() {
 	this->up = Normalize(Cross(this->right, this->front));
 }
 
-Camera camera2d(vec3(), vec3(0, 1, 0), -90, 0);
+Camera fan_2d::camera(vec3(), vec3(0, 1, 0), -90, 0);
 Camera fan_3d::camera;
 
 int load_texture(const std::string_view path, const std::string& directory, bool flip_image, bool alpha) {
@@ -877,6 +837,9 @@ void fan_3d::square_vector::draw() {
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, this->m_texture);
 	
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_texture_ssbo);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_texture_id_ssbo);
+
 	basic_shape_vector::basic_draw(GL_TRIANGLES, 36, size());
 }
 
@@ -1142,7 +1105,7 @@ double ValueNoise_2D(double x, double y) {
 	return total / frequency;
 }
 
-skybox::skybox(
+fan_3d::skybox::skybox(
 	const std::string& left,
 	const std::string& right,
 	const std::string& front,
@@ -1179,13 +1142,13 @@ skybox::skybox(
 	glBindVertexArray(0);
 }
 
-skybox::~skybox() {
+fan_3d::skybox::~skybox() {
 	glDeleteVertexArrays(1, &skybox_vao);
 	glDeleteBuffers(1, &skybox_vbo);
 	glDeleteTextures(1, &texture_id);
 }
 
-void skybox::draw() {
+void fan_3d::skybox::draw() {
 	shader.use();
 
 	mat4 view(1);
@@ -1206,51 +1169,297 @@ void skybox::draw() {
 	glDepthFunc(GL_LESS);
 }
 
-#include <ft2build.h>
-#include FT_FREETYPE_H
-#include <FAN/File.hpp>
+fan_3d::model_mesh::model_mesh(
+	const std::vector<mesh_vertex>& vertices,
+	const std::vector<unsigned int>& indices,
+	const std::vector<mesh_texture>& textures
+) : vertices(vertices), indices(indices), textures(textures) {
+	initialize_mesh();
+}
 
-std::vector<unsigned int> advance_data;
+void fan_3d::model_mesh::initialize_mesh() {
+	glGenVertexArrays(1, &vao);
+	glGenBuffers(1, &vbo);
+	glGenBuffers(1, &ebo);
 
-//void load_to_ram() {
-//	FT_Library ft;
-//
-//	if (FT_Init_FreeType(&ft))
-//		std::cout << "Could not init FreeType Library" << std::endl;
-//
-//	FT_Face face;
-//	if (FT_New_Face(ft, "fonts/arial.ttf", 0, &face))
-//		std::cout << "Failed to load font" << std::endl;
-//
-//	for (int i = 0; i < 100; i++) {
-//		for (int j = 0; j < max_ascii; j++) {
-//			FT_Set_Pixel_Sizes(face, i, i);
-//			advance_data.push_back(suckless_getwidth(ft, face, j, i));
-//		}
-//	}
-//}
-//
-//void update_advance_data() {
-//	FT_Library ft;
-//
-//	if (FT_Init_FreeType(&ft))
-//		std::cout << "Could not init FreeType Library" << std::endl;
-//
-//	FT_Face face;
-//	if (FT_New_Face(ft, "fonts/arial.ttf", 0, &face))
-//		std::cout << "Failed to load font" << std::endl;
-//
-//	std::vector<unsigned int> data;
-//	for (int i = 0; i < max_font_size; i++) {
-//		for (int j = 0; j < max_ascii; j++) {
-//			FT_Set_Pixel_Sizes(face, i, i);
-//			data.push_back(suckless_getwidth(ft, face, j, i));
-//		}
-//	}
-//
-//	File::write<unsigned int>("fonts/advance", data, std::ios::binary);
-//}
+	glBindVertexArray(vao);
 
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(mesh_vertex), &vertices[0], GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), &indices[0], GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(3);
+	glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(mesh_vertex), 0);
+
+	glEnableVertexAttribArray(4);
+	glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(mesh_vertex), reinterpret_cast<void*>(offsetof(mesh_vertex, normal)));
+
+	glEnableVertexAttribArray(5);
+	glVertexAttribPointer(5, 2, GL_FLOAT, GL_FALSE, sizeof(mesh_vertex), reinterpret_cast<void*>(offsetof(mesh_vertex, texture_coordinates)));
+	glBindVertexArray(0);
+}
+
+fan_3d::model_loader::model_loader(const std::string& path, const vec3& size) {
+	load_model(path, size);
+}
+
+void fan_3d::model_loader::load_model(const std::string& path, const vec3& size) {
+	Assimp::Importer importer;
+	const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs);
+
+	if (scene == nullptr || scene->mFlags == AI_SCENE_FLAGS_INCOMPLETE || scene->mRootNode == nullptr) {
+		std::cout << "assimp error: " << importer.GetErrorString() << '\n';
+		return;
+	}
+
+	directory = path.substr(0, path.find_last_of('/'));
+
+	process_node(scene->mRootNode, scene, size);
+}
+
+void fan_3d::model_loader::process_node(aiNode* node, const aiScene* scene, const vec3& size) {
+	for (GLuint i = 0; i < node->mNumMeshes; i++) {
+		aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
+
+		meshes.emplace_back(process_mesh(mesh, scene, size));
+	}
+
+	for (GLuint i = 0; i < node->mNumChildren; i++) {
+		process_node(node->mChildren[i], scene, size);
+	}
+}
+
+fan_3d::model_mesh fan_3d::model_loader::process_mesh(aiMesh* mesh, const aiScene* scene, const vec3& size) {
+	std::vector<mesh_vertex> vertices;
+	std::vector<GLuint> indices;
+	std::vector<mesh_texture> textures;
+
+	for (GLuint i = 0; i < mesh->mNumVertices; i++)
+	{
+		mesh_vertex vertex;
+		vec3 vector;
+
+		vector.x = mesh->mVertices[i].x / 2 * size.x;
+		vector.y = mesh->mVertices[i].y / 2 * size.y;
+		vector.z = mesh->mVertices[i].z / 2 * size.z;
+		vertex.position = vector;
+		if (mesh->mNormals != nullptr) {
+			vector.x = mesh->mNormals[i].x;
+			vector.y = mesh->mNormals[i].y;
+			vector.z = mesh->mNormals[i].z;
+			vertex.normal = vector;
+		}
+		else {
+			vertex.normal = vec3();
+		}
+
+		if (mesh->mTextureCoords[0]) {
+			vec2 vec;
+			vec.x = mesh->mTextureCoords[0][i].x;
+			vec.y = mesh->mTextureCoords[0][i].y;
+			vertex.texture_coordinates = vec;
+		}
+
+		vertices.emplace_back(vertex);
+	}
+
+	for (GLuint i = 0; i < mesh->mNumFaces; i++) {
+		aiFace face = mesh->mFaces[i];
+		for (GLuint j = 0; j < face.mNumIndices; j++) {
+			indices.emplace_back(face.mIndices[j]);
+		}
+	}
+
+	aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
+
+	std::vector<mesh_texture> diffuseMaps = this->load_material_textures(material, aiTextureType_DIFFUSE, "texture_diffuse");
+	textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
+
+	std::vector<mesh_texture> specularMaps = this->load_material_textures(material, aiTextureType_SPECULAR, "texture_specular");
+	textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
+
+	if (textures.empty()) {
+		mesh_texture texture;
+		unsigned int texture_id;
+		glGenTextures(1, &texture_id);
+
+		aiColor4D color(0.f, 0.f, 0.f, 0.f);
+		aiGetMaterialColor(material, AI_MATKEY_COLOR_DIFFUSE, &color);
+		std::vector<unsigned char> pixels;
+		pixels.emplace_back(color.r * 255.f);
+		pixels.emplace_back(color.g * 255.f);
+		pixels.emplace_back(color.b * 255.f);
+		pixels.emplace_back(color.a * 255.f);
+
+		glBindTexture(GL_TEXTURE_2D, texture_id);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+		glGenerateMipmap(GL_TEXTURE_2D);
+
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+		texture.id = texture_id;
+		textures.emplace_back(texture);
+		textures_loaded.emplace_back(texture);
+	}
+	return model_mesh(vertices, indices, textures);
+}
+
+std::vector<fan_3d::mesh_texture> fan_3d::model_loader::load_material_textures(aiMaterial* mat, aiTextureType type, const std::string& type_name) {
+	std::vector<mesh_texture> textures;
+
+	for (int i = 0; i < mat->GetTextureCount(type); i++) {
+		aiString a_str;
+		mat->GetTexture(type, i, &a_str);
+		bool skip = false;
+		for (auto j : textures_loaded) {
+			if (j.path == a_str) {
+				textures.emplace_back(j);
+				skip = true;
+				break;
+			}
+		}
+
+		if (!skip) {
+			mesh_texture texture;
+			texture.id = load_texture(a_str.C_Str(), directory);
+			texture.type = type_name;
+			texture.path = a_str;
+			textures.emplace_back(texture);
+			textures_loaded.emplace_back(texture);
+		}
+	}
+	return textures;
+}
+
+fan_3d::model::model(const std::string& path, const vec3& position, const vec3& size) 
+	: model_loader(path, size / 2.f), m_shader(fan_3d::shader_paths::model_vs, fan_3d::shader_paths::model_fs), 
+	m_position(position), m_size(size)
+{
+	for (int i = 0; i < this->meshes.size(); i++) {
+		glBindVertexArray(this->meshes[i].vao);
+	}
+	glBindVertexArray(0);
+
+#ifndef RAM_SAVER
+	constexpr auto gpu_prealloc = sizeof(float) * 100000000;
+	glBindBuffer(GL_ARRAY_BUFFER, _Shape_Matrix_VBO);
+	glBufferData(
+		GL_ARRAY_BUFFER,
+		gpu_prealloc,
+		nullptr,
+		GL_DYNAMIC_DRAW
+	);
+#endif
+}
+
+void fan_3d::model::draw() {
+
+	mat4 model(1);
+	model = Translate(model, get_position());
+	model = Scale(model, get_size());
+
+	this->m_shader.use();
+
+	this->m_shader.set_int("texture_sampler", 0);
+	this->m_shader.set_mat4("projection", fan_3d::frame_projection);
+	this->m_shader.set_mat4("view", fan_3d::frame_view);
+	this->m_shader.set_vec3("light_position", fan_3d::camera.get_position());
+	this->m_shader.set_vec3("view_position", fan_3d::camera.get_position());
+	this->m_shader.set_vec3("light_color", vec3(1, 1, 1));
+	this->m_shader.set_int("texture_diffuse", 0);
+	this->m_shader.set_mat4("model", model);
+
+	//_Shader.set_vec3("sky_color", vec3(220.f / 255.f, 219.f / 255.f, 223.f / 255.f));
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, this->textures_loaded[0].id);
+
+	glDepthFunc(GL_LEQUAL);
+	for (int i = 0; i < this->meshes.size(); i++) {
+		glBindVertexArray(this->meshes[i].vao);
+		glDrawElementsInstanced(GL_TRIANGLES, this->meshes[i].indices.size(), GL_UNSIGNED_INT, 0, 1);
+	}
+	glDepthFunc(GL_LESS);
+
+	glBindVertexArray(0);
+}
+
+vec3 fan_3d::model::get_position()
+{
+	return this->m_position;
+}
+
+void fan_3d::model::set_position(const vec3& position)
+{
+	this->m_position = position;
+}
+
+vec3 fan_3d::model::get_size()
+{
+	return this->m_size;
+}
+
+void fan_3d::model::set_size(const vec3& size)
+{
+	this->m_size = size;
+}
+
+void GetFps(bool title, bool print) {
+	static int fps = 0;
+	static Timer timer(Timer::start(), 1000);
+	static _Timer<microseconds> frame_time(Timer::start());
+	static int old_fps = 0;
+	float current_frame = glfwGetTime();
+	static float last_frame = 0;
+	delta_time = current_frame - last_frame;
+	last_frame = current_frame;
+
+	fan_2d::frame_view = mat4(1);
+	fan_2d::frame_view = fan_2d::camera.get_view_matrix(Translate(fan_2d::frame_view, vec3(window_size.x / 2, window_size.y / 2, -700.0f)));
+
+	fan_2d::frame_projection = mat4(1);
+	fan_2d::frame_projection = Ortho(window_size.x / 2, window_size.x + window_size.x * 0.5f, window_size.y + window_size.y * 0.5f, window_size.y / 2.f, 0.1f, 1000.0f);
+
+	fan_3d::frame_view = mat4(1);
+	fan_3d::frame_view = fan_3d::camera.get_view_matrix();
+
+	fan_3d::frame_projection = mat4(1);
+	fan_3d::frame_projection = Perspective(Radians(90.f), (float_t)window_size.x / (float_t)window_size.y, 0.1f, 1000.0f);
+
+	if (timer.finished()) {
+		old_fps = fps;
+		fps = 0;
+		if (title) {
+			glfwSetWindowTitle(window, (
+				std::string("FPS: ") +
+				std::to_string(old_fps) +
+				std::string(" frame time: ") +
+				std::to_string(static_cast<float_t>(frame_time.elapsed()) / static_cast<float_t>(1000)) +
+				std::string(" ms")
+				).c_str());
+		}
+		if (print) {
+			std::cout << (std::string("FPS: ") +
+				std::to_string(old_fps) +
+				std::string(" frame time: ") +
+				std::to_string(static_cast<float_t>(frame_time.elapsed()) / static_cast<float_t>(1000)) +
+				std::string(" ms")
+				) << '\n';
+		}
+		timer.restart();
+	}
+	frame_time.restart();
+	fps++;
+}
+
+// -------------------------------GUI--------------------------------
 
 suckless_font_t suckless_font_fr(uint_t datasize, uint_t fontsize) {
 	suckless_font_t font;
@@ -1328,8 +1537,11 @@ void suckless_letter_render(suckless_font_t* font) {
 constexpr auto characters_begin(33);
 constexpr auto characters_end(248);
 
+std::array<float_t, 248> fan_gui::text_renderer::widths;
+suckless_font_t fan_gui::text_renderer::font;
+
 fan_gui::text_renderer::text_renderer()
-	: shader(Shader(fan_2d::shader_paths::text_renderer_vs, fan_2d::shader_paths::text_renderer_fs)), storage_id(0)
+	: m_shader(Shader(fan_2d::shader_paths::text_renderer_vs, fan_2d::shader_paths::text_renderer_fs))
 {
 	FT_Library ft;
 
@@ -1352,8 +1564,8 @@ fan_gui::text_renderer::text_renderer()
 		infos[i] = suckless_font_add_f(ft, &font, i);
 	}
 
-	glGenTextures(1, &texture);
-	glBindTexture(GL_TEXTURE_2D, texture);
+	glGenTextures(1, &m_texture);
+	glBindTexture(GL_TEXTURE_2D, m_texture);
 	glTexImage2D(
 		GL_TEXTURE_2D,
 		0,
@@ -1399,28 +1611,28 @@ fan_gui::text_renderer::text_renderer()
 		texture_coordinates.push_back(vec2(letter.pos.x + letter.width, letter.pos.y));
 	}
 
-	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &_Texture_Id_SSBO);
-	glGenBuffers(1, &text_ssbo);
-	glGenBuffers(1, &colors_ssbo);
-	glGenBuffers(1, &vertex_ssbo);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, _Texture_Id_SSBO);
+	glGenVertexArrays(1, &m_vao);
+	glGenBuffers(1, &m_texture_id_ssbo);
+	glGenBuffers(1, &m_text_ssbo);
+	glGenBuffers(1, &m_colors_ssbo);
+	glGenBuffers(1, &m_vertex_ssbo);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_texture_id_ssbo);
 	glBufferData(
 		GL_SHADER_STORAGE_BUFFER,
 		sizeof(texture_coordinates[0]) * texture_coordinates.size(),
 		texture_coordinates.data(),
 		GL_STATIC_DRAW
 	);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, _Texture_Id_SSBO);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_texture_id_ssbo);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
-	glBindVertexArray(VAO);
+	glBindVertexArray(m_vao);
 
-	glBindBuffer(GL_ARRAY_BUFFER, text_ssbo);
+	glBindBuffer(GL_ARRAY_BUFFER, m_text_ssbo);
 	glEnableVertexAttribArray(4);
 	glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, sizeof(int), 0);
 
-	glBindBuffer(GL_ARRAY_BUFFER, colors_ssbo);
+	glBindBuffer(GL_ARRAY_BUFFER, m_colors_ssbo);
 	glEnableVertexAttribArray(6);
 	glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, vec4::size() * sizeof(vec4::type), 0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -1432,40 +1644,39 @@ fan_gui::text_renderer::text_renderer()
 
 fan_gui::text_renderer::~text_renderer()
 {
-	glDeleteVertexArrays(1, &VAO);
-	glDeleteBuffers(1, &_Texture_Id_SSBO);
-	glDeleteBuffers(1, &text_ssbo);
-	glDeleteBuffers(1, &colors_ssbo);
-	glDeleteBuffers(1, &vertex_ssbo);
-	glDeleteTextures(1, &texture);
+	glDeleteVertexArrays(1, &m_vao);
+	glDeleteBuffers(1, &m_texture_id_ssbo);
+	glDeleteBuffers(1, &m_text_ssbo);
+	glDeleteBuffers(1, &m_colors_ssbo);
+	glDeleteBuffers(1, &m_vertex_ssbo);
+	glDeleteTextures(1, &m_texture);
 }
 
 void fan_gui::text_renderer::alloc_storage(const std::vector<std::wstring>& vector)
 {
 	realloc_storage(vector);
-	storage_id = 0;
 }
 
 void fan_gui::text_renderer::realloc_storage(const std::vector<std::wstring>& vector)
 {
-	colors.resize(vector.size());
+	m_colors.resize(vector.size());
 	for (int i = 0; i < vector.size(); i++) {
-		colors[i].resize(vector[i].size());
+		m_colors[i].resize(vector[i].size());
 	}
 }
 
 void fan_gui::text_renderer::store_to_renderer(std::wstring& text, vec2 position, const Color& color, float_t scale, float_t max_width)
 {
-	characters.resize(characters.size() + 1);
-	draw_data.resize(draw_data.size() + 1);
-	characters[storage_id].resize(text.size());
+	m_characters.resize(m_characters.size() + 1);
+	m_vertices.resize(m_vertices.size() + 1);
+	m_characters[m_characters.size() - 1].resize(text.size());
 
 	float_t width = 0;
 	float_t begin = position.x;
 
 	for (int i = 0; i < text.size(); i++) {
-		emplace_vertex_data(draw_data[storage_id], position, vec2(widths[text[i]] * scale, scale));
-		
+		emplace_vertex_data(m_vertices[m_vertices.size() - 1], position, vec2(widths[text[i]] * scale, scale));
+
 		if (max_width != -1) {
 			float_t next_step = 0;
 
@@ -1485,8 +1696,8 @@ void fan_gui::text_renderer::store_to_renderer(std::wstring& text, vec2 position
 
 			if (width + next_step >= max_width) {
 				position.x = begin;
-				characters[storage_id].resize(characters[storage_id].size() + 1);
-				colors[storage_id].resize(colors[storage_id].size() + 1);
+				m_characters[m_characters.size() - 1].resize(m_characters[m_characters.size() - 1].size() + 1);
+				m_colors[m_colors.size() - 1].resize(m_colors[m_colors.size() - 1].size() + 1);
 				position.y += scale;
 				width = 0;
 				//i--;
@@ -1494,7 +1705,7 @@ void fan_gui::text_renderer::store_to_renderer(std::wstring& text, vec2 position
 				goto skip;
 			}
 		}
-		
+
 
 		switch (text[i]) {
 		case ' ': {
@@ -1514,24 +1725,23 @@ void fan_gui::text_renderer::store_to_renderer(std::wstring& text, vec2 position
 			width += widths[text[i]] * scale + text_button::space_between_characters;
 		}
 		}
-		skip:
-		colors[storage_id][i] = color;
-		characters[storage_id][i] = text[i];
+	skip:
+		m_colors[m_colors.size() - 1][i] = color;
+		m_characters[m_characters.size() - 1][i] = text[i];
 	}
-	storage_id++;
 }
 
 void fan_gui::text_renderer::edit_storage(uint64_t i, const std::wstring& text, vec2 position, const Color& color, float_t scale)
 {
-	draw_data[i].clear();
-	characters[i].resize(text.size());
-	colors[i].resize(text.size());
+	m_vertices[i].clear();
+	m_characters[i].resize(text.size());
+	m_colors[i].resize(text.size());
 
 	float_t width = 0;
 	float_t begin = position.x;
 
 	for (int character = 0; character < text.size(); character++) {
-		emplace_vertex_data(draw_data[i], position, vec2(widths[text[character]] * scale, scale));
+		emplace_vertex_data(m_vertices[i], position, vec2(widths[text[character]] * scale, scale));
 
 		switch (text[character]) {
 		case ' ': {
@@ -1551,73 +1761,83 @@ void fan_gui::text_renderer::edit_storage(uint64_t i, const std::wstring& text, 
 			width += widths[text[character]] * scale + text_button::space_between_characters;
 		}
 		}
-		colors[i][character] = color;
-		characters[i][character] = text[character];
+		m_colors[i][character] = color;
+		m_characters[i][character] = text[character];
 	}
 }
 
-void fan_gui::text_renderer::upload_stored()
+void fan_gui::text_renderer::upload_vertices()
 {
-	std::vector<int> one_dimension_characters(vector_size(characters));
-	std::vector<Color> one_dimension_colors(vector_size(colors));
-	std::vector<vec2> one_dimension_draw_data(vector_size(draw_data));
-
+	std::vector<vec2> one_dimension_draw_data(vector_size(m_vertices));
 	int copied = 0;
-	for (int i = 0; i < characters.size(); i++) {
-		std::copy(characters[i].begin(), characters[i].end(), one_dimension_characters.begin() + copied);
-		copied += characters[i].size();
+	for (int i = 0; i < m_vertices.size(); i++) {
+		std::copy(m_vertices[i].begin(), m_vertices[i].end(), one_dimension_draw_data.begin() + copied);
+		copied += m_vertices[i].size();
 	}
 
-	copied = 0;
-	for (int i = 0; i < colors.size(); i++) {
-		std::copy(colors[i].begin(), colors[i].end(), one_dimension_colors.begin() + copied);
-		copied += colors[i].size();
-	}
-
-	copied = 0;
-	for (int i = 0; i < draw_data.size(); i++) {
-		std::copy(draw_data[i].begin(), draw_data[i].end(), one_dimension_draw_data.begin() + copied);
-		copied += draw_data[i].size();
-	}
-
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertex_ssbo);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_vertex_ssbo);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(one_dimension_draw_data[0]) * one_dimension_draw_data.size(), one_dimension_draw_data.data(), GL_DYNAMIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vertex_ssbo);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_vertex_ssbo);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+}
 
-	glBindBuffer(GL_ARRAY_BUFFER, text_ssbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(one_dimension_characters[0]) * one_dimension_characters.size(), one_dimension_characters.data(), GL_DYNAMIC_DRAW);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-	glBindBuffer(GL_ARRAY_BUFFER, colors_ssbo);
+void fan_gui::text_renderer::upload_colors()
+{
+	std::vector<Color> one_dimension_colors(vector_size(m_colors));
+	int copied = 0;
+	for (int i = 0; i < m_colors.size(); i++) {
+		std::copy(m_colors[i].begin(), m_colors[i].end(), one_dimension_colors.begin() + copied);
+		copied += m_colors[i].size();
+	}
+	glBindBuffer(GL_ARRAY_BUFFER, m_colors_ssbo);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(one_dimension_colors[0]) * one_dimension_colors.size(), one_dimension_colors.data(), GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
+void fan_gui::text_renderer::upload_characters()
+{
+	std::vector<int> one_dimension_characters(vector_size(m_characters));
+	int copied = 0;
+	for (int i = 0; i < m_characters.size(); i++) {
+		std::copy(m_characters[i].begin(), m_characters[i].end(), one_dimension_characters.begin() + copied);
+		copied += m_characters[i].size();
+	}
+	glBindBuffer(GL_ARRAY_BUFFER, m_text_ssbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(one_dimension_characters[0]) * one_dimension_characters.size(), one_dimension_characters.data(), GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+void fan_gui::text_renderer::upload_stored()
+{
+	this->upload_vertices();
+	this->upload_colors();
+	this->upload_characters();
+}
+
 void fan_gui::text_renderer::upload_stored(uint64_t i)
 {
-	std::vector<int> new_characters(characters[i].begin(), characters[i].end());
+	std::vector<int> new_characters(m_characters[i].begin(), m_characters[i].end());
 
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, text_ssbo);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_text_ssbo);
 	glBufferSubData(
 		GL_SHADER_STORAGE_BUFFER,
 		i * new_characters.size() * sizeof(int),
 		sizeof(int) * new_characters.size(),
 		new_characters.data()
 	);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, text_ssbo);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, m_text_ssbo);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 }
 
 void fan_gui::text_renderer::render_stored()
 {
-	shader.use();
-	shader.set_mat4("projection", Ortho(0, window_size.x, window_size.y, 0));
+	m_shader.use();
+	m_shader.set_mat4("projection", Ortho(0, window_size.x, window_size.y, 0));
 
-	glBindVertexArray(VAO);
-	glBindTexture(GL_TEXTURE_2D, texture);
-	glDrawArraysInstanced(GL_TRIANGLES, 0, 6, vector_size(characters));
+	glBindVertexArray(m_vao);
+	glBindTexture(GL_TEXTURE_2D, m_texture);
+	glDrawArraysInstanced(GL_TRIANGLES, 0, 6, vector_size(m_characters));
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	glBindVertexArray(0);
@@ -1625,19 +1845,15 @@ void fan_gui::text_renderer::render_stored()
 
 void fan_gui::text_renderer::set_scale(uint64_t i, float_t scale, vec2 position)
 {
-	//vec2 position;
-
-	//position = string_beginnings[i] + text_size / 2;
-
-	draw_data[i].clear();
+	m_vertices[i].clear();
 
 	float_t begin = position.x;
 
-	for (int index = 0; index < characters[i].size(); index++) {
+	for (int index = 0; index < m_characters[i].size(); index++) {
 
-		emplace_vertex_data(draw_data[i], position, vec2(widths[characters[i][index]] * scale, scale));
+		emplace_vertex_data(m_vertices[i], position, vec2(widths[m_characters[i][index]] * scale, scale));
 
-		switch (characters[i][index]) {
+		switch (m_characters[i][index]) {
 		case ' ': {
 			position.x += text_button::get_space(scale);
 			break;
@@ -1648,107 +1864,24 @@ void fan_gui::text_renderer::set_scale(uint64_t i, float_t scale, vec2 position)
 			break;
 		}
 		default: {
-			position.x += text_button::get_character_x_offset(widths[characters[i][index]], scale);
+			position.x += text_button::get_character_x_offset(widths[m_characters[i][index]], scale);
 		}
 		}
 	}
 
-	/*glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertex_ssbo);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(draw_data[0]) * draw_data.size(), draw_data.data(), GL_DYNAMIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vertex_ssbo);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);*/
+	upload_vertices();
 }
 
 void fan_gui::text_renderer::clear_storage()
 {
-	characters.clear();
-}
-
-void fan_gui::text_renderer::render(const std::vector<std::wstring>& text, std::vector<vec2> position, const std::vector<Color>& color, const std::vector<float_t>& scale)
-{
-	static std::wstring old_str;
-
-	shader.use();
-	shader.set_mat4("projection", Ortho(0, window_size.x, window_size.y, 0));
-	shader.set_vec4("text_color", color[0]);
-
-	//if (old_str == text) {
-	//	goto draw;
-	//}
-
-	std::vector<std::vector<vec2>> character_pos(text.size());
-	std::vector<std::vector<int>> int_text(text.size());
-	for (int i = 0; i < text.size(); i++) {
-		character_pos[i].resize(text[i].size());
-		int_text[i].resize(text[i].size());
-	}
-
-	int draw_size = 0;
-
-	for (int instance = 0; instance < text.size(); instance++) {
-		float begin = position[instance].x;
-
-		for (int i = 0; i < text[instance].size(); i++) {
-			float xpos = position[instance].x;
-			float ypos = position[instance].y - 1;
-
-			float size_x = widths[text[instance][i]];
-			size_x = size_x / std::max(size_x, scale[instance]) * scale[instance];
-
-			character_pos[instance][i] = position[instance];
-			int_text[instance][i] = text[instance][i];
-
-			switch (text[instance][i]) {
-			case ' ': {
-				position[instance].x += 10;
-				break;
-			}
-			case '\n': {
-				xpos = position[instance].x = begin;
-				position[instance].y += scale[instance];
-				break;
-			}
-			default: {
-				position[instance].x += size_x + 2;
-			}
-			}
-			draw_size++;
-		}
-	}
-
-	std::vector<vec2> something;
-	std::vector<int> ints;
-
-	for (int i = 0; i < character_pos.size(); i++) {
-		for (int j = 0; j < character_pos[i].size(); j++) {
-			something.emplace_back(character_pos[i][j]);
-		}
-	}
-
-	for (int i = 0; i < int_text.size(); i++) {
-		for (int j = 0; j < int_text[i].size(); j++) {
-			ints.emplace_back(int_text[i][j]);
-		}
-	}
-
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, text_ssbo);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(ints[0]) * ints.size(), ints.data(), GL_DYNAMIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, text_ssbo);
-
-draw:
-	glBindVertexArray(VAO);
-	glBindTexture(GL_TEXTURE_2D, texture);
-	glDrawArraysInstanced(GL_TRIANGLES, 0, 6, draw_size);
-	glBindTexture(GL_TEXTURE_2D, 0);
-
-	glBindVertexArray(0);
+	m_characters.clear();
 }
 
 void fan_gui::text_renderer::render(const std::wstring& text, vec2 position, const Color& color, float_t scale, bool use_old) {
 	static std::wstring old_str;
 
-	shader.use();
-	shader.set_mat4("projection", Ortho(0, window_size.x, window_size.y, 0));
+	m_shader.use();
+	m_shader.set_mat4("projection", Ortho(0, window_size.x, window_size.y, 0));
 
 	float_t begin = position.x;
 
@@ -1756,21 +1889,25 @@ void fan_gui::text_renderer::render(const std::wstring& text, vec2 position, con
 		goto draw;
 	}
 	{
-		if (characters.empty()) {
-			characters.resize(characters.size() + 1);
-			characters[0].resize(text.size());
-		}
-		if (colors.empty()) {
-			colors.resize(colors.size() + 1);
-			colors[0].resize(text.size());
-		}
+
+		m_vertices.clear();
+		m_characters.clear();
+		m_colors.clear();
+
+		m_characters.resize(1);
+		m_characters[0].resize(text.size());
+
+		m_colors.resize(1);
+		m_colors[0].resize(text.size());
+
+		m_vertices.resize(1);
 
 		for (int i = 0; i < text.size(); i++) {
-			if (draw_data.size() < 6 * text.size()) {
-				emplace_vertex_data(draw_data[i], position, vec2(widths[text[i]] * scale, scale));
+			if (m_vertices.size() < 6 * text.size()) {
+				emplace_vertex_data(m_vertices[m_vertices.size() - 1], position, vec2(widths[text[i]] * scale, scale));
 			}
 			else {
-				edit_vertex_data(i * 6, draw_data[i], position, vec2(widths[text[i]] * scale, scale));
+				edit_vertex_data(i * 6, m_vertices[i], position, vec2(widths[text[i]] * scale, scale));
 			}
 
 			switch (text[i]) {
@@ -1787,29 +1924,33 @@ void fan_gui::text_renderer::render(const std::wstring& text, vec2 position, con
 				position.x += widths[text[i]] * scale + text_button::space_between_characters;
 			}
 			}
-			colors[0][i] = color;
-			characters[0][i] = text[i];
+			m_colors[0][i] = color;
+			m_characters[0][i] = text[i];
 		}
 	}
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertex_ssbo);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(draw_data[0]) * draw_data.size(), draw_data.data(), GL_DYNAMIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vertex_ssbo);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, text_ssbo);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(characters[0][0]) * characters[0].size(), characters[0].data(), GL_DYNAMIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, text_ssbo);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_vertex_ssbo);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(m_vertices[0][0]) * m_vertices[0].size(), m_vertices[0].data(), GL_DYNAMIC_DRAW);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_vertex_ssbo);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+	
+	glBindBuffer(GL_ARRAY_BUFFER, m_text_ssbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(m_characters[0][0]) * m_characters[0].size(), m_characters[0].data(), GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, colors_ssbo);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(colors[0][0]) * colors[0].size(), colors[0].data(), GL_DYNAMIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, colors_ssbo);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+	glBindBuffer(GL_ARRAY_BUFFER, m_colors_ssbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(m_colors[0][0]) * m_colors[0].size(), m_colors[0].data(), GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	old_str = text;
 
+
+
 draw:
-	glBindVertexArray(VAO);
-	glBindTexture(GL_TEXTURE_2D, texture);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_vertex_ssbo);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_texture_id_ssbo);
+
+	glBindVertexArray(m_vao);
+	glBindTexture(GL_TEXTURE_2D, m_texture);
 	glDrawArraysInstanced(GL_TRIANGLES, 0, 6, text.size());
 	glBindTexture(GL_TEXTURE_2D, 0);
 
@@ -1913,33 +2054,36 @@ vec2 fan_gui::text_button::basic_text_button_vector::edit_size(uint64_t i, const
 			largest = size;
 		}
 	}
-	texts[i] = text;
+	m_texts[i] = text;
 	return vec2(get_gap_scale_x(largest), get_gap_scale_y(scale) * lines.size());
 }
 
 fan_gui::text_button::text_button_vector::text_button_vector() : basic_text_button_vector() { }
-
-//fan_gui::text_button::text_button_vector::text_button_vector(const std::wstring& text, const vec2& position, const Color& box_color, float_t font_scale, float_t left_offset, float_t max_width)
-//	: basic_text_button_vector() {
-//	auto text_length = get_length(text, font_scale);
-//	auto str = text;
-//	realloc_storage({ str });
-//	store_to_renderer(str, position + vec2(left_offset, font_scale * 0.2), default_text_color, font_scale, left_offset, max_width);
-//	upload_stored();
-//	push_back(position, vec2(left_offset * 2 + ((text_length.x > max_width) ? max_width : text_length.x), draw_data[str.size() * 6 - 1].y) + vec2(0, font_scale * 0.4), box_color);
-//}
 
 fan_gui::text_button::text_button_vector::text_button_vector(const std::wstring& text, const vec2& position, const Color& color, float_t scale)
 	: basic_text_button_vector() {
 	this->add(text, position, color, scale);
 }
 
+fan_gui::text_button::text_button_vector::text_button_vector(const std::wstring& text, const vec2& position, const Color& color, float_t scale, const vec2& box_size)
+	: basic_text_button_vector() {
+	m_scales.push_back(scale);
+	std::vector<std::wstring> all_strings(m_texts.begin(), m_texts.end());
+	all_strings.push_back(text);
+	m_texts.push_back(text);
+	realloc_storage(all_strings);
+	push_back(position, box_size, color); // * 2 for both sides
+	auto rtext = text;
+	store_to_renderer(rtext, position + box_size / 2 - get_length(text, scale) / 2, default_text_color, scale);
+	upload_stored();
+}
+
 void fan_gui::text_button::text_button_vector::add(const std::wstring& text, const vec2& position, const Color& color, float_t scale)
 {
-	scales.push_back(scale);
-	std::vector<std::wstring> all_strings(texts.begin(), texts.end());
+	m_scales.push_back(scale);
+	std::vector<std::wstring> all_strings(m_texts.begin(), m_texts.end());
 	all_strings.push_back(text);
-	texts.push_back(text);
+	m_texts.push_back(text);
 	realloc_storage(all_strings);
 	push_back(position, get_length(text, scale) + get_gap_scale(scale) * 2, color); // * 2 for both sides
 	auto rtext = text;
@@ -1947,10 +2091,23 @@ void fan_gui::text_button::text_button_vector::add(const std::wstring& text, con
 	upload_stored();
 }
 
+void fan_gui::text_button::text_button_vector::add(const std::wstring& text, const vec2& position, const Color& color, float_t scale, const vec2& box_size)
+{
+	m_scales.push_back(scale);
+	std::vector<std::wstring> all_strings(m_texts.begin(), m_texts.end());
+	all_strings.push_back(text);
+	m_texts.push_back(text);
+	realloc_storage(all_strings);
+	push_back(position, box_size, color); // * 2 for both sides
+	auto rtext = text;
+	store_to_renderer(rtext, position + box_size / 2 - get_length(text, scale) / 2, default_text_color, scale);
+	upload_stored();
+}
+
 void fan_gui::text_button::text_button_vector::edit_string(uint64_t i, const std::wstring& text, float_t scale)
 {
-	scales[i] = scale;
-	texts[i] = text;
+	m_scales[i] = scale;
+	m_texts[i] = text;
 	auto len = get_length(text, scale);
 	set_size(i, len + get_gap_scale(scale) * 2);
 	edit_storage(i, text, get_position(i) + get_gap_scale(scale), default_text_color, scale);
@@ -1964,13 +2121,13 @@ vec2 fan_gui::text_button::text_button_vector::get_string_length(const std::wstr
 
 float_t fan_gui::text_button::text_button_vector::get_scale(uint64_t i)
 {
-	return scales[i];
+	return m_scales[i];
 }
 
 void fan_gui::text_button::text_button_vector::set_font_size(uint64_t i, float_t scale)
 {
-	scales[i] = scale;
-	auto str = std::wstring(characters[i].begin(), characters[i].end());
+	m_scales[i] = scale;
+	auto str = std::wstring(m_characters[i].begin(), m_characters[i].end());
 	auto len = get_length(str, scale);
 	auto text_size = edit_size(i, str, scale);
 	set_size(i, len + get_gap_scale(scale) * 2);
@@ -1983,16 +2140,35 @@ void fan_gui::text_button::text_button_vector::set_position(uint64_t i, const ve
 {
 	float_t scale = get_scale(i);
 	fan_2d::square_vector::set_position(i, position);
-	auto len = get_length(texts[i], scale);
+	auto len = get_length(m_texts[i], scale);
 	set_size(i, len + get_gap_scale(scale) * 2);
-	edit_storage(i, texts[i], get_position(i) + get_gap_scale(scale), default_text_color, scale);
+	edit_storage(i, m_texts[i], get_position(i) + get_gap_scale(scale), default_text_color, scale);
 	upload_stored();
+}
+
+void fan_gui::text_button::text_button_vector::set_press_callback(int key, const std::function<void()>& function)
+{
+	callbacks::key_callback.add(key, true, function);
 }
 
 void fan_gui::text_button::text_button_vector::draw()
 {
 	fan_2d::square_vector::draw();
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_vertex_ssbo);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_texture_id_ssbo);
 	glDisable(GL_DEPTH_TEST);
 	render_stored();
 	glEnable(GL_DEPTH_TEST);
+}
+
+bool fan_gui::text_button::text_button_vector::inside(std::uint64_t i)
+{
+	vec2 position = get_position(i);
+	vec2 size = get_size(i);
+	if (cursor_position.x >= position.x && cursor_position.x <= position.x + size.x &&
+		cursor_position.y >= position.y && cursor_position.y <= position.y + size.y)
+	{
+		return true;
+	}
+	return false;
 }
