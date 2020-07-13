@@ -1,23 +1,16 @@
 ﻿  Graphics.cpp
   Input.cpp
   Source.cpp
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.cpp(456,1): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.cpp(456,1): message : This diagnostic occurred in the compiler generated function 'fan_2d::default_2d_base_vector::default_2d_base_vector(const std::array<_Ty,_Size> &)'
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.cpp(1015,18): warning C4102: 'request_allocate': unreferenced label
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.cpp(1222,20): warning C4018: '<': signed/unsigned mismatch
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.cpp(1680,105): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.cpp(1943,105): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.cpp(2327,33): warning C4267: '+=': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.cpp(2333,29): warning C4267: '+=': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.cpp(2339,32): warning C4267: '+=': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.cpp(2497,5): warning C4102: 'draw': unreferenced label
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.cpp(2572,55): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Time.hpp(83,60): warning C4018: '>=': signed/unsigned mismatch (compiling source file FAN\Graphics.cpp)
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Time.hpp(82): message : while compiling class template member function 'bool _Timer<std::chrono::milliseconds>::finished(void)' (compiling source file FAN\Graphics.cpp)
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.cpp(28): message : see reference to function template instantiation 'bool _Timer<std::chrono::milliseconds>::finished(void)' being compiled
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.cpp(14): message : see reference to class template instantiation '_Timer<std::chrono::milliseconds>' being compiled
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.cpp(442,1): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
-C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.cpp(948): message : see reference to function template instantiation 'fan_2d::default_2d_base_vector::default_2d_base_vector<float_t,12>(const std::array<float_t,12> &)' being compiled
+C:\Users\123\Downloads\2D-master\2D\FAN\Graphics.cpp(1318,20): warning C4018: '<': signed/unsigned mismatch
+C:\Users\123\Downloads\2D-master\2D\FAN\Graphics.cpp(1387,94): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+C:\Users\123\Downloads\2D-master\2D\FAN\Graphics.cpp(1775,33): warning C4267: '+=': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\123\Downloads\2D-master\2D\FAN\Graphics.cpp(1790,31): warning C4267: '+=': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\123\Downloads\2D-master\2D\FAN\Graphics.cpp(1803,35): warning C4267: '+=': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\123\Downloads\2D-master\2D\FAN\Graphics.cpp(1954,55): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+C:\Users\123\Downloads\2D-master\2D\FAN\Time.hpp(83,60): warning C4018: '>=': signed/unsigned mismatch (compiling source file FAN\Graphics.cpp)
+C:\Users\123\Downloads\2D-master\2D\FAN\Time.hpp(82): message : while compiling class template member function 'bool _Timer<std::chrono::milliseconds>::finished(void)' (compiling source file FAN\Graphics.cpp)
+C:\Users\123\Downloads\2D-master\2D\FAN\Graphics.cpp(1436): message : see reference to function template instantiation 'bool _Timer<std::chrono::milliseconds>::finished(void)' being compiled
+C:\Users\123\Downloads\2D-master\2D\FAN\Graphics.cpp(1416): message : see reference to class template instantiation '_Timer<std::chrono::milliseconds>' being compiled
   etc1_utils.c
   image_DXT.c
   image_helper.c
@@ -25,5 +18,5 @@ C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.cpp(948): message : see referen
 LINK : warning LNK4098: defaultlib 'LIBCMT' conflicts with use of other libs; use /NODEFAULTLIB:library
   Generating code
   Finished generating code
-glew32s.lib(glew.obj) : warning LNK4099: PDB 'vc120.pdb' was not found with 'glew32s.lib(glew.obj)' or at 'C:\Users\123\Documents\GitHub\2D\2D\x64\Release\vc120.pdb'; linking object as if no debug info
-  2D.vcxproj -> C:\Users\123\Documents\GitHub\2D\2D\x64\Release\2D.exe
+glew32s.lib(glew.obj) : warning LNK4099: PDB 'vc120.pdb' was not found with 'glew32s.lib(glew.obj)' or at 'C:\Users\123\Downloads\2D-master\2D\x64\Release\vc120.pdb'; linking object as if no debug info
+  2D.vcxproj -> C:\Users\123\Downloads\2D-master\2D\x64\Release\2D.exe
