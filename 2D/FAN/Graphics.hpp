@@ -5,9 +5,6 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
-//#include <ft2build.h>
-//#include FT_FREETYPE_H  
-
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
@@ -22,12 +19,12 @@
 #include <array>
 #include <map>
 
-#include "Input.hpp"
-#include "Math.hpp"
-#include "Shader.h"
-#include "Vectors.hpp"
-#include "Time.hpp"
-#include "Network.hpp"
+#include <FAN/Input.hpp>
+#include <FAN/Math.hpp>
+#include <FAN/Shader.h>
+#include <FAN/Vectors.hpp>
+#include <FAN/Time.hpp>
+#include <FAN/Network.hpp>
 #include <SOIL2/SOIL2.h>
 #include <SOIL2/stb_image.h>
 
@@ -43,11 +40,6 @@
 #endif
 
 #define COLORSIZE 4
-
-class Camera;
-extern Camera camera2d;
-
-void GetFps(bool title = true, bool print = false);
 
 extern bool window_init;
 constexpr auto WINDOWSIZE = vec2i(800, 800);
@@ -92,7 +84,7 @@ public:
 	);
 
 	void move(bool noclip, float_t movement_speed);
-	void rotate_camera();
+	void rotate_camera(bool when);
 
 	mat4 get_view_matrix();
 	mat4 get_view_matrix(mat4 m);
@@ -108,6 +100,8 @@ public:
 	vec3 right;
 	vec3 up;
 	vec3 velocity;
+	bool firstMouse = true;
+
 	static constexpr auto friction = 12;
 
 	void updateCameraVectors();
@@ -191,6 +185,7 @@ namespace fan_2d {
 
 	extern mat4 frame_projection;
 	extern mat4 frame_view;
+	extern Camera camera;
 
 	namespace shader_paths {
 		constexpr auto text_renderer_vs("GLSL/2D/text.vs");
@@ -342,13 +337,13 @@ namespace fan_3d {
 		constexpr auto shape_vector_vs("GLSL/3D/shape_vector.vs");
 		constexpr auto shape_vector_fs("GLSL/3D/shape_vector.fs");
 
+		constexpr auto model_vs("GLSL/3D/models.vs");
+		constexpr auto model_fs("GLSL/3D/models.fs");
+
 		constexpr auto skybox_vs("GLSL/3D/skybox.vs");
 		constexpr auto skybox_fs("GLSL/3D/skybox.fs");
 		constexpr auto skybox_model_vs("GLSL/3D/skybox_model.vs");
 		constexpr auto skybox_model_fs("GLSL/3D/skybox_model.fs");
-
-		constexpr auto instancing_vs("GLSL/3D/instancing.vs");
-		constexpr auto instancing_fs("GLSL/3D/instancing.fs");
 	}
 
 	extern Camera camera;
@@ -405,76 +400,144 @@ namespace fan_3d {
 
 	};
 
+	class skybox {
+	public:
+		skybox(
+			const std::string& left,
+			const std::string& right,
+			const std::string& front,
+			const std::string back,
+			const std::string bottom,
+			const std::string& top
+		);
+
+		~skybox();
+
+		void draw();
+
+	private:
+		unsigned int texture_id;
+		unsigned int skybox_vao, skybox_vbo;
+
+
+		Shader shader;
+		Camera* camera;
+		static constexpr float skyboxVertices[108] = {
+			-1.0f,  1.0f, -1.0f,
+			-1.0f, -1.0f, -1.0f,
+			1.0f, -1.0f, -1.0f,
+			1.0f, -1.0f, -1.0f,
+			1.0f,  1.0f, -1.0f,
+			-1.0f,  1.0f, -1.0f,
+
+			-1.0f, -1.0f,  1.0f,
+			-1.0f, -1.0f, -1.0f,
+			-1.0f,  1.0f, -1.0f,
+			-1.0f,  1.0f, -1.0f,
+			-1.0f,  1.0f,  1.0f,
+			-1.0f, -1.0f,  1.0f,
+
+			1.0f, -1.0f, -1.0f,
+			1.0f, -1.0f,  1.0f,
+			1.0f,  1.0f,  1.0f,
+			1.0f,  1.0f,  1.0f,
+			1.0f,  1.0f, -1.0f,
+			1.0f, -1.0f, -1.0f,
+
+			-1.0f, -1.0f,  1.0f,
+			-1.0f,  1.0f,  1.0f,
+			1.0f,  1.0f,  1.0f,
+			1.0f,  1.0f,  1.0f,
+			1.0f, -1.0f,  1.0f,
+			-1.0f, -1.0f,  1.0f,
+
+			-1.0f,  1.0f, -1.0f,
+			1.0f,  1.0f, -1.0f,
+			1.0f,  1.0f,  1.0f,
+			1.0f,  1.0f,  1.0f,
+			-1.0f,  1.0f,  1.0f,
+			-1.0f,  1.0f, -1.0f,
+
+			-1.0f, -1.0f, -1.0f,
+			-1.0f, -1.0f,  1.0f,
+			1.0f, -1.0f, -1.0f,
+			1.0f, -1.0f, -1.0f,
+			-1.0f, -1.0f,  1.0f,
+			1.0f, -1.0f,  1.0f
+		};
+	};
+
+	struct mesh_vertex {
+		vec3 position;
+		vec3 normal;
+		vec2 texture_coordinates;
+	};
+
+	struct mesh_texture {
+		unsigned int id;
+		std::string type;
+		aiString path;
+	};
+
+	class model_mesh {
+	public:
+		std::vector<mesh_vertex> vertices;
+		std::vector<unsigned int> indices;
+		std::vector<mesh_texture> textures;
+		unsigned int vao, vbo, ebo;
+
+		model_mesh(
+			const std::vector<mesh_vertex>& vertices,
+			const std::vector<unsigned int>& indices,
+			const std::vector<mesh_texture>& textures
+		);
+
+	private:
+
+		void initialize_mesh();
+	};
+
+	class model_loader {
+	protected:
+		model_loader(const std::string& path, const vec3& size);
+
+		std::vector<model_mesh> meshes;
+		std::vector<mesh_texture> textures_loaded;
+	private:
+		void load_model(const std::string& path, const vec3& size);
+
+		void process_node(aiNode* node, const aiScene* scene, const vec3& size);
+
+		model_mesh process_mesh(aiMesh* mesh, const aiScene* scene, const vec3& size);
+
+		std::vector<mesh_texture> load_material_textures(aiMaterial* mat, aiTextureType type, const std::string& type_name);
+
+		std::string directory;
+	};
+
+	class model : public model_loader {
+	public:
+		model(const std::string& path, const vec3& position, const vec3& size);
+
+		void draw();
+
+		vec3 get_position();
+		void set_position(const vec3& position);
+
+		vec3 get_size();
+		void set_size(const vec3& size);
+
+	private:
+		Shader m_shader;
+
+		vec3 m_position;
+		vec3 m_size;
+
+	};
+
 }
 
-constexpr auto texture_coordinate_size = 72;
-
-class skybox {
-public:
-	skybox(
-		const std::string& left,
-		const std::string& right,
-		const std::string& front,
-		const std::string back,
-		const std::string bottom,
-		const std::string& top
-	);
-
-	~skybox();
-
-	void draw();
-
-private:
-	unsigned int texture_id;
-	unsigned int skybox_vao, skybox_vbo;
-
-
-	Shader shader;
-	Camera* camera;
-	static constexpr float skyboxVertices[108] = {
-		-1.0f,  1.0f, -1.0f,
-		-1.0f, -1.0f, -1.0f,
-		1.0f, -1.0f, -1.0f,
-		1.0f, -1.0f, -1.0f,
-		1.0f,  1.0f, -1.0f,
-		-1.0f,  1.0f, -1.0f,
-
-		-1.0f, -1.0f,  1.0f,
-		-1.0f, -1.0f, -1.0f,
-		-1.0f,  1.0f, -1.0f,
-		-1.0f,  1.0f, -1.0f,
-		-1.0f,  1.0f,  1.0f,
-		-1.0f, -1.0f,  1.0f,
-
-		1.0f, -1.0f, -1.0f,
-		1.0f, -1.0f,  1.0f,
-		1.0f,  1.0f,  1.0f,
-		1.0f,  1.0f,  1.0f,
-		1.0f,  1.0f, -1.0f,
-		1.0f, -1.0f, -1.0f,
-
-		-1.0f, -1.0f,  1.0f,
-		-1.0f,  1.0f,  1.0f,
-		1.0f,  1.0f,  1.0f,
-		1.0f,  1.0f,  1.0f,
-		1.0f, -1.0f,  1.0f,
-		-1.0f, -1.0f,  1.0f,
-
-		-1.0f,  1.0f, -1.0f,
-		1.0f,  1.0f, -1.0f,
-		1.0f,  1.0f,  1.0f,
-		1.0f,  1.0f,  1.0f,
-		-1.0f,  1.0f,  1.0f,
-		-1.0f,  1.0f, -1.0f,
-
-		-1.0f, -1.0f, -1.0f,
-		-1.0f, -1.0f,  1.0f,
-		1.0f, -1.0f, -1.0f,
-		1.0f, -1.0f, -1.0f,
-		-1.0f, -1.0f,  1.0f,
-		1.0f, -1.0f,  1.0f
-	};
-};
+void GetFps(bool title = true, bool print = false);
 
 enum class e_cube {
 	left,
@@ -636,11 +699,19 @@ namespace fan_gui {
 
 		~text_renderer();
 
+		void render(const std::wstring& text, vec2 position, const Color& color, float_t scale, bool use_old = false);
+
+	protected:
+
 		void alloc_storage(const std::vector<std::wstring>& vector);
 		void realloc_storage(const std::vector<std::wstring>& vector);
 
 		void store_to_renderer(std::wstring& text, vec2 position, const Color& color, float_t scale, float_t max_width = -1);
 		void edit_storage(uint64_t i, const std::wstring& text, vec2 position, const Color& color, float_t scale);
+
+		void upload_vertices();
+		void upload_colors();
+		void upload_characters();
 
 		void upload_stored();
 		void upload_stored(uint64_t i);
@@ -648,32 +719,26 @@ namespace fan_gui {
 		void render_stored();
 		void set_scale(uint64_t i, float_t font_size, vec2 position);
 
-		void clear_storage();
-
-		void render(const std::vector<std::wstring>& text, std::vector<vec2> position, const std::vector<Color>& color, const std::vector<float_t>& scale);
-		void render(const std::wstring& text, vec2 position, const Color& color, float_t scale, bool use_old = true);
-
 		vec2 get_length(const std::wstring& text, float_t scale);
 		std::vector<vec2> get_length(const std::vector<std::wstring>& texts, const std::vector<float_t>& scales, bool half = false);
 
-		std::array<float_t, 248> widths;
-		std::vector<std::vector<int>> characters;
-		std::vector<std::vector<Color>> colors;
-		std::vector<std::vector<vec2>> draw_data;
-		std::vector<float_t> scales;
+		void clear_storage();
 
-		int storage_id;
+		std::vector<std::vector<int>> m_characters;
+		std::vector<std::vector<Color>> m_colors;
+		std::vector<std::vector<vec2>> m_vertices;
+		std::vector<float_t> m_scales;
 
-		suckless_font_t font;
+		static std::array<float_t, 248> widths;
 
-	private:
+		static suckless_font_t font;
 
-		Shader shader;
-		unsigned int VAO, vertex_ssbo;
-		unsigned int texture;
-		unsigned int text_ssbo;
-		unsigned int _Texture_Id_SSBO;
-		unsigned int colors_ssbo;
+		Shader m_shader;
+		unsigned int m_vao, m_vertex_ssbo;
+		unsigned int m_texture;
+		unsigned int m_text_ssbo;
+		unsigned int m_texture_id_ssbo;
+		unsigned int m_colors_ssbo;
 
 	};
 
@@ -707,10 +772,10 @@ namespace fan_gui {
 
 			basic_text_button_vector();
 
+		protected:
 			vec2 edit_size(uint64_t i, const std::wstring& text, float_t scale);
 
-		protected:
-			std::vector<std::wstring> texts;
+			std::vector<std::wstring> m_texts;
 		};
 
 		class text_button_vector : public basic_text_button_vector, public fan_2d::square_vector {
@@ -721,8 +786,10 @@ namespace fan_gui {
 			text_button_vector(const std::wstring& text, const vec2& position, const Color& box_color, float_t font_scale, float_t left_offset, float_t max_width);
 
 			text_button_vector(const std::wstring& text, const vec2& position, const Color& color, float_t scale);
+			text_button_vector(const std::wstring& text, const vec2& position, const Color& color, float_t scale, const vec2& box_size);
 
 			void add(const std::wstring& text, const vec2& position, const Color& color, float_t scale);
+			void add(const std::wstring& text, const vec2& position, const Color& color, float_t scale, const vec2& box_size);
 
 			void edit_string(uint64_t i, const std::wstring& text, float_t scale);
 
@@ -733,10 +800,15 @@ namespace fan_gui {
 			void set_font_size(uint64_t i, float_t scale);
 			void set_position(uint64_t i, const vec2& position);
 
+			void set_press_callback(int key, const std::function<void()>& function);
+
 			void draw();
 
+			bool inside(std::uint64_t i);
+
 		private:
-			//using 
+
+			using fan_2d::square_vector::set_position;
 			using fan_2d::square_vector::draw;
 			using fan_2d::square_vector::set_size;
 		};
@@ -744,5 +816,3 @@ namespace fan_gui {
 }
 
 //#endif
-
-

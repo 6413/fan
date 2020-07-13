@@ -138,22 +138,6 @@ inline vec3 DirectionVector(float alpha, float beta)
 	);
 }
 
-//template <typename _Ty>
-//constexpr auto DirectionVector(const _Ty& aimAngle)
-//{
-//	return _vec2<_Ty>(cos(aimAngle.x), sin(aimAngle.y));
-//}
-
-//template <typename T>
-//constexpr auto AbsAngle(const T& src, const T& dst, float delta_time) {
-//	return V3ToV2(Normalize(vec3(src.x - dst.x, src.y - dst.y, 0))) * delta_time;
-//}
-
-template <typename _Ty>
-constexpr auto Grid(const _vec2<_Ty>& world, const _vec2<_Ty>& offSet, float block_size) {
-	return _vec2<_Ty>(floor((world.x + offSet.x) / block_size), floor(((world.y + offSet.y) / block_size)));
-}
-
 template <typename _Ty>
 constexpr auto Distance(const _vec2<_Ty>& src, const _vec2<_Ty>& dst) {
 	return sqrtf(powf((src.x - dst.x), 2) + powf(((src.y - dst.y)), 2));
