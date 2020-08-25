@@ -2,14 +2,14 @@
 #define GLEW_STATIC
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+
 #include <FAN/Vectors.hpp>
+
 #include <functional>
 #include <vector>
 #include <any>
 
 constexpr bool fullScreen = false;
-
-//#define FAN_CUSTOM_WINDOW
 
 #define GLFW_MOUSE_SCROLL_UP 200
 #define GLFW_MOUSE_SCROLL_DOWN 201

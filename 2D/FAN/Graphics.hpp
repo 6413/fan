@@ -41,7 +41,6 @@
 
 #define COLORSIZE 4
 
-extern bool window_init;
 constexpr auto WINDOWSIZE = vec2i(800, 800);
 extern float delta_time;
 static constexpr int block_size = 50;
@@ -49,6 +48,8 @@ extern GLFWwindow* window;
 constexpr auto grid_size = vec2i(WINDOWSIZE.x / block_size, WINDOWSIZE.y / block_size);
 
 typedef std::vector<std::vector<std::vector<bool>>> map_t;
+
+extern bool is_colliding;
 
 struct bmp {
 	unsigned char* data;
@@ -83,7 +84,7 @@ public:
 		float pitch = 0.0f
 	);
 
-	void move(bool noclip, float_t movement_speed);
+	void move(bool noclip, f_t movement_speed);
 	void rotate_camera(bool when);
 
 	mat4 get_view_matrix();
@@ -123,15 +124,17 @@ public:
 	basic_shape_vector(const Shader& shader, const _Vector& position, const _Vector& size);
 	~basic_shape_vector();
 
-	_Vector get_size(std::uint64_t i);
+	_Vector get_size(std::uint64_t i) const;
 	void set_size(std::uint64_t i, const _Vector& size, bool queue = false);
 
-	_Vector get_position(std::uint64_t i);
+	_Vector get_position(std::uint64_t i) const;
 	void set_position(std::uint64_t i, const _Vector& position, bool queue = false);
 
 	void basic_push_back(const _Vector& position, const _Vector& size, bool queue = false);
 
-	std::uint64_t size();
+	void erase(std::uint64_t i);
+
+	std::uint64_t size() const;
 
 	void write_data(bool position, bool size);
 
@@ -162,11 +165,11 @@ public:
 	Color get_color(std::uint64_t i);
 	void set_color(std::uint64_t i, const Color& color, bool queue = false);
 
+protected:
+
 	void basic_push_back(const Color& color, bool queue = false);
 
 	void write_data();
-
-protected:
 
 	void initialize_buffers();
 
@@ -178,7 +181,8 @@ protected:
 
 enum class shape_types {
 	LINE,
-	SQUARE
+	SQUARE,
+	TRIANGLE
 };
 
 namespace fan_2d {
@@ -206,20 +210,27 @@ namespace fan_2d {
 	public:
 
 		basic_single_shape();
-
 		basic_single_shape(const Shader& shader, const vec2& position, const vec2& size);
+
+		~basic_single_shape();
 
 		vec2 get_position();
 		vec2 get_size();
+		vec2 get_velocity();
 
 		void set_size(const vec2& size);
 		void set_position(const vec2& position);
+		void set_velocity(const vec2& velocity);
 
 		void basic_draw(GLenum mode, GLsizei count);
+
+		void move(f_t speed, f_t gravity, f_t friction = 10);
 
 	protected:
 		vec2 position;
 		vec2 size;
+
+		vec2 velocity;
 
 		Shader shader;
 
@@ -241,11 +252,11 @@ namespace fan_2d {
 	struct line : public basic_single_shape, basic_single_color {
 
 		line();
-		line(const vec2& begin, const vec2& end, const Color& color);
+		line(const mat2x2& begin_end, const Color& color);
 
 		void draw();
 
-		void set_position(const vec2& begin, const vec2& end);
+		void set_position(const mat2x2& begin_end);
 
 	private:
 		using basic_single_shape::set_position;
@@ -273,11 +284,29 @@ namespace fan_2d {
 
 		void draw();
 
+		f_t get_rotation();
+		void set_rotation(f_t degrees);
+
 		static image_info load_image(const std::string& path, bool flip_image = false);
 
 	private:
 
+		f_t m_rotation;
+
 		unsigned int texture;
+	};
+
+	class animation : public basic_single_shape {
+	public:
+
+		animation(const vec2& position, const vec2& size);
+
+		void add(const std::string& path);
+
+		void draw(std::uint64_t texture);
+
+	private:
+		std::vector<unsigned int> m_textures;
 	};
 
 	class line_vector : public basic_shape_vector<vec2>, public basic_shape_color_vector {
@@ -296,6 +325,25 @@ namespace fan_2d {
 	private:
 		using basic_shape_vector::set_position;
 		using basic_shape_vector::set_size;
+	};
+
+	struct triangle_vector : public basic_shape_vector<vec2>, public basic_shape_color_vector {
+
+		triangle_vector();
+		triangle_vector(const mat3x2& corners, const Color& color);
+		
+		void set_position(std::uint64_t i, const mat3x2& corners);
+		void push_back(const mat3x2& corners, const Color& color);
+
+		void draw();
+
+	private:
+		std::vector<vec2> m_lcorners;
+		std::vector<vec2> m_mcorners;
+		std::vector<vec2> m_rcorners;
+
+		uint_t l_vbo, m_vbo, r_vbo;
+
 	};
 
 	struct square_vector : public basic_shape_vector<vec2>, public basic_shape_color_vector {
@@ -328,6 +376,29 @@ namespace fan_2d {
 		unsigned int texture;
 		vec2i original_image_size;
 
+	};
+
+	struct particle {
+		vec2 m_velocity;
+		Timer m_timer; // milli
+	};
+
+	class particles : public fan_2d::square_vector {
+	public:
+
+		void add(
+			const vec2& position, 
+			const vec2& size, 
+			const vec2& velocity, 
+			const Color& color, 
+			std::uint64_t time
+		);
+
+		void update();
+
+	private:
+
+		std::vector<fan_2d::particle> m_particles;
 	};
 }
 
@@ -579,25 +650,25 @@ constexpr auto grid_direction(const T& src, const T& dst) {
 
 template <template <typename> typename T>
 struct grid_raycast_s {
-	T<float_t> direction, begin;
+	T<f_t> direction, begin;
 	T<int> grid;
 };
 
 template <template <typename> typename T>
-constexpr bool grid_raycast_single(grid_raycast_s<T>& caster, float_t grid_size) {
+constexpr bool grid_raycast_single(grid_raycast_s<T>& caster, f_t grid_size) {
 	T position(caster.begin % grid_size);
-	for (uint8_t i = 0; i < T<float_t>::size(); i++) {
+	for (uint8_t i = 0; i < T<f_t>::size(); i++) {
 		position[i] = ((caster.direction[i] < 0) ? position[i] : grid_size - position[i]);
 		position[i] = std::abs((!position[i] ? grid_size : position[i]) / caster.direction[i]);
 	}
 	caster.grid = (caster.begin += caster.direction * position.min()) / grid_size;
-	for (uint8_t i = 0; i < T<float_t>::size(); i++)
+	for (uint8_t i = 0; i < T<f_t>::size(); i++)
 		caster.grid[i] -= ((caster.direction[i] < 0) & (position[i] == position.min()));
 	return 1;
 }
 
 template <template <typename> typename T>
-constexpr T<int> grid_raycast(const T<float_t>& start, const T<float_t>& end, const map_t& map, float_t block_size) {
+constexpr T<int> grid_raycast(const T<f_t>& start, const T<f_t>& end, const map_t& map, f_t block_size) {
 	if (start == end) {
 		return start;
 	}
@@ -641,14 +712,14 @@ typedef struct {
 
 typedef struct {
 	vec2 pos;
-	float_t width;
+	f_t width;
 }letter_info_opengl_t;
 
 static letter_info_opengl_t letter_to_opengl(const suckless_font_t& font, const letter_info_t& letter) 
 {
 	letter_info_opengl_t ret;
 	ret.pos = (vec2)letter.pos / (vec2)font.datasize;
-	ret.width = (float_t)letter.width / font.datasize;
+	ret.width = (f_t)letter.width / font.datasize;
 	return ret;
 }
 
@@ -691,7 +762,7 @@ constexpr uint_t max_font_size = 1024;
 namespace fan_gui {
 
 	constexpr Color default_text_color(1);
-	constexpr float_t font_size(128);
+	constexpr f_t font_size(128);
 
 	class text_renderer {
 	public:
@@ -699,15 +770,15 @@ namespace fan_gui {
 
 		~text_renderer();
 
-		void render(const std::wstring& text, vec2 position, const Color& color, float_t scale, bool use_old = false);
+		void render(const std::wstring& text, vec2 position, const Color& color, f_t scale, bool use_old = false);
 
 	protected:
 
 		void alloc_storage(const std::vector<std::wstring>& vector);
 		void realloc_storage(const std::vector<std::wstring>& vector);
 
-		void store_to_renderer(std::wstring& text, vec2 position, const Color& color, float_t scale, float_t max_width = -1);
-		void edit_storage(uint64_t i, const std::wstring& text, vec2 position, const Color& color, float_t scale);
+		void store_to_renderer(std::wstring& text, vec2 position, const Color& color, f_t scale, f_t max_width = -1);
+		void edit_storage(uint64_t i, const std::wstring& text, vec2 position, const Color& color, f_t scale);
 
 		void upload_vertices();
 		void upload_colors();
@@ -717,19 +788,19 @@ namespace fan_gui {
 		void upload_stored(uint64_t i);
 
 		void render_stored();
-		void set_scale(uint64_t i, float_t font_size, vec2 position);
+		void set_scale(uint64_t i, f_t font_size, vec2 position);
 
-		vec2 get_length(const std::wstring& text, float_t scale);
-		std::vector<vec2> get_length(const std::vector<std::wstring>& texts, const std::vector<float_t>& scales, bool half = false);
+		vec2 get_length(const std::wstring& text, f_t scale);
+		std::vector<vec2> get_length(const std::vector<std::wstring>& texts, const std::vector<f_t>& scales, bool half = false);
 
 		void clear_storage();
 
 		std::vector<std::vector<int>> m_characters;
 		std::vector<std::vector<Color>> m_colors;
 		std::vector<std::vector<vec2>> m_vertices;
-		std::vector<float_t> m_scales;
+		std::vector<f_t> m_scales;
 
-		static std::array<float_t, 248> widths;
+		static std::array<f_t, 248> widths;
 
 		static suckless_font_t font;
 
@@ -744,26 +815,26 @@ namespace fan_gui {
 
 	namespace text_button {
 		constexpr vec2 gap_scale(0.25, 0.25);
-		constexpr float_t space_width = 10;
-		constexpr float_t space_between_characters = 5;
+		constexpr f_t space_width = 30;
+		constexpr f_t space_between_characters = 5;
 
 		constexpr vec2 get_gap_scale(const vec2& size) {
 			return size * gap_scale;
 		}
 
-		constexpr float_t get_gap_scale_x(float_t width) {
+		constexpr f_t get_gap_scale_x(f_t width) {
 			return width * gap_scale.x;
 		}
 
-		constexpr float_t get_gap_scale_y(float_t height) {
+		constexpr f_t get_gap_scale_y(f_t height) {
 			return height * gap_scale.y;
 		}
 
-		constexpr float_t get_character_x_offset(float_t width, float_t scale) {
+		constexpr f_t get_character_x_offset(f_t width, f_t scale) {
 			return width * scale + space_between_characters;
 		}
 
-		constexpr float_t get_space(float_t scale) {
+		constexpr f_t get_space(f_t scale) {
 			return scale / (font_size / 2) * space_width;
 		}
 
@@ -773,7 +844,7 @@ namespace fan_gui {
 			basic_text_button_vector();
 
 		protected:
-			vec2 edit_size(uint64_t i, const std::wstring& text, float_t scale);
+			vec2 edit_size(uint64_t i, const std::wstring& text, f_t scale);
 
 			std::vector<std::wstring> m_texts;
 		};
@@ -783,21 +854,21 @@ namespace fan_gui {
 
 			text_button_vector();
 
-			text_button_vector(const std::wstring& text, const vec2& position, const Color& box_color, float_t font_scale, float_t left_offset, float_t max_width);
+			text_button_vector(const std::wstring& text, const vec2& position, const Color& box_color, f_t font_scale, f_t left_offset, f_t max_width);
 
-			text_button_vector(const std::wstring& text, const vec2& position, const Color& color, float_t scale);
-			text_button_vector(const std::wstring& text, const vec2& position, const Color& color, float_t scale, const vec2& box_size);
+			text_button_vector(const std::wstring& text, const vec2& position, const Color& color, f_t scale);
+			text_button_vector(const std::wstring& text, const vec2& position, const Color& color, f_t scale, const vec2& box_size);
 
-			void add(const std::wstring& text, const vec2& position, const Color& color, float_t scale);
-			void add(const std::wstring& text, const vec2& position, const Color& color, float_t scale, const vec2& box_size);
+			void add(const std::wstring& text, const vec2& position, const Color& color, f_t scale);
+			void add(const std::wstring& text, const vec2& position, const Color& color, f_t scale, const vec2& box_size);
 
-			void edit_string(uint64_t i, const std::wstring& text, float_t scale);
+			void edit_string(uint64_t i, const std::wstring& text, f_t scale);
 
-			vec2 get_string_length(const std::wstring& text, float_t scale);
+			vec2 get_string_length(const std::wstring& text, f_t scale);
 
-			float_t get_scale(uint64_t i);
+			f_t get_scale(uint64_t i);
 
-			void set_font_size(uint64_t i, float_t scale);
+			void set_font_size(uint64_t i, f_t scale);
 			void set_position(uint64_t i, const vec2& position);
 
 			void set_press_callback(int key, const std::function<void()>& function);
@@ -813,6 +884,147 @@ namespace fan_gui {
 			using fan_2d::square_vector::set_size;
 		};
 	}
+}
+
+void begin_render(const Color& background_color);
+void end_render();
+
+static bool rectangles_collide(const vec2& a, const vec2& a_size, const vec2& b, const vec2& b_size) {
+	bool x = a.x + a_size.x / 2 > b.x - b_size.x / 2 &&
+		a.x - a_size.x / 2 < b.x + b_size.x / 2;
+	bool y = a.y + a_size.y / 2 > b.y - b_size.y / 2 &&
+		a.y - a_size.y / 2 < b.y + b_size.y / 2;
+	return x && y;
+}
+
+static bool rectangles_collide(
+	f_t la_x, f_t la_y,
+	f_t ra_x, f_t ra_y,
+	f_t lb_x, f_t lb_y,
+	f_t rb_x, f_t rb_y
+)
+{
+	bool x = ra_x > lb_x && la_x < rb_x;
+	bool y = ra_y > lb_y && la_y < rb_y;
+	return x && y;
+}
+
+inline std::array<bool, 4> get_sides(f_t angle, const vec2& position, const vec2& size) {
+	const vec2 top_left = position - size / 2;
+	const vec2 top_right = position + vec2(size.x / 2, -size.y / 2);
+	const vec2 bottom_left = position - vec2(size.x / 2, -size.y / 2);
+	const vec2 bottom_right = position + size;
+
+	const f_t atop_left = Degrees(AimAngle(top_left, position));
+	const f_t atop_right = Degrees(AimAngle(top_right, position));
+	const f_t abottom_left = Degrees(AimAngle(bottom_left, position));
+	const f_t abottom_right = Degrees(AimAngle(bottom_right, position));
+
+	return {
+		angle <= atop_left &&
+		angle >= abottom_left,
+		angle >= atop_right ||
+		angle <= abottom_right,
+		angle > atop_left &&
+		angle < atop_right,
+		angle <  abottom_left&&
+		angle >  abottom_right
+	};
+}
+
+inline bool point_inside_square(const vec2& point, const vec2& square, const vec2& size) {
+	return
+		point.x > square.x - size.x / 2 &&
+		point.x < square.x + size.x / 2 &&
+		point.y > square.y - size.y / 2 &&
+		point.y < square.y + size.y / 2;
+}
+
+inline mat4x2 square_corners(const vec2& position, const vec2& size) {
+	return mat4x2(
+		position - size / 2,
+		position + vec2(size.x / 2, -size.y / 2),
+		position + vec2(-size.x / 2, size.y / 2),
+		position + vec2(size.x / 2, size.y / 2)
+	);
+}
+
+struct collision_info {
+	vec2 position;
+	vec2 velocity;
+};
+
+constexpr auto NO_COLLISION(-1);
+
+inline bool colliding(const vec2& result) {
+	return result != NO_COLLISION;
+}
+
+inline bool colliding(const collision_info& result) {
+	return result.position != NO_COLLISION;
+}
+
+inline collision_info rectangle_collision_2d(const vec2& old_position, const vec2& new_position, const vec2& player_size, const vec2& player_velocity, const fan_2d::square_vector& walls) {
+
+	std::vector<collision_info> possible_collisions;
+
+	for (int iwall = 0; iwall < walls.size(); iwall++) {
+		vec2 wall_position = walls.get_position(iwall);
+		vec2 wall_size = walls.get_size(iwall);
+
+		f_t angle = Degrees(AimAngle(old_position, walls.get_position(iwall)));
+
+		std::array<bool, 4> sides = get_sides(angle, wall_position, wall_size);
+
+		auto corners = square_corners(wall_position, wall_size);
+
+		constexpr std::pair<int, int> corner_order[] = { {0, 1}, {1, 3}, {3, 2} , {2, 0} };
+
+		for (int icorner = 0; icorner < 4; icorner++) {
+			vec2 point = IntersectionPoint(old_position, new_position, vec2(corners[corner_order[icorner].first]), vec2(corners[corner_order[icorner].second]), false);
+			if (ray_hit(point)) {
+
+				f_t intersection_angle = Degrees(AimAngle(point, walls.get_position(iwall)));
+
+				std::array<bool, 4> intersection_sides = get_sides(intersection_angle, wall_position, wall_size);
+
+				for (int iside = 0; iside < 4; iside++) {
+					if (intersection_sides[iside] != sides[iside]) {
+						goto g_skip_side;
+					}
+				}
+
+				possible_collisions.push_back({ vec2(
+					sides[0] ? point.x - player_size.x / 2 : sides[1] ?
+					point.x + player_size.x / 2 :
+					old_position.x, sides[2] ? point.y - player_size.y / 2 : sides[3] ?
+					point.y + player_size.y / 2 : old_position.y
+				), vec2((sides[0] || sides[1] ? 0 : player_velocity.x), (sides[2] || sides[3] ? 0 : player_velocity.y)) });
+			}
+		g_skip_side:;
+		}
+
+		if (rectangles_collide(old_position, player_size, wall_position, wall_size)) {
+			possible_collisions.push_back({ vec2(
+				sides[0] ? wall_position.x - wall_size.x / 2 - player_size.x / 2 : sides[1] ?
+				wall_position.x + wall_size.x / 2 + player_size.x / 2 :
+				old_position.x, sides[2] ? wall_position.y - wall_size.y / 2 - player_size.y / 2 : sides[3] ?
+				wall_position.y + wall_size.y / 2 + player_size.y / 2 : old_position.y
+			), vec2((sides[0] || sides[1] ? 0 : player_velocity.x), (sides[2] || sides[3] ? 0 : player_velocity.y)) });
+		}
+	}
+
+	auto closest = std::min_element(possible_collisions.begin(), possible_collisions.end(),
+		[&](const collision_info& a, const collision_info& b) {
+			return Distance(old_position, a.position) < Distance(old_position, b.position);
+		});
+
+	if (!possible_collisions.empty() && closest != possible_collisions.end()) {
+		auto c_info = possible_collisions[std::distance(possible_collisions.begin(), closest)];
+		return *closest;
+	}
+
+	return { NO_COLLISION };
 }
 
 //#endif

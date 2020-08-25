@@ -1,4 +1,4 @@
-#include "Input.hpp"
+#include <FAN/Input.hpp>
 #include <FAN/Graphics.hpp>
 
 vec2i cursor_position;
@@ -144,9 +144,10 @@ bool WindowInit() {
 #endif
 	//glfwWindowHint(GLFW_SAMPLES, 32);
 	//glEnable(GL_MULTISAMPLE);
-	//window_size = vec2(glfwGetVideoMode(glfwGetPrimaryMonitor())->width, glfwGetVideoMode(glfwGetPrimaryMonitor())->height);
+	if (fullScreen) {
+		window_size = vec2(glfwGetVideoMode(glfwGetPrimaryMonitor())->width, glfwGetVideoMode(glfwGetPrimaryMonitor())->height);
+	}
 	window = glfwCreateWindow(window_size.x, window_size.y, "FPS: ", fullScreen ? glfwGetPrimaryMonitor() : NULL, NULL);
-	glfwSetWindowMonitor(window, NULL, window_size.x / 2, window_size.y / 2, window_size.x, window_size.y, 0);
 
 	if (!window) {
 		printf("Window ded\n");
@@ -163,7 +164,7 @@ bool WindowInit() {
 		glfwTerminate();
 		exit(EXIT_SUCCESS);
 	}
-	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	//glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	glViewport(0, 0, window_size.x, window_size.y);
 	glEnable(GL_DEPTH_TEST);
 
@@ -175,5 +176,17 @@ bool WindowInit() {
 	glfwSetFramebufferSizeCallback(window, callbacks::FrameSizeCallback);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	callbacks::key_callback.add(GLFW_KEY_ESCAPE, true, [&] {
+		glfwSetWindowShouldClose(window, true);
+	});
+
+	// INITIALIZATION FOR DELTA TIME
+	GetFps(true, true);
+	glfwSwapBuffers(window);
+	glfwPollEvents();
+
 	return 1;
 }
+
+bool window_init = WindowInit();

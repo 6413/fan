@@ -4,6 +4,8 @@
 #endif
 #endif
 
+#include <type_traits>
+
 // converts enum to int
 template <typename Enumeration>
 constexpr auto eti(Enumeration const value)
@@ -20,7 +22,6 @@ constexpr auto eti(Enumeration const value)
 #endif
 #endif
 
-#ifdef ENABLE_NETWORKING
 #include <FAN/File.hpp>
 
 #include <functional>
@@ -187,14 +188,17 @@ protected:
 			}
 		}
 	skip:
-		if (overwrite) {
+		if (path != std::string()) {
+			File::write(path.c_str(), data, std::ios_base::binary);
+		}
+		else if (overwrite) {
 			File::write(file_name.c_str(), data, std::ios_base::binary);
 		}
 		else {
 			File::write(file_name.c_str(), data);
 		}
 
-		puts("received file");
+		std::cout << "received file " << file_name << '\n';
 		return file_name;
 	}
 	std::string m_get_message(SOCKET socket) const {
@@ -285,6 +289,7 @@ protected:
 			totalsend += sendlen;
 			remaining = file.data.size() - totalsend;
 		}
+		std::cout << "Sent file: " << file.name << '\n';
 	}
 	template <typename type>
 	void m_send_vector(SOCKET socket, const std::vector<type>& vector) const {
@@ -391,8 +396,8 @@ public:
 	inline Message_Info get_message_user(SOCKET socket) const { return m_get_message_user(socket); }
 	inline void send_message(SOCKET socket, std::string message) const { m_send_message(socket, message); }
 
-	inline void get_file(bool overwrite = false, std::string path = std::string(), SOCKET socket = 0) const {
-		m_get_file(!socket ? sockets[0] : socket, overwrite, path);
+	inline std::string get_file(bool overwrite = false, std::string path = std::string(), SOCKET socket = 0) const {
+		return m_get_file(!socket ? sockets[0] : socket, overwrite, path);
 	}
 	inline void send_file(File file, SOCKET socket = 0) const { m_send_file(!socket ? sockets[0] : socket, file); }
 
@@ -798,5 +803,3 @@ public:
 #endif
 	}
 };
-
-#endif

@@ -13,9 +13,14 @@
 template <class T, class... Ts>
 struct is_any : std::bool_constant<(std::is_same_v<T, Ts> || ...)> {};
 
-using float_t = float;
+using f32_t = float;
+using f64_t = double;
+using f_t = f32_t;
+
+#define GL_FLOAT_T GL_FLOAT
+
 using uint_t = unsigned int;
-constexpr float_t INF = INFINITY;
+constexpr f_t INF = INFINITY;
 
 template <typename _Ty>
 class _vec3;
@@ -35,7 +40,8 @@ public:
 	constexpr _vec2(const _vec2<type>& vec) : x(vec.x), y(vec.y) { }
 	template <typename type>
 	constexpr _vec2(const _vec3<type>& vec) : x(vec.x), y(vec.y) { }
-	constexpr _vec2(const std::array<type, 2>& _array) : x(_array[0]), y(_array[1]) {}
+	template <typename T>
+	constexpr _vec2(const std::array<T, 2>& _array) : x(_array[0]), y(_array[1]) {}
 
 	constexpr _Ty& operator[](uint64_t idx) { return !idx ? x : y; }
 	constexpr _Ty operator[](uint64_t idx) const { return !idx ? x : y; }
@@ -50,8 +56,7 @@ public:
 		return this->x == vector.x && this->y == vector.y;
 	}
 
-	template <typename _Type>
-	constexpr bool operator==(_Type single_value) const noexcept {
+	constexpr bool operator==(type single_value) const noexcept {
 		return this->x == single_value && this->y == single_value;
 	}
 
@@ -60,9 +65,18 @@ public:
 		return this->x != vector.x || this->y != vector.y;
 	}
 
-	template <typename _Type>
-	constexpr bool operator!=(_Type single_value) const noexcept {
+	constexpr bool operator!=(type single_value) const noexcept {
 		return this->x != single_value || this->y != single_value;
+	}
+
+	template <typename T>
+	constexpr bool operator!=(const std::array<T, 2>& array) {
+		return this->x != array[0] || this->y != array[1];
+	}
+
+	template <typename _Type>
+	constexpr bool operator<=(const _vec2<_Type>& vector) const noexcept {
+		return this->x <= vector.x && this->y <= vector.y;
 	}
 
 	// math operators
@@ -188,6 +202,9 @@ public:
 	constexpr vec_t floored() const { return vec_t(floor(x), floor(y)); }
 	constexpr vec_t floored(_Ty value) const { return vec_t(floor(x / value), floor(y / value)); }
 
+	constexpr vec_t ceiled() const { return vec_t(ceil(x), ceil(y)); }
+	constexpr vec_t ceiled(_Ty value) const { return vec_t(ceil(x / value), ceil(y / value)); }
+
 	constexpr _Ty min() const { return std::min(x, y); }
 	constexpr _Ty max() const { return std::max(x, y); }
 	constexpr vec_t abs() const { return vec_t(std::abs(x), std::abs(y)); }
@@ -208,7 +225,7 @@ public:
 
 };
 
-template <typename _Ty = float_t>
+template <typename _Ty = f_t>
 class _vec3 {
 public:
 	_Ty x, y, z;
@@ -408,7 +425,7 @@ public:
 
 };
 
-template <typename _Ty = float_t>
+template <typename _Ty = f_t>
 class _vec4 {
 public:
 	_Ty x, y, z, w;
@@ -419,6 +436,9 @@ public:
 	constexpr _vec4() : x(0), y(0), z(0), w(0) { }
 	constexpr _vec4(_Ty x, _Ty y, _Ty z, _Ty w) : x(x), y(y), z(z), w(w) { }
 	constexpr _vec4(_Ty value) : x(value), y(value), z(value), w(value) { }
+
+	template <typename type, typename type2>
+	constexpr _vec4(const _vec2<type>& a, const _vec2<type2>& b) : x(a.x), y(a.y), z(b.x), w(b.y) {}
 
 	template <typename type, typename type2>
 	constexpr _vec4(const _vec3<type> vec, type2 value) : x(vec.x), y(vec.y), z(vec.z), w(value) { }
@@ -622,13 +642,12 @@ std::ostream& operator<<(std::ostream& os, const _vec4<T>& vector) noexcept
 	return os;
 }
 
-template <typename Arg, typename ...Args>
-void LOG(const Arg& arg, const Args&... args) {
-	std::cout << arg;
-	((std::cout << " " << args), ...) << '\n';
+template <typename ...Args>
+constexpr void LOG(const Args&... args) {
+	((std::cout << args << " "), ...) << '\n';
 }
 
-template <int Cols, int Rows, typename _Ty = float>
+template <int Cols, int Rows, typename _Ty = f_t>
 class matrix {
 public:
 	std::array<_Ty, Cols> m[Rows];
@@ -636,16 +655,11 @@ public:
 
 	constexpr matrix() : m{ 0 } { }
 
-	template <template<typename> typename _Vec_t, typename _Type, typename _Type2>
-	constexpr matrix(const _Vec_t<_Type>& lhs, const _Vec_t<_Type2>& rhs) : m{ 0 } {
-		static_assert(Rows == 2, "No support for more or less than 2x size matrix");
-		static_assert(Cols == _Vec_t<_Type>::size(), "vector size and rows do not match");
-		for (int i = 0; i < lhs.size(); i++) {
-			m[0][i] = lhs[i];
-		}
-		for (int i = 0; i < rhs.size(); i++) {
-			m[1][i] = rhs[i];
-		}
+	template <template <typename> typename... _Vec_t, typename _Type>
+ 	matrix(const _Vec_t<_Type>&... vector) {
+		int i = 0;
+		auto cpp_ded = std::get<0>(std::forward_as_tuple(vector...));
+		((((decltype(cpp_ded)*)m)[i++] = vector), ...);
 	}
 
 	template <typename ..._Type>
@@ -675,7 +689,7 @@ public:
 		}
 	}
 
-	std::array<_Ty, Rows>& operator[](uint64_t _Idx) {
+	std::array<_Ty, Cols>& operator[](uint64_t _Idx) {
 		return m[_Idx];
 	}
 
@@ -738,48 +752,55 @@ using mat2x2 = matrix<2, 2>;
 using mat2x3 = matrix<3, 2>;
 using mat2x4 = matrix<4, 2>;
 using mat3x3 = matrix<3, 3>;
+using mat3x2 = matrix<2, 3>;
+using mat4x2 = matrix<2, 4>;
 using mat2 = mat2x2;
 using mat3 = mat3x3;
 using mat4 = matrix<4, 4>;
-using vec2 = _vec2<float_t>;
-using vec3 = _vec3<float_t>;
-using vec4 = _vec4<float_t>;
+using vec2 = _vec2<f_t>;
+using vec3 = _vec3<f_t>;
+using vec4 = _vec4<f_t>;
 using vec2i = _vec2<int>;
 using vec3i = _vec3<int>;
 using vec4i = _vec4<int>;
 
 class Color {
 public:
-	float_t r, g, b, a;
+
+	static constexpr Color rgb(f_t r, f_t g, f_t b, f_t a = 255) {
+		return Color(r / 255.f, g / 255.f, b / 255.f, a / 255.f);
+	}
+
+	static constexpr Color hex(unsigned int hex) {
+		if (hex <= 0xffffff) {
+			return Color::rgb(
+				(hex >> 16) & 0xff,
+				(hex >> 8) & 0xff,
+				(hex >> 0) & 0xff
+			);
+		}
+		return Color::rgb(
+			(hex >> 24) & 0xff,
+			(hex >> 16) & 0xff,
+			(hex >> 8) & 0xff,
+			(hex >> 0) & 0xff
+		);
+	}
+
+	f_t r, g, b, a;
 	Color() : r(0), g(0), b(0), a(1) {}
 
-	constexpr Color(float r, float g, float b, float a = 1, bool rgb = false) : r(r), g(g), b(b), a(a) {
-		if (rgb) {
-			this->r = r / 255.f;
-			this->g = g / 255.f;
-			this->b = b / 255.f;
-			this->a = a / 255.f;
-		}
-		else {
-			this->r = r;
-			this->g = g;
-			this->b = b;
-			this->a = a;
-		}
+	constexpr Color(f_t r, f_t g, f_t b, f_t a = 1) : r(r), g(g), b(b), a(a) {
+		this->r = r;
+		this->g = g;
+		this->b = b;
+		this->a = a;
 	}
-	constexpr Color(float value, bool index = false) : r(0), g(0), b(0), a(0) {
-		if (index) {
-			this->r = r / value;
-			this->g = g / value;
-			this->b = b / value;
-			this->a = a / value;
-		}
-		else {
-			this->r = value;
-			this->g = value;
-			this->b = value;
-			this->a = 1;
-		}
+	constexpr Color(f_t value) : r(0), g(0), b(0), a(0) {
+		this->r = value;
+		this->g = value;
+		this->b = value;
+		this->a = 1;
 	}
 	Color& operator&=(const Color& color) {
 		Color ret;
@@ -798,11 +819,14 @@ public:
 	bool operator!=(const Color& color) const {
 		return r != color.r || g != color.g || b != color.b;
 	}
-	constexpr float_t operator[](size_t x) const {
+	constexpr f_t operator[](size_t x) const {
 		return !x ? this->r : x == 1 ? this->g : x == 2 ? this->b : x == 3 ? this->a : this->a;
 	}
+	constexpr Color operator-=(const Color& color) {
+		return Color(r -= color.r, g -= color.g, b -= color.b, a -= color.a);
+	}
 	constexpr Color operator-(const Color& color) const {
-		return Color(r - color.r, g - color.g, b - color.b, a - color.a);
+		return Color(r - color.r, g - color.g, b - color.b, a);
 	}
 	constexpr Color operator+(const Color& color) const {
 		return Color(r + color.r, g + color.g, b + color.b);
@@ -814,6 +838,10 @@ public:
 		return &r;
 	}
 };
+
+static Color random_color() {
+	return Color::rgb(std::rand() % 255, std::rand() % 255, std::rand() % 255, 255);
+}
 
 template <typename _Type, uint64_t _Size>
 constexpr std::array<_Type, _Size> operator+=(std::array<_Type, _Size>& _Lhs, const std::array<_Type, _Size>& _Rhs) noexcept

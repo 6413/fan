@@ -39,17 +39,31 @@ constexpr bool on_hit(const vec2& point, std::function<void()>&& lambda) {
 }
 
 template <typename T>
-constexpr auto IntersectionPoint(const T& p1Start, const T& p1End, const T& p2Start, const T& p2End) {
-	float den = (p1Start.x - p1End.x) * (p2Start.y - p2End.y) - (p1Start.y - p1End.y) * (p2Start.x - p2End.x);
+constexpr bool is_parallel(const T& p1Start, const T& p1End, const T& p2Start, const T& p2End) {
+	f_t den = (p1Start.x - p1End.x) * (p2Start.y - p2End.y) - (p1Start.y - p1End.y) * (p2Start.x - p2End.x);
+	return !den;
+}
+
+template <typename T>
+constexpr vec2 IntersectionPoint(const T& p1Start, const T& p1End, const T& p2Start, const T& p2End, bool infinite_long_ray) {
+	f_t den = (p1Start.x - p1End.x) * (p2Start.y - p2End.y) - (p1Start.y - p1End.y) * (p2Start.x - p2End.x);
 	if (!den) {
-		return vec2(-1, -1);
+		return RAY_DID_NOT_HIT;
 	}
-	float t = ((p1Start.x - p2Start.x) * (p2Start.y - p2End.y) - (p1Start.y - p2Start.y) * (p2Start.x - p2End.x)) / den;
-	float u = -((p1Start.x - p1End.x) * (p1Start.y - p2Start.y) - (p1Start.y - p1End.y) * (p1Start.x - p2Start.x)) / den;
-	if (t > 0 && t < 1 && u > 0 && u < 1) {
-		return vec2(p1Start.x + t * (p1End.x - p1Start.x), p1Start.y + t * (p1End.y - p1Start.y));
+	f_t t = ((p1Start.x - p2Start.x) * (p2Start.y - p2End.y) - (p1Start.y - p2Start.y) * (p2Start.x - p2End.x)) / den;
+	f_t u = -((p1Start.x - p1End.x) * (p1Start.y - p2Start.y) - (p1Start.y - p1End.y) * (p1Start.x - p2Start.x)) / den;
+	if (!infinite_long_ray) {
+		if (t > 0 && t < 1 && u > 0 && u < 1) {
+			return vec2(p1Start.x + t * (p1End.x - p1Start.x), p1Start.y + t * (p1End.y - p1Start.y));
+		}
 	}
-	return vec2(-1, -1);
+	else {
+		if (t > 0 && u > 0 && u < 1) {
+			return vec2(p1Start.x + t * (p1End.x - p1Start.x), p1Start.y + t * (p1End.y - p1Start.y));
+		}
+	}
+
+	return RAY_DID_NOT_HIT;
 }
 
 template <typename first, typename second>
@@ -138,6 +152,10 @@ inline vec3 DirectionVector(float alpha, float beta)
 	);
 }
 
+inline f_t Distance(f_t src, f_t dst) {
+	return std::abs(std::abs(dst) - std::abs(src));
+}
+
 template <typename _Ty>
 constexpr auto Distance(const _vec2<_Ty>& src, const _vec2<_Ty>& dst) {
 	return sqrtf(powf((src.x - dst.x), 2) + powf(((src.y - dst.y)), 2));
@@ -202,7 +220,7 @@ auto Ortho(float left, float right, float bottom, float top) {
 
 
 template <typename T = matrix<4, 4>> 
-constexpr auto Ortho(float_t left, float_t right, float_t bottom, float_t top, float_t zNear, float_t zFar) {
+constexpr auto Ortho(f_t left, f_t right, f_t bottom, f_t top, f_t zNear, f_t zFar) {
 	T Result(1);
 	Result.m[0][0] = 2.f / (right - left);
 	Result.m[1][1] = 2.f / (top - bottom);
@@ -214,14 +232,14 @@ constexpr auto Ortho(float_t left, float_t right, float_t bottom, float_t top, f
 }
 
 template <typename T = matrix<4, 4>> 
-constexpr T Perspective(float_t fovy, float_t aspect, float_t zNear, float_t zFar) {
-	float_t const tanHalfFovy = tan(fovy / static_cast<float_t>(2));
+constexpr T Perspective(f_t fovy, f_t aspect, f_t zNear, f_t zFar) {
+	f_t const tanHalfFovy = tan(fovy / static_cast<f_t>(2));
 	T Result;
-	Result[0][0] = static_cast<float_t>(1) / (aspect * tanHalfFovy);
-	Result[1][1] = static_cast<float_t>(1) / (tanHalfFovy);
+	Result[0][0] = static_cast<f_t>(1) / (aspect * tanHalfFovy);
+	Result[1][1] = static_cast<f_t>(1) / (tanHalfFovy);
 	Result[2][2] = -(zFar + zNear) / (zFar - zNear);
-	Result[2][3] = -static_cast<float_t>(1);
-	Result[3][2] = -(static_cast<float_t>(2)* zFar* zNear) / (zFar - zNear);
+	Result[2][3] = -static_cast<f_t>(1);
+	Result[3][2] = -(static_cast<f_t>(2)* zFar* zNear) / (zFar - zNear);
 	return Result;
 }
 

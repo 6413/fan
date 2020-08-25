@@ -114,38 +114,73 @@ public:
         glUniform1i(glGetUniformLocation(ID, name.c_str()), value);
     }
 
-    void set_float(const std::string& name, float value) const
+    void set_float(const std::string& name, f_t value) const
     {
-        glUniform1f(glGetUniformLocation(ID, name.c_str()), value);
+        if constexpr (std::is_same<f_t, float>::value) {
+            glUniform1f(glGetUniformLocation(ID, name.c_str()), value);
+        }
+        else {
+            glUniform1d(glGetUniformLocation(ID, name.c_str()), value);
+        }
     }
 
     void set_vec2(const std::string& name, const vec2& value) const
     {
-        glUniform2fv(glGetUniformLocation(ID, name.c_str()), 1, (float*)&value.x);
+        if constexpr (std::is_same<f_t, float>::value) {
+            glUniform2fv(glGetUniformLocation(ID, name.c_str()), 1, (f32_t*)&value.x);
+        }
+        else {
+            glUniform2dv(glGetUniformLocation(ID, name.c_str()), 1, (f64_t*)&value.x);
+        }
     }
 
     void set_vec2(const std::string& name, float x, float y) const
     {
-        glUniform2f(glGetUniformLocation(ID, name.c_str()), x, y);
+        if constexpr (std::is_same<f_t, float>::value) {
+            glUniform2f(glGetUniformLocation(ID, name.c_str()), x, y);
+        }
+        else {
+            glUniform2d(glGetUniformLocation(ID, name.c_str()), x, y);
+        }
     }
 
     void set_vec3(const std::string& name, const vec3& value) const
     {
-        glUniform3f(glGetUniformLocation(ID, name.c_str()), value.x, value.y, value.z);
+        if constexpr (std::is_same<f_t, float>::value) {
+            glUniform3f(glGetUniformLocation(ID, name.c_str()), value.x, value.y, value.z);
+        }
+        else {
+            glUniform3d(glGetUniformLocation(ID, name.c_str()), value.x, value.y, value.z);
+        }
     }
 
     void set_vec4(const std::string& name, const Color& color) const
     {
-        glUniform4f(glGetUniformLocation(ID, name.c_str()), color.r, color.g, color.b, color.a);
+        if constexpr (std::is_same<f_t, float>::value) {
+            glUniform4f(glGetUniformLocation(ID, name.c_str()), color.r, color.g, color.b, color.a);
+        }
+        else {
+            glUniform4d(glGetUniformLocation(ID, name.c_str()), color.r, color.g, color.b, color.a);
+        }
     }
 
-    void set_vec4(const std::string& name, float x, float y, float z, float w) const
+    void set_vec4(const std::string& name, f_t x, f_t y, f_t z, f_t w) const
     {
-        glUniform4f(glGetUniformLocation(ID, name.c_str()), x, y, z, w);
+        if constexpr (std::is_same<f_t, float>::value) {
+            glUniform4f(glGetUniformLocation(ID, name.c_str()), x, y, z, w);
+        }
+        else {
+            glUniform4d(glGetUniformLocation(ID, name.c_str()), x, y, z, w);
+        }
     }
 
-    void set_mat4(const std::string& name, matrix<4, 4> mat) const {
-        glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
+    void set_mat4(const std::string& name, matrix<4, 4> mat) const { // ei saanu kai olla const
+        if constexpr (std::is_same<f_t, float>::value) {
+            glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, (f32_t*)&mat[0][0]);
+        }
+        else {
+            glUniformMatrix4dv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, (f64_t*)&mat[0][0]);
+        }
     }
 
     void upload_data(GLuint buffer, GLsizeiptr size, const void* data, GLenum usage) {
@@ -155,8 +190,7 @@ public:
     }
 
 private:
-    // utility function for checking shader compilation/linking errors.
-    // ------------------------------------------------------------------------
+
     void checkCompileErrors(GLuint shader, std::string type)
     {
         GLint success;
