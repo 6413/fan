@@ -4,10 +4,11 @@
 #include <vector>
 
 struct File {
-	File(const std::string& file_name) : name(file_name) {}
+	File(std::string file_name) : name(file_name) {}
 	File(const char* file_name) : name(file_name) {}
+
 	bool read() {
-		file = std::ifstream(name.c_str(), std::ifstream::ate | std::ifstream::binary);
+		std::ifstream file(name.c_str(), std::ifstream::ate | std::ifstream::binary);
 		if (!file.good()) {
 			return 0;
 		}
@@ -21,7 +22,7 @@ struct File {
 
 	template <typename T>
 	bool read(std::vector<T>& vector) {
-		file = std::ifstream(name.c_str(), std::ifstream::ate | std::ifstream::binary);
+		std::ifstream file(name.c_str(), std::ifstream::ate | std::ifstream::binary);
 		if (!file.good()) {
 			return 0;
 		}
@@ -58,5 +59,4 @@ struct File {
 	}
 	std::string data;
 	std::string name;
-	std::ifstream file;
 };
