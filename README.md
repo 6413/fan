@@ -5,11 +5,16 @@ Installation and compilation
 
 Windows
 
+Compiled using Visual Studio 2019 (project file is in the directory)
+
 For linux g++ and clang minimum version is 8
 
 Ubuntu
 
-Will come soon...
+sudo apt-get install libglew-dev &&
+sudo apt-get install libglfw3-dev &&
+sudo apt install libassimp-dev &&
+sudo apt-get install libfreetype6-dev -y
 
 Arch linux
 
