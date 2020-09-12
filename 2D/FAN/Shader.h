@@ -174,7 +174,7 @@ public:
         }
     }
 
-    void set_mat4(const std::string& name, matrix<4, 4> mat) const { // ei saanu kai olla const
+    void set_mat4(const std::string& name, mat4 mat) const { // ei saanu kai olla const
         if constexpr (std::is_same<f_t, float>::value) {
             glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, (f32_t*)&mat[0][0]);
         }

@@ -25,6 +25,9 @@ constexpr f_t INF = INFINITY;
 template <typename _Ty>
 class _vec3;
 
+template <typename type, std::size_t n>
+class list;
+
 template <typename _Ty>
 class _vec2 {
 public:
@@ -40,8 +43,8 @@ public:
 	constexpr _vec2(const _vec2<type>& vec) : x(vec.x), y(vec.y) { }
 	template <typename type>
 	constexpr _vec2(const _vec3<type>& vec) : x(vec.x), y(vec.y) { }
-	template <typename T>
-	constexpr _vec2(const std::array<T, 2>& _array) : x(_array[0]), y(_array[1]) {}
+	template <typename type>
+	constexpr _vec2(const list<type, 2>& _array) : x(_array[0]), y(_array[1]) {}
 
 	constexpr _Ty& operator[](uint64_t idx) { return !idx ? x : y; }
 	constexpr _Ty operator[](uint64_t idx) const { return !idx ? x : y; }
@@ -180,7 +183,7 @@ public:
 	template <typename _Type>
 	constexpr _vec2<type> operator/(_Type single_value) const noexcept
 	{
-		return _vec2<_Type>(this->x / single_value, this->y / single_value);
+		return _vec2<_Type>(this->x / (type)single_value, this->y / (type)single_value);
 	}
 
 	template <typename _Type>
@@ -628,6 +631,20 @@ std::ostream& operator<<(std::ostream& os, const _vec2<T>& vector) noexcept
 	return os;
 }
 
+template <typename T, std::uint64_t N>
+std::ostream& operator<<(std::ostream& os, const std::array<T, N>& array) noexcept
+{
+	for (int i = 0; i < N; i++) {
+		if (!(i - 1 == N)) {
+			os << array[i] << " ";
+		}
+		else {
+			os << array[i];
+		}
+	}
+	return os;
+}
+
 template <typename T>
 std::ostream& operator<<(std::ostream& os, const _vec3<T>& vector) noexcept
 {
@@ -647,93 +664,603 @@ constexpr void LOG(const Args&... args) {
 	((std::cout << args << " "), ...) << '\n';
 }
 
-template <int Cols, int Rows, typename _Ty = f_t>
-class matrix {
-public:
-	std::array<_Ty, Cols> m[Rows];
-	using type = _Ty;
+#ifndef _MSC_VER
+
+template <class>
+inline constexpr bool is_pointer_v = false; // determine whether _Ty is a pointer
+
+template <class _Ty>
+inline constexpr bool is_pointer_v<_Ty*> = true;
+
+template <class _Ty>
+inline constexpr bool is_pointer_v<_Ty* const> = true;
+
+template <class _Ty>
+inline constexpr bool is_pointer_v<_Ty* volatile> = true;
+
+template <class _Ty>
+inline constexpr bool is_pointer_v<_Ty* const volatile> = true;
+
+template <class, class>
+inline constexpr bool is_same_v = false; // determine whether arguments are the same type
+template <class _Ty>
+inline constexpr bool is_same_v<_Ty, _Ty> = true;
+
+template <class _Iter, class = void>
+inline constexpr bool _Allow_inheriting_unwrap_v = true;
+
+template <class _Iter>
+inline constexpr bool _Allow_inheriting_unwrap_v<_Iter, std::void_t<typename _Iter::_Prevent_inheriting_unwrap>> =
+is_same_v<_Iter, typename _Iter::_Prevent_inheriting_unwrap>;
+
+template <class _Iter, class = void>
+inline constexpr bool _Unwrappable_v = false;
+
+template <class _Iter>
+inline constexpr bool _Unwrappable_v<_Iter,
+	std::void_t<decltype(std::declval<std::__remove_cvref_t<_Iter>&>()._Seek_to(std::declval<_Iter>()._Unwrapped()))>> =
+	_Allow_inheriting_unwrap_v<std::__remove_cvref_t<_Iter>>;
+
+template <class _Iter>
+[[nodiscard]] constexpr decltype(auto) _Get_unwrapped(_Iter&& _It) {
+	if constexpr (is_pointer_v<std::decay_t<_Iter>>) {
+		return _It + 0;
+	}
+	else if constexpr (_Unwrappable_v<_Iter>) {
+		return static_cast<_Iter&&>(_It)._Unwrapped();
+	}
+	else {
+		return static_cast<_Iter&&>(_It);
+	}
+}
+#endif
+
+template <typename T>
+constexpr auto average(T begin, T end) {
+	auto it = _Get_unwrapped(begin);
+	std::uint64_t cols = 0;
+	auto sum = typename std::remove_pointer<decltype(_Get_unwrapped(begin))>::type(0);
+	for (; it != _Get_unwrapped(end); ++it, ++cols) {
+		sum += *it;
+	}
+	return sum / cols;
+}
+
+template <typename type, std::size_t Rows, std::size_t Cols>
+struct matrix;
+
+template <typename type, std::size_t Rows>
+struct list;
+
+template <typename type, std::size_t Rows, std::size_t Cols = 1>
+using da_t = std::conditional_t<Cols == 1, list<type, Rows>, matrix<type, Rows, Cols>>;
+
+template <typename T, typename T2, typename _Func>
+constexpr void foreach(T src_begin, T src_end, T2 dst_begin, _Func function) {
+	auto dst = dst_begin;
+	for (auto it = src_begin; it != src_end; ++it, ++dst) {
+		*dst = function(*it);
+	}
+}
+
+template <typename type, std::size_t rows>
+struct list : public std::array<type, rows> {
+
+	using array_type = std::array<type, rows>;
+
+	constexpr list(const _vec2<f_t>& vector) {
+		for (int i = 0; i < std::min(rows, vector.size()); i++) {
+			this->operator[](i) = vector[i];
+		}
+	}
+
+	template <typename ...T>
+	constexpr list(T... x) : std::array<type, rows>{ (type)x... } {}
+
+	constexpr list(const _vec3<f_t>& vector) {
+		for (int i = 0; i < std::min(rows, vector.size()); i++) {
+			this->operator[](i) = vector[i];
+		}
+	}
+
+	template <typename T>
+	constexpr list(T value) {
+		for (int i = 0; i < rows; i++) {
+			this->operator[](i) = value;
+		}
+	}
+
+	template <typename T, std::size_t array_n>
+	constexpr list(const list<T, array_n>& list) {
+		std::copy(list.begin(), list.end(), this->begin());
+	}
+
+	constexpr auto operator++() noexcept {
+		return &this->_Elems + 1;
+	}
+
+	template <typename T, std::size_t list_n>
+	constexpr list operator+(const list<T, list_n>& _list) const noexcept {
+		static_assert(rows >= list_n, "second list is bigger than first");
+		list calculation_list;
+		for (int i = 0; i < rows; i++) {
+			calculation_list[i] = this->operator[](i) + _list[i];
+		}
+		return calculation_list;
+	}
+
+	template <typename T>
+	constexpr list operator+(T value) const noexcept {
+		list list;
+		for (int i = 0; i < rows; i++) {
+			list[i] = this->operator[](i) + value;
+		}
+		return list;
+	}
+
+	template <typename T, std::size_t rows_>
+	constexpr list operator+=(const list<T, rows_>& value) noexcept {
+		//static_assert(rows >= list_n, "second list is bigger than first");
+		for (int i = 0; i < rows; i++) {
+			this->operator[](i) += value[i];
+		}
+		return *this;
+	}
+
+
+	/*template <typename T>
+	constexpr list operator+=(T value) noexcept {
+		for (int i = 0; i < rows; i++) {
+			this->operator[](i) += value;
+		}
+		return *this;
+	}*/
+
+	constexpr list operator-() const noexcept {
+		list l;
+		for (int i = 0; i < rows; i++) {
+			l[i] = -this->operator[](i);
+		}
+		return l;
+	}
+
+	template <typename T, std::size_t list_n>
+	constexpr list operator-(const list<T, list_n>& _list) const noexcept {
+		static_assert(rows >= list_n, "second list is bigger than first");
+		list calculation_list;
+		for (int i = 0; i < rows; i++) {
+			calculation_list[i] = this->operator[](i) - _list[i];
+		}
+		return calculation_list;
+	}
+
+	/*template <typename T>
+	constexpr list operator-(T value) const noexcept {
+		list list;
+		for (int i = 0; i < rows; i++) {
+			list[i] = this->operator[](i) - value;
+		}
+		return list;
+	}*/
+
+	template <typename T, std::size_t list_n>
+	constexpr list operator-=(const list<T, list_n>& value) noexcept {
+		static_assert(rows >= list_n, "second list is bigger than first");
+		for (int i = 0; i < rows; i++) {
+			this->operator[](i) -= value[i];
+		}
+		return *this;
+	}
+
+	template <typename T>
+	constexpr list operator-=(T value) noexcept {
+		for (int i = 0; i < rows; i++) {
+			this->operator[](i) -= value;
+		}
+		return *this;
+	}
+
+	template <typename T, std::size_t list_n>
+	constexpr list operator*(const list<T, list_n>& _list) const noexcept {
+		static_assert(rows >= list_n, "second list is bigger than first");
+		list calculation_list;
+		for (int i = 0; i < rows; i++) {
+			calculation_list[i] = this->operator[](i) * _list[i];
+		}
+		return calculation_list;
+	}
+
+	constexpr list operator*(type value) const noexcept {
+		list list;
+		for (int i = 0; i < rows; i++) {
+			list[i] = this->operator[](i) * value;
+		}
+		return list;
+	}
+
+	template <typename T, std::size_t list_n>
+	constexpr list operator*=(const list<T, list_n>& value) noexcept {
+		static_assert(rows >= list_n, "second list is bigger than first");
+		for (int i = 0; i < rows; i++) {
+			this->operator[](i) *= value[i];
+		}
+		return *this;
+	}
+
+	template <typename T>
+	constexpr list operator*=(T value) noexcept {
+		for (int i = 0; i < rows; i++) {
+			this->operator[](i) *= value;
+		}
+		return *this;
+	}
+
+
+	template <typename T, std::size_t list_n>
+	constexpr list operator/(const list<T, list_n>& _list) const noexcept {
+		static_assert(rows >= list_n, "second list is bigger than first");
+		list calculation_list;
+		for (int i = 0; i < rows; i++) {
+			calculation_list[i] = this->operator[](i) / _list[i];
+		}
+		return calculation_list;
+	}
+
+	template <typename T>
+	constexpr list operator/(T value) const noexcept {
+		list list;
+		for (int i = 0; i < rows; i++) {
+			list[i] = this->operator[](i) / value;
+		}
+		return list;
+	}
+
+	template <typename T, std::size_t list_n>
+	constexpr list operator/=(const list<T, list_n>& value) noexcept {
+		static_assert(rows >= list_n, "second list is bigger than first");
+		for (int i = 0; i < rows; i++) {
+			this->operator[](i) /= value[i];
+		}
+		return *this;
+	}
+
+	template <typename T>
+	constexpr list operator/=(T value) noexcept {
+		for (int i = 0; i < rows; i++) {
+			this->operator[](i) /= value;
+		}
+		return *this;
+	}
+
+	template <typename T>
+	constexpr auto operator%(T value) {
+		list l;
+		for (int i = 0; i < rows; i++) {
+			l = fmodf(this->operator[](i), value);
+		}
+		return l;
+	}
+
+	constexpr bool operator<(const list<type, rows>& list_) {
+		for (int i = 0; i < rows; i++) {
+			if (this->operator[](i) < list_[i]) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	constexpr bool operator<=(const list<type, rows>& list_) {
+		for (int i = 0; i < rows; i++) {
+			if (this->operator[](i) <= list_[i]) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	template <typename T>
+	constexpr bool operator==(T value) {
+		for (int i = 0; i < rows; i++) {
+			if (this->operator[](i) != value) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	constexpr bool operator==(const list<type, rows>& list_) {
+		for (int i = 0; i < rows; i++) {
+			if (this->operator[](i) != list_[i]) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	template <typename T>
+	constexpr bool operator!=(T value) {
+		for (int i = 0; i < rows; i++) {
+			if (this->operator[](i) == value) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	template <typename T>
+	constexpr bool operator!=(const list<T, rows>& list_) {
+		for (int i = 0; i < rows; i++) {
+			if (this->operator[](i) == list_[i]) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	constexpr auto& operator*() {
+		return *this->begin();
+	}
+
+	constexpr void print() const {
+		for (int i = 0; i < rows; i++) {
+			std::cout << this->operator[](i) << ((i + 1 != rows) ? " " : "\rows");
+		}
+	}
+
+	constexpr auto u() const noexcept {
+		return this->operator-();
+	}
+
+	constexpr auto min() const noexcept {
+		return *std::min_element(this->begin(), this->end());
+	}
+
+	constexpr auto max() const noexcept {
+		return *std::max_element(this->begin(), this->end());
+	}
+
+	constexpr auto avg() const noexcept {
+		return average(this->begin(), this->end());
+	}
+
+	constexpr auto abs() const noexcept {
+		list l;
+		for (int i = 0; i < rows; i++) {
+			l[i] = std::abs(this->operator[](i));
+		}
+		return l;
+	}
+
+	constexpr list<f_t, 2> floor() const noexcept {
+		list l;
+		for (int i = 0; i < rows; i++) {
+			l[i] = std::floor(this->operator[](i));
+		}
+		return l;
+	}
+
+	constexpr list<f_t, 2> ceil() const noexcept {
+		list l;
+		for (int i = 0; i < rows; i++) {
+			l[i] = (this->operator[](i) < 0 ? -std::ceil(-this->operator[](i)) : std::ceil(this->operator[](i)));
+		}
+		return l;
+	}
+
+	constexpr list<f_t, 2> round() const noexcept {
+		list l;
+		for (int i = 0; i < rows; i++) {
+			l[i] = std::round(-this->operator[](i));
+		}
+		return l;
+	}
+
+	constexpr f_t pmax() const noexcept {
+		decltype(*this) list = this->abs();
+		auto biggest = std::max_element(list.begin(), list.end());
+		if (this->operator[](biggest - list.begin()) < 0) {
+			return -*biggest;
+		}
+		return *biggest;
+	}
+
+	constexpr auto gfne() const noexcept {
+		for (int i = 0; i < rows; i++) {
+			if (this->operator[](i)) {
+				return this->operator[](i);
+			}
+		}
+	}
+};
+
+template <typename T>
+constexpr bool dcom_fr(uint_t n, T x, T y) noexcept {
+	switch (n) {
+	case 0: {
+		return x < y;
+	}
+	case 1: {
+		return x > y;
+	}
+	}
+}
+
+template <typename type, std::size_t Rows, std::size_t Cols>
+struct matrix {
+
+	list<type, Cols> m[Rows];
+
+	using matrix_type = matrix<type, Rows, Cols>;
+	using value_type = list<type, Cols>;
+
+	static constexpr std::size_t rows = Rows;
+	static constexpr std::size_t cols = Cols;
 
 	constexpr matrix() : m{ 0 } { }
 
-	template <template <typename> typename... _Vec_t, typename _Type>
- 	matrix(const _Vec_t<_Type>&... vector) {
+	template <typename _Type, std::size_t cols, template <typename, std::size_t> typename... _List>
+	constexpr matrix(_List<_Type, cols>... list_) : m{ 0 } {
+		static_assert(sizeof...(list_) >= cols, "too many initializers");
 		int i = 0;
-		auto cpp_ded = std::get<0>(std::forward_as_tuple(vector...));
-		((((decltype(cpp_ded)*)m)[i++] = vector), ...);
+		auto auto_type = std::get<0>(std::forward_as_tuple(list_...));
+		((((decltype(auto_type)*)m)[i++] = list_), ...);
 	}
 
-	template <typename ..._Type>
-	constexpr matrix(_Ty _Val, _Type&&... _array) : m{ 0 } {
-		if constexpr (!sizeof...(_array)) {
-			for (int _I = 0; _I < Rows; _I++) {
-				m[_I][_I] = _Val;
-			}
-		}
-		else {
-			static_assert(sizeof...(_array) > Rows * Cols - 2, "too few initializer values");
-			static_assert(sizeof...(_array) + 1 <= Rows * Cols, "too many initializer values");
+	template <typename..._Type>
+	constexpr matrix(_Type... value) {
+		if constexpr (sizeof...(value) == cols * rows) {
 			int init = 0;
-			((((_Ty*)m)[init++] = _array), ...);
+			((((type*)m)[init++] = value), ...);
 		}
 	}
 
-	template <int m_cols, int m_rows>
-	constexpr matrix(const matrix<m_cols, m_rows>& matrix) : m{ 0 } {
-		for (int i = 0; i < matrix.cols(); i++) {
-			for (int j = 0; j < matrix.rows(); j++) {
-				if (i >= Cols || j >= Rows) {
-					break;
-				}
-				this->m[i][j] = matrix[i][j];
-			}
+	template <typename T>
+	constexpr matrix(T value) : m{ 0 } {
+		for (int i = 0; i < rows && i < cols; i++) {
+			m[i][i] = value;
 		}
 	}
 
-	std::array<_Ty, Cols>& operator[](uint64_t _Idx) {
-		return m[_Idx];
+	template <template <typename> typename... _Vec_t, typename _Type>
+	matrix(const _Vec_t<_Type>&... vector) : m{ 0 } {
+		int i = 0;
+		auto auto_type = std::get<0>(std::forward_as_tuple(vector...));
+		((((decltype(auto_type)*)m)[i++] = vector), ...);
 	}
 
-	auto operator[](uint64_t _Idx) const {
-		return m[_Idx];
+	template <typename T, std::size_t Rows2, std::size_t Cols2>
+	constexpr matrix_type operator+(const matrix<T, Rows2, Cols2>& matrix) const noexcept { // matrix
+		matrix_type _matrix;
+		static_assert(Cols2 <= Cols, "Colums of the second matrix is bigger than first");
+		for (int i = 0; i < rows; i++) {
+			_matrix[i] = m[i] + matrix[i];
+		}
+		return _matrix;
 	}
 
-	constexpr uint64_t rows() const {
-		return Rows;
+	template <typename T, std::size_t da_t_n>
+	constexpr matrix_type operator+(const list<T, da_t_n>& da_t) const noexcept { // list
+		matrix_type _matrix;
+		static_assert(cols >= da_t_n, "list is bigger than the matrice's Rows");
+		for (int i = 0; i < rows; i++) {
+			_matrix[i] = m[i] + da_t;
+		}
+		return _matrix;
 	}
 
-	constexpr uint64_t cols() const {
-		return Cols;
+	template <typename T>
+	constexpr matrix_type operator+(T value) const noexcept { // basic value
+		matrix_type _matrix;
+		for (int i = 0; i < rows; i++) {
+			_matrix[i] = m[i] + value;
+		}
+		return _matrix;
 	}
 
-	constexpr uint64_t size() const {
-		return Rows * Cols;
+	template <typename T, std::size_t Rows2, std::size_t Cols2>
+	constexpr auto operator+=(const matrix<T, Rows2, Cols2>& matrix) noexcept { // matrix
+		matrix_type _matrix;
+		static_assert(Cols2 <= Cols, "Colums of the second matrix is bigger than first");
+		for (int i = 0; i < rows; i++) {
+			_matrix[i] = m[i] += matrix[i];
+		}
+		return _matrix;
 	}
 
-	matrix<Cols, Rows> operator-(const matrix<Cols, Rows>& m) {
-		matrix<Cols, Rows> ret;
+	template <typename T, std::size_t da_t_n>
+	constexpr matrix_type operator+=(const list<T, da_t_n>& da_t) noexcept { // list
+		matrix_type _matrix;
+		static_assert(cols <= da_t_n, "list is bigger than the matrice's Rows");
+		for (int i = 0; i < rows; i++) {
+			_matrix[i] = m[i] += da_t;
+		}
+		return _matrix;
+	}
+
+	template <typename T>
+	constexpr matrix_type operator+=(T value) noexcept { // basic value
+		matrix_type _matrix;
+		for (int i = 0; i < rows; i++) {
+			_matrix[i] = m[i] += value;
+		}
+		return _matrix;
+	}
+
+	template <typename T, std::size_t Rows2, std::size_t Cols2>
+	constexpr matrix_type operator-(const matrix<T, Rows2, Cols2>& matrix) const noexcept { // matrix
+		matrix_type _matrix;
+		static_assert(Cols2 <= Cols, "Colums of the second matrix is bigger than first");
+		for (int i = 0; i < rows; i++) {
+			_matrix[i] = m[i] - matrix[i];
+		}
+		return _matrix;
+	}
+
+	template <typename T, std::size_t da_t_n>
+	constexpr matrix_type operator-(const list<T, da_t_n>& da_t) const noexcept { // list
+		matrix_type _matrix;
+		static_assert(cols <= da_t_n, "list is bigger than the matrice's Rows");
+		for (int i = 0; i < rows; i++) {
+			_matrix[i] = m[i] - da_t;
+		}
+		return _matrix;
+	}
+
+	template <typename T>
+	constexpr matrix_type operator-(T value) const noexcept { // basic value
+		matrix_type _matrix;
+		for (int i = 0; i < rows; i++) {
+			_matrix[i] = m[i] - value;
+		}
+		return _matrix;
+	}
+
+	template <typename T, std::size_t Rows2, std::size_t Cols2>
+	constexpr matrix_type operator-=(const matrix<T, Rows2, Cols2>& matrix) noexcept { // matrix
+		matrix_type _matrix;
+		static_assert(Cols2 <= Cols, "Colums of the second matrix is bigger than first");
+		for (int i = 0; i < rows; i++) {
+			_matrix[i] = m[i] -= matrix[i];
+		}
+		return _matrix;
+	}
+
+	template <typename T, std::size_t da_t_n>
+	constexpr matrix_type operator-=(const list<T, da_t_n>& da_t) noexcept { // list
+		matrix_type _matrix;
+		static_assert(cols <= da_t_n, "list is bigger than the matrice's Rows");
+		for (int i = 0; i < rows; i++) {
+			_matrix[i] = m[i] -= da_t;
+		}
+		return _matrix;
+	}
+
+	template <typename T>
+	constexpr matrix_type operator-=(T value) noexcept { // basic value
+		matrix_type _matrix;
+		for (int i = 0; i < rows; i++) {
+			_matrix[i] = m[i] -= value;
+		}
+		return _matrix;
+	}
+
+	constexpr matrix_type operator-() noexcept {
 		for (int _I = 0; _I < Rows; _I++) {
 			for (int _J = 0; _J < Cols; _J++) {
-				ret[_I][_J] = -m[_I][_J];
+				m[_I][_J] = -m[_I][_J];
 			}
 		}
-		return ret;
+		return *this;
 	}
 
-	void print() const {
-		for (int _I = 0; _I < Rows; _I++) {
-			for (int _J = 0; _J < Cols; _J++) {
-				std::cout << m[_I][_J] << std::endl;
-			}
-		}
-	}
-
-	constexpr matrix<Cols, Rows, _Ty> operator*(const matrix<Cols, Rows, _Ty>& _Lhs) {
-		if (rows() != _Lhs.cols()) {
+	constexpr matrix_type operator*(const matrix<type, Rows, Cols>& _Lhs) noexcept {
+		if (Rows != Cols) {
 			throw("first matrix rows must be same as second's colums");
 		}
 		for (int _I = 0; _I < Rows; _I++) {
 			for (int _J = 0; _J < Cols; _J++) {
-				_Ty _Value = 0;
+				type _Value = 0;
 				for (int _K = 0; _K < Cols; _K++) {
 					_Value += m[_I][_K] * _Lhs[_K][_J];
 				}
@@ -743,20 +1270,129 @@ public:
 		return *this;
 	}
 
-	_Ty* data() {
-		return &m[0][0];
+	template <typename T>
+	constexpr auto operator*=(T value) {
+		return this->operator[]<true>(0) *= value;
+	}
+
+	template <typename T>
+	constexpr auto operator/(T value) const noexcept {
+		return this->operator[]<true>(0) / value;
+	}
+
+	template <typename T>
+	constexpr auto operator/=(T value) {
+		return this->operator[]<true>(0) /= value;
+	}
+
+	template <typename T>
+	constexpr auto operator%(T value) {
+		for (int i = 0; i < Cols; i++) {
+			for (int j = 0; j < Rows; j++) {
+				m[i][j] = fmodf(m[i][j], value);
+			}
+		}
+		return *this;
+	}
+
+	constexpr bool operator==(const matrix<type, rows, cols>& list_) {
+		for (int i = 0; i < rows; i++) {
+			for (int j = 0; j < cols; j++) {
+				if (m[i][j] != list_[i][j]) {
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+
+	template <bool return_array = false>
+	constexpr auto operator[](std::size_t i) const {
+		return m[i];
+	}
+
+	template <bool return_array = false>
+	constexpr auto& operator[](std::size_t i) {
+		return m[i];
+	}
+
+	constexpr void print() const {
+		for (int i = 0; i < rows; i++) {
+			m[i].print();
+		}
+	}
+
+	list<type, Cols>* begin() noexcept {
+		return &m[0];
+	}
+
+	list<type, Cols>* end() noexcept {
+		return &m[rows];
+	}
+
+	constexpr auto data() noexcept {
+		return begin();
+	}
+
+	constexpr auto u() noexcept {
+		return this->operator-();
+	}
+
+	constexpr auto min() noexcept {
+		return *std::min_element(begin(), end());
+	}
+
+	constexpr auto max() noexcept {
+		return *std::max_element(begin(), end());
+	}
+
+	constexpr auto avg() noexcept {
+		return average(this->begin(), this->end());
+	}
+
+	constexpr auto vector() noexcept {
+		return std::vector<da_t<type, cols>>(this->begin(), this->end());
+	}
+
+	constexpr auto size() const noexcept {
+		return rows;
 	}
 };
 
-using mat2x2 = matrix<2, 2>;
-using mat2x3 = matrix<3, 2>;
-using mat2x4 = matrix<4, 2>;
-using mat3x3 = matrix<3, 3>;
-using mat3x2 = matrix<2, 3>;
-using mat4x2 = matrix<2, 4>;
+template <typename T, std::size_t rows>
+std::ostream& operator<<(std::ostream& os, const list<T, rows> list_) noexcept
+{
+	for (int i = 0; i < rows; i++) {
+		os << list_[i] << ' ';
+	}
+	return os;
+}
+
+template <
+	template <typename, std::size_t, std::size_t> typename da_t_t,
+	typename T, std::size_t rows, std::size_t cols
+>
+std::ostream& operator<<(std::ostream& os, const da_t_t<T, rows, cols>& da_t_) noexcept
+{
+	for (int i = 0; i < cols; i++) {
+		for (int j = 0; j < rows; j++) {
+			os << da_t_[i][j] << ' ';
+		}
+	}
+	return os;
+}
+
+using mat2x2 = matrix<f_t, 2, 2>;
+using mat2x3 = matrix<f_t, 2, 3>;
+using mat3x2 = matrix<f_t, 3, 2>;
+using mat4x2 = matrix<f_t, 4, 2>;
+using mat3x3 = matrix<f_t, 3, 3>;
+using mat4x4 = matrix<f_t, 4, 4>;
+
 using mat2 = mat2x2;
 using mat3 = mat3x3;
-using mat4 = matrix<4, 4>;
+using mat4 = mat4x4;
+
 using vec2 = _vec2<f_t>;
 using vec3 = _vec3<f_t>;
 using vec4 = _vec4<f_t>;
@@ -841,142 +1477,6 @@ public:
 
 static Color random_color() {
 	return Color::rgb(std::rand() % 255, std::rand() % 255, std::rand() % 255, 255);
-}
-
-template <typename _Type, uint64_t _Size>
-constexpr std::array<_Type, _Size> operator+=(std::array<_Type, _Size>& _Lhs, const std::array<_Type, _Size>& _Rhs) noexcept
-{
-	std::transform(_Lhs.begin(), _Lhs.end(), _Rhs.cbegin(), _Lhs.begin(), std::plus<void>());
-	return _Lhs;
-}
-
-template <typename _Type, uint64_t _Size, typename _Type2>
-constexpr std::array<_Type, _Size> operator+=(const std::array<_Type, _Size>& _Lhs, _Type2 _Rhs) noexcept
-{
-	std::array<_Type, _Size> _Multiplication;
-	_Multiplication.fill(_Rhs);
-	std::transform(_Lhs.begin(), _Lhs.end(), _Multiplication.cbegin(), _Lhs.begin(), std::plus<void>());
-	return _Lhs;
-}
-
-template <typename _Type, uint64_t _Size>
-constexpr std::array<_Type, _Size> operator+(const std::array<_Type, _Size>& _Lhs, const std::array<_Type, _Size>& _Rhs) noexcept
-{
-	std::array<_Type, _Size> _Array(_Lhs);
-	std::transform(_Array.begin(), _Array.end(), _Rhs.cbegin(), _Array.begin(), std::plus<void>());
-	return _Array;
-}
-
-template <typename _Type, uint64_t _Size, typename _Type2>
-constexpr std::array<_Type, _Size> operator+(const std::array<_Type, _Size>& _Lhs, _Type2 _Rhs) noexcept  
-{
-	std::array<_Type, _Size> _Array(_Lhs);
-	std::array<_Type, _Size> _Addition;
-	_Addition.fill(_Rhs);
-	std::transform(_Array.begin(), _Array.end(), _Addition.cbegin(), _Array.begin(), std::plus<void>());
-	return _Array;
-}
-
-template <typename _Type, uint64_t _Size>
-constexpr std::array<_Type, _Size> operator-=(std::array<_Type, _Size>& _Lhs, const std::array<_Type, _Size>& _Rhs) noexcept
-{
-	std::transform(_Lhs.begin(), _Lhs.end(), _Rhs.cbegin(), _Lhs.begin(), std::minus<void>());
-	return _Lhs;
-}
-
-template <typename _Type, uint64_t _Size, typename _Type2>
-constexpr std::array<_Type, _Size> operator-=(const std::array<_Type, _Size>& _Lhs, _Type2 _Rhs) noexcept
-{
-	std::array<_Type, _Size> _Multiplication;
-	_Multiplication.fill(_Rhs);
-	std::transform(_Lhs.begin(), _Lhs.end(), _Multiplication.cbegin(), _Lhs.begin(), std::minus<void>());
-	return _Lhs;
-}
-
-template <typename _Type, uint64_t _Size>
-constexpr std::array<_Type, _Size> operator-(const std::array<_Type, _Size>& _Lhs, const std::array<_Type, _Size>& _Rhs) noexcept
-{
-	std::array<_Type, _Size> _Array(_Lhs);
-	std::transform(_Array.begin(), _Array.end(), _Rhs.cbegin(), _Array.begin(), std::minus<void>());
-	return _Array;
-}
-
-template <typename _Type, uint64_t _Size, typename _Type2>
-constexpr std::array<_Type, _Size> operator-(const std::array<_Type, _Size>& _Lhs, _Type2 _Rhs) noexcept
-{
-	std::array<_Type, _Size> _Array(_Lhs);
-	std::array<_Type, _Size> _Subtraction;
-	_Subtraction.fill(_Rhs);
-	std::transform(_Array.begin(), _Array.end(), _Subtraction.cbegin(), _Array.begin(), std::minus<void>());
-	return _Array;
-}
-
-template <typename _Type, uint64_t _Size>
-constexpr std::array<_Type, _Size> operator*=(std::array<_Type, _Size>& _Lhs, const std::array<_Type, _Size>& _Rhs) noexcept
-{
-	std::transform(_Lhs.begin(), _Lhs.end(), _Rhs.cbegin(), _Lhs.begin(), std::multiplies<void>());
-	return _Lhs;
-}
-
-template <typename _Type, uint64_t _Size, typename _Type2>
-constexpr std::array<_Type, _Size> operator*=(std::array<_Type, _Size>& _Lhs, _Type2 _Rhs) noexcept
-{
-	std::array<_Type, _Size> _Multiplication;
-	_Multiplication.fill(_Rhs);
-	std::transform(_Lhs.begin(), _Lhs.end(), _Multiplication.cbegin(), _Lhs.begin(), std::multiplies<void>());
-	return _Lhs;
-}
-
-template <typename _Type, uint64_t _Size>
-constexpr std::array<_Type, _Size> operator*(const std::array<_Type, _Size>& _Lhs, const std::array<_Type, _Size>& _Rhs) noexcept
-{
-	std::array<_Type, _Size> _Array(_Lhs);
-	std::transform(_Array.begin(), _Array.end(), _Rhs.cbegin(), _Array.begin(), std::multiplies<void>());
-	return _Array;
-}
-
-template <typename _Type, uint64_t _Size, typename _Type2>
-constexpr std::array<_Type, _Size> operator*(const std::array<_Type, _Size>& _Lhs, _Type2 _Rhs) noexcept 
-{
-	std::array<_Type, _Size> _Array(_Lhs);
-	std::array<_Type, _Size> _Multiplication{ 0 }; // gcc note implicitly-defined constructor does not initialize - fix {0}
-	_Multiplication.fill(_Rhs);
-	std::transform(_Array.begin(), _Array.end(), _Multiplication.cbegin(), _Array.begin(), std::multiplies<void>());
-	return _Array;
-}
-
-template <typename _Type, uint64_t _Size>
-constexpr std::array<_Type, _Size> operator/=(std::array<_Type, _Size>& _Lhs, const std::array<_Type, _Size>& _Rhs) noexcept
-{
-	std::transform(_Lhs.begin(), _Lhs.end(), _Rhs.cbegin(), _Lhs.begin(), std::divides<void>());
-	return _Lhs;
-}
-
-template <typename _Type, uint64_t _Size, typename _Type2>
-constexpr std::array<_Type, _Size> operator/=(const std::array<_Type, _Size>& _Lhs, _Type2 _Rhs) noexcept
-{
-	std::array<_Type, _Size> _Division;
-	_Division.fill(_Rhs);
-	std::transform(_Lhs.begin(), _Lhs.end(), _Division.cbegin(), _Lhs.begin(), std::divides<void>());
-	return _Lhs;
-}
-
-template <typename _Type, uint64_t _Size>
-constexpr std::array<_Type, _Size> operator/(const std::array<_Type, _Size>& _Lhs, const std::array<_Type, _Size>& _Rhs) noexcept
-{
-	std::array<_Type, _Size> _Array(_Lhs);
-	std::transform(_Array.begin(), _Array.end(), _Rhs.cbegin(), _Array.begin(), std::divides<void>());
-	return _Array;
-}
-
-template <typename _Type, uint64_t _Size, typename _Type2>
-constexpr std::array<_Type, _Size> operator/(const std::array<_Type, _Size>& _Lhs, _Type2 _Rhs) noexcept
-{
-	std::array<_Type, _Size> _Array(_Lhs);
-	std::array<_Type, _Size> _Division;
-	_Division.fill(_Rhs);
-	std::transform(_Array.begin(), _Array.end(), _Division.cbegin(), _Array.begin(), std::divides<void>());
-	return _Array;
 }
 
 template <typename _Casted, template<typename> typename _Vec_t, typename _Old>
