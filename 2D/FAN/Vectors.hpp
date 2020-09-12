@@ -1071,6 +1071,7 @@ struct list : public std::array<type, rows> {
 				return this->operator[](i);
 			}
 		}
+		return type();
 	}
 };
 
@@ -1084,6 +1085,7 @@ constexpr bool dcom_fr(uint_t n, T x, T y) noexcept {
 		return x > y;
 	}
 	}
+	return false;
 }
 
 template <typename type, std::size_t Rows, std::size_t Cols>
@@ -1254,7 +1256,7 @@ struct matrix {
 		return *this;
 	}
 
-	constexpr matrix_type operator*(const matrix<type, Rows, Cols>& _Lhs) noexcept {
+	constexpr matrix_type operator*(const matrix<type, Rows, Cols>& _Lhs) noexcept(false) {
 		if (Rows != Cols) {
 			throw("first matrix rows must be same as second's colums");
 		}
