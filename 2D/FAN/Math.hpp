@@ -9,7 +9,6 @@
 #include <functional>
 #include <cmath>
 
-
 template <typename T>
 void debugger(std::function<T> functionPtr) {
 	printf("start\n");
@@ -83,7 +82,7 @@ constexpr auto Radians(T x) { return (x * PI / 180.0f); }
 
  // converts radians to degrees
 template<typename T>
-constexpr auto Degrees(T x) { return (x * 180.0f / PI); }      
+constexpr auto Degrees(T x) { return (x * 180.0f / PI); } 
 
 template <typename T>
 constexpr auto Min(T first, T second) {
@@ -95,29 +94,38 @@ constexpr auto Max(T first, T second) {
 	return first > second ? first : second;
 }
 
-template <typename T> int sgn(T val) {
+template <typename T> 
+constexpr T sign(T val) {
 	return (T(0) < val) - (val < T(0));
 }
 
 template <typename T>
-constexpr auto Cross(const T& x, const T& y) {
-	return vec3(
-		x.y * y.z - y.y * x.z,
-		x.z * y.x - y.z * x.x,
-		x.x * y.y - y.x * x.y
+constexpr auto cross(const da_t<T, 3>& a, const da_t<T, 3>& b) {
+	return da_t<f_t, 3>(
+		a[1] * b[2] - b[1] * a[2],
+		a[2] * b[0] - b[2] * a[0],
+		a[0] * b[1] - b[0] * a[1]
 	);
 }
 
-constexpr float Dot(const vec2& x, const vec2& y) {
+constexpr auto cross(const vec3& a, const vec3& b) {
+	return vec3(
+		a.y * b.z - b.y * a.z,
+		a.z * b.x - b.z * a.x,
+		a.x * b.y - b.x * a.y
+	);
+}
+
+constexpr float dot(const vec2& x, const vec2& y) {
 	return (x.x * y.x) + (x.y * y.y);
 }
 
-constexpr auto Dot(const vec3& x, const vec3& y) {
+constexpr auto dot(const vec3& x, const vec3& y) {
 	return (x.x * y.x) + (x.y * y.y) + (x.z * y.z);
 }
 
-inline vec2 Normalize(const vec2& x) {
-	float length = sqrt(Dot(x, x));
+inline vec2 normalize(const vec2& x) {
+	float length = sqrt(dot(x, x));
 	return vec2(x.x / length, x.y / length);
 }
 
@@ -125,8 +133,8 @@ static auto Distance3d(const vec3& src, const vec3& dst) {
 	return sqrtf(powf((src.x - dst.x), 2) + powf(((src.y - dst.y)), 2) + powf((src.z - dst.z), 2));
 }
 
-inline vec3 Normalize(const vec3& x) {
-	auto length = sqrt(Dot(x, x));
+inline vec3 normalize(const vec3& x) {
+	auto length = sqrt(dot(x, x));
 	return vec3(x.x / length, x.y / length, x.z / length);
 }
 
@@ -152,17 +160,17 @@ inline vec3 DirectionVector(float alpha, float beta)
 	);
 }
 
-inline f_t Distance(f_t src, f_t dst) {
+inline f_t distance(f_t src, f_t dst) {
 	return std::abs(std::abs(dst) - std::abs(src));
 }
 
 template <typename _Ty>
-constexpr auto Distance(const _vec2<_Ty>& src, const _vec2<_Ty>& dst) {
+constexpr auto distance(const _vec2<_Ty>& src, const _vec2<_Ty>& dst) {
 	return sqrtf(powf((src.x - dst.x), 2) + powf(((src.y - dst.y)), 2));
 }
 
 template <typename _Ty, typename _Ty2>
-constexpr auto Distance(const _vec3<_Ty>& src, const _vec3<_Ty2>& dst) {
+constexpr auto distance(const _vec3<_Ty>& src, const _vec3<_Ty2>& dst) {
 	return sqrtf(powf((src.x - dst.x), 2) + powf(((src.y - dst.y)), 2) + powf(((src.z - dst.z)), 2));
 }
 
@@ -207,7 +215,7 @@ template <typename _Ty> constexpr auto PixelsToSomething(_Ty pixels, _Ty screen)
 	return _Ty((2.0f / screen.x * pixels.x - 1.0f), -(2.0f / screen.y * pixels.y - 1.0f));
 }
 
-template<typename T = matrix<4, 4>>
+template<typename T = mat4>
 auto Ortho(float left, float right, float bottom, float top) {
 	T Result(static_cast<T>(1));
 	Result[0][0] = static_cast<float>(2) / (right - left);
@@ -219,7 +227,7 @@ auto Ortho(float left, float right, float bottom, float top) {
 }
 
 
-template <typename T = matrix<4, 4>> 
+template <typename T = mat4> 
 constexpr auto Ortho(f_t left, f_t right, f_t bottom, f_t top, f_t zNear, f_t zFar) {
 	T Result(1);
 	Result.m[0][0] = 2.f / (right - left);
@@ -231,7 +239,7 @@ constexpr auto Ortho(f_t left, f_t right, f_t bottom, f_t top, f_t zNear, f_t zF
 	return Result;
 }
 
-template <typename T = matrix<4, 4>> 
+template <typename T = mat4> 
 constexpr T Perspective(f_t fovy, f_t aspect, f_t zNear, f_t zFar) {
 	f_t const tanHalfFovy = tan(fovy / static_cast<f_t>(2));
 	T Result;
@@ -243,11 +251,11 @@ constexpr T Perspective(f_t fovy, f_t aspect, f_t zNear, f_t zFar) {
 	return Result;
 }
 
-template <typename _Ty = vec3, typename _Ty2 = matrix<4, 4>>
+template <typename _Ty = vec3, typename _Ty2 = mat4>
 constexpr auto LookAt(const _Ty& eye, const _Ty& center, const _Ty& up) {
-	vec3 f(Normalize(center - eye));
-	vec3 s(Normalize(Cross(f, up)));
-	vec3 u(Cross(s, f));
+	vec3 f(normalize(center - eye));
+	vec3 s(normalize(cross(f, up)));
+	vec3 u(cross(s, f));
 
 	_Ty2 Result(1);
 	Result.m[0][0] = s[0];
@@ -259,9 +267,9 @@ constexpr auto LookAt(const _Ty& eye, const _Ty& center, const _Ty& up) {
 	Result.m[0][2] = -f[0];
 	Result.m[1][2] = -f[1];
 	Result.m[2][2] = -f[2];
-	float x = -Dot(s, eye);
-	float y = -Dot(u, eye);
-	float z = Dot(f, eye);
+	float x = -dot(s, eye);
+	float y = -dot(u, eye);
+	float z = dot(f, eye);
 	Result.m[3][0] = x;
 	Result.m[3][1] = y;
 	Result.m[3][2] = z;
@@ -269,14 +277,14 @@ constexpr auto LookAt(const _Ty& eye, const _Ty& center, const _Ty& up) {
 }
 
 
-static auto Rotate(const matrix<4, 4>& m, float angle, const vec3& v) {
+static auto Rotate(const mat4& m, float angle, const vec3& v) {
 	const float a = angle;
 	const float c = cos(a);
 	const float s = sin(a);
-	vec3 axis(Normalize(v));
+	vec3 axis(normalize(v));
 	vec3 temp(axis * (1.0f - c));
 
-	matrix<4, 4> Rotate;
+	mat4 Rotate;
 	Rotate[0][0] = c + temp[0] * axis[0];
 	Rotate[0][1] = temp[0] * axis[1] + s * axis[2];
 	Rotate[0][2] = temp[0] * axis[2] - s * axis[1];
@@ -289,7 +297,7 @@ static auto Rotate(const matrix<4, 4>& m, float angle, const vec3& v) {
 	Rotate[2][1] = temp[2] * axis[1] - s * axis[0];
 	Rotate[2][2] = c + temp[2] * axis[2];
 
-	matrix<4, 4> Result;
+	mat4 Result;
 	Result[0] = (m[0] * Rotate[0][0]) + (m[1] * Rotate[0][1]) + (m[2] * Rotate[0][2]);
 	Result[1] = (m[0] * Rotate[1][0]) + (m[1] * Rotate[1][1]) + (m[2] * Rotate[1][2]);
 	Result[2] = (m[0] * Rotate[2][0]) + (m[1] * Rotate[2][1]) + (m[2] * Rotate[2][2]);

@@ -1,22 +1,64 @@
 ﻿  Graphics.cpp
   Input.cpp
   Source.cpp
-C:\Users\123\Downloads\2D-master\2D\FAN\Graphics.cpp(1318,20): warning C4018: '<': signed/unsigned mismatch
-C:\Users\123\Downloads\2D-master\2D\FAN\Graphics.cpp(1387,94): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
-C:\Users\123\Downloads\2D-master\2D\FAN\Graphics.cpp(1775,33): warning C4267: '+=': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\123\Downloads\2D-master\2D\FAN\Graphics.cpp(1790,31): warning C4267: '+=': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\123\Downloads\2D-master\2D\FAN\Graphics.cpp(1803,35): warning C4267: '+=': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\123\Downloads\2D-master\2D\FAN\Graphics.cpp(1954,55): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
-C:\Users\123\Downloads\2D-master\2D\FAN\Time.hpp(83,60): warning C4018: '>=': signed/unsigned mismatch (compiling source file FAN\Graphics.cpp)
-C:\Users\123\Downloads\2D-master\2D\FAN\Time.hpp(82): message : while compiling class template member function 'bool _Timer<std::chrono::milliseconds>::finished(void)' (compiling source file FAN\Graphics.cpp)
-C:\Users\123\Downloads\2D-master\2D\FAN\Graphics.cpp(1436): message : see reference to function template instantiation 'bool _Timer<std::chrono::milliseconds>::finished(void)' being compiled
-C:\Users\123\Downloads\2D-master\2D\FAN\Graphics.cpp(1416): message : see reference to class template instantiation '_Timer<std::chrono::milliseconds>' being compiled
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Vectors.hpp(733,1): warning C4099: 'list': type name first seen using 'class' now seen using 'struct' (compiling source file FAN\Input.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Vectors.hpp(29): message : see declaration of 'list' (compiling source file FAN\Input.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Vectors.hpp(1075,2): warning C4099: 'list': type name first seen using 'class' now seen using 'struct' (compiling source file FAN\Input.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Vectors.hpp(733): message : see declaration of 'list' (compiling source file FAN\Input.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Vectors.hpp(733,1): warning C4099: 'list': type name first seen using 'class' now seen using 'struct' (compiling source file Source.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Vectors.hpp(29): message : see declaration of 'list' (compiling source file Source.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Vectors.hpp(1075,2): warning C4099: 'list': type name first seen using 'class' now seen using 'struct' (compiling source file Source.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Vectors.hpp(733): message : see declaration of 'list' (compiling source file Source.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Vectors.hpp(733,1): warning C4099: 'list': type name first seen using 'class' now seen using 'struct' (compiling source file FAN\Graphics.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Vectors.hpp(29): message : see declaration of 'list' (compiling source file FAN\Graphics.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Vectors.hpp(1075,2): warning C4099: 'list': type name first seen using 'class' now seen using 'struct' (compiling source file FAN\Graphics.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Vectors.hpp(733): message : see declaration of 'list' (compiling source file FAN\Graphics.cpp)
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.18362.0\shared\minwindef.h(130,1): warning C4005: 'APIENTRY': macro redefinition (compiling source file Source.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\External sources\GLFW\include\GLFW\glfw3.h(123): message : see previous definition of 'APIENTRY' (compiling source file Source.cpp)
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.18362.0\shared\minwindef.h(130,1): warning C4005: 'APIENTRY': macro redefinition (compiling source file FAN\Graphics.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\External sources\GLFW\include\GLFW\glfw3.h(123): message : see previous definition of 'APIENTRY' (compiling source file FAN\Graphics.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(172,1): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data (compiling source file FAN\Graphics.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(172,1): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data (compiling source file Source.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(716,1): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data (compiling source file FAN\Graphics.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(734,1): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data (compiling source file FAN\Graphics.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(716,1): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data (compiling source file Source.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Network.hpp(734,1): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data (compiling source file Source.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Math.hpp(72,1): warning C4267: 'argument': conversion from 'size_t' to '_Ty', possible loss of data
+          with
+          [
+              _Ty=int
+          ] (compiling source file Source.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\Source.cpp(7): message : see reference to function template instantiation 'auto random<int,size_t>(first,second)' being compiled
+          with
+          [
+              first=int,
+              second=size_t
+          ]
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.cpp(315,24): warning C4056: overflow in floating-point constant arithmetic
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.cpp(318,24): warning C4056: overflow in floating-point constant arithmetic
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.cpp(1648,20): warning C4018: '<': signed/unsigned mismatch
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.cpp(1717,94): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.cpp(2105,33): warning C4267: '+=': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.cpp(2120,31): warning C4267: '+=': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.cpp(2133,35): warning C4267: '+=': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.cpp(2284,55): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Time.hpp(36,60): warning C4018: '>=': signed/unsigned mismatch (compiling source file FAN\Graphics.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Time.hpp(35): message : while compiling class template member function 'bool _Timer<std::chrono::milliseconds>::finished(void)' (compiling source file FAN\Graphics.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.cpp(1077): message : see reference to function template instantiation 'bool _Timer<std::chrono::milliseconds>::finished(void)' being compiled
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.hpp(407): message : see reference to class template instantiation '_Timer<std::chrono::milliseconds>' being compiled (compiling source file FAN\Graphics.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Vectors.hpp(1259,1): warning C4297: 'matrix<f_t,4,4>::operator *': function assumed not to throw an exception but does (compiling source file FAN\Graphics.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Vectors.hpp(1259,1): message : __declspec(nothrow), throw(), noexcept(true), or noexcept was specified on the function (compiling source file FAN\Graphics.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Vectors.hpp(1257): message : while compiling class template member function 'matrix<f_t,4,4> matrix<f_t,4,4>::operator *(const matrix<f_t,4,4> &) noexcept' (compiling source file FAN\Graphics.cpp)
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Graphics.cpp(164): message : see reference to function template instantiation 'matrix<f_t,4,4> matrix<f_t,4,4>::operator *(const matrix<f_t,4,4> &) noexcept' being compiled
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Math.hpp(205): message : see reference to class template instantiation 'matrix<f_t,4,4>' being compiled (compiling source file FAN\Graphics.cpp)
   etc1_utils.c
   image_DXT.c
   image_helper.c
   SOIL2.c
 LINK : warning LNK4098: defaultlib 'LIBCMT' conflicts with use of other libs; use /NODEFAULTLIB:library
   Generating code
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Vectors.hpp(1087): warning C4715: 'dcom_fr<float>': not all control paths return a value
+C:\Users\123\Documents\GitHub\2D\2D\FAN\Vectors.hpp(1074): warning C4715: 'list<float,2>::gfne': not all control paths return a value
   Finished generating code
-glew32s.lib(glew.obj) : warning LNK4099: PDB 'vc120.pdb' was not found with 'glew32s.lib(glew.obj)' or at 'C:\Users\123\Downloads\2D-master\2D\x64\Release\vc120.pdb'; linking object as if no debug info
-  2D.vcxproj -> C:\Users\123\Downloads\2D-master\2D\x64\Release\2D.exe
+glew32s.lib(glew.obj) : warning LNK4099: PDB 'vc120.pdb' was not found with 'glew32s.lib(glew.obj)' or at 'C:\Users\123\Documents\GitHub\2D\2D\x64\Release\vc120.pdb'; linking object as if no debug info
+  2D.vcxproj -> C:\Users\123\Documents\GitHub\2D\2D\x64\Release\2D.exe

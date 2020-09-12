@@ -1,5 +1,6 @@
+#define REQUIRE_GRAPHICS
 #include <FAN/Input.hpp>
-#include <FAN/Graphics.hpp>
+#include <FAN/Global_Vars.hpp>
 
 vec2i cursor_position;
 vec2i window_size;
@@ -127,6 +128,8 @@ bool key_press(int key)
 	}
 	return glfwGetKey(window, key);
 }
+
+void GetFps(bool, bool);
 
 bool WindowInit() {
 	glfwSetErrorCallback(callbacks::glfwErrorCallback);

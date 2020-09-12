@@ -6,11 +6,6 @@
 #include <functional>
 #include <numeric>
 
-float delta_time = 0;
-GLFWwindow* window;
-
-bool is_colliding = false;
-
 mat4 fan_2d::frame_projection;
 mat4 fan_2d::frame_view;
 mat4 fan_3d::frame_projection;
@@ -182,10 +177,10 @@ void Camera::updateCameraVectors() {
 	front.x = cos(Radians(this->yaw)) * cos(Radians(this->pitch));
 	front.y = sin(Radians(this->pitch));
 	front.z = sin(Radians(this->yaw)) * cos(Radians(this->pitch));
-	this->front = Normalize(front);
+	this->front = normalize(front);
 	// Also re-calculate the Right and Up vector
-	this->right = Normalize(Cross(this->front, this->worldUp));  // Normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
-	this->up = Normalize(Cross(this->right, this->front));
+	this->right = normalize(cross(this->front, this->worldUp));  // Normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
+	this->up = normalize(cross(this->right, this->front));
 }
 
 Camera fan_2d::camera(vec3(), vec3(0, 1, 0), -90, 0);
@@ -230,17 +225,17 @@ fan_2d::basic_single_shape::~basic_single_shape()
 	glDeleteVertexArrays(1, &this->vao);
 }
 
-vec2 fan_2d::basic_single_shape::get_position()
+vec2 fan_2d::basic_single_shape::get_position() const
 {
 	return position;
 }
 
-vec2 fan_2d::basic_single_shape::get_size()
+vec2 fan_2d::basic_single_shape::get_size() const
 {
 	return this->size;
 }
 
-vec2 fan_2d::basic_single_shape::get_velocity()
+vec2 fan_2d::basic_single_shape::get_velocity() const
 {
 	return fan_2d::basic_single_shape::velocity;
 }
@@ -267,12 +262,10 @@ void fan_2d::basic_single_shape::basic_draw(GLenum mode, GLsizei count)
 	glBindVertexArray(0);
 }
 
-void fan_2d::basic_single_shape::move(f_t speed, f_t gravity, f_t friction)
+void fan_2d::basic_single_shape::move(f_t speed, f_t gravity, f_t jump_force, f_t friction)
 {
-	static constexpr double jump_force = -800;
-
 	if (gravity != 0) {
-		if (is_colliding && glfwGetKey(window, GLFW_KEY_SPACE)) {
+		if (glfwGetKey(window, GLFW_KEY_SPACE) && is_colliding) { // AND COLLIDING
 			this->velocity.y = jump_force;
 		}
 		else {
@@ -364,7 +357,7 @@ void fan_2d::line::draw()
 
 void fan_2d::line::set_position(const mat2x2& begin_end)
 {
-	set_position(begin_end[0]);
+	fan_2d::line::set_position(vec2(begin_end[0]));
 	set_size(begin_end[1]);
 }
 
@@ -413,6 +406,62 @@ fan_2d::sprite::sprite(const std::string& path, const vec2& position, const vec2
 	set_size(image_size);
 }
 
+fan_2d::sprite::sprite(const std::vector<unsigned char>& pixels, const vec2& position, const vec2i& size)
+	: basic_single_shape(Shader(shader_paths::single_sprite_path_vs, shader_paths::single_sprite_path_fs), position, size) 
+{
+	auto texture_info = load_image(pixels, size);
+	this->texture = texture_info.texture_id;
+	vec2 image_size = texture_info.image_size;
+	if (size != 0) {
+		image_size = size;
+	}
+	set_size(image_size);
+}
+
+void fan_2d::sprite::reload_image(const std::vector<unsigned char>& pixels, const vec2i& size)
+{
+	glBindTexture(GL_TEXTURE_2D, this->texture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, size.x, size.y, 0, GL_BGRA, GL_UNSIGNED_BYTE, pixels.data());
+	glGenerateMipmap(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+void fan_2d::sprite::reload_image(const std::string& path, const vec2i& size)
+{
+	std::ifstream file(path);
+	if (!file.good()) {
+		LOG("sprite loading error: File path does not exist for ", path.c_str());
+		return;
+	}
+	glBindTexture(GL_TEXTURE_2D, this->texture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	vec2i image_size;
+
+	stbi_set_flip_vertically_on_load(true);
+
+	unsigned char* data = SOIL_load_image(
+		path.c_str(),
+		&image_size.x,
+		&image_size.y,
+		0,
+		SOIL_LOAD_RGBA
+	);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_size.x, image_size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+	glGenerateMipmap(GL_TEXTURE_2D);
+	SOIL_free_image_data(data);
+	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
 void fan_2d::sprite::draw()
 {
 	shader.use();
@@ -431,7 +480,6 @@ void fan_2d::sprite::draw()
 	glBindTexture(GL_TEXTURE_2D, texture);
 
 	fan_2d::basic_single_shape::basic_draw(GL_TRIANGLES, 6);
-
 }
 
 f_t fan_2d::sprite::get_rotation()
@@ -478,6 +526,23 @@ fan_2d::image_info fan_2d::sprite::load_image(const std::string& path, bool flip
 	SOIL_free_image_data(data);
 	glBindTexture(GL_TEXTURE_2D, 0);
 	return { image_size, texture_id };
+}
+
+fan_2d::image_info fan_2d::sprite::load_image(const std::vector<unsigned char>& pixels, const vec2i& size)
+{
+	unsigned int texture_id = 0;
+
+	glGenTextures(1, &texture_id);
+	glBindTexture(GL_TEXTURE_2D, texture_id);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, size.x, size.y, 0, GL_BGRA, GL_UNSIGNED_BYTE, pixels.data());
+	glGenerateMipmap(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	return { vec2i(1920, 1080), texture_id };
 }
 
 fan_2d::animation::animation(const vec2& position, const vec2& size) : basic_single_shape(Shader(shader_paths::single_sprite_path_vs, shader_paths::single_sprite_path_fs), position, size) {}
@@ -564,6 +629,12 @@ void basic_shape_vector<_Vector>::set_size(std::uint64_t i, const _Vector& size,
 	}
 }
 
+template<typename _Vector>
+std::vector<_Vector> basic_shape_vector<_Vector>::get_positions() const
+{
+	return this->m_position;
+}
+
 template <typename _Vector>
 _Vector basic_shape_vector<_Vector>::get_position(std::uint64_t i) const
 {
@@ -605,6 +676,12 @@ template <typename _Vector>
 std::uint64_t basic_shape_vector<_Vector>::size() const
 {
 	return this->m_position.size();
+}
+
+template<typename _Vector>
+bool basic_shape_vector<_Vector>::empty() const
+{
+	return !basic_shape_vector<_Vector>::size();
 }
 
 template<typename _Vector>
@@ -862,6 +939,8 @@ fan_2d::square_vector::square_vector(const vec2& position, const vec2& size, con
 	basic_shape_color_vector::initialize_buffers();
 	basic_shape_vector::initialize_buffers();
 
+	m_icorners.push_back(mat2x2(position, position + size));
+
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 }
@@ -884,9 +963,17 @@ void fan_2d::square_vector::push_back(const vec2& position, const vec2& size, co
 	basic_shape_vector::basic_push_back(position, size, queue);
 	m_color.push_back(color);
 
+	m_icorners.push_back(mat2x2(position, position + size));
+
 	if (!queue) {
 		release_queue(false, false, true);
 	}
+}
+
+void fan_2d::square_vector::erase(uint_t i)
+{
+	basic_shape_vector::erase(i);
+	this->m_icorners.erase(this->m_icorners.begin() + i);
 }
 
 void fan_2d::square_vector::draw()
@@ -898,6 +985,12 @@ void fan_2d::square_vector::draw()
 	this->m_shader.set_int("shape_type", eti(shape_types::SQUARE));
 
 	basic_shape_vector::basic_draw(GL_TRIANGLES, 6, size());
+}
+
+std::vector<mat2x2> fan_2d::square_vector::get_icorners() const
+{
+
+	return fan_2d::square_vector::m_icorners;
 }
 
 fan_2d::sprite_vector::sprite_vector()
@@ -1281,17 +1374,17 @@ vec3 intersection_point3d(const vec3& plane_position, const vec3& plane_size, co
 	}
 	}
 
-	const vec3 n = Normalize(Cross((a - p0), (b - p0)));
+	const vec3 n = normalize(cross((a - p0), (b - p0)));
 
 	const vec3 l = DirectionVector(fan_3d::camera.yaw, fan_3d::camera.pitch);
 
-	const float nl_dot(Dot(n, l));
+	const float nl_dot(dot(n, l));
 
 	if (!nl_dot) {
 		return vec3(-1);
 	}
 
-	const float d = Dot(p0 - l0, n) / nl_dot;
+	const float d = dot(p0 - l0, n) / nl_dot;
 	if (d <= 0) {
 		return vec3(-1);
 	}
@@ -1385,26 +1478,26 @@ fan_3d::skybox::~skybox() {
 	glDeleteTextures(1, &texture_id);
 }
 
-void fan_3d::skybox::draw() {
-	shader.use();
-
-	mat4 view(1);
-	mat4 projection(1);
-
-	view = mat4(mat3(camera->get_view_matrix()));
-	projection = Perspective(Radians(90.f), (f_t)window_size.x / (f_t)window_size.y, 0.1f, 1000.0f);
-
-	shader.set_mat4("view", view);
-	shader.set_mat4("projection", projection);
-	shader.set_vec3("fog_color", vec3(220.f / 255.f, 219.f / 255.f, 223.f / 255.f));
-
-	glDepthFunc(GL_LEQUAL);
-	glBindVertexArray(skybox_vao);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, texture_id);
-	glDrawArrays(GL_TRIANGLES, 0, 36);
-	glBindVertexArray(0);
-	glDepthFunc(GL_LESS);
-}
+//void fan_3d::skybox::draw() {
+//	shader.use();
+//
+//	mat4 view(1);
+//	mat4 projection(1);
+//
+//	view = mat4(mat3(camera->get_view_matrix()));
+//	projection = Perspective(Radians(90.f), (f_t)window_size.x / (f_t)window_size.y, 0.1f, 1000.0f);
+//
+//	shader.set_mat4("view", view);
+//	shader.set_mat4("projection", projection);
+//	shader.set_vec3("fog_color", vec3(220.f / 255.f, 219.f / 255.f, 223.f / 255.f));
+//
+//	glDepthFunc(GL_LEQUAL);
+//	glBindVertexArray(skybox_vao);
+//	glBindTexture(GL_TEXTURE_CUBE_MAP, texture_id);
+//	glDrawArrays(GL_TRIANGLES, 0, 36);
+//	glBindVertexArray(0);
+//	glDepthFunc(GL_LESS);
+//}
 
 fan_3d::model_mesh::model_mesh(
 	const std::vector<mesh_vertex>& vertices,

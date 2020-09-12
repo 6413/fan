@@ -9,6 +9,9 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
+#define REQUIRE_GRAPHICS
+#include <FAN/Global_Vars.hpp>
+
 //#define FAN_PERFORMANCE
 #define RAM_SAVER
 #if defined(_WIN64) || defined(_WIN32) && !defined(FAN_WINDOWS)
@@ -41,15 +44,10 @@
 
 #define COLORSIZE 4
 
-constexpr auto WINDOWSIZE = vec2i(800, 800);
-extern float delta_time;
 static constexpr int block_size = 50;
-extern GLFWwindow* window;
 constexpr auto grid_size = vec2i(WINDOWSIZE.x / block_size, WINDOWSIZE.y / block_size);
 
 typedef std::vector<std::vector<std::vector<bool>>> map_t;
-
-extern bool is_colliding;
 
 struct bmp {
 	unsigned char* data;
@@ -127,6 +125,7 @@ public:
 	_Vector get_size(std::uint64_t i) const;
 	void set_size(std::uint64_t i, const _Vector& size, bool queue = false);
 
+	std::vector<_Vector> get_positions() const;
 	_Vector get_position(std::uint64_t i) const;
 	void set_position(std::uint64_t i, const _Vector& position, bool queue = false);
 
@@ -135,6 +134,8 @@ public:
 	void erase(std::uint64_t i);
 
 	std::uint64_t size() const;
+
+	bool empty() const;
 
 	void write_data(bool position, bool size);
 
@@ -179,6 +180,15 @@ protected:
 
 };
 
+constexpr da_t<f_t, 4, 2> get_square_corners(const da_t<f_t, 2, 2>& squ) {
+	return da_t<f_t, 4, 2>{
+		da_t<f_t, 2>(squ[0]),
+			da_t<f_t, 2>(squ[1][0], squ[0][1]),
+			da_t<f_t, 2>(squ[0][0], squ[1][1]),
+			da_t<f_t, 2>(squ[1])
+	};
+}
+
 enum class shape_types {
 	LINE,
 	SQUARE,
@@ -214,9 +224,9 @@ namespace fan_2d {
 
 		~basic_single_shape();
 
-		vec2 get_position();
-		vec2 get_size();
-		vec2 get_velocity();
+		vec2 get_position() const;
+		vec2 get_size() const;
+		vec2 get_velocity() const;
 
 		void set_size(const vec2& size);
 		void set_position(const vec2& position);
@@ -224,7 +234,7 @@ namespace fan_2d {
 
 		void basic_draw(GLenum mode, GLsizei count);
 
-		void move(f_t speed, f_t gravity, f_t friction = 10);
+		void move(f_t speed, f_t gravity, f_t jump_force = -800, f_t friction = 10);
 
 	protected:
 		vec2 position;
@@ -281,6 +291,10 @@ namespace fan_2d {
 
 		// scale with default is sprite size
 		sprite(const std::string& path, const vec2& position, const vec2& size = 0);
+		sprite(const std::vector<unsigned char>& pixels, const vec2& position, const vec2i& size = 0);
+
+		void reload_image(const std::vector<unsigned char>& pixels, const vec2i& size);
+		void reload_image(const std::string& path, const vec2i& size);
 
 		void draw();
 
@@ -288,6 +302,7 @@ namespace fan_2d {
 		void set_rotation(f_t degrees);
 
 		static image_info load_image(const std::string& path, bool flip_image = false);
+		static image_info load_image(const std::vector<unsigned char>& pixels, const vec2i& size);
 
 	private:
 
@@ -346,7 +361,8 @@ namespace fan_2d {
 
 	};
 
-	struct square_vector : public basic_shape_vector<vec2>, public basic_shape_color_vector {
+	class square_vector : public basic_shape_vector<vec2>, public basic_shape_color_vector {
+	public:
 
 		square_vector();
 		square_vector(const vec2& position, const vec2& size, const Color& color);
@@ -354,8 +370,16 @@ namespace fan_2d {
 		void release_queue(bool position, bool size, bool color);
 
 		void push_back(const vec2& position, const vec2& size, const Color& color, bool queue = false);
+		void erase(uint_t i);
 
 		void draw();
+
+		std::vector<mat2x2> get_icorners() const;
+
+	private:
+
+		std::vector<mat2x2> m_icorners;
+
 	};
 
 	class sprite_vector : public basic_shape_vector<vec2> {
@@ -886,145 +910,163 @@ namespace fan_gui {
 	}
 }
 
+#define fan_window_loop() \
+	while(!glfwWindowShouldClose(window))
+
 void begin_render(const Color& background_color);
 void end_render();
 
-static bool rectangles_collide(const vec2& a, const vec2& a_size, const vec2& b, const vec2& b_size) {
-	bool x = a.x + a_size.x / 2 > b.x - b_size.x / 2 &&
-		a.x - a_size.x / 2 < b.x + b_size.x / 2;
-	bool y = a.y + a_size.y / 2 > b.y - b_size.y / 2 &&
-		a.y - a_size.y / 2 < b.y + b_size.y / 2;
-	return x && y;
+inline da_t<f_t, 2> lines_intersection(da_t<f_t, 2, 2> src, da_t<f_t, 2, 2> dst, const da_t<f_t, 2>& normal) {
+	f_t s1_x, s1_y, s2_x, s2_y;
+	s1_x = src[1][0] - src[0][0]; s1_y = src[1][1] - src[0][1];
+	s2_x = dst[1][0] - dst[0][0]; s2_y = dst[1][1] - dst[0][1];
+
+	const f_t s = (-s1_y * (src[0][0] - dst[0][0]) + s1_x * (src[0][1] - dst[0][1])) / (-s2_x * s1_y + s1_x * s2_y);
+	const f_t t = (s2_x * (src[0][1] - dst[0][1]) - s2_y * (src[0][0] - dst[0][0])) / (-s2_x * s1_y + s1_x * s2_y);
+
+	if (s < 0 || s > 1 || t < 0 || t > 1)
+		return FLT_MAX;
+
+	int signy = sign(normal.gfne());
+	if (dcom_fr(signy > 0, src[1][!!normal[1]], dst[0][!!normal[1]]))
+		return FLT_MAX;
+
+	da_t<f_t, 2> min = dst.min();
+	da_t<f_t, 2> max = dst.max();
+	for (uint_t i = 0; i < 2; i++) {
+		if (!normal[i])
+			continue;
+		if (src[0][i ^ 1] == min[i ^ 1])
+			return FLT_MAX;
+		if (src[0][i ^ 1] == max[i ^ 1])
+			return FLT_MAX;
+	}
+
+	return { src[0][0] + (t * s1_x), src[0][1] + (t * s1_y) };
 }
 
-static bool rectangles_collide(
-	f_t la_x, f_t la_y,
-	f_t ra_x, f_t ra_y,
-	f_t lb_x, f_t lb_y,
-	f_t rb_x, f_t rb_y
-)
-{
-	bool x = ra_x > lb_x && la_x < rb_x;
-	bool y = ra_y > lb_y && la_y < rb_y;
-	return x && y;
+constexpr da_t<uint_t, 3> GetPointsTowardsVelocity3(da_t<f_t, 2> vel) {
+	if (vel[0] >= 0)
+		if (vel[1] >= 0)
+			return { 2, 1, 3 };
+		else
+			return { 0, 3, 1 };
+	else
+		if (vel[1] >= 0)
+			return { 0, 3, 2 };
+		else
+			return { 2, 1, 0 };
 }
 
-inline std::array<bool, 4> get_sides(f_t angle, const vec2& position, const vec2& size) {
-	const vec2 top_left = position - size / 2;
-	const vec2 top_right = position + vec2(size.x / 2, -size.y / 2);
-	const vec2 bottom_left = position - vec2(size.x / 2, -size.y / 2);
-	const vec2 bottom_right = position + size;
-
-	const f_t atop_left = Degrees(AimAngle(top_left, position));
-	const f_t atop_right = Degrees(AimAngle(top_right, position));
-	const f_t abottom_left = Degrees(AimAngle(bottom_left, position));
-	const f_t abottom_right = Degrees(AimAngle(bottom_right, position));
-
-	return {
-		angle <= atop_left &&
-		angle >= abottom_left,
-		angle >= atop_right ||
-		angle <= abottom_right,
-		angle > atop_left &&
-		angle < atop_right,
-		angle <  abottom_left&&
-		angle >  abottom_right
-	};
+template <typename T, typename T2>
+constexpr auto get_cross(const T& a, const T2& b) {
+	return cross(T2{ a[0], a[1], 0 }, b);
 }
 
-inline bool point_inside_square(const vec2& point, const vec2& square, const vec2& size) {
-	return
-		point.x > square.x - size.x / 2 &&
-		point.x < square.x + size.x / 2 &&
-		point.y > square.y - size.y / 2 &&
-		point.y < square.y + size.y / 2;
+template <
+	template <typename, std::size_t, std::size_t> typename inner_da_t,
+	template <typename, std::size_t> typename outer_da_t, std::size_t n
+>
+constexpr da_t<da_t<f_t, 2>, n> get_normals(const outer_da_t<inner_da_t<f_t, 2, 2>, n>& lines) {
+	da_t<da_t<f_t, 2>, n> normals;
+	for (int i = 0; i < n; i++) {
+		normals[i] = get_cross(lines[i][1] - lines[i][0], da_t<f_t, 3>(0, 0, 1));
+	}
+	return normals;
 }
 
-inline mat4x2 square_corners(const vec2& position, const vec2& size) {
-	return mat4x2(
-		position - size / 2,
-		position + vec2(size.x / 2, -size.y / 2),
-		position + vec2(-size.x / 2, size.y / 2),
-		position + vec2(size.x / 2, size.y / 2)
-	);
+inline void calculate_velocity(const da_t<f_t, 2>& spos, const da_t<f_t, 2>& svel, const da_t<f_t, 2>& dpos, const da_t<f_t, 2>& dvel, const da_t<f_t, 2>& normal, f_t sign, da_t<f_t, 2>& lvel, da_t<f_t, 2>& nvel) {
+	da_t<f_t, 2, 2> sline = { spos, spos + svel };
+	da_t<f_t, 2, 2> dline = { dpos, dpos + dvel };
+	da_t<f_t, 2> inter = lines_intersection(sline, dline, normal);
+	if (inter == FLT_MAX)
+		return;
+	da_t<f_t, 2> tvel = (inter - spos) * sign;
+	if (tvel.abs() >= lvel.abs())
+		return;
+	nvel = svel * sign - tvel;
+	lvel = tvel;
+	nvel[0] = normal[1] ? nvel[0] : 0;
+	nvel[1] = normal[0] ? nvel[1] : 0;
 }
 
 struct collision_info {
-	vec2 position;
-	vec2 velocity;
+	da_t<f_t, 2> position;
+	da_t<f_t, 2> velocity;
 };
 
-constexpr auto NO_COLLISION(-1);
+inline void process_rectangle_collision_2d(da_t<f_t, 2, 2>& pos, da_t<f_t, 2>& vel, const std::vector<da_t<f_t, 2, 2>>& walls) {
+	while (1) {
 
-inline bool colliding(const vec2& result) {
-	return result != NO_COLLISION;
-}
+		da_t<f_t, 2> pvel = vel;
 
-inline bool colliding(const collision_info& result) {
-	return result.position != NO_COLLISION;
-}
+		if (!pvel[0] && !pvel[1])
+			return;
 
-inline collision_info rectangle_collision_2d(const vec2& old_position, const vec2& new_position, const vec2& player_size, const vec2& player_velocity, const fan_2d::square_vector& walls) {
+		da_t<f_t, 4, 2> ocorn = get_square_corners(pos);
+		da_t<f_t, 4, 2> ncorn = ocorn + pvel;
 
-	std::vector<collision_info> possible_collisions;
+		da_t<uint_t, 3> ptv3 = GetPointsTowardsVelocity3(pvel);
+		da_t<uint_t, 3> ntv3 = GetPointsTowardsVelocity3(-pvel);
 
-	for (int iwall = 0; iwall < walls.size(); iwall++) {
-		vec2 wall_position = walls.get_position(iwall);
-		vec2 wall_size = walls.get_size(iwall);
+		da_t<uint_t, 4, 2> li = { da_t<uint_t, 2>{0, 1}, da_t<uint_t, 2>{1, 3}, da_t<uint_t, 2>{3, 2}, da_t<uint_t, 2>{2, 0} };
 
-		f_t angle = Degrees(AimAngle(old_position, walls.get_position(iwall)));
-
-		std::array<bool, 4> sides = get_sides(angle, wall_position, wall_size);
-
-		auto corners = square_corners(wall_position, wall_size);
-
-		constexpr std::pair<int, int> corner_order[] = { {0, 1}, {1, 3}, {3, 2} , {2, 0} };
-
-		for (int icorner = 0; icorner < 4; icorner++) {
-			vec2 point = IntersectionPoint(old_position, new_position, vec2(corners[corner_order[icorner].first]), vec2(corners[corner_order[icorner].second]), false);
-			if (ray_hit(point)) {
-
-				f_t intersection_angle = Degrees(AimAngle(point, walls.get_position(iwall)));
-
-				std::array<bool, 4> intersection_sides = get_sides(intersection_angle, wall_position, wall_size);
-
-				for (int iside = 0; iside < 4; iside++) {
-					if (intersection_sides[iside] != sides[iside]) {
-						goto g_skip_side;
-					}
-				}
-
-				possible_collisions.push_back({ vec2(
-					sides[0] ? point.x - player_size.x / 2 : sides[1] ?
-					point.x + player_size.x / 2 :
-					old_position.x, sides[2] ? point.y - player_size.y / 2 : sides[3] ?
-					point.y + player_size.y / 2 : old_position.y
-				), vec2((sides[0] || sides[1] ? 0 : player_velocity.x), (sides[2] || sides[3] ? 0 : player_velocity.y)) });
-			}
-		g_skip_side:;
-		}
-
-		if (rectangles_collide(old_position, player_size, wall_position, wall_size)) {
-			possible_collisions.push_back({ vec2(
-				sides[0] ? wall_position.x - wall_size.x / 2 - player_size.x / 2 : sides[1] ?
-				wall_position.x + wall_size.x / 2 + player_size.x / 2 :
-				old_position.x, sides[2] ? wall_position.y - wall_size.y / 2 - player_size.y / 2 : sides[3] ?
-				wall_position.y + wall_size.y / 2 + player_size.y / 2 : old_position.y
-			), vec2((sides[0] || sides[1] ? 0 : player_velocity.x), (sides[2] || sides[3] ? 0 : player_velocity.y)) });
-		}
-	}
-
-	auto closest = std::min_element(possible_collisions.begin(), possible_collisions.end(),
-		[&](const collision_info& a, const collision_info& b) {
-			return Distance(old_position, a.position) < Distance(old_position, b.position);
+		const static da_t<da_t<f_t, 2>, 4> normals = get_normals(
+			da_t<da_t<f_t, 2, 2>, 4>{
+				da_t<f_t, 2, 2>{da_t<f_t, 2>{ 0, 0 }, da_t<f_t, 2>{ 1, 0 }},
+				da_t<f_t, 2, 2>{da_t<f_t, 2>{ 1, 0 }, da_t<f_t, 2>{ 1, 1 }},
+				da_t<f_t, 2, 2>{da_t<f_t, 2>{ 1, 1 }, da_t<f_t, 2>{ 0, 1 }},
+				da_t<f_t, 2, 2>{da_t<f_t, 2>{ 0, 1 }, da_t<f_t, 2>{ 0, 0 }},
 		});
 
-	if (!possible_collisions.empty() && closest != possible_collisions.end()) {
-		auto c_info = possible_collisions[std::distance(possible_collisions.begin(), closest)];
-		return *closest;
-	}
+		da_t<f_t, 2> lvel = pvel;
+		da_t<f_t, 2> nvel = 0;
+		for (uint_t iwall = 0; iwall < walls.size(); iwall++) {
+			da_t<f_t, 4, 2> bcorn = get_square_corners(walls[iwall]);
 
-	return { NO_COLLISION };
+			/* step -1 */
+			for (uint_t i = 0; i < 4; i++) {
+				for (uint_t iline = 0; iline < 4; iline++) {
+					calculate_velocity(da_t<f_t, 2, 2>(ocorn[li[i][0]], ocorn[li[i][1]]).avg(), pvel, bcorn[li[iline][0]], bcorn[li[iline][1]] - bcorn[li[iline][0]], normals[iline], 1, lvel, nvel);
+				}
+			}
+
+			/* step 0 and step 1*/
+			for (uint_t i = 0; i < 3; i++) {
+				for (uint_t iline = 0; iline < 4; iline++) {
+					calculate_velocity(ocorn[ptv3[i]], ncorn[ptv3[i]] - ocorn[ptv3[i]], bcorn[li[iline][0]], bcorn[li[iline][1]] - bcorn[li[iline][0]], normals[iline], 1, lvel, nvel);
+					calculate_velocity(bcorn[ntv3[i]], -pvel, ocorn[li[iline][0]], ocorn[li[iline][1]] - ocorn[li[iline][0]], normals[iline], -1, lvel, nvel);
+				}
+			}
+		}
+		pos += lvel;
+		vel = nvel;
+	}
+}
+
+static void collision_rectangle_2d(fan_2d::square& player, const vec2& old_position, const fan_2d::square_vector& walls) {
+	mat2x2 pl(
+		old_position,
+		old_position + player.get_size()
+	);
+
+	da_t<f_t, 2> vel = player.get_velocity() * delta_time;
+
+	process_rectangle_collision_2d(
+		pl,
+		vel,
+		walls.get_icorners()
+	);
+	player.set_position(pl[0]);
+	//player.set_velocity(0);
+}
+
+constexpr bool rectangles_collide(const vec2& a, const  vec2& a_size, const vec2& b, const vec2& b_size) {
+	bool x = a[0] + a_size[0] > b[0] &&
+		a[0] < b[0] + b_size[0];
+	bool y = a[1] + a_size[1] > b[1] &&
+		a[1] < b[1] + b_size[1];
+	return x && y;
 }
 
 //#endif
