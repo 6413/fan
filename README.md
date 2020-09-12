@@ -14,10 +14,9 @@ Ubuntu
 sudo apt-get install libglew-dev &&
 sudo apt-get install libglfw3-dev &&
 sudo apt install libassimp-dev &&
-sudo apt-get install libfreetype6-dev -y
+sudo apt-get install libfreetype6-dev -y && make
 
 Arch linux
 
-sudo pacman -S glfw-x11
-sudo pacman -S assimp
-make
+sudo pacman -S glfw-x11 &&
+sudo pacman -S assimp && make
