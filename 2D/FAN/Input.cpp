@@ -5,13 +5,13 @@
 vec2i cursor_position;
 vec2i window_size;
 
-KeyCallback callbacks::key_callback;
-KeyCallback callbacks::key_release_callback;
-KeyCallback callbacks::scroll_callback;
-default_callback callbacks::window_resize_callback;
-default_callback callbacks::cursor_move_callback;
-default_callback callbacks::character_callback;
-default_callback callbacks::drop_callback;
+KeyCallback callback::key;
+KeyCallback callback::key_release;
+KeyCallback callback::scroll;
+default_callback callback::window_resize;
+default_callback callback::cursor_move;
+default_callback callback::character;
+default_callback callback::drop;
 
 auto& default_callback::get_function(uint64_t i)
 {
@@ -23,30 +23,30 @@ uint64_t default_callback::size() const
 	return functions.size();
 }
 
-void callbacks::glfwErrorCallback(int id, const char* error) {
+void callback::glfwErrorCallback(int id, const char* error) {
 	printf("GLFW Error %d : %s\n", id, error);
 }
 
-void callbacks::glfwKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-	for (int i = 0; i < callbacks::key_callback.size(); i++) {
-		if (key == callbacks::key_callback.get_key(i)) {
-			if (callbacks::key_callback.get_action(i)) {
-				if (callbacks::key_callback.get_action(i) == static_cast<bool>(action)) {
-					callbacks::key_callback.get_function(i)();
+void callback::glfwKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+	for (int i = 0; i < callback::key.size(); i++) {
+		if (key == callback::key.get_key(i)) {
+			if (callback::key.get_action(i)) {
+				if (callback::key.get_action(i) == static_cast<bool>(action)) {
+					callback::key.get_function(i)();
 				}
 			}
 			else {
-				callbacks::key_callback.get_function(i)();
+				callback::key.get_function(i)();
 			}
 		}
 	}
 
 	static int release = 0;
 	if (release) {
-		for (int i = 0; i < callbacks::key_release_callback.size(); i++) {
-			if (key == callbacks::key_release_callback.get_key(i)) {
-				if (callbacks::key_release_callback.get_action(i) == GLFW_RELEASE) {
-					callbacks::key_release_callback.get_function(i)();
+		for (int i = 0; i < callback::key_release.size(); i++) {
+			if (key == callback::key_release.get_key(i)) {
+				if (callback::key_release.get_action(i) == GLFW_RELEASE) {
+					callback::key_release.get_function(i)();
 				}
 			}
 		}
@@ -55,26 +55,26 @@ void callbacks::glfwKeyCallback(GLFWwindow* window, int key, int scancode, int a
 	release++;
 }
 
-void callbacks::MouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
-	for (int i = 0; i < callbacks::key_callback.size(); i++) {
-		if (button == callbacks::key_callback.get_key(i)) {
-			if (callbacks::key_callback.get_action(i)) {
-				if (callbacks::key_callback.get_action(i) == static_cast<bool>(action)) {
-					callbacks::key_callback.get_function(i)();
+void callback::MouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
+	for (int i = 0; i < callback::key.size(); i++) {
+		if (button == callback::key.get_key(i)) {
+			if (callback::key.get_action(i)) {
+				if (callback::key.get_action(i) == static_cast<bool>(action)) {
+					callback::key.get_function(i)();
 				}
 			}
 			else {
-				callbacks::key_callback.get_function(i)();
+				callback::key.get_function(i)();
 			}
 		}
 	}
 
 	static int release = 0;
 	if (release) {
-		for (int i = 0; i < callbacks::key_release_callback.size(); i++) {
-			if (button == callbacks::key_release_callback.get_key(i)) {
-				if (callbacks::key_release_callback.get_action(i) == GLFW_RELEASE) {
-					callbacks::key_release_callback.get_function(i)();
+		for (int i = 0; i < callback::key_release.size(); i++) {
+			if (button == callback::key_release.get_key(i)) {
+				if (callback::key_release.get_action(i) == GLFW_RELEASE) {
+					callback::key_release.get_function(i)();
 				}
 			}
 		}
@@ -83,41 +83,41 @@ void callbacks::MouseButtonCallback(GLFWwindow* window, int button, int action, 
 	release++;
 }
 
-void callbacks::CursorPositionCallback(GLFWwindow* window, double xpos, double ypos) {
+void callback::CursorPositionCallback(GLFWwindow* window, double xpos, double ypos) {
 	cursor_position = vec2(xpos, ypos);
-	for (int i = 0; i < callbacks::cursor_move_callback.size(); i++) {
-		callbacks::cursor_move_callback.get_function(i)();
+	for (int i = 0; i < callback::cursor_move.size(); i++) {
+		callback::cursor_move.get_function(i)();
 	}
 }
 
-void callbacks::ScrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
-	for (int i = 0; i < callbacks::scroll_callback.size(); i++) {
-		if (callbacks::scroll_callback.get_key(i) == GLFW_MOUSE_SCROLL_UP && yoffset == 1) {
-			callbacks::scroll_callback.get_function(i)();
+void callback::ScrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
+	for (int i = 0; i < callback::scroll.size(); i++) {
+		if (callback::scroll.get_key(i) == GLFW_MOUSE_SCROLL_UP && yoffset == 1) {
+			callback::scroll.get_function(i)();
 		}
-		else if (callbacks::scroll_callback.get_key(i) == GLFW_MOUSE_SCROLL_DOWN && yoffset == -1) {
-			callbacks::scroll_callback.get_function(i)();
+		else if (callback::scroll.get_key(i) == GLFW_MOUSE_SCROLL_DOWN && yoffset == -1) {
+			callback::scroll.get_function(i)();
 		}
 	}
 }
 
-void callbacks::CharacterCallback(GLFWwindow* window, unsigned int key) {
-	for (int i = 0; i < callbacks::character_callback.size(); i++) {
-		(*(std::function<void(int, int)>*)(callbacks::character_callback.get_function_ptr(i)))(std::any_cast<int>(callbacks::character_callback.get_parameter(i, 0)), key);
+void callback::CharacterCallback(GLFWwindow* window, unsigned int key) {
+	for (int i = 0; i < callback::character.size(); i++) {
+		(*(std::function<void(int, int)>*)(callback::character.get_function_ptr(i)))(std::any_cast<int>(callback::character.get_parameter(i, 0)), key);
 	}
 }
 
-void callbacks::FrameSizeCallback(GLFWwindow* window, int width, int height) {
+void callback::FrameSizeCallback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
 	window_size = vec2(width, height);
-	for (int i = 0; i < callbacks::window_resize_callback.size(); i++) {
-		callbacks::window_resize_callback.get_function(i)();
+	for (int i = 0; i < callback::window_resize.size(); i++) {
+		callback::window_resize.get_function(i)();
 	}
 }
 
-void callbacks::DropCallback(GLFWwindow* window, int path_count, const char* paths[]) {
-	for (int i = 0; i < callbacks::drop_callback.size(); i++) {
-		callbacks::drop_callback.get_function(i)();
+void callback::DropCallback(GLFWwindow* window, int path_count, const char* paths[]) {
+	for (int i = 0; i < callback::drop.size(); i++) {
+		callback::drop.get_function(i)();
 	}
 }
 
@@ -132,7 +132,7 @@ bool key_press(int key)
 void GetFps(bool, bool);
 
 bool WindowInit() {
-	glfwSetErrorCallback(callbacks::glfwErrorCallback);
+	glfwSetErrorCallback(callback::glfwErrorCallback);
 	if (!glfwInit()) {
 		printf("GLFW ded\n");
 		static_cast<void>(system("pause") + 1);
@@ -171,16 +171,16 @@ bool WindowInit() {
 	glViewport(0, 0, window_size.x, window_size.y);
 	glEnable(GL_DEPTH_TEST);
 
-	glfwSetKeyCallback(window, callbacks::glfwKeyCallback);
+	glfwSetKeyCallback(window, callback::glfwKeyCallback);
 	glewExperimental = GL_TRUE;
-	glfwSetCharCallback(window, callbacks::CharacterCallback);
-	glfwSetMouseButtonCallback(window, callbacks::MouseButtonCallback);
-	glfwSetCursorPosCallback(window, callbacks::CursorPositionCallback);
-	glfwSetFramebufferSizeCallback(window, callbacks::FrameSizeCallback);
+	glfwSetCharCallback(window, callback::CharacterCallback);
+	glfwSetMouseButtonCallback(window, callback::MouseButtonCallback);
+	glfwSetCursorPosCallback(window, callback::CursorPositionCallback);
+	glfwSetFramebufferSizeCallback(window, callback::FrameSizeCallback);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	callbacks::key_callback.add(GLFW_KEY_ESCAPE, true, [&] {
+	callback::key.add(GLFW_KEY_ESCAPE, true, [&] {
 		glfwSetWindowShouldClose(window, true);
 	});
 

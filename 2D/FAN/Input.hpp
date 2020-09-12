@@ -120,14 +120,14 @@ private:
 	std::vector<int> key;
 };
 
-namespace callbacks {
-	extern KeyCallback key_callback;
-	extern KeyCallback key_release_callback;
-	extern KeyCallback scroll_callback;
-	extern default_callback window_resize_callback;
-	extern default_callback cursor_move_callback;
-	extern default_callback character_callback;
-	extern default_callback drop_callback;
+namespace callback {
+	extern KeyCallback key;
+	extern KeyCallback key_release;
+	extern KeyCallback scroll;
+	extern default_callback window_resize;
+	extern default_callback cursor_move;
+	extern default_callback character;
+	extern default_callback drop;
 
 	void glfwErrorCallback(int id, const char* error);
 	void glfwKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
