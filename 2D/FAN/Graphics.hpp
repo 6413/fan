@@ -1044,7 +1044,7 @@ inline void process_rectangle_collision_2d(da_t<f_t, 2, 2>& pos, da_t<f_t, 2>& v
 	}
 }
 
-static void collision_rectangle_2d(fan_2d::square& player, const vec2& old_position, const fan_2d::square_vector& walls) {
+static void rectangle_collision_2d(fan_2d::square& player, const vec2& old_position, const fan_2d::square_vector& walls) {
 	mat2x2 pl(
 		old_position,
 		old_position + player.get_size()
