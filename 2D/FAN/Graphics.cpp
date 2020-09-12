@@ -2012,7 +2012,7 @@ void fan_gui::text_renderer::store_to_renderer(std::wstring& text, vec2 position
 
 			switch (text[i]) {
 			case ' ': {
-				next_step += text_button::get_space(scale) * 2;
+				next_step += fan_gui::font::properties::get_space(scale) * 2;
 				break;
 			}
 			case '\n': {
@@ -2020,7 +2020,7 @@ void fan_gui::text_renderer::store_to_renderer(std::wstring& text, vec2 position
 				break;
 			}
 			default: {
-				next_step += (widths[text[i]] * scale + text_button::space_between_characters) * 2;
+				next_step += (widths[text[i]] * scale + fan_gui::font::properties::space_between_characters) * 2;
 			}
 			}
 
@@ -2040,8 +2040,8 @@ void fan_gui::text_renderer::store_to_renderer(std::wstring& text, vec2 position
 		switch (text[i]) {
 		case ' ': {
 			if (width != 0) {
-				position.x += text_button::get_space(scale);
-				width += text_button::get_space(scale);
+				position.x += fan_gui::font::properties::get_space(scale);
+				width += fan_gui::font::properties::get_space(scale);
 			}
 			break;
 		}
@@ -2051,8 +2051,8 @@ void fan_gui::text_renderer::store_to_renderer(std::wstring& text, vec2 position
 			break;
 		}
 		default: {
-			position.x += widths[text[i]] * scale + text_button::space_between_characters;
-			width += widths[text[i]] * scale + text_button::space_between_characters;
+			position.x += widths[text[i]] * scale + fan_gui::font::properties::space_between_characters;
+			width += widths[text[i]] * scale + fan_gui::font::properties::space_between_characters;
 		}
 		}
 	skip:
@@ -2076,8 +2076,8 @@ void fan_gui::text_renderer::edit_storage(uint64_t i, const std::wstring& text, 
 		switch (text[character]) {
 		case ' ': {
 			if (width != 0) {
-				position.x += text_button::get_space(scale);
-				width += text_button::get_space(scale);
+				position.x += fan_gui::font::properties::get_space(scale);
+				width += fan_gui::font::properties::get_space(scale);
 			}
 			break;
 		}
@@ -2087,8 +2087,8 @@ void fan_gui::text_renderer::edit_storage(uint64_t i, const std::wstring& text, 
 			break;
 		}
 		default: {
-			position.x += widths[text[character]] * scale + text_button::space_between_characters;
-			width += widths[text[character]] * scale + text_button::space_between_characters;
+			position.x += widths[text[character]] * scale + fan_gui::font::properties::space_between_characters;
+			width += widths[text[character]] * scale + fan_gui::font::properties::space_between_characters;
 		}
 		}
 		m_colors[i][character] = color;
@@ -2185,7 +2185,7 @@ void fan_gui::text_renderer::set_scale(uint64_t i, f_t scale, vec2 position)
 
 		switch (m_characters[i][index]) {
 		case ' ': {
-			position.x += text_button::get_space(scale);
+			position.x += fan_gui::font::properties::get_space(scale);
 			break;
 		}
 		case '\n': {
@@ -2194,7 +2194,7 @@ void fan_gui::text_renderer::set_scale(uint64_t i, f_t scale, vec2 position)
 			break;
 		}
 		default: {
-			position.x += text_button::get_character_x_offset(widths[m_characters[i][index]], scale);
+			position.x += fan_gui::font::properties::get_character_x_offset(widths[m_characters[i][index]], scale);
 		}
 		}
 	}
@@ -2242,7 +2242,7 @@ void fan_gui::text_renderer::render(const std::wstring& text, vec2 position, con
 
 			switch (text[i]) {
 			case ' ': {
-				position.x += text_button::get_space(scale);
+				position.x += fan_gui::font::properties::get_space(scale);
 				break;
 			}
 			case '\n': {
@@ -2251,7 +2251,7 @@ void fan_gui::text_renderer::render(const std::wstring& text, vec2 position, con
 				break;
 			}
 			default: {
-				position.x += widths[text[i]] * scale + text_button::space_between_characters;
+				position.x += widths[text[i]] * scale + fan_gui::font::properties::space_between_characters;
 			}
 			}
 			m_colors[0][i] = color;
@@ -2297,7 +2297,7 @@ vec2 fan_gui::text_renderer::get_length(const std::wstring& text, f_t scale)
 
 	for (int i = 0; i < text.size(); i++) {
 		if (text[i] == ' ') {
-			string_size.x += text_button::get_space(scale);
+			string_size.x += fan_gui::font::properties::get_space(scale);
 		}
 		else if (text[i] == '\n') {
 			string_size.y += scale;
@@ -2306,7 +2306,7 @@ vec2 fan_gui::text_renderer::get_length(const std::wstring& text, f_t scale)
 		}
 		else {
 			if (i != text.size() - 1) {
-				string_size.x += widths[text[i]] * scale + text_button::space_between_characters;
+				string_size.x += widths[text[i]] * scale + fan_gui::font::properties::space_between_characters;
 			}
 			else {
 				string_size.x += widths[text[i]] * scale;
@@ -2364,9 +2364,9 @@ std::vector<vec2> fan_gui::text_renderer::get_length(const std::vector<std::wstr
 	return string_size;
 }
 
-fan_gui::text_button::basic_text_button_vector::basic_text_button_vector() : fan_gui::text_renderer() {}
+fan_gui::font::basic_methods::basic_text_button_vector::basic_text_button_vector() : fan_gui::text_renderer() {}
 
-vec2 fan_gui::text_button::basic_text_button_vector::edit_size(uint64_t i, const std::wstring& text, f_t scale)
+vec2 fan_gui::font::basic_methods::basic_text_button_vector::edit_size(uint64_t i, const std::wstring& text, f_t scale)
 {
 	std::vector<std::wstring> lines;
 	int offset = 0;
@@ -2385,17 +2385,17 @@ vec2 fan_gui::text_button::basic_text_button_vector::edit_size(uint64_t i, const
 		}
 	}
 	m_texts[i] = text;
-	return vec2(get_gap_scale_x(largest), get_gap_scale_y(scale) * lines.size());
+	return vec2(fan_gui::font::properties::get_gap_scale_x(largest), fan_gui::font::properties::get_gap_scale_y(scale) * lines.size());
 }
 
-fan_gui::text_button::text_button_vector::text_button_vector() : basic_text_button_vector() { }
+fan_gui::font::text_button_vector::text_button_vector() : basic_text_button_vector() { }
 
-fan_gui::text_button::text_button_vector::text_button_vector(const std::wstring& text, const vec2& position, const Color& color, float_t scale)
+fan_gui::font::text_button_vector::text_button_vector(const std::wstring& text, const vec2& position, const Color& color, float_t scale)
 	: basic_text_button_vector() {
 	this->add(text, position, color, scale);
 }
 
-fan_gui::text_button::text_button_vector::text_button_vector(const std::wstring& text, const vec2& position, const Color& color, float_t scale, const vec2& box_size)
+fan_gui::font::text_button_vector::text_button_vector(const std::wstring& text, const vec2& position, const Color& color, float_t scale, const vec2& box_size)
 	: basic_text_button_vector() {
 	m_scales.push_back(scale);
 	std::vector<std::wstring> all_strings(m_texts.begin(), m_texts.end());
@@ -2408,20 +2408,20 @@ fan_gui::text_button::text_button_vector::text_button_vector(const std::wstring&
 	upload_stored();
 }
 
-void fan_gui::text_button::text_button_vector::add(const std::wstring& text, const vec2& position, const Color& color, float_t scale)
+void fan_gui::font::text_button_vector::add(const std::wstring& text, const vec2& position, const Color& color, float_t scale)
 {
 	m_scales.push_back(scale);
 	std::vector<std::wstring> all_strings(m_texts.begin(), m_texts.end());
 	all_strings.push_back(text);
 	m_texts.push_back(text);
 	realloc_storage(all_strings);
-	push_back(position, get_length(text, scale) + get_gap_scale(scale) * 2, color); // * 2 for both sides
+	push_back(position, get_length(text, scale) + fan_gui::font::properties::get_gap_scale(scale) * 2, color); // * 2 for both sides
 	auto rtext = text;
-	store_to_renderer(rtext, position + get_gap_scale(scale), default_text_color, scale);
+	store_to_renderer(rtext, position + fan_gui::font::properties::get_gap_scale(scale), default_text_color, scale);
 	upload_stored();
 }
 
-void fan_gui::text_button::text_button_vector::add(const std::wstring& text, const vec2& position, const Color& color, float_t scale, const vec2& box_size)
+void fan_gui::font::text_button_vector::add(const std::wstring& text, const vec2& position, const Color& color, float_t scale, const vec2& box_size)
 {
 	m_scales.push_back(scale);
 	std::vector<std::wstring> all_strings(m_texts.begin(), m_texts.end());
@@ -2434,54 +2434,54 @@ void fan_gui::text_button::text_button_vector::add(const std::wstring& text, con
 	upload_stored();
 }
 
-void fan_gui::text_button::text_button_vector::edit_string(uint64_t i, const std::wstring& text, f_t scale)
+void fan_gui::font::text_button_vector::edit_string(uint64_t i, const std::wstring& text, f_t scale)
 {
 	m_scales[i] = scale;
 	m_texts[i] = text;
 	auto len = get_length(text, scale);
-	set_size(i, len + get_gap_scale(scale) * 2);
-	edit_storage(i, text, get_position(i) + get_gap_scale(scale), default_text_color, scale);
+	set_size(i, len + fan_gui::font::properties::get_gap_scale(scale) * 2);
+	edit_storage(i, text, get_position(i) + fan_gui::font::properties::get_gap_scale(scale), default_text_color, scale);
 	upload_stored();
 }
 
-vec2 fan_gui::text_button::text_button_vector::get_string_length(const std::wstring& text, f_t scale)
+vec2 fan_gui::font::text_button_vector::get_string_length(const std::wstring& text, f_t scale)
 {
 	return get_length(text, scale);
 }
 
-f_t fan_gui::text_button::text_button_vector::get_scale(uint64_t i)
+f_t fan_gui::font::text_button_vector::get_scale(uint64_t i)
 {
 	return m_scales[i];
 }
 
-void fan_gui::text_button::text_button_vector::set_font_size(uint64_t i, f_t scale)
+void fan_gui::font::text_button_vector::set_font_size(uint64_t i, f_t scale)
 {
 	m_scales[i] = scale;
 	auto str = std::wstring(m_characters[i].begin(), m_characters[i].end());
 	auto len = get_length(str, scale);
 	auto text_size = edit_size(i, str, scale);
-	set_size(i, len + get_gap_scale(scale) * 2);
+	set_size(i, len + fan_gui::font::properties::get_gap_scale(scale) * 2);
 	auto pos = get_position(i);
-	set_scale(i, scale, pos + get_gap_scale(scale));
+	set_scale(i, scale, pos + fan_gui::font::properties::get_gap_scale(scale));
 	upload_stored();
 }
 
-void fan_gui::text_button::text_button_vector::set_position(uint64_t i, const vec2& position)
+void fan_gui::font::text_button_vector::set_position(uint64_t i, const vec2& position)
 {
 	f_t scale = get_scale(i);
 	fan_2d::square_vector::set_position(i, position);
 	auto len = get_length(m_texts[i], scale);
-	set_size(i, len + get_gap_scale(scale) * 2);
-	edit_storage(i, m_texts[i], get_position(i) + get_gap_scale(scale), default_text_color, scale);
+	set_size(i, len + fan_gui::font::properties::get_gap_scale(scale) * 2);
+	edit_storage(i, m_texts[i], get_position(i) + fan_gui::font::properties::get_gap_scale(scale), default_text_color, scale);
 	upload_stored();
 }
 
-void fan_gui::text_button::text_button_vector::set_press_callback(int key, const std::function<void()>& function)
+void fan_gui::font::text_button_vector::set_press_callback(int key, const std::function<void()>& function)
 {
-	callbacks::key_callback.add(key, true, function);
+	callback::key.add(key, true, function);
 }
 
-void fan_gui::text_button::text_button_vector::draw()
+void fan_gui::font::text_button_vector::draw()
 {
 	fan_2d::square_vector::draw();
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_vertex_ssbo);
@@ -2491,7 +2491,7 @@ void fan_gui::text_button::text_button_vector::draw()
 	glEnable(GL_DEPTH_TEST);
 }
 
-bool fan_gui::text_button::text_button_vector::inside(std::uint64_t i)
+bool fan_gui::font::text_button_vector::inside(std::uint64_t i)
 {
 	vec2 position = get_position(i);
 	vec2 size = get_size(i);

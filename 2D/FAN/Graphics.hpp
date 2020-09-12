@@ -837,43 +837,49 @@ namespace fan_gui {
 
 	};
 
-	namespace text_button {
-		constexpr vec2 gap_scale(0.25, 0.25);
-		constexpr f_t space_width = 30;
-		constexpr f_t space_between_characters = 5;
+	namespace font {
 
-		constexpr vec2 get_gap_scale(const vec2& size) {
-			return size * gap_scale;
+		namespace properties {
+			constexpr vec2 gap_scale(0.25, 0.25);
+			constexpr f_t space_width = 30;
+			constexpr f_t space_between_characters = 5;
+
+			constexpr vec2 get_gap_scale(const vec2& size) {
+				return size * gap_scale;
+			}
+
+			constexpr f_t get_gap_scale_x(f_t width) {
+				return width * gap_scale.x;
+			}
+
+			constexpr f_t get_gap_scale_y(f_t height) {
+				return height * gap_scale.y;
+			}
+
+			constexpr f_t get_character_x_offset(f_t width, f_t scale) {
+				return width * scale + space_between_characters;
+			}
+
+			constexpr f_t get_space(f_t scale) {
+				return scale / (font_size / 2) * space_width;
+			}
 		}
 
-		constexpr f_t get_gap_scale_x(f_t width) {
-			return width * gap_scale.x;
+		namespace basic_methods {
+			class basic_text_button_vector : public text_renderer {
+			public:
+
+				basic_text_button_vector();
+
+			protected:
+				vec2 edit_size(uint64_t i, const std::wstring& text, f_t scale);
+
+				std::vector<std::wstring> m_texts;
+			};
 		}
 
-		constexpr f_t get_gap_scale_y(f_t height) {
-			return height * gap_scale.y;
-		}
 
-		constexpr f_t get_character_x_offset(f_t width, f_t scale) {
-			return width * scale + space_between_characters;
-		}
-
-		constexpr f_t get_space(f_t scale) {
-			return scale / (font_size / 2) * space_width;
-		}
-
-		class basic_text_button_vector : public text_renderer {
-		public:
-
-			basic_text_button_vector();
-
-		protected:
-			vec2 edit_size(uint64_t i, const std::wstring& text, f_t scale);
-
-			std::vector<std::wstring> m_texts;
-		};
-
-		class text_button_vector : public basic_text_button_vector, public fan_2d::square_vector {
+		class text_button_vector : public fan_gui::font::basic_methods::basic_text_button_vector, public fan_2d::square_vector {
 		public:
 
 			text_button_vector();
