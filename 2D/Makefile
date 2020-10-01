@@ -1,3 +1,3 @@
 _:
 
-	g++ -I/usr/include/freetype2/ Source.cpp FAN/*.cpp -I../ -lassimp -lglfw -lGL -lGLEW -I. -std=c++2a -O2 SOIL2/SOIL2_x64_release.so -lfreetype
+	g++ -I/usr/include/freetype2/ Source.cpp -I. FAN/*.cpp -lassimp -lglfw -lGL -lGLEW -std=c++2a FAN/SOIL2/SOIL2_x64_release.so -lfreetype -lopenal -lpthread

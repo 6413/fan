@@ -7,6 +7,7 @@
 #include <iostream>
 #include <cmath>
 #include <algorithm>
+#include <numeric>
 #include <array>
 #include <functional>
 
@@ -308,6 +309,10 @@ public:
 		return *this;
 	}
 
+	constexpr _vec3<type> operator-() const noexcept
+	{
+		return _vec3<type>(-this->x, -this->y, -this->z);
+	}
 
 	template <typename _Type>
 	constexpr _vec3<type> operator-(const _vec3<_Type>& vector) const noexcept
@@ -664,68 +669,6 @@ constexpr void LOG(const Args&... args) {
 	((std::cout << args << " "), ...) << '\n';
 }
 
-#ifndef _MSC_VER
-
-template <class>
-inline constexpr bool is_pointer_v = false; // determine whether _Ty is a pointer
-
-template <class _Ty>
-inline constexpr bool is_pointer_v<_Ty*> = true;
-
-template <class _Ty>
-inline constexpr bool is_pointer_v<_Ty* const> = true;
-
-template <class _Ty>
-inline constexpr bool is_pointer_v<_Ty* volatile> = true;
-
-template <class _Ty>
-inline constexpr bool is_pointer_v<_Ty* const volatile> = true;
-
-template <class, class>
-inline constexpr bool is_same_v = false; // determine whether arguments are the same type
-template <class _Ty>
-inline constexpr bool is_same_v<_Ty, _Ty> = true;
-
-template <class _Iter, class = void>
-inline constexpr bool _Allow_inheriting_unwrap_v = true;
-
-template <class _Iter>
-inline constexpr bool _Allow_inheriting_unwrap_v<_Iter, std::void_t<typename _Iter::_Prevent_inheriting_unwrap>> =
-is_same_v<_Iter, typename _Iter::_Prevent_inheriting_unwrap>;
-
-template <class _Iter, class = void>
-inline constexpr bool _Unwrappable_v = false;
-
-template <class _Iter>
-inline constexpr bool _Unwrappable_v<_Iter,
-	std::void_t<decltype(std::declval<std::__remove_cvref_t<_Iter>&>()._Seek_to(std::declval<_Iter>()._Unwrapped()))>> =
-	_Allow_inheriting_unwrap_v<std::__remove_cvref_t<_Iter>>;
-
-template <class _Iter>
-[[nodiscard]] constexpr decltype(auto) _Get_unwrapped(_Iter&& _It) {
-	if constexpr (is_pointer_v<std::decay_t<_Iter>>) {
-		return _It + 0;
-	}
-	else if constexpr (_Unwrappable_v<_Iter>) {
-		return static_cast<_Iter&&>(_It)._Unwrapped();
-	}
-	else {
-		return static_cast<_Iter&&>(_It);
-	}
-}
-#endif
-
-template <typename T>
-constexpr auto average(T begin, T end) {
-	auto it = _Get_unwrapped(begin);
-	std::uint64_t cols = 0;
-	auto sum = typename std::remove_pointer<decltype(_Get_unwrapped(begin))>::type(0);
-	for (; it != _Get_unwrapped(end); ++it, ++cols) {
-		sum += *it;
-	}
-	return sum / cols;
-}
-
 template <typename type, std::size_t Rows, std::size_t Cols>
 struct matrix;
 
@@ -764,7 +707,7 @@ struct list : public std::array<type, rows> {
 	}
 
 	template <typename T>
-	constexpr list(T value) {
+	constexpr list(T value) : std::array<type, rows>{0} {
 		for (int i = 0; i < rows; i++) {
 			this->operator[](i) = value;
 		}
@@ -1021,7 +964,7 @@ struct list : public std::array<type, rows> {
 	}
 
 	constexpr auto avg() const noexcept {
-		return average(this->begin(), this->end());
+		return std::accumulate(this->begin(), this->end(), 0) / this->size();
 	}
 
 	constexpr auto abs() const noexcept {
@@ -1103,7 +1046,7 @@ struct matrix {
 
 	template <typename _Type, std::size_t cols, template <typename, std::size_t> typename... _List>
 	constexpr matrix(_List<_Type, cols>... list_) : m{ 0 } {
-		static_assert(sizeof...(list_) >= cols, "too many initializers");
+		//static_assert(sizeof...(list_) >= cols, "too many initializers");
 		int i = 0;
 		auto auto_type = std::get<0>(std::forward_as_tuple(list_...));
 		((((decltype(auto_type)*)m)[i++] = list_), ...);
@@ -1333,7 +1276,7 @@ struct matrix {
 	}
 
 	constexpr auto data() noexcept {
-		return begin();
+		return &m[0][0];
 	}
 
 	constexpr auto u() noexcept {
@@ -1349,8 +1292,13 @@ struct matrix {
 	}
 
 	constexpr auto avg() noexcept {
-		return average(this->begin(), this->end());
+		f_t averages = 0;
+		for (int i = 0; i < rows; i++) {
+			averages += m[i].avg();
+		}
+		return averages / rows;
 	}
+
 
 	constexpr auto vector() noexcept {
 		return std::vector<da_t<type, cols>>(this->begin(), this->end());
@@ -1469,13 +1417,27 @@ public:
 	constexpr Color operator+(const Color& color) const {
 		return Color(r + color.r, g + color.g, b + color.b);
 	}
+	template <typename T>
+	constexpr Color operator*(T value) const {
+		return Color(r * value, g * value, b * value);
+	}
 	void print() const {
 		std::cout << r << " " << g << " " << b << " " << a << std::endl;
 	}
 	void* data() {
 		return &r;
 	}
+
 };
+
+inline std::ostream& operator<<(std::ostream& os, const Color& color) noexcept
+{
+	os << color.r << ' ';
+	os << color.g << ' ';
+	os << color.b << ' ';
+	os << color.a << '\n';
+	return os;
+}
 
 static Color random_color() {
 	return Color::rgb(std::rand() % 255, std::rand() % 255, std::rand() % 255, 255);

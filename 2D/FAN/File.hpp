@@ -1,3 +1,4 @@
+#pragma once
 #include <iostream>
 #include <string>
 #include <fstream>
@@ -6,6 +7,16 @@
 struct File {
 	File(std::string file_name) : name(file_name) {}
 	File(const char* file_name) : name(file_name) {}
+	File(std::ifstream& file) {
+		if (!file.good()) {
+			return;
+		}
+		data.resize(file.tellg());
+		data.resize(file.tellg());
+		file.seekg(0, std::ios::beg);
+		file.read(&data[0], data.size());
+		file.close();
+	}
 
 	bool read() {
 		std::ifstream file(name.c_str(), std::ifstream::ate | std::ifstream::binary);

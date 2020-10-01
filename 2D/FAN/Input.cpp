@@ -116,6 +116,11 @@ void callback::FrameSizeCallback(GLFWwindow* window, int width, int height) {
 }
 
 void callback::DropCallback(GLFWwindow* window, int path_count, const char* paths[]) {
+	callback::drop_info.paths.clear();
+	callback::drop_info.path_count = path_count;
+	for (int i = 0; i < path_count; i++) {
+		callback::drop_info.paths.push_back(paths[i]);
+	}
 	for (int i = 0; i < callback::drop.size(); i++) {
 		callback::drop.get_function(i)();
 	}
@@ -142,6 +147,7 @@ bool WindowInit() {
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 //	glfwWindowHint(GLFW_RESIZABLE, false);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 #ifdef FAN_CUSTOM_WINDOW
 	glfwWindowHint(GLFW_DECORATED, false);
 #endif
@@ -167,9 +173,9 @@ bool WindowInit() {
 		glfwTerminate();
 		exit(EXIT_SUCCESS);
 	}
-	//glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	glViewport(0, 0, window_size.x, window_size.y);
-	glEnable(GL_DEPTH_TEST);
+	//glEnable(GL_DEPTH_TEST);
 
 	glfwSetKeyCallback(window, callback::glfwKeyCallback);
 	glewExperimental = GL_TRUE;
@@ -177,6 +183,7 @@ bool WindowInit() {
 	glfwSetMouseButtonCallback(window, callback::MouseButtonCallback);
 	glfwSetCursorPosCallback(window, callback::CursorPositionCallback);
 	glfwSetFramebufferSizeCallback(window, callback::FrameSizeCallback);
+	glfwSetDropCallback(window, callback::DropCallback);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 

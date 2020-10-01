@@ -52,7 +52,7 @@ Camera::Camera(vec3 position, vec3 up, float yaw, float pitch) : front(vec3(0.0f
 	this->worldUp = up;
 	this->yaw = yaw;
 	this->pitch = pitch;
-	this->updateCameraVectors();
+	this->update_vectors();
 }
 
 void Camera::move(bool noclip, f_t movement_speed)
@@ -78,12 +78,12 @@ void Camera::move(bool noclip, f_t movement_speed)
 		this->velocity.z = 0;
 	}
 	if (glfwGetKey(window, GLFW_KEY_W)) {
-		const vec2 direction(DirectionVector(Radians(this->yaw)));
+		const vec2 direction(DirectionVector(radians(this->yaw)));
 		this->velocity.x += direction.x * (movement_speed * delta_time);
 		this->velocity.z += direction.y * (movement_speed * delta_time);
 	}
 	if (glfwGetKey(window, GLFW_KEY_S)) {
-		const vec2 direction(DirectionVector(Radians(this->yaw)));
+		const vec2 direction(DirectionVector(radians(this->yaw)));
 		this->velocity.x -= direction.x * (movement_speed * delta_time);
 		this->velocity.z -= direction.y * (movement_speed * delta_time);
 	}
@@ -108,7 +108,7 @@ void Camera::move(bool noclip, f_t movement_speed)
 		}
 	}
 	this->position += this->velocity * delta_time;
-	this->updateCameraVectors();
+	this->update_vectors();
 }
 
 void Camera::rotate_camera(bool when) // this->updateCameraVectors(); move function updates
@@ -157,11 +157,11 @@ void Camera::rotate_camera(bool when) // this->updateCameraVectors(); move funct
 }
 
 mat4 Camera::get_view_matrix() {
-	return LookAt(this->position, (this->position + (this->front)), (this->up));
+	return look_at(this->position, (this->position + (this->front)), (this->up));
 }
 
 mat4 Camera::get_view_matrix(mat4 m) {
-	return m * LookAt(this->position, (this->position + (this->front)).rounded(), (this->up).rounded());
+	return m * look_at(this->position, (this->position + (this->front)).rounded(), (this->up).rounded());
 }
 
 vec3 Camera::get_position() const {
@@ -172,11 +172,11 @@ void Camera::set_position(const vec3& position) {
 	this->position = position;
 }
 
-void Camera::updateCameraVectors() {
+void Camera::update_vectors() {
 	vec3 front;
-	front.x = cos(Radians(this->yaw)) * cos(Radians(this->pitch));
-	front.y = sin(Radians(this->pitch));
-	front.z = sin(Radians(this->yaw)) * cos(Radians(this->pitch));
+	front.x = cos(radians(this->yaw)) * cos(radians(this->pitch));
+	front.y = sin(radians(this->pitch));
+	front.z = sin(radians(this->yaw)) * cos(radians(this->pitch));
 	this->front = normalize(front);
 	// Also re-calculate the Right and Up vector
 	this->right = normalize(cross(this->front, this->worldUp));  // Normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
@@ -321,6 +321,16 @@ void fan_2d::basic_single_shape::move(f_t speed, f_t gravity, f_t jump_force, f_
 	position += velocity * delta_time;
 }
 
+bool fan_2d::basic_single_shape::inside() const
+{
+	if (cursor_position.x >= position.x && cursor_position.x <= position.x + size.x &&
+		cursor_position.y >= position.y && cursor_position.y <= position.y + size.y)
+	{
+		return true;
+	}
+	return false;
+}
+
 fan_2d::basic_single_color::basic_single_color() {}
 
 fan_2d::basic_single_color::basic_single_color(const Color& color) : color(color) {}
@@ -380,8 +390,8 @@ void fan_2d::square::draw()
 	this->shader.use();
 
 	mat4 model(1);
-	model = Translate(model, get_position());
-	model = Scale(model, get_size());
+	model = translate(model, get_position());
+	model = scale(model, get_size());
 
 	this->shader.set_mat4("projection", fan_2d::frame_projection);
 	this->shader.set_mat4("view", fan_2d::frame_view);
@@ -390,6 +400,195 @@ void fan_2d::square::draw()
 	this->shader.set_int("shape_type", eti(shape_types::SQUARE));
 
 	fan_2d::basic_single_shape::basic_draw(GL_TRIANGLES, 6);
+}
+
+fan_2d::bloom_square::bloom_square()
+	: fan_2d::basic_single_shape(Shader(shader_paths::single_bloom_shapes_path_vs, shader_paths::single_bloom_shapes_path_fs), vec2(), vec2())
+{
+	glGenFramebuffers(1, &m_hdr_fbo);
+	glBindFramebuffer(GL_FRAMEBUFFER, m_hdr_fbo);
+	glGenTextures(2, m_color_buffers);
+
+	for (unsigned int i = 0; i < 2; i++)
+	{
+		glBindTexture(GL_TEXTURE_2D, m_color_buffers[i]);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, window_size.x, window_size.y, 0, GL_RGBA, GL_FLOAT, NULL);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);  // we clamp to the edge as the blur filter would otherwise sample repeated texture values!
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		// attach texture to framebuffer
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, m_color_buffers[i], 0);
+	}
+
+	glGenRenderbuffers(1, &m_rbo);
+	glBindRenderbuffer(GL_RENDERBUFFER, m_rbo);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, window_size.x, window_size.y);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_rbo);
+	// tell OpenGL which color attachments we'll use (of this framebuffer) for rendering 
+	unsigned int attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+	glDrawBuffers(2, attachments);
+	// finally check if framebuffer is complete
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+		LOG("Framebuffer not complete!");
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	glGenFramebuffers(2, m_pong_fbo);
+	glGenTextures(2, m_pong_color_buffer);
+	for (unsigned int i = 0; i < 2; i++)
+	{
+		glBindFramebuffer(GL_FRAMEBUFFER, m_pong_fbo[i]);
+		glBindTexture(GL_TEXTURE_2D, m_pong_color_buffer[i]);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, window_size.x, window_size.y, 0, GL_RGBA, GL_FLOAT, NULL);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); // we clamp to the edge as the blur filter would otherwise sample repeated texture values!
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_pong_color_buffer[i], 0);
+		// also check if framebuffers are complete (no need for depth buffer)
+		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+			std::cout << "Framebuffer not complete!" << std::endl;
+	}
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	m_shader_blur.use();
+	m_shader_blur.set_int("image", 0);
+	m_shader_bloom.use();
+	m_shader_bloom.set_int("scene", 0);
+	m_shader_bloom.set_int("bloomBlur", 1);
+}
+
+fan_2d::bloom_square::bloom_square(const vec2& position, const vec2& size, const Color& color)
+	: fan_2d::bloom_square::bloom_square() 
+{
+	this->set_position(position);
+	this->set_size(size);
+	this->set_color(color);
+
+}
+
+void fan_2d::bloom_square::bind_fbo() const
+{
+	glBindFramebuffer(GL_FRAMEBUFFER, m_hdr_fbo);
+}
+
+unsigned int bbb = 0;
+unsigned int ccc;
+static void renderQuad()
+{
+	if (bbb == 0)
+	{
+
+		/*
+		vec2(0, 0),
+		vec2(0, 1),
+		vec2(1, 1),
+		vec2(1, 1),
+		vec2(1, 0),
+		vec2(0, 0)
+
+		*/
+		float quadVertices[] = {
+			// positions        // texture Coords
+			-1.0f,  1.0f, 0.0f, 1.0f,
+			-1.0f, -1.0f, 0.0f, 0.0f,
+			 1.0f,  1.0f, 1.0f, 1.0f,
+			 1.0f, -1.0f, 1.0f, 0.0f,
+		};
+		// setup plane VAO
+		glGenVertexArrays(1, &bbb);
+		glGenBuffers(1, &ccc);
+		glBindVertexArray(bbb);
+		glBindBuffer(GL_ARRAY_BUFFER, ccc);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+		glEnableVertexAttribArray(1);
+		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+	}
+	glBindVertexArray(bbb);
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	glBindVertexArray(0);
+}
+
+
+void fan_2d::bloom_square::draw()
+{
+	this->shader.use();
+
+	mat4 model(1);
+	model = translate(model, get_position());
+	model = scale(model, get_size());
+
+	this->shader.set_mat4("projection", fan_2d::frame_projection);
+	this->shader.set_mat4("view", fan_2d::frame_view);
+	this->shader.set_mat4("model", model);
+	this->shader.set_vec4("shape_color", get_color());
+	this->shader.set_int("shape_type", eti(shape_types::SQUARE));
+
+	fan_2d::basic_single_shape::basic_draw(GL_TRIANGLES, 6);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	// 2. blur bright fragments with two-pass Gaussian Blur 
+	// --------------------------------------------------
+	bool horizontal = true, first_iteration = true;
+	unsigned int amount = 10;
+	m_shader_blur.use();
+
+	glBindFramebuffer(GL_FRAMEBUFFER, m_pong_fbo[1]);
+	m_shader_blur.set_int("horizontal", 1);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, m_color_buffers[1]);  // bind texture of other framebuffer (or scene if first iteration)
+
+	renderQuad();
+
+	glBindFramebuffer(GL_FRAMEBUFFER, m_pong_fbo[0]);
+	m_shader_blur.set_int("horizontal", 0);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, m_pong_color_buffer[1]);  // bind texture of other framebuffer (or scene if first iteration)
+
+	renderQuad();
+
+
+	glBindFramebuffer(GL_FRAMEBUFFER, m_pong_fbo[1]);
+	m_shader_blur.set_int("horizontal", 1);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, m_pong_color_buffer[0]);  // bind texture of other framebuffer (or scene if first iteration)
+	renderQuad();
+
+	glBindFramebuffer(GL_FRAMEBUFFER, m_pong_fbo[0]);
+	m_shader_blur.set_int("horizontal", 0);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, m_pong_color_buffer[1]);
+
+	renderQuad();
+
+	glBindFramebuffer(GL_FRAMEBUFFER, m_pong_fbo[1]);
+	m_shader_blur.set_int("horizontal", 1);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, m_pong_color_buffer[0]);
+	renderQuad();
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+
+	// 3. now render floating point color buffer to 2D quad and tonemap HDR colors to default framebuffer's (clamped) color range
+	// --------------------------------------------------------------------------------------------------------------------------
+
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	m_shader_bloom.use();
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, m_color_buffers[0]);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, m_pong_color_buffer[!horizontal]);
+	m_shader_bloom.set_float("exposure", 1.0f);
+	renderQuad();
+
 }
 
 fan_2d::sprite::sprite() :
@@ -406,7 +605,7 @@ fan_2d::sprite::sprite(const std::string& path, const vec2& position, const vec2
 	set_size(image_size);
 }
 
-fan_2d::sprite::sprite(const std::vector<unsigned char>& pixels, const vec2& position, const vec2i& size)
+fan_2d::sprite::sprite(unsigned char* pixels, const vec2& position, const vec2i& size)
 	: basic_single_shape(Shader(shader_paths::single_sprite_path_vs, shader_paths::single_sprite_path_fs), position, size) 
 {
 	auto texture_info = load_image(pixels, size);
@@ -418,15 +617,17 @@ fan_2d::sprite::sprite(const std::vector<unsigned char>& pixels, const vec2& pos
 	set_size(image_size);
 }
 
-void fan_2d::sprite::reload_image(const std::vector<unsigned char>& pixels, const vec2i& size)
+void fan_2d::sprite::reload_image(unsigned char* pixels, const vec2i& size)
 {
 	glBindTexture(GL_TEXTURE_2D, this->texture);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, size.x, size.y, 0, GL_BGRA, GL_UNSIGNED_BYTE, pixels.data());
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, size.x, size.y, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, pixels);
 	glGenerateMipmap(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
@@ -467,9 +668,9 @@ void fan_2d::sprite::draw()
 	shader.use();
 
 	mat4 model(1);
-	model = Translate(model, get_position());
-	model = Scale(model, get_size());
-	model = Rotate(model, Radians(get_rotation()), vec3(0, 0, 1));
+	model = translate(model, get_position());
+	model = scale(model, get_size());
+	//model = Rotate(model, radians(get_rotation()), vec3(0, 0, 1));
 
 	shader.set_mat4("projection", fan_2d::frame_projection);
 	shader.set_mat4("view", fan_2d::frame_view);
@@ -514,21 +715,32 @@ fan_2d::image_info fan_2d::sprite::load_image(const std::string& path, bool flip
 	if (flip_image) {
 		stbi_set_flip_vertically_on_load(true);
 	}
-	unsigned char* data = SOIL_load_image(
+	int components = 0;
+	
+	unsigned char* data = stbi_load(
 		path.c_str(),
 		&image_size.x,
 		&image_size.y,
-		0,
+		&components,
 		SOIL_LOAD_RGBA
 	);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_size.x, image_size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	GLenum format;
+	if (components == 1)
+		format = GL_RED;
+	else if (components == 3)
+		format = GL_RGB;
+	else if (components == 4)
+		format = GL_RGBA;
+	
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_size.x, image_size.y, 0, GL_ABGR_EXT, GL_UNSIGNED_INT_8_8_8_8, data);
 	glGenerateMipmap(GL_TEXTURE_2D);
 	SOIL_free_image_data(data);
 	glBindTexture(GL_TEXTURE_2D, 0);
 	return { image_size, texture_id };
 }
 
-fan_2d::image_info fan_2d::sprite::load_image(const std::vector<unsigned char>& pixels, const vec2i& size)
+fan_2d::image_info fan_2d::sprite::load_image(unsigned char* pixels, const vec2i& size)
 {
 	unsigned int texture_id = 0;
 
@@ -538,9 +750,10 @@ fan_2d::image_info fan_2d::sprite::load_image(const std::vector<unsigned char>& 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, size.x, size.y, 0, GL_BGRA, GL_UNSIGNED_BYTE, pixels.data());
-	glGenerateMipmap(GL_TEXTURE_2D);
+	if (pixels != nullptr) {
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_BGRA, size.x, size.y, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, pixels);
+		glGenerateMipmap(GL_TEXTURE_2D);
+	}
 	glBindTexture(GL_TEXTURE_2D, 0);
 	return { vec2i(1920, 1080), texture_id };
 }
@@ -563,9 +776,9 @@ void fan_2d::animation::draw(std::uint64_t texture)
 	shader.use();
 
 	mat4 model(1);
-	model = Translate(model, get_position());
+	model = translate(model, get_position());
 
-	model = Scale(model, get_size());
+	model = scale(model, get_size());
 
 	shader.set_mat4("projection", fan_2d::frame_projection);
 	shader.set_mat4("view", fan_2d::frame_view);
@@ -1084,9 +1297,22 @@ void fan_2d::particles::update()
 	this->release_queue(true, false, false);
 }
 
+void fan_3d::add_camera_movement_callback() {
+	callback::cursor_move.add(std::bind(&Camera::rotate_camera, fan_3d::camera, 0));
+}
+
 fan_3d::line_vector::line_vector()
 	: basic_shape_vector(Shader(fan_3d::shader_paths::shape_vector_vs, fan_3d::shader_paths::shape_vector_fs)),
-	basic_shape_color_vector() {}
+	basic_shape_color_vector() 
+{
+	glBindVertexArray(vao);
+
+	basic_shape_color_vector::initialize_buffers();
+	basic_shape_vector::initialize_buffers();
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+}
 
 fan_3d::line_vector::line_vector(const mat2x3& begin_end, const Color& color)
 	: basic_shape_vector(Shader(fan_3d::shader_paths::shape_vector_vs, fan_3d::shader_paths::shape_vector_fs),
@@ -1115,7 +1341,7 @@ void fan_3d::line_vector::draw() {
 	this->m_shader.set_mat4("view", fan_3d::frame_view);
 	this->m_shader.set_int("shape_type", eti(shape_types::LINE));
 
-	basic_shape_vector::basic_draw(GL_LINES, 2, size());
+	basic_shape_vector::basic_draw(GL_LINE_STRIP, 2, size());
 }
 
 void fan_3d::line_vector::set_position(std::uint64_t i, const mat2x3 begin_end, bool queue)
@@ -1126,11 +1352,94 @@ void fan_3d::line_vector::set_position(std::uint64_t i, const mat2x3 begin_end, 
 
 void fan_3d::line_vector::release_queue(bool position, bool color)
 {
-	if (color) {
+	if (color) {	
 		basic_shape_color_vector::write_data();
 	}
 }
+#include 	<io.h>
+fan_3d::triangle_vector::triangle_vector()
+	: m_shader(fan_3d::shader_paths::triangle_vector_vs, fan_3d::shader_paths::triangle_vector_fs)
+{
+	/*for (int j = 0; j < 3; j++)
+	for (auto i : m_base_indices) {
+		m_indices.push_back(i + 4 * j);
+	}*/
+	m_indices.push_back(0);
+	m_indices.push_back(2);
+	m_indices.push_back(1);
 
+	m_indices.push_back(2);
+	m_indices.push_back(1);
+	m_indices.push_back(3);
+
+	m_indices.push_back(0 + 4);
+	m_indices.push_back(2 + 4);
+	m_indices.push_back(1 +4);
+
+	m_indices.push_back(2 + 4);
+	m_indices.push_back(1 + 4);
+	m_indices.push_back(3 + 4);
+
+	glGenVertexArrays(1, &m_vao);
+	glGenBuffers(1, &m_vertices_vbo);
+	glGenBuffers(1, &m_ebo);
+	glBindVertexArray(m_vao);
+	basic_shape_color_vector::initialize_buffers();
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(m_indices[0]) * m_indices.size(), m_indices.data(), GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, m_vertices_vbo);
+	glBufferData(GL_ARRAY_BUFFER, m_vertice_size * m_triangle_vertices.size(), m_triangle_vertices.data(), GL_DYNAMIC_DRAW);
+	glVertexAttribPointer(1, vec3::size(), GL_FLOAT_T, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(1);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+}
+
+void fan_3d::triangle_vector::push_back(const triangle_vertices_t& vertices, const Color& color, bool queue) {
+
+	/*for (auto i : m_base_indices) {
+		LOG(i + 4 * fan_3d::triangle_vector::size());
+		m_indices.push_back(i + 4 * fan_3d::triangle_vector::size());
+	}
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(m_indices[0]) * m_indices.size(), m_indices.data(), GL_STATIC_DRAW);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);*/
+
+	fan_3d::triangle_vector::m_triangle_vertices.push_back(vertices);
+
+	std::fill_n(std::back_inserter(basic_shape_color_vector::m_color), 4, color);
+
+	if (!queue) {
+		basic_shape_color_vector::write_data();
+		write_vbo(m_vertices_vbo, m_triangle_vertices.data(), m_vertice_size * m_triangle_vertices.size());
+	}
+}
+
+fan_3d::triangle_vertices_t fan_3d::triangle_vector::get_vertices(std::uint64_t i)
+{
+	return fan_3d::triangle_vector::m_triangle_vertices[i];
+}
+
+void fan_3d::triangle_vector::release_queue()
+{
+	basic_shape_color_vector::write_data();
+	write_vbo(m_vertices_vbo, m_triangle_vertices.data(), m_vertice_size * m_triangle_vertices.size());
+}
+
+void fan_3d::triangle_vector::draw() {
+	fan_3d::triangle_vector::m_shader.use();
+	fan_3d::triangle_vector::m_shader.set_mat4("projection", fan_3d::frame_projection);
+	fan_3d::triangle_vector::m_shader.set_mat4("view", fan_3d::frame_view);
+	glBindVertexArray(m_vao);
+	glDrawElements(GL_TRIANGLE_STRIP, 6 * fan_3d::triangle_vector::size(), GL_UNSIGNED_INT, 0);
+	glBindVertexArray(0);
+}
+
+uint_t fan_3d::triangle_vector::size() {
+	return fan_3d::triangle_vector::m_triangle_vertices.size();
+}
 
 fan_3d::square_vector::square_vector(const std::string& path, std::uint64_t block_size)
 	: basic_shape_vector(Shader(fan_3d::shader_paths::shape_vector_vs, fan_3d::shader_paths::shape_vector_fs)),
@@ -1328,6 +1637,54 @@ double InterpolatedNoise(int i, double x, double y) {
 	return Interpolate(i1, i2, fractional_Y);
 }
 
+vec3 line_plane_intersection3d(const da_t<f_t, 2, 3>& line, const da_t<f_t, 4, 3>& square) {
+	const da_t<f_t, 3> n = normalize(cross(square[0] - square[2], square[3] - square[2]));
+	const f_t nl_dot(dot(n, line[1]));
+
+	if (!nl_dot) {
+		return vec3(INFINITY);
+	}
+
+	const f_t d = dot(square[2] - line[0], n) / nl_dot;
+	if (d <= 0) {
+		return vec3(INFINITY);
+	}
+	if (distance(vec3(line[0]), vec3(line[0] + line[1])) < d) {
+		return vec3(INFINITY);
+	}
+	const vec3 intersect = line[0] + line[1] * d;
+	if (intersect.y > square[3][1] && intersect.y < square[0][1] &&
+		intersect.z > square[0][2] && intersect.z < square[3][2]) {
+		return intersect;
+	}
+
+	return vec3(INFINITY);
+}
+
+//vec3 line_plane_intersection3d(const vec3 plane_position, const vec3& plane_size, const vec3& position, const vec3& direction) {
+//	const vec3 p0 = plane_position - plane_size / 2.f;
+//	const vec3 a = (p0 + vec3(0, plane_size.y, 0));
+//	const vec3 b = (p0 + vec3(0, 0, plane_size.x));
+//	const vec3 n = normalize(cross(a - p0, b - p0));
+//	const f_t nl_dot(dot(n, direction));
+//
+//	if (!nl_dot) {
+//		return vec3(-1);
+//	}
+//
+//	const f_t d = dot(p0 - position, n) / nl_dot;
+//	if (d <= 0) {
+//		return vec3(INFINITY);
+//	}
+//	const vec3 intersect = position + direction * d;
+//	if (intersect.y > b.y && intersect.y < a.y &&
+//		intersect.z > a.z && intersect.z < b.z) {
+//		return intersect;
+//	}
+//
+//	return vec3(INFINITY);
+//}
+
 vec3 intersection_point3d(const vec3& plane_position, const vec3& plane_size, const vec3& position, e_cube side)
 {
 	vec3 p0;
@@ -1485,7 +1842,7 @@ fan_3d::skybox::~skybox() {
 //	mat4 projection(1);
 //
 //	view = mat4(mat3(camera->get_view_matrix()));
-//	projection = Perspective(Radians(90.f), (f_t)window_size.x / (f_t)window_size.y, 0.1f, 1000.0f);
+//	projection = perspective(radians(90.f), (f_t)window_size.x / (f_t)window_size.y, 0.1f, 1000.0f);
 //
 //	shader.set_mat4("view", view);
 //	shader.set_mat4("projection", projection);
@@ -1693,8 +2050,8 @@ fan_3d::model::model(const std::string& path, const vec3& position, const vec3& 
 void fan_3d::model::draw() {
 
 	mat4 model(1);
-	model = Translate(model, get_position());
-	model = Scale(model, get_size());
+	model = translate(model, get_position());
+	model = scale(model, get_size());
 
 	this->m_shader.use();
 
@@ -1752,16 +2109,16 @@ void GetFps(bool title, bool print) {
 	last_frame = current_frame;
 
 	fan_2d::frame_view = mat4(1);
-	fan_2d::frame_view = fan_2d::camera.get_view_matrix(Translate(fan_2d::frame_view, vec3(window_size.x / 2, window_size.y / 2, -700.0f)));
+	fan_2d::frame_view = fan_2d::camera.get_view_matrix(translate(fan_2d::frame_view, vec3(window_size.x / 2, window_size.y / 2, -700.0f)));
 
 	fan_2d::frame_projection = mat4(1);
-	fan_2d::frame_projection = Ortho(window_size.x / 2, window_size.x + window_size.x * 0.5f, window_size.y + window_size.y * 0.5f, window_size.y / 2.f, 0.1f, 1000.0f);
+	fan_2d::frame_projection = ortho(window_size.x / 2, window_size.x + window_size.x * 0.5f, window_size.y + window_size.y * 0.5f, window_size.y / 2.f, 0.1f, 1000.0f);
 
 	fan_3d::frame_view = mat4(1);
 	fan_3d::frame_view = fan_3d::camera.get_view_matrix();
 
 	fan_3d::frame_projection = mat4(1);
-	fan_3d::frame_projection = Perspective(Radians(90.f), (f_t)window_size.x / (f_t)window_size.y, 0.1f, 1000.0f);
+	fan_3d::frame_projection = perspective(radians(90.f), (f_t)window_size.x / (f_t)window_size.y, 0.1f, 1000000.0f);
 
 	if (timer.finished()) {
 		old_fps = fps - 1;
@@ -1802,7 +2159,7 @@ suckless_font_t suckless_font_fr(uint_t datasize, uint_t fontsize) {
 
 letter_info_t suckless_font_add_f(FT_Library ft, suckless_font_t* font, uint8_t letter) {
 	FT_Face face;
-	if (FT_New_Face(ft, "fonts/calibri.ttf", 0, &face))
+	if (FT_New_Face(ft, "fonts/arial.ttf", 0, &face))
 		printf("err new face\n");
 
 	FT_Set_Pixel_Sizes(face, 0, font->fontsize);
@@ -2163,7 +2520,7 @@ void fan_gui::text_renderer::upload_stored(uint64_t i)
 void fan_gui::text_renderer::render_stored()
 {
 	m_shader.use();
-	m_shader.set_mat4("projection", Ortho(0, window_size.x, window_size.y, 0));
+	m_shader.set_mat4("projection", ortho(0, window_size.x, window_size.y, 0));
 
 	glBindVertexArray(m_vao);
 	glBindTexture(GL_TEXTURE_2D, m_texture);
@@ -2211,7 +2568,7 @@ void fan_gui::text_renderer::render(const std::wstring& text, vec2 position, con
 	static std::wstring old_str;
 
 	m_shader.use();
-	m_shader.set_mat4("projection", Ortho(0, window_size.x, window_size.y, 0));
+	m_shader.set_mat4("projection", ortho(0, window_size.x, window_size.y, 0));
 
 	f_t begin = position.x;
 
@@ -2495,8 +2852,8 @@ bool fan_gui::font::text_button_vector::inside(std::uint64_t i)
 {
 	vec2 position = get_position(i);
 	vec2 size = get_size(i);
-	if (cursor_position.x >= position.x - size.x / 2 && cursor_position.x <= position.x + size.x / 2 &&
-		cursor_position.y >= position.y - size.y / 2 && cursor_position.y <= position.y + size.y / 2)
+	if (cursor_position.x >= position.x && cursor_position.x <= position.x + size.x &&
+		cursor_position.y >= position.y && cursor_position.y <= position.y + size.y)
 	{
 		return true;
 	}

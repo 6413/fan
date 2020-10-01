@@ -28,8 +28,8 @@
 #include <FAN/Vectors.hpp>
 #include <FAN/Time.hpp>
 #include <FAN/Network.hpp>
-#include <SOIL2/SOIL2.h>
-#include <SOIL2/stb_image.h>
+#include <FAN/SOIL2/SOIL2.h>
+#include <FAN/SOIL2/stb_image.h>
 
 #ifdef _MSC_VER
 #pragma warning (disable : 26495)
@@ -103,7 +103,7 @@ public:
 
 	static constexpr auto friction = 12;
 
-	void updateCameraVectors();
+	void update_vectors();
 
 private:
 
@@ -202,18 +202,21 @@ namespace fan_2d {
 	extern Camera camera;
 
 	namespace shader_paths {
-		constexpr auto text_renderer_vs("GLSL/2D/text.vs");
-		constexpr auto text_renderer_fs("GLSL/2D/text.fs");
+		constexpr auto text_renderer_vs("FAN/GLSL/2D/text.vs");
+		constexpr auto text_renderer_fs("FAN/GLSL/2D/text.fs");
 
-		constexpr auto single_shapes_path_vs("GLSL/2D/shapes.vs");
-		constexpr auto single_shapes_path_fs("GLSL/2D/shapes.fs");
-		constexpr auto single_sprite_path_vs("GLSL/2D/sprite.vs");
-		constexpr auto single_sprite_path_fs("GLSL/2D/sprite.fs");
+		constexpr auto single_shapes_path_vs("FAN/GLSL/2D/shapes.vs");
+		constexpr auto single_shapes_path_fs("FAN/GLSL/2D/shapes.fs");
+		constexpr auto single_bloom_shapes_path_vs("FAN/GLSL/2D/bloom_shape.vs");
+		constexpr auto single_bloom_shapes_path_fs("FAN/GLSL/2D/bloom_shape.fs");
 
-		constexpr auto shape_vector_vs("GLSL/2D/shape_vector.vs");
-		constexpr auto shape_vector_fs("GLSL/2D/shapes.fs");
-		constexpr auto sprite_vector_vs("GLSL/2D/sprite_vector.vs");
-		constexpr auto sprite_vector_fs("GLSL/2D/sprite_vector.fs");
+		constexpr auto single_sprite_path_vs("FAN/GLSL/2D/sprite.vs");
+		constexpr auto single_sprite_path_fs("FAN/GLSL/2D/sprite.fs");
+
+		constexpr auto shape_vector_vs("FAN/GLSL/2D/shape_vector.vs");
+		constexpr auto shape_vector_fs("FAN/GLSL/2D/shapes.fs");
+		constexpr auto sprite_vector_vs("FAN/GLSL/2D/sprite_vector.vs");
+		constexpr auto sprite_vector_fs("FAN/GLSL/2D/sprite_vector.fs");
 	}
 
 	class basic_single_shape {
@@ -235,6 +238,8 @@ namespace fan_2d {
 		void basic_draw(GLenum mode, GLsizei count);
 
 		void move(f_t speed, f_t gravity, f_t jump_force = -800, f_t friction = 10);
+
+		bool inside() const;
 
 	protected:
 		vec2 position;
@@ -280,6 +285,30 @@ namespace fan_2d {
 		void draw();
 	};
 
+	class bloom_square : public basic_single_shape, public basic_single_color {
+	public:
+
+		bloom_square();
+		bloom_square(const vec2& position, const vec2& size, const Color& color);
+
+		void bind_fbo() const;
+
+		void draw();
+
+	private:
+
+		unsigned int m_hdr_fbo;
+		unsigned int m_rbo;
+		unsigned int m_color_buffers[2];
+		unsigned int m_pong_fbo[2];
+		unsigned int m_pong_color_buffer[2];
+
+		//Shader m_shader_light = Shader("GLSL/bloom.vs", "GLSL/light_box.fs");
+		Shader m_shader_blur = Shader("GLSL/blur.vs", "GLSL/blur.fs");
+		Shader m_shader_bloom = Shader("GLSL/bloom_final.vs", "GLSL/bloom_final.fs");
+		
+	};
+
 	struct image_info {
 		vec2i image_size;
 		unsigned int texture_id;
@@ -291,9 +320,9 @@ namespace fan_2d {
 
 		// scale with default is sprite size
 		sprite(const std::string& path, const vec2& position, const vec2& size = 0);
-		sprite(const std::vector<unsigned char>& pixels, const vec2& position, const vec2i& size = 0);
+		sprite(unsigned char* pixels, const vec2& position, const vec2i& size = 0);
 
-		void reload_image(const std::vector<unsigned char>& pixels, const vec2i& size);
+		void reload_image(unsigned char* pixels, const vec2i& size);
 		void reload_image(const std::string& path, const vec2i& size);
 
 		void draw();
@@ -302,7 +331,7 @@ namespace fan_2d {
 		void set_rotation(f_t degrees);
 
 		static image_info load_image(const std::string& path, bool flip_image = false);
-		static image_info load_image(const std::vector<unsigned char>& pixels, const vec2i& size);
+		static image_info load_image(unsigned char* pixels, const vec2i& size);
 
 	private:
 
@@ -429,21 +458,26 @@ namespace fan_2d {
 namespace fan_3d {
 
 	namespace shader_paths {
-		constexpr auto shape_vector_vs("GLSL/3D/shape_vector.vs");
-		constexpr auto shape_vector_fs("GLSL/3D/shape_vector.fs");
+		constexpr auto triangle_vector_vs("FAN/GLSL/3D/triangles.vs");
+		constexpr auto triangle_vector_fs("FAN/GLSL/3D/triangles.fs");
 
-		constexpr auto model_vs("GLSL/3D/models.vs");
-		constexpr auto model_fs("GLSL/3D/models.fs");
+		constexpr auto shape_vector_vs("FAN/GLSL/3D/shape_vector.vs");
+		constexpr auto shape_vector_fs("FAN/GLSL/3D/shape_vector.fs");
 
-		constexpr auto skybox_vs("GLSL/3D/skybox.vs");
-		constexpr auto skybox_fs("GLSL/3D/skybox.fs");
-		constexpr auto skybox_model_vs("GLSL/3D/skybox_model.vs");
-		constexpr auto skybox_model_fs("GLSL/3D/skybox_model.fs");
+		constexpr auto model_vs("FAN/GLSL/3D/models.vs");
+		constexpr auto model_fs("FAN/GLSL/3D/models.fs");
+
+		constexpr auto skybox_vs("FAN/GLSL/3D/skybox.vs");
+		constexpr auto skybox_fs("FAN/GLSL/3D/skybox.fs");
+		constexpr auto skybox_model_vs("FAN/GLSL/3D/skybox_model.vs");
+		constexpr auto skybox_model_fs("FAN/GLSL/3D/skybox_model.fs");
 	}
 
 	extern Camera camera;
 	extern mat4 frame_projection;
 	extern mat4 frame_view;
+
+	void add_camera_movement_callback();
 
 	class line_vector : public basic_shape_vector<vec3>, public basic_shape_color_vector {
 	public:
@@ -464,6 +498,44 @@ namespace fan_3d {
 		using basic_shape_vector::set_position;
 		using basic_shape_vector::set_size;
 
+	};
+
+	struct triangle_vertices_t {
+		vec3 first;
+		vec3 second;
+		vec3 third;
+		vec3 fourth;
+	};
+
+	class triangle_vector : public basic_shape_color_vector {
+	public:
+
+		triangle_vector();
+
+		void push_back(const triangle_vertices_t& vertices, const Color& color, bool queue = false);
+
+		triangle_vertices_t get_vertices(std::uint64_t i);
+
+		void release_queue();
+
+		void draw();
+
+		uint_t size();
+
+	private:
+
+		Shader m_shader;
+
+		static constexpr unsigned int m_base_indices[] = {
+			0,2,1,2, 1, 3
+		};	
+
+		uint_t m_vao;
+		uint_t m_vertices_vbo;
+		uint_t m_ebo;
+		std::vector<triangle_vertices_t> m_triangle_vertices;
+		std::vector<unsigned int> m_indices;
+		static constexpr auto m_vertice_size = sizeof(decltype(m_triangle_vertices)::value_type);
 	};
 
 	class square_vector : public basic_shape_vector<vec3> {
@@ -612,6 +684,7 @@ namespace fan_3d {
 
 	class model : public model_loader {
 	public:
+		model() :model_loader("", vec3()), m_shader(fan_3d::shader_paths::model_vs, fan_3d::shader_paths::model_fs) {}
 		model(const std::string& path, const vec3& position, const vec3& size);
 
 		void draw();
@@ -646,6 +719,8 @@ enum class e_cube {
 extern std::vector<float> g_distances;
 
 vec3 intersection_point3d(const vec3& plane_position, const vec3& plane_size, const vec3& position, e_cube side);
+
+vec3 line_plane_intersection3d(const da_t<f_t, 2, 3>& line, const da_t<f_t, 4, 3>& square);
 
 double ValueNoise_2D(double x, double y);
 
@@ -841,7 +916,7 @@ namespace fan_gui {
 
 		namespace properties {
 			constexpr vec2 gap_scale(0.25, 0.25);
-			constexpr f_t space_width = 30;
+			constexpr f_t space_width = 15;
 			constexpr f_t space_between_characters = 5;
 
 			constexpr vec2 get_gap_scale(const vec2& size) {
@@ -1002,7 +1077,12 @@ struct collision_info {
 };
 
 inline void process_rectangle_collision_2d(da_t<f_t, 2, 2>& pos, da_t<f_t, 2>& vel, const std::vector<da_t<f_t, 2, 2>>& walls) {
+	uint64_t ray_fail = 0;
 	while (1) {
+
+		if (ray_fail > 1000) {
+			return;
+		}
 
 		da_t<f_t, 2> pvel = vel;
 
@@ -1024,7 +1104,6 @@ inline void process_rectangle_collision_2d(da_t<f_t, 2, 2>& pos, da_t<f_t, 2>& v
 				da_t<f_t, 2, 2>{da_t<f_t, 2>{ 1, 1 }, da_t<f_t, 2>{ 0, 1 }},
 				da_t<f_t, 2, 2>{da_t<f_t, 2>{ 0, 1 }, da_t<f_t, 2>{ 0, 0 }},
 		});
-
 		da_t<f_t, 2> lvel = pvel;
 		da_t<f_t, 2> nvel = 0;
 		for (uint_t iwall = 0; iwall < walls.size(); iwall++) {
@@ -1036,7 +1115,7 @@ inline void process_rectangle_collision_2d(da_t<f_t, 2, 2>& pos, da_t<f_t, 2>& v
 					calculate_velocity(da_t<f_t, 2, 2>(ocorn[li[i][0]], ocorn[li[i][1]]).avg(), pvel, bcorn[li[iline][0]], bcorn[li[iline][1]] - bcorn[li[iline][0]], normals[iline], 1, lvel, nvel);
 				}
 			}
-
+			
 			/* step 0 and step 1*/
 			for (uint_t i = 0; i < 3; i++) {
 				for (uint_t iline = 0; iline < 4; iline++) {
@@ -1047,8 +1126,26 @@ inline void process_rectangle_collision_2d(da_t<f_t, 2, 2>& pos, da_t<f_t, 2>& v
 		}
 		pos += lvel;
 		vel = nvel;
+		//ray_fail++;
 	}
 }
+
+//inline void process_rectangle_collision_3d(da_t<f_t, 2, 3>& pos, da_t<f_t, 3>& vel, const std::vector<da_t<f_t, 2, 3>>& walls) {
+//	while (1) {
+//		da_t<f_t, 3> pvel = vel;
+//
+//		if (!pvel[0] && !pvel[1] && !pvel[2])
+//			return;
+//		
+//		da_t<f_t, 4, 3> ocorn = get_square_corners3(pos);
+//		da_t<f_t, 4, 3> ncorn = ocorn + pvel;
+//
+//		da_t<uint_t, 4> ptv3 = GetPointsTowardsVelocity4(pvel);
+//		da_t<uint_t, 4> ntv3 = GetPointsTowardsVelocity4(-pvel);
+//
+//		da_t<uint_t, 4, 3> li = { da_t<uint_t, 2>{0, 1}, da_t<uint_t, 2>{1, 3}, da_t<uint_t, 2>{3, 2}, da_t<uint_t, 2>{2, 0} };
+//	}
+//}
 
 static void rectangle_collision_2d(fan_2d::square& player, const vec2& old_position, const fan_2d::square_vector& walls) {
 	mat2x2 pl(
