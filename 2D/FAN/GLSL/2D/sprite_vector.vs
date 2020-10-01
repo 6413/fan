@@ -17,12 +17,12 @@ const vec2 square_vertices[] = {
 };
 
 const vec2 texture_coordinates[] = {
-	vec2( 1, 1),
-	vec2( 0, 1),
-	vec2( 0, 0),
-	vec2( 0, 0),
-	vec2( 0,-1),
-	vec2(-1,-1)
+	vec2(1, 1),
+	vec2(1, 0),
+	vec2(0, 0),
+	vec2(0, 0),
+	vec2(-1, 0),
+	vec2(-1, 1)
 };
 
 out vec2 hori_blur_texture_coordinates[11];

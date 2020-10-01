@@ -139,6 +139,13 @@ namespace callback {
 	void FrameSizeCallback(GLFWwindow* window, int width, int height);
 	void FocusCallback(GLFWwindow* window, int focused);
 	void DropCallback(GLFWwindow* window, int path_count, const char* paths[]);
+
+	typedef struct{
+		int path_count;
+		std::vector<std::string> paths;
+	}drop_info_t;
+
+	inline callback::drop_info_t drop_info;
 }
 
 bool key_press(int key);

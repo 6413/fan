@@ -15,7 +15,7 @@ int main() {
 		}
 	}
 
-	callbacks::key_callback.add(GLFW_KEY_R, true, [&] {
+	callback::key.add(GLFW_KEY_R, true, [&] {
 		while (!walls.empty()) {
 			walls.erase(0);
 		}
@@ -27,7 +27,7 @@ int main() {
 				walls.push_back(position, size, random_color());
 			}
 		}
-	});
+		});
 
 	fan_window_loop() {
 		begin_render(Color::rgb(0, 0, 0));
@@ -36,7 +36,7 @@ int main() {
 
 		player.move(100, 0, 0, 10);
 
-		collision_rectangle_2d(player, old_position, walls);
+		rectangle_collision_2d(player, old_position, walls);
 
 		player.draw();
 		walls.draw();
