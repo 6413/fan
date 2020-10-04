@@ -270,7 +270,7 @@ public:
 
 	template <typename _Type>
 	constexpr bool operator!=(const _vec3<_Type>& vector) const noexcept {
-		return this->x != vector.x && this->y != vector.y && this->z != vector.z;
+		return this->x != vector.x || this->y != vector.y || this->z != vector.z;
 	}
 
 	template <typename _Type>
@@ -1424,7 +1424,7 @@ public:
 	void print() const {
 		std::cout << r << " " << g << " " << b << " " << a << std::endl;
 	}
-	void* data() {
+	auto data() const {
 		return &r;
 	}
 

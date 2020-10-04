@@ -31,6 +31,6 @@ void main() {
 
     vec3 result = (ambient + diffuse + specular) * texture(texture_sampler, texture_coordinates).xyz;
 
-    color = texture(texture_sampler, texture_coordinates);
+    color =vec4(0.5, 0.5, 0.5, 1);
    // color = mix(vec4(sky_color, 1), color, visibility);
 }

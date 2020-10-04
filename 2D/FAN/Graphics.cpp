@@ -161,7 +161,7 @@ mat4 Camera::get_view_matrix() {
 }
 
 mat4 Camera::get_view_matrix(mat4 m) {
-	return m * look_at(this->position, (this->position + (this->front)).rounded(), (this->up).rounded());
+	return m * look_at(this->position, this->position + (this->front), this->up);
 }
 
 vec3 Camera::get_position() const {
@@ -302,7 +302,7 @@ void fan_2d::basic_single_shape::move(f_t speed, f_t gravity, f_t jump_force, f_
 	if (key_press(GLFW_KEY_D)) {
 		velocity.x += speed * delta_time;
 	}
-	if constexpr(std::is_same<decltype(velocity.x), f_t>::value) {
+	if constexpr (std::is_same<decltype(velocity.x), f_t>::value) {
 		if (velocity.x >= FLT_MAX) {
 			velocity.x = FLT_MAX;
 		}
@@ -349,7 +349,7 @@ fan_2d::line::line() : basic_single_shape(Shader(shader_paths::single_shapes_pat
 
 fan_2d::line::line(const mat2x2& begin_end, const Color& color)
 	: basic_single_shape(Shader(shader_paths::single_shapes_path_vs, shader_paths::single_shapes_path_fs), begin_end[0], begin_end[1]),
-	  fan_2d::basic_single_color(color) {}
+	fan_2d::basic_single_color(color) {}
 
 void fan_2d::line::draw()
 {
@@ -374,7 +374,7 @@ void fan_2d::line::set_position(const mat2x2& begin_end)
 fan_2d::square::square()
 	: basic_single_shape(
 		Shader(shader_paths::single_shapes_path_vs, shader_paths::single_shapes_path_fs),
-		vec2(), 
+		vec2(),
 		vec2()
 	), fan_2d::basic_single_color() {
 }
@@ -458,7 +458,7 @@ fan_2d::bloom_square::bloom_square()
 }
 
 fan_2d::bloom_square::bloom_square(const vec2& position, const vec2& size, const Color& color)
-	: fan_2d::bloom_square::bloom_square() 
+	: fan_2d::bloom_square::bloom_square()
 {
 	this->set_position(position);
 	this->set_size(size);
@@ -606,7 +606,7 @@ fan_2d::sprite::sprite(const std::string& path, const vec2& position, const vec2
 }
 
 fan_2d::sprite::sprite(unsigned char* pixels, const vec2& position, const vec2i& size)
-	: basic_single_shape(Shader(shader_paths::single_sprite_path_vs, shader_paths::single_sprite_path_fs), position, size) 
+	: basic_single_shape(Shader(shader_paths::single_sprite_path_vs, shader_paths::single_sprite_path_fs), position, size)
 {
 	auto texture_info = load_image(pixels, size);
 	this->texture = texture_info.texture_id;
@@ -697,8 +697,8 @@ fan_2d::image_info fan_2d::sprite::load_image(const std::string& path, bool flip
 {
 	std::ifstream file(path);
 	if (!file.good()) {
-		LOG("sprite loading error: File path does not exist for ", path.c_str());
-		return image_info{};
+		LOG("sprite loading error: File path does not exist for", path.c_str());
+		exit(1);
 	}
 
 	unsigned int texture_id = 0;
@@ -716,7 +716,7 @@ fan_2d::image_info fan_2d::sprite::load_image(const std::string& path, bool flip
 		stbi_set_flip_vertically_on_load(true);
 	}
 	int components = 0;
-	
+
 	unsigned char* data = stbi_load(
 		path.c_str(),
 		&image_size.x,
@@ -732,7 +732,7 @@ fan_2d::image_info fan_2d::sprite::load_image(const std::string& path, bool flip
 		format = GL_RGB;
 	else if (components == 4)
 		format = GL_RGBA;
-	
+
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_size.x, image_size.y, 0, GL_ABGR_EXT, GL_UNSIGNED_INT_8_8_8_8, data);
 	glGenerateMipmap(GL_TEXTURE_2D);
 	SOIL_free_image_data(data);
@@ -880,7 +880,7 @@ void basic_shape_vector<_Vector>::erase(std::uint64_t i)
 {
 	m_position.erase(m_position.begin() + i);
 	m_size.erase(m_size.begin() + i);
-	
+
 	write_vbo(position_vbo, m_position.data(), sizeof(m_position[0]) * m_position.size());
 	write_vbo(size_vbo, m_size.data(), sizeof(m_size[0]) * m_size.size());
 }
@@ -925,11 +925,16 @@ void basic_shape_vector<_Vector>::initialize_buffers()
 }
 
 template <typename _Vector>
-void basic_shape_vector<_Vector>::basic_draw(unsigned int mode, std::uint64_t count, std::uint64_t primcount)
+void basic_shape_vector<_Vector>::basic_draw(unsigned int mode, std::uint64_t count, std::uint64_t primcount, std::uint64_t i)
 {
 	glDepthFunc(GL_LEQUAL);
 	glBindVertexArray(vao);
-	glDrawArraysInstanced(mode, 0, count, primcount);
+	if (i != -1) {
+		glDrawArraysInstancedBaseInstance(mode, 0, count, 1, i);
+	}
+	else {
+		glDrawArraysInstanced(mode, 0, count, primcount);
+	}
 	glBindVertexArray(0);
 	glDepthFunc(GL_FALSE);
 }
@@ -976,18 +981,20 @@ void basic_shape_color_vector::write_data()
 	write_vbo(color_vbo, m_color.data(), sizeof(Color) * m_color.size());
 }
 
-void basic_shape_color_vector::initialize_buffers()
+void basic_shape_color_vector::initialize_buffers(bool divisor)
 {
 	glBindBuffer(GL_ARRAY_BUFFER, color_vbo);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Color) * m_color.size(), m_color.data(), GL_DYNAMIC_DRAW);
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 4, GL_FLOAT_T, GL_FALSE, sizeof(Color), 0);
-	glVertexAttribDivisor(0, 1);
+	if (divisor) {
+		glVertexAttribDivisor(0, 1);
+	}
 }
 
-fan_2d::line_vector::line_vector() 
+fan_2d::line_vector::line_vector()
 	: basic_shape_vector(Shader(shader_paths::shape_vector_vs, shader_paths::shape_vector_fs)),
-	  basic_shape_color_vector() {
+	basic_shape_color_vector() {
 	glBindVertexArray(vao);
 
 	basic_shape_color_vector::initialize_buffers();
@@ -999,7 +1006,7 @@ fan_2d::line_vector::line_vector()
 
 fan_2d::line_vector::line_vector(const mat2& begin_end, const Color& color)
 	: basic_shape_vector(Shader(shader_paths::shape_vector_vs, shader_paths::shape_vector_fs), begin_end[0], begin_end[1]),
-	  basic_shape_color_vector(color) 
+	basic_shape_color_vector(color)
 {
 	glBindVertexArray(vao);
 
@@ -1054,7 +1061,7 @@ void fan_2d::line_vector::release_queue(bool position, bool color)
 
 fan_2d::triangle_vector::triangle_vector(const mat3x2& corners, const Color& color)
 	: basic_shape_vector(Shader(shader_paths::shape_vector_vs, shader_paths::shape_vector_fs)),
-	basic_shape_color_vector(color) 
+	basic_shape_color_vector(color)
 {
 
 	glGenBuffers(1, &l_vbo);
@@ -1145,7 +1152,7 @@ fan_2d::square_vector::square_vector()
 
 fan_2d::square_vector::square_vector(const vec2& position, const vec2& size, const Color& color)
 	: basic_shape_vector(Shader(shader_paths::shape_vector_vs, shader_paths::shape_vector_fs), position, size),
-	  basic_shape_color_vector(color)
+	basic_shape_color_vector(color)
 {
 	glBindVertexArray(vao);
 
@@ -1189,15 +1196,14 @@ void fan_2d::square_vector::erase(uint_t i)
 	this->m_icorners.erase(this->m_icorners.begin() + i);
 }
 
-void fan_2d::square_vector::draw()
+void fan_2d::square_vector::draw(std::uint64_t i)
 {
 	this->m_shader.use();
 
 	this->m_shader.set_mat4("projection", fan_2d::frame_projection);
 	this->m_shader.set_mat4("view", fan_2d::frame_view);
 	this->m_shader.set_int("shape_type", eti(shape_types::SQUARE));
-
-	basic_shape_vector::basic_draw(GL_TRIANGLES, 6, size());
+	basic_shape_vector::basic_draw(GL_TRIANGLES, 6, size(), i);
 }
 
 std::vector<mat2x2> fan_2d::square_vector::get_icorners() const
@@ -1298,12 +1304,12 @@ void fan_2d::particles::update()
 }
 
 void fan_3d::add_camera_movement_callback() {
-	callback::cursor_move.add(std::bind(&Camera::rotate_camera, fan_3d::camera, 0));
+	//callbacks::cursor_move.add(std::bind(&Camera::rotate_camera, fan_3d::camera, 0));
 }
 
 fan_3d::line_vector::line_vector()
 	: basic_shape_vector(Shader(fan_3d::shader_paths::shape_vector_vs, fan_3d::shader_paths::shape_vector_fs)),
-	basic_shape_color_vector() 
+	basic_shape_color_vector()
 {
 	glBindVertexArray(vao);
 
@@ -1352,46 +1358,61 @@ void fan_3d::line_vector::set_position(std::uint64_t i, const mat2x3 begin_end, 
 
 void fan_3d::line_vector::release_queue(bool position, bool color)
 {
-	if (color) {	
+	if (color) {
 		basic_shape_color_vector::write_data();
 	}
 }
-#include 	<io.h>
+
 fan_3d::triangle_vector::triangle_vector()
 	: m_shader(fan_3d::shader_paths::triangle_vector_vs, fan_3d::shader_paths::triangle_vector_fs)
 {
-	/*for (int j = 0; j < 3; j++)
-	for (auto i : m_base_indices) {
-		m_indices.push_back(i + 4 * j);
-	}*/
-	m_indices.push_back(0);
-	m_indices.push_back(2);
-	m_indices.push_back(1);
+	int width = 100;
+	int height = 500;
+	for (int i = 0; i < width * height; i++) {
+		if (i && !(i % (width))) {
+			for (int j = 0; j < width; j++) {
+				m_indices.push_back(i + width - j - 1);
+				if (j - 1 != width) {
+					m_indices.push_back(i + width - j - 1);
+				}
+			}
+		}
+		m_indices.push_back(i);
+		m_indices.push_back(i + width);
+	}
 
-	m_indices.push_back(2);
-	m_indices.push_back(1);
-	m_indices.push_back(3);
+	std::array<f_t, 8> arr = {
+		0, 0,
+		1, 0,
+		0, 1,
+		1, 1
+	};
 
-	m_indices.push_back(0 + 4);
-	m_indices.push_back(2 + 4);
-	m_indices.push_back(1 +4);
-
-	m_indices.push_back(2 + 4);
-	m_indices.push_back(1 + 4);
-	m_indices.push_back(3 + 4);
+	std::vector<f_t> texture_coordinates;
+	for (int i = 0; i < m_indices.size() / 2; i++) {
+		texture_coordinates.insert(texture_coordinates.end(), arr.begin(), arr.end());
+	}
 
 	glGenVertexArrays(1, &m_vao);
 	glGenBuffers(1, &m_vertices_vbo);
+	glGenBuffers(1, &m_texture_vbo);
 	glGenBuffers(1, &m_ebo);
 	glBindVertexArray(m_vao);
-	basic_shape_color_vector::initialize_buffers();
-
+	basic_shape_color_vector::initialize_buffers(false);
+	m_texture = load_texture("muhde.jpg");
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(m_indices[0]) * m_indices.size(), m_indices.data(), GL_STATIC_DRAW);
+
 	glBindBuffer(GL_ARRAY_BUFFER, m_vertices_vbo);
 	glBufferData(GL_ARRAY_BUFFER, m_vertice_size * m_triangle_vertices.size(), m_triangle_vertices.data(), GL_DYNAMIC_DRAW);
 	glVertexAttribPointer(1, vec3::size(), GL_FLOAT_T, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(1);
+
+	glBindBuffer(GL_ARRAY_BUFFER, m_texture_vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(texture_coordinates[0]) * texture_coordinates.size(), texture_coordinates.data(), GL_STATIC_DRAW);
+	glVertexAttribPointer(2, vec2::size(), GL_FLOAT_T, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(2);
+
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 }
@@ -1422,6 +1443,18 @@ fan_3d::triangle_vertices_t fan_3d::triangle_vector::get_vertices(std::uint64_t 
 	return fan_3d::triangle_vector::m_triangle_vertices[i];
 }
 
+void fan_3d::triangle_vector::edit_data(std::uint64_t i, const triangle_vertices_t& vertices, const Color& color)
+{
+	basic_shape_color_vector::m_color[i] = color;
+	fan_3d::triangle_vector::m_triangle_vertices[i] = vertices;
+
+	glBindBuffer(GL_ARRAY_BUFFER, fan_3d::triangle_vector::m_vertices_vbo);
+	glBufferSubData(GL_ARRAY_BUFFER, fan_3d::triangle_vector::m_vertice_size * i, fan_3d::triangle_vector::m_vertice_size, vertices.data());
+	glBindBuffer(GL_ARRAY_BUFFER, basic_shape_color_vector::color_vbo);
+	glBufferSubData(GL_ARRAY_BUFFER, sizeof(Color) * i, sizeof(Color), color.data());
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
 void fan_3d::triangle_vector::release_queue()
 {
 	basic_shape_color_vector::write_data();
@@ -1432,9 +1465,21 @@ void fan_3d::triangle_vector::draw() {
 	fan_3d::triangle_vector::m_shader.use();
 	fan_3d::triangle_vector::m_shader.set_mat4("projection", fan_3d::frame_projection);
 	fan_3d::triangle_vector::m_shader.set_mat4("view", fan_3d::frame_view);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, m_texture);
+
 	glBindVertexArray(m_vao);
-	glDrawElements(GL_TRIANGLE_STRIP, 6 * fan_3d::triangle_vector::size(), GL_UNSIGNED_INT, 0);
+	glDrawElements(GL_TRIANGLE_STRIP, fan_3d::triangle_vector::size(), GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
+}
+
+void fan_3d::triangle_vector::erase_all()
+{
+	fan_3d::triangle_vector::m_triangle_vertices.clear();
+	basic_shape_color_vector::m_color.clear();
+	basic_shape_color_vector::write_data();
+	write_vbo(m_vertices_vbo, m_triangle_vertices.data(), m_vertice_size * m_triangle_vertices.size());
 }
 
 uint_t fan_3d::triangle_vector::size() {
@@ -1475,7 +1520,7 @@ void fan_3d::square_vector::draw() {
 
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, this->m_texture);
-	
+
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_texture_ssbo);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_texture_id_ssbo);
 
@@ -1577,65 +1622,6 @@ void fan_3d::square_vector::release_queue(bool position, bool size, bool texture
 
 std::vector<float> g_distances(6);
 
-int numX = 512,
-numY = 512,
-numOctaves = 7;
-
-double persistence = 0.5;
-
-#define maxPrimeIndex 10
-int primeIndex = 0;
-
-int primes[maxPrimeIndex][3] = {
-  { 995615039, 600173719, 701464987 },
-  { 831731269, 162318869, 136250887 },
-  { 174329291, 946737083, 245679977 },
-  { 362489573, 795918041, 350777237 },
-  { 457025711, 880830799, 909678923 },
-  { 787070341, 177340217, 593320781 },
-  { 405493717, 291031019, 391950901 },
-  { 458904767, 676625681, 424452397 },
-  { 531736441, 939683957, 810651871 },
-  { 997169939, 842027887, 423882827 }
-};
-
-double Noise(int i, int x, int y) {
-	int n = x + y * 57;
-	n = (n << 13) ^ n;
-	int a = primes[i][0], b = primes[i][1], c = primes[i][2];
-	int t = (n * (n * n * a + b) + c) & 0x7fffffff;
-	return 1.0 - (double)(t) / 1073741824.0;
-}
-
-double SmoothedNoise(int i, int x, int y) {
-	double corners = (Noise(i, x - 1, y - 1) + Noise(i, x + 1, y - 1) +
-		Noise(i, x - 1, y + 1) + Noise(i, x + 1, y + 1)) / 16,
-		sides = (Noise(i, x - 1, y) + Noise(i, x + 1, y) + Noise(i, x, y - 1) +
-			Noise(i, x, y + 1)) / 8,
-		center = Noise(i, x, y) / 4;
-	return corners + sides + center;
-}
-
-double Interpolate(double a, double b, double x) {
-	double ft = x * 3.1415927,
-		f = (1 - cos(ft)) * 0.5;
-	return  a * (1 - f) + b * f;
-}
-
-double InterpolatedNoise(int i, double x, double y) {
-	int integer_X = x;
-	double fractional_X = x - integer_X;
-	int integer_Y = y;
-	double fractional_Y = y - integer_Y;
-
-	double v1 = SmoothedNoise(i, integer_X, integer_Y),
-		v2 = SmoothedNoise(i, integer_X + 1, integer_Y),
-		v3 = SmoothedNoise(i, integer_X, integer_Y + 1),
-		v4 = SmoothedNoise(i, integer_X + 1, integer_Y + 1),
-		i1 = Interpolate(v1, v2, fractional_X),
-		i2 = Interpolate(v3, v4, fractional_X);
-	return Interpolate(i1, i2, fractional_Y);
-}
 
 vec3 line_plane_intersection3d(const da_t<f_t, 2, 3>& line, const da_t<f_t, 4, 3>& square) {
 	const da_t<f_t, 3> n = normalize(cross(square[0] - square[2], square[3] - square[2]));
@@ -1777,19 +1763,6 @@ vec3 intersection_point3d(const vec3& plane_position, const vec3& plane_size, co
 	}
 
 	return vec3(-1);
-}
-
-double ValueNoise_2D(double x, double y) {
-	double total = 0,
-		frequency = pow(2, numOctaves),
-		amplitude = 1;
-	for (int i = 0; i < numOctaves; ++i) {
-		frequency /= 2;
-		amplitude *= persistence;
-		total += InterpolatedNoise((primeIndex + i) % maxPrimeIndex,
-			x / frequency, y / frequency) * amplitude;
-	}
-	return total / frequency;
 }
 
 fan_3d::skybox::skybox(
@@ -2026,8 +1999,8 @@ std::vector<fan_3d::mesh_texture> fan_3d::model_loader::load_material_textures(a
 	return textures;
 }
 
-fan_3d::model::model(const std::string& path, const vec3& position, const vec3& size) 
-	: model_loader(path, size / 2.f), m_shader(fan_3d::shader_paths::model_vs, fan_3d::shader_paths::model_fs), 
+fan_3d::model::model(const std::string& path, const vec3& position, const vec3& size)
+	: model_loader(path, size / 2.f), m_shader(fan_3d::shader_paths::model_vs, fan_3d::shader_paths::model_fs),
 	m_position(position), m_size(size)
 {
 	for (int i = 0; i < this->meshes.size(); i++) {
@@ -2620,7 +2593,7 @@ void fan_gui::text_renderer::render(const std::wstring& text, vec2 position, con
 	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(m_vertices[0][0]) * m_vertices[0].size(), m_vertices[0].data(), GL_DYNAMIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_vertex_ssbo);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-	
+
 	glBindBuffer(GL_ARRAY_BUFFER, m_text_ssbo);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(m_characters[0][0]) * m_characters[0].size(), m_characters[0].data(), GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -2835,7 +2808,7 @@ void fan_gui::font::text_button_vector::set_position(uint64_t i, const vec2& pos
 
 void fan_gui::font::text_button_vector::set_press_callback(int key, const std::function<void()>& function)
 {
-	callback::key.add(key, true, function);
+	//scallback::key.add(key, true, function);
 }
 
 void fan_gui::font::text_button_vector::draw()

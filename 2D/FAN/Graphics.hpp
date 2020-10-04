@@ -143,7 +143,8 @@ protected:
 
 	void initialize_buffers();
 
-	void basic_draw(unsigned int mode, std::uint64_t count, std::uint64_t primcount);
+	void basic_draw(unsigned int mode, std::uint64_t count, std::uint64_t primcount, std::uint64_t i = -1);
+
 
 	unsigned int vao;
 	unsigned int position_vbo;
@@ -172,7 +173,7 @@ protected:
 
 	void write_data();
 
-	void initialize_buffers();
+	void initialize_buffers(bool divisor = true);
 
 	unsigned int color_vbo;
 
@@ -401,7 +402,7 @@ namespace fan_2d {
 		void push_back(const vec2& position, const vec2& size, const Color& color, bool queue = false);
 		void erase(uint_t i);
 
-		void draw();
+		void draw(std::uint64_t i = -1);
 
 		std::vector<mat2x2> get_icorners() const;
 
@@ -500,12 +501,12 @@ namespace fan_3d {
 
 	};
 
-	struct triangle_vertices_t {
-		vec3 first;
-		vec3 second;
-		vec3 third;
-		vec3 fourth;
-	};
+	using triangle_vertices_t = vec3;
+	//struct triangle_vertices_t {
+	//	vec3 first;
+	//	vec3 second;
+	//	vec3 third;
+	//};
 
 	class triangle_vector : public basic_shape_color_vector {
 	public:
@@ -516,9 +517,13 @@ namespace fan_3d {
 
 		triangle_vertices_t get_vertices(std::uint64_t i);
 
+		void edit_data(std::uint64_t i, const triangle_vertices_t& vertices, const Color& color);
+
 		void release_queue();
 
 		void draw();
+
+		void erase_all();
 
 		uint_t size();
 
@@ -530,12 +535,15 @@ namespace fan_3d {
 			0,2,1,2, 1, 3
 		};	
 
+
+		uint_t m_texture;
+		uint_t m_texture_vbo;
 		uint_t m_vao;
 		uint_t m_vertices_vbo;
 		uint_t m_ebo;
 		std::vector<triangle_vertices_t> m_triangle_vertices;
 		std::vector<unsigned int> m_indices;
-		static constexpr auto m_vertice_size = sizeof(decltype(m_triangle_vertices)::value_type);
+		static constexpr auto m_vertice_size = sizeof(triangle_vertices_t);
 	};
 
 	class square_vector : public basic_shape_vector<vec3> {
@@ -722,7 +730,77 @@ vec3 intersection_point3d(const vec3& plane_position, const vec3& plane_size, co
 
 vec3 line_plane_intersection3d(const da_t<f_t, 2, 3>& line, const da_t<f_t, 4, 3>& square);
 
-double ValueNoise_2D(double x, double y);
+#define maxPrimeIndex 10
+inline int primeIndex = 0;
+
+constexpr int numOctaves = 7;
+
+constexpr int primes[maxPrimeIndex][3] = {
+  { 995615039, 600173719, 701464987 },
+  { 831731269, 162318869, 136250887 },
+  { 174329291, 946737083, 245679977 },
+  { 362489573, 795918041, 350777237 },
+  { 457025711, 880830799, 909678923 },
+  { 787070341, 177340217, 593320781 },
+  { 405493717, 291031019, 391950901 },
+  { 458904767, 676625681, 424452397 },
+  { 531736441, 939683957, 810651871 },
+  { 997169939, 842027887, 423882827 }
+};
+
+inline double persistence = 0.5;
+
+constexpr double Noise(int i, int x, int y) {
+	int n = x + y * 57;
+	n = (n << 13) ^ n;
+	int a = primes[i][0], b = primes[i][1], c = primes[i][2];
+	int t = (n * (n * n * a + b) + c) & 0x7fffffff;
+	return 1.0 - (double)(t) / 1073741824.0;
+}
+
+constexpr double SmoothedNoise(int i, int x, int y) {
+	double corners = (Noise(i, x - 1, y - 1) + Noise(i, x + 1, y - 1) +
+		Noise(i, x - 1, y + 1) + Noise(i, x + 1, y + 1)) / 16,
+		sides = (Noise(i, x - 1, y) + Noise(i, x + 1, y) + Noise(i, x, y - 1) +
+			Noise(i, x, y + 1)) / 8,
+		center = Noise(i, x, y) / 4;
+	return corners + sides + center;
+}
+
+inline double Interpolate(double a, double b, double x) {
+	double ft = x * 3.1415927,
+		f = (1 - cos(ft)) * 0.5;
+	return  a * (1 - f) + b * f;
+}
+
+inline double InterpolatedNoise(int i, double x, double y) {
+	int integer_X = x;
+	double fractional_X = x - integer_X;
+	int integer_Y = y;
+	double fractional_Y = y - integer_Y;
+
+	double v1 = SmoothedNoise(i, integer_X, integer_Y),
+		v2 = SmoothedNoise(i, integer_X + 1, integer_Y),
+		v3 = SmoothedNoise(i, integer_X, integer_Y + 1),
+		v4 = SmoothedNoise(i, integer_X + 1, integer_Y + 1),
+		i1 = Interpolate(v1, v2, fractional_X),
+		i2 = Interpolate(v3, v4, fractional_X);
+	return Interpolate(i1, i2, fractional_Y);
+}
+
+
+inline double ValueNoise_2D(double x, double y) {
+	double total = 0,
+		frequency = pow(2, numOctaves),
+		amplitude = 1;
+	for (int i = 0; i < numOctaves; ++i) {
+		frequency /= 2;
+		amplitude *= persistence;
+		total += InterpolatedNoise((primeIndex + i) % maxPrimeIndex,
+			x / frequency, y / frequency) * amplitude;
+	}
+	return total / frequency;
+}
 
 struct hash_vector_operators {
 	size_t operator()(const vec3& k) const {
