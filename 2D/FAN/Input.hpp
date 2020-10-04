@@ -67,26 +67,6 @@ private:
 	std::vector<std::vector<std::any>> parameters;
 };
 
-class parameter_callback {
-public:
-
-	template <typename function_type, typename ...Args>
-	void add(const std::function<function_type(Args...)>& function) {
-		functions.push_back((void*)&function);
-	}
-
-	auto get_function(uint64_t i) const {
-		return functions[i];
-	}
-
-	uint64_t size() const {
-		return functions.size();
-	}
-
-private:
-	std::vector<void*> functions;
-};
-
 class KeyCallback {
 public:
 

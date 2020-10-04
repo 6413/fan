@@ -2,47 +2,18 @@
 
 int main() {
 
-	vec2 sizes[] = { 10, 50, 100, 200 };
+    fan_2d::square_vector s;
 
-	fan_2d::square player(window_size / 2, sizes[random(0, std::size(sizes) - 1)], Color::rgb(0, 0, 255));
+    s.push_back(vec2(10, 10), vec2(10, 10), Color(1, 0, 0));
+    s.push_back(vec2(100, 100), vec2(100, 100), Color(0, 0, 1));
 
-	fan_2d::square_vector walls;
-	for (int i = 0; i < 20; i++) {
-		vec2 position(random(0, window_size.x), random(0, window_size.y));
-		vec2 size(random(10, 200), random(10, 200));
-		if (!rectangles_collide(player.get_position(), player.get_size(), position, size)) {
-			walls.push_back(position, size, random_color());
-		}
-	}
+    fan_window_loop() {
+        begin_render(Color::rgb(0, 0, 0));
 
-	callback::key.add(GLFW_KEY_R, true, [&] {
-		while (!walls.empty()) {
-			walls.erase(0);
-		}
-		player.set_size(sizes[random(0, std::size(sizes) - 1)]);
-		for (int i = 0; i < 30; i++) {
-			vec2 position(random(0, window_size.x), random(0, window_size.y));
-			vec2 size(random(10, 200), random(10, 200));
-			if (!rectangles_collide(player.get_position(), player.get_size(), position, size)) {
-				walls.push_back(position, size, random_color());
-			}
-		}
-		});
+        s.draw(0);
 
-	fan_window_loop() {
-		begin_render(Color::rgb(0, 0, 0));
+        end_render();
+    }
 
-		vec2 old_position = player.get_position();
-
-		player.move(100, 0, 0, 10);
-
-		rectangle_collision_2d(player, old_position, walls);
-
-		player.draw();
-		walls.draw();
-
-		end_render();
-	}
-
-	return 0;
+    return 0;
 }

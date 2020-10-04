@@ -31,7 +31,7 @@ void callback::glfwKeyCallback(GLFWwindow* window, int key, int scancode, int ac
 	for (int i = 0; i < callback::key.size(); i++) {
 		if (key == callback::key.get_key(i)) {
 			if (callback::key.get_action(i)) {
-				if (callback::key.get_action(i) == static_cast<bool>(action)) {
+				if (callback::key.get_action(i) == action) {
 					callback::key.get_function(i)();
 				}
 			}
@@ -59,7 +59,7 @@ void callback::MouseButtonCallback(GLFWwindow* window, int button, int action, i
 	for (int i = 0; i < callback::key.size(); i++) {
 		if (button == callback::key.get_key(i)) {
 			if (callback::key.get_action(i)) {
-				if (callback::key.get_action(i) == static_cast<bool>(action)) {
+				if (callback::key.get_action(i) == action) {
 					callback::key.get_function(i)();
 				}
 			}
