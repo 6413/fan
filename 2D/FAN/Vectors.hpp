@@ -1343,12 +1343,17 @@ using mat2 = mat2x2;
 using mat3 = mat3x3;
 using mat4 = mat4x4;
 
-using vec2 = _vec2<f_t>;
-using vec3 = _vec3<f_t>;
-using vec4 = _vec4<f_t>;
 using vec2i = _vec2<int>;
 using vec3i = _vec3<int>;
 using vec4i = _vec4<int>;
+
+using vec2f = _vec2<f_t>;
+using vec3f = _vec3<f_t>;
+using vec4f = _vec4<f_t>;
+
+using vec2 = vec2f;
+using vec3 = vec3f;
+using vec4 = vec4f;
 
 class Color {
 public:
