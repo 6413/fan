@@ -508,11 +508,12 @@ namespace fan_3d {
 	//	vec3 third;
 	//};
 
-	class triangle_vector : public basic_shape_color_vector {
+	class terrain_generator : public basic_shape_color_vector {
 	public:
 
-		triangle_vector();
+		terrain_generator(const vec2& map_size);
 
+		void insert(const std::vector<triangle_vertices_t>& vertices, const std::vector<Color>& color, bool queue = false);
 		void push_back(const triangle_vertices_t& vertices, const Color& color, bool queue = false);
 
 		triangle_vertices_t get_vertices(std::uint64_t i);
@@ -531,11 +532,6 @@ namespace fan_3d {
 
 		Shader m_shader;
 
-		static constexpr unsigned int m_base_indices[] = {
-			0,2,1,2, 1, 3
-		};	
-
-
 		uint_t m_texture;
 		uint_t m_texture_vbo;
 		uint_t m_vao;
@@ -544,6 +540,7 @@ namespace fan_3d {
 		std::vector<triangle_vertices_t> m_triangle_vertices;
 		std::vector<unsigned int> m_indices;
 		static constexpr auto m_vertice_size = sizeof(triangle_vertices_t);
+
 	};
 
 	class square_vector : public basic_shape_vector<vec3> {

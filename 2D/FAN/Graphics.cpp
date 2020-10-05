@@ -1363,22 +1363,35 @@ void fan_3d::line_vector::release_queue(bool position, bool color)
 	}
 }
 
-fan_3d::triangle_vector::triangle_vector()
+fan_3d::terrain_generator::terrain_generator(const vec2& map_size)
 	: m_shader(fan_3d::shader_paths::triangle_vector_vs, fan_3d::shader_paths::triangle_vector_fs)
 {
-	int width = 100;
-	int height = 500;
-	for (int i = 0; i < width * height; i++) {
-		if (i && !(i % (width))) {
-			for (int j = 0; j < width; j++) {
-				m_indices.push_back(i + width - j - 1);
-				if (j - 1 != width) {
-					m_indices.push_back(i + width - j - 1);
-				}
-			}
+
+	vec2 indices_size(map_size.x + 1, map_size.y);
+	unsigned int last = 0;
+
+	auto row_traceback = [&] {
+		for (int j = 0; j < indices_size.x; j++) {
+			m_indices.push_back(last - j);
+			m_indices.push_back(last - j);
 		}
-		m_indices.push_back(i);
-		m_indices.push_back(i + width);
+	};
+
+	for (int j = 0; j < indices_size.y; j++) {
+		for (int i = 0; i < indices_size.x; i++) {
+			m_indices.push_back(i + j * indices_size.x);
+			m_indices.push_back(i + indices_size.x + j * indices_size.x);
+		}
+		last = m_indices[m_indices.size() - 1];
+		row_traceback();
+	}
+
+	last = m_indices[m_indices.size() - 1];
+
+	// column traceback
+	for (int j = 1; j < map_size.y; j++) {
+		m_indices.push_back(last - j * indices_size.x);
+		m_indices.push_back(last - j * indices_size.x);
 	}
 
 	std::array<f_t, 8> arr = {
@@ -1417,18 +1430,20 @@ fan_3d::triangle_vector::triangle_vector()
 	glBindVertexArray(0);
 }
 
-void fan_3d::triangle_vector::push_back(const triangle_vertices_t& vertices, const Color& color, bool queue) {
+void fan_3d::terrain_generator::insert(const std::vector<triangle_vertices_t>& vertices, const std::vector<Color>& color, bool queue)
+{
+	fan_3d::terrain_generator::m_triangle_vertices.insert(fan_3d::terrain_generator::m_triangle_vertices.end(), vertices.begin(), vertices.end());
 
-	/*for (auto i : m_base_indices) {
-		LOG(i + 4 * fan_3d::triangle_vector::size());
-		m_indices.push_back(i + 4 * fan_3d::triangle_vector::size());
+	basic_shape_color_vector::m_color.insert(basic_shape_color_vector::m_color.end(), color.begin(), color.end());
+
+	if (!queue) {
+		basic_shape_color_vector::write_data();
+		write_vbo(m_vertices_vbo, m_triangle_vertices.data(), m_vertice_size * m_triangle_vertices.size());
 	}
+}
 
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(m_indices[0]) * m_indices.size(), m_indices.data(), GL_STATIC_DRAW);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);*/
-
-	fan_3d::triangle_vector::m_triangle_vertices.push_back(vertices);
+void fan_3d::terrain_generator::push_back(const triangle_vertices_t& vertices, const Color& color, bool queue) {
+	fan_3d::terrain_generator::m_triangle_vertices.push_back(vertices);
 
 	std::fill_n(std::back_inserter(basic_shape_color_vector::m_color), 4, color);
 
@@ -1438,52 +1453,52 @@ void fan_3d::triangle_vector::push_back(const triangle_vertices_t& vertices, con
 	}
 }
 
-fan_3d::triangle_vertices_t fan_3d::triangle_vector::get_vertices(std::uint64_t i)
+fan_3d::triangle_vertices_t fan_3d::terrain_generator::get_vertices(std::uint64_t i)
 {
-	return fan_3d::triangle_vector::m_triangle_vertices[i];
+	return fan_3d::terrain_generator::m_triangle_vertices[i];
 }
 
-void fan_3d::triangle_vector::edit_data(std::uint64_t i, const triangle_vertices_t& vertices, const Color& color)
+void fan_3d::terrain_generator::edit_data(std::uint64_t i, const triangle_vertices_t& vertices, const Color& color)
 {
 	basic_shape_color_vector::m_color[i] = color;
-	fan_3d::triangle_vector::m_triangle_vertices[i] = vertices;
+	fan_3d::terrain_generator::m_triangle_vertices[i] = vertices;
 
-	glBindBuffer(GL_ARRAY_BUFFER, fan_3d::triangle_vector::m_vertices_vbo);
-	glBufferSubData(GL_ARRAY_BUFFER, fan_3d::triangle_vector::m_vertice_size * i, fan_3d::triangle_vector::m_vertice_size, vertices.data());
+	glBindBuffer(GL_ARRAY_BUFFER, fan_3d::terrain_generator::m_vertices_vbo);
+	glBufferSubData(GL_ARRAY_BUFFER, fan_3d::terrain_generator::m_vertice_size * i, fan_3d::terrain_generator::m_vertice_size, vertices.data());
 	glBindBuffer(GL_ARRAY_BUFFER, basic_shape_color_vector::color_vbo);
 	glBufferSubData(GL_ARRAY_BUFFER, sizeof(Color) * i, sizeof(Color), color.data());
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void fan_3d::triangle_vector::release_queue()
+void fan_3d::terrain_generator::release_queue()
 {
 	basic_shape_color_vector::write_data();
 	write_vbo(m_vertices_vbo, m_triangle_vertices.data(), m_vertice_size * m_triangle_vertices.size());
 }
 
-void fan_3d::triangle_vector::draw() {
-	fan_3d::triangle_vector::m_shader.use();
-	fan_3d::triangle_vector::m_shader.set_mat4("projection", fan_3d::frame_projection);
-	fan_3d::triangle_vector::m_shader.set_mat4("view", fan_3d::frame_view);
+void fan_3d::terrain_generator::draw() {
+	fan_3d::terrain_generator::m_shader.use();
+	fan_3d::terrain_generator::m_shader.set_mat4("projection", fan_3d::frame_projection);
+	fan_3d::terrain_generator::m_shader.set_mat4("view", fan_3d::frame_view);
 
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, m_texture);
 
 	glBindVertexArray(m_vao);
-	glDrawElements(GL_TRIANGLE_STRIP, fan_3d::triangle_vector::size(), GL_UNSIGNED_INT, 0);
+	glDrawElements(GL_TRIANGLE_STRIP, 3*fan_3d::terrain_generator::size(), GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
 }
 
-void fan_3d::triangle_vector::erase_all()
+void fan_3d::terrain_generator::erase_all()
 {
-	fan_3d::triangle_vector::m_triangle_vertices.clear();
+	fan_3d::terrain_generator::m_triangle_vertices.clear();
 	basic_shape_color_vector::m_color.clear();
 	basic_shape_color_vector::write_data();
 	write_vbo(m_vertices_vbo, m_triangle_vertices.data(), m_vertice_size * m_triangle_vertices.size());
 }
 
-uint_t fan_3d::triangle_vector::size() {
-	return fan_3d::triangle_vector::m_triangle_vertices.size();
+uint_t fan_3d::terrain_generator::size() {
+	return fan_3d::terrain_generator::m_triangle_vertices.size();
 }
 
 fan_3d::square_vector::square_vector(const std::string& path, std::uint64_t block_size)
