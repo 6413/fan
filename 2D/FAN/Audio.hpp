@@ -2,8 +2,8 @@
 #include <AL/al.h>
 #include <AL/alc.h>
 
-#include <FAN/Vectors.hpp>
-#include <FAN/File.hpp>
+#include <FAN/t.hpp>
+#include <FAN/file.hpp>
 
 const std::string temp_audio_file = "sounds/temp.raw";
 const std::string audio_info = " -f s16le -ar 44100 -ac 1 -acodec pcm_s16le ";
@@ -33,11 +33,11 @@ public:
 
 		audio::load_audio(file);
 
-		da_t<f_t, 3> source_position(0, 0, 0);
-		da_t<f_t, 3> source_velocity(0, 0, 0);
-		da_t<f_t, 3> listener_position(0, 0, 0);
-		da_t<f_t, 3> listener_velocity(-10, -10, 0);
-		da_t<f_t, 3, 2> listener_orientation(0, 0, -1, 0, 1, 0);
+		da_t<f32_t, 3> source_position(0, 0, 0);
+		da_t<f32_t, 3> source_velocity(0, 0, 0);
+		da_t<f32_t, 3> listener_position(0, 0, 0);
+		da_t<f32_t, 3> listener_velocity(-10, -10, 0);
+		da_t<f32_t, 3, 2> listener_orientation(0, 0, -1, 0, 1, 0);
 
 		alSourcei(source, AL_SOURCE_RELATIVE, AL_TRUE);
 
@@ -102,11 +102,11 @@ public:
 		alSourceStop(source);
 	}
 
-	void set_position(const da_t<f_t, 3>& position) const {
+	void set_position(const da_t<f32_t, 3>& position) const {
 		alSourcefv(source, AL_POSITION, position.data());
 	}
 
-	void set_velocity(const da_t<f_t, 3>& velocity) const {
+	void set_velocity(const da_t<f32_t, 3>& velocity) const {
 		alSourcefv(source, AL_VELOCITY, velocity.data());
 	}
 

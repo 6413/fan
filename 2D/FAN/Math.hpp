@@ -2,7 +2,8 @@
 #ifdef _MSC_VER
 #pragma warning (disable : 4244)
 #endif
-#include "Vectors.hpp"
+
+#include <FAN/t.h>
 
 #include <cfloat>
 #include <random>

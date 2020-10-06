@@ -1,4 +1,4 @@
-﻿#include <FAN/Graphics.hpp>
+﻿#include <FAN/graphics.hpp>
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -55,7 +55,7 @@ Camera::Camera(vec3 position, vec3 up, float yaw, float pitch) : front(vec3(0.0f
 	this->update_vectors();
 }
 
-void Camera::move(bool noclip, f_t movement_speed)
+void Camera::move(bool noclip, f32_t movement_speed)
 {
 	constexpr double accel = -40;
 
@@ -209,6 +209,65 @@ int load_texture(const std::string_view path, const std::string& directory, bool
 	return texture_id;
 }
 
+void fan_2d::move_object(vec2& position, vec2& velocity, f32_t speed, f32_t gravity, f32_t jump_force, f32_t friction) {
+	if (gravity != 0) {
+		if (glfwGetKey(window, GLFW_KEY_SPACE) && is_colliding) { // AND COLLIDING
+			velocity.y = jump_force;
+		}
+		else {
+			velocity.y += gravity * delta_time;
+		}
+	}
+
+	speed *= 100;
+
+	static constexpr auto minimum_velocity = 0.001;
+	if (velocity.x < minimum_velocity && velocity.x > -minimum_velocity) {
+		velocity.x = 0;
+	}
+	if (velocity.y < minimum_velocity && velocity.y > -minimum_velocity) {
+		velocity.y = 0;
+	}
+
+	if (gravity != 0) {
+		velocity.x /= friction * delta_time + 1;
+	}
+	else {
+		velocity /= friction * delta_time + 1;
+	}
+
+	if (key_press(GLFW_KEY_W)) {
+		velocity.y -= speed * delta_time;
+	}
+	if (key_press(GLFW_KEY_S)) {
+		velocity.y += speed * delta_time;
+	}
+	if (key_press(GLFW_KEY_A)) {
+		velocity.x -= speed * delta_time;
+	}
+	if (key_press(GLFW_KEY_D)) {
+		velocity.x += speed * delta_time;
+	}
+	if constexpr (std::is_same<decltype(velocity.x), f32_t>::value) {
+		if (velocity.x >= FLT_MAX) {
+			velocity.x = FLT_MAX;
+		}
+		if (velocity.y >= FLT_MAX) {
+			velocity.y = FLT_MAX;
+		}
+	}
+	else {
+		if (velocity.x >= DBL_MAX) {
+			velocity.x = DBL_MAX;
+		}
+		if (velocity.y >= DBL_MAX) {
+			velocity.y = DBL_MAX;
+		}
+	}
+	position += velocity * delta_time;
+}
+
+
 fan_2d::basic_single_shape::basic_single_shape()
 {
 	glGenVertexArrays(1, &vao);
@@ -262,63 +321,9 @@ void fan_2d::basic_single_shape::basic_draw(GLenum mode, GLsizei count)
 	glBindVertexArray(0);
 }
 
-void fan_2d::basic_single_shape::move(f_t speed, f_t gravity, f_t jump_force, f_t friction)
+void fan_2d::basic_single_shape::move(f32_t speed, f32_t gravity, f32_t jump_force, f32_t friction)
 {
-	if (gravity != 0) {
-		if (glfwGetKey(window, GLFW_KEY_SPACE) && is_colliding) { // AND COLLIDING
-			this->velocity.y = jump_force;
-		}
-		else {
-			this->velocity.y += gravity * delta_time;
-		}
-	}
-
-	speed *= 100;
-
-	static constexpr auto minimum_velocity = 0.001;
-	if (velocity.x < minimum_velocity && velocity.x > -minimum_velocity) {
-		velocity.x = 0;
-	}
-	if (velocity.y < minimum_velocity && velocity.y > -minimum_velocity) {
-		velocity.y = 0;
-	}
-
-	if (gravity != 0) {
-		velocity.x /= friction * delta_time + 1;
-	}
-	else {
-		velocity /= friction * delta_time + 1;
-	}
-
-	if (key_press(GLFW_KEY_W)) {
-		velocity.y -= speed * delta_time;
-	}
-	if (key_press(GLFW_KEY_S)) {
-		velocity.y += speed * delta_time;
-	}
-	if (key_press(GLFW_KEY_A)) {
-		velocity.x -= speed * delta_time;
-	}
-	if (key_press(GLFW_KEY_D)) {
-		velocity.x += speed * delta_time;
-	}
-	if constexpr (std::is_same<decltype(velocity.x), f_t>::value) {
-		if (velocity.x >= FLT_MAX) {
-			velocity.x = FLT_MAX;
-		}
-		if (velocity.y >= FLT_MAX) {
-			velocity.y = FLT_MAX;
-		}
-	}
-	else {
-		if (velocity.x >= DBL_MAX) {
-			velocity.x = DBL_MAX;
-		}
-		if (velocity.y >= DBL_MAX) {
-			velocity.y = DBL_MAX;
-		}
-	}
-	position += velocity * delta_time;
+	fan_2d::move_object(this->position, this->velocity, speed, gravity, jump_force, friction);
 }
 
 bool fan_2d::basic_single_shape::inside() const
@@ -384,6 +389,11 @@ fan_2d::square::square(const vec2& position, const vec2& size, const Color& colo
 		Shader(shader_paths::single_shapes_path_vs, shader_paths::single_shapes_path_fs),
 		position, size
 	), fan_2d::basic_single_color(color) {}
+
+vec2 fan_2d::square::center() const
+{
+	return fan_2d::square::position - fan_2d::square::size / 2;
+}
 
 void fan_2d::square::draw()
 {
@@ -683,12 +693,12 @@ void fan_2d::sprite::draw()
 	fan_2d::basic_single_shape::basic_draw(GL_TRIANGLES, 6);
 }
 
-f_t fan_2d::sprite::get_rotation()
+f32_t fan_2d::sprite::get_rotation()
 {
 	return this->m_rotation;
 }
 
-void fan_2d::sprite::set_rotation(f_t degrees)
+void fan_2d::sprite::set_rotation(f32_t degrees)
 {
 	this->m_rotation = degrees;
 }
@@ -846,6 +856,13 @@ template<typename _Vector>
 std::vector<_Vector> basic_shape_vector<_Vector>::get_positions() const
 {
 	return this->m_position;
+}
+
+template<typename _Vector>
+void basic_shape_vector<_Vector>::set_positions(const std::vector<_Vector>& positions)
+{
+	this->m_position.clear();
+	this->m_position.insert(this->m_position.begin(), positions.begin(), positions.end());
 }
 
 template <typename _Vector>
@@ -1160,9 +1177,19 @@ fan_2d::square_vector::square_vector(const vec2& position, const vec2& size, con
 	basic_shape_vector::initialize_buffers();
 
 	m_icorners.push_back(mat2x2(position, position + size));
+	this->m_velocity.resize(1);
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
+}
+
+fan_2d::square fan_2d::square_vector::construct(uint_t i)
+{
+	return fan_2d::square(
+		fan_2d::square_vector::m_position[i], 
+		fan_2d::square_vector::m_size[i], 
+		fan_2d::square_vector::m_color[i]
+	);
 }
 
 void fan_2d::square_vector::release_queue(bool position, bool size, bool color)
@@ -1182,6 +1209,7 @@ void fan_2d::square_vector::push_back(const vec2& position, const vec2& size, co
 {
 	basic_shape_vector::basic_push_back(position, size, queue);
 	m_color.push_back(color);
+	this->m_velocity.push_back(vec2());
 
 	m_icorners.push_back(mat2x2(position, position + size));
 
@@ -1206,10 +1234,27 @@ void fan_2d::square_vector::draw(std::uint64_t i)
 	basic_shape_vector::basic_draw(GL_TRIANGLES, 6, size(), i);
 }
 
+vec2 fan_2d::square_vector::center(uint_t i) const
+{
+	return fan_2d::square_vector::m_position[i] - fan_2d::square_vector::m_size[i] / 2;
+}
+
 std::vector<mat2x2> fan_2d::square_vector::get_icorners() const
 {
 
 	return fan_2d::square_vector::m_icorners;
+}
+
+void fan_2d::square_vector::move(uint_t i, f32_t speed, f32_t gravity, f32_t jump_force, f32_t friction)
+{
+	move_object(this->m_position[i], this->m_velocity[i], speed, gravity, jump_force, friction);
+	glBindBuffer(GL_ARRAY_BUFFER, position_vbo);
+	vec2 data;
+	glGetBufferSubData(GL_ARRAY_BUFFER, sizeof(vec2) * i, sizeof(vec2), data.data());
+	if (data != this->m_position[i]) {
+		glBufferSubData(GL_ARRAY_BUFFER, sizeof(vec2) * i, sizeof(vec2), this->m_position[i].data());
+	}
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 fan_2d::sprite_vector::sprite_vector()
@@ -1394,14 +1439,14 @@ fan_3d::terrain_generator::terrain_generator(const vec2& map_size)
 		m_indices.push_back(last - j * indices_size.x);
 	}
 
-	std::array<f_t, 8> arr = {
+	std::array<f32_t, 8> arr = {
 		0, 0,
 		1, 0,
 		0, 1,
 		1, 1
 	};
 
-	std::vector<f_t> texture_coordinates;
+	std::vector<f32_t> texture_coordinates;
 	for (int i = 0; i < m_indices.size() / 2; i++) {
 		texture_coordinates.insert(texture_coordinates.end(), arr.begin(), arr.end());
 	}
@@ -1638,15 +1683,15 @@ void fan_3d::square_vector::release_queue(bool position, bool size, bool texture
 std::vector<float> g_distances(6);
 
 
-vec3 line_plane_intersection3d(const da_t<f_t, 2, 3>& line, const da_t<f_t, 4, 3>& square) {
-	const da_t<f_t, 3> n = normalize(cross(square[0] - square[2], square[3] - square[2]));
-	const f_t nl_dot(dot(n, line[1]));
+vec3 line_plane_intersection3d(const da_t<f32_t, 2, 3>& line, const da_t<f32_t, 4, 3>& square) {
+	const da_t<f32_t, 3> n = normalize(cross(square[0] - square[2], square[3] - square[2]));
+	const f32_t nl_dot(dot(n, line[1]));
 
 	if (!nl_dot) {
 		return vec3(INFINITY);
 	}
 
-	const f_t d = dot(square[2] - line[0], n) / nl_dot;
+	const f32_t d = dot(square[2] - line[0], n) / nl_dot;
 	if (d <= 0) {
 		return vec3(INFINITY);
 	}
@@ -1667,13 +1712,13 @@ vec3 line_plane_intersection3d(const da_t<f_t, 2, 3>& line, const da_t<f_t, 4, 3
 //	const vec3 a = (p0 + vec3(0, plane_size.y, 0));
 //	const vec3 b = (p0 + vec3(0, 0, plane_size.x));
 //	const vec3 n = normalize(cross(a - p0, b - p0));
-//	const f_t nl_dot(dot(n, direction));
+//	const f32_t nl_dot(dot(n, direction));
 //
 //	if (!nl_dot) {
 //		return vec3(-1);
 //	}
 //
-//	const f_t d = dot(p0 - position, n) / nl_dot;
+//	const f32_t d = dot(p0 - position, n) / nl_dot;
 //	if (d <= 0) {
 //		return vec3(INFINITY);
 //	}
@@ -1830,7 +1875,7 @@ fan_3d::skybox::~skybox() {
 //	mat4 projection(1);
 //
 //	view = mat4(mat3(camera->get_view_matrix()));
-//	projection = perspective(radians(90.f), (f_t)window_size.x / (f_t)window_size.y, 0.1f, 1000.0f);
+//	projection = perspective(radians(90.f), (f32_t)window_size.x / (f32_t)window_size.y, 0.1f, 1000.0f);
 //
 //	shader.set_mat4("view", view);
 //	shader.set_mat4("projection", projection);
@@ -2106,7 +2151,7 @@ void GetFps(bool title, bool print) {
 	fan_3d::frame_view = fan_3d::camera.get_view_matrix();
 
 	fan_3d::frame_projection = mat4(1);
-	fan_3d::frame_projection = perspective(radians(90.f), (f_t)window_size.x / (f_t)window_size.y, 0.1f, 1000000.0f);
+	fan_3d::frame_projection = perspective(radians(90.f), (f32_t)window_size.x / (f32_t)window_size.y, 0.1f, 1000000.0f);
 
 	if (timer.finished()) {
 		old_fps = fps - 1;
@@ -2116,7 +2161,7 @@ void GetFps(bool title, bool print) {
 				std::string("FPS: ") +
 				std::to_string(old_fps) +
 				std::string(" frame time: ") +
-				std::to_string(static_cast<f_t>(frame_time.elapsed()) / static_cast<f_t>(1000)) +
+				std::to_string(static_cast<f32_t>(frame_time.elapsed()) / static_cast<f32_t>(1000)) +
 				std::string(" ms")
 				).c_str());
 		}
@@ -2124,7 +2169,7 @@ void GetFps(bool title, bool print) {
 			std::cout << (std::string("FPS: ") +
 				std::to_string(old_fps) +
 				std::string(" frame time: ") +
-				std::to_string(static_cast<f_t>(frame_time.elapsed()) / static_cast<f_t>(1000)) +
+				std::to_string(static_cast<f32_t>(frame_time.elapsed()) / static_cast<f32_t>(1000)) +
 				std::string(" ms")
 				) << '\n';
 		}
@@ -2212,7 +2257,7 @@ void suckless_letter_render(suckless_font_t* font) {
 constexpr auto characters_begin(33);
 constexpr auto characters_end(248);
 
-std::array<f_t, 248> fan_gui::text_renderer::widths;
+std::array<f32_t, 248> fan_gui::text_renderer::widths;
 suckless_font_t fan_gui::text_renderer::font;
 
 fan_gui::text_renderer::text_renderer()
@@ -2276,7 +2321,7 @@ fan_gui::text_renderer::text_renderer()
 		_letter = infos[text[i]];
 		widths[i + 33] = infos[text[i]].width / font_size;
 		letter_info_opengl_t letter = letter_to_opengl(font, _letter);
-		f_t height = letter.pos.y + ((f_t)font.fontsize / font.datasize);
+		f32_t height = letter.pos.y + ((f32_t)font.fontsize / font.datasize);
 
 		texture_coordinates.push_back(vec2(letter.pos.x, letter.pos.y));
 		texture_coordinates.push_back(vec2(letter.pos.x, height));
@@ -2340,20 +2385,20 @@ void fan_gui::text_renderer::realloc_storage(const std::vector<std::wstring>& ve
 	}
 }
 
-void fan_gui::text_renderer::store_to_renderer(std::wstring& text, vec2 position, const Color& color, f_t scale, f_t max_width)
+void fan_gui::text_renderer::store_to_renderer(std::wstring& text, vec2 position, const Color& color, f32_t scale, f32_t max_width)
 {
 	m_characters.resize(m_characters.size() + 1);
 	m_vertices.resize(m_vertices.size() + 1);
 	m_characters[m_characters.size() - 1].resize(text.size());
 
-	f_t width = 0;
-	f_t begin = position.x;
+	f32_t width = 0;
+	f32_t begin = position.x;
 
 	for (int i = 0; i < text.size(); i++) {
 		emplace_vertex_data(m_vertices[m_vertices.size() - 1], position, vec2(widths[text[i]] * scale, scale));
 
 		if (max_width != -1) {
-			f_t next_step = 0;
+			f32_t next_step = 0;
 
 			switch (text[i]) {
 			case ' ': {
@@ -2406,14 +2451,14 @@ void fan_gui::text_renderer::store_to_renderer(std::wstring& text, vec2 position
 	}
 }
 
-void fan_gui::text_renderer::edit_storage(uint64_t i, const std::wstring& text, vec2 position, const Color& color, f_t scale)
+void fan_gui::text_renderer::edit_storage(uint64_t i, const std::wstring& text, vec2 position, const Color& color, f32_t scale)
 {
 	m_vertices[i].clear();
 	m_characters[i].resize(text.size());
 	m_colors[i].resize(text.size());
 
-	f_t width = 0;
-	f_t begin = position.x;
+	f32_t width = 0;
+	f32_t begin = position.x;
 
 	for (int character = 0; character < text.size(); character++) {
 		emplace_vertex_data(m_vertices[i], position, vec2(widths[text[character]] * scale, scale));
@@ -2518,11 +2563,11 @@ void fan_gui::text_renderer::render_stored()
 	glBindVertexArray(0);
 }
 
-void fan_gui::text_renderer::set_scale(uint64_t i, f_t scale, vec2 position)
+void fan_gui::text_renderer::set_scale(uint64_t i, f32_t scale, vec2 position)
 {
 	m_vertices[i].clear();
 
-	f_t begin = position.x;
+	f32_t begin = position.x;
 
 	for (int index = 0; index < m_characters[i].size(); index++) {
 
@@ -2552,13 +2597,13 @@ void fan_gui::text_renderer::clear_storage()
 	m_characters.clear();
 }
 
-void fan_gui::text_renderer::render(const std::wstring& text, vec2 position, const Color& color, f_t scale, bool use_old) {
+void fan_gui::text_renderer::render(const std::wstring& text, vec2 position, const Color& color, f32_t scale, bool use_old) {
 	static std::wstring old_str;
 
 	m_shader.use();
 	m_shader.set_mat4("projection", ortho(0, window_size.x, window_size.y, 0));
 
-	f_t begin = position.x;
+	f32_t begin = position.x;
 
 	if (use_old && old_str == text) {
 		goto draw;
@@ -2632,13 +2677,13 @@ draw:
 	glBindVertexArray(0);
 }
 
-vec2 fan_gui::text_renderer::get_length(const std::wstring& text, f_t scale)
+vec2 fan_gui::text_renderer::get_length(const std::wstring& text, f32_t scale)
 {
 	vec2 string_size;
 
 	string_size.y = scale;
 
-	f_t biggest_width = -1;
+	f32_t biggest_width = -1;
 
 	for (int i = 0; i < text.size(); i++) {
 		if (text[i] == ' ') {
@@ -2668,9 +2713,9 @@ vec2 fan_gui::text_renderer::get_length(const std::wstring& text, f_t scale)
 	return vec2(biggest_width, string_size.y);
 }
 
-std::vector<vec2> fan_gui::text_renderer::get_length(const std::vector<std::wstring>& texts, const std::vector<f_t>& scales, bool half)
+std::vector<vec2> fan_gui::text_renderer::get_length(const std::vector<std::wstring>& texts, const std::vector<f32_t>& scales, bool half)
 {
-	f_t width;
+	f32_t width;
 	std::vector<vec2> string_size(texts.size());
 
 	for (int text = 0; text < texts.size(); text++) {
@@ -2711,7 +2756,7 @@ std::vector<vec2> fan_gui::text_renderer::get_length(const std::vector<std::wstr
 
 fan_gui::font::basic_methods::basic_text_button_vector::basic_text_button_vector() : fan_gui::text_renderer() {}
 
-vec2 fan_gui::font::basic_methods::basic_text_button_vector::edit_size(uint64_t i, const std::wstring& text, f_t scale)
+vec2 fan_gui::font::basic_methods::basic_text_button_vector::edit_size(uint64_t i, const std::wstring& text, f32_t scale)
 {
 	std::vector<std::wstring> lines;
 	int offset = 0;
@@ -2722,9 +2767,9 @@ vec2 fan_gui::font::basic_methods::basic_text_button_vector::edit_size(uint64_t 
 		}
 	}
 	lines.push_back(text.substr(offset, text.size()));
-	f_t largest = -9999999;
+	f32_t largest = -9999999;
 	for (auto i : lines) {
-		f_t size = get_length(i, scale).x;
+		f32_t size = get_length(i, scale).x;
 		if (size > largest) {
 			largest = size;
 		}
@@ -2735,12 +2780,13 @@ vec2 fan_gui::font::basic_methods::basic_text_button_vector::edit_size(uint64_t 
 
 fan_gui::font::text_button_vector::text_button_vector() : basic_text_button_vector() { }
 
-fan_gui::font::text_button_vector::text_button_vector(const std::wstring& text, const vec2& position, const Color& color, float_t scale)
-	: basic_text_button_vector() {
+fan_gui::font::text_button_vector::text_button_vector(const std::wstring& text, const vec2& position, const Color& color, f32_t scale)
+	: basic_text_button_vector() 
+{
 	this->add(text, position, color, scale);
 }
 
-fan_gui::font::text_button_vector::text_button_vector(const std::wstring& text, const vec2& position, const Color& color, float_t scale, const vec2& box_size)
+fan_gui::font::text_button_vector::text_button_vector(const std::wstring& text, const vec2& position, const Color& color, f32_t scale, const vec2& box_size)
 	: basic_text_button_vector() {
 	m_scales.push_back(scale);
 	std::vector<std::wstring> all_strings(m_texts.begin(), m_texts.end());
@@ -2753,7 +2799,7 @@ fan_gui::font::text_button_vector::text_button_vector(const std::wstring& text, 
 	upload_stored();
 }
 
-void fan_gui::font::text_button_vector::add(const std::wstring& text, const vec2& position, const Color& color, float_t scale)
+void fan_gui::font::text_button_vector::add(const std::wstring& text, const vec2& position, const Color& color, f32_t scale)
 {
 	m_scales.push_back(scale);
 	std::vector<std::wstring> all_strings(m_texts.begin(), m_texts.end());
@@ -2766,7 +2812,7 @@ void fan_gui::font::text_button_vector::add(const std::wstring& text, const vec2
 	upload_stored();
 }
 
-void fan_gui::font::text_button_vector::add(const std::wstring& text, const vec2& position, const Color& color, float_t scale, const vec2& box_size)
+void fan_gui::font::text_button_vector::add(const std::wstring& text, const vec2& position, const Color& color, f32_t scale, const vec2& box_size)
 {
 	m_scales.push_back(scale);
 	std::vector<std::wstring> all_strings(m_texts.begin(), m_texts.end());
@@ -2779,7 +2825,7 @@ void fan_gui::font::text_button_vector::add(const std::wstring& text, const vec2
 	upload_stored();
 }
 
-void fan_gui::font::text_button_vector::edit_string(uint64_t i, const std::wstring& text, f_t scale)
+void fan_gui::font::text_button_vector::edit_string(uint64_t i, const std::wstring& text, f32_t scale)
 {
 	m_scales[i] = scale;
 	m_texts[i] = text;
@@ -2789,17 +2835,17 @@ void fan_gui::font::text_button_vector::edit_string(uint64_t i, const std::wstri
 	upload_stored();
 }
 
-vec2 fan_gui::font::text_button_vector::get_string_length(const std::wstring& text, f_t scale)
+vec2 fan_gui::font::text_button_vector::get_string_length(const std::wstring& text, f32_t scale)
 {
 	return get_length(text, scale);
 }
 
-f_t fan_gui::font::text_button_vector::get_scale(uint64_t i)
+f32_t fan_gui::font::text_button_vector::get_scale(uint64_t i)
 {
 	return m_scales[i];
 }
 
-void fan_gui::font::text_button_vector::set_font_size(uint64_t i, f_t scale)
+void fan_gui::font::text_button_vector::set_font_size(uint64_t i, f32_t scale)
 {
 	m_scales[i] = scale;
 	auto str = std::wstring(m_characters[i].begin(), m_characters[i].end());
@@ -2813,7 +2859,7 @@ void fan_gui::font::text_button_vector::set_font_size(uint64_t i, f_t scale)
 
 void fan_gui::font::text_button_vector::set_position(uint64_t i, const vec2& position)
 {
-	f_t scale = get_scale(i);
+	f32_t scale = get_scale(i);
 	fan_2d::square_vector::set_position(i, position);
 	auto len = get_length(m_texts[i], scale);
 	set_size(i, len + fan_gui::font::properties::get_gap_scale(scale) * 2);
@@ -2866,3 +2912,4 @@ void end_render()
 	glfwSwapBuffers(window);
 	glfwPollEvents();
 }
+

@@ -23,7 +23,7 @@ constexpr auto eti(Enumeration const value)
 #endif
 #endif
 
-#include <FAN/File.hpp>
+#include <FAN/file.hpp>
 
 #include <functional>
 #include <thread>
