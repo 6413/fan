@@ -10,7 +10,7 @@
 #include <assimp/postprocess.h>
 
 #define REQUIRE_GRAPHICS
-#include <FAN/Global_Vars.hpp>
+#include <FAN/global_vars.hpp>
 
 //#define FAN_PERFORMANCE
 #define RAM_SAVER
@@ -18,16 +18,17 @@
 #define FAN_WINDOWS
 #endif
 
+#include <FAN/t.h>
+
 #include <vector>
 #include <array>
 #include <map>
 
-#include <FAN/Input.hpp>
-#include <FAN/Math.hpp>
-#include <FAN/Shader.h>
-#include <FAN/Vectors.hpp>
-#include <FAN/Time.hpp>
-#include <FAN/Network.hpp>
+#include <FAN/input.hpp>
+#include <FAN/math.hpp>
+#include <FAN/shader.h>
+#include <FAN/time.hpp>
+#include <FAN/network.hpp>
 #include <FAN/SOIL2/SOIL2.h>
 #include <FAN/SOIL2/stb_image.h>
 
@@ -45,7 +46,7 @@
 #define COLORSIZE 4
 
 static constexpr int block_size = 50;
-constexpr auto grid_size = vec2i(WINDOWSIZE.x / block_size, WINDOWSIZE.y / block_size);
+//constexpr vec2i grid_size(WINDOWSIZE.x / block_size, WINDOWSIZE.y / block_size);
 
 typedef std::vector<std::vector<std::vector<bool>>> map_t;
 
@@ -76,13 +77,13 @@ vec2i window_position();
 class Camera {
 public:
 	Camera(
-		vec3 position = vec3(0.0f, 0.0f, 0.0f),
+		vec3 position = vec3(0, 0, 0),
 		vec3 up = vec3(0.0f, 1.0f, 0.0f),
 		float yaw = 0,
 		float pitch = 0.0f
 	);
 
-	void move(bool noclip, f_t movement_speed);
+	void move(bool noclip, f32_t movement_speed);
 	void rotate_camera(bool when);
 
 	mat4 get_view_matrix();
@@ -126,6 +127,8 @@ public:
 	void set_size(std::uint64_t i, const _Vector& size, bool queue = false);
 
 	std::vector<_Vector> get_positions() const;
+	void set_positions(const std::vector<_Vector>& positions);
+
 	_Vector get_position(std::uint64_t i) const;
 	void set_position(std::uint64_t i, const _Vector& position, bool queue = false);
 
@@ -181,12 +184,12 @@ protected:
 
 };
 
-constexpr da_t<f_t, 4, 2> get_square_corners(const da_t<f_t, 2, 2>& squ) {
-	return da_t<f_t, 4, 2>{
-		da_t<f_t, 2>(squ[0]),
-			da_t<f_t, 2>(squ[1][0], squ[0][1]),
-			da_t<f_t, 2>(squ[0][0], squ[1][1]),
-			da_t<f_t, 2>(squ[1])
+constexpr da_t<f32_t, 4, 2> get_square_corners(const da_t<f32_t, 2, 2>& squ) {
+	return da_t<f32_t, 4, 2>{
+		da_t<f32_t, 2>(squ[0]),
+			da_t<f32_t, 2>(squ[1][0], squ[0][1]),
+			da_t<f32_t, 2>(squ[0][0], squ[1][1]),
+			da_t<f32_t, 2>(squ[1])
 	};
 }
 
@@ -220,6 +223,8 @@ namespace fan_2d {
 		constexpr auto sprite_vector_fs("FAN/GLSL/2D/sprite_vector.fs");
 	}
 
+	void move_object(vec2& position, vec2& velocity, f32_t speed, f32_t gravity, f32_t jump_force = -800, f32_t friction = 10);
+
 	class basic_single_shape {
 	public:
 
@@ -238,7 +243,7 @@ namespace fan_2d {
 
 		void basic_draw(GLenum mode, GLsizei count);
 
-		void move(f_t speed, f_t gravity, f_t jump_force = -800, f_t friction = 10);
+		void move(f32_t speed, f32_t gravity = 0, f32_t jump_force = -800, f32_t friction = 10);
 
 		bool inside() const;
 
@@ -282,6 +287,8 @@ namespace fan_2d {
 	struct square : public basic_single_shape, basic_single_color {
 		square();
 		square(const vec2& position, const vec2& size, const Color& color);
+
+		vec2 center() const;
 
 		void draw();
 	};
@@ -328,15 +335,15 @@ namespace fan_2d {
 
 		void draw();
 
-		f_t get_rotation();
-		void set_rotation(f_t degrees);
+		f32_t get_rotation();
+		void set_rotation(f32_t degrees);
 
 		static image_info load_image(const std::string& path, bool flip_image = false);
 		static image_info load_image(unsigned char* pixels, const vec2i& size);
 
 	private:
 
-		f_t m_rotation;
+		f32_t m_rotation;
 
 		unsigned int texture;
 	};
@@ -387,7 +394,7 @@ namespace fan_2d {
 		std::vector<vec2> m_mcorners;
 		std::vector<vec2> m_rcorners;
 
-		uint_t l_vbo, m_vbo, r_vbo;
+		uint32_t l_vbo, m_vbo, r_vbo;
 
 	};
 
@@ -397,6 +404,8 @@ namespace fan_2d {
 		square_vector();
 		square_vector(const vec2& position, const vec2& size, const Color& color);
 
+		fan_2d::square construct(uint_t i);
+
 		void release_queue(bool position, bool size, bool color);
 
 		void push_back(const vec2& position, const vec2& size, const Color& color, bool queue = false);
@@ -404,11 +413,16 @@ namespace fan_2d {
 
 		void draw(std::uint64_t i = -1);
 
+		vec2 center(uint_t i) const;
+
 		std::vector<mat2x2> get_icorners() const;
+
+		void move(uint_t i, f32_t speed, f32_t gravity = 0, f32_t jump_force = -800, f32_t friction = 10);
 
 	private:
 
 		std::vector<mat2x2> m_icorners;
+		std::vector<vec2> m_velocity;
 
 	};
 
@@ -532,11 +546,11 @@ namespace fan_3d {
 
 		Shader m_shader;
 
-		uint_t m_texture;
-		uint_t m_texture_vbo;
-		uint_t m_vao;
-		uint_t m_vertices_vbo;
-		uint_t m_ebo;
+		uint32_t m_texture;
+		uint32_t m_texture_vbo;
+		uint32_t m_vao;
+		uint32_t m_vertices_vbo;
+		uint32_t m_ebo;
 		std::vector<triangle_vertices_t> m_triangle_vertices;
 		std::vector<unsigned int> m_indices;
 		static constexpr auto m_vertice_size = sizeof(triangle_vertices_t);
@@ -725,7 +739,7 @@ extern std::vector<float> g_distances;
 
 vec3 intersection_point3d(const vec3& plane_position, const vec3& plane_size, const vec3& position, e_cube side);
 
-vec3 line_plane_intersection3d(const da_t<f_t, 2, 3>& line, const da_t<f_t, 4, 3>& square);
+vec3 line_plane_intersection3d(const da_t<f32_t, 2, 3>& line, const da_t<f32_t, 4, 3>& square);
 
 #define maxPrimeIndex 10
 inline int primeIndex = 0;
@@ -824,25 +838,25 @@ constexpr auto grid_direction(const T& src, const T& dst) {
 
 template <template <typename> typename T>
 struct grid_raycast_s {
-	T<f_t> direction, begin;
+	T<f32_t> direction, begin;
 	T<int> grid;
 };
 
 template <template <typename> typename T>
-constexpr bool grid_raycast_single(grid_raycast_s<T>& caster, f_t grid_size) {
+constexpr bool grid_raycast_single(grid_raycast_s<T>& caster, f32_t grid_size) {
 	T position(caster.begin % grid_size);
-	for (uint8_t i = 0; i < T<f_t>::size(); i++) {
+	for (uint8_t i = 0; i < T<f32_t>::size(); i++) {
 		position[i] = ((caster.direction[i] < 0) ? position[i] : grid_size - position[i]);
 		position[i] = std::abs((!position[i] ? grid_size : position[i]) / caster.direction[i]);
 	}
 	caster.grid = (caster.begin += caster.direction * position.min()) / grid_size;
-	for (uint8_t i = 0; i < T<f_t>::size(); i++)
+	for (uint8_t i = 0; i < T<f32_t>::size(); i++)
 		caster.grid[i] -= ((caster.direction[i] < 0) & (position[i] == position.min()));
 	return 1;
 }
 
 template <template <typename> typename T>
-constexpr T<int> grid_raycast(const T<f_t>& start, const T<f_t>& end, const map_t& map, f_t block_size) {
+constexpr T<int> grid_raycast(const T<f32_t>& start, const T<f32_t>& end, const map_t& map, f32_t block_size) {
 	if (start == end) {
 		return start;
 	}
@@ -886,14 +900,14 @@ typedef struct {
 
 typedef struct {
 	vec2 pos;
-	f_t width;
+	f32_t width;
 }letter_info_opengl_t;
 
 static letter_info_opengl_t letter_to_opengl(const suckless_font_t& font, const letter_info_t& letter) 
 {
 	letter_info_opengl_t ret;
 	ret.pos = (vec2)letter.pos / (vec2)font.datasize;
-	ret.width = (f_t)letter.width / font.datasize;
+	ret.width = (f32_t)letter.width / font.datasize;
 	return ret;
 }
 
@@ -936,7 +950,7 @@ constexpr uint_t max_font_size = 1024;
 namespace fan_gui {
 
 	constexpr Color default_text_color(1);
-	constexpr f_t font_size(128);
+	constexpr f32_t font_size(128);
 
 	class text_renderer {
 	public:
@@ -944,15 +958,15 @@ namespace fan_gui {
 
 		~text_renderer();
 
-		void render(const std::wstring& text, vec2 position, const Color& color, f_t scale, bool use_old = false);
+		void render(const std::wstring& text, vec2 position, const Color& color, f32_t scale, bool use_old = false);
 
 	protected:
 
 		void alloc_storage(const std::vector<std::wstring>& vector);
 		void realloc_storage(const std::vector<std::wstring>& vector);
 
-		void store_to_renderer(std::wstring& text, vec2 position, const Color& color, f_t scale, f_t max_width = -1);
-		void edit_storage(uint64_t i, const std::wstring& text, vec2 position, const Color& color, f_t scale);
+		void store_to_renderer(std::wstring& text, vec2 position, const Color& color, f32_t scale, f32_t max_width = -1);
+		void edit_storage(uint64_t i, const std::wstring& text, vec2 position, const Color& color, f32_t scale);
 
 		void upload_vertices();
 		void upload_colors();
@@ -962,19 +976,19 @@ namespace fan_gui {
 		void upload_stored(uint64_t i);
 
 		void render_stored();
-		void set_scale(uint64_t i, f_t font_size, vec2 position);
+		void set_scale(uint64_t i, f32_t font_size, vec2 position);
 
-		vec2 get_length(const std::wstring& text, f_t scale);
-		std::vector<vec2> get_length(const std::vector<std::wstring>& texts, const std::vector<f_t>& scales, bool half = false);
+		vec2 get_length(const std::wstring& text, f32_t scale);
+		std::vector<vec2> get_length(const std::vector<std::wstring>& texts, const std::vector<f32_t>& scales, bool half = false);
 
 		void clear_storage();
 
 		std::vector<std::vector<int>> m_characters;
 		std::vector<std::vector<Color>> m_colors;
 		std::vector<std::vector<vec2>> m_vertices;
-		std::vector<f_t> m_scales;
+		std::vector<f32_t> m_scales;
 
-		static std::array<f_t, 248> widths;
+		static std::array<f32_t, 248> widths;
 
 		static suckless_font_t font;
 
@@ -991,26 +1005,26 @@ namespace fan_gui {
 
 		namespace properties {
 			constexpr vec2 gap_scale(0.25, 0.25);
-			constexpr f_t space_width = 15;
-			constexpr f_t space_between_characters = 5;
+			constexpr f32_t space_width = 15;
+			constexpr f32_t space_between_characters = 5;
 
 			constexpr vec2 get_gap_scale(const vec2& size) {
 				return size * gap_scale;
 			}
 
-			constexpr f_t get_gap_scale_x(f_t width) {
+			constexpr f32_t get_gap_scale_x(f32_t width) {
 				return width * gap_scale.x;
 			}
 
-			constexpr f_t get_gap_scale_y(f_t height) {
+			constexpr f32_t get_gap_scale_y(f32_t height) {
 				return height * gap_scale.y;
 			}
 
-			constexpr f_t get_character_x_offset(f_t width, f_t scale) {
+			constexpr f32_t get_character_x_offset(f32_t width, f32_t scale) {
 				return width * scale + space_between_characters;
 			}
 
-			constexpr f_t get_space(f_t scale) {
+			constexpr f32_t get_space(f32_t scale) {
 				return scale / (font_size / 2) * space_width;
 			}
 		}
@@ -1022,7 +1036,7 @@ namespace fan_gui {
 				basic_text_button_vector();
 
 			protected:
-				vec2 edit_size(uint64_t i, const std::wstring& text, f_t scale);
+				vec2 edit_size(uint64_t i, const std::wstring& text, f32_t scale);
 
 				std::vector<std::wstring> m_texts;
 			};
@@ -1034,21 +1048,21 @@ namespace fan_gui {
 
 			text_button_vector();
 
-			text_button_vector(const std::wstring& text, const vec2& position, const Color& box_color, f_t font_scale, f_t left_offset, f_t max_width);
+			text_button_vector(const std::wstring& text, const vec2& position, const Color& box_color, f32_t font_scale, f32_t left_offset, f32_t max_width);
 
-			text_button_vector(const std::wstring& text, const vec2& position, const Color& color, f_t scale);
-			text_button_vector(const std::wstring& text, const vec2& position, const Color& color, f_t scale, const vec2& box_size);
+			text_button_vector(const std::wstring& text, const vec2& position, const Color& color, f32_t scale);
+			text_button_vector(const std::wstring& text, const vec2& position, const Color& color, f32_t scale, const vec2& box_size);
 
-			void add(const std::wstring& text, const vec2& position, const Color& color, f_t scale);
-			void add(const std::wstring& text, const vec2& position, const Color& color, f_t scale, const vec2& box_size);
+			void add(const std::wstring& text, const vec2& position, const Color& color, f32_t scale);
+			void add(const std::wstring& text, const vec2& position, const Color& color, f32_t scale, const vec2& box_size);
 
-			void edit_string(uint64_t i, const std::wstring& text, f_t scale);
+			void edit_string(uint64_t i, const std::wstring& text, f32_t scale);
 
-			vec2 get_string_length(const std::wstring& text, f_t scale);
+			vec2 get_string_length(const std::wstring& text, f32_t scale);
 
-			f_t get_scale(uint64_t i);
+			f32_t get_scale(uint64_t i);
 
-			void set_font_size(uint64_t i, f_t scale);
+			void set_font_size(uint64_t i, f32_t scale);
 			void set_position(uint64_t i, const vec2& position);
 
 			void set_press_callback(int key, const std::function<void()>& function);
@@ -1066,19 +1080,24 @@ namespace fan_gui {
 	}
 }
 
-#define fan_window_loop() \
-	while(!glfwWindowShouldClose(window))
-
 void begin_render(const Color& background_color);
 void end_render();
 
-inline da_t<f_t, 2> lines_intersection(da_t<f_t, 2, 2> src, da_t<f_t, 2, 2> dst, const da_t<f_t, 2>& normal) {
-	f_t s1_x, s1_y, s2_x, s2_y;
+static void window_loop(const Color& color, std::function<void()> _function) {
+	while (!glfwWindowShouldClose(window)) {
+		begin_render(color);
+		_function();
+		end_render();
+	}
+}
+
+inline da_t<f32_t, 2> lines_intersection(da_t<f32_t, 2, 2> src, da_t<f32_t, 2, 2> dst, const da_t<f32_t, 2>& normal) {
+	f32_t s1_x, s1_y, s2_x, s2_y;
 	s1_x = src[1][0] - src[0][0]; s1_y = src[1][1] - src[0][1];
 	s2_x = dst[1][0] - dst[0][0]; s2_y = dst[1][1] - dst[0][1];
 
-	const f_t s = (-s1_y * (src[0][0] - dst[0][0]) + s1_x * (src[0][1] - dst[0][1])) / (-s2_x * s1_y + s1_x * s2_y);
-	const f_t t = (s2_x * (src[0][1] - dst[0][1]) - s2_y * (src[0][0] - dst[0][0])) / (-s2_x * s1_y + s1_x * s2_y);
+	const f32_t s = (-s1_y * (src[0][0] - dst[0][0]) + s1_x * (src[0][1] - dst[0][1])) / (-s2_x * s1_y + s1_x * s2_y);
+	const f32_t t = (s2_x * (src[0][1] - dst[0][1]) - s2_y * (src[0][0] - dst[0][0])) / (-s2_x * s1_y + s1_x * s2_y);
 
 	if (s < 0 || s > 1 || t < 0 || t > 1)
 		return FLT_MAX;
@@ -1087,8 +1106,8 @@ inline da_t<f_t, 2> lines_intersection(da_t<f_t, 2, 2> src, da_t<f_t, 2, 2> dst,
 	if (dcom_fr(signy > 0, src[1][!!normal[1]], dst[0][!!normal[1]]))
 		return FLT_MAX;
 
-	da_t<f_t, 2> min = dst.min();
-	da_t<f_t, 2> max = dst.max();
+	da_t<f32_t, 2> min = dst.min();
+	da_t<f32_t, 2> max = dst.max();
 	for (uint_t i = 0; i < 2; i++) {
 		if (!normal[i])
 			continue;
@@ -1101,7 +1120,7 @@ inline da_t<f_t, 2> lines_intersection(da_t<f_t, 2, 2> src, da_t<f_t, 2, 2> dst,
 	return { src[0][0] + (t * s1_x), src[0][1] + (t * s1_y) };
 }
 
-constexpr da_t<uint_t, 3> GetPointsTowardsVelocity3(da_t<f_t, 2> vel) {
+constexpr da_t<uint_t, 3> GetPointsTowardsVelocity3(da_t<f32_t, 2> vel) {
 	if (vel[0] >= 0)
 		if (vel[1] >= 0)
 			return { 2, 1, 3 };
@@ -1123,21 +1142,21 @@ template <
 	template <typename, std::size_t, std::size_t> typename inner_da_t,
 	template <typename, std::size_t> typename outer_da_t, std::size_t n
 >
-constexpr da_t<da_t<f_t, 2>, n> get_normals(const outer_da_t<inner_da_t<f_t, 2, 2>, n>& lines) {
-	da_t<da_t<f_t, 2>, n> normals;
+constexpr da_t<da_t<f32_t, 2>, n> get_normals(const outer_da_t<inner_da_t<f32_t, 2, 2>, n>& lines) {
+	da_t<da_t<f32_t, 2>, n> normals;
 	for (int i = 0; i < n; i++) {
-		normals[i] = get_cross(lines[i][1] - lines[i][0], da_t<f_t, 3>(0, 0, 1));
+		normals[i] = get_cross(lines[i][1] - lines[i][0], da_t<f32_t, 3>(0, 0, 1));
 	}
 	return normals;
 }
 
-inline void calculate_velocity(const da_t<f_t, 2>& spos, const da_t<f_t, 2>& svel, const da_t<f_t, 2>& dpos, const da_t<f_t, 2>& dvel, const da_t<f_t, 2>& normal, f_t sign, da_t<f_t, 2>& lvel, da_t<f_t, 2>& nvel) {
-	da_t<f_t, 2, 2> sline = { spos, spos + svel };
-	da_t<f_t, 2, 2> dline = { dpos, dpos + dvel };
-	da_t<f_t, 2> inter = lines_intersection(sline, dline, normal);
+inline void calculate_velocity(const da_t<f32_t, 2>& spos, const da_t<f32_t, 2>& svel, const da_t<f32_t, 2>& dpos, const da_t<f32_t, 2>& dvel, const da_t<f32_t, 2>& normal, f32_t sign, da_t<f32_t, 2>& lvel, da_t<f32_t, 2>& nvel) {
+	da_t<f32_t, 2, 2> sline = { spos, spos + svel };
+	da_t<f32_t, 2, 2> dline = { dpos, dpos + dvel };
+	da_t<f32_t, 2> inter = lines_intersection(sline, dline, normal);
 	if (inter == FLT_MAX)
 		return;
-	da_t<f_t, 2> tvel = (inter - spos) * sign;
+	da_t<f32_t, 2> tvel = (inter - spos) * sign;
 	if (tvel.abs() >= lvel.abs())
 		return;
 	nvel = svel * sign - tvel;
@@ -1147,11 +1166,11 @@ inline void calculate_velocity(const da_t<f_t, 2>& spos, const da_t<f_t, 2>& sve
 }
 
 struct collision_info {
-	da_t<f_t, 2> position;
-	da_t<f_t, 2> velocity;
+	da_t<f32_t, 2> position;
+	da_t<f32_t, 2> velocity;
 };
 
-inline void process_rectangle_collision_2d(da_t<f_t, 2, 2>& pos, da_t<f_t, 2>& vel, const std::vector<da_t<f_t, 2, 2>>& walls) {
+inline void process_rectangle_collision_2d(da_t<f32_t, 2, 2>& pos, da_t<f32_t, 2>& vel, const std::vector<da_t<f32_t, 2, 2>>& walls) {
 	uint64_t ray_fail = 0;
 	while (1) {
 
@@ -1159,35 +1178,35 @@ inline void process_rectangle_collision_2d(da_t<f_t, 2, 2>& pos, da_t<f_t, 2>& v
 			return;
 		}
 
-		da_t<f_t, 2> pvel = vel;
+		da_t<f32_t, 2> pvel = vel;
 
 		if (!pvel[0] && !pvel[1])
 			return;
 
-		da_t<f_t, 4, 2> ocorn = get_square_corners(pos);
-		da_t<f_t, 4, 2> ncorn = ocorn + pvel;
+		da_t<f32_t, 4, 2> ocorn = get_square_corners(pos);
+		da_t<f32_t, 4, 2> ncorn = ocorn + pvel;
 
 		da_t<uint_t, 3> ptv3 = GetPointsTowardsVelocity3(pvel);
 		da_t<uint_t, 3> ntv3 = GetPointsTowardsVelocity3(-pvel);
 
 		da_t<uint_t, 4, 2> li = { da_t<uint_t, 2>{0, 1}, da_t<uint_t, 2>{1, 3}, da_t<uint_t, 2>{3, 2}, da_t<uint_t, 2>{2, 0} };
 
-		const static da_t<da_t<f_t, 2>, 4> normals = get_normals(
-			da_t<da_t<f_t, 2, 2>, 4>{
-				da_t<f_t, 2, 2>{da_t<f_t, 2>{ 0, 0 }, da_t<f_t, 2>{ 1, 0 }},
-				da_t<f_t, 2, 2>{da_t<f_t, 2>{ 1, 0 }, da_t<f_t, 2>{ 1, 1 }},
-				da_t<f_t, 2, 2>{da_t<f_t, 2>{ 1, 1 }, da_t<f_t, 2>{ 0, 1 }},
-				da_t<f_t, 2, 2>{da_t<f_t, 2>{ 0, 1 }, da_t<f_t, 2>{ 0, 0 }},
+		const static da_t<da_t<f32_t, 2>, 4> normals = get_normals(
+			da_t<da_t<f32_t, 2, 2>, 4>{
+				da_t<f32_t, 2, 2>{da_t<f32_t, 2>{ 0, 0 }, da_t<f32_t, 2>{ 1, 0 }},
+				da_t<f32_t, 2, 2>{da_t<f32_t, 2>{ 1, 0 }, da_t<f32_t, 2>{ 1, 1 }},
+				da_t<f32_t, 2, 2>{da_t<f32_t, 2>{ 1, 1 }, da_t<f32_t, 2>{ 0, 1 }},
+				da_t<f32_t, 2, 2>{da_t<f32_t, 2>{ 0, 1 }, da_t<f32_t, 2>{ 0, 0 }},
 		});
-		da_t<f_t, 2> lvel = pvel;
-		da_t<f_t, 2> nvel = 0;
+		da_t<f32_t, 2> lvel = pvel;
+		da_t<f32_t, 2> nvel = 0;
 		for (uint_t iwall = 0; iwall < walls.size(); iwall++) {
-			da_t<f_t, 4, 2> bcorn = get_square_corners(walls[iwall]);
+			da_t<f32_t, 4, 2> bcorn = get_square_corners(walls[iwall]);
 
 			/* step -1 */
 			for (uint_t i = 0; i < 4; i++) {
 				for (uint_t iline = 0; iline < 4; iline++) {
-					calculate_velocity(da_t<f_t, 2, 2>(ocorn[li[i][0]], ocorn[li[i][1]]).avg(), pvel, bcorn[li[iline][0]], bcorn[li[iline][1]] - bcorn[li[iline][0]], normals[iline], 1, lvel, nvel);
+					calculate_velocity(da_t<f32_t, 2, 2>(ocorn[li[i][0]], ocorn[li[i][1]]).avg(), pvel, bcorn[li[iline][0]], bcorn[li[iline][1]] - bcorn[li[iline][0]], normals[iline], 1, lvel, nvel);
 				}
 			}
 			
@@ -1205,15 +1224,15 @@ inline void process_rectangle_collision_2d(da_t<f_t, 2, 2>& pos, da_t<f_t, 2>& v
 	}
 }
 
-//inline void process_rectangle_collision_3d(da_t<f_t, 2, 3>& pos, da_t<f_t, 3>& vel, const std::vector<da_t<f_t, 2, 3>>& walls) {
+//inline void process_rectangle_collision_3d(da_t<f32_t, 2, 3>& pos, da_t<f32_t, 3>& vel, const std::vector<da_t<f32_t, 2, 3>>& walls) {
 //	while (1) {
-//		da_t<f_t, 3> pvel = vel;
+//		da_t<f32_t, 3> pvel = vel;
 //
 //		if (!pvel[0] && !pvel[1] && !pvel[2])
 //			return;
 //		
-//		da_t<f_t, 4, 3> ocorn = get_square_corners3(pos);
-//		da_t<f_t, 4, 3> ncorn = ocorn + pvel;
+//		da_t<f32_t, 4, 3> ocorn = get_square_corners3(pos);
+//		da_t<f32_t, 4, 3> ncorn = ocorn + pvel;
 //
 //		da_t<uint_t, 4> ptv3 = GetPointsTowardsVelocity4(pvel);
 //		da_t<uint_t, 4> ntv3 = GetPointsTowardsVelocity4(-pvel);
@@ -1228,7 +1247,7 @@ static void rectangle_collision_2d(fan_2d::square& player, const vec2& old_posit
 		old_position + player.get_size()
 	);
 
-	da_t<f_t, 2> vel = player.get_velocity() * delta_time;
+	da_t<f32_t, 2> vel = player.get_velocity() * delta_time;
 
 	process_rectangle_collision_2d(
 		pl,

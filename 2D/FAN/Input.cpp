@@ -1,6 +1,6 @@
 #define REQUIRE_GRAPHICS
-#include <FAN/Input.hpp>
-#include <FAN/Global_Vars.hpp>
+#include <FAN/input.hpp>
+#include <FAN/global_vars.hpp>
 
 vec2i cursor_position;
 vec2i window_size;
