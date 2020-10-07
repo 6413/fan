@@ -89,7 +89,7 @@
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)External sources\GLEW\include;$(SolutionDir)External sources\GLFW\include;$(SolutionDir)External sources\OpenAL\include;$(SolutionDir)External sources\freetype\include;$(SolutionDir);$(SolutionDir)External sources\assimp\include;$(SolutionDir)FAN\SOIL2;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -115,7 +115,7 @@
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)External sources\GLEW\include;$(SolutionDir)External sources\GLFW\include;$(SolutionDir)External sources\OpenAL\include;$(SolutionDir)External sources\freetype\include;$(SolutionDir);$(SolutionDir)External sources\assimp\include;$(SolutionDir)FAN\SOIL2;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
       <Optimization>Disabled</Optimization>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
@@ -138,7 +138,7 @@
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)External sources\GLEW\include;$(SolutionDir)External sources\GLFW\include;$(SolutionDir)External sources\OpenAL\include;$(SolutionDir)External sources\freetype\include;$(SolutionDir);$(SolutionDir)External sources\assimp\include;$(SolutionDir)FAN\SOIL2;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -164,7 +164,7 @@
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)External sources\GLEW\include;$(SolutionDir)External sources\GLFW\include;$(SolutionDir)External sources\OpenAL\include;$(SolutionDir)External sources\freetype\include;$(SolutionDir);$(SolutionDir)External sources\assimp\include;$(SolutionDir)FAN\SOIL2;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
       <Optimization>Disabled</Optimization>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
@@ -181,15 +181,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="FAN\Alloc.hpp" />
-    <ClInclude Include="FAN\Audio.hpp" />
-    <ClInclude Include="FAN\File.hpp" />
-    <ClInclude Include="FAN\Global_Vars.hpp" />
-    <ClInclude Include="FAN\Graphics.hpp" />
-    <ClInclude Include="FAN\Input.hpp" />
-    <ClInclude Include="FAN\Math.hpp" />
-    <ClInclude Include="FAN\Network.hpp" />
-    <ClInclude Include="FAN\Shader.h" />
+    <ClInclude Include="FAN\alloc.hpp" />
+    <ClInclude Include="FAN\audio.hpp" />
+    <ClInclude Include="FAN\file.hpp" />
+    <ClInclude Include="FAN\global_vars.hpp" />
+    <ClInclude Include="FAN\graphics.hpp" />
+    <ClInclude Include="FAN\input.hpp" />
+    <ClInclude Include="FAN\math.hpp" />
+    <ClInclude Include="FAN\network.hpp" />
+    <ClInclude Include="FAN\shader.h" />
     <ClInclude Include="FAN\SOIL2\etc1_utils.h" />
     <ClInclude Include="FAN\SOIL2\image_DXT.h" />
     <ClInclude Include="FAN\SOIL2\image_helper.h" />
@@ -207,12 +207,15 @@
     <ClInclude Include="FAN\SOIL2\stbi_pvr_c.h" />
     <ClInclude Include="FAN\SOIL2\stb_image.h" />
     <ClInclude Include="FAN\SOIL2\stb_image_write.h" />
-    <ClInclude Include="FAN\Time.hpp" />
+    <ClInclude Include="FAN\t.h" />
+    <ClInclude Include="FAN\time.hpp" />
+    <ClInclude Include="FAN\t_da.h" />
+    <ClInclude Include="FAN\t_vector.h" />
     <ClInclude Include="FAN\Vectors.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="FAN\Graphics.cpp" />
-    <ClCompile Include="FAN\Input.cpp" />
+    <ClCompile Include="FAN\graphics.cpp" />
+    <ClCompile Include="FAN\input.cpp" />
     <ClCompile Include="Source.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
