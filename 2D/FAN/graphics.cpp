@@ -835,6 +835,7 @@ basic_shape_vector<_Vector>::~basic_shape_vector()
 	glDeleteVertexArrays(1, &vao);
 	glDeleteBuffers(1, &position_vbo);
 	glDeleteBuffers(1, &size_vbo);
+	glDeleteProgram(this->m_shader.ID);
 }
 
 template <typename _Vector>
@@ -1183,6 +1184,11 @@ fan_2d::square_vector::square_vector(const vec2& position, const vec2& size, con
 	glBindVertexArray(0);
 }
 
+fan_2d::square_vector::~square_vector()
+{
+	
+}
+
 fan_2d::square fan_2d::square_vector::construct(uint_t i)
 {
 	return fan_2d::square(
@@ -1241,7 +1247,6 @@ vec2 fan_2d::square_vector::center(uint_t i) const
 
 std::vector<mat2x2> fan_2d::square_vector::get_icorners() const
 {
-
 	return fan_2d::square_vector::m_icorners;
 }
 

@@ -82,6 +82,12 @@ public:
 		return _vec2<type>(this->x + vector.x, this->y + vector.y);
 	}
 
+	template <typename T>
+	constexpr _vec2<type> operator+(const list<T, 2>& list_) const noexcept
+	{
+		return _vec2<type>(this->x + list_[0], this->y + list_[1]);
+	}
+
 	template <typename _Type>
 	constexpr _vec2<type> operator+(_Type single_value) const noexcept
 	{
@@ -115,6 +121,12 @@ public:
 		return _vec2<type>(this->x - vector.x, this->y - vector.y);
 	}
 
+	template <typename T>
+	constexpr _vec2<type> operator-(const list<T, 2>& list_) const noexcept
+	{
+		return _vec2<type>(this->x - list_[0], this->y - list_[1]);
+	}
+
 	template <typename _Type>
 	constexpr _vec2<type> operator-(_Type single_value) const noexcept
 	{
@@ -144,6 +156,12 @@ public:
 		return _vec2<type>(this->x * vector.x, this->y * vector.y);
 	}
 
+	template <typename T>
+	constexpr _vec2<type> operator*(const list<T, 2>& list_) const noexcept
+	{
+		return _vec2<type>(this->x * list_[0], this->y * list_[1]);
+	}
+
 	template <typename _Type>
 	constexpr _vec2<type> operator*(_Type single_value) const noexcept
 	{
@@ -171,6 +189,12 @@ public:
 	constexpr _vec2<type> operator/(const _vec2<_Type>& vector) const noexcept
 	{
 		return _vec2<type>(this->x / vector.x, this->y / vector.y);
+	}
+
+	template <typename T>
+	constexpr _vec2<type> operator/(const list<T, 2>& list_) const noexcept
+	{
+		return _vec2<type>(this->x / list_[0], this->y / list_[1]);
 	}
 
 	template <typename _Type>
