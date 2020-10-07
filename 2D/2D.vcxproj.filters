@@ -15,6 +15,9 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="FAN\Vectors.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="FAN\SOIL2\etc1_utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -66,48 +69,54 @@
     <ClInclude Include="FAN\SOIL2\stbi_pvr_c.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="FAN\Alloc.hpp">
+    <ClInclude Include="FAN\alloc.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="FAN\Audio.hpp">
+    <ClInclude Include="FAN\audio.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="FAN\File.hpp">
+    <ClInclude Include="FAN\file.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="FAN\Global_Vars.hpp">
+    <ClInclude Include="FAN\global_vars.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="FAN\Graphics.hpp">
+    <ClInclude Include="FAN\graphics.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="FAN\Input.hpp">
+    <ClInclude Include="FAN\input.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="FAN\Math.hpp">
+    <ClInclude Include="FAN\math.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="FAN\Network.hpp">
+    <ClInclude Include="FAN\network.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="FAN\Shader.h">
+    <ClInclude Include="FAN\shader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="FAN\Time.hpp">
+    <ClInclude Include="FAN\t.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="FAN\Vectors.hpp">
+    <ClInclude Include="FAN\t_da.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FAN\t_vector.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FAN\time.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="FAN\Graphics.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="FAN\Input.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Source.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FAN\graphics.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FAN\input.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
