@@ -91,19 +91,11 @@ constexpr T sign(T val) {
 }
 
 template <typename T>
-constexpr auto cross(const da_t<T, 3>& a, const da_t<T, 3>& b) {
-	return da_t<f_t, 3>(
+constexpr auto cross(const T& a, const T& b) {
+	return T(
 		a[1] * b[2] - b[1] * a[2],
 		a[2] * b[0] - b[2] * a[0],
 		a[0] * b[1] - b[0] * a[1]
-	);
-}
-
-constexpr auto cross(const vec3& a, const vec3& b) {
-	return vec3(
-		a.y * b.z - b.y * a.z,
-		a.z * b.x - b.z * a.x,
-		a.x * b.y - b.x * a.y
 	);
 }
 

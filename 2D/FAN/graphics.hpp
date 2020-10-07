@@ -48,6 +48,14 @@
 static constexpr int block_size = 50;
 //constexpr vec2i grid_size(WINDOWSIZE.x / block_size, WINDOWSIZE.y / block_size);
 
+#if SYSTEM_BIT == 32
+constexpr auto GL_FLOAT_T = GL_FLOAT;
+#else
+// for now
+constexpr auto GL_FLOAT_T = GL_FLOAT;
+#endif
+
+
 typedef std::vector<std::vector<std::vector<bool>>> map_t;
 
 struct bmp {
@@ -403,6 +411,7 @@ namespace fan_2d {
 
 		square_vector();
 		square_vector(const vec2& position, const vec2& size, const Color& color);
+		~square_vector();
 
 		fan_2d::square construct(uint_t i);
 
@@ -1083,6 +1092,13 @@ namespace fan_gui {
 void begin_render(const Color& background_color);
 void end_render();
 
+#define window_loop2(color_m, code_m) \
+	while(!glfwWindowShouldClose(window)) { \
+		begin_render(color_m); \
+		code_m \
+		end_render(); \
+	}
+
 static void window_loop(const Color& color, std::function<void()> _function) {
 	while (!glfwWindowShouldClose(window)) {
 		begin_render(color);
@@ -1091,7 +1107,10 @@ static void window_loop(const Color& color, std::function<void()> _function) {
 	}
 }
 
-inline da_t<f32_t, 2> lines_intersection(da_t<f32_t, 2, 2> src, da_t<f32_t, 2, 2> dst, const da_t<f32_t, 2>& normal) {
+
+#define sign_dr(_m) (si_t)(-(_m < 0) | (_m > 0))
+
+constexpr da_t<f32_t, 2> LineInterLine_fr(da_t<f32_t, 2, 2> src, da_t<f32_t, 2, 2> dst, const da_t<f32_t, 2>& normal) {
 	f32_t s1_x, s1_y, s2_x, s2_y;
 	s1_x = src[1][0] - src[0][0]; s1_y = src[1][1] - src[0][1];
 	s2_x = dst[1][0] - dst[0][0]; s2_y = dst[1][1] - dst[0][1];
@@ -1102,13 +1121,13 @@ inline da_t<f32_t, 2> lines_intersection(da_t<f32_t, 2, 2> src, da_t<f32_t, 2, 2
 	if (s < 0 || s > 1 || t < 0 || t > 1)
 		return FLT_MAX;
 
-	int signy = sign(normal.gfne());
+	si_t signy = sign_dr(normal.gfne());
 	if (dcom_fr(signy > 0, src[1][!!normal[1]], dst[0][!!normal[1]]))
 		return FLT_MAX;
 
 	da_t<f32_t, 2> min = dst.min();
 	da_t<f32_t, 2> max = dst.max();
-	for (uint_t i = 0; i < 2; i++) {
+	for (ui_t i = 0; i < 2; i++) {
 		if (!normal[i])
 			continue;
 		if (src[0][i ^ 1] == min[i ^ 1])
@@ -1119,8 +1138,7 @@ inline da_t<f32_t, 2> lines_intersection(da_t<f32_t, 2, 2> src, da_t<f32_t, 2, 2
 
 	return { src[0][0] + (t * s1_x), src[0][1] + (t * s1_y) };
 }
-
-constexpr da_t<uint_t, 3> GetPointsTowardsVelocity3(da_t<f32_t, 2> vel) {
+constexpr da_t<ui_t, 3> GetPointsTowardsVelocity3(da_t<f32_t, 2> vel) {
 	if (vel[0] >= 0)
 		if (vel[1] >= 0)
 			return { 2, 1, 3 };
@@ -1133,9 +1151,32 @@ constexpr da_t<uint_t, 3> GetPointsTowardsVelocity3(da_t<f32_t, 2> vel) {
 			return { 2, 1, 0 };
 }
 
-template <typename T, typename T2>
-constexpr auto get_cross(const T& a, const T2& b) {
-	return cross(T2{ a[0], a[1], 0 }, b);
+constexpr void calculate_velocity(const da_t<f32_t, 2>& spos, const da_t<f32_t, 2>& svel, const da_t<f32_t, 2>& dpos, const da_t<f32_t, 2>& dvel, const da_t<f32_t, 2>& normal, f32_t sign, da_t<f32_t, 2>& lvel, da_t<f32_t, 2>& nvel) {
+	da_t<f32_t, 2, 2> sline = { spos, spos + svel };
+	da_t<f32_t, 2, 2> dline = { dpos, dpos + dvel };
+	da_t<f32_t, 2> inter = LineInterLine_fr(sline, dline, normal);
+	if (inter == FLT_MAX)
+		return;
+	da_t<f32_t, 2> tvel = (inter - spos) * sign;
+	if (tvel.abs() >= lvel.abs())
+		return;
+	nvel = svel * sign - tvel;
+	lvel = tvel;
+	nvel[0] = normal[1] ? nvel[0] : 0;
+	nvel[1] = normal[0] ? nvel[1] : 0;
+}
+
+constexpr da_t<f32_t, 4, 2> Math_SquToQuad_fr(const da_t<f32_t, 2, 2>& squ) {
+	return da_t<f32_t, 4, 2>{
+		da_t<f32_t, 2>(squ[0]),
+			da_t<f32_t, 2>(squ[1][0], squ[0][1]),
+			da_t<f32_t, 2>(squ[0][0], squ[1][1]),
+			da_t<f32_t, 2>(squ[1])
+	};
+}
+
+constexpr auto get_cross(const da_t<f32_t, 2>& a, const da_t<f32_t, 3>& b) {
+	return cross(da_t<f32_t, 3>{ a[0], a[1], 0 }, b);
 }
 
 template <
@@ -1150,112 +1191,68 @@ constexpr da_t<da_t<f32_t, 2>, n> get_normals(const outer_da_t<inner_da_t<f32_t,
 	return normals;
 }
 
-inline void calculate_velocity(const da_t<f32_t, 2>& spos, const da_t<f32_t, 2>& svel, const da_t<f32_t, 2>& dpos, const da_t<f32_t, 2>& dvel, const da_t<f32_t, 2>& normal, f32_t sign, da_t<f32_t, 2>& lvel, da_t<f32_t, 2>& nvel) {
-	da_t<f32_t, 2, 2> sline = { spos, spos + svel };
-	da_t<f32_t, 2, 2> dline = { dpos, dpos + dvel };
-	da_t<f32_t, 2> inter = lines_intersection(sline, dline, normal);
-	if (inter == FLT_MAX)
-		return;
-	da_t<f32_t, 2> tvel = (inter - spos) * sign;
-	if (tvel.abs() >= lvel.abs())
-		return;
-	nvel = svel * sign - tvel;
-	lvel = tvel;
-	nvel[0] = normal[1] ? nvel[0] : 0;
-	nvel[1] = normal[0] ? nvel[1] : 0;
-}
 
-struct collision_info {
-	da_t<f32_t, 2> position;
-	da_t<f32_t, 2> velocity;
-};
+inline uint8_t ProcessCollision_fl(da_t<f32_t, 2, 2>& pos, da_t<f32_t, 2>& vel, const std::vector<da_t<f32_t, 2, 2>> walls) {
+	da_t<f32_t, 2> pvel = vel;
 
-inline void process_rectangle_collision_2d(da_t<f32_t, 2, 2>& pos, da_t<f32_t, 2>& vel, const std::vector<da_t<f32_t, 2, 2>>& walls) {
-	uint64_t ray_fail = 0;
-	while (1) {
+	if (!pvel[0] && !pvel[1])
+		return 0;
 
-		if (ray_fail > 1000) {
-			return;
-		}
+	da_t<f32_t, 4, 2> ocorn = Math_SquToQuad_fr(pos);
+	da_t<f32_t, 4, 2> ncorn = ocorn + pvel;
 
-		da_t<f32_t, 2> pvel = vel;
+	da_t<ui_t, 3> ptv3 = GetPointsTowardsVelocity3(pvel);
+	da_t<ui_t, 3> ntv3 = GetPointsTowardsVelocity3(-pvel);
 
-		if (!pvel[0] && !pvel[1])
-			return;
+	da_t<ui_t, 4, 2> li = { da_t<ui_t, 2>{0, 1}, da_t<ui_t, 2>{1, 3}, da_t<ui_t, 2>{3, 2}, da_t<ui_t, 2>{2, 0} };
 
-		da_t<f32_t, 4, 2> ocorn = get_square_corners(pos);
-		da_t<f32_t, 4, 2> ncorn = ocorn + pvel;
+	const static auto normals = get_normals(
+		da_t<da_t<f32_t, 2, 2>, 4>{
+		da_t<f32_t, 2, 2>{da_t<f32_t, 2>{ 0, 0 }, da_t<f32_t, 2>{ 1, 0 }},
+			da_t<f32_t, 2, 2>{da_t<f32_t, 2>{ 1, 0 }, da_t<f32_t, 2>{ 1, 1 }},
+			da_t<f32_t, 2, 2>{da_t<f32_t, 2>{ 1, 1 }, da_t<f32_t, 2>{ 0, 1 }},
+			da_t<f32_t, 2, 2>{da_t<f32_t, 2>{ 0, 1 }, da_t<f32_t, 2>{ 0, 0 }},
+	});
 
-		da_t<uint_t, 3> ptv3 = GetPointsTowardsVelocity3(pvel);
-		da_t<uint_t, 3> ntv3 = GetPointsTowardsVelocity3(-pvel);
+	da_t<f32_t, 2> lvel = pvel;
+	da_t<f32_t, 2> nvel = 0;
+	for (ui_t iwall = 0; iwall < walls.size(); iwall++) {
+		da_t<f32_t, 4, 2> bcorn = Math_SquToQuad_fr(walls[iwall]);
 
-		da_t<uint_t, 4, 2> li = { da_t<uint_t, 2>{0, 1}, da_t<uint_t, 2>{1, 3}, da_t<uint_t, 2>{3, 2}, da_t<uint_t, 2>{2, 0} };
-
-		const static da_t<da_t<f32_t, 2>, 4> normals = get_normals(
-			da_t<da_t<f32_t, 2, 2>, 4>{
-				da_t<f32_t, 2, 2>{da_t<f32_t, 2>{ 0, 0 }, da_t<f32_t, 2>{ 1, 0 }},
-				da_t<f32_t, 2, 2>{da_t<f32_t, 2>{ 1, 0 }, da_t<f32_t, 2>{ 1, 1 }},
-				da_t<f32_t, 2, 2>{da_t<f32_t, 2>{ 1, 1 }, da_t<f32_t, 2>{ 0, 1 }},
-				da_t<f32_t, 2, 2>{da_t<f32_t, 2>{ 0, 1 }, da_t<f32_t, 2>{ 0, 0 }},
-		});
-		da_t<f32_t, 2> lvel = pvel;
-		da_t<f32_t, 2> nvel = 0;
-		for (uint_t iwall = 0; iwall < walls.size(); iwall++) {
-			da_t<f32_t, 4, 2> bcorn = get_square_corners(walls[iwall]);
-
-			/* step -1 */
-			for (uint_t i = 0; i < 4; i++) {
-				for (uint_t iline = 0; iline < 4; iline++) {
-					calculate_velocity(da_t<f32_t, 2, 2>(ocorn[li[i][0]], ocorn[li[i][1]]).avg(), pvel, bcorn[li[iline][0]], bcorn[li[iline][1]] - bcorn[li[iline][0]], normals[iline], 1, lvel, nvel);
-				}
-			}
-			
-			/* step 0 and step 1*/
-			for (uint_t i = 0; i < 3; i++) {
-				for (uint_t iline = 0; iline < 4; iline++) {
-					calculate_velocity(ocorn[ptv3[i]], ncorn[ptv3[i]] - ocorn[ptv3[i]], bcorn[li[iline][0]], bcorn[li[iline][1]] - bcorn[li[iline][0]], normals[iline], 1, lvel, nvel);
-					calculate_velocity(bcorn[ntv3[i]], -pvel, ocorn[li[iline][0]], ocorn[li[iline][1]] - ocorn[li[iline][0]], normals[iline], -1, lvel, nvel);
-				}
+		/* step -1 */
+		for (ui_t i = 0; i < 4; i++) {
+			for (ui_t iline = 0; iline < 4; iline++) {
+				calculate_velocity(da_t<f32_t, 2, 2>(ocorn[li[i][0]], ocorn[li[i][1]]).avg(), pvel, bcorn[li[iline][0]], bcorn[li[iline][1]] - bcorn[li[iline][0]], normals[iline], 1, lvel, nvel);
 			}
 		}
-		pos += lvel;
-		vel = nvel;
-		//ray_fail++;
+
+		/* step 0 and step 1*/
+		for (ui_t i = 0; i < 3; i++) {
+			for (ui_t iline = 0; iline < 4; iline++) {
+				calculate_velocity(ocorn[ptv3[i]], ncorn[ptv3[i]] - ocorn[ptv3[i]], bcorn[li[iline][0]], bcorn[li[iline][1]] - bcorn[li[iline][0]], normals[iline], 1, lvel, nvel);
+				calculate_velocity(bcorn[ntv3[i]], -pvel, ocorn[li[iline][0]], ocorn[li[iline][1]] - ocorn[li[iline][0]], normals[iline], -1, lvel, nvel);
+			}
+		}
 	}
+
+	pos += lvel;
+	vel = nvel;
+
+	return 1;
 }
 
-//inline void process_rectangle_collision_3d(da_t<f32_t, 2, 3>& pos, da_t<f32_t, 3>& vel, const std::vector<da_t<f32_t, 2, 3>>& walls) {
-//	while (1) {
-//		da_t<f32_t, 3> pvel = vel;
-//
-//		if (!pvel[0] && !pvel[1] && !pvel[2])
-//			return;
-//		
-//		da_t<f32_t, 4, 3> ocorn = get_square_corners3(pos);
-//		da_t<f32_t, 4, 3> ncorn = ocorn + pvel;
-//
-//		da_t<uint_t, 4> ptv3 = GetPointsTowardsVelocity4(pvel);
-//		da_t<uint_t, 4> ntv3 = GetPointsTowardsVelocity4(-pvel);
-//
-//		da_t<uint_t, 4, 3> li = { da_t<uint_t, 2>{0, 1}, da_t<uint_t, 2>{1, 3}, da_t<uint_t, 2>{3, 2}, da_t<uint_t, 2>{2, 0} };
-//	}
-//}
+#define ProcessCollision_dl(pos_m, vel_m, walls_m) \
+	while(ProcessCollision_fl(pos_m, vel_m, walls_m))
 
-static void rectangle_collision_2d(fan_2d::square& player, const vec2& old_position, const fan_2d::square_vector& walls) {
-	mat2x2 pl(
-		old_position,
-		old_position + player.get_size()
-	);
-
-	da_t<f32_t, 2> vel = player.get_velocity() * delta_time;
-
-	process_rectangle_collision_2d(
-		pl,
-		vel,
-		walls.get_icorners()
-	);
-	player.set_position(pl[0]);
-	//player.set_velocity(0);
+inline void rectangle_collision_2d(fan_2d::square& player, const fan_2d::square_vector& walls) {
+	const da_t<f32_t, 2> size = player.get_size();
+	const da_t<f32_t, 2> base = player.get_velocity();
+	da_t<f32_t, 2> velocity = base * delta_time;
+	const da_t<f32_t, 2> old_position = player.get_position() - velocity;
+	da_t<f32_t, 2, 2> my_corners(old_position, old_position + size);
+	const auto wall_corners = walls.get_icorners();
+	ProcessCollision_dl(my_corners, velocity, wall_corners);
+	player.set_position(my_corners[0]);
 }
 
 constexpr bool rectangles_collide(const vec2& a, const  vec2& a_size, const vec2& b, const vec2& b_size) {
@@ -1264,6 +1261,10 @@ constexpr bool rectangles_collide(const vec2& a, const  vec2& a_size, const vec2
 	bool y = a[1] + a_size[1] > b[1] &&
 		a[1] < b[1] + b_size[1];
 	return x && y;
+}
+
+static void vsync() {
+	glfwSwapInterval(1);
 }
 
 //#endif
