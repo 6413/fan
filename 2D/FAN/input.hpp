@@ -14,8 +14,8 @@ constexpr bool fullScreen = false;
 #define GLFW_MOUSE_SCROLL_UP 200
 #define GLFW_MOUSE_SCROLL_DOWN 201
 
-extern vec2i cursor_position;
-extern vec2i window_size;
+extern fan::vec2i cursor_position;
+extern fan::vec2i window_size;
 
 template <typename T>
 void variadic_vector_emplace(std::vector<T>&) {}
