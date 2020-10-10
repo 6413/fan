@@ -391,7 +391,7 @@ fan_2d::square::square(const fan::vec2& position, const fan::vec2& size, const f
 
 fan::vec2 fan_2d::square::center() const
 {
-	return fan_2d::square::position - fan_2d::square::size / 2;
+	return fan_2d::square::position + fan_2d::square::size / 2;
 }
 
 void fan_2d::square::draw()
