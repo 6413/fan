@@ -1,4 +1,4 @@
-#include <FAN/t.h>
+#include <FAN/types.h>
 
 #ifdef REQUIRE_GRAPHICS
 #include <GLFW/glfw3.h>
