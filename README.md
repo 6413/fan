@@ -11,12 +11,16 @@ For linux g++ and clang minimum version is 8
 
 Ubuntu/Debian
 
-sudo apt-get install libglew-dev -y &&
-sudo apt-get install libglfw3-dev -y &&
+sudo apt install libglew-dev -y &&
+sudo apt install libglfw3-dev -y &&
 sudo apt install libassimp-dev -y &&
-sudo apt-get install libfreetype6-dev -y && make
+sudo apt install libfreetype6-dev -y && 
+sudo apt install libopenal-dev -y &&
+make
 
 Arch linux
 
-sudo pacman -S glfw-x11 &&
-sudo pacman -S assimp && make
+sudo pacman -S glfw-x11 -y &&
+sudo pacman -S assimp -y &&
+sudo pacman -S openal -y &&
+make
