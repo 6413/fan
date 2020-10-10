@@ -195,7 +195,7 @@ bool WindowInit() {
 
 	callback::key.add(GLFW_KEY_ESCAPE, true, [&] {
 		glfwSetWindowShouldClose(window, true);
-		});
+	});
 
 	// INITIALIZATION FOR DELTA TIME
 	GetFps(true, true);

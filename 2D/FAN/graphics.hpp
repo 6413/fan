@@ -18,7 +18,7 @@
 #define FAN_WINDOWS
 #endif
 
-#include <FAN/t.h>
+#include <FAN/types.h>
 
 #include <vector>
 #include <array>

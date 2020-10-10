@@ -3,7 +3,7 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
-#include <FAN/t.h>
+#include <FAN/types.h>
 
 #include <functional>
 #include <vector>

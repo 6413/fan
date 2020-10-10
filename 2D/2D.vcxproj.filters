@@ -108,6 +108,15 @@
     <ClInclude Include="FAN\time.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="FAN\types.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FAN\vector.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FAN\da.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source.cpp">

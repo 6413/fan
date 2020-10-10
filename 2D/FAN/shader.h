@@ -8,7 +8,7 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
-#include <FAN/t.h>
+#include <FAN/types.h>
 
 class Shader
 {

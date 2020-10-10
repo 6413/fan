@@ -1,4 +1,5 @@
-#pragma once
+#ifndef _WITCH_T
+#define _WITCH_T
 
 #define EMPTY
 #define _ ,
@@ -162,62 +163,66 @@ typedef double f_t;
 #define fmod_dr(n_m, m_m) \
 	((n_m) - (floor_dr((n_m) / (m_m)) * (m_m)))
 
-typedef struct T_ttcc_t T_ttcc_t;
-struct T_ttcc_t {
-	uint8_t* ptr;
-	ui_t c, p;
-	uint8_t(*f)(T_ttcc_t*);
-	void* arg;
-}; /* type that can call */
+namespace fan {
+	typedef struct T_ttcc_t T_ttcc_t;
+	struct T_ttcc_t {
+		uint8_t* ptr;
+		ui_t c, p;
+		uint8_t(*f)(T_ttcc_t*);
+		void* arg;
+	}; /* type that can call */
 
-typedef struct {
-	uint8_t* ptr;
-	ui_t uint;
-}pui_t;
+	typedef struct {
+		uint8_t* ptr;
+		ui_t uint;
+	}pui_t;
 
-typedef struct {
-	const char* cstr;
-	ui_t uint;
-}T_csui_t;
+	typedef struct {
+		const char* cstr;
+		ui_t uint;
+	}T_csui_t;
 
-static uint8_t CTZ(unsigned int x) {
-#if defined(__GNUC__)
-	return __builtin_ctz(x);
-#elif defined(_MSC_VER)
-	unsigned long ret;
-	_BitScanForward(&ret, x);
-	return ret;
-#else
-	for (uint8_t i = 0; x & 1; x >>= 1)
-		return i;
-#endif
-}
-static uint8_t CTZ32(uint32_t x) {
-#if defined(__GNUC__)
-	return __builtin_ctzl(x);
-#elif defined(_MSC_VER)
-	unsigned long ret;
-	_BitScanForward(&ret, x);
-	return ret;
-#else
-	for (uint8_t i = 0; x & 1; x >>= 1)
-		return i;
-#endif
-}
-static uint8_t CTZ64(uint64_t x) {
-#if defined(__GNUC__)
-	return __builtin_ctzll(x);
-#elif defined(_MSC_VER)
-	unsigned long ret;
-	_BitScanForward64(&ret, x);
-	return ret;
-#else
-	for (uint8_t i = 0; x & 1; x >>= 1)
-		return i;
-#endif
+	static uint8_t CTZ(unsigned int x) {
+		#if defined(__GNUC__)
+		return __builtin_ctz(x);
+		#elif defined(_MSC_VER)
+		unsigned long ret;
+		_BitScanForward(&ret, x);
+		return ret;
+		#else
+		for (uint8_t i = 0; x & 1; x >>= 1)
+			return i;
+		#endif
+	}
+	static uint8_t CTZ32(uint32_t x) {
+		#if defined(__GNUC__)
+		return __builtin_ctzl(x);
+		#elif defined(_MSC_VER)
+		unsigned long ret;
+		_BitScanForward(&ret, x);
+		return ret;
+		#else
+		for (uint8_t i = 0; x & 1; x >>= 1)
+			return i;
+		#endif
+	}
+	static uint8_t CTZ64(uint64_t x) {
+		#if defined(__GNUC__)
+		return __builtin_ctzll(x);
+		#elif defined(_MSC_VER)
+		unsigned long ret;
+		_BitScanForward64(&ret, x);
+		return ret;
+		#else
+		for (uint8_t i = 0; x & 1; x >>= 1)
+			return i;
+		#endif
+	}
 }
 
 #if WITCH_LANGUAGE_CPP
-#include <FAN/t_vector.h>
-#include <FAN/t_da.h>
+#include <FAN/vector.h>
+#include <FAN/da.h>
+#endif
+
 #endif

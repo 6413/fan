@@ -36,6 +36,7 @@ constexpr auto eti(Enumeration const value)
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #pragma comment(lib,"ws2_32.lib")
+#define WIN32_LEAN_AND_MEAN
 static WSADATA wsa;
 static int wsa_error = WSAStartup(MAKEWORD(2, 2), &wsa);
 #else

@@ -183,6 +183,7 @@
   <ItemGroup>
     <ClInclude Include="FAN\alloc.hpp" />
     <ClInclude Include="FAN\audio.hpp" />
+    <ClInclude Include="FAN\da.h" />
     <ClInclude Include="FAN\file.hpp" />
     <ClInclude Include="FAN\global_vars.hpp" />
     <ClInclude Include="FAN\graphics.hpp" />
@@ -209,8 +210,10 @@
     <ClInclude Include="FAN\SOIL2\stb_image_write.h" />
     <ClInclude Include="FAN\t.h" />
     <ClInclude Include="FAN\time.hpp" />
+    <ClInclude Include="FAN\types.h" />
     <ClInclude Include="FAN\t_da.h" />
     <ClInclude Include="FAN\t_vector.h" />
+    <ClInclude Include="FAN\vector.h" />
     <ClInclude Include="FAN\Vectors.hpp" />
   </ItemGroup>
   <ItemGroup>
