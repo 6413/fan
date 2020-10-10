@@ -2,8 +2,8 @@
 #include <FAN/input.hpp>
 #include <FAN/global_vars.hpp>
 
-vec2i cursor_position;
-vec2i window_size;
+fan::vec2i cursor_position;
+fan::vec2i window_size;
 
 KeyCallback callback::key;
 KeyCallback callback::key_release;
@@ -84,7 +84,7 @@ void callback::MouseButtonCallback(GLFWwindow* window, int button, int action, i
 }
 
 void callback::CursorPositionCallback(GLFWwindow* window, double xpos, double ypos) {
-	cursor_position = vec2(xpos, ypos);
+	cursor_position = fan::vec2(xpos, ypos);
 	for (int i = 0; i < callback::cursor_move.size(); i++) {
 		callback::cursor_move.get_function(i)();
 	}
@@ -109,7 +109,7 @@ void callback::CharacterCallback(GLFWwindow* window, unsigned int key) {
 
 void callback::FrameSizeCallback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
-	window_size = vec2(width, height);
+	window_size = fan::vec2(width, height);
 	for (int i = 0; i < callback::window_resize.size(); i++) {
 		callback::window_resize.get_function(i)();
 	}
@@ -137,6 +137,10 @@ bool key_press(int key)
 void GetFps(bool, bool);
 
 bool WindowInit() {
+	static bool initialized = false;
+	if (initialized) {
+		return 1;
+	}
 	glfwSetErrorCallback(callback::glfwErrorCallback);
 	if (!glfwInit()) {
 		printf("GLFW ded\n");
@@ -145,18 +149,18 @@ bool WindowInit() {
 	}
 	window_size = WINDOWSIZE;
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-//	glfwWindowHint(GLFW_RESIZABLE, false);
+	//	glfwWindowHint(GLFW_RESIZABLE, false);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-#ifdef FAN_CUSTOM_WINDOW
-	glfwWindowHint(GLFW_DECORATED, false);
-#endif
-	//glfwWindowHint(GLFW_SAMPLES, 32);
-	//glEnable(GL_MULTISAMPLE);
-	if (fullScreen) {
-		window_size = vec2(glfwGetVideoMode(glfwGetPrimaryMonitor())->width, glfwGetVideoMode(glfwGetPrimaryMonitor())->height);
+	glfwWindowHint(GLFW_DECORATED, flags::decorated);
+	if constexpr (flags::antialising) {
+		glfwWindowHint(GLFW_SAMPLES, 32);
+		glEnable(GL_MULTISAMPLE);
 	}
-	window = glfwCreateWindow(window_size.x, window_size.y, "FPS: ", fullScreen ? glfwGetPrimaryMonitor() : NULL, NULL);
+	if (flags::full_screen) {
+		window_size = fan::vec2(glfwGetVideoMode(glfwGetPrimaryMonitor())->width, glfwGetVideoMode(glfwGetPrimaryMonitor())->height);
+	}
+	window = glfwCreateWindow(window_size.x, window_size.y, "FPS: ", flags::full_screen ? glfwGetPrimaryMonitor() : NULL, NULL);
 
 	if (!window) {
 		printf("Window ded\n");
@@ -173,7 +177,9 @@ bool WindowInit() {
 		glfwTerminate();
 		exit(EXIT_SUCCESS);
 	}
-	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	if constexpr (flags::disable_mouse) {
+		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	}
 	glViewport(0, 0, window_size.x, window_size.y);
 	//glEnable(GL_DEPTH_TEST);
 
@@ -189,12 +195,13 @@ bool WindowInit() {
 
 	callback::key.add(GLFW_KEY_ESCAPE, true, [&] {
 		glfwSetWindowShouldClose(window, true);
-	});
+		});
 
 	// INITIALIZATION FOR DELTA TIME
 	GetFps(true, true);
 	glfwSwapBuffers(window);
 	glfwPollEvents();
+	initialized = true;
 
 	return 1;
 }

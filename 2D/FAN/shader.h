@@ -124,7 +124,7 @@ public:
         }
     }
 
-    void set_vec2(const std::string& name, const vec2& value) const
+    void set_vec2(const std::string& name, const fan::vec2& value) const
     {
         if constexpr (std::is_same<f32_t, float>::value) {
             glUniform2fv(glGetUniformLocation(ID, name.c_str()), 1, (f32_t*)&value.x);
@@ -144,7 +144,7 @@ public:
         }
     }
 
-    void set_vec3(const std::string& name, const vec3& value) const
+    void set_vec3(const std::string& name, const fan::vec3& value) const
     {
         if constexpr (std::is_same<f32_t, float>::value) {
             glUniform3f(glGetUniformLocation(ID, name.c_str()), value.x, value.y, value.z);
@@ -154,7 +154,7 @@ public:
         }
     }
 
-    void set_vec4(const std::string& name, const Color& color) const
+    void set_vec4(const std::string& name, const fan::color& color) const
     {
         if constexpr (std::is_same<f32_t, float>::value) {
             glUniform4f(glGetUniformLocation(ID, name.c_str()), color.r, color.g, color.b, color.a);
@@ -174,7 +174,7 @@ public:
         }
     }
 
-    void set_mat4(const std::string& name, mat4 mat) const { // ei saanu kai olla const
+    void set_mat4(const std::string& name, fan::mat4 mat) const { // ei saanu kai olla const
         if constexpr (std::is_same<f32_t, float>::value) {
             glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, (f32_t*)&mat[0][0]);
         }
