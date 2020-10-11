@@ -7,7 +7,7 @@ Windows
 
 Compiled using Visual Studio 2019 (project file is in the directory)
 
-For linux g++ and clang minimum version is 8
+For linux g++ and clang minimum version is 10
 
 Ubuntu/Debian
 
@@ -24,3 +24,6 @@ sudo pacman -S glfw-x11 -y &&
 sudo pacman -S assimp -y &&
 sudo pacman -S openal -y &&
 make
+
+g++-10 is required otherwise don't use make file and use with g++-10 ...
+sudo ln -s /usr/bin/g++-10 /usr/local/bin/g++
