@@ -2,33 +2,33 @@
 #include <FAN/input.hpp>
 #include <FAN/global_vars.hpp>
 
-fan::vec2i cursor_position;
-fan::vec2i window_size;
+fan::vec2i fan::cursor_position;
+fan::vec2i fan::window_size;
 
-KeyCallback callback::key;
-KeyCallback callback::key_release;
-KeyCallback callback::scroll;
-default_callback callback::window_resize;
-default_callback callback::cursor_move;
-default_callback callback::character;
-default_callback callback::drop;
+fan::KeyCallback fan::callback::key;
+fan::KeyCallback fan::callback::key_release;
+fan::KeyCallback fan::callback::scroll;
+fan::default_callback fan::callback::window_resize;
+fan::default_callback fan::callback::cursor_move;
+fan::default_callback fan::callback::character;
+fan::default_callback fan::callback::drop;
 
-auto& default_callback::get_function(uint64_t i)
+auto& fan::default_callback::get_function(uint64_t i)
 {
 	return functions[i];
 }
 
-uint64_t default_callback::size() const
+uint64_t fan::default_callback::size() const
 {
 	return functions.size();
 }
 
-void callback::glfwErrorCallback(int id, const char* error) {
+void fan::callback::glfwErrorCallback(int id, const char* error) {
 	printf("GLFW Error %d : %s\n", id, error);
 }
 
-void callback::glfwKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-	for (int i = 0; i < callback::key.size(); i++) {
+void fan::callback::glfwKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+	for (uint_t i = 0; i < callback::key.size(); i++) {
 		if (key == callback::key.get_key(i)) {
 			if (callback::key.get_action(i)) {
 				if (callback::key.get_action(i) == action) {
@@ -43,7 +43,7 @@ void callback::glfwKeyCallback(GLFWwindow* window, int key, int scancode, int ac
 
 	static int release = 0;
 	if (release) {
-		for (int i = 0; i < callback::key_release.size(); i++) {
+		for (uint_t i = 0; i < callback::key_release.size(); i++) {
 			if (key == callback::key_release.get_key(i)) {
 				if (callback::key_release.get_action(i) == GLFW_RELEASE) {
 					callback::key_release.get_function(i)();
@@ -55,8 +55,8 @@ void callback::glfwKeyCallback(GLFWwindow* window, int key, int scancode, int ac
 	release++;
 }
 
-void callback::MouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
-	for (int i = 0; i < callback::key.size(); i++) {
+void fan::callback::MouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
+	for (uint_t i = 0; i < callback::key.size(); i++) {
 		if (button == callback::key.get_key(i)) {
 			if (callback::key.get_action(i)) {
 				if (callback::key.get_action(i) == action) {
@@ -71,7 +71,7 @@ void callback::MouseButtonCallback(GLFWwindow* window, int button, int action, i
 
 	static int release = 0;
 	if (release) {
-		for (int i = 0; i < callback::key_release.size(); i++) {
+		for (uint_t i = 0; i < callback::key_release.size(); i++) {
 			if (button == callback::key_release.get_key(i)) {
 				if (callback::key_release.get_action(i) == GLFW_RELEASE) {
 					callback::key_release.get_function(i)();
@@ -83,15 +83,15 @@ void callback::MouseButtonCallback(GLFWwindow* window, int button, int action, i
 	release++;
 }
 
-void callback::CursorPositionCallback(GLFWwindow* window, double xpos, double ypos) {
+void fan::callback::CursorPositionCallback(GLFWwindow* window, double xpos, double ypos) {
 	cursor_position = fan::vec2(xpos, ypos);
-	for (int i = 0; i < callback::cursor_move.size(); i++) {
+	for (uint_t i = 0; i < callback::cursor_move.size(); i++) {
 		callback::cursor_move.get_function(i)();
 	}
 }
 
-void callback::ScrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
-	for (int i = 0; i < callback::scroll.size(); i++) {
+void fan::callback::ScrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
+	for (uint_t i = 0; i < callback::scroll.size(); i++) {
 		if (callback::scroll.get_key(i) == GLFW_MOUSE_SCROLL_UP && yoffset == 1) {
 			callback::scroll.get_function(i)();
 		}
@@ -101,32 +101,32 @@ void callback::ScrollCallback(GLFWwindow* window, double xoffset, double yoffset
 	}
 }
 
-void callback::CharacterCallback(GLFWwindow* window, unsigned int key) {
-	for (int i = 0; i < callback::character.size(); i++) {
+void fan::callback::CharacterCallback(GLFWwindow* window, unsigned int key) {
+	for (uint_t i = 0; i < callback::character.size(); i++) {
 		(*(std::function<void(int, int)>*)(callback::character.get_function_ptr(i)))(std::any_cast<int>(callback::character.get_parameter(i, 0)), key);
 	}
 }
 
-void callback::FrameSizeCallback(GLFWwindow* window, int width, int height) {
+void fan::callback::FrameSizeCallback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
 	window_size = fan::vec2(width, height);
-	for (int i = 0; i < callback::window_resize.size(); i++) {
+	for (uint_t i = 0; i < callback::window_resize.size(); i++) {
 		callback::window_resize.get_function(i)();
 	}
 }
 
-void callback::DropCallback(GLFWwindow* window, int path_count, const char* paths[]) {
+void fan::callback::DropCallback(GLFWwindow* window, int path_count, const char* paths[]) {
 	callback::drop_info.paths.clear();
 	callback::drop_info.path_count = path_count;
 	for (int i = 0; i < path_count; i++) {
 		callback::drop_info.paths.push_back(paths[i]);
 	}
-	for (int i = 0; i < callback::drop.size(); i++) {
+	for (uint_t i = 0; i < callback::drop.size(); i++) {
 		callback::drop.get_function(i)();
 	}
 }
 
-bool key_press(int key)
+bool fan::key_press(int key)
 {
 	if (key <= GLFW_MOUSE_BUTTON_8) {
 		return glfwGetMouseButton(window, key);
@@ -134,9 +134,9 @@ bool key_press(int key)
 	return glfwGetKey(window, key);
 }
 
-void GetFps(bool, bool);
+void fan::get_fps(bool, bool);
 
-bool WindowInit() {
+bool fan::initialize_window() {
 	static bool initialized = false;
 	if (initialized) {
 		return 1;
@@ -199,7 +199,7 @@ bool WindowInit() {
 	});
 
 	// INITIALIZATION FOR DELTA TIME
-	GetFps(true, true);
+	fan::get_fps(true, true);
 	glfwSwapBuffers(window);
 	glfwPollEvents();
 	initialized = true;
@@ -207,4 +207,4 @@ bool WindowInit() {
 	return 1;
 }
 
-bool window_init = WindowInit();
+bool window_init = fan::initialize_window();
