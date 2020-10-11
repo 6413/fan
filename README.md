@@ -1,5 +1,5 @@
-# 2D
-2D/3D stuff using C++ OpenGL GLFW
+# OpenGL
+2D/3D stuff using C++ OpenGL
 
 Installation and compilation
 
