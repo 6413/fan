@@ -111,6 +111,7 @@
 #endif
 #if WITCH_LANGUAGE_CPP
 #include <vector>
+#include <type_traits>
 #define WITCH_a(type_m) std::vector<type_m>
 #else
 #define WITCH_a(type_m) (type_m[])
@@ -164,6 +165,17 @@ typedef double f_t;
 	((n_m) - (floor_dr((n_m) / (m_m)) * (m_m)))
 
 namespace fan {
+
+	// converts enum to int
+	template <typename Enumeration>
+	constexpr auto eti(Enumeration const value)
+	-> typename std::underlying_type<Enumeration>::type
+	{
+		return static_cast<
+			typename std::underlying_type<Enumeration>::type
+		>(value);
+	}
+
 	typedef struct T_ttcc_t T_ttcc_t;
 	struct T_ttcc_t {
 		uint8_t* ptr;
@@ -221,6 +233,7 @@ namespace fan {
 }
 
 #if WITCH_LANGUAGE_CPP
+#include <FAN/color.hpp>
 #include <FAN/vector.h>
 #include <FAN/da.h>
 #endif

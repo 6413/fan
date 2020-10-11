@@ -27,7 +27,7 @@ void main() {
     fColor = vec3(1, 1,1);
     mat4 MPV = get_projection_view(0);
 
-   for (int i = 37; i >= 0; i--) {
+   for (uint_t i = 37; i >= 0; i--) {
         gl_Position = MVP * vec4( 0, 0 , 0, 1 );
         EmitVertex(); // epicenter
 

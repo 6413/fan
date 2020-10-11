@@ -8,7 +8,7 @@ namespace fan {
 	struct matrix;
 
 	template <typename type, std::size_t Rows>
-	struct list;
+	class list;
 
 	template <typename type, std::size_t Rows, std::size_t Cols = 1>
 	using da_t = std::conditional_t<Cols == 1, list<type, Rows>, matrix<type, Rows, Cols>>;
@@ -32,21 +32,21 @@ namespace fan {
 
 		template <typename T>
 		constexpr list(const _vec2<T>& vector) {
-			for (int i = 0; i < std::min(rows, vector.size()); i++) {
+			for (uint_t i = 0; i < std::min(rows, vector.size()); i++) {
 				this->operator[](i) = vector[i];
 			}
 		}
 
 		template <typename T>
 		constexpr list(const _vec3<T>& vector) {
-			for (int i = 0; i < std::min(rows, vector.size()); i++) {
+			for (uint_t i = 0; i < std::min(rows, vector.size()); i++) {
 				this->operator[](i) = vector[i];
 			}
 		}
 
 		template <typename T>
 		constexpr list(const _vec4<T>& vector) {
-			for (int i = 0; i < std::min(rows, vector.size()); i++) {
+			for (uint_t i = 0; i < std::min(rows, vector.size()); i++) {
 				this->operator[](i) = vector[i];
 			}
 		}
@@ -56,14 +56,14 @@ namespace fan {
 
 		template <typename T>
 		constexpr list(T value) : std::array<type, rows>{0} {
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				this->operator[](i) = value;
 			}
 		}
 
 		template <typename T, std::size_t array_n>
 		constexpr list(const list<T, array_n>& list) {
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				this->operator[](i) = list[i];
 			}
 		}
@@ -76,7 +76,7 @@ namespace fan {
 		constexpr list operator+(const list<T, list_n>& _list) const noexcept {
 			static_assert(rows >= list_n, "second list is bigger than first");
 			list calculation_list;
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				calculation_list[i] = this->operator[](i) + _list[i];
 			}
 			return calculation_list;
@@ -85,7 +85,7 @@ namespace fan {
 		template <is_not_da_t<type, rows> T>
 		constexpr list operator+(T value) const noexcept {
 			list list;
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				list[i] = this->operator[](i) + value;
 			}
 			return list;
@@ -94,7 +94,7 @@ namespace fan {
 		template <typename T, std::size_t rows_>
 		constexpr list operator+=(const list<T, rows_>& value) noexcept {
 			//static_assert(rows >= list_n, "second list is bigger than first");
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				this->operator[](i) += value[i];
 			}
 			return *this;
@@ -103,7 +103,7 @@ namespace fan {
 
 		template <is_not_da_t<type, rows> T>
 		constexpr list operator+=(T value) noexcept {
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				this->operator[](i) += value;
 			}
 			return *this;
@@ -111,7 +111,7 @@ namespace fan {
 
 		constexpr list operator-() const noexcept {
 			list l;
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				l[i] = -this->operator[](i);
 			}
 			return l;
@@ -121,7 +121,7 @@ namespace fan {
 		constexpr list operator-(const list<T, list_n>& _list) const noexcept {
 			static_assert(rows >= list_n, "second list is bigger than first");
 			list calculation_list;
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				calculation_list[i] = this->operator[](i) - _list[i];
 			}
 			return calculation_list;
@@ -130,7 +130,7 @@ namespace fan {
 		template <is_not_da_t<type, rows> T>
 		constexpr list operator-(T value) const noexcept {
 			list list;
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				list[i] = this->operator[](i) - value;
 			}
 			return list;
@@ -139,7 +139,7 @@ namespace fan {
 		template <typename T, std::size_t list_n>
 		constexpr list operator-=(const list<T, list_n>& value) noexcept {
 			static_assert(rows >= list_n, "second list is bigger than first");
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				this->operator[](i) -= value[i];
 			}
 			return *this;
@@ -147,7 +147,7 @@ namespace fan {
 
 		template <is_not_da_t<type, rows> T>
 		constexpr list operator-=(T value) noexcept {
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				this->operator[](i) -= value;
 			}
 			return *this;
@@ -157,7 +157,7 @@ namespace fan {
 		constexpr list operator*(const list<T, list_n>& _list) const noexcept {
 			static_assert(rows >= list_n, "second list is bigger than first");
 			list calculation_list;
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				calculation_list[i] = this->operator[](i) * _list[i];
 			}
 			return calculation_list;
@@ -165,7 +165,7 @@ namespace fan {
 
 		constexpr list operator*(type value) const noexcept {
 			list list;
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				list[i] = this->operator[](i) * value;
 			}
 			return list;
@@ -174,7 +174,7 @@ namespace fan {
 		template <typename T, std::size_t list_n>
 		constexpr list operator*=(const list<T, list_n>& value) noexcept {
 			static_assert(rows >= list_n, "second list is bigger than first");
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				this->operator[](i) *= value[i];
 			}
 			return *this;
@@ -182,7 +182,7 @@ namespace fan {
 
 		template <is_not_da_t<type, rows> T>
 		constexpr list operator*=(T value) noexcept {
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				this->operator[](i) *= value;
 			}
 			return *this;
@@ -193,7 +193,7 @@ namespace fan {
 		constexpr list operator/(const list<T, list_n>& _list) const noexcept {
 			static_assert(rows >= list_n, "second list is bigger than first");
 			list calculation_list;
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				calculation_list[i] = this->operator[](i) / _list[i];
 			}
 			return calculation_list;
@@ -202,7 +202,7 @@ namespace fan {
 		template <is_not_da_t<type, rows> T>
 		constexpr list operator/(T value) const noexcept {
 			list list;
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				list[i] = this->operator[](i) / value;
 			}
 			return list;
@@ -211,7 +211,7 @@ namespace fan {
 		template <typename T, std::size_t list_n>
 		constexpr list operator/=(const list<T, list_n>& value) noexcept {
 			static_assert(rows >= list_n, "second list is bigger than first");
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				this->operator[](i) /= value[i];
 			}
 			return *this;
@@ -219,7 +219,7 @@ namespace fan {
 
 		template <is_not_da_t<type, rows> T>
 		constexpr list operator/=(T value) noexcept {
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				this->operator[](i) /= value;
 			}
 			return *this;
@@ -228,14 +228,14 @@ namespace fan {
 		template <is_not_da_t<type, rows> T>
 		constexpr auto operator%(T value) {
 			list l;
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				l = fmodf(this->operator[](i), value);
 			}
 			return l;
 		}
 
 		constexpr bool operator<(const list<type, rows>& list_) {
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				if (this->operator[](i) < list_[i]) {
 					return true;
 				}
@@ -244,7 +244,7 @@ namespace fan {
 		}
 
 		constexpr bool operator<=(const list<type, rows>& list_) {
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				if (this->operator[](i) <= list_[i]) {
 					return true;
 				}
@@ -254,7 +254,7 @@ namespace fan {
 
 		template <is_not_da_t<type, rows> T>
 		constexpr bool operator==(T value) {
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				if (this->operator[](i) != value) {
 					return false;
 				}
@@ -263,7 +263,7 @@ namespace fan {
 		}
 
 		constexpr bool operator==(const list<type, rows>& list_) {
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				if (this->operator[](i) != list_[i]) {
 					return false;
 				}
@@ -273,7 +273,7 @@ namespace fan {
 
 		template <is_not_da_t<type, rows> T>
 		constexpr bool operator!=(T value) {
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				if (this->operator[](i) == value) {
 					return false;
 				}
@@ -283,7 +283,7 @@ namespace fan {
 
 		template <typename T>
 		constexpr bool operator!=(const list<T, rows>& list_) {
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				if (this->operator[](i) == list_[i]) {
 					return false;
 				}
@@ -296,7 +296,7 @@ namespace fan {
 		}
 
 		constexpr void print() const {
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				std::cout << this->operator[](i) << ((i + 1 != rows) ? " " : "\rows");
 			}
 		}
@@ -319,7 +319,7 @@ namespace fan {
 
 		constexpr auto abs() const noexcept {
 			list l;
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				l[i] = std::abs(this->operator[](i));
 			}
 			return l;
@@ -327,7 +327,7 @@ namespace fan {
 
 		constexpr list<type, 2> floor() const noexcept {
 			list l;
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				l[i] = std::floor(this->operator[](i));
 			}
 			return l;
@@ -335,7 +335,7 @@ namespace fan {
 
 		constexpr list<type, 2> ceil() const noexcept {
 			list l;
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				l[i] = (this->operator[](i) < 0 ? -std::ceil(-this->operator[](i)) : std::ceil(this->operator[](i)));
 			}
 			return l;
@@ -343,7 +343,7 @@ namespace fan {
 
 		constexpr list<type, 2> round() const noexcept {
 			list l;
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				l[i] = std::round(-this->operator[](i));
 			}
 			return l;
@@ -359,7 +359,7 @@ namespace fan {
 		}
 
 		constexpr auto gfne() const noexcept {
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				if (this->operator[](i)) {
 					return this->operator[](i);
 				}
@@ -397,15 +397,15 @@ namespace fan {
 		template <typename _Type, std::size_t cols, template <typename, std::size_t> typename... _List>
 		constexpr matrix(const _List<_Type, cols>&... list_) : m{ 0 } {
 			//static_assert(sizeof...(list_) >= cols, "too many initializers");
-			int i = 0;
+			uint_t i = 0;
 			auto auto_type = std::get<0>(std::forward_as_tuple(list_...));
 			((((decltype(auto_type)*)m)[i++] = list_), ...);
 		}
 
 		template <typename T>
 		constexpr matrix(const matrix<T, rows, cols>& matrix_) : m{ 0 } {
-			for (int i = 0; i < rows; i++) {
-				for (int j = 0; j < cols; j++) {
+			for (uint_t i = 0; i < rows; i++) {
+				for (uint_t j = 0; j < cols; j++) {
 					m[i][j] = matrix_[i][j];
 				}
 			}
@@ -421,14 +421,14 @@ namespace fan {
 
 		template <typename T>
 		constexpr matrix(T value) : m{ 0 } {
-			for (int i = 0; i < rows && i < cols; i++) {
+			for (uint_t i = 0; i < rows && i < cols; i++) {
 				m[i][i] = value;
 			}
 		}
 
 		template <template <typename> typename... _Vec_t, typename _Type>
 		matrix(const _Vec_t<_Type>&... vector) : m{ 0 } {
-			int i = 0;
+			uint_t i = 0;
 			auto auto_type = std::get<0>(std::forward_as_tuple(vector...));
 			((((decltype(auto_type)*)m)[i++] = vector), ...);
 		}
@@ -437,7 +437,7 @@ namespace fan {
 		constexpr matrix_type operator+(const matrix<T, Rows2, Cols2>& matrix) const noexcept { // matrix
 			matrix_type _matrix;
 			static_assert(Cols2 <= Cols, "Colums of the second matrix is bigger than first");
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				_matrix[i] = m[i] + matrix[i];
 			}
 			return _matrix;
@@ -447,7 +447,7 @@ namespace fan {
 		constexpr matrix_type operator+(const list<T, da_t_n>& da_t) const noexcept { // list
 			matrix_type _matrix;
 			static_assert(cols >= da_t_n, "list is bigger than the matrice's Rows");
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				_matrix[i] = m[i] + da_t;
 			}
 			return _matrix;
@@ -456,7 +456,7 @@ namespace fan {
 		template <typename T>
 		constexpr matrix_type operator+(T value) const noexcept { // basic value
 			matrix_type _matrix;
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				_matrix[i] = m[i] + value;
 			}
 			return _matrix;
@@ -466,7 +466,7 @@ namespace fan {
 		constexpr auto operator+=(const matrix<T, Rows2, Cols2>& matrix) noexcept { // matrix
 			matrix_type _matrix;
 			static_assert(Cols2 <= Cols, "Colums of the second matrix is bigger than first");
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				_matrix[i] = m[i] += matrix[i];
 			}
 			return _matrix;
@@ -476,7 +476,7 @@ namespace fan {
 		constexpr matrix_type operator+=(const list<T, da_t_n>& da_t) noexcept { // list
 			matrix_type _matrix;
 			static_assert(cols <= da_t_n, "list is bigger than the matrice's Rows");
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				_matrix[i] = m[i] += da_t;
 			}
 			return _matrix;
@@ -485,7 +485,7 @@ namespace fan {
 		template <typename T>
 		constexpr matrix_type operator+=(T value) noexcept { // basic value
 			matrix_type _matrix;
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				_matrix[i] = m[i] += value;
 			}
 			return _matrix;
@@ -495,7 +495,7 @@ namespace fan {
 		constexpr matrix_type operator-(const matrix<T, Rows2, Cols2>& matrix) const noexcept { // matrix
 			matrix_type _matrix;
 			static_assert(Cols2 <= Cols, "Colums of the second matrix is bigger than first");
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				_matrix[i] = m[i] - matrix[i];
 			}
 			return _matrix;
@@ -505,7 +505,7 @@ namespace fan {
 		constexpr matrix_type operator-(const list<T, da_t_n>& da_t) const noexcept { // list
 			matrix_type _matrix;
 			static_assert(cols <= da_t_n, "list is bigger than the matrice's Rows");
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				_matrix[i] = m[i] - da_t;
 			}
 			return _matrix;
@@ -514,7 +514,7 @@ namespace fan {
 		template <typename T>
 		constexpr matrix_type operator-(T value) const noexcept { // basic value
 			matrix_type _matrix;
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				_matrix[i] = m[i] - value;
 			}
 			return _matrix;
@@ -524,7 +524,7 @@ namespace fan {
 		constexpr matrix_type operator-=(const matrix<T, Rows2, Cols2>& matrix) noexcept { // matrix
 			matrix_type _matrix;
 			static_assert(Cols2 <= Cols, "Colums of the second matrix is bigger than first");
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				_matrix[i] = m[i] -= matrix[i];
 			}
 			return _matrix;
@@ -534,7 +534,7 @@ namespace fan {
 		constexpr matrix_type operator-=(const list<T, da_t_n>& da_t) noexcept { // list
 			matrix_type _matrix;
 			static_assert(cols <= da_t_n, "list is bigger than the matrice's Rows");
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				_matrix[i] = m[i] -= da_t;
 			}
 			return _matrix;
@@ -543,7 +543,7 @@ namespace fan {
 		template <typename T>
 		constexpr matrix_type operator-=(T value) noexcept { // basic value
 			matrix_type _matrix;
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				_matrix[i] = m[i] -= value;
 			}
 			return _matrix;
@@ -562,13 +562,13 @@ namespace fan {
 			if (Rows != Cols) {
 				throw("first matrix rows must be same as second's colums");
 			}
-			for (int _I = 0; _I < Rows; _I++) {
-				for (int _J = 0; _J < Cols; _J++) {
+			for (uint_t i = 0; i < Rows; i++) {
+				for (uint_t j = 0; j < Cols; j++) {
 					type _Value = 0;
-					for (int _K = 0; _K < Cols; _K++) {
-						_Value += m[_I][_K] * _Lhs[_K][_J];
+					for (uint_t _K = 0; _K < Cols; _K++) {
+						_Value += m[i][_K] * _Lhs[_K][j];
 					}
-					m[_I][_J] = _Value;
+					m[i][j] = _Value;
 				}
 			}
 			return *this;
@@ -591,8 +591,8 @@ namespace fan {
 
 		template <typename T>
 		constexpr auto operator%(T value) {
-			for (int i = 0; i < Cols; i++) {
-				for (int j = 0; j < Rows; j++) {
+			for (uint_t i = 0; i < Cols; i++) {
+				for (uint_t j = 0; j < Rows; j++) {
 					m[i][j] = fmodf(m[i][j], value);
 				}
 			}
@@ -600,8 +600,8 @@ namespace fan {
 		}
 
 		constexpr bool operator==(const matrix<type, rows, cols>& list_) {
-			for (int i = 0; i < rows; i++) {
-				for (int j = 0; j < cols; j++) {
+			for (uint_t i = 0; i < rows; i++) {
+				for (uint_t j = 0; j < cols; j++) {
 					if (m[i][j] != list_[i][j]) {
 						return false;
 					}
@@ -621,7 +621,7 @@ namespace fan {
 		}
 
 		constexpr void print() const {
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				m[i].print();
 			}
 		}
@@ -652,7 +652,7 @@ namespace fan {
 
 		constexpr auto avg() noexcept {
 			list<type, rows> averages;
-			for (int i = 0; i < rows; i++) {
+			for (uint_t i = 0; i < rows; i++) {
 				averages += m[i];
 			}
 			return averages / rows;
@@ -696,7 +696,7 @@ namespace fan {
 	template <typename T, std::size_t rows>
 	std::ostream& operator<<(std::ostream& os, const list<T, rows> list_) noexcept
 	{
-		for (int i = 0; i < rows; i++) {
+		for (uint_t i = 0; i < rows; i++) {
 			os << list_[i] << ' ';
 		}
 		return os;
@@ -708,8 +708,8 @@ namespace fan {
 	>
 		std::ostream& operator<<(std::ostream& os, const da_t_t<T, rows, cols>& da_t_) noexcept
 	{
-		for (int i = 0; i < cols; i++) {
-			for (int j = 0; j < rows; j++) {
+		for (uint_t i = 0; i < cols; i++) {
+			for (uint_t j = 0; j < rows; j++) {
 				os << da_t_[i][j] << ' ';
 			}
 		}

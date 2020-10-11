@@ -36,7 +36,7 @@ void main() {
 	vec2 center_texture_coordinates = gl_Position.xy / 2 * 0.5 + 0.5;
 	float pixel_size = 1.0f / 100.f;
 
-	for (int i = -5; i < 5; i++) {
+	for (uint_t i = -5; i < 5; i++) {
 		hori_blur_texture_coordinates[i + 5] = texture_coordinate + vec2(pixel_size * i, 0);
 		vert_blur_texture_coordinates[i + 5] = texture_coordinate + vec2(0, pixel_size * i);
 	}
