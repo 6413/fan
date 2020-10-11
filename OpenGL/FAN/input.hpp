@@ -73,13 +73,13 @@ namespace fan {
 	public:
 
 		template <typename ...Args, typename T>
-		void add(int key, int action, const T& function, Args... args) {
-			this->action.push_back(action);
-			this->key.push_back(key);
+		void add(int key_, int action_, const T& function, Args... args) {
+			this->action.push_back(action_);
+			this->key.push_back(key_);
 			functions.push_back(std::bind(function, args...));
 		}
 
-		bool get_action(uint64_t i) const {
+		int get_action(uint64_t i) const {
 			return action[i];
 		}
 
