@@ -18,12 +18,12 @@
 #define FAN_WINDOWS
 #endif
 
-#include <FAN/types.h>
-
 #include <vector>
 #include <array>
 #include <map>
 
+#include <FAN/types.h>
+#include <FAN/color.hpp>
 #include <FAN/input.hpp>
 #include <FAN/math.hpp>
 #include <FAN/shader.h>
@@ -58,9 +58,19 @@ namespace fan {
 		fan::vec3 get_position() const;
 		void set_position(const fan::vec3& position);
 
+		f32_t get_yaw() const;
+		void set_yaw(f32_t angle);
+
+		f32_t get_pitch() const;
+		void set_pitch(f32_t angle);
+
 		bool first_movement = true;
 
-		void update_vectors();
+		void update_view();
+
+		static constexpr f32_t sensitivity = 0.05f;
+		static constexpr f32_t max_yaw = 180;
+		static constexpr f32_t max_pitch = 89;
 
 	private:
 
@@ -980,6 +990,16 @@ namespace fan_gui {
 
 	namespace font {
 
+		namespace paths {
+
+		#if defined(FAN_WINDOWS)
+			constexpr auto arial("C:\\Windows\\Fonts\\Arial.ttf");
+		#elif defined(FAN_UNIX)
+			constexpr auto arial("/usr/share/fonts/TTF/Arial.TTF");
+		#endif
+
+		}
+
 		namespace properties {
 			constexpr fan::vec2 gap_scale(0.25, 0.25);
 			constexpr f32_t space_width = 15;
@@ -1051,7 +1071,6 @@ namespace fan_gui {
 		private:
 
 			using fan_2d::square_vector::set_position;
-			using fan_2d::square_vector::draw;
 			using fan_2d::square_vector::set_size;
 		};
 	}
@@ -1188,12 +1207,18 @@ namespace fan {
 	void begin_render(const fan::color& background_color);
 	void end_render();
 
-	static void window_loop(const fan::color& color, std::function<void()> _function) {
+	static void window_loop(const fan::color& color, const std::function<void()>& function_) {
 		while (!glfwWindowShouldClose(fan::window)) {
 			begin_render(color);
-			_function();
+			function_();
 			end_render();
 		}
+	}
+
+	static void gui_draw(const std::function<void()>& function_) {
+		glDisable(GL_DEPTH_TEST);
+		function_();
+		glEnable(GL_DEPTH_TEST);
 	}
 
 }

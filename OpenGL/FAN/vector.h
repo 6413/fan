@@ -33,7 +33,7 @@ namespace fan {
 
 		constexpr _vec2() : x(0), y(0) { }
 		constexpr _vec2(_Ty value) : x(value), y(value) { }
-		constexpr _vec2(_Ty x, _Ty y) : x(x), y(y) { }
+		constexpr _vec2(_Ty x_, _Ty y_) : x(x_), y(y_) { }
 		template <typename type>
 		constexpr _vec2(const _vec2<type>& vec) : x(vec.x), y(vec.y) { }
 		template <typename type>

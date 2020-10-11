@@ -5,12 +5,6 @@
 #endif
 #endif
 
-#if defined(_WIN64) || defined(_WIN32)
-#ifndef FAN_WINDOWS
-#define FAN_WINDOWS
-#endif
-#endif
-
 #include <FAN/file.hpp>
 #include <FAN/types.h>
 

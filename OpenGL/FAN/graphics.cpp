@@ -15,7 +15,7 @@ fan::camera::camera(fan::vec3 position, fan::vec3 up, float yaw, float pitch) : 
 	this->worldUp = up;
 	this->yaw = yaw;
 	this->pitch = pitch;
-	this->update_vectors();
+	this->update_view();
 }
 
 void fan::camera::move(bool noclip, f32_t movement_speed, f32_t friction)
@@ -71,7 +71,7 @@ void fan::camera::move(bool noclip, f32_t movement_speed, f32_t friction)
 		}
 	}
 	this->position += this->velocity * fan::delta_time;
-	this->update_vectors();
+	this->update_view();
 }
 
 void fan::camera::rotate_camera(bool when) // this->updateCameraVectors(); move function updates
@@ -83,9 +83,6 @@ void fan::camera::rotate_camera(bool when) // this->updateCameraVectors(); move 
 	static f32_t lastX, lastY;
 	f32_t xpos = fan::cursor_position.x;
 	f32_t ypos = fan::cursor_position.y;
-
-	f32_t& yaw = fan_3d::camera.yaw;
-	f32_t& pitch = fan_3d::camera.pitch;
 
 	if (first_movement)
 	{
@@ -99,27 +96,13 @@ void fan::camera::rotate_camera(bool when) // this->updateCameraVectors(); move 
 	lastX = xpos;
 	lastY = ypos;
 
-	f32_t sensitivity = 0.05f;
-
 	xoffset *= sensitivity;
 	yoffset *= sensitivity;
 
-	yaw += xoffset;
-	pitch += yoffset;
+	this->set_yaw(this->get_yaw() + xoffset);
+	this->set_pitch(this->get_pitch() + yoffset);
 
-	if (yaw > 180) {
-		yaw = -180;
-	}
-	if (yaw < -180) {
-		yaw = 180;
-	}
-
-	if (pitch > 89)
-		pitch = 89;
-	if (pitch < -89)
-		pitch = -89;
-
-	this->update_vectors();
+	this->update_view();
 }
 
 fan::mat4 fan::camera::get_view_matrix() {
@@ -138,7 +121,39 @@ void fan::camera::set_position(const fan::vec3& position) {
 	this->position = position;
 }
 
-void fan::camera::update_vectors() {
+f32_t fan::camera::get_yaw() const
+{
+	return this->yaw;
+}
+
+f32_t fan::camera::get_pitch() const
+{
+	return this->pitch;
+}
+
+void fan::camera::set_yaw(f32_t angle)
+{
+	this->yaw = angle;
+	if (yaw > fan::camera::max_yaw) {
+		yaw = -fan::camera::max_yaw;
+	}
+	if (yaw < -fan::camera::max_yaw) {
+		yaw = fan::camera::max_yaw;
+	}
+}
+
+void fan::camera::set_pitch(f32_t angle)
+{
+	this->pitch = angle;
+	if (this->pitch > fan::camera::max_pitch) {
+		this->pitch = fan::camera::max_pitch;
+	}
+	if (this->pitch < -fan::camera::max_pitch) {
+		this->pitch = -fan::camera::max_pitch;
+	}
+}
+
+void fan::camera::update_view() {
 	fan::vec3 front;
 	front.x = cos(fan::radians(this->yaw)) * cos(fan::radians(this->pitch));
 	front.y = sin(fan::radians(this->pitch));
@@ -2033,8 +2048,10 @@ fan_gui::suckless_font_t suckless_font_fr(uint_t datasize, uint_t fontsize) {
 
 fan_gui::letter_info_t suckless_font_add_f(FT_Library ft, fan_gui::suckless_font_t* font, uint8_t letter) {
 	FT_Face face;
-	if (FT_New_Face(ft, "fonts/arial.ttf", 0, &face))
-		printf("err new face\n");
+	if (FT_New_Face(ft, fan_gui::font::paths::arial, 0, &face)) {
+		fan::LOG("err new face");
+		exit(1);
+	}
 
 	FT_Set_Pixel_Sizes(face, 0, font->fontsize);
 	FT_Load_Char(face, letter, FT_LOAD_RENDER);
@@ -2105,12 +2122,16 @@ fan_gui::text_renderer::text_renderer()
 {
 	FT_Library ft;
 
-	if (FT_Init_FreeType(&ft))
-		std::cout << "Could not init FreeType Library" << std::endl;
+	if (FT_Init_FreeType(&ft)) {
+		fan::LOG("Could not init FreeType Library");
+		exit(1);
+	}
 
 	FT_Face face;
-	if (FT_New_Face(ft, "fonts/arial.ttf", 0, &face))
-		std::cout << "Failed to load font" << std::endl;
+	if (FT_New_Face(ft, fan_gui::font::paths::arial, 0, &face)) {
+		fan::LOG("Failed to load font:", fan_gui::font::paths::arial);
+		exit(1);
+	}
 
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
@@ -2716,9 +2737,7 @@ void fan_gui::font::text_button_vector::draw()
 	fan_2d::square_vector::draw();
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_vertex_ssbo);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_texture_id_ssbo);
-	glDisable(GL_DEPTH_TEST);
 	render_stored();
-	glEnable(GL_DEPTH_TEST);
 }
 
 bool fan_gui::font::text_button_vector::inside(std::uint64_t i)
