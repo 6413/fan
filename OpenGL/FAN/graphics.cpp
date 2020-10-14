@@ -1348,6 +1348,7 @@ void fan_3d::line_vector::release_queue(bool position, bool color)
 }
 
 #include <fast_noise.hpp>
+#include "graphics.hpp"
 
 fan_3d::terrain_generator::terrain_generator(const std::string& path, const f32_t texture_scale, const fan::vec2& map_size, uint32_t triangle_size, const fan::vec2& mesh_size)
 	: m_shader(fan_3d::shader_paths::triangle_vector_vs, fan_3d::shader_paths::triangle_vector_fs), m_triangle_size(triangle_size)
@@ -1686,6 +1687,52 @@ void fan_3d::square_vector::release_queue(bool position, bool size, bool texture
 	}
 }
 
+fan_3d::square_corners fan_3d::square_vector::get_corners(std::uint64_t i) const
+{
+	const fan::vec3 position = this->get_position(i);
+	const fan::vec3 size = this->get_size(i);
+	const fan::vec3 half_size = size * 0.5;
+
+	return square_corners{ 
+		{ 
+			{ position[0] + half_size[0], position[1] + half_size[1], position[2] + half_size[2] }, 
+			{ position[0] - half_size[0], position[1] + half_size[1], position[2] + half_size[2] }, 
+			{ position[0] + half_size[0], position[1] + half_size[1], position[2] - half_size[2] }, 
+			{ position[0] - half_size[0], position[1] + half_size[1], position[2] - half_size[2] } 
+		}, // left
+		{ 
+			{ position[0] - half_size[0], position[1] - half_size[1], position[2] + half_size[2] }, 
+			{ position[0] + half_size[0], position[1] - half_size[1], position[2] + half_size[2] }, 
+			{ position[0] - half_size[0], position[1] - half_size[1], position[2] - half_size[2] }, 
+			{ position[0] + half_size[0], position[1] - half_size[1], position[2] - half_size[2] } 
+		}, // right
+		{ 
+			{ position[0] - half_size[0], position[1] + half_size[1], position[2] + half_size[2] }, 
+			{ position[0] - half_size[0], position[1] - half_size[1], position[2] + half_size[2] }, 
+			{ position[0] - half_size[0], position[1] + half_size[1], position[2] - half_size[2] }, 
+			{ position[0] - half_size[0], position[1] - half_size[1], position[2] - half_size[2] } 
+		}, // front
+		{ 
+			{ position[0] + half_size[0], position[1] - half_size[1], position[2] + half_size[2] }, 
+			{ position[0] + half_size[0], position[1] + half_size[1], position[2] + half_size[2] }, 
+			{ position[0] + half_size[0], position[1] - half_size[1], position[2] - half_size[2] }, 
+			{ position[0] + half_size[0], position[1] + half_size[1], position[2] - half_size[2] } 
+		}, // back
+		{ 
+			{ position[0] + half_size[0], position[1] + half_size[1], position[2] + half_size[2] }, 
+			{ position[0] + half_size[0], position[1] - half_size[1], position[2] + half_size[2] }, 
+			{ position[0] - half_size[0], position[1] + half_size[1], position[2] + half_size[2] }, 
+			{ position[0] - half_size[0], position[1] - half_size[1], position[2] + half_size[2] } 
+		}, // top
+		{ 
+			{ position[0] + half_size[0], position[1] - half_size[1], position[2] + half_size[2] }, 
+			{ position[0] + half_size[0], position[1] + half_size[1], position[2] + half_size[2] }, 
+			{ position[0] - half_size[0], position[1] - half_size[1], position[2] + half_size[2] }, 
+			{ position[0] - half_size[0], position[1] + half_size[1], position[2] + half_size[2] } 
+		}  // bottom
+	};
+}
+
 fan_3d::skybox::skybox(
 	const std::string& left,
 	const std::string& right,
@@ -2008,8 +2055,8 @@ fan::vec3 fan_3d::line_plane_intersection(const fan::da_t<f32_t, 2, 3>& line, co
 		return fan::vec3(INFINITY);
 	}
 	const fan::vec3 intersect = line[0] + line[1] * d;
-	if (intersect.y > square[3][1] && intersect.y < square[0][1] &&
-		intersect.z > square[0][2] && intersect.z < square[3][2]) {
+	if (intersect.y >= square[3][1] && intersect.y <= square[0][1] &&
+		intersect.z <= square[0][2] && intersect.z >= square[3][2]) {
 		return intersect;
 	}
 
