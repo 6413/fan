@@ -44,12 +44,12 @@ namespace fan {
 	public:
 		camera(
 			fan::vec3 position = fan::vec3(0, 0, 0),
-			fan::vec3 up = fan::vec3(0.0f, 1.0f, 0.0f),
+			fan::vec3 up = fan::vec3(0.0f, 0.0f, 1.0f),
 			float yaw = 0,
 			float pitch = 0.0f
 		);
 
-		void move(bool noclip, f32_t movement_speed, f32_t friction = 12);
+		void move(f32_t movement_speed, bool noclip = true, f32_t friction = 12);
 		void rotate_camera(bool when);
 
 		fan::mat4 get_view_matrix();
@@ -107,17 +107,17 @@ namespace fan {
 		_Vector get_position(std::uint64_t i) const;
 		void set_position(std::uint64_t i, const _Vector& position, bool queue = false);
 
-		void basic_push_back(const _Vector& position, const _Vector& size, bool queue = false);
-
 		void erase(std::uint64_t i);
 
 		std::uint64_t size() const;
 
 		bool empty() const;
 
-		void write_data(bool position, bool size);
-
 	protected:
+
+		void basic_push_back(const _Vector& position, const _Vector& size, bool queue = false);
+
+		void write_data(bool position, bool size);
 
 		void initialize_buffers();
 
@@ -536,7 +536,8 @@ namespace fan_2d {
 		}
 
 
-		inline uint8_t ProcessCollision_fl(fan::da_t<f32_t, 2, 2>& pos, fan::da_t<f32_t, 2>& vel, const std::vector<fan::da_t<f32_t, 2, 2>> walls) {
+		
+		inline uint8_t ProcessCollision_fl(fan::da_t<f32_t, 2, 2>& pos, fan::da_t<f32_t, 2>& vel, const std::vector<fan::da_t<f32_t, 2, 2>>& walls) {
 			fan::da_t<f32_t, 2> pvel = vel;
 
 			if (!pvel[0] && !pvel[1])
@@ -585,8 +586,8 @@ namespace fan_2d {
 			return 1;
 		}
 
-		#define ProcessCollision_dl(pos_m, vel_m, walls_m) \
-			while(ProcessCollision_fl(pos_m, vel_m, walls_m))
+				#define ProcessCollision_dl(pos_m, vel_m, walls_m) \
+					while(ProcessCollision_fl(pos_m, vel_m, walls_m))
 
 		inline void rectangle_collision(fan_2d::square& player, const fan_2d::square_vector& walls) {
 			const fan::da_t<f32_t, 2> size = player.get_size();
@@ -606,12 +607,7 @@ namespace fan_2d {
 				a[1] < b[1] + b_size[1];
 			return x && y;
 		}
-
-		static void vsync() {
-			glfwSwapInterval(1);
-		}
 	}
-
 }
 
 namespace fan_3d {
@@ -664,7 +660,7 @@ namespace fan_3d {
 	class terrain_generator : public fan::basic_shape_color_vector {
 	public:
 
-		terrain_generator(const std::string& path, const fan::vec2& map_size, uint32_t triangle_size, const fan::vec2& mesh_size);
+		terrain_generator(const std::string& path, const f32_t texture_scale, const fan::vec2& map_size, uint32_t triangle_size, const fan::vec2& mesh_size);
 
 		void insert(const std::vector<triangle_vertices_t>& vertices, const std::vector<fan::color>& color, bool queue = false);
 		void push_back(const triangle_vertices_t& vertices, const fan::color& color, bool queue = false);
@@ -703,6 +699,7 @@ namespace fan_3d {
 	public:
 
 		square_vector(const std::string& path, std::uint64_t block_size);
+		square_vector(const fan::color& color, std::uint64_t block_size);
 
 		void push_back(const fan::vec3& position, const fan::vec3& size, const fan::vec2& texture_id, bool queue = false);
 
@@ -723,6 +720,7 @@ namespace fan_3d {
 		unsigned int m_texture_id_ssbo;
 
 		fan::vec2i block_size;
+		fan::vec2i m_amount_of_textures;
 
 		std::vector<int> m_textures;
 
@@ -1080,77 +1078,6 @@ namespace fan {
 
 	void get_fps(bool title = true, bool print = false);
 
-	#define maxPrimeIndex 10
-	inline int primeIndex = 0;
-
-	constexpr int numOctaves = 7;
-
-	constexpr int primes[maxPrimeIndex][3] = {
-	  { 995615039, 600173719, 701464987 },
-	  { 831731269, 162318869, 136250887 },
-	  { 174329291, 946737083, 245679977 },
-	  { 362489573, 795918041, 350777237 },
-	  { 457025711, 880830799, 909678923 },
-	  { 787070341, 177340217, 593320781 },
-	  { 405493717, 291031019, 391950901 },
-	  { 458904767, 676625681, 424452397 },
-	  { 531736441, 939683957, 810651871 },
-	  { 997169939, 842027887, 423882827 }
-	};
-
-	inline double persistence = 0.5;
-
-	constexpr double Noise(uint_t i, int x, int y) {
-		int n = x + y * 57;
-		n = (n << 13) ^ n;
-		int a = primes[i][0], b = primes[i][1], c = primes[i][2];
-		int t = (n * (n * n * a + b) + c) & 0x7fffffff;
-		return 1.0 - (double)(t) / 1073741824.0;
-	}
-
-	constexpr double SmoothedNoise(uint_t i, int x, int y) {
-		double corners = (Noise(i, x - 1, y - 1) + Noise(i, x + 1, y - 1) +
-			Noise(i, x - 1, y + 1) + Noise(i, x + 1, y + 1)) / 16,
-			sides = (Noise(i, x - 1, y) + Noise(i, x + 1, y) + Noise(i, x, y - 1) +
-				Noise(i, x, y + 1)) / 8,
-			center = Noise(i, x, y) / 4;
-		return corners + sides + center;
-	}
-
-	inline double Interpolate(double a, double b, double x) {
-		double ft = x * 3.1415927,
-			f = (1 - cos(ft)) * 0.5;
-		return  a * (1 - f) + b * f;
-	}
-
-	inline double InterpolatedNoise(uint_t i, double x, double y) {
-		int integer_X = x;
-		double fractional_X = x - integer_X;
-		int integer_Y = y;
-		double fractional_Y = y - integer_Y;
-
-		double v1 = SmoothedNoise(i, integer_X, integer_Y),
-			v2 = SmoothedNoise(i, integer_X + 1, integer_Y),
-			v3 = SmoothedNoise(i, integer_X, integer_Y + 1),
-			v4 = SmoothedNoise(i, integer_X + 1, integer_Y + 1),
-			i1 = Interpolate(v1, v2, fractional_X),
-			i2 = Interpolate(v3, v4, fractional_X);
-		return Interpolate(i1, i2, fractional_Y);
-	}
-
-	inline double ValueNoise_2D(double x, double y) {
-		double total = 0,
-			frequency = pow(2, numOctaves),
-			amplitude = 1;
-		for (uint_t i = 0; i < numOctaves; ++i) {
-			frequency /= 2;
-			amplitude *= persistence;
-			total += InterpolatedNoise((primeIndex + i) % maxPrimeIndex,
-				x / frequency, y / frequency) * amplitude;
-		}
-		return total / frequency;
-	}
-
 	constexpr int world_size = 150;
 
 	template <typename T>
@@ -1207,11 +1134,18 @@ namespace fan {
 	void begin_render(const fan::color& background_color);
 	void end_render();
 
-	static void window_loop(const fan::color& color, const std::function<void()>& function_) {
+	static void vsync() {
+		glfwSwapInterval(1);
+	}
+
+	static void window_loop(const fan::color& color, const std::function<void()>& function_, bool vsync_ = false) {
 		while (!glfwWindowShouldClose(fan::window)) {
 			begin_render(color);
 			function_();
 			end_render();
+			if (vsync_) {
+				fan::vsync();
+			}
 		}
 	}
 

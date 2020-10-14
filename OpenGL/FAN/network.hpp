@@ -554,6 +554,10 @@ namespace fan {
 
 				for (uint_t i = 0; !multithread ? i < 1 : 1; i++) {
 					SOCKET sock = accept(server_socket, NULL, NULL);
+					if (sock == SOCKET_ERROR) {
+						LOG("Socket error");
+						exit(1);
+					}
 					sockets.push_back(sock);
 					if (multithread) {
 						std::string username = m_get_message(sock).c_str();

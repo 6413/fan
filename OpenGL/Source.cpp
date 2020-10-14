@@ -3,20 +3,19 @@
 int main() {
 
 	fan_3d::add_camera_rotation_callback();
+	
+	fan_3d::square_vector s("sides_05.png", 32);
+	fan_3d::line_vector l(fan::mat2x3(fan::vec3(0), fan::vec3(100, 100, 50)), fan::color(1));
 
-	fan_3d::terrain_generator tg("grass.jpg", 150, 10, 5);
+	s.push_back(fan::vec3(2, 0, 0), 2, fan::vec2(0, 1));
 
-	fan_3d::camera.set_position(fan::vec3(500, 20, 500));
-	fan_gui::font::text_button_vector text(L"test", fan::window_size / 2, fan::color(1, 0, 0), 32);
+	fan::window_loop(fan::color::hex(0x87ceeb), [&] {
 
-	fan::window_loop(0, [&] {
+		fan_3d::camera.move(1000);
 
-		fan_3d::camera.move(true, 300);
-		tg.draw();
+		s.draw();
 
-		fan::gui_draw([&] {
-			text.draw();
-		});
+		l.draw();
 
 	});
 
