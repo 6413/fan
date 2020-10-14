@@ -20,5 +20,5 @@ void main() {
     texture_coordinate = texture_coordinates;
     t_color = color;
     gl_Position = projection * view * vec4(vertices, 1.0);
-    fragment_position = gl_Position.xyz;
+    fragment_position = vertices;
 }

@@ -10,7 +10,7 @@ fan::mat4 fan_2d::frame_view;
 fan::mat4 fan_3d::frame_projection;
 fan::mat4 fan_3d::frame_view;
 
-fan::camera::camera(fan::vec3 position, fan::vec3 up, float yaw, float pitch) : front(fan::vec3(0.0f, 0.0f, -1.0f)) {
+fan::camera::camera(fan::vec3 position, fan::vec3 up, float yaw, float pitch) : front(fan::vec3(0.0f, 0.0f, 0.0f)) {
 	this->position = position;
 	this->worldUp = up;
 	this->yaw = yaw;
@@ -18,7 +18,7 @@ fan::camera::camera(fan::vec3 position, fan::vec3 up, float yaw, float pitch) : 
 	this->update_view();
 }
 
-void fan::camera::move(bool noclip, f32_t movement_speed, f32_t friction)
+void fan::camera::move(f32_t movement_speed, bool noclip, f32_t friction)
 {
 	constexpr double accel = -40;
 
@@ -43,12 +43,12 @@ void fan::camera::move(bool noclip, f32_t movement_speed, f32_t friction)
 	if (glfwGetKey(fan::window, GLFW_KEY_W)) {
 		const fan::vec2 direction(fan::direction_vector(fan::radians(this->yaw)));
 		this->velocity.x += direction.x * (movement_speed * fan::delta_time);
-		this->velocity.z += direction.y * (movement_speed * fan::delta_time);
+		this->velocity.y += direction.y * (movement_speed * fan::delta_time);
 	}
 	if (glfwGetKey(fan::window, GLFW_KEY_S)) {
 		const fan::vec2 direction(fan::direction_vector(fan::radians(this->yaw)));
 		this->velocity.x -= direction.x * (movement_speed * fan::delta_time);
-		this->velocity.z -= direction.y * (movement_speed * fan::delta_time);
+		this->velocity.y -= direction.y * (movement_speed * fan::delta_time);
 	}
 	if (glfwGetKey(fan::window, GLFW_KEY_A)) {
 		this->velocity -= this->right * (movement_speed * fan::delta_time);
@@ -58,16 +58,16 @@ void fan::camera::move(bool noclip, f32_t movement_speed, f32_t friction)
 	}
 	if (!noclip) {
 		if (glfwGetKey(fan::window, GLFW_KEY_SPACE)) {
-			this->velocity.y += jump_force * fan::delta_time;
+			this->velocity.z += jump_force * fan::delta_time;
 		}
-		this->velocity.y += accel * fan::delta_time;
+		this->velocity.z += accel * fan::delta_time;
 	}
 	else {
 		if (glfwGetKey(fan::window, GLFW_KEY_SPACE)) {
-			this->velocity.y += movement_speed * fan::delta_time;
+			this->velocity.z += movement_speed * fan::delta_time;
 		}
 		if (glfwGetKey(fan::window, GLFW_KEY_LEFT_SHIFT)) {
-			this->velocity.y -= movement_speed * fan::delta_time;
+			this->velocity.z -= movement_speed * fan::delta_time;
 		}
 	}
 	this->position += this->velocity * fan::delta_time;
@@ -91,7 +91,7 @@ void fan::camera::rotate_camera(bool when) // this->updateCameraVectors(); move 
 		first_movement = false;
 	}
 
-	f32_t xoffset = xpos - lastX;
+	f32_t xoffset = lastX - xpos;
 	f32_t yoffset = lastY - ypos;
 	lastX = xpos;
 	lastY = ypos;
@@ -156,8 +156,8 @@ void fan::camera::set_pitch(f32_t angle)
 void fan::camera::update_view() {
 	fan::vec3 front;
 	front.x = cos(fan::radians(this->yaw)) * cos(fan::radians(this->pitch));
-	front.y = sin(fan::radians(this->pitch));
-	front.z = sin(fan::radians(this->yaw)) * cos(fan::radians(this->pitch));
+	front.y = sin(fan::radians(this->yaw)) * cos(fan::radians(this->pitch));
+	front.z =  sin(fan::radians(this->pitch));
 	this->front = normalize(front);
 	// Also re-calculate the Right and Up vector
 	this->right = normalize(cross(this->front, this->worldUp));  // Normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
@@ -667,8 +667,7 @@ fan_2d::image_info fan_2d::sprite::load_image(const std::string& path, bool flip
 		exit(1);
 	}
 
-	uint32_t texture_id = SOIL_load_OGL_texture(path.c_str(), SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_NTSC_SAFE_RGB | SOIL_FLAG_MULTIPLY_ALPHA | (flip_image ? SOIL_FLAG_INVERT_Y : 0));
-	
+	uint32_t texture_id = SOIL_load_OGL_texture(path.c_str(), SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, (flip_image ? SOIL_FLAG_INVERT_Y : 0));
 	fan::vec2i image_size;
 
 	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, image_size.begin());
@@ -1348,11 +1347,15 @@ void fan_3d::line_vector::release_queue(bool position, bool color)
 	}
 }
 
-fan_3d::terrain_generator::terrain_generator(const std::string& path, const fan::vec2& map_size, uint32_t triangle_size, const fan::vec2& mesh_size)
+#include <fast_noise.hpp>
+
+fan_3d::terrain_generator::terrain_generator(const std::string& path, const f32_t texture_scale, const fan::vec2& map_size, uint32_t triangle_size, const fan::vec2& mesh_size)
 	: m_shader(fan_3d::shader_paths::triangle_vector_vs, fan_3d::shader_paths::triangle_vector_fs), m_triangle_size(triangle_size)
 {
 	fan::vec2 indices_size(map_size.x + 1, map_size.y);
 	unsigned int last = 0;
+
+	m_indices.reserve(indices_size.x * indices_size.y);
 
 	auto row_traceback = [&] {
 		for (uint_t j = 0; j < indices_size.x; j++) {
@@ -1378,45 +1381,51 @@ fan_3d::terrain_generator::terrain_generator(const std::string& path, const fan:
 		m_indices.push_back(last - j * indices_size.x);
 	}
 
-	std::array<f32_t, 8> arr = {
-		0, 0,
-		1, 0,
-		0, 1,
-		1, 1
-	};
-
-	std::vector<f32_t> texture_coordinates;
-	for (uint_t i = 0; i < m_indices.size() / 2; i++) {
-		texture_coordinates.insert(texture_coordinates.end(), arr.begin(), arr.end());
-	}
-
 	const fan::vec2i vertices_size(map_size + 1);
 
 	m_triangle_vertices.resize(vertices_size.x * vertices_size.y);
     m_color.resize(vertices_size.x * vertices_size.y);
     
+	FastNoiseLite noise;
+	noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
+
     f_t y_off = 0;
     for (uint_t j = 0; j < vertices_size.y * triangle_size; j += triangle_size) {
         f_t x_off = 0;
         for (uint_t i = 0; i < vertices_size.x * triangle_size; i += triangle_size) {
-            m_triangle_vertices[j / triangle_size * vertices_size.x + i / triangle_size] = fan::vec3((float)i, (f_t)fan::ValueNoise_2D(x_off, y_off) * 100, (float)j);
+            m_triangle_vertices[j / triangle_size * vertices_size.x + i / triangle_size] = fan::vec3((f_t)i, j, (f_t)noise.GetNoise(x_off, y_off) * 100);
             m_color[j / triangle_size * vertices_size.x + i / triangle_size] = fan::color(1, 1, 1);
             x_off += mesh_size.x;
         }
         y_off += mesh_size.y;
     }
-
-	std::vector<fan::vec3> normals(m_triangle_vertices.size());
+	 
+	std::vector<fan::vec3> normals;
 
 	int index = 0;
-	for (uint_t i = 0; i < m_triangle_vertices.size() - 2; i+=3) {
-		for (uint_t j = 0; j < 3; j++) {
-			/*fan::vec3 a = m_triangle_vertices[i + 2];
-			fan::vec3 b = m_triangle_vertices[i + 1];
-			fan::vec3 c = m_triangle_vertices[i];*/
-
-			normals[index++] = fan::vec3(0, 1, 0);
+	for (uint_t i = 0; i < m_triangle_vertices.size(); i++) {
+		fan::vec3 a;
+		fan::vec3 b;
+		fan::vec3 c;
+		if (!(i % 2)) {
+			a = m_triangle_vertices[i];
+			b = m_triangle_vertices[i + 1];
+			c = m_triangle_vertices[i + vertices_size.x];
 		}
+		else {
+			a = m_triangle_vertices[i + 1];
+			b = m_triangle_vertices[i + vertices_size.x + 1];
+			c = m_triangle_vertices[i + vertices_size.x];
+		}
+		normals.push_back(fan::normalize(fan::cross(b - a, c - a)));
+	}
+
+	std::vector<fan::vec2> texture_coordinates(m_triangle_vertices.size());
+
+	for (uint_t i = 0; i < m_triangle_vertices.size(); i++) {
+		texture_coordinates[i] = fan::vec2(fan::vec2(m_triangle_vertices[i].x < 1 ? 1 : m_triangle_vertices[i].x,
+			m_triangle_vertices[i].y < 1 ? 1 : m_triangle_vertices[i].y));
+		texture_coordinates[i] /= texture_scale;
 	}
 	
 	glGenVertexArrays(1, &m_vao);
@@ -1425,8 +1434,10 @@ fan_3d::terrain_generator::terrain_generator(const std::string& path, const fan:
 	glGenBuffers(1, &m_texture_vbo);
 	glGenBuffers(1, &m_ebo);
 	glBindVertexArray(m_vao);
+
 	basic_shape_color_vector::initialize_buffers(false);
 	m_texture = load_texture(path, std::string(), false);
+
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(m_indices[0]) * m_indices.size(), m_indices.data(), GL_STATIC_DRAW);
 
@@ -1447,6 +1458,8 @@ fan_3d::terrain_generator::terrain_generator(const std::string& path, const fan:
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
+
+	fan::LOG("amount of veritices:", m_triangle_vertices.size());
 
 }
 
@@ -1508,7 +1521,7 @@ void fan_3d::terrain_generator::draw() {
 
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	glBindVertexArray(m_vao);
-	glDrawElements(GL_TRIANGLE_STRIP, 3 * fan_3d::terrain_generator::size(), GL_UNSIGNED_INT, 0);
+	glDrawElements(GL_TRIANGLE_STRIP, fan_3d::terrain_generator::size(), GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
@@ -1522,7 +1535,7 @@ void fan_3d::terrain_generator::erase_all()
 }
 
 uint_t fan_3d::terrain_generator::size() {
-	return fan_3d::terrain_generator::m_triangle_vertices.size();
+	return fan_3d::terrain_generator::m_indices.size();
 }
 
 fan_3d::square_vector::square_vector(const std::string& path, std::uint64_t block_size)
@@ -1538,11 +1551,24 @@ fan_3d::square_vector::square_vector(const std::string& path, std::uint64_t bloc
 	generate_textures(path, block_size);
 }
 
+fan_3d::square_vector::square_vector(const fan::color& color, std::uint64_t block_size)
+	: basic_shape_vector(fan::shader(fan_3d::shader_paths::shape_vector_vs, fan_3d::shader_paths::shape_vector_fs)),
+	block_size(block_size)
+{
+	glBindVertexArray(vao);
+
+	basic_shape_vector::initialize_buffers();
+
+	glBindVertexArray(0);
+	//TODO
+	//generate_textures(path, block_size);
+}
+
 void fan_3d::square_vector::push_back(const fan::vec3& position, const fan::vec3& size, const fan::vec2& texture_id, bool queue)
 {
 	basic_shape_vector::basic_push_back(position, size, queue);
 
-	this->m_textures.push_back(block_size.x / 6 * texture_id.y + texture_id.x);
+	this->m_textures.push_back(texture_id.y * m_amount_of_textures.x + texture_id.x);
 
 	if (!queue) {
 		this->write_textures();
@@ -1595,14 +1621,16 @@ void fan_3d::square_vector::generate_textures(const std::string& path, const fan
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	const fan::vec2 texturepack_size = fan::vec2(image_size.x / block_size.x, image_size.y / block_size.y);
-	fan::vec2 amount_of_textures = fan::vec2(texturepack_size.x / 6, texturepack_size.y);
-	constexpr int side_order[] = { 0, 1, 4, 5, 3, 2 };
+	m_amount_of_textures = fan::vec2(texturepack_size.x / 6, texturepack_size.y);
+	// side_order order = { bottom, top, front, back, right, left }
+	// top, bottom, 
+	constexpr int side_order[] = { 1, 0, 2, 3, 4, 5 };
 	std::vector<fan::vec2> textures;
-	for (fan::vec2i texture; texture.y < amount_of_textures.y; texture.y++) {
+	for (fan::vec2i texture; texture.y < m_amount_of_textures.y; texture.y++) {
 		const fan::vec2 begin(1.f / texturepack_size.x, 1.f / texturepack_size.y);
 		const float up = 1 - begin.y * texture.y;
 		const float down = 1 - begin.y * (texture.y + 1);
-		for (texture.x = 0; texture.x < amount_of_textures.x; texture.x++) {
+		for (texture.x = 0; texture.x < m_amount_of_textures.x; texture.x++) {
 			for (uint_t side = 0; side < std::size(side_order); side++) {
 				const float left = begin.x * side_order[side] + ((begin.x * (texture.x)) * 6);
 				const float right = begin.x * (side_order[side] + 1) + ((begin.x * (texture.x)) * 6);
