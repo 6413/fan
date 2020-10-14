@@ -417,6 +417,7 @@ namespace fan {
 			}
 		}
 
+		// ignores other values like vector
 		template <typename T>
 		constexpr matrix(T value) : m{ 0 } {
 			for (uint_t i = 0; i < rows && i < cols; i++) {
@@ -424,6 +425,7 @@ namespace fan {
 			}
 		}
 
+		// ignores other values like vector
 		template <template <typename> typename... _Vec_t, typename _Type>
 		matrix(const _Vec_t<_Type>&... vector) : m{ 0 } {
 			uint_t i = 0;

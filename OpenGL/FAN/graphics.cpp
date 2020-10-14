@@ -10,12 +10,12 @@ fan::mat4 fan_2d::frame_view;
 fan::mat4 fan_3d::frame_projection;
 fan::mat4 fan_3d::frame_view;
 
-fan::camera::camera(fan::vec3 position, fan::vec3 up, float yaw, float pitch) : front(fan::vec3(0.0f, 0.0f, 0.0f)) {
+fan::camera::camera(fan::vec3 position, fan::vec3 up, float yaw, float pitch, bool two_dimensional) : front(fan::vec3(0.0f, 0.0f, 0.0f)) {
 	this->position = position;
 	this->worldUp = up;
 	this->yaw = yaw;
 	this->pitch = pitch;
-	this->update_view();
+	this->update_view(two_dimensional);
 }
 
 void fan::camera::move(f32_t movement_speed, bool noclip, f32_t friction)
@@ -153,18 +153,21 @@ void fan::camera::set_pitch(f32_t angle)
 	}
 }
 
-void fan::camera::update_view() {
+void fan::camera::update_view(bool two_dimensional) {
 	fan::vec3 front;
 	front.x = cos(fan::radians(this->yaw)) * cos(fan::radians(this->pitch));
 	front.y = sin(fan::radians(this->yaw)) * cos(fan::radians(this->pitch));
 	front.z =  sin(fan::radians(this->pitch));
+	if (two_dimensional) {
+		std::swap(front.y, front.z);
+	}
 	this->front = normalize(front);
 	// Also re-calculate the Right and Up vector
 	this->right = normalize(cross(this->front, this->worldUp));  // Normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
 	this->up = normalize(cross(this->right, this->front));
 }
 
-fan::camera fan_2d::camera(fan::vec3(), fan::vec3(0, 1, 0), -90, 0);
+fan::camera fan_2d::camera(fan::vec3(), fan::vec3(0, 1, 0), -90, 0, true);
 fan::camera fan_3d::camera;
 
 uint32_t load_texture(const std::string_view path, const std::string& directory, bool flip_image) {
@@ -811,7 +814,7 @@ void fan::basic_shape_vector<_Vector>::set_position(std::uint64_t i, const _Vect
 {
 	this->m_position[i] = position;
 	if (!queue) {
-		write_vbo(position_vbo, m_position.data(), sizeof(fan::vec2) * m_position.size());
+		write_vbo(position_vbo, m_position.data(), sizeof(_Vector) * m_position.size());
 	}
 }
 
@@ -1342,6 +1345,9 @@ void fan_3d::line_vector::set_position(std::uint64_t i, const fan::mat2x3 begin_
 
 void fan_3d::line_vector::release_queue(bool position, bool color)
 {
+	if (position) {
+		basic_shape_vector::write_data(true, true);
+	}
 	if (color) {
 		basic_shape_color_vector::write_data();
 	}
@@ -2054,12 +2060,12 @@ fan::vec3 fan_3d::line_plane_intersection(const fan::da_t<f32_t, 2, 3>& line, co
 	if (distance(fan::vec3(line[0]), fan::vec3(line[0] + line[1])) < d) {
 		return fan::vec3(INFINITY);
 	}
-	const fan::vec3 intersect = line[0] + line[1] * d;
-	if (intersect.y >= square[3][1] && intersect.y <= square[0][1] &&
-		intersect.z <= square[0][2] && intersect.z >= square[3][2]) {
-		return intersect;
+	const fan::vec3 intersection(line[0] + line[1] * d);
+	if (intersection[1] >= square[3][1] && intersection[1] <= square[0][1] &&
+		intersection[2] >= square[3][2] && intersection[2] <= square[0][2])
+	{
+		return intersection;
 	}
-
 	return fan::vec3(INFINITY);
 }
 

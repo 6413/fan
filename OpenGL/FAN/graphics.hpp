@@ -46,7 +46,8 @@ namespace fan {
 			fan::vec3 position = fan::vec3(0, 0, 0),
 			fan::vec3 up = fan::vec3(0.0f, 0.0f, 1.0f),
 			float yaw = 0,
-			float pitch = 0.0f
+			float pitch = 0.0f,
+			bool two_dimensional = false
 		);
 
 		void move(f32_t movement_speed, bool noclip = true, f32_t friction = 12);
@@ -66,7 +67,7 @@ namespace fan {
 
 		bool first_movement = true;
 
-		void update_view();
+		void update_view(bool two_dimensional = false);
 
 		static constexpr f32_t sensitivity = 0.05f;
 		static constexpr f32_t max_yaw = 180;
