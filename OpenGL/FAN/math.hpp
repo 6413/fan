@@ -122,12 +122,13 @@ namespace fan {
 		);
 	}
 
+	// depends about world rotation
 	inline vec3 direction_vector(float alpha, float beta)
 	{
 		return vec3(
 			cos(radians(alpha)) * cos(radians(beta)),
-			sin(radians(beta)),
-			sin(radians(alpha)) * cos(radians(beta))
+			sin(radians(alpha)) * cos(radians(beta)),
+			sin(radians(beta))
 		);
 	}
 
