@@ -5,11 +5,6 @@ layout (location = 0) in vec4 in_color;
 layout (location = 1) in vec3 position; 
 layout (location = 2) in vec3 size;
 
-const vec3 line_vertices[] = {
-	vec3(1, 1, 1),
-	vec3(1, 1, 1)
-};
-
 const vec3 square_vertices[] = {
 
 	vec3(0.5,  0.5, -0.5), // down
@@ -133,12 +128,11 @@ void main() {
 
     switch (shape_type) {
         case 0: { // line
-            vec3 vertice = line_vertices[gl_VertexID % line_vertices.length()];
             if (gl_VertexID % 2 == 0) {
-                gl_Position = projection * view * vec4(vertice + position, 1);        
+                gl_Position = projection * view * vec4(position, 1);        
             }
             else {
-                gl_Position = projection * view * vec4(vertice + size, 1);        
+                gl_Position = projection * view * vec4(size, 1);        
             }
             break;
         }
