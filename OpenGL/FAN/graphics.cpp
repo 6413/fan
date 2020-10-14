@@ -2045,22 +2045,46 @@ void fan_3d::model::set_size(const fan::vec3& size)
 	this->m_size = size;
 }
 
-fan::vec3 fan_3d::line_plane_intersection(const fan::da_t<f32_t, 2, 3>& line, const fan::da_t<f32_t, 4, 3>& square) {
-	const fan::da_t<f32_t, 3> n = normalize(cross(square[0] - square[2], square[3] - square[2]));
-	const f32_t nl_dot(dot(n, line[1]));
+fan::da3 fan_3d::line_triangle_intersection(const fan::da_t<f32_t, 2, 3>& line, const fan::da_t<f32_t, 3, 3>& triangle) {
+
+	const auto lab = (line[0] + line[1]) - line[0];
+
+	const auto normal = fan::cross(triangle[1] - triangle[0], triangle[2] - triangle[0]);
+
+	const auto t = fan::dot(normal, line[0] - triangle[0]) / fan::dot(-lab, normal);
+	const auto u = fan::dot(fan::cross(triangle[2] - triangle[0], -lab), line[0] - triangle[0]) / fan::dot(-lab, normal);
+	const auto v = fan::dot(fan::cross(-lab, triangle[1] - triangle[0]), line[0] - triangle[0]) / fan::dot(-lab, normal);
+
+	if (t >= 0 && t <= 1 && u >= 0 && u <= 1 && v >= 0 && v <= 1 && (u + v) <= 1) {
+		return line[0] + lab * t;
+	}
+
+	return INFINITY;
+}
+
+fan::da3 fan_3d::line_plane_intersection(const fan::da_t<f32_t, 2, 3>& line, const fan::da_t<f32_t, 4, 3>& square) {
+	const fan::da_t<f32_t, 3> plane_normal = fan::normalize_no_sqrt(cross(square[3] - square[2], square[0] - square[2]));
+	const f32_t nl_dot(dot(plane_normal, line[1]));
 
 	if (!nl_dot) {
 		return fan::vec3(INFINITY);
 	}
 
-	const f32_t d = dot(square[2] - line[0], n) / nl_dot;
-	if (d <= 0) {
+	const f32_t ray_length = dot(square[2] - line[0], plane_normal) / nl_dot;
+	if (ray_length <= 0) {
 		return fan::vec3(INFINITY);
 	}
-	if (distance(fan::vec3(line[0]), fan::vec3(line[0] + line[1])) < d) {
+	if (fan::custom_pythagorean_no_sqrt(fan::vec3(line[0]), fan::vec3(line[0] + line[1])) < ray_length) {
 		return fan::vec3(INFINITY);
 	}
-	const fan::vec3 intersection(line[0] + line[1] * d);
+	const fan::vec3 intersection(line[0] + line[1] * ray_length);
+
+	auto result = fan::dot((square[2] - line[0]), plane_normal);
+	fan::LOG(result);
+	if (!result) {
+		fan::LOG("on plane");
+	}
+
 	if (intersection[1] >= square[3][1] && intersection[1] <= square[0][1] &&
 		intersection[2] >= square[3][2] && intersection[2] <= square[0][2])
 	{

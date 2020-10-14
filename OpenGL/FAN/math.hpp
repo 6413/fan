@@ -91,7 +91,7 @@ namespace fan {
 		);
 	}
 
-	constexpr float dot(const vec2& x, const vec2& y) {
+	constexpr auto dot(const vec2& x, const vec2& y) {
 		return (x.x * y.x) + (x.y * y.y);
 	}
 
@@ -99,14 +99,18 @@ namespace fan {
 		return (x.x * y.x) + (x.y * y.y) + (x.z * y.z);
 	}
 
-	inline vec2 normalize(const vec2& x) {
-		float length = sqrt(dot(x, x));
-		return vec2(x.x / length, x.y / length);
+	constexpr vec3 normalize_no_sqrt(const vec3& vector) {
+		return vector / fan::dot(vector, vector);
 	}
 
-	inline vec3 normalize(const vec3& x) {
-		auto length = sqrt(dot(x, x));
-		return vec3(x.x / length, x.y / length, x.z / length);
+	inline vec2 normalize(const vec2& vector) {
+		float length = sqrt(dot(vector, vector));
+		return vec2(vector.x / length, vector.y / length);
+	}
+
+	inline vec3 normalize(const vec3& vector) {
+		auto length = sqrt(dot(vector, vector));
+		return vec3(vector.x / length, vector.y / length, vector.z / length);
 	}
 
 	template <typename _Ty, typename _Ty2>
@@ -134,6 +138,11 @@ namespace fan {
 
 	inline f_t distance(f_t src, f_t dst) {
 		return std::abs(std::abs(dst) - std::abs(src));
+	}
+
+	template <typename _Ty>
+	constexpr auto custom_pythagorean_no_sqrt(const _Ty& src, const _Ty& dst) {
+		return std::abs(src[0] - dst[0]) + std::abs(src[1] - dst[1]);
 	}
 
 	template <typename _Ty>
