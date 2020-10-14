@@ -695,6 +695,24 @@ namespace fan_3d {
 
 	};
 
+	struct plane_corners {
+		fan::da_t<f32_t, 3> top_left;
+		fan::da_t<f32_t, 3> top_right;
+		fan::da_t<f32_t, 3> bottom_left;
+		fan::da_t<f32_t, 3> bottom_right;
+	};
+
+	struct square_corners {
+
+		plane_corners left;
+		plane_corners right;
+		plane_corners front;
+		plane_corners back;
+		plane_corners top;
+		plane_corners bottom;
+	
+	};
+
 	class square_vector : public fan::basic_shape_vector<fan::vec3> {
 	public:
 
@@ -712,6 +730,8 @@ namespace fan_3d {
 		void write_textures();
 
 		void release_queue(bool position, bool size, bool textures);
+
+		square_corners get_corners(std::uint64_t i) const;
 
 	private:
 

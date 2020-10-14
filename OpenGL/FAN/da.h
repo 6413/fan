@@ -395,11 +395,9 @@ namespace fan {
 		constexpr matrix() : m{ 0 } { }
 
 		template <typename _Type, std::size_t cols, template <typename, std::size_t> typename... _List>
-		constexpr matrix(const _List<_Type, cols>&... list_) : m{ 0 } {
-			//static_assert(sizeof...(list_) >= cols, "too many initializers");
-			uint_t i = 0;
-			auto auto_type = std::get<0>(std::forward_as_tuple(list_...));
-			((((decltype(auto_type)*)m)[i++] = list_), ...);
+		constexpr matrix(const _List<_Type, cols>&... list_) : m{ 0 } { 
+			uint_t index = 0;
+			((m[index++] = list_), ...);
 		}
 
 		template <typename T>
@@ -692,6 +690,8 @@ namespace fan {
 	using mat3 = mat3x3;
 	using mat4 = mat4x4;
 
+	using da2 = da_t<f32_t, 2>;
+	using da3 = da_t<f32_t, 3>;
 
 	template <typename T, std::size_t rows>
 	std::ostream& operator<<(std::ostream& os, const list<T, rows> list_) noexcept
