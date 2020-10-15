@@ -259,6 +259,12 @@ fan_2d::basic_single_shape::basic_single_shape(const fan::shader& shader, const 
 fan_2d::basic_single_shape::~basic_single_shape()
 {
 	glDeleteVertexArrays(1, &this->vao);
+	glValidateProgram(this->shader.ID);
+    int status = 0;
+    glGetProgramiv(this->shader.ID, GL_VALIDATE_STATUS, &status);
+    if (status) {
+        glDeleteProgram(this->shader.ID);
+    }
 }
 
 fan::vec2 fan_2d::basic_single_shape::get_position() const
@@ -772,7 +778,12 @@ fan::basic_shape_vector<_Vector>::~basic_shape_vector()
 	glDeleteVertexArrays(1, &vao);
 	glDeleteBuffers(1, &position_vbo);
 	glDeleteBuffers(1, &size_vbo);
-	glDeleteProgram(this->m_shader.ID);
+	glValidateProgram(this->m_shader.ID);
+    int status = 0;
+    glGetProgramiv(this->m_shader.ID, GL_VALIDATE_STATUS, &status);
+    if (status) {
+        glDeleteProgram(this->m_shader.ID);
+    }
 }
 
 template <typename _Vector>

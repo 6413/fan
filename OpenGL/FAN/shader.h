@@ -100,15 +100,6 @@ namespace fan {
 
         }
 
-        ~shader() {
-            glValidateProgram(ID);
-            int status = 0;
-            glGetProgramiv(ID, GL_VALIDATE_STATUS, &status);
-            if (status) {
-                glDeleteProgram(ID);
-            }
-        }
-
         void use() const
         {
             glUseProgram(ID);
