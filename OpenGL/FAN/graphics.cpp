@@ -1121,11 +1121,6 @@ fan_2d::square_vector::square_vector(const fan::vec2& position, const fan::vec2&
 	glBindVertexArray(0);
 }
 
-fan_2d::square_vector::~square_vector()
-{
-	
-}
-
 fan_2d::square fan_2d::square_vector::construct(uint_t i)
 {
 	return fan_2d::square(
@@ -1569,6 +1564,13 @@ fan_3d::square_vector::square_vector(const fan::color& color, std::uint64_t bloc
 	glBindVertexArray(0);
 	//TODO
 	//generate_textures(path, block_size);
+}
+
+fan_3d::square_vector::~square_vector()
+{
+	glDeleteTextures(1, &m_texture);
+	glDeleteBuffers(1, &m_texture_ssbo);
+	glDeleteBuffers(1, &m_texture_id_ssbo);
 }
 
 void fan_3d::square_vector::push_back(const fan::vec3& position, const fan::vec3& size, const fan::vec2& texture_id, bool queue)

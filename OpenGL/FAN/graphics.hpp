@@ -383,7 +383,6 @@ namespace fan_2d {
 
 		square_vector();
 		square_vector(const fan::vec2& position, const fan::vec2& size, const fan::color& color);
-		~square_vector();
 
 		fan_2d::square construct(uint_t i);
 
@@ -719,6 +718,7 @@ namespace fan_3d {
 
 		square_vector(const std::string& path, std::uint64_t block_size);
 		square_vector(const fan::color& color, std::uint64_t block_size);
+		~square_vector();
 
 		void push_back(const fan::vec3& position, const fan::vec3& size, const fan::vec2& texture_id, bool queue = false);
 
