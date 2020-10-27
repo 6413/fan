@@ -118,21 +118,21 @@ namespace fan {
 		return atan2f(dst.y - src.y, dst.x - src.x);
 	}
 
-	inline vec2 direction_vector(float angle)
+	inline vec2 direction_vector(f32_t angle)
 	{
 		return vec2(
-			cos(angle),
-			sin(angle)
+			sin(angle),
+			-cos(angle)
 		);
 	}
 
 	// depends about world rotation
-	inline vec3 direction_vector(float alpha, float beta)
+	inline vec3 direction_vector(f32_t alpha, f32_t beta)
 	{
 		return vec3(
-			cos(radians(alpha)) * cos(radians(beta)),
-			sin(radians(alpha)) * cos(radians(beta)),
-			sin(radians(beta))
+			-(cos(fan::radians(alpha + 90)) * cos(fan::radians(beta))),
+			-(sin(fan::radians(alpha + 90)) * cos(fan::radians(beta))),
+			  sin(radians(beta))
 		);
 	}
 
@@ -220,7 +220,31 @@ namespace fan {
 	}
 
 	template <typename _Ty = vec3, typename _Ty2 = mat4>
-	constexpr auto look_at(const _Ty& eye, const _Ty& center, const _Ty& up) {
+	constexpr auto look_at_left(const _Ty& eye, const _Ty& center, const _Ty& up)
+	{
+		const fan::vec3 f(fan::normalize(eye - center));
+		const fan::vec3 s(fan::normalize(fan::cross(f, up)));
+		const fan::vec3 u(fan::cross(s, f));
+
+		fan::mat4 Result(1);
+		Result[0][0] = s.x;
+		Result[1][0] = s.y;
+		Result[2][0] = s.z;
+		Result[0][1] = u.x;
+		Result[1][1] = u.y;
+		Result[2][1] = u.z;
+		Result[0][2] = f.x;
+		Result[1][2] = f.y;
+		Result[2][2] = f.z;
+		Result[3][0] = -dot(s, eye);
+		Result[3][1] = -dot(u, eye);
+		Result[3][2] = -dot(f, eye);
+		return Result;
+	}
+
+	//default
+	template <typename _Ty = vec3, typename _Ty2 = mat4>
+	constexpr auto look_at_right(const _Ty& eye, const _Ty& center, const _Ty& up) {
 		vec3 f(normalize(center - eye));
 		vec3 s(normalize(cross(f, up)));
 		vec3 u(cross(s, f));

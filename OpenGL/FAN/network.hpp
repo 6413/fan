@@ -554,7 +554,7 @@ namespace fan {
 
 				for (uint_t i = 0; !multithread ? i < 1 : 1; i++) {
 					SOCKET sock = accept(server_socket, NULL, NULL);
-					if (sock == SOCKET_ERROR) {
+					if (sock == INVALID_SOCKET) {
 						LOG("Socket error");
 						exit(1);
 					}

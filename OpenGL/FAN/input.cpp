@@ -153,6 +153,7 @@ bool fan::initialize_window() {
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_DECORATED, flags::decorated);
+	glfwWindowHint(GLFW_RESIZABLE, flags::resizeable);
 	if constexpr (flags::antialising) {
 		glfwWindowHint(GLFW_SAMPLES, 32);
 		glEnable(GL_MULTISAMPLE);

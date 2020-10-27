@@ -5,27 +5,27 @@
 #include <functional>
 #include <numeric>
 
-fan::mat4 fan_2d::frame_projection;
+#include <fast_noise.hpp>
+
+fan::mat4 fan_2d::frame_projection;	
 fan::mat4 fan_2d::frame_view;
 fan::mat4 fan_3d::frame_projection;
 fan::mat4 fan_3d::frame_view;
 
-fan::camera::camera(fan::vec3 position, fan::vec3 up, float yaw, float pitch, bool two_dimensional) : front(fan::vec3(0.0f, 0.0f, 0.0f)) {
-	this->position = position;
-	this->worldUp = up;
-	this->yaw = yaw;
-	this->pitch = pitch;
-	this->update_view(two_dimensional);
+fan::camera::camera() : yaw(), pitch(0) {
+	this->update_view();
 }
 
 void fan::camera::move(f32_t movement_speed, bool noclip, f32_t friction)
 {
-	constexpr double accel = -40;
+	constexpr double accel = -50;
 
-	constexpr double jump_force = 100;
+	constexpr double jump_force = 10;
 	if (!noclip) {
-		this->velocity.x /= friction * fan::delta_time + 1;
-		this->velocity.z /= friction * fan::delta_time + 1;
+		//if (fan::is_colliding) {
+			this->velocity.x /= friction * fan::delta_time + 1;
+			this->velocity.y /= friction * fan::delta_time + 1;
+	//	}
 	}
 	else {
 		this->velocity /= friction * fan::delta_time + 1;
@@ -57,8 +57,9 @@ void fan::camera::move(f32_t movement_speed, bool noclip, f32_t friction)
 		this->velocity += this->right * (movement_speed * fan::delta_time);
 	}
 	if (!noclip) {
-		if (glfwGetKey(fan::window, GLFW_KEY_SPACE)) {
-			this->velocity.z += jump_force * fan::delta_time;
+		if (fan::is_colliding && glfwGetKey(fan::window, GLFW_KEY_SPACE)) {
+			this->velocity.z += jump_force ;
+			fan::LOG(jump_force);
 		}
 		this->velocity.z += accel * fan::delta_time;
 	}
@@ -66,7 +67,7 @@ void fan::camera::move(f32_t movement_speed, bool noclip, f32_t friction)
 		if (glfwGetKey(fan::window, GLFW_KEY_SPACE)) {
 			this->velocity.z += movement_speed * fan::delta_time;
 		}
-		if (glfwGetKey(fan::window, GLFW_KEY_LEFT_SHIFT)) {
+		if (glfwGetKey(fan::window, GLFW_KEY_LEFT_SHIFT) && !fan::is_colliding) {
 			this->velocity.z -= movement_speed * fan::delta_time;
 		}
 	}
@@ -91,7 +92,7 @@ void fan::camera::rotate_camera(bool when) // this->updateCameraVectors(); move 
 		first_movement = false;
 	}
 
-	f32_t xoffset = lastX - xpos;
+	f32_t xoffset = xpos - lastX;
 	f32_t yoffset = lastY - ypos;
 	lastX = xpos;
 	lastY = ypos;
@@ -106,11 +107,12 @@ void fan::camera::rotate_camera(bool when) // this->updateCameraVectors(); move 
 }
 
 fan::mat4 fan::camera::get_view_matrix() {
-	return look_at(this->position, (this->position + (this->front)), (this->up));
+	return look_at_left(this->position, this->position + this->front, this->up);
 }
 
 fan::mat4 fan::camera::get_view_matrix(fan::mat4 m) {
-	return m * look_at(this->position, this->position + (this->front), this->up);
+	//																	 to prevent extra trash in camera class
+	return m * look_at_right(this->position, this->position + fan::vec3(this->front[0], this->front[2], this->front[1]), vec3(0, 1, 0));
 }
 
 fan::vec3 fan::camera::get_position() const {
@@ -119,6 +121,16 @@ fan::vec3 fan::camera::get_position() const {
 
 void fan::camera::set_position(const fan::vec3& position) {
 	this->position = position;
+}
+
+fan::vec3 fan::camera::get_velocity() const
+{
+	return fan::camera::velocity;
+}
+
+void fan::camera::set_velocity(const fan::vec3& velocity)
+{
+	fan::camera::velocity = velocity;
 }
 
 f32_t fan::camera::get_yaw() const
@@ -150,24 +162,16 @@ void fan::camera::set_pitch(f32_t angle)
 	}
 	if (this->pitch < -fan::camera::max_pitch) {
 		this->pitch = -fan::camera::max_pitch;
-	}
+	} 
 }
 
-void fan::camera::update_view(bool two_dimensional) {
-	fan::vec3 front;
-	front.x = cos(fan::radians(this->yaw)) * cos(fan::radians(this->pitch));
-	front.y = sin(fan::radians(this->yaw)) * cos(fan::radians(this->pitch));
-	front.z =  sin(fan::radians(this->pitch));
-	if (two_dimensional) {
-		std::swap(front.y, front.z);
-	}
-	this->front = normalize(front);
-	// Also re-calculate the Right and Up vector
-	this->right = normalize(cross(this->front, this->worldUp));  // Normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
-	this->up = normalize(cross(this->right, this->front));
+void fan::camera::update_view() {
+	this->front = normalize(fan::direction_vector(this->yaw, this->pitch));
+	this->right = normalize(cross(this->world_up, this->front)); 
+	this->up = normalize(cross(this->front, this->right));
 }
 
-fan::camera fan_2d::camera(fan::vec3(), fan::vec3(0, 1, 0), -90, 0, true);
+fan::camera fan_2d::camera;
 fan::camera fan_3d::camera;
 
 uint32_t load_texture(const std::string_view path, const std::string& directory, bool flip_image) {
@@ -939,7 +943,9 @@ void fan::basic_shape_color_vector::set_color(std::uint64_t i, const fan::color&
 void fan::basic_shape_color_vector::basic_push_back(const fan::color& color, bool queue)
 {
 	this->m_color.push_back(color);
-	write_data();
+	if (!queue) {
+		write_data();
+	}
 }
 
 void fan::basic_shape_color_vector::write_data()
@@ -1359,88 +1365,60 @@ void fan_3d::line_vector::release_queue(bool position, bool color)
 	}
 }
 
-#include <fast_noise.hpp>
-#include "graphics.hpp"
-
-fan_3d::terrain_generator::terrain_generator(const std::string& path, const f32_t texture_scale, const fan::vec2& map_size, uint32_t triangle_size, const fan::vec2& mesh_size)
+fan_3d::terrain_generator::terrain_generator(const std::string& path, const f32_t texture_scale, const fan::vec3& position, const fan::vec2& map_size, uint32_t triangle_size, const fan::vec2& mesh_size)
 	: m_shader(fan_3d::shader_paths::triangle_vector_vs, fan_3d::shader_paths::triangle_vector_fs), m_triangle_size(triangle_size)
 {
-	fan::vec2 indices_size(map_size.x + 1, map_size.y);
-	unsigned int last = 0;
+	std::vector<fan::vec2> texture_coordinates;
+	this->m_triangle_vertices.reserve(map_size.x * map_size.y);
 
-	m_indices.reserve(indices_size.x * indices_size.y);
-
-	auto row_traceback = [&] {
-		for (uint_t j = 0; j < indices_size.x; j++) {
-			m_indices.push_back(last - j);
-			m_indices.push_back(last - j);
-		}
-	};
-
-	for (uint_t j = 0; j < indices_size.y; j++) {
-		for (uint_t i = 0; i < indices_size.x; i++) {
-			m_indices.push_back(i + j * indices_size.x);
-			m_indices.push_back(i + indices_size.x + j * indices_size.x);
-		}
-		last = m_indices[m_indices.size() - 1];
-		row_traceback();
-	}
-
-	last = m_indices[m_indices.size() - 1];
-
-	// column traceback
-	for (uint_t j = 1; j < map_size.y; j++) {
-		m_indices.push_back(last - j * indices_size.x);
-		m_indices.push_back(last - j * indices_size.x);
-	}
-
-	const fan::vec2i vertices_size(map_size + 1);
-
-	m_triangle_vertices.resize(vertices_size.x * vertices_size.y);
-    m_color.resize(vertices_size.x * vertices_size.y);
-    
 	FastNoiseLite noise;
 	noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
 
-    f_t y_off = 0;
-    for (uint_t j = 0; j < vertices_size.y * triangle_size; j += triangle_size) {
-        f_t x_off = 0;
-        for (uint_t i = 0; i < vertices_size.x * triangle_size; i += triangle_size) {
-            m_triangle_vertices[j / triangle_size * vertices_size.x + i / triangle_size] = fan::vec3((f_t)i, j, (f_t)noise.GetNoise(x_off, y_off) * 100);
-            m_color[j / triangle_size * vertices_size.x + i / triangle_size] = fan::color(1, 1, 1);
-            x_off += mesh_size.x;
-        }
-        y_off += mesh_size.y;
-    }
-	 
 	std::vector<fan::vec3> normals;
-
-	int index = 0;
-	for (uint_t i = 0; i < m_triangle_vertices.size(); i++) {
-		fan::vec3 a;
-		fan::vec3 b;
-		fan::vec3 c;
-		if (!(i % 2)) {
-			a = m_triangle_vertices[i];
-			b = m_triangle_vertices[i + 1];
-			c = m_triangle_vertices[i + vertices_size.x];
+	uint_t index = 0;
+	fan::vec2 mesh_height;
+	for (uint_t y = 0; y < map_size.y; y++) {
+		mesh_height.x = 0;
+		for (uint_t x = 0; x < map_size.x; x++) {
+			this->m_triangle_vertices.push_back(fan::vec3(x * triangle_size, y * triangle_size, noise.GetNoise(mesh_height.x, mesh_height.y) * 100));
+			index++;
+			texture_coordinates.push_back(fan::vec2(x * triangle_size, y * triangle_size) / texture_scale);
+			mesh_height.x += mesh_size.x;
 		}
-		else {
-			a = m_triangle_vertices[i + 1];
-			b = m_triangle_vertices[i + vertices_size.x + 1];
-			c = m_triangle_vertices[i + vertices_size.x];
-		}
-		normals.push_back(fan::normalize(fan::cross(b - a, c - a)));
+		mesh_height.y += mesh_size.y;
 	}
 
-	std::vector<fan::vec2> texture_coordinates(m_triangle_vertices.size());
-
-	for (uint_t i = 0; i < m_triangle_vertices.size(); i++) {
-		texture_coordinates[i] = fan::vec2(fan::vec2(m_triangle_vertices[i].x < 1 ? 1 : m_triangle_vertices[i].x,
-			m_triangle_vertices[i].y < 1 ? 1 : m_triangle_vertices[i].y));
-		texture_coordinates[i] /= texture_scale;
+	for (uint_t y = 0; y < map_size.y - 1; y++) {
+		for (uint_t x = 0; x < map_size.x; x++) {
+			for (uint_t i = 0; i < 2; i++) {
+				this->m_indices.push_back(((y + i) * map_size.x) + x);
+			}
+		}
+		for (uint_t x = map_size.x - 1; x != -1; x--) {
+			this->m_indices.push_back(((y + 1) * map_size.x) + x);
+			if (x == map_size.x - 1 || !x) {
+				continue;
+			}
+			this->m_indices.push_back(((y + 1) * map_size.x) + x);
+		}
 	}
-	
+
+
+	int first_corners[] = { 1, 0, map_size.x };
+
+	for (int i = 0; i + first_corners[2] < map_size.x * map_size.y; i++) {
+		normals.push_back(
+			fan::normalize(fan::cross(
+				m_triangle_vertices[first_corners[2] + i] - m_triangle_vertices[first_corners[0] + i],
+				m_triangle_vertices[first_corners[1] + i] - m_triangle_vertices[first_corners[0] + i]
+			))
+		);
+		fan::vec3 middle = m_triangle_vertices[first_corners[0] + i] ;
+	//	lv.push_back(fan::mat2x3(middle, middle + normals[normals.size() - 1] * 10), fan::color(1, 0, 0), true);
+	}
+
+//	lv.release_queue(true, true);
+
 	glGenVertexArrays(1, &m_vao);
 	glGenBuffers(1, &m_normals_vbo);
 	glGenBuffers(1, &m_vertices_vbo);
@@ -1476,6 +1454,17 @@ fan_3d::terrain_generator::terrain_generator(const std::string& path, const f32_
 
 }
 
+fan_3d::terrain_generator::~terrain_generator()
+{
+	glDeleteTextures(1, &m_texture);
+	glDeleteVertexArrays(1, &m_vao);
+	glDeleteBuffers(1, &m_texture_vbo);
+	glDeleteBuffers(1, &m_vertices_vbo);
+	glDeleteBuffers(1, &m_ebo);
+	glDeleteBuffers(1, &m_normals_vbo);
+	glDeleteProgram(m_shader.ID);
+}
+
 void fan_3d::terrain_generator::insert(const std::vector<triangle_vertices_t>& vertices, const std::vector<fan::color>& color, bool queue)
 {
 	fan_3d::terrain_generator::m_triangle_vertices.insert(fan_3d::terrain_generator::m_triangle_vertices.end(), vertices.begin(), vertices.end());
@@ -1499,11 +1488,6 @@ void fan_3d::terrain_generator::push_back(const triangle_vertices_t& vertices, c
 	}
 }
 
-fan_3d::triangle_vertices_t fan_3d::terrain_generator::get_vertices(std::uint64_t i)
-{
-	return fan_3d::terrain_generator::m_triangle_vertices[i];
-}
-
 void fan_3d::terrain_generator::edit_data(std::uint64_t i, const triangle_vertices_t& vertices, const fan::color& color)
 {
 	basic_shape_color_vector::m_color[i] = color;
@@ -1523,20 +1507,30 @@ void fan_3d::terrain_generator::release_queue()
 }
 
 void fan_3d::terrain_generator::draw() {
+
+	static fan::Timer t(fan::Timer::start(), 500);
+	static f_t p = 0;
+
 	fan_3d::terrain_generator::m_shader.use();
 	fan_3d::terrain_generator::m_shader.set_mat4("projection", fan_3d::frame_projection);
 	fan_3d::terrain_generator::m_shader.set_mat4("view", fan_3d::frame_view);
 	fan_3d::terrain_generator::m_shader.set_int("triangle_size", m_triangle_size);
-	fan_3d::terrain_generator::m_shader.set_vec3("light_position", fan_3d::camera.get_position());
+	fan_3d::terrain_generator::m_shader.set_vec3("light_position", fan::vec3(p, p, 500));
+	fan_3d::terrain_generator::m_shader.set_vec3("view_position", fan_3d::camera.get_position());
+
+	p += fan::delta_time * 100;
 
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, m_texture);
 
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	glBindVertexArray(m_vao);
 	glDrawElements(GL_TRIANGLE_STRIP, fan_3d::terrain_generator::size(), GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+	//lv.draw();
+
 }
 
 void fan_3d::terrain_generator::erase_all()
@@ -1584,9 +1578,9 @@ fan_3d::square_vector::~square_vector()
 	glDeleteBuffers(1, &m_texture_id_ssbo);
 }
 
-void fan_3d::square_vector::push_back(const fan::vec3& position, const fan::vec3& size, const fan::vec2& texture_id, bool queue)
+void fan_3d::square_vector::push_back(const fan::vec3& src, const fan::vec3& dst, const fan::vec2& texture_id, bool queue)
 {
-	basic_shape_vector::basic_push_back(position, size, queue);
+	basic_shape_vector::basic_push_back(src, dst, queue);
 
 	this->m_textures.push_back(texture_id.y * m_amount_of_textures.x + texture_id.x);
 
@@ -1608,8 +1602,10 @@ void fan_3d::square_vector::draw() {
 
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_texture_ssbo);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_texture_id_ssbo);
-
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	basic_shape_vector::basic_draw(GL_TRIANGLES, 36, size());
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
 void fan_3d::square_vector::set_texture(std::uint64_t i, const fan::vec2& texture_id, bool queue)
@@ -2062,11 +2058,14 @@ fan::da3 fan_3d::line_triangle_intersection(const fan::da_t<f32_t, 2, 3>& line, 
 
 	const auto lab = (line[0] + line[1]) - line[0];
 
-	const auto normal = fan::cross(triangle[1] - triangle[0], triangle[2] - triangle[0]);
+	const auto p01 = triangle[1] - triangle[0];
+	const auto p02 = triangle[2] - triangle[0];
+
+	const auto normal = fan::cross(p01, p02);
 
 	const auto t = fan::dot(normal, line[0] - triangle[0]) / fan::dot(-lab, normal);
-	const auto u = fan::dot(fan::cross(triangle[2] - triangle[0], -lab), line[0] - triangle[0]) / fan::dot(-lab, normal);
-	const auto v = fan::dot(fan::cross(-lab, triangle[1] - triangle[0]), line[0] - triangle[0]) / fan::dot(-lab, normal);
+	const auto u = fan::dot(fan::cross(p02, -lab), line[0] - triangle[0]) / fan::dot(-lab, normal);
+	const auto v = fan::dot(fan::cross(-lab, p01), line[0] - triangle[0]) / fan::dot(-lab, normal);
 
 	if (t >= 0 && t <= 1 && u >= 0 && u <= 1 && v >= 0 && v <= 1 && (u + v) <= 1) {
 		return line[0] + lab * t;
@@ -2888,3 +2887,5 @@ void fan::end_render()
 	glfwSwapBuffers(fan::window);
 	glfwPollEvents();
 }
+
+
