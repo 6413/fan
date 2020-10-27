@@ -11,6 +11,8 @@
 #include <array>
 #include <functional>
 
+#undef min
+#undef max
 
 namespace fan {
 	template <class T, class... Ts>

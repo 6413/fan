@@ -19,6 +19,7 @@ namespace fan {
 	#elif defined(FAN_UNIX)
 		constexpr bool disable_mouse = 0;
 	#endif
+		constexpr bool resizeable = 1;
 		constexpr bool antialising = 0;
 		constexpr bool full_screen = false;
 	}

@@ -1,21 +1,22 @@
 #version 330 core
-out vec4 FragColor;
+out vec4 color;
 
 in vec3 normals;  
 in vec3 fragment_position;  
   
 uniform vec3 light_position; 
+uniform vec3 view_position;
 
 in vec2 texture_coordinate;
+
 uniform sampler2D texture1;
 
 void main()
 {
-    vec3 view_position = light_position;
     vec3 light_color = vec3(1, 1, 1);
     vec3 objectColor = texture(texture1, texture_coordinate).xyz;
     // ambient
-    float ambientStrength = 0.05;
+    float ambientStrength = 0.1;
     vec3 ambient = ambientStrength * light_color;
   	
     // diffuse
@@ -32,5 +33,8 @@ void main()
     vec3 specular = specularStrength * spec * light_color;  
         
     vec3 result = (ambient + diffuse + specular) * objectColor;
-    FragColor = vec4(result, 1.0);
+    color = vec4(result, 1);
+    //if (id == someid) {
+    //  color = vec4(0, 1, 0, 1);
+    //}
 } 

@@ -42,13 +42,7 @@ namespace fan {
 
 	class camera {
 	public:
-		camera(
-			fan::vec3 position = fan::vec3(0, 0, 0),
-			fan::vec3 up = fan::vec3(0.0f, 0.0f, 1.0f),
-			float yaw = 0,
-			float pitch = 0.0f,
-			bool two_dimensional = false
-		);
+		camera();
 
 		void move(f32_t movement_speed, bool noclip = true, f32_t friction = 12);
 		void rotate_camera(bool when);
@@ -59,6 +53,9 @@ namespace fan {
 		fan::vec3 get_position() const;
 		void set_position(const fan::vec3& position);
 
+		fan::vec3 get_velocity() const;
+		void set_velocity(const fan::vec3& velocity);
+
 		f32_t get_yaw() const;
 		void set_yaw(f32_t angle);
 
@@ -67,11 +64,12 @@ namespace fan {
 
 		bool first_movement = true;
 
-		void update_view(bool two_dimensional = false);
+		void update_view();
 
 		static constexpr f32_t sensitivity = 0.05f;
 		static constexpr f32_t max_yaw = 180;
 		static constexpr f32_t max_pitch = 89;
+		static constexpr fan::vec3 world_up = fan::vec3(0, 0, 1);
 
 	private:
 
@@ -84,7 +82,6 @@ namespace fan {
 		fan::vec3 up;
 		fan::vec3 velocity;
 
-		fan::vec3 worldUp;
 	};
 
 	uint32_t load_texture(const std::string_view path, const std::string& directory = std::string(), bool flip_image = false);
@@ -660,12 +657,14 @@ namespace fan_3d {
 	class terrain_generator : public fan::basic_shape_color_vector {
 	public:
 
-		terrain_generator(const std::string& path, const f32_t texture_scale, const fan::vec2& map_size, uint32_t triangle_size, const fan::vec2& mesh_size);
+		terrain_generator(const std::string& path, const f32_t texture_scale, const fan::vec3& position, const fan::vec2& map_size, uint32_t triangle_size, const fan::vec2& mesh_size);
+		~terrain_generator();
 
 		void insert(const std::vector<triangle_vertices_t>& vertices, const std::vector<fan::color>& color, bool queue = false);
 		void push_back(const triangle_vertices_t& vertices, const fan::color& color, bool queue = false);
 
-		triangle_vertices_t get_vertices(std::uint64_t i);
+		template <std::uint64_t i = std::uint64_t(-1)>
+		std::conditional_t<i == -1, std::vector<triangle_vertices_t>, triangle_vertices_t> get_vertices();
 
 		void edit_data(std::uint64_t i, const triangle_vertices_t& vertices, const fan::color& color);
 
@@ -688,6 +687,8 @@ namespace fan_3d {
 		uint32_t m_ebo;
 		uint32_t m_triangle_size;
 		uint32_t m_normals_vbo;
+
+	//	fan_3d::line_vector lv;
 
 		std::vector<triangle_vertices_t> m_triangle_vertices;
 		std::vector<unsigned int> m_indices;
@@ -886,6 +887,17 @@ namespace fan_3d {
 
 	fan::da3 line_triangle_intersection(const fan::da_t<f32_t, 2, 3>& line, const fan::da_t<f32_t, 3, 3>& triangle);
 	fan::da3 line_plane_intersection(const fan::da_t<f32_t, 2, 3>& line, const fan::da_t<f32_t, 4, 3>& square);
+
+	template<std::uint64_t i>
+	inline std::conditional_t<i == -1, std::vector<triangle_vertices_t>, triangle_vertices_t> terrain_generator::get_vertices()
+	{
+		if constexpr(i == -1) {
+			return fan_3d::terrain_generator::m_triangle_vertices;
+		}
+		else {
+			return fan_3d::terrain_generator::m_triangle_vertices[i];
+		}
+	}
 
 }
 
