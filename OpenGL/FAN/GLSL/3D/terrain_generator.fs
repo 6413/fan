@@ -26,7 +26,7 @@ void main()
     vec3 diffuse = diff * light_color;
     
     // specular
-    float specularStrength = 0.5;
+    float specularStrength = 0.1;
     vec3 viewDir = normalize(view_position - fragment_position);
     vec3 reflectDir = reflect(-lightDir, norm);  
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
@@ -34,7 +34,4 @@ void main()
         
     vec3 result = (ambient + diffuse + specular) * objectColor;
     color = vec4(result, 1);
-    //if (id == someid) {
-    //  color = vec4(0, 1, 0, 1);
-    //}
 } 

@@ -10,15 +10,16 @@ namespace fan {
 
 	inline float delta_time;
 
+	namespace input {
+		inline bool action[GLFW_KEY_LAST] = { 0 };
+		inline bool previous_action[GLFW_KEY_LAST] = { 0 };
+	}
+
 	inline bool is_colliding;
 
 	namespace flags {
 		constexpr bool decorated = true;
-	#if defined(FAN_WINDOWS)
 		constexpr bool disable_mouse = 1;
-	#elif defined(FAN_UNIX)
-		constexpr bool disable_mouse = 0;
-	#endif
 		constexpr bool resizeable = 1;
 		constexpr bool antialising = 0;
 		constexpr bool full_screen = false;
