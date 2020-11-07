@@ -84,7 +84,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level1</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
@@ -97,43 +97,46 @@
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
-      <AdditionalIncludeDirectories>$(SolutionDir)External sources\GLEW\include;$(SolutionDir)External sources\GLFW\include;$(SolutionDir)External sources\OpenAL\include;$(SolutionDir)External sources\freetype\include;$(SolutionDir);$(SolutionDir)External sources\assimp\include;$(SolutionDir)FAN\SOIL2</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include</AdditionalIncludeDirectories>
+      <Optimization>MaxSpeed</Optimization>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)External sources\freetype\win64;$(SolutionDir)External sources\GLEW\lib\Release\x64;$(SolutionDir)External sources\GLFW\lib-vc2019;$(SolutionDir)External sources\OpenAL\libs\Win64;$(SolutionDir)External sources\assimp\lib;$(SolutionDir)lib;$(SolutionDir)ffmpeg\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opengl32.lib;OpenAL32.lib;glew32s.lib;glfw3dll.lib;freetype.lib;SOIL_release_x64.lib;assimp.lib;avcodec.lib;avdevice.lib;avfilter.lib;avformat.lib;avutil.lib;postproc.lib;swresample.lib;swscale.lib;d3d11.lib;dxgi.lib;User32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)lib\al;$(SolutionDir)lib\assimp;$(SolutionDir)lib\freetype;$(SolutionDir)lib\glew;$(SolutionDir)lib\glfw;$(SolutionDir)lib\libav;$(SolutionDir)lib\soil2;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opengl32.lib;OpenAL32.lib;glew32s.lib;glfw3dll.lib;freetype.lib;SOIL_release_x64.lib;assimp.lib;d3d11.lib;dxgi.lib;User32.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level1</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <Optimization>Disabled</Optimization>
+      <Optimization>MaxSpeed</Optimization>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
-      <AdditionalIncludeDirectories>$(SolutionDir)External sources\GLEW\include;$(SolutionDir)External sources\GLFW\include;$(SolutionDir)External sources\OpenAL\include;$(SolutionDir)External sources\freetype\include;$(SolutionDir);$(SolutionDir)External sources\assimp\include;$(SolutionDir)FAN\SOIL2</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include</AdditionalIncludeDirectories>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)External sources\freetype\win64;$(SolutionDir)External sources\GLEW\lib\Release\x64;$(SolutionDir)External sources\GLFW\lib-vc2019;$(SolutionDir)External sources\OpenAL\libs\Win64;$(SolutionDir)External sources\assimp\lib;$(SolutionDir)lib;$(SolutionDir)ffmpeg\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opengl32.lib;OpenAL32.lib;glew32s.lib;glfw3dll.lib;freetype.lib;SOIL_release_x64.lib;assimp.lib;avcodec.lib;avdevice.lib;avfilter.lib;avformat.lib;avutil.lib;postproc.lib;swresample.lib;swscale.lib;d3d11.lib;dxgi.lib;User32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)lib\al;$(SolutionDir)lib\assimp;$(SolutionDir)lib\freetype;$(SolutionDir)lib\glew;$(SolutionDir)lib\glfw;$(SolutionDir)lib\libav;$(SolutionDir)lib\soil2;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opengl32.lib;OpenAL32.lib;glew32s.lib;glfw3dll.lib;freetype.lib;SOIL_release_x64.lib;assimp.lib;d3d11.lib;dxgi.lib;User32.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level1</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
@@ -146,76 +149,64 @@
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
-      <AdditionalIncludeDirectories>$(SolutionDir)External sources\GLEW\include;$(SolutionDir)External sources\GLFW\include;$(SolutionDir)External sources\OpenAL\include;$(SolutionDir)External sources\freetype\include;$(SolutionDir);$(SolutionDir)External sources\assimp\include;$(SolutionDir)FAN\SOIL2</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include</AdditionalIncludeDirectories>
+      <Optimization>MaxSpeed</Optimization>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)External sources\freetype\win64;$(SolutionDir)External sources\GLEW\lib\Release\x64;$(SolutionDir)External sources\GLFW\lib-vc2019;$(SolutionDir)External sources\OpenAL\libs\Win64;$(SolutionDir)External sources\assimp\lib;$(SolutionDir)lib;$(SolutionDir)ffmpeg\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opengl32.lib;OpenAL32.lib;glew32s.lib;glfw3dll.lib;freetype.lib;SOIL_release_x64.lib;assimp.lib;avcodec.lib;avdevice.lib;avfilter.lib;avformat.lib;avutil.lib;postproc.lib;swresample.lib;swscale.lib;d3d11.lib;dxgi.lib;User32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)lib\al;$(SolutionDir)lib\assimp;$(SolutionDir)lib\freetype;$(SolutionDir)lib\glew;$(SolutionDir)lib\glfw;$(SolutionDir)lib\libav;$(SolutionDir)lib\soil2;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opengl32.lib;OpenAL32.lib;glew32s.lib;glfw3dll.lib;freetype.lib;SOIL_release_x64.lib;assimp.lib;d3d11.lib;dxgi.lib;User32.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level1</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <Optimization>Disabled</Optimization>
+      <Optimization>MaxSpeed</Optimization>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
-      <AdditionalIncludeDirectories>$(SolutionDir)External sources\GLEW\include;$(SolutionDir)External sources\GLFW\include;$(SolutionDir)External sources\OpenAL\include;$(SolutionDir)External sources\freetype\include;$(SolutionDir);$(SolutionDir)External sources\assimp\include;$(SolutionDir)FAN\SOIL2</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include</AdditionalIncludeDirectories>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)External sources\freetype\win64;$(SolutionDir)External sources\GLEW\lib\Release\x64;$(SolutionDir)External sources\GLFW\lib-vc2019;$(SolutionDir)External sources\OpenAL\libs\Win64;$(SolutionDir)External sources\assimp\lib;$(SolutionDir)lib;$(SolutionDir)ffmpeg\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opengl32.lib;OpenAL32.lib;glew32s.lib;glfw3dll.lib;freetype.lib;SOIL_release_x64.lib;assimp.lib;avcodec.lib;avdevice.lib;avfilter.lib;avformat.lib;avutil.lib;postproc.lib;swresample.lib;swscale.lib;d3d11.lib;dxgi.lib;User32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)lib\al;$(SolutionDir)lib\assimp;$(SolutionDir)lib\freetype;$(SolutionDir)lib\glew;$(SolutionDir)lib\glfw;$(SolutionDir)lib\libav;$(SolutionDir)lib\soil2;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opengl32.lib;OpenAL32.lib;glew32s.lib;glfw3dll.lib;freetype.lib;SOIL_release_x64.lib;assimp.lib;d3d11.lib;dxgi.lib;User32.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="FAN\graphics.cpp" />
-    <ClCompile Include="FAN\input.cpp" />
     <ClCompile Include="Source.cpp" />
+    <ClCompile Include="src\fan\graphics.cpp" />
+    <ClCompile Include="src\fan\input.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="FAN\alloc.hpp" />
-    <ClInclude Include="FAN\audio.hpp" />
-    <ClInclude Include="FAN\da.h" />
-    <ClInclude Include="FAN\file.hpp" />
-    <ClInclude Include="FAN\global_vars.hpp" />
-    <ClInclude Include="FAN\graphics.hpp" />
-    <ClInclude Include="FAN\input.hpp" />
-    <ClInclude Include="FAN\math.hpp" />
-    <ClInclude Include="FAN\network.hpp" />
-    <ClInclude Include="FAN\shader.h" />
-    <ClInclude Include="FAN\SOIL2\etc1_utils.h" />
-    <ClInclude Include="FAN\SOIL2\image_DXT.h" />
-    <ClInclude Include="FAN\SOIL2\image_helper.h" />
-    <ClInclude Include="FAN\SOIL2\jo_jpeg.h" />
-    <ClInclude Include="FAN\SOIL2\pkm_helper.h" />
-    <ClInclude Include="FAN\SOIL2\pvr_helper.h" />
-    <ClInclude Include="FAN\SOIL2\SOIL2.h" />
-    <ClInclude Include="FAN\SOIL2\stbi_DDS.h" />
-    <ClInclude Include="FAN\SOIL2\stbi_DDS_c.h" />
-    <ClInclude Include="FAN\SOIL2\stbi_ext.h" />
-    <ClInclude Include="FAN\SOIL2\stbi_ext_c.h" />
-    <ClInclude Include="FAN\SOIL2\stbi_pkm.h" />
-    <ClInclude Include="FAN\SOIL2\stbi_pkm_c.h" />
-    <ClInclude Include="FAN\SOIL2\stbi_pvr.h" />
-    <ClInclude Include="FAN\SOIL2\stbi_pvr_c.h" />
-    <ClInclude Include="FAN\SOIL2\stb_image.h" />
-    <ClInclude Include="FAN\SOIL2\stb_image_write.h" />
-    <ClInclude Include="FAN\time.hpp" />
-    <ClInclude Include="FAN\types.h" />
-    <ClInclude Include="FAN\vector.h" />
+    <ClInclude Include="include\fan\audio.hpp" />
+    <ClInclude Include="include\fan\color.hpp" />
+    <ClInclude Include="include\fan\da.h" />
+    <ClInclude Include="include\fan\fast_noise.hpp" />
+    <ClInclude Include="include\fan\file.hpp" />
+    <ClInclude Include="include\fan\global_vars.hpp" />
+    <ClInclude Include="include\fan\graphics.hpp" />
+    <ClInclude Include="include\fan\input.hpp" />
+    <ClInclude Include="include\fan\math.hpp" />
+    <ClInclude Include="include\fan\network.hpp" />
+    <ClInclude Include="include\fan\shader.h" />
+    <ClInclude Include="include\fan\soil2\SOIL2.h" />
+    <ClInclude Include="include\fan\time.hpp" />
+    <ClInclude Include="include\fan\types.h" />
+    <ClInclude Include="include\fan\vector.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

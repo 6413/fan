@@ -1,0 +1,2936 @@
+﻿#include <FAN/graphics.hpp>
+
+#include <ft2build.h>
+
+#include <functional>
+#include <numeric>
+
+#include <FAN/fast_noise.hpp>
+
+fan::mat4 fan_2d::frame_projection;	
+fan::mat4 fan_2d::frame_view;
+fan::mat4 fan_3d::frame_projection;
+fan::mat4 fan_3d::frame_view;
+
+fan::camera::camera() : yaw(), pitch(0) {
+	this->update_view();
+}
+
+void fan::camera::move(f32_t movement_speed, bool noclip, f32_t friction)
+{
+	if (!noclip) {
+		//if (fan::is_colliding) {
+			this->velocity.x /= friction * fan::delta_time + 1;
+			this->velocity.y /= friction * fan::delta_time + 1;
+		//}
+	}
+	else {
+		this->velocity /= friction * fan::delta_time + 1;
+	}
+	static constexpr auto minimum_velocity = 0.001;
+	if (this->velocity.x < minimum_velocity && this->velocity.x > -minimum_velocity) {
+		this->velocity.x = 0;
+	}
+	if (this->velocity.y < minimum_velocity && this->velocity.y > -minimum_velocity) {
+		this->velocity.y = 0;
+	}
+	if (this->velocity.z < minimum_velocity && this->velocity.z > -minimum_velocity) {
+		this->velocity.z = 0;
+	}
+	if (fan::input::key_press(GLFW_KEY_W)) {
+		const fan::vec2 direction(fan::direction_vector(fan::radians(this->yaw)));
+		this->velocity.x += direction.x * (movement_speed * fan::delta_time);
+		this->velocity.y += direction.y * (movement_speed * fan::delta_time);
+	}
+	if (fan::input::key_press(GLFW_KEY_S)) {
+		const fan::vec2 direction(fan::direction_vector(fan::radians(this->yaw)));
+		this->velocity.x -= direction.x * (movement_speed * fan::delta_time);
+		this->velocity.y -= direction.y * (movement_speed * fan::delta_time);
+	}
+	if (fan::input::key_press(GLFW_KEY_A)) {
+		this->velocity -= this->right * (movement_speed * fan::delta_time);
+	}
+	if (fan::input::key_press(GLFW_KEY_D)) {
+		this->velocity += this->right * (movement_speed * fan::delta_time);
+	}
+	if (!noclip) {
+		if (fan::is_colliding && fan::input::key_press(GLFW_KEY_SPACE, true)) {
+			this->velocity.z += jump_force;
+			jumping = true;
+		}
+		else {
+			jumping = false;
+		}
+		this->velocity.z += -gravity * fan::delta_time;
+	}
+	else {
+		if (fan::input::key_press(GLFW_KEY_SPACE)) {
+			this->velocity.z += movement_speed * fan::delta_time;
+		}
+		if (fan::input::key_press(GLFW_KEY_LEFT_SHIFT) && !fan::is_colliding) {
+			this->velocity.z -= movement_speed * fan::delta_time;
+		}
+	}
+	this->position += this->velocity * fan::delta_time;
+	this->update_view();
+}
+
+void fan::camera::rotate_camera(bool when) // this->updateCameraVectors(); move function updates
+{
+	if (when) {
+		return;
+	}
+
+	static f32_t lastX, lastY;
+	f32_t xpos = fan::cursor_position.x;
+	f32_t ypos = fan::cursor_position.y;
+
+	if (first_movement)
+	{
+		lastX = xpos;
+		lastY = ypos;
+		first_movement = false;
+	}
+
+	f32_t xoffset = xpos - lastX;
+	f32_t yoffset = lastY - ypos;
+	lastX = xpos;
+	lastY = ypos;
+
+	xoffset *= sensitivity;
+	yoffset *= sensitivity;
+
+	this->set_yaw(this->get_yaw() + xoffset);
+	this->set_pitch(this->get_pitch() + yoffset);
+
+	this->update_view();
+}
+
+fan::mat4 fan::camera::get_view_matrix() {
+	return look_at_left(this->position, this->position + this->front, this->up);
+}
+
+fan::mat4 fan::camera::get_view_matrix(fan::mat4 m) {
+	//																	 to prevent extra trash in camera class
+	return m * look_at_right(this->position, this->position + fan::vec3(this->front[0], this->front[2], this->front[1]), vec3(0, 1, 0));
+}
+
+fan::vec3 fan::camera::get_position() const {
+	return this->position;
+}
+
+void fan::camera::set_position(const fan::vec3& position) {
+	this->position = position;
+}
+
+fan::vec3 fan::camera::get_velocity() const
+{
+	return fan::camera::velocity;
+}
+
+void fan::camera::set_velocity(const fan::vec3& velocity)
+{
+	fan::camera::velocity = velocity;
+}
+
+f32_t fan::camera::get_yaw() const
+{
+	return this->yaw;
+}
+
+f32_t fan::camera::get_pitch() const
+{
+	return this->pitch;
+}
+
+void fan::camera::set_yaw(f32_t angle)
+{
+	this->yaw = angle;
+	if (yaw > fan::camera::max_yaw) {
+		yaw = -fan::camera::max_yaw;
+	}
+	if (yaw < -fan::camera::max_yaw) {
+		yaw = fan::camera::max_yaw;
+	}
+}
+
+void fan::camera::set_pitch(f32_t angle)
+{
+	this->pitch = angle;
+	if (this->pitch > fan::camera::max_pitch) {
+		this->pitch = fan::camera::max_pitch;
+	}
+	if (this->pitch < -fan::camera::max_pitch) {
+		this->pitch = -fan::camera::max_pitch;
+	} 
+}
+
+void fan::camera::update_view() {
+	this->front = normalize(fan::direction_vector(this->yaw, this->pitch));
+	this->right = normalize(cross(this->world_up, this->front)); 
+	this->up = normalize(cross(this->front, this->right));
+}
+
+fan::camera fan_2d::camera;
+fan::camera fan_3d::camera;
+
+uint32_t load_texture(const std::string_view path, const std::string& directory, bool flip_image) {
+
+	std::string file_name = std::string(directory + (directory.empty() ? "" : "/") + path.data());
+	auto texture_info = fan_2d::sprite::load_image(file_name, flip_image);
+
+	glBindTexture(GL_TEXTURE_2D, texture_info.texture_id);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glGenerateMipmap(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	return texture_info.texture_id;
+}
+
+void fan_2d::move_object(fan::vec2& position, fan::vec2& velocity, f32_t speed, f32_t gravity, f32_t jump_force, f32_t friction) {
+	if (gravity != 0) {
+		if (glfwGetKey(fan::window, GLFW_KEY_SPACE) && fan::is_colliding) { // AND COLLIDING
+			velocity.y = jump_force;
+		}
+		else {
+			velocity.y += gravity * fan::delta_time;
+		}
+	}
+
+	speed *= 100;
+
+	static constexpr auto minimum_velocity = 0.001;
+	if (velocity.x < minimum_velocity && velocity.x > -minimum_velocity) {
+		velocity.x = 0;
+	}
+	if (velocity.y < minimum_velocity && velocity.y > -minimum_velocity) {
+		velocity.y = 0;
+	}
+
+	if (gravity != 0) {
+		velocity.x /= friction * fan::delta_time + 1;
+	}
+	else {
+		velocity /= friction * fan::delta_time + 1;
+	}
+
+	if (fan::input::key_press(GLFW_KEY_W)) {
+		velocity.y -= speed * fan::delta_time;
+	}
+	if (fan::input::key_press(GLFW_KEY_S)) {
+		velocity.y += speed * fan::delta_time;
+	}
+	if (fan::input::key_press(GLFW_KEY_A)) {
+		velocity.x -= speed * fan::delta_time;
+	}
+	if (fan::input::key_press(GLFW_KEY_D)) {
+		velocity.x += speed * fan::delta_time;
+	}
+	if constexpr (std::is_same<decltype(velocity.x), f32_t>::value) {
+		if (velocity.x >= FLT_MAX) {
+			velocity.x = FLT_MAX;
+		}
+		if (velocity.y >= FLT_MAX) {
+			velocity.y = FLT_MAX;
+		}
+	}
+	else {
+		if (velocity.x >= DBL_MAX) {
+			velocity.x = DBL_MAX;
+		}
+		if (velocity.y >= DBL_MAX) {
+			velocity.y = DBL_MAX;
+		}
+	}
+	position += velocity * fan::delta_time;
+}
+
+
+fan_2d::basic_single_shape::basic_single_shape()
+{
+	glGenVertexArrays(1, &vao);
+}
+
+fan_2d::basic_single_shape::basic_single_shape(const fan::shader& shader, const fan::vec2& position, const fan::vec2& size)
+	: position(position), size(size), shader(shader)
+{
+	glGenVertexArrays(1, &vao);
+}
+
+fan_2d::basic_single_shape::~basic_single_shape()
+{
+	glDeleteVertexArrays(1, &this->vao);
+	glValidateProgram(this->shader.ID);
+    int status = 0;
+    glGetProgramiv(this->shader.ID, GL_VALIDATE_STATUS, &status);
+    if (status) {
+        glDeleteProgram(this->shader.ID);
+    }
+}
+
+fan::vec2 fan_2d::basic_single_shape::get_position() const
+{
+	return position;
+}
+
+fan::vec2 fan_2d::basic_single_shape::get_size() const
+{
+	return this->size;
+}
+
+fan::vec2 fan_2d::basic_single_shape::get_velocity() const
+{
+	return fan_2d::basic_single_shape::velocity;
+}
+
+void fan_2d::basic_single_shape::set_size(const fan::vec2& size)
+{
+	this->size = size;
+}
+
+void fan_2d::basic_single_shape::set_position(const fan::vec2& position)
+{
+	this->position = position;
+}
+
+void fan_2d::basic_single_shape::set_velocity(const fan::vec2& velocity)
+{
+	fan_2d::basic_single_shape::velocity = velocity;
+}
+
+void fan_2d::basic_single_shape::basic_draw(GLenum mode, GLsizei count)
+{
+	glBindVertexArray(vao);
+	glDrawArrays(mode, 0, count);
+	glBindVertexArray(0);
+}
+
+void fan_2d::basic_single_shape::move(f32_t speed, f32_t gravity, f32_t jump_force, f32_t friction)
+{
+	fan_2d::move_object(this->position, this->velocity, speed, gravity, jump_force, friction);
+}
+
+bool fan_2d::basic_single_shape::inside() const
+{
+	if (fan::cursor_position.x >= position.x && fan::cursor_position.x <= position.x + size.x &&
+		fan::cursor_position.y >= position.y && fan::cursor_position.y <= position.y + size.y)
+	{
+		return true;
+	}
+	return false;
+}
+
+fan_2d::basic_single_color::basic_single_color() {}
+
+fan_2d::basic_single_color::basic_single_color(const fan::color& color) : color(color) {}
+
+fan::color fan_2d::basic_single_color::get_color()
+{
+	return this->color;
+}
+
+void fan_2d::basic_single_color::set_color(const fan::color& color)
+{
+	this->color = color;
+}
+
+fan_2d::line::line() : basic_single_shape(fan::shader(shader_paths::single_shapes_vs, shader_paths::single_shapes_fs), fan::vec2(), fan::vec2()), fan_2d::basic_single_color() {}
+
+fan_2d::line::line(const fan::mat2& begin_end, const fan::color& color)
+	: basic_single_shape(fan::shader(shader_paths::single_shapes_vs, shader_paths::single_shapes_fs), begin_end[0], begin_end[1]),
+	fan_2d::basic_single_color(color) {}
+
+void fan_2d::line::draw()
+{
+	this->shader.use();
+
+	this->shader.set_mat4("projection", fan_2d::frame_projection);
+	this->shader.set_mat4("view", fan_2d::frame_view);
+	this->shader.set_vec4("shape_color", get_color());
+	this->shader.set_int("shape_type", fan::eti(fan::e_shapes::LINE));
+	this->shader.set_vec2("begin", get_position());
+	this->shader.set_vec2("end", get_size());
+
+	fan_2d::basic_single_shape::basic_draw(GL_LINES, 2);
+}
+
+void fan_2d::line::set_position(const fan::mat2& begin_end)
+{
+	fan_2d::line::set_position(fan::vec2(begin_end[0]));
+	set_size(begin_end[1]);
+}
+
+fan_2d::square::square()
+	: basic_single_shape(
+		fan::shader(shader_paths::single_shapes_vs, shader_paths::single_shapes_fs),
+		fan::vec2(),
+		fan::vec2()
+	), fan_2d::basic_single_color() {
+}
+
+fan_2d::square::square(const fan::vec2& position, const fan::vec2& size, const fan::color& color)
+	: basic_single_shape(
+		fan::shader(shader_paths::single_shapes_vs, shader_paths::single_shapes_fs),
+		position, size
+	), fan_2d::basic_single_color(color) {}
+
+fan::vec2 fan_2d::square::center() const
+{
+	return fan_2d::square::position + fan_2d::square::size / 2;
+}
+
+void fan_2d::square::draw()
+{
+	this->shader.use();
+
+	fan::mat4 model(1);
+	model = translate(model, get_position());
+	model = scale(model, get_size());
+
+	this->shader.set_mat4("projection", fan_2d::frame_projection);
+	this->shader.set_mat4("view", fan_2d::frame_view);
+	this->shader.set_mat4("model", model);
+	this->shader.set_vec4("shape_color", get_color());
+	this->shader.set_int("shape_type", fan::eti(fan::e_shapes::SQUARE));
+
+	fan_2d::basic_single_shape::basic_draw(GL_TRIANGLES, 6);
+}
+
+fan_2d::bloom_square::bloom_square()
+	: fan_2d::basic_single_shape(fan::shader(shader_paths::single_shapes_bloom_vs, shader_paths::single_shapes_bloom_fs), fan::vec2(), fan::vec2())
+{
+	glGenFramebuffers(1, &m_hdr_fbo);
+	glBindFramebuffer(GL_FRAMEBUFFER, m_hdr_fbo);
+	glGenTextures(2, m_color_buffers);
+
+	for (uint_t i = 0; i < 2; i++)
+	{
+		glBindTexture(GL_TEXTURE_2D, m_color_buffers[i]);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, fan::window_size.x, fan::window_size.y, 0, GL_RGBA, GL_FLOAT, NULL);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);  // we clamp to the edge as the blur filter would otherwise sample repeated texture values!
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		// attach texture to framebuffer
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, m_color_buffers[i], 0);
+	}
+
+	glGenRenderbuffers(1, &m_rbo);
+	glBindRenderbuffer(GL_RENDERBUFFER, m_rbo);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, fan::window_size.x, fan::window_size.y);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_rbo);
+	// tell OpenGL which color attachments we'll use (of this framebuffer) for rendering 
+	unsigned int attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+	glDrawBuffers(2, attachments);
+	// finally check if framebuffer is complete
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+		fan::print("Framebuffer not complete!");
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	glGenFramebuffers(2, m_pong_fbo);
+	glGenTextures(2, m_pong_color_buffer);
+	for (uint_t i = 0; i < 2; i++)
+	{
+		glBindFramebuffer(GL_FRAMEBUFFER, m_pong_fbo[i]);
+		glBindTexture(GL_TEXTURE_2D, m_pong_color_buffer[i]);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, fan::window_size.x, fan::window_size.y, 0, GL_RGBA, GL_FLOAT, NULL);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); // we clamp to the edge as the blur filter would otherwise sample repeated texture values!
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_pong_color_buffer[i], 0);
+		// also check if framebuffers are complete (no need for depth buffer)
+		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+			std::cout << "Framebuffer not complete!" << std::endl;
+	}
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	m_shader_blur.use();
+	m_shader_blur.set_int("image", 0);
+	m_shader_bloom.use();
+	m_shader_bloom.set_int("scene", 0);
+	m_shader_bloom.set_int("bloomBlur", 1);
+}
+
+fan_2d::bloom_square::bloom_square(const fan::vec2& position, const fan::vec2& size, const fan::color& color)
+	: fan_2d::bloom_square::bloom_square()
+{
+	this->set_position(position);
+	this->set_size(size);
+	this->set_color(color);
+
+}
+
+void fan_2d::bloom_square::bind_fbo() const
+{
+	glBindFramebuffer(GL_FRAMEBUFFER, m_hdr_fbo);
+}
+
+unsigned int bbb = 0;
+unsigned int ccc;
+static void renderQuad()
+{
+	if (bbb == 0)
+	{
+
+		/*
+		fan::vec2(0, 0),
+		fan::vec2(0, 1),
+		fan::vec2(1, 1),
+		fan::vec2(1, 1),
+		fan::vec2(1, 0),
+		fan::vec2(0, 0)
+
+		*/
+		float quadVertices[] = {
+			// positions        // texture Coords
+			-1.0f,  1.0f, 0.0f, 1.0f,
+			-1.0f, -1.0f, 0.0f, 0.0f,
+			 1.0f,  1.0f, 1.0f, 1.0f,
+			 1.0f, -1.0f, 1.0f, 0.0f,
+		};
+		// setup plane VAO
+		glGenVertexArrays(1, &bbb);
+		glGenBuffers(1, &ccc);
+		glBindVertexArray(bbb);
+		glBindBuffer(GL_ARRAY_BUFFER, ccc);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+		glEnableVertexAttribArray(1);
+		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+	}
+	glBindVertexArray(bbb);
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	glBindVertexArray(0);
+}
+
+
+void fan_2d::bloom_square::draw()
+{
+	this->shader.use();
+
+	fan::mat4 model(1);
+	model = translate(model, get_position());
+	model = scale(model, get_size());
+
+	this->shader.set_mat4("projection", fan_2d::frame_projection);
+	this->shader.set_mat4("view", fan_2d::frame_view);
+	this->shader.set_mat4("model", model);
+	this->shader.set_vec4("shape_color", get_color());
+	this->shader.set_int("shape_type", fan::eti(fan::e_shapes::SQUARE));
+
+	fan_2d::basic_single_shape::basic_draw(GL_TRIANGLES, 6);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	// 2. blur bright fragments with two-pass Gaussian Blur 
+	// --------------------------------------------------
+	bool horizontal = true;
+	m_shader_blur.use();
+
+	glBindFramebuffer(GL_FRAMEBUFFER, m_pong_fbo[1]);
+	m_shader_blur.set_int("horizontal", 1);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, m_color_buffers[1]);  // bind texture of other framebuffer (or scene if first iteration)
+
+	renderQuad();
+
+	glBindFramebuffer(GL_FRAMEBUFFER, m_pong_fbo[0]);
+	m_shader_blur.set_int("horizontal", 0);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, m_pong_color_buffer[1]);  // bind texture of other framebuffer (or scene if first iteration)
+
+	renderQuad();
+
+
+	glBindFramebuffer(GL_FRAMEBUFFER, m_pong_fbo[1]);
+	m_shader_blur.set_int("horizontal", 1);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, m_pong_color_buffer[0]);  // bind texture of other framebuffer (or scene if first iteration)
+	renderQuad();
+
+	glBindFramebuffer(GL_FRAMEBUFFER, m_pong_fbo[0]);
+	m_shader_blur.set_int("horizontal", 0);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, m_pong_color_buffer[1]);
+
+	renderQuad();
+
+	glBindFramebuffer(GL_FRAMEBUFFER, m_pong_fbo[1]);
+	m_shader_blur.set_int("horizontal", 1);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, m_pong_color_buffer[0]);
+	renderQuad();
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+
+	// 3. now render floating point color buffer to 2D quad and tonemap HDR colors to default framebuffer's (clamped) color range
+	// --------------------------------------------------------------------------------------------------------------------------
+
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	m_shader_bloom.use();
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, m_color_buffers[0]);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, m_pong_color_buffer[!horizontal]);
+	m_shader_bloom.set_float("exposure", 1.0f);
+	renderQuad();
+
+}
+
+fan_2d::sprite::sprite() :
+	basic_single_shape(fan::shader(shader_paths::single_sprite_vs, shader_paths::single_sprite_fs), fan::vec2(), fan::vec2()) {}
+
+fan_2d::sprite::sprite(const std::string& path, const fan::vec2& position, const fan::vec2& size)
+	: basic_single_shape(fan::shader(shader_paths::single_sprite_vs, shader_paths::single_sprite_fs), position, size) {
+	auto texture_info = load_image(path);
+	this->texture = texture_info.texture_id;
+	fan::vec2 image_size = texture_info.image_size;
+	if (size != 0) {
+		image_size = size;
+	}
+	set_size(image_size);
+}
+
+fan_2d::sprite::sprite(unsigned char* pixels, const fan::vec2& position, const fan::vec2i& size)
+	: basic_single_shape(fan::shader(shader_paths::single_sprite_vs, shader_paths::single_sprite_fs), position, size)
+{
+	auto texture_info = load_image(pixels, size);
+	this->texture = texture_info.texture_id;
+	fan::vec2 image_size = texture_info.image_size;
+	if (size != 0) {
+		image_size = size;
+	}
+	set_size(image_size);
+}
+
+void fan_2d::sprite::reload_image(unsigned char* pixels, const fan::vec2i& size)
+{
+	glBindTexture(GL_TEXTURE_2D, this->texture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, size.x, size.y, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, pixels);
+	glGenerateMipmap(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+void fan_2d::sprite::reload_image(const std::string& path, const fan::vec2i& size, bool flip_image)
+{
+	auto texture_info = fan_2d::sprite::load_image(path, flip_image);
+
+	this->texture = texture_info.texture_id;
+
+	if (size == 0) {
+		this->set_size(texture_info.image_size);
+	}
+	else {
+		this->set_size(size);
+	}
+}
+
+void fan_2d::sprite::draw()
+{
+	shader.use();
+
+	fan::mat4 model(1);
+	model = translate(model, get_position());
+	model = scale(model, get_size());
+	//model = Rotate(model, fan::radians(get_rotation()), fan::vec3(0, 0, 1));
+
+	shader.set_mat4("projection", fan_2d::frame_projection);
+	shader.set_mat4("view", fan_2d::frame_view);
+	shader.set_mat4("model", model);
+	shader.set_int("texture_sampler", 0);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, texture);
+
+	fan_2d::basic_single_shape::basic_draw(GL_TRIANGLES, 6);
+}
+
+f32_t fan_2d::sprite::get_rotation()
+{
+	return this->m_rotation;
+}
+
+void fan_2d::sprite::set_rotation(f32_t degrees)
+{
+	this->m_rotation = degrees;
+}
+
+fan_2d::image_info fan_2d::sprite::load_image(const std::string& path, bool flip_image)
+{
+	std::ifstream file(path);
+	if (!file.good()) {
+		fan::print("sprite loading error: File path does not exist for", path.c_str());
+		exit(1);
+	}
+
+	uint32_t texture_id = SOIL_load_OGL_texture(path.c_str(), SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, (flip_image ? SOIL_FLAG_INVERT_Y : 0));
+	fan::vec2i image_size;
+
+	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, image_size.begin());
+	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, image_size.begin() + 1);
+
+	glBindTexture(GL_TEXTURE_2D, texture_id);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glGenerateMipmap(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	return { image_size, texture_id };
+}
+
+fan_2d::image_info fan_2d::sprite::load_image(unsigned char* pixels, const fan::vec2i& size)
+{
+	unsigned int texture_id = 0;
+
+	glGenTextures(1, &texture_id);
+	glBindTexture(GL_TEXTURE_2D, texture_id);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	if (pixels != nullptr) {
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_BGRA, size.x, size.y, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, pixels);
+		glGenerateMipmap(GL_TEXTURE_2D);
+	}
+	glBindTexture(GL_TEXTURE_2D, 0);
+	return { fan::vec2i(1920, 1080), texture_id };
+}
+
+fan_2d::animation::animation(const fan::vec2& position, const fan::vec2& size) : basic_single_shape(fan::shader(shader_paths::single_sprite_vs, shader_paths::single_sprite_fs), position, size) {}
+
+void fan_2d::animation::add(const std::string& path)
+{
+	auto texture_info = fan_2d::sprite::load_image(path);
+	this->m_textures.push_back(texture_info.texture_id);
+	fan::vec2 image_size = texture_info.image_size;
+	if (size != 0) {
+		image_size = size;
+	}
+	this->set_size(image_size);
+}
+
+void fan_2d::animation::draw(std::uint64_t texture)
+{
+	shader.use();
+
+	fan::mat4 model(1);
+	model = translate(model, get_position());
+
+	model = scale(model, get_size());
+
+	shader.set_mat4("projection", fan_2d::frame_projection);
+	shader.set_mat4("view", fan_2d::frame_view);
+	shader.set_mat4("model", model);
+	shader.set_int("texture_sampler", 0);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, m_textures[texture]);
+
+	fan_2d::basic_single_shape::basic_draw(GL_TRIANGLES, 6);
+}
+
+void fan::write_glbuffer(unsigned int buffer, void* data, std::uint64_t size)
+{
+	glBindBuffer(GL_ARRAY_BUFFER, buffer);
+	glBufferData(GL_ARRAY_BUFFER, size, data, GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+void fan::edit_glbuffer(unsigned int buffer, void* data, uint_t offset, uint_t size)
+{
+	glBindBuffer(GL_ARRAY_BUFFER, buffer);
+	glBufferSubData(GL_ARRAY_BUFFER, offset, size, data);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+template class fan::basic_shape_vector<fan::vec2>;
+template class fan::basic_shape_vector<fan::vec3>;
+template class fan::basic_shape_vector<fan::vec4>;
+
+template <typename _Vector>
+fan::basic_shape_vector<_Vector>::basic_shape_vector(const fan::shader& shader)
+	: m_shader(shader)
+{
+	glGenVertexArrays(1, &vao);
+	glGenBuffers(1, &position_vbo);
+	glGenBuffers(1, &size_vbo);
+}
+
+template <typename _Vector>
+fan::basic_shape_vector<_Vector>::basic_shape_vector(const fan::shader& shader, const _Vector& position, const _Vector& size)
+	: basic_shape_vector::basic_shape_vector(shader)
+{
+	this->m_position.push_back(position);
+	this->m_size.push_back(size);
+}
+
+template <typename _Vector>
+fan::basic_shape_vector<_Vector>::~basic_shape_vector()
+{
+	glDeleteVertexArrays(1, &vao);
+	glDeleteBuffers(1, &position_vbo);
+	glDeleteBuffers(1, &size_vbo);
+	glValidateProgram(this->m_shader.ID);
+    int status = 0;
+    glGetProgramiv(this->m_shader.ID, GL_VALIDATE_STATUS, &status);
+    if (status) {
+        glDeleteProgram(this->m_shader.ID);
+    }
+}
+
+template <typename _Vector>
+_Vector fan::basic_shape_vector<_Vector>::get_size(std::uint64_t i) const
+{
+	return this->m_size[i];
+}
+
+template <typename _Vector>
+void fan::basic_shape_vector<_Vector>::set_size(std::uint64_t i, const _Vector& size, bool queue)
+{
+	this->m_size[i] = size;
+	if (!queue) {
+		write_glbuffer(size_vbo, m_size.data(), sizeof(_Vector) * m_size.size());
+	}
+}
+
+template<typename _Vector>
+std::vector<_Vector> fan::basic_shape_vector<_Vector>::get_positions() const
+{
+	return this->m_position;
+}
+
+template<typename _Vector>
+void fan::basic_shape_vector<_Vector>::set_positions(const std::vector<_Vector>& positions)
+{
+	this->m_position.clear();
+	this->m_position.insert(this->m_position.begin(), positions.begin(), positions.end());
+}
+
+template <typename _Vector>
+_Vector fan::basic_shape_vector<_Vector>::get_position(std::uint64_t i) const
+{
+	return this->m_position[i];
+}
+
+template<typename _Vector>
+void fan::basic_shape_vector<_Vector>::set_position(std::uint64_t i, const _Vector& position, bool queue)
+{
+	this->m_position[i] = position;
+	if (!queue) {
+		write_glbuffer(position_vbo, m_position.data(), sizeof(_Vector) * m_position.size());
+	}
+}
+
+template<typename _Vector>
+void fan::basic_shape_vector<_Vector>::basic_push_back(const _Vector& position, const _Vector& size, bool queue)
+{
+	this->m_position.push_back(position);
+	this->m_size.push_back(size);
+
+	if (!queue) {
+		fan::write_glbuffer(position_vbo, m_position.data(), sizeof(m_position[0]) * m_position.size());
+		fan::write_glbuffer(size_vbo, m_size.data(), sizeof(m_size[0]) * m_size.size());
+	}
+}
+
+template<typename _Vector>
+void fan::basic_shape_vector<_Vector>::erase(std::uint64_t i)
+{
+	m_position.erase(m_position.begin() + i);
+	m_size.erase(m_size.begin() + i);
+
+	fan::write_glbuffer(position_vbo, m_position.data(), sizeof(m_position[0]) * m_position.size());
+	fan::write_glbuffer(size_vbo, m_size.data(), sizeof(m_size[0]) * m_size.size());
+}
+
+template <typename _Vector>
+std::uint64_t fan::basic_shape_vector<_Vector>::size() const
+{
+	return this->m_position.size();
+}
+
+template<typename _Vector>
+bool fan::basic_shape_vector<_Vector>::empty() const
+{
+	return !basic_shape_vector<_Vector>::size();
+}
+
+template<typename _Vector>
+void fan::basic_shape_vector<_Vector>::edit_data(uint_t i, bool position, bool size)
+{
+	if (position) {
+		fan::edit_glbuffer(position_vbo, (void*)&m_position[i], sizeof(_Vector) * i, sizeof(_Vector));
+	}
+	if (size) {
+		fan::edit_glbuffer(position_vbo, (void*)&m_size[i], sizeof(_Vector) * i, sizeof(_Vector));
+	}
+}
+
+template<typename _Vector>
+void fan::basic_shape_vector<_Vector>::write_data(bool position, bool size)
+{
+	if (position) {
+		write_glbuffer(position_vbo, m_position.data(), sizeof(_Vector) * m_position.size());
+	}
+	if (size) {
+		write_glbuffer(size_vbo, m_size.data(), sizeof(_Vector) * m_size.size());
+	}
+}
+
+template <typename _Vector>
+void fan::basic_shape_vector<_Vector>::initialize_buffers()
+{
+	glBindBuffer(GL_ARRAY_BUFFER, position_vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(_Vector) * m_position.size(), m_position.data(), GL_DYNAMIC_DRAW);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, _Vector::size(), fan::GL_FLOAT_T, GL_FALSE, sizeof(_Vector), 0);
+	glVertexAttribDivisor(1, 1);
+
+	glBindBuffer(GL_ARRAY_BUFFER, size_vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(_Vector) * m_size.size(), m_size.data(), GL_DYNAMIC_DRAW);
+	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(2, _Vector::size(), fan::GL_FLOAT_T, GL_FALSE, sizeof(_Vector), 0);
+	glVertexAttribDivisor(2, 1);
+}
+
+template <typename _Vector>
+void fan::basic_shape_vector<_Vector>::basic_draw(unsigned int mode, std::uint64_t count, std::uint64_t primcount, std::uint64_t i)
+{
+	glDepthFunc(GL_LEQUAL);
+	glBindVertexArray(vao);
+	if (i != (std::uint64_t)-1) {
+		glDrawArraysInstancedBaseInstance(mode, 0, count, 1, i);
+	}
+	else {
+		glDrawArraysInstanced(mode, 0, count, primcount);
+	}
+	glBindVertexArray(0);
+	glDepthFunc(GL_FALSE);
+}
+
+fan::basic_shape_color_vector::basic_shape_color_vector()
+{
+	glGenBuffers(1, &color_vbo);
+}
+
+fan::basic_shape_color_vector::basic_shape_color_vector(const fan::color& color)
+	: basic_shape_color_vector()
+{
+	this->m_color.push_back(color);
+
+	write_glbuffer(color_vbo, m_color.data(), sizeof(fan::color) * m_color.size());
+}
+
+fan::basic_shape_color_vector::~basic_shape_color_vector()
+{
+	glDeleteBuffers(1, &color_vbo);
+}
+
+fan::color fan::basic_shape_color_vector::get_color(std::uint64_t i)
+{
+	return this->m_color[i];
+}
+
+void fan::basic_shape_color_vector::set_color(std::uint64_t i, const fan::color& color, bool queue)
+{
+	this->m_color[i] = color;
+	if (!queue) {
+		write_data();
+	}
+}
+
+void fan::basic_shape_color_vector::basic_push_back(const fan::color& color, bool queue)
+{
+	this->m_color.push_back(color);
+	if (!queue) {
+		write_data();
+	}
+}
+
+void fan::basic_shape_color_vector::write_data()
+{
+	fan::write_glbuffer(color_vbo, m_color.data(), sizeof(fan::color) * m_color.size());
+}
+
+void fan::basic_shape_color_vector::initialize_buffers(bool divisor)
+{
+	glBindBuffer(GL_ARRAY_BUFFER, color_vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(fan::color) * m_color.size(), m_color.data(), GL_DYNAMIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 4, fan::GL_FLOAT_T, GL_FALSE, sizeof(fan::color), 0);
+	if (divisor) {
+		glVertexAttribDivisor(0, 1);
+	}
+}
+
+fan_2d::line_vector::line_vector()
+	: basic_shape_vector(fan::shader(shader_paths::shape_vector_vs, shader_paths::shape_vector_fs)),
+	basic_shape_color_vector() {
+	glBindVertexArray(vao);
+
+	basic_shape_color_vector::initialize_buffers();
+	basic_shape_vector::initialize_buffers();
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+}
+
+fan_2d::line_vector::line_vector(const fan::mat2& begin_end, const fan::color& color)
+	: basic_shape_vector(fan::shader(shader_paths::shape_vector_vs, shader_paths::shape_vector_fs), begin_end[0], begin_end[1]),
+	basic_shape_color_vector(color)
+{
+	glBindVertexArray(vao);
+
+	basic_shape_color_vector::initialize_buffers();
+	basic_shape_vector::initialize_buffers();
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+}
+
+void fan_2d::line_vector::push_back(const fan::mat2& begin_end, const fan::color& color, bool queue)
+{
+	basic_shape_vector::basic_push_back(begin_end[0], begin_end[1], queue);
+	m_color.push_back(color);
+
+	if (!queue) {
+		release_queue(false, true);
+	}
+}
+
+void fan_2d::line_vector::draw()
+{
+	this->m_shader.use();
+
+	this->m_shader.set_mat4("projection", fan_2d::frame_projection);
+	this->m_shader.set_mat4("view", fan_2d::frame_view);
+	this->m_shader.set_int("shape_type", fan::eti(fan::e_shapes::LINE));
+
+	basic_shape_vector::basic_draw(GL_LINES, 2, size());
+}
+
+void fan_2d::line_vector::set_position(std::uint64_t i, const fan::mat2& begin_end, bool queue)
+{
+	basic_shape_vector::set_position(i, begin_end[0], true);
+	basic_shape_vector::set_size(i, begin_end[1], true);
+
+	if (!queue) {
+		release_queue(true, false);
+	}
+}
+
+void fan_2d::line_vector::release_queue(bool position, bool color)
+{
+	if (position) {
+		basic_shape_vector::write_data(true, true);
+	}
+	if (color) {
+		basic_shape_color_vector::write_data();
+	}
+}
+
+
+fan_2d::triangle_vector::triangle_vector(const fan::mat3x2& corners, const fan::color& color)
+	: basic_shape_vector(fan::shader(shader_paths::shape_vector_vs, shader_paths::shape_vector_fs)),
+	basic_shape_color_vector(color)
+{
+
+	glGenBuffers(1, &l_vbo);
+	glGenBuffers(1, &m_vbo);
+	glGenBuffers(1, &r_vbo);
+
+	glBindVertexArray(vao);
+
+	basic_shape_color_vector::initialize_buffers();
+
+	fan::vec2 l = corners[0];
+	fan::vec2 m = corners[1];
+	fan::vec2 r = corners[2];
+
+	glBindBuffer(GL_ARRAY_BUFFER, l_vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(l), l.data(), GL_DYNAMIC_DRAW);
+	glEnableVertexAttribArray(3);
+	glVertexAttribPointer(3, 2, fan::GL_FLOAT_T, GL_FALSE, sizeof(l), 0);
+	glVertexAttribDivisor(3, 1);
+
+	glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(m), m.data(), GL_DYNAMIC_DRAW);
+	glEnableVertexAttribArray(4);
+	glVertexAttribPointer(4, 2, fan::GL_FLOAT_T, GL_FALSE, sizeof(m), 0);
+	glVertexAttribDivisor(4, 1);
+
+	glBindBuffer(GL_ARRAY_BUFFER, r_vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(r), r.data(), GL_DYNAMIC_DRAW);
+	glEnableVertexAttribArray(5);
+	glVertexAttribPointer(5, 2, fan::GL_FLOAT_T, GL_FALSE, sizeof(r), 0);
+	glVertexAttribDivisor(5, 1);
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+
+	m_lcorners.push_back(corners[0]);
+	m_mcorners.push_back(corners[1]);
+	m_rcorners.push_back(corners[2]);
+}
+
+void fan_2d::triangle_vector::set_position(std::uint64_t i, const fan::mat3x2& corners)
+{
+	this->m_lcorners[i] = corners[0];
+	this->m_mcorners[i] = corners[1];
+	this->m_rcorners[i] = corners[2];
+
+	fan::write_glbuffer(l_vbo, m_lcorners.data(), sizeof(m_lcorners[0]) * m_lcorners.size());
+	fan::write_glbuffer(m_vbo, m_mcorners.data(), sizeof(m_mcorners[0]) * m_mcorners.size());
+	fan::write_glbuffer(r_vbo, m_rcorners.data(), sizeof(m_rcorners[0]) * m_rcorners.size());
+}
+
+void fan_2d::triangle_vector::push_back(const fan::mat3x2& corners, const fan::color& color)
+{
+	m_lcorners.push_back(corners[0]);
+	m_mcorners.push_back(corners[1]);
+	m_rcorners.push_back(corners[2]);
+
+	fan::write_glbuffer(l_vbo, m_lcorners.data(), sizeof(m_lcorners[0]) * m_lcorners.size());
+	fan::write_glbuffer(m_vbo, m_mcorners.data(), sizeof(m_mcorners[0]) * m_mcorners.size());
+	fan::write_glbuffer(r_vbo, m_rcorners.data(), sizeof(m_rcorners[0]) * m_rcorners.size());
+
+	m_color.push_back(color);
+
+	basic_shape_color_vector::write_data();
+}
+
+void fan_2d::triangle_vector::draw()
+{
+	this->m_shader.use();
+
+	this->m_shader.set_mat4("projection", fan_2d::frame_projection);
+	this->m_shader.set_mat4("view", fan_2d::frame_view);
+	this->m_shader.set_int("shape_type", fan::eti(fan::e_shapes::TRIANGLE));
+
+	basic_shape_vector::basic_draw(GL_TRIANGLES, 3, m_lcorners.size());
+}
+
+fan_2d::square_vector::square_vector()
+	: basic_shape_vector(fan::shader(shader_paths::shape_vector_vs, shader_paths::shape_vector_fs)) {
+	glBindVertexArray(vao);
+
+	basic_shape_color_vector::initialize_buffers();
+	basic_shape_vector::initialize_buffers();
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+}
+
+fan_2d::square_vector::square_vector(const fan::vec2& position, const fan::vec2& size, const fan::color& color)
+	: basic_shape_vector(fan::shader(shader_paths::shape_vector_vs, shader_paths::shape_vector_fs), position, size),
+	basic_shape_color_vector(color)
+{
+	glBindVertexArray(vao);
+
+	basic_shape_color_vector::initialize_buffers();
+	basic_shape_vector::initialize_buffers();
+
+	m_icorners.push_back(fan::mat2(position, position + size));
+	this->m_velocity.resize(1);
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+}
+
+fan_2d::square fan_2d::square_vector::construct(uint_t i)
+{
+	return fan_2d::square(
+		fan_2d::square_vector::m_position[i], 
+		fan_2d::square_vector::m_size[i], 
+		fan_2d::square_vector::m_color[i]
+	);
+}
+
+void fan_2d::square_vector::release_queue(bool position, bool size, bool color)
+{
+	if (position) {
+		basic_shape_vector::write_data(true, false);
+	}
+	if (size) {
+		basic_shape_vector::write_data(false, true);
+	}
+	if (color) {
+		basic_shape_color_vector::write_data();
+	}
+}
+
+void fan_2d::square_vector::push_back(const fan::vec2& position, const fan::vec2& size, const fan::color& color, bool queue)
+{
+	basic_shape_vector::basic_push_back(position, size, queue);
+	m_color.push_back(color);
+	this->m_velocity.push_back(fan::vec2());
+
+	m_icorners.push_back(fan::mat2(position, position + size));
+
+	if (!queue) {
+		release_queue(false, false, true);
+	}
+}
+
+void fan_2d::square_vector::erase(uint_t i)
+{
+	basic_shape_vector::erase(i);
+	this->m_icorners.erase(this->m_icorners.begin() + i);
+}
+
+void fan_2d::square_vector::draw(std::uint64_t i)
+{
+	this->m_shader.use();
+
+	this->m_shader.set_mat4("projection", fan_2d::frame_projection);
+	this->m_shader.set_mat4("view", fan_2d::frame_view);
+	this->m_shader.set_int("shape_type", fan::eti(fan::e_shapes::SQUARE));
+	basic_shape_vector::basic_draw(GL_TRIANGLES, 6, size(), i);
+}
+
+fan::vec2 fan_2d::square_vector::center(uint_t i) const
+{
+	return fan_2d::square_vector::m_position[i] - fan_2d::square_vector::m_size[i] / 2;
+}
+
+std::vector<fan::mat2> fan_2d::square_vector::get_icorners() const
+{
+	return fan_2d::square_vector::m_icorners;
+}
+
+void fan_2d::square_vector::move(uint_t i, f32_t speed, f32_t gravity, f32_t jump_force, f32_t friction)
+{
+	move_object(this->m_position[i], this->m_velocity[i], speed, gravity, jump_force, friction);
+	glBindBuffer(GL_ARRAY_BUFFER, position_vbo);
+	fan::vec2 data;
+	glGetBufferSubData(GL_ARRAY_BUFFER, sizeof(fan::vec2) * i, sizeof(fan::vec2), data.data());
+	if (data != this->m_position[i]) {
+		glBufferSubData(GL_ARRAY_BUFFER, sizeof(fan::vec2) * i, sizeof(fan::vec2), this->m_position[i].data());
+	}
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+fan_2d::sprite_vector::sprite_vector()
+	: basic_shape_vector(fan::shader(shader_paths::sprite_vector_vs, shader_paths::sprite_vector_fs))
+{
+	glBindVertexArray(vao);
+
+	basic_shape_vector::initialize_buffers();
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+}
+
+fan_2d::sprite_vector::sprite_vector(const std::string& path, const fan::vec2& position, const fan::vec2& size)
+	: basic_shape_vector(fan::shader(shader_paths::sprite_vector_vs, shader_paths::sprite_vector_fs), position, size)
+{
+	glBindVertexArray(vao);
+
+	basic_shape_vector::initialize_buffers();
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+
+	image_info info = sprite::load_image(path, true);
+	this->texture = info.texture_id;
+	original_image_size = info.image_size;
+	if (size == 0) {
+		this->m_size[this->m_size.size() - 1] = info.image_size;
+		fan::write_glbuffer(size_vbo, m_size.data(), sizeof(fan::vec2) * m_size.size());
+	}
+}
+
+fan_2d::sprite_vector::~sprite_vector()
+{
+	glDeleteTextures(1, &texture);
+}
+
+void fan_2d::sprite_vector::push_back(const fan::vec2& position, const fan::vec2& size, bool queue)
+{
+	this->m_position.push_back(position);
+	if (size == 0) {
+		this->m_size.push_back(original_image_size);
+	}
+	else {
+		this->m_size.push_back(size);
+	}
+	if (!queue) {
+		release_queue(true, true);
+	}
+}
+
+void fan_2d::sprite_vector::draw()
+{
+	this->m_shader.use();
+	this->m_shader.set_mat4("projection", fan_2d::frame_projection);
+	this->m_shader.set_mat4("view", fan_2d::frame_view);
+	this->m_shader.set_int("texture_sampler", 0);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, this->texture);
+
+	basic_shape_vector::basic_draw(GL_TRIANGLES, 6, size());
+}
+
+void fan_2d::sprite_vector::release_queue(bool position, bool size)
+{
+	if (position) {
+		basic_shape_vector::write_data(true, false);
+	}
+	if (size) {
+		basic_shape_vector::write_data(false, true);
+	}
+}
+
+void fan_2d::particles::add(const fan::vec2& position, const fan::vec2& size, const fan::vec2& velocity, const fan::color& color, std::uint64_t time)
+{
+	this->push_back(position, size, color);
+	this->m_particles.push_back({ velocity, fan::Timer(fan::Timer::start(), time) });
+}
+
+void fan_2d::particles::update()
+{
+	for (uint_t i = 0; i < this->size(); i++) {
+		if (this->m_particles[i].m_timer.finished()) {
+			this->erase(i);
+			this->m_particles.erase(this->m_particles.begin() + i);
+			continue;
+		}
+		this->set_position(i, this->get_position(i) + this->m_particles[i].m_velocity * fan::delta_time, true);
+	}
+	this->release_queue(true, false, false);
+}
+
+void fan_3d::add_camera_rotation_callback() {
+	fan::callback::cursor_move.add(std::bind(&fan::camera::rotate_camera, std::ref(fan_3d::camera), 0));
+}
+
+fan_3d::line_vector::line_vector()
+	: basic_shape_vector(fan::shader(fan_3d::shader_paths::shape_vector_vs, fan_3d::shader_paths::shape_vector_fs)),
+	basic_shape_color_vector()
+{
+	glBindVertexArray(vao);
+
+	basic_shape_color_vector::initialize_buffers();
+	basic_shape_vector::initialize_buffers();
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+}
+
+fan_3d::line_vector::line_vector(const fan::mat2x3& begin_end, const fan::color& color)
+	: basic_shape_vector(fan::shader(fan_3d::shader_paths::shape_vector_vs, fan_3d::shader_paths::shape_vector_fs),
+		begin_end[0], begin_end[1]),
+	basic_shape_color_vector(color)
+{
+	glBindVertexArray(vao);
+
+	basic_shape_color_vector::initialize_buffers();
+	basic_shape_vector::initialize_buffers();
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+}
+
+void fan_3d::line_vector::push_back(const fan::mat2x3& begin_end, const fan::color& color, bool queue)
+{
+	basic_shape_color_vector::basic_push_back(color, queue);
+	basic_shape_vector::basic_push_back(begin_end[0], begin_end[1], queue);
+}
+
+void fan_3d::line_vector::draw() {
+
+	this->m_shader.use();
+	this->m_shader.set_mat4("projection", fan_3d::frame_projection);
+	this->m_shader.set_mat4("view", fan_3d::frame_view);
+	this->m_shader.set_int("shape_type", fan::eti(fan::e_shapes::LINE));
+
+	basic_shape_vector::basic_draw(GL_LINE_STRIP, 2, size());
+}
+
+void fan_3d::line_vector::set_position(std::uint64_t i, const fan::mat2x3 begin_end, bool queue)
+{
+	basic_shape_vector::set_position(i, begin_end[0], queue);
+	basic_shape_vector::set_size(i, begin_end[1], queue);
+}
+
+void fan_3d::line_vector::release_queue(bool position, bool color)
+{
+	if (position) {
+		basic_shape_vector::write_data(true, true);
+	}
+	if (color) {
+		basic_shape_color_vector::write_data();
+	}
+}
+
+fan_3d::terrain_generator::terrain_generator(const std::string& path, const f32_t texture_scale, const fan::vec3& position, const fan::vec2ui& map_size, f_t triangle_size, const fan::vec2& mesh_size)
+	: m_shader(fan_3d::shader_paths::triangle_vector_vs, fan_3d::shader_paths::triangle_vector_fs), m_triangle_size(triangle_size)
+{
+	std::vector<fan::vec2> texture_coordinates;
+	this->m_triangle_vertices.reserve(map_size.x * map_size.y);
+
+	FastNoiseLite noise;
+	noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
+
+	std::vector<fan::vec3> normals;
+	uint_t index = 0;
+	fan::vec2 mesh_height;
+	for (uint_t y = 0; y < map_size.y; y++) {
+		mesh_height.x = 0;
+		for (uint_t x = 0; x < map_size.x; x++) {
+			this->m_triangle_vertices.push_back(fan::vec3(x * triangle_size, y * triangle_size, noise.GetNoise(mesh_height.x, mesh_height.y) * 100));
+			index++;
+			texture_coordinates.push_back(fan::vec2(x * triangle_size, y * triangle_size) / texture_scale);
+			mesh_height.x += mesh_size.x;
+		}
+		mesh_height.y += mesh_size.y;
+	}
+
+	for (uint_t y = 0; y < map_size.y - 1; y++) {
+		for (uint_t x = 0; x < map_size.x; x++) {
+			for (uint_t i = 0; i < 2; i++) {
+				this->m_indices.push_back(((y + i) * map_size.x) + x);
+			}
+		}
+		for (uint_t x = map_size.x - 1; x != (uint_t)-1; x--) {
+			this->m_indices.push_back(((y + 1) * map_size.x) + x);
+			if (x == map_size.x - 1 || !x) {
+				continue;
+			}
+			this->m_indices.push_back(((y + 1) * map_size.x) + x);
+		}
+	}
+
+
+	unsigned int first_corners[] = { 1, 0, map_size.x };
+
+	for (int i = 0; i + first_corners[2] < map_size.x * map_size.y; i++) {
+		auto v = fan::normalize(fan::cross(
+			m_triangle_vertices[first_corners[2] + i] - m_triangle_vertices[first_corners[0] + i],
+			m_triangle_vertices[first_corners[1] + i] - m_triangle_vertices[first_corners[0] + i]
+		));
+		if (v.z < 0) {
+			v = -v;
+		}
+		normals.push_back(
+			v
+		);
+	}
+
+	glGenVertexArrays(1, &m_vao);
+	glGenBuffers(1, &m_normals_vbo);
+	glGenBuffers(1, &m_vertices_vbo);
+	glGenBuffers(1, &m_texture_vbo);
+	glGenBuffers(1, &m_ebo);
+	glBindVertexArray(m_vao);
+
+	basic_shape_color_vector::initialize_buffers(false);
+	m_texture = load_texture(path, std::string(), false);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(m_indices[0]) * m_indices.size(), m_indices.data(), GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ARRAY_BUFFER, m_vertices_vbo);
+	glBufferData(GL_ARRAY_BUFFER, m_vertice_size * m_triangle_vertices.size(), m_triangle_vertices.data(), GL_DYNAMIC_DRAW);
+	glVertexAttribPointer(1, fan::vec3::size(), fan::GL_FLOAT_T, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(1);
+
+	glBindBuffer(GL_ARRAY_BUFFER, m_texture_vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(texture_coordinates[0]) * texture_coordinates.size(), texture_coordinates.data(), GL_STATIC_DRAW);
+	glVertexAttribPointer(2, fan::vec2::size(), fan::GL_FLOAT_T, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(2);
+	
+	glBindBuffer(GL_ARRAY_BUFFER, m_normals_vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(normals[0]) * normals.size(), normals.data(), GL_STATIC_DRAW);
+	glVertexAttribPointer(3, fan::vec3::size(), fan::GL_FLOAT_T, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(3);
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+
+	fan::print("amount of veritices:", m_triangle_vertices.size());
+
+}
+
+fan_3d::terrain_generator::~terrain_generator()
+{
+	glDeleteTextures(1, &m_texture);
+	glDeleteVertexArrays(1, &m_vao);
+	glDeleteBuffers(1, &m_texture_vbo);
+	glDeleteBuffers(1, &m_vertices_vbo);
+	glDeleteBuffers(1, &m_ebo);
+	glDeleteBuffers(1, &m_normals_vbo);
+	glDeleteProgram(m_shader.ID);
+}
+
+void fan_3d::terrain_generator::insert(const std::vector<triangle_vertices_t>& vertices, const std::vector<fan::color>& color, bool queue)
+{
+	fan_3d::terrain_generator::m_triangle_vertices.insert(fan_3d::terrain_generator::m_triangle_vertices.end(), vertices.begin(), vertices.end());
+
+	basic_shape_color_vector::m_color.insert(basic_shape_color_vector::m_color.end(), color.begin(), color.end());
+
+	if (!queue) {
+		basic_shape_color_vector::write_data();
+		fan::write_glbuffer(m_vertices_vbo, m_triangle_vertices.data(), m_vertice_size * m_triangle_vertices.size());
+	}
+}
+
+void fan_3d::terrain_generator::push_back(const triangle_vertices_t& vertices, const fan::color& color, bool queue) {
+	fan_3d::terrain_generator::m_triangle_vertices.push_back(vertices);
+
+	std::fill_n(std::back_inserter(basic_shape_color_vector::m_color), 4, color);
+
+	if (!queue) {
+		basic_shape_color_vector::write_data();
+		fan::write_glbuffer(m_vertices_vbo, m_triangle_vertices.data(), m_vertice_size * m_triangle_vertices.size());
+	}
+}
+
+void fan_3d::terrain_generator::edit_data(std::uint64_t i, const triangle_vertices_t& vertices, const fan::color& color)
+{
+	basic_shape_color_vector::m_color[i] = color;
+	fan_3d::terrain_generator::m_triangle_vertices[i] = vertices;
+
+	glBindBuffer(GL_ARRAY_BUFFER, fan_3d::terrain_generator::m_vertices_vbo);
+	glBufferSubData(GL_ARRAY_BUFFER, fan_3d::terrain_generator::m_vertice_size * i, fan_3d::terrain_generator::m_vertice_size, vertices.data());
+	glBindBuffer(GL_ARRAY_BUFFER, basic_shape_color_vector::color_vbo);
+	glBufferSubData(GL_ARRAY_BUFFER, sizeof(fan::color) * i, sizeof(fan::color), color.data());
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+void fan_3d::terrain_generator::release_queue()
+{
+	basic_shape_color_vector::write_data();
+	fan::write_glbuffer(m_vertices_vbo, m_triangle_vertices.data(), m_vertice_size * m_triangle_vertices.size());
+}
+
+void fan_3d::terrain_generator::draw() {
+
+	fan_3d::terrain_generator::m_shader.use();
+	fan_3d::terrain_generator::m_shader.set_mat4("projection", fan_3d::frame_projection);
+	fan_3d::terrain_generator::m_shader.set_mat4("view", fan_3d::frame_view);
+	fan_3d::terrain_generator::m_shader.set_int("triangle_size", m_triangle_size);
+	fan_3d::terrain_generator::m_shader.set_vec3("light_position", fan_3d::camera.get_position());
+	fan_3d::terrain_generator::m_shader.set_vec3("view_position", fan_3d::camera.get_position());
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, m_texture);
+
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	glBindVertexArray(m_vao);
+	glDrawElements(GL_TRIANGLE_STRIP, fan_3d::terrain_generator::size(), GL_UNSIGNED_INT, 0);
+	glBindVertexArray(0);
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+	//lv.draw();
+
+}
+
+void fan_3d::terrain_generator::erase_all()
+{
+	fan_3d::terrain_generator::m_triangle_vertices.clear();
+	basic_shape_color_vector::m_color.clear();
+	basic_shape_color_vector::write_data();
+	fan::write_glbuffer(m_vertices_vbo, m_triangle_vertices.data(), m_vertice_size * m_triangle_vertices.size());
+}
+
+uint_t fan_3d::terrain_generator::size() {
+	return fan_3d::terrain_generator::m_indices.size();
+}
+
+fan_3d::square_vector::square_vector(const std::string& path, std::uint64_t block_size)
+	: basic_shape_vector(fan::shader(fan_3d::shader_paths::shape_vector_vs, fan_3d::shader_paths::shape_vector_fs)),
+	block_size(block_size)
+{
+	glBindVertexArray(vao);
+
+	basic_shape_vector::initialize_buffers();
+
+	glBindVertexArray(0);
+
+	generate_textures(path, block_size);
+}
+
+fan_3d::square_vector::square_vector(const fan::color& color, std::uint64_t block_size)
+	: basic_shape_vector(fan::shader(fan_3d::shader_paths::shape_vector_vs, fan_3d::shader_paths::shape_vector_fs)),
+	block_size(block_size)
+{
+	glBindVertexArray(vao);
+
+	basic_shape_vector::initialize_buffers();
+
+	glBindVertexArray(0);
+	//TODO
+	//generate_textures(path, block_size);
+}
+
+fan_3d::square_vector::~square_vector()
+{
+	glDeleteTextures(1, &m_texture);
+	glDeleteBuffers(1, &m_texture_ssbo);
+	glDeleteBuffers(1, &m_texture_id_ssbo);
+}
+
+void fan_3d::square_vector::push_back(const fan::vec3& src, const fan::vec3& dst, const fan::vec2& texture_id, bool queue)
+{
+	basic_shape_vector::basic_push_back(src, dst, queue);
+
+	this->m_textures.push_back(texture_id.y * m_amount_of_textures.x + texture_id.x);
+
+	if (!queue) {
+		this->write_textures();
+	}
+}
+
+fan::vec3 fan_3d::square_vector::get_src(uint_t i) const
+{
+	return this->m_position[i];
+}
+
+fan::vec3 fan_3d::square_vector::get_dst(uint_t i) const
+{
+	return this->m_size[i];
+}
+
+fan::vec3 fan_3d::square_vector::get_size(uint_t i) const
+{
+	return this->get_dst(i) - this->get_src(i);
+}
+
+void fan_3d::square_vector::set_position(uint_t i, const fan::vec3& src, const fan::vec3& dst, bool queue)
+{
+	this->m_position[i] = src;
+	this->m_size[i] = dst;
+
+	if (!queue) {
+		write_data(true, true);
+		//edit_data(i, true, true);
+	}
+}
+
+void fan_3d::square_vector::set_size(uint_t i, const fan::vec3& size, bool queue)
+{
+	fan::basic_shape_vector<fan::vec3>::set_size(i, this->get_src(i) + size, queue);
+}
+
+void fan_3d::square_vector::draw() {
+
+	this->m_shader.use();
+	this->m_shader.set_mat4("projection", fan_3d::frame_projection);
+	this->m_shader.set_mat4("view", fan_3d::frame_view);
+	this->m_shader.set_int("shape_type", fan::eti(fan::e_shapes::SQUARE));
+	this->m_shader.set_int("texture_sampler", 0);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, this->m_texture);
+
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_texture_ssbo);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_texture_id_ssbo);
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	basic_shape_vector::basic_draw(GL_TRIANGLES, 36, size());
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+}
+
+void fan_3d::square_vector::set_texture(std::uint64_t i, const fan::vec2& texture_id, bool queue)
+{
+	this->m_textures[i] = block_size.x / 6 * texture_id.y + texture_id.x;
+
+	if (!queue) {
+		write_textures();
+	}
+}
+
+void fan_3d::square_vector::generate_textures(const std::string& path, const fan::vec2& block_size)
+{
+	glGenBuffers(1, &m_texture_ssbo);
+	glGenBuffers(1, &m_texture_id_ssbo);
+
+	auto texture_info = fan_2d::sprite::load_image(path, true);
+
+	m_texture = texture_info.texture_id;
+	fan::vec2i image_size = texture_info.image_size;
+
+	glBindTexture(GL_TEXTURE_2D, m_texture);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glGenerateMipmap(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	const fan::vec2 texturepack_size = fan::vec2(image_size.x / block_size.x, image_size.y / block_size.y);
+	m_amount_of_textures = fan::vec2(texturepack_size.x / 6, texturepack_size.y);
+	// side_order order = { bottom, top, front, back, right, left }
+	// top, bottom, 
+	constexpr int side_order[] = { 1, 0, 2, 3, 4, 5 };
+	std::vector<fan::vec2> textures;
+	for (fan::vec2i texture; texture.y < m_amount_of_textures.y; texture.y++) {
+		const fan::vec2 begin(1.f / texturepack_size.x, 1.f / texturepack_size.y);
+		const float up = 1 - begin.y * texture.y;
+		const float down = 1 - begin.y * (texture.y + 1);
+		for (texture.x = 0; texture.x < m_amount_of_textures.x; texture.x++) {
+			for (uint_t side = 0; side < std::size(side_order); side++) {
+				const float left = begin.x * side_order[side] + ((begin.x * (texture.x)) * 6);
+				const float right = begin.x * (side_order[side] + 1) + ((begin.x * (texture.x)) * 6);
+				const fan::vec2 texture_coordinates[] = {
+					fan::vec2(left,  up),
+					fan::vec2(left,  down),
+					fan::vec2(right, down),
+					fan::vec2(right, down),
+					fan::vec2(right, up),
+					fan::vec2(left,  up)
+				};
+				for (auto coordinate : texture_coordinates) {
+					textures.push_back(coordinate);
+				}
+			}
+		}
+	}
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_texture_ssbo);
+	glBufferData(
+		GL_SHADER_STORAGE_BUFFER,
+		sizeof(textures[0]) * textures.size(),
+		textures.data(),
+		GL_STATIC_DRAW
+	);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_texture_ssbo);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+}
+
+void fan_3d::square_vector::write_textures()
+{
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_texture_id_ssbo);
+	glBufferData(
+		GL_SHADER_STORAGE_BUFFER,
+		sizeof(m_textures[0]) * m_textures.size(),
+		m_textures.data(),
+		GL_STATIC_DRAW
+	);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_texture_id_ssbo);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+}
+
+void fan_3d::square_vector::release_queue(bool position, bool size, bool textures)
+{
+	if (position) {
+		basic_shape_vector::write_data(true, false);
+	}
+	if (size) {
+		basic_shape_vector::write_data(false, true);
+	}
+	if (textures) {
+		this->write_textures();
+	}
+}
+
+fan_3d::square_corners fan_3d::square_vector::get_corners(std::uint64_t i) const
+{
+
+	const fan::vec3 position = fan::da_t<f32_t, 2, 3>{ this->get_position(i), this->get_size(i) }.avg();
+	const fan::vec3 size = this->get_size(i);
+	const fan::vec3 half_size = size * 0.5;
+
+	return square_corners{ 
+		{ 
+			{ position[0] + half_size[0], position[1] + half_size[1], position[2] + half_size[2] }, 
+			{ position[0] - half_size[0], position[1] + half_size[1], position[2] + half_size[2] }, 
+			{ position[0] + half_size[0], position[1] + half_size[1], position[2] - half_size[2] }, 
+			{ position[0] - half_size[0], position[1] + half_size[1], position[2] - half_size[2] } 
+		}, // left
+		{ 
+			{ position[0] - half_size[0], position[1] - half_size[1], position[2] + half_size[2] }, 
+			{ position[0] + half_size[0], position[1] - half_size[1], position[2] + half_size[2] }, 
+			{ position[0] - half_size[0], position[1] - half_size[1], position[2] - half_size[2] }, 
+			{ position[0] + half_size[0], position[1] - half_size[1], position[2] - half_size[2] } 
+		}, // right
+		{ 
+			{ position[0] - half_size[0], position[1] + half_size[1], position[2] + half_size[2] }, 
+			{ position[0] - half_size[0], position[1] - half_size[1], position[2] + half_size[2] }, 
+			{ position[0] - half_size[0], position[1] + half_size[1], position[2] - half_size[2] }, 
+			{ position[0] - half_size[0], position[1] - half_size[1], position[2] - half_size[2] } 
+		}, // front
+		{ 
+			{ position[0] + half_size[0], position[1] - half_size[1], position[2] + half_size[2] }, 
+			{ position[0] + half_size[0], position[1] + half_size[1], position[2] + half_size[2] }, 
+			{ position[0] + half_size[0], position[1] - half_size[1], position[2] - half_size[2] }, 
+			{ position[0] + half_size[0], position[1] + half_size[1], position[2] - half_size[2] } 
+		}, // back
+		{ 
+			{ position[0] + half_size[0], position[1] + half_size[1], position[2] + half_size[2] }, 
+			{ position[0] + half_size[0], position[1] - half_size[1], position[2] + half_size[2] }, 
+			{ position[0] - half_size[0], position[1] + half_size[1], position[2] + half_size[2] }, 
+			{ position[0] - half_size[0], position[1] - half_size[1], position[2] + half_size[2] } 
+		}, // top
+		{ 
+			{ position[0] + half_size[0], position[1] - half_size[1], position[2] + half_size[2] }, 
+			{ position[0] + half_size[0], position[1] + half_size[1], position[2] + half_size[2] }, 
+			{ position[0] - half_size[0], position[1] - half_size[1], position[2] + half_size[2] }, 
+			{ position[0] - half_size[0], position[1] + half_size[1], position[2] + half_size[2] } 
+		}  // bottom
+	};
+}
+
+fan_3d::skybox::skybox(
+	const std::string& left,
+	const std::string& right,
+	const std::string& front,
+	const std::string back,
+	const std::string bottom,
+	const std::string& top
+) : shader(fan_3d::shader_paths::skybox_vs, fan_3d::shader_paths::skybox_fs), camera(&fan_3d::camera) {
+	std::array<std::string, 6> images{ right, left, top, bottom, back, front };
+	glGenTextures(1, &texture_id);
+
+	glBindTexture(GL_TEXTURE_CUBE_MAP, texture_id);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_NEAREST);
+
+	for (uint_t i = 0; i < images.size(); i++) {
+		fan::vec2i image_size;
+		unsigned char* image = SOIL_load_image(images[i].c_str(), image_size.data(), image_size.data() + 1, 0, SOIL_LOAD_RGB);
+		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, image_size.x, image_size.y, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+		SOIL_free_image_data(image);
+	}
+
+	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+
+	glGenVertexArrays(1, &skybox_vao);
+	glGenBuffers(1, &skybox_vbo);
+	glBindVertexArray(skybox_vao);
+	glBindBuffer(GL_ARRAY_BUFFER, skybox_vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, fan::GL_FLOAT_T, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
+	glBindVertexArray(0);
+}
+
+fan_3d::skybox::~skybox() {
+	glDeleteVertexArrays(1, &skybox_vao);
+	glDeleteBuffers(1, &skybox_vbo);
+	glDeleteTextures(1, &texture_id);
+}
+
+//void fan_3d::skybox::draw() {
+//	shader.use();
+//
+//	fan::mat4 view(1);
+//	fan::mat4 projection(1);
+//
+//	view = fan::mat4(mat3(camera->get_view_matrix()));
+//	projection = perspective(fan::radians(90.f), (f32_t)fan::window_size.x / (f32_t)fan::window_size.y, 0.1f, 1000.0f);
+//
+//	shader.set_mat4("view", view);
+//	shader.set_mat4("projection", projection);
+//	shader.set_vec3("fog_color", fan::vec3(220.f / 255.f, 219.f / 255.f, 223.f / 255.f));
+//
+//	glDepthFunc(GL_LEQUAL);
+//	glBindVertexArray(skybox_vao);
+//	glBindTexture(GL_TEXTURE_CUBE_MAP, texture_id);
+//	glDrawArrays(GL_TRIANGLES, 0, 36);
+//	glBindVertexArray(0);
+//	glDepthFunc(GL_LESS);
+//}
+
+fan_3d::model_mesh::model_mesh(
+	const std::vector<mesh_vertex>& vertices,
+	const std::vector<unsigned int>& indices,
+	const std::vector<mesh_texture>& textures
+) : vertices(vertices), indices(indices), textures(textures) {
+	initialize_mesh();
+}
+
+void fan_3d::model_mesh::initialize_mesh() {
+	glGenVertexArrays(1, &vao);
+	glGenBuffers(1, &vbo);
+	glGenBuffers(1, &ebo);
+
+	glBindVertexArray(vao);
+
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(mesh_vertex), &vertices[0], GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), &indices[0], GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(3);
+	glVertexAttribPointer(3, 3, fan::GL_FLOAT_T, GL_FALSE, sizeof(mesh_vertex), 0);
+
+	glEnableVertexAttribArray(4);
+	glVertexAttribPointer(4, 3, fan::GL_FLOAT_T, GL_FALSE, sizeof(mesh_vertex), reinterpret_cast<void*>(offsetof(mesh_vertex, normal)));
+
+	glEnableVertexAttribArray(5);
+	glVertexAttribPointer(5, 2, fan::GL_FLOAT_T, GL_FALSE, sizeof(mesh_vertex), reinterpret_cast<void*>(offsetof(mesh_vertex, texture_coordinates)));
+	glBindVertexArray(0);
+}
+
+fan_3d::model_loader::model_loader(const std::string& path, const fan::vec3& size) {
+	load_model(path, size);
+}
+
+void fan_3d::model_loader::load_model(const std::string& path, const fan::vec3& size) {
+	Assimp::Importer importer;
+	const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs);
+
+	if (scene == nullptr || scene->mFlags == AI_SCENE_FLAGS_INCOMPLETE || scene->mRootNode == nullptr) {
+		std::cout << "assimp error: " << importer.GetErrorString() << '\n';
+		return;
+	}
+
+	directory = path.substr(0, path.find_last_of('/'));
+
+	process_node(scene->mRootNode, scene, size);
+}
+
+void fan_3d::model_loader::process_node(aiNode* node, const aiScene* scene, const fan::vec3& size) {
+	for (GLuint i = 0; i < node->mNumMeshes; i++) {
+		aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
+
+		meshes.emplace_back(process_mesh(mesh, scene, size));
+	}
+
+	for (GLuint i = 0; i < node->mNumChildren; i++) {
+		process_node(node->mChildren[i], scene, size);
+	}
+}
+
+fan_3d::model_mesh fan_3d::model_loader::process_mesh(aiMesh* mesh, const aiScene* scene, const fan::vec3& size) {
+	std::vector<mesh_vertex> vertices;
+	std::vector<GLuint> indices;
+	std::vector<mesh_texture> textures;
+
+	for (GLuint i = 0; i < mesh->mNumVertices; i++)
+	{
+		mesh_vertex vertex;
+		fan::vec3 vector;
+
+		vector.x = mesh->mVertices[i].x / 2 * size.x;
+		vector.y = mesh->mVertices[i].y / 2 * size.y;
+		vector.z = mesh->mVertices[i].z / 2 * size.z;
+		vertex.position = vector;
+		if (mesh->mNormals != nullptr) {
+			vector.x = mesh->mNormals[i].x;
+			vector.y = mesh->mNormals[i].y;
+			vector.z = mesh->mNormals[i].z;
+			vertex.normal = vector;
+		}
+		else {
+			vertex.normal = fan::vec3();
+		}
+
+		if (mesh->mTextureCoords[0]) {
+			fan::vec2 vec;
+			vec.x = mesh->mTextureCoords[0][i].x;
+			vec.y = mesh->mTextureCoords[0][i].y;
+			vertex.texture_coordinates = vec;
+		}
+
+		vertices.emplace_back(vertex);
+	}
+
+	for (GLuint i = 0; i < mesh->mNumFaces; i++) {
+		aiFace face = mesh->mFaces[i];
+		for (uint_t j = 0; j < face.mNumIndices; j++) {
+			indices.emplace_back(face.mIndices[j]);
+		}
+	}
+
+	aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
+
+	std::vector<mesh_texture> diffuseMaps = this->load_material_textures(material, aiTextureType_DIFFUSE, "texture_diffuse");
+	textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
+
+	std::vector<mesh_texture> specularMaps = this->load_material_textures(material, aiTextureType_SPECULAR, "texture_specular");
+	textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
+
+	if (textures.empty()) {
+		mesh_texture texture;
+		unsigned int texture_id;
+		glGenTextures(1, &texture_id);
+
+		aiColor4D color(0.f, 0.f, 0.f, 0.f);
+		aiGetMaterialColor(material, AI_MATKEY_COLOR_DIFFUSE, &color);
+		std::vector<unsigned char> pixels;
+		pixels.emplace_back(color.r * 255.f);
+		pixels.emplace_back(color.g * 255.f);
+		pixels.emplace_back(color.b * 255.f);
+		pixels.emplace_back(color.a * 255.f);
+
+		glBindTexture(GL_TEXTURE_2D, texture_id);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+		glGenerateMipmap(GL_TEXTURE_2D);
+
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+		texture.id = texture_id;
+		textures.emplace_back(texture);
+		textures_loaded.emplace_back(texture);
+	}
+	return model_mesh(vertices, indices, textures);
+}
+
+std::vector<fan_3d::mesh_texture> fan_3d::model_loader::load_material_textures(aiMaterial* mat, aiTextureType type, const std::string& type_name) {
+	std::vector<mesh_texture> textures;
+
+	for (uint_t i = 0; i < mat->GetTextureCount(type); i++) {
+		aiString a_str;
+		mat->GetTexture(type, i, &a_str);
+		bool skip = false;
+		for (auto j : textures_loaded) {
+			if (j.path == a_str) {
+				textures.emplace_back(j);
+				skip = true;
+				break;
+			}
+		}
+
+		if (!skip) {
+			mesh_texture texture;
+			texture.id = load_texture(a_str.C_Str(), directory, false);
+			texture.type = type_name;
+			texture.path = a_str;
+			textures.emplace_back(texture);
+			textures_loaded.emplace_back(texture);
+		}
+	}
+	return textures;
+}
+
+fan_3d::model::model(const std::string& path, const fan::vec3& position, const fan::vec3& size)
+	: model_loader(path, size / 2.f), m_shader(fan_3d::shader_paths::model_vs, fan_3d::shader_paths::model_fs),
+	m_position(position), m_size(size)
+{
+	for (uint_t i = 0; i < this->meshes.size(); i++) {
+		glBindVertexArray(this->meshes[i].vao);
+	}
+	glBindVertexArray(0);
+
+#ifndef RAM_SAVER
+	constexpr auto gpu_prealloc = sizeof(float) * 100000000;
+	glBindBuffer(GL_ARRAY_BUFFER, _Shape_Matrix_VBO);
+	glBufferData(
+		GL_ARRAY_BUFFER,
+		gpu_prealloc,
+		nullptr,
+		GL_DYNAMIC_DRAW
+	);
+#endif
+}
+
+void fan_3d::model::draw() {
+
+	fan::mat4 model(1);
+	model = translate(model, get_position());
+	model = scale(model, get_size());
+
+	this->m_shader.use();
+
+	this->m_shader.set_int("texture_sampler", 0);
+	this->m_shader.set_mat4("projection", fan_3d::frame_projection);
+	this->m_shader.set_mat4("view", fan_3d::frame_view);
+	this->m_shader.set_vec3("light_position", fan_3d::camera.get_position());
+	this->m_shader.set_vec3("view_position", fan_3d::camera.get_position());
+	this->m_shader.set_vec3("light_color", fan::vec3(1, 1, 1));
+	this->m_shader.set_int("texture_diffuse", 0);
+	this->m_shader.set_mat4("model", model);
+
+	//_Shader.set_vec3("sky_color", fan::vec3(220.f / 255.f, 219.f / 255.f, 223.f / 255.f));
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, this->textures_loaded[0].id);
+
+	glDepthFunc(GL_LEQUAL);
+	for (uint_t i = 0; i < this->meshes.size(); i++) {
+		glBindVertexArray(this->meshes[i].vao);
+		glDrawElementsInstanced(GL_TRIANGLES, this->meshes[i].indices.size(), GL_UNSIGNED_INT, 0, 1);
+	}
+	glDepthFunc(GL_LESS);
+
+	glBindVertexArray(0);
+}
+
+fan::vec3 fan_3d::model::get_position()
+{
+	return this->m_position;
+}
+
+void fan_3d::model::set_position(const fan::vec3& position)
+{
+	this->m_position = position;
+}
+
+fan::vec3 fan_3d::model::get_size()
+{
+	return this->m_size;
+}
+
+void fan_3d::model::set_size(const fan::vec3& size)
+{
+	this->m_size = size;
+}
+
+fan::vec3 fan_3d::line_triangle_intersection(const fan::da_t<f32_t, 2, 3>& line, const fan::da_t<f32_t, 3, 3>& triangle) {
+
+	const auto lab = (line[0] + line[1]) - line[0];
+
+	const auto p01 = triangle[1] - triangle[0];
+	const auto p02 = triangle[2] - triangle[0];
+
+	const auto normal = fan::cross(p01, p02);
+
+	const auto t = fan::dot(normal, line[0] - triangle[0]) / fan::dot(-lab, normal);
+	const auto u = fan::dot(fan::cross(p02, -lab), line[0] - triangle[0]) / fan::dot(-lab, normal);
+	const auto v = fan::dot(fan::cross(-lab, p01), line[0] - triangle[0]) / fan::dot(-lab, normal);
+
+	if (t >= 0 && t <= 1 && u >= 0 && u <= 1 && v >= 0 && v <= 1 && (u + v) <= 1) {
+		return line[0] + lab * t;
+	}
+
+	return INFINITY;
+}
+
+fan::vec3 fan_3d::line_plane_intersection(const fan::da_t<f32_t, 2, 3>& line, const fan::da_t<f32_t, 4, 3>& square) {
+	const fan::da_t<f32_t, 3> plane_normal = fan::normalize_no_sqrt(cross(square[3] - square[2], square[0] - square[2]));
+	const f32_t nl_dot(dot(plane_normal, line[1]));
+
+	if (!nl_dot) {
+		return fan::vec3(INFINITY);
+	}
+
+	const f32_t ray_length = dot(square[2] - line[0], plane_normal) / nl_dot;
+	if (ray_length <= 0) {
+		return fan::vec3(INFINITY);
+	}
+	if (fan::custom_pythagorean_no_sqrt(fan::vec3(line[0]), fan::vec3(line[0] + line[1])) < ray_length) {
+		return fan::vec3(INFINITY);
+	}
+	const fan::vec3 intersection(line[0] + line[1] * ray_length);
+
+	auto result = fan::dot((square[2] - line[0]), plane_normal);
+	fan::print(result);
+	if (!result) {
+		fan::print("on plane");
+	}
+
+	if (intersection[1] >= square[3][1] && intersection[1] <= square[0][1] &&
+		intersection[2] >= square[3][2] && intersection[2] <= square[0][2])
+	{
+		return intersection;
+	}
+	return fan::vec3(INFINITY);
+}
+
+void fan::get_fps(bool title, bool print) {
+	static int fps = 0;
+	static Timer timer(Timer::start(), 1000);
+	static _Timer<microseconds> frame_time(Timer::start());
+	static int old_fps = 0;
+	float current_frame = glfwGetTime();
+	static float last_frame = 0;
+	fan::delta_time = current_frame - last_frame;
+	last_frame = current_frame;
+
+	fan_2d::frame_view = fan::mat4(1);
+	fan_2d::frame_view = fan_2d::camera.get_view_matrix(translate(fan_2d::frame_view, fan::vec3(fan::window_size.x / 2, fan::window_size.y / 2, -700.0f)));
+
+	fan_2d::frame_projection = fan::mat4(1);
+	fan_2d::frame_projection = fan::ortho(fan::window_size.x / 2, fan::window_size.x + fan::window_size.x * 0.5f, fan::window_size.y + fan::window_size.y * 0.5f, fan::window_size.y / 2.f, 0.1f, 1000.0f);
+
+	fan_3d::frame_view = fan::mat4(1);
+	fan_3d::frame_view = fan_3d::camera.get_view_matrix();
+
+	fan_3d::frame_projection = fan::mat4(1);
+	fan_3d::frame_projection = fan::perspective(fan::radians(90.f), (f32_t)fan::window_size.x / (f32_t)fan::window_size.y, 0.1f, 1000000.0f);
+
+	if (timer.finished()) {
+		old_fps = fps - 1;
+		fps = 0;
+		if (title) {
+			glfwSetWindowTitle(fan::window, (
+				std::string("FPS: ") +
+				std::to_string(old_fps) +
+				std::string(" frame time: ") +
+				std::to_string(static_cast<f32_t>(frame_time.elapsed()) / static_cast<f32_t>(1000)) +
+				std::string(" ms")
+				).c_str());
+		}
+		if (print) {
+			std::cout << (std::string("FPS: ") +
+				std::to_string(old_fps) +
+				std::string(" frame time: ") +
+				std::to_string(static_cast<f32_t>(frame_time.elapsed()) / static_cast<f32_t>(1000)) +
+				std::string(" ms")
+				) << '\n';
+		}
+		timer.restart();
+	}
+	frame_time.restart();
+	fps++;
+}
+
+// -------------------------------GUI--------------------------------
+fan_gui::suckless_font_t suckless_font_fr(uint_t datasize, uint_t fontsize) {
+	fan_gui::suckless_font_t font;
+	font.offset = { 0, 0 };
+	font.datasize = datasize;
+	font.fontsize = fontsize;
+	font.data.resize(font.datasize * font.datasize);
+	return font;
+}
+
+fan_gui::letter_info_t suckless_font_add_f(FT_Library ft, fan_gui::suckless_font_t* font, uint8_t letter) {
+	FT_Face face;
+	if (FT_New_Face(ft, fan_gui::font::paths::arial, 0, &face)) {
+		fan::print("err new face");
+		exit(1);
+	}
+
+	FT_Set_Pixel_Sizes(face, 0, font->fontsize);
+	FT_Load_Char(face, letter, FT_LOAD_RENDER);
+
+	uint_t tx = face->glyph->bitmap.width;
+	uint_t ty = face->glyph->bitmap.rows;
+
+	fan_gui::letter_info_t letter_info;
+
+	letter_info.width = tx;
+	letter_info.height = ty;
+
+	/* extreme hardcoded */
+	uint_t by = (font->fontsize / 1.33) - face->glyph->bitmap_top;
+
+	/* check if offsets are in limit */
+	if ((font->offset.x + tx) > font->datasize) {
+		font->offset.x = 0;
+		font->offset.y += font->fontsize;
+	}
+	if ((font->offset.y + font->fontsize) > font->datasize) {
+		fprintf(stderr, "vector too small\n");
+		return fan_gui::letter_info_t{};
+	}
+
+	letter_info.pos = font->offset;
+
+	/* transfer face buffer to data */
+	for (uint_t iy = by; iy < (by + ty); iy++) {
+		for (uint_t ix = 0; ix < tx; ix++) {
+			font->data[(font->datasize * (iy + font->offset.y)) + (ix + font->offset.x)] = face->glyph->bitmap.buffer[(tx * (iy - by)) + ix];
+		}
+	}
+
+	/* calculate offset for next character */
+	if ((font->offset.x + tx) > font->datasize) {
+		font->offset.x = 0;
+		font->offset.y += font->fontsize;
+	}
+	else {
+		font->offset.x += tx;
+	}
+
+	FT_Done_Face(face);
+	return letter_info;
+}
+
+void suckless_letter_render(fan_gui::suckless_font_t* font) {
+	for (uint_t iy = 0; iy < font->datasize; iy++) {
+		for (uint_t ix = 0; ix < font->datasize; ix++) {
+			if (font->data[(font->datasize * iy) + ix] > 128) /* if more than half solid */
+				printf("W");
+			else
+				printf(" ");
+		}
+		printf("\n");
+	}
+}
+
+constexpr auto characters_begin(33);
+constexpr auto characters_end(248);
+
+std::array<f32_t, 248> fan_gui::text_renderer::widths;
+fan_gui::suckless_font_t fan_gui::text_renderer::font;
+
+fan_gui::text_renderer::text_renderer()
+	: m_shader(fan::shader(fan_2d::shader_paths::text_renderer_vs, fan_2d::shader_paths::text_renderer_fs))
+{
+	FT_Library ft;
+
+	if (FT_Init_FreeType(&ft)) {
+		fan::print("Could not init FreeType Library");
+		exit(1);
+	}
+
+	FT_Face face;
+	if (FT_New_Face(ft, fan_gui::font::paths::arial, 0, &face)) {
+		fan::print("Failed to load font:", fan_gui::font::paths::arial);
+		exit(1);
+	}
+
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+	FT_Set_Pixel_Sizes(face, 0, font_size);
+
+	font = suckless_font_fr(1024 * 2, font_size);
+
+	std::array<letter_info_t, characters_end> infos;
+
+	for (uint_t i = characters_begin; i < characters_end; i++) {
+		infos[i] = suckless_font_add_f(ft, &font, i);
+	}
+
+	glGenTextures(1, &m_texture);
+	glBindTexture(GL_TEXTURE_2D, m_texture);
+	glTexImage2D(
+		GL_TEXTURE_2D,
+		0,
+		GL_RED,
+		font.datasize,
+		font.datasize,
+		0,
+		GL_RED,
+		GL_UNSIGNED_BYTE,
+		font.data.data()
+	);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	FT_Done_Face(face);
+	FT_Done_FreeType(ft);
+
+	std::vector<fan::vec2> texture_coordinates;
+
+	letter_info_t _letter;
+
+	std::wstring text;
+	for (uint_t i = characters_begin; i < characters_end; i++) {
+		text.push_back(i);
+	}
+
+	for (uint_t i = 0; i < text.size(); i++) {
+		_letter = infos[text[i]];
+		widths[i + 33] = infos[text[i]].width / font_size;
+		letter_info_opengl_t letter = letter_to_opengl(font, _letter);
+		f32_t height = letter.pos.y + ((f32_t)font.fontsize / font.datasize);
+
+		texture_coordinates.push_back(fan::vec2(letter.pos.x, letter.pos.y));
+		texture_coordinates.push_back(fan::vec2(letter.pos.x, height));
+		texture_coordinates.push_back(fan::vec2(letter.pos.x + letter.width, height));
+		texture_coordinates.push_back(fan::vec2(letter.pos.x, letter.pos.y));
+		texture_coordinates.push_back(fan::vec2(letter.pos.x + letter.width, height));
+		texture_coordinates.push_back(fan::vec2(letter.pos.x + letter.width, letter.pos.y));
+	}
+
+	glGenVertexArrays(1, &m_vao);
+	glGenBuffers(1, &m_texture_id_ssbo);
+	glGenBuffers(1, &m_text_ssbo);
+	glGenBuffers(1, &m_colors_ssbo);
+	glGenBuffers(1, &m_vertex_ssbo);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_texture_id_ssbo);
+	glBufferData(
+		GL_SHADER_STORAGE_BUFFER,
+		sizeof(texture_coordinates[0]) * texture_coordinates.size(),
+		texture_coordinates.data(),
+		GL_STATIC_DRAW
+	);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_texture_id_ssbo);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+	glBindVertexArray(m_vao);
+
+	glBindBuffer(GL_ARRAY_BUFFER, m_text_ssbo);
+	glEnableVertexAttribArray(4);
+	glVertexAttribPointer(4, 1, fan::GL_FLOAT_T, GL_FALSE, sizeof(int), 0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, m_colors_ssbo);
+	glEnableVertexAttribArray(6);
+	glVertexAttribPointer(6, 4, fan::GL_FLOAT_T, GL_FALSE, fan::vec4::size() * sizeof(fan::vec4::type), 0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	glVertexAttribDivisor(4, 1);
+	glVertexAttribDivisor(6, 1);
+	glBindVertexArray(0);
+}
+
+fan_gui::text_renderer::~text_renderer()
+{
+	glDeleteVertexArrays(1, &m_vao);
+	glDeleteBuffers(1, &m_texture_id_ssbo);
+	glDeleteBuffers(1, &m_text_ssbo);
+	glDeleteBuffers(1, &m_colors_ssbo);
+	glDeleteBuffers(1, &m_vertex_ssbo);
+	glDeleteTextures(1, &m_texture);
+}
+
+void fan_gui::text_renderer::alloc_storage(const std::vector<std::wstring>& vector)
+{
+	realloc_storage(vector);
+}
+
+void fan_gui::text_renderer::realloc_storage(const std::vector<std::wstring>& vector)
+{
+	m_colors.resize(vector.size());
+	for (uint_t i = 0; i < vector.size(); i++) {
+		m_colors[i].resize(vector[i].size());
+	}
+}
+
+void fan_gui::text_renderer::store_to_renderer(std::wstring& text, fan::vec2 position, const fan::color& color, f32_t scale, f32_t max_width)
+{
+	m_characters.resize(m_characters.size() + 1);
+	m_vertices.resize(m_vertices.size() + 1);
+	m_characters[m_characters.size() - 1].resize(text.size());
+
+	f32_t width = 0;
+	f32_t begin = position.x;
+
+	for (uint_t i = 0; i < text.size(); i++) {
+		emplace_vertex_data(m_vertices[m_vertices.size() - 1], position, fan::vec2(widths[text[i]] * scale, scale));
+
+		if (max_width != -1) {
+			f32_t next_step = 0;
+
+			switch (text[i]) {
+			case ' ': {
+				next_step += fan_gui::font::properties::get_space(scale) * 2;
+				break;
+			}
+			case '\n': {
+				next_step = (position.x) * 2;
+				break;
+			}
+			default: {
+				next_step += (widths[text[i]] * scale + fan_gui::font::properties::space_between_characters) * 2;
+			}
+			}
+
+			if (width + next_step >= max_width) {
+				position.x = begin;
+				m_characters[m_characters.size() - 1].resize(m_characters[m_characters.size() - 1].size() + 1);
+				m_colors[m_colors.size() - 1].resize(m_colors[m_colors.size() - 1].size() + 1);
+				position.y += scale;
+				width = 0;
+				//i--;
+				//continue;
+				goto skip;
+			}
+		}
+
+
+		switch (text[i]) {
+		case ' ': {
+			if (width != 0) {
+				position.x += fan_gui::font::properties::get_space(scale);
+				width += fan_gui::font::properties::get_space(scale);
+			}
+			break;
+		}
+		case '\n': {
+			position.x = begin;
+			position.y += scale;
+			break;
+		}
+		default: {
+			position.x += widths[text[i]] * scale + fan_gui::font::properties::space_between_characters;
+			width += widths[text[i]] * scale + fan_gui::font::properties::space_between_characters;
+		}
+		}
+	skip:
+		m_colors[m_colors.size() - 1][i] = color;
+		m_characters[m_characters.size() - 1][i] = text[i];
+	}
+}
+
+void fan_gui::text_renderer::edit_storage(uint64_t i, const std::wstring& text, fan::vec2 position, const fan::color& color, f32_t scale)
+{
+	m_vertices[i].clear();
+	m_characters[i].resize(text.size());
+	m_colors[i].resize(text.size());
+
+	f32_t width = 0;
+	f32_t begin = position.x;
+
+	for (uint_t character = 0; character < text.size(); character++) {
+		emplace_vertex_data(m_vertices[i], position, fan::vec2(widths[text[character]] * scale, scale));
+
+		switch (text[character]) {
+		case ' ': {
+			if (width != 0) {
+				position.x += fan_gui::font::properties::get_space(scale);
+				width += fan_gui::font::properties::get_space(scale);
+			}
+			break;
+		}
+		case '\n': {
+			position.x = begin;
+			position.y += scale;
+			break;
+		}
+		default: {
+			position.x += widths[text[character]] * scale + fan_gui::font::properties::space_between_characters;
+			width += widths[text[character]] * scale + fan_gui::font::properties::space_between_characters;
+		}
+		}
+		m_colors[i][character] = color;
+		m_characters[i][character] = text[character];
+	}
+}
+
+void fan_gui::text_renderer::upload_vertices()
+{
+	std::vector<fan::vec2> one_dimension_draw_data(vector_size(m_vertices));
+	int copied = 0;
+	for (uint_t i = 0; i < m_vertices.size(); i++) {
+		std::copy(m_vertices[i].begin(), m_vertices[i].end(), one_dimension_draw_data.begin() + copied);
+		copied += m_vertices[i].size();
+	}
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_vertex_ssbo);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(one_dimension_draw_data[0]) * one_dimension_draw_data.size(), one_dimension_draw_data.data(), GL_DYNAMIC_DRAW);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_vertex_ssbo);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+}
+
+void fan_gui::text_renderer::upload_colors()
+{
+	std::vector<fan::color> one_dimension_colors(vector_size(m_colors));
+	int copied = 0;
+	for (uint_t i = 0; i < m_colors.size(); i++) {
+		std::copy(m_colors[i].begin(), m_colors[i].end(), one_dimension_colors.begin() + copied);
+		copied += m_colors[i].size();
+	}
+	glBindBuffer(GL_ARRAY_BUFFER, m_colors_ssbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(one_dimension_colors[0]) * one_dimension_colors.size(), one_dimension_colors.data(), GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+void fan_gui::text_renderer::upload_characters()
+{
+	std::vector<int> one_dimension_characters(fan::vector_size(m_characters));
+	int copied = 0;
+	for (uint_t i = 0; i < m_characters.size(); i++) {
+		std::copy(m_characters[i].begin(), m_characters[i].end(), one_dimension_characters.begin() + copied);
+		copied += m_characters[i].size();
+	}
+	glBindBuffer(GL_ARRAY_BUFFER, m_text_ssbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(one_dimension_characters[0]) * one_dimension_characters.size(), one_dimension_characters.data(), GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+void fan_gui::text_renderer::upload_stored()
+{
+	this->upload_vertices();
+	this->upload_colors();
+	this->upload_characters();
+}
+
+void fan_gui::text_renderer::upload_stored(uint64_t i)
+{
+	std::vector<int> new_characters(m_characters[i].begin(), m_characters[i].end());
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_text_ssbo);
+	glBufferSubData(
+		GL_SHADER_STORAGE_BUFFER,
+		i * new_characters.size() * sizeof(int),
+		sizeof(int) * new_characters.size(),
+		new_characters.data()
+	);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, m_text_ssbo);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+}
+
+void fan_gui::text_renderer::render_stored()
+{
+	m_shader.use();
+	m_shader.set_mat4("projection", fan::ortho(0, fan::window_size.x, fan::window_size.y, 0));
+
+	glBindVertexArray(m_vao);
+	glBindTexture(GL_TEXTURE_2D, m_texture);
+	glDrawArraysInstanced(GL_TRIANGLES, 0, 6, fan::vector_size(m_characters));
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	glBindVertexArray(0);
+}
+
+void fan_gui::text_renderer::set_scale(uint64_t i, f32_t scale, fan::vec2 position)
+{
+	m_vertices[i].clear();
+
+	f32_t begin = position.x;
+
+	for (uint_t index = 0; index < m_characters[i].size(); index++) {
+
+		emplace_vertex_data(m_vertices[i], position, fan::vec2(widths[m_characters[i][index]] * scale, scale));
+
+		switch (m_characters[i][index]) {
+		case ' ': {
+			position.x += fan_gui::font::properties::get_space(scale);
+			break;
+		}
+		case '\n': {
+			position.x = begin;
+			position.y += scale;
+			break;
+		}
+		default: {
+			position.x += fan_gui::font::properties::get_character_x_offset(widths[m_characters[i][index]], scale);
+		}
+		}
+	}
+
+	upload_vertices();
+}
+
+void fan_gui::text_renderer::clear_storage()
+{
+	m_characters.clear();
+}
+
+void fan_gui::text_renderer::render(const std::wstring& text, fan::vec2 position, const fan::color& color, f32_t scale, bool use_old) {
+	static std::wstring old_str;
+
+	m_shader.use();
+	m_shader.set_mat4("projection", fan::ortho(0, fan::window_size.x, fan::window_size.y, 0));
+
+	f32_t begin = position.x;
+
+	if (use_old && old_str == text) {
+		goto draw;
+	}
+	{
+
+		m_vertices.clear();
+		m_characters.clear();
+		m_colors.clear();
+
+		m_characters.resize(1);
+		m_characters[0].resize(text.size());
+
+		m_colors.resize(1);
+		m_colors[0].resize(text.size());
+
+		m_vertices.resize(1);
+
+		for (uint_t i = 0; i < text.size(); i++) {
+			if (m_vertices.size() < 6 * text.size()) {
+				emplace_vertex_data(m_vertices[m_vertices.size() - 1], position, fan::vec2(widths[text[i]] * scale, scale));
+			}
+			else {
+				edit_vertex_data(i * 6, m_vertices[i], position, fan::vec2(widths[text[i]] * scale, scale));
+			}
+
+			switch (text[i]) {
+			case ' ': {
+				position.x += fan_gui::font::properties::get_space(scale);
+				break;
+			}
+			case '\n': {
+				position.x = begin;
+				position.y += scale;
+				break;
+			}
+			default: {
+				position.x += widths[text[i]] * scale + fan_gui::font::properties::space_between_characters;
+			}
+			}
+			m_colors[0][i] = color;
+			m_characters[0][i] = text[i];
+		}
+	}
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_vertex_ssbo);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(m_vertices[0][0]) * m_vertices[0].size(), m_vertices[0].data(), GL_DYNAMIC_DRAW);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_vertex_ssbo);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, m_text_ssbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(m_characters[0][0]) * m_characters[0].size(), m_characters[0].data(), GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, m_colors_ssbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(m_colors[0][0]) * m_colors[0].size(), m_colors[0].data(), GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	old_str = text;
+
+
+
+draw:
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_vertex_ssbo);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_texture_id_ssbo);
+
+	glBindVertexArray(m_vao);
+	glBindTexture(GL_TEXTURE_2D, m_texture);
+	glDrawArraysInstanced(GL_TRIANGLES, 0, 6, text.size());
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	glBindVertexArray(0);
+}
+
+fan::vec2 fan_gui::text_renderer::get_length(const std::wstring& text, f32_t scale)
+{
+	fan::vec2 string_size;
+
+	string_size.y = scale;
+
+	f32_t biggest_width = -1;
+
+	for (uint_t i = 0; i < text.size(); i++) {
+		if (text[i] == ' ') {
+			string_size.x += fan_gui::font::properties::get_space(scale);
+		}
+		else if (text[i] == '\n') {
+			string_size.y += scale;
+			biggest_width = std::max(string_size.x, biggest_width);
+			string_size.x = 0;
+		}
+		else {
+			if (i != text.size() - 1) {
+				string_size.x += widths[text[i]] * scale + fan_gui::font::properties::space_between_characters;
+			}
+			else {
+				string_size.x += widths[text[i]] * scale;
+			}
+		}
+	}
+
+	biggest_width = std::max(string_size.x, biggest_width);
+
+	if (biggest_width == -1) {
+		biggest_width = string_size.x;
+	}
+
+	return fan::vec2(biggest_width, string_size.y);
+}
+
+std::vector<fan::vec2> fan_gui::text_renderer::get_length(const std::vector<std::wstring>& texts, const std::vector<f32_t>& scales, bool half)
+{
+	f32_t width;
+	std::vector<fan::vec2> string_size(texts.size());
+
+	for (uint_t text = 0; text < texts.size(); text++) {
+		for (uint_t i = 0; i < texts[text].size(); i++) {
+			width = widths[texts[text][i]];
+
+			if (texts[text][i] == ' ') {
+				if (half) {
+					string_size[text].x += 2.5;
+				}
+				else {
+					string_size[text].x += 5;
+				}
+			}
+			else {
+				fan::vec2 size(width, font.fontsize);
+				size = size / size.max() * scales[text];
+
+				if (half) {
+					string_size[text].x += (size.x + 2) * 0.5;
+				}
+				else {
+					string_size[text].x += size.x + 2;
+				}
+			}
+
+		}
+		if (half) {
+			string_size[text].y = -(int)font.fontsize / 2;
+		}
+		else {
+			string_size[text].y = font.fontsize / 2;
+		}
+	}
+
+	return string_size;
+}
+
+fan_gui::font::basic_methods::basic_text_button_vector::basic_text_button_vector() : fan_gui::text_renderer() {}
+
+fan::vec2 fan_gui::font::basic_methods::basic_text_button_vector::edit_size(uint64_t i, const std::wstring& text, f32_t scale)
+{
+	std::vector<std::wstring> lines;
+	int offset = 0;
+	for (uint_t i = 0; i < text.size(); i++) {
+		if (text[i] == '\n') {
+			lines.push_back(text.substr(offset, i - offset));
+			offset = i + 1;
+		}
+	}
+	lines.push_back(text.substr(offset, text.size()));
+	f32_t largest = -9999999;
+	for (auto i : lines) {
+		f32_t size = get_length(i, scale).x;
+		if (size > largest) {
+			largest = size;
+		}
+	}
+	m_texts[i] = text;
+	return fan::vec2(fan_gui::font::properties::get_gap_scale_x(largest), fan_gui::font::properties::get_gap_scale_y(scale) * lines.size());
+}
+
+fan_gui::font::text_button_vector::text_button_vector() : basic_text_button_vector() { }
+
+fan_gui::font::text_button_vector::text_button_vector(const std::wstring& text, const fan::vec2& position, const fan::color& color, f32_t scale)
+	: basic_text_button_vector() 
+{
+	this->add(text, position, color, scale);
+}
+
+fan_gui::font::text_button_vector::text_button_vector(const std::wstring& text, const fan::vec2& position, const fan::color& color, f32_t scale, const fan::vec2& box_size)
+	: basic_text_button_vector() {
+	m_scales.push_back(scale);
+	std::vector<std::wstring> all_strings(m_texts.begin(), m_texts.end());
+	all_strings.push_back(text);
+	m_texts.push_back(text);
+	realloc_storage(all_strings);
+	push_back(position, box_size, color); // * 2 for both sides
+	auto rtext = text;
+	store_to_renderer(rtext, position + box_size / 2 - get_length(text, scale) / 2, default_text_color, scale);
+	upload_stored();
+}
+
+void fan_gui::font::text_button_vector::add(const std::wstring& text, const fan::vec2& position, const fan::color& color, f32_t scale)
+{
+	m_scales.push_back(scale);
+	std::vector<std::wstring> all_strings(m_texts.begin(), m_texts.end());
+	all_strings.push_back(text);
+	m_texts.push_back(text);
+	realloc_storage(all_strings);
+	push_back(position, get_length(text, scale) + fan_gui::font::properties::get_gap_scale(scale) * 2, color); // * 2 for both sides
+	auto rtext = text;
+	store_to_renderer(rtext, position + fan_gui::font::properties::get_gap_scale(scale), default_text_color, scale);
+	upload_stored();
+}
+
+void fan_gui::font::text_button_vector::add(const std::wstring& text, const fan::vec2& position, const fan::color& color, f32_t scale, const fan::vec2& box_size)
+{
+	m_scales.push_back(scale);
+	std::vector<std::wstring> all_strings(m_texts.begin(), m_texts.end());
+	all_strings.push_back(text);
+	m_texts.push_back(text);
+	realloc_storage(all_strings);
+	push_back(position, box_size, color); // * 2 for both sides
+	auto rtext = text;
+	store_to_renderer(rtext, position + box_size / 2 - get_length(text, scale) / 2, default_text_color, scale);
+	upload_stored();
+}
+
+void fan_gui::font::text_button_vector::edit_string(uint64_t i, const std::wstring& text, f32_t scale)
+{
+	m_scales[i] = scale;
+	m_texts[i] = text;
+	auto len = get_length(text, scale);
+	set_size(i, len + fan_gui::font::properties::get_gap_scale(scale) * 2);
+	edit_storage(i, text, get_position(i) + fan_gui::font::properties::get_gap_scale(scale), default_text_color, scale);
+	upload_stored();
+}
+
+fan::vec2 fan_gui::font::text_button_vector::get_string_length(const std::wstring& text, f32_t scale)
+{
+	return get_length(text, scale);
+}
+
+f32_t fan_gui::font::text_button_vector::get_scale(uint64_t i)
+{
+	return m_scales[i];
+}
+
+void fan_gui::font::text_button_vector::set_font_size(uint64_t i, f32_t scale)
+{
+	m_scales[i] = scale;
+	auto str = std::wstring(m_characters[i].begin(), m_characters[i].end());
+	auto len = get_length(str, scale);
+	set_size(i, len + fan_gui::font::properties::get_gap_scale(scale) * 2);
+	auto pos = get_position(i);
+	set_scale(i, scale, pos + fan_gui::font::properties::get_gap_scale(scale));
+	upload_stored();
+}
+
+void fan_gui::font::text_button_vector::set_position(uint64_t i, const fan::vec2& position)
+{
+	f32_t scale = get_scale(i);
+	fan_2d::square_vector::set_position(i, position);
+	auto len = get_length(m_texts[i], scale);
+	set_size(i, len + fan_gui::font::properties::get_gap_scale(scale) * 2);
+	edit_storage(i, m_texts[i], get_position(i) + fan_gui::font::properties::get_gap_scale(scale), default_text_color, scale);
+	upload_stored();
+}
+
+void fan_gui::font::text_button_vector::set_press_callback(int key, const std::function<void()>& function)
+{
+	//scallback::key.add(key, true, function);
+}
+
+void fan_gui::font::text_button_vector::draw()
+{
+	fan_2d::square_vector::draw();
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_vertex_ssbo);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_texture_id_ssbo);
+	render_stored();
+}
+
+bool fan_gui::font::text_button_vector::inside(std::uint64_t i)
+{
+	fan::vec2 position = get_position(i);
+	fan::vec2 size = get_size(i);
+	if (fan::cursor_position.x >= position.x && fan::cursor_position.x <= position.x + size.x &&
+		fan::cursor_position.y >= position.y && fan::cursor_position.y <= position.y + size.y)
+	{
+		return true;
+	}
+	return false;
+}
+
+void fan::begin_render(const fan::color& background_color)
+{
+	get_fps(true, true);
+
+	glClearColor(
+		background_color.r,
+		background_color.g,
+		background_color.b,
+		background_color.a
+	);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+}
+
+void fan::end_render()
+{
+	glfwPollEvents();
+	glfwSwapBuffers(fan::window);
+}
+
+
