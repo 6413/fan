@@ -67,9 +67,16 @@ namespace fan {
 		void update_view();
 
 		static constexpr f32_t sensitivity = 0.05f;
+
 		static constexpr f32_t max_yaw = 180;
 		static constexpr f32_t max_pitch = 89;
+
+		static constexpr f32_t gravity = 500;
+		static constexpr f32_t jump_force = 100;
+
 		static constexpr fan::vec3 world_up = fan::vec3(0, 0, 1);
+
+		bool jumping;
 
 	private:
 
@@ -86,7 +93,8 @@ namespace fan {
 
 	uint32_t load_texture(const std::string_view path, const std::string& directory = std::string(), bool flip_image = false);
 
-	void write_vbo(unsigned int buffer, void* data, std::uint64_t size);
+	void write_glbuffer(unsigned int buffer, void* data, std::uint64_t size);
+	void edit_glbuffer(unsigned int buffer, void* data, uint_t offset, uint_t size);
 
 	template <typename _Vector>
 	class basic_shape_vector {
@@ -96,13 +104,13 @@ namespace fan {
 		basic_shape_vector(const fan::shader& shader, const _Vector& position, const _Vector& size);
 		~basic_shape_vector();
 
-		_Vector get_size(std::uint64_t i) const;
+		virtual _Vector get_size(std::uint64_t i) const;
 		void set_size(std::uint64_t i, const _Vector& size, bool queue = false);
 
 		std::vector<_Vector> get_positions() const;
 		void set_positions(const std::vector<_Vector>& positions);
 
-		_Vector get_position(std::uint64_t i) const;
+		virtual _Vector get_position(std::uint64_t i) const;
 		void set_position(std::uint64_t i, const _Vector& position, bool queue = false);
 
 		void erase(std::uint64_t i);
@@ -115,6 +123,7 @@ namespace fan {
 
 		void basic_push_back(const _Vector& position, const _Vector& size, bool queue = false);
 
+		void edit_data(uint_t i, bool position, bool size);
 		void write_data(bool position, bool size);
 
 		void initialize_buffers();
@@ -657,7 +666,7 @@ namespace fan_3d {
 	class terrain_generator : public fan::basic_shape_color_vector {
 	public:
 
-		terrain_generator(const std::string& path, const f32_t texture_scale, const fan::vec3& position, const fan::vec2& map_size, uint32_t triangle_size, const fan::vec2& mesh_size);
+		terrain_generator(const std::string& path, const f32_t texture_scale, const fan::vec3& position, const fan::vec2ui& map_size, uint32_t triangle_size, const fan::vec2& mesh_size);
 		~terrain_generator();
 
 		void insert(const std::vector<triangle_vertices_t>& vertices, const std::vector<fan::color>& color, bool queue = false);
@@ -714,14 +723,21 @@ namespace fan_3d {
 	
 	};
 
-	class square_vector : public fan::basic_shape_vector<fan::vec3> {
+	class square_vector : protected fan::basic_shape_vector<fan::vec3> {
 	public:
 
 		square_vector(const std::string& path, std::uint64_t block_size);
 		square_vector(const fan::color& color, std::uint64_t block_size);
 		~square_vector();
 
-		void push_back(const fan::vec3& position, const fan::vec3& size, const fan::vec2& texture_id, bool queue = false);
+		void push_back(const fan::vec3& src, const fan::vec3& dst, const fan::vec2& texture_id, bool queue = false);
+
+		fan::vec3 get_src(uint_t i) const;
+		fan::vec3 get_dst(uint_t i) const;
+		fan::vec3 get_size(uint_t i) const;
+
+		void set_position(uint_t i, const fan::vec3& src, const fan::vec3& dst, bool queue = false);
+		void set_size(uint_t i, const fan::vec3& size, bool queue = false);
 
 		void draw();
 
@@ -885,13 +901,13 @@ namespace fan_3d {
 	};
 
 
-	fan::da3 line_triangle_intersection(const fan::da_t<f32_t, 2, 3>& line, const fan::da_t<f32_t, 3, 3>& triangle);
-	fan::da3 line_plane_intersection(const fan::da_t<f32_t, 2, 3>& line, const fan::da_t<f32_t, 4, 3>& square);
+	fan::vec3 line_triangle_intersection(const fan::da_t<f32_t, 2, 3>& line, const fan::da_t<f32_t, 3, 3>& triangle);
+	fan::vec3 line_plane_intersection(const fan::da_t<f32_t, 2, 3>& line, const fan::da_t<f32_t, 4, 3>& square);
 
-	template<std::uint64_t i>
+	template<uint_t i>
 	inline std::conditional_t<i == -1, std::vector<triangle_vertices_t>, triangle_vertices_t> terrain_generator::get_vertices()
 	{
-		if constexpr(i == -1) {
+		if constexpr(i == (uint_t)-1) {
 			return fan_3d::terrain_generator::m_triangle_vertices;
 		}
 		else {
@@ -1121,48 +1137,64 @@ namespace fan {
 		return vector / vector.abs().max();
 	}
 
-	template <template <typename> typename T>
+	template <typename T>
 	struct grid_raycast_s {
-		T<f32_t> direction, begin;
-		T<int> grid;
+		T direction, begin;
+		std::conditional_t<T::size() == 2, fan::vec2i, fan::vec3i> grid;
 	};
 
-	template <template <typename> typename T>
+	template <typename T>
 	constexpr bool grid_raycast_single(grid_raycast_s<T>& caster, f32_t grid_size) {
-		T position(caster.begin % grid_size);
-		for (uint8_t i = 0; i < T<f32_t>::size(); i++) {
+		T position(caster.begin % grid_size); // mod
+		for (uint8_t i = 0; i < T::size(); i++) {
 			position[i] = ((caster.direction[i] < 0) ? position[i] : grid_size - position[i]);
-			position[i] = std::abs((!position[i] ? grid_size : position[i]) / caster.direction[i]);
+			position[i] = fan::abs((!caster.direction[i] ? INFINITY : ((!position[i] ? grid_size : position[i]) / caster.direction[i])));
 		}
 		caster.grid = (caster.begin += caster.direction * position.min()) / grid_size;
-		for (uint8_t i = 0; i < T<f32_t>::size(); i++)
+		for (uint8_t i = 0; i < T::size(); i++)
 			caster.grid[i] -= ((caster.direction[i] < 0) & (position[i] == position.min()));
 		return 1;
 	}
 
-	template <template <typename> typename T>
-	constexpr T<int> grid_raycast(const T<f32_t>& start, const T<f32_t>& end, const map_t& map, f32_t block_size) {
+	template <typename T, typename map_>
+	constexpr T grid_raycast(const T& start, const T& end, const map_& map, f32_t block_size) {
 		if (start == end) {
 			return start;
 		}
-		grid_raycast_s raycast = { grid_direction(end, start), start, T<int>() };
+		grid_raycast_s<T> raycast = { grid_direction(end, start), start, T() };
 		T distance = end - start;
 		auto max = distance.abs().max();
 		for (uint_t i = 0; i < max; i++) {
-			grid_raycast_single(raycast, block_size);
-			if (raycast.grid[0] < 0 || raycast.grid[1] < 0 || raycast.grid[2] < 0 ||
+			fan::grid_raycast_single<T>(raycast, block_size);
+			if constexpr (T::size() == 2) {
+				if (raycast.grid[0] < 0 || raycast.grid[1] < 0 ||
+				raycast.grid[0] >= world_size || raycast.grid[1] >= world_size) {
+				continue;
+			}
+				if (map[(int)raycast.grid[0]][(int)raycast.grid[1]]) {
+					return raycast.grid;
+				}
+			}
+			else {
+				if (raycast.grid[0] < 0 || raycast.grid[1] < 0 || raycast.grid[2] < 0 ||
 				raycast.grid[0] >= world_size || raycast.grid[1] >= world_size || raycast.grid[2] >= world_size) {
 				continue;
 			}
-			if (map[raycast.grid[0]][raycast.grid[1]][raycast.grid[2]]) {
-				return raycast.grid;
+				if (map[(int)raycast.grid[0]][(int)raycast.grid[1]][(int)raycast.grid[2]]) {
+					return raycast.grid;
+				}
 			}
 		}
 		return T(fan::RAY_DID_NOT_HIT);
 	}
 
-	#define d_grid_raycast(start, end, raycast, block_size) \
-		grid_raycast_s raycast = { grid_direction(end, start), start, fan::vec3() }; \
+	#define d_grid_raycast_2d(start, end, raycast, block_size) \
+		fan::grid_raycast_s<fan::vec2> raycast = { grid_direction(end, start), start, fan::vec2() }; \
+		if (!(start == end)) \
+			while(grid_raycast_single(raycast, block_size))
+
+	#define d_grid_raycast_3d(start, end, raycast, block_size) \
+		fan::grid_raycast_s<fan::vec3> raycast = { grid_direction(end, start), start, fan::vec3() }; \
 		if (!(start == end)) \
 			while(grid_raycast_single(raycast, block_size))
 
@@ -1182,6 +1214,7 @@ namespace fan {
 				fan::vsync();
 			}
 		}
+		glfwDestroyWindow(fan::window);
 	}
 
 	static void gui_draw(const std::function<void()>& function_) {

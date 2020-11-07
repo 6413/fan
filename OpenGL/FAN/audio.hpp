@@ -16,11 +16,11 @@ namespace fan {
 
 		audio(const std::string& file) : device(alcOpenDevice(NULL)), context(alcCreateContext(device, NULL)) {
 			if (!device) {
-				fan::LOG("no sound device");
+				fan::print("no sound device");
 				exit(1);
 			}
 			if (!context) {
-				fan::LOG("no sound context");
+				fan::print("no sound context");
 				exit(1);
 			}
 			alcMakeContextCurrent(context);

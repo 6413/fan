@@ -72,12 +72,20 @@ namespace fan {
 	class KeyCallback {
 	public:
 
+		// key <= GLFW_MOUSE_BUTTON_8 required action true
 		template <typename ...Args, typename T>
 		void add(int key_, int action_, const T& function, Args... args) {
-			this->action.push_back(action_);
+			this->action.push_back(key_ <= GLFW_MOUSE_BUTTON_8 ? true : action_);
 			this->key.push_back(key_);
 			functions.push_back(std::bind(function, args...));
 		}
+
+		// actionless for example scroll
+	/*	template <typename ...Args, typename T>
+		void add(int key_, const T& function, Args... args) {
+			this->key.push_back(key_);
+			functions.push_back(std::bind(function, args...));
+		}*/
 
 		int get_action(uint64_t i) const {
 			return action[i];
@@ -130,7 +138,10 @@ namespace fan {
 		inline callback::drop_info_t drop_info;
 	}
 
-	bool key_press(int key);
+	namespace input {
+		int key_press(int key, bool action = false);
+	}
+
 
 	bool initialize_window();
 }

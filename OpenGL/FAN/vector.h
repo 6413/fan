@@ -11,10 +11,13 @@
 #include <array>
 #include <functional>
 
-#undef min
-#undef max
-
 namespace fan {
+
+	template <typename T>
+	constexpr auto abs(T value) {
+		return value < 0 ? -value : value;
+	}
+
 	template <class T, class... Ts>
 	struct is_any : std::bool_constant<(std::is_same_v<T, Ts> || ...)> {};
 
@@ -36,19 +39,26 @@ namespace fan {
 		constexpr _vec2() : x(0), y(0) { }
 		constexpr _vec2(_Ty value) : x(value), y(value) { }
 		constexpr _vec2(_Ty x_, _Ty y_) : x(x_), y(y_) { }
-		template <typename type>
-		constexpr _vec2(const _vec2<type>& vec) : x(vec.x), y(vec.y) { }
-		template <typename type>
-		constexpr _vec2(const _vec3<type>& vec) : x(vec.x), y(vec.y) { }
-		template <typename type>
-		constexpr _vec2(const list<type, 2>& _array) : x(_array[0]), y(_array[1]) {}
+		template <typename T>
+		constexpr _vec2(const _vec2<T>& vec) : x(vec.x), y(vec.y) { }
+		template <typename T>
+		constexpr _vec2(const _vec3<T>& vec) : x(vec.x), y(vec.y) { }
+		template <typename T>
+		constexpr _vec2(const list<T, 2>& _array) : x(_array[0]), y(_array[1]) {}
+
+		template <typename T>
+		constexpr _vec2<type>& operator=(const _vec2<T>& vector) {
+			this->x = vector.x;
+			this->y = vector.y;
+			return *this;
+		}
 
 		constexpr _Ty& operator[](uint64_t idx) { return !idx ? x : y; }
 		constexpr _Ty operator[](uint64_t idx) const { return !idx ? x : y; }
 
 		template <typename _Type>
 		constexpr _vec2<type> operator%(_Type single_value) const noexcept {
-			return _vec2<type>(fmod(this->x, single_value), fmod(this->y, single_value));
+			return _vec2<type>(fmod_dr(this->x, single_value), fmod_dr(this->y, single_value));
 		}
 
 		template <typename _Type>
@@ -231,7 +241,7 @@ namespace fan {
 
 		constexpr _Ty min() const { return std::min(x, y); }
 		constexpr _Ty max() const { return std::max(x, y); }
-		constexpr vec_t abs() const { return vec_t(std::abs(x), std::abs(y)); }
+		constexpr vec_t abs() const { return vec_t(fan::abs(x), fan::abs(y)); }
 
 		auto begin() const { return &x; }
 		auto end() const { return begin() + size(); }
@@ -275,7 +285,7 @@ namespace fan {
 
 		template <typename _Type>
 		constexpr _vec3<type> operator%(_Type single_value) const noexcept {
-			return _vec3<type>(fmod(this->x, single_value), fmod(this->y, single_value), fmod(this->z, single_value));
+			return _vec3<type>(fmod_dr(this->x, single_value), fmod_dr(this->y, single_value), fmod_dr(this->z, single_value));
 		}
 
 		template <typename _Type>
@@ -433,7 +443,7 @@ namespace fan {
 
 		constexpr _Ty min() const { return std::min({ x, y, z }); }
 		constexpr _Ty max() const { return std::max({ x, y, z }); }
-		constexpr vec_t abs() const { return vec_t(std::abs(x), std::abs(y), std::abs(z)); }
+		constexpr vec_t abs() const { return vec_t(fan::abs(x), fan::abs(y), fan::abs(z)); }
 
 		auto begin() const { return &x; }
 		auto end() const { return begin() + size(); }
@@ -674,6 +684,10 @@ namespace fan {
 	using vec2i = _vec2<int>;
 	using vec3i = _vec3<int>;
 	using vec4i = _vec4<int>;
+
+	using vec2ui = _vec2<unsigned int>;
+	using vec3ui = _vec3<unsigned int>;
+	using vec4ui = _vec4<unsigned int>;
 
 	using vec2f = _vec2<f32_t>;
 	using vec3f = _vec3<f32_t>;

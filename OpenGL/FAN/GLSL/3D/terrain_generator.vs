@@ -7,7 +7,7 @@ layout (location = 3) in vec3 normal;
 uniform mat4 projection;
 uniform mat4 view;
 
-out vec2 texture_coordinate;
+out vec2 texture_coordinate;  
 
 out vec3 normals;
 out vec3 fragment_position;

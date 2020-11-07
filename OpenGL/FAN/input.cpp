@@ -28,63 +28,65 @@ void fan::callback::glfwErrorCallback(int id, const char* error) {
 }
 
 void fan::callback::glfwKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+	if (action == GLFW_PRESS) {
+		fan::input::action[key] = action;
+	}
 	for (uint_t i = 0; i < callback::key.size(); i++) {
-		if (key == callback::key.get_key(i)) {
-			if (callback::key.get_action(i)) {
-				if (callback::key.get_action(i) == action) {
-					callback::key.get_function(i)();
-				}
-			}
-			else {
-				callback::key.get_function(i)();
-			}
+		if (key != callback::key.get_key(i)) {
+			continue;
 		}
+		if (callback::key.get_action(i) != action && callback::key.get_action(i)) {
+			continue;
+		}
+		callback::key.get_function(i)();
 	}
 
-	static int release = 0;
+	static bool release = 0;
+
 	if (release) {
 		for (uint_t i = 0; i < callback::key_release.size(); i++) {
-			if (key == callback::key_release.get_key(i)) {
-				if (callback::key_release.get_action(i) == GLFW_RELEASE) {
-					callback::key_release.get_function(i)();
-				}
+			if (key != callback::key_release.get_key(i)) {
+				continue;
 			}
+			if (callback::key_release.get_action(i) != GLFW_RELEASE) {
+				continue;
+			}
+			callback::key_release.get_function(i)();
 		}
-		release = -1;
 	}
-	release++;
+	
+	release = !release;
 }
 
 void fan::callback::MouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
+	fan::input::action[button] = action;
 	for (uint_t i = 0; i < callback::key.size(); i++) {
-		if (button == callback::key.get_key(i)) {
-			if (callback::key.get_action(i)) {
-				if (callback::key.get_action(i) == action) {
-					callback::key.get_function(i)();
-				}
-			}
-			else {
-				callback::key.get_function(i)();
-			}
+		if (button != callback::key.get_key(i)) {
+			continue;
 		}
+		if (callback::key.get_action(i) && callback::key.get_action(i) != action) {
+			continue;
+		}
+		callback::key.get_function(i)();
 	}
 
-	static int release = 0;
+	static bool release = 0;
 	if (release) {
 		for (uint_t i = 0; i < callback::key_release.size(); i++) {
-			if (button == callback::key_release.get_key(i)) {
-				if (callback::key_release.get_action(i) == GLFW_RELEASE) {
-					callback::key_release.get_function(i)();
-				}
+			if (button != callback::key_release.get_key(i)) {
+				continue;
 			}
+			if (callback::key_release.get_action(i) != GLFW_RELEASE) {
+				continue;
+			}
+			callback::key_release.get_function(i)();
 		}
-		release = -1;
 	}
-	release++;
+	release = !release;
 }
 
 void fan::callback::CursorPositionCallback(GLFWwindow* window, double xpos, double ypos) {
-	cursor_position = fan::vec2(xpos, ypos);
+	cursor_position = fan::vec2i(xpos, ypos);
 	for (uint_t i = 0; i < callback::cursor_move.size(); i++) {
 		callback::cursor_move.get_function(i)();
 	}
@@ -92,12 +94,13 @@ void fan::callback::CursorPositionCallback(GLFWwindow* window, double xpos, doub
 
 void fan::callback::ScrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
 	for (uint_t i = 0; i < callback::scroll.size(); i++) {
-		if (callback::scroll.get_key(i) == GLFW_MOUSE_SCROLL_UP && yoffset == 1) {
-			callback::scroll.get_function(i)();
+		if (callback::scroll.get_key(i) != GLFW_MOUSE_SCROLL_UP && yoffset == 1) {
+			continue;
 		}
-		else if (callback::scroll.get_key(i) == GLFW_MOUSE_SCROLL_DOWN && yoffset == -1) {
-			callback::scroll.get_function(i)();
+		else if (callback::scroll.get_key(i) != GLFW_MOUSE_SCROLL_DOWN && yoffset == -1) {
+			continue;
 		}
+		callback::scroll.get_function(i)();
 	}
 }
 
@@ -109,7 +112,7 @@ void fan::callback::CharacterCallback(GLFWwindow* window, unsigned int key) {
 
 void fan::callback::FrameSizeCallback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
-	window_size = fan::vec2(width, height);
+	window_size = fan::vec2i(width, height);
 	for (uint_t i = 0; i < callback::window_resize.size(); i++) {
 		callback::window_resize.get_function(i)();
 	}
@@ -126,12 +129,18 @@ void fan::callback::DropCallback(GLFWwindow* window, int path_count, const char*
 	}
 }
 
-bool fan::key_press(int key)
-{
-	if (key <= GLFW_MOUSE_BUTTON_8) {
-		return glfwGetMouseButton(window, key);
+int fan::input::key_press(int key, bool action) {
+	if (!fan::input::previous_action[key] && fan::input::action[key]) {
+		fan::input::previous_action[key] = true;
 	}
-	return glfwGetKey(window, key);
+	else {
+		fan::input::action[key] = false;
+		fan::input::previous_action[key] = false;
+	}
+	if (key <= GLFW_MOUSE_BUTTON_8) {
+		return glfwGetMouseButton(window, key) && (action ? fan::input::action[key] : 1);
+	}
+	return glfwGetKey(window, key) && (action ? fan::input::action[key] : 1);
 }
 
 void fan::get_fps(bool, bool);
@@ -147,7 +156,7 @@ bool fan::initialize_window() {
 		static_cast<void>(system("pause") + 1);
 		return 0;
 	}
-	window_size = WINDOWSIZE;
+	fan::window_size = WINDOWSIZE;
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	//	glfwWindowHint(GLFW_RESIZABLE, false);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -161,16 +170,16 @@ bool fan::initialize_window() {
 	if (flags::full_screen) {
 		window_size = fan::vec2(glfwGetVideoMode(glfwGetPrimaryMonitor())->width, glfwGetVideoMode(glfwGetPrimaryMonitor())->height);
 	}
-	window = glfwCreateWindow(window_size.x, window_size.y, "FPS: ", flags::full_screen ? glfwGetPrimaryMonitor() : NULL, NULL);
+	fan::window = glfwCreateWindow(window_size.x, window_size.y, "FPS: ", flags::full_screen ? glfwGetPrimaryMonitor() : NULL, NULL);
 
-	if (!window) {
+	if (!fan::window) {
 		printf("Window ded\n");
 		static_cast<void>(system("pause") + 1);
 		glfwTerminate();
 		exit(EXIT_SUCCESS);
 	}
 
-	glfwMakeContextCurrent(window);
+	glfwMakeContextCurrent(fan::window);
 	if (GLEW_OK != glewInit())
 	{
 		std::cout << "Failed to initialize GLEW" << std::endl;
@@ -178,28 +187,29 @@ bool fan::initialize_window() {
 		glfwTerminate();
 		exit(EXIT_SUCCESS);
 	}
-	if constexpr (flags::disable_mouse) {
+	if constexpr (fan::flags::disable_mouse) {
 		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	}
-	glViewport(0, 0, window_size.x, window_size.y);
+	glViewport(0, 0, fan::window_size.x, fan::window_size.y);
 	//glEnable(GL_DEPTH_TEST);
 
-	glfwSetKeyCallback(window, callback::glfwKeyCallback);
+	glfwSetKeyCallback(fan::window, fan::callback::glfwKeyCallback);
 	glewExperimental = GL_TRUE;
-	glfwSetCharCallback(window, callback::CharacterCallback);
-	glfwSetMouseButtonCallback(window, callback::MouseButtonCallback);
-	glfwSetCursorPosCallback(window, callback::CursorPositionCallback);
-	glfwSetFramebufferSizeCallback(window, callback::FrameSizeCallback);
-	glfwSetDropCallback(window, callback::DropCallback);
+	glfwSetCharCallback(fan::window, fan::callback::CharacterCallback);
+	glfwSetScrollCallback(fan::window, fan::callback::ScrollCallback);
+	glfwSetMouseButtonCallback(fan::window, fan::callback::MouseButtonCallback);
+	glfwSetCursorPosCallback(fan::window, fan::callback::CursorPositionCallback);
+	glfwSetFramebufferSizeCallback(fan::window, fan::callback::FrameSizeCallback);
+	glfwSetDropCallback(window, fan::callback::DropCallback);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	callback::key.add(GLFW_KEY_ESCAPE, true, [&] {
+	fan::callback::key.add(GLFW_KEY_ESCAPE, true, [&] {
 		glfwSetWindowShouldClose(window, true);
 	});
 
-	// INITIALIZATION FOR DELTA TIME
+	// initialization for delta time
 	fan::get_fps(true, true);
 	glfwSwapBuffers(window);
 	glfwPollEvents();

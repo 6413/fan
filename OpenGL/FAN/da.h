@@ -651,11 +651,11 @@ namespace fan {
 		}
 
 		constexpr auto avg() noexcept {
-			list<type, rows> averages;
-			for (uint_t i = 0; i < rows; i++) {
+			list<type, cols> averages;
+			for (uint_t i = 0; i < cols; i++) {
 				averages += m[i];
 			}
-			return averages / rows;
+			return averages / cols;
 		}
 
 
@@ -719,7 +719,7 @@ namespace fan {
 	}
 
 	template <typename ...Args>
-	constexpr void LOG(const Args&... args) {
+	constexpr void print(const Args&... args) {
 		((std::cout << args << " "), ...) << '\n';
 	}
 }
