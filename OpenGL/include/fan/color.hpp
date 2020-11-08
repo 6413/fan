@@ -1,7 +1,7 @@
 #pragma once
 #include <iostream>
 
-#include <FAN/types.h>
+#include <fan/types.h>
 
 namespace fan {
 	class color {

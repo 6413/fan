@@ -8,7 +8,7 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
-#include <FAN/types.h>
+#include <fan/types.h>
 #include <fan/file.hpp>
 
 namespace fan {

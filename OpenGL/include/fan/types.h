@@ -189,8 +189,8 @@ namespace fan {
 }
 
 #if WITCH_LANGUAGE_CPP
-	#include <FAN/vector.h>
-	#include <FAN/da.h>
+	#include <fan/vector.h>
+	#include <fan/da.h>
 #endif
 
 #endif

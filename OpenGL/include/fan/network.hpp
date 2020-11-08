@@ -5,8 +5,8 @@
 #endif
 #endif
 
-#include <FAN/file.hpp>
-#include <FAN/types.h>
+#include <fan/file.hpp>
+#include <fan/types.h>
 
 #include <functional>
 #include <thread>

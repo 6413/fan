@@ -3,7 +3,7 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
-#include <FAN/types.h>
+#include <fan/types.h>
 
 #include <functional>
 #include <vector>
@@ -15,9 +15,6 @@
 namespace fan {
 
 	extern void get_fps(bool, bool);
-
-	extern vec2i cursor_position;
-	extern vec2i window_size;
 
 	template <typename T>
 	void variadic_vector_emplace(std::vector<T>&) {}
