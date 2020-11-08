@@ -3,7 +3,7 @@
 #pragma warning (disable : 4244)
 #endif
 
-#include <FAN/types.h>
+#include <fan/types.h>
 
 #include <cfloat>
 #include <random>

@@ -1,9 +1,6 @@
 #define REQUIRE_GRAPHICS
-#include <FAN/input.hpp>
-#include <FAN/global_vars.hpp>
-
-fan::vec2i fan::cursor_position;
-fan::vec2i fan::window_size;
+#include <fan/input.hpp>
+#include <fan/global_vars.hpp>
 
 fan::KeyCallback fan::callback::key;
 fan::KeyCallback fan::callback::key_release;
@@ -112,7 +109,8 @@ void fan::callback::CharacterCallback(GLFWwindow* window, unsigned int key) {
 
 void fan::callback::FrameSizeCallback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
-	window_size = fan::vec2i(width, height);
+	fan::previous_window_size = fan::window_size;
+	fan::window_size = fan::vec2i(width, height);
 	for (uint_t i = 0; i < callback::window_resize.size(); i++) {
 		callback::window_resize.get_function(i)();
 	}
@@ -156,7 +154,7 @@ bool fan::initialize_window() {
 		static_cast<void>(system("pause") + 1);
 		return 0;
 	}
-	fan::window_size = WINDOWSIZE;
+	fan::window_size = fan::previous_window_size = WINDOWSIZE;
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	//	glfwWindowHint(GLFW_RESIZABLE, false);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -201,7 +199,7 @@ bool fan::initialize_window() {
 	glfwSetCursorPosCallback(fan::window, fan::callback::CursorPositionCallback);
 	glfwSetFramebufferSizeCallback(fan::window, fan::callback::FrameSizeCallback);
 	glfwSetDropCallback(window, fan::callback::DropCallback);
-	glEnable(GL_DEPTH_TEST);
+	//glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 

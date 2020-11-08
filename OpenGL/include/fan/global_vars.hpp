@@ -1,4 +1,4 @@
-#include <FAN/types.h>
+#include <fan/types.h>
 
 #ifdef REQUIRE_GRAPHICS
 #include <GLFW/glfw3.h>
@@ -9,6 +9,9 @@ namespace fan {
 	inline GLFWwindow* window;
 
 	inline float delta_time;
+	inline vec2i cursor_position;
+	inline vec2i window_size;
+	inline vec2i previous_window_size;
 
 	namespace input {
 		inline bool action[GLFW_KEY_LAST] = { 0 };

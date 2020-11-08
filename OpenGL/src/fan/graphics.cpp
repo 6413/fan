@@ -1,11 +1,11 @@
-﻿#include <FAN/graphics.hpp>
+﻿#include <fan/graphics.hpp>
 
 #include <ft2build.h>
 
 #include <functional>
 #include <numeric>
 
-#include <FAN/fast_noise.hpp>
+#include <fan/fast_noise.hpp>
 
 fan::mat4 fan_2d::frame_projection;	
 fan::mat4 fan_2d::frame_view;
@@ -590,8 +590,8 @@ void fan_2d::bloom_square::draw()
 fan_2d::sprite::sprite() :
 	basic_single_shape(fan::shader(shader_paths::single_sprite_vs, shader_paths::single_sprite_fs), fan::vec2(), fan::vec2()) {}
 
-fan_2d::sprite::sprite(const std::string& path, const fan::vec2& position, const fan::vec2& size)
-	: basic_single_shape(fan::shader(shader_paths::single_sprite_vs, shader_paths::single_sprite_fs), position, size) {
+fan_2d::sprite::sprite(const std::string& path, const fan::vec2& position, const fan::vec2& size, f_t transparency)
+	: basic_single_shape(fan::shader(shader_paths::single_sprite_vs, shader_paths::single_sprite_fs), position, size), m_transparency(transparency) {
 	auto texture_info = load_image(path);
 	this->texture = texture_info.texture_id;
 	fan::vec2 image_size = texture_info.image_size;
@@ -601,8 +601,8 @@ fan_2d::sprite::sprite(const std::string& path, const fan::vec2& position, const
 	set_size(image_size);
 }
 
-fan_2d::sprite::sprite(unsigned char* pixels, const fan::vec2& position, const fan::vec2i& size)
-	: basic_single_shape(fan::shader(shader_paths::single_sprite_vs, shader_paths::single_sprite_fs), position, size)
+fan_2d::sprite::sprite(unsigned char* pixels, const fan::vec2& position, const fan::vec2i& size, f_t transparency)
+	: basic_single_shape(fan::shader(shader_paths::single_sprite_vs, shader_paths::single_sprite_fs), position, size), m_transparency(transparency)
 {
 	auto texture_info = load_image(pixels, size);
 	this->texture = texture_info.texture_id;
@@ -655,6 +655,7 @@ void fan_2d::sprite::draw()
 	shader.set_mat4("view", fan_2d::frame_view);
 	shader.set_mat4("model", model);
 	shader.set_int("texture_sampler", 0);
+	shader.set_float("transparency", m_transparency);
 
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, texture);
@@ -680,7 +681,7 @@ fan_2d::image_info fan_2d::sprite::load_image(const std::string& path, bool flip
 		exit(1);
 	}
 
-	uint32_t texture_id = SOIL_load_OGL_texture(path.c_str(), SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, (flip_image ? SOIL_FLAG_INVERT_Y : 0));
+	uint32_t texture_id = SOIL_load_OGL_texture(path.c_str(), SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, (flip_image ? SOIL_FLAG_INVERT_Y : 0) | SOIL_FLAG_MIPMAPS | SOIL_FLAG_NTSC_SAFE_RGB);
 	fan::vec2i image_size;
 
 	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, image_size.begin());
@@ -691,7 +692,6 @@ fan_2d::image_info fan_2d::sprite::load_image(const std::string& path, bool flip
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glGenerateMipmap(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	return { image_size, texture_id };
@@ -915,7 +915,6 @@ void fan::basic_shape_vector<_Vector>::initialize_buffers()
 template <typename _Vector>
 void fan::basic_shape_vector<_Vector>::basic_draw(unsigned int mode, std::uint64_t count, std::uint64_t primcount, std::uint64_t i)
 {
-	glDepthFunc(GL_LEQUAL);
 	glBindVertexArray(vao);
 	if (i != (std::uint64_t)-1) {
 		glDrawArraysInstancedBaseInstance(mode, 0, count, 1, i);
@@ -923,8 +922,8 @@ void fan::basic_shape_vector<_Vector>::basic_draw(unsigned int mode, std::uint64
 	else {
 		glDrawArraysInstanced(mode, 0, count, primcount);
 	}
+
 	glBindVertexArray(0);
-	glDepthFunc(GL_FALSE);
 }
 
 fan::basic_shape_color_vector::basic_shape_color_vector()
@@ -2199,8 +2198,50 @@ void fan::get_fps(bool title, bool print) {
 }
 
 // -------------------------------GUI--------------------------------
-fan_gui::suckless_font_t suckless_font_fr(uint_t datasize, uint_t fontsize) {
-	fan_gui::suckless_font_t font;
+
+fan::vec2 fan::gui::get_resize_movement_offset()
+{
+	return fan::cast<f_t>(fan::window_size - fan::previous_window_size) * 0.5;
+}
+
+void fan::gui::add_resize_callback(fan::vec2& position) {
+	fan::callback::window_resize.add([&] {
+		position += fan::gui::get_resize_movement_offset();
+	});
+}
+
+fan::gui::sprite::sprite() : fan_2d::sprite() {
+	add_resize_callback(this->position);
+}
+
+fan::gui::sprite::sprite(const std::string& path, const fan::vec2& position, const fan::vec2& size, f_t transparency) : fan_2d::sprite(path, position, size, transparency) {
+	add_resize_callback(this->position);
+}
+
+fan::gui::sprite::sprite(unsigned char* pixels, const fan::vec2& position, const fan::vec2i& size, f_t transparency) : fan_2d::sprite(pixels, position, size, transparency) {
+	add_resize_callback(this->position);
+}
+
+fan::gui::sprite_vector::sprite_vector() : fan_2d::sprite_vector() {
+	fan::callback::window_resize.add([&] {
+		for (auto& i : this->m_position) {
+			i += fan::gui::get_resize_movement_offset();
+		}
+		fan::gui::sprite_vector::write_data(true, false);
+	});
+}
+
+fan::gui::sprite_vector::sprite_vector(const std::string& path, const fan::vec2& position, const fan::vec2& size) : fan_2d::sprite_vector(path, position, size){
+	fan::callback::window_resize.add([&] {
+		for (auto& i : this->m_position) {
+			i += fan::gui::get_resize_movement_offset();
+		}
+		fan::gui::sprite_vector::write_data(true, false);
+	});
+}
+
+fan::gui::suckless_font_t suckless_font_fr(uint_t datasize, uint_t fontsize) {
+	fan::gui::suckless_font_t font;
 	font.offset = { 0, 0 };
 	font.datasize = datasize;
 	font.fontsize = fontsize;
@@ -2208,9 +2249,9 @@ fan_gui::suckless_font_t suckless_font_fr(uint_t datasize, uint_t fontsize) {
 	return font;
 }
 
-fan_gui::letter_info_t suckless_font_add_f(FT_Library ft, fan_gui::suckless_font_t* font, uint8_t letter) {
+fan::gui::letter_info_t suckless_font_add_f(FT_Library ft, fan::gui::suckless_font_t* font, uint8_t letter) {
 	FT_Face face;
-	if (FT_New_Face(ft, fan_gui::font::paths::arial, 0, &face)) {
+	if (FT_New_Face(ft, fan::gui::font::paths::arial, 0, &face)) {
 		fan::print("err new face");
 		exit(1);
 	}
@@ -2221,7 +2262,7 @@ fan_gui::letter_info_t suckless_font_add_f(FT_Library ft, fan_gui::suckless_font
 	uint_t tx = face->glyph->bitmap.width;
 	uint_t ty = face->glyph->bitmap.rows;
 
-	fan_gui::letter_info_t letter_info;
+	fan::gui::letter_info_t letter_info;
 
 	letter_info.width = tx;
 	letter_info.height = ty;
@@ -2236,7 +2277,7 @@ fan_gui::letter_info_t suckless_font_add_f(FT_Library ft, fan_gui::suckless_font
 	}
 	if ((font->offset.y + font->fontsize) > font->datasize) {
 		fprintf(stderr, "vector too small\n");
-		return fan_gui::letter_info_t{};
+		return fan::gui::letter_info_t{};
 	}
 
 	letter_info.pos = font->offset;
@@ -2261,7 +2302,7 @@ fan_gui::letter_info_t suckless_font_add_f(FT_Library ft, fan_gui::suckless_font
 	return letter_info;
 }
 
-void suckless_letter_render(fan_gui::suckless_font_t* font) {
+void suckless_letter_render(fan::gui::suckless_font_t* font) {
 	for (uint_t iy = 0; iy < font->datasize; iy++) {
 		for (uint_t ix = 0; ix < font->datasize; ix++) {
 			if (font->data[(font->datasize * iy) + ix] > 128) /* if more than half solid */
@@ -2276,10 +2317,10 @@ void suckless_letter_render(fan_gui::suckless_font_t* font) {
 constexpr auto characters_begin(33);
 constexpr auto characters_end(248);
 
-std::array<f32_t, 248> fan_gui::text_renderer::widths;
-fan_gui::suckless_font_t fan_gui::text_renderer::font;
+std::array<f32_t, 248> fan::gui::text_renderer::widths;
+fan::gui::suckless_font_t fan::gui::text_renderer::font;
 
-fan_gui::text_renderer::text_renderer()
+fan::gui::text_renderer::text_renderer()
 	: m_shader(fan::shader(fan_2d::shader_paths::text_renderer_vs, fan_2d::shader_paths::text_renderer_fs))
 {
 	FT_Library ft;
@@ -2290,8 +2331,8 @@ fan_gui::text_renderer::text_renderer()
 	}
 
 	FT_Face face;
-	if (FT_New_Face(ft, fan_gui::font::paths::arial, 0, &face)) {
-		fan::print("Failed to load font:", fan_gui::font::paths::arial);
+	if (FT_New_Face(ft, fan::gui::font::paths::arial, 0, &face)) {
+		fan::print("Failed to load font:", fan::gui::font::paths::arial);
 		exit(1);
 	}
 
@@ -2323,8 +2364,8 @@ fan_gui::text_renderer::text_renderer()
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 
@@ -2385,7 +2426,7 @@ fan_gui::text_renderer::text_renderer()
 	glBindVertexArray(0);
 }
 
-fan_gui::text_renderer::~text_renderer()
+fan::gui::text_renderer::~text_renderer()
 {
 	glDeleteVertexArrays(1, &m_vao);
 	glDeleteBuffers(1, &m_texture_id_ssbo);
@@ -2395,12 +2436,12 @@ fan_gui::text_renderer::~text_renderer()
 	glDeleteTextures(1, &m_texture);
 }
 
-void fan_gui::text_renderer::alloc_storage(const std::vector<std::wstring>& vector)
+void fan::gui::text_renderer::alloc_storage(const std::vector<std::wstring>& vector)
 {
 	realloc_storage(vector);
 }
 
-void fan_gui::text_renderer::realloc_storage(const std::vector<std::wstring>& vector)
+void fan::gui::text_renderer::realloc_storage(const std::vector<std::wstring>& vector)
 {
 	m_colors.resize(vector.size());
 	for (uint_t i = 0; i < vector.size(); i++) {
@@ -2408,7 +2449,7 @@ void fan_gui::text_renderer::realloc_storage(const std::vector<std::wstring>& ve
 	}
 }
 
-void fan_gui::text_renderer::store_to_renderer(std::wstring& text, fan::vec2 position, const fan::color& color, f32_t scale, f32_t max_width)
+void fan::gui::text_renderer::store_to_renderer(std::wstring& text, fan::vec2 position, const fan::color& color, f32_t scale, f32_t max_width)
 {
 	m_characters.resize(m_characters.size() + 1);
 	m_vertices.resize(m_vertices.size() + 1);
@@ -2425,7 +2466,7 @@ void fan_gui::text_renderer::store_to_renderer(std::wstring& text, fan::vec2 pos
 
 			switch (text[i]) {
 			case ' ': {
-				next_step += fan_gui::font::properties::get_space(scale) * 2;
+				next_step += fan::gui::font::properties::get_space(scale) * 2;
 				break;
 			}
 			case '\n': {
@@ -2433,7 +2474,7 @@ void fan_gui::text_renderer::store_to_renderer(std::wstring& text, fan::vec2 pos
 				break;
 			}
 			default: {
-				next_step += (widths[text[i]] * scale + fan_gui::font::properties::space_between_characters) * 2;
+				next_step += (widths[text[i]] * scale + fan::gui::font::properties::space_between_characters) * 2;
 			}
 			}
 
@@ -2453,8 +2494,8 @@ void fan_gui::text_renderer::store_to_renderer(std::wstring& text, fan::vec2 pos
 		switch (text[i]) {
 		case ' ': {
 			if (width != 0) {
-				position.x += fan_gui::font::properties::get_space(scale);
-				width += fan_gui::font::properties::get_space(scale);
+				position.x += fan::gui::font::properties::get_space(scale);
+				width += fan::gui::font::properties::get_space(scale);
 			}
 			break;
 		}
@@ -2464,8 +2505,8 @@ void fan_gui::text_renderer::store_to_renderer(std::wstring& text, fan::vec2 pos
 			break;
 		}
 		default: {
-			position.x += widths[text[i]] * scale + fan_gui::font::properties::space_between_characters;
-			width += widths[text[i]] * scale + fan_gui::font::properties::space_between_characters;
+			position.x += widths[text[i]] * scale + fan::gui::font::properties::space_between_characters;
+			width += widths[text[i]] * scale + fan::gui::font::properties::space_between_characters;
 		}
 		}
 	skip:
@@ -2474,7 +2515,7 @@ void fan_gui::text_renderer::store_to_renderer(std::wstring& text, fan::vec2 pos
 	}
 }
 
-void fan_gui::text_renderer::edit_storage(uint64_t i, const std::wstring& text, fan::vec2 position, const fan::color& color, f32_t scale)
+void fan::gui::text_renderer::edit_storage(uint64_t i, const std::wstring& text, fan::vec2 position, const fan::color& color, f32_t scale)
 {
 	m_vertices[i].clear();
 	m_characters[i].resize(text.size());
@@ -2489,8 +2530,8 @@ void fan_gui::text_renderer::edit_storage(uint64_t i, const std::wstring& text, 
 		switch (text[character]) {
 		case ' ': {
 			if (width != 0) {
-				position.x += fan_gui::font::properties::get_space(scale);
-				width += fan_gui::font::properties::get_space(scale);
+				position.x += fan::gui::font::properties::get_space(scale);
+				width += fan::gui::font::properties::get_space(scale);
 			}
 			break;
 		}
@@ -2500,8 +2541,8 @@ void fan_gui::text_renderer::edit_storage(uint64_t i, const std::wstring& text, 
 			break;
 		}
 		default: {
-			position.x += widths[text[character]] * scale + fan_gui::font::properties::space_between_characters;
-			width += widths[text[character]] * scale + fan_gui::font::properties::space_between_characters;
+			position.x += widths[text[character]] * scale + fan::gui::font::properties::space_between_characters;
+			width += widths[text[character]] * scale + fan::gui::font::properties::space_between_characters;
 		}
 		}
 		m_colors[i][character] = color;
@@ -2509,7 +2550,7 @@ void fan_gui::text_renderer::edit_storage(uint64_t i, const std::wstring& text, 
 	}
 }
 
-void fan_gui::text_renderer::upload_vertices()
+void fan::gui::text_renderer::upload_vertices()
 {
 	std::vector<fan::vec2> one_dimension_draw_data(vector_size(m_vertices));
 	int copied = 0;
@@ -2524,7 +2565,7 @@ void fan_gui::text_renderer::upload_vertices()
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
-void fan_gui::text_renderer::upload_colors()
+void fan::gui::text_renderer::upload_colors()
 {
 	std::vector<fan::color> one_dimension_colors(vector_size(m_colors));
 	int copied = 0;
@@ -2537,7 +2578,7 @@ void fan_gui::text_renderer::upload_colors()
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void fan_gui::text_renderer::upload_characters()
+void fan::gui::text_renderer::upload_characters()
 {
 	std::vector<int> one_dimension_characters(fan::vector_size(m_characters));
 	int copied = 0;
@@ -2550,14 +2591,14 @@ void fan_gui::text_renderer::upload_characters()
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void fan_gui::text_renderer::upload_stored()
+void fan::gui::text_renderer::upload_stored()
 {
 	this->upload_vertices();
 	this->upload_colors();
 	this->upload_characters();
 }
 
-void fan_gui::text_renderer::upload_stored(uint64_t i)
+void fan::gui::text_renderer::upload_stored(uint64_t i)
 {
 	std::vector<int> new_characters(m_characters[i].begin(), m_characters[i].end());
 
@@ -2573,7 +2614,7 @@ void fan_gui::text_renderer::upload_stored(uint64_t i)
 
 }
 
-void fan_gui::text_renderer::render_stored()
+void fan::gui::text_renderer::render_stored()
 {
 	m_shader.use();
 	m_shader.set_mat4("projection", fan::ortho(0, fan::window_size.x, fan::window_size.y, 0));
@@ -2586,7 +2627,7 @@ void fan_gui::text_renderer::render_stored()
 	glBindVertexArray(0);
 }
 
-void fan_gui::text_renderer::set_scale(uint64_t i, f32_t scale, fan::vec2 position)
+void fan::gui::text_renderer::set_scale(uint64_t i, f32_t scale, fan::vec2 position)
 {
 	m_vertices[i].clear();
 
@@ -2598,7 +2639,7 @@ void fan_gui::text_renderer::set_scale(uint64_t i, f32_t scale, fan::vec2 positi
 
 		switch (m_characters[i][index]) {
 		case ' ': {
-			position.x += fan_gui::font::properties::get_space(scale);
+			position.x += fan::gui::font::properties::get_space(scale);
 			break;
 		}
 		case '\n': {
@@ -2607,7 +2648,7 @@ void fan_gui::text_renderer::set_scale(uint64_t i, f32_t scale, fan::vec2 positi
 			break;
 		}
 		default: {
-			position.x += fan_gui::font::properties::get_character_x_offset(widths[m_characters[i][index]], scale);
+			position.x += fan::gui::font::properties::get_character_x_offset(widths[m_characters[i][index]], scale);
 		}
 		}
 	}
@@ -2615,12 +2656,12 @@ void fan_gui::text_renderer::set_scale(uint64_t i, f32_t scale, fan::vec2 positi
 	upload_vertices();
 }
 
-void fan_gui::text_renderer::clear_storage()
+void fan::gui::text_renderer::clear_storage()
 {
 	m_characters.clear();
 }
 
-void fan_gui::text_renderer::render(const std::wstring& text, fan::vec2 position, const fan::color& color, f32_t scale, bool use_old) {
+void fan::gui::text_renderer::render(const std::wstring& text, fan::vec2 position, const fan::color& color, f32_t scale, bool use_old) {
 	static std::wstring old_str;
 
 	m_shader.use();
@@ -2655,7 +2696,7 @@ void fan_gui::text_renderer::render(const std::wstring& text, fan::vec2 position
 
 			switch (text[i]) {
 			case ' ': {
-				position.x += fan_gui::font::properties::get_space(scale);
+				position.x += fan::gui::font::properties::get_space(scale);
 				break;
 			}
 			case '\n': {
@@ -2664,7 +2705,7 @@ void fan_gui::text_renderer::render(const std::wstring& text, fan::vec2 position
 				break;
 			}
 			default: {
-				position.x += widths[text[i]] * scale + fan_gui::font::properties::space_between_characters;
+				position.x += widths[text[i]] * scale + fan::gui::font::properties::space_between_characters;
 			}
 			}
 			m_colors[0][i] = color;
@@ -2700,7 +2741,7 @@ draw:
 	glBindVertexArray(0);
 }
 
-fan::vec2 fan_gui::text_renderer::get_length(const std::wstring& text, f32_t scale)
+fan::vec2 fan::gui::text_renderer::get_length(const std::wstring& text, f32_t scale)
 {
 	fan::vec2 string_size;
 
@@ -2710,7 +2751,7 @@ fan::vec2 fan_gui::text_renderer::get_length(const std::wstring& text, f32_t sca
 
 	for (uint_t i = 0; i < text.size(); i++) {
 		if (text[i] == ' ') {
-			string_size.x += fan_gui::font::properties::get_space(scale);
+			string_size.x += fan::gui::font::properties::get_space(scale);
 		}
 		else if (text[i] == '\n') {
 			string_size.y += scale;
@@ -2719,7 +2760,7 @@ fan::vec2 fan_gui::text_renderer::get_length(const std::wstring& text, f32_t sca
 		}
 		else {
 			if (i != text.size() - 1) {
-				string_size.x += widths[text[i]] * scale + fan_gui::font::properties::space_between_characters;
+				string_size.x += widths[text[i]] * scale + fan::gui::font::properties::space_between_characters;
 			}
 			else {
 				string_size.x += widths[text[i]] * scale;
@@ -2736,7 +2777,7 @@ fan::vec2 fan_gui::text_renderer::get_length(const std::wstring& text, f32_t sca
 	return fan::vec2(biggest_width, string_size.y);
 }
 
-std::vector<fan::vec2> fan_gui::text_renderer::get_length(const std::vector<std::wstring>& texts, const std::vector<f32_t>& scales, bool half)
+std::vector<fan::vec2> fan::gui::text_renderer::get_length(const std::vector<std::wstring>& texts, const std::vector<f32_t>& scales, bool half)
 {
 	f32_t width;
 	std::vector<fan::vec2> string_size(texts.size());
@@ -2777,9 +2818,9 @@ std::vector<fan::vec2> fan_gui::text_renderer::get_length(const std::vector<std:
 	return string_size;
 }
 
-fan_gui::font::basic_methods::basic_text_button_vector::basic_text_button_vector() : fan_gui::text_renderer() {}
+fan::gui::font::basic_methods::basic_text_button_vector::basic_text_button_vector() : fan::gui::text_renderer() {}
 
-fan::vec2 fan_gui::font::basic_methods::basic_text_button_vector::edit_size(uint64_t i, const std::wstring& text, f32_t scale)
+fan::vec2 fan::gui::font::basic_methods::basic_text_button_vector::edit_size(uint64_t i, const std::wstring& text, f32_t scale)
 {
 	std::vector<std::wstring> lines;
 	int offset = 0;
@@ -2798,120 +2839,146 @@ fan::vec2 fan_gui::font::basic_methods::basic_text_button_vector::edit_size(uint
 		}
 	}
 	m_texts[i] = text;
-	return fan::vec2(fan_gui::font::properties::get_gap_scale_x(largest), fan_gui::font::properties::get_gap_scale_y(scale) * lines.size());
+	return fan::vec2(fan::gui::font::properties::get_gap_scale_x(largest), fan::gui::font::properties::get_gap_scale_y(scale) * lines.size());
 }
 
-fan_gui::font::text_button_vector::text_button_vector() : basic_text_button_vector() { }
+fan::gui::font::text_button_vector::text_button_vector() : basic_text_button_vector() { }
 
-fan_gui::font::text_button_vector::text_button_vector(const std::wstring& text, const fan::vec2& position, const fan::color& color, f32_t scale)
+fan::gui::font::text_button_vector::text_button_vector(const std::wstring& text, const fan::vec2& position, f32_t scale)
 	: basic_text_button_vector() 
 {
-	this->add(text, position, color, scale);
+	m_text_position.push_back(position);
+	fan::callback::window_resize.add([&] {
+		for (int i = 0; i < this->m_text_position.size(); i++) {
+			this->m_text_position[i] += fan::gui::get_resize_movement_offset();
+			this->set_position(i, this->m_text_position[i]);
+		}
+	});
+	this->add(text, position, scale);
 }
 
-fan_gui::font::text_button_vector::text_button_vector(const std::wstring& text, const fan::vec2& position, const fan::color& color, f32_t scale, const fan::vec2& box_size)
+fan::gui::font::text_button_vector::text_button_vector(const std::wstring& text, const fan::vec2& position, f32_t scale, const fan::vec2& box_size)
 	: basic_text_button_vector() {
 	m_scales.push_back(scale);
 	std::vector<std::wstring> all_strings(m_texts.begin(), m_texts.end());
 	all_strings.push_back(text);
 	m_texts.push_back(text);
 	realloc_storage(all_strings);
-	push_back(position, box_size, color); // * 2 for both sides
+	m_box_sizes.push_back(box_size);
 	auto rtext = text;
 	store_to_renderer(rtext, position + box_size / 2 - get_length(text, scale) / 2, default_text_color, scale);
 	upload_stored();
 }
 
-void fan_gui::font::text_button_vector::add(const std::wstring& text, const fan::vec2& position, const fan::color& color, f32_t scale)
+void fan::gui::font::text_button_vector::add(const std::wstring& text, const fan::vec2& position, f32_t scale)
 {
 	m_scales.push_back(scale);
 	std::vector<std::wstring> all_strings(m_texts.begin(), m_texts.end());
 	all_strings.push_back(text);
 	m_texts.push_back(text);
 	realloc_storage(all_strings);
-	push_back(position, get_length(text, scale) + fan_gui::font::properties::get_gap_scale(scale) * 2, color); // * 2 for both sides
+	m_box_sizes.push_back(get_length(text, scale) + fan::gui::font::properties::get_gap_scale(scale) * 2);
 	auto rtext = text;
-	store_to_renderer(rtext, position + fan_gui::font::properties::get_gap_scale(scale), default_text_color, scale);
+	store_to_renderer(rtext, position + fan::gui::font::properties::get_gap_scale(scale), default_text_color, scale);
 	upload_stored();
 }
 
-void fan_gui::font::text_button_vector::add(const std::wstring& text, const fan::vec2& position, const fan::color& color, f32_t scale, const fan::vec2& box_size)
+void fan::gui::font::text_button_vector::add(const std::wstring& text, const fan::vec2& position, f32_t scale, const fan::vec2& box_size)
 {
 	m_scales.push_back(scale);
 	std::vector<std::wstring> all_strings(m_texts.begin(), m_texts.end());
 	all_strings.push_back(text);
 	m_texts.push_back(text);
 	realloc_storage(all_strings);
-	push_back(position, box_size, color); // * 2 for both sides
+	m_box_sizes.push_back(box_size);
 	auto rtext = text;
 	store_to_renderer(rtext, position + box_size / 2 - get_length(text, scale) / 2, default_text_color, scale);
 	upload_stored();
 }
 
-void fan_gui::font::text_button_vector::edit_string(uint64_t i, const std::wstring& text, f32_t scale)
+void fan::gui::font::text_button_vector::edit_string(uint64_t i, const std::wstring& text, f32_t scale)
 {
 	m_scales[i] = scale;
 	m_texts[i] = text;
 	auto len = get_length(text, scale);
-	set_size(i, len + fan_gui::font::properties::get_gap_scale(scale) * 2);
-	edit_storage(i, text, get_position(i) + fan_gui::font::properties::get_gap_scale(scale), default_text_color, scale);
+	m_box_sizes[i] = len + fan::gui::font::properties::get_gap_scale(scale) * 2;
+	edit_storage(i, text, this->m_text_position[i] + fan::gui::font::properties::get_gap_scale(scale), default_text_color, scale);
 	upload_stored();
 }
 
-fan::vec2 fan_gui::font::text_button_vector::get_string_length(const std::wstring& text, f32_t scale)
+fan::vec2 fan::gui::font::text_button_vector::get_string_length(const std::wstring& text, f32_t scale)
 {
 	return get_length(text, scale);
 }
 
-f32_t fan_gui::font::text_button_vector::get_scale(uint64_t i)
+f32_t fan::gui::font::text_button_vector::get_scale(uint64_t i)
 {
 	return m_scales[i];
 }
 
-void fan_gui::font::text_button_vector::set_font_size(uint64_t i, f32_t scale)
+void fan::gui::font::text_button_vector::set_font_size(uint64_t i, f32_t scale)
 {
 	m_scales[i] = scale;
 	auto str = std::wstring(m_characters[i].begin(), m_characters[i].end());
 	auto len = get_length(str, scale);
-	set_size(i, len + fan_gui::font::properties::get_gap_scale(scale) * 2);
-	auto pos = get_position(i);
-	set_scale(i, scale, pos + fan_gui::font::properties::get_gap_scale(scale));
+
+	m_box_sizes[i] = len + fan::gui::font::properties::get_gap_scale(scale) * 2;
+	set_scale(i, scale, this->m_text_position[i] + fan::gui::font::properties::get_gap_scale(scale));
 	upload_stored();
 }
 
-void fan_gui::font::text_button_vector::set_position(uint64_t i, const fan::vec2& position)
+void fan::gui::font::text_button_vector::set_position(uint64_t i, const fan::vec2& position)
 {
 	f32_t scale = get_scale(i);
-	fan_2d::square_vector::set_position(i, position);
-	auto len = get_length(m_texts[i], scale);
-	set_size(i, len + fan_gui::font::properties::get_gap_scale(scale) * 2);
-	edit_storage(i, m_texts[i], get_position(i) + fan_gui::font::properties::get_gap_scale(scale), default_text_color, scale);
+	m_box_sizes[i] = get_length(m_texts[i], scale) + fan::gui::font::properties::get_gap_scale(scale) * 2;
+	edit_storage(i, m_texts[i], position + fan::gui::font::properties::get_gap_scale(scale), default_text_color, scale);
 	upload_stored();
 }
 
-void fan_gui::font::text_button_vector::set_press_callback(int key, const std::function<void()>& function)
+void fan::gui::font::text_button_vector::set_press_callback(int key, const std::function<void()>& function)
 {
 	//scallback::key.add(key, true, function);
 }
 
-void fan_gui::font::text_button_vector::draw()
+void fan::gui::font::text_button_vector::draw()
 {
-	fan_2d::square_vector::draw();
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_vertex_ssbo);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_texture_id_ssbo);
 	render_stored();
 }
 
-bool fan_gui::font::text_button_vector::inside(std::uint64_t i)
+bool fan::gui::font::text_button_vector::inside(std::uint64_t i, const fan::vec2& position)
 {
-	fan::vec2 position = get_position(i);
-	fan::vec2 size = get_size(i);
+	fan::vec2 size = m_box_sizes[i];
 	if (fan::cursor_position.x >= position.x && fan::cursor_position.x <= position.x + size.x &&
 		fan::cursor_position.y >= position.y && fan::cursor_position.y <= position.y + size.y)
 	{
 		return true;
 	}
 	return false;
+}
+
+fan::gui::font::text_button_vector_square::text_button_vector_square() { }
+
+fan::gui::font::text_button_vector_square::text_button_vector_square(const std::wstring& text, const fan::vec2& position, const fan::color& color, f32_t scale)
+	: text_button_vector(text, position, scale), fan_2d::square_vector(position, text_button_vector::m_box_sizes[text_button_vector::m_box_sizes.size() - 1], color) { }
+
+void fan::gui::font::text_button_vector_square::draw()
+{
+	fan_2d::square_vector::draw();
+	fan::gui::font::text_button_vector::draw();
+}
+
+
+fan::gui::font::text_button_vector_sprite::text_button_vector_sprite() { }
+
+fan::gui::font::text_button_vector_sprite::text_button_vector_sprite(const std::wstring& text, const fan::vec2& position, const std::string& path, f32_t scale) 
+	: text_button_vector(text, position, scale), fan::gui::sprite_vector(path, position, text_button_vector::m_box_sizes[text_button_vector::m_box_sizes.size() - 1]) { }
+
+void fan::gui::font::text_button_vector_sprite::draw()
+{
+	fan::gui::sprite_vector::draw();
+	fan::gui::font::text_button_vector::draw();
 }
 
 void fan::begin_render(const fan::color& background_color)

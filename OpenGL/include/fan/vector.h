@@ -698,7 +698,7 @@ namespace fan {
 	using vec4 = vec4f;
 
 	template <typename _Casted, template<typename> typename _Vec_t, typename _Old>
-	constexpr _Vec_t<_Casted> Cast(_Vec_t<_Old> v) noexcept
+	constexpr _Vec_t<_Casted> cast(_Vec_t<_Old> v) noexcept
 	{
 		return _Vec_t<_Casted>(v);
 	}

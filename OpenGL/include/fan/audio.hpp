@@ -2,8 +2,8 @@
 #include <AL/al.h>
 #include <AL/alc.h>
 
-#include <FAN/types.h>
-#include <FAN/file.hpp>
+#include <fan/types.h>
+#include <fan/file.hpp>
 
 namespace fan {
 	class audio {
