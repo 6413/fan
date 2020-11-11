@@ -22,7 +22,7 @@ namespace fan {
 
 	namespace flags {
 		constexpr bool decorated = true;
-		constexpr bool disable_mouse = 1;
+		constexpr bool disable_mouse = 0;
 		constexpr bool resizeable = 1;
 		constexpr bool antialising = 0;
 		constexpr bool full_screen = false;

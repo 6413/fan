@@ -14,8 +14,8 @@
 namespace fan {
 	class shader {
     public:
-        shader() : ID(-1) {}
-        unsigned int ID;
+        shader() : id(-1) {}
+        unsigned int id;
         // constructor generates the shader on the fly
         // ------------------------------------------------------------------------
         shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath = nullptr)
@@ -98,13 +98,13 @@ namespace fan {
                 checkCompileErrors(geometry, "GEOMETRY");
             }
             // shader Program
-            ID = glCreateProgram();
-            glAttachShader(ID, vertex);
-            glAttachShader(ID, fragment);
+            id = glCreateProgram();
+            glAttachShader(id, vertex);
+            glAttachShader(id, fragment);
             if (geometryPath != nullptr)
-                glAttachShader(ID, geometry);
-            glLinkProgram(ID);
-            checkCompileErrors(ID, "PROGRAM");
+                glAttachShader(id, geometry);
+            glLinkProgram(id);
+            checkCompileErrors(id, "PROGRAM");
             // delete the shaders as they're linked into our program now and no longer necessery
             glDeleteShader(vertex);
             glDeleteShader(fragment);
@@ -115,87 +115,85 @@ namespace fan {
 
         void use() const
         {
-            glUseProgram(ID);
+            glUseProgram(id);
         }
 
         void set_int(const std::string& name, int value) const
         {
-            glUniform1i(glGetUniformLocation(ID, name.c_str()), value);
+            glUniform1i(glGetUniformLocation(id, name.c_str()), value);
+        }
+
+        void set_int_array(const std::string& name, int* values, int size) const {
+            glUniform1iv(glGetUniformLocation(id, name.c_str()), size, values);
         }
 
         void set_float(const std::string& name, f32_t value) const
         {
             if constexpr (std::is_same<f32_t, float>::value) {
-                glUniform1f(glGetUniformLocation(ID, name.c_str()), value);
+                glUniform1f(glGetUniformLocation(id, name.c_str()), value);
             }
             else {
-                glUniform1d(glGetUniformLocation(ID, name.c_str()), value);
+                glUniform1d(glGetUniformLocation(id, name.c_str()), value);
             }
         }
 
         void set_vec2(const std::string& name, const fan::vec2& value) const
         {
             if constexpr (std::is_same<f32_t, float>::value) {
-                glUniform2fv(glGetUniformLocation(ID, name.c_str()), 1, (f32_t*)&value.x);
+                glUniform2fv(glGetUniformLocation(id, name.c_str()), 1, (f32_t*)&value.x);
             }
             else {
-                glUniform2dv(glGetUniformLocation(ID, name.c_str()), 1, (f64_t*)&value.x);
+                glUniform2dv(glGetUniformLocation(id, name.c_str()), 1, (f64_t*)&value.x);
             }
         }
 
         void set_vec2(const std::string& name, float x, float y) const
         {
             if constexpr (std::is_same<f32_t, float>::value) {
-                glUniform2f(glGetUniformLocation(ID, name.c_str()), x, y);
+                glUniform2f(glGetUniformLocation(id, name.c_str()), x, y);
             }
             else {
-                glUniform2d(glGetUniformLocation(ID, name.c_str()), x, y);
+                glUniform2d(glGetUniformLocation(id, name.c_str()), x, y);
             }
         }
 
         void set_vec3(const std::string& name, const fan::vec3& value) const
         {
             if constexpr (std::is_same<f32_t, float>::value) {
-                glUniform3f(glGetUniformLocation(ID, name.c_str()), value.x, value.y, value.z);
+                glUniform3f(glGetUniformLocation(id, name.c_str()), value.x, value.y, value.z);
             }
             else {
-                glUniform3d(glGetUniformLocation(ID, name.c_str()), value.x, value.y, value.z);
+                glUniform3d(glGetUniformLocation(id, name.c_str()), value.x, value.y, value.z);
             }
         }
 
         void set_vec4(const std::string& name, const fan::color& color) const
         {
             if constexpr (std::is_same<f32_t, float>::value) {
-                glUniform4f(glGetUniformLocation(ID, name.c_str()), color.r, color.g, color.b, color.a);
+                glUniform4f(glGetUniformLocation(id, name.c_str()), color.r, color.g, color.b, color.a);
             }
             else {
-                glUniform4d(glGetUniformLocation(ID, name.c_str()), color.r, color.g, color.b, color.a);
+                glUniform4d(glGetUniformLocation(id, name.c_str()), color.r, color.g, color.b, color.a);
             }
         }
 
         void set_vec4(const std::string& name, f32_t x, f32_t y, f32_t z, f32_t w) const
         {
             if constexpr (std::is_same<f32_t, float>::value) {
-                glUniform4f(glGetUniformLocation(ID, name.c_str()), x, y, z, w);
+                glUniform4f(glGetUniformLocation(id, name.c_str()), x, y, z, w);
             }
             else {
-                glUniform4d(glGetUniformLocation(ID, name.c_str()), x, y, z, w);
+                glUniform4d(glGetUniformLocation(id, name.c_str()), x, y, z, w);
             }
         }
 
         void set_mat4(const std::string& name, fan::mat4 mat) const { // ei saanu kai olla const
             if constexpr (std::is_same<f32_t, float>::value) {
-                glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, (f32_t*)&mat[0][0]);
+                glUniformMatrix4fv(glGetUniformLocation(id, name.c_str()), 1, GL_FALSE, (f32_t*)&mat[0][0]);
             }
             else {
-                glUniformMatrix4dv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, (f64_t*)&mat[0][0]);
+                glUniformMatrix4dv(glGetUniformLocation(id, name.c_str()), 1, GL_FALSE, (f64_t*)&mat[0][0]);
             }
-        }
-
-        void upload_data(GLuint buffer, GLsizeiptr size, const void* data, GLenum usage) {
-            glBindBuffer(GL_ARRAY_BUFFER, buffer);
-            glBufferData(GL_ARRAY_BUFFER, size, data, usage);
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
         }
 
     private:
