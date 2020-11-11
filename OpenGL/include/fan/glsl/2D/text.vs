@@ -1,27 +1,20 @@
 #version 430 core
 
-layout (location = 4) in int characters;
-layout (location = 6) in vec4 character_color;
+layout(std430, binding = 0) buffer character_colors_layout 
+{
+    vec4 character_colors[];
+};
+
+layout (location = 1) in vec4 vertex; // <vec2 pos, vec2 tex>
 
 out vec2 texture_coordinates;
 
+out vec4 color;
+
 uniform mat4 projection;
 
-layout(std430, binding = 0) buffer vertex_layout 
-{
-    vec2 vertex[];
-};
-
-layout(std430, binding = 1) buffer texture_coordinate_layout 
-{
-    vec2 texture_coordinate[];
-};
-
-out vec4 text_color;
-
-void main()
-{
-    gl_Position = projection * vec4(vertex[gl_VertexID + gl_InstanceID * 6], 0.0, 1.0);
-    texture_coordinates = texture_coordinate[gl_VertexID + (characters - 33) * 6];
-	text_color = character_color;
-} 
+void main() {
+    color = character_colors[gl_VertexID / 6];
+    gl_Position = projection * vec4(vertex.xy, 0.0, 1.0);
+    texture_coordinates = vertex.zw;
+}

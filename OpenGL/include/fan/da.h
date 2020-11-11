@@ -13,6 +13,30 @@ namespace fan {
 	template <typename type, std::size_t Rows, std::size_t Cols = 1>
 	using da_t = std::conditional_t<Cols == 1, list<type, Rows>, matrix<type, Rows, Cols>>;
 
+	template <typename T>
+	concept is_bool_t = std::is_same_v<T, bool>;
+
+	template <typename T>
+	concept is_char_t = std::is_same_v<T, signed char> || std::is_same_v<T, unsigned char>;
+
+	template <typename T>
+	concept is_int_t = std::is_same_v<T, int> || std::is_same_v<T, unsigned int> || 
+		std::is_same_v<T, signed int> || std::is_same_v<T, short int> || std::is_same_v<T, unsigned short int>
+		|| std::is_same_v<T, signed short int> || std::is_same_v<T, long int> || std::is_same_v<T, signed long int>
+		|| std::is_same_v<T, unsigned long int> || std::is_same_v<T, long long int>;
+
+	template <typename T>
+	concept is_float_t = std::is_same_v<T, f32_t>;
+
+	template <typename T>
+	concept is_double_t = std::is_same_v<T, f64_t>;
+
+	template <typename T>
+	concept is_data_type = is_bool_t<T> || is_char_t<T> || is_int_t<T> || is_float_t<T> || is_double_t<T>;
+
+	template <typename T>
+	concept is_not_data_type = !is_data_type<T>;
+
 	template <typename T, typename type, std::size_t rows>
 	concept is_da_t = std::is_same_v<T, da_t<type, rows>>;
 
@@ -24,6 +48,12 @@ namespace fan {
 
 	template <typename T, typename type>
 	concept is_not_vector_t = !is_vector_t<T, type>;
+
+	template <typename T, typename type, std::size_t rows>
+	concept is_not_vector_or_da_t = is_not_vector_t<T, type> && is_not_da_t<T, type, rows>;
+
+	template <typename T, typename type, std::size_t rows>
+	concept is_vector_or_da_t = is_vector_t<T, type> || is_da_t<T, type, rows>;
 
 	template <typename type, std::size_t rows>
 	struct list : public std::array<type, rows> {
@@ -409,16 +439,15 @@ namespace fan {
 			}
 		}
 
-		template <typename..._Type>
+		template <is_not_data_type ..._Type>
 		constexpr matrix(_Type... value) {
-			if constexpr (sizeof...(value) == cols * rows) {
-				int init = 0;
-				((((type*)m)[init++] = value), ...);
-			}
+			static_assert(sizeof...(value) >= rows, "more elements than room in da_t");
+			int init = 0;
+			((((value_type*)m)[init++] = value), ...);
 		}
 
 		// ignores other values like vector
-		template <typename T>
+		template <is_data_type T>
 		constexpr matrix(T value) : m{ 0 } {
 			for (uint_t i = 0; i < rows && i < cols; i++) {
 				m[i][i] = value;
@@ -716,10 +745,5 @@ namespace fan {
 			}
 		}
 		return os;
-	}
-
-	template <typename ...Args>
-	constexpr void print(const Args&... args) {
-		((std::cout << args << " "), ...) << '\n';
 	}
 }

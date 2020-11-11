@@ -18,8 +18,8 @@ namespace fan {
 		printf("end\n");
 	}
 
-	constexpr float PI = 3.1415926535f;
-	constexpr float HALF_PI = PI / 2;
+	constexpr f_t PI = 3.1415926535;
+	constexpr f_t HALF_PI = PI / 2;
 
 	constexpr int RAY_DID_NOT_HIT = -1;
 

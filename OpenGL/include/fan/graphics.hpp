@@ -12,6 +12,9 @@
 #define REQUIRE_GRAPHICS
 #include <fan/global_vars.hpp>
 
+#include <ft2build.h>
+#include FT_FREETYPE_H
+
 //#define FAN_PERFORMANCE
 #define RAM_SAVER
 #if defined(_WIN64) || defined(_WIN32) && !defined(FAN_WINDOWS)
@@ -91,21 +94,18 @@ namespace fan {
 
 	};
 
-	uint32_t load_texture(const std::string_view path, const std::string& directory = std::string(), bool flip_image = false);
+	void bind_vao(uint32_t vao, const std::function<void()>& function);
 
-	void write_glbuffer(unsigned int buffer, void* data, std::uint64_t size);
-	void edit_glbuffer(unsigned int buffer, void* data, uint_t offset, uint_t size);
+	void write_glbuffer(unsigned int buffer, void* data, std::uint64_t size, uint_t target = GL_ARRAY_BUFFER, uint_t location = -1);
+	void edit_glbuffer(unsigned int buffer, void* data, uint_t offset, uint_t size, uint_t target = GL_ARRAY_BUFFER,  uint_t location = -1);
 
 	template <typename _Vector>
-	class basic_shape_vector {
+	class basic_shape_position_vector {
 	public:
 
-		basic_shape_vector(const fan::shader& shader);
-		basic_shape_vector(const fan::shader& shader, const _Vector& position, const _Vector& size);
-		~basic_shape_vector();
-
-		virtual _Vector get_size(std::uint64_t i) const;
-		void set_size(std::uint64_t i, const _Vector& size, bool queue = false);
+		basic_shape_position_vector();
+		basic_shape_position_vector(const _Vector& position);
+		~basic_shape_position_vector();
 
 		std::vector<_Vector> get_positions() const;
 		void set_positions(const std::vector<_Vector>& positions);
@@ -113,35 +113,56 @@ namespace fan {
 		virtual _Vector get_position(std::uint64_t i) const;
 		void set_position(std::uint64_t i, const _Vector& position, bool queue = false);
 
-		void erase(std::uint64_t i);
-
-		std::uint64_t size() const;
-
-		bool empty() const;
+		void erase(std::uint64_t i, bool queue = false);
 
 	protected:
 
-		void basic_push_back(const _Vector& position, const _Vector& size, bool queue = false);
+		void basic_push_back(const _Vector& position, bool queue = false);
 
-		void edit_data(uint_t i, bool position, bool size);
-		void write_data(bool position, bool size);
+		void edit_data(uint_t i);
+		void edit_data(void* data, uint_t offset, uint_t size);
+		void write_data();
 
-		void initialize_buffers();
+		void initialize_buffers(bool divisor = true);
 
-		void basic_draw(unsigned int mode, std::uint64_t count, std::uint64_t primcount, std::uint64_t i = -1);
-
-
-		unsigned int vao;
-		unsigned int position_vbo;
-		unsigned int size_vbo;
+		unsigned int m_position_vbo;
 
 		std::vector<_Vector> m_position;
-		std::vector<_Vector> m_size;
-
-		fan::shader m_shader;
 
 	};
 
+	template <typename _Vector>
+	class basic_shape_size_vector {
+	public:
+
+		basic_shape_size_vector();
+		basic_shape_size_vector(const _Vector& size);
+		~basic_shape_size_vector();
+
+		virtual _Vector get_size(std::uint64_t i) const;
+		void set_size(std::uint64_t i, const _Vector& size, bool queue = false);
+
+		void erase(std::uint64_t i, bool queue = false);
+
+	protected:
+
+		void basic_push_back(const _Vector& size, bool queue = false);
+
+		void edit_data(uint_t i);
+		void edit_data(void* data, uint_t offset, uint_t size);
+		void write_data();
+
+		void initialize_buffers();
+
+		std::vector<_Vector> m_size;
+		unsigned int m_size_vbo;
+
+	};
+
+	template <uint_t T>
+	concept is_storage_buffer = T == GL_SHADER_STORAGE_BUFFER;
+
+	template <uint_t layout_location = 0, uint_t gl_buffer = GL_ARRAY_BUFFER>
 	class basic_shape_color_vector {
 	public:
 
@@ -152,21 +173,91 @@ namespace fan {
 		fan::color get_color(std::uint64_t i);
 		void set_color(std::uint64_t i, const fan::color& color, bool queue = false);
 
+		void erase(uint_t i, bool queue = false);
+
+		void bind_gl_storage_buffer() requires is_storage_buffer<gl_buffer> {
+			glBindBufferBase(gl_buffer, layout_location, m_color_vbo);
+		}
+
 	protected:
 
 		void basic_push_back(const fan::color& color, bool queue = false);
+	
+		void edit_data(uint_t i);
+		void edit_data(void* data, uint_t offset, uint_t size);
 
-		void write_data();
+		void write_data()
+		{
+			fan::write_glbuffer(m_color_vbo, m_color.data(), sizeof(fan::color) * m_color.size(), gl_buffer, layout_location);
+		}
 
 		void initialize_buffers(bool divisor = true);
 
-		unsigned int color_vbo;
+		uint32_t m_color_vbo;
 
 		std::vector<fan::color> m_color;
 
 	};
 
+	template <typename _Vector>
+	class basic_shape_vector : public basic_shape_position_vector<_Vector>, public basic_shape_size_vector<_Vector> {
+	public:
+
+		basic_shape_vector(const fan::shader& shader);
+		basic_shape_vector(const fan::shader& shader, const _Vector& position, const _Vector& size);
+		~basic_shape_vector();
+
+		std::uint64_t size() const;
+
+	protected:
+
+		void basic_push_back(const _Vector& position, const _Vector& size, bool queue = false);
+
+		void erase(uint_t i, bool queue = false);
+
+		void edit_data(uint_t i, bool position, bool size);
+
+		void write_data(bool position, bool size);
+
+		void basic_draw(unsigned int mode, std::uint64_t count, std::uint64_t primcount, std::uint64_t i = -1);
+
+		unsigned int m_vao;
+
+		fan::shader m_shader;
+
+	};
+
+	template <typename _Vector>
+	class basic_vertice_vector : public basic_shape_position_vector<_Vector>, public basic_shape_color_vector<> {
+	public:
+
+		basic_vertice_vector(const fan::shader& shader);
+		basic_vertice_vector(const fan::shader& shader, const fan::vec2& position, const fan::color& color);
+		~basic_vertice_vector();
+
+		std::uint64_t size() const;
+
+	protected:
+
+		void basic_push_back(const _Vector& position, const fan::color& color, bool queue = false);
+
+		void erase(uint_t i, bool queue = false);
+
+		void edit_data(uint_t i, bool position, bool color);
+
+		void write_data(bool position, bool color);
+
+		void basic_draw(unsigned int mode, std::uint64_t count);
+
+		uint32_t m_vao;
+
+		fan::shader m_shader;
+
+	};
+
+	// editing this requires change in glsl file
 	enum class e_shapes {
+		VERTICE,
 		LINE,
 		SQUARE,
 		TRIANGLE
@@ -351,7 +442,31 @@ namespace fan_2d {
 		std::vector<unsigned int> m_textures;
 	};
 
-	class line_vector : public fan::basic_shape_vector<fan::vec2>, public fan::basic_shape_color_vector {
+	class vertice_vector : public fan::basic_vertice_vector<fan::vec2> {
+	public:
+
+		vertice_vector(uint_t index_restart = UINT32_MAX);
+		vertice_vector(const fan::vec2& position, const fan::color& color, uint_t index_restart);
+
+		void release_queue(bool position, bool color, bool indices);
+
+		virtual void push_back(const fan::vec2& position, const fan::color& color, bool queue = false);
+
+		void draw(uint32_t mode);
+
+	protected:
+
+		void write_data();
+
+		uint32_t m_ebo;
+
+		uint_t m_index_restart;
+
+		std::vector<uint32_t> m_indices;
+
+	};
+
+	class line_vector : public fan::basic_shape_vector<fan::vec2>, public fan::basic_shape_color_vector<> {
 	public:
 		line_vector();
 		line_vector(const fan::mat2& begin_end, const fan::color& color);
@@ -369,7 +484,7 @@ namespace fan_2d {
 		using fan::basic_shape_vector<fan::vec2>::set_size;
 	};
 
-	struct triangle_vector : public fan::basic_shape_vector<fan::vec2>, public fan::basic_shape_color_vector {
+	struct triangle_vector : public fan::basic_shape_vector<fan::vec2>, public fan::basic_shape_color_vector<> {
 
 		triangle_vector();
 		triangle_vector(const fan::mat3x2& corners, const fan::color& color);
@@ -380,15 +495,10 @@ namespace fan_2d {
 		void draw();
 
 	private:
-		std::vector<fan::vec2> m_lcorners;
-		std::vector<fan::vec2> m_mcorners;
-		std::vector<fan::vec2> m_rcorners;
-
-		uint32_t l_vbo, m_vbo, r_vbo;
 
 	};
 
-	class square_vector : public fan::basic_shape_vector<fan::vec2>, public fan::basic_shape_color_vector {
+	class square_vector : public fan::basic_shape_vector<fan::vec2>, public fan::basic_shape_color_vector<> {
 	public:
 
 		square_vector();
@@ -464,7 +574,7 @@ namespace fan_2d {
 			return (si_t)(-(_m < 0) | (_m > 0));
 		}
 
-		inline fan::da_t<f32_t, 2> LineInterLine_fr(fan::da_t<f32_t, 2, 2> src, fan::da_t<f32_t, 2, 2> dst, const fan::da_t<f32_t, 2>& normal) {
+		constexpr fan::da_t<f32_t, 2> LineInterLine_fr(fan::da_t<f32_t, 2, 2> src, fan::da_t<f32_t, 2, 2> dst, const fan::da_t<f32_t, 2>& normal) {
 			f32_t s1_x, s1_y, s2_x, s2_y;
 			s1_x = src[1][0] - src[0][0]; s1_y = src[1][1] - src[0][1];
 			s2_x = dst[1][0] - dst[0][0]; s2_y = dst[1][1] - dst[0][1];
@@ -505,7 +615,7 @@ namespace fan_2d {
 					return { 2, 1, 0 };
 		}
 
-		inline void calculate_velocity(const fan::da_t<f32_t, 2>& spos, const fan::da_t<f32_t, 2>& svel, const fan::da_t<f32_t, 2>& dpos, const fan::da_t<f32_t, 2>& dvel, const fan::da_t<f32_t, 2>& normal, f32_t sign, fan::da_t<f32_t, 2>& lvel, fan::da_t<f32_t, 2>& nvel) {
+		constexpr void calculate_velocity(const fan::da_t<f32_t, 2>& spos, const fan::da_t<f32_t, 2>& svel, const fan::da_t<f32_t, 2>& dpos, const fan::da_t<f32_t, 2>& dvel, const fan::da_t<f32_t, 2>& normal, f32_t sign, fan::da_t<f32_t, 2>& lvel, fan::da_t<f32_t, 2>& nvel) {
 			fan::da_t<f32_t, 2, 2> sline = { spos, spos + svel };
 			fan::da_t<f32_t, 2, 2> dline = { dpos, dpos + dvel };
 			fan::da_t<f32_t, 2> inter = LineInterLine_fr(sline, dline, normal);
@@ -596,8 +706,8 @@ namespace fan_2d {
 			return 1;
 		}
 
-				#define ProcessCollision_dl(pos_m, vel_m, walls_m) \
-					while(ProcessCollision_fl(pos_m, vel_m, walls_m))
+		#define ProcessCollision_dl(pos_m, vel_m, walls_m) \
+			while(ProcessCollision_fl(pos_m, vel_m, walls_m))
 
 		inline void rectangle_collision(fan_2d::square& player, const fan_2d::square_vector& walls) {
 			const fan::da_t<f32_t, 2> size = player.get_size();
@@ -618,6 +728,151 @@ namespace fan_2d {
 			return x && y;
 		}
 	}
+
+	namespace gui {
+		
+		fan::vec2 get_resize_movement_offset();
+
+		void add_resize_callback(fan::vec2& position);
+
+		struct square : public fan_2d::square {
+
+			square();
+			square(const fan::vec2& position, const fan::vec2& size, const fan::color& color);
+
+		};
+
+		struct square_vector : public fan_2d::square_vector {
+
+			square_vector();
+			square_vector(const fan::vec2& position, const fan::vec2& size, const fan::color& color);
+
+		};
+
+		struct sprite : public fan_2d::sprite {
+
+			sprite();
+			// scale with default is sprite size
+			sprite(const std::string& path, const fan::vec2& position, const fan::vec2& size = 0, f_t transparency = 1);
+			sprite(unsigned char* pixels, const fan::vec2& position, const fan::vec2i& size = 0, f_t transparency = 1);
+
+		};
+
+		struct sprite_vector : public fan_2d::sprite_vector {
+
+			sprite_vector();
+			sprite_vector(const std::string& path, const fan::vec2& position, const fan::vec2& size = 0);
+
+		};
+
+		class rounded_rectangle : public fan_2d::vertice_vector {
+		public:
+
+			rounded_rectangle();
+			rounded_rectangle(const fan::vec2& position, const fan::vec2& size, const fan::color& color);
+
+			void push_back(const fan::vec2& position, const fan::vec2& size, const fan::color& color, bool queue = false);
+
+			fan::vec2 get_position(uint_t i) const;
+			void set_position(uint_t i, const fan::vec2& position);
+
+			fan::vec2 get_size(uint_t i) const;
+			void set_size(uint_t i); // ?
+
+		private:
+
+			static constexpr f_t segments = 4 * 20; // corners * random
+
+			using fan_2d::vertice_vector::push_back;
+			std::vector<fan::vec2> m_position;
+			std::vector<fan::vec2> m_size;
+			std::vector<uint_t> data_offset;
+
+		};
+
+		constexpr uint8_t max_ascii = 248;
+		constexpr uint_t max_font_size = 1024;
+
+		constexpr fan::color default_text_color(1);
+		constexpr uint_t font_size(64);
+
+		namespace paths {
+
+		#if defined(FAN_WINDOWS)
+			constexpr auto arial("C:\\Windows\\Fonts\\Arial.ttf");
+		#elif defined(FAN_UNIX)
+			constexpr auto arial("/usr/share/fonts/TTF/Arial.TTF");
+		#endif
+
+		}
+
+		namespace text_renderer_base {
+			struct character {
+				fan::vec2i m_bearing;
+				fan::vec2ui m_size;
+				f32_t texture_offset;
+				int m_height;
+				int m_advance;
+			};
+
+			void load_characters(FT_Face face, fan::da_t<text_renderer_base::character, fan_2d::gui::max_ascii>& characters, uint32_t& texture, fan::vec2i& image_size, f32_t& text_box_height);
+
+			class basic_text_renderer : public fan::basic_shape_color_vector<0, GL_SHADER_STORAGE_BUFFER> {
+			public:
+
+				using characters_type = fan::da_t<text_renderer_base::character, fan_2d::gui::max_ascii>;
+
+				basic_text_renderer(uint_t font_size = fan_2d::gui::font_size);
+
+				characters_type get_characters() const;
+				
+				fan::vec2i get_bitmap_size() const;
+				f32_t get_characters_height() const;
+
+			protected:
+
+				void draw(uint_t text_size);
+
+				fan::shader m_shader;
+
+				uint_t m_font_size;
+				uint32_t m_vao, m_vbo;
+
+				fan::da_t<text_renderer_base::character, fan_2d::gui::max_ascii> m_characters;
+
+				uint32_t m_texture;
+
+				fan::vec2i m_image_size;
+
+				f32_t m_text_box_height;
+
+				FT_Face face;
+				FT_Library ft;
+
+			};
+		}
+
+		class text_renderer : public fan_2d::gui::text_renderer_base::basic_text_renderer {
+		public:
+
+			using fan_2d::gui::text_renderer_base::basic_text_renderer::basic_text_renderer;
+
+			text_renderer(const fan_2d::gui::text_renderer_base::basic_text_renderer& renderer);
+			text_renderer(const std::wstring& text, const fan::vec2& position, const fan::color& color, uint_t font_size = fan_2d::gui::font_size);
+			~text_renderer();
+
+			void store_text(const std::wstring& text, fan::vec2 position, const fan::color& color);
+
+			void draw();
+
+		private:
+	
+			std::wstring m_text;
+
+		};
+
+	}
+
 }
 
 namespace fan_3d {
@@ -644,7 +899,7 @@ namespace fan_3d {
 
 	void add_camera_rotation_callback();
 
-	class line_vector : public fan::basic_shape_vector<fan::vec3>, public fan::basic_shape_color_vector {
+	class line_vector : public fan::basic_shape_vector<fan::vec3>, public fan::basic_shape_color_vector<> {
 	public:
 
 		line_vector();
@@ -667,7 +922,7 @@ namespace fan_3d {
 
 	using triangle_vertices_t = fan::vec3;
 
-	class terrain_generator : public fan::basic_shape_color_vector {
+	class terrain_generator : public fan::basic_shape_color_vector<> {
 	public:
 
 		terrain_generator(const std::string& path, const f32_t texture_scale, const fan::vec3& position, const fan::vec2ui& map_size, f_t triangle_size, const fan::vec2& mesh_size);
@@ -727,7 +982,7 @@ namespace fan_3d {
 	
 	};
 
-	class square_vector : protected fan::basic_shape_vector<fan::vec3> {
+	class square_vector : protected fan::basic_shape_vector<fan::vec3>, public fan::basic_shape_color_vector<> {
 	public:
 
 		square_vector(const std::string& path, std::uint64_t block_size);
@@ -919,257 +1174,6 @@ namespace fan_3d {
 		}
 	}
 
-}
-
-#include <ft2build.h>
-#include FT_FREETYPE_H
-
-namespace fan {
-	namespace gui {
-		
-		fan::vec2 get_resize_movement_offset();
-
-		void add_resize_callback(fan::vec2& position);
-		void add_resize_callback(std::vector<fan::vec2>& vector_of_positions);
-
-		struct sprite : public fan_2d::sprite {
-			sprite();
-
-			// scale with default is sprite size
-			sprite(const std::string& path, const fan::vec2& position, const fan::vec2& size = 0, f_t transparency = 1);
-			sprite(unsigned char* pixels, const fan::vec2& position, const fan::vec2i& size = 0, f_t transparency = 1);
-
-		};
-
-		struct sprite_vector : public fan_2d::sprite_vector {
-
-			sprite_vector();
-			sprite_vector(const std::string& path, const fan::vec2& position, const fan::vec2& size = 0);
-
-		};
-
-		typedef struct {
-			std::vector<uint8_t> data;
-			uint_t datasize;
-
-			uint_t fontsize;
-			fan::vec2i offset;
-		}suckless_font_t;
-
-		typedef struct {
-			fan::vec2i pos;
-			uint_t width;
-			uint_t height;
-		}letter_info_t;
-
-		typedef struct {
-			fan::vec2 pos;
-			f32_t width;
-		}letter_info_opengl_t;
-
-		static letter_info_opengl_t letter_to_opengl(const suckless_font_t& font, const letter_info_t& letter) 
-		{
-			letter_info_opengl_t ret;
-			ret.pos = (fan::vec2)letter.pos / (fan::vec2)font.datasize;
-			ret.width = (f32_t)letter.width / font.datasize;
-			return ret;
-		}
-
-		inline void emplace_vertex_data(std::vector<fan::vec2>& vector, const fan::vec2& position, const fan::vec2& size) 
-		{
-			vector.emplace_back(fan::vec2(position.x, position.y));
-			vector.emplace_back(fan::vec2(position.x, position.y + size.y));
-			vector.emplace_back(fan::vec2(position.x + size.x, position.y + size.y));
-			vector.emplace_back(fan::vec2(position.x, position.y));
-			vector.emplace_back(fan::vec2(position.x + size.x, position.y + size.y));
-			vector.emplace_back(fan::vec2(position.x + size.x, position.y));
-		}
-
-		inline void edit_vertex_data(std::uint64_t offset, std::vector<fan::vec2>& vector, const fan::vec2& position, const fan::vec2& size) 
-		{
-			vector[offset] =     fan::vec2(position.x, position.y);
-			vector[offset + 1] = fan::vec2(position.x, position.y + size.y);
-			vector[offset + 2] = fan::vec2(position.x + size.x, position.y + size.y);
-			vector[offset + 3] = fan::vec2(position.x, position.y);
-			vector[offset + 4] = fan::vec2(position.x + size.x, position.y + size.y);
-			vector[offset + 5] = fan::vec2(position.x + size.x, position.y);
-		}
-
-		inline void erase_vertex_data(std::uint64_t offset, std::vector<fan::vec2>& vector, std::uint64_t size) {
-			vector.erase(vector.begin() + offset * (size * 6), vector.begin() + (offset * ((size * 6))) + size * 6);
-		}
-
-		template <typename T>
-		constexpr auto vector_2d_to_1d(const std::vector<std::vector<T>>& vector) {
-			std::vector<T> new_vector(vector.size());
-			for (auto i : vector) {
-				new_vector.insert(new_vector.end(), i.begin(), i.end());
-			}
-			return new_vector;
-		}
-
-		constexpr uint_t max_ascii = 248;
-		constexpr uint_t max_font_size = 1024;
-
-		constexpr fan::color default_text_color(1);
-		constexpr f32_t font_size(128);
-
-		class text_renderer {
-		public:
-			text_renderer();
-
-			~text_renderer();
-
-			void render(const std::wstring& text, fan::vec2 position, const fan::color& color, f32_t scale, bool use_old = false);
-
-		protected:
-
-			void alloc_storage(const std::vector<std::wstring>& vector);
-			void realloc_storage(const std::vector<std::wstring>& vector);
-
-			void store_to_renderer(std::wstring& text, fan::vec2 position, const fan::color& color, f32_t scale, f32_t max_width = -1);
-			void edit_storage(uint64_t i, const std::wstring& text, fan::vec2 position, const fan::color& color, f32_t scale);
-
-			void upload_vertices();
-			void upload_colors();
-			void upload_characters();
-
-			void upload_stored();
-			void upload_stored(uint64_t i);
-
-			void render_stored();
-			void set_scale(uint64_t i, f32_t font_size, fan::vec2 position);
-
-			fan::vec2 get_length(const std::wstring& text, f32_t scale);
-			std::vector<fan::vec2> get_length(const std::vector<std::wstring>& texts, const std::vector<f32_t>& scales, bool half = false);
-
-			void clear_storage();
-
-			std::vector<std::vector<int>> m_characters;
-			std::vector<std::vector<fan::color>> m_colors;
-			std::vector<std::vector<fan::vec2>> m_vertices;
-			std::vector<f32_t> m_scales;
-
-			static std::array<f32_t, 248> widths;
-
-			static suckless_font_t font;
-
-			fan::shader m_shader;
-			unsigned int m_vao, m_vertex_ssbo;
-			unsigned int m_texture;
-			unsigned int m_text_ssbo;
-			unsigned int m_texture_id_ssbo;
-			unsigned int m_colors_ssbo;
-
-		};
-
-		namespace font {
-
-			namespace paths {
-
-			#if defined(FAN_WINDOWS)
-				constexpr auto arial("C:\\Windows\\Fonts\\Arial.ttf");
-			#elif defined(FAN_UNIX)
-				constexpr auto arial("/usr/share/fonts/TTF/Arial.TTF");
-			#endif
-
-			}
-
-			namespace properties {
-				constexpr fan::vec2 gap_scale(0.8, 0.5);
-				constexpr f32_t space_width = 15;
-				constexpr f32_t space_between_characters = 5;
-
-				constexpr fan::vec2 get_gap_scale(const fan::vec2& size) {
-					return size * gap_scale;
-				}
-
-				constexpr f32_t get_gap_scale_x(f32_t width) {
-					return width * gap_scale.x;
-				}
-
-				constexpr f32_t get_gap_scale_y(f32_t height) {
-					return height * gap_scale.y;
-				}
-
-				constexpr f32_t get_character_x_offset(f32_t width, f32_t scale) {
-					return width * scale + space_between_characters;
-				}
-
-				constexpr f32_t get_space(f32_t scale) {
-					return scale / (font_size / 2) * space_width;
-				}
-			}
-
-			namespace basic_methods {
-				class basic_text_button_vector : public text_renderer {
-				public:
-
-					basic_text_button_vector();
-
-				protected:
-					fan::vec2 edit_size(uint64_t i, const std::wstring& text, f32_t scale);
-
-					std::vector<std::wstring> m_texts;
-				};
-			}
-
-			
-			class text_button_vector : public gui::font::basic_methods::basic_text_button_vector {
-			public:
-
-				text_button_vector();
-
-				text_button_vector(const std::wstring& text, const fan::vec2& position, const fan::color& box_color, f32_t font_scale, f32_t left_offset, f32_t max_width);
-
-				text_button_vector(const std::wstring& text, const fan::vec2& position, f32_t scale);
-				text_button_vector(const std::wstring& text, const fan::vec2& position, f32_t scale, const fan::vec2& box_size);
-
-				void add(const std::wstring& text, const fan::vec2& position, f32_t scale);
-				void add(const std::wstring& text, const fan::vec2& position, f32_t scale, const fan::vec2& box_size);
-
-				void edit_string(uint64_t i, const std::wstring& text, f32_t scale);
-
-				fan::vec2 get_string_length(const std::wstring& text, f32_t scale);
-
-				f32_t get_scale(uint64_t i);
-
-				void set_font_size(uint64_t i, f32_t scale);
-				void set_position(uint64_t i, const fan::vec2& position);
-
-				void set_press_callback(int key, const std::function<void()>& function);
-
-				void draw();
-
-				bool inside(std::uint64_t i, const fan::vec2& position);
-
-			protected:
-
-				std::vector<fan::vec2> m_box_sizes;
-				std::vector<fan::vec2> m_text_position;
-
-			};
-
-			struct text_button_vector_square : public text_button_vector, public fan_2d::square_vector {
-
-				text_button_vector_square();
-				text_button_vector_square(const std::wstring& text, const fan::vec2& position, const fan::color& color, f32_t scale);
-
-				void draw();
-
-			};
-
-			struct text_button_vector_sprite : public text_button_vector, public fan::gui::sprite_vector {
-
-				text_button_vector_sprite();
-				text_button_vector_sprite(const std::wstring& text, const fan::vec2& position, const std::string& path, f32_t scale);
-
-				void draw();
-
-			};
-
-		}
-	}
 }
 
 namespace fan {

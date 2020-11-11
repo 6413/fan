@@ -110,6 +110,7 @@
 	#define WITCH_c(_m) (_m)
 #endif
 #if WITCH_LANGUAGE_CPP
+	#include <iostream>
 	#include <type_traits>
 	#include <vector>
 	#define WITCH_a(type_m) std::vector<type_m>
@@ -184,6 +185,11 @@ namespace fan {
 		return static_cast<
 			typename std::underlying_type<Enumeration>::type
 		>(value);
+	}
+
+	template <typename ...Args>
+	constexpr void print(const Args&... args) {
+		((std::cout << args << " "), ...) << '\n';
 	}
 
 }
