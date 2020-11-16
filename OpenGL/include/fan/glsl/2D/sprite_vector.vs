@@ -11,18 +11,18 @@ const vec2 square_vertices[] = {
 	vec2(1, 0),
 	vec2(0, 0),
 	vec2(0, 1),
-	vec2(1, 0),
+	vec2(0, 1),
 	vec2(1, 1),
-	vec2(0, 1)
+	vec2(1, 0)
 };
 
 const vec2 texture_coordinates[] = {
-	vec2( 1, 1),
-	vec2( 0, 1),
-	vec2( 0, 0),
-	vec2( 0, 0),
-	vec2( 0,-1),
-	vec2(-1,-1)
+	vec2(1, 0),
+	vec2(0, 0),
+	vec2(0, 1),
+	vec2(0, 1),
+	vec2(1, 1),
+	vec2(1, 0)
 };
 
 void main() {
