@@ -86,20 +86,16 @@ namespace fan {
 
 		template <typename T>
 		constexpr list(T value) : std::array<type, rows>{0} {
-			for (uint_t i = 0; i < rows; i++) {
-				this->operator[](i) = value;
-			}
+			std::fill(this->begin(), this->end(), value);
 		}
 
 		template <typename T, std::size_t array_n>
 		constexpr list(const list<T, array_n>& list) {
-			for (uint_t i = 0; i < rows; i++) {
-				this->operator[](i) = list[i];
-			}
+			std::copy(list.cbegin(), list.cend(), this->begin());
 		}
 
 		constexpr auto operator++() noexcept {
-			return &this->_Elems + 1;
+			return this->data() + 1;
 		}
 
 		template <typename T, std::size_t list_n>
@@ -424,24 +420,9 @@ namespace fan {
 
 		constexpr matrix() : m{ 0 } { }
 
-		template <typename _Type, std::size_t cols, template <typename, std::size_t> typename... _List>
-		constexpr matrix(const _List<_Type, cols>&... list_) : m{ 0 } { 
-			uint_t index = 0;
-			((m[index++] = list_), ...);
-		}
-
-		template <typename T>
-		constexpr matrix(const matrix<T, rows, cols>& matrix_) : m{ 0 } {
-			for (uint_t i = 0; i < rows; i++) {
-				for (uint_t j = 0; j < cols; j++) {
-					m[i][j] = matrix_[i][j];
-				}
-			}
-		}
-
 		template <is_not_data_type ..._Type>
 		constexpr matrix(_Type... value) {
-			static_assert(sizeof...(value) >= rows, "more elements than room in da_t");
+			static_assert(sizeof...(value) >= rows, "more elements than dat's size");
 			int init = 0;
 			((((value_type*)m)[init++] = value), ...);
 		}
@@ -452,14 +433,6 @@ namespace fan {
 			for (uint_t i = 0; i < rows && i < cols; i++) {
 				m[i][i] = value;
 			}
-		}
-
-		// ignores other values like vector
-		template <template <typename> typename... _Vec_t, typename _Type>
-		matrix(const _Vec_t<_Type>&... vector) : m{ 0 } {
-			uint_t i = 0;
-			auto auto_type = std::get<0>(std::forward_as_tuple(vector...));
-			((((decltype(auto_type)*)m)[i++] = vector), ...);
 		}
 
 		template <typename T, std::size_t Rows2, std::size_t Cols2>

@@ -34,11 +34,11 @@ namespace fan {
             try
             {
                 // open files
-                if (!fan::file::file_exists(vertexPath)) {
+                if (!fan::io::file::exists(vertexPath)) {
                     fan::print("vertex shader does not exist:", vertexPath);
                     exit(1);
                 }
-                if (!fan::file::file_exists(fragmentPath)) {
+                if (!fan::io::file::exists(fragmentPath)) {
                     fan::print("fragment shader does not exist:", fragmentPath);
                     exit(1);
                 }
@@ -57,7 +57,7 @@ namespace fan {
                 // if geometry shader path is present, also load a geometry shader
                 if (geometryPath != nullptr)
                 {
-                     if (!fan::file::file_exists(geometryPath)) {
+                     if (!fan::io::file::exists(geometryPath)) {
                         fan::print("geometry shader does not exist:", geometryPath);
                         exit(1);
                     }

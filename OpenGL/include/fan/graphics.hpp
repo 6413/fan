@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 //#ifndef __INTELLISENSE__ 
 
 #define GLEW_STATIC
@@ -12,9 +12,6 @@
 #define REQUIRE_GRAPHICS
 #include <fan/global_vars.hpp>
 
-#include <ft2build.h>
-#include FT_FREETYPE_H
-
 //#define FAN_PERFORMANCE
 #define RAM_SAVER
 #if defined(_WIN64) || defined(_WIN32) && !defined(FAN_WINDOWS)
@@ -24,6 +21,7 @@
 #include <vector>
 #include <array>
 #include <map>
+#include <deque>
 
 #include <fan/types.h>
 #include <fan/color.hpp>
@@ -175,7 +173,7 @@ namespace fan {
 
 		void erase(uint_t i, bool queue = false);
 
-		void bind_gl_storage_buffer() requires is_storage_buffer<gl_buffer> {
+		void bind_gl_storage_buffer() const requires is_storage_buffer<gl_buffer> {
 			glBindBufferBase(gl_buffer, layout_location, m_color_vbo);
 		}
 
@@ -542,7 +540,7 @@ namespace fan_2d {
 	protected:
 
 		unsigned int texture;
-		fan::vec2i original_image_size;
+		fan::vec2i m_original_image_size;
 
 	};
 
@@ -648,7 +646,7 @@ namespace fan_2d {
 			template <typename, std::size_t> typename outer_da_t, std::size_t n
 		>
 		constexpr fan::da_t<fan::da_t<f32_t, 2>, n> get_normals(const outer_da_t<inner_da_t<f32_t, 2, 2>, n>& lines) {
-			fan::da_t<fan::da_t<f32_t, 2>, n> normals;
+			fan::da_t<fan::da_t<f32_t, 2>, n> normals = { 0 };
 			for (uint_t i = 0; i < n; i++) {
 				normals[i] = get_cross(lines[i][1] - lines[i][0], fan::da_t<f32_t, 3>(0, 0, 1));
 			}
@@ -790,84 +788,82 @@ namespace fan_2d {
 
 		};
 
-		constexpr uint8_t max_ascii = 248;
-		constexpr uint_t max_font_size = 1024;
+		namespace font_properties {
+			constexpr uint16_t max_ascii(256);
+			constexpr uint_t max_font_size(1024);
+			constexpr uint_t new_line(64);
+			constexpr f_t gap_multiplier(1.25);
 
-		constexpr fan::color default_text_color(1);
-		constexpr uint_t font_size(64);
+			constexpr fan::color default_text_color(1);
+			constexpr f_t edge(0.1);
 
-		namespace paths {
-
-		#if defined(FAN_WINDOWS)
-			constexpr auto arial("C:\\Windows\\Fonts\\Arial.ttf");
-		#elif defined(FAN_UNIX)
-			constexpr auto arial("/usr/share/fonts/TTF/Arial.TTF");
-		#endif
+			constexpr f_t get_gap_size(unsigned int advance) {
+				return advance * (1.0 / gap_multiplier);
+			}
 
 		}
 
-		namespace text_renderer_base {
-			struct character {
-				fan::vec2i m_bearing;
-				fan::vec2ui m_size;
-				f32_t texture_offset;
-				int m_height;
-				int m_advance;
-			};
-
-			void load_characters(FT_Face face, fan::da_t<text_renderer_base::character, fan_2d::gui::max_ascii>& characters, uint32_t& texture, fan::vec2i& image_size, f32_t& text_box_height);
-
-			class basic_text_renderer : public fan::basic_shape_color_vector<0, GL_SHADER_STORAGE_BUFFER> {
-			public:
-
-				using characters_type = fan::da_t<text_renderer_base::character, fan_2d::gui::max_ascii>;
-
-				basic_text_renderer(uint_t font_size = fan_2d::gui::font_size);
-
-				characters_type get_characters() const;
-				
-				fan::vec2i get_bitmap_size() const;
-				f32_t get_characters_height() const;
-
-			protected:
-
-				void draw(uint_t text_size);
-
-				fan::shader m_shader;
-
-				uint_t m_font_size;
-				uint32_t m_vao, m_vbo;
-
-				fan::da_t<text_renderer_base::character, fan_2d::gui::max_ascii> m_characters;
-
-				uint32_t m_texture;
-
-				fan::vec2i m_image_size;
-
-				f32_t m_text_box_height;
-
-				FT_Face face;
-				FT_Library ft;
-
-			};
-		}
-
-		class text_renderer : public fan_2d::gui::text_renderer_base::basic_text_renderer {
+		class text_renderer : public fan::basic_shape_color_vector<0, GL_SHADER_STORAGE_BUFFER>, public fan::basic_shape_color_vector<4, GL_SHADER_STORAGE_BUFFER> {
 		public:
 
-			using fan_2d::gui::text_renderer_base::basic_text_renderer::basic_text_renderer;
+			using text_color_t = fan::basic_shape_color_vector<0, GL_SHADER_STORAGE_BUFFER>;
+			using outline_color_t = fan::basic_shape_color_vector<4, GL_SHADER_STORAGE_BUFFER>;
 
-			text_renderer(const fan_2d::gui::text_renderer_base::basic_text_renderer& renderer);
-			text_renderer(const std::wstring& text, const fan::vec2& position, const fan::color& color, uint_t font_size = fan_2d::gui::font_size);
+			text_renderer();
 			~text_renderer();
 
-			void store_text(const std::wstring& text, fan::vec2 position, const fan::color& color);
+			fan::vec2 get_position(uint_t i) const;
 
-			void draw();
+			void set_font_size(uint_t i, f_t font_size, bool queue = false);
+			void set_text(uint_t i, const std::string& text, bool queue = false);
+
+			void free_queue();
+			void insert(uint_t i, const std::string& text, const fan::vec2& position, const fan::color& text_color, f_t font_size, const fan::color& outline_color = -1, bool queue = false);
+			void push_back(const std::string& text, const fan::vec2& position, const fan::color& text_color, f_t font_size, const fan::color& outline_color = -1, bool queue = false);
+
+			void draw() const;
+
+			void erase(uint_t i);
 
 		private:
-	
-			std::wstring m_text;
+
+			uint_t get_character_offset(uint_t i, bool special);
+			
+			std::vector<fan::vec2> get_vertices(uint_t i);
+			std::vector<fan::vec2> get_texture_coordinates(uint_t i);
+			std::vector<f_t> get_font_size(uint_t i);
+
+			void load_characters(uint_t text_offset, fan::vec2 position, const std::string& text, bool edit, bool insert);
+
+			void edit_letter_data(uint_t i, const char letter, const fan::vec2& position, int& advance, f_t converted_font_size);
+			void insert_letter_data(uint_t i, const char letter, const fan::vec2& position, int& advance, f_t converted_font_size);
+			void write_letter_data(const char letter, const fan::vec2& position, int& advance, f_t converted_font_size);
+
+			void write_data();
+
+			fan::shader m_shader;
+
+			uint32_t m_texture;
+
+			uint32_t m_vao;
+
+			uint32_t m_vertex_vbo;
+			uint32_t m_texture_vbo;
+
+			uint32_t m_letter_ssbo;
+			
+			f_t m_original_font_size;
+			fan::vec2ui m_original_image_size;
+
+			std::vector<f32_t> m_font_size;
+			std::unordered_map<uint16_t, fan::io::file::font_t> m_font;
+
+			std::vector<std::string> m_text;
+
+			std::vector<fan::vec2> m_position;
+
+			std::vector<fan::vec2> m_vertices;
+			std::vector<fan::vec2> m_texture_coordinates;
 
 		};
 
