@@ -253,6 +253,49 @@ namespace fan {
 
 	};
 
+	template <uint_t layout_location = 0, uint_t gl_buffer = GL_ARRAY_BUFFER>
+	class basic_shape_color_vector_vector {
+	public:
+
+		basic_shape_color_vector_vector();
+		basic_shape_color_vector_vector(const std::vector<fan::color>& color);
+		~basic_shape_color_vector_vector();
+
+		std::vector<fan::color> get_color(std::uint64_t i);
+		void set_color(std::uint64_t i, const std::vector<fan::color>& color, bool queue = false);
+
+		void erase(uint_t i, bool queue = false);
+
+		void bind_gl_storage_buffer() const requires is_storage_buffer<gl_buffer> {
+			glBindBufferBase(gl_buffer, layout_location, m_color_vbo);
+		}
+
+	protected:
+
+		void basic_push_back(const std::vector<fan::color>& color, bool queue = false);
+	
+		void edit_data(uint_t i);
+		void edit_data(void* data, uint_t offset, uint_t size);
+
+		void write_data()
+		{
+			std::vector<fan::color> vector;
+
+			for (uint_t i = 0; i < m_color.size(); i++) {
+				vector.insert(vector.end(), m_color[i].begin(), m_color[i].end());
+			}
+
+			fan::write_glbuffer(m_color_vbo, vector.data(), sizeof(fan::color) * vector.size(), gl_buffer, layout_location);
+		}
+
+		void initialize_buffers(bool divisor = true);
+
+		uint32_t m_color_vbo;
+
+		std::vector<std::vector<fan::color>> m_color;
+
+	};
+
 	// editing this requires change in glsl file
 	enum class e_shapes {
 		VERTICE,
@@ -546,7 +589,7 @@ namespace fan_2d {
 
 	struct particle {
 		fan::vec2 m_velocity;
-		fan::Timer m_timer; // milli
+		fan::timer m_timer; // milli
 	};
 
 	class particles : public fan_2d::square_vector {
@@ -803,11 +846,11 @@ namespace fan_2d {
 
 		}
 
-		class text_renderer : public fan::basic_shape_color_vector<0, GL_SHADER_STORAGE_BUFFER>, public fan::basic_shape_color_vector<4, GL_SHADER_STORAGE_BUFFER> {
+		class text_renderer : protected fan::basic_shape_color_vector_vector<0, GL_SHADER_STORAGE_BUFFER>, protected fan::basic_shape_color_vector_vector<4, GL_SHADER_STORAGE_BUFFER> {
 		public:
 
-			using text_color_t = fan::basic_shape_color_vector<0, GL_SHADER_STORAGE_BUFFER>;
-			using outline_color_t = fan::basic_shape_color_vector<4, GL_SHADER_STORAGE_BUFFER>;
+			using text_color_t = fan::basic_shape_color_vector_vector<0, GL_SHADER_STORAGE_BUFFER>;
+			using outline_color_t = fan::basic_shape_color_vector_vector<4, GL_SHADER_STORAGE_BUFFER>;
 
 			text_renderer();
 			~text_renderer();
@@ -816,6 +859,8 @@ namespace fan_2d {
 
 			void set_font_size(uint_t i, f_t font_size, bool queue = false);
 			void set_text(uint_t i, const std::string& text, bool queue = false);
+			void set_text_color(uint_t i, const fan::color& color, bool queue = false);
+			void set_outline_color(uint_t i, const fan::color& color, bool queue = false);
 
 			void free_queue();
 			void insert(uint_t i, const std::string& text, const fan::vec2& position, const fan::color& text_color, f_t font_size, const fan::color& outline_color = -1, bool queue = false);
@@ -823,7 +868,7 @@ namespace fan_2d {
 
 			void draw() const;
 
-			void erase(uint_t i);
+			void erase(uint_t i, bool queue = false);
 
 		private:
 
@@ -833,11 +878,15 @@ namespace fan_2d {
 			std::vector<fan::vec2> get_texture_coordinates(uint_t i);
 			std::vector<f_t> get_font_size(uint_t i);
 
-			void load_characters(uint_t text_offset, fan::vec2 position, const std::string& text, bool edit, bool insert);
+			void load_characters(uint_t i, fan::vec2 position, const std::string& text, bool edit, bool insert);
 
-			void edit_letter_data(uint_t i, const char letter, const fan::vec2& position, int& advance, f_t converted_font_size);
+			void edit_letter_data(uint_t i, uint_t j, const char letter, const fan::vec2& position, int& advance, f_t converted_font_size);
 			void insert_letter_data(uint_t i, const char letter, const fan::vec2& position, int& advance, f_t converted_font_size);
-			void write_letter_data(const char letter, const fan::vec2& position, int& advance, f_t converted_font_size);
+			void write_letter_data(uint_t i, const char letter, const fan::vec2& position, int& advance, f_t converted_font_size);
+
+			void write_vertices();
+			void write_texture_coordinates();
+			void write_font_sizes();
 
 			void write_data();
 
@@ -855,15 +904,15 @@ namespace fan_2d {
 			f_t m_original_font_size;
 			fan::vec2ui m_original_image_size;
 
-			std::vector<f32_t> m_font_size;
 			std::unordered_map<uint16_t, fan::io::file::font_t> m_font;
 
 			std::vector<std::string> m_text;
 
 			std::vector<fan::vec2> m_position;
 
-			std::vector<fan::vec2> m_vertices;
-			std::vector<fan::vec2> m_texture_coordinates;
+			std::vector<std::vector<f32_t>> m_font_size;
+			std::vector<std::vector<fan::vec2>> m_vertices;
+			std::vector<std::vector<fan::vec2>> m_texture_coordinates;
 
 		};
 
