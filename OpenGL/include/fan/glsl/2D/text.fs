@@ -7,7 +7,7 @@ uniform sampler2D texture_sampler;
 uniform float original_font_size;
 
 const float width = 0.5;
-const float edge_multiplier = 0.1;
+const float edge_multiplier = 0.08;
 
 const float outline_width = 0.5;
 const float outline_edge_multiplier = 0.5285;

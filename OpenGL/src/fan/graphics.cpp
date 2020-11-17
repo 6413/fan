@@ -1184,6 +1184,95 @@ void fan::basic_vertice_vector<_Vector>::basic_draw(unsigned int mode, std::uint
 	});
 }
 
+template <uint_t layout_location, uint_t gl_buffer>
+fan::basic_shape_color_vector_vector<layout_location, gl_buffer>::basic_shape_color_vector_vector() : m_color_vbo(-1) {
+	glGenBuffers(1, &m_color_vbo);
+}
+
+template <uint_t layout_location, uint_t gl_buffer>
+fan::basic_shape_color_vector_vector<layout_location, gl_buffer>::basic_shape_color_vector_vector(const std::vector<fan::color>& color)
+	: basic_shape_color_vector_vector()
+{
+	this->m_color.push_back(color);
+
+	this->write_data();
+}
+
+template <uint_t layout_location, uint_t gl_buffer>
+fan::basic_shape_color_vector_vector<layout_location, gl_buffer>::~basic_shape_color_vector_vector()
+{
+	glDeleteBuffers(1, &m_color_vbo);
+}
+
+template <uint_t layout_location, uint_t gl_buffer>
+std::vector<fan::color> fan::basic_shape_color_vector_vector<layout_location, gl_buffer>::get_color(std::uint64_t i)
+{
+	return this->m_color[i];
+}
+
+template <uint_t layout_location, uint_t gl_buffer>
+void fan::basic_shape_color_vector_vector<layout_location, gl_buffer>::set_color(std::uint64_t i, const std::vector<fan::color>& color, bool queue)
+{
+	this->m_color[i] = color;
+	if (!queue) {
+		write_data();
+	}
+}
+
+template <uint_t layout_location, uint_t gl_buffer>
+void fan::basic_shape_color_vector_vector<layout_location, gl_buffer>::erase(uint_t i, bool queue)
+{
+	this->m_color.erase(this->m_color.begin() + i);
+	if (!queue) {
+		this->write_data();
+	}
+}
+
+template <uint_t layout_location, uint_t gl_buffer>
+void fan::basic_shape_color_vector_vector<layout_location, gl_buffer>::basic_push_back(const std::vector<fan::color>& color, bool queue)
+{
+	this->m_color.push_back(color);
+	if (!queue) {
+		write_data();
+	}
+}
+
+template <uint_t layout_location, uint_t gl_buffer>
+void fan::basic_shape_color_vector_vector<layout_location, gl_buffer>::edit_data(uint_t i)
+{
+	std::vector<fan::color> vector(this->m_color[i].size());
+	std::copy(this->m_color[i].begin(), this->m_color[i].end(), vector.begin());
+	uint_t offset = 0;
+	for (uint_t j = 0; j < i; j++) {
+		offset += m_color[j].size();
+	}
+	fan::edit_glbuffer(this->m_color_vbo, vector.data(), sizeof(fan::color) * offset, sizeof(fan::color) * vector.size(), gl_buffer, layout_location);
+}
+
+//template <uint_t layout_location, uint_t gl_buffer>
+//void fan::basic_shape_color_vector_vector<layout_location, gl_buffer>::edit_data(void* data, uint_t offset, uint_t size)
+//{
+//	fan::edit_glbuffer(this->m_color_vbo, data, offset, size, gl_buffer, layout_location);
+//}
+
+template <uint_t layout_location, uint_t gl_buffer>
+void fan::basic_shape_color_vector_vector<layout_location, gl_buffer>::initialize_buffers(bool divisor)
+{
+	glBindBuffer(gl_buffer, m_color_vbo);
+	glBufferData(gl_buffer, 0, nullptr, GL_DYNAMIC_DRAW);
+	if constexpr (gl_buffer == GL_SHADER_STORAGE_BUFFER) {
+		glBindBufferBase(gl_buffer, layout_location, m_color_vbo);
+	}
+	else {
+		glEnableVertexAttribArray(layout_location);
+		glVertexAttribPointer(layout_location, 4, fan::GL_FLOAT_T, GL_FALSE, sizeof(fan::color), 0);
+	}
+	if (divisor) {
+		glVertexAttribDivisor(0, 1);
+	}
+}
+
+
 fan_2d::vertice_vector::vertice_vector(uint_t index_restart)
 	: basic_vertice_vector(fan::shader(fan_2d::shader_paths::shape_vector_vs, fan_2d::shader_paths::shape_vector_fs)), m_index_restart(index_restart)
 { 
@@ -1517,7 +1606,7 @@ void fan_2d::sprite_vector::release_queue(bool position, bool size)
 void fan_2d::particles::add(const fan::vec2& position, const fan::vec2& size, const fan::vec2& velocity, const fan::color& color, std::uint64_t time)
 {
 	this->push_back(position, size, color);
-	this->m_particles.push_back({ velocity, fan::Timer(fan::Timer::start(), time) });
+	this->m_particles.push_back({ velocity, fan::timer(fan::timer::start(), time) });
 }
 
 void fan_2d::particles::update()
@@ -1731,27 +1820,50 @@ fan::vec2 fan_2d::gui::text_renderer::get_position(uint_t i) const {
 }
 
 void fan_2d::gui::text_renderer::set_font_size(uint_t i, f_t font_size, bool queue) {
-	uint_t offset = this->get_character_offset(i, true);
-	std::fill(m_font_size.begin() + offset, m_font_size.begin() + offset + m_text[i].size(), font_size);
+	std::fill(m_font_size[i].begin(), m_font_size[i].end(), font_size);
 
-	this->load_characters(offset, this->get_position(i), m_text[i], true, false);
+	this->load_characters(i, this->get_position(i), m_text[i], true, false);
 	if (!queue) {
 		this->write_data();
 	}
-} 
+}
 
 void fan_2d::gui::text_renderer::set_text(uint_t i, const std::string& text, bool queue) {
-	if (m_text[i] == text) {
+	if (m_text.size() && m_text[i] == text) {
 		return;
 	}
-	
-	uint_t offset = get_character_offset(i, false);
+
 	auto position = this->get_position(i);
-	auto text_color = text_color_t::get_color(offset);
-	auto outline_color = outline_color_t::get_color(offset);
-	auto font_size = *this->get_font_size(i).begin();
-	this->erase(i);
-	this->insert(i, text, position, text_color, font_size, outline_color, queue);
+	auto text_color = text_color_t::get_color(i)[0];
+	auto outline_color = outline_color_t::get_color(i)[0];
+	auto font_size = this->m_font_size[i][0];
+	this->erase(i, true);
+	this->insert(i, text, position, text_color, font_size, outline_color, true);
+	if (!queue) {
+		this->write_data();
+	}
+}
+
+void fan_2d::gui::text_renderer::set_text_color(uint_t i, const fan::color& color, bool queue)
+{
+	if (text_color_t::m_color[i][0] == color) {
+		return;
+	}
+	std::fill(text_color_t::m_color[i].begin(), text_color_t::m_color[i].end(), color);
+	if (!queue) {
+		text_color_t::edit_data(i);
+	}
+}
+
+void fan_2d::gui::text_renderer::set_outline_color(uint_t i, const fan::color& color, bool queue)
+{
+	if (outline_color_t::m_color[i][0] == color) {
+		return;
+	}
+	std::fill(outline_color_t::m_color[i].begin(), outline_color_t::m_color[i].end(), color);
+	if (!queue) {
+		outline_color_t::edit_data(i);
+	}
 }
 
 void fan_2d::gui::text_renderer::free_queue() {
@@ -1759,14 +1871,29 @@ void fan_2d::gui::text_renderer::free_queue() {
 }
 
 void fan_2d::gui::text_renderer::push_back(const std::string& text, const fan::vec2& position, const fan::color& text_color, f_t font_size, const fan::color& outline_color, bool queue) {
-	m_font_size.insert(m_font_size.end(), text.size(), font_size);
 	m_text.push_back(text);
 	this->m_position.emplace_back(position);
 
-	text_color_t::m_color.insert(text_color_t::m_color.end(), text.size(), text_color);
-	outline_color_t::m_color.insert(outline_color_t::m_color.end(), text.size(), outline_color);
+	m_font_size.resize(m_font_size.size() + 1);
+	text_color_t::m_color.resize(text_color_t::m_color.size() + 1);
+	outline_color_t::m_color.resize(outline_color_t::m_color.size() + 1);
 
-	this->load_characters(m_font_size.size() - 1, position, text, false, false);
+	if (text.empty()) {
+		m_font_size[m_font_size.size() - 1].insert(m_font_size[m_font_size.size() - 1].end(), 1, font_size);
+		text_color_t::m_color[text_color_t::m_color.size() - 1].insert(text_color_t::m_color[text_color_t::m_color.size() - 1].end(), 1, text_color);
+		outline_color_t::m_color[outline_color_t::m_color.size() - 1].insert(outline_color_t::m_color[outline_color_t::m_color.size() - 1].end(), 1, outline_color);
+		return;
+	}
+
+	m_vertices.resize(m_vertices.size() + 1);
+	m_texture_coordinates.resize(m_texture_coordinates.size() + 1);
+
+	m_font_size[m_font_size.size() - 1].insert(m_font_size[m_font_size.size() - 1].end(), text.size(), font_size);
+
+	text_color_t::m_color[text_color_t::m_color.size() - 1].insert(text_color_t::m_color[text_color_t::m_color.size() - 1].end(), text.size(), text_color);
+	outline_color_t::m_color[outline_color_t::m_color.size() - 1].insert(outline_color_t::m_color[outline_color_t::m_color.size() - 1].end(), text.size(), outline_color);
+
+	this->load_characters(text.empty() ? 0 : m_font_size.size() - 1, position, text, false, false);
 
 	if (!queue) {
 		this->write_data();
@@ -1775,15 +1902,19 @@ void fan_2d::gui::text_renderer::push_back(const std::string& text, const fan::v
 
 void fan_2d::gui::text_renderer::insert(uint_t i, const std::string& text, const fan::vec2& position, const fan::color& text_color, f_t font_size, const fan::color& outline_color, bool queue)
 {
-	uint_t offset = this->get_character_offset(i, true) * 6;
-	m_font_size.insert(m_font_size.begin() + offset / 6, text.size(), font_size);
+	m_font_size.insert(m_font_size.begin() + i, std::vector<f32_t>(text.size(), font_size));
+
 	m_text.insert(m_text.begin() + i, text);
 	this->m_position.insert(m_position.begin() + i, position);
 
-	text_color_t::m_color.insert(text_color_t::m_color.begin() + offset / 6, text.size(), text_color);
-	outline_color_t::m_color.insert(outline_color_t::m_color.begin() + offset / 6, text.size(), outline_color);
+	text_color_t::m_color.insert(text_color_t::m_color.begin() + i, std::vector<fan::color>(text.size(), text_color));
+	outline_color_t::m_color.insert(outline_color_t::m_color.begin() + i, std::vector<fan::color>(text.size(), outline_color));
 
-	this->load_characters(offset, position, text, false, true);
+	m_vertices.insert(m_vertices.begin() + i, std::vector<fan::vec2>(text.size() * 6));
+
+	m_texture_coordinates.insert(m_texture_coordinates.begin() + i, std::vector<fan::vec2>(text.size() * 6));
+	
+	this->load_characters(i, position, text, true, false);
 
 	if (!queue) {
 		this->write_data();
@@ -1806,21 +1937,25 @@ void fan_2d::gui::text_renderer::draw() const {
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, m_letter_ssbo);
 
 	fan::bind_vao(m_vao, [&] {
-		glDrawArrays(GL_TRIANGLES, 0, m_vertices.size());
+		glDrawArrays(GL_TRIANGLES, 0, fan::vector_size(m_vertices));
 	});
 }
 
-void fan_2d::gui::text_renderer::erase(uint_t i) {
-	uint_t offset = this->get_character_offset(i, true) * 6;
-	uint_t amount_of_new_lines = std::count(m_text[i].begin(), m_text[i].end(), '\n') * 6;
-	m_vertices.erase(m_vertices.begin() + offset, m_vertices.begin() + offset + m_text[i].size() * 6 - amount_of_new_lines);
-	m_texture_coordinates.erase(m_texture_coordinates.begin() + offset, m_texture_coordinates.begin() + offset + m_text[i].size() * 6 - amount_of_new_lines);
-	m_font_size.erase(m_font_size.begin() + offset / 6, m_font_size.begin() + offset / 6 + m_text[i].size() - amount_of_new_lines / 6);
+void fan_2d::gui::text_renderer::erase(uint_t i, bool queue) {
+	if (i >= m_vertices.size()) {
+		return;
+	}
+	m_vertices.erase(m_vertices.begin() + i);
+	m_texture_coordinates.erase(m_texture_coordinates.begin() + i);
+	m_font_size.erase(m_font_size.begin() + i);
 	m_position.erase(m_position.begin() + i);
-	text_color_t::m_color.erase(text_color_t::m_color.begin() + offset / 6, text_color_t::m_color.begin() + offset / 6 + m_text[i].size() - amount_of_new_lines / 6);
-	outline_color_t::m_color.erase(outline_color_t::m_color.begin() + offset / 6, outline_color_t::m_color.begin() + offset / 6 + m_text[i].size() - amount_of_new_lines / 6);
+	text_color_t::m_color.erase(text_color_t::m_color.begin() + i);
+	outline_color_t::m_color.erase(outline_color_t::m_color.begin() + i);
 	m_text.erase(m_text.begin() + i);
-	this->write_data();
+
+	if (!queue) {
+		this->write_data();
+	}
 }
 
 uint_t fan_2d::gui::text_renderer::get_character_offset(uint_t i, bool special) {
@@ -1830,24 +1965,24 @@ uint_t fan_2d::gui::text_renderer::get_character_offset(uint_t i, bool special) 
 	}
 	return offset;
 }
+//
+//std::vector<fan::vec2> fan_2d::gui::text_renderer::get_vertices(uint_t i) {
+//	uint_t offset = this->get_character_offset(i, true) * 6;
+//	return std::vector<fan::vec2>(m_vertices.begin() + offset, m_vertices.begin() + offset + m_text[i].size() * 6);
+//}
+//
+//std::vector<fan::vec2> fan_2d::gui::text_renderer::get_texture_coordinates(uint_t i) {
+//	uint_t offset = this->get_character_offset(i, true) * 6;
+//	return std::vector<fan::vec2>(m_texture_coordinates.begin() + offset, m_texture_coordinates.begin() + offset + m_text[i].size() * 6);
+//}
+//
+//std::vector<f_t> fan_2d::gui::text_renderer::get_font_size(uint_t i) {
+//	uint_t offset = this->get_character_offset(i, true);
+//	return std::vector<f_t>(m_font_size.begin() + offset, m_font_size.begin() + offset + m_text[i].size());
+//}
 
-std::vector<fan::vec2> fan_2d::gui::text_renderer::get_vertices(uint_t i) {
-	uint_t offset = this->get_character_offset(i, true) * 6;
-	return std::vector<fan::vec2>(m_vertices.begin() + offset, m_vertices.begin() + offset + m_text[i].size() * 6);
-}
-
-std::vector<fan::vec2> fan_2d::gui::text_renderer::get_texture_coordinates(uint_t i) {
-	uint_t offset = this->get_character_offset(i, true) * 6;
-	return std::vector<fan::vec2>(m_texture_coordinates.begin() + offset, m_texture_coordinates.begin() + offset + m_text[i].size() * 6);
-}
-
-std::vector<f_t> fan_2d::gui::text_renderer::get_font_size(uint_t i) {
-	uint_t offset = this->get_character_offset(i, true);
-	return std::vector<f_t>(m_font_size.begin() + offset, m_font_size.begin() + offset + m_text[i].size());
-}
-
-void fan_2d::gui::text_renderer::load_characters(uint_t text_offset, fan::vec2 position, const std::string& text, bool edit, bool insert) {
-	const f_t converted_font_size = 1.0 / m_original_font_size * m_font_size[text_offset / 6];
+void fan_2d::gui::text_renderer::load_characters(uint_t i, fan::vec2 position, const std::string& text, bool edit, bool insert) {
+	const f_t converted_font_size = 1.0 / m_original_font_size * m_font_size[i][0];
 
 	int advance = 0;
 
@@ -1859,19 +1994,19 @@ void fan_2d::gui::text_renderer::load_characters(uint_t text_offset, fan::vec2 p
 			continue;
 		}
 		if (insert) {
-			this->insert_letter_data(text_offset, letter, position, advance, converted_font_size);
+			this->insert_letter_data(i, letter, position, advance, converted_font_size);
 		}
 		else if (edit) {
-			this->edit_letter_data(text_offset * 6 + iletter, letter, position, advance, converted_font_size);
+			this->edit_letter_data(i, iletter, letter, position, advance, converted_font_size);
 			iletter += 6;
 		}
 		else {
-			this->write_letter_data(letter, position, advance, converted_font_size);
+			this->write_letter_data(i, letter, position, advance, converted_font_size);
 		}
 	}
 }
 
-void fan_2d::gui::text_renderer::edit_letter_data(uint_t i, const char letter, const fan::vec2& position, int& advance, f_t converted_font_size) {
+void fan_2d::gui::text_renderer::edit_letter_data(uint_t i, uint_t j, const char letter, const fan::vec2& position, int& advance, f_t converted_font_size) {
 	const fan::vec2 letter_position = m_font[letter].m_position;
 	const fan::vec2 letter_size = m_font[letter].m_size;
 	const fan::vec2 letter_offset = m_font[letter].m_offset;
@@ -1879,21 +2014,19 @@ void fan_2d::gui::text_renderer::edit_letter_data(uint_t i, const char letter, c
 	const fan::vec2 texture_offset = letter_position / this->m_original_image_size;
 	const fan::vec2 texture_width = (letter_position + letter_size) / this->m_original_image_size;
 
-	m_vertices[i + 0] = position + fan::vec2(1, 0) * letter_size * converted_font_size + (fan::vec2i(advance, 0) + letter_offset) * converted_font_size;
-	m_vertices[i + 1] = position + fan::vec2(0, 0) * letter_size * converted_font_size + (fan::vec2i(advance, 0) + letter_offset) * converted_font_size;
-	m_vertices[i + 2] = position + fan::vec2(0, 1) * letter_size * converted_font_size + (fan::vec2i(advance, 0) + letter_offset) * converted_font_size;	
-																   
-	m_vertices[i + 3] = position + fan::vec2(0, 1) * letter_size * converted_font_size + (fan::vec2i(advance, 0) + letter_offset) * converted_font_size;
-	m_vertices[i + 4] = position + fan::vec2(1, 1) * letter_size * converted_font_size + (fan::vec2i(advance, 0) + letter_offset) * converted_font_size;
-	m_vertices[i + 5] = position + fan::vec2(1, 0) * letter_size * converted_font_size + (fan::vec2i(advance, 0) + letter_offset) * converted_font_size;
-
-	m_texture_coordinates[i + 0] = fan::vec2(texture_width.x , texture_offset.y);
-	m_texture_coordinates[i + 1] = fan::vec2(texture_offset.x, texture_offset.y);
-	m_texture_coordinates[i + 2] = fan::vec2(texture_offset.x, texture_width.y);
-
-	m_texture_coordinates[i + 3] = fan::vec2(texture_offset.x, texture_width.y);
-	m_texture_coordinates[i + 4] = fan::vec2(texture_width.x , texture_width.y);
-	m_texture_coordinates[i + 5] = fan::vec2(texture_width.x , texture_offset.y);
+	m_vertices[i][j + 0] = position + fan::vec2(1, 0) * letter_size * converted_font_size + (fan::vec2i(advance, 0) + letter_offset) * converted_font_size;
+	m_vertices[i][j + 1] = position + fan::vec2(0, 0) * letter_size * converted_font_size + (fan::vec2i(advance, 0) + letter_offset) * converted_font_size;
+	m_vertices[i][j + 2] = position + fan::vec2(0, 1) * letter_size * converted_font_size + (fan::vec2i(advance, 0) + letter_offset) * converted_font_size;												   
+	m_vertices[i][j + 3] = position + fan::vec2(0, 1) * letter_size * converted_font_size + (fan::vec2i(advance, 0) + letter_offset) * converted_font_size;
+	m_vertices[i][j + 4] = position + fan::vec2(1, 1) * letter_size * converted_font_size + (fan::vec2i(advance, 0) + letter_offset) * converted_font_size;
+	m_vertices[i][j + 5] = position + fan::vec2(1, 0) * letter_size * converted_font_size + (fan::vec2i(advance, 0) + letter_offset) * converted_font_size;
+					 
+	m_texture_coordinates[i][j + 0] = fan::vec2(texture_width.x , texture_offset.y);
+	m_texture_coordinates[i][j + 1] = fan::vec2(texture_offset.x, texture_offset.y);
+	m_texture_coordinates[i][j + 2] = fan::vec2(texture_offset.x, texture_width.y);
+	m_texture_coordinates[i][j + 3] = fan::vec2(texture_offset.x, texture_width.y);
+	m_texture_coordinates[i][j + 4] = fan::vec2(texture_width.x , texture_width.y);
+	m_texture_coordinates[i][j + 5] = fan::vec2(texture_width.x , texture_offset.y);
 
 	advance += fan_2d::gui::font_properties::get_gap_size(m_font[letter].m_advance);
 }
@@ -1907,26 +2040,24 @@ void fan_2d::gui::text_renderer::insert_letter_data(uint_t i, const char letter,
 	const fan::vec2 texture_offset = letter_position / this->m_original_image_size;
 	const fan::vec2 texture_width = (letter_position + letter_size) / this->m_original_image_size;
 
-	m_vertices.insert(m_vertices.begin() + i, position + fan::vec2(1, 0) * letter_size * converted_font_size + (fan::vec2i(advance, 0) + letter_offset) * converted_font_size);
-	m_vertices.insert(m_vertices.begin() + i + 1, position + fan::vec2(0, 0) * letter_size * converted_font_size + (fan::vec2i(advance, 0) + letter_offset) * converted_font_size);
-	m_vertices.insert(m_vertices.begin() + i + 2, position + fan::vec2(0, 1) * letter_size * converted_font_size + (fan::vec2i(advance, 0) + letter_offset) * converted_font_size);	
-																									   
-	m_vertices.insert(m_vertices.begin() + i + 3, position + fan::vec2(0, 1) * letter_size * converted_font_size + (fan::vec2i(advance, 0) + letter_offset) * converted_font_size);
-	m_vertices.insert(m_vertices.begin() + i + 4, position + fan::vec2(1, 1) * letter_size * converted_font_size + (fan::vec2i(advance, 0) + letter_offset) * converted_font_size);
-	m_vertices.insert(m_vertices.begin() + i + 5, position + fan::vec2(1, 0) * letter_size * converted_font_size + (fan::vec2i(advance, 0) + letter_offset) * converted_font_size);
+	m_vertices[i].insert(m_vertices[i].begin() + i    , position + fan::vec2(1, 0) * letter_size * converted_font_size + (fan::vec2i(advance, 0) + letter_offset) * converted_font_size);
+	m_vertices[i].insert(m_vertices[i].begin() + i + 1, position + fan::vec2(0, 0) * letter_size * converted_font_size + (fan::vec2i(advance, 0) + letter_offset) * converted_font_size);
+	m_vertices[i].insert(m_vertices[i].begin() + i + 2, position + fan::vec2(0, 1) * letter_size * converted_font_size + (fan::vec2i(advance, 0) + letter_offset) * converted_font_size);																						   
+	m_vertices[i].insert(m_vertices[i].begin() + i + 3, position + fan::vec2(0, 1) * letter_size * converted_font_size + (fan::vec2i(advance, 0) + letter_offset) * converted_font_size);
+	m_vertices[i].insert(m_vertices[i].begin() + i + 4, position + fan::vec2(1, 1) * letter_size * converted_font_size + (fan::vec2i(advance, 0) + letter_offset) * converted_font_size);
+	m_vertices[i].insert(m_vertices[i].begin() + i + 5, position + fan::vec2(1, 0) * letter_size * converted_font_size + (fan::vec2i(advance, 0) + letter_offset) * converted_font_size);
 
-	m_texture_coordinates.insert(m_texture_coordinates.begin() + i, fan::vec2(texture_width.x , texture_offset.y));
-	m_texture_coordinates.insert(m_texture_coordinates.begin() + i + 1, fan::vec2(texture_offset.x, texture_offset.y));
-	m_texture_coordinates.insert(m_texture_coordinates.begin() + i + 2,fan::vec2(texture_offset.x, texture_width.y));
-
-	m_texture_coordinates.insert(m_texture_coordinates.begin() + i + 3, fan::vec2(texture_offset.x, texture_width.y));
-	m_texture_coordinates.insert(m_texture_coordinates.begin() + i + 4, fan::vec2(texture_width.x , texture_width.y));
-	m_texture_coordinates.insert(m_texture_coordinates.begin() + i + 5, fan::vec2(texture_width.x , texture_offset.y));
+	m_texture_coordinates[i].insert(m_texture_coordinates[i].begin() + i    , fan::vec2(texture_width.x , texture_offset.y));
+	m_texture_coordinates[i].insert(m_texture_coordinates[i].begin() + i + 1, fan::vec2(texture_offset.x, texture_offset.y));
+	m_texture_coordinates[i].insert(m_texture_coordinates[i].begin() + i + 2, fan::vec2(texture_offset.x, texture_width.y));
+	m_texture_coordinates[i].insert(m_texture_coordinates[i].begin() + i + 3, fan::vec2(texture_offset.x, texture_width.y));
+	m_texture_coordinates[i].insert(m_texture_coordinates[i].begin() + i + 4, fan::vec2(texture_width.x , texture_width.y));
+	m_texture_coordinates[i].insert(m_texture_coordinates[i].begin() + i + 5, fan::vec2(texture_width.x , texture_offset.y));
 
 	advance += fan_2d::gui::font_properties::get_gap_size(m_font[letter].m_advance);
 }
 
-void fan_2d::gui::text_renderer::write_letter_data(const char letter, const fan::vec2& position, int& advance, f_t converted_font_size) {
+void fan_2d::gui::text_renderer::write_letter_data(uint_t i, const char letter, const fan::vec2& position, int& advance, f_t converted_font_size) {
 	const fan::vec2 letter_position = m_font[letter].m_position;
 	const fan::vec2 letter_size = m_font[letter].m_size;
 	const fan::vec2 letter_offset = m_font[letter].m_offset;
@@ -1934,36 +2065,68 @@ void fan_2d::gui::text_renderer::write_letter_data(const char letter, const fan:
 	const fan::vec2 texture_offset = letter_position / this->m_original_image_size;
 	const fan::vec2 texture_width = (letter_position + letter_size) / this->m_original_image_size;
 
-	m_vertices.emplace_back(position + fan::vec2(1, 0) * letter_size * converted_font_size + (fan::vec2i(advance, 0) + letter_offset) * converted_font_size);
-	m_vertices.emplace_back(position + fan::vec2(0, 0) * letter_size * converted_font_size + (fan::vec2i(advance, 0) + letter_offset) * converted_font_size);
-	m_vertices.emplace_back(position + fan::vec2(0, 1) * letter_size * converted_font_size + (fan::vec2i(advance, 0) + letter_offset) * converted_font_size);	
-																									   
-	m_vertices.emplace_back(position + fan::vec2(0, 1) * letter_size * converted_font_size + (fan::vec2i(advance, 0) + letter_offset) * converted_font_size);
-	m_vertices.emplace_back(position + fan::vec2(1, 1) * letter_size * converted_font_size + (fan::vec2i(advance, 0) + letter_offset) * converted_font_size);
-	m_vertices.emplace_back(position + fan::vec2(1, 0) * letter_size * converted_font_size + (fan::vec2i(advance, 0) + letter_offset) * converted_font_size);
+	m_vertices[i].emplace_back(position + fan::vec2(1, 0) * letter_size * converted_font_size + (fan::vec2i(advance, 0) + letter_offset) * converted_font_size);
+	m_vertices[i].emplace_back(position + fan::vec2(0, 0) * letter_size * converted_font_size + (fan::vec2i(advance, 0) + letter_offset) * converted_font_size);
+	m_vertices[i].emplace_back(position + fan::vec2(0, 1) * letter_size * converted_font_size + (fan::vec2i(advance, 0) + letter_offset) * converted_font_size);																						   
+	m_vertices[i].emplace_back(position + fan::vec2(0, 1) * letter_size * converted_font_size + (fan::vec2i(advance, 0) + letter_offset) * converted_font_size);
+	m_vertices[i].emplace_back(position + fan::vec2(1, 1) * letter_size * converted_font_size + (fan::vec2i(advance, 0) + letter_offset) * converted_font_size);
+	m_vertices[i].emplace_back(position + fan::vec2(1, 0) * letter_size * converted_font_size + (fan::vec2i(advance, 0) + letter_offset) * converted_font_size);
 
-	m_texture_coordinates.emplace_back(fan::vec2(texture_width.x , texture_offset.y));
-	m_texture_coordinates.emplace_back(fan::vec2(texture_offset.x, texture_offset.y));
-	m_texture_coordinates.emplace_back(fan::vec2(texture_offset.x, texture_width.y));
-
-	m_texture_coordinates.emplace_back(fan::vec2(texture_offset.x, texture_width.y));
-	m_texture_coordinates.emplace_back(fan::vec2(texture_width.x , texture_width.y));
-	m_texture_coordinates.emplace_back(fan::vec2(texture_width.x , texture_offset.y));
+	m_texture_coordinates[i].emplace_back(fan::vec2(texture_width.x , texture_offset.y));
+	m_texture_coordinates[i].emplace_back(fan::vec2(texture_offset.x, texture_offset.y));
+	m_texture_coordinates[i].emplace_back(fan::vec2(texture_offset.x, texture_width.y));
+	m_texture_coordinates[i].emplace_back(fan::vec2(texture_offset.x, texture_width.y));
+	m_texture_coordinates[i].emplace_back(fan::vec2(texture_width.x , texture_width.y));
+	m_texture_coordinates[i].emplace_back(fan::vec2(texture_width.x , texture_offset.y));
 
 	advance += fan_2d::gui::font_properties::get_gap_size(m_font[letter].m_advance);
 }
 
-void fan_2d::gui::text_renderer::write_data() {
+void fan_2d::gui::text_renderer::write_vertices()
+{
+	std::vector<fan::vec2> vertices;
+
+	for (uint_t i = 0; i < m_vertices.size(); i++) {
+		vertices.insert(vertices.end(), m_vertices[i].begin(), m_vertices[i].end());
+	}
+
 	glBindBuffer(GL_ARRAY_BUFFER, m_vertex_vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(fan::vec2) * m_vertices.size(), &m_vertices[0], GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(fan::vec2) * fan::vector_size(vertices), vertices.data(), GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+void fan_2d::gui::text_renderer::write_texture_coordinates()
+{
+	std::vector<fan::vec2> texture_coordinates;
+
+	for (uint_t i = 0; i < m_texture_coordinates.size(); i++) {
+		texture_coordinates.insert(texture_coordinates.end(), m_texture_coordinates[i].begin(), m_texture_coordinates[i].end());
+	}
 
 	glBindBuffer(GL_ARRAY_BUFFER, m_texture_vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(fan::vec2) * m_texture_coordinates.size(), &m_texture_coordinates[0], GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(fan::vec2) * fan::vector_size(texture_coordinates), texture_coordinates.data(), GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+void fan_2d::gui::text_renderer::write_font_sizes()
+{
+	std::vector<f32_t> font_sizes;
+
+	for (uint_t i = 0; i < m_font_size.size(); i++) {
+		font_sizes.insert(font_sizes.end(), m_font_size[i].begin(), m_font_size[i].end());
+	}
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_letter_ssbo);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(m_font_size[0]) * m_font_size.size(), &m_font_size[0], GL_DYNAMIC_DRAW);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(font_sizes[0]) * fan::vector_size(font_sizes), font_sizes.data(), GL_DYNAMIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, m_letter_ssbo);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+void fan_2d::gui::text_renderer::write_data() {
+
+	this->write_vertices();
+	this->write_texture_coordinates();
+	this->write_font_sizes();
 
 	text_color_t::write_data();
 	outline_color_t::write_data();
@@ -2073,7 +2236,7 @@ fan_3d::terrain_generator::terrain_generator(const std::string& path, const f32_
 
 	unsigned int first_corners[] = { 1, 0, map_size.x };
 
-	for (int i = 0; i + first_corners[2] < map_size.x * map_size.y; i++) {
+	for (uint_t i = 0; i + first_corners[2] < map_size.x * map_size.y; i++) {
 		auto v = fan::normalize(fan::cross(
 			m_triangle_vertices[first_corners[2] + i] - m_triangle_vertices[first_corners[0] + i],
 			m_triangle_vertices[first_corners[1] + i] - m_triangle_vertices[first_corners[0] + i]
@@ -2806,8 +2969,8 @@ fan::vec3 fan_3d::line_plane_intersection(const fan::da_t<f32_t, 2, 3>& line, co
 
 void fan::get_fps(bool title, bool print) {
 	static int fps = 0;
-	static Timer timer(Timer::start(), 1000);
-	static _Timer<microseconds> frame_time(Timer::start());
+	static timer timer(timer::start(), 1000);
+	static _timer<microseconds> frame_time(timer::start());
 	static int old_fps = 0;
 	float current_frame = glfwGetTime();
 	static float last_frame = 0;

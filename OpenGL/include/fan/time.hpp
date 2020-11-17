@@ -9,15 +9,15 @@ namespace fan {
 	typedef high_resolution_clock chrono_t;
 
 	template <typename T = milliseconds>
-	class _Timer {
+	class _timer {
 	public:
 
 		using value_type = chrono_t::duration::rep;
 
-		_Timer() : time(0) {}
+		_timer() : time(0) {}
 
 
-		_Timer(
+		_timer(
 			const decltype(chrono_t::now())& timer, 
 			uint64_t time = 0
 		) : timer(timer), time(time) { }
@@ -49,6 +49,6 @@ namespace fan {
 		value_type time;
 	};
 	
-	using Timer = _Timer<>;
+	using timer = _timer<>;
 
 }

@@ -56,8 +56,11 @@ namespace fan {
 			b = (int)b ^ (int)color_.b;
 			return *this;
 		}
-		bool operator!=(const color& color_) const {
+		constexpr bool operator!=(const color& color_) const {
 			return r != color_.r || g != color_.g || b != color_.b;
+		}
+		constexpr bool operator==(const color& color_) const {
+			return r == color_.r && g == color_.g && b == color_.b && a == color_.a;
 		}
 		constexpr f32_t operator[](size_t x) const {
 			return !x ? this->r : x == 1 ? this->g : x == 2 ? this->b : x == 3 ? this->a : this->a;

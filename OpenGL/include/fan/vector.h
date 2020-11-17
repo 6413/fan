@@ -710,7 +710,7 @@ namespace fan {
 	template <typename T>
 	constexpr uint64_t vector_size(const std::vector<std::vector<T>>& vector) {
 		uint64_t size = 0;
-		for (auto i : vector) {
+		for (const auto& i : vector) {
 			size += i.size();
 		}
 		return size;
@@ -718,10 +718,6 @@ namespace fan {
 
 	template <typename T>
 	constexpr uint64_t vector_size(const std::vector<T>& vector) {
-		uint64_t size = 0;
-		for (auto i : vector) {
-			size += i.size();
-		}
-		return size;
+		return vector.size();
 	}
 }
