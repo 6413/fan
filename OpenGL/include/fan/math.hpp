@@ -140,8 +140,8 @@ namespace fan {
 		return std::abs(std::abs(dst) - std::abs(src));
 	}
 
-	template <typename _Ty>
-	constexpr auto custom_pythagorean_no_sqrt(const _Ty& src, const _Ty& dst) {
+	template <typename _Ty, typename _Ty2>
+	constexpr f_t custom_pythagorean_no_sqrt(const _Ty& src, const _Ty2& dst) {
 		return std::abs(src[0] - dst[0]) + std::abs(src[1] - dst[1]);
 	}
 

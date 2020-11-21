@@ -25,11 +25,11 @@ const vec2 square_vertices[] = {
 void main() {
     color = shape_color;
 	switch(shape_type) {
-		case 0: {
+		case 1: {
 			gl_Position = projection * view * vec4((gl_VertexID % 2 == 0 ? begin : end), 0, 1);
 			break;
 		}
-		case 1: {
+		case 2: {
 			gl_Position = projection * view * model * vec4(square_vertices[gl_VertexID % square_vertices.length()], 0, 1);
 			break;
 		}
