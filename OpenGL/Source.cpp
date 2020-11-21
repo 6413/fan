@@ -1,25 +1,16 @@
 ﻿#include <fan/graphics.hpp>
-#include <ctime>
 
 int main() {
-	fan_2d::gui::text_renderer s;
+	fan::window window(fan::window_flags::NO_MOUSE);
+	fan::camera camera3d(&window);
 
-	s.push_back("", 0, fan::color(1, 0, 0), 64, fan::color(1));
+	fan_3d::add_camera_rotation_callback(&window, camera3d);
 
-	fan::_timer<fan::milliseconds> timer(fan::timer::start());
+	fan_3d::terrain_generator tg(&window, &camera3d, "images/grass.jpg", 10, 0, 100, 10, 5);
 
-	fan::window_loop(0, [&] {
-		auto end = fan::system_clock::now();
-		std::time_t end_time = fan::system_clock::to_time_t(end);
+	fan::window_loop(&window, 0, [&] {
+		camera3d.move(500);
 
-		s.set_text(0, std::ctime(&end_time), true);
-
-		s.set_outline_color(0, fan::color(fabs(sin((f_t)timer.elapsed() / 1000))), true);
-
-		s.free_queue();
-		
-		s.draw();
+		tg.draw();
 	});
-
-	return 0;
 }

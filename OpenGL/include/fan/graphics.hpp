@@ -1,16 +1,13 @@
 #pragma once
 //#ifndef __INTELLISENSE__ 
 
+
 #define GLEW_STATIC
 #include <GL/glew.h>
-#include <GLFW/glfw3.h>
 
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
-
-#define REQUIRE_GRAPHICS
-#include <fan/global_vars.hpp>
 
 //#define FAN_PERFORMANCE
 #define RAM_SAVER
@@ -25,7 +22,7 @@
 
 #include <fan/types.h>
 #include <fan/color.hpp>
-#include <fan/input.hpp>
+#include <fan/window.hpp>
 #include <fan/math.hpp>
 #include <fan/shader.h>
 #include <fan/time.hpp>
@@ -33,6 +30,8 @@
 #include <fan/soil2/SOIL2.h>
 
 namespace fan {
+	
+	void get_fps(fan::window* window, bool window_title = true, bool print = true, bool text = true);
 
 	#if SYSTEM_BIT == 32
 	constexpr auto GL_FLOAT_T = GL_FLOAT;
@@ -43,13 +42,13 @@ namespace fan {
 
 	class camera {
 	public:
-		camera();
+		camera(fan::window* window);
 
 		void move(f32_t movement_speed, bool noclip = true, f32_t friction = 12);
 		void rotate_camera(bool when);
 
-		fan::mat4 get_view_matrix();
-		fan::mat4 get_view_matrix(fan::mat4 m);
+		fan::mat4 get_view_matrix() const;
+		fan::mat4 get_view_matrix(fan::mat4 m) const;
 
 		fan::vec3 get_position() const;
 		void set_position(const fan::vec3& position);
@@ -90,6 +89,8 @@ namespace fan {
 		fan::vec3 up;
 		fan::vec3 velocity;
 
+		fan::window* m_window;
+
 	};
 
 	void bind_vao(uint32_t vao, const std::function<void()>& function);
@@ -105,7 +106,9 @@ namespace fan {
 		basic_shape_position_vector(const _Vector& position);
 		~basic_shape_position_vector();
 
-		std::vector<_Vector> get_positions() const;
+		std::vector<_Vector> get_positions() const {
+			return this->m_position;
+		}
 		void set_positions(const std::vector<_Vector>& positions);
 
 		virtual _Vector get_position(std::uint64_t i) const;
@@ -136,6 +139,10 @@ namespace fan {
 		basic_shape_size_vector();
 		basic_shape_size_vector(const _Vector& size);
 		~basic_shape_size_vector();
+
+		std::vector<_Vector> get_sizes() const {
+			return m_size;
+		}
 
 		virtual _Vector get_size(std::uint64_t i) const;
 		void set_size(std::uint64_t i, const _Vector& size, bool queue = false);
@@ -201,8 +208,8 @@ namespace fan {
 	class basic_shape_vector : public basic_shape_position_vector<_Vector>, public basic_shape_size_vector<_Vector> {
 	public:
 
-		basic_shape_vector(const fan::shader& shader);
-		basic_shape_vector(const fan::shader& shader, const _Vector& position, const _Vector& size);
+		basic_shape_vector(fan::window* window, const fan::shader& shader);
+		basic_shape_vector(fan::window* window, const fan::shader& shader, const _Vector& position, const _Vector& size);
 		~basic_shape_vector();
 
 		std::uint64_t size() const;
@@ -223,14 +230,18 @@ namespace fan {
 
 		fan::shader m_shader;
 
+		fan::camera m_camera;
+
+		fan::window* m_window;
+
 	};
 
 	template <typename _Vector>
 	class basic_vertice_vector : public basic_shape_position_vector<_Vector>, public basic_shape_color_vector<> {
 	public:
 
-		basic_vertice_vector(const fan::shader& shader);
-		basic_vertice_vector(const fan::shader& shader, const fan::vec2& position, const fan::color& color);
+		basic_vertice_vector(fan::window* window, const fan::shader& shader);
+		basic_vertice_vector(fan::window* window, const fan::shader& shader, const fan::vec2& position, const fan::color& color);
 		~basic_vertice_vector();
 
 		std::uint64_t size() const;
@@ -250,6 +261,9 @@ namespace fan {
 		uint32_t m_vao;
 
 		fan::shader m_shader;
+
+		fan::window* m_window;
+		fan::camera m_camera;
 
 	};
 
@@ -310,10 +324,6 @@ namespace fan {
 
 namespace fan_2d {
 
-	extern fan::mat4 frame_projection;
-	extern fan::mat4 frame_view;
-	extern fan::camera camera;
-
 	namespace shader_paths {
 		constexpr auto text_renderer_vs("include/fan/glsl/2D/text.vs");
 		constexpr auto text_renderer_fs("include/fan/glsl/2D/text.fs");
@@ -335,7 +345,7 @@ namespace fan_2d {
 		constexpr auto sprite_vector_fs("include/fan/glsl/2D/sprite_vector.fs");
 	}
 
-	void move_object(fan::vec2& position, fan::vec2& velocity, f32_t speed, f32_t gravity, f32_t jump_force = -800, f32_t friction = 10);
+	void move_object(fan::window* window, fan::vec2& position, fan::vec2& velocity, f32_t speed, f32_t gravity, f32_t jump_force = -800, f32_t friction = 10);
 
 	constexpr fan::da_t<f32_t, 4, 2> get_square_corners(const fan::da_t<f32_t, 2, 2>& squ) {
 		return fan::da_t<f32_t, 4, 2>{
@@ -346,17 +356,30 @@ namespace fan_2d {
 		};
 	}
 
+	struct square_corners_t {
+		fan::vec2 top_left;
+		fan::vec2 top_right;
+		fan::vec2 bottom_left;
+		fan::vec2 bottom_right;
+		
+		// top left position format
+		static constexpr square_corners_t get_corners(const fan::vec2& position, const fan::vec2& size) {
+			return { position, position + fan::vec2(size.x, 0), position + fan::vec2(0, size.y), position + size };
+		}
+	};
+
 	class basic_single_shape {
 	public:
 
-		basic_single_shape();
-		basic_single_shape(const fan::shader& shader, const fan::vec2& position, const fan::vec2& size);
+		basic_single_shape(fan::window* window);
+		basic_single_shape(fan::window* window, const fan::shader& shader, const fan::vec2& position, const fan::vec2& size);
 
 		~basic_single_shape();
 
 		fan::vec2 get_position() const;
 		fan::vec2 get_size() const;
 		fan::vec2 get_velocity() const;
+		fan::vec2 get_center() const;
 
 		void set_size(const fan::vec2& size);
 		void set_position(const fan::vec2& position);
@@ -377,6 +400,9 @@ namespace fan_2d {
 		fan::shader shader;
 
 		unsigned int vao;
+
+		fan::window* m_window;
+		fan::camera m_camera;
 	};
 
 	struct basic_single_color {
@@ -393,8 +419,8 @@ namespace fan_2d {
 
 	struct line : public basic_single_shape, basic_single_color {
 
-		line();
-		line(const fan::mat2& begin_end, const fan::color& color);
+		line(fan::window* window);
+		line(fan::window* window, const fan::mat2& begin_end, const fan::color& color);
 
 		void draw();
 
@@ -406,37 +432,39 @@ namespace fan_2d {
 	};
 
 	struct square : public basic_single_shape, basic_single_color {
-		square();
-		square(const fan::vec2& position, const fan::vec2& size, const fan::color& color);
+		square(fan::window* window);
+		square(fan::window* window, const fan::vec2& position, const fan::vec2& size, const fan::color& color);
+
+		square_corners_t get_corners() const;
 
 		fan::vec2 center() const;
 
 		void draw();
 	};
 
-	class bloom_square : public basic_single_shape, public basic_single_color {
-	public:
+	//class bloom_square : public basic_single_shape, public basic_single_color {
+	//public:
 
-		bloom_square();
-		bloom_square(const fan::vec2& position, const fan::vec2& size, const fan::color& color);
+	//	bloom_square();
+	//	bloom_square(const fan::vec2& position, const fan::vec2& size, const fan::color& color);
 
-		void bind_fbo() const;
+	//	void bind_fbo() const;
 
-		void draw();
+	//	void draw();
 
-	private:
+	//private:
 
-		unsigned int m_hdr_fbo;
-		unsigned int m_rbo;
-		unsigned int m_color_buffers[2];
-		unsigned int m_pong_fbo[2];
-		unsigned int m_pong_color_buffer[2];
+	//	unsigned int m_hdr_fbo;
+	//	unsigned int m_rbo;
+	//	unsigned int m_color_buffers[2];
+	//	unsigned int m_pong_fbo[2];
+	//	unsigned int m_pong_color_buffer[2];
 
-		//fan::shader m_shader_light = fan::shader("GLSL/bloom.vs", "GLSL/light_box.fs");
-		fan::shader m_shader_blur = fan::shader(fan_2d::shader_paths::single_shapes_blur_vs, fan_2d::shader_paths::single_shapes_blur_fs);
-		fan::shader m_shader_bloom = fan::shader(fan_2d::shader_paths::single_shapes_bloom_vs, fan_2d::shader_paths::single_shapes_bloom_fs);
-		
-	};
+	//	//fan::shader m_shader_light = fan::shader("GLSL/bloom.vs", "GLSL/light_box.fs");
+	//	fan::shader m_shader_blur = fan::shader(fan_2d::shader_paths::single_shapes_blur_vs, fan_2d::shader_paths::single_shapes_blur_fs);
+	//	fan::shader m_shader_bloom = fan::shader(fan_2d::shader_paths::single_shapes_bloom_vs, fan_2d::shader_paths::single_shapes_bloom_fs);
+	//	
+	//};
 
 	struct image_info {
 		fan::vec2i image_size;
@@ -445,11 +473,11 @@ namespace fan_2d {
 
 	class sprite : public basic_single_shape {
 	public:
-		sprite();
+		sprite(fan::window* window);
 
 		// scale with default is sprite size
-		sprite(const std::string& path, const fan::vec2& position, const fan::vec2& size = 0, f_t transparency = 1);
-		sprite(unsigned char* pixels, const fan::vec2& position, const fan::vec2i& size = 0, f_t transparency = 1);
+		sprite(fan::window* window, const std::string& path, const fan::vec2& position, const fan::vec2& size = 0, f_t transparency = 1);
+		sprite(fan::window* window, unsigned char* pixels, const fan::vec2& position, const fan::vec2i& size = 0, f_t transparency = 1);
 
 		void reload_image(unsigned char* pixels, const fan::vec2i& size);
 		void reload_image(const std::string& path, const fan::vec2i& size, bool flip_image = false);
@@ -467,27 +495,27 @@ namespace fan_2d {
 		f32_t m_rotation;
 		f_t m_transparency;
 
-		unsigned int texture;
+		unsigned int m_texture;
 	};
 
-	class animation : public basic_single_shape {
+	/*class animation : public basic_single_shape {
 	public:
 
 		animation(const fan::vec2& position, const fan::vec2& size);
 
 		void add(const std::string& path);
 
-		void draw(std::uint64_t texture);
+		void draw(std::uint64_t m_texture);
 
 	private:
 		std::vector<unsigned int> m_textures;
-	};
+	};*/
 
 	class vertice_vector : public fan::basic_vertice_vector<fan::vec2> {
 	public:
 
-		vertice_vector(uint_t index_restart = UINT32_MAX);
-		vertice_vector(const fan::vec2& position, const fan::color& color, uint_t index_restart);
+		vertice_vector(fan::window* window, uint_t index_restart = UINT32_MAX);
+		vertice_vector(fan::window* window, const fan::vec2& position, const fan::color& color, uint_t index_restart);
 
 		void release_queue(bool position, bool color, bool indices);
 
@@ -509,8 +537,8 @@ namespace fan_2d {
 
 	class line_vector : public fan::basic_shape_vector<fan::vec2>, public fan::basic_shape_color_vector<> {
 	public:
-		line_vector();
-		line_vector(const fan::mat2& begin_end, const fan::color& color);
+		line_vector(fan::window* window);
+		line_vector(fan::window* window, const fan::mat2& begin_end, const fan::color& color);
 
 		void push_back(const fan::mat2& begin_end, const fan::color& color, bool queue = false);
 
@@ -542,8 +570,8 @@ namespace fan_2d {
 	class square_vector : public fan::basic_shape_vector<fan::vec2>, public fan::basic_shape_color_vector<> {
 	public:
 
-		square_vector();
-		square_vector(const fan::vec2& position, const fan::vec2& size, const fan::color& color);
+		square_vector(fan::window* window);
+		square_vector(fan::window* window, const fan::vec2& position, const fan::vec2& size, const fan::color& color);
 
 		fan_2d::square construct(uint_t i);
 
@@ -556,13 +584,12 @@ namespace fan_2d {
 
 		fan::vec2 center(uint_t i) const;
 
-		std::vector<fan::mat2> get_icorners() const;
+		fan_2d::square_corners_t get_corners(uint_t i) const;
 
 		void move(uint_t i, f32_t speed, f32_t gravity = 0, f32_t jump_force = -800, f32_t friction = 10);
 
 	private:
 
-		std::vector<fan::mat2> m_icorners;
 		std::vector<fan::vec2> m_velocity;
 
 	};
@@ -570,8 +597,8 @@ namespace fan_2d {
 	class sprite_vector : public fan::basic_shape_vector<fan::vec2> {
 	public:
 
-		sprite_vector();
-		sprite_vector(const std::string& path, const fan::vec2& position, const fan::vec2& size = 0);
+		sprite_vector(fan::window* window);
+		sprite_vector(fan::window* window, const std::string& path, const fan::vec2& position, const fan::vec2& size = 0);
 		~sprite_vector();
 
 		void push_back(const fan::vec2& position, const fan::vec2& size = 0, bool queue = false);
@@ -582,18 +609,20 @@ namespace fan_2d {
 
 	protected:
 
-		unsigned int texture;
+		unsigned int m_texture;
 		fan::vec2i m_original_image_size;
 
 	};
 
 	struct particle {
 		fan::vec2 m_velocity;
-		fan::timer m_timer; // milli
+		fan::timer<> m_timer; // milli
 	};
 
 	class particles : public fan_2d::square_vector {
 	public:
+
+		particles(fan::window* window);
 
 		void add(
 			const fan::vec2& position, 
@@ -696,9 +725,7 @@ namespace fan_2d {
 			return normals;
 		}
 
-
-		
-		inline uint8_t ProcessCollision_fl(fan::da_t<f32_t, 2, 2>& pos, fan::da_t<f32_t, 2>& vel, const std::vector<fan::da_t<f32_t, 2, 2>>& walls) {
+		inline uint8_t ProcessCollision_fl(fan::da_t<f32_t, 2, 2>& pos, fan::da_t<f32_t, 2>& vel, const std::vector<fan::vec2>& wall_positions, const std::vector<fan::vec2>& wall_sizes) {
 			fan::da_t<f32_t, 2> pvel = vel;
 
 			if (!pvel[0] && !pvel[1])
@@ -722,8 +749,12 @@ namespace fan_2d {
 
 			fan::da_t<f32_t, 2> lvel = pvel;
 			fan::da_t<f32_t, 2> nvel = 0;
-			for (ui_t iwall = 0; iwall < walls.size(); iwall++) {
-				fan::da_t<f32_t, 4, 2> bcorn = Math_SquToQuad_fr(walls[iwall]);
+			for (ui_t iwall = 0; iwall < wall_positions.size(); iwall++) {
+				if (fan::custom_pythagorean_no_sqrt(pos[0], pos[1]) < fan::custom_pythagorean_no_sqrt(pos[0], wall_positions[iwall])) {
+					continue;
+				}
+
+				fan::da_t<f32_t, 4, 2> bcorn = Math_SquToQuad_fr(fan::da_t<f32_t, 2, 2>{wall_positions[iwall], wall_positions[iwall] + wall_sizes[iwall]});
 
 				/* step -1 */
 				for (ui_t i = 0; i < 4; i++) {
@@ -747,17 +778,16 @@ namespace fan_2d {
 			return 1;
 		}
 
-		#define ProcessCollision_dl(pos_m, vel_m, walls_m) \
-			while(ProcessCollision_fl(pos_m, vel_m, walls_m))
+		#define ProcessCollision_dl(pos_m, vel_m, wall_positions_m, wall_sizes_m) \
+			while(ProcessCollision_fl(pos_m, vel_m, wall_positions_m, wall_sizes_m))
 
-		inline void rectangle_collision(fan_2d::square& player, const fan_2d::square_vector& walls) {
+		inline void rectangle_collision(fan::window* window, fan_2d::square& player, const fan_2d::square_vector& walls) {
 			const fan::da_t<f32_t, 2> size = player.get_size();
 			const fan::da_t<f32_t, 2> base = player.get_velocity();
-			fan::da_t<f32_t, 2> velocity = base * fan::delta_time;
+			fan::da_t<f32_t, 2> velocity = base * window->get_delta_time();
 			const fan::da_t<f32_t, 2> old_position = player.get_position() - velocity;
 			fan::da_t<f32_t, 2, 2> my_corners(old_position, old_position + size);
-			const auto wall_corners = walls.get_icorners();
-			ProcessCollision_dl(my_corners, velocity, wall_corners);
+			ProcessCollision_dl(my_corners, velocity, walls.get_positions(), walls.get_sizes());
 			player.set_position(my_corners[0]);
 		}
 
@@ -772,45 +802,45 @@ namespace fan_2d {
 
 	namespace gui {
 		
-		fan::vec2 get_resize_movement_offset();
+		fan::vec2 get_resize_movement_offset(fan::window* window);
 
-		void add_resize_callback(fan::vec2& position);
+		void add_resize_callback(fan::window* window, fan::vec2& position);
 
 		struct square : public fan_2d::square {
 
-			square();
-			square(const fan::vec2& position, const fan::vec2& size, const fan::color& color);
+			square(fan::window* window);
+			square(fan::window* window,const fan::vec2& position, const fan::vec2& size, const fan::color& color);
 
 		};
 
 		struct square_vector : public fan_2d::square_vector {
 
-			square_vector();
-			square_vector(const fan::vec2& position, const fan::vec2& size, const fan::color& color);
+			square_vector(fan::window* window);
+			square_vector(fan::window* window, const fan::vec2& position, const fan::vec2& size, const fan::color& color);
 
 		};
 
 		struct sprite : public fan_2d::sprite {
 
-			sprite();
+			sprite(fan::window* window);
 			// scale with default is sprite size
-			sprite(const std::string& path, const fan::vec2& position, const fan::vec2& size = 0, f_t transparency = 1);
-			sprite(unsigned char* pixels, const fan::vec2& position, const fan::vec2i& size = 0, f_t transparency = 1);
+			sprite(fan::window* window, const std::string& path, const fan::vec2& position, const fan::vec2& size = 0, f_t transparency = 1);
+			sprite(fan::window* window, unsigned char* pixels, const fan::vec2& position, const fan::vec2i& size = 0, f_t transparency = 1);
 
 		};
 
 		struct sprite_vector : public fan_2d::sprite_vector {
 
-			sprite_vector();
-			sprite_vector(const std::string& path, const fan::vec2& position, const fan::vec2& size = 0);
+			sprite_vector(fan::window* window);
+			sprite_vector(fan::window* window, const std::string& path, const fan::vec2& position, const fan::vec2& size = 0);
 
 		};
 
 		class rounded_rectangle : public fan_2d::vertice_vector {
 		public:
 
-			rounded_rectangle();
-			rounded_rectangle(const fan::vec2& position, const fan::vec2& size, const fan::color& color);
+			rounded_rectangle(fan::window* window);
+			rounded_rectangle(fan::window* window, const fan::vec2& position, const fan::vec2& size, const fan::color& color);
 
 			void push_back(const fan::vec2& position, const fan::vec2& size, const fan::color& color, bool queue = false);
 
@@ -852,11 +882,13 @@ namespace fan_2d {
 			using text_color_t = fan::basic_shape_color_vector_vector<0, GL_SHADER_STORAGE_BUFFER>;
 			using outline_color_t = fan::basic_shape_color_vector_vector<4, GL_SHADER_STORAGE_BUFFER>;
 
-			text_renderer();
+			text_renderer(fan::window* window);
+			text_renderer(fan::window* window, const std::string& text, const fan::vec2& position, const fan::color& text_color, f_t font_size, const fan::color& outline_color = -1, bool queue = false);
 			~text_renderer();
 
 			fan::vec2 get_position(uint_t i) const;
-
+			
+			void set_position(uint_t i, const fan::vec2& position, bool queue = false);
 			void set_font_size(uint_t i, f_t font_size, bool queue = false);
 			void set_text(uint_t i, const std::string& text, bool queue = false);
 			void set_text_color(uint_t i, const fan::color& color, bool queue = false);
@@ -870,13 +902,15 @@ namespace fan_2d {
 
 			void erase(uint_t i, bool queue = false);
 
+			uint_t size() const;
+
 		private:
 
 			uint_t get_character_offset(uint_t i, bool special);
 			
 			std::vector<fan::vec2> get_vertices(uint_t i);
 			std::vector<fan::vec2> get_texture_coordinates(uint_t i);
-			std::vector<f_t> get_font_size(uint_t i);
+			std::vector<f32_t> get_font_size(uint_t i);
 
 			void load_characters(uint_t i, fan::vec2 position, const std::string& text, bool edit, bool insert);
 
@@ -914,10 +948,47 @@ namespace fan_2d {
 			std::vector<std::vector<fan::vec2>> m_vertices;
 			std::vector<std::vector<fan::vec2>> m_texture_coordinates;
 
+			fan::window* m_window;
+			fan::camera m_camera;
+
 		};
 
-	}
+		//inline fan_2d::gui::text_renderer global_text_renderer("", 0, 1, 32);
 
+		struct text_draw_info {
+			uint_t id;
+			fan::vec2 position;
+			fan::color color;
+			f_t font_size;
+		};
+
+		namespace static_function_variables {
+			inline std::map<std::string, text_draw_info> text_draw_strings;
+		}
+
+		//static void draw_text_basic(const std::string& map_string, const std::string& text, const fan::vec2& position, const fan::color& color, f_t font_size) {
+		//	auto found = fan_2d::gui::static_function_variables::text_draw_strings.find(map_string);
+
+		//	if (found == fan_2d::gui::static_function_variables::text_draw_strings.end()) {
+		//		fan_2d::gui::static_function_variables::text_draw_strings.insert(std::make_pair(map_string, text_draw_info{ fan_2d::gui::global_text_renderer.size(), position, color, font_size }));
+		//		fan_2d::gui::global_text_renderer.push_back(text, position, color, font_size);
+		//	}
+		//	else {
+		//		const auto& object = fan_2d::gui::static_function_variables::text_draw_strings[map_string];
+
+		//		fan_2d::gui::global_text_renderer.set_position(object.id, position, true);
+		//		fan_2d::gui::global_text_renderer.set_text_color(object.id, color, true);
+		//		fan_2d::gui::global_text_renderer.set_font_size(object.id, font_size, true);
+		//		fan_2d::gui::global_text_renderer.set_text(object.id, text, true);
+
+		//		fan_2d::gui::global_text_renderer.free_queue();
+		//	}
+		//}
+
+		//// will update when std::source_location is implemented
+		//#define draw_text(text, position, color, font_size) draw_text_basic(std::string(__FILE__) + ':' + std::to_string(__LINE__) + ':' + text, text, position, color, font_size);
+
+	}
 }
 
 namespace fan_3d {
@@ -938,17 +1009,13 @@ namespace fan_3d {
 		constexpr auto skybox_model_fs("include/fan/glsl/3D/skybox_model.fs");
 	}
 
-	extern fan::camera camera;
-	extern fan::mat4 frame_projection;
-	extern fan::mat4 frame_view;
-
-	void add_camera_rotation_callback();
+	void add_camera_rotation_callback(fan::window* window, fan::camera& camera);
 
 	class line_vector : public fan::basic_shape_vector<fan::vec3>, public fan::basic_shape_color_vector<> {
 	public:
 
-		line_vector();
-		line_vector(const fan::mat2x3& begin_end, const fan::color& color);
+		line_vector(fan::window* window);
+		line_vector(fan::window* window, const fan::mat2x3& begin_end, const fan::color& color);
 
 		void push_back(const fan::mat2x3& begin_end, const fan::color& color, bool queue = false);
 
@@ -970,7 +1037,7 @@ namespace fan_3d {
 	class terrain_generator : public fan::basic_shape_color_vector<> {
 	public:
 
-		terrain_generator(const std::string& path, const f32_t texture_scale, const fan::vec3& position, const fan::vec2ui& map_size, f_t triangle_size, const fan::vec2& mesh_size);
+		terrain_generator(fan::window* window, fan::camera* camera, const std::string& path, const f32_t texture_scale, const fan::vec3& position, const fan::vec2ui& map_size, f_t triangle_size, const fan::vec2& mesh_size);
 		~terrain_generator();
 
 		void insert(const std::vector<triangle_vertices_t>& vertices, const std::vector<fan::color>& color, bool queue = false);
@@ -1007,6 +1074,9 @@ namespace fan_3d {
 		std::vector<unsigned int> m_indices;
 		static constexpr auto m_vertice_size = sizeof(triangle_vertices_t);
 
+		fan::window* m_window;
+		fan::camera* m_camera;
+
 	};
 
 	struct plane_corners {
@@ -1030,8 +1100,8 @@ namespace fan_3d {
 	class square_vector : protected fan::basic_shape_vector<fan::vec3>, public fan::basic_shape_color_vector<> {
 	public:
 
-		square_vector(const std::string& path, std::uint64_t block_size);
-		square_vector(const fan::color& color, std::uint64_t block_size);
+		square_vector(fan::window* window, const std::string& path, std::uint64_t block_size);
+		square_vector(fan::window* window, const fan::color& color, std::uint64_t block_size);
 		~square_vector();
 
 		void push_back(const fan::vec3& src, const fan::vec3& dst, const fan::vec2& texture_id, bool queue = false);
@@ -1071,6 +1141,7 @@ namespace fan_3d {
 	class skybox {
 	public:
 		skybox(
+			fan::window* window,
 			const std::string& left,
 			const std::string& right,
 			const std::string& front,
@@ -1089,7 +1160,7 @@ namespace fan_3d {
 
 
 		fan::shader shader;
-		fan::camera* camera;
+		fan::camera camera;
 		static constexpr float skyboxVertices[108] = {
 			-1.0f,  1.0f, -1.0f,
 			-1.0f, -1.0f, -1.0f,
@@ -1185,8 +1256,8 @@ namespace fan_3d {
 
 	class model : public model_loader {
 	public:
-		model() :model_loader("", fan::vec3()), m_shader(fan_3d::shader_paths::model_vs, fan_3d::shader_paths::model_fs) {}
-		model(const std::string& path, const fan::vec3& position, const fan::vec3& size);
+		model(fan::window* window) : model_loader("", fan::vec3()), m_shader(fan_3d::shader_paths::model_vs, fan_3d::shader_paths::model_fs), m_window(window), m_camera(window){}
+		model(fan::window* window, const std::string& path, const fan::vec3& position, const fan::vec3& size);
 
 		void draw();
 
@@ -1201,6 +1272,9 @@ namespace fan_3d {
 
 		fan::vec3 m_position;
 		fan::vec3 m_size;
+
+		fan::window* m_window;
+		fan::camera m_camera;
 
 	};
 
@@ -1222,8 +1296,6 @@ namespace fan_3d {
 }
 
 namespace fan {
-
-	void get_fps(bool title = true, bool print = false);
 
 	constexpr int world_size = 150;
 
@@ -1295,22 +1367,21 @@ namespace fan {
 			while(grid_raycast_single(raycast, block_size))
 
 	void begin_render(const fan::color& background_color);
-	void end_render();
+	void end_render(fan::window* window);
 
 	static void vsync() {
 		glfwSwapInterval(1);
 	}
 
-	static void window_loop(const fan::color& color, const std::function<void()>& function_, bool vsync_ = false) {
-		while (!glfwWindowShouldClose(fan::window)) {
+	static void window_loop(fan::window* window, const fan::color& color, const std::function<void()>& function_, bool vsync_ = false) {
+		while (!window->close()) {
 			begin_render(color);
 			function_();
-			end_render();
+			end_render(window);
 			if (vsync_) {
 				fan::vsync();
 			}
 		}
-		glfwDestroyWindow(fan::window);
 		glfwTerminate();
 	}
 
@@ -1319,5 +1390,4 @@ namespace fan {
 		function_();
 		glEnable(GL_DEPTH_TEST);
 	}
-
 }

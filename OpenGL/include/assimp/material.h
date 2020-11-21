@@ -1575,7 +1575,7 @@ ASSIMP_API aiReturn aiGetMaterialTexture(const C_STRUCT aiMaterial* mat,
     ai_real* blend              = NULL,
     aiTextureOp* op             = NULL,
     aiTextureMapMode* mapmode   = NULL,
-    unsigned int* flags         = NULL);
+    unsigned int* window_flags         = NULL);
 #else
 C_ENUM aiReturn aiGetMaterialTexture(const C_STRUCT aiMaterial* mat,
     C_ENUM aiTextureType type,
