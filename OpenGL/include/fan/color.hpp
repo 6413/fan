@@ -4,6 +4,7 @@
 #include <fan/types.h>
 
 namespace fan {
+
 	class color {
 	public:
 
@@ -28,7 +29,7 @@ namespace fan {
 		}
 
 		f32_t r, g, b, a;
-		color() : r(0), g(0), b(0), a(1) {}
+		constexpr color() : r(0), g(0), b(0), a(1) {}
 
 		constexpr color(f32_t r, f32_t g, f32_t b, f32_t a = 1) : r(r), g(g), b(b), a(a) {
 			this->r = r;
@@ -86,6 +87,14 @@ namespace fan {
 		}
 
 	};
+
+	namespace colors {
+		static constexpr fan::color red = fan::color(1, 0, 0);
+		static constexpr fan::color green = fan::color(0, 1, 0);
+		static constexpr fan::color blue = fan::color(0, 0, 1);
+		static constexpr fan::color white = fan::color(1, 1, 1);
+		static constexpr fan::color black =  fan::color(0, 0, 0);
+	}
 
 	inline std::ostream& operator<<(std::ostream& os, const color& color_) noexcept
 	{

@@ -48,7 +48,7 @@ namespace fan {
 		template <typename T>
 		constexpr _vec2(const _vec3<T>& vec) : x(vec.x), y(vec.y) { }
 		template <typename T>
-		constexpr _vec2(const list<T, 2>& _array) : x(_array[0]), y(_array[1]) {}
+		constexpr _vec2(const list<T, 2>& _array) : x(_array[0]), y(_array[1]) { }
 
 		template <typename T>
 		constexpr _vec2<type>& operator=(const _vec2<T>& vector) {

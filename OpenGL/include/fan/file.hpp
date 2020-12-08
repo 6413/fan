@@ -1,8 +1,9 @@
 #pragma once
-#include <iostream>
-#include <string>
+
+#include <fan/types.h>
+
 #include <fstream>
-#include <vector>
+#include <string>
 
 namespace fan {
 	namespace io {
