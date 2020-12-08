@@ -1,16 +1,42 @@
 ﻿#include <fan/graphics.hpp>
 
 int main() {
-	fan::window window(fan::window_flags::NO_MOUSE);
-	fan::camera camera3d(&window);
 
-	fan_3d::add_camera_rotation_callback(&window, camera3d);
+	fan::window window("window", fan::window::default_window_size);
 
-	fan_3d::terrain_generator tg(&window, &camera3d, "images/grass.jpg", 10, 0, 100, 10, 5);
+	window.vsync(false);
 
-	fan::window_loop(&window, 0, [&] {
-		camera3d.move(500);
+	window.add_key_callback(fan::input::key_escape, [&] {
+		window.close();
+	});
 
-		tg.draw();
+	bool fullscreen = false;
+
+	window.add_key_callback(fan::input::key_f, [&] {
+		if (fullscreen = !fullscreen) {
+			window.set_full_screen(fan::window::resolutions::r_1920x1080);
+		}
+		else {
+			window.set_windowed();
+		}
+	});
+
+	fan::camera c(window);
+
+	fan_2d::square s(c, window.get_size() / 2, 100, fan::color(1, 0, 0, 1));
+
+	fan_2d::gui::text_renderer tr(c, " ", 0, fan::colors::white, 16, fan::colors::blue);
+
+	window.loop(fan::colors::black, [&] {
+		
+		if (uint_t fps = window.get_fps()) {
+			tr.set_text(0, "fps: " + std::to_string(fps));
+		}
+
+		s.draw();
+		tr.draw();
+
+		s.move(100);
+
 	});
 }

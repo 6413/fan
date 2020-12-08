@@ -8,7 +8,6 @@ out vec3 outline_color;
 out vec3 text_color;
 
 uniform mat4 projection;
-uniform mat4 view;
 
 layout(std430, binding = 0) buffer text_color_layout
 {
@@ -30,5 +29,5 @@ void main() {
     outline_color = outline_colors[gl_VertexID / 6].xyz;
     text_color = text_colors[gl_VertexID / 6].xyz;
     texture_coordinates = texture_coordinate;
-	gl_Position = projection * view * vec4(vertex, 0, 1);
+	gl_Position = projection * vec4(vertex, 0, 1);
 }

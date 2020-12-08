@@ -1,7 +1,6 @@
 #pragma once
 
 #define GLEW_STATIC
-#include <GLFW/glfw3.h>
 #include <GL/glew.h>
 
 #include <string>
@@ -15,62 +14,48 @@ namespace fan {
 	class shader {
     public:
         shader() : id(-1) {}
-        unsigned int id;
-        // constructor generates the shader on the fly
-        // ------------------------------------------------------------------------
-        shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath = nullptr)
+
+        shader(const std::string& vertex_path, const std::string& fragment_path, const std::string& geometry_path = std::string())
         {
-            // 1. retrieve the vertex/fragment source code from filePath
             std::string vertexCode;
             std::string fragmentCode;
             std::string geometryCode;
             std::ifstream vShaderFile;
             std::ifstream fShaderFile;
             std::ifstream gShaderFile;
-            // ensure ifstream objects can throw exceptions:
-            vShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-            fShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-            gShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-            try
-            {
-                // open files
-                if (!fan::io::file::exists(vertexPath)) {
-                    fan::print("vertex shader does not exist:", vertexPath);
-                    exit(1);
-                }
-                if (!fan::io::file::exists(fragmentPath)) {
-                    fan::print("fragment shader does not exist:", fragmentPath);
-                    exit(1);
-                }
-                vShaderFile.open(vertexPath);
-                fShaderFile.open(fragmentPath);
-                std::stringstream vShaderStream, fShaderStream;
-                // read file's buffer contents into streams
-                vShaderStream << vShaderFile.rdbuf();
-                fShaderStream << fShaderFile.rdbuf();
-                // close file handlers
-                vShaderFile.close();
-                fShaderFile.close();
-                // convert stream into string
-                vertexCode = vShaderStream.str();
-                fragmentCode = fShaderStream.str();
-                // if geometry shader path is present, also load a geometry shader
-                if (geometryPath != nullptr)
-                {
-                     if (!fan::io::file::exists(geometryPath)) {
-                        fan::print("geometry shader does not exist:", geometryPath);
-                        exit(1);
-                    }
-                    gShaderFile.open(geometryPath);
-                    std::stringstream gShaderStream;
-                    gShaderStream << gShaderFile.rdbuf();
-                    gShaderFile.close();
-                    geometryCode = gShaderStream.str();
-                }
+
+            if (!fan::io::file::exists(vertex_path)) {
+                fan::print("vertex shader does not exist:", vertex_path);
+                exit(1);
             }
-            catch (const std::ifstream::failure& e)
+            if (!fan::io::file::exists(fragment_path)) {
+                fan::print("fragment shader does not exist:", fragment_path);
+                exit(1);
+            }
+            vShaderFile.open(vertex_path);
+            fShaderFile.open(fragment_path);
+            std::stringstream vShaderStream, fShaderStream;
+            // read file's buffer contents into streams
+            vShaderStream << vShaderFile.rdbuf();
+            fShaderStream << fShaderFile.rdbuf();
+            // close file handlers
+            vShaderFile.close();
+            fShaderFile.close();
+            // convert stream into string
+            vertexCode = vShaderStream.str();
+            fragmentCode = fShaderStream.str();
+            // if geometry shader path is present, also load a geometry shader
+            if (!geometry_path.empty())
             {
-                std::cout << "ERROR::SHADER::FILE_NOT_SUCCESFULLY_READ" << std::endl;
+                if (!fan::io::file::exists(geometry_path)) {
+                    fan::print("geometry shader does not exist:", geometry_path);
+                    exit(1);
+                }
+                gShaderFile.open(geometry_path);
+                std::stringstream gShaderStream;
+                gShaderStream << gShaderFile.rdbuf();
+                gShaderFile.close();
+                geometryCode = gShaderStream.str();
             }
             const char* vShaderCode = vertexCode.c_str();
             const char* fShaderCode = fragmentCode.c_str();
@@ -89,7 +74,7 @@ namespace fan {
             checkCompileErrors(fragment, "FRAGMENT");
             // if geometry shader is given, compile geometry shader
             unsigned int geometry;
-            if (geometryPath != nullptr)
+            if (!geometry_path.empty())
             {
                 const char* gShaderCode = geometryCode.c_str();
                 geometry = glCreateShader(GL_GEOMETRY_SHADER);
@@ -101,14 +86,16 @@ namespace fan {
             id = glCreateProgram();
             glAttachShader(id, vertex);
             glAttachShader(id, fragment);
-            if (geometryPath != nullptr)
+
+            if (!geometry_path.empty())
                 glAttachShader(id, geometry);
+
             glLinkProgram(id);
             checkCompileErrors(id, "PROGRAM");
-            // delete the shaders as they're linked into our program now and no longer necessery
+
             glDeleteShader(vertex);
             glDeleteShader(fragment);
-            if (geometryPath != nullptr)
+            if (!geometry_path.empty())
                 glDeleteShader(geometry);
 
         }
@@ -195,6 +182,8 @@ namespace fan {
                 glUniformMatrix4dv(glGetUniformLocation(id, name.c_str()), 1, GL_FALSE, (f64_t*)&mat[0][0]);
             }
         }
+
+        unsigned int id;
 
     private:
 
