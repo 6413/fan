@@ -5,22 +5,18 @@
 #define GLEW_STATIC
 #include <GL/glew.h>
 
-#include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+#include <assimp/Importer.hpp>
 
 //#define FAN_PERFORMANCE
 #define RAM_SAVER
 
-#include <vector>
-#include <array>
-#include <map>
-#include <deque>
-
-#include <fan/types.h>
+#include <fan/types/da.hpp>
+#include <fan/math/matrix.hpp>
 #include <fan/color.hpp>
 #include <fan/window/window.hpp>
-#include <fan/math.hpp>
+#include <fan/math/math.hpp>
 #include <fan/shader.h>
 #include <fan/time.hpp>
 #include <fan/network.hpp>
@@ -38,6 +34,9 @@ namespace fan {
 	class camera {
 	public:
 		camera(fan::window& window);
+
+		fan::camera& operator=(const fan::camera& camera);
+		fan::camera& operator=(fan::camera&& camera) noexcept;
 
 		void move(f32_t movement_speed, bool noclip = true, f32_t friction = 12);
 		void rotate_camera(bool when);
@@ -69,92 +68,363 @@ namespace fan {
 		static constexpr f32_t gravity = 500;
 		static constexpr f32_t jump_force = 100;
 
-		static constexpr fan::vec3 world_up = fan::vec3(0, 0, 1);
+		static constexpr fan::vec3 world_up = fan::vec3(0, 1, 0);
 
-		bool jumping;
 		fan::window& m_window;
 
 	private:
 
-		fan::vec3 position;
-		fan::vec3 front;
+		fan::vec3 m_position;
+		fan::vec3 m_front;
 
-		f32_t yaw;
-		f32_t pitch;
-		fan::vec3 right;
-		fan::vec3 up;
-		fan::vec3 velocity;
+		f32_t m_yaw;
+		f32_t m_pitch;
+		fan::vec3 m_right;
+		fan::vec3 m_up;
+		fan::vec3 m_velocity;
 
 	};
 
+	static fan::vec2 random_vector(f_t min, f_t max) {
+		return fan::vec2(fan::random<int64_t, int64_t>(min, max), fan::random<int64_t, int64_t>(min, max));
+	}
+
 	void bind_vao(uint32_t vao, const std::function<void()>& function);
 
-	void write_glbuffer(unsigned int buffer, void* data, std::uint64_t size, uint_t target = GL_ARRAY_BUFFER, uint_t location = -1);
-	void edit_glbuffer(unsigned int buffer, void* data, uint_t offset, uint_t size, uint_t target = GL_ARRAY_BUFFER,  uint_t location = -1);
+	void write_glbuffer(unsigned int buffer, void* data, uint_t size, uint_t target = GL_ARRAY_BUFFER, uint_t location = fan::uninitialized);
+	void edit_glbuffer(unsigned int buffer, void* data, uint_t offset, uint_t size, uint_t target = GL_ARRAY_BUFFER,  uint_t location = fan::uninitialized);
 
-	template <typename _Vector>
-	class basic_shape_position_vector {
+	/*class vao_handler {
+	public:
+
+		vao_handler();
+
+		vao_handler(const vao_handler& handler);
+		vao_handler(vao_handler&& handler) noexcept;
+
+		vao_handler& operator=(const vao_handler& handler);
+		vao_handler& operator=(vao_handler&& handler) noexcept;
+
+		~vao_handler();
+
+		void generate_vertex_array();
+		void erase_vertex_array();
+
+	protected:
+
+		uint32_t m_vao;
+
+	};*/
+
+	template <bool _Test, uint_t _Ty1, uint_t _Ty2>
+	struct conditional_value {
+		static constexpr auto value = _Ty1;
+	};
+
+	template <uint_t _Ty1, uint_t _Ty2>
+	struct conditional_value<false, _Ty1, _Ty2> {
+		static constexpr auto value = _Ty2;
+	};
+
+	template <bool _Test, uint_t _Ty1, uint_t _Ty2>
+	struct conditional_value_t {
+		static constexpr auto value = conditional_value<_Test, _Ty1, _Ty2>::value;
+	};
+
+	enum class opengl_buffer_type {
+		vbo,
+		vao,
+		ssbo,
+		texture,
+		last
+	};
+
+	template <opengl_buffer_type buffer_type, opengl_buffer_type I = opengl_buffer_type::last, typename ...T>
+	constexpr auto comparer(const T&... x) {
+		if constexpr (buffer_type == I) {
+			std::get<static_cast<int>(I)>(std::forward_as_tuple(x...))();
+		}
+		else if (static_cast<int>(I) > 0) {
+			comparer<buffer_type, static_cast<opengl_buffer_type>(static_cast<int>(I) - 1)>(x...);
+		}
+	}
+
+	// locations are for vbo, ssbo, make sure locations dont collide
+
+	#define base_object_builder(class_name, variable_name, buffer_type, layout_location) \
+	class class_name { \
+	public:\
+	\
+		static constexpr uint_t gl_buffer =\
+			conditional_value<buffer_type == opengl_buffer_type::vbo, GL_ARRAY_BUFFER, \
+			conditional_value<buffer_type == opengl_buffer_type::vao, 0,\
+			conditional_value<buffer_type == opengl_buffer_type::ssbo, GL_SHADER_STORAGE_BUFFER, static_cast<uint_t>(fan::uninitialized)>::value>::value>::value;\
+	\
+		void allocate_buffer() {\
+			comparer<buffer_type>(\
+				[&] { glGenBuffers(1, &variable_name); },\
+				[&] { glGenVertexArrays(1, &variable_name); },\
+				[&] { glGenBuffers(1, &variable_name); },\
+				[&] { glGenTextures(1, &variable_name); }\
+			);\
+		}\
+	\
+		void free_buffer() {\
+			fan_validate_buffer(variable_name, {\
+				comparer<buffer_type>(\
+					[&] { glDeleteBuffers(1, &variable_name); },\
+					[&] { glDeleteVertexArrays(1, &variable_name); },\
+					[&] { glDeleteBuffers(1, &variable_name); },\
+					[&] { glDeleteTextures(1, &variable_name); }\
+				);\
+				variable_name = fan::uninitialized;\
+			});\
+		}\
+	\
+		class_name() : variable_name(fan::uninitialized) {\
+			this->allocate_buffer();\
+		}\
+	\
+		~class_name() {\
+			this->free_buffer();\
+		}\
+	\
+		\
+		class_name(const class_name& handler) : variable_name(fan::uninitialized) {\
+			this->allocate_buffer();\
+		}\
+	\
+		class_name(class_name&& handler) noexcept : variable_name(fan::uninitialized) {\
+			this->operator=(std::move(handler));\
+		}\
+	\
+		class_name& operator=(const class_name& handler) {\
+	\
+			this->free_buffer();\
+	\
+			this->allocate_buffer();\
+	\
+			return *this;\
+		}\
+	\
+		class_name& operator=(class_name&& handler) {\
+	\
+			this->free_buffer();\
+	\
+			this->variable_name = handler.variable_name;\
+	\
+			handler.variable_name = fan::uninitialized;\
+	\
+			return *this;\
+		}\
+	\
+		template <opengl_buffer_type T = buffer_type, typename = std::enable_if_t<T == opengl_buffer_type::ssbo>>\
+		void bind_gl_storage_buffer() const {\
+			glBindBufferBase(gl_buffer, layout_location, variable_name);\
+		}\
+	\
+		template <opengl_buffer_type T = buffer_type, typename = std::enable_if_t<T != opengl_buffer_type::texture && T != opengl_buffer_type::vao>>\
+		void edit_data(void* data, uint_t offset, uint_t byte_size) {\
+			fan::edit_glbuffer(variable_name, data, offset, byte_size, gl_buffer, layout_location);\
+		}\
+	\
+		uint32_t variable_name;\
+	\
+	protected:\
+	\
+		template <opengl_buffer_type T = buffer_type, typename = std::enable_if_t<T == opengl_buffer_type::vbo && T != opengl_buffer_type::vao>>\
+		void edit_data(uint_t i, void* data, uint_t byte_size_single) {\
+			fan::edit_glbuffer(variable_name, data, i * byte_size_single, byte_size_single, gl_buffer, layout_location);\
+		}\
+	\
+		template <opengl_buffer_type T = buffer_type, typename = std::enable_if_t<T != opengl_buffer_type::texture && T != opengl_buffer_type::vao>>\
+		void initialize_buffers(void* data, uint_t byte_size, bool divisor, uint_t attrib_count) {\
+	\
+			comparer<buffer_type>(\
+	\
+				[&] {\
+					glBindBuffer(gl_buffer, variable_name); \
+				\
+					glEnableVertexAttribArray(layout_location);\
+					glVertexAttribPointer(layout_location, attrib_count, fan::GL_FLOAT_T, GL_FALSE, 0, 0);\
+				\
+					if (divisor) {\
+						glVertexAttribDivisor(layout_location, 1);\
+					}\
+				\
+					this->write_data(data, byte_size);\
+				},\
+	\
+				[] {}, \
+	\
+				[&] {\
+					glBindBuffer(gl_buffer, variable_name); \
+					glBindBufferBase(gl_buffer, layout_location, variable_name);\
+				\
+					if (divisor) {\
+						glVertexAttribDivisor(layout_location, 1);\
+					}\
+				\
+					this->write_data(data, byte_size);\
+				},\
+	\
+				[] {}\
+				\
+				); \
+		}\
+		\
+		template <opengl_buffer_type T = buffer_type, typename = std::enable_if_t<T == opengl_buffer_type::vao>>\
+		void initialize_buffers(uint32_t vao, const std::function<void()>&binder) {\
+		\
+			binder(); \
+	}\
+	\
+	void write_data(void* data, uint_t byte_size) {\
+			\
+			fan::write_glbuffer(variable_name, data, byte_size, gl_buffer, layout_location); \
+		}\
+	\
+	};
+
+	base_object_builder(vao_handler, m_vao, opengl_buffer_type::vao, 0);
+
+	base_object_builder(texture_handler, m_texture, opengl_buffer_type::texture, 0);
+
+	template <uint_t layout_location, opengl_buffer_type buffer_type>
+	base_object_builder(glsl_location_handler, m_buffer_object, buffer_type, layout_location);
+
+	template <typename _Vector, uint_t layout_location = 1, opengl_buffer_type buffer_type = opengl_buffer_type::vbo>
+	class basic_shape_position_vector : public glsl_location_handler<layout_location, buffer_type> {
 	public:
 
 		basic_shape_position_vector();
+		// initialize will write the data not constructor
 		basic_shape_position_vector(const _Vector& position);
-		~basic_shape_position_vector();
+
+		basic_shape_position_vector(const basic_shape_position_vector& vector);
+		basic_shape_position_vector(basic_shape_position_vector&& vector) noexcept;
+
+		basic_shape_position_vector& operator=(const basic_shape_position_vector& vector);
+		basic_shape_position_vector& operator=(basic_shape_position_vector&& vector);
+
+		void resize(uint_t size) {
+			m_position.resize(size);
+		}
 
 		std::vector<_Vector> get_positions() const {
 			return this->m_position;
 		}
 		void set_positions(const std::vector<_Vector>& positions);
 
-		virtual _Vector get_position(std::uint64_t i) const;
-		void set_position(std::uint64_t i, const _Vector& position, bool queue = false);
+		virtual _Vector get_position(uint_t i) const;
+		void set_position(uint_t i, const _Vector& position, bool queue = false);
 
-		void erase(std::uint64_t i, bool queue = false);
+		void erase(uint_t i, bool queue = false);
+		virtual void erase(uint_t begin, uint_t end, bool queue = false);
 
 	protected:
+
+		void initialize_buffers(bool divisor);
 
 		void basic_push_back(const _Vector& position, bool queue = false);
 
 		void edit_data(uint_t i);
-		void edit_data(void* data, uint_t offset, uint_t size);
 		void write_data();
-
-		void initialize_buffers(bool divisor = true);
-
-		unsigned int m_position_vbo;
 
 		std::vector<_Vector> m_position;
 
 	};
 
-	template <typename _Vector>
-	class basic_shape_size_vector {
+	template <typename _Vector, uint_t layout_location = 2, opengl_buffer_type buffer_type = opengl_buffer_type::vbo>
+	class basic_shape_size_vector : public glsl_location_handler<layout_location, buffer_type> {
 	public:
 
 		basic_shape_size_vector();
 		basic_shape_size_vector(const _Vector& size);
-		~basic_shape_size_vector();
+
+		basic_shape_size_vector(const basic_shape_size_vector& vector);
+		basic_shape_size_vector(basic_shape_size_vector&& vector) noexcept;
+
+		basic_shape_size_vector& operator=(const basic_shape_size_vector& vector);
+		basic_shape_size_vector& operator=(basic_shape_size_vector&& vector) noexcept;
+
+		void resize(uint_t size) {
+			m_size.resize(size);
+		}
 
 		std::vector<_Vector> get_sizes() const {
 			return m_size;
 		}
 
-		virtual _Vector get_size(std::uint64_t i) const;
-		void set_size(std::uint64_t i, const _Vector& size, bool queue = false);
+		virtual _Vector get_size(uint_t i) const;
+		void set_size(uint_t i, const _Vector& size, bool queue = false);
 
-		void erase(std::uint64_t i, bool queue = false);
+		void erase(uint_t i, bool queue = false);
+		void erase(uint_t begin, uint_t end, bool queue = false);
 
 	protected:
 
 		void basic_push_back(const _Vector& size, bool queue = false);
 
 		void edit_data(uint_t i);
-		void edit_data(void* data, uint_t offset, uint_t size);
 		void write_data();
 
-		void initialize_buffers();
+		void initialize_buffers(bool divisor);
 
 		std::vector<_Vector> m_size;
-		unsigned int m_size_vbo;
+
+	};
+
+	template <uint_t layout_location = 0, opengl_buffer_type buffer_type = opengl_buffer_type::vbo>
+	class basic_shape_color_vector : public glsl_location_handler<layout_location, buffer_type> {
+	public:
+
+		basic_shape_color_vector();
+		basic_shape_color_vector(const basic_shape_color_vector& vector);
+		basic_shape_color_vector(basic_shape_color_vector&& vector) noexcept;
+
+		basic_shape_color_vector& operator=(const basic_shape_color_vector& vector);
+		basic_shape_color_vector& operator=(basic_shape_color_vector&& vector) noexcept;
+
+		basic_shape_color_vector(const fan::color& color) : basic_shape_color_vector() {
+			basic_push_back(color, true);
+		}
+
+		void resize(uint_t size, const fan::color& color) {
+			m_color.resize(size, color);
+		}
+
+		void resize(uint_t size) {
+			m_color.resize(size);
+		}
+
+		fan::color get_color(uint_t i)
+		{
+			return this->m_color[i];
+		}
+
+		void set_color(uint_t i, const fan::color& color, bool queue = false) 
+		{
+			this->m_color[i] = color;
+			if (!queue) {
+				this->edit_data(i);
+			}
+		}
+
+		void erase(uint_t i, bool queue = false);
+		virtual void erase(uint_t begin, uint_t end, bool queue = false);
+
+	protected:
+
+		void basic_push_back(const fan::color& color, bool queue = false);
+	
+		void edit_data(uint_t i);
+
+		void write_data();
+
+		void initialize_buffers(bool divisor);
+
+		std::vector<fan::color> m_color;
 
 	};
 
@@ -165,6 +435,12 @@ namespace fan {
 		basic_shape_velocity_vector();
 		basic_shape_velocity_vector(const _Vector& velocity);
 
+		basic_shape_velocity_vector(const basic_shape_velocity_vector& vector);
+		basic_shape_velocity_vector(basic_shape_velocity_vector&& vector) noexcept;
+
+		basic_shape_velocity_vector& operator=(const basic_shape_velocity_vector& vector);
+		basic_shape_velocity_vector& operator=(basic_shape_velocity_vector&& vector) noexcept;
+
 		_Vector get_velocity(uint_t i) const {
 			return this->m_velocity[i];
 		}
@@ -173,82 +449,45 @@ namespace fan {
 			this->m_velocity[i] = velocity;
 		}
 
-	private:
+	protected:
 
 		std::vector<_Vector> m_velocity;
 
 	};
 
-	template <uint_t layout_location = 0, uint_t gl_buffer = GL_ARRAY_BUFFER>
-	class basic_shape_color_vector {
-	public:
-
-		basic_shape_color_vector() : m_color_vbo(-1) {
-			glGenBuffers(1, &m_color_vbo);
-		}
-
-		basic_shape_color_vector(const fan::color& color) : basic_shape_color_vector() {
-			this->m_color.push_back(color);
-			this->write_data();
-		}
-
-		~basic_shape_color_vector()	{
-			glDeleteBuffers(1, &m_color_vbo);
-		}
-
-		fan::color get_color(std::uint64_t i);
-		void set_color(std::uint64_t i, const fan::color& color, bool queue = false);
-
-		void erase(uint_t i, bool queue = false);
-
-		template <uint_t T = gl_buffer, typename = std::enable_if_t<T == GL_SHADER_STORAGE_BUFFER>>
-		void bind_gl_storage_buffer() const {
-			glBindBufferBase(gl_buffer, layout_location, m_color_vbo);
-		}
-
-	protected:
-
-		void basic_push_back(const fan::color& color, bool queue = false);
-	
-		void edit_data(uint_t i);
-		void edit_data(void* data, uint_t offset, uint_t size);
-
-		void write_data()
-		{
-			fan::write_glbuffer(m_color_vbo, m_color.data(), sizeof(fan::color) * m_color.size(), gl_buffer, layout_location);
-		}
-
-		void initialize_buffers(bool divisor = true);
-
-		uint32_t m_color_vbo;
-
-		std::vector<fan::color> m_color;
-
-	};
-
 	template <typename _Vector>
-	class basic_shape_vector : public basic_shape_position_vector<_Vector>, public basic_shape_size_vector<_Vector> {
+	class basic_shape_vector : 
+		public basic_shape_position_vector<_Vector>, 
+		public basic_shape_size_vector<_Vector>,
+		public vao_handler {
 	public:
-
+		
+		basic_shape_vector(fan::camera& camera);
 		basic_shape_vector(fan::camera& camera, const fan::shader& shader);
 		basic_shape_vector(fan::camera& camera, const fan::shader& shader, const _Vector& position, const _Vector& size);
-		~basic_shape_vector();
 
-		std::uint64_t size() const;
+		basic_shape_vector(const basic_shape_vector& vector);
+		basic_shape_vector(basic_shape_vector&& vector) noexcept;
+
+		basic_shape_vector& operator=(const basic_shape_vector& vector);
+		basic_shape_vector& operator=(basic_shape_vector&& vector) noexcept;
+
+		void resize(uint_t size);
+
+		virtual uint_t size() const;
 
 	protected:
 
 		void basic_push_back(const _Vector& position, const _Vector& size, bool queue = false);
 
 		void erase(uint_t i, bool queue = false);
+		void erase(uint_t begin, uint_t end, bool queue = false);
 
 		void edit_data(uint_t i, bool position, bool size);
 
 		void write_data(bool position, bool size);
 
-		void basic_draw(unsigned int mode, std::uint64_t count, std::uint64_t primcount, std::uint64_t i = -1);
-
-		unsigned int m_vao;
+		void basic_draw(unsigned int mode, uint_t count, uint_t primcount, uint_t i = fan::uninitialized);
 
 		fan::shader m_shader;
 
@@ -259,28 +498,38 @@ namespace fan {
 	};
 
 	template <typename _Vector>
-	class basic_vertice_vector : public basic_shape_position_vector<_Vector>, public basic_shape_color_vector<>, public basic_shape_velocity_vector<_Vector> {
+	class basic_vertice_vector : 
+		public basic_shape_position_vector<_Vector>, 
+		public basic_shape_color_vector<>, 
+		public basic_shape_velocity_vector<_Vector>,
+	    public vao_handler {
 	public:
 
 		basic_vertice_vector(fan::camera& camera, const fan::shader& shader);
 		basic_vertice_vector(fan::camera& camera, const fan::shader& shader, const fan::vec2& position, const fan::color& color);
+
+		basic_vertice_vector(const basic_vertice_vector& vector) ;
+		basic_vertice_vector(basic_vertice_vector&& vector) noexcept;
+
 		~basic_vertice_vector();
 
-		std::uint64_t size() const;
+		basic_vertice_vector& operator=(const basic_vertice_vector& vector);
+		basic_vertice_vector& operator=(basic_vertice_vector&& vector);
+
+		uint_t size() const;
+
+		void erase(uint_t i, bool queue = false);
+		void erase(uint_t begin, uint_t end, bool queue = false);
 
 	protected:
 
 		void basic_push_back(const _Vector& position, const fan::color& color, bool queue = false);
 
-		void erase(uint_t i, bool queue = false);
-
 		void edit_data(uint_t i, bool position, bool color);
 
 		void write_data(bool position, bool color);
 
-		void basic_draw(unsigned int mode, std::uint64_t count);
-
-		uint32_t m_vao;
+		void basic_draw(unsigned int mode, uint_t count);
 
 		fan::shader m_shader;
 
@@ -297,8 +546,8 @@ namespace fan {
 		basic_shape_color_vector_vector(const std::vector<fan::color>& color);
 		~basic_shape_color_vector_vector();
 
-		std::vector<fan::color> get_color(std::uint64_t i);
-		void set_color(std::uint64_t i, const std::vector<fan::color>& color, bool queue = false);
+		std::vector<fan::color> get_color(uint_t i);
+		void set_color(uint_t i, const std::vector<fan::color>& color, bool queue = false);
 
 		void erase(uint_t i, bool queue = false);
 
@@ -347,7 +596,7 @@ namespace fan {
 
 namespace fan_2d {
 
-	fan::mat4 get_projection(const fan::vec2i& window_size, const fan::mat4& projection);
+	fan::mat4 get_projection(const fan::vec2i& window_size);
 	fan::mat4 get_view_translation(const fan::vec2i& window_size, const fan::mat4& view);
 
 	namespace shader_paths {
@@ -357,10 +606,13 @@ namespace fan_2d {
 		constexpr auto single_shapes_vs("include/fan/glsl/2D/shapes.vs");
 		constexpr auto single_shapes_fs("include/fan/glsl/2D/shapes.fs");
 
-		constexpr auto single_shapes_bloom_vs("include/fan/glsl/2D/bloom_shape.vs");
-		constexpr auto single_shapes_bloom_fs("include/fan/glsl/2D/bloom_shape.fs");
+		constexpr auto single_shapes_bloom_vs("include/fan/glsl/2D/bloom.vs");
+		constexpr auto single_shapes_bloom_fs("include/fan/glsl/2D/bloom.fs");
 		constexpr auto single_shapes_blur_vs("include/fan/glsl/2D/blur.vs");
 		constexpr auto single_shapes_blur_fs("include/fan/glsl/2D/blur.fs");
+
+		constexpr auto single_shapes_bloom_final_vs("include/fan/glsl/2D/bloom_final.vs");
+		constexpr auto single_shapes_bloom_final_fs("include/fan/glsl/2D/bloom_final.fs");
 
 		constexpr auto single_sprite_vs("include/fan/glsl/2D/sprite.vs");
 		constexpr auto single_sprite_fs("include/fan/glsl/2D/sprite.fs");
@@ -371,28 +623,30 @@ namespace fan_2d {
 		constexpr auto sprite_vector_fs("include/fan/glsl/2D/sprite_vector.fs");
 	}
 
-	void move_object(fan::window& window, fan::vec2& position, fan::vec2& velocity, f32_t speed, f32_t gravity, f32_t jump_force = -800, f32_t friction = 10);
+	// returns how much object moved
+	fan::vec2 move_object(fan::window& window, fan::vec2& position, fan::vec2& velocity, f32_t speed, f32_t gravity, f32_t jump_force = -800, f32_t friction = 10);
 
-	constexpr fan::da_t<f32_t, 4, 2> get_square_corners(const fan::da_t<f32_t, 2, 2>& squ) {
-		return fan::da_t<f32_t, 4, 2>{
-			fan::da_t<f32_t, 2>(squ[0]),
-				fan::da_t<f32_t, 2>(squ[1][0], squ[0][1]),
-				fan::da_t<f32_t, 2>(squ[0][0], squ[1][1]),
-				fan::da_t<f32_t, 2>(squ[1])
-		};
-	}
-
-	struct square_corners_t {
+	struct rectangle_corners_t {
 		fan::vec2 top_left;
 		fan::vec2 top_right;
 		fan::vec2 bottom_left;
 		fan::vec2 bottom_right;
 		
-		// top left position format
-		static constexpr square_corners_t get_corners(const fan::vec2& position, const fan::vec2& size) {
-			return { position, position + fan::vec2(size.x, 0), position + fan::vec2(0, size.y), position + size };
+		const fan::vec2 operator[](const uint_t i) const {
+			return !i ? top_left : i == 1 ? top_right : i == 2 ? bottom_left : bottom_right;
 		}
+
+		fan::vec2& operator[](const uint_t i) {
+			return !i ? top_left : i == 1 ? top_right : i == 2 ? bottom_left : bottom_right;
+		}
+
 	};
+
+	// 0 left right, 1 top right, 2 bottom left, 3 bottom right
+
+	constexpr rectangle_corners_t get_rectangle_corners(const fan::vec2& position, const fan::vec2& size) {
+		return { position, position + fan::vec2(size.x, 0), position + fan::vec2(0, size.y), position + size };
+	}
 
 	class basic_single_shape {
 	public:
@@ -408,24 +662,24 @@ namespace fan_2d {
 		fan::vec2 get_center() const;
 
 		void set_size(const fan::vec2& size);
-		void set_position(const fan::vec2& position);
+		virtual void set_position(const fan::vec2& position);
 		void set_velocity(const fan::vec2& velocity);
 
 		void basic_draw(GLenum mode, GLsizei count) const;
 
-		void move(f32_t speed, f32_t gravity = 0, f32_t jump_force = -800, f32_t friction = 10);
+		virtual fan::vec2 move(f32_t speed, f32_t gravity = 0, f32_t jump_force = -800, f32_t friction = 10);
 
 		bool inside() const;
 
-	protected:
-		fan::vec2 position;
-		fan::vec2 size;
+	//protected:
+		fan::vec2 m_position;
+		fan::vec2 m_size;
 
-		fan::vec2 velocity;
+		fan::vec2 m_velocity;
 
-		fan::shader shader;
+		fan::shader m_shader;
 
-		unsigned int vao;
+		unsigned int m_vao;
 
 		fan::window& m_window;
 		fan::camera& m_camera;
@@ -455,64 +709,58 @@ namespace fan_2d {
 
 	};
 
-	struct square : public basic_single_shape, basic_single_color {
-		square(fan::camera& camera);
-		square(fan::camera& camera, const fan::vec2& position, const fan::vec2& size, const fan::color& color);
+	struct rectangle : public basic_single_shape, basic_single_color {
+		rectangle(fan::camera& camera);
+		rectangle(fan::camera& camera, const fan::vec2& position, const fan::vec2& size, const fan::color& color);
 
-		square_corners_t get_corners() const;
+		rectangle_corners_t get_corners() const;
 
-		fan::vec2 center() const;
+		fan::vec2 get_center() const;
+
+		f_t get_rotation() const;
+		void set_rotation(f_t angle);
 
 		void draw() const;
+
+		fan::vec2 move(f32_t speed, f32_t gravity = 0, f32_t jump_force = -800, f32_t friction = 10) override;
+
+		void set_position(const fan::vec2& position) override;
+
+	private:
+
+		rectangle_corners_t m_corners;
+
+		f_t m_rotation;
+
 	};
-
-	//class bloom_square : public basic_single_shape, public basic_single_color {
-	//public:
-
-	//	bloom_square();
-	//	bloom_square(const fan::vec2& position, const fan::vec2& size, const fan::color& color);
-
-	//	void bind_fbo() const;
-
-	//	void draw();
-
-	//private:
-
-	//	unsigned int m_hdr_fbo;
-	//	unsigned int m_rbo;
-	//	unsigned int m_color_buffers[2];
-	//	unsigned int m_pong_fbo[2];
-	//	unsigned int m_pong_color_buffer[2];
-
-	//	//fan::shader m_shader_light = fan::shader("GLSL/bloom.vs", "GLSL/light_box.fs");
-	//	fan::shader m_shader_blur = fan::shader(fan_2d::shader_paths::single_shapes_blur_vs, fan_2d::shader_paths::single_shapes_blur_fs);
-	//	fan::shader m_shader_bloom = fan::shader(fan_2d::shader_paths::single_shapes_bloom_vs, fan_2d::shader_paths::single_shapes_bloom_fs);
-	//	
-	//};
 
 	struct image_info {
 		fan::vec2i image_size;
 		uint32_t texture_id;
 	};
 
+	static image_info load_image(const std::string& path, bool flip_image = false);
+	static image_info load_image(unsigned char* pixels, const fan::vec2i& size);
+
 	class sprite : public basic_single_shape {
 	public:
 		sprite(fan::camera& camera);
 
-		// scale with default is sprite size
+		// size with default is the size of the image
 		sprite(fan::camera& camera, const std::string& path, const fan::vec2& position, const fan::vec2& size = 0, f_t transparency = 1);
 		sprite(fan::camera& camera, unsigned char* pixels, const fan::vec2& position, const fan::vec2i& size = 0, f_t transparency = 1);
+		sprite(const fan_2d::sprite& sprite);
+		sprite(fan_2d::sprite&& sprite);
 
-		void reload_image(unsigned char* pixels, const fan::vec2i& size);
-		void reload_image(const std::string& path, const fan::vec2i& size, bool flip_image = false);
+		void load_sprite(const std::string& path, const fan::vec2i& size = 0, bool flip_image = false);
+
+		void reload_sprite(unsigned char* pixels, const fan::vec2i& size);
+		void reload_sprite(const std::string& path, const fan::vec2i& size, bool flip_image = false);
 
 		void draw();
 
 		f32_t get_rotation();
 		void set_rotation(f32_t degrees);
-
-		static image_info load_image(const std::string& path, bool flip_image = false);
-		static image_info load_image(unsigned char* pixels, const fan::vec2i& size);
 
 	private:
 
@@ -529,7 +777,7 @@ namespace fan_2d {
 
 		void add(const std::string& path);
 
-		void draw(std::uint64_t m_texture);
+		void draw(uint_t m_texture);
 
 	private:
 		std::vector<unsigned int> m_textures;
@@ -540,12 +788,21 @@ namespace fan_2d {
 
 		vertice_vector(fan::camera& camera, uint_t index_restart = UINT32_MAX);
 		vertice_vector(fan::camera& camera, const fan::vec2& position, const fan::color& color, uint_t index_restart);
+		vertice_vector(const vertice_vector& vector);
+		vertice_vector(vertice_vector&& vector) noexcept;
+		~vertice_vector();
+
+		vertice_vector& operator=(const vertice_vector& vector);
+		vertice_vector& operator=(vertice_vector&& vector) noexcept;
 
 		void release_queue(bool position, bool color, bool indices);
 
 		virtual void push_back(const fan::vec2& position, const fan::color& color, bool queue = false);
 
 		void draw(uint32_t mode);
+
+		void erase(uint_t i, bool queue = false);
+		void erase(uint_t begin, uint_t end, bool queue = false);
 
 	protected:
 
@@ -557,20 +814,35 @@ namespace fan_2d {
 
 		std::vector<uint32_t> m_indices;
 
+		uint_t m_offset;
+
 	};
 
-	class line_vector : public fan::basic_shape_vector<fan::vec2>, public fan::basic_shape_color_vector<> {
+	class line_vector : 
+		public fan::basic_shape_vector<fan::vec2>, 
+		public fan::basic_shape_color_vector<> {
 	public:
+		
 		line_vector(fan::camera& camera);
 		line_vector(fan::camera& camera, const fan::mat2& begin_end, const fan::color& color);
+
+		line_vector(const line_vector& vector);
+		line_vector(line_vector&& vector) noexcept;
+
+		line_vector& operator=(const line_vector& vector);
+		line_vector& operator=(line_vector&& vector) noexcept;
+
+		void resize(uint_t size, const fan::color& color);
 
 		void push_back(const fan::mat2& begin_end, const fan::color& color, bool queue = false);
 
 		void draw();
 
-		void set_position(std::uint64_t i, const fan::mat2& begin_end, bool queue = false);
+		void set_position(uint_t i, const fan::mat2& begin_end, bool queue = false);
 
 		void release_queue(bool position, bool color);
+
+		void initialize_buffers();
 
 	private:
 		using fan::basic_shape_vector<fan::vec2>::set_position;
@@ -582,7 +854,7 @@ namespace fan_2d {
 		triangle_vector();
 		triangle_vector(const fan::mat3x2& corners, const fan::color& color);
 		
-		void set_position(std::uint64_t i, const fan::mat3x2& corners);
+		void set_position(uint_t i, const fan::mat3x2& corners);
 		void push_back(const fan::mat3x2& corners, const fan::color& color);
 
 		void draw();
@@ -591,39 +863,68 @@ namespace fan_2d {
 
 	};
 
-	class square_vector : public fan::basic_shape_vector<fan::vec2>, public fan::basic_shape_color_vector<> {
+	class rectangle_vector : 
+		public fan::basic_shape_vector<fan::vec2>, 
+		public fan::basic_shape_color_vector<>, 
+		public fan::basic_shape_velocity_vector<fan::vec2> {
 	public:
 
-		square_vector(fan::camera& camera);
-		square_vector(fan::camera& camera, const fan::vec2& position, const fan::vec2& size, const fan::color& color);
+		rectangle_vector(fan::camera& camera);
+		rectangle_vector(fan::camera& camera, const fan::vec2& position, const fan::vec2& size, const fan::color& color);
 
-		fan_2d::square construct(uint_t i);
+		rectangle_vector(const rectangle_vector& vector);
+		rectangle_vector(rectangle_vector&& vector) noexcept;
+
+		rectangle_vector& operator=(const rectangle_vector& vector);
+		rectangle_vector& operator=(rectangle_vector&& vector) noexcept;
+
+		void initialize_buffers();
+
+		fan_2d::rectangle construct(uint_t i);
 
 		void release_queue(bool position, bool size, bool color);
 
 		void push_back(const fan::vec2& position, const fan::vec2& size, const fan::color& color, bool queue = false);
-		void erase(uint_t i);
+		void erase(uint_t i, bool queue = false);
+		void erase(uint_t begin, uint_t end, bool queue = false);
 
-		void draw(std::uint64_t i = -1);
+		void draw(uint_t i = fan::uninitialized);
 
-		fan::vec2 center(uint_t i) const;
+		fan::vec2 get_center(uint_t i) const;
 
-		fan_2d::square_corners_t get_corners(uint_t i) const;
+		fan_2d::rectangle_corners_t get_corners(uint_t i) const;
 
 		void move(uint_t i, f32_t speed, f32_t gravity = 0, f32_t jump_force = -800, f32_t friction = 10);
 
+		bool inside(uint_t i) const;
+
+		f_t get_rotation(uint_t i) const;
+		void set_rotation(uint_t i, f_t angle);
+
 	private:
 
-		std::vector<fan::vec2> m_velocity;
+		std::vector<fan_2d::rectangle_corners_t> m_corners;
+		std::vector<f_t> m_rotation;
 
 	};
 
-	class sprite_vector : public fan::basic_shape_vector<fan::vec2> {
+	// fix size
+	class sprite_vector : 
+		public fan::basic_shape_vector<fan::vec2>,
+		public fan::basic_shape_velocity_vector<fan::vec2>,
+		public fan::texture_handler {
 	public:
 
-		sprite_vector(fan::camera& camera);
+		sprite_vector(fan::camera& camera, const std::string& path);
 		sprite_vector(fan::camera& camera, const std::string& path, const fan::vec2& position, const fan::vec2& size = 0);
+		sprite_vector(const sprite_vector& vector);
+		sprite_vector(sprite_vector&& vector) noexcept;
 		~sprite_vector();
+
+		sprite_vector& operator=(const sprite_vector& vector);
+		sprite_vector& operator=(sprite_vector&& vector) noexcept;
+
+		void initialize_buffers();
 
 		void push_back(const fan::vec2& position, const fan::vec2& size = 0, bool queue = false);
 
@@ -631,10 +932,20 @@ namespace fan_2d {
 
 		void release_queue(bool position, bool size);
 
+		void erase(uint_t i, bool queue = false);
+
+		void load_sprite(const std::string& path, const fan::vec2 size = 0);
+
 	protected:
 
-		unsigned int m_texture;
+		void allocate_texture();
+
+		// still on progress
+		std::vector<f_t> m_rotation;
+
 		fan::vec2i m_original_image_size;
+
+		std::string m_path;
 
 	};
 
@@ -643,7 +954,7 @@ namespace fan_2d {
 		fan::timer<> m_timer; // milli
 	};
 
-	class particles : public fan_2d::square_vector {
+	class particles : public fan_2d::rectangle_vector {
 	public:
 
 		particles(fan::camera& camera);
@@ -653,7 +964,7 @@ namespace fan_2d {
 			const fan::vec2& size, 
 			const fan::vec2& velocity, 
 			const fan::color& color, 
-			std::uint64_t time
+			uint_t time
 		);
 
 		void update();
@@ -662,6 +973,8 @@ namespace fan_2d {
 
 		std::vector<fan_2d::particle> m_particles;
 	};
+
+	fan_2d::line_vector create_grid(fan::camera& camera, const fan::vec2i& block_size, const fan::vec2i& grid_size, const fan::color& color);
 
 	namespace collision {
 		constexpr auto sign_dr(f32_t _m) {
@@ -685,7 +998,7 @@ namespace fan_2d {
 
 			fan::da_t<f32_t, 2> min = dst.min();
 			fan::da_t<f32_t, 2> max = dst.max();
-			for (ui_t i = 0; i < 2; i++) {
+			for (uint_t i = 0; i < 2; i++) {
 				if (!normal[i])
 					continue;
 				if (src[0][i ^ 1] == min[i ^ 1])
@@ -696,7 +1009,21 @@ namespace fan_2d {
 
 			return { src[0][0] + (t * s1_x), src[0][1] + (t * s1_y) };
 		}
-		constexpr fan::da_t<ui_t, 3> GetPointsTowardsVelocity3(fan::da_t<f32_t, 2> vel) {
+
+		constexpr fan::da_t<uint_t, 2> GetPointsTowardsVelocity2(const fan::da_t<f_t, 2>& vel) {
+			if (vel[0] >= 0)
+				if (vel[1] >= 0)
+					return { 2, 1 };
+				else
+					return { 0, 3 };
+			else
+				if (vel[1] >= 0)
+					return { 0, 3 };
+				else
+					return { 2, 1 };
+		}
+
+		constexpr fan::da_t<uint_t, 3> GetPointsTowardsVelocity3(const fan::da_t<f32_t, 2>& vel) {
 			if (vel[0] >= 0)
 				if (vel[1] >= 0)
 					return { 2, 1, 3 };
@@ -734,6 +1061,7 @@ namespace fan_2d {
 		}
 
 		constexpr auto get_cross(const fan::da_t<f32_t, 2>& a, const fan::da_t<f32_t, 3>& b) {
+			//return fan::da_t<f32_t, 2>{a[1] * b[2], b[2] * a[0]}; // could be wrong
 			return cross(fan::da_t<f32_t, 3>{ a[0], a[1], 0 }, b);
 		}
 
@@ -749,7 +1077,7 @@ namespace fan_2d {
 			return normals;
 		}
 
-		inline uint8_t ProcessCollision_fl(fan::da_t<f32_t, 2, 2>& pos, fan::da_t<f32_t, 2>& vel, const std::vector<fan::vec2>& wall_positions, const std::vector<fan::vec2>& wall_sizes) {
+		static uint8_t ProcessCollision_fl(fan::da_t<f32_t, 2, 2>& pos, fan::da_t<f32_t, 2>& vel, const std::vector<fan::vec2>& wall_positions, const std::vector<fan::vec2>& wall_sizes) {
 			fan::da_t<f32_t, 2> pvel = vel;
 
 			if (!pvel[0] && !pvel[1])
@@ -758,14 +1086,14 @@ namespace fan_2d {
 			fan::da_t<f32_t, 4, 2> ocorn = Math_SquToQuad_fr(pos);
 			fan::da_t<f32_t, 4, 2> ncorn = ocorn + pvel;
 
-			fan::da_t<ui_t, 3> ptv3 = GetPointsTowardsVelocity3(pvel);
-			fan::da_t<ui_t, 3> ntv3 = GetPointsTowardsVelocity3(-pvel);
+			fan::da_t<uint_t, 3> ptv3 = GetPointsTowardsVelocity3(pvel);
+			fan::da_t<uint_t, 3> ntv3 = GetPointsTowardsVelocity3(-pvel);
 
-			fan::da_t<ui_t, 4, 2> li = { fan::da_t<ui_t, 2>{0, 1}, fan::da_t<ui_t, 2>{1, 3}, fan::da_t<ui_t, 2>{3, 2}, fan::da_t<ui_t, 2>{2, 0} };
+			fan::da_t<uint_t, 4, 2> li = { fan::da_t<uint_t, 2>{0, 1}, fan::da_t<uint_t, 2>{1, 3}, fan::da_t<uint_t, 2>{3, 2}, fan::da_t<uint_t, 2>{2, 0} };
 
 			const static auto normals = get_normals(
 				fan::da_t<fan::da_t<f32_t, 2, 2>, 4>{
-				fan::da_t<f32_t, 2, 2>{fan::da_t<f32_t, 2>{ 0, 0 }, fan::da_t<f32_t, 2>{ 1, 0 }},
+					fan::da_t<f32_t, 2, 2>{fan::da_t<f32_t, 2>{ 0, 0 }, fan::da_t<f32_t, 2>{ 1, 0 }},
 					fan::da_t<f32_t, 2, 2>{fan::da_t<f32_t, 2>{ 1, 0 }, fan::da_t<f32_t, 2>{ 1, 1 }},
 					fan::da_t<f32_t, 2, 2>{fan::da_t<f32_t, 2>{ 1, 1 }, fan::da_t<f32_t, 2>{ 0, 1 }},
 					fan::da_t<f32_t, 2, 2>{fan::da_t<f32_t, 2>{ 0, 1 }, fan::da_t<f32_t, 2>{ 0, 0 }},
@@ -773,23 +1101,19 @@ namespace fan_2d {
 
 			fan::da_t<f32_t, 2> lvel = pvel;
 			fan::da_t<f32_t, 2> nvel = 0;
-			for (ui_t iwall = 0; iwall < wall_positions.size(); iwall++) {
-				if (fan::custom_pythagorean_no_sqrt(pos[0], pos[1]) < fan::custom_pythagorean_no_sqrt(pos[0], wall_positions[iwall])) {
-					continue;
-				}
-
-				fan::da_t<f32_t, 4, 2> bcorn = Math_SquToQuad_fr(fan::da_t<f32_t, 2, 2>{wall_positions[iwall], wall_positions[iwall] + wall_sizes[iwall]});
+			for (uint_t iwall = 0; iwall < wall_positions.size(); iwall++) {
+				fan::da_t<f32_t, 4, 2> bcorn = Math_SquToQuad_fr({ wall_positions[iwall], wall_positions[iwall] + wall_sizes[iwall] });
 
 				/* step -1 */
-				for (ui_t i = 0; i < 4; i++) {
-					for (ui_t iline = 0; iline < 4; iline++) {
+				for (uint_t i = 0; i < 4; i++) {
+					for (uint_t iline = 0; iline < 4; iline++) {
 						calculate_velocity(fan::da_t<f32_t, 2, 2>(ocorn[li[i][0]], ocorn[li[i][1]]).avg(), pvel, bcorn[li[iline][0]], bcorn[li[iline][1]] - bcorn[li[iline][0]], normals[iline], 1, lvel, nvel);
 					}
 				}
 
 				/* step 0 and step 1*/
-				for (ui_t i = 0; i < 3; i++) {
-					for (ui_t iline = 0; iline < 4; iline++) {
+				for (uint_t i = 0; i < 3; i++) {
+					for (uint_t iline = 0; iline < 4; iline++) {
 						calculate_velocity(ocorn[ptv3[i]], ncorn[ptv3[i]] - ocorn[ptv3[i]], bcorn[li[iline][0]], bcorn[li[iline][1]] - bcorn[li[iline][0]], normals[iline], 1, lvel, nvel);
 						calculate_velocity(bcorn[ntv3[i]], -pvel, ocorn[li[iline][0]], ocorn[li[iline][1]] - ocorn[li[iline][0]], normals[iline], -1, lvel, nvel);
 					}
@@ -805,7 +1129,7 @@ namespace fan_2d {
 		#define ProcessCollision_dl(pos_m, vel_m, wall_positions_m, wall_sizes_m) \
 			while(ProcessCollision_fl(pos_m, vel_m, wall_positions_m, wall_sizes_m))
 
-		inline void rectangle_collision(fan::window& window, fan_2d::square& player, const fan_2d::square_vector& walls) {
+		inline void rectangle_collision(fan::window& window, fan_2d::rectangle& player, const fan_2d::rectangle_vector& walls) {
 			const fan::da_t<f32_t, 2> size = player.get_size();
 			const fan::da_t<f32_t, 2> base = player.get_velocity();
 			fan::da_t<f32_t, 2> velocity = base * window.get_delta_time();
@@ -815,13 +1139,6 @@ namespace fan_2d {
 			player.set_position(my_corners[0]);
 		}
 
-		constexpr bool rectangles_collide(const fan::vec2& a, const  fan::vec2& a_size, const fan::vec2& b, const fan::vec2& b_size) {
-			bool x = a[0] + a_size[0] > b[0] &&
-				a[0] < b[0] + b_size[0];
-			bool y = a[1] + a_size[1] > b[1] &&
-				a[1] < b[1] + b_size[1];
-			return x && y;
-		}
 	}
 
 	namespace gui {
@@ -830,17 +1147,17 @@ namespace fan_2d {
 
 		void add_resize_callback(fan::window& window, fan::vec2& position);
 
-		struct square : public fan_2d::square {
+		struct rectangle : public fan_2d::rectangle {
 
-			square(fan::camera& camera);
-			square(fan::camera& camera,const fan::vec2& position, const fan::vec2& size, const fan::color& color);
+			rectangle(fan::camera& camera);
+			rectangle(fan::camera& camera,const fan::vec2& position, const fan::vec2& size, const fan::color& color);
 
 		};
 
-		struct square_vector : public fan_2d::square_vector {
+		struct rectangle_vector : public fan_2d::rectangle_vector {
 
-			square_vector(fan::camera& camera);
-			square_vector(fan::camera& camera, const fan::vec2& position, const fan::vec2& size, const fan::color& color);
+			rectangle_vector(fan::camera& camera);
+			rectangle_vector(fan::camera& camera, const fan::vec2& position, const fan::vec2& size, const fan::color& color);
 
 		};
 
@@ -855,7 +1172,7 @@ namespace fan_2d {
 
 		struct sprite_vector : public fan_2d::sprite_vector {
 
-			sprite_vector(fan::camera& camera);
+			sprite_vector(fan::camera& camera, const std::string& path);
 			sprite_vector(fan::camera& camera, const std::string& path, const fan::vec2& position, const fan::vec2& size = 0);
 
 		};
@@ -909,20 +1226,30 @@ namespace fan_2d {
 			using outline_color_t = fan::basic_shape_color_vector_vector<4, GL_SHADER_STORAGE_BUFFER>;
 
 			text_renderer(fan::camera& camera);
-			text_renderer(fan::camera& camera, const std::string& text, const fan::vec2& position, const fan::color& text_color, f_t font_size, const fan::color& outline_color = -1, bool queue = false);
+			text_renderer(fan::camera& camera, const std::string& text, const fan::vec2& position, const fan::color& text_color, f_t font_size, const fan::color& outline_color = fan::color(-1, -1, -1, 0), bool queue = false);
 			~text_renderer();
 
 			fan::vec2 get_position(uint_t i) const;
 			
 			void set_position(uint_t i, const fan::vec2& position, bool queue = false);
+
+			f_t get_font_size(uint_t i) const;
 			void set_font_size(uint_t i, f_t font_size, bool queue = false);
 			void set_text(uint_t i, const std::string& text, bool queue = false);
 			void set_text_color(uint_t i, const fan::color& color, bool queue = false);
 			void set_outline_color(uint_t i, const fan::color& color, bool queue = false);
 
+			fan::vec2 get_text_size(const std::string& text, f_t font_size) const;
+
+			f_t get_font_height_max(uint32_t font_size);
+
+			std::string get_text(uint_t i) const;
+
+			f_t convert_font_size(f_t font_size) const;
+
 			void free_queue();
-			void insert(uint_t i, const std::string& text, const fan::vec2& position, const fan::color& text_color, f_t font_size, const fan::color& outline_color = -1, bool queue = false);
-			void push_back(const std::string& text, const fan::vec2& position, const fan::color& text_color, f_t font_size, const fan::color& outline_color = -1, bool queue = false);
+			void insert(uint_t i, const std::string& text, const fan::vec2& position, const fan::color& text_color, f_t font_size, const fan::color& outline_color = fan::uninitialized, bool queue = false);
+			void push_back(const std::string& text, const fan::vec2& position, const fan::color& text_color, f_t font_size, const fan::color& outline_color = fan::uninitialized, bool queue = false);
 
 			void draw() const;
 
@@ -936,7 +1263,6 @@ namespace fan_2d {
 			
 			std::vector<fan::vec2> get_vertices(uint_t i);
 			std::vector<fan::vec2> get_texture_coordinates(uint_t i);
-			std::vector<f32_t> get_font_size(uint_t i);
 
 			void load_characters(uint_t i, fan::vec2 position, const std::string& text, bool edit, bool insert);
 
@@ -1029,6 +1355,9 @@ namespace fan_3d {
 		constexpr auto model_vs("include/fan/glsl/3D/models.vs");
 		constexpr auto model_fs("include/fan/glsl/3D/models.fs");
 
+		constexpr auto animation_vs("include/fan/glsl/3D/animation.vs");
+		constexpr auto animation_fs("include/fan/glsl/3D/animation.fs");
+
 		constexpr auto skybox_vs("include/fan/glsl/3D/skybox.vs");
 		constexpr auto skybox_fs("include/fan/glsl/3D/skybox.fs");
 		constexpr auto skybox_model_vs("include/fan/glsl/3D/skybox_model.vs");
@@ -1047,7 +1376,7 @@ namespace fan_3d {
 
 		void draw();
 
-		void set_position(std::uint64_t i, const fan::mat2x3 begin_end, bool queue = false);
+		void set_position(uint_t i, const fan::mat2x3 begin_end, bool queue = false);
 		
 		void release_queue(bool position, bool color);
 
@@ -1069,10 +1398,10 @@ namespace fan_3d {
 		void insert(const std::vector<triangle_vertices_t>& vertices, const std::vector<fan::color>& color, bool queue = false);
 		void push_back(const triangle_vertices_t& vertices, const fan::color& color, bool queue = false);
 
-		template <std::uint64_t i = std::uint64_t(-1)>
+		template <uint_t i = uint_t(-1)>
 		std::conditional_t<i == -1, std::vector<triangle_vertices_t>, triangle_vertices_t> get_vertices();
 
-		void edit_data(std::uint64_t i, const triangle_vertices_t& vertices, const fan::color& color);
+		void edit_data(uint_t i, const triangle_vertices_t& vertices, const fan::color& color);
 
 		void release_queue();
 
@@ -1126,8 +1455,8 @@ namespace fan_3d {
 	class square_vector : protected fan::basic_shape_vector<fan::vec3>, public fan::basic_shape_color_vector<> {
 	public:
 
-		square_vector(fan::camera& camera, const std::string& path, std::uint64_t block_size);
-		square_vector(fan::camera& camera, const fan::color& color, std::uint64_t block_size);
+		square_vector(fan::camera& camera, const std::string& path, uint_t block_size);
+		square_vector(fan::camera& camera, const fan::color& color, uint_t block_size);
 		~square_vector();
 
 		void push_back(const fan::vec3& src, const fan::vec3& dst, const fan::vec2& texture_id, bool queue = false);
@@ -1141,7 +1470,7 @@ namespace fan_3d {
 
 		void draw();
 
-		void set_texture(std::uint64_t i, const fan::vec2& texture_id, bool queue = false);
+		void set_texture(uint_t i, const fan::vec2& texture_id, bool queue = false);
 
 		void generate_textures(const std::string& path, const fan::vec2& block_size);
 
@@ -1149,7 +1478,9 @@ namespace fan_3d {
 
 		void release_queue(bool position, bool size, bool textures);
 
-		square_corners get_corners(std::uint64_t i) const;
+		square_corners get_corners(uint_t i) const;
+
+		uint_t size() const;
 
 	private:
 
@@ -1167,7 +1498,7 @@ namespace fan_3d {
 	class skybox {
 	public:
 		skybox(
-			fan::window& window,
+			fan::camera& camera,
 			const std::string& left,
 			const std::string& right,
 			const std::string& front,
@@ -1181,54 +1512,53 @@ namespace fan_3d {
 		void draw();
 
 	private:
-		unsigned int texture_id;
-		unsigned int skybox_vao, skybox_vbo;
+		unsigned int m_texture_id;
+		unsigned int m_skybox_vao, m_skybox_vbo;
 
+		fan::shader m_shader;
+		fan::camera& m_camera;
+		static constexpr f32_t skybox_vertices[108] = {
+			-1.0,  1.0, -1.0,
+			-1.0, -1.0, -1.0,
+			1.0, -1.0, -1.0,
+			1.0, -1.0, -1.0,
+			1.0,  1.0, -1.0,
+			-1.0,  1.0, -1.0,
 
-		fan::shader shader;
-		fan::camera camera;
-		static constexpr float skyboxVertices[108] = {
-			-1.0f,  1.0f, -1.0f,
-			-1.0f, -1.0f, -1.0f,
-			1.0f, -1.0f, -1.0f,
-			1.0f, -1.0f, -1.0f,
-			1.0f,  1.0f, -1.0f,
-			-1.0f,  1.0f, -1.0f,
+			-1.0, -1.0,  1.0,
+			-1.0, -1.0, -1.0,
+			-1.0,  1.0, -1.0,
+			-1.0,  1.0, -1.0,
+			-1.0,  1.0,  1.0,
+			-1.0, -1.0,  1.0,
 
-			-1.0f, -1.0f,  1.0f,
-			-1.0f, -1.0f, -1.0f,
-			-1.0f,  1.0f, -1.0f,
-			-1.0f,  1.0f, -1.0f,
-			-1.0f,  1.0f,  1.0f,
-			-1.0f, -1.0f,  1.0f,
+			1.0, -1.0, -1.0,
+			1.0, -1.0,  1.0,
+			1.0,  1.0,  1.0,
+			1.0,  1.0,  1.0,
+			1.0,  1.0, -1.0,
+			1.0, -1.0, -1.0,
 
-			1.0f, -1.0f, -1.0f,
-			1.0f, -1.0f,  1.0f,
-			1.0f,  1.0f,  1.0f,
-			1.0f,  1.0f,  1.0f,
-			1.0f,  1.0f, -1.0f,
-			1.0f, -1.0f, -1.0f,
+			-1.0, -1.0,  1.0,
+			-1.0,  1.0,  1.0,
+			1.0,  1.0,  1.0,
+			1.0,  1.0,  1.0,
+			1.0, -1.0,  1.0,
+			-1.0, -1.0,  1.0,
 
-			-1.0f, -1.0f,  1.0f,
-			-1.0f,  1.0f,  1.0f,
-			1.0f,  1.0f,  1.0f,
-			1.0f,  1.0f,  1.0f,
-			1.0f, -1.0f,  1.0f,
-			-1.0f, -1.0f,  1.0f,
+			-1.0,  1.0, -1.0,
+			1.0,  1.0, -1.0,
+			1.0,  1.0,  1.0,
+			1.0,  1.0,  1.0,
+			-1.0,  1.0,  1.0,
+			-1.0,  1.0, -1.0,
 
-			-1.0f,  1.0f, -1.0f,
-			1.0f,  1.0f, -1.0f,
-			1.0f,  1.0f,  1.0f,
-			1.0f,  1.0f,  1.0f,
-			-1.0f,  1.0f,  1.0f,
-			-1.0f,  1.0f, -1.0f,
-
-			-1.0f, -1.0f, -1.0f,
-			-1.0f, -1.0f,  1.0f,
-			1.0f, -1.0f, -1.0f,
-			1.0f, -1.0f, -1.0f,
-			-1.0f, -1.0f,  1.0f,
-			1.0f, -1.0f,  1.0f
+			-1.0, -1.0, -1.0,
+			-1.0, -1.0,  1.0,
+			1.0, -1.0, -1.0,
+			1.0, -1.0, -1.0,
+			-1.0, -1.0,  1.0,
+			1.0, -1.0,  1.0
 		};
 	};
 
@@ -1382,10 +1712,17 @@ namespace fan {
 		return T(fan::RAY_DID_NOT_HIT);
 	}
 
+	/*
+	f_t travel_distance = fan_2d::manhattan_distance(start, end); \
+		if (!(start == end)) \                                                     
+			while(grid_raycast_single(raycast, block_size) && travel_distance < fan_2d::manhattan_distance(src, raycast.grid * block_size))
+	*/
+
 	#define d_grid_raycast_2d(start, end, raycast, block_size) \
 		fan::grid_raycast_s<fan::vec2> raycast = { grid_direction(end, start), start, fan::vec2() }; \
+		f_t _private_travel_distance = fan_2d::distance((start / block_size).floored(), (end / block_size).floored()); \
 		if (!(start == end)) \
-			while(grid_raycast_single(raycast, block_size))
+			while(grid_raycast_single(raycast, block_size) && _private_travel_distance >= fan_2d::distance((start / block_size).floored(), raycast.grid))
 
 	#define d_grid_raycast_3d(start, end, raycast, block_size) \
 		fan::grid_raycast_s<fan::vec3> raycast = { grid_direction(end, start), start, fan::vec3() }; \

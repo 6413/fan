@@ -1,13 +1,13 @@
 #pragma once
 #include <iostream>
 
-#include <fan/types.h>
+#include <fan/types/types.hpp>
 
 namespace fan {
 
 	class color {
 	public:
-
+	
 		static constexpr color rgb(f32_t r, f32_t g, f32_t b, f32_t a = 255) {
 			return color(r / 255.f, g / 255.f, b / 255.f, a / 255.f);
 		}
@@ -73,7 +73,7 @@ namespace fan {
 			return color(r - color_.r, g - color_.g, b - color_.b, a);
 		}
 		constexpr color operator+(const color& color_) const {
-			return color(r + color_.r, g + color_.g, b + color_.b);
+			return color(r + color_.r, g + color_.g, b + color_.b, a + color_.a);
 		}
 		template <typename T>
 		constexpr color operator*(T value) const {
@@ -86,14 +86,18 @@ namespace fan {
 			return &r;
 		}
 
+		static constexpr auto size() {
+			return 4;
+		}
+
 	};
 
 	namespace colors {
+		static constexpr fan::color black =  fan::color(0, 0, 0);
 		static constexpr fan::color red = fan::color(1, 0, 0);
 		static constexpr fan::color green = fan::color(0, 1, 0);
 		static constexpr fan::color blue = fan::color(0, 0, 1);
 		static constexpr fan::color white = fan::color(1, 1, 1);
-		static constexpr fan::color black =  fan::color(0, 0, 0);
 	}
 
 	inline std::ostream& operator<<(std::ostream& os, const color& color_) noexcept

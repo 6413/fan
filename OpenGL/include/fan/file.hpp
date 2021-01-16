@@ -1,6 +1,6 @@
 #pragma once
 
-#include <fan/types.h>
+#include <fan/types/types.hpp>
 
 #include <fstream>
 #include <string>
@@ -119,8 +119,8 @@ namespace fan {
 				static constexpr std::size_t char_offset = 4;
 				static constexpr std::size_t struct_size = 8;
 
-				fan::vec2ui m_position;
-				fan::vec2ui m_size;
+				fan::vec2i m_position;
+				fan::vec2i m_size;
 				fan::vec2i m_offset;
 				unsigned int m_advance;
 			};

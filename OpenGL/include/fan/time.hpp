@@ -61,7 +61,6 @@ namespace fan {
 
 	template <typename time_format>
 	void delay(time_format time) {
-		//fan::print(time.count());
 		std::this_thread::sleep_for(time);
 	}
 

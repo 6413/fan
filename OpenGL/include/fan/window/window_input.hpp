@@ -1,6 +1,6 @@
 #pragma once
 
-#include <fan/types.h>
+#include <fan/types/types.hpp>
 
 #include <unordered_map>
 
@@ -150,13 +150,19 @@ namespace fan {
 
 		last
 
-		//constexpr auto lshift_lparam(0x2a0000);
-		//constexpr auto rshift_lparam(0x360000);
-
-		//constexpr auto lctrl_lparam(0x1d0000);
-		//constexpr auto rctrl_lparam(0x11d0000);
-
 	};
+
+	namespace special_lparam {
+		static constexpr auto lshift_lparam_down = 0x2a0001;
+		static constexpr auto rshift_lparam_down = 0x360001;
+		static constexpr auto lctrl_lparam_down = 0x1d0001;
+		static constexpr auto rctrl_lparam_down = 0x11d0001;
+
+		static constexpr auto lshift_lparam_up = 0xC02A0001;
+		static constexpr auto rshift_lparam_up = 0xC0360001;
+		static constexpr auto lctrl_lparam_up = 0xC01D0001;
+		static constexpr auto rctrl_lparam_up = 0xC11D0001;
+	}
 
 	namespace window_input {
 

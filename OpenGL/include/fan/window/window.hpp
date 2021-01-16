@@ -2,7 +2,8 @@
 
 #include <GL/glew.h>
 
-#include <fan/types.h>
+#include <fan/types/types.hpp>
+#include <fan/math/vector.hpp>
 
 #ifdef FAN_PLATFORM_WINDOWS
 
@@ -91,12 +92,18 @@ namespace fan {
 
 	constexpr auto uninitialized = -1;
 
+	template <typename T>
+	constexpr auto initialized(T value) {
+		return value != uninitialized;
+	}
+
 	class window {
 	public:
 
-		enum class size_mode {
+		enum class mode {
+			not_set,
 			windowed,
-			windowed_full_screen,
+			borderless,
 			full_screen
 		};
 
@@ -124,45 +131,46 @@ namespace fan {
 			bool release;
 
 		};
-		using mouse_move_callback_t = std::function<void(const fan::vec2i& position)>;
+
+		using mouse_move_callback_t = std::function<void()>;
+		using mouse_move_position_callback_t = std::function<void(const fan::vec2i& position)>;
 		using scroll_callback_t = std::function<void(uint16_t key)>;
-		using resize_callback_t = std::function<void()>;
-		using move_callback_t = std::function<void()>;
 
 		struct flags {
-			static constexpr int no_decorate = get_flag_value(0);
-			static constexpr int no_mouse = get_flag_value(1);
-			static constexpr int no_resize = get_flag_value(2);
-			static constexpr int anti_aliasing = get_flag_value(3);
-			static constexpr int windowed_full_screen = get_flag_value(4);
-			static constexpr int full_screen = get_flag_value(5);
+			static constexpr int no_mouse = get_flag_value(0);
+			static constexpr int no_resize = get_flag_value(1);
+			static constexpr int anti_aliasing = get_flag_value(2);
+			static constexpr int mode = get_flag_value(3);
 		};
 
+		static constexpr const char* default_window_name = "window";
 		static constexpr vec2i default_window_size = fan::vec2i(800, 600);
-		static constexpr vec2i default_opengl_version = fan::vec2i(3, 1); // major minor
+		static constexpr vec2i default_opengl_version = fan::vec2i(4, 5); // major minor
+		static constexpr mode default_size_mode = mode::windowed;
+
 		// for static value storing
 		static constexpr int reserved_storage = -1;
 
-		window(const std::string& name, const fan::vec2i& window_size, uint64_t flags = 0);
+		window(const std::string& name = default_window_name, const fan::vec2i& window_size = fan::window::default_window_size, uint64_t flags = 0);
 		~window();
 
 		void loop(const fan::color& background_color, const std::function<void()>& function);
 
 		void swap_buffers() const;
 
-		void set_window_title(const std::string& title) const;
+		void set_title(const std::string& title) const;
 
 		void calculate_delta_time();
 		f_t get_delta_time() const;
 
-		fan::vec2i get_cursor_position() const;
+		fan::vec2i get_mouse_position() const;
 
 		fan::vec2i get_size() const;
 		fan::vec2i get_previous_size() const;
+		void set_size(const fan::vec2i& size);
 
 		fan::vec2i get_position() const;
-
-		void set_position(const fan::vec2i& position) const;
+		void set_position(const fan::vec2i& position);
 
 		uint_t get_max_fps() const;
 		void set_max_fps(uint_t fps);
@@ -170,21 +178,44 @@ namespace fan {
 		bool vsync_enabled() const;
 		void vsync(bool value);
 
-		void set_opengl_version(int major, int minor);
-
 		// use fan::window::resolutions for window sizes
 		void set_full_screen(const fan::vec2i& size = uninitialized);
 		void set_windowed_full_screen(const fan::vec2i& size = uninitialized);
 		void set_windowed(const fan::vec2i& size = uninitialized);
 
-		void set_resolution(const fan::vec2i& size, const size_mode& mode) const;
+		void set_resolution(const fan::vec2i& size, const mode& mode) const;
 
-		size_mode get_size_mode() const;
-		void set_size_mode(const size_mode& mode);
+		mode get_size_mode() const;
+		void set_size_mode(const mode& mode);
 
-		template <typename type>
-		static type get_window_storage(const fan::window_t& window, const std::string& location);
+		template <typename type_t>
+		static type_t get_window_storage(const fan::window_t& window, const std::string& location);
 		static void set_window_storage(const fan::window_t& window, const std::string& location, std::any data);
+
+		template <uint_t flag, typename T = 
+			typename std::conditional<flag & fan::window::flags::no_mouse, bool,
+			typename std::conditional<flag & fan::window::flags::no_resize, bool,
+			typename std::conditional<flag & fan::window::flags::anti_aliasing, int,
+			typename std::conditional<flag & fan::window::flags::mode, fan::window::mode, int
+		>>>>::type>
+		static constexpr void set_flag_value(T value) {
+			if constexpr(flag & fan::window::flags::no_mouse) {
+				flag_values::m_no_mouse = value;
+			}
+			else if constexpr(flag & fan::window::flags::no_resize) {
+				flag_values::m_no_resize = value;
+			}
+			else if constexpr(flag & fan::window::flags::anti_aliasing) {
+				flag_values::m_samples = value;
+			}
+			else if constexpr(flag & fan::window::flags::mode) {
+				if (value > fan::window::mode::full_screen) {
+					fan::print("fan window error: failed to set window mode flag to: ", fan::eti(value));
+					exit(1);
+				}
+				flag_values::m_size_mode = value;
+			}
+		}
 
 		keys_callback_t get_keys_callback() const;
 		void set_keys_callback(const keys_callback_t& function);
@@ -192,17 +223,21 @@ namespace fan {
 		key_callback_t get_key_callback(uint_t i) const;
 		void add_key_callback(uint16_t key, const std::function<void()>& function, bool on_release = false);
 
-		mouse_move_callback_t get_mouse_move_callback(uint_t i) const;
+		mouse_move_position_callback_t get_mouse_move_callback(uint_t i) const;
+		void add_mouse_move_callback(const mouse_move_position_callback_t& function);
+
 		void add_mouse_move_callback(const mouse_move_callback_t& function);
 
 		scroll_callback_t get_scroll_callback(uint_t i) const;
 		void add_scroll_callback(const scroll_callback_t& function);
 
-		resize_callback_t get_resize_callback(uint_t i) const;
-		void add_resize_callback(const resize_callback_t& function);
+		std::function<void()> get_resize_callback(uint_t i) const;
+		void add_resize_callback(const std::function<void()>& function);
 
-		move_callback_t get_move_callback(uint_t i) const;
-		void add_move_callback(const move_callback_t& function);
+		std::function<void()> get_move_callback(uint_t i) const;
+		void add_move_callback(const std::function<void()>& function);
+
+		void set_background_color(const fan::color& color);
 
 		fan::window_t get_handle() const;
 
@@ -213,6 +248,8 @@ namespace fan {
 
 		bool open() const;
 		void close();
+
+		bool focused() const;
 	
 	private:
 
@@ -256,10 +293,11 @@ namespace fan {
 
 		keys_callback_t m_keys_callback;
 		std::vector<key_callback_t> m_key_callback;
+		std::vector<mouse_move_position_callback_t> m_mouse_move_position_callback;
 		std::vector<mouse_move_callback_t> m_mouse_move_callback;
 		std::vector<scroll_callback_t> m_scroll_callback;
-		std::vector<move_callback_t> m_move_callback;
-		std::vector<resize_callback_t> m_resize_callback;
+		std::vector<std::function<void()>> m_move_callback;
+		std::vector<std::function<void()>> m_resize_callback;
 
 		keymap_t m_keys_down;
 
@@ -272,7 +310,7 @@ namespace fan {
 
 		fan::vec2i m_position;
 		
-		fan::vec2i m_cursor_position;
+		fan::vec2i m_mouse_position;
 
 		uint_t m_max_fps;
 
@@ -288,10 +326,19 @@ namespace fan {
 
 		bool m_close;
 
-		int m_minor_version;
-		int m_major_version;
+		struct flag_values {
 
-		size_mode m_size_mode;
+			static int m_minor_version;
+			static int m_major_version;
+
+			static bool m_no_mouse;
+			static bool m_no_resize;
+
+			static uint8_t m_samples;
+
+			static mode m_size_mode;
+
+		};
 
 	};
 }
