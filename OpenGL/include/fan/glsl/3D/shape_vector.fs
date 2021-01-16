@@ -10,13 +10,14 @@ uniform sampler2D texture_sampler;
 
 void main() {
     switch(mode) {
-        case 0: {
+        case 1: {
             shape_texture = color;
             break;
 		}
-        case 1: {
+        case 2: {
             shape_texture = texture2D(texture_sampler, texture_coordinate);
             break;
         }
 	}
+
 } 

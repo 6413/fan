@@ -7,16 +7,79 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
-#include <fan/types.h>
+#include <fan/types/types.hpp>
 #include <fan/file.hpp>
+#include <fan/math/matrix.hpp>
 
 namespace fan {
 	class shader {
     public:
-        shader() : id(-1) {}
+        shader() : m_id(fan::uninitialized) {}
 
         shader(const std::string& vertex_path, const std::string& fragment_path, const std::string& geometry_path = std::string())
+            :  m_vertex_path(vertex_path), m_fragment_path(fragment_path), m_geometry_path(geometry_path), m_id(fan::uninitialized)
         {
+            this->generate_shader(vertex_path, fragment_path, geometry_path);
+        }
+
+        shader(const shader& s) : m_id(fan::uninitialized) {
+            this->operator=(s);
+        }
+        
+        shader(shader&& s) noexcept : m_id(fan::uninitialized) {
+            this->operator=(std::move(s));
+        }
+
+        ~shader() {
+            this->remove();
+        }
+
+        shader& operator=(const shader& s) {
+
+            this->remove();
+
+            this->m_vertex_path   = s.m_vertex_path;
+            this->m_fragment_path = s.m_fragment_path;
+            this->m_geometry_path = s.m_geometry_path;
+
+            this->generate_shader(m_vertex_path, m_fragment_path, m_geometry_path);
+
+            return *this;
+        }
+
+        shader& operator=(shader&& s) noexcept {
+
+            this->remove();
+
+            this->m_id = s.m_id;
+
+            this->m_vertex_path   = std::move(s.m_vertex_path);
+            this->m_fragment_path = std::move(s.m_fragment_path);
+            this->m_geometry_path = std::move(s.m_geometry_path);
+
+            s.m_id = fan::uninitialized;
+
+            return *this;
+        }
+
+        void use() const
+        {
+            glUseProgram(m_id);
+        }
+
+        void remove() {
+            fan_validate_buffer(m_id, {
+                glValidateProgram(m_id);
+                int status = 0;
+                glGetProgramiv(m_id, GL_VALIDATE_STATUS, &status);
+                if (status) {
+                    glDeleteProgram(m_id);
+                }
+                m_id = fan::uninitialized;
+            });
+        }
+
+        void generate_shader(const std::string& vertex_path, const std::string& fragment_path, const std::string& geometry_path = std::string()) {
             std::string vertexCode;
             std::string fragmentCode;
             std::string geometryCode;
@@ -83,107 +146,105 @@ namespace fan {
                 checkCompileErrors(geometry, "GEOMETRY");
             }
             // shader Program
-            id = glCreateProgram();
-            glAttachShader(id, vertex);
-            glAttachShader(id, fragment);
+            m_id = glCreateProgram();
+            glAttachShader(m_id, vertex);
+            glAttachShader(m_id, fragment);
 
             if (!geometry_path.empty())
-                glAttachShader(id, geometry);
+                glAttachShader(m_id, geometry);
 
-            glLinkProgram(id);
-            checkCompileErrors(id, "PROGRAM");
+            glLinkProgram(m_id);
+            checkCompileErrors(m_id, "PROGRAM");
 
             glDeleteShader(vertex);
             glDeleteShader(fragment);
             if (!geometry_path.empty())
                 glDeleteShader(geometry);
-
-        }
-
-        void use() const
-        {
-            glUseProgram(id);
         }
 
         void set_int(const std::string& name, int value) const
         {
-            glUniform1i(glGetUniformLocation(id, name.c_str()), value);
+            glUniform1i(glGetUniformLocation(m_id, name.c_str()), value);
         }
 
         void set_int_array(const std::string& name, int* values, int size) const {
-            glUniform1iv(glGetUniformLocation(id, name.c_str()), size, values);
+            glUniform1iv(glGetUniformLocation(m_id, name.c_str()), size, values);
         }
 
         void set_float(const std::string& name, f32_t value) const
         {
             if constexpr (std::is_same<f32_t, float>::value) {
-                glUniform1f(glGetUniformLocation(id, name.c_str()), value);
+                glUniform1f(glGetUniformLocation(m_id, name.c_str()), value);
             }
             else {
-                glUniform1d(glGetUniformLocation(id, name.c_str()), value);
+                glUniform1d(glGetUniformLocation(m_id, name.c_str()), value);
             }
         }
 
         void set_vec2(const std::string& name, const fan::vec2& value) const
         {
             if constexpr (std::is_same<f32_t, float>::value) {
-                glUniform2fv(glGetUniformLocation(id, name.c_str()), 1, (f32_t*)&value.x);
+                glUniform2fv(glGetUniformLocation(m_id, name.c_str()), 1, (f32_t*)&value.x);
             }
             else {
-                glUniform2dv(glGetUniformLocation(id, name.c_str()), 1, (f64_t*)&value.x);
+                glUniform2dv(glGetUniformLocation(m_id, name.c_str()), 1, (f64_t*)&value.x);
             }
         }
 
         void set_vec2(const std::string& name, float x, float y) const
         {
             if constexpr (std::is_same<f32_t, float>::value) {
-                glUniform2f(glGetUniformLocation(id, name.c_str()), x, y);
+                glUniform2f(glGetUniformLocation(m_id, name.c_str()), x, y);
             }
             else {
-                glUniform2d(glGetUniformLocation(id, name.c_str()), x, y);
+                glUniform2d(glGetUniformLocation(m_id, name.c_str()), x, y);
             }
         }
 
         void set_vec3(const std::string& name, const fan::vec3& value) const
         {
             if constexpr (std::is_same<f32_t, float>::value) {
-                glUniform3f(glGetUniformLocation(id, name.c_str()), value.x, value.y, value.z);
+                glUniform3f(glGetUniformLocation(m_id, name.c_str()), value.x, value.y, value.z);
             }
             else {
-                glUniform3d(glGetUniformLocation(id, name.c_str()), value.x, value.y, value.z);
+                glUniform3d(glGetUniformLocation(m_id, name.c_str()), value.x, value.y, value.z);
             }
         }
 
         void set_vec4(const std::string& name, const fan::color& color) const
         {
             if constexpr (std::is_same<f32_t, float>::value) {
-                glUniform4f(glGetUniformLocation(id, name.c_str()), color.r, color.g, color.b, color.a);
+                glUniform4f(glGetUniformLocation(m_id, name.c_str()), color.r, color.g, color.b, color.a);
             }
             else {
-                glUniform4d(glGetUniformLocation(id, name.c_str()), color.r, color.g, color.b, color.a);
+                glUniform4d(glGetUniformLocation(m_id, name.c_str()), color.r, color.g, color.b, color.a);
             }
         }
 
         void set_vec4(const std::string& name, f32_t x, f32_t y, f32_t z, f32_t w) const
         {
             if constexpr (std::is_same<f32_t, float>::value) {
-                glUniform4f(glGetUniformLocation(id, name.c_str()), x, y, z, w);
+                glUniform4f(glGetUniformLocation(m_id, name.c_str()), x, y, z, w);
             }
             else {
-                glUniform4d(glGetUniformLocation(id, name.c_str()), x, y, z, w);
+                glUniform4d(glGetUniformLocation(m_id, name.c_str()), x, y, z, w);
             }
         }
 
         void set_mat4(const std::string& name, fan::mat4 mat) const { // ei saanu kai olla const
             if constexpr (std::is_same<f32_t, float>::value) {
-                glUniformMatrix4fv(glGetUniformLocation(id, name.c_str()), 1, GL_FALSE, (f32_t*)&mat[0][0]);
+                glUniformMatrix4fv(glGetUniformLocation(m_id, name.c_str()), 1, GL_FALSE, (f32_t*)&mat[0][0]);
             }
             else {
-                glUniformMatrix4dv(glGetUniformLocation(id, name.c_str()), 1, GL_FALSE, (f64_t*)&mat[0][0]);
+                glUniformMatrix4dv(glGetUniformLocation(m_id, name.c_str()), 1, GL_FALSE, (f64_t*)&mat[0][0]);
             }
         }
 
-        unsigned int id;
+        unsigned int m_id;
+
+        std::string m_vertex_path;
+        std::string m_fragment_path;
+        std::string m_geometry_path;
 
     private:
 
@@ -197,7 +258,7 @@ namespace fan {
                 if (!success)
                 {
                     glGetShaderInfoLog(shader, 1024, NULL, infoLog);
-                    std::cout << "ERROR::SHADER_COMPILATION_ERROR of type: " << type << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
+                    std::cout << "failed to compile type: " << type << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
                 }
             }
             else
@@ -206,7 +267,7 @@ namespace fan {
                 if (!success)
                 {
                     glGetProgramInfoLog(shader, 1024, NULL, infoLog);
-                    std::cout << "ERROR::PROGRAM_LINKING_ERROR of type: " << type << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
+                    std::cout << "failed to compile type: " << type << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
                 }
             }
         }

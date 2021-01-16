@@ -15,7 +15,7 @@ fan::vec2i fan::get_resolution() {
 
 	return fan::vec2i(GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN));
 
-#elif defined(FAN_PLATFORM_LINUX)
+#elif defined(FAN_PLATFORM_LINUX) // close
 
 	Display* display = XOpenDisplay(0);
 
@@ -24,28 +24,54 @@ fan::vec2i fan::get_resolution() {
 	}
 
 	int screen = DefaultScreen(display);
+	fan::vec2i resolution(DisplayWidth(display, screen), DisplayHeight(display, screen));
+	
+	XCloseDisplay(display);
 
-	return fan::vec2i(DisplayWidth(display, screen), DisplayHeight(display, screen));
+	return resolution;
 
 #endif
 }
 
+int fan::window::flag_values::m_minor_version = fan::uninitialized;
+int fan::window::flag_values::m_major_version = fan::uninitialized;
+
+bool fan::window::flag_values::m_no_mouse = false;
+bool fan::window::flag_values::m_no_resize = false;
+
+uint8_t fan::window::flag_values::m_samples = fan::uninitialized;
+fan::window::mode fan::window::flag_values::m_size_mode = fan::window::mode::not_set;
+
 fan::window::window(const std::string& name, const fan::vec2i& window_size, uint64_t flags)
-	: m_size(window_size), m_fps(0), m_close(false), m_max_fps(0), m_vsync(false), 
-	  m_minor_version(default_opengl_version.x), m_major_version(default_opengl_version.y),
-	  m_position(-1), 
-	  m_size_mode(
-		flags & flags::windowed_full_screen ? size_mode::windowed_full_screen :
-		flags & flags::full_screen ? size_mode::full_screen : size_mode::windowed
-	  )
+	: m_size(window_size), m_fps(0), m_close(false), m_max_fps(0), m_vsync(false),
+	  m_position(-1), m_current_frame(0), m_last_frame(0), m_delta_time(0), m_mouse_position(0), m_received_fps(0)
 {
+	if (flag_values::m_size_mode == fan::window::mode::not_set) {
+		flag_values::m_size_mode = fan::window::default_size_mode;
+	}
+	if (!initialized(flag_values::m_major_version)) {
+		flag_values::m_major_version = default_opengl_version.x;
+	}
+	if (!initialized(flag_values::m_minor_version)) {
+		flag_values::m_minor_version = default_opengl_version.y;
+	}
+	if (!initialized(flag_values::m_samples)) {
+		flag_values::m_samples = 0;
+	}
+	if (flags & fan::window::flags::no_mouse) {
+		fan::window::flag_values::m_no_mouse = true;
+	}
+	if (flags & fan::window::flags::no_resize) {
+		fan::window::flag_values::m_no_resize = true;
+	}
+
 	initialize_window(name, window_size, flags);
+	this->calculate_delta_time();
 }
 
 fan::window::~window()
 {
 #ifdef FAN_PLATFORM_WINDOWS
-
 
 #elif defined(FAN_PLATFORM_LINUX)
 
@@ -70,16 +96,12 @@ void fan::window::loop(const fan::color& background_color, const std::function<v
 		this->calculate_delta_time();
 
 		this->handle_events();
-		
-		glClearColor(
-			background_color.r,
-			background_color.g,
-			background_color.b,
-			background_color.a
-		);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		function();
+		this->set_background_color(background_color);
+
+		if (function) {
+			function();
+		}
 
 		if (f_t fps = static_cast<f_t>(timer_interval_t::period::den) / get_max_fps()) {
 			next_tick += fps;
@@ -90,6 +112,17 @@ void fan::window::loop(const fan::color& background_color, const std::function<v
 		this->swap_buffers();
 
 		this->reset_keys();
+
+		if (flag_values::m_no_mouse && this->focused()) {
+			auto middle = this->get_position() + this->get_size() / 2;
+
+			if (get_mouse_position() != middle) {
+			#ifdef FAN_PLATFORM_WINDOWS
+				SetCursorPos(middle.x, middle.y);
+			#endif
+			}
+		}
+
 	}
 }
 
@@ -104,14 +137,17 @@ void fan::window::swap_buffers() const
 
 }
 
-void fan::window::set_window_title(const std::string& title) const
+void fan::window::set_title(const std::string& title) const
 {
 
 #ifdef FAN_PLATFORM_WINDOWS
 
+	SetWindowTextA(m_window, title.c_str());
+
 #elif defined(FAN_PLATFORM_LINUX)
 
 	XStoreName(m_display, m_window, title.c_str());
+	XSetIconName(m_display, m_window, title.c_str());
 
 #endif
 
@@ -119,8 +155,8 @@ void fan::window::set_window_title(const std::string& title) const
 
 void fan::window::calculate_delta_time()
 {
-	m_current_frame = fan::timer<>::get_time();
-	m_delta_time = f_t(m_current_frame - m_last_frame) / 1000;
+	m_current_frame = fan::timer<microseconds>::get_time();
+	m_delta_time = f_t(m_current_frame - m_last_frame) / 1000000;
 	m_last_frame = m_current_frame;
 }
 
@@ -129,9 +165,9 @@ f_t fan::window::get_delta_time() const
 	return m_delta_time;
 }
 
-fan::vec2i fan::window::get_cursor_position() const
+fan::vec2i fan::window::get_mouse_position() const
 {
-	return m_cursor_position;
+	return m_mouse_position;
 }
 
 fan::vec2i fan::window::get_size() const
@@ -144,9 +180,57 @@ fan::vec2i fan::window::get_previous_size() const
 	return m_previous_size;
 }
 
+void fan::window::set_size(const fan::vec2i& size)
+{
+	const fan::vec2i position = this->get_position();
+	const fan::vec2i move_offset = (size - get_previous_size()) / 2;
+
+#ifdef FAN_PLATFORM_WINDOWS
+
+	if (!SetWindowPos(m_window, 0, position.x - move_offset.x, position.y - move_offset.y, size.x, size.y, SWP_NOZORDER | SWP_SHOWWINDOW)) {
+		fan::print("fan window error: failed to set window position", GetLastError());
+		exit(1);
+	}
+
+#elif defined(FAN_PLATFORM_LINUX)
+
+	int result = XResizeWindow(m_display, m_window, size.x, size.y);
+
+	if (result == BadValue || result == BadWindow) {
+		fan::print("fan window error: failed to set window position");
+		exit(1);
+	}
+
+	this->set_position(this->get_position() - move_offset);
+
+#endif
+
+}
+
 fan::vec2i fan::window::get_position() const
 {
 	return m_position;
+}
+
+void fan::window::set_position(const fan::vec2i& position)
+{
+	#ifdef FAN_PLATFORM_WINDOWS
+
+	if (!SetWindowPos(m_window, 0, position.x, position.y, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW)) {
+		fan::print("fan window error: failed to set window position", GetLastError());
+		exit(1);
+	}
+
+#elif defined(FAN_PLATFORM_LINUX)
+
+	int result = XMoveWindow(m_display, m_window, position.x, position.y);
+
+	if (result == BadValue || result == BadWindow) {
+		fan::print("fan window error: failed to set window position");
+		exit(1);
+	}
+
+#endif
 }
 
 uint_t fan::window::get_max_fps() const {
@@ -192,15 +276,9 @@ void fan::window::vsync(bool value) {
 	m_vsync = value;
 }
 
-void fan::window::set_opengl_version(int major, int minor)
-{
-	this->m_major_version = major;
-	this->m_minor_version = minor;
-}
-
 void fan::window::set_full_screen(const fan::vec2i& size)
 {
-	fan::window::set_size_mode(fan::window::size_mode::full_screen);
+	fan::window::set_size_mode(fan::window::mode::full_screen);
 
 	fan::vec2i new_size;
 
@@ -228,7 +306,7 @@ void fan::window::set_full_screen(const fan::vec2i& size)
 void fan::window::set_windowed_full_screen(const fan::vec2i& size)
 {
 
-	fan::window::set_size_mode(fan::window::size_mode::windowed_full_screen);
+	fan::window::set_size_mode(fan::window::mode::borderless);
 
 	fan::vec2i new_size;
 
@@ -294,7 +372,7 @@ void fan::window::set_windowed_full_screen(const fan::vec2i& size)
 
 void fan::window::set_windowed(const fan::vec2i& size)
 {
-	fan::window::set_size_mode(fan::window::size_mode::windowed);
+	fan::window::set_size_mode(fan::window::mode::windowed);
 
 	fan::vec2i new_size;
 	if (size == uninitialized) {
@@ -331,11 +409,11 @@ void fan::window::set_windowed(const fan::vec2i& size)
 #endif
 }
 
-void fan::window::set_resolution(const fan::vec2i& size, const size_mode& mode) const
+void fan::window::set_resolution(const fan::vec2i& size, const mode& mode) const
 {
 #ifdef FAN_PLATFORM_WINDOWS
 
-	if (mode == size_mode::full_screen) {
+	if (mode == mode::full_screen) {
 		DEVMODE screen_settings;
 		memset (&screen_settings, 0, sizeof (screen_settings));
 		screen_settings.dmSize = sizeof (screen_settings);
@@ -356,14 +434,14 @@ void fan::window::set_resolution(const fan::vec2i& size, const size_mode& mode) 
 #endif
 }
 
-fan::window::size_mode fan::window::get_size_mode() const
+fan::window::mode fan::window::get_size_mode() const
 {
-	return m_size_mode;
+	return flag_values::m_size_mode;
 }
 
-void fan::window::set_size_mode(const size_mode& mode)
+void fan::window::set_size_mode(const mode& mode)
 {
-	this->m_size_mode = mode;
+	flag_values::m_size_mode = mode;
 }
 
 template <typename type>
@@ -415,9 +493,15 @@ void fan::window::add_key_callback(uint16_t key, const std::function<void()>& fu
 	set_window_storage(m_window, stringify(m_key_callback), this->m_key_callback);
 }
 
-fan::window::mouse_move_callback_t fan::window::get_mouse_move_callback(uint_t i) const
+fan::window::mouse_move_position_callback_t fan::window::get_mouse_move_callback(uint_t i) const
 {
-	return this->m_mouse_move_callback[i];
+	return this->m_mouse_move_position_callback[i];
+}
+
+void fan::window::add_mouse_move_callback(const mouse_move_position_callback_t& function)
+{
+	this->m_mouse_move_position_callback.emplace_back(function);
+	set_window_storage(m_window, stringify(m_mouse_move_position_callback), this->m_mouse_move_position_callback);
 }
 
 void fan::window::add_mouse_move_callback(const mouse_move_callback_t& function)
@@ -437,26 +521,37 @@ void fan::window::add_scroll_callback(const scroll_callback_t& function)
 	set_window_storage(m_window, stringify(m_scroll_callback), this->m_scroll_callback);
 }
 
-fan::window::resize_callback_t fan::window::get_resize_callback(uint_t i) const
+std::function<void()> fan::window::get_resize_callback(uint_t i) const
 {
 	return this->m_resize_callback[i];
 }
 
-void fan::window::add_resize_callback(const fan::window::resize_callback_t& function)
+void fan::window::add_resize_callback(const std::function<void()>& function)
 {
 	this->m_resize_callback.emplace_back(function);
 	set_window_storage(m_window, stringify(m_resize_callback), this->m_resize_callback);
 }
 
-fan::window::move_callback_t fan::window::get_move_callback(uint_t i) const
+std::function<void()> fan::window::get_move_callback(uint_t i) const
 {
 	return this->m_move_callback[i];
 }
 
-void fan::window::add_move_callback(const move_callback_t& function)
+void fan::window::add_move_callback(const std::function<void()>& function)
 {
 	this->m_move_callback.push_back(function);
 	set_window_storage(m_window, stringify(m_move_callback), this->m_move_callback);
+}
+
+void fan::window::set_background_color(const fan::color& color)
+{
+	glClearColor(
+		color.r,
+		color.g,
+		color.b,
+		color.a
+	);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
 fan::window_t fan::window::get_handle() const
@@ -487,7 +582,7 @@ uint_t fan::window::get_fps(bool window_title, bool print)
 			).c_str();
 		}
 		if (window_title) {
-			this->set_window_title(fps_info.c_str());
+			this->set_title(fps_info.c_str());
 		}
 		if (print) {
 			fan::print(fps_info);
@@ -517,6 +612,16 @@ bool fan::window::open() const {
 
 void fan::window::close() {
 	m_close = true;
+}
+
+bool fan::window::focused() const
+{
+#ifdef FAN_PLATFORM_WINDOWS
+	return m_window == GetFocus();
+#elif defined(FAN_PLATFORM_LINUX)
+	return 1;
+#endif
+	
 }
 
 void fan::window::window_input_action(fan::window_t window, uint16_t key) {
@@ -705,6 +810,65 @@ void fan::window::window_input_action_reset(fan::window_t window, uint16_t key)
 }
 
 #ifdef FAN_PLATFORM_WINDOWS
+static void handle_special(WPARAM wparam, LPARAM lparam, uint16_t& key, bool down) {
+	if (wparam == 0x10 || wparam == 0x11) {
+		if (down) {
+			switch (lparam) {
+				case fan::special_lparam::lshift_lparam_down:
+				{
+					key = fan::input::key_left_shift;
+					break;
+				}
+				case fan::special_lparam::rshift_lparam_down:
+				{
+					key = fan::input::key_right_shift;
+					break;
+				}
+				case fan::special_lparam::lctrl_lparam_down:
+				{
+					key = fan::input::key_left_control;
+					break;
+				}
+				case fan::special_lparam::rctrl_lparam_down:
+				{
+					key = fan::input::key_right_control;
+					break;
+				}
+			}
+		}
+		else {
+			switch (lparam) {
+				case (long)fan::special_lparam::lshift_lparam_up: // ?
+				{
+					key = fan::input::key_left_shift;
+					break;
+				}
+				case (long)fan::special_lparam::rshift_lparam_up:
+				{
+					key = fan::input::key_right_shift;
+					break;
+				}
+				case (long)fan::special_lparam::lctrl_lparam_up:
+				{
+					key = fan::input::key_left_control;
+					break;
+				}
+				case (long)fan::special_lparam::rctrl_lparam_up: // ? 
+				{
+					key = fan::input::key_right_control;
+					break;
+				}
+			}
+		}
+	}
+	else {
+		key = fan::window_input::convert_keys_to_fan(wparam);
+	}
+
+}
+#endif
+
+#ifdef FAN_PLATFORM_WINDOWS
 LRESULT CALLBACK fan::window::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
 	switch (msg)
 	{
@@ -721,7 +885,7 @@ LRESULT CALLBACK fan::window::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LP
 				);
 			}
 			
-			const auto move_callback = get_window_storage<std::vector<move_callback_t>>(hwnd, stringify(m_move_callback));
+			const auto move_callback = get_window_storage<std::vector<std::function<void()>>>(hwnd, stringify(m_move_callback));
 
 			for (const auto& i : move_callback) {
 				if (i) {
@@ -734,9 +898,9 @@ LRESULT CALLBACK fan::window::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LP
 		case WM_SIZE:
 		{
 			RECT rect;
+			RECT rect2;
+			GetWindowRect(hwnd, &rect2);
 			GetClientRect(hwnd, &rect);
-			
-			glViewport(0, 0, rect.right, rect.bottom);
 
 			auto window_size = get_window_storage<fan::vec2i*>(hwnd, stringify(m_size));
 
@@ -747,9 +911,12 @@ LRESULT CALLBACK fan::window::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LP
 			}
 			
 			*previous_size = *window_size;
-			*window_size = fan::vec2i(rect.right, rect.bottom);
+			*window_size = fan::vec2i(rect.right - rect.left, rect.bottom - rect.top);
+			
+			glViewport(0, 0, window_size->x, window_size->y);
 
-			const auto resize_callback = get_window_storage<std::vector<resize_callback_t>>(hwnd, stringify(m_resize_callback));
+
+			const auto resize_callback = get_window_storage<std::vector<std::function<void()>>>(hwnd, stringify(m_resize_callback));
 
 			for (const auto& i : resize_callback) {
 				if (i) {
@@ -761,7 +928,9 @@ LRESULT CALLBACK fan::window::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LP
 		}
 		case WM_KEYDOWN:
 		{
-			uint16_t key = fan::window_input::convert_keys_to_fan(wparam);
+			uint16_t key;
+
+			handle_special(wparam, lparam, key, true);
 
 			keymap_t* keys_down = get_window_storage<keymap_t*>(hwnd, stringify(m_keys_down));
 
@@ -770,6 +939,14 @@ LRESULT CALLBACK fan::window::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LP
 			}
 
 			fan::window::window_input_action(hwnd, key);
+
+			break;
+		}
+		case WM_LBUTTONDOWN:
+		{
+			const uint16_t key = fan::input::mouse_left;
+
+			fan::window::window_input_mouse_action(hwnd, key);
 
 			break;
 		}
@@ -817,7 +994,9 @@ LRESULT CALLBACK fan::window::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LP
 
 		case WM_KEYUP:
 		{
-			const uint16_t key = fan::window_input::convert_keys_to_fan(wparam);
+			uint16_t key = 0;
+
+			handle_special(wparam, lparam, key, false);
 
 			window_input_up(hwnd, key);
 
@@ -828,18 +1007,40 @@ LRESULT CALLBACK fan::window::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LP
 
 			const fan::vec2i position(GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam));
 
-			auto mouse_move_callback = get_window_storage<std::vector<mouse_move_callback_t>>(hwnd, stringify(m_mouse_move_callback));
+			static auto offset = 0;
 
-			for (const auto& i : mouse_move_callback) {
-				if (i) {
-					i(position);
+			fan::vec2i* mouse_position = get_window_storage<fan::vec2i*>(hwnd, stringify(m_mouse_position));
+
+			auto window_position = *get_window_storage<fan::vec2i*>(hwnd, stringify(m_position));
+			auto window_size = *get_window_storage<fan::vec2i*>(hwnd, stringify(m_size));
+
+			if (mouse_position) {
+
+				if (fan::window::flag_values::m_no_mouse) {
+					POINT p = { window_position.x + window_size.x / 2,  window_position.y + window_size.y / 2 };
+					ScreenToClient(hwnd, &p);
+
+					*mouse_position += -(fan::vec2i(p.x, p.y) - position);
 				}
-			}
+				else {
+					*mouse_position = position;
+				}
 
-			fan::vec2i* cursor_position = get_window_storage<fan::vec2i*>(hwnd, stringify(m_cursor_position));
+				const auto& mouse_move_position_callback = get_window_storage<std::vector<mouse_move_position_callback_t>>(hwnd, stringify(m_mouse_move_position_callback));
+				const auto& mouse_move_callback = get_window_storage<std::vector<mouse_move_callback_t>>(hwnd, stringify(mouse_move_position_callback));
 
-			if (cursor_position) {
-				*cursor_position = position;
+				for (const auto& i : mouse_move_position_callback) {
+					if (i) {
+						i(*mouse_position);
+					}
+				}
+
+				for (const auto& i : mouse_move_callback) {
+					if (i) {
+						i();
+					}
+				}
+
 			}
 
 			break;
@@ -854,6 +1055,8 @@ LRESULT CALLBACK fan::window::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LP
 			if (keys_down) {
 				fan::window_input::get_keys(keys_down, zDelta < 0 ? fan::input::mouse_scroll_down : fan::input::mouse_scroll_up, true);
 			}
+
+			fan::window::window_input_mouse_action(hwnd, zDelta < 0 ? fan::input::mouse_scroll_down : fan::input::mouse_scroll_up);
 
 			auto scroll_callback = get_window_storage<std::vector<scroll_callback_t>>(hwnd, stringify(m_scroll_callback));
 
@@ -946,49 +1149,64 @@ void fan::window::initialize_window(const std::string& name, const fan::vec2i& w
     
 	RegisterClass(&wc);
 
+	const bool full_screen = flag_values::m_size_mode == fan::window::mode::full_screen;
+	const bool borderless = flag_values::m_size_mode == fan::window::mode::borderless;
+
+
 	RECT rect = {0, 0, window_size.x, window_size.y};
-    AdjustWindowRect(&rect, WS_OVERLAPPEDWINDOW, FALSE);
+    AdjustWindowRect(&rect, full_screen || borderless ? WS_POPUP : WS_OVERLAPPEDWINDOW, FALSE);
+
+	const fan::vec2i position = fan::get_resolution() / 2 - window_size / 2;
+
+	if (full_screen) {
+		this->set_resolution(window_size, fan::window::mode::full_screen);
+	}
 
 	m_window = CreateWindow("test", name.c_str(),
-							WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-							CW_USEDEFAULT, CW_USEDEFAULT,
+							(flag_values::m_no_resize ? ((full_screen || borderless ? WS_POPUP : WS_OVERLAPPEDWINDOW) | WS_SYSMENU) :
+							(full_screen || borderless ? WS_POPUP : WS_OVERLAPPEDWINDOW) | (flag_values::m_no_resize ? SWP_NOSIZE : 0)) | WS_VISIBLE,
+							position.x, position.y,
 							rect.right - rect.left, rect.bottom - rect.top,
 							0, 0, instance, 0);
-		
+	
 	if (!m_window) {
 		fan::print("fan window error: failed to initialize window", GetLastError());
 		exit(1);
 	}
 
+	if (flag_values::m_no_mouse) {
+		ShowCursor(false);
+	}
+	else {
+		ShowCursor(true);
+	}
+
 	PIXELFORMATDESCRIPTOR pfd = {
-		sizeof(PIXELFORMATDESCRIPTOR),  //  size of this pfd  
-		1,                     // version number  
-		PFD_DRAW_TO_WINDOW |   // support window  
-		PFD_SUPPORT_OPENGL |   // support OpenGL  
-		PFD_DOUBLEBUFFER,      // double buffered  
-		PFD_TYPE_RGBA,         // RGBA type  
-		24,                    // 24-bit color depth  
-		0, 0, 0, 0, 0, 0,      // color bits ignored  
-		0,                     // no alpha buffer  
-		0,                     // shift bit ignored  
-		0,                     // no accumulation buffer  
-		0, 0, 0, 0,            // accum bits ignored  
-		32,                    // 32-bit z-buffer      
-		0,                     // no stencil buffer  
-		0,                     // no auxiliary buffer  
-		PFD_MAIN_PLANE,        // main layer  
-		0,                     // reserved  
-		0, 0, 0                // layer masks ignored  
+		sizeof(PIXELFORMATDESCRIPTOR),
+		1,
+		PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER,
+		PFD_TYPE_RGBA,
+		32,
+		0, 0, 0, 0, 0, 0,
+		0,
+		0,
+		0,
+		0, 0, 0, 0,
+		24,
+		8,
+		0,
+		PFD_MAIN_PLANE,
+		0,
+		0, 0, 0
 	};
 
-	m_hdc = GetDC(m_window);
-
 	static const int attributes[] = {
-		fan::OPENGL_MAJOR_VERSION, m_major_version,
-		fan::OPENGL_MINOR_VERSION, m_minor_version,
+		fan::OPENGL_MAJOR_VERSION, flag_values::m_major_version,
+		fan::OPENGL_MINOR_VERSION, flag_values::m_minor_version,
 		0
 	};
 
+	m_hdc = GetDC(m_window);
 	int pixel_format = ChoosePixelFormat(m_hdc, &pfd);
 	SetPixelFormat(m_hdc, pixel_format, &pfd);
 	HGLRC temp_rc = wglCreateContext(m_hdc);
@@ -1013,18 +1231,13 @@ void fan::window::initialize_window(const std::string& name, const fan::vec2i& w
 	wglCreateContext(m_hdc);
 	wglMakeCurrent(m_hdc, rc);
 	
-	rect = {};
-    if(GetWindowRect(GetConsoleWindow(), &rect)) {
-        m_position = fan::vec2i(
-			rect.left, 
-			rect.top
-		);
-    }
+	m_position = position;
 
 	set_window_storage(m_window, stringify(rc), rc);
 	set_window_storage(m_window, stringify(m_size), &m_size);
 	set_window_storage(m_window, stringify(m_previous_size), &m_previous_size);
 	set_window_storage(m_window, stringify(m_position), &m_position);
+	set_window_storage(m_window, stringify(m_mouse_position), &m_mouse_position);
 
 	m_previous_size = m_size;
 
@@ -1042,11 +1255,11 @@ void fan::window::initialize_window(const std::string& name, const fan::vec2i& w
 	int minor_glx = 0, major_glx = 0;
 	glXQueryVersion(m_display, &major_glx, &minor_glx);
 
-	if (minor_glx < 2 && major_glx <= 1) {
-		fan::print("fan window error: glx 1.2 or greater is required");
-		XCloseDisplay(m_display);
-		exit(1);
-	}
+	//if (minor_glx < flag_values::m_minor_version && major_glx <= flag_values::m_major_version) {
+	//	fan::print("fan window error: too low glx version");
+	//	XCloseDisplay(m_display);
+	//	exit(1);
+	//}
 	
 	static constexpr int fb_attribs[] = {
 		GLX_RENDER_TYPE, GLX_RGBA_BIT,
@@ -1060,15 +1273,13 @@ void fan::window::initialize_window(const std::string& name, const fan::vec2i& w
 	};
 
 	static int gl_attribs[] = {
-		fan::OPENGL_MINOR_VERSION, 2,
-		fan::OPENGL_MAJOR_VERSION, 1,
+		fan::OPENGL_MINOR_VERSION, flag_values::m_minor_version,
+		fan::OPENGL_MAJOR_VERSION, flag_values::m_major_version,
 		GLX_CONTEXT_PROFILE_MASK_ARB, GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
 		0
 	};
 
-	int fbcount;
-	fan::print(m_display, m_screen, &fbcount);
-	
+
 	auto ChooseFBConfigSGIX =
 		(PFNGLXCHOOSEFBCONFIGPROC)
 		glXGetProcAddress((GLubyte*)"glXChooseFBConfig");
@@ -1080,6 +1291,8 @@ void fan::window::initialize_window(const std::string& name, const fan::vec2i& w
 		(PFNGLXCREATECONTEXTATTRIBSARBPROC)
 		glXGetProcAddress((GLubyte*)"glXCreateContextAttribsARB");
 
+	int fbcount;
+
 	auto fbcs = ((GLXFBConfig*)ChooseFBConfigSGIX(m_display, m_screen, fb_attribs, &fbcount));
 	if (!fbcs) {
 		fan::print("fan window error: failed to retreive framebuffer");
@@ -1089,8 +1302,8 @@ void fan::window::initialize_window(const std::string& name, const fan::vec2i& w
 
 	m_visual = glXGetVisualFromFBConfig(m_display, fbcs[0]);
 
-	if (m_visual == 0) {
-		std::cout << "Could not create correct visual window.\n";
+	if (!m_visual) {
+		fan::print("fan window error: failed to create visual");
 		XCloseDisplay(m_display);
 		exit(1);
 	}
@@ -1113,11 +1326,14 @@ void fan::window::initialize_window(const std::string& name, const fan::vec2i& w
                                   PointerMotionMask | Button1MotionMask | VisibilityChangeMask |
                                   ColormapChangeMask;
 
+
+	const fan::vec2i position = fan::get_resolution() / 2 - window_size / 2;
+
 	m_window = XCreateWindow(
 		m_display, 
 		RootWindow(m_display, m_screen), 
-		0, 
-		0,
+		position.x, 
+		position.y,
 		window_size.x, 
 		window_size.y, 
 		0,
@@ -1128,7 +1344,16 @@ void fan::window::initialize_window(const std::string& name, const fan::vec2i& w
 		&m_window_attribs
 	);
 
-	this->set_window_title(name);
+	if (flags & fan::window::flags::no_resize) {
+		auto sh = XAllocSizeHints();
+		sh->flags = PMinSize | PMaxSize;
+		sh->min_width = sh->max_width = window_size.x;
+		sh->min_height = sh->max_height = window_size.y;
+		XSetWMSizeHints(m_display, m_window, sh, XA_WM_NORMAL_HINTS);
+		XFree(sh);
+	}
+
+	this->set_title(name);
 
 	m_atom_delete_window = XInternAtom(m_display, "WM_DELETE_WINDOW", False);
 	XSetWMProtocols(m_display, m_window, &m_atom_delete_window, 1);
@@ -1170,16 +1395,14 @@ void fan::window::initialize_window(const std::string& name, const fan::vec2i& w
 		m_keys_down.insert(std::make_pair(i, false));
 	}
 
-	if (flags & fan::window::flags::full_screen) {
-		this->set_full_screen();
-	}
-
 	glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	set_window_storage(m_window, stringify(m_keys_action), &m_keys_action);
 	set_window_storage(m_window, stringify(m_keys_reset), &m_keys_reset);
 	set_window_storage(m_window, stringify(m_keys_down), &m_keys_down);
+
+	glViewport(0, 0, window_size.x, window_size.y);
 
 }
 
@@ -1293,15 +1516,23 @@ void fan::window::handle_events() {
 
 				const fan::vec2i position(m_event.xmotion.x, m_event.xmotion.y);
 
-				auto mouse_move_callback = this->m_mouse_move_callback;
+				auto mouse_move_position_callback = this->m_mouse_move_position_callback;
 
-				for (const auto& i : mouse_move_callback) {
+				for (const auto& i : mouse_move_position_callback) {
 					if (i) {
 						i(position);
 					}
 				}
 
-				m_cursor_position = position;
+				auto mouse_move_callback = this->m_mouse_move_callback;
+
+				for (const auto& i : mouse_move_callback) {
+					if (i) {
+						i();
+					}
+				}
+
+				m_mouse_position = position;
 
 				break;
 			}
@@ -1320,6 +1551,8 @@ void fan::window::handle_events() {
 								i(key);
 							}
 						}
+
+						fan::window::window_input_mouse_action(m_window, key);
 
 						break;
 					}

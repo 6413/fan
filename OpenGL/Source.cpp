@@ -2,41 +2,31 @@
 
 int main() {
 
-	fan::window window("window", fan::window::default_window_size);
+	fan::window window(fan::window::default_window_name, fan::window::resolutions::r_1360x768);
 
-	window.vsync(false);
+	window.vsync(0);
 
-	window.add_key_callback(fan::input::key_escape, [&] {
+	fan::camera camera(window);
+
+	window.add_key_callback(fan::key_escape, [&] {
 		window.close();
 	});
 
-	bool fullscreen = false;
+	fan_2d::line_vector lv(camera);
 
-	window.add_key_callback(fan::input::key_f, [&] {
-		if (fullscreen = !fullscreen) {
-			window.set_full_screen(fan::window::resolutions::r_1920x1080);
-		}
-		else {
-			window.set_windowed();
-		}
-	});
+	lv.resize(4, fan::colors::white);
 
-	fan::camera c(window);
+	window.loop(0, [&] {
 
-	fan_2d::square s(c, window.get_size() / 2, 100, fan::color(1, 0, 0, 1));
+		window.get_fps();
 
-	fan_2d::gui::text_renderer tr(c, " ", 0, fan::colors::white, 16, fan::colors::blue);
+		lv.set_position(0, fan::mat2(fan::vec2(), window.get_mouse_position()));
+		lv.set_position(1, fan::mat2(fan::vec2(window.get_size().x, 0), window.get_mouse_position()));
+		lv.set_position(2, fan::mat2(fan::vec2(0, window.get_size().y), window.get_mouse_position()));
+		lv.set_position(3, fan::mat2(window.get_size(), window.get_mouse_position()));
 
-	window.loop(fan::colors::black, [&] {
-		
-		if (uint_t fps = window.get_fps()) {
-			tr.set_text(0, "fps: " + std::to_string(fps));
-		}
-
-		s.draw();
-		tr.draw();
-
-		s.move(100);
+		lv.draw();
 
 	});
+	
 }

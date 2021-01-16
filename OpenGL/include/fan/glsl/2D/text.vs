@@ -4,7 +4,7 @@ layout (location = 2) in vec2 texture_coordinate;
 
 out vec2 texture_coordinates;
 out float font_size;
-out vec3 outline_color;
+out vec4 outline_color;
 out vec3 text_color;
 
 uniform mat4 projection;
@@ -26,7 +26,7 @@ layout(std430, binding = 4) buffer outline_color_layout
 
 void main() {
     font_size = font_sizes[gl_VertexID / 6];
-    outline_color = outline_colors[gl_VertexID / 6].xyz;
+    outline_color = outline_colors[gl_VertexID / 6];
     text_color = text_colors[gl_VertexID / 6].xyz;
     texture_coordinates = texture_coordinate;
 	gl_Position = projection * vec4(vertex, 0, 1);

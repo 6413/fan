@@ -128,7 +128,7 @@ void main() {
 	vec3 size = dst - src;
 
 	switch (shape_type) {
-		case 0: { // line
+		case 1: { // line
 			if (gl_VertexID % 2 == 0) {
 				gl_Position = projection * view * vec4(src, 1);        
 			}
@@ -137,7 +137,7 @@ void main() {
 			}
 			break;
 		}
-		case 1: { // square
+		case 2: { // square
 			vec3 vertice = square_vertices[gl_VertexID % square_vertices.length()];
 			gl_Position = projection * view * vec4(vertice * size + src, 1); 
 			break;
