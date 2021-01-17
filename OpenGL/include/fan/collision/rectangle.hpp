@@ -1,11 +1,36 @@
 #pragma once
-
 #include <fan/graphics.hpp>
 #include <fan/raycast/rectangle.hpp>
 
 namespace fan_2d {
 
 	namespace collision {
+
+		constexpr fan::da_t<uint_t, 2> get_velocity_corners_2d(const fan::da_t<f_t, 2>& vel) {
+			if (vel[0] >= 0)
+				if (vel[1] >= 0)
+					return { 2, 1 };
+				else
+					return { 0, 3 };
+			else
+				if (vel[1] >= 0)
+					return { 0, 3 };
+				else
+					return { 2, 1 };
+		}
+
+		constexpr fan::da_t<uint_t, 3> get_velocity_corners_3d(const fan::da_t<f32_t, 2>& vel) {
+			if (vel[0] >= 0)
+				if (vel[1] >= 0)
+					return { 2, 1, 3 };
+				else
+					return { 0, 3, 1 };
+			else
+				if (vel[1] >= 0)
+					return { 0, 3, 2 };
+				else
+					return { 2, 1, 0 };
+		}
 
 		namespace rectangle {
 
@@ -34,7 +59,7 @@ namespace fan_2d {
 
 				while (player.get_velocity() != 0) {
 					const auto player_corners = player.get_corners();
-					const auto player_points = fan_2d::collision::GetPointsTowardsVelocity3(player.get_velocity());
+					const auto player_points = fan_2d::collision::get_velocity_corners_3d(player.get_velocity());
 
 					const auto player_position = player.get_position();
 					const auto player_size = player.get_size();
@@ -49,6 +74,8 @@ namespace fan_2d {
 					fan::vec2 size;
 
 					for (int i = 0; i < walls.size(); ++i) {
+
+						// step 1
 
 					//	if (walls.get_size(i).x < player_size.x || walls.get_size(i).y < player_size.y) {
 					//		const auto& wall_points = fan_2d::collision::GetPointsTowardsVelocity3(-player.get_velocity());
@@ -77,7 +104,7 @@ namespace fan_2d {
 							for (const auto p : player_points) {
 								fan_2d::raycast::rectangle::raycast_t ray_point = fan_2d::raycast::rectangle::raycast(
 									player_corners[p],
-									player_corners[p] + player.get_velocity() * player.m_window.get_delta_time(),
+									player_corners[p] + player.get_velocity() * player.get_delta_time(),
 									walls.get_position(i), walls.get_size(i));
 								if (fan::ray_hit(ray_point.point)
 								) 
@@ -128,17 +155,21 @@ namespace fan_2d {
 
 						if (closest.side == fan_2d::raycast::rectangle::sides::inside)
 						{
-							player.set_position(player.get_position() - player_velocity * player.m_window.get_delta_time());
+							player.set_position(player.get_position() - player_velocity * player.get_delta_time());
 							break;
 						}
 
 						player.set_position(closest.point);
 
-						player.m_velocity[(closest.side == fan_2d::raycast::rectangle::sides::left || closest.side == fan_2d::raycast::rectangle::sides::right) && !player_velocity[0] ||
+						auto velocity = player.get_velocity();
+
+						velocity[(closest.side == fan_2d::raycast::rectangle::sides::left || closest.side == fan_2d::raycast::rectangle::sides::right) && !player_velocity[0] ||
 							(closest.side == fan_2d::raycast::rectangle::sides::up || closest.side == fan_2d::raycast::rectangle::sides::down) && !!player_velocity[1]] = 0;
+
+						player.set_velocity(velocity);
 					}
 					else {
-						player.set_position(player.get_position() + player_velocity * player.m_window.get_delta_time());
+						player.set_position(player.get_position() + player_velocity * player.get_delta_time());
 						break;
 					}
 				}

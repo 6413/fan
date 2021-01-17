@@ -117,7 +117,7 @@ namespace fan {
 
 			struct font_t {
 				static constexpr std::size_t char_offset = 4;
-				static constexpr std::size_t struct_size = 8;
+				static constexpr std::size_t struct_size = 7;
 
 				fan::vec2i m_position;
 				fan::vec2i m_size;

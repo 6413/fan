@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <numeric>
 #include <array>
+#include <string>
 
 #include <fan/types/types.hpp>
 #include <fan/math/math.hpp>
@@ -316,6 +317,10 @@ namespace fan {
 
 		template <typename T>
 		friend std::ostream& operator<<(std::ostream& os, const _vec2<T>& vector);
+
+		std::string to_string() const {
+			return std::string(std::to_string(this->x) + ' '+ std::to_string(this->y));
+		}
 
 	};
 

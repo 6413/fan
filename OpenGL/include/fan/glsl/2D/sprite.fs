@@ -9,8 +9,6 @@ uniform float transparency;
 void main()
 {
     vec4 t = texture(texture_sampler, texture_coordinates);
-    sprite_color = vec4(t.xyz, transparency);
-    if (t.w != 1) {
-        sprite_color.w = t.w * transparency;
-    }
+    sprite_color = vec4(t.xyz, 1);
+   
 }

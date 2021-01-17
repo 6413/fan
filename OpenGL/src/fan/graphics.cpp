@@ -203,9 +203,12 @@ void fan::camera::update_view() {
 uint32_t load_texture(const std::string_view path, const std::string& directory, bool flip_image) {
 
 	std::string file_name = std::string(directory + (directory.empty() ? "" : "/") + path.data());
-	auto texture_info = fan_2d::load_image(file_name, flip_image);
 
-	glBindTexture(GL_TEXTURE_2D, texture_info.texture_id);
+	uint32_t texture_id = 0;
+
+	fan_2d::load_image(texture_id, file_name, flip_image);
+
+	glBindTexture(GL_TEXTURE_2D, texture_id);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
@@ -213,7 +216,7 @@ uint32_t load_texture(const std::string_view path, const std::string& directory,
 	glGenerateMipmap(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
-	return texture_info.texture_id;
+	return texture_id;
 }
 
 fan::mat4 fan_2d::get_projection(const fan::vec2i& window_size) {
@@ -293,101 +296,13 @@ fan::vec2 fan_2d::move_object(fan::window& window, fan::vec2& position, fan::vec
 	return velocity * delta_time;
 }
 
-fan_2d::basic_single_shape::basic_single_shape(fan::camera& camera) : m_window(camera.m_window), m_camera(camera)
-{
-	glGenVertexArrays(1, &m_vao);
-}
-
-fan_2d::basic_single_shape::basic_single_shape(fan::camera& camera, const fan::shader& shader, const fan::vec2& position, const fan::vec2& size)
-	: m_position(position), m_size(size), m_shader(shader), m_window(camera.m_window), m_camera(camera)
-{
-	glGenVertexArrays(1, &m_vao);
-}
-
-fan_2d::basic_single_shape::~basic_single_shape()
-{
-
-}
-
-fan::vec2 fan_2d::basic_single_shape::get_position() const
-{
-	return m_position;
-}
-
-fan::vec2 fan_2d::basic_single_shape::get_size() const
-{
-	return this->m_size;
-}
-
-fan::vec2 fan_2d::basic_single_shape::get_velocity() const
-{
-	return fan_2d::basic_single_shape::m_velocity;
-}
-
-fan::vec2 fan_2d::basic_single_shape::get_center() const
-{
-	return this->m_position + m_size / 2;
-}
-
-void fan_2d::basic_single_shape::set_size(const fan::vec2& size)
-{
-	this->m_size = size;
-}
-
-void fan_2d::basic_single_shape::set_position(const fan::vec2& position)
-{
-	this->m_position = position;
-}
-
-void fan_2d::basic_single_shape::set_velocity(const fan::vec2& velocity)
-{
-	fan_2d::basic_single_shape::m_velocity = velocity;
-}
-
-void fan_2d::basic_single_shape::basic_draw(GLenum mode, GLsizei count) const
-{
-	glDisable(GL_DEPTH_TEST);
-	glBindVertexArray(m_vao);
-	glDrawArrays(mode, 0, count);
-	glBindVertexArray(0);
-	glEnable(GL_DEPTH_TEST);
-}
-
-fan::vec2 fan_2d::basic_single_shape::move(f32_t speed, f32_t gravity, f32_t jump_force, f32_t friction)
-{
-	return fan_2d::move_object(m_window, this->m_position, this->m_velocity, speed, gravity, jump_force, friction);
-}
-
-bool fan_2d::basic_single_shape::inside() const
-{
-	const fan::vec2i cursor_position = m_window.get_mouse_position();
-	if (cursor_position.x >= m_position.x && cursor_position.x <= m_position.x + m_size.x &&
-		cursor_position.y >= m_position.y && cursor_position.y <= m_position.y + m_size.y)
-	{
-		return true;
-	}
-	return false;
-}
-
-fan_2d::basic_single_color::basic_single_color() {}
-
-fan_2d::basic_single_color::basic_single_color(const fan::color& color) : color(color) {}
-
-fan::color fan_2d::basic_single_color::get_color() const
-{
-	return this->color;
-}
-
-void fan_2d::basic_single_color::set_color(const fan::color& color)
-{
-	this->color = color;
-}
-
-fan_2d::line::line(fan::camera& camera) : basic_single_shape(camera, fan::shader(shader_paths::single_shapes_vs, shader_paths::single_shapes_fs), fan::vec2(), fan::vec2()), fan_2d::basic_single_color() {}
+fan_2d::line::line(fan::camera& camera) : 
+	line::basic_shape(camera, fan::shader(shader_paths::single_shapes_vs, shader_paths::single_shapes_fs), fan::vec2(), fan::vec2()), 
+	line::basic_shape_color_vector() {}
 
 fan_2d::line::line(fan::camera& camera, const fan::mat2& begin_end, const fan::color& color)
-	: basic_single_shape(camera, fan::shader(shader_paths::single_shapes_vs, shader_paths::single_shapes_fs), begin_end[0], begin_end[1]),
-	fan_2d::basic_single_color(color) {}
+	: line::basic_shape(camera, fan::shader(shader_paths::single_shapes_vs, shader_paths::single_shapes_fs), begin_end[0], begin_end[1]),
+	  line::basic_shape_color_vector(color) {}
 
 void fan_2d::line::draw()
 {
@@ -403,10 +318,10 @@ void fan_2d::line::draw()
 	this->m_shader.set_mat4("view", view);
 	this->m_shader.set_vec4("shape_color", get_color());
 	this->m_shader.set_int("shape_type", fan::eti(fan::e_shapes::LINE));
-	this->m_shader.set_vec2("begin", basic_single_shape::get_position());
+	this->m_shader.set_vec2("begin", basic_shape::get_position());
 	this->m_shader.set_vec2("end", get_size());
 
-	fan_2d::basic_single_shape::basic_draw(GL_LINES, 2);
+	line::basic_shape::basic_draw(GL_LINES, 2);
 }
 
 fan::mat2 fan_2d::line::get_position() const
@@ -416,25 +331,43 @@ fan::mat2 fan_2d::line::get_position() const
 
 void fan_2d::line::set_position(const fan::mat2& begin_end)
 {
-	fan_2d::basic_single_shape::set_position(fan::vec2(begin_end[0]));
+	line::basic_shape::set_position(fan::vec2(begin_end[0]));
 	set_size(begin_end[1]);
 }
 
 fan_2d::rectangle::rectangle(fan::camera& camera)
-	: basic_single_shape(
+	: basic_shape(
 		camera,
 		fan::shader(shader_paths::single_shapes_vs, shader_paths::single_shapes_fs),
 		fan::vec2(),
 		fan::vec2()
-	), fan_2d::basic_single_color(), m_rotation(0) {
+	), basic_shape_color_vector(), m_rotation(0) {
 }
 
 fan_2d::rectangle::rectangle(fan::camera& camera, const fan::vec2& position, const fan::vec2& size, const fan::color& color)
-	: basic_single_shape(
+	: basic_shape(
 		camera,
 		fan::shader(shader_paths::single_shapes_vs, shader_paths::single_shapes_fs),
 		position, size
-	), fan_2d::basic_single_color(color), m_rotation(0) {}
+	), basic_shape_color_vector(color), m_rotation(0) {}
+
+fan_2d::rectangle::rectangle(const rectangle& single)
+	:  rectangle::basic_shape(single), 
+		rectangle::basic_shape_color_vector(single), 
+		rectangle::basic_shape_velocity(single)
+{
+	m_rotation = single.m_rotation;
+	m_corners = single.m_corners;
+}
+
+fan_2d::rectangle::rectangle(rectangle&& single) noexcept
+	:  rectangle::basic_shape(std::move(single)), 
+		rectangle::basic_shape_color_vector(std::move(single)), 
+		rectangle::basic_shape_velocity(std::move(single))
+{
+	m_rotation = std::move(single.m_rotation);
+	m_corners = std::move(single.m_corners);
+}
 
 fan_2d::rectangle_corners_t fan_2d::rectangle::get_corners() const
 {
@@ -508,30 +441,28 @@ void fan_2d::rectangle::draw() const
 	this->m_shader.set_vec4("shape_color", get_color());
 	this->m_shader.set_int("shape_type", fan::eti(fan::e_shapes::SQUARE));
 
-	
-
-	fan_2d::basic_single_shape::basic_draw(GL_TRIANGLES, 6);
+	rectangle::basic_shape::basic_draw(GL_TRIANGLES, 6);
 }
 
 fan::vec2 fan_2d::rectangle::move(f32_t speed, f32_t gravity, f32_t jump_force, f32_t friction)
 {
-	fan::vec2 offset = basic_single_shape::move(speed, gravity, jump_force, friction);
+	fan::vec2 offset = fan_2d::move_object(m_window, m_position, m_velocity, speed, gravity, jump_force, friction);
 	for (int i = 0; i < sizeof(m_corners) / sizeof(m_corners[0]); i++) {
 		m_corners[i] += offset;
 	}
 	return offset;
 }
 
-void fan_2d::rectangle::set_position(const fan::vec2& position)
-{
-	const fan::vec2 old_position = this->get_position();
-	basic_single_shape::set_position(position);
-	for (int i = 0; i < sizeof(m_corners) / sizeof(m_corners[0]); i++) {
-		m_corners[i] += position - old_position;
-	}
-}
+//void fan_2d::rectangle::set_position(const fan::vec2& position)
+//{
+//	const fan::vec2 old_position = this->get_position();
+//	basic_single_shape::set_position(position);
+//	for (int i = 0; i < sizeof(m_corners) / sizeof(m_corners[0]); i++) {
+//		m_corners[i] += position - old_position;
+//	}
+//}
 
-fan_2d::image_info fan_2d::load_image(const std::string& path, bool flip_image)
+fan::vec2 fan_2d::load_image(uint32_t& texture_id, const std::string& path, bool flip_image)
 {
 	std::ifstream file(path);
 	if (!file.good()) {
@@ -539,20 +470,42 @@ fan_2d::image_info fan_2d::load_image(const std::string& path, bool flip_image)
 		exit(1);
 	}
 
-	uint32_t texture_id = SOIL_load_OGL_texture(path.c_str(), SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, (flip_image ? SOIL_FLAG_INVERT_Y : 0) | SOIL_FLAG_MIPMAPS | SOIL_FLAG_NTSC_SAFE_RGB);
 	fan::vec2i image_size;
 
-	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, image_size.begin());
-	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, image_size.begin() + 1);
+	if (texture_id == fan::uninitialized) {
+		texture_id = SOIL_load_OGL_texture(path.c_str(), SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, (flip_image ? SOIL_FLAG_INVERT_Y : 0));
 
-	glBindTexture(GL_TEXTURE_2D, texture_id);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glBindTexture(GL_TEXTURE_2D, 0);
+		glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, image_size.begin());
+		glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, image_size.begin() + 1);
 
-	return { image_size, texture_id };
+		glBindTexture(GL_TEXTURE_2D, texture_id);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+	}
+	else {
+
+		glBindTexture(GL_TEXTURE_2D, texture_id);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+		auto pixels = SOIL_load_image(path.c_str(), image_size.begin(), image_size.begin() + 1, 0, 0);
+
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_size.x, image_size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+		glGenerateMipmap(GL_TEXTURE_2D);
+
+		SOIL_free_image_data(pixels);
+
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+	}
+
+	return image_size;
 }
 
 fan_2d::image_info fan_2d::load_image(unsigned char* pixels, const fan::vec2i& size)
@@ -593,50 +546,36 @@ fan_2d::line_vector fan_2d::create_grid(fan::camera& camera, const fan::vec2i& b
 }
 
 fan_2d::sprite::sprite(fan::camera& camera) :
-	basic_single_shape(camera, fan::shader(shader_paths::single_sprite_vs, shader_paths::single_sprite_fs), fan::vec2(), fan::vec2()), m_transparency(1) {}
+	sprite::basic_shape<0, fan::vec2>(camera, fan::shader(shader_paths::single_sprite_vs, shader_paths::single_sprite_fs), fan::vec2(), fan::vec2()), 
+	m_transparency(1), m_rotation(0) {}
 
 fan_2d::sprite::sprite(fan::camera& camera, const std::string& path, const fan::vec2& position, const fan::vec2& size, f_t transparency)
-	: basic_single_shape(camera, fan::shader(shader_paths::single_sprite_vs, shader_paths::single_sprite_fs), position, size), m_transparency(transparency) {
-	auto texture_info = fan_2d::load_image(path);
-	this->m_texture = texture_info.texture_id;
-	fan::vec2 image_size = texture_info.image_size;
-	if (size != 0) {
-		image_size = size;
-	}
-	set_size(image_size);
+	: sprite::basic_shape<0, fan::vec2>(camera, fan::shader(shader_paths::single_sprite_vs, shader_paths::single_sprite_fs), position, size), 
+	  m_transparency(transparency), m_rotation(0), m_path(path)
+{
+	this->load_sprite(path, size);
 }
 
 fan_2d::sprite::sprite(fan::camera& camera, unsigned char* pixels, const fan::vec2& position, const fan::vec2i& size, f_t transparency)
-	: basic_single_shape(camera, fan::shader(shader_paths::single_sprite_vs, shader_paths::single_sprite_fs), position, size), m_transparency(transparency)
+	: sprite::basic_shape<0, fan::vec2>(camera, fan::shader(shader_paths::single_sprite_vs, shader_paths::single_sprite_fs), position, size), 
+	  m_transparency(transparency), m_rotation(0)
 {
-	auto texture_info = fan_2d::load_image(pixels, size);
-	this->m_texture = texture_info.texture_id;
-	fan::vec2 image_size = texture_info.image_size;
-	if (size != 0) {
-		image_size = size;
-	}
-	set_size(image_size);
+	this->reload_sprite(pixels, size);
 }
 
 fan_2d::sprite::sprite(const fan_2d::sprite& sprite)
-	: basic_single_shape(sprite.m_camera)
-{
-	this->m_position = sprite.m_position;
-	this->m_rotation = sprite.m_rotation;
-	this->m_shader = sprite.m_shader;
-	this->m_size = sprite.m_size;
-	this->m_texture = sprite.m_texture;
-	this->m_transparency = sprite.m_transparency;
-	this->m_vao = sprite.m_vao;
-	this->m_velocity = sprite.m_velocity;
+	: sprite::basic_shape(sprite),
+	  sprite::basic_shape_velocity(sprite),
+	  texture_handler(sprite), m_rotation(sprite.m_rotation), 
+	  m_transparency(sprite.m_transparency), m_path(sprite.m_path) { 
+	this->load_sprite(sprite.m_path);
 }
 
-fan_2d::sprite::sprite(fan_2d::sprite&& sprite)
-	: fan_2d::sprite::sprite(sprite)
-{
-	sprite.m_vao = fan::uninitialized;
-	sprite.m_shader.m_id = fan::uninitialized;
-}
+fan_2d::sprite::sprite(fan_2d::sprite&& sprite) noexcept
+	: sprite::basic_shape(std::move(sprite)),
+	  sprite::basic_shape_velocity(std::move(sprite)),
+	  texture_handler(std::move(sprite)), m_rotation(sprite.m_rotation), 
+	  m_transparency(sprite.m_transparency), m_path(std::move(sprite.m_path)) { }
 
 void fan_2d::sprite::load_sprite(const std::string& path, const fan::vec2i& size, bool flip_image)
 {
@@ -645,7 +584,6 @@ void fan_2d::sprite::load_sprite(const std::string& path, const fan::vec2i& size
 
 void fan_2d::sprite::reload_sprite(unsigned char* pixels, const fan::vec2i& size)
 {
-
 	glBindTexture(GL_TEXTURE_2D, this->m_texture);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -662,12 +600,12 @@ void fan_2d::sprite::reload_sprite(unsigned char* pixels, const fan::vec2i& size
 
 void fan_2d::sprite::reload_sprite(const std::string& path, const fan::vec2i& size, bool flip_image)
 {
-	auto texture_info = fan_2d::load_image(path, flip_image);
+	this->m_path = path;
 
-	this->m_texture = texture_info.texture_id;
+	fan::vec2i image_size = fan_2d::load_image(m_texture, path, flip_image);
 
 	if (size == 0) {
-		this->set_size(texture_info.image_size);
+		this->set_size(image_size);
 	}
 	else {
 		this->set_size(size);
@@ -699,7 +637,7 @@ void fan_2d::sprite::draw()
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, m_texture);
 
-	fan_2d::basic_single_shape::basic_draw(GL_TRIANGLES, 6);
+	basic_shape::basic_draw(GL_TRIANGLES, 6);
 }
 
 f32_t fan_2d::sprite::get_rotation()
@@ -772,84 +710,36 @@ void fan::edit_glbuffer(unsigned int buffer, void* data, uint_t offset, uint_t s
 	}
 }
 
-//fan::vao_handler::vao_handler()
-//	: m_vao(fan::uninitialized) 
-//{
-//	this->generate_vertex_array();
-//}
-//
-//fan::vao_handler::vao_handler(const vao_handler& handler) {
-//	this->operator=(handler);
-//}
-//
-//fan::vao_handler::vao_handler(vao_handler&& handler) noexcept
-//	: m_vao(fan::uninitialized) 
-//{
-//	this->operator=(std::move(handler));
-//}
-//
-//fan::vao_handler& fan::vao_handler::operator=(const vao_handler& handler)
-//{
-//	this->erase_vertex_array();
-//
-//	this->generate_vertex_array();
-//
-//	return *this;
-//}
-//
-//fan::vao_handler& fan::vao_handler::operator=(vao_handler&& handler) noexcept
-//{
-//	this->erase_vertex_array();
-//
-//	this->m_vao = handler.m_vao;
-//	handler.m_vao = fan::uninitialized;
-//
-//	return *this;
-//}
-//
-//fan::vao_handler::~vao_handler()
-//{
-//	this->erase_vertex_array();
-//}
-//
-//void fan::vao_handler::generate_vertex_array()
-//{
-//	glGenVertexArrays(1, &m_vao);
-//}
-//
-//void fan::vao_handler::erase_vertex_array()
-//{
-//	fan_validate_buffer(m_vao, {
-//		glDeleteVertexArrays(1, &m_vao);
-//		m_vao = fan::uninitialized;
-//	});
-//}
+template <bool enable_vector, typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+fan::basic_shape_position<enable_vector, _Vector, layout_location, buffer_type>::basic_shape_position() : glsl_location_handler<layout_location, buffer_type>() {}
 
-template <typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
-fan::basic_shape_position_vector<_Vector, layout_location, buffer_type>::basic_shape_position_vector() : glsl_location_handler<layout_location, buffer_type>() {}
-
-template<typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
-fan::basic_shape_position_vector<_Vector, layout_location, buffer_type>::basic_shape_position_vector(const _Vector& position) 
-	: fan::basic_shape_position_vector<_Vector>()
+template <bool enable_vector, typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+fan::basic_shape_position<enable_vector, _Vector, layout_location, buffer_type>::basic_shape_position(const _Vector& position) 
+	: basic_shape_position()
 {
-	this->basic_push_back(position, true);
+	if constexpr (enable_vector) {
+		this->basic_push_back(position, true);
+	}
+	else {
+		this->m_position = position;
+	}
 }
 
-template<typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
-fan::basic_shape_position_vector<_Vector, layout_location, buffer_type>::basic_shape_position_vector(const basic_shape_position_vector& vector)
+template <bool enable_vector, typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+fan::basic_shape_position<enable_vector, _Vector, layout_location, buffer_type>::basic_shape_position(const basic_shape_position& vector)
 	: glsl_location_handler<layout_location, buffer_type>(vector) {
 	this->m_position = vector.m_position;
 }
 
-template<typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
-fan::basic_shape_position_vector<_Vector, layout_location, buffer_type>::basic_shape_position_vector(basic_shape_position_vector&& vector) noexcept
+template <bool enable_vector, typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+fan::basic_shape_position<enable_vector, _Vector, layout_location, buffer_type>::basic_shape_position(basic_shape_position&& vector) noexcept
 	: glsl_location_handler<layout_location, buffer_type>(std::move(vector)) {
 	this->m_position = std::move(vector.m_position);
 }
 
-template<typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
-fan::basic_shape_position_vector<_Vector, layout_location, buffer_type>& fan::basic_shape_position_vector<_Vector, layout_location, buffer_type>::operator=(
-	const fan::basic_shape_position_vector<_Vector, layout_location, buffer_type>& vector) {
+template <bool enable_vector, typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+fan::basic_shape_position<enable_vector, _Vector, layout_location, buffer_type>& fan::basic_shape_position<enable_vector, _Vector, layout_location, buffer_type>::operator=(
+	const fan::basic_shape_position<enable_vector, _Vector, layout_location, buffer_type>& vector) {
 
 	glsl_location_handler<layout_location, buffer_type>::operator=(vector);
 
@@ -858,9 +748,9 @@ fan::basic_shape_position_vector<_Vector, layout_location, buffer_type>& fan::ba
 	return *this;
 }
 
-template<typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
-fan::basic_shape_position_vector<_Vector, layout_location, buffer_type>& fan::basic_shape_position_vector<_Vector, layout_location, buffer_type>::operator=(
-	fan::basic_shape_position_vector<_Vector, layout_location, buffer_type>&& vector) {
+template <bool enable_vector, typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+fan::basic_shape_position<enable_vector, _Vector, layout_location, buffer_type>& fan::basic_shape_position<enable_vector, _Vector, layout_location, buffer_type>::operator=(
+	fan::basic_shape_position<enable_vector, _Vector, layout_location, buffer_type>&& vector) {
 
 	glsl_location_handler<layout_location, buffer_type>::operator=(std::move(vector));
 
@@ -869,19 +759,37 @@ fan::basic_shape_position_vector<_Vector, layout_location, buffer_type>& fan::ba
 	return *this;
 }
 
-template<typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
-void fan::basic_shape_position_vector<_Vector, layout_location, buffer_type>::set_positions(const std::vector<_Vector>& positions) {
+template <bool enable_vector, typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+enable_function_for_vector_cpp void fan::basic_shape_position<enable_vector, _Vector, layout_location, buffer_type>::reserve(uint_t new_size)
+{
+	m_position.reserve(new_size);
+}
+
+template <bool enable_vector, typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+enable_function_for_vector_cpp void fan::basic_shape_position<enable_vector, _Vector, layout_location, buffer_type>::resize(uint_t new_size)
+{
+	m_position.resize(new_size);
+}
+
+template <bool enable_vector, typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+enable_function_for_vector_cpp auto fan::basic_shape_position<enable_vector, _Vector, layout_location, buffer_type>::get_positions() const 
+{
+	return this->m_position;
+}
+
+template <bool enable_vector, typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+enable_function_for_vector_cpp void fan::basic_shape_position<enable_vector, _Vector, layout_location, buffer_type>::set_positions(const std::vector<_Vector>& positions) {
 	this->m_position.clear();
 	this->m_position.insert(this->m_position.begin(), positions.begin(), positions.end());
 }
 
-template<typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
-_Vector fan::basic_shape_position_vector<_Vector, layout_location, buffer_type>::get_position(uint_t i) const {
+template <bool enable_vector, typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+enable_function_for_vector_cpp _Vector fan::basic_shape_position<enable_vector, _Vector, layout_location, buffer_type>::get_position(uint_t i) const {
 	return this->m_position[i];
 }
 
-template<typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
-void fan::basic_shape_position_vector<_Vector, layout_location, buffer_type>::set_position(uint_t i, const _Vector& position, bool queue) {
+template <bool enable_vector, typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+enable_function_for_vector_cpp void fan::basic_shape_position<enable_vector, _Vector, layout_location, buffer_type>::set_position(uint_t i, const _Vector& position, bool queue) {
 	this->m_position[i] = position;
 
 	if (!queue) {
@@ -889,8 +797,8 @@ void fan::basic_shape_position_vector<_Vector, layout_location, buffer_type>::se
 	}
 }
 
-template<typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
-void fan::basic_shape_position_vector<_Vector, layout_location, buffer_type>::erase(uint_t i, bool queue)
+template <bool enable_vector, typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+enable_function_for_vector_cpp void fan::basic_shape_position<enable_vector, _Vector, layout_location, buffer_type>::erase(uint_t i, bool queue)
 {
 	this->m_position.erase(this->m_position.begin() + i);
 
@@ -899,8 +807,8 @@ void fan::basic_shape_position_vector<_Vector, layout_location, buffer_type>::er
 	}
 }
 
-template<typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
-void fan::basic_shape_position_vector<_Vector, layout_location, buffer_type>::erase(uint_t begin, uint_t end, bool queue)
+template <bool enable_vector, typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+enable_function_for_vector_cpp void fan::basic_shape_position<enable_vector, _Vector, layout_location, buffer_type>::erase(uint_t begin, uint_t end, bool queue)
 {
 	if (!begin && end == this->m_position.size()) {
 		this->m_position.clear();
@@ -914,14 +822,26 @@ void fan::basic_shape_position_vector<_Vector, layout_location, buffer_type>::er
 	}
 }
 
-template<typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
-void fan::basic_shape_position_vector<_Vector, layout_location, buffer_type>::initialize_buffers(bool divisor)
+template<bool enable_vector, typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+enable_function_for_vector_cpp _Vector fan::basic_shape_position<enable_vector, _Vector, layout_location, buffer_type>::get_position() const
+{
+	return m_position;
+}
+
+template<bool enable_vector, typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+enable_function_for_vector_cpp void fan::basic_shape_position<enable_vector, _Vector, layout_location, buffer_type>::set_position(const _Vector& position)
+{
+	this->m_position = position;
+}
+
+template <bool enable_vector, typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+enable_function_for_vector_cpp void fan::basic_shape_position<enable_vector, _Vector, layout_location, buffer_type>::initialize_buffers(bool divisor)
 {
 	glsl_location_handler<layout_location, buffer_type>::initialize_buffers(m_position.data(), sizeof(_Vector) * m_position.size(), divisor, _Vector::size());
 }
 
-template<typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
-void fan::basic_shape_position_vector<_Vector, layout_location, buffer_type>::basic_push_back(const _Vector& position, bool queue)
+template <bool enable_vector, typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+enable_function_for_vector_cpp void fan::basic_shape_position<enable_vector, _Vector, layout_location, buffer_type>::basic_push_back(const _Vector& position, bool queue)
 {
 	this->m_position.emplace_back(position);
 	if (!queue) {
@@ -929,45 +849,54 @@ void fan::basic_shape_position_vector<_Vector, layout_location, buffer_type>::ba
 	}
 }
 
-template<typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
-void fan::basic_shape_position_vector<_Vector, layout_location, buffer_type>::edit_data(uint_t i)
+template <bool enable_vector, typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+enable_function_for_vector_cpp void fan::basic_shape_position<enable_vector, _Vector, layout_location, buffer_type>::edit_data(uint_t i)
 {
 	glsl_location_handler<layout_location, buffer_type>::edit_data(i, m_position.data() + i, sizeof(_Vector));
 }
 
-template<typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
-void fan::basic_shape_position_vector<_Vector, layout_location, buffer_type>::write_data()
+template <bool enable_vector, typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+enable_function_for_vector_cpp void fan::basic_shape_position<enable_vector, _Vector, layout_location, buffer_type>::write_data()
 {
 	glsl_location_handler<layout_location, buffer_type>::write_data(m_position.data(), sizeof(_Vector) * m_position.size());
 }
 
-template class fan::basic_shape_position_vector<fan::vec2>;
-template class fan::basic_shape_position_vector<fan::vec3>;
-template class fan::basic_shape_position_vector<fan::vec4>;
+template class fan::basic_shape_position<false, fan::vec2>;
+template class fan::basic_shape_position<false, fan::vec3>;
+template class fan::basic_shape_position<false, fan::vec4>;
 
-template<typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
-fan::basic_shape_size_vector<_Vector, layout_location, buffer_type>::basic_shape_size_vector() : glsl_location_handler<layout_location, buffer_type>() {}
+template class fan::basic_shape_position<true, fan::vec2>;
+template class fan::basic_shape_position<true, fan::vec3>;
+template class fan::basic_shape_position<true, fan::vec4>;
 
-template<typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
-fan::basic_shape_size_vector<_Vector, layout_location, buffer_type>::basic_shape_size_vector(const _Vector& size) : fan::basic_shape_size_vector<_Vector, layout_location, buffer_type>() {
-	this->basic_push_back(size, true);
+template<bool enable_vector, typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+fan::basic_shape_size<enable_vector, _Vector, layout_location, buffer_type>::basic_shape_size() : glsl_location_handler<layout_location, buffer_type>() {}
+
+template<bool enable_vector, typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+fan::basic_shape_size<enable_vector, _Vector, layout_location, buffer_type>::basic_shape_size(const _Vector& size) : fan::basic_shape_size<enable_vector, _Vector, layout_location, buffer_type>() {
+	if constexpr (enable_vector) {
+		this->basic_push_back(size, true);
+	}
+	else {
+		this->m_size = size;
+	}
 }
 
-template<typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
-fan::basic_shape_size_vector<_Vector, layout_location, buffer_type>::basic_shape_size_vector(const basic_shape_size_vector& vector) 
+template<bool enable_vector, typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+fan::basic_shape_size<enable_vector, _Vector, layout_location, buffer_type>::basic_shape_size(const basic_shape_size& vector) 
 	: glsl_location_handler<layout_location, buffer_type>(vector) {
 	this->m_size = vector.m_size;
 }
 
-template<typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
-fan::basic_shape_size_vector<_Vector, layout_location, buffer_type>::basic_shape_size_vector(basic_shape_size_vector&& vector) noexcept
+template<bool enable_vector, typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+fan::basic_shape_size<enable_vector, _Vector, layout_location, buffer_type>::basic_shape_size(basic_shape_size&& vector) noexcept
 	: glsl_location_handler<layout_location, buffer_type>(std::move(vector)) {
 	this->m_size = std::move(vector.m_size);
 }
 
-template<typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
-fan::basic_shape_size_vector<_Vector, layout_location, buffer_type>& fan::basic_shape_size_vector<_Vector, layout_location, buffer_type>::operator=(
-	const basic_shape_size_vector& vector) {
+template<bool enable_vector, typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+fan::basic_shape_size<enable_vector, _Vector, layout_location, buffer_type>& fan::basic_shape_size<enable_vector, _Vector, layout_location, buffer_type>::operator=(
+	const basic_shape_size& vector) {
 
 	glsl_location_handler<layout_location, buffer_type>::operator=(vector);
 
@@ -976,9 +905,9 @@ fan::basic_shape_size_vector<_Vector, layout_location, buffer_type>& fan::basic_
 	return *this;
 }
 
-template<typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
-fan::basic_shape_size_vector<_Vector, layout_location, buffer_type>& fan::basic_shape_size_vector<_Vector, layout_location, buffer_type>::operator=(
-	basic_shape_size_vector&& vector) noexcept {
+template<bool enable_vector, typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+fan::basic_shape_size<enable_vector, _Vector, layout_location, buffer_type>& fan::basic_shape_size<enable_vector, _Vector, layout_location, buffer_type>::operator=(
+	basic_shape_size&& vector) noexcept {
 
 	glsl_location_handler<layout_location, buffer_type>::operator=(std::move(vector));
 
@@ -987,14 +916,32 @@ fan::basic_shape_size_vector<_Vector, layout_location, buffer_type>& fan::basic_
 	return *this;
 }
 
-template<typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
-_Vector fan::basic_shape_size_vector<_Vector, layout_location, buffer_type>::get_size(uint_t i) const
+template<bool enable_vector, typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+enable_function_for_vector_cpp void fan::basic_shape_size<enable_vector, _Vector, layout_location, buffer_type>::reserve(uint_t new_size)
+{
+	m_size.reserve(new_size);
+}
+
+template<bool enable_vector, typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+enable_function_for_vector_cpp void fan::basic_shape_size<enable_vector, _Vector, layout_location, buffer_type>::resize(uint_t new_size)
+{
+	m_size.resize(new_size);
+}
+
+template<bool enable_vector, typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+enable_function_for_vector_cpp std::vector<_Vector> fan::basic_shape_size<enable_vector, _Vector, layout_location, buffer_type>::get_sizes() const
+{
+	return m_size;
+}
+
+template<bool enable_vector, typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+enable_function_for_vector_cpp _Vector fan::basic_shape_size<enable_vector, _Vector, layout_location, buffer_type>::get_size(uint_t i) const
 {
 	return this->m_size[i];
 }
 
-template<typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
-void fan::basic_shape_size_vector<_Vector, layout_location, buffer_type>::set_size(uint_t i, const _Vector& size, bool queue)
+template<bool enable_vector, typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+enable_function_for_vector_cpp void fan::basic_shape_size<enable_vector, _Vector, layout_location, buffer_type>::set_size(uint_t i, const _Vector& size, bool queue)
 {
 	this->m_size[i] = size;
 
@@ -1003,8 +950,8 @@ void fan::basic_shape_size_vector<_Vector, layout_location, buffer_type>::set_si
 	}
 }
 
-template<typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
-void fan::basic_shape_size_vector<_Vector, layout_location, buffer_type>::erase(uint_t i, bool queue)
+template<bool enable_vector, typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+enable_function_for_vector_cpp void fan::basic_shape_size<enable_vector, _Vector, layout_location, buffer_type>::erase(uint_t i, bool queue)
 {
 	this->m_size.erase(this->m_size.begin() + i);
 
@@ -1013,8 +960,8 @@ void fan::basic_shape_size_vector<_Vector, layout_location, buffer_type>::erase(
 	}
 }
 
-template<typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
-void fan::basic_shape_size_vector<_Vector, layout_location, buffer_type>::erase(uint_t begin, uint_t end, bool queue)
+template<bool enable_vector, typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+enable_function_for_vector_cpp void fan::basic_shape_size<enable_vector, _Vector, layout_location, buffer_type>::erase(uint_t begin, uint_t end, bool queue)
 {
 	this->m_size.erase(this->m_size.begin() + begin, this->m_size.begin() + end);
 
@@ -1023,8 +970,20 @@ void fan::basic_shape_size_vector<_Vector, layout_location, buffer_type>::erase(
 	}
 }
 
-template<typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
-void fan::basic_shape_size_vector<_Vector, layout_location, buffer_type>::basic_push_back(const _Vector& size, bool queue)
+template<bool enable_vector, typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+enable_function_for_vector_cpp _Vector fan::basic_shape_size<enable_vector, _Vector, layout_location, buffer_type>::get_size() const
+{
+	return m_size;
+}
+
+template<bool enable_vector, typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+enable_function_for_vector_cpp void fan::basic_shape_size<enable_vector, _Vector, layout_location, buffer_type>::set_size(const _Vector& size)
+{
+	this->m_size = size;
+}
+
+template<bool enable_vector, typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+enable_function_for_vector_cpp void fan::basic_shape_size<enable_vector, _Vector, layout_location, buffer_type>::basic_push_back(const _Vector& size, bool queue)
 {
 	this->m_size.emplace_back(size);
 
@@ -1033,80 +992,116 @@ void fan::basic_shape_size_vector<_Vector, layout_location, buffer_type>::basic_
 	}
 }
 
-template<typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
-void fan::basic_shape_size_vector<_Vector, layout_location, buffer_type>::edit_data(uint_t i)
+template<bool enable_vector, typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+enable_function_for_vector_cpp void fan::basic_shape_size<enable_vector, _Vector, layout_location, buffer_type>::edit_data(uint_t i)
 {
 	glsl_location_handler<layout_location, buffer_type>::edit_data(i, m_size.data() + i, sizeof(_Vector));
 }
 
-template<typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
-void fan::basic_shape_size_vector<_Vector, layout_location, buffer_type>::write_data()
+template<bool enable_vector, typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+enable_function_for_vector_cpp void fan::basic_shape_size<enable_vector, _Vector, layout_location, buffer_type>::write_data()
 {
 	glsl_location_handler<layout_location, buffer_type>::write_data(m_size.data(), sizeof(_Vector) * m_size.size());
 }
 
-template<typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
-void fan::basic_shape_size_vector<_Vector, layout_location, buffer_type>::initialize_buffers(bool divisor)
+template<bool enable_vector, typename _Vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+enable_function_for_vector_cpp void fan::basic_shape_size<enable_vector, _Vector, layout_location, buffer_type>::initialize_buffers(bool divisor)
 {
 	glsl_location_handler<layout_location, buffer_type>::initialize_buffers(m_size.data(), vector_byte_size(m_size), divisor, _Vector::size());
 }
 
-template <typename _Vector>
-fan::basic_shape_velocity_vector<_Vector>::basic_shape_velocity_vector() : m_velocity(1) {}
+template <bool enable_vector, typename _Vector>
+fan::basic_shape_velocity<enable_vector, _Vector>::basic_shape_velocity() : m_velocity(1) {}
 
-template<typename _Vector>
-fan::basic_shape_velocity_vector<_Vector>::basic_shape_velocity_vector(const _Vector& velocity)
+template <bool enable_vector, typename _Vector>
+fan::basic_shape_velocity<enable_vector, _Vector>::basic_shape_velocity(const _Vector& velocity)
 {
 	this->m_velocity.emplace_back(velocity);
 }
 
-template<typename _Vector>
-fan::basic_shape_velocity_vector<_Vector>::basic_shape_velocity_vector(const basic_shape_velocity_vector& vector)
+template <bool enable_vector, typename _Vector>
+fan::basic_shape_velocity<enable_vector, _Vector>::basic_shape_velocity(const basic_shape_velocity& vector)
 {
 	this->operator=(vector);
 }
 
-template<typename _Vector>
-fan::basic_shape_velocity_vector<_Vector>::basic_shape_velocity_vector(basic_shape_velocity_vector&& vector) noexcept
+template <bool enable_vector, typename _Vector>
+fan::basic_shape_velocity<enable_vector, _Vector>::basic_shape_velocity(basic_shape_velocity&& vector) noexcept
 {
 	this->operator=(std::move(vector));
 }
 
-template<typename _Vector>
-fan::basic_shape_velocity_vector<_Vector>& fan::basic_shape_velocity_vector<_Vector>::operator=(const basic_shape_velocity_vector& vector)
+template <bool enable_vector, typename _Vector>
+fan::basic_shape_velocity<enable_vector, _Vector>& fan::basic_shape_velocity<enable_vector, _Vector>::operator=(const basic_shape_velocity& vector)
 {
 	this->m_velocity = vector.m_velocity;
 
 	return *this;
 }
 
-template<typename _Vector>
-fan::basic_shape_velocity_vector<_Vector>& fan::basic_shape_velocity_vector<_Vector>::operator=(basic_shape_velocity_vector&& vector) noexcept
+template <bool enable_vector, typename _Vector>
+fan::basic_shape_velocity<enable_vector, _Vector>& fan::basic_shape_velocity<enable_vector, _Vector>::operator=(basic_shape_velocity&& vector) noexcept
 {
 	this->m_velocity = std::move(vector.m_velocity);
 
 	return *this;
 }
 
-template<uint_t layout_location, fan::opengl_buffer_type buffer_type>
-fan::basic_shape_color_vector<layout_location, buffer_type>::basic_shape_color_vector()
+template <bool enable_vector, typename _Vector>
+enable_function_for_vector_cpp _Vector fan::basic_shape_velocity<enable_vector, _Vector>::get_velocity(uint_t i) const
+{
+	return this->m_velocity[i];
+}
+
+template <bool enable_vector, typename _Vector>
+enable_function_for_vector_cpp void fan::basic_shape_velocity<enable_vector, _Vector>::set_velocity(uint_t i, const _Vector& velocity)
+{
+	this->m_velocity[i] = velocity;
+}
+
+template <bool enable_vector, typename _Vector>
+enable_function_for_vector_cpp void fan::basic_shape_velocity<enable_vector, _Vector>::reserve(uint_t new_size)
+{
+	this->m_velocity.reserve(new_size);
+}
+
+template <bool enable_vector, typename _Vector>
+enable_function_for_vector_cpp void fan::basic_shape_velocity<enable_vector, _Vector>::resize(uint_t new_size)
+{
+	this->m_velocity.resize(new_size);
+}
+
+template<bool enable_vector, typename _Vector>
+enable_function_for_vector_cpp _Vector fan::basic_shape_velocity<enable_vector, _Vector>::get_velocity() const
+{
+	return this->m_velocity;
+}
+
+template<bool enable_vector, typename _Vector>
+enable_function_for_vector_cpp void fan::basic_shape_velocity<enable_vector, _Vector>::set_velocity(const _Vector& velocity)
+{
+	this->m_velocity = velocity;
+}
+
+template <bool enable_vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+fan::basic_shape_color_vector<enable_vector, layout_location, buffer_type>::basic_shape_color_vector()
  : glsl_location_handler<layout_location, buffer_type>() {}
 
-template<uint_t layout_location, fan::opengl_buffer_type buffer_type>
-fan::basic_shape_color_vector<layout_location, buffer_type>::basic_shape_color_vector(const basic_shape_color_vector& vector)
+template <bool enable_vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+fan::basic_shape_color_vector<enable_vector, layout_location, buffer_type>::basic_shape_color_vector(const basic_shape_color_vector& vector)
 : glsl_location_handler<layout_location, buffer_type>(vector) {
 	this->m_color = vector.m_color;
 }
 
-template<uint_t layout_location, fan::opengl_buffer_type buffer_type>
-fan::basic_shape_color_vector<layout_location, buffer_type>::basic_shape_color_vector(basic_shape_color_vector&& vector) noexcept
+template <bool enable_vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+fan::basic_shape_color_vector<enable_vector, layout_location, buffer_type>::basic_shape_color_vector(basic_shape_color_vector&& vector) noexcept
 : glsl_location_handler<layout_location, buffer_type>(std::move(vector)) {
 	this->m_color = std::move(vector.m_color);
 }
 
-template<uint_t layout_location, fan::opengl_buffer_type buffer_type>
-fan::basic_shape_color_vector<layout_location, buffer_type>& fan::basic_shape_color_vector<layout_location, buffer_type>::operator=(
-	const fan::basic_shape_color_vector<layout_location, buffer_type>& vector) {
+template <bool enable_vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+fan::basic_shape_color_vector<enable_vector, layout_location, buffer_type>& fan::basic_shape_color_vector<enable_vector, layout_location, buffer_type>::operator=(
+	const fan::basic_shape_color_vector<enable_vector, layout_location, buffer_type>& vector) {
 
 	glsl_location_handler<layout_location, buffer_type>::operator=(vector);
 
@@ -1115,9 +1110,9 @@ fan::basic_shape_color_vector<layout_location, buffer_type>& fan::basic_shape_co
 	return *this;
 }
 
-template<uint_t layout_location, fan::opengl_buffer_type buffer_type>
-fan::basic_shape_color_vector<layout_location, buffer_type>& fan::basic_shape_color_vector<layout_location, buffer_type>::operator=(
-	fan::basic_shape_color_vector<layout_location, buffer_type>&& vector) noexcept {
+template <bool enable_vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+fan::basic_shape_color_vector<enable_vector, layout_location, buffer_type>& fan::basic_shape_color_vector<enable_vector, layout_location, buffer_type>::operator=(
+	fan::basic_shape_color_vector<enable_vector, layout_location, buffer_type>&& vector) noexcept {
 
 	glsl_location_handler<layout_location, buffer_type>::operator=(std::move(vector));
 
@@ -1126,8 +1121,52 @@ fan::basic_shape_color_vector<layout_location, buffer_type>& fan::basic_shape_co
 	return *this;
 }
 
-template <uint_t layout_location, fan::opengl_buffer_type buffer_type>
-void fan::basic_shape_color_vector<layout_location, buffer_type>::erase(uint_t i, bool queue)
+template <bool enable_vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+fan::basic_shape_color_vector<enable_vector, layout_location, buffer_type>::basic_shape_color_vector(const fan::color& color)
+ : basic_shape_color_vector() {
+	if constexpr (enable_vector) {
+		basic_push_back(color, true);
+	}
+	else {
+		this->m_color = color;
+	}
+}
+
+template <bool enable_vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+enable_function_for_vector_cpp void fan::basic_shape_color_vector<enable_vector, layout_location, buffer_type>::reserve(uint_t new_size)
+{
+	m_color.reserve(new_size);
+}
+
+template <bool enable_vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+enable_function_for_vector_cpp void fan::basic_shape_color_vector<enable_vector, layout_location, buffer_type>::resize(uint_t new_size, const fan::color& color)
+{
+	m_color.resize(new_size, color);
+}
+
+template <bool enable_vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+enable_function_for_vector_cpp void fan::basic_shape_color_vector<enable_vector, layout_location, buffer_type>::resize(uint_t new_size)
+{
+	m_color.resize(new_size);
+}
+
+template <bool enable_vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+enable_function_for_vector_cpp fan::color fan::basic_shape_color_vector<enable_vector, layout_location, buffer_type>::get_color(uint_t i)
+{
+	return this->m_color[i];
+}
+
+template <bool enable_vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+enable_function_for_vector_cpp void fan::basic_shape_color_vector<enable_vector, layout_location, buffer_type>::set_color(uint_t i, const fan::color& color, bool queue)
+{
+	this->m_color[i] = color;
+	if (!queue) {
+		this->edit_data(i);
+	}
+}
+
+template <bool enable_vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+enable_function_for_vector_cpp void fan::basic_shape_color_vector<enable_vector, layout_location, buffer_type>::erase(uint_t i, bool queue)
 {
 	this->m_color.erase(this->m_color.begin() + i);
 
@@ -1136,8 +1175,8 @@ void fan::basic_shape_color_vector<layout_location, buffer_type>::erase(uint_t i
 	}
 }
 
-template<uint_t layout_location, fan::opengl_buffer_type buffer_type>
-void fan::basic_shape_color_vector<layout_location, buffer_type>::erase(uint_t begin, uint_t end, bool queue)
+template <bool enable_vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+enable_function_for_vector_cpp void fan::basic_shape_color_vector<enable_vector, layout_location, buffer_type>::erase(uint_t begin, uint_t end, bool queue)
 {
 	this->m_color.erase(this->m_color.begin() + begin, this->m_color.begin() + end);
 
@@ -1146,8 +1185,20 @@ void fan::basic_shape_color_vector<layout_location, buffer_type>::erase(uint_t b
 	}
 }
 
-template <uint_t layout_location, fan::opengl_buffer_type buffer_type>
-void fan::basic_shape_color_vector<layout_location, buffer_type>::basic_push_back(const fan::color& color, bool queue)
+template<bool enable_vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+enable_function_for_vector_cpp fan::color fan::basic_shape_color_vector<enable_vector, layout_location, buffer_type>::get_color() const
+{
+	return this->m_color;
+}
+
+template<bool enable_vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+enable_function_for_vector_cpp void fan::basic_shape_color_vector<enable_vector, layout_location, buffer_type>::set_color(const fan::color& color)
+{
+	return this->m_color = color;
+}
+
+template <bool enable_vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+enable_function_for_vector_cpp void fan::basic_shape_color_vector<enable_vector, layout_location, buffer_type>::basic_push_back(const fan::color& color, bool queue)
 {
 	this->m_color.emplace_back(color);
 
@@ -1156,51 +1207,53 @@ void fan::basic_shape_color_vector<layout_location, buffer_type>::basic_push_bac
 	}
 }
 
-template <uint_t layout_location, fan::opengl_buffer_type buffer_type>
-void fan::basic_shape_color_vector<layout_location, buffer_type>::edit_data(uint_t i)
+template <bool enable_vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+enable_function_for_vector_cpp void fan::basic_shape_color_vector<enable_vector, layout_location, buffer_type>::edit_data(uint_t i)
 {
 	glsl_location_handler<layout_location, buffer_type>::edit_data(i, m_color.data() + i, sizeof(fan::color));
 }
 
-template<uint_t layout_location, fan::opengl_buffer_type buffer_type>
-void fan::basic_shape_color_vector<layout_location, buffer_type>::write_data()
+template <bool enable_vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+enable_function_for_vector_cpp void fan::basic_shape_color_vector<enable_vector, layout_location, buffer_type>::write_data()
 {
 	glsl_location_handler<layout_location, buffer_type>::write_data(m_color.data(), sizeof(fan::color) * m_color.size());
 }
 
-template<uint_t layout_location, fan::opengl_buffer_type buffer_type>
-void fan::basic_shape_color_vector<layout_location, buffer_type>::initialize_buffers(bool divisor)
+template <bool enable_vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+enable_function_for_vector_cpp void fan::basic_shape_color_vector<enable_vector, layout_location, buffer_type>::initialize_buffers(bool divisor)
 {
 	glsl_location_handler<layout_location, buffer_type>::initialize_buffers(m_color.data(), sizeof(fan::color) * m_color.size(), divisor, fan::color::size());
 }
 
-template<typename _Vector>
-fan::basic_shape_vector<_Vector>::basic_shape_vector(fan::camera& camera)
+template <bool enable_vector, typename _Vector>
+fan::basic_shape<enable_vector, _Vector>::basic_shape(fan::camera& camera)
 	: m_camera(camera), m_window(camera.m_window) {}
 
-template <typename _Vector>
-fan::basic_shape_vector<_Vector>::basic_shape_vector(fan::camera& camera, const fan::shader& shader)
+template <bool enable_vector, typename _Vector>
+fan::basic_shape<enable_vector, _Vector>::basic_shape(fan::camera& camera, const fan::shader& shader)
 	: m_shader(shader), m_camera(camera), m_window(camera.m_window) { }
 
-template <typename _Vector>
-fan::basic_shape_vector<_Vector>::basic_shape_vector(fan::camera& camera, const fan::shader& shader, const _Vector& position, const _Vector& size)
-	: fan::basic_shape_position_vector<_Vector>(position), fan::basic_shape_size_vector<_Vector>(size), m_shader(shader), m_camera(camera), m_window(camera.m_window) { }
+template <bool enable_vector, typename _Vector>
+fan::basic_shape<enable_vector, _Vector>::basic_shape(fan::camera& camera, const fan::shader& shader, const _Vector& position, const _Vector& size)
+	: basic_shape::basic_shape_position(position), basic_shape::basic_shape_size(size), m_shader(shader), m_camera(camera), m_window(camera.m_window) { }
 
-template<typename _Vector>
-fan::basic_shape_vector<_Vector>::basic_shape_vector(const basic_shape_vector& vector)
+template <bool enable_vector, typename _Vector>
+fan::basic_shape<enable_vector, _Vector>::basic_shape(const basic_shape& vector)
 	: m_window(vector.m_window), m_camera(vector.m_camera), m_shader(vector.m_shader),
-	  basic_shape_position_vector<_Vector>(vector), basic_shape_size_vector<_Vector>(vector), vao_handler(vector) { }
+	  basic_shape::basic_shape_position(vector),
+	  basic_shape::basic_shape_size(vector), vao_handler(vector) { }
 
-template<typename _Vector>
-fan::basic_shape_vector<_Vector>::basic_shape_vector(basic_shape_vector&& vector) noexcept
+template <bool enable_vector, typename _Vector>
+fan::basic_shape<enable_vector, _Vector>::basic_shape(basic_shape&& vector) noexcept
 	:  m_window(vector.m_window), m_camera(vector.m_camera), m_shader(std::move(vector.m_shader)),
-	   basic_shape_position_vector<_Vector>(std::move(vector)), basic_shape_size_vector<_Vector>(std::move(vector)), vao_handler(std::move(vector)) { }
+	   basic_shape::basic_shape_position(std::move(vector)), 
+	   basic_shape::basic_shape_size(std::move(vector)), vao_handler(std::move(vector)) { }
 
-template<typename _Vector>
-fan::basic_shape_vector<_Vector>& fan::basic_shape_vector<_Vector>::operator=(const basic_shape_vector& vector)
+template <bool enable_vector, typename _Vector>
+fan::basic_shape<enable_vector, _Vector>& fan::basic_shape<enable_vector, _Vector>::operator=(const basic_shape& vector)
 {
-	basic_shape_position_vector<_Vector>::operator=(vector);
-	basic_shape_size_vector<_Vector>::operator=(vector);
+	basic_shape::basic_shape_position::operator=(vector);
+	basic_shape::basic_shape_size::operator=(vector);
 	vao_handler::operator=(vector);
 
 	m_camera.operator=(vector.m_camera);
@@ -1210,11 +1263,11 @@ fan::basic_shape_vector<_Vector>& fan::basic_shape_vector<_Vector>::operator=(co
 	return *this;
 }
 
-template<typename _Vector>
-fan::basic_shape_vector<_Vector>& fan::basic_shape_vector<_Vector>::operator=(basic_shape_vector&& vector) noexcept
+template <bool enable_vector, typename _Vector>
+fan::basic_shape<enable_vector, _Vector>& fan::basic_shape<enable_vector, _Vector>::operator=(basic_shape&& vector) noexcept
 {
-	basic_shape_position_vector<_Vector>::operator=(std::move(vector));
-	basic_shape_size_vector<_Vector>::operator=(std::move(vector));
+	basic_shape::basic_shape_position::operator=(std::move(vector));
+	basic_shape::basic_shape_size::operator=(std::move(vector));
 	vao_handler::operator=(std::move(vector));
 
 	this->m_camera.operator=(std::move(vector.m_camera));
@@ -1224,68 +1277,85 @@ fan::basic_shape_vector<_Vector>& fan::basic_shape_vector<_Vector>::operator=(ba
 	return *this;
 }
 
-template<typename _Vector>
-void fan::basic_shape_vector<_Vector>::resize(uint_t size)
- {
-	basic_shape_position_vector<_Vector>::resize(size);
-	basic_shape_size_vector<_Vector>::resize(size);
+template <bool enable_vector, typename _Vector>
+enable_function_for_vector_cpp void fan::basic_shape<enable_vector, _Vector>::reserve(uint_t new_size)
+{
+	basic_shape::basic_shape_position::reserve(new_size);
+	basic_shape::basic_shape_size::reserve(new_size);
 }
 
-template class fan::basic_shape_vector<fan::vec2>;
-template class fan::basic_shape_vector<fan::vec3>;
-template class fan::basic_shape_vector<fan::vec4>;
+template <bool enable_vector, typename _Vector>
+enable_function_for_vector_cpp void fan::basic_shape<enable_vector, _Vector>::resize(uint_t new_size)
+ {
+	basic_shape::basic_shape_position::resize(new_size);
+	basic_shape::basic_shape_size::resize(new_size);
+}
 
-template <typename _Vector>
-uint_t fan::basic_shape_vector<_Vector>::size() const
+template class fan::basic_shape<false, fan::vec2>;
+template class fan::basic_shape<false, fan::vec3>;
+template class fan::basic_shape<false, fan::vec4>;
+
+template class fan::basic_shape<true, fan::vec2>;
+template class fan::basic_shape<true, fan::vec3>;
+template class fan::basic_shape<true, fan::vec4>;
+
+template <bool enable_vector, typename _Vector>
+enable_function_for_vector_cpp uint_t fan::basic_shape<enable_vector, _Vector>::size() const
 {
 	return this->m_position.size();
 }
 
-template<typename _Vector>
-void fan::basic_shape_vector<_Vector>::basic_push_back(const _Vector& position, const _Vector& size, bool queue)
+template<bool enable_vector, typename _Vector>
+f_t fan::basic_shape<enable_vector, _Vector>::get_delta_time() const
 {
-	fan::basic_shape_position_vector<_Vector>::basic_push_back(position, queue);
-	fan::basic_shape_size_vector<_Vector>::basic_push_back(size, queue);
+	return m_window.get_delta_time();
 }
 
-template<typename _Vector>
-void fan::basic_shape_vector<_Vector>::erase(uint_t i, bool queue)
+template <bool enable_vector, typename _Vector>
+enable_function_for_vector_cpp void fan::basic_shape<enable_vector, _Vector>::basic_push_back(const _Vector& position, const _Vector& size, bool queue)
 {
-	fan::basic_shape_position_vector<_Vector>::erase(i, queue);
-	fan::basic_shape_size_vector<_Vector>::erase(i, queue);
+	basic_shape::basic_shape_position::basic_push_back(position, queue);
+	basic_shape::basic_shape_size::basic_push_back(size, queue);
 }
 
-template<typename _Vector>
-void fan::basic_shape_vector<_Vector>::erase(uint_t begin, uint_t end, bool queue)
+template <bool enable_vector, typename _Vector>
+enable_function_for_vector_cpp void fan::basic_shape<enable_vector, _Vector>::erase(uint_t i, bool queue)
 {
-	fan::basic_shape_position_vector<_Vector>::erase(begin, end, queue);
-	fan::basic_shape_size_vector<_Vector>::erase(begin, end, queue);
+	basic_shape::basic_shape_position::erase(i, queue);
+	basic_shape::basic_shape_size::erase(i, queue);
 }
 
-template<typename _Vector>
-void fan::basic_shape_vector<_Vector>::edit_data(uint_t i, bool position, bool size)
+template <bool enable_vector, typename _Vector>
+enable_function_for_vector_cpp void fan::basic_shape<enable_vector, _Vector>::erase(uint_t begin, uint_t end, bool queue)
 {
-	if (position) {
-		fan::basic_shape_position_vector<_Vector>::edit_data(i);
-	}
-	if (size) {
-		fan::basic_shape_size_vector<_Vector>::edit_data(i);
-	}
+	basic_shape::basic_shape_position::erase(begin, end, queue);
+	basic_shape::basic_shape_size::erase(begin, end, queue);
 }
 
-template<typename _Vector>
-void fan::basic_shape_vector<_Vector>::write_data(bool position, bool size)
+template <bool enable_vector, typename _Vector>
+enable_function_for_vector_cpp void fan::basic_shape<enable_vector, _Vector>::edit_data(uint_t i, bool position, bool size)
 {
 	if (position) {
-		fan::basic_shape_position_vector<_Vector>::write_data();
+		basic_shape::basic_shape_position::edit_data(i);
 	}
 	if (size) {
-		fan::basic_shape_size_vector<_Vector>::write_data();
+		basic_shape::basic_shape_size::edit_data(i);
 	}
 }
 
-template <typename _Vector>
-void fan::basic_shape_vector<_Vector>::basic_draw(unsigned int mode, uint_t count, uint_t primcount, uint_t i)
+template <bool enable_vector, typename _Vector>
+enable_function_for_vector_cpp void fan::basic_shape<enable_vector, _Vector>::write_data(bool position, bool size)
+{
+	if (position) {
+		basic_shape::basic_shape_position::write_data();
+	}
+	if (size) {
+		basic_shape::basic_shape_size::write_data();
+	}
+}
+
+template <bool enable_vector, typename _Vector>
+enable_function_for_vector_cpp void fan::basic_shape<enable_vector, _Vector>::basic_draw(unsigned int mode, uint_t count, uint_t primcount, uint_t i) const
 {
 	glBindVertexArray(m_vao);
 	if (i != (uint_t)-1) {
@@ -1298,49 +1368,45 @@ void fan::basic_shape_vector<_Vector>::basic_draw(unsigned int mode, uint_t coun
 	glBindVertexArray(0);
 }
 
+template<bool enable_vector, typename _Vector>
+enable_function_for_vector_cpp void fan::basic_shape<enable_vector, _Vector>::basic_draw(unsigned int mode, uint_t count) const
+{
+	glBindVertexArray(m_vao);
+	glDrawArrays(mode, 0, count);
+	glBindVertexArray(0);
+}
+
 template <typename _Vector>
 fan::basic_vertice_vector<_Vector>::basic_vertice_vector(fan::camera& camera, const fan::shader& shader)
-	: m_shader(shader), m_window(camera.m_window), m_camera(camera)
-{
-	glGenVertexArrays(1, &m_vao);
-}
+	: m_shader(shader), m_window(camera.m_window), m_camera(camera) {}
 
 template<typename _Vector>
 fan::basic_vertice_vector<_Vector>::basic_vertice_vector(fan::camera& camera, const fan::shader& shader, const fan::vec2& position, const fan::color& color)
-	:  fan::basic_shape_position_vector<_Vector>(position), fan::basic_shape_color_vector<>(color), m_shader(shader), m_window(camera.m_window), m_camera(camera)
-{
-	glGenVertexArrays(1, &m_vao);
-}
+	:  basic_vertice_vector::basic_shape_position(position), basic_vertice_vector::basic_shape_color_vector(color), 
+	   m_shader(shader), m_window(camera.m_window), m_camera(camera) { }
 
 template<typename _Vector>
 fan::basic_vertice_vector<_Vector>::basic_vertice_vector(const basic_vertice_vector& vector)
-	: basic_shape_position_vector<_Vector>(vector), 
-	  basic_shape_color_vector<>(vector),
-	  basic_shape_velocity_vector<_Vector>(vector), 
-	  m_camera(vector.m_camera), m_window(vector.m_window) { }
+	: basic_vertice_vector::basic_shape_position(vector), 
+	  basic_vertice_vector::basic_shape_color_vector(vector),
+	  basic_vertice_vector::basic_shape_velocity(vector), 
+	  vao_handler(vector), m_camera(vector.m_camera), 
+	  m_window(vector.m_window), m_shader(vector.m_shader) { }
 
 template<typename _Vector>
 fan::basic_vertice_vector<_Vector>::basic_vertice_vector(basic_vertice_vector&& vector) noexcept
-	: basic_shape_position_vector<_Vector>(std::move(vector)), 
-	  basic_shape_color_vector<>(std::move(vector)),
-	  basic_shape_velocity_vector<_Vector>(std::move(vector)),
-	  m_camera(vector.m_camera), m_window(vector.m_window) { }
-
-template<typename _Vector>
-fan::basic_vertice_vector<_Vector>::~basic_vertice_vector()
-{
-	fan_validate_buffer(m_vao, {
-		glDeleteVertexArrays(1, &m_vao);
-		m_vao = fan::uninitialized;
-	});
-}
+	: basic_vertice_vector::basic_shape_position(std::move(vector)), 
+	  basic_vertice_vector::basic_shape_color_vector(std::move(vector)),
+	  basic_vertice_vector::basic_shape_velocity(std::move(vector)),
+	  vao_handler(std::move(vector)), m_camera(vector.m_camera),
+	  m_window(vector.m_window), m_shader(std::move(vector.m_shader)) { }
 
 template<typename _Vector>
 fan::basic_vertice_vector<_Vector>& fan::basic_vertice_vector<_Vector>::operator=(const basic_vertice_vector& vector)
 {
-	basic_shape_position_vector<_Vector>::operator=(vector);
-	basic_shape_color_vector<>::operator=(vector);
-	basic_shape_velocity_vector<_Vector>::operator=(vector);
+	basic_vertice_vector::basic_shape_position::operator=(vector);
+	basic_vertice_vector::basic_shape_color_vector::operator=(vector);
+	basic_vertice_vector::basic_shape_velocity::operator=(vector);
 	vao_handler::operator=(vector);
 
 	m_shader = vector.m_shader;
@@ -1353,9 +1419,9 @@ fan::basic_vertice_vector<_Vector>& fan::basic_vertice_vector<_Vector>::operator
 template<typename _Vector>
 fan::basic_vertice_vector<_Vector>& fan::basic_vertice_vector<_Vector>::operator=(basic_vertice_vector&& vector)
 {
-	basic_shape_position_vector<_Vector>::operator=(std::move(vector));
-	basic_shape_color_vector<>::operator=(std::move(vector));
-	basic_shape_velocity_vector<_Vector>::operator=(std::move(vector));
+	basic_vertice_vector::basic_shape_position::operator=(std::move(vector));
+	basic_vertice_vector::basic_shape_color_vector::operator=(std::move(vector));
+	basic_vertice_vector::basic_shape_velocity::operator=(std::move(vector));
 	vao_handler::operator=(std::move(vector));
 
 	m_shader = std::move(vector.m_shader);
@@ -1368,38 +1434,38 @@ fan::basic_vertice_vector<_Vector>& fan::basic_vertice_vector<_Vector>::operator
 template<typename _Vector>
 uint_t fan::basic_vertice_vector<_Vector>::size() const
 {
-	return fan::basic_shape_position_vector<_Vector>::m_position.size();
+	return basic_vertice_vector::basic_shape_position::m_position.size();
 }
 
 template<typename _Vector>
 void fan::basic_vertice_vector<_Vector>::basic_push_back(const _Vector& position, const fan::color& color, bool queue)
 {
-	fan::basic_shape_position_vector<_Vector>::basic_push_back(position, queue);
-	fan::basic_shape_color_vector<>::basic_push_back(color, queue);
+	basic_vertice_vector::basic_shape_position::basic_push_back(position, queue);
+	basic_vertice_vector::basic_shape_color_vector::basic_push_back(color, queue);
 }
 
 template<typename _Vector>
 void fan::basic_vertice_vector<_Vector>::erase(uint_t i, bool queue)
 {
-	fan::basic_shape_position_vector<_Vector>::erase(i, queue);
-	fan::basic_shape_color_vector<>::erase(i, queue);
+	basic_vertice_vector::basic_shape_position::erase(i, queue);
+	basic_vertice_vector::basic_shape_color_vector::erase(i, queue);
 }
 
 template<typename _Vector>
 void fan::basic_vertice_vector<_Vector>::erase(uint_t begin, uint_t end, bool queue)
 {
-	fan::basic_shape_position_vector<_Vector>::erase(begin, end, queue);
-	fan::basic_shape_color_vector<>::erase(begin, end, queue);
+	basic_vertice_vector::basic_shape_position::erase(begin, end, queue);
+	basic_vertice_vector::basic_shape_color_vector::erase(begin, end, queue);
 }
 
 template<typename _Vector>
 void fan::basic_vertice_vector<_Vector>::edit_data(uint_t i, bool position, bool color)
 {
 	if (position) {
-		fan::basic_shape_position_vector<_Vector>::edit_data(i);
+		basic_vertice_vector::basic_shape_position::edit_data(i);
 	}
 	if (color) {
-		fan::basic_shape_color_vector<>::edit_data(i);
+		basic_vertice_vector::basic_shape_color_vector::edit_data(i);
 	}
 }
 
@@ -1407,10 +1473,10 @@ template<typename _Vector>
 void fan::basic_vertice_vector<_Vector>::write_data(bool position, bool color)
 {
 	if (position) {
-		fan::basic_shape_position_vector<_Vector>::write_data();
+		basic_vertice_vector::basic_shape_position::write_data();
 	}
 	if (color) {
-		fan::basic_shape_color_vector<>::write_data();
+		basic_vertice_vector::basic_shape_color_vector::write_data();
 	}
 }
 
@@ -1507,12 +1573,11 @@ void fan::basic_shape_color_vector_vector<layout_location, gl_buffer>::initializ
 
 fan_2d::vertice_vector::vertice_vector(fan::camera& camera, uint_t index_restart)
 	: basic_vertice_vector(camera, fan::shader(fan_2d::shader_paths::shape_vector_vs, fan_2d::shader_paths::shape_vector_fs)), m_index_restart(index_restart), m_offset(0)
-{ 
-	glGenBuffers(1, &m_ebo);
+{
 	fan::bind_vao(this->m_vao, [&] {
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(m_indices[0]) * m_indices.size(), m_indices.data(), GL_STATIC_DRAW);
-		fan::basic_vertice_vector<fan::vec2>::basic_shape_position_vector<fan::vec2>::initialize_buffers(false);
+		fan::basic_vertice_vector<fan::vec2>::basic_shape_position<true, fan::vec2>::initialize_buffers(false);
 		fan::basic_vertice_vector<fan::vec2>::basic_shape_color_vector::initialize_buffers(false);
 	});
 }
@@ -1520,71 +1585,49 @@ fan_2d::vertice_vector::vertice_vector(fan::camera& camera, uint_t index_restart
 fan_2d::vertice_vector::vertice_vector(fan::camera& camera, const fan::vec2& position, const fan::color& color, uint_t index_restart)
 	: basic_vertice_vector(camera, fan::shader(fan_2d::shader_paths::shape_vector_vs, fan_2d::shader_paths::shape_vector_fs), position, color), m_index_restart(index_restart), m_offset(0)
 {
-	glGenBuffers(1, &m_ebo);
-	fan::bind_vao(this->m_vao, [&] {
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(m_indices[0]) * m_indices.size(), m_indices.data(), GL_STATIC_DRAW);
-		fan::basic_vertice_vector<fan::vec2>::basic_shape_position_vector<fan::vec2>::initialize_buffers(false);
-		fan::basic_vertice_vector<fan::vec2>::basic_shape_color_vector::initialize_buffers(false);
-	});
+	this->initialize_buffers();
 }
 
 fan_2d::vertice_vector::vertice_vector(const vertice_vector& vector)
-	: fan::basic_vertice_vector<fan::vec2>(vector) {
-	glGenBuffers(1, &m_ebo);
+	: fan::basic_vertice_vector<fan::vec2>(vector), ebo_handler(vector) {
 
 	this->m_indices = vector.m_indices;
 	this->m_offset = vector.m_offset;
 	this->m_index_restart = vector.m_index_restart;
 
+	this->initialize_buffers();
 }
 
 fan_2d::vertice_vector::vertice_vector(vertice_vector&& vector) noexcept
-: fan::basic_vertice_vector<fan::vec2>(std::move(vector)) { 
+: fan::basic_vertice_vector<fan::vec2>(std::move(vector)), ebo_handler(std::move(vector)) { 
 
 	this->m_indices = std::move(vector.m_indices);
 	this->m_offset = vector.m_offset;
 	this->m_index_restart = vector.m_index_restart;
-
-	this->m_ebo = vector.m_ebo;
-	vector.m_ebo = fan::uninitialized;
-}
-
-fan_2d::vertice_vector::~vertice_vector()
-{
-	fan_validate_buffer(m_ebo, {
-		glDeleteBuffers(1, &m_ebo);
-		m_ebo = fan::uninitialized;
-	});
 }
 
 fan_2d::vertice_vector& fan_2d::vertice_vector::operator=(const vertice_vector& vector)
 {
-	glGenBuffers(1, &m_ebo);
-
-	basic_vertice_vector::operator=(vector);
-
 	this->m_indices = vector.m_indices;
 	this->m_offset = vector.m_offset;
 	this->m_index_restart = vector.m_index_restart;
+
+	ebo_handler::operator=(vector);
+	basic_vertice_vector::operator=(vector);
+
+	this->initialize_buffers();
 
 	return *this;
 }
 
 fan_2d::vertice_vector& fan_2d::vertice_vector::operator=(vertice_vector&& vector) noexcept
 {
-	basic_vertice_vector::operator=(vector);
-
 	this->m_indices = std::move(vector.m_indices);
 	this->m_offset = vector.m_offset;
 	this->m_index_restart = vector.m_index_restart;
 
-	this->m_ebo = vector.m_ebo;
-	vector.m_ebo = fan::uninitialized;
-
-	m_shader = std::move(vector.m_shader);
-	m_window = std::move(vector.m_window);
-	m_camera = std::move(vector.m_camera);
+	ebo_handler::operator=(std::move(vector));
+	basic_vertice_vector::operator=(std::move(vector));
 
 	return *this;
 }
@@ -1593,7 +1636,7 @@ fan_2d::vertice_vector& fan_2d::vertice_vector::operator=(vertice_vector&& vecto
 void fan_2d::vertice_vector::release_queue(bool position, bool color, bool indices)
 {
 	if (position) {
-		fan::basic_vertice_vector<fan::vec2>::basic_shape_position_vector<fan::vec2>::write_data();
+		fan::basic_vertice_vector<fan::vec2>::basic_shape_position<true, fan::vec2>::write_data();
 	}
 	if (color) {
 		fan::basic_vertice_vector<fan::vec2>::basic_shape_color_vector::write_data();
@@ -1605,7 +1648,7 @@ void fan_2d::vertice_vector::release_queue(bool position, bool color, bool indic
 
 void fan_2d::vertice_vector::push_back(const fan::vec2& position, const fan::color& color, bool queue)
 {
-	fan::basic_vertice_vector<fan::vec2>::basic_shape_position_vector<fan::vec2>::basic_push_back(position, queue);
+	fan::basic_vertice_vector<fan::vec2>::basic_shape_position<true, fan::vec2>::basic_push_back(position, queue);
 	fan::basic_vertice_vector<fan::vec2>::basic_shape_color_vector::basic_push_back(color, queue);
 
 	m_indices.emplace_back(m_offset);
@@ -1673,6 +1716,16 @@ void fan_2d::vertice_vector::erase(uint_t begin, uint_t end, bool queue)
 	}
 }
 
+void fan_2d::vertice_vector::initialize_buffers()
+{
+	fan::bind_vao(this->m_vao, [&] {
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(m_indices[0]) * m_indices.size(), m_indices.data(), GL_STATIC_DRAW);
+		fan::basic_vertice_vector<fan::vec2>::basic_shape_position<true, fan::vec2>::initialize_buffers(false);
+		fan::basic_vertice_vector<fan::vec2>::basic_shape_color_vector::initialize_buffers(false);
+	});
+}
+
 void fan_2d::vertice_vector::write_data()
 {
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
@@ -1681,33 +1734,33 @@ void fan_2d::vertice_vector::write_data()
 }
 
 fan_2d::line_vector::line_vector(fan::camera& camera)
-	: basic_shape_vector(camera, fan::shader(shader_paths::shape_vector_vs, shader_paths::shape_vector_fs))
+	: basic_shape(camera, fan::shader(shader_paths::shape_vector_vs, shader_paths::shape_vector_fs))
 {
 	this->initialize_buffers();
 }
 
 fan_2d::line_vector::line_vector(fan::camera& camera, const fan::mat2& begin_end, const fan::color& color)
-	: basic_shape_vector(camera, fan::shader(shader_paths::shape_vector_vs, shader_paths::shape_vector_fs), begin_end[0], begin_end[1]), basic_shape_color_vector(color)
+	: basic_shape(camera, fan::shader(shader_paths::shape_vector_vs, shader_paths::shape_vector_fs), begin_end[0], begin_end[1]), basic_shape_color_vector(color)
 {
 	this->initialize_buffers();
 }
 
 fan_2d::line_vector::line_vector(const line_vector& vector)
-	:	fan::basic_shape_vector<fan::vec2>(vector), 
-		fan::basic_shape_color_vector<>(vector)
+	:	line_vector::basic_shape(vector), 
+		line_vector::basic_shape_color_vector(vector)
 {
 	this->initialize_buffers();
 }
 
 fan_2d::line_vector::line_vector(line_vector&& vector) noexcept
-	:	fan::basic_shape_vector<fan::vec2>(std::move(vector)), 
-		fan::basic_shape_color_vector<>(std::move(vector)) { }
+	:	line_vector::basic_shape(std::move(vector)), 
+		line_vector::basic_shape_color_vector(std::move(vector)) { }
 
 fan_2d::line_vector& fan_2d::line_vector::operator=(const line_vector& vector)
 {
 
-	fan::basic_shape_vector<fan::vec2>::operator=(vector);
-	fan::basic_shape_color_vector<>::operator=(vector);
+	line_vector::basic_shape::operator=(vector);
+	line_vector::basic_shape_color_vector::operator=(vector);
 
 	this->initialize_buffers();
 
@@ -1716,22 +1769,28 @@ fan_2d::line_vector& fan_2d::line_vector::operator=(const line_vector& vector)
 
 fan_2d::line_vector& fan_2d::line_vector::operator=(line_vector&& vector) noexcept
 {
-	fan::basic_shape_vector<fan::vec2>::operator=(std::move(vector));
-	fan::basic_shape_color_vector<>::operator=(std::move(vector));
+	line_vector::basic_shape::operator=(std::move(vector));
+	line_vector::basic_shape_color_vector::operator=(std::move(vector));
 
 	return *this;
 }
 
+void fan_2d::line_vector::reserve(uint_t size)
+{
+	line_vector::basic_shape::reserve(size);
+	basic_shape_color_vector::reserve(size);
+}
+
 void fan_2d::line_vector::resize(uint_t size, const fan::color& color)
 {
-	basic_shape_vector<fan::vec2>::resize(size);
+	line_vector::basic_shape::resize(size);
 	basic_shape_color_vector::resize(size, color);
 	this->release_queue(true, true);
 }
 
 void fan_2d::line_vector::push_back(const fan::mat2& begin_end, const fan::color& color, bool queue)
 {
-	basic_shape_vector::basic_push_back(begin_end[0], begin_end[1], queue);
+	basic_shape::basic_push_back(begin_end[0], begin_end[1], queue);
 	m_color.emplace_back(color);
 
 	if (!queue) {
@@ -1753,13 +1812,13 @@ void fan_2d::line_vector::draw()
 	this->m_shader.set_mat4("view", view);
 	this->m_shader.set_int("shape_type", fan::eti(fan::e_shapes::LINE));
 
-	basic_shape_vector::basic_draw(GL_LINES, 2, size());
+	basic_shape::basic_draw(GL_LINES, 2, size());
 }
 
 void fan_2d::line_vector::set_position(uint_t i, const fan::mat2& begin_end, bool queue)
 {
-	basic_shape_vector::set_position(i, begin_end[0], true);
-	basic_shape_vector::set_size(i, begin_end[1], true);
+	basic_shape::set_position(i, begin_end[0], true);
+	basic_shape::set_size(i, begin_end[1], true);
 
 	if (!queue) {
 		release_queue(true, false);
@@ -1769,7 +1828,7 @@ void fan_2d::line_vector::set_position(uint_t i, const fan::mat2& begin_end, boo
 void fan_2d::line_vector::release_queue(bool position, bool color)
 {
 	if (position) {
-		basic_shape_vector::write_data(true, true);
+		basic_shape::write_data(true, true);
 	}
 	if (color) {
 		basic_shape_color_vector::write_data();
@@ -1779,9 +1838,9 @@ void fan_2d::line_vector::release_queue(bool position, bool color)
 void fan_2d::line_vector::initialize_buffers()
 {
 	fan::bind_vao(this->m_vao, [&] {
-		fan::basic_shape_position_vector<fan::vec2>::initialize_buffers(true);
-		fan::basic_shape_size_vector<fan::vec2>::initialize_buffers(true);
-		fan::basic_shape_color_vector<>::initialize_buffers(true);
+		line_vector::basic_shape_position::initialize_buffers(true);
+		line_vector::basic_shape_size::initialize_buffers(true);
+		line_vector::basic_shape_color_vector::initialize_buffers(true);
 	});
 }
 
@@ -1813,12 +1872,12 @@ void fan_2d::line_vector::initialize_buffers()
 //}
 
 fan_2d::rectangle_vector::rectangle_vector(fan::camera& camera)
-	: basic_shape_vector(camera, fan::shader(shader_paths::shape_vector_vs, shader_paths::shape_vector_fs)) {
+	: basic_shape(camera, fan::shader(shader_paths::shape_vector_vs, shader_paths::shape_vector_fs)) {
 	this->initialize_buffers();
 }
 
 fan_2d::rectangle_vector::rectangle_vector(fan::camera& camera, const fan::vec2& position, const fan::vec2& size, const fan::color& color)
-	: basic_shape_vector(camera, fan::shader(shader_paths::shape_vector_vs, shader_paths::shape_vector_fs), position, size), basic_shape_color_vector(color)
+	: basic_shape(camera, fan::shader(shader_paths::shape_vector_vs, shader_paths::shape_vector_fs), position, size), basic_shape_color_vector(color)
 {
 	this->initialize_buffers();
 
@@ -1828,25 +1887,25 @@ fan_2d::rectangle_vector::rectangle_vector(fan::camera& camera, const fan::vec2&
 }
 
 fan_2d::rectangle_vector::rectangle_vector(const rectangle_vector& vector)
-	:	fan_2d::rectangle_vector::basic_shape_vector<fan::vec2>(vector),
-		fan_2d::rectangle_vector::basic_shape_color_vector<>(vector),
-		fan_2d::rectangle_vector::basic_shape_velocity_vector<fan::vec2>(vector),
+	:	fan_2d::rectangle_vector::basic_shape(vector),
+		fan_2d::rectangle_vector::basic_shape_color_vector(vector),
+		fan_2d::rectangle_vector::basic_shape_velocity(vector),
 		m_corners(vector.m_corners), m_rotation(vector.m_rotation)
 {
 	this->initialize_buffers();
 }
 
 fan_2d::rectangle_vector::rectangle_vector(rectangle_vector&& vector) noexcept
-	:	fan_2d::rectangle_vector::basic_shape_vector<fan::vec2>(std::move(vector)),
-		fan_2d::rectangle_vector::basic_shape_color_vector<>(std::move(vector)),
-		fan_2d::rectangle_vector::basic_shape_velocity_vector<fan::vec2>(std::move(vector)),
+	:	fan_2d::rectangle_vector::basic_shape(std::move(vector)),
+		fan_2d::rectangle_vector::basic_shape_color_vector(std::move(vector)),
+		fan_2d::rectangle_vector::basic_shape_velocity(std::move(vector)),
 		m_corners(std::move(vector.m_corners)), m_rotation(std::move(vector.m_rotation)) { }
 
 fan_2d::rectangle_vector& fan_2d::rectangle_vector::operator=(const rectangle_vector& vector)
 {
-	fan_2d::rectangle_vector::basic_shape_vector<fan::vec2>::operator=(vector);
-	fan_2d::rectangle_vector::basic_shape_color_vector<>::operator=(vector);
-	fan_2d::rectangle_vector::basic_shape_velocity_vector<fan::vec2>::operator=(vector);
+	fan_2d::rectangle_vector::basic_shape::operator=(vector);
+	fan_2d::rectangle_vector::basic_shape_color_vector::operator=(vector);
+	fan_2d::rectangle_vector::basic_shape_velocity::operator=(vector);
 
 	this->m_corners = vector.m_corners;
 	this->m_rotation = vector.m_rotation;
@@ -1858,9 +1917,9 @@ fan_2d::rectangle_vector& fan_2d::rectangle_vector::operator=(const rectangle_ve
 
 fan_2d::rectangle_vector& fan_2d::rectangle_vector::operator=(rectangle_vector&& vector) noexcept
 {
-	fan_2d::rectangle_vector::basic_shape_vector<fan::vec2>::operator=(std::move(vector));
-	fan_2d::rectangle_vector::basic_shape_color_vector<>::operator=(std::move(vector));
-	fan_2d::rectangle_vector::basic_shape_velocity_vector<fan::vec2>::operator=(std::move(vector));
+	fan_2d::rectangle_vector::basic_shape::operator=(std::move(vector));
+	fan_2d::rectangle_vector::basic_shape_color_vector::operator=(std::move(vector));
+	fan_2d::rectangle_vector::basic_shape_velocity::operator=(std::move(vector));
 
 	this->m_corners = std::move(vector.m_corners);
 	this->m_rotation = std::move(vector.m_rotation);
@@ -1871,9 +1930,9 @@ fan_2d::rectangle_vector& fan_2d::rectangle_vector::operator=(rectangle_vector&&
 void fan_2d::rectangle_vector::initialize_buffers()
 {
 	fan::bind_vao(this->m_vao, [&] {
-		fan::basic_shape_color_vector<>::initialize_buffers(true);
-		fan::basic_shape_position_vector<fan::vec2>::initialize_buffers(true);
-		fan::basic_shape_size_vector<fan::vec2>::initialize_buffers(true);
+		rectangle_vector::basic_shape_color_vector::initialize_buffers(true);
+		rectangle_vector::basic_shape_position::initialize_buffers(true);
+		rectangle_vector::basic_shape_size::initialize_buffers(true);
 	});
 }
 
@@ -1889,7 +1948,7 @@ fan_2d::rectangle fan_2d::rectangle_vector::construct(uint_t i)
 
 void fan_2d::rectangle_vector::release_queue(bool position, bool size, bool color)
 {
-	basic_shape_vector::write_data(position, size);
+	basic_shape::write_data(position, size);
 
 	if (color) {
 		basic_shape_color_vector::write_data();
@@ -1898,7 +1957,7 @@ void fan_2d::rectangle_vector::release_queue(bool position, bool size, bool colo
 
 void fan_2d::rectangle_vector::push_back(const fan::vec2& position, const fan::vec2& size, const fan::color& color, bool queue)
 {
-	basic_shape_vector::basic_push_back(position, size, queue);
+	basic_shape::basic_push_back(position, size, queue);
 	basic_shape_color_vector::basic_push_back(color, queue);
 
 	this->m_velocity.emplace_back(fan::vec2());
@@ -1908,8 +1967,8 @@ void fan_2d::rectangle_vector::push_back(const fan::vec2& position, const fan::v
 
 void fan_2d::rectangle_vector::erase(uint_t i, bool queue)
 {
-	basic_shape_vector::erase(i, queue);
-	fan::basic_shape_color_vector<>::erase(i, queue);
+	basic_shape::erase(i, queue);
+	rectangle_vector::basic_shape_color_vector::erase(i, queue);
 	this->m_corners.erase(this->m_corners.begin() + i);
 	this->m_velocity.erase(this->m_velocity.begin() + i);
 	this->m_rotation.erase(this->m_rotation.begin() + i);
@@ -1917,8 +1976,8 @@ void fan_2d::rectangle_vector::erase(uint_t i, bool queue)
 
 void fan_2d::rectangle_vector::erase(uint_t begin, uint_t end, bool queue)
 {
-	basic_shape_vector::erase(begin, end, queue);
-	fan::basic_shape_color_vector<>::erase(begin, end, queue);
+	basic_shape::erase(begin, end, queue);
+	rectangle_vector::basic_shape_color_vector::erase(begin, end, queue);
 	this->m_corners.erase(this->m_corners.begin() + begin, this->m_corners.begin() + end);
 	this->m_velocity.erase(this->m_velocity.begin() + begin, this->m_velocity.begin() + end);
 	this->m_rotation.erase(this->m_rotation.begin() + begin, this->m_rotation.begin() + end);
@@ -1937,7 +1996,7 @@ void fan_2d::rectangle_vector::draw(uint_t i)
 	this->m_shader.set_mat4("projection", projection);
 	this->m_shader.set_mat4("view", view);
 	this->m_shader.set_int("shape_type", fan::eti(fan::e_shapes::SQUARE));
-	basic_shape_vector::basic_draw(GL_TRIANGLES, 6, size(), i);
+	basic_shape::basic_draw(GL_TRIANGLES, 6, size(), i);
 }
 
 fan::vec2 fan_2d::rectangle_vector::get_center(uint_t i) const
@@ -1956,7 +2015,7 @@ fan_2d::rectangle_corners_t fan_2d::rectangle_vector::get_corners(uint_t i) cons
 void fan_2d::rectangle_vector::move(uint_t i, f32_t speed, f32_t gravity, f32_t jump_force, f32_t friction)
 {
 	move_object(m_window, this->m_position[i], this->m_velocity[i], speed, gravity, jump_force, friction);
-	glBindBuffer(GL_ARRAY_BUFFER, basic_shape_vector::basic_shape_position_vector::glsl_location_handler::m_buffer_object);
+	glBindBuffer(GL_ARRAY_BUFFER, basic_shape::basic_shape_position::glsl_location_handler::m_buffer_object);
 	fan::vec2 data;
 	glGetBufferSubData(GL_ARRAY_BUFFER, sizeof(fan::vec2) * i, sizeof(fan::vec2), data.data());
 	if (data != this->m_position[i]) {
@@ -2005,7 +2064,7 @@ void fan_2d::rectangle_vector::set_rotation(uint_t i, f_t angle)
 }
 
 fan_2d::sprite_vector::sprite_vector(fan::camera& camera, const std::string& path)
-	: basic_shape_vector(camera, fan::shader(shader_paths::sprite_vector_vs, shader_paths::sprite_vector_fs)), m_path(path)
+	: basic_shape(camera, fan::shader(shader_paths::sprite_vector_vs, shader_paths::sprite_vector_fs)), m_path(path)
 {
 	this->initialize_buffers();
 
@@ -2013,14 +2072,14 @@ fan_2d::sprite_vector::sprite_vector(fan::camera& camera, const std::string& pat
 }
 
 fan_2d::sprite_vector::sprite_vector(fan::camera& camera, const std::string& path, const fan::vec2& position, const fan::vec2& size)
-	: basic_shape_vector(camera, fan::shader(shader_paths::sprite_vector_vs, shader_paths::sprite_vector_fs), position, size), m_path(path)
+	: basic_shape(camera, fan::shader(shader_paths::sprite_vector_vs, shader_paths::sprite_vector_fs), position, size), m_path(path)
 {
 	this->initialize_buffers();
 	this->load_sprite(path, size);
 }
 
 fan_2d::sprite_vector::sprite_vector(const sprite_vector& vector)
-	: fan_2d::sprite_vector::basic_shape_vector<fan::vec2>(vector), fan::basic_shape_velocity_vector<fan::vec2>(vector), 
+	: fan_2d::sprite_vector::basic_shape(vector), sprite_vector::basic_shape_velocity(vector), texture_handler(vector),
 		m_path(vector.m_path), m_rotation(vector.m_rotation), m_original_image_size(vector.m_original_image_size) { 
 
 	this->initialize_buffers();
@@ -2028,37 +2087,27 @@ fan_2d::sprite_vector::sprite_vector(const sprite_vector& vector)
 }
 
 fan_2d::sprite_vector::sprite_vector(sprite_vector&& vector) noexcept
-	: fan_2d::sprite_vector::basic_shape_vector(std::move(vector)), fan::basic_shape_velocity_vector<fan::vec2>(std::move(vector)),
-		m_path(std::move(vector.m_path)), m_rotation(std::move(vector.m_rotation)), m_original_image_size(std::move(vector.m_original_image_size)) { 
-	
-	this->m_texture = vector.m_texture;
-	vector.m_texture = fan::uninitialized;
-}
-
-fan_2d::sprite_vector::~sprite_vector()
-{
-	fan_validate_buffer(m_texture, glDeleteTextures(1, &m_texture));
-}
+	: fan_2d::sprite_vector::basic_shape(std::move(vector)), sprite_vector::basic_shape_velocity(std::move(vector)), texture_handler(std::move(vector)),
+		m_path(std::move(vector.m_path)), m_rotation(std::move(vector.m_rotation)), m_original_image_size(std::move(vector.m_original_image_size)) { }
 
 fan_2d::sprite_vector& fan_2d::sprite_vector::operator=(const sprite_vector& vector)
 {
-	fan::basic_shape_vector<fan::vec2>::operator=(vector);
-	fan::basic_shape_velocity_vector<fan::vec2>::operator=(vector);
-	fan::texture_handler::operator=(vector);
+	sprite_vector::basic_shape::operator=(vector);
+	sprite_vector::basic_shape_velocity::operator=(vector);
+	sprite_vector::texture_handler::operator=(vector);
 
-	m_path = std::move(vector.m_path);
-	m_rotation = std::move(vector.m_rotation);
-	m_original_image_size = std::move(vector.m_original_image_size);
+	m_path = vector.m_path;
+	m_rotation = vector.m_rotation;
+	m_original_image_size = vector.m_original_image_size;
 
 	return *this;
 }
 
 fan_2d::sprite_vector& fan_2d::sprite_vector::operator=(sprite_vector&& vector) noexcept
 {
-
-	fan::basic_shape_vector<fan::vec2>::operator=(std::move(vector));
-	fan::basic_shape_velocity_vector<fan::vec2>::operator=(std::move(vector));
-	fan::texture_handler::operator=(std::move(vector));
+	sprite_vector::basic_shape::operator=(std::move(vector));
+	sprite_vector::basic_shape_velocity::operator=(std::move(vector));
+	sprite_vector::texture_handler::operator=(std::move(vector));
 
 	m_path = std::move(vector.m_path);
 	m_rotation = std::move(vector.m_rotation);
@@ -2070,8 +2119,8 @@ fan_2d::sprite_vector& fan_2d::sprite_vector::operator=(sprite_vector&& vector) 
 void fan_2d::sprite_vector::initialize_buffers()
 {
 	fan::bind_vao(this->m_vao, [&] {
-		fan::basic_shape_position_vector<fan::vec2>::initialize_buffers(true);
-		fan::basic_shape_size_vector<fan::vec2>::initialize_buffers(true);
+		fan_2d::sprite_vector::basic_shape_position::initialize_buffers(true);
+		fan_2d::sprite_vector::basic_shape_size::initialize_buffers(true);
 	});
 }
 
@@ -2087,6 +2136,20 @@ void fan_2d::sprite_vector::push_back(const fan::vec2& position, const fan::vec2
 	if (!queue) {
 		release_queue(true, true);
 	}
+}
+
+void fan_2d::sprite_vector::reserve(uint_t new_size)
+{
+	sprite_vector::basic_shape::reserve(new_size);
+	sprite_vector::basic_shape_velocity::reserve(new_size);
+}
+
+void fan_2d::sprite_vector::resize(uint_t new_size, const fan::color& color)
+{
+	sprite_vector::basic_shape::resize(new_size);
+	sprite_vector::basic_shape_velocity::resize(new_size);
+
+	basic_shape::write_data(true, true);
 }
 
 void fan_2d::sprite_vector::draw()
@@ -2105,33 +2168,31 @@ void fan_2d::sprite_vector::draw()
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, this->m_texture);
 
-	basic_shape_vector::basic_draw(GL_TRIANGLES, 6, size());
+	basic_shape::basic_draw(GL_TRIANGLES, 6, size());
 }
 
 void fan_2d::sprite_vector::release_queue(bool position, bool size)
 {
 	if (position) {
-		basic_shape_vector::write_data(true, false);
+		basic_shape::write_data(true, false);
 	}
 	if (size) {
-		basic_shape_vector::write_data(false, true);
+		basic_shape::write_data(false, true);
 	}
 }
 
 void fan_2d::sprite_vector::erase(uint_t i, bool queue)
 {
-	fan::basic_shape_vector<fan::vec2>::erase(i, queue);
+	sprite_vector::basic_shape::erase(i, queue);
 }
 
 void fan_2d::sprite_vector::load_sprite(const std::string& path, const fan::vec2 size)
 {
-	image_info info = fan_2d::load_image(path);
-	this->m_texture = info.texture_id;
-	m_original_image_size = info.image_size;
+	m_original_image_size = fan_2d::load_image(m_texture, path);
 	if (size == 0) {
 		if (!m_size.empty()) {
-			this->m_size[this->m_size.size() - 1] = info.image_size;
-			basic_shape_vector::write_data(false, true);
+			this->m_size[this->m_size.size() - 1] = m_original_image_size;
+			basic_shape::write_data(false, true);
 		}
 	}
 }
@@ -2189,7 +2250,7 @@ fan_2d::gui::rectangle_vector::rectangle_vector(fan::camera& camera) : fan_2d::r
 		for (auto& i : this->m_position) {
 			i += fan_2d::gui::get_resize_movement_offset(m_window);
 		}
-		fan_2d::gui::rectangle_vector::basic_shape_vector::write_data(true, false);
+		fan_2d::gui::rectangle_vector::basic_shape::write_data(true, false);
 	});
 }
 
@@ -2200,7 +2261,7 @@ fan_2d::gui::rectangle_vector::rectangle_vector(fan::camera& camera, const fan::
 		for (auto& i : this->m_position) {
 			i += fan_2d::gui::get_resize_movement_offset(m_window);
 		}
-		fan_2d::gui::rectangle_vector::basic_shape_vector::write_data(true, false);
+		fan_2d::gui::rectangle_vector::basic_shape::write_data(true, false);
 	});
 }
 
@@ -2226,7 +2287,7 @@ fan_2d::gui::sprite_vector::sprite_vector(fan::camera& camera, const std::string
 		for (auto& i : this->m_position) {
 			i += fan_2d::gui::get_resize_movement_offset(m_window);
 		}
-		fan_2d::gui::sprite_vector::basic_shape_vector::write_data(true, false);
+		fan_2d::gui::sprite_vector::basic_shape::write_data(true, false);
 	});
 }
 
@@ -2237,7 +2298,7 @@ fan_2d::gui::sprite_vector::sprite_vector(fan::camera& camera, const std::string
 		for (auto& i : this->m_position) {
 			i += fan_2d::gui::get_resize_movement_offset(m_window);
 		}
-		fan_2d::gui::sprite_vector::basic_shape_vector::write_data(true, false);
+		fan_2d::gui::sprite_vector::basic_shape::write_data(true, false);
 	});
 }
 
@@ -2291,7 +2352,7 @@ void fan_2d::gui::rounded_rectangle::set_position(uint_t i, const fan::vec2& pos
 		fan_2d::vertice_vector::m_position[previous_offset + j] += distance;
 	}
 
-	basic_shape_position_vector::glsl_location_handler::edit_data(fan_2d::vertice_vector::m_position.data() + previous_offset, sizeof(fan::vec2) * previous_offset, sizeof(fan::vec2) * (offset - previous_offset));
+	basic_shape_position::glsl_location_handler::edit_data(fan_2d::vertice_vector::m_position.data() + previous_offset, sizeof(fan::vec2) * previous_offset, sizeof(fan::vec2) * (offset - previous_offset));
 
 	fan_2d::gui::rounded_rectangle::m_position[i] = position;
 }
@@ -2310,11 +2371,8 @@ fan_2d::gui::text_renderer::text_renderer(fan::camera& camera)
 	: text_color_t(), outline_color_t(), m_shader(fan_2d::shader_paths::text_renderer_vs, fan_2d::shader_paths::text_renderer_fs), m_window(camera.m_window), m_camera(camera)
 {
 
-	fan_2d::image_info image = fan_2d::load_image("fonts/arial.png");
+	this->m_original_image_size = fan_2d::load_image(m_texture, "fonts/arial.png");
 
-	this->m_original_image_size = image.image_size;
-	this->m_texture = image.texture_id;
-	
 	glGenVertexArrays(1, &m_vao);
 	glGenBuffers(1, &m_texture_vbo);
 	glGenBuffers(1, &m_vertex_vbo);
@@ -2758,27 +2816,27 @@ void fan_3d::add_camera_rotation_callback(fan::camera& camera) {
 }
 
 fan_3d::line_vector::line_vector(fan::camera& camera)
-	: basic_shape_vector(camera, fan::shader(fan_3d::shader_paths::shape_vector_vs, fan_3d::shader_paths::shape_vector_fs)), basic_shape_color_vector()
+	: basic_shape(camera, fan::shader(fan_3d::shader_paths::shape_vector_vs, fan_3d::shader_paths::shape_vector_fs)), basic_shape_color_vector()
 {
 	glBindVertexArray(m_vao);
 
-	fan::basic_shape_color_vector<>::initialize_buffers(true);
-	fan::basic_shape_position_vector<fan::vec3>::initialize_buffers(true);
-	fan::basic_shape_size_vector<fan::vec3>::initialize_buffers(true);
+	line_vector::basic_shape_color_vector::initialize_buffers(true);
+	line_vector::basic_shape_position::initialize_buffers(true);
+	line_vector::basic_shape_size::initialize_buffers(true);
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 }
 
 fan_3d::line_vector::line_vector(fan::camera& camera, const fan::mat2x3& begin_end, const fan::color& color)
-	: basic_shape_vector(camera, fan::shader(fan_3d::shader_paths::shape_vector_vs, fan_3d::shader_paths::shape_vector_fs),
+	: basic_shape(camera, fan::shader(fan_3d::shader_paths::shape_vector_vs, fan_3d::shader_paths::shape_vector_fs),
 		begin_end[0], begin_end[1]), basic_shape_color_vector(color)
 {
 	glBindVertexArray(m_vao);
 
-	fan::basic_shape_color_vector<>::initialize_buffers(true);
-	fan::basic_shape_position_vector<fan::vec3>::initialize_buffers(true);
-	fan::basic_shape_size_vector<fan::vec3>::initialize_buffers(true);
+	line_vector::basic_shape_color_vector::initialize_buffers(true);
+	line_vector::basic_shape_position::initialize_buffers(true);
+	line_vector::basic_shape_size::initialize_buffers(true);
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
@@ -2787,7 +2845,7 @@ fan_3d::line_vector::line_vector(fan::camera& camera, const fan::mat2x3& begin_e
 void fan_3d::line_vector::push_back(const fan::mat2x3& begin_end, const fan::color& color, bool queue)
 {
 	basic_shape_color_vector::basic_push_back(color, queue);
-	basic_shape_vector::basic_push_back(begin_end[0], begin_end[1], queue);
+	basic_shape::basic_push_back(begin_end[0], begin_end[1], queue);
 }
 
 void fan_3d::line_vector::draw() {
@@ -2803,19 +2861,19 @@ void fan_3d::line_vector::draw() {
 	this->m_shader.set_mat4("view", view);
 	this->m_shader.set_int("shape_type", fan::eti(fan::e_shapes::LINE));
 
-	basic_shape_vector::basic_draw(GL_LINE_STRIP, 2, size());
+	basic_shape::basic_draw(GL_LINE_STRIP, 2, size());
 }
 
 void fan_3d::line_vector::set_position(uint_t i, const fan::mat2x3 begin_end, bool queue)
 {
-	basic_shape_vector::set_position(i, begin_end[0], queue);
-	basic_shape_vector::set_size(i, begin_end[1], queue);
+	basic_shape::set_position(i, begin_end[0], queue);
+	basic_shape::set_size(i, begin_end[1], queue);
 }
 
 void fan_3d::line_vector::release_queue(bool position, bool color)
 {
 	if (position) {
-		basic_shape_vector::write_data(true, true);
+		basic_shape::write_data(true, true);
 	}
 	if (color) {
 		basic_shape_color_vector::write_data();
@@ -3002,14 +3060,14 @@ uint_t fan_3d::terrain_generator::size() {
 	return fan_3d::terrain_generator::m_indices.size();
 }
 
-fan_3d::square_vector::square_vector(fan::camera& camera, const std::string& path, uint_t block_size)
-	: basic_shape_vector(camera, fan::shader(fan_3d::shader_paths::shape_vector_vs, fan_3d::shader_paths::shape_vector_fs)),
+fan_3d::rectangle_vector::rectangle_vector(fan::camera& camera, const std::string& path, uint_t block_size)
+	: basic_shape(camera, fan::shader(fan_3d::shader_paths::shape_vector_vs, fan_3d::shader_paths::shape_vector_fs)),
 	block_size(block_size)
 {
 	glBindVertexArray(m_vao);
 
-	fan::basic_shape_position_vector<fan::vec3>::initialize_buffers(true);
-	fan::basic_shape_size_vector<fan::vec3>::initialize_buffers(true);
+	rectangle_vector::basic_shape_position::initialize_buffers(true);
+	rectangle_vector::basic_shape_size::initialize_buffers(true);
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
@@ -3017,15 +3075,15 @@ fan_3d::square_vector::square_vector(fan::camera& camera, const std::string& pat
 	generate_textures(path, block_size);
 }
 
-fan_3d::square_vector::square_vector(fan::camera& camera, const fan::color& color, uint_t block_size)
-	: basic_shape_vector(camera, fan::shader(fan_3d::shader_paths::shape_vector_vs, fan_3d::shader_paths::shape_vector_fs)),
+fan_3d::rectangle_vector::rectangle_vector(fan::camera& camera, const fan::color& color, uint_t block_size)
+	: basic_shape(camera, fan::shader(fan_3d::shader_paths::shape_vector_vs, fan_3d::shader_paths::shape_vector_fs)),
 	block_size(block_size)
 {
 	glBindVertexArray(m_vao);
 
-	fan::basic_shape_color_vector<>::initialize_buffers(true);
-	fan::basic_shape_position_vector<fan::vec3>::initialize_buffers(true);
-	fan::basic_shape_size_vector<fan::vec3>::initialize_buffers(true);
+	rectangle_vector::basic_shape_color_vector::initialize_buffers(true);
+	rectangle_vector::basic_shape_position::initialize_buffers(true);
+	rectangle_vector::basic_shape_size::initialize_buffers(true);
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
@@ -3033,16 +3091,16 @@ fan_3d::square_vector::square_vector(fan::camera& camera, const fan::color& colo
 	//generate_textures(path, block_size);
 }
 
-fan_3d::square_vector::~square_vector()
+fan_3d::rectangle_vector::~rectangle_vector()
 {
 	fan_validate_buffer(m_texture, glDeleteTextures(1, &m_texture));
 	fan_validate_buffer(m_texture_ssbo, glDeleteBuffers(1, &m_texture_ssbo));
 	fan_validate_buffer(m_texture_id_ssbo, glDeleteBuffers(1, &m_texture_id_ssbo));
 }
 
-void fan_3d::square_vector::push_back(const fan::vec3& src, const fan::vec3& dst, const fan::vec2& texture_id, bool queue)
+void fan_3d::rectangle_vector::push_back(const fan::vec3& src, const fan::vec3& dst, const fan::vec2& texture_id, bool queue)
 {
-	basic_shape_vector::basic_push_back(src, dst, queue);
+	basic_shape::basic_push_back(src, dst, queue);
 
 	this->m_textures.emplace_back(texture_id.y * m_amount_of_textures.x + texture_id.x);
 
@@ -3051,37 +3109,37 @@ void fan_3d::square_vector::push_back(const fan::vec3& src, const fan::vec3& dst
 	}
 }
 
-fan::vec3 fan_3d::square_vector::get_src(uint_t i) const
+fan::vec3 fan_3d::rectangle_vector::get_src(uint_t i) const
 {
 	return this->m_position[i];
 }
 
-fan::vec3 fan_3d::square_vector::get_dst(uint_t i) const
+fan::vec3 fan_3d::rectangle_vector::get_dst(uint_t i) const
 {
 	return this->m_size[i];
 }
 
-fan::vec3 fan_3d::square_vector::get_size(uint_t i) const
+fan::vec3 fan_3d::rectangle_vector::get_size(uint_t i) const
 {
 	return this->get_dst(i) - this->get_src(i);
 }
 
-void fan_3d::square_vector::set_position(uint_t i, const fan::vec3& src, const fan::vec3& dst, bool queue)
+void fan_3d::rectangle_vector::set_position(uint_t i, const fan::vec3& src, const fan::vec3& dst, bool queue)
 {
 	this->m_position[i] = src;
 	this->m_size[i] = dst;
 
 	if (!queue) {
-		fan::basic_shape_vector<fan::vec3>::write_data(true, true);
+		rectangle_vector::basic_shape::write_data(true, true);
 	}
 }
 
-void fan_3d::square_vector::set_size(uint_t i, const fan::vec3& size, bool queue)
+void fan_3d::rectangle_vector::set_size(uint_t i, const fan::vec3& size, bool queue)
 {
-	fan::basic_shape_vector<fan::vec3>::set_size(i, this->get_src(i) + size, queue);
+	rectangle_vector::basic_shape::set_size(i, this->get_src(i) + size, queue);
 }
 
-void fan_3d::square_vector::draw() {
+void fan_3d::rectangle_vector::draw() {
 
 	fan::mat4 projection(1);
 	projection = fan::perspective<fan::mat4>(fan::radians(90.f), (f32_t)m_window.get_size().x / (f32_t)m_window.get_size().y, 0.1f, 1000.0f);
@@ -3101,11 +3159,11 @@ void fan_3d::square_vector::draw() {
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_texture_id_ssbo);
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	basic_shape_vector::basic_draw(GL_TRIANGLES, 36, size());
+	basic_shape::basic_draw(GL_TRIANGLES, 36, size());
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
-void fan_3d::square_vector::set_texture(uint_t i, const fan::vec2& texture_id, bool queue)
+void fan_3d::rectangle_vector::set_texture(uint_t i, const fan::vec2& texture_id, bool queue)
 {
 	this->m_textures[i] = (f_t)block_size.x / 6 * texture_id.y + texture_id.x;
 
@@ -3114,15 +3172,12 @@ void fan_3d::square_vector::set_texture(uint_t i, const fan::vec2& texture_id, b
 	}
 }
 
-void fan_3d::square_vector::generate_textures(const std::string& path, const fan::vec2& block_size)
+void fan_3d::rectangle_vector::generate_textures(const std::string& path, const fan::vec2& block_size)
 {
 	glGenBuffers(1, &m_texture_ssbo);
 	glGenBuffers(1, &m_texture_id_ssbo);
 
-	auto texture_info = fan_2d::load_image(path, true);
-
-	m_texture = texture_info.texture_id;
-	fan::vec2i image_size = texture_info.image_size;
+	fan::vec2i image_size = fan_2d::load_image(m_texture, path, true);
 
 	glBindTexture(GL_TEXTURE_2D, m_texture);
 
@@ -3173,7 +3228,7 @@ void fan_3d::square_vector::generate_textures(const std::string& path, const fan
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
-void fan_3d::square_vector::write_textures()
+void fan_3d::rectangle_vector::write_textures()
 {
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_texture_id_ssbo);
 	glBufferData(
@@ -3186,20 +3241,20 @@ void fan_3d::square_vector::write_textures()
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
-void fan_3d::square_vector::release_queue(bool position, bool size, bool textures)
+void fan_3d::rectangle_vector::release_queue(bool position, bool size, bool textures)
 {
 	if (position) {
-		basic_shape_vector::write_data(true, false);
+		basic_shape::write_data(true, false);
 	}
 	if (size) {
-		basic_shape_vector::write_data(false, true);
+		basic_shape::write_data(false, true);
 	}
 	if (textures) {
 		this->write_textures();
 	}
 }
 
-fan_3d::square_corners fan_3d::square_vector::get_corners(uint_t i) const
+fan_3d::square_corners fan_3d::rectangle_vector::get_corners(uint_t i) const
 {
 
 	const fan::vec3 position = fan::da_t<f32_t, 2, 3>{ this->get_position(i), this->get_size(i) }.avg();
@@ -3246,7 +3301,7 @@ fan_3d::square_corners fan_3d::square_vector::get_corners(uint_t i) const
 	};
 }
 
-uint_t fan_3d::square_vector::size() const
+uint_t fan_3d::rectangle_vector::size() const
 {
 	return this->m_position.size();
 }
