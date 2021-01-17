@@ -86,8 +86,6 @@ namespace fan {
 
 #endif
 
-	#define stringify(name) #name
-
 	fan::vec2i get_resolution();
 
 	constexpr auto uninitialized = -1;
@@ -120,6 +118,24 @@ namespace fan {
 			constexpr static fan::vec2i r_1600x1024 = fan::vec2i(1600, 1024);
 			constexpr static fan::vec2i r_1680x1050 = fan::vec2i(1680, 1050);
 			constexpr static fan::vec2i r_1920x1080 = fan::vec2i(1920, 1080);
+
+			constexpr static auto size = 12;
+
+			static constexpr fan::vec2i x[12] = { fan::vec2(800, 600),
+				fan::vec2i(1024, 768),
+				fan::vec2i(1280, 720),
+				fan::vec2i(1280, 800),
+				fan::vec2i(1280, 900),
+				fan::vec2i(1280, 1024),
+				fan::vec2(1360, 768),
+				fan::vec2i(1440, 900),
+				fan::vec2i(1600, 900),
+				fan::vec2i(1600, 1024),
+				fan::vec2i(1680, 1050),
+				fan::vec2i(1920, 1080) };
+
+			//constexpr static ;
+
 		};
 
 		// required type alias for function return types

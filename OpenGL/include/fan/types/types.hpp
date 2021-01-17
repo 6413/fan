@@ -77,6 +77,21 @@ namespace fan {
 	template <typename T>
 	concept is_not_arithmetic_t = !is_arithmetic_t<T>;
 
+	template <bool _Test, uint_t _Ty1, uint_t _Ty2>
+	struct conditional_value {
+		static constexpr auto value = _Ty1;
+	};
+
+	template <uint_t _Ty1, uint_t _Ty2>
+	struct conditional_value<false, _Ty1, _Ty2> {
+		static constexpr auto value = _Ty2;
+	};
+
+	template <bool _Test, uint_t _Ty1, uint_t _Ty2>
+	struct conditional_value_t {
+		static constexpr auto value = conditional_value<_Test, _Ty1, _Ty2>::value;
+	};
+
 	#define fan_validate_buffer(buffer, function) \
 	if (buffer != static_cast<decltype(buffer)>(fan::uninitialized)) \
 	{ \

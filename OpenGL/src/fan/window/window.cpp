@@ -10,6 +10,8 @@
 
 #include <string>
 
+#define stringify(name) #name
+
 fan::vec2i fan::get_resolution() {
 #ifdef FAN_PLATFORM_WINDOWS
 
