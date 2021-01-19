@@ -76,7 +76,7 @@ namespace fan {
 
 				std::size_t found = str.find(find, offset);
 
-				int begin = str.find_first_of(digits, found);
+				std::size_t begin = str.find_first_of(digits, found);
 
 				bool negative = 0;
 
@@ -97,7 +97,7 @@ namespace fan {
 
 			static str_int_t get_string_valuei_n(const std::string& str, std::size_t offset = 0) {
 
-				int begin = str.find_first_of(digits, offset);
+				std::size_t begin = str.find_first_of(digits, offset);
 
 				bool negative = 0;
 

@@ -713,7 +713,7 @@ namespace fan {
 			UDP() : _socket(-1), socket_length(-1), this_sockaddr() {}
 
 			void send_message(const std::string& message) const {
-				if (sendto(_socket, message.c_str(), message.size(), 0, (sockaddr*)&this_sockaddr, socket_length) == SOCKET_ERROR) {
+				if (sendto(_socket, message.c_str(), (int)message.size(), 0, (sockaddr*)&this_sockaddr, socket_length) == SOCKET_ERROR) {
 		#ifdef FAN_PLATFORM_WINDOWS
 					printf("failed to send data %d\n", WSAGetLastError());
 		#else
@@ -731,7 +731,7 @@ namespace fan {
 			void listen(std::function<void()> execute = std::function<void()>([]() {})) {
 				std::vector<char> buffer(max_packet_size);
 		#ifdef FAN_PLATFORM_WINDOWS
-				if (recvfrom(_socket, &buffer[0], buffer.size(), 0, (sockaddr*)&this_sockaddr, &socket_length) == SOCKET_ERROR) {
+				if (recvfrom(_socket, &buffer[0], (int)buffer.size(), 0, (sockaddr*)&this_sockaddr, &socket_length) == SOCKET_ERROR) {
 					printf("failed to receive %d\n", WSAGetLastError());
 		#else
 				if (recvfrom(_socket, &buffer[0], buffer.size(), 0, (sockaddr*)&this_sockaddr, (unsigned int*)&socket_length) == SOCKET_ERROR) {

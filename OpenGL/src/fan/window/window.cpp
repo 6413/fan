@@ -45,8 +45,8 @@ uint8_t fan::window::flag_values::m_samples = fan::uninitialized;
 fan::window::mode fan::window::flag_values::m_size_mode = fan::window::mode::not_set;
 
 fan::window::window(const std::string& name, const fan::vec2i& window_size, uint64_t flags)
-	: m_size(window_size), m_fps(0), m_close(false), m_max_fps(0), m_vsync(false),
-	  m_position(-1), m_current_frame(0), m_last_frame(0), m_delta_time(0), m_mouse_position(0), m_received_fps(0)
+	: m_size(window_size), m_position(fan::uninitialized),  m_mouse_position(0), m_max_fps(0), m_received_fps(0), 
+	  m_fps(0), m_last_frame(0), m_current_frame(0), m_delta_time(0), m_vsync(false), m_close(false)
 {
 	if (flag_values::m_size_mode == fan::window::mode::not_set) {
 		flag_values::m_size_mode = fan::window::default_size_mode;
@@ -184,10 +184,11 @@ fan::vec2i fan::window::get_previous_size() const
 
 void fan::window::set_size(const fan::vec2i& size)
 {
-	const fan::vec2i position = this->get_position();
 	const fan::vec2i move_offset = (size - get_previous_size()) / 2;
 
 #ifdef FAN_PLATFORM_WINDOWS
+
+	const fan::vec2i position = this->get_position();
 
 	if (!SetWindowPos(m_window, 0, position.x - move_offset.x, position.y - move_offset.y, size.x, size.y, SWP_NOZORDER | SWP_SHOWWINDOW)) {
 		fan::print("fan window error: failed to set window position", GetLastError());
@@ -1105,10 +1106,10 @@ LRESULT CALLBACK fan::window::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LP
 		case WM_DESTROY:
 		{
 			HDC hdc = get_window_storage<HDC>(hwnd, stringify(m_hdc));
-			HGLRC rc = get_window_storage<HGLRC>(hwnd, "rc");
+			HGLRC context = get_window_storage<HGLRC>(hwnd, "context");
 
 			ReleaseDC(hwnd, hdc);
-			wglDeleteContext(rc);
+			wglDeleteContext(context);
 			PostQuitMessage(0);
 
 			break;
@@ -1129,8 +1130,87 @@ void fan::window::reset_keys()
 	}
 }
 
-//temp
-#include <cstring>
+#ifdef FAN_PLATFORM_WINDOWS
+void init_windows_opengl_extensions()
+{
+    WNDCLASSA window_class = {
+        .style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC,
+        .lpfnWndProc = DefWindowProcA,
+        .hInstance = GetModuleHandle(0),
+        .lpszClassName = "tempwindowclass",
+    };
+
+    if (!RegisterClassA(&window_class)) {
+		fan::print("failed to register window");
+		exit(1);
+    }
+
+    HWND temp_window = CreateWindowExA(
+        0,
+        window_class.lpszClassName,
+        "temp_window",
+        0,
+        CW_USEDEFAULT,
+        CW_USEDEFAULT,
+        CW_USEDEFAULT,
+        CW_USEDEFAULT,
+        0,
+        0,
+        window_class.hInstance,
+        0);
+
+    if (!temp_window) {
+		fan::print("failed to create window");
+		exit(1);
+    }
+
+    HDC temp_dc = GetDC(temp_window);
+
+    PIXELFORMATDESCRIPTOR pfd = {
+		sizeof(pfd),
+		1,
+		PFD_TYPE_RGBA,
+		PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER,
+		32,
+		8,
+		PFD_MAIN_PLANE,
+		24,
+		8,
+    };
+
+    int pixel_format = ChoosePixelFormat(temp_dc, &pfd);
+    if (!pixel_format) {
+		fan::print("failed to choose pixel format");
+		exit(1);
+    }
+    if (!SetPixelFormat(temp_dc, pixel_format, &pfd)) {
+		fan::print("failed to set pixel format");
+		exit(1);
+    }
+
+    HGLRC temp_context = wglCreateContext(temp_dc);
+    if (!temp_context) {
+		fan::print("failed to create context");
+		exit(1);
+    }
+
+    if (!wglMakeCurrent(temp_dc, temp_context)) {
+		fan::print("failed to make current");
+		exit(1);
+    }
+
+    wglCreateContextAttribsARB = (decltype(wglCreateContextAttribsARB))wglGetProcAddress(
+        "wglCreateContextAttribsARB");
+    wglChoosePixelFormatARB = (decltype(wglChoosePixelFormatARB))wglGetProcAddress(
+        "wglChoosePixelFormatARB");
+
+    wglMakeCurrent(temp_dc, 0);
+    wglDeleteContext(temp_context);
+    ReleaseDC(temp_window, temp_dc);
+    DestroyWindow(temp_window);
+}
+
+#endif
 
 void fan::window::initialize_window(const std::string& name, const fan::vec2i& window_size, uint64_t flags)
 {
@@ -1141,8 +1221,8 @@ void fan::window::initialize_window(const std::string& name, const fan::vec2i& w
 
 	WNDCLASS wc = {0};
 
-	const char CLASS_NAME[] = "test";
-	wc.lpszClassName = CLASS_NAME;
+	const char class_name[] = "test";
+	wc.lpszClassName = class_name;
 	wc.lpfnWndProc = window_proc;
 
 	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
@@ -1164,7 +1244,7 @@ void fan::window::initialize_window(const std::string& name, const fan::vec2i& w
 		this->set_resolution(window_size, fan::window::mode::full_screen);
 	}
 
-	m_window = CreateWindow("test", name.c_str(),
+	m_window = CreateWindow(class_name, name.c_str(),
 							(flag_values::m_no_resize ? ((full_screen || borderless ? WS_POPUP : WS_OVERLAPPEDWINDOW) | WS_SYSMENU) :
 							(full_screen || borderless ? WS_POPUP : WS_OVERLAPPEDWINDOW) | (flag_values::m_no_resize ? SWP_NOSIZE : 0)) | WS_VISIBLE,
 							position.x, position.y,
@@ -1183,36 +1263,63 @@ void fan::window::initialize_window(const std::string& name, const fan::vec2i& w
 		ShowCursor(true);
 	}
 
-	PIXELFORMATDESCRIPTOR pfd = {
-		sizeof(PIXELFORMATDESCRIPTOR),
-		1,
-		PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER,
-		PFD_TYPE_RGBA,
-		32,
-		0, 0, 0, 0, 0, 0,
-		0,
-		0,
-		0,
-		0, 0, 0, 0,
-		24,
-		8,
-		0,
-		PFD_MAIN_PLANE,
-		0,
-		0, 0, 0
-	};
-
-	static const int attributes[] = {
-		fan::OPENGL_MAJOR_VERSION, flag_values::m_major_version,
-		fan::OPENGL_MINOR_VERSION, flag_values::m_minor_version,
-		0
-	};
-
 	m_hdc = GetDC(m_window);
-	int pixel_format = ChoosePixelFormat(m_hdc, &pfd);
-	SetPixelFormat(m_hdc, pixel_format, &pfd);
-	HGLRC temp_rc = wglCreateContext(m_hdc);
-	wglMakeCurrent(m_hdc, temp_rc);
+
+	init_windows_opengl_extensions();
+
+    int pixel_format_attribs[19] = {
+		WGL_DRAW_TO_WINDOW_ARB, GL_TRUE,
+		WGL_SUPPORT_OPENGL_ARB, GL_TRUE,
+		WGL_DOUBLE_BUFFER_ARB, GL_TRUE,
+		WGL_PIXEL_TYPE_ARB, WGL_TYPE_RGBA_ARB,
+		WGL_COLOR_BITS_ARB, 32,
+		WGL_DEPTH_BITS_ARB, 24,
+		WGL_STENCIL_BITS_ARB, 8,
+		fan::OPENGL_SAMPLE_BUFFER, true, // Number of buffers (must be 1 at time of writing)
+		fan::OPENGL_SAMPLES, fan::window::flag_values::m_samples,        // Number of samples
+		0
+    };
+
+	if (!fan::window::flag_values::m_samples) {
+		// set back to zero to disable antialising
+		for (int i = 0; i < 4; i++) {
+			pixel_format_attribs[14 + i] = 0;
+		}
+	}
+
+    int pixel_format;
+    UINT num_formats;
+
+    wglChoosePixelFormatARB(m_hdc, pixel_format_attribs, 0, 1, &pixel_format, &num_formats);
+    if (!num_formats) {
+		fan::print("failed to choose pixel format", GetLastError());
+		exit(1);
+    }
+
+    PIXELFORMATDESCRIPTOR pfd;
+    DescribePixelFormat(m_hdc, pixel_format, sizeof(pfd), &pfd);
+    if (!SetPixelFormat(m_hdc, pixel_format, &pfd)) {
+		fan::print("failed to set pixel format");
+		exit(1);
+    }
+
+    const int gl_attributes[] = {
+        fan::OPENGL_MINOR_VERSION, flag_values::m_minor_version,
+		fan::OPENGL_MAJOR_VERSION, flag_values::m_major_version,
+        WGL_CONTEXT_PROFILE_MASK_ARB,  WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
+        0,
+    };
+
+    HGLRC context = wglCreateContextAttribsARB(m_hdc, 0, gl_attributes);
+    if (!context) {
+		fan::print("failed to create context");
+		exit(1);
+    }
+
+    if (!wglMakeCurrent(m_hdc, context)) {
+		fan::print("failed to make current");
+		exit(1);
+    }
 
 	glewExperimental = true;
 
@@ -1226,16 +1333,9 @@ void fan::window::initialize_window(const std::string& name, const fan::vec2i& w
 		initialized = true;
 	}
 
-	HGLRC rc = wglCreateContextAttribsARB(m_hdc, temp_rc, attributes);
-
-	wglMakeCurrent(0, 0);
-	wglDeleteContext(temp_rc);
-	wglCreateContext(m_hdc);
-	wglMakeCurrent(m_hdc, rc);
-	
 	m_position = position;
 
-	set_window_storage(m_window, stringify(rc), rc);
+	set_window_storage(m_window, stringify(context), context);
 	set_window_storage(m_window, stringify(m_size), &m_size);
 	set_window_storage(m_window, stringify(m_previous_size), &m_previous_size);
 	set_window_storage(m_window, stringify(m_position), &m_position);
@@ -1244,6 +1344,7 @@ void fan::window::initialize_window(const std::string& name, const fan::vec2i& w
 	m_previous_size = m_size;
 
 #elif defined(FAN_PLATFORM_LINUX)
+
 
 	m_display = XOpenDisplay(NULL);
 
@@ -1262,17 +1363,31 @@ void fan::window::initialize_window(const std::string& name, const fan::vec2i& w
 	//	XCloseDisplay(m_display);
 	//	exit(1);
 	//}
-	
-	static constexpr int fb_attribs[] = {
-		GLX_RENDER_TYPE, GLX_RGBA_BIT,
-		GLX_X_RENDERABLE, True,
-		GLX_DRAWABLE_TYPE, GLX_WINDOW_BIT,
-		GLX_DOUBLEBUFFER, True,
-		GLX_RED_SIZE, 8,
-		GLX_BLUE_SIZE, 8,
-		GLX_GREEN_SIZE, 8,
-		0
+
+	static int pixel_format_attribs[] = {
+		  GLX_X_RENDERABLE			 , True,
+		  GLX_DRAWABLE_TYPE			 , GLX_WINDOW_BIT,
+		  GLX_RENDER_TYPE			 , GLX_RGBA_BIT,
+		  GLX_X_VISUAL_TYPE			 , GLX_TRUE_COLOR,
+		  GLX_RED_SIZE				 , 8,
+		  GLX_GREEN_SIZE			 , 8,
+		  GLX_BLUE_SIZE				 , 8,
+		  GLX_ALPHA_SIZE			 , 8,
+		  GLX_DEPTH_SIZE			 , 24,
+		  GLX_STENCIL_SIZE			 , 8,
+		  GLX_DOUBLEBUFFER			 , True,
+		  fan::OPENGL_SAMPLE_BUFFER  , 1,
+		  fan::OPENGL_SAMPLES        , fan::window::flag_values::m_samples,
+		  None
 	};
+
+
+	if (!fan::window::flag_values::m_samples) {
+		// set back to zero to disable antialising
+		for (int i = 0; i < 4; i++) {
+			pixel_format_attribs[22 + i] = 0;
+		}
+	}
 
 	static int gl_attribs[] = {
 		fan::OPENGL_MINOR_VERSION, flag_values::m_minor_version,
@@ -1295,7 +1410,7 @@ void fan::window::initialize_window(const std::string& name, const fan::vec2i& w
 
 	int fbcount;
 
-	auto fbcs = ((GLXFBConfig*)ChooseFBConfigSGIX(m_display, m_screen, fb_attribs, &fbcount));
+	auto fbcs = ((GLXFBConfig*)ChooseFBConfigSGIX(m_display, m_screen, pixel_format_attribs, &fbcount));
 	if (!fbcs) {
 		fan::print("fan window error: failed to retreive framebuffer");
 		XCloseDisplay(m_display);
@@ -1359,13 +1474,6 @@ void fan::window::initialize_window(const std::string& name, const fan::vec2i& w
 
 	m_atom_delete_window = XInternAtom(m_display, "WM_DELETE_WINDOW", False);
 	XSetWMProtocols(m_display, m_window, &m_atom_delete_window, 1);
-
-	constexpr int context_attribs[] = {
-		GLX_CONTEXT_MAJOR_VERSION_ARB, 3,
-		GLX_CONTEXT_MINOR_VERSION_ARB, 2,
-		GLX_CONTEXT_FLAGS_ARB, GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
-		None
-	};
 
 	m_context = glXCreateContextAttribsARB(m_display, fbcs[0], 0, True, gl_attribs);
 
@@ -1475,7 +1583,7 @@ void fan::window::handle_events() {
 			case ClientMessage:
 			{
 
-				if (m_event.xclient.data.l[0] != m_atom_delete_window) {
+				if (m_event.xclient.data.l[0] != (long)m_atom_delete_window) {
 					break;
 				}
 
