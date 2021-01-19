@@ -41,7 +41,10 @@ public:
 		this->allocate_buffer();
 	}
 
-	private_class_name(private_class_name&& handler) noexcept : private_variable_name(fan::uninitialized) {
+	private_class_name(private_class_name&& handler) : private_variable_name(fan::uninitialized) {
+		if ((int)handler.private_variable_name == fan::uninitialized) {
+			throw std::runtime_error("attempting to move unallocated memory");
+		}
 		this->operator=(std::move(handler));
 	}
 
@@ -122,7 +125,9 @@ protected:
 	
 	template <opengl_buffer_type T = private_buffer_type, typename = std::enable_if_t<T == opengl_buffer_type::vertex_array_object>>
 	void initialize_buffers(uint32_t vao, const std::function<void()>& binder) {
+		glBindVertexArray(vao);
 		binder();
+		glBindVertexArray(0);
 	}
 
 void write_data(void* data, uint_t byte_size) {

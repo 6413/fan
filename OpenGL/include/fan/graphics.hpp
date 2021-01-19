@@ -163,7 +163,7 @@ namespace fan {
 		enable_function_for_vector void reserve(uint_t new_size);
 		enable_function_for_vector void resize(uint_t new_size);
 
-		enable_function_for_vector auto get_positions() const;
+		enable_function_for_vector std::vector<_Vector> get_positions() const;
 
 		enable_function_for_vector void set_positions(const std::vector<_Vector>& positions);
 
@@ -272,7 +272,12 @@ namespace fan {
 
 		enable_function_for_vector fan::color get_color(uint_t i);
 
-		enable_function_for_vector void set_color(uint_t i, const fan::color& color, bool queue = false);
+		enable_function_for_vector void set_color(uint_t i, const fan::color& color, bool queue = false) {
+			this->m_color[i] = color;
+			if (!queue) {
+				this->edit_data(i);
+			}
+		}
 
 		enable_function_for_vector void erase(uint_t i, bool queue = false);
 		enable_function_for_vector void erase(uint_t begin, uint_t end, bool queue = false);
@@ -791,7 +796,7 @@ namespace fan_2d {
 		void push_back(const fan::vec2& position, const fan::vec2& size = 0, bool queue = false);
 
 		void reserve(uint_t new_size);
-		void resize(uint_t new_size, const fan::color& color);
+		void resize(uint_t new_size);
 
 		void draw();
 
@@ -940,6 +945,7 @@ namespace fan_2d {
 			void set_outline_color(uint_t i, const fan::color& color, bool queue = false);
 
 			fan::vec2 get_text_size(const std::string& text, f_t font_size) const;
+			fan::vec2 get_text_size_original(const std::string& text, f_t font_size) const;
 
 			f_t get_font_height_max(uint32_t font_size);
 
@@ -1120,7 +1126,7 @@ namespace fan_3d {
 	public:
 
 		rectangle_vector(fan::camera& camera, const std::string& path, uint_t block_size);
-		rectangle_vector(fan::camera& camera, const fan::color& color, uint_t block_size);
+		//rectangle_vector(fan::camera& camera, const fan::color& color, uint_t block_size);
 		~rectangle_vector();
 
 		void push_back(const fan::vec3& src, const fan::vec3& dst, const fan::vec2& texture_id, bool queue = false);

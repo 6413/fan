@@ -17,7 +17,7 @@ namespace fan {
         shader() : m_id(fan::uninitialized) {}
 
         shader(const std::string& vertex_path, const std::string& fragment_path, const std::string& geometry_path = std::string())
-            :  m_vertex_path(vertex_path), m_fragment_path(fragment_path), m_geometry_path(geometry_path), m_id(fan::uninitialized)
+            :  m_id(fan::uninitialized), m_vertex_path(vertex_path), m_fragment_path(fragment_path), m_geometry_path(geometry_path)
         {
             this->generate_shader(vertex_path, fragment_path, geometry_path);
         }

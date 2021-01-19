@@ -1,17 +1,20 @@
 ﻿#include <fan/graphics.hpp>
 
 int main() {
-	fan::window window;
-	fan::camera camera(window);
-	fan_2d::rectangle rectangle(camera, fan::vec2(100, 200), fan::vec2(25, 100), fan::colors::white);
+    fan::window window("", fan::window::resolutions::r_1680x1050);
 
-	fan_2d::gui::text_renderer tr(camera, "hello", 0, fan::colors::red, 64);
+    window.vsync(0);
 
-	window.loop(0, [&] { 
+    window.add_key_callback(fan::key_escape, [&] {
+        window.close();
+    });
 
-		rectangle.draw(); 
+    fan::camera camera(window);
 
-		tr.draw();
+    window.loop(0, [&] {
 
-	});
+        window.get_fps();
+
+    });
+
 }

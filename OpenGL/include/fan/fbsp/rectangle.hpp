@@ -55,11 +55,11 @@ namespace fan {
 			: base_fbsp(map_size, block_size, walls.get_positions(), walls.get_sizes()) { }
 
 		fan::mat2ui convert_to_src_dst(const fan_2d::rectangle& r) const {
-			return fbsp_convert_to_src_dst(m_block_size, r.get_position(), r.get_size(), r.get_velocity() * r.m_window.get_delta_time());
+			return fbsp_convert_to_src_dst(m_block_size, r.get_position(), r.get_size(), r.get_velocity() * r.get_delta_time());
 		}
 
 		std::vector<uint_t> get_blocks(const fan_2d::rectangle& r) const {
-			return get_blocks(r.get_position(), r.get_size(), r.get_velocity() * r.m_window.get_delta_time());
+			return get_blocks(r.get_position(), r.get_size(), r.get_velocity() * r.get_delta_time());
 		}
 
 		std::vector<uint_t> get_blocks(const fan::vec2& position, const fan::vec2& size, const fan::vec2& velocity = 0) const {
@@ -84,7 +84,7 @@ namespace fan {
 		}
 
 		std::unordered_set<uint_t> get_neighbours(const fan_2d::rectangle& r) {
-			return get_neighbours(r.get_position(), r.get_size(), r.get_velocity() * r.m_window.get_delta_time());
+			return get_neighbours(r.get_position(), r.get_size(), r.get_velocity() * r.get_delta_time());
 		}
 
 		std::unordered_set<uint_t> get_neighbours(const fan::vec2& position, const fan::vec2& size, const fan::vec2& velocity = 0) const {

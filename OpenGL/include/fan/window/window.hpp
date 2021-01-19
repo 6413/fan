@@ -79,10 +79,16 @@ namespace fan {
 	constexpr int OPENGL_MINOR_VERSION = WGL_CONTEXT_MINOR_VERSION_ARB;
 	constexpr int OPENGL_MAJOR_VERSION = WGL_CONTEXT_MAJOR_VERSION_ARB;
 
+	constexpr int OPENGL_SAMPLE_BUFFER = WGL_SAMPLE_BUFFERS_ARB;
+	constexpr int OPENGL_SAMPLES = WGL_SAMPLES_ARB;
+
 #elif defined(FAN_PLATFORM_LINUX)
 
 	constexpr int OPENGL_MINOR_VERSION = GLX_CONTEXT_MINOR_VERSION_ARB;
 	constexpr int OPENGL_MAJOR_VERSION = GLX_CONTEXT_MAJOR_VERSION_ARB;
+
+	constexpr int OPENGL_SAMPLE_BUFFER = GLX_SAMPLE_BUFFERS;
+	constexpr int OPENGL_SAMPLES = GLX_SAMPLES;
 
 #endif
 
@@ -92,7 +98,7 @@ namespace fan {
 
 	template <typename T>
 	constexpr auto initialized(T value) {
-		return value != uninitialized;
+		return value != (T)uninitialized;
 	}
 
 	class window {
@@ -157,6 +163,8 @@ namespace fan {
 			static constexpr int no_resize = get_flag_value(1);
 			static constexpr int anti_aliasing = get_flag_value(2);
 			static constexpr int mode = get_flag_value(3);
+			static constexpr int borderless = get_flag_value(4);
+			static constexpr int full_screen = get_flag_value(5);
 		};
 
 		static constexpr const char* default_window_name = "window";
@@ -230,6 +238,32 @@ namespace fan {
 					exit(1);
 				}
 				flag_values::m_size_mode = value;
+			}
+			else if constexpr (flag & fan::window::flags::borderless) {
+				flag_values::m_size_mode = value ? fan::window::mode::borderless : flag_values::m_size_mode;
+			}
+			else if constexpr (flag & fan::window::flags::full_screen) {
+				flag_values::m_size_mode = value ? fan::window::mode::full_screen : flag_values::m_size_mode;
+			}
+		}
+
+		template <uint64_t flags>
+		static constexpr void set_flags() {
+			// clang requires manual casting (c++11-narrowing)
+			if constexpr(static_cast<bool>(flags & fan::window::flags::no_mouse)) {
+				fan::window::flag_values::m_no_mouse = true;
+			}
+			if constexpr (static_cast<bool>(flags & fan::window::flags::no_resize)) {
+				fan::window::flag_values::m_no_resize = true;
+			}
+			if constexpr (static_cast<bool>(flags & fan::window::flags::anti_aliasing)) {
+				fan::window::flag_values::m_samples = 8;
+			}
+			if constexpr (static_cast<bool>(flags & fan::window::flags::borderless)) {
+				fan::window::flag_values::m_size_mode = fan::window::mode::borderless;
+			}
+			if constexpr (static_cast<bool>(flags & fan::window::flags::full_screen)) {
+				fan::window::flag_values::m_size_mode = fan::window::mode::full_screen;
 			}
 		}
 

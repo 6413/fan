@@ -71,9 +71,8 @@ namespace fan_2d {
 					uint_t closest_corner = fan::uninitialized;
 
 					bool step1 = false;
-					fan::vec2 size;
 
-					for (int i = 0; i < walls.size(); ++i) {
+					for (uint_t i = 0; i < walls.size(); ++i) {
 
 						// step 1
 
@@ -163,8 +162,8 @@ namespace fan_2d {
 
 						auto velocity = player.get_velocity();
 
-						velocity[(closest.side == fan_2d::raycast::rectangle::sides::left || closest.side == fan_2d::raycast::rectangle::sides::right) && !player_velocity[0] ||
-							(closest.side == fan_2d::raycast::rectangle::sides::up || closest.side == fan_2d::raycast::rectangle::sides::down) && !!player_velocity[1]] = 0;
+						velocity[((closest.side == fan_2d::raycast::rectangle::sides::left || closest.side == fan_2d::raycast::rectangle::sides::right) && !player_velocity[0]) ||
+							((closest.side == fan_2d::raycast::rectangle::sides::up || closest.side == fan_2d::raycast::rectangle::sides::down) && !!player_velocity[1])] = 0;
 
 						player.set_velocity(velocity);
 					}
