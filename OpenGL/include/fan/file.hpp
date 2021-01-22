@@ -119,10 +119,10 @@ namespace fan {
 				static constexpr std::size_t char_offset = 4;
 				static constexpr std::size_t struct_size = 7;
 
-				fan::vec2i m_position;
-				fan::vec2i m_size;
-				fan::vec2i m_offset;
-				unsigned int m_advance;
+				fan::vec2 m_position;
+				fan::vec2 m_size;
+				fan::vec2 m_offset;
+				fan::vec2::type m_advance;
 			};
 
 			struct font_info {
@@ -149,13 +149,16 @@ namespace fan {
 				std::unordered_map<uint16_t, font_t> font_info_vector;
 
 				for (std::size_t iline = font_t::char_offset; iline < amount_of_chars + font_t::char_offset + 1; iline++) {
+					if (lines[iline][0] != 'c') {
+						break;
+					}
 					font_t font_info;
 					fan::io::file::str_int_t value_info;
 					value_info =  fan::io::file::get_string_valuei_n(lines[iline], 0);
 					uint16_t character = value_info.value;
 					for (std::size_t i = 0; i < font_t::struct_size; i++) {
 						value_info =  fan::io::file::get_string_valuei_n(lines[iline], value_info.end);
-						((int*)&font_info)[i] = value_info.value;
+						((fan::vec2::type*)&font_info)[i] = value_info.value;
 					}
 					font_info_vector[character] = font_info;
 				}

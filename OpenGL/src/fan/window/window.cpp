@@ -841,22 +841,22 @@ static void handle_special(WPARAM wparam, LPARAM lparam, uint16_t& key, bool dow
 		}
 		else {
 			switch (lparam) {
-				case (long)fan::special_lparam::lshift_lparam_up: // ?
+				case fan::special_lparam::lshift_lparam_up: // ?
 				{
 					key = fan::input::key_left_shift;
 					break;
 				}
-				case (long)fan::special_lparam::rshift_lparam_up:
+				case fan::special_lparam::rshift_lparam_up:
 				{
 					key = fan::input::key_right_shift;
 					break;
 				}
-				case (long)fan::special_lparam::lctrl_lparam_up:
+				case fan::special_lparam::lctrl_lparam_up:
 				{
 					key = fan::input::key_left_control;
 					break;
 				}
-				case (long)fan::special_lparam::rctrl_lparam_up: // ? 
+				case fan::special_lparam::rctrl_lparam_up: // ? 
 				{
 					key = fan::input::key_right_control;
 					break;
@@ -1030,7 +1030,7 @@ LRESULT CALLBACK fan::window::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LP
 				}
 
 				const auto& mouse_move_position_callback = get_window_storage<std::vector<mouse_move_position_callback_t>>(hwnd, stringify(m_mouse_move_position_callback));
-				const auto& mouse_move_callback = get_window_storage<std::vector<mouse_move_callback_t>>(hwnd, stringify(mouse_move_position_callback));
+				const auto& mouse_move_callback = get_window_storage<std::vector<mouse_move_callback_t>>(hwnd, stringify(m_mouse_move_callback));
 
 				for (const auto& i : mouse_move_position_callback) {
 					if (i) {

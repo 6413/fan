@@ -85,8 +85,14 @@ namespace fan {
 
 	};
 
-	static fan::vec2 random_vector(f_t min, f_t max) {
-		return fan::vec2(fan::random<int64_t, int64_t>(min, max), fan::random<int64_t, int64_t>(min, max));
+	template <typename T = fan::vec2>
+	static T random_vector(f_t min, f_t max) {
+		if constexpr (std::is_same_v<T, fan::vec2>) {
+			return T(fan::random<int64_t, int64_t>(min, max), fan::random<int64_t, int64_t>(min, max));
+		}
+		else {
+			return T(fan::random<int64_t, int64_t>(min, max), fan::random<int64_t, int64_t>(min, max), fan::random<int64_t, int64_t>(min, max));
+		}
 	}
 
 	void bind_vao(uint32_t vao, const std::function<void()>& function);
@@ -373,7 +379,7 @@ namespace fan {
 
 		f_t get_delta_time() const;
 
-	protected:
+//	protected:
 
 		// ----------------------------------------------------- vector enabled functions
 
@@ -757,7 +763,7 @@ namespace fan_2d {
 		void erase(uint_t i, bool queue = false);
 		void erase(uint_t begin, uint_t end, bool queue = false);
 
-		void draw(uint_t i = fan::uninitialized);
+		void draw(uint_t i = fan::uninitialized) const;
 
 		fan::vec2 get_center(uint_t i) const;
 
@@ -912,15 +918,10 @@ namespace fan_2d {
 		namespace font_properties {
 			constexpr uint16_t max_ascii(256);
 			constexpr uint_t max_font_size(1024);
-			constexpr uint_t new_line(64);
-			constexpr f_t gap_multiplier(1.25);
+			constexpr uint_t new_line(70);
+			constexpr f_t gap_multiplier(1);
 
 			constexpr fan::color default_text_color(1);
-			constexpr f_t edge(0.1);
-
-			constexpr f_t get_gap_size(unsigned int advance) {
-				return advance * (1.0 / gap_multiplier);
-			}
 
 		}
 
@@ -944,10 +945,14 @@ namespace fan_2d {
 			void set_text_color(uint_t i, const fan::color& color, bool queue = false);
 			void set_outline_color(uint_t i, const fan::color& color, bool queue = false);
 
+			fan::io::file::font_t get_letter_info(char c, f_t font_size) const;
 			fan::vec2 get_text_size(const std::string& text, f_t font_size) const;
 			fan::vec2 get_text_size_original(const std::string& text, f_t font_size) const;
 
 			f_t get_font_height_max(uint32_t font_size);
+
+			// i = string[i], j = string[i][j] (char)
+			fan::color get_color(uint_t i, uint_t j = 0) const;
 
 			std::string get_text(uint_t i) const;
 
@@ -1010,6 +1015,53 @@ namespace fan_2d {
 			fan::camera& m_camera;
 
 		};
+
+		class text_box  {
+		public:
+
+			text_box(fan::camera& camera, const std::string& text, f_t font_size, const fan::vec2& position, const fan::color& box_color, const fan::vec2& border_size, const fan::color& text_color = fan::colors::white);
+
+			fan::vec2 get_position(uint_t i) const;
+			void set_position(uint_t i, const fan::vec2& position, bool queue = false);
+
+			void set_text(uint_t i, const std::string& text, bool queue = false);
+
+			fan::color get_box_color(uint_t i) const;
+			void set_box_color(uint_t i, const fan::color& color, bool queue = false);
+
+			fan::color get_text_color(uint_t i) const;
+			void set_text_color(uint_t i, const fan::color& color, bool queue = false);
+
+			void draw() const;
+
+			bool inside(uint_t i) const;
+
+			void on_touch(std::function<void()> function);
+			void on_touch(uint_t i, const std::function<void()>& function);
+
+			void on_click(std::function<void()> function, uint16_t key = fan::mouse_left);
+			void on_click(uint_t i, const std::function<void()>& function, uint16_t key = fan::mouse_left);
+
+			void on_release(std::function<void()> function, uint16_t key = fan::mouse_left);
+			void on_release(uint_t i, const std::function<void()>& function, uint16_t key = fan::mouse_left);
+
+			void on_exit(std::function<void()> function);
+			void on_exit(uint_t i, const std::function<void()>& function);
+
+		private:
+
+			std::function<void()> m_on_touch;
+			std::function<void()> m_on_click;
+			std::function<void()> m_on_release;
+			std::function<void()> m_on_exit;
+
+			fan_2d::gui::text_renderer m_tr;
+			fan_2d::rectangle_vector m_rv;
+
+			fan::vec2 m_border_size;
+
+		};
+
 	}
 }
 
@@ -1122,7 +1174,7 @@ namespace fan_3d {
 	
 	};
 
-	class rectangle_vector : protected fan::basic_shape<true, fan::vec3>, public fan::basic_shape_color_vector<true> {
+	class rectangle_vector : public fan::basic_shape<true, fan::vec3>, public fan::texture_handler {
 	public:
 
 		rectangle_vector(fan::camera& camera, const std::string& path, uint_t block_size);
@@ -1154,7 +1206,6 @@ namespace fan_3d {
 
 	private:
 
-		unsigned int m_texture;
 		unsigned int m_texture_ssbo;
 		unsigned int m_texture_id_ssbo;
 
