@@ -16,6 +16,6 @@ void main() {
 
     float distance = texture(texture_sampler, texture_coordinates).a;
     float alpha = smoothstep(0.5 - smoothing, 0.5 + smoothing, distance);
-
+   
     color = vec4(text_color, alpha);
 } 

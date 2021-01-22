@@ -1969,7 +1969,7 @@ void fan_2d::rectangle_vector::erase(uint_t begin, uint_t end, bool queue)
 	this->m_rotation.erase(this->m_rotation.begin() + begin, this->m_rotation.begin() + end);
 }
 
-void fan_2d::rectangle_vector::draw(uint_t i)
+void fan_2d::rectangle_vector::draw(uint_t i) const
 {
 	fan::mat4 projection(1);
 	projection = fan_2d::get_projection(m_window.get_size());
@@ -2357,14 +2357,14 @@ fan_2d::gui::text_renderer::text_renderer(fan::camera& camera)
 	: text_color_t(), outline_color_t(), m_shader(fan_2d::shader_paths::text_renderer_vs, fan_2d::shader_paths::text_renderer_fs), m_window(camera.m_window), m_camera(camera)
 {
 
-	this->m_original_image_size = fan_2d::load_image(m_texture, "fonts/arial.png");
+	this->m_original_image_size = fan_2d::load_image(m_texture, "fonts/consolas.png");
 
 	glGenVertexArrays(1, &m_vao);
 	glGenBuffers(1, &m_texture_vbo);
 	glGenBuffers(1, &m_vertex_vbo);
 	glGenBuffers(1, &m_letter_ssbo);
 
-	auto font_info = fan::io::file::parse_font("fonts/arial.fnt");
+	auto font_info = fan::io::file::parse_font("fonts/consolas.fnt");
 	m_font = font_info.m_font;
 	m_original_font_size = font_info.m_size;
 	
@@ -2412,6 +2412,7 @@ fan::vec2 fan_2d::gui::text_renderer::get_position(uint_t i) const {
 
 void fan_2d::gui::text_renderer::set_position(uint_t i, const fan::vec2& position, bool queue)
 {
+
 	if (this->get_position(i) == position) {
 		return;
 	}
@@ -2421,6 +2422,9 @@ void fan_2d::gui::text_renderer::set_position(uint_t i, const fan::vec2& positio
 		this->m_vertices[i][j] -= current_position;
 		this->m_vertices[i][j] += position;
 	}
+
+	this->m_position[i] = position;
+
 	if (!queue) {
 		this->write_vertices();
 	}
@@ -2439,6 +2443,7 @@ void fan_2d::gui::text_renderer::set_font_size(uint_t i, f_t font_size, bool que
 	std::fill(m_font_size[i].begin(), m_font_size[i].end(), font_size);
 
 	this->load_characters(i, this->get_position(i), m_text[i], true, false);
+
 	if (!queue) {
 		this->write_data();
 	}
@@ -2483,23 +2488,57 @@ void fan_2d::gui::text_renderer::set_outline_color(uint_t i, const fan::color& c
 	}
 }
 
+fan::io::file::font_t fan_2d::gui::text_renderer::get_letter_info(char c, f_t font_size) const
+{
+	auto found = m_font.find(c);
+
+	if (found == m_font.end()) {
+		throw std::runtime_error("failed to find character: " + std::to_string(c));
+	}
+
+	f_t converted_size = this->convert_font_size(font_size);
+
+	return fan::io::file::font_t{
+		found->second.m_position * converted_size,
+		found->second.m_size * converted_size,
+		found->second.m_offset * converted_size,
+		(fan::vec2::type)(found->second.m_advance * converted_size)
+	};
+}
+
 fan::vec2 fan_2d::gui::text_renderer::get_text_size(const std::string& text, f_t font_size) const
 {
 	fan::vec2 length;
 
-	const f_t converted_font_size(this->convert_font_size(font_size) / 1.439024390243902);
+	f_t current = 0;
+
+	int new_lines = 0;
 
 	for (const auto& i : text) {
+
+		if (i == '\n') {
+			length.x = std::max((f_t)length.x, current);
+			length.y += fan_2d::gui::font_properties::new_line;
+			new_lines++;
+			current = 0;
+		}
+
 		auto found = m_font.find(i);
 		if (found == m_font.end()) {
-			fan::print("font error character not found", (int)i);
-			exit(1);
+			throw std::runtime_error("failed to find character: " + std::to_string(i));
 		}
-		length.x += found->second.m_advance * converted_font_size;
-		length.y = std::max((f_t)length.y, found->second.m_size.y * converted_font_size);
+
+		current += found->second.m_advance;
+		length.y = std::max((f_t)length.y, fan_2d::gui::font_properties::new_line * new_lines + (f_t)found->second.m_size.y + std::abs(found->second.m_offset.y));
 	}
 
-	return length;
+	length.x = std::max((f_t)length.x, current);
+
+	if (text.size()) {
+		length.x -= m_font.find(text[text.size() - 1])->second.m_offset.x;
+	}
+
+	return length * convert_font_size(font_size);
 }
 
 fan::vec2 fan_2d::gui::text_renderer::get_text_size_original(const std::string& text, f_t font_size) const {
@@ -2510,8 +2549,7 @@ fan::vec2 fan_2d::gui::text_renderer::get_text_size_original(const std::string& 
 	for (const auto& i : text) {
 		auto found = m_font.find(i);
 		if (found == m_font.end()) {
-			fan::print("font error character not found", (int)i);
-			exit(1);
+			throw std::runtime_error("failed to find character: " + std::to_string(i));
 		}
 		length.x += found->second.m_advance * converted_font_size;
 		length.y = std::max((f_t)length.y, found->second.m_size.y * converted_font_size);
@@ -2531,6 +2569,11 @@ f_t fan_2d::gui::text_renderer::get_font_height_max(uint32_t font_size)
 	return height;
 }
 
+fan::color fan_2d::gui::text_renderer::get_color(uint_t i, uint_t j) const
+{
+	return text_color_t::m_color[i][j];
+}
+
 std::string fan_2d::gui::text_renderer::get_text(uint_t i) const
 {
 	return this->m_text[i];
@@ -2538,7 +2581,7 @@ std::string fan_2d::gui::text_renderer::get_text(uint_t i) const
 
 f_t fan_2d::gui::text_renderer::convert_font_size(f_t font_size) const
 {
-	return (1.0 / m_original_font_size * font_size * 1.439024390243902);
+	return (1.0 / m_original_font_size * font_size);
 }
 
 void fan_2d::gui::text_renderer::free_queue() {
@@ -2711,7 +2754,7 @@ void fan_2d::gui::text_renderer::edit_letter_data(uint_t i, uint_t j, const char
 	m_texture_coordinates[i][j + 4] = fan::vec2(texture_width.x , texture_width.y);
 	m_texture_coordinates[i][j + 5] = fan::vec2(texture_width.x , texture_offset.y);
 
-	advance += fan_2d::gui::font_properties::get_gap_size(m_font[letter].m_advance);
+	advance += m_font[letter].m_advance;
 }
 
 void fan_2d::gui::text_renderer::insert_letter_data(uint_t i, const char letter, const fan::vec2& position, int& advance, f_t converted_font_size)
@@ -2737,7 +2780,7 @@ void fan_2d::gui::text_renderer::insert_letter_data(uint_t i, const char letter,
 	m_texture_coordinates[i].insert(m_texture_coordinates[i].begin() + i + 4, fan::vec2(texture_width.x , texture_width.y));
 	m_texture_coordinates[i].insert(m_texture_coordinates[i].begin() + i + 5, fan::vec2(texture_width.x , texture_offset.y));
 
-	advance += fan_2d::gui::font_properties::get_gap_size(m_font[letter].m_advance);
+	advance += m_font[letter].m_advance;
 }
 
 void fan_2d::gui::text_renderer::write_letter_data(uint_t i, const char letter, const fan::vec2& position, int& advance, f_t converted_font_size) {
@@ -2762,7 +2805,7 @@ void fan_2d::gui::text_renderer::write_letter_data(uint_t i, const char letter, 
 	m_texture_coordinates[i].emplace_back(fan::vec2(texture_width.x , texture_width.y));
 	m_texture_coordinates[i].emplace_back(fan::vec2(texture_width.x , texture_offset.y));
 
-	advance += fan_2d::gui::font_properties::get_gap_size(m_font[letter].m_advance);
+	advance += m_font[letter].m_advance;
 }
 
 void fan_2d::gui::text_renderer::write_vertices()
@@ -2813,6 +2856,153 @@ void fan_2d::gui::text_renderer::write_data() {
 
 	text_color_t::write_data();
 	outline_color_t::write_data();
+}
+
+fan_2d::gui::text_box::text_box(fan::camera& camera, const std::string& text, f_t font_size, const fan::vec2& position, const fan::color& box_color, const fan::vec2& border_size, const fan::color& text_color)
+	: m_tr(camera, text, position + border_size / 2, text_color, font_size), m_rv(camera, position, m_tr.get_text_size(m_tr.get_text(0), m_tr.get_font_size(0)) + border_size, box_color), m_border_size(border_size) { }
+
+fan::vec2 fan_2d::gui::text_box::get_position(uint_t i) const
+{
+	return m_rv.get_position(i);
+}
+
+void fan_2d::gui::text_box::set_position(uint_t i, const fan::vec2& position, bool queue)
+{
+	m_rv.set_position(i, position, queue);
+	m_tr.set_position(i, position + m_border_size / 2, queue);
+}
+
+void fan_2d::gui::text_box::set_text(uint_t i, const std::string& text, bool queue)
+{
+	m_tr.set_text(i, text, queue);
+	m_rv.set_size(i, m_tr.get_text_size(m_tr.get_text(i), m_tr.get_font_size(i)) + m_border_size, queue);
+}
+
+fan::color fan_2d::gui::text_box::get_box_color(uint_t i) const
+{
+	return fan::color();
+}
+
+void fan_2d::gui::text_box::set_box_color(uint_t i, const fan::color& color, bool queue)
+{
+	m_rv.set_color(i, color, queue);
+}
+
+fan::color fan_2d::gui::text_box::get_text_color(uint_t i) const
+{
+	return m_tr.get_color(i);
+}
+
+void fan_2d::gui::text_box::set_text_color(uint_t i, const fan::color& color, bool queue)
+{
+	m_tr.set_text_color(i, color, queue);
+}
+
+void fan_2d::gui::text_box::draw() const
+{
+	m_rv.draw();
+	m_tr.draw();
+}
+
+bool fan_2d::gui::text_box::inside(uint_t i) const
+{
+	return m_rv.inside(i);
+}
+
+void fan_2d::gui::text_box::on_touch(std::function<void()> function)
+{
+	m_on_touch = function;
+
+	m_rv.m_window.add_mouse_move_callback([&] {
+		for (uint_t i = 0; i < m_rv.size(); i++) {
+			if (m_rv.inside(i)) {
+				m_on_touch();
+			}
+		}
+	});
+}
+
+void fan_2d::gui::text_box::on_touch(uint_t i, const std::function<void()>& function)
+{
+	m_on_touch = function;
+
+	m_rv.m_window.add_mouse_move_callback([&] {
+		if (m_rv.inside(i)) {
+			m_on_touch();
+		}
+	});
+}
+
+void fan_2d::gui::text_box::on_click(std::function<void()> function, uint16_t key)
+{
+	m_on_click = function;
+
+	m_rv.m_window.add_key_callback(key, [&] {
+		for (int i = 0; i < m_rv.size(); i++) {
+			if (m_rv.inside(i)) {
+				m_on_click();
+			}
+		}
+	});
+}
+
+void fan_2d::gui::text_box::on_click(uint_t i, const std::function<void()>& function, uint16_t key)
+{
+	m_on_click = function;
+
+	m_rv.m_window.add_key_callback(key, [&] {
+		if (m_rv.inside(i)) {
+			m_on_click();
+		}
+	});
+}
+
+void fan_2d::gui::text_box::on_release(std::function<void()> function, uint16_t key)
+{
+	m_on_release = function;
+
+	m_rv.m_window.add_key_callback(key, [&] {
+		for (int i = 0; i < m_rv.size(); i++) {
+			if (inside(i)) {
+				m_on_release();
+			}
+		}
+	}, true);
+}
+
+void fan_2d::gui::text_box::on_release(uint_t i, const std::function<void()>& function, uint16_t key)
+{
+	m_on_release = function;
+
+	m_rv.m_window.add_key_callback(key, [&] {
+		if (inside(i)) {
+			m_on_release();
+		}
+	}, true);
+}
+
+void fan_2d::gui::text_box::on_exit(std::function<void()> function)
+{
+	m_on_exit = function;
+
+	m_rv.m_window.add_mouse_move_callback([&] {
+		for (int i = 0; i < m_rv.size(); i++) {
+			if (!inside(i)) {
+				m_on_exit();
+			}
+		}
+	});
+}
+
+void fan_2d::gui::text_box::on_exit(uint_t i, const std::function<void()>& function)
+{
+	m_on_exit = function;
+
+	m_rv.m_window.add_mouse_move_callback([&] {
+		if (!inside(i)) {
+			m_on_exit();
+		}
+	});
 }
 
 void fan_3d::add_camera_rotation_callback(fan::camera& camera) {
@@ -3066,7 +3256,7 @@ uint_t fan_3d::terrain_generator::size() {
 
 fan_3d::rectangle_vector::rectangle_vector(fan::camera& camera, const std::string& path, uint_t block_size)
 	: basic_shape(camera, fan::shader(fan_3d::shader_paths::shape_vector_vs, fan_3d::shader_paths::shape_vector_fs)),
-	block_size(block_size)
+	  block_size(block_size)
 {
 	glBindVertexArray(m_vao);
 
@@ -3097,7 +3287,6 @@ fan_3d::rectangle_vector::rectangle_vector(fan::camera& camera, const std::strin
 
 fan_3d::rectangle_vector::~rectangle_vector()
 {
-	fan_validate_buffer(m_texture, glDeleteTextures(1, &m_texture));
 	fan_validate_buffer(m_texture_ssbo, glDeleteBuffers(1, &m_texture_ssbo));
 	fan_validate_buffer(m_texture_id_ssbo, glDeleteBuffers(1, &m_texture_id_ssbo));
 }
@@ -3106,7 +3295,7 @@ void fan_3d::rectangle_vector::push_back(const fan::vec3& src, const fan::vec3& 
 {
 	basic_shape::basic_push_back(src, dst, queue);
 
-	this->m_textures.emplace_back(texture_id.y * m_amount_of_textures.x + texture_id.x);
+	this->m_textures.emplace_back(((m_amount_of_textures.y - 1) - texture_id.y) * m_amount_of_textures.x + texture_id.x);
 
 	if (!queue) {
 		this->write_textures();
@@ -3143,10 +3332,11 @@ void fan_3d::rectangle_vector::set_size(uint_t i, const fan::vec3& size, bool qu
 	rectangle_vector::basic_shape::set_size(i, this->get_src(i) + size, queue);
 }
 
+// make sure glEnable(GL_DEPTH_TEST) and glDepthFunc(GL_ALWAYS) is set
 void fan_3d::rectangle_vector::draw() {
 
 	fan::mat4 projection(1);
-	projection = fan::perspective<fan::mat4>(fan::radians(90.f), (f32_t)m_window.get_size().x / (f32_t)m_window.get_size().y, 0.1f, 1000.0f);
+	projection = fan::perspective<fan::mat4>(fan::radians(90.f), (f32_t)m_window.get_size().x / (f32_t)m_window.get_size().y, 0.1f, 10000.0f);
 
 	fan::mat4 view(m_camera.get_view_matrix());
 
@@ -3155,6 +3345,8 @@ void fan_3d::rectangle_vector::draw() {
 	this->m_shader.set_mat4("view", view);
 	this->m_shader.set_int("shape_type", fan::eti(fan::e_shapes::SQUARE));
 	this->m_shader.set_int("texture_sampler", 0);
+
+	this->m_shader.set_vec3("player_position", m_camera.get_position());
 
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, this->m_texture);
@@ -3194,9 +3386,9 @@ void fan_3d::rectangle_vector::generate_textures(const std::string& path, const 
 
 	const fan::vec2 texturepack_size = fan::vec2(image_size.x / block_size.x, image_size.y / block_size.y);
 	m_amount_of_textures = fan::vec2(texturepack_size.x / 6, texturepack_size.y);
-	// side_order order = { bottom, top, front, back, right, left }
-	// top, bottom, 
-	constexpr int side_order[] = { 1, 0, 2, 3, 4, 5 };
+	// 0 = up, 1 = down, 2 = front, 3 = right, 4 = back, 5 = left
+
+	constexpr int side_order[] = { 0, 1, 2, 3, 4, 5 };
 	std::vector<fan::vec2> textures;
 	for (fan::vec2i m_texture; m_texture.y < m_amount_of_textures.y; m_texture.y++) {
 		const fan::vec2 begin(1.f / texturepack_size.x, 1.f / texturepack_size.y);
@@ -3319,7 +3511,16 @@ fan_3d::skybox::skybox(
 	const std::string bottom,
 	const std::string& top
 ) : m_shader(fan_3d::shader_paths::skybox_vs, fan_3d::shader_paths::skybox_fs), m_camera(camera) {
+
 	std::array<std::string, 6> images{ right, left, top, bottom, back, front };
+
+	for (int i = 0; i < images.size(); i++) {
+		if (!fan::io::file::exists(images[i])) {
+			fan::print("path does not exist:", images[i]);
+			exit(1);
+		}
+	}
+
 	glGenTextures(1, &m_texture_id);
 
 	glBindTexture(GL_TEXTURE_CUBE_MAP, m_texture_id);
