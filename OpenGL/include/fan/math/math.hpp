@@ -94,9 +94,9 @@ namespace fan {
 		printf("end\n");
 	}
 
-	constexpr f_t PI = 3.14159265358979323846264338327950288419716939937510;
-	constexpr f_t HALF_PI = PI / 2;
-	constexpr f_t TWO_PI = PI * 2;
+	constexpr f_t pi = 3.14159265358979323846264338327950288419716939937510;
+	constexpr f_t half_pi = pi / 2;
+	constexpr f_t two_pi = pi * 2;
 
 	constexpr auto RAY_DID_NOT_HIT = fan::inf;
 
@@ -146,11 +146,11 @@ namespace fan {
 
 	// converts degrees to radians
 	template<typename T>
-	constexpr auto radians(T x) { return (x * PI / 180.0f); }
+	constexpr auto radians(T x) { return (x * pi / 180.0f); }
 
 	// converts radians to degrees
 	template<typename T>
-	constexpr auto degrees(T x) { return (x * 180.0f / PI); }
+	constexpr auto degrees(T x) { return (x * 180.0f / pi); }
 
 	template <typename T>
 	constexpr bool sign(T a, T b) {

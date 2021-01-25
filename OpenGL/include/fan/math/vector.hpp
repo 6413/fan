@@ -91,7 +91,7 @@ namespace fan {
 		}
 
 		constexpr bool operator==(type single_value) const {
-			return this->x == single_value && this->y == single_value;
+			return this->x == single_value || this->y == single_value;
 		}
 
 		constexpr bool operator!() const {

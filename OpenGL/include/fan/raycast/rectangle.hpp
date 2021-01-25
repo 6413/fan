@@ -91,7 +91,7 @@ namespace fan_2d {
 						{
 							
 							if (std::round(src.y) == std::round(wall_position.y) &&
-								std::round(fan::aim_angle(src, wall_position + fan::vec2(wall_size.x, 0))) == std::round(fan::PI / 2)) {
+								std::round(fan::aim_angle(src, wall_position + fan::vec2(wall_size.x, 0))) == std::round(fan::pi / 2)) {
 								return sides::nothing;
 							}
 							if (dst.x >= wall_position.x + wall_size.x) {

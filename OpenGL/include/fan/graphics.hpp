@@ -35,10 +35,13 @@ namespace fan {
 	public:
 		camera(fan::window& window);
 
+		camera(const fan::camera& camera);
+		camera(fan::camera&& camera);
+
 		fan::camera& operator=(const fan::camera& camera);
 		fan::camera& operator=(fan::camera&& camera) noexcept;
 
-		void move(f32_t movement_speed, bool noclip = true, f32_t friction = 12);
+		void move(f_t movement_speed, bool noclip = true, f_t friction = 12);
 		void rotate_camera(bool when);
 
 		fan::mat4 get_view_matrix() const;
@@ -50,23 +53,23 @@ namespace fan {
 		fan::vec3 get_velocity() const;
 		void set_velocity(const fan::vec3& velocity);
 
-		f32_t get_yaw() const;
-		void set_yaw(f32_t angle);
+		f_t get_yaw() const;
+		void set_yaw(f_t angle);
 
-		f32_t get_pitch() const;
-		void set_pitch(f32_t angle);
+		f_t get_pitch() const;
+		void set_pitch(f_t angle);
 
 		bool first_movement = true;
 
 		void update_view();
 
-		static constexpr f32_t sensitivity = 0.05f;
+		static constexpr f_t sensitivity = 0.05f;
 
-		static constexpr f32_t max_yaw = 180;
-		static constexpr f32_t max_pitch = 89;
+		static constexpr f_t max_yaw = 180;
+		static constexpr f_t max_pitch = 89;
 
-		static constexpr f32_t gravity = 500;
-		static constexpr f32_t jump_force = 100;
+		static constexpr f_t gravity = 500;
+		static constexpr f_t jump_force = 100;
 
 		static constexpr fan::vec3 world_up = fan::vec3(0, 1, 0);
 
@@ -304,6 +307,7 @@ namespace fan {
 		enable_function_for_vector void basic_push_back(const fan::color& color, bool queue = false);
 	
 		enable_function_for_vector void edit_data(uint_t i);
+		enable_function_for_vector void edit_data(void* data, uint_t offset, uint_t byte_size);
 
 		enable_function_for_vector void write_data();
 
@@ -432,6 +436,8 @@ namespace fan {
 		void erase(uint_t i, bool queue = false);
 		void erase(uint_t begin, uint_t end, bool queue = false);
 
+		fan::window& m_window;
+
 	protected:
 
 		void basic_push_back(const _Vector& position, const fan::color& color, bool queue = false);
@@ -440,11 +446,10 @@ namespace fan {
 
 		void write_data(bool position, bool color);
 
-		void basic_draw(unsigned int mode, uint_t count);
+		void basic_draw(unsigned int mode, uint_t count) const;
 
 		fan::shader m_shader;
 
-		fan::window& m_window;
 		fan::camera& m_camera;
 
 	};
@@ -610,6 +615,12 @@ namespace fan_2d {
 		uint32_t texture_id;
 	};
 
+	namespace image_load_properties {
+		inline uint_t internal_format = GL_RGBA;
+		inline uint_t format = GL_RGBA;
+		inline uint_t type = GL_UNSIGNED_BYTE;
+	}
+
 	static fan::vec2  load_image(uint32_t& texture_id, const std::string& path, bool flip_image = false);
 	static image_info load_image(unsigned char* pixels, const fan::vec2i& size);
 
@@ -626,6 +637,9 @@ namespace fan_2d {
 
 		sprite(const fan_2d::sprite& sprite);
 		sprite(fan_2d::sprite&& sprite) noexcept;
+
+		fan_2d::sprite& operator=(const fan_2d::sprite& sprite);
+		fan_2d::sprite& operator=(fan_2d::sprite&& sprite);
 
 		void load_sprite(const std::string& path, const fan::vec2i& size = 0, bool flip_image = false);
 
@@ -673,7 +687,7 @@ namespace fan_2d {
 
 		virtual void push_back(const fan::vec2& position, const fan::color& color, bool queue = false);
 
-		void draw(uint32_t mode);
+		void draw(uint32_t mode) const;
 
 		void erase(uint_t i, bool queue = false);
 		void erase(uint_t begin, uint_t end, bool queue = false);
@@ -825,6 +839,48 @@ namespace fan_2d {
 
 	};
 
+	class rounded_rectangle : public fan_2d::vertice_vector {
+	public:
+
+		static constexpr f_t segments = 10;
+
+		rounded_rectangle(fan::camera& camera);
+		rounded_rectangle(fan::camera& camera, const fan::vec2& position, const fan::vec2& size, f_t radius, const fan::color& color);
+
+		void push_back(const fan::vec2& position, const fan::vec2& size, f_t radius, const fan::color& color, bool queue = false);
+
+		fan::vec2 get_position(uint_t i) const;
+		void set_position(uint_t i, const fan::vec2& position, bool queue = false);
+
+		fan::vec2 get_size(uint_t i) const;
+		void set_size(uint_t i, const fan::vec2& size, bool queue = false);
+
+		f_t get_radius(uint_t i) const;
+		void set_radius(uint_t i, f_t radius, bool queue = false);
+
+		void draw() const;
+
+		bool inside(uint_t i) const;
+
+		fan::color get_color(uint_t i) const;
+		void set_color(uint_t i, const fan::color& color, bool queue = false);
+
+		uint_t size() const;
+
+	private:
+
+		using fan_2d::vertice_vector::push_back;
+
+		void edit_rectangle(uint_t i, bool queue = false);
+
+		std::vector<fan::vec2> m_position;
+		std::vector<fan::vec2> m_size;
+		std::vector<f_t> m_radius;
+
+		std::vector<uint_t> m_data_offset;
+
+	};
+
 	struct particle {
 		fan::vec2 m_velocity;
 		fan::timer<> m_timer; // milli
@@ -885,33 +941,6 @@ namespace fan_2d {
 
 			sprite_vector(fan::camera& camera, const std::string& path);
 			sprite_vector(fan::camera& camera, const std::string& path, const fan::vec2& position, const fan::vec2& size = 0);
-
-		};
-
-		class rounded_rectangle : public fan_2d::vertice_vector {
-		public:
-
-		    static constexpr f_t segments = 4 * 20; // corners * random
-
-			rounded_rectangle(fan::camera& camera);
-			rounded_rectangle(fan::camera& camera, const fan::vec2& position, const fan::vec2& size, const fan::color& color);
-
-			void push_back(const fan::vec2& position, const fan::vec2& size, const fan::color& color, bool queue = false);
-
-			fan::vec2 get_position(uint_t i) const;
-			void set_position(uint_t i, const fan::vec2& position);
-
-			fan::vec2 get_size(uint_t i) const;
-			void set_size(uint_t i); // ?
-
-			void draw();
-
-		private:
-
-			using fan_2d::vertice_vector::push_back;
-			std::vector<fan::vec2> m_position;
-			std::vector<fan::vec2> m_size;
-			std::vector<uint_t> data_offset;
 
 		};
 
@@ -1016,51 +1045,177 @@ namespace fan_2d {
 
 		};
 
-		class text_box  {
+		template <typename T>
+		class basic_text_box {
 		public:
+
+			basic_text_box(fan::camera& camera, const std::string& text, const fan::vec2& position, const fan::color& text_color, f_t font_size);
+
+			fan::vec2 get_position(uint_t i) const {
+				return m_rv.get_position(i);
+			}
+
+			void set_position(uint_t i, const fan::vec2& position, bool queue = false) {
+				m_rv.set_position(i, position, queue);
+				m_tr.set_position(i, position + m_border_size[i] / 2, queue);
+			}
+
+			void set_text(uint_t i, const std::string& text, bool queue = false) {
+				m_tr.set_text(i, text, queue);
+				m_rv.set_size(i, m_tr.get_text_size(m_tr.get_text(i), m_tr.get_font_size(i)) + m_border_size[i], queue);
+			}
+
+			fan::color get_box_color(uint_t i) const {
+				return m_rv.get_color(i);
+			}
+
+			void set_box_color(uint_t i, const fan::color& color, bool queue = false) {
+				m_rv.set_color(i, color, queue);
+			}
+
+			fan::color get_text_color(uint_t i) const {
+				return m_tr.get_color(i);
+			}
+
+			void set_text_color(uint_t i, const fan::color& color, bool queue = false) {
+				m_tr.set_text_color(i, color, queue);
+			}
+
+			f_t get_font_size(uint_t i) const {
+				return m_tr.get_font_size(i);
+			}
+
+			void set_font_size(uint_t i, f_t font_size, bool queue = false) {
+				m_tr.set_font_size(0, font_size);
+				m_rv.set_size(i, m_tr.get_text_size(m_tr.get_text(i), m_tr.get_font_size(i)) + m_border_size[i], queue);
+			}
+
+			void draw() const {
+				m_rv.draw();
+				m_tr.draw();
+			}
+
+			bool inside(uint_t i) const {
+				return m_rv.inside(i);
+			}
+
+			void on_touch(std::function<void(uint_t j)> function) {
+				m_on_touch = function;
+
+				m_rv.m_window.add_mouse_move_callback([&] {
+					for (uint_t i = 0; i < m_rv.size(); i++) {
+						if (m_rv.inside(i)) {
+							m_on_touch(i);
+						}
+					}
+				});
+			}
+
+			void on_touch(uint_t i, const std::function<void(uint_t j)>& function) {
+				m_on_touch = function;
+
+				m_rv.m_window.add_mouse_move_callback([&] {
+					if (m_rv.inside(i)) {
+						m_on_touch(i);
+					}
+				});
+			}
+
+			void on_exit(std::function<void(uint_t j)> function) {
+				m_on_exit = function;
+
+				m_rv.m_window.add_mouse_move_callback([&] {
+					for (uint_t i = 0; i < m_rv.size(); i++) {
+						if (!inside(i)) {
+							m_on_exit(i);
+						}
+					}
+				});
+			}
+
+			void on_exit(uint_t i, const std::function<void(uint_t j)>& function) {
+				m_on_exit = function;
+
+				m_rv.m_window.add_mouse_move_callback([&] {
+					if (!inside(i)) {
+						m_on_exit(i);
+					}
+				});
+			}
+
+			void on_click(std::function<void()> function, uint16_t key = fan::mouse_left) {
+				m_on_click = function;
+
+				m_rv.m_window.add_key_callback(key, [&] {
+					for (uint_t i = 0; i < m_rv.size(); i++) {
+						if (m_rv.inside(i)) {
+							m_on_click();
+						}
+					}
+				});
+			}
+
+			void on_click(uint_t i, const std::function<void()>& function, uint16_t key = fan::mouse_left) {
+				m_on_click = function;
+
+				m_rv.m_window.add_key_callback(key, [&] {
+					if (m_rv.inside(i)) {
+						m_on_click();
+					}
+				});
+			}
+
+			void on_release(std::function<void()> function, uint16_t key = fan::mouse_left) {
+				m_on_release = function;
+
+				m_rv.m_window.add_key_callback(key, [&] {
+					for (uint_t i = 0; i < m_rv.size(); i++) {
+						if (inside(i)) {
+							m_on_release();
+						}
+					}
+				}, true);
+			}
+			void on_release(uint_t i, const std::function<void()>& function, uint16_t key = fan::mouse_left) {
+				m_on_release = function;
+
+				m_rv.m_window.add_key_callback(key, [&] {
+					if (inside(i)) {
+						m_on_release();
+					}
+				}, true);
+			}
+
+		protected:
+
+			std::function<void(uint_t i)> m_on_touch;
+			std::function<void(uint_t i)> m_on_exit;
+			std::function<void()> m_on_click;
+			std::function<void()> m_on_release;
+
+			std::vector<fan::vec2> m_border_size;
+
+			T m_rv;
+			fan_2d::gui::text_renderer m_tr;
+
+		};
+
+		struct text_box : public basic_text_box<fan_2d::rectangle_vector> {
 
 			text_box(fan::camera& camera, const std::string& text, f_t font_size, const fan::vec2& position, const fan::color& box_color, const fan::vec2& border_size, const fan::color& text_color = fan::colors::white);
 
-			fan::vec2 get_position(uint_t i) const;
-			void set_position(uint_t i, const fan::vec2& position, bool queue = false);
-
-			void set_text(uint_t i, const std::string& text, bool queue = false);
-
-			fan::color get_box_color(uint_t i) const;
-			void set_box_color(uint_t i, const fan::color& color, bool queue = false);
-
-			fan::color get_text_color(uint_t i) const;
-			void set_text_color(uint_t i, const fan::color& color, bool queue = false);
-
-			void draw() const;
-
-			bool inside(uint_t i) const;
-
-			void on_touch(std::function<void()> function);
-			void on_touch(uint_t i, const std::function<void()>& function);
-
-			void on_click(std::function<void()> function, uint16_t key = fan::mouse_left);
-			void on_click(uint_t i, const std::function<void()>& function, uint16_t key = fan::mouse_left);
-
-			void on_release(std::function<void()> function, uint16_t key = fan::mouse_left);
-			void on_release(uint_t i, const std::function<void()>& function, uint16_t key = fan::mouse_left);
-
-			void on_exit(std::function<void()> function);
-			void on_exit(uint_t i, const std::function<void()>& function);
-
-		private:
-
-			std::function<void()> m_on_touch;
-			std::function<void()> m_on_click;
-			std::function<void()> m_on_release;
-			std::function<void()> m_on_exit;
-
-			fan_2d::gui::text_renderer m_tr;
-			fan_2d::rectangle_vector m_rv;
-
-			fan::vec2 m_border_size;
+			void push_back(const std::string& text, f_t font_size, const fan::vec2& position, const fan::color& box_color, const fan::vec2& border_size, const fan::color& text_color = fan::colors::white);
 
 		};
+
+		struct rounded_text_box : public basic_text_box<fan_2d::rounded_rectangle> {
+
+			rounded_text_box(fan::camera& camera, const std::string& text, f_t font_size, const fan::vec2& position, const fan::color& box_color, const fan::vec2& border_size, f_t radius, const fan::color& text_color = fan::colors::white);
+
+			void push_back(const std::string& text, f_t font_size, const fan::vec2& position, const fan::color& box_color, const fan::vec2& border_size, f_t radius, const fan::color& text_color = fan::colors::white);
+
+		};
+
 
 	}
 }

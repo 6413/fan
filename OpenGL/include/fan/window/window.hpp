@@ -176,13 +176,22 @@ namespace fan {
 		static constexpr int reserved_storage = -1;
 
 		window(const std::string& name = default_window_name, const fan::vec2i& window_size = fan::window::default_window_size, uint64_t flags = 0);
+		window(const window& window);
+		window(window&& window);
+
+		window& operator=(const window& window);
+		window& operator=(window&& window);
+
 		~window();
+
+		void execute(const fan::color& background_color, const std::function<void()>& function);
 
 		void loop(const fan::color& background_color, const std::function<void()>& function);
 
 		void swap_buffers() const;
 
-		void set_title(const std::string& title) const;
+		std::string get_name() const;
+		void set_name(const std::string& name);
 
 		void calculate_delta_time();
 		f_t get_delta_time() const;
@@ -273,6 +282,9 @@ namespace fan {
 		key_callback_t get_key_callback(uint_t i) const;
 		void add_key_callback(uint16_t key, const std::function<void()>& function, bool on_release = false);
 
+		std::function<void()> get_close_callback(uint_t i) const;
+		void add_close_callback(const std::function<void()>& function);
+
 		mouse_move_position_callback_t get_mouse_move_callback(uint_t i) const;
 		void add_mouse_move_callback(const mouse_move_position_callback_t& function);
 
@@ -300,6 +312,8 @@ namespace fan {
 		void close();
 
 		bool focused() const;
+		
+		void destroy_window();
 	
 	private:
 
@@ -315,6 +329,7 @@ namespace fan {
 		static LRESULT CALLBACK window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 
 		HDC m_hdc;
+		HGLRC m_context;
 
 	#elif defined(FAN_PLATFORM_LINUX)
 
@@ -348,6 +363,7 @@ namespace fan {
 		std::vector<scroll_callback_t> m_scroll_callback;
 		std::vector<std::function<void()>> m_move_callback;
 		std::vector<std::function<void()>> m_resize_callback;
+		std::vector<std::function<void()>> m_close_callback;
 
 		keymap_t m_keys_down;
 
@@ -375,6 +391,10 @@ namespace fan {
 		bool m_vsync;
 
 		bool m_close;
+
+		std::string m_name;
+
+		uint_t m_flags;
 
 		struct flag_values {
 
