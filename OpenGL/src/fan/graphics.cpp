@@ -5,9 +5,22 @@
 
 #include <fan/fast_noise.hpp>
 #include <fan/collision/rectangle.hpp>
+#include <fan/collision/circle.hpp>
 
 fan::camera::camera(fan::window& window) : m_window(window), m_yaw(0), m_pitch(0) {
 	this->update_view();
+}
+
+fan::camera::camera(const fan::camera& camera)
+	: m_window(camera.m_window)
+{
+	this->operator=(camera);
+}
+
+fan::camera::camera(fan::camera&& camera)
+	: m_window(camera.m_window)
+{
+	this->operator=(std::move(camera));
 }
 
 fan::camera& fan::camera::operator=(const fan::camera& camera)
@@ -38,7 +51,7 @@ fan::camera& fan::camera::operator=(fan::camera&& camera) noexcept
 	return *this;
 }
 
-void fan::camera::move(f32_t movement_speed, bool noclip, f32_t friction)
+void fan::camera::move(f_t movement_speed, bool noclip, f_t friction)
 {
 	if (!noclip) {
 		//if (fan::is_colliding) {
@@ -162,17 +175,17 @@ void fan::camera::set_velocity(const fan::vec3& velocity)
 	fan::camera::m_velocity = velocity;
 }
 
-f32_t fan::camera::get_yaw() const
+f_t fan::camera::get_yaw() const
 {
 	return this->m_yaw;
 }
 
-f32_t fan::camera::get_pitch() const
+f_t fan::camera::get_pitch() const
 {
 	return this->m_pitch;
 }
 
-void fan::camera::set_yaw(f32_t angle)
+void fan::camera::set_yaw(f_t angle)
 {
 	this->m_yaw = angle;
 	if (m_yaw > fan::camera::max_yaw) {
@@ -183,7 +196,7 @@ void fan::camera::set_yaw(f32_t angle)
 	}
 }
 
-void fan::camera::set_pitch(f32_t angle)
+void fan::camera::set_pitch(f_t angle)
 {
 	this->m_pitch = angle;
 	if (this->m_pitch > fan::camera::max_pitch) {
@@ -388,23 +401,23 @@ void fan_2d::rectangle::set_rotation(f_t angle)
 
 	angle = fan::radians(-angle);
 
-	constexpr f_t offset = 3 * fan::PI / 4;
+	constexpr f_t offset = 3 * fan::pi / 4;
 	const fan::vec2 position(this->get_position());
 	const fan::vec2 radius(this->get_size() / 2);
 
 	f_t r = fan_2d::distance(position, position + radius);
 
-	f_t x1 = r * cos(angle + offset - fan::PI * 3.0 / 2.0);
-	f_t y1 = r * sin(angle + offset - fan::PI * 3.0 / 2.0);
+	f_t x1 = r * cos(angle + offset - fan::pi * 3.0 / 2.0);
+	f_t y1 = r * sin(angle + offset - fan::pi * 3.0 / 2.0);
 
-	f_t x2 = r * cos(angle + offset - fan::PI);
-	f_t y2 = r * sin(angle + offset - fan::PI);
+	f_t x2 = r * cos(angle + offset - fan::pi);
+	f_t y2 = r * sin(angle + offset - fan::pi);
 
 	f_t x3 = r * cos(angle + offset);
 	f_t y3 = r * sin(angle + offset);
 
-	f_t x4 = r * cos(angle + offset - fan::PI / 2);
-	f_t y4 = r * sin(angle + offset - fan::PI / 2);
+	f_t x4 = r * cos(angle + offset - fan::pi / 2);
+	f_t y4 = r * sin(angle + offset - fan::pi / 2);
 
 	m_corners = {
 		fan::vec2(x1 + position[0] + radius[0], y1 + position[1] + radius[1]),
@@ -491,7 +504,7 @@ fan::vec2 fan_2d::load_image(uint32_t& texture_id, const std::string& path, bool
 
 		auto pixels = SOIL_load_image(path.c_str(), image_size.begin(), image_size.begin() + 1, 0, 0);
 
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_size.x, image_size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+		glTexImage2D(GL_TEXTURE_2D, 0, image_load_properties::internal_format, image_size.x, image_size.y, 0, image_load_properties::format, image_load_properties::type, pixels);
 		glGenerateMipmap(GL_TEXTURE_2D);
 
 		SOIL_free_image_data(pixels);
@@ -514,7 +527,7 @@ fan_2d::image_info fan_2d::load_image(unsigned char* pixels, const fan::vec2i& s
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	if (pixels != nullptr) {
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, size.x, size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+		glTexImage2D(GL_TEXTURE_2D, 0, image_load_properties::internal_format, size.x, size.y, 0, image_load_properties::format, image_load_properties::type, pixels);
 		glGenerateMipmap(GL_TEXTURE_2D);
 	}
 	glBindTexture(GL_TEXTURE_2D, 0);
@@ -563,7 +576,7 @@ fan_2d::sprite::sprite(const fan_2d::sprite& sprite)
 	  sprite::basic_shape_velocity(sprite),
 	  texture_handler(sprite), m_rotation(sprite.m_rotation), 
 	  m_transparency(sprite.m_transparency), m_path(sprite.m_path) { 
-	this->load_sprite(sprite.m_path);
+	  this->load_sprite(sprite.m_path);
 }
 
 fan_2d::sprite::sprite(fan_2d::sprite&& sprite) noexcept
@@ -571,6 +584,30 @@ fan_2d::sprite::sprite(fan_2d::sprite&& sprite) noexcept
 	  sprite::basic_shape_velocity(std::move(sprite)),
 	  texture_handler(std::move(sprite)), m_rotation(sprite.m_rotation), 
 	  m_transparency(sprite.m_transparency), m_path(std::move(sprite.m_path)) { }
+
+fan_2d::sprite& fan_2d::sprite::operator=(const fan_2d::sprite& sprite)
+{
+	sprite::basic_shape::operator=(sprite);
+	sprite::basic_shape_velocity::operator=(sprite);
+	texture_handler::operator=(sprite);
+	m_rotation = sprite.m_rotation;
+	m_transparency = sprite.m_transparency;
+	m_path = sprite.m_path;
+
+	return *this;
+}
+
+fan_2d::sprite& fan_2d::sprite::operator=(fan_2d::sprite&& sprite)
+{
+	sprite::basic_shape::operator=(std::move(sprite));
+	sprite::basic_shape_velocity::operator=(std::move(sprite));
+	texture_handler::operator=(std::move(sprite));
+	m_rotation = std::move(sprite.m_rotation);
+	m_transparency = std::move(sprite.m_transparency);
+	m_path = std::move(sprite.m_path);
+
+	return *this;
+}
 
 void fan_2d::sprite::load_sprite(const std::string& path, const fan::vec2i& size, bool flip_image)
 {
@@ -587,8 +624,10 @@ void fan_2d::sprite::reload_sprite(unsigned char* pixels, const fan::vec2i& size
 
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, size.x, size.y, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+	glTexImage2D(GL_TEXTURE_2D, 0, image_load_properties::internal_format, size.x, size.y, 0, image_load_properties::format, image_load_properties::type, pixels);
 	glGenerateMipmap(GL_TEXTURE_2D);
+
+	this->set_size(size);
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
@@ -906,7 +945,7 @@ fan::basic_shape_size<enable_vector, _Vector, layout_location, buffer_type>& fan
 
 	glsl_location_handler<layout_location, buffer_type>::operator=(std::move(vector));
 
-	this->m_size = std::move(m_size);
+	this->m_size = std::move(vector.m_size);
 
 	return *this;
 }
@@ -1199,6 +1238,12 @@ enable_function_for_vector_cpp void fan::basic_shape_color_vector<enable_vector,
 	glsl_location_handler<layout_location, buffer_type>::edit_data(i, m_color.data() + i, sizeof(fan::color));
 }
 
+template<bool enable_vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
+enable_function_for_vector_cpp void fan::basic_shape_color_vector<enable_vector, layout_location, buffer_type>::edit_data(void* data, uint_t offset, uint_t byte_size)
+ {
+	basic_shape_color_vector::glsl_location_handler::edit_data(data, offset, byte_size);
+}
+
 template <bool enable_vector, uint_t layout_location, fan::opengl_buffer_type buffer_type>
 enable_function_for_vector_cpp void fan::basic_shape_color_vector<enable_vector, layout_location, buffer_type>::write_data()
 {
@@ -1364,28 +1409,28 @@ enable_function_for_vector_cpp void fan::basic_shape<enable_vector, _Vector>::ba
 
 template <typename _Vector>
 fan::basic_vertice_vector<_Vector>::basic_vertice_vector(fan::camera& camera, const fan::shader& shader)
-	: m_shader(shader), m_window(camera.m_window), m_camera(camera) {}
+	: m_window(camera.m_window), m_shader(shader), m_camera(camera) {}
 
 template<typename _Vector>
 fan::basic_vertice_vector<_Vector>::basic_vertice_vector(fan::camera& camera, const fan::shader& shader, const fan::vec2& position, const fan::color& color)
 	:  basic_vertice_vector::basic_shape_position(position), basic_vertice_vector::basic_shape_color_vector(color), 
-	   m_shader(shader), m_window(camera.m_window), m_camera(camera) { }
+	   m_window(camera.m_window), m_shader(shader), m_camera(camera) { }
 
 template<typename _Vector>
 fan::basic_vertice_vector<_Vector>::basic_vertice_vector(const basic_vertice_vector& vector)
 	: basic_vertice_vector::basic_shape_position(vector), 
 	  basic_vertice_vector::basic_shape_color_vector(vector),
 	  basic_vertice_vector::basic_shape_velocity(vector), 
-	  vao_handler(vector), m_shader(vector.m_shader), 
-	  m_window(vector.m_window), m_camera(vector.m_camera) { }
+	  vao_handler(vector), m_window(vector.m_window), 
+	  m_shader(vector.m_shader), m_camera(vector.m_camera) { }
 
 template<typename _Vector>
 fan::basic_vertice_vector<_Vector>::basic_vertice_vector(basic_vertice_vector&& vector) noexcept
 	: basic_vertice_vector::basic_shape_position(std::move(vector)), 
 	  basic_vertice_vector::basic_shape_color_vector(std::move(vector)),
 	  basic_vertice_vector::basic_shape_velocity(std::move(vector)),
-	  vao_handler(std::move(vector)), m_shader(std::move(vector.m_shader)), 
-	  m_window(vector.m_window), m_camera(vector.m_camera) { }
+	  vao_handler(std::move(vector)), m_window(vector.m_window), 
+	  m_shader(std::move(vector.m_shader)), m_camera(vector.m_camera) { }
 
 template<typename _Vector>
 fan::basic_vertice_vector<_Vector>& fan::basic_vertice_vector<_Vector>::operator=(const basic_vertice_vector& vector)
@@ -1467,7 +1512,7 @@ void fan::basic_vertice_vector<_Vector>::write_data(bool position, bool color)
 }
 
 template<typename _Vector>
-void fan::basic_vertice_vector<_Vector>::basic_draw(unsigned int mode, uint_t count)
+void fan::basic_vertice_vector<_Vector>::basic_draw(unsigned int mode, uint_t count) const
 {
 	fan::bind_vao(this->m_vao, [&] {
 		glDrawElements(mode, count, GL_UNSIGNED_INT, 0);
@@ -1648,7 +1693,7 @@ void fan_2d::vertice_vector::push_back(const fan::vec2& position, const fan::col
 	}
 }
 
-void fan_2d::vertice_vector::draw(uint32_t mode)
+void fan_2d::vertice_vector::draw(uint32_t mode) const
 {
 	fan::mat4 projection(1);
 	projection = fan_2d::get_projection(m_window.get_size());
@@ -2024,7 +2069,7 @@ void fan_2d::rectangle_vector::set_rotation(uint_t i, f_t angle)
 {
 	m_rotation[i] = angle;
 	angle = fan::radians(angle);
-	constexpr f_t offset = 3 * fan::PI / 4;
+	constexpr f_t offset = 3 * fan::pi / 4;
 	const fan::vec2 position(this->get_position(i));
 	const fan::vec2 radius(this->get_size(i) / 2);
 	f_t r = fan_2d::distance(position, position + radius);
@@ -2032,14 +2077,14 @@ void fan_2d::rectangle_vector::set_rotation(uint_t i, f_t angle)
 	f_t x1 = r * cos(angle + offset);
 	f_t y1 = r * sin(angle + offset);
 
-	f_t x2 = r * cos(angle + offset - fan::PI / 2);
-	f_t y2 = r * sin(angle + offset - fan::PI / 2);
+	f_t x2 = r * cos(angle + offset - fan::pi / 2);
+	f_t y2 = r * sin(angle + offset - fan::pi / 2);
 
-	f_t x3 = r * cos(angle + offset - fan::PI);
-	f_t y3 = r * sin(angle + offset - fan::PI);
+	f_t x3 = r * cos(angle + offset - fan::pi);
+	f_t y3 = r * sin(angle + offset - fan::pi);
 
-	f_t x4 = r * cos(angle + offset - fan::PI * 3);
-	f_t y4 = r * sin(angle + offset - fan::PI * 3);
+	f_t x4 = r * cos(angle + offset - fan::pi * 3);
+	f_t y4 = r * sin(angle + offset - fan::pi * 3);
 
 	m_corners[i] = {
 		fan::vec2(x1, y1),
@@ -2188,6 +2233,312 @@ void fan_2d::sprite_vector::allocate_texture()
 	glGenTextures(1, &m_texture);
 }
 
+fan_2d::rounded_rectangle::rounded_rectangle(fan::camera& camera) : fan_2d::vertice_vector(camera) { }
+
+fan_2d::rounded_rectangle::rounded_rectangle(fan::camera& camera, const fan::vec2& position, const fan::vec2& size, f_t radius, const fan::color& color)
+	: fan_2d::vertice_vector(camera)
+{
+	this->push_back(position, size, radius, color);
+}
+
+void fan_2d::rounded_rectangle::push_back(const fan::vec2& position, const fan::vec2& size, f_t radius, const fan::color& color, bool queue)
+{
+
+	if ((position.y + radius) - (position.y + size.y - radius) > 0) {
+		radius = size.y * 0.5;
+	}
+	if ((position.x + radius) - (position.x + size.x - radius) > 0) {
+		radius = size.x * 0.5;
+	}
+
+	fan_2d::vertice_vector::push_back(fan::vec2(position.x + radius, position.y), color, true);
+	fan_2d::vertice_vector::push_back(fan::vec2(position.x + radius, position.y + size.y), color, true);
+	fan_2d::vertice_vector::push_back(fan::vec2(position.x + size.x - radius, position.y + size.y), color, true);
+
+	fan_2d::vertice_vector::push_back(fan::vec2(position.x + radius, position.y), color, true);
+	fan_2d::vertice_vector::push_back(fan::vec2(position.x + size.x - radius, position.y), color, true);
+	fan_2d::vertice_vector::push_back(fan::vec2(position.x + size.x - radius, position.y + size.y), color, true);
+
+	fan_2d::vertice_vector::push_back(fan::vec2(position.x, position.y + radius), color, true);
+	fan_2d::vertice_vector::push_back(fan::vec2(position.x + size.x, position.y + radius), color, true);
+	fan_2d::vertice_vector::push_back(fan::vec2(position.x + size.x, position.y + size.y - radius), color, true);
+
+	fan_2d::vertice_vector::push_back(fan::vec2(position.x, position.y + radius), color, true);
+	fan_2d::vertice_vector::push_back(fan::vec2(position.x, position.y + size.y - radius), color, true);
+	fan_2d::vertice_vector::push_back(fan::vec2(position.x + size.x, position.y + size.y - radius), color, true);
+
+	std::array<std::array<fan::vec2, 3>, 4> positions{
+		std::array<fan::vec2, 3>{
+			fan::vec2(position.x + radius, position.y),
+			fan::vec2(position.x, position.y + radius),
+			position + radius
+		},
+		std::array<fan::vec2, 3>{
+			fan::vec2(position.x + size.x, position.y + radius),
+			fan::vec2(position.x + size.x - radius, position.y),
+			fan::vec2(position.x + size.x - radius, position.y + radius)
+		},
+		std::array<fan::vec2, 3>{
+			fan::vec2(position.x, position.y + size.y - radius),
+			fan::vec2(position.x + radius, position.y + size.y),
+			fan::vec2(position.x + radius, position.y + size.y - radius)
+		},
+		std::array<fan::vec2, 3>{
+			fan::vec2(position.x + size.x - radius, position.y + size.y),
+			fan::vec2(position.x + size.x, position.y + size.y - radius),
+			position + size - radius
+		}
+	};
+
+	std::array<fan::vec2, 4> old_positions{
+		positions[0][2],
+		positions[1][2],
+		positions[2][2],
+		positions[3][2]
+	};
+
+	const auto get_offsets = [&](uint_t i, auto t) {
+		switch (i) {
+			case 0: { return fan::vec2(std::cos(fan::half_pi + t), std::sin(fan::half_pi + t)) * radius; }
+			case 1: { return fan::vec2(std::cos(t), std::sin(fan::pi + t)) * radius; }
+			case 2: { return fan::vec2(std::cos(fan::pi + t), std::sin(fan::pi + t)) * radius; }			
+			default: { return fan::vec2(std::cos(fan::pi + fan::half_pi + t), std::sin(fan::pi + fan::half_pi + fan::pi + t)) * radius; }
+		}
+	};
+
+	for (uint_t i = 0; i < segments; i++) {
+
+		f_t t = fan::half_pi * f_t(i) / (segments - 1);
+
+		for (int j = 0; j < 4; j++) {
+			const fan::vec2 offset = get_offsets(j, t);
+
+			fan_2d::vertice_vector::push_back(old_positions[j], color, true);
+			fan_2d::vertice_vector::push_back(fan::vec2(positions[j][((j + 1) >> 1) & 1].x + offset.x, positions[j][~((j + 1) >> 1) & 1].y + ((j & 1) ? offset.y : -offset.y)), color, true);
+			fan_2d::vertice_vector::push_back(positions[j][2], color, true);
+
+			old_positions[j] = fan_2d::vertice_vector::m_position[fan_2d::vertice_vector::m_position.size() - 2];
+
+		}
+	}
+
+	if (!queue) {
+		this->release_queue(true, true, true);
+	}
+
+	fan_2d::rounded_rectangle::m_position.emplace_back(position);
+	fan_2d::rounded_rectangle::m_size.emplace_back(fan::vec2(size.x, size.y));
+	m_radius.emplace_back(radius);
+
+	m_data_offset.emplace_back(rounded_rectangle::basic_vertice_vector::size());
+}
+
+fan::vec2 fan_2d::rounded_rectangle::get_position(uint_t i) const
+{
+	return fan_2d::rounded_rectangle::m_position[i];
+}
+
+void fan_2d::rounded_rectangle::set_position(uint_t i, const fan::vec2& position, bool queue)
+{
+	const auto offset = fan_2d::rounded_rectangle::m_data_offset[i];
+	const auto previous_offset = !i ? 0 : fan_2d::rounded_rectangle::m_data_offset[i - 1];
+	const auto distance = position - fan_2d::rounded_rectangle::get_position(i);
+	for (uint_t j = 0; j < offset - previous_offset; j++) {
+		fan_2d::vertice_vector::m_position[previous_offset + j] += distance;
+	}
+
+	if (!queue) {
+		basic_shape_position::glsl_location_handler::edit_data(fan_2d::vertice_vector::m_position.data() + previous_offset, sizeof(fan::vec2) * previous_offset, sizeof(fan::vec2) * (offset - previous_offset));
+	}
+
+	fan_2d::rounded_rectangle::m_position[i] = position;
+}
+
+fan::vec2 fan_2d::rounded_rectangle::get_size(uint_t i) const
+{
+	return fan_2d::rounded_rectangle::m_size[i];
+}
+
+void fan_2d::rounded_rectangle::set_size(uint_t i, const fan::vec2& size, bool queue)
+{
+	fan_2d::rounded_rectangle::m_size[i] = fan::vec2(size.x, size.y);
+	this->edit_rectangle(i, queue);
+}
+
+f_t fan_2d::rounded_rectangle::get_radius(uint_t i) const
+{
+	return m_radius[i];
+}
+
+void fan_2d::rounded_rectangle::set_radius(uint_t i, f_t radius, bool queue)
+{
+	const fan::vec2 position = get_position(i);
+	const fan::vec2 size = get_size(i);
+	f_t previous_radius = get_radius(i);
+
+	if ((position.y + previous_radius) - (position.y + size.y - previous_radius) > 0 ||
+		(position.x + previous_radius) - (position.x + size.x - previous_radius) > 0) {
+		return;
+	}
+
+	m_radius[i] = radius;
+	this->edit_rectangle(i, queue);
+}
+
+void fan_2d::rounded_rectangle::draw() const
+{
+	fan_2d::vertice_vector::draw(GL_TRIANGLES);
+}
+
+bool fan_2d::rounded_rectangle::inside(uint_t i) const
+{
+	const auto position = m_window.get_mouse_position();
+
+	if (position.x > m_position[i].x + m_radius[i] &&
+		position.x < m_position[i].x + m_size[i].x - m_radius[i] &&
+		position.y > m_position[i].y && 
+		position.y < m_position[i].y + m_size[i].y)
+	{
+		return true;
+	}
+
+	if (position.x > m_position[i].x &&
+		position.x < m_position[i].x + m_size[i].x &&
+		position.y > m_position[i].y + m_radius[i] && 
+		position.y < m_position[i].y + m_size[i].y - m_radius[i])
+	{
+		return true;
+	}
+
+	if (fan_2d::collision::circle::point_inside(position, m_position[i] + m_radius[i], m_radius[i])) {
+		return true;
+	}
+
+	if (fan_2d::collision::circle::point_inside(position, m_position[i] + fan::vec2(m_radius[i], m_size[i].y - m_radius[i]), m_radius[i])) {
+		return true;
+	}
+
+	if (fan_2d::collision::circle::point_inside(position, m_position[i] + fan::vec2(m_size[i].x - m_radius[i], m_radius[i]), m_radius[i])) {
+		return true;
+	}
+
+	if (fan_2d::collision::circle::point_inside(position, m_position[i] + m_size[i] - m_radius[i], m_radius[i])) {
+		return true;
+	}
+
+	return false;
+}
+
+fan::color fan_2d::rounded_rectangle::get_color(uint_t i) const {
+	return m_color[!i ? 0 : fan_2d::rounded_rectangle::m_data_offset[i - 1]];
+}
+
+void fan_2d::rounded_rectangle::set_color(uint_t i, const fan::color& color, bool queue)
+{
+	const auto offset = fan_2d::rounded_rectangle::m_data_offset[i];
+	const auto previous_offset = !i ? 0 : fan_2d::rounded_rectangle::m_data_offset[i - 1];
+
+	for (uint_t i = previous_offset; i != offset; i++) {
+		m_color[i] = color;
+	}
+
+	if (!queue) {
+		rounded_rectangle::basic_shape_color_vector::edit_data(fan_2d::vertice_vector::m_color.data() + previous_offset, sizeof(fan::color) * previous_offset, sizeof(fan::color) * (offset - previous_offset));
+	}
+}
+
+uint_t fan_2d::rounded_rectangle::size() const
+{
+	return m_size.size();
+}
+
+void fan_2d::rounded_rectangle::edit_rectangle(uint_t i, bool queue)
+{
+	const auto offset = fan_2d::rounded_rectangle::m_data_offset[i];
+	const auto previous_offset = !i ? 0 : fan_2d::rounded_rectangle::m_data_offset[i - 1];
+
+	uint_t current = previous_offset;
+
+	const fan::vec2 position = this->get_position(i);
+	const f_t radius = m_radius[i];
+	const fan::vec2 size = m_size[i];
+
+	fan_2d::vertice_vector::m_position[current++] = fan::vec2(position.x + radius, position.y);
+	fan_2d::vertice_vector::m_position[current++] = fan::vec2(position.x + radius, position.y + size.y);
+	fan_2d::vertice_vector::m_position[current++] = fan::vec2(position.x + size.x - radius, position.y + size.y);
+
+	fan_2d::vertice_vector::m_position[current++] = fan::vec2(position.x + radius, position.y);
+	fan_2d::vertice_vector::m_position[current++] = fan::vec2(position.x + size.x - radius, position.y);
+	fan_2d::vertice_vector::m_position[current++] = fan::vec2(position.x + size.x - radius, position.y + size.y);
+
+	fan_2d::vertice_vector::m_position[current++] = fan::vec2(position.x, position.y + radius);
+	fan_2d::vertice_vector::m_position[current++] = fan::vec2(position.x + size.x, position.y + radius);
+	fan_2d::vertice_vector::m_position[current++] = fan::vec2(position.x + size.x, position.y + size.y - radius);
+
+	fan_2d::vertice_vector::m_position[current++] = fan::vec2(position.x, position.y + radius);
+	fan_2d::vertice_vector::m_position[current++] = fan::vec2(position.x, position.y + size.y - radius);
+	fan_2d::vertice_vector::m_position[current++] = fan::vec2(position.x + size.x, position.y + size.y - radius);
+
+	std::array<std::array<fan::vec2, 3>, 4> positions{
+		std::array<fan::vec2, 3>{
+			fan::vec2(position.x + radius, position.y),
+			fan::vec2(position.x, position.y + radius),
+			position + radius
+		},
+		std::array<fan::vec2, 3>{
+			fan::vec2(position.x + size.x, position.y + radius),
+			fan::vec2(position.x + size.x - radius, position.y),
+			fan::vec2(position.x + size.x - radius, position.y + radius)
+		},
+		std::array<fan::vec2, 3>{
+			fan::vec2(position.x, position.y + size.y - radius),
+			fan::vec2(position.x + radius, position.y + size.y),
+			fan::vec2(position.x + radius, position.y + size.y - radius)
+		},
+		std::array<fan::vec2, 3>{
+			fan::vec2(position.x + size.x - radius, position.y + size.y),
+			fan::vec2(position.x + size.x, position.y + size.y - radius),
+			position + size - radius
+		}
+	};
+
+	std::array<fan::vec2, 4> old_positions{
+		positions[0][2],
+		positions[1][2],
+		positions[2][2],
+		positions[3][2]
+	};
+
+	const auto get_offsets = [&](uint_t i, auto t) {
+		switch (i) {
+			case 0: { return fan::vec2(std::cos(fan::half_pi + t), std::sin(fan::half_pi + t)) * radius; }
+			case 1: { return fan::vec2(std::cos(t), std::sin(fan::pi + t)) * radius; }
+			case 2: { return fan::vec2(std::cos(fan::pi + t), std::sin(fan::pi + t)) * radius; }			
+			default: { return fan::vec2(std::cos(fan::pi + fan::half_pi + t), std::sin(fan::pi + fan::half_pi + fan::pi + t)) * radius; }
+		}
+	};
+
+	for (uint_t i = 0; i < segments; i++) {
+
+		f_t t = fan::half_pi * f_t(i) / (segments - 1);
+
+		for (int j = 0; j < 4; j++) {
+			const fan::vec2 offset = get_offsets(j, t);
+
+			fan_2d::vertice_vector::m_position[current++] = old_positions[j];
+			fan_2d::vertice_vector::m_position[current++] = fan::vec2(positions[j][((j + 1) >> 1) & 1].x + offset.x, positions[j][~((j + 1) >> 1) & 1].y + ((j & 1) ? offset.y : -offset.y));
+			fan_2d::vertice_vector::m_position[current++] = positions[j][2];
+
+			old_positions[j] = fan_2d::vertice_vector::m_position[current - 2];
+
+		}
+	}
+
+	if (!queue) {
+		basic_shape_position::glsl_location_handler::edit_data(fan_2d::vertice_vector::m_position.data() + previous_offset, sizeof(fan::vec2) * previous_offset, sizeof(fan::vec2) * (offset - previous_offset));
+	}
+}
+
 fan_2d::particles::particles(fan::camera& camera)
 	: rectangle_vector(camera) { }
 
@@ -2286,71 +2637,6 @@ fan_2d::gui::sprite_vector::sprite_vector(fan::camera& camera, const std::string
 		}
 		fan_2d::gui::sprite_vector::basic_shape::write_data(true, false);
 	});
-}
-
-fan_2d::gui::rounded_rectangle::rounded_rectangle(fan::camera& camera) : fan_2d::vertice_vector(camera) { }
-
-fan_2d::gui::rounded_rectangle::rounded_rectangle(fan::camera& camera, const fan::vec2& position, const fan::vec2& size, const fan::color& color)
-	: fan_2d::vertice_vector(camera)
-{
-	this->push_back(position, size, color);
-}
-
-void fan_2d::gui::rounded_rectangle::push_back(const fan::vec2& position, const fan::vec2& size, const fan::color& color, bool queue)
-{
-	fan::vec2 offset;
-
-	for (f_t i = 0; i < segments; i++) {
-		f_t t = 2 * fan::PI * i / segments - fan::PI / 2;
-		if (i == (int)(segments / 2)) {
-			offset.x -= (size.x - size.y);
-			fan_2d::vertice_vector::push_back(fan::vec2(cos(t), sin(t)) * size.y / 2 + position + size / 2, color, true);
-		}
-		else if (i == (int)(segments - 1)) {
-			offset.x += (size.x - size.y);
-			fan_2d::vertice_vector::push_back(fan::vec2(cos(t), sin(t)) * size.y / 2 + position + size / 2, color, true);
-		}
-
-		fan_2d::vertice_vector::push_back(fan::vec2(cos(t), sin(t)) * size.y / 2 + position + size / 2 + offset, color, true);
-	}
-	if (!queue) {
-		this->release_queue(true, true, true);
-	}
-	if (fan_2d::vertice_vector::m_index_restart == UINT32_MAX) {
-		fan_2d::vertice_vector::m_index_restart = this->size();
-	}
-	fan_2d::gui::rounded_rectangle::m_position.emplace_back(position);
-	fan_2d::gui::rounded_rectangle::m_size.emplace_back(fan::vec2(size.x, size.y));
-	data_offset.emplace_back(this->size());
-}
-
-fan::vec2 fan_2d::gui::rounded_rectangle::get_position(uint_t i) const
-{
-	return fan_2d::gui::rounded_rectangle::m_position[i];
-}
-
-void fan_2d::gui::rounded_rectangle::set_position(uint_t i, const fan::vec2& position)
-{
-	const auto offset = fan_2d::gui::rounded_rectangle::data_offset[i];
-	const auto previous_offset = !i ? 0 : fan_2d::gui::rounded_rectangle::data_offset[i - 1];
-	const auto distance = position - fan_2d::gui::rounded_rectangle::get_position(i);
-	for (uint_t j = 0; j < offset - previous_offset; j++) {
-		fan_2d::vertice_vector::m_position[previous_offset + j] += distance;
-	}
-
-	basic_shape_position::glsl_location_handler::edit_data(fan_2d::vertice_vector::m_position.data() + previous_offset, sizeof(fan::vec2) * previous_offset, sizeof(fan::vec2) * (offset - previous_offset));
-
-	fan_2d::gui::rounded_rectangle::m_position[i] = position;
-}
-
-fan::vec2 fan_2d::gui::rounded_rectangle::get_size(uint_t i) const
-{
-	return fan_2d::gui::rounded_rectangle::m_size[i];
-}
-
-void fan_2d::gui::rounded_rectangle::draw()
-{
-	fan_2d::vertice_vector::draw(GL_TRIANGLE_FAN);
 }
 
 fan_2d::gui::text_renderer::text_renderer(fan::camera& camera) 
@@ -2858,151 +3144,36 @@ void fan_2d::gui::text_renderer::write_data() {
 	outline_color_t::write_data();
 }
 
+template<typename T>
+fan_2d::gui::basic_text_box<T>::basic_text_box(fan::camera& camera, const std::string& text, const fan::vec2& position, const fan::color& text_color, f_t font_size) 
+	: m_rv(camera), m_tr(camera, text, position, text_color, font_size) { }
+
 fan_2d::gui::text_box::text_box(fan::camera& camera, const std::string& text, f_t font_size, const fan::vec2& position, const fan::color& box_color, const fan::vec2& border_size, const fan::color& text_color)
-	: m_tr(camera, text, position + border_size / 2, text_color, font_size), m_rv(camera, position, m_tr.get_text_size(m_tr.get_text(0), m_tr.get_font_size(0)) + border_size, box_color), m_border_size(border_size) { }
-
-fan::vec2 fan_2d::gui::text_box::get_position(uint_t i) const
-{
-	return m_rv.get_position(i);
+	: basic_text_box(camera, text, position + border_size / 2, text_color, font_size)
+{ 
+	m_border_size.emplace_back(border_size);
+	m_rv.push_back(position, m_tr.get_text_size(text, font_size) + border_size, box_color);
 }
 
-void fan_2d::gui::text_box::set_position(uint_t i, const fan::vec2& position, bool queue)
+void fan_2d::gui::text_box::push_back(const std::string& text, f_t font_size, const fan::vec2& position, const fan::color& box_color, const fan::vec2& border_size, const fan::color& text_color)
 {
-	m_rv.set_position(i, position, queue);
-	m_tr.set_position(i, position + m_border_size / 2, queue);
+	m_border_size.emplace_back(border_size);
+	m_tr.push_back(text, position + border_size / 2, text_color, font_size);
+	m_rv.push_back(position, m_tr.get_text_size(text, font_size) + border_size, box_color);
 }
 
-void fan_2d::gui::text_box::set_text(uint_t i, const std::string& text, bool queue)
+fan_2d::gui::rounded_text_box::rounded_text_box(fan::camera& camera, const std::string& text, f_t font_size, const fan::vec2& position, const fan::color& box_color, const fan::vec2& border_size, f_t radius, const fan::color& text_color)
+	: basic_text_box(camera, text, position + border_size / 2, text_color, font_size)
 {
-	m_tr.set_text(i, text, queue);
-	m_rv.set_size(i, m_tr.get_text_size(m_tr.get_text(i), m_tr.get_font_size(i)) + m_border_size, queue);
+	m_border_size.emplace_back(border_size);
+	m_rv.push_back(position, m_tr.get_text_size(text, font_size) + border_size, radius, box_color);
 }
 
-fan::color fan_2d::gui::text_box::get_box_color(uint_t i) const
+void fan_2d::gui::rounded_text_box::push_back(const std::string& text, f_t font_size, const fan::vec2& position, const fan::color& box_color, const fan::vec2& border_size, f_t radius, const fan::color& text_color)
 {
-	return fan::color();
-}
-
-void fan_2d::gui::text_box::set_box_color(uint_t i, const fan::color& color, bool queue)
-{
-	m_rv.set_color(i, color, queue);
-}
-
-fan::color fan_2d::gui::text_box::get_text_color(uint_t i) const
-{
-	return m_tr.get_color(i);
-}
-
-void fan_2d::gui::text_box::set_text_color(uint_t i, const fan::color& color, bool queue)
-{
-	m_tr.set_text_color(i, color, queue);
-}
-
-void fan_2d::gui::text_box::draw() const
-{
-	m_rv.draw();
-	m_tr.draw();
-}
-
-bool fan_2d::gui::text_box::inside(uint_t i) const
-{
-	return m_rv.inside(i);
-}
-
-void fan_2d::gui::text_box::on_touch(std::function<void()> function)
-{
-	m_on_touch = function;
-
-	m_rv.m_window.add_mouse_move_callback([&] {
-		for (uint_t i = 0; i < m_rv.size(); i++) {
-			if (m_rv.inside(i)) {
-				m_on_touch();
-			}
-		}
-	});
-}
-
-void fan_2d::gui::text_box::on_touch(uint_t i, const std::function<void()>& function)
-{
-	m_on_touch = function;
-
-	m_rv.m_window.add_mouse_move_callback([&] {
-		if (m_rv.inside(i)) {
-			m_on_touch();
-		}
-	});
-}
-
-void fan_2d::gui::text_box::on_click(std::function<void()> function, uint16_t key)
-{
-	m_on_click = function;
-
-	m_rv.m_window.add_key_callback(key, [&] {
-		for (int i = 0; i < m_rv.size(); i++) {
-			if (m_rv.inside(i)) {
-				m_on_click();
-			}
-		}
-	});
-}
-
-void fan_2d::gui::text_box::on_click(uint_t i, const std::function<void()>& function, uint16_t key)
-{
-	m_on_click = function;
-
-	m_rv.m_window.add_key_callback(key, [&] {
-		if (m_rv.inside(i)) {
-			m_on_click();
-		}
-	});
-}
-
-void fan_2d::gui::text_box::on_release(std::function<void()> function, uint16_t key)
-{
-	m_on_release = function;
-
-	m_rv.m_window.add_key_callback(key, [&] {
-		for (int i = 0; i < m_rv.size(); i++) {
-			if (inside(i)) {
-				m_on_release();
-			}
-		}
-	}, true);
-}
-
-void fan_2d::gui::text_box::on_release(uint_t i, const std::function<void()>& function, uint16_t key)
-{
-	m_on_release = function;
-
-	m_rv.m_window.add_key_callback(key, [&] {
-		if (inside(i)) {
-			m_on_release();
-		}
-	}, true);
-}
-
-void fan_2d::gui::text_box::on_exit(std::function<void()> function)
-{
-	m_on_exit = function;
-
-	m_rv.m_window.add_mouse_move_callback([&] {
-		for (int i = 0; i < m_rv.size(); i++) {
-			if (!inside(i)) {
-				m_on_exit();
-			}
-		}
-	});
-}
-
-void fan_2d::gui::text_box::on_exit(uint_t i, const std::function<void()>& function)
-{
-	m_on_exit = function;
-
-	m_rv.m_window.add_mouse_move_callback([&] {
-		if (!inside(i)) {
-			m_on_exit();
-		}
-	});
+	m_border_size.emplace_back(border_size);
+	m_tr.push_back(text, position + border_size / 2, text_color, font_size);
+	m_rv.push_back(position, m_tr.get_text_size(text, font_size) + border_size, radius, box_color);
 }
 
 void fan_3d::add_camera_rotation_callback(fan::camera& camera) {
@@ -3514,7 +3685,7 @@ fan_3d::skybox::skybox(
 
 	std::array<std::string, 6> images{ right, left, top, bottom, back, front };
 
-	for (int i = 0; i < images.size(); i++) {
+	for (uint_t i = 0; i < images.size(); i++) {
 		if (!fan::io::file::exists(images[i])) {
 			fan::print("path does not exist:", images[i]);
 			exit(1);
