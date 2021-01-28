@@ -129,6 +129,7 @@ namespace fan {
 
 		key_shift,
 		key_control,
+		key_alt,
 		key_left_shift,
 		key_left_control,
 		key_left_alt,
@@ -146,7 +147,7 @@ namespace fan {
 		mouse_scroll_up,
 		mouse_scroll_down,
 
-		invalid,
+		key_invalid,
 
 		last
 
@@ -168,8 +169,11 @@ namespace fan {
 
 		uint16_t convert_keys_to_fan(uint16_t key);
 
-		void get_keys(std::unordered_map<uint16_t, bool>* keys, uint16_t key, bool state);
+		void get_keys(std::unordered_map<uint16_t, bool>& keys, uint16_t key, bool state);
+
+		uint16_t raw_to_ascii(uint16_t key, const std::unordered_map<uint16_t, bool>& m_keys_down);
 
 	}
+
 
 }

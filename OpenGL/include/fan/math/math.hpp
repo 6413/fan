@@ -15,11 +15,6 @@ namespace fan_2d {
 		return x[0] * y[0] + x[1] * y[1];
 	}
 
-	template <typename vector_t, typename vector_t2>
-	constexpr auto manhattan_distance(const vector_t& src, const vector_t2& dst) {
-		return std::abs(src[0] - dst[0]) + std::abs(src[1] - dst[1]);
-	}
-
 	template <typename _Ty, typename _Ty2>
 	constexpr f_t distance(const _Ty& src, const _Ty2& dst) {
 		const auto x = src[0] - dst[0];
@@ -246,6 +241,7 @@ namespace fan {
 	//	);
 	//}
 
+
 	inline f_t distance(f_t src, f_t dst) {
 		return std::abs(std::abs(dst) - std::abs(src));
 	}
@@ -256,7 +252,7 @@ namespace fan {
 	}
 
 	template <typename vector_t>
-	inline auto manhattan_distance(const vector_t& src, const vector_t& dst) {
+	inline auto distance(const vector_t& src, const vector_t& dst) {
 		return std::abs(src[0] - dst[0]) + std::abs(src[1] - dst[1]) + std::abs(src[2] - dst[2]);
 	}
 

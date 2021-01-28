@@ -121,6 +121,12 @@ namespace fan {
 		}
 	}
 
+	static void draw_2d(const std::function<void()>& function_) {
+		glDisable(GL_DEPTH_TEST);
+		function_();
+		glEnable(GL_DEPTH_TEST);
+	}
+
 	#define private_template
 	#define private_class_name vao_handler
 	#define private_variable_name m_vao
@@ -383,7 +389,9 @@ namespace fan {
 
 		f_t get_delta_time() const;
 
-//	protected:
+		fan::camera& m_camera;
+
+	protected:
 
 		// ----------------------------------------------------- vector enabled functions
 
@@ -407,8 +415,6 @@ namespace fan {
 		// -----------------------------------------------------
 
 		fan::shader m_shader;
-
-		fan::camera& m_camera;
 
 		fan::window& m_window;
 
@@ -725,7 +731,7 @@ namespace fan_2d {
 
 		void push_back(const fan::mat2& begin_end, const fan::color& color, bool queue = false);
 
-		void draw();
+		void draw(uint_t i = fan::uninitialized);
 
 		void set_position(uint_t i, const fan::mat2& begin_end, bool queue = false);
 
@@ -945,12 +951,16 @@ namespace fan_2d {
 		};
 
 		namespace font_properties {
-			constexpr uint16_t max_ascii(256);
-			constexpr uint_t max_font_size(1024);
-			constexpr uint_t new_line(70);
+			constexpr f_t new_line(70);
 			constexpr f_t gap_multiplier(1);
 
 			constexpr fan::color default_text_color(1);
+
+			constexpr f_t space_width(15);
+
+			constexpr f_t get_new_line(f_t font_size) {
+				return new_line * font_size;
+			}
 
 		}
 
@@ -961,7 +971,7 @@ namespace fan_2d {
 			using outline_color_t = fan::basic_shape_color_vector_vector<4, GL_SHADER_STORAGE_BUFFER>;
 
 			text_renderer(fan::camera& camera);
-			text_renderer(fan::camera& camera, const std::string& text, const fan::vec2& position, const fan::color& text_color, f_t font_size, const fan::color& outline_color = fan::color(-1, -1, -1, 0), bool queue = false);
+			text_renderer(fan::camera& camera, const fan::fstring& text, const fan::vec2& position, const fan::color& text_color, f_t font_size, const fan::color& outline_color = fan::color(-1, -1, -1, 0), bool queue = false);
 			~text_renderer();
 
 			fan::vec2 get_position(uint_t i) const;
@@ -970,32 +980,37 @@ namespace fan_2d {
 
 			f_t get_font_size(uint_t i) const;
 			void set_font_size(uint_t i, f_t font_size, bool queue = false);
-			void set_text(uint_t i, const std::string& text, bool queue = false);
+			void set_text(uint_t i, const fan::fstring& text, bool queue = false);
 			void set_text_color(uint_t i, const fan::color& color, bool queue = false);
 			void set_outline_color(uint_t i, const fan::color& color, bool queue = false);
 
-			fan::io::file::font_t get_letter_info(char c, f_t font_size) const;
-			fan::vec2 get_text_size(const std::string& text, f_t font_size) const;
-			fan::vec2 get_text_size_original(const std::string& text, f_t font_size) const;
+			fan::io::file::font_t get_letter_info(fan::fstring::value_type c, f_t font_size) const;
+			fan::vec2 get_text_size(const fan::fstring& text, f_t font_size) const;
+			fan::vec2 get_text_size_original(const fan::fstring& text, f_t font_size) const;
 
-			f_t get_font_height_max(uint32_t font_size);
+			f_t get_lowest(f_t font_size) const;
+			f_t get_highest(f_t font_size) const;
 
-			// i = string[i], j = string[i][j] (char)
+			// i = string[i], j = string[i][j] (fan::fstring::value_type)
 			fan::color get_color(uint_t i, uint_t j = 0) const;
 
-			std::string get_text(uint_t i) const;
+			fan::fstring get_text(uint_t i) const;
 
 			f_t convert_font_size(f_t font_size) const;
 
 			void free_queue();
-			void insert(uint_t i, const std::string& text, const fan::vec2& position, const fan::color& text_color, f_t font_size, const fan::color& outline_color = fan::uninitialized, bool queue = false);
-			void push_back(const std::string& text, const fan::vec2& position, const fan::color& text_color, f_t font_size, const fan::color& outline_color = fan::uninitialized, bool queue = false);
+			void insert(uint_t i, const fan::fstring& text, const fan::vec2& position, const fan::color& text_color, f_t font_size, const fan::color& outline_color = fan::uninitialized, bool queue = false);
+			void push_back(const fan::fstring& text, const fan::vec2& position, const fan::color& text_color, f_t font_size, const fan::color& outline_color = fan::uninitialized, bool queue = false);
 
 			void draw() const;
 
 			void erase(uint_t i, bool queue = false);
 
 			uint_t size() const;
+
+			std::unordered_map<uint16_t, fan::io::file::font_t> m_font;
+
+			fan::camera& m_camera;
 
 		private:
 
@@ -1004,11 +1019,11 @@ namespace fan_2d {
 			std::vector<fan::vec2> get_vertices(uint_t i);
 			std::vector<fan::vec2> get_texture_coordinates(uint_t i);
 
-			void load_characters(uint_t i, fan::vec2 position, const std::string& text, bool edit, bool insert);
+			void load_characters(uint_t i, fan::vec2 position, const fan::fstring& text, bool edit, bool insert);
 
-			void edit_letter_data(uint_t i, uint_t j, const char letter, const fan::vec2& position, int& advance, f_t converted_font_size);
-			void insert_letter_data(uint_t i, const char letter, const fan::vec2& position, int& advance, f_t converted_font_size);
-			void write_letter_data(uint_t i, const char letter, const fan::vec2& position, int& advance, f_t converted_font_size);
+			void edit_letter_data(uint_t i, uint_t j, const fan::fstring::value_type letter, const fan::vec2& position, int& advance, f_t converted_font_size);
+			void insert_letter_data(uint_t i, const fan::fstring::value_type letter, const fan::vec2& position, int& advance, f_t converted_font_size);
+			void write_letter_data(uint_t i, const fan::fstring::value_type letter, const fan::vec2& position, int& advance, f_t converted_font_size);
 
 			void write_vertices();
 			void write_texture_coordinates();
@@ -1030,9 +1045,7 @@ namespace fan_2d {
 			f_t m_original_font_size;
 			fan::vec2ui m_original_image_size;
 
-			std::unordered_map<uint16_t, fan::io::file::font_t> m_font;
-
-			std::vector<std::string> m_text;
+			std::vector<fan::fstring> m_text;
 
 			std::vector<fan::vec2> m_position;
 
@@ -1041,28 +1054,128 @@ namespace fan_2d {
 			std::vector<std::vector<fan::vec2>> m_texture_coordinates;
 
 			fan::window& m_window;
-			fan::camera& m_camera;
 
 		};
+
+		namespace text_box_properties {
+
+			static inline int blink_speed(500); // ms
+			static inline fan::color cursor_color(fan::colors::white);
+
+		}
 
 		template <typename T>
 		class basic_text_box {
 		public:
 
-			basic_text_box(fan::camera& camera, const std::string& text, const fan::vec2& position, const fan::color& text_color, f_t font_size);
+			basic_text_box(fan::camera& camera, const fan::fstring& text, const fan::vec2& position, const fan::color& text_color, f_t font_size);
+
+			void set_input_callback(uint_t i) {
+
+				m_text_input.m_offset.emplace_back(0);
+				m_text_input.m_str.emplace_back(this->get_text(i));
+
+				const auto& text = this->get_text(i);
+
+				m_new_lines.emplace_back(std::count_if(text.begin(), text.end(), [](const fan::fstring::value_type c) { return c == '\n'; }));
+
+				m_current_cursor_line.emplace_back(m_new_lines[m_new_lines.size() - 1]);
+
+				m_callable.emplace_back(i);
+
+				m_text_visual_input.m_cursor.push_back(fan::mat2(), text_box_properties::cursor_color);
+				m_text_visual_input.m_timer.emplace_back(fan::timer<>(fan::timer<>::start(), text_box_properties::blink_speed));
+				m_text_visual_input.m_visible.emplace_back(true);
+
+				update_cursor_position(i);
+
+				m_tr.m_camera.m_window.set_keys_callback([&](fan::fstring::value_type key) {
+					for (auto j : m_callable) {
+						handle_input(j, key);
+					}
+				});
+			}
+
+			fan::vec2 get_border_size(uint_t i) const {
+				return m_border_size[i];
+			}
+
+			f_t get_highest(f_t font_size) const {
+				return m_tr.get_highest(font_size);
+			}
+
+			f_t get_lowest(f_t font_size) const {
+				return m_tr.get_lowest(font_size);
+			}
+
+			fan::fstring get_text(uint_t i) const {
+				return m_tr.get_text(i);
+			}
 
 			fan::vec2 get_position(uint_t i) const {
 				return m_rv.get_position(i);
 			}
 
-			void set_position(uint_t i, const fan::vec2& position, bool queue = false) {
-				m_rv.set_position(i, position, queue);
-				m_tr.set_position(i, position + m_border_size[i] / 2, queue);
+			fan::vec2 get_size(uint_t i) const {
+				return m_rv.get_size(i);
 			}
 
-			void set_text(uint_t i, const std::string& text, bool queue = false) {
+			// returns begin and end of cursor points
+			fan::mat2 get_cursor_position(uint_t i, uint_t beg = fan::uninitialized, uint_t n = fan::uninitialized) const {
+
+				const auto& str = this->get_text(i);
+
+				const auto font_size = this->get_font_size(i);
+
+				auto converted = this->m_tr.convert_font_size(font_size);
+
+				f_t x = 0;
+				f_t y = 0;
+
+				const std::size_t n_ = n == (std::size_t)-1 ? str.size() : n;
+
+				for (std::size_t j = (beg == (std::size_t)-1 ? 0 : beg); j < n_; j++) {
+					if (str[j] == '\n') {
+						x = 0;
+						y += fan_2d::gui::font_properties::get_new_line(m_tr.convert_font_size(m_tr.get_font_size(i)));
+					}
+					x += m_tr.m_font.find(str[j])->second.m_advance * converted;
+				}
+
+				const fan::vec2 position(this->get_position(i));
+				const fan::vec2 border_size(this->get_border_size(i));
+
+				x += position.x + border_size.x * 0.5;
+
+				f_t test = (m_new_lines[i] - m_current_cursor_line[i]) * fan_2d::gui::font_properties::get_new_line(m_tr.convert_font_size(m_tr.get_font_size(i)));
+
+				return fan::mat2(
+					fan::vec2(x, y + position.y + border_size.y * 0.5), 
+					fan::vec2(x, position.y + get_size(i).y - border_size.y * 0.5 - test)
+				);
+			}
+
+			void update_cursor_position(uint_t i) {
+				m_text_visual_input.m_cursor.set_position(i, this->get_cursor_position(i, 0, this->get_text(i).size() + m_text_input.m_offset[i]));
+			}
+
+			void set_position(uint_t i, const fan::vec2& position, bool queue = false) {
+				m_rv.set_position(i, position, queue);
+				m_tr.set_position(i, position + m_border_size[i].y / 2, queue);
+			}
+
+			void set_text(uint_t i, const fan::fstring& text, bool queue = false) {
 				m_tr.set_text(i, text, queue);
-				m_rv.set_size(i, m_tr.get_text_size(m_tr.get_text(i), m_tr.get_font_size(i)) + m_border_size[i], queue);
+
+				f_t h = this->get_lowest(this->get_font_size(i)) + this->get_highest(this->get_font_size(m_border_size.size() - 1));
+
+				if (m_new_lines[i]) {
+					h += fan_2d::gui::font_properties::new_line * m_tr.convert_font_size(m_tr.get_font_size(i)) * m_new_lines[i];
+				}
+
+				m_rv.set_size(i, (text.empty() ? fan::vec2(0, h) : fan::vec2(m_tr.get_text_size(m_tr.get_text(i), m_tr.get_font_size(i)).x, h)) + m_border_size[i], queue);
+
+				update_cursor_position(i);
 			}
 
 			fan::color get_box_color(uint_t i) const {
@@ -1086,13 +1199,37 @@ namespace fan_2d {
 			}
 
 			void set_font_size(uint_t i, f_t font_size, bool queue = false) {
-				m_tr.set_font_size(0, font_size);
+				m_tr.set_font_size(i, font_size);
 				m_rv.set_size(i, m_tr.get_text_size(m_tr.get_text(i), m_tr.get_font_size(i)) + m_border_size[i], queue);
 			}
 
-			void draw() const {
-				m_rv.draw();
-				m_tr.draw();
+			void draw() {
+
+				for (int i = 0; i < m_text_visual_input.m_cursor.size(); i++) {
+
+					if (m_text_visual_input.m_timer[i].finished()) {
+						m_text_visual_input.m_visible[i] = !m_text_visual_input.m_visible[i];
+						m_text_visual_input.m_timer[i].restart();
+					}
+				}
+
+				fan::draw_2d([&] {
+					m_rv.draw();
+					m_tr.draw();
+
+					if (m_callable.size() == m_text_visual_input.m_cursor.size()) {
+						if (m_text_visual_input.m_visible[0]) {
+							m_text_visual_input.m_cursor.draw();
+						}	
+					}
+					else { // in case we dont want to draw input for some window
+						for (int i = 0; i < m_callable.size(); i++) {
+							if (m_text_visual_input.m_visible[i]) {
+								m_text_visual_input.m_cursor.draw(i);
+							}
+						}
+					}
+				});
 			}
 
 			bool inside(uint_t i) const {
@@ -1102,7 +1239,7 @@ namespace fan_2d {
 			void on_touch(std::function<void(uint_t j)> function) {
 				m_on_touch = function;
 
-				m_rv.m_window.add_mouse_move_callback([&] {
+				m_rv.m_camera.m_window.add_mouse_move_callback([&] {
 					for (uint_t i = 0; i < m_rv.size(); i++) {
 						if (m_rv.inside(i)) {
 							m_on_touch(i);
@@ -1114,7 +1251,7 @@ namespace fan_2d {
 			void on_touch(uint_t i, const std::function<void(uint_t j)>& function) {
 				m_on_touch = function;
 
-				m_rv.m_window.add_mouse_move_callback([&] {
+				m_rv.m_camera.m_window.add_mouse_move_callback([&] {
 					if (m_rv.inside(i)) {
 						m_on_touch(i);
 					}
@@ -1124,7 +1261,7 @@ namespace fan_2d {
 			void on_exit(std::function<void(uint_t j)> function) {
 				m_on_exit = function;
 
-				m_rv.m_window.add_mouse_move_callback([&] {
+				m_rv.m_camera.m_window.add_mouse_move_callback([&] {
 					for (uint_t i = 0; i < m_rv.size(); i++) {
 						if (!inside(i)) {
 							m_on_exit(i);
@@ -1136,7 +1273,7 @@ namespace fan_2d {
 			void on_exit(uint_t i, const std::function<void(uint_t j)>& function) {
 				m_on_exit = function;
 
-				m_rv.m_window.add_mouse_move_callback([&] {
+				m_rv.m_camera.m_window.add_mouse_move_callback([&] {
 					if (!inside(i)) {
 						m_on_exit(i);
 					}
@@ -1146,7 +1283,7 @@ namespace fan_2d {
 			void on_click(std::function<void()> function, uint16_t key = fan::mouse_left) {
 				m_on_click = function;
 
-				m_rv.m_window.add_key_callback(key, [&] {
+				m_rv.m_camera.m_window.add_key_callback(key, [&] {
 					for (uint_t i = 0; i < m_rv.size(); i++) {
 						if (m_rv.inside(i)) {
 							m_on_click();
@@ -1158,7 +1295,7 @@ namespace fan_2d {
 			void on_click(uint_t i, const std::function<void()>& function, uint16_t key = fan::mouse_left) {
 				m_on_click = function;
 
-				m_rv.m_window.add_key_callback(key, [&] {
+				m_rv.m_camera.m_window.add_key_callback(key, [&] {
 					if (m_rv.inside(i)) {
 						m_on_click();
 					}
@@ -1168,7 +1305,7 @@ namespace fan_2d {
 			void on_release(std::function<void()> function, uint16_t key = fan::mouse_left) {
 				m_on_release = function;
 
-				m_rv.m_window.add_key_callback(key, [&] {
+				m_rv.m_camera.m_window.add_key_callback(key, [&] {
 					for (uint_t i = 0; i < m_rv.size(); i++) {
 						if (inside(i)) {
 							m_on_release();
@@ -1179,11 +1316,107 @@ namespace fan_2d {
 			void on_release(uint_t i, const std::function<void()>& function, uint16_t key = fan::mouse_left) {
 				m_on_release = function;
 
-				m_rv.m_window.add_key_callback(key, [&] {
+				m_rv.m_camera.m_window.add_key_callback(key, [&] {
 					if (inside(i)) {
 						m_on_release();
 					}
 				}, true);
+			}
+
+			void handle_input(uint_t i, uint_t key) {
+				switch (m_tr.m_camera.m_window.get_current_key()) {
+					case fan::key_delete: {
+						if (m_text_input.m_offset[i] < 0) {
+							if (m_text_input.m_str[i][m_text_input.m_str[i].size() + m_text_input.m_offset[i]] == '\n') {
+								m_new_lines[i]--;
+							}
+
+							m_text_input.m_str[i].erase(m_text_input.m_str[i].end() + m_text_input.m_offset[i]);
+							m_text_input.m_offset[i]++;
+
+							this->set_text(i, m_text_input.m_str[i]);
+						}
+						break;
+					}
+					case fan::key_backspace:
+					{
+						if (m_text_input.m_str[i].size()) {
+							if (m_text_input.m_str[i][m_text_input.m_str[i].size() + m_text_input.m_offset[i] - 1] == '\n') {
+								m_new_lines[i]--;
+							}
+
+							m_text_input.m_str[i].erase(m_text_input.m_str[i].end() + m_text_input.m_offset[i] - 1);
+
+							this->set_text(i, m_text_input.m_str[i]);
+						}
+						break;
+					}
+					case fan::key_left:
+					{
+
+						m_text_input.m_offset[i] = std::clamp(--m_text_input.m_offset[i], -(int64_t)m_text_input.m_str[i].size(), (int64_t)0);
+
+						if (m_text_input.m_str[i][m_text_input.m_str[i].size() + m_text_input.m_offset[i]] == '\n') {
+							m_current_cursor_line[i]--;
+						}
+
+						update_cursor_position(i);
+
+						break;
+					}
+					case fan::key_right: {
+						m_text_input.m_offset[i] = std::clamp(++m_text_input.m_offset[i], -(int64_t)m_text_input.m_str[i].size(), (int64_t)0);
+
+						if (m_text_input.m_str[i][m_text_input.m_str[i].size() + m_text_input.m_offset[i] - 1] == '\n') {
+							m_current_cursor_line[i]++;
+						}
+
+						update_cursor_position(i);
+
+						break;
+					}
+					case fan::key_home:
+					{
+						m_text_input.m_offset[i] = -(int64_t)m_text_input.m_str[i].size();
+
+						m_current_cursor_line[i] = 0;
+
+						update_cursor_position(i);
+
+						break;
+					}
+					case fan::key_end:
+					{
+						m_text_input.m_offset[i] = 0;
+
+						m_current_cursor_line[i] = m_new_lines[i];
+
+						update_cursor_position(i);
+
+						break;
+					}
+					case fan::key_up:
+					case fan::key_down:
+					{
+						break;
+					}
+					case fan::key_enter: {
+
+						m_text_input.m_str[i].insert(m_text_input.m_str[i].end() + m_text_input.m_offset[i], '\n');
+
+						m_new_lines[i]++;
+						m_current_cursor_line[i]++;
+
+						this->set_text(i, m_text_input.m_str[i]);
+
+						break;
+					}
+					default:
+					{
+						m_text_input.m_str[i].insert(m_text_input.m_str[i].end() + m_text_input.m_offset[i], key);
+						this->set_text(0, m_text_input.m_str[i]);
+					}
+				}
 			}
 
 		protected:
@@ -1198,24 +1431,48 @@ namespace fan_2d {
 			T m_rv;
 			fan_2d::gui::text_renderer m_tr;
 
+			struct text_input {
+				std::vector<int64_t> m_offset;
+				std::vector<fan::fstring> m_str;
+			};
+
+			struct text_visual_input {
+
+				text_visual_input(fan::camera& camera) : m_cursor(camera) {}
+				text_visual_input(fan::camera& camera, const fan::vec2& position, const fan::color& color = text_box_properties::cursor_color) 
+						: m_cursor(camera, position, color) {}
+
+				fan_2d::line_vector m_cursor;
+				std::vector<fan::timer<>> m_timer;
+				std::vector<bool> m_visible;
+			};
+
+			text_input m_text_input;
+			text_visual_input m_text_visual_input;
+
+			std::vector<uint_t> m_callable;
+
+			std::vector<uint_t> m_new_lines;
+
+			std::vector<uint_t> m_current_cursor_line;
+
 		};
 
 		struct text_box : public basic_text_box<fan_2d::rectangle_vector> {
 
-			text_box(fan::camera& camera, const std::string& text, f_t font_size, const fan::vec2& position, const fan::color& box_color, const fan::vec2& border_size, const fan::color& text_color = fan::colors::white);
+			text_box(fan::camera& camera, const fan::fstring& text, f_t font_size, const fan::vec2& position, const fan::color& box_color, const fan::vec2& border_size, const fan::color& text_color = fan::colors::white);
 
-			void push_back(const std::string& text, f_t font_size, const fan::vec2& position, const fan::color& box_color, const fan::vec2& border_size, const fan::color& text_color = fan::colors::white);
+			void push_back(const fan::fstring& text, f_t font_size, const fan::vec2& position, const fan::color& box_color, const fan::vec2& border_size, const fan::color& text_color = fan::colors::white);
 
 		};
 
 		struct rounded_text_box : public basic_text_box<fan_2d::rounded_rectangle> {
 
-			rounded_text_box(fan::camera& camera, const std::string& text, f_t font_size, const fan::vec2& position, const fan::color& box_color, const fan::vec2& border_size, f_t radius, const fan::color& text_color = fan::colors::white);
+			rounded_text_box(fan::camera& camera, const fan::fstring& text, f_t font_size, const fan::vec2& position, const fan::color& box_color, const fan::vec2& border_size, f_t radius, const fan::color& text_color = fan::colors::white);
 
-			void push_back(const std::string& text, f_t font_size, const fan::vec2& position, const fan::color& box_color, const fan::vec2& border_size, f_t radius, const fan::color& text_color = fan::colors::white);
+			void push_back(const fan::fstring& text, f_t font_size, const fan::vec2& position, const fan::color& box_color, const fan::vec2& border_size, f_t radius, const fan::color& text_color = fan::colors::white);
 
 		};
-
 
 	}
 }
@@ -1288,6 +1545,8 @@ namespace fan_3d {
 
 		uint_t size();
 
+		fan::window& m_window;
+
 	private:
 
 		fan::shader m_shader;
@@ -1306,7 +1565,6 @@ namespace fan_3d {
 		std::vector<unsigned int> m_indices;
 		static constexpr auto m_vertice_size = sizeof(triangle_vertices_t);
 
-		fan::window& m_window;
 		fan::camera& m_camera;
 
 	};
@@ -1499,13 +1757,14 @@ namespace fan_3d {
 		fan::vec3 get_size();
 		void set_size(const fan::vec3& size);
 
+		fan::window& m_window;
+
 	private:
 		fan::shader m_shader;
 
 		fan::vec3 m_position;
 		fan::vec3 m_size;
 
-		fan::window& m_window;
 		fan::camera m_camera;
 
 	};
@@ -1598,10 +1857,4 @@ namespace fan {
 		fan::grid_raycast_s<fan::vec3> raycast = { grid_direction(end, start), start, fan::vec3() }; \
 		if (!(start == end)) \
 			while(grid_raycast_single(raycast, block_size))
-
-	static void draw_2d(const std::function<void()>& function_) {
-		glDisable(GL_DEPTH_TEST);
-		function_();
-		glEnable(GL_DEPTH_TEST);
-	}
 }

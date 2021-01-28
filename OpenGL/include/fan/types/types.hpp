@@ -19,6 +19,8 @@ typedef double f_t;
 
 namespace fan {
 
+	using fstring = std::wstring;
+
 	// converts enum to int
 	template <typename Enumeration>
 	constexpr auto eti(Enumeration const value)
@@ -28,13 +30,24 @@ namespace fan {
 			typename std::underlying_type<Enumeration>::type
 		>(value);
 	}
-
 	
 	template <typename T>
-	std::ostream& operator<<(std::ostream& os, const std::vector<T> vector) noexcept
+	std::ostream& operator<<(std::ostream& os, const std::vector<T>& vector) noexcept
 	{
 		for (uint_t i = 0; i < vector.size(); i++) {
 			os << vector[i] << ' ';
+		}
+		return os;
+	}
+
+	template <typename T>
+	std::ostream& operator<<(std::ostream& os, const std::vector<std::vector<T>>& vector) noexcept
+	{
+		for (uint_t i = 0; i < vector.size(); i++) {
+			for (uint_t j = 0; j < vector[i].size(); j++) {
+				os << vector[i][j] << ' ';
+			}
+			os << '\n';
 		}
 		return os;
 	}
@@ -49,6 +62,7 @@ namespace fan {
 	{
 		return sizeof(T) * vector.size();
 	}
+
 
 	enum class platform_t { windows, linux };
 
