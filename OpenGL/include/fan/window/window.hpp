@@ -101,6 +101,11 @@ namespace fan {
 		return value != (T)uninitialized;
 	}
 
+	void set_screen_resolution(const fan::vec2i& size);
+	void reset_screen_resolution();
+
+	uint_t get_screen_refresh_rate();
+
 	class window {
 	public:
 
@@ -145,7 +150,7 @@ namespace fan {
 		};
 
 		// required type alias for function return types
-		using keys_callback_t = std::function<void(uint16_t key, bool action)>;
+		using keys_callback_t = std::function<void(fan::fstring::value_type key)>;
 		using key_callback_t = struct{
 
 			uint16_t key;
@@ -175,7 +180,7 @@ namespace fan {
 		// for static value storing
 		static constexpr int reserved_storage = -1;
 
-		window(const std::string& name = default_window_name, const fan::vec2i& window_size = fan::window::default_window_size, uint64_t flags = 0);
+		window(const fan::vec2i& window_size = fan::window::default_window_size, const std::string& name = default_window_name, uint64_t flags = 0);
 		window(const window& window);
 		window(window&& window);
 
@@ -209,7 +214,7 @@ namespace fan {
 		void set_max_fps(uint_t fps);
 
 		bool vsync_enabled() const;
-		void vsync(bool value);
+		void set_vsync(bool value);
 
 		// use fan::window::resolutions for window sizes
 		void set_full_screen(const fan::vec2i& size = uninitialized);
@@ -314,6 +319,8 @@ namespace fan {
 		bool focused() const;
 		
 		void destroy_window();
+
+		uint16_t get_current_key() const;
 	
 	private:
 
@@ -340,6 +347,8 @@ namespace fan {
 		XSetWindowAttributes m_window_attribs;
 		GLXContext m_context;
 		XVisualInfo* m_visual;
+		XIM m_xim;
+		XIC m_xic;
 
 	#endif
 
@@ -395,6 +404,20 @@ namespace fan {
 		std::string m_name;
 
 		uint_t m_flags;
+
+		uint16_t m_current_key;
+		uint64_t m_reserved_flags;
+
+		std::vector<fan::input> m_key_exceptions{
+			fan::key_left,
+			fan::key_up,
+			fan::key_right,
+			fan::key_down,
+			fan::key_delete,
+			fan::key_enter,
+			fan::key_home,
+			fan::key_end
+		};
 
 		struct flag_values {
 

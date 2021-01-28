@@ -42,7 +42,6 @@ namespace fan {
 				}
 				std::string data;
 				data.resize(file.tellg());
-				data.resize(file.tellg());
 				file.seekg(0, std::ios::beg);
 				file.read(&data[0], data.size());
 				file.close();
@@ -162,6 +161,8 @@ namespace fan {
 					}
 					font_info_vector[character] = font_info;
 				}
+
+				// doesn't set space automatically, need to set in load part
 				return { static_cast<unsigned int>(fan::io::file::get_string_valuei(lines[0], "size")), font_info_vector };
 			}
 
