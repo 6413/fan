@@ -3200,30 +3200,30 @@ fan_2d::gui::text_box::text_box(fan::camera& camera, const fan::fstring& text, f
 	: basic_text_box(camera, text, position + border_size / 2, text_color, font_size)
 { 
 	m_border_size.emplace_back(border_size);
-	m_rv.push_back(position, m_tr.get_text_size(text, font_size) + border_size, box_color);
+
+	m_rv.push_back(position, this->get_updated_size(m_border_size.size() - 1), box_color);
 }
 
 void fan_2d::gui::text_box::push_back(const fan::fstring& text, f_t font_size, const fan::vec2& position, const fan::color& box_color, const fan::vec2& border_size, const fan::color& text_color)
 {
 	m_border_size.emplace_back(border_size);
 	m_tr.push_back(text, position + border_size / 2, text_color, font_size);
-	m_rv.push_back(position, m_tr.get_text_size(text, font_size) + border_size, box_color);
+	m_rv.push_back(position, this->get_updated_size(m_border_size.size() - 1), box_color);
 }
 
 fan_2d::gui::rounded_text_box::rounded_text_box(fan::camera& camera, const fan::fstring& text, f_t font_size, const fan::vec2& position, const fan::color& box_color, const fan::vec2& border_size, f_t radius, const fan::color& text_color)
 	: basic_text_box(camera, text, position + border_size / 2, text_color, font_size)
 {
 	m_border_size.emplace_back(border_size);
-	auto h = this->get_lowest(this->get_font_size(m_border_size.size() - 1)) + this->get_highest(this->get_font_size(m_border_size.size() - 1));
 
-	m_rv.push_back(position, (text.empty() ? fan::vec2(0, h) : fan::vec2(m_tr.get_text_size(text, font_size).x, h)) + border_size, radius, box_color);
+	m_rv.push_back(position, this->get_updated_size(m_border_size.size() - 1), radius, box_color);
 }
 
 void fan_2d::gui::rounded_text_box::push_back(const fan::fstring& text, f_t font_size, const fan::vec2& position, const fan::color& box_color, const fan::vec2& border_size, f_t radius, const fan::color& text_color)
 {
 	m_border_size.emplace_back(border_size);
 	m_tr.push_back(text, position + border_size / 2, text_color, font_size);
-	m_rv.push_back(position, m_tr.get_text_size(text, font_size) + border_size, radius, box_color);
+	m_rv.push_back(position, this->get_updated_size(m_border_size.size() - 1), radius, box_color);
 }
 
 void fan_3d::add_camera_rotation_callback(fan::camera& camera) {

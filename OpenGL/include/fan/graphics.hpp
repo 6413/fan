@@ -1167,13 +1167,7 @@ namespace fan_2d {
 			void set_text(uint_t i, const fan::fstring& text, bool queue = false) {
 				m_tr.set_text(i, text, queue);
 
-				f_t h = this->get_lowest(this->get_font_size(i)) + this->get_highest(this->get_font_size(m_border_size.size() - 1));
-
-				if (m_new_lines[i]) {
-					h += fan_2d::gui::font_properties::new_line * m_tr.convert_font_size(m_tr.get_font_size(i)) * m_new_lines[i];
-				}
-
-				m_rv.set_size(i, (text.empty() ? fan::vec2(0, h) : fan::vec2(m_tr.get_text_size(m_tr.get_text(i), m_tr.get_font_size(i)).x, h)) + m_border_size[i], queue);
+				this->update_box(i);
 
 				update_cursor_position(i);
 			}
@@ -1200,7 +1194,10 @@ namespace fan_2d {
 
 			void set_font_size(uint_t i, f_t font_size, bool queue = false) {
 				m_tr.set_font_size(i, font_size);
-				m_rv.set_size(i, m_tr.get_text_size(m_tr.get_text(i), m_tr.get_font_size(i)) + m_border_size[i], queue);
+
+				update_box(i, queue);
+
+				update_cursor_position(i);
 			}
 
 			void draw() {
@@ -1216,6 +1213,10 @@ namespace fan_2d {
 				fan::draw_2d([&] {
 					m_rv.draw();
 					m_tr.draw();
+
+					if (!m_text_visual_input.m_cursor.size()) {
+						return;
+					}
 
 					if (m_callable.size() == m_text_visual_input.m_cursor.size()) {
 						if (m_text_visual_input.m_visible[0]) {
@@ -1421,6 +1422,20 @@ namespace fan_2d {
 
 		protected:
 
+			fan::vec2 get_updated_size(uint_t i) const {
+				f_t h = this->get_lowest(this->get_font_size(i)) + this->get_highest(this->get_font_size(m_border_size.size() - 1));
+
+				if (m_new_lines.size() && m_new_lines[i]) {
+					h += fan_2d::gui::font_properties::new_line * m_tr.convert_font_size(m_tr.get_font_size(i)) * m_new_lines[i];
+				}
+
+				return fan::vec2(m_tr.get_text(i).empty() ? fan::vec2(0, h) : fan::vec2(m_tr.get_text_size(m_tr.get_text(i), m_tr.get_font_size(i)).x, h)) + m_border_size[i];
+			}
+
+			void update_box(uint_t i, bool queue = false) {			
+				m_rv.set_size(i, this->get_updated_size(i), queue);
+			}
+
 			std::function<void(uint_t i)> m_on_touch;
 			std::function<void(uint_t i)> m_on_exit;
 			std::function<void()> m_on_click;
@@ -1439,7 +1454,7 @@ namespace fan_2d {
 			struct text_visual_input {
 
 				text_visual_input(fan::camera& camera) : m_cursor(camera) {}
-				text_visual_input(fan::camera& camera, const fan::vec2& position, const fan::color& color = text_box_properties::cursor_color) 
+				text_visual_input(fan::camera& camera, const fan::mat2& position, const fan::color& color = text_box_properties::cursor_color) 
 						: m_cursor(camera, position, color) {}
 
 				fan_2d::line_vector m_cursor;

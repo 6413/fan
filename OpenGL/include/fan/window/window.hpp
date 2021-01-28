@@ -145,8 +145,6 @@ namespace fan {
 				fan::vec2i(1680, 1050),
 				fan::vec2i(1920, 1080) };
 
-			//constexpr static ;
-
 		};
 
 		// required type alias for function return types
