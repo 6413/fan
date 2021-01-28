@@ -1250,7 +1250,7 @@ LRESULT CALLBACK fan::window::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LP
 
 			for (const auto& i : window->m_scroll_callback) {
 				if (i) {
-					i(fwKeys < 0 ? fan::input::mouse_scroll_up : fan::input::mouse_scroll_down);
+					i(zDelta < 0 ? fan::input::mouse_scroll_down : fan::input::mouse_scroll_up);
 				}
 			}
 
