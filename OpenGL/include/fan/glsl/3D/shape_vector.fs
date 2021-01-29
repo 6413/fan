@@ -43,7 +43,7 @@ void main() {
 
             vec4 real = texture2D(texture_sampler, texture_coordinate);
 
-            shape_texture = test;
+            shape_texture = real;
 
 
             break;

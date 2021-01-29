@@ -3,6 +3,7 @@
 #include <iostream>
 #include <array>
 #include <vector>
+#include <sstream>
 
 typedef intptr_t si_t;
 typedef uintptr_t uint_t;
@@ -63,6 +64,14 @@ namespace fan {
 		return sizeof(T) * vector.size();
 	}
 
+	template <typename T>
+	std::wstring to_wstring(const T a_value, const int n = 2)
+	{
+		std::wostringstream out;
+		out.precision(n);
+		out << std::fixed << a_value;
+		return out.str();
+	}
 
 	enum class platform_t { windows, linux };
 

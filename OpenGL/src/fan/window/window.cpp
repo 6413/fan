@@ -283,8 +283,6 @@ void fan::window::execute(const fan::color& background_color, const std::functio
 
 	this->calculate_delta_time();
 
-	this->handle_events();
-
 	this->set_background_color(background_color);
 
 	if (function) {
@@ -310,6 +308,8 @@ void fan::window::execute(const fan::color& background_color, const std::functio
 		#endif
 		}
 	}
+
+	this->handle_events();
 }
 
 void fan::window::loop(const fan::color& background_color, const std::function<void()>& function) {
@@ -753,7 +753,7 @@ fan::window_t fan::window::get_handle() const
 uint_t fan::window::get_fps(bool window_name, bool print)
 {
 	if (!m_fps_timer.get_reset_time()) {
-		m_fps_timer = fan::timer<>(fan::timer<microseconds>::start(), 1000);
+		m_fps_timer = fan::timer<>(fan::timer<>::start(), 1000);
 	}
 
 	if (m_received_fps) {
@@ -783,6 +783,7 @@ uint_t fan::window::get_fps(bool window_name, bool print)
 		m_received_fps = true;
 		return m_fps;
 	}
+
 	m_fps++;
 	return 0;
 }
