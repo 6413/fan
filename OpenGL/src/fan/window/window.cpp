@@ -1,11 +1,12 @@
 #include <fan/window/window.hpp>
 
 #ifdef FAN_PLATFORM_WINDOWS
-// mouse move event position getter
+
 	#include <windowsx.h>
 
 	#include <mbctype.h>
 
+	#include <hidusage.h>
 
 #elif defined(FAN_PLATFORM_LINUX)
 
@@ -197,6 +198,7 @@ fan::window& fan::window::operator=(const window& window)
 	this->m_current_key = window.m_current_key;
 	this->m_reserved_flags = window.m_reserved_flags;
 	this->m_key_exceptions = window.m_key_exceptions;
+	this->m_raw_mouse_offset = window.m_raw_mouse_offset;
 
 	return *this;
 }
@@ -255,6 +257,7 @@ fan::window& fan::window::operator=(window&& window)
 	this->m_current_key = window.m_current_key;
 	this->m_reserved_flags = window.m_reserved_flags;
 	this->m_key_exceptions = std::move(window.m_key_exceptions);
+	this->m_raw_mouse_offset = std::move(window.m_raw_mouse_offset);
 
 #if defined(FAN_PLATFORM_WINDOWS)
 
@@ -298,16 +301,6 @@ void fan::window::execute(const fan::color& background_color, const std::functio
 	this->swap_buffers();
 
 	this->reset_keys();
-
-	if (flag_values::m_no_mouse && this->focused()) {
-		auto middle = this->get_position() + this->get_size() / 2;
-
-		if (get_mouse_position() != middle) {
-		#ifdef FAN_PLATFORM_WINDOWS
-			SetCursorPos(middle.x, middle.y);
-		#endif
-		}
-	}
 
 	this->handle_events();
 }
@@ -865,6 +858,11 @@ uint16_t fan::window::get_current_key() const
 	return m_current_key;
 }
 
+fan::vec2i fan::window::get_raw_mouse_offset() const
+{
+	return m_raw_mouse_offset;
+}
+
 void fan::window::window_input_action(fan::window_t window, uint16_t key) {
 
 	fan::window* fwindow;
@@ -981,6 +979,61 @@ void fan::window::window_input_action_reset(fan::window_t window, uint16_t key)
 }
 
 #ifdef FAN_PLATFORM_WINDOWS
+
+LRESULT fan::window::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
+{
+	switch (msg) {
+		case WM_ACTIVATE:
+		{
+			fan::window* fwindow = get_window_storage<fan::window*>(hwnd, "this_window");
+
+			if (!fwindow) {
+				break;
+			}
+
+			if (fwindow->m_close) {
+				break;
+			}
+
+			enum window_activation_state{
+				wa_inactive,
+				wa_active,
+				wa_click_active
+			};
+
+			switch (wparam) {
+				case window_activation_state::wa_inactive:
+				{
+					for (auto& i : fwindow->m_keys_down) {
+						i.second = false;
+					}
+
+					break;
+				}
+			}
+			
+			break;
+		}
+		case WM_SYSCOMMAND:
+		{
+			//auto fwindow = get_window_storage<fan::window*>(m_window, stringify(this_window));
+			// disable alt action for window
+			if (wparam == SC_KEYMENU && (lparam >> 16) <= 0) {
+				return 0;
+			}
+
+			break;
+		}
+		case WM_DESTROY:
+		{
+			PostQuitMessage(0);
+
+			break;
+		}
+	}
+	return DefWindowProc(hwnd, msg, wparam, lparam);
+}
+
 static void handle_special(WPARAM wparam, LPARAM lparam, uint16_t& key, bool down) {
 	if (wparam == 0x10 || wparam == 0x11) {
 		if (down) {
@@ -1036,287 +1089,6 @@ static void handle_special(WPARAM wparam, LPARAM lparam, uint16_t& key, bool dow
 		key = fan::window_input::convert_keys_to_fan(wparam);
 	}
 
-}
-#endif
-
-#ifdef FAN_PLATFORM_WINDOWS
-LRESULT CALLBACK fan::window::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
-
-	switch (msg)
-	{
-
-		case WM_MOVE:
-		{
-
-			auto window = get_window_storage<fan::window*>(hwnd, stringify(this_window));
-
-			if (!window) {
-				break;
-			}
-
-			window->m_position = fan::vec2i(
-				static_cast<int>(static_cast<short>(LOWORD(lparam))), 
-				static_cast<int>(static_cast<short>(HIWORD(lparam)))
-			);
-
-			for (const auto& i : window->m_move_callback) {
-				if (i) {
-					i();
-				}
-			}
-			
-			break;
-		}
-		case WM_SIZE:
-		{
-			auto window = get_window_storage<fan::window*>(hwnd, stringify(this_window));
-
-			if (!window) {
-				break;
-			}
-
-			RECT rect;
-			GetClientRect(hwnd, &rect);
-
-
-			window->m_previous_size = window->m_size;
-			window->m_size = fan::vec2i(rect.right - rect.left, rect.bottom - rect.top);
-			
-			glViewport(0, 0, window->m_size.x, window->m_size.y);
-
-			for (const auto& i : window->m_resize_callback) {
-				if (i) {
-					i();
-				}
-			}
-
-			break;
-		}
-		case WM_KEYDOWN:
-		{
-			uint16_t key;
-
-			handle_special(wparam, lparam, key, true);
-
-			auto fwindow = get_window_storage<fan::window*>(hwnd, stringify(this_window));
-
-			fan::window_input::get_keys(fwindow->m_keys_down, key, true);
-
-			fan::window::window_input_action(hwnd, key);
-
-			fwindow->m_current_key = key;
-			
-			for (std::size_t i = 0; i < fwindow->m_key_exceptions.size(); i++) {
-				if (key == fwindow->m_key_exceptions[i]) {
-					if (fwindow->m_keys_callback) {
-						fwindow->m_keys_callback(key);
-						break;
-					}
-				}
-
-			}
-
-			break;
-		}
-		case WM_CHAR:
-		{
-
-			auto fwindow = get_window_storage<fan::window*>(hwnd, stringify(this_window));
-
-			if (wparam < 8) {
-				fwindow->m_reserved_flags |= wparam;
-			}
-			else {
-				
-				auto fkey = fan::window_input::convert_keys_to_fan((wparam + (fwindow->m_reserved_flags << 8)));
-
-				for (std::size_t i = 0; i < fwindow->m_key_exceptions.size(); i++) {
-					if (fkey == fwindow->m_key_exceptions[i]) {
-						return DefWindowProc(hwnd, msg, wparam, lparam);
-					}
-				}
-
-				if (fwindow->m_keys_callback) {
-					fwindow->m_keys_callback(wparam + (fwindow->m_reserved_flags << 8));
-					fwindow->m_reserved_flags = 0;
-				}
-
-			}
-
-			break;
-		}
-		case WM_LBUTTONDOWN:
-		{
-			const uint16_t key = fan::input::mouse_left;
-
-			fan::window::window_input_mouse_action(hwnd, key);
-
-			break;
-		}
-		case WM_RBUTTONDOWN:
-		{
-			const uint16_t key = fan::input::mouse_right;
-
-			fan::window::window_input_mouse_action(hwnd, key);
-
-			break;
-		}
-		case WM_MBUTTONDOWN:
-		{
-			const uint16_t key = fan::input::mouse_middle;
-
-			fan::window::window_input_mouse_action(hwnd, key);
-
-			break;
-		}
-
-		case WM_LBUTTONUP:
-		{
-			const uint16_t key = fan::input::mouse_left;
-
-			window_input_up(hwnd, key);
-
-			break;
-		}
-		case WM_RBUTTONUP:
-		{
-			const uint16_t key = fan::input::mouse_right;
-
-			window_input_up(hwnd, key);
-
-			break;
-		}
-		case WM_MBUTTONUP:
-		{
-			const uint16_t key = fan::input::mouse_middle;
-
-			window_input_up(hwnd, key);
-
-			break;
-		}
-
-		case WM_KEYUP:
-		{
-			uint16_t key = 0;
-
-			handle_special(wparam, lparam, key, false);
-
-			window_input_up(hwnd, key);
-
-			break;
-		}
-		case WM_MOUSEMOVE:
-		{
-
-			const fan::vec2i position(GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam));
-
-			static auto offset = 0;
-
-			auto window = get_window_storage<fan::window*>(hwnd, stringify(this_window));
-
-			if (fan::window::flag_values::m_no_mouse) {
-				POINT p = { window->m_position.x + window->m_size.x / 2,  window->m_position.y + window->m_size.y / 2 };
-				ScreenToClient(hwnd, &p);
-
-				window->m_mouse_position += -(fan::vec2i(p.x, p.y) - position);
-			}
-			else {
-				window->m_mouse_position = position;
-			}
-
-			for (const auto& i : window->m_mouse_move_position_callback) {
-				if (i) {
-					i(window->m_mouse_position);
-				}
-			}
-
-			for (const auto& i : window->m_mouse_move_callback) {
-				if (i) {
-					i();
-				}
-			}
-
-			break;
-		}
-		case WM_MOUSEWHEEL:
-		{
-			auto fwKeys = GET_KEYSTATE_WPARAM(wparam);
-			auto zDelta = GET_WHEEL_DELTA_WPARAM(wparam);
-
-			auto window = get_window_storage<fan::window*>(hwnd, stringify(this_window));
-
-			fan::window_input::get_keys(window->m_keys_down, zDelta < 0 ? fan::input::mouse_scroll_down : fan::input::mouse_scroll_up, true);
-
-			fan::window::window_input_mouse_action(hwnd, zDelta < 0 ? fan::input::mouse_scroll_down : fan::input::mouse_scroll_up);
-
-			for (const auto& i : window->m_scroll_callback) {
-				if (i) {
-					i(zDelta < 0 ? fan::input::mouse_scroll_down : fan::input::mouse_scroll_up);
-				}
-			}
-
-			break;
-		}
-		case WM_ACTIVATE:
-		{
-			auto window = get_window_storage<fan::window*>(hwnd, stringify(this_window));
-
-			if (!window) {
-				break;
-			}
-
-			if (window->m_close) {
-				break;
-			}
-
-			enum window_activation_state{
-				wa_inactive,
-				wa_active,
-				wa_click_active
-			};
-
-			switch (wparam) {
-				case window_activation_state::wa_inactive:
-				{
-					for (auto& i : window->m_keys_down) {
-						i.second = false;
-					}
-
-					break;
-				}
-			}
-			
-			break;
-		}
-		case WM_SYSCOMMAND:
-		{
-			// disable alt action for window
-			if (wparam == SC_KEYMENU && (lparam >> 16) <= 0) {
-				return 0;
-			}
-
-			break;
-		}
-		case WM_CLOSE:
-		{
-			auto window = get_window_storage<fan::window*>(hwnd, stringify(this_window));
-
-			for (int i = 0; i < window->m_close_callback.size(); i++) {
-				if (window->m_close_callback[i]) {
-					window->m_close_callback[i]();
-				}
-			}
-
-			break;
-		}
-		case WM_DESTROY:
-		{
-			PostQuitMessage(0);
-			break;
-		}
-	};
-
-	return DefWindowProc(hwnd, msg, wparam, lparam);
 }
 #endif
 
@@ -1443,7 +1215,7 @@ void fan::window::initialize_window(const std::string& name, const fan::vec2i& w
 	const char* class_name = str.c_str();
 	wc.lpszClassName = class_name;
 
-	wc.lpfnWndProc = window_proc;
+	wc.lpfnWndProc = fan::window::window_proc;
 
 	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
 
@@ -1475,11 +1247,17 @@ void fan::window::initialize_window(const std::string& name, const fan::vec2i& w
 		exit(1);
 	}
 
-	if (flag_values::m_no_mouse) {
-		ShowCursor(false);
-	}
-	else {
-		ShowCursor(true);
+	RAWINPUTDEVICE r_id;
+	r_id.usUsagePage  = HID_USAGE_PAGE_GENERIC; 
+	r_id.usUsage      = HID_USAGE_GENERIC_MOUSE;
+	r_id.dwFlags      = RIDEV_INPUTSINK;   
+	r_id.hwndTarget   = m_window;  
+
+	BOOL result = RegisterRawInputDevices(&r_id, 1, sizeof(r_id));
+
+	if (!result) {
+		fan::print("failed to register raw input:", result);
+		exit(1);
 	}
 
 	m_hdc = GetDC(m_window);
@@ -1530,6 +1308,7 @@ void fan::window::initialize_window(const std::string& name, const fan::vec2i& w
     };
 
     m_context = wglCreateContextAttribsARB(m_hdc, 0, gl_attributes);
+
     if (!m_context) {
 		fan::print("failed to create context");
 		exit(1);
@@ -1552,9 +1331,11 @@ void fan::window::initialize_window(const std::string& name, const fan::vec2i& w
 		initialized = true;
 	}
 
-	m_position = position;
-
-	m_previous_size = m_size;
+	ShowCursor(!flag_values::m_no_mouse);
+	if (flag_values::m_no_mouse) {
+		auto middle = this->get_position() + this->get_size() / 2;
+		SetCursorPos(middle.x, middle.y);
+	}
 
 #elif defined(FAN_PLATFORM_LINUX)
 
@@ -1729,6 +1510,10 @@ void fan::window::initialize_window(const std::string& name, const fan::vec2i& w
 
 #endif
 
+	m_position = position;
+
+	m_previous_size = m_size;
+
 	for (int i = 0; i != fan::input::last; ++i) {
 		m_keys_down[i] = false;
 	}
@@ -1752,10 +1537,307 @@ void fan::window::handle_events() {
 
 	while (PeekMessageW(&msg, 0, 0, 0, PM_REMOVE))
 	{
-		if (msg.message == WM_QUIT)
-		{
-			fan::window::close();
-			return;
+
+		switch (msg.message) {
+
+			case WM_MOVE:
+			{
+
+				if (!this->m_window) {
+					break;
+				}
+
+				this->m_position = fan::vec2i(
+					static_cast<int>(static_cast<short>(LOWORD(msg.lParam))), 
+					static_cast<int>(static_cast<short>(HIWORD(msg.lParam)))
+				);
+
+				for (const auto& i : this->m_move_callback) {
+					if (i) {
+						i();
+					}
+				}
+			
+				break;
+			}
+			case WM_SIZE:
+			{
+				if (!this->m_window) {
+					break;
+				}
+
+				RECT rect;
+				GetClientRect(m_window, &rect);
+
+
+				this->m_previous_size = this->m_size;
+				this->m_size = fan::vec2i(rect.right - rect.left, rect.bottom - rect.top);
+			
+				glViewport(0, 0, this->m_size.x, this->m_size.y);
+
+				for (const auto& i : this->m_resize_callback) {
+					if (i) {
+						i();
+					}
+				}
+
+				break;
+			}
+			case WM_KEYDOWN:
+			{
+				uint16_t key;
+
+				handle_special(msg.wParam, msg.lParam, key, true);
+
+				fan::window_input::get_keys(this->m_keys_down, key, true);
+
+				fan::window::window_input_action(m_window, key);
+
+				this->m_current_key = key;
+			
+				for (std::size_t i = 0; i < this->m_key_exceptions.size(); i++) {
+					if (key == this->m_key_exceptions[i]) {
+						if (this->m_keys_callback) {
+							this->m_keys_callback(key);
+							break;
+						}
+					}
+
+				}
+
+				break;
+			}
+			case WM_CHAR:
+			{
+
+				if (msg.wParam < 8) {
+					this->m_reserved_flags |= msg.wParam;
+				}
+				else {
+				
+					auto fkey = fan::window_input::convert_keys_to_fan((msg.wParam + (this->m_reserved_flags << 8)));
+
+					for (std::size_t i = 0; i < this->m_key_exceptions.size(); i++) {
+						if (fkey == this->m_key_exceptions[i]) {
+							TranslateMessage(&msg);
+							DispatchMessage(&msg);
+							continue;
+						}
+					}
+
+					if (this->m_keys_callback) {
+						this->m_keys_callback(msg.wParam + (this->m_reserved_flags << 8));
+						this->m_reserved_flags = 0;
+					}
+
+				}
+
+				break;
+			}
+			case WM_LBUTTONDOWN:
+			{
+				const uint16_t key = fan::input::mouse_left;
+
+				fan::window::window_input_mouse_action(m_window, key);
+
+				break;
+			}
+			case WM_RBUTTONDOWN:
+			{
+				const uint16_t key = fan::input::mouse_right;
+
+				fan::window::window_input_mouse_action(m_window, key);
+
+				break;
+			}
+			case WM_MBUTTONDOWN:
+			{
+				const uint16_t key = fan::input::mouse_middle;
+
+				fan::window::window_input_mouse_action(m_window, key);
+
+				break;
+			}
+			case WM_LBUTTONUP:
+			{
+				const uint16_t key = fan::input::mouse_left;
+
+				window_input_up(m_window, key);
+
+				break;
+			}
+			case WM_RBUTTONUP:
+			{
+				const uint16_t key = fan::input::mouse_right;
+
+				window_input_up(m_window, key);
+
+				break;
+			}
+			case WM_MBUTTONUP:
+			{
+				const uint16_t key = fan::input::mouse_middle;
+
+				window_input_up(m_window, key);
+
+				break;
+			}
+			case WM_KEYUP:
+			{
+				uint16_t key = 0;
+
+				handle_special(msg.wParam, msg.lParam, key, false);
+
+				window_input_up(m_window, key);
+
+				break;
+			}
+			case WM_MOUSEWHEEL:
+			{
+				/*auto fwKeys = GET_KEYSTATE_msg.wParam(msg.wParam);
+				auto zDelta = GET_WHEEL_DELTA_msg.wParam(msg.wParam);
+
+				auto window = get_window_storage<fan::window*>(m_window, stringify(this_window));
+
+				fan::window_input::get_keys(window->m_keys_down, zDelta < 0 ? fan::input::mouse_scroll_down : fan::input::mouse_scroll_up, true);
+
+				fan::window::window_input_mouse_action(m_window, zDelta < 0 ? fan::input::mouse_scroll_down : fan::input::mouse_scroll_up);
+
+				for (const auto& i : window->m_scroll_callback) {
+					if (i) {
+						i(zDelta < 0 ? fan::input::mouse_scroll_down : fan::input::mouse_scroll_up);
+					}
+				}*/
+
+				break;
+			}
+			case WM_QUIT:
+			{
+
+				if (key_press(fan::key_f4) && key_press(fan::key_left)) {
+					break;
+				}
+
+				for (int i = 0; i < this->m_close_callback.size(); i++) {
+					if (this->m_close_callback[i]) {
+						this->m_close_callback[i]();
+					}
+				}
+
+				fan::window::close();
+				return;
+			}
+			case WM_INPUT:
+			{
+				UINT size = sizeof(RAWINPUT);
+				BYTE data[sizeof(RAWINPUT)];
+
+				GetRawInputData((HRAWINPUT)msg.lParam, RID_INPUT, data, &size, sizeof(RAWINPUTHEADER));
+
+				RAWINPUT* raw = (RAWINPUT*)data;
+
+				static bool allow_outside = false;
+
+				const auto cursor_in_range = [] (const fan::vec2i& position, const fan::vec2& window_size) {
+					return position.x >= 0 && position.x < window_size.x &&
+							position.y >= 0 && position.y < window_size.y;
+				};
+
+				if (raw->header.dwType == RIM_TYPEMOUSE) 
+				{
+
+					const auto get_cursor_position = [=] {
+						POINT p;
+						GetCursorPos(&p);
+						ScreenToClient(m_window, &p);
+
+						return fan::vec2i(p.x, p.y);
+					};
+
+					if (fan::is_flag(raw->data.mouse.usButtonFlags, RI_MOUSE_LEFT_BUTTON_DOWN) ||
+					    fan::is_flag(raw->data.mouse.usButtonFlags, RI_MOUSE_MIDDLE_BUTTON_DOWN) ||
+						fan::is_flag(raw->data.mouse.usButtonFlags, RI_MOUSE_RIGHT_BUTTON_DOWN)
+					) {
+
+						const fan::vec2i position(get_cursor_position());
+
+						if (cursor_in_range(position, this->get_size())) {
+							allow_outside = true;
+						}
+					}
+
+					else if (fan::is_flag(raw->data.mouse.usButtonFlags, RI_MOUSE_LEFT_BUTTON_UP)) {
+
+						window_input_up(m_window, fan::input::mouse_left); allow_outside = false;
+					}
+
+					else if (fan::is_flag(raw->data.mouse.usButtonFlags, RI_MOUSE_MIDDLE_BUTTON_UP)) {
+
+						window_input_up(m_window, fan::input::mouse_middle); allow_outside = false;
+					}
+
+					else if (fan::is_flag(raw->data.mouse.usButtonFlags, RI_MOUSE_RIGHT_BUTTON_UP)) {
+
+						window_input_up(m_window, fan::input::mouse_right); allow_outside = false;
+					}
+
+					else if ((raw->data.mouse.usFlags & MOUSE_MOVE_RELATIVE) == MOUSE_MOVE_RELATIVE) {
+
+						if (!this->focused()) {
+							break;
+						}
+
+						const fan::vec2i position(get_cursor_position());
+
+						m_raw_mouse_offset = fan::vec2i(raw->data.mouse.lLastX, raw->data.mouse.lLastY);
+
+						if ((!cursor_in_range(position, this->get_size()) && !allow_outside)) {
+							break;
+						}
+
+						if (fan::window::flag_values::m_no_mouse) {
+							RECT rect;
+							GetClientRect(m_window, &rect);
+
+							POINT ul;
+							ul.x = rect.left;
+							ul.y = rect.top;
+
+							POINT lr;
+							lr.x = rect.right;
+							lr.y = rect.bottom;
+
+							MapWindowPoints(m_window, nullptr, &ul, 1);
+							MapWindowPoints(m_window, nullptr, &lr, 1);
+
+							rect.left = ul.x;
+							rect.top = ul.y;
+
+							rect.right = lr.x;
+							rect.bottom = lr.y;
+
+							ClipCursor(&rect);
+						}
+						else {
+							this->m_mouse_position = position;
+						}
+
+						for (const auto& i : m_mouse_move_position_callback) {
+							if (i) {
+								i(m_mouse_position);
+							}
+						}
+
+						for (const auto& i : m_mouse_move_callback) {
+							if (i) {
+								i();
+							}
+						}
+					}
+
+				} 
+				break;
+			}
 		}
 
 		TranslateMessage(&msg);

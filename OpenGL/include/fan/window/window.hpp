@@ -320,6 +320,8 @@ namespace fan {
 
 		uint16_t get_current_key() const;
 	
+		fan::vec2i get_raw_mouse_offset() const;
+
 	private:
 
 		using keymap_t = std::unordered_map<uint16_t, bool>;
@@ -405,6 +407,8 @@ namespace fan {
 
 		uint16_t m_current_key;
 		uint64_t m_reserved_flags;
+
+		fan::vec2i m_raw_mouse_offset;
 
 		std::vector<fan::input> m_key_exceptions{
 			fan::key_left,

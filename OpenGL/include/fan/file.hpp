@@ -167,11 +167,11 @@ namespace fan {
 						((fan::vec2::type*)&font_info)[i] = value_info.value;
 					}
 					font_info_vector[character] = font_info;
-					if (flowest > font_info.m_offset.y) {
+					if (flowest < font_info.m_offset.y) {
 						flowest = font_info.m_offset.y;
 						lowest = character;
 					}
-					if (fhighest < font_info.m_offset.y) {
+					if (fhighest > font_info.m_offset.y) {
 						fhighest = font_info.m_offset.y;
 						highest = character;
 					}
