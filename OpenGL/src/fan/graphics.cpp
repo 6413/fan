@@ -128,16 +128,8 @@ void fan::camera::rotate_camera(bool when) // this->updateCameraVectors(); move 
 		return;
 	}
 
-	static f32_t lastX = 0, lastY = 0;
-
-	f32_t xpos = m_window.get_mouse_position().x;
-	f32_t ypos = m_window.get_mouse_position().y;
-
-	f32_t xoffset = xpos - lastX;
-	f32_t yoffset = lastY - ypos;
-
-	lastX = xpos;
-	lastY = ypos;
+	f32_t xoffset = m_window.get_raw_mouse_offset().x;
+	f32_t yoffset = -m_window.get_raw_mouse_offset().y;
 
 	xoffset *= sensitivity;
 	yoffset *= sensitivity;
@@ -4123,4 +4115,14 @@ fan::vec3 fan_3d::line_plane_intersection(const fan::da_t<f32_t, 2, 3>& line, co
 		return intersection;
 	}
 	return fan::vec3(INFINITY);
+}
+
+void fan::depth_test(bool value)
+{
+	if (value) {
+		glEnable(GL_DEPTH_TEST);
+	}
+	else {
+		glDisable(GL_DEPTH_TEST);
+	}
 }

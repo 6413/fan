@@ -518,27 +518,27 @@ namespace fan_2d {
 	fan::mat4 get_view_translation(const fan::vec2i& window_size, const fan::mat4& view);
 
 	namespace shader_paths {
-		constexpr auto text_renderer_vs("include/fan/glsl/2D/text.vs");
-		constexpr auto text_renderer_fs("include/fan/glsl/2D/text.fs");
+		constexpr auto text_renderer_vs("glsl/2D/text.vs");
+		constexpr auto text_renderer_fs("glsl/2D/text.fs");
 
-		constexpr auto single_shapes_vs("include/fan/glsl/2D/shapes.vs");
-		constexpr auto single_shapes_fs("include/fan/glsl/2D/shapes.fs");
+		constexpr auto single_shapes_vs("glsl/2D/shapes.vs");
+		constexpr auto single_shapes_fs("glsl/2D/shapes.fs");
 
-		constexpr auto single_shapes_bloom_vs("include/fan/glsl/2D/bloom.vs");
-		constexpr auto single_shapes_bloom_fs("include/fan/glsl/2D/bloom.fs");
-		constexpr auto single_shapes_blur_vs("include/fan/glsl/2D/blur.vs");
-		constexpr auto single_shapes_blur_fs("include/fan/glsl/2D/blur.fs");
+		constexpr auto single_shapes_bloom_vs("glsl/2D/bloom.vs");
+		constexpr auto single_shapes_bloom_fs("glsl/2D/bloom.fs");
+		constexpr auto single_shapes_blur_vs("glsl/2D/blur.vs");
+		constexpr auto single_shapes_blur_fs("glsl/2D/blur.fs");
 
-		constexpr auto single_shapes_bloom_final_vs("include/fan/glsl/2D/bloom_final.vs");
-		constexpr auto single_shapes_bloom_final_fs("include/fan/glsl/2D/bloom_final.fs");
+		constexpr auto single_shapes_bloom_final_vs("glsl/2D/bloom_final.vs");
+		constexpr auto single_shapes_bloom_final_fs("glsl/2D/bloom_final.fs");
 
-		constexpr auto single_sprite_vs("include/fan/glsl/2D/sprite.vs");
-		constexpr auto single_sprite_fs("include/fan/glsl/2D/sprite.fs");
+		constexpr auto single_sprite_vs("glsl/2D/sprite.vs");
+		constexpr auto single_sprite_fs("glsl/2D/sprite.fs");
 
-		constexpr auto shape_vector_vs("include/fan/glsl/2D/shape_vector.vs");
-		constexpr auto shape_vector_fs("include/fan/glsl/2D/shapes.fs");
-		constexpr auto sprite_vector_vs("include/fan/glsl/2D/sprite_vector.vs");
-		constexpr auto sprite_vector_fs("include/fan/glsl/2D/sprite_vector.fs");
+		constexpr auto shape_vector_vs("glsl/2D/shape_vector.vs");
+		constexpr auto shape_vector_fs("glsl/2D/shapes.fs");
+		constexpr auto sprite_vector_vs("glsl/2D/sprite_vector.vs");
+		constexpr auto sprite_vector_fs("glsl/2D/sprite_vector.fs");
 	}
 
 	// returns how much object moved
@@ -1135,7 +1135,12 @@ namespace fan_2d {
 						x = 0;
 						y += fan_2d::gui::font_properties::get_new_line(m_tr.convert_font_size(m_tr.get_font_size(i)));
 					}
-					x += m_tr.m_font_info.m_font.find(str[j])->second.m_advance * converted;
+
+					auto found = m_tr.m_font_info.m_font.find(str[j]);
+					if (found != m_tr.m_font_info.m_font.end()) {
+						x += found->second.m_advance * converted;
+					}
+
 				}
 
 				const fan::vec2 position(this->get_position(i));
@@ -1494,17 +1499,17 @@ namespace fan_2d {
 
 		};
 
-		template <typename T>
 		class slider : public text_box {
 		public:
 
-			slider(fan::camera& camera, T min, T max, f_t font_size, const fan::vec2& position, const fan::color& slider_color, const fan::color& box_color, const fan::vec2& border_size, const fan::color& text_color = fan::colors::white)
+			slider(fan::camera& camera, f_t min, f_t max, f_t font_size, const fan::vec2& position, const fan::color& slider_color, const fan::color& box_color, const fan::vec2& border_size, const fan::color& text_color = fan::colors::white)
 				: text_box(camera, fan::to_wstring(min), font_size, position, box_color, border_size, text_color) 
 			{
 				const auto size(text_box::m_rv.get_size(text_box::m_rv.size() - 1));
 
 				m_min.push_back(min);
 				m_max.push_back(max);
+				m_value.push_back(0);
 
 				text_box::m_rv.push_back(position + 5, fan::vec2(size.x / 20, size.y - 5 * 2), slider_color);
 
@@ -1512,9 +1517,17 @@ namespace fan_2d {
 
 			}
 
+			f_t get_value(uint_t i) const {
+				return m_value[i];
+			}
+
+			void set_value(uint_t i, f_t value) {
+				m_value[i] = value;
+			}
+
 			void move()	{
 				const bool left_press = m_rv.m_camera.m_window.key_press(fan::mouse_left);
-				
+
 				for (uint_t i = 1; i < m_rv.size(); i += 2) {
 					if (m_rv.inside(i >> 1) && left_press) {
 						m_moving[i >> 1] = true;
@@ -1536,7 +1549,10 @@ namespace fan_2d {
 
 						m_rv.set_position(i, fan::vec2(slider_position, position.y + 5));
 
-						text_box::set_text(i >> 1, fan::to_wstring(((n - min) / (max - min)) * (m_max[i >> i] - m_min[i >> 1]) + m_min[i >> 1]));
+						this->set_value(i >> 1, ((n - min) / (max - min)) * (m_max[i >> i] - m_min[i >> 1]) + m_min[i >> 1]);
+
+						m_tr.set_text(i >> 1, fan::to_wstring(this->get_value(i >> 1)));
+
 					}
 				}
 			}
@@ -1544,8 +1560,9 @@ namespace fan_2d {
 		private:
 
 			std::vector<bool> m_moving;
-			std::vector<T> m_min;
-			std::vector<T> m_max;
+			std::vector<f_t> m_min;
+			std::vector<f_t> m_value;
+			std::vector<f_t> m_max;
 
 		};
 
@@ -1555,22 +1572,22 @@ namespace fan_2d {
 namespace fan_3d {
 
 	namespace shader_paths {
-		constexpr auto triangle_vector_vs("include/fan/glsl/3D/terrain_generator.vs");
-		constexpr auto triangle_vector_fs("include/fan/glsl/3D/terrain_generator.fs");
+		constexpr auto triangle_vector_vs("glsl/3D/terrain_generator.vs");
+		constexpr auto triangle_vector_fs("glsl/3D/terrain_generator.fs");
 
-		constexpr auto shape_vector_vs("include/fan/glsl/3D/shape_vector.vs");
-		constexpr auto shape_vector_fs("include/fan/glsl/3D/shape_vector.fs");
+		constexpr auto shape_vector_vs("glsl/3D/shape_vector.vs");
+		constexpr auto shape_vector_fs("glsl/3D/shape_vector.fs");
 
-		constexpr auto model_vs("include/fan/glsl/3D/models.vs");
-		constexpr auto model_fs("include/fan/glsl/3D/models.fs");
+		constexpr auto model_vs("glsl/3D/models.vs");
+		constexpr auto model_fs("glsl/3D/models.fs");
 
-		constexpr auto animation_vs("include/fan/glsl/3D/animation.vs");
-		constexpr auto animation_fs("include/fan/glsl/3D/animation.fs");
+		constexpr auto animation_vs("glsl/3D/animation.vs");
+		constexpr auto animation_fs("glsl/3D/animation.fs");
 
-		constexpr auto skybox_vs("include/fan/glsl/3D/skybox.vs");
-		constexpr auto skybox_fs("include/fan/glsl/3D/skybox.fs");
-		constexpr auto skybox_model_vs("include/fan/glsl/3D/skybox_model.vs");
-		constexpr auto skybox_model_fs("include/fan/glsl/3D/skybox_model.fs");
+		constexpr auto skybox_vs("glsl/3D/skybox.vs");
+		constexpr auto skybox_fs("glsl/3D/skybox.fs");
+		constexpr auto skybox_model_vs("glsl/3D/skybox_model.vs");
+		constexpr auto skybox_model_fs("glsl/3D/skybox_model.fs");
 	}
 
 	void add_camera_rotation_callback(fan::camera& camera);
@@ -1928,4 +1945,7 @@ namespace fan {
 		fan::grid_raycast_s<fan::vec3> raycast = { grid_direction(end, start), start, fan::vec3() }; \
 		if (!(start == end)) \
 			while(grid_raycast_single(raycast, block_size))
+
+	void depth_test(bool value);
+
 }

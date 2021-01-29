@@ -73,6 +73,11 @@ namespace fan {
 		return out.str();
 	}
 
+	template <typename T, typename T2>
+	constexpr bool is_flag(T value, T2 flag) {
+		return (value & flag) == flag;
+	}
+
 	enum class platform_t { windows, linux };
 
 	#if defined(_WIN32) || defined(_WIN64)
