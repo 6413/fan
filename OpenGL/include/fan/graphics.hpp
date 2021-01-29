@@ -63,7 +63,7 @@ namespace fan {
 
 		void update_view();
 
-		static constexpr f_t sensitivity = 0.05f;
+		static constexpr f_t sensitivity = 0.1;
 
 		static constexpr f_t max_yaw = 180;
 		static constexpr f_t max_pitch = 89;
@@ -416,8 +416,6 @@ namespace fan {
 
 		fan::shader m_shader;
 
-		fan::window& m_window;
-
 	};
 
 	template <typename _Vector>
@@ -442,7 +440,7 @@ namespace fan {
 		void erase(uint_t i, bool queue = false);
 		void erase(uint_t begin, uint_t end, bool queue = false);
 
-		fan::window& m_window;
+		fan::camera& m_camera;
 
 	protected:
 
@@ -455,8 +453,6 @@ namespace fan {
 		void basic_draw(unsigned int mode, uint_t count) const;
 
 		fan::shader m_shader;
-
-		fan::camera& m_camera;
 
 	};
 
@@ -991,6 +987,9 @@ namespace fan_2d {
 			f_t get_lowest(f_t font_size) const;
 			f_t get_highest(f_t font_size) const;
 
+			f_t get_highest_size(f_t font_size) const;
+			f_t get_lowest_size(f_t font_size) const;
+
 			// i = string[i], j = string[i][j] (fan::fstring::value_type)
 			fan::color get_color(uint_t i, uint_t j = 0) const;
 
@@ -1008,7 +1007,7 @@ namespace fan_2d {
 
 			uint_t size() const;
 
-			std::unordered_map<uint16_t, fan::io::file::font_t> m_font;
+			fan::io::file::font_info m_font_info;
 
 			fan::camera& m_camera;
 
@@ -1042,7 +1041,6 @@ namespace fan_2d {
 
 			uint32_t m_letter_ssbo;
 			
-			f_t m_original_font_size;
 			fan::vec2ui m_original_image_size;
 
 			std::vector<fan::fstring> m_text;
@@ -1052,8 +1050,6 @@ namespace fan_2d {
 			std::vector<std::vector<f32_t>> m_font_size;
 			std::vector<std::vector<fan::vec2>> m_vertices;
 			std::vector<std::vector<fan::vec2>> m_texture_coordinates;
-
-			fan::window& m_window;
 
 		};
 
@@ -1068,7 +1064,7 @@ namespace fan_2d {
 		class basic_text_box {
 		public:
 
-			basic_text_box(fan::camera& camera, const fan::fstring& text, const fan::vec2& position, const fan::color& text_color, f_t font_size);
+			basic_text_box(fan::camera& camera, const fan::fstring& text, f_t font_size, const fan::vec2& position, const fan::color& text_color);
 
 			void set_input_callback(uint_t i) {
 
@@ -1139,7 +1135,7 @@ namespace fan_2d {
 						x = 0;
 						y += fan_2d::gui::font_properties::get_new_line(m_tr.convert_font_size(m_tr.get_font_size(i)));
 					}
-					x += m_tr.m_font.find(str[j])->second.m_advance * converted;
+					x += m_tr.m_font_info.m_font.find(str[j])->second.m_advance * converted;
 				}
 
 				const fan::vec2 position(this->get_position(i));
@@ -1156,6 +1152,10 @@ namespace fan_2d {
 			}
 
 			void update_cursor_position(uint_t i) {
+				if (i >= m_text_visual_input.m_cursor.size()) {
+					return;
+				}
+
 				m_text_visual_input.m_cursor.set_position(i, this->get_cursor_position(i, 0, this->get_text(i).size() + m_text_input.m_offset[i]));
 			}
 
@@ -1195,6 +1195,10 @@ namespace fan_2d {
 			void set_font_size(uint_t i, f_t font_size, bool queue = false) {
 				m_tr.set_font_size(i, font_size);
 
+				auto h = (std::abs(this->get_highest(get_font_size(i)) - this->get_lowest(get_font_size(i)))) * 0.5;
+
+				m_tr.set_position(i, fan::vec2(m_rv.get_position(i).x + m_border_size[i].x * 0.5, m_rv.get_position(i).y + h + m_border_size[i].y * 0.5));
+
 				update_box(i, queue);
 
 				update_cursor_position(i);
@@ -1202,7 +1206,7 @@ namespace fan_2d {
 
 			void draw() {
 
-				for (int i = 0; i < m_text_visual_input.m_cursor.size(); i++) {
+				for (uint_t i = 0; i < m_text_visual_input.m_cursor.size(); i++) {
 
 					if (m_text_visual_input.m_timer[i].finished()) {
 						m_text_visual_input.m_visible[i] = !m_text_visual_input.m_visible[i];
@@ -1224,7 +1228,7 @@ namespace fan_2d {
 						}	
 					}
 					else { // in case we dont want to draw input for some window
-						for (int i = 0; i < m_callable.size(); i++) {
+						for (std::size_t i = 0; i < m_callable.size(); i++) {
 							if (m_text_visual_input.m_visible[i]) {
 								m_text_visual_input.m_cursor.draw(i);
 							}
@@ -1344,6 +1348,7 @@ namespace fan_2d {
 						if (m_text_input.m_str[i].size()) {
 							if (m_text_input.m_str[i][m_text_input.m_str[i].size() + m_text_input.m_offset[i] - 1] == '\n') {
 								m_new_lines[i]--;
+								m_current_cursor_line[i]--;
 							}
 
 							m_text_input.m_str[i].erase(m_text_input.m_str[i].end() + m_text_input.m_offset[i] - 1);
@@ -1423,13 +1428,13 @@ namespace fan_2d {
 		protected:
 
 			fan::vec2 get_updated_size(uint_t i) const {
-				f_t h = this->get_lowest(this->get_font_size(i)) + this->get_highest(this->get_font_size(m_border_size.size() - 1));
+				f_t h = get_font_size(i) + (std::abs(this->get_highest(get_font_size(i)) - this->get_lowest(get_font_size(i))));
 
 				if (m_new_lines.size() && m_new_lines[i]) {
 					h += fan_2d::gui::font_properties::new_line * m_tr.convert_font_size(m_tr.get_font_size(i)) * m_new_lines[i];
 				}
 
-				return fan::vec2(m_tr.get_text(i).empty() ? fan::vec2(0, h) : fan::vec2(m_tr.get_text_size(m_tr.get_text(i), m_tr.get_font_size(i)).x, h)) + m_border_size[i];
+				return (m_tr.get_text(i).empty() ? fan::vec2(0, h) : fan::vec2(m_tr.get_text_size(m_tr.get_text(i), m_tr.get_font_size(i)).x, h)) + m_border_size[i];
 			}
 
 			void update_box(uint_t i, bool queue = false) {			
@@ -1443,8 +1448,8 @@ namespace fan_2d {
 
 			std::vector<fan::vec2> m_border_size;
 
-			T m_rv;
 			fan_2d::gui::text_renderer m_tr;
+			T m_rv;
 
 			struct text_input {
 				std::vector<int64_t> m_offset;
@@ -1486,6 +1491,61 @@ namespace fan_2d {
 			rounded_text_box(fan::camera& camera, const fan::fstring& text, f_t font_size, const fan::vec2& position, const fan::color& box_color, const fan::vec2& border_size, f_t radius, const fan::color& text_color = fan::colors::white);
 
 			void push_back(const fan::fstring& text, f_t font_size, const fan::vec2& position, const fan::color& box_color, const fan::vec2& border_size, f_t radius, const fan::color& text_color = fan::colors::white);
+
+		};
+
+		template <typename T>
+		class slider : public text_box {
+		public:
+
+			slider(fan::camera& camera, T min, T max, f_t font_size, const fan::vec2& position, const fan::color& slider_color, const fan::color& box_color, const fan::vec2& border_size, const fan::color& text_color = fan::colors::white)
+				: text_box(camera, fan::to_wstring(min), font_size, position, box_color, border_size, text_color) 
+			{
+				const auto size(text_box::m_rv.get_size(text_box::m_rv.size() - 1));
+
+				m_min.push_back(min);
+				m_max.push_back(max);
+
+				text_box::m_rv.push_back(position + 5, fan::vec2(size.x / 20, size.y - 5 * 2), slider_color);
+
+				m_moving.resize(m_moving.size() + 1);
+
+			}
+
+			void move()	{
+				const bool left_press = m_rv.m_camera.m_window.key_press(fan::mouse_left);
+				
+				for (uint_t i = 1; i < m_rv.size(); i += 2) {
+					if (m_rv.inside(i >> 1) && left_press) {
+						m_moving[i >> 1] = true;
+					}
+					else if (!left_press) {
+						m_moving[i >> 1] = false;
+					}
+					if (m_moving[i >> 1]) {
+						const auto mouse_position(m_tr.m_camera.m_window.get_mouse_position());
+						const auto s_size(m_rv.get_size(i));
+						const auto b_size(m_rv.get_size(i >> 1));
+						const auto position(m_rv.get_position(i >> 1));
+
+						auto slider_position = std::clamp((mouse_position.x - s_size.x * 0.5), f_t(position.x + 5), f_t(position.x + b_size.x - s_size.x - 5));
+
+						auto min = position.x + 5;
+						auto max = position.x + b_size.x - s_size.x - 5;
+						auto n = slider_position;
+
+						m_rv.set_position(i, fan::vec2(slider_position, position.y + 5));
+
+						text_box::set_text(i >> 1, fan::to_wstring(((n - min) / (max - min)) * (m_max[i >> i] - m_min[i >> 1]) + m_min[i >> 1]));
+					}
+				}
+			}
+
+		private:
+
+			std::vector<bool> m_moving;
+			std::vector<T> m_min;
+			std::vector<T> m_max;
 
 		};
 
@@ -1560,7 +1620,7 @@ namespace fan_3d {
 
 		uint_t size();
 
-		fan::window& m_window;
+		fan::camera& m_camera;
 
 	private:
 
@@ -1579,8 +1639,6 @@ namespace fan_3d {
 		std::vector<triangle_vertices_t> m_triangle_vertices;
 		std::vector<unsigned int> m_indices;
 		static constexpr auto m_vertice_size = sizeof(triangle_vertices_t);
-
-		fan::camera& m_camera;
 
 	};
 
@@ -1772,15 +1830,13 @@ namespace fan_3d {
 		fan::vec3 get_size();
 		void set_size(const fan::vec3& size);
 
-		fan::window& m_window;
+		fan::camera m_camera;
 
 	private:
 		fan::shader m_shader;
 
 		fan::vec3 m_position;
 		fan::vec3 m_size;
-
-		fan::camera m_camera;
 
 	};
 

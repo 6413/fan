@@ -1,23 +1,32 @@
 ﻿#include <fan/graphics.hpp>
 
+#include <locale>
+
+#include <codecvt>
+
 int main() {
 
-	fan::window window(fan::window::resolutions::r_800x600);
-
-	window.set_max_fps(fan::get_screen_refresh_rate());
+	fan::window window;
 
 	fan::camera camera(window);
 
-	const fan::vec2 border_size(40);
-	const f_t radius = 30;
+	fan_2d::gui::rounded_text_box s(camera, L"test string", 32, 0, fan::colors::purple - 0.4, 40, 30);
 
-	fan_2d::gui::rounded_text_box rtb(camera, L"", 32, 0, fan::colors::purple - 0.4, border_size, radius);
+	s.set_input_callback(0);
 
-	rtb.set_input_callback(0);
+	window.add_key_callback(fan::mouse_scroll_up, [&] {
+		s.set_font_size(0, s.get_font_size(0) + 50);
+	});
+
+	window.add_key_callback(fan::mouse_scroll_down, [&] {
+		s.set_font_size(0, s.get_font_size(0) - 50);
+	});
 
 	window.loop(0, [&] {
 
-		rtb.draw();
+		window.get_fps();
+
+		s.draw();
 
 	});
 
