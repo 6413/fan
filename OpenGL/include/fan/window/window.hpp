@@ -68,7 +68,7 @@ namespace fan {
 	struct pair_hash
 	{
 		template <class T1, class T2>
-		std::size_t operator() (const std::pair<T1, T2> &pair) const
+		constexpr std::size_t operator() (const std::pair<T1, T2> &pair) const
 		{
 			return std::hash<T1>()(pair.first) ^ std::hash<T2>()(pair.second);
 		}
@@ -105,6 +105,51 @@ namespace fan {
 	void reset_screen_resolution();
 
 	uint_t get_screen_refresh_rate();
+
+	namespace io {
+		static fan::fstring get_clipboard_text() {
+
+			fan::fstring copied_text;
+
+		#ifdef FAN_PLATFORM_WINDOWS
+
+			if (!OpenClipboard(nullptr)) {
+				throw std::runtime_error("failed to open clipboard");
+			}
+
+			HANDLE data = GetClipboardData(CF_UNICODETEXT);
+
+			if (data == nullptr) {
+				throw std::runtime_error("clipboard data was nullptr");
+			}
+
+			wchar_t* text = static_cast<wchar_t*>(GlobalLock(data));
+			if (text == nullptr) {
+				throw std::runtime_error("copyboard text was nullptr");
+			}
+
+			copied_text = text;
+
+			GlobalUnlock(data);
+
+			CloseClipboard();
+
+		#elif defined(FAN_PLATFORM_LINUX)
+
+		#endif
+
+			return copied_text;
+		}
+	}
+
+	inline std::unordered_map<std::pair<fan::window_t, std::string>, std::any, pair_hash> m_window_storage;
+
+	class window;
+
+	inline std::unordered_map<fan::window_t, fan::window*> window_id_storage;
+
+	fan::window* get_window_by_id(fan::window_t wid);
+	void set_window_by_id(fan::window_t wid, fan::window* window);
 
 	class window {
 	public:
@@ -172,7 +217,7 @@ namespace fan {
 
 		static constexpr const char* default_window_name = "window";
 		static constexpr vec2i default_window_size = fan::vec2i(800, 600);
-		static constexpr vec2i default_opengl_version = fan::vec2i(4, 5); // major minor
+		static constexpr vec2i default_opengl_version = fan::vec2i(3, 0); // major minor
 		static constexpr mode default_size_mode = mode::windowed;
 
 		// for static value storing
@@ -186,6 +231,24 @@ namespace fan {
 		window& operator=(window&& window);
 
 		~window();
+
+		void destroy() {
+		#ifdef FAN_PLATFORM_WINDOWS
+
+			wglDeleteContext(m_context);
+
+		#elif defined(FAN_PLATFORM_LINUX)
+
+			glXDestroyContext(m_display, m_context);
+			XCloseDisplay(m_display);
+
+			m_context = 0;
+			m_display = 0;
+			
+		#endif
+
+			m_context = 0;
+		}
 
 		void execute(const fan::color& background_color, const std::function<void()>& function);
 
@@ -235,26 +298,26 @@ namespace fan {
 			typename std::conditional<flag & fan::window::flags::mode, fan::window::mode, int
 		>>>>::type>
 		static constexpr void set_flag_value(T value) {
-			if constexpr(flag & fan::window::flags::no_mouse) {
+			if constexpr(static_cast<bool>(flag & fan::window::flags::no_mouse)) {
 				flag_values::m_no_mouse = value;
 			}
-			else if constexpr(flag & fan::window::flags::no_resize) {
+			else if constexpr(static_cast<bool>(flag & fan::window::flags::no_resize)) {
 				flag_values::m_no_resize = value;
 			}
-			else if constexpr(flag & fan::window::flags::anti_aliasing) {
+			else if constexpr(static_cast<bool>(flag & fan::window::flags::anti_aliasing)) {
 				flag_values::m_samples = value;
 			}
-			else if constexpr(flag & fan::window::flags::mode) {
+			else if constexpr(static_cast<bool>(flag & fan::window::flags::mode)) {
 				if (value > fan::window::mode::full_screen) {
 					fan::print("fan window error: failed to set window mode flag to: ", fan::eti(value));
 					exit(1);
 				}
 				flag_values::m_size_mode = value;
 			}
-			else if constexpr (flag & fan::window::flags::borderless) {
+			else if constexpr (static_cast<bool>(flag & fan::window::flags::borderless)) {
 				flag_values::m_size_mode = value ? fan::window::mode::borderless : flag_values::m_size_mode;
 			}
-			else if constexpr (flag & fan::window::flags::full_screen) {
+			else if constexpr (static_cast<bool>(flag & fan::window::flags::full_screen)) {
 				flag_values::m_size_mode = value ? fan::window::mode::full_screen : flag_values::m_size_mode;
 			}
 		}
@@ -279,8 +342,8 @@ namespace fan {
 			}
 		}
 
-		keys_callback_t get_keys_callback() const;
-		void set_keys_callback(const keys_callback_t& function);
+		keys_callback_t get_keys_callback(uint_t i) const;
+		void add_keys_callback(const keys_callback_t& function);
 
 		key_callback_t get_key_callback(uint_t i) const;
 		void add_key_callback(uint16_t key, const std::function<void()>& function, bool on_release = false);
@@ -302,6 +365,8 @@ namespace fan {
 		std::function<void()> get_move_callback(uint_t i) const;
 		void add_move_callback(const std::function<void()>& function);
 
+		void set_error_callback();
+
 		void set_background_color(const fan::color& color);
 
 		fan::window_t get_handle() const;
@@ -322,11 +387,27 @@ namespace fan {
 	
 		fan::vec2i get_raw_mouse_offset() const;
 
+		std::vector<fan::input> m_key_exceptions{
+			fan::key_left,
+			fan::key_up,
+			fan::key_right,
+			fan::key_down,
+			fan::key_delete,
+			fan::key_enter,
+			fan::key_home,
+			fan::key_end,
+			fan::key_shift,
+			fan::key_left_shift,
+			fan::key_right_shift
+		};
+
+		static void handle_events();
+
 	private:
 
 		using keymap_t = std::unordered_map<uint16_t, bool>;
 
-		FAN_API void window_input_action(fan::window_t window, uint16_t key);
+		static void window_input_action(fan::window_t window, uint16_t key);
 		FAN_API void window_input_mouse_action(fan::window_t window, uint16_t key);
 		FAN_API void window_input_up(fan::window_t window, uint16_t key);
 		FAN_API void window_input_action_reset(fan::window_t window, uint16_t key);
@@ -336,17 +417,16 @@ namespace fan {
 		static LRESULT CALLBACK window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 
 		HDC m_hdc;
-		HGLRC m_context;
+		static inline HGLRC m_context;
 
 	#elif defined(FAN_PLATFORM_LINUX)
 
-		Display* m_display;
-		XEvent m_event;
-		int m_screen;
-		Atom m_atom_delete_window;
+		inline static Display* m_display;
+		inline static int m_screen;
+		inline static Atom m_atom_delete_window;
 		XSetWindowAttributes m_window_attribs;
-		GLXContext m_context;
 		XVisualInfo* m_visual;
+		inline static GLXContext m_context;
 		XIM m_xim;
 		XIC m_xic;
 
@@ -356,16 +436,14 @@ namespace fan {
 
 		void initialize_window(const std::string& name, const fan::vec2i& window_size, uint64_t flags);
 
-		void handle_events();
+		
 		void handle_resize_callback(const fan::window_t& window, const fan::vec2i& size);
 		void handle_move_callback(const fan::window_t& window);
 		// crossplatform variables
 
 		window_t m_window;
 
-		static inline std::unordered_map<std::pair<fan::window_t, std::string>, std::any, pair_hash> m_window_storage;
-
-		keys_callback_t m_keys_callback;
+		std::vector<keys_callback_t> m_keys_callback;
 		std::vector<key_callback_t> m_key_callback;
 		std::vector<mouse_move_position_callback_t> m_mouse_move_position_callback;
 		std::vector<mouse_move_callback_t> m_mouse_move_callback;
@@ -410,28 +488,19 @@ namespace fan {
 
 		fan::vec2i m_raw_mouse_offset;
 
-		std::vector<fan::input> m_key_exceptions{
-			fan::key_left,
-			fan::key_up,
-			fan::key_right,
-			fan::key_down,
-			fan::key_delete,
-			fan::key_enter,
-			fan::key_home,
-			fan::key_end
-		};
+		bool m_focused;
 
 		struct flag_values {
 
-			static int m_minor_version;
-			static int m_major_version;
+			static inline int m_minor_version = fan::uninitialized;
+			static inline int m_major_version = fan::uninitialized;
 
-			static bool m_no_mouse;
-			static bool m_no_resize;
+			static inline bool m_no_mouse = false;
+			static inline bool m_no_resize = false;
 
-			static uint8_t m_samples;
+			static inline uint8_t m_samples = fan::uninitialized;
 
-			static mode m_size_mode;
+			static inline mode m_size_mode;
 
 		};
 

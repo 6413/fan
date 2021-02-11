@@ -68,8 +68,14 @@ public:
 		return *this;
 	}
 
+	void bind_gl_storage_buffer(const std::function<void()> function) const {
+		glBindBuffer(gl_buffer, private_variable_name);
+		function();
+		glBindBuffer(gl_buffer, 0);
+	}
+
 	template <opengl_buffer_type T = private_buffer_type, typename = std::enable_if_t<T == opengl_buffer_type::shader_storage_buffer_object>>
-	void bind_gl_storage_buffer() const {
+	void bind_gl_storage_buffer_base() const {
 		glBindBufferBase(gl_buffer, private_layout_location, private_variable_name);
 	}
 

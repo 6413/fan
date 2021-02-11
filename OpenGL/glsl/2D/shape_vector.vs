@@ -1,4 +1,4 @@
-#version 430 core
+#version 330 core
 layout (location = 0) in vec4 in_color;
 layout (location = 1) in vec2 position;
 layout (location = 2) in vec2 size;
@@ -9,14 +9,14 @@ uniform mat4 projection;
 uniform mat4 view;
 uniform int shape_type;
 
-const vec2 square_vertices[] = {
+const vec2 square_vertices[] = vec2[6](
 	vec2(0, 0),
 	vec2(0, 1),
 	vec2(1, 1),
 	vec2(1, 1),
 	vec2(1, 0),
 	vec2(0, 0)
-};
+);
 
 void main() {
     color = in_color;

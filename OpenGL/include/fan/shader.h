@@ -136,7 +136,7 @@ namespace fan {
             glCompileShader(fragment);
             checkCompileErrors(fragment, "FRAGMENT");
             // if geometry shader is given, compile geometry shader
-            unsigned int geometry;
+            unsigned int geometry = -1;
             if (!geometry_path.empty())
             {
                 const char* gShaderCode = geometryCode.c_str();
@@ -258,7 +258,7 @@ namespace fan {
                 if (!success)
                 {
                     glGetShaderInfoLog(shader, 1024, NULL, infoLog);
-                    std::cout << "failed to compile type: " << type << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
+                    fan::print("failed to compile for files:", m_vertex_path, "type:", type, '\n', infoLog);
                 }
             }
             else

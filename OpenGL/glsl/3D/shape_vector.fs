@@ -35,15 +35,15 @@ void main() {
                 vec3(-1, 0, 0)
             );
 
-            vec3 r = refract(I, cases[v / 6], 1.0 / 0.5);
+           // vec3 r = refract(I, cases[v / 6], 1.0 / 32);
 
-            //vec3 r = reflect(vector, cases[v / 6]);
+            vec3 r = reflect(I, cases[v / 6]);
 
             vec4 test = vec4(texture(skybox, r).rgb, 1);
 
             vec4 real = texture2D(texture_sampler, texture_coordinate);
 
-            shape_texture = real;
+            shape_texture = test;
 
 
             break;

@@ -75,7 +75,7 @@ namespace fan {
 
 				std::size_t found = str.find(find, offset);
 
-				std::size_t begin = str.find_first_of(digits, found);
+				int64_t begin = str.find_first_of(digits, found);
 
 				bool negative = 0;
 
@@ -96,7 +96,7 @@ namespace fan {
 
 			static str_int_t get_string_valuei_n(const std::string& str, std::size_t offset = 0) {
 
-				std::size_t begin = str.find_first_of(digits, offset);
+				int64_t begin = str.find_first_of(digits, offset);
 
 				bool negative = 0;
 
@@ -113,6 +113,9 @@ namespace fan {
 
 				return { (std::size_t)begin, end, std::stoi(std::string(str.begin() + begin - negative, str.begin() + end)) };
 			}
+
+			// -y offset from top
+			static constexpr auto highest_character = -2;
 
 			struct font_t {
 				static constexpr std::size_t char_offset = 4;
@@ -164,6 +167,11 @@ namespace fan {
 					uint16_t character = value_info.value;
 					for (std::size_t i = 0; i < font_t::struct_size; i++) {
 						value_info =  fan::io::file::get_string_valuei_n(lines[iline], value_info.end);
+						if (iline - font_t::char_offset == 5) {
+							if (value_info.value < highest_character) {
+								value_info.value = highest_character;
+							}
+						}
 						((fan::vec2::type*)&font_info)[i] = value_info.value;
 					}
 					font_info_vector[character] = font_info;
@@ -172,8 +180,10 @@ namespace fan {
 						lowest = character;
 					}
 					if (fhighest > font_info.m_offset.y) {
-						fhighest = font_info.m_offset.y;
-						highest = character;
+						if (fhighest > highest_character) {
+							fhighest = font_info.m_offset.y;
+							highest = character;
+						}
 					}
 				}
 

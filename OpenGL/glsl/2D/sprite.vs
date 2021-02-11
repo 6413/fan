@@ -1,4 +1,4 @@
-#version 430 core
+#version 330 core
 
 out vec2 texture_coordinates;
 
@@ -6,23 +6,23 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 
-const vec2 texture_coordinates_default[] = {
+const vec2 texture_coordinates_default[] = vec2[](
 	vec2(1, 0),
 	vec2(1, 1),
 	vec2(0, 1),
 	vec2(0, 0),
 	vec2(-1, 0),
 	vec2(-1, 1)
-};
+);
 
-const vec2 vertices[] = {
+const vec2 vertices[] = vec2[](
 	vec2(1, 1),
 	vec2(1, 0),
 	vec2(0, 0),
 	vec2(1, 1),
 	vec2(0, 1),
-	vec2(0, 0),
-};
+	vec2(0, 0)
+);
 
 void main()
 {

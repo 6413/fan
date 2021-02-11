@@ -1,4 +1,4 @@
-#version 430 core
+#version 330 core
 
 out vec4 color; 
 
@@ -13,14 +13,14 @@ uniform vec2 begin;
 uniform vec2 end;
 
 // shape_type = 1
-const vec2 square_vertices[] = {
+const vec2 square_vertices[] = vec2[](
 	vec2(0, 0),
 	vec2(0, 1),
 	vec2(1, 1),
 	vec2(1, 1),
 	vec2(1, 0),
 	vec2(0, 0)
-};
+);
 
 void main() {
     color = shape_color;
