@@ -71,6 +71,18 @@ namespace fan_3d {
 namespace fan {
 
 	template <typename T>
+	constexpr auto modi(T first, T second) {
+		return (first % second + second) % second;
+	}
+
+	// could be improved with look up table
+	template <typename T>
+	constexpr auto number_of_digits(T x)
+	{
+		return x > 0 ? static_cast<int>(std::log10(x)) + 1 : 1;
+	}
+
+	template <typename T>
 	constexpr int64_t ceil(T num)
 	{
 		return (static_cast<float>(static_cast<int64_t>(num)) == num)
@@ -251,11 +263,6 @@ namespace fan {
 		return std::abs(src[0] - dst[0]) + std::abs(src[1] - dst[1]);
 	}
 
-	template <typename vector_t>
-	inline auto distance(const vector_t& src, const vector_t& dst) {
-		return std::abs(src[0] - dst[0]) + std::abs(src[1] - dst[1]) + std::abs(src[2] - dst[2]);
-	}
-
 	template <typename matrix_t, typename vector_t>
 	constexpr matrix_t translate(const matrix_t& m, const vector_t& v) {
 		matrix_t matrix(m);
@@ -268,7 +275,7 @@ namespace fan {
 
 	template <typename matrix_t, typename vector_t>
 	inline auto scale(const matrix_t& m, const vector_t& v) {
-		matrix_t matrix;
+		matrix_t matrix{};
 
 		matrix[0][0] = m[0][0] * v[0];
 		matrix[0][1] = m[0][1] * v[0];
@@ -317,7 +324,7 @@ namespace fan {
 	template <typename matrix_t>
 	constexpr matrix_t perspective(f_t fovy, f_t aspect, f_t zNear, f_t zFar) {
 		f_t const tanHalfFovy = tan(fovy / static_cast<f_t>(2));
-		matrix_t matrix;
+		matrix_t matrix{};
 		matrix[0][0] = static_cast<f_t>(1) / (aspect * tanHalfFovy);
 		matrix[1][1] = static_cast<f_t>(1) / (tanHalfFovy);
 		matrix[2][2] = -(zFar + zNear) / (zFar - zNear);
@@ -383,7 +390,7 @@ namespace fan {
 		vector_t axis(fan_3d::normalize(v));
 		vector_t temp(axis * (1.0f - c));
 
-		matrix_t rotation;
+		matrix_t rotation{};
 		rotation[0][0] = c + temp[0] * axis[0];
 		rotation[0][1] = temp[0] * axis[1] + s * axis[2];
 		rotation[0][2] = temp[0] * axis[2] - s * axis[1];
@@ -396,7 +403,7 @@ namespace fan {
 		rotation[2][1] = temp[2] * axis[1] - s * axis[0];
 		rotation[2][2] = c + temp[2] * axis[2];
 
-		matrix_t matrix;
+		matrix_t matrix{};
 		matrix[0][0] = (m[0][0] * rotation[0][0]) + (m[1][0] * rotation[0][1]) + (m[2][0] * rotation[0][2]);
 		matrix[1][0] = (m[0][1] * rotation[0][0]) + (m[1][1] * rotation[0][1]) + (m[2][1] * rotation[0][2]);
 		matrix[2][0] = (m[0][2] * rotation[0][0]) + (m[1][2] * rotation[0][1]) + (m[2][2] * rotation[0][2]);

@@ -316,6 +316,11 @@ namespace fan {
 		template <typename T, typename T2>
 		constexpr _matrix2x2(fan::_vec2<T>&& v, fan::_vec2<T2>&& v2) : basic_matrix<type_t, 2, 2>(std::move(v.x), std::move(v.y), std::move(v2.x), std::move(v2.y)) {}
 
+		template <typename T>
+		constexpr _matrix2x2 operator+(const fan::_vec2<T>& v) const {
+			return _matrix2x2((*this)[0][0] + v[0], (*this)[0][1] + v[1], (*this)[1][0] + v[0], (*this)[1][1] + v[1]);
+		}
+
 		constexpr decltype(auto) operator[](const uint_t i) const {
 			switch (i) {
 				case 0:
@@ -344,7 +349,7 @@ namespace fan {
 				{
 					return fan::_vec2<type_t>(matrix_t::operator[](1).operator[](0), matrix_t::operator[](1).operator[](1));
 				}
-				case 2:
+				default:
 				{
 					throw std::runtime_error("out of range");
 					return fan::_vec2<type_t>();

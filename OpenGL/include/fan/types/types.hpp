@@ -4,7 +4,7 @@
 #include <array>
 #include <vector>
 #include <sstream>
-
+#include <functional>
 typedef intptr_t si_t;
 typedef uintptr_t uint_t;
 typedef intptr_t sint_t;
@@ -54,8 +54,18 @@ namespace fan {
 	}
 
 	template <typename ...Args>
+	constexpr void print_no_space(const Args&... args) {
+		((std::cout << args), ...) << '\n';
+	}
+
+	template <typename ...Args>
 	constexpr void print(const Args&... args) {
-		((std::cout << args << " "), ...) << '\n';
+		((std::cout << args << ' '), ...) << '\n';
+	}
+
+	template <typename ...Args>
+	constexpr void wprint(const Args&... args) {
+		((std::wcout << args << " "), ...) << '\n';
 	}
 
 	template <typename T>
@@ -125,6 +135,28 @@ namespace fan {
 	{ \
 		function; \
 	}
+
+	template <typename T>
+	constexpr T clamp(T value, T min, T max) {
+		if (value < min) {
+			return min;
+		}
+		if (value > max) {
+			return max;
+		}
+		return value;
+	}
+	
+	inline auto force_debug(std::function<void()> f) {
+		static int x = 0;
+		if (x < 2)
+		{
+			f();
+			x++;
+		}
+	}
+
+	//#define force_debug(abcafd) static int x = 0; if (!x){ abcafd;x++;}
 
 }
 
