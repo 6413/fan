@@ -1,14 +1,13 @@
-#version 330 core
+#version 130
 
-in vec2 texture_coordinates;
 out vec4 color;
 
 uniform sampler2D texture_sampler;
 uniform float original_font_size;
 
-in float font_size;
-in vec4 outline_color;
-in vec3 text_color;
+varying vec2 texture_coordinates;
+varying float font_size;
+varying vec3 text_color;
 
 void main() {
 

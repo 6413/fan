@@ -1,5 +1,6 @@
 #pragma once
 
+#define GLEW_STATIC
 #include <GL/glew.h>
 
 #include <fan/types/types.hpp>
@@ -8,6 +9,11 @@
 #ifdef FAN_PLATFORM_WINDOWS
 
 #include <GL/wglew.h>
+
+#include <Windows.h>
+
+#pragma comment(lib, "Gdi32.lib")
+#pragma comment(lib, "User32.lib")
 
 #elif defined(FAN_PLATFORM_LINUX)
 
@@ -37,28 +43,20 @@
 
 namespace fan {
 
-#ifdef FAN_PLATFORM_WINDOWS
-
-	#include <Windows.h>
-
-	#pragma comment(lib, "Gdi32.lib")
-	#pragma comment(lib, "User32.lib")
-
-	#undef min
-	#undef max
+	#ifdef FAN_PLATFORM_WINDOWS
 
 	using window_t = HWND;
 
 	#define FAN_API static
 
 
-#elif defined(FAN_PLATFORM_LINUX)
-	
+	#elif defined(FAN_PLATFORM_LINUX)
+
 	#define FAN_API
 
 	using window_t = Window;
 
-#endif
+	#endif
 
 	template <typename T>
 	constexpr auto get_flag_value(T value) {
@@ -74,7 +72,7 @@ namespace fan {
 		}
 	};
 
-#ifdef FAN_PLATFORM_WINDOWS
+	#ifdef FAN_PLATFORM_WINDOWS
 
 	constexpr int OPENGL_MINOR_VERSION = WGL_CONTEXT_MINOR_VERSION_ARB;
 	constexpr int OPENGL_MAJOR_VERSION = WGL_CONTEXT_MAJOR_VERSION_ARB;
@@ -82,7 +80,7 @@ namespace fan {
 	constexpr int OPENGL_SAMPLE_BUFFER = WGL_SAMPLE_BUFFERS_ARB;
 	constexpr int OPENGL_SAMPLES = WGL_SAMPLES_ARB;
 
-#elif defined(FAN_PLATFORM_LINUX)
+	#elif defined(FAN_PLATFORM_LINUX)
 
 	constexpr int OPENGL_MINOR_VERSION = GLX_CONTEXT_MINOR_VERSION_ARB;
 	constexpr int OPENGL_MAJOR_VERSION = GLX_CONTEXT_MAJOR_VERSION_ARB;
@@ -90,7 +88,7 @@ namespace fan {
 	constexpr int OPENGL_SAMPLE_BUFFER = GLX_SAMPLE_BUFFERS;
 	constexpr int OPENGL_SAMPLES = GLX_SAMPLES;
 
-#endif
+	#endif
 
 	fan::vec2i get_resolution();
 
@@ -111,7 +109,7 @@ namespace fan {
 
 			fan::fstring copied_text;
 
-		#ifdef FAN_PLATFORM_WINDOWS
+			#ifdef FAN_PLATFORM_WINDOWS
 
 			if (!OpenClipboard(nullptr)) {
 				throw std::runtime_error("failed to open clipboard");
@@ -134,9 +132,9 @@ namespace fan {
 
 			CloseClipboard();
 
-		#elif defined(FAN_PLATFORM_LINUX)
+			#elif defined(FAN_PLATFORM_LINUX)
 
-		#endif
+			#endif
 
 			return copied_text;
 		}
@@ -153,6 +151,8 @@ namespace fan {
 
 	class window {
 	public:
+
+		void* data;
 
 		enum class mode {
 			not_set,
@@ -202,7 +202,7 @@ namespace fan {
 
 		};
 
-		using mouse_move_callback_t = std::function<void()>;
+		using mouse_move_callback_t = std::function<void(fan::window*)>;
 		using mouse_move_position_callback_t = std::function<void(const fan::vec2i& position)>;
 		using scroll_callback_t = std::function<void(uint16_t key)>;
 
@@ -233,19 +233,19 @@ namespace fan {
 		~window();
 
 		void destroy() {
-		#ifdef FAN_PLATFORM_WINDOWS
+			#ifdef FAN_PLATFORM_WINDOWS
 
 			wglDeleteContext(m_context);
 
-		#elif defined(FAN_PLATFORM_LINUX)
+			#elif defined(FAN_PLATFORM_LINUX)
 
 			glXDestroyContext(m_display, m_context);
 			XCloseDisplay(m_display);
 
 			m_context = 0;
 			m_display = 0;
-			
-		#endif
+
+			#endif
 
 			m_context = 0;
 		}
@@ -296,8 +296,8 @@ namespace fan {
 			typename std::conditional<flag & fan::window::flags::no_resize, bool,
 			typename std::conditional<flag & fan::window::flags::anti_aliasing, int,
 			typename std::conditional<flag & fan::window::flags::mode, fan::window::mode, int
-		>>>>::type>
-		static constexpr void set_flag_value(T value) {
+			>>>>::type>
+			static constexpr void set_flag_value(T value) {
 			if constexpr(static_cast<bool>(flag & fan::window::flags::no_mouse)) {
 				flag_values::m_no_mouse = value;
 			}
@@ -367,7 +367,7 @@ namespace fan {
 
 		void set_error_callback();
 
-		void set_background_color(const fan::color& color);
+		static void set_background_color(const fan::color& color);
 
 		fan::window_t get_handle() const;
 
@@ -380,11 +380,11 @@ namespace fan {
 		void close();
 
 		bool focused() const;
-		
+
 		void destroy_window();
 
 		uint16_t get_current_key() const;
-	
+
 		fan::vec2i get_raw_mouse_offset() const;
 
 		std::vector<fan::input> m_key_exceptions{
@@ -403,6 +403,8 @@ namespace fan {
 
 		static void handle_events();
 
+		void auto_close(bool state);
+
 	private:
 
 		using keymap_t = std::unordered_map<uint16_t, bool>;
@@ -412,14 +414,14 @@ namespace fan {
 		FAN_API void window_input_up(fan::window_t window, uint16_t key);
 		FAN_API void window_input_action_reset(fan::window_t window, uint16_t key);
 
-	#ifdef FAN_PLATFORM_WINDOWS
+		#ifdef FAN_PLATFORM_WINDOWS
 
 		static LRESULT CALLBACK window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 
 		HDC m_hdc;
 		static inline HGLRC m_context;
 
-	#elif defined(FAN_PLATFORM_LINUX)
+		#elif defined(FAN_PLATFORM_LINUX)
 
 		inline static Display* m_display;
 		inline static int m_screen;
@@ -430,13 +432,13 @@ namespace fan {
 		XIM m_xim;
 		XIC m_xic;
 
-	#endif
+		#endif
 
 		void reset_keys();
 
 		void initialize_window(const std::string& name, const fan::vec2i& window_size, uint64_t flags);
 
-		
+
 		void handle_resize_callback(const fan::window_t& window, const fan::vec2i& size);
 		void handle_move_callback(const fan::window_t& window);
 		// crossplatform variables
@@ -462,7 +464,7 @@ namespace fan {
 		fan::vec2i m_previous_size;
 
 		fan::vec2i m_position;
-		
+
 		fan::vec2i m_mouse_position;
 
 		uint_t m_max_fps;
@@ -489,6 +491,8 @@ namespace fan {
 		fan::vec2i m_raw_mouse_offset;
 
 		bool m_focused;
+
+		bool m_auto_close;
 
 		struct flag_values {
 

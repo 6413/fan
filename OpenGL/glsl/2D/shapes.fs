@@ -1,4 +1,7 @@
-#version 330 core
+#version 130
+
+precision highp float;
+
 out vec4 ShapeColor;
 
 in vec4 color;

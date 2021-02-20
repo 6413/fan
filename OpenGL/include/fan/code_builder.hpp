@@ -1,18 +1,23 @@
 private_template 
 class private_class_name { 
-public:
-
+protected:
 	static constexpr uint32_t gl_buffer =
-		conditional_value<private_buffer_type == opengl_buffer_type::buffer_object, GL_ARRAY_BUFFER, 
-		conditional_value<private_buffer_type == opengl_buffer_type::vertex_array_object, 0,
-		conditional_value<private_buffer_type == opengl_buffer_type::shader_storage_buffer_object, GL_SHADER_STORAGE_BUFFER, static_cast<uint32_t>(fan::uninitialized)>::value>::value>::value;
+		conditional_value<private_buffer_type == fan::opengl_buffer_type::buffer_object, GL_ARRAY_BUFFER, 
+		conditional_value<private_buffer_type == fan::opengl_buffer_type::vertex_array_object, 0,
+		conditional_value<private_buffer_type == fan::opengl_buffer_type::texture, GL_TEXTURE_2D, 
+		conditional_value<private_buffer_type == fan::opengl_buffer_type::shader_storage_buffer_object, GL_SHADER_STORAGE_BUFFER, 
+		conditional_value<private_buffer_type == fan::opengl_buffer_type::frame_buffer_object, GL_FRAMEBUFFER, 
+		conditional_value<private_buffer_type == fan::opengl_buffer_type::render_buffer_object, GL_RENDERBUFFER, static_cast<uint32_t>(fan::uninitialized)
+		>::value>::value>::value>::value>::value>::value;
 
 	void allocate_buffer() {
 		comparer<private_buffer_type>(
 			[&] { glGenBuffers(1, &private_variable_name); },
 			[&] { glGenVertexArrays(1, &private_variable_name); },
 			[&] { glGenBuffers(1, &private_variable_name); },
-			[&] { glGenTextures(1, &private_variable_name); }
+			[&] { glGenTextures(1, &private_variable_name); },
+			[&] { glGenFramebuffers(1, &private_variable_name); },
+			[&] { glGenRenderbuffers(1, &private_variable_name); }
 		);
 	}
 
@@ -22,7 +27,9 @@ public:
 				[&] { glDeleteBuffers(1, &private_variable_name); },
 				[&] { glDeleteVertexArrays(1, &private_variable_name); },
 				[&] { glDeleteBuffers(1, &private_variable_name); },
-				[&] { glDeleteTextures(1, &private_variable_name); }
+				[&] { glDeleteTextures(1, &private_variable_name); },
+				[&] { glDeleteFramebuffers(1, &private_variable_name); },
+				[&] { glDeleteRenderbuffers(1, &private_variable_name); }
 			);
 			private_variable_name = fan::uninitialized;
 		});
@@ -69,9 +76,26 @@ public:
 	}
 
 	void bind_gl_storage_buffer(const std::function<void()> function) const {
-		glBindBuffer(gl_buffer, private_variable_name);
-		function();
-		glBindBuffer(gl_buffer, 0);
+		if constexpr (gl_buffer == GL_TEXTURE_2D) {
+			glBindTexture(gl_buffer, private_variable_name);
+			function();
+			glBindTexture(gl_buffer, 0);
+		}
+		else if constexpr (gl_buffer == GL_FRAMEBUFFER) {
+			glBindFramebuffer(gl_buffer, private_variable_name);
+			function();
+			glBindFramebuffer(gl_buffer, 0);
+		}
+		else if constexpr (gl_buffer == GL_RENDERBUFFER) {
+			glBindRenderbuffer(gl_buffer, private_variable_name);
+			function();
+			glBindRenderbuffer(gl_buffer, 0);
+		}
+		else {
+			glBindBuffer(gl_buffer, private_variable_name);
+			function();
+			glBindBuffer(gl_buffer, 0);
+		}
 	}
 
 	template <opengl_buffer_type T = private_buffer_type, typename = std::enable_if_t<T == opengl_buffer_type::shader_storage_buffer_object>>
@@ -85,8 +109,6 @@ public:
 	}
 
 	uint32_t private_variable_name;
-
-protected:
 
 	template <opengl_buffer_type T = private_buffer_type, typename = std::enable_if_t<T == opengl_buffer_type::buffer_object && T != opengl_buffer_type::vertex_array_object>>
 	void edit_data(uint_t i, void* data, uint_t byte_size_single) {

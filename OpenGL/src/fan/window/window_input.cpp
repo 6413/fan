@@ -2,8 +2,8 @@
 
 uint16_t fan::window_input::convert_keys_to_fan(uint16_t key) {
 	switch (key) {
-	//shifts and ctrls require lparam check for which side the button is pressed this is usually checked before converting
-	#ifdef FAN_PLATFORM_WINDOWS
+		//shifts and ctrls require lparam check for which side the button is pressed this is usually checked before converting
+		#ifdef FAN_PLATFORM_WINDOWS
 		case 0x01: { return fan::input::mouse_left; }
 		case 0x02: { return fan::input::mouse_right; }
 		case 0x04: { return fan::input::mouse_middle; }
@@ -29,7 +29,7 @@ uint16_t fan::window_input::convert_keys_to_fan(uint16_t key) {
 		case 0x2C: { return fan::input::key_print_screen; }
 		case 0x2D: { return fan::input::key_insert; }
 		case 0x2E: { return fan::input::key_delete; }
-					 
+
 		case 0x30: { return fan::input::key_0; }
 		case 0x31: { return fan::input::key_1; }
 		case 0x32: { return fan::input::key_2; }
@@ -118,8 +118,8 @@ uint16_t fan::window_input::convert_keys_to_fan(uint16_t key) {
 		case 0xA2: { return fan::input::key_left_control; }
 		case 0xA3: { return fan::input::key_right_control; }
 
-	#elif defined(FAN_PLATFORM_LINUX)
-		
+				 #elif defined(FAN_PLATFORM_LINUX)
+
 		case 0x01: { return fan::input::mouse_left; }
 		case 0x02: { return fan::input::mouse_middle; }
 		case 0x03: { return fan::input::mouse_right; }
@@ -139,8 +139,8 @@ uint16_t fan::window_input::convert_keys_to_fan(uint16_t key) {
 		case 0x4C: { return fan::input::key_f10; }
 		case 0x5F: { return fan::input::key_f11; }
 		case 0x60: { return fan::input::key_f12; }
-		// more f keys?
-		//case print: ?
+				 // more f keys?
+				 //case print: ?
 		case 0x4E: { return fan::input::key_scroll_lock; }
 		case 0x7F: { return fan::input::key_pause; }
 		case 0x31: { return fan::input::key_tilde; }
@@ -171,13 +171,13 @@ uint16_t fan::window_input::convert_keys_to_fan(uint16_t key) {
 		case 0x1F: { return fan::input::key_i; }
 		case 0x20: { return fan::input::key_o; }
 		case 0x21: { return fan::input::key_p; }
-		//case 0x22: { return fan::input::key_å; } ?
-		//case 0x23: { return fan::input::key_^; }
+				 //case 0x22: { return fan::input::key_å; } ?
+				 //case 0x23: { return fan::input::key_^; }
 		case 0x24: { return fan::input::key_enter; }
 		case 0x77: { return fan::input::key_delete; }
 		case 0x73: { return fan::input::key_end; }
 		case 0x75: { return fan::input::key_page_down; }
-		
+
 		case 0x42: { return fan::input::key_caps_lock; }
 		case 0x26: { return fan::input::key_a; }
 		case 0x27: { return fan::input::key_s; }
@@ -206,7 +206,7 @@ uint16_t fan::window_input::convert_keys_to_fan(uint16_t key) {
 		case 0x3E: { return fan::input::key_right_shift; }
 
 		case 0x25: { return fan::input::key_left_control; }
-		//case key_left_super
+				 //case key_left_super
 		case 0x40: { return fan::input::key_left_alt; }
 		case 0x41: { return fan::input::key_space; }
 		case 0x6C: { return fan::input::key_right_alt; }
@@ -235,7 +235,7 @@ uint16_t fan::window_input::convert_keys_to_fan(uint16_t key) {
 		case 0x5B: { return fan::input::key_numpad_decimal; }
 		case 0x6A: { return fan::input::key_numpad_divide; }
 
-	#endif
+				 #endif
 
 		default:   { return fan::input::key_invalid; }
 
