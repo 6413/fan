@@ -1,5 +1,5 @@
 #pragma once
-#include <fan/graphics.hpp>
+#include <fan/graphics/graphics.hpp>
 #include <fan/raycast/rectangle.hpp>
 
 namespace fan_2d {
@@ -51,19 +51,19 @@ namespace fan_2d {
 					   point.y >= rectangle_position.y && point.y <= rectangle_position.y + rectangle_size.y;
 			}
 
-			static void resolve_collision(fan_2d::rectangle& player, const fan_2d::rectangle_vector& walls) {
+			static void resolve_collision(fan_2d::rectangle& player, const fan_2d::rectangle& walls) {
 
-				if (!player.get_velocity()) {
+				if (!player.get_velocity(0)) {
 					return;
 				}
 
-				while (player.get_velocity() != 0) {
+				while (player.get_velocity(0) != 0) {
 					const auto player_corners = player.get_corners();
-					const auto player_points = fan_2d::collision::get_velocity_corners_3d(player.get_velocity());
+					const auto player_points = fan_2d::collision::get_velocity_corners_3d(player.get_velocity(0));
 
 					const auto player_position = player.get_position();
 					const auto player_size = player.get_size();
-					const auto player_velocity = player.get_velocity();
+					const auto player_velocity = player.get_velocity(0);
 
 					fan_2d::raycast::rectangle::raycast_t closest;
 					closest.point = fan::inf;
@@ -103,7 +103,7 @@ namespace fan_2d {
 							for (const auto p : player_points) {
 								fan_2d::raycast::rectangle::raycast_t ray_point = fan_2d::raycast::rectangle::raycast(
 									player_corners[p],
-									player_corners[p] + player.get_velocity() * player.get_delta_time(),
+									player_corners[p] + player.get_velocity(0) * player.m_camera->m_window->get_delta_time(),
 									walls.get_position(i), walls.get_size(i));
 								if (fan::ray_hit(ray_point.point)
 								) 
@@ -154,21 +154,21 @@ namespace fan_2d {
 
 						if (closest.side == fan_2d::raycast::rectangle::sides::inside)
 						{
-							player.set_position(player.get_position() - player_velocity * player.get_delta_time());
+							player.set_position(0, player.get_position() - player_velocity * player.m_camera->m_window->get_delta_time());
 							break;
 						}
 
-						player.set_position(closest.point);
+						player.set_position(0, closest.point);
 
-						auto velocity = player.get_velocity();
+						auto velocity = player.get_velocity(0);
 
 						velocity[((closest.side == fan_2d::raycast::rectangle::sides::left || closest.side == fan_2d::raycast::rectangle::sides::right) && !player_velocity[0]) ||
 							((closest.side == fan_2d::raycast::rectangle::sides::up || closest.side == fan_2d::raycast::rectangle::sides::down) && !!player_velocity[1])] = 0;
 
-						player.set_velocity(velocity);
+						player.set_velocity(0, velocity);
 					}
 					else {
-						player.set_position(player.get_position() + player_velocity * player.get_delta_time());
+						player.set_position(0, player.get_position() + player_velocity * player.m_camera->m_window->get_delta_time());
 						break;
 					}
 				}
