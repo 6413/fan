@@ -88,6 +88,10 @@ namespace fan {
 		return (value & flag) == flag;
 	}
 
+	constexpr auto strlen(const char* s) { 
+		return (sizeof(s)/sizeof(s[0])); 
+	}
+
 	enum class platform_t { windows, linux };
 
 	#if defined(_WIN32) || defined(_WIN64)

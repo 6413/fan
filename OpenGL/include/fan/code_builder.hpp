@@ -1,6 +1,11 @@
 private_template 
 class private_class_name { 
 protected:
+
+	#ifndef private_attribute_location
+	#define private_attribute_location 1
+	#endif
+
 	static constexpr uint32_t gl_buffer =
 		conditional_value<private_buffer_type == fan::opengl_buffer_type::buffer_object, GL_ARRAY_BUFFER, 
 		conditional_value<private_buffer_type == fan::opengl_buffer_type::vertex_array_object, 0,
@@ -115,42 +120,82 @@ protected:
 		fan::edit_glbuffer(private_variable_name, data, i * byte_size_single, byte_size_single, gl_buffer, private_layout_location);
 	}
 
-	template <opengl_buffer_type T = private_buffer_type, typename = std::enable_if_t<T != opengl_buffer_type::texture && T != opengl_buffer_type::vertex_array_object>>
+	template <bool attribute = private_attribute_location, typename = std::enable_if_t<attribute>>
+	void initialize_buffers(void* data, uint_t byte_size, bool divisor, uint_t attrib_count, uint32_t program, const std::string& name) {
+
+		comparer<private_buffer_type>(
+
+		[&] {
+
+			glBindBuffer(gl_buffer, private_variable_name);
+
+			GLint location = glGetAttribLocation(program, name.c_str());
+
+			glEnableVertexAttribArray(location);
+			glVertexAttribPointer(location, attrib_count, fan::GL_FLOAT_T, GL_FALSE, 0, 0);
+
+			if (divisor) {
+				glVertexAttribDivisor(location, 1);
+			}
+
+			this->write_data(data, byte_size);
+		},
+
+			[] {}, 
+
+			[&] {
+			glBindBuffer(gl_buffer, private_variable_name); 
+			glBindBufferBase(gl_buffer, private_layout_location, private_variable_name);
+
+			if (divisor) {
+				glVertexAttribDivisor(private_layout_location, 1);
+			}
+
+			this->write_data(data, byte_size);
+		},
+
+			[] {}
+
+		); 
+	}
+
+	template <bool attribute = private_attribute_location, typename = std::enable_if_t<!attribute>>
 	void initialize_buffers(void* data, uint_t byte_size, bool divisor, uint_t attrib_count) {
 
 		comparer<private_buffer_type>(
 
 			[&] {
-				glBindBuffer(gl_buffer, private_variable_name); 
-			
-				glEnableVertexAttribArray(private_layout_location);
-				glVertexAttribPointer(private_layout_location, attrib_count, fan::GL_FLOAT_T, GL_FALSE, 0, 0);
-			
-				if (divisor) {
-					glVertexAttribDivisor(private_layout_location, 1);
-				}
-			
-				this->write_data(data, byte_size);
-			},
+			glBindBuffer(gl_buffer, private_variable_name);
+
+			glEnableVertexAttribArray(private_layout_location);
+			glVertexAttribPointer(private_layout_location, attrib_count, fan::GL_FLOAT_T, GL_FALSE, 0, 0);
+
+			if (divisor) {
+				glVertexAttribDivisor(private_layout_location, 1);
+			}
+
+			this->write_data(data, byte_size);
+		},
 
 			[] {}, 
 
 			[&] {
-				glBindBuffer(gl_buffer, private_variable_name); 
-				glBindBufferBase(gl_buffer, private_layout_location, private_variable_name);
-			
-				if (divisor) {
-					glVertexAttribDivisor(private_layout_location, 1);
-				}
-			
-				this->write_data(data, byte_size);
-			},
+			glBindBuffer(gl_buffer, private_variable_name); 
+			glBindBufferBase(gl_buffer, private_layout_location, private_variable_name);
+
+			if (divisor) {
+				glVertexAttribDivisor(private_layout_location, 1);
+			}
+
+			this->write_data(data, byte_size);
+		},
 
 			[] {}
-			
-			); 
+
+		); 
 	}
-	
+
+
 	template <opengl_buffer_type T = private_buffer_type, typename = std::enable_if_t<T == opengl_buffer_type::vertex_array_object>>
 	void initialize_buffers(uint32_t vao, const std::function<void()>& binder) {
 		glBindVertexArray(vao);
@@ -168,3 +213,4 @@ void write_data(void* data, uint_t byte_size) {
 #undef private_variable_name
 #undef private_buffer_type
 #undef private_layout_location
+#undef private_attribute_location
