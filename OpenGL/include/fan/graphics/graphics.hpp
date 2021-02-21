@@ -163,16 +163,20 @@ namespace fan {
 	#define private_layout_location 0
 	#include <fan/code_builder.hpp>
 
-	#define private_template template <uint_t T_layout_location, opengl_buffer_type T_buffer_type>
+	#define private_template template <uint_t T_layout_location, opengl_buffer_type T_buffer_type, bool gl_3_0_attribute = false>
 	#define private_class_name glsl_location_handler
 	#define private_variable_name m_buffer_object
 	#define private_buffer_type T_buffer_type
 	#define private_layout_location T_layout_location
+	#define private_attribute_location gl_3_0_attribute
+
 	#include <fan/code_builder.hpp>
 
 	#define enable_function_for_vector 	   template<typename T = void, typename = typename std::enable_if<std::is_same<T, T>::value && enable_vector>::type>
 	#define enable_function_for_non_vector template<typename T = void, typename = typename std::enable_if<std::is_same<T, T>::value && !enable_vector>::type>
 	#define enable_function_for_vector_cpp template<typename T, typename enable_t>
+
+	//class 
 
 	template <bool enable_vector, typename _Vector, uint_t layout_location = 1, opengl_buffer_type buffer_type = opengl_buffer_type::buffer_object>
 	class basic_shape_position : public glsl_location_handler<layout_location, buffer_type> {
@@ -420,11 +424,11 @@ namespace fan {
 
 	};
 
-	template <bool enable_vector, uint_t layout_location = 0, opengl_buffer_type buffer_type = opengl_buffer_type::buffer_object>
-	class basic_shape_color_vector : public glsl_location_handler<layout_location, buffer_type> {
+	template <bool enable_vector, uint_t layout_location = 0, opengl_buffer_type buffer_type = opengl_buffer_type::buffer_object, bool gl_3_0_attrib = false>
+	class basic_shape_color_vector : public glsl_location_handler<layout_location, buffer_type, gl_3_0_attrib> {
 	public:
 
-		basic_shape_color_vector() : glsl_location_handler<layout_location, buffer_type>() {}
+		basic_shape_color_vector() : basic_shape_color_vector::glsl_location_handler() {}
 		basic_shape_color_vector(const fan::color& color) : basic_shape_color_vector() {
 			if constexpr (enable_vector) {
 				basic_push_back(color, true);
@@ -433,22 +437,22 @@ namespace fan {
 				this->m_color = color;
 			}
 		}
-		basic_shape_color_vector(const basic_shape_color_vector& vector) : glsl_location_handler<layout_location, buffer_type>(vector) {
+		basic_shape_color_vector(const basic_shape_color_vector& vector) : basic_shape_color_vector::glsl_location_handler(vector) {
 			this->m_color = vector.m_color;
 		}
-		basic_shape_color_vector(basic_shape_color_vector&& vector) noexcept : glsl_location_handler<layout_location, buffer_type>(std::move(vector)) {
+		basic_shape_color_vector(basic_shape_color_vector&& vector) noexcept : basic_shape_color_vector::glsl_location_handler(std::move(vector)) {
 			this->m_color = std::move(vector.m_color);
 		}
 
 		basic_shape_color_vector& operator=(const basic_shape_color_vector& vector) {
-			glsl_location_handler<layout_location, buffer_type>::operator=(vector);
+			basic_shape_color_vector::glsl_location_handler::operator=(vector);
 
 			this->m_color = vector.m_color;
 
 			return *this;
 		}
 		basic_shape_color_vector& operator=(basic_shape_color_vector&& vector) noexcept {
-			glsl_location_handler<layout_location, buffer_type>::operator=(std::move(vector));
+			basic_shape_color_vector::glsl_location_handler::operator=(std::move(vector));
 
 			this->m_color = std::move(vector.m_color);
 
@@ -519,20 +523,35 @@ namespace fan {
 		}
 
 		enable_function_for_vector void edit_data(uint_t i) {
-			glsl_location_handler<layout_location, buffer_type>::edit_data(i, m_color.data() + i, sizeof(fan::color));
+			basic_shape_color_vector::glsl_location_handler::edit_data(i, m_color.data() + i, sizeof(fan::color));
 		}
 		enable_function_for_vector void edit_data(void* data, uint_t offset, uint_t byte_size) {
 			basic_shape_color_vector::glsl_location_handler::edit_data(data, offset, byte_size);
 		}
 
 		enable_function_for_vector void write_data() {
-			glsl_location_handler<layout_location, buffer_type>::write_data(m_color.data(), sizeof(fan::color) * m_color.size());
+			basic_shape_color_vector::glsl_location_handler::write_data(m_color.data(), sizeof(fan::color) * m_color.size());
 		}
 
-		enable_function_for_vector void initialize_buffers(bool divisor) {
-			glsl_location_handler<layout_location, buffer_type>::initialize_buffers(m_color.data(), sizeof(fan::color) * m_color.size(), divisor, fan::color::size());
+		template<typename T = void, 
+				 bool enable_function_t = gl_3_0_attrib, 
+			typename = typename 
+			std::enable_if<std::is_same<T, T>::value && 
+			enable_vector && !enable_function_t>::type 
+			
+		> void initialize_buffers(bool divisor) {
+			basic_shape_color_vector::glsl_location_handler::initialize_buffers(m_color.data(), sizeof(fan::color) * m_color.size(), divisor, fan::color::size());
 		}
 
+		template<typename T = void, 
+			bool enable_function_t = gl_3_0_attrib, 
+			typename = typename
+			std::enable_if<std::is_same<T, T>::value && 
+			enable_vector && enable_function_t>::type
+		> 
+		void initialize_buffers(uint_t program, const std::string& path, bool divisor) {
+			basic_shape_color_vector::glsl_location_handler::initialize_buffers(m_color.data(), sizeof(fan::color) * m_color.size(), divisor, fan::color::size(), program, path);
+		}
 		// -----------------------------------------------------
 
 		std::conditional_t<enable_vector, std::vector<fan::color>, fan::color> m_color;
@@ -742,7 +761,7 @@ namespace fan {
 	template <typename _Vector>
 	class basic_vertice_vector : 
 		public basic_shape_position<true, _Vector>, 
-		public basic_shape_color_vector<true>, 
+		public basic_shape_color_vector<true, 0, fan::opengl_buffer_type::buffer_object, true>, 
 		public basic_shape_velocity<true, _Vector>,
 		public vao_handler {
 	public:
@@ -780,8 +799,8 @@ namespace fan {
 
 	};
 
-	template <uint_t layout_location = 0, uint_t gl_buffer = GL_ARRAY_BUFFER>
-	class basic_shape_color_vector_vector : public glsl_location_handler<layout_location, opengl_buffer_type::buffer_object> {
+	template <uint_t layout_location = 0, fan::opengl_buffer_type gl_buffer = fan::opengl_buffer_type::buffer_object, bool gl_3_0_attribute = false>
+	class basic_shape_color_vector_vector : public glsl_location_handler<layout_location, gl_buffer, gl_3_0_attribute> {
 	public:
 
 		basic_shape_color_vector_vector();
@@ -829,10 +848,11 @@ namespace fan {
 				}
 			}
 
-			fan::write_glbuffer(glsl_location_handler<layout_location, opengl_buffer_type::buffer_object>::m_buffer_object, vector.data(), sizeof(fan::color) * vector.size(), gl_buffer, layout_location);
+			//AAAAAAAAAA GL_ARRAY_BUFFER
+			fan::write_glbuffer(basic_shape_color_vector_vector::glsl_location_handler::m_buffer_object, vector.data(), sizeof(fan::color) * vector.size(), GL_ARRAY_BUFFER, layout_location);
 		}
 
-		void initialize_buffers(bool divisor = true);
+		void initialize_buffers(uint_t program, const std::string& path, bool divisor);
 
 		std::vector<std::vector<fan::color>> m_color;
 
@@ -983,6 +1003,8 @@ namespace fan_2d {
 
 	class vertice_vector : public fan::basic_vertice_vector<fan::vec2>, public fan::ebo_handler {
 	public:
+
+		static constexpr auto color_location_name = "in_color";
 
 		vertice_vector(fan::camera* camera, uint_t index_restart = UINT32_MAX);
 		vertice_vector(fan::camera* camera, const fan::vec2& position, const fan::color& color, uint_t index_restart);
@@ -1264,22 +1286,27 @@ namespace fan_2d {
 		inline std::unordered_map<fan::window_t, uint_t> focus_counter;
 
 		class text_renderer : 
-			protected fan::basic_shape_color_vector_vector<3>, 
-			protected fan::basic_shape_color_vector_vector<3, GL_SHADER_STORAGE_BUFFER>,
+			protected fan::basic_shape_color_vector_vector<3, fan::opengl_buffer_type::buffer_object, true>, 
+			protected fan::basic_shape_color_vector_vector<3, fan::opengl_buffer_type::shader_storage_buffer_object, true>,
 			public fan::texture_handler,
 			public fan::vao_handler,
-			public fan::glsl_location_handler<2, fan::opengl_buffer_type::buffer_object>,
-			public fan::glsl_location_handler<0, fan::opengl_buffer_type::buffer_object>,
-			public fan::glsl_location_handler<1, fan::opengl_buffer_type::buffer_object>{
+			public fan::glsl_location_handler<2, fan::opengl_buffer_type::buffer_object, true>,
+			public fan::glsl_location_handler<0, fan::opengl_buffer_type::buffer_object, true>,
+			public fan::glsl_location_handler<1, fan::opengl_buffer_type::buffer_object, true>{
 		public:
 
-			using text_color_t = fan::basic_shape_color_vector_vector<3>;
-			using outline_color_t = fan::basic_shape_color_vector_vector<3, GL_SHADER_STORAGE_BUFFER>;
+			using text_color_t = fan::basic_shape_color_vector_vector<3, fan::opengl_buffer_type::buffer_object, true>;
+			using outline_color_t = fan::basic_shape_color_vector_vector<3, fan::opengl_buffer_type::shader_storage_buffer_object, true>;
 
-			using font_sizes_ssbo_t = fan::glsl_location_handler<2, fan::opengl_buffer_type::buffer_object>;
+			using font_sizes_ssbo_t = fan::glsl_location_handler<2, fan::opengl_buffer_type::buffer_object, true>;
 
-			using vertex_vbo_t = fan::glsl_location_handler<0, fan::opengl_buffer_type::buffer_object>;
-			using texture_vbo_t = fan::glsl_location_handler<1, fan::opengl_buffer_type::buffer_object>;
+			using vertex_vbo_t = fan::glsl_location_handler<0, fan::opengl_buffer_type::buffer_object, true>;
+			using texture_vbo_t = fan::glsl_location_handler<1, fan::opengl_buffer_type::buffer_object, true>;
+
+			static constexpr auto vertex_location_name = "vertex";
+			static constexpr auto text_color_location_name = "text_colors";
+			static constexpr auto texture_coordinates_location_name = "texture_coordinate";
+			static constexpr auto font_sizes_location_name = "font_sizes";
 
 			text_renderer(fan::camera* camera);
 			text_renderer(fan::camera* camera, const fan::fstring& text, const fan::vec2& position, const fan::color& text_color, f_t font_size, const fan::color& outline_color = fan::color(-1, -1, -1, 0), bool queue = false);
@@ -2872,26 +2899,6 @@ namespace fan_3d {
 
 	void add_camera_rotation_callback(fan::camera* camera);
 
-	class line_vector : public fan::basic_shape<true, fan::vec3>, public fan::basic_shape_color_vector<true> {
-	public:
-
-		line_vector(fan::camera* camera);
-		line_vector(fan::camera* camera, const fan::mat2x3& begin_end, const fan::color& color);
-
-		void push_back(const fan::mat2x3& begin_end, const fan::color& color, bool queue = false);
-
-		void draw();
-
-		void set_position(uint_t i, const fan::mat2x3 begin_end, bool queue = false);
-
-		void release_queue(bool position, bool color);
-
-	private:
-
-		using line_vector::basic_shape::set_position;
-		using line_vector::basic_shape::set_size;
-
-	};
 
 	using triangle_vertices_t = fan::vec3;
 

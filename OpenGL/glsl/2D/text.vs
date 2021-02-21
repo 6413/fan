@@ -5,9 +5,9 @@ attribute vec2 texture_coordinate;
 attribute float font_sizes;
 attribute vec4 text_colors;
 
-varying vec2 texture_coordinates;
-varying float font_size;
-varying vec3 text_color;
+out vec2 texture_coordinates;
+out float font_size;
+out vec3 text_color;
 
 uniform mat4 projection;
 
