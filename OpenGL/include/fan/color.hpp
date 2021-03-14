@@ -70,7 +70,7 @@ namespace fan {
 			return color(r -= color_.r, g -= color_.g, b -= color_.b, a -= color_.a);
 		}
 		constexpr color operator-(const color& color_) const {
-			return color(r - color_.r, g - color_.g, b - color_.b, a);
+			return color(r - color_.r, g - color_.g, b - color_.b, color_.a != 1 ? a - color_.a : a);
 		}
 		constexpr color operator+(const color& color_) const {
 			return color(r + color_.r, g + color_.g, b + color_.b, a + color_.a);

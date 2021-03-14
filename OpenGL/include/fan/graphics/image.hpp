@@ -15,7 +15,6 @@ extern "C"
 	#include <libavformat/avformat.h>
 
 	#include <libswscale/swscale.h>
-
 }
 
 namespace fan {
@@ -26,11 +25,11 @@ namespace fan {
 			image_data() : data{}, linesize{} {}
 			uint8_t* data[4];
 			int linesize[4];
-			fan::vec2i image_size;
+			fan::vec2i size;
 			AVPixelFormat format;
 		};
 
-		uint_t get_stride_multiplier(AVPixelFormat format) {
+		static uint_t get_stride_multiplier(AVPixelFormat format) {
 			switch (format) {
 				case AVPixelFormat::AV_PIX_FMT_BGR24:
 				case AVPixelFormat::AV_PIX_FMT_RGB24:
@@ -47,14 +46,16 @@ namespace fan {
 			}
 		}
 
-		fan::image_loader::image_data convert_format(const fan::image_loader::image_data& image_data, AVPixelFormat new_format) {
+		static fan::image_loader::image_data convert_format(const fan::image_loader::image_data& image_data, AVPixelFormat new_format) {
+
+			image_loader::image_data new_data;
 
 			auto context = sws_getContext(
-				image_data.image_size.x, 
-				image_data.image_size.y, 
+				image_data.size.x, 
+				image_data.size.y, 
 				image_data.format, 
-				image_data.image_size.x, 
-				image_data.image_size.y, 
+				image_data.size.x, 
+				image_data.size.y, 
 				new_format,
 				SWS_BILINEAR,
 				0, 
@@ -67,15 +68,13 @@ namespace fan {
 				return {};
 			}
 
-			image_loader::image_data new_data;
-
-			new_data.linesize[0] = get_stride_multiplier(new_format) * image_data.image_size.x;
+			new_data.linesize[0] = get_stride_multiplier(new_format) * image_data.size.x;
 
 			if (av_image_alloc(
 				new_data.data,
 				new_data.linesize,
-				image_data.image_size.x,
-				image_data.image_size.y,
+				image_data.size.x,
+				image_data.size.y,
 				new_format,
 				2
 				) < 0) {
@@ -88,22 +87,22 @@ namespace fan {
 				image_data.data, 
 				image_data.linesize,
 				0, 
-				image_data.image_size.y, 
+				image_data.size.y, 
 				new_data.data,
 				new_data.linesize
 			);
 
-			//sws_freeContext(context);
+			sws_freeContext(context);
 
 			av_freep((void*)&image_data.data);
 
 			new_data.format = new_format;
-			new_data.image_size = image_data.image_size;
+			new_data.size = image_data.size;
 
 			return new_data;
 		}
 
-		fan::image_loader::image_data load_image(const std::string& filename) {
+		static fan::image_loader::image_data load_image(const std::string& filename) {
 
 			fan::image_loader::image_data image_data;
 
@@ -176,16 +175,16 @@ namespace fan {
 				goto end;
 			}
 
-			image_data.image_size.x = frame->width;
-			image_data.image_size.y = frame->height;
+			image_data.size.x = frame->width;
+			image_data.size.y = frame->height;
 
 			image_data.format = (AVPixelFormat)frame->format;
 
 			if (av_image_alloc(
 				image_data.data,
 				image_data.linesize,
-				image_data.image_size.x,
-				image_data.image_size.y,
+				image_data.size.x,
+				image_data.size.y,
 				image_data.format,
 				16) < 0) {
 				fan::print("failed to allocate image");
@@ -198,19 +197,11 @@ namespace fan {
 				(const uint8_t **)frame->data, 
 				frame->linesize, 
 				image_data.format, 
-				image_data.image_size.x, 
-				image_data.image_size.y
+				image_data.size.x, 
+				image_data.size.y
 			);
 
 end:
-
-
-			/*int ind = 0;
-			for (int i = 0; i < frame->height; i++) {
-				for (int j = 0; j < frame->width; j++) {
-					printf("%u %u %u\n", (int)frame->data[0][ind++], (int)frame->data[0][ind++], (int)frame->data[0][ind++]);
-				}
-			}*/
 
 			switch (image_data.format) {
 				

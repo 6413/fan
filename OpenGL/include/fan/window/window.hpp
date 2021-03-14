@@ -6,6 +6,10 @@
 #include <fan/types/types.hpp>
 #include <fan/math/vector.hpp>
 
+#include <codecvt>
+#include <locale>
+#include <climits>
+
 #ifdef FAN_PLATFORM_WINDOWS
 
 #include <GL/wglew.h>
@@ -72,6 +76,8 @@ namespace fan {
 		}
 	};
 
+	class window;
+
 	#ifdef FAN_PLATFORM_WINDOWS
 
 	constexpr int OPENGL_MINOR_VERSION = WGL_CONTEXT_MINOR_VERSION_ARB;
@@ -104,45 +110,7 @@ namespace fan {
 
 	uint_t get_screen_refresh_rate();
 
-	namespace io {
-		static fan::fstring get_clipboard_text() {
-
-			fan::fstring copied_text;
-
-			#ifdef FAN_PLATFORM_WINDOWS
-
-			if (!OpenClipboard(nullptr)) {
-				throw std::runtime_error("failed to open clipboard");
-			}
-
-			HANDLE data = GetClipboardData(CF_UNICODETEXT);
-
-			if (data == nullptr) {
-				throw std::runtime_error("clipboard data was nullptr");
-			}
-
-			wchar_t* text = static_cast<wchar_t*>(GlobalLock(data));
-			if (text == nullptr) {
-				throw std::runtime_error("copyboard text was nullptr");
-			}
-
-			copied_text = text;
-
-			GlobalUnlock(data);
-
-			CloseClipboard();
-
-			#elif defined(FAN_PLATFORM_LINUX)
-
-			#endif
-
-			return copied_text;
-		}
-	}
-
 	inline std::unordered_map<std::pair<fan::window_t, std::string>, std::any, pair_hash> m_window_storage;
-
-	class window;
 
 	inline std::unordered_map<fan::window_t, fan::window*> window_id_storage;
 
@@ -509,4 +477,116 @@ namespace fan {
 		};
 
 	};
+
+	namespace io {
+
+		static fan::fstring get_clipboard_text(fan::window_t window) {
+
+			fan::fstring copied_text;
+
+			#ifdef FAN_PLATFORM_WINDOWS
+
+			if (!OpenClipboard(nullptr)) {
+				throw std::runtime_error("failed to open clipboard");
+			}
+
+			HANDLE data = GetClipboardData(CF_UNICODETEXT);
+
+			if (data == nullptr) {
+				throw std::runtime_error("clipboard data was nullptr");
+			}
+
+			wchar_t* text = static_cast<wchar_t*>(GlobalLock(data));
+			if (text == nullptr) {
+				throw std::runtime_error("copyboard text was nullptr");
+			}
+
+			copied_text = text;
+
+			GlobalUnlock(data);
+
+			CloseClipboard();
+
+			#elif defined(FAN_PLATFORM_LINUX)
+
+			typedef std::codecvt_utf8<wchar_t> convert_type;
+			std::wstring_convert<convert_type, wchar_t> converter;
+
+			Display *display = XOpenDisplay(NULL);
+
+			if (!display) {
+				throw std::runtime_error("failed to open display");
+			}
+
+			XEvent ev;
+			XSelectionEvent *sev;
+
+			Atom da, incr, type, sel, p;
+			int di = 0;
+			unsigned long size = 0, dul = 0;
+			unsigned char *prop_ret = NULL;
+
+			auto target_window = XCreateSimpleWindow(display, RootWindow(display, DefaultScreen(display)), -10, -10, 1, 1, 0, 0, 0);
+
+			sel = XInternAtom(display, "CLIPBOARD", False);
+			p = XInternAtom(display, "PENGUIN", False);
+
+			XConvertSelection(display, sel, XInternAtom(display, "UTF8_STRING", False), p, target_window,
+				CurrentTime);
+
+			for (;;)
+			{
+				XNextEvent(display, &ev);
+				switch (ev.type)
+				{
+					case SelectionNotify:
+					{
+						sev = (XSelectionEvent*)&ev.xselection;
+						if (sev->property == None)
+						{
+							fan::print("Conversion could not be performed.");
+						}
+						goto g_done;
+					}
+
+				}
+			}
+
+			g_done:
+
+			if (XGetWindowProperty(display, target_window, p, 0, 0, False, AnyPropertyType,
+				&type, &di, &dul, &size, &prop_ret) != Success) {
+				fan::print("failed");
+			}
+
+			incr = XInternAtom(display, "INCR", False);
+
+			if (type == incr)
+			{
+				printf("INCR not implemented\n");
+				return L"";
+			}
+
+			if (XGetWindowProperty(display, target_window, p, 0, size, False, AnyPropertyType,
+				&da, &di, &dul, &dul, &prop_ret) != Success) {
+				fan::print("failed data");
+			}
+
+			if (prop_ret) {
+				copied_text = converter.from_bytes((char*)prop_ret);
+				XFree(prop_ret);
+			}
+			else {
+				fan::print("no prop");
+			}
+
+			XDeleteProperty(display, target_window, p);
+			XCloseDisplay(display);
+			XCloseWindow(target_window);
+
+			#endif
+
+			return copied_text;
+		}
+	}
 }

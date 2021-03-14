@@ -88,10 +88,6 @@ namespace fan {
 		return (value & flag) == flag;
 	}
 
-	constexpr auto strlen(const char* s) { 
-		return (sizeof(s)/sizeof(s[0])); 
-	}
-
 	enum class platform_t { windows, linux };
 
 	#if defined(_WIN32) || defined(_WIN64)
@@ -150,18 +146,6 @@ namespace fan {
 		}
 		return value;
 	}
-	
-	inline auto force_debug(std::function<void()> f) {
-		static int x = 0;
-		if (x < 2)
-		{
-			f();
-			x++;
-		}
-	}
-
-	//#define force_debug(abcafd) static int x = 0; if (!x){ abcafd;x++;}
-
 }
 
 //template <platform_t T_platform>

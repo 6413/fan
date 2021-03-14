@@ -100,11 +100,11 @@ uint_t fan::get_screen_refresh_rate()
 
 	XRRScreenConfiguration *conf = XRRGetScreenInfo(display, root);
 
-	short resolution = XRRConfigCurrentRate(conf);
+	short refresh_rate = XRRConfigCurrentRate(conf);
 
 	XCloseDisplay(display);
 
-	return resolution;
+	return refresh_rate;
 
 	#endif
 
@@ -1538,15 +1538,12 @@ void fan::window::initialize_window(const std::string& name, const fan::vec2i& w
 
 	#elif defined(FAN_PLATFORM_LINUX)
 
-
 	if (!m_display) {
 		m_display = XOpenDisplay(NULL);
 		if (!m_display) {
-			fan::print("fan window error: failed to initialize window");
-			exit(1);
+			throw std::runtime_error("failed to initialize window");
 		}
 	}
-
 
 	static bool abc = true;
 

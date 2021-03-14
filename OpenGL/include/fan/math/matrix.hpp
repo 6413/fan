@@ -231,14 +231,14 @@ namespace fan {
 		template <fan::is_arithmetic_t T>
 		constexpr basic_matrix_t<type_t> operator+(T value) const 
 		{
-			basic_matrix_t<type_t> matrix_;
+			consteval basic_matrix_t<type_t> matrix_;
 			return matrix_operators<basic_matrix_t<type_t>, size_x - 1, size_y - 1, size_y - 1>::addition(matrix_, *this, value);
 		}
 
 		template <typename T>
 		constexpr basic_matrix_t<type_t> operator+(const basic_matrix_t<T>& matrix) const 
 		{
-			basic_matrix_t<type_t> matrix_;
+			consteval basic_matrix_t<type_t> matrix_;
 			return matrix_operators<basic_matrix_t<type_t>, size_x - 1, size_y - 1, size_y - 1>::addition(matrix_, *this, matrix);
 		}
 
@@ -263,7 +263,7 @@ namespace fan {
 		template <typename T>
 		constexpr basic_matrix_t<type_t> operator-(const basic_matrix_t<T>& matrix) const 
 		{
-			basic_matrix_t<type_t> matrix_;
+			consteval basic_matrix_t<type_t> matrix_;
 			return matrix_operators<basic_matrix_t<type_t>, size_x - 1, size_y - 1, size_y - 1>::substraction(matrix_, *this, matrix);
 		}
 
@@ -279,6 +279,14 @@ namespace fan {
 			basic_matrix_t<type_t> matrix_;
 
 			return matrix_operators<basic_matrix_t<type_t>, size_x - 1, size_y - 1, size_y - 1>::multiplication(matrix_, *this, matrix);
+		}
+
+		template <typename T>
+		constexpr basic_matrix_t<type_t> operator*=(const basic_matrix_t<T>& matrix)
+		{
+			consteval basic_matrix_t<type_t> matrix_;
+
+			return *this = matrix_operators<basic_matrix_t<type_t>, size_x - 1, size_y - 1, size_y - 1>::multiplication(matrix_, *this, matrix);
 		}
 
 		static constexpr uint_t size() 
@@ -369,10 +377,10 @@ namespace fan {
 		using basic_matrix<type_t, 4, 4>::basic_matrix;
 
 		template <typename T>
-		_matrix4x4(const basic_matrix<T, 4, 4>& matrix) : basic_matrix<type_t, 4, 4>(matrix) {}
+		constexpr _matrix4x4(const basic_matrix<T, 4, 4>& matrix) : basic_matrix<type_t, 4, 4>(matrix) {}
 
 		template <typename T>
-		_matrix4x4(const fan::quaternion<T>& quat) : _matrix4x4<type_t>(1) {
+		constexpr _matrix4x4(const fan::quaternion<T>& quat) : _matrix4x4<type_t>(1) {
 			f32_t qxx(quat[0] * quat[0]);
 			f32_t qyy(quat[1] * quat[1]);
 			f32_t qzz(quat[2] * quat[2]);
