@@ -1479,10 +1479,10 @@ void fan_2d::rounded_rectangle::edit_rectangle(uint_t i, bool queue)
 }
 
 fan_2d::sprite::sprite(fan::camera* camera) 
-	: fan_2d::rectangle(camera), m_screen_shader(shader_paths::post_processing_vs, shader_paths::post_processing_fs) {}
+	: fan_2d::rectangle(camera), m_screen_shader(shader_paths::post_processing_vs, shader_paths::post_processing_fs), m_amount_of_textures(0) {}
 
 fan_2d::sprite::sprite(fan::camera* camera, const std::string& path, const fan::vec2& position, const fan::vec2& size)
-	: fan_2d::rectangle(camera), m_screen_shader(shader_paths::post_processing_vs, shader_paths::post_processing_fs)
+	: fan_2d::rectangle(camera), m_screen_shader(shader_paths::post_processing_vs, shader_paths::post_processing_fs), m_amount_of_textures(0)
 {
 	auto info = fan_2d::load_image(path);
 
@@ -1498,7 +1498,7 @@ fan_2d::sprite::sprite(fan::camera* camera, const std::string& path, const fan::
 }
 
 fan_2d::sprite::sprite(fan::camera* camera, unsigned char* pixels, const fan::vec2& position, const fan::vec2i& size)
-	: fan_2d::rectangle(camera), m_screen_shader(shader_paths::post_processing_vs, shader_paths::post_processing_fs)
+	: fan_2d::rectangle(camera), m_screen_shader(shader_paths::post_processing_vs, shader_paths::post_processing_fs), m_amount_of_textures(0)
 {
 	auto info = fan_2d::load_image(pixels, size);
 
@@ -1513,7 +1513,7 @@ fan_2d::sprite::sprite(fan::camera* camera, unsigned char* pixels, const fan::ve
 }
 
 fan_2d::sprite::sprite(fan::camera* camera, uint32_t texture_id, const fan::vec2& position, const fan::vec2& size)
-	: fan_2d::rectangle(camera), m_screen_shader(shader_paths::post_processing_vs, shader_paths::post_processing_fs)
+	: fan_2d::rectangle(camera), m_screen_shader(shader_paths::post_processing_vs, shader_paths::post_processing_fs), m_amount_of_textures(0)
 {
 	this->push_back(texture_id, position, size);
 }
@@ -1527,6 +1527,7 @@ fan_2d::sprite::sprite(const fan_2d::sprite& sprite)
 {
 	m_screen_shader = sprite.m_screen_shader;
 	m_transparency = sprite.m_transparency;
+	m_amount_of_textures = sprite.m_amount_of_textures;
 }
 
 fan_2d::sprite::sprite(fan_2d::sprite&& sprite) noexcept
@@ -1539,6 +1540,7 @@ fan_2d::sprite::sprite(fan_2d::sprite&& sprite) noexcept
 {
 	m_screen_shader = std::move(sprite.m_screen_shader);
 	m_transparency = std::move(sprite.m_transparency);
+	m_amount_of_textures = std::move(sprite.m_amount_of_textures);
 }
 
 fan_2d::sprite& fan_2d::sprite::operator=(const fan_2d::sprite& sprite)
@@ -1550,6 +1552,7 @@ fan_2d::sprite& fan_2d::sprite::operator=(const fan_2d::sprite& sprite)
 	fan::frame_buffer_handler<>::operator=(sprite);
 	m_screen_shader = sprite.m_screen_shader;
 	m_transparency = sprite.m_transparency;
+	m_amount_of_textures = sprite.m_amount_of_textures;
 
 	return *this;
 }
@@ -1563,6 +1566,7 @@ fan_2d::sprite& fan_2d::sprite::operator=(fan_2d::sprite&& sprite)
 	fan::frame_buffer_handler<>::operator=(std::move(sprite));
 	m_screen_shader = std::move(sprite.m_screen_shader);
 	m_transparency = std::move(sprite.m_transparency);
+	m_amount_of_textures = std::move(sprite.m_amount_of_textures);
 
 	return *this;
 }

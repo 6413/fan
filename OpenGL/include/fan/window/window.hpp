@@ -581,8 +581,8 @@ namespace fan {
 			}
 
 			XDeleteProperty(display, target_window, p);
+			XDestroyWindow(display, target_window);
 			XCloseDisplay(display);
-			XCloseWindow(target_window);
 
 			#endif
 

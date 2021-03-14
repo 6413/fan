@@ -231,14 +231,14 @@ namespace fan {
 		template <fan::is_arithmetic_t T>
 		constexpr basic_matrix_t<type_t> operator+(T value) const 
 		{
-			consteval basic_matrix_t<type_t> matrix_;
+			basic_matrix_t<type_t> matrix_;
 			return matrix_operators<basic_matrix_t<type_t>, size_x - 1, size_y - 1, size_y - 1>::addition(matrix_, *this, value);
 		}
 
 		template <typename T>
 		constexpr basic_matrix_t<type_t> operator+(const basic_matrix_t<T>& matrix) const 
 		{
-			consteval basic_matrix_t<type_t> matrix_;
+			basic_matrix_t<type_t> matrix_;
 			return matrix_operators<basic_matrix_t<type_t>, size_x - 1, size_y - 1, size_y - 1>::addition(matrix_, *this, matrix);
 		}
 
@@ -263,7 +263,7 @@ namespace fan {
 		template <typename T>
 		constexpr basic_matrix_t<type_t> operator-(const basic_matrix_t<T>& matrix) const 
 		{
-			consteval basic_matrix_t<type_t> matrix_;
+			basic_matrix_t<type_t> matrix_;
 			return matrix_operators<basic_matrix_t<type_t>, size_x - 1, size_y - 1, size_y - 1>::substraction(matrix_, *this, matrix);
 		}
 
@@ -284,7 +284,7 @@ namespace fan {
 		template <typename T>
 		constexpr basic_matrix_t<type_t> operator*=(const basic_matrix_t<T>& matrix)
 		{
-			consteval basic_matrix_t<type_t> matrix_;
+			basic_matrix_t<type_t> matrix_;
 
 			return *this = matrix_operators<basic_matrix_t<type_t>, size_x - 1, size_y - 1, size_y - 1>::multiplication(matrix_, *this, matrix);
 		}
