@@ -162,6 +162,10 @@ namespace fan {
                 glDeleteShader(geometry);
         }
 
+        void set_bool(const std::string& name, bool value) const {
+            glUniform1i(glGetUniformLocation(m_id, name.c_str()), value);
+        }
+
         void set_int(const std::string& name, int value) const
         {
             glUniform1i(glGetUniformLocation(m_id, name.c_str()), value);

@@ -142,35 +142,231 @@ namespace fan {
 		glEnable(GL_DEPTH_TEST);
 	}
 
-	#define private_template
-	#define private_class_name vao_handler
-	#define private_variable_name m_vao
-	#define private_buffer_type opengl_buffer_type::vertex_array_object
-	#define private_layout_location 0
-	#include <fan/code_builder.hpp>
+	template <uint_t T_layout_location, opengl_buffer_type T_buffer_type, bool gl_3_0_attribute = false> 
+	class glsl_location_handler { 
 
-	#define private_template
-	#define private_class_name ebo_handler
-	#define private_variable_name m_ebo
-	#define private_buffer_type opengl_buffer_type::buffer_object
-	#define private_layout_location 0
-	#include <fan/code_builder.hpp>
+	public:
 
-	#define private_template
-	#define private_class_name texture_handler
-	#define private_variable_name m_texture
-	#define private_buffer_type opengl_buffer_type::texture
-	#define private_layout_location 0
-	#include <fan/code_builder.hpp>
+		uint32_t m_buffer_object;
 
-	#define private_template template <uint_t T_layout_location, opengl_buffer_type T_buffer_type, bool gl_3_0_attribute = false>
-	#define private_class_name glsl_location_handler
-	#define private_variable_name m_buffer_object
-	#define private_buffer_type T_buffer_type
-	#define private_layout_location T_layout_location
-	#define private_attribute_location gl_3_0_attribute
+		glsl_location_handler() : m_buffer_object(fan::uninitialized) {
+			this->allocate_buffer();
+		}
 
-	#include <fan/code_builder.hpp>
+		glsl_location_handler(uint32_t buffer_object) : m_buffer_object(buffer_object) {}
+
+		~glsl_location_handler() {
+			this->free_buffer();
+		}
+
+
+		glsl_location_handler(const glsl_location_handler& handler) : m_buffer_object(fan::uninitialized) {
+			this->allocate_buffer();
+		}
+
+		glsl_location_handler(glsl_location_handler&& handler) : m_buffer_object(fan::uninitialized) {
+			if ((int)handler.m_buffer_object == fan::uninitialized) {
+				throw std::runtime_error("attempting to move unallocated memory");
+			}
+			this->operator=(std::move(handler));
+		}
+
+		glsl_location_handler& operator=(const glsl_location_handler& handler) {
+
+			this->free_buffer();
+
+			this->allocate_buffer();
+
+			return *this;
+		}
+
+		glsl_location_handler& operator=(glsl_location_handler&& handler) {
+
+			this->free_buffer();
+
+			this->m_buffer_object = handler.m_buffer_object;
+
+			handler.m_buffer_object = fan::uninitialized;
+
+			return *this;
+		}
+
+	protected:
+
+		static constexpr uint32_t gl_buffer =
+			conditional_value<T_buffer_type == fan::opengl_buffer_type::buffer_object, GL_ARRAY_BUFFER, 
+			conditional_value<T_buffer_type == fan::opengl_buffer_type::vertex_array_object, 0,
+			conditional_value<T_buffer_type == fan::opengl_buffer_type::texture, GL_TEXTURE_2D, 
+			conditional_value<T_buffer_type == fan::opengl_buffer_type::shader_storage_buffer_object, GL_SHADER_STORAGE_BUFFER, 
+			conditional_value<T_buffer_type == fan::opengl_buffer_type::frame_buffer_object, GL_FRAMEBUFFER, 
+			conditional_value<T_buffer_type == fan::opengl_buffer_type::render_buffer_object, GL_RENDERBUFFER, static_cast<uint32_t>(fan::uninitialized)
+			>::value>::value>::value>::value>::value>::value;
+
+		void allocate_buffer() {
+			comparer<T_buffer_type>(
+				[&] { glGenBuffers(1, &m_buffer_object); },
+				[&] { glGenVertexArrays(1, &m_buffer_object); },
+				[&] { glGenBuffers(1, &m_buffer_object); },
+				[&] { glGenTextures(1, &m_buffer_object); },
+				[&] { glGenFramebuffers(1, &m_buffer_object); },
+				[&] { glGenRenderbuffers(1, &m_buffer_object); }
+			);
+		}
+
+		void free_buffer() {
+			fan_validate_buffer(m_buffer_object, {
+				comparer<T_buffer_type>(
+					[&] { glDeleteBuffers(1, &m_buffer_object); },
+				[&] { glDeleteVertexArrays(1, &m_buffer_object); },
+				[&] { glDeleteBuffers(1, &m_buffer_object); },
+				[&] { glDeleteTextures(1, &m_buffer_object); },
+				[&] { glDeleteFramebuffers(1, &m_buffer_object); },
+				[&] { glDeleteRenderbuffers(1, &m_buffer_object); }
+			);
+			m_buffer_object = fan::uninitialized;
+				});
+		}
+
+		void bind_gl_storage_buffer(const std::function<void()> function) const {
+			if constexpr (gl_buffer == GL_TEXTURE_2D) {
+				glBindTexture(gl_buffer, m_buffer_object);
+				function();
+				glBindTexture(gl_buffer, 0);
+			}
+			else if constexpr (gl_buffer == GL_FRAMEBUFFER) {
+				glBindFramebuffer(gl_buffer, m_buffer_object);
+				function();
+				glBindFramebuffer(gl_buffer, 0);
+			}
+			else if constexpr (gl_buffer == GL_RENDERBUFFER) {
+				glBindRenderbuffer(gl_buffer, m_buffer_object);
+				function();
+				glBindRenderbuffer(gl_buffer, 0);
+			}
+			else {
+				glBindBuffer(gl_buffer, m_buffer_object);
+				function();
+				glBindBuffer(gl_buffer, 0);
+			}
+		}
+
+		template <opengl_buffer_type T = T_buffer_type, typename = std::enable_if_t<T == opengl_buffer_type::shader_storage_buffer_object>>
+		void bind_gl_storage_buffer_base() const {
+			glBindBufferBase(gl_buffer, T_layout_location, m_buffer_object);
+		}
+
+		template <opengl_buffer_type T = T_buffer_type, typename = std::enable_if_t<T != opengl_buffer_type::texture && T != opengl_buffer_type::vertex_array_object>>
+		void edit_data(void* data, uint_t offset, uint_t byte_size) {
+			fan::edit_glbuffer(m_buffer_object, data, offset, byte_size, gl_buffer, T_layout_location);
+		}
+
+		template <opengl_buffer_type T = T_buffer_type, typename = std::enable_if_t<T == opengl_buffer_type::buffer_object && T != opengl_buffer_type::vertex_array_object>>
+		void edit_data(uint_t i, void* data, uint_t byte_size_single) {
+			fan::edit_glbuffer(m_buffer_object, data, i * byte_size_single, byte_size_single, gl_buffer, T_layout_location);
+		}
+
+		template <bool attribute = gl_3_0_attribute, typename = std::enable_if_t<attribute>>
+		void initialize_buffers(void* data, uint_t byte_size, bool divisor, uint_t attrib_count, uint32_t program, const std::string& name) {
+
+			comparer<T_buffer_type>(
+
+				[&] {
+
+				glBindBuffer(gl_buffer, m_buffer_object);
+
+				GLint location = glGetAttribLocation(program, name.c_str());
+
+				glEnableVertexAttribArray(location);
+				glVertexAttribPointer(location, attrib_count, fan::GL_FLOAT_T, GL_FALSE, 0, 0);
+
+				if (divisor) {
+					glVertexAttribDivisor(location, 1);
+				}
+
+				this->write_data(data, byte_size);
+			},
+
+				[] {}, 
+
+				[&] {
+				glBindBuffer(gl_buffer, m_buffer_object); 
+				glBindBufferBase(gl_buffer, T_layout_location, m_buffer_object);
+
+				if (divisor) {
+					glVertexAttribDivisor(T_layout_location, 1);
+				}
+
+				this->write_data(data, byte_size);
+			},
+
+				[] {}
+
+			); 
+		}
+
+		template <bool attribute = gl_3_0_attribute, typename = std::enable_if_t<!attribute>>
+		void initialize_buffers(void* data, uint_t byte_size, bool divisor, uint_t attrib_count) {
+
+			comparer<T_buffer_type>(
+
+				[&] {
+				glBindBuffer(gl_buffer, m_buffer_object);
+
+				glEnableVertexAttribArray(T_layout_location);
+				glVertexAttribPointer(T_layout_location, attrib_count, fan::GL_FLOAT_T, GL_FALSE, 0, 0);
+
+				if (divisor) {
+					glVertexAttribDivisor(T_layout_location, 1);
+				}
+
+				this->write_data(data, byte_size);
+			},
+
+				[] {}, 
+
+				[&] {
+				glBindBuffer(gl_buffer, m_buffer_object); 
+				glBindBufferBase(gl_buffer, T_layout_location, m_buffer_object);
+
+				if (divisor) {
+					glVertexAttribDivisor(T_layout_location, 1);
+				}
+
+				this->write_data(data, byte_size);
+			},
+
+				[] {}
+
+			); 
+		};
+
+
+		template <opengl_buffer_type T = T_buffer_type, typename = std::enable_if_t<T == opengl_buffer_type::vertex_array_object>>
+		void initialize_buffers(uint32_t vao, const std::function<void()>& binder) {
+			glBindVertexArray(vao);
+			binder();
+			glBindVertexArray(0);
+		}
+
+		void write_data(void* data, uint_t byte_size) {
+			fan::write_glbuffer(m_buffer_object, data, byte_size, gl_buffer, T_layout_location); 
+		}
+	};
+
+	template <uint_t _Location = 0>
+	class vao_handler : public glsl_location_handler<_Location, fan::opengl_buffer_type::vertex_array_object> {};
+
+	template <uint_t _Location = 0>
+	class ebo_handler : public glsl_location_handler<_Location, fan::opengl_buffer_type::buffer_object> {};
+
+	template <uint_t _Location = 0>
+	class texture_handler : public glsl_location_handler<_Location, fan::opengl_buffer_type::texture> {};
+
+	template <uint_t _Location = 0>
+	class render_buffer_handler : public glsl_location_handler<_Location, fan::opengl_buffer_type::render_buffer_object> {};
+
+	template <uint_t _Location = 0>
+	class frame_buffer_handler : public glsl_location_handler<_Location, fan::opengl_buffer_type::frame_buffer_object> {};
 
 	#define enable_function_for_vector 	   template<typename T = void, typename = typename std::enable_if<std::is_same<T, T>::value && enable_vector>::type>
 	#define enable_function_for_non_vector template<typename T = void, typename = typename std::enable_if<std::is_same<T, T>::value && !enable_vector>::type>
@@ -534,11 +730,11 @@ namespace fan {
 		}
 
 		template<typename T = void, 
-				 bool enable_function_t = gl_3_0_attrib, 
+			bool enable_function_t = gl_3_0_attrib, 
 			typename = typename 
 			std::enable_if<std::is_same<T, T>::value && 
 			enable_vector && !enable_function_t>::type 
-			
+
 		> void initialize_buffers(bool divisor) {
 			basic_shape_color_vector::glsl_location_handler::initialize_buffers(m_color.data(), sizeof(fan::color) * m_color.size(), divisor, fan::color::size());
 		}
@@ -549,7 +745,7 @@ namespace fan {
 			std::enable_if<std::is_same<T, T>::value && 
 			enable_vector && enable_function_t>::type
 		> 
-		void initialize_buffers(uint_t program, const std::string& path, bool divisor) {
+			void initialize_buffers(uint_t program, const std::string& path, bool divisor) {
 			basic_shape_color_vector::glsl_location_handler::initialize_buffers(m_color.data(), sizeof(fan::color) * m_color.size(), divisor, fan::color::size(), program, path);
 		}
 		// -----------------------------------------------------
@@ -633,7 +829,7 @@ namespace fan {
 	class basic_shape : 
 		public basic_shape_position<enable_vector, _Vector>, 
 		public basic_shape_size<enable_vector, _Vector>,
-		public vao_handler {
+		public vao_handler<> {
 	public:
 
 		basic_shape(fan::camera* camera) : m_camera(camera) {}
@@ -731,7 +927,7 @@ namespace fan {
 		}
 
 		enable_function_for_vector void basic_draw(unsigned int mode, uint_t count, uint_t primcount, uint_t i = fan::uninitialized) const {
-			glBindVertexArray(m_vao);
+			glBindVertexArray(vao_handler::m_buffer_object);
 			if (i != (uint_t)fan::uninitialized) {
 				glDrawArraysInstancedBaseInstance(mode, 0, count, 1, i);
 			}
@@ -747,7 +943,7 @@ namespace fan {
 		// ----------------------------------------------------- non vector enabled functions
 
 		enable_function_for_non_vector void basic_draw(unsigned int mode, uint_t count) const {
-			glBindVertexArray(m_vao);
+			glBindVertexArray(vao_handler::m_buffer_object);
 			glDrawArrays(mode, 0, count);
 			glBindVertexArray(0);
 		}
@@ -763,7 +959,7 @@ namespace fan {
 		public basic_shape_position<true, _Vector>, 
 		public basic_shape_color_vector<true, 0, fan::opengl_buffer_type::buffer_object, true>, 
 		public basic_shape_velocity<true, _Vector>,
-		public vao_handler {
+		public vao_handler<> {
 	public:
 
 		basic_vertice_vector(fan::camera* camera, const fan::shader& shader);
@@ -793,7 +989,7 @@ namespace fan {
 
 		void write_data(bool position, bool color);
 
-		void basic_draw(uint_t i, const std::vector<uint32_t>& indices, unsigned int mode, uint_t count, uint32_t index_restart) const;
+		void basic_draw(uint_t begin, uint_t end, const std::vector<uint32_t>& indices, unsigned int mode, uint_t count, uint32_t index_restart, uint32_t single_draw_amount) const;
 
 		fan::shader m_shader;
 
@@ -890,22 +1086,17 @@ namespace fan_2d {
 		constexpr auto single_shapes_bloom_final_vs("glsl/2D/bloom_final.vs");
 		constexpr auto single_shapes_bloom_final_fs("glsl/2D/bloom_final.fs");
 
-		constexpr auto single_sprite_vs("glsl/2D/sprite.vs");
-		constexpr auto single_sprite_fs("glsl/2D/sprite.fs");
-
 		constexpr auto post_processing_vs("glsl/2D/post_processing.vs");
 		constexpr auto post_processing_fs("glsl/2D/post_processing.fs");
 
 		constexpr auto shape_vector_vs("glsl/2D/shape_vector.vs");
 		constexpr auto shape_vector_fs("glsl/2D/shapes.fs");
-		constexpr auto sprite_vector_vs("glsl/2D/sprite_vector.vs");
-		constexpr auto sprite_vector_fs("glsl/2D/sprite_vector.fs");
 	}
 
 	// returns how much object moved
 	fan::vec2 move_object(fan::window* window, fan::vec2& position, fan::vec2& velocity, f32_t speed, f32_t gravity, f32_t jump_force = -800, f32_t friction = 10);
 
-	struct rectangle_corners_t {
+		struct rectangle_corners_t {
 		fan::vec2 top_left;
 		fan::vec2 top_right;
 		fan::vec2 bottom_left;
@@ -928,7 +1119,7 @@ namespace fan_2d {
 	}
 
 	struct image_info {
-		fan::vec2i image_size;
+		fan::vec2i size;
 		uint32_t texture_id;
 	};
 
@@ -939,69 +1130,11 @@ namespace fan_2d {
 		inline uint_t filter = GL_LINEAR;
 	}
 
-	static fan::vec2  load_image(uint32_t& texture_id, const std::string& path, bool flip_image = false);
-	static image_info load_image(unsigned char* pixels, const fan::vec2i& size);
+	image_info load_image(const std::string& path, bool flip_image = false);
+	image_info load_image(uint32_t texture_id, const std::string& path, bool flip_image = false);
+	image_info load_image(unsigned char* pixels, const fan::vec2i& size);
 
-	class sprite : 
-		public fan::basic_shape<0, fan::vec2>,
-		public fan::basic_shape_velocity<0, fan::vec2>,
-		public fan::texture_handler,
-		public fan::glsl_location_handler<0, fan::opengl_buffer_type::frame_buffer_object>,
-		public fan::glsl_location_handler<0, fan::opengl_buffer_type::render_buffer_object>,
-		public fan::glsl_location_handler<0, fan::opengl_buffer_type::texture>
-	{
-	public:
-
-		using fbo_t = fan::glsl_location_handler<0, fan::opengl_buffer_type::frame_buffer_object>;
-		using rbo_t = fan::glsl_location_handler<0, fan::opengl_buffer_type::render_buffer_object>;
-		using cb_t = fan::glsl_location_handler<0, fan::opengl_buffer_type::texture>;
-
-		sprite(fan::camera* camera);
-
-		// size with default is the size of the image
-		sprite(fan::camera* camera, const std::string& path, const fan::vec2& position, const fan::vec2& size = 0, f_t transparency = 1);
-		sprite(fan::camera* camera, unsigned char* pixels, const fan::vec2& position, const fan::vec2i& size = 0, f_t transparency = 1);
-
-		sprite(const fan_2d::sprite& sprite);
-		sprite(fan_2d::sprite&& sprite) noexcept;
-
-		fan_2d::sprite& operator=(const fan_2d::sprite& sprite);
-		fan_2d::sprite& operator=(fan_2d::sprite&& sprite);
-
-		void load_sprite(const std::string& path, const fan::vec2i& size = 0, bool flip_image = false);
-
-		void reload_sprite(unsigned char* pixels, const fan::vec2i& size);
-		void reload_sprite(const std::string& path, const fan::vec2i& size, bool flip_image = false);
-
-		void draw();
-
-		f32_t get_rotation();
-		void set_rotation(f32_t degrees);
-
-	private:
-
-		f32_t m_rotation;
-		f_t m_transparency;
-
-		std::string m_path;
-
-		fan::shader m_screen_shader;
-	};
-
-	/*class animation : public basic_single_shape {
-	public:
-
-	animation(const fan::vec2& position, const fan::vec2& size);
-
-	void add(const std::string& path);
-
-	void draw(uint_t m_texture);
-
-	private:
-	std::vector<unsigned int> m_textures;
-	};*/
-
-	class vertice_vector : public fan::basic_vertice_vector<fan::vec2>, public fan::ebo_handler {
+	class vertice_vector : public fan::basic_vertice_vector<fan::vec2>, public fan::ebo_handler<> {
 	public:
 
 		static constexpr auto color_location_name = "in_color";
@@ -1021,7 +1154,7 @@ namespace fan_2d {
 		void reserve(uint_t size);
 		void resize(uint_t size, const fan::color& color);
 
-		virtual void draw(uint32_t mode, uint_t i = fan::uninitialized) const;
+		virtual void draw(uint32_t mode, uint32_t single_draw_amount, uint_t begin = fan::uninitialized, uint_t end = fan::uninitialized) const;
 
 		void erase(uint_t i, bool queue = false);
 		void erase(uint_t begin, uint_t end, bool queue = false);
@@ -1089,7 +1222,7 @@ namespace fan_2d {
 		void reserve(uint_t size);
 		void resize(uint_t size, const fan::color& color);
 
-		void draw(uint_t i = fan::uninitialized) const;
+		void draw(uint_t begin = fan::uninitialized, uint_t end = fan::uninitialized) const;
 
 		void erase(uint_t i, bool queue = false);
 		void erase(uint_t begin, uint_t end, bool queue = false);
@@ -1099,7 +1232,7 @@ namespace fan_2d {
 		fan::vec2 get_center(uint_t i = 0) const;
 
 		f_t get_rotation(uint_t i = 0) const;
-		void set_rotation(uint_t i, f_t angle);
+		void set_rotation(uint_t i, f_t angle, bool queue = false);
 
 		const fan::color get_color(uint_t i = 0) const;
 		void set_color(uint_t i, const fan::color& color, bool queue = false);
@@ -1122,53 +1255,11 @@ namespace fan_2d {
 		using fan_2d::vertice_vector::set_velocity;
 		using fan_2d::vertice_vector::m_camera;
 
-	private:
+	protected:
 
 		std::vector<rectangle_corners_t> m_corners;
 
 		std::vector<f_t> m_rotation;
-
-	};
-
-	class sprite_vector : 
-		public fan::basic_shape<true, fan::vec2>,
-		public fan::basic_shape_velocity<true, fan::vec2>,
-		public fan::texture_handler {
-	public:
-
-		sprite_vector(fan::camera* camera, const std::string& path);
-		sprite_vector(fan::camera* camera, const std::string& path, const fan::vec2& position, const fan::vec2& size = 0);
-		sprite_vector(const sprite_vector& vector);
-		sprite_vector(sprite_vector&& vector) noexcept;
-
-		sprite_vector& operator=(const sprite_vector& vector);
-		sprite_vector& operator=(sprite_vector&& vector) noexcept;
-
-		void initialize_buffers();
-
-		void push_back(const fan::vec2& position, const fan::vec2& size = 0, bool queue = false);
-
-		void reserve(uint_t new_size);
-		void resize(uint_t new_size);
-
-		void draw();
-
-		void release_queue(bool position, bool size);
-
-		void erase(uint_t i, bool queue = false);
-
-		void load_sprite(const std::string& path, const fan::vec2 size = 0);
-
-	protected:
-
-		void allocate_texture();
-
-		// still on progress
-		std::vector<f_t> m_rotation;
-
-		fan::vec2i m_original_image_size;
-
-		std::string m_path;
 
 	};
 
@@ -1209,10 +1300,74 @@ namespace fan_2d {
 		std::vector<fan::vec2> m_position;
 		std::vector<fan::vec2> m_size;
 		std::vector<f_t> m_radius;
-
+			
 		std::vector<uint_t> m_data_offset;
 
 	};
+
+	class sprite :
+		protected fan_2d::rectangle,
+		public fan::texture_handler<1>, // screen texture
+		public fan::render_buffer_handler<>,
+		public fan::frame_buffer_handler<> {
+
+	public:
+
+		sprite(fan::camera* camera);
+
+		//size with default is the size of the image 
+		sprite(fan::camera* camera, const std::string& path, const fan::vec2& position, const fan::vec2& size = 0);
+		sprite(fan::camera* camera, unsigned char* pixels, const fan::vec2& position, const fan::vec2i& size);
+		sprite(fan::camera* camera, uint32_t texture_id, const fan::vec2& position, const fan::vec2& size);
+
+		sprite(const fan_2d::sprite& sprite);
+		sprite(fan_2d::sprite&& sprite) noexcept;
+
+		
+
+		fan_2d::sprite& operator=(const fan_2d::sprite& sprite);
+		fan_2d::sprite& operator=(fan_2d::sprite&& sprite);
+
+		~sprite();
+
+		void reload_sprite(uint32_t i, const std::string& path, const fan::vec2& size = 0);
+		void reload_sprite(uint32_t i, unsigned char* pixels, const fan::vec2i& size);
+
+		void push_back(const fan::vec2& position, const fan::vec2& size);
+		void push_back(uint32_t texture_id, const fan::vec2& position, const fan::vec2& size);
+
+		void draw(uint_t begin = fan::uninitialized, uint_t end = fan::uninitialized);
+
+		using fan_2d::rectangle::get_corners;
+		using fan_2d::rectangle::get_size;
+		using fan_2d::rectangle::set_size;
+		using fan_2d::rectangle::get_position;
+		using fan_2d::rectangle::get_positions;
+		using fan_2d::rectangle::set_position;
+		using fan_2d::rectangle::get_velocity;
+		using fan_2d::rectangle::set_velocity;
+		using fan_2d::rectangle::release_queue;
+		using fan_2d::rectangle::get_rotation;
+		using fan_2d::rectangle::set_rotation;
+		using fan_2d::rectangle::get_center;
+
+
+	private:
+
+		void initialize_buffers(const fan::vec2& size);
+
+		fan::shader m_screen_shader;
+
+		std::vector<f_t> m_transparency;
+
+		std::vector<uint32_t> m_textures;
+
+		std::vector<uint32_t> m_texture_offsets;
+
+		uint32_t m_amount_of_textures;
+
+	};
+
 
 	struct particle {
 		fan::vec2 m_velocity;
@@ -1252,25 +1407,19 @@ namespace fan_2d {
 
 		};*/
 
-		struct sprite : public fan_2d::sprite {
+		//struct sprite : public fan_2d::sprite {
 
-			sprite(fan::camera* camera);
-			// scale with default is sprite size
-			sprite(fan::camera* camera, const std::string& path, const fan::vec2& position, const fan::vec2& size = 0, f_t transparency = 1);
-			sprite(fan::camera* camera, unsigned char* pixels, const fan::vec2& position, const fan::vec2i& size = 0, f_t transparency = 1);
+		//	sprite(fan::camera* camera);
+		//	// scale with default is sprite size
+		//	sprite(fan::camera* camera, const std::string& path, const fan::vec2& position, const fan::vec2& size = 0, f_t transparency = 1);
+		//	sprite(fan::camera* camera, unsigned char* pixels, const fan::vec2& position, const fan::vec2i& size = 0, f_t transparency = 1);
 
-		};
+		//};
 
-		struct sprite_vector : public fan_2d::sprite_vector {
-
-			sprite_vector(fan::camera* camera, const std::string& path);
-			sprite_vector(fan::camera* camera, const std::string& path, const fan::vec2& position, const fan::vec2& size = 0);
-
-		};
 
 		namespace font_properties {
 
-			inline f_t new_line(80);
+			inline f_t new_line(50);
 
 			inline fan::color default_text_color(1);
 
@@ -1288,8 +1437,8 @@ namespace fan_2d {
 		class text_renderer : 
 			protected fan::basic_shape_color_vector_vector<3, fan::opengl_buffer_type::buffer_object, true>, 
 			protected fan::basic_shape_color_vector_vector<3, fan::opengl_buffer_type::shader_storage_buffer_object, true>,
-			public fan::texture_handler,
-			public fan::vao_handler,
+			public fan::texture_handler<>,
+			public fan::vao_handler<>,
 			public fan::glsl_location_handler<2, fan::opengl_buffer_type::buffer_object, true>,
 			public fan::glsl_location_handler<0, fan::opengl_buffer_type::buffer_object, true>,
 			public fan::glsl_location_handler<1, fan::opengl_buffer_type::buffer_object, true>{
@@ -1423,6 +1572,7 @@ namespace fan_2d {
 
 			inline int blink_speed(500); // ms
 			inline fan::color cursor_color(fan::colors::white);
+			inline fan::color select_color(fan::colors::blue - fan::color(0, 0, 0, 0.5));
 
 		}
 		enum class e_text_position {
@@ -1727,9 +1877,7 @@ namespace fan_2d {
 
 				m_rv.m_camera->m_window->add_key_callback(key, [&] {
 					for (uint_t i = 0; i < m_rv.size(); i++) {
-						if (inside(i)) {
-							m_on_release(i);
-						}
+						m_on_release(i);
 					}
 				}, true);
 			}
@@ -1795,10 +1943,12 @@ namespace fan_2d {
 				const auto& str = box_type::m_tr.get_text(i);
 
 				m_text_visual_input.m_cursor.push_back(fan::vec2(), fan::vec2(), text_box_properties::cursor_color);
+
 				m_text_visual_input.m_timer.emplace_back(fan::timer<>(fan::timer<>::start(), text_box_properties::blink_speed));
 				m_text_visual_input.m_visible.emplace_back(false);
 				m_line_offset.resize(i + 1);
 				m_line_offset[i].emplace_back(0);
+				m_starting_line.resize(i + 1);
 
 				m_characters_per_line.resize(i + 1);
 
@@ -1819,7 +1969,12 @@ namespace fan_2d {
 				m_current_character.emplace_back(characters_per_line);
 
 				text_box_keyboard_input::base_box::m_new_lines.emplace_back(new_lines);
-				m_current_cursor_line.emplace_back(new_lines);
+				m_current_line.emplace_back(new_lines);
+
+				m_text_visual_input.m_select.resize(new_lines + 1, text_box_properties::select_color);
+				uint32_t previous_size = m_starting_select_character.size();
+				m_starting_select_character.resize(new_lines + 1);
+				std::fill(m_starting_select_character.begin() + previous_size, m_starting_select_character.end(), INT64_MAX);
 			}
 
 			// returns begin and end of cursor points
@@ -1851,14 +2006,14 @@ namespace fan_2d {
 
 				}
 
-				const f_t new_line_size = box_type::m_rv.get_size(i).y - box_type::m_border_size[i].y;
+				const f_t new_line_size = font_properties::get_new_line(box_type::m_tr.convert_font_size(font_size));
 
-				y += m_current_cursor_line[i] * new_line_size;
+				y += m_current_line[i] * new_line_size;
 
 				return fan::mat2(
 					fan::vec2(x, y), 
 					fan::vec2(x, y + new_line_size)
-				) + box_type::m_rv.get_position(i) +  box_type::m_border_size[i] * 0.5;
+				) + box_type::m_rv.get_position(i) + box_type::m_border_size[i] * 0.5;
 			}
 
 			void update_cursor_position(uint_t i) {
@@ -1866,7 +2021,7 @@ namespace fan_2d {
 					return;
 				}
 
-				const fan::mat2 cursor_position = this->get_cursor_position(i, m_line_offset[i][m_current_cursor_line[i]], m_current_character[i]);
+				const fan::mat2 cursor_position = this->get_cursor_position(i, m_line_offset[i][m_current_line[i]], m_current_character[i]);
 
 				m_text_visual_input.m_cursor.set_line(i, cursor_position[0], cursor_position[1]);
 			}
@@ -1912,6 +2067,11 @@ namespace fan_2d {
 				if (m_text_visual_input.m_visible[draw_id]) {
 					m_text_visual_input.m_cursor.draw(draw_id);
 				}
+
+				m_text_visual_input.m_select.draw();
+
+				//if (m_text_visual_input.m_select.get_size(draw_id) != 0) {
+				//}
 				/*	}
 				}*/
 			}
@@ -1939,13 +2099,70 @@ namespace fan_2d {
 				}
 
 				m_characters_per_line[i].emplace_back(characters_per_line);
-				m_current_character[i] = characters_per_line;
 
 				text_box_keyboard_input::base_box::m_new_lines[i] = new_lines;
-				m_current_cursor_line[i] = new_lines;
+				m_current_line[i] = new_lines;
 
 				box_type::update_box_size(i);
 				update_cursor_position(i);
+			}
+
+			bool key_press(fan::input key) {
+				return box_type::m_tr.m_camera->m_window->key_press(key);
+			}
+
+			void set_selected_size(uint_t i) {
+
+				int diff = m_current_character[i] - m_starting_select_character[m_current_line[i]];
+
+				if (diff) {
+				//	fan::print("a", m_text_visual_input.m_select.get_position(0), m_text_visual_input.m_select.get_position(1));
+				}
+
+				int character_min = std::min(m_current_character[i], m_starting_select_character[m_current_line[i]]);
+				int character_max = std::max(m_current_character[i], m_starting_select_character[m_current_line[i]]);
+
+				int line_min = std::min(m_starting_line[i], m_current_line[i]);
+				int line_max = std::max(m_starting_line[i], m_current_line[i]) + 1;
+
+				for (int j = line_min; j < line_max; j++) {
+					if (m_starting_line[i] <= m_current_line[i]) {
+						if (j != line_max - 1) {
+							m_text_visual_input.m_select.set_size(
+								j,
+								fan::vec2(
+									box_type::m_tr.get_text_size(box_type::m_tr.get_text(i).substr(m_line_offset[i][j] + character_min, m_characters_per_line[i][j]), box_type::m_tr.get_font_size(i)).x,
+									font_properties::get_new_line(box_type::m_tr.convert_font_size(box_type::m_tr.get_font_size(i)))
+								)
+							);
+						}
+						else {
+
+							m_text_visual_input.m_select.set_size(
+								j, 
+								fan::vec2(
+									(diff < 0 ? -1 : 1) * box_type::m_tr.get_text_size(box_type::m_tr.get_text(i).substr(m_line_offset[i][j] + character_min, character_max - character_min), box_type::m_tr.get_font_size(i)).x,
+									font_properties::get_new_line(box_type::m_tr.convert_font_size(box_type::m_tr.get_font_size(i)))
+								)
+							);
+						}
+					}
+					else {
+						m_text_visual_input.m_select.set_size(
+							j, 
+							fan::vec2(
+								(diff < 0 ? -1 : 1) * box_type::m_tr.get_text_size(box_type::m_tr.get_text(i).substr(m_line_offset[i][m_current_line[i]] + line_min, fan::abs(diff)), box_type::m_tr.get_font_size(i)).x,
+								font_properties::get_new_line(box_type::m_tr.convert_font_size(box_type::m_tr.get_font_size(i)))
+							)
+						);
+					}
+					
+				}
+				
+			}
+
+			void update_selected_position(uint_t i) {
+				m_text_visual_input.m_select.set_position(i, get_cursor_position(i, m_line_offset[i][m_current_line[i]], m_current_character[i])[0]);
 			}
 
 			bool handle_input(uint_t i, uint_t key) {
@@ -1957,89 +2174,139 @@ namespace fan_2d {
 
 				auto current_key = box_type::m_tr.m_camera->m_window->get_current_key();
 
+				bool replace_selected_text = false;
+				bool paste = false;
+
 				switch (current_key) {
-					case fan::key_v:
+					case fan::key_v: 
 					{
-						if (box_type::m_tr.m_camera->m_window->key_press(fan::key_control)) {
+						paste = true;
+						goto g_delete;
+					g_paste:
+						paste = false;
 
-							str = fan::io::get_clipboard_text();
+						disable_select_and_reset(m_current_line[i]);
 
-							box_type::m_tr.set_text(i, str);
+						if (this->key_press(fan::key_control)) {
+
+							str = fan::io::get_clipboard_text(box_type::m_tr.m_camera->m_window->get_handle());
+
+							auto old_text = box_type::m_tr.get_text(i);
+
+							old_text.insert(old_text.begin() + m_current_character[i], str.begin(), str.end());
+
+							box_type::m_tr.set_text(i, old_text);
+
+							m_current_character[i] += str.size();
 
 							update_box(i);
+
 						}
 						else {
-							goto add_key;
+							goto g_add_key;
 						}
 
 						break;
 					}
 					case fan::key_delete: {
 
+					g_delete:
+
 						if (str.size()) {
 
-							if (str[m_line_offset[i][m_current_cursor_line[i]] + m_current_character[i]] == '\n') {
-								m_characters_per_line[i][m_current_cursor_line[i]] += m_characters_per_line[i][m_current_cursor_line[i] + 1] - 1;
-								m_characters_per_line[i].erase(m_characters_per_line[i].begin() + m_current_cursor_line[i] + 1);
-								m_line_offset[i][m_current_cursor_line[i] + 1] = m_line_offset[i][m_current_cursor_line[i]];
-								m_line_offset[i].erase(m_line_offset[i].begin() + m_current_cursor_line[i]);
-								text_box_keyboard_input::base_box::m_new_lines[i]--;
-							}
-							else {
-								m_characters_per_line[i][m_current_cursor_line[i]]--;
+							uint32_t count = m_starting_select_character[m_current_line[i]] == INT64_MAX ? 1 : std::abs(m_starting_select_character[m_current_line[i]] - m_current_character[i]);
+
+							if (m_starting_select_character[m_current_line[i]] < m_current_character[i]) {
+								m_current_character[i] = m_starting_select_character[m_current_line[i]];
 							}
 
-							if ((uint_t)(m_line_offset[i][m_current_cursor_line[i]] + m_current_character[i]) >= str.size()) {
-								break;
+							for (uint32_t k = 0; k < count; k++) {
+								if (str[m_line_offset[i][m_current_line[i]] + m_current_character[i]] == '\n') {
+									m_characters_per_line[i][m_current_line[i]] += m_characters_per_line[i][m_current_line[i] + 1] - 1;
+									m_characters_per_line[i].erase(m_characters_per_line[i].begin() + m_current_line[i] + 1);
+									m_line_offset[i][m_current_line[i] + 1] = m_line_offset[i][m_current_line[i]];
+									m_line_offset[i].erase(m_line_offset[i].begin() + m_current_line[i]);
+									text_box_keyboard_input::base_box::m_new_lines[i]--;
+								}
+								else {
+									m_characters_per_line[i][m_current_line[i]]--;
+								}
+
+								if ((uint_t)(m_line_offset[i][m_current_line[i]] + m_current_character[i]) >= str.size()) {
+									break;
+								}
+
+								str.erase(str.begin() + m_line_offset[i][m_current_line[i]] + m_current_character[i]);
+
+								box_type::m_tr.set_text(i, str);
+
+								for (int j = m_current_line[i] + 1; j <= text_box_keyboard_input::base_box::m_new_lines[i]; j++) {
+									m_line_offset[i][j]--;
+								}
 							}
 
-							str.erase(str.begin() + m_line_offset[i][m_current_cursor_line[i]] + m_current_character[i]);
-
-							box_type::m_tr.set_text(i, str);
-
-							for (int j = m_current_cursor_line[i] + 1; j <= text_box_keyboard_input::base_box::m_new_lines[i]; j++) {
-								m_line_offset[i][j]--;
-							}
+							disable_select_and_reset(m_current_line[i]);
 
 							update_cursor_position(i);
 							box_type::update_box_size(i);
+						}
+
+						if (paste) {
+							goto g_paste;
+						}
+
+						if (replace_selected_text) {
+							goto g_add_key;
 						}
 
 						break;
 					}
 					case fan::key_backspace:
 					{
-						if (m_current_character[i] || m_current_cursor_line[i]) {
 
-							m_current_character[i]--;
+						if ((m_current_character[i] || m_current_line[i]) || m_starting_select_character[m_current_line[i]] != INT64_MAX) {
 
-							str.erase(str.begin() + m_line_offset[i][m_current_cursor_line[i]] + m_current_character[i]);
-
-							box_type::m_tr.set_text(i, str);
-
-							// previous line
-							if (m_current_cursor_line[i] && m_current_character[i] == -1) {
-								m_current_character[i] = m_characters_per_line[i][m_current_cursor_line[i] - 1] - 1;
-								m_characters_per_line[i][m_current_cursor_line[i] - 1] += m_characters_per_line[i][m_current_cursor_line[i]];
-								m_characters_per_line[i].erase(m_characters_per_line[i].begin() + m_current_cursor_line[i]);
-								m_line_offset[i].erase(m_line_offset[i].begin() + m_current_cursor_line[i]);
-								m_current_cursor_line[i]--;
-								text_box_keyboard_input::base_box::m_new_lines[i]--;
-							}
-							else if (m_current_character[i] == -1) {
-								m_current_character[i] = 0;
+							if (m_starting_select_character[m_current_line[i]] != INT64_MAX && m_starting_select_character[m_current_line[i]] < m_current_character[i]) {
+								goto g_delete;
 							}
 
-							if (m_characters_per_line[i][m_current_cursor_line[i]]) {
-								m_characters_per_line[i][m_current_cursor_line[i]]--;
-							}
+							uint32_t count = m_starting_select_character[m_current_line[i]] == INT64_MAX ? 1 : std::abs(m_starting_select_character[m_current_line[i]] - m_current_character[i]);
 
-							if (m_current_cursor_line[i] || m_characters_per_line[i][m_current_cursor_line[i]]) {
-								for (int j = m_current_cursor_line[i] + 1; j <= text_box_keyboard_input::base_box::m_new_lines[i]; j++) {
-									m_line_offset[i][j]--;
+							m_current_character[i] = m_starting_select_character[m_current_line[i]] == INT64_MAX ? m_current_character[i] : m_starting_select_character[m_current_line[i]];
+
+							for (uint32_t j = 0; j < count; j++) {
+								m_current_character[i]--;
+
+								str.erase(str.begin() + m_line_offset[i][m_current_line[i]] + m_current_character[i]);
+
+								box_type::m_tr.set_text(i, str);
+
+								// previous line
+								if (m_current_line[i] && m_current_character[i] == -1) {
+									m_current_character[i] = m_characters_per_line[i][m_current_line[i] - 1] - 1;
+									m_characters_per_line[i][m_current_line[i] - 1] += m_characters_per_line[i][m_current_line[i]];
+									m_characters_per_line[i].erase(m_characters_per_line[i].begin() + m_current_line[i]);
+									m_line_offset[i].erase(m_line_offset[i].begin() + m_current_line[i]);
+									m_current_line[i]--;
+									text_box_keyboard_input::base_box::m_new_lines[i]--;
+								}
+								else if (m_current_character[i] == -1) {
+									m_current_character[i] = 0;
+								}
+
+								if (m_characters_per_line[i][m_current_line[i]]) {
+									m_characters_per_line[i][m_current_line[i]]--;
+								}
+
+								if (m_current_line[i] || m_characters_per_line[i][m_current_line[i]]) {
+									for (int j = m_current_line[i] + 1; j <= text_box_keyboard_input::base_box::m_new_lines[i]; j++) {
+										m_line_offset[i][j]--;
+									}
 								}
 							}
 
+							disable_select_and_reset(m_current_line[i]);
+							
 							update_cursor_position(i);
 							box_type::update_box_size(i);
 						}
@@ -2053,11 +2320,18 @@ namespace fan_2d {
 
 						bool go_once = false;
 
-						if (box_type::m_tr.m_camera->m_window->key_press(fan::key_control)) {
+						if (key_press(fan::key_shift) && m_starting_select_character[m_current_line[i]] == INT64_MAX) {
+
+							m_starting_select_character[m_current_line[i]] = m_current_character[i];
+							
+							update_selected_position(i);
+						}
+
+						if (this->key_press(fan::key_control)) {
 
 							std::size_t found = -1;
 
-							const auto offset = m_line_offset[i][m_current_cursor_line[i]];
+							const auto offset = m_line_offset[i][m_current_line[i]];
 
 							if (m_current_character[i] - 1 >= 0 && (uint_t)offset < str.size()) {
 								auto str_ = str.substr(offset, m_current_character[i] ? m_current_character[i] - 1 : m_current_character[i]);
@@ -2067,11 +2341,11 @@ namespace fan_2d {
 							if (found != std::string::npos) {
 								m_current_character[i] = found + 1;
 
-								if (str[m_line_offset[i][m_current_cursor_line[i]] + m_current_character[i]] == ' ') {
-									while (str[m_line_offset[i][m_current_cursor_line[i]] + m_current_character[i] - 1] == ' ') {
+								if (str[m_line_offset[i][m_current_line[i]] + m_current_character[i]] == ' ') {
+									while (str[m_line_offset[i][m_current_line[i]] + m_current_character[i] - 1] == ' ') {
 										m_current_character[i]--;
 									}
-									while (m_current_character[i] > 0 && str[m_line_offset[i][m_current_cursor_line[i]] + m_current_character[i] - 1] != ' ') {
+									while (m_current_character[i] > 0 && str[m_line_offset[i][m_current_line[i]] + m_current_character[i] - 1] != ' ') {
 										m_current_character[i]--;
 									}
 								}
@@ -2090,13 +2364,20 @@ namespace fan_2d {
 
 						if (go_once) {
 							m_current_character[i]--;
-							if (m_current_cursor_line[i] && m_current_character[i] == -1) {
-								m_current_cursor_line[i]--;
-								m_current_character[i] = m_characters_per_line[i][m_current_cursor_line[i]] - 1;
+							if (m_current_line[i] && m_current_character[i] == -1) {
+								m_current_line[i]--;
+								m_current_character[i] = m_characters_per_line[i][m_current_line[i]] - 1;
 							}
 							else if (m_current_character[i] == -1) {
 								m_current_character[i] = 0;
 							}
+						}
+
+						if (!this->key_press(fan::key_shift)) {
+							disable_select_and_reset(m_current_line[i]);
+						}
+						else {
+							set_selected_size(i);
 						}
 
 						update_cursor_position(i);
@@ -2105,9 +2386,16 @@ namespace fan_2d {
 					}
 					case fan::key_right: {
 
+						if (key_press(fan::key_shift) && m_starting_select_character[m_current_line[i]] == INT64_MAX) {
+							m_starting_select_character[m_current_line[i]] = m_current_character[i];
+							auto cursor_position = get_cursor_position(i, m_line_offset[i][m_current_line[i]], m_current_character[i]);
+
+							m_text_visual_input.m_select.set_position(i, cursor_position[0]);
+						}
+
 						m_text_visual_input.m_visible[i] = true;
 
-						if (m_current_cursor_line[i] == *(text_box_keyboard_input::base_box::m_new_lines.end() - 1) && m_characters_per_line[i][m_current_cursor_line[i]] <= m_current_character[i]) {
+						if (m_current_line[i] == *(text_box_keyboard_input::base_box::m_new_lines.end() - 1) && m_characters_per_line[i][m_current_line[i]] <= m_current_character[i]) {
 							break;
 						}
 
@@ -2117,28 +2405,28 @@ namespace fan_2d {
 
 							std::size_t found = -1;
 
-							const auto offset = m_line_offset[i][m_current_cursor_line[i]] + m_current_character[i] + 1;
+							const auto offset = m_line_offset[i][m_current_line[i]] + m_current_character[i] + 1;
 
 							if ((uint_t)offset < str.size()) {
-								found = str.substr(offset, m_characters_per_line[i][m_current_cursor_line[i]] - m_current_character[i]).find_first_of(L' ');
+								found = str.substr(offset, m_characters_per_line[i][m_current_line[i]] - m_current_character[i]).find_first_of(L' ');
 							}
 
 							if (found != std::string::npos) {
 								m_current_character[i] = m_current_character[i] + found + 1;
-								if (str[m_line_offset[i][m_current_cursor_line[i]] + m_current_character[i] - 1] == ' ') {
-									while (str[m_line_offset[i][m_current_cursor_line[i]] + m_current_character[i]] == ' ') {
+								if (str[m_line_offset[i][m_current_line[i]] + m_current_character[i] - 1] == ' ') {
+									while (str[m_line_offset[i][m_current_line[i]] + m_current_character[i]] == ' ') {
 										m_current_character[i]++;
 									}
-									while (m_current_character[i] < m_characters_per_line[i][m_current_cursor_line[i]] && str[m_line_offset[i][m_current_cursor_line[i]] + m_current_character[i]] != ' ') {
+									while (m_current_character[i] < m_characters_per_line[i][m_current_line[i]] && str[m_line_offset[i][m_current_line[i]] + m_current_character[i]] != ' ') {
 										m_current_character[i]++;
 									}
 								}
 							}
-							else if (m_current_character[i] + 1 >= m_characters_per_line[i][m_current_cursor_line[i]]) {
+							else if (m_current_character[i] + 1 >= m_characters_per_line[i][m_current_line[i]]) {
 								go_once = true;
 							}
 							else {
-								m_current_character[i] = m_characters_per_line[i][m_current_cursor_line[i]];
+								m_current_character[i] = m_characters_per_line[i][m_current_line[i]];
 							}
 						}
 						else {
@@ -2146,15 +2434,22 @@ namespace fan_2d {
 						}
 
 						if (go_once) {
-							const auto offset = m_line_offset[i][m_current_cursor_line[i]] + m_current_character[i];
+							const auto offset = m_line_offset[i][m_current_line[i]] + m_current_character[i];
 
-							if (m_current_character[i] >= m_characters_per_line[i][m_current_cursor_line[i]] || (*(str.begin() + offset) == '\n')) {
+							if (m_current_character[i] >= m_characters_per_line[i][m_current_line[i]] || (*(str.begin() + offset) == '\n')) {
 								m_current_character[i] = 0;
-								m_current_cursor_line[i]++;
+								m_current_line[i]++;
 							}
 							else {
-								m_current_character[i] = std::clamp(++m_current_character[i], (int64_t)0, (int64_t)m_characters_per_line[i][m_current_cursor_line[i]]);
+								m_current_character[i] = std::clamp(++m_current_character[i], (int64_t)0, (int64_t)m_characters_per_line[i][m_current_line[i]]);
 							}
+						}
+
+						if (!this->key_press(fan::key_shift)) {
+							disable_select_and_reset(m_current_line[i]);
+						}
+						else {
+							set_selected_size(i);
 						}
 
 						update_cursor_position(i);
@@ -2163,13 +2458,27 @@ namespace fan_2d {
 					}
 					case fan::key_home:
 					{
+						if (key_press(fan::key_shift) && m_starting_select_character[m_current_line[i]] == INT64_MAX) {
+							m_starting_select_character[m_current_line[i]] = m_current_character[i];
+							auto cursor_position = get_cursor_position(i, m_line_offset[i][m_current_line[i]], m_current_character[i]);
+
+							m_text_visual_input.m_select.set_position(i, cursor_position[0]);
+						}
+
 						m_text_visual_input.m_visible[i] = true;
 
 						if (box_type::m_tr.m_camera->m_window->key_press(fan::key_control)) {
-							m_current_cursor_line[i] = 0;
+							m_current_line[i] = 0;
 						}
 
 						m_current_character[i] = 0;
+
+						if (!this->key_press(fan::key_shift)) {
+							disable_select_and_reset(m_current_line[i]);
+						}
+						else {
+							set_selected_size(i);
+						}
 
 						update_cursor_position(i);
 
@@ -2177,15 +2486,29 @@ namespace fan_2d {
 					}
 					case fan::key_end:
 					{
+						if (key_press(fan::key_shift) && m_starting_select_character[m_current_line[i]] == INT64_MAX) {
+							m_starting_select_character[m_current_line[i]] = m_current_character[i];
+							auto cursor_position = get_cursor_position(i, m_line_offset[i][m_current_line[i]], m_current_character[i]);
+
+							m_text_visual_input.m_select.set_position(i, cursor_position[0]);
+						}
+
 						m_text_visual_input.m_visible[i] = true;
 
 						if (box_type::m_tr.m_camera->m_window->key_press(fan::key_control)) {
-							m_current_cursor_line[i] = text_box_keyboard_input::base_box::m_new_lines[i];
+							m_current_line[i] = text_box_keyboard_input::base_box::m_new_lines[i];
 						}
 
-						auto b = text_box_keyboard_input::base_box::m_new_lines[i] && m_characters_per_line[i][m_current_cursor_line[i]] && str[m_line_offset[i][m_current_cursor_line[i]] + m_characters_per_line[i][m_current_cursor_line[i]] - 1] == '\n';
+						auto b = text_box_keyboard_input::base_box::m_new_lines[i] && m_characters_per_line[i][m_current_line[i]] && str[m_line_offset[i][m_current_line[i]] + m_characters_per_line[i][m_current_line[i]] - 1] == '\n';
 
-						m_current_character[i] = m_characters_per_line[i][m_current_cursor_line[i]] - b;
+						m_current_character[i] = m_characters_per_line[i][m_current_line[i]] - b;
+
+						if (!this->key_press(fan::key_shift)) {
+							disable_select_and_reset(m_current_line[i]);
+						}
+						else {
+							set_selected_size(i);
+						}
 
 						update_cursor_position(i);
 
@@ -2193,26 +2516,28 @@ namespace fan_2d {
 					}
 					case fan::key_up:
 					{
+						disable_select_and_reset(m_current_line[i]);
+
 						m_text_visual_input.m_visible[i] = true;
 
-						if (m_current_cursor_line[i] > 0) {
+						if (m_current_line[i] > 0) {
 
 							f_t fclosest = fan::inf;
 
 							f_t current = 0;
 
 							for (int j = 0; j < m_current_character[i]; j++) {
-								auto c = *(str.begin() + m_line_offset[i][m_current_cursor_line[i]] + j);
+								auto c = *(str.begin() + m_line_offset[i][m_current_line[i]] + j);
 
 								if (c == '\n') {
 									continue;
 								}
-
+								
 								auto l_info = box_type::m_tr.get_letter_info(c, box_type::m_tr.get_font_size(i));
 								current += l_info.m_advance;
 							}
 
-							m_current_cursor_line[i]--;
+							m_current_line[i]--;
 
 							f_t new_current = 0;
 							std::size_t iclosest = 0;
@@ -2222,7 +2547,7 @@ namespace fan_2d {
 								iclosest = 0;
 							}
 
-							for (int j = m_line_offset[i][m_current_cursor_line[i]]; j < m_line_offset[i][m_current_cursor_line[i]] + m_characters_per_line[i][m_current_cursor_line[i]]; j++) {
+							for (int j = m_line_offset[i][m_current_line[i]]; j < m_line_offset[i][m_current_line[i]] + m_characters_per_line[i][m_current_line[i]]; j++) {
 
 								auto c = str[j];
 
@@ -2236,13 +2561,13 @@ namespace fan_2d {
 
 								if (fan::distance(new_current, current) < fclosest) {
 									fclosest = fan::distance(new_current, current);
-									iclosest = j - m_line_offset[i][m_current_cursor_line[i]];
+									iclosest = j - m_line_offset[i][m_current_line[i]];
 								}
 							}
 
 							if (!new_current) {
-								m_current_character[i] = m_characters_per_line[i][m_current_cursor_line[i]];
-								if (str[m_line_offset[i][m_current_cursor_line[i]] + m_current_character[i] - (bool)(m_line_offset[i][m_current_cursor_line[i]] + m_current_character[i])] == '\n') {
+								m_current_character[i] = m_characters_per_line[i][m_current_line[i]];
+								if (str[m_line_offset[i][m_current_line[i]] + m_current_character[i] - (bool)(m_line_offset[i][m_current_line[i]] + m_current_character[i])] == '\n') {
 									m_current_character[i] = 0;
 								}
 							}
@@ -2257,9 +2582,11 @@ namespace fan_2d {
 					}
 					case fan::key_down:
 					{
+						disable_select_and_reset(m_current_line[i]);
+
 						m_text_visual_input.m_visible[i] = true;
 
-						if (m_current_cursor_line[i] < text_box_keyboard_input::base_box::m_new_lines[i]) {
+						if (m_current_line[i] < text_box_keyboard_input::base_box::m_new_lines[i]) {
 
 							f_t fclosest = fan::inf;
 							std::size_t iclosest = 0;
@@ -2268,7 +2595,7 @@ namespace fan_2d {
 
 							for (int j = 0; j < m_current_character[i]; j++) {
 
-								auto c = *(str.begin() + m_line_offset[i][m_current_cursor_line[i]] + j);
+								auto c = *(str.begin() + m_line_offset[i][m_current_line[i]] + j);
 
 								if (c == '\n') {
 									continue;
@@ -2278,7 +2605,7 @@ namespace fan_2d {
 								current += l_info.m_advance;
 							}
 
-							m_current_cursor_line[i]++;
+							m_current_line[i]++;
 
 							f_t new_current = 0;
 
@@ -2287,8 +2614,8 @@ namespace fan_2d {
 								iclosest = 0;
 							}
 
-							for (int j = 0; j < m_characters_per_line[i][m_current_cursor_line[i]]; j++) {
-								auto c = *(str.begin() + m_line_offset[i][m_current_cursor_line[i]] - 1 + j);
+							for (int j = 0; j < m_characters_per_line[i][m_current_line[i]]; j++) {
+								auto c = *(str.begin() + m_line_offset[i][m_current_line[i]] - 1 + j);
 
 								if (c == '\n') {
 									continue;
@@ -2305,8 +2632,8 @@ namespace fan_2d {
 							}
 
 							if (!new_current) {
-								m_current_character[i] = m_characters_per_line[i][m_current_cursor_line[i]];
-								if (str[m_line_offset[i][m_current_cursor_line[i]] + m_current_character[i] - 1] == '\n') {
+								m_current_character[i] = m_characters_per_line[i][m_current_line[i]];
+								if (str[m_line_offset[i][m_current_line[i]] + m_current_character[i] - 1] == '\n') {
 									m_current_character[i] = 0;
 								}
 							}
@@ -2321,6 +2648,7 @@ namespace fan_2d {
 						break;
 					}
 					case fan::key_enter: {
+						disable_select_and_reset(m_current_line[i]);
 
 						/*str.insert(str.begin() + m_line_offset[i][m_current_cursor_line[i]] + m_current_character[i], '\n');
 
@@ -2351,6 +2679,8 @@ namespace fan_2d {
 					}
 					case fan::key_tab:
 					{
+						disable_select_and_reset(m_current_line[i]);
+
 						m_text_visual_input.m_visible[i] = false;
 
 						// begin not working properly yet
@@ -2380,19 +2710,27 @@ namespace fan_2d {
 					}
 					default:
 					{
-add_key:
+g_add_key:
 
+						if (m_starting_select_character[m_current_line[i]] != INT64_MAX) {
+							replace_selected_text = true;
+							goto g_delete;
+						}
+
+						if (!this->key_press(fan::key_shift) && !this->key_press(fan::key_control)) {
+							disable_select_and_reset(m_current_line[i]);
+						}
 						for (uint_t j = 0; j < box_type::m_tr.m_camera->m_window->m_key_exceptions.size(); j++) {
 							if (current_key == box_type::m_tr.m_camera->m_window->m_key_exceptions[j]) {
 								return false;
 							}
 						}
 
-						str.insert(str.begin() + m_line_offset[i][m_current_cursor_line[i]] + m_current_character[i], key);
-						m_characters_per_line[i][m_current_cursor_line[i]]++;
+						str.insert(str.begin() + m_line_offset[i][m_current_line[i]] + m_current_character[i], key);
+						m_characters_per_line[i][m_current_line[i]]++;
 						m_current_character[i]++;
 
-						for (int j = m_current_cursor_line[i] + 1; j <= text_box_keyboard_input::base_box::m_new_lines[i]; j++) {
+						for (int j = m_current_line[i] + 1; j <= text_box_keyboard_input::base_box::m_new_lines[i]; j++) {
 							m_line_offset[i][j]++;
 						}
 
@@ -2406,7 +2744,36 @@ add_key:
 				return false;
 			}
 
-			void get_mouse_cursor(uint_t i, const fan::vec2& box_position, const fan::vec2& box_size) {
+			constexpr void disable_select() {
+				std::fill(m_starting_select_character.begin(), m_starting_select_character.end(), INT64_MAX);
+			}
+
+			constexpr void disable_select(uint_t i) {
+				m_starting_select_character[i] = INT64_MAX;
+			}
+
+			constexpr void disable_select_and_reset(uint_t i) {
+				m_text_visual_input.m_select.set_size(i, 0);
+				m_starting_select_character[i] = INT64_MAX;
+			}
+				
+			constexpr void disable_select_and_reset() {
+				for (uint_t i = 0; i < m_text_visual_input.m_select.size(); i++) {
+					m_text_visual_input.m_select.set_size(i, 0);
+				}
+				for (uint_t i = 0; i < m_starting_select_character.size(); i++) {
+					m_starting_select_character[i] = INT64_MAX;
+				}
+			}
+
+			void get_mouse_cursor(uint_t i) {
+
+				if ((!key_press(fan::mouse_left) || !box_type::m_rv.inside(i))) {
+					return;
+				}
+
+				const fan::vec2& box_position = box_type::m_rv.get_position(i);
+				const fan::vec2& box_size = box_type::m_rv.get_size(i);
 
 				const auto& str = box_type::m_tr.get_text(i);
 
@@ -2424,12 +2791,12 @@ add_key:
 
 				f_t current = 0;
 
-				for (int j = 0; j < m_characters_per_line[i][m_current_cursor_line[i]] + 1; j++) {
+				for (int j = 0; j < m_characters_per_line[i][m_current_line[i]] + 1; j++) {
 
 					fan::fstring::value_type c;
 
-					if (j != m_characters_per_line[i][m_current_cursor_line[i]]) {
-						c = *(str.begin() + m_line_offset[i][m_current_cursor_line[i]] + j);
+					if (j != m_characters_per_line[i][m_current_line[i]]) {
+						c = *(str.begin() + m_line_offset[i][m_current_line[i]] + j);
 					}
 					else {
 						c = ' ';
@@ -2452,18 +2819,32 @@ add_key:
 					iclosest = -1;
 				}
 
-				m_current_cursor_line[i] = (mouse_position.y - (box_position.y + border_size.y * 0.5)) / fan_2d::gui::font_properties::get_new_line(box_type::m_tr.convert_font_size(box_type::m_tr.get_font_size(i)));
+				m_current_line[i] = (mouse_position.y - (box_position.y + border_size.y * 0.5)) / fan_2d::gui::font_properties::get_new_line(box_type::m_tr.convert_font_size(box_type::m_tr.get_font_size(i)));
 
-				m_current_cursor_line[i] = fan::clamp(m_current_cursor_line[i], (int64_t)0, text_box_keyboard_input::base_box::m_new_lines[i]);
+				m_current_line[i] = fan::clamp(m_current_line[i], (int64_t)0, text_box_keyboard_input::base_box::m_new_lines[i]);
 
-				m_current_character[i] = fan::clamp(iclosest + 1, (int64_t)0, m_characters_per_line[i][m_current_cursor_line[i]]);
+				m_current_character[i] = fan::clamp(iclosest + 1, (int64_t)0, m_characters_per_line[i][m_current_line[i]]);
 
 				if (m_current_character[i] > 0) {
-					if (*(str.begin() + m_line_offset[i][m_current_cursor_line[i]] + m_current_character[i] - 1) == '\n') {
-						m_current_character[i] = fan::clamp(m_current_character[i] - 1, (int64_t)0, m_characters_per_line[i][m_current_cursor_line[i]]);
+					if (*(str.begin() + m_line_offset[i][m_current_line[i]] + m_current_character[i] - 1) == '\n') {
+						m_current_character[i] = fan::clamp(m_current_character[i] - 1, (int64_t)0, m_characters_per_line[i][m_current_line[i]]);
+					}
+				}
+				
+				if (m_starting_select_character[m_current_line[i]] == INT64_MAX) {
+					disable_select_and_reset();
+
+					m_starting_line[i] = m_current_line[i];
+					m_starting_select_character[m_current_line[i]] = m_current_character[i];
+
+					for (int j = 0; j < m_current_line[i] + 1; j++) {
+						m_text_visual_input.m_select.set_position(j, get_cursor_position(i, m_line_offset[i][j], j == m_current_line[i] ? m_current_character[i] : m_characters_per_line[i][j])[0]);
 					}
 				}
 
+
+				set_selected_size(i);
+				
 				update_cursor_position(i);
 			}
 
@@ -2485,37 +2866,20 @@ add_key:
 				m_text_visual_input.m_visible.erase(i);
 
 				m_callable.erase(m_callable.begin() + i);
-				m_current_cursor_line.erase(m_current_cursor_line.begin() + i);
+				m_current_line.erase(m_current_line.begin() + i);
 				m_current_character.erase(m_current_character.begin() + i);
 				m_characters_per_line.erase(m_characters_per_line.begin() + i);
 				m_line_offset.erase(m_line_offset.begin() + i);
 			}
 
-			void erase(uint_t begin, uint_t end, bool queue = false) {
-				m_text_visual_input.m_cursor.erase(begin, end, queue);
-				m_text_visual_input.m_timer.erase(m_text_visual_input.m_timer.begin() + begin, m_text_visual_input.m_timer.begin() + end);
-				m_text_visual_input.m_visible.erase(m_text_visual_input.m_visible.begin() + begin, m_text_visual_input.m_visible.begin() + end);
+			/*
+			
+				struct text_visual_input {
 
-				m_callable.erase(m_callable.begin() + begin, m_callable.begin() + end);
-				m_current_cursor_line.erase(m_current_cursor_line.begin() + begin, m_current_cursor_line.begin() + end);
-				m_current_character.erase(m_current_character.begin() + begin, m_current_character.begin() + end);
-				m_characters_per_line.erase(m_characters_per_line.begin() + begin, m_characters_per_line.begin() + end);
-				m_line_offset.erase(m_line_offset.begin() + begin, m_line_offset.begin() + end);
-
-				box_type::erase(begin, end, queue);
-			}
-
-			void set_input_callback(uint_t i) {
-				m_callable.emplace_back(i);
-			}
-
-		private:
-
-			struct text_visual_input {
-
-				text_visual_input(fan::camera* camera) : m_cursor(camera) {}
+				text_visual_input(fan::camera* camera) : m_cursor(camera), m_select(camera) {}
 
 				fan_2d::line m_cursor;
+				fan_2d::rectangle m_select;
 				std::vector<fan::timer<>> m_timer;
 				std::vector<bool> m_visible;
 			};
@@ -2524,10 +2888,62 @@ add_key:
 
 			std::vector<int64_t> m_callable;
 
-			std::vector<int64_t> m_current_cursor_line;
+			std::vector<int64_t> m_current_line;
 			std::vector<int64_t> m_current_character;
+			std::vector<int64_t> m_starting_line;
 			std::vector<std::vector<int64_t>> m_characters_per_line;
 			std::vector<std::vector<int64_t>> m_line_offset;
+
+			// INT64_MAX when not dragging
+			std::vector<int64_t> m_starting_select_character;
+			*/
+
+			void erase(uint_t begin, uint_t end, bool queue = false) {
+				m_text_visual_input.m_cursor.erase(begin, end, queue);
+				m_text_visual_input.m_select.erase(0, m_text_visual_input.m_select.size(), queue);
+				m_text_visual_input.m_timer.erase(m_text_visual_input.m_timer.begin() + begin, m_text_visual_input.m_timer.begin() + end);
+				m_text_visual_input.m_visible.erase(m_text_visual_input.m_visible.begin() + begin, m_text_visual_input.m_visible.begin() + end);
+
+
+				m_callable.erase(m_callable.begin() + begin, m_callable.begin() + end);
+				m_current_line.erase(m_current_line.begin() + begin, m_current_line.begin() + end);
+				m_current_character.erase(m_current_character.begin() + begin, m_current_character.begin() + end);
+				m_characters_per_line.erase(m_characters_per_line.begin() + begin, m_characters_per_line.begin() + end);
+				m_line_offset.erase(m_line_offset.begin() + begin, m_line_offset.begin() + end);
+
+				m_starting_select_character.clear();
+
+				box_type::erase(begin, end, queue);
+			}
+
+			void set_input_callback(uint_t i) {
+				m_callable.emplace_back(i);
+			}
+
+		protected:
+
+			struct text_visual_input {
+
+				text_visual_input(fan::camera* camera) : m_cursor(camera), m_select(camera) {}
+
+				fan_2d::line m_cursor;
+				fan_2d::rectangle m_select;
+				std::vector<fan::timer<>> m_timer;
+				std::vector<bool> m_visible;
+			};
+
+			text_visual_input m_text_visual_input;
+
+			std::vector<int64_t> m_callable;
+
+			std::vector<int64_t> m_current_line;
+			std::vector<int64_t> m_current_character;
+			std::vector<int64_t> m_starting_line;
+			std::vector<std::vector<int64_t>> m_characters_per_line;
+			std::vector<std::vector<int64_t>> m_line_offset;
+
+			// INT64_MAX when not dragging
+			std::vector<int64_t> m_starting_select_character;
 
 		};
 
@@ -2546,14 +2962,16 @@ add_key:
 			{ 
 				camera->m_window->add_resize_callback([&] {
 					for (uint_t i = 0; i < basic_box::m_rv.size(); i++) {
-						const auto offset = fan_2d::gui::get_resize_movement_offset(camera->m_window);
+						const auto offset = fan_2d::gui::get_resize_movement_offset(basic_box::m_tr.m_camera->m_window);
 						basic_box::m_rv.set_position(i, basic_box::m_rv.get_position(i) + offset);
 						basic_box::m_tr.set_position(i, basic_box::m_tr.get_position(i) + offset);
 						update_cursor_position(i);
 					}
 				});
 
-				on_click([&](uint_t i) {});
+				on_click([&](uint_t i) {
+					disable_select();
+				});
 
 				basic_box::m_border_size.emplace_back(border_size);
 
@@ -2613,17 +3031,18 @@ add_key:
 					}
 				});
 
-				mouse_input::on_click([&] (uint_t i) {});
+				mouse_input::on_click([&] (uint_t i) {}); 
 
 				basic_box::m_border_size.emplace_back(border_size);
 
 				keyboard_input::push_back(basic_box::m_border_size.size() - 1);
 
-				const auto size = basic_box::get_updated_box_size(basic_box::size() - 1);
+				basic_box::m_tr.set_position(0, fan::vec2(position.x + border_size.x * 0.5, position.y + 0 + border_size.y * 0.5));
+				const auto size = basic_box::get_updated_box_size(0 );
 
-				auto h = (std::abs(this->get_highest(get_font_size(basic_box::size() - 1)) + this->get_lowest(get_font_size(basic_box::m_border_size.size() - 1)))) / 2;
-
+				auto h = (std::abs(this->get_highest(font_size) + this->get_lowest(font_size))) / 2;
 				basic_box::m_tr.set_position(0, fan::vec2(position.x + border_size.x * 0.5, position.y + h + border_size.y * 0.5));
+
 
 				basic_box::m_rv.push_back(position, size, radius, box_color);
 
@@ -2664,7 +3083,9 @@ add_key:
 			using mouse_input = text_box_mouse_input<value_type>;
 			using keyboard_input = text_box_keyboard_input<basic_box>;
 
-			sized_text_box(fan::camera* camera, e_text_position text_position) : mouse_input(basic_box::m_rv, keyboard_input::m_focus_id), keyboard_input(camera), m_text_position(text_position) { on_click([](uint_t i) {}); }
+			sized_text_box(fan::camera* camera, e_text_position text_position) : mouse_input(basic_box::m_rv, keyboard_input::m_focus_id), keyboard_input(camera), m_text_position(text_position) { 
+				on_click([&](uint_t i) { disable_select_and_reset(); });
+			}
 
 			sized_text_box(fan::camera* camera, const fan::fstring& text, f_t font_size, const fan::vec2& position, const fan::vec2& size, const fan::vec2& border_size, const fan::color& box_color, e_text_position text_position, const fan::color& text_color = fan::colors::white) 
 				: mouse_input(basic_box::m_rv, keyboard_input::m_focus_id), keyboard_input(camera, text, font_size, position + border_size / 2, text_color), m_text_position(text_position)
@@ -2678,7 +3099,7 @@ add_key:
 					}
 				});
 
-				on_click([](uint_t i) {});
+				on_click([&](uint_t i) { disable_select_and_reset(); });
 
 				m_size.emplace_back(size);
 
@@ -2964,7 +3385,7 @@ namespace fan_3d {
 
 	};
 
-	class rectangle_vector : public fan::basic_shape<true, fan::vec3>, public fan::texture_handler {
+	class rectangle_vector : public fan::basic_shape<true, fan::vec3>, public fan::texture_handler<> {
 	public:
 
 		rectangle_vector(fan::camera* camera, const std::string& path, uint_t block_size);

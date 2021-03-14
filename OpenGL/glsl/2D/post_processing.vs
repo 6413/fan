@@ -1,6 +1,6 @@
 #version 130
 
-varying vec2 texture_coordinates;
+out vec2 texture_coordinates;
 
 uniform mat4 model;
 uniform mat4 view;
