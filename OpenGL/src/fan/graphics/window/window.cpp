@@ -1,8 +1,6 @@
-#include <fan/window/window.hpp>
+#include <fan/graphics/window/window.hpp>
 
 #ifdef FAN_PLATFORM_WINDOWS
-
-#include <fan/window/window.hpp>
 
 #include <windowsx.h>
 

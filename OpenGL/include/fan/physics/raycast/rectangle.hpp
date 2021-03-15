@@ -13,7 +13,6 @@ namespace fan_2d {
 
 		}
 
-
 	}
 
 	namespace raycast {
@@ -258,5 +257,80 @@ namespace fan_2d {
 		}
 		
 	}
+
+}
+
+// grid raycast
+namespace fan {
+
+	constexpr int world_size = 150;
+
+	template <typename T>
+	constexpr auto grid_direction(const T& src, const T& dst) {
+		T vector(src - dst);
+		return vector / vector.abs().max();
+	}
+
+	template <typename T>
+	struct grid_raycast_s {
+		T direction, begin;
+		std::conditional_t<T::size() == 2, fan::vec2i, fan::vec3i> grid;
+	};
+
+	template <typename T>
+	constexpr bool grid_raycast_single(grid_raycast_s<T>& caster, f32_t grid_size) {
+		T position(caster.begin % grid_size); // mod
+		for (uint8_t i = 0; i < T::size(); i++) {
+			position[i] = ((caster.direction[i] < 0) ? position[i] : grid_size - position[i]);
+			position[i] = fan::abs((!caster.direction[i] ? INFINITY : ((!position[i] ? grid_size : position[i]) / caster.direction[i])));
+		}
+		caster.grid = (caster.begin += caster.direction * position.min()) / grid_size;
+		for (uint8_t i = 0; i < T::size(); i++)
+			caster.grid[i] -= ((caster.direction[i] < 0) & (position[i] == position.min()));
+		return 1;
+	}
+
+	template <typename T, typename map_>
+	constexpr T grid_raycast(const T& start, const T& end, const map_& map, f32_t block_size) {
+		if (start == end) {
+			return start;
+		}
+		grid_raycast_s<T> raycast = { grid_direction(end, start), start, T() };
+		T distance = end - start;
+		auto max = distance.abs().max();
+		for (uint_t i = 0; i < max; i++) {
+			fan::grid_raycast_single<T>(raycast, block_size);
+			if constexpr (T::size() == 2) {
+				if (raycast.grid[0] < 0 || raycast.grid[1] < 0 ||
+					raycast.grid[0] >= world_size || raycast.grid[1] >= world_size) {
+					continue;
+				}
+				if (map[(int)raycast.grid[0]][(int)raycast.grid[1]]) {
+					return raycast.grid;
+				}
+			}
+			else {
+				if (raycast.grid[0] < 0 || raycast.grid[1] < 0 || raycast.grid[2] < 0 ||
+					raycast.grid[0] >= world_size || raycast.grid[1] >= world_size || raycast.grid[2] >= world_size) {
+					continue;
+				}
+				if (map[(int)raycast.grid[0]][(int)raycast.grid[1]][(int)raycast.grid[2]]) {
+					return raycast.grid;
+				}
+			}
+		}
+		return T(fan::RAY_DID_NOT_HIT);
+	}
+
+	#define d_grid_raycast_2d(start, end, raycast, block_size) \
+		fan::grid_raycast_s<fan::vec2> raycast = { grid_direction(end, start), start, fan::vec2() }; \
+		f_t _private_travel_distance = fan_2d::distance((start / block_size).floored(), (end / block_size).floored()); \
+		if (!(start == end)) \
+			while(grid_raycast_single(raycast, block_size) && _private_travel_distance >= fan_2d::distance((start / block_size).floored(), raycast.grid))
+
+	#define d_grid_raycast_3d(start, end, raycast, block_size) \
+		fan::grid_raycast_s<fan::vec3> raycast = { grid_direction(end, start), start, fan::vec3() }; \
+		if (!(start == end)) \
+			while(grid_raycast_single(raycast, block_size))
 
 }

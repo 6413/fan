@@ -22,6 +22,8 @@ namespace fan {
 
 	using fstring = std::wstring;
 
+	constexpr auto uninitialized = -1;
+
 	// converts enum to int
 	template <typename Enumeration>
 	constexpr auto eti(Enumeration const value)
