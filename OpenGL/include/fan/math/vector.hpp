@@ -886,4 +886,15 @@ namespace fan {
 	constexpr uint64_t vector_size(const std::vector<T>& vector) {
 		return vector.size();
 	}
+
+	template <typename T = fan::vec2>
+	static T random_vector(f_t min, f_t max) {
+		if constexpr (std::is_same_v<T, fan::vec2>) {
+			return T(fan::random<int64_t, int64_t>(min, max), fan::random<int64_t, int64_t>(min, max));
+		}
+		else {
+			return T(fan::random<int64_t, int64_t>(min, max), fan::random<int64_t, int64_t>(min, max), fan::random<int64_t, int64_t>(min, max));
+		}
+	}
+
 }

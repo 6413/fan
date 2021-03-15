@@ -38,9 +38,9 @@
 
 #endif
 
-#include <fan/color.hpp>
-#include <fan/time.hpp>
-#include <fan/window/window_input.hpp>
+#include <fan/graphics/color.hpp>
+#include <fan/time/time.hpp>
+#include <fan/graphics/window/window_input.hpp>
 
 #include <type_traits>
 #include <any>
@@ -97,8 +97,6 @@ namespace fan {
 	#endif
 
 	fan::vec2i get_resolution();
-
-	constexpr auto uninitialized = -1;
 
 	template <typename T>
 	constexpr auto initialized(T value) {
