@@ -18,6 +18,8 @@
 
 #include <X11/extensions/Xrandr.h>
 
+#include <errno.h>
+
 #endif
 
 #include <string>
@@ -167,6 +169,8 @@ fan::window::window(const fan::vec2i& window_size, const std::string& name, uint
 		fan::window::flag_values::m_size_mode = fan::window::mode::full_screen;
 	}
 
+	m_fps_next_tick = fan::timer<timer_interval_t>::get_time();
+
 	initialize_window(name, window_size, flags);
 
 	this->calculate_delta_time();
@@ -205,6 +209,7 @@ fan::window& fan::window::operator=(const window& window)
 	this->m_move_callback = window.m_move_callback;
 	this->m_position = window.m_position;
 	this->m_previous_size = window.m_previous_size;
+	this->m_fps_next_tick = window.m_fps_next_tick;
 	this->m_received_fps = window.m_received_fps;
 	this->m_resize_callback = window.m_resize_callback;
 	this->m_scroll_callback = window.m_scroll_callback;
@@ -262,6 +267,7 @@ fan::window& fan::window::operator=(window&& window)
 	this->m_move_callback = window.m_move_callback;
 	this->m_position = std::move(window.m_position);
 	this->m_previous_size = std::move(window.m_previous_size);
+	this->m_fps_next_tick = std::move(window.m_fps_next_tick);
 	this->m_received_fps = std::move(window.m_received_fps);
 	this->m_resize_callback = window.m_resize_callback;
 	this->m_scroll_callback = window.m_scroll_callback;
@@ -303,15 +309,11 @@ void fan::window::execute(const fan::color& background_color, const std::functio
 		return;
 	}
 
-	using timer_interval_t = fan::milliseconds;
-
-	static f_t next_tick = fan::timer<timer_interval_t>::get_time();
-
 	#if defined(FAN_PLATFORM_WINDOWS)
 
-	//if (wglGetCurrentContext() != m_context) {
-	wglMakeCurrent(m_hdc, m_context);
-	//}
+	if (wglGetCurrentContext() != m_context) {
+		wglMakeCurrent(m_hdc, m_context);
+	}
 
 	glViewport(0, 0, m_size.x, m_size.y);
 
@@ -334,8 +336,8 @@ void fan::window::execute(const fan::color& background_color, const std::functio
 	}
 
 	if (f_t fps = static_cast<f_t>(timer_interval_t::period::den) / get_max_fps()) {
-		next_tick += fps;
-		auto time = timer_interval_t(static_cast<uint_t>(std::ceil(next_tick - fan::timer<timer_interval_t>::get_time())));
+		m_fps_next_tick += fps;
+		auto time = timer_interval_t(static_cast<uint_t>(std::ceil(m_fps_next_tick - fan::timer<timer_interval_t>::get_time())));
 		fan::delay(timer_interval_t(std::max(static_cast<decltype(time.count())>(0), time.count())));
 	}
 
@@ -476,6 +478,7 @@ uint_t fan::window::get_max_fps() const {
 
 void fan::window::set_max_fps(uint_t fps) {
 	m_max_fps = fps;
+	m_fps_next_tick = fan::timer<timer_interval_t>::get_time();
 }
 
 bool fan::window::vsync_enabled() const {
@@ -779,13 +782,16 @@ void message_callback(GLenum source,
 	const GLchar* message,
 	const void* userParam )
 {
+	if (type == 33361) { // gl_static_draw
+		return;
+	}
 	fan::print_no_space(type == GL_DEBUG_TYPE_ERROR ? "opengl error:" : "", type, ", severity:", severity, ", message:", message);
 }
 
 void fan::window::set_error_callback()
 {
 	glEnable(GL_DEBUG_OUTPUT);
-	glDebugMessageCallback(message_callback, 0);
+	glDebugMessageCallback((GLDEBUGPROC)message_callback, 0);
 }
 
 void fan::window::set_background_color(const fan::color& color)
@@ -1008,7 +1014,6 @@ void fan::window::window_input_up(fan::window_t window, uint16_t key)
 			i.function();
 		}
 	}
-
 }
 
 void fan::window::window_input_action_reset(fan::window_t window, uint16_t key)
@@ -1490,6 +1495,7 @@ void fan::window::initialize_window(const std::string& name, const fan::vec2i& w
 	}
 
 	PIXELFORMATDESCRIPTOR pfd;
+	memset(&pfd, 0, sizeof(pfd));
 	DescribePixelFormat(m_hdc, pixel_format, sizeof(pfd), &pfd);
 	if (!SetPixelFormat(m_hdc, pixel_format, &pfd)) {
 		fan::print("failed to set pixel format");
@@ -1502,9 +1508,15 @@ void fan::window::initialize_window(const std::string& name, const fan::vec2i& w
 		WGL_CONTEXT_PROFILE_MASK_ARB,  WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
 		0,
 	};
-	if (!m_context) {
 
-		m_context = wglCreateContextAttribsARB(m_hdc, 0, gl_attributes);
+	if (!m_context) {
+	
+		if (flag_values::m_major_version < 3) {
+			m_context = wglCreateContext(m_hdc);
+		}
+		else {
+			m_context = wglCreateContextAttribsARB(m_hdc, 0, gl_attributes);
+		}
 
 		if (!m_context) {
 			fan::print("failed to create context");
@@ -1890,7 +1902,7 @@ void fan::window::handle_events() {
 
 				break;
 			}
-			case WM_LBUTTONUP:
+		/*	case WM_LBUTTONUP:
 			{
 				auto window = fan::get_window_by_id(msg.hwnd);
 
@@ -1931,7 +1943,7 @@ void fan::window::handle_events() {
 				window_input_up(window->m_window, key);
 
 				break;
-			}
+			}*/
 			case WM_KEYUP:
 			{
 				auto window = fan::get_window_by_id(msg.hwnd);
@@ -1949,20 +1961,20 @@ void fan::window::handle_events() {
 			}
 			case WM_MOUSEWHEEL:
 			{
-				/*auto fwKeys = GET_KEYSTATE_msg.wParam(msg.wParam);
-				auto zDelta = GET_WHEEL_DELTA_msg.wParam(msg.wParam);
+				auto fwKeys = GET_KEYSTATE_WPARAM(msg.wParam);
+				auto zDelta = GET_WHEEL_DELTA_WPARAM(msg.wParam);
 
-				auto window = get_window_storage<fan::window*>(m_window, stringify(this_window));
+				auto window = fan::get_window_by_id(msg.hwnd);
 
 				fan::window_input::get_keys(window->m_keys_down, zDelta < 0 ? fan::input::mouse_scroll_down : fan::input::mouse_scroll_up, true);
 
-				fan::window::window_input_mouse_action(m_window, zDelta < 0 ? fan::input::mouse_scroll_down : fan::input::mouse_scroll_up);
+				fan::window::window_input_mouse_action(window->m_window, zDelta < 0 ? fan::input::mouse_scroll_down : fan::input::mouse_scroll_up);
 
 				for (const auto& i : window->m_scroll_callback) {
-				if (i) {
-				i(zDelta < 0 ? fan::input::mouse_scroll_down : fan::input::mouse_scroll_up);
+					if (i) {
+						i(zDelta < 0 ? fan::input::mouse_scroll_down : fan::input::mouse_scroll_up);
+					}
 				}
-				}*/
 
 				break;
 			}
@@ -1975,7 +1987,9 @@ void fan::window::handle_events() {
 					break;
 				}
 
-
+				if (!window->focused()) {
+					break;
+				}
 
 				UINT size = sizeof(RAWINPUT);
 				BYTE data[sizeof(RAWINPUT)];

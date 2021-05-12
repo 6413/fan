@@ -1,22 +1,28 @@
-#version 130
+#version 120
 
-precision highp float;
+#if __VERSION__ < 130
+#define TEXTURE2D texture2D
+#else
+#define TEXTURE2D texture
+#endif
 
-out vec4 shape_color;
-in vec2 texture_coordinate;
 
-in vec4 color;
+//precision highp float;
+
+varying vec2 texture_coordinate;
+
+varying vec4 color;
 
 uniform bool enable_texture;
 uniform sampler2D texture_sampler;
 
 void main()
 {
-    if (enable_texture) {
-        shape_color = texture(texture_sampler, texture_coordinate);
-    }
-    else {
-        shape_color = color;
-    }
+	if (false) {
+		gl_FragColor = TEXTURE2D(texture_sampler, texture_coordinate);
+	}
+	else {
+		gl_FragColor = color;
+	}
 
 } 

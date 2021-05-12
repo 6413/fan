@@ -4,6 +4,36 @@
 #include <functional>
 #include <thread>
 
+#ifdef FAN_PLATFORM_WINDOWS
+
+	#define WIN32_LEAN_AND_MEAN
+
+	#include <Windows.h>
+
+	typedef long(*NtDelayExecution_t)(int Alertable, PLARGE_INTEGER DelayInterval);
+	typedef long(* ZwSetTimerResolution_t)(IN ULONG RequestedResolution, IN BOOLEAN Set, OUT PULONG ActualResolution);
+
+	static NtDelayExecution_t NtDelayExecution = (long(__stdcall*)(BOOL, PLARGE_INTEGER)) GetProcAddress(GetModuleHandle("ntdll.dll"), "NtDelayExecution");
+	static ZwSetTimerResolution_t ZwSetTimerResolution = (long(__stdcall*)(ULONG, BOOLEAN, PULONG)) GetProcAddress(GetModuleHandle("ntdll.dll"), "ZwSetTimerResolution");
+
+
+	static void delay_w(float us)
+	{
+		static bool once = true;
+		if (once) {
+			ULONG actualResolution;
+			ZwSetTimerResolution(1, true, &actualResolution);
+			once = false;
+		}
+
+		LARGE_INTEGER interval;
+		interval.QuadPart = -10 * us;
+		NtDelayExecution(false, &interval);
+	}
+
+#endif
+
+
 namespace fan {
 	using namespace std::chrono;
 
@@ -33,7 +63,7 @@ namespace fan {
 			return chrono_t::now();
 		}
 
-		auto get_reset_time() {
+		auto get_reset_time() const {
 			return m_time;
 		}
 
@@ -41,15 +71,19 @@ namespace fan {
 			return time_point_cast<T>(system_clock::now()).time_since_epoch().count();
 		}
 
+		auto time_left() const {
+			return get_reset_time() - elapsed();
+		}
+
 		void restart() {
 			this->m_timer = chrono_t::now();
 		}
 
-		bool finished() {
+		bool finished() const {
 			return duration_cast<T>(chrono_t::now() - m_timer).count() >= m_time;
 		}
 
-		value_type elapsed() {
+		value_type elapsed() const {
 			return duration_cast<T>(chrono_t::now() - m_timer).count();
 		}
 
@@ -61,7 +95,11 @@ namespace fan {
 
 	template <typename time_format>
 	void delay(time_format time) {
-		std::this_thread::sleep_for(time);
+		#ifdef FAN_PLATFORM_WINDOWS
+			delay_w(std::chrono::duration_cast<fan::microseconds>(time).count());
+		#else
+			std::this_thread::sleep_for(time);
+		#endif
 	}
 
 }

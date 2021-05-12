@@ -296,11 +296,11 @@ namespace fan {
 
 	//class 
 
-	template <bool enable_vector, typename _Vector, uint_t layout_location = 1, opengl_buffer_type buffer_type = opengl_buffer_type::buffer_object>
-	class basic_shape_position : public glsl_location_handler<layout_location, buffer_type> {
+	template <bool enable_vector, typename _Vector, uint_t layout_location = 1, opengl_buffer_type buffer_type = opengl_buffer_type::buffer_object, bool gl_3_0_attrib = false>
+	class basic_shape_position : public glsl_location_handler<layout_location, buffer_type, gl_3_0_attrib> {
 	public:
 
-		basic_shape_position() : glsl_location_handler<layout_location, buffer_type>() {}
+		basic_shape_position() : glsl_location_handler<layout_location, buffer_type, gl_3_0_attrib>() {}
 
 		basic_shape_position(const _Vector& position) : basic_shape_position()
 		{
@@ -312,22 +312,22 @@ namespace fan {
 			}
 		}
 
-		basic_shape_position(const basic_shape_position& vector) : glsl_location_handler<layout_location, buffer_type>(vector) {
+		basic_shape_position(const basic_shape_position& vector) : glsl_location_handler<layout_location, buffer_type, gl_3_0_attrib>(vector) {
 			this->m_position = vector.m_position;
 		}
-		basic_shape_position(basic_shape_position&& vector) noexcept : glsl_location_handler<layout_location, buffer_type>(std::move(vector)) {
+		basic_shape_position(basic_shape_position&& vector) noexcept : glsl_location_handler<layout_location, buffer_type, gl_3_0_attrib>(std::move(vector)) {
 			this->m_position = std::move(vector.m_position);
 		}
 
 		basic_shape_position& operator=(const basic_shape_position& vector) {
-			glsl_location_handler<layout_location, buffer_type>::operator=(vector);
+			basic_shape_position::glsl_location_handler::operator=(vector);
 
 			this->m_position = vector.m_position;
 
 			return *this;
 		}
 		basic_shape_position& operator=(basic_shape_position&& vector) {
-			glsl_location_handler<layout_location, buffer_type>::operator=(std::move(vector));
+			basic_shape_position::glsl_location_handler::operator=(std::move(vector));
 
 			this->m_position = std::move(vector.m_position);
 
@@ -396,12 +396,13 @@ namespace fan {
 
 		// -----------------------------------------------------
 
-	protected:
-
-		// ----------------------------------------------------- vector enabled functions
 
 		enable_function_for_vector void initialize_buffers(bool divisor) {
-			glsl_location_handler<layout_location, buffer_type>::initialize_buffers(m_position.data(), sizeof(_Vector) * m_position.size(), divisor, _Vector::size());
+			basic_shape_position::glsl_location_handler::initialize_buffers(m_position.data(), sizeof(_Vector) * m_position.size(), divisor, _Vector::size());
+		}
+
+		enable_function_for_vector void initialize_buffers(uint_t program, const std::string& path, bool divisor) {
+			basic_shape_position::glsl_location_handler::initialize_buffers(m_position.data(), sizeof(_Vector) * m_position.size(), divisor, _Vector::size(), program, path);
 		}
 
 		enable_function_for_vector void basic_push_back(const _Vector& position, bool queue = false) {
@@ -412,11 +413,17 @@ namespace fan {
 		}
 
 		enable_function_for_vector void edit_data(uint_t i) {
-			glsl_location_handler<layout_location, buffer_type>::edit_data(i, m_position.data() + i, sizeof(_Vector));
+			basic_shape_position::glsl_location_handler::edit_data(i, m_position.data() + i, sizeof(_Vector));
 		}
 		enable_function_for_vector void write_data() {
-			glsl_location_handler<layout_location, buffer_type>::write_data(m_position.data(), sizeof(_Vector) * m_position.size());
+			basic_shape_position::glsl_location_handler::write_data(m_position.data(), sizeof(_Vector) * m_position.size());
 		}
+
+
+	protected:
+
+		// ----------------------------------------------------- vector enabled functions
+
 
 		// -----------------------------------------------------
 
@@ -680,7 +687,7 @@ namespace fan {
 	class basic_shape_velocity {
 	public:
 
-		basic_shape_velocity() : m_velocity(1) {}
+		basic_shape_velocity() {}
 		basic_shape_velocity(const _Vector& velocity) {
 			if constexpr (enable_vector) {
 				this->m_velocity.emplace_back(velocity);
@@ -878,7 +885,7 @@ namespace fan {
 
 	template <typename _Vector>
 	class basic_vertice_vector : 
-		public basic_shape_position<true, _Vector>, 
+		public basic_shape_position<true, _Vector, 1, fan::opengl_buffer_type::buffer_object, true>, 
 		public basic_shape_color_vector<true, 0, fan::opengl_buffer_type::buffer_object, true>, 
 		public basic_shape_velocity<true, _Vector>,
 		public vao_handler<> {

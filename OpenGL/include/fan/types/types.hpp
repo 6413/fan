@@ -18,6 +18,8 @@ typedef double f64_t;
 
 typedef double f_t;
 
+typedef f32_t cf_t;
+
 namespace fan {
 
 	using fstring = std::wstring;
@@ -98,6 +100,9 @@ namespace fan {
 
 	#elif defined(__linux__)
 		constexpr platform_t platform = platform_t::windows;
+		#define FAN_PLATFORM_LINUX
+
+	#elif defined(__unix__)
 		#define FAN_PLATFORM_LINUX
 	#endif
 

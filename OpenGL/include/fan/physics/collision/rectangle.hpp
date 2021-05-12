@@ -44,14 +44,16 @@ namespace fan_2d {
 						return { 2, 1, 0 };
 			}
 
-			static void resolve_collision(fan_2d::rectangle& player, const fan_2d::rectangle& walls) {
+			static void resolve_non_rotational_static_collision(fan_2d::graphics::rectangle& player, const fan_2d::graphics::rectangle& walls) {
 
 				if (!player.get_velocity(0)) {
 					return;
 				}
 
+				fan::vec2 original_velocity = player.get_velocity(0);
+
 				while (player.get_velocity(0) != 0) {
-					const auto player_corners = player.get_corners();
+					auto player_corners = player.get_corners();
 					const auto player_points = fan_2d::collision::rectangle::get_velocity_corners_3d(player.get_velocity(0));
 
 					const auto player_position = player.get_position();
@@ -61,38 +63,17 @@ namespace fan_2d {
 					fan_2d::raycast::rectangle::raycast_t closest;
 					closest.point = fan::inf;
 
-					uint_t closest_corner = fan::uninitialized;
-
 					bool step1 = false;
+					int index = 0;
+					fan::vec2 vp = fan::uninitialized;
+
+					f_t smallest_distance = fan::inf;
 
 					for (uint_t i = 0; i < walls.size(); ++i) {
 
 						// step 1
 
-						//	if (walls.get_size(i).x < player_size.x || walls.get_size(i).y < player_size.y) {
-						//		const auto& wall_points = fan_2d::collision::GetPointsTowardsVelocity3(-player.get_velocity());
-						//		const auto& wall_corners = walls.get_corners(i);
-						//		for (const auto p : wall_points) {
-						//			fan_2d::raycast::rectangle::raycast_t ray_point = fan_2d::raycast::rectangle::raycast(
-						//				wall_corners[p],
-						//				wall_corners[p] - player.get_velocity() * player.m_window.get_delta_time(),
-						//				player_position, player_size);
-						//			if (fan::ray_hit(ray_point.point)
-						//			) 
-						//			{
-						//				auto closest_distance = fan_2d::distance(walls.get_position(i), closest.point);
-						//				auto ray_point_distance = fan_2d::distance(walls.get_position(i), ray_point.point);
-
-						//				if (ray_point_distance < closest_distance) {
-						//					closest = ray_point;
-						//					closest_corner = p;
-						//					step1 = true;
-						//					size = walls.get_size(i);
-						//				}
-						//			}
-						//		}
-						//	}
-						//	else {
+						//if (walls.get_size(i).x < player_size.x || walls.get_size(i).y < player_size.y) {
 						for (const auto p : player_points) {
 							fan_2d::raycast::rectangle::raycast_t ray_point = fan_2d::raycast::rectangle::raycast(
 								player_corners[p],
@@ -101,87 +82,65 @@ namespace fan_2d {
 							if (fan::ray_hit(ray_point.point)
 								) 
 							{
-								auto closest_distance = fan_2d::distance(player_position, closest.point);
-								auto ray_point_distance = fan_2d::distance(player_position, ray_point.point);
+								auto ray_point_distance = fan_2d::distance(player_corners[p], ray_point.point);
 
-								if (ray_point_distance < closest_distance) {
+								if (ray_point_distance < smallest_distance) {
+									smallest_distance = ray_point_distance;
 									closest = ray_point;
-									closest_corner = p;
 									step1 = false;
+									index = i;
+									vp = player_corners[p];
 								}
 							}
 						}
+						//	}
+						//if (vp == fan::uninitialized) {
+						const auto& wall_points = get_velocity_corners_3d(-player.get_velocity(0));
+						const auto& wall_corners = walls.get_corners(i);
+						for (const auto p : wall_points) {
+							fan_2d::raycast::rectangle::raycast_t ray_point = fan_2d::raycast::rectangle::raycast(
+								wall_corners[p],
+								wall_corners[p] - player.get_velocity(0) * player.m_camera->m_window->get_delta_time(),
+								player_position, player_size);
+							if (fan::ray_hit(ray_point.point)
+								) 
+							{
+								auto ray_point_distance = fan_2d::distance(wall_corners[p], ray_point.point);
+
+								if (ray_point_distance < smallest_distance) {
+									smallest_distance = ray_point_distance;
+									closest = ray_point;
+									step1 = true;
+									index = i;
+									vp = wall_corners[p];
+								}
+							}
+						}	
+						//}
 					}
-					//}
 
 					if (fan::ray_hit(closest.point)) {
-						fan::print(closest_corner, (int)closest.side);
-						//	if (!step1) {
-						if (closest_corner == 1) {
-							if (closest.side == fan_2d::raycast::rectangle::sides::left) {
-								closest.point[0] -= player_size[0];
-							} 
-							else if (closest.side == fan_2d::raycast::rectangle::sides::up) {
-								closest.point[0] -= player_size[0];
-								closest.point[1] -= player_size[1];
-							}
-						}
-						if (closest_corner == 2) {
-							if (closest.side == fan_2d::raycast::rectangle::sides::up) {
-								closest.point[1] -= player_size[1];
-							}
-							else if (closest.side == fan_2d::raycast::rectangle::sides::right) {
-								closest.point[1] -= player_size[1];
-							}
-							else {
-								closest.point[0] -= player_size[0];
-								closest.point[1] -= player_size[1];
-							}
-							
-						}
-						if (closest_corner == 3) {
-							if (closest.side == fan_2d::raycast::rectangle::sides::right) {
-								//closest.point[0] -= player_size[0];
-								closest.point[1] -= player_size[1];
-							}
-							else if (closest.side == fan_2d::raycast::rectangle::sides::left) {
-								closest.point[0] -= player_size[0];
-								closest.point[1] -= player_size[1];
-							}
-							else if (closest.side == fan_2d::raycast::rectangle::sides::up) {
-								closest.point[0] -= player_size[0];
-								closest.point[1] -= player_size[1];
-							}
-							else {
-								closest.point[0] -= player_size[0];
-							}
-							//closest.point[1] -= player_size[1];
-						}
-						//	}
-						/*else {
-						if (closest_corner == 0) {
-						closest.point[0] -= player_size[0];
-						closest.point[1] -= player_size[1];
-						}
-						if (closest_corner == 1) {
-						closest.point[0] -= player_size[0];
-						}
-						if (closest_corner == 2) {
-						closest.point[1] -= player_size[1];
-						}
-						if (closest_corner == 3) {
-						closest.point[0] -= player_size[0];
-						closest.point[1] -= player_size[1];
-						}
-						}*/
 
 						if (closest.side == fan_2d::raycast::rectangle::sides::inside)
 						{
-							player.set_position(0, player.get_position() - player_velocity * player.m_camera->m_window->get_delta_time());
+							player.set_position(0, player.get_position() - original_velocity * player.m_camera->m_window->get_delta_time());
 							break;
 						}
 
-						player.set_position(0, closest.point);
+						f_t smallest(fan::inf);
+
+						for (const auto p : player_points) {
+							smallest = std::min(smallest, fan_2d::distance(walls.get_corners(index)[p], closest.point));
+						}
+
+						//	if ((smallest == fan_2d::distance(vp, closest.point) && step1) || !step1) {
+						if (step1) {
+							player.set_position(0, player.get_position(0) - (closest.point - vp));
+						}
+						else {
+							player.set_position(0, player.get_position(0) + (closest.point - vp));
+						}
+						//}
 
 						auto velocity = player.get_velocity(0);
 
@@ -189,15 +148,158 @@ namespace fan_2d {
 							((closest.side == fan_2d::raycast::rectangle::sides::up || closest.side == fan_2d::raycast::rectangle::sides::down) && !!player_velocity[1])] = 0;
 
 						player.set_velocity(0, velocity);
+
 					}
 					else {
 						player.set_position(0, player.get_position() + player_velocity * player.m_camera->m_window->get_delta_time());
 						break;
 					}
+
 				}
-				//fan::print(ind);
 			}
 
+			constexpr auto get_cross(const fan::vec2& a, const fan::vec3& b) {
+				return cross(fan::vec3(a.x, a.y, 0), b);
+			}
+
+			constexpr fan::vec2 get_normal(const fan::vec2& src, const fan::vec2& dst) {
+				return get_cross(dst - src, fan::da_t<f32_t, 3>(0, 0, 1));
+			}
+
+			inline void change_sign(const fan::vec2& haluttu, fan::vec2& muutettava) {
+				if (!fan::sign(haluttu.x, muutettava.x)) {
+					muutettava.x *= -1;
+				}
+				if (!fan::sign(haluttu.y, muutettava.y)) {
+					muutettava.y *= -1;
+				}
+			}
+
+
+			inline float area(int x1, int y1, int x2, int y2, int x3, int y3)
+			{
+				return abs((x1*(y2-y3) + x2*(y3-y1)+ x3*(y1-y2))/2.0);
+			}
+
+			/* A function to check whether point P(x, y) lies inside the triangle formed
+			by A(x1, y1), B(x2, y2) and C(x3, y3) */
+			inline bool isInside(int x1, int y1, int x2, int y2, int x3, int y3, int x, int y)
+			{  
+				/* Calculate area of triangle ABC */
+				float A = area (x1, y1, x2, y2, x3, y3);
+
+				/* Calculate area of triangle PBC */  
+				float A1 = area (x, y, x2, y2, x3, y3);
+
+				/* Calculate area of triangle PAC */  
+				float A2 = area (x1, y1, x, y, x3, y3);
+
+				/* Calculate area of triangle PAB */   
+				float A3 = area (x1, y1, x2, y2, x, y);
+
+				/* Check if sum of A1, A2 and A3 is same as A */
+				return (A == A1 + A2 + A3);
+			}
+
+			inline bool is_point_inside_rotated_rectangle(const fan::vec2& top_left, const fan::vec2& top_right, const fan::vec2& bottom_left, const fan::vec2& bottom_right, const fan::vec2& point) {
+				return isInside(top_left.x, top_left.y, top_right.x, top_right.y, bottom_left.x, bottom_left.y, point.x, point.y) || isInside(bottom_right.x, bottom_right.y, bottom_left.x, bottom_left.y, top_right.x, top_right.y, point.x, point.y);
+			}
+
+			//static fan::vec2 rotate_to_no_rotate(const fan::vec2 )
+
+			static void resolve_rotational_static_collision(fan_2d::graphics::rectangle& player, fan_2d::graphics::rectangle& walls, f64_t time) {	
+				auto delta = player.get_velocity(0) * time;
+
+				const auto player_points = get_velocity_corners_3d(delta);
+
+				auto player_corners = player.get_corners();
+
+				static constexpr std::array<std::pair<int, int>, 4> side_ids{
+						std::pair<int, int>{ 0, 1 },
+						std::pair<int, int>{ 1, 3 },
+						std::pair<int, int>{ 3, 2 },
+						std::pair<int, int>{ 2, 0 }
+				};
+
+				f64_t smallest_distance = fan::inf;
+
+				int closest_wall = -1;
+
+				int side_id = -1;
+
+				for (uint_t i = 0; i < walls.size(); ++i) {
+
+					auto wall_corners = walls.get_corners(i);
+
+					for (const auto p : player_points) {
+
+						for (int j = 0; j < 4; j++) { // 4 corners
+							const fan::vec2 ray_point = fan::intersection_point(
+								player_corners[p],
+								player_corners[p] + delta,
+								wall_corners[side_ids[j].first],
+								wall_corners[side_ids[j].second],
+								false
+							);
+
+							if (fan::ray_hit(ray_point))
+							{
+
+								auto ray_point_distance = fan_2d::distance(player_corners[p], ray_point);
+
+								if (ray_point_distance <= smallest_distance) {
+									smallest_distance = ray_point_distance;
+									closest_wall = i;
+									side_id = j;
+								}
+							}
+						}
+					}
+				}
+
+				if (closest_wall == -1) {
+					// delta is not changed
+
+					
+				}
+				else {
+
+					// delta is changed depends about collision
+					
+					const auto wall_corners = walls.get_corners(closest_wall);
+
+					auto a = delta;
+					auto b = get_normal(wall_corners[side_ids[side_id].first], wall_corners[side_ids[side_id].second]);
+					auto c = wall_corners[side_ids[side_id].second] - wall_corners[side_ids[side_id].first];
+					
+					auto something = sqrt((delta[0] * delta[0]) + (delta[1] * delta[1]));
+
+					auto new_delta = c.normalize() * something;
+
+					delta = new_delta;
+
+					auto x1 = fan::aim_angle(wall_corners[side_ids[side_id].first], wall_corners[side_ids[side_id].second]);
+					auto x2 = fan::aim_angle(player.get_position(), player.get_position() + delta);
+
+					/*if ((x1 - x2)   0) {
+						delta += b.normalize();
+					}*/
+
+				/*	for (int k = 0; k < 4; k++) {
+						if (is_point_inside_rotated_rectangle(c1.top_left, c1.top_right, c1.bottom_left, c1.bottom_right, c2[k] + delta) {
+
+						}
+						if (is_point_inside_rotated_rectangle(c1.top_left, c1.top_right, c1.bottom_left, c1.bottom_right, c2[k] + delta) {
+
+						}
+					}*/
+
+					//fan::print(delta);
+				}
+
+				player.set_position(0, player.get_position() + delta);
+
+			}
 		}
 	}
 }

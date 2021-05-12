@@ -8,7 +8,7 @@ namespace fan {
 	class color {
 	public:
 	
-		static constexpr color rgb(f32_t r, f32_t g, f32_t b, f32_t a = 255) {
+		static constexpr color rgb(cf_t r, cf_t g, cf_t b, cf_t a = 255) {
 			return color(r / 255.f, g / 255.f, b / 255.f, a / 255.f);
 		}
 
@@ -28,16 +28,16 @@ namespace fan {
 			);
 		}
 
-		f32_t r, g, b, a;
+		cf_t r, g, b, a;
 		constexpr color() : r(0), g(0), b(0), a(1) {}
 
-		constexpr color(f32_t r, f32_t g, f32_t b, f32_t a = 1) : r(r), g(g), b(b), a(a) {
+		constexpr color(cf_t r, cf_t g, cf_t b, cf_t a = 1) : r(r), g(g), b(b), a(a) {
 			this->r = r;
 			this->g = g;
 			this->b = b;
 			this->a = a;
 		}
-		constexpr color(f32_t value) : r(0), g(0), b(0), a(0) {
+		constexpr color(cf_t value) : r(0), g(0), b(0), a(0) {
 			this->r = value;
 			this->g = value;
 			this->b = value;
@@ -63,7 +63,7 @@ namespace fan {
 		constexpr bool operator==(const color& color_) const {
 			return r == color_.r && g == color_.g && b == color_.b && a == color_.a;
 		}
-		constexpr f32_t operator[](size_t x) const {
+		constexpr cf_t operator[](size_t x) const {
 			return !x ? this->r : x == 1 ? this->g : x == 2 ? this->b : x == 3 ? this->a : this->a;
 		}
 		constexpr color operator-=(const color& color_) {

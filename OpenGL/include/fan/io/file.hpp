@@ -124,7 +124,7 @@ namespace fan {
 				fan::vec2 m_position;
 				fan::vec2 m_size;
 				fan::vec2 m_offset;
-				fan::vec2::type m_advance;
+				fan::vec2::value_type m_advance;
 			};
 
 			struct font_info {
@@ -172,7 +172,7 @@ namespace fan {
 								value_info.value = highest_character;
 							}
 						}
-						((fan::vec2::type*)&font_info)[i] = value_info.value;
+						((fan::vec2::value_type*)&font_info)[i] = value_info.value;
 					}
 					font_info_vector[character] = font_info;
 					if (flowest < font_info.m_offset.y) {

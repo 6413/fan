@@ -289,18 +289,18 @@ namespace fan {
 		}
 	};
 
-	template <typename T>
-	constexpr bool dcom_fr(uint_t n, T x, T y) noexcept {
-		switch (n) {
-		case 0: {
-			return x < y;
-		}
-		case 1: {
-			return x > y;
-		}
-		}
-		return false;
-	}
+	//template <typename T>
+	//constexpr bool dcom_fr(uint_t n, T x, T y) noexcept {
+	//	switch (n) {
+	//	case 0: {
+	//		return x < y;
+	//	}
+	//	case 1: {
+	//		return x > y;
+	//	}
+	//	}
+	//	return false;
+	//}
 
 	//using mat2x2 = _da<f32_t, 2, 2>;
 	using mat2x3 = _da<f32_t, 2, 3>;
