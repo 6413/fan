@@ -58,13 +58,13 @@ namespace fan_2d {
 							if (!fan::aim_angle(src, wall_position + fan::vec2(0, wall_size.y))) {
 								return sides::nothing;
 							}
-							else if (dst.y >= wall_position.y + wall_size.y) {
-								if (fan::aim_angle(src, wall_position + fan::vec2(0, wall_size.y)) <= angle) {
+							else if (dst.y > wall_position.y + wall_size.y) { // > on boundary, >= not on boundary
+								if (fan::aim_angle(src, wall_position + fan::vec2(0, wall_size.y)) < angle) {
 									return sides::nothing;
 								}
 							}
-							else if (dst.y <= wall_position.y){
-								if (fan::aim_angle(src, wall_position) >= angle) {
+							else if (dst.y < wall_position.y) { // < on boundary, <= not on boundary
+								if (fan::aim_angle(src, wall_position) > angle) {
 									return sides::nothing;
 								}
 							}
@@ -74,12 +74,12 @@ namespace fan_2d {
 						case (uint8_t)sideflags::right:
 						{
 
-							if (dst.y <= wall_position.y){
+							if (dst.y <= wall_position.y){ // < on boundary, <= not on boundary
 								if (fan::aim_angle(src, wall_position + fan::vec2(wall_size.x, 0)) <= angle) {
 									return sides::nothing;
 								}
 							}
-							else if (dst.y >= wall_position.y + wall_size.y) {
+							else if (dst.y >= wall_position.y + wall_size.y) { // > on boundary, >= not on boundary
 								if (fan::aim_angle(src, wall_position + wall_size) >= angle) {
 									return sides::nothing;
 								}
@@ -88,17 +88,16 @@ namespace fan_2d {
 						}
 						case (uint8_t)sideflags::up:
 						{
-							
 							if (std::round(src.y) == std::round(wall_position.y) &&
 								std::round(fan::aim_angle(src, wall_position + fan::vec2(wall_size.x, 0))) == std::round(fan::pi / 2)) {
 								return sides::nothing;
 							}
-							if (dst.x >= wall_position.x + wall_size.x) {
+							if (dst.x > wall_position.x + wall_size.x) { // > on boundary, >= not on boundary
 								if (fan::aim_angle(src, wall_position + fan::vec2(wall_size.x, 0)) >= angle) {
 									return sides::nothing;
 								}
 							}
-							else if (dst.x < wall_position.x){
+							else if (dst.x < wall_position.x){ // < on boundary, <= not on boundary
 								if (fan::aim_angle(src, wall_position) <= angle) {
 									return sides::nothing;
 								}
@@ -108,12 +107,14 @@ namespace fan_2d {
 						}
 						case (uint8_t)sideflags::down:
 						{
-							if (dst.x <= wall_position.x){
-								if (fan::aim_angle(src, wall_position + fan::vec2(0, wall_size.y)) > angle) {
+							if (dst.x < wall_position.x){ // < on boundary, <= not on boundary
+
+								if (fan::aim_angle(src, wall_position + fan::vec2(0, wall_size.y)) >= angle &&
+									src.y > wall_position.y + wall_size.y) {
 									return sides::nothing;
 								}
 							}
-							else if (dst.x >= wall_position.x + wall_size.x) {
+							else if (dst.x > wall_position.x + wall_size.x) { // > on boundary, >= not on boundary
 								if (fan::aim_angle(src, wall_position + wall_size) <= angle) {
 									return sides::nothing;
 								}
@@ -138,7 +139,16 @@ namespace fan_2d {
 						case ((uint8_t)sideflags::left | (uint8_t)sideflags::up):
 						{
 
-							if (fan::aim_angle(src, wall_position) >= std::abs(angle)) {
+							f_t a = fan::aim_angle(src, wall_position);
+							f_t b = fan::aim_angle(src, wall_position + fan::vec2(0, wall_size.y));
+
+
+							/*if (a <= std::abs(angle) && b >= std::abs(angle)) { raycast
+								if (src.x <= wall_position.x && dst.y >= wall_position.y) {
+									return straight_side_giver(angle, (uint8_t)sideflags::left, src, dst, wall_position, wall_size);
+								}
+							}*/
+							if (fan::aim_angle(src, wall_position) >= std::abs(angle)) { // collision
 								if (dst.x <= wall_position.x && dst.y >= wall_position.y) {
 									return straight_side_giver(angle, (uint8_t)sideflags::left, src, dst, wall_position, wall_size);
 								}
@@ -184,7 +194,7 @@ namespace fan_2d {
 									return straight_side_giver(angle, (uint8_t)sideflags::right, src, dst, wall_position, wall_size);
 								}
 							}
-							else if (src.y == wall_position.y + wall_size.y) {
+							else if (src.y == wall_position.y + wall_size.y) { // ? 
 								return straight_side_giver(angle, (uint8_t)sideflags::right, src, dst, wall_position, wall_size);
 							}
 							else if (dst.y <= wall_position.y + wall_size.y) {
@@ -253,7 +263,6 @@ namespace fan_2d {
 					}
 				}
 			}
-
 		}
 		
 	}

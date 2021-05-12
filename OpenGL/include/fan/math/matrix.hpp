@@ -420,12 +420,12 @@ namespace fan {
 
 	};
 
-	using matrix4x4 = _matrix4x4<f32_t>;
+	using matrix4x4 = _matrix4x4<cf_t>;
 	using matrix4x4ui = _matrix4x4<uint_t>;
 	using mat4x4 = matrix4x4;
 	using mat4x4ui = matrix4x4ui;
 	using mat4 = mat4x4;
-	using mat2x2 = _matrix2x2<f32_t>;
+	using mat2x2 = _matrix2x2<cf_t>;
 	using mat2x2ui = _matrix2x2<uint_t>;
 	using mat2 = mat2x2;
 	using mat2ui = mat2x2ui;

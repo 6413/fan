@@ -183,7 +183,7 @@ namespace fan {
 
 		static constexpr const char* default_window_name = "window";
 		static constexpr vec2i default_window_size = fan::vec2i(800, 600);
-		static constexpr vec2i default_opengl_version = fan::vec2i(3, 0); // major minor
+		static constexpr vec2i default_opengl_version = fan::vec2i(2, 1); // major minor
 		static constexpr mode default_size_mode = mode::windowed;
 
 		// for static value storing
@@ -374,6 +374,7 @@ namespace fan {
 	private:
 
 		using keymap_t = std::unordered_map<uint16_t, bool>;
+		using timer_interval_t = fan::milliseconds;
 
 		static void window_input_action(fan::window_t window, uint16_t key);
 		FAN_API void window_input_mouse_action(fan::window_t window, uint16_t key);
@@ -403,7 +404,6 @@ namespace fan {
 		void reset_keys();
 
 		void initialize_window(const std::string& name, const fan::vec2i& window_size, uint64_t flags);
-
 
 		void handle_resize_callback(const fan::window_t& window, const fan::vec2i& size);
 		void handle_move_callback(const fan::window_t& window);
@@ -435,6 +435,7 @@ namespace fan {
 
 		uint_t m_max_fps;
 
+		f_t m_fps_next_tick;
 		bool m_received_fps;
 		uint_t m_fps;
 		fan::timer<> m_fps_timer;

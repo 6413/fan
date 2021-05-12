@@ -9,12 +9,9 @@
 #include <fan/types/types.hpp>
 #include <fan/math/math.hpp>
 
-namespace fan {
+#include <box2d/b2_math.h>
 
-	template <typename T>
-	constexpr auto abs(T value) {
-		return value < 0 ? -value : value;
-	}
+namespace fan {
 
 	template <class T, class... Ts>
 	struct is_any : std::bool_constant<(std::is_same_v<T, Ts> || ...)> {};
@@ -33,7 +30,7 @@ namespace fan {
 	public:
 		_Ty x, y;
 
-		using type = _Ty;
+		using value_type = _Ty;
 		using vec_t = _vec2<_Ty>;
 
 		constexpr _vec2() : x(0), y(0) {}
@@ -58,6 +55,12 @@ namespace fan {
 		template <typename T>
 		constexpr _vec2(std::array<T, 2>&& _array) : x(std::move(_array[0])), y(std::move(_array[1])) {}
 
+		_vec2(b2Vec2 vector) : x(vector.x), y(vector.y) {}
+
+		inline b2Vec2 b2() const {
+			return b2Vec2(x, y);
+		}
+
 		template <typename type_t>
 		constexpr _vec2(const type_t* begin, const type_t* end) 
 		{
@@ -65,7 +68,7 @@ namespace fan {
 		}
 
 		template <typename T>
-		constexpr _vec2<type>& operator=(const _vec2<T>& vector) {
+		constexpr _vec2<value_type>& operator=(const _vec2<T>& vector) {
 			this->x = vector.x;
 			this->y = vector.y;
 			return *this;
@@ -76,13 +79,13 @@ namespace fan {
 
 
 		template <typename _Type>
-		constexpr _vec2<type> operator%(_Type single_value) const {
-			return _vec2<type>(std::fmod(this->x, (decltype(this->x))single_value), std::fmod(this->y, (decltype(this->y))single_value));
+		constexpr _vec2<value_type> operator%(_Type single_value) const {
+			return _vec2<value_type>(std::fmod(this->x, (decltype(this->x))single_value), std::fmod(this->y, (decltype(this->y))single_value));
 		}
 
 		template <typename _Type>
-		constexpr _vec2<type> operator%(const _vec2<_Type>& vector) const {
-			return _vec2<type>(std::fmod(this->x, vector.x), std::fmod(this->y, vector.y));
+		constexpr _vec2<value_type> operator%(const _vec2<_Type>& vector) const {
+			return _vec2<value_type>(std::fmod(this->x, vector.x), std::fmod(this->y, vector.y));
 		}
 
 		template <typename _Type>
@@ -90,7 +93,7 @@ namespace fan {
 			return this->x == vector.x && this->y == vector.y;
 		}
 
-		constexpr bool operator==(type single_value) const {
+		constexpr bool operator==(value_type single_value) const {
 			return this->x == single_value && this->y == single_value;
 		}
 
@@ -103,7 +106,7 @@ namespace fan {
 			return this->x != vector.x || this->y != vector.y;
 		}
 
-		constexpr bool operator!=(type single_value) const {
+		constexpr bool operator!=(value_type single_value) const {
 			return this->x != single_value || this->y != single_value;
 		}
 
@@ -124,25 +127,25 @@ namespace fan {
 
 		// math operators
 		template <typename _Type>
-		constexpr _vec2<type> operator+(const _vec2<_Type>& vector) const
+		constexpr _vec2<value_type> operator+(const _vec2<_Type>& vector) const
 		{
-			return _vec2<type>(this->x + vector.x, this->y + vector.y);
+			return _vec2<value_type>(this->x + vector.x, this->y + vector.y);
 		}
 
 		template <typename T>
-		constexpr _vec2<type> operator+(const list<T, 2>& list_) const
+		constexpr _vec2<value_type> operator+(const list<T, 2>& list_) const
 		{
-			return _vec2<type>(this->x + list_[0], this->y + list_[1]);
+			return _vec2<value_type>(this->x + list_[0], this->y + list_[1]);
 		}
 
 		template <typename _Type>
-		constexpr _vec2<type> operator+(_Type single_value) const
+		constexpr _vec2<value_type> operator+(_Type single_value) const
 		{
-			return _vec2<_Type>(this->x + single_value, this->y + single_value);
+			return _vec2<value_type>(this->x + single_value, this->y + single_value);
 		}
 
 		template <typename _Type>
-		constexpr _vec2<type>& operator+=(const _vec2<_Type>& vector)
+		constexpr _vec2<value_type>& operator+=(const _vec2<_Type>& vector)
 		{
 			this->x += vector.x;
 			this->y += vector.y;
@@ -150,38 +153,38 @@ namespace fan {
 		}
 
 		template <typename _Type>
-		constexpr _vec2<type>& operator+=(_Type single_value)
+		constexpr _vec2<value_type>& operator+=(_Type single_value)
 		{
 			this->x += single_value;
 			this->y += single_value;
 			return *this;
 		}
 
-		constexpr _vec2<type> operator-() const
+		constexpr _vec2<value_type> operator-() const
 		{
-			return _vec2<type>(-this->x, -this->y);
+			return _vec2<value_type>(-this->x, -this->y);
 		}
 
 		template <typename _Type>
-		constexpr _vec2<type> operator-(const _vec2<_Type>& vector) const
+		constexpr _vec2<value_type> operator-(const _vec2<_Type>& vector) const
 		{
-			return _vec2<type>(this->x - vector.x, this->y - vector.y);
+			return _vec2<value_type>(this->x - vector.x, this->y - vector.y);
 		}
 
 		template <typename T>
-		constexpr _vec2<type> operator-(const list<T, 2>& list_) const
+		constexpr _vec2<value_type> operator-(const list<T, 2>& list_) const
 		{
-			return _vec2<type>(this->x - list_[0], this->y - list_[1]);
+			return _vec2<value_type>(this->x - list_[0], this->y - list_[1]);
 		}
 
 		template <typename _Type>
-		constexpr _vec2<type> operator-(_Type single_value) const
+		constexpr _vec2<value_type> operator-(_Type single_value) const
 		{
-			return _vec2<_Type>(this->x - single_value, this->y - single_value);
+			return _vec2<value_type>(this->x - single_value, this->y - single_value);
 		}
 
 		template <typename _Type>
-		constexpr _vec2<type>& operator-=(const _vec2<_Type>& vector)
+		constexpr _vec2<value_type>& operator-=(const _vec2<_Type>& vector)
 		{
 			this->x -= vector.x;
 			this->y -= vector.y;
@@ -189,7 +192,7 @@ namespace fan {
 		}
 
 		template <typename _Type>
-		constexpr _vec2<type>& operator-=(_Type single_value)
+		constexpr _vec2<value_type>& operator-=(_Type single_value)
 		{
 			this->x -= single_value;
 			this->y -= single_value;
@@ -198,25 +201,25 @@ namespace fan {
 
 
 		template <typename _Type>
-		constexpr _vec2<type> operator*(const _vec2<_Type>& vector) const
+		constexpr _vec2<value_type> operator*(const _vec2<_Type>& vector) const
 		{
-			return _vec2<type>(this->x * vector.x, this->y * vector.y);
+			return _vec2<value_type>(this->x * vector.x, this->y * vector.y);
 		}
 
 		template <typename T>
-		constexpr _vec2<type> operator*(const list<T, 2>& list_) const
+		constexpr _vec2<value_type> operator*(const list<T, 2>& list_) const
 		{
-			return _vec2<type>(this->x * list_[0], this->y * list_[1]);
+			return _vec2<value_type>(this->x * list_[0], this->y * list_[1]);
 		}
 
 		template <typename _Type>
-		constexpr _vec2<type> operator*(_Type single_value) const
+		constexpr _vec2<value_type> operator*(_Type single_value) const
 		{
-			return _vec2<_Type>(this->x * single_value, this->y * single_value);
+			return _vec2<value_type>(this->x * single_value, this->y * single_value);
 		}
 
 		template <typename _Type>
-		constexpr _vec2<type>& operator*=(const _vec2<_Type>& vector)
+		constexpr _vec2<value_type>& operator*=(const _vec2<_Type>& vector)
 		{
 			this->x *= vector.x;
 			this->y *= vector.y;
@@ -224,7 +227,7 @@ namespace fan {
 		}
 
 		template <typename _Type>
-		constexpr _vec2<type>& operator*=(_Type single_value)
+		constexpr _vec2<value_type>& operator*=(_Type single_value)
 		{
 			this->x *= single_value;
 			this->y *= single_value;
@@ -233,25 +236,25 @@ namespace fan {
 
 
 		template <typename _Type>
-		constexpr _vec2<type> operator/(const _vec2<_Type>& vector) const
+		constexpr _vec2<value_type> operator/(const _vec2<_Type>& vector) const
 		{
-			return _vec2<type>(this->x / vector.x, this->y / vector.y);
+			return _vec2<value_type>(this->x / vector.x, this->y / vector.y);
 		}
 
 		template <typename T>
-		constexpr _vec2<type> operator/(const list<T, 2>& list_) const
+		constexpr _vec2<value_type> operator/(const list<T, 2>& list_) const
 		{
-			return _vec2<type>(this->x / list_[0], this->y / list_[1]);
+			return _vec2<value_type>(this->x / list_[0], this->y / list_[1]);
 		}
 
 		template <typename _Type>
-		constexpr _vec2<type> operator/(_Type single_value) const
+		constexpr _vec2<value_type> operator/(_Type single_value) const
 		{
-			return _vec2<_Type>(this->x / (type)single_value, this->y / (type)single_value);
+			return _vec2<value_type>(this->x / single_value, this->y / single_value);
 		}
 
 		template <typename _Type>
-		constexpr _vec2<type>& operator/=(const _vec2<_Type>& vector)
+		constexpr _vec2<value_type>& operator/=(const _vec2<_Type>& vector)
 		{
 			this->x /= vector.x;
 			this->y /= vector.y;
@@ -259,11 +262,20 @@ namespace fan {
 		}
 
 		template <typename _Type>
-		constexpr _vec2<type>& operator/=(_Type single_value)
+		constexpr _vec2<value_type>& operator/=(_Type single_value)
 		{
 			this->x /= single_value;
 			this->y /= single_value;
 			return *this;
+		}
+
+		constexpr auto gfne() const noexcept {
+			for (uint_t i = 0; i < size(); i++) {
+				if (this->operator[](i)) {
+					return this->operator[](i);
+				}
+			}
+			return _Ty();
 		}
 
 		constexpr vec_t floored() const { return vec_t(floor(x), floor(y)); }
@@ -329,7 +341,7 @@ namespace fan {
 	public:
 		_Ty x, y, z;
 
-		using type = _Ty;
+		using value_type = _Ty;
 		using vec_t = _vec3<_Ty>;
 
 		constexpr _vec3() : x(0), y(0), z(0) {}
@@ -374,8 +386,8 @@ namespace fan {
 		constexpr _Ty operator[](uint64_t idx) const { return !idx ? x : idx == 1 ? y : z; }
 
 		template <typename _Type>
-		constexpr _vec3<type> operator%(_Type single_value) const {
-			return _vec3<type>(fmod_dr(this->x, single_value), fmod_dr(this->y, single_value), fmod_dr(this->z, single_value));
+		constexpr _vec3<value_type> operator%(_Type single_value) const {
+			return _vec3<value_type>(fmod_dr(this->x, single_value), fmod_dr(this->y, single_value), fmod_dr(this->z, single_value));
 		}
 
 		template <typename _Type>
@@ -404,19 +416,19 @@ namespace fan {
 
 		// math operators
 		template <typename _Type>
-		constexpr _vec3<type> operator+(const _vec3<_Type>& vector) const
+		constexpr _vec3<value_type> operator+(const _vec3<_Type>& vector) const
 		{
-			return _vec3<type>(this->x + vector.x, this->y + vector.y, this->z + vector.z);
+			return _vec3<value_type>(this->x + vector.x, this->y + vector.y, this->z + vector.z);
 		}
 
 		template <typename _Type>
-		constexpr _vec3<type> operator+(_Type single_value) const
+		constexpr _vec3<value_type> operator+(_Type single_value) const
 		{
-			return _vec3<_Type>(this->x + single_value, this->y + single_value, this->z + single_value);
+			return _vec3<value_type>(this->x + single_value, this->y + single_value, this->z + single_value);
 		}
 
 		template <typename _Type>
-		constexpr _vec3<type>& operator+=(const _vec3<_Type>& vector)
+		constexpr _vec3<value_type>& operator+=(const _vec3<_Type>& vector)
 		{
 			this->x += vector.x;
 			this->y += vector.y;
@@ -425,7 +437,7 @@ namespace fan {
 		}
 
 		template <typename _Type>
-		constexpr _vec3<type>& operator+=(_Type single_value)
+		constexpr _vec3<value_type>& operator+=(_Type single_value)
 		{
 			this->x += single_value;
 			this->y += single_value;
@@ -433,25 +445,25 @@ namespace fan {
 			return *this;
 		}
 
-		constexpr _vec3<type> operator-() const
+		constexpr _vec3<value_type> operator-() const
 		{
-			return _vec3<type>(-this->x, -this->y, -this->z);
+			return _vec3<value_type>(-this->x, -this->y, -this->z);
 		}
 
 		template <typename _Type>
-		constexpr _vec3<type> operator-(const _vec3<_Type>& vector) const
+		constexpr _vec3<value_type> operator-(const _vec3<_Type>& vector) const
 		{
-			return _vec3<type>(this->x - vector.x, this->y - vector.y, this->z - vector.z);
+			return _vec3<value_type>(this->x - vector.x, this->y - vector.y, this->z - vector.z);
 		}
 
 		template <typename _Type>
-		constexpr _vec3<type> operator-(_Type single_value) const
+		constexpr _vec3<value_type> operator-(_Type single_value) const
 		{
 			return _vec3<_Type>(this->x - single_value, this->y - single_value, this->z - single_value);
 		}
 
 		template <typename _Type>
-		constexpr _vec3<type>& operator-=(const _vec3<_Type>& vector)
+		constexpr _vec3<value_type>& operator-=(const _vec3<_Type>& vector)
 		{
 			this->x -= vector.x;
 			this->y -= vector.y;
@@ -460,7 +472,7 @@ namespace fan {
 		}
 
 		template <typename _Type>
-		constexpr _vec3<type>& operator-=(_Type single_value)
+		constexpr _vec3<value_type>& operator-=(_Type single_value)
 		{
 			this->x -= single_value;
 			this->y -= single_value;
@@ -470,19 +482,19 @@ namespace fan {
 
 
 		template <typename _Type>
-		constexpr _vec3<type> operator*(const _vec3<_Type>& vector) const
+		constexpr _vec3<value_type> operator*(const _vec3<_Type>& vector) const
 		{
-			return _vec3<type>(this->x * vector.x, this->y * vector.y, this->z * vector.z);
+			return _vec3<value_type>(this->x * vector.x, this->y * vector.y, this->z * vector.z);
 		}
 
 		template <typename _Type>
-		constexpr _vec3<type> operator*(_Type single_value) const
+		constexpr _vec3<value_type> operator*(_Type single_value) const
 		{
-			return _vec3<_Type>(this->x * single_value, this->y * single_value, this->z * single_value);
+			return _vec3<value_type>(this->x * single_value, this->y * single_value, this->z * single_value);
 		}
 
 		template <typename _Type>
-		constexpr _vec3<type>& operator*=(const _vec3<_Type>& vector)
+		constexpr _vec3<value_type>& operator*=(const _vec3<_Type>& vector)
 		{
 			this->x *= vector.x;
 			this->y *= vector.y;
@@ -491,7 +503,7 @@ namespace fan {
 		}
 
 		template <typename _Type>
-		constexpr _vec3<type>& operator*=(_Type single_value)
+		constexpr _vec3<value_type>& operator*=(_Type single_value)
 		{
 			this->x *= single_value;
 			this->y *= single_value;
@@ -501,19 +513,19 @@ namespace fan {
 
 
 		template <typename _Type>
-		constexpr _vec3<type> operator/(const _vec3<_Type>& vector) const
+		constexpr _vec3<value_type> operator/(const _vec3<_Type>& vector) const
 		{
-			return _vec3<type>(this->x / vector.x, this->y / vector.y, this->z / vector.z);
+			return _vec3<value_type>(this->x / vector.x, this->y / vector.y, this->z / vector.z);
 		}
 
 		template <typename _Type>
-		constexpr _vec3<type> operator/(_Type single_value) const
+		constexpr _vec3<value_type> operator/(_Type single_value) const
 		{
-			return _vec3<_Type>(this->x / single_value, this->y / single_value, this->z / single_value);
+			return _vec3<value_type>(this->x / single_value, this->y / single_value, this->z / single_value);
 		}
 
 		template <typename _Type>
-		constexpr _vec3<type>& operator/=(const _vec3<_Type>& vector)
+		constexpr _vec3<value_type>& operator/=(const _vec3<_Type>& vector)
 		{
 			this->x /= vector.x;
 			this->y /= vector.y;
@@ -522,7 +534,7 @@ namespace fan {
 		}
 
 		template <typename _Type>
-		constexpr _vec3<type>& operator/=(_Type single_value)
+		constexpr _vec3<value_type>& operator/=(_Type single_value)
 		{
 			this->x /= single_value;
 			this->y /= single_value;
@@ -592,7 +604,7 @@ namespace fan {
 	public:
 		_Ty x, y, z, w;
 
-		using type = _Ty;
+		using value_type = _Ty;
 		using vec_t = _vec3<_Ty>;
 
 		constexpr _vec4() : x(0), y(0), z(0), w(0) {}
@@ -633,8 +645,8 @@ namespace fan {
 		constexpr _Ty operator[](uint64_t idx) const { return !idx ? x : idx == 1 ? y : idx == 2 ? z : w; }
 
 		template <typename _Type>
-		constexpr _vec3<type> operator%(_Type single_value) const {
-			return _vec3<type>(fmod(this->x, single_value), fmod(this->y, single_value), fmod(this->z, single_value), fmod(this->w, single_value));
+		constexpr _vec3<value_type> operator%(_Type single_value) const {
+			return _vec3<value_type>(fmod(this->x, single_value), fmod(this->y, single_value), fmod(this->z, single_value), fmod(this->w, single_value));
 		}
 
 		template <typename _Type>
@@ -663,19 +675,19 @@ namespace fan {
 
 		// math operators
 		template <typename _Type>
-		constexpr _vec4<type> operator+(const _vec4<_Type>& vector) const
+		constexpr _vec4<value_type> operator+(const _vec4<_Type>& vector) const
 		{
-			return _vec4<type>(this->x + vector.x, this->y + vector.y, this->z + vector.z, this->w + vector.w);
+			return _vec4<value_type>(this->x + vector.x, this->y + vector.y, this->z + vector.z, this->w + vector.w);
 		}
 
 		template <typename _Type>
-		constexpr _vec4<type> operator+(_Type single_value) const
+		constexpr _vec4<value_type> operator+(_Type single_value) const
 		{
 			return _vec4<_Type>(this->x + single_value, this->y + single_value, this->z + single_value, this->w + single_value);
 		}
 
 		template <typename _Type>
-		constexpr _vec4<type>& operator+=(const _vec4<_Type>& vector)
+		constexpr _vec4<value_type>& operator+=(const _vec4<_Type>& vector)
 		{
 			this->x += vector.x;
 			this->y += vector.y;
@@ -685,7 +697,7 @@ namespace fan {
 		}
 
 		template <typename _Type>
-		constexpr _vec4<type>& operator+=(_Type single_value)
+		constexpr _vec4<value_type>& operator+=(_Type single_value)
 		{
 			this->x += single_value;
 			this->y += single_value;
@@ -696,19 +708,19 @@ namespace fan {
 
 
 		template <typename _Type>
-		constexpr _vec4<type> operator-(const _vec4<_Type>& vector) const
+		constexpr _vec4<value_type> operator-(const _vec4<_Type>& vector) const
 		{
-			return _vec4<type>(this->x - vector.x, this->y - vector.y, this->z - vector.z, this->w - vector.w);
+			return _vec4<value_type>(this->x - vector.x, this->y - vector.y, this->z - vector.z, this->w - vector.w);
 		}
 
 		template <typename _Type>
-		constexpr _vec4<type> operator-(_Type single_value) const
+		constexpr _vec4<value_type> operator-(_Type single_value) const
 		{
 			return _vec4<_Type>(this->x - single_value, this->y - single_value, this->z - single_value, this->w - single_value);
 		}
 
 		template <typename _Type>
-		constexpr _vec4<type>& operator-=(const _vec4<_Type>& vector)
+		constexpr _vec4<value_type>& operator-=(const _vec4<_Type>& vector)
 		{
 			this->x -= vector.x;
 			this->y -= vector.y;
@@ -718,7 +730,7 @@ namespace fan {
 		}
 
 		template <typename _Type>
-		constexpr _vec4<type>& operator-=(_Type single_value)
+		constexpr _vec4<value_type>& operator-=(_Type single_value)
 		{
 			this->x -= single_value;
 			this->y -= single_value;
@@ -729,19 +741,19 @@ namespace fan {
 
 
 		template <typename _Type>
-		constexpr _vec4<type> operator*(const _vec4<_Type>& vector) const
+		constexpr _vec4<value_type> operator*(const _vec4<_Type>& vector) const
 		{
-			return _vec4<type>(this->x * vector.x, this->y * vector.y, this->z * vector.z, this->w * vector.w);
+			return _vec4<value_type>(this->x * vector.x, this->y * vector.y, this->z * vector.z, this->w * vector.w);
 		}
 
 		template <typename _Type>
-		constexpr _vec4<type> operator*(_Type single_value) const
+		constexpr _vec4<value_type> operator*(_Type single_value) const
 		{
 			return _vec4<_Type>(this->x * single_value, this->y * single_value, this->z * single_value, this->w * single_value);
 		}
 
 		template <typename _Type>
-		constexpr _vec4<type>& operator*=(const _vec4<_Type>& vector)
+		constexpr _vec4<value_type>& operator*=(const _vec4<_Type>& vector)
 		{
 			this->x *= vector.x;
 			this->y *= vector.y;
@@ -751,7 +763,7 @@ namespace fan {
 		}
 
 		template <typename _Type>
-		constexpr _vec4<type>& operator*=(_Type single_value)
+		constexpr _vec4<value_type>& operator*=(_Type single_value)
 		{
 			this->x *= single_value;
 			this->y *= single_value;
@@ -762,19 +774,19 @@ namespace fan {
 
 
 		template <typename _Type>
-		constexpr _vec4<type> operator/(const _vec4<_Type>& vector) const
+		constexpr _vec4<value_type> operator/(const _vec4<_Type>& vector) const
 		{
-			return _vec4<type>(this->x / vector.x, this->y / vector.y, this->z / vector.z, this->w / vector.w);
+			return _vec4<value_type>(this->x / vector.x, this->y / vector.y, this->z / vector.z, this->w / vector.w);
 		}
 
 		template <typename _Type>
-		constexpr _vec4<type> operator/(_Type single_value) const
+		constexpr _vec4<value_type> operator/(_Type single_value) const
 		{
 			return _vec4<_Type>(this->x / single_value, this->y / single_value, this->z / single_value, this->w / single_value);
 		}
 
 		template <typename _Type>
-		constexpr _vec4<type>& operator/=(const _vec4<_Type>& vector)
+		constexpr _vec4<value_type>& operator/=(const _vec4<_Type>& vector)
 		{
 			this->x /= vector.x;
 			this->y /= vector.y;
@@ -784,7 +796,7 @@ namespace fan {
 		}
 
 		template <typename _Type>
-		constexpr _vec4<type>& operator/=(_Type single_value)
+		constexpr _vec4<value_type>& operator/=(_Type single_value)
 		{
 			this->x /= single_value;
 			this->y /= single_value;
@@ -863,9 +875,9 @@ namespace fan {
 	using vec3f = _vec3<f32_t>;
 	using vec4f = _vec4<f32_t>;
 
-	using vec2 = vec2f;
-	using vec3 = vec3f;
-	using vec4 = vec4f;
+	using vec2 = _vec2<cf_t>;
+	using vec3 = _vec3<cf_t>;
+	using vec4 = _vec4<cf_t>;
 
 	template <typename _Casted, template<typename> typename _Vec_t, typename _Old>
 	constexpr _Vec_t<_Casted> cast(const _Vec_t<_Old>& v)

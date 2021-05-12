@@ -8,6 +8,13 @@
 #include <functional>
 #include <cmath>
 
+namespace fan {
+	template <typename T>
+	constexpr auto abs(T value) {
+		return value < 0 ? -value : value;
+	}
+}
+
 namespace fan_2d {
 
 	template <typename vector_t>
@@ -35,6 +42,20 @@ namespace fan_2d {
 			return T();
 		}
 		return T(vector.x / length, vector.y / length);
+	}
+
+	template <typename T>
+	constexpr auto manhattan_distance(const T& src, const T& dst) {
+		return fan::abs(src.x - dst.x) + fan::abs(src.y - dst.y);
+	}
+
+	inline auto pythagorean(f_t a, f_t b) {
+		return std::sqrt((a * a) + (b * b));
+	}
+
+	template <typename T>
+	inline auto pythagorean(const T& vector) {
+		return std::sqrt((vector.x * vector.x) + (vector.y * vector.y));
 	}
 
 }
@@ -66,6 +87,10 @@ namespace fan_3d {
 		return vector_t(vector[0] / length, vector[1] / length, vector[2] / length);
 	}
 
+	template <typename T>
+	constexpr auto manhattan_distance(const T& src, const T& dst) {
+		return fan::abs(src.x - dst.x) + fan::abs(src.y - dst.y) + fan::abs(src.z - dst.z);
+	}
 }
 
 namespace fan {
@@ -104,44 +129,6 @@ namespace fan {
 	constexpr f_t pi = 3.14159265358979323846264338327950288419716939937510;
 	constexpr f_t half_pi = pi / 2;
 	constexpr f_t two_pi = pi * 2;
-
-	constexpr auto RAY_DID_NOT_HIT = fan::inf;
-
-	template <typename T>
-	constexpr bool ray_hit(const T& point) {
-		return point != RAY_DID_NOT_HIT;
-	}
-
-	template <typename T>
-	constexpr bool on_hit(const T& point, std::function<void()>&& lambda) {
-		if (ray_hit(point)) {
-			lambda();
-			return true;
-		}
-		return false;
-	}
-
-	template <typename T>
-	constexpr T intersection_point(const T& p1Start, const T& p1End, const T& p2Start, const T& p2End, bool infinite_long_ray) {
-		f_t den = (p1Start[0] - p1End[0]) * (p2Start[1] - p2End[1]) - (p1Start[1] - p1End[1]) * (p2Start[0] - p2End[0]);
-		if (!den) {
-			return RAY_DID_NOT_HIT;
-		}
-		f_t t = ((p1Start[0] - p2Start[0]) * (p2Start[1] - p2End[1]) - (p1Start[1] - p2Start[1]) * (p2Start[0] - p2End[0])) / den;
-		f_t u = -((p1Start[0] - p1End[0]) * (p1Start[1] - p2Start[1]) - (p1Start[1] - p1End[1]) * (p1Start[0] - p2Start[0])) / den;
-		if (!infinite_long_ray) {
-			if (t >= 0 && t <= 1 && u >= 0 && u <= 1) {
-				return T(p1Start[0] + t * (p1End[0] - p1Start[0]), p1Start[1] + t * (p1End[1] - p1Start[1]));
-			}
-		}
-		else {
-			if (t >= 0 && u >= 0 && u <= 1) {
-				return T(p1Start[0] + t * (p1End[0] - p1Start[0]), p1Start[1] + t * (p1End[1] - p1Start[1]));
-			}
-		}
-
-		return RAY_DID_NOT_HIT;
-	}
 
 	template <typename first, typename second>
 	auto random(first min, second max) {
@@ -312,9 +299,9 @@ namespace fan {
 	template <typename matrix_t>
 	constexpr auto ortho(f_t left, f_t right, f_t bottom, f_t top, f_t zNear, f_t zFar) {
 		matrix_t matrix(1);
-		matrix[0][0] = 2.f / (right - left);
-		matrix[1][1] = 2.f / (top - bottom);
-		matrix[2][2] = 1.f / (zFar - zNear);
+		matrix[0][0] = 2.0 / (right - left);
+		matrix[1][1] = 2.0 / (top - bottom);
+		matrix[2][2] = 1.0 / (zFar - zNear);
 		matrix[3][0] = -(right + left) / (right - left);
 		matrix[3][1] = -(top + bottom) / (top - bottom);
 		matrix[3][2] = -zNear / (zFar - zNear);
@@ -419,5 +406,57 @@ namespace fan {
 		matrix[3] = m[3];
 
 		return matrix;
+	}
+
+	constexpr auto RAY_DID_NOT_HIT = fan::inf;
+
+	template <typename T>
+	constexpr bool ray_hit(const T& point) {
+		return point != RAY_DID_NOT_HIT;
+	}
+
+	template <typename T>
+	constexpr bool on_hit(const T& point, std::function<void()>&& lambda) {
+		if (ray_hit(point)) {
+			lambda();
+			return true;
+		}
+		return false;
+	}
+
+	template <typename T>
+	constexpr bool dcom_fr(uint_t n, T x, T y) noexcept {
+		switch (n) {
+			case 0: {
+				return x < y;
+			}
+			case 1: {
+				return x > y;
+			}
+		}
+		return false;
+	}
+
+	template <typename T>
+	constexpr T intersection_point(const T& p1Start, const T& p1End, const T& p2Start, const T& p2End, bool infinite_long_ray) {
+		f_t den = (p1Start[0] - p1End[0]) * (p2Start[1] - p2End[1]) - (p1Start[1] - p1End[1]) * (p2Start[0] - p2End[0]);
+		if (!den) {
+			return RAY_DID_NOT_HIT;
+		}
+		f_t t = ((p1Start[0] - p2Start[0]) * (p2Start[1] - p2End[1]) - (p1Start[1] - p2Start[1]) * (p2Start[0] - p2End[0])) / den;
+		f_t u = -((p1Start[0] - p1End[0]) * (p1Start[1] - p2Start[1]) - (p1Start[1] - p1End[1]) * (p1Start[0] - p2Start[0])) / den;
+
+		if (!infinite_long_ray) {
+			if (t >= 0 && t <= 1 && u >= 0 && u <= 1) {
+				return T(p1Start[0] + t * (p1End[0] - p1Start[0]), p1Start[1] + t * (p1End[1] - p1Start[1]));;
+			}
+		}
+		else {
+			if (t >= 0 && u >= 0 && u <= 1) {
+				return T(p1Start[0] + t * (p1End[0] - p1Start[0]), p1Start[1] + t * (p1End[1] - p1Start[1]));
+			}
+		}
+
+		return RAY_DID_NOT_HIT;
 	}
 }

@@ -175,9 +175,9 @@ namespace fan {
             glUniform1iv(glGetUniformLocation(m_id, name.c_str()), size, values);
         }
 
-        void set_float(const std::string& name, f32_t value) const
+        void set_float(const std::string& name, fan::vec2::value_type value) const
         {
-            if constexpr (std::is_same<f32_t, float>::value) {
+            if constexpr (std::is_same<fan::vec2::value_type, float>::value) {
                 glUniform1f(glGetUniformLocation(m_id, name.c_str()), value);
             }
             else {
@@ -187,7 +187,7 @@ namespace fan {
 
         void set_vec2(const std::string& name, const fan::vec2& value) const
         {
-            if constexpr (std::is_same<f32_t, float>::value) {
+            if constexpr (std::is_same<fan::vec2::value_type, float>::value) {
                 glUniform2fv(glGetUniformLocation(m_id, name.c_str()), 1, (f32_t*)&value.x);
             }
             else {
@@ -197,7 +197,7 @@ namespace fan {
 
         void set_vec2(const std::string& name, float x, float y) const
         {
-            if constexpr (std::is_same<f32_t, float>::value) {
+            if constexpr (std::is_same<fan::vec2::value_type, float>::value) {
                 glUniform2f(glGetUniformLocation(m_id, name.c_str()), x, y);
             }
             else {
@@ -207,7 +207,7 @@ namespace fan {
 
         void set_vec3(const std::string& name, const fan::vec3& value) const
         {
-            if constexpr (std::is_same<f32_t, float>::value) {
+            if constexpr (std::is_same<fan::vec3::value_type, float>::value) {
                 glUniform3f(glGetUniformLocation(m_id, name.c_str()), value.x, value.y, value.z);
             }
             else {
@@ -217,7 +217,7 @@ namespace fan {
 
         void set_vec4(const std::string& name, const fan::color& color) const
         {
-            if constexpr (std::is_same<f32_t, float>::value) {
+            if constexpr (std::is_same<fan::vec4::value_type, float>::value) {
                 glUniform4f(glGetUniformLocation(m_id, name.c_str()), color.r, color.g, color.b, color.a);
             }
             else {
@@ -227,7 +227,7 @@ namespace fan {
 
         void set_vec4(const std::string& name, f32_t x, f32_t y, f32_t z, f32_t w) const
         {
-            if constexpr (std::is_same<f32_t, float>::value) {
+            if constexpr (std::is_same<fan::vec4::value_type, float>::value) {
                 glUniform4f(glGetUniformLocation(m_id, name.c_str()), x, y, z, w);
             }
             else {
@@ -236,7 +236,7 @@ namespace fan {
         }
 
         void set_mat4(const std::string& name, fan::mat4 mat) const { // ei saanu kai olla const
-            if constexpr (std::is_same<f32_t, float>::value) {
+            if constexpr (std::is_same<fan::mat4::value_type::value_type, float>::value) {
                 glUniformMatrix4fv(glGetUniformLocation(m_id, name.c_str()), 1, GL_FALSE, (f32_t*)&mat[0][0]);
             }
             else {
