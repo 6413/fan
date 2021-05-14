@@ -320,6 +320,9 @@ namespace fan_2d {
 
 			uint_t size() const;
 
+			void erase(uint_t i, bool queue = false);
+			void erase(uint_t begin, uint_t end, bool queue = false);
+
 		protected:
 
 			static constexpr int m_segments = 50;

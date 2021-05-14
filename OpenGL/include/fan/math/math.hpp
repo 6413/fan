@@ -9,10 +9,16 @@
 #include <cmath>
 
 namespace fan {
+
+	inline auto pythagorean(f_t a, f_t b) {
+		return std::sqrt((a * a) + (b * b));
+	}
+
 	template <typename T>
 	constexpr auto abs(T value) {
 		return value < 0 ? -value : value;
 	}
+
 }
 
 namespace fan_2d {
@@ -47,10 +53,6 @@ namespace fan_2d {
 	template <typename T>
 	constexpr auto manhattan_distance(const T& src, const T& dst) {
 		return fan::abs(src.x - dst.x) + fan::abs(src.y - dst.y);
-	}
-
-	inline auto pythagorean(f_t a, f_t b) {
-		return std::sqrt((a * a) + (b * b));
 	}
 
 	template <typename T>
