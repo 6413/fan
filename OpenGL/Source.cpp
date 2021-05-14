@@ -65,7 +65,6 @@ int main() {
 	// 1 rectangle, 2 circle
 	int mode = 0;
 	bool pressing = false;
-	int r_current = 0, c_current = 0;
 
 	//block view properties
 	fan::vec2 starting_position;
@@ -80,9 +79,15 @@ int main() {
 
 		if (gui_r.inside(0)) {
 			mode = 1;
+			gui_r.set_position(0, gui_r.get_position() - 7.5 / 2);
+			gui_r.set_size(0, 57.5);
+			gui_c.set_radius(0, 25);
 		}
 		else if (gui_c.inside(0)) {
 			mode = 2;
+			gui_r.set_size(0, 50);
+			gui_r.set_position(0, gui_r.get_position() + 7.5 / 2);
+			gui_c.set_radius(0, 30);
 		}
 		else {
 			starting_position = engine.m_window.get_mouse_position();
@@ -110,7 +115,7 @@ int main() {
 				gui_r.set_rotation(1, 0);
 
 
-				r.set_rotation(r_current++, rotation);
+				r.set_rotation(r.size() - 1, rotation);
 
 				break;
 			}
@@ -119,8 +124,6 @@ int main() {
 				c.push_back(starting_position, size.x, fan::colors::white, !dynamic ? fan_2d::physics::body_type::static_body : fan_2d::physics::body_type::dynamic_body);
 				
 				gui_c.set_radius(1, 0);
-
-				c_current++;
 
 				break;
 			}
@@ -164,9 +167,11 @@ int main() {
 				case 2:
 				{
 
-					gui_c.set_radius(1, new_size.x);
+					f32_t c_size = fan_2d::pythagorean(fan::vec2(xdiff, ydiff).abs());
 
-					size.x = new_size.x;
+					gui_c.set_radius(1, c_size);
+
+					size.x = c_size;
 
 					break;
 				}
@@ -180,24 +185,26 @@ int main() {
 		engine.m_window.close();
 	});
 
-	//engine.m_window.add_key_callback(fan::mouse_right, [&] {
+	engine.m_window.add_key_callback(fan::mouse_right, [&] {
 
-	//	for (int i = r.size(); i--; ) {
-	//		if (r.inside(i)) {
-	//			r.erase(i);
-	//			r_current--;
-	//			break;
-	//		}
-	//	}
+		for (int i = r.size(); i--; ) {
+			if (r.inside(i)) {
 
-	//	for (int i = c.size(); i--; ) {
-	//		if (c.inside(i)) {
-	//			c.erase(i);
-	//			c_current--;
-	//			break;
-	//		}
-	//	}
-	//});
+				r.erase(i);
+
+				return;
+			}
+		}
+
+		for (int i = c.size(); i--; ) {
+			if (c.inside(i)) {
+
+				c.erase(i);
+
+				break;
+			}
+		}
+	});
 
 	engine.m_window.add_scroll_callback([&](uint16_t key) {
 
@@ -215,9 +222,34 @@ int main() {
 		}
 	});
 
+	engine.m_window.add_key_callback(fan::key_h, [&] {
+		r.erase(0, r.size());
+		c.erase(0, c.size());
+	});
+
+	fan_2d::graphics::gui::text_renderer tr(&engine.m_camera, L"Select a shape", fan::vec2(window_size.x - 300, 0), fan::colors::white, 32);
+
+	tr.push_back(L"Amount of objects: ", 0, fan::colors::white, 32);
+
+	engine.m_window.add_resize_callback([&] {
+		tr.set_position(0, tr.get_position(0) + fan::vec2((engine.m_window.get_size() - engine.m_window.get_previous_size()).x, 0));
+	});
+
+
+	r.push_back(0, fan::vec2(1000, 10), fan::colors::red, fan_2d::physics::body_type::static_body);
+	r.push_back(0, fan::vec2(10, 1000), fan::colors::red, fan_2d::physics::body_type::static_body);
+	r.push_back(fan::vec2(1000, 0), fan::vec2(10, 1000), fan::colors::red, fan_2d::physics::body_type::static_body);
+	r.push_back(fan::vec2(0, 1000), fan::vec2(1000, 10), fan::colors::red, fan_2d::physics::body_type::static_body);
+
+	for (int i = 0; i < 10; i++) {
+		c.push_back(fan::vec2(400, 950), 15, fan::colors::white, fan_2d::physics::body_type::dynamic_body);
+	}
+
 	engine.m_window.loop(0, [&] {
 
 		engine.m_window.get_fps();
+
+		tr.set_text(1, L"Amount of objects: " + std::to_wstring(c.size() + r.size()));
 
 		c.update_position();
 
@@ -231,6 +263,8 @@ int main() {
 		gui_c.draw();
 
 		stb.draw();
+
+		tr.draw();
 
 		engine.m_world->Step(1.0 / time_step, 6, 2);
 

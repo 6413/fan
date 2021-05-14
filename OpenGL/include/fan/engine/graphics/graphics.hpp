@@ -36,6 +36,15 @@ namespace fan_2d {
 
 			}
 
+			void erase(uint_t i, bool queue = false) {
+				graphics_t::erase(i, queue);
+				physics_t::erase(i);
+			}
+			void erase(uint_t begin, uint_t end, bool queue = false) {
+				graphics_t::erase(begin, end, queue);
+				physics_t::erase(begin, end);
+			}
+
 		};
 
 		struct rectangle : public base_engine<fan_2d::graphics::rectangle, fan_2d::physics::rectangle> {
@@ -64,15 +73,6 @@ namespace fan_2d {
 					this->set_rotation(i, -this->get_body(i)->GetAngle());
 				}
 
-			}
-
-			void erase(uint_t i, bool queue = false) {
-				fan_2d::graphics::rectangle::erase(i, queue);
-				fan_2d::physics::rectangle::erase(i);
-			}
-			void erase(uint_t begin, uint_t end, bool queue = false) {
-				fan_2d::graphics::rectangle::erase(begin, end, queue);
-				fan_2d::graphics::rectangle::erase(begin, end);
 			}
 
 		};

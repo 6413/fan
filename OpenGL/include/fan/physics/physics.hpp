@@ -53,7 +53,7 @@ namespace fan_2d {
 
 			void set_position(uint32_t i, const fan::vec2& position) {
 				this->m_body[i]->SetTransform((position / meters_in_pixels).b2(), this->m_body[i]->GetAngle());
-				//this->m_body[i]->SetAwake(true);
+				this->m_body[i]->SetAwake(true);
 			}
 
 			void set_rotation(uint32_t i, f64_t rotation) {
@@ -63,6 +63,23 @@ namespace fan_2d {
 			void set_angular_rotation(uint32_t i, f64_t w) {
 				this->m_body[i]->SetAngularVelocity(w);
 				this->m_body[i]->SetAwake(true);
+			}
+
+			void erase(uint_t i) {
+				m_world->DestroyBody(get_body(i));
+
+				m_fixture.erase(m_fixture.begin() + i);
+				m_body.erase(m_body.begin() + i);
+
+			}
+			void erase(uint_t begin, uint_t end) {
+
+				for (int i = begin; i < end; i++) {
+					m_world->DestroyBody(get_body(i));
+				}
+
+				m_fixture.erase(m_fixture.begin() + begin, m_fixture.begin() + end);
+				m_body.erase(m_body.begin() + begin, m_body.begin() + end);
 			}
 
 		protected:
@@ -95,23 +112,6 @@ namespace fan_2d {
 				fixture_def.friction = body_property.m_friction;
 
 				m_fixture.emplace_back(m_body[m_body.size() - 1]->CreateFixture(&fixture_def));
-			}
-
-			void erase(uint_t i) {
-				m_world->DestroyBody(get_body(i));
-
-				m_fixture.erase(m_fixture.begin() + i);
-				m_body.erase(m_body.begin() + i);
-
-			}
-			void erase(uint_t begin, uint_t end) {
-
-				for (int i = begin; i < end; i++) {
-					m_world->DestroyBody(get_body(i));
-				}
-
-				m_fixture.erase(m_fixture.begin() + begin, m_fixture.begin() + end);
-				m_body.erase(m_body.begin() + begin, m_body.begin() + end);
 			}
 
 		};

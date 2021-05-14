@@ -585,11 +585,17 @@ void fan_2d::graphics::rectangle::draw(uint_t begin, uint_t end)
 void fan_2d::graphics::rectangle::erase(uint_t i, bool queue)
 {
 	fan_2d::graphics::vertice_vector::erase(i * 6, i * 6 + 6, queue);
+
+	this->m_position.erase(this->m_position.begin() + i);
+	this->m_size.erase(this->m_size.begin() + i);
 }
 
 void fan_2d::graphics::rectangle::erase(uint_t begin, uint_t end, bool queue)
 {
 	fan_2d::graphics::vertice_vector::erase(begin * 6, end * 6, queue);
+
+	this->m_position.erase(this->m_position.begin() + begin, this->m_position.begin() + end);
+	this->m_size.erase(this->m_size.begin() + begin, this->m_size.begin() + end);
 }
 
 fan_2d::graphics::rectangle_corners_t fan_2d::graphics::rectangle::get_corners(uint_t i) const
@@ -1155,6 +1161,39 @@ void fan_2d::graphics::circle::set_color(uint_t i, const fan::color& color, bool
 uint_t fan_2d::graphics::circle::size() const
 {
 	return this->m_position.size();
+}
+
+/*
+
+void fan_2d::graphics::rectangle::erase(uint_t i, bool queue)
+{
+fan_2d::graphics::vertice_vector::erase(i * 6, i * 6 + 6, queue);
+
+this->m_position.erase(this->m_position.begin() + i);
+this->m_size.erase(this->m_size.begin() + i);
+}
+
+void fan_2d::graphics::rectangle::erase(uint_t begin, uint_t end, bool queue)
+{
+fan_2d::graphics::vertice_vector::erase(begin * 6, end * 6, queue);
+
+this->m_position.erase(this->m_position.begin() + begin, this->m_position.begin() + end);
+this->m_size.erase(this->m_size.begin() + begin, this->m_size.begin() + end);
+}
+*/
+
+void fan_2d::graphics::circle::erase(uint_t i, bool queue) {
+	fan_2d::graphics::vertice_vector::erase(i * m_segments, i * m_segments + m_segments, queue);
+
+	this->m_position.erase(this->m_position.begin() + i);
+	this->m_radius.erase(this->m_radius.begin() + i);
+}
+
+void fan_2d::graphics::circle::erase(uint_t begin, uint_t end, bool queue) {
+	fan_2d::graphics::vertice_vector::erase(begin * m_segments, end * m_segments);
+
+	this->m_position.erase(this->m_position.begin() + begin, this->m_position.begin() + end);
+	this->m_radius.erase(this->m_radius.begin() + begin, this->m_radius.begin() + end);
 }
 
 fan_2d::graphics::sprite::sprite(fan::camera* camera) 
