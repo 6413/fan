@@ -1,10 +1,7 @@
 #pragma once
 
-#define GLEW_STATIC
-#include <GL/glew.h>
-
 #include <fan/types/types.hpp>
-#include <fan/graphics/color.hpp>
+#include <fan/types/color.hpp>
 #include <fan/graphics/camera.hpp>
 #include <fan/graphics/shader.hpp>
 
@@ -280,6 +277,9 @@ namespace fan {
 
 	template <uint_t _Location = 0>
 	class ebo_handler : public glsl_location_handler<_Location, fan::opengl_buffer_type::buffer_object> {};
+
+	template <uint_t _Location = 0>
+	class vbo_handler : public glsl_location_handler<_Location, fan::opengl_buffer_type::buffer_object, true> {};
 
 	template <uint_t _Location = 0>
 	class texture_handler : public glsl_location_handler<_Location, fan::opengl_buffer_type::texture> {};
@@ -684,77 +684,6 @@ namespace fan {
 	};
 
 	template <bool enable_vector, typename _Vector>
-	class basic_shape_velocity {
-	public:
-
-		basic_shape_velocity() {}
-		basic_shape_velocity(const _Vector& velocity) {
-			if constexpr (enable_vector) {
-				this->m_velocity.emplace_back(velocity);
-			}
-			else {
-				this->m_velocity = velocity;
-			}
-		}
-
-		basic_shape_velocity(const basic_shape_velocity& vector) {
-			this->operator=(vector);
-		}
-		basic_shape_velocity(basic_shape_velocity&& vector) noexcept {
-			this->operator=(std::move(vector));
-		}
-
-		basic_shape_velocity& operator=(const basic_shape_velocity& vector) {
-			this->m_velocity = vector.m_velocity;
-
-			return *this;
-		}
-		basic_shape_velocity& operator=(basic_shape_velocity&& vector) noexcept {
-			this->m_velocity = std::move(vector.m_velocity);
-
-			return *this;
-		}
-
-		// ----------------------------------------------------- vector enabled functions
-
-		enable_function_for_vector void push_back(const fan::vec2& velocity) {
-			this->m_velocity.emplace_back(velocity);
-		}
-
-		enable_function_for_vector _Vector get_velocity(uint_t i) const {
-			return this->m_velocity[i];
-		}
-		enable_function_for_vector void set_velocity(uint_t i, const _Vector& velocity) {
-			this->m_velocity[i] = velocity;
-		}
-
-		enable_function_for_vector void reserve(uint_t new_size) {
-			this->m_velocity.reserve(new_size);
-		}
-		enable_function_for_vector void resize(uint_t new_size) {
-			this->m_velocity.resize(new_size);
-		}
-
-		// -----------------------------------------------------
-
-		// ----------------------------------------------------- non vector enabled functions
-
-		enable_function_for_non_vector _Vector get_velocity() const {
-			return this->m_velocity;
-		}
-		enable_function_for_non_vector void set_velocity(const _Vector& velocity) {
-			this->m_velocity = velocity;
-		}
-
-		// -----------------------------------------------------
-
-	protected:
-
-		std::conditional_t<enable_vector, std::vector<_Vector>, _Vector> m_velocity;
-
-	};
-
-	template <bool enable_vector, typename _Vector>
 	class basic_shape : 
 		public basic_shape_position<enable_vector, _Vector>, 
 		public basic_shape_size<enable_vector, _Vector>,
@@ -886,8 +815,7 @@ namespace fan {
 	template <typename _Vector>
 	class basic_vertice_vector : 
 		public basic_shape_position<true, _Vector, 1, fan::opengl_buffer_type::buffer_object, true>, 
-		public basic_shape_color_vector<true, 0, fan::opengl_buffer_type::buffer_object, true>, 
-		public basic_shape_velocity<true, _Vector>,
+		public basic_shape_color_vector<true, 0, fan::opengl_buffer_type::buffer_object, true>,
 		public vao_handler<> {
 	public:
 
@@ -899,20 +827,17 @@ namespace fan {
 		basic_vertice_vector(const basic_vertice_vector& vector)	
 			: basic_vertice_vector::basic_shape_position(vector), 
 			  basic_vertice_vector::basic_shape_color_vector(vector),
-			  basic_vertice_vector::basic_shape_velocity(vector), 
 			  vao_handler(vector), m_camera(vector.m_camera), m_shader(vector.m_shader) { }
 
 		basic_vertice_vector(basic_vertice_vector&& vector) noexcept 
 			: basic_vertice_vector::basic_shape_position(std::move(vector)), 
 			  basic_vertice_vector::basic_shape_color_vector(std::move(vector)),
-			  basic_vertice_vector::basic_shape_velocity(std::move(vector)),
 			  vao_handler(std::move(vector)), m_camera(vector.m_camera), 
 			  m_shader(std::move(vector.m_shader)) { }
 
 		basic_vertice_vector& operator=(const basic_vertice_vector& vector) {
 			basic_vertice_vector::basic_shape_position::operator=(vector);
 			basic_vertice_vector::basic_shape_color_vector::operator=(vector);
-			basic_vertice_vector::basic_shape_velocity::operator=(vector);
 			vao_handler::operator=(vector);
 
 			m_shader = vector.m_shader;
@@ -923,7 +848,6 @@ namespace fan {
 		basic_vertice_vector& operator=(basic_vertice_vector&& vector) {
 			basic_vertice_vector::basic_shape_position::operator=(std::move(vector));
 			basic_vertice_vector::basic_shape_color_vector::operator=(std::move(vector));
-			basic_vertice_vector::basic_shape_velocity::operator=(std::move(vector));
 			vao_handler::operator=(std::move(vector));
 
 			m_shader = std::move(vector.m_shader);
@@ -935,12 +859,10 @@ namespace fan {
 		void reserve(uint_t size) {
 			basic_vertice_vector::basic_shape_position::reserve(size);
 			basic_vertice_vector::basic_shape_color_vector::reserve(size);
-			basic_vertice_vector::basic_shape_velocity::reserve(size);
 		}
 		void resize(uint_t size, const fan::color& color) {
 			basic_vertice_vector::basic_shape_position::resize(size);
 			basic_vertice_vector::basic_shape_color_vector::resize(size, color);
-			basic_vertice_vector::basic_shape_velocity::resize(size);
 		}
 
 		uint_t size() const {
@@ -985,20 +907,20 @@ namespace fan {
 
 		void basic_draw(uint_t begin, uint_t end, const std::vector<uint32_t>& indices, unsigned int mode, uint_t count, uint32_t index_restart, uint32_t single_draw_amount) const {
 			fan::bind_vao(vao_handler::m_buffer_object, [&] {
-				if (begin != (uint_t)fan::uninitialized && end != (uint_t)fan::uninitialized) {
-					glDrawElements(mode, end == (uint_t)fan::uninitialized ? single_draw_amount : single_draw_amount * (end - begin) + single_draw_amount, GL_UNSIGNED_INT, (void*)((sizeof(GLuint) * single_draw_amount) * begin));
+				if (begin != (uint32_t)fan::uninitialized && end != (uint32_t)fan::uninitialized) {
+					glDrawElements(mode, end == (uint32_t)fan::uninitialized ? single_draw_amount : single_draw_amount * (end - begin) + single_draw_amount, GL_UNSIGNED_INT, (void*)((sizeof(GLuint) * single_draw_amount) * begin));
 				}
-				else if (begin != (uint_t)fan::uninitialized && end == (uint_t)fan::uninitialized) {
+				else if (begin != (uint32_t)fan::uninitialized && end == (uint32_t)fan::uninitialized) {
 					glDrawElements(mode, single_draw_amount, GL_UNSIGNED_INT, (void*)((sizeof(GLuint) * single_draw_amount) * begin));
 				}
-				else if (begin == (uint_t)fan::uninitialized && end != (uint_t)fan::uninitialized) {
+				else if (begin == (uint32_t)fan::uninitialized && end != (uint32_t)fan::uninitialized) {
 					glDrawElements(mode, single_draw_amount * end, GL_UNSIGNED_INT, 0);
 				}
 				else if (index_restart == UINT32_MAX) {
 					glDrawElements(mode, count, GL_UNSIGNED_INT, 0);
 				}
 				else {
-					for (uint_t j = 0; j < indices.size() / index_restart; j++) {
+					for (uint32_t j = 0; j < indices.size() / index_restart; j++) {
 						glDrawElements(mode, index_restart, GL_UNSIGNED_INT, (void*)((sizeof(GLuint) * index_restart) * j));
 					}
 				}
@@ -1067,9 +989,17 @@ namespace fan {
 		}
 
 		void edit_data(uint_t i) {
-			std::vector<fan::color> vector(this->m_color[i].size());
-			std::copy(this->m_color[i].begin(), this->m_color[i].end(), vector.begin());
+
+			std::vector<fan::color> vector;
+
+			for (int j = 0; j < this->m_color[i].size(); j++) {
+				for (int k = 0; k < 6; k++) {
+					vector.emplace_back(this->m_color[i][j]);
+				}
+			}
+			
 			uint_t offset = 0;
+
 			for (uint_t j = 0; j < i; j++) {
 				offset += m_color[j].size();
 			}
@@ -1078,14 +1008,28 @@ namespace fan {
 			fan::edit_glbuffer(basic_shape_color_vector_vector::glsl_location_handler::m_buffer_object, vector.data(), sizeof(fan::color) * offset, sizeof(fan::color) * vector.size(), GL_ARRAY_BUFFER, layout_location);
 		}
 
+		//void edit_data(uint_t i) {
+		//	std::vector<fan::color> vector(this->m_color[i].size());
+		//	std::copy(this->m_color[i].begin(), this->m_color[i].end(), vector.begin());
+		//	uint_t offset = 0;
+		//	for (uint_t j = 0; j < i; j++) {
+		//		offset += m_color[j].size();
+		//	}
+
+		//	// AAAAAAAAA GL_ARRAY_BUFFER
+		//	fan::edit_glbuffer(basic_shape_color_vector_vector::glsl_location_handler::m_buffer_object, vector.data(), sizeof(fan::color) * offset, sizeof(fan::color) * vector.size(), GL_ARRAY_BUFFER, layout_location);
+		//}
+
 
 		void write_data()
 		{
 			std::vector<fan::color> vector;
 
 			for (uint_t i = 0; i < m_color.size(); i++) {
-				for (int j = 0; j < 6; j++) {
-					vector.insert(vector.end(), m_color[i].begin(), m_color[i].end());
+				for (int j = 0; j < m_color[i].size(); j++) {
+					for (int k = 0; k < 6; k++) {
+						vector.emplace_back(m_color[i][j]);
+					}
 				}
 			}
 

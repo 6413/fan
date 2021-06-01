@@ -152,8 +152,8 @@ namespace fan {
 
 				std::unordered_map<uint16_t, font_t> font_info_vector;
 
-				f_t flowest = -fan::inf;
-				f_t fhighest = fan::inf;
+				f_t flowest = -fan::math::inf;
+				f_t fhighest = fan::math::inf;
 
 				uint_t lowest = 0, highest = 0;
 

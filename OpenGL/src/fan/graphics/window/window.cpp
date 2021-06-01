@@ -11,7 +11,7 @@
 #undef min
 #undef max
 
-#elif defined(FAN_PLATFORM_LINUX)
+#elif defined(FAN_PLATFORM_UNIX)
 
 #include <locale>
 #include <codecvt>
@@ -31,7 +31,7 @@ fan::vec2i fan::get_resolution() {
 
 	return fan::vec2i(GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN));
 
-	#elif defined(FAN_PLATFORM_LINUX) // close
+	#elif defined(FAN_PLATFORM_UNIX) // close
 
 	Display* display = XOpenDisplay(0);
 
@@ -61,7 +61,7 @@ void fan::set_screen_resolution(const fan::vec2i& size)
 	screen_settings.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
 	ChangeDisplaySettings(&screen_settings, CDS_FULLSCREEN);
 
-	#elif defined(FAN_PLATFORM_LINUX)
+	#elif defined(FAN_PLATFORM_UNIX)
 
 	#endif
 
@@ -73,7 +73,7 @@ void fan::reset_screen_resolution() {
 
 	ChangeDisplaySettings(nullptr, CDS_RESET);
 
-	#elif defined(FAN_PLATFORM_LINUX)
+	#elif defined(FAN_PLATFORM_UNIX)
 
 
 
@@ -92,7 +92,7 @@ uint_t fan::get_screen_refresh_rate()
 
 	return dmode.dmDisplayFrequency;
 
-	#elif defined(FAN_PLATFORM_LINUX)
+	#elif defined(FAN_PLATFORM_UNIX)
 
 	Display *display = XOpenDisplay(NULL);
 
@@ -198,6 +198,7 @@ fan::window& fan::window::operator=(const window& window)
 
 	this->m_keys_action = window.m_keys_action;
 	this->m_keys_callback = window.m_keys_callback;
+	this->m_text_callback = window.m_text_callback;
 	this->m_keys_down = window.m_keys_down;
 	this->m_keys_reset = window.m_keys_reset;
 	this->m_key_callback = window.m_key_callback;
@@ -221,10 +222,11 @@ fan::window& fan::window::operator=(const window& window)
 	this->m_flags = window.m_flags;
 	this->m_current_key = window.m_current_key;
 	this->m_reserved_flags = window.m_reserved_flags;
-	this->m_key_exceptions = window.m_key_exceptions;
+
 	this->m_raw_mouse_offset = window.m_raw_mouse_offset;
 	this->m_focused = window.m_focused;
 	this->m_auto_close = window.m_auto_close;
+	this->m_background_color = window.m_background_color;
 
 	return *this;
 }
@@ -244,7 +246,7 @@ fan::window& fan::window::operator=(window&& window)
 	this->m_hdc = std::move(window.m_hdc);
 	this->m_context = std::move(window.m_context);
 
-	#elif defined(FAN_PLATFORM_LINUX) 
+	#elif defined(FAN_PLATFORM_UNIX) 
 
 	m_display = window.m_display;
 	m_screen = window.m_screen;
@@ -256,6 +258,7 @@ fan::window& fan::window::operator=(window&& window)
 
 	this->m_keys_action = std::move(window.m_keys_action);
 	this->m_keys_callback = window.m_keys_callback;
+	this->m_text_callback = std::move(window.m_text_callback);
 	this->m_keys_down = std::move(window.m_keys_down);
 	this->m_keys_reset = std::move(window.m_keys_reset);
 	this->m_key_callback = window.m_key_callback;
@@ -280,16 +283,16 @@ fan::window& fan::window::operator=(window&& window)
 	this->m_flags = window.m_flags;
 	this->m_current_key = window.m_current_key;
 	this->m_reserved_flags = window.m_reserved_flags;
-	this->m_key_exceptions = std::move(window.m_key_exceptions);
 	this->m_raw_mouse_offset = std::move(window.m_raw_mouse_offset);
 	this->m_focused = std::move(window.m_focused);
 	this->m_auto_close = std::move(window.m_auto_close);
+	this->m_background_color = std::move(this->m_background_color);
 
 	#if defined(FAN_PLATFORM_WINDOWS)
 
 	wglMakeCurrent(m_hdc, m_context);
 
-	#elif defined(FAN_PLATFORM_LINUX)
+	#elif defined(FAN_PLATFORM_UNIX)
 
 	glXMakeCurrent(m_display, m_window, m_context);
 
@@ -303,7 +306,7 @@ fan::window::~window()
 	this->destroy_window();
 }
 
-void fan::window::execute(const fan::color& background_color, const std::function<void()>& function)
+void fan::window::execute(const std::function<void()>& function)
 {
 	if (!this->open()) {
 		return;
@@ -317,7 +320,7 @@ void fan::window::execute(const fan::color& background_color, const std::functio
 
 	glViewport(0, 0, m_size.x, m_size.y);
 
-	#elif defined(FAN_PLATFORM_LINUX)
+	#elif defined(FAN_PLATFORM_UNIX)
 
 	//if (glXGetCurrentContext() != m_context) {
 	glXMakeCurrent(m_display, m_window, m_context);
@@ -329,7 +332,13 @@ void fan::window::execute(const fan::color& background_color, const std::functio
 
 	this->calculate_delta_time();
 
-	this->set_background_color(background_color);
+	glClearColor(
+		m_background_color.r,
+		m_background_color.g,
+		m_background_color.b,
+		m_background_color.a
+	);
+	glClear(GL_COLOR_BUFFER_BIT);
 
 	if (function) {
 		function();
@@ -346,12 +355,11 @@ void fan::window::execute(const fan::color& background_color, const std::functio
 	this->reset_keys();
 }
 
-void fan::window::loop(const fan::color& background_color, const std::function<void()>& function) {
+void fan::window::loop(const std::function<void()>& function) {
 
 	while (fan::window::open()) {
-		this->execute(background_color, [&] {
-			function();
-		});
+
+		this->execute(function);
 
 		fan::window::handle_events();
 	}
@@ -362,7 +370,7 @@ void fan::window::swap_buffers() const
 
 	#ifdef FAN_PLATFORM_WINDOWS
 	SwapBuffers(m_hdc);
-	#elif defined(FAN_PLATFORM_LINUX)
+	#elif defined(FAN_PLATFORM_UNIX)
 	glXSwapBuffers(m_display, m_window);
 	#endif
 
@@ -382,7 +390,7 @@ void fan::window::set_name(const std::string& name)
 
 	SetWindowTextA(m_window, m_name.c_str());
 
-	#elif defined(FAN_PLATFORM_LINUX)
+	#elif defined(FAN_PLATFORM_UNIX)
 
 	XStoreName(m_display, m_window, name.c_str());
 	XSetIconName(m_display, m_window, name.c_str());
@@ -408,6 +416,11 @@ fan::vec2i fan::window::get_mouse_position() const
 	return m_mouse_position;
 }
 
+fan::vec2i fan::window::get_previous_mouse_position() const
+{
+	return m_previous_mouse_position;
+}
+
 fan::vec2i fan::window::get_size() const
 {
 	return m_size;
@@ -426,12 +439,14 @@ void fan::window::set_size(const fan::vec2i& size)
 
 	const fan::vec2i position = this->get_position();
 
+	glViewport(0, 0, size.x, size.y);
+
 	if (!SetWindowPos(m_window, 0, position.x - move_offset.x, position.y - move_offset.y, size.x, size.y, SWP_NOZORDER | SWP_SHOWWINDOW)) {
 		fan::print("fan window error: failed to set window position", GetLastError());
 		exit(1);
 	}
 
-	#elif defined(FAN_PLATFORM_LINUX)
+	#elif defined(FAN_PLATFORM_UNIX)
 
 	int result = XResizeWindow(m_display, m_window, size.x, size.y);
 
@@ -460,7 +475,7 @@ void fan::window::set_position(const fan::vec2i& position)
 		exit(1);
 	}
 
-	#elif defined(FAN_PLATFORM_LINUX)
+	#elif defined(FAN_PLATFORM_UNIX)
 
 	int result = XMoveWindow(m_display, m_window, position.x, position.y);
 
@@ -492,7 +507,7 @@ void fan::window::set_vsync(bool value) {
 
 	wglMakeCurrent(m_hdc, m_context);
 
-	#elif defined(FAN_PLATFORM_LINUX)
+	#elif defined(FAN_PLATFORM_UNIX)
 
 	glXMakeCurrent(m_display, m_window, m_context);
 
@@ -509,7 +524,7 @@ void fan::window::set_vsync(bool value) {
 		fan::print("vsync not supported");
 	}
 
-	#elif defined(FAN_PLATFORM_LINUX)
+	#elif defined(FAN_PLATFORM_UNIX)
 
 	GLXDrawable drawable = glXGetCurrentDrawable();
 
@@ -544,7 +559,7 @@ void fan::window::set_full_screen(const fan::vec2i& size)
 
 	this->set_windowed_full_screen();
 
-	#elif defined(FAN_PLATFORM_LINUX)
+	#elif defined(FAN_PLATFORM_UNIX)
 
 	this->set_windowed_full_screen(); // yeah
 
@@ -583,7 +598,7 @@ void fan::window::set_windowed_full_screen(const fan::vec2i& size)
 		);
 	}
 
-	#elif defined(FAN_PLATFORM_LINUX)
+	#elif defined(FAN_PLATFORM_UNIX)
 
 	struct MwmHints {
 		unsigned long flags;
@@ -651,7 +666,7 @@ void fan::window::set_windowed(const fan::vec2i& size)
 		SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED
 	);
 
-	#elif defined(FAN_PLATFORM_LINUX)
+	#elif defined(FAN_PLATFORM_UNIX)
 
 
 
@@ -689,89 +704,113 @@ type fan::window::get_window_storage(const fan::window_t& window, const std::str
 
 void fan::window::set_window_storage(const fan::window_t& window, const std::string& location, std::any data)
 {
-	#ifdef __GNUC__ // to prevent gcc bug
 	m_window_storage.insert_or_assign(std::make_pair(window, location), data);
-
-	#else
-
-	m_window_storage.insert_or_assign(std::make_pair(window, location), data);
-
-	#endif
 }
 
-fan::window::keys_callback_t fan::window::get_keys_callback(uint_t i) const
-{
-	return this->m_keys_callback[i];
-}
-
-void fan::window::add_keys_callback(const keys_callback_t& function)
+std::deque<fan::window::keys_callback_t>::iterator fan::window::add_keys_callback(const keys_callback_t& function)
 {
 	this->m_keys_callback.emplace_back(function);
+
+	return this->m_keys_callback.end() - 1;
 }
 
-fan::window::key_callback_t fan::window::get_key_callback(uint_t i) const
+void fan::window::remove_keys_callback(std::deque<keys_callback_t>::const_iterator it)
 {
-	return this->m_key_callback[i];
+	this->m_keys_callback.erase(it);
 }
 
-void fan::window::add_key_callback(uint16_t key, const std::function<void()>& function, bool on_release)
+std::deque<fan::window::key_callback_t>::iterator fan::window::add_key_callback(uint16_t key, const std::function<void()>& function, bool on_release)
 {
 	this->m_key_callback.emplace_back(key_callback_t{ key, function, on_release });
+
+	return this->m_key_callback.end() - 1;
 }
 
-std::function<void()> fan::window::get_close_callback(uint_t i) const
+void fan::window::edit_key_callback(std::deque<key_callback_t>::iterator it, uint16_t key)
 {
-	return m_close_callback[i];
+	it->key = key;
 }
 
-void fan::window::add_close_callback(const std::function<void()>& function)
+void fan::window::remove_key_callback(std::deque<key_callback_t>::const_iterator it)
+{
+	this->m_key_callback.erase(it);
+}
+
+void fan::window::set_text_callback(const text_callback_t& function)
+{
+	m_text_callback = function;
+}
+
+void fan::window::remove_text_callback()
+{
+	m_text_callback = 0;
+}
+
+std::deque<std::function<void()>>::iterator fan::window::add_close_callback(const std::function<void()>& function)
 {
 	m_close_callback.emplace_back(function);
+
+	return this->m_close_callback.end() - 1;
 }
 
-fan::window::mouse_move_position_callback_t fan::window::get_mouse_move_callback(uint_t i) const
+void fan::window::remove_close_callback(std::deque<std::function<void()>>::const_iterator it)
 {
-	return this->m_mouse_move_position_callback[i];
+	this->m_close_callback.erase(it);
 }
 
-void fan::window::add_mouse_move_callback(const mouse_move_position_callback_t& function)
+std::deque<fan::window::mouse_move_position_callback_t>::iterator fan::window::add_mouse_move_callback(const mouse_move_position_callback_t& function)
 {
 	this->m_mouse_move_position_callback.emplace_back(function);
+
+	return this->m_mouse_move_position_callback.end() - 1;
 }
 
-void fan::window::add_mouse_move_callback(const mouse_move_callback_t& function)
+void fan::window::remove_mouse_move_callback(std::deque<mouse_move_position_callback_t>::const_iterator it)
+{
+	this->m_mouse_move_position_callback.erase(it);
+}
+
+std::deque<fan::window::mouse_move_callback_t>::iterator fan::window::add_mouse_move_callback(const mouse_move_callback_t& function)
 {
 	this->m_mouse_move_callback.emplace_back(function);
+
+	return this->m_mouse_move_callback.end() - 1;
 }
 
-fan::window::scroll_callback_t fan::window::get_scroll_callback(uint_t i) const
-{
-	return this->m_scroll_callback[i];
-}
-
-void fan::window::add_scroll_callback(const scroll_callback_t& function)
+std::deque<fan::window::scroll_callback_t>::iterator fan::window::add_scroll_callback(const scroll_callback_t& function)
 {
 	this->m_scroll_callback.emplace_back(function);
+
+	return this->m_scroll_callback.end() - 1;
 }
 
-std::function<void()> fan::window::get_resize_callback(uint_t i) const
+void fan::window::remove_scroll_callback(std::deque<scroll_callback_t>::const_iterator it)
 {
-	return this->m_resize_callback[i];
+	this->m_scroll_callback.erase(it);
 }
 
-void fan::window::add_resize_callback(const std::function<void()>& function)
+std::deque<std::function<void()>>::iterator fan::window::add_resize_callback(const std::function<void()>& function)
 {
 	this->m_resize_callback.emplace_back(function);
+
+	return this->m_resize_callback.end() - 1;
 }
 
-std::function<void()> fan::window::get_move_callback(uint_t i) const
+void fan::window::remove_resize_callback(std::deque<std::function<void()>>::const_iterator it)
 {
-	return this->m_move_callback[i];
+	this->m_resize_callback.erase(it);
 }
 
-void fan::window::add_move_callback(const std::function<void()>& function)
+std::deque<std::function<void()>>::iterator fan::window::add_move_callback(const std::function<void()>& function)
 {
 	this->m_move_callback.push_back(function);
+
+	return m_move_callback.end() - 1;
+}
+
+void fan::window::remove_move_callback(std::deque<std::function<void()>>::const_iterator it)
+{
+	this->m_move_callback.erase(it);
 }
 
 void message_callback(GLenum source,
@@ -796,13 +835,7 @@ void fan::window::set_error_callback()
 
 void fan::window::set_background_color(const fan::color& color)
 {
-	glClearColor(
-		color.r,
-		color.g,
-		color.b,
-		color.a
-	);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	m_background_color = color;
 }
 
 fan::window_t fan::window::get_handle() const
@@ -870,7 +903,7 @@ bool fan::window::focused() const
 {
 	#ifdef FAN_PLATFORM_WINDOWS
 	return m_focused;
-	#elif defined(FAN_PLATFORM_LINUX)
+	#elif defined(FAN_PLATFORM_UNIX)
 	return 1;
 	#endif
 
@@ -896,7 +929,7 @@ void fan::window::destroy_window()
 
 	m_hdc = 0;
 
-	#elif defined(FAN_PLATFORM_LINUX)
+	#elif defined(FAN_PLATFORM_UNIX)
 
 	if (!m_display || !m_visual || !m_window_attribs.colormap) {
 		return;
@@ -934,7 +967,7 @@ void fan::window::window_input_action(fan::window_t window, uint16_t key) {
 
 	fwindow = get_window_by_id(window);
 
-	#elif defined(FAN_PLATFORM_LINUX)
+	#elif defined(FAN_PLATFORM_UNIX)
 
 	fwindow = get_window_by_id(window);
 
@@ -968,7 +1001,7 @@ void fan::window::window_input_mouse_action(fan::window_t window, uint16_t key)
 
 	fwindow = fan::get_window_by_id(window);
 
-	#elif defined(FAN_PLATFORM_LINUX)
+	#elif defined(FAN_PLATFORM_UNIX)
 
 	fwindow = this;
 
@@ -994,7 +1027,7 @@ void fan::window::window_input_up(fan::window_t window, uint16_t key)
 
 	fwindow = fan::get_window_by_id(window);
 
-	#elif defined(FAN_PLATFORM_LINUX)
+	#elif defined(FAN_PLATFORM_UNIX)
 
 	fwindow = this;
 
@@ -1026,7 +1059,7 @@ void fan::window::window_input_action_reset(fan::window_t window, uint16_t key)
 	fwindow = fan::get_window_by_id(window);
 
 
-	#elif defined(FAN_PLATFORM_LINUX)
+	#elif defined(FAN_PLATFORM_UNIX)
 
 	fwindow = this;
 
@@ -1126,6 +1159,7 @@ LRESULT fan::window::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 					position.y >= 0 && position.y < window_size.y;
 			};
 
+			window->m_previous_mouse_position = window->m_mouse_position;
 			window->m_mouse_position = position;
 
 			for (const auto& i : window->m_mouse_move_position_callback) {
@@ -1205,12 +1239,12 @@ LRESULT fan::window::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 		case WM_KILLFOCUS:
 		{
 			fan::window* fwindow = fan::get_window_by_id(hwnd);
-
 			if (!fwindow) {
 				break;
 			}
 
 			for (auto& i : fwindow->m_keys_down) {
+				window_input_up(fwindow->m_window, i.first);
 				i.second = false;
 			}
 
@@ -1371,7 +1405,7 @@ void init_windows_opengl_extensions()
 	DestroyWindow(temp_window);
 }
 
-#elif defined(FAN_PLATFORM_LINUX)
+#elif defined(FAN_PLATFORM_UNIX)
 
 static bool isExtensionSupported(const char *extList, const char *extension) {
 	const char *start;
@@ -1546,7 +1580,7 @@ void fan::window::initialize_window(const std::string& name, const fan::vec2i& w
 	}
 
 
-	#elif defined(FAN_PLATFORM_LINUX)
+	#elif defined(FAN_PLATFORM_UNIX)
 
 	if (!m_display) {
 		m_display = XOpenDisplay(NULL);
@@ -1810,16 +1844,10 @@ void fan::window::handle_events() {
 
 				window->m_current_key = key;
 
-				for (std::size_t i = 0; i < window->m_key_exceptions.size(); i++) {
-					if (key == window->m_key_exceptions[i]) {
-						for (auto& i : window->m_keys_callback) {
-							if (i) {
-								i(key);
-							}
-						}
-						break;
+				for (auto& i : window->m_keys_callback) {
+					if (i) {
+						i(key);
 					}
-
 				}
 
 				break;
@@ -1840,19 +1868,24 @@ void fan::window::handle_events() {
 
 					bool found = false;
 
-					for (std::size_t i = 0; i < window->m_key_exceptions.size(); i++) {
-						if (window->key_press(window->m_key_exceptions[i])) {
-							found = true;
-							break;
-						}
-					}
-
 					if (!found) {
-						for (auto& i : window->m_keys_callback) {
-							if (i) {
-								i(msg.wParam + (window->m_reserved_flags << 8));
+
+						uint16_t fan_key = fan::window_input::convert_keys_to_fan(msg.wParam);
+
+						bool found = false;
+
+						for (auto i : m_banned_keys) {
+							if (fan_key == i) {
+
+								found = true;
+								break;
 							}
 						}
+
+						if (window->m_text_callback && !found) {
+							window->m_text_callback(msg.wParam + (window->m_reserved_flags << 8));
+						}
+
 						window->m_reserved_flags = 0;
 					}
 
@@ -2051,6 +2084,7 @@ void fan::window::handle_events() {
 							ClipCursor(&rect);
 						}
 						else {
+							window->m_previous_mouse_position = window->m_mouse_position;
 							window->m_mouse_position = position;
 						}
 
@@ -2117,7 +2151,7 @@ void fan::window::handle_events() {
 
 
 
-	#elif defined(FAN_PLATFORM_LINUX)
+	#elif defined(FAN_PLATFORM_UNIX)
 
 	XEvent event;
 
@@ -2207,6 +2241,12 @@ void fan::window::handle_events() {
 
 				window->m_current_key = key;
 
+				for (auto& i : window->m_keys_callback) {
+					if (i) {
+						i(key);
+					}
+				}
+
 				KeySym keysym;
 
 				char text[32] = {};
@@ -2217,26 +2257,24 @@ void fan::window::handle_events() {
 
 				Xutf8LookupString(window->m_xic, &event.xkey, text, sizeof(text) - 1, &keysym, &status);
 
-				bool special_case = false;
+				str = converter.from_bytes(text);
 
-				for (std::size_t i = 0; i < window->m_key_exceptions.size(); i++) {
-					if (window->key_press(window->m_key_exceptions[i])) {
-						special_case = true;
+				bool found = false;
+
+				for (auto i : m_banned_keys) {
+					if (key == i) {
+						found = true;
 						break;
 					}
 				}
 
-				str = converter.from_bytes(text);
-
-				if (str.size() || special_case) {
-					for (auto& i : window->m_keys_callback) {
-						if (i) {
-							if (!str.size()) {
-								i(key);
-							}
-							else {
-								i(str[0]);
-							}
+				if (str.size() && !found) {
+					if (window->m_text_callback) {
+						if (!str.size()) {
+							window->m_text_callback(key);
+						}
+						else {
+							window->m_text_callback(str[0]);
 						}
 					}
 				}
@@ -2294,6 +2332,8 @@ void fan::window::handle_events() {
 						i(window);
 					}
 				}
+
+				window->m_previous_mouse_position = window->m_mouse_position;
 
 				window->m_mouse_position = position;
 
@@ -2360,6 +2400,22 @@ void fan::window::handle_events() {
 
 				break;
 			}
+			case FocusOut:
+			{
+				fan::window* window = fan::get_window_by_id(event.xfocus.window);
+
+				if (!window) {
+					break;
+				}
+
+				for (auto& i : window->m_keys_down) {
+					window->window_input_up(window->m_window, i.first);
+					i.second = false;
+				}
+
+				window->m_focused = false;
+				break;
+			}
 		}
 	}
 
@@ -2369,6 +2425,5 @@ void fan::window::handle_events() {
 
 void fan::window::auto_close(bool state)
 {
-
 	m_auto_close = state;
 }

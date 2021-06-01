@@ -5,6 +5,8 @@
 #include <vector>
 #include <sstream>
 #include <functional>
+#include <any>
+
 typedef intptr_t si_t;
 typedef uintptr_t uint_t;
 typedef intptr_t sint_t;
@@ -95,15 +97,25 @@ namespace fan {
 	enum class platform_t { windows, linux };
 
 	#if defined(_WIN32) || defined(_WIN64)
+
 		constexpr platform_t platform = platform_t::windows;
 		#define FAN_PLATFORM_WINDOWS
 
 	#elif defined(__linux__)
+
 		constexpr platform_t platform = platform_t::windows;
 		#define FAN_PLATFORM_LINUX
+		#define FAN_PLATFORM_UNIX
 
 	#elif defined(__unix__)
-		#define FAN_PLATFORM_LINUX
+
+		#define FAN_PLATFORM_UNIX
+
+	#elif defined(__FreeBSD__)
+
+		#define FAN_PLATFORM_FREEBSD
+		#define FAN_PLATFORM_UNIX
+	
 	#endif
 
 	template <typename T>
@@ -152,6 +164,20 @@ namespace fan {
 			return max;
 		}
 		return value;
+	}
+
+	template <typename T, uint32_t duplicate_id = 0>
+	class class_duplicator : public T {
+	
+		using T::T;
+
+	};
+
+
+	static fan::fstring str_to_wstr(const std::string& s)
+	{
+		std::wstring ret(s.begin(), s.end());
+		return ret;
 	}
 }
 

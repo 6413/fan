@@ -13,13 +13,15 @@ varying vec2 texture_coordinate;
 
 varying vec4 color;
 
-uniform bool enable_texture;
+uniform int enable_texture;
 uniform sampler2D texture_sampler;
 
 void main()
 {
-	if (false) {
-		gl_FragColor = TEXTURE2D(texture_sampler, texture_coordinate);
+	if (enable_texture > 0) { // ei toimi
+		vec2 flipped_y = vec2(texture_coordinate.x, 1.0 - texture_coordinate.y);
+
+		gl_FragColor = TEXTURE2D(texture_sampler, flipped_y);
 	}
 	else {
 		gl_FragColor = color;

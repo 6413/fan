@@ -134,12 +134,12 @@ void fan::camera::rotate_camera(bool when) // this->updateCameraVectors(); move 
 }
 
 fan::mat4 fan::camera::get_view_matrix() const {
-	return fan::look_at_left<fan::mat4>(this->m_position, m_position + m_front, this->m_up);
+	return fan::math::look_at_left<fan::mat4>(this->m_position, m_position + m_front, this->m_up);
 }
 
-fan::mat4 fan::camera::get_view_matrix(fan::mat4 m) const {
+fan::mat4 fan::camera::get_view_matrix(const fan::mat4& m) const {
 	//																	 to prevent extra trash in camera class
-	return m * fan::look_at_left<fan::mat4>(this->m_position, this->m_position + m_front, this->world_up);
+	return m * fan::math::look_at_left<fan::mat4>(this->m_position.rounded(), this->m_position.rounded() + m_front.rounded(), this->world_up);
 }
 
 fan::vec3 fan::camera::get_position() const {
@@ -193,7 +193,7 @@ void fan::camera::set_pitch(f_t angle)
 }
 
 void fan::camera::update_view() {
-	this->m_front = fan_3d::normalize(fan::direction_vector<fan::vec3>(this->m_yaw, this->m_pitch));
-	this->m_right = fan_3d::normalize(cross(this->world_up, this->m_front)); 
-	this->m_up = fan_3d::normalize(cross(this->m_front, this->m_right));
+	this->m_front = fan_3d::math::normalize(fan::math::direction_vector<fan::vec3>(this->m_yaw, this->m_pitch));
+	this->m_right = fan_3d::math::normalize(fan::math::cross(this->world_up, this->m_front)); 
+	this->m_up = fan_3d::math::normalize(fan::math::cross(this->m_front, this->m_right));
 }

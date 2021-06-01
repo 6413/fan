@@ -1,6 +1,6 @@
 #pragma once
 
-#include <fan/math/vector.hpp>
+#include <fan/types/vector.hpp>
 
 namespace fan_2d {
 
@@ -8,8 +8,8 @@ namespace fan_2d {
 
 		namespace rectangle {
 
-			constexpr bool point_inside(const fan::vec2& point, const fan::vec2& rectangle_position, const fan::vec2& rectangle_size);
-			constexpr bool point_inside_boundary(const fan::vec2& point, const fan::vec2& rectangle_position, const fan::vec2& rectangle_size);
+			constexpr bool point_inside(const fan::vec2& p1, const fan::vec2& p2, const fan::vec2& p3, const fan::vec2& p4, const fan::vec2& point);
+			constexpr bool point_inside_no_rotation(const fan::vec2& point, const fan::vec2& rectangle_position, const fan::vec2& rectangle_size);
 
 		}
 
@@ -55,16 +55,16 @@ namespace fan_2d {
 					switch (flag) {
 						case (uint8_t)sideflags::left:
 						{
-							if (!fan::aim_angle(src, wall_position + fan::vec2(0, wall_size.y))) {
+							if (!fan::math::aim_angle(src, wall_position + fan::vec2(0, wall_size.y))) {
 								return sides::nothing;
 							}
 							else if (dst.y > wall_position.y + wall_size.y) { // > on boundary, >= not on boundary
-								if (fan::aim_angle(src, wall_position + fan::vec2(0, wall_size.y)) < angle) {
+								if (fan::math::aim_angle(src, wall_position + fan::vec2(0, wall_size.y)) < angle) {
 									return sides::nothing;
 								}
 							}
 							else if (dst.y < wall_position.y) { // < on boundary, <= not on boundary
-								if (fan::aim_angle(src, wall_position) > angle) {
+								if (fan::math::aim_angle(src, wall_position) > angle) {
 									return sides::nothing;
 								}
 							}
@@ -75,12 +75,12 @@ namespace fan_2d {
 						{
 
 							if (dst.y <= wall_position.y){ // < on boundary, <= not on boundary
-								if (fan::aim_angle(src, wall_position + fan::vec2(wall_size.x, 0)) <= angle) {
+								if (fan::math::aim_angle(src, wall_position + fan::vec2(wall_size.x, 0)) <= angle) {
 									return sides::nothing;
 								}
 							}
 							else if (dst.y >= wall_position.y + wall_size.y) { // > on boundary, >= not on boundary
-								if (fan::aim_angle(src, wall_position + wall_size) >= angle) {
+								if (fan::math::aim_angle(src, wall_position + wall_size) >= angle) {
 									return sides::nothing;
 								}
 							}
@@ -89,16 +89,16 @@ namespace fan_2d {
 						case (uint8_t)sideflags::up:
 						{
 							if (std::round(src.y) == std::round(wall_position.y) &&
-								std::round(fan::aim_angle(src, wall_position + fan::vec2(wall_size.x, 0))) == std::round(fan::pi / 2)) {
+								std::round(fan::math::aim_angle(src, wall_position + fan::vec2(wall_size.x, 0))) == std::round(fan::math::pi / 2)) {
 								return sides::nothing;
 							}
 							if (dst.x > wall_position.x + wall_size.x) { // > on boundary, >= not on boundary
-								if (fan::aim_angle(src, wall_position + fan::vec2(wall_size.x, 0)) >= angle) {
+								if (fan::math::aim_angle(src, wall_position + fan::vec2(wall_size.x, 0)) >= angle) {
 									return sides::nothing;
 								}
 							}
 							else if (dst.x < wall_position.x){ // < on boundary, <= not on boundary
-								if (fan::aim_angle(src, wall_position) <= angle) {
+								if (fan::math::aim_angle(src, wall_position) <= angle) {
 									return sides::nothing;
 								}
 							}
@@ -109,13 +109,13 @@ namespace fan_2d {
 						{
 							if (dst.x < wall_position.x){ // < on boundary, <= not on boundary
 
-								if (fan::aim_angle(src, wall_position + fan::vec2(0, wall_size.y)) >= angle &&
+								if (fan::math::aim_angle(src, wall_position + fan::vec2(0, wall_size.y)) >= angle &&
 									src.y > wall_position.y + wall_size.y) {
 									return sides::nothing;
 								}
 							}
 							else if (dst.x > wall_position.x + wall_size.x) { // > on boundary, >= not on boundary
-								if (fan::aim_angle(src, wall_position + wall_size) <= angle) {
+								if (fan::math::aim_angle(src, wall_position + wall_size) <= angle) {
 									return sides::nothing;
 								}
 							}
@@ -126,9 +126,9 @@ namespace fan_2d {
 				}
 
 				constexpr sides side_giver(uint8_t flag, const fan::vec2& src, const fan::vec2& dst, const fan::vec2& wall_position, const fan::vec2& wall_size) {
-					const auto angle = fan::aim_angle(src, dst);
+					const auto angle = fan::math::aim_angle(src, dst);
 					
-					if (fan_2d::collision::rectangle::point_inside(src, wall_position, wall_size)) {
+					if (fan_2d::collision::rectangle::point_inside_no_rotation(src, wall_position, wall_size)) {
 						return sides::inside;
 					}
 					if (dst.isnan()) {
@@ -139,8 +139,8 @@ namespace fan_2d {
 						case ((uint8_t)sideflags::left | (uint8_t)sideflags::up):
 						{
 
-							f_t a = fan::aim_angle(src, wall_position);
-							f_t b = fan::aim_angle(src, wall_position + fan::vec2(0, wall_size.y));
+							f_t a = fan::math::aim_angle(src, wall_position);
+							f_t b = fan::math::aim_angle(src, wall_position + fan::vec2(0, wall_size.y));
 
 
 							/*if (a <= std::abs(angle) && b >= std::abs(angle)) { raycast
@@ -148,12 +148,12 @@ namespace fan_2d {
 									return straight_side_giver(angle, (uint8_t)sideflags::left, src, dst, wall_position, wall_size);
 								}
 							}*/
-							if (fan::aim_angle(src, wall_position) >= std::abs(angle)) { // collision
+							if (fan::math::aim_angle(src, wall_position) >= std::abs(angle)) { // collision
 								if (dst.x <= wall_position.x && dst.y >= wall_position.y) {
 									return straight_side_giver(angle, (uint8_t)sideflags::left, src, dst, wall_position, wall_size);
 								}
 							}
-							else if (fan::aim_angle(src, wall_position) >= angle) {
+							else if (fan::math::aim_angle(src, wall_position) >= angle) {
 								if (dst.y > wall_position.y) {
 									return straight_side_giver(angle, (uint8_t)sideflags::up, src, dst, wall_position, wall_size);
 								}
@@ -163,12 +163,12 @@ namespace fan_2d {
 						}
 						case ((uint8_t)sideflags::left | (uint8_t)sideflags::down):
 						{
-							if (fan::aim_angle(src, wall_position + fan::vec2(0, wall_size.y)) >= angle) {
+							if (fan::math::aim_angle(src, wall_position + fan::vec2(0, wall_size.y)) >= angle) {
 								if (dst.x >= wall_position.x) {
 									return straight_side_giver(angle, (uint8_t)sideflags::left, src, dst, wall_position, wall_size);
 								}
 							}
-							else if (dst.y <= wall_position.y + wall_size.y && fan::aim_angle(src, wall_position + fan::vec2(0, wall_size.y)) <= angle) {
+							else if (dst.y <= wall_position.y + wall_size.y && fan::math::aim_angle(src, wall_position + fan::vec2(0, wall_size.y)) <= angle) {
 								return straight_side_giver(angle, (uint8_t)sideflags::down, src, dst, wall_position, wall_size);
 							}
 							
@@ -177,19 +177,19 @@ namespace fan_2d {
 						case ((uint8_t)sideflags::right | (uint8_t)sideflags::up):
 						{
 
-							if (fan::aim_angle(src, wall_position + fan::vec2(wall_size.x, 0)) >= std::abs(angle)) {
+							if (fan::math::aim_angle(src, wall_position + fan::vec2(wall_size.x, 0)) >= std::abs(angle)) {
 								if (dst.x <= wall_position.x + wall_size.x && dst.y >= wall_position.y) {
 									return straight_side_giver(angle, (uint8_t)sideflags::right, src, dst, wall_position, wall_size);
 								}
 							}
-							else if (dst.y > wall_position.y && fan::aim_angle(src, wall_position + fan::vec2(wall_size.x, 0)) <= angle) {
+							else if (dst.y > wall_position.y && fan::math::aim_angle(src, wall_position + fan::vec2(wall_size.x, 0)) <= angle) {
 								return straight_side_giver(angle, (uint8_t)sideflags::up, src, dst, wall_position, wall_size);
 							}
 							return sides::nothing;
 						}
 						case ((uint8_t)sideflags::right | (uint8_t)sideflags::down):
 						{
-							if (fan::aim_angle(src, wall_position + wall_size) <= -std::abs(angle)) {
+							if (fan::math::aim_angle(src, wall_position + wall_size) <= -std::abs(angle)) {
 								if (dst.x <= wall_position.x + wall_size.x && dst.y <= wall_position.y + wall_size.y) {
 									return straight_side_giver(angle, (uint8_t)sideflags::right, src, dst, wall_position, wall_size);
 								}
@@ -328,7 +328,7 @@ namespace fan {
 				}
 			}
 		}
-		return T(fan::RAY_DID_NOT_HIT);
+		return T(fan::math::RAY_DID_NOT_HIT);
 	}
 
 	#define d_grid_raycast_2d(start, end, raycast, block_size) \
