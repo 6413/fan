@@ -1,12 +1,36 @@
 #pragma once
 
-#include <fan/math/vector.hpp>
+#include <fan/types/vector.hpp>
 
-#include <box2d/box2d.h>
+#ifdef FAN_PLATFORM_WINDOWS
+	#include <box2d/box2d.h>
+	#pragma comment(lib, "box2d.lib")
+#elif FAN_PLATFORM_FREEBSD
+	#pragma GCC visibility push(hidden)
+	#include <stdio.h>
+	#include <assert.h>
+	#pragma GCC visibility pop
+	#include <box2d/box2d.h>
+#endif
+
+#include <memory>
 
 namespace fan_2d {
 
 	typedef b2World world;
+	typedef b2Body body;
+
+	struct fixture : public b2Fixture {
+
+		fixture() {}
+
+		using b2Fixture::b2Fixture;
+
+		uint32_t get_ptr_index() const {
+			return m_userData.pointer;
+		}
+
+	};
 
 	namespace physics {
 
@@ -19,15 +43,68 @@ namespace fan_2d {
 		struct body_property {
 			f32_t m_mass;
 			f32_t m_friction;
+			f32_t m_restitution;
 		};
 
-		class physics_base {
+		class physics_callbacks : public b2ContactListener {
+
+			using on_collision_t = std::function<void(fan_2d::fixture* a, fan_2d::fixture* b)>;
+
+		public:
+
+			void set_callback_on_collision(const on_collision_t& function) {
+				m_on_collision = function;
+			}
+
+			void set_callback_on_collision_exit(const on_collision_t& function) {
+				m_on_collision_exit = function;
+			}
+
+			fan_2d::body* get_body(uint32_t i) {
+				return m_body[i];
+			}
+
+			fan_2d::fixture* get_fixture(uint32_t i) {
+				return m_fixture[i];
+			}
+
+		protected:
+
+			void BeginContact(b2Contact* contact) {
+				if (m_on_collision) {
+					m_on_collision((fan_2d::fixture*)contact->GetFixtureA(), (fan_2d::fixture*)contact->GetFixtureB());
+				}	
+			}
+
+			void EndContact(b2Contact* contact) {
+				if (m_on_collision_exit) {
+					m_on_collision_exit((fan_2d::fixture*)contact->GetFixtureA(), (fan_2d::fixture*)contact->GetFixtureB());
+				}
+			}
+			
+			std::vector<fan_2d::body*> m_body;
+			std::vector<fan_2d::fixture*> m_fixture;
+
+		private:
+
+			on_collision_t m_on_collision;
+			on_collision_t m_on_collision_exit;
+
+		};
+
+		class physics_base : public physics_callbacks {
 
 		public:
 
 			physics_base() : m_mass(0), m_friction(0) { }
 
-			physics_base(b2World* world) : m_world(world), m_mass(0), m_friction(0) {}
+			physics_base(b2World* world) : m_world(world), m_mass(0), m_friction(0) {
+				m_world->SetContactListener(this);
+			}
+
+			void apply_force(uint32_t i, const fan::vec2& force) {
+				m_body[i]->ApplyForceToCenter(force.b2(), false);
+			}
 
 			f32_t get_mass(uint32_t i) const {
 				return m_mass[i];
@@ -43,12 +120,11 @@ namespace fan_2d {
 				m_friction[i] = friction;
 			}
 
-			b2Body* get_body(uint32_t i) {
-				return m_body[i];
+			f32_t get_restitution(uint32_t i) const {
+				return m_fixture[i]->GetRestitution();
 			}
-
-			b2Fixture* get_fixture(uint32_t i) {
-				return m_fixture[i];
+			void set_restitution(uint32_t i, f32_t restitution) {
+				m_fixture[i]->SetRestitution(restitution);
 			}
 
 			void set_position(uint32_t i, const fan::vec2& position) {
@@ -89,15 +165,13 @@ namespace fan_2d {
 
 			b2World* m_world;
 
-			std::vector<b2Body*> m_body;
-			std::vector<b2Fixture*> m_fixture;
 		};
 
 		struct rectangle : public physics_base {
 
 			using physics_base::physics_base;
 
-			void push_back(const fan::vec2& position, const fan::vec2& size, body_type body_type_, fan_2d::physics::body_property body_property = { 1, 10 }) {
+			void push_back(const fan::vec2& position, const fan::vec2& size, body_type body_type_, fan_2d::physics::body_property body_property = { 1, 10, 0.1 }) {
 				b2BodyDef body_def;
 				body_def.type = (b2BodyType)body_type_;
 				body_def.position.Set(position.x / meters_in_pixels + size.x / 2 / meters_in_pixels, position.y / meters_in_pixels + size.y / 2 / meters_in_pixels);
@@ -110,8 +184,13 @@ namespace fan_2d {
 				fixture_def.shape = &shape;
 				fixture_def.density = body_property.m_mass;
 				fixture_def.friction = body_property.m_friction;
+				fixture_def.restitution = body_property.m_restitution;
 
-				m_fixture.emplace_back(m_body[m_body.size() - 1]->CreateFixture(&fixture_def));
+				m_fixture.emplace_back((fan_2d::fixture*)m_body[m_body.size() - 1]->CreateFixture(&fixture_def));
+
+				b2FixtureUserData data;
+				data.pointer = m_fixture.size() - 1;
+				m_fixture[m_fixture.size() - 1]->GetUserData() = data;
 			}
 
 		};
@@ -120,7 +199,7 @@ namespace fan_2d {
 
 			using physics_base::physics_base;
 
-			void push_back(const fan::vec2& position, f32_t radius, body_type body_type_, fan_2d::physics::body_property body_property = { 1, 10 }) {
+			void push_back(const fan::vec2& position, f32_t radius, body_type body_type_, fan_2d::physics::body_property body_property = { 1, 10, 0.1 }) {
 				b2BodyDef body_def;
 				body_def.type = (b2BodyType)body_type_;
 				body_def.position.Set(position.x / meters_in_pixels, position.y / meters_in_pixels);
@@ -135,7 +214,7 @@ namespace fan_2d {
 				fixture_def.density = body_property.m_mass;
 				fixture_def.friction = body_property.m_friction;
 
-				m_fixture.emplace_back(m_body[m_body.size() - 1]->CreateFixture(&fixture_def));
+				m_fixture.emplace_back((fan_2d::fixture*)m_body[m_body.size() - 1]->CreateFixture(&fixture_def));
 			}
 
 		};

@@ -288,7 +288,7 @@ namespace fan {
 
 		constexpr _Ty min() const { return std::min(x, y); }
 		constexpr _Ty max() const { return std::max(x, y); }
-		constexpr vec_t abs() const { return vec_t(fan::abs(x), fan::abs(y)); }
+		constexpr vec_t abs() const { return vec_t(fan::math::abs(x), fan::math::abs(y)); }
 
 		constexpr vec_t clamp(_Ty min, _Ty max) const {
 			return vec_t(std::clamp(x, min, max), std::clamp(y, min, max));
@@ -296,7 +296,11 @@ namespace fan {
 
 		template <fan::is_not_arithmetic_t T>
 		constexpr vec_t clamp(const T min, T max) const {
-			return vec_t(std::clamp(x, min[0], max[0]), std::clamp(y, min[1], max[1]));
+			return vec_t(fan::clamp(x, min[0], max[0]), fan::clamp(y, min[1], max[1]));
+		}
+
+		constexpr vec_t clamp(const vec_t& xminmax, const vec_t& yminmax) const {
+			return vec_t(fan::clamp(x, xminmax[0], xminmax[1]), fan::clamp(y, yminmax[0], yminmax[1]));
 		}
 
 		constexpr bool isnan() const {
@@ -304,11 +308,11 @@ namespace fan {
 		}
 
 		constexpr auto length() const {
-			return fan_2d::vector_length(*this);
+			return fan_2d::math::vector_length(*this);
 		}
 
 		constexpr fan::_vec2<_Ty> normalize() const {
-			return fan_2d::normalize(*this);
+			return fan_2d::math::normalize(*this);
 		}
 
 		auto begin() const { return &x; }
@@ -324,7 +328,7 @@ namespace fan {
 
 		template <typename T>
 		constexpr auto dot(T vector) const {
-			return fan_2d::dot(*this, vector);
+			return fan_2d::math::dot(*this, vector);
 		}
 
 		template <typename T>
@@ -549,7 +553,7 @@ namespace fan {
 
 		constexpr _Ty min() const { return std::min({ x, y, z }); }
 		constexpr _Ty max() const { return std::max({ x, y, z }); }
-		constexpr vec_t abs() const { return vec_t(fan::abs(x), fan::abs(y), fan::abs(z)); }
+		constexpr vec_t abs() const { return vec_t(fan::math::abs(x), fan::math::abs(y), fan::math::abs(z)); }
 		constexpr vec_t clamp(_Ty min, _Ty max) const {
 			return vec_t(std::clamp(x, min, max), std::clamp(y, min, max), std::clamp(z, min, max));
 		}
@@ -578,20 +582,20 @@ namespace fan {
 
 		template <typename T>
 		constexpr auto dot(const fan::_vec3<T>& vector) const {
-			return fan_3d::dot(*this, vector);
+			return fan_3d::math::dot(*this, vector);
 		}
 
 		template <typename T>
 		constexpr auto cross(const fan::_vec3<T>& vector) const {
-			return fan::cross(*this, vector);
+			return fan::math::cross(*this, vector);
 		}
 
 		constexpr f_t length() const {
-			return fan_3d::vector_length(*this);
+			return fan_3d::math::vector_length(*this);
 		}
 
 		constexpr fan::_vec3<_Ty> normalize() const {
-			return fan_3d::normalize(*this);
+			return fan_3d::math::normalize(*this);
 		}
 
 		template <typename T>
@@ -897,16 +901,6 @@ namespace fan {
 	template <typename T>
 	constexpr uint64_t vector_size(const std::vector<T>& vector) {
 		return vector.size();
-	}
-
-	template <typename T = fan::vec2>
-	static T random_vector(f_t min, f_t max) {
-		if constexpr (std::is_same_v<T, fan::vec2>) {
-			return T(fan::random<int64_t, int64_t>(min, max), fan::random<int64_t, int64_t>(min, max));
-		}
-		else {
-			return T(fan::random<int64_t, int64_t>(min, max), fan::random<int64_t, int64_t>(min, max), fan::random<int64_t, int64_t>(min, max));
-		}
 	}
 
 }

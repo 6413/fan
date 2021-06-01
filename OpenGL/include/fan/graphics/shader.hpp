@@ -9,7 +9,7 @@
 #include <iostream>
 #include <fan/types/types.hpp>
 #include <fan/io/file.hpp>
-#include <fan/math/matrix.hpp>
+#include <fan/types/matrix.hpp>
 
 namespace fan {
 	class shader {
@@ -163,7 +163,7 @@ namespace fan {
         }
 
         void set_bool(const std::string& name, bool value) const {
-            glUniform1i(glGetUniformLocation(m_id, name.c_str()), value);
+            glUniform1iv(glGetUniformLocation(m_id, name.c_str()), 1, (int*)&value);
         }
 
         void set_int(const std::string& name, int value) const

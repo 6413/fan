@@ -4,7 +4,9 @@
 #include <GL/glew.h>
 
 #include <fan/types/types.hpp>
-#include <fan/math/vector.hpp>
+#include <fan/types/vector.hpp>
+
+#include <deque>
 
 #include <codecvt>
 #include <locale>
@@ -12,33 +14,38 @@
 
 #ifdef FAN_PLATFORM_WINDOWS
 
-#include <GL/wglew.h>
+	#include <GL/wglew.h>
 
-#include <Windows.h>
+	#include <Windows.h>
 
-#pragma comment(lib, "Gdi32.lib")
-#pragma comment(lib, "User32.lib")
+	#pragma comment(lib, "opengl32.lib")
+	#pragma comment(lib, "glew32s.lib")
 
-#elif defined(FAN_PLATFORM_LINUX)
+	#pragma comment(lib, "Gdi32.lib")
+	#pragma comment(lib, "User32.lib")
 
-#include <iostream>
-#include <cstring>
+#elif defined(FAN_PLATFORM_UNIX)
 
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
-#include <X11/Xos.h>
-#include <X11/Xatom.h>
-#include <X11/keysym.h>
-#include <X11/XKBlib.h>
+	#include <iostream>
+	#include <cstring>
 
-#include <GL/glxew.h>
+	#include <X11/Xlib.h>
+	#include <X11/Xutil.h>
+	#include <X11/Xos.h>
+	#include <X11/Xatom.h>
+	#include <X11/keysym.h>
+	#include <X11/XKBlib.h>
 
-#include <sys/time.h>
-#include <unistd.h>
+	#include <GL/glxew.h>
+
+	#include <sys/time.h>
+	#include <unistd.h>
+
+#undef index
 
 #endif
 
-#include <fan/graphics/color.hpp>
+#include <fan/types/color.hpp>
 #include <fan/time/time.hpp>
 #include <fan/graphics/window/window_input.hpp>
 
@@ -54,7 +61,7 @@ namespace fan {
 	#define FAN_API static
 
 
-	#elif defined(FAN_PLATFORM_LINUX)
+	#elif defined(FAN_PLATFORM_UNIX)
 
 	#define FAN_API
 
@@ -86,7 +93,7 @@ namespace fan {
 	constexpr int OPENGL_SAMPLE_BUFFER = WGL_SAMPLE_BUFFERS_ARB;
 	constexpr int OPENGL_SAMPLES = WGL_SAMPLES_ARB;
 
-	#elif defined(FAN_PLATFORM_LINUX)
+	#elif defined(FAN_PLATFORM_UNIX)
 
 	constexpr int OPENGL_MINOR_VERSION = GLX_CONTEXT_MINOR_VERSION_ARB;
 	constexpr int OPENGL_MAJOR_VERSION = GLX_CONTEXT_MAJOR_VERSION_ARB;
@@ -117,8 +124,6 @@ namespace fan {
 
 	class window {
 	public:
-
-		void* data;
 
 		enum class mode {
 			not_set,
@@ -159,7 +164,7 @@ namespace fan {
 		};
 
 		// required type alias for function return types
-		using keys_callback_t = std::function<void(fan::fstring::value_type key)>;
+		using keys_callback_t = std::function<void(uint16_t key)>;
 		using key_callback_t = struct{
 
 			uint16_t key;
@@ -167,6 +172,8 @@ namespace fan {
 			bool release;
 
 		};
+
+		using text_callback_t = std::function<void(fan::fstring::value_type key)>;
 
 		using mouse_move_callback_t = std::function<void(fan::window*)>;
 		using mouse_move_position_callback_t = std::function<void(const fan::vec2i& position)>;
@@ -203,7 +210,7 @@ namespace fan {
 
 			wglDeleteContext(m_context);
 
-			#elif defined(FAN_PLATFORM_LINUX)
+			#elif defined(FAN_PLATFORM_UNIX)
 
 			glXDestroyContext(m_display, m_context);
 			XCloseDisplay(m_display);
@@ -216,9 +223,9 @@ namespace fan {
 			m_context = 0;
 		}
 
-		void execute(const fan::color& background_color, const std::function<void()>& function);
+		void execute(const std::function<void()>& function);
 
-		void loop(const fan::color& background_color, const std::function<void()>& function);
+		void loop(const std::function<void()>& function);
 
 		void swap_buffers() const;
 
@@ -229,6 +236,7 @@ namespace fan {
 		f_t get_delta_time() const;
 
 		fan::vec2i get_mouse_position() const;
+		fan::vec2i get_previous_mouse_position() const;
 
 		fan::vec2i get_size() const;
 		fan::vec2i get_previous_size() const;
@@ -308,32 +316,37 @@ namespace fan {
 			}
 		}
 
-		keys_callback_t get_keys_callback(uint_t i) const;
-		void add_keys_callback(const keys_callback_t& function);
+		std::deque<keys_callback_t>::iterator add_keys_callback(const keys_callback_t& function);
+		void remove_keys_callback(std::deque<keys_callback_t>::const_iterator it);
 
-		key_callback_t get_key_callback(uint_t i) const;
-		void add_key_callback(uint16_t key, const std::function<void()>& function, bool on_release = false);
+		std::deque<key_callback_t>::iterator add_key_callback(uint16_t key, const std::function<void()>& function, bool on_release = false);
+		void edit_key_callback(std::deque<key_callback_t>::iterator it, uint16_t key);
+		void remove_key_callback(std::deque<key_callback_t>::const_iterator it);
 
-		std::function<void()> get_close_callback(uint_t i) const;
-		void add_close_callback(const std::function<void()>& function);
+		void set_text_callback(const text_callback_t& function);
+		void remove_text_callback();
 
-		mouse_move_position_callback_t get_mouse_move_callback(uint_t i) const;
-		void add_mouse_move_callback(const mouse_move_position_callback_t& function);
+		std::deque<std::function<void()>>::iterator add_close_callback(const std::function<void()>& function);
+		void remove_close_callback(std::deque<std::function<void()>>::const_iterator it);
 
-		void add_mouse_move_callback(const mouse_move_callback_t& function);
+		std::deque<mouse_move_position_callback_t>::iterator add_mouse_move_callback(const mouse_move_position_callback_t& function);
+		void remove_mouse_move_callback(std::deque<mouse_move_position_callback_t>::const_iterator it);
 
-		scroll_callback_t get_scroll_callback(uint_t i) const;
-		void add_scroll_callback(const scroll_callback_t& function);
+		std::deque<mouse_move_callback_t>::iterator add_mouse_move_callback(const mouse_move_callback_t& function);
+		void remove_mouse_move_callback(std::deque<mouse_move_callback_t>::const_iterator it);
 
-		std::function<void()> get_resize_callback(uint_t i) const;
-		void add_resize_callback(const std::function<void()>& function);
+		std::deque<scroll_callback_t>::iterator add_scroll_callback(const scroll_callback_t& function);
+		void remove_scroll_callback(std::deque<scroll_callback_t>::const_iterator it);
 
-		std::function<void()> get_move_callback(uint_t i) const;
-		void add_move_callback(const std::function<void()>& function);
+		std::deque<std::function<void()>>::iterator add_resize_callback(const std::function<void()>& function);
+		void remove_resize_callback(std::deque<std::function<void()>>::const_iterator it);
+
+		std::deque<std::function<void()>>::iterator add_move_callback(const std::function<void()>& function);
+		void remove_move_callback(std::deque<std::function<void()>>::const_iterator it);
 
 		void set_error_callback();
 
-		static void set_background_color(const fan::color& color);
+		void set_background_color(const fan::color& color);
 
 		fan::window_t get_handle() const;
 
@@ -353,18 +366,11 @@ namespace fan {
 
 		fan::vec2i get_raw_mouse_offset() const;
 
-		std::vector<fan::input> m_key_exceptions{
-			fan::key_left,
-			fan::key_up,
-			fan::key_right,
-			fan::key_down,
-			fan::key_delete,
+		static constexpr fan::input m_banned_keys[]{
 			fan::key_enter,
-			fan::key_home,
-			fan::key_end,
-			fan::key_shift,
-			fan::key_left_shift,
-			fan::key_right_shift
+			fan::key_tab,
+			fan::key_escape,
+			fan::key_backspace
 		};
 
 		static void handle_events();
@@ -388,7 +394,7 @@ namespace fan {
 		HDC m_hdc;
 		static inline HGLRC m_context;
 
-		#elif defined(FAN_PLATFORM_LINUX)
+		#elif defined(FAN_PLATFORM_UNIX)
 
 		inline static Display* m_display;
 		inline static int m_screen;
@@ -411,14 +417,15 @@ namespace fan {
 
 		window_t m_window;
 
-		std::vector<keys_callback_t> m_keys_callback;
-		std::vector<key_callback_t> m_key_callback;
-		std::vector<mouse_move_position_callback_t> m_mouse_move_position_callback;
-		std::vector<mouse_move_callback_t> m_mouse_move_callback;
-		std::vector<scroll_callback_t> m_scroll_callback;
-		std::vector<std::function<void()>> m_move_callback;
-		std::vector<std::function<void()>> m_resize_callback;
-		std::vector<std::function<void()>> m_close_callback;
+		std::deque<keys_callback_t> m_keys_callback;
+		std::deque<key_callback_t> m_key_callback;
+		text_callback_t m_text_callback;
+		std::deque<mouse_move_position_callback_t> m_mouse_move_position_callback;
+		std::deque<mouse_move_callback_t> m_mouse_move_callback;
+		std::deque<scroll_callback_t> m_scroll_callback;
+		std::deque<std::function<void()>> m_move_callback;
+		std::deque<std::function<void()>> m_resize_callback;
+		std::deque<std::function<void()>> m_close_callback;
 
 		keymap_t m_keys_down;
 
@@ -460,6 +467,10 @@ namespace fan {
 		bool m_focused;
 
 		bool m_auto_close;
+
+		fan::color m_background_color;
+
+		fan::vec2i m_previous_mouse_position;
 
 		struct flag_values {
 
@@ -506,7 +517,7 @@ namespace fan {
 
 			CloseClipboard();
 
-			#elif defined(FAN_PLATFORM_LINUX)
+			#elif defined(FAN_PLATFORM_UNIX)
 
 			typedef std::codecvt_utf8<wchar_t> convert_type;
 			std::wstring_convert<convert_type, wchar_t> converter;

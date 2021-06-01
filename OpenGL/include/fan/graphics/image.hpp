@@ -1,6 +1,6 @@
 #pragma once
 
-#include <fan/math/vector.hpp>
+#include <fan/types/vector.hpp>
 
 #define __STDC_CONSTANT_MACROS
 
@@ -17,6 +17,19 @@ extern "C"
 	#include <libswscale/swscale.h>
 }
 
+#ifdef FAN_PLATFORM_WINDOWS
+
+	#pragma comment(lib, "avcodec.lib")
+	#pragma comment(lib, "avdevice.lib")
+	#pragma comment(lib, "avfilter.lib")
+	#pragma comment(lib, "avformat.lib")
+	#pragma comment(lib, "avutil.lib")
+	#pragma comment(lib, "postproc.lib")
+	#pragma comment(lib, "swresample.lib")
+	#pragma comment(lib, "swscale.lib")
+
+#endif
+
 namespace fan {
 
 	namespace image_loader {
@@ -31,11 +44,16 @@ namespace fan {
 
 		static uint_t get_stride_multiplier(AVPixelFormat format) {
 			switch (format) {
+				case AVPixelFormat::AV_PIX_FMT_PAL8:
+				{
+					return 1;
+				}
 				case AVPixelFormat::AV_PIX_FMT_BGR24:
 				case AVPixelFormat::AV_PIX_FMT_RGB24:
 				{
 					return 3;
 				}
+				case AVPixelFormat::AV_PIX_FMT_RGBA:
 				case AVPixelFormat::AV_PIX_FMT_BGRA:
 				{
 					return 4;
@@ -148,29 +166,29 @@ namespace fan {
 
 			new_data.data[0] = new uint8_t[image_data.size.x * image_data.size.y * 3];
 
-			//auto size = image_data.size.x * image_data.size.y;
+			auto size = image_data.size.x * image_data.size.y;
 
-			yuv420p_to_rgb24(image_data.data, new_data.data[0], image_data.size.x, image_data.size.y);
+			//yuv420p_to_rgb24(image_data.data, new_data.data[0], image_data.size.x, image_data.size.y);
 
-			//auto context = sws_getContext(
-			//	image_data.size.x, 
-			//	image_data.size.y, 
-			//	image_data.format, 
-			//	image_data.size.x,
-			//	image_data.size.y, 
-			//	new_format,
-			//	SWS_BILINEAR,
-			//	0, 
-			//	0, 
-			//	0
-			//);
+			auto context = sws_getContext(
+				image_data.size.x, 
+				image_data.size.y, 
+				image_data.format, 
+				image_data.size.x,
+				image_data.size.y, 
+				new_format,
+				SWS_BILINEAR,
+				0, 
+				0, 
+				0
+			);
 
-			//if (!context) {
-			//	fan::print("failed to get context");
-			//	return {};
-			//}
+			if (!context) {
+				fan::print("failed to get context");
+				return {};
+			}
 
-			//new_data.linesize[0] = get_stride_multiplier(new_format) * image_data.size.x;
+			new_data.linesize[0] = get_stride_multiplier(new_format) * image_data.size.x;
 
 			//if (av_image_alloc(
 			//	new_data.data,
@@ -184,19 +202,19 @@ namespace fan {
 			//	return {};
 			//}
 
-			//sws_scale(
-			//	context, 
-			//	image_data.data, 
-			//	image_data.linesize,
-			//	0,
-			//	image_data.size.y, 
-			//	new_data.data,
-			//	new_data.linesize
-			//);
+			sws_scale(
+				context, 
+				image_data.data, 
+				image_data.linesize,
+				0,
+				image_data.size.y, 
+				new_data.data,
+				new_data.linesize
+			);
 
-			//sws_freeContext(context);
+			sws_freeContext(context);
 
-			av_freep((void*)&image_data.data);
+			//av_freep((void*)&image_data.data);
 
 			new_data.format = new_format;
 			new_data.size = image_data.size;
@@ -282,16 +300,21 @@ namespace fan {
 
 			image_data.format = (AVPixelFormat)frame->format;
 
-			if (av_image_alloc(
-				image_data.data,
-				image_data.linesize,
-				image_data.size.x,
-				image_data.size.y,
-				image_data.format,
-				1) < 0) {
-				fan::print("failed to allocate image");
-				goto end;
-			}
+			image_data.linesize[0] = get_stride_multiplier(image_data.format) * image_data.size.x;
+
+			image_data.data[0] = new uint8_t[image_data.linesize[0] * image_data.size.y];
+			image_data.data[1] = new uint8_t[image_data.linesize[0] * image_data.size.y];
+
+			//if (av_image_alloc(
+			//	image_data.data,
+			//	image_data.linesize,
+			//	image_data.size.x,
+			//	image_data.size.y,
+			//	image_data.format,
+			//	1) < 0) {
+			//	fan::print("failed to allocate image");
+			//	goto end;
+			//}
 
 			av_image_copy(
 				image_data.data, 
@@ -328,6 +351,16 @@ end:
 				case AV_PIX_FMT_YUVJ440P:
 				{
 					image_data.format = AV_PIX_FMT_YUV440P;
+					image_data = convert_format(image_data, AVPixelFormat::AV_PIX_FMT_RGB24);
+					break;
+				}
+				case AV_PIX_FMT_RGBA:
+				case AV_PIX_FMT_RGB24:
+				{
+					break;
+				}
+				default:
+				{
 					image_data = convert_format(image_data, AVPixelFormat::AV_PIX_FMT_RGB24);
 					break;
 				}

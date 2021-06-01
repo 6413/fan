@@ -1,7 +1,7 @@
-GPP = g++
+GPP = clang++
 
-CFLAGS = -std=c++2a -O3 -march=native -mtune=native -I include
-MAINFLAGS = -lGL -lGLEW -lX11 -lXrandr -lassimp -lavcodec -lavutil -lavformat -lswscale box2d.o
+CFLAGS = -std=c++2a -I /usr/local/include -I include #-O3 -march=native -mtune=native
+MAINFLAGS = -L /usr/local/lib -lGL -lGLEW -lX11 -lXrandr -lassimp -lavcodec -lavutil -lavformat -lswscale -lbox2d
 
 MAIN = Source.cpp
 

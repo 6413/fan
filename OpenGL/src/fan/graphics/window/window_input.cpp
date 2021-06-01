@@ -118,7 +118,7 @@ uint16_t fan::window_input::convert_keys_to_fan(uint16_t key) {
 		case 0xA2: { return fan::input::key_left_control; }
 		case 0xA3: { return fan::input::key_right_control; }
 
-				 #elif defined(FAN_PLATFORM_LINUX)
+		#elif defined(FAN_PLATFORM_UNIX)
 
 		case 0x01: { return fan::input::mouse_left; }
 		case 0x02: { return fan::input::mouse_middle; }
@@ -235,7 +235,11 @@ uint16_t fan::window_input::convert_keys_to_fan(uint16_t key) {
 		case 0x5B: { return fan::input::key_numpad_decimal; }
 		case 0x6A: { return fan::input::key_numpad_divide; }
 
-				 #endif
+		#else
+
+		static_assert("not implemented os");
+
+		#endif
 
 		default:   { return fan::input::key_invalid; }
 

@@ -15,5 +15,5 @@ void main() {
     texture_coordinates = texture_coordinate;
     text_color = text_colors.xyz;
     font_size = font_sizes;
-	gl_Position = projection * vec4(vertex, 0, 1);
+	gl_Position = projection * vec4(vertex + vec2(0.5, 0.5), 0, 1);
 }

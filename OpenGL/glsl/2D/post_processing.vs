@@ -1,26 +1,26 @@
 #version 130
 
-out vec2 texture_coordinates;
+varying vec2 texture_coordinates;
 
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 
 vec2 texture_coordinates_default[] = vec2[](
-	vec2(1, 0),
-	vec2(1, 1),
-	vec2(0, 1),
 	vec2(0, 0),
 	vec2(-1, 0),
-	vec2(-1, 1)
+	vec2(-1, 1),
+	vec2(1, 0),
+	vec2(1, 1),
+	vec2(0, 1)
 );
 
 vec2 vertices[] = vec2[](
 	vec2(1, 1),
-	vec2(1, 0),
+	vec2(0, 1),
 	vec2(0, 0),
 	vec2(1, 1),
-	vec2(0, 1),
+	vec2(1, 0),
 	vec2(0, 0)
 );
 

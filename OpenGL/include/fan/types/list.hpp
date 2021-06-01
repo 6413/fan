@@ -1,6 +1,6 @@
 #pragma once
 
-#include <fan/math/vector.hpp>
+#include <fan/types/vector.hpp>
 
 namespace fan {
 

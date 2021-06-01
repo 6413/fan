@@ -232,6 +232,17 @@ void fan_2d::graphics::gui::text_renderer::set_text_color(uint_t i, const fan::c
 	}
 }
 
+void fan_2d::graphics::gui::text_renderer::set_text_color(uint_t i, uint_t j, const fan::color& color, bool queue)
+{
+	//std::fill(&, &text_color_t::m_color[i][j] + 6, color);
+
+	text_color_t::m_color[i][j] = color;
+
+	if (!queue) {
+		text_color_t::edit_data(i);
+	}
+}
+
 void fan_2d::graphics::gui::text_renderer::set_outline_color(uint_t i, const fan::color& color, bool queue)
 {
 	if (outline_color_t::m_color[i][0] == color) {
@@ -261,6 +272,11 @@ fan::io::file::font_t fan_2d::graphics::gui::text_renderer::get_letter_info(fan:
 	};
 }
 
+fan::vec2 fan_2d::graphics::gui::text_renderer::get_text_size(uint_t i) const
+{
+	return get_text_size(get_text(i), get_font_size(i));
+}
+
 fan::vec2 fan_2d::graphics::gui::text_renderer::get_text_size(const fan::fstring& text, f_t font_size) const
 {
 	fan::vec2 length;
@@ -285,7 +301,7 @@ fan::vec2 fan_2d::graphics::gui::text_renderer::get_text_size(const fan::fstring
 		}
 
 		current += found->second.m_advance;
-		length.y = std::max((f_t)length.y, fan_2d::graphics::gui::font_properties::new_line * new_lines + (f_t)found->second.m_size.y + std::abs(found->second.m_offset.y));
+		length.y = std::max((f_t)length.y, fan_2d::graphics::gui::font_properties::new_line * new_lines + (f_t)found->second.m_size.y);
 	}
 
 	length.x = std::max((f_t)length.x, current);
@@ -298,6 +314,47 @@ fan::vec2 fan_2d::graphics::gui::text_renderer::get_text_size(const fan::fstring
 	}
 
 	return length * convert_font_size(font_size);
+}
+
+f32_t fan_2d::graphics::gui::text_renderer::get_average_text_height(const fan::fstring& text, f32_t font_size) const
+{
+	f32_t height = 0;
+
+	for (const auto& i : text) {
+
+		auto found = m_font_info.m_font.find(i);
+		if (found == m_font_info.m_font.end()) {
+			throw std::runtime_error("failed to find character: " + std::to_string(i));
+		}
+
+		height += (f_t)found->second.m_size.y;
+	}
+
+	return (height / text.size()) * convert_font_size(font_size);
+}
+
+f_t fan_2d::graphics::gui::text_renderer::get_longest_text() const
+{
+
+	f_t longest = -fan::math::inf;
+
+	for (uint_t i = 0; i < this->size(); i++) {
+		longest = std::max(longest, (f_t)get_text_size(i).x);
+	}
+
+	return longest;
+}
+
+f_t fan_2d::graphics::gui::text_renderer::get_highest_text() const
+{
+
+	f_t highest = -fan::math::inf;
+
+	for (uint_t i = 0; i < this->size(); i++) {
+		highest = std::max(highest, (f_t)get_text_size(i).y);
+	}
+
+	return highest;
 }
 
 f_t fan_2d::graphics::gui::text_renderer::get_lowest(f_t font_size) const
@@ -333,10 +390,6 @@ fan::fstring fan_2d::graphics::gui::text_renderer::get_text(uint_t i) const
 f_t fan_2d::graphics::gui::text_renderer::convert_font_size(f_t font_size) const
 {
 	return font_size / m_font_info.m_size;
-}
-
-void fan_2d::graphics::gui::text_renderer::free_queue() {
-	this->write_data();
 }
 
 void fan_2d::graphics::gui::text_renderer::push_back(const fan::fstring& text, const fan::vec2& position, const fan::color& text_color, f_t font_size, const fan::color& outline_color, bool queue) {
@@ -400,7 +453,7 @@ void fan_2d::graphics::gui::text_renderer::insert(uint_t i, const fan::fstring& 
 
 void fan_2d::graphics::gui::text_renderer::draw() const {
 	const fan::vec2i window_size = m_camera->m_window->get_size();
-	fan::mat4 projection = fan::ortho<fan::mat4>(0, window_size.x, window_size.y, 0);
+	fan::mat4 projection = fan::math::ortho<fan::mat4>(0, window_size.x, window_size.y, 0);
 
 	this->m_shader.use();
 	this->m_shader.set_mat4("projection", projection);
@@ -455,6 +508,10 @@ uint_t fan_2d::graphics::gui::text_renderer::size() const
 	return this->m_text.size();
 }
 
+void fan_2d::graphics::gui::text_renderer::free_queue() {
+	this->write_data();
+}
+
 void fan_2d::graphics::gui::text_renderer::write_data() {
 
 	this->write_vertices();
@@ -476,6 +533,37 @@ void fan_2d::graphics::gui::text_renderer::release_queue(bool vertices, bool tex
 	if (font_sizes) {
 		write_font_sizes();
 	}
+}
+
+int64_t fan_2d::graphics::gui::text_renderer::get_new_lines(uint32_t i)
+{
+	int64_t new_lines = 0;
+	const wchar_t * p = m_text[i].data();
+	for ( int i = 0; i < m_text[i].size(); i++ ) {
+		if (p[i] == '\n') {
+			new_lines++;
+		}
+	}
+
+	return new_lines;
+}
+
+int64_t fan_2d::graphics::gui::text_renderer::get_new_lines(const fan::fstring& str)
+{
+	int64_t new_lines = 0;
+	const wchar_t * p = str.data();
+	for ( int i = 0; i < str.size(); i++ ) {
+		if (p[i] == '\n') {
+			new_lines++;
+		}
+	}
+
+	return new_lines;
+}
+
+f32_t fan_2d::graphics::gui::text_renderer::get_magic_size() const
+{
+	return m_font_info.m_size - 3; // no idea
 }
 
 void fan_2d::graphics::gui::text_renderer::initialize_buffers()
@@ -656,56 +744,318 @@ void fan_2d::graphics::gui::text_renderer::write_font_sizes()
 	});
 }
 
-void fan_2d::graphics::gui::text_box::push_back(const fan::fstring& text, f_t font_size, const fan::vec2& position, const fan::color& box_color, const fan::vec2& border_size, const fan::color& text_color)
+fan_2d::graphics::gui::rectangle_text_button::rectangle_text_button(fan::camera* camera, fan_2d::graphics::gui::theme theme)
+	: 
+	  class_duplicator<fan_2d::graphics::rectangle, 0>(camera),
+	  class_duplicator<fan_2d::graphics::rectangle, 1>(camera),
+	  base::mouse(*this),
+	  fan_2d::graphics::gui::text_renderer(camera), theme(theme) {
+
+	rectangle_text_button::mouse::on_hover<0>([&] (uint32_t i) {
+
+		if (m_held_button_id[i] != (uint32_t)fan::uninitialized) {
+			return;
+		}
+
+		class_duplicator<fan_2d::graphics::rectangle, 0>::set_color(i, theme.text_button.hover_color);
+
+		class_duplicator<fan_2d::graphics::rectangle, 1>::set_color(i * 4 + 0, theme.text_button.hover_outline_color);
+		class_duplicator<fan_2d::graphics::rectangle, 1>::set_color(i * 4 + 1, theme.text_button.hover_outline_color);
+		class_duplicator<fan_2d::graphics::rectangle, 1>::set_color(i * 4 + 2, theme.text_button.hover_outline_color);
+		class_duplicator<fan_2d::graphics::rectangle, 1>::set_color(i * 4 + 3, theme.text_button.hover_outline_color);
+	});
+
+	rectangle_text_button::mouse::on_exit<0>([&] (uint32_t i) {
+		if (m_held_button_id[i] != (uint32_t)fan::uninitialized) {
+			return;
+		}
+
+		class_duplicator<fan_2d::graphics::rectangle, 0>::set_color(i, theme.text_button.color);
+
+		class_duplicator<fan_2d::graphics::rectangle, 1>::set_color(i * 4 + 0, theme.text_button.outline_color);
+		class_duplicator<fan_2d::graphics::rectangle, 1>::set_color(i * 4 + 1, theme.text_button.outline_color);
+		class_duplicator<fan_2d::graphics::rectangle, 1>::set_color(i * 4 + 2, theme.text_button.outline_color);
+		class_duplicator<fan_2d::graphics::rectangle, 1>::set_color(i * 4 + 3, theme.text_button.outline_color);
+	});
+
+	rectangle_text_button::mouse::on_click<0>([&] (uint32_t i) {
+
+		class_duplicator<fan_2d::graphics::rectangle, 0>::set_color(i, theme.text_button.click_color);
+
+		class_duplicator<fan_2d::graphics::rectangle, 1>::set_color(i * 4 + 0, theme.text_button.click_outline_color);
+		class_duplicator<fan_2d::graphics::rectangle, 1>::set_color(i * 4 + 1, theme.text_button.click_outline_color);
+		class_duplicator<fan_2d::graphics::rectangle, 1>::set_color(i * 4 + 2, theme.text_button.click_outline_color);
+		class_duplicator<fan_2d::graphics::rectangle, 1>::set_color(i * 4 + 3, theme.text_button.click_outline_color);
+	});
+
+	rectangle_text_button::mouse::on_release<0>([&] (uint32_t i) {
+
+		if (mouse::m_hover_button_id[0] != (uint32_t)fan::uninitialized) {
+
+			class_duplicator<fan_2d::graphics::rectangle, 0>::set_color(i, theme.text_button.hover_color);
+
+			class_duplicator<fan_2d::graphics::rectangle, 1>::set_color(i * 4 + 0, theme.text_button.hover_outline_color);
+			class_duplicator<fan_2d::graphics::rectangle, 1>::set_color(i * 4 + 1, theme.text_button.hover_outline_color);
+			class_duplicator<fan_2d::graphics::rectangle, 1>::set_color(i * 4 + 2, theme.text_button.hover_outline_color);
+			class_duplicator<fan_2d::graphics::rectangle, 1>::set_color(i * 4 + 3, theme.text_button.hover_outline_color);
+
+			return;
+		}
+
+		class_duplicator<fan_2d::graphics::rectangle, 0>::set_color(i, theme.text_button.color);
+
+		class_duplicator<fan_2d::graphics::rectangle, 1>::set_color(i * 4 + 0, theme.text_button.outline_color);
+		class_duplicator<fan_2d::graphics::rectangle, 1>::set_color(i * 4 + 1, theme.text_button.outline_color);
+		class_duplicator<fan_2d::graphics::rectangle, 1>::set_color(i * 4 + 2, theme.text_button.outline_color);
+		class_duplicator<fan_2d::graphics::rectangle, 1>::set_color(i * 4 + 3, theme.text_button.outline_color);
+	});
+
+	rectangle_text_button::mouse::on_outside_release([&] (uint32_t i) {
+		class_duplicator<fan_2d::graphics::rectangle, 0>::set_color(i, theme.text_button.color);
+
+		class_duplicator<fan_2d::graphics::rectangle, 1>::set_color(i * 4 + 0, theme.text_button.outline_color);
+		class_duplicator<fan_2d::graphics::rectangle, 1>::set_color(i * 4 + 1, theme.text_button.outline_color);
+		class_duplicator<fan_2d::graphics::rectangle, 1>::set_color(i * 4 + 2, theme.text_button.outline_color);
+		class_duplicator<fan_2d::graphics::rectangle, 1>::set_color(i * 4 + 3, theme.text_button.outline_color);
+	});
+
+//void on_release(std::function<void(uint32_t i)> function, uint16_t key = fan::mouse_left) { \
+//base::mouse::on_release<1>(object, function, key); \
+//	} \
+//		void on_hover(std::function<void(uint32_t i)> function) { \
+//		base::mouse::on_hover<1>(object, function); \
+//	} \
+//		\
+//		void on_exit(std::function<void(uint32_t i)> function) { \
+//		base::mouse::on_exit<1>(object, function); \
+//
+//	this->on_hover([&](uint32_t i) {
+//		b.set_color(i, b.get_color(i) + fan_2d::graphics::gui::themes::deep_blue().button_hover_color_offset);
+//		fan::print("enterted button id:", i);
+//	});
+//
+//	b.on_exit([&](uint32_t i) {
+//		b.set_color(i, b.get_color(i) - fan_2d::graphics::gui::themes::deep_blue().button_hover_color_offset);
+//		fan::print("exited button id:", i);
+//	});
+}
+
+void fan_2d::graphics::gui::rectangle_text_button::push_back(const rectangle_button_properties& properties)
 {
-	basic_box::m_border_size.emplace_back(border_size);
+	m_properties.emplace_back(properties);
 
-	basic_box::m_tr.push_back(text, fan::vec2(position.x + border_size.x * 0.5, position.y + border_size.y * 0.5), text_color, font_size);
+	switch (properties.text_position) {
+		case text_position_e::left:
+		{
+			fan_2d::graphics::gui::text_renderer::push_back(
+				properties.text,
+				fan::vec2(properties.position.x + theme.text_button.outline_thickness, properties.position.y + properties.border_size.y * 0.5),
+				theme.text_button.text_color,
+				properties.font_size
+			);
 
-	const auto size = basic_box::get_updated_box_size(basic_box::m_border_size.size() - 1);
+			break;
+		}
+		case text_position_e::middle:
+		{
+			fan_2d::graphics::gui::text_renderer::push_back(
+				properties.text,
+				fan::vec2(properties.position.x + properties.border_size.x * 0.5, properties.position.y + properties.border_size.y * 0.5),
+				theme.text_button.text_color,
+				properties.font_size
+			);
 
-	basic_box::m_rv.push_back(position, size, box_color);
+			break;
+		}
+	}
 
-	keyboard_input::push_back(basic_box::m_border_size.size() - 1);
+	class_duplicator<fan_2d::graphics::rectangle, 0>::push_back(properties.position, get_button_size(m_properties.size() - 1), theme.text_button.color, properties.queue);
 
-	auto found = focus_counter.find(basic_box::m_tr.m_camera->m_window->get_handle());
+	auto corners = class_duplicator<fan_2d::graphics::rectangle, 0>::get_corners(m_properties.size() - 1);
 
-	if (found != focus_counter.end()) {
-		keyboard_input::m_focus_id.emplace_back(found->second);
-		focus_counter[found->first]++;
+	const f32_t t = theme.text_button.outline_thickness;
+
+	corners[1].x -= t;
+	corners[3].x -= t;
+
+	corners[2].y -= t;
+	corners[3].y -= t;
+
+	class_duplicator<fan_2d::graphics::rectangle, 1>::push_back(corners[0], fan::vec2(corners[1].x - corners[0].x + t, t), theme.text_button.outline_color, true);
+	class_duplicator<fan_2d::graphics::rectangle, 1>::push_back(corners[1], fan::vec2(t, corners[3].y - corners[1].y + t), theme.text_button.outline_color, true);
+	class_duplicator<fan_2d::graphics::rectangle, 1>::push_back(corners[2], fan::vec2(corners[3].x - corners[2].x + t, t), theme.text_button.outline_color, true);
+	class_duplicator<fan_2d::graphics::rectangle, 1>::push_back(corners[0], fan::vec2(t, corners[2].y - corners[0].y + t), theme.text_button.outline_color, true);
+	
+	class_duplicator<fan_2d::graphics::rectangle, 1>::release_queue(!properties.queue, !properties.queue);
+}
+
+void fan_2d::graphics::gui::rectangle_text_button::draw(uint32_t begin, uint32_t end) const
+{
+	fan_2d::graphics::draw([&] {
+		class_duplicator<fan_2d::graphics::rectangle, 0>::draw(begin, end);
+		class_duplicator<fan_2d::graphics::rectangle, 1>::draw(begin, end);
+		fan_2d::graphics::gui::text_renderer::draw();
+	});
+}
+
+bool fan_2d::graphics::gui::rectangle_text_button::inside(uint_t i, const fan::vec2& position) const
+{
+	return fan::class_duplicator<fan_2d::graphics::rectangle, 0>::inside(i, position);
+}
+
+fan::camera* fan_2d::graphics::gui::rectangle_text_button::get_camera()
+{
+	return fan::class_duplicator<fan_2d::graphics::rectangle, 0>::m_camera;
+}
+
+uint_t fan_2d::graphics::gui::rectangle_text_button::size() const
+{
+	return fan::class_duplicator<fan_2d::graphics::rectangle, 0>::size();
+}
+
+fan_2d::graphics::gui::sprite_text_button::sprite_text_button(fan::camera* camera, const std::string& path)
+	:  fan_2d::graphics::sprite(camera, path), base::mouse(*this), fan_2d::graphics::gui::text_renderer(camera) { }
+
+fan::camera* fan_2d::graphics::gui::sprite_text_button::get_camera()
+{
+	return fan_2d::graphics::sprite::m_camera;
+}
+
+void fan_2d::graphics::gui::sprite_text_button::push_back(const sprite_button_properties& properties)
+{
+	m_properties.emplace_back(properties);
+
+	switch (properties.text_position) {
+		case text_position_e::left:
+		{
+			fan_2d::graphics::gui::text_renderer::push_back(
+				properties.text,
+				fan::vec2(properties.position.x, properties.position.y + properties.border_size.y * 0.5),
+				fan_2d::graphics::gui::defaults::text_color,
+				properties.font_size
+			);
+
+			break;
+		}
+		case text_position_e::middle:
+		{
+			fan_2d::graphics::gui::text_renderer::push_back(
+				properties.text,
+				fan::vec2(properties.position.x + properties.border_size.x * 0.5, properties.position.y + properties.border_size.y * 0.5),
+				fan_2d::graphics::gui::defaults::text_color,
+				properties.font_size
+			);
+
+			break;
+		}
+	}
+
+	if (properties.texture_id != (uint32_t)fan::uninitialized) {
+		fan_2d::graphics::sprite::push_back(properties.texture_id, properties.position, get_button_size(m_properties.size() - 1), properties.queue);
 	}
 	else {
-		keyboard_input::m_focus_id.emplace_back(found->second);
-		focus_counter.insert(std::make_pair(keyboard_input::m_tr.m_camera->m_window->get_handle(), 0));
+		fan_2d::graphics::sprite::push_back(properties.position, get_button_size(m_properties.size() - 1), properties.queue);
 	}
 }
 
-void fan_2d::graphics::gui::rounded_text_box::push_back(const fan::fstring& text, f_t font_size, const fan::vec2& position, const fan::color& box_color, const fan::vec2& border_size, f_t radius, const fan::color& text_color)
+void fan_2d::graphics::gui::sprite_text_button::draw(uint32_t begin, uint32_t end) const
 {
-	basic_box::m_border_size.emplace_back(border_size);
+	fan_2d::graphics::draw([&] {
+		fan_2d::graphics::sprite::draw(begin, end);
+		fan_2d::graphics::gui::text_renderer::draw();
+	});
+}
 
-	auto h = (std::abs(this->get_highest(font_size) - this->get_lowest(font_size))) / 2;
+fan_2d::graphics::gui::checkbox::checkbox(fan::camera* camera, fan_2d::graphics::gui::theme theme)
+	: fan_2d::graphics::rectangle(camera), 
+	 fan_2d::graphics::line(camera), 
+	 fan_2d::graphics::gui::text_renderer(camera),
+	 fan_2d::graphics::gui::base::mouse(*this),
+	 m_theme(theme) {
 
-	basic_box::m_tr.push_back(text, fan::vec2(position.x + border_size.x * 0.5, position.y + h + border_size.y * 0.5), text_color, font_size);
+	fan_2d::graphics::gui::base::mouse::on_hover<0>([&] (uint32_t i) {
+		fan_2d::graphics::rectangle::set_color(i, m_theme.checkbox.hover_color);
+	});
 
-	keyboard_input::push_back(basic_box::m_border_size.size() - 1);
+	fan_2d::graphics::gui::base::mouse::on_exit<0>([&] (uint32_t i) {
+		fan_2d::graphics::rectangle::set_color(i, m_theme.checkbox.color);
+	});
 
-	const auto size = basic_box::get_updated_box_size(basic_box::m_border_size.size() - 1);
+	fan_2d::graphics::gui::base::mouse::on_click<0>([&](uint32_t i) {
+		fan_2d::graphics::rectangle::set_color(i, m_theme.checkbox.click_color);
+	});
 
-	basic_box::m_rv.push_back(position, size, radius, box_color);
+	fan_2d::graphics::gui::base::mouse::on_release<0>([&](uint32_t i) {
+		fan_2d::graphics::rectangle::set_color(i, m_theme.checkbox.hover_color);
 
-	keyboard_input::update_box_size(this->size() - 1);
-	update_cursor_position(this->size() - 1);
+		m_visible[i] = !m_visible[i];
 
-	auto found = focus_counter.find(basic_box::m_tr.m_camera->m_window->get_handle());
+		if (m_visible[i]) {
+			m_on_check(i);
+		}
+		else {
+			if (m_on_check) {
+				m_on_uncheck(i);
+			}
+		}
+	});
 
-	if (found != focus_counter.end()) {
-		keyboard_input::m_focus_id.emplace_back(found->second);
-		focus_counter[found->first]++;
-	}
-	else {
-		keyboard_input::m_focus_id.emplace_back(0);
-		focus_counter.insert(std::make_pair(basic_box::m_tr.m_camera->m_window->get_handle(), 0));
-	}
+	fan_2d::graphics::gui::base::mouse::on_outside_release<0>([&](uint32_t i) {
+		fan_2d::graphics::rectangle::set_color(i, m_theme.checkbox.color);
+	});
+}
 
+void fan_2d::graphics::gui::checkbox::push_back(const checkbox_property& property)
+{
+	m_properties.emplace_back(property);
+
+	m_visible.emplace_back(property.checked);
+
+	f32_t text_middle_height = get_average_text_height(property.text, property.font_size);
+	fan_2d::graphics::rectangle::push_back(property.position, text_middle_height * property.box_size_multiplier, m_theme.checkbox.color, true);
+
+	fan_2d::graphics::line::push_back(property.position, property.position + text_middle_height * property.box_size_multiplier, m_theme.checkbox.check_color, true);
+	fan_2d::graphics::line::push_back(property.position + fan::vec2(text_middle_height * property.box_size_multiplier, 0), property.position + fan::vec2(0, text_middle_height * property.box_size_multiplier), m_theme.checkbox.check_color, true);
+
+	fan_2d::graphics::gui::text_renderer::push_back(property.text, property.position + fan::vec2(property.font_size * property.box_size_multiplier, (text_middle_height * property.box_size_multiplier) / 2 - text_middle_height / 2  - (get_magic_size() * convert_font_size(property.font_size) - text_middle_height)), m_theme.checkbox.text_color, property.font_size);
+
+	fan_2d::graphics::rectangle::release_queue(!property.queue, !property.queue);
+	fan_2d::graphics::line::release_queue(!property.queue, !property.queue);
+}
+
+void fan_2d::graphics::gui::checkbox::draw() const
+{
+	fan_2d::graphics::draw([&] {
+		
+		uint8_t previous_thickness = fan_2d::graphics::global_vars::line_thickness;
+		
+		for (int i = 0; i < fan_2d::graphics::line::size() / 2; i++) {
+			fan_2d::graphics::rectangle::draw(i);
+
+			if (m_visible[i]) {
+				fan_2d::graphics::global_vars::line_thickness = m_properties[i].line_thickness;
+				fan_2d::graphics::line::draw(i * 2);
+				fan_2d::graphics::line::draw(i * 2 + 1);
+			}
+		}
+
+		fan_2d::graphics::global_vars::line_thickness = previous_thickness;
+
+		fan_2d::graphics::gui::text_renderer::draw();
+	});
+}
+
+void fan_2d::graphics::gui::checkbox::on_check(std::function<void(uint32_t i)> function)
+{
+	m_on_check = function;
+}
+
+void fan_2d::graphics::gui::checkbox::on_uncheck(std::function<void(uint32_t i)> function)
+{
+	m_on_uncheck = function;
+}
+
+fan::camera* fan_2d::graphics::gui::checkbox::get_camera()
+{
+	return fan_2d::graphics::rectangle::m_camera;
 }

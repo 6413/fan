@@ -1,7 +1,7 @@
 #pragma once
 
 #include <fan/types/types.hpp>
-#include <fan/math/quaternion.hpp>
+#include <fan/types/quaternion.hpp>
 
 #include <type_traits>
 

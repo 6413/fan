@@ -117,8 +117,4 @@ namespace fan {
 		os << color_.a << '\n';
 		return os;
 	}
-
-	static color random_color() {
-		return color::rgb(std::rand() % 255, std::rand() % 255, std::rand() % 255, 255);
-	}
 }

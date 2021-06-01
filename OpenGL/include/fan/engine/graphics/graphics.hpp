@@ -51,7 +51,7 @@ namespace fan_2d {
 
 			using base_engine::base_engine;
 
-			void push_back(const fan::vec2& position, const fan::vec2& size, const fan::color& color, fan_2d::physics::body_type body_type, fan_2d::physics::body_property body_property = { 10, 1 }, bool queue = false) {
+			void push_back(const fan::vec2& position, const fan::vec2& size, const fan::color& color, fan_2d::physics::body_type body_type, fan_2d::physics::body_property body_property = { 10, 1, 0.1 }, bool queue = false) {
 
 				fan_2d::graphics::rectangle::push_back(position, size, color, queue);
 
@@ -81,7 +81,7 @@ namespace fan_2d {
 
 			using base_engine::base_engine;
 
-			void push_back(const fan::vec2& position, f32_t radius, const fan::color& color, fan_2d::physics::body_type body_type, fan_2d::physics::body_property body_property = { 10, 0.1 }, bool queue = false) {
+			void push_back(const fan::vec2& position, f32_t radius, const fan::color& color, fan_2d::physics::body_type body_type, fan_2d::physics::body_property body_property = { 10, 0.1, 0.1 }, bool queue = false) {
 
 				fan_2d::graphics::circle::push_back(position, radius, color, queue);
 

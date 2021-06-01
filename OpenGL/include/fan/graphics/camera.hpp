@@ -1,7 +1,7 @@
 #pragma once
 
 #include <fan/types/types.hpp>
-#include <fan/math/matrix.hpp>
+#include <fan/types/matrix.hpp>
 #include <fan/graphics/window/window.hpp>
 
 namespace fan {
@@ -21,7 +21,7 @@ namespace fan {
 		void rotate_camera(bool when);
 
 		fan::mat4 get_view_matrix() const;
-		fan::mat4 get_view_matrix(fan::mat4 m) const;
+		fan::mat4 get_view_matrix(const fan::mat4& m) const;
 
 		fan::vec3 get_position() const;
 		void set_position(const fan::vec3& position);

@@ -1,7 +1,7 @@
 #pragma once
 
-#include <fan/math/matrix.hpp>
-#include <fan/math/vector.hpp>
+#include <fan/types/matrix.hpp>
+#include <fan/types/vector.hpp>
 
 namespace fan {
 
