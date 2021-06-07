@@ -159,7 +159,8 @@ namespace fan {
 				fan::vec2i(1600, 900),
 				fan::vec2i(1600, 1024),
 				fan::vec2i(1680, 1050),
-				fan::vec2i(1920, 1080) };
+				fan::vec2i(1920, 1080) 
+			};
 
 		};
 

@@ -21,6 +21,10 @@ namespace fan_2d {
 				}
 			}
 
+			void step(f32_t time_step) {
+				m_world->Step(time_step, 6, 2);
+			}
+
 		};
 
 		template <typename graphics_t, typename physics_t>
@@ -100,6 +104,44 @@ namespace fan_2d {
 				for (int i = 0; i < this->size(); i++) {
 					this->set_position(i, fan::vec2(this->get_body(i)->GetPosition()) * meters_in_pixels);
 				}
+
+			}
+
+		};
+
+		struct rope : public base_engine<fan_2d::graphics::line, fan_2d::physics::rope>{
+
+			rope(engine_t* engine, const fan::vec2& position, fan_2d::physics::body_type body_type_) : base_engine(engine) {
+
+			}
+
+			void push_back(std::vector<fan::vec2>& joints, const fan::color& color) {
+
+				fan_2d::graphics::line::push_back(joints[0], joints[1], color);
+
+				for (int i = 1; i < int(joints.size() / 2); i++) {
+					fan_2d::graphics::line::push_back(joints[i], joints[i + 1], color);
+				}
+
+				fan_2d::physics::rope::push_back(joints);
+			}
+
+			fan::vec2 step() {
+				b2Vec2 p;
+				m_rope.Step(1.0 / 144, 6, p);
+
+				return p;
+			}
+
+			void update_position() {
+
+				//for (int i = 0; i < fan_2d::graphics::line::size(); i++) {
+				//	fan_2d::graphics::line::set_line(
+				//		i, 
+				//		fan::vec2(fan_2d::physics::rope::rectangle::get_body(i)->GetPosition()) * meters_in_pixels,
+				//		fan::vec2(fan_2d::physics::rope::rectangle::get_body(i + 1)->GetPosition()) * meters_in_pixels
+				//	);
+				//}
 
 			}
 

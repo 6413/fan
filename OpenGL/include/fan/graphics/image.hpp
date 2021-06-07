@@ -300,21 +300,21 @@ namespace fan {
 
 			image_data.format = (AVPixelFormat)frame->format;
 
-			image_data.linesize[0] = get_stride_multiplier(image_data.format) * image_data.size.x;
+			/*image_data.linesize[0] = get_stride_multiplier(image_data.format) * image_data.size.x;
 
 			image_data.data[0] = new uint8_t[image_data.linesize[0] * image_data.size.y];
-			image_data.data[1] = new uint8_t[image_data.linesize[0] * image_data.size.y];
+			image_data.data[1] = new uint8_t[image_data.linesize[0] * image_data.size.y];*/
 
-			//if (av_image_alloc(
-			//	image_data.data,
-			//	image_data.linesize,
-			//	image_data.size.x,
-			//	image_data.size.y,
-			//	image_data.format,
-			//	1) < 0) {
-			//	fan::print("failed to allocate image");
-			//	goto end;
-			//}
+			if (av_image_alloc(
+				image_data.data,
+				image_data.linesize,
+				image_data.size.x,
+				image_data.size.y,
+				image_data.format,
+				1) < 0) {
+				fan::print("failed to allocate image");
+				goto end;
+			}
 
 			av_image_copy(
 				image_data.data, 

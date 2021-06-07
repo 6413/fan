@@ -3,7 +3,7 @@
 #include <functional>
 #include <numeric>
 
-#include <fast_noise/fast_noise.hpp>
+#include <fan/fast_noise/fast_noise.hpp>
 #include <fan/physics/collision/rectangle.hpp>
 #include <fan/physics/collision/circle.hpp>
 
@@ -273,7 +273,11 @@ void fan_2d::graphics::vertice_vector::draw(uint32_t mode, uint32_t single_draw_
 	
 	
 	//	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	vertice_vector::basic_vertice_vector::basic_draw(begin, end, m_indices, mode, size(), m_index_restart, single_draw_amount);
+
+	fan_2d::graphics::draw([&] {
+		vertice_vector::basic_vertice_vector::basic_draw(begin, end, m_indices, mode, size(), m_index_restart, single_draw_amount);
+	});
+
 
 	//glDisable(GL_PRIMITIVE_RESTART);
 }
@@ -546,6 +550,7 @@ void fan_2d::graphics::rectangle::erase(uint_t i, bool queue)
 
 	this->m_position.erase(this->m_position.begin() + i);
 	this->m_size.erase(this->m_size.begin() + i);
+	this->m_rotation.erase(this->m_rotation.begin() + i);
 }
 
 void fan_2d::graphics::rectangle::erase(uint_t begin, uint_t end, bool queue)
@@ -584,7 +589,7 @@ fan::vec2 get_transformed_point(fan::vec2 input, float a) {
 
 // radians
 void fan_2d::graphics::rectangle::set_rotation(uint_t i, f_t angle, bool queue)
-{
+{ // optimize by doing all this in gpu
 	if (m_rotation[i] == (angle = -fmod(angle, fan::math::two_pi))) {
 		return;
 	}
@@ -1376,7 +1381,7 @@ void fan_2d::graphics::sprite::push_back(uint32_t texture_id, const fan::vec2& p
 		m_amount_of_textures++;
 	}
 	m_textures.emplace_back(texture_id);
-	std::sort(m_textures.begin(), m_textures.end());
+	//std::sort(m_textures.begin(), m_textures.end());
 
 	auto textures = this->get_texture_coordinates();
 
@@ -1385,7 +1390,7 @@ void fan_2d::graphics::sprite::push_back(uint32_t texture_id, const fan::vec2& p
 	}
 }
 
-void fan_2d::graphics::sprite::draw(uint_t begin, uint_t end) const
+void fan_2d::graphics::sprite::draw(uint32_t begin, uint32_t end) const
 {
 //	fan::mat4 projection(1);
 //	projection = fan_2d::graphics::get_projection(m_camera->m_window->get_size());
@@ -1436,12 +1441,15 @@ void fan_2d::graphics::sprite::draw(uint_t begin, uint_t end) const
 	this->m_shader.use();
 	this->m_shader.set_bool("enable_texture", true);
 
-	for (uint32_t j = 0; j < end - begin + 1; j++) {
+	uint32_t real_begin = begin == (uint32_t)fan::uninitialized ? 0 : begin;
+	uint32_t real_end = end == (uint32_t)fan::uninitialized ? this->size() : end;
+
+	for (uint32_t j = real_begin; j < real_end - real_begin + 1 && j < m_textures.size(); j++) {
 		this->m_shader.set_int("texture_sampler", j);
 		glActiveTexture(GL_TEXTURE0 + j);
-		glBindTexture(GL_TEXTURE_2D, m_textures[begin + j]);
+		glBindTexture(GL_TEXTURE_2D, m_textures[(begin == (uint32_t)fan::uninitialized ? 0 : begin) + j]);
 
-		fan_2d::graphics::rectangle::draw(j);
+		fan_2d::graphics::vertice_vector::draw(GL_TRIANGLES, 6, j, fan::uninitialized, true);
 	}
 
 }
@@ -1497,13 +1505,29 @@ void fan_2d::graphics::sprite_sheet::draw() {
 
 }
 
+//fan_2d::graphics::rope::rope(fan::camera* camera)
+//	: fan_2d::graphics::line(camera) {}
+
+//void fan_2d::graphics::rope::push_back(const std::vector<std::pair<fan::vec2, fan::vec2>>& joints, const fan::color& color, bool queue)
+//{
+//	for (int i = 0; i < joints.size(); i++) {
+//		fan_2d::graphics::line::push_back(joints[i].first, joints[i].second, color, true);
+//	}
+//
+//	fan_2d::graphics::line::release_queue(!queue, !queue);
+//}
+
 fan_2d::graphics::particles::particles(fan::camera* camera)
 	: rectangle(camera) { }
 
-void fan_2d::graphics::particles::add(const fan::vec2& position, const fan::vec2& size, const fan::vec2& velocity, const fan::color& color, uint_t time)
+void fan_2d::graphics::particles::push_back(const fan::vec2& position, const fan::vec2& size, f32_t angle, f32_t angle_velocity, const fan::vec2& velocity, const fan::color& color, uint_t time)
 {
-	this->push_back(position, size, color);
-	this->m_particles.push_back({ velocity, fan::timer(fan::timer<>::start(), time) });
+	fan_2d::graphics::rectangle::push_back(position, size, color, true);
+	this->set_rotation(this->size() - 1, angle, true);
+
+	this->release_queue(true, true);
+
+	this->m_particles.push_back({ angle_velocity, velocity, fan::timer(fan::timer<>::start(), time) });
 }
 
 void fan_2d::graphics::particles::update()
@@ -1515,6 +1539,7 @@ void fan_2d::graphics::particles::update()
 			continue;
 		}
 		this->set_position(i, this->get_position(i) + this->m_particles[i].m_velocity * m_camera->m_window->get_delta_time(), true);
+		this->set_rotation(i, this->get_rotation(i) + this->m_particles[i].m_angle_velocity * m_camera->m_window->get_delta_time(), true);
 	}
 	this->release_queue(true, false);
 }
