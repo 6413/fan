@@ -291,7 +291,7 @@ namespace fan {
 		T position(caster.begin % grid_size); // mod
 		for (uint8_t i = 0; i < T::size(); i++) {
 			position[i] = ((caster.direction[i] < 0) ? position[i] : grid_size - position[i]);
-			position[i] = fan::abs((!caster.direction[i] ? INFINITY : ((!position[i] ? grid_size : position[i]) / caster.direction[i])));
+			position[i] = fan::math::abs((!caster.direction[i] ? INFINITY : ((!position[i] ? grid_size : position[i]) / caster.direction[i])));
 		}
 		caster.grid = (caster.begin += caster.direction * position.min()) / grid_size;
 		for (uint8_t i = 0; i < T::size(); i++)

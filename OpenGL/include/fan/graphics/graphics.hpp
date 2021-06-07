@@ -363,7 +363,7 @@ namespace fan_2d {
 			void push_back(const fan::vec2& position, const fan::vec2& size, bool queue = false);
 			void push_back(uint32_t texture_id, const fan::vec2& position, const fan::vec2& size, bool queue = false);
 
-			void draw(uint_t begin = fan::uninitialized, uint_t end = fan::uninitialized) const;
+			void draw(uint32_t begin = fan::uninitialized, uint32_t end = fan::uninitialized) const;
 
 			using fan_2d::graphics::rectangle::size;
 			using fan_2d::graphics::rectangle::get_corners;
@@ -431,19 +431,37 @@ namespace fan_2d {
 
 		};
 
+		//class rope : protected fan_2d::graphics::line {
+
+		//public:
+
+		//	rope(fan::camera* camera);
+
+		//	void push_back(const std::vector<std::pair<fan::vec2, fan::vec2>>& joints, const fan::color& color, bool queue = false);
+
+		//	using fan_2d::graphics::line::draw;
+		//	using fan_2d::graphics::line::size;
+
+		//protected:
+
+		//};
+
 		struct particle {
+			f32_t m_angle_velocity;
 			fan::vec2 m_velocity;
 			fan::timer<> m_timer; // milli
 		};
 
-		class particles : public fan_2d::graphics::rectangle {
+		class particles : protected fan_2d::graphics::rectangle {
 		public:
 
 			particles(fan::camera* camera);
 
-			void add(
+			void push_back(
 				const fan::vec2& position,
 				const fan::vec2& size,
+				f32_t angle,
+				f32_t angle_velocity,
 				const fan::vec2& velocity,
 				const fan::color& color,
 				uint_t time
@@ -451,9 +469,13 @@ namespace fan_2d {
 
 			void update();
 
+			using fan_2d::graphics::rectangle::draw;
+			using fan_2d::graphics::rectangle::size;
+
 		private:
 
 			std::vector<fan_2d::graphics::particle> m_particles;
+
 		};
 
 	}

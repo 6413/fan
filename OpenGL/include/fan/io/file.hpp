@@ -121,17 +121,19 @@ namespace fan {
 				static constexpr std::size_t char_offset = 4;
 				static constexpr std::size_t struct_size = 7;
 
-				fan::vec2 m_position;
-				fan::vec2 m_size;
-				fan::vec2 m_offset;
-				fan::vec2::value_type m_advance;
+				fan::vec2ui position;
+				fan::vec2ui size;
+				fan::vec2i offset;
+				fan::vec2ui::value_type advance;
 			};
 
 			struct font_info {
-				unsigned int m_size;
-				std::unordered_map<uint16_t, font_t> m_font;
-				uint_t m_lowest;
-				uint_t m_highest;
+				uint32_t size;
+				std::unordered_map<uint16_t, font_t> font;
+				uint32_t padding;
+				uint32_t lowest;
+				uint32_t highest;
+				uint32_t line_height;
 			};
 
 			static font_info parse_font(const std::string& path)  {
@@ -152,10 +154,10 @@ namespace fan {
 
 				std::unordered_map<uint16_t, font_t> font_info_vector;
 
-				f_t flowest = -fan::math::inf;
-				f_t fhighest = fan::math::inf;
+				f32_t flowest = -fan::math::inf;
+				f32_t fhighest = fan::math::inf;
 
-				uint_t lowest = 0, highest = 0;
+				uint32_t lowest = 0, highest = 0;
 
 				for (std::size_t iline = font_t::char_offset; iline < amount_of_chars + font_t::char_offset + 1; iline++) {
 					if (lines[iline][0] != 'c') {
@@ -172,23 +174,31 @@ namespace fan {
 								value_info.value = highest_character;
 							}
 						}
-						((fan::vec2::value_type*)&font_info)[i] = value_info.value;
+						((fan::vec2ui::value_type*)&font_info)[i] = value_info.value;
 					}
+					
 					font_info_vector[character] = font_info;
-					if (flowest < font_info.m_offset.y) {
-						flowest = font_info.m_offset.y;
+					if (flowest < font_info.offset.y) {
+						flowest = font_info.offset.y;
 						lowest = character;
 					}
-					if (fhighest > font_info.m_offset.y) {
+					if (fhighest > font_info.offset.y) {
 						if (fhighest > highest_character) {
-							fhighest = font_info.m_offset.y;
+							fhighest = font_info.offset.y;
 							highest = character;
 						}
 					}
 				}
 
 				// doesn't set space automatically, need to set in load part
-				return { static_cast<unsigned int>(fan::io::file::get_string_valuei(lines[0], "size")), font_info_vector, lowest, highest };
+				return { 
+					(uint32_t)(fan::io::file::get_string_valuei(lines[0], "size")), 
+					font_info_vector, 
+					(uint32_t)fan::io::file::get_string_valuei(lines[0], "padding"),  
+					lowest,
+					highest,
+					(uint32_t)(fan::io::file::get_string_valuei(lines[1], "lineHeight"))
+				};
 			}
 
 		}

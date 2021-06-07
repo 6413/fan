@@ -35,9 +35,19 @@
 
 
 namespace fan {
-	using namespace std::chrono;
 
-	typedef high_resolution_clock chrono_t;
+	using std::chrono::nanoseconds;
+	using std::chrono::microseconds;
+	using std::chrono::milliseconds;
+	using std::chrono::seconds;
+	using std::chrono::minutes;
+	using std::chrono::hours;
+	
+	using std::chrono::duration_cast;
+	using std::chrono::system_clock;
+	using std::chrono::time_point_cast;
+
+	typedef std::chrono::high_resolution_clock chrono_t;
 
 	template <typename T = milliseconds>
 	class timer {

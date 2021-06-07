@@ -174,6 +174,8 @@ fan::window::window(const fan::vec2i& window_size, const std::string& name, uint
 	initialize_window(name, window_size, flags);
 
 	this->calculate_delta_time();
+
+	this->set_vsync(true);
 }
 
 fan::window::window(const window& window) : fan::window(window.m_size, window.m_name, window.m_flags) {}
@@ -1473,8 +1475,8 @@ void fan::window::initialize_window(const std::string& name, const fan::vec2i& w
 	}
 
 	m_window = CreateWindow(str.c_str(), name.c_str(),
-		(flag_values::m_no_resize ? ((full_screen || borderless ? WS_POPUP : WS_OVERLAPPEDWINDOW) | WS_SYSMENU) :
-		(full_screen || borderless ? WS_POPUP : WS_OVERLAPPEDWINDOW) | (flag_values::m_no_resize ? SWP_NOSIZE : 0)) | WS_VISIBLE,
+		(flag_values::m_no_resize ? ((full_screen || borderless ? WS_POPUP : (WS_OVERLAPPED | WS_MINIMIZEBOX | WS_SYSMENU)) | WS_SYSMENU ) :
+		(full_screen || borderless ? WS_POPUP : WS_OVERLAPPEDWINDOW)) | WS_VISIBLE,
 		position.x, position.y,
 		rect.right - rect.left, rect.bottom - rect.top,
 		0, 0, 0, 0);

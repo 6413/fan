@@ -2,15 +2,13 @@
 
 #include <fan/types/vector.hpp>
 
+#include <box2d/box2d.h>
+#include <box2d/b2_rope.h>
+
 #ifdef FAN_PLATFORM_WINDOWS
-	#include <box2d/box2d.h>
+
 	#pragma comment(lib, "box2d.lib")
-#elif FAN_PLATFORM_FREEBSD
-	#pragma GCC visibility push(hidden)
-	#include <stdio.h>
-	#include <assert.h>
-	#pragma GCC visibility pop
-	#include <box2d/box2d.h>
+
 #endif
 
 #include <memory>
@@ -219,7 +217,53 @@ namespace fan_2d {
 
 		};
 
-		
+		struct rope : public physics_base, protected rectangle {
+
+			rope(b2World* world) : physics_base(world), rectangle(world) { }
+
+			void push_back(std::vector<fan::vec2>& joints) {
+
+				b2RopeDef def;
+				def.vertices = (b2Vec2*)joints.data();
+				def.count = joints.size();
+				def.gravity.Set(rectangle::m_world->GetGravity().x, rectangle::m_world->GetGravity().y);
+				std::vector<f32_t> masses(joints.size());
+				std::fill(masses.begin(), masses.end(), 1);
+				def.masses = masses.data();
+
+				b2RopeTuning tuning;
+
+				tuning.bendHertz = 30.0f;
+				tuning.bendDamping = 4.0f;
+				tuning.bendStiffness = 1.0f;
+				tuning.bendingModel = b2_pbdTriangleBendingModel;
+				tuning.isometric = true;
+
+				tuning.stretchHertz = 30.0f;
+				tuning.stretchDamping = 4.0f;
+				tuning.stretchStiffness = 1.0f;
+				tuning.stretchingModel = b2_pbdStretchingModel;
+
+				def.position = joints[0].b2();
+				def.tuning = tuning;
+
+				m_rope.Create(def);
+
+				vertices = joints.data();
+
+
+			//	b2Rope
+
+				//b2Draw
+				
+				//rope.Step()
+
+			}
+
+			b2Rope m_rope;
+
+			fan::vec2* vertices;
+		};
 
 	};
 
