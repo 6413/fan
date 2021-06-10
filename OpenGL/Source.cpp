@@ -2,7 +2,7 @@
 
 int main() {
 
-	fan_2d::engine::engine_t e(fan::vec2(0, 10));
+	fan_2d::engine::engine_t e(fan::vec2(0, 30));
 
 	e.window.set_size(fan::window::resolutions::r_1280x900);
 
@@ -16,6 +16,12 @@ int main() {
 	fan_2d::engine::motor motor(&e);
 
 	fan::vec2 wheel_size(100, 10);
+	
+	fan_2d::engine::circle balls(&e);
+
+	for (int i = 0; i < 200; i++) {
+		balls.push_back(i + 300, 10, fan::colors::yellow, fan_2d::physics::body_type::dynamic_body);
+	}
 
 	fan_2d::engine::rectangle wheels(&e);
 
@@ -76,7 +82,7 @@ int main() {
 
 	ground.set_rotation(11, fan::math::radians(-10));
 
-	constexpr f32_t speed = 10;
+	constexpr f32_t speed = 100;
 
 	uint32_t hz = fan::get_screen_refresh_rate();
 
@@ -95,6 +101,10 @@ int main() {
 		wheels.draw();
 
 		ground.draw();
+
+		balls.update_position();
+
+		balls.draw();
 
 		if (e.window.key_press(fan::key_d)) {
 			for (int i = 0; i < motor.size(); i++) {
