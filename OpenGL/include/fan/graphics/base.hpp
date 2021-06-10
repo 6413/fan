@@ -61,7 +61,7 @@ namespace fan {
 		}
 	}
 
-	template <uint_t T_layout_location, opengl_buffer_type T_buffer_type, bool gl_3_0_attribute = false> 
+	template <uint_t T_layout_location, opengl_buffer_type T_buffer_type, bool gl_3_0_attribute = false, uint32 gl_buffer_type = (uint32_t)-1> 
 	class glsl_location_handler { 
 
 	public:
@@ -113,13 +113,13 @@ namespace fan {
 	protected:
 
 		static constexpr uint32_t gl_buffer =
-			conditional_value<T_buffer_type == fan::opengl_buffer_type::buffer_object, GL_ARRAY_BUFFER, 
+			conditional_value<gl_buffer_type != (uint32_t)-1, gl_buffer_type, conditional_value<T_buffer_type == fan::opengl_buffer_type::buffer_object, GL_ARRAY_BUFFER, 
 			conditional_value<T_buffer_type == fan::opengl_buffer_type::vertex_array_object, 0,
 			conditional_value<T_buffer_type == fan::opengl_buffer_type::texture, GL_TEXTURE_2D, 
 			conditional_value<T_buffer_type == fan::opengl_buffer_type::shader_storage_buffer_object, GL_SHADER_STORAGE_BUFFER, 
 			conditional_value<T_buffer_type == fan::opengl_buffer_type::frame_buffer_object, GL_FRAMEBUFFER, 
 			conditional_value<T_buffer_type == fan::opengl_buffer_type::render_buffer_object, GL_RENDERBUFFER, static_cast<uint32_t>(fan::uninitialized)
-			>::value>::value>::value>::value>::value>::value;
+			>::value>::value>::value>::value>::value>::value>::value;
 
 		void allocate_buffer() {
 			comparer<T_buffer_type>(
@@ -133,6 +133,7 @@ namespace fan {
 		}
 
 		void free_buffer() {
+
 			fan_validate_buffer(m_buffer_object, {
 				comparer<T_buffer_type>(
 					[&] { glDeleteBuffers(1, &m_buffer_object); },
@@ -174,6 +175,16 @@ namespace fan {
 			glBindBufferBase(gl_buffer, T_layout_location, m_buffer_object);
 		}
 
+		template <opengl_buffer_type T = T_buffer_type, typename = std::enable_if_t<T != opengl_buffer_type::shader_storage_buffer_object>>
+		void bind() const {
+			glBindBuffer(gl_buffer, m_buffer_object);
+		}
+
+		template <opengl_buffer_type T = T_buffer_type, typename = std::enable_if_t<T != opengl_buffer_type::shader_storage_buffer_object>>
+		void unbind() const {
+			glBindBuffer(gl_buffer, 0);
+		}
+
 		template <opengl_buffer_type T = T_buffer_type, typename = std::enable_if_t<T != opengl_buffer_type::texture && T != opengl_buffer_type::vertex_array_object>>
 		void edit_data(void* data, uint_t offset, uint_t byte_size) {
 			fan::edit_glbuffer(m_buffer_object, data, offset, byte_size, gl_buffer, T_layout_location);
@@ -193,7 +204,7 @@ namespace fan {
 
 				glBindBuffer(gl_buffer, m_buffer_object);
 
-				GLint location = glGetAttribLocation(program, name.c_str());
+				auto location = glGetAttribLocation(program, name.c_str());
 
 				glEnableVertexAttribArray(location);
 				glVertexAttribPointer(location, attrib_count, fan::GL_FLOAT_T, GL_FALSE, 0, 0);
@@ -294,7 +305,152 @@ namespace fan {
 	#define enable_function_for_non_vector template<typename T = void, typename = typename std::enable_if<std::is_same<T, T>::value && !enable_vector>::type>
 	#define enable_function_for_vector_cpp template<typename T, typename enable_t>
 
-	//class 
+	
+	template <typename _Type, uint_t layout_location, bool enable_vector = true, opengl_buffer_type buffer_type = opengl_buffer_type::buffer_object, bool gl_3_0_attrib = true, uint32_t gl_buffer_type = (uint32_t)-1>
+	class buffer_object : public glsl_location_handler<layout_location, buffer_type, gl_3_0_attrib, gl_buffer_type> {
+	public:
+
+		using value_type = _Type;
+
+		buffer_object() : glsl_location_handler<layout_location, buffer_type, gl_3_0_attrib, gl_buffer_type>() {}
+
+		buffer_object(const _Type& position) : buffer_object()
+		{
+			if constexpr (enable_vector) {
+				this->basic_push_back(position, true);
+			}
+			else {
+				this->m_buffer_object = position;
+			}
+		}
+
+		buffer_object(const buffer_object& vector) : glsl_location_handler<layout_location, buffer_type, gl_3_0_attrib, gl_buffer_type>(vector) {
+			this->m_buffer_object = vector.m_buffer_object;
+		}
+		buffer_object(buffer_object&& vector) noexcept : glsl_location_handler<layout_location, buffer_type, gl_3_0_attrib, gl_buffer_type>(std::move(vector)) {
+			this->m_buffer_object = std::move(vector.m_buffer_object);
+		}
+
+		buffer_object& operator=(const buffer_object& vector) {
+			buffer_object::glsl_location_handler::operator=(vector);
+
+			this->m_buffer_object = vector.m_buffer_object;
+
+			return *this;
+		}
+		buffer_object& operator=(buffer_object&& vector) {
+			buffer_object::glsl_location_handler::operator=(std::move(vector));
+
+			this->m_buffer_object = std::move(vector.m_buffer_object);
+
+			return *this;
+		}
+
+		// ----------------------------------------------------- vector enabled functions
+
+		enable_function_for_vector void reserve(uint_t new_size) {
+			m_buffer_object.reserve(new_size);
+		}
+		enable_function_for_vector void resize(uint_t new_size) {
+			m_buffer_object.resize(new_size);
+		}
+		enable_function_for_vector void resize(uint_t new_size, _Type value) {
+			m_buffer_object.resize(new_size, value);
+		}
+
+		enable_function_for_vector std::vector<_Type> get_values() const {
+			return this->m_buffer_object;
+		}
+
+		enable_function_for_vector void set_values(const std::vector<_Type>& values) {
+			this->m_buffer_object.clear();
+			this->m_buffer_object.insert(this->m_buffer_object.begin(), values.begin(), values.end());
+		}
+
+		enable_function_for_vector _Type get_value(uint_t i) const {
+			return this->m_buffer_object[i];
+		}
+		enable_function_for_vector void set_value(uint_t i, const _Type& value, bool queue = false) {
+			this->m_buffer_object[i] = value;
+
+			if (!queue) {
+				this->edit_data(i);
+			}
+		}
+
+		enable_function_for_vector void erase(uint_t i, bool queue = false) {
+			this->m_buffer_object.erase(this->m_buffer_object.begin() + i);
+
+			if (!queue) {
+				this->write_data();
+			}
+		}
+		enable_function_for_vector void erase(uint_t begin, uint_t end, bool queue = false) {
+			if (!begin && end == this->m_buffer_object.size()) {
+				this->m_buffer_object.clear();
+			}
+			else {
+				this->m_buffer_object.erase(this->m_buffer_object.begin() + begin, this->m_buffer_object.begin() + end);
+			}
+
+			if (!queue) {
+				this->write_data();
+			}
+		}
+
+		// -----------------------------------------------------
+
+		// ----------------------------------------------------- non vector enabled functions
+
+		enable_function_for_non_vector _Type get_value() const {
+			return m_buffer_object;
+		}
+		enable_function_for_non_vector void set_value(const _Type& value) {
+			this->m_buffer_object = value;
+		}
+
+		// -----------------------------------------------------
+
+
+		enable_function_for_vector void initialize_buffers(bool divisor, uint32_t attrib_count) {
+			buffer_object::glsl_location_handler::initialize_buffers(m_buffer_object.data(), sizeof(_Type) * m_buffer_object.size(), divisor, attrib_count);
+		}
+
+		enable_function_for_vector void initialize_buffers(uint_t program, const std::string& path, bool divisor, uint32_t attrib_count) {
+			//glBindAttribLocation(program, layout_location, path.c_str());
+			buffer_object::glsl_location_handler::initialize_buffers(m_buffer_object.data(), sizeof(_Type) * m_buffer_object.size(), divisor, attrib_count, program, path);
+		}
+
+		enable_function_for_vector void basic_push_back(const _Type& value, bool queue = false) {
+			this->m_buffer_object.emplace_back(value);
+			if (!queue) {
+				this->write_data();
+			}
+		}
+
+		enable_function_for_vector void edit_data(uint_t i) {
+			buffer_object::glsl_location_handler::edit_data(i, m_buffer_object.data() + i, sizeof(_Type));
+		}
+		enable_function_for_vector void write_data() {
+			buffer_object::glsl_location_handler::write_data(m_buffer_object.data(), sizeof(_Type) * m_buffer_object.size());
+		}
+
+		enable_function_for_vector auto size() const {
+			return this->m_buffer_object.size();
+		}
+
+
+	protected:
+
+		// ----------------------------------------------------- vector enabled functions
+
+
+		// -----------------------------------------------------
+
+		std::conditional_t<enable_vector, std::vector<_Type>, _Type> m_buffer_object;
+
+	};
+
 
 	template <bool enable_vector, typename _Vector, uint_t layout_location = 1, opengl_buffer_type buffer_type = opengl_buffer_type::buffer_object, bool gl_3_0_attrib = false>
 	class basic_shape_position : public glsl_location_handler<layout_location, buffer_type, gl_3_0_attrib> {
@@ -925,6 +1081,10 @@ namespace fan {
 					}
 				}
 			});
+		}
+
+		void set_shader(const fan::shader& shader) {
+			m_shader = shader;
 		}
 
 		fan::shader m_shader;
