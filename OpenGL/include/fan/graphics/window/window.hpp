@@ -19,7 +19,7 @@
 	#include <Windows.h>
 
 	#pragma comment(lib, "opengl32.lib")
-	#pragma comment(lib, "glew32s.lib")
+	#pragma comment(lib, "lib/glew/glew32s.lib")
 
 	#pragma comment(lib, "Gdi32.lib")
 	#pragma comment(lib, "User32.lib")
@@ -317,8 +317,8 @@ namespace fan {
 			}
 		}
 
-		std::deque<keys_callback_t>::iterator add_keys_callback(const keys_callback_t& function);
-		void remove_keys_callback(std::deque<keys_callback_t>::const_iterator it);
+		void set_keys_callback(const keys_callback_t& function);
+		void remove_keys_callback();
 
 		std::deque<key_callback_t>::iterator add_key_callback(uint16_t key, const std::function<void()>& function, bool on_release = false);
 		void edit_key_callback(std::deque<key_callback_t>::iterator it, uint16_t key);
@@ -367,11 +367,12 @@ namespace fan {
 
 		fan::vec2i get_raw_mouse_offset() const;
 
-		static constexpr fan::input m_banned_keys[]{
+		static constexpr fan::input banned_keys[]{
 			fan::key_enter,
 			fan::key_tab,
 			fan::key_escape,
-			fan::key_backspace
+			fan::key_backspace,
+			fan::key_delete
 		};
 
 		static void handle_events();
@@ -418,7 +419,7 @@ namespace fan {
 
 		window_t m_window;
 
-		std::deque<keys_callback_t> m_keys_callback;
+		keys_callback_t m_keys_callback;
 		std::deque<key_callback_t> m_key_callback;
 		text_callback_t m_text_callback;
 		std::deque<mouse_move_position_callback_t> m_mouse_move_position_callback;

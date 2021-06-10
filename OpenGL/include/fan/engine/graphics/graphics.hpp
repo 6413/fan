@@ -5,24 +5,32 @@
 
 namespace fan_2d {
 
+	fan::vec2 get_body_position(fan_2d::body* body) {
+		return fan::vec2(body->GetPosition()) * meter_scale;
+	}
+
+	f32_t get_body_angle(fan_2d::body* body) {
+		return -body->GetAngle();
+	}
+
 	namespace engine {
 		
 		struct engine_t {
 
-			fan::window m_window;
-			fan::camera m_camera;
-			fan_2d::world* m_world = nullptr;
+			fan::window window;
+			fan::camera camera;
+			fan_2d::world* world = nullptr;
 
-			engine_t(const fan::vec2& gravity) : m_camera(&m_window), m_world(new fan_2d::world(gravity.b2())) {}
+			engine_t(const fan::vec2& gravity) : camera(&window), world(new fan_2d::world(gravity.b2())) {}
 
 			~engine_t() {
-				if (m_world) {
-					delete m_world;
+				if (world) {
+					delete world;
 				}
 			}
 
 			void step(f32_t time_step) {
-				m_world->Step(time_step, 6, 2);
+				world->Step(time_step, 6, 2);
 			}
 
 		};
@@ -30,7 +38,7 @@ namespace fan_2d {
 		template <typename graphics_t, typename physics_t>
 		struct base_engine : public graphics_t, public physics_t {
 
-			base_engine(fan_2d::engine::engine_t* engine) : graphics_t(&engine->m_camera), physics_t(engine->m_world) { }
+			base_engine(fan_2d::engine::engine_t* engine) : graphics_t(&engine->camera), physics_t(engine->world) { }
 
 			void set_rotation(uint_t i, f_t angle, bool queue = false) {
 
@@ -41,11 +49,11 @@ namespace fan_2d {
 			}
 
 			void erase(uint_t i, bool queue = false) {
-				graphics_t::erase(i, queue);
+				graphics_t::erase(i);
 				physics_t::erase(i);
 			}
 			void erase(uint_t begin, uint_t end, bool queue = false) {
-				graphics_t::erase(begin, end, queue);
+				graphics_t::erase(begin, end);
 				physics_t::erase(begin, end);
 			}
 
@@ -73,7 +81,7 @@ namespace fan_2d {
 			void update_position() {
 
 				for (int i = 0; i < this->size(); i++) {
-					this->set_position(i, fan::vec2(this->get_body(i)->GetPosition()) * meters_in_pixels);
+					this->set_position(i, fan::vec2(this->get_body(i)->GetPosition()) * meter_scale);
 					this->set_rotation(i, -this->get_body(i)->GetAngle());
 				}
 
@@ -101,8 +109,8 @@ namespace fan_2d {
 
 			void update_position() {
 
-				for (int i = 0; i < this->size(); i++) {
-					this->set_position(i, fan::vec2(this->get_body(i)->GetPosition()) * meters_in_pixels);
+				for (int i = 0; i < fan_2d::graphics::circle::size(); i++) {
+					this->set_position(i, fan::vec2(this->get_body(i)->GetPosition()) * meter_scale);
 				}
 
 			}
@@ -143,6 +151,30 @@ namespace fan_2d {
 				//	);
 				//}
 
+			}
+
+		};
+
+		struct motor : public fan_2d::physics::motor {
+		public:
+
+			motor(fan_2d::engine::engine_t* engine) : fan_2d::physics::motor(engine->world) {
+
+			}
+
+			void push_back(fan_2d::body* a_body, fan_2d::body* b_body) {
+				fan_2d::physics::motor::push_back(a_body, b_body);
+			}
+
+			void erase(uint_t i) {
+				fan_2d::physics::motor::erase(i);
+			}
+			void erase(uint_t begin, uint_t end) {
+				fan_2d::physics::motor::erase(begin * 2, end * 2);
+			}
+
+			auto size() const {
+				return wheel_joints.size();
 			}
 
 		};

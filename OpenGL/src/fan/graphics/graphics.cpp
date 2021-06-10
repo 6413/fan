@@ -476,109 +476,91 @@ fan_2d::graphics::line fan_2d::graphics::create_grid(fan::camera* camera, const 
 	return lv;
 }
 
-fan_2d::graphics::rectangle::rectangle(fan::camera* camera) : fan_2d::graphics::vertice_vector(camera) {}
+fan_2d::graphics::rectangle::rectangle(fan::camera* camera) 
+	: m_camera(camera), m_shader(fan::shader(fan_2d::graphics::shader_paths::shape_vector_rectangle_vs, fan_2d::graphics::shader_paths::shape_vector_rectangle_fs)) {
 
-fan_2d::graphics::rectangle::rectangle(const rectangle& rectangle_) : fan_2d::graphics::vertice_vector(rectangle_) {}
-
-fan_2d::graphics::rectangle::rectangle(rectangle&& rectangle_) noexcept : fan_2d::graphics::vertice_vector(std::move(rectangle_)) {}
-
-fan_2d::graphics::rectangle& fan_2d::graphics::rectangle::operator=(const rectangle& rectangle_)
-{
-	fan_2d::graphics::vertice_vector::operator=(rectangle_);
-
-	return *this;
+	fan::bind_vao(fan::vao_handler<>::m_buffer_object, [&] {
+		color_t::initialize_buffers(m_shader.m_id, location_color, true, color_t::value_type::size());
+		position_t::initialize_buffers(m_shader.m_id, location_position, true, position_t::value_type::size());
+		size_t::initialize_buffers(m_shader.m_id, location_size, true, size_t::value_type::size());
+		angle_t::initialize_buffers(m_shader.m_id, location_angle, true, 1);
+		//ebo_t::bind();
+	});
 }
 
-fan_2d::graphics::rectangle& fan_2d::graphics::rectangle::operator=(rectangle&& rectangle_) noexcept
-{
-	fan_2d::graphics::vertice_vector::operator=(std::move(rectangle_));
+// protected
+fan_2d::graphics::rectangle::rectangle(fan::camera* camera, const fan::shader& shader) : m_camera(camera), m_shader(shader) { }
+//
 
-	return *this;
+void fan_2d::graphics::rectangle::push_back(const fan::vec2& position, const fan::vec2& size, const fan::color& color, f32_t angle, bool queue)
+{
+	color_t::basic_push_back(color, queue);
+	position_t::basic_push_back(position, queue);
+	size_t::basic_push_back(size, queue);
+	angle_t::basic_push_back(angle, queue);
 }
 
-void fan_2d::graphics::rectangle::push_back(const fan::vec2& position, const fan::vec2& size, const fan::color& color, bool queue)
+void fan_2d::graphics::rectangle::reserve(uint32_t size)
 {
-	fan_2d::graphics::vertice_vector::push_back(position, color, true);
-	fan_2d::graphics::vertice_vector::push_back(position + fan::vec2(size.x, 0), color, true);
-	fan_2d::graphics::vertice_vector::push_back(position + size, color, true);
-
-	fan_2d::graphics::vertice_vector::push_back(position, color, true);
-	fan_2d::graphics::vertice_vector::push_back(position + fan::vec2(0, size.y), color, true);
-	fan_2d::graphics::vertice_vector::push_back(position + size, color, true);
-
-	m_position.emplace_back(position);
-	m_size.emplace_back(size);
-
-	m_rotation.resize(m_rotation.size() + 1);
-
-	if (!queue) {
-		fan_2d::graphics::vertice_vector::release_queue(true, true, true);
-	}
+	color_t::reserve(size);
+	position_t::reserve(size);
+	size_t::resize(size);
+	angle_t::reserve(size);
 }
 
-void fan_2d::graphics::rectangle::reserve(uint_t size)
+void fan_2d::graphics::rectangle::resize(uint32_t size, const fan::color& color)
 {
-	fan_2d::graphics::vertice_vector::basic_shape_position::reserve(size * 6);
-	fan_2d::graphics::vertice_vector::basic_shape_color_vector::reserve(size * 6);
-	m_rotation.reserve(size);
+	color_t::resize(size, color);
+	position_t::resize(size);
+	size_t::resize(size);
+	angle_t::resize(size);
 }
 
-void fan_2d::graphics::rectangle::resize(uint_t size, const fan::color& color)
+void fan_2d::graphics::rectangle::draw(uint32_t i) const
 {
-	if (size * 6 <= this->size()) {
-		return;
-	}
+	fan::bind_vao(fan::vao_handler<>::m_buffer_object, [&] {
 
-	m_indices.reserve(size * 6);
-	for (auto i = this->size() * 6; i < size * 6; i++) {
-		m_indices.emplace_back(i);
-	}
-	fan_2d::graphics::vertice_vector::basic_shape_position::resize(size * 6);
-	fan_2d::graphics::vertice_vector::basic_shape_color_vector::resize(size * 6, color);
-	m_rotation.resize(size);
-	write_data();
+		fan::mat4 projection(1);
+		projection = fan_2d::graphics::get_projection(m_camera->m_window->get_size());
+
+		fan::mat4 view(1);
+		view = m_camera->get_view_matrix(fan_2d::graphics::get_view_translation(m_camera->m_window->get_size(), view));
+
+		this->m_shader.use();
+
+		this->m_shader.set_mat4("projection", projection);
+		this->m_shader.set_mat4("view", view);
+
+		fan_2d::graphics::draw([&] {
+			if (i != (uint32_t)fan::uninitialized) {
+				glDrawArraysInstancedBaseInstance(GL_TRIANGLES, 0, 6, 1, i);
+			}
+			else {
+
+				glDrawArraysInstanced(GL_TRIANGLES, 0, 6, this->size());
+				//glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, this->size());
+
+			}
+		});
+
+	});
+
 }
 
-void fan_2d::graphics::rectangle::draw(uint32_t begin, uint32_t end) const
+void fan_2d::graphics::rectangle::erase(uint32_t i)
 {
-	fan_2d::graphics::vertice_vector::draw(GL_TRIANGLES, 6, begin, end);
+	color_t::erase(i);
+	position_t::erase(i);
+	size_t::erase(i);
+	angle_t::erase(i);
 }
 
-void fan_2d::graphics::rectangle::erase(uint_t i, bool queue)
+void fan_2d::graphics::rectangle::erase(uint32_t begin, uint32_t end)
 {
-	fan_2d::graphics::vertice_vector::erase(i * 6, i * 6 + 6, queue);
-
-	this->m_position.erase(this->m_position.begin() + i);
-	this->m_size.erase(this->m_size.begin() + i);
-	this->m_rotation.erase(this->m_rotation.begin() + i);
-}
-
-void fan_2d::graphics::rectangle::erase(uint_t begin, uint_t end, bool queue)
-{
-	fan_2d::graphics::vertice_vector::erase(begin * 6, end * 6, queue);
-
-	this->m_position.erase(this->m_position.begin() + begin, this->m_position.begin() + end);
-	this->m_size.erase(this->m_size.begin() + begin, this->m_size.begin() + end);
-}
-
-// 0 left right, 1 top right, 2 bottom left, 3 bottom right
-fan_2d::graphics::rectangle_corners_t fan_2d::graphics::rectangle::get_corners(uint_t i) const
-{
-	return fan_2d::graphics::rectangle_corners_t{
-		this->get_vertices(i * 6), this->get_vertices(i * 6 + 1),
-		this->get_vertices(i * 6 + 4), this->get_vertices(i * 6 + 5)
-	};
-}
-
-fan::vec2 fan_2d::graphics::rectangle::get_center(uint_t i) const
-{
-	auto corners = this->get_corners(i);
-	return corners[0] + (corners[3] - corners[0]) / 2;
-}
-
-f_t fan_2d::graphics::rectangle::get_rotation(uint_t i) const
-{	
-	return m_rotation[i];
+	color_t::erase(begin, end, false);
+	position_t::erase(begin, end, false);
+	size_t::erase(begin, end, false);
+	angle_t::erase(begin, end, false);
 }
 
 fan::vec2 get_transformed_point(fan::vec2 input, float a) {
@@ -587,128 +569,114 @@ fan::vec2 get_transformed_point(fan::vec2 input, float a) {
 	return fan::vec2(x, y);
 }
 
-// radians
-void fan_2d::graphics::rectangle::set_rotation(uint_t i, f_t angle, bool queue)
-{ // optimize by doing all this in gpu
-	if (m_rotation[i] == (angle = -fmod(angle, fan::math::two_pi))) {
-		return;
-	}
-
+// 0 top left, 1 top right, 2 bottom left, 3 bottom right
+fan_2d::graphics::rectangle_corners_t fan_2d::graphics::rectangle::get_corners(uint32_t i) const
+{
 	auto position = this->get_position(i);
 	auto size = this->get_size(i);
 
-	fan::vec2 keskipiste = position + size / 2;
+	fan::vec2 mid = position + size / 2;
+
 	auto corners = get_rectangle_corners_no_rotation(position, size);
 
-	m_rotation[i] = -angle;
+	f32_t angle = -angle_t::get_value(i);
 
-	fan::vec2 top_left = get_transformed_point(corners[0] - keskipiste, angle) + keskipiste;
-	fan::vec2 top_right = get_transformed_point(corners[1] - keskipiste, angle) + keskipiste;
-	fan::vec2 bottom_left = get_transformed_point(corners[2] - keskipiste, angle) + keskipiste;
-	fan::vec2 bottom_right = get_transformed_point(corners[3] - keskipiste, angle) + keskipiste;
+	fan::vec2 top_left = get_transformed_point(corners[0] - mid, angle) + mid;
+	fan::vec2 top_right = get_transformed_point(corners[1] - mid, angle) + mid;
+	fan::vec2 bottom_left = get_transformed_point(corners[2] - mid, angle) + mid;
+	fan::vec2 bottom_right = get_transformed_point(corners[3] - mid, angle) + mid;
 
-	fan_2d::graphics::vertice_vector::set_position(i * 6 + 0, top_left);
-	fan_2d::graphics::vertice_vector::set_position(i * 6 + 1, bottom_left);
-	fan_2d::graphics::vertice_vector::set_position(i * 6 + 2, bottom_right);
-
-	fan_2d::graphics::vertice_vector::set_position(i * 6 + 3, top_left);
-	fan_2d::graphics::vertice_vector::set_position(i * 6 + 4, top_right);
-	fan_2d::graphics::vertice_vector::set_position(i * 6 + 5, bottom_right);
-
+	return { top_left, top_right, bottom_left, bottom_right };
+}
+//
+//fan::vec2 fan_2d::graphics::rectangle::get_center(uint_t i) const
+//{
+//	auto corners = this->get_corners(i);
+//	return corners[0] + (corners[3] - corners[0]) / 2;
+//}
+//
+f32_t fan_2d::graphics::rectangle::get_rotation(uint32_t i) const
+{	
+	return angle_t::m_buffer_object[i];
 }
 
-const fan::color fan_2d::graphics::rectangle::get_color(uint_t i) const
+// radians
+void fan_2d::graphics::rectangle::set_rotation(uint32_t i, f32_t angle, bool queue)
 {
-	return fan_2d::graphics::vertice_vector::get_color(i * 6);
+	angle_t::set_value(i, fmod(angle, fan::math::pi * 2), queue);
 }
 
-void fan_2d::graphics::rectangle::set_color(uint_t i, const fan::color& color, bool queue)
+const fan::color fan_2d::graphics::rectangle::get_color(uint32_t i) const
 {
-	fan_2d::graphics::vertice_vector::set_color(i * 6 + 0, color, true);
-	fan_2d::graphics::vertice_vector::set_color(i * 6 + 1, color, true);
-	fan_2d::graphics::vertice_vector::set_color(i * 6 + 2, color, true);
-
-	fan_2d::graphics::vertice_vector::set_color(i * 6 + 3, color, true);
-	fan_2d::graphics::vertice_vector::set_color(i * 6 + 4, color, true);
-	fan_2d::graphics::vertice_vector::set_color(i * 6 + 5, color, true);
-
-	if (!queue) {
-		fan_2d::graphics::vertice_vector::release_queue(false, true, false);
-	}
+	return color_t::m_buffer_object[i];
 }
 
-fan::vec2 fan_2d::graphics::rectangle::get_position(uint_t i) const
+void fan_2d::graphics::rectangle::set_color(uint32_t i, const fan::color& color, bool queue)
 {
-	return m_position[i];
+	color_t::set_value(i, color, queue);
 }
 
-void fan_2d::graphics::rectangle::set_position(uint_t i, const fan::vec2& position, bool queue)
+fan::vec2 fan_2d::graphics::rectangle::get_position(uint32_t i) const
 {
-	const fan::vec2 offset = position - this->get_position(i);
-
-	if (!offset) {
-		return;
-	}
-
-	this->m_position[i] = position;
-
-	for (int j = 0; j < 6; j++) {
-		fan_2d::graphics::vertice_vector::set_position(i * 6 + j, fan_2d::graphics::vertice_vector::get_position(i * 6 + j) + offset, true);
-	}
-
-	if (!queue) {
-		fan_2d::graphics::vertice_vector::release_queue(true, false, false);
-	}
+	return position_t::get_value(i);
 }
 
-fan::vec2 fan_2d::graphics::rectangle::get_size(uint_t i) const
+void fan_2d::graphics::rectangle::set_position(uint32_t i, const fan::vec2& position, bool queue)
 {
-	return m_size[i];
+	position_t::set_value(i, position);
 }
 
-void fan_2d::graphics::rectangle::set_size(uint_t i, const fan::vec2& size, bool queue)
+fan::vec2 fan_2d::graphics::rectangle::get_size(uint32_t i) const
 {
-	const fan::vec2 offset = size - this->get_size(i);
+	return size_t::get_value(i);
+}
 
-	m_size[i] = size;
-
-	fan_2d::graphics::vertice_vector::set_position(i * 6 + 1, fan_2d::graphics::vertice_vector::get_position(i * 6 + 1) + fan::vec2(0, offset.y), true);
-	fan_2d::graphics::vertice_vector::set_position(i * 6 + 2, fan_2d::graphics::vertice_vector::get_position(i * 6 + 2) + offset, true);
-
-	fan_2d::graphics::vertice_vector::set_position(i * 6 + 4, fan_2d::graphics::vertice_vector::get_position(i * 6 + 4) + fan::vec2(offset.x, 0), true);
-	fan_2d::graphics::vertice_vector::set_position(i * 6 + 5, fan_2d::graphics::vertice_vector::get_position(i * 6 + 5) + offset, true);
-
-	if (!queue) {
-		fan_2d::graphics::vertice_vector::release_queue(true, false, false);
-	}
+void fan_2d::graphics::rectangle::set_size(uint32_t i, const fan::vec2& size, bool queue)
+{
+	size_t::set_value(i, size, queue);
 }
 
 uint_t fan_2d::graphics::rectangle::size() const
 {
-	return this->m_position.size();
+	return position_t::size();
 }
 
-void fan_2d::graphics::rectangle::release_queue(bool rectangle, bool color)
+void fan_2d::graphics::rectangle::release_queue(bool position, bool size, bool angle, bool color)
 {
-	if (rectangle) {
-		fan_2d::graphics::vertice_vector::release_queue(true, false, true);
+	if (position) {
+		position_t::write_data();
+	}
+	if (size) {
+		size_t::write_data();
+	}
+	if (angle) {
+		angle_t::write_data();
 	}
 	if (color) {
-		fan_2d::graphics::vertice_vector::release_queue(false, true, false);
+		color_t::write_data();
 	}
 }
 
 bool fan_2d::graphics::rectangle::inside(uint_t i, const fan::vec2& position) const {
 
 	auto corners = get_corners(i);
-
+	
 	return fan_2d::collision::rectangle::point_inside(corners[0], corners[1], corners[2], corners[3], position == fan::math::inf ? fan::cast<fan::vec2::value_type>(this->m_camera->m_window->get_mouse_position()) : position);
 }
 
-fan::vec2 fan_2d::graphics::rectangle::get_vertices(uint32_t i) const
-{
-	return vertice_vector::m_position[i];
-}
+//void fan_2d::graphics::rectangle::set_draw_order(draw_mode mode) {
+//	for (int i = 0; i < ebo_t::size(); i++) {
+//		ebo_t::m_buffer_object[i] = mode == draw_mode::no_draw ? primitive_restart : i;
+//	}
+//	ebo_t::write_data();
+//}
+
+//void fan_2d::graphics::rectangle::set_draw_order(uint32_t i, draw_mode mode) {
+//	for (int j = 0; j < 6; j++) {
+//		ebo_t::m_buffer_object[i * 6 + j] = mode == draw_mode::no_draw ? primitive_restart : i * 6 + j;
+//	}
+//	ebo_t::write_data();
+//}
 
 fan_2d::graphics::rounded_rectangle::rounded_rectangle(fan::camera* camera) : fan_2d::graphics::vertice_vector(camera) { }
 
@@ -1121,25 +1089,6 @@ uint_t fan_2d::graphics::circle::size() const
 	return this->m_position.size();
 }
 
-/*
-
-void fan_2d::graphics::rectangle::erase(uint_t i, bool queue)
-{
-fan_2d::graphics::vertice_vector::erase(i * 6, i * 6 + 6, queue);
-
-this->m_position.erase(this->m_position.begin() + i);
-this->m_size.erase(this->m_size.begin() + i);
-}
-
-void fan_2d::graphics::rectangle::erase(uint_t begin, uint_t end, bool queue)
-{
-fan_2d::graphics::vertice_vector::erase(begin * 6, end * 6, queue);
-
-this->m_position.erase(this->m_position.begin() + begin, this->m_position.begin() + end);
-this->m_size.erase(this->m_size.begin() + begin, this->m_size.begin() + end);
-}
-*/
-
 void fan_2d::graphics::circle::erase(uint_t i, bool queue) {
 	fan_2d::graphics::vertice_vector::erase(i * m_segments, i * m_segments + m_segments, queue);
 
@@ -1155,7 +1104,16 @@ void fan_2d::graphics::circle::erase(uint_t begin, uint_t end, bool queue) {
 }
 
 fan_2d::graphics::sprite::sprite(fan::camera* camera, const std::string& path) 
-	: fan_2d::graphics::rectangle(camera), m_screen_shader(shader_paths::shape_vector_vs, shader_paths::shape_vector_fs), m_amount_of_textures(0) {
+	: fan_2d::graphics::rectangle(camera, fan::shader(shader_paths::sprite_vs, shader_paths::sprite_fs)), 
+	m_screen_shader(shader_paths::shape_vector_vs, shader_paths::shape_vector_fs), m_amount_of_textures(0) {
+
+	//rectangle
+	fan::bind_vao(fan::vao_handler<>::m_buffer_object, [&] {
+		position_t::initialize_buffers(m_shader.m_id, location_position, true, position_t::value_type::size());
+		size_t::initialize_buffers(m_shader.m_id, location_size, true, size_t::value_type::size());
+		angle_t::initialize_buffers(m_shader.m_id, location_angle, true, 1);
+	});
+
 	auto info = fan_2d::graphics::load_image(path);
 
 	m_amount_of_textures++;
@@ -1166,19 +1124,12 @@ fan_2d::graphics::sprite::sprite(fan::camera* camera, const std::string& path)
 
 	m_original_image_size = info.size;
 
-	fan::bind_vao(fan_2d::graphics::sprite::vao_handler::m_buffer_object, [&] {
-		fan_2d::graphics::sprite::vbo_handler::initialize_buffers(nullptr, 0, false, 2, sprite::m_shader.m_id, m_texture_coordiantes_attribute_name);
-	});
-
 }
 
 fan_2d::graphics::sprite::sprite(fan::camera* camera) 
 	: fan_2d::graphics::rectangle(camera), m_screen_shader(shader_paths::shape_vector_vs, shader_paths::shape_vector_fs), m_amount_of_textures(0)
 {
-	this->initialize_buffers({ 800, 600 });
-	fan::bind_vao(fan_2d::graphics::sprite::vao_handler::m_buffer_object, [&] {
-		fan_2d::graphics::sprite::vbo_handler::initialize_buffers(nullptr, 0, false, 2, sprite::m_shader.m_id, m_texture_coordiantes_attribute_name);
-	});
+	//this->initialize_buffers({ 800, 600 });
 }
 
 fan_2d::graphics::sprite::sprite(fan::camera* camera, const std::string& path, const fan::vec2& position, const fan::vec2& size)
@@ -1197,10 +1148,6 @@ fan_2d::graphics::sprite::sprite(fan::camera* camera, const std::string& path, c
 	m_texture_offsets.emplace_back(0);
 
 	m_original_image_size = info.size;
-
-	fan::bind_vao(fan_2d::graphics::sprite::vao_handler::m_buffer_object, [&] {
-		fan_2d::graphics::sprite::vbo_handler::initialize_buffers(nullptr, 0, false, 2, sprite::m_shader.m_id, m_texture_coordiantes_attribute_name);
-	});
 }
 
 fan_2d::graphics::sprite::sprite(fan::camera* camera, unsigned char* pixels, const fan::vec2& position, const fan::vec2i& size)
@@ -1218,20 +1165,12 @@ fan_2d::graphics::sprite::sprite(fan::camera* camera, unsigned char* pixels, con
 	m_texture_offsets.emplace_back(0);
 
 	m_original_image_size = info.size;
-
-	fan::bind_vao(fan_2d::graphics::sprite::vao_handler::m_buffer_object, [&] {
-		fan_2d::graphics::sprite::vbo_handler::initialize_buffers(nullptr, 0, false, 2, sprite::m_shader.m_id, m_texture_coordiantes_attribute_name);
-	});
 }
 
 fan_2d::graphics::sprite::sprite(fan::camera* camera, uint32_t texture_id, const fan::vec2& position, const fan::vec2& size)
 	: fan_2d::graphics::rectangle(camera), m_screen_shader(shader_paths::shape_vector_vs, shader_paths::shape_vector_fs), m_amount_of_textures(0)
 {
 	this->push_back(texture_id, position, size);
-
-	fan::bind_vao(fan_2d::graphics::sprite::vao_handler::m_buffer_object, [&] {
-		fan_2d::graphics::sprite::vbo_handler::initialize_buffers(nullptr, 0, false, 2, sprite::m_shader.m_id, m_texture_coordiantes_attribute_name);
-	});
 }
 
 fan_2d::graphics::sprite::sprite(const fan_2d::graphics::sprite& sprite)
@@ -1239,8 +1178,7 @@ fan_2d::graphics::sprite::sprite(const fan_2d::graphics::sprite& sprite)
 	fan_2d::graphics::rectangle(sprite),
 	fan::texture_handler<1>(sprite),
 	fan::render_buffer_handler<>(sprite),
-	fan::frame_buffer_handler<>(sprite),
-	fan::vbo_handler<>(sprite)
+	fan::frame_buffer_handler<>(sprite)
 {
 	m_screen_shader = sprite.m_screen_shader;
 	m_transparency = sprite.m_transparency;
@@ -1256,8 +1194,7 @@ fan_2d::graphics::sprite::sprite(fan_2d::graphics::sprite&& sprite) noexcept
 
 	fan::texture_handler<1>(std::move(sprite)),
 	fan::render_buffer_handler<>(std::move(sprite)),
-	fan::frame_buffer_handler<>(std::move(sprite)),
-	fan::vbo_handler<>(std::move(sprite))
+	fan::frame_buffer_handler<>(std::move(sprite))
 {
 	m_screen_shader = std::move(sprite.m_screen_shader);
 	m_transparency = std::move(sprite.m_transparency);
@@ -1274,7 +1211,6 @@ fan_2d::graphics::sprite& fan_2d::graphics::sprite::operator=(const fan_2d::grap
 	fan::texture_handler<1>::operator=(sprite);
 	fan::render_buffer_handler<>::operator=(sprite);
 	fan::frame_buffer_handler<>::operator=(sprite);
-	fan::vbo_handler<>::operator=(sprite);
 
 	m_screen_shader = sprite.m_screen_shader;
 	m_transparency = sprite.m_transparency;
@@ -1293,7 +1229,6 @@ fan_2d::graphics::sprite& fan_2d::graphics::sprite::operator=(fan_2d::graphics::
 	fan::texture_handler<1>::operator=(std::move(sprite));
 	fan::render_buffer_handler<>::operator=(std::move(sprite));
 	fan::frame_buffer_handler<>::operator=(std::move(sprite));
-	fan::vbo_handler<>::operator=(std::move(sprite));
 
 	m_screen_shader = std::move(sprite.m_screen_shader);
 	m_transparency = std::move(sprite.m_transparency);
@@ -1312,16 +1247,16 @@ fan_2d::graphics::sprite::~sprite()
 
 void fan_2d::graphics::sprite::reload_sprite(uint32_t i, const std::string& path, const fan::vec2& size)
 {
-		uint32_t new_texture = 0;
+	uint32_t new_texture = 0;
 
-		glGenTextures(1, &new_texture);
+	glGenTextures(1, &new_texture);
 
-		m_textures.emplace_back(new_texture);
+	m_textures.emplace_back(new_texture);
 
-		m_amount_of_textures++;
+	m_amount_of_textures++;
 
-		auto image_info = load_image(m_textures[i], path);
-		this->set_size(i, !size ? fan::cast<fan::vec2::value_type>(image_info.size) : size);
+	auto image_info = load_image(m_textures[i], path);
+	this->set_size(i, !size ? fan::cast<fan::vec2::value_type>(image_info.size) : size);
 }
 
 void fan_2d::graphics::sprite::reload_sprite(uint32_t i, unsigned char* pixels, const fan::vec2i& size) // fix
@@ -1363,12 +1298,6 @@ void fan_2d::graphics::sprite::push_back(const fan::vec2& position, const fan::v
 	m_transparency.emplace_back(1);
 	
 	fan_2d::graphics::rectangle::push_back(position, size, 0, queue);
-
-	auto textures = this->get_texture_coordinates();
-
-	if (!queue) {
-		sprite::vbo_handler::write_data(textures.data(), sizeof(fan::vec2) * textures.size());
-	}
 }
 
 void fan_2d::graphics::sprite::push_back(uint32_t texture_id, const fan::vec2& position, const fan::vec2& size, bool queue)
@@ -1383,11 +1312,6 @@ void fan_2d::graphics::sprite::push_back(uint32_t texture_id, const fan::vec2& p
 	m_textures.emplace_back(texture_id);
 	//std::sort(m_textures.begin(), m_textures.end());
 
-	auto textures = this->get_texture_coordinates();
-
-	if (!queue) {
-		sprite::vbo_handler::write_data(textures.data(), sizeof(fan::vec2) * textures.size());
-	}
 }
 
 void fan_2d::graphics::sprite::draw(uint32_t begin, uint32_t end) const
@@ -1439,7 +1363,6 @@ void fan_2d::graphics::sprite::draw(uint32_t begin, uint32_t end) const
 //	fan_2d::graphics::vertice_vector::draw(GL_TRIANGLES, 6, 0, 0, true);
 
 	this->m_shader.use();
-	this->m_shader.set_bool("enable_texture", true);
 
 	uint32_t real_begin = begin == (uint32_t)fan::uninitialized ? 0 : begin;
 	uint32_t real_end = end == (uint32_t)fan::uninitialized ? this->size() : end;
@@ -1449,7 +1372,7 @@ void fan_2d::graphics::sprite::draw(uint32_t begin, uint32_t end) const
 		glActiveTexture(GL_TEXTURE0 + j);
 		glBindTexture(GL_TEXTURE_2D, m_textures[(begin == (uint32_t)fan::uninitialized ? 0 : begin) + j]);
 
-		fan_2d::graphics::vertice_vector::draw(GL_TRIANGLES, 6, j, fan::uninitialized, true);
+		fan_2d::graphics::rectangle::draw(j);
 	}
 
 }
@@ -1477,55 +1400,48 @@ void fan_2d::graphics::sprite::initialize_buffers(const fan::vec2& size) {
 	});
 }
 
-std::vector<fan::vec2> fan_2d::graphics::sprite::get_texture_coordinates() const {
-	std::vector<fan::vec2> coordinates(this->size() * 6);
-
-	for (int i = 0; i < coordinates.size(); i++) {
-		coordinates[i] = m_texture_coordinates[i % std::size(m_texture_coordinates)];
-	}
-
-	return coordinates;
-}
-
-fan_2d::graphics::sprite_sheet::sprite_sheet(fan::camera* camera, uint32_t time)
-	: fan_2d::graphics::sprite(camera), current_sheet(0) {
-	sheet_timer = fan::timer<>(fan::timer<>::start(), time);
-}
-
-void fan_2d::graphics::sprite_sheet::draw() {
-
-	fan_2d::graphics::sprite::draw(current_sheet, current_sheet);
-
-	if (sheet_timer.finished()) {
-
-		current_sheet = (current_sheet + 1) % size();
-
-		sheet_timer.restart();
-	}
-
-}
-
-//fan_2d::graphics::rope::rope(fan::camera* camera)
-//	: fan_2d::graphics::line(camera) {}
-
-//void fan_2d::graphics::rope::push_back(const std::vector<std::pair<fan::vec2, fan::vec2>>& joints, const fan::color& color, bool queue)
-//{
-//	for (int i = 0; i < joints.size(); i++) {
-//		fan_2d::graphics::line::push_back(joints[i].first, joints[i].second, color, true);
+//
+//fan_2d::graphics::sprite_sheet::sprite_sheet(fan::camera* camera, uint32_t time)
+//	: fan_2d::graphics::sprite(camera), current_sheet(0) {
+//	sheet_timer = fan::timer<>(fan::timer<>::start(), time);
+//}
+//
+//void fan_2d::graphics::sprite_sheet::draw() {
+//
+//	fan_2d::graphics::sprite::draw(current_sheet, current_sheet);
+//
+//	if (sheet_timer.finished()) {
+//
+//		current_sheet = (current_sheet + 1) % size();
+//
+//		sheet_timer.restart();
 //	}
 //
-//	fan_2d::graphics::line::release_queue(!queue, !queue);
 //}
-
+//
+////fan_2d::graphics::rope::rope(fan::camera* camera)
+////	: fan_2d::graphics::line(camera) {}
+//
+////void fan_2d::graphics::rope::push_back(const std::vector<std::pair<fan::vec2, fan::vec2>>& joints, const fan::color& color, bool queue)
+////{
+////	for (int i = 0; i < joints.size(); i++) {
+////		fan_2d::graphics::line::push_back(joints[i].first, joints[i].second, color, true);
+////	}
+////
+////	fan_2d::graphics::line::release_queue(!queue, !queue);
+////}
+//
 fan_2d::graphics::particles::particles(fan::camera* camera)
-	: rectangle(camera) { }
+	: rectangle(camera) {
+	m_shader = fan::shader(fan_2d::graphics::shader_paths::shape_vector_vs, fan_2d::graphics::shader_paths::shape_vector_fs);
+}
 
-void fan_2d::graphics::particles::push_back(const fan::vec2& position, const fan::vec2& size, f32_t angle, f32_t angle_velocity, const fan::vec2& velocity, const fan::color& color, uint_t time)
+void fan_2d::graphics::particles::push_back(const fan::vec2& position, const fan::vec2& size, f32_t angle, f32_t angle_velocity, const fan::vec2& velocity, const fan::color& color, uint_t time, bool queue)
 {
 	fan_2d::graphics::rectangle::push_back(position, size, color, true);
 	this->set_rotation(this->size() - 1, angle, true);
 
-	this->release_queue(true, true);
+	this->release_queue(!queue, !queue, !queue, !queue);
 
 	this->m_particles.push_back({ angle_velocity, velocity, fan::timer(fan::timer<>::start(), time) });
 }
@@ -1541,7 +1457,7 @@ void fan_2d::graphics::particles::update()
 		this->set_position(i, this->get_position(i) + this->m_particles[i].m_velocity * m_camera->m_window->get_delta_time(), true);
 		this->set_rotation(i, this->get_rotation(i) + this->m_particles[i].m_angle_velocity * m_camera->m_window->get_delta_time(), true);
 	}
-	this->release_queue(true, false);
+	this->release_queue(true, false, true, false);
 }
 
 void fan_3d::graphics::add_camera_rotation_callback(fan::camera* camera) {

@@ -22,7 +22,7 @@ fan_2d::graphics::gui::rectangle::rectangle(fan::camera* camera)
 			this->set_position(i, this->get_position(i) + fan::vec2(offset.x, 0), true);
 		}
 
-		this->release_queue(true, false);
+		this->release_queue(true, true, true, false);
 	});
 }
 

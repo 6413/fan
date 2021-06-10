@@ -709,16 +709,14 @@ void fan::window::set_window_storage(const fan::window_t& window, const std::str
 	m_window_storage.insert_or_assign(std::make_pair(window, location), data);
 }
 
-std::deque<fan::window::keys_callback_t>::iterator fan::window::add_keys_callback(const keys_callback_t& function)
+void fan::window::set_keys_callback(const keys_callback_t& function)
 {
-	this->m_keys_callback.emplace_back(function);
-
-	return this->m_keys_callback.end() - 1;
+	this->m_keys_callback = function;
 }
 
-void fan::window::remove_keys_callback(std::deque<keys_callback_t>::const_iterator it)
+void fan::window::remove_keys_callback()
 {
-	this->m_keys_callback.erase(it);
+	this->m_keys_callback = 0;
 }
 
 std::deque<fan::window::key_callback_t>::iterator fan::window::add_key_callback(uint16_t key, const std::function<void()>& function, bool on_release)
@@ -1846,10 +1844,8 @@ void fan::window::handle_events() {
 
 				window->m_current_key = key;
 
-				for (auto& i : window->m_keys_callback) {
-					if (i) {
-						i(key);
-					}
+				if (window->m_keys_callback) {
+					window->m_keys_callback(key);
 				}
 
 				break;
@@ -1876,7 +1872,7 @@ void fan::window::handle_events() {
 
 						bool found = false;
 
-						for (auto i : m_banned_keys) {
+						for (auto i : banned_keys) {
 							if (fan_key == i) {
 
 								found = true;
@@ -2243,10 +2239,8 @@ void fan::window::handle_events() {
 
 				window->m_current_key = key;
 
-				for (auto& i : window->m_keys_callback) {
-					if (i) {
-						i(key);
-					}
+				if (window->m_keys_callback) {
+					window->m_keys_callback(key);
 				}
 
 				KeySym keysym;
@@ -2263,7 +2257,7 @@ void fan::window::handle_events() {
 
 				bool found = false;
 
-				for (auto i : m_banned_keys) {
+				for (auto i : banned_keys) {
 					if (key == i) {
 						found = true;
 						break;

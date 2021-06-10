@@ -10,10 +10,10 @@
 #include <assimp/Importer.hpp>
 
 #ifdef FAN_PLATFORM_WINDOWS
-	#pragma comment(lib, "assimp.lib")
+	#pragma comment(lib, "lib/assimp/assimp.lib")
 #endif
 
-constexpr f64_t meters_in_pixels = 100;
+constexpr f32_t meter_scale = 100;
 
 namespace fan {
 
@@ -76,6 +76,14 @@ namespace fan_2d {
 
 			constexpr auto shape_vector_vs("glsl/2D/shape_vector.vs");
 			constexpr auto shape_vector_fs("glsl/2D/shapes.fs");
+
+			constexpr auto particles_vs("glsl/2D/particles.vs");
+
+			constexpr auto shape_vector_rectangle_vs("glsl/2D/rectangle.vs");
+			constexpr auto shape_vector_rectangle_fs("glsl/2D/rectangle.fs");
+
+			constexpr auto sprite_vs("glsl/2D/sprite.vs");
+			constexpr auto sprite_fs("glsl/2D/sprite.fs");
 		}
 
 		fan::mat4 get_projection(const fan::vec2i& window_size);
@@ -199,61 +207,78 @@ namespace fan_2d {
 
 		fan_2d::graphics::line create_grid(fan::camera* camera, const fan::vec2i& block_size, const fan::vec2i& grid_size, const fan::color& color);
 
-		struct rectangle : protected fan_2d::graphics::vertice_vector{
+		enum class draw_mode {
+			no_draw,
+			draw
+		};
+
+		struct rectangle : 
+			protected fan::buffer_object<fan::color, 0>,
+			protected fan::buffer_object<fan::vec2, 1>, 
+			protected fan::buffer_object<fan::vec2, 2>,
+			protected fan::buffer_object<f32_t, 3>,
+			protected fan::vao_handler<>
+			//protected fan::buffer_object<uint32_t, 0, true, fan::opengl_buffer_type::buffer_object, false, GL_ELEMENT_ARRAY_BUFFER> 
+		{
+
+			using color_t = fan::buffer_object<fan::color, 0>;
+			using position_t = fan::buffer_object<fan::vec2, 1>;
+			using size_t = fan::buffer_object<fan::vec2, 2>;
+			using angle_t = fan::buffer_object<f32_t, 3>;
+			//using ebo_t = fan::buffer_object<uint32_t, 0, true, fan::opengl_buffer_type::buffer_object, false, GL_ELEMENT_ARRAY_BUFFER>;
 
 			rectangle(fan::camera* camera);
 
-			rectangle(const rectangle& rectangle_);
-			rectangle(rectangle&& rectangle_) noexcept;
+			void push_back(const fan::vec2& position, const fan::vec2& size, const fan::color& color, f32_t angle = 0, bool queue = false);
 
-			rectangle& operator=(const rectangle& rectangle_);
-			rectangle& operator=(rectangle&& rectangle_) noexcept;
+			void reserve(uint32_t size);
+			void resize(uint32_t size, const fan::color& color);
 
-			void push_back(const fan::vec2& position, const fan::vec2& size, const fan::color& color, bool queue = false);
+			void draw(uint32_t i = fan::uninitialized) const;
 
-			void reserve(uint_t size);
-			void resize(uint_t size, const fan::color& color);
+			void erase(uint32_t i);
+			void erase(uint32_t begin, uint32_t end);
 
-			void draw(uint32_t begin = fan::uninitialized, uint32_t end = fan::uninitialized) const;
+			rectangle_corners_t get_corners(uint32_t i = 0) const;
 
-			void erase(uint_t i, bool queue = false);
-			void erase(uint_t begin, uint_t end, bool queue = false);
+			fan::vec2 get_center(uint32_t i = 0) const;
 
-			rectangle_corners_t get_corners(uint_t i = 0) const;
+			f32_t get_rotation(uint32_t i = 0) const;
+			void set_rotation(uint32_t i, f32_t angle, bool queue = false);
 
-			fan::vec2 get_center(uint_t i = 0) const;
+			const fan::color get_color(uint32_t i = 0) const;
+			void set_color(uint32_t i, const fan::color& color, bool queue = false);
 
-			f_t get_rotation(uint_t i = 0) const;
-			void set_rotation(uint_t i, f_t angle, bool queue = false);
+			fan::vec2 get_position(uint32_t i = 0) const;
+			void set_position(uint32_t i, const fan::vec2& position, bool queue = false);
 
-			const fan::color get_color(uint_t i = 0) const;
-			void set_color(uint_t i, const fan::color& color, bool queue = false);
-
-			fan::vec2 get_position(uint_t i = 0) const;
-			void set_position(uint_t i, const fan::vec2& position, bool queue = false);
-
-			fan::vec2 get_size(uint_t i = 0) const;
-			void set_size(uint_t i, const fan::vec2& size, bool queue = false);
-
-			fan::vec2 move(uint_t i, f32_t speed, f32_t gravity = 0, f32_t jump_force = -800, f32_t friction = 10);
+			fan::vec2 get_size(uint32_t i = 0) const;
+			void set_size(uint32_t i, const fan::vec2& size, bool queue = false);
 
 			uint_t size() const;
 
-			void release_queue(bool rectangle, bool color);
+			void release_queue(bool position, bool size, bool angle, bool color);
 
 			bool inside(uint_t i, const fan::vec2& position = fan::math::inf) const;
 
-			fan::vec2 get_vertices(uint32_t i) const;
+			void set_draw_order(draw_mode mode);
 
-			using fan_2d::graphics::vertice_vector::m_camera;
+			//void set_draw_order(uint32_t i, draw_mode mode);
+
+			fan::camera* m_camera;
 
 		protected:
 
-			std::vector<fan::vec2> m_position;
-			std::vector<fan::vec2> m_size;
+			rectangle(fan::camera* camera, const fan::shader& shader);
 
-			std::vector<f_t> m_rotation;
+			static constexpr auto location_color = "in_color";
+			static constexpr auto location_position = "position";
+			static constexpr auto location_size = "size";
+			static constexpr auto location_angle = "angle";
 
+			static constexpr uint32_t primitive_restart = (uint32_t)-1;
+
+			fan::shader m_shader;
 		};
 
 		class rounded_rectangle : public fan_2d::graphics::vertice_vector {
@@ -336,8 +361,7 @@ namespace fan_2d {
 			protected fan_2d::graphics::rectangle,
 			public fan::texture_handler<1>, // screen texture
 			public fan::render_buffer_handler<>,
-			public fan::frame_buffer_handler<>,
-			public fan::vbo_handler<> {
+			public fan::frame_buffer_handler<> {
 
 		public:
 
@@ -370,7 +394,7 @@ namespace fan_2d {
 			using fan_2d::graphics::rectangle::get_size;
 			using fan_2d::graphics::rectangle::set_size;
 			using fan_2d::graphics::rectangle::get_position;
-			using fan_2d::graphics::rectangle::get_positions;
+
 			using fan_2d::graphics::rectangle::set_position;
 			using fan_2d::graphics::rectangle::release_queue;
 			using fan_2d::graphics::rectangle::get_rotation;
@@ -385,8 +409,6 @@ namespace fan_2d {
 
 			void initialize_buffers(const fan::vec2& size);
 
-			std::vector<fan::vec2> get_texture_coordinates() const;
-
 			fan::shader m_screen_shader;
 
 			std::vector<f_t> m_transparency;
@@ -398,19 +420,6 @@ namespace fan_2d {
 			uint32_t m_amount_of_textures;
 
 			fan::vec2 m_original_image_size;
-			
-			static constexpr auto m_texture_coordiantes_attribute_name = "texture_coordinates";
-
-			static constexpr fan::vec2 m_texture_coordinates[] = {
-
-				fan::vec2(0, 1),
-				fan::vec2(1, 1),
-				fan::vec2(1, 0),
-
-				fan::vec2(0, 1),
-				fan::vec2(0, 0),
-				fan::vec2(1, 0)
-			};
 
 		};
 
@@ -464,13 +473,16 @@ namespace fan_2d {
 				f32_t angle_velocity,
 				const fan::vec2& velocity,
 				const fan::color& color,
-				uint_t time
+				uint_t time,
+				bool queue = false
 			);
 
 			void update();
 
 			using fan_2d::graphics::rectangle::draw;
 			using fan_2d::graphics::rectangle::size;
+
+			using fan_2d::graphics::rectangle::release_queue;
 
 		private:
 
