@@ -40,19 +40,19 @@ namespace fan_2d {
 
 			base_engine(fan_2d::engine::engine_t* engine) : graphics_t(&engine->camera), physics_t(engine->world) { }
 
-			void set_rotation(uint_t i, f_t angle, bool queue = false) {
+			void set_rotation(uint_t i, f_t angle) {
 
-				graphics_t::set_rotation(i, angle, queue);
+				graphics_t::set_rotation(i, angle);
 
 				physics_t::set_rotation(i, angle);
 
 			}
 
-			void erase(uint_t i, bool queue = false) {
+			void erase(uint_t i) {
 				graphics_t::erase(i);
 				physics_t::erase(i);
 			}
-			void erase(uint_t begin, uint_t end, bool queue = false) {
+			void erase(uint_t begin, uint_t end) {
 				graphics_t::erase(begin, end);
 				physics_t::erase(begin, end);
 			}
@@ -63,16 +63,16 @@ namespace fan_2d {
 
 			using base_engine::base_engine;
 
-			void push_back(const fan::vec2& position, const fan::vec2& size, const fan::color& color, fan_2d::physics::body_type body_type, fan_2d::physics::body_property body_property = { 10, 1, 0.1 }, bool queue = false) {
+			void push_back(const fan::vec2& position, const fan::vec2& size, const fan::color& color, fan_2d::physics::body_type body_type, fan_2d::physics::body_property body_property = { 10, 1, 0.1 }) {
 
-				fan_2d::graphics::rectangle::push_back(position, size, color, queue);
+				fan_2d::graphics::rectangle::push_back(position, size, color);
 
 				fan_2d::physics::rectangle::push_back(position, size, body_type, body_property);
 
 			}
 
-			void set_position(uint_t i, const fan::vec2& position, bool queue = false) {
-				fan_2d::graphics::rectangle::set_position(i, position - this->get_size(i) / 2, queue);
+			void set_position(uint_t i, const fan::vec2& position) {
+				fan_2d::graphics::rectangle::set_position(i, position - this->get_size(i) / 2);
 
 				fan_2d::physics::rectangle::set_position(i, position);
 
@@ -93,16 +93,16 @@ namespace fan_2d {
 
 			using base_engine::base_engine;
 
-			void push_back(const fan::vec2& position, f32_t radius, const fan::color& color, fan_2d::physics::body_type body_type, fan_2d::physics::body_property body_property = { 10, 0.1, 0.1 }, bool queue = false) {
+			void push_back(const fan::vec2& position, f32_t radius, const fan::color& color, fan_2d::physics::body_type body_type, fan_2d::physics::body_property body_property = { 10, 0.1, 0.1 }) {
 
-				fan_2d::graphics::circle::push_back(position, radius, color, queue);
+				fan_2d::graphics::circle::push_back(position, radius, color);
 
 				fan_2d::physics::circle::push_back(position, radius, body_type, body_property);
 
 			}
 
-			void set_position(uint32_t i, const fan::vec2& position, bool queue = false) {
-				fan_2d::graphics::circle::set_position(i, position, queue);
+			void set_position(uint32_t i, const fan::vec2& position) {
+				fan_2d::graphics::circle::set_position(i, position);
 
 				fan_2d::physics::circle::set_position(i, position);
 			}
@@ -134,12 +134,12 @@ namespace fan_2d {
 				fan_2d::physics::rope::push_back(joints);
 			}
 
-			fan::vec2 step() {
+			/*fan::vec2 step() {
 				b2Vec2 p;
 				m_rope.Step(1.0 / 144, 6, p);
 
 				return p;
-			}
+			}*/
 
 			void update_position() {
 

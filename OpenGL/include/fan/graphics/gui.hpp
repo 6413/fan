@@ -65,7 +65,7 @@ namespace fan_2d {
 				using texture_vbo_t = fan::glsl_location_handler<1, fan::opengl_buffer_type::buffer_object, true>;
 
 				text_renderer(fan::camera* camera);
-				text_renderer(fan::camera* camera, const fan::fstring& text, const fan::vec2& position, const fan::color& text_color, f32_t font_size, const fan::color& outline_color = fan::color(-1, -1, -1, 0), bool queue = false);
+				text_renderer(fan::camera* camera, const fan::fstring& text, const fan::vec2& position, const fan::color& text_color, f32_t font_size, const fan::color& outline_color = fan::color(-1, -1, -1, 0));
 
 				text_renderer(const text_renderer& tr);
 				text_renderer(text_renderer&& tr);
@@ -75,14 +75,14 @@ namespace fan_2d {
 
 				fan::vec2 get_position(uint_t i) const;
 
-				void set_position(uint_t i, const fan::vec2& position, bool queue = false);
+				void set_position(uint_t i, const fan::vec2& position);
 
 				f32_t get_font_size(uint_t i) const;
-				void set_font_size(uint_t i, f32_t font_size, bool queue = false);
-				void set_text(uint_t i, const fan::fstring& text, bool queue = false);
-				void set_text_color(uint_t i, const fan::color& color, bool queue = false);
-				void set_text_color(uint_t i, uint_t j, const fan::color& color, bool queue = false);
-				void set_outline_color(uint_t i, const fan::color& color, bool queue = false);
+				void set_font_size(uint_t i, f32_t font_size);
+				void set_text(uint_t i, const fan::fstring& text);
+				void set_text_color(uint_t i, const fan::color& color);
+				void set_text_color(uint_t i, uint_t j, const fan::color& color);
+				void set_outline_color(uint_t i, const fan::color& color);
 
 				static fan::io::file::font_t get_letter_info(fan::fstring::value_type c, f32_t font_size);
 
@@ -107,13 +107,13 @@ namespace fan_2d {
 
 				static f32_t convert_font_size(f32_t font_size);
 
-				void insert(uint_t i, const fan::fstring& text, const fan::vec2& position, const fan::color& text_color, f32_t font_size, const fan::color& outline_color = fan::uninitialized, bool queue = false);
-				void push_back(const fan::fstring& text, const fan::vec2& position, const fan::color& text_color, f32_t font_size, const fan::color& outline_color = fan::uninitialized, bool queue = false);
+				void insert(uint_t i, const fan::fstring& text, const fan::vec2& position, const fan::color& text_color, f32_t font_size, const fan::color& outline_color = fan::uninitialized);
+				void push_back(const fan::fstring& text, const fan::vec2& position, const fan::color& text_color, f32_t font_size, const fan::color& outline_color = fan::uninitialized);
 
 				void draw() const;
 
-				void erase(uint_t i, bool queue = false);
-				void erase(uint_t begin, uint_t end, bool queue = false);
+				void erase(uint_t i);
+				void erase(uint_t begin, uint_t end);
 
 				uint_t size() const;
 

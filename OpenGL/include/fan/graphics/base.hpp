@@ -14,6 +14,22 @@ namespace fan {
 	constexpr auto GL_FLOAT_T = GL_FLOAT;
 #endif
 
+	static inline bool gpu_queue = false;
+
+	static void begin_queue() {
+		gpu_queue = true;
+	}
+
+	static void end_queue() {
+		gpu_queue = false;
+	}
+
+	static void start_queue(const std::function<void()>& function) {
+		gpu_queue = true;
+		function();
+		gpu_queue = false;
+	}
+
 	enum class opengl_buffer_type {
 		buffer_object,
 		vertex_array_object,
@@ -317,7 +333,7 @@ namespace fan {
 		buffer_object(const _Type& position) : buffer_object()
 		{
 			if constexpr (enable_vector) {
-				this->basic_push_back(position, true);
+				this->basic_push_back(position);
 			}
 			else {
 				this->m_buffer_object = position;
@@ -370,22 +386,22 @@ namespace fan {
 		enable_function_for_vector _Type get_value(uint_t i) const {
 			return this->m_buffer_object[i];
 		}
-		enable_function_for_vector void set_value(uint_t i, const _Type& value, bool queue = false) {
+		enable_function_for_vector void set_value(uint_t i, const _Type& value) {
 			this->m_buffer_object[i] = value;
 
-			if (!queue) {
+			if (!fan::gpu_queue) {
 				this->edit_data(i);
 			}
 		}
 
-		enable_function_for_vector void erase(uint_t i, bool queue = false) {
+		enable_function_for_vector void erase(uint_t i) {
 			this->m_buffer_object.erase(this->m_buffer_object.begin() + i);
 
-			if (!queue) {
+			if (!fan::gpu_queue) {
 				this->write_data();
 			}
 		}
-		enable_function_for_vector void erase(uint_t begin, uint_t end, bool queue = false) {
+		enable_function_for_vector void erase(uint_t begin, uint_t end) {
 			if (!begin && end == this->m_buffer_object.size()) {
 				this->m_buffer_object.clear();
 			}
@@ -393,7 +409,7 @@ namespace fan {
 				this->m_buffer_object.erase(this->m_buffer_object.begin() + begin, this->m_buffer_object.begin() + end);
 			}
 
-			if (!queue) {
+			if (!fan::gpu_queue) {
 				this->write_data();
 			}
 		}
@@ -413,7 +429,12 @@ namespace fan {
 
 
 		enable_function_for_vector void initialize_buffers(bool divisor, uint32_t attrib_count) {
-			buffer_object::glsl_location_handler::initialize_buffers(m_buffer_object.data(), sizeof(_Type) * m_buffer_object.size(), divisor, attrib_count);
+			if constexpr (!gl_3_0_attrib) {
+				buffer_object::glsl_location_handler::initialize_buffers(m_buffer_object.data(), sizeof(_Type) * m_buffer_object.size(), divisor, attrib_count);
+			}
+			else {
+				assert(0); // ?
+			}
 		}
 
 		enable_function_for_vector void initialize_buffers(uint_t program, const std::string& path, bool divisor, uint32_t attrib_count) {
@@ -421,9 +442,9 @@ namespace fan {
 			buffer_object::glsl_location_handler::initialize_buffers(m_buffer_object.data(), sizeof(_Type) * m_buffer_object.size(), divisor, attrib_count, program, path);
 		}
 
-		enable_function_for_vector void basic_push_back(const _Type& value, bool queue = false) {
+		enable_function_for_vector void basic_push_back(const _Type& value) {
 			this->m_buffer_object.emplace_back(value);
-			if (!queue) {
+			if (!fan::gpu_queue) {
 				this->write_data();
 			}
 		}
@@ -433,6 +454,10 @@ namespace fan {
 		}
 		enable_function_for_vector void write_data() {
 			buffer_object::glsl_location_handler::write_data(m_buffer_object.data(), sizeof(_Type) * m_buffer_object.size());
+		}
+
+		void edit_data(void* data, uint_t offset, uint_t byte_size) {
+			fan::edit_glbuffer(buffer_object::glsl_location_handler::m_buffer_object, data, offset, byte_size, gl_buffer_type, layout_location);
 		}
 
 		enable_function_for_vector auto size() const {
@@ -451,400 +476,15 @@ namespace fan {
 
 	};
 
-
-	template <bool enable_vector, typename _Vector, uint_t layout_location = 1, opengl_buffer_type buffer_type = opengl_buffer_type::buffer_object, bool gl_3_0_attrib = false>
-	class basic_shape_position : public glsl_location_handler<layout_location, buffer_type, gl_3_0_attrib> {
-	public:
-
-		basic_shape_position() : glsl_location_handler<layout_location, buffer_type, gl_3_0_attrib>() {}
-
-		basic_shape_position(const _Vector& position) : basic_shape_position()
-		{
-			if constexpr (enable_vector) {
-				this->basic_push_back(position, true);
-			}
-			else {
-				this->m_position = position;
-			}
-		}
-
-		basic_shape_position(const basic_shape_position& vector) : glsl_location_handler<layout_location, buffer_type, gl_3_0_attrib>(vector) {
-			this->m_position = vector.m_position;
-		}
-		basic_shape_position(basic_shape_position&& vector) noexcept : glsl_location_handler<layout_location, buffer_type, gl_3_0_attrib>(std::move(vector)) {
-			this->m_position = std::move(vector.m_position);
-		}
-
-		basic_shape_position& operator=(const basic_shape_position& vector) {
-			basic_shape_position::glsl_location_handler::operator=(vector);
-
-			this->m_position = vector.m_position;
-
-			return *this;
-		}
-		basic_shape_position& operator=(basic_shape_position&& vector) {
-			basic_shape_position::glsl_location_handler::operator=(std::move(vector));
-
-			this->m_position = std::move(vector.m_position);
-
-			return *this;
-		}
-
-		// ----------------------------------------------------- vector enabled functions
-
-		enable_function_for_vector void reserve(uint_t new_size) {
-			m_position.reserve(new_size);
-		}
-		enable_function_for_vector void resize(uint_t new_size) {
-			m_position.resize(new_size);
-		}
-
-		enable_function_for_vector std::vector<_Vector> get_positions() const {
-			return this->m_position;
-		}
-
-		enable_function_for_vector void set_positions(const std::vector<_Vector>& positions) {
-			this->m_position.clear();
-			this->m_position.insert(this->m_position.begin(), positions.begin(), positions.end());
-		}
-
-		enable_function_for_vector _Vector get_position(uint_t i) const {
-			return this->m_position[i];
-		}
-		enable_function_for_vector void set_position(uint_t i, const _Vector& position, bool queue = false) {
-			this->m_position[i] = position;
-
-			if (!queue) {
-				this->edit_data(i);
-			}
-		}
-
-		enable_function_for_vector void erase(uint_t i, bool queue = false) {
-			this->m_position.erase(this->m_position.begin() + i);
-
-			if (!queue) {
-				this->write_data();
-			}
-		}
-		enable_function_for_vector void erase(uint_t begin, uint_t end, bool queue = false) {
-			if (!begin && end == this->m_position.size()) {
-				this->m_position.clear();
-			}
-			else {
-				this->m_position.erase(this->m_position.begin() + begin, this->m_position.begin() + end);
-			}
-
-			if (!queue) {
-				this->write_data();
-			}
-		}
-
-		// -----------------------------------------------------
-
-		// ----------------------------------------------------- non vector enabled functions
-
-		enable_function_for_non_vector _Vector get_position() const {
-			return m_position;
-		}
-		enable_function_for_non_vector void set_position(const _Vector& position) {
-			this->m_position = position;
-		}
-
-		// -----------------------------------------------------
-
-
-		enable_function_for_vector void initialize_buffers(bool divisor) {
-			basic_shape_position::glsl_location_handler::initialize_buffers(m_position.data(), sizeof(_Vector) * m_position.size(), divisor, _Vector::size());
-		}
-
-		enable_function_for_vector void initialize_buffers(uint_t program, const std::string& path, bool divisor) {
-			basic_shape_position::glsl_location_handler::initialize_buffers(m_position.data(), sizeof(_Vector) * m_position.size(), divisor, _Vector::size(), program, path);
-		}
-
-		enable_function_for_vector void basic_push_back(const _Vector& position, bool queue = false) {
-			this->m_position.emplace_back(position);
-			if (!queue) {
-				this->write_data();
-			}
-		}
-
-		enable_function_for_vector void edit_data(uint_t i) {
-			basic_shape_position::glsl_location_handler::edit_data(i, m_position.data() + i, sizeof(_Vector));
-		}
-		enable_function_for_vector void write_data() {
-			basic_shape_position::glsl_location_handler::write_data(m_position.data(), sizeof(_Vector) * m_position.size());
-		}
-
-
-	protected:
-
-		// ----------------------------------------------------- vector enabled functions
-
-
-		// -----------------------------------------------------
-
-		std::conditional_t<enable_vector, std::vector<_Vector>, _Vector> m_position;
-
-	};
-
-	template <bool enable_vector, typename _Vector, uint_t layout_location = 2, opengl_buffer_type buffer_type = opengl_buffer_type::buffer_object>
-	class basic_shape_size : public glsl_location_handler<layout_location, buffer_type> {
-	public:
-
-		basic_shape_size()  : glsl_location_handler<layout_location, buffer_type>() {}
-		basic_shape_size(const _Vector& size): fan::basic_shape_size<enable_vector, _Vector, layout_location, buffer_type>() {
-			if constexpr (enable_vector) {
-				this->basic_push_back(size, true);
-			}
-			else {
-				this->m_size = size;
-			}
-		}
-
-		basic_shape_size(const basic_shape_size& vector) : glsl_location_handler<layout_location, buffer_type>(vector) {
-			this->m_size = vector.m_size;
-		}
-		basic_shape_size(basic_shape_size&& vector) noexcept : glsl_location_handler<layout_location, buffer_type>(std::move(vector)) {
-			this->m_size = std::move(vector.m_size);
-		}
-
-		basic_shape_size& operator=(const basic_shape_size& vector) {
-			glsl_location_handler<layout_location, buffer_type>::operator=(vector);
-
-			this->m_size = vector.m_size;
-
-			return *this;
-		}
-		basic_shape_size& operator=(basic_shape_size&& vector) noexcept {
-			glsl_location_handler<layout_location, buffer_type>::operator=(std::move(vector));
-
-			this->m_size = std::move(vector.m_size);
-
-			return *this;
-		}
-
-		// ----------------------------------------------------- vector enabled functions
-
-		enable_function_for_vector void reserve(uint_t new_size) {
-			m_size.reserve(new_size);
-		}
-		enable_function_for_vector void resize(uint_t new_size) {
-			m_size.resize(new_size);
-		}
-
-		enable_function_for_vector std::vector<_Vector> get_sizes() const {
-			return m_size;
-		}
-
-		enable_function_for_vector _Vector get_size(uint_t i) const {
-			return this->m_size[i];
-		}
-		enable_function_for_vector void set_size(uint_t i, const _Vector& size, bool queue = false) {	
-			this->m_size[i] = size;
-
-			if (!queue) {
-				this->edit_data(i);
-			}
-		}
-
-		enable_function_for_vector void erase(uint_t i, bool queue = false) {
-			this->m_size.erase(this->m_size.begin() + i);
-
-			if (!queue) {
-				this->write_data();
-			}
-		}
-		enable_function_for_vector void erase(uint_t begin, uint_t end, bool queue = false) {
-			this->m_size.erase(this->m_size.begin() + begin, this->m_size.begin() + end);
-
-			if (!queue) {
-				this->write_data();
-			}
-		}
-
-		// -----------------------------------------------------
-
-		// ----------------------------------------------------- non vector enabled functions
-
-		enable_function_for_non_vector _Vector get_size() const {
-			return m_size;
-		}
-		enable_function_for_non_vector void set_size(const _Vector& size) {
-			this->m_size = size;
-		}
-
-		// -----------------------------------------------------
-
-	protected:
-
-		// ----------------------------------------------------- vector enabled functions
-
-		enable_function_for_vector void basic_push_back(const _Vector& size, bool queue = false) {
-			this->m_size.emplace_back(size);
-
-			if (!queue) {
-				this->write_data();
-			}
-		}
-
-		enable_function_for_vector void edit_data(uint_t i) {
-			glsl_location_handler<layout_location, buffer_type>::edit_data(i, m_size.data() + i, sizeof(_Vector));
-		}
-
-		enable_function_for_vector void write_data() {
-			glsl_location_handler<layout_location, buffer_type>::write_data(m_size.data(), sizeof(_Vector) * m_size.size());
-		}
-
-		enable_function_for_vector void initialize_buffers(bool divisor) {
-			glsl_location_handler<layout_location, buffer_type>::initialize_buffers(m_size.data(), vector_byte_size(m_size), divisor, _Vector::size());
-		}
-
-		// -----------------------------------------------------
-
-		std::conditional_t<enable_vector, std::vector<_Vector>, _Vector> m_size;
-
-	};
-
-	template <bool enable_vector, uint_t layout_location = 0, opengl_buffer_type buffer_type = opengl_buffer_type::buffer_object, bool gl_3_0_attrib = false>
-	class basic_shape_color_vector : public glsl_location_handler<layout_location, buffer_type, gl_3_0_attrib> {
-	public:
-
-		basic_shape_color_vector() : basic_shape_color_vector::glsl_location_handler() {}
-		basic_shape_color_vector(const fan::color& color) : basic_shape_color_vector() {
-			if constexpr (enable_vector) {
-				basic_push_back(color, true);
-			}
-			else {
-				this->m_color = color;
-			}
-		}
-		basic_shape_color_vector(const basic_shape_color_vector& vector) : basic_shape_color_vector::glsl_location_handler(vector) {
-			this->m_color = vector.m_color;
-		}
-		basic_shape_color_vector(basic_shape_color_vector&& vector) noexcept : basic_shape_color_vector::glsl_location_handler(std::move(vector)) {
-			this->m_color = std::move(vector.m_color);
-		}
-
-		basic_shape_color_vector& operator=(const basic_shape_color_vector& vector) {
-			basic_shape_color_vector::glsl_location_handler::operator=(vector);
-
-			this->m_color = vector.m_color;
-
-			return *this;
-		}
-		basic_shape_color_vector& operator=(basic_shape_color_vector&& vector) noexcept {
-			basic_shape_color_vector::glsl_location_handler::operator=(std::move(vector));
-
-			this->m_color = std::move(vector.m_color);
-
-			return *this;
-		}
-
-		// ----------------------------------------------------- vector enabled functions
-
-		enable_function_for_vector void reserve(uint_t new_size) {
-			m_color.reserve(new_size);
-		}
-		enable_function_for_vector void resize(uint_t new_size, const fan::color& color) {
-			m_color.resize(new_size, color);
-		}
-		enable_function_for_vector void resize(uint_t new_size) {
-			m_color.resize(new_size);
-		}
-
-		enable_function_for_vector fan::color get_color(uint_t i) const {
-			return this->m_color[i];
-		}
-
-		enable_function_for_vector void set_color(uint_t i, const fan::color& color, bool queue = false) {
-			this->m_color[i] = color;
-			if (!queue) {
-				this->edit_data(i);
-			}
-		}
-
-		enable_function_for_vector void erase(uint_t i, bool queue = false) {
-			this->m_color.erase(this->m_color.begin() + i);
-
-			if (!queue) {
-				this->write_data();
-			}
-		}
-		enable_function_for_vector void erase(uint_t begin, uint_t end, bool queue = false) {
-			this->m_color.erase(this->m_color.begin() + begin, this->m_color.begin() + end);
-
-			if (!queue) {
-				this->write_data();
-			}
-		}
-
-		// -----------------------------------------------------
-
-		// ----------------------------------------------------- non vector enabled functions
-
-		enable_function_for_non_vector fan::color get_color() const {
-			return this->m_color;
-		}
-		enable_function_for_non_vector void set_color(const fan::color& color) {
-			this->m_color = color;
-		}
-
-		// -----------------------------------------------------
-
-	protected:
-
-		// ----------------------------------------------------- vector enabled functions
-
-		enable_function_for_vector void basic_push_back(const fan::color& color, bool queue = false) {
-			this->m_color.emplace_back(color);
-
-			if (!queue) {
-				this->write_data();
-			}
-		}
-
-		enable_function_for_vector void edit_data(uint_t i) {
-			basic_shape_color_vector::glsl_location_handler::edit_data(i, m_color.data() + i, sizeof(fan::color));
-		}
-		enable_function_for_vector void edit_data(void* data, uint_t offset, uint_t byte_size) {
-			basic_shape_color_vector::glsl_location_handler::edit_data(data, offset, byte_size);
-		}
-
-		enable_function_for_vector void write_data() {
-			basic_shape_color_vector::glsl_location_handler::write_data(m_color.data(), sizeof(fan::color) * m_color.size());
-		}
-
-		template<typename T = void, 
-			bool enable_function_t = gl_3_0_attrib, 
-			typename = typename 
-			std::enable_if<std::is_same<T, T>::value && 
-			enable_vector && !enable_function_t>::type 
-
-		> void initialize_buffers(bool divisor) {
-			basic_shape_color_vector::glsl_location_handler::initialize_buffers(m_color.data(), sizeof(fan::color) * m_color.size(), divisor, fan::color::size());
-		}
-
-		template<typename T = void, 
-			bool enable_function_t = gl_3_0_attrib, 
-			typename = typename
-			std::enable_if<std::is_same<T, T>::value && 
-			enable_vector && enable_function_t>::type
-		> 
-			void initialize_buffers(uint_t program, const std::string& path, bool divisor) {
-			basic_shape_color_vector::glsl_location_handler::initialize_buffers(m_color.data(), sizeof(fan::color) * m_color.size(), divisor, fan::color::size(), program, path);
-		}
-		// -----------------------------------------------------
-
-		std::conditional_t<enable_vector, std::vector<fan::color>, fan::color> m_color;
-
-	};
-
 	template <bool enable_vector, typename _Vector>
 	class basic_shape : 
-		public basic_shape_position<enable_vector, _Vector>, 
-		public basic_shape_size<enable_vector, _Vector>,
+		public fan::buffer_object<_Vector, 1, enable_vector>, 
+		public fan::buffer_object<_Vector, 2, enable_vector>,
 		public vao_handler<> {
 	public:
+
+		using basic_shape_position = fan::buffer_object<_Vector, 1, enable_vector>;
+		using basic_shape_size = fan::buffer_object<_Vector, 2, enable_vector>;
 
 		basic_shape(fan::camera* camera) : m_camera(camera) {}
 		basic_shape(fan::camera* camera, const fan::shader& shader) : m_camera(camera), m_shader(shader) { }
@@ -908,18 +548,18 @@ namespace fan {
 
 		// ----------------------------------------------------- vector enabled functions
 
-		enable_function_for_vector void basic_push_back(const _Vector& position, const _Vector& size, bool queue = false) {
-			basic_shape::basic_shape_position::basic_push_back(position, queue);
-			basic_shape::basic_shape_size::basic_push_back(size, queue);
+		enable_function_for_vector void basic_push_back(const _Vector& position, const _Vector& size) {
+			basic_shape::basic_shape_position::basic_push_back(position);
+			basic_shape::basic_shape_size::basic_push_back(size);
 		}
 
-		enable_function_for_vector void erase(uint_t i, bool queue = false) {
-			basic_shape::basic_shape_position::erase(i, queue);
-			basic_shape::basic_shape_size::erase(i, queue);
+		enable_function_for_vector void erase(uint_t i) {
+			basic_shape::basic_shape_position::erase(i);
+			basic_shape::basic_shape_size::erase(i);
 		}
-		enable_function_for_vector void erase(uint_t begin, uint_t end, bool queue = false) {
-			basic_shape::basic_shape_position::erase(begin, end, queue);
-			basic_shape::basic_shape_size::erase(begin, end, queue);
+		enable_function_for_vector void erase(uint_t begin, uint_t end) {
+			basic_shape::basic_shape_position::erase(begin, end);
+			basic_shape::basic_shape_size::erase(begin, end);
 		}
 
 		enable_function_for_vector void edit_data(uint_t i, bool position, bool size) {
@@ -970,10 +610,13 @@ namespace fan {
 
 	template <typename _Vector>
 	class basic_vertice_vector : 
-		public basic_shape_position<true, _Vector, 1, fan::opengl_buffer_type::buffer_object, true>, 
-		public basic_shape_color_vector<true, 0, fan::opengl_buffer_type::buffer_object, true>,
+		public fan::buffer_object<_Vector, 1, true, fan::opengl_buffer_type::buffer_object, true>, 
+		public fan::buffer_object<fan::color, 0, true, fan::opengl_buffer_type::buffer_object, true>,
 		public vao_handler<> {
 	public:
+
+		using basic_shape_position = fan::buffer_object<_Vector, 1, true, fan::opengl_buffer_type::buffer_object, true>;
+		using basic_shape_color_vector = fan::buffer_object<fan::color, 0, true, fan::opengl_buffer_type::buffer_object, true>;
 
 		basic_vertice_vector(fan::camera* camera, const fan::shader& shader) : m_camera(camera), m_shader(shader) {}
 		basic_vertice_vector(fan::camera* camera, const fan::shader& shader, const fan::vec2& position, const fan::color& color) 
@@ -1022,25 +665,25 @@ namespace fan {
 		}
 
 		uint_t size() const {
-			return basic_vertice_vector::basic_shape_position::m_position.size();
+			return basic_vertice_vector::basic_shape_position::size();
 		}
 
-		void erase(uint_t i, bool queue = false) {
-			basic_vertice_vector::basic_shape_position::erase(i, queue);
-			basic_vertice_vector::basic_shape_color_vector::erase(i, queue);
+		void erase(uint_t i) {
+			basic_vertice_vector::basic_shape_position::erase(i);
+			basic_vertice_vector::basic_shape_color_vector::erase(i);
 		}
-		void erase(uint_t begin, uint_t end, bool queue = false) {
-			basic_vertice_vector::basic_shape_position::erase(begin, end, queue);
-			basic_vertice_vector::basic_shape_color_vector::erase(begin, end, queue);
+		void erase(uint_t begin, uint_t end) {
+			basic_vertice_vector::basic_shape_position::erase(begin, end);
+			basic_vertice_vector::basic_shape_color_vector::erase(begin, end);
 		}
 
 		fan::camera* m_camera;
 
 	protected:
 
-		void basic_push_back(const _Vector& position, const fan::color& color, bool queue = false) {
-			basic_vertice_vector::basic_shape_position::basic_push_back(position, queue);
-			basic_vertice_vector::basic_shape_color_vector::basic_push_back(color, queue);
+		void basic_push_back(const _Vector& position, const fan::color& color) {
+			basic_vertice_vector::basic_shape_position::basic_push_back(position, fan::gpu_queue);
+			basic_vertice_vector::basic_shape_color_vector::basic_push_back(color, fan::gpu_queue);
 		}
 
 		void edit_data(uint_t i, bool position, bool color) {
@@ -1124,16 +767,16 @@ namespace fan {
 		std::vector<fan::color> get_color(uint_t i) {
 			return this->m_color[i];
 		}
-		void set_color(uint_t i, const std::vector<fan::color>& color, bool queue = false) {
+		void set_color(uint_t i, const std::vector<fan::color>& color) {
 			this->m_color[i] = color;
-			if (!queue) {
+			if (!fan::gpu_queue) {
 				write_data();
 			}
 		}
 
-		void erase(uint_t i, bool queue = false) {
+		void erase(uint_t i) {
 			this->m_color.erase(this->m_color.begin() + i);
-			if (!queue) {
+			if (!fan::gpu_queue) {
 				this->write_data();
 			}
 		}
@@ -1141,9 +784,9 @@ namespace fan {
 
 	protected:
 
-		void basic_push_back(const std::vector<fan::color>& color, bool queue = false) {
+		void basic_push_back(const std::vector<fan::color>& color) {
 			this->m_color.emplace_back(color);
-			if (!queue) {
+			if (!fan::gpu_queue) {
 				write_data();
 			}
 		}
