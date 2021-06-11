@@ -15,21 +15,21 @@ int main() {
 
 	fan_2d::engine::motor motor(&e);
 
-	fan::vec2 wheel_size(100, 10);
-	
+	fan::vec2 wheel_size(200, 10);
+
 	fan_2d::engine::circle balls(&e);
 
-	for (int i = 0; i < 200; i++) {
-		balls.push_back(i + 300, 10, fan::colors::yellow, fan_2d::physics::body_type::dynamic_body);
+	for (int i = 0; i < 50; i++) {
+		balls.push_back(i + 300, 30, fan::colors::yellow, fan_2d::physics::body_type::dynamic_body);
 	}
 
 	fan_2d::engine::rectangle wheels(&e);
 
-	wheels.push_back(car_position - fan::vec2(wheel_size.x / 2, wheel_size.y / 2), fan::vec2(100, 10), fan::colors::white, fan_2d::physics::body_type::dynamic_body);
-	wheels.push_back(car_position + fan::vec2(car_size.x, 0) - fan::vec2(wheel_size.x / 2, wheel_size.y / 2), fan::vec2(100, 10), fan::colors::white, fan_2d::physics::body_type::dynamic_body);
+	wheels.push_back(car_position - fan::vec2(wheel_size.x / 2, wheel_size.y / 2), wheel_size, fan::colors::white, fan_2d::physics::body_type::dynamic_body);
+	wheels.push_back(car_position + fan::vec2(car_size.x, 0) - fan::vec2(wheel_size.x / 2, wheel_size.y / 2), wheel_size, fan::colors::white, fan_2d::physics::body_type::dynamic_body);
 
-	wheels.push_back(car_position + fan::vec2(0, car_size.y) - fan::vec2(wheel_size.x / 2, wheel_size.y / 2), fan::vec2(100, 10), fan::colors::white, fan_2d::physics::body_type::dynamic_body);
-	wheels.push_back(car_position + fan::vec2(car_size.x, car_size.y) - fan::vec2(wheel_size.x / 2, wheel_size.y / 2), fan::vec2(100, 10), fan::colors::white, fan_2d::physics::body_type::dynamic_body);
+	wheels.push_back(car_position + fan::vec2(0, car_size.y) - fan::vec2(wheel_size.x / 2, wheel_size.y / 2), wheel_size, fan::colors::white, fan_2d::physics::body_type::dynamic_body);
+	wheels.push_back(car_position + fan::vec2(car_size.x, car_size.y) - fan::vec2(wheel_size.x / 2, wheel_size.y / 2), wheel_size, fan::colors::white, fan_2d::physics::body_type::dynamic_body);
 
 	for (int i = 0; i < wheels.size(); i++) {
 		motor.push_back(car_body.get_body(0), wheels.get_body(i));
@@ -101,7 +101,7 @@ int main() {
 		wheels.draw();
 
 		ground.draw();
-
+		
 		balls.update_position();
 
 		balls.draw();

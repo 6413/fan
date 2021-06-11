@@ -18,11 +18,21 @@ fan_2d::graphics::gui::rectangle::rectangle(fan::camera* camera)
 
 		auto offset = this->m_camera->m_window->get_size() - this->m_camera->m_window->get_previous_size();
 
+		bool write_after = !fan::gpu_queue;
+
+
+		fan::begin_queue();
+
 		for (int i = 0; i < this->size(); i++) {
-			this->set_position(i, this->get_position(i) + fan::vec2(offset.x, 0), true);
+			this->set_position(i, this->get_position(i) + fan::vec2(offset.x, 0));
+		}
+
+		if (write_after) {
+			fan::end_queue();
 		}
 
 		this->release_queue(true, true, true, false);
+
 	});
 }
 
@@ -33,8 +43,17 @@ fan_2d::graphics::gui::circle::circle(fan::camera* camera)
 
 		auto offset = this->m_camera->m_window->get_size() - this->m_camera->m_window->get_previous_size();
 
+		bool write_after = !fan::gpu_queue;
+
+
+		fan::begin_queue();
+
 		for (int i = 0; i < this->size(); i++) {
-			this->set_position(i, this->get_position(i) + fan::vec2(offset.x, 0), true);
+			this->set_position(i, this->get_position(i) + fan::vec2(offset.x, 0));
+		}
+
+		if (write_after) {
+			fan::end_queue();
 		}
 
 		this->release_queue(true, false, false);
@@ -59,10 +78,10 @@ fan_2d::graphics::gui::text_renderer::text_renderer(fan::camera* camera)
 
 }
 
-fan_2d::graphics::gui::text_renderer::text_renderer(fan::camera* camera, const fan::fstring& text, const fan::vec2& position, const fan::color& text_color, f32_t font_size, const fan::color& outline_color, bool queue)
+fan_2d::graphics::gui::text_renderer::text_renderer(fan::camera* camera, const fan::fstring& text, const fan::vec2& position, const fan::color& text_color, f32_t font_size, const fan::color& outline_color)
 	: fan_2d::graphics::gui::text_renderer::text_renderer(camera)
 {
-	this->push_back(text, position, text_color, font_size, outline_color, queue);
+	this->push_back(text, position, text_color, font_size, outline_color);
 }
 
 fan_2d::graphics::gui::text_renderer::text_renderer(const text_renderer& tr)
@@ -162,7 +181,7 @@ fan::vec2 fan_2d::graphics::gui::text_renderer::get_position(uint_t i) const {
 	return this->m_position[i];
 }
 
-void fan_2d::graphics::gui::text_renderer::set_position(uint_t i, const fan::vec2& position, bool queue)
+void fan_2d::graphics::gui::text_renderer::set_position(uint_t i, const fan::vec2& position)
 {
 
 	if (this->get_position(i) == position) {
@@ -177,7 +196,7 @@ void fan_2d::graphics::gui::text_renderer::set_position(uint_t i, const fan::vec
 
 	this->m_position[i] = position;
 
-	if (!queue) {
+	if (!fan::gpu_queue) {
 		this->write_vertices();
 	}
 }
@@ -187,7 +206,7 @@ f32_t fan_2d::graphics::gui::text_renderer::get_font_size(uint_t i) const
 	return m_font_size[i][0];
 }
 
-void fan_2d::graphics::gui::text_renderer::set_font_size(uint_t i, f32_t font_size, bool queue) {
+void fan_2d::graphics::gui::text_renderer::set_font_size(uint_t i, f32_t font_size) {
 	if (this->get_font_size(i) == font_size) {
 		return;
 	}
@@ -196,12 +215,12 @@ void fan_2d::graphics::gui::text_renderer::set_font_size(uint_t i, f32_t font_si
 
 	this->load_characters(i, this->get_position(i), m_text[i], true, false);
 
-	if (!queue) {
+	if (!fan::gpu_queue) {
 		this->write_data();
 	}
 }
 
-void fan_2d::graphics::gui::text_renderer::set_text(uint_t i, const fan::fstring& text, bool queue) {
+void fan_2d::graphics::gui::text_renderer::set_text(uint_t i, const fan::fstring& text) {
 
 	if (m_text.size() && m_text[i] == text) {
 		return;
@@ -213,44 +232,53 @@ void fan_2d::graphics::gui::text_renderer::set_text(uint_t i, const fan::fstring
 	const auto outline_color = outline_color_t::get_color(i)[0];
 	const auto font_size = this->m_font_size[i][0];
 
-	this->erase(i, true);
+	bool write_after = !fan::gpu_queue;
 
-	this->insert(i, text, position, text_color, font_size, outline_color, true);
 
-	if (!queue) {
+	fan::begin_queue();
+
+	this->erase(i);
+
+	this->insert(i, text, position, text_color, font_size, outline_color);
+
+	if (write_after) {
+		fan::end_queue();
+	}
+
+	if (!fan::gpu_queue) {
 		this->write_data();
 	}
 }
 
-void fan_2d::graphics::gui::text_renderer::set_text_color(uint_t i, const fan::color& color, bool queue)
+void fan_2d::graphics::gui::text_renderer::set_text_color(uint_t i, const fan::color& color)
 {
 	if (text_color_t::m_color[i][0] == color) {
 		return;
 	}
 	std::fill(text_color_t::m_color[i].begin(), text_color_t::m_color[i].end(), color);
-	if (!queue) {
+	if (!fan::gpu_queue) {
 		text_color_t::edit_data(i);
 	}
 }
 
-void fan_2d::graphics::gui::text_renderer::set_text_color(uint_t i, uint_t j, const fan::color& color, bool queue)
+void fan_2d::graphics::gui::text_renderer::set_text_color(uint_t i, uint_t j, const fan::color& color)
 {
 	//std::fill(&, &text_color_t::m_color[i][j] + 6, color);
 
 	text_color_t::m_color[i][j] = color;
 
-	if (!queue) {
+	if (!fan::gpu_queue) {
 		text_color_t::edit_data(i);
 	}
 }
 
-void fan_2d::graphics::gui::text_renderer::set_outline_color(uint_t i, const fan::color& color, bool queue)
+void fan_2d::graphics::gui::text_renderer::set_outline_color(uint_t i, const fan::color& color)
 {
 	if (outline_color_t::m_color[i][0] == color) {
 		return;
 	}
 	std::fill(outline_color_t::m_color[i].begin(), outline_color_t::m_color[i].end(), color);
-	if (!queue) {
+	if (!fan::gpu_queue) {
 		outline_color_t::edit_data(i);
 	}
 }
@@ -395,7 +423,7 @@ f32_t fan_2d::graphics::gui::text_renderer::convert_font_size(f32_t font_size)
 	return font_size / font_info.size;
 }
 
-void fan_2d::graphics::gui::text_renderer::push_back(const fan::fstring& text, const fan::vec2& position, const fan::color& text_color, f32_t font_size, const fan::color& outline_color, bool queue) {
+void fan_2d::graphics::gui::text_renderer::push_back(const fan::fstring& text, const fan::vec2& position, const fan::color& text_color, f32_t font_size, const fan::color& outline_color) {
 
 	m_text.emplace_back(text);
 	this->m_position.emplace_back(position);
@@ -418,12 +446,12 @@ void fan_2d::graphics::gui::text_renderer::push_back(const fan::fstring& text, c
 
 	this->load_characters(m_font_size.size() - 1, position, text, false, false);
 
-	if (!queue) {
+	if (!fan::gpu_queue) {
 		this->write_data();
 	}
 }
 
-void fan_2d::graphics::gui::text_renderer::insert(uint_t i, const fan::fstring& text, const fan::vec2& position, const fan::color& text_color, f32_t font_size, const fan::color& outline_color, bool queue)
+void fan_2d::graphics::gui::text_renderer::insert(uint_t i, const fan::fstring& text, const fan::vec2& position, const fan::color& text_color, f32_t font_size, const fan::color& outline_color)
 {
 	m_font_size.insert(m_font_size.begin() + i, std::vector<f32_t>(text.empty() ? 1 : text.size(), font_size));
 
@@ -441,7 +469,7 @@ void fan_2d::graphics::gui::text_renderer::insert(uint_t i, const fan::fstring& 
 	m_texture_coordinates.insert(m_texture_coordinates.begin() + i, std::vector<fan::vec2>(text.size() * 6));
 
 	if (text.empty()) {
-		if (!queue) {
+		if (!fan::gpu_queue) {
 			this->write_data();
 		}
 		return;
@@ -449,7 +477,7 @@ void fan_2d::graphics::gui::text_renderer::insert(uint_t i, const fan::fstring& 
 
 	this->load_characters(i, position, text, true, false);
 
-	if (!queue) {
+	if (!fan::gpu_queue) {
 		this->write_data();
 	}
 }
@@ -474,7 +502,7 @@ void fan_2d::graphics::gui::text_renderer::draw() const {
 	});
 }
 
-void fan_2d::graphics::gui::text_renderer::erase(uint_t i, bool queue) {
+void fan_2d::graphics::gui::text_renderer::erase(uint_t i) {
 	if (i >= m_vertices.size()) {
 		return;
 	}
@@ -487,12 +515,12 @@ void fan_2d::graphics::gui::text_renderer::erase(uint_t i, bool queue) {
 	outline_color_t::m_color.erase(outline_color_t::m_color.begin() + i);
 	m_text.erase(m_text.begin() + i);
 
-	if (!queue) {
+	if (!fan::gpu_queue) {
 		this->write_data();
 	}
 }
 
-void fan_2d::graphics::gui::text_renderer::erase(uint_t begin, uint_t end, bool queue) {
+void fan_2d::graphics::gui::text_renderer::erase(uint_t begin, uint_t end) {
 	m_vertices.erase(m_vertices.begin() + begin, m_vertices.begin() + end);
 	m_texture_coordinates.erase(m_texture_coordinates.begin() + begin, m_texture_coordinates.begin() + end);
 	m_font_size.erase(m_font_size.begin() + begin, m_font_size.begin() + end);
@@ -501,7 +529,7 @@ void fan_2d::graphics::gui::text_renderer::erase(uint_t begin, uint_t end, bool 
 	outline_color_t::m_color.erase(outline_color_t::m_color.begin() + begin, outline_color_t::m_color.begin() + end);
 	m_text.erase(m_text.begin() + begin, m_text.begin() + end);
 
-	if (!queue) {
+	if (!fan::gpu_queue) {
 		this->write_data();
 	}
 }
@@ -884,7 +912,7 @@ void fan_2d::graphics::gui::text_renderer::write_font_sizes()
 //		}
 //	}
 //
-//	class_duplicator<fan_2d::graphics::rectangle, 0>::push_back(properties.position, get_button_size(m_properties.size() - 1), theme.text_button.color, properties.queue);
+//	class_duplicator<fan_2d::graphics::rectangle, 0>::push_back(properties.position, get_button_size(m_properties.size() - 1), theme.text_button.color, properties.fan::gpu_queue);
 //
 //	auto corners = class_duplicator<fan_2d::graphics::rectangle, 0>::get_corners(m_properties.size() - 1);
 //
@@ -901,7 +929,7 @@ void fan_2d::graphics::gui::text_renderer::write_font_sizes()
 //	class_duplicator<fan_2d::graphics::rectangle, 1>::push_back(corners[2], fan::vec2(corners[3].x - corners[2].x + t, t), theme.text_button.outline_color, true);
 //	class_duplicator<fan_2d::graphics::rectangle, 1>::push_back(corners[0], fan::vec2(t, corners[2].y - corners[0].y + t), theme.text_button.outline_color, true);
 //	
-//	class_duplicator<fan_2d::graphics::rectangle, 1>::release_queue(!properties.queue, !properties.queue);
+//	class_duplicator<fan_2d::graphics::rectangle, 1>::release_queue(!properties.fan::gpu_queue, !properties.fan::gpu_queue);
 //}
 //
 //void fan_2d::graphics::gui::rectangle_text_button::draw(uint32_t begin, uint32_t end) const
@@ -966,10 +994,10 @@ void fan_2d::graphics::gui::text_renderer::write_font_sizes()
 //	}
 //
 //	if (properties.texture_id != (uint32_t)fan::uninitialized) {
-//		fan_2d::graphics::sprite::push_back(properties.texture_id, properties.position, get_button_size(m_properties.size() - 1), properties.queue);
+//		fan_2d::graphics::sprite::push_back(properties.texture_id, properties.position, get_button_size(m_properties.size() - 1), properties.fan::gpu_queue);
 //	}
 //	else {
-//		fan_2d::graphics::sprite::push_back(properties.position, get_button_size(m_properties.size() - 1), properties.queue);
+//		fan_2d::graphics::sprite::push_back(properties.position, get_button_size(m_properties.size() - 1), properties.fan::gpu_queue);
 //	}
 //}
 //
@@ -1034,8 +1062,8 @@ void fan_2d::graphics::gui::text_renderer::write_font_sizes()
 //
 //	fan_2d::graphics::gui::text_renderer::push_back(property.text, property.position + fan::vec2(property.font_size * property.box_size_multiplier, (text_middle_height * property.box_size_multiplier) / 2 - text_middle_height / 2  - (get_magic_size() * convert_font_size(property.font_size) - text_middle_height)), m_theme.checkbox.text_color, property.font_size);
 //
-//	fan_2d::graphics::rectangle::release_queue(!property.queue, !property.queue);
-//	fan_2d::graphics::line::release_queue(!property.queue, !property.queue);
+//	fan_2d::graphics::rectangle::release_queue(!property.fan::gpu_queue, !property.fan::gpu_queue);
+//	fan_2d::graphics::line::release_queue(!property.fan::gpu_queue, !property.fan::gpu_queue);
 //}
 //
 //void fan_2d::graphics::gui::checkbox::draw() const

@@ -148,15 +148,15 @@ namespace fan_2d {
 
 			void release_queue(bool position, bool color, bool indices);
 
-			virtual void push_back(const fan::vec2& position, const fan::color& color, bool queue = false);
+			virtual void push_back(const fan::vec2& position, const fan::color& color);
 
 			void reserve(uint_t size);
 			void resize(uint_t size, const fan::color& color);
 
 			virtual void draw(uint32_t mode, uint32_t single_draw_amount, uint32_t begin = fan::uninitialized, uint32_t end = fan::uninitialized, bool texture = false) const;
 
-			void erase(uint_t i, bool queue = false);
-			void erase(uint_t begin, uint_t end, bool queue = false);
+			void erase(uint_t i);
+			void erase(uint_t begin, uint_t end);
 
 			void initialize_buffers();
 
@@ -183,17 +183,17 @@ namespace fan_2d {
 			line& operator=(line&& line_) noexcept;
 
 			fan::mat2 get_line(uint_t i) const;
-			void set_line(uint_t i, const fan::vec2& start, const fan::vec2& end, bool queue = false);
+			void set_line(uint_t i, const fan::vec2& start, const fan::vec2& end);
 
-			void push_back(const fan::vec2& start, const fan::vec2& end, const fan::color& color, bool queue = false);
+			void push_back(const fan::vec2& start, const fan::vec2& end, const fan::color& color);
 
 			void reserve(uint_t size);
 			void resize(uint_t size, const fan::color& color);
 
 			void draw(uint_t i = fan::uninitialized) const;
 
-			void erase(uint_t i, bool queue = false);
-			void erase(uint_t begin, uint_t end, bool queue = false);
+			void erase(uint_t i);
+			void erase(uint_t begin, uint_t end);
 
 			const fan::color get_color(uint_t i) const;
 			void set_color(uint_t i, const fan::color& color);
@@ -229,7 +229,7 @@ namespace fan_2d {
 
 			rectangle(fan::camera* camera);
 
-			void push_back(const fan::vec2& position, const fan::vec2& size, const fan::color& color, f32_t angle = 0, bool queue = false);
+			void push_back(const fan::vec2& position, const fan::vec2& size, const fan::color& color, f32_t angle = 0);
 
 			void reserve(uint32_t size);
 			void resize(uint32_t size, const fan::color& color);
@@ -244,16 +244,16 @@ namespace fan_2d {
 			fan::vec2 get_center(uint32_t i = 0) const;
 
 			f32_t get_rotation(uint32_t i = 0) const;
-			void set_rotation(uint32_t i, f32_t angle, bool queue = false);
+			void set_rotation(uint32_t i, f32_t angle);
 
 			const fan::color get_color(uint32_t i = 0) const;
-			void set_color(uint32_t i, const fan::color& color, bool queue = false);
+			void set_color(uint32_t i, const fan::color& color);
 
 			fan::vec2 get_position(uint32_t i = 0) const;
-			void set_position(uint32_t i, const fan::vec2& position, bool queue = false);
+			void set_position(uint32_t i, const fan::vec2& position);
 
 			fan::vec2 get_size(uint32_t i = 0) const;
-			void set_size(uint32_t i, const fan::vec2& size, bool queue = false);
+			void set_size(uint32_t i, const fan::vec2& size);
 
 			uint_t size() const;
 
@@ -289,23 +289,23 @@ namespace fan_2d {
 			rounded_rectangle(fan::camera* camera);
 			rounded_rectangle(fan::camera* camera, const fan::vec2& position, const fan::vec2& size, f_t radius, const fan::color& color);
 
-			void push_back(const fan::vec2& position, const fan::vec2& size, f_t radius, const fan::color& color, bool queue = false);
+			void push_back(const fan::vec2& position, const fan::vec2& size, f_t radius, const fan::color& color);
 
 			fan::vec2 get_position(uint_t i) const;
-			void set_position(uint_t i, const fan::vec2& position, bool queue = false);
+			void set_position(uint_t i, const fan::vec2& position);
 
 			fan::vec2 get_size(uint_t i) const;
-			void set_size(uint_t i, const fan::vec2& size, bool queue = false);
+			void set_size(uint_t i, const fan::vec2& size);
 
 			f_t get_radius(uint_t i) const;
-			void set_radius(uint_t i, f_t radius, bool queue = false);
+			void set_radius(uint_t i, f_t radius);
 
 			void draw() const;
 
 			bool inside(uint_t i) const;
 
 			fan::color get_color(uint_t i) const;
-			void set_color(uint_t i, const fan::color& color, bool queue = false);
+			void set_color(uint_t i, const fan::color& color);
 
 			uint_t size() const;
 
@@ -313,7 +313,7 @@ namespace fan_2d {
 
 			using fan_2d::graphics::vertice_vector::push_back;
 
-			void edit_rectangle(uint_t i, bool queue = false);
+			void edit_rectangle(uint_t i);
 
 			std::vector<fan::vec2> m_position;
 			std::vector<fan::vec2> m_size;
@@ -328,25 +328,25 @@ namespace fan_2d {
 
 			circle(fan::camera* camera);
 
-			void push_back(const fan::vec2& position, f32_t radius, const fan::color& color, bool queue = false);
+			void push_back(const fan::vec2& position, f32_t radius, const fan::color& color);
 
 			fan::vec2 get_position(uint_t i) const;
-			void set_position(uint_t i, const fan::vec2& position, bool queue = false);
+			void set_position(uint_t i, const fan::vec2& position);
 
 			f32_t get_radius(uint_t i) const;
-			void set_radius(uint_t i, f32_t radius, bool queue = false);
+			void set_radius(uint_t i, f32_t radius);
 
 			void draw() const;
 
 			bool inside(uint_t i) const;
 
 			fan::color get_color(uint_t i) const;
-			void set_color(uint_t i, const fan::color& color, bool queue = false);
+			void set_color(uint_t i, const fan::color& color);
 
 			uint_t size() const;
 
-			void erase(uint_t i, bool queue = false);
-			void erase(uint_t begin, uint_t end, bool queue = false);
+			void erase(uint_t i);
+			void erase(uint_t begin, uint_t end);
 
 		protected:
 
@@ -384,8 +384,8 @@ namespace fan_2d {
 			void reload_sprite(uint32_t i, const std::string& path, const fan::vec2& size = 0);
 			void reload_sprite(uint32_t i, unsigned char* pixels, const fan::vec2i& size);
 
-			void push_back(const fan::vec2& position, const fan::vec2& size, bool queue = false);
-			void push_back(uint32_t texture_id, const fan::vec2& position, const fan::vec2& size, bool queue = false);
+			void push_back(const fan::vec2& position, const fan::vec2& size);
+			void push_back(uint32_t texture_id, const fan::vec2& position, const fan::vec2& size);
 
 			void draw(uint32_t begin = fan::uninitialized, uint32_t end = fan::uninitialized) const;
 
@@ -446,7 +446,7 @@ namespace fan_2d {
 
 		//	rope(fan::camera* camera);
 
-		//	void push_back(const std::vector<std::pair<fan::vec2, fan::vec2>>& joints, const fan::color& color, bool queue = false);
+		//	void push_back(const std::vector<std::pair<fan::vec2, fan::vec2>>& joints, const fan::color& color);
 
 		//	using fan_2d::graphics::line::draw;
 		//	using fan_2d::graphics::line::size;
@@ -473,8 +473,7 @@ namespace fan_2d {
 				f32_t angle_velocity,
 				const fan::vec2& velocity,
 				const fan::color& color,
-				uint_t time,
-				bool queue = false
+				uint_t time
 			);
 
 			void update();
@@ -520,14 +519,16 @@ namespace fan_3d {
 
 		using triangle_vertices_t = fan::vec3;
 
-		class terrain_generator : public fan::basic_shape_color_vector<true> {
+		class terrain_generator : public fan::buffer_object<fan::color, true> {
 		public:
+
+			using basic_shape_color_vector = fan::buffer_object<fan::color, true>;
 
 			terrain_generator(fan::camera* camera, const std::string& path, const f32_t texture_scale, const fan::vec3& position, const fan::vec2ui& map_size, f_t triangle_size, const fan::vec2& mesh_size);
 			~terrain_generator();
 
-			void insert(const std::vector<triangle_vertices_t>& vertices, const std::vector<fan::color>& color, bool queue = false);
-			void push_back(const triangle_vertices_t& vertices, const fan::color& color, bool queue = false);
+			void insert(const std::vector<triangle_vertices_t>& vertices, const std::vector<fan::color>& color);
+			void push_back(const triangle_vertices_t& vertices, const fan::color& color);
 
 			template <uint_t i = uint_t(-1)>
 			std::conditional_t<i == -1, std::vector<triangle_vertices_t>, triangle_vertices_t> get_vertices();
@@ -589,18 +590,18 @@ namespace fan_3d {
 			//rectangle_vector(fan::camera* camera, const fan::color& color, uint_t block_size);
 			~rectangle_vector();
 
-			void push_back(const fan::vec3& src, const fan::vec3& dst, const fan::vec2& texture_id, bool queue = false);
+			void push_back(const fan::vec3& src, const fan::vec3& dst, const fan::vec2& texture_id);
 
 			fan::vec3 get_src(uint_t i) const;
 			fan::vec3 get_dst(uint_t i) const;
 			fan::vec3 get_size(uint_t i) const;
 
-			void set_position(uint_t i, const fan::vec3& src, const fan::vec3& dst, bool queue = false);
-			void set_size(uint_t i, const fan::vec3& size, bool queue = false);
+			void set_position(uint_t i, const fan::vec3& src, const fan::vec3& dst);
+			void set_size(uint_t i, const fan::vec3& size);
 
 			void draw();
 
-			void set_texture(uint_t i, const fan::vec2& texture_id, bool queue = false);
+			void set_texture(uint_t i, const fan::vec2& texture_id);
 
 			void generate_textures(const std::string& path, const fan::vec2& block_size);
 

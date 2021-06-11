@@ -276,7 +276,7 @@ namespace fan_2d {
 				jd.Initialize(body_a, body_b, body_b->GetPosition(), b2Vec2(0.0f, 1.0f));
 
 				jd.motorSpeed = 0;
-				jd.maxMotorTorque = 1000.0f;
+				jd.maxMotorTorque = 10000;
 				jd.enableMotor = true;
 				jd.lowerTranslation = -3.0f;
 				jd.upperTranslation = 3.0f;
