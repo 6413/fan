@@ -3,7 +3,7 @@
 uint16_t fan::window_input::convert_keys_to_fan(uint16_t key) {
 	switch (key) {
 		//shifts and ctrls require lparam check for which side the button is pressed this is usually checked before converting
-		#ifdef FAN_PLATFORM_WINDOWS
+		#ifdef fan_platform_windows
 		case 0x01: { return fan::input::mouse_left; }
 		case 0x02: { return fan::input::mouse_right; }
 		case 0x04: { return fan::input::mouse_middle; }
@@ -118,7 +118,7 @@ uint16_t fan::window_input::convert_keys_to_fan(uint16_t key) {
 		case 0xA2: { return fan::input::key_left_control; }
 		case 0xA3: { return fan::input::key_right_control; }
 
-		#elif defined(FAN_PLATFORM_UNIX)
+		#elif defined(fan_platform_unix)
 
 		case 0x01: { return fan::input::mouse_left; }
 		case 0x02: { return fan::input::mouse_middle; }

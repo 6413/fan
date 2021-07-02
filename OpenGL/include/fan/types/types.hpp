@@ -99,22 +99,30 @@ namespace fan {
 	#if defined(_WIN32) || defined(_WIN64)
 
 		constexpr platform_t platform = platform_t::windows;
-		#define FAN_PLATFORM_WINDOWS
+		#define fan_platform_windows
+
+		#ifdef _MSC_VER
+			#define fan_compiler_visual_studio
+		#elif defined(__clang__)
+			#define fan_compiler_clang
+		#elif defined(__GNUC__)
+			#define fan_compiler_gcc
+		#endif
 
 	#elif defined(__linux__)
 
 		constexpr platform_t platform = platform_t::windows;
-		#define FAN_PLATFORM_LINUX
-		#define FAN_PLATFORM_UNIX
+		#define fan_platform_linux
+		#define fan_platform_unix
 
 	#elif defined(__unix__)
 
-		#define FAN_PLATFORM_UNIX
+		#define fan_platform_unix
 
 	#elif defined(__FreeBSD__)
 
-		#define FAN_PLATFORM_FREEBSD
-		#define FAN_PLATFORM_UNIX
+		#define fan_platform_freebsd
+		#define fan_platform_unix
 	
 	#endif
 
@@ -154,6 +162,9 @@ namespace fan {
 	{ \
 		function; \
 	}
+
+	// prints warning if value is -1
+	#define fan_validate_value(value, text) if (value == (decltype(value))fan::uninitialized) { }
 
 	template <typename T>
 	constexpr T clamp(T value, T min, T max) {

@@ -6,7 +6,7 @@
 
 namespace fan {
 
-	#ifdef FAN_PLATFORM_WINDOWS
+	#ifdef fan_platform_windows
 
 	#define WIN32_LEAN_AND_MEAN
 

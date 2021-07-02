@@ -5,8 +5,11 @@
 
 namespace fan {
 
+	// defaultly gets values in format 0-1f, optional functions fan::color::rgb, fan::color::hex
 	class color {
 	public:
+
+		using value_type = cf_t;
 	
 		static constexpr color rgb(cf_t r, cf_t g, cf_t b, cf_t a = 255) {
 			return color(r / 255.f, g / 255.f, b / 255.f, a / 255.f);

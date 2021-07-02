@@ -42,9 +42,9 @@ namespace fan_2d {
 
 			void set_rotation(uint_t i, f_t angle) {
 
-				graphics_t::set_rotation(i, angle);
+				graphics_t::set_angle(i, angle);
 
-				physics_t::set_rotation(i, angle);
+				physics_t::set_angle(i, angle);
 
 			}
 
@@ -64,7 +64,7 @@ namespace fan_2d {
 			using base_engine::base_engine;
 
 			void push_back(const fan::vec2& position, const fan::vec2& size, const fan::color& color, fan_2d::physics::body_type body_type, fan_2d::physics::body_property body_property = { 10, 1, 0.1 }) {
-
+				
 				fan_2d::graphics::rectangle::push_back(position, size, color);
 
 				fan_2d::physics::rectangle::push_back(position, size, body_type, body_property);
@@ -119,11 +119,11 @@ namespace fan_2d {
 
 		struct rope : public base_engine<fan_2d::graphics::line, fan_2d::physics::rope>{
 
-			rope(engine_t* engine, const fan::vec2& position, fan_2d::physics::body_type body_type_) : base_engine(engine) {
+			rope(engine_t* engine) : base_engine(engine) {
 
 			}
 
-			void push_back(std::vector<fan::vec2>& joints, const fan::color& color) {
+			void push_back(std::vector<b2Vec2>& joints, const fan::color& color) {
 
 				fan_2d::graphics::line::push_back(joints[0], joints[1], color);
 
@@ -134,43 +134,43 @@ namespace fan_2d {
 				fan_2d::physics::rope::push_back(joints);
 			}
 
-			/*fan::vec2 step() {
-				b2Vec2 p;
-				m_rope.Step(1.0 / 144, 6, p);
+			fan::vec2 step(f32_t time_step) {
+				b2Vec2 p(0, 0);
+				m_rope.Step(time_step, 6, p);
 
 				return p;
-			}*/
+			}
 
 			void update_position() {
 
-				//for (int i = 0; i < fan_2d::graphics::line::size(); i++) {
-				//	fan_2d::graphics::line::set_line(
-				//		i, 
-				//		fan::vec2(fan_2d::physics::rope::rectangle::get_body(i)->GetPosition()) * meters_in_pixels,
-				//		fan::vec2(fan_2d::physics::rope::rectangle::get_body(i + 1)->GetPosition()) * meters_in_pixels
-				//	);
-				//}
+				for (int i = 0; i < fan_2d::graphics::line::size(); i++) {
+					fan_2d::graphics::line::set_line(
+						i, 
+						fan::vec2(fan_2d::physics::rope::rectangle::get_body(i)->GetPosition()) * meter_scale,
+						fan::vec2(fan_2d::physics::rope::rectangle::get_body(i + 1)->GetPosition()) * meter_scale
+					);
+				}
 
 			}
 
 		};
 
-		struct motor : public fan_2d::physics::motor {
+		struct motor_joint : public fan_2d::physics::motor_joint {
 		public:
 
-			motor(fan_2d::engine::engine_t* engine) : fan_2d::physics::motor(engine->world) {
+			motor_joint(fan_2d::engine::engine_t* engine) : fan_2d::physics::motor_joint(engine->world) {
 
 			}
 
 			void push_back(fan_2d::body* a_body, fan_2d::body* b_body) {
-				fan_2d::physics::motor::push_back(a_body, b_body);
+				fan_2d::physics::motor_joint::push_back(a_body, b_body);
 			}
 
 			void erase(uint_t i) {
-				fan_2d::physics::motor::erase(i);
+				fan_2d::physics::motor_joint::erase(i);
 			}
 			void erase(uint_t begin, uint_t end) {
-				fan_2d::physics::motor::erase(begin * 2, end * 2);
+				fan_2d::physics::motor_joint::erase(begin * 2, end * 2);
 			}
 
 			auto size() const {

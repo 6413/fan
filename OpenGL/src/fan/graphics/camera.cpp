@@ -78,13 +78,11 @@ void fan::camera::move(f_t movement_speed, bool noclip, f_t friction)
 		this->m_velocity += this->m_right * (movement_speed * m_window->get_delta_time());
 	}
 	if (!noclip) {
-		// is COLLIDING
-		if (m_window->key_press(fan::input::key_space/*, true*/)) { // FIX THISSSSSS
+		if (m_window->key_press(fan::input::key_space)) { 
 			this->m_velocity.z += jump_force;
-			//jumping = true;
 		}
 		else {
-			//jumping = false;
+
 		}
 		this->m_velocity.z += -gravity * m_window->get_delta_time();
 	}
@@ -92,7 +90,6 @@ void fan::camera::move(f_t movement_speed, bool noclip, f_t friction)
 		if (m_window->key_press(fan::input::key_space)) {
 			this->m_velocity.y += movement_speed * m_window->get_delta_time();
 		}
-		// IS COLLIDING
 		if (m_window->key_press(fan::input::key_left_shift)) {
 			this->m_velocity.y -= movement_speed * m_window->get_delta_time();
 		}
@@ -115,7 +112,7 @@ void fan::camera::move(f_t movement_speed, bool noclip, f_t friction)
 	this->update_view();
 }
 
-void fan::camera::rotate_camera(bool when) // this->updateCameraVectors(); move function updates
+void fan::camera::rotate_camera(bool when)
 {
 	if (when) {
 		return;

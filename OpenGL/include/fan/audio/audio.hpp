@@ -6,7 +6,7 @@
 #include <fan/types/vector.hpp>
 #include <fan/io/file.hpp>
 
-#ifdef FAN_PLATFORM_WINDOWS
+#ifdef fan_platform_windows
 
 	#include <Mmsystem.h>
 
@@ -29,7 +29,7 @@ namespace fan {
 
 			audio() {
 
-			#ifdef FAN_PLATFORM_WINDOWS
+			#ifdef fan_platform_windows
 
 				CoInitialize(0);
 				IMMDeviceEnumerator *device_enumerator = 0;
@@ -45,7 +45,7 @@ namespace fan {
 				default_device->Release();
 				default_device = 0; 
 
-			#elif defined(FAN_PLATFORM_UNIX)
+			#elif defined(fan_platform_unix)
 
 
 			#endif
@@ -54,14 +54,14 @@ namespace fan {
 
 			int get_master_volume() const {
 
-				#ifdef FAN_PLATFORM_WINDOWS
+				#ifdef fan_platform_windows
 
 				f32_t current_volume = 0;
 				end_point_volume->GetMasterVolumeLevelScalar(&current_volume);
 
 				return (int)(current_volume * 100);
 
-				#elif defined(FAN_PLATFORM_UNIX)
+				#elif defined(fan_platform_unix)
 
 				assert(0);
 
@@ -71,11 +71,11 @@ namespace fan {
 			void set_master_volume(int volume) {
 
 
-				#ifdef FAN_PLATFORM_WINDOWS
+				#ifdef fan_platform_windows
 
 				end_point_volume->SetMasterVolumeLevelScalar((f32_t)volume / 100, 0);
 
-				#elif defined(FAN_PLATFORM_UNIX)
+				#elif defined(fan_platform_unix)
 
 				assert(0);
 
@@ -86,11 +86,11 @@ namespace fan {
 		private:
 
 
-			#ifdef FAN_PLATFORM_WINDOWS
+			#ifdef fan_platform_windows
 
 			IAudioEndpointVolume *end_point_volume = 0;
 
-			#elif defined(FAN_PLATFORM_UNIX)
+			#elif defined(fan_platform_unix)
 
 
 
