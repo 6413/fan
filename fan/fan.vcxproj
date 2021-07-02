@@ -22,7 +22,7 @@
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{97bac891-e8ed-49c5-bb98-d4698bfe9979}</ProjectGuid>
-    <RootNamespace>OpenGL</RootNamespace>
+    <RootNamespace>fan</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -205,19 +205,56 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\fan\audio.hpp" />
+    <ClInclude Include="include\fan\audio\audio.hpp" />
     <ClInclude Include="include\fan\color.hpp" />
     <ClInclude Include="include\fan\da.h" />
+    <ClInclude Include="include\fan\engine\graphics\graphics.hpp" />
     <ClInclude Include="include\fan\fast_noise.hpp" />
+    <ClInclude Include="include\fan\fast_noise\fast_noise.hpp" />
+    <ClInclude Include="include\fan\fbsp\rectangle.hpp" />
     <ClInclude Include="include\fan\file.hpp" />
     <ClInclude Include="include\fan\global_vars.hpp" />
     <ClInclude Include="include\fan\graphics.hpp" />
+    <ClInclude Include="include\fan\graphics\camera.hpp" />
+    <ClInclude Include="include\fan\graphics\graphics.hpp" />
+    <ClInclude Include="include\fan\graphics\opengl\gl_core.hpp" />
+    <ClInclude Include="include\fan\graphics\opengl\gl_graphics.hpp" />
+    <ClInclude Include="include\fan\graphics\opengl\gl_gui.hpp" />
+    <ClInclude Include="include\fan\graphics\opengl\gl_image.hpp" />
+    <ClInclude Include="include\fan\graphics\opengl\gl_shader.hpp" />
+    <ClInclude Include="include\fan\graphics\renderer.hpp" />
+    <ClInclude Include="include\fan\graphics\shared.hpp" />
+    <ClInclude Include="include\fan\graphics\themes.hpp" />
+    <ClInclude Include="include\fan\graphics\vulkan\vk_core.hpp" />
+    <ClInclude Include="include\fan\graphics\vulkan\vk_graphics.hpp" />
+    <ClInclude Include="include\fan\graphics\vulkan\vk_pipeline.hpp" />
+    <ClInclude Include="include\fan\graphics\vulkan\vk_shader.hpp" />
+    <ClInclude Include="include\fan\graphics\window\window.hpp" />
+    <ClInclude Include="include\fan\graphics\window\window_input.hpp" />
     <ClInclude Include="include\fan\input.hpp" />
+    <ClInclude Include="include\fan\io\file.hpp" />
     <ClInclude Include="include\fan\math.hpp" />
+    <ClInclude Include="include\fan\math\math.hpp" />
+    <ClInclude Include="include\fan\math\random.hpp" />
     <ClInclude Include="include\fan\network.hpp" />
+    <ClInclude Include="include\fan\network\network.hpp" />
+    <ClInclude Include="include\fan\physics\collision\circle.hpp" />
+    <ClInclude Include="include\fan\physics\collision\rectangle.hpp" />
+    <ClInclude Include="include\fan\physics\collision\triangle.hpp" />
+    <ClInclude Include="include\fan\physics\physics.hpp" />
+    <ClInclude Include="include\fan\physics\raycast\rectangle.hpp" />
     <ClInclude Include="include\fan\shader.h" />
     <ClInclude Include="include\fan\soil2\SOIL2.h" />
     <ClInclude Include="include\fan\time.hpp" />
+    <ClInclude Include="include\fan\time\time.hpp" />
     <ClInclude Include="include\fan\types.h" />
+    <ClInclude Include="include\fan\types\color.hpp" />
+    <ClInclude Include="include\fan\types\da.hpp" />
+    <ClInclude Include="include\fan\types\list.hpp" />
+    <ClInclude Include="include\fan\types\matrix.hpp" />
+    <ClInclude Include="include\fan\types\quaternion.hpp" />
+    <ClInclude Include="include\fan\types\types.hpp" />
+    <ClInclude Include="include\fan\types\vector.hpp" />
     <ClInclude Include="include\fan\vector.h" />
     <ClInclude Include="src\box2d\dynamics\b2_chain_circle_contact.h" />
     <ClInclude Include="src\box2d\dynamics\b2_chain_polygon_contact.h" />
