@@ -5,7 +5,7 @@
 #include <box2d/box2d.h>
 #include <box2d/b2_rope.h>
 
-#ifdef FAN_PLATFORM_WINDOWS
+#ifdef fan_platform_windows
 
 	#pragma comment(lib, "lib/box2d/box2d.lib")
 
@@ -130,7 +130,7 @@ namespace fan_2d {
 				this->m_body[i]->SetAwake(true);
 			}
 
-			void set_rotation(uint32_t i, f64_t rotation) {
+			void set_angle(uint32_t i, f64_t rotation) {
 				this->m_body[i]->SetTransform(this->m_body[i]->GetPosition(), -rotation);
 			}
 
@@ -176,7 +176,7 @@ namespace fan_2d {
 			void push_back(const fan::vec2& position, const fan::vec2& size, body_type body_type_, fan_2d::physics::body_property body_property = { 1, 10, 0.1 }) {
 				b2BodyDef body_def;
 				body_def.type = (b2BodyType)body_type_;
-				body_def.position.Set(position.x / meter_scale + size.x / 2 / meter_scale, position.y / meter_scale + size.y / 2 / meter_scale);
+				body_def.position.Set(position.x / meter_scale / meter_scale, position.y / meter_scale / meter_scale);
 				m_body.emplace_back(m_world->CreateBody(&body_def));
 
 				b2PolygonShape shape;
@@ -221,10 +221,10 @@ namespace fan_2d {
 
 			rope(b2World* world) : physics_base(world), rectangle(world) { }
 
-			void push_back(std::vector<fan::vec2>& joints) {
+			void push_back(std::vector<b2Vec2>& joints) {
 
 				b2RopeDef def;
-				def.vertices = (b2Vec2*)joints.data();
+				def.vertices = joints.data();
 				def.count = joints.size();
 				def.gravity.Set(rectangle::m_world->GetGravity().x, rectangle::m_world->GetGravity().y);
 				std::vector<f32_t> masses(joints.size());
@@ -244,12 +244,13 @@ namespace fan_2d {
 				tuning.stretchStiffness = 1.0f;
 				tuning.stretchingModel = b2_pbdStretchingModel;
 
-				def.position = joints[0].b2();
+				def.position = joints[0];
 				def.tuning = tuning;
 
 				m_rope.Create(def);
 
-				vertices = joints.data();
+			//	vertices = joints.data();
+				
 
 
 			//	b2Rope
@@ -262,12 +263,12 @@ namespace fan_2d {
 
 			b2Rope m_rope;
 
-			fan::vec2* vertices;
+			//fan::vec2* vertices;
 		};
 
-		struct motor : public physics_base {
+		struct motor_joint : public physics_base {
 
-			motor(fan_2d::world* world) : physics_base(world) {}
+			motor_joint(fan_2d::world* world) : physics_base(world) {}
 
 			void push_back(b2Body* body_a, b2Body* body_b) {
 

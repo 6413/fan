@@ -5,7 +5,7 @@
 //#endif
 //#endif
 //
-//#ifdef FAN_PLATFORM_WINDOWS
+//#ifdef fan_platform_windows
 //#define _WINSOCK_DEPRECATED_NO_WARNINGS
 //#include <winsock2.h>
 //#include <ws2tcpip.h>
@@ -316,7 +316,7 @@
 //				while (sent < size) {
 //					send_length = send(socket, &data[sent], remaining, 0);
 //					if (send_length == SOCKET_ERROR) {
-//		#ifdef FAN_PLATFORM_WINDOWS
+//		#ifdef fan_platform_windows
 //						printf("send failed: %d\n", WSAGetLastError());
 //		#else
 //						fprintf(stderr, "send failed: %s\n", strerror(errno));
@@ -374,7 +374,7 @@
 //			}
 //			~tcp_server() {
 //				exit_program = true;
-//		#ifdef FAN_PLATFORM_WINDOWS
+//		#ifdef fan_platform_windows
 //				for (auto& i : sockets) {
 //					closesocket(i);
 //				}
@@ -474,7 +474,7 @@
 //						std::string user = m_get_message(socket);
 //						send_message(socket, "exit");
 //						printf("%s has left\n", user.c_str());
-//		#ifdef FAN_PLATFORM_WINDOWS
+//		#ifdef fan_platform_windows
 //						closesocket(socket);
 //		#else
 //						close(socket);
@@ -519,7 +519,7 @@
 //				server_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 //
 //				if (server_socket == INVALID_SOCKET) {
-//		#ifdef FAN_PLATFORM_WINDOWS
+//		#ifdef fan_platform_windows
 //					printf("socket failed with error: %ld\n", WSAGetLastError());
 //					WSACleanup();
 //		#endif
@@ -528,7 +528,7 @@
 //
 //				if ((error = getaddrinfo(NULL, std::to_string(port).c_str(), &hints, &result)) != 0) {
 //					printf("getaddrinfo failed with error: %d\n", error);
-//		#ifdef FAN_PLATFORM_WINDOWS
+//		#ifdef fan_platform_windows
 //					WSACleanup();
 //		#endif
 //					exit(EXIT_FAILURE);
@@ -543,7 +543,7 @@
 //				if (listen(server_socket, SOMAXCONN) == SOCKET_ERROR) {
 //					printf("listen failed\n");
 //
-//		#ifdef FAN_PLATFORM_WINDOWS
+//		#ifdef fan_platform_windows
 //					closesocket(server_socket);
 //					WSACleanup();
 //		#else
@@ -569,7 +569,7 @@
 //					}
 //
 //					if (exit_program) {
-//		#ifdef FAN_PLATFORM_WINDOWS
+//		#ifdef fan_platform_windows
 //						closesocket(server_socket);
 //						WSACleanup();
 //		#else
@@ -579,7 +579,7 @@
 //						return;
 //					}
 //					if (sock == INVALID_SOCKET) {
-//		#ifdef FAN_PLATFORM_WINDOWS
+//		#ifdef fan_platform_windows
 //						printf("accept failed %d\n", WSAGetLastError());
 //						closesocket(server_socket);
 //						WSACleanup();
@@ -591,7 +591,7 @@
 //					}
 //				}
 //
-//		#ifdef FAN_PLATFORM_WINDOWS
+//		#ifdef fan_platform_windows
 //				closesocket(server_socket);
 //		#else
 //				close(server_socket);
@@ -617,7 +617,7 @@
 //				connect_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 //
 //				if (connect_socket == INVALID_SOCKET) {
-//		#ifdef FAN_PLATFORM_WINDOWS
+//		#ifdef fan_platform_windows
 //					wprintf(L"socket function failed with error: %ld\n", WSAGetLastError());
 //					WSACleanup();
 //		#endif
@@ -627,7 +627,7 @@
 //				error = connect(connect_socket, (sockaddr*)&clientService, sizeof(clientService));
 //
 //				if (error == SOCKET_ERROR) {
-//		#ifdef FAN_PLATFORM_WINDOWS
+//		#ifdef fan_platform_windows
 //					wprintf(L"connect function failed with error: %ld\n", WSAGetLastError());
 //					error = closesocket(connect_socket);
 //					if (error == SOCKET_ERROR)
@@ -649,7 +649,7 @@
 //				send_message(std::string((const char*)&type, sizeof(type)));
 //				send_message(get_username());
 //
-//		#ifdef FAN_PLATFORM_WINDOWS
+//		#ifdef fan_platform_windows
 //				closesocket(connect_socket);
 //				WSACleanup();
 //		#else
@@ -714,7 +714,7 @@
 //
 //			void send_message(const std::string& message) const {
 //				if (sendto(_socket, message.c_str(), (int)message.size(), 0, (sockaddr*)&this_sockaddr, socket_length) == SOCKET_ERROR) {
-//		#ifdef FAN_PLATFORM_WINDOWS
+//		#ifdef fan_platform_windows
 //					printf("failed to send data %d\n", WSAGetLastError());
 //		#else
 //					puts("failed to send data %d");
@@ -730,7 +730,7 @@
 //
 //			void listen(std::function<void()> execute = std::function<void()>([]() {})) {
 //				std::vector<char> buffer(max_packet_size);
-//		#ifdef FAN_PLATFORM_WINDOWS
+//		#ifdef fan_platform_windows
 //				if (recvfrom(_socket, &buffer[0], (int)buffer.size(), 0, (sockaddr*)&this_sockaddr, &socket_length) == SOCKET_ERROR) {
 //					printf("failed to receive %d\n", WSAGetLastError());
 //		#else
@@ -767,7 +767,7 @@
 //				this_sockaddr.sin_port = htons(port);
 //			}
 //			~udp_client() {
-//		#ifdef FAN_PLATFORM_WINDOWS
+//		#ifdef fan_platform_windows
 //				closesocket(_socket);
 //				WSACleanup();
 //		#else
@@ -795,7 +795,7 @@
 //			}
 //
 //			~udp_server() {
-//		#ifdef FAN_PLATFORM_WINDOWS
+//		#ifdef fan_platform_windows
 //				closesocket(_socket);
 //				WSACleanup();
 //		#else

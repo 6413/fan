@@ -1,5 +1,9 @@
 #pragma once
 
+#include <fan/graphics/renderer.hpp>
+
+#if fan_renderer == fan_renderer_opengl
+
 #include <fan/types/vector.hpp>
 
 #define __STDC_CONSTANT_MACROS
@@ -17,7 +21,7 @@ extern "C"
 	#include <libswscale/swscale.h>
 }
 
-#ifdef FAN_PLATFORM_WINDOWS
+#ifdef fan_platform_windows
 
 	#pragma comment(lib, "lib/av/avcodec.lib")
 	#pragma comment(lib, "lib/av/avdevice.lib")
@@ -377,3 +381,5 @@ end:
 	}
 
 }
+
+#endif

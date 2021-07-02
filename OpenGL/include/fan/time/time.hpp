@@ -4,7 +4,7 @@
 #include <functional>
 #include <thread>
 
-#ifdef FAN_PLATFORM_WINDOWS
+#ifdef fan_platform_windows
 
 	#define WIN32_LEAN_AND_MEAN
 
@@ -105,7 +105,7 @@ namespace fan {
 
 	template <typename time_format>
 	void delay(time_format time) {
-		#ifdef FAN_PLATFORM_WINDOWS
+		#ifdef fan_platform_windows
 			delay_w(std::chrono::duration_cast<fan::microseconds>(time).count());
 		#else
 			std::this_thread::sleep_for(time);

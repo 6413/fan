@@ -1,9 +1,15 @@
 #pragma once
 
+#include <fan/graphics/renderer.hpp>
+
+#if fan_renderer == fan_renderer_opengl
+
 #include <fan/types/types.hpp>
 #include <fan/types/color.hpp>
 #include <fan/graphics/camera.hpp>
-#include <fan/graphics/shader.hpp>
+#include <fan/graphics/opengl/gl_shader.hpp>
+
+#include <fan/graphics/shared.hpp>
 
 namespace fan {
 
@@ -13,22 +19,6 @@ namespace fan {
 	// for now
 	constexpr auto GL_FLOAT_T = GL_FLOAT;
 #endif
-
-	static inline bool gpu_queue = false;
-
-	static void begin_queue() {
-		gpu_queue = true;
-	}
-
-	static void end_queue() {
-		gpu_queue = false;
-	}
-
-	static void start_queue(const std::function<void()>& function) {
-		gpu_queue = true;
-		function();
-		gpu_queue = false;
-	}
 
 	enum class opengl_buffer_type {
 		buffer_object,
@@ -51,10 +41,10 @@ namespace fan {
 	{
 		glBindBuffer(target, buffer);
 		glBufferData(target, size, data, GL_STATIC_DRAW);
-		glBindBuffer(target, 0);
 		if (target == GL_SHADER_STORAGE_BUFFER) {
 			glBindBufferBase(target, location, buffer);
 		}
+		glBindBuffer(target, 0);
 	}
 
 	static void edit_glbuffer(unsigned int buffer, void* data, uint_t offset, uint_t size, uint_t target = GL_ARRAY_BUFFER, uint_t location = fan::uninitialized)
@@ -78,8 +68,7 @@ namespace fan {
 	}
 
 	template <uint_t T_layout_location, opengl_buffer_type T_buffer_type, bool gl_3_0_attribute = false, uint32 gl_buffer_type = (uint32_t)-1> 
-	class glsl_location_handler { 
-
+	class glsl_location_handler {
 	public:
 
 		uint32_t m_buffer_object;
@@ -124,6 +113,10 @@ namespace fan {
 			handler.m_buffer_object = fan::uninitialized;
 
 			return *this;
+		}
+
+		uint32_t* get_buffer_object() {
+			return &m_buffer_object;
 		}
 
 	protected:
@@ -212,7 +205,7 @@ namespace fan {
 		}
 
 		template <bool attribute = gl_3_0_attribute, typename = std::enable_if_t<attribute>>
-		void initialize_buffers(void* data, uint_t byte_size, bool divisor, uint_t attrib_count, uint32_t program, const std::string& name) {
+		void initialize_buffers(void* data, uint_t byte_size, bool instancing, uint_t attrib_count, uint32_t program, const std::string& name) {
 
 			comparer<T_buffer_type>(
 
@@ -225,7 +218,7 @@ namespace fan {
 				glEnableVertexAttribArray(location);
 				glVertexAttribPointer(location, attrib_count, fan::GL_FLOAT_T, GL_FALSE, 0, 0);
 
-				if (divisor) {
+				if (instancing) {
 					glVertexAttribDivisor(location, 1);
 				}
 
@@ -238,7 +231,7 @@ namespace fan {
 				glBindBuffer(gl_buffer, m_buffer_object); 
 				glBindBufferBase(gl_buffer, T_layout_location, m_buffer_object);
 
-				if (divisor) {
+				if (instancing) {
 					glVertexAttribDivisor(T_layout_location, 1);
 				}
 
@@ -251,7 +244,7 @@ namespace fan {
 		}
 
 		template <bool attribute = gl_3_0_attribute, typename = std::enable_if_t<!attribute>>
-		void initialize_buffers(void* data, uint_t byte_size, bool divisor, uint_t attrib_count) {
+		void initialize_buffers(void* data, uint_t byte_size, bool instancing, uint_t attrib_count) {
 
 			comparer<T_buffer_type>(
 
@@ -261,7 +254,7 @@ namespace fan {
 				glEnableVertexAttribArray(T_layout_location);
 				glVertexAttribPointer(T_layout_location, attrib_count, fan::GL_FLOAT_T, GL_FALSE, 0, 0);
 
-				if (divisor) {
+				if (instancing) {
 					glVertexAttribDivisor(T_layout_location, 1);
 				}
 
@@ -274,7 +267,7 @@ namespace fan {
 				glBindBuffer(gl_buffer, m_buffer_object); 
 				glBindBufferBase(gl_buffer, T_layout_location, m_buffer_object);
 
-				if (divisor) {
+				if (instancing) {
 					glVertexAttribDivisor(T_layout_location, 1);
 				}
 
@@ -333,7 +326,7 @@ namespace fan {
 		buffer_object(const _Type& position) : buffer_object()
 		{
 			if constexpr (enable_vector) {
-				this->basic_push_back(position);
+				this->push_back(position);
 			}
 			else {
 				this->m_buffer_object = position;
@@ -413,6 +406,9 @@ namespace fan {
 				this->write_data();
 			}
 		}
+		enable_function_for_vector void clear() {
+			this->m_buffer_object.clear();
+		}
 
 		// -----------------------------------------------------
 
@@ -428,22 +424,27 @@ namespace fan {
 		// -----------------------------------------------------
 
 
-		enable_function_for_vector void initialize_buffers(bool divisor, uint32_t attrib_count) {
+		enable_function_for_vector void initialize_buffers(bool instancing, uint32_t attrib_count) {
 			if constexpr (!gl_3_0_attrib) {
-				buffer_object::glsl_location_handler::initialize_buffers(m_buffer_object.data(), sizeof(_Type) * m_buffer_object.size(), divisor, attrib_count);
+				buffer_object::glsl_location_handler::initialize_buffers(m_buffer_object.data(), sizeof(_Type) * m_buffer_object.size(), instancing, attrib_count);
 			}
 			else {
 				assert(0); // ?
 			}
 		}
 
-		enable_function_for_vector void initialize_buffers(uint_t program, const std::string& path, bool divisor, uint32_t attrib_count) {
+		// called inside bind_vao
+		enable_function_for_vector void initialize_buffers(uint_t program, const std::string& path, bool instancing, uint32_t attrib_count) {
 			//glBindAttribLocation(program, layout_location, path.c_str());
-			buffer_object::glsl_location_handler::initialize_buffers(m_buffer_object.data(), sizeof(_Type) * m_buffer_object.size(), divisor, attrib_count, program, path);
+			// glBindBuffer(gl_buffer, m_buffer_object);
+
+			buffer_object::glsl_location_handler::initialize_buffers(m_buffer_object.data(), sizeof(_Type) * m_buffer_object.size(), instancing, attrib_count, program, path);
 		}
 
-		enable_function_for_vector void basic_push_back(const _Type& value) {
+		enable_function_for_vector void push_back(const _Type& value) {
+
 			this->m_buffer_object.emplace_back(value);
+
 			if (!fan::gpu_queue) {
 				this->write_data();
 			}
@@ -467,10 +468,6 @@ namespace fan {
 
 	protected:
 
-		// ----------------------------------------------------- vector enabled functions
-
-
-		// -----------------------------------------------------
 
 		std::conditional_t<enable_vector, std::vector<_Type>, _Type> m_buffer_object;
 
@@ -549,8 +546,8 @@ namespace fan {
 		// ----------------------------------------------------- vector enabled functions
 
 		enable_function_for_vector void basic_push_back(const _Vector& position, const _Vector& size) {
-			basic_shape::basic_shape_position::basic_push_back(position);
-			basic_shape::basic_shape_size::basic_push_back(size);
+			basic_shape::basic_shape_position::push_back(position);
+			basic_shape::basic_shape_size::push_back(size);
 		}
 
 		enable_function_for_vector void erase(uint_t i) {
@@ -682,8 +679,8 @@ namespace fan {
 	protected:
 
 		void basic_push_back(const _Vector& position, const fan::color& color) {
-			basic_vertice_vector::basic_shape_position::basic_push_back(position, fan::gpu_queue);
-			basic_vertice_vector::basic_shape_color_vector::basic_push_back(color, fan::gpu_queue);
+			basic_vertice_vector::basic_shape_position::push_back(position, fan::gpu_queue);
+			basic_vertice_vector::basic_shape_color_vector::push_back(color, fan::gpu_queue);
 		}
 
 		void edit_data(uint_t i, bool position, bool color) {
@@ -840,7 +837,7 @@ namespace fan {
 			fan::write_glbuffer(basic_shape_color_vector_vector::glsl_location_handler::m_buffer_object, vector.data(), sizeof(fan::color) * vector.size(), GL_ARRAY_BUFFER, layout_location);
 		}
 
-		void initialize_buffers(uint_t program, const std::string& name, bool divisor) {
+		void initialize_buffers(uint_t program, const std::string& name, bool instancing) {
 			// AAAAAA
 			glBindBuffer(GL_ARRAY_BUFFER, basic_shape_color_vector_vector::glsl_location_handler::m_buffer_object);
 			glBufferData(GL_ARRAY_BUFFER, 0, nullptr, GL_STATIC_DRAW);
@@ -852,7 +849,7 @@ namespace fan {
 				glEnableVertexAttribArray(location);
 				glVertexAttribPointer(location, 4, fan::GL_FLOAT_T, GL_FALSE, sizeof(fan::color), 0);
 			}
-			if (divisor) {
+			if (instancing) {
 				glVertexAttribDivisor(0, 1);
 			}
 		}
@@ -861,3 +858,5 @@ namespace fan {
 
 	};
 }
+
+#endif

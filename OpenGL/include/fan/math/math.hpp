@@ -305,7 +305,7 @@ namespace fan {
 			return matrix;
 		}
 
-
+		// left
 		template <typename matrix_t>
 		constexpr auto ortho(f_t left, f_t right, f_t bottom, f_t top, f_t zNear, f_t zFar) {
 			matrix_t matrix(1);
@@ -315,6 +315,18 @@ namespace fan {
 			matrix[3][0] = -(right + left) / (right - left);
 			matrix[3][1] = -(top + bottom) / (top - bottom);
 			matrix[3][2] = -zNear / (zFar - zNear);
+			return matrix;
+		}
+
+		template <typename matrix_t>
+		constexpr auto ortho_right(f_t left, f_t right, f_t bottom, f_t top, f_t zNear, f_t zFar) {
+			matrix_t matrix(1);
+			matrix[0][0] = 2.0 / (right - left);
+			matrix[1][1] = 2.0 / (top - bottom);
+			matrix[2][2] = - 2.0 / (zFar - zNear);
+			matrix[3][0] = -(right + left) / (right - left);
+			matrix[3][1] = -(top + bottom) / (top - bottom);
+			matrix[3][2] = -(zFar + zNear) / (zFar - zNear);
 			return matrix;
 		}
 
@@ -370,9 +382,9 @@ namespace fan {
 			matrix[0][2] = -f[0];
 			matrix[1][2] = -f[1];
 			matrix[2][2] = -f[2];
-			f_t x = -dot(s, eye);
-			f_t y = -dot(u, eye);
-			f_t z = dot(f, eye);
+			f_t x = -fan_3d::math::dot(s, eye);
+			f_t y = -fan_3d::math::dot(u, eye);
+			f_t z = fan_3d::math::dot(f, eye);
 			matrix[3][0] = x;
 			matrix[3][1] = y;
 			matrix[3][2] = z;
