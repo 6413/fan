@@ -79,6 +79,8 @@ namespace fan_2d {
 
 				text_renderer(fan::camera* camera);
 
+				~text_renderer();
+
 				void draw();
 
 				void push_back(const fan::fstring& text, f32_t font_size, fan::vec2 position, const fan::color& text_color);

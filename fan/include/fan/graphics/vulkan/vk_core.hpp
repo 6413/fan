@@ -74,12 +74,7 @@ namespace fan {
 			VkBufferCreateInfo bufferInfo{};
 			bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 
-			if (size == 0) {
-				bufferInfo.size = 1;
-			}
-			else {
-				bufferInfo.size = size;
-			}
+			bufferInfo.size = size;
 
 			bufferInfo.usage = usage;
 			bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -580,8 +575,6 @@ namespace fan {
 
 			void map_data(VkDeviceSize size, VkDeviceSize offset = 0) {
 
-				size = size == 0 ? 1 : size;
-
 				void* data = nullptr;
 
 				if (staging->buffer_size < size) {
@@ -605,6 +598,10 @@ namespace fan {
 				
 			void write_data() {
 				VkDeviceSize buffer_size = sizeof(object_type) * m_instance.size();
+
+				if (!buffer_size) {
+					return;
+				}
 
 				map_data(buffer_size);
 

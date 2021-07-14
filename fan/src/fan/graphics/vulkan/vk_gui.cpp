@@ -96,11 +96,14 @@ fan_2d::graphics::gui::text_renderer::text_renderer(fan::camera* camera)
 
 	camera->m_window->m_vulkan->push_back_draw_call([&](uint32_t i, uint32_t j) {
 
+		if (!instance_buffer->buffer->m_buffer_object) {
+			return;
+		}
+
 		vkCmdBindPipeline(m_camera->m_window->m_vulkan->commandBuffers[0][i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_camera->m_window->m_vulkan->pipelines->pipeline_info[j].pipeline);
 
-		VkBuffer vertexBuffers[] = { instance_buffer->buffer->m_buffer_object };
 		VkDeviceSize offsets[] = { 0 };
-		vkCmdBindVertexBuffers(m_camera->m_window->m_vulkan->commandBuffers[0][i], 0, 1, vertexBuffers, offsets);
+		vkCmdBindVertexBuffers(m_camera->m_window->m_vulkan->commandBuffers[0][i], 0, 1, &instance_buffer->buffer->m_buffer_object, offsets);
 
 		vkCmdBindDescriptorSets(m_camera->m_window->m_vulkan->commandBuffers[0][i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_camera->m_window->m_vulkan->pipelines->pipeline_layout, 0, 1, &m_camera->m_window->m_vulkan->texture_handler->descriptor_handler->get(i + descriptor_offset), 0, nullptr);
 
@@ -120,6 +123,19 @@ fan_2d::graphics::gui::text_renderer::text_renderer(fan::camera* camera)
 		);
 	}
 
+}
+
+fan_2d::graphics::gui::text_renderer::~text_renderer() {
+	
+	if (instance_buffer) {
+		delete instance_buffer;
+		instance_buffer = nullptr;
+	}
+
+	if (uniform_handler) {
+		delete uniform_handler;
+		uniform_handler = nullptr;
+	}
 }
 
 void fan_2d::graphics::gui::text_renderer::draw()
@@ -442,26 +458,32 @@ void fan_2d::graphics::gui::text_renderer::set_text_color(uint32_t i, uint32_t j
 
 void fan_2d::graphics::gui::text_renderer::release_queue(uint16_t avoid_flags)
 {
+	vkDeviceWaitIdle(m_camera->m_window->m_vulkan->device);
 
 	if (realloc_buffer) {
-		vkDeviceWaitIdle(m_camera->m_window->m_vulkan->device);
+
+		auto previous_size = instance_buffer->buffer->buffer_size;
 
 		instance_buffer->buffer->free();
 
 		auto new_size = sizeof(instance_t) * instance_buffer->size();
 
-		instance_buffer->buffer->allocate(new_size);
-	}
+		if (new_size) {
+			instance_buffer->buffer->allocate(new_size);
 
-	instance_buffer->write_data();
+			if (!previous_size) {
+				instance_buffer->recreate_command_buffer(new_size, 0, 0);
+			}
 
-	if (realloc_buffer) {
+		}
 
 		m_camera->m_window->m_vulkan->erase_command_buffers();
 		m_camera->m_window->m_vulkan->create_command_buffers();
 
 		realloc_buffer = false;
 	}
+
+	instance_buffer->write_data();
 }
 
 #define get_letter_infos 																\
