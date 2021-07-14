@@ -93,6 +93,10 @@ fan_2d::graphics::rectangle::rectangle(fan::camera* camera)
 
 	vk_instance->push_back_draw_call([&](uint32_t i, uint32_t j) {
 
+		if (!instance_buffer->buffer->m_buffer_object) {
+			return;
+		}
+
 		vkCmdBindPipeline(m_camera->m_window->m_vulkan->commandBuffers[0][i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_camera->m_window->m_vulkan->pipelines->pipeline_info[j].pipeline);
 
 		VkDeviceSize offsets[] = { 0 };
@@ -129,9 +133,6 @@ void fan_2d::graphics::rectangle::push_back(const fan::vec2& position, const fan
 
 	if (!fan::gpu_queue) {
 		this->release_queue();
-
-		m_camera->m_window->m_vulkan->erase_command_buffers();
-		m_camera->m_window->m_vulkan->create_command_buffers();
 	}
 
 }
@@ -209,18 +210,27 @@ void fan_2d::graphics::rectangle::release_queue(uint16_t avoid_flags)
 	vkDeviceWaitIdle(m_camera->m_window->m_vulkan->device);
 
 	if (realloc_buffer) {
+		auto previous_size = instance_buffer->buffer->buffer_size;
+
 		instance_buffer->buffer->free();
-		instance_buffer->buffer->allocate(sizeof(instance_t) * instance_buffer->size());
-	}
 
-	instance_buffer->write_data();
+		auto new_size = sizeof(instance_t) * instance_buffer->size();
 
-	if (realloc_buffer) {
+		if (new_size) {
+			instance_buffer->buffer->allocate(new_size);
+
+			if (!previous_size) {
+				instance_buffer->recreate_command_buffer(new_size, 0, 0);
+			}
+
+		}
+
 		m_camera->m_window->m_vulkan->erase_command_buffers();
 		m_camera->m_window->m_vulkan->create_command_buffers();
 
-		realloc_buffer = false;
 	}
+
+	instance_buffer->write_data();
 
 }
 
@@ -510,11 +520,14 @@ fan_2d::graphics::sprite::sprite(fan::camera* camera)
 
 	camera->m_window->m_vulkan->push_back_draw_call([&](uint32_t i, uint32_t j) {
 
+		if (!instance_buffer->buffer->m_buffer_object) {
+			return;
+		}
+
 		vkCmdBindPipeline(m_camera->m_window->m_vulkan->commandBuffers[0][i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_camera->m_window->m_vulkan->pipelines->pipeline_info[j].pipeline);
 
-		VkBuffer vertexBuffers[] = { instance_buffer->buffer->m_buffer_object };
 		VkDeviceSize offsets[] = { 0 };
-		vkCmdBindVertexBuffers(m_camera->m_window->m_vulkan->commandBuffers[0][i], 0, 1, vertexBuffers, offsets);
+		vkCmdBindVertexBuffers(m_camera->m_window->m_vulkan->commandBuffers[0][i], 0, 1, &instance_buffer->buffer->m_buffer_object, offsets);
 
 		for (int k = 0; k < m_switch_texture.size(); k++) {
 
@@ -650,18 +663,27 @@ void fan_2d::graphics::sprite::draw()
 void fan_2d::graphics::sprite::release_queue(uint16_t avoid_flags)
 {
 	if (realloc_buffer) {
+		auto previous_size = instance_buffer->buffer->buffer_size;
+
 		instance_buffer->buffer->free();
-		instance_buffer->buffer->allocate(sizeof(instance_t) * instance_buffer->size());
-	}
 
-	instance_buffer->write_data();
+		auto new_size = sizeof(instance_t) * instance_buffer->size();
 
-	if (realloc_buffer) {
+		if (new_size) {
+			instance_buffer->buffer->allocate(new_size);
+
+			if (!previous_size) {
+				instance_buffer->recreate_command_buffer(new_size, 0, 0);
+			}
+		}
+
 		m_camera->m_window->m_vulkan->erase_command_buffers();
 		m_camera->m_window->m_vulkan->create_command_buffers();
 
 		realloc_buffer = false;
 	}
+
+	instance_buffer->write_data();
 }
 
 std::size_t fan_2d::graphics::sprite::size() const

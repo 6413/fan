@@ -45,6 +45,8 @@ fan_2d::graphics::gui::text_renderer::text_renderer(fan::camera* camera) : sprit
 	});
 }
 
+fan_2d::graphics::gui::text_renderer::~text_renderer() {}
+
 void fan_2d::graphics::gui::text_renderer::draw() {
 	fan_2d::graphics::sprite::draw();
 }
