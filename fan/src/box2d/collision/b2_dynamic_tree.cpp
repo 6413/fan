@@ -50,15 +50,15 @@ b2DynamicTree::~b2DynamicTree()
 	b2Free(m_nodes);
 }
 
-// Allocate a node from the pool. Grow the pool if necessary.
+// Allocate a node from the m_pool. Grow the m_pool if necessary.
 int32 b2DynamicTree::AllocateNode()
 {
-	// Expand the node pool as needed.
+	// Expand the node m_pool as needed.
 	if (m_freeList == b2_nullNode)
 	{
 		b2Assert(m_nodeCount == m_nodeCapacity);
 
-		// The free list is empty. Rebuild a bigger pool.
+		// The free list is empty. Rebuild a bigger m_pool.
 		b2TreeNode* oldNodes = m_nodes;
 		m_nodeCapacity *= 2;
 		m_nodes = (b2TreeNode*)b2Alloc(m_nodeCapacity * sizeof(b2TreeNode));
@@ -90,7 +90,7 @@ int32 b2DynamicTree::AllocateNode()
 	return nodeId;
 }
 
-// Return a node to the pool.
+// Return a node to the m_pool.
 void b2DynamicTree::FreeNode(int32 nodeId)
 {
 	b2Assert(0 <= nodeId && nodeId < m_nodeCapacity);
@@ -103,7 +103,7 @@ void b2DynamicTree::FreeNode(int32 nodeId)
 
 // Create a proxy in the tree as a leaf node. We return the index
 // of the node instead of a pointer so that we can grow
-// the node pool.
+// the node m_pool.
 int32 b2DynamicTree::CreateProxy(const b2AABB& aabb, void* userData)
 {
 	int32 proxyId = AllocateNode();
@@ -565,7 +565,7 @@ float b2DynamicTree::GetAreaRatio() const
 		const b2TreeNode* node = m_nodes + i;
 		if (node->height < 0)
 		{
-			// Free node in pool
+			// Free node in m_pool
 			continue;
 		}
 
@@ -724,7 +724,7 @@ void b2DynamicTree::RebuildBottomUp()
 	{
 		if (m_nodes[i].height < 0)
 		{
-			// free node in pool
+			// free node in m_pool
 			continue;
 		}
 

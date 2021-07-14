@@ -96,10 +96,10 @@
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
-      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)src\box2d</AdditionalIncludeDirectories>
-      <Optimization>MaxSpeed</Optimization>
+      <Optimization>Disabled</Optimization>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -119,14 +119,14 @@
       </PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <Optimization>MaxSpeed</Optimization>
+      <Optimization>Disabled</Optimization>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)src\box2d</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -152,10 +152,10 @@
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
-      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)src\box2d</AdditionalIncludeDirectories>
-      <Optimization>MaxSpeed</Optimization>
+      <Optimization>Disabled</Optimization>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -175,14 +175,14 @@
       </PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <Optimization>MaxSpeed</Optimization>
+      <Optimization>Disabled</Optimization>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)src\box2d</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -200,8 +200,9 @@
     <ClCompile Include="src\fan\graphics\opengl\gl_graphics.cpp" />
     <ClCompile Include="src\fan\graphics\opengl\gl_gui.cpp" />
     <ClCompile Include="src\fan\graphics\vulkan\vk_graphics.cpp" />
-    <ClCompile Include="src\fan\graphics\window\window.cpp" />
-    <ClCompile Include="src\fan\graphics\window\window_input.cpp" />
+    <ClCompile Include="src\fan\graphics\vulkan\vk_gui.cpp" />
+    <ClCompile Include="src\fan\window\window.cpp" />
+    <ClCompile Include="src\fan\window\window_input.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\fan\audio.hpp" />
@@ -217,6 +218,8 @@
     <ClInclude Include="include\fan\graphics.hpp" />
     <ClInclude Include="include\fan\graphics\camera.hpp" />
     <ClInclude Include="include\fan\graphics\graphics.hpp" />
+    <ClInclude Include="include\fan\graphics\gui.hpp" />
+    <ClInclude Include="include\fan\graphics\image.hpp" />
     <ClInclude Include="include\fan\graphics\opengl\gl_core.hpp" />
     <ClInclude Include="include\fan\graphics\opengl\gl_graphics.hpp" />
     <ClInclude Include="include\fan\graphics\opengl\gl_gui.hpp" />
@@ -224,9 +227,13 @@
     <ClInclude Include="include\fan\graphics\opengl\gl_shader.hpp" />
     <ClInclude Include="include\fan\graphics\renderer.hpp" />
     <ClInclude Include="include\fan\graphics\shared.hpp" />
+    <ClInclude Include="include\fan\graphics\shared_graphics.hpp" />
+    <ClInclude Include="include\fan\graphics\shared_gui.hpp" />
     <ClInclude Include="include\fan\graphics\themes.hpp" />
     <ClInclude Include="include\fan\graphics\vulkan\vk_core.hpp" />
+    <ClInclude Include="include\fan\graphics\vulkan\vk_descriptor.hpp" />
     <ClInclude Include="include\fan\graphics\vulkan\vk_graphics.hpp" />
+    <ClInclude Include="include\fan\graphics\vulkan\vk_gui.hpp" />
     <ClInclude Include="include\fan\graphics\vulkan\vk_pipeline.hpp" />
     <ClInclude Include="include\fan\graphics\vulkan\vk_shader.hpp" />
     <ClInclude Include="include\fan\graphics\window\window.hpp" />
@@ -256,6 +263,8 @@
     <ClInclude Include="include\fan\types\types.hpp" />
     <ClInclude Include="include\fan\types\vector.hpp" />
     <ClInclude Include="include\fan\vector.h" />
+    <ClInclude Include="include\fan\window\window.hpp" />
+    <ClInclude Include="include\fan\window\window_input.hpp" />
     <ClInclude Include="src\box2d\dynamics\b2_chain_circle_contact.h" />
     <ClInclude Include="src\box2d\dynamics\b2_chain_polygon_contact.h" />
     <ClInclude Include="src\box2d\dynamics\b2_circle_contact.h" />

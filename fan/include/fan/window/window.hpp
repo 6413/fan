@@ -15,9 +15,9 @@
 
 #include <fan/types/color.hpp>
 #include <fan/time/time.hpp>
-#include <fan/graphics/window/window_input.hpp>
+#include <fan/window/window_input.hpp>
 
-#include <fan/graphics/vulkan/vk_pipeline.hpp>
+#include <fan/graphics/image.hpp>
 
 #include <deque>
 #include <codecvt>
@@ -28,19 +28,22 @@
 #include <optional>
 #include <mutex>
 
+//#define fan_debug
 
-//#if fan_renderer == fan_renderer_opengl
+#if fan_renderer == fan_renderer_opengl
 
 #define GLEW_STATIC
 #include <GL/glew.h>
 
-//#endif
+#endif
 
 #ifdef fan_platform_windows
 
 	#include <Windows.h>
 
-//#if fan_renderer == fan_renderer_opengl
+	#pragma comment(lib, "User32.lib")
+
+#if fan_renderer == fan_renderer_opengl
 
 	#include <GL/wglew.h>
 
@@ -48,9 +51,8 @@
 	#pragma comment(lib, "lib/glew/glew32s.lib")
 
 	#pragma comment(lib, "Gdi32.lib")
-	#pragma comment(lib, "User32.lib")
 
-//#endif
+#endif
 
 #elif defined(fan_platform_unix)
 
@@ -63,9 +65,8 @@
 	#include <X11/Xatom.h>
 	#include <X11/keysym.h>
 	#include <X11/XKBlib.h>
-//#if fan_renderer == fan_renderer_opengl
+
 	#include <GL/glxew.h>
-//#endif
 
 	#include <sys/time.h>
 	#include <unistd.h>
@@ -377,8 +378,8 @@ namespace fan {
 		std::deque<mouse_move_position_callback_t>::iterator add_mouse_move_callback(const mouse_move_position_callback_t& function);
 		void remove_mouse_move_callback(std::deque<mouse_move_position_callback_t>::const_iterator it);
 
-		std::deque<std::function<void()>>::iterator add_resize_callback(const std::function<void()>& function);
-		void remove_resize_callback(std::deque<std::function<void()>>::const_iterator it);
+		std::deque<std::function<void(const fan::vec2i&)>>::iterator add_resize_callback(const std::function<void(const fan::vec2i& window_size)>& function);
+		void remove_resize_callback(std::deque<std::function<void(const fan::vec2i& window_size)>>::const_iterator it);
 
 		std::deque<std::function<void()>>::iterator add_move_callback(const std::function<void()>& function);
 		void remove_move_callback(std::deque<std::function<void()>>::const_iterator it);
@@ -410,9 +411,9 @@ namespace fan {
 		void auto_close(bool state);
 
 #if fan_renderer == fan_renderer_vulkan
+
 		fan::vulkan* m_vulkan = nullptr;
 
-		
 #endif
 
 	private:
@@ -480,7 +481,7 @@ namespace fan {
 		text_callback_t m_text_callback;
 		std::deque<mouse_move_position_callback_t> m_mouse_move_position_callback;
 		std::deque<std::function<void()>> m_move_callback;
-		std::deque<std::function<void()>> m_resize_callback;
+		std::deque<std::function<void(const fan::vec2i& window_size)>> m_resize_callback;
 		std::deque<std::function<void()>> m_close_callback;
 
 		keymap_t m_keys_down;
@@ -655,6 +656,7 @@ namespace fan {
 			return copied_text;
 		}
 	}
+
 }
 
 
@@ -687,6 +689,8 @@ namespace fan {
 #endif
 
 #include <fan/graphics/vulkan/vk_shader.hpp>
+#include <fan/graphics/vulkan/vk_pipeline.hpp>
+#include <fan/graphics/vulkan/vk_descriptor.hpp>
 
 inline fan::mat4 projection(1);
 
@@ -697,11 +701,6 @@ inline fan::mat4 view(1);
 constexpr auto mb = 1000000;
 
 constexpr auto gpu_stack(10 * mb); // mb
-
-struct UniformBufferObject {
-	alignas(16) fan::mat4 view;
-	alignas(16) fan::mat4 proj;
-};
 
 namespace fan {
 
@@ -725,7 +724,8 @@ namespace fan {
 
 
 		vulkan(fan::window* window)
-			: m_window(window), pipelines(&device, &renderPass, &descriptorSetLayout) {
+			: 
+			m_window(window) {
 
 			create_instance();
 			setupDebugMessenger();
@@ -733,38 +733,49 @@ namespace fan {
 			pickPhysicalDevice();
 			createLogicalDevice();
 			createSwapChain();
+
+			staging_buffer = new staging_buffer_t(&device, &physicalDevice);
+			staging_buffer->allocate(gpu_stack);
+
+			texture_handler = new fan::gpu_memory::texture_handler(&device, &physicalDevice, &commandPool, &graphicsQueue);
+
+			// create after initializing texture_handler
+			texture_handler->descriptor_handler->recreate_descriptor_pool(swapChainImages.size());
+
+			pipelines = new std::remove_pointer_t<decltype(pipelines)>(&device, &renderPass, &texture_handler->descriptor_handler->descriptor_set_layout);
+
 			createImageViews();
+
 			createRenderPass();
-			createDescriptorSetLayout();
 			createFramebuffers();
 			createCommandPool();
-			
-			//createIndexBuffer();
-			createUniformBuffers();
-			createDescriptorPool();
-			createDescriptorSets();
+
 			create_command_buffers();
 			create_sync_objects();
 
-			staging_buffer = new staging_buffer_t(&device,  &physicalDevice, gpu_stack);
 
-			m_window->add_resize_callback([&] {
+			m_window->add_resize_callback([&] (const fan::vec2i&) {
 				window_resized = true;
 			});
 		}
 
 		~vulkan() {
 
-			pipelines.~pipelines();
-			staging_buffer->~glsl_location_handler();
+			if (pipelines) {
+				delete pipelines;
+				pipelines = nullptr;
+			}
+
+			if (staging_buffer) {
+				delete staging_buffer;
+				staging_buffer = nullptr;
+			}
+
 
 			cleanupSwapChain();
 
-			vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-			descriptorSetLayout = nullptr;
-
-			//vkDestroyBuffer(device, indexBuffer, nullptr); 
-			//vkFreeMemory(device, indexBufferMemory, nullptr);
+			//vkDestroyBuffer(m_device, indexBuffer, nullptr); 
+			//vkFreeMemory(m_device, indexBufferMemory, nullptr);
 
 			for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 				vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
@@ -775,48 +786,27 @@ namespace fan {
 			vkDestroyCommandPool(device, commandPool, nullptr);
 			commandPool = nullptr;
 
+			for (auto& imageView : swapChainImageViews) {
+				vkDestroyImageView(device, imageView, nullptr);
+				imageView = nullptr;
+			}
+
+			if (texture_handler) {
+				delete texture_handler;
+				texture_handler = nullptr;
+			}
+
 			vkDestroyDevice(device, nullptr);
 			device = nullptr;
 
 			if (enable_validation_layers) {
 				DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
 			}
-
-			vkDestroySurfaceKHR(instance, surface, nullptr);
+			 
+			vkDestroySurfaceKHR(instance, surface,  nullptr);
 			surface = nullptr;
 			vkDestroyInstance(instance, nullptr);
 			instance = nullptr;
-
-			//delete staging_buffer;
-		}
-
-		//VkBuffer indexBuffer;
-	//	VkDeviceMemory indexBufferMemory;
-
-		VkDescriptorSetLayout descriptorSetLayout = nullptr;
-
-		std::vector<VkBuffer> uniformBuffers;
-		std::vector<VkDeviceMemory> uniformBuffersMemory;
-
-		VkDescriptorPool descriptorPool = nullptr;
-		std::vector<VkDescriptorSet> descriptorSets;
-
-		void createDescriptorSetLayout() {
-			VkDescriptorSetLayoutBinding uboLayoutBinding{};
-			uboLayoutBinding.binding = 0;
-			uboLayoutBinding.descriptorCount = 1;
-			uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			uboLayoutBinding.pImmutableSamplers = nullptr;
-			uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-			VkDescriptorSetLayoutCreateInfo layoutInfo{};
-			layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-			layoutInfo.bindingCount = 1;
-			layoutInfo.pBindings = &uboLayoutBinding;
-
-			if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
-				throw std::runtime_error("failed to create descriptor set layout!");
-			}
 
 		}
 
@@ -880,6 +870,7 @@ namespace fan {
 
 		}
 
+
 		/*void createIndexBuffer() {
 			VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
 
@@ -888,128 +879,17 @@ namespace fan {
 			createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
 			void* data;
-			vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+			vkMapMemory(m_device, stagingBufferMemory, 0, bufferSize, 0, &data);
 			memcpy(data, indices.data(), (size_t)bufferSize);
-			vkUnmapMemory(device, stagingBufferMemory);
+			vkUnmapMemory(m_device, stagingBufferMemory);
 
 			createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
 
 			copyBuffer(stagingBuffer, indexBuffer, bufferSize);
 
-			vkDestroyBuffer(device, stagingBuffer, nullptr);
-			vkFreeMemory(device, stagingBufferMemory, nullptr);
+			vkDestroyBuffer(m_device, stagingBuffer, nullptr);
+			vkFreeMemory(m_device, stagingBufferMemory, nullptr);
 		}*/
-
-		void createUniformBuffers() {
-			VkDeviceSize bufferSize = sizeof(UniformBufferObject);
-
-			uniformBuffers.resize(swapChainImages.size());
-			uniformBuffersMemory.resize(swapChainImages.size());
-
-			for (size_t i = 0; i < swapChainImages.size(); i++) {
-				createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i], uniformBuffersMemory[i]);
-			}
-		}
-
-		void updateUniformBuffer(uint32_t currentImage) {
-
-			UniformBufferObject ubo{};
-
-			fan::vec2 window_size = m_window->get_size();
-
-		/*	ubo.model = fan::mat4(1);
-
-			ubo.model = fan::math::rotate(fan::mat4(1), m_window->get_delta_time() * fan::math::radians(90.0f), fan::vec3(0.0f, 0.0f, 1.0f));
-
-			
-
-			ubo.view = fan::math::look_at_right<fan::mat4, fan::vec3>(fan::vec3(2.0f, 2.0f, 2.0f), fan::vec3(0.0f, 0.0f, 0.0f), fan::vec3(0.0f, 0.0f, 1.0f));
-			ubo.proj = fan::math::perspective<fan::mat4>(fan::math::radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10.0f);
-			ubo.proj[1][1] *= -1;*/
-
-			//static f32_t angle = 0;
-
-			//angle += m_window->get_delta_time() * 10000;
-
-			//glm::mat4 a = glm::rotate(glm::mat4(1.0f), (f32_t)(glm::radians(angle)), glm::vec3(0.0f, 0.0f, 1.0f));
-			//m_camera->get_view_matrix(fan_2d::graphics::get_view_translation(m_camera->m_window->get_size(), glm::mat4(1)))
-			//glm::mat4 a1(1);
-			//a1 = glm::translate(a1, glm::vec3(0.0f, 0.0f, -3.0f));
-			//glm::mat4 a2 = glm::mat4(1);
-			//a2 = glm::ortho(0.0f, 800.0f, 0.0f, 600.0f, 0.1f, 0.5f);
-			////a2[1][1] *= -1;
-
-			static fan::vec3 abc(0, 0, 0.1);
-
-			constexpr fan::vec3 front(0, 0, 1);
-
-			constexpr fan::vec3 camera_position(0, 0, 0.1); // z needs to be + 0.1
-
-			constexpr fan::vec3 world_up(0, 1, 0);
-
-			ubo.view = fan::math::look_at_left<fan::mat4>(camera_position, camera_position + front, world_up);
-
-			static f32_t offsetx = window_size.x / 2;
-			static f32_t offsety = window_size.y / 2;
-
-			ubo.proj = fan::math::ortho<fan::mat4>((f32_t)0, (f32_t)window_size.x, (f32_t)0, (f32_t)window_size.y, 0.1, 100);
-
-			void* data;
-			vkMapMemory(device, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
-			memcpy(data, &ubo, sizeof(ubo));
-			vkUnmapMemory(device, uniformBuffersMemory[currentImage]);
-		}
-
-		void createDescriptorPool() {
-
-			VkDescriptorPoolSize poolSize{};
-			poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			poolSize.descriptorCount = static_cast<uint32_t>(swapChainImages.size());
-
-			VkDescriptorPoolCreateInfo poolInfo{};
-			poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-			poolInfo.poolSizeCount = 1;
-			poolInfo.pPoolSizes = &poolSize;
-			poolInfo.maxSets = static_cast<uint32_t>(swapChainImages.size());
-
-			if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
-				throw std::runtime_error("failed to create descriptor pool!");
-			}
-
-		}
-
-		void createDescriptorSets() {
-
-			std::vector<VkDescriptorSetLayout> layouts(swapChainImages.size(), descriptorSetLayout);
-			VkDescriptorSetAllocateInfo allocInfo{};
-			allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-			allocInfo.descriptorPool = descriptorPool;
-			allocInfo.descriptorSetCount = static_cast<uint32_t>(swapChainImages.size());
-			allocInfo.pSetLayouts = layouts.data();
-
-			descriptorSets.resize(swapChainImages.size());
-			if (vkAllocateDescriptorSets(device, &allocInfo, descriptorSets.data()) != VK_SUCCESS) {
-				throw std::runtime_error("failed to allocate descriptor sets!");
-			}
-
-			for (size_t i = 0; i < swapChainImages.size(); i++) {
-				VkDescriptorBufferInfo bufferInfo{};
-				bufferInfo.buffer = uniformBuffers[i];
-				bufferInfo.offset = 0;
-				bufferInfo.range = sizeof(UniformBufferObject);
-
-				VkWriteDescriptorSet descriptorWrite{};
-				descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-				descriptorWrite.dstSet = descriptorSets[i];
-				descriptorWrite.dstBinding = 0;
-				descriptorWrite.dstArrayElement = 0;
-				descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-				descriptorWrite.descriptorCount = 1;
-				descriptorWrite.pBufferInfo = &bufferInfo;
-
-				vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
-			}
-		}
 
 		uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
 
@@ -1032,7 +912,7 @@ namespace fan {
 			app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 			app_info.pApplicationName = "application";
 			app_info.applicationVersion = VK_MAKE_API_VERSION(0, 1, 0, 0); // VK_MAKE_VERSION
-			app_info.pEngineName = "No Engine";
+			app_info.pEngineName = "fan";
 			app_info.engineVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);
 			app_info.apiVersion = VK_API_VERSION_1_0;
 
@@ -1085,7 +965,7 @@ namespace fan {
 			}
 		}
 
-		// physical device
+		// physical m_device
 		void pickPhysicalDevice() {
 			uint32_t device_count = 0;
 			vkEnumeratePhysicalDevices(instance, &device_count, nullptr);
@@ -1110,7 +990,7 @@ namespace fan {
 
 		}
 
-		// logical device
+		// logical m_device
 		void createLogicalDevice() {
 			QueueFamilyIndices indices = findQueueFamilies(surface, physicalDevice);
 
@@ -1129,6 +1009,8 @@ namespace fan {
 			}
 
 			VkPhysicalDeviceFeatures deviceFeatures{};
+
+			deviceFeatures.samplerAnisotropy = VK_TRUE;
 
 			VkDeviceCreateInfo createInfo{};
 			createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -1248,24 +1130,21 @@ namespace fan {
 		}
 
 		void cleanupSwapChain() {
-			for (auto framebuffer : swapChainFramebuffers) {
+			for (auto& framebuffer : swapChainFramebuffers) {
 				vkDestroyFramebuffer(device, framebuffer, nullptr);
+				framebuffer = nullptr;
 			}
 
 			vkDestroyRenderPass(device, renderPass, nullptr);
+			renderPass = nullptr;
 
-			for (auto imageView : swapChainImageViews) {
+			for (auto& imageView : swapChainImageViews) {
 				vkDestroyImageView(device, imageView, nullptr);
+				imageView = nullptr;
 			}
 
 			vkDestroySwapchainKHR(device, swapChain, nullptr);
-
-			for (size_t i = 0; i < swapChainImages.size(); i++) {
-				vkDestroyBuffer(device, uniformBuffers[i], nullptr);
-				vkFreeMemory(device, uniformBuffersMemory[i], nullptr);
-			}
-
-			vkDestroyDescriptorPool(device, descriptorPool, nullptr);
+			swapChain = nullptr;
 		}
 
 		void recreateSwapChain() {
@@ -1285,43 +1164,45 @@ namespace fan {
 			createImageViews();
 			createRenderPass();
 
-			for (uint32_t i = 0; i < pipelines.old_data.size(); i++) {
-				pipelines.recreate_pipeline(i, m_window->get_size());
+			for (uint32_t i = 0; i < pipelines->old_data.size(); i++) {
+				pipelines->recreate_pipeline(i, m_window->get_size(), swapChainExtent);
 			}
 
 			createFramebuffers();
-			createUniformBuffers();
-			createDescriptorPool();
-			createDescriptorSets();
+			
+			for (int i = 0; i < uniform_buffers.size(); i++) {
+				uniform_buffers[i]->recreate(swapChainImages.size());
+			}
+
+			texture_handler->descriptor_handler->recreate_descriptor_pool(swapChainImages.size());
+			
+			for (int j = 0; j < uniform_buffers.size(); j++) {
+				for (int i = 0; i < texture_handler->descriptor_handler->descriptor_sets.size() / swapChainImages.size(); i++) {
+					texture_handler->descriptor_handler->update_descriptor_sets<fan::gpu_memory::uniform_handler>(
+						i,
+						device,
+						uniform_buffers[j],
+						texture_handler->descriptor_handler->descriptor_set_layout,
+						texture_handler->descriptor_handler->descriptor_pool,
+						texture_handler->image_views[i],
+						texture_handler->texture_sampler,
+						swapChainImages.size()
+					);
+				}
+			}
+
 			create_command_buffers();
 
 			imagesInFlight.resize(swapChainImages.size(), VK_NULL_HANDLE);
 		}
-		 
+
 		// image views
 		void createImageViews() {
 
-			swapChainImageViews.resize(swapChainImages.size());
+			swapChainImageViews.resize(swapChainImages.size(), nullptr);
 
 			for (size_t i = 0; i < swapChainImages.size(); i++) {
-				VkImageViewCreateInfo createInfo{};
-				createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-				createInfo.image = swapChainImages[i];
-				createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-				createInfo.format = swapChainImageFormat;
-				createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-				createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-				createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-				createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-				createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-				createInfo.subresourceRange.baseMipLevel = 0;
-				createInfo.subresourceRange.levelCount = 1;
-				createInfo.subresourceRange.baseArrayLayer = 0;
-				createInfo.subresourceRange.layerCount = 1;
-
-				if (vkCreateImageView(device, &createInfo, nullptr, &swapChainImageViews[i]) != VK_SUCCESS) {
-					throw std::runtime_error("failed to create image views!");
-				}
+				swapChainImageViews[i] = texture_handler->create_image_view(swapChainImages[i], swapChainImageFormat);
 			}
 		}
 
@@ -1393,7 +1274,7 @@ namespace fan {
 			}
 		}
 
-		// command pool
+		// command m_pool
 		void createCommandPool() {
 			QueueFamilyIndices queueFamilyIndices = findQueueFamilies(surface, physicalDevice);
 
@@ -1410,9 +1291,8 @@ namespace fan {
 		// command buffers
 		void create_command_buffers() {
 
-			commandBuffers.resize(2);
+			commandBuffers.resize(1);
 			commandBuffers[0].resize(swapChainFramebuffers.size());
-			commandBuffers[1].resize(1, nullptr);
 
 			VkCommandBufferAllocateInfo allocInfo{};
 			allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -1421,22 +1301,44 @@ namespace fan {
 			allocInfo.commandBufferCount = (uint32_t)commandBuffers[0].size();
 
 			if (vkAllocateCommandBuffers(device, &allocInfo, commandBuffers[0].data()) != VK_SUCCESS) {
-				throw std::runtime_error("failed to allocate command buffers!");
+				throw std::runtime_error("failed to allocate command buffers.");
 			}
 
-			for (int j = 0; j < pipelines.pipeline_info.size(); j++) {
-				for (size_t i = 0; i < commandBuffers[0].size(); i++) {
-					
-					for (const auto& call : draw_calls) {
+			VkCommandBufferBeginInfo beginInfo{};
+			beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-						if (call) {
-							call(i, j);
-						}
+			for (int i = 0; i < commandBuffers[0].size(); i++) {
 
+				if (vkBeginCommandBuffer(commandBuffers[0][i], &beginInfo) != VK_SUCCESS) {
+					throw std::runtime_error("failed to begin recording command buffer!");
+				}
+
+				VkRenderPassBeginInfo renderPassInfo{};
+				renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+				renderPassInfo.renderPass = renderPass;
+				renderPassInfo.framebuffer = swapChainFramebuffers[i];
+				renderPassInfo.renderArea.offset = { 0, 0 };
+				renderPassInfo.renderArea.extent = swapChainExtent;
+
+				VkClearValue clearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
+				renderPassInfo.clearValueCount = 1;
+				renderPassInfo.pClearValues = &clearColor;
+
+				vkCmdBeginRenderPass(commandBuffers[0][i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+				for (int k = 0; k < draw_calls.size(); k++) {
+					if (draw_calls[k]) {
+						draw_calls[k](i, k);
 					}
+				}
 
+				vkCmdEndRenderPass(commandBuffers[0][i]);
+
+				if (vkEndCommandBuffer(commandBuffers[0][i]) != VK_SUCCESS) {
+					throw std::runtime_error("failed to record command buffer!");
 				}
 			}
+
 		}
 
 		// semaphores
@@ -1479,7 +1381,9 @@ namespace fan {
 				throw std::runtime_error("failed to acquire swap chain image!");
 			}
 
-			updateUniformBuffer(image_index);
+			for (int i = 0; i < uniform_buffers.size(); i++) {
+				uniform_buffers[i]->upload(image_index);
+			}
 
 			if (imagesInFlight[image_index] != VK_NULL_HANDLE) {
 				vkWaitForFences(device, 1, &imagesInFlight[image_index], VK_TRUE, UINT64_MAX);
@@ -1505,7 +1409,7 @@ namespace fan {
 			vkResetFences(device, 1, &inFlightFences[currentFrame]);
 
 			if (vkQueueSubmit(graphicsQueue, 1, &submit_info, inFlightFences[currentFrame]) != VK_SUCCESS) {
-				throw std::runtime_error("failed to submit draw command buffer!");
+				throw std::runtime_error("failed to submit draw command buffer.");
 			}
 
 			VkPresentInfoKHR present_info{};
@@ -1522,8 +1426,9 @@ namespace fan {
 
 			result = vkQueuePresentKHR(presentQueue, &present_info);
 
-			if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
+			if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || window_resized) {
 				recreateSwapChain();
+				window_resized = false;
 			}
 			else if (result != VK_SUCCESS) {
 				throw std::runtime_error("failed to present swap chain image!");
@@ -1605,8 +1510,6 @@ namespace fan {
 				fan::print("validation layer:", pCallbackData->pMessage);
 			}
 
-
-
 			return VK_FALSE;
 		}
 
@@ -1642,7 +1545,7 @@ namespace fan {
 		//-debug helper functions ------------------------------------------------------------
 
 
-		//+physical device helper functions ------------------------------------------------------------
+		//+physical m_device helper functions ------------------------------------------------------------
 
 		SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device) const {
 			SwapChainSupportDetails details;
@@ -1672,15 +1575,18 @@ namespace fan {
 
 			QueueFamilyIndices indices = findQueueFamilies(surface, device);
 
-			bool extensionsSupported = checkDeviceExtensionSupport(device);
+			bool extensions_supported = checkDeviceExtensionSupport(device);
 
-			bool swapChainAdequate = false;
-			if (extensionsSupported) {
+			bool swap_chain_adequate = false;
+			if (extensions_supported) {
 				SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device);
-				swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
+				swap_chain_adequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
 			}
 
-			return indices.is_complete() && extensionsSupported && swapChainAdequate;
+			VkPhysicalDeviceFeatures supported_features;
+			vkGetPhysicalDeviceFeatures(device, &supported_features);
+
+			return indices.is_complete() && extensions_supported && swap_chain_adequate && supported_features.samplerAnisotropy;
 		}
 
 		bool checkDeviceExtensionSupport(VkPhysicalDevice device) const {
@@ -1725,7 +1631,7 @@ namespace fan {
 			return score;
 		}
 
-		//-physical device helper functions ------------------------------------------------------------
+		//-physical m_device helper functions ------------------------------------------------------------
 
 		//+queue famlies helper functions ------------------------------------------------------------
 
@@ -1766,9 +1672,9 @@ namespace fan {
 		//+swapchain helper functions ------------------------------------------------------------
 
 		VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
-			// VK_FORMAT_B8G8R8A8_SRGB
+			
 			/*for (const auto& availableFormat : availableFormats) {
-				if (availableFormat.format == VK_FORMAT_R8G8B8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+				if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB ) {
 					return availableFormat;
 				}
 			}*/
@@ -1825,7 +1731,7 @@ namespace fan {
 			VK_KHR_SWAPCHAIN_EXTENSION_NAME
 		};
 
-		static constexpr int MAX_FRAMES_IN_FLIGHT = 10;
+		static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
 #ifdef fan_debug
 		// decreases fps when enabled
@@ -1871,7 +1777,7 @@ namespace fan {
 		std::vector<VkFence> inFlightFences;
 		std::vector<VkFence> imagesInFlight;
 
-		fan::vk::graphics::pipelines pipelines;
+		fan::vk::graphics::pipelines* pipelines = nullptr;
 
 		size_t currentFrame = 0;
 
@@ -1882,6 +1788,12 @@ namespace fan {
 		using staging_buffer_t = fan::gpu_memory::glsl_location_handler<fan::gpu_memory::buffer_type::staging>;
 
 		staging_buffer_t* staging_buffer = nullptr;
+
+		fan::gpu_memory::texture_handler* texture_handler = nullptr;
+
+		VkImageCreateInfo image_info{};
+
+		std::vector<fan::gpu_memory::uniform_handler*> uniform_buffers;
 
 	};
 

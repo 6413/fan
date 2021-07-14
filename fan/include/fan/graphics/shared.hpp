@@ -1,11 +1,10 @@
 #pragma once
 
-#include <fan/types/vector.hpp>
+#include <fan/graphics/renderer.hpp>
 
-#include <functional>
+#include <fan/window/window.hpp>
 
 namespace fan {
-
 
 	inline bool gpu_queue = false;
 
@@ -23,13 +22,15 @@ namespace fan {
 		gpu_queue = false;
 	}
 
-	namespace vertex_queue {
+	namespace instance_queue {
 		constexpr uint32_t position = 1;
 		constexpr uint32_t size = 2;
 		constexpr uint32_t color = 4;
 		constexpr uint32_t angle = 8;
 		constexpr uint32_t indices = 16;
+		constexpr uint32_t texture_coordinates = 32;
 	};
+
 
 }
 
@@ -54,8 +55,14 @@ namespace fan_2d {
 
 		};
 
+		// 0 top left, 1 top right, 2 bottom left, 3 bottom right
 		constexpr rectangle_corners_t get_rectangle_corners_no_rotation(const fan::vec2& position, const fan::vec2& size) {
-			return { position, position + fan::vec2(size.x, 0), position + fan::vec2(0, size.y), position + size };
+			return { 
+				position - size / 2, 
+				position + fan::vec2(size.x / 2, -size.y / 2), 
+				position + fan::vec2(-size.x / 2, size.y / 2), 
+				position + size / 2 
+			};
 		}
 
 		static fan::vec2 get_transformed_point(fan::vec2 input, f32_t a) {

@@ -215,7 +215,7 @@ protected:
 
 	uint32 m_flags;
 
-	// World pool and list pointers.
+	// World m_pool and list pointers.
 	b2Contact* m_prev;
 	b2Contact* m_next;
 

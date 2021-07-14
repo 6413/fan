@@ -74,18 +74,18 @@ namespace fan {
 		uint32_t m_buffer_object;
 
 		glsl_location_handler() : m_buffer_object(fan::uninitialized) {
-			this->allocate_buffer();
+			this->allocate();
 		}
 
 		glsl_location_handler(uint32_t buffer_object) : m_buffer_object(buffer_object) {}
 
 		~glsl_location_handler() {
-			this->free_buffer();
+			this->free();
 		}
 
 
 		glsl_location_handler(const glsl_location_handler& handler) : m_buffer_object(fan::uninitialized) {
-			this->allocate_buffer();
+			this->allocate();
 		}
 
 		glsl_location_handler(glsl_location_handler&& handler) : m_buffer_object(fan::uninitialized) {
@@ -97,16 +97,16 @@ namespace fan {
 
 		glsl_location_handler& operator=(const glsl_location_handler& handler) {
 
-			this->free_buffer();
+			this->free();
 
-			this->allocate_buffer();
+			this->allocate();
 
 			return *this;
 		}
 
 		glsl_location_handler& operator=(glsl_location_handler&& handler) {
 
-			this->free_buffer();
+			this->free();
 
 			this->m_buffer_object = handler.m_buffer_object;
 
@@ -130,7 +130,7 @@ namespace fan {
 			conditional_value<T_buffer_type == fan::opengl_buffer_type::render_buffer_object, GL_RENDERBUFFER, static_cast<uint32_t>(fan::uninitialized)
 			>::value>::value>::value>::value>::value>::value>::value;
 
-		void allocate_buffer() {
+		void allocate() {
 			comparer<T_buffer_type>(
 				[&] { glGenBuffers(1, &m_buffer_object); },
 				[&] { glGenVertexArrays(1, &m_buffer_object); },
@@ -141,7 +141,7 @@ namespace fan {
 			);
 		}
 
-		void free_buffer() {
+		void free() {
 
 			fan_validate_buffer(m_buffer_object, {
 				comparer<T_buffer_type>(
@@ -679,8 +679,8 @@ namespace fan {
 	protected:
 
 		void basic_push_back(const _Vector& position, const fan::color& color) {
-			basic_vertice_vector::basic_shape_position::push_back(position, fan::gpu_queue);
-			basic_vertice_vector::basic_shape_color_vector::push_back(color, fan::gpu_queue);
+			basic_vertice_vector::basic_shape_position::push_back(position);
+			basic_vertice_vector::basic_shape_color_vector::push_back(color);
 		}
 
 		void edit_data(uint_t i, bool position, bool color) {

@@ -1,9 +1,5 @@
 #pragma once
 
-#include <fan/graphics/renderer.hpp>
-
-#if fan_renderer == fan_renderer_opengl
-
 #include <fan/types/vector.hpp>
 
 #define __STDC_CONSTANT_MACROS
@@ -75,7 +71,7 @@ namespace fan {
 		static long int tab_76309[256]; 
 		static unsigned char clp[1024];  
 
-		void init_yuv420p_table() 
+		static void init_yuv420p_table() 
 		{   
 			long int crv,cbu,cgu,cgv;   
 			int i,ind;      
@@ -168,7 +164,9 @@ namespace fan {
 
 			image_loader::image_data new_data;
 
-			new_data.data[0] = new uint8_t[image_data.size.x * image_data.size.y * 3];
+			new_data.linesize[0] = get_stride_multiplier(new_format) * image_data.size.x;
+
+			new_data.data[0] = new uint8_t[new_data.linesize[0] * image_data.size.y];
 
 			auto size = image_data.size.x * image_data.size.y;
 
@@ -192,8 +190,6 @@ namespace fan {
 				return {};
 			}
 
-			new_data.linesize[0] = get_stride_multiplier(new_format) * image_data.size.x;
-
 			//if (av_image_alloc(
 			//	new_data.data,
 			//	new_data.linesize,
@@ -207,7 +203,7 @@ namespace fan {
 			//}
 
 			sws_scale(
-				context, 
+				context,
 				image_data.data, 
 				image_data.linesize,
 				0,
@@ -218,7 +214,7 @@ namespace fan {
 
 			sws_freeContext(context);
 
-			//av_freep((void*)&image_data.data);
+			av_freep((void*)&image_data.data[0]);
 
 			new_data.format = new_format;
 			new_data.size = image_data.size;
@@ -332,43 +328,7 @@ namespace fan {
 
 end:
 
-			switch (image_data.format) {
-				
-				case AV_PIX_FMT_YUVJ420P:
-				{
-					image_data.format = AV_PIX_FMT_YUV420P;
-					image_data = convert_format(image_data, AVPixelFormat::AV_PIX_FMT_RGB24);
-					break;
-				}
-				case AV_PIX_FMT_YUVJ422P:
-				{
-					image_data.format = AV_PIX_FMT_YUV422P;
-					image_data = convert_format(image_data, AVPixelFormat::AV_PIX_FMT_RGB24);
-					break;
-				}
-				case AV_PIX_FMT_YUVJ444P:
-				{
-					image_data.format = AV_PIX_FMT_YUV444P;
-					image_data = convert_format(image_data, AVPixelFormat::AV_PIX_FMT_RGB24);
-					break;
-				}
-				case AV_PIX_FMT_YUVJ440P:
-				{
-					image_data.format = AV_PIX_FMT_YUV440P;
-					image_data = convert_format(image_data, AVPixelFormat::AV_PIX_FMT_RGB24);
-					break;
-				}
-				case AV_PIX_FMT_RGBA:
-				case AV_PIX_FMT_RGB24:
-				{
-					break;
-				}
-				default:
-				{
-					image_data = convert_format(image_data, AVPixelFormat::AV_PIX_FMT_RGB24);
-					break;
-				}
-			}
+			image_data = convert_format(image_data, AVPixelFormat::AV_PIX_FMT_RGBA);
 
 			avcodec_free_context(&codec_ctx);
 			avformat_close_input(&format_ctx);
@@ -381,5 +341,3 @@ end:
 	}
 
 }
-
-#endif

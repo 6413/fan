@@ -1,4 +1,4 @@
-﻿#include <fan/graphics/graphics.hpp>
+﻿#include <fan/graphics/gui.hpp>
 
 int main() {
 
@@ -6,38 +6,15 @@ int main() {
 
 	fan::camera camera(&window);
 
-	fan_2d::graphics::rectangle r(&camera);
+	fan_2d::graphics::gui::text_renderer tr(&camera);
 
-	window.add_key_callback(fan::key_escape, fan::key_state::press, [&] {
-		window.close();
-	});
-
-	fan::begin_queue();
-
-	for (int i = 0; i < 1000; i++) {
-		r.push_back(fan::vec2(rand() % 800, rand() % 800), rand() % 50 + 10, fan::random::color());
-		r.set_angle(i, fan::math::radians(rand() % 360));
-	}
-	
-	fan::end_queue();
-
-	r.release_queue();
+	tr.push_back(L"text renderer", 64, 100, fan::colors::white);
 
 	window.loop([&] {
 
 		window.get_fps();
 
-		r.draw();
-
-		fan::begin_queue();
-
-		for (int i = 0; i < r.size(); i++) {
-			r.set_angle(i, r.get_angle(i) + window.get_delta_time());
-		}
-
-		fan::end_queue();
-
-		r.release_queue();
+		tr.draw();
 
 	});
 }

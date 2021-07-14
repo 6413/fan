@@ -147,6 +147,16 @@ void fan::camera::set_position(const fan::vec3& position) {
 	this->m_position = position;
 }
 
+fan::vec3 fan::camera::get_front() const
+{
+	return this->m_front;
+}
+
+void fan::camera::set_front(const fan::vec3 front)
+{
+	this->m_front = front;
+}
+
 fan::vec3 fan::camera::get_velocity() const
 {
 	return fan::camera::m_velocity;

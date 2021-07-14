@@ -9,6 +9,7 @@
 
 #include <fan/physics/collision/rectangle.hpp>
 
+#include <fan/graphics/shared_gui.hpp>
 
 namespace fan_2d {
 
@@ -16,109 +17,12 @@ namespace fan_2d {
 
 		namespace gui {
 
-			fan::vec2 get_resize_movement_offset(fan::window* window);
-
-			void add_resize_callback(fan::window* window, fan::vec2& position);
-
-			struct rectangle : public fan_2d::graphics::rectangle {
-
-				rectangle(fan::camera* camera);
-
-			};
-
 			struct circle : public fan_2d::graphics::circle {
 
 				circle(fan::camera* camera);
 
 			};
-
-			class text_renderer : 
-				protected fan_2d::graphics::sprite,
-				protected fan::buffer_object<f32_t, 99>,
-				protected fan::buffer_object<fan::vec2, 99>
-			{
-			public:
-
-				using font_size_t = fan::buffer_object<f32_t, 99>;
-				using rotation_point_t = fan::buffer_object<fan::vec2, 99>;
-
-				// requires manual m_camera initialization
-				text_renderer();
-				text_renderer(fan::camera* camera);
-
-				using sprite::draw;
-
-				fan::vec2 push_back(const fan::fstring& text, f32_t font_size, fan::vec2 position, const fan::color& text_color);
-
-				void insert(uint32_t i, const fan::fstring& text, f32_t font_size, fan::vec2 position, const fan::color& text_color);
-
-				fan::vec2 get_position(uint32_t i) const;
-				void set_position(uint32_t i, const fan::vec2& position);
-
-				uint32_t size() const;
-
-				fan::io::file::font_t get_letter_info(fan::fstring::value_type c, f32_t font_size);
-
-				f32_t get_lowest(f32_t font_size) const;
-
-				f32_t get_highest(f32_t font_size) const;
-
-				f32_t get_highest_size(f32_t font_size) const;
-
-				f32_t get_lowest_size(f32_t font_size) const;
-
-				fan::vec2 get_character_position(uint32_t i, uint32_t j, f32_t font_size) const;
-
-				f32_t get_font_size(uint_t i) const;
-				void set_font_size(uint32_t i, f32_t font_size);
-
-				void set_angle(uint32_t i, f32_t angle);
-
-				static f32_t convert_font_size(f32_t font_size);
-
-				void erase(uint_t i);
-
-				void erase(uint_t begin, uint_t end);
-
-				void clear();
-
-				f32_t get_line_height(f32_t font_size) const;
-
-				fan::fstring get_text(uint32_t i) const;
-				void set_text(uint32_t i, const fan::fstring& text);
-
-				fan::color get_text_color(uint32_t i, uint32_t j = 0);
-				void set_text_color(uint32_t i, const fan::color& color);
-				void set_text_color(uint32_t i, uint32_t j, const fan::color& color);
-
-				fan::vec2 get_text_size(const fan::fstring& text, f32_t font_size);
-
-				void write_data();
-
-				static f32_t get_original_font_size();
-
-				inline static fan::io::file::font_info font_info;
-				inline static fan_2d::graphics::image_info image;
-
-				using sprite::m_camera;
-
-			protected:
-
-				void regenerate_indices();
-
-				static constexpr auto location_font_size = "layout_font_size";
-				static constexpr auto location_rotation_point = "layout_rotation_point";
-
-				void insert_letter(uint32_t i, uint32_t j, fan::fstring::value_type letter, f32_t font_size, fan::vec2& position, const fan::color& color, f32_t& advance);
-				void push_back_letter(fan::fstring::value_type letter, f32_t font_size, fan::vec2& position, const fan::color& color, f32_t& advance);
-
-				std::vector<fan::fstring> m_text;
-				std::vector<fan::vec2> m_position;
-
-				std::vector<uint32_t> m_indices;
-
-			};
-
+			
 			//struct sprite : public fan_2d::graphics::sprite {
 
 			//	sprite(fan::camera* camera);
