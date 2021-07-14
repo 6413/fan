@@ -50,7 +50,7 @@ namespace fan {
 					descriptor_set_layout(descriptor_set_layout)
 				{ }
 
-				void push_back(const VkVertexInputBindingDescription& binding_description, const std::vector<VkVertexInputAttributeDescription>& attribute_description, const fan::vec2& window_size, const std::string& vertex, const std::string& fragment) {
+				void push_back(const VkVertexInputBindingDescription& binding_description, const std::vector<VkVertexInputAttributeDescription>& attribute_description, const fan::vec2& window_size, const std::string& vertex, const std::string& fragment, VkExtent2D extent) {
 
 					pipeline_info.emplace_back(pipeline_t{
 						fan::vk::shader(device, vertex, fragment),
@@ -59,7 +59,7 @@ namespace fan {
 
 					old_data.emplace_back(pipelines_info_t{ binding_description, attribute_description, vertex, fragment });
 
-					recreate_pipeline(this->pipeline_info.size() - 1, window_size);
+					recreate_pipeline(this->pipeline_info.size() - 1, window_size, extent);
 				}
 
 				~pipelines() {
@@ -69,7 +69,7 @@ namespace fan {
 
 				}
 
-				void recreate_pipeline(uint32_t i, const fan::vec2& window_size) {
+				void recreate_pipeline(uint32_t i, const fan::vec2& window_size, VkExtent2D extent) {
 
 					this->erase_pipeline_layout();
 					this->erase_pipes(i);
@@ -112,10 +112,10 @@ namespace fan {
 					viewport.height = window_size.y;
 					viewport.minDepth = 0.0f;
 					viewport.maxDepth = 1.0f;
-
+					
 					VkRect2D scissor{};
 					scissor.offset = { 0, 0 };
-					scissor.extent = { (uint32_t)window_size.x, (uint32_t)window_size.y }; // maybe
+					scissor.extent = extent;
 
 					VkPipelineViewportStateCreateInfo viewportState{};
 					viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -141,7 +141,13 @@ namespace fan {
 
 					VkPipelineColorBlendAttachmentState color_blend_attachment{};
 					color_blend_attachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-					color_blend_attachment.blendEnable = VK_FALSE;
+					color_blend_attachment.blendEnable = VK_TRUE;
+					color_blend_attachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+						color_blend_attachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+						color_blend_attachment.colorBlendOp = VK_BLEND_OP_ADD;
+						color_blend_attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+						color_blend_attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+						color_blend_attachment.alphaBlendOp = VK_BLEND_OP_ADD;
 
 					VkPipelineColorBlendStateCreateInfo color_blending{};
 					color_blending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
@@ -206,6 +212,7 @@ namespace fan {
 
 					if (pipeline_info[i].pipeline) {
 						vkDestroyPipeline(*device, pipeline_info[i].pipeline, nullptr);
+						pipeline_info[i].pipeline = nullptr;
 					}
 
 				}

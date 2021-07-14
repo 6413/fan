@@ -68,10 +68,10 @@ struct B2_API b2TreeNode
 class B2_API b2DynamicTree
 {
 public:
-	/// Constructing the tree initializes the node pool.
+	/// Constructing the tree initializes the node m_pool.
 	b2DynamicTree();
 
-	/// Destroy the tree, freeing the node pool.
+	/// Destroy the tree, freeing the node m_pool.
 	~b2DynamicTree();
 
 	/// Create a proxy. Provide a tight fitting AABB and a userData pointer.

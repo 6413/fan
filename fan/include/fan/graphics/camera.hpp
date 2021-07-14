@@ -2,7 +2,7 @@
 
 #include <fan/types/types.hpp>
 #include <fan/types/matrix.hpp>
-#include <fan/graphics/window/window.hpp>
+#include <fan/window/window.hpp>
 
 namespace fan {
 	class window;
@@ -25,6 +25,9 @@ namespace fan {
 
 		fan::vec3 get_position() const;
 		void set_position(const fan::vec3& position);
+
+		fan::vec3 get_front() const;
+		void set_front(const fan::vec3 front);
 
 		fan::vec3 get_velocity() const;
 		void set_velocity(const fan::vec3& velocity);
@@ -51,7 +54,7 @@ namespace fan {
 
 		fan::window* m_window;
 
-	private:
+	protected:
 
 		fan::vec3 m_position;
 		fan::vec3 m_front;

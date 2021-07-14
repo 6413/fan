@@ -20,7 +20,6 @@ namespace fan {
 			buffer,
 			index,
 			staging,
-			texture,
 			last
 		};
 
@@ -37,11 +36,51 @@ namespace fan {
 			throw std::runtime_error("failed to find suitable memory type.");
 		}
 
+		static VkCommandBuffer begin_command_buffer(VkDevice device, VkCommandPool pool) {
+			VkCommandBufferAllocateInfo alloc_info{};
+			alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+			alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+			alloc_info.commandPool = pool;
+			alloc_info.commandBufferCount = 1;
+
+			VkCommandBuffer command_buffer;
+			vkAllocateCommandBuffers(device, &alloc_info, &command_buffer);
+
+			VkCommandBufferBeginInfo begin_info{};
+			begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+			begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+			vkBeginCommandBuffer(command_buffer, &begin_info);
+
+			return command_buffer;
+		}
+
+		static void end_command_buffer(VkCommandBuffer command_buffer, VkDevice device, VkCommandPool pool, VkQueue graphics_queue) {
+			vkEndCommandBuffer(command_buffer);
+
+			VkSubmitInfo submit_info{};
+			submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+			submit_info.commandBufferCount = 1;
+			submit_info.pCommandBuffers = &command_buffer;
+
+			vkQueueSubmit(graphics_queue, 1, &submit_info, VK_NULL_HANDLE);
+			vkQueueWaitIdle(graphics_queue);
+
+			vkFreeCommandBuffers(device, pool, 1, &command_buffer);
+		}
+
 		static void create_buffer(VkDevice device, VkPhysicalDevice physical_device, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& buffer_memory) {
 
 			VkBufferCreateInfo bufferInfo{};
 			bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-			bufferInfo.size = size;
+
+			if (size == 0) {
+				bufferInfo.size = 1;
+			}
+			else {
+				bufferInfo.size = size;
+			}
+
 			bufferInfo.usage = usage;
 			bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
@@ -128,30 +167,34 @@ namespace fan {
 
 			VkDeviceSize buffer_size = 0;
 
-			glsl_location_handler(VkDevice* device, VkPhysicalDevice* physical_device, VkDeviceSize size = 0) :
+			glsl_location_handler(VkDevice* device, VkPhysicalDevice* physical_device) :
 				m_device(device),
 				m_physical_device(physical_device),
 				m_buffer_object(nullptr),
 				m_device_memory(nullptr)
 			{
-				this->allocate_buffer(size);
+
 			}
 
 			~glsl_location_handler() {
-				this->free_buffer();
+				this->free();
 			}
 
-			void allocate_buffer(VkDeviceSize size = 0) {
+			void allocate(VkDeviceSize size) {
+
 				buffer_size = size;
 				fan::gpu_memory::create_buffer(*m_device, *m_physical_device, size, usage, properties, m_buffer_object, m_device_memory);
+
 			}
 
-			void copy_buffer(VkCommandPool command_pool, VkQueue queue, VkBuffer src, VkDeviceSize size) {
+			void copy(VkCommandPool command_pool, VkQueue queue, VkBuffer src, VkDeviceSize size) {
 				fan::gpu_memory::copy_buffer(*m_device, command_pool, queue, src, m_buffer_object, size);
 			}
 
-			void free_buffer() {
+			void free() {
+
 				buffer_size = 0;
+
 				if (m_buffer_object) {
 					vkDestroyBuffer(*m_device, m_buffer_object, nullptr);
 					m_buffer_object = nullptr;
@@ -171,6 +214,9 @@ namespace fan {
 		class uniform_handler {
 		public:
 
+			void* user_data = nullptr;
+			VkDeviceSize user_data_size = 0;
+
 			VkDevice* m_device;
 			VkPhysicalDevice* m_physical_device;
 
@@ -181,13 +227,15 @@ namespace fan {
 
 			std::vector<buffer_t> m_buffer_object;
 
-			int usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+			static constexpr int usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 
-			int properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+			static constexpr int properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
-			uniform_handler(VkDevice* device, VkPhysicalDevice* physical_device, VkDeviceSize swap_chain_size) :
+			uniform_handler(VkDevice* device, VkPhysicalDevice* physical_device, VkDeviceSize swap_chain_size, void* user_data, VkDeviceSize user_data_size) :
 				m_device(device),
-				m_physical_device(physical_device)
+				m_physical_device(physical_device),
+				user_data(user_data),
+				user_data_size(user_data_size)
 			{
 				m_buffer_object.resize(swap_chain_size);
 
@@ -196,7 +244,7 @@ namespace fan {
 					fan::gpu_memory::create_buffer(
 						*m_device,
 						*m_physical_device,
-						sizeof(VkDeviceSize),
+						user_data_size,
 						usage,
 						properties,
 						m_buffer_object[i].buffer,
@@ -205,18 +253,275 @@ namespace fan {
 
 				}
 			}
+			
+			~uniform_handler() {
+				this->free();
+			}
 
-			template <typename user_data_t>
-			void upload(user_data_t* user_data, uint32_t image) {
+			void recreate(VkDeviceSize swap_chain_size) {
+
+				this->free();
+
+				m_buffer_object.resize(swap_chain_size);
+
+				for (int i = 0; i < swap_chain_size; i++) {
+
+					fan::gpu_memory::create_buffer(
+						*m_device,
+						*m_physical_device,
+						user_data_size,
+						usage,
+						properties,
+						m_buffer_object[i].buffer,
+						m_buffer_object[i].memory
+					);
+					
+				}
+			}
+
+			void free() {
+				for (int i = 0; i < m_buffer_object.size(); i++) {
+
+					if (m_buffer_object[i].buffer) {
+						vkDestroyBuffer(*m_device, m_buffer_object[i].buffer, nullptr);
+					}
+					if (m_buffer_object[i].memory) {
+						vkFreeMemory(*m_device, m_buffer_object[i].memory, nullptr);
+					}
+				}
+
+				m_buffer_object.clear();
+			}
+
+			void upload(uint32_t image) {
 
 				void* data;
 
-				vkMapMemory(*m_device, m_buffer_object[image].memory, 0, sizeof(*user_data), 0, &data);
+				vkMapMemory(*m_device, m_buffer_object[image].memory, 0, user_data_size, 0, &data);
 
-				memcpy(data, user_data, sizeof(user_data));
+				memcpy(data, user_data, user_data_size);
 
 				vkUnmapMemory(*m_device, m_buffer_object[image].memory);
 			}
+
+		};
+
+		struct texture_handler {
+
+			texture_handler(VkDevice* device, VkPhysicalDevice* physical_device, VkCommandPool* pool, VkQueue* graphics_queue)
+				:
+				m_device(device),
+				m_physical_device(physical_device),
+				m_pool(pool),
+				m_graphics_queue(graphics_queue),
+				descriptor_handler(new fan::vk::graphics::descriptor_set(device))
+			{
+				VkPhysicalDeviceProperties properties{};
+				vkGetPhysicalDeviceProperties(*physical_device, &properties);
+
+				VkSamplerCreateInfo samplerInfo{};
+				samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+				samplerInfo.magFilter = VK_FILTER_LINEAR;
+				samplerInfo.minFilter = VK_FILTER_LINEAR;
+				samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+				samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+				samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+				samplerInfo.anisotropyEnable = VK_TRUE;
+				samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+				samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+				samplerInfo.unnormalizedCoordinates = VK_FALSE;
+				samplerInfo.compareEnable = VK_FALSE;
+				samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+				samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+
+				if (vkCreateSampler(*device, &samplerInfo, nullptr, &texture_sampler) != VK_SUCCESS) {
+					throw std::runtime_error("failed to create texture sampler!");
+				}
+			}
+
+			~texture_handler() {
+				this->free();
+			}
+
+			void allocate(VkImage image) {
+				VkMemoryRequirements memory_requirements;
+				vkGetImageMemoryRequirements(*m_device, image, &memory_requirements);
+
+				VkMemoryAllocateInfo alloc_info{};
+				alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+				alloc_info.allocationSize = memory_requirements.size;
+				alloc_info.memoryTypeIndex = fan::gpu_memory::find_memory_type(*m_physical_device, memory_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+				m_image_memory.resize(m_image_memory.size() + 1);
+
+				if (vkAllocateMemory(*m_device, &alloc_info, nullptr, &m_image_memory[m_image_memory.size() - 1]) != VK_SUCCESS) {
+					throw std::runtime_error("failed to allocate image memory!");
+				}
+
+				vkBindImageMemory(*m_device, image, m_image_memory[m_image_memory.size() - 1], 0);
+			}
+
+			void free() {
+				for (int i = 0; i < m_image_memory.size(); i++) {
+
+					vkFreeMemory(*m_device, m_image_memory[i], nullptr);
+					m_image_memory[i] = nullptr;
+				}
+
+
+				vkDestroySampler(*m_device, texture_sampler, nullptr);
+				texture_sampler = nullptr;
+
+				delete descriptor_handler;
+				descriptor_handler = nullptr;
+
+				for (int i = 0; i < image_views.size(); i++) {
+					vkDestroyImageView(*m_device, image_views[i], nullptr);
+					image_views[i] = nullptr;
+				}
+
+			}
+
+			void copy_buffer_to_image(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) {
+
+				VkCommandBuffer command_buffer = begin_command_buffer(*m_device, *m_pool);
+
+				VkBufferImageCopy region{};
+				region.bufferOffset = 0;
+				region.bufferRowLength = 0;
+				region.bufferImageHeight = 0;
+
+				region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				region.imageSubresource.mipLevel = 0;
+				region.imageSubresource.baseArrayLayer = 0;
+				region.imageSubresource.layerCount = 1;
+
+				region.imageOffset = { 0, 0, 0 };
+				region.imageExtent = {
+					width,
+					height,
+					1
+				};
+
+				vkCmdCopyBufferToImage(
+					command_buffer,
+					buffer,
+					image,
+					VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+					1,
+					&region
+				);
+
+				end_command_buffer(command_buffer, *m_device, *m_pool, *m_graphics_queue);
+			}
+
+			void transition_image_layout(VkImage image, VkFormat format, VkImageLayout old_layout, VkImageLayout new_layout) {
+
+				VkCommandBuffer command_buffer = begin_command_buffer(*m_device, *m_pool);
+
+				VkImageMemoryBarrier barrier{};
+				barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+				barrier.oldLayout = old_layout;
+				barrier.newLayout = new_layout;
+				barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+				barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+				barrier.image = image;
+				barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				barrier.subresourceRange.baseMipLevel = 0;
+				barrier.subresourceRange.levelCount = 1;
+				barrier.subresourceRange.baseArrayLayer = 0;
+				barrier.subresourceRange.layerCount = 1;
+
+				VkPipelineStageFlags source_stage;
+				VkPipelineStageFlags destination_stage;
+
+				if (old_layout == VK_IMAGE_LAYOUT_UNDEFINED && new_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+					barrier.srcAccessMask = 0;
+					barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+					source_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+					destination_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+				}
+				else if (old_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && new_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+					barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+					barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+					source_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+					destination_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+				}
+				else {
+					throw std::invalid_argument("unsupported layout transition.");
+				}
+
+				vkCmdPipelineBarrier(
+					command_buffer,
+					source_stage, destination_stage,
+					0,
+					0, nullptr,
+					0, nullptr,
+					1, &barrier
+				);
+
+				end_command_buffer(command_buffer, *m_device, *m_pool, *m_graphics_queue);
+			}
+
+			VkImageView create_image_view(VkImage image, VkFormat format) {
+
+				VkImageViewCreateInfo view_info{};
+				view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+				view_info.image = image;
+				view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+				view_info.format = format;
+				view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				view_info.subresourceRange.baseMipLevel = 0;
+				view_info.subresourceRange.levelCount = 1;
+				view_info.subresourceRange.baseArrayLayer = 0;
+				view_info.subresourceRange.layerCount = 1;
+
+				VkImageView image_view;
+
+				if (vkCreateImageView(*m_device, &view_info, nullptr, &image_view) != VK_SUCCESS) {
+					throw std::runtime_error("failed to create texture image view!");
+				}
+
+				return image_view;
+			}
+
+			template <typename T>
+			void push_back(
+				VkImage texture_id, 
+				T* uniform_buffers,
+				VkDeviceSize swap_chain_image_size
+				) {
+
+				image_views.emplace_back(create_image_view(texture_id, VK_FORMAT_R8G8B8A8_UNORM));
+
+				descriptor_handler->push_back(
+					*m_device,
+					uniform_buffers,
+					descriptor_handler->descriptor_set_layout,
+					descriptor_handler->descriptor_pool,
+					image_views[image_views.size() - 1],
+					texture_sampler,
+					swap_chain_image_size
+				);
+				
+
+			}
+
+			std::vector<VkDeviceMemory> m_image_memory;
+
+			VkDevice* m_device = nullptr;
+			VkPhysicalDevice* m_physical_device = nullptr;
+
+			VkCommandPool* m_pool = nullptr;
+			VkQueue* m_graphics_queue = nullptr;
+
+			std::vector<VkImageView> image_views;
+
+			fan::vk::graphics::descriptor_set* descriptor_handler = nullptr;
+
+			VkSampler texture_sampler = nullptr;
 
 		};
 
@@ -225,9 +530,9 @@ namespace fan {
 				
 			using buffer_t = glsl_location_handler<T_buffer_type>;
 
-			buffer_object(VkDevice* device, VkPhysicalDevice* physical_device, VkCommandPool* pool, glsl_location_handler<gpu_memory::buffer_type::staging>* staging, VkQueue* graphics_queue, VkDeviceSize size = 0)
+			buffer_object(VkDevice* device, VkPhysicalDevice* physical_device, VkCommandPool* pool, glsl_location_handler<gpu_memory::buffer_type::staging>* staging, VkQueue* graphics_queue)
 				:
-				buffer(new buffer_t(device, physical_device, size)),
+				buffer(new buffer_t(device, physical_device)),
 				staging(staging),
 				graphics_queue(graphics_queue),
 				pool(pool)
@@ -240,9 +545,6 @@ namespace fan {
 				alloc_info.commandBufferCount = 1;
 
 				vkAllocateCommandBuffers(*device, &alloc_info, &command_buffer);
-
-				recreate_command_buffer(size, 0, 0);
-				current_buffer_size = size;
 			}
 
 			~buffer_object() {
@@ -278,11 +580,13 @@ namespace fan {
 
 			void map_data(VkDeviceSize size, VkDeviceSize offset = 0) {
 
+				size = size == 0 ? 1 : size;
+
 				void* data = nullptr;
 
 				if (staging->buffer_size < size) {
-					staging->free_buffer();
-					staging->allocate_buffer(size);
+					staging->free();
+					staging->allocate(size);
 				}
 
 				vkMapMemory(
@@ -339,6 +643,26 @@ namespace fan {
 				fan::gpu_memory::copy_buffer(*buffer->m_device, *pool, *graphics_queue, staging->m_buffer_object, buffer->m_buffer_object, bufferSize, 0, sizeof(object_type) * i);
 			}
 
+			void edit_data(uint32_t begin, uint32_t end) {
+
+				VkDeviceSize bufferSize = sizeof(object_type) * (end - begin);
+
+				void* data;
+				vkMapMemory(
+					*buffer->m_device,
+					staging->m_device_memory,
+					0,
+					bufferSize,
+					0,
+					&data
+				);
+
+				memcpy(data, &m_instance[begin], (std::size_t)bufferSize);
+				vkUnmapMemory(*buffer->m_device, staging->m_device_memory);
+
+				fan::gpu_memory::copy_buffer(*buffer->m_device, *pool, *graphics_queue, staging->m_buffer_object, buffer->m_buffer_object, bufferSize, 0, sizeof(object_type) * begin);
+			}
+
 			void recreate_command_buffer(VkDeviceSize buffer_size, VkDeviceSize src_offset, VkDeviceSize dst_offset) {
 
 				VkCommandBufferBeginInfo begin_info{};
@@ -354,9 +678,13 @@ namespace fan {
 				copy_region.srcOffset = src_offset;
 				copy_region.dstOffset = dst_offset;
 
-				vkCmdCopyBuffer(command_buffer, staging->m_buffer_object, buffer->m_buffer_object, 1, &copy_region);
+				if (buffer_size) {
+					vkCmdCopyBuffer(command_buffer, staging->m_buffer_object, buffer->m_buffer_object, 1, &copy_region);
+				}
 
 				vkEndCommandBuffer(command_buffer);
+
+				current_buffer_size = buffer_size;
 			}
 
 			std::size_t size() const {

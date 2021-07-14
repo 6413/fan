@@ -12,6 +12,8 @@
 #include <assimp/postprocess.h>
 #include <assimp/Importer.hpp>
 
+#include <fan/graphics/shared_graphics.hpp>
+
 #ifdef fan_platform_windows
 	#pragma comment(lib, "lib/assimp/assimp.lib")
 #endif
@@ -59,33 +61,33 @@ namespace fan_2d {
 		}
 
 		namespace shader_paths {
-			constexpr auto text_renderer_vs("glsl/2D/text.vs");
-			constexpr auto text_renderer_fs("glsl/2D/text.fs");
+			constexpr auto text_renderer_vs("glsl/2D/opengl/text.vs");
+			constexpr auto text_renderer_fs("glsl/2D/opengl/text.fs");
 
-			constexpr auto single_shapes_vs("glsl/2D/shapes.vs");
-			constexpr auto single_shapes_fs("glsl/2D/shapes.fs");
+			constexpr auto single_shapes_vs("glsl/2D/opengl/shapes.vs");
+			constexpr auto single_shapes_fs("glsl/2D/opengl/shapes.fs");
 
-			constexpr auto single_shapes_bloom_vs("glsl/2D/bloom.vs");
-			constexpr auto single_shapes_bloom_fs("glsl/2D/bloom.fs");
-			constexpr auto single_shapes_blur_vs("glsl/2D/blur.vs");
-			constexpr auto single_shapes_blur_fs("glsl/2D/blur.fs");
+			constexpr auto single_shapes_bloom_vs("glsl/2D/opengl/bloom.vs");
+			constexpr auto single_shapes_bloom_fs("glsl/2D/opengl/bloom.fs");
+			constexpr auto single_shapes_blur_vs("glsl/2D/opengl/blur.vs");
+			constexpr auto single_shapes_blur_fs("glsl/2D/opengl/blur.fs");
 
-			constexpr auto single_shapes_bloom_final_vs("glsl/2D/bloom_final.vs");
-			constexpr auto single_shapes_bloom_final_fs("glsl/2D/bloom_final.fs");
+			constexpr auto single_shapes_bloom_final_vs("glsl/2D/opengl/bloom_final.vs");
+			constexpr auto single_shapes_bloom_final_fs("glsl/2D/opengl/bloom_final.fs");
 
-			constexpr auto post_processing_vs("glsl/2D/post_processing.vs");
-			constexpr auto post_processing_fs("glsl/2D/post_processing.fs");
+			constexpr auto post_processing_vs("glsl/2D/opengl/post_processing.vs");
+			constexpr auto post_processing_fs("glsl/2D/opengl/post_processing.fs");
 
-			constexpr auto shape_vector_vs("glsl/2D/shape_vector.vs");
-			constexpr auto shape_vector_fs("glsl/2D/shapes.fs");
+			constexpr auto shape_vector_vs("glsl/2D/opengl/shape_vector.vs");
+			constexpr auto shape_vector_fs("glsl/2D/opengl/shapes.fs");
 
-			constexpr auto particles_vs("glsl/2D/particles.vs");
+			constexpr auto particles_vs("glsl/2D/opengl/particles.vs");
 
-			constexpr auto rectangle_vs("glsl/2D/rectangle.vs");
-			constexpr auto rectangle_fs("glsl/2D/rectangle.fs");
+			constexpr auto rectangle_vs("glsl/2D/opengl/rectangle.vs");
+			constexpr auto rectangle_fs("glsl/2D/opengl/rectangle.fs");
 
-			constexpr auto sprite_vs("glsl/2D/sprite.vs");
-			constexpr auto sprite_fs("glsl/2D/sprite.fs");
+			constexpr auto sprite_vs("glsl/2D/opengl/sprite.vs");
+			constexpr auto sprite_fs("glsl/2D/opengl/sprite.fs");
 		}
 
 		fan::mat4 get_projection(const fan::vec2i& window_size);
@@ -97,11 +99,6 @@ namespace fan_2d {
 
 		// 0 left right, 1 top right, 2 bottom left, 3 bottom right
 
-		struct image_info {
-			fan::vec2i size;
-			uint32_t texture_id;
-		};
-
 		namespace image_load_properties {
 			inline uint32_t visual_output = GL_REPEAT;
 			inline uint_t internal_format = GL_RGBA;
@@ -110,9 +107,8 @@ namespace fan_2d {
 			inline uint_t filter = GL_LINEAR;
 		}
 
-		image_info load_image(const std::string& path, bool flip_image = false);
-		image_info load_image(uint32_t texture_id, const std::string& path, bool flip_image = false);
-		image_info load_image(unsigned char* pixels, const fan::vec2i& size);
+		// fan::get_device(window)
+		image_info load_image(fan::window* window, const std::string& path);
 
 		class lighting_properties {
 		public:
@@ -375,22 +371,6 @@ namespace fan_2d {
 
 		};
 
-		struct sprite_properties {
-
-			std::array<fan::vec2, 6> texture_coordinates = {
-				fan::vec2(0, 1),
-				fan::vec2(1, 1),
-				fan::vec2(1, 0),
-				
-				fan::vec2(0, 1),
-				fan::vec2(0, 0),
-				fan::vec2(1, 0)
-			};
-
-			f32_t transparency = 1;
-
-		};
-
 		class sprite :
 			protected fan_2d::graphics::rectangle,
 			protected fan::buffer_object<fan::vec2, 2, true, fan::opengl_buffer_type::shader_storage_buffer_object, false>,
@@ -401,9 +381,6 @@ namespace fan_2d {
 		public:
 
 			using texture_coordinates_t = fan::buffer_object<fan::vec2, 2, true, fan::opengl_buffer_type::shader_storage_buffer_object, false>;
-
-			// requires manual initialization of m_camera
-			sprite();
 
 			sprite(fan::camera* camera);
 
@@ -423,13 +400,13 @@ namespace fan_2d {
 
 			~sprite();
 
-			void push_back(uint32_t texture_id, const fan::vec2& position, const fan::vec2& size, const sprite_properties& properties = sprite_properties());
+			void push_back(std::unique_ptr<fan_2d::graphics::texture_id_handler>& handler, const fan::vec2& position, const fan::vec2& size, const sprite_properties& properties = sprite_properties());
 
 			void insert(uint32_t i, uint32_t texture_coordinates_i, uint32_t texture_id, const fan::vec2& position, const fan::vec2& size, const sprite_properties& properties = sprite_properties());
 
 			void draw(uint32_t begin = fan::uninitialized, uint32_t end = fan::uninitialized) const;
 
-			void release_queue(bool position, bool size, bool angle, bool color, bool indices, bool texture_coordinates);
+			void release_queue(uint32_t avoid_flags = 0);
 
 			void erase(uint32_t i);
 			void erase(uint32_t begin, uint32_t end);
@@ -602,8 +579,6 @@ namespace fan_3d {
 	namespace graphics {
 
 		namespace shader_paths {
-			constexpr auto triangle_vector_vs("glsl/3D/terrain_generator.vs");
-			constexpr auto triangle_vector_fs("glsl/3D/terrain_generator.fs");
 
 			constexpr auto shape_vector_vs("glsl/3D/shape_vector.vs");
 			constexpr auto shape_vector_fs("glsl/3D/shape_vector.fs");
@@ -621,54 +596,6 @@ namespace fan_3d {
 		}
 
 		void add_camera_rotation_callback(fan::camera* camera);
-
-		using triangle_vertices_t = fan::vec3;
-
-		class terrain_generator : public fan::buffer_object<fan::color, true> {
-		public:
-
-			using basic_shape_color_vector = fan::buffer_object<fan::color, true>;
-
-			terrain_generator(fan::camera* camera, const std::string& path, const f32_t texture_scale, const fan::vec3& position, const fan::vec2ui& map_size, f_t triangle_size, const fan::vec2& mesh_size);
-			~terrain_generator();
-
-			void insert(const std::vector<triangle_vertices_t>& vertices, const std::vector<fan::color>& color);
-			void push_back(const triangle_vertices_t& vertices, const fan::color& color);
-
-			template <uint_t i = uint_t(-1)>
-			std::conditional_t<i == -1, std::vector<triangle_vertices_t>, triangle_vertices_t> get_vertices();
-
-			void edit_data(uint_t i, const triangle_vertices_t& vertices, const fan::color& color);
-
-			void release_queue();
-
-			void draw();
-
-			void erase_all();
-
-			uint_t size();
-
-			fan::camera* m_camera;
-
-		private:
-
-			fan::shader m_shader;
-
-			uint32_t m_texture;
-			uint32_t m_texture_vbo;
-			uint32_t m_vao;
-			uint32_t m_vertices_vbo;
-			uint32_t m_ebo;
-			uint32_t m_triangle_size;
-			uint32_t m_normals_vbo;
-
-			//	fan_3d::line_vector lv;
-
-			std::vector<triangle_vertices_t> m_triangle_vertices;
-			std::vector<unsigned int> m_indices;
-			static constexpr auto m_vertice_size = sizeof(triangle_vertices_t);
-
-		};
 
 		struct plane_corners {
 			fan::da_t<f32_t, 3> top_left;
@@ -828,17 +755,6 @@ namespace fan_3d {
 
 		fan::vec3 line_triangle_intersection(const fan::da_t<f32_t, 2, 3>& line, const fan::da_t<f32_t, 3, 3>& triangle);
 		fan::vec3 line_plane_intersection(const fan::da_t<f32_t, 2, 3>& line, const fan::da_t<f32_t, 4, 3>& square);
-
-		template<uint_t i>
-		inline std::conditional_t<i == -1, std::vector<triangle_vertices_t>, triangle_vertices_t> terrain_generator::get_vertices()
-		{
-			if constexpr(i == (uint_t)-1) {
-				return fan_3d::graphics::terrain_generator::m_triangle_vertices;
-			}
-			else {
-				return fan_3d::graphics::terrain_generator::m_triangle_vertices[i];
-			}
-		}
 
 	}
 

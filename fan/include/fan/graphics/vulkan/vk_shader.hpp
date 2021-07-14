@@ -16,11 +16,16 @@
 
 #include <string>
 
+#include <fan/time/time.hpp>
+
 namespace fan {
+
 	namespace vk {
 
 		class shader {
 		public:
+
+			inline static bool recompile_shaders = false;
 
 			shader(VkDevice* device, const std::string& vertex, const std::string& fragment) 
 			: m_device(device), m_vertex_path(vertex), m_fragment_path(fragment) {
@@ -101,17 +106,20 @@ namespace fan {
 					throw std::runtime_error("failed to find file" + fragment);
 				}
 
-				auto vdot = vertex.find_last_of('.');
-				auto fdot = fragment.find_last_of('.');
-
-				auto vspv = vertex.substr(0, vdot) + ".spv";
-				auto fsvp = fragment.substr(0, fdot) + ".spv";
+				auto vspv = vertex + ".spv";
+				auto fsvp = fragment + ".spv";
 
 				auto v = (compiler_path + ' ' + vertex + " -o " + vspv);
 				auto f = (compiler_path + ' ' + fragment + " -o " + fsvp);
 
-				std::system(v.c_str());
-				std::system(f.c_str());
+				if (fan::vk::shader::recompile_shaders) {
+
+					// temp fix
+
+					std::system(v.c_str());
+					std::system(f.c_str());
+				}
+
 
 				auto vcode = fan::io::file::read(vspv);
 				auto fcode = fan::io::file::read(fsvp);

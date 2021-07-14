@@ -150,7 +150,7 @@ namespace fan {
 				alDeleteSources(1, &source);
 				alcMakeContextCurrent(NULL);
 				//alcDestroyContext(context);
-				//alcCloseDevice(device);
+				//alcCloseDevice(m_device);
 			}
 
 			bool is_playing() {

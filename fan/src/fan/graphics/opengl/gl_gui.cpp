@@ -4,46 +4,10 @@
 
 #include <fan/graphics/opengl/gl_gui.hpp>
 
-fan::vec2 fan_2d::graphics::gui::get_resize_movement_offset(fan::window* window)
-{
-	return fan::cast<f32_t>(window->get_size() - window->get_previous_size());
-}
-
-void fan_2d::graphics::gui::add_resize_callback(fan::window* window, fan::vec2& position) {
-	window->add_resize_callback([&] {
-		position += fan_2d::graphics::gui::get_resize_movement_offset(window);
-	});
-}
-
-fan_2d::graphics::gui::rectangle::rectangle(fan::camera* camera)
-	: fan_2d::graphics::rectangle(camera)
-{
-	this->m_camera->m_window->add_resize_callback([&] {
-
-		auto offset = this->m_camera->m_window->get_size() - this->m_camera->m_window->get_previous_size();
-
-		bool write_after = !fan::gpu_queue;
-
-
-		fan::begin_queue();
-
-		for (int i = 0; i < this->size(); i++) {
-			this->set_position(i, this->get_position(i) + fan::vec2(offset.x, 0));
-		}
-
-		if (write_after) {
-			fan::end_queue();
-		}
-
-		this->release_queue();
-
-	});
-}
-
 fan_2d::graphics::gui::circle::circle(fan::camera* camera)
 	: fan_2d::graphics::circle(camera)
 {
-	this->m_camera->m_window->add_resize_callback([&] {
+	this->m_camera->m_window->add_resize_callback([&] (const fan::vec2i&)  {
 
 		auto offset = this->m_camera->m_window->get_size() - this->m_camera->m_window->get_previous_size();
 
@@ -64,24 +28,11 @@ fan_2d::graphics::gui::circle::circle(fan::camera* camera)
 	});
 }
 
-fan_2d::graphics::gui::text_renderer::text_renderer()
-	: sprite(fan::shader(fan_2d::graphics::shader_paths::text_renderer_vs, fan_2d::graphics::shader_paths::text_renderer_fs)) {
-	image = fan_2d::graphics::load_image("fonts/arial.png");
-
-	font_info = fan::io::file::parse_font("fonts/arial.fnt");
-
-	font_info.font[' '] = fan::io::file::font_t({ 0, fan::vec2(fan_2d::graphics::gui::font_properties::space_width, font_info.line_height), 0, (fan::vec2::value_type)fan_2d::graphics::gui::font_properties::space_width });
-	font_info.font['\n'] = fan::io::file::font_t({ 0, fan::vec2(0, font_info.line_height), 0, 0 });
-
-	fan::bind_vao(sprite::vao_handler::m_buffer_object, [&] {
-		font_size_t::initialize_buffers(fan::shader::id, location_font_size, true, 1);
-		rotation_point_t::initialize_buffers(fan::shader::id, location_rotation_point, true, 2);
-		});
-}
-
 fan_2d::graphics::gui::text_renderer::text_renderer(fan::camera* camera) : sprite(camera, fan::shader(fan_2d::graphics::shader_paths::text_renderer_vs, fan_2d::graphics::shader_paths::text_renderer_fs)) {
 
-	image = fan_2d::graphics::load_image("fonts/arial.png");
+	if (!image) {
+		image = std::make_unique<fan_2d::graphics::image_info>(fan_2d::graphics::load_image(camera->m_window, "fonts/arial.png"));
+	}
 
 	font_info = fan::io::file::parse_font("fonts/arial.fnt");
 
@@ -94,7 +45,11 @@ fan_2d::graphics::gui::text_renderer::text_renderer(fan::camera* camera) : sprit
 	});
 }
 
-fan::vec2 fan_2d::graphics::gui::text_renderer::push_back(const fan::fstring& text, f32_t font_size, fan::vec2 position, const fan::color& text_color) {
+void fan_2d::graphics::gui::text_renderer::draw() {
+	fan_2d::graphics::sprite::draw();
+}
+
+void fan_2d::graphics::gui::text_renderer::push_back(const fan::fstring& text, f32_t font_size, fan::vec2 position, const fan::color& text_color) {
 
 	m_text.emplace_back(text);
 
@@ -141,7 +96,7 @@ fan::vec2 fan_2d::graphics::gui::text_renderer::push_back(const fan::fstring& te
 	fan::end_queue();
 
 	if (write_after) {
-		this->write_data();
+		this->release_queue();
 	}
 
 	if (m_indices.empty()) {
@@ -150,8 +105,6 @@ fan::vec2 fan_2d::graphics::gui::text_renderer::push_back(const fan::fstring& te
 	else {
 		m_indices.emplace_back(m_indices[m_indices.size() - 1] + text.size());
 	}
-
-	return original_position + text_size;
 }
 
 void fan_2d::graphics::gui::text_renderer::insert(uint32_t i, const fan::fstring& text, f32_t font_size, fan::vec2 position, const fan::color& text_color)
@@ -195,14 +148,10 @@ void fan_2d::graphics::gui::text_renderer::insert(uint32_t i, const fan::fstring
 	fan::end_queue();
 
 	if (write_after) {
-		this->write_data();
+		this->release_queue();
 	}
 
 	regenerate_indices();
-}
-
-fan::vec2 fan_2d::graphics::gui::text_renderer::get_position(uint32_t i) const {
-	return m_position[i];
 }
 
 void fan_2d::graphics::gui::text_renderer::set_position(uint32_t i, const fan::vec2& position)
@@ -221,7 +170,7 @@ void fan_2d::graphics::gui::text_renderer::set_position(uint32_t i, const fan::v
 
 		const fan::vec2 new_position = position + (fan::vec2(advance, 0) + letter.size / 2 + letter.offset);
 		
-		fan_2d::graphics::gui::text_renderer::sprite::set_position(index + j, new_position);
+		sprite::set_position(index + j, new_position);
 
 		advance += letter.advance;
 	}
@@ -229,67 +178,12 @@ void fan_2d::graphics::gui::text_renderer::set_position(uint32_t i, const fan::v
 	fan::end_queue();
 
 	if (write_after) {
-		this->release_queue(true, true, true, true, true, true);
+		this->release_queue();
 	}
 }
 
 uint32_t fan_2d::graphics::gui::text_renderer::size() const {
 	return m_text.size();
-}
-
-fan::io::file::font_t fan_2d::graphics::gui::text_renderer::get_letter_info(fan::fstring::value_type c, f32_t font_size)
-{
-	auto found = font_info.font.find(c);
-
-	if (found == font_info.font.end()) {
-		throw std::runtime_error("failed to find character: " + std::to_string(c));
-	}
-
-	f32_t converted_size = fan_2d::graphics::gui::text_renderer::convert_font_size(font_size);
-
-	return fan::io::file::font_t{
-		found->second.position * converted_size,	
-		found->second.size * converted_size,
-		found->second.offset * converted_size,
-		(found->second.advance * converted_size)
-	};
-}
-
-f32_t fan_2d::graphics::gui::text_renderer::get_lowest(f32_t font_size) const
-{
-	auto found = font_info.font.find(font_info.lowest);
-
-	return (found->second.offset.y + found->second.size.y) * this->convert_font_size(font_size);
-}
-
-f32_t fan_2d::graphics::gui::text_renderer::get_highest(f32_t font_size) const
-{
-	return std::abs(font_info.font.find(font_info.highest)->second.offset.y * this->convert_font_size(font_size));
-}
-
-f32_t fan_2d::graphics::gui::text_renderer::get_highest_size(f32_t font_size) const
-{
-	return font_info.font.find(font_info.highest)->second.size.y * this->convert_font_size(font_size);
-}
-
-f32_t fan_2d::graphics::gui::text_renderer::get_lowest_size(f32_t font_size) const
-{
-	return font_info.font.find(font_info.lowest)->second.size.y * this->convert_font_size(font_size);
-}
-
-fan::vec2 fan_2d::graphics::gui::text_renderer::get_character_position(uint32_t i, uint32_t j, f32_t font_size) const
-{
-	fan::vec2 position = text_renderer::get_position(i);
-
-	auto converted_size = convert_font_size(font_size);
-
-	for (int k = 0; k < j; k++) {
-		position.x += font_info.font[m_text[i][k]].advance * converted_size;
-	}
-
-	position.y = i * (font_info.line_height * converted_size);
-
-	return position;
 }
 
 f32_t fan_2d::graphics::gui::text_renderer::get_font_size(uint_t i) const
@@ -299,15 +193,14 @@ f32_t fan_2d::graphics::gui::text_renderer::get_font_size(uint_t i) const
 
 void fan_2d::graphics::gui::text_renderer::set_font_size(uint32_t i, f32_t font_size)
 {
-	const auto text = L"Hello";
+	const auto text = get_text(i);
 
-	const auto position = 0;
+	const auto position = get_position(i);
 
-	const auto color = fan::colors::white;
+	const auto color = get_text_color(i);
 
 	this->erase(i);
 	this->insert(i, text, font_size, position, color);
-
 }
 
 void fan_2d::graphics::gui::text_renderer::set_angle(uint32_t i, f32_t angle)
@@ -317,14 +210,10 @@ void fan_2d::graphics::gui::text_renderer::set_angle(uint32_t i, f32_t angle)
 	angle_t::write_data();
 }
 
-f32_t fan_2d::graphics::gui::text_renderer::convert_font_size(f32_t font_size) {
-	return font_size / font_info.size;
-}
-
 void fan_2d::graphics::gui::text_renderer::erase(uint_t i) {
 
 	uint64_t begin = i == 0 ? 0 : m_indices[i - 1];
-	uint32_t end = m_indices[i];
+	uint64_t end = m_indices[i];
 
 	bool write_after = !fan::gpu_queue;
 
@@ -340,7 +229,7 @@ void fan_2d::graphics::gui::text_renderer::erase(uint_t i) {
 	fan::end_queue();
 
 	if (write_after) {
-		this->write_data();
+		this->release_queue();
 	}
 
 	this->regenerate_indices();
@@ -349,7 +238,7 @@ void fan_2d::graphics::gui::text_renderer::erase(uint_t i) {
 void fan_2d::graphics::gui::text_renderer::erase(uint_t begin, uint_t end) {
 
 	uint64_t begin_ = begin == 0 ? 0 : m_indices[begin - 1];
-	uint32_t end_ = end == 0 ? 0 : m_indices[end - 1];
+	uint64_t end_ = end == 0 ? 0 : m_indices[end - 1];
 
 	bool write_after = !fan::gpu_queue;
 
@@ -365,7 +254,7 @@ void fan_2d::graphics::gui::text_renderer::erase(uint_t begin, uint_t end) {
 	fan::end_queue();
 
 	if (write_after) {
-		this->write_data();
+		this->release_queue();
 	}
 
 
@@ -376,20 +265,12 @@ void fan_2d::graphics::gui::text_renderer::clear() {
 	sprite::clear();
 	font_size_t::clear();
 
+	rotation_point_t::clear();
+
 	m_text.clear();
 	m_position.clear();
 
 	m_indices.clear();
-}
-
-f32_t fan_2d::graphics::gui::text_renderer::get_line_height(f32_t font_size) const
-{
-	return font_info.line_height * convert_font_size(font_size);
-}
-
-fan::fstring fan_2d::graphics::gui::text_renderer::get_text(uint32_t i) const
-{
-	return m_text[i];
 }
 
 void fan_2d::graphics::gui::text_renderer::set_text(uint32_t i, const fan::fstring& text)
@@ -409,7 +290,7 @@ void fan_2d::graphics::gui::text_renderer::set_text(uint32_t i, const fan::fstri
 	fan::end_queue();
 
 	if (write_after) {
-		this->write_data();
+		this->release_queue();
 	}
 }
 
@@ -432,90 +313,11 @@ void fan_2d::graphics::gui::text_renderer::set_text_color(uint32_t i, uint32_t j
 	color_t::set_value(m_indices[i] + j, color);
 }
 
-fan::vec2 fan_2d::graphics::gui::text_renderer::get_text_size(const fan::fstring& text, f32_t font_size)
+void fan_2d::graphics::gui::text_renderer::release_queue(uint16_t avoid_flags)
 {
-	fan::vec2 length;
-
-	f32_t current = 0;
-
-	int new_lines = 0;
-
-	uint32_t last_n = 0;
-
-	for (int i = 0; i < text.size(); i++) {
-
-		if (text[i] == '\n') {
-			length.x = std::max((f32_t)length.x, current);
-			length.y += font_info.line_height;
-			new_lines++;
-			current = 0;
-			last_n = i;
-			continue;
-		}
-
-		auto found = font_info.font.find(text[i]);
-		if (found == font_info.font.end()) {
-			throw std::runtime_error("failed to find character: " + std::to_string(text[i]));
-		}
-
-		current += found->second.advance;
-		length.y = std::max((f32_t)length.y, font_info.line_height * new_lines + (f32_t)found->second.size.y);
-	}
-
-	length.x = std::max((f32_t)length.x, current);
-
-	if (text.size()) {
-		auto found = font_info.font.find(text[text.size() - 1]);
-		if (found != font_info.font.end()) {
-			length.x -= found->second.offset.x;
-		}
-	}
-
-	length.y -= font_info.line_height * convert_font_size(font_size);
-
-	f32_t average = 0;
-
-	for (int i = last_n; i < text.size(); i++) {
-
-		auto found = font_info.font.find(text[i]);
-		if (found == font_info.font.end()) {
-			throw std::runtime_error("failed to find character: " + std::to_string(text[i]));
-		}
-
-		average += found->second.size.y + found->second.offset.y;
-	}
-
-	average /= text.size() - last_n;
-
-	length.y += average;
-
-	return length * convert_font_size(font_size);
-}
-
-void fan_2d::graphics::gui::text_renderer::write_data()
-{
-	sprite::release_queue(true, true, true, true, true, true);
+	sprite::release_queue();
 	font_size_t::write_data();
 	rotation_point_t::write_data();
-}
-
-f32_t fan_2d::graphics::gui::text_renderer::get_original_font_size()
-{
-	return font_info.size;
-}
-
-void fan_2d::graphics::gui::text_renderer::regenerate_indices()
-{
-	m_indices.clear();
-
-	for (int i = 0; i < this->size(); i++) {
-		if (m_indices.empty()) {
-			m_indices.emplace_back(m_text[i].size());
-		}
-		else {
-			m_indices.emplace_back(m_indices[i - 1] + m_text[i].size());
-		}
-	}
 }
 
 #define get_letter_infos 																\
@@ -523,8 +325,8 @@ const fan::vec2 letter_position = font_info.font[letter].position;						\
 const fan::vec2 letter_size = font_info.font[letter].size;								\
 const fan::vec2 letter_offset = font_info.font[letter].offset;							\
 																						\
-fan::vec2 texture_position = fan::vec2(letter_position + 1) / image.size;				\
-fan::vec2 texture_size = fan::vec2(letter_position + letter_size - 1) / image.size;		\
+fan::vec2 texture_position = fan::vec2(letter_position + 1) / image->size;				\
+fan::vec2 texture_size = fan::vec2(letter_position + letter_size - 1) / image->size;		\
 																						\
 const auto converted_font_size = convert_font_size(font_size);							\
 																						\
@@ -558,7 +360,7 @@ void fan_2d::graphics::gui::text_renderer::insert_letter(uint32_t i, uint32_t j,
 
 	auto index = i == 0 ? 0 : m_indices[i - 1 >= m_indices.size() ? m_indices.size() - 1 : i - 1];
 
-	sprite::insert(i + j, (index + j) * 6, image.texture_id, position + (letter_offset + fan::vec2(advance, 0)) * converted_font_size + (letter_size * converted_font_size) / 2, letter_size * converted_font_size, sp);
+	sprite::insert(i + j, (index + j) * 6, image->texture->texture_id, position + (letter_offset + fan::vec2(advance, 0)) * converted_font_size + (letter_size * converted_font_size) / 2, letter_size * converted_font_size, sp);
 	sprite::rectangle::color_t::m_buffer_object.insert(sprite::rectangle::color_t::m_buffer_object.begin() + index + j, color);
 	font_size_t::m_buffer_object.insert(font_size_t::m_buffer_object.begin() + index + j, font_size);
 }
@@ -567,7 +369,7 @@ void fan_2d::graphics::gui::text_renderer::push_back_letter(fan::fstring::value_
 
 	get_letter_infos;
 
-	sprite::push_back(image.texture_id, position + (letter_offset + fan::vec2(advance, 0) + letter_size / 2) * converted_font_size, letter_size * converted_font_size, sp);
+	sprite::push_back(image->texture, position + (letter_offset + fan::vec2(advance, 0) + letter_size / 2) * converted_font_size, letter_size * converted_font_size, sp);
 	sprite::rectangle::set_color(rectangle::size() - 1, color);
 	font_size_t::push_back(font_size);
 
