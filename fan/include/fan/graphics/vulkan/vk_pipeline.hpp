@@ -7,13 +7,15 @@
 #include <fan/types/vector.hpp>
 #include <fan/graphics/vulkan/vk_shader.hpp>
 
+#include <fan/graphics/shared_core.hpp>
+
 namespace fan {
 	
 	namespace vk {
 
 		namespace graphics {
 
-			struct pipelines {
+			struct pipeline {
 
 				VkDevice* device = nullptr;
 
@@ -40,14 +42,23 @@ namespace fan {
 
 				std::vector<pipelines_info_t> old_data;
 
-				pipelines(
+				struct flags_t {
+					fan_2d::graphics::shape topology;
+					VkSampleCountFlagBits* msaa_samples = 0;
+				};
+
+				flags_t flags;
+
+				pipeline(
 					VkDevice* device,
 					VkRenderPass* render_press,
-					VkDescriptorSetLayout* descriptor_set_layout
+					VkDescriptorSetLayout* descriptor_set_layout,
+					flags_t flags_
 				) : 
 					device(device),
 					render_pass(render_press),
-					descriptor_set_layout(descriptor_set_layout)
+					descriptor_set_layout(descriptor_set_layout),
+					flags(flags_)
 				{ }
 
 				void push_back(const VkVertexInputBindingDescription& binding_description, const std::vector<VkVertexInputAttributeDescription>& attribute_description, const fan::vec2& window_size, const std::string& vertex, const std::string& fragment, VkExtent2D extent) {
@@ -58,11 +69,10 @@ namespace fan {
 					});
 
 					old_data.emplace_back(pipelines_info_t{ binding_description, attribute_description, vertex, fragment });
-
 					recreate_pipeline(this->pipeline_info.size() - 1, window_size, extent);
 				}
 
-				~pipelines() {
+				~pipeline() {
 
 					this->erase_pipes();
 					this->erase_pipeline_layout();
@@ -102,8 +112,37 @@ namespace fan {
 
 					VkPipelineInputAssemblyStateCreateInfo input_assembly{};
 					input_assembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-					input_assembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-					input_assembly.primitiveRestartEnable = VK_FALSE;
+
+					switch(flags.topology) {
+
+						case fan_2d::graphics::shape::line: {
+							input_assembly.topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+							break;
+						}
+						case fan_2d::graphics::shape::line_strip: {
+							input_assembly.topology = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
+							break;
+						}
+						case fan_2d::graphics::shape::triangle: {
+							input_assembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+							break;
+						}
+						case fan_2d::graphics::shape::triangle_strip: {
+							input_assembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+							break;
+						}
+						case fan_2d::graphics::shape::triangle_fan: {
+							input_assembly.primitiveRestartEnable = true;
+							input_assembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
+							break;
+						}
+						default: {
+							input_assembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+							fan::print("fan warning - unset input assembly topology in graphics pipeline");
+							break;
+						}
+
+					}
 
 					VkViewport viewport{};
 					viewport.x = 0.0f;
@@ -137,17 +176,25 @@ namespace fan {
 					VkPipelineMultisampleStateCreateInfo multisampling{};
 					multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
 					multisampling.sampleShadingEnable = VK_FALSE;
-					multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+					multisampling.rasterizationSamples = *flags.msaa_samples;
+
+					VkPipelineDepthStencilStateCreateInfo depthStencil{};
+					depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+					depthStencil.depthTestEnable = VK_TRUE;
+					depthStencil.depthWriteEnable = VK_TRUE;
+					depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
+					depthStencil.depthBoundsTestEnable = VK_FALSE;
+					depthStencil.stencilTestEnable = VK_FALSE;
 
 					VkPipelineColorBlendAttachmentState color_blend_attachment{};
 					color_blend_attachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 					color_blend_attachment.blendEnable = VK_TRUE;
 					color_blend_attachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-						color_blend_attachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-						color_blend_attachment.colorBlendOp = VK_BLEND_OP_ADD;
-						color_blend_attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-						color_blend_attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-						color_blend_attachment.alphaBlendOp = VK_BLEND_OP_ADD;
+					color_blend_attachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+					color_blend_attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+					color_blend_attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+					color_blend_attachment.colorBlendOp = VK_BLEND_OP_ADD;
+					color_blend_attachment.alphaBlendOp = VK_BLEND_OP_ADD;
 
 					VkPipelineColorBlendStateCreateInfo color_blending{};
 					color_blending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
@@ -178,6 +225,7 @@ namespace fan {
 					pipeline_create_info.pViewportState = &viewportState;
 					pipeline_create_info.pRasterizationState = &rasterizer;
 					pipeline_create_info.pMultisampleState = &multisampling;
+					pipeline_create_info.pDepthStencilState = &depthStencil;
 					pipeline_create_info.pColorBlendState = &color_blending;
 					pipeline_create_info.layout = pipeline_layout;
 					pipeline_create_info.renderPass = *render_pass;

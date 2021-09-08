@@ -3,6 +3,8 @@
 
 #include <fan/types/types.hpp>
 
+#include <cmath>
+
 namespace fan {
 
 	// defaultly gets values in format 0-1f, optional functions fan::color::rgb, fan::color::hex
@@ -10,6 +12,39 @@ namespace fan {
 	public:
 
 		using value_type = cf_t;
+
+		static fan::color hsv(float H, float S,float V){
+
+			float s = S/100;
+			float v = V/100;
+			float C = s*v;
+			float X = C*(1-abs(fmod(H/60.0, 2)-1));
+			float m = v-C;
+			float r,g,b;
+			if(H >= 0 && H < 60){
+				r = C,g = X,b = 0;
+			}
+			else if(H >= 60 && H < 120){
+				r = X,g = C,b = 0;
+			}
+			else if(H >= 120 && H < 180){
+				r = 0,g = C,b = X;
+			}
+			else if(H >= 180 && H < 240){
+				r = 0,g = X,b = C;
+			}
+			else if(H >= 240 && H < 300){
+				r = X,g = 0,b = C;
+			}
+			else{
+				r = C,g = 0,b = X;
+			}
+			int R = (r+m)*255;
+			int G = (g+m)*255;
+			int B = (b+m)*255;
+
+			return fan::color::rgb(R, G, B, 255);
+		}
 	
 		static constexpr color rgb(cf_t r, cf_t g, cf_t b, cf_t a = 255) {
 			return color(r / 255.f, g / 255.f, b / 255.f, a / 255.f);

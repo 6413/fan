@@ -139,14 +139,14 @@ namespace fan_2d {
 				this->m_body[i]->SetAwake(true);
 			}
 
-			void erase(uint_t i) {
+			void erase(uintptr_t i) {
 				m_world->DestroyBody(get_body(i));
 
 				m_fixture.erase(m_fixture.begin() + i);
 				m_body.erase(m_body.begin() + i);
 
 			}
-			void erase(uint_t begin, uint_t end) {
+			void erase(uintptr_t begin, uintptr_t end) {
 
 				if (begin > m_body.size() || end > m_body.size()) {
 					return;
@@ -176,7 +176,7 @@ namespace fan_2d {
 			void push_back(const fan::vec2& position, const fan::vec2& size, body_type body_type_, fan_2d::physics::body_property body_property = { 1, 10, 0.1 }) {
 				b2BodyDef body_def;
 				body_def.type = (b2BodyType)body_type_;
-				body_def.position.Set(position.x / meter_scale / meter_scale, position.y / meter_scale / meter_scale);
+				body_def.position.Set(position.x / meter_scale, position.y / meter_scale);
 				m_body.emplace_back(m_world->CreateBody(&body_def));
 
 				b2PolygonShape shape;
@@ -273,7 +273,7 @@ namespace fan_2d {
 			void push_back(b2Body* body_a, b2Body* body_b) {
 
 				b2WheelJointDef jd;
-
+ 
 				jd.Initialize(body_a, body_b, body_b->GetPosition(), b2Vec2(0.0f, 1.0f));
 
 				jd.motorSpeed = 0;
@@ -294,12 +294,12 @@ namespace fan_2d {
 				wheel_joints.emplace_back((b2WheelJoint*)m_world->CreateJoint(&jd));
 			}
 
-			void erase(uint_t i) {
+			void erase(uintptr_t i) {
 				physics_base::erase(i);
 				m_world->DestroyJoint(wheel_joints[i]);
 				wheel_joints.erase(wheel_joints.begin() + i);
 			}
-			void erase(uint_t begin, uint_t end) {
+			void erase(uintptr_t begin, uintptr_t end) {
 
 				physics_base::erase(begin, end);
 

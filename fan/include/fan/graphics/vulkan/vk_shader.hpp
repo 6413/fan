@@ -112,8 +112,8 @@ namespace fan {
 				auto v = (compiler_path + ' ' + vertex + " -o " + vspv);
 				auto f = (compiler_path + ' ' + fragment + " -o " + fsvp);
 
+				//if (fan::vk::shader::recompile_shaders) {
 				if (false) {
-
 					// temp fix
 
 					std::system(v.c_str());

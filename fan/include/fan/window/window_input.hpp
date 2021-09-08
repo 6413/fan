@@ -4,18 +4,25 @@
 
 #include <unordered_map>
 
-namespace fan {
-
-	#ifdef fan_platform_windows
+#ifdef fan_platform_windows
 
 	#define WIN32_LEAN_AND_MEAN
 
 	#include <Windows.h>
 
+	#pragma comment(lib, "user32.lib")
+
 	#undef min
 	#undef max
 
-	#endif
+#endif
+
+namespace fan {
+
+	enum class key_state {
+		release,
+		press
+	};
 
 	enum input {
 		first = 0x2C,
@@ -175,6 +182,7 @@ namespace fan {
 	namespace window_input {
 
 		uint16_t convert_keys_to_fan(uint16_t key);
+		uint16_t convert_fan_to_keys(uint16_t key);
 
 		void get_keys(std::unordered_map<uint16_t, bool>& keys, uint16_t key, bool state);
 	}

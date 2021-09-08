@@ -270,7 +270,7 @@ namespace fan {
 		}
 
 		constexpr auto gfne() const noexcept {
-			for (uint_t i = 0; i < size(); i++) {
+			for (uintptr_t i = 0; i < size(); i++) {
 				if (this->operator[](i)) {
 					return this->operator[](i);
 				}
@@ -323,7 +323,7 @@ namespace fan {
 		auto end() { return begin() + size(); }
 		auto data() { return begin(); }
 
-		static constexpr uint_t size() { return 2; }
+		static constexpr uintptr_t size() { return 2; }
 		constexpr void print() const { std::cout << x << " " << y << std::endl; }
 
 		template <typename T>
@@ -576,7 +576,7 @@ namespace fan {
 		auto data() { return begin(); }
 
 
-		static constexpr uint_t size() { return 3; }
+		static constexpr uintptr_t size() { return 3; }
 
 		constexpr void print() const { std::cout << x << " " << y << " " << z << std::endl; }
 
@@ -824,7 +824,7 @@ namespace fan {
 			return std::isnan(x) || std::isnan(y) || std::isnan(z) || std::isnan(w);
 		}
 
-		static constexpr uint_t size() { return 4; }
+		static constexpr uintptr_t size() { return 4; }
 
 		auto begin() const { return &x; }
 		auto end() const { return begin() + size(); }

@@ -1,115 +1,243 @@
 #pragma once
 
-#include <chrono>
+#include <fan/types/types.hpp>
+
 #include <functional>
-#include <thread>
+
+#include <cmath>
 
 #ifdef fan_platform_windows
 
-	#define WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
 
-	#include <Windows.h>
+#include <Windows.h>
 
-	typedef long(*NtDelayExecution_t)(int Alertable, PLARGE_INTEGER DelayInterval);
-	typedef long(* ZwSetTimerResolution_t)(IN ULONG RequestedResolution, IN BOOLEAN Set, OUT PULONG ActualResolution);
+typedef long(*NtDelayExecution_t)(int Alertable, PLARGE_INTEGER DelayInterval);
+typedef long(* ZwSetTimerResolution_t)(IN ULONG RequestedResolution, IN BOOLEAN Set, OUT PULONG ActualResolution);
 
-	static NtDelayExecution_t NtDelayExecution = (long(__stdcall*)(BOOL, PLARGE_INTEGER)) GetProcAddress(GetModuleHandle("ntdll.dll"), "NtDelayExecution");
-	static ZwSetTimerResolution_t ZwSetTimerResolution = (long(__stdcall*)(ULONG, BOOLEAN, PULONG)) GetProcAddress(GetModuleHandle("ntdll.dll"), "ZwSetTimerResolution");
+static NtDelayExecution_t NtDelayExecution = (long(__stdcall*)(BOOL, PLARGE_INTEGER)) GetProcAddress(GetModuleHandle("ntdll.dll"), "NtDelayExecution");
+static ZwSetTimerResolution_t ZwSetTimerResolution = (long(__stdcall*)(ULONG, BOOLEAN, PULONG)) GetProcAddress(GetModuleHandle("ntdll.dll"), "ZwSetTimerResolution");
 
 
-	static void delay_w(float us)
-	{
-		static bool once = true;
-		if (once) {
-			ULONG actualResolution;
-			ZwSetTimerResolution(1, true, &actualResolution);
-			once = false;
-		}
-
-		LARGE_INTEGER interval;
-		interval.QuadPart = -10 * us;
-		NtDelayExecution(false, &interval);
+static void delay_w(float us)
+{
+	static bool once = true;
+	if (once) {
+		ULONG actualResolution;
+		ZwSetTimerResolution(1, true, &actualResolution);
+		once = false;
 	}
+
+	LARGE_INTEGER interval;
+	interval.QuadPart = -10 * us;
+	NtDelayExecution(false, &interval);
+}
 
 #endif
 
 
 namespace fan {
 
-	using std::chrono::nanoseconds;
-	using std::chrono::microseconds;
-	using std::chrono::milliseconds;
-	using std::chrono::seconds;
-	using std::chrono::minutes;
-	using std::chrono::hours;
-	
-	using std::chrono::duration_cast;
-	using std::chrono::system_clock;
-	using std::chrono::time_point_cast;
+	namespace time {
+		enum class time_unit {
+			nanoseconds,
+			microseconds,
+			milliseconds,
+			seconds,
+			minutes,
+			hours
+		};
 
-	typedef std::chrono::high_resolution_clock chrono_t;
-
-	template <typename T = milliseconds>
-	class timer {
-	public:
-
-		using value_type = chrono_t::duration::rep;
-		using chrono_t_r_type = decltype(chrono_t::now());
-
-		timer() : m_time(0) {}
-
-
-		timer(
-			const decltype(chrono_t::now())& timer, 
-			uint64_t time = 0
-		) : m_timer(timer), m_time(time) { }
-
-		void start(int time) {
-			this->m_timer = chrono_t::now();
-			this->m_time = time;
+		constexpr bool operator<(const time_unit a, const time_unit b) {
+			return (int)a < (int)b;
 		}
 
-		static chrono_t_r_type start() {
-			return chrono_t::now();
+		constexpr bool operator>(const time_unit a, const time_unit b) {
+			return (int)a > (int)b;
 		}
 
-		auto get_reset_time() const {
-			return m_time;
+		template <time_unit>
+		struct base_time_unit;
+
+		using nanoseconds = base_time_unit<time_unit::nanoseconds>;
+		using microseconds = base_time_unit<time_unit::microseconds>;
+		using milliseconds = base_time_unit<time_unit::milliseconds>;
+		using seconds = base_time_unit<time_unit::seconds>;
+		using minutes = base_time_unit<time_unit::minutes>;
+		using hours = base_time_unit<time_unit::hours>;
+
+		// default e_time_unit::__first
+		template <time_unit ratio>
+		struct base_time_unit {
+
+			constexpr base_time_unit() : time_unit_value(ratio) { }
+
+			time_unit time_unit_value = ratio;
+
+			constexpr uint64_t count() const {
+				return m_time;
+			}
+
+			constexpr base_time_unit(uint64_t time) {
+				switch (time_unit_value) {
+					case time_unit::nanoseconds: {
+
+						m_time = time;
+						break;
+					}
+					case time_unit::microseconds: {
+
+						m_time = time * 1000;
+						break;
+					}
+					case time_unit::milliseconds: {
+
+						m_time = time * 1000000;
+						break;
+					}
+					case time_unit::seconds: {
+
+						m_time = time * 1000000000;
+						break;
+					}
+					case time_unit::minutes: {
+
+						m_time = time * 60000000000;
+						break;
+					}
+					case time_unit::hours: {
+
+						m_time = time * 3600000000000;
+						break;
+					}
+					default: {
+						throw std::runtime_error("time unit not implemented");
+					}
+				}
+
+				time_unit_value = time_unit::nanoseconds;
+			}
+
+			uint64_t m_time = 0;
+		};
+
+		struct clock {
+
+			clock() {}
+
+			template <time_unit unit>
+			clock(const base_time_unit<unit>& time_unit_) {
+
+				m_time = time_unit_.m_time;
+
+				time_unit_value = time_unit_.time_unit_value;
+			}
+
+			constexpr uint64_t count() const {
+				return m_time;
+			}
+
+			// returns time in nanoseconds
+			static uint64_t now() {
+
+#if defined(fan_platform_windows)
+
+				LARGE_INTEGER time;
+				QueryPerformanceCounter(&time);
+
+				return time.QuadPart;
+
+#elif defined(fan_platform_unix)
+
+				struct timespec t;
+				clock_gettime(CLOCK_MONOTONIC, &t);
+
+				return t.tv_sec * 1000000000 + t.tv_nsec;
+#endif
+
+			}
+
+			void start() {
+				m_timer = this->now();
+			}
+
+			template <time_unit unit>
+			void start(const base_time_unit<unit>& time_unit_) {
+				m_time = time_unit_.m_time;
+
+				time_unit_value = time_unit_.time_unit_value;
+
+				this->start();
+			}
+
+			void restart() {
+				start();
+			}
+
+			bool finished() const {
+				auto elapsed = this->elapsed(m_timer);
+				return elapsed >= m_time;
+			}
+
+			// returns time in nanoseconds
+			uint64_t elapsed() const {
+				return this->elapsed(m_timer);
+			}
+
+			// returns time in nanoseconds
+			static uint64_t elapsed(uint64_t time) {
+#ifdef fan_platform_windows
+				LARGE_INTEGER freq;
+				QueryPerformanceFrequency(&freq);
+				double nanoseconds_per_count = 1.0e9 / static_cast<double>(freq.QuadPart);
+
+				LARGE_INTEGER time2;
+
+				QueryPerformanceCounter(&time2);
+
+				return (time2.QuadPart - time) * nanoseconds_per_count;
+
+#elif defined(fan_platform_unix)
+				return fan::time::clock::now() - time;
+#endif
+
+			}
+
+			uint64_t m_timer = 0;
+			uint64_t m_time = 0;
+
+			time_unit time_unit_value;
+
+		};
+
+		template <typename new_t, typename old_t>
+		constexpr uint64_t convert(old_t old, new_t x = new_t()) {
+			int goal = (int)x.time_unit_value - (int)old.time_unit_value;
+			f32_t divisionFactor = std::pow(10, 3 * goal);
+			if (goal >= 4) divisionFactor *= 60;
+			if (goal >= 5) divisionFactor *= 60;
+			if (goal < 3) divisionFactor = std::pow(10, 3 * goal);
+			if (goal > 0) return old.m_time / divisionFactor;
+			else if (goal < 0) return old.m_time * (uint64_t)divisionFactor;
+			else return old.m_time;
 		}
+	}
 
-		static auto get_time() {
-			return time_point_cast<T>(system_clock::now()).time_since_epoch().count();
-		}
+	static void delay(fan::time::nanoseconds time) {
+#ifdef fan_platform_windows
 
-		auto time_left() const {
-			return get_reset_time() - elapsed();
-		}
+		delay_w(time.m_time / 1000);
 
-		void restart() {
-			this->m_timer = chrono_t::now();
-		}
+#elif defined(fan_platform_unix)
 
-		bool finished() const {
-			return duration_cast<T>(chrono_t::now() - m_timer).count() >= m_time;
-		}
+		struct timespec t;
 
-		value_type elapsed() const {
-			return duration_cast<T>(chrono_t::now() - m_timer).count();
-		}
+		t.tv_sec = time.m_time / 1000000000;
+		t.tv_nsec = time.m_time;
 
-	private:
+		nanosleep(&t, 0);
 
-		chrono_t_r_type m_timer;
-		value_type m_time;
-	};
-
-	template <typename time_format>
-	void delay(time_format time) {
-		#ifdef fan_platform_windows
-			delay_w(std::chrono::duration_cast<fan::microseconds>(time).count());
-		#else
-			std::this_thread::sleep_for(time);
-		#endif
+#endif
 	}
 
 }

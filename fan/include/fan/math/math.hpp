@@ -447,7 +447,7 @@ namespace fan {
 		}
 
 		template <typename T>
-		constexpr bool dcom_fr(uint_t n, T x, T y) noexcept {
+		constexpr bool dcom_fr(uintptr_t n, T x, T y) noexcept {
 			switch (n) {
 				case 0: {
 					return x < y;

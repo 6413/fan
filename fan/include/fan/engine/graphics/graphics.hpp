@@ -40,7 +40,7 @@ namespace fan_2d {
 
 			base_engine(fan_2d::engine::engine_t* engine) : graphics_t(&engine->camera), physics_t(engine->world) { }
 
-			void set_rotation(uint_t i, f_t angle) {
+			void set_rotation(uintptr_t i, f_t angle) {
 
 				graphics_t::set_angle(i, angle);
 
@@ -48,11 +48,11 @@ namespace fan_2d {
 
 			}
 
-			void erase(uint_t i) {
+			void erase(uintptr_t i) {
 				graphics_t::erase(i);
 				physics_t::erase(i);
 			}
-			void erase(uint_t begin, uint_t end) {
+			void erase(uintptr_t begin, uintptr_t end) {
 				graphics_t::erase(begin, end);
 				physics_t::erase(begin, end);
 			}
@@ -67,23 +67,21 @@ namespace fan_2d {
 				
 				fan_2d::graphics::rectangle::push_back(position, size, color);
 
-				fan_2d::physics::rectangle::push_back(position, size, body_type, body_property);
-
+				fan_2d::physics::rectangle::push_back(position + size / 2, size, body_type, body_property);
 			}
 
-			void set_position(uint_t i, const fan::vec2& position) {
-				fan_2d::graphics::rectangle::set_position(i, position - this->get_size(i) / 2);
-
+			void set_position(uintptr_t i, const fan::vec2& position) {
+				fan_2d::graphics::rectangle::set_position(i, position - get_size(i) / 2);
 				fan_2d::physics::rectangle::set_position(i, position);
-
 			}
 
 			void update_position() {
-
+				//fan::begin_queue();
 				for (int i = 0; i < this->size(); i++) {
-					this->set_position(i, fan::vec2(this->get_body(i)->GetPosition()) * meter_scale);
-					this->set_rotation(i, -this->get_body(i)->GetAngle());
+					this->set_position(i, (fan::vec2(this->get_body(i)->GetPosition())) * meter_scale);
+				//	this->set_rotation(i, -this->get_body(i)->GetAngle());
 				}
+			//fan::end_queue();
 
 			}
 
@@ -117,7 +115,7 @@ namespace fan_2d {
 
 		};
 
-		struct rope : public base_engine<fan_2d::graphics::line, fan_2d::physics::rope>{
+		/*struct rope : public base_engine<fan_2d::graphics::line, fan_2d::physics::rope>{
 
 			rope(engine_t* engine) : base_engine(engine) {
 
@@ -153,7 +151,7 @@ namespace fan_2d {
 
 			}
 
-		};
+		};*/
 
 		struct motor_joint : public fan_2d::physics::motor_joint {
 		public:
@@ -166,10 +164,10 @@ namespace fan_2d {
 				fan_2d::physics::motor_joint::push_back(a_body, b_body);
 			}
 
-			void erase(uint_t i) {
+			void erase(uintptr_t i) {
 				fan_2d::physics::motor_joint::erase(i);
 			}
-			void erase(uint_t begin, uint_t end) {
+			void erase(uintptr_t begin, uintptr_t end) {
 				fan_2d::physics::motor_joint::erase(begin * 2, end * 2);
 			}
 

@@ -10,11 +10,13 @@
 
 #include <vulkan/vulkan_core.h>
 
-#include <fan/graphics/shared.hpp>
+#include <fan/time/time.hpp>
 
 namespace fan {
 
 	namespace gpu_memory {
+
+		inline std::vector<VkSubmitInfo> submit_queue;
 
 		enum class buffer_type {
 			buffer,
@@ -99,7 +101,7 @@ namespace fan {
 		}
 
 		static void copy_buffer(VkDevice device, VkCommandPool command_pool, VkQueue queue, VkBuffer src, VkBuffer dst, VkDeviceSize size, VkDeviceSize src_offset = 0, VkDeviceSize dst_offset = 0) {
-				
+			assert(0);
 			VkCommandBufferAllocateInfo alloc_info{};
 			alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 			alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -113,9 +115,9 @@ namespace fan {
 			VkSubmitInfo submit_info{};
 
 			VkCommandBufferBeginInfo begin_info{};
+
 			begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 			begin_info.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-
 
 			vkBeginCommandBuffer(command_buffer, &begin_info);
 
@@ -131,8 +133,7 @@ namespace fan {
 			submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 			submit_info.commandBufferCount = 1;
 			submit_info.pCommandBuffers = &command_buffer;
-				
-
+			
 			vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE);
 			vkQueueWaitIdle(queue);
 			vkFreeCommandBuffers(device, command_pool, 1, &command_buffer);
@@ -147,12 +148,12 @@ namespace fan {
 			int usage =
 				fan::conditional_value_t < T_buffer_type == buffer_type::buffer, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 				fan::conditional_value_t < T_buffer_type == buffer_type::index, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-				fan::conditional_value_t < T_buffer_type == buffer_type::staging, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, (uint_t)-1>::value>::value>::value;
+				fan::conditional_value_t < T_buffer_type == buffer_type::staging, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, (uintptr_t)-1>::value>::value>::value;
 
 			int properties =
 				fan::conditional_value_t < T_buffer_type == buffer_type::buffer, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 				fan::conditional_value_t < T_buffer_type == buffer_type::index, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-				fan::conditional_value_t < T_buffer_type == buffer_type::staging, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT, (uint_t)-1>::value>::value>::value;
+				fan::conditional_value_t < T_buffer_type == buffer_type::staging, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT, (uintptr_t)-1>::value>::value>::value;
 
 			VkDevice* m_device;
 			VkPhysicalDevice* m_physical_device;
@@ -175,6 +176,7 @@ namespace fan {
 				this->free();
 			}
 
+			// creates new buffer with given size
 			void allocate(VkDeviceSize size) {
 
 				buffer_size = size;
@@ -328,6 +330,8 @@ namespace fan {
 				samplerInfo.compareEnable = VK_FALSE;
 				samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
 				samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+				//samplerInfo.minLod = 10;
+				//samplerInfo.maxLod = 0;
 
 				if (vkCreateSampler(*device, &samplerInfo, nullptr, &texture_sampler) != VK_SUCCESS) {
 					throw std::runtime_error("failed to create texture sampler!");
@@ -410,7 +414,7 @@ namespace fan {
 				end_command_buffer(command_buffer, *m_device, *m_pool, *m_graphics_queue);
 			}
 
-			void transition_image_layout(VkImage image, VkFormat format, VkImageLayout old_layout, VkImageLayout new_layout) {
+			void transition_image_layout(VkImage image, VkFormat format, VkImageLayout old_layout, VkImageLayout new_layout, uint32_t mip_levels) {
 
 				VkCommandBuffer command_buffer = begin_command_buffer(*m_device, *m_pool);
 
@@ -423,7 +427,7 @@ namespace fan {
 				barrier.image = image;
 				barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 				barrier.subresourceRange.baseMipLevel = 0;
-				barrier.subresourceRange.levelCount = 1;
+				barrier.subresourceRange.levelCount = mip_levels;
 				barrier.subresourceRange.baseArrayLayer = 0;
 				barrier.subresourceRange.layerCount = 1;
 
@@ -460,7 +464,7 @@ namespace fan {
 				end_command_buffer(command_buffer, *m_device, *m_pool, *m_graphics_queue);
 			}
 
-			VkImageView create_image_view(VkImage image, VkFormat format) {
+			VkImageView create_image_view(VkImage image, VkFormat format, uint32_t mip_levels) {
 
 				VkImageViewCreateInfo view_info{};
 				view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -469,7 +473,7 @@ namespace fan {
 				view_info.format = format;
 				view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 				view_info.subresourceRange.baseMipLevel = 0;
-				view_info.subresourceRange.levelCount = 1;
+				view_info.subresourceRange.levelCount = mip_levels;
 				view_info.subresourceRange.baseArrayLayer = 0;
 				view_info.subresourceRange.layerCount = 1;
 
@@ -483,16 +487,17 @@ namespace fan {
 			}
 
 			template <typename T>
-			void push_back(
+			uint64_t push_back(
 				VkImage texture_id, 
 				T* uniform_buffers,
-				VkDeviceSize swap_chain_image_size
+				VkDeviceSize swap_chain_image_size,
+				uint32_t mipmap_level
 				) {
 
-				image_views.emplace_back(create_image_view(texture_id, VK_FORMAT_R8G8B8A8_UNORM));
+				image_views.emplace_back(create_image_view(texture_id, VK_FORMAT_R8G8B8A8_UNORM, mipmap_level));
 
 				descriptor_handler->push_back(
-					*m_device,
+					*m_device, 
 					uniform_buffers,
 					descriptor_handler->descriptor_set_layout,
 					descriptor_handler->descriptor_pool,
@@ -501,7 +506,7 @@ namespace fan {
 					swap_chain_image_size
 				);
 				
-
+				return descriptor_handler->descriptor_sets.size() / swap_chain_image_size - 1;
 			}
 
 			std::vector<VkDeviceMemory> m_image_memory;
@@ -520,168 +525,241 @@ namespace fan {
 
 		};
 
+		struct memory_update_queue_t {
+			VkBuffer* staging_buffer = nullptr; // staging->m_buffer_object
+			VkBuffer* buffer_buffer = nullptr; // buffer->m_buffer_object
+			VkBufferCopy copy_region{};
+		};
+
+		struct memory_update_queue_vector_t {
+			uint64_t key;
+			memory_update_queue_t queue;
+		};
+
+		inline std::vector<memory_update_queue_vector_t> memory_update_map;
+
+		static void register_memory_update(uint64_t key, const memory_update_queue_t& memory_update_queue) {
+			memory_update_map.emplace_back(memory_update_queue_vector_t{ key, memory_update_queue });
+		}
+
+		inline VkCommandBuffer memory_command_buffer = nullptr;
+
+		static void update_memory_buffer() {
+
+			VkCommandBufferBeginInfo begin_info{};
+
+			begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+			begin_info.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+
+			vkBeginCommandBuffer(memory_command_buffer, &begin_info);
+			
+			for (int i = 0; i < memory_update_map.size(); i++) {
+				if (memory_update_map[i].queue.copy_region.size) {
+					vkCmdCopyBuffer(memory_command_buffer, *memory_update_map[i].queue.staging_buffer, *memory_update_map[i].queue.buffer_buffer, 1, &memory_update_map[i].queue.copy_region);
+				}
+			}
+
+			vkEndCommandBuffer(memory_command_buffer);
+
+			memory_update_map.clear();
+		}
+
 		template <typename object_type, buffer_type T_buffer_type>
 		struct buffer_object {
 				
 			using buffer_t = glsl_location_handler<T_buffer_type>;
+			
+			using staging_buffer_t = fan::gpu_memory::glsl_location_handler<fan::gpu_memory::buffer_type::staging>;
 
-			buffer_object(VkDevice* device, VkPhysicalDevice* physical_device, VkCommandPool* pool, glsl_location_handler<gpu_memory::buffer_type::staging>* staging, VkQueue* graphics_queue)
+			staging_buffer_t* staging_buffer = nullptr;
+
+			static constexpr auto mb = 1000000;
+
+			static constexpr auto gpu_stack = 10 * mb; // mb
+
+			buffer_object(VkDevice* device, VkPhysicalDevice* physical_device, VkCommandPool* pool, VkQueue* graphics_queue, std::function<void()> vulkan_command_buffer_recreation_)
 				:
 				buffer(new buffer_t(device, physical_device)),
-				staging(staging),
 				graphics_queue(graphics_queue),
-				pool(pool)
+				pool(pool),
+				vulkan_command_buffer_recreation(vulkan_command_buffer_recreation_)
 			{
 
-				VkCommandBufferAllocateInfo alloc_info{};
-				alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-				alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-				alloc_info.commandPool = *pool;
-				alloc_info.commandBufferCount = 1;
+				staging_buffer = new staging_buffer_t(device, physical_device);
+				staging_buffer->allocate(gpu_stack);
 
-				vkAllocateCommandBuffers(*device, &alloc_info, &command_buffer);
 			}
 
 			~buffer_object() {
-					
 
-				if (command_buffer) {
-					vkFreeCommandBuffers(*buffer->m_device, *pool, 1, &command_buffer);
-					command_buffer = nullptr;
+				if (staging_buffer) {
+					delete staging_buffer;
+					staging_buffer = nullptr;
 				}
 
 				if (buffer) {
 					delete buffer;
 					buffer = nullptr;
 				}
-
 			}
 
-			void push_back(const object_type& value) {
+			constexpr void push_back(const object_type& value) {
 				m_instance.emplace_back(value);
 			}
 
-			object_type& get_value(uint32_t i) {
+			constexpr object_type& get_value(uint32_t i) {
 				return m_instance[i];
 			}
 
-			object_type get_value(uint32_t i) const {
+			constexpr object_type get_value(uint32_t i) const {
 				return m_instance[i];
 			}
 
-			void set_value(uint32_t i, const object_type& value) {
+			constexpr void set_value(uint32_t i, const object_type& value) {
 				m_instance[i] = value;
 			}
 
 			void map_data(VkDeviceSize size, VkDeviceSize offset = 0) {
-
+				
+				
 				void* data = nullptr;
 
-				if (staging->buffer_size < size) {
-					staging->free();
-					staging->allocate(size);
+				if (staging_buffer->buffer_size < size) {
+					staging_buffer->free();
+					staging_buffer->allocate(size);
 				}
 
 				vkMapMemory(
 					*buffer->m_device,
-					staging->m_device_memory,
-					offset,
+					staging_buffer->m_device_memory,
+					sizeof(object_type) * offset,
 					size,
 					0,
 					&data
 				);
 
-				std::memcpy(data, m_instance.data(), size);
+				std::memcpy(data, m_instance.data() + offset, size);
 
-				vkUnmapMemory(*buffer->m_device, staging->m_device_memory);
+				vkUnmapMemory(*buffer->m_device, staging_buffer->m_device_memory);
 			}
 				
 			void write_data() {
+
 				VkDeviceSize buffer_size = sizeof(object_type) * m_instance.size();
 
 				if (!buffer_size) {
 					return;
 				}
 
+				auto found = std::find_if(memory_update_map.begin(), memory_update_map.end(), [&](const memory_update_queue_vector_t& a) { return a.key == (uint64_t)(this + buffer_size); }) != memory_update_map.end();
+
+				if (found) {
+					return;
+				}
+				
+				auto previous_size = buffer->buffer_size;
+
+				if (previous_size < buffer_size) {
+
+					buffer->free();
+
+					buffer->allocate(buffer_size);
+				}
+				
 				map_data(buffer_size);
 
-				if (buffer_size != current_buffer_size) {
-					recreate_command_buffer(buffer_size, 0, 0);
-					current_buffer_size = buffer_size;
-				}
+				memory_update_queue_t queue;
+				queue.staging_buffer = &staging_buffer->m_buffer_object;
+				queue.buffer_buffer = &buffer->m_buffer_object;
 
-				VkSubmitInfo submit_info{};
+				VkBufferCopy copy{ 0 };
 
-				submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-				submit_info.commandBufferCount = 1;
-				submit_info.pCommandBuffers = &command_buffer;
+				copy.size = buffer_size;
+				queue.copy_region = copy;
 
-				vkQueueSubmit(*graphics_queue, 1, &submit_info, VK_NULL_HANDLE);
+				register_memory_update((uint64_t)(this + buffer_size), queue);
+
 			}
 
-			// slow
 			void edit_data(uint32_t i) {
 
-				VkDeviceSize bufferSize = sizeof(object_type);
+				VkDeviceSize buffer_size = sizeof(object_type);
 
-				void* data;
-				vkMapMemory(
-					*buffer->m_device,
-					staging->m_device_memory,
-					0,
-					bufferSize,
-					0,
-					&data
-				);
+				if (!buffer_size) {
+					return;
+				}
 
-				memcpy(data, &m_instance[i], (std::size_t)bufferSize);
-				vkUnmapMemory(*buffer->m_device, staging->m_device_memory);
+				auto found = std::find_if(memory_update_map.begin(), memory_update_map.end(), [&](const memory_update_queue_vector_t& a) { return a.key == (uint64_t)(this + buffer_size); }) != memory_update_map.end();
 
-				fan::gpu_memory::copy_buffer(*buffer->m_device, *pool, *graphics_queue, staging->m_buffer_object, buffer->m_buffer_object, bufferSize, 0, sizeof(object_type) * i);
+				if (found) {
+					return;
+				}
+
+				auto previous_size = buffer->buffer_size;
+
+				if (previous_size < buffer_size) {
+
+					buffer->free();
+
+					buffer->allocate(buffer_size);
+				}
+
+				map_data(buffer_size, i);
+
+				memory_update_queue_t queue;
+				queue.staging_buffer = &staging_buffer->m_buffer_object;
+				queue.buffer_buffer = &buffer->m_buffer_object;
+
+				VkBufferCopy copy{ 0 };
+
+				copy.size = buffer_size;
+				copy.srcOffset = sizeof(object_type) * i;
+				copy.dstOffset = sizeof(object_type) * i;
+
+				queue.copy_region = copy;
+
+				register_memory_update((uint64_t)(this + buffer_size), queue);
+			
 			}
 
 			void edit_data(uint32_t begin, uint32_t end) {
 
-				VkDeviceSize bufferSize = sizeof(object_type) * (end - begin);
+				VkDeviceSize buffer_size = sizeof(object_type) * (end - begin + 1);
 
-				void* data;
-				vkMapMemory(
-					*buffer->m_device,
-					staging->m_device_memory,
-					0,
-					bufferSize,
-					0,
-					&data
-				);
-
-				memcpy(data, &m_instance[begin], (std::size_t)bufferSize);
-				vkUnmapMemory(*buffer->m_device, staging->m_device_memory);
-
-				fan::gpu_memory::copy_buffer(*buffer->m_device, *pool, *graphics_queue, staging->m_buffer_object, buffer->m_buffer_object, bufferSize, 0, sizeof(object_type) * begin);
-			}
-
-			void recreate_command_buffer(VkDeviceSize buffer_size, VkDeviceSize src_offset, VkDeviceSize dst_offset) {
-
-				VkCommandBufferBeginInfo begin_info{};
-
-				begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-				begin_info.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-
-				vkBeginCommandBuffer(command_buffer, &begin_info);
-
-				VkBufferCopy copy_region{};
-
-				copy_region.size = buffer_size;
-				copy_region.srcOffset = src_offset;
-				copy_region.dstOffset = dst_offset;
-
-				if (buffer_size) {
-					vkCmdCopyBuffer(command_buffer, staging->m_buffer_object, buffer->m_buffer_object, 1, &copy_region);
+				if (!buffer_size) {
+					return;
 				}
 
-				vkEndCommandBuffer(command_buffer);
+				auto found = std::find_if(memory_update_map.begin(), memory_update_map.end(), [&](const memory_update_queue_vector_t& a) { return a.key == (uint64_t)(this + buffer_size); }) != memory_update_map.end();
 
-				current_buffer_size = buffer_size;
+				if (found) {
+					return;
+				}
+
+				auto previous_size = buffer->buffer_size;
+
+				if (previous_size < buffer_size) {
+
+					buffer->free();
+
+					buffer->allocate(buffer_size);
+				}
+
+				map_data(buffer_size, begin);
+
+				memory_update_queue_t queue;
+				queue.staging_buffer = &staging_buffer->m_buffer_object;
+				queue.buffer_buffer = &buffer->m_buffer_object;
+
+				VkBufferCopy copy{ 0 };
+
+				copy.size = buffer_size;
+				copy.srcOffset = sizeof(object_type) * begin;
+				copy.dstOffset = sizeof(object_type) * begin;
+
+				queue.copy_region = copy;
+
+				register_memory_update((uint64_t)(this + buffer_size), queue);
 			}
 
 			std::size_t size() const {
@@ -692,14 +770,13 @@ namespace fan {
 
 			buffer_t* buffer = nullptr;
 
-			VkCommandBuffer command_buffer = nullptr;
-
-			glsl_location_handler<gpu_memory::buffer_type::staging>* staging = nullptr;
 			VkQueue* graphics_queue = nullptr;
 
 			VkCommandPool* pool = nullptr;
 
 			VkDeviceSize current_buffer_size = 0;
+
+			std::function<void()> vulkan_command_buffer_recreation;
 
 		};
 

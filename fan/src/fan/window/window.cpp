@@ -1,6 +1,9 @@
 #include <fan/window/window.hpp>
 #include <fan/math/random.hpp>
 
+#include <fan/utf_string.hpp>
+#include <fan/font.hpp>
+
 #define fan_renderer_opengl 0
 #define fan_renderer_vulkan 1
 
@@ -23,6 +26,9 @@
 #undef max
 
 #elif defined(fan_platform_unix)
+
+#define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
+#define _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS
 
 #include <locale>
 #include <codecvt>
@@ -92,7 +98,7 @@ void fan::reset_screen_resolution() {
 
 }
 
-uint_t fan::get_screen_refresh_rate()
+uintptr_t fan::get_screen_refresh_rate()
 {
 
 	#ifdef fan_platform_windows
@@ -162,6 +168,9 @@ fan::window::window(const fan::vec2i& window_size, const std::string& name, uint
 	}
 	if (!initialized(flag_values::m_samples)) {
 		flag_values::m_samples = 0;
+#if fan_renderer == fan_renderer_vulkan
+		fan::vulkan::msaa_samples = (decltype(fan::vulkan::msaa_samples))VK_SAMPLE_COUNT_1_BIT;
+#endif
 	}
 
 	if (static_cast<bool>(flags & fan::window::flags::no_mouse)) {
@@ -172,6 +181,9 @@ fan::window::window(const fan::vec2i& window_size, const std::string& name, uint
 	}
 	if (static_cast<bool>(flags & fan::window::flags::anti_aliasing)) {
 		fan::window::flag_values::m_samples = 8;
+#if fan_renderer == fan_renderer_vulkan
+		fan::vulkan::msaa_samples = (decltype(fan::vulkan::msaa_samples))VK_SAMPLE_COUNT_8_BIT;
+#endif
 	}
 	if (static_cast<bool>(flags & fan::window::flags::borderless)) {
 		fan::window::flag_values::m_size_mode = fan::window::mode::borderless;
@@ -180,21 +192,17 @@ fan::window::window(const fan::vec2i& window_size, const std::string& name, uint
 		fan::window::flag_values::m_size_mode = fan::window::mode::full_screen;
 	}
 
-	m_fps_next_tick = fan::timer<timer_interval_t>::get_time();
-
 	initialize_window(name, window_size, flags);
 
 	this->calculate_delta_time();
 
 #if fan_renderer == fan_renderer_vulkan
 	
-		m_vulkan = new fan::vulkan(this);
-
-#elif fan_renderer == fan_renderer_opengl
-
-	this->set_vsync(true);
+		m_vulkan = new fan::vulkan(&m_size, (void*)this->get_handle());
 
 #endif
+
+	this->set_vsync(true);
 
 }
 
@@ -273,7 +281,6 @@ fan::window& fan::window::operator=(window&& window)
 
 	#elif defined(fan_platform_unix) 
 
-	m_display = window.m_display;
 	m_screen = window.m_screen;
 	m_atom_delete_window = window.m_atom_delete_window;
 	m_window_attribs = window.m_window_attribs;
@@ -319,7 +326,7 @@ fan::window& fan::window::operator=(window&& window)
 
 	#elif defined(fan_platform_unix)
 
-	glXMakeCurrent(m_display, m_window, m_context);
+	glXMakeCurrent(fan::sys::m_display, m_window, m_context);
 
 	#endif
 
@@ -360,7 +367,7 @@ void fan::window::execute(const std::function<void()>& function)
 	#elif defined(fan_platform_unix)
 
 	if (glXGetCurrentContext() != m_context) {
-	glXMakeCurrent(m_display, m_window, m_context);
+	glXMakeCurrent(fan::sys::m_display, m_window, m_context);
 	}
 
 	glViewport(0, 0, m_size.x, m_size.y);
@@ -376,6 +383,7 @@ void fan::window::execute(const std::function<void()>& function)
 	glClear(GL_COLOR_BUFFER_BIT);
 
 #elif fan_renderer == fan_renderer_vulkan
+	fan::gpu_memory::update_memory_buffer();
 	m_vulkan->draw_frame();
 #endif
 
@@ -385,10 +393,19 @@ void fan::window::execute(const std::function<void()>& function)
 		function();
 	}
 
-	if (f_t fps = static_cast<f_t>(timer_interval_t::period::den) / get_max_fps()) {
-		m_fps_next_tick += fps;
-		auto time = timer_interval_t(static_cast<uint_t>(std::ceil(m_fps_next_tick - fan::timer<timer_interval_t>::get_time())));
-		fan::delay(timer_interval_t(std::max(static_cast<decltype(time.count())>(0), time.count())));
+	if (m_max_fps) {
+
+		uint64_t dt = fan::time::clock::now() - m_fps_next_tick;
+
+		uint64_t goal_fps = m_max_fps;
+
+		int64_t frame_time = std::pow(10, 9) * (1.0 / goal_fps);
+		frame_time -= dt;
+
+		fan::delay(fan::time::nanoseconds(std::max((int64_t)0, frame_time)));
+
+		m_fps_next_tick = fan::time::clock::now();
+
 	}
 
 #if fan_renderer == fan_renderer_opengl
@@ -419,7 +436,7 @@ void fan::window::swap_buffers() const
 	#ifdef fan_platform_windows
 	SwapBuffers(m_hdc);
 	#elif defined(fan_platform_unix)
-	glXSwapBuffers(m_display, m_window);
+	glXSwapBuffers(fan::sys::m_display, m_window);
 	#endif
 
 }
@@ -441,8 +458,8 @@ void fan::window::set_name(const std::string& name)
 
 	#elif defined(fan_platform_unix)
 
-	XStoreName(m_display, m_window, name.c_str());
-	XSetIconName(m_display, m_window, name.c_str());
+	XStoreName(fan::sys::m_display, m_window, name.c_str());
+	XSetIconName(fan::sys::m_display, m_window, name.c_str());
 
 	#endif
 
@@ -450,7 +467,7 @@ void fan::window::set_name(const std::string& name)
 
 void fan::window::calculate_delta_time()
 {
-	m_current_frame = fan::timer<microseconds>::get_time();
+	m_current_frame = fan::time::clock::now();
 	m_delta_time = f_t(m_current_frame - m_last_frame) / 1000000;
 	m_last_frame = m_current_frame;
 }
@@ -499,7 +516,7 @@ void fan::window::set_size(const fan::vec2i& size)
 
 	#elif defined(fan_platform_unix)
 
-	int result = XResizeWindow(m_display, m_window, size.x, size.y);
+	int result = XResizeWindow(fan::sys::m_display, m_window, size.x, size.y);
 
 	if (result == BadValue || result == BadWindow) {
 		fan::print("fan window error: failed to set window position");
@@ -528,7 +545,7 @@ void fan::window::set_position(const fan::vec2i& position)
 
 	#elif defined(fan_platform_unix)
 
-	int result = XMoveWindow(m_display, m_window, position.x, position.y);
+	int result = XMoveWindow(fan::sys::m_display, m_window, position.x, position.y);
 
 	if (result == BadValue || result == BadWindow) {
 		fan::print("fan window error: failed to set window position");
@@ -538,13 +555,13 @@ void fan::window::set_position(const fan::vec2i& position)
 	#endif
 }
 
-uint_t fan::window::get_max_fps() const {
+uintptr_t fan::window::get_max_fps() const {
 	return m_max_fps;
 }
 
-void fan::window::set_max_fps(uint_t fps) {
+void fan::window::set_max_fps(uintptr_t fps) {
 	m_max_fps = fps;
-	m_fps_next_tick = fan::timer<timer_interval_t>::get_time();
+	m_fps_next_tick = fan::time::clock::now();
 }
 
 bool fan::window::vsync_enabled() const {
@@ -561,7 +578,7 @@ void fan::window::set_vsync(bool value) {
 
 	#elif defined(fan_platform_unix)
 
-		glXMakeCurrent(m_display, m_window, m_context);
+		glXMakeCurrent(fan::sys::m_display, m_window, m_context);
 
 	#endif
 
@@ -582,13 +599,19 @@ void fan::window::set_vsync(bool value) {
 
 		if (drawable) {
 			if (glXSwapIntervalEXT) {
-				glXSwapIntervalEXT(m_display, drawable, value);
+				glXSwapIntervalEXT(fan::sys::m_display, drawable, value);
 			}
 			else {
 				fan::print("vsync not supported");
 			}
 		}
 	#endif
+
+#elif fan_renderer == fan_renderer_vulkan
+
+	m_vulkan->vsync = value;
+
+	m_vulkan->recreateSwapChain();
 
 #endif
 	
@@ -675,15 +698,15 @@ void fan::window::set_windowed_full_screen(const fan::vec2i& size)
 		MWM_FUNC_CLOSE = (1L << 5)
 	};
 
-	Atom mwmHintsProperty = XInternAtom(m_display, "_MOTIF_WM_HINTS", 0);
+	Atom mwmHintsProperty = XInternAtom(fan::sys::m_display, "_MOTIF_WM_HINTS", 0);
 	struct MwmHints hints;
 	hints.flags = MWM_HINTS_DECORATIONS;
 	hints.functions = 0;
 	hints.decorations = 0;
-	XChangeProperty(m_display, m_window, mwmHintsProperty, mwmHintsProperty, 32,
+	XChangeProperty(fan::sys::m_display, m_window, mwmHintsProperty, mwmHintsProperty, 32,
 		PropModeReplace, (unsigned char *)&hints, 5);
 
-	XMoveResizeWindow(m_display, m_window, 0, 0, size.x, size.y);
+	XMoveResizeWindow(fan::sys::m_display, m_window, 0, 0, size.x, size.y);
 
 	#endif
 
@@ -772,11 +795,11 @@ void fan::window::remove_keys_callback()
 	this->m_keys_callback = 0;
 }
 
-std::deque<fan::window::key_callback_t>::iterator fan::window::add_key_callback(uint16_t key, key_state state, const std::function<void()>& function)
+fan::window::key_callback_t* fan::window::add_key_callback(uint16_t key, key_state state, const std::function<void()>& function)
 {
-	this->m_key_callback.emplace_back(key_callback_t{ key, state, function });
+	this->m_key_callback.push_back(key_callback_t{ key, state, function });
 
-	return this->m_key_callback.end() - 1;
+	return &*(this->m_key_callback.end() - 1);
 }
 
 void fan::window::edit_key_callback(std::deque<key_callback_t>::iterator it, uint16_t key, key_state state)
@@ -888,10 +911,10 @@ fan::window_t fan::window::get_handle() const
 	return m_window;
 }
 
-uint_t fan::window::get_fps(bool window_name, bool print)
+uintptr_t fan::window::get_fps(bool window_name, bool print)
 {
-	if (!m_fps_timer.get_reset_time()) {
-		m_fps_timer = fan::timer<>(fan::timer<>::start(), 1000);
+	if (!m_fps_timer.count()) {
+		m_fps_timer.start(fan::time::milliseconds(1000));
 	}
 
 	if (m_received_fps) {
@@ -983,19 +1006,19 @@ void fan::window::destroy_window()
 
 	#elif defined(fan_platform_unix)
 
-	if (!m_display || !m_visual || !m_window_attribs.colormap) {
+	if (!fan::sys::m_display || !m_visual || !m_window_attribs.colormap) {
 		return;
 	}
 
 	fan::window_id_storage.erase(this->m_window);
 
 	XFree(m_visual);
-	XFreeColormap(m_display, m_window_attribs.colormap);
-	XDestroyWindow(m_display, m_window);
+	XFreeColormap(fan::sys::m_display, m_window_attribs.colormap);
+	XDestroyWindow(fan::sys::m_display, m_window);
 
-	glXDestroyContext(m_display, m_context);
+	glXDestroyContext(fan::sys::m_display, m_context);
 
-	XCloseDisplay(m_display);
+	XCloseDisplay(fan::sys::m_display);
 
 	m_visual = 0;
 	m_window_attribs.colormap = 0;
@@ -1350,15 +1373,6 @@ LRESULT fan::window::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 }
 #endif
 
-#ifdef fan_platform_unix
-
-Display* fan::window::get_display()
-{
-	return m_display;
-}
-
-#endif
-
 void fan::window::reset_keys()
 {
 	m_keys_down[fan::input::mouse_scroll_up] = false;
@@ -1636,9 +1650,9 @@ void fan::window::initialize_window(const std::string& name, const fan::vec2i& w
 	// if vulkan
 	XInitThreads();
 
-	if (!m_display) {
-		m_display = XOpenDisplay(NULL);
-		if (!m_display) {
+	if (!fan::sys::m_display) {
+		fan::sys::m_display = XOpenDisplay(NULL);
+		if (!fan::sys::m_display) {
 			throw std::runtime_error("failed to initialize window");
 		}
 	}
@@ -1646,16 +1660,16 @@ void fan::window::initialize_window(const std::string& name, const fan::vec2i& w
 	static bool abc = true;
 
 	if (abc) {
-		m_screen = DefaultScreen(m_display);
+		m_screen = DefaultScreen(fan::sys::m_display);
 		abc = false;
 	}
 
 	int minor_glx = 0, major_glx = 0;
-	glXQueryVersion(m_display, &major_glx, &minor_glx);
+	glXQueryVersion(fan::sys::m_display, &major_glx, &minor_glx);
 
 	if (minor_glx < flag_values::m_minor_version && major_glx <= flag_values::m_major_version) {
 		fan::print("fan window error: too low glx version");
-		XCloseDisplay(m_display);
+		XCloseDisplay(fan::sys::m_display);
 		exit(1);
 	}
 
@@ -1700,24 +1714,24 @@ void fan::window::initialize_window(const std::string& name, const fan::vec2i& w
 
 	int fbcount;
 
-	auto fbc = glXChooseFBConfig(m_display, m_screen, pixel_format_attribs, &fbcount);
+	auto fbc = glXChooseFBConfig(fan::sys::m_display, m_screen, pixel_format_attribs, &fbcount);
 
 	if (!fbc) {
 		fan::print("fan window error: failed to retreive framebuffer");
-		XCloseDisplay(m_display);
+		XCloseDisplay(fan::sys::m_display);
 		exit(1);
 	}
 
 	int best_fbc = -1, worst_fbc = -1, best_num_samp = -1, worst_num_samp = 999;
 	for (int i = 0; i < fbcount; ++i) {
-		XVisualInfo *vi = glXGetVisualFromFBConfig( m_display, fbc[i] );
+		XVisualInfo *vi = glXGetVisualFromFBConfig(fan::sys::m_display, fbc[i] );
 		if ( vi != 0) {
 			int samp_buf, samples;
 			if (!glXGetFBConfigAttrib) {
 				exit(1);
 			}
-			glXGetFBConfigAttrib( m_display, fbc[i], GLX_SAMPLE_BUFFERS, &samp_buf );
-			glXGetFBConfigAttrib( m_display, fbc[i], GLX_SAMPLES       , &samples  );
+			glXGetFBConfigAttrib(fan::sys::m_display, fbc[i], GLX_SAMPLE_BUFFERS, &samp_buf );
+			glXGetFBConfigAttrib(fan::sys::m_display, fbc[i], GLX_SAMPLES       , &samples  );
 
 			if ( best_fbc < 0 || (samp_buf && samples > best_num_samp) ) {
 				best_fbc = i;
@@ -1734,26 +1748,26 @@ void fan::window::initialize_window(const std::string& name, const fan::vec2i& w
 
 	XFree(fbc);
 
-	m_visual = glXGetVisualFromFBConfig(m_display, bestFbc);
+	m_visual = glXGetVisualFromFBConfig(fan::sys::m_display, bestFbc);
 
 	if (!m_visual) {
 		fan::print("fan window error: failed to create visual");
-		XCloseDisplay(m_display);
+		XCloseDisplay(fan::sys::m_display);
 		exit(1);
 	}
 
 	if (m_screen != m_visual->screen) {
 		fan::print("fan window error: screen doesn't match with visual screen");
-		XCloseDisplay(m_display);
+		XCloseDisplay(fan::sys::m_display);
 		exit(1);
 	}
 
 	std::memset(&m_window_attribs, 0, sizeof(m_window_attribs));
 
-	m_window_attribs.border_pixel = BlackPixel(m_display, m_screen);
-	m_window_attribs.background_pixel = WhitePixel(m_display, m_screen);
+	m_window_attribs.border_pixel = BlackPixel(fan::sys::m_display, m_screen);
+	m_window_attribs.background_pixel = WhitePixel(fan::sys::m_display, m_screen);
 	m_window_attribs.override_redirect = True;
-	m_window_attribs.colormap = XCreateColormap(m_display, RootWindow(m_display, m_screen), m_visual->visual, AllocNone);
+	m_window_attribs.colormap = XCreateColormap(fan::sys::m_display, RootWindow(fan::sys::m_display, m_screen), m_visual->visual, AllocNone);
 	m_window_attribs.event_mask = ExposureMask | KeyPressMask | ButtonPress |
 		StructureNotifyMask | ButtonReleaseMask |
 		KeyReleaseMask | EnterWindowMask | LeaveWindowMask |
@@ -1764,8 +1778,8 @@ void fan::window::initialize_window(const std::string& name, const fan::vec2i& w
 	const fan::vec2i position = fan::get_resolution() / 2 - window_size / 2;
 
 	m_window = XCreateWindow(
-		m_display, 
-		RootWindow(m_display, m_screen), 
+		fan::sys::m_display, 
+		RootWindow(fan::sys::m_display, m_screen), 
 		position.x, 
 		position.y,
 		window_size.x, 
@@ -1783,17 +1797,17 @@ void fan::window::initialize_window(const std::string& name, const fan::vec2i& w
 		sh->flags = PMinSize | PMaxSize;
 		sh->min_width = sh->max_width = window_size.x;
 		sh->min_height = sh->max_height = window_size.y;
-		XSetWMSizeHints(m_display, m_window, sh, XA_WM_NORMAL_HINTS);
+		XSetWMSizeHints(fan::sys::m_display, m_window, sh, XA_WM_NORMAL_HINTS);
 		XFree(sh);
 	}
 
 	this->set_name(name);
 
 	if (!m_atom_delete_window) {
-		m_atom_delete_window = XInternAtom(m_display, "WM_DELETE_WINDOW", False);
+		m_atom_delete_window = XInternAtom(fan::sys::m_display, "WM_DELETE_WINDOW", False);
 	}
 
-	XSetWMProtocols(m_display, m_window, &m_atom_delete_window, 1);
+	XSetWMProtocols(fan::sys::m_display, m_window, &m_atom_delete_window, 1);
 
 	int gl_attribs[] = {
 		fan::WINDOW_MINOR_VERSION, flag_values::m_minor_version,
@@ -1804,26 +1818,26 @@ void fan::window::initialize_window(const std::string& name, const fan::vec2i& w
 
 	bool initialize_context = !m_context;
 
-	const char *glxExts = glXQueryExtensionsString(m_display, m_screen);
+	const char *glxExts = glXQueryExtensionsString(fan::sys::m_display, m_screen);
 	if (!isExtensionSupported( glxExts, "GLX_ARB_create_context") && initialize_context) {
 		std::cout << "GLX_ARB_create_context not supported\n";
-		m_context = glXCreateNewContext(m_display, bestFbc, GLX_RGBA_TYPE, 0, True );
+		m_context = glXCreateNewContext(fan::sys::m_display, bestFbc, GLX_RGBA_TYPE, 0, True );
 	}
 	else if (initialize_context){
-		m_context = glXCreateContextAttribsARB(m_display, bestFbc, 0, true, gl_attribs);
+		m_context = glXCreateContextAttribsARB(fan::sys::m_display, bestFbc, 0, true, gl_attribs);
 	}
 
 	initialize_context = false;
 
-	XSync(m_display, True);
+	XSync(fan::sys::m_display, True);
 
 #if fan_renderer == fan_renderer_opengl
-	glXMakeCurrent(m_display, m_window, m_context);
+	glXMakeCurrent(fan::sys::m_display, m_window, m_context);
 #endif
 
-	XClearWindow(m_display, m_window);
-	XMapRaised(m_display, m_window);
-	XAutoRepeatOn(m_display);
+	XClearWindow(fan::sys::m_display, m_window);
+	XMapRaised(fan::sys::m_display, m_window);
+	XAutoRepeatOn(fan::sys::m_display);
 
 #if fan_renderer == fan_renderer_opengl
 
@@ -1839,12 +1853,12 @@ void fan::window::initialize_window(const std::string& name, const fan::vec2i& w
 
 #endif
 
-	m_xim = XOpenIM(m_display, 0, 0, 0);
+	m_xim = XOpenIM(fan::sys::m_display, 0, 0, 0);
 
 	if(!m_xim){
 		// fallback to internal input method
 		XSetLocaleModifiers("@im=none");
-		m_xim = XOpenIM(m_display, 0, 0, 0);
+		m_xim = XOpenIM(fan::sys::m_display, 0, 0, 0);
 	}
 
 	m_xic = XCreateIC(m_xim,
@@ -1874,7 +1888,6 @@ void fan::window::initialize_window(const std::string& name, const fan::vec2i& w
 
 #endif
 
-	this->set_vsync(false);
 
 	set_window_by_id(m_window, this);
 }
@@ -1944,7 +1957,18 @@ void fan::window::handle_events() {
 						}
 
 						if (window->m_text_callback && !found) {
-							window->m_text_callback(msg.wParam + (window->m_reserved_flags << 8));
+
+							auto src = msg.wParam + (window->m_reserved_flags << 8);
+
+							auto utf8_str = fan::utf16_to_utf8((wchar_t*)&src);
+
+							uint32_t value = 0;
+
+							for (int i = 0, j = 0; i < utf8_str.size(); i++, j += 0x08) {
+								value |= (uint8_t)utf8_str[i] << j;
+							}
+
+							window->m_text_callback(value);
 						}
 
 						window->m_reserved_flags = 0;
@@ -2201,10 +2225,10 @@ void fan::window::handle_events() {
 
 	XEvent event;
 
-	int nevents = XEventsQueued(m_display, QueuedAfterReading);
+	int nevents = XEventsQueued(fan::sys::m_display, QueuedAfterReading);
 
 	while (nevents--) {
-		XNextEvent(m_display, &event);
+		XNextEvent(fan::sys::m_display, &event);
 		// if (XFilterEvent(&m_event, m_window))
 		// 	continue;
 
@@ -2219,11 +2243,11 @@ void fan::window::handle_events() {
 				}
 
 				XWindowAttributes attribs;
-				XGetWindowAttributes(m_display, window->m_window, &attribs);
+				XGetWindowAttributes(fan::sys::m_display, window->m_window, &attribs);
 
 #if fan_renderer == fan_renderer_opengl
 
-				glXMakeCurrent(m_display, window->m_window, m_context);
+				glXMakeCurrent(fan::sys::m_display, window->m_window, m_context);
 
 				glViewport(0, 0, attribs.width, attribs.height);
 
@@ -2260,7 +2284,7 @@ void fan::window::handle_events() {
 				}
 
 				if (event.xclient.data.l[0] == (long)m_atom_delete_window) {
-					for (uint_t i = 0; i < window->m_close_callback.size(); i++) {
+					for (uintptr_t i = 0; i < window->m_close_callback.size(); i++) {
 						if (window->m_close_callback[i]) {
 							window->m_close_callback[i]();
 						}
@@ -2322,7 +2346,10 @@ void fan::window::handle_events() {
 							window->m_text_callback(key);
 						}
 						else {
-							window->m_text_callback(str[0]);
+
+							auto utf8_str = fan::utf16_to_utf8((wchar_t*)str.data());
+
+							window->m_text_callback(utf8_str.get_character(0));
 						}
 					}
 				}
@@ -2338,9 +2365,9 @@ void fan::window::handle_events() {
 					break;
 				}
 
-				if (XEventsQueued(window->m_display, QueuedAfterReading)) {
+				if (XEventsQueued(fan::sys::m_display, QueuedAfterReading)) {
 					XEvent nev;
-					XPeekEvent(window->m_display, &nev);
+					XPeekEvent(fan::sys::m_display, &nev);
 
 					if (nev.type == KeyPress && nev.xkey.time == event.xkey.time &&
 						nev.xkey.keycode == event.xkey.keycode) {
@@ -2411,9 +2438,9 @@ void fan::window::handle_events() {
 					break;
 				}
 
-				if (XEventsQueued(window->m_display, QueuedAfterReading)) {
+				if (XEventsQueued(fan::sys::m_display, QueuedAfterReading)) {
 					XEvent nev;
-					XPeekEvent(window->m_display, &nev);
+					XPeekEvent(fan::sys::m_display, &nev);
 
 					if (nev.type == ButtonPress && nev.xbutton.time == event.xbutton.time &&
 						nev.xbutton.button == event.xbutton.button) {

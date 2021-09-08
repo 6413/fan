@@ -34,14 +34,8 @@ namespace fan_2d {
 			//};
 
 
-			namespace font_properties {
-
-				inline f32_t space_width(15);
-
-			}
-
-			inline std::unordered_map<fan::window_t, uint_t> current_focus;
-			inline std::unordered_map<fan::window_t, uint_t> focus_counter;
+			inline std::unordered_map<fan::window_t, uintptr_t> current_focus;
+			inline std::unordered_map<fan::window_t, uintptr_t> focus_counter;
 		}
 
 	}
