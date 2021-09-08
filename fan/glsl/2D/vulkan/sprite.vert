@@ -86,22 +86,26 @@ mat4 rotate(mat4 m, float angle, vec3 v) {
 }
 
 vec2 rectangle_vertices[] = vec2[](
-	vec2(-0.5, -0.5),
-	vec2(0.5, -0.5),
-	vec2(0.5, 0.5),
+	vec2(0, 0),
+	vec2(1, 0),
+	vec2(1, 1),
 
-	vec2(-0.5, -0.5),
-	vec2(-0.5, 0.5),
-	vec2(0.5, 0.5)
+	vec2(0, 0),
+	vec2(0, 1),
+	vec2(1, 1)
 );
 
 void main() {
 
 	mat4 m = mat4(1);
 
-	m = translate(m, vec3(layout_position.x, layout_position.y, 0));
+	m = translate(m, vec3(layout_position.x + layout_size.x / 2, layout_position.y + layout_size.y / 2, 0));
 
-	m = rotate(m, layout_angle, vec3(0, 0, 1));
+	if (layout_angle != 0) {
+		m = rotate(m, layout_angle, vec3(0, 0, 1));
+	}
+
+	m = translate(m, vec3(-layout_size.x / 2, -layout_size.y / 2, 0));
 
 	m = scale(m, vec3(layout_size.x, layout_size.y, 0));
 

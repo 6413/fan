@@ -2,6 +2,8 @@
 
 #include <fan/types/vector.hpp>
 
+#include <fan/io/file.hpp>
+
 #define __STDC_CONSTANT_MACROS
 
 extern "C"
@@ -42,7 +44,7 @@ namespace fan {
 			AVPixelFormat format;
 		};
 
-		static uint_t get_stride_multiplier(AVPixelFormat format) {
+		static uintptr_t get_stride_multiplier(AVPixelFormat format) {
 			switch (format) {
 				case AVPixelFormat::AV_PIX_FMT_PAL8:
 				{
@@ -53,6 +55,10 @@ namespace fan {
 				{
 					return 3;
 				}
+				case AVPixelFormat::AV_PIX_FMT_0RGB:
+				case AVPixelFormat::AV_PIX_FMT_RGB0:
+				case AVPixelFormat::AV_PIX_FMT_0BGR:
+				case AVPixelFormat::AV_PIX_FMT_BGR0:
 				case AVPixelFormat::AV_PIX_FMT_RGBA:
 				case AVPixelFormat::AV_PIX_FMT_BGRA:
 				{
@@ -160,7 +166,37 @@ namespace fan {
 			}
 		}
 
-		static fan::image_loader::image_data convert_format(const fan::image_loader::image_data& image_data, AVPixelFormat new_format) {
+		static void convert_deprecated(fan::image_loader::image_data& image_data) {
+			switch (image_data.format) {
+
+				case AV_PIX_FMT_YUVJ420P:
+				{
+					image_data.format = AV_PIX_FMT_YUV420P;
+					break;
+				}
+				case AV_PIX_FMT_YUVJ422P:
+				{
+					image_data.format = AV_PIX_FMT_YUV422P;
+					break;
+				}
+				case AV_PIX_FMT_YUVJ444P:
+				{
+					image_data.format = AV_PIX_FMT_YUV444P;
+					break;
+				}
+				case AV_PIX_FMT_YUVJ440P:
+				{
+					image_data.format = AV_PIX_FMT_YUV440P;
+					break;
+				}
+				default:
+				{
+					break;
+				}
+			}
+		}
+
+		static fan::image_loader::image_data convert_format(fan::image_loader::image_data& image_data, AVPixelFormat new_format) {
 
 			image_loader::image_data new_data;
 
@@ -171,6 +207,8 @@ namespace fan {
 			auto size = image_data.size.x * image_data.size.y;
 
 			//yuv420p_to_rgb24(image_data.data, new_data.data[0], image_data.size.x, image_data.size.y);
+
+			convert_deprecated(image_data);
 
 			auto context = sws_getContext(
 				image_data.size.x, 
@@ -190,17 +228,17 @@ namespace fan {
 				return {};
 			}
 
-			//if (av_image_alloc(
-			//	new_data.data,
-			//	new_data.linesize,
-			//	image_data.size.x,
-			//	image_data.size.y,
-			//	new_format,
-			//	1
-			//	) < 0) {
-			//	fan::print("failed to allocate image");
-			//	return {};
-			//}
+			/*if (av_image_alloc(
+				new_data.data,
+				new_data.linesize,
+				image_data.size.x,
+				image_data.size.y,
+				new_format,
+				1
+				) < 0) {
+				fan::print("failed to allocate image");
+				return {};
+			}*/
 
 			sws_scale(
 				context,
@@ -223,6 +261,11 @@ namespace fan {
 		}
 
 		static fan::image_loader::image_data load_image(const std::string& filename) {
+
+			if (!fan::io::file::exists(filename)) {
+				fan::print("failed to open file", filename);
+				return {};
+			}
 
 			fan::image_loader::image_data image_data;
 
@@ -299,11 +342,6 @@ namespace fan {
 			image_data.size.y = frame->height;
 
 			image_data.format = (AVPixelFormat)frame->format;
-
-			/*image_data.linesize[0] = get_stride_multiplier(image_data.format) * image_data.size.x;
-
-			image_data.data[0] = new uint8_t[image_data.linesize[0] * image_data.size.y];
-			image_data.data[1] = new uint8_t[image_data.linesize[0] * image_data.size.y];*/
 
 			if (av_image_alloc(
 				image_data.data,

@@ -307,7 +307,7 @@ namespace fan {
 		grid_raycast_s<T> raycast = { grid_direction(end, start), start, T() };
 		T distance = end - start;
 		auto max = distance.abs().max();
-		for (uint_t i = 0; i < max; i++) {
+		for (uintptr_t i = 0; i < max; i++) {
 			fan::grid_raycast_single<T>(raycast, block_size);
 			if constexpr (T::size() == 2) {
 				if (raycast.grid[0] < 0 || raycast.grid[1] < 0 ||

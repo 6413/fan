@@ -199,7 +199,8 @@
     <ClCompile Include="src\fan\graphics\camera.cpp" />
     <ClCompile Include="src\fan\graphics\opengl\gl_graphics.cpp" />
     <ClCompile Include="src\fan\graphics\opengl\gl_gui.cpp" />
-    <ClCompile Include="src\fan\graphics\vulkan\vk_graphics.cpp" />
+    <ClCompile Include="src\fan\graphics\shared_graphics.cpp" />
+    <ClCompile Include="src\fan\graphics\shared_gui.cpp" />
     <ClCompile Include="src\fan\graphics\vulkan\vk_gui.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
     <ClCompile Include="src\fan\window\window_input.cpp" />

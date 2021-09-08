@@ -19,7 +19,7 @@ namespace fan_2d {
 					   point.y >= rectangle_position.y && point.y <= rectangle_position.y + rectangle_size.y;
 			}
 
-		//	constexpr fan::da_t<uint_t, 2> get_velocity_corners_2d(const fan::da_t<f_t, 2>& vel) {
+		//	constexpr fan::da_t<uintptr_t, 2> get_velocity_corners_2d(const fan::da_t<f_t, 2>& vel) {
 		//		if (vel[0] >= 0)
 		//			if (vel[1] >= 0)
 		//				return { 2, 1 };
@@ -32,7 +32,7 @@ namespace fan_2d {
 		//				return { 2, 1 };
 		//	}
 
-		//	constexpr fan::da_t<uint_t, 3> get_velocity_corners_3d(const fan::da_t<f32_t, 2>& vel) {
+		//	constexpr fan::da_t<uintptr_t, 3> get_velocity_corners_3d(const fan::da_t<f32_t, 2>& vel) {
 		//		if (vel[0] >= 0)
 		//			if (vel[1] >= 0)
 		//				return { 2, 1, 3 };
@@ -70,7 +70,7 @@ namespace fan_2d {
 
 		//			f_t smallest_distance = fan::math::inf;
 
-		//			for (uint_t i = 0; i < walls.size(); ++i) {
+		//			for (uintptr_t i = 0; i < walls.size(); ++i) {
 
 		//				// step 1
 
@@ -228,7 +228,7 @@ namespace fan_2d {
 
 		//		int side_id = -1;
 
-		//		for (uint_t i = 0; i < walls.size(); ++i) {
+		//		for (uintptr_t i = 0; i < walls.size(); ++i) {
 
 		//			auto wall_corners = walls.get_corners(i);
 

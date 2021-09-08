@@ -8,7 +8,7 @@
 #include <any>
 
 typedef intptr_t si_t;
-typedef uintptr_t uint_t;
+typedef uintptr_t uintptr_t;
 typedef intptr_t sint_t;
 typedef int8_t sint8_t;
 typedef int16_t sint16_t;
@@ -23,8 +23,6 @@ typedef double f_t;
 typedef f32_t cf_t;
 
 namespace fan {
-
-	using fstring = std::wstring;
 
 	constexpr auto uninitialized = -1;
 
@@ -41,7 +39,7 @@ namespace fan {
 	template <typename T>
 	std::ostream& operator<<(std::ostream& os, const std::vector<T>& vector) noexcept
 	{
-		for (uint_t i = 0; i < vector.size(); i++) {
+		for (uintptr_t i = 0; i < vector.size(); i++) {
 			os << vector[i] << ' ';
 		}
 		return os;
@@ -50,8 +48,8 @@ namespace fan {
 	template <typename T>
 	std::ostream& operator<<(std::ostream& os, const std::vector<std::vector<T>>& vector) noexcept
 	{
-		for (uint_t i = 0; i < vector.size(); i++) {
-			for (uint_t j = 0; j < vector[i].size(); j++) {
+		for (uintptr_t i = 0; i < vector.size(); i++) {
+			for (uintptr_t j = 0; j < vector[i].size(); j++) {
 				os << vector[i][j] << ' ';
 			}
 			os << '\n';
@@ -75,7 +73,7 @@ namespace fan {
 	}
 
 	template <typename T>
-	constexpr uint_t vector_byte_size(const typename std::vector<T>& vector)
+	constexpr uintptr_t vector_byte_size(const typename std::vector<T>& vector)
 	{
 		return sizeof(T) * vector.size();
 	}
@@ -142,17 +140,17 @@ namespace fan {
 	template <typename T>
 	concept is_not_arithmetic_t = !is_arithmetic_t<T>;
 
-	template <bool _Test, uint_t _Ty1, uint_t _Ty2>
+	template <bool _Test, uintptr_t _Ty1, uintptr_t _Ty2>
 	struct conditional_value {
 		static constexpr auto value = _Ty1;
 	};
 
-	template <uint_t _Ty1, uint_t _Ty2>
+	template <uintptr_t _Ty1, uintptr_t _Ty2>
 	struct conditional_value<false, _Ty1, _Ty2> {
 		static constexpr auto value = _Ty2;
 	};
 
-	template <bool _Test, uint_t _Ty1, uint_t _Ty2>
+	template <bool _Test, uintptr_t _Ty1, uintptr_t _Ty2>
 	struct conditional_value_t {
 		static constexpr auto value = conditional_value<_Test, _Ty1, _Ty2>::value;
 	};
@@ -185,7 +183,7 @@ namespace fan {
 	};
 
 
-	static fan::fstring str_to_wstr(const std::string& s)
+	static std::wstring str_to_wstr(const std::string& s)
 	{
 		std::wstring ret(s.begin(), s.end());
 		return ret;

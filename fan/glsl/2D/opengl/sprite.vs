@@ -3,6 +3,8 @@
 in vec2 layout_position;
 in vec2 layout_size;
 in float layout_angle;
+in vec2 layout_rotation_point;
+in vec3 layout_rotation_vector;
 
 in vec2 layout_light_position;
 in vec4 layout_light_color;
@@ -95,13 +97,13 @@ mat4 rotate(mat4 m, float angle, vec3 v) {
 }
 
 vec2 rectangle_vertices[] = vec2[](
-	vec2(-0.5, -0.5),
-	vec2(0.5, -0.5),
-	vec2(0.5, 0.5),
+	vec2(0, 0),
+	vec2(1, 0),
+	vec2(1, 1),
 
-	vec2(-0.5, -0.5),
-	vec2(-0.5, 0.5),
-	vec2(0.5, 0.5)
+	vec2(0, 0),
+	vec2(0, 1),
+	vec2(1, 1)
 );
 
 layout(std430, binding = 2) buffer layout_texture_coordinate
@@ -117,13 +119,26 @@ void main() {
 
 	mat4 m = mat4(1);
 
-	m = translate(m, vec3(layout_position.x, layout_position.y, 0));
+	m = translate(m, vec3(layout_rotation_point, 0));
 
-	m = rotate(m, layout_angle, vec3(0, 0, 1));
+	if (!isnan(layout_angle) && !isinf(layout_angle)) {
+		vec3 rotation_vector;
+
+		if (layout_rotation_vector.x == 0 && layout_rotation_vector.y == 0 && layout_rotation_vector.z == 0) {
+			rotation_vector = vec3(0, 0, 1);
+		}
+		else {
+			rotation_vector = layout_rotation_vector;
+		}
+
+		m = rotate(m, layout_angle, rotation_vector);
+	}
+
+	m = translate(m, vec3(layout_position, 0) - vec3(layout_rotation_point, 0));
 
 	m = scale(m, vec3(layout_size.x, layout_size.y, 0));
 
-	gl_Position = projection * view * m * vec4(rectangle_vertices[gl_VertexID % 6].x, rectangle_vertices[gl_VertexID % 6].y, 0, 1);
+	gl_Position = projection * view * m * vec4(rectangle_vertices[gl_VertexID % 6], 0, 1);
 
 	light_position = layout_light_position;
 	//light_color	   = layout_light_color;

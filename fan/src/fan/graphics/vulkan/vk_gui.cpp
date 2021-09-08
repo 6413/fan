@@ -5,10 +5,10 @@
 fan_2d::graphics::gui::text_renderer::text_renderer(fan::camera* camera)
 	: m_camera(camera)
 {
-	font_info = fan::io::file::parse_font("fonts/arial.fnt");
+	font_info = fan::font::parse_font("fonts/arial.fnt");
 
-	font_info.font[' '] = fan::io::file::font_t({ 0, fan::vec2(fan_2d::graphics::gui::font_properties::space_width, font_info.line_height), 0, (fan::vec2::value_type)fan_2d::graphics::gui::font_properties::space_width });
-	font_info.font['\n'] = fan::io::file::font_t({ 0, fan::vec2(0, font_info.line_height), 0, 0 });
+	font_info.font[' '] = fan::font::font_t({ 0, fan::vec2(fan_2d::graphics::gui::font_properties::space_width, font_info.line_height), 0, (fan::vec2::value_type)fan_2d::graphics::gui::font_properties::space_width });
+	font_info.font['\n'] = fan::font::font_t({ 0, fan::vec2(0, font_info.line_height), 0, 0 });
 
 	VkVertexInputBindingDescription binding_description;
 
@@ -59,7 +59,7 @@ fan_2d::graphics::gui::text_renderer::text_renderer(fan::camera* camera)
 
 	fan::vk::shader::recompile_shaders = true;
 
-	camera->m_window->m_vulkan->pipelines->push_back(
+	camera->m_window->m_vulkan->pipelines[(int)fan_2d::graphics::shape::triangle]->push_back(
 		binding_description,
 		attribute_descriptions,
 		camera->m_window->get_size(),
@@ -76,8 +76,11 @@ fan_2d::graphics::gui::text_renderer::text_renderer(fan::camera* camera)
 		&camera->m_window->m_vulkan->device,
 		&camera->m_window->m_vulkan->physicalDevice,
 		&camera->m_window->m_vulkan->commandPool,
-		camera->m_window->m_vulkan->staging_buffer,
-		&camera->m_window->m_vulkan->graphicsQueue
+		&camera->m_window->m_vulkan->graphicsQueue,
+		[&]{
+			m_camera->m_window->m_vulkan->erase_command_buffers();
+			camera->m_window->m_vulkan->create_command_buffers();
+		}
 	);
 
 	uniform_handler = new fan::gpu_memory::uniform_handler(
@@ -92,36 +95,50 @@ fan_2d::graphics::gui::text_renderer::text_renderer(fan::camera* camera)
 		uniform_handler
 	);
 
-	descriptor_offset = vk_instance->texture_handler->descriptor_handler->descriptor_sets.size();
-
-	camera->m_window->m_vulkan->push_back_draw_call([&](uint32_t i, uint32_t j) {
-
-		if (!instance_buffer->buffer->m_buffer_object) {
-			return;
-		}
-
-		vkCmdBindPipeline(m_camera->m_window->m_vulkan->commandBuffers[0][i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_camera->m_window->m_vulkan->pipelines->pipeline_info[j].pipeline);
-
-		VkDeviceSize offsets[] = { 0 };
-		vkCmdBindVertexBuffers(m_camera->m_window->m_vulkan->commandBuffers[0][i], 0, 1, &instance_buffer->buffer->m_buffer_object, offsets);
-
-		vkCmdBindDescriptorSets(m_camera->m_window->m_vulkan->commandBuffers[0][i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_camera->m_window->m_vulkan->pipelines->pipeline_layout, 0, 1, &m_camera->m_window->m_vulkan->texture_handler->descriptor_handler->get(i + descriptor_offset), 0, nullptr);
-
-		vkCmdDraw(m_camera->m_window->m_vulkan->commandBuffers[0][i], 6, instance_buffer->size(), 0, 0);
-
-	});
-
 	if (!image) {
 		fan::vulkan* vk_instance = camera->m_window->m_vulkan;
 
 		image = std::make_unique<fan_2d::graphics::image_info>(fan_2d::graphics::load_image(camera->m_window, "fonts/arial.png"));
 
-		vk_instance->texture_handler->push_back(
+		descriptor_offsets.emplace_back(vk_instance->texture_handler->push_back(
 			image.get()->texture.get()->texture_id,
 			uniform_handler,
-			vk_instance->swapChainImages.size()
+			vk_instance->swapChainImages.size(), 1)
 		);
 	}
+
+	fan_2d::graphics::shape shape = fan_2d::graphics::shape::triangle;
+
+	camera->m_window->m_vulkan->push_back_draw_call(vk_instance->draw_order_id++, &shape, 1, (void*)this, [&](uint32_t i, uint32_t j, void* base, fan_2d::graphics::shape shape) {
+
+		if (!instance_buffer->buffer->m_buffer_object) {
+			return;
+		}
+
+		vkCmdBindPipeline(
+			m_camera->m_window->m_vulkan->commandBuffers[0][i], 
+			VK_PIPELINE_BIND_POINT_GRAPHICS, 
+			m_camera->m_window->m_vulkan->pipelines[(int)fan_2d::graphics::shape::triangle]->pipeline_info[j].pipeline
+		);
+
+		VkDeviceSize offsets[] = { 0 };
+		vkCmdBindVertexBuffers(m_camera->m_window->m_vulkan->commandBuffers[0][i], 0, 1, &instance_buffer->buffer->m_buffer_object, offsets);
+
+		for (int k = 0; k < descriptor_offsets.size(); k++) {
+			vkCmdBindDescriptorSets(
+				m_camera->m_window->m_vulkan->commandBuffers[0][i], 
+				VK_PIPELINE_BIND_POINT_GRAPHICS, 
+				m_camera->m_window->m_vulkan->pipelines[(int)fan_2d::graphics::shape::triangle]->pipeline_layout, 
+				0, 
+				1, 
+				&m_camera->m_window->m_vulkan->texture_handler->descriptor_handler->get(i + descriptor_offsets[k] * m_camera->m_window->m_vulkan->swapChainImages.size()), 
+				0, 
+				nullptr
+			);
+		}
+
+		vkCmdDraw(m_camera->m_window->m_vulkan->commandBuffers[0][i], 6, instance_buffer->size(), 0, 0);
+	});
 
 }
 
@@ -169,9 +186,14 @@ void fan_2d::graphics::gui::text_renderer::draw()
 	view_projection.view = fan::math::look_at_left<fan::mat4>(m_camera->get_position() + fan::vec3(0, 0, 0.1), m_camera->get_position() + fan::vec3(0, 0, 0.1) + m_camera->get_front(), m_camera->world_up);
 
 	view_projection.projection = fan::math::ortho<fan::mat4>((f32_t)0, (f32_t)window_size.x, (f32_t)0, (f32_t)window_size.y, 0.1, 100);
+
+	fan_2d::graphics::shape shape = fan_2d::graphics::shape::triangle;
+	if (m_camera->m_window->m_vulkan->set_draw_call_order(m_camera->m_window->m_vulkan->draw_order_id++, &shape, 1, (void*)this)) {
+		m_camera->m_window->m_vulkan->reload_swapchain = true;
+	}
 }
 
-void fan_2d::graphics::gui::text_renderer::push_back(const fan::fstring& text, f32_t font_size, fan::vec2 position, const fan::color& text_color) {
+void fan_2d::graphics::gui::text_renderer::push_back(const fan::utf16_string& text, f32_t font_size, fan::vec2 position, const fan::color& text_color) {
 
 	m_text.emplace_back(text);
 
@@ -181,11 +203,7 @@ void fan_2d::graphics::gui::text_renderer::push_back(const fan::fstring& text, f
 
 	m_position.emplace_back(position);
 
-	bool write_after = !fan::gpu_queue;
-
 	auto previous_offset = instance_buffer->size();
-
-	fan::begin_queue();
 
 	auto convert = convert_font_size(font_size);
 
@@ -217,12 +235,6 @@ void fan_2d::graphics::gui::text_renderer::push_back(const fan::fstring& text, f
 		}
 	}
 
-	fan::end_queue();
-
-	if (write_after) {
-		this->release_queue();
-	}
-
 	if (m_indices.empty()) {
 		m_indices.emplace_back(text.size());
 	}
@@ -231,7 +243,7 @@ void fan_2d::graphics::gui::text_renderer::push_back(const fan::fstring& text, f
 	}
 }
 
-void fan_2d::graphics::gui::text_renderer::insert(uint32_t i, const fan::fstring& text, f32_t font_size, fan::vec2 position, const fan::color& text_color) {
+void fan_2d::graphics::gui::text_renderer::insert(uint32_t i, const fan::utf16_string& text, f32_t font_size, fan::vec2 position, const fan::color& text_color) {
 	
 	m_text.insert(m_text.begin() + i, text);
 
@@ -241,11 +253,7 @@ void fan_2d::graphics::gui::text_renderer::insert(uint32_t i, const fan::fstring
 
 	m_position.insert(m_position.begin() + i, position);
 
-	bool write_after = !fan::gpu_queue;
-
 	auto previous_offset = instance_buffer->size();
-
-	fan::begin_queue();
 
 	for (int j = 0; j < text.size(); j++) {
 
@@ -271,22 +279,18 @@ void fan_2d::graphics::gui::text_renderer::insert(uint32_t i, const fan::fstring
 		}
 	}
 
-	fan::end_queue();
-
-	if (write_after) {
-		this->release_queue();
-	}
-
 	regenerate_indices();
 }
 
 void fan_2d::graphics::gui::text_renderer::set_position(uint32_t i, const fan::vec2& position) {
-	
-	bool write_after = !fan::gpu_queue;
+
+	if (m_position[i] == position) {
+		return;
+	}
+
+	m_position[i] = position;
 
 	f32_t advance = 0;
-
-	fan::begin_queue();
 
 	auto index = i == 0 ? 0 : m_indices[i - 1];
 
@@ -315,21 +319,14 @@ void fan_2d::graphics::gui::text_renderer::set_position(uint32_t i, const fan::v
 
 		instance_buffer->get_value(index + j).position = new_position;
 	}
-
-	fan::end_queue();
-
-	if (write_after) {
-		this->release_queue();
-	}
-
 }
 
 uint32_t fan_2d::graphics::gui::text_renderer::size() const {
 	return m_text.size();
 }
 
-f32_t fan_2d::graphics::gui::text_renderer::get_font_size(uint_t i) const {
-	return instance_buffer->get_value(i).font_size;
+f32_t fan_2d::graphics::gui::text_renderer::get_font_size(uintptr_t i) const {
+	return instance_buffer->get_value(i == 0 ? 0 : m_indices[i - 1]).font_size;
 }
 
 void fan_2d::graphics::gui::text_renderer::set_font_size(uint32_t i, f32_t font_size) {
@@ -348,13 +345,9 @@ void fan_2d::graphics::gui::text_renderer::set_angle(uint32_t i, f32_t angle)
 	for (int j = 0; j < m_text[i].size(); j++) {
 		instance_buffer->m_instance[(i == 0 ? 0 : m_indices[i - 1]) + j].angle = angle;	
 	}
-
-	if (!fan::gpu_queue) {
-		instance_buffer->edit_data((i == 0 ? 0 : m_indices[i - 1]), (i == 0 ? 0 : m_indices[i - 1]) + m_text[i].size());
-	}
 }
 
-void fan_2d::graphics::gui::text_renderer::erase(uint_t i) {
+void fan_2d::graphics::gui::text_renderer::erase(uintptr_t i) {
 	
 	uint64_t begin = i == 0 ? 0 : m_indices[i - 1];
 	uint64_t end = m_indices[i];
@@ -364,16 +357,10 @@ void fan_2d::graphics::gui::text_renderer::erase(uint_t i) {
 	m_position.erase(m_position.begin() + i);
 	m_text.erase(m_text.begin() + i);
 
-	realloc_buffer = true;
-
-	if (!fan::gpu_queue) {
-		this->release_queue();
-	}
-
 	this->regenerate_indices();
 }
 
-void fan_2d::graphics::gui::text_renderer::erase(uint_t begin, uint_t end) {
+void fan_2d::graphics::gui::text_renderer::erase(uintptr_t begin, uintptr_t end) {
 
 	uint64_t begin_ = begin == 0 ? 0 : m_indices[begin - 1];
 	uint64_t end_ = end == 0 ? 0 : m_indices[end - 1];
@@ -382,12 +369,6 @@ void fan_2d::graphics::gui::text_renderer::erase(uint_t begin, uint_t end) {
 
 	m_position.erase(m_position.begin() + begin, m_position.begin() + end);
 	m_text.erase(m_text.begin() + begin, m_text.begin() + end);
-
-	realloc_buffer = true;
-
-	if (!fan::gpu_queue) {
-		this->release_queue();
-	}
 
 	this->regenerate_indices();
 }
@@ -400,40 +381,23 @@ void fan_2d::graphics::gui::text_renderer::clear() {
 	m_text.clear();
 
 	m_indices.clear();
-
-	realloc_buffer = true;
-
-	if (!fan::gpu_queue) {
-		this->release_queue();
-	}
-
 }
 
-void fan_2d::graphics::gui::text_renderer::set_text(uint32_t i, const fan::fstring& text) {
+void fan_2d::graphics::gui::text_renderer::set_text(uint32_t i, const fan::utf16_string& text) {
 
 	auto font_size = this->get_font_size(i);
 	auto position = this->get_position(i);
 	auto color = this->get_text_color(i);
 
-	bool write_after = !fan::gpu_queue;
-
-	fan::begin_queue();
-
 	this->erase(i);
 
 	this->insert(i, text, font_size, position, color);
-
-	fan::end_queue();
-
-	if (write_after) {
-		this->release_queue();
-	}
-
 }
 
 fan::color fan_2d::graphics::gui::text_renderer::get_text_color(uint32_t i, uint32_t j) {
 	return instance_buffer->get_value(i == 0 ? 0 : m_indices[i - 1] + j).color;
 }
+// hint edit_data - i, i + text.size()
 void fan_2d::graphics::gui::text_renderer::set_text_color(uint32_t i, const fan::color& color) {
 	
 	auto index = i == 0 ? 0 : m_indices[i - 1];
@@ -441,49 +405,42 @@ void fan_2d::graphics::gui::text_renderer::set_text_color(uint32_t i, const fan:
 	for (int j = 0; j < m_text[i].size(); j++) {
 		instance_buffer->m_instance[index + j].color = color;
 	}
-
-	if (!fan::gpu_queue) {
-		instance_buffer->edit_data(index, index + m_text[i].size());
-	}
 }
 void fan_2d::graphics::gui::text_renderer::set_text_color(uint32_t i, uint32_t j, const fan::color& color) {
 	auto index = i == 0 ? 0 : m_indices[i - 1];
 
 	instance_buffer->m_instance[index + j].color = color;
-
-	if (!fan::gpu_queue) {
-		instance_buffer->edit_data(index + j);
-	}
 }
 
-void fan_2d::graphics::gui::text_renderer::release_queue(uint16_t avoid_flags)
-{
-	vkDeviceWaitIdle(m_camera->m_window->m_vulkan->device);
+void fan_2d::graphics::gui::text_renderer::write_data() {
+	instance_buffer->write_data();
+}
 
-	if (realloc_buffer) {
+void fan_2d::graphics::gui::text_renderer::edit_data(uint32_t i) {
 
-		auto previous_size = instance_buffer->buffer->buffer_size;
+	uint32_t begin = 0;
 
-		instance_buffer->buffer->free();
-
-		auto new_size = sizeof(instance_t) * instance_buffer->size();
-
-		if (new_size) {
-			instance_buffer->buffer->allocate(new_size);
-
-			if (!previous_size) {
-				instance_buffer->recreate_command_buffer(new_size, 0, 0);
-			}
-
-		}
-
-		m_camera->m_window->m_vulkan->erase_command_buffers();
-		m_camera->m_window->m_vulkan->create_command_buffers();
-
-		realloc_buffer = false;
+	for (int j = 0; j < i; j++) {
+		begin += m_text[j].size();
 	}
 
-	instance_buffer->write_data();
+	instance_buffer->edit_data(begin, begin + m_text[i].size() - 1);
+}
+
+void fan_2d::graphics::gui::text_renderer::edit_data(uint32_t begin, uint32_t end) {
+
+	uint32_t size = 0;
+	uint32_t begin_ = 0;
+
+	for (int i = 0; i < begin; i++) {
+		begin_ += m_text[i].size();
+	}
+
+	for (int i = begin; i <= end; i++) {
+		size += m_text[i].size();
+	}
+
+	instance_buffer->edit_data(begin_, (size - begin_) - 1);
 }
 
 #define get_letter_infos 																\
@@ -521,7 +478,7 @@ texture_coordiantes = {																    \
 };
 
 
-void fan_2d::graphics::gui::text_renderer::insert_letter(uint32_t i, uint32_t j, fan::fstring::value_type letter, f32_t font_size, fan::vec2& position, const fan::color& color, f32_t& advance) {
+void fan_2d::graphics::gui::text_renderer::insert_letter(uint32_t i, uint32_t j, wchar_t letter, f32_t font_size, fan::vec2& position, const fan::color& color, f32_t& advance) {
 	
 	get_letter_infos;
 
@@ -539,16 +496,9 @@ void fan_2d::graphics::gui::text_renderer::insert_letter(uint32_t i, uint32_t j,
 			texture_coordiantes
 		}
 	);
-
-	realloc_buffer = true;
-
-	if (!fan::gpu_queue) {
-		this->release_queue();
-	}
-
 }
 
-void fan_2d::graphics::gui::text_renderer::push_back_letter(fan::fstring::value_type letter, f32_t font_size, fan::vec2& position, const fan::color& color, f32_t& advance) {
+void fan_2d::graphics::gui::text_renderer::push_back_letter(wchar_t letter, f32_t font_size, fan::vec2& position, const fan::color& color, f32_t& advance) {
 
 	get_letter_infos;
 
@@ -563,13 +513,6 @@ void fan_2d::graphics::gui::text_renderer::push_back_letter(fan::fstring::value_
 			texture_coordiantes
 		}
 	);
-
-	realloc_buffer = true;
-
-	if (!fan::gpu_queue) {
-
-		this->release_queue();
-	}
 
 }
 

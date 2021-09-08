@@ -4,7 +4,7 @@ CFLAGS = -std=c++2a -I /usr/local/include -I include #-O3 -march=native -mtune=n
 
 FAN_OBJECT_FOLDER = src/fan/graphics/opengl/
 
-all: fan_window.o fan_window_input.o fan_camera.o fan_gl_graphics.o fan_gl_gui.o fan_vk_graphics.o fan_vk_gui.o
+all: fan_window.o fan_window_input.o fan_camera.o fan_gl_graphics.o fan_gl_gui.o fan_vk_gui.o fan_shared_gui.o
 
 fan_window.o:  src/fan/window/window.cpp
 	$(GPP) $(CFLAGS) -c src/fan/window/window.cpp -o $(FAN_OBJECT_FOLDER)fan_window.o
@@ -20,12 +20,12 @@ fan_gl_graphics.o:	src/fan/graphics/opengl/gl_graphics.cpp
 	
 fan_gl_gui.o:	src/fan/graphics/opengl/gl_gui.cpp
 	$(GPP) $(CFLAGS) -c src/fan/graphics/opengl/gl_gui.cpp -o $(FAN_OBJECT_FOLDER)fan_gl_gui.o
-	
-fan_vk_graphics.o:	src/fan/graphics/vulkan/vk_graphics.cpp
-	$(GPP) $(CFLAGS) -c src/fan/graphics/vulkan/vk_graphics.cpp -o $(FAN_OBJECT_FOLDER)fan_vk_graphics.o
-	
+
 fan_vk_gui.o:	src/fan/graphics/vulkan/vk_gui.cpp
 	$(GPP) $(CFLAGS) -c src/fan/graphics/vulkan/vk_gui.cpp -o $(FAN_OBJECT_FOLDER)fan_vk_gui.o
+	
+fan_shared_gui.o:	src/fan/graphics/shared_gui.cpp
+	$(GPP) $(CFLAGS) -c src/fan/graphics/shared_gui.cpp -o $(FAN_OBJECT_FOLDER)fan_shared_gui.o
 	
 clean:
 	rm -f fan_*.o

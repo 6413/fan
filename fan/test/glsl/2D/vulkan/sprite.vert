@@ -1,25 +1,16 @@
-#version 430
+#version 450
 
-in vec2 layout_position;
-in vec2 layout_size;
-in float layout_angle;
+layout(binding = 0) uniform UniformBufferObject {
+    mat4 view;
+    mat4 proj;
+} ubo;
 
-in vec2 layout_light_position;
-in vec4 layout_light_color;
-in float layout_light_brightness;
-in float layout_light_angle;
+layout(location = 0) in vec2 layout_position;
+layout(location = 1) in vec2 layout_size;
+layout(location = 2) in float layout_angle;
+layout(location = 3) in vec2 layout_texture_coordinate[6];
 
-out vec4 color;
-
-out vec2 light_position;
-out vec4 light_color;
-out float light_brightness;
-out float light_angle;
-
-out vec2 f_position;
-
-uniform mat4 projection;
-uniform mat4 view;
+layout(location = 0) out vec2 fragment_texture_coordinate;
 
 mat4 translate(mat4 m, vec3 v) {
 	mat4 matrix = m;
@@ -95,42 +86,30 @@ mat4 rotate(mat4 m, float angle, vec3 v) {
 }
 
 vec2 rectangle_vertices[] = vec2[](
-	vec2(-0.5, -0.5),
-	vec2(0.5, -0.5),
-	vec2(0.5, 0.5),
+	vec2(0, 0),
+	vec2(1, 0),
+	vec2(1, 1),
 
-	vec2(-0.5, -0.5),
-	vec2(-0.5, 0.5),
-	vec2(0.5, 0.5)
+	vec2(0, 0),
+	vec2(0, 1),
+	vec2(1, 1)
 );
-
-layout(std430, binding = 2) buffer layout_texture_coordinate
-{
-    vec2 texture_coordinates[];
-};
-
-out vec2 texture_coordinate;
 
 void main() {
 
-	texture_coordinate = texture_coordinates[gl_InstanceID * 6 + gl_VertexID];
-
 	mat4 m = mat4(1);
 
-	m = translate(m, vec3(layout_position.x, layout_position.y, 0));
+	m = translate(m, vec3(layout_position.x + layout_size.x / 2, layout_position.y + layout_size.y / 2, 0));
 
-	m = rotate(m, layout_angle, vec3(0, 0, 1));
+	if (layout_angle != 0) {
+		m = rotate(m, layout_angle, vec3(0, 0, 1));
+	}
+
+	m = translate(m, vec3(-layout_size.x / 2, -layout_size.y / 2, 0));
 
 	m = scale(m, vec3(layout_size.x, layout_size.y, 0));
 
-	gl_Position = projection * view * m * vec4(rectangle_vertices[gl_VertexID % 6].x, rectangle_vertices[gl_VertexID % 6].y, 0, 1);
-
-	light_position = layout_light_position;
-	//light_color	   = layout_light_color;
-	light_brightness = layout_light_brightness;
-	light_angle	   = layout_light_angle;
-
-	f_position = vec2(vec4(m * vec4(rectangle_vertices[gl_VertexID % 6].x, rectangle_vertices[gl_VertexID % 6].y, 0, 1)).xy);
-
-	//color = layout_color;
+    gl_Position = ubo.proj * ubo.view * m * vec4(rectangle_vertices[gl_VertexIndex % 6], 0.0, 1.0);
+    
+	fragment_texture_coordinate = layout_texture_coordinate[gl_VertexIndex % 6];
 }

@@ -5,7 +5,7 @@
 
 // make clean when changing
 
-#define fan_set_graphics_renderer fan_renderer_vulkan
+#define fan_set_graphics_renderer fan_renderer_opengl
 
 #ifndef fan_set_graphics_renderer
 	#define fan_set_graphics_renderer fan_renderer_vulkan

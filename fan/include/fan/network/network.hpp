@@ -154,7 +154,7 @@
 //					while (fan::io::file::exists(file_name.c_str())) {
 //						std::string rename_str = std::to_string(rename_count);
 //						if (rename_count > 1) {
-//							for (uint_t i = 0; i < rename_str.length(); i++) {
+//							for (uintptr_t i = 0; i < rename_str.length(); i++) {
 //								char& l_path = file_name[file_name.find_last_of('(') + 1 + i];
 //								auto found = file_name.find_last_of(l_path);
 //								if (file_name[found] == ')') {
@@ -165,7 +165,7 @@
 //						}
 //						else {
 //							std::string file_type;
-//							for (uint_t i = file_name.find_last_of('.'); i < file_name.length(); i++) {
+//							for (uintptr_t i = file_name.find_last_of('.'); i < file_name.length(); i++) {
 //								if (i != std::string::npos) {
 //									file_type.push_back(file_name[i]);
 //								}
@@ -213,7 +213,7 @@
 //				uint64_t amount_of_packets = std::ceil(size / max_packet_size) + 1;
 //				uint64_t received = 0;
 //				std::string data;
-//				for (uint_t i = 0; i < amount_of_packets; i++) {
+//				for (uintptr_t i = 0; i < amount_of_packets; i++) {
 //					uint16_t packet_size = (!(size % max_packet_size) && size ? max_packet_size : size % max_packet_size);
 //					data.append(m_get_single_packet(socket, packet_size));
 //					received += packet_size;
@@ -301,7 +301,7 @@
 //			void m_send_data(SOCKET socket, const char* data, uint64_t size) const {
 //				uint64_t amount_of_packets = std::ceil(size / max_packet_size) + 1;
 //				uint64_t sent = 0;
-//				for (uint_t i = 0; i < amount_of_packets; i++) {
+//				for (uintptr_t i = 0; i < amount_of_packets; i++) {
 //					uint16_t packet_size = (!(size % max_packet_size) && size ? max_packet_size : size % max_packet_size);
 //					std::string packet(data + sent, data + sent + packet_size);
 //					m_send_single_packet(socket, packet.c_str(), packet_size);
@@ -552,7 +552,7 @@
 //					exit(EXIT_FAILURE);
 //				}
 //
-//				for (uint_t i = 0; !multithread ? i < 1 : 1; i++) {
+//				for (uintptr_t i = 0; !multithread ? i < 1 : 1; i++) {
 //					SOCKET sock = accept(server_socket, NULL, NULL);
 //					if (sock == INVALID_SOCKET) {
 //						print("Socket error");

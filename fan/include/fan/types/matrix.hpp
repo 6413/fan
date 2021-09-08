@@ -289,7 +289,7 @@ namespace fan {
 			return *this = matrix_operators<basic_matrix_t<type_t>, size_x - 1, size_y - 1, size_y - 1>::multiplication(matrix_, *this, matrix);
 		}
 
-		static constexpr uint_t size() 
+		static constexpr uintptr_t size() 
 		{
 			return size_x * size_y;
 		}
@@ -298,8 +298,8 @@ namespace fan {
 		template <typename T, std::size_t x, std::size_t y>
 		std::ostream& operator<<(std::ostream& os, const basic_matrix<T, x, y>& matrix)
 	{
-		for (uint_t i = 0; i < x; i++) {
-			for (uint_t j = 0; j < y; j++) {
+		for (uintptr_t i = 0; i < x; i++) {
+			for (uintptr_t j = 0; j < y; j++) {
 				os << matrix[j][i] << ' ';
 			}
 			os << '\n';
@@ -329,7 +329,7 @@ namespace fan {
 			return _matrix2x2((*this)[0][0] + v[0], (*this)[0][1] + v[1], (*this)[1][0] + v[0], (*this)[1][1] + v[1]);
 		}
 
-		constexpr decltype(auto) operator[](const uint_t i) const {
+		constexpr decltype(auto) operator[](const uintptr_t i) const {
 			switch (i) {
 				case 0:
 				{
@@ -347,7 +347,7 @@ namespace fan {
 			}
 		}
 
-		constexpr decltype(auto) operator[](const uint_t i) {
+		constexpr decltype(auto) operator[](const uintptr_t i) {
 			switch (i) {
 				case 0:
 				{
@@ -421,12 +421,12 @@ namespace fan {
 	};
 
 	using matrix4x4 = _matrix4x4<cf_t>;
-	using matrix4x4ui = _matrix4x4<uint_t>;
+	using matrix4x4ui = _matrix4x4<uintptr_t>;
 	using mat4x4 = matrix4x4;
 	using mat4x4ui = matrix4x4ui;
 	using mat4 = mat4x4;
 	using mat2x2 = _matrix2x2<cf_t>;
-	using mat2x2ui = _matrix2x2<uint_t>;
+	using mat2x2ui = _matrix2x2<uintptr_t>;
 	using mat2 = mat2x2;
 	using mat2ui = mat2x2ui;
 
