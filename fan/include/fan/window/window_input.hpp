@@ -25,7 +25,7 @@ namespace fan {
 	};
 
 	enum input {
-		first = 0x2C,
+		first = 0x2A,
 		key_space,
 		key_0,
 		key_1,
@@ -39,7 +39,9 @@ namespace fan {
 		key_9,
 		key_exclamation_mark,
 		key_apostrophe,
+		key_period,
 		key_comma,
+		key_plus,
 		key_minus,
 		key_colon,
 		key_slash,

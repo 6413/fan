@@ -113,6 +113,59 @@ namespace fan {
                 SendInput(1, &input, sizeof(INPUT));
             }
 
+            static void send_string(const std::string& str, uint32_t delay_between) {
+                for (int i = 0; i < str.size(); i++) {
+
+                    uint32_t offset = 0;
+
+                    if (str[i] >= 97) {
+                        offset -= 32;
+                    }
+
+                    if (str[i] >= 65 && str[i] <= 90) {
+                        fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::key_state::press);
+                    }
+
+                    auto send_press = [](uint32_t key, uint32_t delay) {
+                        fan::sys::input::send_keyboard_event(key, fan::key_state::press);
+                        Sleep(delay);
+                        fan::sys::input::send_keyboard_event(key, fan::key_state::release);
+                    };
+
+                    switch (str[i] + offset) {
+                        case '.': {
+                            send_press(fan::key_period, delay_between);
+                            break;
+                        }
+                        case ',': {
+                            send_press(fan::key_comma, delay_between);
+                            break;
+                        }
+                        case ' ': {
+                            send_press(fan::key_space, delay_between);
+                            break;
+                        }
+                        case '\n': {
+                            send_press(fan::key_enter, delay_between);
+                            break;
+                        }
+                        case '?': {
+                            fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::key_state::press);
+                            send_press(fan::key_plus, delay_between);
+                            fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::key_state::release);
+                            break;
+                        }
+                        default: {
+                            send_press(str[i] + offset, delay_between);
+                        }
+                    }
+
+                    if (str[i] >= 65 && str[i] <= 90) {
+                        fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::key_state::release);
+                    }
+                }
+            }
+
             // creates another thread, non blocking
             static void listen(std::function<void(uint16_t key, fan::key_state key_state, bool action, std::any data)> input_callback_) {
 

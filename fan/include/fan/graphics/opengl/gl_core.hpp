@@ -208,7 +208,7 @@ namespace fan {
 
 		template <opengl_buffer_type T = T_buffer_type, typename = std::enable_if_t<T == opengl_buffer_type::buffer_object && T != opengl_buffer_type::vertex_array_object>>
 		void edit_data(uintptr_t begin, uintptr_t end, void* data, uintptr_t byte_size_single) {
-			fan::edit_glbuffer(m_buffer_object, data, begin * byte_size_single, byte_size_single * (end - begin + 1), gl_buffer, T_layout_location);
+			fan::edit_glbuffer(m_buffer_object, data, begin * byte_size_single, byte_size_single * (end - begin), gl_buffer, T_layout_location);
 		}
 
 		template <bool attribute = gl_3_0_attribute, typename = std::enable_if_t<attribute>>

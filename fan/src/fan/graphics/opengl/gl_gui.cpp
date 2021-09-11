@@ -271,9 +271,9 @@ void fan_2d::graphics::gui::text_renderer::edit_data(uint32_t begin, uint32_t en
 		size += m_text[i].size();
 	}
 
-	sprite::edit_data(begin_, (size - begin_) - 1);
-	font_size_t::edit_data(begin_, (size - begin_) - 1);
-	rotation_point_t::edit_data(begin_, (size - begin_) - 1);
+	sprite::edit_data(begin_, size - begin_);
+	font_size_t::edit_data(begin_, size - begin_);
+	rotation_point_t::edit_data(begin_, size - begin_);
 }
 
 #define get_letter_infos 																\
@@ -332,6 +332,7 @@ void fan_2d::graphics::gui::text_renderer::push_back_letter(wchar_t letter, f32_
 	properties.texture_handler = &image->texture;
 	properties.position = position + (letter_offset + fan::vec2(advance, 0) + letter_size / 2) * converted_font_size;
 	properties.size = letter_size * converted_font_size;
+	
 	properties.texture_coordinates = {										
 		fan::vec2(texture_position.x, texture_size.y),				
 		fan::vec2(texture_size.x, texture_size.y),					

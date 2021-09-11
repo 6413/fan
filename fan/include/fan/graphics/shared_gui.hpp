@@ -769,7 +769,13 @@ namespace fan_2d {
 
 								f32_t length = box_size[!horizontal];
 
-								set_current_value(m_moving_id, min + (((circle_position[!horizontal] - box_position[!horizontal]) / length) * (max - min)));
+								T new_value = min + (((circle_position[!horizontal] - box_position[!horizontal]) / length) * (max - min));
+
+								if (new_value == get_current_value(m_moving_id)) {
+									return;
+								}
+
+								set_current_value(m_moving_id, new_value);
 
 								for (int i = 0; i < 2; i++) {
 									if (m_on_click[i]) {
@@ -780,13 +786,9 @@ namespace fan_2d {
 									}
 								}
 
-								this->write_data();
-
-								return;
+								this->edit_data(m_moving_id);
 							}
 						}
-
-						this->write_data();
 					});
 
 					camera->m_window->add_key_callback(fan::mouse_left, fan::key_state::release, [&] {
@@ -794,7 +796,7 @@ namespace fan_2d {
 						m_click_begin = fan::uninitialized;
 						m_moving_id = fan::uninitialized;
 
-						});
+					});
 
 					camera->m_window->add_mouse_move_callback([&](const fan::vec2& position) {
 
@@ -827,7 +829,13 @@ namespace fan_2d {
 							fan::vec2(box_position.y, box_position.y + box_size.y)
 						);
 
-						set_current_value(m_moving_id, min + (((circle_position[!horizontal] - box_position[!horizontal]) / length) * (max - min)));
+						T new_value = min + (((circle_position[!horizontal] - box_position[!horizontal]) / length) * (max - min));
+
+						if (new_value == get_current_value(m_moving_id)) {
+							return;
+						}
+
+						set_current_value(m_moving_id, new_value);
 
 						fan_2d::graphics::circle::set_position(m_moving_id, circle_position);
 
@@ -837,8 +845,8 @@ namespace fan_2d {
 							}
 						}
 
-						this->write_data();
-						});
+						this->edit_data(m_moving_id);
+					});
 				}
 
 				void push_back(const circle_slider<T>::property_t& property)
@@ -851,6 +859,7 @@ namespace fan_2d {
 					properties.size = property.box_size;
 					properties.radius = property.box_radius;
 					properties.color = property.box_color;
+					properties.angle = 0;
 
 					fan_2d::graphics::rounded_rectangle::push_back(properties);
 
@@ -951,7 +960,11 @@ namespace fan_2d {
 
 				circle_text_slider(fan::camera* camera) : circle_slider<T>(camera), fan_2d::graphics::gui::text_renderer(camera) {
 					circle_text_slider::circle_slider::on_drag(false, [&](uint32_t i) {
-						fan_2d::graphics::gui::text_renderer::set_text(i * 3 + 2, fan::to_wstring(this->get_current_value(i)));
+						auto new_string = fan::to_wstring(this->get_current_value(i));
+
+						bool resize = text_renderer::get_text(i * 3 + 2).size() != new_string.size();
+
+						fan_2d::graphics::gui::text_renderer::set_text(i * 3 + 2, new_string);
 
 						const fan::vec2 middle_text_size = fan_2d::graphics::gui::text_renderer::get_text_size(fan::to_wstring(this->get_current_value(i)), circle_text_slider::circle_slider::m_properties[i].font_size);
 
@@ -971,17 +984,34 @@ namespace fan_2d {
 
 						fan_2d::graphics::gui::text_renderer::set_position(i * 3 + 2, middle);
 
-						this->edit_data(i);
+						if (resize) {
+							circle_text_slider::text_renderer::write_data();
+							circle_text_slider::circle_slider::edit_data(i);
+						}
+						else {
+							this->edit_data(i);
+						}
 					});
 
 					circle_text_slider::circle_slider::on_click(false, [&] (uint32_t i) {
-						fan_2d::graphics::gui::text_renderer::set_text(i * 3 + 2, fan::to_wstring(this->get_current_value(i)));
 
-						this->edit_data(i);
+						auto new_string = fan::to_wstring(this->get_current_value(i));
+
+						bool resize = text_renderer::get_text(i * 3 + 2).size() != new_string.size();
+
+						fan_2d::graphics::gui::text_renderer::set_text(i * 3 + 2, new_string);
+
+						if (resize) {
+							circle_text_slider::text_renderer::write_data();
+							circle_text_slider::circle_slider::edit_data(i);
+						}
+						else {
+							this->edit_data(i);
+						}
 					});
 				}
 
-				void push_back(const circle_slider<T>::property_t& property) {
+				void push_back(const typename circle_slider<T>::property_t& property) {
 					circle_text_slider::circle_slider::push_back(property);
 
 					const fan::vec2 left_text_size = fan_2d::graphics::gui::text_renderer::get_text_size(fan::to_wstring(property.min), property.font_size);
@@ -1053,11 +1083,11 @@ namespace fan_2d {
 				}
 				void edit_data(uint32_t i) {
 					circle_text_slider::circle_slider::edit_data(i);
-					circle_text_slider::text_renderer::edit_data(i);
+					circle_text_slider::text_renderer::edit_data(i * 3, i * 3 + 2);
 				}
 				void edit_data(uint32_t begin, uint32_t end) {
 					circle_text_slider::circle_slider::edit_data(begin, end);
-					circle_text_slider::text_renderer::edit_data(begin, end);
+					circle_text_slider::text_renderer::edit_data(begin * 3, end * 3 + 3); // ?
 				}
 
 			private:
@@ -1065,10 +1095,16 @@ namespace fan_2d {
 			};
 
 			class checkbox : 
-				protected fan_2d::graphics::line,
-				protected fan_2d::graphics::rectangle, 
-				protected fan_2d::graphics::gui::text_renderer,
+				protected fan::class_duplicator<fan_2d::graphics::line, 99>,
+				protected fan::class_duplicator<fan_2d::graphics::rectangle, 99>, 
+				protected fan::class_duplicator<fan_2d::graphics::gui::text_renderer, 99>,
 				public base::mouse {
+
+			protected:
+
+				using line_t = fan::class_duplicator<fan_2d::graphics::line, 99>;
+				using rectangle_t = fan::class_duplicator<fan_2d::graphics::rectangle, 99>;
+				using text_renderer_t = fan::class_duplicator<fan_2d::graphics::gui::text_renderer, 99>;
 
 			public:
 
@@ -1095,14 +1131,15 @@ namespace fan_2d {
 				void on_check(std::function<void(uint32_t i)> function);
 				void on_uncheck(std::function<void(uint32_t i)> function);
 
-				fan::camera* get_camera();
+				uint32_t size() const;
+				bool inside(uint32_t i, const fan::vec2& position = fan::math::inf) const;
 
-				using fan_2d::graphics::rectangle::size;
-				using fan_2d::graphics::rectangle::inside;
+				fan::camera* get_camera();
 
 				void write_data();
 				void edit_data(uint32_t i);
 				void edit_data(uint32_t begin, uint32_t end);
+
 
 			protected:
 

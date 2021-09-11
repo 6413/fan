@@ -253,29 +253,29 @@ void fan_2d::graphics::gui::sprite_text_button::draw(uint32_t begin, uint32_t en
 }
 
 fan_2d::graphics::gui::checkbox::checkbox(fan::camera* camera, fan_2d::graphics::gui::theme theme)
-	: fan_2d::graphics::rectangle(camera), 
-	 fan_2d::graphics::line(camera), 
-	 fan_2d::graphics::gui::text_renderer(camera),
+	: checkbox::rectangle_t(camera), 
+	checkbox::line_t(camera), 
+	checkbox::text_renderer_t(camera),
 	 fan_2d::graphics::gui::base::mouse(*this),
 	 m_theme(theme) {
 
 	fan_2d::graphics::gui::base::mouse::on_hover<0>([&] (uint32_t i) {
-		fan_2d::graphics::rectangle::set_color(i, m_theme.checkbox.hover_color);
+		checkbox::rectangle_t::set_color(i, m_theme.checkbox.hover_color);
 		this->edit_data(i);
 	});
 
 	fan_2d::graphics::gui::base::mouse::on_exit<0>([&] (uint32_t i) {
-		fan_2d::graphics::rectangle::set_color(i, m_theme.checkbox.color);
+		checkbox::rectangle_t::set_color(i, m_theme.checkbox.color);
 		this->edit_data(i);
 	});
 
 	fan_2d::graphics::gui::base::mouse::on_click<0>([&](uint32_t i) {
-		fan_2d::graphics::rectangle::set_color(i, m_theme.checkbox.click_color);
+		checkbox::rectangle_t::set_color(i, m_theme.checkbox.click_color);
 		this->edit_data(i);
 	});
 
 	fan_2d::graphics::gui::base::mouse::on_release<0>([&](uint32_t i) {
-		fan_2d::graphics::rectangle::set_color(i, m_theme.checkbox.hover_color);
+		checkbox::rectangle_t::set_color(i, m_theme.checkbox.hover_color);
 
 		m_visible[i] = !m_visible[i];
 
@@ -293,7 +293,7 @@ fan_2d::graphics::gui::checkbox::checkbox(fan::camera* camera, fan_2d::graphics:
 	});
 
 	fan_2d::graphics::gui::base::mouse::on_outside_release<0>([&](uint32_t i) {
-		fan_2d::graphics::rectangle::set_color(i, m_theme.checkbox.color);
+		checkbox::rectangle_t::set_color(i, m_theme.checkbox.color);
 		this->edit_data(i);
 	});
 }
@@ -312,10 +312,10 @@ void fan_2d::graphics::gui::checkbox::push_back(const checkbox::properties_t& pr
 	properties.color = m_theme.checkbox.color;
 	properties.rotation_point = properties.position;
 
-	fan_2d::graphics::rectangle::push_back(properties);
+	checkbox::rectangle_t::push_back(properties); 
 
-	fan_2d::graphics::line::push_back(property.position, property.position + text_middle_height * property.box_size_multiplier, m_theme.checkbox.check_color, property.line_thickness); // might be varying position
-	fan_2d::graphics::line::push_back(property.position + fan::vec2(text_middle_height * property.box_size_multiplier, 0), property.position + fan::vec2(0, text_middle_height * property.box_size_multiplier), m_theme.checkbox.check_color, property.line_thickness); // might be varying position
+	checkbox::line_t::push_back(property.position, property.position + text_middle_height * property.box_size_multiplier, m_theme.checkbox.check_color, property.line_thickness); // might be varying position
+	checkbox::line_t::push_back(property.position + fan::vec2(text_middle_height * property.box_size_multiplier, 0), property.position + fan::vec2(0, text_middle_height * property.box_size_multiplier), m_theme.checkbox.check_color, property.line_thickness); // might be varying position
 
 	auto diff = (convert_font_size(property.font_size * property.box_size_multiplier) - text_middle_height) / 2 + properties.size.y / 2 - text_middle_height / 2;
 
@@ -328,15 +328,15 @@ void fan_2d::graphics::gui::checkbox::draw()
 	//fan_2d::graphics::draw([&] {
 		
 		for (int i = 0; i < fan_2d::graphics::line::size() / 2; i++) {
-			fan_2d::graphics::rectangle::draw();
+			checkbox::rectangle_t::draw();
 
 			if (m_visible[i]) {
-				fan_2d::graphics::line::draw();
+				checkbox::line_t::draw();
 				//fan_2d::graphics::line::draw(i * 2 + 1, i * 2 + 2);
 			}
 		}
 
-		fan_2d::graphics::gui::text_renderer::draw();
+		checkbox::text_renderer_t::draw();
 	//});
 }
 
@@ -350,23 +350,34 @@ void fan_2d::graphics::gui::checkbox::on_uncheck(std::function<void(uint32_t i)>
 	m_on_uncheck = function;
 }
 
+uint32_t fan_2d::graphics::gui::checkbox::size() const
+{
+	return rectangle_t::size();
+}
+
+bool fan_2d::graphics::gui::checkbox::inside(uint32_t i, const fan::vec2& position) const
+{
+	return rectangle_t::inside(i, position);
+}
+
 fan::camera* fan_2d::graphics::gui::checkbox::get_camera()
 {
-	return fan_2d::graphics::rectangle::m_camera;
+	return checkbox::rectangle_t::m_camera;
 }
 
 void fan_2d::graphics::gui::checkbox::write_data() {
-	fan_2d::graphics::line::write_data();
-	fan_2d::graphics::rectangle::write_data();
-	fan_2d::graphics::gui::text_renderer::write_data();
+	checkbox::line_t::write_data();
+	checkbox::rectangle_t::write_data();
+	checkbox::text_renderer_t::write_data();
 }
+
 void fan_2d::graphics::gui::checkbox::edit_data(uint32_t i) {
-	fan_2d::graphics::rectangle::edit_data(i);
-	fan_2d::graphics::line::edit_data(i);
-	fan_2d::graphics::gui::text_renderer::edit_data(i);
+	checkbox::line_t::edit_data(i);
+	checkbox::rectangle_t::edit_data(i);
+	checkbox::text_renderer_t::edit_data(i);
 }
 void fan_2d::graphics::gui::checkbox::edit_data(uint32_t begin, uint32_t end) {
-	fan_2d::graphics::rectangle::edit_data(begin, end);
-	fan_2d::graphics::line::edit_data(begin, end);
-	fan_2d::graphics::gui::text_renderer::edit_data(begin, end);
+	checkbox::line_t::edit_data(begin, end);
+	checkbox::rectangle_t::edit_data(begin, end);
+	checkbox::text_renderer_t::edit_data(begin, end);
 }

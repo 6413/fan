@@ -62,14 +62,14 @@ namespace fan {
 
 					// todo fix
 					fan::print("i disturb you as long as you dont fix me");
-					std::array<VkDescriptorPoolSize, 10> poolSizes{};
+					std::array<VkDescriptorPoolSize, 70> poolSizes{};
 					poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 					poolSizes[0].descriptorCount = swap_chain_images_size;
 
 					poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 					poolSizes[1].descriptorCount = swap_chain_images_size;
 
-					for (int i = 2; i < 10; i++) {
+					for (int i = 2; i < poolSizes.size(); i++) {
 						poolSizes[i] = poolSizes[i & 1];
 					}
 
