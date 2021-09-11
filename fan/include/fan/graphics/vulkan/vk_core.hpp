@@ -724,7 +724,7 @@ namespace fan {
 
 			void edit_data(uint32_t begin, uint32_t end) {
 
-				VkDeviceSize buffer_size = sizeof(object_type) * (end - begin + 1);
+				VkDeviceSize buffer_size = sizeof(object_type) * (end - begin); // + 1 ?
 
 				if (!buffer_size) {
 					return;

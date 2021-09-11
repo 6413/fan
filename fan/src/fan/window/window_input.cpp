@@ -118,6 +118,10 @@ uint16_t fan::window_input::convert_keys_to_fan(uint16_t key) {
 		case 0xA2: { return fan::input::key_left_control; }
 		case 0xA3: { return fan::input::key_right_control; }
 
+		case 0xBB: { return fan::input::key_plus; }
+		case 0xBC: { return fan::input::key_comma; }
+		case 0xBE: { return fan::input::key_period; }
+
 		#elif defined(fan_platform_unix)
 
 		case 0x01: { return fan::input::mouse_left; }
@@ -363,6 +367,10 @@ uint16_t fan::window_input::convert_fan_to_keys(uint16_t key) {
 	case fan::input::key_right_shift: { return 0xA1; }
 	case fan::input::key_left_control: { return 0xA2; }
 	case fan::input::key_right_control: { return 0xA3; }
+
+	case fan::input::key_plus: { return 0xBB; }
+	case fan::input::key_comma: { return 0xBC; }
+	case fan::input::key_period: { return 0xBE; }
 
 #elif defined(fan_platform_unix) // todo
 

@@ -375,40 +375,6 @@ namespace fan_2d {
 
 		#include <fan/graphics/shared_inline_graphics.hpp>
 
-		class circle : public fan_2d::graphics::vertice_vector {
-		public:
-
-			circle(fan::camera* camera);
-
-			void push_back(const fan::vec2& position, f32_t radius, const fan::color& color);
-
-			fan::vec2 get_position(uintptr_t i) const;
-			void set_position(uintptr_t i, const fan::vec2& position);
-
-			f32_t get_radius(uintptr_t i) const;
-			void set_radius(uintptr_t i, f32_t radius);
-
-			void draw();
-
-			bool inside(uintptr_t i) const;
-
-			fan::color get_color(uintptr_t i) const;
-			void set_color(uintptr_t i, const fan::color& color);
-
-			uintptr_t size() const;
-
-			void erase(uintptr_t i);
-			void erase(uintptr_t begin, uintptr_t end);
-
-		protected:
-
-			static constexpr int m_segments = 50;
-
-			std::vector<fan::vec2> m_position;
-			std::vector<f32_t> m_radius;
-
-		};
-
 		class sprite :
 			protected fan_2d::graphics::rectangle,
 			protected fan::buffer_object<fan::vec2, 2, true, fan::opengl_buffer_type::shader_storage_buffer_object, false>,
@@ -436,7 +402,7 @@ namespace fan_2d {
 				fan::vec2 position;
 				fan::vec2 size;
 
-				f32_t angle;
+				f32_t angle = 0;
 				fan::vec2 rotation_point = fan::math::inf;
 				fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
 

@@ -79,7 +79,14 @@ namespace fan {
 			return value;
 		}
 
+		friend std::ostream& operator<<(std::ostream& os, const utf8_string& str);
 	};
+
+	inline std::ostream& operator<<(std::ostream& os, const utf8_string& str)
+	{
+		os << *(std::string*)&str;
+		return os;
+	}
 
 	struct utf16_string :
 		public std::wstring {
@@ -99,7 +106,15 @@ namespace fan {
 		utf8_string to_utf8() const {
 			return utf8_string(fan::utf16_to_utf8(this->data()));
 		}
+
+		friend std::ostream& operator<<(std::ostream& os, const utf16_string& str);
 	};
+
+	inline std::ostream& operator<<(std::ostream& os, const utf16_string& str)
+	{
+		os << (std::basic_string<utf16_string::value_type>)str;
+		return os;
+	}
 
 	// utf8 struct definitions
 

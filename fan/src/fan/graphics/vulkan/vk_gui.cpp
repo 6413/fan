@@ -158,7 +158,14 @@ fan_2d::graphics::gui::text_renderer::~text_renderer() {
 void fan_2d::graphics::gui::text_renderer::draw()
 {
 	uint32_t begin = 0;
-	uint32_t end = this->size();
+
+	uint32_t draw_size = 0;
+
+	for (int i = 0; i < this->size(); i++) {
+		draw_size += m_text[i].size();
+	}
+
+	uint32_t end = draw_size;
 
 	bool reload = false;
 
@@ -440,7 +447,7 @@ void fan_2d::graphics::gui::text_renderer::edit_data(uint32_t begin, uint32_t en
 		size += m_text[i].size();
 	}
 
-	instance_buffer->edit_data(begin_, (size - begin_) - 1);
+	instance_buffer->edit_data(begin_, size - begin_);
 }
 
 #define get_letter_infos 																\
@@ -484,18 +491,16 @@ void fan_2d::graphics::gui::text_renderer::insert_letter(uint32_t i, uint32_t j,
 
 	auto index = i == 0 ? 0 : m_indices[i - 1 >= m_indices.size() ? m_indices.size() - 1 : i - 1];
 
-	// ?
-	instance_buffer->m_instance.insert(instance_buffer->m_instance.begin() + index + j, 
-		instance_t{
-			position + (letter_offset + fan::vec2(advance, 0) + letter_size / 2) * converted_font_size,
-			letter_size * converted_font_size,
-			0,
-			color,
-			font_size,
-			0,
-			texture_coordiantes
-		}
-	);
+	instance_t instance;
+	instance.position = position + (letter_offset + fan::vec2(advance, 0) + letter_size / 2) * converted_font_size;
+	instance.size = letter_size * converted_font_size;
+	instance.angle = 0;
+	instance.color = color;
+	instance.font_size = font_size;
+	instance.text_rotation_point = instance.position;
+	instance.texture_coordinate = texture_coordiantes;
+
+	instance_buffer->m_instance.insert(instance_buffer->m_instance.begin() + index + j, instance);
 }
 
 void fan_2d::graphics::gui::text_renderer::push_back_letter(wchar_t letter, f32_t font_size, fan::vec2& position, const fan::color& color, f32_t& advance) {
