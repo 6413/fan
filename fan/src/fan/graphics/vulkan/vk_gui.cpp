@@ -98,10 +98,10 @@ fan_2d::graphics::gui::text_renderer::text_renderer(fan::camera* camera)
 	if (!image) {
 		fan::vulkan* vk_instance = camera->m_window->m_vulkan;
 
-		image = std::make_unique<fan_2d::graphics::image_info>(fan_2d::graphics::load_image(camera->m_window, "fonts/arial.png"));
+		image = fan_2d::graphics::load_image(camera->m_window, "fonts/arial.png");
 
 		descriptor_offsets.emplace_back(vk_instance->texture_handler->push_back(
-			image.get()->texture.get()->texture_id,
+			image->texture,
 			uniform_handler,
 			vk_instance->swapChainImages.size(), 1)
 		);

@@ -53,64 +53,65 @@ namespace fan_2d {
 			return fan::vec2(x, y);
 		}
 
-		struct texture_id_handler {
+		struct load_properties_t {
+			uint32_t visual_output;
+			uintptr_t internal_format;
+			uintptr_t format;
+			uintptr_t type;
+			uintptr_t filter;
+		};
 
-			texture_id_handler(
-				fan::window* window
-			) : window(window) {
+		struct image_T {
 
-			}
+			image_T() {}
+			image_T(fan::window* window) : window(window) {}
 
-			texture_id_handler(texture_id_handler&& handler) = delete;
+			image_T(image_T&& image_T_) = delete;
 
-			texture_id_handler& operator=(texture_id_handler&& handler) = delete;
+			image_T& operator=(image_T&& image_T_)  = delete;
 
-			texture_id_handler(const texture_id_handler& handler) = delete;
+			image_T(const image_T& image_T_) = delete;
 
-			texture_id_handler& operator=(const texture_id_handler& handler) = delete;
+			image_T& operator=(const image_T& image_T_) = delete;
 
 			void free() {
-				if (texture_id) {
+				if (texture) {
 #if fan_renderer == fan_renderer_opengl
-					if (texture_id) {
-						glDeleteTextures(1, &texture_id);
-						texture_id = 0;
-					}
+						glDeleteTextures(1, &texture);
+						texture = 0;
 #elif fan_renderer == fan_renderer_vulkan
-					if (texture_id && window->m_vulkan->device) {
+					if (texture && window->m_vulkan->device) {
 						
-						vkDestroyImage(window->m_vulkan->device, texture_id, nullptr);
-						texture_id = nullptr;
+						vkDestroyImage(window->m_vulkan->device, texture, nullptr);
+						texture = nullptr;
 					}
 #endif
 				}
 			}
 
-			~texture_id_handler() {
+			~image_T() {
 				this->free();
 			}
 
 #if fan_renderer == fan_renderer_opengl
-			uint32_t texture_id = 0;
+			uint32_t texture = 0;
 #elif fan_renderer == fan_renderer_vulkan
-			VkImage texture_id = nullptr;
+			VkImage texture = nullptr;
 #endif
 
-		protected:
+			load_properties_t properties;
+
+			fan::vec2i size = 0;
 
 			fan::window* window = nullptr;
 
 		};
 
+		using image_t = image_T*;
 
-		struct image_info {
-
-			image_info(fan::window* window) : texture(std::make_unique<texture_id_handler>(window)) {}
-
-			fan::vec2i size = 0;
-
-			std::unique_ptr<texture_id_handler> texture;
-
-		};
+		static void copy_texture(image_t src, image_t dst) {
+			// opengl alloc pixels, glGetTexImage(pixels), glTexImage2D(pixels)
+			assert(0);
+		}
 	}
 }

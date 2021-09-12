@@ -196,12 +196,23 @@ namespace fan {
                 mouse_hook = SetWindowsHookEx(WH_MOUSE_LL, (HOOKPROC)mouse_callback, hInstance, NULL);
                 keyboard_hook = SetWindowsHookEx(WH_KEYBOARD_LL, (HOOKPROC)keyboard_callback, hInstance, NULL);
 
+
                 MSG message;
 
-                while (GetMessage(&message, NULL, 0, 0))
+                int x = 0;
+
+                while (x = GetMessage(&message, NULL, 0, 0))
                 {
-                    TranslateMessage(&message);
-                    DispatchMessage(&message);
+                    if (x == -1)
+                    {
+                        fan::print("error");
+                        // handle the error and possibly exit
+                    }
+                    else
+                    {
+                        TranslateMessage(&message); 
+                        DispatchMessage(&message); 
+                    }
                 }
 
                 UnhookWindowsHookEx(mouse_hook);

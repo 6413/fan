@@ -19,8 +19,8 @@ fan_2d::graphics::gui::circle::circle(fan::camera* camera)
 
 fan_2d::graphics::gui::text_renderer::text_renderer(fan::camera* camera) : sprite(camera, fan::shader(fan_2d::graphics::shader_paths::text_renderer_vs, fan_2d::graphics::shader_paths::text_renderer_fs)) {
 
-	if (!image) {
-		image = std::make_unique<fan_2d::graphics::image_info>(fan_2d::graphics::load_image(camera->m_window, "fonts/arial.png"));
+	if (!image->texture) {
+		image = fan_2d::graphics::load_image(camera->m_window, "fonts/arial.png");
 	}
 
 	font_info = fan::font::parse_font("fonts/arial.fnt");
@@ -282,7 +282,7 @@ const fan::vec2 letter_size = font_info.font[letter].size;								\
 const fan::vec2 letter_offset = font_info.font[letter].offset;							\
 																						\
 fan::vec2 texture_position = fan::vec2(letter_position + 1) / image->size;				\
-fan::vec2 texture_size = fan::vec2(letter_position + letter_size - 1) / image->size;		\
+fan::vec2 texture_size = fan::vec2(letter_position + letter_size - 1) / image->size;	\
 																						\
 const auto converted_font_size = convert_font_size(font_size);							\
 																						\
@@ -304,7 +304,7 @@ void fan_2d::graphics::gui::text_renderer::insert_letter(uint32_t i, uint32_t j,
 
 	sprite::properties_t properties;
 
-	properties.texture_handler = &image->texture;
+	properties.image = image;
 	properties.position = position + (letter_offset + fan::vec2(advance, 0)) * converted_font_size + (letter_size * converted_font_size) / 2;
 	properties.size = letter_size * converted_font_size;
 	properties.texture_coordinates = {										
@@ -329,7 +329,7 @@ void fan_2d::graphics::gui::text_renderer::push_back_letter(wchar_t letter, f32_
 	get_letter_infos;
 
 	sprite::properties_t properties;
-	properties.texture_handler = &image->texture;
+	properties.image = image;
 	properties.position = position + (letter_offset + fan::vec2(advance, 0) + letter_size / 2) * converted_font_size;
 	properties.size = letter_size * converted_font_size;
 	
