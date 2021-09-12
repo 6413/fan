@@ -897,7 +897,7 @@ namespace fan_2d {
 			fan::gpu_memory::end_command_buffer(commandBuffer, vulkan->device, vulkan->commandPool, vulkan->graphicsQueue);
 		}
 
-		static fan_2d::graphics::image_info load_image(fan::window* window, const pixel_data_t& pixel_data) {
+		static fan_2d::graphics::image_t load_image(fan::window* window, const pixel_data_t& pixel_data) {
 
 			fan::image_loader::image_data id;
 
@@ -928,12 +928,12 @@ namespace fan_2d {
 
 			window->m_vulkan->image_info.format = VK_FORMAT_R8G8B8A8_UNORM;
 
-			fan_2d::graphics::image_info info(window);
+			fan_2d::graphics::image_t image = new std::remove_pointer<fan_2d::graphics::image_t>::type(window);
 
-			info.size = image_data.size;
+			image->size = image_data.size;
 
-			if (vkCreateImage(window->m_vulkan->device, &window->m_vulkan->image_info, nullptr, &info.texture->texture_id) != VK_SUCCESS) {
-				throw std::runtime_error("failed to create image.");
+			if (vkCreateImage(window->m_vulkan->device, &window->m_vulkan->image_info, nullptr, &image->texture) != VK_SUCCESS) {
+				throw std::runtime_error("failed to create image->");
 			}
 
 			VkDeviceSize image_size = image_data.linesize[0] * image_data.size.y;
@@ -949,17 +949,17 @@ namespace fan_2d {
 
 			delete[] image_data.data[0];
 
-			window->m_vulkan->texture_handler->allocate(info.texture->texture_id);
+			window->m_vulkan->texture_handler->allocate(image->texture);
 
-			window->m_vulkan->texture_handler->transition_image_layout(info.texture->texture_id, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, window->m_vulkan->image_info.mipLevels);
-			window->m_vulkan->texture_handler->copy_buffer_to_image(window->m_vulkan->staging_buffer->m_buffer_object, info.texture->texture_id, info.size.x, info.size.y);
+			window->m_vulkan->texture_handler->transition_image_layout(image->texture, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, window->m_vulkan->image_info.mipLevels);
+			window->m_vulkan->texture_handler->copy_buffer_to_image(window->m_vulkan->staging_buffer->m_buffer_object, image->texture, image->size.x, image->size.y);
 
-			generate_mipmaps(window->m_vulkan, info.texture->texture_id, VK_FORMAT_R8G8B8A8_UNORM, image_data.size, window->m_vulkan->image_info.mipLevels);
+			generate_mipmaps(window->m_vulkan, image->texture, VK_FORMAT_R8G8B8A8_UNORM, image_data.size, window->m_vulkan->image_info.mipLevels);
 
-			return info;
+			return image;
 		}
 
-		static fan_2d::graphics::image_info load_image(fan::window* window, const std::string& path) {
+		static fan_2d::graphics::image_t load_image(fan::window* window, const std::string& path) {
 			auto image_data = fan::image_loader::load_image(path);
 
 			window->m_vulkan->image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -979,12 +979,12 @@ namespace fan_2d {
 
 			window->m_vulkan->image_info.format = VK_FORMAT_R8G8B8A8_UNORM;
 
-			fan_2d::graphics::image_info info(window);
+			fan_2d::graphics::image_t image = new std::remove_pointer<fan_2d::graphics::image_t>::type(window);
 
-			info.size = image_data.size;
+			image->size = image_data.size;
 
-			if (vkCreateImage(window->m_vulkan->device, &window->m_vulkan->image_info, nullptr, &info.texture->texture_id) != VK_SUCCESS) {
-				throw std::runtime_error("failed to create image.");
+			if (vkCreateImage(window->m_vulkan->device, &window->m_vulkan->image_info, nullptr, &image->texture) != VK_SUCCESS) {
+				throw std::runtime_error("failed to create image->");
 			}
 
 			VkDeviceSize image_size = image_data.linesize[0] * image_data.size.y;
@@ -1000,14 +1000,14 @@ namespace fan_2d {
 
 			delete[] image_data.data[0];
 
-			window->m_vulkan->texture_handler->allocate(info.texture->texture_id);
+			window->m_vulkan->texture_handler->allocate(image->texture);
 
-			window->m_vulkan->texture_handler->transition_image_layout(info.texture->texture_id, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, window->m_vulkan->image_info.mipLevels);
-			window->m_vulkan->texture_handler->copy_buffer_to_image(window->m_vulkan->staging_buffer->m_buffer_object, info.texture->texture_id, info.size.x, info.size.y);
+			window->m_vulkan->texture_handler->transition_image_layout(image->texture, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, window->m_vulkan->image_info.mipLevels);
+			window->m_vulkan->texture_handler->copy_buffer_to_image(window->m_vulkan->staging_buffer->m_buffer_object, image->texture, image->size.x, image->size.y);
 
-			generate_mipmaps(window->m_vulkan, info.texture->texture_id, VK_FORMAT_R8G8B8A8_UNORM, image_data.size, window->m_vulkan->image_info.mipLevels);
+			generate_mipmaps(window->m_vulkan, image->texture, VK_FORMAT_R8G8B8A8_UNORM, image_data.size, window->m_vulkan->image_info.mipLevels);
 
-			return info;
+			return image;
 		}
 
 		class sprite {
@@ -1015,7 +1015,7 @@ namespace fan_2d {
 
 			struct properties_t {
 
-				std::unique_ptr<fan_2d::graphics::texture_id_handler>* texture_handler; 
+				fan_2d::graphics::image_t image; 
 				fan::vec2 position;
 				fan::vec2 size;
 
@@ -1179,10 +1179,10 @@ namespace fan_2d {
 					}
 				);
 
-				if (m_textures.empty() || (*properties.texture_handler)->texture_id != m_textures[m_textures.size() - 1]) {
+				if (m_textures.empty() || properties.image->texture != m_textures[m_textures.size() - 1]) {
 
 					descriptor_offsets.emplace_back(m_camera->m_window->m_vulkan->texture_handler->push_back(
-						(*properties.texture_handler)->texture_id, uniform_handler, m_camera->m_window->m_vulkan->swapChainImages.size(),
+						properties.image->texture, uniform_handler, m_camera->m_window->m_vulkan->swapChainImages.size(),
 						std::floor(std::log2(std::max(properties.size.x, properties.size.y))) + 1
 					));
 				}
@@ -1190,11 +1190,11 @@ namespace fan_2d {
 				if (m_switch_texture.empty()) {
 					m_switch_texture.emplace_back(0);
 				}
-				else if (m_textures.size() && m_textures[m_textures.size() - 1] != (*properties.texture_handler)->texture_id) {
+				else if (m_textures.size() && m_textures[m_textures.size() - 1] != properties.image->texture) {
 					m_switch_texture.emplace_back(this->size() - 1);
 				}
 
-				m_textures.emplace_back((*properties.texture_handler)->texture_id);
+				m_textures.emplace_back(properties.image->texture);
 			}
 
 			/*void insert(uint32_t i, uint32_t texture_coordinates_i, std::unique_ptr<fan_2d::graphics::texture_id_handler>& handler, const fan::vec2& position, const fan::vec2& size, const sprite_properties& properties = sprite_properties()) {

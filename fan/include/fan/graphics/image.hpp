@@ -252,7 +252,7 @@ namespace fan {
 
 			sws_freeContext(context);
 
-			av_freep((void*)&image_data.data[0]);
+		//	av_freep((void*)&image_data.data[0]);
 
 			new_data.format = new_format;
 			new_data.size = image_data.size;

@@ -13,14 +13,14 @@ namespace fan {
 
 		using value_type = cf_t;
 
-		static fan::color hsv(float H, float S,float V){
+		static fan::color hsv(f32_t H, f32_t S,f32_t V){
 
-			float s = S/100;
-			float v = V/100;
-			float C = s*v;
-			float X = C*(1-abs(fmod(H/60.0, 2)-1));
-			float m = v-C;
-			float r,g,b;
+			f32_t s = S/100;
+			f32_t v = V/100;
+			f32_t C = s*v;
+			f32_t X = C*(1-std::abs(fmod(H/60.0, 2)-1));
+			f32_t m = v-C;
+			f32_t r,g,b;
 			if(H >= 0 && H < 60){
 				r = C,g = X,b = 0;
 			}

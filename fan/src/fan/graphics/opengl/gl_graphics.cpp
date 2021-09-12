@@ -38,33 +38,25 @@ fan::mat4 fan_2d::graphics::get_view_translation(const fan::vec2i& window_size, 
 	return fan::math::translate(view, fan::vec3((f_t)window_size.x * 0.5, (f_t)window_size.y * 0.5, -700.0f));
 }
 
-fan_2d::graphics::image_info fan_2d::graphics::load_image(fan::window* window, const std::string& path)
+fan_2d::graphics::image_t fan_2d::graphics::load_image(fan::window* window, const std::string& path)
 {
-	fan_2d::graphics::image_info info(window);
+	fan_2d::graphics::image_t info = new std::remove_pointer<fan_2d::graphics::image_t>::type(window);
 
-	glGenTextures(1, &info.texture->texture_id);
+	glGenTextures(1, &info->texture);
 
-	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, info.size.begin());
-	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, info.size.begin() + 1);
+	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, info->size.begin());
+	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, info->size.begin() + 1);
 
-	glBindTexture(GL_TEXTURE_2D, info.texture->texture_id);
+	glBindTexture(GL_TEXTURE_2D, info->texture);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, fan_2d::graphics::image_load_properties::visual_output);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, fan_2d::graphics::image_load_properties::visual_output);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, fan_2d::graphics::image_load_properties::filter);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, fan_2d::graphics::image_load_properties::filter);
 	glGenerateMipmap(GL_TEXTURE_2D);
-	glBindTexture(GL_TEXTURE_2D, 0);
-
-	glBindTexture(GL_TEXTURE_2D, info.texture->texture_id);
-
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, fan_2d::graphics::image_load_properties::visual_output);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, fan_2d::graphics::image_load_properties::visual_output);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, fan_2d::graphics::image_load_properties::filter);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, fan_2d::graphics::image_load_properties::filter);
 
 	auto image_data = fan::image_loader::load_image(path);
 
-	info.size = image_data.size;
+	info->size = image_data.size;
 
 	uintptr_t internal_format = 0, format = 0, type = 0;
 
@@ -96,7 +88,13 @@ fan_2d::graphics::image_info fan_2d::graphics::load_image(fan::window* window, c
 		//case AVPixelFormat::AV_PIX_FMT_BGRA:
 	}
 
-	glTexImage2D(GL_TEXTURE_2D, 0, internal_format, info.size.x, info.size.y, 0, format, type, image_data.data[0]);
+	info->properties.filter = fan_2d::graphics::image_load_properties::filter;
+	info->properties.format = format;
+	info->properties.internal_format = internal_format;
+	info->properties.type = type;
+	info->properties.visual_output = fan_2d::graphics::image_load_properties::visual_output;
+
+	glTexImage2D(GL_TEXTURE_2D, 0, internal_format, info->size.x, info->size.y, 0, format, type, image_data.data[0]);
 
 	glGenerateMipmap(GL_TEXTURE_2D);
 
@@ -109,25 +107,16 @@ fan_2d::graphics::image_info fan_2d::graphics::load_image(fan::window* window, c
 	return info;
 }
 
-fan_2d::graphics::image_info fan_2d::graphics::load_image(fan::window* window, const pixel_data_t& pixel_data)
+fan_2d::graphics::image_t fan_2d::graphics::load_image(fan::window* window, const pixel_data_t& pixel_data)
 {
-	fan_2d::graphics::image_info info(window);
+	fan_2d::graphics::image_t info = new std::remove_pointer<fan_2d::graphics::image_t>::type(window);
 
-	glGenTextures(1, &info.texture->texture_id);
+	glGenTextures(1, &info->texture);
 
-	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, info.size.begin());
-	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, info.size.begin() + 1);
+	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, info->size.begin());
+	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, info->size.begin() + 1);
 
-	glBindTexture(GL_TEXTURE_2D, info.texture->texture_id);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, fan_2d::graphics::image_load_properties::visual_output);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, fan_2d::graphics::image_load_properties::visual_output);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, fan_2d::graphics::image_load_properties::filter);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, fan_2d::graphics::image_load_properties::filter);
-	glGenerateMipmap(GL_TEXTURE_2D);
-	glBindTexture(GL_TEXTURE_2D, 0);
-
-	glBindTexture(GL_TEXTURE_2D, info.texture->texture_id);
-
+	glBindTexture(GL_TEXTURE_2D, info->texture);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, fan_2d::graphics::image_load_properties::visual_output);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, fan_2d::graphics::image_load_properties::visual_output);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, fan_2d::graphics::image_load_properties::filter);
@@ -145,7 +134,7 @@ fan_2d::graphics::image_info fan_2d::graphics::load_image(fan::window* window, c
 
 	auto image_data = fan::image_loader::convert_format(image_d, AVPixelFormat::AV_PIX_FMT_RGB24);
 
-	info.size = image_data.size;
+	info->size = image_data.size;
 
 	uintptr_t internal_format = 0, format = 0, type = 0;
 
@@ -177,7 +166,7 @@ fan_2d::graphics::image_info fan_2d::graphics::load_image(fan::window* window, c
 		//case AVPixelFormat::AV_PIX_FMT_BGRA:
 	}
 
-	glTexImage2D(GL_TEXTURE_2D, 0, internal_format, info.size.x, info.size.y, 0, format, type, image_data.data[0]);
+	glTexImage2D(GL_TEXTURE_2D, 0, internal_format, info->size.x, info->size.y, 0, format, type, image_data.data[0]);
 
 	delete[] image_data.data[0];
 
@@ -886,11 +875,11 @@ void fan_2d::graphics::sprite::push_back(const sprite::properties_t& properties)
 	if (m_switch_texture.empty()) {
 		m_switch_texture.emplace_back(0);
 	}
-	else if (m_textures.size() && m_textures[m_textures.size() - 1] != (*properties.texture_handler)->texture_id) {
+	else if (m_textures.size() && m_textures[m_textures.size() - 1] != properties.image->texture) {
 		m_switch_texture.emplace_back(this->size() - 1);
 	}
 
-	m_textures.emplace_back((*properties.texture_handler)->texture_id);
+	m_textures.emplace_back(properties.image->texture);
 }
 
 void fan_2d::graphics::sprite::insert(uint32_t i, uint32_t texture_coordinates_i, const sprite::properties_t& properties)
@@ -912,14 +901,14 @@ void fan_2d::graphics::sprite::insert(uint32_t i, uint32_t texture_coordinates_i
 
 	m_transparency.insert(m_transparency.begin() + texture_coordinates_i / 6, properties.transparency);
 
-	m_textures.insert(m_textures.begin() + texture_coordinates_i / 6, (*properties.texture_handler)->texture_id);
+	m_textures.insert(m_textures.begin() + texture_coordinates_i / 6, properties.image->texture);
 
 	regenerate_texture_switch();
 }
 
-void fan_2d::graphics::sprite::reload_sprite(uint32_t i, std::unique_ptr<fan_2d::graphics::texture_id_handler>* texture_handler)
+void fan_2d::graphics::sprite::reload_sprite(uint32_t i, fan_2d::graphics::image_t image)
 {
-	m_textures[i] = (*texture_handler)->texture_id;
+	m_textures[i] = image->texture;
 }
 
 void fan_2d::graphics::sprite::draw(uint32_t begin, uint32_t end) const
@@ -1266,9 +1255,9 @@ void fan_3d::graphics::rectangle_vector::generate_textures(const std::string& pa
 	glGenBuffers(1, &m_texture_ssbo);
 	glGenBuffers(1, &m_texture_id_ssbo);
 
-	auto info = fan_2d::graphics::load_image(m_camera->m_window, path);
+	auto image = fan_2d::graphics::load_image(m_camera->m_window, path);
 
-	glBindTexture(GL_TEXTURE_2D, texture_handler::m_buffer_object = info.texture->texture_id);
+	glBindTexture(GL_TEXTURE_2D, texture_handler::m_buffer_object = image->texture);
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -1277,7 +1266,7 @@ void fan_3d::graphics::rectangle_vector::generate_textures(const std::string& pa
 	glGenerateMipmap(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
-	const fan::vec2 texturepack_size = fan::vec2(info.size.x / block_size.x, info.size.y / block_size.y);
+	const fan::vec2 texturepack_size = fan::vec2(image->size.x / block_size.x, image->size.y / block_size.y);
 	m_amount_of_textures = fan::vec2(texturepack_size.x / 6, texturepack_size.y);
 	// 0 = up, 1 = down, 2 = front, 3 = right, 4 = back, 5 = left
 

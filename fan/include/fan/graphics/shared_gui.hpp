@@ -251,7 +251,7 @@ namespace fan_2d {
 
 				inline static fan::font::font_info font_info;
 
-				inline static std::unique_ptr<fan_2d::graphics::image_info> image;
+				inline static fan_2d::graphics::image_t image;
 
 				fan::camera* m_camera = nullptr;
 
@@ -600,21 +600,19 @@ namespace fan_2d {
 
 			};
 
-			class rectangle_text_button :
+			struct rectangle_text_box : 
 				protected fan::class_duplicator<fan_2d::graphics::rectangle, 0>,
 				protected fan::class_duplicator<fan_2d::graphics::rectangle, 1>,
-				public fan_2d::graphics::gui::base::mouse,
 				public fan_2d::graphics::gui::base::button_metrics,
-				protected graphics::gui::text_renderer {
-
-			public:
+				protected graphics::gui::text_renderer
+			{
 
 				using properties_t = rectangle_button_properties;
 
 				using inner_rect_t = fan::class_duplicator<fan_2d::graphics::rectangle, 0>;
 				using outer_rect_t = fan::class_duplicator<fan_2d::graphics::rectangle, 1>;
 
-				rectangle_text_button(fan::camera* camera, fan_2d::graphics::gui::theme theme = fan_2d::graphics::gui::themes::deep_blue());
+				rectangle_text_box(fan::camera* camera, fan_2d::graphics::gui::theme theme = fan_2d::graphics::gui::themes::deep_blue());
 
 				void push_back(const rectangle_button_properties& properties);
 
@@ -646,6 +644,13 @@ namespace fan_2d {
 				std::vector<rectangle_button_properties> m_properties;
 
 				fan_2d::graphics::gui::theme theme;
+			};
+
+			struct rectangle_text_button :
+				public fan_2d::graphics::gui::rectangle_text_box,
+				public fan_2d::graphics::gui::base::mouse {
+
+				rectangle_text_button(fan::camera* camera, fan_2d::graphics::gui::theme theme = fan_2d::graphics::gui::themes::deep_blue());
 
 			};
 
@@ -663,9 +668,8 @@ namespace fan_2d {
 
 			}
 
-			class sprite_text_button :
+			class sprite_text_box :
 				protected fan::class_duplicator<fan_2d::graphics::sprite, 0>,
-				public base::mouse,
 				public base::button_metrics,
 				protected fan_2d::graphics::gui::text_renderer {
 
@@ -675,7 +679,7 @@ namespace fan_2d {
 
 				using sprite_t = fan::class_duplicator<fan_2d::graphics::sprite, 0>;
 
-				sprite_text_button(fan::camera* camera, const std::string& path);
+				sprite_text_box(fan::camera* camera, const std::string& path);
 
 				void push_back(const sprite_button_properties& properties);
 
@@ -683,18 +687,26 @@ namespace fan_2d {
 
 				define_get_property_size
 
-				fan::camera* get_camera();
+					fan::camera* get_camera();
 
 				uint64_t size() const;
 				bool inside(uint32_t i, const fan::vec2& position = fan::math::inf) const;
 
-				fan_2d::graphics::image_info texture_info;
+				fan_2d::graphics::image_t image;
 
 			protected:
 
 				std::vector<sprite_button_properties> m_properties;
 
 				define_get_button_size
+
+			};
+
+			struct sprite_text_button :
+				public fan_2d::graphics::gui::sprite_text_box,
+				public base::mouse {
+
+				sprite_text_button(fan::camera* camera, const std::string& path);
 
 			};
 

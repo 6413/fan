@@ -348,6 +348,7 @@ fan::window::~window()
 	this->destroy_window();
 }
 
+// must call window::handle_events();
 void fan::window::execute(const std::function<void()>& function)
 {
 	if (!this->open()) {

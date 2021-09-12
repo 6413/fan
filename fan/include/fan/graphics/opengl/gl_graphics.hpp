@@ -101,8 +101,8 @@ namespace fan_2d {
 		}
 
 		// fan::get_device(window)
-		image_info load_image(fan::window* window, const std::string& path);
-		image_info load_image(fan::window* window, const pixel_data_t& pixel_data);
+		image_t load_image(fan::window* window, const std::string& path);
+		image_t load_image(fan::window* window, const pixel_data_t& pixel_data);
 
 		class lighting_properties {
 		public:
@@ -398,7 +398,7 @@ namespace fan_2d {
 
 			struct properties_t {
 
-				std::unique_ptr<fan_2d::graphics::texture_id_handler>* texture_handler; 
+				fan_2d::graphics::image_t image; 
 				fan::vec2 position;
 				fan::vec2 size;
 
@@ -433,7 +433,7 @@ namespace fan_2d {
 
 			void insert(uint32_t i, uint32_t texture_coordinates_i, const sprite::properties_t& properties);
 
-			void reload_sprite(uint32_t i, std::unique_ptr<fan_2d::graphics::texture_id_handler>* texture_handler);
+			void reload_sprite(uint32_t i, fan_2d::graphics::image_t image);
 
 			void draw(uint32_t begin = fan::uninitialized, uint32_t end = fan::uninitialized) const;
 
@@ -473,6 +473,8 @@ namespace fan_2d {
 			std::vector<uint32_t> m_textures;
 
 			std::vector<uint32_t> m_switch_texture;
+			//std::vector<fan_2d::graphics::image_t> m_images;
+
 		};
 
 		class sprite_sheet : protected fan_2d::graphics::sprite {
