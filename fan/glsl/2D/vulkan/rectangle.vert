@@ -101,13 +101,7 @@ void main() {
 
 	mat4 m = mat4(1); 
 
-	vec2 rotation_point;
-
-//	if (isinf(layout_rotation_point.x) || isinf(layout_rotation_point.y)) {
-		rotation_point = layout_rotation_point;
-	//}
-
-	m = translate(m, vec3(rotation_point, 0));
+	m = translate(m, vec3(layout_position + layout_rotation_point, 0));
 
 	if (!isnan(layout_angle) && !isinf(layout_angle)) {
 		vec3 rotation_vector;
@@ -122,7 +116,7 @@ void main() {
 		m = rotate(m, layout_angle, rotation_vector);
 	}
 
-	m = translate(m, vec3(layout_position, 0) - vec3(rotation_point, 0));
+	m = translate(m,  vec3(-layout_rotation_point, 0));
 
 	m = scale(m, vec3(layout_size.x, layout_size.y, 0));
 

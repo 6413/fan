@@ -50,6 +50,10 @@ namespace fan_2d {
 
 	namespace graphics {
 
+		static void set_viewport(const fan::vec2& position, const fan::vec2& size) {
+			glViewport(position.x, position.y, size.x, size.y);
+		}
+
 		static void draw(const std::function<void()>& function_) {
 			fan::depth_test(false);
 			function_();
@@ -74,6 +78,9 @@ namespace fan_2d {
 			constexpr auto vertice_vector_vs("glsl/2D/opengl/vertice_vector.vs");
 			constexpr auto vertice_vector_fs("glsl/2D/opengl/vertice_vector.fs");
 
+			constexpr auto convex_vs("glsl/2D/opengl/convex.vs");
+			constexpr auto convex_fs("glsl/2D/opengl/vertice_vector.fs");
+
 			constexpr auto particles_vs("glsl/2D/opengl/particles.vs");
 
 			constexpr auto rectangle_vs("glsl/2D/opengl/rectangle.vs");
@@ -93,7 +100,7 @@ namespace fan_2d {
 		// 0 left right, 1 top right, 2 bottom left, 3 bottom right
 
 		namespace image_load_properties {
-			inline uint32_t visual_output = GL_REPEAT;
+			inline uint32_t visual_output = GL_CLAMP_TO_EDGE;
 			inline uintptr_t internal_format = GL_RGBA;
 			inline uintptr_t format = GL_RGBA;
 			inline uintptr_t type = GL_UNSIGNED_BYTE;
@@ -166,6 +173,8 @@ namespace fan_2d {
 			fan::color get_color(uint32_t i) const;
 			void set_color(uint32_t i, const fan::color& color);
 
+			void set_angle(uint32_t i, f32_t angle);
+
 			void write_data();
 
 			void edit_data(uint32_t i);
@@ -174,12 +183,38 @@ namespace fan_2d {
 
 		protected:
 
+			vertice_vector(fan::camera* camera, const fan::shader& shader);
+
 			void initialize_buffers();
 
 			std::vector<uint32_t> m_indices;
 
 			uintptr_t m_offset;
 
+		};
+
+
+		struct convex : private vertice_vector {
+
+			convex(fan::camera* camera);
+
+			struct properties_t : public vertice_vector::properties_t {
+				std::vector<fan::vec2> points;
+			};
+
+			std::size_t size() const;
+
+			void set_angle(uint32_t i, f32_t angle);
+
+			void set_position(uint32_t i, const fan::vec2& position);
+
+			void push_back(convex::properties_t property);
+
+			void draw(fan_2d::graphics::shape shape, uint32_t single_draw_amount, uint32_t begin = -1, uint32_t end = -1);
+
+			using vertice_vector::write_data;
+
+			std::vector<uint8_t> convex_amount;
 		};
 
 		/*fan_2d::graphics::line create_grid(fan::camera* camera, const fan::vec2i& block_size, const fan::vec2i& grid_size, const fan::color& color);*/
@@ -206,9 +241,10 @@ namespace fan_2d {
 				fan::vec2 position;
 				fan::vec2 size;
 				f32_t angle = 0;
-				fan::vec2 rotation_point = fan::math::inf;
+				// offset from top left
+				fan::vec2 rotation_point;
 				fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
-				fan::color color;
+				fan::color color; 
 			};
 
 			using color_t = fan::buffer_object<fan::color, 0>;
@@ -289,12 +325,52 @@ namespace fan_2d {
 
 		};
 
+		struct rectangle_dynamic : public fan_2d::graphics::rectangle {
+
+
+			using fan_2d::graphics::rectangle::rectangle;
+
+			// if value is inserted without allocation, returns index of insertion, otherwise fan::uninitialized
+			uint32_t push_back(const rectangle::properties_t& properties);
+
+			void erase(uint32_t i);
+			void erase(uint32_t begin, uint32_t end);
+
+			// free slot after erase to save allocation time
+			std::vector<uint32_t> m_free_slots;
+
+		};
+
 		// makes line from src (line start top left) to dst (line end top left)
 		struct line : protected fan_2d::graphics::rectangle {
 
 		public:
 
 			using fan_2d::graphics::rectangle::rectangle;
+
+			struct src_dst_t {
+				fan::vec2 src;
+				fan::vec2 dst;
+			};
+
+			static std::array<src_dst_t, 4> create_box(const fan::vec2& position, const fan::vec2& size) {
+
+				std::array<src_dst_t, 4> box;
+
+				box[0].src = position;
+				box[0].dst = position + fan::vec2(size.x, 0);
+
+				box[1].src = position + fan::vec2(size.x, 0);
+				box[1].dst = position + fan::vec2(size.x, size.y);
+
+				box[2].src = position + fan::vec2(size.x, size.y);
+				box[2].dst = position + fan::vec2(0, size.y);
+
+				box[3].src = position + fan::vec2(0, size.y);
+				box[3].dst = position;
+
+				return box;
+			}
 
 			void push_back(const fan::vec2& src, const fan::vec2& dst, const fan::color& color, f32_t thickness = 1) {
 
@@ -306,14 +382,13 @@ namespace fan_2d {
 
 				// - fan::vec2(0, 0.5 * thickness)
 
-				rectangle::push_back({
-					src,
-					fan::vec2((dst - src).length(), thickness),
-					-fan::math::aim_angle(src, dst),
-					src,
-					fan::vec3(0, 0, 1),
-					color
-				});
+				rectangle::properties_t property;
+				property.position = src;
+				property.size = fan::vec2((dst - src).length(), thickness);
+				property.angle = -fan::math::aim_angle(src, dst);
+				property.color = color;
+
+				rectangle::push_back(property);
 
 			}
 
@@ -329,10 +404,9 @@ namespace fan_2d {
 				const auto thickness = this->get_thickness(i);
 
 				// - fan::vec2(0, 0.5 * thickness)
-				position_t::set_value(i, src - (this->get_rotation_point(i) - src));
+				position_t::set_value(i, src);
 				size_t::set_value(i, fan::vec2((dst - src).length(), thickness));
 				angle_t::set_value(i, -fan::math::aim_angle(src, dst));
-				rotation_point_t::set_value(i, src);
 			}
 
 			f32_t get_thickness(uint32_t i) const {
@@ -403,7 +477,7 @@ namespace fan_2d {
 				fan::vec2 size;
 
 				f32_t angle = 0;
-				fan::vec2 rotation_point = fan::math::inf;
+				fan::vec2 rotation_point;
 				fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
 
 				std::array<fan::vec2, 6> texture_coordinates = {
@@ -468,12 +542,39 @@ namespace fan_2d {
 
 			static constexpr auto location_texture_coordinate = "layout_texture_coordinate";
 
-			std::vector<f32_t> m_transparency;
-
 			std::vector<uint32_t> m_textures;
 
 			std::vector<uint32_t> m_switch_texture;
 			//std::vector<fan_2d::graphics::image_t> m_images;
+
+		};
+
+		struct yuv420p_renderer : 
+			public fan_2d::graphics::sprite {
+
+			struct properties_t : public fan_2d::graphics::sprite::properties_t {
+				fan_2d::graphics::pixel_data_t pixel_data;
+			};
+
+			yuv420p_renderer(fan::camera* camera);
+
+			void push_back(const yuv420p_renderer::properties_t& properties);
+
+			void reload_pixels(uint32_t i, const fan_2d::graphics::pixel_data_t& pixel_data);
+
+			void write_data();
+
+			void draw();
+
+			fan::vec2ui get_image_size(uint32_t i) const;
+			
+		protected:
+
+			std::vector<fan::vec2ui> image_size;
+
+			static constexpr auto layout_y = "layout_y";
+			static constexpr auto layout_u = "layout_u";
+			static constexpr auto layout_v = "layout_v";
 
 		};
 

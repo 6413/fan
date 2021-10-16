@@ -92,7 +92,7 @@ void main() {
 
 	m = translate(m, vec3(layout_rotation_point, 0));
 
-	if (!isnan(layout_angle) && !isinf(layout_angle)) {
+	//if (!isnan(layout_angle) && !isinf(layout_angle)) {
 		vec3 rotation_vector;
 
 		if (layout_rotation_vector.x == 0 && layout_rotation_vector.y == 0 && layout_rotation_vector.z == 0) {
@@ -103,7 +103,7 @@ void main() {
 		}
 
 		m = rotate(m, layout_angle, rotation_vector);
-	}
+	//}
 
 	m = translate(m, vec3(layout_position - layout_rotation_point, 0));
 

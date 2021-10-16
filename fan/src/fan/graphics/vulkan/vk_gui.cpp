@@ -59,6 +59,8 @@ fan_2d::graphics::gui::text_renderer::text_renderer(fan::camera* camera)
 
 	fan::vk::shader::recompile_shaders = true;
 
+	pipeline_offset = camera->m_window->m_vulkan->pipelines[(int)fan_2d::graphics::shape::triangle]->pipeline_info.size();
+
 	camera->m_window->m_vulkan->pipelines[(int)fan_2d::graphics::shape::triangle]->push_back(
 		binding_description,
 		attribute_descriptions,
@@ -109,16 +111,18 @@ fan_2d::graphics::gui::text_renderer::text_renderer(fan::camera* camera)
 
 	fan_2d::graphics::shape shape = fan_2d::graphics::shape::triangle;
 
-	camera->m_window->m_vulkan->push_back_draw_call(vk_instance->draw_order_id++, &shape, 1, (void*)this, [&](uint32_t i, uint32_t j, void* base, fan_2d::graphics::shape shape) {
+	camera->m_window->m_vulkan->push_back_draw_call(&shape, 1, (void*)this, [&](uint32_t i, uint32_t j, void* base, fan_2d::graphics::shape shape) {
 
-		if (!instance_buffer->buffer->m_buffer_object) {
+		if (!instance_buffer->buffer->m_buffer_object || (uint64_t)base != (uint64_t)this || shape != fan_2d::graphics::shape::triangle) {
 			return;
 		}
+
+		fan::print(this, base);
 
 		vkCmdBindPipeline(
 			m_camera->m_window->m_vulkan->commandBuffers[0][i], 
 			VK_PIPELINE_BIND_POINT_GRAPHICS, 
-			m_camera->m_window->m_vulkan->pipelines[(int)fan_2d::graphics::shape::triangle]->pipeline_info[j].pipeline
+			m_camera->m_window->m_vulkan->pipelines[(int)fan_2d::graphics::shape::triangle]->pipeline_info[pipeline_offset].pipeline
 		);
 
 		VkDeviceSize offsets[] = { 0 };
@@ -214,6 +218,8 @@ void fan_2d::graphics::gui::text_renderer::push_back(const fan::utf16_string& te
 
 	auto convert = convert_font_size(font_size);
 
+	advance -= font_info.font[text[0]].offset.x;
+
 	for (int i = 0; i < text.size(); i++) {
 
 		auto letter_offset = font_info.font[text[i]].offset;
@@ -262,6 +268,8 @@ void fan_2d::graphics::gui::text_renderer::insert(uint32_t i, const fan::utf16_s
 
 	auto previous_offset = instance_buffer->size();
 
+	advance -= font_info.font[text[0]].offset.x;
+
 	for (int j = 0; j < text.size(); j++) {
 
 		insert_letter(i, j, text[j], font_size, position, text_color, advance);
@@ -309,7 +317,9 @@ void fan_2d::graphics::gui::text_renderer::set_position(uint32_t i, const fan::v
 
 	for (int j = 0; j < m_text[i].size(); j++) {
 
-		auto letter = get_letter_info(m_text[i][j], font_size);
+		fan::utf16_string str = m_text[i][j];
+
+		auto letter = get_letter_info(str.to_utf8().data(), font_size);
 
 		fan::vec2 new_position = original_position + (letter.offset + fan::vec2(advance, 0) + letter.size / 2);
 
@@ -318,7 +328,7 @@ void fan_2d::graphics::gui::text_renderer::set_position(uint32_t i, const fan::v
 			original_position.y += font_info.line_height;
 		}																						
 		else if (m_text[i][j] == ' ') {
-			advance += get_letter_info(' ', font_size).advance;
+			advance += get_letter_info((uint8_t*)' ', font_size).advance;
 		}
 		else {
 			advance += letter.advance;
@@ -392,16 +402,22 @@ void fan_2d::graphics::gui::text_renderer::clear() {
 
 void fan_2d::graphics::gui::text_renderer::set_text(uint32_t i, const fan::utf16_string& text) {
 
+	fan::utf16_string str = text;
+
+	if (str.empty()) {
+		str.resize(1);
+	}
+
 	auto font_size = this->get_font_size(i);
 	auto position = this->get_position(i);
 	auto color = this->get_text_color(i);
 
 	this->erase(i);
 
-	this->insert(i, text, font_size, position, color);
+	this->insert(i, str, font_size, position, color);
 }
 
-fan::color fan_2d::graphics::gui::text_renderer::get_text_color(uint32_t i, uint32_t j) {
+fan::color fan_2d::graphics::gui::text_renderer::get_text_color(uint32_t i, uint32_t j) const {
 	return instance_buffer->get_value(i == 0 ? 0 : m_indices[i - 1] + j).color;
 }
 // hint edit_data - i, i + text.size()
@@ -455,8 +471,8 @@ const fan::vec2 letter_position = font_info.font[letter].position;						\
 const fan::vec2 letter_size = font_info.font[letter].size;								\
 const fan::vec2 letter_offset = font_info.font[letter].offset;							\
 																						\
-fan::vec2 texture_position = fan::vec2(letter_position + 1) / image->size;				\
-fan::vec2 texture_size = fan::vec2(letter_position + letter_size - 1) / image->size;		\
+fan::vec2 texture_position = fan::vec2(letter_position) / image->size;				\
+fan::vec2 texture_size = fan::vec2(letter_position + letter_size) / image->size;		\
 																						\
 const auto converted_font_size = convert_font_size(font_size);							\
 																						\
@@ -492,7 +508,7 @@ void fan_2d::graphics::gui::text_renderer::insert_letter(uint32_t i, uint32_t j,
 	auto index = i == 0 ? 0 : m_indices[i - 1 >= m_indices.size() ? m_indices.size() - 1 : i - 1];
 
 	instance_t instance;
-	instance.position = position + (letter_offset + fan::vec2(advance, 0) + letter_size / 2) * converted_font_size;
+	instance.position = position + (fan::vec2(letter_offset.x, letter_offset.y + letter_size.y) + fan::vec2(advance, 0)) * converted_font_size;
 	instance.size = letter_size * converted_font_size;
 	instance.angle = 0;
 	instance.color = color;
@@ -507,17 +523,15 @@ void fan_2d::graphics::gui::text_renderer::push_back_letter(wchar_t letter, f32_
 
 	get_letter_infos;
 
-	instance_buffer->m_instance.emplace_back(
-		instance_t{
-			position + (letter_offset + fan::vec2(advance, 0) + letter_size / 2) * converted_font_size,
-			letter_size * converted_font_size,
-			0,
-			color,
-			font_size,
-			0,
-			texture_coordiantes
-		}
-	);
+	instance_t instance;
+	instance.position = position + (fan::vec2(letter_offset.x, letter_offset.y + letter_size.y) + fan::vec2(advance, 0)) * converted_font_size;
+	instance.size = letter_size * converted_font_size;
+	instance.color = color;
+	instance.font_size = font_size;
+	instance.texture_coordinate = texture_coordiantes;
+	instance.text_rotation_point = instance.position + instance.size / 2;
+
+	instance_buffer->m_instance.emplace_back(instance);
 
 }
 

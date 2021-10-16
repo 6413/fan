@@ -30,7 +30,7 @@ constexpr auto mb = 1000000;
 
 constexpr auto gpu_stack(10 * mb); // mb
 
-//#define fan_debug
+#define fan_debug
 
 namespace fan {
 
@@ -756,6 +756,9 @@ namespace fan {
 					}); // might not work with different shapes
 
 					for (int l = sorted.size(); l--; ) {
+						if (sorted[l].second.first == ~0) {
+							continue;
+						}
 						if (sorted[l].second.second) {
 							sorted[l].second.second(i, l, sorted[l].first, (fan_2d::graphics::shape)k);
 						}
@@ -1261,10 +1264,10 @@ namespace fan {
 			throw std::runtime_error("failed to find supported format!");
 		}
 
-		void push_back_draw_call(uint32_t draw_order_id, const fan_2d::graphics::shape* shape, uint32_t shape_count, void* base, const std::function<void(uint32_t i, uint32_t j, void* base, fan_2d::graphics::shape)>& function) {
+		void push_back_draw_call(const fan_2d::graphics::shape* shape, uint32_t shape_count, void* base, const std::function<void(uint32_t i, uint32_t j, void* base, fan_2d::graphics::shape)>& function) {
 
 			for (int i = 0; i < shape_count; i++, shape++) {
-				draw_calls[(int)*shape][base] = std::make_pair(draw_order_id, function);
+				draw_calls[(int)*shape][base] = std::make_pair(~0, function);
 			}
 		}
 

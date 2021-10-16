@@ -53,19 +53,25 @@ public:
 
 	circle(fan::camera* camera) : fan_2d::graphics::vertice_vector(camera) {}
 
-	void push_back(const fan::vec2& position, f32_t radius, const fan::color& color) {
-		this->m_position.emplace_back(position);
-		this->m_radius.emplace_back(radius);
+	struct properties_t {
+		fan::vec2 position;
+		f32_t radius; 
+		fan::color color;
+	};
+
+	void push_back(const properties_t& property) {
+		this->m_position.emplace_back(property.position);
+		this->m_radius.emplace_back(property.radius);
 
 		vertice_vector::properties_t properties;
-		properties.color = color;
-		properties.rotation_point = position + radius;
+		properties.color = property.color;
+		properties.rotation_point = property.position + property.radius;
 
 		for (int i = 0; i < m_segments; i++) {
 
 			f32_t theta = fan::math::two_pi * f32_t(i) / m_segments;
 
-			properties.position = position + fan::vec2(radius * std::cos(theta), radius * std::sin(theta));
+			properties.position = property.position + fan::vec2(property.radius * std::cos(theta), property.radius * std::sin(theta));
 
 			vertice_vector::push_back(properties);
 		}

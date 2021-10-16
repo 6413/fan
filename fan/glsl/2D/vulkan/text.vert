@@ -103,13 +103,13 @@ mat4 rotate(mat4 m, float angle, vec3 v) {
 }
 
 vec2 rectangle_vertices[] = vec2[](
-	vec2(-0.5, 0.5),
-	vec2(0.5, 0.5),
-	vec2(0.5, -0.5),
+	vec2(0, 0),
+	vec2(1, 0),
+	vec2(1, -1),
 
-	vec2(-0.5, 0.5),
-	vec2(-0.5, -0.5),
-	vec2(0.5, -0.5)
+	vec2(0, 0),
+	vec2(0, -1),
+	vec2(1, -1)
 );
 
 void main() {
@@ -128,10 +128,10 @@ void main() {
 
 	vec2 middle = layout_rotation_point + m2 * (layout_position - layout_rotation_point);
 
-	m = rotate(m, -angle, vec3(0, 0, 1));
+	//m = rotate(m, -angle, vec3(0, 0, 1));
 
-	m[3][0] = middle.x;
-	m[3][1] = middle.y;
+//	m[3][0] = middle.x;
+//	m[3][1] = middle.y;
 
     m = scale(m, vec3(layout_size, 0));
 

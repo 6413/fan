@@ -51,7 +51,9 @@ namespace fan {
 
 			f32_t lowest = 0, highest = 0;
 
-			for (std::size_t iline = font_t::char_offset; iline < amount_of_chars + font_t::char_offset + 1; iline++) {
+			auto padding = (f32_t)fan::io::file::get_string_valuei(lines[0], "padding");
+
+			for (std::size_t iline = font_t::char_offset; iline < amount_of_chars; iline++) {
 				if (lines[iline][0] != 'c') {
 					break;
 				}
@@ -69,6 +71,11 @@ namespace fan {
 					((fan::vec2::value_type*)&font_info)[i] = value_info.value;
 				}
 
+				// padding 8
+				font_info.position += padding;
+				font_info.size -= padding;
+				font_info.advance -= padding * 2;
+				font_info.offset -= padding * 2;
 				font_info_vector[character] = font_info;
 				if (flowest < font_info.offset.y) {
 					flowest = font_info.offset.y;
@@ -86,7 +93,7 @@ namespace fan {
 			return {
 				(f32_t)(fan::io::file::get_string_valuei(lines[0], "size")),
 				font_info_vector,
-				(f32_t)fan::io::file::get_string_valuei(lines[0], "padding"),
+				padding,
 				lowest,
 				highest,
 				(f32_t)(fan::io::file::get_string_valuei(lines[1], "lineHeight"))

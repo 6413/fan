@@ -32,10 +32,6 @@ namespace fan_2d {
 			//	sprite(fan::camera* camera, unsigned char* pixels, const fan::vec2& position, const fan::vec2i& size = 0, f32_t transparency = 1);
 
 			//};
-
-
-			inline std::unordered_map<fan::window_t, uintptr_t> current_focus;
-			inline std::unordered_map<fan::window_t, uintptr_t> focus_counter;
 		}
 
 	}

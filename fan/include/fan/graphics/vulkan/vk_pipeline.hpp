@@ -190,9 +190,9 @@ namespace fan {
 					color_blend_attachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 					color_blend_attachment.blendEnable = VK_TRUE;
 					color_blend_attachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-					color_blend_attachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+					color_blend_attachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA;
 					color_blend_attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-					color_blend_attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+					color_blend_attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA;
 					color_blend_attachment.colorBlendOp = VK_BLEND_OP_ADD;
 					color_blend_attachment.alphaBlendOp = VK_BLEND_OP_ADD;
 
@@ -206,6 +206,7 @@ namespace fan {
 					color_blending.blendConstants[1] = 0.0f;
 					color_blending.blendConstants[2] = 0.0f;
 					color_blending.blendConstants[3] = 0.0f;
+
 
 					VkPipelineLayoutCreateInfo pipeline_layout_info{};
 					pipeline_layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;

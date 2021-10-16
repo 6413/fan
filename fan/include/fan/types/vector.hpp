@@ -299,10 +299,6 @@ namespace fan {
 			return vec_t(fan::clamp(x, min[0], max[0]), fan::clamp(y, min[1], max[1]));
 		}
 
-		constexpr vec_t clamp(const vec_t& xminmax, const vec_t& yminmax) const {
-			return vec_t(fan::clamp(x, xminmax[0], xminmax[1]), fan::clamp(y, yminmax[0], yminmax[1]));
-		}
-
 		constexpr bool isnan() const {
 			return std::isnan(x) || std::isnan(y);
 		}
@@ -844,7 +840,7 @@ namespace fan {
 	template <typename T>
 	std::ostream& operator<<(std::ostream& os, const _vec2<T>& vector)
 	{
-		os << vector.x << " " << vector.y;
+		os << '{' << vector.x << ", " << vector.y << '}';
 		return os;
 	}
 
@@ -852,14 +848,14 @@ namespace fan {
 	template <typename T>
 	std::ostream& operator<<(std::ostream& os, const _vec3<T>& vector)
 	{
-		os << vector.x << " " << vector.y << " " << vector.z;
+		os << '{' << vector.x << ", " << vector.y << ", " << vector.z;
 		return os;
 	}
 
 	template <typename T>
 	std::ostream& operator<<(std::ostream& os, const _vec4<T>& vector)
 	{
-		os << vector.x << " " << vector.y << " " << vector.z << " " << vector.w;
+		os << '{' << vector.x << ", " << vector.y << ", " << vector.z << ", " << vector.w;
 		return os;
 	}
 

@@ -78,7 +78,7 @@ namespace fan {
 					poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
 					poolInfo.pPoolSizes = poolSizes.data();
 					poolInfo.maxSets = maximum_textures_per_instance * swap_chain_images_size;
-					poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
+					poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT | VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 
 					if (vkCreateDescriptorPool(*m_device, &poolInfo, nullptr, &descriptor_pool) != VK_SUCCESS) {
 						throw std::runtime_error("failed to create descriptor pool.");
@@ -128,12 +128,6 @@ namespace fan {
 					VkSampler texture_sampler,
 					VkDeviceSize swap_chain_images_size
 				) {
-
-					static int x = 0;
-
-					if (!x) {
-						x++;
-					}
 
 					std::vector<VkDescriptorSetLayout> layouts(swap_chain_images_size, descriptor_layout);
 					VkDescriptorSetAllocateInfo allocInfo{};
@@ -188,6 +182,13 @@ namespace fan {
 						vkUpdateDescriptorSets(device, image_view == nullptr ? 1 : descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
 					}
 
+				}
+
+				void erase(uint32_t i, uint32_t swap_chain_images_size) {
+
+					vkFreeDescriptorSets(*m_device, descriptor_pool, swap_chain_images_size, descriptor_sets.data() + i * swap_chain_images_size);
+
+					descriptor_sets.erase(descriptor_sets.begin() + i * swap_chain_images_size, descriptor_sets.begin() + i * swap_chain_images_size + swap_chain_images_size);
 				}
 
 				template <typename T>

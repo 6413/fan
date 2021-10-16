@@ -96,7 +96,7 @@ namespace fan {
 			return *this;
 		}
 		constexpr bool operator!=(const color& color_) const {
-			return r != color_.r || g != color_.g || b != color_.b;
+			return r != color_.r && g != color_.g && b != color_.b;
 		}
 		constexpr bool operator==(const color& color_) const {
 			return r == color_.r && g == color_.g && b == color_.b && a == color_.a;
@@ -118,7 +118,7 @@ namespace fan {
 			return color(r * value, g * value, b * value);
 		}
 		void print() const {
-			std::cout << r << " " << g << " " << b << " " << a << std::endl;
+			std::cout << "{ " << r << ", " << g << ", " << b << ", " << a << " }";
 		}
 		auto data() const {
 			return &r;
@@ -149,10 +149,12 @@ namespace fan {
 
 	inline std::ostream& operator<<(std::ostream& os, const color& color_) noexcept
 	{
-		os << color_.r << ' ';
-		os << color_.g << ' ';
-		os << color_.b << ' ';
-		os << color_.a << '\n';
+		os << "{ ";
+		os << color_.r << ", ";
+		os << color_.g << ", ";
+		os << color_.b << ", ";
+		os << color_.a << " }";
+
 		return os;
 	}
 }

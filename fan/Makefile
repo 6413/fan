@@ -2,12 +2,12 @@ GPP = clang++
 
 ARCH := $(shell grep "Arch Linux" /etc/os-release 2>/dev/null)
 
-CFLAGS = -g -std=c++2a -I /usr/local/include -I include #-O3 -march=native -mtune=native
+CFLAGS = -g -std=c++2a -I /usr/local/include -I include -I . #-O3 -march=native -mtune=native
 
 ifdef ARCH
-MAINFLAGS = -g -L /usr/local/lib -lGL -lGLEW -lX11 -lXrandr -lassimp -lavcodec -lavutil -lavformat -lswscale -lvulkan -lbox2d
+MAINFLAGS = -g -L /usr/local/lib -lGL -lGLEW -lX11 -lXrandr -lassimp -lavcodec -lavutil -lavformat -lswscale -lvulkan -lbox2d -I WITCH
 else
-MAINFLAGS = -g -L /usr/local/lib -lGL -lGLEW -lX11 -lXrandr -lassimp -lavcodec -lavutil -lavformat -lswscale -lvulkan -lBox2D
+MAINFLAGS = -g -L /usr/local/lib -lGL -lGLEW -lX11 -lXrandr -lassimp -lavcodec -lavutil -lavformat -lswscale -lvulkan -lBox2D -I . -I WITCH
 endif 
 
 MAIN = Source.cpp

@@ -110,13 +110,13 @@ mat4 rotate(mat4 m, float angle, vec3 v) {
 */
 
 vec2 rectangle_vertices[] = vec2[](
-	vec2(-0.5, 0.5),
-	vec2(0.5, 0.5),
-	vec2(0.5, -0.5),
+	vec2(0, 0),
+	vec2(1, 0),
+	vec2(1, -1),
 
-	vec2(-0.5, 0.5),
-	vec2(-0.5, -0.5),
-	vec2(0.5, -0.5)
+	vec2(0, 0),
+	vec2(0, -1),
+	vec2(1, -1)
 );
 
 out vec2 texture_coordinate;
