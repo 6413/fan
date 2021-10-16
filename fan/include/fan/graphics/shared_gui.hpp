@@ -1,5 +1,8 @@
 #pragma once
 
+#define FED_set_debug_InvalidLineAccess 1
+#include <fan/fed/FED.h>
+
 #include <fan/graphics/shared_graphics.hpp>
 
 #include <fan/graphics/graphics.hpp>
@@ -17,15 +20,25 @@ namespace fan_2d {
 
 		namespace gui {
 
+			static fan::utf16_string get_empty_string() {
+				fan::utf16_string str;
+
+				str.resize(1);
+
+				return str;
+			}
+
+			inline fan::utf16_string empty_string = get_empty_string();
+
 			static fan::vec2 get_resize_movement_offset(fan::window* window)
 			{
 				return fan::cast<f32_t>(window->get_size() - window->get_previous_size());
 			}
 
 			static void add_resize_callback(fan::window* window, fan::vec2& position) {
-				window->add_resize_callback([&](const fan::vec2i&) {
+				window->add_resize_callback([&](fan::window* window, const fan::vec2i&) {
 					position += fan_2d::graphics::gui::get_resize_movement_offset(window);
-					});
+				});
 			}
 
 			struct rectangle : public fan_2d::graphics::rectangle {
@@ -33,7 +46,7 @@ namespace fan_2d {
 				rectangle(fan::camera* camera)
 					: fan_2d::graphics::rectangle(camera)
 				{
-					this->m_camera->m_window->add_resize_callback([&](const fan::vec2i&) {
+					this->m_camera->m_window->add_resize_callback([&](const fan::window* window, const fan::vec2i&) {
 
 						auto offset = this->m_camera->m_window->get_size() - this->m_camera->m_window->get_previous_size();
 
@@ -51,12 +64,11 @@ namespace fan_2d {
 							else {
 								this->set_size(i, 1);
 							}
-
 						}
 					});
 				}
 
-		};
+			};
 
 			class text_renderer 
 #if fan_renderer == fan_renderer_opengl
@@ -72,6 +84,7 @@ namespace fan_2d {
 			
 			{
 			public:
+
 
 				text_renderer(fan::camera* camera);
 
@@ -90,7 +103,7 @@ namespace fan_2d {
 
 				uint32_t size() const;
 
-				static fan::font::font_t get_letter_info(uint32_t c, f32_t font_size) {
+				static fan::font::font_t get_letter_info(uint8_t* c, f32_t font_size) {
 
 					auto found = font_info.font.find(fan::utf16_string(c).data()[0]);
 
@@ -164,9 +177,13 @@ namespace fan_2d {
 				}
 				void set_text(uint32_t i, const fan::utf16_string& text);
 
-				fan::color get_text_color(uint32_t i, uint32_t j = 0);
+				fan::color get_text_color(uint32_t i, uint32_t j = 0) const;
 				void set_text_color(uint32_t i, const fan::color& color);
 				void set_text_color(uint32_t i, uint32_t j, const fan::color& color);
+
+				fan::vec2 get_text_size(uint32_t i) {
+					return get_text_size(get_text(i), get_font_size(i));
+				}
 
 				static fan::vec2 get_text_size(const fan::utf16_string& text, f32_t font_size) {
 					fan::vec2 length;
@@ -175,7 +192,7 @@ namespace fan_2d {
 
 					int new_lines = 0;
 
-					uint32_t last_n = 0;
+					//uint32_t last_n = 0;
 
 					for (int i = 0; i < text.size(); i++) {
 
@@ -184,7 +201,7 @@ namespace fan_2d {
 							length.y += font_info.line_height;
 							new_lines++;
 							current = 0;
-							last_n = i;
+							//last_n = i;
 							continue;
 						}
 
@@ -192,23 +209,28 @@ namespace fan_2d {
 						if (found == font_info.font.end()) {
 							throw std::runtime_error("failed to find character: " + std::to_string(text[i]));
 						}
-
-						current += found->second.advance;
-						length.y = std::max((f32_t)length.y, font_info.line_height * new_lines + (f32_t)found->second.size.y);
+						if (i != text.size() - 1) {
+							current += found->second.advance;
+						}
+						else {
+							current += found->second.size.x;
+						}
+						length.y += (f32_t)found->second.size.y;
+						//length.y = std::max((f32_t)length.y, font_info.line_height * new_lines + (f32_t)found->second.size.y);
 					}
 
 					length.x = std::max((f32_t)length.x, current);
 
-					if (text.size()) {
+					/*if (text.size()) {
 						auto found = font_info.font.find(text[text.size() - 1]);
 						if (found != font_info.font.end()) {
 							length.x -= found->second.offset.x;
 						}
-					}
+					}*/
 
-					length.y -= font_info.line_height * convert_font_size(font_size);
+					//length.y -= font_info.line_height * convert_font_size(font_size);
 
-					f32_t average = 0;
+					/*f32_t average = 0;
 
 					for (int i = last_n; i < text.size(); i++) {
 
@@ -222,7 +244,9 @@ namespace fan_2d {
 
 					average /= text.size() - last_n;
 
-					length.y += average;
+					length.y += average;*/
+
+					length.y /= text.size();
 
 					return length * convert_font_size(font_size);
 				}
@@ -297,6 +321,8 @@ namespace fan_2d {
 
 				std::vector<uint32_t> m_indices;
 
+				std::vector<uint32_t> m_new_lines;
+
 #if fan_renderer == fan_renderer_opengl
 
 				using font_size_t = fan::buffer_object<f32_t, 99>;
@@ -331,211 +357,285 @@ namespace fan_2d {
 				fan::gpu_memory::uniform_handler* uniform_handler = nullptr;
 
 				std::vector<VkDeviceSize> descriptor_offsets;
+			#ifdef fan_renderer == fan_renderer_vulkan
+				uint64_t pipeline_offset = 0;
+			#endif
+
 
 #endif
 
 			};
 
+			enum class mouse_stage {
+				outside,
+				inside,
+				outside_drag
+			};
+
 			namespace base {
-
-				struct button_metrics {
-
-					std::vector<int64_t> m_new_lines;
-
-				};
 
 				// requires to have functions: 
 				// get_camera() which returns camera, 
 				// size() returns amount of objects, 
 				// inside() if mouse inside
+				// requires push_back to be called in every shape push_back
+				// requires to have either add_on_input or add_on_input and add_on_mouse_event
+				template <typename T>
 				struct mouse {
 
 				protected:
 
-					template <typename T>
-					mouse(T& object) {
-
-						std::memset(m_hover_button_id, -1, sizeof(m_hover_button_id));
-						std::memset(m_held_button_id, -1, sizeof(m_held_button_id));
-
-
-						// ------------------------------ key press
-
-						m_key_press_it[0] = object.get_camera()->m_window->add_key_callback(fan::mouse_left, fan::key_state::press, [&] {
-							for (uintptr_t i = 0; i < object.size(); i++) {
-								if (object.inside(i)) {
-									m_held_button_id[0] = i;
-									if (m_on_click[0]) {
-										m_on_click[0](i);
-									}
-								}
-							}
-							});
-
-						m_key_press_it[1] = object.get_camera()->m_window->add_key_callback(fan::mouse_left, fan::key_state::press, [&] {
-							for (uintptr_t i = 0; i < object.size(); i++) {
-								if (object.inside(i)) {
-									m_held_button_id[1] = i;
-									if (m_on_click[1]) {
-										m_on_click[1](i);
-									}
-								}
-							}
-							});
-
-						// ------------------------------ key release
-
-						m_key_release_it[0] = object.get_camera()->m_window->add_key_callback(fan::mouse_left, fan::key_state::release, [&] {
-
-							if (m_held_button_id[0] != (uint32_t)fan::uninitialized && object.inside(m_held_button_id[0])) {
-								if (m_on_release[0]) {
-									m_on_release[0](m_held_button_id[0]);
-								}
-
-								m_held_button_id[0] = fan::uninitialized;
-							}
-							else if (m_held_button_id[0] != (uint32_t)fan::uninitialized && !object.inside(m_held_button_id[0])) {
-								if (m_on_outside_release[0]) {
-									m_on_outside_release[0](m_held_button_id[0]);
-								}
-
-								m_held_button_id[0] = fan::uninitialized;
-							}
-
-							});
-
-						m_key_release_it[1] = object.get_camera()->m_window->add_key_callback(fan::mouse_left, fan::key_state::release, [&] {
-
-							if (m_held_button_id[1] != (uint32_t)fan::uninitialized && object.inside(m_held_button_id[1])) {
-								if (m_on_release[1]) {
-									m_on_release[1](m_held_button_id[1]);
-								}
-
-								m_held_button_id[1] = fan::uninitialized;
-							}
-							else if (m_held_button_id[1] != (uint32_t)fan::uninitialized && !object.inside(m_held_button_id[1])) {
-								if (m_on_outside_release[1]) {
-									m_on_outside_release[1](m_held_button_id[1]);
-								}
-
-								m_held_button_id[1] = fan::uninitialized;
-							}
-
-							});
-
-						// ------------------------------ hover
-
-						object.get_camera()->m_window->add_mouse_move_callback([&](const fan::vec2&) {
-							for (int k = 0; k < 2; k++) {
-								for (uintptr_t i = 0; i < object.size(); i++) {
-									if (object.inside(i) && i != m_hover_button_id[k] && m_hover_button_id[k] == (uint32_t)fan::uninitialized) {
-										if (m_on_hover[k]) {
-											m_on_hover[k](i);
-										}
-
-										m_hover_button_id[k] = i;
-									}
-								}
-							}
-							});
-
-						// ------------------------------ exit
-
-						object.get_camera()->m_window->add_mouse_move_callback([&](const fan::vec2i& position) {
-							for (int k = 0; k < 2; k++) {
-								if (m_hover_button_id[k] != (uint32_t)fan::uninitialized && !object.inside(m_hover_button_id[k]) && object.inside(m_hover_button_id[k], object.get_camera()->m_window->get_previous_mouse_position())) {
-									if (m_on_exit[k]) {
-										m_on_exit[k](m_hover_button_id[k]);
-									}
-
-									m_hover_button_id[k] = (uint32_t)fan::uninitialized;
-								}
-							}
-							});
-
-					}
-
-					// keys must be same for click and release
-
-					template <bool user_side>
-					void on_click(std::function<void(uint32_t i)> function, uint16_t key = fan::mouse_left) {
-						m_key_press_key[user_side] = key;
-						m_key_press_it[user_side]->key = key;
-						m_on_click[user_side] = function;
-
-						m_key_release_it[user_side]->key = key;
-						m_on_release[user_side] = function;
-					}
-
-					template <bool user_side>
-					void on_release(std::function<void(uint32_t i)> function, uint16_t key = fan::mouse_left) {
-						m_key_release_key[user_side] = key;
-						m_key_release_it[user_side]->key = key;
-						m_on_release[user_side] = function;
-
-						m_key_press_key[user_side] = key;
-						m_key_press_it[user_side]->key = key;
-					}
-
-					template <bool user_side>
-					void on_outside_release(std::function<void(uint32_t i)> function, uint16_t key = fan::mouse_left) {
-						m_key_release_key[user_side] = key;
-						m_key_release_it[user_side]->key = key;
-						m_on_outside_release[user_side] = function;
-
-						m_key_press_key[user_side] = key;
-						m_key_press_it[user_side]->key = key;
-					}
-
-					template <bool user_side>
-					void on_hover(std::function<void(uint32_t i)> function) {
-						m_on_hover[user_side] = function;
-					}
-
-					template <bool user_side>
-					void on_exit(std::function<void(uint32_t i)> function) {
-						m_on_exit[user_side] = function;
-					}
-
+					mouse(T* object) : object(object) {}
 
 				public:
 
-					void on_click(std::function<void(uint32_t i)> function, uint16_t key = fan::mouse_left) {
-						base::mouse::on_click<1>(function, key);
+					void push_back() {
+						mouse_instance.emplace_back(mouse_instance_t{ (uint32_t)fan::uninitialized });
+						input_instance.emplace_back(input_instance_t{ (uint32_t)fan::uninitialized });
 					}
 
-					void on_release(std::function<void(uint32_t i)> function, uint16_t key = fan::mouse_left) {
-						base::mouse::on_release<1>(function, key);
+				private:
+
+					static constexpr uint8_t set_flag(fan::key_state key_state, mouse_stage mouse_stage) {
+						return ((uint8_t)key_state + 2) + ((uint8_t)mouse_stage + 5);
 					}
 
-					void on_outside_release(std::function<void(uint32_t i)> function, uint16_t key = fan::mouse_left) {
-						base::mouse::on_outside_release<1>(function, key);
+				public:
+
+					// uint32_t index, fan::key_state state, mouse_stage mouse_stage
+					void add_on_input(std::function<void(uint32_t index, fan::key_state key_state, mouse_stage mouse_stage)> function, bool ignore_repeat = true, uint16_t key = fan::mouse_left) {
+
+						m_on_input.emplace_back(function);
+
+						this->push_back();
+
+						for (int i = 0; i <  input_instance.size(); i++) {
+							input_instance[i].previous_state_flag.resize(m_on_input.size());
+						}
+
+						object->get_camera()->m_window->add_key_callback(key, fan::key_state::press, 
+							[&, 
+							offset = m_on_input.size() - 1,
+							ignore_repetition = ignore_repeat
+							] (fan::window*) {
+
+							if (input_instance.size() <= object->size()) {
+								input_instance.resize(object->size(), input_instance_t{ (uint32_t)fan::uninitialized });
+
+								for (int i = 0; i < input_instance.size(); i++) {
+									input_instance[i].previous_state_flag.resize(m_on_input.size(), fan::uninitialized);
+								}
+							}
+
+							for (uintptr_t i = 0; i < object->size(); i++) {
+
+								if (object->inside(i)) {
+
+									auto new_flag = set_flag(fan::key_state::press, mouse_stage::inside);
+
+									if (input_instance[i].previous_state_flag[offset] == new_flag && ignore_repetition) {
+										continue;
+									}
+
+									input_instance[i].previous_state_flag[offset] = new_flag;
+
+									input_instance[i].m_held_button_id = i;
+
+									if (m_on_input[offset]) {
+										m_on_input[offset](i, fan::key_state::press, mouse_stage::inside);
+									}
+								}
+								else {
+
+									auto new_flag = set_flag(fan::key_state::press, mouse_stage::outside);
+
+									if (input_instance[i].previous_state_flag[offset] == new_flag && ignore_repetition) {
+										continue;
+									}
+
+									input_instance[i].previous_state_flag[offset] = new_flag;
+
+									if (m_on_input[offset]) {
+										m_on_input[offset](i, fan::key_state::press, mouse_stage::outside);
+									}
+								}
+							}
+						});
+
+						object->get_camera()->m_window->add_key_callback(fan::mouse_left, fan::key_state::release,
+							[
+								&, 
+								offset = m_on_input.size() - 1,
+								ignore_repetition = ignore_repeat
+							] (fan::window*) {
+
+							if (input_instance.size() < object->size() || input_instance[input_instance.size() - 1].previous_state_flag.size() < object->size()) {
+								input_instance.resize(object->size(), input_instance_t{ (uint32_t)fan::uninitialized });
+
+								for (int i = 0; i < input_instance.size(); i++) {
+									input_instance[i].previous_state_flag.resize(m_on_input.size(), fan::uninitialized);
+								}
+							}
+
+							for (int i = 0; i < object->size(); i++) {
+
+								input_instance[i].m_held_button_id = fan::uninitialized;
+
+								if (!object->inside(i)) {
+									auto new_flag = set_flag(fan::key_state::release, mouse_stage::outside);
+
+									if (input_instance[i].previous_state_flag[offset] == new_flag && ignore_repetition) {
+										continue;
+									}
+
+									input_instance[i].previous_state_flag[offset] = new_flag;
+
+									if (m_on_input[offset]) {		
+										m_on_input[offset](i, fan::key_state::release, mouse_stage::outside);
+									}
+								}
+								else {
+
+									auto new_flag = set_flag(fan::key_state::release, mouse_stage::inside);
+
+									if (input_instance[i].previous_state_flag[offset] == new_flag && ignore_repetition) {
+										continue;
+									}
+
+									input_instance[i].previous_state_flag[offset] = new_flag;
+
+									if (m_on_input[offset]) {
+
+										m_on_input[offset](i, fan::key_state::release, mouse_stage::inside);
+									}
+								}
+							}
+						});
 					}
 
-					void on_hover(std::function<void(uint32_t i)> function) {
-						base::mouse::on_hover<1>(function);
+					// uint32_t index, bool inside
+					void add_on_mouse_event(std::function<void(uint32_t index, mouse_stage mouse_stage)> function, bool ignore_repeat = true) {
+
+						m_on_mouse_event.emplace_back(function);
+
+						this->push_back();
+
+						for (int i = 0; i < input_instance.size(); i++) {
+							mouse_instance[i].previous_state_flag.resize(m_on_mouse_event.size());
+						}
+
+						object->get_camera()->m_window->add_mouse_move_callback(
+							[
+								&, 
+								offset = m_on_mouse_event.size() - 1, 
+								shape = (uint64_t)this,
+								ignore_repetition = ignore_repeat
+							] (fan::window* window, const fan::vec2&) {
+
+							if (mouse_instance.size() <= object->size()) {
+								mouse_instance.resize(object->size(), mouse_instance_t{ (uint32_t)fan::uninitialized });
+
+								for (int i = 0; i < mouse_instance.size(); i++) {
+									mouse_instance[i].previous_state_flag.resize(m_on_mouse_event.size(), fan::uninitialized);
+								}
+							}
+
+							for (uintptr_t i = 0; i < object->size(); i++) {
+
+								// if you get crash here you need to add add_on_input as well
+								if (object->inside(i) && i != mouse_instance[offset].m_hover_button_id && mouse_instance[offset].m_hover_button_id == (uint32_t)fan::uninitialized) {
+									//				can be any number above 4
+									auto new_flag = set_flag((fan::key_state)10, fan_2d::graphics::gui::mouse_stage::inside);
+
+									if (mouse_instance[i].previous_state_flag[offset] == new_flag && ignore_repetition) {
+										continue;
+									}
+
+									mouse_instance[i].previous_state_flag[offset] = new_flag;
+
+									mouse_instance[i].m_hover_button_id = i;
+
+									if (m_on_mouse_event[offset]) {
+										m_on_mouse_event[offset](i, mouse_stage::inside);
+									}
+								}
+								else if (object->inside(i)) {
+
+									//					can be any number above 4
+									auto new_flag = set_flag((fan::key_state)10, mouse_stage::inside);
+
+									if (mouse_instance[i].previous_state_flag[offset] == new_flag && ignore_repetition) {
+										continue;
+									}
+
+									mouse_instance[i].previous_state_flag[offset] = new_flag;
+
+									mouse_instance[i].m_hover_button_id = i;
+
+									if (m_on_mouse_event[offset]) {
+										m_on_mouse_event[offset](i, mouse_stage::inside);
+									}
+								}
+								else if (!object->inside(i) && input_instance[i].m_held_button_id != (uint32_t)fan::uninitialized) {
+
+									//					can be any number above 4
+									auto new_flag = set_flag((fan::key_state)10, mouse_stage::outside_drag);
+
+									if (mouse_instance[i].previous_state_flag[offset] == new_flag && ignore_repetition) {
+										continue;
+									}
+
+									mouse_instance[i].previous_state_flag[offset] = new_flag;
+
+									if (m_on_mouse_event[offset]) {
+										m_on_mouse_event[offset](i, mouse_stage::outside_drag);
+									}
+								}
+								else if (!object->inside(i)) {
+									//					can be any number above 4
+									auto new_flag = set_flag((fan::key_state)10, mouse_stage::outside);
+
+									if (mouse_instance[i].previous_state_flag[offset] == new_flag && ignore_repetition) {
+										continue;
+									}
+
+									mouse_instance[i].previous_state_flag[offset] = new_flag;
+
+									if (m_on_mouse_event[offset]) {
+										m_on_mouse_event[offset](i, mouse_stage::outside);
+									}
+								}
+							}
+
+						});
 					}
 
-					void on_exit(std::function<void(uint32_t i)> function) {
-						base::mouse::on_exit<1>(function);
+					auto holding_button(uint32_t i) const {
+						return input_instance[i].m_held_button_id;
 					}
 
 				protected:
 
-					std::function<void(uint32_t)> m_on_click[2];
-					std::function<void(uint32_t)> m_on_release[2];
-					std::function<void(uint32_t)> m_on_outside_release[2];
-					std::function<void(uint32_t)> m_on_hover[2];
-					std::function<void(uint32_t)> m_on_exit[2];
+					struct input_instance_t {
+						uint32_t m_held_button_id;
+						std::vector<uint8_t> previous_state_flag;
+					};
 
-					uint32_t m_held_button_id[2];
-					uint32_t m_hover_button_id[2];
+					struct mouse_instance_t {
+						uint32_t m_hover_button_id;
+						std::vector<uint8_t> previous_state_flag;
+						bool ignore_repeat;
+					};
 
-					uint32_t m_key_press_key[2];
-					uint32_t m_key_release_key[2];
+					// uint32_t index, fan::key_state state, bool inside
+					std::vector<std::function<void(uint32_t, fan::key_state, mouse_stage state)>> m_on_input;
+					// uint32_t index, bool inside
+					std::vector<std::function<void(uint32_t, mouse_stage state)>> m_on_mouse_event;
 
-					fan::window::key_callback_t* m_key_press_it[2];
-					fan::window::key_callback_t* m_key_release_it[2];
+					std::vector<input_instance_t> input_instance;
+					std::vector<mouse_instance_t> mouse_instance;
+
+					T* object;
 
 				};
 
@@ -546,11 +646,11 @@ namespace fan_2d {
 																								  \
 					f32_t h = (std::abs(fan_2d::graphics::gui::text_renderer::get_highest(font_size) + fan_2d::graphics::gui::text_renderer::get_lowest(font_size))); \
 																																									\
-					if (i < m_new_lines.size() && m_new_lines[i]) { \
-						h += text_renderer::font_info.line_height * fan_2d::graphics::gui::text_renderer::convert_font_size(font_size) * m_new_lines[i]; \
+					if (i < fan_2d::graphics::gui::text_renderer::m_new_lines.size() && fan_2d::graphics::gui::text_renderer::m_new_lines[i]) { \
+						h += text_renderer::font_info.line_height * fan_2d::graphics::gui::text_renderer::convert_font_size(font_size) * fan_2d::graphics::gui::text_renderer::m_new_lines[i]; \
 					} \
 					\
-					return (fan_2d::graphics::gui::text_renderer::get_text(i).empty() ? fan::vec2(0, h) : fan::vec2(fan_2d::graphics::gui::text_renderer::get_text_size(fan_2d::graphics::gui::text_renderer::get_text(i), font_size).x, h)) + m_properties[i].border_size; \
+					return (fan_2d::graphics::gui::text_renderer::get_text(i).empty() ? fan::vec2(0, h) : fan::vec2(fan_2d::graphics::gui::text_renderer::get_text_size(fan_2d::graphics::gui::text_renderer::get_text(i), font_size).x, h)) + m_properties[i].padding; \
 				}
 
 #define define_get_property_size \
@@ -564,9 +664,695 @@ namespace fan_2d {
 						h += text_renderer::font_info.line_height * fan_2d::graphics::gui::text_renderer::convert_font_size(properties.font_size) * new_lines; \
 					} \
 						\
-					return (properties.text.empty() ? fan::vec2(0, h) : fan::vec2(fan_2d::graphics::gui::text_renderer::get_text_size(properties.text, properties.font_size).x, h)) + properties.border_size; \
+					return (properties.text.empty() ? fan::vec2(0, h) : fan::vec2(fan_2d::graphics::gui::text_renderer::get_text_size(properties.text, properties.font_size).x, h)) + properties.padding; \
 				}
 			}
+
+			namespace focus {
+
+				constexpr uint32_t no_focus = -1;
+
+				struct properties_t {
+
+					properties_t() {}
+					properties_t(uint32_t x) : window_id((fan::window_t)x), shape(0), i(x) {}
+					properties_t(fan::window_t window_id, void* shape, uint32_t i) : 
+						window_id(window_id), shape(shape), i(i) {}
+
+					// focus window
+					fan::window_t window_id;
+					// shape class, initialized with shape = this
+					void* shape;
+					// index of focus
+					uint32_t i;
+				};
+
+				inline properties_t current_focus = { 0, 0, focus::no_focus };
+
+				static bool operator==(const properties_t& focus, uint32_t focused) {
+					return focus.i == focused;
+				}
+
+				static bool operator==(const properties_t& focus, const properties_t& focused) {
+					return focus.window_id == focused.window_id && focus.shape == focused.shape;
+				}
+
+				static bool operator!=(const properties_t& focus, uint32_t focused) {
+					return focus.i != focused;
+				}
+
+				static properties_t get_focus() {
+					return current_focus;
+				}
+
+				static bool get_focus(const properties_t& focus) {
+					return 
+						current_focus.window_id == focus.window_id && 
+						current_focus.shape == focus.shape && 
+						current_focus.i == focus.i;
+				}
+
+				static void set_focus(const properties_t focus) {
+					current_focus = focus;
+				}
+
+			}
+
+			/*#define create_getset_focus(window_handle, shape, i)  \
+				bool get_focus(uint32_t i) { \
+					return 
+						focus::current_focus.window_id == window_handle &&
+						focus::current_focus.shape == shape &&
+						focus::current_focus.i == 
+
+				}*/
+
+			namespace cursor_properties {
+				inline fan::color color = fan::colors::white;
+				// nanoseconds
+				inline fan::time::nanoseconds blink_speed = 500000000;
+				// i dont suggest changing for now, need to do srcdst - size / 2
+				inline auto line_thickness = 1;
+			}
+
+
+			struct cursor_src_dst_t {
+				fan::vec2 src;
+				fan::vec2 dst;
+			};
+
+			template <typename T>
+			struct text_input {
+
+				/* used for hold precise floats on FED */
+				/* bigger number means better precision */
+				static constexpr uint32_t line_multiplier = 100;
+
+				virtual void backspace_callback(uint32_t i) = 0;
+				virtual void text_callback(uint32_t i) = 0;
+				//virtual void on_input_callback() = 0;
+
+				text_input(T* base) :
+					m_cursor(base->get_camera()), m_box(base), cursor_timer(cursor_properties::blink_speed)
+				{
+					fan_2d::graphics::rectangle::properties_t properties;
+					properties.color = cursor_properties::color;
+					m_cursor.push_back(properties);
+					m_cursor.write_data();
+					cursor_timer.start();
+
+					base->get_camera()->m_window->add_keys_callback([&](fan::window*, uint16 key, fan::key_state state) {
+
+						auto current_focus = focus::get_focus();
+
+						if (state == fan::key_state::release || 
+							current_focus.window_id != m_box->get_camera()->m_window->get_handle() ||  
+							current_focus.i == focus::no_focus ||
+							current_focus.shape != (void*)this || 
+							!m_input_allowed[current_focus.i]
+						) {
+							return;
+						}
+
+						render_cursor = true;
+						cursor_timer.restart();
+
+						switch (key) {
+							case fan::key_backspace: {
+								FED_DeleteCharacterFromCursor(&m_wed[current_focus.i], cursor_reference[current_focus.i]);
+
+								update_text(current_focus.i);
+
+								backspace_callback(current_focus.i);
+
+								update_cursor(current_focus.i);
+
+								break;
+							}
+							case fan::key_delete: {
+								FED_DeleteCharacterFromCursorRight(&m_wed[current_focus.i], cursor_reference[current_focus.i]);
+
+								update_text(current_focus.i);
+
+								backspace_callback(current_focus.i);
+
+								break;
+							}
+							case fan::key_left: {
+								FED_MoveCursorFreeStyleToLeft(&m_wed[current_focus.i], cursor_reference[current_focus.i]);
+
+								update_cursor(current_focus.i);
+
+								break;
+							}
+							case fan::key_right: {
+
+								FED_MoveCursorFreeStyleToRight(&m_wed[current_focus.i], cursor_reference[current_focus.i]);
+
+								update_cursor(current_focus.i);
+
+								break;
+							}
+							case fan::key_up: {
+								FED_MoveCursorFreeStyleToUp(&m_wed[current_focus.i], cursor_reference[current_focus.i]);
+
+								update_cursor(current_focus.i);
+
+								break;
+							}
+							case fan::key_down: {
+								FED_MoveCursorFreeStyleToDown(&m_wed[current_focus.i], cursor_reference[current_focus.i]);
+
+								update_cursor(current_focus.i);
+
+								break;
+							}
+							case fan::key_home: {
+								FED_MoveCursorFreeStyleToBeginOfLine(&m_wed[current_focus.i], cursor_reference[current_focus.i]);
+
+								update_cursor(current_focus.i);
+
+								break;
+							}
+							case fan::key_end: {
+								FED_MoveCursorFreeStyleToEndOfLine(&m_wed[current_focus.i], cursor_reference[current_focus.i]);
+
+								update_cursor(current_focus.i);
+
+								break;
+							}
+							case fan::key_enter: {
+
+								focus::set_focus(focus::no_focus);
+
+								break;
+							}
+							case fan::key_tab: {
+
+								auto current_focus = focus::get_focus();
+
+								if (m_box->get_camera()->m_window->key_press(fan::key_shift)) {
+									if (current_focus.i - 1 == ~0) {
+										current_focus.i = m_box->size() - 1;
+									}
+									else {
+										current_focus.i = (current_focus.i - 1) % m_box->size();
+									}
+								}
+								else {
+									current_focus.i = (current_focus.i + 1) % m_box->size();
+								}
+
+								focus::set_focus(current_focus);
+
+								update_cursor(current_focus.i);
+
+								break;
+							}
+							case fan::mouse_left: {
+
+								/*fan::vec2 src = m_box->get_camera()->m_window->get_mouse_position() - m_box->get_text_starting_point(current_focus.i);
+								fan::vec2 dst = src + fan::vec2(cursor_properties::line_thickness, fan_2d::graphics::gui::text_renderer::font_info.font['\n'].size.y *
+									fan_2d::graphics::gui::text_renderer::convert_font_size(m_box->get_font_size(current_focus.i)));
+
+								FED_LineReference_t FirstLineReference = _FED_LineList_GetNodeFirst(&m_wed[current_focus.i].LineList);
+								FED_LineReference_t LineReference0, LineReference1;
+								FED_CharacterReference_t CharacterReference0, CharacterReference1;
+								FED_GetLineAndCharacter(&m_wed[current_focus.i], FirstLineReference, src.y, src.x * line_multiplier, &LineReference0, &CharacterReference0);
+								FED_GetLineAndCharacter(&m_wed[current_focus.i], FirstLineReference, dst.y, dst.x * line_multiplier, &LineReference1, &CharacterReference1);
+								FED_ConvertCursorToSelection(&m_wed[current_focus.i], cursor_reference[current_focus.i], LineReference0, CharacterReference0, LineReference1, CharacterReference1);
+
+								update_cursor(current_focus.i);*/
+
+								break;
+							}
+							case fan::key_v: {
+
+								if (m_box->get_camera()->m_window->key_press(fan::key_control)) {
+									
+									//get_clipboard_text()
+								}
+
+								break;
+							}
+						}
+
+					});
+
+					base->get_camera()->m_window->add_text_callback([&](fan::window*, uint32_t character) {
+
+						auto current_focus = focus::get_focus();
+
+						if (
+							current_focus.window_id != m_box->get_camera()->m_window->get_handle() ||
+							current_focus.shape != this ||
+							current_focus.i == focus::no_focus || 
+							!m_input_allowed[current_focus.i]
+						) {
+							return;
+						}
+
+						render_cursor = true;
+						cursor_timer.restart();
+
+						fan::utf8_string utf8;
+						utf8.push_back(character);
+
+						auto wc = utf8.to_utf16()[0];
+
+						FED_AddCharacterToCursor(&m_wed[current_focus.i], cursor_reference[current_focus.i], character, fan_2d::graphics::gui::text_renderer::font_info.font[wc].size.x * fan_2d::graphics::gui::text_renderer::convert_font_size(m_box->get_font_size(current_focus.i)) * line_multiplier);
+
+						fan::VEC_t text_vector;
+						VEC_init(&text_vector, sizeof(uint8_t));
+
+						fan::VEC_t cursor_vector;
+						VEC_init(&cursor_vector, sizeof(FED_ExportedCursor_t));
+
+						uint32_t line_index = 0;
+						FED_LineReference_t line_reference = FED_GetLineReferenceByLineIndex(&m_wed[current_focus.i], 0);
+
+						std::vector<FED_ExportedCursor_t*> exported_cursors;
+
+						while (1) {
+							bool is_endline;
+							FED_ExportLine(&m_wed[current_focus.i], line_reference, &text_vector, &cursor_vector, &is_endline, utf8_data_callback);
+
+							line_reference = _FED_LineList_GetNodeByReference(&m_wed[current_focus.i].LineList, line_reference)->NextNodeReference;
+
+							for (uint_t i = 0; i < cursor_vector.Current; i++) {
+								FED_ExportedCursor_t* exported_cursor = &((FED_ExportedCursor_t*)cursor_vector.ptr.data())[i];
+								exported_cursor->y = line_index;
+								exported_cursors.emplace_back(exported_cursor);
+							}
+
+							cursor_vector.Current = 0;
+
+							if (line_reference == m_wed[current_focus.i].LineList.dst) {
+								break;
+							}
+
+							{
+								fan::VEC_handle(&text_vector);
+								text_vector.ptr[text_vector.Current] = '\n';
+								text_vector.Current++;
+							}
+
+
+							line_index++;
+						}
+
+						{
+							fan::VEC_handle(&text_vector);
+							text_vector.ptr[text_vector.Current] = 0;
+							text_vector.Current++;
+						}
+
+						m_box->set_text(current_focus.i, text_vector.ptr.data());
+
+						text_callback(current_focus.i);
+
+						m_box->write_data();
+
+						for (int i = 0; i < exported_cursors.size(); i++) {
+
+							FED_ExportedCursor_t* exported_cursor = exported_cursors[i];
+
+							auto src_dst = get_cursor_src_dst(current_focus.i, exported_cursor->x, exported_cursor->y);
+
+							m_cursor.set_position(0, src_dst.src);
+							m_cursor.set_size(0, src_dst.dst);
+
+						}
+
+						m_cursor.edit_data(0);
+					});
+
+				}
+
+				// must be called after T::push_back
+				void push_back(uint32_t character_limit, f32_t line_width_limit, uint32_t line_limit) {
+					m_wed.resize(m_wed.size() + 1);
+					uint64_t offset = m_wed.size() - 1;
+					FED_open(&m_wed[offset], fan_2d::graphics::gui::text_renderer::font_info.highest, line_width_limit * line_multiplier, line_limit, character_limit);
+					cursor_reference.emplace_back(FED_cursor_open(&m_wed[offset]));
+
+					m_input_allowed.emplace_back(false);
+
+					update_cursor(m_box->size() - 1);
+				}
+
+				// box i
+				void set_line_width(uint32_t i, f32_t line_width) {
+					FED_SetLineWidth(&m_wed[i], line_width * line_multiplier);
+				}
+
+				bool input_allowed(uint32_t i) const {
+					return m_input_allowed[i];
+				}
+
+				void allow_input(uint32_t i, bool state) {
+					m_input_allowed[i] = state;
+
+					auto current_focus = focus::get_focus();
+
+					if (current_focus.i == i && current_focus.window_id == m_box->get_camera()->m_window->get_handle() && current_focus.shape == this) {
+						focus::set_focus(focus::no_focus);
+					}
+				}
+
+				void draw() {
+
+					if (cursor_timer.finished()) {
+						render_cursor = !render_cursor;
+						cursor_timer.restart();
+					}
+
+					auto focus = focus::get_focus();
+
+					if (render_cursor && focus == get_focus_info() && m_input_allowed[focus.i]) {
+						m_cursor.draw(0, 1);
+					}
+				}
+
+				focus::properties_t get_focus_info() const {
+					return { m_box->get_camera()->m_window->get_handle(), (void*)this, 0 };
+				}
+
+				uint32_t get_focus() const {
+					auto current_focus = focus::get_focus();
+
+					if (current_focus == get_focus_info()) {
+						return current_focus.i;
+					}
+
+					return focus::no_focus;
+				}
+				void set_focus(uintptr_t focus_id) {
+
+					auto current_focus = get_focus_info();
+
+					current_focus.i = focus_id;
+
+					focus::set_focus(current_focus);
+
+					update_cursor(focus_id);
+				}
+
+			protected:
+
+
+				bool render_cursor = false;
+
+				fan::time::clock cursor_timer;
+
+				std::vector<FED_CursorReference_t> cursor_reference;
+
+				std::vector<FED_t> m_wed;
+
+				std::vector<uint32_t> m_input_allowed;
+
+				T* m_box;
+				fan_2d::graphics::rectangle m_cursor;
+
+				static void utf8_data_callback(fan::VEC_t* string, FED_Data_t data) {
+					uint8_t size = fan::utf8_get_sizeof_character(data);
+					for(uint8_t i = 0; i < size; i++){
+						{
+							fan::VEC_handle(string);
+							string->ptr[string->Current] = data;
+							string->Current++;
+						}
+						data >>= 8;
+					}
+				}
+
+				// check focus before calling
+				cursor_src_dst_t get_cursor_src_dst(uint32_t rtb_index, uint32_t x, uint32_t line_index) {
+					return m_box->get_cursor(rtb_index, x, line_index);
+				}
+
+				void update_text(uint32_t i) {
+
+					fan::VEC_t text_vector;
+					VEC_init(&text_vector, sizeof(uint8_t));
+
+					fan::VEC_t cursor_vector;
+					VEC_init(&cursor_vector, sizeof(FED_ExportedCursor_t));
+
+					bool is_endline;
+
+					FED_LineReference_t line_reference = FED_GetLineReferenceByLineIndex(&m_wed[i], 0);
+
+					while(1){
+						bool is_endline;
+						FED_ExportLine(&m_wed[i], line_reference, &text_vector, &cursor_vector, &is_endline, utf8_data_callback);
+
+						line_reference = _FED_LineList_GetNodeByReference(&m_wed[i].LineList, line_reference)->NextNodeReference;
+
+						cursor_vector.Current = 0;
+
+						if(line_reference == m_wed[i].LineList.dst){
+							break;
+						}
+
+						{
+							fan::VEC_handle(&text_vector);
+							text_vector.ptr[text_vector.Current] = '\n';
+							text_vector.Current++;
+						}
+
+					}
+
+					{
+						fan::VEC_handle(&text_vector);
+						text_vector.ptr[text_vector.Current] = 0;
+						text_vector.Current++;
+					}
+
+					m_box->set_text(i, text_vector.ptr.data());
+
+					text_callback(i);
+
+					// requires realloc
+					m_box->write_data();
+				}
+
+				void update_cursor(uint32_t i) {
+
+					if (!(focus::get_focus() == get_focus_info())) {
+						return;
+					}
+
+					fan::VEC_t text_vector;
+					VEC_init(&text_vector, sizeof(uint8_t));
+
+					fan::VEC_t cursor_vector;
+					VEC_init(&cursor_vector, sizeof(FED_ExportedCursor_t));
+
+					uint32_t line_index = 0; /* we dont know which line we are at so */
+					FED_LineReference_t line_reference = FED_GetLineReferenceByLineIndex(&m_wed[i], 0);
+
+					while(1){
+						bool is_endline;
+						FED_ExportLine(&m_wed[i], line_reference, &text_vector, &cursor_vector, &is_endline, utf8_data_callback);
+
+						line_reference = _FED_LineList_GetNodeByReference(&m_wed[i].LineList, line_reference)->NextNodeReference;
+
+						for(uint_t j = 0; j < cursor_vector.Current; j++){
+							FED_ExportedCursor_t* exported_cursor = &((FED_ExportedCursor_t *)cursor_vector.ptr.data())[j];
+
+							auto src_dst = get_cursor_src_dst(i, exported_cursor->x, line_index);
+
+							m_cursor.set_position(0, src_dst.src);
+							m_cursor.set_size(0, src_dst.dst);
+							m_cursor.write_data();
+						}
+
+						cursor_vector.Current = 0;
+
+						if(line_reference == m_wed[i].LineList.dst){
+							break;
+						}
+
+						line_index++;
+					}
+				}
+
+				std::vector<cursor_src_dst_t> get_cursor_src_dsts(uint32_t i) {
+
+					if (!(focus::get_focus() == get_focus_info())) {
+						return {};
+					}
+
+					std::vector<cursor_src_dst_t> cursor_src_dsts;
+
+					fan::VEC_t text_vector;
+					VEC_init(&text_vector, sizeof(uint8_t));
+
+					fan::VEC_t cursor_vector;
+					VEC_init(&cursor_vector, sizeof(FED_ExportedCursor_t));
+
+					uint32_t line_index = 0;
+					FED_LineReference_t line_reference = FED_GetLineReferenceByLineIndex(&m_wed[i], 0);
+
+					while(1){
+						bool is_endline;
+						FED_ExportLine(&m_wed[i], line_reference, &text_vector, &cursor_vector, &is_endline, utf8_data_callback);
+
+						line_reference = _FED_LineList_GetNodeByReference(&m_wed[i].LineList, line_reference)->NextNodeReference;
+
+						for(uint_t i = 0; i < cursor_vector.Current; i++){
+							FED_ExportedCursor_t* exported_cursor = &((FED_ExportedCursor_t *)cursor_vector.ptr.data())[i];
+							exported_cursor->y = line_index;
+							cursor_src_dsts.emplace_back(get_cursor_src_dst(0, i, exported_cursor->x, exported_cursor->y));
+						}
+
+						cursor_vector.Current = 0;
+
+						if(line_reference == m_wed[i].LineList.dst){
+							break;
+						}
+
+						{
+							fan::VEC_handle(&text_vector);
+							text_vector.ptr[text_vector.Current] = '\n';
+							text_vector.Current++;
+						}
+
+						line_index++;
+					}
+
+					return cursor_src_dsts;
+				}
+
+			};
+
+			struct editable_text_renderer : 
+				public text_renderer,
+				public base::mouse<editable_text_renderer>,
+				public fan_2d::graphics::gui::text_input<editable_text_renderer>
+			{
+
+				editable_text_renderer(fan::camera* camera) :
+					editable_text_renderer::text_renderer(camera), 
+					editable_text_renderer::text_input(this),
+					editable_text_renderer::mouse(this)
+				{
+
+				}
+
+				void push_back(const fan::utf16_string& text, f32_t font_size, fan::vec2 position, const fan::color& text_color) {
+					editable_text_renderer::text_renderer::push_back(text, font_size, position, text_color);
+					editable_text_renderer::text_input::push_back(-1, -1, -1);
+					editable_text_renderer::mouse::push_back();
+
+					uint32_t index = this->size() - 1;
+
+					for (int i = 0; i < text.size(); i++) {
+
+						fan::utf8_string utf8;
+						utf8.push_back(text[i]);
+
+						auto wc = utf8.to_utf16()[0];
+
+						FED_AddCharacterToCursor(&m_wed[index], cursor_reference[index], text[i], fan_2d::graphics::gui::text_renderer::font_info.font[wc].size.x * fan_2d::graphics::gui::text_renderer::convert_font_size(m_box->get_font_size(index)) * line_multiplier);
+					}
+
+					editable_text_renderer::text_input::update_text(index);
+				}
+
+				bool inside(uint32_t i) const {
+
+					auto box_size = editable_text_renderer::text_renderer::get_text_size(
+						editable_text_renderer::text_renderer::get_text(i),
+						editable_text_renderer::text_renderer::get_font_size(i)
+					);
+
+					auto mouse_position = editable_text_renderer::text_renderer::m_camera->m_window->get_mouse_position();
+
+				
+					f32_t converted = fan_2d::graphics::gui::text_renderer::convert_font_size(this->get_font_size(i));
+					auto line_height = fan_2d::graphics::gui::text_renderer::font_info.font['\n'].size.y * converted;
+
+					return fan_2d::collision::rectangle::point_inside_no_rotation(
+						mouse_position,
+						editable_text_renderer::text_renderer::get_position(i),
+						fan::vec2(box_size.x, line_height)
+					);
+				}
+
+				uint32_t size() const {
+					return editable_text_renderer::text_renderer::size();
+				}
+
+				// receives uint32_t box_i, uint32_t character number x, uint32_t character number y
+				cursor_src_dst_t get_cursor(uint32_t i, uint32_t x, uint32_t y) {
+					f32_t converted = fan_2d::graphics::gui::text_renderer::convert_font_size(this->get_font_size(i));
+					auto line_height = fan_2d::graphics::gui::text_renderer::font_info.font['\n'].size.y * converted;
+
+					fan::vec2 src, dst;
+
+					src += text_renderer::get_position(i);
+
+					//src.y -= line_height / 2;
+
+					uint32_t offset = 0;
+
+					auto str = this->get_text(i);
+
+					for (int j = 0; j < y; j++) {
+						while (str[offset++] != '\n') {
+							if (offset >= str.size() - 1) {
+								throw std::runtime_error("string didnt have endline");
+							}
+						}
+					}
+
+					for (int j = 0; j < x; j++) {
+						wchar_t letter = str[j + offset];
+						if (letter == '\n') {
+							continue;
+						}
+
+						std::wstring wstr;
+
+						wstr.push_back(letter);
+
+						auto letter_info = fan_2d::graphics::gui::text_renderer::get_letter_info(fan::utf16_string(wstr).to_utf8().data(), this->get_font_size(i));
+
+						if (j == x - 1) {
+							src.x += letter_info.size.x + (letter_info.advance - letter_info.size.x) / 2 - 1;
+						}
+						else {
+							src.x += letter_info.advance;
+						}
+
+					}
+
+					src.y += line_height * y;
+
+
+					dst = src + fan::vec2(0, line_height);
+
+					dst = dst - src + fan::vec2(cursor_properties::line_thickness, 0);
+
+
+					return { src, dst };
+				}
+
+				fan::camera* get_camera() {
+					return text_renderer::m_camera;
+				}
+
+				void draw() {
+					text_renderer::draw();
+					text_input::draw();
+				}
+
+				void backspace_callback(uint32_t i) override {}
+				void text_callback(uint32_t i) override {}
+
+			};
 
 			enum class text_position_e {
 				left,
@@ -582,14 +1368,14 @@ namespace fan_2d {
 					const fan::vec2& position
 				) : text(text), position(position) {}
 
-				fan::utf16_string text;
+				fan::utf16_string text = empty_string;
+
+				fan::utf16_string place_holder;
 
 				fan::vec2 position;
-				fan::vec2 border_size;
+				fan::vec2 padding;
 
 				f32_t font_size = fan_2d::graphics::gui::defaults::font_size;
-
-				text_position_e text_position = text_position_e::middle;
 			};
 
 			struct rectangle_button_properties : public button_properties {
@@ -600,10 +1386,91 @@ namespace fan_2d {
 
 			};
 
+			struct rectangle_button_sized_properties {
+
+				rectangle_button_sized_properties() {}
+
+				fan::utf16_string text = empty_string;
+
+				fan::utf16_string place_holder;
+
+				fan::vec2 position;
+
+				f32_t font_size = fan_2d::graphics::gui::defaults::font_size;
+
+				text_position_e text_position = text_position_e::middle;
+
+				fan::vec2 size;
+
+				f32_t advance = 0;
+
+			};
+
+			struct rectangle_text_box_sized :
+				protected fan::class_duplicator<fan_2d::graphics::rectangle, 0>,
+				protected fan::class_duplicator<fan_2d::graphics::rectangle, 1>,
+				public graphics::gui::text_renderer
+				{
+
+				using properties_t = rectangle_button_sized_properties;
+
+				using inner_rect_t = fan::class_duplicator<fan_2d::graphics::rectangle, 0>;
+				using outer_rect_t = fan::class_duplicator<fan_2d::graphics::rectangle, 1>;
+
+				rectangle_text_box_sized(fan::camera* camera, fan_2d::graphics::gui::theme theme = fan_2d::graphics::gui::themes::deep_blue());
+
+				void push_back(const properties_t& properties);
+
+				void draw(uint32_t begin = fan::uninitialized, uint32_t end = fan::uninitialized);
+
+				void set_position(uint32_t i, const fan::vec2& position);
+
+				using fan_2d::graphics::rectangle::get_size;
+
+				bool inside(uintptr_t i, const fan::vec2& position = fan::math::inf) const;
+
+				void set_text(uint32_t i, const fan::utf16_string& text);
+
+				fan::color get_text_color(uint32_t i) const;
+				void set_text_color(uint32_t i, const fan::color& color);
+
+				fan::vec2 get_position(uint32_t i) const;
+				fan::vec2 get_size(uint32_t i) const;
+
+				f32_t get_font_size(uint32_t i) const;
+
+				fan::color get_color(uint32_t i) const;
+
+				// receives uint32_t box_i, uint32_t character number x, uint32_t character number y
+				cursor_src_dst_t get_cursor(uint32_t i, uint32_t x, uint32_t y);
+
+				fan::vec2 get_text_starting_point(uint32_t i) const;
+
+				properties_t get_property(uint32_t i) const;
+
+				fan::camera* get_camera();
+
+				uintptr_t size() const;
+
+				void write_data();
+
+				void edit_data(uint32_t i);
+
+				void edit_data(uint32_t begin, uint32_t end);
+
+				using inner_rect_t::get_color;
+
+				fan_2d::graphics::gui::theme theme;
+
+			protected:
+
+				std::vector<properties_t> m_properties;
+
+			};
+
 			struct rectangle_text_box : 
 				protected fan::class_duplicator<fan_2d::graphics::rectangle, 0>,
 				protected fan::class_duplicator<fan_2d::graphics::rectangle, 1>,
-				public fan_2d::graphics::gui::base::button_metrics,
 				protected graphics::gui::text_renderer
 			{
 
@@ -614,15 +1481,39 @@ namespace fan_2d {
 
 				rectangle_text_box(fan::camera* camera, fan_2d::graphics::gui::theme theme = fan_2d::graphics::gui::themes::deep_blue());
 
-				void push_back(const rectangle_button_properties& properties);
+				void push_back(const properties_t& properties);
 
 				void draw(uint32_t begin = fan::uninitialized, uint32_t end = fan::uninitialized);
+
+				void set_position(uint32_t i, const fan::vec2& position);
 
 				using fan_2d::graphics::rectangle::get_size;
 
 				define_get_property_size;
 
 				bool inside(uintptr_t i, const fan::vec2& position = fan::math::inf) const;
+
+				fan::utf16_string get_text(uint32_t i) const;
+				void set_text(uint32_t i, const fan::utf16_string& text);
+
+				fan::color get_text_color(uint32_t i) const;
+				void set_text_color(uint32_t i, const fan::color& color);
+
+				fan::vec2 get_position(uint32_t i) const;
+				fan::vec2 get_size(uint32_t i) const;
+
+				fan::vec2 get_padding(uint32_t i) const;
+
+				f32_t get_font_size(uint32_t i) const;
+
+				properties_t get_property(uint32_t i) const;
+
+				fan::color get_color(uint32_t i) const;
+
+				// receives uint32_t box_i, uint32_t character number x, uint32_t character number y
+				cursor_src_dst_t get_cursor(uint32_t i, uint32_t x, uint32_t y);
+
+				fan::vec2 get_text_starting_point(uint32_t i) const;
 
 				fan::camera* get_camera();
 
@@ -637,20 +1528,86 @@ namespace fan_2d {
 				using inner_rect_t::get_color;
 				using inner_rect_t::set_color;
 
+				fan_2d::graphics::gui::theme theme;
+
 			protected:
 
 				define_get_button_size;
 
 				std::vector<rectangle_button_properties> m_properties;
 
-				fan_2d::graphics::gui::theme theme;
 			};
+
 
 			struct rectangle_text_button :
 				public fan_2d::graphics::gui::rectangle_text_box,
-				public fan_2d::graphics::gui::base::mouse {
+				public fan_2d::graphics::gui::base::mouse<rectangle_text_button>,
+				public fan_2d::graphics::gui::text_input<rectangle_text_button>
+			{
+
+				struct properties_t : public rectangle_text_box::properties_t{
+					f32_t character_width = (f32_t)0xdfffffff / rectangle_text_button::text_input::line_multiplier;
+					uint32_t character_limit = 99;
+					uint32_t line_limit = 99;
+				};
+
+				using input_instance_t = fan_2d::graphics::gui::text_input<rectangle_text_button>;
 
 				rectangle_text_button(fan::camera* camera, fan_2d::graphics::gui::theme theme = fan_2d::graphics::gui::themes::deep_blue());
+
+				void push_back(const properties_t& properties);
+
+				void set_place_holder(uint32_t i, const fan::utf16_string& place_holder);
+
+				void draw();
+
+			};
+
+			struct rectangle_text_button_sized :
+				public fan_2d::graphics::gui::rectangle_text_box_sized,
+				public fan_2d::graphics::gui::base::mouse<rectangle_text_button_sized>,
+				public fan_2d::graphics::gui::text_input<rectangle_text_button_sized>
+			{
+
+				struct properties_t : public rectangle_text_box_sized::properties_t {
+					f32_t character_width = (f32_t)0xdfffffff / rectangle_text_button::text_input::line_multiplier;
+					uint32_t character_limit = -1;
+					uint32_t line_limit = -1;
+				};
+
+				using input_instance_t = fan_2d::graphics::gui::text_input<rectangle_text_button_sized>;
+
+				rectangle_text_button_sized(fan::camera* camera, fan_2d::graphics::gui::theme theme = fan_2d::graphics::gui::themes::deep_blue());
+
+				void push_back(const properties_t& properties);
+
+				void set_place_holder(uint32_t i, const fan::utf16_string& place_holder);
+
+				void draw();
+
+				void backspace_callback(uint32_t i) override;
+				void text_callback(uint32_t i) override;
+
+			protected:
+
+				rectangle_text_button_sized(bool custom, fan::camera* camera, fan_2d::graphics::gui::theme theme = fan_2d::graphics::gui::themes::deep_blue());
+
+			};
+
+			struct rectangle_selectable_button_sized : public rectangle_text_button_sized{
+
+				rectangle_selectable_button_sized(fan::camera* camera, fan_2d::graphics::gui::theme theme = fan_2d::graphics::gui::themes::deep_blue());
+
+				uint32_t get_selected(uint32_t i) const;
+				void set_selected(uint32_t i);
+
+				void add_on_select(std::function<void(uint32_t i)> function);
+
+			protected:
+
+				std::vector<std::function<void(uint32_t)>> m_on_select;
+
+				uint32_t m_selected = (uint32_t)fan::uninitialized;
 
 			};
 
@@ -670,7 +1627,6 @@ namespace fan_2d {
 
 			class sprite_text_box :
 				protected fan::class_duplicator<fan_2d::graphics::sprite, 0>,
-				public base::button_metrics,
 				protected fan_2d::graphics::gui::text_renderer {
 
 			public:
@@ -704,9 +1660,55 @@ namespace fan_2d {
 
 			struct sprite_text_button :
 				public fan_2d::graphics::gui::sprite_text_box,
-				public base::mouse {
+				public base::mouse<sprite_text_button> {
 
 				sprite_text_button(fan::camera* camera, const std::string& path);
+
+			};
+
+			struct scrollbar : public fan_2d::graphics::rectangle, public fan_2d::graphics::gui::base::mouse<scrollbar> {
+
+				enum class scroll_direction_e {
+					horizontal,
+					vertical,
+				};
+
+				struct properties_t {
+					fan::vec2 position;
+					fan::vec2 size;
+					fan::color color;
+					scroll_direction_e scroll_direction;
+					f32_t current;
+					f32_t length;
+					uint32_t outline_thickness;
+				};
+
+				using on_scroll_t = std::function<void(uint32_t i, f32_t current)>;
+
+				scrollbar(fan::camera* camera);
+
+				void push_back(const properties_t& instance);
+
+				void draw();
+
+				void write_data();
+
+				fan::camera* get_camera();
+
+				void add_on_scroll(on_scroll_t function);
+
+			protected:
+
+				struct scroll_properties_t {
+					scroll_direction_e scroll_direction;
+					f32_t length;
+					f32_t current;
+					uint32_t outline_thickness;
+				};
+
+				std::vector<scroll_properties_t> m_properties;
+
+				std::vector<on_scroll_t> m_on_scroll;
 
 			};
 
@@ -1110,7 +2112,7 @@ namespace fan_2d {
 				protected fan::class_duplicator<fan_2d::graphics::line, 99>,
 				protected fan::class_duplicator<fan_2d::graphics::rectangle, 99>, 
 				protected fan::class_duplicator<fan_2d::graphics::gui::text_renderer, 99>,
-				public base::mouse {
+				public base::mouse<checkbox> {
 
 			protected:
 
@@ -1152,8 +2154,8 @@ namespace fan_2d {
 				void edit_data(uint32_t i);
 				void edit_data(uint32_t begin, uint32_t end);
 
-
 			protected:
+
 
 				std::function<void(uint32_t)> m_on_check;
 				std::function<void(uint32_t)> m_on_uncheck;
@@ -1165,7 +2167,7 @@ namespace fan_2d {
 
 			};
 
-		}
+}
 
 	}
 

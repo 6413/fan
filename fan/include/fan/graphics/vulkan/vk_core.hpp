@@ -360,20 +360,35 @@ namespace fan {
 				vkBindImageMemory(*m_device, image, m_image_memory[m_image_memory.size() - 1], 0);
 			}
 
+			void free_image_memory(uint32_t i) {
+				vkFreeMemory(*m_device, m_image_memory[i], nullptr);
+				m_image_memory.erase(m_image_memory.begin() + i);
+				vkDestroyImageView(*m_device, image_views[i], nullptr);
+			}
+
+			void free_image_memory() {
+				for (int i = 0; i < m_image_memory.size(); i++) {
+
+					vkFreeMemory(*m_device, m_image_memory[i], nullptr);
+				}
+
+				m_image_memory.clear();
+			}
+
 			void free() {
 				for (int i = 0; i < m_image_memory.size(); i++) {
 
 					vkFreeMemory(*m_device, m_image_memory[i], nullptr);
-					m_image_memory[i] = nullptr;
 				}
 
+				m_image_memory.clear();
 
 				vkDestroySampler(*m_device, texture_sampler, nullptr);
 				texture_sampler = nullptr;
 
 				delete descriptor_handler;
 				descriptor_handler = nullptr;
-
+				
 				for (int i = 0; i < image_views.size(); i++) {
 					vkDestroyImageView(*m_device, image_views[i], nullptr);
 					image_views[i] = nullptr;
@@ -482,7 +497,7 @@ namespace fan {
 				if (vkCreateImageView(*m_device, &view_info, nullptr, &image_view) != VK_SUCCESS) {
 					throw std::runtime_error("failed to create texture image view!");
 				}
-
+				
 				return image_view;
 			}
 
@@ -507,6 +522,14 @@ namespace fan {
 				);
 				
 				return descriptor_handler->descriptor_sets.size() / swap_chain_image_size - 1;
+			}
+
+			void erase(uint32_t i, uint32_t descriptor_offset, uint32_t swap_chain_size) {
+				descriptor_handler->erase(descriptor_offset, swap_chain_size);
+				vkDestroyImageView(*m_device, image_views[i], nullptr);
+				image_views.erase(image_views.begin() + i);
+				vkFreeMemory(*m_device, m_image_memory[i], nullptr);
+				m_image_memory.erase(m_image_memory.begin() + i);
 			}
 
 			std::vector<VkDeviceMemory> m_image_memory;

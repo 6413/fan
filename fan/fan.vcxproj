@@ -29,26 +29,26 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -170,7 +170,7 @@
       <WarningLevel>Level1</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
+      <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>
       </PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
@@ -196,6 +196,51 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Source.cpp" />
+    <ClCompile Include="src\box2d\collision\b2_broad_phase.cpp" />
+    <ClCompile Include="src\box2d\collision\b2_chain_shape.cpp" />
+    <ClCompile Include="src\box2d\collision\b2_circle_shape.cpp" />
+    <ClCompile Include="src\box2d\collision\b2_collide_circle.cpp" />
+    <ClCompile Include="src\box2d\collision\b2_collide_edge.cpp" />
+    <ClCompile Include="src\box2d\collision\b2_collide_polygon.cpp" />
+    <ClCompile Include="src\box2d\collision\b2_collision.cpp" />
+    <ClCompile Include="src\box2d\collision\b2_distance.cpp" />
+    <ClCompile Include="src\box2d\collision\b2_dynamic_tree.cpp" />
+    <ClCompile Include="src\box2d\collision\b2_edge_shape.cpp" />
+    <ClCompile Include="src\box2d\collision\b2_polygon_shape.cpp" />
+    <ClCompile Include="src\box2d\collision\b2_time_of_impact.cpp" />
+    <ClCompile Include="src\box2d\common\b2_block_allocator.cpp" />
+    <ClCompile Include="src\box2d\common\b2_draw.cpp" />
+    <ClCompile Include="src\box2d\common\b2_math.cpp" />
+    <ClCompile Include="src\box2d\common\b2_settings.cpp" />
+    <ClCompile Include="src\box2d\common\b2_stack_allocator.cpp" />
+    <ClCompile Include="src\box2d\common\b2_timer.cpp" />
+    <ClCompile Include="src\box2d\dynamics\b2_body.cpp" />
+    <ClCompile Include="src\box2d\dynamics\b2_chain_circle_contact.cpp" />
+    <ClCompile Include="src\box2d\dynamics\b2_chain_polygon_contact.cpp" />
+    <ClCompile Include="src\box2d\dynamics\b2_circle_contact.cpp" />
+    <ClCompile Include="src\box2d\dynamics\b2_contact.cpp" />
+    <ClCompile Include="src\box2d\dynamics\b2_contact_manager.cpp" />
+    <ClCompile Include="src\box2d\dynamics\b2_contact_solver.cpp" />
+    <ClCompile Include="src\box2d\dynamics\b2_distance_joint.cpp" />
+    <ClCompile Include="src\box2d\dynamics\b2_edge_circle_contact.cpp" />
+    <ClCompile Include="src\box2d\dynamics\b2_edge_polygon_contact.cpp" />
+    <ClCompile Include="src\box2d\dynamics\b2_fixture.cpp" />
+    <ClCompile Include="src\box2d\dynamics\b2_friction_joint.cpp" />
+    <ClCompile Include="src\box2d\dynamics\b2_gear_joint.cpp" />
+    <ClCompile Include="src\box2d\dynamics\b2_island.cpp" />
+    <ClCompile Include="src\box2d\dynamics\b2_joint.cpp" />
+    <ClCompile Include="src\box2d\dynamics\b2_motor_joint.cpp" />
+    <ClCompile Include="src\box2d\dynamics\b2_mouse_joint.cpp" />
+    <ClCompile Include="src\box2d\dynamics\b2_polygon_circle_contact.cpp" />
+    <ClCompile Include="src\box2d\dynamics\b2_polygon_contact.cpp" />
+    <ClCompile Include="src\box2d\dynamics\b2_prismatic_joint.cpp" />
+    <ClCompile Include="src\box2d\dynamics\b2_pulley_joint.cpp" />
+    <ClCompile Include="src\box2d\dynamics\b2_revolute_joint.cpp" />
+    <ClCompile Include="src\box2d\dynamics\b2_weld_joint.cpp" />
+    <ClCompile Include="src\box2d\dynamics\b2_wheel_joint.cpp" />
+    <ClCompile Include="src\box2d\dynamics\b2_world.cpp" />
+    <ClCompile Include="src\box2d\dynamics\b2_world_callbacks.cpp" />
+    <ClCompile Include="src\box2d\rope\b2_rope.cpp" />
     <ClCompile Include="src\fan\graphics\camera.cpp" />
     <ClCompile Include="src\fan\graphics\opengl\gl_graphics.cpp" />
     <ClCompile Include="src\fan\graphics\opengl\gl_gui.cpp" />
@@ -208,13 +253,21 @@
   <ItemGroup>
     <ClInclude Include="include\fan\audio.hpp" />
     <ClInclude Include="include\fan\audio\audio.hpp" />
+    <ClInclude Include="include\fan\BLL\BLL.h" />
+    <ClInclude Include="include\fan\BLL\internal\basic_types.h" />
+    <ClInclude Include="include\fan\BLL\internal\rest.h" />
     <ClInclude Include="include\fan\color.hpp" />
     <ClInclude Include="include\fan\da.h" />
     <ClInclude Include="include\fan\engine\graphics\graphics.hpp" />
     <ClInclude Include="include\fan\fast_noise.hpp" />
     <ClInclude Include="include\fan\fast_noise\fast_noise.hpp" />
     <ClInclude Include="include\fan\fbsp\rectangle.hpp" />
+    <ClInclude Include="include\fan\fed\internal\private.h" />
+    <ClInclude Include="include\fan\fed\internal\public.h" />
+    <ClInclude Include="include\fan\fed\internal\types.h" />
+    <ClInclude Include="include\fan\fed\WED.h" />
     <ClInclude Include="include\fan\file.hpp" />
+    <ClInclude Include="include\fan\font.hpp" />
     <ClInclude Include="include\fan\global_vars.hpp" />
     <ClInclude Include="include\fan\graphics.hpp" />
     <ClInclude Include="include\fan\graphics\camera.hpp" />
@@ -228,8 +281,10 @@
     <ClInclude Include="include\fan\graphics\opengl\gl_shader.hpp" />
     <ClInclude Include="include\fan\graphics\renderer.hpp" />
     <ClInclude Include="include\fan\graphics\shared.hpp" />
+    <ClInclude Include="include\fan\graphics\shared_core.hpp" />
     <ClInclude Include="include\fan\graphics\shared_graphics.hpp" />
     <ClInclude Include="include\fan\graphics\shared_gui.hpp" />
+    <ClInclude Include="include\fan\graphics\shared_inline_graphics.hpp" />
     <ClInclude Include="include\fan\graphics\themes.hpp" />
     <ClInclude Include="include\fan\graphics\vulkan\vk_core.hpp" />
     <ClInclude Include="include\fan\graphics\vulkan\vk_descriptor.hpp" />
@@ -253,6 +308,7 @@
     <ClInclude Include="include\fan\physics\raycast\rectangle.hpp" />
     <ClInclude Include="include\fan\shader.h" />
     <ClInclude Include="include\fan\soil2\SOIL2.h" />
+    <ClInclude Include="include\fan\system.hpp" />
     <ClInclude Include="include\fan\time.hpp" />
     <ClInclude Include="include\fan\time\time.hpp" />
     <ClInclude Include="include\fan\types.h" />
@@ -263,7 +319,10 @@
     <ClInclude Include="include\fan\types\quaternion.hpp" />
     <ClInclude Include="include\fan\types\types.hpp" />
     <ClInclude Include="include\fan\types\vector.hpp" />
+    <ClInclude Include="include\fan\utf_string.hpp" />
+    <ClInclude Include="include\fan\VEC.h" />
     <ClInclude Include="include\fan\vector.h" />
+    <ClInclude Include="include\fan\vulkan.hpp" />
     <ClInclude Include="include\fan\window\window.hpp" />
     <ClInclude Include="include\fan\window\window_input.hpp" />
     <ClInclude Include="src\box2d\dynamics\b2_chain_circle_contact.h" />

@@ -135,8 +135,7 @@ fan::mat4 fan::camera::get_view_matrix() const {
 }
 
 fan::mat4 fan::camera::get_view_matrix(const fan::mat4& m) const {
-	//																	 to prevent extra trash in camera class
-	return m * fan::math::look_at_left<fan::mat4>(this->m_position.rounded(), this->m_position.rounded() + m_front.rounded(), this->world_up);
+	return m * fan::math::look_at_left<fan::mat4>(this->m_position, this->m_position + m_front, this->world_up);
 }
 
 fan::vec3 fan::camera::get_position() const {

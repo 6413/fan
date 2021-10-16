@@ -32,9 +32,6 @@ namespace fan_2d {
 
 			//};
 
-			inline std::unordered_map<fan::window_t, uintptr_t> current_focus;
-			inline std::unordered_map<fan::window_t, uintptr_t> focus_counter;
-
 		}
 
 	}

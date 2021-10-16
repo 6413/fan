@@ -1,80 +1,91 @@
-void _WED_MoveCharacterToBeginOfLine(
-	WED_t *wed,
-	_WED_Line_t *srcLine, WED_LineReference_t srcLineReference,
-	WED_CharacterReference_t srcCharacterReference, _WED_Character_t *srcCharacter,
-	_WED_Line_t *dstLine, WED_LineReference_t dstLineReference
-){
-	WED_CharacterReference_t dstCharacterReference = _WED_CharacterList_NewNode(&dstLine->CharacterList);
-	_WED_CharacterList_linkNext(&dstLine->CharacterList, dstLine->CharacterList.src, dstCharacterReference);
-	_WED_CharacterList_Node_t *dstCharacterNode = _WED_CharacterList_GetNodeByReference(
-		&dstLine->CharacterList,
-		dstCharacterReference
-	);
-	_WED_Character_t *dstCharacter = &dstCharacterNode->data.data;
-	if(srcCharacter->CursorReference != -1){
-		_WED_CursorList_Node_t *CursorNode = _WED_CursorList_GetNodeByReference(
-			&wed->CursorList,
-			srcCharacter->CursorReference
-		);
-		WED_Cursor_t *Cursor = &CursorNode->data.data;
-		Cursor->FreeStyle.CharacterReference = dstCharacterReference;
-		Cursor->FreeStyle.LineReference = dstLineReference;
-	}
-	srcLine->TotalWidth -= srcCharacter->width;
-	dstLine->TotalWidth += srcCharacter->width;
-	dstCharacter->CursorReference = srcCharacter->CursorReference;
-	dstCharacter->width = srcCharacter->width;
-	dstCharacter->data = srcCharacter->data;
-	_WED_CharacterList_unlink(&srcLine->CharacterList, srcCharacterReference);
-}
-void _WED_MoveCharacterToEndOfLine(
-	WED_t *wed,
-	_WED_Line_t *srcLine, WED_LineReference_t srcLineReference,
-	WED_CharacterReference_t srcCharacterReference, _WED_Character_t *srcCharacter,
-	_WED_Line_t *dstLine, WED_LineReference_t dstLineReference
-){
-	WED_CharacterReference_t dstCharacterReference = _WED_CharacterList_NewNode(&dstLine->CharacterList);
-	_WED_CharacterList_linkPrev(&dstLine->CharacterList, dstLine->CharacterList.dst, dstCharacterReference);
-	_WED_CharacterList_Node_t *dstCharacterNode = _WED_CharacterList_GetNodeByReference(
-		&dstLine->CharacterList,
-		dstCharacterReference
-	);
-	_WED_Character_t *dstCharacter = &dstCharacterNode->data.data;
-	if(srcCharacter->CursorReference != -1){
-		_WED_CursorList_Node_t *CursorNode = _WED_CursorList_GetNodeByReference(
-			&wed->CursorList,
-			srcCharacter->CursorReference
-		);
-		WED_Cursor_t *Cursor = &CursorNode->data.data;
-		Cursor->FreeStyle.CharacterReference = dstCharacterReference;
-		Cursor->FreeStyle.LineReference = dstLineReference;
-	}
-	srcLine->TotalWidth -= srcCharacter->width;
-	dstLine->TotalWidth += srcCharacter->width;
-	dstCharacter->CursorReference = srcCharacter->CursorReference;
-	dstCharacter->width = srcCharacter->width;
-	dstCharacter->data = srcCharacter->data;
-	_WED_CharacterList_unlink(&srcLine->CharacterList, srcCharacterReference);
+static
+void _FED_RemoveLine(FED_t *wed, FED_LineReference_t LineReference){
+	_FED_LineList_Node_t *LineNode = _FED_LineList_GetNodeByReference(&wed->LineList, LineReference);
+	_FED_Line_t *Line = &LineNode->data.data;
+	_FED_CharacterList_close(&Line->CharacterList);
+	_FED_LineList_unlink(&wed->LineList, LineReference);
 }
 
-void _WED_MoveCursorFreeStyle(
-	WED_t *wed,
-	WED_CursorReference_t CursorReference,
-	WED_Cursor_t *Cursor,
-	WED_LineReference_t dstLineReference,
-	WED_CharacterReference_t dstCharacterReference,
-	_WED_Character_t *dstCharacter
+static
+void _FED_MoveCharacterToBeginOfLine(
+	FED_t *wed,
+	_FED_Line_t *srcLine, FED_LineReference_t srcLineReference,
+	FED_CharacterReference_t srcCharacterReference, _FED_Character_t *srcCharacter,
+	_FED_Line_t *dstLine, FED_LineReference_t dstLineReference
 ){
-	_WED_LineList_Node_t *srcLineNode = _WED_LineList_GetNodeByReference(
+	FED_CharacterReference_t dstCharacterReference = _FED_CharacterList_NewNode(&dstLine->CharacterList);
+	_FED_CharacterList_linkNext(&dstLine->CharacterList, dstLine->CharacterList.src, dstCharacterReference);
+	_FED_CharacterList_Node_t *dstCharacterNode = _FED_CharacterList_GetNodeByReference(
+		&dstLine->CharacterList,
+		dstCharacterReference
+	);
+	_FED_Character_t *dstCharacter = &dstCharacterNode->data.data;
+	if(srcCharacter->CursorReference != -1){
+		_FED_CursorList_Node_t *CursorNode = _FED_CursorList_GetNodeByReference(
+			&wed->CursorList,
+			srcCharacter->CursorReference
+		);
+		FED_Cursor_t *Cursor = &CursorNode->data.data;
+		Cursor->FreeStyle.CharacterReference = dstCharacterReference;
+		Cursor->FreeStyle.LineReference = dstLineReference;
+	}
+	srcLine->TotalWidth -= srcCharacter->width;
+	dstLine->TotalWidth += srcCharacter->width;
+	dstCharacter->CursorReference = srcCharacter->CursorReference;
+	dstCharacter->width = srcCharacter->width;
+	dstCharacter->data = srcCharacter->data;
+	_FED_CharacterList_unlink(&srcLine->CharacterList, srcCharacterReference);
+}
+static
+void _FED_MoveCharacterToEndOfLine(
+	FED_t *wed,
+	_FED_Line_t *srcLine, FED_LineReference_t srcLineReference,
+	FED_CharacterReference_t srcCharacterReference, _FED_Character_t *srcCharacter,
+	_FED_Line_t *dstLine, FED_LineReference_t dstLineReference
+){
+	FED_CharacterReference_t dstCharacterReference = _FED_CharacterList_NewNode(&dstLine->CharacterList);
+	_FED_CharacterList_linkPrev(&dstLine->CharacterList, dstLine->CharacterList.dst, dstCharacterReference);
+	_FED_CharacterList_Node_t *dstCharacterNode = _FED_CharacterList_GetNodeByReference(
+		&dstLine->CharacterList,
+		dstCharacterReference
+	);
+	_FED_Character_t *dstCharacter = &dstCharacterNode->data.data;
+	if(srcCharacter->CursorReference != -1){
+		_FED_CursorList_Node_t *CursorNode = _FED_CursorList_GetNodeByReference(
+			&wed->CursorList,
+			srcCharacter->CursorReference
+		);
+		FED_Cursor_t *Cursor = &CursorNode->data.data;
+		Cursor->FreeStyle.CharacterReference = dstCharacterReference;
+		Cursor->FreeStyle.LineReference = dstLineReference;
+	}
+	srcLine->TotalWidth -= srcCharacter->width;
+	dstLine->TotalWidth += srcCharacter->width;
+	dstCharacter->CursorReference = srcCharacter->CursorReference;
+	dstCharacter->width = srcCharacter->width;
+	dstCharacter->data = srcCharacter->data;
+	_FED_CharacterList_unlink(&srcLine->CharacterList, srcCharacterReference);
+}
+
+static
+void _FED_MoveCursorFreeStyle(
+	FED_t *wed,
+	FED_CursorReference_t CursorReference,
+	FED_Cursor_t *Cursor,
+	FED_LineReference_t dstLineReference,
+	FED_CharacterReference_t dstCharacterReference,
+	_FED_Character_t *dstCharacter
+){
+	_FED_LineList_Node_t *srcLineNode = _FED_LineList_GetNodeByReference(
 		&wed->LineList,
 		Cursor->FreeStyle.LineReference
 	);
-	_WED_Line_t *srcLine = &srcLineNode->data.data;
-	_WED_CharacterList_Node_t *srcCharacterNode = _WED_CharacterList_GetNodeByReference(
+	_FED_Line_t *srcLine = &srcLineNode->data.data;
+	_FED_CharacterList_Node_t *srcCharacterNode = _FED_CharacterList_GetNodeByReference(
 		&srcLine->CharacterList,
 		Cursor->FreeStyle.CharacterReference
 	);
-	_WED_Character_t *srcCharacter = &srcCharacterNode->data.data;
+	_FED_Character_t *srcCharacter = &srcCharacterNode->data.data;
 	srcCharacter->CursorReference = -1;
 	if(dstCharacter->CursorReference != -1){
 		/* there is already cursor what should we do? */
@@ -84,13 +95,14 @@ void _WED_MoveCursorFreeStyle(
 	Cursor->FreeStyle.LineReference = dstLineReference;
 	Cursor->FreeStyle.CharacterReference = dstCharacterReference;
 }
-void _WED_MoveCursor_NoCleaning(
-	WED_CursorReference_t CursorReference,
-	WED_LineReference_t *srcLineReference, /* will be changed */
-	WED_CharacterReference_t *srcCharacterReference, /* will be changed */
-	WED_LineReference_t dstLineReference,
-	WED_CharacterReference_t dstCharacterReference,
-	_WED_Character_t *dstCharacter
+static
+void _FED_MoveCursor_NoCleaning(
+	FED_CursorReference_t CursorReference,
+	FED_LineReference_t *srcLineReference, /* will be changed */
+	FED_CharacterReference_t *srcCharacterReference, /* will be changed */
+	FED_LineReference_t dstLineReference,
+	FED_CharacterReference_t dstCharacterReference,
+	_FED_Character_t *dstCharacter
 ){
 	if(dstCharacter->CursorReference != -1){
 		/* there is already cursor what should we do? */
@@ -100,17 +112,18 @@ void _WED_MoveCursor_NoCleaning(
 	*srcLineReference = dstLineReference;
 	*srcCharacterReference = dstCharacterReference;
 }
-void _WED_MoveCursorSelection(
-	WED_CursorReference_t CursorReference,
-	WED_LineReference_t *srcLineReference, /* will be changed */
-	WED_CharacterReference_t *srcCharacterReference, /* will be changed */
-	_WED_Character_t *srcCharacter,
-	WED_LineReference_t dstLineReference,
-	WED_CharacterReference_t dstCharacterReference,
-	_WED_Character_t *dstCharacter
+static
+void _FED_MoveCursorSelection(
+	FED_CursorReference_t CursorReference,
+	FED_LineReference_t *srcLineReference, /* will be changed */
+	FED_CharacterReference_t *srcCharacterReference, /* will be changed */
+	_FED_Character_t *srcCharacter,
+	FED_LineReference_t dstLineReference,
+	FED_CharacterReference_t dstCharacterReference,
+	_FED_Character_t *dstCharacter
 ){
 	srcCharacter->CursorReference = -1;
-	_WED_MoveCursor_NoCleaning(
+	_FED_MoveCursor_NoCleaning(
 		CursorReference,
 		srcLineReference,
 		srcCharacterReference,
@@ -122,16 +135,17 @@ void _WED_MoveCursorSelection(
 
 /* future implement that moves all cursors source to destination */
 /* safe to call when source doesnt have cursor too */
-void _WED_MoveAllCursors(
-	WED_t *wed,
-	WED_LineReference_t srcLineReference,
-	WED_CharacterReference_t srcCharacterReference,
-	_WED_Character_t *srcCharacter,
-	WED_LineReference_t dstLineReference,
-	WED_CharacterReference_t dstCharacterReference,
-	_WED_Character_t *dstCharacter
+static
+void _FED_MoveAllCursors(
+	FED_t *wed,
+	FED_LineReference_t srcLineReference,
+	FED_CharacterReference_t srcCharacterReference,
+	_FED_Character_t *srcCharacter,
+	FED_LineReference_t dstLineReference,
+	FED_CharacterReference_t dstCharacterReference,
+	_FED_Character_t *dstCharacter
 ){
-	WED_CursorReference_t CursorReference = srcCharacter->CursorReference;
+	FED_CursorReference_t CursorReference = srcCharacter->CursorReference;
 	if(CursorReference == -1){
 		/* source doesnt have any cursor */
 		return;
@@ -142,15 +156,15 @@ void _WED_MoveAllCursors(
 		assert(0);
 	}
 	dstCharacter->CursorReference = CursorReference;
-	_WED_CursorList_Node_t *CursorNode = _WED_CursorList_GetNodeByReference(&wed->CursorList, CursorReference);
-	WED_Cursor_t *Cursor = &CursorNode->data.data;
+	_FED_CursorList_Node_t *CursorNode = _FED_CursorList_GetNodeByReference(&wed->CursorList, CursorReference);
+	FED_Cursor_t *Cursor = &CursorNode->data.data;
 	switch(Cursor->type){
-		case WED_CursorType_FreeStyle_e:{
+		case FED_CursorType_FreeStyle_e:{
 			Cursor->FreeStyle.LineReference = dstLineReference;
 			Cursor->FreeStyle.CharacterReference = dstCharacterReference;
 			break;
 		}
-		case WED_CursorType_Selection_e:{
+		case FED_CursorType_Selection_e:{
 			if(
 				Cursor->Selection.LineReference[0] == srcLineReference &&
 				Cursor->Selection.CharacterReference[0] == srcCharacterReference
@@ -167,56 +181,59 @@ void _WED_MoveAllCursors(
 	}
 }
 
-void _WED_RemoveCharacter_Safe(
-	WED_t *wed,
-	WED_LineReference_t LineReference,
-	_WED_Line_t *Line,
-	WED_CharacterReference_t CharacterReference,
-	_WED_Character_t *Character
+static
+void _FED_RemoveCharacter_Safe(
+	FED_t *wed,
+	FED_LineReference_t LineReference,
+	_FED_Line_t *Line,
+	FED_CharacterReference_t CharacterReference,
+	_FED_Character_t *Character
 ){
-	WED_CharacterReference_t dstCharacterReference = _WED_CharacterList_GetNodeByReference(
+	FED_CharacterReference_t dstCharacterReference = _FED_CharacterList_GetNodeByReference(
 		&Line->CharacterList,
 		CharacterReference
 	)->PrevNodeReference;
-	_WED_CharacterList_Node_t *dstCharacterNode = _WED_CharacterList_GetNodeByReference(
+	_FED_CharacterList_Node_t *dstCharacterNode = _FED_CharacterList_GetNodeByReference(
 		&Line->CharacterList,
 		dstCharacterReference
 	);
-	_WED_Character_t *dstCharacter = &dstCharacterNode->data.data;
-	_WED_MoveAllCursors(wed, LineReference, CharacterReference, Character, LineReference, dstCharacterReference, dstCharacter);
+	_FED_Character_t *dstCharacter = &dstCharacterNode->data.data;
+	_FED_MoveAllCursors(wed, LineReference, CharacterReference, Character, LineReference, dstCharacterReference, dstCharacter);
 
 	Line->TotalWidth -= Character->width;
-	_WED_CharacterList_unlink(&Line->CharacterList, CharacterReference);
+	_FED_CharacterList_unlink(&Line->CharacterList, CharacterReference);
 }
-void _WED_RemoveCharacter_Unsafe(
-	_WED_Line_t *Line,
-	WED_CharacterReference_t CharacterReference,
-	_WED_Character_t *Character
+static
+void _FED_RemoveCharacter_Unsafe(
+	_FED_Line_t *Line,
+	FED_CharacterReference_t CharacterReference,
+	_FED_Character_t *Character
 ){
 	Line->TotalWidth -= Character->width;
-	_WED_CharacterList_unlink(&Line->CharacterList, CharacterReference);
+	_FED_CharacterList_unlink(&Line->CharacterList, CharacterReference);
 }
 
 /* returns 0 if left is possible */
-bool _WED_GetLineAndCharacterOfLeft(
-	WED_t *wed,
-	WED_LineReference_t srcLineReference,
-	_WED_LineList_Node_t *srcLineNode,
-	WED_CharacterReference_t srcCharacterReference,
-	WED_LineReference_t *dstLineReference,
-	_WED_Line_t **dstLine,
-	WED_CharacterReference_t *dstCharacterReference
+static
+bool _FED_GetLineAndCharacterOfLeft(
+	FED_t *wed,
+	FED_LineReference_t srcLineReference,
+	_FED_LineList_Node_t *srcLineNode,
+	FED_CharacterReference_t srcCharacterReference,
+	FED_LineReference_t *dstLineReference,
+	_FED_Line_t **dstLine,
+	FED_CharacterReference_t *dstCharacterReference
 ){
-	_WED_Line_t *srcLine = &srcLineNode->data.data;
+	_FED_Line_t *srcLine = &srcLineNode->data.data;
 	if(srcCharacterReference == srcLine->CharacterList.src){
 		/* its begin of line. can we go up? */
-		WED_LineReference_t PrevLineReference = srcLineNode->PrevNodeReference;
+		FED_LineReference_t PrevLineReference = srcLineNode->PrevNodeReference;
 		if(PrevLineReference != wed->LineList.src){
-			_WED_LineList_Node_t *PrevLineNode = _WED_LineList_GetNodeByReference(&wed->LineList, PrevLineReference);
-			_WED_Line_t *PrevLine = &PrevLineNode->data.data;
+			_FED_LineList_Node_t *PrevLineNode = _FED_LineList_GetNodeByReference(&wed->LineList, PrevLineReference);
+			_FED_Line_t *PrevLine = &PrevLineNode->data.data;
 			*dstLineReference = PrevLineReference;
 			*dstLine = PrevLine;
-			*dstCharacterReference = _WED_CharacterList_GetNodeLast(&PrevLine->CharacterList);
+			*dstCharacterReference = _FED_CharacterList_GetNodeLast(&PrevLine->CharacterList);
 			return 0;
 		}
 		else{
@@ -227,62 +244,64 @@ bool _WED_GetLineAndCharacterOfLeft(
 	else{
 		*dstLineReference = srcLineReference;
 		*dstLine = srcLine;
-		*dstCharacterReference = _WED_CharacterList_GetNodeByReference(
+		*dstCharacterReference = _FED_CharacterList_GetNodeByReference(
 			&srcLine->CharacterList,
 			srcCharacterReference
 		)->PrevNodeReference;
 		return 0;
 	}
 }
-void _WED_GetLineAndCharacterOfLeft_Unsafe(
-	WED_t *wed,
-	WED_LineReference_t srcLineReference,
-	_WED_LineList_Node_t *srcLineNode,
-	WED_CharacterReference_t srcCharacterReference,
-	WED_LineReference_t *dstLineReference,
-	_WED_Line_t **dstLine,
-	WED_CharacterReference_t *dstCharacterReference
+static
+void _FED_GetLineAndCharacterOfLeft_Unsafe(
+	FED_t *wed,
+	FED_LineReference_t srcLineReference,
+	_FED_LineList_Node_t *srcLineNode,
+	FED_CharacterReference_t srcCharacterReference,
+	FED_LineReference_t *dstLineReference,
+	_FED_Line_t **dstLine,
+	FED_CharacterReference_t *dstCharacterReference
 ){
-	_WED_Line_t *srcLine = &srcLineNode->data.data;
+	_FED_Line_t *srcLine = &srcLineNode->data.data;
 	if(srcCharacterReference == srcLine->CharacterList.src){
 		/* its begin of line. can we go up? */
-		WED_LineReference_t PrevLineReference = srcLineNode->PrevNodeReference;
-		_WED_LineList_Node_t *PrevLineNode = _WED_LineList_GetNodeByReference(&wed->LineList, PrevLineReference);
-		_WED_Line_t *PrevLine = &PrevLineNode->data.data;
+		FED_LineReference_t PrevLineReference = srcLineNode->PrevNodeReference;
+		_FED_LineList_Node_t *PrevLineNode = _FED_LineList_GetNodeByReference(&wed->LineList, PrevLineReference);
+		_FED_Line_t *PrevLine = &PrevLineNode->data.data;
 		*dstLineReference = PrevLineReference;
 		*dstLine = PrevLine;
-		*dstCharacterReference = _WED_CharacterList_GetNodeLast(&PrevLine->CharacterList);
+		*dstCharacterReference = _FED_CharacterList_GetNodeLast(&PrevLine->CharacterList);
 	}
 	else{
 		*dstLineReference = srcLineReference;
 		*dstLine = srcLine;
-		*dstCharacterReference = _WED_CharacterList_GetNodeByReference(
+		*dstCharacterReference = _FED_CharacterList_GetNodeByReference(
 			&srcLine->CharacterList,
 			srcCharacterReference
 		)->PrevNodeReference;
 	}
 }
 /* returns 0 if right is possible */
-bool _WED_GetLineAndCharacterOfRight(
-	WED_t *wed,
-	WED_LineReference_t srcLineReference,
-	_WED_LineList_Node_t *srcLineNode,
-	WED_CharacterReference_t srcCharacterReference,
-	WED_LineReference_t *dstLineReference,
-	_WED_Line_t **dstLine,
-	WED_CharacterReference_t *dstCharacterReference
+static
+bool _FED_GetLineAndCharacterOfRight(
+	FED_t *wed,
+	FED_LineReference_t srcLineReference,
+	_FED_LineList_Node_t *srcLineNode,
+	FED_CharacterReference_t srcCharacterReference,
+	FED_LineReference_t *dstLineReference,
+	_FED_Line_t **dstLine,
+	FED_CharacterReference_t *dstCharacterReference
 ){
-	_WED_Line_t *srcLine = &srcLineNode->data.data;
-	WED_CharacterReference_t NextCharacterReference = _WED_CharacterList_GetNodeByReference(
+	_FED_Line_t *srcLine = &srcLineNode->data.data;
+	FED_CharacterReference_t NextCharacterReference = _FED_CharacterList_GetNodeByReference(
 		&srcLine->CharacterList,
 		srcCharacterReference
 	)->NextNodeReference;
 	if(NextCharacterReference == srcLine->CharacterList.dst){
 		/* its end of line. can we go up? */
-		WED_LineReference_t NextLineReference = srcLineNode->NextNodeReference;
+		FED_LineReference_t NextLineReference = srcLineNode->NextNodeReference;
 		if(NextLineReference != wed->LineList.dst){
-			_WED_LineList_Node_t *NextLineNode = _WED_LineList_GetNodeByReference(&wed->LineList, NextLineReference);
-			_WED_Line_t *NextLine = &NextLineNode->data.data;
+			_FED_LineList_Node_t *NextLineNode = _FED_LineList_GetNodeByReference(&wed->LineList, NextLineReference);
+			_FED_Line_t *NextLine = &NextLineNode->data.data;
 			*dstLineReference = NextLineReference;
 			*dstLine = NextLine;
 			*dstCharacterReference = NextLine->CharacterList.src;
@@ -300,25 +319,26 @@ bool _WED_GetLineAndCharacterOfRight(
 		return 0;
 	}
 }
-void _WED_GetLineAndCharacterOfRight_Unsafe(
-	WED_t *wed,
-	WED_LineReference_t srcLineReference,
-	_WED_LineList_Node_t *srcLineNode,
-	WED_CharacterReference_t srcCharacterReference,
-	WED_LineReference_t *dstLineReference,
-	_WED_Line_t **dstLine,
-	WED_CharacterReference_t *dstCharacterReference
+static
+void _FED_GetLineAndCharacterOfRight_Unsafe(
+	FED_t *wed,
+	FED_LineReference_t srcLineReference,
+	_FED_LineList_Node_t *srcLineNode,
+	FED_CharacterReference_t srcCharacterReference,
+	FED_LineReference_t *dstLineReference,
+	_FED_Line_t **dstLine,
+	FED_CharacterReference_t *dstCharacterReference
 ){
-	_WED_Line_t *srcLine = &srcLineNode->data.data;
-	WED_CharacterReference_t NextCharacterReference = _WED_CharacterList_GetNodeByReference(
+	_FED_Line_t *srcLine = &srcLineNode->data.data;
+	FED_CharacterReference_t NextCharacterReference = _FED_CharacterList_GetNodeByReference(
 		&srcLine->CharacterList,
 		srcCharacterReference
 	)->NextNodeReference;
 	if(NextCharacterReference == srcLine->CharacterList.dst){
 		/* its end of line */
-		WED_LineReference_t NextLineReference = srcLineNode->NextNodeReference;
-		_WED_LineList_Node_t *NextLineNode = _WED_LineList_GetNodeByReference(&wed->LineList, NextLineReference);
-		_WED_Line_t *NextLine = &NextLineNode->data.data;
+		FED_LineReference_t NextLineReference = srcLineNode->NextNodeReference;
+		_FED_LineList_Node_t *NextLineNode = _FED_LineList_GetNodeByReference(&wed->LineList, NextLineReference);
+		_FED_Line_t *NextLine = &NextLineNode->data.data;
 		*dstLineReference = NextLineReference;
 		*dstLine = NextLine;
 		*dstCharacterReference = NextLine->CharacterList.src;
@@ -331,18 +351,25 @@ void _WED_GetLineAndCharacterOfRight_Unsafe(
 }
 
 /* this function able to change wed->LineList pointers */
-void _WED_OpenExtraLine(
-	WED_t *wed,
-	WED_LineReference_t LineReference,
-	WED_LineReference_t *NextLineReference,
-	_WED_LineList_Node_t **NextLineNode
+/* returns 0 if success */
+static
+bool _FED_OpenExtraLine(
+	FED_t *wed,
+	FED_LineReference_t LineReference,
+	FED_LineReference_t *NextLineReference,
+	_FED_LineList_Node_t **NextLineNode
 ){
-	*NextLineReference = _WED_LineList_NewNode(&wed->LineList);
-	*NextLineNode = _WED_LineList_GetNodeByReference(&wed->LineList, *NextLineReference);
-	_WED_Line_t *NextLine = &(*NextLineNode)->data.data;
-	_WED_LineList_linkNext(&wed->LineList, LineReference, *NextLineReference);
+	if(_FED_LineList_usage(&wed->LineList) == wed->LineLimit){
+		if(_FED_LineList_GetNodeLast(&wed->LineList) == LineReference){
+			return 1;
+		}
+	}
+	*NextLineReference = _FED_LineList_NewNode(&wed->LineList);
+	_FED_LineList_linkNext(&wed->LineList, LineReference, *NextLineReference);
+	*NextLineNode = _FED_LineList_GetNodeByReference(&wed->LineList, *NextLineReference);
+	_FED_Line_t *NextLine = &(*NextLineNode)->data.data;
 	NextLine->TotalWidth = 0;
-	_WED_Line_t *Line = &_WED_LineList_GetNodeByReference(&wed->LineList, LineReference)->data.data;
+	_FED_Line_t *Line = &_FED_LineList_GetNodeByReference(&wed->LineList, LineReference)->data.data;
 	if(Line->IsEndLine){
 		Line->IsEndLine = 0;
 		NextLine->IsEndLine = 1;
@@ -350,187 +377,121 @@ void _WED_OpenExtraLine(
 	else{
 		NextLine->IsEndLine = 0;
 	}
-	_WED_CharacterList_open(&NextLine->CharacterList);
-	_WED_CharacterList_Node_t *GodCharacterNode = _WED_CharacterList_GetNodeByReference(
+	_FED_CharacterList_open(&NextLine->CharacterList);
+	_FED_CharacterList_Node_t *GodCharacterNode = _FED_CharacterList_GetNodeByReference(
 		&NextLine->CharacterList,
 		NextLine->CharacterList.src
 	);
-	_WED_Character_t *GodCharacter = &GodCharacterNode->data.data;
+	_FED_Character_t *GodCharacter = &GodCharacterNode->data.data;
 	GodCharacter->CursorReference = -1;
+	if(_FED_LineList_usage(&wed->LineList) > wed->LineLimit){
+		FED_LineReference_t LastLineReference = _FED_LineList_GetNodeLast(&wed->LineList);
+		_FED_LineList_Node_t *LastLineNode = _FED_LineList_GetNodeByReference(&wed->LineList, LastLineReference);
+		_FED_Line_t *LastLine = &LastLineNode->data.data;
+		FED_LineReference_t LastPrevLineReference = LastLineNode->PrevNodeReference;
+		_FED_LineList_Node_t *LastPrevLineNode = _FED_LineList_GetNodeByReference(&wed->LineList, LastPrevLineReference);
+		_FED_Line_t *LastPrevLine = &LastPrevLineNode->data.data;
+
+		/* no need to check is it had earlier or not */
+		LastPrevLine->IsEndLine = 1;
+
+		FED_CharacterReference_t LastPrevLineLastCharacterReference = _FED_CharacterList_GetNodeLast(&LastPrevLine->CharacterList);
+		_FED_CharacterList_Node_t *LastPrevLineLastCharacterNode = _FED_CharacterList_GetNodeByReference(&LastPrevLine->CharacterList, LastPrevLineLastCharacterReference);
+		_FED_Character_t *LastPrevLineLastCharacter = &LastPrevLineLastCharacterNode->data.data;
+		FED_CharacterReference_t LastLineCharacterReference = LastLine->CharacterList.src;
+		while(LastLineCharacterReference != LastLine->CharacterList.dst){
+			_FED_CharacterList_Node_t *LastLineCharacterNode = _FED_CharacterList_GetNodeByReference(&LastLine->CharacterList, LastLineCharacterReference);
+			_FED_Character_t *LastLineCharacter = &LastLineCharacterNode->data.data;
+			_FED_MoveAllCursors(wed, LastLineReference, LastLineCharacterReference, LastLineCharacter, LastPrevLineReference, LastPrevLineLastCharacterReference, LastPrevLineLastCharacter);
+			LastLineCharacterReference = LastLineCharacterNode->NextNodeReference;
+		}
+		_FED_RemoveLine(wed, LastLineReference);
+	}
+	return 0;
 }
 
-void _WED_IncreaseSlideToPrev(WED_t *wed, WED_LineReference_t LineReference, _WED_LineList_Node_t *LineNode){
-	WED_LineReference_t PrevLineReference = LineNode->PrevNodeReference;
-	if(PrevLineReference == wed->LineList.src){
-		/* we are first line */
-		return;
+static
+bool _FED_IsLineMembersFit(FED_t *wed, uint32_t CharacterAmount, uint32_t WidthAmount){
+	if(CharacterAmount > wed->LineCharacterLimit){
+		return 0;
 	}
-	_WED_LineList_Node_t *PrevLineNode = _WED_LineList_GetNodeByReference(&wed->LineList, PrevLineReference);
-	_WED_Line_t *PrevLine = &PrevLineNode->data.data;
-	if(PrevLine->IsEndLine == 1){
-		/* previous line is not part of this line */
-		return;
+	if(WidthAmount > wed->LineWidth){
+		return 0;
 	}
-	_WED_Line_t *Line = &LineNode->data.data;
-	WED_CharacterReference_t FirstCharacterReference = _WED_CharacterList_GetNodeFirst(&Line->CharacterList);
-	_WED_CharacterList_Node_t *FirstCharacterNode = _WED_CharacterList_GetNodeByReference(
-		&Line->CharacterList,
-		FirstCharacterReference
-	);
-	_WED_Character_t *FirstCharacter = &FirstCharacterNode->data.data;
-	if((FirstCharacter->width + PrevLine->TotalWidth) <= wed->LineWidth){
-		_WED_MoveCharacterToEndOfLine(
-			wed,
-			Line,
-			LineReference,
-			FirstCharacterReference,
-			FirstCharacter,
-			PrevLine,
-			PrevLineReference
-		);
-	}
+	return 1;
 }
-void _WED_DecreaseSlideToPrev_Loop(
-	WED_t *wed,
-	WED_LineReference_t LineReference,
-	_WED_LineList_Node_t *LineNode,
-	WED_LineReference_t NextLineReference,
-	_WED_LineList_Node_t *NextLineNode
+static
+bool _FED_IsLineFit(
+	FED_t *wed,
+	_FED_Line_t *Line
 ){
-	NewLineBegin:
-	WED_CharacterReference_t CharacterReference = _WED_CharacterList_GetNodeFirst(
-		&NextLineNode->data.data.CharacterList
-	);
-	_WED_Character_t *Character = &_WED_CharacterList_GetNodeByReference(&NextLineNode->data.data.CharacterList, CharacterReference)->data.data;
-	if((Character->width + LineNode->data.data.TotalWidth) > wed->LineWidth){
-		LineNode = NextLineNode;
-		LineReference = NextLineReference;
-		if(NextLineNode->data.data.IsEndLine == 0){
-			NextLineReference = LineNode->NextNodeReference;
-			NextLineNode = _WED_LineList_GetNodeByReference(&wed->LineList, NextLineReference);
-			goto NewLineBegin;
+	return _FED_IsLineMembersFit(wed, _FED_CharacterList_usage(&Line->CharacterList), Line->TotalWidth);
+}
+static
+bool _FED_CanCharacterFitLine(
+	FED_t *wed,
+	_FED_Line_t *Line,
+	_FED_Character_t *Character
+){
+	return _FED_IsLineMembersFit(wed, _FED_CharacterList_usage(&Line->CharacterList) + 1, Line->TotalWidth + Character->width);
+}
+static
+FED_CharacterReference_t _FED_LastCharacterReferenceThatFitsToLine(FED_t *wed, FED_LineReference_t LineReference){
+	_FED_LineList_Node_t *LineNode = _FED_LineList_GetNodeByReference(&wed->LineList, LineReference);
+	_FED_Line_t *Line = &LineNode->data.data;
+	uint32_t CharacterAmount = _FED_CharacterList_usage(&Line->CharacterList);
+	uint32_t WidthAmount = Line->TotalWidth;
+	FED_CharacterReference_t CharacterReference = _FED_CharacterList_GetNodeLast(&Line->CharacterList);
+	while(1){
+		if(CharacterReference == Line->CharacterList.src){
+			return CharacterReference;
 		}
-		else{
-			return;
+		_FED_CharacterList_Node_t *CharacterNode = _FED_CharacterList_GetNodeByReference(&Line->CharacterList, CharacterReference);
+		_FED_Character_t *Character = &CharacterNode->data.data;
+		if(_FED_IsLineMembersFit(wed, CharacterAmount, WidthAmount)){
+			return CharacterReference;
 		}
+		CharacterAmount -= 1;
+		WidthAmount -= Character->width;
+		CharacterReference = CharacterNode->PrevNodeReference;
 	}
-	_WED_Character_t *GodCharacter = &_WED_CharacterList_GetNodeByReference(
-		&NextLineNode->data.data.CharacterList,
-		NextLineNode->data.data.CharacterList.src
-	)->data.data;
-	WED_CharacterReference_t LastCharacterReference = _WED_CharacterList_GetNodeLast(&LineNode->data.data.CharacterList);
-	_WED_Character_t *LastCharacter = &_WED_CharacterList_GetNodeByReference(
-		&LineNode->data.data.CharacterList,
-		LastCharacterReference
-	)->data.data;
-	_WED_MoveAllCursors(
-		wed,
-		NextLineReference,
-		NextLineNode->data.data.CharacterList.src,
-		GodCharacter,
-		LineReference,
-		LastCharacterReference,
-		LastCharacter
-	);
+}
+
+static
+void _FED_SlideToNext(FED_t *wed, FED_LineReference_t LineReference, _FED_LineList_Node_t *LineNode){
 	begin:
-	if((Character->width + LineNode->data.data.TotalWidth) > wed->LineWidth){
-		/* doesnt fit more */
-		if(NextLineNode->data.data.IsEndLine == 0){
-			LineReference = NextLineReference;
-			LineNode = NextLineNode;
-			NextLineReference = LineNode->NextNodeReference;
-			NextLineNode = _WED_LineList_GetNodeByReference(&wed->LineList, NextLineReference);
-			goto NewLineBegin;
-		}
-		else{
-			/* we cant loop next line because it has endline */
-			return;
-		}
-	}
-	_WED_MoveCharacterToEndOfLine(
-		wed,
-		&NextLineNode->data.data,
-		NextLineReference,
-		CharacterReference,
-		Character,
-		&LineNode->data.data,
-		LineReference
-	);
-	CharacterReference = _WED_CharacterList_GetNodeFirst(&NextLineNode->data.data.CharacterList);
-	if(CharacterReference == NextLineNode->data.data.CharacterList.dst){
-		/* so lets delete this line */
-		if(NextLineNode->data.data.IsEndLine == 1){
-			/* we will dont loop more */
-			LineNode->data.data.IsEndLine = 1;
-			_WED_LineList_unlink(&wed->LineList, NextLineReference);
-			return;
-		}
-		else{
-			/* we will loop more */
-			_WED_LineList_unlink(&wed->LineList, NextLineReference);
-			NextLineReference = LineNode->NextNodeReference;
-			NextLineNode = _WED_LineList_GetNodeByReference(&wed->LineList, NextLineReference);
-			goto NewLineBegin;
-		}
-	}
-	Character = &_WED_CharacterList_GetNodeByReference(
-		&NextLineNode->data.data.CharacterList,
-		CharacterReference
-	)->data.data;
-	goto begin;
-}
-void _WED_DecreaseSlideToPrev_CheckNext(WED_t *wed, WED_LineReference_t LineReference, _WED_LineList_Node_t *LineNode){
-	_WED_Line_t *Line = &LineNode->data.data;
-	if(Line->IsEndLine == 1){
-		/* next line cant be related with this line */
-		return;
-	}
-	WED_LineReference_t NextLineReference = LineNode->NextNodeReference;
-	if(NextLineReference == wed->LineList.dst){
-		/* we are also bottom line */
-		return;
-	}
-	_WED_LineList_Node_t *NextLineNode = _WED_LineList_GetNodeByReference(&wed->LineList, NextLineReference);
-	_WED_DecreaseSlideToPrev_Loop(wed, LineReference, LineNode, NextLineReference, NextLineNode);
-}
-void _WED_DecreaseSlideToPrev(WED_t *wed, WED_LineReference_t LineReference, _WED_LineList_Node_t *LineNode){
-	WED_LineReference_t PrevLineReference = LineNode->PrevNodeReference;
-	if(PrevLineReference == wed->LineList.src){
-		/* we are first line */
-		_WED_DecreaseSlideToPrev_CheckNext(wed, LineReference, LineNode);
-		return;
-	}
-	_WED_LineList_Node_t *PrevLineNode = _WED_LineList_GetNodeByReference(&wed->LineList, PrevLineReference);
-	_WED_Line_t *PrevLine = &PrevLineNode->data.data;
-	if(PrevLine->IsEndLine == 1){
-		/* previous line is not part of this line */
-		_WED_DecreaseSlideToPrev_CheckNext(wed, LineReference, LineNode);
-		return;
-	}
-	_WED_DecreaseSlideToPrev_Loop(wed, PrevLineReference, PrevLineNode, LineReference, LineNode);
-}
-void _WED_SlideToNext(WED_t *wed, WED_LineReference_t LineReference, _WED_LineList_Node_t *LineNode){
-	begin:
-	WED_LineReference_t NextLineReference;
-	_WED_LineList_Node_t *NextLineNode;
-	bool IsLoopEntered = LineNode->data.data.TotalWidth > wed->LineWidth;
-	while(LineNode->data.data.TotalWidth > wed->LineWidth){
+	FED_LineReference_t NextLineReference;
+	_FED_LineList_Node_t *NextLineNode;
+	bool IsLoopEntered = !_FED_IsLineFit(wed, &LineNode->data.data);
+	while(!_FED_IsLineFit(wed, &LineNode->data.data)){
 		if(LineNode->data.data.IsEndLine){
 			/* if line has endline we need to create new line to slide */
-			_WED_OpenExtraLine(wed, LineReference, &NextLineReference, &NextLineNode);
+			if(_FED_OpenExtraLine(wed, LineReference, &NextLineReference, &NextLineNode)){
+				FED_CharacterReference_t dstCharacterReference = _FED_LastCharacterReferenceThatFitsToLine(wed, LineReference);
+				_FED_Character_t *dstCharacter = &_FED_CharacterList_GetNodeByReference(&LineNode->data.data.CharacterList, dstCharacterReference)->data.data;
+				FED_CharacterReference_t srcCharacterReference = _FED_CharacterList_GetNodeLast(&LineNode->data.data.CharacterList);
+				do{
+					_FED_CharacterList_Node_t *srcCharacterNode = _FED_CharacterList_GetNodeByReference(&LineNode->data.data.CharacterList, srcCharacterReference);
+					_FED_MoveAllCursors(wed, LineReference, srcCharacterReference, &srcCharacterNode->data.data, LineReference, dstCharacterReference, dstCharacter);
+					FED_CharacterReference_t srcCharacterReference_temp = srcCharacterNode->PrevNodeReference;
+					_FED_RemoveCharacter_Unsafe(&LineNode->data.data, srcCharacterReference, &srcCharacterNode->data.data);
+					srcCharacterReference = srcCharacterReference_temp;
+				}while(srcCharacterReference != dstCharacterReference);
+				return;
+			}
 			/* that function maybe changed line address so lets get it again */
-			LineNode = _WED_LineList_GetNodeByReference(&wed->LineList, LineReference);
+			LineNode = _FED_LineList_GetNodeByReference(&wed->LineList, LineReference);
 		}
 		else{
 			NextLineReference = LineNode->NextNodeReference;
-			NextLineNode = _WED_LineList_GetNodeByReference(&wed->LineList, NextLineReference);
+			NextLineNode = _FED_LineList_GetNodeByReference(&wed->LineList, NextLineReference);
 		}
-		WED_CharacterReference_t CharacterReference = _WED_CharacterList_GetNodeLast(&LineNode->data.data.CharacterList);
-		_WED_Character_t *Character = &_WED_CharacterList_GetNodeByReference(
+		FED_CharacterReference_t CharacterReference = _FED_CharacterList_GetNodeLast(&LineNode->data.data.CharacterList);
+		_FED_Character_t *Character = &_FED_CharacterList_GetNodeByReference(
 			&LineNode->data.data.CharacterList,
 			CharacterReference
 		)->data.data;
-		_WED_MoveCharacterToBeginOfLine(
+		_FED_MoveCharacterToBeginOfLine(
 			wed,
 			&LineNode->data.data,
 			LineReference,
@@ -547,121 +508,127 @@ void _WED_SlideToNext(WED_t *wed, WED_LineReference_t LineReference, _WED_LineLi
 	}
 }
 
-void _WED_LineIsIncreased(WED_t *wed, WED_LineReference_t LineReference, _WED_LineList_Node_t *LineNode){
-	_WED_IncreaseSlideToPrev(wed, LineReference, LineNode);
-	_WED_SlideToNext(wed, LineReference, LineNode);
-}
-
-void _WED_LineIsDecreased(WED_t *wed, WED_LineReference_t LineReference, _WED_LineList_Node_t *LineNode){
-	_WED_Line_t *Line = &LineNode->data.data;
-	if(_WED_CharacterList_usage(&Line->CharacterList) == 0){
-		if(Line->IsEndLine == 1){
-			WED_LineReference_t PrevLineReference = LineNode->PrevNodeReference;
-			if(PrevLineReference != wed->LineList.src){
-				_WED_LineList_Node_t *PrevLineNode = _WED_LineList_GetNodeByReference(
-					&wed->LineList,
-					PrevLineReference
-				);
-				_WED_Line_t *PrevLine = &PrevLineNode->data.data;
-				if(PrevLine->IsEndLine == 0){
-					PrevLine->IsEndLine = 1;
-					_WED_Character_t *GodCharacter = &_WED_CharacterList_GetNodeByReference(
-						&Line->CharacterList,
-						Line->CharacterList.src
-					)->data.data;
-					WED_CharacterReference_t LastCharacterReference = _WED_CharacterList_GetNodeLast(&PrevLine->CharacterList);
-					_WED_Character_t *LastCharacter = &_WED_CharacterList_GetNodeByReference(
-						&PrevLine->CharacterList,
-						LastCharacterReference
-					)->data.data;
-					_WED_MoveAllCursors(
-						wed,
-						LineReference,
-						Line->CharacterList.src,
-						GodCharacter,
-						PrevLineReference,
-						LastCharacterReference,
-						LastCharacter
-					);
-					_WED_LineList_unlink(&wed->LineList, LineReference);
-					return;
-				}
-				else{
-					/* previous line is not part of current line */
-					return;
-				}
-			}
-			else{
-				/* we dont have previous line */
-				return;
-			}
-		}
-		else{
-			_WED_Character_t *GodCharacter = &_WED_CharacterList_GetNodeByReference(
-				&Line->CharacterList,
-				Line->CharacterList.src
-			)->data.data;
-			WED_LineReference_t NextLineReference = LineNode->NextNodeReference;
-			_WED_LineList_Node_t *NextLineNode = _WED_LineList_GetNodeByReference(&wed->LineList, NextLineReference);
-			_WED_Line_t *NextLine = &NextLineNode->data.data;
-			WED_CharacterReference_t FirstCharacterReference = NextLine->CharacterList.src;
-			_WED_Character_t *FirstCharacter = &_WED_CharacterList_GetNodeByReference(
-				&NextLine->CharacterList,
-				FirstCharacterReference
-			)->data.data;
-			_WED_MoveAllCursors(
-				wed,
-				LineReference,
-				Line->CharacterList.src,
-				GodCharacter,
-				NextLineReference,
-				FirstCharacterReference,
-				FirstCharacter
-			);
-			_WED_LineList_unlink(&wed->LineList, LineReference);
+static
+void _FED_LineSlideBackFromNext(
+	FED_t *wed,
+	FED_LineReference_t LineReference,
+	_FED_LineList_Node_t *LineNode,
+	FED_LineReference_t NextLineReference,
+	_FED_LineList_Node_t *NextLineNode
+){
+	Begin:
+	FED_CharacterReference_t NextCharacterReference = _FED_CharacterList_GetNodeFirst(&NextLineNode->data.data.CharacterList);
+	if(NextCharacterReference == NextLineNode->data.data.CharacterList.dst){
+		FED_CharacterReference_t LastCharacterReference = _FED_CharacterList_GetNodeLast(&LineNode->data.data.CharacterList);
+		_FED_CharacterList_Node_t *LastCharacterNode = _FED_CharacterList_GetNodeByReference(&LineNode->data.data.CharacterList, LastCharacterReference);
+		_FED_Character_t *LastCharacter = &LastCharacterNode->data.data;
+		NextCharacterReference = NextLineNode->data.data.CharacterList.src;
+		_FED_CharacterList_Node_t *NextCharacterNode = _FED_CharacterList_GetNodeByReference(&NextLineNode->data.data.CharacterList, NextCharacterReference);
+		_FED_Character_t *NextCharacter = &NextCharacterNode->data.data;
+		_FED_MoveAllCursors(wed, NextLineReference, NextCharacterReference, NextCharacter, LineReference, LastCharacterReference, LastCharacter);
+		bool IsEndLine = NextLineNode->data.data.IsEndLine;
+		_FED_RemoveLine(wed, NextLineReference);
+		if(NextLineNode->data.data.IsEndLine){
+			LineNode->data.data.IsEndLine = 1;
 			return;
 		}
+		else{
+			NextLineReference = LineNode->NextNodeReference;
+			NextLineNode = _FED_LineList_GetNodeByReference(&wed->LineList, NextLineReference);
+			goto Begin;
+		}
 	}
-	_WED_DecreaseSlideToPrev(wed, LineReference, LineNode);
-	_WED_SlideToNext(wed, LineReference, LineNode);
+	_FED_CharacterList_Node_t *NextCharacterNode = _FED_CharacterList_GetNodeByReference(&NextLineNode->data.data.CharacterList, NextCharacterReference);
+	_FED_Character_t *NextCharacter = &NextCharacterNode->data.data;
+	if(_FED_CanCharacterFitLine(wed, &LineNode->data.data, NextCharacter)){
+		_FED_MoveCharacterToEndOfLine(wed, &NextLineNode->data.data, NextLineReference, NextCharacterReference, NextCharacter, &LineNode->data.data, LineReference);
+
+		/* TODO this only needed to be processed per line */
+		FED_CharacterReference_t LastCharacterReference = _FED_CharacterList_GetNodeLast(&LineNode->data.data.CharacterList);
+		_FED_CharacterList_Node_t *LastCharacterNode = _FED_CharacterList_GetNodeByReference(&LineNode->data.data.CharacterList, LastCharacterReference);
+		_FED_Character_t *LastCharacter = &LastCharacterNode->data.data;
+		NextCharacterReference = NextLineNode->data.data.CharacterList.src;
+		NextCharacterNode = _FED_CharacterList_GetNodeByReference(&NextLineNode->data.data.CharacterList, NextCharacterReference);
+		NextCharacter = &NextCharacterNode->data.data;
+		_FED_MoveAllCursors(wed, NextLineReference, NextCharacterReference, NextCharacter, LineReference, LastCharacterReference, LastCharacter);
+
+		goto Begin;
+	}
+	if(NextLineNode->data.data.IsEndLine){
+		return;
+	}
+	LineReference = NextLineReference;
+	LineNode = NextLineNode;
+	NextLineReference = LineNode->NextNodeReference;
+	NextLineNode = _FED_LineList_GetNodeByReference(&wed->LineList, NextLineReference);
+	goto Begin;
 }
 
-void _WED_CursorIsTriggered(WED_Cursor_t *Cursor){
+static
+void _FED_LineIsDecreased(FED_t *wed, FED_LineReference_t LineReference, _FED_LineList_Node_t *LineNode){
+	FED_LineReference_t PrevLineReference = LineNode->PrevNodeReference;
+	if(PrevLineReference != wed->LineList.src){
+		_FED_LineList_Node_t *PrevLineNode = _FED_LineList_GetNodeByReference(&wed->LineList, PrevLineReference);
+		if(PrevLineNode->data.data.IsEndLine){
+			goto ToNext;
+		}
+		_FED_LineSlideBackFromNext(wed, PrevLineReference, PrevLineNode, LineReference, LineNode);
+	}
+	else{
+		ToNext:
+		if(LineNode->data.data.IsEndLine){
+			return;
+		}
+		FED_LineReference_t NextLineReference = LineNode->NextNodeReference;
+		_FED_LineList_Node_t *NextLineNode = _FED_LineList_GetNodeByReference(&wed->LineList, NextLineReference);
+		_FED_LineSlideBackFromNext(wed, LineReference, LineNode, NextLineReference, NextLineNode);
+	}
+}
+
+static
+void _FED_LineIsIncreased(FED_t *wed, FED_LineReference_t LineReference, _FED_LineList_Node_t *LineNode){
+	_FED_LineIsDecreased(wed, LineReference, LineNode);
+	_FED_SlideToNext(wed, LineReference, LineNode);
+}
+
+static
+void _FED_CursorIsTriggered(FED_Cursor_t *Cursor){
 	/* this function must be called when something is changed or could change */
 	switch(Cursor->type){
-		case WED_CursorType_FreeStyle_e:{
+		case FED_CursorType_FreeStyle_e:{
 			Cursor->FreeStyle.PreferredWidth = -1;
 			break;
 		}
-		case WED_CursorType_Selection_e:{
+		case FED_CursorType_Selection_e:{
 			Cursor->Selection.PreferredWidth = -1;
 			break;
 		}
 	}
 }
 
-void _WED_GetCharacterFromLineByWidth(
-	WED_t *wed,
-	_WED_Line_t *Line,
+static
+void _FED_GetCharacterFromLineByWidth(
+	FED_t *wed,
+	_FED_Line_t *Line,
 	uint32_t Width,
-	WED_CharacterReference_t *pCharacterReference,
-	_WED_Character_t **pCharacter
+	FED_CharacterReference_t *pCharacterReference,
+	_FED_Character_t **pCharacter
 ){
 	uint32_t iWidth = 0;
-	WED_CharacterReference_t CharacterReference = Line->CharacterList.src;
+	FED_CharacterReference_t CharacterReference = Line->CharacterList.src;
 	while(1){
-		WED_CharacterReference_t NextCharacterReference = _WED_CharacterList_GetNodeByReference(
+		FED_CharacterReference_t NextCharacterReference = _FED_CharacterList_GetNodeByReference(
 			&Line->CharacterList,
 			CharacterReference
 		)->NextNodeReference;
 		if(NextCharacterReference == Line->CharacterList.dst){
 			/* lets return Character */
-			*pCharacter = &_WED_CharacterList_GetNodeByReference(&Line->CharacterList, CharacterReference)->data.data;
+			*pCharacter = &_FED_CharacterList_GetNodeByReference(&Line->CharacterList, CharacterReference)->data.data;
 			*pCharacterReference = CharacterReference;
 			return;
 		}
 		else{
-			_WED_Character_t *NextCharacter = &_WED_CharacterList_GetNodeByReference(
+			_FED_Character_t *NextCharacter = &_FED_CharacterList_GetNodeByReference(
 				&Line->CharacterList,
 				NextCharacterReference
 			)->data.data;
@@ -671,7 +638,7 @@ void _WED_GetCharacterFromLineByWidth(
 				uint32_t NextDiff = iWidth + NextCharacter->width - Width;
 				if(CurrentDiff <= NextDiff){
 					/* lets return Character */
-					*pCharacter = &_WED_CharacterList_GetNodeByReference(
+					*pCharacter = &_FED_CharacterList_GetNodeByReference(
 						&Line->CharacterList,
 						CharacterReference
 					)->data.data;
@@ -694,15 +661,16 @@ void _WED_GetCharacterFromLineByWidth(
 	}
 }
 
-uint32_t _WED_CalculatePositionOfCharacterInLine(WED_t *wed, _WED_Line_t *Line, WED_CharacterReference_t pCharacterReference){
+static
+uint32_t _FED_CalculatePositionOfCharacterInLine(FED_t *wed, _FED_Line_t *Line, FED_CharacterReference_t pCharacterReference){
 	uint32_t Width = 0;
-	WED_CharacterReference_t CharacterReference = _WED_CharacterList_GetNodeFirst(&Line->CharacterList);
+	FED_CharacterReference_t CharacterReference = _FED_CharacterList_GetNodeFirst(&Line->CharacterList);
 	while(1){
-		_WED_CharacterList_Node_t *CharacterNode = _WED_CharacterList_GetNodeByReference(
+		_FED_CharacterList_Node_t *CharacterNode = _FED_CharacterList_GetNodeByReference(
 			&Line->CharacterList,
 			CharacterReference
 		);
-		_WED_Character_t *Character = &CharacterNode->data.data;
+		_FED_Character_t *Character = &CharacterNode->data.data;
 		Width += Character->width;
 		if(CharacterReference == pCharacterReference){
 			break;
@@ -712,10 +680,11 @@ uint32_t _WED_CalculatePositionOfCharacterInLine(WED_t *wed, _WED_Line_t *Line, 
 	return Width;
 }
 
-void _WED_CalculatePreferredWidthIfNeeded(
-	WED_t *wed,
-	_WED_Line_t *Line,
-	WED_CharacterReference_t CharacterReference,
+static
+void _FED_CalculatePreferredWidthIfNeeded(
+	FED_t *wed,
+	_FED_Line_t *Line,
+	FED_CharacterReference_t CharacterReference,
 	uint32_t *PreferredWidth
 ){
 	if(*PreferredWidth != -1){
@@ -727,7 +696,7 @@ void _WED_CalculatePreferredWidthIfNeeded(
 		*PreferredWidth = 0;
 	}
 	else{
-		*PreferredWidth = _WED_CalculatePositionOfCharacterInLine(
+		*PreferredWidth = _FED_CalculatePositionOfCharacterInLine(
 			wed,
 			Line,
 			CharacterReference
@@ -735,16 +704,17 @@ void _WED_CalculatePreferredWidthIfNeeded(
 	}
 }
 
-void _WED_CursorConvertFreeStyleToSelection(
-	WED_CursorReference_t CursorReference,
-	WED_Cursor_t *Cursor,
-	WED_LineReference_t LineReference,
-	_WED_Line_t *Line,
-	WED_CharacterReference_t CharacterReference,
-	_WED_Character_t *Character,
+static
+void _FED_CursorConvertFreeStyleToSelection(
+	FED_CursorReference_t CursorReference,
+	FED_Cursor_t *Cursor,
+	FED_LineReference_t LineReference,
+	_FED_Line_t *Line,
+	FED_CharacterReference_t CharacterReference,
+	_FED_Character_t *Character,
 	uint32_t PreferredWidth
 ){
-	Cursor->type = WED_CursorType_Selection_e;
+	Cursor->type = FED_CursorType_Selection_e;
 	Cursor->Selection.PreferredWidth = PreferredWidth;
 	Cursor->Selection.LineReference[0] = Cursor->FreeStyle.LineReference;
 	Cursor->Selection.CharacterReference[0] = Cursor->FreeStyle.CharacterReference;
@@ -757,34 +727,36 @@ void _WED_CursorConvertFreeStyleToSelection(
 	Character->CursorReference = CursorReference;
 }
 
-void _WED_CursorConvertSelectionToFreeStyle(WED_t *wed, WED_Cursor_t *Cursor, bool Direction){
-	Cursor->type = WED_CursorType_FreeStyle_e;
+static
+void _FED_CursorConvertSelectionToFreeStyle(FED_t *wed, FED_Cursor_t *Cursor, bool Direction){
+	Cursor->type = FED_CursorType_FreeStyle_e;
 	{
-		WED_LineReference_t LineReference = Cursor->Selection.LineReference[Direction ^ 1];
-		_WED_LineList_Node_t *LineNode = _WED_LineList_GetNodeByReference(&wed->LineList, LineReference);
-		_WED_Line_t *Line = &LineNode->data.data;
-		WED_CharacterReference_t CharacterReference = Cursor->Selection.CharacterReference[Direction ^ 1];
-		_WED_Character_t *Character = &_WED_CharacterList_GetNodeByReference(
+		FED_LineReference_t LineReference = Cursor->Selection.LineReference[Direction ^ 1];
+		_FED_LineList_Node_t *LineNode = _FED_LineList_GetNodeByReference(&wed->LineList, LineReference);
+		_FED_Line_t *Line = &LineNode->data.data;
+		FED_CharacterReference_t CharacterReference = Cursor->Selection.CharacterReference[Direction ^ 1];
+		_FED_Character_t *Character = &_FED_CharacterList_GetNodeByReference(
 			&Line->CharacterList,
 			CharacterReference
 		)->data.data;
 		Character->CursorReference = -1;
 	}
-	WED_LineReference_t LineReference = Cursor->Selection.LineReference[Direction];
-	WED_CharacterReference_t CharacterReference = Cursor->Selection.CharacterReference[Direction];
+	FED_LineReference_t LineReference = Cursor->Selection.LineReference[Direction];
+	FED_CharacterReference_t CharacterReference = Cursor->Selection.CharacterReference[Direction];
 	uint32_t PreferredWidth = Cursor->Selection.PreferredWidth;
 	Cursor->FreeStyle.LineReference = LineReference;
 	Cursor->FreeStyle.CharacterReference = CharacterReference;
 	Cursor->FreeStyle.PreferredWidth = PreferredWidth;
 }
 
-void _WED_CursorDeleteSelectedAndMakeCursorFreeStyle(WED_t *wed, WED_Cursor_t *Cursor){
+static
+void _FED_CursorDeleteSelectedAndMakeCursorFreeStyle(FED_t *wed, FED_Cursor_t *Cursor){
 	bool Direction;
-	WED_LineReference_t LineReference0;
-	WED_LineReference_t LineReference;
+	FED_LineReference_t LineReference0;
+	FED_LineReference_t LineReference;
 	if(Cursor->Selection.LineReference[0] != Cursor->Selection.LineReference[1]){
 		/* lets compare lines */
-		if(_WED_LineList_IsNodeReferenceFronter(
+		if(_FED_LineList_IsNodeReferenceFronter(
 			&wed->LineList,
 			Cursor->Selection.LineReference[0],
 			Cursor->Selection.LineReference[1])
@@ -803,11 +775,11 @@ void _WED_CursorDeleteSelectedAndMakeCursorFreeStyle(WED_t *wed, WED_Cursor_t *C
 		/* lets compare characters */
 		LineReference0 = Cursor->Selection.LineReference[0];
 		LineReference = Cursor->Selection.LineReference[0];
-		_WED_Line_t *Line = &_WED_LineList_GetNodeByReference(
+		_FED_Line_t *Line = &_FED_LineList_GetNodeByReference(
 			&wed->LineList,
 			Cursor->Selection.LineReference[0]
 		)->data.data;
-		if(_WED_CharacterList_IsNodeReferenceFronter(
+		if(_FED_CharacterList_IsNodeReferenceFronter(
 			&Line->CharacterList,
 			Cursor->Selection.CharacterReference[0],
 			Cursor->Selection.CharacterReference[1])
@@ -818,23 +790,23 @@ void _WED_CursorDeleteSelectedAndMakeCursorFreeStyle(WED_t *wed, WED_Cursor_t *C
 			Direction = 0;
 		}
 	}
-	WED_CharacterReference_t CharacterReference0 = Cursor->Selection.CharacterReference[Direction];
-	WED_CharacterReference_t CharacterReference = Cursor->Selection.CharacterReference[Direction ^ 1];
-	_WED_LineList_Node_t *LineNode0 = _WED_LineList_GetNodeByReference(&wed->LineList, LineReference0);
-	_WED_Line_t *Line0 = &LineNode0->data.data;
-	_WED_CursorConvertSelectionToFreeStyle(wed, Cursor, Direction);
+	FED_CharacterReference_t CharacterReference0 = Cursor->Selection.CharacterReference[Direction];
+	FED_CharacterReference_t CharacterReference = Cursor->Selection.CharacterReference[Direction ^ 1];
+	_FED_LineList_Node_t *LineNode0 = _FED_LineList_GetNodeByReference(&wed->LineList, LineReference0);
+	_FED_Line_t *Line0 = &LineNode0->data.data;
+	_FED_CursorConvertSelectionToFreeStyle(wed, Cursor, Direction);
 	while(1){
-		_WED_LineList_Node_t *LineNode = _WED_LineList_GetNodeByReference(&wed->LineList, LineReference);
-		_WED_Line_t *Line = &LineNode->data.data;
-		_WED_Character_t *Character = &_WED_CharacterList_GetNodeByReference(
+		_FED_LineList_Node_t *LineNode = _FED_LineList_GetNodeByReference(&wed->LineList, LineReference);
+		_FED_Line_t *Line = &LineNode->data.data;
+		_FED_Character_t *Character = &_FED_CharacterList_GetNodeByReference(
 			&Line->CharacterList,
 			CharacterReference
 		)->data.data;
-		_WED_Character_t *Character0 = &_WED_CharacterList_GetNodeByReference(
+		_FED_Character_t *Character0 = &_FED_CharacterList_GetNodeByReference(
 			&Line0->CharacterList,
 			CharacterReference0
 		)->data.data;
-		_WED_MoveAllCursors(
+		_FED_MoveAllCursors(
 			wed,
 			LineReference,
 			CharacterReference,
@@ -843,12 +815,11 @@ void _WED_CursorDeleteSelectedAndMakeCursorFreeStyle(WED_t *wed, WED_Cursor_t *C
 			CharacterReference0,
 			Character0
 		);
-		WED_LineReference_t dstLineReference;
-		_WED_Line_t *dstLine;
-		WED_CharacterReference_t dstCharacterReference;
+		FED_LineReference_t dstLineReference;
+		_FED_Line_t *dstLine;
+		FED_CharacterReference_t dstCharacterReference;
 		if(CharacterReference != Line->CharacterList.src){
-			_WED_RemoveCharacter_Unsafe(Line, CharacterReference, Character);
-			_WED_GetLineAndCharacterOfLeft_Unsafe(
+			_FED_GetLineAndCharacterOfLeft_Unsafe(
 				wed,
 				LineReference,
 				LineNode,
@@ -857,9 +828,10 @@ void _WED_CursorDeleteSelectedAndMakeCursorFreeStyle(WED_t *wed, WED_Cursor_t *C
 				&dstLine,
 				&dstCharacterReference
 			);
+			_FED_RemoveCharacter_Unsafe(Line, CharacterReference, Character);
 			if(dstLineReference == LineReference0 && dstCharacterReference == CharacterReference0){
 				/* we did reach where we go */
-				_WED_LineIsDecreased(wed, LineReference, LineNode);
+				_FED_LineIsDecreased(wed, LineReference, LineNode);
 				return;
 			}
 		}
@@ -867,21 +839,21 @@ void _WED_CursorDeleteSelectedAndMakeCursorFreeStyle(WED_t *wed, WED_Cursor_t *C
 			/* we need to delete something from previous line */
 			BeginOfCharacterReferenceIsFirst:
 			dstLineReference = LineNode->PrevNodeReference;
-			_WED_LineList_Node_t *dstLineNode = _WED_LineList_GetNodeByReference(&wed->LineList, dstLineReference);
+			_FED_LineList_Node_t *dstLineNode = _FED_LineList_GetNodeByReference(&wed->LineList, dstLineReference);
 			dstLine = &dstLineNode->data.data;
-			dstCharacterReference = _WED_CharacterList_GetNodeLast(&dstLine->CharacterList);
+			dstCharacterReference = _FED_CharacterList_GetNodeLast(&dstLine->CharacterList);
 			if(dstLine->IsEndLine == 1){
-				if(_WED_CharacterList_usage(&dstLine->CharacterList) == 0){
+				if(_FED_CharacterList_usage(&dstLine->CharacterList) == 0){
 					/* lets delete line */
-					_WED_Character_t *srcGodCharacter = &_WED_CharacterList_GetNodeByReference(
+					_FED_Character_t *srcGodCharacter = &_FED_CharacterList_GetNodeByReference(
 						&Line->CharacterList,
 						Line->CharacterList.src
 					)->data.data;
-					_WED_Character_t *dstGodCharacter = &_WED_CharacterList_GetNodeByReference(
+					_FED_Character_t *dstGodCharacter = &_FED_CharacterList_GetNodeByReference(
 						&dstLine->CharacterList,
 						dstLine->CharacterList.src
 					)->data.data;
-					_WED_MoveAllCursors(
+					_FED_MoveAllCursors(
 						wed,
 						dstLineReference,
 						dstCharacterReference,
@@ -890,20 +862,19 @@ void _WED_CursorDeleteSelectedAndMakeCursorFreeStyle(WED_t *wed, WED_Cursor_t *C
 						CharacterReference,
 						srcGodCharacter
 					);
-					_WED_LineList_unlink(&wed->LineList, dstLineReference);
+					_FED_RemoveLine(wed, dstLineReference);
 					if(dstLineReference == LineReference0 && dstCharacterReference == CharacterReference0){
 						/* we did reach where we go */
-						_WED_LineIsDecreased(wed, LineReference, LineNode);
+						_FED_LineIsDecreased(wed, LineReference, LineNode);
 						return;
 					}
 					goto BeginOfCharacterReferenceIsFirst;
 				}
 				else{
 					dstLine->IsEndLine = 0;
-					_WED_LineIsDecreased(wed, dstLineReference, dstLineNode);
 					if(dstLineReference == LineReference0 && dstCharacterReference == CharacterReference0){
 						/* we did reach where we go */
-						_WED_LineIsDecreased(wed, LineReference, LineNode);
+						_FED_LineIsDecreased(wed, LineReference, LineNode);
 						return;
 					}
 				}
@@ -912,14 +883,13 @@ void _WED_CursorDeleteSelectedAndMakeCursorFreeStyle(WED_t *wed, WED_Cursor_t *C
 				/* nothing to delete */
 				if(dstLineReference == LineReference0 && dstCharacterReference == CharacterReference0){
 					/* we did reach where we go */
-					_WED_LineIsDecreased(wed, LineReference, LineNode);
+					_FED_LineIsDecreased(wed, LineReference, LineNode);
 					return;
 				}
 			}
 		}
 		if(LineReference != dstLineReference){
 			/* we got other line */
-			_WED_LineIsDecreased(wed, LineReference, LineNode);
 			LineReference = dstLineReference;
 		}
 		CharacterReference = dstCharacterReference;

@@ -185,6 +185,7 @@ namespace fan {
 
 		uint16_t convert_keys_to_fan(uint16_t key);
 		uint16_t convert_fan_to_keys(uint16_t key);
+		uint16_t convert_utfkeys_to_fan(uint16_t key);
 
 		void get_keys(std::unordered_map<uint16_t, bool>& keys, uint16_t key, bool state);
 	}

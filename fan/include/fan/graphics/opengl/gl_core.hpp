@@ -40,10 +40,12 @@ namespace fan {
 		glBindVertexArray(0);
 	}
 
+	inline GLenum write_usage = GL_STATIC_DRAW;
+
 	static void write_glbuffer(unsigned int buffer, void* data, uintptr_t size, uintptr_t target, uintptr_t location)
 	{
 		glBindBuffer(target, buffer);
-		glBufferData(target, size, data, GL_STATIC_DRAW);
+		glBufferData(target, size, data, write_usage);
 		if (target == GL_SHADER_STORAGE_BUFFER) {
 			glBindBufferBase(target, location, buffer);
 		}
@@ -606,7 +608,6 @@ namespace fan {
 		// -----------------------------------------------------
 
 		fan::shader m_shader;
-
 	};
 
 	template <typename _Vector>

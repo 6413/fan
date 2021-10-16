@@ -54,7 +54,7 @@ namespace fan {
 
 			for (int i = 0; i < utf8_get_sizeof_character(character); i++) {
 
-				inherit_t::push_back(character << (i * 8));
+				inherit_t::push_back(character >> (i * 8));
 			}
 		}
 
@@ -107,12 +107,12 @@ namespace fan {
 			return utf8_string(fan::utf16_to_utf8(this->data()));
 		}
 
-		friend std::ostream& operator<<(std::ostream& os, const utf16_string& str);
+		friend std::wostream& operator<<(std::wostream& os, const utf16_string& str);
 	};
 
-	inline std::ostream& operator<<(std::ostream& os, const utf16_string& str)
+	inline std::wostream& operator<<(std::wostream& os, const utf16_string& str)
 	{
-		os << (std::basic_string<utf16_string::value_type>)str;
+		os << (std::wstring)str;
 		return os;
 	}
 

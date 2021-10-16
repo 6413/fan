@@ -164,6 +164,8 @@ namespace fan {
 	class window {
 	public:
 
+		void* data;
+
 		enum class mode {
 			not_set,
 			windowed,
@@ -204,20 +206,21 @@ namespace fan {
 		};
 
 		// required type alias for function return types
-		using keys_callback_t = std::function<void(uint16_t, key_state)>;
+		using keys_callback_t = std::function<void(fan::window*, uint16_t, key_state)>;
 		using key_callback_t = struct{
+
 
 			uint16_t key;
 			key_state state;
 
-			std::function<void()> function;
+			std::function<void(fan::window*)> function;
 
 		};
 
-		using text_callback_t = std::function<void(uint32_t key)>;
+		using text_callback_t = std::function<void(fan::window*, uint32_t key)>;
 
-		using mouse_move_position_callback_t = std::function<void(const fan::vec2i& position)>;
-		using scroll_callback_t = std::function<void(uint16_t key)>;
+		using mouse_move_position_callback_t = std::function<void(fan::window* window, const fan::vec2i& position)>;
+		using scroll_callback_t = std::function<void(fan::window*, uint16_t key)>;
 
 		struct flags {
 			static constexpr int no_mouse = get_flag_value(0);
@@ -368,27 +371,27 @@ namespace fan {
 			}
 		}
 
-		void set_keys_callback(const keys_callback_t& function);
-		void remove_keys_callback();
+		std::size_t add_keys_callback(const keys_callback_t& function);
+		void remove_keys_callback(std::size_t i);
 
-		key_callback_t* add_key_callback(uint16_t key, key_state state, const std::function<void()>& function);
-		void edit_key_callback(std::deque<key_callback_t>::iterator it, uint16_t key, key_state state);
-		void remove_key_callback(std::deque<key_callback_t>::const_iterator it);
+		std::size_t add_key_callback(uint16_t key, key_state state, const std::function<void(fan::window*)>& function);
+		void edit_key_callback(uint32_t i, uint16_t key, key_state state);
+		void remove_key_callback(uint32_t i);
 
-		void set_text_callback(const text_callback_t& function);
-		void remove_text_callback();
+		std::size_t add_text_callback(const text_callback_t& function);
+		void remove_text_callback(std::size_t i);
 
-		std::deque<std::function<void()>>::iterator add_close_callback(const std::function<void()>& function);
-		void remove_close_callback(std::deque<std::function<void()>>::const_iterator it);
+		std::size_t add_close_callback(const std::function<void(fan::window*)>& function);
+		void remove_close_callback(std::size_t i);
 
-		std::deque<mouse_move_position_callback_t>::iterator add_mouse_move_callback(const mouse_move_position_callback_t& function);
-		void remove_mouse_move_callback(std::deque<mouse_move_position_callback_t>::const_iterator it);
+		std::size_t add_mouse_move_callback(const mouse_move_position_callback_t& function);
+		void remove_mouse_move_callback(std::size_t i);
 
-		std::deque<std::function<void(const fan::vec2i&)>>::iterator add_resize_callback(const std::function<void(const fan::vec2i& window_size)>& function);
-		void remove_resize_callback(std::deque<std::function<void(const fan::vec2i& window_size)>>::const_iterator it);
+		std::size_t add_resize_callback(const std::function<void(fan::window* window, const fan::vec2i& window_size)>& function);
+		void remove_resize_callback(std::size_t i);
 
-		std::deque<std::function<void()>>::iterator add_move_callback(const std::function<void()>& function);
-		void remove_move_callback(std::deque<std::function<void()>>::const_iterator it);
+		std::size_t add_move_callback(const std::function<void(fan::window*)>& function);
+		void remove_move_callback(std::size_t it);
 
 		void set_error_callback();
 
@@ -476,13 +479,13 @@ namespace fan {
 
 		window_t m_window;
 
-		keys_callback_t m_keys_callback;
+		std::vector<keys_callback_t> m_keys_callback;
 		std::deque<key_callback_t> m_key_callback;
-		text_callback_t m_text_callback;
+		std::deque<text_callback_t> m_text_callback;
 		std::deque<mouse_move_position_callback_t> m_mouse_move_position_callback;
-		std::deque<std::function<void()>> m_move_callback;
-		std::deque<std::function<void(const fan::vec2i& window_size)>> m_resize_callback;
-		std::deque<std::function<void()>> m_close_callback;
+		std::deque<std::function<void(fan::window*)>> m_move_callback;
+		std::deque<std::function<void(fan::window* window, const fan::vec2i& window_size)>> m_resize_callback;
+		std::deque<std::function<void(fan::window*)>> m_close_callback;
 
 		keymap_t m_keys_down;
 

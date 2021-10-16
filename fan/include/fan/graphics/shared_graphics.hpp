@@ -11,8 +11,14 @@ namespace fan_2d {
 	namespace graphics {
 
 		struct pixel_data_t {
-			uint8_t* pixels[4]{};
-			int linesize[4]{};
+			pixel_data_t() {}
+			pixel_data_t(fan::image_loader::image_data& image_data)
+				: 
+				pixels(image_data.data), linesize(image_data.linesize),
+				size(image_data.size), format(image_data.format) {}
+
+			uint8_t** pixels;
+			int* linesize;
 			fan::vec2i size;
 			AVPixelFormat format;
 			// 32bpp AVPixelFormat::AV_PIX_FMT_BGR0
@@ -108,6 +114,12 @@ namespace fan_2d {
 		};
 
 		using image_t = image_T*;
+
+		static void unload_image(image_t image) {
+			if (image) {
+				delete image;
+			}
+		}
 
 		static void copy_texture(image_t src, image_t dst) {
 			// opengl alloc pixels, glGetTexImage(pixels), glTexImage2D(pixels)

@@ -8,7 +8,7 @@
 #include <any>
 
 typedef intptr_t si_t;
-typedef uintptr_t uintptr_t;
+typedef uintptr_t uint_t;
 typedef intptr_t sint_t;
 typedef int8_t sint8_t;
 typedef int16_t sint16_t;
@@ -192,6 +192,15 @@ namespace fan {
 
 //template <platform_t T_platform>
 //concept platform_windows = T_platform == platform_t::windows;
-
+ 
 //template <platform_t T_platform>
 //concept platform_linux = T_platform == platform_t::linux;
+
+#define _CONCAT(_0_m, _1_m) _0_m ## _1_m
+#define CONCAT(_0_m, _1_m) _CONCAT(_0_m, _1_m)
+#define _CONCAT2(_0_m, _1_m) _0_m ## _1_m
+#define CONCAT2(_0_m, _1_m) _CONCAT(_0_m, _1_m)
+#define _CONCAT3(_0_m, _1_m, _2_m) _0_m ## _1_m ## _2_m
+#define CONCAT3(_0_m, _1_m, _2_m) _CONCAT3(_0_m, _1_m, _2_m)
+#define _CONCAT4(_0_m, _1_m, _2_m, _3_m) _0_m ## _1_m ## _2_m ## _3_m
+#define CONCAT4(_0_m, _1_m, _2_m, _3_m) _CONCAT4(_0_m, _1_m, _2_m, _3_m)

@@ -95,7 +95,7 @@ namespace fan {
                 input.type = INPUT_MOUSE;
                 input.mi.dwFlags = get_key(key, state);
 
-                SendInput(1, &input, sizeof(input));
+                assert(SendInput(1, &input, sizeof(input)) == 1);
             }
 
             inline static void send_keyboard_event(uint16_t key, fan::key_state state) {
@@ -110,17 +110,25 @@ namespace fan {
 
                 input.ki.dwFlags = (state == fan::key_state::press ? 0 : KEYEVENTF_KEYUP);
 
-                SendInput(1, &input, sizeof(INPUT));
+                assert(SendInput(1, &input, sizeof(input)) == 1);
             }
 
             static void send_string(const std::string& str, uint32_t delay_between) {
                 for (int i = 0; i < str.size(); i++) {
+
+                    if (str[i] == '1') {
+                        fan::sys::input::send_keyboard_event(fan::key_1, fan::key_state::press);
+                        fan::sys::input::send_keyboard_event(fan::key_1, fan::key_state::release);
+
+                        continue;
+                    }
 
                     uint32_t offset = 0;
 
                     if (str[i] >= 97) {
                         offset -= 32;
                     }
+
 
                     if (str[i] >= 65 && str[i] <= 90) {
                         fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::key_state::press);
@@ -146,12 +154,40 @@ namespace fan {
                             break;
                         }
                         case '\n': {
-                            send_press(fan::key_enter, delay_between);
+                            send_press(fan::key_enter, delay_between); 
                             break;
                         }
                         case '?': {
                             fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::key_state::press);
                             send_press(fan::key_plus, delay_between);
+                            fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::key_state::release);
+                            break;
+                        }
+                        case '!': {
+                            fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::key_state::press);
+                            send_press(fan::key_1, delay_between);
+                            fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::key_state::release);
+                            break;
+                        }
+                        case '-': {
+                            send_press(fan::key_minus, delay_between);
+                            break;
+                        }
+                        case '_': {
+                            fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::key_state::press);
+                            send_press(fan::key_minus, delay_between);
+                            fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::key_state::release);
+                            break;
+                        }
+                        case '*': {
+                            fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::key_state::press);
+                            send_press(fan::key_apostrophe, delay_between);
+                            fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::key_state::release);
+                            break;
+                        }
+                        case ';': {
+                            fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::key_state::press);
+                            send_press(fan::key_comma, delay_between);
                             fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::key_state::release);
                             break;
                         }

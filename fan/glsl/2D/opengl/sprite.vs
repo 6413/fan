@@ -1,5 +1,6 @@
 #version 430
 
+in vec4 layout_color;
 in vec2 layout_position;
 in vec2 layout_size;
 in float layout_angle;
@@ -11,6 +12,7 @@ in vec4 layout_light_color;
 in float layout_light_brightness;
 in float layout_light_angle;
 
+out float transparency;
 out vec4 color;
 
 out vec2 light_position;
@@ -119,7 +121,7 @@ void main() {
 
 	mat4 m = mat4(1);
 
-	m = translate(m, vec3(layout_rotation_point, 0));
+	m = translate(m, vec3(layout_position + layout_rotation_point, 0));
 
 	if (!isnan(layout_angle) && !isinf(layout_angle)) {
 		vec3 rotation_vector;
@@ -134,7 +136,7 @@ void main() {
 		m = rotate(m, layout_angle, rotation_vector);
 	}
 
-	m = translate(m, vec3(layout_position, 0) - vec3(layout_rotation_point, 0));
+	m = translate(m, vec3(-layout_rotation_point, 0));
 
 	m = scale(m, vec3(layout_size.x, layout_size.y, 0));
 
@@ -144,6 +146,8 @@ void main() {
 	//light_color	   = layout_light_color;
 	light_brightness = layout_light_brightness;
 	light_angle	   = layout_light_angle;
+
+	transparency = layout_color.a;
 
 	f_position = vec2(vec4(m * vec4(rectangle_vertices[gl_VertexID % 6].x, rectangle_vertices[gl_VertexID % 6].y, 0, 1)).xy);
 

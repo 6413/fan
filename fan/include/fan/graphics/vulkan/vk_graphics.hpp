@@ -93,6 +93,9 @@ namespace fan_2d {
 
 			VkDeviceSize descriptor_offset = 0;
 
+			// update when changing fan_2d::graphics::shape
+			uint64_t pipeline_offsets[5];
+
 		};
 
 		struct vertex_instance_t {
@@ -148,6 +151,8 @@ namespace fan_2d {
 
 				fan::vk::shader::recompile_shaders = true;
 
+				pipeline_offsets[(int)fan_2d::graphics::shape::line] = vk_instance->pipelines[(int)fan_2d::graphics::shape::line]->pipeline_info.size();
+
 				vk_instance->pipelines[(int)fan_2d::graphics::shape::line]->push_back(
 					binding_description,
 					attribute_descriptions,
@@ -156,6 +161,8 @@ namespace fan_2d {
 					shader_paths::vertice_vector_fs,
 					camera->m_window->m_vulkan->swapChainExtent
 				);
+
+				pipeline_offsets[(int)fan_2d::graphics::shape::line_strip] = vk_instance->pipelines[(int)fan_2d::graphics::shape::line_strip]->pipeline_info.size();
 
 				vk_instance->pipelines[(int)fan_2d::graphics::shape::line_strip]->push_back(
 					binding_description,
@@ -175,6 +182,8 @@ namespace fan_2d {
 					camera->m_window->m_vulkan->swapChainExtent
 				);
 
+				pipeline_offsets[(int)fan_2d::graphics::shape::triangle_strip] = vk_instance->pipelines[(int)fan_2d::graphics::shape::triangle_strip]->pipeline_info.size();
+
 				vk_instance->pipelines[(int)fan_2d::graphics::shape::triangle_strip]->push_back(
 					binding_description,
 					attribute_descriptions,
@@ -183,6 +192,8 @@ namespace fan_2d {
 					shader_paths::vertice_vector_fs,
 					camera->m_window->m_vulkan->swapChainExtent
 				);
+
+				pipeline_offsets[(int)fan_2d::graphics::shape::triangle_fan] = vk_instance->pipelines[(int)fan_2d::graphics::shape::triangle_fan]->pipeline_info.size();
 
 				vk_instance->pipelines[(int)fan_2d::graphics::shape::triangle_fan]->push_back(
 					binding_description,
@@ -222,8 +233,6 @@ namespace fan_2d {
 
 				vk_instance->texture_handler->image_views.push_back(nullptr);
 
-				descriptor_offset = vk_instance->texture_handler->descriptor_handler->descriptor_sets.size();
-
 				vk_instance->texture_handler->descriptor_handler->push_back(
 					vk_instance->device,
 					uniform_handler,
@@ -240,7 +249,7 @@ namespace fan_2d {
 					arr[i] = (fan_2d::graphics::shape)i;
 				}
 
-				vk_instance->push_back_draw_call(vk_instance->draw_order_id++, arr, (int)fan_2d::graphics::shape::last, (void*)this, [&](uint32_t i, uint32_t j, void* base, fan_2d::graphics::shape shape) {
+				vk_instance->push_back_draw_call(arr, (int)fan_2d::graphics::shape::last, (void*)this, [&](uint32_t i, uint32_t j, void* base, fan_2d::graphics::shape shape) {
 
 					if (!instance_buffer->buffer->m_buffer_object || !m_single_draw || shape != fan::vulkan::draw_topology) {
 						return;
@@ -249,7 +258,7 @@ namespace fan_2d {
 					vkCmdBindPipeline(
 						m_camera->m_window->m_vulkan->commandBuffers[0][i],
 						VK_PIPELINE_BIND_POINT_GRAPHICS,
-						m_camera->m_window->m_vulkan->pipelines[(int)fan::vulkan::draw_topology]->pipeline_info[j].pipeline
+						m_camera->m_window->m_vulkan->pipelines[(int)fan::vulkan::draw_topology]->pipeline_info[pipeline_offsets[(int)fan::vulkan::draw_topology]].pipeline
 					);
 
 					VkDeviceSize offsets[] = { 0 };
@@ -278,6 +287,11 @@ namespace fan_2d {
 			}
 
 			void push_back(const vertice_vector::properties_t& properties) {
+
+				if (!this->size()) {
+					descriptor_offset = m_camera->m_window->m_vulkan->texture_handler->descriptor_handler->descriptor_sets.size() - 3;
+				}
+
 				instance_buffer->push_back(properties);
 			}
 
@@ -362,6 +376,13 @@ namespace fan_2d {
 				instance_buffer->get_value(i).color = color;
 			}
 
+			f32_t get_angle(uint32_t i) const {
+				return instance_buffer->m_instance[i].angle;
+			}
+			void set_angle(uint32_t i, f32_t angle) {
+				instance_buffer->get_value(i).angle = angle;
+			}
+
 			properties_t get_property(uint32_t i) const {
 				return instance_buffer->m_instance[i];
 			}
@@ -383,16 +404,37 @@ namespace fan_2d {
 		};
 
 
+		struct convex : public vertice_vector {
+
+			convex(fan::camera* camera) : vertice_vector(camera) { }
+
+			struct properties_t : public vertice_vector::properties_t {
+				std::vector<fan::vec2> points;
+			};
+
+			void push_back(const convex::properties_t& property) {
+				for (int i = 0; i < property.points.size(); i++) {
+
+					vertice_vector::properties_t vv_property = (vertice_vector::properties_t)property;
+					vv_property.rotation_point = property.position;
+					vv_property.position = property.position + property.points[i];
+
+					vertice_vector::push_back(vv_property);
+				}
+			}
+
+		};
+
 		struct rectangle {
 
 			// angle in radians
-			// rotation point from world position
+			// rotation point offset from top left
 			// must init rotation_point
 			struct properties_t {
 				alignas(8) fan::vec2 position;
 				alignas(8) fan::vec2 size;
 				alignas(4) f32_t angle = 0;
-				alignas(8) fan::vec2 rotation_point = fan::math::inf;
+				alignas(8) fan::vec2 rotation_point;
 				alignas(16) fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
 				alignas(16) fan::color color;
 			};
@@ -443,6 +485,8 @@ namespace fan_2d {
 				fan::vulkan* vk_instance = camera->m_window->m_vulkan;
 
 				fan::vk::shader::recompile_shaders = true;
+
+				pipeline_offset = vk_instance->pipelines[(int)fan_2d::graphics::shape::triangle]->pipeline_info.size();
 
 				vk_instance->pipelines[(int)fan_2d::graphics::shape::triangle]->push_back(
 					binding_description,
@@ -496,16 +540,16 @@ namespace fan_2d {
 
 				fan_2d::graphics::shape shape = fan_2d::graphics::shape::triangle;
 
-				vk_instance->push_back_draw_call(vk_instance->draw_order_id++, &shape, 1, (void*)this, [&](uint32_t i, uint32_t j, void* base, fan_2d::graphics::shape shape) {
+				vk_instance->push_back_draw_call(&shape, 1, (void*)this, [&](uint32_t i, uint32_t j, void* base, fan_2d::graphics::shape shape) {
 
-					if (!instance_buffer->buffer->m_buffer_object || shape != fan_2d::graphics::shape::triangle || base != this) {
+					if (!instance_buffer->buffer->m_buffer_object || shape != fan_2d::graphics::shape::triangle || (uint64_t)base != (uint64_t)this) {
 						return;
 					}
 
 					vkCmdBindPipeline(
 						m_camera->m_window->m_vulkan->commandBuffers[0][i], 
 						VK_PIPELINE_BIND_POINT_GRAPHICS, 
-						m_camera->m_window->m_vulkan->pipelines[(int)fan_2d::graphics::shape::triangle]->pipeline_info[j].pipeline
+						m_camera->m_window->m_vulkan->pipelines[(int)fan_2d::graphics::shape::triangle]->pipeline_info[pipeline_offset].pipeline
 					);
 
 					VkDeviceSize offsets[] = { 0 };
@@ -531,7 +575,7 @@ namespace fan_2d {
 
 					vkCmdDraw(m_camera->m_window->m_vulkan->commandBuffers[0][i], 6, m_end, 0, m_begin);
 
-					});
+				});
 
 			}
 			~rectangle() {
@@ -723,6 +767,8 @@ namespace fan_2d {
 			fan::gpu_memory::uniform_handler* uniform_handler = nullptr;
 
 			VkDeviceSize descriptor_offset = 0;
+
+			uint64_t pipeline_offset = 0;
 		};
 
 		// makes line from src (line start top left) to dst (line end top left)
@@ -740,14 +786,13 @@ namespace fan_2d {
 					thickness
 				});
 
-				rectangle::push_back({
-					src,
-					fan::vec2((dst - src).length(), thickness),
-					-fan::math::aim_angle(src, dst),
-					src,
-					fan::vec3(0, 0, 1),
-					color
-				});
+				rectangle::properties_t property;
+				property.position = src;
+				property.size = fan::vec2((dst - src).length(), thickness);
+				property.angle = -fan::math::aim_angle(src, dst);
+				property.color = color;
+
+				rectangle::push_back(property);
 
 			}
 
@@ -901,7 +946,7 @@ namespace fan_2d {
 
 			fan::image_loader::image_data id;
 
-			for (int i = 0; i < std::size(pixel_data.pixels); i++) {
+			for (int i = 0; i < 4; i++) {
 				id.data[i] = (uint8_t*)pixel_data.pixels[i];
 				id.linesize[i] = pixel_data.linesize[i];
 			}
@@ -1070,6 +1115,8 @@ namespace fan_2d {
 
 				fan::vk::shader::recompile_shaders = true;
 
+				pipeline_offset = camera->m_window->m_vulkan->pipelines[(int)fan_2d::graphics::shape::triangle]->pipeline_info.size();
+
 				camera->m_window->m_vulkan->pipelines[(int)fan_2d::graphics::shape::triangle]->push_back(
 					binding_description,
 					attribute_descriptions,
@@ -1110,37 +1157,38 @@ namespace fan_2d {
 
 				fan_2d::graphics::shape shape = fan_2d::graphics::shape::triangle;
 
-				camera->m_window->m_vulkan->push_back_draw_call(vk_instance->draw_order_id++, &shape, 1, (void*)this, [&](uint32_t i, uint32_t j, void* base, fan_2d::graphics::shape shape) {
+				camera->m_window->m_vulkan->push_back_draw_call(&shape, 1, (void*)this, [&](uint32_t i, uint32_t j, void* base, fan_2d::graphics::shape shape) {
 
-					if (!instance_buffer->buffer->m_buffer_object) {
+					if (!instance_buffer->buffer->m_buffer_object || base != this) {
 						return;
 					}
 
 					vkCmdBindPipeline(
 						m_camera->m_window->m_vulkan->commandBuffers[0][i], 
 						VK_PIPELINE_BIND_POINT_GRAPHICS, 
-						m_camera->m_window->m_vulkan->pipelines[(int)fan_2d::graphics::shape::triangle]->pipeline_info[j].pipeline
+						m_camera->m_window->m_vulkan->pipelines[(int)fan_2d::graphics::shape::triangle]->pipeline_info[pipeline_offset].pipeline
 					);
 
 					VkDeviceSize offsets[] = { 0 };
 					vkCmdBindVertexBuffers(m_camera->m_window->m_vulkan->commandBuffers[0][i], 0, 1, &instance_buffer->buffer->m_buffer_object, offsets);
 
-					for (int k = 0; k < m_switch_texture.size(); k++) {
-
+					for (int k = m_switch_texture.size(); k--; ) {
 						for (int h = 0; h < descriptor_offsets.size(); h++) {
 
+							auto off = descriptor_offsets[k] * m_camera->m_window->m_vulkan->swapChainImages.size();
+							
 							vkCmdBindDescriptorSets(
 								m_camera->m_window->m_vulkan->commandBuffers[0][i], 
 								VK_PIPELINE_BIND_POINT_GRAPHICS, 
 								m_camera->m_window->m_vulkan->pipelines[(int)fan_2d::graphics::shape::triangle]->pipeline_layout, 
 								0, 
 								1, 
-								&m_camera->m_window->m_vulkan->texture_handler->descriptor_handler->get(i + descriptor_offsets[h] * m_camera->m_window->m_vulkan->swapChainImages.size() + k * m_camera->m_window->m_vulkan->swapChainImages.size()), 
+								&m_camera->m_window->m_vulkan->texture_handler->descriptor_handler->get(off), 
 								0, 
 								nullptr
 							);
 						}
-
+						
 						if (k == m_switch_texture.size() - 1) {
 							vkCmdDraw(m_camera->m_window->m_vulkan->commandBuffers[0][i], 6, this->size(), 0, m_switch_texture[k]);
 						}
@@ -1183,7 +1231,7 @@ namespace fan_2d {
 
 					descriptor_offsets.emplace_back(m_camera->m_window->m_vulkan->texture_handler->push_back(
 						properties.image->texture, uniform_handler, m_camera->m_window->m_vulkan->swapChainImages.size(),
-						std::floor(std::log2(std::max(properties.size.x, properties.size.y))) + 1
+						1//std::floor(std::log2(std::max(properties.size.x, properties.size.y))) + 1
 					));
 				}
 
@@ -1218,6 +1266,10 @@ namespace fan_2d {
 
 				regenerate_texture_switch();
 			}*/
+
+			void reload_image(uint32_t i, fan_2d::graphics::image_t image) {
+				m_textures[i] = image->texture;
+			}
 
 			void draw(uint32_t begin = fan::uninitialized, uint32_t end = fan::uninitialized) {
 				begin = 0;
@@ -1260,12 +1312,21 @@ namespace fan_2d {
 				return instance_buffer->m_instance.size();
 			}
 
+			// must be used with fan::push_for_next_loop
 			void erase(uint32_t i) {
+				vkDeviceWaitIdle(m_camera->m_window->m_vulkan->device);
 				instance_buffer->m_instance.erase(instance_buffer->m_instance.begin() + i);
 
+				m_camera->m_window->m_vulkan->texture_handler->erase(i, descriptor_offsets[i], m_camera->m_window->m_vulkan->swapChainImages.size());
+
+				descriptor_offsets.erase(descriptor_offsets.begin() + i);
 				m_textures.erase(m_textures.begin() + i);
 
 				regenerate_texture_switch();
+
+				vkDeviceWaitIdle(m_camera->m_window->m_vulkan->device);
+				/*m_camera->m_window->m_vulkan->erase_command_buffers();
+				m_camera->m_window->m_vulkan->create_command_buffers();*/
 			}
 			
 			void erase(uint32_t begin, uint32_t end) {
@@ -1332,6 +1393,11 @@ namespace fan_2d {
 
 			void write_data() {
 				instance_buffer->write_data();
+
+				vkDeviceWaitIdle(m_camera->m_window->m_vulkan->device);
+
+				m_camera->m_window->m_vulkan->erase_command_buffers();
+				m_camera->m_window->m_vulkan->create_command_buffers();
 			}
 
 			void edit_data(uint32_t i) {
@@ -1384,6 +1450,8 @@ namespace fan_2d {
 			fan::gpu_memory::uniform_handler* uniform_handler = nullptr;
 
 			std::vector<VkDeviceSize> descriptor_offsets;
+
+			uint64_t pipeline_offset = 0;
 		};
 
 		#include <fan/graphics/shared_inline_graphics.hpp>

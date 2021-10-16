@@ -61,6 +61,7 @@ namespace fan {
 				case AVPixelFormat::AV_PIX_FMT_BGR0:
 				case AVPixelFormat::AV_PIX_FMT_RGBA:
 				case AVPixelFormat::AV_PIX_FMT_BGRA:
+				case AVPixelFormat::AV_PIX_FMT_ARGB:
 				{
 					return 4;
 				}
@@ -196,6 +197,62 @@ namespace fan {
 			}
 		}
 
+		static fan::image_loader::image_data convert_format_multichannel(fan::image_loader::image_data& image_data, AVPixelFormat new_format) {
+
+			image_loader::image_data new_data;
+
+			convert_deprecated(image_data);
+
+			auto context = sws_getContext(
+				image_data.size.x, 
+				image_data.size.y, 
+				image_data.format, 
+				image_data.size.x,
+				image_data.size.y, 
+				new_format,
+				SWS_BILINEAR,
+				0, 
+				0, 
+				0
+			);
+
+			if (!context) {
+				fan::print("failed to get context");
+				return {};
+			}
+
+			if (av_image_alloc(
+			new_data.data,
+			new_data.linesize,
+			image_data.size.x,
+			image_data.size.y,
+			new_format,
+			1
+			) < 0) {
+			fan::print("failed to allocate image");
+			return {};
+			}
+
+			sws_scale(
+				context,
+				image_data.data, 
+				image_data.linesize,
+				0,
+				image_data.size.y, 
+				new_data.data,
+				new_data.linesize
+			);
+
+			sws_freeContext(context);
+
+			//av_freep((void*)&image_data.data[0]);
+
+			new_data.format = new_format;
+			new_data.size = image_data.size;
+
+			return new_data;
+		}
+
 		static fan::image_loader::image_data convert_format(fan::image_loader::image_data& image_data, AVPixelFormat new_format) {
 
 			image_loader::image_data new_data;
@@ -205,8 +262,6 @@ namespace fan {
 			new_data.data[0] = new uint8_t[new_data.linesize[0] * image_data.size.y];
 
 			auto size = image_data.size.x * image_data.size.y;
-
-			//yuv420p_to_rgb24(image_data.data, new_data.data[0], image_data.size.x, image_data.size.y);
 
 			convert_deprecated(image_data);
 
@@ -252,7 +307,7 @@ namespace fan {
 
 			sws_freeContext(context);
 
-		//	av_freep((void*)&image_data.data[0]);
+			//av_freep((void*)&image_data.data[0]);
 
 			new_data.format = new_format;
 			new_data.size = image_data.size;

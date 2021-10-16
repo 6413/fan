@@ -10,6 +10,6 @@
 	#define WED_set_debug_InvalidCursorAccess 0
 #endif
 
-#include <WITCH/ETC/WED/internal/types.h>
-#include <WITCH/ETC/WED/internal/private.h>
-#include <WITCH/ETC/WED/internal/public.h>
+#include <fan/fed/internal/types.h>
+#include <fan/fed/internal/private.h>
+#include <fan/fed/internal/public.h>
