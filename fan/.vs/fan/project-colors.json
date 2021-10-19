@@ -1,0 +1,11 @@
+{
+  "Version": 1,
+  "ProjectMap": {
+    "97bac891-e8ed-49c5-bb98-d4698bfe9979": {
+      "ProjectGuid": "97bac891-e8ed-49c5-bb98-d4698bfe9979",
+      "DisplayName": "fan",
+      "ColorIndex": 0
+    }
+  },
+  "NextColorIndex": 1
+}

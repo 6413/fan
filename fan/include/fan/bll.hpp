@@ -3,6 +3,8 @@
 #include <vector>
 #include <cstdint>
 
+#define BLL_set_debug_InvalidAction
+
 // node type amount of nodes allowed
 template <typename type_t, typename node_type_t = uint32_t>
 struct bll_t {
@@ -143,6 +145,12 @@ struct bll_t {
 	}
 
 	constexpr void unlink(node_type_t node_reference) {
+
+		#ifdef BLL_set_debug_InvalidAction
+				assert(node_reference != src);
+				assert(node_reference != dst);
+		#endif
+
 		node_t *node = get_node_by_reference(node_reference);
 		node_type_t next_node_reference = node->next;
 		node_type_t prev_node_reference = node->prev;
@@ -245,6 +253,13 @@ struct bll_t {
 	};
 
 	constexpr node_t* get_node_by_reference(node_type_t node_reference) {
+
+	#ifdef BLL_set_debug_InvalidAction
+		if (node_reference >= nodes.size()) {
+			assert(0);
+		}
+	#endif
+
 		return (node_t*)(&nodes[node_reference]);
 	}
 	const constexpr node_t* get_node_by_reference(node_type_t node_reference) const {
