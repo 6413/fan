@@ -4,8 +4,6 @@
 
 #include <fan/graphics/camera.hpp>
 
-constexpr f32_t meter_scale = 100;
-
 namespace fan_2d {
 
 	namespace graphics {

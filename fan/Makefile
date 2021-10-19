@@ -22,7 +22,7 @@ $(TARGET): $(LIBS)
 	$(GPP) $(CFLAGS) $(LIBS) $(MAINFLAGS) -o $(TARGET)
 	
 fan_main.o:	$(MAIN)
-	$(GPP) $(CFLAGS) -c $(MAIN) -o fan_main.o
+	$(GPP) $(CFLAGS) -c $(MAIN) -o fan_main.o -ferror-limit=100
 
 fan_window.o:	src/fan/window/window.cpp
 	$(GPP) $(CFLAGS) -c src/fan/window/window.cpp -o fan_window.o
