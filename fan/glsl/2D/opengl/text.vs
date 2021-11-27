@@ -1,4 +1,4 @@
-#version 430
+#version 130
 
 in vec2 layout_position;
 in vec2 layout_size;
@@ -6,6 +6,7 @@ in float layout_angle;
 in vec4 layout_color;
 in float layout_font_size;
 in vec2 layout_rotation_point;
+in vec2 layout_texture_coordinates;
 
 in vec2 layout_light_position;
 in vec4 layout_light_color;
@@ -38,7 +39,7 @@ mat4 translate(mat4 m, vec3 v) {
 }
 
 mat4 scale(mat4 m, vec3 v) {
-	mat4 matrix;
+	mat4 matrix = mat4(1);
 
 	matrix[0][0] = m[0][0] * v[0];
 	matrix[0][1] = m[0][1] * v[0];
@@ -110,29 +111,22 @@ mat4 rotate(mat4 m, float angle, vec3 v) {
 */
 
 vec2 rectangle_vertices[] = vec2[](
-	vec2(0, 0),
-	vec2(1, 0),
-	vec2(1, -1),
+	vec2(-1.0, -1.0),
+	vec2(1.0, -1.0),
+	vec2(1.0, 1.0),
 
-	vec2(0, 0),
-	vec2(0, -1),
-	vec2(1, -1)
+	vec2(1.0, 1.0),
+	vec2(-1.0, 1.0),
+	vec2(-1.0, -1.0)
 );
 
 out vec2 texture_coordinate;
 out vec4 text_color;
 out float font_size;
 
-layout(std430, binding = 2) buffer layout_texture_coordinate
-{
-    vec2 texture_coordinates[];
-};
-
 void main() {
 
 	mat4 m = mat4(1);
-
-	m = translate(m, vec3(layout_position.x, layout_position.y, 0));
 
 	float angle = -layout_angle;
 
@@ -161,7 +155,7 @@ void main() {
 
 	font_size = layout_font_size;
 
-	texture_coordinate = texture_coordinates[gl_InstanceID * 6 + gl_VertexID];
+	texture_coordinate = layout_texture_coordinates;
 
 	text_color = layout_color;
 }

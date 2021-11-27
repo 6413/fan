@@ -14,16 +14,66 @@
 
 #include <memory>
 
+constexpr auto meter_scale = 100;
+
 namespace fan_2d {
 
-	typedef b2World world;
+	using body_def = b2BodyDef;
+
+	using joint_def = b2JointDef;
+	using joint = b2Joint;
+
+	using wheel_joint = b2WheelJoint;
+	using contact_listener_cb = b2ContactListener;
+
+	struct body;
+
+	struct world : protected b2World {
+
+		using b2World::b2World;
+
+		using inherit_t = b2World;
+
+		inline fan::vec2 get_gravity() const {
+			return inherit_t::GetGravity();
+		}
+
+		inline void set_gravity(const fan::vec2& gravity) {
+			inherit_t::SetGravity(gravity.b2());
+		}
+
+		inline void step(f32_t time_step, uint32_t velocity_iterations, uint32_t position_iterations) {
+			inherit_t::Step(time_step, velocity_iterations, position_iterations);
+		}
+		inline bool is_locked() const {
+			return inherit_t::IsLocked();
+		}
+		inline fan_2d::body* create_body(const body_def* body_def_) {
+			return (fan_2d::body*)inherit_t::CreateBody((const b2BodyDef*)body_def_);
+		}
+		inline void destroy_body(fan_2d::body* body_) {
+			inherit_t::DestroyBody((b2Body*)body_);
+		}
+		inline fan_2d::joint* create_joint(const fan_2d::joint_def* joint_def_) {
+			(fan_2d::joint*)inherit_t::CreateJoint((const b2JointDef*)joint_def_);
+		}
+		inline void destroy_joint(fan_2d::joint* joint_) {
+			inherit_t::DestroyJoint((b2Joint*)joint_);
+		}
+		inline void set_contact_listener(contact_listener_cb* cb) {
+			inherit_t::SetContactListener((b2ContactListener*)cb);
+		}
+
+	};
+
 	typedef b2FixtureDef fixture_def;
 
 	enum shape_type {
 		triangle,
 		rectangle,
 		circle,
-		convex
+		convex,
+		edge
 	};
 
 	struct shape : public b2Shape {
@@ -34,13 +84,13 @@ namespace fan_2d {
 
 	namespace physics {
 
-		enum class body_type {
+		enum class body_type_t {
 			static_body,
 			kinematic_body,
 			dynamic_body
 		};
 
-		struct body_property {
+		struct body_property_t {
 			f32_t mass = 0;
 			f32_t friction = 0;
 			f32_t restitution = 0;
@@ -60,64 +110,75 @@ namespace fan_2d {
 
 		inline void apply_force(const fan::vec2& force, const fan::vec2& point = 0) {
 			if (point == 0) {
-				inherit_t::ApplyForceToCenter(force.b2(), true);
+				inherit_t::ApplyForceToCenter((force / meter_scale).b2(), true);
 			}
 			else {
-				inherit_t::ApplyForce(force.b2(), point.b2(), true);
+				inherit_t::ApplyForce((force / meter_scale).b2(), (point / meter_scale).b2(), true);
 			}
 		}
 
 		inline void apply_impulse(const fan::vec2& force, const fan::vec2& point = 0) {
 			if (point == 0) {
-				inherit_t::ApplyLinearImpulseToCenter(force.b2(), true);
+				inherit_t::ApplyLinearImpulseToCenter((force / meter_scale).b2(), true);
 			}
 			else {
-				inherit_t::ApplyLinearImpulse(force.b2(), point.b2(), true);
+				inherit_t::ApplyLinearImpulse((force / meter_scale).b2(), point.b2(), true);
 			}
 		}
 
 		inline void apply_torque(f32_t torque) {
-			inherit_t::ApplyTorque(torque, true);
+			inherit_t::ApplyTorque(torque / meter_scale, true);
 
 		}
 
 		inline f32_t get_angular_damping() const {
-			return inherit_t::GetAngularDamping();
+			return inherit_t::GetAngularDamping() * meter_scale;
 		}
 		inline void set_angular_damping(f32_t amount) {
-			inherit_t::SetAngularDamping(amount);
+			inherit_t::SetAngularDamping(amount / meter_scale);
 		}
 
 		inline f32_t get_angular_velocity() const {
-			return inherit_t::GetAngularVelocity();
+			return inherit_t::GetAngularVelocity() * meter_scale;
 		}
 		inline void set_angular_velocity(f32_t velocity) {
-			inherit_t::SetAngularVelocity(velocity);
+			inherit_t::SetAngularVelocity(velocity / meter_scale);
+		}
+
+		inline bool is_fixed_rotation() const {
+			return inherit_t::IsFixedRotation();
+		}
+		inline void set_fixed_rotation(bool flag) {
+			inherit_t::SetFixedRotation(flag);
 		}
 
 		inline fan_2d::fixture* get_fixture_list() {
 			return (fan_2d::fixture*)inherit_t::GetFixtureList();
 		}
 
+		inline fan_2d::fixture* get_next() {
+			return (fan_2d::fixture*)inherit_t::GetNext();
+		}
+
 		inline f32_t get_gravity_scale() const {
-			return inherit_t::GetGravityScale();
+			return inherit_t::GetGravityScale() * meter_scale;
 		}
 		inline void set_gravity_scale(f32_t scale) {
-			inherit_t::SetGravityScale(scale);
+			inherit_t::SetGravityScale(scale / meter_scale);
 		}
 
 		inline f32_t get_velocity_damping() const {
-			return inherit_t::GetLinearDamping();
+			return inherit_t::GetLinearDamping() * meter_scale;
 		}
 		inline void set_velocity_damping(f32_t amount) {
-			inherit_t::SetLinearDamping(amount);
+			inherit_t::SetLinearDamping(amount / meter_scale);
 		}
 
 		inline fan::vec2 get_velocity() const {
-			return inherit_t::GetLinearVelocity();
+			return fan::vec2(inherit_t::GetLinearVelocity()) * meter_scale;
 		}
 		inline void set_velocity(const fan::vec2& velocity) {
-			inherit_t::SetLinearVelocity(velocity.b2());
+			inherit_t::SetLinearVelocity((velocity / meter_scale).b2());
 		}
 
 		inline fan_2d::shape_type get_shape_type() const {
@@ -127,12 +188,12 @@ namespace fan_2d {
 			m_shape_type = shape_type;
 		}
 
-		inline fan_2d::physics::body_type get_body_type() const {
-			return (fan_2d::physics::body_type)inherit_t::GetType();
+		inline fan_2d::physics::body_type_t get_body_type() const {
+			return (fan_2d::physics::body_type_t)inherit_t::GetType();
 		}
 
 		inline f32_t get_mass() const {
-			return inherit_t::GetMass();
+			return inherit_t::GetMass() * meter_scale;
 		}
 
 		inline bool is_bullet() const {
@@ -154,7 +215,11 @@ namespace fan_2d {
 		}
 
 		inline fan::vec2 get_position() const {
-			return inherit_t::GetPosition();
+			return fan::vec2(inherit_t::GetPosition()) * meter_scale;
+		}
+
+		inline fan::vec2 get_world_center() const {
+			return fan::vec2(inherit_t::GetWorldCenter()) * meter_scale;
 		}
 
 		inline f32_t get_angle() const {
@@ -162,7 +227,7 @@ namespace fan_2d {
 		}
 
 		inline void set_transform(const fan::vec2& position, f32_t angle) {
-			inherit_t::SetTransform(position.b2(), angle);
+			inherit_t::SetTransform((position / meter_scale).b2(), angle);
 		}
 
 		inline fan_2d::world* get_world() {
@@ -177,6 +242,10 @@ namespace fan_2d {
 			b2BodyUserData user_data;
 			user_data.pointer = data;
 			inherit_t::GetUserData() = user_data;
+		}
+
+		inline void destroy_fixture(fan_2d::fixture* fixture) {
+			inherit_t::DestroyFixture((b2Fixture*)fixture);
 		}
 
 		shape_type m_shape_type;
@@ -198,24 +267,24 @@ namespace fan_2d {
 			return (fan_2d::body*)m_body;
 		}
 		inline f32_t get_density() const {
-			return inherit_t::GetDensity();
+			return inherit_t::GetDensity() * meter_scale;
 		}
 		inline void set_density(f32_t density) {
-			inherit_t::SetDensity(density);
+			inherit_t::SetDensity(density / meter_scale);
 		}
 
 		inline f32_t get_restitution() const {
-			return inherit_t::GetRestitution();
+			return inherit_t::GetRestitution() * meter_scale;
 		}
 		inline void set_restitution(f32_t restitution) {
-			inherit_t::SetRestitution(restitution);
+			inherit_t::SetRestitution(restitution / meter_scale);
 		}
 
 		inline f32_t get_friction() const {
-			return inherit_t::GetFriction();
+			return inherit_t::GetFriction() * meter_scale;
 		}
 		inline void set_friction(f32_t friction) {
-			inherit_t::SetFriction(friction);
+			inherit_t::SetFriction(friction / meter_scale);
 		}
 
 		inline fan_2d::shape_type get_shape_type() {
@@ -229,8 +298,12 @@ namespace fan_2d {
 			return (fan_2d::shape*)inherit_t::GetShape();
 		}
 
-		inline fan_2d::physics::body_type get_body_type() {
-			return (fan_2d::physics::body_type)inherit_t::GetType();
+		inline fan_2d::physics::body_type_t get_body_type() {
+			return (fan_2d::physics::body_type_t)inherit_t::GetType();
+		}
+
+		inline fan_2d::fixture* get_next() {
+			return (fan_2d::fixture*)inherit_t::GetNext();
 		}
 
 		using inherit_t::RayCast;
@@ -370,12 +443,11 @@ namespace fan_2d {
 		template <typename pfixture_t, typename pbody_t, typename user_struct_t = empty>
 		class physics_callbacks : public b2ContactListener {
 
-		protected:
+		public:
 
 			struct node_t {
 				uint32_t graphics_nodereference;
 				uint32_t physics_nodereference;
-				fan::vec2 offset;
 				bool removed;
 				user_struct_t user_data;
 			};
@@ -403,10 +475,6 @@ namespace fan_2d {
 				return m_body[i];
 			}
 
-			inline fan_2d::fixture* get_fixture(uint32_t i) {
-				return m_fixture[i];
-			}
-
 		protected:
 
 			void BeginContact(b2Contact* contact) {
@@ -431,19 +499,50 @@ namespace fan_2d {
 			}
 
 			void EndContact(b2Contact* contact) {
+
+				b2Fixture *b2FixtureA = contact->GetFixtureA();
+				b2Fixture *b2FixtureB = contact->GetFixtureB();
+				b2Body* b2BodyA = b2FixtureA->GetBody();
+				b2Body* b2BodyB = b2FixtureB->GetBody();
+
+				uint32_t sprite_id_a = b2BodyA->GetUserData().pointer;
+				uint32_t sprite_id_b = b2BodyB->GetUserData().pointer;
+
+				if (sprite_list[sprite_id_a].removed) {
+					return;
+				}
+				if (sprite_list[sprite_id_b].removed) {
+					return;
+				}
+
 				if (m_on_collision_exit) {
 					m_on_collision_exit((fan_2d::fixture*)contact->GetFixtureA(), (fan_2d::fixture*)contact->GetFixtureB());
 				}
 			}
 
 			void PreSolve(b2Contact* contact, const b2Manifold* oldManifold) {
+
+				b2Fixture *b2FixtureA = contact->GetFixtureA();
+				b2Fixture *b2FixtureB = contact->GetFixtureB();
+				b2Body* b2BodyA = b2FixtureA->GetBody();
+				b2Body* b2BodyB = b2FixtureB->GetBody();
+
+				uint32_t sprite_id_a = b2BodyA->GetUserData().pointer;
+				uint32_t sprite_id_b = b2BodyB->GetUserData().pointer;
+
+				if (sprite_list[sprite_id_a].removed) {
+					return;
+				}
+				if (sprite_list[sprite_id_b].removed) {
+					return;
+				}
+
 				if (m_on_presolve) {
 					m_on_presolve((fan_2d::contact*)contact, (const fan_2d::manifold*)oldManifold);
 				}
 			}
 
 			pbody_t m_body;
-			pfixture_t m_fixture;
 
 		private:
 
@@ -460,8 +559,8 @@ namespace fan_2d {
 
 			physics_base() { }
 
-			physics_base(b2World* world) : m_world(world) {
-				m_world->SetContactListener(this);
+			physics_base(fan_2d::world* world) : m_world(world) {
+				m_world->set_contact_listener(this);
 			}
 
 			using inherit_t = physics_callbacks<pfixture_t, pbody_t>;
@@ -481,7 +580,7 @@ namespace fan_2d {
 			}
 
 			f32_t get_angular_damping(uint32_t i) const {
-				return inherit_t::m_body[i]->get_angular_damping();
+				return inherit_t::m_body[i]->get_angular_damping() ;
 			}
 			void set_angular_damping(uint32_t i, f32_t amount) {
 				inherit_t::m_body[i]->set_angular_damping(amount);
@@ -496,6 +595,10 @@ namespace fan_2d {
 
 			fan_2d::fixture* get_fixture_list(uint32_t i) {
 				return (fan_2d::fixture*)inherit_t::m_body[i]->get_fixture_list();
+			}
+
+			fan_2d::fixture* get_next(uint32_t i) {
+				return (fan_2d::fixture*)inherit_t::m_body[i]->get_next();
 			}
 
 			f32_t get_gravity_scale(uint32_t i) const {
@@ -519,8 +622,8 @@ namespace fan_2d {
 				inherit_t::m_body[i]->set_velocity(velocity);
 			}
 
-			body_type get_body_type(uint32_t i) const {
-				return (body_type)inherit_t::m_body[i]->get_body_type();
+			body_type_t get_body_type(uint32_t i) const {
+				return (body_type_t)inherit_t::m_body[i]->get_body_type();
 			}
 
 			f32_t get_density(uint32_t i) {
@@ -575,19 +678,35 @@ namespace fan_2d {
 
 			void erase(uintptr_t i) {
 
-
-				m_world->DestroyBody((b2Body*)physics_base::physics_callbacks::get_body(i));
-
 				if constexpr(std::is_same_v<pfixture_t, std::vector<fan_2d::fixture*>>) {
-					inherit_t::m_fixture.erase(inherit_t::m_fixture.begin() + i);
+					
+					auto ptr = inherit_t::get_body(i)->get_fixture_list();
+
+					while (ptr) {
+						auto ptr_next = ptr->get_next();
+						inherit_t::get_body(i)->destroy_fixture(ptr);
+						ptr = ptr_next;
+					}
+
+					m_world->destroy_body(physics_base::physics_callbacks::get_body(i));
+
 					inherit_t::m_body.erase(inherit_t::m_body.begin() + i);
 				}
 				else if constexpr(std::is_same_v<pfixture_t, bll_t<fan_2d::fixture*>>) {
-					physics_base::physics_callbacks::m_fixture.unlink(i);
+					// fixture cant be same with body physics_nodereference
+
+					auto ptr = physics_base::physics_callbacks::get_body(i)->get_fixture_list();
+
+					while (ptr) {
+						auto ptr_next = ptr->get_next();
+						physics_base::physics_callbacks::get_body(i)->destroy_fixture(ptr);
+						ptr = ptr_next;
+					}
+
+					m_world->destroy_body(physics_base::physics_callbacks::get_body(i));
+
 					physics_base::physics_callbacks::m_body.unlink(i);
 				}
-
-
 			}
 			void erase(uintptr_t begin, uintptr_t end) {
 
@@ -596,16 +715,24 @@ namespace fan_2d {
 				}
 
 				for (int i = begin; i < end; i++) {
-					m_world->DestroyBody((b2Body*)inherit_t::get_body(i));
+
+					auto ptr = inherit_t::get_body(i)->get_fixture_list();
+
+					while (ptr) {
+						auto ptr_next = ptr->get_next();
+						inherit_t::get_body(i)->destroy_fixture(ptr);
+						ptr = ptr_next;
+					}
+
+					m_world->destroy_body(inherit_t::get_body(i));
 				}
 
-				inherit_t::m_fixture.erase(inherit_t::m_fixture.begin() + begin, inherit_t::m_fixture.begin() + end);
 				inherit_t::m_body.erase(inherit_t::m_body.begin() + begin, inherit_t::m_body.begin() + end);
 			}
 
 		protected:
 
-			b2World* m_world;
+			fan_2d::world* m_world;
 
 		};
 
@@ -616,24 +743,33 @@ namespace fan_2d {
 			struct properties_t {
 				fan::vec2 position;
 
+				// offsets from position
 				fan::vec2 points[3];
 
 				f32_t angle;
 
-				fan_2d::physics::body_type body_type;
-				fan_2d::physics::body_property body_property = { 10, 1, 0.1 };
+				fan_2d::physics::body_type_t body_type;
+				fan_2d::physics::body_property_t body_property = { 10, 1, 0.1 };
+				bool bullet = false;
 			};
 
 			void push_back(const properties_t& properties) {
-				b2BodyDef body_def;
+				fan_2d::body_def body_def;
 				body_def.type = (b2BodyType)properties.body_type;
-				body_def.position.Set(properties.position.x, properties.position.y);
+				body_def.position.Set(properties.position.x / meter_scale, properties.position.y  / meter_scale);
 				body_def.angle = -properties.angle;
-				m_body.emplace_back((fan_2d::body*)m_world->CreateBody(&body_def));
+				body_def.bullet = properties.bullet;
+				m_body.emplace_back((fan_2d::body*)m_world->create_body(&body_def));
 				m_body[m_body.size() - 1]->set_user_data(m_body.size() - 1);
 
+				fan::vec2 converted_points[3];
+
+				for (int i = 0; i < 3; i++) {
+					converted_points[i] = properties.points[i] / meter_scale;
+				}
+
 				b2PolygonShape shape;
-				shape.Set((const b2Vec2*)properties.points, 3);
+				shape.Set((const b2Vec2*)converted_points, 3);
 
 				b2FixtureDef fixture_def;
 				fixture_def.shape = &shape;
@@ -641,9 +777,9 @@ namespace fan_2d {
 				fixture_def.friction = properties.body_property.friction;
 				fixture_def.restitution = properties.body_property.restitution;
 
-				m_fixture.emplace_back((fan_2d::fixture*)m_body[m_body.size() - 1]->create_fixture(&fixture_def));
+				auto ptr = (fan_2d::fixture*)m_body[m_body.size() - 1]->create_fixture(&fixture_def);
 
-				m_fixture[m_fixture.size() - 1]->set_shape_type(fan_2d::shape_type::triangle);
+				ptr->set_shape_type(fan_2d::shape_type::triangle);
 			}
 
 		};
@@ -658,16 +794,16 @@ namespace fan_2d {
 
 				f32_t angle;
 
-				fan_2d::physics::body_type body_type;
-				fan_2d::physics::body_property body_property = { 10, 1, 0.1 };
+				fan_2d::physics::body_type_t body_type;
+				fan_2d::physics::body_property_t body_property = { 10, 1, 0.1 };
 			};
 
 			void push_back(const properties_t& properties) {
-				b2BodyDef body_def;
+				fan_2d::body_def body_def;
 				body_def.type = (b2BodyType)properties.body_type;
-				body_def.position.Set((properties.position.x + properties.size.x * 0.5), (properties.position.y + properties.size.y * 0.5));
+				body_def.position.Set((properties.position.x + properties.size.x * 0.5) / meter_scale, (properties.position.y + properties.size.y * 0.5) / meter_scale);
 				body_def.angle = -properties.angle;
-				m_body.emplace_back((fan_2d::body*)m_world->CreateBody(&body_def));
+				m_body.emplace_back((fan_2d::body*)m_world->create_body(&body_def));
 				m_body[m_body.size() - 1]->set_user_data(m_body.size() - 1);
 
 				b2PolygonShape shape;
@@ -679,9 +815,9 @@ namespace fan_2d {
 				fixture_def.friction = properties.body_property.friction;
 				fixture_def.restitution = properties.body_property.restitution;
 
-				m_fixture.emplace_back((fan_2d::fixture*)m_body[m_body.size() - 1]->create_fixture(&fixture_def));
+				auto ptr = (fan_2d::fixture*)m_body[m_body.size() - 1]->create_fixture(&fixture_def);
 
-				m_fixture[m_fixture.size() - 1]->set_shape_type(fan_2d::shape_type::rectangle);
+				ptr->set_shape_type(fan_2d::shape_type::rectangle);
 			}
 
 		};
@@ -693,15 +829,15 @@ namespace fan_2d {
 			struct properties_t {
 				fan::vec2 position;
 				f32_t radius;
-				body_type body_type;
-				body_property body_property = { 1, 10, 0.1 };
+				body_type_t body_type;
+				body_property_t body_property = { 1, 10, 0.1 };
 			};
 
 			void push_back(const properties_t& properties) {
-				b2BodyDef body_def;
+				fan_2d::body_def body_def;
 				body_def.type = (b2BodyType)properties.body_type;
-				body_def.position.Set(properties.position.x, properties.position.y);
-				m_body.emplace_back((fan_2d::body*)m_world->CreateBody(&body_def));
+				body_def.position.Set(properties.position.x / meter_scale, properties.position.y / meter_scale);
+				m_body.emplace_back((fan_2d::body*)m_world->create_body(&body_def));
 				m_body[m_body.size() - 1]->set_user_data(m_body.size() - 1);
 
 				b2CircleShape shape;
@@ -713,12 +849,104 @@ namespace fan_2d {
 				fixture_def.density = properties.body_property.mass;
 				fixture_def.friction = properties.body_property.friction;
 
-				m_fixture.emplace_back((fan_2d::fixture*)m_body[m_body.size() - 1]->create_fixture(&fixture_def));
-				m_fixture[m_fixture.size() - 1]->set_shape_type(fan_2d::shape_type::circle);
+				auto ptr = (fan_2d::fixture*)m_body[m_body.size() - 1]->create_fixture(&fixture_def);
+				ptr->set_shape_type(fan_2d::shape_type::circle);
 			}
 
-			void set_angle(uint32_t i, f32_t angle) {
+			//void set_angle(uint32_t i, f32_t angle) {
 
+			//}
+		};
+
+			struct convex : public physics_base<std::vector<fan_2d::fixture*>, std::vector<fan_2d::body*>> {
+
+			using physics_base::physics_base;
+
+			struct properties_t {
+
+				fan::vec2 position;
+
+				fan::vec2* points;
+				// maximum of 8 points per push
+				uint8_t points_amount;
+
+				f32_t angle;
+
+				body_type_t body_type;
+				fan_2d::physics::body_property_t body_property = { 1, 10, 0.1 };
+			};
+
+			void push_back(const properties_t& properties) {
+
+				fan_2d::body_def body_def;
+				body_def.type = b2BodyType::b2_dynamicBody;
+				body_def.position.Set(properties.position.x / meter_scale, properties.position.y / meter_scale);
+				body_def.angle = -properties.angle;
+				m_body.emplace_back((fan_2d::body*)m_world->create_body(&body_def));
+				m_body[m_body.size() - 1]->set_user_data(m_body.size() - 1);
+				
+				for (int i = 0; i < properties.points_amount; i++) {
+					properties.points[i] = properties.points[i] / meter_scale;
+				}
+
+				b2PolygonShape shape;
+				shape.Set((const b2Vec2*)properties.points, properties.points_amount);
+
+				b2FixtureDef fixture_def;
+				fixture_def.shape = &shape;
+				fixture_def.density = properties.body_property.mass;
+				fixture_def.friction = properties.body_property.friction;
+				fixture_def.restitution = properties.body_property.restitution;
+
+				auto ptr = (fan_2d::fixture*)m_body[m_body.size() - 1]->create_fixture(&fixture_def);
+
+				ptr->set_shape_type(fan_2d::shape_type::convex);
+			}
+		};
+
+		struct edge_shape : public physics_base<std::vector<fan_2d::fixture*>, std::vector<fan_2d::body*>> {
+
+			using physics_base::physics_base;
+
+			struct properties_t {
+
+				fan::vec2 src;
+				fan::vec2 dst;
+
+				f32_t angle = 0;
+
+				body_type_t body_type;
+				fan_2d::physics::body_property_t body_property = { 1, 10, 0.1 };
+			};
+
+			void push_back(const properties_t& properties) {
+
+				auto f = [&] {
+					fan_2d::body_def body_def;
+					body_def.type = b2BodyType::b2_dynamicBody;
+					body_def.position.Set(0, 0);
+					body_def.angle = -properties.angle;
+					m_body.emplace_back((fan_2d::body*)m_world->create_body(&body_def));
+					m_body[m_body.size() - 1]->set_user_data(m_body.size() - 1);
+				
+
+					b2EdgeShape shape;
+
+					shape.SetTwoSided((properties.src / meter_scale).b2(), (properties.dst / meter_scale).b2());
+
+					b2FixtureDef fixture_def;
+					fixture_def.shape = &shape;
+					fixture_def.density = properties.body_property.mass;
+					fixture_def.friction = properties.body_property.friction;
+					fixture_def.restitution = properties.body_property.restitution;
+
+					auto ptr = (fan_2d::fixture*)m_body[m_body.size() - 1]->create_fixture(&fixture_def);
+
+					ptr->set_shape_type(fan_2d::shape_type::edge);
+				};
+
+				f();
+			
 			}
 		};
 
@@ -727,13 +955,13 @@ namespace fan_2d {
 
 			using inherit_t = physics_base<bll_t<fan_2d::fixture*>, bll_t<fan_2d::body*>, user_struct_t>;
 
-			using inherit_t::physics_base;
+			using physics_base<bll_t<fan_2d::fixture*>, bll_t<fan_2d::body*>, user_struct_t>::physics_base;
 
 			struct properties_t {
 				fan::vec2 position;
 				f32_t radius;
-				body_type body_type;
-				body_property body_property = { 1, 10, 0.1 };
+				body_type_t body_type;
+				body_property_t body_property = { 1, 10, 0.1 };
 			};
 
 		protected:
@@ -749,12 +977,13 @@ namespace fan_2d {
 
 				if (!inherit_t::m_body[physics_id]) {
 
-					b2BodyDef body_def;
+					fan_2d::body_def body_def;
 					body_def.type = (b2BodyType)properties.body_type;
-					body_def.position.Set(properties.position.x, properties.position.y);
+					body_def.position.Set(properties.position.x / meter_scale, properties.position.y / meter_scale);
 					body_def.angle = -properties.angle;
+					body_def.bullet = properties.bullet;
 
-					inherit_t::m_body[physics_id] = (fan_2d::body*)inherit_t::m_world->CreateBody(&body_def);
+					inherit_t::m_body[physics_id] = (fan_2d::body*)inherit_t::m_world->create_body(&body_def);
 					inherit_t::m_body[physics_id]->set_user_data(sprite_id);
 				}
 
@@ -763,7 +992,7 @@ namespace fan_2d {
 				fan::vec2* converted_points = (fan::vec2*)properties.points;
 
 				for (int i = 0; i < 3; i++) {
-					converted_points[i] = properties.points[i];
+					converted_points[i] = properties.points[i] / meter_scale;
 				}
 
 				// maybe need to set center offset with m_centroid if we want multiple fixtures
@@ -774,11 +1003,9 @@ namespace fan_2d {
 				fixture_def.density = properties.body_property.mass;
 				fixture_def.friction = properties.body_property.friction;
 				fixture_def.restitution = properties.body_property.restitution;
-				auto id = inherit_t::m_fixture.new_node_last();
-				inherit_t::m_fixture[id] = (fan_2d::fixture*)inherit_t::m_body[physics_id]->create_fixture(&fixture_def);
 
-				inherit_t::m_fixture[id]->set_user_data(sprite_id);
-				inherit_t::m_fixture[id]->set_shape_type(fan_2d::shape_type::triangle);
+				auto ptr = (fan_2d::fixture*)inherit_t::m_body[physics_id]->create_fixture(&fixture_def);
+				ptr->set_shape_type(fan_2d::shape_type::triangle);
 			}
 
 			void physics_add_rectangle(const fan::vec2& point, uint32_t physics_id, uint32_t sprite_id, const fan_2d::physics::rectangle::properties_t& properties) {
@@ -788,23 +1015,21 @@ namespace fan_2d {
 				// we want to initialize only once and if this if is not true it means we have multiple fixtures
 				if (!inherit_t::m_body[physics_id]) {
 
-					b2BodyDef body_def;
+					fan_2d::body_def body_def;
 					body_def.type = (b2BodyType)properties.body_type;
-					body_def.position.Set((point.x), (point.y));
+					body_def.position.Set((point.x) / meter_scale, (point.y) / meter_scale);
 					body_def.angle = -properties.angle;
 
-					inherit_t::m_body[physics_id] = ((fan_2d::body*)inherit_t::m_world->CreateBody(&body_def));
+					inherit_t::m_body[physics_id] = ((fan_2d::body*)inherit_t::m_world->create_body(&body_def));
 
-					shape.SetAsBox((properties.size.x * 0.5), (properties.size.y * 0.5), (((properties.position + properties.size / 2) - point)).b2(), -properties.angle);
+					shape.SetAsBox((properties.size.x) / meter_scale, (properties.size.y) / meter_scale, (((properties.position) / meter_scale - point / meter_scale)).b2(), -properties.angle);
 
 					inherit_t::m_body[physics_id]->set_user_data(sprite_id);
 				}
 				else {
 
-					shape.SetAsBox((properties.size.x * 0.5), (properties.size.y * 0.5), (((properties.position + properties.size / 2) - point)).b2(), -properties.angle);
+					shape.SetAsBox((properties.size.x) / meter_scale, (properties.size.y) / meter_scale, (((properties.position) / meter_scale - point / meter_scale)).b2(), -properties.angle);
 				}
-
-
 
 				b2FixtureDef fixture_def;
 				fixture_def.shape = &shape;
@@ -812,76 +1037,46 @@ namespace fan_2d {
 				fixture_def.friction = properties.body_property.friction;
 				fixture_def.restitution = properties.body_property.restitution;
 
-				auto id = inherit_t::m_fixture.new_node_last();
-
-				inherit_t::m_fixture[id] = ((fan_2d::fixture*)inherit_t::m_body[physics_id]->create_fixture(&fixture_def));
-				inherit_t::m_fixture[id]->set_user_data(sprite_id);
-				inherit_t::m_fixture[id]->set_shape_type(fan_2d::shape_type::rectangle);
+				auto ptr = (fan_2d::fixture*)inherit_t::m_body[physics_id]->create_fixture(&fixture_def);
+				ptr->set_shape_type(fan_2d::shape_type::rectangle);
 			}
-			/*
-			void physics_add_circle(uint32_t i, const fan_2d::physics::circle::properties_t& properties) {
-			if (i >= m_body_amount_in_fixture.size()) {
-			m_body_amount_in_fixture.resize(i + 1);
-			}
+			
+			void physics_add_circle(uint32_t physics_id, uint32_t sprite_id, const fan_2d::physics::circle::properties_t& properties) {
 
-			m_body_amount_in_fixture[i]++;
+				if (!inherit_t::m_body[physics_id]) {
+					fan_2d::body_def body_def;
+					body_def.type = (b2BodyType)properties.body_type;
+					body_def.position.Set(properties.position.x / meter_scale, properties.position.y / meter_scale);
+					inherit_t::m_body[physics_id] = (fan_2d::body*)inherit_t::m_world->create_body(&body_def);
+					inherit_t::m_body[physics_id]->set_user_data(sprite_id);
+				}
 
-			b2BodyDef body_def;
-			body_def.type = (b2BodyType)properties.body_type;
-			body_def.position.Set(properties.position.x, properties.position.y);
-			m_body.emplace_back((fan_2d::body*)m_world->CreateBody(&body_def));
+				b2CircleShape shape;
+				shape.m_p.Set(0, 0);
+				shape.m_radius = properties.radius / meter_scale;
 
-			b2CircleShape shape;
-			shape.m_p.Set(0, 0);
-			shape.m_radius = properties.radius;
+				b2FixtureDef fixture_def;
+				fixture_def.shape = &shape;
+				fixture_def.density = properties.body_property.mass;
+				fixture_def.friction = properties.body_property.friction;
 
-			b2FixtureDef fixture_def;
-			fixture_def.shape = &shape;
-			fixture_def.density = properties.body_property.mass;
-			fixture_def.friction = properties.body_property.friction;
-
-			if (i >= m_fixture.size()) {
-			m_fixture.resize(i + 1);
+				auto ptr = ((fan_2d::fixture*)inherit_t::m_body[physics_id]->create_fixture(&fixture_def));
+				ptr->set_shape_type(fan_2d::shape_type::circle);
 			}
 
-			m_fixture[i] = ((fan_2d::fixture*)m_body[m_body.size() - 1]->create_fixture(&fixture_def));
+			void physics_add_convex(uint32_t physics_id, uint32_t sprite_id, const fan_2d::physics::convex::properties_t& properties) {
 
-			m_fixture[i]->set_user_data(m_fixture.size() - 1);
-			m_fixture[i]->set_shape_type(fan_2d::shape_type::circle);
-			}*/
+				if (!inherit_t::m_body[physics_id]) {
+					fan_2d::body_def body_def;
+					body_def.type = b2BodyType::b2_dynamicBody;
+					body_def.position.Set(properties.position.x / meter_scale, properties.position.y / meter_scale);
+					body_def.angle = -properties.angle;
+					inherit_t::m_body[physics_id] = inherit_t::m_world->create_body(&body_def);
+					inherit_t::m_body[physics_id]->set_user_data(sprite_id);
+				}
 
-
-		};
-
-		struct convex : public physics_base<std::vector<fan_2d::fixture*>, std::vector<fan_2d::body*>> {
-
-			using physics_base::physics_base;
-
-			struct properties_t {
-
-				fan::vec2 position;
-
-				fan::vec2* points;
-				// maximum of 8 points per push
-				uint8_t points_amount;
-
-				f32_t angle;
-
-				body_type body_type;
-				fan_2d::physics::body_property body_property = { 1, 10, 0.1 };
-			};
-
-			void push_back(const properties_t& properties) {
-
-				b2BodyDef body_def;
-				body_def.type = b2BodyType::b2_dynamicBody;
-				body_def.position.Set(properties.position.x, properties.position.y);
-				body_def.angle = -properties.angle;
-				m_body.emplace_back((fan_2d::body*)m_world->CreateBody(&body_def));
-				m_body[m_body.size() - 1]->set_user_data(m_body.size() - 1);
-				
 				for (int i = 0; i < properties.points_amount; i++) {
-					properties.points[i] = properties.points[i];
+					properties.points[i] = properties.points[i] / meter_scale;
 				}
 
 				b2PolygonShape shape;
@@ -893,10 +1088,39 @@ namespace fan_2d {
 				fixture_def.friction = properties.body_property.friction;
 				fixture_def.restitution = properties.body_property.restitution;
 
-				m_fixture.emplace_back((fan_2d::fixture*)m_body[m_body.size() - 1]->create_fixture(&fixture_def));
+				auto ptr = ((fan_2d::fixture*)inherit_t::m_body[physics_id]->create_fixture(&fixture_def));
 
-				m_fixture[m_fixture.size() - 1]->set_shape_type(fan_2d::shape_type::convex);
+				ptr->set_shape_type(fan_2d::shape_type::convex);
+
 			}
+
+			void physics_add_edge(uint32_t physics_id, uint32_t sprite_id, const fan_2d::physics::edge_shape::properties_t& properties) {
+
+				if (!inherit_t::m_body[physics_id]) {
+					fan_2d::body_def body_def;
+					body_def.type = b2BodyType::b2_dynamicBody;
+					body_def.position.Set(0, 0);
+					body_def.angle = -properties.angle;
+					inherit_t::m_body[physics_id] = inherit_t::m_world->create_body(&body_def);
+					inherit_t::m_body[physics_id]->set_user_data(sprite_id);
+				}
+
+				b2EdgeShape shape;
+				
+				shape.SetOneSided((properties.src / meter_scale).b2(), (properties.src / meter_scale).b2(), (properties.dst / meter_scale).b2(), (properties.dst / meter_scale).b2());
+
+				b2FixtureDef fixture_def;
+				fixture_def.shape = &shape;
+				fixture_def.density = properties.body_property.mass;
+				fixture_def.friction = properties.body_property.friction;
+				fixture_def.restitution = properties.body_property.restitution;
+
+				auto ptr = ((fan_2d::fixture*)inherit_t::m_body[physics_id]->create_fixture(&fixture_def));
+
+				ptr->set_shape_type(fan_2d::shape_type::edge);
+
+			}
+
 		};
 
 		struct motor_joint : public physics_base<std::vector<fan_2d::fixture*>, std::vector<fan_2d::body*>> {
@@ -924,12 +1148,12 @@ namespace fan_2d {
 
 				b2LinearStiffness(jd.stiffness, jd.damping, hertz, dampingRatio, (b2Body*)body_a, (b2Body*)body_b);
 
-				wheel_joints.emplace_back((b2WheelJoint*)m_world->CreateJoint(&jd));
+				wheel_joints.emplace_back((fan_2d::wheel_joint*)m_world->create_joint(&jd));
 			}
 
 			void erase(uintptr_t i) {
 				physics_base::erase(i);
-				m_world->DestroyJoint(wheel_joints[i]);
+				m_world->destroy_joint(wheel_joints[i]);
 				wheel_joints.erase(wheel_joints.begin() + i);
 			}
 			void erase(uintptr_t begin, uintptr_t end) {
@@ -937,7 +1161,7 @@ namespace fan_2d {
 				physics_base::erase(begin, end);
 
 				for (int i = begin; i < end; i++) {
-					m_world->DestroyJoint(wheel_joints[i]);
+					m_world->destroy_joint(wheel_joints[i]);
 				}
 
 				wheel_joints.erase(wheel_joints.begin() + begin, wheel_joints.begin() + end);
@@ -962,9 +1186,8 @@ namespace fan_2d {
 		protected:
 
 			using physics_base::get_body;
-			using physics_base::get_fixture;
 
-			std::vector<b2WheelJoint*> wheel_joints;
+			std::vector<fan_2d::wheel_joint*> wheel_joints;
 
 		};
 
@@ -988,43 +1211,44 @@ namespace fan_2d {
 			fan::camera camera;
 			fan_2d::world world;
 
-			std::unordered_map<void*, bool> m_to_avoid;
+			//std::unordered_map<void*, bool> m_to_avoid;
 
 			std::unordered_map<void*, std::function<void()>> m_to_update;
 
-			std::vector<std::function<void()>> m_to_remove;
+			// functions that will be executed outside step - queue
+
+			std::vector<std::function<void()>> m_queue_after_step;
 
 			engine_t(const fan::vec2& gravity) : camera(&window), world(fan_2d::world(fan::vec2().b2())) {}
 
 			void step(f32_t time_step) {
-				for (int i = 0; i < m_to_remove.size(); i++) {
-					if (m_to_remove[i]) {
-						m_to_remove[i]();
-					}
+				
+				world.step(time_step, 6, 2);
+
+				for (int i = 0; i < m_queue_after_step.size(); i++) {
+					m_queue_after_step[i]();
 				}
 
-				m_to_remove.clear();
+				m_queue_after_step.clear();
 
-				world.Step(time_step, 6, 2);
-
-				for (auto& i : m_to_update) {
-					auto found = m_to_avoid.find(i.first);
-					if (found == m_to_avoid.end() && i.second) {
-						i.second();
-					}
+				for (auto i : m_to_update) {
+					i.second();
 				}
 
-				m_to_avoid.clear();
+				//m_to_avoid.clear();
 			}
 
-			void avoid_updating(void* shape) {
-				m_to_avoid.insert(std::make_pair(shape, false));
-			}
+			//void avoid_updating(void* shape) {
+			//	m_to_avoid.insert(std::make_pair(shape, false));
+			//}
 
 			void push_update(void* shape, std::function<void()> update_function) {
 				m_to_update.insert(std::make_pair(shape, update_function));
 			}
 
+			void clear_draw_calls() {
+				window.clear_draw_calls();
+			}
 		};
 
 		template <typename graphics_t, typename physics_t>
@@ -1046,7 +1270,7 @@ namespace fan_2d {
 					physics_t::erase(i_);
 				};
 
-				m_engine->m_to_remove.emplace_back(f);
+				m_engine->m_queue_after_step.emplace_back(f);
 			}
 			void erase(uintptr_t begin, uintptr_t end) {
 				std::function<void()> f = [&, begin_ = begin, end_ = end] {
@@ -1054,7 +1278,7 @@ namespace fan_2d {
 					physics_t::erase(begin_, end_);
 				};
 
-				m_engine->m_to_remove.emplace_back(f);
+				m_engine->m_queue_after_step.emplace_back(f);
 			}
 
 			fan_2d::engine::engine_t* m_engine;
@@ -1068,8 +1292,8 @@ namespace fan_2d {
 			}
 
 			struct properties_t : public fan_2d::graphics::rectangle::properties_t {
-				fan_2d::physics::body_type body_type;
-				fan_2d::physics::body_property body_property = { 10, 1, 0.1 };		
+				fan_2d::physics::body_type_t body_type;
+				fan_2d::physics::body_property_t body_property = { 10, 1, 0.1 };		
 			};
 
 			void push_back(properties_t properties) {
@@ -1079,8 +1303,8 @@ namespace fan_2d {
 				fan_2d::graphics::rectangle::push_back(properties);
 
 				fan_2d::physics::rectangle::properties_t p_property;
-				p_property.position = properties.position;
-				p_property.size = properties.size;
+				p_property.position = properties.position / meter_scale;
+				p_property.size = properties.size / meter_scale;
 				p_property.angle = properties.angle;
 				p_property.body_property = properties.body_property;
 				p_property.body_type = properties.body_type;
@@ -1089,7 +1313,7 @@ namespace fan_2d {
 			}
 
 			void set_position(uintptr_t i, const fan::vec2& position) {
-				fan_2d::graphics::rectangle::set_position(i, position - get_size(i) * 0.5);
+				fan_2d::graphics::rectangle::set_position(i, (position - get_size(i) * 0.5) * meter_scale);
 				fan_2d::physics::rectangle::set_position(i, position);
 			}
 
@@ -1100,7 +1324,7 @@ namespace fan_2d {
 
 					const f32_t new_angle = -this->get_body(i)->get_angle();
 
-					if (this->get_body(i)->get_body_type() == fan_2d::physics::body_type::static_body ||
+					if (this->get_body(i)->get_body_type() == fan_2d::physics::body_type_t::static_body ||
 						fan_2d::graphics::rectangle::get_position(i) == new_position
 						&& fan_2d::graphics::rectangle::get_angle(i) == new_angle) {
 						continue;
@@ -1109,8 +1333,6 @@ namespace fan_2d {
 					fan_2d::graphics::rectangle::set_position(i, new_position);
 					fan_2d::graphics::rectangle::set_angle(i, new_angle);
 				}
-
-				this->write_data();
 			}
 
 		};
@@ -1131,8 +1353,8 @@ namespace fan_2d {
 
 			struct properties_t : public fan_2d::graphics::sprite::properties_t {
 
-				fan_2d::physics::body_type body_type;
-				fan_2d::physics::body_property body_property = { 10, 1, 0.1 };		
+				fan_2d::physics::body_type_t body_type;
+				fan_2d::physics::body_property_t body_property = { 10, 1, 0.1 };		
 			};
 
 			base_sprite_t(fan_2d::engine::engine_t* engine) : base_sprite_t::base_engine(engine) {
@@ -1147,9 +1369,32 @@ namespace fan_2d {
 				return fan_2d::graphics::sprite::get_size(base_sprite_inherit_t::sprite_list[sprite_id].graphics_nodereference);
 			}
 
+			f32_t get_transparency(uint32_t sprite_id) const {
+				return fan_2d::graphics::sprite::get_transparency(base_sprite_inherit_t::sprite_list[sprite_id].graphics_nodereference);
+			}
+			void set_transparency(uint32_t sprite_id, f32_t transparency) {
+				return fan_2d::graphics::sprite::set_transparency(base_sprite_inherit_t::sprite_list[sprite_id].graphics_nodereference, transparency);
+			}
+
+			f32_t get_angle(uint32_t sprite_id) const {
+				return fan_2d::graphics::sprite::get_angle(base_sprite_inherit_t::sprite_list[sprite_id].graphics_nodereference);
+			}
+
 			void apply_force(uint32_t sprite_id, const fan::vec2& force, const fan::vec2& point = 0) {
-				typename decltype(base_sprite_inherit_t::sprite_list)::node_t* node = base_sprite_inherit_t::sprite_list.get_node_by_reference(sprite_id);
-				inherit_t::m_body[node->data.physics_nodereference]->apply_force(force, point);
+
+				if (inherit_t::m_engine->world.is_locked()) {
+					auto f = [&, id = sprite_id, force_ = force, point_ = point] {
+						typename decltype(base_sprite_inherit_t::sprite_list)::node_t* node = base_sprite_inherit_t::sprite_list.get_node_by_reference(id);
+						inherit_t::m_body[node->data.physics_nodereference]->apply_force(force_, point_);
+					};
+
+					inherit_t::m_engine->m_queue_after_step.emplace_back(f);
+				}
+				else {
+					typename decltype(base_sprite_inherit_t::sprite_list)::node_t* node = base_sprite_inherit_t::sprite_list.get_node_by_reference(sprite_id);
+					inherit_t::m_body[node->data.physics_nodereference]->apply_force(force, point);
+				}
+
 			}
 
 			void apply_impulse(uint32_t sprite_id, const fan::vec2& force, const fan::vec2& point = 0) {
@@ -1203,6 +1448,15 @@ namespace fan_2d {
 				inherit_t::m_body[node->data.physics_nodereference]->set_velocity_damping(amount);
 			}
 
+			bool is_fixed_rotation(uint32_t sprite_id) const {
+				typename decltype(base_sprite_inherit_t::sprite_list)::node_t* node = base_sprite_inherit_t::sprite_list.get_node_by_reference(sprite_id);
+				return this->inherit_t::m_body[node->data.physics_nodereference]->is_fixed_rotation();
+			}
+			void set_fixed_rotation(uint32_t sprite_id, bool flag) {
+				typename decltype(base_sprite_inherit_t::sprite_list)::node_t* node = base_sprite_inherit_t::sprite_list.get_node_by_reference(sprite_id);
+				this->inherit_t::m_body[node->data.physics_nodereference]->set_fixed_rotation(flag);
+			}
+
 			fan::vec2 get_velocity(uint32_t sprite_id) const {
 				const typename decltype(base_sprite_inherit_t::sprite_list)::node_t* node = base_sprite_inherit_t::sprite_list.get_node_by_reference(sprite_id);
 				return inherit_t::m_body[node->data.physics_nodereference]->get_velocity();
@@ -1212,9 +1466,9 @@ namespace fan_2d {
 				inherit_t::m_body[node->data.physics_nodereference]->set_velocity(velocity);
 			}
 
-			fan_2d::physics::body_type get_body_type(uint32_t sprite_id) const {
+			fan_2d::physics::body_type_t get_body_type(uint32_t sprite_id) const {
 				const typename decltype(base_sprite_inherit_t::sprite_list)::node_t* node = base_sprite_inherit_t::sprite_list.get_node_by_reference(sprite_id);
-				return (fan_2d::physics::body_type)inherit_t::m_body[node->data.physics_nodereference]->get_body_type();
+				return (fan_2d::physics::body_type_t)inherit_t::m_body[node->data.physics_nodereference]->get_body_type();
 			}
 
 			f32_t get_density(uint32_t sprite_id) {
@@ -1263,12 +1517,6 @@ namespace fan_2d {
 				inherit_t::m_fixture[node->data.physics_nodereference]->set_restitution(restitution);
 			}
 
-			void set_position(uint32_t sprite_id, const fan::vec2& position) {
-				typename decltype(base_sprite_inherit_t::sprite_list)::node_t* node = base_sprite_inherit_t::sprite_list.get_node_by_reference(sprite_id);
-				this->inherit_t::m_body[node->data.physics_nodereference]->set_transform((position).b2(), this->inherit_t::m_body[node->data.physics_nodereference]->get_angle());
-				this->inherit_t::m_body[node->data.physics_nodereference]->set_awake(true);
-			}
-
 			void set_angle(uint32_t sprite_id, f64_t rotation) {
 				typename decltype(base_sprite_inherit_t::sprite_list)::node_t* node = base_sprite_inherit_t::sprite_list.get_node_by_reference(sprite_id);
 				this->inherit_t::m_body[node->data.physics_nodereference]->set_transform(this->inherit_t::m_body[node->data.physics_nodereference]->get_position(), -rotation);
@@ -1278,6 +1526,37 @@ namespace fan_2d {
 				typename decltype(base_sprite_inherit_t::sprite_list)::node_t* node = base_sprite_inherit_t::sprite_list.get_node_by_reference(sprite_id);
 				this->inherit_t::m_body[node->data.physics_nodereference]->set_angular_velocity(w);
 				this->inherit_t::m_body[node->data.physics_nodereference]->set_awake(true);
+			}
+
+			fan::vec2 get_world_center(uint32_t sprite_id) const {
+				typename decltype(base_sprite_inherit_t::sprite_list)::node_t* node = base_sprite_inherit_t::sprite_list.get_node_by_reference(sprite_id);
+				return this->inherit_t::m_body[node->data.physics_nodereference]->get_world_center();
+			}
+
+			void set_sensor(uint32_t sprite_id, bool flag) {
+				if (inherit_t::m_engine->world.is_locked()) {
+					auto f = [&, id = sprite_id, flag_ = flag] {
+						typename decltype(base_sprite_inherit_t::sprite_list)::node_t* node = base_sprite_inherit_t::sprite_list.get_node_by_reference(id);
+						
+						auto ptr = inherit_t::m_body[node->data.physics_nodereference]->get_fixture_list();
+
+						for (; ptr; ptr = ptr->get_next()) {
+							ptr->set_sensor(flag_);
+						}
+					};
+
+					inherit_t::m_engine->m_queue_after_step.emplace_back(f);
+				}
+				else {
+					typename decltype(base_sprite_inherit_t::sprite_list)::node_t* node = base_sprite_inherit_t::sprite_list.get_node_by_reference(sprite_id);
+
+					auto ptr = inherit_t::m_body[node->data.physics_nodereference]->get_fixture_list();
+
+					for (; ptr; ptr = ptr->get_next()) {
+						ptr->set_sensor(flag);
+					}
+				}
+
 			}
 
 			using sprite = base_sprite_t<>;
@@ -1315,40 +1594,32 @@ namespace fan_2d {
 				for (int i = base_sprite_inherit_t::sprite_list.get_node_first(); i != base_sprite_inherit_t::sprite_list.dst; ) {
 
 					// if graphics
-					if (base_sprite_inherit_t::sprite_list[i].graphics_nodereference == (uint32_t)-1) {
+					if (base_sprite_inherit_t::sprite_list[i].physics_nodereference == (uint32_t)-1) {
 						typename decltype(base_sprite_inherit_t::sprite_list)::node_t *node = base_sprite_inherit_t::sprite_list.get_node_by_reference(i);
 						i = node->next;
 						continue;
 					}
 
 
-
 					fan::vec2 new_position = this->m_body[base_sprite_inherit_t::sprite_list[i].physics_nodereference]->get_position();
 
-					if (this->m_body[base_sprite_inherit_t::sprite_list[i].physics_nodereference]->get_shape_type() == fan_2d::shape_type::rectangle) {
-						//fan::print(aa_bb[1].x);
+					f32_t new_angle = -this->m_body[base_sprite_inherit_t::sprite_list[i].physics_nodereference]->get_angle();
 
-						new_position -= base_sprite_inherit_t::sprite_list[i].offset;
+					fan::vec2 old_angle = fan_2d::graphics::sprite::get_angle(base_sprite_inherit_t::sprite_list[i].graphics_nodereference);
+					fan::vec2 old_position = fan_2d::graphics::sprite::get_position(base_sprite_inherit_t::sprite_list[i].graphics_nodereference);
+
+					if (new_position == old_position && new_angle == old_angle) {
+						typename decltype(base_sprite_inherit_t::sprite_list)::node_t *node = base_sprite_inherit_t::sprite_list.get_node_by_reference(i);
+						i = node->next;
+						continue;
 					}
 
-					f32_t angle = -this->m_body[base_sprite_inherit_t::sprite_list[i].physics_nodereference]->get_angle();
-
-					/*if (this->get_body(i)->get_body_type() == fan_2d::physics::body_type::static_body ||
-					fan_2d::graphics::sprite::get_position(i) == new_position ||
-					fan_2d::graphics::sprite::get_angle(i) == angle
-					) {
-					continue;
-					}
-					fan::print("update");*/
-					fan_2d::graphics::sprite::set_angle(base_sprite_inherit_t::sprite_list[i].graphics_nodereference, angle);
+					fan_2d::graphics::sprite::set_angle(base_sprite_inherit_t::sprite_list[i].graphics_nodereference, new_angle);
 					fan_2d::graphics::sprite::set_position(base_sprite_inherit_t::sprite_list[i].graphics_nodereference, new_position);
 
 					typename decltype(base_sprite_inherit_t::sprite_list)::node_t *node = base_sprite_inherit_t::sprite_list.get_node_by_reference(i);
 					i = node->next;
-				} 
-
-				this->write_data();
-
+				}
 			}
 
 			void sprite_init_graphics(uint32_t nodereference, const fan_2d::graphics::sprite::properties_t& properties) {
@@ -1365,30 +1636,161 @@ namespace fan_2d {
 				fan_2d::graphics::sprite::push_back(properties);
 			}
 			void physics_add_triangle(uint32_t SpriteID, const fan_2d::physics::triangle::properties_t& properties) {
-				typename decltype(base_sprite_inherit_t::sprite_list)::node_t* node = base_sprite_inherit_t::sprite_list.get_node_by_reference(SpriteID);
-				auto sprite_node = &node->data;
-				if (sprite_node->physics_nodereference == (uint32_t)-1) {
-					sprite_node->physics_nodereference = inherit_t::m_body.new_node_last();
-					inherit_t::m_body[sprite_node->physics_nodereference] = nullptr;
-				}
-				fan_2d::physics::sprite<user_struct_t>::physics_add_triangle(sprite_node->physics_nodereference, SpriteID, properties);
-			}
-			void physics_add_rectangle(uint32_t SpriteID, const fan_2d::physics::rectangle::properties_t& properties) {
-				typename decltype(base_sprite_inherit_t::sprite_list)::node_t* node = base_sprite_inherit_t::sprite_list.get_node_by_reference(SpriteID);
-				auto sprite_node = &node->data;
-				if (sprite_node->physics_nodereference == (uint32_t)-1) {
-					sprite_node->physics_nodereference = inherit_t::m_body.new_node_last();
-					inherit_t::m_body[sprite_node->physics_nodereference] = nullptr;
-				}
-				//sprite_node->physics_nodereference = physics_size();
-				if (sprite_node->graphics_nodereference != (uint32_t)-1) {
-					fan_2d::physics::sprite<user_struct_t>::physics_add_rectangle(fan_2d::graphics::sprite::get_position(sprite_node->graphics_nodereference) + fan_2d::graphics::sprite::get_size(sprite_node->graphics_nodereference) / 2, sprite_node->physics_nodereference, SpriteID, properties);
-					sprite_node->offset = fan_2d::graphics::sprite::get_size(sprite_node->graphics_nodereference) / 2;
+
+				if (inherit_t::m_engine->world.is_locked()) {
+
+					auto f = [&, SpriteID_ = SpriteID, properties = properties]{
+
+						typename decltype(base_sprite_inherit_t::sprite_list)::node_t* node = base_sprite_inherit_t::sprite_list.get_node_by_reference(SpriteID_);
+						auto sprite_node = &node->data;
+						if (sprite_node->physics_nodereference == (uint32_t)-1) {
+							sprite_node->physics_nodereference = inherit_t::m_body.new_node_last();
+							inherit_t::m_body[sprite_node->physics_nodereference] = nullptr;
+						}
+
+						fan_2d::physics::sprite<user_struct_t>::physics_add_triangle(sprite_node->physics_nodereference, SpriteID_, properties);
+					};
+
+					inherit_t::m_engine->m_queue_after_step.emplace_back(f);
 				}
 				else {
-					fan_2d::physics::sprite<user_struct_t>::physics_add_rectangle(properties.position + properties.size / 2, sprite_node->physics_nodereference, SpriteID, properties);
+
+					typename decltype(base_sprite_inherit_t::sprite_list)::node_t* node = base_sprite_inherit_t::sprite_list.get_node_by_reference(SpriteID);
+					auto sprite_node = &node->data;
+					if (sprite_node->physics_nodereference == (uint32_t)-1) {
+						sprite_node->physics_nodereference = inherit_t::m_body.new_node_last();
+						inherit_t::m_body[sprite_node->physics_nodereference] = nullptr;
+					}
+
+					fan_2d::physics::sprite<user_struct_t>::physics_add_triangle(sprite_node->physics_nodereference, SpriteID, properties);
+				}
+
+			}
+			void physics_add_rectangle(uint32_t SpriteID, const fan_2d::physics::rectangle::properties_t& properties) {
+
+				if (inherit_t::m_engine->world.is_locked()) {
+					auto f = [&, SpriteID_ = SpriteID, properties = properties] {
+						typename decltype(base_sprite_inherit_t::sprite_list)::node_t* node = base_sprite_inherit_t::sprite_list.get_node_by_reference(SpriteID_);
+						auto sprite_node = &node->data;
+						if (sprite_node->physics_nodereference == (uint32_t)-1) {
+							sprite_node->physics_nodereference = inherit_t::m_body.new_node_last();
+							inherit_t::m_body[sprite_node->physics_nodereference] = nullptr;
+						}
+
+						inherit_t::physics_add_rectangle(properties.position, sprite_node->physics_nodereference, SpriteID_, properties);
+						//sprite_node->physics_nodereference = physics_size();
+						//if (sprite_node->graphics_nodereference != (uint32_t)-1) { // ?
+						//	inherit_t::sprite::physics_add_rectangle(inherit_t::sprite::get_position(sprite_node->graphics_nodereference) + inherit_t::sprite::get_size(sprite_node->graphics_nodereference) / 2, sprite_node->physics_nodereference, SpriteID, properties);
+						//}
+						//else {
+						//	
+						//}
+					};
+					inherit_t::m_engine->m_queue_after_step.emplace_back(f);
+				}
+				else {
+					typename decltype(base_sprite_inherit_t::sprite_list)::node_t* node = base_sprite_inherit_t::sprite_list.get_node_by_reference(SpriteID);
+					auto sprite_node = &node->data;
+					if (sprite_node->physics_nodereference == (uint32_t)-1) {
+						sprite_node->physics_nodereference = inherit_t::m_body.new_node_last();
+						inherit_t::m_body[sprite_node->physics_nodereference] = nullptr;
+					}
+					//sprite_node->physics_nodereference = physics_size();
+					if (sprite_node->graphics_nodereference != (uint32_t)-1) {
+						fan_2d::physics::sprite<user_struct_t>::physics_add_rectangle(fan_2d::graphics::sprite::get_position(sprite_node->graphics_nodereference), sprite_node->physics_nodereference, SpriteID, properties);
+					}
+					else {
+						fan_2d::physics::sprite<user_struct_t>::physics_add_rectangle(properties.position, sprite_node->physics_nodereference, SpriteID, properties);
+					}
 				}
 			}
+			void physics_add_circle(uint32_t SpriteID, const fan_2d::physics::circle::properties_t& properties) {
+
+				if (inherit_t::m_engine->world.is_locked()) {
+					auto f = [this, SpriteID_ = SpriteID, properties = properties] {
+						typename decltype(base_sprite_inherit_t::sprite_list)::node_t* node = inherit_t::sprite_list.get_node_by_reference(SpriteID_);
+						auto sprite_node = &node->data;
+						if (sprite_node->physics_nodereference == (uint32_t)-1) {
+							sprite_node->physics_nodereference = inherit_t::m_body.new_node_last();
+							inherit_t::m_body[sprite_node->physics_nodereference] = nullptr;
+						}
+
+						fan_2d::physics::sprite<user_struct_t>::physics_add_circle(sprite_node->physics_nodereference, SpriteID_, properties);
+					};
+
+					inherit_t::m_engine->m_queue_after_step.emplace_back(f);
+				}
+				else {
+					typename decltype(base_sprite_inherit_t::sprite_list)::node_t* node = base_sprite_inherit_t::sprite_list.get_node_by_reference(SpriteID);
+					auto sprite_node = &node->data;
+					if (sprite_node->physics_nodereference == (uint32_t)-1) {
+						sprite_node->physics_nodereference = inherit_t::m_body.new_node_last();
+						inherit_t::m_body[sprite_node->physics_nodereference] = nullptr;
+					}
+
+					fan_2d::physics::sprite<user_struct_t>::physics_add_circle(sprite_node->physics_nodereference, SpriteID, properties);
+				}
+
+			}
+
+			void physics_add_convex(uint32_t SpriteID, const fan_2d::physics::convex::properties_t& properties) {
+
+				if (inherit_t::m_engine->world.is_locked()) {
+					auto f = [this, SpriteID_ = SpriteID, properties = properties] {
+						typename decltype(base_sprite_inherit_t::sprite_list)::node_t* node = inherit_t::sprite_list.get_node_by_reference(SpriteID_);
+						auto sprite_node = &node->data;
+						if (sprite_node->physics_nodereference == (uint32_t)-1) {
+							sprite_node->physics_nodereference = inherit_t::m_body.new_node_last();
+							inherit_t::m_body[sprite_node->physics_nodereference] = nullptr;
+						}
+
+						fan_2d::physics::sprite<user_struct_t>::physics_add_convex(sprite_node->physics_nodereference, SpriteID_, properties);
+					};
+
+					inherit_t::m_engine->m_queue_after_step.emplace_back(f);
+				}
+				else {
+					typename decltype(base_sprite_inherit_t::sprite_list)::node_t* node = base_sprite_inherit_t::sprite_list.get_node_by_reference(SpriteID);
+					auto sprite_node = &node->data;
+					if (sprite_node->physics_nodereference == (uint32_t)-1) {
+						sprite_node->physics_nodereference = inherit_t::m_body.new_node_last();
+						inherit_t::m_body[sprite_node->physics_nodereference] = nullptr;
+					}
+
+					fan_2d::physics::sprite<user_struct_t>::physics_add_convex(sprite_node->physics_nodereference, SpriteID, properties);
+				}
+
+			}
+
+			void physics_add_edge(uint32_t SpriteID, const fan_2d::physics::edge_shape::properties_t& properties) {
+
+				if (inherit_t::m_engine->world.is_locked()) {
+					auto f = [this, SpriteID_ = SpriteID, properties = properties] {
+						typename decltype(base_sprite_inherit_t::sprite_list)::node_t* node = inherit_t::sprite_list.get_node_by_reference(SpriteID_);
+						auto sprite_node = &node->data;
+						if (sprite_node->physics_nodereference == (uint32_t)-1) {
+							sprite_node->physics_nodereference = inherit_t::m_body.new_node_last();
+							inherit_t::m_body[sprite_node->physics_nodereference] = nullptr;
+						}
+
+						fan_2d::physics::sprite<user_struct_t>::physics_add_edge(sprite_node->physics_nodereference, SpriteID_, properties);
+					};
+
+					inherit_t::m_engine->m_queue_after_step.emplace_back(f);
+				}
+				else {
+					typename decltype(base_sprite_inherit_t::sprite_list)::node_t* node = base_sprite_inherit_t::sprite_list.get_node_by_reference(SpriteID);
+					auto sprite_node = &node->data;
+					if (sprite_node->physics_nodereference == (uint32_t)-1) {
+						sprite_node->physics_nodereference = inherit_t::m_body.new_node_last();
+						inherit_t::m_body[sprite_node->physics_nodereference] = nullptr;
+					}
+
+					fan_2d::physics::sprite<user_struct_t>::physics_add_edge(sprite_node->physics_nodereference, SpriteID, properties);
+				}
+
+			}
+
 			void sprite_init_physics(uint32_t nodereference) {
 				typename decltype(base_sprite_inherit_t::sprite_list)::node_t* node = base_sprite_inherit_t::sprite_list.get_node_by_reference(nodereference);
 				auto sprite_node = &node->data;
@@ -1440,22 +1842,31 @@ namespace fan_2d {
 					typename decltype(base_sprite_inherit_t::sprite_list)::node_t* node = base_sprite_inherit_t::sprite_list.get_node_by_reference(sprite_id_);
 					auto sprite_node = &node->data;
 
-					if (sprite_node->graphics_nodereference != -1) {
-						fan_2d::graphics::sprite::erase(sprite_node->graphics_nodereference);
-					}
 					if (sprite_node->physics_nodereference != -1) {
 						fan_2d::physics::sprite<user_struct_t>::erase(sprite_node->physics_nodereference);
 					}
 
+					if (sprite_node->graphics_nodereference == -1) {
+						base_sprite_inherit_t::sprite_list.unlink(sprite_id_);
+						return;
+					}
+
+					fan_2d::graphics::sprite::erase(sprite_node->graphics_nodereference);
+
 					while (node->next != base_sprite_inherit_t::sprite_list.dst) {
-						base_sprite_inherit_t::sprite_list[node->next].graphics_nodereference--;
+						if (base_sprite_inherit_t::sprite_list[node->next].graphics_nodereference != (uint32_t)-1) {
+							base_sprite_inherit_t::sprite_list[node->next].graphics_nodereference--;
+						}
+						else if (base_sprite_inherit_t::sprite_list[node->next].graphics_nodereference == 0 && base_sprite_inherit_t::sprite_list.size() > 1) {
+							assert(0);
+						}
 						node = base_sprite_inherit_t::sprite_list.get_node_by_reference(node->next);
 					}
 
 					base_sprite_inherit_t::sprite_list.unlink(sprite_id_);
 				};
 
-				inherit_t::m_engine->m_to_remove.push_back(f);
+				inherit_t::m_engine->m_queue_after_step.push_back(f);
 
 			}
 
@@ -1469,8 +1880,8 @@ namespace fan_2d {
 
 			struct properties_t :
 				public fan_2d::graphics::circle::properties_t {
-				fan_2d::physics::body_type body_type;
-				fan_2d::physics::body_property body_property = { 1, 10, 0.1 };
+				fan_2d::physics::body_type_t body_type;
+				fan_2d::physics::body_property_t body_property = { 1, 10, 0.1 };
 			};
 
 			void push_back(const properties_t& properties) {
@@ -1478,7 +1889,7 @@ namespace fan_2d {
 				fan_2d::graphics::circle::push_back(properties);
 
 				fan_2d::physics::circle::properties_t c_properties;
-				c_properties.position = properties.position;
+				c_properties.position = properties.position / meter_scale;
 				c_properties.radius = properties.radius;
 				c_properties.body_property = properties.body_property;
 				c_properties.body_type = properties.body_type;
@@ -1487,9 +1898,9 @@ namespace fan_2d {
 			}
 
 			void set_position(uint32_t i, const fan::vec2& position) {
-				fan_2d::graphics::circle::set_position(i, position);
+				fan_2d::graphics::circle::set_position(i, position * meter_scale);
 
-				fan_2d::physics::circle::set_position(i, position);
+				fan_2d::physics::circle::set_position(i, position / meter_scale);
 			}
 
 			void update_position() {
@@ -1498,7 +1909,7 @@ namespace fan_2d {
 
 					const fan::vec2 new_position = this->get_body(i)->get_position();
 
-					if (this->get_body(i)->get_body_type() == fan_2d::physics::body_type::static_body ||
+					if (this->get_body(i)->get_body_type() == fan_2d::physics::body_type_t::static_body ||
 						fan_2d::graphics::circle::get_position(i) == new_position
 						) {
 						continue;
@@ -1506,9 +1917,6 @@ namespace fan_2d {
 
 					fan_2d::graphics::circle::set_position(i, new_position);
 				}
-
-				this->write_data();
-
 			}
 		};
 

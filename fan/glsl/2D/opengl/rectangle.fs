@@ -18,7 +18,7 @@ uniform float world_light_strength;
 
 void main()
 {
-    if (enable_lighting) {
+    if (false) {
         vec3 ambient = world_light_strength * color.xyz;
 
         float distance = sqrt(length(light_position - f_position)) / light_brightness;

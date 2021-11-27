@@ -43,6 +43,10 @@ namespace fan {
 				std::vector<pipelines_info_t> old_data;
 
 				struct flags_t {
+
+					fan_2d::graphics::face_e face = fan_2d::graphics::face_e::back;
+					fan_2d::graphics::fill_mode_e fill_mode = fan_2d::graphics::fill_mode_e::fill;
+
 					fan_2d::graphics::shape topology;
 					VkSampleCountFlagBits* msaa_samples = 0;
 				};
@@ -167,9 +171,9 @@ namespace fan {
 					rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
 					rasterizer.depthClampEnable = VK_FALSE;
 					rasterizer.rasterizerDiscardEnable = VK_FALSE;
-					rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+					rasterizer.polygonMode = (VkPolygonMode)flags.fill_mode;
 					rasterizer.lineWidth = 1.0f;
-					rasterizer.cullMode = VK_CULL_MODE_NONE;
+					rasterizer.cullMode = (VkCullModeFlags) flags.face;
 					rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 					rasterizer.depthBiasEnable = VK_FALSE;
 

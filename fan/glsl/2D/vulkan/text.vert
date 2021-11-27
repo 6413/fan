@@ -41,7 +41,7 @@ mat4 translate(mat4 m, vec3 v) {
 }
 
 mat4 scale(mat4 m, vec3 v) {
-	mat4 matrix;
+	mat4 matrix = mat4(1);
 
 	matrix[0][0] = m[0][0] * v[0];
 	matrix[0][1] = m[0][1] * v[0];

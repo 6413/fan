@@ -3,9 +3,9 @@
 #if fan_renderer == fan_renderer_vulkan
 
 fan_2d::graphics::gui::text_renderer::text_renderer(fan::camera* camera)
-	: m_camera(camera)
+	: m_camera(camera), m_queue_helper(camera->m_window)
 {
-	font_info = fan::font::parse_font("fonts/arial.fnt");
+	font_info = fan::font::parse_font("fonts/monoscape.fnt");
 
 	font_info.font[' '] = fan::font::font_t({ 0, fan::vec2(fan_2d::graphics::gui::font_properties::space_width, font_info.line_height), 0, (fan::vec2::value_type)fan_2d::graphics::gui::font_properties::space_width });
 	font_info.font['\n'] = fan::font::font_t({ 0, fan::vec2(0, font_info.line_height), 0, 0 });
@@ -97,17 +97,21 @@ fan_2d::graphics::gui::text_renderer::text_renderer(fan::camera* camera)
 		uniform_handler
 	);
 
-	if (!image) {
+	if (!font_image) {
 		fan::vulkan* vk_instance = camera->m_window->m_vulkan;
 
-		image = fan_2d::graphics::load_image(camera->m_window, "fonts/arial.png");
+		font_image = fan_2d::graphics::load_image(camera->m_window, "fonts/monoscape.png");
 
 		descriptor_offsets.emplace_back(vk_instance->texture_handler->push_back(
-			image->texture,
+			font_image->texture,
 			uniform_handler,
 			vk_instance->swapChainImages.size(), 1)
 		);
 	}
+
+	m_draw_index = this->m_camera->m_window->push_draw_call(this, [&] {
+		this->draw();
+	});
 
 	fan_2d::graphics::shape shape = fan_2d::graphics::shape::triangle;
 
@@ -116,8 +120,6 @@ fan_2d::graphics::gui::text_renderer::text_renderer(fan::camera* camera)
 		if (!instance_buffer->buffer->m_buffer_object || (uint64_t)base != (uint64_t)this || shape != fan_2d::graphics::shape::triangle) {
 			return;
 		}
-
-		fan::print(this, base);
 
 		vkCmdBindPipeline(
 			m_camera->m_window->m_vulkan->commandBuffers[0][i], 
@@ -159,9 +161,9 @@ fan_2d::graphics::gui::text_renderer::~text_renderer() {
 	}
 }
 
-void fan_2d::graphics::gui::text_renderer::draw()
+void fan_2d::graphics::gui::text_renderer::draw(uint32_t begin, uint32_t end)
 {
-	uint32_t begin = 0;
+	uint32_t begin_ = 0;
 
 	uint32_t draw_size = 0;
 
@@ -169,18 +171,18 @@ void fan_2d::graphics::gui::text_renderer::draw()
 		draw_size += m_text[i].size();
 	}
 
-	uint32_t end = draw_size;
+	uint32_t end_ = draw_size;
 
 	bool reload = false;
 
-	if (begin != m_begin) {
+	if (begin_ != m_begin) {
 		reload = true;
-		m_begin = begin;
+		m_begin = begin_;
 	}
 
-	if (end != m_end) {
+	if (end_ != m_end) {
 		reload = true;
-		m_end = end;
+		m_end = end_;
 	}
 
 	if (reload) {
@@ -254,6 +256,10 @@ void fan_2d::graphics::gui::text_renderer::push_back(const fan::utf16_string& te
 	else {
 		m_indices.emplace_back(m_indices[m_indices.size() - 1] + text.size());
 	}
+
+	m_queue_helper.write([&] {
+		this->write_data();
+	});
 }
 
 void fan_2d::graphics::gui::text_renderer::insert(uint32_t i, const fan::utf16_string& text, f32_t font_size, fan::vec2 position, const fan::color& text_color) {
@@ -295,6 +301,10 @@ void fan_2d::graphics::gui::text_renderer::insert(uint32_t i, const fan::utf16_s
 	}
 
 	regenerate_indices();
+
+	m_queue_helper.write([&] {
+		this->write_data();
+	});
 }
 
 void fan_2d::graphics::gui::text_renderer::set_position(uint32_t i, const fan::vec2& position) {
@@ -336,6 +346,10 @@ void fan_2d::graphics::gui::text_renderer::set_position(uint32_t i, const fan::v
 
 		instance_buffer->get_value(index + j).position = new_position;
 	}
+
+	m_queue_helper.edit(index, index + m_text[i].size(), [&] {
+		this->edit_data(m_queue_helper.m_min_edit, m_queue_helper.m_max_edit);
+	});
 }
 
 uint32_t fan_2d::graphics::gui::text_renderer::size() const {
@@ -362,6 +376,10 @@ void fan_2d::graphics::gui::text_renderer::set_angle(uint32_t i, f32_t angle)
 	for (int j = 0; j < m_text[i].size(); j++) {
 		instance_buffer->m_instance[(i == 0 ? 0 : m_indices[i - 1]) + j].angle = angle;	
 	}
+
+	m_queue_helper.edit((i == 0 ? 0 : m_indices[i - 1]), (i == 0 ? 0 : m_indices[i - 1]) + m_text[i].size(), [&] {
+		this->edit_data(m_queue_helper.m_min_edit, m_queue_helper.m_max_edit);
+	});
 }
 
 void fan_2d::graphics::gui::text_renderer::erase(uintptr_t i) {
@@ -375,6 +393,10 @@ void fan_2d::graphics::gui::text_renderer::erase(uintptr_t i) {
 	m_text.erase(m_text.begin() + i);
 
 	this->regenerate_indices();
+
+	m_queue_helper.write([&] {
+		this->write_data();
+	});
 }
 
 void fan_2d::graphics::gui::text_renderer::erase(uintptr_t begin, uintptr_t end) {
@@ -388,6 +410,10 @@ void fan_2d::graphics::gui::text_renderer::erase(uintptr_t begin, uintptr_t end)
 	m_text.erase(m_text.begin() + begin, m_text.begin() + end);
 
 	this->regenerate_indices();
+
+	m_queue_helper.write([&] {
+		this->write_data();
+	});
 }
 
 void fan_2d::graphics::gui::text_renderer::clear() {
@@ -398,6 +424,10 @@ void fan_2d::graphics::gui::text_renderer::clear() {
 	m_text.clear();
 
 	m_indices.clear();
+
+	m_queue_helper.write([&] {
+		this->write_data();
+	});
 }
 
 void fan_2d::graphics::gui::text_renderer::set_text(uint32_t i, const fan::utf16_string& text) {
@@ -428,15 +458,25 @@ void fan_2d::graphics::gui::text_renderer::set_text_color(uint32_t i, const fan:
 	for (int j = 0; j < m_text[i].size(); j++) {
 		instance_buffer->m_instance[index + j].color = color;
 	}
+
+	m_queue_helper.edit(index, index + m_text[i].size(), [&] {
+		this->edit_data(m_queue_helper.m_min_edit, m_queue_helper.m_max_edit);
+	});
 }
 void fan_2d::graphics::gui::text_renderer::set_text_color(uint32_t i, uint32_t j, const fan::color& color) {
 	auto index = i == 0 ? 0 : m_indices[i - 1];
 
 	instance_buffer->m_instance[index + j].color = color;
+
+	m_queue_helper.edit(index + j, index + j + 1, [&] {
+		this->edit_data(m_queue_helper.m_min_edit, m_queue_helper.m_max_edit);
+	});
 }
 
 void fan_2d::graphics::gui::text_renderer::write_data() {
 	instance_buffer->write_data();
+
+	m_queue_helper.on_write(m_camera->m_window);
 }
 
 void fan_2d::graphics::gui::text_renderer::edit_data(uint32_t i) {
@@ -448,6 +488,8 @@ void fan_2d::graphics::gui::text_renderer::edit_data(uint32_t i) {
 	}
 
 	instance_buffer->edit_data(begin, begin + m_text[i].size() - 1);
+
+	m_queue_helper.on_edit();
 }
 
 void fan_2d::graphics::gui::text_renderer::edit_data(uint32_t begin, uint32_t end) {
@@ -464,6 +506,30 @@ void fan_2d::graphics::gui::text_renderer::edit_data(uint32_t begin, uint32_t en
 	}
 
 	instance_buffer->edit_data(begin_, size - begin_);
+
+	m_queue_helper.on_edit();
+}
+
+void fan_2d::graphics::gui::text_renderer::disable_draw() {
+	if (m_camera->m_window->m_draw_queue[m_draw_index].first != this) {
+		m_draw_index = m_camera->m_window->push_draw_call(this, [&] {});
+	}
+	else {
+		m_camera->m_window->edit_draw_call(m_draw_index, this, []{});
+	}
+}
+
+void fan_2d::graphics::gui::text_renderer::enable_draw() {
+	if (m_camera->m_window->m_draw_queue[m_draw_index].first != this) {
+		m_draw_index = m_camera->m_window->push_draw_call(this, [&] {
+			this->draw();
+			});
+	}
+	else {
+		m_camera->m_window->edit_draw_call(m_draw_index, this, [&] {
+			this->draw();
+			});
+	}
 }
 
 #define get_letter_infos 																\
@@ -471,8 +537,8 @@ const fan::vec2 letter_position = font_info.font[letter].position;						\
 const fan::vec2 letter_size = font_info.font[letter].size;								\
 const fan::vec2 letter_offset = font_info.font[letter].offset;							\
 																						\
-fan::vec2 texture_position = fan::vec2(letter_position) / image->size;				\
-fan::vec2 texture_size = fan::vec2(letter_position + letter_size) / image->size;		\
+fan::vec2 texture_position = fan::vec2(letter_position) / font_image->size;				\
+fan::vec2 texture_size = fan::vec2(letter_position + letter_size) / font_image->size;		\
 																						\
 const auto converted_font_size = convert_font_size(font_size);							\
 																						\

@@ -278,13 +278,13 @@ namespace fan {
 			return _Ty();
 		}
 
-		constexpr vec_t floored() const { return vec_t(floor(x), floor(y)); }
-		constexpr vec_t floored(_Ty value) const { return vec_t(floor(x / value), floor(y / value)); }
+		constexpr vec_t floor() const { return vec_t(std::floor(x), std::floor(y)); }
+		constexpr vec_t floor(_Ty value) const { return vec_t(std::floor(x / value), std::floor(y / value)); }
 
-		constexpr vec_t rounded() const { return vec_t(std::round(x), std::round(y)); }
+		constexpr vec_t round() const { return vec_t(std::round(x), std::round(y)); }
 
-		constexpr vec_t ceiled() const { return vec_t(ceil(x), ceil(y)); }
-		constexpr vec_t ceiled(_Ty value) const { return vec_t(ceil(x / value), ceil(y / value)); }
+		constexpr vec_t ceil() const { return vec_t(std::ceil(x), std::ceil(y)); }
+		constexpr vec_t ceil(_Ty value) const { return vec_t(std::ceil(x / value), std::ceil(y / value)); }
 
 		constexpr _Ty min() const { return std::min(x, y); }
 		constexpr _Ty max() const { return std::max(x, y); }
@@ -329,6 +329,9 @@ namespace fan {
 
 		template <typename T>
 		friend std::ostream& operator<<(std::ostream& os, const _vec2<T>& vector);
+
+		template <typename T>
+		friend std::ofstream& operator<<(std::ofstream& os, const _vec2<T>& vector);
 
 		std::string to_string() const {
 			return std::string(std::to_string(this->x) + ' '+ std::to_string(this->y));
@@ -542,10 +545,10 @@ namespace fan {
 			return *this;
 		}
 
-		constexpr vec_t floored() const { return vec_t(floor(x), floor(y), floor(z)); }
-		constexpr vec_t floored(_Ty value) const { return vec_t(floor(x / value), floor(y / value), floor(z / value)); }
-		constexpr vec_t ceiled() const { return vec_t(ceil(x), ceil(y), ceil(z)); }
-		constexpr vec_t rounded() const { return vec_t(round(x), round(y), round(z)); }
+		constexpr vec_t floor() const { return vec_t(std::floor(x), std::floor(y), std::floor(z)); }
+		constexpr vec_t floor(_Ty value) const { return vec_t(std::floor(x / value), std::floor(y / value), floor(z / value)); }
+		constexpr vec_t ceil() const { return vec_t(std::ceil(x), std::ceil(y), std::ceil(z)); }
+		constexpr vec_t round() const { return vec_t(std::round(x), std::round(y), std::round(z)); }
 
 		constexpr _Ty min() const { return std::min({ x, y, z }); }
 		constexpr _Ty max() const { return std::max({ x, y, z }); }
@@ -805,8 +808,8 @@ namespace fan {
 			return *this;
 		}
 
-		constexpr _vec4<_Ty> floored() const { return _vec4<_Ty>(floor(x), floor(y), floor(z), floor(w)); }
-		constexpr _vec4<_Ty> floored(_Ty value) const { return _vec4<_Ty>(floor(x / value), floor(y / value), floor(z / value), floor(w / value)); }
+		constexpr _vec4<_Ty> floor() const { return _vec4<_Ty>(std::floor(x), std::floor(y), std::floor(z), std::floor(w)); }
+		constexpr _vec4<_Ty> floor(_Ty value) const { return _vec4<_Ty>(std::floor(x / value), std::floor(y / value), std::floor(z / value), std::floor(w / value)); }
 		constexpr vec_t clamp(_Ty min, _Ty max) const {
 			return vec_t(std::clamp(x, min, max), std::clamp(y, min, max), std::clamp(z, min, max), std::clamp(w, min, max));
 		}
@@ -838,6 +841,14 @@ namespace fan {
 	};
 
 	template <typename T>
+	std::ofstream& operator<<(std::ofstream& os, const _vec2<T>& vector)
+	{
+		os << vector.x << vector.y;
+		return os;
+	}
+
+
+	template <typename T>
 	std::ostream& operator<<(std::ostream& os, const _vec2<T>& vector)
 	{
 		os << '{' << vector.x << ", " << vector.y << '}';
@@ -848,14 +859,14 @@ namespace fan {
 	template <typename T>
 	std::ostream& operator<<(std::ostream& os, const _vec3<T>& vector)
 	{
-		os << '{' << vector.x << ", " << vector.y << ", " << vector.z;
+		os << '{' << vector.x << ", " << vector.y << ", " << vector.z << '}';
 		return os;
 	}
 
 	template <typename T>
 	std::ostream& operator<<(std::ostream& os, const _vec4<T>& vector)
 	{
-		os << '{' << vector.x << ", " << vector.y << ", " << vector.z << ", " << vector.w;
+		os << '{' << vector.x << ", " << vector.y << ", " << vector.z << ", " << vector.w << '}';
 		return os;
 	}
 

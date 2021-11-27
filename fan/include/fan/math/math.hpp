@@ -98,6 +98,62 @@ namespace fan {
 
 	namespace math {
 
+		constexpr f_t inf = INFINITY;
+		constexpr f_t infinite = inf;
+		constexpr f_t infinity = infinite;
+
+		static int solve_quadratic(f32_t a, f32_t b, f32_t c, f32_t& root1, f32_t& root2) {
+			f32_t discriminant = b * b - 4 * a * c;
+			if (discriminant < 0) {
+				root1 = fan::math::inf;
+				root2 = -root1;
+				return 0;
+			}
+
+			root1 = (-b + sqrt(discriminant)) / (2 * a);
+			root2 = (-b - sqrt(discriminant)) / (2 * a);
+
+			return discriminant > 0 ? 2 : 1;
+		}
+
+		template <typename T>
+		static bool interception_direction(const T& a, const T& b, const T& v_a, f32_t s_b, T& result) {
+			T a_to_b = b - a;
+			f32_t d_c = a_to_b.length();
+
+			T x = a_to_b;
+			T y = v_a;
+
+			f32_t alpha = atan2(y.y, y.x) - atan2(x.y, x.x);
+			f32_t s_a = v_a.length();
+			f32_t r = s_a / s_b;
+
+			f32_t root1;
+			f32_t root2;
+
+			if (solve_quadratic(1 - r * r, 2 * r * d_c * cos(alpha), -(d_c * d_c), root1, root2) == 0) {
+				result = 0;
+				return false;
+			}
+
+			f32_t d_a = std::max(root1, root2);
+			f32_t t = d_a / s_b;
+			T c = a + v_a * t;
+			result = (c - b).normalize();
+			return true;
+
+		}
+
+		// no delta
+		template <typename T>
+		T aimbot(f32_t bullet_speed, const T& start_position, const T& target_position, const T& target_vel) {
+			T direction;
+			if (interception_direction(target_position, start_position, target_vel, 2 * (bullet_speed / 10), direction)) {
+				return direction;
+			}
+			return fan::math::inf;
+		}
+
 		inline auto pythagorean(f_t a, f_t b) {
 			return std::sqrt((a * a) + (b * b));
 		}
@@ -122,14 +178,10 @@ namespace fan {
 		template <typename T>
 		constexpr int64_t ceil(T num)
 		{
-			return (static_cast<float>(static_cast<int64_t>(num)) == num)
+			return (static_cast<f32_t>(static_cast<int64_t>(num)) == num)
 				? static_cast<int64_t>(num)
 				: static_cast<int64_t>(num) + ((num > 0) ? 1 : 0);
 		}
-
-		constexpr f_t inf = INFINITY;
-		constexpr f_t infinite = inf;
-		constexpr f_t infinity = infinite;
 
 		template <typename T>
 		void debugger(std::function<T> functionPtr) {
@@ -175,32 +227,32 @@ namespace fan {
 			return vector / fan_3d::math::dot(vector, vector);
 		}
 
-		#define PI_FLOAT     3.14159265f
-		#define PIBY2_FLOAT  1.5707963f
+		#define PI_f32_t     3.14159265f
+		#define PIBY2_f32_t  1.5707963f
 		// |error| < 0.005
-		constexpr float atan2_approximation2( float y, float x )
+		constexpr f32_t atan2_approximation2( f32_t y, f32_t x )
 		{
 			if ( x == 0.0f )
 			{
-				if ( y > 0.0f ) return PIBY2_FLOAT;
+				if ( y > 0.0f ) return PIBY2_f32_t;
 				if ( y == 0.0f ) return 0.0f;
-				return -PIBY2_FLOAT;
+				return -PIBY2_f32_t;
 			}
-			float atan;
-			float z = y/x;
+			f32_t atan;
+			f32_t z = y/x;
 			if ( fabs( z ) < 1.0f )
 			{
 				atan = z/(1.0f + 0.28f*z*z);
 				if ( x < 0.0f )
 				{
-					if ( y < 0.0f ) return atan - PI_FLOAT;
-					return atan + PI_FLOAT;
+					if ( y < 0.0f ) return atan - PI_f32_t;
+					return atan + PI_f32_t;
 				}
 			}
 			else
 			{
-				atan = PIBY2_FLOAT - z/(z*z + 0.28f);
-				if ( y < 0.0f ) return atan - PI_FLOAT;
+				atan = PIBY2_f32_t - z/(z*z + 0.28f);
+				if ( y < 0.0f ) return atan - PI_f32_t;
 			}
 			return atan;
 		}
@@ -295,11 +347,11 @@ namespace fan {
 		}
 
 		template <typename matrix_t>
-		auto ortho(float left, float right, float bottom, float top) {
+		auto ortho(f32_t left, f32_t right, f32_t bottom, f32_t top) {
 			matrix_t matrix(1);
-			matrix[0][0] = static_cast<float>(2) / (right - left);
-			matrix[1][1] = static_cast<float>(2) / (top - bottom);
-			matrix[2][2] = -static_cast<float>(1);
+			matrix[0][0] = static_cast<f32_t>(2) / (right - left);
+			matrix[1][1] = static_cast<f32_t>(2) / (top - bottom);
+			matrix[2][2] = -static_cast<f32_t>(1);
 			matrix[3][0] = -(right + left) / (right - left);
 			matrix[3][1] = -(top + bottom) / (top - bottom);
 			return matrix;

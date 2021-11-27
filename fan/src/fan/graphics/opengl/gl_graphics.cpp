@@ -28,9 +28,11 @@ void fan::print_opengl_version()
 	fan::print("OpenGL version:", glGetString(GL_VERSION));
 }
 
+static constexpr auto zoom = 1; 
+
 fan::mat4 fan_2d::graphics::get_projection(const fan::vec2i& window_size) {
 
-	return fan::math::ortho<fan::mat4>((f32_t)window_size.x * 0.5, (f32_t)window_size.x + (f32_t)window_size.x * 0.5, (f32_t)window_size.y + (f32_t)window_size.y * 0.5, (f32_t)window_size.y * 0.5, 0.1f, 1000.0f);
+	return fan::math::ortho<fan::mat4>((f32_t)window_size.x * 0.5 * zoom, ((f32_t)window_size.x + (f32_t)window_size.x * 0.5) * zoom, ((f32_t)window_size.y + (f32_t)window_size.y * 0.5) * zoom, ((f32_t)window_size.y * 0.5) * zoom, -1, 1000.0f);
 }
 
 fan::mat4 fan_2d::graphics::get_view_translation(const fan::vec2i& window_size, const fan::mat4& view)
@@ -43,16 +45,11 @@ fan_2d::graphics::image_t fan_2d::graphics::load_image(fan::window* window, cons
 	fan_2d::graphics::image_t info = new std::remove_pointer<fan_2d::graphics::image_t>::type(window);
 
 	glGenTextures(1, &info->texture);
-
-	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, info->size.begin());
-	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, info->size.begin() + 1);
-
 	glBindTexture(GL_TEXTURE_2D, info->texture);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, fan_2d::graphics::image_load_properties::visual_output);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, fan_2d::graphics::image_load_properties::visual_output);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, fan_2d::graphics::image_load_properties::filter);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, fan_2d::graphics::image_load_properties::filter);
-	glGenerateMipmap(GL_TEXTURE_2D);
 
 	auto image_data = fan::image_loader::load_image(path);
 
@@ -94,6 +91,7 @@ fan_2d::graphics::image_t fan_2d::graphics::load_image(fan::window* window, cons
 	info->properties.type = type;
 	info->properties.visual_output = fan_2d::graphics::image_load_properties::visual_output;
 
+	//glTextureParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, 100);
 	glTexImage2D(GL_TEXTURE_2D, 0, internal_format, info->size.x, info->size.y, 0, format, type, image_data.data[0]);
 
 	glGenerateMipmap(GL_TEXTURE_2D);
@@ -113,9 +111,6 @@ fan_2d::graphics::image_t fan_2d::graphics::load_image(fan::window* window, cons
 
 	glGenTextures(1, &info->texture);
 
-	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, info->size.begin());
-	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, info->size.begin() + 1);
-
 	glBindTexture(GL_TEXTURE_2D, info->texture);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, fan_2d::graphics::image_load_properties::visual_output);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, fan_2d::graphics::image_load_properties::visual_output);
@@ -125,6 +120,7 @@ fan_2d::graphics::image_t fan_2d::graphics::load_image(fan::window* window, cons
 	fan::image_loader::image_data image_d;
 
 	for (int i = 0; i < std::size(image_d.data); i++) {
+
 		image_d.data[i] = pixel_data.pixels[i];
 		image_d.linesize[i] = pixel_data.linesize[i];
 	}
@@ -132,7 +128,7 @@ fan_2d::graphics::image_t fan_2d::graphics::load_image(fan::window* window, cons
 	image_d.size = pixel_data.size;
 	image_d.format = pixel_data.format;
 
-	auto image_data = fan::image_loader::convert_format(image_d, AVPixelFormat::AV_PIX_FMT_RGB24);
+	auto image_data = fan::image_loader::convert_format(image_d, AV_PIX_FMT_RGBA);
 
 	info->size = image_data.size;
 
@@ -157,7 +153,7 @@ fan_2d::graphics::image_t fan_2d::graphics::load_image(fan::window* window, cons
 		}
 		case AVPixelFormat::AV_PIX_FMT_RGBA:
 		{
-			//	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+			//glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 			internal_format = GL_RGBA;
 			format = GL_RGBA;
 			type = GL_UNSIGNED_BYTE;
@@ -209,19 +205,19 @@ void fan_2d::graphics::lighting_properties::set_world_light_strength(f32_t value
 }
 
 fan_2d::graphics::vertice_vector::vertice_vector(fan::camera* camera)
-	: basic_vertice_vector(camera, fan::shader(fan_2d::graphics::shader_paths::vertice_vector_vs, fan_2d::graphics::shader_paths::vertice_vector_fs)), m_offset(0)
+	: basic_vertice_vector(camera, fan::shader(fan_2d::graphics::shader_paths::vertice_vector_vs, fan_2d::graphics::shader_paths::vertice_vector_fs)), m_offset(0), m_queue_helper(camera->m_window)
 {
 	this->initialize_buffers();
 }
 
 fan_2d::graphics::vertice_vector::vertice_vector(fan::camera* camera, const fan::shader& shader)
-	: basic_vertice_vector(camera, shader), m_offset(0)
+	: basic_vertice_vector(camera, shader), m_offset(0), m_queue_helper(camera->m_window)
 {
 	this->initialize_buffers();
 }
 
 fan_2d::graphics::vertice_vector::vertice_vector(const vertice_vector& vector)
-	: fan::basic_vertice_vector<fan::vec2>(vector), ebo_handler(vector) {
+	: fan::basic_vertice_vector<fan::vec2>(vector), ebo_handler(vector), m_queue_helper(vector.m_camera->m_window) {
 
 	this->m_indices = vector.m_indices;
 	this->m_offset = vector.m_offset;
@@ -230,7 +226,7 @@ fan_2d::graphics::vertice_vector::vertice_vector(const vertice_vector& vector)
 }
 
 fan_2d::graphics::vertice_vector::vertice_vector(vertice_vector&& vector) noexcept
-	: fan::basic_vertice_vector<fan::vec2>(std::move(vector)), ebo_handler(std::move(vector)) { 
+	: fan::basic_vertice_vector<fan::vec2>(std::move(vector)), ebo_handler(std::move(vector)), m_queue_helper(vector.m_camera->m_window) { 
 
 	this->m_indices = std::move(vector.m_indices);
 	this->m_offset = vector.m_offset;
@@ -270,16 +266,31 @@ void fan_2d::graphics::vertice_vector::push_back(const vertice_vector::propertie
 
 	m_indices.emplace_back(m_offset);
 	m_offset++;
+
+	m_queue_helper.write([&] {
+		this->write_data();
+	});
+	
 }
 
 void fan_2d::graphics::vertice_vector::reserve(uintptr_t size)
 {
 	vertice_vector::basic_vertice_vector::reserve(size);
+
+	m_queue_helper.write([&] {
+		this->write_data();
+	});
+	
 }
 
 void fan_2d::graphics::vertice_vector::resize(uintptr_t size, const fan::color& color)
 {
 	vertice_vector::basic_vertice_vector::resize(size, color);
+
+	m_queue_helper.write([&] {
+		this->write_data();
+	});
+	
 }
 
 void fan_2d::graphics::vertice_vector::draw(fan_2d::graphics::shape shape, uint32_t single_draw_amount, uint32_t begin, uint32_t end, bool texture) const
@@ -327,12 +338,23 @@ void fan_2d::graphics::vertice_vector::draw(fan_2d::graphics::shape shape, uint3
 		}
 	}
 
+	if (m_fill_mode == fan_2d::graphics::get_fill_mode(m_camera->m_window)) {
+		fan_2d::graphics::draw([&] {
+			vertice_vector::basic_vertice_vector::basic_draw(begin, end, m_indices, mode, size(), single_draw_amount);
+		});
+
+		return;
+	}
+
+	auto fill_mode = fan_2d::graphics::get_fill_mode(m_camera->m_window);
+
+	fan_2d::graphics::draw_mode(m_camera->m_window, m_fill_mode, fan_2d::graphics::get_face(m_camera->m_window));
+
 	fan_2d::graphics::draw([&] {
 		vertice_vector::basic_vertice_vector::basic_draw(begin, end, m_indices, mode, size(), single_draw_amount);
 	});
 
-
-	//glDisable(GL_PRIMITIVE_RESTART);
+	fan_2d::graphics::draw_mode(m_camera->m_window, fill_mode, fan_2d::graphics::get_face(m_camera->m_window));
 }
 
 void fan_2d::graphics::vertice_vector::erase(uintptr_t i)
@@ -346,6 +368,11 @@ void fan_2d::graphics::vertice_vector::erase(uintptr_t i)
 	}
 
 	m_offset--; // ? FIX
+
+	m_queue_helper.write([&] {
+		this->write_data();
+	});
+	
 }
 
 void fan_2d::graphics::vertice_vector::erase(uintptr_t begin, uintptr_t end)
@@ -363,6 +390,11 @@ void fan_2d::graphics::vertice_vector::erase(uintptr_t begin, uintptr_t end)
 	}
 
 	fan::basic_vertice_vector<fan::vec2>::erase(begin, end);
+
+	m_queue_helper.write([&] {
+		this->write_data();
+	});
+	
 }
 
 fan::vec2 fan_2d::graphics::vertice_vector::get_position(uint32_t i) const {
@@ -370,6 +402,9 @@ fan::vec2 fan_2d::graphics::vertice_vector::get_position(uint32_t i) const {
 }
 void fan_2d::graphics::vertice_vector::set_position(uint32_t i, const fan::vec2& position) {
 	fan::basic_vertice_vector<fan::vec2>::basic_shape_position::set_value(i, position);
+	m_queue_helper.edit(i, i + 1, [&] {
+		this->edit_data(m_queue_helper.m_min_edit, m_queue_helper.m_max_edit);
+	});
 }
 
 fan::color fan_2d::graphics::vertice_vector::get_color(uint32_t i) const {
@@ -377,15 +412,23 @@ fan::color fan_2d::graphics::vertice_vector::get_color(uint32_t i) const {
 }
 void fan_2d::graphics::vertice_vector::set_color(uint32_t i, const fan::color& color) {
 	fan::basic_vertice_vector<fan::vec2>::basic_shape_color_vector::set_value(i, color);
+	m_queue_helper.edit(i, i + 1, [&] {
+		this->edit_data(m_queue_helper.m_min_edit, m_queue_helper.m_max_edit);
+	});
 }
 
 void fan_2d::graphics::vertice_vector::set_angle(uint32_t i, f32_t angle)
 {
 	vertice_vector::basic_vertice_vector::basic_shape_angle::set_value(i, angle);
+	m_queue_helper.edit(i, i + 1, [&] {
+		this->edit_data(m_queue_helper.m_min_edit, m_queue_helper.m_max_edit);
+	});
 }
 
 void fan_2d::graphics::vertice_vector::initialize_buffers()
 {
+	set_draw_mode(fan_2d::graphics::get_fill_mode(m_camera->m_window));
+
 	fan::bind_vao(vao_handler::m_buffer_object, [&] {
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo_handler::m_buffer_object);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(m_indices[0]) * m_indices.size(), m_indices.data(), GL_STATIC_DRAW);
@@ -395,6 +438,39 @@ void fan_2d::graphics::vertice_vector::initialize_buffers()
 		basic_vertice_vector::basic_shape_rotation_point::initialize_buffers(m_shader.id, rotation_point_location_name, false, fan::vec2::size());
 		basic_vertice_vector::basic_shape_rotation_vector::initialize_buffers(m_shader.id, rotation_vector_location_name, false, fan::vec3::size());
 	});
+}
+
+void fan_2d::graphics::vertice_vector::enable_draw(fan_2d::graphics::shape shape, uint32_t single_draw_amount)
+{
+	if (m_draw_index == -1 || m_camera->m_window->m_draw_queue[m_draw_index].first != this) {
+		m_draw_index = m_camera->m_window->push_draw_call(this, [&, s = shape, sd = single_draw_amount] {
+			this->draw(s, sd);
+		});
+	}
+	else {
+		m_camera->m_window->edit_draw_call(m_draw_index, this, [&, s = shape, sd = single_draw_amount] {
+			this->draw(s, sd);
+		});
+	}
+}
+
+void fan_2d::graphics::vertice_vector::disable_draw()
+{
+	if (m_draw_index == -1) {
+		return;
+	}
+
+	m_camera->m_window->edit_draw_call(m_draw_index, this, []{});
+}
+
+fan_2d::graphics::fill_mode_e fan_2d::graphics::vertice_vector::get_draw_mode() const
+{
+	return m_fill_mode;
+}
+
+void fan_2d::graphics::vertice_vector::set_draw_mode(fan_2d::graphics::fill_mode_e fill_mode)
+{
+	m_fill_mode = fill_mode;
 }
 
 void fan_2d::graphics::vertice_vector::write_data()
@@ -408,6 +484,8 @@ void fan_2d::graphics::vertice_vector::write_data()
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo_handler::m_buffer_object);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(m_indices[0]) * m_indices.size(), m_indices.data(), GL_STATIC_DRAW);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+	m_queue_helper.on_write(m_camera->m_window);
 }
 
 void fan_2d::graphics::vertice_vector::edit_data(uint32_t i) {
@@ -420,6 +498,8 @@ void fan_2d::graphics::vertice_vector::edit_data(uint32_t i) {
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo_handler::m_buffer_object);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(m_indices[0]) * m_indices.size(), m_indices.data(), GL_STATIC_DRAW);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+	m_queue_helper.on_edit();
 }
 
 void fan_2d::graphics::vertice_vector::edit_data(uint32_t begin, uint32_t end) {
@@ -432,6 +512,8 @@ void fan_2d::graphics::vertice_vector::edit_data(uint32_t begin, uint32_t end) {
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo_handler::m_buffer_object);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(m_indices[0]) * m_indices.size(), m_indices.data(), GL_STATIC_DRAW);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+	m_queue_helper.on_edit();
 }
 
 fan_2d::graphics::convex::convex(fan::camera* camera) : 
@@ -509,35 +591,19 @@ void fan_2d::graphics::convex::push_back(convex::properties_t property)
 //	return lv;
 //}
 
-fan_2d::graphics::rectangle::rectangle()
-	: fan::shader(fan::shader(fan_2d::graphics::shader_paths::rectangle_vs, fan_2d::graphics::shader_paths::rectangle_fs)),
-	lighting_properties(this) {
-
-	fan::bind_vao(fan::vao_handler<>::m_buffer_object, [&] {
-		color_t::initialize_buffers(fan::shader::id, location_color, true, color_t::value_type::size());
-		position_t::initialize_buffers(fan::shader::id, location_position, true, position_t::value_type::size());
-		size_t::initialize_buffers(fan::shader::id, location_size, true, size_t::value_type::size());
-		angle_t::initialize_buffers(fan::shader::id, location_angle, true, 1);
-		rotation_point_t::initialize_buffers(fan::shader::id, location_rotation_point, true, rotation_point_t::value_type::size());
-		rotation_vector_t::initialize_buffers(fan::shader::id, location_rotation_vector, true, rotation_vector_t::value_type::size());
-		ebo_t::bind();
-	});
-}
-
 fan_2d::graphics::rectangle::rectangle(fan::camera* camera) 
 	: m_camera(camera), 
 	fan::shader(fan_2d::graphics::shader_paths::rectangle_vs, fan_2d::graphics::shader_paths::rectangle_fs),
-	lighting_properties(this) {
+	lighting_properties(this), m_queue_helper(camera->m_window) {
 
-	fan::bind_vao(fan::vao_handler<>::m_buffer_object, [&] {
-		color_t::initialize_buffers(fan::shader::id, location_color, true, color_t::value_type::size());
-		position_t::initialize_buffers(fan::shader::id, location_position, true, position_t::value_type::size());
-		size_t::initialize_buffers(fan::shader::id, location_size, true, size_t::value_type::size());
-		angle_t::initialize_buffers(fan::shader::id, location_angle, true, 1);
-		rotation_point_t::initialize_buffers(fan::shader::id, location_rotation_point, true, rotation_point_t::value_type::size());
-		rotation_vector_t::initialize_buffers(fan::shader::id, location_rotation_vector, true, rotation_vector_t::value_type::size());
-		ebo_t::bind();
-	});
+	this->initialize();
+}
+
+fan_2d::graphics::rectangle::~rectangle() {
+	if (m_draw_index != -1) {
+		m_camera->m_window->erase_draw_call(m_draw_index);
+		m_draw_index = -1;
+	}
 }
 
 fan::shader* fan_2d::graphics::rectangle::get_shader()
@@ -545,84 +611,245 @@ fan::shader* fan_2d::graphics::rectangle::get_shader()
 	return this;
 }
 
-fan_2d::graphics::rectangle::rectangle(const fan::shader& shader)
-	: fan::shader(shader), lighting_properties(this) {
-	fan::bind_vao(fan::vao_handler<>::m_buffer_object, [&] {
-		color_t::initialize_buffers(fan::shader::id, location_color, true, color_t::value_type::size());
-		position_t::initialize_buffers(fan::shader::id, location_position, true, position_t::value_type::size());
-		size_t::initialize_buffers(fan::shader::id, location_size, true, size_t::value_type::size());
-		angle_t::initialize_buffers(fan::shader::id, location_angle, true, 1);
-		rotation_point_t::initialize_buffers(fan::shader::id, location_rotation_point, true, rotation_point_t::value_type::size());
-		rotation_vector_t::initialize_buffers(fan::shader::id, location_rotation_vector, true, rotation_vector_t::value_type::size());
-		ebo_t::bind();
-	});
+fan_2d::graphics::fill_mode_e fan_2d::graphics::rectangle::get_draw_mode() const
+{
+	return m_fill_mode;
 }
+
+void fan_2d::graphics::rectangle::set_draw_mode(fan_2d::graphics::fill_mode_e fill_mode)
+{
+	m_fill_mode = fill_mode;
+}
+
+bool fan_2d::graphics::rectangle::read(read_t* read, void* ptr, uintptr_t* size)
+{
+	thread_local static uintptr_t size_;
+
+	switch (read->stage) {
+		case 0: {
+			*(void**)ptr = &size_;
+			*size = sizeof(uintptr_t);
+			break;
+		}
+		case 1: {
+			color_t::m_buffer_object.resize(size_ * 6);
+			*(void**)ptr = color_t::m_buffer_object.data();
+			*size = size_ * sizeof(decltype(color_t::m_buffer_object)::value_type) * 6;
+
+			break;
+		}
+		case 2: {
+
+			position_t::m_buffer_object.resize(size_ * 6);
+			*(void**)ptr = position_t::m_buffer_object.data();
+			*size = size_ * sizeof(decltype(position_t::m_buffer_object)::value_type) * 6;
+
+			break;
+		}
+		case 3: {
+			size_t::m_buffer_object.resize(size_ * 6);
+			*(void**)ptr = size_t::m_buffer_object.data();
+			*size = size_ * sizeof(decltype(size_t::m_buffer_object)::value_type) * 6;
+
+			break;
+		}
+		case 4: {
+			angle_t::m_buffer_object.resize(size_ * 6);
+			*(void**)ptr = angle_t::m_buffer_object.data();
+			*size = size_ * sizeof(decltype(angle_t::m_buffer_object)::value_type) * 6;
+
+			break;
+		}
+		case 5: {
+			rotation_point_t::m_buffer_object.resize(size_ * 6);
+			*(void**)ptr = rotation_point_t::m_buffer_object.data();
+			*size = size_ * sizeof(decltype(rotation_point_t::m_buffer_object)::value_type) * 6;
+
+			break;
+		}
+		case 6: {
+			rotation_vector_t::m_buffer_object.resize(size_ * 6);
+			*(void**)ptr = rotation_vector_t::m_buffer_object.data();
+			*size = size_ * sizeof(decltype(rotation_vector_t::m_buffer_object)::value_type) * 6;
+
+			break;
+		}
+		case 7: {
+			this->write_data();
+
+			return 0;
+		}
+	}
+
+	read->stage++;
+
+	return 1;
+}
+
+bool fan_2d::graphics::rectangle::write(write_t* write, void* ptr, uintptr_t* size)
+{
+	switch (write->stage) {
+		case 0: {
+			thread_local static uintptr_t size_;
+			size_ = this->size();
+			*(void**)ptr = &size_;
+			*size = sizeof(uintptr_t);
+			break;
+		}
+		case 1: {
+			*(void**)ptr = (void*)color_t::m_buffer_object.data();
+			*size = color_t::m_buffer_object.size() * sizeof(decltype(color_t::m_buffer_object)::value_type);
+			break;
+		}
+		case 2: {
+			*(void**)ptr = (void*)position_t::m_buffer_object.data();
+			*size = position_t::m_buffer_object.size() * sizeof(decltype(position_t::m_buffer_object)::value_type);
+			break;
+		}
+		case 3: {
+			*(void**)ptr = (void*)size_t::m_buffer_object.data();
+			*size = size_t::m_buffer_object.size() * sizeof(decltype(size_t::m_buffer_object)::value_type);
+			break;
+		}
+		case 4: {
+			*(void**)ptr = (void*)angle_t::m_buffer_object.data();
+			*size = angle_t::m_buffer_object.size() * sizeof(decltype(angle_t::m_buffer_object)::value_type);
+			break;
+		}
+		case 5: {
+			*(void**)ptr = (void*)rotation_point_t::m_buffer_object.data();
+			*size = rotation_point_t::m_buffer_object.size() * sizeof(decltype(rotation_point_t::m_buffer_object)::value_type);
+			break;
+		}
+		case 6: {
+			*(void**)ptr = (void*)rotation_vector_t::m_buffer_object.data();
+			*size = rotation_vector_t::m_buffer_object.size() * sizeof(decltype(rotation_vector_t::m_buffer_object)::value_type);
+			break;
+		}
+		case 7: {
+			return 0;
+		}
+	}
+
+	write->stage++;
+
+	return 1;
+}
+
+void fan_2d::graphics::rectangle::enable_draw()
+{
+	if (m_draw_index == -1 || m_camera->m_window->m_draw_queue[m_draw_index].first != this) {
+		m_draw_index = m_camera->m_window->push_draw_call(this, [&] {
+			this->draw();
+		});
+	}
+	else {
+		m_camera->m_window->edit_draw_call(m_draw_index, this, [&] {
+			this->draw();
+		});
+	}
+}
+
+void fan_2d::graphics::rectangle::disable_draw()
+{
+	if (m_draw_index == -1) {
+		return;
+	}
+
+	m_camera->m_window->edit_draw_call(m_draw_index, this, []{});
+}
+
+//void fan_2d::graphics::rectangle::set_draw_order(uint32_t i)
+//{
+//	m_camera->m_window->switch_draw_call(m_draw_index, i);
+//}
 
 // protected
 fan_2d::graphics::rectangle::rectangle(fan::camera* camera, const fan::shader& shader) 
-	: m_camera(camera), fan::shader(shader), lighting_properties(this) {
+	: m_camera(camera), fan::shader(shader), lighting_properties(this), m_queue_helper(camera->m_window) {
+	this->initialize();
+}
+void fan_2d::graphics::rectangle::initialize()
+{
+	set_draw_mode(fan_2d::graphics::get_fill_mode(m_camera->m_window));
 
 	fan::bind_vao(fan::vao_handler<>::m_buffer_object, [&] {
-		color_t::initialize_buffers(fan::shader::id, location_color, true, color_t::value_type::size());
-		position_t::initialize_buffers(fan::shader::id, location_position, true, position_t::value_type::size());
-		size_t::initialize_buffers(fan::shader::id, location_size, true, size_t::value_type::size());
-		angle_t::initialize_buffers(fan::shader::id, location_angle, true, 1);
-		rotation_point_t::initialize_buffers(fan::shader::id, location_rotation_point, true, rotation_point_t::value_type::size());
-		rotation_vector_t::initialize_buffers(fan::shader::id, location_rotation_vector, true, rotation_vector_t::value_type::size());
-		ebo_t::bind();
+		color_t::initialize_buffers(fan::shader::id, location_color, false, color_t::value_type::size());
+		position_t::initialize_buffers(fan::shader::id, location_position, false, position_t::value_type::size());
+		size_t::initialize_buffers(fan::shader::id, location_size, false, size_t::value_type::size());
+		angle_t::initialize_buffers(fan::shader::id, location_angle, false, 1);
+		rotation_point_t::initialize_buffers(fan::shader::id, location_rotation_point, false, rotation_point_t::value_type::size());
+		rotation_vector_t::initialize_buffers(fan::shader::id, location_rotation_vector, false, rotation_vector_t::value_type::size());
 	});
-
 }
 //
 
 void fan_2d::graphics::rectangle::push_back(const rectangle::properties_t& properties)
 {
 	for (int i = 0; i < 6; i++) {
-		ebo_t::push_back(this->size() * 6 + i);
+
+		position_t::push_back(properties.position);
+		size_t::push_back(properties.size);
+		color_t::push_back(properties.color);
+		angle_t::push_back(properties.angle);
+		rotation_point_t::push_back(properties.rotation_point);
+		rotation_vector_t::push_back(properties.rotation_vector);
 	}
 
-	position_t::push_back(properties.position);
-	size_t::push_back(properties.size);
-	color_t::push_back(properties.color);
-	angle_t::push_back(properties.angle);
-	rotation_point_t::push_back(properties.rotation_point);
-	rotation_vector_t::push_back(properties.rotation_vector);
+	m_queue_helper.write([&] {
+		this->write_data();
+	});
 }
 
 void fan_2d::graphics::rectangle::insert(uint32_t i, const rectangle::properties_t& properties)
 {
+	i *= 6;
+
 	for (int j = 0; j < 6; j++) {
-		ebo_t::push_back(this->size() * 6 + j);
+
+		position_t::insert(position_t::m_buffer_object.begin() + i + j, properties.position);
+		size_t::insert(size_t::m_buffer_object.begin() + i + j, properties.size);
+		color_t::insert(color_t::m_buffer_object.begin() + i + j, properties.color);
+		angle_t::insert(angle_t::m_buffer_object.begin() + i + j, properties.angle);
+		rotation_point_t::insert(rotation_point_t::m_buffer_object.begin() + i + j, properties.rotation_point);
+		rotation_vector_t::insert(rotation_vector_t::m_buffer_object.begin() + i + j, properties.rotation_vector);
 	}
 
-	position_t::insert(position_t::m_buffer_object.begin() + i, properties.position);
-	size_t::insert(size_t::m_buffer_object.begin() + i, properties.size);
-	color_t::insert(color_t::m_buffer_object.begin() + i, properties.color);
-	angle_t::insert(angle_t::m_buffer_object.begin() + i, properties.angle);
-	rotation_point_t::insert(rotation_point_t::m_buffer_object.begin() + i, properties.rotation_point == fan::math::inf ? properties.position : properties.rotation_point);
-	rotation_vector_t::insert(rotation_vector_t::m_buffer_object.begin() + i, properties.rotation_vector);
+	m_queue_helper.write([&] {
+		this->write_data();
+	});
 }
 
 void fan_2d::graphics::rectangle::reserve(uint32_t size)
 {
+	size = size * 6;
+
 	color_t::reserve(size);
 	position_t::reserve(size);
 	size_t::resize(size);
 	angle_t::reserve(size);
-	ebo_t::reserve(size * 6);
 	rotation_point_t::reserve(size);
 	rotation_vector_t::reserve(size);
+
+	m_queue_helper.write([&] {
+		this->write_data();
+	});
 }
 
 void fan_2d::graphics::rectangle::resize(uint32_t size, const fan::color& color)
 {
+	size = size * 6;
+
 	color_t::resize(size, color);
 	position_t::resize(size);
 	size_t::resize(size);
 	angle_t::resize(size);
-	ebo_t::resize(size * 6);
 	rotation_point_t::resize(size);
 	rotation_vector_t::resize(size);
+
+	m_queue_helper.write([&] {
+		this->write_data();
+	});
 }
 
 void fan_2d::graphics::rectangle::draw(uint32_t begin, uint32_t end) const
@@ -645,45 +872,60 @@ void fan_2d::graphics::rectangle::draw(uint32_t begin, uint32_t end) const
 
 		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		fan_2d::graphics::draw([&] {
-			if (begin != (uint32_t)fan::uninitialized && end == (uint32_t)fan::uninitialized) {
 
-				//glDrawArraysInstancedBaseInstance(GL_TRIANGLES, 0, 6, 1, i);
-				glDrawElementsInstancedBaseInstance(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, 1, begin);
+			if (m_fill_mode == fan_2d::graphics::get_fill_mode(m_camera->m_window)) {
+				if (begin != (uint32_t)fan::uninitialized && end == (uint32_t)fan::uninitialized) {
+					glDrawArrays(GL_TRIANGLES, begin * 6, this->size() * 6);
+				}
+				else {
+					glDrawArrays(GL_TRIANGLES, begin == (uint32_t)fan::uninitialized ? 0 : begin * 6, end == (uint32_t)fan::uninitialized ? this->size() * 6 : (end - begin) * 6);
+				}
+
+				return;
+			}
+
+			auto fill_mode = fan_2d::graphics::get_fill_mode(m_camera->m_window);
+
+			fan_2d::graphics::draw_mode(m_camera->m_window, m_fill_mode, fan_2d::graphics::get_face(m_camera->m_window));
+
+			if (begin != (uint32_t)fan::uninitialized && end == (uint32_t)fan::uninitialized) {
+				glDrawArrays(GL_TRIANGLES, begin * 6, this->size() * 6);
 			}
 			else {
-				//glDrawArrays(GL_TRIANGLES, 6, 6);
-				//glDrawArraysInstancedBaseInstance(GL_TRIANGLES, 6, 6, 1, 0);
-				
-				//glDrawArraysInstanced(GL_TRIANGLES, 1, 6, this->size());
-
-				glDrawElementsInstancedBaseVertexBaseInstance(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, end == (uint32_t)fan::uninitialized ? this->size() : (end - begin), 0, begin == (uint32_t)fan::uninitialized ? 0 : begin);
+				glDrawArrays(GL_TRIANGLES, begin == (uint32_t)fan::uninitialized ? 0 : begin * 6, end == (uint32_t)fan::uninitialized ? this->size() * 6 : (end - begin) * 6);
 			}
+
+			fan_2d::graphics::draw_mode(m_camera->m_window, fill_mode, fan_2d::graphics::get_face(m_camera->m_window));
 		});
-
 	});
-
 }
 
 void fan_2d::graphics::rectangle::erase(uint32_t i)
 {
-	color_t::erase(i);
-	position_t::erase(i);
-	size_t::erase(i);
-	angle_t::erase(i);
-	ebo_t::m_buffer_object.erase(ebo_t::m_buffer_object.end() - 6, ebo_t::m_buffer_object.end());
-	rotation_point_t::erase(i);
-	rotation_vector_t::erase(i);
+	color_t::erase(i * 6, i * 6 + 6);
+	position_t::erase(i * 6, i * 6 + 6);
+	size_t::erase(i * 6, i * 6 + 6);
+	angle_t::erase(i * 6, i * 6 + 6);
+	rotation_point_t::erase(i * 6, i * 6 + 6);
+	rotation_vector_t::erase(i * 6, i * 6 + 6);
+
+	m_queue_helper.write([&] {
+		this->write_data();
+	});
 }
 
 void fan_2d::graphics::rectangle::erase(uint32_t begin, uint32_t end)
 {
-	color_t::erase(begin, end);
-	position_t::erase(begin, end);
-	size_t::erase(begin, end);
-	angle_t::erase(begin, end);
-	ebo_t::m_buffer_object.erase(ebo_t::m_buffer_object.end() - (end - begin) * 6, ebo_t::m_buffer_object.end());
-	rotation_point_t::erase(begin, end);
-	rotation_vector_t::erase(begin, end);
+	color_t::erase(begin * 6, end * 6);
+	position_t::erase(begin * 6, end * 6);
+	size_t::erase(begin * 6, end * 6);
+	angle_t::erase(begin * 6, end * 6);
+	rotation_point_t::erase(begin * 6, end * 6);
+	rotation_vector_t::erase(begin * 6, end * 6);
+
+	m_queue_helper.write([&] {
+		this->write_data();
+	});
 }
 
 void fan_2d::graphics::rectangle::clear()
@@ -692,9 +934,12 @@ void fan_2d::graphics::rectangle::clear()
 	position_t::clear();
 	size_t::clear();
 	angle_t::clear();
-	ebo_t::clear();
 	rotation_point_t::clear();
 	rotation_vector_t::clear();
+
+	m_queue_helper.write([&] {
+		this->write_data();
+	});
 }
 
 // 0 top left, 1 top right, 2 bottom left, 3 bottom right
@@ -703,7 +948,7 @@ fan_2d::graphics::rectangle_corners_t fan_2d::graphics::rectangle::get_corners(u
 	auto position = this->get_position(i);
 	auto size = this->get_size(i);
 
-	fan::vec2 mid = position + size / 2;
+	fan::vec2 mid = position;
 
 	auto corners = get_rectangle_corners_no_rotation(position, size);
 
@@ -725,69 +970,118 @@ fan_2d::graphics::rectangle_corners_t fan_2d::graphics::rectangle::get_corners(u
 //
 f32_t fan_2d::graphics::rectangle::get_angle(uint32_t i) const
 {	
-	return angle_t::m_buffer_object[i];
+	return angle_t::m_buffer_object[i * 6];
 }
 
 // radians
 void fan_2d::graphics::rectangle::set_angle(uint32_t i, f32_t angle)
 {
-	angle_t::set_value(i, fmod(angle, fan::math::pi * 2));
+	for (int j = 0; j < 6; j++) {
+		angle_t::set_value(i * 6 + j, fmod(angle, fan::math::pi * 2));
+	}
+
+	m_queue_helper.edit(i, i + 1, [&] {
+		this->edit_data(m_queue_helper.m_min_edit, m_queue_helper.m_max_edit);
+	});
 }
 
 const fan::color fan_2d::graphics::rectangle::get_color(uint32_t i) const
 {
-	return color_t::m_buffer_object[i];
+	return color_t::m_buffer_object[i * 6];
 }
 
 void fan_2d::graphics::rectangle::set_color(uint32_t i, const fan::color& color)
 {
-	color_t::set_value(i, color);
+
+	for (int j = 0; j < 6; j++) {
+		color_t::set_value(i * 6 + j, color);
+	}
+
+	m_queue_helper.edit(i, i + 1, [&] {
+		this->edit_data(m_queue_helper.m_min_edit, m_queue_helper.m_max_edit);
+	});
 }
 
 fan::vec2 fan_2d::graphics::rectangle::get_position(uint32_t i) const
 {
-	return position_t::get_value(i);
+	return position_t::get_value(i * 6);
 }
 
 void fan_2d::graphics::rectangle::set_position(uint32_t i, const fan::vec2& position)
 {
-	position_t::set_value(i, position);
+	for (int j = 0; j < 6; j++) {
+		position_t::set_value(i * 6 + j, position);
+	}
+
+	m_queue_helper.edit(i, i + 1, [&] {
+		this->edit_data(m_queue_helper.m_min_edit, m_queue_helper.m_max_edit);
+	});
 }
 
 fan::vec2 fan_2d::graphics::rectangle::get_size(uint32_t i) const
 {
-	return size_t::get_value(i);
+	return size_t::get_value(i * 6);
 }
 
 void fan_2d::graphics::rectangle::set_size(uint32_t i, const fan::vec2& size)
 {
-	size_t::set_value(i, size);
+	for (int j = 0; j < 6; j++) {
+		size_t::set_value(i * 6 + j, size);
+	}
+
+	m_queue_helper.edit(i, i + 1, [&] {
+		this->edit_data(m_queue_helper.m_min_edit, m_queue_helper.m_max_edit);
+	});
 }
 
 fan::vec2 fan_2d::graphics::rectangle::get_rotation_point(uint32_t i) const {
-	return rotation_point_t::m_buffer_object[i];
+	return rotation_point_t::m_buffer_object[i * 6];
 }
 void fan_2d::graphics::rectangle::set_rotation_point(uint32_t i, const fan::vec2& rotation_point) {
-	rotation_point_t::m_buffer_object[i] = rotation_point;
+	
+	for (int j = 0; j < 6; j++) {
+		rotation_point_t::m_buffer_object[i * 6 + j] = rotation_point;
+	}
+
+	m_queue_helper.edit(i, i + 1, [&] {
+		this->edit_data(m_queue_helper.m_min_edit, m_queue_helper.m_max_edit);
+	});
 }
 
 fan::vec2 fan_2d::graphics::rectangle::get_rotation_vector(uint32_t i) const {
-	return rotation_vector_t::m_buffer_object[i];
+	return rotation_vector_t::m_buffer_object[i * 6];
 }
 void fan_2d::graphics::rectangle::set_rotation_vector(uint32_t i, const fan::vec2& rotation_vector) {
-	rotation_vector_t::m_buffer_object[i] = rotation_vector;
+
+	for (int j = 0; j < 6; j++) {
+		rotation_vector_t::m_buffer_object[i * 6 + j] = rotation_vector;
+	}
+
+	m_queue_helper.edit(i, i + 1, [&] {
+		this->edit_data(m_queue_helper.m_min_edit, m_queue_helper.m_max_edit);
+	});
 }
 
 uintptr_t fan_2d::graphics::rectangle::size() const
 {
-	return position_t::size();
+	return position_t::size() / 6;
 }
 
 bool fan_2d::graphics::rectangle::inside(uintptr_t i, const fan::vec2& position) const {
 
 	auto corners = get_corners(i);
 	
-	return fan_2d::collision::rectangle::point_inside(corners[0], corners[1], corners[2], corners[3], position == fan::math::inf ? fan::cast<fan::vec2::value_type>(this->m_camera->m_window->get_mouse_position()) : position);
+	return fan_2d::collision::rectangle::point_inside(corners[0], corners[1], corners[2], corners[3], position == fan::math::inf ? fan::cast<fan::vec2::value_type>(this->m_camera->m_window->get_mouse_position() + fan::vec2(this->m_camera->get_position())) : position);
+}
+
+constexpr uint64_t fan_2d::graphics::rectangle::element_size() const
+{
+	return sizeof(decltype(color_t::m_buffer_object)::value_type) +
+		   sizeof(decltype(position_t::m_buffer_object)::value_type) +
+		   sizeof(decltype(size_t::m_buffer_object)::value_type) +
+		   sizeof(decltype(angle_t::m_buffer_object)::value_type) +
+		   sizeof(decltype(rotation_point_t::m_buffer_object)::value_type) +
+		   sizeof(decltype(rotation_vector_t::m_buffer_object)::value_type);
 }
 
 uint32_t* fan_2d::graphics::rectangle::get_vao()
@@ -802,27 +1096,30 @@ void fan_2d::graphics::rectangle::write_data() {
 	angle_t::write_data();
 	rotation_point_t::write_data();
 	rotation_vector_t::write_data();
-	ebo_t::write_data();
+
+	m_queue_helper.on_write(m_camera->m_window);
 }
 
 void fan_2d::graphics::rectangle::edit_data(uint32_t i) {
-	color_t::edit_data(i);
-	position_t::edit_data(i);
-	size_t::edit_data(i);
-	angle_t::edit_data(i);
-	rotation_point_t::edit_data(i);
-	rotation_vector_t::edit_data(i);
-	ebo_t::write_data();
+	color_t::edit_data(i * 6, i * 6 + 6);
+	position_t::edit_data(i * 6, i * 6 + 6);
+	size_t::edit_data(i * 6, i * 6 + 6);
+	angle_t::edit_data(i * 6, i * 6 + 6);
+	rotation_point_t::edit_data(i * 6, i * 6 + 6);
+	rotation_vector_t::edit_data(i * 6, i * 6 + 6);
+
+	m_queue_helper.on_edit();
 }
 
 void fan_2d::graphics::rectangle::edit_data(uint32_t begin, uint32_t end) {
-	color_t::edit_data(begin, end);
-	position_t::edit_data(begin, end);
-	size_t::edit_data(begin, end);
-	angle_t::edit_data(begin, end);
-	rotation_point_t::edit_data(begin, end);
-	rotation_vector_t::edit_data(begin, end);
-	ebo_t::write_data();
+	color_t::edit_data(begin * 6, end * 6);
+	position_t::edit_data(begin * 6, end * 6);
+	size_t::edit_data(begin * 6, end * 6);
+	angle_t::edit_data(begin * 6, end * 6);
+	rotation_point_t::edit_data(begin * 6, end * 6);
+	rotation_vector_t::edit_data(begin * 6, end * 6);
+
+	m_queue_helper.on_edit();
 }
 
 uint32_t fan_2d::graphics::rectangle_dynamic::push_back(const rectangle::properties_t& properties)
@@ -860,6 +1157,7 @@ void fan_2d::graphics::rectangle_dynamic::erase(uint32_t i)
 void fan_2d::graphics::rectangle_dynamic::erase(uint32_t begin, uint32_t end)
 {
 	auto j = m_free_slots.size() == 0 ? 0 : (m_free_slots.size() - 1);
+
 	/*if (m_free_slots.empty()) {
 		m_free_slots.push_back(0);
 	}*/
@@ -889,17 +1187,8 @@ fan_2d::graphics::sprite::sprite(fan::camera* camera)
 	: fan_2d::graphics::rectangle(camera, fan::shader(shader_paths::sprite_vs, shader_paths::sprite_fs))
 {
 	fan::bind_vao(*rectangle::get_vao(), [&] {
-		texture_coordinates_t::initialize_buffers(false, 2);
+		texture_coordinates_t::initialize_buffers(m_shader->id, location_texture_coordinate, false, 2);
 	});
-}
-
-// protected
-fan_2d::graphics::sprite::sprite(const fan::shader& shader)
-	: fan_2d::graphics::rectangle(shader)
-{
-	fan::bind_vao(*rectangle::get_vao(), [&] {
-		texture_coordinates_t::initialize_buffers(false, 2);
-		});
 }
 
 // protected
@@ -907,7 +1196,7 @@ fan_2d::graphics::sprite::sprite(fan::camera* camera, const fan::shader& shader)
 	: fan_2d::graphics::rectangle(camera, shader)
 {
 	fan::bind_vao(*rectangle::get_vao(), [&] {
-		texture_coordinates_t::initialize_buffers(false, 2);
+		texture_coordinates_t::initialize_buffers(m_shader->id, location_texture_coordinate, false, 2);
 	});
 }
 
@@ -930,7 +1219,6 @@ fan_2d::graphics::sprite::sprite(fan_2d::graphics::sprite&& sprite) noexcept
 	fan::frame_buffer_handler<>(std::move(sprite))
 {
 	m_textures = std::move(sprite.m_textures);
-
 }
 
 fan_2d::graphics::sprite& fan_2d::graphics::sprite::operator=(const fan_2d::graphics::sprite& sprite)
@@ -958,11 +1246,6 @@ fan_2d::graphics::sprite& fan_2d::graphics::sprite::operator=(fan_2d::graphics::
 	return *this;
 }
 
-fan_2d::graphics::sprite::~sprite()
-{
-	glDeleteTextures(m_textures.size(), m_textures.data());
-}
-
 void fan_2d::graphics::sprite::push_back(const sprite::properties_t& properties)
 {
 	sprite::rectangle::properties_t property;
@@ -973,7 +1256,9 @@ void fan_2d::graphics::sprite::push_back(const sprite::properties_t& properties)
 	property.rotation_vector = properties.rotation_vector;
 	property.color.a = properties.transparency;
 
-	fan_2d::graphics::rectangle::push_back(property);
+	bool write_ = m_queue_helper.m_write;
+
+	rectangle::push_back(property);
 
 	texture_coordinates_t::insert(texture_coordinates_t::m_buffer_object.end(), properties.texture_coordinates.begin(), properties.texture_coordinates.end());
 
@@ -985,20 +1270,23 @@ void fan_2d::graphics::sprite::push_back(const sprite::properties_t& properties)
 	}
 
 	m_textures.emplace_back(properties.image->texture);
+
+	if (!write_) {
+		m_camera->m_window->edit_write_call(m_queue_helper.m_write_index, this, [&] {
+			this->write_data();
+		});
+	}
 }
 
 void fan_2d::graphics::sprite::insert(uint32_t i, uint32_t texture_coordinates_i, const sprite::properties_t& properties)
 {
-
-	for (int j = 0; j < 6; j++) {
-		ebo_t::push_back(this->size() * 6 + j);
-	}
-
 	sprite::rectangle::properties_t property;
 	property.position = properties.position;
 	property.size = properties.size;
 	property.rotation_point = property.position;
 	property.rotation_vector = properties.rotation_vector;
+
+	bool write_ = m_queue_helper.m_write;
 
 	fan_2d::graphics::rectangle::insert(texture_coordinates_i / 6, property);
 	 
@@ -1007,6 +1295,12 @@ void fan_2d::graphics::sprite::insert(uint32_t i, uint32_t texture_coordinates_i
 	m_textures.insert(m_textures.begin() + texture_coordinates_i / 6, properties.image->texture);
 
 	regenerate_texture_switch();
+
+	if (!write_) {
+		m_camera->m_window->edit_write_call(m_queue_helper.m_write_index, this, [&] {
+			this->write_data();
+		});
+	}
 }
 
 void fan_2d::graphics::sprite::reload_sprite(uint32_t i, fan_2d::graphics::image_t image)
@@ -1014,22 +1308,51 @@ void fan_2d::graphics::sprite::reload_sprite(uint32_t i, fan_2d::graphics::image
 	m_textures[i] = image->texture;
 }
 
+void fan_2d::graphics::sprite::enable_draw()
+{
+	if (m_draw_index == -1 || m_camera->m_window->m_draw_queue[m_draw_index].first != this) {
+		m_draw_index = m_camera->m_window->push_draw_call(this, [&] {
+			this->draw();
+		});
+	}
+	else {
+		m_camera->m_window->edit_draw_call(m_draw_index, this, [&] {
+			this->draw();
+		});
+	}
+}
+
+void fan_2d::graphics::sprite::disable_draw()
+{
+	if (m_draw_index == -1) {
+		return;
+	}
+	m_camera->m_window->edit_draw_call(m_draw_index, this, []{});
+}
+
 void fan_2d::graphics::sprite::draw(uint32_t begin, uint32_t end) const
 {
 	shader::use();
 
-	for (int i = 0; i < m_switch_texture.size(); i++) {
+	if (m_switch_texture.empty()) {
+		return;
+	}
 
-		texture_coordinates_t::bind_gl_storage_buffer([&] {});
+	for (int i = m_switch_texture[begin == fan::uninitialized ? 0 : begin]; i < m_switch_texture.size(); i++) {
 
 		shader::set_int("texture_sampler", i);
 		glActiveTexture(GL_TEXTURE0 + i);
 		glBindTexture(GL_TEXTURE_2D, m_textures[m_switch_texture[i]]);
 
 		if (i == m_switch_texture.size() - 1) {
-			fan_2d::graphics::rectangle::draw(m_switch_texture[i], this->size());
+			fan_2d::graphics::rectangle::draw(m_switch_texture[i], end == fan::uninitialized ? this->size() : end);
 		}
 		else {
+
+			if (end != fan::uninitialized && m_switch_texture[i + 1] > end) {
+				break;
+			}
+
 			fan_2d::graphics::rectangle::draw(m_switch_texture[i], m_switch_texture[i + 1]);
 		}
 
@@ -1037,19 +1360,44 @@ void fan_2d::graphics::sprite::draw(uint32_t begin, uint32_t end) const
 
 }
 
+f32_t fan_2d::graphics::sprite::get_transparency(uint32_t i) const
+{
+	return color_t::get_value(i * 6).a;
+}
+
+void fan_2d::graphics::sprite::set_transparency(uint32_t i, f32_t transparency)
+{
+	for (int j = 0; j < 6; j++) {
+		color_t::set_value(i * 6 + j, fan::color(0, 0, 0, transparency));
+	}
+
+	m_queue_helper.edit(i, i + 1, [&] {
+		this->edit_data(m_queue_helper.m_min_edit, m_queue_helper.m_max_edit);
+	});
+}
+
 void fan_2d::graphics::sprite::erase(uint32_t i)
 {
+	bool write_ = m_queue_helper.m_write;
 	rectangle::erase(i);
-
+	
 	texture_coordinates_t::erase(i * 6, i * 6 + 6);
 
 	m_textures.erase(m_textures.begin() + i);
 	
 	regenerate_texture_switch();
+
+	if (!write_) {
+		m_camera->m_window->edit_write_call(m_queue_helper.m_write_index, this, [&] {
+			this->write_data();
+		});
+	}
 }
 
 void fan_2d::graphics::sprite::erase(uint32_t begin, uint32_t end)
 {
+	bool write_ = m_queue_helper.m_write;
+
 	rectangle::erase(begin, end);
 
 	texture_coordinates_t::erase(begin * 6, end * 6);
@@ -1057,10 +1405,17 @@ void fan_2d::graphics::sprite::erase(uint32_t begin, uint32_t end)
 	m_textures.erase(m_textures.begin() + begin, m_textures.begin() + end);
 
 	regenerate_texture_switch();
+
+	if (!write_) {
+		m_camera->m_window->edit_write_call(m_queue_helper.m_write_index, this, [&] {
+			this->write_data();
+		});
+	}
 }
 
 void fan_2d::graphics::sprite::clear()
 {
+	bool write_ = m_queue_helper.m_write;
 	rectangle::clear();
 
 	texture_coordinates_t::clear();
@@ -1068,21 +1423,27 @@ void fan_2d::graphics::sprite::clear()
 	m_textures.clear();
 
 	m_switch_texture.clear();
+
+	if (!write_) {
+		m_camera->m_window->edit_write_call(m_queue_helper.m_write_index, this, [&] {
+			this->write_data();
+		});
+	}
 }
 
 void fan_2d::graphics::sprite::write_data() {
-	rectangle::write_data();
 	texture_coordinates_t::write_data();
+	rectangle::write_data();
 }
 
 void fan_2d::graphics::sprite::edit_data(uint32_t i) {
-	rectangle::edit_data(i);
 	texture_coordinates_t::write_data();
+	rectangle::edit_data(i);
 }
 
 void fan_2d::graphics::sprite::edit_data(uint32_t begin, uint32_t end) {
-	rectangle::edit_data(begin, end);
 	texture_coordinates_t::write_data();
+	rectangle::edit_data(begin, end);
 }
 
 // todo remove
@@ -1100,22 +1461,15 @@ void fan_2d::graphics::sprite::regenerate_texture_switch()
 	}
 }
 
+// update same with sprite
+
 fan_2d::graphics::yuv420p_renderer::yuv420p_renderer(fan::camera* camera)
-	: fan_2d::graphics::sprite(camera, fan::shader("glsl/2D/opengl/yuv420p_renderer.vs", "glsl/2D/opengl/yuv420p_renderer.fs"))
-{
-	fan::bind_vao(fan::vao_handler<>::m_buffer_object, [&] {
-		color_t::initialize_buffers(fan::shader::id, location_color, true, color_t::value_type::size());
-		position_t::initialize_buffers(fan::shader::id, location_position, true, position_t::value_type::size());
-		size_t::initialize_buffers(fan::shader::id, location_size, true, size_t::value_type::size());
-		angle_t::initialize_buffers(fan::shader::id, location_angle, true, 1);
-		rotation_point_t::initialize_buffers(fan::shader::id, location_rotation_point, true, rotation_point_t::value_type::size());
-		rotation_vector_t::initialize_buffers(fan::shader::id, location_rotation_vector, true, rotation_vector_t::value_type::size());
-		texture_coordinates_t::initialize_buffers(false, 2);
-		ebo_t::bind();
-	});
+	: fan_2d::graphics::sprite(camera, fan::shader("glsl/2D/opengl/yuv420p_renderer.vs", "glsl/2D/opengl/yuv420p_renderer.fs")) {
 }
 
 void fan_2d::graphics::yuv420p_renderer::push_back(const yuv420p_renderer::properties_t& properties) {
+
+	bool write_ = m_queue_helper.m_write;
 
 	m_textures.resize(m_textures.size() + 3);
 
@@ -1167,6 +1521,12 @@ void fan_2d::graphics::yuv420p_renderer::push_back(const yuv420p_renderer::prope
 
 	image_size.emplace_back(properties.pixel_data.size);
 
+	if (!write_) {
+		m_camera->m_window->edit_write_call(m_queue_helper.m_write_index, this, [&] {
+			this->write_data();
+		});
+	}
+
 }
 
 void fan_2d::graphics::yuv420p_renderer::reload_pixels(uint32_t i, const fan_2d::graphics::pixel_data_t& pixel_data) {
@@ -1206,7 +1566,36 @@ void fan_2d::graphics::yuv420p_renderer::write_data() {
 	fan_2d::graphics::sprite::write_data();
 }
 
-void fan_2d::graphics::yuv420p_renderer::draw() {
+fan::vec2ui fan_2d::graphics::yuv420p_renderer::get_image_size(uint32_t i) const
+{
+	return this->image_size[i];
+}
+
+void fan_2d::graphics::yuv420p_renderer::enable_draw()
+{
+	if (m_draw_index == -1 || m_camera->m_window->m_draw_queue[m_draw_index].first != this) {
+		m_draw_index = m_camera->m_window->push_draw_call(this, [&] {
+			this->draw();
+		});
+	}
+	else {
+		m_camera->m_window->edit_draw_call(m_draw_index, this, [&] {
+			this->draw();
+		});
+	}
+}
+
+void fan_2d::graphics::yuv420p_renderer::disable_draw()
+{
+	if (m_draw_index == -1) {
+		return;
+	}
+
+	m_camera->m_window->edit_draw_call(m_draw_index, this, []{});
+}
+
+void fan_2d::graphics::yuv420p_renderer::draw()
+{
 	shader::use();
 
 	texture_coordinates_t::bind_gl_storage_buffer([&] {});
@@ -1227,12 +1616,6 @@ void fan_2d::graphics::yuv420p_renderer::draw() {
 
 		fan_2d::graphics::rectangle::draw(i);
 	}
-
-}
-
-fan::vec2ui fan_2d::graphics::yuv420p_renderer::get_image_size(uint32_t i) const
-{
-	return this->image_size[i];
 }
 
 //fan_2d::graphics::sprite_sheet::sprite_sheet(fan::camera* camera, uint32_t time)
@@ -1331,12 +1714,17 @@ void fan_2d::graphics::base_lighting::push_back(const fan::vec2& position, f32_t
 	light_color_t::push_back(color);
 	light_brightness_t::push_back(strength);
 	light_angle_t::push_back(angle);
+	light_position_t::write_data();
+	light_color_t::write_data();
+	light_brightness_t::write_data();
+	light_angle_t::write_data();
 
 }
 
 void fan_2d::graphics::base_lighting::set_position(uint32_t i, const fan::vec2& position)
 {
 	light_position_t::set_value(i, position);
+	light_position_t::write_data();
 }
 
 fan::color fan_2d::graphics::base_lighting::get_color(uint32_t i) const
@@ -1367,7 +1755,7 @@ void fan_2d::graphics::base_lighting::set_angle(uint32_t i, f32_t angle)
 fan_2d::graphics::light::light(fan::camera* camera, fan::shader* shader, uint32_t* vao)
 	:
 	rectangle(camera,
-	fan::shader("glsl/2D/basic_light.vs", "glsl/2D/basic_light.fs")),
+	fan::shader("glsl/2D/opengl/basic_light.vs", "glsl/2D/opengl/basic_light.fs")),
 	base_lighting(shader, vao)
 {
 
@@ -1498,7 +1886,6 @@ void fan_3d::graphics::rectangle_vector::generate_textures(const std::string& pa
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glGenerateMipmap(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	const fan::vec2 texturepack_size = fan::vec2(image->size.x / block_size.x, image->size.y / block_size.y);
@@ -1991,7 +2378,7 @@ fan::vec3 fan_3d::graphics::line_plane_intersection(const fan::da_t<f32_t, 2, 3>
 	const fan::vec3 intersection(line[0] + line[1] * ray_length);
 
 	auto result = fan_3d::math::dot((square[2] - line[0]), plane_normal);
-	fan::print(result);
+
 	if (!result) {
 		fan::print("on plane");
 	}

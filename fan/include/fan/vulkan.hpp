@@ -30,7 +30,10 @@ constexpr auto mb = 1000000;
 
 constexpr auto gpu_stack(10 * mb); // mb
 
-#define fan_debug
+#ifndef fan_platform_unix
+	#define fan_debug
+#endif
+
 
 namespace fan {
 

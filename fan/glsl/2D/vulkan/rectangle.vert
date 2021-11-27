@@ -26,7 +26,7 @@ mat4 translate(mat4 m, vec3 v) {
 }
 
 mat4 scale(mat4 m, vec3 v) {
-	mat4 matrix;
+	mat4 matrix = mat4(1);
 
 	matrix[0][0] = m[0][0] * v[0];
 	matrix[0][1] = m[0][1] * v[0];
@@ -88,35 +88,35 @@ mat4 rotate(mat4 m, float angle, vec3 v) {
 }
 
 vec2 rectangle_vertices[] = vec2[](
-	vec2(0, 0),
-	vec2(1, 0),
-	vec2(1, 1),
+	vec2(-0.5, -0.5),
+	vec2(0.5, -0.5),
+	vec2(0.5, 0.5),
 
-	vec2(0, 0),
-	vec2(0, 1),
-	vec2(1, 1)
+	vec2(0.5, 0.5),
+	vec2(-0.5, 0.5),
+	vec2(-0.5, -0.5)
 );
 
 void main() {
 
 	mat4 m = mat4(1); 
 
-	m = translate(m, vec3(layout_position + layout_rotation_point, 0));
+		m = translate(m, vec3(layout_position + layout_rotation_point, 0));
 
-	if (!isnan(layout_angle) && !isinf(layout_angle)) {
-		vec3 rotation_vector;
+	//if (!isnan(layout_angle) && !isinf(layout_angle)) {
+	//	vec3 rotation_vector;
+	//
+	//	if (layout_rotation_vector.x == 0 && layout_rotation_vector.y == 0 && layout_rotation_vector.z == 0) {
+	//		rotation_vector = vec3(0, 0, 1);
+	//	}
+	//	else {
+	//		rotation_vector = layout_rotation_vector;
+	//	}
+	//
+	//	m = rotate(m, layout_angle, rotation_vector);
+	//}
 
-		if (layout_rotation_vector.x == 0 && layout_rotation_vector.y == 0 && layout_rotation_vector.z == 0) {
-			rotation_vector = vec3(0, 0, 1);
-		}
-		else {
-			rotation_vector = layout_rotation_vector;
-		}
-
-		m = rotate(m, layout_angle, rotation_vector);
-	}
-
-	m = translate(m,  vec3(-layout_rotation_point, 0));
+	m = translate(m, vec3(-layout_rotation_point, 0));
 
 	m = scale(m, vec3(layout_size.x, layout_size.y, 0));
 

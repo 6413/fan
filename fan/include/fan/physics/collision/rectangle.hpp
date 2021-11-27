@@ -14,9 +14,9 @@ namespace fan_2d {
 				return fan_2d::collision::triangle::point_inside(p1, p2, p4, point) || fan_2d::collision::triangle::point_inside(p1, p3, p4, point);
 			}
 
-			constexpr bool point_inside_no_rotation(const fan::vec2& point, const fan::vec2& rectangle_position, const fan::vec2& rectangle_size) {
-				return point.x >= rectangle_position.x && point.x <= rectangle_position.x + rectangle_size.x &&
-					   point.y >= rectangle_position.y && point.y <= rectangle_position.y + rectangle_size.y;
+			constexpr bool point_inside_no_rotation(const fan::vec2& point, const fan::vec2& src, const fan::vec2& dst) {
+				return point.x >= src.x && point.x <= dst.x &&
+					   point.y >= src.y && point.y <= dst.y;
 			}
 
 		//	constexpr fan::da_t<uintptr_t, 2> get_velocity_corners_2d(const fan::da_t<f_t, 2>& vel) {

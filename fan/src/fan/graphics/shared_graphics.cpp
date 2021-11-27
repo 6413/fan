@@ -4,7 +4,7 @@ fan_2d::graphics::rounded_rectangle::rounded_rectangle(fan::camera* camera) : fa
 
 void fan_2d::graphics::rounded_rectangle::push_back(const rounded_rectangle::properties_t& property)
 {
-	fan::vec2 box_size = property.size;
+	fan::vec2 box_size = property.size * 2;
 	f32_t box_radius = property.radius;
 
 	if (property.radius * 2 > box_size.x) {
@@ -16,14 +16,14 @@ void fan_2d::graphics::rounded_rectangle::push_back(const rounded_rectangle::pro
 
 	fan_2d::graphics::rounded_rectangle::properties_t properties = property;
 
-	properties.position = property.position + fan::vec2(property.radius, 0);
+	properties.position = property.position + fan::vec2(box_radius, 0) - properties.size;
 	properties.radius = property.radius;
-	properties.size = property.size;
+	properties.size = property.size * 2;
 	properties.rotation_point = properties.position;
 
 	fan_2d::graphics::vertice_vector::push_back(properties);
 
-	properties.position = property.position + fan::vec2(box_size.x - box_radius, 0);
+	properties.position = property.position + fan::vec2(box_size.x - box_radius, 0) - properties.size / 2;
 
 	fan_2d::graphics::vertice_vector::push_back(properties);
 
@@ -32,12 +32,12 @@ void fan_2d::graphics::rounded_rectangle::push_back(const rounded_rectangle::pro
 	for (f32_t theta = fan::math::pi / 2 * 3; theta <= fan::math::pi / 2 * 4; theta += increment) {
 		auto coord = fan::vec2(cos(theta), sin(theta));
 
-		properties.position = property.position + fan::vec2(box_size.x - box_radius, box_radius) + coord * box_radius;
+		properties.position = property.position + fan::vec2(box_size.x - box_radius, box_radius) + coord * box_radius - properties.size / 2;
 		
 		fan_2d::graphics::vertice_vector::push_back(properties);
 	}
 
-	properties.position = property.position + fan::vec2(box_size.x, box_size.y - box_radius);
+	properties.position = property.position + fan::vec2(box_size.x, box_size.y - box_radius) - properties.size / 2;
 
 	fan_2d::graphics::vertice_vector::push_back(properties);
 
@@ -45,12 +45,12 @@ void fan_2d::graphics::rounded_rectangle::push_back(const rounded_rectangle::pro
 
 		auto coord = fan::vec2(cos(theta), sin(theta));
 
-		properties.position = property.position + fan::vec2(box_size.x - box_radius, box_size.y - box_radius) + coord * box_radius;
+		properties.position = property.position + fan::vec2(box_size.x - box_radius, box_size.y - box_radius) + coord * box_radius - properties.size / 2;
 
 		fan_2d::graphics::vertice_vector::push_back(properties);
 	}
 
-	properties.position = property.position + fan::vec2(box_radius, box_size.y);
+	properties.position = property.position + fan::vec2(box_radius, box_size.y) - properties.size / 2;
 
 	fan_2d::graphics::vertice_vector::push_back(properties);
 
@@ -58,12 +58,12 @@ void fan_2d::graphics::rounded_rectangle::push_back(const rounded_rectangle::pro
 
 		auto coord = fan::vec2(cos(theta), sin(theta));
 
-		properties.position = property.position + fan::vec2(box_radius, box_size.y - box_radius) + coord * box_radius;
+		properties.position = property.position + fan::vec2(box_radius, box_size.y - box_radius) + coord * box_radius - properties.size / 2;
 
 		fan_2d::graphics::vertice_vector::push_back(properties);
 	}
 
-	properties.position = property.position + fan::vec2(0, box_radius);
+	properties.position = property.position + fan::vec2(0, box_radius) - properties.size / 2;
 
 	fan_2d::graphics::vertice_vector::push_back(properties);
 
@@ -71,7 +71,7 @@ void fan_2d::graphics::rounded_rectangle::push_back(const rounded_rectangle::pro
 
 		auto coord = fan::vec2(cos(theta), sin(theta));
 
-		properties.position = property.position + fan::vec2(box_radius, box_radius) + coord * box_radius;
+		properties.position = property.position + fan::vec2(box_radius, box_radius) + coord * box_radius - properties.size / 2;
 
 		fan_2d::graphics::vertice_vector::push_back(properties);
 	}
@@ -81,7 +81,7 @@ void fan_2d::graphics::rounded_rectangle::push_back(const rounded_rectangle::pro
 	}
 
 	m_position.emplace_back(property.position);
-	m_size.emplace_back(box_size);
+	m_size.emplace_back(box_size / 2);
 	m_radius.emplace_back(box_radius);
 }
 
@@ -217,11 +217,6 @@ void fan_2d::graphics::rounded_rectangle::set_radius(uintptr_t i, f32_t radius)
 	}
 }
 
-void fan_2d::graphics::rounded_rectangle::draw()
-{
-	fan_2d::graphics::vertice_vector::draw(fan_2d::graphics::shape::triangle_fan, total_points, 0, this->size());
-}
-
 bool fan_2d::graphics::rounded_rectangle::inside(uintptr_t i) const
 {
 	const auto position = m_camera->m_window->get_mouse_position();
@@ -271,4 +266,14 @@ void fan_2d::graphics::rounded_rectangle::edit_data(uint32_t i) {
 
 void fan_2d::graphics::rounded_rectangle::edit_data(uint32_t begin, uint32_t end) {
 	vertice_vector::edit_data(begin * total_points, (end - begin + 1) * total_points);
+}
+
+void fan_2d::graphics::rounded_rectangle::enable_draw()
+{
+	vertice_vector::enable_draw(fan_2d::graphics::shape::triangle_fan, total_points);
+}
+
+void fan_2d::graphics::rounded_rectangle::disable_draw()
+{
+	vertice_vector::disable_draw();
 }

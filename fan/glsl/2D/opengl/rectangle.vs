@@ -36,7 +36,7 @@ mat4 translate(mat4 m, vec3 v) {
 }
 
 mat4 scale(mat4 m, vec3 v) {
-	mat4 matrix;
+	mat4 matrix = mat4(1);
 
 	matrix[0][0] = m[0][0] * v[0];
 	matrix[0][1] = m[0][1] * v[0];
@@ -98,13 +98,13 @@ mat4 rotate(mat4 m, float angle, vec3 v) {
 }
 
 vec2 rectangle_vertices[] = vec2[](
-	vec2(0, 0),
-	vec2(1, 0),
-	vec2(1, 1),
+	vec2(-1.0, -1.0),
+	vec2(1.0, -1.0),
+	vec2(1.0, 1.0),
 
-	vec2(0, 0),
-	vec2(0, 1),
-	vec2(1, 1)
+	vec2(1.0, 1.0),
+	vec2(-1.0, 1.0),
+	vec2(-1.0, -1.0)
 );
 
 void main() {
@@ -137,7 +137,7 @@ void main() {
 	light_brightness = layout_light_brightness;
 	light_angle	   = layout_light_angle;
 
-	f_position = vec2(vec4(m * vec4(rectangle_vertices[gl_VertexID % 6].x, rectangle_vertices[gl_VertexID % 6].y, 0, 1)).xy);
+	f_position = gl_Position.xy;
 
 	color = layout_color;
 }

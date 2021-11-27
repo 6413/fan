@@ -16,10 +16,13 @@ out vec4 color;
 
 void main() {
 
-    float smoothing = 1.0 / (font_size / 2);
+    float smoothing = 1.0 / (font_size / 5);
+    //float outlineWidth = 3.0/font_size;
+   // float outerEdgeCenter = 0.5 - outlineWidth;
 
-    float distance = TEXTURE2D(texture_sampler, texture_coordinate).a;
+    float distance = TEXTURE2D(texture_sampler, texture_coordinate).r;
     float alpha = smoothstep(0.5 - smoothing, 0.5 + smoothing, distance);
-   
+   // float border = smoothstep(0.5 - smoothing, 0.6 + smoothing, distance);
+
     color = vec4(vec3(text_color.rgb), alpha);
 } 

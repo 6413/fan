@@ -3,19 +3,37 @@
 #include <vector>
 #include <cstdint>
 
-#define BLL_set_debug_InvalidAction
+#define BLL_set_debug_InvalidAction 0
+
+#ifndef BLL_set_SafeNext
+	#define BLL_set_SafeNext 1
+#endif
 
 // node type amount of nodes allowed
 template <typename type_t, typename node_type_t = uint32_t>
 struct bll_t {
 
-	constexpr bll_t() : nodes(2), src(0), dst(1) {
+	bll_t() {
+		open();
+	}
+
+	void open() {
+
+		nodes.resize(2);
+
+		src = 0;
+		dst = 1;
 
 		e.c = 0;
 		e.p = 0;
 
 		get_node_by_reference(src)->next = dst;
 		get_node_by_reference(dst)->prev = src;
+
+		#if BLL_set_SafeNext
+			SafeNext = (node_type_t)-1;
+		#endif
+
 	}
 
 	const constexpr type_t operator[](node_type_t node_reference) const {
@@ -146,12 +164,19 @@ struct bll_t {
 
 	constexpr void unlink(node_type_t node_reference) {
 
-		#ifdef BLL_set_debug_InvalidAction
+		#if BLL_set_debug_InvalidAction == 1
 				assert(node_reference != src);
 				assert(node_reference != dst);
 		#endif
 
 		node_t *node = get_node_by_reference(node_reference);
+
+		#if BLL_set_SafeNext
+				if(this->SafeNext == node_reference){
+					this->SafeNext = node->prev;
+				}
+		#endif
+
 		node_type_t next_node_reference = node->next;
 		node_type_t prev_node_reference = node->prev;
 		get_node_by_reference(prev_node_reference)->next = next_node_reference;
@@ -161,6 +186,11 @@ struct bll_t {
 		node->prev = -1;
 		e.c = node_reference;
 		e.p++;
+
+	}
+
+	constexpr void erase(node_type_t node_reference) {
+		unlink(node_reference);
 	}
 
 	constexpr node_type_t get_node_first() {
@@ -192,56 +222,77 @@ struct bll_t {
 		node_type_t c;
 		node_type_t p;
 	}e;
-
+	
 	constexpr auto size() const {
 		return nodes.size() - e.p - 2;
 	}
 
-	struct iterator {
-		iterator(bll_t* bll, node_type_t x) : bll(bll), current(x) {}
-
-		void operator++() {
-			current = bll->get_node_by_reference(current)->next;
-		}
-		void operator++(int) {
-			current = bll->get_node_by_reference(current)->next;
-		}
-
-		bool operator!=(const iterator& it) const {
-			return current != it.current;
-		}
-
-		bool operator==(const iterator& it) const {
-			return current == it.current;
-		}
-
-		type_t operator*() const {
-			return (*bll)[current];
-		}
-
-		type_t& operator*() {
-			return (*bll)[current];
-		}
-
-		bll_t* bll;
-		node_type_t current;
-	};
-
-	const constexpr iterator begin() {
-		return iterator(this, this->get_node_by_reference(this->src)->next);
+	const constexpr node_type_t begin() {
+		return this->get_node_by_reference(this->src)->next;
 	}
 
-	const constexpr iterator end() {
-		return iterator(this, this->dst);
+	const constexpr node_type_t end() {
+		return this->dst;
 	}
 
 	/*void iterator::operator++(iterator it) {
 
 	}*/
 
+	constexpr node_type_t prev(node_type_t reference) {
+
+#if BLL_set_debug_InvalidAction == 1
+
+		if (reference == src) {
+			assert(0);
+		}
+
+		if (reference == dst) {
+			assert(0);
+		}
+
+		if (reference >= nodes.size()) {
+			assert(0);
+		}
+
+		auto x = this->get_node_by_reference(reference)->next;
+
+		if (x == src) {
+			assert(0);
+		}
+
+#endif
+
+		return this->get_node_by_reference(reference)->prev;
+	}
+
+	constexpr node_type_t next(node_type_t reference) {
+
+		#if BLL_set_debug_InvalidAction == 1
+
+			if (reference == dst) {
+				assert(0);
+			}
+
+			if (reference >= nodes.size()) {
+				assert(0);
+			}
+
+			auto x = this->get_node_by_reference(reference)->next;
+
+			if (x == src) {
+				assert(0);
+			}
+
+		#endif
+
+		return this->get_node_by_reference(reference)->next;
+	}
 
 	constexpr void clear() {
 		nodes.clear();
+
+		this->open();
 	}
 
 	struct node_t {
@@ -254,7 +305,7 @@ struct bll_t {
 
 	constexpr node_t* get_node_by_reference(node_type_t node_reference) {
 
-	#ifdef BLL_set_debug_InvalidAction
+	#if BLL_set_debug_InvalidAction == 1
 		if (node_reference >= nodes.size()) {
 			assert(0);
 		}
@@ -266,7 +317,38 @@ struct bll_t {
 		return (node_t*)(&nodes[node_reference]);
 	}
 
+
+#if BLL_set_SafeNext
+	void start_safe_next(node_type_t NodeReference){
+#if BLL_set_debug_InvalidAction == 1
+		if(this->SafeNext != (node_type_t)-1) {
+			assert(0);
+		}
+#endif
+		this->SafeNext = NodeReference;
+	}
+	node_type_t end_safe_next(){
+		#if BLL_set_debug_InvalidAction == 1
+
+			if(this->SafeNext == (node_type_t)-1) {
+				assert(0);
+			}
+
+		#endif
+
+		node_t *Node = get_node_by_reference(this->SafeNext);
+		this->SafeNext = (node_type_t)-1;
+		return Node->next;
+	}
+#endif
+
 //protected:											
+
+#if BLL_set_SafeNext
+
+	node_type_t SafeNext;
+
+#endif
 
 	node_type_t src;
 	node_type_t dst;

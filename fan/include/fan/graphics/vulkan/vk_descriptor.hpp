@@ -14,7 +14,7 @@ namespace fan {
 
 		namespace graphics {
 
-			constexpr auto maximum_textures_per_instance = 32;
+			constexpr auto maximum_textures_per_instance = 128;
 
 			struct descriptor_set {
 
@@ -62,7 +62,7 @@ namespace fan {
 
 					// todo fix
 					fan::print("i disturb you as long as you dont fix me");
-					std::array<VkDescriptorPoolSize, 70> poolSizes{};
+					std::array<VkDescriptorPoolSize, 128> poolSizes{};
 					poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 					poolSizes[0].descriptorCount = swap_chain_images_size;
 

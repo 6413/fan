@@ -21,7 +21,8 @@ namespace fan {
 
 	enum class key_state {
 		release,
-		press
+		press,
+		repeat
 	};
 
 	enum input {
