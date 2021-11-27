@@ -50,6 +50,9 @@ namespace fan_2d {
 
 	namespace graphics {
 
+		inline fan_2d::graphics::face_e polygon_face = face_e::front_and_back;
+		inline fan_2d::graphics::fill_mode_e polygon_fill_mode = fill_mode_e::fill;
+
 		static void set_viewport(const fan::vec2& position, const fan::vec2& size) {
 			glViewport(position.x, position.y, size.x, size.y);
 		}
@@ -137,7 +140,7 @@ namespace fan_2d {
 
 			struct properties_t {
 				fan::vec2 position;
-				f32_t angle;
+				f32_t angle = 0;
 				fan::vec2 rotation_point;
 				fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
 				fan::color color;
@@ -162,8 +165,6 @@ namespace fan_2d {
 			void reserve(uintptr_t size);
 			void resize(uintptr_t size, const fan::color& color);
 
-			virtual void draw(fan_2d::graphics::shape shape, uint32_t single_draw_amount, uint32_t begin = fan::uninitialized, uint32_t end = fan::uninitialized, bool texture = false) const;
-
 			void erase(uintptr_t i);
 			void erase(uintptr_t begin, uintptr_t end);
 
@@ -175,13 +176,21 @@ namespace fan_2d {
 
 			void set_angle(uint32_t i, f32_t angle);
 
+			void enable_draw(fan_2d::graphics::shape shape, uint32_t single_draw_amount);
+			void disable_draw();
+
+			fan_2d::graphics::fill_mode_e get_draw_mode() const;
+			void set_draw_mode(fan_2d::graphics::fill_mode_e fill_mode);
+
+		protected:
+
 			void write_data();
 
 			void edit_data(uint32_t i);
 
 			void edit_data(uint32_t begin, uint32_t end);
 
-		protected:
+			virtual void draw(fan_2d::graphics::shape shape, uint32_t single_draw_amount, uint32_t begin = fan::uninitialized, uint32_t end = fan::uninitialized, bool texture = false) const;
 
 			vertice_vector(fan::camera* camera, const fan::shader& shader);
 
@@ -190,6 +199,12 @@ namespace fan_2d {
 			std::vector<uint32_t> m_indices;
 
 			uintptr_t m_offset;
+
+			uint32_t m_draw_index = -1;
+
+			queue_helper_t m_queue_helper;
+
+			fan_2d::graphics::fill_mode_e m_fill_mode;
 
 		};
 
@@ -232,7 +247,6 @@ namespace fan_2d {
 			protected fan::buffer_object<f32_t, 3>,
 			protected fan::buffer_object<fan::vec2, 4>,
 			protected fan::buffer_object<fan::vec3, 5>,
-			public fan::buffer_object<uint32_t, 0, true, fan::opengl_buffer_type::buffer_object, false, GL_ELEMENT_ARRAY_BUFFER>,
 			public fan::vao_handler<>,
 			public lighting_properties
 			//protected fan::buffer_object<uint32_t, 0, true, fan::opengl_buffer_type::buffer_object, false, GL_ELEMENT_ARRAY_BUFFER> 
@@ -254,20 +268,17 @@ namespace fan_2d {
 			using rotation_point_t = fan::buffer_object<fan::vec2, 4>;
 			using rotation_vector_t = fan::buffer_object<fan::vec3, 5>;
 
-			using ebo_t = fan::buffer_object<uint32_t, 0, true, fan::opengl_buffer_type::buffer_object, false, GL_ELEMENT_ARRAY_BUFFER>;
-
-			rectangle();
-
 			rectangle(fan::camera* camera);
+			~rectangle();
 
 			void push_back(const rectangle::properties_t& properties);
 
 			void insert(uint32_t i, const rectangle::properties_t& properties);
 
+			// requires manual initialization of rotation point
 			void reserve(uint32_t size);
+			// requires manual initialization of rotation point
 			void resize(uint32_t size, const fan::color& color);
-
-			void draw(uint32_t begin = fan::uninitialized, uint32_t end = fan::uninitialized) const;
 
 			void erase(uint32_t i);
 			void erase(uint32_t begin, uint32_t end);
@@ -297,6 +308,8 @@ namespace fan_2d {
 
 			uintptr_t size() const;
 
+			constexpr uint64_t element_size() const;
+
 			bool inside(uintptr_t i, const fan::vec2& position = fan::math::inf) const;
 
 			uint32_t* get_vao();
@@ -305,16 +318,51 @@ namespace fan_2d {
 
 			fan::shader* get_shader();
 
+			void enable_draw();
+			void disable_draw();
+
+			fan_2d::graphics::fill_mode_e get_draw_mode() const;
+			void set_draw_mode(fan_2d::graphics::fill_mode_e fill_mode);
+
+			struct read_t {
+
+				uint8_t stage = 0;
+
+			};
+
+			struct write_t {
+
+				uint8_t stage = 0;
+
+			};
+
+			bool read(read_t* read, void* ptr, uintptr_t* size);
+			bool write(write_t* write, void* ptr, uintptr_t* size);
+
+			// sets shape's draw order in window
+			//void set_draw_order(uint32_t i);
+
+		protected:
+
+			//rectangle(const fan::shader& shader);
+			rectangle(fan::camera* camera, const fan::shader& shader);
+
 			void write_data();
 
 			void edit_data(uint32_t i);
 
 			void edit_data(uint32_t begin, uint32_t end);
 
-		protected:
+			// pushed to window draw queue
+			void draw(uint32_t begin = fan::uninitialized, uint32_t end = fan::uninitialized) const;
 
-			rectangle(const fan::shader& shader);
-			rectangle(fan::camera* camera, const fan::shader& shader);
+			void initialize();
+
+			uint32_t m_draw_index = -1;
+
+			queue_helper_t m_queue_helper;
+
+			fan_2d::graphics::fill_mode_e m_fill_mode = (fan_2d::graphics::fill_mode_e)fan::uninitialized;
 
 			static constexpr auto location_color = "layout_color";
 			static constexpr auto location_position = "layout_position";
@@ -324,6 +372,8 @@ namespace fan_2d {
 			static constexpr auto location_rotation_vector = "layout_rotation_vector";
 
 		};
+
+		inline void* x;
 
 		struct rectangle_dynamic : public fan_2d::graphics::rectangle {
 
@@ -341,7 +391,7 @@ namespace fan_2d {
 
 		};
 
-		// makes line from src (line start top left) to dst (line end top left)
+		// makes line from src (line start) to dst (line end)
 		struct line : protected fan_2d::graphics::rectangle {
 
 		public:
@@ -375,21 +425,20 @@ namespace fan_2d {
 			void push_back(const fan::vec2& src, const fan::vec2& dst, const fan::color& color, f32_t thickness = 1) {
 
 				line_instance.emplace_back(line_instance_t{
-					src,
+					(src + ((dst - src) / 2)),
 					dst,
 					thickness
-					});
+				});
 
 				// - fan::vec2(0, 0.5 * thickness)
 
 				rectangle::properties_t property;
-				property.position = src;
-				property.size = fan::vec2((dst - src).length(), thickness);
+				property.position = src + ((dst - src) / 2);
+				property.size = fan::vec2((dst - src).length(), thickness) / 2;
 				property.angle = -fan::math::aim_angle(src, dst);
 				property.color = color;
 
 				rectangle::push_back(property);
-
 			}
 
 			fan::vec2 get_src(uint32_t i) const {
@@ -404,8 +453,8 @@ namespace fan_2d {
 				const auto thickness = this->get_thickness(i);
 
 				// - fan::vec2(0, 0.5 * thickness)
-				position_t::set_value(i, src);
-				size_t::set_value(i, fan::vec2((dst - src).length(), thickness));
+				position_t::set_value(i, src + ((dst - src) / 2));
+				size_t::set_value(i, fan::vec2((dst - src).length(), thickness) / 2);
 				angle_t::set_value(i, -fan::math::aim_angle(src, dst));
 			}
 
@@ -422,18 +471,18 @@ namespace fan_2d {
 
 				line_instance[i].thickness = thickness;
 
-				rectangle::set_position(i, new_src);
-				rectangle::set_size(i, new_dst);
+				rectangle::set_position(i, new_src + ((new_dst - new_src) / 2));
+				rectangle::set_size(i, new_dst / 2);
 			}
 
 			using fan_2d::graphics::rectangle::draw;
-			using fan_2d::graphics::rectangle::edit_data;
-			using fan_2d::graphics::rectangle::write_data;
 			using fan_2d::graphics::rectangle::get_color;
 			using fan_2d::graphics::rectangle::set_color;
 			using fan_2d::graphics::rectangle::get_rotation_point;
 			using fan_2d::graphics::rectangle::set_rotation_point;
 			using fan_2d::graphics::rectangle::size;
+			using fan_2d::graphics::rectangle::enable_draw;
+			using fan_2d::graphics::rectangle::disable_draw;
 
 		protected:
 
@@ -447,25 +496,22 @@ namespace fan_2d {
 
 		};
 
-		#include <fan/graphics/shared_inline_graphics.hpp>
-
 		class sprite :
 			protected fan_2d::graphics::rectangle,
-			protected fan::buffer_object<fan::vec2, 2, true, fan::opengl_buffer_type::shader_storage_buffer_object, false>,
+			public fan::buffer_object<fan::vec2, 99, true>,
 			public fan::texture_handler<1>, // screen texture
 			public fan::render_buffer_handler<>,
 			public fan::frame_buffer_handler<> {
 
 		public:
 
-			using texture_coordinates_t = fan::buffer_object<fan::vec2, 2, true, fan::opengl_buffer_type::shader_storage_buffer_object, false>;
+			using texture_coordinates_t = fan::buffer_object<fan::vec2, 99, true>;
 
 			sprite(fan::camera* camera);
 
 		protected:
 
 			// requires manual initialization of m_camera
-			sprite(const fan::shader& shader);
 			sprite(fan::camera* camera, const fan::shader& shader);
 
 		public:
@@ -485,9 +531,9 @@ namespace fan_2d {
 					fan::vec2(1, 1),
 					fan::vec2(1, 0),
 
-					fan::vec2(0, 1),
+					fan::vec2(1, 0),
 					fan::vec2(0, 0),
-					fan::vec2(1, 0)
+					fan::vec2(0, 1),
 				};
 
 				f32_t transparency = 1;
@@ -500,8 +546,6 @@ namespace fan_2d {
 			fan_2d::graphics::sprite& operator=(const fan_2d::graphics::sprite& sprite);
 			fan_2d::graphics::sprite& operator=(fan_2d::graphics::sprite&& sprite);
 
-			~sprite();
-
 			// fan_2d::graphics::load_image::texture
 			void push_back(const sprite::properties_t& properties);
 
@@ -509,19 +553,14 @@ namespace fan_2d {
 
 			void reload_sprite(uint32_t i, fan_2d::graphics::image_t image);
 
-			void draw(uint32_t begin = fan::uninitialized, uint32_t end = fan::uninitialized) const;
+			f32_t get_transparency(uint32_t i) const;
+			void set_transparency(uint32_t i, f32_t transparency);
 
 			void erase(uint32_t i);
 			void erase(uint32_t begin, uint32_t end);
 
 			// removes everything
 			void clear();
-
-			void write_data();
-
-			void edit_data(uint32_t i);
-
-			void edit_data(uint32_t begin, uint32_t end);
 
 			using fan_2d::graphics::rectangle::size;
 			using fan_2d::graphics::rectangle::get_size;
@@ -536,11 +575,22 @@ namespace fan_2d {
 
 			using fan_2d::graphics::rectangle::m_camera;
 
+			void enable_draw();
+			void disable_draw();
+
 		protected:
+
+			void draw(uint32_t begin = fan::uninitialized, uint32_t end = fan::uninitialized) const;
+
+			void write_data();
+
+			void edit_data(uint32_t i);
+
+			void edit_data(uint32_t begin, uint32_t end);
 
 			void regenerate_texture_switch();
 
-			static constexpr auto location_texture_coordinate = "layout_texture_coordinate";
+			static constexpr auto location_texture_coordinate = "layout_texture_coordinates";
 
 			std::vector<uint32_t> m_textures;
 
@@ -564,11 +614,14 @@ namespace fan_2d {
 
 			void write_data();
 
-			void draw();
-
 			fan::vec2ui get_image_size(uint32_t i) const;
+
+			void enable_draw();
+			void disable_draw();
 			
 		protected:
+
+			void draw();
 
 			std::vector<fan::vec2ui> image_size;
 
@@ -609,38 +662,6 @@ namespace fan_2d {
 		//protected:
 
 		//};
-
-		struct particle {
-			f32_t m_angle_velocity;
-			fan::vec2 m_velocity;
-			fan::time::clock m_timer; // milli
-		};
-
-		class particles : protected fan_2d::graphics::rectangle {
-		public:
-
-			particles(fan::camera* camera);
-
-			void push_back(
-				const fan::vec2& position,
-				const fan::vec2& size,
-				f32_t angle,
-				f32_t angle_velocity,
-				const fan::vec2& velocity,
-				const fan::color& color,
-				uintptr_t time
-			);
-
-			void update();
-
-			using fan_2d::graphics::rectangle::draw;
-			using fan_2d::graphics::rectangle::size;
-
-		private:
-
-			std::vector<fan_2d::graphics::particle> m_particles;
-
-		};
 
 		class base_lighting :
 			protected fan::buffer_object<fan::vec2, 5>,
@@ -895,5 +916,7 @@ namespace fan_3d {
 	}
 
 }
+
+#include <fan/graphics/shared_inline_graphics.hpp>
 
 #endif

@@ -439,7 +439,7 @@ namespace fan_2d {
 				alignas(16) fan::color color;
 			};
 
-			rectangle(fan::camera* camera) : m_camera(camera), m_begin(0), m_end(0)
+			rectangle(fan::camera* camera) : m_camera(camera), m_begin(0), m_end(0), m_queue_helper(camera->m_window)
 			{
 
 				VkVertexInputBindingDescription binding_description;
@@ -538,6 +538,10 @@ namespace fan_2d {
 					vk_instance->swapChainImages.size()
 				);
 
+				m_draw_index = this->m_camera->m_window->push_draw_call(this, [&] {
+					this->draw();
+				});
+
 				fan_2d::graphics::shape shape = fan_2d::graphics::shape::triangle;
 
 				vk_instance->push_back_draw_call(&shape, 1, (void*)this, [&](uint32_t i, uint32_t j, void* base, fan_2d::graphics::shape shape) {
@@ -579,6 +583,7 @@ namespace fan_2d {
 
 			}
 			~rectangle() {
+
 				if (instance_buffer) {
 					delete instance_buffer;
 					instance_buffer = nullptr;
@@ -594,7 +599,13 @@ namespace fan_2d {
 			// must init rotation_point
 			void push_back(const properties_t& properties) {
 				instance_buffer->push_back(properties);
+
+				m_queue_helper.write([&] {
+					this->write_data();
+				});
 			}
+
+		protected:
 
 			void draw() {
 				this->draw(0, this->size());
@@ -640,6 +651,8 @@ namespace fan_2d {
 				}
 			}
 
+		public:
+
 			uint32_t size() const {
 				return instance_buffer->size();
 			}
@@ -647,25 +660,49 @@ namespace fan_2d {
 			// must init rotation_point
 			void insert(uint32_t i, const properties_t& properties) {
 				instance_buffer->m_instance.insert(instance_buffer->m_instance.begin() + i, properties);
+
+				m_queue_helper.write([&] {
+					this->write_data();
+				});
 			}
 
 			void reserve(uint32_t size) {
 				instance_buffer->m_instance.reserve(size);
+
+				m_queue_helper.write([&] {
+					this->write_data();
+				});
 			}
 			void resize(uint32_t size, const fan::color& color) {
 				instance_buffer->m_instance.resize(size, properties_t{ 0, 0, 0, 0, 0, color });
+
+				m_queue_helper.write([&] {
+					this->write_data();
+				});
 			}
 
 			void erase(uint32_t i) {
 				instance_buffer->m_instance.erase(instance_buffer->m_instance.begin() + i);
+
+				m_queue_helper.write([&] {
+					this->write_data();
+				});
 			}
 			void erase(uint32_t begin, uint32_t end) {
 				instance_buffer->m_instance.erase(instance_buffer->m_instance.begin() + begin, instance_buffer->m_instance.begin() + end);
+
+				m_queue_helper.write([&] {
+					this->write_data();
+				});
 			}
 
 			// erases everything
 			void clear() {
 				instance_buffer->m_instance.clear();
+
+				m_queue_helper.write([&] {
+					this->write_data();
+				});
 			}
 
 			rectangle_corners_t get_corners(uint32_t i = 0) const {
@@ -695,6 +732,10 @@ namespace fan_2d {
 			}
 			void set_angle(uint32_t i, f32_t angle) {
 				instance_buffer->get_value(i).angle = angle;
+
+				m_queue_helper.edit(i, i + 1, [&] {
+					this->edit_data(m_queue_helper.m_min_edit, m_queue_helper.m_max_edit);
+				});
 			}
 
 			const fan::color get_color(uint32_t i = 0) const  {
@@ -702,6 +743,10 @@ namespace fan_2d {
 			}
 			void set_color(uint32_t i, const fan::color& color)  {
 				instance_buffer->get_value(i).color = color;
+
+				m_queue_helper.edit(i, i + 1, [&] {
+					this->edit_data(m_queue_helper.m_min_edit, m_queue_helper.m_max_edit);
+				});
 			}
 
 			fan::vec2 get_position(uint32_t i = 0) const {
@@ -709,6 +754,10 @@ namespace fan_2d {
 			}
 			void set_position(uint32_t i, const fan::vec2& position) {
 				instance_buffer->m_instance[i].position = position;
+
+				m_queue_helper.edit(i, i + 1, [&] {
+					this->edit_data(m_queue_helper.m_min_edit, m_queue_helper.m_max_edit);
+				});
 			}
 
 			fan::vec2 get_size(uint32_t i = 0) const  {
@@ -716,6 +765,10 @@ namespace fan_2d {
 			}
 			void set_size(uint32_t i, const fan::vec2& size)  {
 				instance_buffer->get_value(i).size = size;
+
+				m_queue_helper.edit(i, i + 1, [&] {
+					this->edit_data(m_queue_helper.m_min_edit, m_queue_helper.m_max_edit);
+				});
 			}
 
 			fan::vec2 get_rotation_point(uint32_t i = 0) const  {
@@ -723,6 +776,10 @@ namespace fan_2d {
 			}
 			void set_rotation_point(uint32_t i, const fan::vec2& rotation_point)  {
 				instance_buffer->get_value(i).rotation_point = rotation_point;
+
+				m_queue_helper.edit(i, i + 1, [&] {
+					this->edit_data(m_queue_helper.m_min_edit, m_queue_helper.m_max_edit);
+				});
 			}
 
 			fan::vec2 get_rotation_vector(uint32_t i = 0) const  {
@@ -730,6 +787,10 @@ namespace fan_2d {
 			}
 			void set_rotation_vector(uint32_t i, const fan::vec2& rotation_vector)  {
 				instance_buffer->get_value(i).rotation_vector = rotation_vector;
+
+				m_queue_helper.edit(i, i + 1, [&] {
+					this->edit_data(m_queue_helper.m_min_edit, m_queue_helper.m_max_edit);
+				});
 			}
 
 			bool inside(uintptr_t i, const fan::vec2& position = fan::math::inf) const  {
@@ -738,16 +799,47 @@ namespace fan_2d {
 				return fan_2d::collision::rectangle::point_inside(corners[0], corners[1], corners[2], corners[3], position == fan::math::inf ? fan::cast<fan::vec2::value_type>(this->m_camera->m_window->get_mouse_position()) : position);
 			}
 
+
 			void write_data() {
 				instance_buffer->write_data();
+
+				m_queue_helper.on_write(m_camera->m_window);
 			}
+		protected:
 
 			void edit_data(uint32_t i) {
 				instance_buffer->edit_data(i);
+
+				m_queue_helper.on_edit();
 			}
 
 			void edit_data(uint32_t begin, uint32_t end) {
 				instance_buffer->edit_data(begin, end);
+
+				m_queue_helper.on_edit();
+			}
+
+		public:
+
+			void enable_draw() {
+				if (!m_camera->m_window->draw_call_size() || m_camera->m_window->draw_call_size() <= m_draw_index || m_camera->m_window->m_draw_queue[m_draw_index].first != this) {
+					m_draw_index = m_camera->m_window->push_draw_call(this, [&] {
+						this->draw();
+					});
+				}
+				else {
+					m_camera->m_window->edit_draw_call(m_draw_index, this, [&] {
+						this->draw();
+					});
+				}
+			}
+			void disable_draw() {
+				if (m_camera->m_window->m_draw_queue[m_draw_index].first != this) {
+					m_draw_index = m_camera->m_window->push_draw_call(this, [&] {});
+				}
+				else {
+					m_camera->m_window->edit_draw_call(m_draw_index, this, []{});
+				}
 			}
 
 			fan::camera* m_camera = nullptr;
@@ -759,6 +851,10 @@ namespace fan_2d {
 
 			using instance_buffer_t = fan::gpu_memory::buffer_object<properties_t, fan::gpu_memory::buffer_type::buffer>;
 
+			uint32_t m_draw_index = -1;
+
+			queue_helper_t m_queue_helper;
+			
 			instance_buffer_t* instance_buffer = nullptr;
 
 			uint32_t m_begin = 0;
@@ -781,13 +877,15 @@ namespace fan_2d {
 			void push_back(const fan::vec2& src, const fan::vec2& dst, const fan::color& color, f32_t thickness = 1) {
 
 				line_instance.emplace_back(line_instance_t{
-					src,
+					(src + ((dst - src) / 2)),
 					dst,
 					thickness
 				});
 
+				// - fan::vec2(0, 0.5 * thickness)
+
 				rectangle::properties_t property;
-				property.position = src;
+				property.position = src + ((dst - src) / 2);
 				property.size = fan::vec2((dst - src).length(), thickness);
 				property.angle = -fan::math::aim_angle(src, dst);
 				property.color = color;
@@ -805,6 +903,8 @@ namespace fan_2d {
 
 			void set_line(uint32_t i, const fan::vec2& src, const fan::vec2& dst) {
 
+				assert(0); // copy from rectangle
+
 				const auto thickness = this->get_thickness(i);
 
 				rectangle::instance_buffer->m_instance[i] = {
@@ -821,6 +921,8 @@ namespace fan_2d {
 				return line_instance[i].thickness;
 			}
 			void set_thickness(uint32_t i, const f32_t thickness) {
+
+				assert(0); // copy from rectangle
 
 				const auto src = line_instance[i].src;
 				const auto dst = line_instance[i].dst;
@@ -1055,8 +1157,7 @@ namespace fan_2d {
 			return image;
 		}
 
-		class sprite {
-		public:
+		struct sprite {
 
 			struct properties_t {
 
@@ -1064,14 +1165,18 @@ namespace fan_2d {
 				fan::vec2 position;
 				fan::vec2 size;
 
+				f32_t angle = 0;
+				fan::vec2 rotation_point;
+				fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
+
 				std::array<fan::vec2, 6> texture_coordinates = {
 					fan::vec2(0, 1),
 					fan::vec2(1, 1),
 					fan::vec2(1, 0),
 
-					fan::vec2(0, 1),
+					fan::vec2(1, 0),
 					fan::vec2(0, 0),
-					fan::vec2(1, 0)
+					fan::vec2(0, 1),
 				};
 
 				f32_t transparency = 1;
@@ -1079,7 +1184,7 @@ namespace fan_2d {
 			};
 
 			sprite(fan::camera* camera) : 
-				m_camera(camera)
+				m_camera(camera), m_queue_helper(camera->m_window)
 			{
 				VkVertexInputBindingDescription binding_description;
 
@@ -1089,7 +1194,7 @@ namespace fan_2d {
 
 				std::vector<VkVertexInputAttributeDescription> attribute_descriptions;
 
-				attribute_descriptions.resize(9);
+				attribute_descriptions.resize(12);
 
 				attribute_descriptions[0].binding = 0;
 				attribute_descriptions[0].location = 0;
@@ -1104,13 +1209,28 @@ namespace fan_2d {
 				attribute_descriptions[2].binding = 0;
 				attribute_descriptions[2].location = 2;
 				attribute_descriptions[2].format = VK_FORMAT_R32_SFLOAT;
-				attribute_descriptions[2].offset = offsetof(instance_t, angle);
+				attribute_descriptions[2].offset = offsetof(properties_t, angle);
+
+				attribute_descriptions[3].binding = 0;
+				attribute_descriptions[3].location = 3;
+				attribute_descriptions[3].format = VK_FORMAT_R32G32_SFLOAT;
+				attribute_descriptions[3].offset = offsetof(properties_t, rotation_point);
+
+				attribute_descriptions[4].binding = 0;
+				attribute_descriptions[4].location = 4;
+				attribute_descriptions[4].format = VK_FORMAT_R32G32B32_SFLOAT;
+				attribute_descriptions[4].offset = offsetof(properties_t, rotation_vector);
+
+				attribute_descriptions[5].binding = 0;
+				attribute_descriptions[5].location = 5;
+				attribute_descriptions[5].format = VK_FORMAT_R32_SFLOAT;
+				attribute_descriptions[5].offset = offsetof(properties_t, transparency);
 
 				for (int i = 0; i < 6; i++) {
-					attribute_descriptions[i + 3].binding = 0;
-					attribute_descriptions[i + 3].location = i + 3;
-					attribute_descriptions[i + 3].format = VK_FORMAT_R32G32_SFLOAT;
-					attribute_descriptions[i + 3].offset = offsetof(instance_t, texture_coordinate) + i * sizeof(fan::vec2);
+					attribute_descriptions[i + 6].binding = 0;
+					attribute_descriptions[i + 6].location = i + 6;
+					attribute_descriptions[i + 6].format = VK_FORMAT_R32G32_SFLOAT;
+					attribute_descriptions[i + 6].offset = offsetof(instance_t, texture_coordinate) + i * sizeof(fan::vec2);
 				}
 
 				fan::vk::shader::recompile_shaders = true;
@@ -1154,6 +1274,10 @@ namespace fan_2d {
 				vk_instance->uniform_buffers.emplace_back(
 					uniform_handler
 				);
+
+				m_draw_index = this->m_camera->m_window->push_draw_call(this, [&] {
+					this->draw();
+				});
 
 				fan_2d::graphics::shape shape = fan_2d::graphics::shape::triangle;
 
@@ -1218,22 +1342,24 @@ namespace fan_2d {
 					throw std::runtime_error("maximum textures achieved, create new sprite");
 				}
 
-				instance_buffer->m_instance.emplace_back(
-					instance_t{ 
-						properties.position, 
-						properties.size, 
-						0,
-						properties.texture_coordinates
-					}
-				);
+				instance_t instance;
+				instance.position = properties.position;
+				instance.size = properties.size;
+				instance.angle = properties.angle;
+				instance.rotation_point = properties.rotation_point;
+				instance.rotation_vector = properties.rotation_vector;
+				instance.transparency = properties.transparency;
+				instance.texture_coordinate = properties.texture_coordinates;
 
-				if (m_textures.empty() || properties.image->texture != m_textures[m_textures.size() - 1]) {
+				instance_buffer->m_instance.emplace_back(instance);
+
+				//if (m_textures.empty() || properties.image->texture != m_textures[m_textures.size() - 1]) {
 
 					descriptor_offsets.emplace_back(m_camera->m_window->m_vulkan->texture_handler->push_back(
 						properties.image->texture, uniform_handler, m_camera->m_window->m_vulkan->swapChainImages.size(),
 						1//std::floor(std::log2(std::max(properties.size.x, properties.size.y))) + 1
 					));
-				}
+			//	}
 
 				if (m_switch_texture.empty()) {
 					m_switch_texture.emplace_back(0);
@@ -1243,6 +1369,10 @@ namespace fan_2d {
 				}
 
 				m_textures.emplace_back(properties.image->texture);
+
+				m_queue_helper.write([&] {
+					this->write_data();
+				});
 			}
 
 			/*void insert(uint32_t i, uint32_t texture_coordinates_i, std::unique_ptr<fan_2d::graphics::texture_id_handler>& handler, const fan::vec2& position, const fan::vec2& size, const sprite_properties& properties = sprite_properties()) {
@@ -1270,6 +1400,8 @@ namespace fan_2d {
 			void reload_image(uint32_t i, fan_2d::graphics::image_t image) {
 				m_textures[i] = image->texture;
 			}
+
+		protected:
 
 			void draw(uint32_t begin = fan::uninitialized, uint32_t end = fan::uninitialized) {
 				begin = 0;
@@ -1308,6 +1440,8 @@ namespace fan_2d {
 				}
 			}
 
+		public:
+
 			std::size_t size() const {
 				return instance_buffer->m_instance.size();
 			}
@@ -1325,6 +1459,10 @@ namespace fan_2d {
 				regenerate_texture_switch();
 
 				vkDeviceWaitIdle(m_camera->m_window->m_vulkan->device);
+
+				m_queue_helper.write([&] {
+					this->write_data();
+				});
 				/*m_camera->m_window->m_vulkan->erase_command_buffers();
 				m_camera->m_window->m_vulkan->create_command_buffers();*/
 			}
@@ -1335,6 +1473,10 @@ namespace fan_2d {
 				m_textures.erase(m_textures.begin() + begin, m_textures.begin() + end);
 
 				regenerate_texture_switch();
+
+				m_queue_helper.write([&] {
+					this->write_data();
+				});
 			}
 
 			// removes everything
@@ -1344,6 +1486,10 @@ namespace fan_2d {
 				m_textures.clear();
 
 				m_switch_texture.clear();
+
+				m_queue_helper.write([&] {
+					this->write_data();
+				});
 			}
 
 			rectangle_corners_t get_corners(uint32_t i = 0) const {
@@ -1369,13 +1515,21 @@ namespace fan_2d {
 			}
 			void set_angle(uint32_t i, f32_t angle) {
 				instance_buffer->get_value(i).angle = angle;
+
+				m_queue_helper.edit(i, i + 1, [&] {
+					this->edit_data(m_queue_helper.m_min_edit, m_queue_helper.m_max_edit);
+				});
 			}
 
-			fan::vec2 get_position(uint32_t i = 0) const  {
+			fan::vec2 get_position(uint32_t i = 0) const {
 				return instance_buffer->get_value(i).position;
 			}
-			void set_position(uint32_t i, const fan::vec2& position)  {
-				instance_buffer->get_value(i).position = position;
+			void set_position(uint32_t i, const fan::vec2& position) {
+				instance_buffer->m_instance[i].position = position;
+
+				m_queue_helper.edit(i, i + 1, [&] {
+					this->edit_data(m_queue_helper.m_min_edit, m_queue_helper.m_max_edit);
+				});
 			}
 
 			fan::vec2 get_size(uint32_t i = 0) const  {
@@ -1383,6 +1537,43 @@ namespace fan_2d {
 			}
 			void set_size(uint32_t i, const fan::vec2& size)  {
 				instance_buffer->get_value(i).size = size;
+
+				m_queue_helper.edit(i, i + 1, [&] {
+					this->edit_data(m_queue_helper.m_min_edit, m_queue_helper.m_max_edit);
+				});
+			}
+
+			fan::vec2 get_rotation_point(uint32_t i = 0) const  {
+				return instance_buffer->get_value(i).rotation_point;
+			}
+			void set_rotation_point(uint32_t i, const fan::vec2& rotation_point)  {
+				instance_buffer->get_value(i).rotation_point = rotation_point;
+
+				m_queue_helper.edit(i, i + 1, [&] {
+					this->edit_data(m_queue_helper.m_min_edit, m_queue_helper.m_max_edit);
+				});
+			}
+
+			fan::vec2 get_rotation_vector(uint32_t i = 0) const  {
+				return instance_buffer->get_value(i).rotation_vector;
+			}
+			void set_rotation_vector(uint32_t i, const fan::vec2& rotation_vector)  {
+				instance_buffer->get_value(i).rotation_vector = rotation_vector;
+
+				m_queue_helper.edit(i, i + 1, [&] {
+					this->edit_data(m_queue_helper.m_min_edit, m_queue_helper.m_max_edit);
+				});
+			}
+
+			f32_t get_transparency(uint32_t i, f32_t transparency) const {
+				return instance_buffer->get_value(i).transparency;
+			}
+			void set_transparency(uint32_t i, f32_t transparency) {
+				instance_buffer->get_value(i).transparency = transparency;
+
+				m_queue_helper.edit(i, i + 1, [&] {
+					this->edit_data(m_queue_helper.m_min_edit, m_queue_helper.m_max_edit);
+				});
 			}
 
 			bool inside(uintptr_t i, const fan::vec2& position = fan::math::inf) const {
@@ -1398,14 +1589,36 @@ namespace fan_2d {
 
 				m_camera->m_window->m_vulkan->erase_command_buffers();
 				m_camera->m_window->m_vulkan->create_command_buffers();
+
+				m_queue_helper.on_write(m_camera->m_window);
 			}
 
 			void edit_data(uint32_t i) {
 				instance_buffer->edit_data(i);
+
+				m_queue_helper.on_edit();
 			}
 
 			void edit_data(uint32_t begin, uint32_t end) {
 				instance_buffer->edit_data(begin, end);
+
+				m_queue_helper.on_edit();
+			}
+
+			void enable_draw() {
+				if (m_camera->m_window->m_draw_queue[m_draw_index].first != this) {
+					m_draw_index = m_camera->m_window->push_draw_call(this, [&] {
+						this->draw();
+					});
+				}
+				else {
+					m_camera->m_window->edit_draw_call(m_draw_index, this, [&] {
+						this->draw();
+					});
+				}
+			}
+			void disable_draw() {
+				m_camera->m_window->edit_draw_call(m_draw_index, this, []{});
 			}
 
 			fan::camera* m_camera = nullptr;
@@ -1419,6 +1632,9 @@ namespace fan_2d {
 				alignas(8) fan::vec2 position;
 				alignas(8) fan::vec2 size;
 				alignas(4) f32_t angle;
+				alignas(8) fan::vec2 rotation_point;
+				alignas(16) fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
+				alignas(4) f32_t transparency;
 				alignas(64) /* ? */ std::array<fan::vec2, 6> texture_coordinate;
 
 			};
@@ -1435,6 +1651,10 @@ namespace fan_2d {
 					}
 				}
 			}
+
+			uint32_t m_draw_index = -1;
+
+			queue_helper_t m_queue_helper;
 
 			using instance_buffer_t = fan::gpu_memory::buffer_object<instance_t, fan::gpu_memory::buffer_type::buffer>;
 
@@ -1454,10 +1674,11 @@ namespace fan_2d {
 			uint64_t pipeline_offset = 0;
 		};
 
-		#include <fan/graphics/shared_inline_graphics.hpp>
 
 	}
 
 }
+
+#include <fan/graphics/shared_inline_graphics.hpp>
 
 #endif

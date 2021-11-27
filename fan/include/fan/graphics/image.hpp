@@ -404,7 +404,7 @@ namespace fan {
 				image_data.size.x,
 				image_data.size.y,
 				image_data.format,
-				1) < 0) {
+				4) < 0) {
 				fan::print("failed to allocate image");
 				goto end;
 			}

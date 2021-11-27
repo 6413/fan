@@ -13,7 +13,7 @@ typedef intptr_t sint_t;
 typedef int8_t sint8_t;
 typedef int16_t sint16_t;
 typedef int32_t sint32_t;
-typedef int64_t sint64_t;
+//typedef int64_t sint64_t;
 
 typedef float f32_t;
 typedef double f64_t;
@@ -204,3 +204,6 @@ namespace fan {
 #define CONCAT3(_0_m, _1_m, _2_m) _CONCAT3(_0_m, _1_m, _2_m)
 #define _CONCAT4(_0_m, _1_m, _2_m, _3_m) _0_m ## _1_m ## _2_m ## _3_m
 #define CONCAT4(_0_m, _1_m, _2_m, _3_m) _CONCAT4(_0_m, _1_m, _2_m, _3_m)
+
+#define OFFSETLESS(ptr_m, t_m, d_m) \
+	(t_m *)((uint8_t *)(ptr_m) - offsetof(t_m, d_m))

@@ -6,16 +6,18 @@
 #include <fan/types/vector.hpp>
 #include <fan/io/file.hpp>
 
-#ifdef fan_platform_windows
+#include <fan/audio/audio_decoder.hpp>
 
-	#include <Mmsystem.h>
+#include <fan/time/time.hpp>
+
+#ifdef fan_platform_windows
 
 	#include <endpointvolume.h>
 
 	#include <mmdeviceapi.h>
 	#include <endpointvolume.h>
 
-	#pragma comment(lib, "OpenAL32.lib")
+	#pragma comment(lib, "lib/al/OpenAL32.lib")
 	#pragma comment(lib, "Winmm.lib")
 
 #endif
@@ -102,29 +104,34 @@ namespace fan {
 
 	namespace audio {
 
-		class audio {
+		class audio_t {
 		public:
 
-			const static std::string temp_audio_file;
-			const static std::string audio_info;
-			const static std::string audio_input;
-			const static std::string audio_ffmpeg_format;
+			audio_t(const std::string& file) {
 
-			audio(const std::string& file) : device(alcOpenDevice(NULL)), context(alcCreateContext(device, NULL)) {
+				device = alcOpenDevice(NULL);
 				if (!device) {
+					fan::print(alGetError());
 					fan::print("no sound device");
 					exit(1);
 				}
+
+				context = alcCreateContext(device, NULL);
 				if (!context) {
 					fan::print("no sound context");
 					exit(1);
 				}
+
 				alcMakeContextCurrent(context);
 
 				alGenSources(1, &source);
 				alGenBuffers(1, &buffer);
 
-				audio::load_audio(file);
+				fan::audio_decoder::properties_t p;
+				p.input = file;
+				p.channel_layout = audio_decoder::channel_layout_e::mono;
+
+				this->load_audio(fan::audio_decoder::decode(p));
 
 				fan::vec3 source_position(0, 0, 0);
 				fan::vec3 source_velocity(0, 0, 0);
@@ -134,16 +141,15 @@ namespace fan {
 
 				alSourcei(source, AL_SOURCE_RELATIVE, AL_TRUE);
 
-				alGetListenerfv(AL_POSITION, listener_position.data());
+/*				alGetListenerfv(AL_POSITION, listener_position.data());
 				alGetListenerfv(AL_VELOCITY, listener_velocity.data());
-				alGetListenerfv(AL_ORIENTATION, (float*)&listener_orientation[0][0]); // not sure
-
-																					  //alSourcef(source, AL_PITCH, 1.0);
+				alGetListenerfv(AL_ORIENTATION, (float*)&listener_orientation[0][0]);*/ // not sure
+																											alSourcef(source, AL_PITCH, 1.0);
 																					  //alSourcef(source, AL_GAIN, 1.0);
 				alSourcefv(source, AL_POSITION, source_position.data());
 			}
 
-			~audio() {
+			~audio_t() {
 				alSourceStop(source);
 				alSourcei(source, AL_BUFFER, 0);
 				alDeleteBuffers(1, &buffer);
@@ -159,30 +165,19 @@ namespace fan {
 				return state == AL_PLAYING;
 			}
 
-			void load_audio(std::string file) {
-				file.insert(0, "\"");
-				file.insert(file.size(), "\"");
-				std::string env = std::getenv("PATH");
-				auto found = env.find("ffmpeg");
-				#ifdef FAN_WINDOWS
-					auto first = env.rfind(';', found);
-					auto last = env.find(';', found);
-					std::string str(env.begin() + first + 1, env.begin() + last);
-					system((str + audio_ffmpeg_format + audio_input + file + audio_info + temp_audio_file).c_str());
-				#else
-					system((audio_ffmpeg_format + audio_input + file + audio_info + temp_audio_file).c_str());
-				#endif
+			void load_audio(audio_decoder::out_t out) {
 
-				std::string raw = fan::io::file::read(temp_audio_file);
+				this->duration = out.duration;
 
 				alSourcei(source, AL_BUFFER, 0);
-				alBufferData(buffer, AL_FORMAT_MONO16, raw.data(), raw.size(), 44100);
-				remove(temp_audio_file.c_str());
+				alBufferData(buffer, AL_FORMAT_MONO16, out.buffer.data(), out.buffer.size(), out.sample_rate);
+				
 				alSourcei(source, AL_BUFFER, buffer);
 			}
 
-			void play() const {
+			void play() {
 				alSourcePlay(source);
+				from_start_to_wait = fan::time::clock::now();
 			}
 
 			void pause() const {
@@ -193,6 +188,12 @@ namespace fan {
 				alSourceStop(source);
 			}
 
+			fan::vec3 get_position() const {
+				fan::vec3 p;
+				alGetListenerfv(AL_POSITION, p.data());
+
+				return p;
+			}
 			void set_position(const fan::vec3& position) const {
 				alSourcefv(source, AL_POSITION, position.data());
 			}
@@ -201,21 +202,30 @@ namespace fan {
 				alSourcefv(source, AL_VELOCITY, velocity.data());
 			}
 
+			// gets duration of current audio file in nanoseconds
+			uint64_t get_duration() const {
+				return duration;
+			}
+
+			// waits till audio is ended
+			void wait() {
+				fan::delay(fan::time::nanoseconds(duration - fan::time::clock::elapsed(from_start_to_wait)));
+				from_start_to_wait = fan::time::clock::now();
+			}
+
+		protected:
+
+			uint64_t from_start_to_wait = 0;
+
+			uint64_t duration;
+
 			ALCdevice* device;
 			ALCcontext* context;
+
 			uint32_t source;
 			uint32_t buffer;
 
 		};
 
 	}
-
-	const std::string audio::audio::temp_audio_file = "sounds/temp.raw";
-	const std::string audio::audio::audio_info = " -f s16le -ar 44100 -ac 1 -acodec pcm_s16le ";
-	const std::string audio::audio::audio_input = " -i ";
-	#ifdef FAN_WINDOWS
-		const std::string audio::audio_ffmpeg_format = "\\ffmpeg";
-	#else
-		const std::string audio::audio::audio_ffmpeg_format = "ffmpeg";
-	#endif
 }

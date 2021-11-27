@@ -14,9 +14,9 @@ namespace fan_2d {
 				double dy = c.y - p.y;
 				dx *= dx;
 				dy *= dy;
-				double distanceSquared = dx + dy;
-				double radiusSquared = r * r;
-				return distanceSquared <= radiusSquared;
+				double distance_squared = dx + dy;
+				double radius_squared = r * r;
+				return distance_squared <= radius_squared;
 			}
 
 		}

@@ -8,7 +8,10 @@ layout(binding = 0) uniform UniformBufferObject {
 layout(location = 0) in vec2 layout_position;
 layout(location = 1) in vec2 layout_size;
 layout(location = 2) in float layout_angle;
-layout(location = 3) in vec2 layout_texture_coordinate[6];
+layout(location = 3) in vec2 layout_rotation_point;
+layout(location = 4) in vec3 layout_rotation_vector;
+layout(location = 5) in float transparency;
+layout(location = 6) in vec2 layout_texture_coordinate[6];
 
 layout(location = 0) out vec2 fragment_texture_coordinate;
 
@@ -24,7 +27,7 @@ mat4 translate(mat4 m, vec3 v) {
 }
 
 mat4 scale(mat4 m, vec3 v) {
-	mat4 matrix;
+	mat4 matrix = mat4(1);
 
 	matrix[0][0] = m[0][0] * v[0];
 	matrix[0][1] = m[0][1] * v[0];
@@ -86,26 +89,35 @@ mat4 rotate(mat4 m, float angle, vec3 v) {
 }
 
 vec2 rectangle_vertices[] = vec2[](
-	vec2(0, 0),
-	vec2(1, 0),
-	vec2(1, 1),
+	vec2(-0.5, -0.5),
+	vec2(0.5, -0.5),
+	vec2(0.5, 0.5),
 
-	vec2(0, 0),
-	vec2(0, 1),
-	vec2(1, 1)
+	vec2(0.5, 0.5),
+	vec2(-0.5, 0.5),
+	vec2(-0.5, -0.5)
 );
 
 void main() {
 
 	mat4 m = mat4(1);
 
-	m = translate(m, vec3(layout_position.x + layout_size.x / 2, layout_position.y + layout_size.y / 2, 0));
+		m = translate(m, vec3(layout_position + layout_rotation_point, 0));
 
-	if (layout_angle != 0) {
-		m = rotate(m, layout_angle, vec3(0, 0, 1));
+	if (!isnan(layout_angle) && !isinf(layout_angle)) {
+		vec3 rotation_vector;
+
+		if (layout_rotation_vector.x == 0 && layout_rotation_vector.y == 0 && layout_rotation_vector.z == 0) {
+			rotation_vector = vec3(0, 0, 1);
+		}
+		else {
+			rotation_vector = layout_rotation_vector;
+		}
+
+		m = rotate(m, layout_angle, rotation_vector);
 	}
 
-	m = translate(m, vec3(-layout_size.x / 2, -layout_size.y / 2, 0));
+	m = translate(m, vec3(-layout_rotation_point, 0));
 
 	m = scale(m, vec3(layout_size.x, layout_size.y, 0));
 

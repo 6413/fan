@@ -9,6 +9,8 @@
 #include <fan/graphics/camera.hpp>
 #include <fan/graphics/opengl/gl_shader.hpp>
 
+#define fan_debug
+
 namespace fan {
 
 	namespace gpu_memory {
@@ -42,9 +44,19 @@ namespace fan {
 
 	inline GLenum write_usage = GL_STATIC_DRAW;
 
+	static int get_buffer_size(uint32_t target_buffer, uint32_t buffer_object) {
+		int size = 0;
+
+		glBindBuffer(target_buffer, buffer_object);
+		glGetBufferParameteriv(target_buffer, GL_BUFFER_SIZE, &size);
+
+		return size;
+	}
+
 	static void write_glbuffer(unsigned int buffer, void* data, uintptr_t size, uintptr_t target, uintptr_t location)
 	{
 		glBindBuffer(target, buffer);
+
 		glBufferData(target, size, data, write_usage);
 		if (target == GL_SHADER_STORAGE_BUFFER) {
 			glBindBufferBase(target, location, buffer);
@@ -55,6 +67,17 @@ namespace fan {
 	static void edit_glbuffer(unsigned int buffer, void* data, uintptr_t offset, uintptr_t size, uintptr_t target = GL_ARRAY_BUFFER, uintptr_t location = fan::uninitialized)
 	{
 		glBindBuffer(target, buffer);
+
+#ifdef fan_debug
+
+		int buffer_size = get_buffer_size(target, buffer);
+
+		if (buffer_size < size || (offset + size) > buffer_size) {
+			throw std::runtime_error("tried to write more than allocated");
+		}
+
+#endif
+
 		glBufferSubData(target, offset, size, data);
 		glBindBuffer(target, 0);
 		if (target == GL_SHADER_STORAGE_BUFFER) {

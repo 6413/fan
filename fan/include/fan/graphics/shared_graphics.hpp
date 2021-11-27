@@ -4,6 +4,8 @@
 
 #include <fan/graphics/camera.hpp>
 
+#define get_properties(v) decltype(v)::properties_t
+
 namespace fan_2d {
 
 	namespace graphics {
@@ -12,14 +14,113 @@ namespace fan_2d {
 			pixel_data_t() {}
 			pixel_data_t(fan::image_loader::image_data& image_data)
 				: 
-				pixels(image_data.data), linesize(image_data.linesize),
-				size(image_data.size), format(image_data.format) {}
+				size(image_data.size), format(image_data.format) {
+				std::memcpy(pixels, image_data.data, sizeof(image_data.data));
+				std::memcpy(linesize, image_data.linesize, sizeof(image_data.linesize));
+			}
 
-			uint8_t** pixels;
-			int* linesize;
+			uint8_t* pixels[4];
+			int linesize[4];
 			fan::vec2i size;
 			AVPixelFormat format;
 			// 32bpp AVPixelFormat::AV_PIX_FMT_BGR0
+		};
+
+		struct queue_helper_t {
+			queue_helper_t() {}
+
+			queue_helper_t(fan::window* window) : window_(window) {
+
+			}
+			~queue_helper_t() {
+				if (m_edit_index != -1) {
+					window_->remove_write_call(m_edit_index);
+					m_edit_index = -1;
+				}
+				if (m_write_index != -1) {
+					window_->remove_write_call(m_write_index);
+					m_write_index = -1;
+				}
+			}
+
+
+			void edit(uint32_t begin, uint32_t end, std::function<void()> edit_function) {
+
+				if (m_write) {
+					return;
+				}
+
+				m_min_edit = std::min(m_min_edit, begin);
+				m_max_edit = std::max(m_max_edit, end);
+
+				if (!m_edit) {
+					m_edit_index = window_->push_write_call(this, [&, f = edit_function] {
+						if (m_min_edit == (uint32_t)-1) {
+							return;
+						}
+
+						f();
+						m_edit_index = -1;
+					});
+
+					m_edit = true;
+				}
+			}
+
+			void write(std::function<void()> write_function) {
+				if (m_edit) {
+
+					m_min_edit = -1;
+					m_max_edit = 0;
+
+					window_->edit_write_call(m_edit_index, this, [&] {});
+
+					m_edit = false;
+				}
+
+				if (!m_write) {
+
+					m_write_index = window_->push_write_call(this, [&, f = write_function] {
+
+						f();
+					});
+
+					m_write = true;
+				}
+			}
+
+			void on_write(fan::window* window) {
+
+				if (m_edit) {
+					m_min_edit = -1;
+					m_max_edit = 0;
+
+					window->edit_write_call(m_edit_index, this, [&] {});
+
+					m_edit = false;
+				}
+
+				m_write = false;
+				m_write_index = -1;
+			}
+
+			void on_edit() {
+				m_min_edit = -1;
+				m_max_edit = 0;
+
+				m_edit = false;
+			}
+
+			bool m_write = false;
+			bool m_edit = false;
+
+			uint32_t m_write_index = -1;
+			uint32_t m_edit_index = -1;
+
+			uint32_t m_min_edit = -1;
+			uint32_t m_max_edit = 0;
+
+			fan::window* window_ = nullptr;
 		};
 
 		struct rectangle;
@@ -44,10 +145,10 @@ namespace fan_2d {
 		// 0 top left, 1 top right, 2 bottom left, 3 bottom right
 		constexpr rectangle_corners_t get_rectangle_corners_no_rotation(const fan::vec2& position, const fan::vec2& size) {
 			return { 
-				position, 
-				position + fan::vec2(size.x, 0), 
-				position + fan::vec2(0, size.y), 
-				position + size
+				position - fan::vec2(size.x, size.y ),
+				position + fan::vec2(size.x, -size.y), 
+				position + fan::vec2(-size.x, size.y), 
+				position + fan::vec2(size.x , size.y)
 			};
 		}
 
@@ -82,7 +183,7 @@ namespace fan_2d {
 				if (texture) {
 #if fan_renderer == fan_renderer_opengl
 						glDeleteTextures(1, &texture);
-						texture = 0;
+						texture = -1;
 #elif fan_renderer == fan_renderer_vulkan
 					if (texture && window->m_vulkan->device) {
 						
@@ -116,6 +217,7 @@ namespace fan_2d {
 		static void unload_image(image_t image) {
 			if (image) {
 				delete image;
+				image = nullptr;
 			}
 		}
 

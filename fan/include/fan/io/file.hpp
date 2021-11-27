@@ -10,6 +10,13 @@
 namespace fan {
 	namespace io {
 		namespace file {
+
+			inline uint64_t file_size(const std::string& filename)
+			{
+				std::ifstream f(filename, std::ifstream::ate | std::ifstream::binary);
+				return f.tellg(); 
+			}
+
 			inline bool exists(const std::string& name) {
 				std::ifstream file(name);
 				return file.good();
@@ -73,6 +80,11 @@ namespace fan {
 				int value;
 			};
 
+			struct str_vec2i_t {
+				std::size_t begin, end;
+				fan::vec2i value;
+			};
+
 			static const char* digits = "0123456789";
 
 			static int get_string_valuei(const std::string& str, const std::string& find, std::size_t offset = 0) {
@@ -116,6 +128,27 @@ namespace fan {
 				}
 
 				return { (std::size_t)begin, end, std::stoi(std::string(str.begin() + begin - negative, str.begin() + end)) };
+			}
+
+			static str_vec2i_t get_string_valuevec2i_n(const std::string& str, std::size_t offset = 0) {
+
+				fan::vec2i v;
+
+				std::size_t begin, end;
+
+				auto r = get_string_valuei_n(str, offset);
+
+				begin = r.begin;
+
+				v.x = r.value;
+
+				r = get_string_valuei_n(str, r.end);
+
+				v.y = r.value;
+				
+				end = r.end;
+
+				return { begin, end, v };
 			}
 
 		}

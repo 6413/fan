@@ -20,6 +20,7 @@
 #include <fan/window/window_input.hpp>
 
 #include <fan/graphics/image.hpp>
+#include <fan/bll.hpp>
 
 #include <deque>
 #include <codecvt>
@@ -113,7 +114,7 @@ namespace fan {
 	struct pair_hash
 	{
 		template <class T1, class T2>
-		constexpr std::size_t operator() (const std::pair<T1, T2> &pair) const
+		constexpr uint32_t operator() (const std::pair<T1, T2> &pair) const
 		{
 			return std::hash<T1>()(pair.first) ^ std::hash<T2>()(pair.second);
 		}
@@ -186,23 +187,6 @@ namespace fan {
 			constexpr static fan::vec2i r_1600x1024 = fan::vec2i(1600, 1024);
 			constexpr static fan::vec2i r_1680x1050 = fan::vec2i(1680, 1050);
 			constexpr static fan::vec2i r_1920x1080 = fan::vec2i(1920, 1080);
-
-			constexpr static auto size = 12;
-
-			static constexpr fan::vec2i x[12] = { fan::vec2(800, 600),
-				fan::vec2i(1024, 768),
-				fan::vec2i(1280, 720),
-				fan::vec2i(1280, 800),
-				fan::vec2i(1280, 900),
-				fan::vec2i(1280, 1024),
-				fan::vec2(1360, 768),
-				fan::vec2i(1440, 900),
-				fan::vec2i(1600, 900),
-				fan::vec2i(1600, 1024),
-				fan::vec2i(1680, 1050),
-				fan::vec2i(1920, 1080) 
-			};
-
 		};
 
 		// required type alias for function return types
@@ -370,28 +354,44 @@ namespace fan {
 				fan::window::flag_values::m_size_mode = fan::window::mode::full_screen;
 			}
 		}
+		typedef uint32_t callback_id_t;
 
-		std::size_t add_keys_callback(const keys_callback_t& function);
-		void remove_keys_callback(std::size_t i);
+		callback_id_t add_keys_callback(const keys_callback_t& function);
+		void remove_keys_callback(callback_id_t id);
 
-		std::size_t add_key_callback(uint16_t key, key_state state, const std::function<void(fan::window*)>& function);
-		void edit_key_callback(uint32_t i, uint16_t key, key_state state);
-		void remove_key_callback(uint32_t i);
+		callback_id_t add_key_callback(uint16_t key, key_state state, const std::function<void(fan::window*)>& function);
+		void edit_key_callback(callback_id_t id, uint16_t key, key_state state);
+		void remove_key_callback(callback_id_t id);
 
-		std::size_t add_text_callback(const text_callback_t& function);
-		void remove_text_callback(std::size_t i);
+		callback_id_t add_text_callback(const text_callback_t& function);
+		void remove_text_callback(callback_id_t id);
 
-		std::size_t add_close_callback(const std::function<void(fan::window*)>& function);
-		void remove_close_callback(std::size_t i);
+		callback_id_t add_close_callback(const std::function<void(fan::window*)>& function);
+		void remove_close_callback(callback_id_t id);
 
-		std::size_t add_mouse_move_callback(const mouse_move_position_callback_t& function);
-		void remove_mouse_move_callback(std::size_t i);
+		callback_id_t add_mouse_move_callback(const mouse_move_position_callback_t& function);
+		void remove_mouse_move_callback(callback_id_t id);
 
-		std::size_t add_resize_callback(const std::function<void(fan::window* window, const fan::vec2i& window_size)>& function);
-		void remove_resize_callback(std::size_t i);
+		callback_id_t add_resize_callback(const std::function<void(fan::window* window, const fan::vec2i& window_size)>& function);
+		void remove_resize_callback(callback_id_t id);
 
-		std::size_t add_move_callback(const std::function<void(fan::window*)>& function);
-		void remove_move_callback(std::size_t it);
+		callback_id_t add_move_callback(const std::function<void(fan::window*)>& function);
+		void remove_move_callback(callback_id_t idt);
+
+		callback_id_t push_draw_call(void*, const std::function<void()>& function);
+		void edit_draw_call(callback_id_t id, void*, const std::function<void()>& function);
+		void erase_draw_call(callback_id_t id);
+		/*void switch_draw_call(void* from);*/
+		void clear_draw_calls();
+		callback_id_t draw_call_size() const;
+
+		callback_id_t push_write_call(void* this_, const std::function<void()>& function);
+		void edit_write_call(callback_id_t id, void* this_, std::function<void()> function);
+		void remove_write_call(callback_id_t id);
+
+		callback_id_t push_reserved_call(void*, std::function<void()> function);
+		void edit_reserved_call(callback_id_t id, void*, const std::function<void()>& function);
+		void erase_reserved_call(callback_id_t id);
 
 		void set_error_callback();
 
@@ -419,13 +419,19 @@ namespace fan {
 
 		void auto_close(bool state);
 
+		bll_t<std::pair<void*, std::function<void()>>> m_reserved_update;
+		bll_t<std::pair<void*, std::function<void()>>> m_draw_queue;
+		bll_t<std::pair<void*, std::function<void()>>> m_write_queue;
+
+		std::vector<std::function<void()>> m_onetime_queue;
+
 #if fan_renderer == fan_renderer_vulkan
 
 
 		fan::vulkan* m_vulkan = nullptr;
 
 #endif
-
+		bll_t<mouse_move_position_callback_t> m_mouse_move_position_callback;
 	private:
 
 		static constexpr fan::input banned_keys[]{
@@ -479,13 +485,13 @@ namespace fan {
 
 		window_t m_window;
 
-		std::vector<keys_callback_t> m_keys_callback;
-		std::deque<key_callback_t> m_key_callback;
-		std::deque<text_callback_t> m_text_callback;
-		std::deque<mouse_move_position_callback_t> m_mouse_move_position_callback;
-		std::deque<std::function<void(fan::window*)>> m_move_callback;
-		std::deque<std::function<void(fan::window* window, const fan::vec2i& window_size)>> m_resize_callback;
-		std::deque<std::function<void(fan::window*)>> m_close_callback;
+		bll_t<keys_callback_t> m_keys_callback;
+		bll_t<key_callback_t> m_key_callback;
+		bll_t<text_callback_t> m_text_callback;
+		
+		bll_t<std::function<void(fan::window*)>> m_move_callback;
+		bll_t<std::function<void(fan::window* window, const fan::vec2i& window_size)>> m_resize_callback;
+		bll_t<std::function<void(fan::window*)>> m_close_callback;
 
 		keymap_t m_keys_down;
 

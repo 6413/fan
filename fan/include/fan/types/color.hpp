@@ -13,6 +13,7 @@ namespace fan {
 
 		using value_type = cf_t;
 
+		// returns rgb from hsv
 		static fan::color hsv(f32_t H, f32_t S,f32_t V){
 
 			f32_t s = S/100;
@@ -107,6 +108,9 @@ namespace fan {
 		constexpr color operator-=(const color& color_) {
 			return color(r -= color_.r, g -= color_.g, b -= color_.b, a -= color_.a);
 		}
+		constexpr color operator-() const {
+			return color(-r, -g, -b, a);
+		}
 		constexpr color operator-(const color& color_) const {
 			return color(r - color_.r, g - color_.g, b - color_.b, color_.a != 1 ? a - color_.a : a);
 		}
@@ -116,6 +120,10 @@ namespace fan {
 		template <typename T>
 		constexpr color operator*(T value) const {
 			return color(r * value, g * value, b * value);
+		}
+		template <typename T>
+		constexpr color operator/(T value) const {
+			return color(r / value, g / value, b / value);
 		}
 		void print() const {
 			std::cout << "{ " << r << ", " << g << ", " << b << ", " << a << " }";

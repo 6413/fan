@@ -15,8 +15,8 @@
 typedef long(*NtDelayExecution_t)(int Alertable, PLARGE_INTEGER DelayInterval);
 typedef long(* ZwSetTimerResolution_t)(IN ULONG RequestedResolution, IN BOOLEAN Set, OUT PULONG ActualResolution);
 
-static NtDelayExecution_t NtDelayExecution = (long(__stdcall*)(BOOL, PLARGE_INTEGER)) GetProcAddress(GetModuleHandle("ntdll.dll"), "NtDelayExecution");
-static ZwSetTimerResolution_t ZwSetTimerResolution = (long(__stdcall*)(ULONG, BOOLEAN, PULONG)) GetProcAddress(GetModuleHandle("ntdll.dll"), "ZwSetTimerResolution");
+static NtDelayExecution_t NtDelayExecution = (NtDelayExecution_t)(long(__stdcall*)(BOOL, PLARGE_INTEGER)) GetProcAddress(GetModuleHandle("ntdll.dll"), "NtDelayExecution");
+static ZwSetTimerResolution_t ZwSetTimerResolution = (ZwSetTimerResolution_t)(long(__stdcall*)(ULONG, BOOLEAN, PULONG)) GetProcAddress(GetModuleHandle("ntdll.dll"), "ZwSetTimerResolution");
 
 
 static void delay_w(float us)
@@ -179,6 +179,10 @@ namespace fan {
 				return elapsed >= m_time;
 			}
 
+			bool started() const {
+				return m_time;
+			}
+
 			// returns time in nanoseconds
 			uint64_t elapsed() const {
 				return this->elapsed(m_timer);
@@ -233,7 +237,7 @@ namespace fan {
 		struct timespec t;
 
 		t.tv_sec = time.m_time / 1000000000;
-		t.tv_nsec = time.m_time;
+		t.tv_nsec = time.m_time % 1000000000;
 
 		nanosleep(&t, 0);
 

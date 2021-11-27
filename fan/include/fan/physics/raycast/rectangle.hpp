@@ -333,9 +333,9 @@ namespace fan {
 
 	#define d_grid_raycast_2d(start, end, raycast, block_size) \
 		fan::grid_raycast_s<fan::vec2> raycast = { grid_direction(end, start), start, fan::vec2() }; \
-		f_t _private_travel_distance = fan_2d::distance((start / block_size).floored(), (end / block_size).floored()); \
+		f_t _private_travel_distance = fan_2d::distance((start / block_size).floor(), (end / block_size).floor()); \
 		if (!(start == end)) \
-			while(grid_raycast_single(raycast, block_size) && _private_travel_distance >= fan_2d::distance((start / block_size).floored(), raycast.grid))
+			while(grid_raycast_single(raycast, block_size) && _private_travel_distance >= fan_2d::distance((start / block_size).floor(), raycast.grid))
 
 	#define d_grid_raycast_3d(start, end, raycast, block_size) \
 		fan::grid_raycast_s<fan::vec3> raycast = { grid_direction(end, start), start, fan::vec3() }; \

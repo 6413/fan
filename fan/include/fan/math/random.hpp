@@ -2,6 +2,7 @@
 
 #include <fan/types/vector.hpp>
 #include <fan/types/color.hpp>
+#include <fan/types/utf_string.hpp>
 
 #include <random>
 
@@ -20,6 +21,17 @@ namespace fan {
 		static std::string string(uint32_t len) {
 			std::string str = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 			std::string newstr;
+			int pos;
+			while(newstr.size() != len) {
+				pos = fan::random::value(0, str.size() - 1);
+				newstr += str.substr(pos, 1);
+			}
+			return newstr;
+		}
+
+		static fan::utf16_string utf_string(uint32_t len) {
+			fan::utf16_string str = L"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+			fan::utf16_string newstr;
 			int pos;
 			while(newstr.size() != len) {
 				pos = fan::random::value(0, str.size() - 1);
