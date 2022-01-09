@@ -162,6 +162,8 @@ namespace fan_2d {
 					fan::color color;
 					fan::color outline_color;
 					fan::color text_color;
+					fan::color text_outline_color;
+					f32_t text_outline_size;
 
 					fan::color hover_color;
 					fan::color hover_outline_color;
@@ -197,6 +199,8 @@ namespace fan_2d {
 						button.color = fan::color(0, 0, 0);
 						button.outline_color = fan::color(0, 0, 0);
 						button.text_color = fan_2d::graphics::gui::defaults::text_color;
+						button.text_outline_color = fan::colors::black;
+						button.text_outline_size = 5;
 						button.outline_thickness = 0; // px
 
 						button.hover_color = button.color + 0.1;
@@ -222,6 +226,8 @@ namespace fan_2d {
 						button.color = fan::color(0, 0, 0.3);
 						button.outline_color = fan::color(0, 0, 0.5);
 						button.text_color = fan_2d::graphics::gui::defaults::text_color;
+						button.text_outline_color = fan::colors::black;
+						button.text_outline_size = 5;
 						button.outline_thickness = 2; // px
 						
 						button.hover_color = button.color + 0.1;
@@ -247,6 +253,8 @@ namespace fan_2d {
 						button.color = fan::color(0.3, 0, 0);
 						button.outline_color = fan::color(0.5, 0, 0);
 						button.text_color = fan_2d::graphics::gui::defaults::text_color;
+						button.text_outline_color = fan::colors::black;
+						button.text_outline_size = 5;
 						button.outline_thickness = 2; // px
 
 						button.hover_color = button.color + 0.1;
@@ -272,6 +280,8 @@ namespace fan_2d {
 						button.color = fan::color(0.8, 0.8, 0.8);
 						button.outline_color = fan::color(0.9, 0.9, 0.9);
 						button.text_color = fan_2d::graphics::gui::defaults::text_color;
+						button.text_outline_color = fan::colors::black;
+						button.text_outline_size = 5;
 						button.outline_thickness = 2; // px
 
 						button.hover_color = button.color + 0.1;
@@ -297,6 +307,8 @@ namespace fan_2d {
 						button.color = fan::color(0.2, 0.2, 0.2);
 						button.outline_color = fan::color(0.3, 0.3, 0.3);
 						button.text_color = fan_2d::graphics::gui::defaults::text_color;
+						button.text_outline_color = fan::colors::black;
+						button.text_outline_size = 5;
 						button.outline_thickness = 2; // px
 
 						button.hover_color = button.color + 0.1;
@@ -314,6 +326,71 @@ namespace fan_2d {
 					}
 
 				};	
+
+				struct hidden : public fan_2d::graphics::gui::theme {
+
+					hidden(fan::window* window) : theme(window) {
+
+						button.color = fan::color(0.0, 0.0, 0.0, 0.3);
+						button.outline_color = fan::color(0.0, 0.0, 0.0, 0.3);
+						button.text_color = fan_2d::graphics::gui::defaults::text_color;
+						button.text_outline_color = fan::colors::black;
+						button.text_outline_size = 5;
+						button.outline_thickness = 2; // px
+
+						button.hover_color = fan::color(0.0, 0.0, 0.0, 0.15);
+						button.hover_outline_color = fan::color(0.0, 0.0, 0.0, 0.15);
+
+						button.click_color = fan::color(0.0, 0.0, 0.0, 0.0);
+						button.click_outline_color = button.click_color + 0.0;
+
+						checkbox.color = button.color;
+						checkbox.text_color = button.text_color;
+						checkbox.hover_color = button.hover_color;
+						checkbox.click_color = button.click_color;
+						checkbox.check_color = fan::color(0.0, 0.0, 0.0, 0.0);
+
+					}
+
+				};	
+
+				struct custom : public fan_2d::graphics::gui::theme {
+
+					struct properties_t {
+						fan::window* window = nullptr;
+
+						fan::color color;
+						fan::color outline_color;
+						fan::color hover_color;
+						fan::color hover_outline_color;
+						fan::color click_color;
+						fan::color click_outline_color;
+					};
+
+					custom(const properties_t& properties) : theme(properties.window) {
+
+						button.color = properties.color;
+						button.outline_color = properties.outline_color;
+						button.text_color = fan_2d::graphics::gui::defaults::text_color;
+						button.text_outline_color = fan::colors::black;
+						button.text_outline_size = 5;
+						button.outline_thickness = 2; // px
+
+						button.hover_color = properties.hover_color;
+						button.hover_outline_color = properties.outline_color;
+
+						button.click_color = properties.click_color;
+						button.click_outline_color = properties.click_outline_color;
+
+						checkbox.color = button.color;
+						checkbox.text_color = button.text_color;
+						checkbox.hover_color = button.hover_color;
+						checkbox.click_color = button.click_color;
+						checkbox.check_color = fan::color(0.0, 0.0, 0.0, 0.0);
+
+					}
+
+				};
 
 			}
 

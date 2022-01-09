@@ -8,13 +8,13 @@
 
 #include <fan/graphics/shared_core.hpp>
 
-#include <fan/types/da.hpp>
-
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 #include <assimp/Importer.hpp>
 
 #include <fan/graphics/shared_graphics.hpp>
+
+#include <fan/graphics/webp.h>
 
 #ifdef fan_platform_windows
 	#pragma comment(lib, "lib/assimp/assimp.lib")
@@ -63,36 +63,6 @@ namespace fan_2d {
 			fan::depth_test(true);
 		}
 
-		namespace shader_paths {
-			constexpr auto text_renderer_vs("glsl/2D/opengl/text.vs");
-			constexpr auto text_renderer_fs("glsl/2D/opengl/text.fs");
-
-			constexpr auto single_shapes_bloom_vs("glsl/2D/opengl/bloom.vs");
-			constexpr auto single_shapes_bloom_fs("glsl/2D/opengl/bloom.fs");
-			constexpr auto single_shapes_blur_vs("glsl/2D/opengl/blur.vs");
-			constexpr auto single_shapes_blur_fs("glsl/2D/opengl/blur.fs");
-
-			constexpr auto single_shapes_bloom_final_vs("glsl/2D/opengl/bloom_final.vs");
-			constexpr auto single_shapes_bloom_final_fs("glsl/2D/opengl/bloom_final.fs");
-
-			constexpr auto post_processing_vs("glsl/2D/opengl/post_processing.vs");
-			constexpr auto post_processing_fs("glsl/2D/opengl/post_processing.fs");
-
-			constexpr auto vertice_vector_vs("glsl/2D/opengl/vertice_vector.vs");
-			constexpr auto vertice_vector_fs("glsl/2D/opengl/vertice_vector.fs");
-
-			constexpr auto convex_vs("glsl/2D/opengl/convex.vs");
-			constexpr auto convex_fs("glsl/2D/opengl/vertice_vector.fs");
-
-			constexpr auto particles_vs("glsl/2D/opengl/particles.vs");
-
-			constexpr auto rectangle_vs("glsl/2D/opengl/rectangle.vs");
-			constexpr auto rectangle_fs("glsl/2D/opengl/rectangle.fs");
-
-			constexpr auto sprite_vs("glsl/2D/opengl/sprite.vs");
-			constexpr auto sprite_fs("glsl/2D/opengl/sprite.fs");
-		}
-
 		fan::mat4 get_projection(const fan::vec2i& window_size);
 		fan::mat4 get_view_translation(const fan::vec2i& window_size, const fan::mat4& view);
 
@@ -103,21 +73,22 @@ namespace fan_2d {
 		// 0 left right, 1 top right, 2 bottom left, 3 bottom right
 
 		namespace image_load_properties {
-			inline uint32_t visual_output = GL_CLAMP_TO_EDGE;
+			inline uint32_t visual_output = GL_CLAMP_TO_BORDER;
 			inline uintptr_t internal_format = GL_RGBA;
 			inline uintptr_t format = GL_RGBA;
 			inline uintptr_t type = GL_UNSIGNED_BYTE;
-			inline uintptr_t filter = GL_LINEAR;
+			inline uintptr_t filter = GL_LINEAR_MIPMAP_LINEAR;
 		}
 
 		// fan::get_device(window)
 		image_t load_image(fan::window* window, const std::string& path);
-		image_t load_image(fan::window* window, const pixel_data_t& pixel_data);
+		//image_t load_image(fan::window* window, const pixel_data_t& pixel_data);
+		fan_2d::graphics::image_t load_image(fan::window* window, const fan::webp::image_info_t& image_info);
 
 		class lighting_properties {
 		public:
 
-			lighting_properties(fan::shader* shader);
+			lighting_properties(fan::shader_t* shader);
 
 			bool get_lighting() const;
 			void set_lighting(bool value);
@@ -131,11 +102,13 @@ namespace fan_2d {
 
 			f32_t m_world_light_strength;
 
-			fan::shader* m_shader;
+			fan::shader_t* m_lighting_shader;
 
 		};
 
-		class vertice_vector : public fan::basic_vertice_vector<fan::vec2>, public fan::ebo_handler<> {
+		class vertice_vector : 
+			public fan::basic_vertice_vector<fan::vec2>
+		{
 		public:
 
 			struct properties_t {
@@ -167,6 +140,7 @@ namespace fan_2d {
 
 			void erase(uintptr_t i);
 			void erase(uintptr_t begin, uintptr_t end);
+			void clear();
 
 			fan::vec2 get_position(uint32_t i) const;
 			void set_position(uint32_t i, const fan::vec2& position);
@@ -192,11 +166,9 @@ namespace fan_2d {
 
 			virtual void draw(fan_2d::graphics::shape shape, uint32_t single_draw_amount, uint32_t begin = fan::uninitialized, uint32_t end = fan::uninitialized, bool texture = false) const;
 
-			vertice_vector(fan::camera* camera, const fan::shader& shader);
+			vertice_vector(fan::camera* camera, bool init);
 
 			void initialize_buffers();
-
-			std::vector<uint32_t> m_indices;
 
 			uintptr_t m_offset;
 
@@ -208,6 +180,48 @@ namespace fan_2d {
 
 		};
 
+		struct vertices_sprite : 
+			public vertice_vector,
+			public fan::buffer_object<fan::vec2, 99, true>
+		{
+
+			struct properties_t {
+
+				fan_2d::graphics::image_t image; 
+				fan::vec2 position;
+
+				f32_t angle = 0;
+				fan::vec2 rotation_point;
+				fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
+
+				std::vector<fan::vec2> texture_coordinates;
+
+				fan::color color = fan::color(1, 1, 1, 1);
+
+			};
+
+			vertices_sprite(fan::camera* camera);
+
+			void push_back(const vertices_sprite::properties_t& properties);
+
+			void enable_draw(fan_2d::graphics::shape shape, const std::vector<uint32_t>& single_draw_amount);
+			void disable_draw();
+
+		protected:
+
+			void write_data();
+
+			void draw(fan_2d::graphics::shape shape, const std::vector<uint32_t>& single_draw_amount);
+
+			void initialize();
+
+			using texture_coordinates_t = fan::buffer_object<fan::vec2, 99, true>;
+
+			static constexpr auto location_texture_coordinate = "layout_texture_coordinates";
+
+			std::vector<uint32_t> m_textures;
+
+		};
 
 		struct convex : private vertice_vector {
 
@@ -240,15 +254,13 @@ namespace fan_2d {
 		};
 
 		struct rectangle :
-			protected fan::shader,
 			protected fan::buffer_object<fan::color, 0>,
 			protected fan::buffer_object<fan::vec2, 1>,
 			protected fan::buffer_object<fan::vec2, 2>,
 			protected fan::buffer_object<f32_t, 3>,
 			protected fan::buffer_object<fan::vec2, 4>,
 			protected fan::buffer_object<fan::vec3, 5>,
-			public fan::vao_handler<>,
-			public lighting_properties
+			public fan::vao_handler<>
 			//protected fan::buffer_object<uint32_t, 0, true, fan::opengl_buffer_type::buffer_object, false, GL_ELEMENT_ARRAY_BUFFER> 
 		{
 			struct properties_t {
@@ -316,7 +328,7 @@ namespace fan_2d {
 
 			fan::camera* m_camera = nullptr;
 
-			fan::shader* get_shader();
+			fan::shader_t get_shader();
 
 			void enable_draw();
 			void disable_draw();
@@ -342,10 +354,15 @@ namespace fan_2d {
 			// sets shape's draw order in window
 			//void set_draw_order(uint32_t i);
 
+			uint32_t m_draw_index = -1;
+
+			fan::shader_t m_shader;
+
+			lighting_properties m_lighting_properties;
+
 		protected:
 
-			//rectangle(const fan::shader& shader);
-			rectangle(fan::camera* camera, const fan::shader& shader);
+			rectangle(fan::camera* camera, bool init);
 
 			void write_data();
 
@@ -357,8 +374,6 @@ namespace fan_2d {
 			void draw(uint32_t begin = fan::uninitialized, uint32_t end = fan::uninitialized) const;
 
 			void initialize();
-
-			uint32_t m_draw_index = -1;
 
 			queue_helper_t m_queue_helper;
 
@@ -373,7 +388,77 @@ namespace fan_2d {
 
 		};
 
-		inline void* x;
+		struct rectangle0 : public rectangle {
+
+			rectangle0(fan::camera* camera, void* user_ptr, std::function<void(void*, uint64_t, uint32_t)> erase_cb) 
+				: rectangle(camera),
+					m_erase_cb(erase_cb),
+					m_user_ptr(user_ptr)
+			{
+
+			}
+
+			struct properties_t : public rectangle::properties_t {
+				uint64_t id = -1;
+			};
+			
+			void push_back(const properties_t& properties) {
+				m_push_back_ids.emplace_back(properties.id);
+				fan_2d::graphics::rectangle::push_back(properties);
+			}
+
+			void erase(uint32_t i) {
+
+				if (i != this->size() - 1) {
+
+					std::memcpy(color_t::m_buffer_object.data() + i * 6, color_t::m_buffer_object.data() + color_t::m_buffer_object.size() - 6, sizeof(fan::color) * 6);
+
+					std::memcpy(position_t::m_buffer_object.data() + i * 6, position_t::m_buffer_object.data() + position_t::m_buffer_object.size() - 6, sizeof(fan::vec2) * 6);
+
+					std::memcpy(size_t::m_buffer_object.data() + i * 6, size_t::m_buffer_object.data() + size_t::m_buffer_object.size() - 6, sizeof(fan::vec2) * 6);
+
+					std::memcpy(angle_t::m_buffer_object.data() + i * 6, angle_t::m_buffer_object.data() + angle_t::m_buffer_object.size() - 6, sizeof(f32_t) * 6);
+
+					std::memcpy(rotation_point_t::m_buffer_object.data() + i * 6, rotation_point_t::m_buffer_object.data() + rotation_point_t::m_buffer_object.size() - 6, sizeof(fan::vec2) * 6);
+
+					std::memcpy(rotation_vector_t::m_buffer_object.data() + i * 6, rotation_vector_t::m_buffer_object.data() + rotation_vector_t::m_buffer_object.size() - 6, sizeof(fan::vec3) * 6);
+
+					uint32_t begin = (this->size() - 1) * 6;
+
+					color_t::erase(begin, begin + 6);
+					position_t::erase(begin, begin + 6);
+					size_t::erase(begin, begin + 6);
+					angle_t::erase(begin, begin + 6);
+					rotation_point_t::erase(begin, begin + 6);
+					rotation_vector_t::erase(begin, begin + 6);
+
+					m_erase_cb(m_user_ptr, *(m_push_back_ids.end() - 1), i);
+
+					m_push_back_ids[i] = *(m_push_back_ids.end() - 1);
+					m_push_back_ids.pop_back();
+
+					m_queue_helper.write([&] {
+						this->write_data();
+					});
+				}
+				else {
+					rectangle::erase(i);
+					m_push_back_ids.pop_back();
+				}
+
+			}
+
+			void erase(uint32_t, uint32_t) = delete;
+
+		protected:
+
+			void* m_user_ptr = nullptr;
+
+			std::vector<uint64_t> m_push_back_ids;
+
+			std::function<void(void*, uint64_t, uint32_t)> m_erase_cb;
+
+		};
 
 		struct rectangle_dynamic : public fan_2d::graphics::rectangle {
 
@@ -501,18 +586,21 @@ namespace fan_2d {
 			public fan::buffer_object<fan::vec2, 99, true>,
 			public fan::texture_handler<1>, // screen texture
 			public fan::render_buffer_handler<>,
-			public fan::frame_buffer_handler<> {
+			public fan::frame_buffer_handler<>,
+			public fan::buffer_object<uint32_t, 30213>
+		{
 
 		public:
 
 			using texture_coordinates_t = fan::buffer_object<fan::vec2, 99, true>;
+			using RenderOPCode_t = fan::buffer_object<uint32_t, 30213>;
 
 			sprite(fan::camera* camera);
 
 		protected:
 
 			// requires manual initialization of m_camera
-			sprite(fan::camera* camera, const fan::shader& shader);
+			sprite(fan::camera* camera, bool init);
 
 		public:
 
@@ -526,17 +614,16 @@ namespace fan_2d {
 				fan::vec2 rotation_point;
 				fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
 
-				std::array<fan::vec2, 6> texture_coordinates = {
+				std::array<fan::vec2, 4> texture_coordinates = {
 					fan::vec2(0, 1),
 					fan::vec2(1, 1),
 					fan::vec2(1, 0),
-
-					fan::vec2(1, 0),
-					fan::vec2(0, 0),
-					fan::vec2(0, 1),
+					fan::vec2(0, 0)
 				};
 
-				f32_t transparency = 1;
+				fan::color color = fan::color(1, 1, 1, 1);
+
+				uint32_t RenderOPCode = 0;
 
 			};
 
@@ -556,6 +643,9 @@ namespace fan_2d {
 			f32_t get_transparency(uint32_t i) const;
 			void set_transparency(uint32_t i, f32_t transparency);
 
+			uint32_t get_RenderOPCode(uint32_t i) const;
+			void set_RenderOPCode(uint32_t i, uint32_t OPCode);
+
 			void erase(uint32_t i);
 			void erase(uint32_t begin, uint32_t end);
 
@@ -566,11 +656,11 @@ namespace fan_2d {
 			using fan_2d::graphics::rectangle::get_size;
 			using fan_2d::graphics::rectangle::set_size;
 			using fan_2d::graphics::rectangle::get_position;
-
 			using fan_2d::graphics::rectangle::set_position;
-
 			using fan_2d::graphics::rectangle::get_angle;
 			using fan_2d::graphics::rectangle::set_angle;
+			using fan_2d::graphics::rectangle::get_color;
+			using fan_2d::graphics::rectangle::set_color;
 			using fan_2d::graphics::rectangle::inside;
 
 			using fan_2d::graphics::rectangle::m_camera;
@@ -579,6 +669,8 @@ namespace fan_2d {
 			void disable_draw();
 
 		protected:
+
+			void initialize();
 
 			void draw(uint32_t begin = fan::uninitialized, uint32_t end = fan::uninitialized) const;
 
@@ -591,11 +683,187 @@ namespace fan_2d {
 			void regenerate_texture_switch();
 
 			static constexpr auto location_texture_coordinate = "layout_texture_coordinates";
+			static constexpr auto location_RenderOPCode = "layout_RenderOPCode";
 
 			std::vector<uint32_t> m_textures;
 
 			std::vector<uint32_t> m_switch_texture;
 			//std::vector<fan_2d::graphics::image_t> m_images;
+
+		};
+
+		// moves last to erased spot
+		struct sprite0 : public sprite {
+
+			sprite0(fan::camera* camera, void* user_ptr, std::function<void(void*, uint64_t, uint32_t)> erase_cb) 
+				: sprite(camera),
+					m_erase_cb(erase_cb),
+					m_user_ptr(user_ptr)
+			{
+
+			}
+
+		protected:
+
+			sprite0(fan::camera* camera, bool init, void* user_ptr, std::function<void(void*, uint64_t, uint32_t)> erase_cb) 
+				: sprite(camera, init),
+					m_erase_cb(erase_cb),
+					m_user_ptr(user_ptr)
+			{
+
+			}
+
+		public:
+
+			struct properties_t : public sprite::properties_t {
+				uint64_t id = -1;
+			};
+			
+			void push_back(const properties_t& properties) {
+				m_push_back_ids.emplace_back(properties.id);
+				fan_2d::graphics::sprite::push_back(properties);
+			}
+
+			void erase(uint32_t i) {
+
+				if (i != this->size() - 1) {
+
+					std::memcpy(color_t::m_buffer_object.data() + i * 6, color_t::m_buffer_object.data() + color_t::m_buffer_object.size() - 6, sizeof(fan::color) * 6);
+
+					std::memcpy(position_t::m_buffer_object.data() + i * 6, position_t::m_buffer_object.data() + position_t::m_buffer_object.size() - 6, sizeof(fan::vec2) * 6);
+
+					std::memcpy(size_t::m_buffer_object.data() + i * 6, size_t::m_buffer_object.data() + size_t::m_buffer_object.size() - 6, sizeof(fan::vec2) * 6);
+
+					std::memcpy(angle_t::m_buffer_object.data() + i * 6, angle_t::m_buffer_object.data() + angle_t::m_buffer_object.size() - 6, sizeof(f32_t) * 6);
+
+					std::memcpy(rotation_point_t::m_buffer_object.data() + i * 6, rotation_point_t::m_buffer_object.data() + rotation_point_t::m_buffer_object.size() - 6, sizeof(fan::vec2) * 6);
+
+					std::memcpy(rotation_vector_t::m_buffer_object.data() + i * 6, rotation_vector_t::m_buffer_object.data() + rotation_vector_t::m_buffer_object.size() - 6, sizeof(fan::vec3) * 6);
+
+					std::memcpy(texture_coordinates_t::m_buffer_object.data() + i * 6, texture_coordinates_t::m_buffer_object.data() + texture_coordinates_t::m_buffer_object.size() - 6, sizeof(fan::vec2) * 6);
+
+					std::memcpy(RenderOPCode_t::m_buffer_object.data() + i * 6, RenderOPCode_t::m_buffer_object.data() + RenderOPCode_t::m_buffer_object.size() - 6, sizeof(uint32_t) * 6);
+
+					uint32_t begin = (this->size() - 1) * 6;
+
+					color_t::erase(begin, begin + 6);
+					position_t::erase(begin, begin + 6);
+					size_t::erase(begin, begin + 6);
+					angle_t::erase(begin, begin + 6);
+					rotation_point_t::erase(begin, begin + 6);
+					rotation_vector_t::erase(begin, begin + 6);
+					texture_coordinates_t::erase(begin, begin + 6);
+					RenderOPCode_t::erase(begin, begin + 6);
+
+					m_erase_cb(m_user_ptr, *(m_push_back_ids.end() - 1), i);
+
+					m_push_back_ids[i] = *(m_push_back_ids.end() - 1);
+					m_push_back_ids.pop_back();
+
+					m_textures[i] = *(m_textures.end() - 1);
+
+					m_textures.pop_back();
+	
+					regenerate_texture_switch();
+
+					m_queue_helper.write([&] {
+						this->write_data();
+					});
+				}
+				else {
+					sprite::erase(i);
+					m_push_back_ids.pop_back();
+				}
+
+			}
+
+			void erase(uint32_t, uint32_t) = delete;
+
+		protected:
+
+			void* m_user_ptr = nullptr;
+
+			std::vector<uint64_t> m_push_back_ids;
+
+			std::function<void(void*, uint64_t, uint32_t)> m_erase_cb;
+
+		private:
+
+			using sprite::sprite;
+
+		};
+
+		/*
+			in vec2 texture_coordinate;
+			in float transparency;
+			out vec4 color;
+			uniform sampler2D texture_sampler;
+		*/
+
+		struct shader_sprite : public sprite {
+
+			shader_sprite(fan::camera* camera, const std::string& shader_main) 
+				: sprite(camera, true)
+			{
+				m_shader->set_vertex(
+					#include <fan/graphics/glsl/opengl/2D/sprite.vs>
+				);
+
+				std::string fs = 
+					#include <fan/graphics/glsl/opengl/2D/sprite.fs>
+				;
+
+				auto found = fs.find("void main(");
+
+				fs = fs.substr(0, found);
+				fs.append(shader_main);
+
+				m_shader->set_fragment(
+					fs
+				);
+
+				m_shader->compile();
+
+				sprite::initialize();
+
+			}
+
+		};
+
+		/*
+			in vec2 texture_coordinate;
+			in float transparency;
+			out vec4 color;
+			uniform sampler2D texture_sampler;
+		*/
+		struct shader_sprite0 : public sprite0 {
+
+			shader_sprite0(fan::camera* camera, const std::string& shader_main, void* user_ptr, std::function<void(void*, uint64_t, uint32_t)> erase_cb) 
+				: sprite0(camera, true, user_ptr, erase_cb)
+			{
+
+				m_shader->set_vertex(
+					#include <fan/graphics/glsl/opengl/2D/rectangle.vs>
+				);
+
+				std::string fs = 
+					#include <fan/graphics/glsl/opengl/2D/rectangle.fs>
+				;
+
+				auto found = fs.find("void main(");
+
+				fs = fs.substr(found);
+				fs.append(shader_main);
+
+				m_shader->set_fragment(
+					fs
+				);
+
+				m_shader->compile();
+
+				sprite0::initialize();
+
+			}
 
 		};
 
@@ -678,7 +946,7 @@ namespace fan_2d {
 			using light_brightness_t = fan::buffer_object<f32_t, 7>;
 			using light_angle_t = fan::buffer_object<f32_t, 8>;
 
-			base_lighting(fan::shader* shader, uint32_t* vao);
+			base_lighting(fan::shader_t* shader, uint32_t* vao);
 
 			void push_back(const fan::vec2& position, f32_t strength, const fan::color& color, f32_t angle);
 
@@ -702,7 +970,7 @@ namespace fan_2d {
 			static constexpr auto location_light_brightness = "layout_light_brightness";
 			static constexpr auto location_light_angle = "layout_light_angle";
 
-			fan::shader* m_shader;
+			fan::shader_t* m_base_lighting_shader;
 
 			uint32_t* m_vao;
 
@@ -714,7 +982,7 @@ namespace fan_2d {
 		{
 
 			// gets shader of object that needs lighting
-			light(fan::camera* camera, fan::shader* shader, uint32_t* vao);
+			light(fan::camera* camera, fan::shader_t* shader, uint32_t* vao);
 
 			void push_back(const fan::vec2& position, const fan::vec2& size, f32_t strength, const fan::color& color, f32_t angle = 0);
 
@@ -753,165 +1021,6 @@ namespace fan_3d {
 		}
 
 		void add_camera_rotation_callback(fan::camera* camera);
-
-		struct plane_corners {
-			fan::da_t<f32_t, 3> top_left;
-			fan::da_t<f32_t, 3> top_right;
-			fan::da_t<f32_t, 3> bottom_left;
-			fan::da_t<f32_t, 3> bottom_right;
-		};
-
-		struct square_corners {
-
-			plane_corners left;
-			plane_corners right;
-			plane_corners front;
-			plane_corners back;
-			plane_corners top;
-			plane_corners bottom;
-
-		};
-
-		class rectangle_vector : public fan::basic_shape<true, fan::vec3>, public fan::texture_handler<> {
-		public:
-
-			rectangle_vector(fan::camera* camera, const std::string& path, uintptr_t block_size);
-			//rectangle_vector(fan::camera* camera, const fan::color& color, uintptr_t block_size);
-			~rectangle_vector();
-
-			void push_back(const fan::vec3& src, const fan::vec3& dst, const fan::vec2& texture_id);
-
-			fan::vec3 get_src(uintptr_t i) const;
-			fan::vec3 get_dst(uintptr_t i) const;
-			fan::vec3 get_size(uintptr_t i) const;
-
-			void set_position(uintptr_t i, const fan::vec3& src, const fan::vec3& dst);
-			void set_size(uintptr_t i, const fan::vec3& size);
-
-			void draw();
-
-			void set_texture(uintptr_t i, const fan::vec2& texture_id);
-
-			void generate_textures(const std::string& path, const fan::vec2& block_size);
-
-			void write_textures();
-
-			void release_queue(bool position, bool size, bool textures);
-
-			square_corners get_corners(uintptr_t i) const;
-
-			uintptr_t size() const;
-
-		private:
-
-			unsigned int m_texture_ssbo;
-			unsigned int m_texture_id_ssbo;
-
-			fan::vec2i block_size;
-			fan::vec2i m_amount_of_textures;
-
-			std::vector<int> m_textures;
-
-		};
-
-		class skybox {
-		public:
-			skybox(
-				fan::camera* camera,
-				const std::string& left,
-				const std::string& right,
-				const std::string& front,
-				const std::string back,
-				const std::string bottom,
-				const std::string& top
-			);
-
-			~skybox();
-
-			void draw();
-
-		private:
-			unsigned int m_texture_id;
-			unsigned int m_skybox_vao, m_skybox_vbo;
-
-			fan::shader m_shader;
-			fan::camera* m_camera;
-
-		};
-
-		struct mesh_vertex {
-			fan::vec3 position;
-			fan::vec3 normal;
-			fan::vec2 texture_coordinates;
-		};
-
-		struct mesh_texture {
-			unsigned int id;
-			std::string type;
-			aiString path;
-		};
-
-		class model_mesh {
-		public:
-			std::vector<mesh_vertex> vertices;
-			std::vector<unsigned int> indices;
-			std::vector<mesh_texture> textures;
-			unsigned int vao, vbo, ebo;
-
-			model_mesh(
-				const std::vector<mesh_vertex>& vertices,
-				const std::vector<unsigned int>& indices,
-				const std::vector<mesh_texture>& textures
-			);
-
-		private:
-
-			void initialize_mesh();
-		};
-
-		/*class model_loader {
-		protected:
-		model_loader(const std::string& path, const fan::vec3& size);
-
-		std::vector<model_mesh> meshes;
-		std::vector<mesh_texture> textures_loaded;
-		private:
-		void load_model(const std::string& path, const fan::vec3& size);
-
-		void process_node(aiNode* node, const aiScene* scene, const fan::vec3& size);
-
-		model_mesh process_mesh(aiMesh* mesh, const aiScene* scene, const fan::vec3& size);
-
-		std::vector<mesh_texture> load_material_textures(aiMaterial* mat, aiTextureType type, const std::string& type_name);
-
-		std::string directory;
-		};*/
-
-		/*class model : public model_loader {
-		public:
-		model(fan::camera* camera);
-		model(fan::camera* camera, const std::string& path, const fan::vec3& position, const fan::vec3& size);
-
-		void draw();
-
-		fan::vec3 get_position();
-		void set_position(const fan::vec3& position);
-
-		fan::vec3 get_size();
-		void set_size(const fan::vec3& size);
-
-		fan::camera* m_camera;
-
-		private:
-		fan::shader m_shader;
-
-		fan::vec3 m_position;
-		fan::vec3 m_size;
-
-		};*/
-
-		fan::vec3 line_triangle_intersection(const fan::da_t<f32_t, 2, 3>& line, const fan::da_t<f32_t, 3, 3>& triangle);
-		fan::vec3 line_plane_intersection(const fan::da_t<f32_t, 2, 3>& line, const fan::da_t<f32_t, 4, 3>& square);
 
 	}
 

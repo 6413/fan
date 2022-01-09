@@ -42,13 +42,11 @@ namespace fan {
 
 		utf8_string() {}
 
-		//utf8_string(uint8_t* str) : inherit_t(str) {}
-
 		utf8_string(uint32_t character) {
 			this->push_back(character);
 		}
 
-		utf8_string(utf16_string str);
+		utf8_string(const utf16_string& str);
 
 		void push_back(uint32_t character) {
 
@@ -95,6 +93,7 @@ namespace fan {
 
 		using inherit_t = std::wstring;
 
+		utf16_string(const std::string& str) : utf16_string(str.data()) {} // visual studio magics
 		utf16_string(const std::wstring& str) : inherit_t(str) {} // visual studio magics
 
 		utf16_string(uint32_t character) : inherit_t(fan::utf8_to_utf16((uint8_t*)&character).data()) {}
@@ -102,6 +101,7 @@ namespace fan {
 		utf16_string(uint8_t* data) : inherit_t(fan::utf8_to_utf16(data).data()) {}
 
 		utf16_string(utf8_string str) : inherit_t(fan::utf8_to_utf16(str.data())) {}
+		utf16_string(const char* str) : inherit_t(fan::utf8_to_utf16((uint8_t*)str)) {}
 
 		utf8_string to_utf8() const {
 			return utf8_string(fan::utf16_to_utf8(this->data()));
@@ -118,7 +118,7 @@ namespace fan {
 
 	// utf8 struct definitions
 
-	inline utf8_string::utf8_string(utf16_string str) : utf8_string::inherit_t(fan::utf16_to_utf8(str.data()).data()) {}
+	inline utf8_string::utf8_string(const utf16_string& str) : utf8_string::inherit_t(fan::utf16_to_utf8(str.data()).data()) {}
 
 	inline utf16_string utf8_string::to_utf16() const {
 		return utf16_string(fan::utf8_to_utf16(this->data()).data());

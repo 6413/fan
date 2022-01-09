@@ -188,6 +188,15 @@ namespace fan {
 		std::wstring ret(s.begin(), s.end());
 		return ret;
 	}
+
+	static void throw_error(const std::string& message) {
+		fan::print(message);
+#ifdef fan_compiler_visual_studio
+		system("pause");
+#endif
+		exit(1);
+	}
+
 }
 
 //template <platform_t T_platform>

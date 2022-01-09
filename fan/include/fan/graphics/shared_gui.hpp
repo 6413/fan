@@ -76,7 +76,9 @@ namespace fan_2d {
 				:
 				protected fan_2d::graphics::sprite,
 				protected fan::buffer_object<f32_t, 98>,
-				protected fan::buffer_object<fan::vec2, 100>
+				protected fan::buffer_object<fan::vec2, 100>,
+				protected fan::buffer_object<fan::color, 102>,
+				protected fan::buffer_object<f32_t, 103>
 
 #elif fan_renderer == fan_renderer_vulkan
 
@@ -86,13 +88,22 @@ namespace fan_2d {
 			public:
 
 
+				struct properties_t {
+					fan::utf16_string text; 
+					f32_t font_size; 
+					fan::vec2 position;
+					fan::color text_color;
+					fan::color outline_color = fan::color(0, 0, 0, 0);
+					f32_t outline_size = 0;
+				};
+
 				text_renderer(fan::camera* camera);
 
 				~text_renderer();
 
-				void push_back(const fan::utf16_string& text, f32_t font_size, fan::vec2 position, const fan::color& text_color);
+				void push_back(properties_t properties);
 
-				void insert(uint32_t i, const fan::utf16_string& text, f32_t font_size, fan::vec2 position, const fan::color& text_color);
+				void insert(uint32_t i, properties_t properties);
 
 				fan::vec2 get_position(uint32_t i) const {
 					return m_position[i];
@@ -162,6 +173,12 @@ namespace fan_2d {
 				void set_angle(uint32_t i, f32_t angle);
 
 				void set_rotation_point(uint32_t i, const fan::vec2& rotation_point);
+
+				fan::color get_outline_color(uint32_t i) const;
+				void set_outline_color(uint32_t i, const fan::color& outline_color);
+
+				f32_t get_outline_size(uint32_t i) const;
+				void set_outline_size(uint32_t i, f32_t outline_size);
 
 				static f32_t convert_font_size(f32_t font_size) {
 					return font_size / font.size;
@@ -300,7 +317,7 @@ namespace fan_2d {
 				struct letter_t {
 					fan::vec2 texture_position;
 					fan::vec2 texture_size;
-					std::array<fan::vec2, 6> texture_coordinates;
+					std::array<fan::vec2, 4> texture_coordinates;
 
 					fan::vec2 size;
 					fan::vec2 offset;
@@ -321,10 +338,7 @@ namespace fan_2d {
 						fan::vec2(src.x, src.y),
 						fan::vec2(dst.x, src.y),
 						fan::vec2(dst.x, dst.y),
-
-						fan::vec2(dst.x, dst.y),
-						fan::vec2(src.x, dst.y),
-						fan::vec2(src.x, src.y)	
+						fan::vec2(src.x, dst.y)
 					} };
 
 					letter.size = letter_info.metrics.size / 2;
@@ -333,14 +347,14 @@ namespace fan_2d {
 					return letter;
 				}
 
-				void push_letter(wchar_t character, const fan::vec2& position, f32_t font_size, const fan::color& text_color) {
+				void push_letter(wchar_t character, properties_t proeprties) {
 
 					bool write_ = m_queue_helper.m_write;
 
-					letter_t letter = get_letter(character, font_size);
+					letter_t letter = get_letter(character, proeprties.font_size);
 
 					fan_2d::graphics::sprite::properties_t p;
-					p.position = position + fan::vec2(letter.size.x, -letter.size.y) + fan::vec2(letter.offset.x, -letter.offset.y);
+					p.position = proeprties.position + fan::vec2(letter.size.x, -letter.size.y) + fan::vec2(letter.offset.x, -letter.offset.y);
 
 					p.size = letter.size;
 					p.image = font_image;
@@ -348,9 +362,11 @@ namespace fan_2d {
 
 					fan_2d::graphics::sprite::push_back(p);
 
-					fan_2d::graphics::sprite::set_color(fan_2d::graphics::sprite::size() - 1, text_color);
+					fan_2d::graphics::sprite::set_color(fan_2d::graphics::sprite::size() - 1, proeprties.text_color);
 
-					font_size_t::m_buffer_object.insert(font_size_t::m_buffer_object.end(), 6, font_size);
+					font_size_t::m_buffer_object.insert(font_size_t::m_buffer_object.end(), 6, proeprties.font_size);
+					outline_color_t::m_buffer_object.insert(outline_color_t::m_buffer_object.end(), 6, proeprties.outline_color);
+					outline_size_t::m_buffer_object.insert(outline_size_t::m_buffer_object.end(), 6, proeprties.outline_size);
 
 					if (!write_) {
 						m_camera->m_window->edit_write_call(m_queue_helper.m_write_index, this, [&] {
@@ -359,14 +375,14 @@ namespace fan_2d {
 					}
 				}
 
-				void insert_letter(uint32_t i, wchar_t character, const fan::vec2& position, f32_t font_size, const fan::color& text_color) {
+				void insert_letter(uint32_t i, wchar_t character, properties_t proeprties) {
 
 					bool write_ = m_queue_helper.m_write;
 
-					letter_t letter = get_letter(character, font_size);
+					letter_t letter = get_letter(character, proeprties.font_size);
 
 					fan_2d::graphics::sprite::properties_t p;
-					p.position = position + fan::vec2(letter.size.x, -letter.size.y) + fan::vec2(letter.offset.x, -letter.offset.y);
+					p.position = proeprties.position + fan::vec2(letter.size.x, -letter.size.y) + fan::vec2(letter.offset.x, -letter.offset.y);
 
 					p.size = letter.size;
 					p.image = font_image;
@@ -374,9 +390,11 @@ namespace fan_2d {
 
 					fan_2d::graphics::sprite::insert(i, i * 6, p);
 
-					fan_2d::graphics::sprite::set_color(i, text_color);
+					fan_2d::graphics::sprite::set_color(i, proeprties.text_color);
 
-					font_size_t::m_buffer_object.insert(font_size_t::m_buffer_object.begin() + i * 6, 6, font_size);
+					font_size_t::m_buffer_object.insert(font_size_t::m_buffer_object.begin() + i * 6, 6, proeprties.font_size);
+					outline_color_t::m_buffer_object.insert(outline_color_t::m_buffer_object.begin() + i * 6, 6, proeprties.outline_color);
+					outline_size_t::m_buffer_object.insert(outline_size_t::m_buffer_object.begin() + i * 6, 6, proeprties.outline_size);
 
 					if (!write_) {
 						m_camera->m_window->edit_write_call(m_queue_helper.m_write_index, this, [&] {
@@ -393,9 +411,13 @@ namespace fan_2d {
 
 				using font_size_t = fan::buffer_object<f32_t, 98>;
 				using rotation_point_t = fan::buffer_object<fan::vec2, 100>;
+				using outline_color_t = fan::buffer_object<fan::color, 102>;
+				using outline_size_t = fan::buffer_object<f32_t, 103>;
 
 				static constexpr auto location_font_size = "layout_font_size";
 				static constexpr auto location_rotation_point = "layout_rotation_point";
+				static constexpr auto location_outline_color = "layout_outline_color";
+				static constexpr auto location_outline_size = "layout_outline_size";
 
 #elif fan_renderer == fan_renderer_vulkan
 
@@ -433,6 +455,42 @@ namespace fan_2d {
 
 
 #endif
+
+			};
+
+			struct text_renderer0 : public text_renderer {
+				
+				text_renderer0(fan::camera* camera, void* gp, std::function<void(void*, uint64_t)> index_change_cb) 
+					:	text_renderer(camera),
+						m_index_change_cb(index_change_cb),
+						m_gp(gp)
+				{}
+
+				struct properties_t : public text_renderer::properties_t {
+					uint32_t entity_id;
+				};
+
+				void push_back(properties_t properties) {
+					m_entity_ids.emplace_back(properties.entity_id);
+					text_renderer::push_back(properties);
+				}
+
+				void erase(uintptr_t i) {
+					for(uint32_t start = i + 1; start < text_renderer::size(); start++) {
+            m_index_change_cb(m_gp, m_entity_ids[start]);
+          }
+					text_renderer::erase(i);
+					m_entity_ids.erase(m_entity_ids.begin() + i);
+				}
+
+				void erase(uintptr_t begin, uintptr_t end) = delete;
+
+			protected:
+
+				std::function<void(void*, uint64_t)> m_index_change_cb;
+
+				void* m_gp = nullptr;
+				std::vector<uint64_t> m_entity_ids;
 
 			};
 
@@ -530,9 +588,9 @@ namespace fan_2d {
 									else if (object->inside(m_focused_button_id) && !object->locked(m_focused_button_id)) {
 										object->lib_add_on_input(m_focused_button_id, key, fan::key_state::release, mouse_stage::inside);
 										if (on_input_function) {
-											a = 1;
+											pointer_remove_flag = 1;
 											on_input_function(m_focused_button_id, key, fan::key_state::release, mouse_stage::inside);
-											if (a == 0) {
+											if (pointer_remove_flag == 0) {
 												return;
 												//rtb is deleted
 											}
@@ -541,13 +599,13 @@ namespace fan_2d {
 									else {
 										object->lib_add_on_input(m_focused_button_id, key, fan::key_state::release, mouse_stage::outside);
 										if (on_input_function) {
-											a = 1;
+											pointer_remove_flag = 1;
 											on_input_function(m_focused_button_id, key, fan::key_state::release, mouse_stage::outside);
-											if (a == 0) {
+											if (pointer_remove_flag == 0) {
 												return;
 												//rtb is deleted
 											}
-											a = 0;
+											pointer_remove_flag = 0;
 										}
 									}
 									m_do_we_hold_button = 0;
@@ -619,7 +677,7 @@ namespace fan_2d {
 
 				protected:
 
-					static thread_local bool a;
+					static thread_local bool pointer_remove_flag;
 
 					uint8_t m_old_mouse_stage = fan::uninitialized;
 					bool m_do_we_hold_button = 0;
@@ -632,7 +690,7 @@ namespace fan_2d {
 				};
 				
 				template <typename T>
-				thread_local bool mouse<T>::a = 0;
+				thread_local bool mouse<T>::pointer_remove_flag = 0;
 
 #define define_get_property_size \
 				fan::vec2 get_size(properties_t properties) \
@@ -754,7 +812,9 @@ namespace fan_2d {
 							assert(0);
 						}
 
-						if (state == fan::key_state::release || 
+						if (
+							current_focus.shape == nullptr ||
+							state == fan::key_state::release || 
 							current_focus.window_id != m_box->get_camera()->m_window->get_handle() ||  
 							current_focus.i == focus::no_focus ||
 							current_focus.shape != (void*)this || 
@@ -768,6 +828,13 @@ namespace fan_2d {
 
 						switch (key) {
 							case fan::key_backspace: {
+								if (m_box->get_text(current_focus.i).size() == 1) {
+									backspace_callback(current_focus.i);
+									FED_DeleteCharacterFromCursor(&m_wed[current_focus.i], cursor_reference[current_focus.i]);
+									m_box->set_text(current_focus.i, " ");
+									break;
+								}
+
 								FED_DeleteCharacterFromCursor(&m_wed[current_focus.i], cursor_reference[current_focus.i]);
 
 								update_text(current_focus.i);
@@ -966,8 +1033,13 @@ namespace fan_2d {
 
 							auto src_dst = get_cursor_src_dst(current_focus.i, exported_cursor->x, exported_cursor->y);
 
-							m_cursor.set_position(0, src_dst.src);
-							m_cursor.set_size(0, src_dst.dst);
+							fan::vec2 size = { 0.5,
+								fan_2d::graphics::gui::text_renderer::font.line_height *
+								fan_2d::graphics::gui::text_renderer::convert_font_size(m_box->get_font_size(i)) / 2
+							};
+
+							m_cursor.set_position(0, src_dst.src - size / 2);
+							m_cursor.set_size(0, size);
 
 						}
 					});
@@ -994,6 +1066,7 @@ namespace fan_2d {
 						fp.window_id = 0;
 						focus::set_focus(fp);
 					}
+
 				}
 
 				// must be called after T::push_back
@@ -1027,6 +1100,27 @@ namespace fan_2d {
 					}
 				}
 
+				void enable_draw() {
+					if (m_cursor.m_draw_index == -1 || m_cursor.m_camera->m_window->m_draw_queue[m_cursor.m_draw_index].first != this) {
+						m_cursor.m_draw_index = m_cursor.m_camera->m_window->push_draw_call(this, [&] {
+							this->draw();
+						});
+					}
+					else {
+						m_cursor.m_camera->m_window->edit_draw_call(m_cursor.m_draw_index, this, [&] {
+							this->draw();
+						});
+					}
+				}
+				void disable_draw() {
+					if (m_cursor.m_draw_index == -1) {
+						return;
+					}
+
+					m_cursor.m_camera->m_window->erase_draw_call(m_cursor.m_draw_index);
+					m_cursor.m_draw_index = -1;
+				}
+
 				void draw() {
 
 					if (cursor_timer.finished()) {
@@ -1040,7 +1134,7 @@ namespace fan_2d {
 						m_cursor.enable_draw();
 					}
 					else {
-						m_cursor.disable_draw();
+						//m_cursor.disable_draw();
 					}
 				}
 
@@ -1196,8 +1290,13 @@ namespace fan_2d {
 
 							auto src_dst = get_cursor_src_dst(i, exported_cursor->x, line_index);
 
-							m_cursor.set_position(0, src_dst.src);
-							m_cursor.set_size(0, src_dst.dst);
+							fan::vec2 size = { 0.5, 
+								fan_2d::graphics::gui::text_renderer::font.line_height *
+								fan_2d::graphics::gui::text_renderer::convert_font_size(m_box->get_font_size(i)) / 2
+							};
+
+							m_cursor.set_position(0, src_dst.src - size / 2);
+							m_cursor.set_size(0, size);
 						}
 
 						cursor_vector.Current = 0;
@@ -1259,137 +1358,137 @@ namespace fan_2d {
 
 			};
 
-			struct editable_text_renderer : 
-				public text_renderer,
-				public base::mouse<editable_text_renderer>,
-				public fan_2d::graphics::gui::text_input<editable_text_renderer>
-			{
+			//struct editable_text_renderer : 
+			//	public text_renderer,
+			//	public base::mouse<editable_text_renderer>,
+			//	public fan_2d::graphics::gui::text_input<editable_text_renderer>
+			//{
 
-				editable_text_renderer(fan::camera* camera) :
-					editable_text_renderer::text_renderer(camera), 
-					editable_text_renderer::text_input(this),
-					editable_text_renderer::mouse(this)
-				{
+			//	editable_text_renderer(fan::camera* camera) :
+			//		editable_text_renderer::text_renderer(camera), 
+			//		editable_text_renderer::text_input(this),
+			//		editable_text_renderer::mouse(this)
+			//	{
 
-				}
+			//	}
 
-				void push_back(const fan::utf16_string& text, f32_t font_size, fan::vec2 position, const fan::color& text_color) {
-					editable_text_renderer::text_renderer::push_back(text, font_size, position, text_color);
-					editable_text_renderer::text_input::push_back(-1, -1, -1);
+			//	void push_back(const fan::utf16_string& text, f32_t font_size, fan::vec2 position, const fan::color& text_color) {
+			//		editable_text_renderer::text_renderer::push_back(text, font_size, position, text_color);
+			//		editable_text_renderer::text_input::push_back(-1, -1, -1);
 
-					uint32_t index = this->size() - 1;
+			//		uint32_t index = this->size() - 1;
 
-					for (int i = 0; i < text.size(); i++) {
+			//		for (int i = 0; i < text.size(); i++) {
 
-						fan::utf8_string utf8;
-						utf8.push_back(text[i]);
+			//			fan::utf8_string utf8;
+			//			utf8.push_back(text[i]);
 
-						auto wc = utf8.to_utf16()[0];
+			//			auto wc = utf8.to_utf16()[0];
 
-						FED_AddCharacterToCursor(&m_wed[index], cursor_reference[index], text[i], fan_2d::graphics::gui::text_renderer::font.font[wc].metrics.size.x * fan_2d::graphics::gui::text_renderer::convert_font_size(m_box->get_font_size(index)) * line_multiplier);
-					}
+			//			FED_AddCharacterToCursor(&m_wed[index], cursor_reference[index], text[i], fan_2d::graphics::gui::text_renderer::font.font[wc].metrics.size.x * fan_2d::graphics::gui::text_renderer::convert_font_size(m_box->get_font_size(index)) * line_multiplier);
+			//		}
 
-					editable_text_renderer::text_input::update_text(index);
-				}
+			//		editable_text_renderer::text_input::update_text(index);
+			//	}
 
-				bool inside(uint32_t i) const {
+			//	bool inside(uint32_t i) const {
 
-					auto box_size = editable_text_renderer::text_renderer::get_text_size(
-						editable_text_renderer::text_renderer::get_text(i),
-						editable_text_renderer::text_renderer::get_font_size(i)
-					);
+			//		auto box_size = editable_text_renderer::text_renderer::get_text_size(
+			//			editable_text_renderer::text_renderer::get_text(i),
+			//			editable_text_renderer::text_renderer::get_font_size(i)
+			//		);
 
-					auto mouse_position = editable_text_renderer::text_renderer::m_camera->m_window->get_mouse_position();
+			//		auto mouse_position = editable_text_renderer::text_renderer::m_camera->m_window->get_mouse_position();
 
-				
-					f32_t converted = fan_2d::graphics::gui::text_renderer::convert_font_size(this->get_font_size(i));
-					auto line_height = fan_2d::graphics::gui::text_renderer::font.font['\n'].metrics.size.y * converted;
+			//	
+			//		f32_t converted = fan_2d::graphics::gui::text_renderer::convert_font_size(this->get_font_size(i));
+			//		auto line_height = fan_2d::graphics::gui::text_renderer::font.font['\n'].metrics.size.y * converted;
 
-					return fan_2d::collision::rectangle::point_inside_no_rotation(
-						mouse_position,
-						editable_text_renderer::text_renderer::get_position(i),
-						fan::vec2(box_size.x, line_height)
-					);
-				}
+			//		return fan_2d::collision::rectangle::point_inside_no_rotation(
+			//			mouse_position,
+			//			editable_text_renderer::text_renderer::get_position(i),
+			//			fan::vec2(box_size.x, line_height)
+			//		);
+			//	}
 
-				uint32_t size() const {
-					return editable_text_renderer::text_renderer::size();
-				}
+			//	uint32_t size() const {
+			//		return editable_text_renderer::text_renderer::size();
+			//	}
 
-				// receives uint32_t box_i, uint32_t character number x, uint32_t character number y
-				src_dst_t get_cursor(uint32_t i, uint32_t x, uint32_t y) {
-					f32_t converted = fan_2d::graphics::gui::text_renderer::convert_font_size(this->get_font_size(i));
-					auto line_height = fan_2d::graphics::gui::text_renderer::font.font['\n'].metrics.size.y * converted;
+			//	// receives uint32_t box_i, uint32_t character number x, uint32_t character number y
+			//	src_dst_t get_cursor(uint32_t i, uint32_t x, uint32_t y) {
+			//		f32_t converted = fan_2d::graphics::gui::text_renderer::convert_font_size(this->get_font_size(i));
+			//		auto line_height = fan_2d::graphics::gui::text_renderer::font.font['\n'].metrics.size.y * converted;
 
-					fan::vec2 src, dst;
+			//		fan::vec2 src, dst;
 
-					src += text_renderer::get_position(i);
+			//		src += text_renderer::get_position(i);
 
-					//src.y -= line_height / 2;
+			//		//src.y -= line_height / 2;
 
-					uint32_t offset = 0;
+			//		uint32_t offset = 0;
 
-					auto str = this->get_text(i);
+			//		auto str = this->get_text(i);
 
-					for (int j = 0; j < y; j++) {
-						while (str[offset++] != '\n') {
-							if (offset >= str.size() - 1) {
-								throw std::runtime_error("string didnt have endline");
-							}
-						}
-					}
+			//		for (int j = 0; j < y; j++) {
+			//			while (str[offset++] != '\n') {
+			//				if (offset >= str.size() - 1) {
+			//					throw std::runtime_error("string didnt have endline");
+			//				}
+			//			}
+			//		}
 
-					for (int j = 0; j < x; j++) {
-						wchar_t letter = str[j + offset];
-						if (letter == '\n') {
-							continue;
-						}
+			//		for (int j = 0; j < x; j++) {
+			//			wchar_t letter = str[j + offset];
+			//			if (letter == '\n') {
+			//				continue;
+			//			}
 
-						std::wstring wstr;
+			//			std::wstring wstr;
 
-						wstr.push_back(letter);
+			//			wstr.push_back(letter);
 
-						auto letter_info = fan_2d::graphics::gui::text_renderer::get_letter_info(fan::utf16_string(wstr).to_utf8().data(), this->get_font_size(i));
+			//			auto letter_info = fan_2d::graphics::gui::text_renderer::get_letter_info(fan::utf16_string(wstr).to_utf8().data(), this->get_font_size(i));
 
-						if (j == x - 1) {
-							src.x += letter_info.metrics.size.x + (letter_info.metrics.advance - letter_info.metrics.size.x) / 2 - 1;
-						}
-						else {
-							src.x += letter_info.metrics.advance;
-						}
+			//			if (j == x - 1) {
+			//				src.x += letter_info.metrics.size.x + (letter_info.metrics.advance - letter_info.metrics.size.x) / 2 - 1;
+			//			}
+			//			else {
+			//				src.x += letter_info.metrics.advance;
+			//			}
 
-					}
+			//		}
 
-					src.y += line_height * y;
-
-
-					dst = src + fan::vec2(0, line_height);
-
-					dst = dst - src + fan::vec2(cursor_properties::line_thickness, 0);
+			//		src.y += line_height * y;
 
 
-					return { src, dst };
-				}
+			//		dst = src + fan::vec2(0, line_height);
 
-				fan::camera* get_camera() {
-					return text_renderer::m_camera;
-				}
+			//		dst = dst - src + fan::vec2(cursor_properties::line_thickness, 0);
 
-				void draw() {
-					text_renderer::draw();
-					text_input::draw();
-				}
 
-				void backspace_callback(uint32_t i) override {}
-				void text_callback(uint32_t i) override {}
+			//		return { src, dst };
+			//	}
 
-				void lib_add_on_input(uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage) {}
+			//	fan::camera* get_camera() {
+			//		return text_renderer::m_camera;
+			//	}
 
-				void lib_add_on_mouse_event(uint32_t i, fan_2d::graphics::gui::mouse_stage stage) {}
+			//	void draw() {
+			//		text_renderer::draw();
+			//		text_input::draw();
+			//	}
 
-				bool locked(uint32_t i) const { return false; }
+			//	void backspace_callback(uint32_t i) override {}
+			//	void text_callback(uint32_t i) override {}
 
-			};
+			//	void lib_add_on_input(uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage) {}
+
+			//	void lib_add_on_mouse_event(uint32_t i, fan_2d::graphics::gui::mouse_stage stage) {}
+
+			//	bool locked(uint32_t i) const { return false; }
+
+			//};
 
 			enum class text_position_e {
 				left,
@@ -1508,12 +1607,11 @@ namespace fan_2d {
 
 				std::vector<fan_2d::graphics::gui::theme> theme;
 
-				void write_data();
-
 			protected:
 
 				void draw(uint32_t begin = fan::uninitialized, uint32_t end = fan::uninitialized);
 
+				void write_data();
 
 				void edit_data(uint32_t i);
 
@@ -1647,15 +1745,68 @@ namespace fan_2d {
 
 			};
 
+			enum class button_states_e {
+				clickable = 1,
+				locked = 2
+			};
+
+			struct circle_button : 
+				protected fan_2d::graphics::circle,
+				public fan_2d::graphics::gui::base::mouse<circle_button>
+			{
+
+				struct properties_t {
+
+					properties_t(fan::window* window) : theme(window) {}
+
+					fan::vec2 position;
+
+					f32_t radius;
+
+					fan_2d::graphics::gui::theme theme;
+
+					button_states_e button_state = button_states_e::clickable;
+				};
+
+				circle_button(fan::camera* camera);
+				~circle_button();
+
+				using fan_2d::graphics::circle::inside;
+				using fan_2d::graphics::circle::size;
+
+				void push_back(properties_t properties);
+
+				void erase(uint32_t i);
+				void erase(uint32_t begin, uint32_t end);
+				void clear();
+
+				void set_locked(uint32_t i, bool flag);
+
+				bool locked(uint32_t i) const;
+
+				void enable_draw();
+				void disable_draw();
+
+				void update_theme(uint32_t i);
+
+				virtual void lib_add_on_input(uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage);
+
+				virtual void lib_add_on_mouse_event(uint32_t i, fan_2d::graphics::gui::mouse_stage stage);
+
+				fan::camera* get_camera();
+
+			protected:
+
+				std::vector<fan_2d::graphics::gui::theme> m_theme;
+				std::vector<uint32_t> m_reserved;
+
+			};
+
 			struct rectangle_text_button_sized :
 				public fan_2d::graphics::gui::rectangle_text_box_sized,
 				public fan_2d::graphics::gui::base::mouse<rectangle_text_button_sized>,
 				public fan_2d::graphics::gui::text_input<rectangle_text_button_sized>
 			{
-				enum class button_states_e {
-					clickable = 1,
-					locked = 2
-				};
 
 				struct properties_t : public rectangle_text_box_sized::properties_t {
 
@@ -1676,8 +1827,6 @@ namespace fan_2d {
 
 				void set_place_holder(uint32_t i, const fan::utf16_string& place_holder);
 
-				void draw(uint32_t begin = fan::uninitialized, uint32_t end = fan::uninitialized);
-
 				void backspace_callback(uint32_t i) override;
 				void text_callback(uint32_t i) override;
 
@@ -1690,11 +1839,16 @@ namespace fan_2d {
 
 				bool locked(uint32_t i) const;
 
+				void enable_draw();
+				void disable_draw();
+
 				virtual void lib_add_on_input(uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage);
 
 				virtual void lib_add_on_mouse_event(uint32_t i, fan_2d::graphics::gui::mouse_stage stage);
 
 			protected:
+
+				void draw(uint32_t begin = fan::uninitialized, uint32_t end = fan::uninitialized);
 
 				std::vector<uint32_t> m_reserved;
 
@@ -2308,6 +2462,55 @@ namespace fan_2d {
 				uint32_t m_hovered = -1;
 
 				std::deque<uint32_t> m_amount_per_menu;
+
+			};
+
+			struct progress_bar : protected fan_2d::graphics::rectangle {
+
+			protected:
+
+				using rectangle_t = fan_2d::graphics::rectangle;
+
+				struct progress_bar_t {
+					f32_t inner_size_multipliers;
+					f32_t progress;
+					bool progress_x = false;
+				};
+
+				std::vector<progress_bar_t> m_progress_bar_properties;
+
+			public:
+
+				progress_bar(fan::camera* camera);
+
+				struct properties_t {
+
+					fan::vec2 position;
+					fan::vec2 size;
+
+					fan::color back_color;
+					fan::color front_color;
+
+					f32_t inner_size_multiplier = 0.8;
+
+					f32_t progress = 0;
+
+					bool progress_x = true;
+
+				};
+
+				void push_back(const properties_t& properties);
+
+				void clear();
+
+				f32_t get_progress(uint32_t i) const;
+				void set_progress(uint32_t i, f32_t progress);
+
+				fan::vec2 get_position(uint32_t i) const;
+				void set_position(uint32_t i, const fan::vec2& position);
+
+				using fan_2d::graphics::rectangle::enable_draw;
+				using fan_2d::graphics::rectangle::disable_draw;
 
 			};
 

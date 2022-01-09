@@ -6,7 +6,7 @@ namespace fan_2d {
 
     namespace graphics {
 
-        enum class shape {
+    enum class shape {
 			line,
 			line_strip,
 			triangle,

@@ -408,8 +408,9 @@ void fan::window::execute(const std::function<void()>& function)
 	it = m_write_queue.begin();
 	int x = 0;
 	while (it != m_write_queue.end()) {
+		m_write_queue.start_safe_next(it);
 		m_write_queue[it].second();
-		it = m_write_queue.next(it);
+		it = m_write_queue.end_safe_next();
 		x++;
 	}
 
@@ -2031,9 +2032,11 @@ void fan::window::handle_events() {
 
 				while (it != window->m_keys_callback.end()) {
 
+					window->m_keys_callback.start_safe_next(it);
+
 					window->m_keys_callback[it](window, key, repeat ? fan::key_state::repeat : fan::key_state::press);
 
-					it = window->m_keys_callback.next(it);
+					it = window->m_keys_callback.end_safe_next();
 				}
 
 				break;
@@ -2183,10 +2186,11 @@ void fan::window::handle_events() {
 				auto it = window->m_keys_callback.begin();
 
 				while (it != window->m_keys_callback.end()) {
+					window->m_keys_callback.start_safe_next(it);
 
 					window->m_keys_callback[it](window, key, key_state::release);
 
-					it = window->m_keys_callback.next(it);
+					it = window->m_keys_callback.end_safe_next();
 				}
 
 				break;
@@ -2316,9 +2320,11 @@ void fan::window::handle_events() {
 
 						while (it != window->m_keys_callback.end()) {
 
+							window->m_keys_callback.start_safe_next(it);
+
 							window->m_keys_callback[it](window, fan::mouse_middle, key_state::release);
 
-							it = window->m_keys_callback.next(it);
+							it = window->m_keys_callback.end_safe_next();
 						}
 
 						window_input_up(window->m_window, fan::input::mouse_middle); allow_outside = false;
@@ -2330,9 +2336,11 @@ void fan::window::handle_events() {
 
 						while (it != window->m_keys_callback.end()) {
 
+							window->m_keys_callback.start_safe_next(it);
+
 							window->m_keys_callback[it](window, fan::mouse_right, key_state::release);
 
-							it = window->m_keys_callback.next(it);
+							it = window->m_keys_callback.end_safe_next();
 						}
 
 						window_input_up(window->m_window, fan::input::mouse_right); allow_outside = false;
@@ -2490,9 +2498,11 @@ void fan::window::handle_events() {
 
 				while (it != window->m_keys_callback.end()) {
 
+					window->m_keys_callback.start_safe_next(it);
+
 					window->m_keys_callback[it](window, key, repeat ? fan::key_state::repeat : fan::key_state::press);
 
-					it = window->m_keys_callback.next(it);
+					it = window->m_keys_callback.end_safe_next();
 				}
 
 				KeySym keysym;
@@ -2523,9 +2533,11 @@ void fan::window::handle_events() {
 
 						while (it != window->m_text_callback.end()) {
 
+							window->m_text_callback.start_safe_next(it);
+
 							window->m_text_callback[it](window, key);
 
-							it = window->m_text_callback.next(it);
+							it = window->m_text_callback.end_safe_next();
 						}
 					}
 					else {
@@ -2572,10 +2584,11 @@ void fan::window::handle_events() {
 				auto it = window->m_keys_callback.begin();
 
 				while (it != window->m_keys_callback.end()) {
+					window->m_keys_callback.start_safe_next(it);
 
 					window->m_keys_callback[it](window, key, key_state::release);
 
-					it = window->m_keys_callback.next(it);
+					it = window->m_keys_callback.end_safe_next();
 				}
 
 				break;
@@ -2597,9 +2610,11 @@ void fan::window::handle_events() {
 
 				while (it != mouse_move_position_callback.end()) {
 
+					mouse_move_position_callback.start_safe_next(it);
+
 					mouse_move_position_callback[it](window, position);
 
-					it = mouse_move_position_callback.next(it);
+					it = mouse_move_position_callback.end_safe_next();
 				}
 
 				window->m_previous_mouse_position = window->m_mouse_position;
@@ -2624,10 +2639,11 @@ void fan::window::handle_events() {
 				auto it = window->m_keys_callback.begin();
 
 				while (it != window->m_keys_callback.end()) {
+						window->m_keys_callback.start_safe_next(it);
 
-					window->m_keys_callback[it](window, key, key_state::press);
+						window->m_keys_callback[it](window, key, key_state::press);
 
-					it = window->m_keys_callback.next(it);
+						it = window->m_keys_callback.end_safe_next();
 				}
 
 				break;

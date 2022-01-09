@@ -3,7 +3,7 @@
 #include <vector>
 #include <cstdint>
 
-#define BLL_set_debug_InvalidAction 0
+#define BLL_set_debug_InvalidAction 1
 
 #ifndef BLL_set_SafeNext
 	#define BLL_set_SafeNext 1
@@ -163,7 +163,6 @@ struct bll_t {
 	}
 
 	constexpr void unlink(node_type_t node_reference) {
-
 		#if BLL_set_debug_InvalidAction == 1
 				assert(node_reference != src);
 				assert(node_reference != dst);
@@ -297,8 +296,8 @@ struct bll_t {
 
 	struct node_t {
 
-		node_type_t prev;
 		node_type_t next;
+		node_type_t prev;
 
 		type_t data;
 	};
@@ -317,6 +316,16 @@ struct bll_t {
 		return (node_t*)(&nodes[node_reference]);
 	}
 
+	constexpr bool node_exists(node_t *node){
+		if(node->prev == -1){
+			return 1;
+		}
+		return 0;
+	}
+
+	constexpr bool node_reference_exists(node_type_t node_reference) {
+		return node_exists(nodes[node_reference]);
+	}
 
 #if BLL_set_SafeNext
 	void start_safe_next(node_type_t NodeReference){

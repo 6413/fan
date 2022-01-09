@@ -12,17 +12,17 @@ namespace fan_2d {
 
 		struct pixel_data_t {
 			pixel_data_t() {}
-			pixel_data_t(fan::image_loader::image_data& image_data)
+			/*pixel_data_t(fan::image_loader::image_data& image_data)
 				: 
 				size(image_data.size), format(image_data.format) {
 				std::memcpy(pixels, image_data.data, sizeof(image_data.data));
 				std::memcpy(linesize, image_data.linesize, sizeof(image_data.linesize));
-			}
+			}*/
 
 			uint8_t* pixels[4];
 			int linesize[4];
 			fan::vec2i size;
-			AVPixelFormat format;
+			//AVPixelFormat format;
 			// 32bpp AVPixelFormat::AV_PIX_FMT_BGR0
 		};
 
@@ -54,15 +54,15 @@ namespace fan_2d {
 				m_max_edit = std::max(m_max_edit, end);
 
 				if (!m_edit) {
-					m_edit_index = window_->push_write_call(this, [&, f = edit_function] {
-						if (m_min_edit == (uint32_t)-1) {
+					m_edit_index = window_->push_write_call(this, [&, min_edit = m_min_edit, ptr = (uint64_t)&window_->m_write_queue, edit_index = m_edit_index, edit = m_edit, f = edit_function] {
+
+						if (!edit_index || min_edit == (uint32_t)-1) {
+							reset_edit();
 							return;
 						}
 
 						f();
-						m_edit_index = -1;
 					});
-
 					m_edit = true;
 				}
 			}
@@ -74,13 +74,19 @@ namespace fan_2d {
 					m_max_edit = 0;
 
 					window_->edit_write_call(m_edit_index, this, [&] {});
+					m_edit_index = -1;
 
 					m_edit = false;
 				}
 
 				if (!m_write) {
 
-					m_write_index = window_->push_write_call(this, [&, f = write_function] {
+					m_write_index = window_->push_write_call(this, [&, ptr = (uint64_t)&window_->m_write_queue, write_index = m_write_index, write = m_write, f = write_function] {
+
+						if (!m_write || m_write_index == (uint32_t)-1) {
+							reset_write();
+							return;
+						}
 
 						f();
 					});
@@ -90,7 +96,6 @@ namespace fan_2d {
 			}
 
 			void on_write(fan::window* window) {
-
 				if (m_edit) {
 					m_min_edit = -1;
 					m_max_edit = 0;
@@ -108,7 +113,26 @@ namespace fan_2d {
 				m_min_edit = -1;
 				m_max_edit = 0;
 
+				m_edit_index = -1;
 				m_edit = false;
+			}
+
+			void reset() {
+				m_write = false;
+				m_edit = false;
+			}
+
+			void reset_edit() {
+				m_min_edit = -1;
+				m_max_edit = 0;
+
+				m_edit_index = -1;
+				m_edit = false;
+			}
+
+			void reset_write() {
+				m_write = false;
+				m_write_index = -1;
 			}
 
 			bool m_write = false;
@@ -121,6 +145,7 @@ namespace fan_2d {
 			uint32_t m_max_edit = 0;
 
 			fan::window* window_ = nullptr;
+
 		};
 
 		struct rectangle;
