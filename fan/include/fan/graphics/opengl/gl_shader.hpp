@@ -15,55 +15,14 @@
 #include <fan/io/file.hpp>
 #include <fan/types/matrix.hpp>
 
+#include <fan/graphics/shared_core.hpp>
+
 namespace fan {
-	class shader {
+	class base_shader {
     public:
-        shader() : id(fan::uninitialized) {}
 
-        shader(const std::string& vertex_path, const std::string& fragment_path, const std::string& geometry_path = std::string())
-            :  id(fan::uninitialized), m_vertex_path(vertex_path), m_fragment_path(fragment_path), m_geometry_path(geometry_path)
-        {
-            this->generate_shader(vertex_path, fragment_path, geometry_path);
-        }
-
-        shader(const shader& s) : id(fan::uninitialized) {
-            this->operator=(s);
-        }
-        
-        shader(shader&& s) noexcept : id(fan::uninitialized) {
-            this->operator=(std::move(s));
-        }
-
-        ~shader() {
+        ~base_shader() {
             this->remove();
-        }
-
-        shader& operator=(const shader& s) {
-
-            this->remove();
-
-            this->m_vertex_path   = s.m_vertex_path;
-            this->m_fragment_path = s.m_fragment_path;
-            this->m_geometry_path = s.m_geometry_path;
-
-            this->generate_shader(m_vertex_path, m_fragment_path, m_geometry_path);
-
-            return *this;
-        }
-
-        shader& operator=(shader&& s) noexcept {
-
-            this->remove();
-
-            this->id = s.id;
-
-            this->m_vertex_path   = std::move(s.m_vertex_path);
-            this->m_fragment_path = std::move(s.m_fragment_path);
-            this->m_geometry_path = std::move(s.m_geometry_path);
-
-            s.id = fan::uninitialized;
-
-            return *this;
         }
 
         void use() const
@@ -72,98 +31,128 @@ namespace fan {
         }
 
         void remove() {
-            fan_validate_buffer(id, {
-                glValidateProgram(id);
-                int status = 0;
-                glGetProgramiv(id, GL_VALIDATE_STATUS, &status);
-                if (status) {
-                    glDeleteProgram(id);
-                }
-                id = fan::uninitialized;
-            });
+          fan_validate_buffer(id, {
+              glValidateProgram(id);
+              int status = 0;
+              glGetProgramiv(id, GL_VALIDATE_STATUS, &status);
+              if (status) {
+                  glDeleteProgram(id);
+              }
+              id = fan::uninitialized;
+          });
         }
 
-        void generate_shader(const std::string& vertex_path, const std::string& fragment_path, const std::string& geometry_path = std::string()) {
-            std::string vertexCode;
-            std::string fragmentCode;
-            std::string geometryCode;
-            std::ifstream vShaderFile;
-            std::ifstream fShaderFile;
-            std::ifstream gShaderFile;
+        void set_vertex(const std::string& vertex_code) {
 
-            if (!fan::io::file::exists(vertex_path)) {
-                fan::print("vertex shader does not exist:", vertex_path);
-                exit(1);
-            }
-            if (!fan::io::file::exists(fragment_path)) {
-                fan::print("fragment shader does not exist:", fragment_path);
-                exit(1);
-            }
-            vShaderFile.open(vertex_path);
-            fShaderFile.open(fragment_path);
-            std::stringstream vShaderStream, fShaderStream;
-            // read file's buffer contents into streams
-            vShaderStream << vShaderFile.rdbuf();
-            fShaderStream << fShaderFile.rdbuf();
-            // close file handlers
-            vShaderFile.close();
-            fShaderFile.close();
-            // convert stream into string
-            vertexCode = vShaderStream.str();
-            fragmentCode = fShaderStream.str();
-            // if geometry shader path is present, also load a geometry shader
-            if (!geometry_path.empty())
-            {
-                if (!fan::io::file::exists(geometry_path)) {
-                    fan::print("geometry shader does not exist:", geometry_path);
-                    exit(1);
-                }
-                gShaderFile.open(geometry_path);
-                std::stringstream gShaderStream;
-                gShaderStream << gShaderFile.rdbuf();
-                gShaderFile.close();
-                geometryCode = gShaderStream.str();
-            }
-            const char* vShaderCode = vertexCode.c_str();
-            const char* fShaderCode = fragmentCode.c_str();
-            // 2. compile shaders
-            unsigned int vertex, fragment;
-            // vertex shader
-
-            vertex = glCreateShader(GL_VERTEX_SHADER);
-            glShaderSource(vertex, 1, &vShaderCode, NULL);
-            glCompileShader(vertex);
-            checkCompileErrors(vertex, "VERTEX");
-            // fragment Shader
-            fragment = glCreateShader(GL_FRAGMENT_SHADER);
-            glShaderSource(fragment, 1, &fShaderCode, NULL);
-            glCompileShader(fragment);
-            checkCompileErrors(fragment, "FRAGMENT");
-            // if geometry shader is given, compile geometry shader
-            unsigned int geometry = -1;
-            if (!geometry_path.empty())
-            {
-                const char* gShaderCode = geometryCode.c_str();
-                geometry = glCreateShader(GL_GEOMETRY_SHADER);
-                glShaderSource(geometry, 1, &gShaderCode, NULL);
-                glCompileShader(geometry);
-                checkCompileErrors(geometry, "GEOMETRY");
-            }
-            // shader Program
-            id = glCreateProgram();
-            glAttachShader(id, vertex);
-            glAttachShader(id, fragment);
-
-            if (!geometry_path.empty())
-                glAttachShader(id, geometry);
-
-            glLinkProgram(id);
-            checkCompileErrors(id, "PROGRAM");
-
+          if (vertex != -1) {
             glDeleteShader(vertex);
+          }
+
+          vertex = glCreateShader(GL_VERTEX_SHADER);
+
+          char* ptr = (char*)vertex_code.c_str();
+
+          glShaderSource(vertex, 1, &ptr, NULL);
+
+          glCompileShader(vertex);
+          checkCompileErrors(vertex, "VERTEX");
+        }
+
+        void set_fragment(const std::string& fragment_code) {
+
+          if (fragment != -1) {
             glDeleteShader(fragment);
-            if (!geometry_path.empty())
-                glDeleteShader(geometry);
+          }
+
+          fragment = glCreateShader(GL_FRAGMENT_SHADER);
+
+          char* ptr = (char*)fragment_code.c_str();
+
+          glShaderSource(fragment, 1, &ptr, NULL);
+
+          glCompileShader(fragment);
+          checkCompileErrors(fragment, "FRAGMENT");
+        }
+
+        void set_geometry(const std::string& geometry_code) {
+          if (geometry != -1) {
+            glDeleteShader(geometry);
+          }
+
+          geometry = glCreateShader(GL_GEOMETRY_SHADER);
+
+          char* ptr = (char*)geometry_code.c_str();
+          glShaderSource(geometry, 1, &ptr, NULL);
+
+          glCompileShader(geometry);
+          checkCompileErrors(geometry, "GEOMETRY");
+        }
+
+        void compile() {
+          if (id != -1) {
+            glDeleteProgram(id);
+          }
+
+          id = glCreateProgram();
+          if (vertex != -1) {
+            glAttachShader(id, vertex);
+          }
+          if (fragment != -1) {
+            glAttachShader(id, fragment);
+          }
+          if (geometry != -1) {
+            glAttachShader(id, geometry);
+          }
+
+          glLinkProgram(id);
+          checkCompileErrors(id, "PROGRAM");
+
+          if (vertex != -1) {
+            glDeleteShader(vertex);
+            vertex = -1;
+          }
+          if (fragment != -1) {
+            glDeleteShader(fragment);
+            fragment = -1;
+          }
+          if (geometry != -1) {
+            glDeleteShader(geometry);
+            geometry = -1;
+          }
+        }
+
+        void enable_draw(fan_2d::graphics::shape shape, uint32_t first, uint32_t count) {
+          uint32_t mode = 0;
+
+	        switch(shape) {
+		        case fan_2d::graphics::shape::line: {
+			        mode = GL_LINES;
+			        break;
+		        }
+		        case fan_2d::graphics::shape::line_strip: {
+			        mode = GL_LINE_STRIP;
+			        break;
+		        }
+		        case fan_2d::graphics::shape::triangle: {
+			        mode = GL_TRIANGLES;
+			        break;
+		        }
+		        case fan_2d::graphics::shape::triangle_strip: {
+			        mode = GL_TRIANGLE_STRIP;
+			        break;
+		        }
+		        case fan_2d::graphics::shape::triangle_fan: {
+			        mode = GL_TRIANGLE_FAN;
+			        break;
+		        }
+		        default: {
+			        mode = GL_TRIANGLES;
+			        fan::print("fan warning - unset input assembly topology in graphics pipeline");
+			        break;
+		        }
+	        }
+
+          glDrawArrays(mode, first, count);
         }
 
         static constexpr auto validate_error_message = [](const auto str) {
@@ -293,7 +282,9 @@ namespace fan {
             }
         }
 
-        unsigned int id;
+        unsigned int id = -1;
+
+        uint32_t vertex = -1, fragment = -1, geometry = -1;
 
         std::string m_vertex_path;
         std::string m_fragment_path;
@@ -304,29 +295,54 @@ namespace fan {
         void checkCompileErrors(GLuint shader, std::string type)
         {
             GLint success;
-            GLchar infoLog[1024];
-            if (type != "PROGRAM")
-            {
-                glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-                if (!success)
-                {
-                    glGetShaderInfoLog(shader, 1024, NULL, infoLog);
-                    fan::print("failed to compile for files:", m_vertex_path, "type:", type, '\n', infoLog);
-                    throw std::runtime_error("failed to compile shaders");
-                }
+
+            bool program = type == "PROGRAM";
+
+            if (program == false) {
+              glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
             }
-            else
+            else {
+              glGetProgramiv(shader, GL_LINK_STATUS, &success);
+            }
+
+            if (success) {
+              return;
+            }
+            
+            int buffer_size = 0;
+            glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &buffer_size);
+
+
+            if (buffer_size <= 0) {
+              return;
+            }
+
+            std::string buffer;
+            buffer.resize(buffer_size);
+
+            if (!success)
             {
-                glGetProgramiv(shader, GL_LINK_STATUS, &success);
-                if (!success)
-                {
-                    glGetProgramInfoLog(shader, 1024, NULL, infoLog);
-                    std::cout << "failed to compile type: " << type << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
-                    throw std::runtime_error("failed to compile shaders");
-                }
+
+              #define get_info_log(is_program, program, str_buffer, size) \
+                if (is_program) \
+                glGetProgramInfoLog(program, size, nullptr, buffer.data()); \
+                else \
+                glGetShaderInfoLog(program, size, nullptr, buffer.data());
+
+              get_info_log(program, shader, buffer, buffer_size);
+
+              fan::print("failed to compile type: " + type, buffer);
+
+              throw std::runtime_error("failed to compile shaders");
             }
         }
     };
+
+  struct shader_t : public std::shared_ptr<fan::base_shader> {
+    shader_t() : std::shared_ptr<fan::base_shader>(std::make_shared<fan::base_shader>(fan::base_shader())) {}
+  };
+
 }
+
 
 #endif

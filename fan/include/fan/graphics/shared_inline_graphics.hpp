@@ -107,6 +107,12 @@ namespace fan_2d {
 		public:
 
 			circle(fan::camera* camera) : fan_2d::graphics::vertice_vector(camera) {}
+			~circle() {
+				if (m_draw_index != -1) {
+					m_camera->m_window->erase_draw_call(m_draw_index);
+					m_draw_index = -1;
+				}
+			}
 
 			struct properties_t {
 				fan::vec2 position;
@@ -167,7 +173,7 @@ namespace fan_2d {
 			bool inside(uintptr_t i, fan::vec2 position = fan::math::inf) const {
 
 				if (position == fan::math::inf) {
-					position = m_camera->m_window->get_mouse_position();
+					position = m_camera->m_window->get_mouse_position() + fan::vec2(m_camera->get_position());
 				}
 
 				return fan_2d::collision::circle::point_inside(position, this->get_position(i), m_radius[i]);
@@ -197,6 +203,12 @@ namespace fan_2d {
 
 				this->m_position.erase(this->m_position.begin() + begin, this->m_position.begin() + end);
 				this->m_radius.erase(this->m_radius.begin() + begin, this->m_radius.begin() + end);
+			}
+			void clear() {
+				fan_2d::graphics::vertice_vector::clear();
+
+				this->m_position.clear();
+				this->m_radius.clear();
 			}
 
 			void set_draw_mode(fan_2d::graphics::fill_mode_e fill_mode)

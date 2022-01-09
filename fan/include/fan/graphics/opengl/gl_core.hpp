@@ -513,8 +513,8 @@ namespace fan {
 		using basic_shape_size = fan::buffer_object<_Vector, 2, enable_vector>;
 
 		basic_shape(fan::camera* camera) : m_camera(camera) {}
-		basic_shape(fan::camera* camera, const fan::shader& shader) : m_camera(camera), m_shader(shader) { }
-		basic_shape(fan::camera* camera, const fan::shader& shader, const _Vector& position, const _Vector& size) 
+		basic_shape(fan::camera* camera, const fan::shader_t& shader) : m_camera(camera), m_shader(shader) { }
+		basic_shape(fan::camera* camera, const fan::shader_t& shader, const _Vector& position, const _Vector& size) 
 			: basic_shape::basic_shape_position(position), basic_shape::basic_shape_size(size), m_camera(camera), m_shader(shader) { }
 
 		basic_shape(const basic_shape& vector) : 
@@ -630,7 +630,7 @@ namespace fan {
 
 		// -----------------------------------------------------
 
-		fan::shader m_shader;
+		fan::shader_t m_shader;
 	};
 
 	template <typename _Vector>
@@ -649,7 +649,17 @@ namespace fan {
 		using basic_shape_position = fan::buffer_object<_Vector, 1, true, fan::opengl_buffer_type::buffer_object, true>;
 		using basic_shape_color_vector = fan::buffer_object<fan::color, 0, true, fan::opengl_buffer_type::buffer_object, true>;
 
-		basic_vertice_vector(fan::camera* camera, const fan::shader& shader) : m_camera(camera), m_shader(shader) {}
+		basic_vertice_vector(fan::camera* camera) : m_camera(camera) {
+			m_shader->set_vertex(
+				#include <fan/graphics/glsl/opengl/2D/vertice_vector.vs>
+			);
+
+			m_shader->set_fragment(
+				#include <fan/graphics/glsl/opengl/2D/vertice_vector.fs>
+			);
+
+			m_shader->compile();
+		}
 
 		basic_vertice_vector(const basic_vertice_vector& vector)	
 			: basic_vertice_vector::basic_shape_position(vector), 
@@ -716,39 +726,46 @@ namespace fan {
 			basic_vertice_vector::basic_shape_rotation_point::erase(begin, end);
 			basic_vertice_vector::basic_shape_rotation_vector::erase(begin, end);
 		}
+		void clear() {
+			basic_vertice_vector::basic_shape_position::clear();
+			basic_vertice_vector::basic_shape_color_vector::clear();
+			basic_vertice_vector::basic_shape_angle::clear();
+			basic_vertice_vector::basic_shape_rotation_point::clear();
+			basic_vertice_vector::basic_shape_rotation_vector::clear();
+		}
 
 		fan::camera* m_camera;
 
 	protected:
 
-		void basic_draw(uintptr_t begin, uintptr_t end, const std::vector<uint32_t>& indices, unsigned int mode, uintptr_t count, uint32_t single_draw_amount) const {
+		void basic_draw(uintptr_t begin, uintptr_t end, unsigned int mode, uintptr_t count, uint32_t single_draw_amount) const {
 			fan::bind_vao(vao_handler::m_buffer_object, [&] {
 
 				if (single_draw_amount != (uint32_t)fan::uninitialized) {
-					for (uint32_t j = 0; j < indices.size() / single_draw_amount; j++) {
-						glDrawElements(mode, single_draw_amount, GL_UNSIGNED_INT, (void*)((sizeof(GLuint) * single_draw_amount) * j));
+					for (uint32_t j = 0; j < count / single_draw_amount; j++) {
+						glDrawArrays(mode, single_draw_amount * j, single_draw_amount);
 					}
 				}
 				else if (begin != (uint32_t)fan::uninitialized && end != (uint32_t)fan::uninitialized) {
-					glDrawElements(mode, single_draw_amount * (end - begin), GL_UNSIGNED_INT, (void*)((sizeof(GLuint) * single_draw_amount) * begin));
+					glDrawArrays(mode, single_draw_amount * begin, single_draw_amount * (end - begin));
 				}
 				else if (begin != (uint32_t)fan::uninitialized && end == (uint32_t)fan::uninitialized) {
-					glDrawElements(mode, single_draw_amount, GL_UNSIGNED_INT, (void*)((sizeof(GLuint) * single_draw_amount) * begin));
+					glDrawArrays(mode, single_draw_amount * begin, single_draw_amount);
 				}
 				else if (begin == (uint32_t)fan::uninitialized && end != (uint32_t)fan::uninitialized) {
-					glDrawElements(mode, single_draw_amount * end, GL_UNSIGNED_INT, 0);
+					glDrawArrays(mode, 0, single_draw_amount * end);
 				}
 				else {
-					glDrawElements(mode, count, GL_UNSIGNED_INT, 0);
+					glDrawArrays(mode, 0, count);
 				}
 			});
 		}
 
-		void set_shader(const fan::shader& shader) {
+		void set_shader(const fan::shader_t& shader) {
 			m_shader = shader;
 		}
 
-		fan::shader m_shader;
+		fan::shader_t m_shader;
 
 	};
 
