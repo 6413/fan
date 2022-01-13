@@ -17,21 +17,34 @@ in float outline_size;
 
 out vec4 color;
 
+const float border_width = 0.4;
+const float border_edge = 0.5;
+
 void main() {
 
-    float smoothing = 1.0 / (font_size / 8);
-    float outline_width = outline_size / font_size;
-    float outer_edge_center = 0.5 - outline_width;
 
-    float distance = TEXTURE2D(texture_sampler, texture_coordinate).r;
-    float alpha = smoothstep(outer_edge_center - smoothing, outer_edge_center + smoothing, distance);
-    float border = smoothstep(0.5 - smoothing, 0.5 + smoothing, distance);
+    if (outline_color.a != 0) {
+        float width = outline_size;
+        float smoothing = 1.0 / (font_size / 8);
 
-    if (outline_color.a == 0) {
-        color = vec4(vec3(text_color.rgb), alpha);
+        float distance = 1.0 - TEXTURE2D(texture_sampler, texture_coordinate).r;
+        float alpha = 1.0 - smoothstep(width, width + smoothing, distance);
+
+        float distance2 = 1.0 - TEXTURE2D(texture_sampler, texture_coordinate).r;
+        float outline_alpha = 1.0 - smoothstep(border_width, border_width + border_edge, distance2);
+
+        float final_alpha = alpha + (1.0 - alpha) * outline_alpha;
+        vec3 final_color = mix(outline_color.rgb, text_color.rgb, alpha / final_alpha);
+
+        color = vec4(final_color, final_alpha);
     }
     else {
-        color = vec4(mix(outline_color.rgb, text_color.rgb, border), alpha);
+        float width = 0.5;
+        float smoothing = 1.0 / (font_size / 8);
+        float distance = 1.0 - TEXTURE2D(texture_sampler, texture_coordinate).r;
+        float alpha = 1.0 - smoothstep(width, width + smoothing, distance);
+
+        color = vec4(text_color.rgb, alpha);
     }
 }
 )"

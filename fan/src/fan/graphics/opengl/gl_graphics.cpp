@@ -461,6 +461,12 @@ fan::vec2 fan_2d::graphics::vertice_vector::get_position(uint32_t i) const {
 void fan_2d::graphics::vertice_vector::set_position(uint32_t i, const fan::vec2& position) {
 	fan::basic_vertice_vector<fan::vec2>::basic_shape_position::set_value(i, position);
 	m_queue_helper.edit(i, i + 1, [&] {
+		if (m_queue_helper.m_min_edit == -1) {
+			return;
+		}
+		if (m_queue_helper.m_max_edit == -1) {
+			return;
+		}
 		this->edit_data(m_queue_helper.m_min_edit, m_queue_helper.m_max_edit);
 	});
 }
@@ -1105,7 +1111,7 @@ void fan_2d::graphics::rectangle::resize(uint32_t size, const fan::color& color)
 	});
 }
 
-void fan_2d::graphics::rectangle::draw(uint32_t begin, uint32_t end) const
+void fan_2d::graphics::rectangle::draw(uint32_t begin, uint32_t end)
 {
 	fan::bind_vao(fan::vao_handler<>::m_buffer_object, [&] {
 
@@ -1138,6 +1144,8 @@ void fan_2d::graphics::rectangle::draw(uint32_t begin, uint32_t end) const
 			}
 
 			auto fill_mode = fan_2d::graphics::get_fill_mode(m_camera->m_window);
+
+			m_fill_mode = fill_mode;
 
 			fan_2d::graphics::draw_mode(m_camera->m_window, m_fill_mode, fan_2d::graphics::get_face(m_camera->m_window));
 
@@ -1634,7 +1642,7 @@ void fan_2d::graphics::sprite::set_RenderOPCode(uint32_t i, uint32_t OPCode)
 	
 }
 
-void fan_2d::graphics::sprite::draw(uint32_t begin, uint32_t end) const
+void fan_2d::graphics::sprite::draw(uint32_t begin, uint32_t end)
 {
 	m_shader->use();
 

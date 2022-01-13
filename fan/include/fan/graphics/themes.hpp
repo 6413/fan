@@ -354,6 +354,51 @@ namespace fan_2d {
 
 				};	
 
+				struct transparent : public fan_2d::graphics::gui::theme {
+
+					transparent(fan::window* window, f32_t intensity = 0.3) : theme(window) {
+
+						button.color = fan::color(intensity, intensity, intensity, intensity);
+						button.outline_color = fan::color(intensity + 0.2, intensity + 0.2, intensity + 0.2, intensity + 0.2);
+
+						button.hover_color = button.color + 0.1;
+						button.hover_outline_color = button.outline_color + 0.1;
+
+						button.click_color = button.hover_color + 0.1;
+						button.click_outline_color = button.hover_outline_color + 0.1;
+
+						button.text_color = fan::colors::white;
+						button.text_outline_color = fan::colors::black;
+						button.text_outline_size = 2;
+
+						checkbox.color = button.color;
+						checkbox.text_color = button.text_color;
+						checkbox.hover_color = button.hover_color;
+						checkbox.click_color = button.click_color;
+						checkbox.check_color = fan::color(0.0, 0.0, 0.0, 0.0);
+
+					}
+
+				};
+
+				struct gray : public fan_2d::graphics::gui::theme {
+						gray(fan::window* window) : theme(window) {
+
+							button.color = fan::color(0, 0, 0, 0.6);
+							button.outline_color = fan::color(0.4, 0.4, 0.4, 0.5);
+							button.hover_color = fan::color(0, 0, 0, 0.5);
+							button.hover_outline_color = fan::color(0.5, 0.5, 0.5, 0.4);
+							button.click_color = fan::color(0, 0, 0, 0.3);
+							button.click_outline_color = fan::color(0.6, 0.6, 0.6, 0.2);
+
+							button.text_color = fan_2d::graphics::gui::defaults::text_color;
+							button.text_outline_color = fan::colors::black;
+							button.text_outline_size = 0.25; // HARDCODED needs to be get from text renderer properties outline size
+							button.outline_thickness = 2; // px
+
+					}
+				};
+
 				struct custom : public fan_2d::graphics::gui::theme {
 
 					struct properties_t {

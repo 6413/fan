@@ -1,5 +1,7 @@
 #pragma once
 
+#include <WITCH/WITCH.h>
+
 #include <AL/al.h>
 #include <AL/alc.h>
 
@@ -12,175 +14,81 @@
 
 #include <opus/opusfile.h>
 
-#include <mutex>
-
-#include <fan/timer_event.hpp>
-
-#ifdef fan_compiler_visual_studio
-
-	#pragma comment(lib, "lib/opus/opus.lib")
-	#pragma comment(lib, "lib/ogg/libogg.lib")
-	#pragma comment(lib, "lib/opus/opusfile.lib")
-
-#endif
+#include <WITCH/EV/EV.h>
+#include <WITCH/TH/TH.h>
+#include <WITCH/VAS/VAS1.h>
 
 #ifdef fan_platform_windows
-
 	#include <endpointvolume.h>
 
 	#include <mmdeviceapi.h>
 	#include <endpointvolume.h>
-
-	#pragma comment(lib, "lib/al/OpenAL32.lib")
-	#pragma comment(lib, "Winmm.lib")
-
 #endif
 
+#ifdef fan_compiler_visual_studio
+	#pragma comment(lib, "lib/opus/opus.lib")
+	#pragma comment(lib, "lib/ogg/libogg.lib")
+	#pragma comment(lib, "lib/opus/opusfile.lib")
+	#pragma comment(lib, "lib/WITCH/uv/uv.lib")
+	#pragma comment(lib, "lib/al/OpenAL32.lib")
+	#pragma comment(lib, "Winmm.lib")
+#endif
+
+
 namespace fan {
-
-	namespace sys {
-
-		class audio {
-		public:
-
-			audio() {
-
-			#ifdef fan_platform_windows
-
-				CoInitialize(0);
-				IMMDeviceEnumerator *device_enumerator = 0;
-				CoCreateInstance(__uuidof(MMDeviceEnumerator), 0, CLSCTX_INPROC_SERVER, __uuidof(IMMDeviceEnumerator), (LPVOID *)&device_enumerator);
-				IMMDevice *default_device = 0;
-
-				device_enumerator->GetDefaultAudioEndpoint(eRender, eConsole, &default_device);
-				device_enumerator->Release();
-				device_enumerator = 0;
-
-				default_device->Activate(__uuidof(IAudioEndpointVolume), CLSCTX_INPROC_SERVER, 0, (LPVOID *)&end_point_volume);
-
-				default_device->Release();
-				default_device = 0; 
-
-			#elif defined(fan_platform_unix)
-
-
-			#endif
-
-			}
-
-			int get_master_volume() const {
-
-				#ifdef fan_platform_windows
-
-				f32_t current_volume = 0;
-				end_point_volume->GetMasterVolumeLevelScalar(&current_volume);
-
-				return (int)(current_volume * 100);
-
-				#elif defined(fan_platform_unix)
-
-				assert(0);
-
-				#endif
-			}
-
-			void set_master_volume(int volume) {
-
-
-				#ifdef fan_platform_windows
-
-				end_point_volume->SetMasterVolumeLevelScalar((f32_t)volume / 100, 0);
-
-				#elif defined(fan_platform_unix)
-
-				assert(0);
-
-				#endif
-
-			}
-
-		private:
-
-
-			#ifdef fan_platform_windows
-
-			IAudioEndpointVolume *end_point_volume = 0;
-
-			#elif defined(fan_platform_unix)
-
-
-
-			#endif
-
-		};
-
-	};
-
 	namespace audio {
+		namespace{
+			namespace constants{
+				static constexpr uint32_t mono = 1;
+				static constexpr uint32_t stereo = 2;
 
-		static constexpr auto mono = 1;
-		static constexpr auto stereo = 2;
+				static constexpr f32_t default_volume = 0.1;
 
-		struct piece_base_t {
+				// buffer size * channel count, make divideable with channel count
+				inline static constexpr std::size_t buffer_size = 81920;
+				inline static constexpr std::size_t number_of_buffers = 4;
 
-			piece_base_t() = default;
-
-			using head_t = OpusHead*;
-
-			struct holder_t {
-				holder_t() = default;
-
-				OggOpusFile* decoder;
-				head_t head;
-			};
-
-			struct out_t {
-				out_t() = default;
-
-				std::vector<short> raw;
-
-				head_t head;
-			};
-
-			static constexpr auto pitch = 1;
-
-			struct properties_t {
-				properties_t() = default;
-				std::string input;
-				uint32_t channel_layout = -1;
-			};
-
-			//~piece_base_t() {
-			//	for (int i = 0; i < sources.size(); i++) {
-			//		alSourceStop(sources[i]);
-			//		alSourcei(sources[i], AL_BUFFER, 0);
-			//	}
-			//	alDeleteSources(sources.size(), sources.data());
-
-			//	for (int i = 0; i < buffers.size(); i++) {
-			//		alDeleteBuffers(buffers[i].size(), buffers[i].data());
-			//	}
-
-			//	alcMakeContextCurrent(NULL);
-			//}
-
-			bool is_playing(uint32_t source) {
-				int state;
-				alGetSourcei(source, AL_SOURCE_STATE, &state);
-				return state == AL_PLAYING;
+				static constexpr uint32_t opus_decode_sample_rate = 48000;
 			}
+			static void al_check_error(void) {
+				auto error = alGetError();
+				if (error != AL_NO_ERROR) {
+					fan::throw_error("openal error " + std::to_string(error));
+				}
+			}
+			static uint32_t al_generate_source(void) {
+				uint32_t source_reference;
 
-		protected:
+				alGenSources(1, &source_reference);
+				al_check_error();
 
-			static uint32_t get_al_format(auto channel_count) {
+				alSourcei(source_reference, AL_SOURCE_RELATIVE, AL_TRUE);
+				al_check_error();
+				#if 0
+				alGetListenerfv(AL_POSITION, listener_position.data());
+				alGetListenerfv(AL_VELOCITY, listener_velocity.data());
+				alGetListenerfv(AL_ORIENTATION, (float*)&listener_orientation[0][0]); // not sure
+				alSourcef(source, AL_PITCH, 1.0);
+				#endif
+				alSourcef(source_reference, AL_GAIN, constants::default_volume);
+				al_check_error();
+				alSourcef(source_reference, AL_PITCH, 1);
+				al_check_error();
+				fan::vec3 p;
+				alSourcefv(source_reference, AL_POSITION, p.data());
+				al_check_error();
+
+				return source_reference;
+			}
+			static uint32_t al_get_format(uint32_t channel_count) {
 				uint32_t format;
 
 				switch (channel_count) {
-					case fan::audio::mono: {
+					case constants::mono: {
 						format = AL_FORMAT_MONO16;
 						break;
 					}
-					case fan::audio::stereo: {
+					case constants::stereo: {
 						format = AL_FORMAT_STEREO16;
 						break;
 					}
@@ -192,7 +100,7 @@ namespace fan {
 				return format;
 			}
 
-			static void print_error(int error) {
+			static void opus_print_error(int error) {
 				switch (error) {
 				case OP_FALSE:  fan::print("OP_FALSE"); break;
 				case OP_EOF:  fan::print("OP_EOF"); break;
@@ -212,395 +120,364 @@ namespace fan {
 				case OP_EBADTIMESTAMP: fan::print("OP_EBADTIMESTAMP"); break;
 				default:
 					fan::print("Unknown error code");
-			}
-		}
-
-		static holder_t get_file_info(const std::string& path) {
-
-			holder_t holder;
-
-			int error = 0;
-			holder.decoder = op_open_file(path.c_str(), &error);
-
-			if (error != 0) {
-				print_error(error);
-				throw std::runtime_error("failed to open opus file");
+				}
 			}
 
-			holder.head = (head_t)op_head(holder.decoder, 0);
+			struct holder_t {
+				OggOpusFile *decoder;
+				OpusHead *head;
+			};
 
-			return holder;
-		}
-
-		static constexpr uint32_t ogg_sample_rate = 48000;
-
-		static void seek(holder_t* holder, int64_t offset) {
-
-			if (int error = op_pcm_seek(holder->decoder, offset)) {
-				print_error(error);
-				throw std::runtime_error("failed to seek audio file");
-			}
-		}
-
-		public:
-
-			uint32_t generate_source() {
-				uint32_t source_reference;
-				alGenSources(1, &source_reference);
-				alSourcei(source_reference, AL_SOURCE_RELATIVE, AL_TRUE);
-
-/*				alGetListenerfv(AL_POSITION, listener_position.data());
-				alGetListenerfv(AL_VELOCITY, listener_velocity.data());
-				alGetListenerfv(AL_ORIENTATION, (float*)&listener_orientation[0][0]);*/ // not sure
-																											//alSourcef(source, AL_PITCH, 1.0);
-				alSourcef(source_reference, AL_GAIN, 0.1);
-				alSourcef(source_reference, AL_PITCH, pitch);
-				fan::vec3 p;
-				alSourcefv(source_reference, AL_POSITION, p.data());
-
-				return source_reference;
+			static void seek(holder_t *holder, uint64_t offset) {
+				if (int error = op_pcm_seek(holder->decoder, offset / (sizeof(opus_int16) * holder->head->channel_count))) {
+					opus_print_error(error);
+					throw std::runtime_error("failed to seek audio file");
+				}
 			}
 
-			void play(uint32_t source_reference) {
-				alSourcePlay(source_reference);
-				from_start_to_wait = fan::time::clock::now();
-			}
+			static std::vector<short> decode(holder_t* holder, uint32_t offset) {
 
-			// buffer size * channel count, make divideable with channel count
-			inline static constexpr std::size_t buffer_size = 81920;
-			inline static constexpr std::size_t number_of_buffers = 4;
+				std::vector<opus_int16> temp_buffer(constants::buffer_size);
 
-			bool update_stream(uint32_t index, uint32_t source_reference) {
+				seek(holder, offset);
 
-				if (!is_playing(source_reference)) {
-					return false;
+				std::vector<short> raw;
+
+				int64_t to_read = constants::buffer_size * holder->head->channel_count;
+
+				uint64_t sum = 0;
+
+				while (to_read > 0) {
+
+					int64_t read = op_read(holder->decoder, temp_buffer.data(), constants::buffer_size - sum, 0) * holder->head->channel_count;
+
+					if (read <= 0) {
+						break;
+					}
+					to_read -= read;
+					sum += read;
+					raw.insert(raw.end(), temp_buffer.data(), temp_buffer.data() + read);
 				}
 
-				if ((offset[index] + 1) * buffer_size >= raw_size) {
+				if (raw.size() & 1) {
+					raw.push_back(raw[raw.size() - 1]);
+				}
+
+				return raw;
+			}
+		}
+
+		struct audio_t {
+			ALCdevice *device;
+			ALCcontext *context;
+
+			EV_t listener;
+
+			TH_mutex_t play_info_list_mutex;
+			VAS1_t play_info_list;
+		};
+
+		struct piece_t {
+			audio_t *audio;
+			holder_t holder;
+			uint64_t raw_size;
+		};
+
+		struct properties_play_t {
+			bool loop;
+			bool fadeout;
+		};
+		void properties_play_init(properties_play_t *p){
+			p->loop = false;
+		}
+
+		namespace{
+			struct play_info_t {
+				EV_timer_t timer;
+				uint32_t source_reference;
+				piece_t *piece;
+
+				properties_play_t properties;
+
+				uint32_t sources;
+				ALuint buffers[constants::number_of_buffers];
+				uint64_t offset;
+				uint64_t current_play_time; // nanoseconds
+				uint64_t duration; // nanoseconds
+			};
+		}
+
+		void audio_open(audio_t *audio) {
+			EV_open(&audio->listener);
+
+			TH_mutex_init(&audio->play_info_list_mutex);
+			VAS1_open(&audio->play_info_list, sizeof(play_info_t), 0xfff);
+
+			std::thread([address = (uintptr_t)&audio->listener]{
+				EV_start((EV_t*)address);
+			}).detach();
+
+			audio->device = alcOpenDevice(NULL);
+			if (!audio->device) {
+				fan::throw_error("no sound device " + std::to_string(alGetError()));
+			}
+
+			// dont use sanitizer
+			audio->context = alcCreateContext(audio->device, 0);
+			if (!audio->context) {
+				fan::throw_error("no sound context");
+			}
+			alcMakeContextCurrent(audio->context);
+		}
+
+		void audio_close(audio_t *audio) {
+			VAS1_close(&audio->play_info_list);
+			alcDestroyContext(audio->context);
+			alcCloseDevice(audio->device);
+		}
+
+		void play_reference_stop(audio_t *audio, uint32_t play_reference){
+			play_info_t *play_info = (play_info_t *)VAS1_out(&audio->play_info_list, play_reference);
+			EV_timer_stop(&audio->listener, &play_info->timer);
+			alSourceStop(play_info->source_reference);
+			al_check_error();
+			alDeleteSources(1, &play_info->source_reference);
+			al_check_error();
+			int n_buffers = 0;
+			for (int i = 0; i < constants::number_of_buffers; i++) {
+				if (play_info->buffers[i] == (ALuint)-1) {
+					break;
+				}
+				n_buffers++;
+			}
+			alDeleteBuffers(n_buffers, play_info->buffers);
+			al_check_error();
+			TH_lock(&play_info->piece->audio->play_info_list_mutex);
+			VAS1_unlink(&play_info->piece->audio->play_info_list, play_reference);
+			TH_unlock(&play_info->piece->audio->play_info_list_mutex);
+		}
+
+		namespace{
+			bool is_playing(uint32_t source) {
+				int state;
+				alGetSourcei(source, AL_SOURCE_STATE, &state);
+				al_check_error();
+				return state == AL_PLAYING;
+			}
+			static bool update_buffer(play_info_t *play_info) {
+				if (!is_playing(play_info->source_reference)) {
 					return false;
 				}
 
 				int processed = 0;
 
 				while (processed <= 0) {
-					alGetSourcei(source_reference, AL_BUFFERS_PROCESSED, &processed);
+					alGetSourcei(play_info->source_reference, AL_BUFFERS_PROCESSED, &processed);
+					al_check_error();
 					if (processed == 0) {
+						fan::print("we entered very bad place");
 						fan::delay(fan::time::nanoseconds(10000));
 					}
 				}
 
 				while (processed--) {
 					ALuint buffer;
-					alSourceUnqueueBuffers(source_reference, 1, &buffer);
+					alSourceUnqueueBuffers(play_info->source_reference, 1, &buffer);
+					al_check_error();
 
-					auto raw = this->decode(offset[index]);
+					auto raw = decode(&play_info->piece->holder, play_info->offset);
 
-					uint64_t size = 0;
-					if ((offset[index] + 1) * buffer_size >= raw_size) {
-						size = raw.size();
-					}
-					else {
-						static constexpr auto pcm16 = 2;
-						size = buffer_size * pcm16;
-					}
+					alBufferData(buffer, al_get_format(play_info->piece->holder.head->channel_count), raw.data(), raw.size(), constants::opus_decode_sample_rate);
+					al_check_error();
 
-					alBufferData(buffer, get_al_format(m_holder.head->channel_count), raw.data(), size, ogg_sample_rate);
+					alSourceQueueBuffers(play_info->source_reference, 1, &buffer);
+					al_check_error();
 
-					alSourceQueueBuffers(source_reference, 1, &buffer);
-
-					offset[index]++;
+					play_info->offset += raw.size();
 				}
 
 				return true;
 			}
 
-			std::vector<short> decode() {
-				return this->decode(&m_holder);
-			}
+			static void time_cb(EV_t *listener, EV_timer_t *t) {
+				play_info_t *play_info = (play_info_t *)t;
 
-			std::vector<short> decode(uint32_t offset) {
+				if (update_buffer(play_info)) {
+					EV_timer_stop(listener, t);
+					auto offset = constants::buffer_size + play_info->offset;
 
-				std::vector<opus_int16> temp_buffer(buffer_size);
-
-				offset = buffer_size * offset / m_holder.head->channel_count;
-
-				if (offset > raw_size / m_holder.head->channel_count - 1) {
-					offset = raw_size / m_holder.head->channel_count - 1;
+					EV_timer_init(t, (f32_t(play_info->piece->raw_size < offset ? play_info->piece->raw_size : offset) / 
+						(constants::opus_decode_sample_rate * play_info->piece->holder.head->channel_count)), time_cb);
+					EV_timer_start(listener, t);
 				}
+				else {
+					if (play_info->properties.loop) {
+						play_info->offset = 0;
+						EV_timer_stop(listener, t);
+						auto offset = constants::buffer_size + play_info->offset;
+						EV_timer_init(t, (f32_t(constants::buffer_size < offset ? play_info->piece->raw_size : offset) / 
+							(constants::opus_decode_sample_rate * play_info->piece->holder.head->channel_count)), time_cb);
+						EV_timer_start(listener, t);
 
-				this->seek(&m_holder, offset);
+						int unque_buffers = 0;
+						for (int i = 0; i < 4; i++) {
+							if (play_info->buffers[i] == (ALint)-1) {
+								break;
+							}
+							unque_buffers++;
+						}
 
-				int64_t read;
+						alSourceUnqueueBuffers(play_info->source_reference, unque_buffers, play_info->buffers);
 
-				std::vector<short> raw;
+						int buffer_n = 0;
+						for(std::size_t i = 0; i < constants::number_of_buffers; ++i)
+						{
+							auto raw = decode(&play_info->piece->holder, play_info->offset);
+					
+							alBufferData(play_info->buffers[i], al_get_format(play_info->piece->holder.head->channel_count), raw.data(), raw.size(), constants::opus_decode_sample_rate);
+							al_check_error();
 
-				int64_t to_read = buffer_size * m_holder.head->channel_count;
+							play_info->offset += raw.size();
 
-				while (to_read > 0) {
-					read = op_read(m_holder.decoder, temp_buffer.data(), buffer_size, 0);
-					if (read <= 0) {
+							buffer_n++;
+
+							if (play_info->offset / 2 >= play_info->piece->raw_size) {
+								break;
+							}
+						}
+
+						alDeleteBuffers(4 - buffer_n, &play_info->buffers[buffer_n]);
+						for(uint32_t i = buffer_n; i < constants::number_of_buffers; i++){
+							play_info->buffers[i] = (ALuint)-1;
+						}
+						
+						alSourceQueueBuffers(play_info->source_reference, buffer_n, play_info->buffers);
+						al_check_error();
+
+						alSourcePlay(play_info->source_reference);
+						al_check_error();
+						return;
+					}
+
+					uint32_t play_reference = ((uint8_t *)play_info - play_info->piece->audio->play_info_list.ptr) / (8 + sizeof(play_info_t));
+					play_reference_stop(play_info->piece->audio, play_reference);
+				}
+			}
+		}
+		uint32_t piece_play(audio_t *audio, piece_t *piece, const properties_play_t *properties) {
+			TH_lock(&audio->play_info_list_mutex);
+			uint32_t play_reference = VAS1_NewNodeLast(&audio->play_info_list);
+			TH_unlock(&audio->play_info_list_mutex);
+			play_info_t *play_info = (play_info_t *)VAS1_out(&audio->play_info_list, play_reference);
+
+			play_info->piece = piece;
+			play_info->offset = 0;
+			play_info->properties = *properties;
+			play_info->current_play_time = fan::time::clock::now();
+			play_info->duration = (f32_t)play_info->piece->raw_size / (constants::opus_decode_sample_rate * play_info->piece->holder.head->channel_count) * 1e+9;
+			f32_t delay = f32_t(piece->raw_size < constants::buffer_size ? piece->raw_size : constants::buffer_size) / 
+							(constants::opus_decode_sample_rate * play_info->piece->holder.head->channel_count);
+
+			EV_timer_init(&play_info->timer, delay, time_cb);
+			EV_queue_lock(&audio->listener);
+			EV_queue_add(&audio->listener, [] (EV_t *l, void *t) {
+
+				play_info_t* play_info = (play_info_t*)t;
+
+				uint32_t source_reference = al_generate_source();
+
+				play_info->source_reference = source_reference;
+
+				alGenBuffers(constants::number_of_buffers, play_info->buffers);
+				al_check_error();
+
+				int buffer_n = 0;
+				for(std::size_t i = 0; i < constants::number_of_buffers; ++i)
+				{
+					auto raw = decode(&play_info->piece->holder, play_info->offset);
+				
+					alBufferData(play_info->buffers[i], al_get_format(play_info->piece->holder.head->channel_count), raw.data(), raw.size(), constants::opus_decode_sample_rate);
+					al_check_error();
+
+					play_info->offset += raw.size();
+
+					buffer_n++;
+
+					if (play_info->offset / 2 >= play_info->piece->raw_size) {
 						break;
 					}
-					to_read -= read * m_holder.head->channel_count;
-					raw.insert(raw.end(), temp_buffer.data(), temp_buffer.data() + read * m_holder.head->channel_count);
 				}
 
-				return raw;
-			}
-
-			std::vector<uint64_t> offset;
-
-			std::mutex m_mutex;
-
-			fan::event::timer_event_t te;
-
-			void play_non_block_buffered(uint32_t* sr) {
-
-				uint32_t source_reference = this->generate_source();
-
-				*sr = source_reference;
-
-				fan::print("+", source_reference);
-
-				sources.emplace_back(source_reference);
-
-				offset.emplace_back(number_of_buffers);
-
-				buffers.resize(buffers.size() + 1);
-
-				alGenBuffers(buffers[buffers.size() - 1].size(), buffers[buffers.size() - 1].data());
-
-				uint64_t b_size;
-
-				for(std::size_t i = 0; i < number_of_buffers; ++i)
-				{
-					auto raw = decode(i);
-					
-					static constexpr auto pcm16 = 2;
-
-					b_size = buffer_size * pcm16;
-
-					if (b_size > raw.size() * 2) {
-						b_size = raw.size() * 2;
-					}
-
-					alBufferData(buffers[buffers.size() - 1][i], get_al_format(m_holder.head->channel_count), raw.data(), b_size, ogg_sample_rate);
+				alDeleteBuffers(4 - buffer_n, &play_info->buffers[buffer_n]);
+				for(uint32_t i = buffer_n; i < constants::number_of_buffers; i++){
+					play_info->buffers[i] = (ALuint)-1;
 				}
 
-				alSourceQueueBuffers(source_reference, number_of_buffers, buffers[buffers.size() - 1].data());
-				
-				this->play(source_reference);
+				alSourceQueueBuffers(play_info->source_reference, buffer_n, play_info->buffers);
+				al_check_error();
 
-				auto amount = (f32_t(b_size) / 
-							(ogg_sample_rate * m_holder.head->channel_count)) * 1e+9;
-				te.push(amount, [&, current_offset = offset.size() - 1, source_reference] (uint64_t* time){
+				alSourcePlay(play_info->source_reference);
+				al_check_error();
 
-					if (update_stream(current_offset, source_reference)) {
+				EV_timer_start(l, &play_info->timer);
+			}, play_info);
+			EV_queue_unlock(&audio->listener);
+			EV_queue_signal(&audio->listener);
 
-						*time = (f32_t(buffer_size) / 
-							(ogg_sample_rate * m_holder.head->channel_count)) * 1e+9;
-							
+			if (play_info->properties.fadeout) {
+				EV_timer_init(&play_info->timer, 0.1, [](EV_t* listener, EV_timer_t* t) {
+					play_info_t *play_info = (play_info_t *)t;
+
+					// in seconds
+					f32_t td = (f32_t)fan::time::clock::elapsed(play_info->current_play_time) / 1e+9;
+					f32_t new_volume = constants::default_volume * (1.f - td);
+					if (td >= play_info->duration / 1e+9 || new_volume <= 0) {
+						EV_timer_stop(listener, t);
+						return;
 					}
-					else {
-						this->stop(source_reference);
-						*time = -1;
-					}
-
+					alSourcef(play_info->source_reference, AL_GAIN, new_volume);
 				});
+				EV_queue_lock(&audio->listener);
+				EV_queue_add(&audio->listener, [](EV_t *l, void *t) {
+					play_info_t *play_info = (play_info_t *)t;
 
+					EV_timer_start(l, &play_info->timer);	
+				}, play_info);
+				EV_queue_unlock(&audio->listener);
+				EV_queue_signal(&audio->listener);
 			}
 
-			void pause(uint32_t source_reference) const {
-				alSourcePause(source_reference);
-			}
+			return play_reference;
+		}
 
-			void stop(uint32_t source_reference) {
-				fan::print("-", source_reference);
-				auto found = std::find(sources.begin(), sources.end(), source_reference);
-				if (found == sources.end()) {
-					fan::throw_error("invalid source " + source_reference);
-				}
+		namespace{
+			static holder_t get_file_info(const std::string& path) {
 
-				auto d = std::distance(sources.begin(), found);
-				assert(d < buffers.size() || d < offset.size());
-				sources.erase(found);
-				buffers.erase(buffers.begin() + d);
-				offset.erase(offset.begin() + d);
-				alSourceStop(source_reference);
-				alDeleteSources(1, &source_reference);
-			}
-
-			fan::vec3 get_position() const {
-				fan::vec3 p;
-				alGetListenerfv(AL_POSITION, p.data());
-
-				return p;
-			}
-			//void set_position(const fan::vec3& position) const {
-			//	alSourcefv(source, AL_POSITION, position.data());
-			//}
-
-			//void set_velocity(const fan::vec3& velocity) const {
-			//	alSourcefv(source, AL_VELOCITY, velocity.data());
-			//}
-
-			// gets duration of current audio file in nanoseconds
-			uint64_t get_duration() const {
-				return duration;
-			}
-
-			// waits till audio is ended
-			void wait() {
-				fan::delay(fan::time::nanoseconds(duration - fan::time::clock::elapsed(from_start_to_wait)));
-				from_start_to_wait = fan::time::clock::now();
-			}
-
-			void wait(uint64_t custom_duration) {
-				fan::delay(fan::time::nanoseconds(custom_duration - fan::time::clock::elapsed(from_start_to_wait)));
-				from_start_to_wait = fan::time::clock::now();
-			}
-
-			static out_t decode(const properties_t& properties)
-			{
-				out_t out;
+				holder_t holder;
 
 				int error = 0;
-				auto opus_file = op_open_file(properties.input.c_str(), &error);
+				holder.decoder = op_open_file(path.c_str(), &error);
 
-				out.head = (head_t)op_head(opus_file, 0);
-
-				opus_int16* buffer = new opus_int16[0x2000];
-
-				int read = 0;
-
-				while ((read = op_read(opus_file, buffer, 0x2000, 0)) > 0) {
-					out.raw.insert(out.raw.end(), buffer, buffer + read * out.head->channel_count);
+				if (error != 0) {
+					opus_print_error(error);
+					throw std::runtime_error("failed to open opus file");
 				}
 
-				delete[] buffer;
+				holder.head = (OpusHead *)op_head(holder.decoder, 0);
 
-				return out;
+				return holder;
+			}
+		}
+		void piece_open_from_file(fan::audio::audio_t *audio, fan::audio::piece_t *piece, const std::string& path) {
+			if (!fan::io::file::exists(path)) {
+				fan::throw_error("file does not exist \"" + path + "\"");
 			}
 
-			void set_end_callback(std::function<void()> f) {
-				m_end_callback = f;
-			}
+			piece->holder = get_file_info(path);
 
-			void load(auto* audio, const std::string& path) {
-				if (!fan::io::file::exists(path)) {
-					fan::throw_error("file does not exist \"" + path + "\"");
-				}
-
-				te.threaded_update();
-
-				m_holder = get_file_info(path);
-
-				uint32_t format;
-
-				raw_size = op_pcm_total(m_holder.decoder, 0) * m_holder.head->channel_count;
-			}
-
-	//	protected:
-
-			static std::vector<short> decode(holder_t* holder)
-			{
-				std::vector<short> raw;
-
-				opus_int16* buffer = new opus_int16[0x2000];
-
-				int read = 0;
-
-				seek(holder, 0);
-
-				while ((read = op_read(holder->decoder, buffer, 0x2000, 0)) > 0) {
-					raw.insert(raw.end(), buffer, buffer + read * holder->head->channel_count);
-				}
-
-				delete[] buffer;
-
-				return raw;
-			}
-
-			uint64_t from_start_to_wait = 0;
-
-			uint64_t duration;
-
-			std::vector<uint32_t> sources;
-			std::vector<std::array<uint32_t, number_of_buffers>> buffers;
-			uint32_t current_buffer = 0;
-
-			uint64_t raw_size = 0;
-
-			std::function<void()> m_end_callback = []{};
-
-			holder_t m_holder;
-
-		};
-
-		struct piece_t {
-
-			void load(auto* audio, const std::string& path) {
-				pbptr = new piece_base_t();
-
-				pbptr->load(audio, path);
-			}
-
-			void free() {
-				delete pbptr;
-				pbptr = nullptr;
-			}
-
-			piece_base_t* pbptr;
-		};
-
-		struct audio_t {
-
-			ALCdevice* device = nullptr;
-			ALCcontext* context = nullptr;
-
-			void init() {
-				if (device == nullptr) {
-					device = alcOpenDevice(NULL);
-					if (!device) {
-						fan::throw_error("no sound device " + std::to_string(alGetError()));
-					}
-				}
-
-				if (context == nullptr) {
-					// dont use sanitizer
-					context = alcCreateContext(device, 0);
-					if (!context) {
-						fan::throw_error("no sound context");
-					}
-					alcMakeContextCurrent(context);
-				}
-			}
-
-			void free() {
-				alcDestroyContext(context);
-				alcCloseDevice(device);
-			}
-
-			uint32_t play(piece_t* piece) {
-				uint32_t source_reference;
-				piece->pbptr->play_non_block_buffered(&source_reference);
-				return source_reference;
-			}
-
-			void pause(uint32_t source_reference) {
-				alSourcePause(source_reference);
-			}
-
-			void stop(piece_t* piece, uint32_t source_reference) {
-				alSourceStop(source_reference);
-				auto found = std::find(piece->pbptr->sources.begin(), piece->pbptr->sources.end(), source_reference);
-				auto index = std::distance(piece->pbptr->sources.begin(), found);
-				piece->pbptr->sources.erase(piece->pbptr->sources.begin() + index);
-				piece->pbptr->buffers.erase(piece->pbptr->buffers.begin() + index);
-				piece->pbptr->offset.erase(piece->pbptr->offset.begin() + index);
-			}
-
-		};
+			piece->raw_size = op_pcm_total(piece->holder.decoder, 0) * piece->holder.head->channel_count;
+			piece->audio = audio;
+		}
 
 	}
 }
