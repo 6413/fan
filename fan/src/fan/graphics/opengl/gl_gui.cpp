@@ -114,7 +114,7 @@ void fan_2d::graphics::gui::text_renderer::push_back(properties_t properties) {
 		if (properties.text[i] == '\n') {
 			m_new_lines[m_new_lines.size() - 1]++;
 			left = properties.position.x - text_size.x / 2;
-			properties.position.y += font.line_height;
+			properties.position.y += get_line_height(properties.font_size);
 		}
 
 		auto letter = get_letter_info(properties.text[i], properties.font_size);

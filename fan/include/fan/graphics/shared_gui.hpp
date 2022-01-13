@@ -94,7 +94,7 @@ namespace fan_2d {
 					fan::vec2 position;
 					fan::color text_color;
 					fan::color outline_color = fan::color(0, 0, 0, 0);
-					f32_t outline_size = 0;
+					f32_t outline_size = 0.25;
 				};
 
 				text_renderer(fan::camera* camera);
@@ -1602,6 +1602,7 @@ namespace fan_2d {
 				void clear();
 
 				void update_theme(uint32_t i);
+				void set_theme(uint32_t i, const fan_2d::graphics::gui::theme& theme_);
 
 				using inner_rect_t::get_color;
 
@@ -2117,6 +2118,8 @@ namespace fan_2d {
 							return;
 						}
 
+						new_value = fan::clamp(new_value, (T)min, (T)max);
+
 						set_current_value(m_moving_id, new_value);
 
 						fan_2d::graphics::circle::set_position(m_moving_id, circle_position);
@@ -2282,11 +2285,14 @@ namespace fan_2d {
 						left_or_up = property.position + fan::vec2(left_text_size.x + property.button_radius * text_gap_multiplier, -property.box_size.y + left_text_size.y / 2 - property.button_radius);
 					}
 
+					fan_2d::graphics::gui::text_renderer::properties_t p3;
+					p3.text = fan::to_wstring(property.min);
+					p3.font_size = property.font_size;
+					p3.position = left_or_up;
+					p3.text_color = fan_2d::graphics::gui::defaults::text_color;
+
 					fan_2d::graphics::gui::text_renderer::push_back(
-						fan::to_wstring(property.min),
-						property.font_size,
-						left_or_up, 
-						fan_2d::graphics::gui::defaults::text_color
+						p3
 					);
 
 					const fan::vec2 right_text_size = fan_2d::graphics::gui::text_renderer::get_text_size(fan::to_wstring(property.max), property.font_size);
@@ -2294,17 +2300,20 @@ namespace fan_2d {
 					fan::vec2 right_or_down;
 
 					if (property.box_size.x > property.box_size.y) {
-						right_or_down = property.position + fan::vec2(property.box_size.x - property.button_radius * text_gap_multiplier, -right_text_size.y / 2 - property.button_radius * text_gap_multiplier);
+						right_or_down = property.position + fan::vec2(property.box_size.x + right_text_size.x / 4, -right_text_size.y / 2 - property.button_radius * text_gap_multiplier);
 					}
 					else {
 						right_or_down = property.position + fan::vec2(left_text_size.x + property.button_radius * text_gap_multiplier, property.box_size.y - left_text_size.y / 2 + property.button_radius);
 					}
 
+					fan_2d::graphics::gui::text_renderer::properties_t p;
+					p.text = fan::to_wstring(property.max);
+					p.font_size = property.font_size;
+					p.position = right_or_down;
+					p.text_color = fan_2d::graphics::gui::defaults::text_color;
+
 					fan_2d::graphics::gui::text_renderer::push_back(
-						fan::to_wstring(property.max),
-						property.font_size,
-						right_or_down, 
-						fan_2d::graphics::gui::defaults::text_color
+						p
 					);
 
 					const fan::vec2 middle_text_size = fan_2d::graphics::gui::text_renderer::get_text_size(fan::to_wstring(property.current), property.font_size);
@@ -2318,11 +2327,14 @@ namespace fan_2d {
 						middle = property.position + fan::vec2(middle_text_size.x + property.button_radius * text_gap_multiplier, 0);
 					}
 
+					fan_2d::graphics::gui::text_renderer::properties_t p2;
+					p2.text = fan::to_wstring(property.current);
+					p2.font_size = property.font_size;
+					p2.position = middle;
+					p2.text_color = fan_2d::graphics::gui::defaults::text_color;
+
 					fan_2d::graphics::gui::text_renderer::push_back(
-						fan::to_wstring(property.current), 
-						property.font_size,
-						middle, 
-						fan_2d::graphics::gui::defaults::text_color
+						p2
 					);
 				}
 

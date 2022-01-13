@@ -30,7 +30,7 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::push_back(const properties
 					property.position.y + property.theme.button.outline_thickness
 				);
 			text_properties.text_color = property.place_holder.empty() ? property.theme.button.text_color : defaults::text_color_place_holder;
-			text_properties.outline_color = property.theme.button.outline_color;
+			text_properties.outline_color = property.theme.button.text_outline_color;
 			text_properties.outline_size = property.theme.button.text_outline_size;
 
 			fan_2d::graphics::gui::text_renderer::push_back(text_properties);
@@ -44,7 +44,7 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::push_back(const properties
 			text_properties.position = property.position;
 			text_properties.text_color = property.text.size() && property.text[0] != '\0' ? property.theme.button.text_color : defaults::text_color_place_holder;
 
-			text_properties.outline_color = property.theme.button.outline_color;
+			text_properties.outline_color = property.theme.button.text_outline_color;
 			text_properties.outline_size = property.theme.button.text_outline_size;
 
 			fan_2d::graphics::gui::text_renderer::push_back(text_properties);
@@ -78,18 +78,18 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::push_back(const properties
 	properties.color = property.theme.button.outline_color;
 
 	outer_rect_t::push_back(properties);
-	properties.position = corners[1] + fan::vec2(0, rect_properties.size.y);
-	properties.size = fan::vec2(t, corners[3].y - corners[1].y + t) / 2;
+	properties.position = corners[1] + fan::vec2(0, rect_properties.size.y) + fan::vec2(1, -1);
+	properties.size = fan::vec2(t, corners[3].y - corners[1].y + t) / 2 - fan::vec2(0, 0.5);
 
 	outer_rect_t::push_back(properties);
 
-	properties.position = corners[2] + fan::vec2(rect_properties.size.x, 0);
-	properties.size = fan::vec2(corners[3].x - corners[2].x + t, t) / 2;
+	properties.position = corners[2] + fan::vec2(rect_properties.size.x, 0) + fan::vec2(0.5, 1);
+	properties.size = fan::vec2(corners[3].x - corners[2].x + t, t) / 2 - fan::vec2(0.5, 0);
 
 	outer_rect_t::push_back(properties);
 
-	properties.position = corners[0] + fan::vec2(0, rect_properties.size.y);
-	properties.size = fan::vec2(t, corners[2].y - corners[0].y + t) / 2;
+	properties.position = corners[0] + fan::vec2(0, rect_properties.size.y - 0.5);
+	properties.size = fan::vec2(t, corners[2].y - corners[0].y + t) / 2 + fan::vec2(0, 0.5);
 
 	outer_rect_t::push_back(properties);
 }
@@ -386,6 +386,16 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::update_theme(uint32_t i)
 	outer_rect_t::set_color(i * 4 + 1, theme[i].button.outline_color);
 	outer_rect_t::set_color(i * 4 + 2, theme[i].button.outline_color);
 	outer_rect_t::set_color(i * 4 + 3, theme[i].button.outline_color);
+}
+
+void fan_2d::graphics::gui::rectangle_text_box_sized::set_theme(uint32_t i, const fan_2d::graphics::gui::theme& theme_)
+{
+	inner_rect_t::set_color(i, theme_.button.color);
+
+	outer_rect_t::set_color(i * 4 + 0, theme_.button.outline_color);
+	outer_rect_t::set_color(i * 4 + 1, theme_.button.outline_color);
+	outer_rect_t::set_color(i * 4 + 2, theme_.button.outline_color);
+	outer_rect_t::set_color(i * 4 + 3, theme_.button.outline_color);
 }
 
 void fan_2d::graphics::gui::rectangle_text_box_sized::enable_draw()

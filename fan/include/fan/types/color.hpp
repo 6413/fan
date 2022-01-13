@@ -80,7 +80,7 @@ namespace fan {
 			this->r = value;
 			this->g = value;
 			this->b = value;
-			this->a = 1;
+			this->a = value;
 		}
 		color& operator&=(const color& color_) {
 			color ret;

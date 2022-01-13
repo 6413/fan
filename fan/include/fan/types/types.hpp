@@ -194,7 +194,8 @@ namespace fan {
 #ifdef fan_compiler_visual_studio
 		system("pause");
 #endif
-		exit(1);
+		throw std::runtime_error("");
+		//exit(1);
 	}
 
 }

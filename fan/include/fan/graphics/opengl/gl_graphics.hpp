@@ -371,7 +371,7 @@ namespace fan_2d {
 			void edit_data(uint32_t begin, uint32_t end);
 
 			// pushed to window draw queue
-			void draw(uint32_t begin = fan::uninitialized, uint32_t end = fan::uninitialized) const;
+			void draw(uint32_t begin = fan::uninitialized, uint32_t end = fan::uninitialized);
 
 			void initialize();
 
@@ -672,7 +672,7 @@ namespace fan_2d {
 
 			void initialize();
 
-			void draw(uint32_t begin = fan::uninitialized, uint32_t end = fan::uninitialized) const;
+			void draw(uint32_t begin = fan::uninitialized, uint32_t end = fan::uninitialized);
 
 			void write_data();
 
