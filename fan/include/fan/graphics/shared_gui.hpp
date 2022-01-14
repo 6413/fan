@@ -265,9 +265,9 @@ namespace fan_2d {
 
 				fan::camera* m_camera = nullptr;
 
-				static int64_t get_new_lines(const fan::utf16_string& str)
+				static uint64_t get_new_lines(const fan::utf16_string& str)
 				{
-					int64_t new_lines = 0;
+					uint64_t new_lines = 0;
 					const wchar_t* p = str.data();
 					for (int i = 0; i < str.size(); i++) {
 						if (p[i] == '\n') {
@@ -1533,7 +1533,7 @@ namespace fan_2d {
 
 				fan::vec2 size;
 
-				f32_t advance = 0;
+				fan::vec2 offset;
 
 			};
 
@@ -1585,6 +1585,8 @@ namespace fan_2d {
 				fan::vec2 get_text_starting_point(uint32_t i) const;
 
 				properties_t get_property(uint32_t i) const;
+				
+				void set_offset(uint32_t i, const fan::vec2& offset);
 
 				fan::camera* get_camera();
 
@@ -1836,7 +1838,7 @@ namespace fan_2d {
 
 				void clear();
 
-				void set_locked(uint32_t i, bool flag);
+				void set_locked(uint32_t i, bool flag, bool change_theme = true);
 
 				bool locked(uint32_t i) const;
 

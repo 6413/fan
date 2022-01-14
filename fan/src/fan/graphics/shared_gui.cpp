@@ -26,9 +26,9 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::push_back(const properties
 			text_properties.text = str;
 			text_properties.font_size = property.font_size;
 			text_properties.position = fan::vec2(
-					property.position.x + property.theme.button.outline_thickness + property.advance - property.size.x * 0.5, 
+					property.position.x + property.theme.button.outline_thickness - property.size.x * 0.5, 
 					property.position.y + property.theme.button.outline_thickness
-				);
+				) + property.offset;
 			text_properties.text_color = property.place_holder.empty() ? property.theme.button.text_color : defaults::text_color_place_holder;
 			text_properties.outline_color = property.theme.button.text_outline_color;
 			text_properties.outline_size = property.theme.button.text_outline_size;
@@ -41,7 +41,7 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::push_back(const properties
 		{
 			text_properties.text = str;
 			text_properties.font_size = property.font_size;
-			text_properties.position = property.position;
+			text_properties.position = property.position + property.offset;
 			text_properties.text_color = property.text.size() && property.text[0] != '\0' ? property.theme.button.text_color : defaults::text_color_place_holder;
 
 			text_properties.outline_color = property.theme.button.text_outline_color;
@@ -130,12 +130,6 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::set_text(uint32_t i, const
 		}
 		case text_position_e::middle:
 		{
-			auto position = inner_rect_t::get_position(i);
-			auto size = inner_rect_t::get_size(i);
-			auto text_size = text_renderer::get_text_size(text, text_renderer::get_font_size(i));
-
-			f32_t line_height = font.font['\n'].metrics.size.y * convert_font_size(get_font_size(i));
-
 			fan_2d::graphics::gui::text_renderer::set_text(i, text);
 
 			break;
@@ -210,7 +204,7 @@ fan_2d::graphics::gui::src_dst_t fan_2d::graphics::gui::rectangle_text_box_sized
 
 		src.y -= line_height / 2;
 
-		src.x += m_properties[i].advance;
+		src += m_properties[i].offset;
 	}
 	else if (m_properties[i].text_position == fan_2d::graphics::gui::text_position_e::middle) {
 		fan::vec2 text_size;
@@ -277,7 +271,7 @@ fan::vec2 fan_2d::graphics::gui::rectangle_text_box_sized::get_text_starting_poi
 	if (m_properties[i].text_position == fan_2d::graphics::gui::text_position_e::left) {
 		src = this->get_position(i);
 		src.y += font.font['\n'].metrics.size.y * convert_font_size(get_font_size(i));
-		src.x += m_properties[i].advance;
+		src += m_properties[i].offset;
 	}
 	else if (m_properties[i].text_position == fan_2d::graphics::gui::text_position_e::middle){
 		auto text_size = text_renderer::get_text_size(get_text(i), text_renderer::get_font_size(i));
@@ -296,6 +290,15 @@ fan_2d::graphics::gui::rectangle_text_box_sized::properties_t fan_2d::graphics::
 fan::camera* fan_2d::graphics::gui::rectangle_text_box_sized::get_camera()
 {
 	return inner_rect_t::m_camera;
+}
+
+void fan_2d::graphics::gui::rectangle_text_box_sized::set_offset(uint32_t i, const fan::vec2& offset)
+{
+	m_properties[i].offset = offset;
+
+	auto new_position = this->get_position(i) + offset;
+
+	fan_2d::graphics::gui::text_renderer::set_position(i, new_position);
 }
 
 uintptr_t fan_2d::graphics::gui::rectangle_text_box_sized::size() const
@@ -1143,18 +1146,19 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::clear()
 	//rectangle_text_button_sized::text_input::clear();
 }
 
-void fan_2d::graphics::gui::rectangle_text_button_sized::set_locked(uint32_t i, bool flag) {
+void fan_2d::graphics::gui::rectangle_text_button_sized::set_locked(uint32_t i, bool flag, bool change_theme) {
 	if (flag) {
 		if (m_focused_button_id == i) {
 			m_focused_button_id = fan::uninitialized;
 		}
 		m_reserved[i] |= (uint32_t)button_states_e::locked;
-		theme[i] = fan_2d::graphics::gui::themes::locked(get_camera()->m_window);
-		update_theme(i);
+		if (change_theme) {
+			theme[i] = fan_2d::graphics::gui::themes::locked(get_camera()->m_window);
+			update_theme(i);
+		}
 	}
 	else {
 		m_reserved[i] &= ~(uint32_t)button_states_e::locked;
-		this->update_theme(i);
 		if (inside(i)) {
 			m_focused_button_id = i;
 		}
