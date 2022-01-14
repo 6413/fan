@@ -33,11 +33,10 @@ fan_2d::graphics::gui::text_renderer::text_renderer(fan::camera* camera) :
 	sprite::initialize();
 
 	if (!font_image) {
-		font_image = fan_2d::graphics::load_image(camera->m_window, "fonts/comic.webp");
+		font_image = fan_2d::graphics::load_image(camera->m_window, "fonts/space_mono.webp");
 	}
 
-	font = fan::font::parse_font("fonts/comic_metrics.txt");
-
+	font = fan::font::parse_font("fonts/space_mono_metrics.txt");
 	/*font_info.font[' '] = fan::font::font_t({ 0, fan::vec2(fan_2d::graphics::gui::font_properties::space_width, font_info.line_height), 0, (fan::vec2::value_type)fan_2d::graphics::gui::font_properties::space_width });
 	font_info.font['\n'] = fan::font::font_t({ 0, fan::vec2(0, font_info.line_height), 0, 0 });*/
 
@@ -103,16 +102,20 @@ void fan_2d::graphics::gui::text_renderer::push_back(properties_t properties) {
 
 	f32_t left = properties.position.x - text_size.x / 2;
 
+	uint64_t new_lines = get_new_lines(properties.text);
+
 	properties.position.y += font.size * convert_font_size(properties.font_size) / 2;
+	if (new_lines) {
+		properties.position.y -= (get_line_height(properties.font_size) * (new_lines - 1)) / 2;
+	}
 
 	f32_t average_height = 0;
 
-	m_new_lines.resize(m_new_lines.size() + 1);
+	m_new_lines.resize(m_new_lines.size() + 1, new_lines);
 
 	for (int i = 0; i < properties.text.size(); i++) {
 
 		if (properties.text[i] == '\n') {
-			m_new_lines[m_new_lines.size() - 1]++;
 			left = properties.position.x - text_size.x / 2;
 			properties.position.y += get_line_height(properties.font_size);
 		}
@@ -149,18 +152,22 @@ void fan_2d::graphics::gui::text_renderer::insert(uint32_t i, properties_t prope
 
 	f32_t left = properties.position.x - text_size.x / 2;
 
+	uint64_t new_lines = get_new_lines(properties.text);
+
 	properties.position.y += font.size * convert_font_size(properties.font_size) / 2;
+	if (new_lines) {
+		properties.position.y -= (get_line_height(properties.font_size) * (new_lines - 1)) / 2;
+	}
 
 	f32_t average_height = 0;
 
-	m_new_lines.insert(m_new_lines.begin() + i, 0);
+	m_new_lines.insert(m_new_lines.begin() + i, new_lines);
 
 	for (int j = 0; j < properties.text.size(); j++) {
 
 		if (properties.text[j] == '\n') {
-			m_new_lines[i]++;
 			left = properties.position.x - text_size.x / 2;
-			properties.position.y += font.line_height;
+			properties.position.y += fan_2d::graphics::gui::text_renderer::get_line_height(properties.font_size);
 		}
 
 		auto letter = get_letter_info(properties.text[j], properties.font_size);

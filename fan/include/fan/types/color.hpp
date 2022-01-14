@@ -119,7 +119,7 @@ namespace fan {
 		}
 		template <typename T>
 		constexpr color operator*(T value) const {
-			return color(r * value, g * value, b * value);
+			return color(r * value, g * value, b * value, a * value);
 		}
 		template <typename T>
 		constexpr color operator/(T value) const {

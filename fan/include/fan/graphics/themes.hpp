@@ -382,14 +382,14 @@ namespace fan_2d {
 				};
 
 				struct gray : public fan_2d::graphics::gui::theme {
-						gray(fan::window* window) : theme(window) {
+						gray(fan::window* window, f32_t intensity = 1) : theme(window) {
 
-							button.color = fan::color(0, 0, 0, 0.6);
-							button.outline_color = fan::color(0.4, 0.4, 0.4, 0.5);
-							button.hover_color = fan::color(0, 0, 0, 0.5);
-							button.hover_outline_color = fan::color(0.5, 0.5, 0.5, 0.4);
-							button.click_color = fan::color(0, 0, 0, 0.3);
-							button.click_outline_color = fan::color(0.6, 0.6, 0.6, 0.2);
+							button.color = fan::color(0, 0, 0, 0.6) * intensity;
+							button.outline_color = fan::color(0.4, 0.4, 0.4, 0.5) * intensity;
+							button.hover_color = fan::color(0, 0, 0, 0.5) * intensity;
+							button.hover_outline_color = fan::color(0.5, 0.5, 0.5, 0.4) * intensity;
+							button.click_color = fan::color(0, 0, 0, 0.3) * intensity;
+							button.click_outline_color = fan::color(0.6, 0.6, 0.6, 0.2) * intensity;
 
 							button.text_color = fan_2d::graphics::gui::defaults::text_color;
 							button.text_outline_color = fan::colors::black;
