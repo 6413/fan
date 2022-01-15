@@ -1672,6 +1672,11 @@ void fan_2d::graphics::sprite::draw(uint32_t begin, uint32_t end)
 
 }
 
+fan::camera* fan_2d::graphics::sprite::get_camera()
+{
+	return m_camera;
+}
+
 void fan_2d::graphics::sprite::initialize()
 {
 	fan::bind_vao(*rectangle::get_vao(), [&] {

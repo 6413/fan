@@ -352,7 +352,7 @@ namespace fan_2d {
 
 					}
 
-				};	
+				};
 
 				struct transparent : public fan_2d::graphics::gui::theme {
 

@@ -668,6 +668,8 @@ namespace fan_2d {
 			void enable_draw();
 			void disable_draw();
 
+			fan::camera* get_camera();
+
 		protected:
 
 			void initialize();
