@@ -33,10 +33,10 @@ fan_2d::graphics::gui::text_renderer::text_renderer(fan::camera* camera) :
 	sprite::initialize();
 
 	if (!font_image) {
-		font_image = fan_2d::graphics::load_image(camera->m_window, "fonts/space_mono.webp");
+		font_image = fan_2d::graphics::load_image(camera->m_window, "fonts/bitter.webp");
 	}
 
-	font = fan::font::parse_font("fonts/space_mono_metrics.txt");
+	font = fan::font::parse_font("fonts/bitter_metrics.txt");
 	/*font_info.font[' '] = fan::font::font_t({ 0, fan::vec2(fan_2d::graphics::gui::font_properties::space_width, font_info.line_height), 0, (fan::vec2::value_type)fan_2d::graphics::gui::font_properties::space_width });
 	font_info.font['\n'] = fan::font::font_t({ 0, fan::vec2(0, font_info.line_height), 0, 0 });*/
 
