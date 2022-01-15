@@ -94,7 +94,7 @@ namespace fan_2d {
 					fan::vec2 position;
 					fan::color text_color;
 					fan::color outline_color = fan::color(0, 0, 0, 0);
-					f32_t outline_size = 0.25;
+					f32_t outline_size = 0.3;
 				};
 
 				text_renderer(fan::camera* camera);
