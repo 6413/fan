@@ -487,6 +487,9 @@ namespace fan_2d {
 
 			protected:
 
+				using rectangle::get_color;
+				using rectangle::set_color;
+
 				std::function<void(void*, uint64_t)> m_index_change_cb;
 
 				void* m_gp = nullptr;
@@ -497,7 +500,8 @@ namespace fan_2d {
 			enum class mouse_stage {
 				outside,
 				inside,
-				outside_drag
+				outside_drag,
+				inside_drag // when dragged from other element and released inside other element
 			};
 
 			namespace base {
@@ -598,13 +602,24 @@ namespace fan_2d {
 									}
 									else {
 										object->lib_add_on_input(m_focused_button_id, key, fan::key_state::release, mouse_stage::outside);
+
+										for (int i = object->size(); i--; ) {
+											if (object->inside(i) && !object->locked(i)) {
+												object->lib_add_on_input(i, key, fan::key_state::release, mouse_stage::inside_drag);
+												m_focused_button_id = i;
+												break;
+											}
+										}
+
 										if (on_input_function) {
 											pointer_remove_flag = 1;
 											on_input_function(m_focused_button_id, key, fan::key_state::release, mouse_stage::outside);
+
 											if (pointer_remove_flag == 0) {
 												return;
 												//rtb is deleted
 											}
+
 											pointer_remove_flag = 0;
 										}
 									}
@@ -1568,6 +1583,7 @@ namespace fan_2d {
 				bool inside(uintptr_t i, const fan::vec2& position = fan::math::inf) const;
 
 				void set_text(uint32_t i, const fan::utf16_string& text);
+				void set_size(uint32_t i, const fan::vec2& size);
 
 				fan::color get_text_color(uint32_t i) const;
 				void set_text_color(uint32_t i, const fan::color& color);
@@ -1802,6 +1818,61 @@ namespace fan_2d {
 
 				std::vector<fan_2d::graphics::gui::theme> m_theme;
 				std::vector<uint32_t> m_reserved;
+
+			};
+
+			// text color needs to be less than 1.0 or 255 in rgb to see color change
+			struct text_renderer_clickable : 
+				public text_renderer,
+				public base::mouse<text_renderer_clickable>
+			{
+
+				struct properties_t : public text_renderer::properties_t {
+					fan::vec2 hitbox_position; // middle
+					fan::vec2 hitbox_size; // half
+				};
+
+				text_renderer_clickable(fan::camera* camera);
+
+				void lib_add_on_input(uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage);
+
+				void lib_add_on_mouse_event(uint32_t i, fan_2d::graphics::gui::mouse_stage stage);
+
+				void push_back(const text_renderer_clickable::properties_t& properties);
+
+				// hitbox is half size
+				void set_hitbox(uint32_t i, const fan::vec2& hitbox_position, const fan::vec2& hitbox_size);
+
+				fan::vec2 get_hitbox_position(uint32_t i) const;
+				void set_hitbox_position(uint32_t i, const fan::vec2& hitbox_position);
+				// hitbox is half size
+				fan::vec2 get_hitbox_size(uint32_t i) const;
+				void set_hitbox_size(uint32_t i, const fan::vec2& hitbox_size);
+
+				bool inside(uint32_t i, const fan::vec2& p = fan::math::inf) const;
+				bool locked(uint32_t i) const { return 0; }
+
+				static constexpr f32_t hover_strength = 0.2;
+				static constexpr f32_t click_strength = 0.3;
+
+				using text_renderer::sprite::get_camera;
+
+			protected:
+
+				using text_renderer::erase;
+				using text_renderer::insert;
+
+				struct hitbox_t {
+					fan::vec2 hitbox_position; // middle
+					fan::vec2 hitbox_size; // half
+				};
+
+				std::vector<hitbox_t> m_hitboxes;
+
+				// 0 nothing
+				// 1 press
+				// 2 hover
+				std::vector<uint8_t> previous_states;
 
 			};
 

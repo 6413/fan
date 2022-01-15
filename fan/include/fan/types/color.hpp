@@ -97,7 +97,7 @@ namespace fan {
 			return *this;
 		}
 		constexpr bool operator!=(const color& color_) const {
-			return r != color_.r && g != color_.g && b != color_.b;
+			return r != color_.r || g != color_.g || b != color_.b;
 		}
 		constexpr bool operator==(const color& color_) const {
 			return r == color_.r && g == color_.g && b == color_.b && a == color_.a;

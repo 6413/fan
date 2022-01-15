@@ -447,7 +447,7 @@ void fan_2d::graphics::gui::text_renderer::edit_data(uint32_t begin, uint32_t en
 
 	end_ = begin_;
 
-	for (int i = begin_; i < end; i++) {
+	for (int i = begin; i < end; i++) {
 		end_ += m_text[i].size();
 	}
 
