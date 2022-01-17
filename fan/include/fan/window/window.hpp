@@ -504,6 +504,7 @@ namespace fan {
 
 		fan::vec2i m_position;
 
+		bool call_mouse_move_cb = false;
 		fan::vec2i m_mouse_position;
 
 		uintptr_t m_max_fps;
@@ -569,7 +570,7 @@ namespace fan {
 			HANDLE data = GetClipboardData(CF_UNICODETEXT);
 
 			if (data == nullptr) {
-				throw std::runtime_error("clipboard data was nullptr");
+				return L"";
 			}
 
 			wchar_t* text = static_cast<wchar_t*>(GlobalLock(data));
