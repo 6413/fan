@@ -1,7 +1,7 @@
 typedef BLL_set_type_node CONCAT2(BLL_set_prefix, _NodeReference_t);
 
 typedef struct{
-	fan::VEC_t nodes;
+	fan::vector_t nodes;
 	CONCAT2(BLL_set_prefix, _NodeReference_t) src;
 	CONCAT2(BLL_set_prefix, _NodeReference_t) dst;
 	struct{

@@ -688,6 +688,13 @@ void FED_AddCharacterToCursor(FED_t *wed, FED_CursorReference_t CursorReference,
 	FED_LineReference_t LineReference = Cursor->FreeStyle.LineReference;
 	_FED_LineList_Node_t *LineNode = _FED_LineList_GetNodeByReference(&wed->LineList, LineReference);
 	_FED_Line_t *Line = &LineNode->data.data;
+
+	if (_FED_CharacterList_usage(&Line->CharacterList) == wed->LineCharacterLimit) {
+		return;
+	}
+	if (Line->TotalWidth + width > wed->LineWidth) {
+		return;
+	}
 	FED_CharacterReference_t CharacterReference = _FED_CharacterList_NewNode(&Line->CharacterList);
 	_FED_CharacterList_linkNext(&Line->CharacterList, Cursor->FreeStyle.CharacterReference, CharacterReference);
 	_FED_Character_t *Character = &_FED_CharacterList_GetNodeByReference(
@@ -1288,14 +1295,14 @@ void FED_SetLineWidth(FED_t *wed, uint32_t LineWidth){
 	}
 }
 
-typedef void (*FED_ExportLine_DataCB_t)(fan::VEC_t *TextVector, FED_Data_t Data);
+typedef void (*FED_ExportLine_DataCB_t)(fan::vector_t *TextVector, FED_Data_t Data);
 
 static
 void FED_ExportLine(
 	FED_t *wed,
 	FED_LineReference_t LineReference,
-	fan::VEC_t *TextVector,
-	fan::VEC_t *CursorVector,
+	fan::vector_t *TextVector,
+	fan::vector_t *CursorVector,
 	bool *IsEndLine,
 	FED_ExportLine_DataCB_t DataCB
 ){

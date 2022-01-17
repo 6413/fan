@@ -574,6 +574,12 @@ namespace fan_2d {
 										}
 									}
 									else {
+										for (int i = object->size(); i--; ) {
+											object->lib_add_on_input(i, key, state, mouse_stage::outside);
+											if (on_input_function) {
+												on_input_function(i, key, state, mouse_stage::outside);
+											}
+										}
 										return; // clicked at space
 									}
 								}
@@ -786,7 +792,7 @@ namespace fan_2d {
 				// nanoseconds
 				inline fan::time::nanoseconds blink_speed = 500000000;
 				// i dont suggest changing for now, need to do srcdst - size / 2
-				inline auto line_thickness = 1;
+				inline f32_t line_thickness = 1;
 			}
 
 
@@ -808,28 +814,23 @@ namespace fan_2d {
 
 				uint32_t text_callback_id = -1;
 				uint32_t keys_callback_id = -1;
+				uint32_t mouse_move_callback_id = -1;
+
+				fan::vec2 click_begin;
 
 				text_input(T* base) :
 					render_cursor(false), m_cursor(base->get_camera()), m_box(base), cursor_timer(cursor_properties::blink_speed)
 				{
 					m_cursor.disable_draw();
 
-					fan_2d::graphics::rectangle::properties_t properties;
-					properties.color = cursor_properties::color;
-					m_cursor.push_back(properties);
 					cursor_timer.start();
 
 					keys_callback_id = base->get_camera()->m_window->add_keys_callback([&](fan::window*, uint16 key, fan::key_state state) {
 
 						auto current_focus = focus::get_focus();
 
-						if (current_focus.i != fan::uninitialized && current_focus.i >= m_input_allowed.size()) {
-							assert(0);
-						}
-
 						if (
 							current_focus.shape == nullptr ||
-							state == fan::key_state::release || 
 							current_focus.window_id != m_box->get_camera()->m_window->get_handle() ||  
 							current_focus.i == focus::no_focus ||
 							current_focus.shape != (void*)this || 
@@ -838,8 +839,67 @@ namespace fan_2d {
 							return;
 						}
 
+						switch (state) {
+							case fan::key_state::press:{
+
+								if (mouse_move_callback_id != -1) {
+									break;
+								}
+
+								click_begin = fan::cast<f32_t>(m_box->get_camera()->m_window->get_mouse_position()) - m_box->get_text_starting_point(current_focus.i);
+								
+								mouse_move_callback_id = m_box->get_camera()->m_window->add_mouse_move_callback([&](fan::window*, const fan::vec2& p) {
+									if (!m_box->get_camera()->m_window->key_press(fan::mouse_left)) {
+										return;
+									}
+
+									auto current_focus = focus::get_focus();
+
+									if (current_focus.shape == nullptr ||
+											current_focus.window_id != m_box->get_camera()->m_window->get_handle() ||
+											current_focus.i == focus::no_focus ||
+											current_focus.shape != (void*)this ||
+											!m_input_allowed[current_focus.i])
+									{
+										return;
+									}
+
+									fan::vec2 src = click_begin;
+									// dst release
+									fan::vec2 dst = fan::cast<f32_t>(m_box->get_camera()->m_window->get_mouse_position()) - m_box->get_text_starting_point(current_focus.i);
+									dst.x = fan::clamp(dst.x, (f32_t)0, dst.x);
+
+									FED_LineReference_t FirstLineReference = _FED_LineList_GetNodeFirst(&m_wed[current_focus.i].LineList);
+									FED_LineReference_t LineReference0, LineReference1;
+									FED_CharacterReference_t CharacterReference0, CharacterReference1;
+									FED_GetLineAndCharacter(&m_wed[current_focus.i], FirstLineReference, src.y, src.x * line_multiplier, &LineReference0, &CharacterReference0);
+									FED_GetLineAndCharacter(&m_wed[current_focus.i], FirstLineReference, dst.y, dst.x * line_multiplier, &LineReference1, &CharacterReference1);
+									FED_ConvertCursorToSelection(&m_wed[current_focus.i], cursor_reference[current_focus.i], LineReference0, CharacterReference0, LineReference1, CharacterReference1);
+
+									update_cursor(current_focus.i);
+
+									render_cursor = true;
+									cursor_timer.restart();
+									m_cursor.enable_draw();
+								});
+
+								break;
+							}
+							case fan::key_state::release: {
+
+								if (mouse_move_callback_id != -1) {
+									m_box->get_camera()->m_window->remove_mouse_move_callback(mouse_move_callback_id);
+									mouse_move_callback_id = -1;
+								}
+
+								return;
+								break;
+							}
+						}
+
 						render_cursor = true;
 						cursor_timer.restart();
+						m_cursor.enable_draw();
 
 						switch (key) {
 							case fan::key_backspace: {
@@ -847,6 +907,7 @@ namespace fan_2d {
 									backspace_callback(current_focus.i);
 									FED_DeleteCharacterFromCursor(&m_wed[current_focus.i], cursor_reference[current_focus.i]);
 									m_box->set_text(current_focus.i, " ");
+
 									break;
 								}
 
@@ -942,9 +1003,11 @@ namespace fan_2d {
 							}
 							case fan::mouse_left: {
 
-								/*fan::vec2 src = m_box->get_camera()->m_window->get_mouse_position() - m_box->get_text_starting_point(current_focus.i);
-								fan::vec2 dst = src + fan::vec2(cursor_properties::line_thickness, fan_2d::graphics::gui::text_renderer::font_info.font['\n'].size.y *
-									fan_2d::graphics::gui::text_renderer::convert_font_size(m_box->get_font_size(current_focus.i)));
+								// src press
+								fan::vec2 src = fan::cast<f32_t>(m_box->get_camera()->m_window->get_mouse_position()) - m_box->get_text_starting_point(current_focus.i);
+								// dst release
+								src.x = fan::clamp(src.x, (f32_t)0, src.x);
+								fan::vec2 dst = src;
 
 								FED_LineReference_t FirstLineReference = _FED_LineList_GetNodeFirst(&m_wed[current_focus.i].LineList);
 								FED_LineReference_t LineReference0, LineReference1;
@@ -953,7 +1016,7 @@ namespace fan_2d {
 								FED_GetLineAndCharacter(&m_wed[current_focus.i], FirstLineReference, dst.y, dst.x * line_multiplier, &LineReference1, &CharacterReference1);
 								FED_ConvertCursorToSelection(&m_wed[current_focus.i], cursor_reference[current_focus.i], LineReference0, CharacterReference0, LineReference1, CharacterReference1);
 
-								update_cursor(current_focus.i);*/
+								update_cursor(current_focus.i);
 
 								break;
 							}
@@ -961,7 +1024,13 @@ namespace fan_2d {
 
 								if (m_box->get_camera()->m_window->key_press(fan::key_control)) {
 									
-									//get_clipboard_text()
+									auto pasted_text = fan::io::get_clipboard_text(m_box->get_camera()->m_window->get_handle());
+
+									for (int i = 0; i < pasted_text.size(); i++) {
+										add_character(&m_wed[current_focus.i], &cursor_reference[current_focus.i], pasted_text[i], m_box->get_font_size(current_focus.i));
+									}
+
+									update_text(current_focus.i);
 								}
 
 								break;
@@ -985,19 +1054,22 @@ namespace fan_2d {
 
 						render_cursor = true;
 						cursor_timer.restart();
+						
+						m_cursor.enable_draw();
 
 						fan::utf8_string utf8;
 						utf8.push_back(character);
 
 						auto wc = utf8.to_utf16()[0];
 
-						FED_AddCharacterToCursor(&m_wed[current_focus.i], cursor_reference[current_focus.i], character, fan_2d::graphics::gui::text_renderer::font.font[wc].metrics.size.x * fan_2d::graphics::gui::text_renderer::convert_font_size(m_box->get_font_size(current_focus.i)) * line_multiplier);
+						f32_t font_size = m_box->get_font_size(current_focus.i);
+						add_character(&m_wed[current_focus.i], &cursor_reference[current_focus.i], character, font_size);
 
-						fan::VEC_t text_vector;
-						VEC_init(&text_vector, sizeof(uint8_t));
+						fan::vector_t text_vector;
+						vector_init(&text_vector, sizeof(uint8_t));
 
-						fan::VEC_t cursor_vector;
-						VEC_init(&cursor_vector, sizeof(FED_ExportedCursor_t));
+						fan::vector_t cursor_vector;
+						vector_init(&cursor_vector, sizeof(FED_ExportedCursor_t));
 
 						uint32_t line_index = 0;
 						FED_LineReference_t line_reference = FED_GetLineReferenceByLineIndex(&m_wed[current_focus.i], 0);
@@ -1048,13 +1120,9 @@ namespace fan_2d {
 
 							auto src_dst = get_cursor_src_dst(current_focus.i, exported_cursor->x, exported_cursor->y);
 
-							fan::vec2 size = { 0.5,
-								fan_2d::graphics::gui::text_renderer::font.line_height *
-								fan_2d::graphics::gui::text_renderer::convert_font_size(m_box->get_font_size(i)) / 2
-							};
-
-							m_cursor.set_position(0, src_dst.src - size / 2);
-							m_cursor.set_size(0, size);
+							m_cursor.set_position(0, src_dst.src);
+							m_cursor.set_size(0, src_dst.dst);
+							update_cursor(current_focus.i);
 
 						}
 					});
@@ -1072,6 +1140,16 @@ namespace fan_2d {
 						text_callback_id = -1;
 					}
 
+					if (m_draw_index2 != -1) {
+						m_cursor.m_camera->m_window->erase_draw_call(m_draw_index2);
+						m_draw_index2 = -1;
+					}
+
+					if (mouse_move_callback_id != -1) {
+						m_box->get_camera()->m_window->remove_mouse_move_callback(mouse_move_callback_id);
+						mouse_move_callback_id = -1;
+					}
+
 					auto focus = focus::get_focus();
 
 					if (focus.shape == this) {
@@ -1081,7 +1159,24 @@ namespace fan_2d {
 						fp.window_id = 0;
 						focus::set_focus(fp);
 					}
+				}
 
+				void add_character(FED_t* wed, FED_CursorReference_t* cursor_reference, FED_Data_t character, f32_t font_size) {
+
+					auto found = fan_2d::graphics::gui::text_renderer::font.font.find(character);
+
+					if (found == fan_2d::graphics::gui::text_renderer::font.font.end()) {
+						return;
+					}
+
+					auto letter = fan_2d::graphics::gui::text_renderer::get_letter_info(character, font_size);
+
+					FED_AddCharacterToCursor(
+						wed, 
+						*cursor_reference,
+						character,
+						letter.metrics.advance * line_multiplier
+					);
 				}
 
 				// must be called after T::push_back
@@ -1092,6 +1187,12 @@ namespace fan_2d {
 					cursor_reference.emplace_back(FED_cursor_open(&m_wed[offset]));
 
 					m_input_allowed.emplace_back(false);
+
+					auto str = m_box->get_text(offset);
+
+					for (int i = 0; i < str.size(); i++) {
+						add_character(&m_wed[offset], &cursor_reference[offset], str[i], m_box->get_font_size(offset));
+					}
 
 					update_cursor(m_box->size() - 1);
 				}
@@ -1115,25 +1216,27 @@ namespace fan_2d {
 					}
 				}
 
+				uint32_t m_draw_index2 = -1;
+
 				void enable_draw() {
-					if (m_cursor.m_draw_index == -1 || m_cursor.m_camera->m_window->m_draw_queue[m_cursor.m_draw_index].first != this) {
-						m_cursor.m_draw_index = m_cursor.m_camera->m_window->push_draw_call(this, [&] {
+					if (m_draw_index2 == -1 || m_cursor.m_camera->m_window->m_draw_queue[m_draw_index2].first != this) {
+						m_draw_index2 = m_cursor.m_camera->m_window->push_draw_call(this, [&] {
 							this->draw();
 						});
 					}
 					else {
-						m_cursor.m_camera->m_window->edit_draw_call(m_cursor.m_draw_index, this, [&] {
+						m_cursor.m_camera->m_window->edit_draw_call(m_draw_index2, this, [&] {
 							this->draw();
 						});
 					}
 				}
 				void disable_draw() {
-					if (m_cursor.m_draw_index == -1) {
+					if (m_draw_index2 == -1) {
 						return;
 					}
 
-					m_cursor.m_camera->m_window->erase_draw_call(m_cursor.m_draw_index);
-					m_cursor.m_draw_index = -1;
+					m_cursor.m_camera->m_window->erase_draw_call(m_draw_index2);
+					m_draw_index2 = -1;
 				}
 
 				void draw() {
@@ -1141,16 +1244,17 @@ namespace fan_2d {
 					if (cursor_timer.finished()) {
 						render_cursor = !render_cursor;
 						cursor_timer.restart();
+
+						auto focus_ = focus::get_focus();
+
+						if (render_cursor && focus_ == get_focus_info() && m_input_allowed[focus_.i]) {
+							m_cursor.enable_draw();
+						}
+						else {
+							m_cursor.disable_draw();
+						}
 					}
 
-					auto focus = focus::get_focus();
-
-					if (render_cursor && focus == get_focus_info() && m_input_allowed[focus.i]) {
-						m_cursor.enable_draw();
-					}
-					else {
-						//m_cursor.disable_draw();
-					}
 				}
 
 				focus::properties_t get_focus_info() const {
@@ -1219,7 +1323,7 @@ namespace fan_2d {
 				T* m_box;
 				fan_2d::graphics::rectangle m_cursor;
 
-				static void utf8_data_callback(fan::VEC_t* string, FED_Data_t data) {
+				static void utf8_data_callback(fan::vector_t* string, FED_Data_t data) {
 					uint8_t size = fan::utf8_get_sizeof_character(data);
 					for(uint8_t i = 0; i < size; i++){
 						{
@@ -1238,11 +1342,11 @@ namespace fan_2d {
 
 				void update_text(uint32_t i) {
 
-					fan::VEC_t text_vector;
-					VEC_init(&text_vector, sizeof(uint8_t));
+					fan::vector_t text_vector;
+					vector_init(&text_vector, sizeof(uint8_t));
 
-					fan::VEC_t cursor_vector;
-					VEC_init(&cursor_vector, sizeof(FED_ExportedCursor_t));
+					fan::vector_t cursor_vector;
+					vector_init(&cursor_vector, sizeof(FED_ExportedCursor_t));
 
 					bool is_endline;
 
@@ -1285,15 +1389,18 @@ namespace fan_2d {
 						return;
 					}
 
-					fan::VEC_t text_vector;
-					VEC_init(&text_vector, sizeof(uint8_t));
+					fan::vector_t text_vector;
+					vector_init(&text_vector, sizeof(uint8_t));
 
-					fan::VEC_t cursor_vector;
-					VEC_init(&cursor_vector, sizeof(FED_ExportedCursor_t));
+					fan::vector_t cursor_vector;
+					vector_init(&cursor_vector, sizeof(FED_ExportedCursor_t));
 
 					uint32_t line_index = 0; /* we dont know which line we are at so */
 					FED_LineReference_t line_reference = FED_GetLineReferenceByLineIndex(&m_wed[i], 0);
-
+				//auto t = fan::time::clock::now();
+					
+					m_cursor.clear();
+					//fan::print(fan::time::clock::elapsed(t));
 					while(1){
 						bool is_endline;
 						FED_ExportLine(&m_wed[i], line_reference, &text_vector, &cursor_vector, &is_endline, utf8_data_callback);
@@ -1305,13 +1412,12 @@ namespace fan_2d {
 
 							auto src_dst = get_cursor_src_dst(i, exported_cursor->x, line_index);
 
-							fan::vec2 size = { 0.5, 
-								fan_2d::graphics::gui::text_renderer::font.line_height *
-								fan_2d::graphics::gui::text_renderer::convert_font_size(m_box->get_font_size(i)) / 2
-							};
+							fan_2d::graphics::rectangle::properties_t cursor_properties;
+							cursor_properties.color = cursor_properties::color;
+							cursor_properties.position = src_dst.src;
+							cursor_properties.size = src_dst.dst;
 
-							m_cursor.set_position(0, src_dst.src - size / 2);
-							m_cursor.set_size(0, size);
+							m_cursor.push_back(cursor_properties);
 						}
 
 						cursor_vector.Current = 0;
@@ -1332,11 +1438,11 @@ namespace fan_2d {
 
 					std::vector<src_dst_t> cursor_src_dsts;
 
-					fan::VEC_t text_vector;
-					VEC_init(&text_vector, sizeof(uint8_t));
+					fan::vector_t text_vector;
+					vector_init(&text_vector, sizeof(uint8_t));
 
-					fan::VEC_t cursor_vector;
-					VEC_init(&cursor_vector, sizeof(FED_ExportedCursor_t));
+					fan::vector_t cursor_vector;
+					vector_init(&cursor_vector, sizeof(FED_ExportedCursor_t));
 
 					uint32_t line_index = 0;
 					FED_LineReference_t line_reference = FED_GetLineReferenceByLineIndex(&m_wed[i], 0);

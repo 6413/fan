@@ -992,7 +992,7 @@ bool fan_2d::graphics::rectangle::write(write_t* write, void* ptr, uintptr_t* si
 
 void fan_2d::graphics::rectangle::enable_draw()
 {
-	if (m_draw_index == -1 || m_camera->m_window->m_draw_queue[m_draw_index].first != this) {
+	if (m_draw_index == -1 || (m_draw_index != -1 && m_camera->m_window->m_draw_queue[m_draw_index].first != this)) {
 		m_draw_index = m_camera->m_window->push_draw_call(this, [&] {
 			this->draw();
 		});
@@ -1191,6 +1191,10 @@ void fan_2d::graphics::rectangle::erase(uint32_t begin, uint32_t end)
 
 void fan_2d::graphics::rectangle::clear()
 {
+	if (color_t::m_buffer_object.empty()) {
+		return;
+	}
+
 	color_t::clear();
 	position_t::clear();
 	size_t::clear();

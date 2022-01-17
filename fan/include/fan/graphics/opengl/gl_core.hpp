@@ -9,7 +9,7 @@
 #include <fan/graphics/camera.hpp>
 #include <fan/graphics/opengl/gl_shader.hpp>
 
-#define fan_debug
+//#define fan_debug
 
 namespace fan {
 

@@ -91,10 +91,10 @@ static
 void
 CONCAT2(BLL_set_prefix, _open)
 (CONCAT2(BLL_set_prefix, _t) *list){
-	fan::VEC_init(&list->nodes, sizeof(CONCAT2(BLL_set_prefix, _Node_t)));
+	fan::vector_init(&list->nodes, sizeof(CONCAT2(BLL_set_prefix, _Node_t)));
 	list->e.c = 0;
 	list->e.p = 0;
-	VEC_handle0(&list->nodes, 2);
+	vector_handle0(&list->nodes, 2);
 	list->src = 0;
 	list->dst = 1;
 
@@ -105,7 +105,7 @@ static
 void
 CONCAT2(BLL_set_prefix, _close)
 (CONCAT2(BLL_set_prefix, _t) *list){
-	fan::VEC_free(&list->nodes);
+	fan::vector_free(&list->nodes);
 }
 
 static

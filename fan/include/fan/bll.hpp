@@ -364,3 +364,7 @@ struct bll_t {
 
 	std::vector<node_t> nodes;
 };
+
+#undef BLL_set_SafeNext
+
+#undef BLL_set_debug_InvalidAction

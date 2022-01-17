@@ -420,8 +420,9 @@ void fan::window::execute(const std::function<void()>& function)
 	it = m_draw_queue.begin();
 
 	while (it != m_draw_queue.end()) {
+		m_draw_queue.start_safe_next(it);
 		m_draw_queue[it].second();
-		it = m_draw_queue.next(it);
+		it = m_draw_queue.end_safe_next();
 	}
 
 	for (const auto& i : m_onetime_queue) {
@@ -448,6 +449,22 @@ void fan::window::execute(const std::function<void()>& function)
 #if fan_renderer == fan_renderer_opengl
 	this->swap_buffers();
 #endif
+
+	if (call_mouse_move_cb) {
+
+		auto it = m_mouse_move_position_callback.begin();
+		while (it != m_mouse_move_position_callback.end()) {
+
+			m_mouse_move_position_callback.start_safe_next(it);
+
+			m_mouse_move_position_callback[it](this, m_mouse_position);
+
+			it = m_mouse_move_position_callback.end_safe_next();
+		}
+	}
+
+	m_previous_mouse_position = m_mouse_position;
+	call_mouse_move_cb = false;
 
 	this->reset_keys();
 }
@@ -1336,18 +1353,10 @@ LRESULT fan::window::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 				return position.x >= 0 && position.x < window_size.x&&
 					position.y >= 0 && position.y < window_size.y;
 			};
-
-			window->m_previous_mouse_position = window->m_mouse_position;
+			
 			window->m_mouse_position = position;
 
-			auto it = window->m_mouse_move_position_callback.begin();
-
-			while (it != window->m_mouse_move_position_callback.end()) {
-
-				window->m_mouse_move_position_callback[it](window, window->m_mouse_position);
-
-				it = window->m_mouse_move_position_callback.next(it);
-			}
+			window->call_mouse_move_cb = true;
 
 			break;
 		}
