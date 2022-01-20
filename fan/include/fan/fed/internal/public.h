@@ -695,6 +695,7 @@ void FED_AddCharacterToCursor(FED_t *wed, FED_CursorReference_t CursorReference,
 	if (Line->TotalWidth + width > wed->LineWidth) {
 		return;
 	}
+
 	FED_CharacterReference_t CharacterReference = _FED_CharacterList_NewNode(&Line->CharacterList);
 	_FED_CharacterList_linkNext(&Line->CharacterList, Cursor->FreeStyle.CharacterReference, CharacterReference);
 	_FED_Character_t *Character = &_FED_CharacterList_GetNodeByReference(

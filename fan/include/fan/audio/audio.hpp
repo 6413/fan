@@ -17,7 +17,6 @@
 	#pragma comment(lib, "lib/opus/opus.lib")
 	#pragma comment(lib, "lib/ogg/libogg.lib")
 	#pragma comment(lib, "lib/opus/opusfile.lib")
-	#pragma comment(lib, "lib/WITCH/uv/uv.lib")
 #endif
 
 namespace fan {
@@ -28,6 +27,8 @@ namespace fan {
 		namespace{
 			namespace constants{
 				const uint32_t opus_decode_sample_rate = 48000;
+
+				const f32_t OneSampleTime = (f32_t)1 / opus_decode_sample_rate;
 
 				const uint32_t CallFrameCount = 480;
 				const uint32_t ChannelAmount = 2;
@@ -151,16 +152,23 @@ namespace fan {
 		}
 
 		struct properties_play_t {
-			bool loop = 0;
-			f32_t FadeOutFrom = 0;
-			f32_t FadeOutTo = 0;
+			struct{
+				uint32_t Loop : 1 = false;
+				uint32_t FadeIn : 1 = false;
+				uint32_t FadeOut : 1 = false;
+			}Flags;
+			f32_t FadeFrom;
+			f32_t FadeTo;
 		};
 		struct properties_stop_t{
-			struct{
-				uint32_t ThreadSafe : 1 = true;
-			}Flags;
 			f32_t FadeOutTo = 0;
 		};
+		namespace{
+			struct properties_stop_queue_t{
+				uint32_t PlayReference;
+				properties_stop_t PropertiesStop;
+			};
+		}
 
 		namespace{
 			struct play_info_t {
@@ -171,23 +179,38 @@ namespace fan {
 				uint64_t offset;
 			};
 		}
-		void play_reference_stop(audio_t *audio, uint32_t play_reference, const properties_stop_t *properties_stop){
-			if(properties_stop->FadeOutTo != 0){
-				play_info_t *play_info = (play_info_t *)VAS1_out(&audio->play_info_list, play_reference);
-				play_info->properties.FadeOutTo = properties_stop->FadeOutTo;
-				return;
+		namespace{
+			void internal_play_reference_stop(audio_t *audio, uint32_t play_reference, const properties_stop_t *properties_stop){
+				if(properties_stop->FadeOutTo != 0){
+					play_info_t *play_info = (play_info_t *)VAS1_out(&audio->play_info_list, play_reference);
+					if(play_info->properties.Flags.FadeIn){
+						play_info->properties.Flags.FadeIn = false;
+						play_info->properties.Flags.FadeOut = true;
+						f32_t CurrentVolume = play_info->properties.FadeFrom / play_info->properties.FadeTo;
+						play_info->properties.FadeTo = properties_stop->FadeOutTo;
+						play_info->properties.FadeFrom = ((f32_t)1 - CurrentVolume) * play_info->properties.FadeTo;
+					}
+					else{
+						play_info->properties.FadeFrom = 0;
+						play_info->properties.FadeTo = properties_stop->FadeOutTo;
+						play_info->properties.Flags.FadeOut = true;
+					}
+				}
+				else{
+					TH_lock(&audio->play_info_list_mutex);
+					VAS1_unlink(&audio->play_info_list, play_reference);
+					TH_unlock(&audio->play_info_list_mutex);
+				}
 			}
-			if(properties_stop->Flags.ThreadSafe == true){
-				TH_lock(&audio->StopQueueMutex);
-				VEC_handle0(&audio->StopQueue, 1);
-				audio->StopQueue.ptr[audio->StopQueue.Current - 1] = play_reference;
-				TH_unlock(&audio->StopQueueMutex);
-			}
-			else{
-				TH_lock(&audio->play_info_list_mutex);
-				VAS1_unlink(&audio->play_info_list, play_reference);
-				TH_unlock(&audio->play_info_list_mutex);
-			}
+		}
+		void play_reference_stop(audio_t *audio, uint32_t PlayReference, const properties_stop_t *PropertiesStop){
+			TH_lock(&audio->StopQueueMutex);
+			VEC_handle0(&audio->StopQueue, 1);
+			properties_stop_queue_t *properties_stop_queue = &((properties_stop_queue_t *)audio->StopQueue.ptr)[audio->StopQueue.Current - 1];
+			properties_stop_queue->PlayReference = PlayReference;
+			properties_stop_queue->PropertiesStop = *PropertiesStop;
+			audio->StopQueue.ptr[audio->StopQueue.Current - 1] = PlayReference;
+			TH_unlock(&audio->StopQueueMutex);
 		}
 		namespace{
 			void data_callback(ma_device *Device, void *Output, const void *Input, ma_uint32 FrameCount){
@@ -203,7 +226,13 @@ namespace fan {
 					TH_lock(&audio->play_info_list_mutex);
 					TH_lock(&audio->StopQueueMutex);
 					for(uint32_t i = 0; i < audio->StopQueue.Current; i++){
-						VAS1_unlink(&audio->play_info_list, audio->StopQueue.ptr[i]);
+						properties_stop_queue_t *properties_stop_queue = &((properties_stop_queue_t *)audio->StopQueue.ptr)[i];
+						if(properties_stop_queue->PropertiesStop.FadeOutTo){
+							internal_play_reference_stop(audio, properties_stop_queue->PlayReference, &properties_stop_queue->PropertiesStop);
+						}
+						else{
+							VAS1_unlink(&audio->play_info_list, audio->StopQueue.ptr[i]);
+						}
 					}
 					audio->StopQueue.Current = 0;
 					TH_unlock(&audio->StopQueueMutex);
@@ -222,28 +251,33 @@ namespace fan {
 					uint32_t OutputIndex = 0;
 					uint32_t CanBeReadFrameCount;
 					struct{
-						f32_t FadeOutPerFrame;
+						f32_t FadePerFrame;
 					}CalculatedVariables;
 					gt_ReOffset:
 					CanBeReadFrameCount = piece->raw_size - play_info->offset;
 					if(CanBeReadFrameCount > constants::CallFrameCount){
 						CanBeReadFrameCount = constants::CallFrameCount;
 					}
-					if(play_info->properties.FadeOutTo){
-						f32_t TotalFade = play_info->properties.FadeOutTo - play_info->properties.FadeOutFrom;
+					if(play_info->properties.Flags.FadeIn || play_info->properties.Flags.FadeOut){
+						f32_t TotalFade = play_info->properties.FadeTo - play_info->properties.FadeFrom;
 						f32_t CurrentFadeTime = (f32_t)CanBeReadFrameCount / constants::opus_decode_sample_rate;
 						if(TotalFade < CurrentFadeTime){
 							CanBeReadFrameCount = TotalFade * constants::opus_decode_sample_rate;
 							if(CanBeReadFrameCount == 0){
 								uint32_t NextPlayReference = *VAS1_road0(&audio->play_info_list, play_reference);
 								properties_stop_t properties_stop;
-								properties_stop.Flags.ThreadSafe = false;
-								play_reference_stop(audio, play_reference, &properties_stop);
+								internal_play_reference_stop(audio, play_reference, &properties_stop);
 								play_reference = NextPlayReference;
 								continue;
 							}
 						}
-						CalculatedVariables.FadeOutPerFrame = (f32_t)1 / (play_info->properties.FadeOutTo * constants::opus_decode_sample_rate);
+						CalculatedVariables.FadePerFrame = (f32_t)1 / (play_info->properties.FadeTo * constants::opus_decode_sample_rate);
+						if(play_info->properties.Flags.FadeIn){
+
+						}
+						else if(play_info->properties.Flags.FadeOut){
+							CalculatedVariables.FadePerFrame *= -1;
+						}
 					}
 					while(OutputIndex != CanBeReadFrameCount){
 						f32_t *FrameCachePointer;
@@ -252,15 +286,18 @@ namespace fan {
 						if(OutputIndex + FrameCacheAmount > CanBeReadFrameCount){
 							FrameCacheAmount = CanBeReadFrameCount - OutputIndex;
 						}
-						if(play_info->properties.FadeOutTo){
-							f32_t CurrentVolume = (f32_t)1 - play_info->properties.FadeOutFrom / play_info->properties.FadeOutTo;
+						if(play_info->properties.Flags.FadeIn || play_info->properties.Flags.FadeOut){
+							f32_t CurrentVolume = play_info->properties.FadeFrom / play_info->properties.FadeTo;
+							if(play_info->properties.Flags.FadeOut){
+								CurrentVolume = (f32_t)1 - CurrentVolume;
+							}
 							for(uint32_t i = 0; i < FrameCacheAmount; i++){
 								for(uint32_t iChannel = 0; iChannel < constants::ChannelAmount; iChannel++){
 									((f32_t *)Output)[(OutputIndex + i) * constants::ChannelAmount + iChannel] += FrameCachePointer[i * constants::ChannelAmount + iChannel] * CurrentVolume;
 								}
-								CurrentVolume -= CalculatedVariables.FadeOutPerFrame;
+								CurrentVolume += CalculatedVariables.FadePerFrame;
 							}
-							play_info->properties.FadeOutFrom += (f32_t)FrameCacheAmount / constants::opus_decode_sample_rate;
+							play_info->properties.FadeFrom += (f32_t)FrameCacheAmount / constants::opus_decode_sample_rate;
 						}
 						else{
 							std::transform(
@@ -273,18 +310,22 @@ namespace fan {
 						play_info->offset += FrameCacheAmount;
 						OutputIndex += FrameCacheAmount;
 					}
-					if(play_info->properties.FadeOutTo){
-						if(play_info->properties.FadeOutFrom >= play_info->properties.FadeOutTo){
+					if(play_info->properties.Flags.FadeIn || play_info->properties.Flags.FadeOut){
+						if(play_info->properties.Flags.FadeIn){
+							if(play_info->properties.FadeFrom + constants::OneSampleTime > play_info->properties.FadeTo){
+								play_info->properties.Flags.FadeIn = false;
+							}
+						}
+						else if(play_info->properties.FadeFrom >= play_info->properties.FadeTo){
 							uint32_t NextPlayReference = *VAS1_road0(&audio->play_info_list, play_reference);
 							properties_stop_t properties_stop;
-							properties_stop.Flags.ThreadSafe = false;
-							play_reference_stop(audio, play_reference, &properties_stop);
+							internal_play_reference_stop(audio, play_reference, &properties_stop);
 							play_reference = NextPlayReference;
 							continue;
 						}
 					}
 					if(play_info->offset == piece->raw_size){
-						if(play_info->properties.loop == true){
+						if(play_info->properties.Flags.Loop == true){
 							play_info->offset = 0;
 							if(OutputIndex != constants::CallFrameCount){
 								goto gt_ReOffset;
@@ -292,8 +333,7 @@ namespace fan {
 						}
 						uint32_t NextPlayReference = *VAS1_road0(&audio->play_info_list, play_reference);
 						properties_stop_t properties_stop;
-						properties_stop.Flags.ThreadSafe = false;
-						play_reference_stop(audio, play_reference, &properties_stop);
+						internal_play_reference_stop(audio, play_reference, &properties_stop);
 						play_reference = NextPlayReference;
 					}
 					else{
@@ -318,7 +358,7 @@ namespace fan {
 			VAS1_open(&audio->play_info_list, sizeof(play_info_t), 0xfff);
 
 			TH_mutex_init(&audio->StopQueueMutex);
-			VEC_init(&audio->StopQueue, sizeof(uint32_t), A_resize);
+			VEC_init(&audio->StopQueue, sizeof(properties_stop_queue_t), A_resize);
 
 			FrameCacheList_open(&audio->FrameCacheList);
 

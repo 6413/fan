@@ -790,8 +790,7 @@ namespace fan_2d {
 			namespace cursor_properties {
 				inline fan::color color = fan::colors::white;
 				// nanoseconds
-				inline fan::time::nanoseconds blink_speed = 500000000;
-				// i dont suggest changing for now, need to do srcdst - size / 2
+				inline fan::time::nanoseconds blink_speed = 100000000;
 				inline f32_t line_thickness = 1;
 			}
 

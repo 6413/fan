@@ -304,11 +304,11 @@ namespace fan_2d {
 
 					locked(fan::window* window) : theme(window) {
 
-						button.color = fan::color(0.2, 0.2, 0.2);
-						button.outline_color = fan::color(0.3, 0.3, 0.3);
+						button.color = fan::color(0.2, 0.2, 0.2, 0.8);
+						button.outline_color = fan::color(0.3, 0.3, 0.3, 0.8);
 						button.text_color = fan_2d::graphics::gui::defaults::text_color;
 						button.text_outline_color = fan::colors::black;
-						button.text_outline_size = 5;
+						button.text_outline_size = 0.2;
 						button.outline_thickness = 2; // px
 
 						button.hover_color = button.color + 0.1;

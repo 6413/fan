@@ -32,11 +32,13 @@ fan_2d::graphics::gui::text_renderer::text_renderer(fan::camera* camera) :
 
 	sprite::initialize();
 
+	static constexpr const char* font_name = "bitter";
+
 	if (!font_image) {
-		font_image = fan_2d::graphics::load_image(camera->m_window, "fonts/comic.webp");
+		font_image = fan_2d::graphics::load_image(camera->m_window, std::string("fonts/") + font_name + ".webp");
 	}
 
-	font = fan::font::parse_font("fonts/comic_metrics.txt");
+	font = fan::font::parse_font(std::string("fonts/") + font_name + "_metrics.txt");
 
 	fan::bind_vao(sprite::vao_handler::m_buffer_object, [&] {
 		font_size_t::initialize_buffers(m_shader->id, location_font_size, false, 1);
