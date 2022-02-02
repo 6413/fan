@@ -382,9 +382,6 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::clear()
 	fan::class_duplicator<fan_2d::graphics::rectangle, 1>::clear();
 	fan_2d::graphics::gui::text_renderer::clear();
 	m_properties.clear();
-	for (int i = 0; i < theme.size(); i++) {
-		theme[i].button.clear();
-	}
 	theme.clear();
 }
 
@@ -777,7 +774,7 @@ void fan_2d::graphics::gui::circle_button::push_back(properties_t properties) {
 	m_reserved.emplace_back((uint32_t)properties.button_state);
 	if (properties.button_state == button_states_e::locked) {
 
-		properties.theme = fan_2d::graphics::gui::themes::locked(get_camera()->m_window);
+		properties.theme = fan_2d::graphics::gui::themes::locked();
 	}
 
 	fan_2d::graphics::circle::properties_t p;
@@ -791,7 +788,7 @@ void fan_2d::graphics::gui::circle_button::push_back(properties_t properties) {
 
 	if (inside(size() - 1) && properties.button_state != button_states_e::locked) {
 		circle_button::mouse::m_focused_button_id = size() - 1;
-		lib_add_on_mouse_event(circle_button::mouse::m_focused_button_id, fan_2d::graphics::gui::mouse_stage::inside);
+		lib_add_on_mouse_event(m_camera->m_window, circle_button::mouse::m_focused_button_id, fan_2d::graphics::gui::mouse_stage::inside);
 	}
 }
 
@@ -817,7 +814,7 @@ void fan_2d::graphics::gui::circle_button::set_locked(uint32_t i, bool flag) {
 			m_focused_button_id = fan::uninitialized;
 		}
 		m_reserved[i] |= (uint32_t)button_states_e::locked;
-		m_theme[i] = fan_2d::graphics::gui::themes::locked(get_camera()->m_window);
+		m_theme[i] = fan_2d::graphics::gui::themes::locked();
 		update_theme(i);
 	}
 	else {
@@ -857,7 +854,7 @@ void fan_2d::graphics::gui::circle_button::update_theme(uint32_t i) {
 	circle::set_color(i, m_theme[i].button.color);
 }
 
-void fan_2d::graphics::gui::circle_button::lib_add_on_input(uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage) {
+void fan_2d::graphics::gui::circle_button::lib_add_on_input(fan::window *window, uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage) {
 
 	if (key != fan::mouse_left) {
 		return;
@@ -889,7 +886,7 @@ void fan_2d::graphics::gui::circle_button::lib_add_on_input(uint32_t i, uint16_t
 	}
 }
 
-void fan_2d::graphics::gui::circle_button::lib_add_on_mouse_event(uint32_t i, fan_2d::graphics::gui::mouse_stage stage) {
+void fan_2d::graphics::gui::circle_button::lib_add_on_mouse_event(fan::window *window, uint32_t i, fan_2d::graphics::gui::mouse_stage stage) {
 	if (stage == mouse_stage::inside) {
 		circle::set_color(i, m_theme[i].button.hover_color);
 	}
@@ -973,7 +970,7 @@ void fan_2d::graphics::gui::rectangle_text_button::clear()
 	//rectangle_text_button::text_input::clear();
 }
 
-void fan_2d::graphics::gui::rectangle_text_button::lib_add_on_input(uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage)
+void fan_2d::graphics::gui::rectangle_text_button::lib_add_on_input(fan::window *window, uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage)
 {
 	if (key != fan::mouse_left) {
 		return;
@@ -1026,7 +1023,7 @@ void fan_2d::graphics::gui::rectangle_text_button::lib_add_on_input(uint32_t i, 
 	}
 }
 
-void fan_2d::graphics::gui::rectangle_text_button::lib_add_on_mouse_event(uint32_t i, fan_2d::graphics::gui::mouse_stage stage)
+void fan_2d::graphics::gui::rectangle_text_button::lib_add_on_mouse_event(fan::window *window, uint32_t i, fan_2d::graphics::gui::mouse_stage stage)
 {
 	
 	switch (stage) {
@@ -1067,7 +1064,7 @@ fan_2d::graphics::gui::text_renderer_clickable::text_renderer_clickable(fan::cam
 
 }
 
-void fan_2d::graphics::gui::text_renderer_clickable::lib_add_on_input(uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage) {
+void fan_2d::graphics::gui::text_renderer_clickable::lib_add_on_input(fan::window *window, uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage) {
 
 	if (key != fan::mouse_left) {
 		return;
@@ -1152,7 +1149,7 @@ void fan_2d::graphics::gui::text_renderer_clickable::lib_add_on_input(uint32_t i
 
 }
 
-void fan_2d::graphics::gui::text_renderer_clickable::lib_add_on_mouse_event(uint32_t i, fan_2d::graphics::gui::mouse_stage stage) {
+void fan_2d::graphics::gui::text_renderer_clickable::lib_add_on_mouse_event(fan::window *window, uint32_t i, fan_2d::graphics::gui::mouse_stage stage) {
 
 	switch (stage) {
 		case mouse_stage::inside: {
@@ -1271,7 +1268,7 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::push_back(properties_t 
 	m_reserved.emplace_back((uint32_t)properties.button_state);
 	if (properties.button_state == button_states_e::locked) {
 
-		properties.theme = fan_2d::graphics::gui::themes::locked(get_camera()->m_window);
+		properties.theme = fan_2d::graphics::gui::themes::locked();
 	}
 
 	rectangle_text_button_sized::rectangle_text_box_sized::push_back(properties);
@@ -1280,7 +1277,7 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::push_back(properties_t 
 
 	if (inside(size() - 1) && properties.button_state != button_states_e::locked) {
 		rectangle_text_button_sized::mouse::m_focused_button_id = size() - 1;
-		lib_add_on_mouse_event(rectangle_text_button_sized::mouse::m_focused_button_id, fan_2d::graphics::gui::mouse_stage::inside);
+		lib_add_on_mouse_event(inner_rect_t::m_camera->m_window, rectangle_text_button_sized::mouse::m_focused_button_id, fan_2d::graphics::gui::mouse_stage::inside);
 	}
 }
 
@@ -1348,10 +1345,6 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::clear()
 	rectangle_text_button_sized::rectangle_text_box_sized::clear();
 	m_reserved.clear();
 
-	for (int i = 0; i < theme.size(); i++) {
-		theme[i].button.clear();
-	}
-
 	text_input::set_focus(-1);
 
 
@@ -1367,7 +1360,7 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::set_locked(uint32_t i, 
 		}
 		m_reserved[i] |= (uint32_t)button_states_e::locked;
 		if (change_theme) {
-			theme[i] = fan_2d::graphics::gui::themes::locked(get_camera()->m_window);
+			theme[i] = fan_2d::graphics::gui::themes::locked();
 			update_theme(i);
 		}
 	}
@@ -1380,10 +1373,15 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::set_locked(uint32_t i, 
 	
 }
 
-void fan_2d::graphics::gui::rectangle_text_button_sized::lib_add_on_input(uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage)
+void fan_2d::graphics::gui::rectangle_text_button_sized::lib_add_on_input(fan::window *window, uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage)
 {
+	if (this->locked(i)) {
+		return;
+	}
 
-	if (key != fan::mouse_left || this->locked(i)) {
+	theme[i].button.m_click_callback(window, i, key, state, stage);
+
+	if (key != fan::mouse_left) {
 		return;
 	}
 
@@ -1444,12 +1442,14 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::lib_add_on_input(uint32
 	}
 }
 
-void fan_2d::graphics::gui::rectangle_text_button_sized::lib_add_on_mouse_event(uint32_t i, fan_2d::graphics::gui::mouse_stage stage)
+void fan_2d::graphics::gui::rectangle_text_button_sized::lib_add_on_mouse_event(fan::window *window, uint32_t i, fan_2d::graphics::gui::mouse_stage stage)
 {
 
 	if (this->locked(i)) {
 		return;
 	}
+
+	theme[i].button.m_hover_callback(window, i, stage);
 
 	switch (stage) {
 		case mouse_stage::inside: {
@@ -1553,11 +1553,11 @@ fan_2d::graphics::gui::sprite_text_button::sprite_text_button(fan::camera* camer
 	: fan_2d::graphics::gui::sprite_text_box(camera, path),
 	sprite_text_button::mouse(this) {}
 
-void fan_2d::graphics::gui::sprite_text_button::lib_add_on_input(uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage)
+void fan_2d::graphics::gui::sprite_text_button::lib_add_on_input(fan::window *window, uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage)
 {
 }
 
-void fan_2d::graphics::gui::sprite_text_button::lib_add_on_mouse_event(uint32_t i, fan_2d::graphics::gui::mouse_stage stage)
+void fan_2d::graphics::gui::sprite_text_button::lib_add_on_mouse_event(fan::window *window, uint32_t i, fan_2d::graphics::gui::mouse_stage stage)
 {
 }
 
@@ -1873,7 +1873,7 @@ void fan_2d::graphics::gui::checkbox::edit_data(uint32_t begin, uint32_t end) {
 	checkbox::text_renderer_t::edit_data(begin, end);
 }
 
-void fan_2d::graphics::gui::checkbox::lib_add_on_input(uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage)
+void fan_2d::graphics::gui::checkbox::lib_add_on_input(fan::window *window, uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage)
 {
 	if (key != fan::mouse_left) {
 		return;
@@ -1902,7 +1902,7 @@ void fan_2d::graphics::gui::checkbox::lib_add_on_input(uint32_t i, uint16_t key,
 	}
 }
 
-void fan_2d::graphics::gui::checkbox::lib_add_on_mouse_event(uint32_t i, fan_2d::graphics::gui::mouse_stage stage)
+void fan_2d::graphics::gui::checkbox::lib_add_on_mouse_event(fan::window *window, uint32_t i, fan_2d::graphics::gui::mouse_stage stage)
 {
 	switch (stage) {
 		case mouse_stage::inside: {
@@ -1975,7 +1975,7 @@ void fan_2d::graphics::gui::rectangle_selectable_button_sized::add_on_select(std
 	m_on_select.push_back(function);
 }
 
-void fan_2d::graphics::gui::rectangle_selectable_button_sized::lib_add_on_input(uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage)
+void fan_2d::graphics::gui::rectangle_selectable_button_sized::lib_add_on_input(fan::window *window, uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage)
 {
 	if (stage == mouse_stage::inside && state == fan::key_state::press) {
 
@@ -2045,7 +2045,7 @@ void fan_2d::graphics::gui::rectangle_selectable_button_sized::lib_add_on_input(
 	}
 }
 
-void fan_2d::graphics::gui::rectangle_selectable_button_sized::lib_add_on_mouse_event(uint32_t i, fan_2d::graphics::gui::mouse_stage stage)
+void fan_2d::graphics::gui::rectangle_selectable_button_sized::lib_add_on_mouse_event(fan::window *window, uint32_t i, fan_2d::graphics::gui::mouse_stage stage)
 {
 	switch (stage) {
     case mouse_stage::inside: {

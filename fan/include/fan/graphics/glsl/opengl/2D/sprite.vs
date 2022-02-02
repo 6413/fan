@@ -8,7 +8,8 @@ in float layout_angle;
 in vec2 layout_rotation_point;
 in vec3 layout_rotation_vector;
 in vec2 layout_texture_coordinates;
-in uint layout_RenderOPCode;
+in uint layout_RenderOPCode0;
+in uint layout_RenderOPCode1;
 
 in vec2 layout_light_position;
 in vec4 layout_light_color;
@@ -23,7 +24,9 @@ out float light_brightness;
 out float light_angle;
 
 out vec2 f_position;
-flat out uint RenderOPCode;
+flat out uint RenderOPCode0;
+flat out uint RenderOPCode1;
+out float AspectRatio;
 
 uniform mat4 projection;
 uniform mat4 view;
@@ -154,6 +157,8 @@ void main() {
 	vec2 pixel_size = 1.0 / (layout_size / 100);
 
 	i_color = layout_color;
-	RenderOPCode = layout_RenderOPCode;
+	RenderOPCode0 = layout_RenderOPCode0;
+	RenderOPCode1 = layout_RenderOPCode1;
+	AspectRatio = layout_size.x / layout_size.y;
 }
 )"
