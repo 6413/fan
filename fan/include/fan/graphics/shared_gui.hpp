@@ -497,13 +497,6 @@ namespace fan_2d {
 
 			};
 
-			enum class mouse_stage {
-				outside,
-				inside,
-				outside_drag,
-				inside_drag // when dragged from other element and released inside other element
-			};
-
 			namespace base {
 
 				// requires to have functions: 
@@ -536,23 +529,23 @@ namespace fan_2d {
 							for (int i = object->size(); i--; ) {
 								if (object->inside(i) && !object->locked(i)) {
 									if (m_focused_button_id != fan::uninitialized) {
-										object->lib_add_on_mouse_event(m_focused_button_id, mouse_stage::outside);
+										object->lib_add_on_mouse_event(object->get_camera()->m_window, m_focused_button_id, mouse_stage::outside);
 										if (on_mouse_event_function) {
-											on_mouse_event_function(m_focused_button_id, mouse_stage::outside);
+											on_mouse_event_function(object->get_camera()->m_window, m_focused_button_id, mouse_stage::outside);
 										}
 									}
 									m_focused_button_id = i;
-									object->lib_add_on_mouse_event(m_focused_button_id, mouse_stage::inside);
+									object->lib_add_on_mouse_event(object->get_camera()->m_window, m_focused_button_id, mouse_stage::inside);
 									if (on_mouse_event_function) {
-										on_mouse_event_function(m_focused_button_id, mouse_stage::inside);
+										on_mouse_event_function(object->get_camera()->m_window, m_focused_button_id, mouse_stage::inside);
 									}
 									return;
 								}
 							}
 							if (m_focused_button_id != fan::uninitialized) {
-								object->lib_add_on_mouse_event(m_focused_button_id, mouse_stage::outside);
+								object->lib_add_on_mouse_event(object->get_camera()->m_window, m_focused_button_id, mouse_stage::outside);
 								if (on_mouse_event_function) {
-									on_mouse_event_function(m_focused_button_id, mouse_stage::outside);
+									on_mouse_event_function(object->get_camera()->m_window, m_focused_button_id, mouse_stage::outside);
 								}
 								m_focused_button_id = fan::uninitialized;
 							}
@@ -568,16 +561,16 @@ namespace fan_2d {
 								if (state == fan::key_state::press) {
 									if (m_focused_button_id != fan::uninitialized) {
 										m_do_we_hold_button = 1;
-										object->lib_add_on_input(m_focused_button_id, key, fan::key_state::press, mouse_stage::inside);
+										object->lib_add_on_input(object->get_camera()->m_window, m_focused_button_id, key, fan::key_state::press, mouse_stage::inside);
 										if (on_input_function) {
-											on_input_function(m_focused_button_id, key, fan::key_state::press, mouse_stage::inside);
+											on_input_function(object->get_camera()->m_window, m_focused_button_id, key, fan::key_state::press, mouse_stage::inside);
 										}
 									}
 									else {
 										for (int i = object->size(); i--; ) {
-											object->lib_add_on_input(i, key, state, mouse_stage::outside);
+											object->lib_add_on_input(object->get_camera()->m_window, i, key, state, mouse_stage::outside);
 											if (on_input_function) {
-												on_input_function(i, key, state, mouse_stage::outside);
+												on_input_function(object->get_camera()->m_window, i, key, state, mouse_stage::outside);
 											}
 										}
 										return; // clicked at space
@@ -596,10 +589,10 @@ namespace fan_2d {
 										m_focused_button_id = fan::uninitialized;
 									}
 									else if (object->inside(m_focused_button_id) && !object->locked(m_focused_button_id)) {
-										object->lib_add_on_input(m_focused_button_id, key, fan::key_state::release, mouse_stage::inside);
+										object->lib_add_on_input(object->get_camera()->m_window, m_focused_button_id, key, fan::key_state::release, mouse_stage::inside);
 										if (on_input_function) {
 											pointer_remove_flag = 1;
-											on_input_function(m_focused_button_id, key, fan::key_state::release, mouse_stage::inside);
+											on_input_function(object->get_camera()->m_window, m_focused_button_id, key, fan::key_state::release, mouse_stage::inside);
 											if (pointer_remove_flag == 0) {
 												return;
 												//rtb is deleted
@@ -607,11 +600,11 @@ namespace fan_2d {
 										}
 									}
 									else {
-										object->lib_add_on_input(m_focused_button_id, key, fan::key_state::release, mouse_stage::outside);
+										object->lib_add_on_input(object->get_camera()->m_window, m_focused_button_id, key, fan::key_state::release, mouse_stage::outside);
 
 										for (int i = object->size(); i--; ) {
 											if (object->inside(i) && !object->locked(i)) {
-												object->lib_add_on_input(i, key, fan::key_state::release, mouse_stage::inside_drag);
+												object->lib_add_on_input(object->get_camera()->m_window, i, key, fan::key_state::release, mouse_stage::inside_drag);
 												m_focused_button_id = i;
 												break;
 											}
@@ -619,7 +612,7 @@ namespace fan_2d {
 
 										if (on_input_function) {
 											pointer_remove_flag = 1;
-											on_input_function(m_focused_button_id, key, fan::key_state::release, mouse_stage::outside);
+											on_input_function(object->get_camera()->m_window, m_focused_button_id, key, fan::key_state::release, mouse_stage::outside);
 
 											if (pointer_remove_flag == 0) {
 												return;
@@ -678,17 +671,17 @@ namespace fan_2d {
 
 				public:
 
-					std::function<void(uint32_t index, uint16_t key, fan::key_state key_state, mouse_stage mouse_stage)> on_input_function;
+					std::function<void(fan::window *window, uint32_t index, uint16_t key, fan::key_state key_state, mouse_stage mouse_stage)> on_input_function;
 
-					std::function<void(uint32_t index, mouse_stage mouse_stage)> on_mouse_event_function;
+					std::function<void(fan::window *window, uint32_t index, mouse_stage mouse_stage)> on_mouse_event_function;
 
 					// uint32_t index, fan::key_state state, mouse_stage mouse_stage
-					void set_on_input(std::function<void(uint32_t index, uint16_t key, fan::key_state key_state, mouse_stage mouse_stage)> function) {
+					void set_on_input(std::function<void(fan::window *window, uint32_t index, uint16_t key, fan::key_state key_state, mouse_stage mouse_stage)> function) {
 						on_input_function = function;
 					}
 
 					// uint32_t index, bool inside
-					void set_on_mouse_event(std::function<void(uint32_t index, mouse_stage mouse_stage)> function) {
+					void set_on_mouse_event(std::function<void(fan::window *window, uint32_t index, mouse_stage mouse_stage)> function) {
 						on_mouse_event_function = function;
 					}
 
@@ -905,7 +898,7 @@ namespace fan_2d {
 								if (m_box->get_text(current_focus.i).size() == 1) {
 									backspace_callback(current_focus.i);
 									FED_DeleteCharacterFromCursor(&m_wed[current_focus.i], cursor_reference[current_focus.i]);
-									m_box->set_text(current_focus.i, " ");
+									m_box->set_text(current_focus.i, L" ");
 
 									break;
 								}
@@ -1637,8 +1630,6 @@ namespace fan_2d {
 
 			struct rectangle_button_sized_properties {
 
-				rectangle_button_sized_properties(fan::window* window) : theme(gui::themes::deep_blue(window)) {}
-
 				fan::utf16_string text = empty_string;
 
 				fan::utf16_string place_holder;
@@ -1863,9 +1854,9 @@ namespace fan_2d {
 
 				bool locked(uint32_t i) const;
 
-				void lib_add_on_input(uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage);
+				void lib_add_on_input(fan::window *window, uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage);
 
-				void lib_add_on_mouse_event(uint32_t i, fan_2d::graphics::gui::mouse_stage stage);
+				void lib_add_on_mouse_event(fan::window *window, uint32_t i, fan_2d::graphics::gui::mouse_stage stage);
 
 			};
 
@@ -1881,7 +1872,7 @@ namespace fan_2d {
 
 				struct properties_t {
 
-					properties_t(fan::window* window) : theme(window) {}
+					properties_t() {}
 
 					fan::vec2 position;
 
@@ -1913,9 +1904,9 @@ namespace fan_2d {
 
 				void update_theme(uint32_t i);
 
-				virtual void lib_add_on_input(uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage);
+				virtual void lib_add_on_input(fan::window *window, uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage);
 
-				virtual void lib_add_on_mouse_event(uint32_t i, fan_2d::graphics::gui::mouse_stage stage);
+				virtual void lib_add_on_mouse_event(fan::window *window, uint32_t i, fan_2d::graphics::gui::mouse_stage stage);
 
 				fan::camera* get_camera();
 
@@ -1939,9 +1930,9 @@ namespace fan_2d {
 
 				text_renderer_clickable(fan::camera* camera);
 
-				void lib_add_on_input(uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage);
+				void lib_add_on_input(fan::window *window, uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage);
 
-				void lib_add_on_mouse_event(uint32_t i, fan_2d::graphics::gui::mouse_stage stage);
+				void lib_add_on_mouse_event(fan::window *window, uint32_t i, fan_2d::graphics::gui::mouse_stage stage);
 
 				void push_back(const text_renderer_clickable::properties_t& properties);
 
@@ -2021,9 +2012,9 @@ namespace fan_2d {
 				void enable_draw();
 				void disable_draw();
 
-				virtual void lib_add_on_input(uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage);
+				virtual void lib_add_on_input(fan::window *window, uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage);
 
-				virtual void lib_add_on_mouse_event(uint32_t i, fan_2d::graphics::gui::mouse_stage stage);
+				virtual void lib_add_on_mouse_event(fan::window *window, uint32_t i, fan_2d::graphics::gui::mouse_stage stage);
 
 			protected:
 
@@ -2044,9 +2035,9 @@ namespace fan_2d {
 
 				void add_on_select(std::function<void(uint32_t i)> function);
 
-				void lib_add_on_input(uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage) override;
+				void lib_add_on_input(fan::window *window, uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage) override;
 
-				void lib_add_on_mouse_event(uint32_t i, fan_2d::graphics::gui::mouse_stage stage) override;
+				void lib_add_on_mouse_event(fan::window *window, uint32_t i, fan_2d::graphics::gui::mouse_stage stage) override;
 
 			protected:
 
@@ -2106,9 +2097,9 @@ namespace fan_2d {
 
 				sprite_text_button(fan::camera* camera, const std::string& path);
 
-				void lib_add_on_input(uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage);
+				void lib_add_on_input(fan::window *window, uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage);
 
-				void lib_add_on_mouse_event(uint32_t i, fan_2d::graphics::gui::mouse_stage stage);
+				void lib_add_on_mouse_event(fan::window *window, uint32_t i, fan_2d::graphics::gui::mouse_stage stage);
 
 				bool locked(uint32_t i) const { return false; }
 
@@ -2598,9 +2589,9 @@ namespace fan_2d {
 				void edit_data(uint32_t i);
 				void edit_data(uint32_t begin, uint32_t end);
 
-				void lib_add_on_input(uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage);
+				void lib_add_on_input(fan::window *window, uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage);
 
-				void lib_add_on_mouse_event(uint32_t i, fan_2d::graphics::gui::mouse_stage stage);
+				void lib_add_on_mouse_event(fan::window *window, uint32_t i, fan_2d::graphics::gui::mouse_stage stage);
 
 				bool locked(uint32_t i) const { return false; }
 

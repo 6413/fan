@@ -27,7 +27,13 @@ namespace fan {
     
       auto data = fan::io::file::read(file);
 
-      return decode((const uint8_t*)data.data(), data.size());
+      auto image_info = decode((const uint8_t*)data.data(), data.size());
+
+      if (image_info.data == nullptr) {
+        fan::throw_error("failed to open image");
+      }
+
+      return image_info;
     }
 
     static void free_image(void* ptr) {

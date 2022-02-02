@@ -27,6 +27,6 @@ void main() {
     rgb.y = yuv.x - 0.391773 * yuv.y - 0.81290 * yuv.z;
     rgb.z = yuv.x + 2.017 * yuv.y;
 
-	color = vec4(rgb, 1);
+	color = vec4(rgb.x, rgb.y, rgb.z, 1);
 }
 )"

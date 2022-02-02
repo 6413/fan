@@ -212,9 +212,8 @@ fan_2d::graphics::image_t fan_2d::graphics::load_image(fan::window* window, cons
 	glTexImage2D(GL_TEXTURE_2D, 0, internal_format, info->size.x, info->size.y, 0, format, type, image.data);
 
 	fan::webp::free_image(image.data);
-
+	
 	glGenerateMipmap(GL_TEXTURE_2D);
-
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	return info;
@@ -1463,7 +1462,8 @@ fan_2d::graphics::sprite::sprite(fan::camera* camera)
 
 	fan::bind_vao(*rectangle::get_vao(), [&] {
 		texture_coordinates_t::initialize_buffers(m_shader->id, location_texture_coordinate, false, 2);
-		RenderOPCode_t::initialize_buffers(m_shader->id, location_RenderOPCode, false, 1);
+		RenderOPCode0_t::initialize_buffers(m_shader->id, location_RenderOPCode0, false, 1);
+		RenderOPCode1_t::initialize_buffers(m_shader->id, location_RenderOPCode1, false, 1);
 	});
 }
 
@@ -1545,7 +1545,8 @@ void fan_2d::graphics::sprite::push_back(const sprite::properties_t& properties)
 
 	texture_coordinates_t::insert(texture_coordinates_t::m_buffer_object.end(), texture_coordinates.begin(), texture_coordinates.end());
 
-	RenderOPCode_t::m_buffer_object.insert(RenderOPCode_t::m_buffer_object.end(), 6, properties.RenderOPCode);
+	RenderOPCode0_t::m_buffer_object.insert(RenderOPCode0_t::m_buffer_object.end(), 6, properties.RenderOPCode0);
+	RenderOPCode1_t::m_buffer_object.insert(RenderOPCode1_t::m_buffer_object.end(), 6, properties.RenderOPCode1);
 
 	if (m_switch_texture.empty()) {
 		m_switch_texture.emplace_back(0);
@@ -1589,7 +1590,8 @@ void fan_2d::graphics::sprite::insert(uint32_t i, uint32_t texture_coordinates_i
 
 	m_textures.insert(m_textures.begin() + texture_coordinates_i / 6, properties.image->texture);
 
-	RenderOPCode_t::m_buffer_object.insert(RenderOPCode_t::m_buffer_object.begin() + texture_coordinates_i / 6, 6, properties.RenderOPCode);
+	RenderOPCode0_t::m_buffer_object.insert(RenderOPCode0_t::m_buffer_object.begin() + texture_coordinates_i / 6, 6, properties.RenderOPCode0);
+	RenderOPCode1_t::m_buffer_object.insert(RenderOPCode1_t::m_buffer_object.begin() + texture_coordinates_i / 6, 6, properties.RenderOPCode1);
 
 	regenerate_texture_switch();
 
@@ -1629,21 +1631,69 @@ void fan_2d::graphics::sprite::disable_draw()
 	m_draw_index = -1;
 }
 
-uint32_t fan_2d::graphics::sprite::get_RenderOPCode(uint32_t i) const
+uint32_t fan_2d::graphics::sprite::get_RenderOPCode0(uint32_t i) const
 {
-	return RenderOPCode_t::m_buffer_object[i * 6];
+	return RenderOPCode0_t::m_buffer_object[i * 6];
 }
 
-void fan_2d::graphics::sprite::set_RenderOPCode(uint32_t i, uint32_t OPCode)
+void fan_2d::graphics::sprite::set_RenderOPCode0(uint32_t i, uint32_t OPCode)
 {
 	for (int j = 0; j < 6; j++) {
-		RenderOPCode_t::m_buffer_object[i * 6 + j] = OPCode;
+		RenderOPCode0_t::m_buffer_object[i * 6 + j] = OPCode;
 	}
 
 	m_queue_helper.edit(i, i + 1, [&] {
 		this->edit_data(m_queue_helper.m_min_edit, m_queue_helper.m_max_edit);
 	});
 	
+}
+
+uint32_t fan_2d::graphics::sprite::get_RenderOPCode1(uint32_t i) const
+{
+	return RenderOPCode1_t::m_buffer_object[i * 6];
+}
+
+void fan_2d::graphics::sprite::set_RenderOPCode1(uint32_t i, uint32_t OPCode)
+{
+	for (int j = 0; j < 6; j++) {
+		RenderOPCode1_t::m_buffer_object[i * 6 + j] = OPCode;
+	}
+
+	m_queue_helper.edit(i, i + 1, [&] {
+		this->edit_data(m_queue_helper.m_min_edit, m_queue_helper.m_max_edit);
+	});
+	
+}
+
+std::array<fan::vec2, 4> fan_2d::graphics::sprite::get_texture_coordinates(uint32_t i)
+{
+	return std::array<fan::vec2, 4>{
+		texture_coordinates_t::m_buffer_object[i * 6 + 0],
+		texture_coordinates_t::m_buffer_object[i * 6 + 1],
+		texture_coordinates_t::m_buffer_object[i * 6 + 2],
+		texture_coordinates_t::m_buffer_object[i * 6 + 5]
+	};
+}
+
+void fan_2d::graphics::sprite::set_texture_coordinates(uint32_t i, const std::array<fan::vec2, 4>& texture_coordinates)
+{
+	std::array<fan::vec2, 6> tc = {
+		texture_coordinates[0],
+		texture_coordinates[1],
+		texture_coordinates[2],
+
+		texture_coordinates[2],
+		texture_coordinates[3],
+		texture_coordinates[0]
+	};
+
+	for (int j = 0; j < 6; j++) {
+		texture_coordinates_t::m_buffer_object[i * 6 + j] = tc[j];
+	}
+
+	m_queue_helper.edit(i, i + 1, [&] {
+		this->edit_data(m_queue_helper.m_min_edit, m_queue_helper.m_max_edit);
+	});
 }
 
 void fan_2d::graphics::sprite::draw(uint32_t begin, uint32_t end)
@@ -1656,7 +1706,8 @@ void fan_2d::graphics::sprite::draw(uint32_t begin, uint32_t end)
 
 	for (int i = m_switch_texture[begin == fan::uninitialized ? 0 : begin]; i < m_switch_texture.size(); i++) {
 
-		m_shader->set_int("texture_sampler", i);
+		m_shader->set_vec2("mouse_position", fan::vec2(300, -1000));
+		m_shader->set_int("texture_sampler0", i);
 		glActiveTexture(GL_TEXTURE0 + i);
 		glBindTexture(GL_TEXTURE_2D, m_textures[m_switch_texture[i]]);
 
@@ -1721,7 +1772,8 @@ void fan_2d::graphics::sprite::erase(uint32_t i)
 	
 	regenerate_texture_switch();
 
-	RenderOPCode_t::erase(i * 6, i * 6 + 6);
+	RenderOPCode0_t::erase(i * 6, i * 6 + 6);
+	RenderOPCode1_t::erase(i * 6, i * 6 + 6);
 
 	if (!write_) {
 		m_camera->m_window->edit_write_call(m_queue_helper.m_write_index, this, [&] {
@@ -1740,7 +1792,8 @@ void fan_2d::graphics::sprite::erase(uint32_t begin, uint32_t end)
 
 	m_textures.erase(m_textures.begin() + begin, m_textures.begin() + end);
 
-	RenderOPCode_t::erase(begin * 6, end * 6);
+	RenderOPCode0_t::erase(begin * 6, end * 6);
+	RenderOPCode1_t::erase(begin * 6, end * 6);
 
 	regenerate_texture_switch();
 
@@ -1762,7 +1815,8 @@ void fan_2d::graphics::sprite::clear()
 
 	m_switch_texture.clear();
 
-	RenderOPCode_t::clear();
+	RenderOPCode0_t::clear();
+	RenderOPCode1_t::clear();
 
 	if (!write_) {
 		m_camera->m_window->edit_write_call(m_queue_helper.m_write_index, this, [&] {
@@ -1772,19 +1826,22 @@ void fan_2d::graphics::sprite::clear()
 }
 
 void fan_2d::graphics::sprite::write_data() {
-	RenderOPCode_t::write_data();
+	RenderOPCode0_t::write_data();
+	RenderOPCode1_t::write_data();
 	texture_coordinates_t::write_data();
 	rectangle::write_data();
 }
 
 void fan_2d::graphics::sprite::edit_data(uint32_t i) {
-	RenderOPCode_t::write_data();
+	RenderOPCode0_t::write_data();
+	RenderOPCode1_t::write_data();
 	texture_coordinates_t::write_data();
 	rectangle::edit_data(i);
 }
 
 void fan_2d::graphics::sprite::edit_data(uint32_t begin, uint32_t end) {
-	RenderOPCode_t::write_data();
+	RenderOPCode0_t::write_data();
+	RenderOPCode1_t::write_data();
 	texture_coordinates_t::write_data();
 	rectangle::edit_data(begin, end);
 }
@@ -1807,17 +1864,19 @@ void fan_2d::graphics::sprite::regenerate_texture_switch()
 // update same with sprite
 
 fan_2d::graphics::yuv420p_renderer::yuv420p_renderer(fan::camera* camera)
-	: fan_2d::graphics::sprite(camera) {
+	: fan_2d::graphics::sprite(camera, true) {
 
   m_shader->set_vertex(
-    #include <fan/graphics/glsl/opengl/2D/rectangle.vs>
+    #include <fan/graphics/glsl/opengl/2D/yuv420p_renderer.vs>
   );
 
   m_shader->set_fragment(
-    #include <fan/graphics/glsl/opengl/2D/rectangle.fs>
+    #include <fan/graphics/glsl/opengl/2D/yuv420p_renderer.fs>
   );
 
 	m_shader->compile();
+
+	sprite::initialize();
 
 }
 
@@ -1833,34 +1892,36 @@ void fan_2d::graphics::yuv420p_renderer::push_back(const yuv420p_renderer::prope
 
 	glBindTexture(GL_TEXTURE_2D, m_textures[m_textures.size() - 3]);
 
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, properties.pixel_data.size.x, properties.pixel_data.size.y, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE,properties.pixel_data.pixels[0]);
+	//glGenerateMipmap(GL_TEXTURE_2D);
+
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, fan_2d::graphics::image_load_properties::visual_output);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, fan_2d::graphics::image_load_properties::visual_output);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, fan_2d::graphics::image_load_properties::filter);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, fan_2d::graphics::image_load_properties::filter);
-
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, properties.pixel_data.size.x, properties.pixel_data.size.y, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, properties.pixel_data.pixels[0]);
 
 	glBindTexture(GL_TEXTURE_2D, m_textures[m_textures.size() - 2]);
 
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, properties.pixel_data.size.x / 2, properties.pixel_data.size.y / 2, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, properties.pixel_data.pixels[1]);
+//	glGenerateMipmap(GL_TEXTURE_2D);
+
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, fan_2d::graphics::image_load_properties::visual_output);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, fan_2d::graphics::image_load_properties::visual_output);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, fan_2d::graphics::image_load_properties::filter);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, fan_2d::graphics::image_load_properties::filter);
-
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, properties.pixel_data.size.x / 2, properties.pixel_data.size.y / 2, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, properties.pixel_data.pixels[1]);
 
 	glBindTexture(GL_TEXTURE_2D, m_textures[m_textures.size() - 1]);
 
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, properties.pixel_data.size.x / 2, properties.pixel_data.size.y / 2, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, properties.pixel_data.pixels[2]);
+
+	//glGenerateMipmap(GL_TEXTURE_2D);
+
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, fan_2d::graphics::image_load_properties::visual_output);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, fan_2d::graphics::image_load_properties::visual_output);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, fan_2d::graphics::image_load_properties::filter);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, fan_2d::graphics::image_load_properties::filter);
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, properties.pixel_data.size.x / 2, properties.pixel_data.size.y / 2, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, properties.pixel_data.pixels[2]);
-
 	glBindTexture(GL_TEXTURE_2D, 0);
-
-	fan::vec2 rotation_point = properties.rotation_point == fan::math::inf ? properties.position : properties.rotation_point;
 
 	sprite::rectangle::properties_t property;
 	property.position = properties.position;
@@ -1871,7 +1932,17 @@ void fan_2d::graphics::yuv420p_renderer::push_back(const yuv420p_renderer::prope
 
 	fan_2d::graphics::rectangle::push_back(property);
 
-	texture_coordinates_t::insert(texture_coordinates_t::m_buffer_object.end(), properties.texture_coordinates.begin(), properties.texture_coordinates.end());
+	std::array<fan::vec2, 6> texture_coordinates = {
+		properties.texture_coordinates[0],
+		properties.texture_coordinates[1],
+		properties.texture_coordinates[2],
+
+		properties.texture_coordinates[2],
+		properties.texture_coordinates[3],
+		properties.texture_coordinates[0]
+	};
+
+	texture_coordinates_t::insert(texture_coordinates_t::m_buffer_object.end(), texture_coordinates.begin(), texture_coordinates.end());
 
 	image_size.emplace_back(properties.pixel_data.size);
 
@@ -1893,6 +1964,8 @@ void fan_2d::graphics::yuv420p_renderer::reload_pixels(uint32_t i, const fan_2d:
 
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, pixel_data.size.x, pixel_data.size.y, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, pixel_data.pixels[0]);
 
+//	glGenerateMipmap(GL_TEXTURE_2D);
+
 	glBindTexture(GL_TEXTURE_2D, m_textures[i * 3 + 1]);
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, fan_2d::graphics::image_load_properties::visual_output);
@@ -1902,6 +1975,8 @@ void fan_2d::graphics::yuv420p_renderer::reload_pixels(uint32_t i, const fan_2d:
 
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, pixel_data.size.x / 2, pixel_data.size.y / 2, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, pixel_data.pixels[1]);
 
+	//glGenerateMipmap(GL_TEXTURE_2D);
+
 	glBindTexture(GL_TEXTURE_2D, m_textures[i * 3 + 2]);
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, fan_2d::graphics::image_load_properties::visual_output);
@@ -1910,6 +1985,8 @@ void fan_2d::graphics::yuv420p_renderer::reload_pixels(uint32_t i, const fan_2d:
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, fan_2d::graphics::image_load_properties::filter);
 
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, pixel_data.size.x / 2, pixel_data.size.y / 2, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, pixel_data.pixels[2]);
+
+	//glGenerateMipmap(GL_TEXTURE_2D);
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 
@@ -1952,8 +2029,6 @@ void fan_2d::graphics::yuv420p_renderer::disable_draw()
 void fan_2d::graphics::yuv420p_renderer::draw()
 {
 	m_shader->use();
-
-	texture_coordinates_t::bind_gl_storage_buffer([&] {});
 
 	m_shader->set_int("sampler_y", 0);
 	m_shader->set_int("sampler_u", 1);

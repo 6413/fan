@@ -77,7 +77,7 @@ namespace fan_2d {
 			inline uintptr_t internal_format = GL_RGBA;
 			inline uintptr_t format = GL_RGBA;
 			inline uintptr_t type = GL_UNSIGNED_BYTE;
-			inline uintptr_t filter = GL_LINEAR_MIPMAP_LINEAR;
+			inline uintptr_t filter = GL_LINEAR;
 		}
 
 		// fan::get_device(window)
@@ -587,13 +587,15 @@ namespace fan_2d {
 			public fan::texture_handler<1>, // screen texture
 			public fan::render_buffer_handler<>,
 			public fan::frame_buffer_handler<>,
-			public fan::buffer_object<uint32_t, 30213>
+			public fan::buffer_object<uint32_t, 30213>,
+			public fan::buffer_object<uint32_t, 30214>
 		{
 
 		public:
 
 			using texture_coordinates_t = fan::buffer_object<fan::vec2, 99, true>;
-			using RenderOPCode_t = fan::buffer_object<uint32_t, 30213>;
+			using RenderOPCode0_t = fan::buffer_object<uint32_t, 30213>;
+			using RenderOPCode1_t = fan::buffer_object<uint32_t, 30214>;
 
 			sprite(fan::camera* camera);
 
@@ -623,7 +625,8 @@ namespace fan_2d {
 
 				fan::color color = fan::color(1, 1, 1, 1);
 
-				uint32_t RenderOPCode = 0;
+				uint32_t RenderOPCode0 = 0;
+				uint32_t RenderOPCode1 = 0;
 
 			};
 
@@ -643,8 +646,15 @@ namespace fan_2d {
 			f32_t get_transparency(uint32_t i) const;
 			void set_transparency(uint32_t i, f32_t transparency);
 
-			uint32_t get_RenderOPCode(uint32_t i) const;
-			void set_RenderOPCode(uint32_t i, uint32_t OPCode);
+			uint32_t get_RenderOPCode0(uint32_t i) const;
+			void set_RenderOPCode0(uint32_t i, uint32_t OPCode);
+
+			uint32_t get_RenderOPCode1(uint32_t i) const;
+			void set_RenderOPCode1(uint32_t i, uint32_t OPCode);
+
+			std::array<fan::vec2, 4> get_texture_coordinates(uint32_t i);
+			// set texture coordinates before position or size
+			void set_texture_coordinates(uint32_t i, const std::array<fan::vec2, 4>& texture_coordinates);
 
 			void erase(uint32_t i);
 			void erase(uint32_t begin, uint32_t end);
@@ -685,7 +695,8 @@ namespace fan_2d {
 			void regenerate_texture_switch();
 
 			static constexpr auto location_texture_coordinate = "layout_texture_coordinates";
-			static constexpr auto location_RenderOPCode = "layout_RenderOPCode";
+			static constexpr auto location_RenderOPCode0 = "layout_RenderOPCode";
+			static constexpr auto location_RenderOPCode1 = "layout_RenderOPCode1";
 
 			std::vector<uint32_t> m_textures;
 
@@ -744,7 +755,8 @@ namespace fan_2d {
 
 					std::memcpy(texture_coordinates_t::m_buffer_object.data() + i * 6, texture_coordinates_t::m_buffer_object.data() + texture_coordinates_t::m_buffer_object.size() - 6, sizeof(fan::vec2) * 6);
 
-					std::memcpy(RenderOPCode_t::m_buffer_object.data() + i * 6, RenderOPCode_t::m_buffer_object.data() + RenderOPCode_t::m_buffer_object.size() - 6, sizeof(uint32_t) * 6);
+					std::memcpy(RenderOPCode0_t::m_buffer_object.data() + i * 6, RenderOPCode0_t::m_buffer_object.data() + RenderOPCode0_t::m_buffer_object.size() - 6, sizeof(uint32_t) * 6);
+					std::memcpy(RenderOPCode1_t::m_buffer_object.data() + i * 6, RenderOPCode1_t::m_buffer_object.data() + RenderOPCode1_t::m_buffer_object.size() - 6, sizeof(uint32_t) * 6);
 
 					uint32_t begin = (this->size() - 1) * 6;
 
@@ -755,7 +767,8 @@ namespace fan_2d {
 					rotation_point_t::erase(begin, begin + 6);
 					rotation_vector_t::erase(begin, begin + 6);
 					texture_coordinates_t::erase(begin, begin + 6);
-					RenderOPCode_t::erase(begin, begin + 6);
+					RenderOPCode0_t::erase(begin, begin + 6);
+					RenderOPCode1_t::erase(begin, begin + 6);
 
 					m_erase_cb(m_user_ptr, *(m_push_back_ids.end() - 1), i);
 
@@ -794,78 +807,207 @@ namespace fan_2d {
 			using sprite::sprite;
 
 		};
-
-		/*
-			in vec2 texture_coordinate;
-			in float transparency;
-			out vec4 color;
-			uniform sampler2D texture_sampler;
-		*/
-
 		struct shader_sprite : public sprite {
 
-			shader_sprite(fan::camera* camera, const std::string& shader_main) 
+			shader_sprite(fan::camera* camera, const std::string& custom_fragment_shader) 
 				: sprite(camera, true)
 			{
 				m_shader->set_vertex(
 					#include <fan/graphics/glsl/opengl/2D/sprite.vs>
 				);
 
-				std::string fs = 
-					#include <fan/graphics/glsl/opengl/2D/sprite.fs>
-				;
-
-				auto found = fs.find("void main(");
-
-				fs = fs.substr(0, found);
-				fs.append(shader_main);
-
 				m_shader->set_fragment(
-					fs
+					custom_fragment_shader
 				);
 
 				m_shader->compile();
 
 				sprite::initialize();
+			}
 
+			void push_back_texture(fan_2d::graphics::image_t image) {
+				m_textures.push_back(image->texture);
+				if (m_textures.size() && m_textures[m_textures.size() - 1] != image->texture) {
+					m_switch_texture.emplace_back(this->size() - 1);
+				}
 			}
 
 		};
 
-		/*
-			in vec2 texture_coordinate;
-			in float transparency;
-			out vec4 color;
-			uniform sampler2D texture_sampler;
-		*/
 		struct shader_sprite0 : public sprite0 {
 
-			shader_sprite0(fan::camera* camera, const std::string& shader_main, void* user_ptr, std::function<void(void*, uint64_t, uint32_t)> erase_cb) 
+			std::vector<std::vector<image_t>> m_multi_textures;
+
+			struct properties_t : public sprite0::properties_t {
+			  private:
+				using sprite0::properties_t::image;
+			  public:
+				std::vector<fan_2d::graphics::image_t> images;
+			};
+
+			shader_sprite0(fan::camera* camera, void* user_ptr, std::function<void(void*, uint64_t, uint32_t)> erase_cb, const std::string& custom_fragment_shader) 
 				: sprite0(camera, true, user_ptr, erase_cb)
 			{
 
 				m_shader->set_vertex(
-					#include <fan/graphics/glsl/opengl/2D/rectangle.vs>
+					#include <fan/graphics/glsl/opengl/2D/sprite.vs>
 				);
 
-				std::string fs = 
-					#include <fan/graphics/glsl/opengl/2D/rectangle.fs>
-				;
-
-				auto found = fs.find("void main(");
-
-				fs = fs.substr(found);
-				fs.append(shader_main);
-
 				m_shader->set_fragment(
-					fs
+					custom_fragment_shader
 				);
 
 				m_shader->compile();
 
 				sprite0::initialize();
+			}
+			void push_back(const shader_sprite0::properties_t& properties) {
+				sprite::rectangle::properties_t property;
+				property.position = properties.position;
+				property.size = properties.size;
+				property.angle = properties.angle;
+				property.rotation_point = properties.rotation_point;
+				property.rotation_vector = properties.rotation_vector;
+				property.color = properties.color;
+
+				bool write_ = m_queue_helper.m_write;
+
+				rectangle::push_back(property);
+
+				std::array<fan::vec2, 6> texture_coordinates = {
+					properties.texture_coordinates[0],
+					properties.texture_coordinates[1],
+					properties.texture_coordinates[2],
+
+					properties.texture_coordinates[2],
+					properties.texture_coordinates[3],
+					properties.texture_coordinates[0]
+				};
+
+				texture_coordinates_t::insert(texture_coordinates_t::m_buffer_object.end(), texture_coordinates.begin(), texture_coordinates.end());
+
+				RenderOPCode0_t::m_buffer_object.insert(RenderOPCode0_t::m_buffer_object.end(), 6, properties.RenderOPCode0);
+				RenderOPCode1_t::m_buffer_object.insert(RenderOPCode1_t::m_buffer_object.end(), 6, properties.RenderOPCode1);
+
+				m_multi_textures.emplace_back(properties.images);
+
+				m_push_back_ids.emplace_back(properties.id);
+
+				if (!write_) {
+					m_camera->m_window->edit_write_call(m_queue_helper.m_write_index, this, [&] {
+						this->write_data();
+					});
+				}
+			}
+
+		protected:
+
+			void draw() {
+				m_shader->use();
+
+					for (int i = 0; i < m_multi_textures.size(); i++) {
+						
+						for (int j = 0; j < m_multi_textures[i].size(); j++) {
+							m_shader->set_int((std::string("texture_sampler") + std::to_string(j)).c_str(), j);
+							glActiveTexture(GL_TEXTURE0 + j);
+							glBindTexture(GL_TEXTURE_2D, m_multi_textures[i][j]->texture);
+						}
+
+						fan_2d::graphics::rectangle::draw(i, i + 1);
+					}
+			}
+
+			void temp_erase(uint32_t i)
+			{
+				bool write_ = m_queue_helper.m_write;
+				rectangle::erase(i);
+				
+				texture_coordinates_t::erase(i * 6, i * 6 + 6);
+
+				m_multi_textures.erase(m_multi_textures.begin() + i);
+				
+				regenerate_texture_switch();
+
+				RenderOPCode0_t::erase(i * 6, i * 6 + 6);
+				RenderOPCode1_t::erase(i * 6, i * 6 + 6);
+
+				if (!write_) {
+					m_camera->m_window->edit_write_call(m_queue_helper.m_write_index, this, [&] {
+						this->write_data();
+					});
+				}
+			}
+
+		public:
+
+			void enable_draw()
+			{
+				
+				if (m_draw_index == -1 || m_camera->m_window->m_draw_queue[m_draw_index].first != this) {
+					m_draw_index = m_camera->m_window->push_draw_call(this, [&] {
+						draw();
+					});
+				}
+				else {
+					m_camera->m_window->edit_draw_call(m_draw_index, this, [&] {
+						draw();
+					});
+				}
+			}
+			void erase(uint32_t i) {
+
+				if (i != this->size() - 1) {
+
+					std::memcpy(color_t::m_buffer_object.data() + i * 6, color_t::m_buffer_object.data() + color_t::m_buffer_object.size() - 6, sizeof(fan::color) * 6);
+
+					std::memcpy(position_t::m_buffer_object.data() + i * 6, position_t::m_buffer_object.data() + position_t::m_buffer_object.size() - 6, sizeof(fan::vec2) * 6);
+
+					std::memcpy(size_t::m_buffer_object.data() + i * 6, size_t::m_buffer_object.data() + size_t::m_buffer_object.size() - 6, sizeof(fan::vec2) * 6);
+
+					std::memcpy(angle_t::m_buffer_object.data() + i * 6, angle_t::m_buffer_object.data() + angle_t::m_buffer_object.size() - 6, sizeof(f32_t) * 6);
+
+					std::memcpy(rotation_point_t::m_buffer_object.data() + i * 6, rotation_point_t::m_buffer_object.data() + rotation_point_t::m_buffer_object.size() - 6, sizeof(fan::vec2) * 6);
+
+					std::memcpy(rotation_vector_t::m_buffer_object.data() + i * 6, rotation_vector_t::m_buffer_object.data() + rotation_vector_t::m_buffer_object.size() - 6, sizeof(fan::vec3) * 6);
+
+					std::memcpy(texture_coordinates_t::m_buffer_object.data() + i * 6, texture_coordinates_t::m_buffer_object.data() + texture_coordinates_t::m_buffer_object.size() - 6, sizeof(fan::vec2) * 6);
+
+					std::memcpy(RenderOPCode0_t::m_buffer_object.data() + i * 6, RenderOPCode0_t::m_buffer_object.data() + RenderOPCode0_t::m_buffer_object.size() - 6, sizeof(uint32_t) * 6);
+					std::memcpy(RenderOPCode1_t::m_buffer_object.data() + i * 6, RenderOPCode1_t::m_buffer_object.data() + RenderOPCode1_t::m_buffer_object.size() - 6, sizeof(uint32_t) * 6);
+
+					uint32_t begin = (this->size() - 1) * 6;
+
+					color_t::erase(begin, begin + 6);
+					position_t::erase(begin, begin + 6);
+					size_t::erase(begin, begin + 6);
+					angle_t::erase(begin, begin + 6);
+					rotation_point_t::erase(begin, begin + 6);
+					rotation_vector_t::erase(begin, begin + 6);
+					texture_coordinates_t::erase(begin, begin + 6);
+					RenderOPCode0_t::erase(begin, begin + 6);
+					RenderOPCode1_t::erase(begin, begin + 6);
+
+					m_erase_cb(m_user_ptr, *(m_push_back_ids.end() - 1), i);
+
+					m_push_back_ids[i] = *(m_push_back_ids.end() - 1);
+					m_push_back_ids.pop_back();
+
+					m_multi_textures[i] = *(m_multi_textures.end() - 1);
+					m_multi_textures.pop_back();
+	
+					regenerate_texture_switch();
+
+					m_queue_helper.write([&] {
+						this->write_data();
+					});
+				}
+				else {
+					temp_erase(i);
+					m_push_back_ids.pop_back();
+				}
 
 			}
+
 
 		};
 
