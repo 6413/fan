@@ -4,13 +4,13 @@
 
 #if fan_renderer == fan_renderer_opengl
 
-#include <fan/graphics/opengl/gl_core.hpp>
-
-#include <fan/graphics/shared_core.hpp>
-
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 #include <assimp/Importer.hpp>
+
+#include <fan/graphics/opengl/gl_core.hpp>
+
+#include <fan/graphics/shared_core.hpp>
 
 #include <fan/graphics/shared_graphics.hpp>
 
@@ -1147,27 +1147,189 @@ namespace fan_3d {
 
 	namespace graphics {
 
-		namespace shader_paths {
-
-			constexpr auto shape_vector_vs("glsl/3D/shape_vector.vs");
-			constexpr auto shape_vector_fs("glsl/3D/shape_vector.fs");
-
-			constexpr auto model_vs("glsl/3D/models.vs");
-			constexpr auto model_fs("glsl/3D/models.fs");
-
-			constexpr auto animation_vs("glsl/3D/animation.vs");
-			constexpr auto animation_fs("glsl/3D/animation.fs");
-
-			constexpr auto skybox_vs("glsl/3D/skybox.vs");
-			constexpr auto skybox_fs("glsl/3D/skybox.fs");
-			constexpr auto skybox_model_vs("glsl/3D/skybox_model.vs");
-			constexpr auto skybox_model_fs("glsl/3D/skybox_model.fs");
-		}
-
 		void add_camera_rotation_callback(fan::camera* camera);
 
-	}
+		struct model_t : 
+			fan::vao_handler<1423>,
+			fan::buffer_object<fan::vec3, 124312>,
+			fan::buffer_object<fan::vec3, 124313>
+		{
 
+			using vao_t = fan::vao_handler<1423>;
+			using vertices_t = fan::buffer_object<fan::vec3, 124312>;
+			using normals_t = fan::buffer_object<fan::vec3, 124313>;
+
+			struct properties_t {
+				std::string path;
+			};
+
+			model_t(fan::camera* camera);
+			~model_t();
+
+			void push_back(const properties_t& properties);
+
+			void enable_draw();
+			void disable_draw();
+
+		protected:
+
+			static constexpr auto vertex_layout_location = "layout_vertex";
+			static constexpr auto normal_layout_location = "layout_normal";
+			
+			void process_node(uint32_t& current_index, uint32_t& max_index, aiNode *node, const aiScene *scene);
+
+			void draw();
+
+			uint32_t m_ebo;
+			std::vector<uint32_t> m_indices;
+
+			uint32_t m_draw_index = -1;
+			fan::camera* m_camera;
+			fan::shader_t m_shader;
+
+			fan_2d::graphics::queue_helper_t m_queue_helper;
+
+		};
+
+		namespace animation {
+
+			struct vertex_t {
+				fan::vec3 position;
+				fan::vec3 normal;
+				fan::vec2 uv;
+				fan::vec4 bone_ids;
+				fan::vec4 bone_weights;
+			};
+
+			// structure to hold bone tree (skeleton)
+			struct joint_t {
+				int id; // position of the bone in final upload array
+				std::string name;
+				fan::mat4 offset;
+				std::vector<joint_t> children;
+			};
+
+			// sturction representing an animation track
+			struct bone_transform_track_t {
+				std::vector<f32_t> position_timestamps;
+				std::vector<f32_t> rotation_timestamps;
+				std::vector<f32_t> scale_timestamps;
+
+				std::vector<fan::vec3> positions;
+				std::vector<fan::quat> rotations;
+				std::vector<fan::vec3> scales;
+			};
+
+			// structure containing animation information
+			struct animation_t {
+				f_t duration;
+				f_t ticks_per_second;
+				std::unordered_map<std::string, bone_transform_track_t> bone_transforms;
+			};
+
+			// a recursive function to read all bones and form skeleton
+			bool read_skeleton(
+				animation::joint_t& joint, 
+				aiNode* node,
+				std::unordered_map<std::string, 
+				std::pair<int, fan::mat4>>& boneInfoTable
+			);
+
+			void load_model(
+				const aiScene* scene, 
+				aiMesh* mesh, 
+				std::vector<animation::vertex_t>& verticesOutput, 
+				std::vector<uint32_t>& indicesOutput, animation::joint_t& skeletonOutput, 
+				uint32_t &nBoneCount
+			);
+
+			void load_animation(const aiScene* scene, fan_3d::graphics::animation::animation_t& animation);
+
+			std::pair<uint32_t, f32_t> get_time_fraction(std::vector<f32_t>& times, f32_t& dt);
+
+			void get_pose(
+				animation::animation_t* animation, 
+				animation::joint_t* skeleton, 
+				f32_t dt, 
+				std::vector<fan::mat4>* output, 
+				fan::mat4 parentTransform, 
+				fan::mat4 transform
+			);
+
+			class animator_t {
+			public:
+
+				animator_t() {}
+
+				struct properties_t {
+					std::string model_path;
+					std::string texture_path;
+					fan::vec3 position;
+					fan::vec3 size = 1;
+					fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
+					f32_t angle = 0;
+				};
+
+				animator_t(fan::camera* camera, const properties_t& properties);
+
+				fan::vec3 get_position() const;
+				void set_position(const fan::vec3& position);
+				
+				fan::vec3 get_size() const;
+				void set_size(const fan::vec3& size);
+
+				fan::vec3 get_rotation_vector() const;
+				void set_rotation_vector(const fan::vec3& vector);
+
+				f32_t get_angle() const;
+				void set_angle(f32_t angle);
+
+				f32_t get_timestamp() const;
+				void set_timestamp(f32_t timestamp);
+
+				void enable_draw();
+				void disable_draw();
+
+			protected:
+
+				void draw();
+
+				fan::vec3 m_rotation_vector;
+				f32_t m_angle;
+
+				f32_t m_timestamp;
+
+				fan::mat4 m_model;
+
+				uint32_t m_vao, m_vbo, m_ebo;
+
+				uint32_t m_draw_index = -1;
+
+				fan_2d::graphics::image_t diffusion_texture;
+
+				fan::camera* m_camera;
+
+				std::vector<fan_3d::graphics::animation::vertex_t> m_vertices;
+				std::vector<unsigned int> m_indices;
+
+				std::vector<fan::mat4> m_current_pose;
+
+				fan_3d::graphics::animation::animation_t m_animation;
+
+				fan_3d::graphics::animation::joint_t m_skeleton;
+
+				fan::mat4 m_identity;
+				fan::mat4 m_transform;
+
+				fan::shader_t m_shader;
+
+				unsigned int m_bone_count;
+
+			};
+		}
+
+		using animation_t = animation::animator_t;
+	}
 }
 
 #include <fan/graphics/shared_inline_graphics.hpp>

@@ -312,40 +312,6 @@ namespace fan {
 			return std::abs(src[0] - dst[0]) + std::abs(src[1] - dst[1]);
 		}
 
-		template <typename matrix_t, typename vector_t>
-		constexpr matrix_t translate(const matrix_t& m, const vector_t& v) {
-			matrix_t matrix(m);
-			matrix[3][0] = m[0][0] * v[0] + m[1][0] * v[1] + (v.size() < 3 ? + 0 : (m[2][0] * v[2])) + m[3][0];
-			matrix[3][1] = m[0][1] * v[0] + m[1][1] * v[1] + (v.size() < 3 ? + 0 : (m[2][1] * v[2])) + m[3][1];
-			matrix[3][2] = m[0][2] * v[0] + m[1][2] * v[1] + (v.size() < 3 ? + 0 : (m[2][2] * v[2])) + m[3][2];
-			matrix[3][3] = m[0][3] * v[0] + m[1][3] * v[1] + (v.size() < 3 ? + 0 : (m[2][3] * v[2])) + m[3][3];
-			return matrix;
-		}
-
-		template <typename matrix_t, typename vector_t>
-		inline auto scale(const matrix_t& m, const vector_t& v) {
-			matrix_t matrix{};
-
-			matrix[0][0] = m[0][0] * v[0];
-			matrix[0][1] = m[0][1] * v[0];
-			matrix[0][2] = m[0][2] * v[0];
-
-			matrix[1][0] = m[1][0] * v[1];
-			matrix[1][1] = m[1][1] * v[1];
-			matrix[1][2] = m[1][2] * v[1];
-
-			matrix[2][0] = (v.size() < 3 ? 0 : m[2][0] * v[2]);
-			matrix[2][1] = (v.size() < 3 ? 0 : m[2][1] * v[2]);
-			matrix[2][2] = (v.size() < 3 ? 0 : m[2][2] * v[2]);
-
-			matrix[3][0] = m[3][0];
-			matrix[3][1] = m[3][1];
-			matrix[3][2] = m[3][2];
-
-			matrix[3] = m[3];
-			return matrix;
-		}
-
 		template <typename matrix_t>
 		auto ortho(f32_t left, f32_t right, f32_t bottom, f32_t top) {
 			matrix_t matrix(1);
@@ -440,45 +406,6 @@ namespace fan {
 			matrix[3][0] = x;
 			matrix[3][1] = y;
 			matrix[3][2] = z;
-			return matrix;
-		}
-
-		template <typename matrix_t, typename vector_t>
-		static matrix_t rotate(const matrix_t& m, f_t angle, const vector_t& v) {
-			const f_t a = angle;
-			const f_t c = cos(a);
-			const f_t s = sin(a);
-			vector_t axis(fan_3d::math::normalize(v));
-			vector_t temp(axis * (1.0f - c));
-
-			matrix_t rotation{};
-			rotation[0][0] = c + temp[0] * axis[0];
-			rotation[0][1] = temp[0] * axis[1] + s * axis[2];
-			rotation[0][2] = temp[0] * axis[2] - s * axis[1];
-
-			rotation[1][0] = temp[1] * axis[0] - s * axis[2];
-			rotation[1][1] = c + temp[1] * axis[1];
-			rotation[1][2] = temp[1] * axis[2] + s * axis[0];
-
-			rotation[2][0] = temp[2] * axis[0] + s * axis[1];
-			rotation[2][1] = temp[2] * axis[1] - s * axis[0];
-			rotation[2][2] = c + temp[2] * axis[2];
-
-			matrix_t matrix{};
-			matrix[0][0] = (m[0][0] * rotation[0][0]) + (m[1][0] * rotation[0][1]) + (m[2][0] * rotation[0][2]);
-			matrix[1][0] = (m[0][1] * rotation[0][0]) + (m[1][1] * rotation[0][1]) + (m[2][1] * rotation[0][2]);
-			matrix[2][0] = (m[0][2] * rotation[0][0]) + (m[1][2] * rotation[0][1]) + (m[2][2] * rotation[0][2]);
-
-			matrix[0][1] = (m[0][0] * rotation[1][0]) + (m[1][0] * rotation[1][1]) + (m[2][0] * rotation[1][2]);
-			matrix[1][1] = (m[0][1] * rotation[1][0]) + (m[1][1] * rotation[1][1]) + (m[2][1] * rotation[1][2]);
-			matrix[2][1] = (m[0][2] * rotation[1][0]) + (m[1][2] * rotation[1][1]) + (m[2][2] * rotation[1][2]);
-
-			matrix[0][2] = (m[0][0] * rotation[2][0]) + (m[1][0] * rotation[2][1]) + (m[2][0] * rotation[2][2]);
-			matrix[1][2] = (m[0][1] * rotation[2][0]) + (m[1][1] * rotation[2][1]) + (m[2][1] * rotation[2][2]);
-			matrix[2][2] = (m[0][2] * rotation[2][0]) + (m[1][2] * rotation[2][1]) + (m[2][2] * rotation[2][2]);
-
-			matrix[3] = m[3];
-
 			return matrix;
 		}
 

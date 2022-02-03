@@ -385,7 +385,7 @@ void fan::window::execute(const std::function<void()>& function)
 		m_background_color.b,
 		m_background_color.a
 	);
-	glClear(GL_COLOR_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 #elif fan_renderer == fan_renderer_vulkan
 	fan::gpu_memory::update_memory_buffer();
