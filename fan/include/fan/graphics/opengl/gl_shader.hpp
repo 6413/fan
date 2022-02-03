@@ -268,7 +268,7 @@ namespace fan {
             }
         }
 
-        void set_mat4(const std::string& name, fan::mat4 mat) const { // ei saanu kai olla const
+        void set_mat4(const std::string& name, fan::mat4 mat) const {
 
             auto location = glGetUniformLocation(id, name.c_str());
 
@@ -279,6 +279,20 @@ namespace fan {
             }
             else {
                 glUniformMatrix4dv(location, 1, GL_FALSE, (f64_t*)&mat[0][0]);
+            }
+        }
+
+        void set_mat4(const std::string& name, f32_t* value, uint32_t count) const {
+
+            auto location = glGetUniformLocation(id, name.c_str());
+
+            fan_validate_value(location, validate_error_message(name));
+
+            if constexpr (std::is_same<fan::mat4::value_type::value_type, float>::value) {
+                glUniformMatrix4fv(location, count, GL_FALSE, value);
+            }
+            else {
+                glUniformMatrix4dv(location, count, GL_FALSE, (f64_t*)value);
             }
         }
 

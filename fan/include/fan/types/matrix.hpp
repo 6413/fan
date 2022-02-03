@@ -1,6 +1,6 @@
 #pragma once
 
-#include <fan/types/types.hpp>
+#include <fan/types/vector.hpp>
 #include <fan/types/quaternion.hpp>
 
 #include <type_traits>
@@ -414,6 +414,84 @@ namespace fan {
 			}
 		}
 	#endif
+
+		constexpr fan::vec3 get_translation() const {
+			return fan::vec3((*this)[3][0], (*this)[3][1], (*this)[3][2]);
+		}
+
+		constexpr _matrix4x4 translate(const fan::vec3& v) const {
+			_matrix4x4 matrix((*this));
+			matrix[3][0] = (*this)[0][0] * v[0] + (*this)[1][0] * v[1] + (v.size() < 3 ? + 0 : ((*this)[2][0] * v[2])) + (*this)[3][0];
+			matrix[3][1] = (*this)[0][1] * v[0] + (*this)[1][1] * v[1] + (v.size() < 3 ? + 0 : ((*this)[2][1] * v[2])) + (*this)[3][1];
+			matrix[3][2] = (*this)[0][2] * v[0] + (*this)[1][2] * v[1] + (v.size() < 3 ? + 0 : ((*this)[2][2] * v[2])) + (*this)[3][2];
+			matrix[3][3] = (*this)[0][3] * v[0] + (*this)[1][3] * v[1] + (v.size() < 3 ? + 0 : ((*this)[2][3] * v[2])) + (*this)[3][3];
+			return matrix;
+		}
+
+		constexpr fan::vec3 get_scale() const {
+			return fan::vec3((*this)[0][0], (*this)[1][1], (*this)[2][2]);
+		}
+
+		constexpr _matrix4x4 scale(const fan::vec3& v) const {
+			_matrix4x4 matrix{};
+
+			matrix[0][0] = (*this)[0][0] * v[0];
+			matrix[0][1] = (*this)[0][1] * v[0];
+			matrix[0][2] = (*this)[0][2] * v[0];
+
+			matrix[1][0] = (*this)[1][0] * v[1];
+			matrix[1][1] = (*this)[1][1] * v[1];
+			matrix[1][2] = (*this)[1][2] * v[1];
+
+			matrix[2][0] = (v.size() < 3 ? 0 : (*this)[2][0] * v[2]);
+			matrix[2][1] = (v.size() < 3 ? 0 : (*this)[2][1] * v[2]);
+			matrix[2][2] = (v.size() < 3 ? 0 : (*this)[2][2] * v[2]);
+
+			matrix[3][0] = (*this)[3][0];
+			matrix[3][1] = (*this)[3][1];
+			matrix[3][2] = (*this)[3][2];
+
+			matrix[3] = (*this)[3];
+			return matrix;
+		}
+
+		constexpr _matrix4x4 rotate(f32_t angle, const fan::vec3& v) const {
+			const f32_t a = angle;
+			const f32_t c = cos(a);
+			const f32_t s = sin(a);
+			fan::vec3 axis(fan_3d::math::normalize(v));
+			fan::vec3 temp(axis * (1.0f - c));
+
+			_matrix4x4 rotation{};
+			rotation[0][0] = c + temp[0] * axis[0];
+			rotation[0][1] = temp[0] * axis[1] + s * axis[2];
+			rotation[0][2] = temp[0] * axis[2] - s * axis[1];
+
+			rotation[1][0] = temp[1] * axis[0] - s * axis[2];
+			rotation[1][1] = c + temp[1] * axis[1];
+			rotation[1][2] = temp[1] * axis[2] + s * axis[0];
+
+			rotation[2][0] = temp[2] * axis[0] + s * axis[1];
+			rotation[2][1] = temp[2] * axis[1] - s * axis[0];
+			rotation[2][2] = c + temp[2] * axis[2];
+
+			_matrix4x4 matrix{};
+			matrix[0][0] = ((*this)[0][0] * rotation[0][0]) + ((*this)[1][0] * rotation[0][1]) + ((*this)[2][0] * rotation[0][2]);
+			matrix[1][0] = ((*this)[0][1] * rotation[0][0]) + ((*this)[1][1] * rotation[0][1]) + ((*this)[2][1] * rotation[0][2]);
+			matrix[2][0] = ((*this)[0][2] * rotation[0][0]) + ((*this)[1][2] * rotation[0][1]) + ((*this)[2][2] * rotation[0][2]);
+
+			matrix[0][1] = ((*this)[0][0] * rotation[1][0]) + ((*this)[1][0] * rotation[1][1]) + ((*this)[2][0] * rotation[1][2]);
+			matrix[1][1] = ((*this)[0][1] * rotation[1][0]) + ((*this)[1][1] * rotation[1][1]) + ((*this)[2][1] * rotation[1][2]);
+			matrix[2][1] = ((*this)[0][2] * rotation[1][0]) + ((*this)[1][2] * rotation[1][1]) + ((*this)[2][2] * rotation[1][2]);
+
+			matrix[0][2] = ((*this)[0][0] * rotation[2][0]) + ((*this)[1][0] * rotation[2][1]) + ((*this)[2][0] * rotation[2][2]);
+			matrix[1][2] = ((*this)[0][1] * rotation[2][0]) + ((*this)[1][1] * rotation[2][1]) + ((*this)[2][1] * rotation[2][2]);
+			matrix[2][2] = ((*this)[0][2] * rotation[2][0]) + ((*this)[1][2] * rotation[2][1]) + ((*this)[2][2] * rotation[2][2]);
+
+			matrix[3] = (*this)[3];
+
+			return matrix;
+		}
 
 	private:
 

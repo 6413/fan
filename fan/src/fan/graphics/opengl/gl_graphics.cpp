@@ -38,7 +38,7 @@ fan::mat4 fan_2d::graphics::get_projection(const fan::vec2i& window_size) {
 
 fan::mat4 fan_2d::graphics::get_view_translation(const fan::vec2i& window_size, const fan::mat4& view)
 {
-	return fan::math::translate(view, fan::vec3((f_t)window_size.x * 0.5, (f_t)window_size.y * 0.5, -700.0f));
+	return view.translate(fan::vec3((f_t)window_size.x * 0.5, (f_t)window_size.y * 0.5, -700.0f));
 }
 
 //fan_2d::graphics::image_t fan_2d::graphics::load_image(fan::window* window, const std::string& path)
@@ -2518,3 +2518,558 @@ void fan_3d::graphics::add_camera_rotation_callback(fan::camera* camera) {
 //}
 
 #endif
+
+fan_3d::graphics::model_t::model_t(fan::camera* camera)
+	: m_camera(camera), m_queue_helper(camera->m_window)
+{
+	m_shader->set_vertex(
+		#include <fan/graphics/glsl/opengl/3D/model.vs>
+	);
+
+	m_shader->set_fragment(
+		#include <fan/graphics/glsl/opengl/3D/model.fs>
+	);
+
+	m_shader->compile();
+
+	fan::bind_vao(vao_t::m_buffer_object, [&] {
+		vertices_t::initialize_buffers(m_shader->id, vertex_layout_location, false, vertices_t::value_type::size());
+		normals_t::initialize_buffers(m_shader->id, normal_layout_location, false, normals_t::value_type::size());
+
+		glGenBuffers(1, &m_ebo);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, 0, 0, GL_STATIC_DRAW); 
+	});
+}
+
+fan_3d::graphics::model_t::~model_t()
+{
+	m_queue_helper.reset();
+
+	if (m_draw_index != -1) {
+		m_camera->m_window->erase_draw_call(m_draw_index);
+		m_draw_index = -1;
+	}
+}
+
+void fan_3d::graphics::model_t::process_node(uint32_t& current_index, uint32_t& max_index, aiNode *node, const aiScene *scene)
+{
+  // process each mesh located at the current node
+  for(unsigned int i = 0; i < node->mNumMeshes; i++)
+  {
+      aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
+       
+      // walk through each of the mesh's vertices
+      for(unsigned int i = 0; i < mesh->mNumVertices; i++)
+      {
+          fan::vec3 vector; // we declare a placeholder vector since assimp uses its own vector class that doesn't directly convert to glm's vec3 class so we transfer the data to this placeholder glm::vec3 first.
+          // positions
+          vector.x = mesh->mVertices[i].x;
+          vector.y = mesh->mVertices[i].y;
+          vector.z = mesh->mVertices[i].z;
+
+					vertices_t::push_back(vector);
+					vector = 0;
+          
+          if (mesh->HasNormals())
+          {
+            vector.x = mesh->mNormals[i].x;
+            vector.y = mesh->mNormals[i].y;
+            vector.z = mesh->mNormals[i].z;
+          }
+					normals_t::push_back(vector);
+          //// texture coordinates
+          //if(mesh->mTextureCoords[0]) // does the mesh contain texture coordinates?
+          //{
+          //    // tangent
+          //    vector.x = mesh->mTangents[i].x;
+          //    vector.y = mesh->mTangents[i].y;
+          //    vector.z = mesh->mTangents[i].z;
+          //    // bitangent
+          //    vector.x = mesh->mBitangents[i].x;
+          //    vector.y = mesh->mBitangents[i].y;
+          //    vector.z = mesh->mBitangents[i].z;
+          //}
+      }
+
+      for(unsigned int i = 0; i < mesh->mNumFaces; i++)
+      {
+          aiFace face = mesh->mFaces[i];
+					for (unsigned int j = 0; j < face.mNumIndices; j++) {
+              m_indices.push_back(max_index + face.mIndices[j]);        
+							current_index = std::max(current_index, face.mIndices[j]);
+					}
+      }
+  }
+
+  for(unsigned int i = 0; i < node->mNumChildren; i++)
+  {
+			max_index += current_index + !!current_index;
+			current_index = 0;
+      process_node(current_index, max_index, node->mChildren[i], scene);
+  }
+
+}
+
+void fan_3d::graphics::model_t::push_back(const properties_t& properties)
+{
+	Assimp::Importer import;
+  const aiScene *scene = import.ReadFile(properties.path, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);	
+	
+  if(!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) 
+  {
+		fan::throw_error("error loading model \"" + properties.path + "\"");
+  }
+
+	uint32_t c=0, m=0;
+
+	process_node(c, m, scene->mRootNode, scene);
+
+	m_queue_helper.write([&] {
+
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_indices.size() * sizeof(decltype(m_indices)::value_type), m_indices.data(), GL_STATIC_DRAW);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+		vertices_t::write_data();
+		normals_t::write_data();
+
+		m_queue_helper.on_write(m_camera->m_window);
+	});
+}
+
+void fan_3d::graphics::model_t::enable_draw()
+{
+	if (m_draw_index == -1 || m_camera->m_window->m_draw_queue[m_draw_index].first != this) {
+		m_draw_index = m_camera->m_window->push_draw_call(this, [addr = (uint64_t)this]{
+			((model_t*)(addr))->draw();
+		});
+	}
+	else {
+		m_camera->m_window->edit_draw_call(m_draw_index, this, [addr = (uint64_t)this] {
+			((model_t*)(addr))->draw();
+		});
+	}
+}
+
+void fan_3d::graphics::model_t::disable_draw()
+{
+	if (m_draw_index == -1) {
+		return;
+	}
+
+	m_camera->m_window->erase_draw_call(m_draw_index);
+	m_draw_index = -1;
+}
+
+void fan_3d::graphics::model_t::draw()
+{
+	glEnable(GL_DEPTH_TEST);
+
+	m_shader->use();
+
+	fan::mat4 projection(1);
+	projection = fan::math::perspective<fan::mat4>(fan::math::radians(90.0), (f32_t)m_camera->m_window->get_size().x / (f32_t)m_camera->m_window->get_size().y, 0.1f, 1000.0f);
+
+	fan::mat4 view(m_camera->get_view_matrix());
+
+	m_shader->set_mat4("projection", projection);
+	m_shader->set_mat4("view", view);
+
+	fan::bind_vao(vao_t::m_buffer_object, [&] {
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
+		glDrawElements(GL_TRIANGLES, m_indices.size(), GL_UNSIGNED_INT, 0);
+	});
+
+	glDisable(GL_DEPTH_TEST);
+}
+
+bool fan_3d::graphics::animation::read_skeleton(animation::joint_t& joint, aiNode* node, std::unordered_map<std::string, std::pair<int, fan::mat4>>& boneInfoTable)
+{
+
+	if (boneInfoTable.find(node->mName.C_Str()) != boneInfoTable.end()) { // if node is actually a bone
+		joint.name = node->mName.C_Str();
+		joint.id = boneInfoTable[joint.name].first;
+		joint.offset = boneInfoTable[joint.name].second;
+
+		for (int i = 0; i < node->mNumChildren; i++) {
+			animation::joint_t child;
+			read_skeleton(child, node->mChildren[i], boneInfoTable);
+			joint.children.push_back(child);
+		}
+		return true;
+	}
+	else { // find bones in children
+		for (int i = 0; i < node->mNumChildren; i++) {
+			if (read_skeleton(joint, node->mChildren[i], boneInfoTable)) {
+				return true;
+			}
+
+		}
+	}
+	return false;
+}
+
+void fan_3d::graphics::animation::load_model(const aiScene* scene, aiMesh* mesh, std::vector<animation::vertex_t>& verticesOutput, std::vector<uint32_t>& indicesOutput, animation::joint_t& skeletonOutput, uint32_t& nBoneCount)
+{
+	//load position, normal, uv
+	for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
+		//process position 
+		fan_3d::graphics::animation::vertex_t vertex;
+		fan::vec3 vector;
+		vector.x = mesh->mVertices[i].x;
+		vector.y = mesh->mVertices[i].y;
+		vector.z = mesh->mVertices[i].z;
+		vertex.position = vector;
+		//process normal
+		vector.x = mesh->mNormals[i].x;
+		vector.y = mesh->mNormals[i].y;
+		vector.z = mesh->mNormals[i].z;
+		vertex.normal = vector;
+		//process uv
+		fan::vec2 vec;
+		vec.x = mesh->mTextureCoords[0][i].x;
+		vec.y = mesh->mTextureCoords[0][i].y;
+		vertex.uv = vec;
+
+		vertex.bone_ids = fan::vec4i(0);
+		vertex.bone_weights = fan::vec4(0.0f);
+
+		verticesOutput.push_back(vertex);
+	}
+
+	//load boneData to vertices
+	std::unordered_map<std::string, std::pair<int, fan::mat4>> bone_info;
+	std::vector<unsigned int> boneCounts;
+	boneCounts.resize(verticesOutput.size(), 0);
+		nBoneCount = mesh->mNumBones;
+
+		//loop through each bone
+	for (uint32_t i = 0; i < nBoneCount; i++) {
+		aiBone* bone = mesh->mBones[i];
+
+		bone_info[bone->mName.C_Str()] = { i, bone->mOffsetMatrix };
+
+		//loop through each vertex that have that bone
+		for (int j = 0; j < bone->mNumWeights; j++) {
+			unsigned int id = bone->mWeights[j].mVertexId;
+			float weight = bone->mWeights[j].mWeight;
+			boneCounts[id]++;
+			switch (boneCounts[id]) {
+			case 1:
+				verticesOutput[id].bone_ids.x = i;
+				verticesOutput[id].bone_weights.x = weight;
+				break;
+			case 2:
+				verticesOutput[id].bone_ids.y = i;
+				verticesOutput[id].bone_weights.y = weight;
+				break;
+			case 3:
+				verticesOutput[id].bone_ids.z = i;
+				verticesOutput[id].bone_weights.z = weight;
+				break;
+			case 4:
+				verticesOutput[id].bone_ids.w = i;
+				verticesOutput[id].bone_weights.w = weight;
+				break;
+			default:
+				//std::cout << "err: unable to allocate bone to vertex" << std::endl;
+				break;
+
+			}
+		}
+	}
+
+	//normalize weights to make all weights sum 1
+	for (int i = 0; i < verticesOutput.size(); i++) {
+		fan::vec4 & boneWeights = verticesOutput[i].bone_weights;
+		float totalWeight = boneWeights.x + boneWeights.y + boneWeights.z + boneWeights.w;
+		if (totalWeight > 0.0f) {
+			verticesOutput[i].bone_weights = fan::vec4(
+				boneWeights.x / totalWeight,
+				boneWeights.y / totalWeight,
+				boneWeights.z / totalWeight,
+				boneWeights.w / totalWeight
+			);
+		}
+	}
+
+	//load indices
+	for (int i = 0; i < mesh->mNumFaces; i++) {
+		aiFace& face = mesh->mFaces[i];
+		for (unsigned int j = 0; j < face.mNumIndices; j++)
+			indicesOutput.push_back(face.mIndices[j]);
+	}
+
+	// create bone hirerchy
+	read_skeleton(skeletonOutput, scene->mRootNode, bone_info);
+}
+
+void fan_3d::graphics::animation::load_animation(const aiScene* scene, fan_3d::graphics::animation::animation_t& animation)
+{
+	//loading  first Animation
+	aiAnimation* anim = scene->mAnimations[0];
+
+	if (anim->mTicksPerSecond != 0.0f)
+		animation.ticks_per_second = anim->mTicksPerSecond;
+	else
+		animation.ticks_per_second = 1;
+
+
+	animation.duration = anim->mDuration * anim->mTicksPerSecond;
+	animation.bone_transforms;
+
+	//load positions rotations and scales for each bone
+	// each channel represents each bone
+	for (int i = 0; i < anim->mNumChannels; i++) {
+		aiNodeAnim* channel = anim->mChannels[i];
+		fan_3d::graphics::animation::bone_transform_track_t track;
+		for (int j = 0; j < channel->mNumPositionKeys; j++) {
+			track.position_timestamps.push_back(channel->mPositionKeys[j].mTime);
+			track.positions.push_back(channel->mPositionKeys[j].mValue);
+		}
+		for (int j = 0; j < channel->mNumRotationKeys; j++) {
+			track.rotation_timestamps.push_back(channel->mRotationKeys[j].mTime);
+			track.rotations.push_back(channel->mRotationKeys[j].mValue);
+
+		}
+		for (int j = 0; j < channel->mNumScalingKeys; j++) {
+			track.scale_timestamps.push_back(channel->mScalingKeys[j].mTime);
+			track.scales.push_back(channel->mScalingKeys[j].mValue);
+	
+		}
+		animation.bone_transforms[channel->mNodeName.C_Str()] = track;
+	}
+}
+
+std::pair<uint32_t, f32_t> fan_3d::graphics::animation::get_time_fraction(std::vector<f32_t>& times, f32_t& dt)
+ {
+	uint32_t segment = 0;
+	while (dt > times[segment])
+		segment++;
+	f32_t start = times[segment - 1];
+	f32_t end = times[segment];
+	f32_t frac = (dt - start) / (end - start);
+	return {segment, frac};
+}
+
+void fan_3d::graphics::animation::get_pose(animation::animation_t* animation, animation::joint_t* skeleton, f32_t dt, std::vector<fan::mat4>* output, fan::mat4 parentTransform, fan::mat4 transform)
+{
+	fan_3d::graphics::animation::bone_transform_track_t btt = animation->bone_transforms[skeleton->name];
+
+	//if (btt.positions.empty()) {
+	//	return;
+	//}
+
+	dt = fmod(dt, animation->duration);
+	std::pair<unsigned int, float> fp;
+	//calculate interpolated position
+	fp = get_time_fraction(btt.position_timestamps, dt);
+
+	fan::vec3 p1 = btt.positions[fp.first - 1];
+	fan::vec3 p2 = btt.positions[fp.first];
+
+	fan::vec3 position(fan::mix(p1, p2, fp.second));
+
+	//calculate interpolated rotation
+	fp = get_time_fraction(btt.rotation_timestamps, dt);
+	fan::quat rotation1 = btt.rotations[fp.first - 1];
+	fan::quat rotation2 = btt.rotations[fp.first];
+
+	fan::quat rotation = fan::quat::slerp(rotation1, rotation2, fp.second);
+
+	//calculate interpolated scale
+	fp = get_time_fraction(btt.scale_timestamps, dt);
+	fan::vec3 s1 = btt.scales[fp.first - 1];
+	fan::vec3 s2 = btt.scales[fp.first];
+
+	fan::vec3 scale(fan::mix(s1, s2, fp.second));
+
+	fan::mat4 positionMat = fan::mat4(1), scaleMat = fan::mat4(1);
+
+	positionMat = positionMat.translate(position);
+
+	fan::mat4 rotation_matrix = rotation;
+
+	scaleMat = scaleMat.scale(scale);
+	fan::mat4 localTransform = positionMat * rotation_matrix * scaleMat;
+	fan::mat4 global_transform = parentTransform * localTransform;
+
+	(*output)[skeleton->id] = transform * global_transform * skeleton->offset;
+
+	for (int i = 0; i < skeleton->children.size(); i++) {
+		get_pose(animation, &skeleton->children[i], dt, output, global_transform, transform);
+	}
+}
+
+fan_3d::graphics::animation::animator_t::animator_t(fan::camera* camera, const properties_t& properties)
+	: m_camera(camera), 
+		m_bone_count(0), 
+		m_identity(1), 
+		m_angle(properties.angle), 
+		m_rotation_vector(properties.rotation_vector),
+		m_timestamp(0),
+		m_model(1)
+{
+
+	m_model = m_model.translate(properties.position);
+	m_model = m_model.scale(properties.size);
+	//m_model = m_model.rotate(properties.angle, properties.rotation_vector);
+
+	m_shader->set_vertex(
+		#include <fan/graphics/glsl/opengl/3D/animation.vs>
+	);
+
+	m_shader->set_fragment(
+		#include <fan/graphics/glsl/opengl/3D/animation.fs>
+	);
+
+	m_shader->compile();
+
+	Assimp::Importer importer;
+
+	const aiScene* scene = importer.ReadFile(properties.model_path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenSmoothNormals);
+
+	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
+		fan::print("animation load error:", importer.GetErrorString());
+		exit(1);
+	}
+
+	aiMesh* mesh = scene->mMeshes[0];
+
+	m_transform = scene->mRootNode->mTransformation;
+
+	load_model(scene, mesh, m_vertices, m_indices, m_skeleton, m_bone_count);
+	load_animation(scene, m_animation);
+
+	diffusion_texture = fan_2d::graphics::load_image(camera->m_window, properties.texture_path);
+
+	//currentPose is held in this vector and uploaded to gpu as a matrix array uniform
+	m_current_pose.resize(m_bone_count, m_identity); // use this for no animation
+
+	glGenVertexArrays(1, &m_vao);
+	glGenBuffers(1, &m_vbo);
+	glGenBuffers(1, &m_ebo);
+
+	glBindVertexArray(m_vao);
+	glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(fan_3d::graphics::animation::vertex_t) * m_vertices.size(), &m_vertices[0], GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(fan_3d::graphics::animation::vertex_t), (GLvoid*)offsetof(fan_3d::graphics::animation::vertex_t, position));
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(fan_3d::graphics::animation::vertex_t), (GLvoid*)offsetof(fan_3d::graphics::animation::vertex_t, normal));
+	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(fan_3d::graphics::animation::vertex_t), (GLvoid*)offsetof(fan_3d::graphics::animation::vertex_t, uv));
+	glEnableVertexAttribArray(3);
+	glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(fan_3d::graphics::animation::vertex_t), (GLvoid*)offsetof(fan_3d::graphics::animation::vertex_t, bone_ids));
+	glEnableVertexAttribArray(4);
+	glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(fan_3d::graphics::animation::vertex_t), (GLvoid*)offsetof(fan_3d::graphics::animation::vertex_t, bone_weights));
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(m_indices[0]) * m_indices.size(), &m_indices[0], GL_STATIC_DRAW);
+	glBindVertexArray(0);
+}
+
+fan::vec3 fan_3d::graphics::animation::animator_t::get_position() const
+{
+	return m_model.get_translation();
+}
+
+void fan_3d::graphics::animation::animator_t::set_position(const fan::vec3& position)
+{
+	m_model = m_model.translate(position);
+}
+
+fan::vec3 fan_3d::graphics::animation::animator_t::get_size() const
+{
+	return m_model.get_scale();
+}
+
+void fan_3d::graphics::animation::animator_t::set_size(const fan::vec3& size)
+{
+	m_model = m_model.scale(size);
+}
+
+fan::vec3 fan_3d::graphics::animation::animator_t::get_rotation_vector() const
+{
+	return m_rotation_vector;
+}
+
+void fan_3d::graphics::animation::animator_t::set_rotation_vector(const fan::vec3& vector)
+{
+	m_model = m_model.rotate(m_angle, vector);
+}
+
+f32_t fan_3d::graphics::animation::animator_t::get_angle() const
+{
+	return m_angle;
+}
+
+void fan_3d::graphics::animation::animator_t::set_angle(f32_t angle)
+{
+	m_model = m_model.rotate(angle, m_rotation_vector);
+}
+
+f32_t fan_3d::graphics::animation::animator_t::get_timestamp() const
+{
+	return m_timestamp;
+}
+
+void fan_3d::graphics::animation::animator_t::set_timestamp(f32_t timestamp)
+{
+	m_timestamp = timestamp;
+}
+
+void fan_3d::graphics::animation::animator_t::enable_draw()
+{
+	if (m_draw_index == -1 || m_camera->m_window->m_draw_queue[m_draw_index].first != this) {
+		m_draw_index = m_camera->m_window->push_draw_call(this, [addr = (uint64_t)this]{
+			((animator_t*)(addr))->draw();
+		});
+	}
+	else {
+		m_camera->m_window->edit_draw_call(m_draw_index, this, [addr = (uint64_t)this] {
+			((animator_t*)(addr))->draw();
+		});
+	}
+}
+
+void fan_3d::graphics::animation::animator_t::disable_draw()
+{
+	if (m_draw_index == -1) {
+		return;
+	}
+
+	m_camera->m_window->erase_draw_call(m_draw_index);
+	m_draw_index = -1;
+}
+
+void fan_3d::graphics::animation::animator_t::draw()
+{
+	glEnable(GL_DEPTH_TEST);
+
+	get_pose(&m_animation, &m_skeleton, m_timestamp + 1, &m_current_pose, m_identity, m_transform);
+
+	m_shader->use();
+
+	fan::mat4 projection(1);
+	projection = fan::math::perspective<fan::mat4>(fan::math::radians(90.0), (f32_t)m_camera->m_window->get_size().x / (f32_t)m_camera->m_window->get_size().y, 0.1f, 1000.0f);
+
+	fan::mat4 view(m_camera->get_view_matrix());
+
+	m_shader->set_mat4("projection", projection);
+	m_shader->set_mat4("view", view);
+	m_shader->set_mat4("model_matrix", m_model);
+
+	m_shader->set_mat4("bone_transforms", &m_current_pose[0][0][0], m_bone_count);
+
+	glBindVertexArray(m_vao);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, diffusion_texture->texture);
+
+	m_shader->set_int("diff_texture", 0);
+
+	glDrawElements(GL_TRIANGLES, m_indices.size(), GL_UNSIGNED_INT, 0);
+
+	glDisable(GL_DEPTH_TEST);
+}
