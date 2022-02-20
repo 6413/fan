@@ -439,7 +439,7 @@ namespace fan_2d {
 		struct engine_t {
 
 			fan::window window;
-			fan::camera camera;
+			fan::opengl::context_t context;
 			fan_2d::world world;
 
 			//std::unordered_map<void*, bool> m_to_avoid;
@@ -477,9 +477,6 @@ namespace fan_2d {
 				m_to_update.insert(std::make_pair(shape, update_function));
 			}
 
-			void clear_draw_calls() {
-				window.clear_draw_calls();
-			}
 		};
 	}
 
@@ -1110,7 +1107,7 @@ namespace fan_2d {
 		template <typename graphics_t, typename physics_t>
 		struct base_engine : public graphics_t, public physics_t {
 
-			base_engine(fan_2d::engine::engine_t* engine) : m_engine(engine), graphics_t(&engine->camera), physics_t(&engine->world) { }
+			base_engine(fan_2d::engine::engine_t* engine) : m_engine(engine), graphics_t(&engine->context.camera), physics_t(&engine->world) { }
 
 			void set_rotation(uintptr_t i, f_t angle) {
 

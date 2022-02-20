@@ -84,15 +84,11 @@ mat4 rotate(mat4 m, float angle, vec3 v) {
 out vec3 p;
 out vec3 normal;
 
+uniform mat4 models;
+
 void main() {
 
-	mat4 m = mat4(1);
-
-	m = translate(m, vec3(0, 0, 0));
-
-	m = scale(m, vec3(1, 1, 1));
-
-  gl_Position = projection * view * m * vec4(layout_vertex, 1);
+  gl_Position = projection * view * models * vec4(layout_vertex, 1);
 
 	p = gl_Position.xyz;
 	normal = layout_normal;

@@ -28,7 +28,7 @@ void main()
 	boneTransform  +=    bone_transforms[int(boneIds.y)] * boneWeights.y;
 	boneTransform  +=    bone_transforms[int(boneIds.z)] * boneWeights.z;
 	boneTransform  +=    bone_transforms[int(boneIds.w)] * boneWeights.w;
-	vec4 pos = boneTransform * vec4(position, 1.0);
+	vec4 pos = vec4(position, 1.0);
 	gl_Position = (projection * view) * model_matrix * pos;
 	v_pos = vec3(model_matrix * boneTransform * pos);
 	tex_cord = uv;

@@ -257,7 +257,6 @@ fan::window& fan::window::operator=(const window& window)
 	this->m_focused = window.m_focused;
 	this->m_auto_close = window.m_auto_close;
 	this->m_background_color = window.m_background_color;
-	this->m_draw_queue = window.m_draw_queue;
 
 	return *this;
 }
@@ -320,7 +319,6 @@ fan::window& fan::window::operator=(window&& window)
 	this->m_focused = std::move(window.m_focused);
 	this->m_auto_close = std::move(window.m_auto_close);
 	this->m_background_color = std::move(this->m_background_color);
-	this->m_draw_queue = std::move(window.m_draw_queue);
 
 #if fan_renderer == fan_renderer_opengl
 
@@ -352,149 +350,10 @@ fan::window::~window()
 	this->destroy_window();
 }
 
-// must call window::handle_events();
-void fan::window::execute(const std::function<void()>& function)
+void fan::window::print_opengl_version()
 {
-	if (!this->open()) {
-		return;
-	}
-
-#if fan_renderer == fan_renderer_opengl
-
-	#if defined(fan_platform_windows)
-
-	if (wglGetCurrentContext() != m_context) {
-		wglMakeCurrent(m_hdc, m_context);
-	}
-
-	glViewport(0, 0, m_size.x, m_size.y);
-
-	#elif defined(fan_platform_unix)
-
-	if (glXGetCurrentContext() != m_context) {
-	glXMakeCurrent(fan::sys::m_display, m_window, m_context);
-	}
-
-	glViewport(0, 0, m_size.x, m_size.y);
-
-	#endif
-
-	glClearColor(
-		m_background_color.r,
-		m_background_color.g,
-		m_background_color.b,
-		m_background_color.a
-	);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-#elif fan_renderer == fan_renderer_vulkan
-	fan::gpu_memory::update_memory_buffer();
-	m_vulkan->draw_frame();
-#endif
-
-	this->calculate_delta_time();
-
-	if (function) {
-		function();
-	}
-
-	auto it = m_reserved_update.begin();
-
-	while (it != m_reserved_update.end()) {
-		m_reserved_update[it].second();
-		it = m_reserved_update.next(it);
-	}
-
-	it = m_write_queue.begin();
-	int x = 0;
-	while (it != m_write_queue.end()) {
-		m_write_queue.start_safe_next(it);
-		m_write_queue[it].second();
-		it = m_write_queue.end_safe_next();
-		x++;
-	}
-
-	m_write_queue.clear();
-	m_write_queue.open();
-
-	it = m_draw_queue.begin();
-
-	while (it != m_draw_queue.end()) {
-		m_draw_queue.start_safe_next(it);
-		m_draw_queue[it].second();
-		it = m_draw_queue.end_safe_next();
-	}
-
-	for (const auto& i : m_onetime_queue) {
-		i();
-	}
-
-	m_onetime_queue.clear();
-
-	if (m_max_fps) {
-
-		uint64_t dt = fan::time::clock::now() - m_fps_next_tick;
-
-		uint64_t goal_fps = m_max_fps;
-
-		int64_t frame_time = std::pow(10, 9) * (1.0 / goal_fps);
-		frame_time -= dt;
-
-		fan::delay(fan::time::nanoseconds(std::max((int64_t)0, frame_time)));
-
-		m_fps_next_tick = fan::time::clock::now();
-
-	}
-
-#if fan_renderer == fan_renderer_opengl
-	this->swap_buffers();
-#endif
-
-	if (call_mouse_move_cb) {
-
-		auto it = m_mouse_move_position_callback.begin();
-		while (it != m_mouse_move_position_callback.end()) {
-
-			m_mouse_move_position_callback.start_safe_next(it);
-
-			m_mouse_move_position_callback[it](this, m_mouse_position);
-
-			it = m_mouse_move_position_callback.end_safe_next();
-		}
-	}
-
-	m_previous_mouse_position = m_mouse_position;
-	call_mouse_move_cb = false;
-
-	this->reset_keys();
+	fan::print("OpenGL version:", glGetString(GL_VERSION));
 }
-
-void fan::window::loop(const std::function<void()>& function) {
-
-	while (fan::window::open()) {
-
-		this->execute(function);
-
-		fan::window::handle_events();
-
-	}
-
-#if fan_renderer == fan_renderer_vulkan
-	vkDeviceWaitIdle(m_vulkan->device);
-#endif
-}
-#if fan_renderer == fan_renderer_opengl
-void fan::window::swap_buffers() const
-{
-
-	#ifdef fan_platform_windows
-	SwapBuffers(m_hdc);
-	#elif defined(fan_platform_unix)
-	glXSwapBuffers(fan::sys::m_display, m_window);
-	#endif
-
-}
-#endif
 
 std::string fan::window::get_name() const
 {
@@ -915,62 +774,6 @@ void fan::window::remove_move_callback(fan::window::callback_id_t id)
 	this->m_move_callback.erase(id);
 }
 
-fan::window::callback_id_t fan::window::push_draw_call(void* this_, const std::function<void()>& function)
-{
-	return m_draw_queue.push_back(std::make_pair(this_, function));
-}
-
-fan::window::callback_id_t fan::window::push_reserved_call(void* this_, std::function<void()> function)
-{
-	return m_reserved_update.push_back(std::make_pair(this_, function));
-}
-
-void fan::window::edit_reserved_call(callback_id_t id, void* this_, const std::function<void()>& function)
-{
-	m_reserved_update[id] = std::make_pair(this_, function);
-}
-
-void fan::window::erase_reserved_call(callback_id_t id)
-{
-	m_reserved_update.erase(id);
-}
-
-
-void fan::window::edit_draw_call(callback_id_t i, void* this_, const std::function<void()>& function)
-{
-	m_draw_queue[i] = std::make_pair(this_, function);
-}
-
-void fan::window::erase_draw_call(callback_id_t id)
-{
-	m_draw_queue.erase(id);
-}
-
-void fan::window::clear_draw_calls()
-{
-	m_draw_queue.clear();
-}
-
-fan::window::callback_id_t fan::window::draw_call_size() const
-{
-	return m_draw_queue.size();
-}
-
-fan::window::callback_id_t fan::window::push_write_call(void* this_, const std::function<void()>& function)
-{
-	return m_write_queue.push_back(std::make_pair(this, function));
-}
-
-void fan::window::edit_write_call(callback_id_t i, void* this_, std::function<void()> function)
-{
-	m_write_queue[i] = std::make_pair(this, function);
-}
-
-void fan::window::remove_write_call(callback_id_t id)
-{
-	m_write_queue.erase(id);
-}
-
 #if fan_renderer == fan_renderer_opengl
 
 void message_callback(GLenum source,
@@ -1329,7 +1132,6 @@ static void handle_special(WPARAM wparam, LPARAM lparam, uint16_t& key, bool dow
 
 LRESULT fan::window::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
-
 	switch (msg) {
 		case WM_MOUSEMOVE:
 		{
@@ -1739,16 +1541,6 @@ void fan::window::initialize_window(const std::string& name, const fan::vec2i& w
 		exit(1);
 	}
 
-	static bool initialize_glew = true;
-
-	if (initialize_glew) {
-		if (glewInit() != GLEW_OK) { // maybe
-			fan::print("failed to initialize glew");
-			exit(1);
-		}
-		initialize_glew = false;
-	}
-
 #endif
 
 	ShowCursor(!flag_values::m_no_mouse);
@@ -1952,20 +1744,6 @@ void fan::window::initialize_window(const std::string& name, const fan::vec2i& w
 	XMapRaised(fan::sys::m_display, m_window);
 	XAutoRepeatOn(fan::sys::m_display);
 
-#if fan_renderer == fan_renderer_opengl
-
-	static bool initialized = false;
-
-	if (!initialized) {
-		if (glewInit() != GLEW_OK) { // maybe
-			fan::print("failed to initialize glew");
-			exit(1);
-		}
-		initialized = true;
-	}
-
-#endif
-
 	m_xim = XOpenIM(fan::sys::m_display, 0, 0, 0);
 
 	if(!m_xim){
@@ -2006,6 +1784,41 @@ void fan::window::initialize_window(const std::string& name, const fan::vec2i& w
 }
 
 void fan::window::handle_events() {
+
+	this->calculate_delta_time();
+
+	if (m_max_fps) {
+
+		uint64_t dt = fan::time::clock::now() - m_fps_next_tick;
+
+		uint64_t goal_fps = m_max_fps;
+
+		int64_t frame_time = std::pow(10, 9) * (1.0 / goal_fps);
+		frame_time -= dt;
+
+		fan::delay(fan::time::nanoseconds(std::max((int64_t)0, frame_time)));
+
+		m_fps_next_tick = fan::time::clock::now();
+
+	}
+
+	if (call_mouse_move_cb) {
+
+		auto it = m_mouse_move_position_callback.begin();
+		while (it != m_mouse_move_position_callback.end()) {
+
+			m_mouse_move_position_callback.start_safe_next(it);
+
+			m_mouse_move_position_callback[it](this, m_mouse_position);
+
+			it = m_mouse_move_position_callback.end_safe_next();
+		}
+	}
+
+	m_previous_mouse_position = m_mouse_position;
+	call_mouse_move_cb = false;
+
+	this->reset_keys();
 
 	#ifdef fan_platform_windows
 
@@ -2677,7 +2490,6 @@ void fan::window::handle_events() {
 				}
 
 				auto key = fan::window_input::convert_keys_to_fan(event.xbutton.button);
-
 				window->window_input_up(window->m_window, key);
 
 				auto it = window->m_keys_callback.begin();
@@ -2687,7 +2499,7 @@ void fan::window::handle_events() {
 					window->m_keys_callback.start_safe_next(it);
 
 					if (window->m_keys_callback[it]) {
-						window->m_keys_callback[it](window, fan::mouse_left, key_state::release);
+						window->m_keys_callback[it](window, key, key_state::release);
 					}
 
 					it = window->m_keys_callback.end_safe_next();

@@ -1,13 +1,17 @@
 R"(
 #version 130
 
-in vec4 input0;
-in vec4 input1;
-in vec4 input2;
-in vec4 input3;
-in vec2 input4;
+in vec4 layout_light_data;
+in vec2 layout_position;
+in vec2 layout_size;
+in float layout_angle;
+in vec2 layout_rotation_point;
+in vec3 layout_rotation_vector;
+in vec2 layout_texture_coordinates;
+in uint layout_RenderOPCode0;
+in uint layout_RenderOPCode1;
 
-out vec4 i_color;
+out vec4 light_data;
 
 flat out uint RenderOPCode0;
 flat out uint RenderOPCode1;
@@ -103,16 +107,6 @@ out vec2 texture_coordinate;
 
 void main() {
 
-	vec4 layout_color = vec4(input0[0], input0[1], input0[2], input0[3]);
-	vec2 layout_position = vec2(input1[0], input1[1]);
-	vec2 layout_size = vec2(input1[2], input1[3]);
-	float layout_angle = input2[0];
-	vec2 layout_rotation_point = vec2(input2[1], input2[2]);
-	vec3 layout_rotation_vector = vec3(input2[3], input3[0], input3[1]);
-	vec2 layout_texture_coordinates = vec2(input3[2], input3[3]);
-	uint layout_RenderOPCode0 = uint(input4[0]);
-	uint layout_RenderOPCode1 = uint(input4[1]);
-
 	texture_coordinate = layout_texture_coordinates;
 
 	mat4 m = mat4(1);
@@ -138,7 +132,11 @@ void main() {
 
 	gl_Position = projection * view * m * vec4(rectangle_vertices[gl_VertexID % 6], 0, 1);
 
-	i_color = layout_color;
+	vec2 center = rectangle_vertices[gl_VertexID % 6] * 0.5 + 0.5;
+	
+	vec2 pixel_size = 1.0 / (layout_size / 100);
+
+	light_data = layout_light_data;
 	RenderOPCode0 = layout_RenderOPCode0;
 	RenderOPCode1 = layout_RenderOPCode1;
 	AspectRatio = layout_size.x / layout_size.y;

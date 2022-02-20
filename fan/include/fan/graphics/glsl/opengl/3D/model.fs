@@ -9,7 +9,7 @@ in vec3 normal;
 
 void main() {
 
-  vec4 object_color = vec4(1, 1, 1, 1);
+  vec4 object_color = vec4(1, 0, 0, 1);
 
   vec3 light_position = vec3(0, 10, 10);
   vec3 light_color = vec3(1, 1, 1);

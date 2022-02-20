@@ -245,3 +245,26 @@ namespace fan {
 	}
 
 }
+
+//struct event_timer_t
+//{
+//  template <class callable, class... arguments>
+//  event_timer_t(uint64_t ns, bool async, callable&& f, arguments&&... args)
+//  {
+//    std::function<typename std::result_of<callable(arguments...)>::type()> task(std::bind(std::forward<callable>(f), std::forward<arguments>(args)...));
+//
+//    if (async)
+//    {
+//      std::thread([after, task]() {
+//				fan::delay(ns);
+//          task();
+//      }).detach();
+//    }
+//    else
+//    {
+//      std::this_thread::sleep_for(std::chrono::milliseconds(after));
+//      task();
+//    }
+//  }
+//
+//};

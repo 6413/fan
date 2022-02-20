@@ -1,26 +1,12 @@
 R"(
 #version 140
 
-in vec4 layout_color;
-in vec2 layout_position;
-in vec2 layout_size;
-in float layout_angle;
-in vec2 layout_rotation_point;
-in vec3 layout_rotation_vector;
-
-in vec2 layout_light_position;
-in vec4 layout_light_color;
-in float layout_light_brightness;
-in float layout_light_angle;
+in vec4 input0;
+in vec4 input1;
+in vec4 input2;
+in vec2 input3;
 
 out vec4 color;
-
-out vec2 light_position;
-out vec4 light_color;
-out float light_brightness;
-out float light_angle;
-
-out vec2 f_position;
 
 uniform mat4 projection;
 uniform mat4 view;
@@ -110,6 +96,13 @@ vec2 rectangle_vertices[] = vec2[](
 
 void main() {
 
+	vec4 layout_color = vec4(input0[0], input0[1], input0[2], input0[3]);
+	vec2 layout_position = vec2(input1[0], input1[1]);
+	vec2 layout_size = vec2(input1[2], input1[3]);
+	float layout_angle = input2[0];
+	vec2 layout_rotation_point = vec2(input2[1], input2[2]);
+	vec3 layout_rotation_vector = vec3(input2[3], input3[0], input3[1]);
+
 	mat4 m = mat4(1);
 
 	m = translate(m, vec3(layout_position + layout_rotation_point, 0));
@@ -132,13 +125,6 @@ void main() {
 	m = scale(m, vec3(layout_size.x, layout_size.y, 0));
 
 	gl_Position = projection * view * m * vec4(rectangle_vertices[gl_VertexID % 6].x, rectangle_vertices[gl_VertexID % 6].y, 0, 1);
-
-	light_position = layout_light_position;
-	light_color	   = layout_light_color;
-	light_brightness = layout_light_brightness;
-	light_angle	   = layout_light_angle;
-
-	f_position = gl_Position.xy;
 
 	color = layout_color;
 }
