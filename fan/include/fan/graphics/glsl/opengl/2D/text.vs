@@ -1,31 +1,14 @@
 R"(
 #version 130
 
-in vec2 layout_position;
-in vec2 layout_size;
-in float layout_angle;
-in vec4 layout_color;
-in float layout_font_size;
-in vec2 layout_rotation_point;
-in vec2 layout_texture_coordinates;
-in vec4 layout_outline_color;
-in float layout_outline_size;
-
-in vec2 layout_light_position;
-in vec4 layout_light_color;
-in float layout_light_brightness;
-in float layout_light_angle;
+in vec4 input0;
+in vec4 input1;
+in vec4 input2;
+in vec4 input3;
+in vec4 input4;
+in vec4 input5;
 
 out vec4 color;
-
-out vec2 light_position;
-out vec4 light_color;
-out float light_brightness;
-out float light_angle;
-out vec4 outline_color;
-out float outline_size;
-
-out vec2 f_position;
 
 uniform mat4 projection;
 uniform mat4 view;
@@ -105,16 +88,6 @@ mat4 rotate(mat4 m, float angle, vec3 v) {
 	return matrix;
 }
 
-/*
-	vec2(-0.5, -0.5),
-	vec2(0.5, -0.5),
-	vec2(0.5, 0.5),
-
-	vec2(-0.5, -0.5),
-	vec2(-0.5, 0.5),
-	vec2(0.5, 0.5)
-*/
-
 vec2 rectangle_vertices[] = vec2[](
 	vec2(-1.0, -1.0),
 	vec2(1.0, -1.0),
@@ -126,10 +99,25 @@ vec2 rectangle_vertices[] = vec2[](
 );
 
 out vec2 texture_coordinate;
-out vec4 text_color;
 out float font_size;
+out vec4 text_color;
+out vec4 outline_color;
+out float outline_size;
 
 void main() {
+
+	vec4 layout_color = vec4(input0[0], input0[1], input0[2], input0[3]);
+	vec2 layout_position = vec2(input1[0], input1[1]);
+	vec2 layout_size = vec2(input1[2], input1[3]);
+	float layout_angle = input2[0];
+	vec2 layout_rotation_point = vec2(input2[1], input2[2]);
+	vec3 layout_rotation_vector = vec3(input2[3], input3[0], input3[1]);
+	vec2 layout_texture_coordinates = vec2(input3[2], input3[3]);
+	uint layout_RenderOPCode0 = uint(input4[0]);
+	uint layout_RenderOPCode1 = uint(input4[1]);
+	float layout_font_size = float(input4[2]);
+	vec4 layout_outline_color = vec4(input4[3], input5[0], input5[1], input5[2]);
+	float layout_outline_size = float(input5[3]);
 
 	mat4 m = mat4(1);
 
@@ -147,16 +135,9 @@ void main() {
 	m[3][0] = middle.x;
 	m[3][1] = middle.y;
 
-    m = scale(m, vec3(layout_size.x, layout_size.y, 0));
+  m = scale(m, vec3(layout_size.x, layout_size.y, 0));
 
-    gl_Position = projection * view * m * vec4(rectangle_vertices[gl_VertexID % 6].x, rectangle_vertices[gl_VertexID % 6].y, 0, 1);
-
-	light_position = layout_light_position;
-	//light_color	   = layout_light_color;
-	light_brightness = layout_light_brightness;
-	light_angle	   = layout_light_angle;
-
-	f_position = vec2(vec4(m * vec4(rectangle_vertices[gl_VertexID % 6].x, rectangle_vertices[gl_VertexID % 6].y, 0, 1)).xy);
+  gl_Position = projection * view * m * vec4(rectangle_vertices[gl_VertexID % 6].x, rectangle_vertices[gl_VertexID % 6].y, 0, 1);
 
 	font_size = layout_font_size;
 

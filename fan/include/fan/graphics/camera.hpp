@@ -2,23 +2,15 @@
 
 #include <fan/types/types.hpp>
 #include <fan/types/matrix.hpp>
-#include <fan/window/window.hpp>
 
 namespace fan {
-	class window;
 
 	class camera {
 	public:
-		camera(fan::window* window);
 
-		camera(const fan::camera& camera);
-		camera(fan::camera&& camera);
+		camera();
 
-		fan::camera& operator=(const fan::camera& camera);
-		fan::camera& operator=(fan::camera&& camera) noexcept;
-
-		void move(f_t movement_speed, bool noclip = true, f_t friction = 12);
-		void rotate_camera(bool when);
+		//void rotate_camera(bool when);
 
 		fan::mat4 get_view_matrix() const;
 		fan::mat4 get_view_matrix(const fan::mat4& m) const;
@@ -51,8 +43,6 @@ namespace fan {
 		static constexpr f_t jump_force = 100;
 
 		static constexpr fan::vec3 world_up = fan::vec3(0, 1, 0);
-
-		fan::window* m_window;
 
 	protected:
 

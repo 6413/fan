@@ -1,13 +1,11 @@
 R"(
 #version 430
 
-in vec4 layout_color;
-in vec2 layout_position;
-in vec2 layout_size;
-in float layout_angle;
-in vec2 layout_rotation_point;
-in vec3 layout_rotation_vector;
-in vec2 layout_texture_coordinates;
+in vec4 input0;
+in vec4 input1;
+in vec4 input2;
+in vec4 input3;
+in vec2 input4;
 
 out vec4 color;
 
@@ -100,7 +98,18 @@ vec2 rectangle_vertices[] = vec2[](
 out vec2 texture_coordinate;
 
 void main() {
-    texture_coordinate = layout_texture_coordinates;
+
+	vec4 layout_color = vec4(input0[0], input0[1], input0[2], input0[3]);
+	vec2 layout_position = vec2(input1[0], input1[1]);
+	vec2 layout_size = vec2(input1[2], input1[3]);
+	float layout_angle = input2[0];
+	vec2 layout_rotation_point = vec2(input2[1], input2[2]);
+	vec3 layout_rotation_vector = vec3(input2[3], input3[0], input3[1]);
+	vec2 layout_texture_coordinates = vec2(input3[2], input3[3]);
+	uint layout_RenderOPCode0 = uint(input4[0]);
+	uint layout_RenderOPCode1 = uint(input4[1]);
+
+  texture_coordinate = layout_texture_coordinates;
 
 	mat4 m = mat4(1);
 

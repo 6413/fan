@@ -199,6 +199,12 @@ namespace fan {
 		return ret;
 	}
 
+	static void print_warning(const std::string& message) {
+		#ifndef fan_disable_warnings
+			fan::print("fan warning: ", message);
+		#endif
+	}
+
 	static void throw_error(const std::string& message) {
 		fan::print(message);
 #ifdef fan_compiler_visual_studio

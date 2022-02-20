@@ -41,7 +41,7 @@ namespace fan_2d {
 				});
 			}
 
-			struct rectangle : public fan_2d::graphics::rectangle {
+		/*	struct rectangle : public fan_2d::graphics::rectangle {
 
 				rectangle(fan::camera* camera)
 					: fan_2d::graphics::rectangle(camera)
@@ -68,58 +68,53 @@ namespace fan_2d {
 					});
 				}
 
-			};
+			};*/
 
-			class text_renderer 
+			struct text_renderer 
 #if fan_renderer == fan_renderer_opengl
 
 				:
-				protected fan_2d::graphics::sprite,
-				protected fan::buffer_object<f32_t, 98>,
-				protected fan::buffer_object<fan::vec2, 100>,
-				protected fan::buffer_object<fan::color, 102>,
-				protected fan::buffer_object<f32_t, 103>
+				protected fan_2d::graphics::sprite
 
 #elif fan_renderer == fan_renderer_vulkan
 
 #endif
 			
 			{
-			public:
-
 
 				struct properties_t {
 					fan::utf16_string text; 
-					f32_t font_size; 
+					f32_t font_size;
 					fan::vec2 position;
 					fan::color text_color;
 					fan::color outline_color = fan::color(0, 0, 0, 0);
 					f32_t outline_size = 0.3;
+					fan::vec2 rotation_point;
+					f32_t angle = 0;
 				};
 
-				text_renderer(fan::camera* camera);
+				void open(fan::opengl::context_t* context);
+				void close(fan::opengl::context_t* context);
 
-				~text_renderer();
+				void push_back(fan::opengl::context_t* context, properties_t properties);
 
-				void push_back(properties_t properties);
+				void insert(fan::opengl::context_t* context, uint32_t i, properties_t properties);
 
-				void insert(uint32_t i, properties_t properties);
-
-				fan::vec2 get_position(uint32_t i) const {
+				fan::vec2 get_position(fan::opengl::context_t* context, uint32_t i) const {
 					return m_position[i];
 				}
-				void set_position(uint32_t i, const fan::vec2& position);
+				void set_position(fan::opengl::context_t* context, uint32_t i, const fan::vec2& position);
 
-				uint32_t size() const;
+				uint32_t size(fan::opengl::context_t* context) const;
 
-				static fan::font::single_info_t get_letter_info(wchar_t c, f32_t font_size) {
+				static fan::font::single_info_t get_letter_info(fan::opengl::context_t* context, wchar_t c, f32_t font_size) {
 					auto found = font.font.find(c);
 
 					if (found == font.font.end()) {
 						throw std::runtime_error("failed to find character: " + std::to_string((int)c));
 					}
 
-					f32_t converted_size = text_renderer::convert_font_size(font_size);
+					f32_t converted_size = text_renderer::convert_font_size(context, font_size);
 
 					fan::font::single_info_t font_info;
 					font_info.metrics.size = found->second.metrics.size * converted_size;
@@ -132,7 +127,7 @@ namespace fan_2d {
 					return font_info;
 				}
 
-				static fan::font::single_info_t get_letter_info(uint8_t* c, f32_t font_size) {
+				static fan::font::single_info_t get_letter_info(fan::opengl::context_t* context, uint8_t* c, f32_t font_size) {
 
 					auto found = font.font.find(fan::utf16_string(c).data()[0]);
 
@@ -140,7 +135,7 @@ namespace fan_2d {
 						throw std::runtime_error("failed to find character: " + std::to_string(fan::utf16_string(c).data()[0]));
 					}
 
-					f32_t converted_size = text_renderer::convert_font_size(font_size);
+					f32_t converted_size = text_renderer::convert_font_size(context, font_size);
 
 					fan::font::single_info_t font_info;
 					font_info.metrics.size = found->second.metrics.size * converted_size;
@@ -153,10 +148,10 @@ namespace fan_2d {
 					return font_info;
 				}
 
-				fan::vec2 get_character_position(uint32_t i, uint32_t j, f32_t font_size) const {
-					fan::vec2 position = text_renderer::get_position(i);
+				fan::vec2 get_character_position(fan::opengl::context_t* context, uint32_t i, uint32_t j, f32_t font_size) const {
+					fan::vec2 position = text_renderer::get_position(context, i);
 
-					auto converted_size = convert_font_size(font_size);
+					auto converted_size = convert_font_size(context, font_size);
 
 					for (int k = 0; k < j; k++) {
 						position.x += font.font[m_text[i][k]].metrics.advance * converted_size;
@@ -167,43 +162,45 @@ namespace fan_2d {
 					return position;
 				}
 
-				f32_t get_font_size(uintptr_t i) const;
-				void set_font_size(uint32_t i, f32_t font_size);
+				f32_t get_font_size(fan::opengl::context_t* context, uintptr_t i) const;
+				void set_font_size(fan::opengl::context_t* context, uint32_t i, f32_t font_size);
 
-				void set_angle(uint32_t i, f32_t angle);
+				f32_t get_angle(fan::opengl::context_t* context, uint32_t i) const;
+				void set_angle(fan::opengl::context_t* context, uint32_t i, f32_t angle);
 
-				void set_rotation_point(uint32_t i, const fan::vec2& rotation_point);
+				f32_t get_rotation_point(fan::opengl::context_t* context, uint32_t i) const;
+				void set_rotation_point(fan::opengl::context_t* context, uint32_t i, const fan::vec2& rotation_point);
 
-				fan::color get_outline_color(uint32_t i) const;
-				void set_outline_color(uint32_t i, const fan::color& outline_color);
+				fan::color get_outline_color(fan::opengl::context_t* context, uint32_t i) const;
+				void set_outline_color(fan::opengl::context_t* context, uint32_t i, const fan::color& outline_color);
 
-				f32_t get_outline_size(uint32_t i) const;
-				void set_outline_size(uint32_t i, f32_t outline_size);
+				f32_t get_outline_size(fan::opengl::context_t* context, uint32_t i) const;
+				void set_outline_size(fan::opengl::context_t* context, uint32_t i, f32_t outline_size);
 
-				static f32_t convert_font_size(f32_t font_size) {
+				static f32_t convert_font_size(fan::opengl::context_t* context, f32_t font_size) {
 					return font_size / font.size;
 				}
 
-				void erase(uintptr_t i);
+				void erase(fan::opengl::context_t* context, uintptr_t i);
 
-				void erase(uintptr_t begin, uintptr_t end);
+				void erase(fan::opengl::context_t* context, uintptr_t begin, uintptr_t end);
 
-				void clear();
+				void clear(fan::opengl::context_t* context);
 
-				static f32_t get_line_height(f32_t font_size) {
-					return font.line_height * convert_font_size(font_size);
+				static f32_t get_line_height(fan::opengl::context_t* context, f32_t font_size) {
+					return font.line_height * convert_font_size(context, font_size);
 				}
 
-				fan::utf16_string get_text(uint32_t i) const {
+				fan::utf16_string get_text(fan::opengl::context_t* context, uint32_t i) const {
 					return m_text[i];
 				}
-				void set_text(uint32_t i, const fan::utf16_string& text);
+				void set_text(fan::opengl::context_t* context, uint32_t i, const fan::utf16_string& text);
 
-				fan::color get_text_color(uint32_t i, uint32_t j = 0) const;
-				void set_text_color(uint32_t i, const fan::color& color);
-				void set_text_color(uint32_t i, uint32_t j, const fan::color& color);
+				fan::color get_text_color(fan::opengl::context_t* context, uint32_t i, uint32_t j = 0) const;
+				void set_text_color(fan::opengl::context_t* context, uint32_t i, const fan::color& color);
+				void set_text_color(fan::opengl::context_t* context, uint32_t i, uint32_t j, const fan::color& color);
 
-				fan::vec2 get_text_size(uint32_t i) {
+				fan::vec2 get_text_size(fan::opengl::context_t* context, uint32_t i) {
 
 					uint32_t begin = 0;
 					uint32_t end = 0;
@@ -214,16 +211,16 @@ namespace fan_2d {
 
 					end = begin + m_text[i].size() - 1;
 
-					auto p_first = sprite::get_position(begin);
-					auto p_last = sprite::get_position(end);
+					auto p_first = sprite::get_position(context, begin);
+					auto p_last = sprite::get_position(context, end);
 
-					auto s_first = sprite::get_size(begin);
-					auto s_last = sprite::get_size(end);
+					auto s_first = sprite::get_size(context, begin);
+					auto s_last = sprite::get_size(context, end);
 
 					return fan::vec2((p_last.x + s_last.x) - (p_first.x - s_first.x), font.line_height);
 				}
 
-				static fan::vec2 get_text_size(const fan::utf16_string& text, f32_t font_size) {
+				static fan::vec2 get_text_size(fan::opengl::context_t* context, const fan::utf16_string& text, f32_t font_size) {
 					fan::vec2 text_size;
 
 					text_size.y = font.line_height;
@@ -253,19 +250,17 @@ namespace fan_2d {
 
 					text_size.x = std::max(width, text_size.x);
 
-					return text_size * convert_font_size(font_size);
+					return text_size * convert_font_size(context, font_size);
 				}
 
-				static f32_t get_original_font_size() {
+				static f32_t get_original_font_size(fan::opengl::context_t* context) {
 					return font.size;
 				}
 
 				inline static fan::font::font_t font;
 				inline static fan_2d::graphics::image_t font_image = nullptr;
 
-				fan::camera* m_camera = nullptr;
-
-				static uint64_t get_new_lines(const fan::utf16_string& str)
+				static uint64_t get_new_lines(fan::opengl::context_t* context, const fan::utf16_string& str)
 				{
 					uint64_t new_lines = 0;
 					const wchar_t* p = str.data();
@@ -278,21 +273,15 @@ namespace fan_2d {
 					return new_lines;
 				}
 
-				void enable_draw();
-				void disable_draw();
+				void enable_draw(fan::opengl::context_t* context);
+				void disable_draw(fan::opengl::context_t* context);
 
 			protected:
 
-				void draw(uint32_t begin = fan::uninitialized, uint32_t end = fan::uninitialized);
+				void draw(fan::opengl::context_t* context, uint32_t begin = fan::uninitialized, uint32_t end = fan::uninitialized);
 
-				void write_data();
-
-				void edit_data(uint32_t i);
-
-				void edit_data(uint32_t begin, uint32_t end);
-
-				void insert_letter(uint32_t i, uint32_t j, wchar_t letter, f32_t font_size, fan::vec2& position, const fan::color& color, f32_t& advance);
-				void push_back_letter(wchar_t letter, f32_t font_size, fan::vec2& position, const fan::color& color, f32_t& advance);
+				void insert_letter(fan::opengl::context_t* context, uint32_t i, uint32_t j, wchar_t letter, f32_t font_size, fan::vec2& position, const fan::color& color, f32_t& advance);
+				void push_back_letter(fan::opengl::context_t* context, wchar_t letter, f32_t font_size, fan::vec2& position, const fan::color& color, f32_t& advance);
 
 				std::vector<fan::utf16_string> m_text;
 				std::vector<fan::vec2> m_position;
@@ -323,9 +312,9 @@ namespace fan_2d {
 					fan::vec2 offset;
 				};
 
-				letter_t get_letter(wchar_t character, f32_t font_size) {
+				letter_t get_letter(fan::opengl::context_t* context, wchar_t character, f32_t font_size) {
 
-					auto letter_info = get_letter_info(character, font_size);
+					auto letter_info = get_letter_info(context, character, font_size);
 
 					letter_t letter;
 					letter.texture_position = letter_info.glyph.position / font_image->size;
@@ -347,59 +336,81 @@ namespace fan_2d {
 					return letter;
 				}
 
-				void push_letter(wchar_t character, properties_t proeprties) {
+				void push_letter(fan::opengl::context_t* context, wchar_t character, properties_t properties) {
 
-					bool write_ = m_queue_helper.m_write;
-
-					letter_t letter = get_letter(character, proeprties.font_size);
+					letter_t letter = get_letter(context, character, properties.font_size);
 
 					fan_2d::graphics::sprite::properties_t p;
-					p.position = proeprties.position + fan::vec2(letter.size.x, -letter.size.y) + fan::vec2(letter.offset.x, -letter.offset.y);
+					p.position = properties.position + fan::vec2(letter.size.x, -letter.size.y) + fan::vec2(letter.offset.x, -letter.offset.y);
 
 					p.size = letter.size;
 					p.image = font_image;
 					p.texture_coordinates = letter.texture_coordinates;
 
-					fan_2d::graphics::sprite::push_back(p);
+					fan_2d::graphics::sprite::push_back(context, p);
 
-					fan_2d::graphics::sprite::set_color(fan_2d::graphics::sprite::size() - 1, proeprties.text_color);
+					fan_2d::graphics::sprite::set_color(context, fan_2d::graphics::sprite::size(context) - 1, properties.text_color);
 
-					font_size_t::m_buffer_object.insert(font_size_t::m_buffer_object.end(), 6, proeprties.font_size);
-					outline_color_t::m_buffer_object.insert(outline_color_t::m_buffer_object.end(), 6, proeprties.outline_color);
-					outline_size_t::m_buffer_object.insert(outline_size_t::m_buffer_object.end(), 6, proeprties.outline_size);
-
-					if (!write_) {
-						m_camera->m_window->edit_write_call(m_queue_helper.m_write_index, this, [&] {
-							this->write_data();
-						});
+					for (uint32_t j = 0; j < sprite::vertex_count; j++) {
+						m_glsl_buffer.edit_ram_instance(
+							(rectangle::size(context) - 1) * sprite::vertex_count + j,
+							&properties.font_size,
+							offset_font_size,
+							sizeof(f32_t)
+						);
+						m_glsl_buffer.edit_ram_instance(
+							(rectangle::size(context) - 1) * sprite::vertex_count + j,
+							&properties.outline_color,
+							offset_outline_color,
+							sizeof(fan::color)
+						);
+						m_glsl_buffer.edit_ram_instance(
+							(rectangle::size(context) - 1) * sprite::vertex_count + j,
+							&properties.outline_size,
+							offset_outline_size,
+							sizeof(f32_t)
+						);
 					}
 				}
 
-				void insert_letter(uint32_t i, wchar_t character, properties_t proeprties) {
+				static constexpr uint32_t offset_font_size = offset_renderopcode1 + sizeof(uint32_t);
+				static constexpr uint32_t offset_outline_color = offset_font_size + sizeof(f32_t);
+				static constexpr uint32_t offset_outline_size = offset_outline_color + sizeof(fan::color);
 
-					bool write_ = m_queue_helper.m_write;
+				void insert_letter(fan::opengl::context_t* context, uint32_t i, wchar_t character, properties_t properties) {
 
-					letter_t letter = get_letter(character, proeprties.font_size);
+					letter_t letter = get_letter(context, character, properties.font_size);
 
 					fan_2d::graphics::sprite::properties_t p;
-					p.position = proeprties.position + fan::vec2(letter.size.x, -letter.size.y) + fan::vec2(letter.offset.x, -letter.offset.y);
+					p.position = properties.position + fan::vec2(letter.size.x, -letter.size.y) + fan::vec2(letter.offset.x, -letter.offset.y);
 
 					p.size = letter.size;
 					p.image = font_image;
 					p.texture_coordinates = letter.texture_coordinates;
 
-					fan_2d::graphics::sprite::insert(i, i * 6, p);
+					fan_2d::graphics::sprite::insert(context, i, i * 6, p);
 
-					fan_2d::graphics::sprite::set_color(i, proeprties.text_color);
+					fan_2d::graphics::sprite::set_color(context, i, properties.text_color);
 
-					font_size_t::m_buffer_object.insert(font_size_t::m_buffer_object.begin() + i * 6, 6, proeprties.font_size);
-					outline_color_t::m_buffer_object.insert(outline_color_t::m_buffer_object.begin() + i * 6, 6, proeprties.outline_color);
-					outline_size_t::m_buffer_object.insert(outline_size_t::m_buffer_object.begin() + i * 6, 6, proeprties.outline_size);
-
-					if (!write_) {
-						m_camera->m_window->edit_write_call(m_queue_helper.m_write_index, this, [&] {
-							this->write_data();
-						});
+					for (uint32_t j = 0; j < sprite::vertex_count; j++) {
+						m_glsl_buffer.edit_ram_instance(
+							i * sprite::vertex_count + j,
+							&properties.font_size,
+							offset_font_size,
+							sizeof(f32_t)
+						);
+						m_glsl_buffer.edit_ram_instance(
+							i * sprite::vertex_count + j,
+							&properties.outline_color,
+							offset_outline_color,
+							sizeof(fan::color)
+						);
+						m_glsl_buffer.edit_ram_instance(
+							i * sprite::vertex_count + j,
+							&properties.outline_size,
+							offset_outline_size,
+							sizeof(f32_t)
+						);
 					}
 				}
 
@@ -408,16 +419,6 @@ namespace fan_2d {
 				}
 
 #if fan_renderer == fan_renderer_opengl
-
-				using font_size_t = fan::buffer_object<f32_t, 98>;
-				using rotation_point_t = fan::buffer_object<fan::vec2, 100>;
-				using outline_color_t = fan::buffer_object<fan::color, 102>;
-				using outline_size_t = fan::buffer_object<f32_t, 103>;
-
-				static constexpr auto location_font_size = "layout_font_size";
-				static constexpr auto location_rotation_point = "layout_rotation_point";
-				static constexpr auto location_outline_color = "layout_outline_color";
-				static constexpr auto location_outline_size = "layout_outline_size";
 
 #elif fan_renderer == fan_renderer_vulkan
 
@@ -452,8 +453,6 @@ namespace fan_2d {
 			#ifdef fan_renderer == fan_renderer_vulkan
 				uint64_t pipeline_offset = 0;
 			#endif
-
-
 #endif
 
 			};
@@ -461,25 +460,28 @@ namespace fan_2d {
 			struct text_renderer0 : public text_renderer {
 				
 				text_renderer0(fan::camera* camera, void* gp, std::function<void(void*, uint64_t)> index_change_cb) 
-					:	text_renderer(camera),
-						m_index_change_cb(index_change_cb),
+					:	m_index_change_cb(index_change_cb),
 						m_gp(gp)
 				{}
+
+				void open(fan::opengl::context_t* context) {
+					text_renderer::open(context);
+				}
 
 				struct properties_t : public text_renderer::properties_t {
 					uint32_t entity_id;
 				};
 
-				void push_back(properties_t properties) {
+				void push_back(fan::opengl::context_t* context, properties_t properties) {
 					m_entity_ids.emplace_back(properties.entity_id);
-					text_renderer::push_back(properties);
+					text_renderer::push_back(context, properties);
 				}
 
-				void erase(uintptr_t i) {
-					for(uint32_t start = i + 1; start < text_renderer::size(); start++) {
+				void erase(fan::opengl::context_t* context, uintptr_t i) {
+					for(uint32_t start = i + 1; start < text_renderer::size(context); start++) {
             m_index_change_cb(m_gp, m_entity_ids[start]);
           }
-					text_renderer::erase(i);
+					text_renderer::erase(context, i);
 					m_entity_ids.erase(m_entity_ids.begin() + i);
 				}
 
@@ -506,54 +508,51 @@ namespace fan_2d {
 				// requires push_back to be called in every shape push_back
 				// requires to have either add_on_input or add_on_input and add_on_mouse_event
 				template <typename T>
-				struct mouse {
+				struct button_event_t {
 
-				protected:
-
-					mouse(T* object_) : object(object_) {
-
-						add_mouse_move_callback_id = object->get_camera()->m_window->add_mouse_move_callback([&] (fan::window*, const fan::vec2&) {
+					void open(fan::window* window, fan::opengl::context_t* context) {
+						add_mouse_move_callback_id = window->add_mouse_move_callback([this, context, object = OFFSETLESS(this, T, m_button_event)](fan::window* w, const fan::vec2&) {
 							if (m_do_we_hold_button == 1) {
 								return;
 							}
 							if (m_focused_button_id != fan::uninitialized) {
 
-								if (m_focused_button_id >= object->size()) {
+								if (m_focused_button_id >= object->size(context)) {
 									m_focused_button_id = fan::uninitialized;
 							 	}
-								else if (object->inside(m_focused_button_id) || object->locked(m_focused_button_id)) {
+								else if (object->inside(context, m_focused_button_id, w->get_mouse_position()) || object->locked(w, context, m_focused_button_id)) {
 									return;
 								}
 							}
 
-							for (int i = object->size(); i--; ) {
-								if (object->inside(i) && !object->locked(i)) {
+							for (int i = object->size(context); i--; ) {
+								if (object->inside(context, i, w->get_mouse_position()) && !object->locked(w, context, i)) {
 									if (m_focused_button_id != fan::uninitialized) {
-										object->lib_add_on_mouse_event(object->get_camera()->m_window, m_focused_button_id, mouse_stage::outside);
+										object->lib_add_on_mouse_move(w, context, m_focused_button_id, mouse_stage::outside);
 										if (on_mouse_event_function) {
-											on_mouse_event_function(object->get_camera()->m_window, m_focused_button_id, mouse_stage::outside);
+											on_mouse_event_function(w, context, m_focused_button_id, mouse_stage::outside);
 										}
 									}
 									m_focused_button_id = i;
-									object->lib_add_on_mouse_event(object->get_camera()->m_window, m_focused_button_id, mouse_stage::inside);
+									object->lib_add_on_mouse_move(w, context, m_focused_button_id, mouse_stage::inside);
 									if (on_mouse_event_function) {
-										on_mouse_event_function(object->get_camera()->m_window, m_focused_button_id, mouse_stage::inside);
+										on_mouse_event_function(w, context, m_focused_button_id, mouse_stage::inside);
 									}
 									return;
 								}
 							}
 							if (m_focused_button_id != fan::uninitialized) {
-								object->lib_add_on_mouse_event(object->get_camera()->m_window, m_focused_button_id, mouse_stage::outside);
+								object->lib_add_on_mouse_move(w, context, m_focused_button_id, mouse_stage::outside);
 								if (on_mouse_event_function) {
-									on_mouse_event_function(object->get_camera()->m_window, m_focused_button_id, mouse_stage::outside);
+									on_mouse_event_function(w, context, m_focused_button_id, mouse_stage::outside);
 								}
 								m_focused_button_id = fan::uninitialized;
 							}
-							});
+						});
 
-						add_keys_callback_id = object->get_camera()->m_window->add_keys_callback([&](fan::window* window, uint16_t key, fan::key_state state) {
+						add_keys_callback_id = window->add_keys_callback([this, context, object = OFFSETLESS(this, T, m_button_event)](fan::window* w, uint16_t key, fan::key_state state) {
 
-							if (m_focused_button_id >= object->size()) {
+							if (m_focused_button_id >= object->size(context)) {
 								m_focused_button_id = fan::uninitialized;
 							}
 
@@ -561,16 +560,16 @@ namespace fan_2d {
 								if (state == fan::key_state::press) {
 									if (m_focused_button_id != fan::uninitialized) {
 										m_do_we_hold_button = 1;
-										object->lib_add_on_input(object->get_camera()->m_window, m_focused_button_id, key, fan::key_state::press, mouse_stage::inside);
+										object->lib_add_on_input(w, context, m_focused_button_id, key, fan::key_state::press, mouse_stage::inside);
 										if (on_input_function) {
-											on_input_function(object->get_camera()->m_window, m_focused_button_id, key, fan::key_state::press, mouse_stage::inside);
+											on_input_function(w, context, m_focused_button_id, key, fan::key_state::press, mouse_stage::inside);
 										}
 									}
 									else {
-										for (int i = object->size(); i--; ) {
-											object->lib_add_on_input(object->get_camera()->m_window, i, key, state, mouse_stage::outside);
+										for (int i = object->size(context); i--; ) {
+											object->lib_add_on_input(w, context, i, key, state, mouse_stage::outside);
 											if (on_input_function) {
-												on_input_function(object->get_camera()->m_window, i, key, state, mouse_stage::outside);
+												on_input_function(w, context, i, key, state, mouse_stage::outside);
 											}
 										}
 										return; // clicked at space
@@ -585,57 +584,43 @@ namespace fan_2d {
 									return; // double press
 								}
 								else {
-									if (m_focused_button_id >= object->size()) {
+									if (m_focused_button_id >= object->size(context)) {
 										m_focused_button_id = fan::uninitialized;
 									}
-									else if (object->inside(m_focused_button_id) && !object->locked(m_focused_button_id)) {
-										object->lib_add_on_input(object->get_camera()->m_window, m_focused_button_id, key, fan::key_state::release, mouse_stage::inside);
+									else if (object->inside(context, m_focused_button_id, w->get_mouse_position()) && !object->locked(w, context, m_focused_button_id)) {
+										object->lib_add_on_input(w, context, m_focused_button_id, key, fan::key_state::release, mouse_stage::inside);
 										if (on_input_function) {
-											pointer_remove_flag = 1;
-											on_input_function(object->get_camera()->m_window, m_focused_button_id, key, fan::key_state::release, mouse_stage::inside);
-											if (pointer_remove_flag == 0) {
-												return;
-												//rtb is deleted
-											}
+											on_input_function(w, context, m_focused_button_id, key, fan::key_state::release, mouse_stage::inside);
 										}
 									}
 									else {
-										object->lib_add_on_input(object->get_camera()->m_window, m_focused_button_id, key, fan::key_state::release, mouse_stage::outside);
+										object->lib_add_on_input(w, context, m_focused_button_id, key, fan::key_state::release, mouse_stage::outside);
 
-										for (int i = object->size(); i--; ) {
-											if (object->inside(i) && !object->locked(i)) {
-												object->lib_add_on_input(object->get_camera()->m_window, i, key, fan::key_state::release, mouse_stage::inside_drag);
+										for (int i = object->size(context); i--; ) {
+											if (object->inside(context, i, w->get_mouse_position()) && !object->locked(w, context, i)) {
+												object->lib_add_on_input(w, context, i, key, fan::key_state::release, mouse_stage::inside_drag);
 												m_focused_button_id = i;
 												break;
 											}
 										}
 
 										if (on_input_function) {
-											pointer_remove_flag = 1;
-											on_input_function(object->get_camera()->m_window, m_focused_button_id, key, fan::key_state::release, mouse_stage::outside);
-
-											if (pointer_remove_flag == 0) {
-												return;
-												//rtb is deleted
-											}
-
-											pointer_remove_flag = 0;
+											on_input_function(w, context, m_focused_button_id, key, fan::key_state::release, mouse_stage::outside);
 										}
 									}
 									m_do_we_hold_button = 0;
 								}
 							}
-
 						});
 					}
 
-					~mouse() {
+					void close(fan::window* window, fan::opengl::context_t* context) {
 						if (add_keys_callback_id != -1) {
-							object->get_camera()->m_window->remove_keys_callback(add_keys_callback_id);
+							window->remove_keys_callback(add_keys_callback_id);
 							add_keys_callback_id = -1;
 						}
 						if (add_mouse_move_callback_id != -1) {
-							object->get_camera()->m_window->remove_mouse_move_callback(add_mouse_move_callback_id);
+							window->remove_mouse_move_callback(add_mouse_move_callback_id);
 							add_mouse_move_callback_id = -1;
 						}
 					}
@@ -669,19 +654,17 @@ namespace fan_2d {
 					//	mouse_instance.clear();
 					//}
 
-				public:
+					std::function<void(fan::window *window, fan::opengl::context_t* context, uint32_t index, uint16_t key, fan::key_state key_state, mouse_stage mouse_stage)> on_input_function;
 
-					std::function<void(fan::window *window, uint32_t index, uint16_t key, fan::key_state key_state, mouse_stage mouse_stage)> on_input_function;
-
-					std::function<void(fan::window *window, uint32_t index, mouse_stage mouse_stage)> on_mouse_event_function;
+					std::function<void(fan::window *window, fan::opengl::context_t* context, uint32_t index, mouse_stage mouse_stage)> on_mouse_event_function;
 
 					// uint32_t index, fan::key_state state, mouse_stage mouse_stage
-					void set_on_input(std::function<void(fan::window *window, uint32_t index, uint16_t key, fan::key_state key_state, mouse_stage mouse_stage)> function) {
+					void set_on_input(std::function<void(fan::window *window, fan::opengl::context_t* context, uint32_t index, uint16_t key, fan::key_state key_state, mouse_stage mouse_stage)> function) {
 						on_input_function = function;
 					}
 
 					// uint32_t index, bool inside
-					void set_on_mouse_event(std::function<void(fan::window *window, uint32_t index, mouse_stage mouse_stage)> function) {
+					void set_on_mouse_event(std::function<void(fan::window *window, fan::opengl::context_t* context, uint32_t index, mouse_stage mouse_stage)> function) {
 						on_mouse_event_function = function;
 					}
 
@@ -689,23 +672,14 @@ namespace fan_2d {
 						return m_focused_button_id;
 					}
 
-				protected:
-
-					static thread_local bool pointer_remove_flag;
-
 					uint8_t m_old_mouse_stage = fan::uninitialized;
 					bool m_do_we_hold_button = 0;
 					uint32_t m_focused_button_id = fan::uninitialized;
 					uint32_t add_keys_callback_id = fan::uninitialized;
 					uint32_t add_mouse_move_callback_id = fan::uninitialized;
 
-					T* object;
-
 				};
 				
-				template <typename T>
-				thread_local bool mouse<T>::pointer_remove_flag = 0;
-
 #define define_get_property_size \
 				fan::vec2 get_size(properties_t properties) \
 				{ \
@@ -786,22 +760,20 @@ namespace fan_2d {
 				inline fan::time::nanoseconds blink_speed = 100000000;
 				inline f32_t line_thickness = 1;
 			}
-
-
+//
+//
 			struct src_dst_t {
 				fan::vec2 src;
 				fan::vec2 dst;
 			};
 
 			template <typename T>
-			struct text_input {
+			struct key_event_t {
 
 				/* used for hold precise floats on FED */
 				/* bigger number means better precision */
 				static constexpr uint32_t line_multiplier = 100;
 
-				virtual void backspace_callback(uint32_t i) = 0;
-				virtual void text_callback(uint32_t i) = 0;
 				//virtual void on_input_callback() = 0;
 
 				uint32_t text_callback_id = -1;
@@ -810,20 +782,20 @@ namespace fan_2d {
 
 				fan::vec2 click_begin;
 
-				text_input(T* base) :
-					render_cursor(false), m_cursor(base->get_camera()), m_box(base), cursor_timer(cursor_properties::blink_speed)
-				{
-					m_cursor.disable_draw();
+				void open(fan::window* window, fan::opengl::context_t* context) {
+					render_cursor = false;
+					m_cursor.open(context);
+					cursor_timer = fan::time::clock(cursor_properties::blink_speed);
 
 					cursor_timer.start();
 
-					keys_callback_id = base->get_camera()->m_window->add_keys_callback([&](fan::window*, uint16 key, fan::key_state state) {
+					keys_callback_id = window->add_keys_callback([this, context, object = OFFSETLESS(this, T, m_key_event)](fan::window* w, uint16 key, fan::key_state state) {
 
 						auto current_focus = focus::get_focus();
 
 						if (
 							current_focus.shape == nullptr ||
-							current_focus.window_id != m_box->get_camera()->m_window->get_handle() ||  
+							current_focus.window_id != w->get_handle() ||  
 							current_focus.i == focus::no_focus ||
 							current_focus.shape != (void*)this || 
 							!m_input_allowed[current_focus.i]
@@ -838,17 +810,17 @@ namespace fan_2d {
 									break;
 								}
 
-								click_begin = fan::cast<f32_t>(m_box->get_camera()->m_window->get_mouse_position()) - m_box->get_text_starting_point(current_focus.i);
+								click_begin = fan::cast<f32_t>(w->get_mouse_position()) - object->get_text_starting_point(context, current_focus.i);
 								
-								mouse_move_callback_id = m_box->get_camera()->m_window->add_mouse_move_callback([&](fan::window*, const fan::vec2& p) {
-									if (!m_box->get_camera()->m_window->key_press(fan::mouse_left)) {
+								mouse_move_callback_id = w->add_mouse_move_callback([this, context, object](fan::window* w, const fan::vec2& p) {
+									if (!w->key_press(fan::mouse_left)) {
 										return;
 									}
 
 									auto current_focus = focus::get_focus();
 
 									if (current_focus.shape == nullptr ||
-											current_focus.window_id != m_box->get_camera()->m_window->get_handle() ||
+											current_focus.window_id != w->get_handle() ||
 											current_focus.i == focus::no_focus ||
 											current_focus.shape != (void*)this ||
 											!m_input_allowed[current_focus.i])
@@ -858,7 +830,7 @@ namespace fan_2d {
 
 									fan::vec2 src = click_begin;
 									// dst release
-									fan::vec2 dst = fan::cast<f32_t>(m_box->get_camera()->m_window->get_mouse_position()) - m_box->get_text_starting_point(current_focus.i);
+									fan::vec2 dst = fan::cast<f32_t>(w->get_mouse_position()) - object->get_text_starting_point(context, current_focus.i);
 									dst.x = fan::clamp(dst.x, (f32_t)0, dst.x);
 
 									FED_LineReference_t FirstLineReference = _FED_LineList_GetNodeFirst(&m_wed[current_focus.i].LineList);
@@ -868,11 +840,11 @@ namespace fan_2d {
 									FED_GetLineAndCharacter(&m_wed[current_focus.i], FirstLineReference, dst.y, dst.x * line_multiplier, &LineReference1, &CharacterReference1);
 									FED_ConvertCursorToSelection(&m_wed[current_focus.i], cursor_reference[current_focus.i], LineReference0, CharacterReference0, LineReference1, CharacterReference1);
 
-									update_cursor(current_focus.i);
+									update_cursor(w, context, current_focus.i);
 
 									render_cursor = true;
 									cursor_timer.restart();
-									m_cursor.enable_draw();
+									m_cursor.enable_draw(context);
 								});
 
 								break;
@@ -880,7 +852,7 @@ namespace fan_2d {
 							case fan::key_state::release: {
 
 								if (mouse_move_callback_id != -1) {
-									m_box->get_camera()->m_window->remove_mouse_move_callback(mouse_move_callback_id);
+									w->remove_mouse_move_callback(mouse_move_callback_id);
 									mouse_move_callback_id = -1;
 								}
 
@@ -891,41 +863,41 @@ namespace fan_2d {
 
 						render_cursor = true;
 						cursor_timer.restart();
-						m_cursor.enable_draw();
+						m_cursor.enable_draw(context);
 
 						switch (key) {
 							case fan::key_backspace: {
-								if (m_box->get_text(current_focus.i).size() == 1) {
-									backspace_callback(current_focus.i);
+								if (object->get_text(context, current_focus.i).size() == 1) {
+									object->backspace_callback(w, context, current_focus.i);
 									FED_DeleteCharacterFromCursor(&m_wed[current_focus.i], cursor_reference[current_focus.i]);
-									m_box->set_text(current_focus.i, L" ");
+									object->set_text(context, current_focus.i, L" ");
 
 									break;
 								}
 
 								FED_DeleteCharacterFromCursor(&m_wed[current_focus.i], cursor_reference[current_focus.i]);
 
-								update_text(current_focus.i);
+								update_text(w, context, current_focus.i);
 
-								backspace_callback(current_focus.i);
+								object->backspace_callback(w, context, current_focus.i);
 
-								update_cursor(current_focus.i);
+								update_cursor(w, context, current_focus.i);
 
 								break;
 							}
 							case fan::key_delete: {
 								FED_DeleteCharacterFromCursorRight(&m_wed[current_focus.i], cursor_reference[current_focus.i]);
 
-								update_text(current_focus.i);
+								update_text(w, context, current_focus.i);
 
-								backspace_callback(current_focus.i);
+								object->backspace_callback(w, context, current_focus.i);
 
 								break;
 							}
 							case fan::key_left: {
 								FED_MoveCursorFreeStyleToLeft(&m_wed[current_focus.i], cursor_reference[current_focus.i]);
 
-								update_cursor(current_focus.i);
+								update_cursor(w, context, current_focus.i);
 
 								break;
 							}
@@ -933,35 +905,35 @@ namespace fan_2d {
 
 								FED_MoveCursorFreeStyleToRight(&m_wed[current_focus.i], cursor_reference[current_focus.i]);
 
-								update_cursor(current_focus.i);
+								update_cursor(w, context, current_focus.i);
 
 								break;
 							}
 							case fan::key_up: {
 								FED_MoveCursorFreeStyleToUp(&m_wed[current_focus.i], cursor_reference[current_focus.i]);
 
-								update_cursor(current_focus.i);
+								update_cursor(w, context, current_focus.i);
 
 								break;
 							}
 							case fan::key_down: {
 								FED_MoveCursorFreeStyleToDown(&m_wed[current_focus.i], cursor_reference[current_focus.i]);
 
-								update_cursor(current_focus.i);
+								update_cursor(w, context, current_focus.i);
 
 								break;
 							}
 							case fan::key_home: {
 								FED_MoveCursorFreeStyleToBeginOfLine(&m_wed[current_focus.i], cursor_reference[current_focus.i]);
 
-								update_cursor(current_focus.i);
+								update_cursor(w, context, current_focus.i);
 
 								break;
 							}
 							case fan::key_end: {
 								FED_MoveCursorFreeStyleToEndOfLine(&m_wed[current_focus.i], cursor_reference[current_focus.i]);
 
-								update_cursor(current_focus.i);
+								update_cursor(w, context, current_focus.i);
 
 								break;
 							}
@@ -975,28 +947,28 @@ namespace fan_2d {
 
 								auto current_focus = focus::get_focus();
 
-								if (m_box->get_camera()->m_window->key_press(fan::key_shift)) {
+								if (w->key_press(fan::key_shift)) {
 									if (current_focus.i - 1 == ~0) {
-										current_focus.i = m_box->size() - 1;
+										current_focus.i = object->size(context) - 1;
 									}
 									else {
-										current_focus.i = (current_focus.i - 1) % m_box->size();
+										current_focus.i = (current_focus.i - 1) % object->size(context);
 									}
 								}
 								else {
-									current_focus.i = (current_focus.i + 1) % m_box->size();
+									current_focus.i = (current_focus.i + 1) % object->size(context);
 								}
 
 								focus::set_focus(current_focus);
 
-								update_cursor(current_focus.i);
+								update_cursor(w, context, current_focus.i);
 
 								break;
 							}
 							case fan::mouse_left: {
 
 								// src press
-								fan::vec2 src = fan::cast<f32_t>(m_box->get_camera()->m_window->get_mouse_position()) - m_box->get_text_starting_point(current_focus.i);
+								fan::vec2 src = fan::cast<f32_t>(w->get_mouse_position()) - object->get_text_starting_point(context, current_focus.i);
 								// dst release
 								src.x = fan::clamp(src.x, (f32_t)0, src.x);
 								fan::vec2 dst = src;
@@ -1008,21 +980,21 @@ namespace fan_2d {
 								FED_GetLineAndCharacter(&m_wed[current_focus.i], FirstLineReference, dst.y, dst.x * line_multiplier, &LineReference1, &CharacterReference1);
 								FED_ConvertCursorToSelection(&m_wed[current_focus.i], cursor_reference[current_focus.i], LineReference0, CharacterReference0, LineReference1, CharacterReference1);
 
-								update_cursor(current_focus.i);
+								update_cursor(w, context, current_focus.i);
 
 								break;
 							}
 							case fan::key_v: {
 
-								if (m_box->get_camera()->m_window->key_press(fan::key_control)) {
+								if (w->key_press(fan::key_control)) {
 									
-									auto pasted_text = fan::io::get_clipboard_text(m_box->get_camera()->m_window->get_handle());
+									auto pasted_text = fan::io::get_clipboard_text(w->get_handle());
 
 									for (int i = 0; i < pasted_text.size(); i++) {
-										add_character(&m_wed[current_focus.i], &cursor_reference[current_focus.i], pasted_text[i], m_box->get_font_size(current_focus.i));
+										add_character(context, &m_wed[current_focus.i], &cursor_reference[current_focus.i], pasted_text[i], object->get_font_size(context, current_focus.i));
 									}
 
-									update_text(current_focus.i);
+									update_text(w, context, current_focus.i);
 								}
 
 								break;
@@ -1031,12 +1003,12 @@ namespace fan_2d {
 
 					});
 
-					text_callback_id = base->get_camera()->m_window->add_text_callback([&](fan::window*, uint32_t character) {
+					text_callback_id = window->add_text_callback([this, context, object = OFFSETLESS(this, T, m_key_event)](fan::window* w, uint32_t character) {
 
 						auto current_focus = focus::get_focus();
 
 						if (
-							current_focus.window_id != m_box->get_camera()->m_window->get_handle() ||
+							current_focus.window_id != w->get_handle() ||
 							current_focus.shape != this ||
 							current_focus.i == focus::no_focus || 
 							!m_input_allowed[current_focus.i]
@@ -1047,15 +1019,15 @@ namespace fan_2d {
 						render_cursor = true;
 						cursor_timer.restart();
 						
-						m_cursor.enable_draw();
+						m_cursor.enable_draw(context);
 
 						fan::utf8_string utf8;
 						utf8.push_back(character);
 
 						auto wc = utf8.to_utf16()[0];
 
-						f32_t font_size = m_box->get_font_size(current_focus.i);
-						add_character(&m_wed[current_focus.i], &cursor_reference[current_focus.i], character, font_size);
+						f32_t font_size = object->get_font_size(context, current_focus.i);
+						add_character(context, &m_wed[current_focus.i], &cursor_reference[current_focus.i], character, font_size);
 
 						fan::vector_t text_vector;
 						vector_init(&text_vector, sizeof(uint8_t));
@@ -1102,43 +1074,42 @@ namespace fan_2d {
 							text_vector.Current++;
 						}
 
-						m_box->set_text(current_focus.i, text_vector.ptr.data());
+						object->set_text(context, current_focus.i, text_vector.ptr.data());
 
-						text_callback(current_focus.i);
+						object->text_callback(w, context, current_focus.i);
 
 						for (int i = 0; i < exported_cursors.size(); i++) {
 
 							FED_ExportedCursor_t* exported_cursor = exported_cursors[i];
 
-							auto src_dst = get_cursor_src_dst(current_focus.i, exported_cursor->x, exported_cursor->y);
+							auto src_dst = get_cursor_src_dst(w, context, current_focus.i, exported_cursor->x, exported_cursor->y);
 
-							m_cursor.set_position(0, src_dst.src);
-							m_cursor.set_size(0, src_dst.dst);
-							update_cursor(current_focus.i);
+							m_cursor.set_position(context, 0, src_dst.src);
+							m_cursor.set_size(context, 0, src_dst.dst);
+							update_cursor(w, context, current_focus.i);
 
 						}
 					});
-
 				}
-				~text_input() {
 
+				void close(fan::window* window, fan::opengl::context_t* context) {
 					if (keys_callback_id != -1) {
-						m_box->get_camera()->m_window->remove_keys_callback(keys_callback_id);
+						window->remove_keys_callback(keys_callback_id);
 						keys_callback_id = -1;
 					}
 
 					if (text_callback_id != -1) {
-						m_box->get_camera()->m_window->remove_text_callback(text_callback_id);
+						window->remove_text_callback(text_callback_id);
 						text_callback_id = -1;
 					}
 
 					if (m_draw_index2 != -1) {
-						m_cursor.m_camera->m_window->erase_draw_call(m_draw_index2);
+						context->m_draw_queue.erase(m_draw_index2);
 						m_draw_index2 = -1;
 					}
 
 					if (mouse_move_callback_id != -1) {
-						m_box->get_camera()->m_window->remove_mouse_move_callback(mouse_move_callback_id);
+						window->remove_mouse_move_callback(mouse_move_callback_id);
 						mouse_move_callback_id = -1;
 					}
 
@@ -1153,7 +1124,7 @@ namespace fan_2d {
 					}
 				}
 
-				void add_character(FED_t* wed, FED_CursorReference_t* cursor_reference, FED_Data_t character, f32_t font_size) {
+				void add_character(fan::opengl::context_t* context, FED_t* wed, FED_CursorReference_t* cursor_reference, FED_Data_t character, f32_t font_size) {
 
 					auto found = fan_2d::graphics::gui::text_renderer::font.font.find(character);
 
@@ -1161,7 +1132,7 @@ namespace fan_2d {
 						return;
 					}
 
-					auto letter = fan_2d::graphics::gui::text_renderer::get_letter_info(character, font_size);
+					auto letter = fan_2d::graphics::gui::text_renderer::get_letter_info(context, character, font_size);
 
 					FED_AddCharacterToCursor(
 						wed, 
@@ -1172,7 +1143,9 @@ namespace fan_2d {
 				}
 
 				// must be called after T::push_back
-				void push_back(uint32_t character_limit, f32_t line_width_limit, uint32_t line_limit) {
+				void push_back(fan::window* window, fan::opengl::context_t* context, uint32_t character_limit, f32_t line_width_limit, uint32_t line_limit) {
+					auto object = (T*)OFFSETLESS(this, T, m_key_event);
+
 					m_wed.resize(m_wed.size() + 1);
 					uint64_t offset = m_wed.size() - 1;
 					FED_open(&m_wed[offset], fan_2d::graphics::gui::text_renderer::font.line_height, line_width_limit * line_multiplier, line_limit, character_limit);
@@ -1180,58 +1153,58 @@ namespace fan_2d {
 
 					m_input_allowed.emplace_back(false);
 
-					auto str = m_box->get_text(offset);
+					auto str = object->get_text(context, offset);
 
 					for (int i = 0; i < str.size(); i++) {
-						add_character(&m_wed[offset], &cursor_reference[offset], str[i], m_box->get_font_size(offset));
+						add_character(context, &m_wed[offset], &cursor_reference[offset], str[i], object->get_font_size(context, offset));
 					}
 
-					update_cursor(m_box->size() - 1);
+					update_cursor(window, context, object->size(context) - 1);
 				}
 
 				// box i
-				void set_line_width(uint32_t i, f32_t line_width) {
+				void set_line_width(fan::window* window, uint32_t i, f32_t line_width) {
 					FED_SetLineWidth(&m_wed[i], line_width * line_multiplier);
 				}
 
-				bool input_allowed(uint32_t i) const {
+				bool input_allowed(fan::window* window, uint32_t i) const {
 					return m_input_allowed[i];
 				}
 
-				void allow_input(uint32_t i, bool state) {
+				void allow_input(fan::window* window, uint32_t i, bool state) {
 					m_input_allowed[i] = state;
 
 					auto current_focus = focus::get_focus();
 
-					if (current_focus.i == i && current_focus.window_id == m_box->get_camera()->m_window->get_handle() && current_focus.shape == this) {
+					if (current_focus.i == i && current_focus.window_id == window->get_handle() && current_focus.shape == this) {
 						focus::set_focus(focus::no_focus);
 					}
 				}
 
 				uint32_t m_draw_index2 = -1;
 
-				void enable_draw() {
-					if (m_draw_index2 == -1 || m_cursor.m_camera->m_window->m_draw_queue[m_draw_index2].first != this) {
-						m_draw_index2 = m_cursor.m_camera->m_window->push_draw_call(this, [&] {
-							this->draw();
+				void enable_draw(fan::window* window, fan::opengl::context_t* context) {
+					/*if (m_draw_index2 == -1 || context->m_draw_queue[m_draw_index2].first != this) {
+						m_draw_index2 = window->push_draw_call(this, [&] {
+							this->draw(window, context);
 						});
 					}
 					else {
-						m_cursor.m_camera->m_window->edit_draw_call(m_draw_index2, this, [&] {
-							this->draw();
+						window->edit_draw_call(m_draw_index2, this, [&] {
+							this->draw(window, context);
 						});
-					}
+					}*/
 				}
-				void disable_draw() {
+				void disable_draw(fan::window* window, fan::opengl::context_t* context) {
 					if (m_draw_index2 == -1) {
 						return;
 					}
 
-					m_cursor.m_camera->m_window->erase_draw_call(m_draw_index2);
+					context->m_draw_queue.erase(m_draw_index2);
 					m_draw_index2 = -1;
 				}
 
-				void draw() {
+				void draw(fan::window* window, fan::opengl::context_t* context) {
 
 					if (cursor_timer.finished()) {
 						render_cursor = !render_cursor;
@@ -1239,18 +1212,18 @@ namespace fan_2d {
 
 						auto focus_ = focus::get_focus();
 
-						if (render_cursor && focus_ == get_focus_info() && m_input_allowed[focus_.i]) {
-							m_cursor.enable_draw();
+						if (render_cursor && focus_ == get_focus_info(window) && m_input_allowed[focus_.i]) {
+							m_cursor.enable_draw(context);
 						}
 						else {
-							m_cursor.disable_draw();
+							m_cursor.disable_draw(context);
 						}
 					}
 
 				}
 
-				focus::properties_t get_focus_info() const {
-					return { m_box->get_camera()->m_window->get_handle(), (void*)this, 0 };
+				focus::properties_t get_focus_info(fan::window* window) const {
+					return { window->get_handle(), (void*)this, 0 };
 				}
 
 				uint32_t get_focus() const {
@@ -1262,15 +1235,15 @@ namespace fan_2d {
 
 					return focus::no_focus;
 				}
-				void set_focus(uintptr_t focus_id) {
+				void set_focus(fan::window* window, fan::opengl::context_t* context, uintptr_t focus_id) {
 
-					auto current_focus = get_focus_info();
+					auto current_focus = get_focus_info(window);
 
 					current_focus.i = focus_id;
 
 					focus::set_focus(current_focus);
 
-					update_cursor(focus_id);
+					update_cursor(window, context, focus_id);
 				}
 
 			/*	void erase(uint32_t i) {
@@ -1300,8 +1273,6 @@ namespace fan_2d {
 					m_cursor.clear();
 				}*/
 
-			protected:
-
 				bool render_cursor = false;
 
 				fan::time::clock cursor_timer;
@@ -1312,7 +1283,6 @@ namespace fan_2d {
 
 				std::vector<uint32_t> m_input_allowed;
 
-				T* m_box;
 				fan_2d::graphics::rectangle m_cursor;
 
 				static void utf8_data_callback(fan::vector_t* string, FED_Data_t data) {
@@ -1328,11 +1298,14 @@ namespace fan_2d {
 				}
 
 				// check focus before calling
-				src_dst_t get_cursor_src_dst(uint32_t rtb_index, uint32_t x, uint32_t line_index) {
-					return m_box->get_cursor(rtb_index, x, line_index);
+				src_dst_t get_cursor_src_dst(fan::window* window, fan::opengl::context_t* context, uint32_t rtb_index, uint32_t x, uint32_t line_index) {
+					auto object = OFFSETLESS(this, T, m_key_event);
+					return object->get_cursor(context, rtb_index, x, line_index);
 				}
 
-				void update_text(uint32_t i) {
+				void update_text(fan::window* window, fan::opengl::context_t* context, uint32_t i) {
+
+					auto object = (T*)OFFSETLESS(this, T, m_key_event);
 
 					fan::vector_t text_vector;
 					vector_init(&text_vector, sizeof(uint8_t));
@@ -1370,14 +1343,14 @@ namespace fan_2d {
 						text_vector.Current++;
 					}
 
-					m_box->set_text(i, text_vector.ptr.data());
+					object->set_text(context, i, text_vector.ptr.data());
 
-					text_callback(i);
+					object->text_callback(window, context, i);
 				}
 
-				void update_cursor(uint32_t i) {
+				void update_cursor(fan::window* window, fan::opengl::context_t* context, uint32_t i) {
 
-					if (!(focus::get_focus() == get_focus_info())) {
+					if (!(focus::get_focus() == get_focus_info(window))) {
 						return;
 					}
 
@@ -1391,7 +1364,7 @@ namespace fan_2d {
 					FED_LineReference_t line_reference = FED_GetLineReferenceByLineIndex(&m_wed[i], 0);
 				//auto t = fan::time::clock::now();
 					
-					m_cursor.clear();
+					m_cursor.clear(context);
 					//fan::print(fan::time::clock::elapsed(t));
 					while(1){
 						bool is_endline;
@@ -1402,14 +1375,14 @@ namespace fan_2d {
 						for(uint_t j = 0; j < cursor_vector.Current; j++){
 							FED_ExportedCursor_t* exported_cursor = &((FED_ExportedCursor_t *)cursor_vector.ptr.data())[j];
 
-							auto src_dst = get_cursor_src_dst(i, exported_cursor->x, line_index);
+							auto src_dst = get_cursor_src_dst(window, context, i, exported_cursor->x, line_index);
 
 							fan_2d::graphics::rectangle::properties_t cursor_properties;
 							cursor_properties.color = cursor_properties::color;
 							cursor_properties.position = src_dst.src;
 							cursor_properties.size = src_dst.dst;
 
-							m_cursor.push_back(cursor_properties);
+							m_cursor.push_back(context, cursor_properties);
 						}
 
 						cursor_vector.Current = 0;
@@ -1470,164 +1443,164 @@ namespace fan_2d {
 				}
 
 			};
-
-			//struct editable_text_renderer : 
-			//	public text_renderer,
-			//	public base::mouse<editable_text_renderer>,
-			//	public fan_2d::graphics::gui::text_input<editable_text_renderer>
-			//{
-
-			//	editable_text_renderer(fan::camera* camera) :
-			//		editable_text_renderer::text_renderer(camera), 
-			//		editable_text_renderer::text_input(this),
-			//		editable_text_renderer::mouse(this)
-			//	{
-
-			//	}
-
-			//	void push_back(const fan::utf16_string& text, f32_t font_size, fan::vec2 position, const fan::color& text_color) {
-			//		editable_text_renderer::text_renderer::push_back(text, font_size, position, text_color);
-			//		editable_text_renderer::text_input::push_back(-1, -1, -1);
-
-			//		uint32_t index = this->size() - 1;
-
-			//		for (int i = 0; i < text.size(); i++) {
-
-			//			fan::utf8_string utf8;
-			//			utf8.push_back(text[i]);
-
-			//			auto wc = utf8.to_utf16()[0];
-
-			//			FED_AddCharacterToCursor(&m_wed[index], cursor_reference[index], text[i], fan_2d::graphics::gui::text_renderer::font.font[wc].metrics.size.x * fan_2d::graphics::gui::text_renderer::convert_font_size(m_box->get_font_size(index)) * line_multiplier);
-			//		}
-
-			//		editable_text_renderer::text_input::update_text(index);
-			//	}
-
-			//	bool inside(uint32_t i) const {
-
-			//		auto box_size = editable_text_renderer::text_renderer::get_text_size(
-			//			editable_text_renderer::text_renderer::get_text(i),
-			//			editable_text_renderer::text_renderer::get_font_size(i)
-			//		);
-
-			//		auto mouse_position = editable_text_renderer::text_renderer::m_camera->m_window->get_mouse_position();
-
-			//	
-			//		f32_t converted = fan_2d::graphics::gui::text_renderer::convert_font_size(this->get_font_size(i));
-			//		auto line_height = fan_2d::graphics::gui::text_renderer::font.font['\n'].metrics.size.y * converted;
-
-			//		return fan_2d::collision::rectangle::point_inside_no_rotation(
-			//			mouse_position,
-			//			editable_text_renderer::text_renderer::get_position(i),
-			//			fan::vec2(box_size.x, line_height)
-			//		);
-			//	}
-
-			//	uint32_t size() const {
-			//		return editable_text_renderer::text_renderer::size();
-			//	}
-
-			//	// receives uint32_t box_i, uint32_t character number x, uint32_t character number y
-			//	src_dst_t get_cursor(uint32_t i, uint32_t x, uint32_t y) {
-			//		f32_t converted = fan_2d::graphics::gui::text_renderer::convert_font_size(this->get_font_size(i));
-			//		auto line_height = fan_2d::graphics::gui::text_renderer::font.font['\n'].metrics.size.y * converted;
-
-			//		fan::vec2 src, dst;
-
-			//		src += text_renderer::get_position(i);
-
-			//		//src.y -= line_height / 2;
-
-			//		uint32_t offset = 0;
-
-			//		auto str = this->get_text(i);
-
-			//		for (int j = 0; j < y; j++) {
-			//			while (str[offset++] != '\n') {
-			//				if (offset >= str.size() - 1) {
-			//					throw std::runtime_error("string didnt have endline");
-			//				}
-			//			}
-			//		}
-
-			//		for (int j = 0; j < x; j++) {
-			//			wchar_t letter = str[j + offset];
-			//			if (letter == '\n') {
-			//				continue;
-			//			}
-
-			//			std::wstring wstr;
-
-			//			wstr.push_back(letter);
-
-			//			auto letter_info = fan_2d::graphics::gui::text_renderer::get_letter_info(fan::utf16_string(wstr).to_utf8().data(), this->get_font_size(i));
-
-			//			if (j == x - 1) {
-			//				src.x += letter_info.metrics.size.x + (letter_info.metrics.advance - letter_info.metrics.size.x) / 2 - 1;
-			//			}
-			//			else {
-			//				src.x += letter_info.metrics.advance;
-			//			}
-
-			//		}
-
-			//		src.y += line_height * y;
-
-
-			//		dst = src + fan::vec2(0, line_height);
-
-			//		dst = dst - src + fan::vec2(cursor_properties::line_thickness, 0);
-
-
-			//		return { src, dst };
-			//	}
-
-			//	fan::camera* get_camera() {
-			//		return text_renderer::m_camera;
-			//	}
-
-			//	void draw() {
-			//		text_renderer::draw();
-			//		text_input::draw();
-			//	}
-
-			//	void backspace_callback(uint32_t i) override {}
-			//	void text_callback(uint32_t i) override {}
-
-			//	void lib_add_on_input(uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage) {}
-
-			//	void lib_add_on_mouse_event(uint32_t i, fan_2d::graphics::gui::mouse_stage stage) {}
-
-			//	bool locked(uint32_t i) const { return false; }
-
-			//};
-
+//
+//			//struct editable_text_renderer : 
+//			//	public text_renderer,
+//			//	public base::mouse<editable_text_renderer>,
+//			//	public fan_2d::graphics::gui::text_input<editable_text_renderer>
+//			//{
+//
+//			//	editable_text_renderer(fan::camera* camera) :
+//			//		editable_text_renderer::text_renderer(camera), 
+//			//		editable_text_renderer::text_input(this),
+//			//		editable_text_renderer::mouse(this)
+//			//	{
+//
+//			//	}
+//
+//			//	void push_back(const fan::utf16_string& text, f32_t font_size, fan::vec2 position, const fan::color& text_color) {
+//			//		editable_text_renderer::text_renderer::push_back(text, font_size, position, text_color);
+//			//		editable_text_renderer::text_input::push_back(-1, -1, -1);
+//
+//			//		uint32_t index = this->size() - 1;
+//
+//			//		for (int i = 0; i < text.size(); i++) {
+//
+//			//			fan::utf8_string utf8;
+//			//			utf8.push_back(text[i]);
+//
+//			//			auto wc = utf8.to_utf16()[0];
+//
+//			//			FED_AddCharacterToCursor(&m_wed[index], cursor_reference[index], text[i], fan_2d::graphics::gui::text_renderer::font.font[wc].metrics.size.x * fan_2d::graphics::gui::text_renderer::convert_font_size(object->get_font_size(index)) * line_multiplier);
+//			//		}
+//
+//			//		editable_text_renderer::text_input::update_text(index);
+//			//	}
+//
+//			//	bool inside(uint32_t i) const {
+//
+//			//		auto box_size = editable_text_renderer::text_renderer::get_text_size(
+//			//			editable_text_renderer::text_renderer::get_text(i),
+//			//			editable_text_renderer::text_renderer::get_font_size(i)
+//			//		);
+//
+//			//		auto mouse_position = editable_text_renderer::text_renderer::m_camera->m_window->get_mouse_position();
+//
+//			//	
+//			//		f32_t converted = fan_2d::graphics::gui::text_renderer::convert_font_size(this->get_font_size(i));
+//			//		auto line_height = fan_2d::graphics::gui::text_renderer::font.font['\n'].metrics.size.y * converted;
+//
+//			//		return fan_2d::collision::rectangle::point_inside_no_rotation(
+//			//			mouse_position,
+//			//			editable_text_renderer::text_renderer::get_position(i),
+//			//			fan::vec2(box_size.x, line_height)
+//			//		);
+//			//	}
+//
+//			//	uint32_t size() const {
+//			//		return editable_text_renderer::text_renderer::size();
+//			//	}
+//
+//			//	// receives uint32_t box_i, uint32_t character number x, uint32_t character number y
+//			//	src_dst_t get_cursor(uint32_t i, uint32_t x, uint32_t y) {
+//			//		f32_t converted = fan_2d::graphics::gui::text_renderer::convert_font_size(this->get_font_size(i));
+//			//		auto line_height = fan_2d::graphics::gui::text_renderer::font.font['\n'].metrics.size.y * converted;
+//
+//			//		fan::vec2 src, dst;
+//
+//			//		src += text_renderer::get_position(i);
+//
+//			//		//src.y -= line_height / 2;
+//
+//			//		uint32_t offset = 0;
+//
+//			//		auto str = this->get_text(i);
+//
+//			//		for (int j = 0; j < y; j++) {
+//			//			while (str[offset++] != '\n') {
+//			//				if (offset >= str.size() - 1) {
+//			//					throw std::runtime_error("string didnt have endline");
+//			//				}
+//			//			}
+//			//		}
+//
+//			//		for (int j = 0; j < x; j++) {
+//			//			wchar_t letter = str[j + offset];
+//			//			if (letter == '\n') {
+//			//				continue;
+//			//			}
+//
+//			//			std::wstring wstr;
+//
+//			//			wstr.push_back(letter);
+//
+//			//			auto letter_info = fan_2d::graphics::gui::text_renderer::get_letter_info(fan::utf16_string(wstr).to_utf8().data(), this->get_font_size(i));
+//
+//			//			if (j == x - 1) {
+//			//				src.x += letter_info.metrics.size.x + (letter_info.metrics.advance - letter_info.metrics.size.x) / 2 - 1;
+//			//			}
+//			//			else {
+//			//				src.x += letter_info.metrics.advance;
+//			//			}
+//
+//			//		}
+//
+//			//		src.y += line_height * y;
+//
+//
+//			//		dst = src + fan::vec2(0, line_height);
+//
+//			//		dst = dst - src + fan::vec2(cursor_properties::line_thickness, 0);
+//
+//
+//			//		return { src, dst };
+//			//	}
+//
+//			//	fan::camera* get_camera() {
+//			//		return text_renderer::m_camera;
+//			//	}
+//
+//			//	void draw() {
+//			//		text_renderer::draw();
+//			//		text_input::draw();
+//			//	}
+//
+//			//	void backspace_callback(uint32_t i) override {}
+//			//	void text_callback(uint32_t i) override {}
+//
+//			//	void lib_add_on_input(uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage) {}
+//
+//			//	void lib_add_on_mouse_move(uint32_t i, fan_2d::graphics::gui::mouse_stage stage) {}
+//
+//			//	bool locked(uint32_t i) const { return false; }
+//
+//			//};
+//
 			enum class text_position_e {
 				left,
 				middle
 			};
-
-			struct button_properties_t {
-
-				button_properties_t() {}
-
-				button_properties_t(
-					const fan::utf16_string& text,
-					const fan::vec2& position
-				) : text(text), position(position) {}
-
-				fan::utf16_string text = empty_string;
-
-				fan::utf16_string place_holder;
-
-				fan::vec2 position;
-				fan::vec2 padding;
-
-				f32_t font_size = fan_2d::graphics::gui::defaults::font_size;
-
-			};
-
+//
+//			struct button_properties_t {
+//
+//				button_properties_t() {}
+//
+//				button_properties_t(
+//					const fan::utf16_string& text,
+//					const fan::vec2& position
+//				) : text(text), position(position) {}
+//
+//				fan::utf16_string text = empty_string;
+//
+//				fan::utf16_string place_holder;
+//
+//				fan::vec2 position;
+//				fan::vec2 padding;
+//
+//				f32_t font_size = fan_2d::graphics::gui::defaults::font_size;
+//
+//			};
+//
 			struct rectangle_button_sized_properties {
 
 				fan::utf16_string text = empty_string;
@@ -1640,27 +1613,27 @@ namespace fan_2d {
 
 				text_position_e text_position = text_position_e::middle;
 
-				fan_2d::graphics::gui::theme theme;
+				fan_2d::graphics::gui::theme theme = fan_2d::graphics::gui::themes::deep_blue();
 
 				fan::vec2 size;
 
 				fan::vec2 offset;
 
 			};
-
-			// returns half size
-			static fan::vec2 get_button_size(const fan::utf16_string text, f32_t font_size, uint32_t new_lines, const fan::vec2& padding)
-			{
-
-				f32_t h = text_renderer::font.line_height * fan_2d::graphics::gui::text_renderer::convert_font_size(font_size) * (new_lines + 1);
-
-				return ((text.empty() ? fan::vec2(0, h) : fan::vec2(fan_2d::graphics::gui::text_renderer::get_text_size(text, font_size).x, h)) + padding) / 2; 
-			}
-
+//
+//			// returns half size
+//			static fan::vec2 get_button_size(const fan::utf16_string text, f32_t font_size, uint32_t new_lines, const fan::vec2& padding)
+//			{
+//
+//				f32_t h = text_renderer::font.line_height * fan_2d::graphics::gui::text_renderer::convert_font_size(font_size) * (new_lines + 1);
+//
+//				return ((text.empty() ? fan::vec2(0, h) : fan::vec2(fan_2d::graphics::gui::text_renderer::get_text_size(text, font_size).x, h)) + padding) / 2; 
+//			}
+//
 			struct rectangle_text_box_sized :
 				protected fan::class_duplicator<fan_2d::graphics::rectangle, 0>,
 				protected fan::class_duplicator<fan_2d::graphics::rectangle, 1>,
-				public graphics::gui::text_renderer
+				public fan_2d::graphics::gui::text_renderer
 				{
 
 				using properties_t = rectangle_button_sized_properties;
@@ -1668,259 +1641,259 @@ namespace fan_2d {
 				using inner_rect_t = fan::class_duplicator<fan_2d::graphics::rectangle, 0>;
 				using outer_rect_t = fan::class_duplicator<fan_2d::graphics::rectangle, 1>;
 
-				rectangle_text_box_sized(fan::camera* camera);
+				rectangle_text_box_sized() = default;
 
-				void push_back(const properties_t& properties);
+				void open(fan::opengl::context_t* context);
+				void close(fan::opengl::context_t* context);
 
-				void set_position(uint32_t i, const fan::vec2& position);
+				void push_back(fan::opengl::context_t* context, const properties_t& properties);
 
-				using fan_2d::graphics::rectangle::get_size;
+				void set_position(fan::opengl::context_t* context, uint32_t i, const fan::vec2& position);
 
-				bool inside(uintptr_t i, const fan::vec2& position = fan::math::inf) const;
 
-				void set_text(uint32_t i, const fan::utf16_string& text);
-				void set_size(uint32_t i, const fan::vec2& size);
+				bool inside(fan::opengl::context_t* context, uintptr_t i, const fan::vec2& position) const;
 
-				fan::color get_text_color(uint32_t i) const;
-				void set_text_color(uint32_t i, const fan::color& color);
+				void set_text(fan::opengl::context_t* context, uint32_t i, const fan::utf16_string& text);
+				void set_size(fan::opengl::context_t* context, uint32_t i, const fan::vec2& size);
 
-				fan::vec2 get_position(uint32_t i) const;
-				fan::vec2 get_size(uint32_t i) const;
+				fan::color get_text_color(fan::opengl::context_t* context, uint32_t i) const;
+				void set_text_color(fan::opengl::context_t* context, uint32_t i, const fan::color& color);
 
-				f32_t get_font_size(uint32_t i) const;
+				fan::vec2 get_position(fan::opengl::context_t* context, uint32_t i) const;
+				fan::vec2 get_size(fan::opengl::context_t* context, uint32_t i) const;
 
-				fan::color get_color(uint32_t i) const;
+				f32_t get_font_size(fan::opengl::context_t* context, uint32_t i) const;
+
+				fan::color get_color(fan::opengl::context_t* context, uint32_t i) const;
 
 				// receives uint32_t box_i, uint32_t character number x, uint32_t character number y
-				src_dst_t get_cursor(uint32_t i, uint32_t x, uint32_t y);
+				src_dst_t get_cursor(fan::opengl::context_t* context, uint32_t i, uint32_t x, uint32_t y);
 
-				fan::vec2 get_text_starting_point(uint32_t i) const;
+				fan::vec2 get_text_starting_point(fan::opengl::context_t* context, uint32_t i) const;
 
-				properties_t get_property(uint32_t i) const;
+				properties_t get_property(fan::opengl::context_t* context, uint32_t i) const;
 				
-				void set_offset(uint32_t i, const fan::vec2& offset);
+				void set_offset(fan::opengl::context_t* context, uint32_t i, const fan::vec2& offset);
 
-				fan::camera* get_camera();
+				uintptr_t size(fan::opengl::context_t* context) const;
 
-				uintptr_t size() const;
+				void erase(fan::opengl::context_t* context, uint32_t i);
+				void erase(fan::opengl::context_t* context, uint32_t begin, uint32_t end);
 
-				void erase(uint32_t i);
-				void erase(uint32_t begin, uint32_t end);
-
-				void enable_draw();
-				void disable_draw();
+				void enable_draw(fan::opengl::context_t* context);
+				void disable_draw(fan::opengl::context_t* context);
 
 				// sets shape's draw order in window
 				//void set_draw_order(uint32_t i);
 
-				void clear();
+				void clear(fan::opengl::context_t* context);
 
-				void update_theme(uint32_t i);
-				void set_theme(uint32_t i, const fan_2d::graphics::gui::theme& theme_);
+				void update_theme(fan::opengl::context_t* context, uint32_t i);
+				void set_theme(fan::opengl::context_t* context, uint32_t i, const fan_2d::graphics::gui::theme& theme_);
 
 				using inner_rect_t::get_color;
 
 				std::vector<fan_2d::graphics::gui::theme> theme;
 
+				using fan_2d::graphics::rectangle::get_size;
+
 			protected:
 
-				void draw(uint32_t begin = fan::uninitialized, uint32_t end = fan::uninitialized);
+				void draw(fan::opengl::context_t* context, uint32_t begin = fan::uninitialized, uint32_t end = fan::uninitialized);
 
 				void write_data();
 
 				void edit_data(uint32_t i);
 
 				void edit_data(uint32_t begin, uint32_t end);
-
 
 				std::vector<properties_t> m_properties;
 
 			};
-
-			struct rectangle_text_box : 
-				protected fan::class_duplicator<fan_2d::graphics::rectangle, 0>,
-				protected fan::class_duplicator<fan_2d::graphics::rectangle, 1>,
-				protected graphics::gui::text_renderer
-			{
-
-				using properties_t = button_properties_t;
-
-				using inner_rect_t = fan::class_duplicator<fan_2d::graphics::rectangle, 0>;
-				using outer_rect_t = fan::class_duplicator<fan_2d::graphics::rectangle, 1>;
-
-				rectangle_text_box(fan::camera* camera, fan_2d::graphics::gui::theme theme);
-
-				void push_back(const properties_t& properties);
-
-				void draw(uint32_t begin = fan::uninitialized, uint32_t end = fan::uninitialized);
-
-				void set_position(uint32_t i, const fan::vec2& position);
-
-				using fan_2d::graphics::rectangle::get_size;
-
-				define_get_property_size;
-
-				bool inside(uintptr_t i, const fan::vec2& position = fan::math::inf) const;
-
-				fan::utf16_string get_text(uint32_t i) const;
-				void set_text(uint32_t i, const fan::utf16_string& text);
-
-				fan::color get_text_color(uint32_t i) const;
-				void set_text_color(uint32_t i, const fan::color& color);
-
-				fan::vec2 get_position(uint32_t i) const;
-				fan::vec2 get_size(uint32_t i) const;
-
-				fan::vec2 get_padding(uint32_t i) const;
-
-				f32_t get_font_size(uint32_t i) const;
-
-				properties_t get_property(uint32_t i) const;
-
-				fan::color get_color(uint32_t i) const;
-
-				// receives uint32_t box_i, uint32_t character number x, uint32_t character number y
-				src_dst_t get_cursor(uint32_t i, uint32_t x, uint32_t y);
-
-				fan::vec2 get_text_starting_point(uint32_t i) const;
-
-				fan::camera* get_camera();
-
-				uintptr_t size() const;
-
-				void write_data();
-
-				void edit_data(uint32_t i);
-
-				void edit_data(uint32_t begin, uint32_t end);
-
-				void erase(uint32_t i);
-				void erase(uint32_t begin, uint32_t end);
-
-				void clear();
-
-				void set_theme(fan_2d::graphics::gui::theme theme_);
-
-				void set_theme(uint32_t i, fan_2d::graphics::gui::theme theme_);
-
-				void enable_draw();
-				void disable_draw();
-
-				using inner_rect_t::get_color;
-				using inner_rect_t::set_color;
-
-				using graphics::gui::text_renderer::font;
-
-				fan_2d::graphics::gui::theme theme;
-
-			protected:
-
-				std::vector<button_properties_t> m_properties;
-
-			};
-
-
-			struct rectangle_text_button :
-				public fan_2d::graphics::gui::rectangle_text_box,
-				public fan_2d::graphics::gui::base::mouse<rectangle_text_button>,
-				public fan_2d::graphics::gui::text_input<rectangle_text_button>
-			{
-
-				struct properties_t : public rectangle_text_box::properties_t{
-					f32_t character_width = (f32_t)0xdfffffff / rectangle_text_button::text_input::line_multiplier;
-					uint32_t character_limit = 99;
-					uint32_t line_limit = 99;
-				};
-
-				using input_instance_t = fan_2d::graphics::gui::text_input<rectangle_text_button>;
-
-				rectangle_text_button(fan::camera* camera, fan_2d::graphics::gui::theme theme);
-
-				void push_back(const properties_t& properties);
-
-				void set_place_holder(uint32_t i, const fan::utf16_string& place_holder);
-
-				void draw();
-
-				void backspace_callback(uint32_t i) override;
-				void text_callback(uint32_t i) override;
-
-				void erase(uint32_t i);
-				void erase(uint32_t begin, uint32_t end);
-
-				void clear();
-
-				void set_locked(uint32_t i);
-
-				bool locked(uint32_t i) const;
-
-				void lib_add_on_input(fan::window *window, uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage);
-
-				void lib_add_on_mouse_event(fan::window *window, uint32_t i, fan_2d::graphics::gui::mouse_stage stage);
-
-			};
-
+//
+//			struct rectangle_text_box : 
+//				protected fan::class_duplicator<fan_2d::graphics::rectangle, 0>,
+//				protected fan::class_duplicator<fan_2d::graphics::rectangle, 1>,
+//				protected graphics::gui::text_renderer
+//			{
+//
+//				using properties_t = button_properties_t;
+//
+//				using inner_rect_t = fan::class_duplicator<fan_2d::graphics::rectangle, 0>;
+//				using outer_rect_t = fan::class_duplicator<fan_2d::graphics::rectangle, 1>;
+//
+//				rectangle_text_box(fan::camera* camera, fan_2d::graphics::gui::theme theme);
+//
+//				void push_back(const properties_t& properties);
+//
+//				void draw(uint32_t begin = fan::uninitialized, uint32_t end = fan::uninitialized);
+//
+//				void set_position(uint32_t i, const fan::vec2& position);
+//
+//				using fan_2d::graphics::rectangle::get_size;
+//
+//				define_get_property_size;
+//
+//				bool inside(uintptr_t i, const fan::vec2& position = fan::math::inf) const;
+//
+//				fan::utf16_string get_text(uint32_t i) const;
+//				void set_text(uint32_t i, const fan::utf16_string& text);
+//
+//				fan::color get_text_color(uint32_t i) const;
+//				void set_text_color(uint32_t i, const fan::color& color);
+//
+//				fan::vec2 get_position(uint32_t i) const;
+//				fan::vec2 get_size(uint32_t i) const;
+//
+//				fan::vec2 get_padding(uint32_t i) const;
+//
+//				f32_t get_font_size(uint32_t i) const;
+//
+//				properties_t get_property(uint32_t i) const;
+//
+//				fan::color get_color(uint32_t i) const;
+//
+//				// receives uint32_t box_i, uint32_t character number x, uint32_t character number y
+//				src_dst_t get_cursor(uint32_t i, uint32_t x, uint32_t y);
+//
+//				fan::vec2 get_text_starting_point(uint32_t i) const;
+//
+//				fan::camera* get_camera();
+//
+//				uintptr_t size() const;
+//
+//				void write_data();
+//
+//				void edit_data(uint32_t i);
+//
+//				void edit_data(uint32_t begin, uint32_t end);
+//
+//				void erase(uint32_t i);
+//				void erase(uint32_t begin, uint32_t end);
+//
+//				void clear();
+//
+//				void set_theme(fan_2d::graphics::gui::theme theme_);
+//
+//				void set_theme(uint32_t i, fan_2d::graphics::gui::theme theme_);
+//
+//				void enable_draw();
+//				void disable_draw();
+//
+//				using inner_rect_t::get_color;
+//				using inner_rect_t::set_color;
+//
+//				using graphics::gui::text_renderer::font;
+//
+//				fan_2d::graphics::gui::theme theme;
+//
+//			protected:
+//
+//				std::vector<button_properties_t> m_properties;
+//
+//			};
+//
+//
+//			struct rectangle_text_button :
+//				public fan_2d::graphics::gui::rectangle_text_box,
+//				public fan_2d::graphics::gui::base::mouse<rectangle_text_button>,
+//				public fan_2d::graphics::gui::text_input<rectangle_text_button>
+//			{
+//
+//				struct properties_t : public rectangle_text_box::properties_t{
+//					f32_t character_width = (f32_t)0xdfffffff / rectangle_text_button::text_input::line_multiplier;
+//					uint32_t character_limit = 99;
+//					uint32_t line_limit = 99;
+//				};
+//
+//				using input_instance_t = fan_2d::graphics::gui::text_input<rectangle_text_button>;
+//
+//				rectangle_text_button(fan::camera* camera, fan_2d::graphics::gui::theme theme);
+//
+//				void push_back(const properties_t& properties);
+//
+//				void set_place_holder(uint32_t i, const fan::utf16_string& place_holder);
+//
+//				void draw();
+//
+//				void backspace_callback(uint32_t i) override;
+//				void text_callback(uint32_t i) override;
+//
+//				void erase(uint32_t i);
+//				void erase(uint32_t begin, uint32_t end);
+//
+//				void clear();
+//
+//				void set_locked(uint32_t i);
+//
+//				bool locked(uint32_t i) const;
+//
+//				void lib_add_on_input(fan::window *window, uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage);
+//
+//				void lib_add_on_mouse_move(fan::window *window, uint32_t i, fan_2d::graphics::gui::mouse_stage stage);
+//
+//			};
+//
 			enum class button_states_e {
 				clickable = 1,
 				locked = 2
 			};
-
-			struct circle_button : 
-				protected fan_2d::graphics::circle,
-				public fan_2d::graphics::gui::base::mouse<circle_button>
-			{
-
-				struct properties_t {
-
-					properties_t() {}
-
-					fan::vec2 position;
-
-					f32_t radius;
-
-					fan_2d::graphics::gui::theme theme;
-
-					button_states_e button_state = button_states_e::clickable;
-				};
-
-				circle_button(fan::camera* camera);
-				~circle_button();
-
-				using fan_2d::graphics::circle::inside;
-				using fan_2d::graphics::circle::size;
-
-				void push_back(properties_t properties);
-
-				void erase(uint32_t i);
-				void erase(uint32_t begin, uint32_t end);
-				void clear();
-
-				void set_locked(uint32_t i, bool flag);
-
-				bool locked(uint32_t i) const;
-
-				void enable_draw();
-				void disable_draw();
-
-				void update_theme(uint32_t i);
-
-				virtual void lib_add_on_input(fan::window *window, uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage);
-
-				virtual void lib_add_on_mouse_event(fan::window *window, uint32_t i, fan_2d::graphics::gui::mouse_stage stage);
-
-				fan::camera* get_camera();
-
-			protected:
-
-				std::vector<fan_2d::graphics::gui::theme> m_theme;
-				std::vector<uint32_t> m_reserved;
-
-			};
-
+//
+//			struct circle_button : 
+//				protected fan_2d::graphics::circle,
+//				public fan_2d::graphics::gui::base::mouse<circle_button>
+//			{
+//
+//				struct properties_t {
+//
+//					properties_t() {}
+//
+//					fan::vec2 position;
+//
+//					f32_t radius;
+//
+//					fan_2d::graphics::gui::theme theme;
+//
+//					button_states_e button_state = button_states_e::clickable;
+//				};
+//
+//				circle_button(fan::camera* camera);
+//				~circle_button();
+//
+//				using fan_2d::graphics::circle::inside;
+//				using fan_2d::graphics::circle::size;
+//
+//				void push_back(properties_t properties);
+//
+//				void erase(uint32_t i);
+//				void erase(uint32_t begin, uint32_t end);
+//				void clear();
+//
+//				void set_locked(uint32_t i, bool flag);
+//
+//				bool locked(uint32_t i) const;
+//
+//				void enable_draw();
+//				void disable_draw();
+//
+//				void update_theme(uint32_t i);
+//
+//				virtual void lib_add_on_input(fan::window *window, uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage);
+//
+//				virtual void lib_add_on_mouse_move(fan::window *window, uint32_t i, fan_2d::graphics::gui::mouse_stage stage);
+//
+//				fan::camera* get_camera();
+//
+//			protected:
+//
+//				std::vector<fan_2d::graphics::gui::theme> m_theme;
+//				std::vector<uint32_t> m_reserved;
+//
+//			};
+//
 			// text color needs to be less than 1.0 or 255 in rgb to see color change
 			struct text_renderer_clickable : 
-				public text_renderer,
-				public base::mouse<text_renderer_clickable>
+				public text_renderer
 			{
 
 				struct properties_t : public text_renderer::properties_t {
@@ -1928,30 +1901,31 @@ namespace fan_2d {
 					fan::vec2 hitbox_size; // half
 				};
 
-				text_renderer_clickable(fan::camera* camera);
+				void open(fan::window* window, fan::opengl::context_t* context);
+				void close(fan::window* window, fan::opengl::context_t* context);
 
-				void lib_add_on_input(fan::window *window, uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage);
+				void lib_add_on_input(fan::window *window, fan::opengl::context_t* context, uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage);
 
-				void lib_add_on_mouse_event(fan::window *window, uint32_t i, fan_2d::graphics::gui::mouse_stage stage);
+				void lib_add_on_mouse_move(fan::window *window, fan::opengl::context_t* context, uint32_t i, fan_2d::graphics::gui::mouse_stage stage);
 
-				void push_back(const text_renderer_clickable::properties_t& properties);
+				void push_back(fan::window *window, fan::opengl::context_t* context, const text_renderer_clickable::properties_t& properties);
 
 				// hitbox is half size
-				void set_hitbox(uint32_t i, const fan::vec2& hitbox_position, const fan::vec2& hitbox_size);
+				void set_hitbox(fan::window *window, fan::opengl::context_t* context, uint32_t i, const fan::vec2& hitbox_position, const fan::vec2& hitbox_size);
 
-				fan::vec2 get_hitbox_position(uint32_t i) const;
-				void set_hitbox_position(uint32_t i, const fan::vec2& hitbox_position);
+				fan::vec2 get_hitbox_position(fan::window *window, fan::opengl::context_t* context, uint32_t i) const;
+				void set_hitbox_position(fan::window *window, fan::opengl::context_t* context, uint32_t i, const fan::vec2& hitbox_position);
 				// hitbox is half size
-				fan::vec2 get_hitbox_size(uint32_t i) const;
-				void set_hitbox_size(uint32_t i, const fan::vec2& hitbox_size);
+				fan::vec2 get_hitbox_size(fan::window *window, fan::opengl::context_t* context, uint32_t i) const;
+				void set_hitbox_size(fan::window *window, fan::opengl::context_t* context, uint32_t i, const fan::vec2& hitbox_size);
 
-				bool inside(uint32_t i, const fan::vec2& p = fan::math::inf) const;
-				bool locked(uint32_t i) const { return 0; }
+				bool inside(fan::opengl::context_t* context, uint32_t i, const fan::vec2& p) const;
+				bool locked(fan::window *window, fan::opengl::context_t* context, uint32_t i) const { return 0; }
 
 				static constexpr f32_t hover_strength = 0.2;
 				static constexpr f32_t click_strength = 0.3;
 
-				using text_renderer::sprite::get_camera;
+				base::button_event_t<text_renderer_clickable> m_button_event;
 
 			protected:
 
@@ -1973,730 +1947,726 @@ namespace fan_2d {
 			};
 
 			struct rectangle_text_button_sized :
-				public fan_2d::graphics::gui::rectangle_text_box_sized,
-				public fan_2d::graphics::gui::base::mouse<rectangle_text_button_sized>,
-				public fan_2d::graphics::gui::text_input<rectangle_text_button_sized>
+				public fan_2d::graphics::gui::rectangle_text_box_sized
 			{
 
 				struct properties_t : public rectangle_text_box_sized::properties_t {
 
 					using rectangle_text_box_sized::properties_t::rectangle_button_sized_properties;
 
-					f32_t character_width = (f32_t)0xdfffffff / rectangle_text_button::text_input::line_multiplier;
+					f32_t character_width = (f32_t)0xdfffffff / key_event_t<rectangle_text_button_sized>::line_multiplier;
 					uint32_t character_limit = -1;
 					uint32_t line_limit = -1;
 					button_states_e button_state = button_states_e::clickable;
 				};
 
-				using input_instance_t = fan_2d::graphics::gui::text_input<rectangle_text_button_sized>;
+				rectangle_text_button_sized() = default;
 
-				rectangle_text_button_sized(fan::camera* camera);
-				~rectangle_text_button_sized();
+				void open(fan::window* window, fan::opengl::context_t* context);
+				void close(fan::window* window, fan::opengl::context_t* context);
 
-				void push_back(properties_t properties);
+				void push_back(fan::window* window, fan::opengl::context_t* context, properties_t properties);
 
-				void set_place_holder(uint32_t i, const fan::utf16_string& place_holder);
+				void set_place_holder(fan::window* window, fan::opengl::context_t* context, uint32_t i, const fan::utf16_string& place_holder);
 
-				void backspace_callback(uint32_t i) override;
-				void text_callback(uint32_t i) override;
+				void backspace_callback(fan::window* window, fan::opengl::context_t* context, uint32_t i);
+				void text_callback(fan::window* window, fan::opengl::context_t* context, uint32_t i);
 
-				void erase(uint32_t i);
-				void erase(uint32_t begin, uint32_t end);
+				void erase(fan::window* window, fan::opengl::context_t* context, uint32_t i);
+				void erase(fan::window* window, fan::opengl::context_t* context, uint32_t begin, uint32_t end);
 
-				void clear();
+				void clear(fan::window* window, fan::opengl::context_t* context);
 
-				void set_locked(uint32_t i, bool flag, bool change_theme = true);
+				void set_locked(fan::window* window, fan::opengl::context_t* context, uint32_t i, bool flag, bool change_theme = true);
 
-				bool locked(uint32_t i) const;
+				bool locked(fan::window* window, fan::opengl::context_t* context, uint32_t i) const;
 
-				void enable_draw();
-				void disable_draw();
+				void enable_draw(fan::window* window, fan::opengl::context_t* context);
+				void disable_draw(fan::window* window, fan::opengl::context_t* context);
 
-				virtual void lib_add_on_input(fan::window *window, uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage);
+				void lib_add_on_input(fan::window *window, fan::opengl::context_t* context, uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage);
 
-				virtual void lib_add_on_mouse_event(fan::window *window, uint32_t i, fan_2d::graphics::gui::mouse_stage stage);
+				void lib_add_on_mouse_move(fan::window *window, fan::opengl::context_t* context, uint32_t i, fan_2d::graphics::gui::mouse_stage stage);
+
+				fan_2d::graphics::gui::key_event_t<rectangle_text_button_sized> m_key_event;
+				fan_2d::graphics::gui::base::button_event_t<fan_2d::graphics::gui::rectangle_text_button_sized> m_button_event;
 
 			protected:
 
-				void draw(uint32_t begin = fan::uninitialized, uint32_t end = fan::uninitialized);
+				void draw(fan::window* window, fan::opengl::context_t* context, uint32_t begin = fan::uninitialized, uint32_t end = fan::uninitialized);
 
 				std::vector<uint32_t> m_reserved;
-
-				rectangle_text_button_sized(bool custom, fan::camera* camera);
-
 			};
-
-			struct rectangle_selectable_button_sized : public rectangle_text_button_sized{
-
-				rectangle_selectable_button_sized(fan::camera* camera);
-
-				uint32_t get_selected(uint32_t i) const;
-				void set_selected(uint32_t i);
-
-				void add_on_select(std::function<void(uint32_t i)> function);
-
-				void lib_add_on_input(fan::window *window, uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage) override;
-
-				void lib_add_on_mouse_event(fan::window *window, uint32_t i, fan_2d::graphics::gui::mouse_stage stage) override;
-
-			protected:
-
-				std::vector<std::function<void(uint32_t)>> m_on_select;
-
-				uint32_t m_selected = (uint32_t)fan::uninitialized;
-
-			};
-
-			namespace text_box_properties {
-
-				inline int blink_speed(500); // ms
-				inline fan::color cursor_color(fan::colors::white);
-				inline fan::color select_color(fan::colors::blue - fan::color(0, 0, 0, 0.5));
-
-			}
-
-			namespace font_properties {
-
-				inline f32_t space_width(15); // remove pls
-
-			}
-
-			class sprite_text_box :
-				protected fan::class_duplicator<fan_2d::graphics::sprite, 0>,
-				protected fan_2d::graphics::gui::text_renderer {
-
-			public:
-
-				using properties_t = button_properties_t;
-
-				using sprite_t = fan::class_duplicator<fan_2d::graphics::sprite, 0>;
-
-				sprite_text_box(fan::camera* camera, const std::string& path);
-
-				void push_back(const properties_t& properties);
-
-				void draw(uint32_t begin = fan::uninitialized, uint32_t end = fan::uninitialized);
-
-				define_get_property_size
-
-					fan::camera* get_camera();
-
-				uint64_t size() const;
-				bool inside(uint32_t i, const fan::vec2& position = fan::math::inf) const;
-
-				fan_2d::graphics::image_t image;
-
-			protected:
-
-				std::vector<properties_t> m_properties;
-			};
-
-			struct sprite_text_button :
-				public fan_2d::graphics::gui::sprite_text_box,
-				public base::mouse<sprite_text_button> {
-
-				sprite_text_button(fan::camera* camera, const std::string& path);
-
-				void lib_add_on_input(fan::window *window, uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage);
-
-				void lib_add_on_mouse_event(fan::window *window, uint32_t i, fan_2d::graphics::gui::mouse_stage stage);
-
-				bool locked(uint32_t i) const { return false; }
-
-			};
-
-			struct scrollbar : public fan_2d::graphics::rectangle, public fan_2d::graphics::gui::base::mouse<scrollbar> {
-
-				enum class scroll_direction_e {
-					horizontal,
-					vertical,
-				};
-
-				struct properties_t {
-					fan::vec2 position;
-					fan::vec2 size;
-					fan::color color;
-					scroll_direction_e scroll_direction;
-					f32_t current;
-					f32_t length;
-					uint32_t outline_thickness;
-				};
-
-				using on_scroll_t = std::function<void(uint32_t i, f32_t current)>;
-
-				scrollbar(fan::camera* camera);
-
-				void push_back(const properties_t& instance);
-
-				void draw();
-
-				void write_data();
-
-				fan::camera* get_camera();
-
-				void add_on_scroll(on_scroll_t function);
-
-			protected:
-
-				struct scroll_properties_t {
-					scroll_direction_e scroll_direction;
-					f32_t length;
-					f32_t current;
-					uint32_t outline_thickness;
-				};
-
-				std::vector<scroll_properties_t> m_properties;
-
-				std::vector<on_scroll_t> m_on_scroll;
-
-			};
-
-			// takes slider value type as parameter
-			template <typename T>
-			class circle_slider : protected fan_2d::graphics::circle, protected fan_2d::graphics::rounded_rectangle {
-			public:
-
-				struct property_t {
-
-					T min;
-					T max;
-
-					T current;
-
-					fan::vec2 position;
-					fan::vec2 box_size;
-					f32_t box_radius;
-					f32_t button_radius;
-					fan::color box_color;
-					fan::color button_color;
-
-					fan::color text_color = fan_2d::graphics::gui::defaults::text_color;
-
-					f32_t font_size = fan_2d::graphics::gui::defaults::font_size;
-				};
-
-				circle_slider(fan::camera* camera)
-					: fan_2d::graphics::circle(camera), fan_2d::graphics::rounded_rectangle(camera), m_click_begin(fan::uninitialized), m_moving_id(fan::uninitialized)
-				{
-					camera->m_window->add_key_callback(fan::mouse_left, fan::key_state::press, [&] (fan::window*) {
-
-						// last ones are on the bottom
-						for (uint32_t i = fan_2d::graphics::circle::size(); i-- ; ) {
-							if (fan_2d::graphics::circle::inside(i)) {
-
-								m_click_begin = fan_2d::graphics::rounded_rectangle::m_camera->m_window->get_mouse_position();
-								m_moving_id = i;
-
-								return;
-							}
-						}
-
-						const fan::vec2 mouse_position = fan_2d::graphics::rounded_rectangle::m_camera->m_window->get_mouse_position();
-
-						for (uint32_t i = fan_2d::graphics::circle::size(); i-- ; ) {
-
-							const fan::vec2 box_position = fan_2d::graphics::rounded_rectangle::get_position(i);
-							const fan::vec2 box_size = fan_2d::graphics::rounded_rectangle::get_size(i);
-
-							const f32_t circle_diameter = fan_2d::graphics::circle::get_radius(i) * 2;
-
-							const bool horizontal = box_size.x > box_size.y;
-
-							if (fan_2d::collision::rectangle::point_inside_no_rotation(mouse_position, box_position - box_size - fan::vec2(horizontal ? 0 : circle_diameter / 2 - 2, horizontal ? circle_diameter / 2 - 2 : 0), box_position + fan::vec2(horizontal ? box_size.x : circle_diameter, horizontal ? circle_diameter : box_size.y))) {
-
-								m_click_begin = fan_2d::graphics::rounded_rectangle::m_camera->m_window->get_mouse_position();
-								m_moving_id = i;
-
-								fan::vec2 circle_position = fan_2d::graphics::circle::get_position(i);
-
-								if (horizontal) {
-									fan_2d::graphics::circle::set_position(m_moving_id, fan::vec2(mouse_position.x, circle_position.y));
-								}
-								else {
-									fan_2d::graphics::circle::set_position(m_moving_id, fan::vec2(circle_position.x, mouse_position.y));
-								}
-
-								circle_position = fan_2d::graphics::circle::get_position(i);
-
-								f32_t min = get_min_value(m_moving_id);
-								f32_t max = get_max_value(m_moving_id);
-
-								f32_t length = box_size[!horizontal] * 2;
-
-								T new_value = min + (((circle_position[!horizontal] - (box_position[!horizontal] - box_size[!horizontal])) / length) * (max - min));
-
-								if (new_value == get_current_value(m_moving_id)) {
-									return;
-								}
-
-								set_current_value(m_moving_id, new_value);
-
-								for (int i = 0; i < 2; i++) {
-									if (m_on_click[i]) {
-										m_on_click[i](m_moving_id);
-									}
-									if (m_on_drag[i]) {
-										m_on_drag[i](m_moving_id);
-									}
-								}
-							}
-						}
-					});
-
-					camera->m_window->add_key_callback(fan::mouse_left, fan::key_state::release, [&] (fan::window*) {
-
-						m_click_begin = fan::uninitialized;
-						m_moving_id = fan::uninitialized;
-
-					});
-
-					camera->m_window->add_mouse_move_callback([&](fan::window*, const fan::vec2& position) {
-
-						if (m_click_begin == fan::uninitialized) {
-							return;
-						}
-
-						const fan::vec2 box_position = fan_2d::graphics::rounded_rectangle::get_position(m_moving_id);
-						const fan::vec2 box_size = fan_2d::graphics::rounded_rectangle::get_size(m_moving_id);
-
-						fan::vec2 circle_position = fan_2d::graphics::circle::get_position(m_moving_id);
-
-						const bool horizontal = box_size.x > box_size.y;
-
-						if (horizontal) {
-						}
-						else {
-							circle_position.y = m_click_begin.y + (position.y - m_click_begin.y);
-						}
-
-						f32_t length = box_size[!horizontal] * 2;
-
-						f32_t min = get_min_value(m_moving_id);
-						f32_t max = get_max_value(m_moving_id);
-
-						circle_position[!horizontal] = m_click_begin[!horizontal] + (position[!horizontal] - m_click_begin[!horizontal]);
-
-						circle_position = circle_position.clamp(
-							fan::vec2(box_position.x - box_size.x - circle::get_radius(m_moving_id), box_position.y - box_size.y - circle::get_radius(m_moving_id)),
-							fan::vec2(box_position.x + box_size.x, box_position.y + box_size.y)
-						);
-
-						T new_value = min + (((circle_position[!horizontal] - (box_position[!horizontal] - box_size[!horizontal] - circle::get_radius(m_moving_id) )) / length) * (max - min));
-
-						if (new_value == get_current_value(m_moving_id)) {
-							return;
-						}
-
-						new_value = fan::clamp(new_value, (T)min, (T)max);
-
-						set_current_value(m_moving_id, new_value);
-
-						fan_2d::graphics::circle::set_position(m_moving_id, circle_position);
-
-						for (int i = 0; i < 2; i++) {
-							if (m_on_drag[i]) {
-								m_on_drag[i](m_moving_id);
-							}
-						}
-
-						this->edit_data(m_moving_id);
-					});
-				}
-
-				void push_back(const circle_slider<T>::property_t& property)
-				{
-					m_properties.emplace_back(property);
-					m_properties[m_properties.size() - 1].current = fan::clamp(m_properties[m_properties.size() - 1].current, property.min, property.max);
-
-					rounded_rectangle::properties_t properties;
-					properties.position = property.position;
-					properties.size = property.box_size;
-					properties.radius = property.box_radius;
-					properties.color = property.box_color;
-					properties.angle = 0;
-
-					fan_2d::graphics::rounded_rectangle::push_back(properties);
-
-					if (property.box_size.x > property.box_size.y) {
-
-						f32_t min = property.position.x;
-						f32_t max = property.position.x + property.box_size.x * 2;
-
-						f32_t new_x = (f32_t(property.current - property.min) / (property.max - property.min)) * (max - min);
-
-						fan_2d::graphics::circle::properties_t cp;
-						cp.position = property.position + fan::vec2(new_x - property.box_size.x, 0);
-						cp.radius = property.button_radius;
-						cp.color = property.button_color;
-
-						fan_2d::graphics::circle::push_back(cp);
-					}
-					else {
-
-						f32_t min = property.position.y;
-						f32_t max = property.position.y + property.box_size.y * 2;
-
-						f32_t new_y = (f32_t(property.current - property.min) / (property.max - property.min)) * (max - min);
-
-						fan_2d::graphics::circle::properties_t cp;
-						cp.position = property.position + fan::vec2(0, new_y - property.box_size.y);
-						cp.radius = property.button_radius;
-						cp.color = property.button_color;
-
-						fan_2d::graphics::circle::push_back(cp);
-					}
-				}
-
-				auto get_min_value(uint32_t i) const {
-					return m_properties[i].min;
-				}
-				void set_min_value(uint32_t i, T value) {
-					m_properties[i].min = value;
-				}
-				auto get_max_value(uint32_t i) const {
-					return m_properties[i].max;
-				}
-				void set_max_value(uint32_t i, T value) {
-					m_properties[i].max = value;
-				}
-				auto get_current_value(uint32_t i) const {
-					return m_properties[i].current;
-				}
-				void set_current_value(uint32_t i, T value) {
-					m_properties[i].current = value;
-				}
-
-				void on_drag(const std::function<void(uint32_t)>& function) {
-					on_drag(true, function);
-					m_on_drag[1] = function;
-				}
-
-				void write_data() {
-					fan_2d::graphics::rounded_rectangle::write_data();
-					fan_2d::graphics::circle::write_data();
-				}
-				void edit_data(uint32_t i) {
-					fan_2d::graphics::rounded_rectangle::edit_data(i);
-					fan_2d::graphics::circle::edit_data(i);
-				}
-				void edit_data(uint32_t begin, uint32_t end) {
-					fan_2d::graphics::rounded_rectangle::edit_data(begin, end);
-					fan_2d::graphics::circle::edit_data(begin, end);
-				}
-
-				void enable_draw() {
-					fan_2d::graphics::rounded_rectangle::enable_draw();
-					fan_2d::graphics::circle::enable_draw();
-				}
-				void disable_draw() {
-					fan_2d::graphics::rounded_rectangle::disable_draw();
-					fan_2d::graphics::circle::disable_draw();
-				}
-
-			protected:
-
-				void on_drag(bool user, const std::function<void(uint32_t)>& function) {
-					m_on_drag[user] = function;
-				}
-
-				void on_click(bool user, const std::function<void(uint32_t)>& function) {
-					m_on_click[user] = function;
-				}
-
-				std::deque<circle_slider<T>::property_t> m_properties;
-
-				fan::vec2 m_click_begin;
-
-				uint32_t m_moving_id;
-
-				std::function<void(uint32_t i)> m_on_drag[2]; // 0 lib, 1 user
-				std::function<void(uint32_t)> m_on_click[2]; // 0 lib, 1 user
-
-			};
-
-			template <typename T>
-			class circle_text_slider : public circle_slider<T>, protected fan_2d::graphics::gui::text_renderer {
-			public:
-
-				using value_type_t = T;
-
-				static constexpr f32_t text_gap_multiplier = 1.5;
-
-				circle_text_slider(fan::camera* camera) : circle_slider<T>(camera), fan_2d::graphics::gui::text_renderer(camera) {
-					circle_text_slider::circle_slider::on_drag(false, [&](uint32_t i) {
-						auto new_string = fan::to_wstring(this->get_current_value(i));
-
-						fan_2d::graphics::gui::text_renderer::set_text(i * 3 + 2, new_string);
-					});
-
-					circle_text_slider::circle_slider::on_click(false, [&] (uint32_t i) {
-
-						auto new_string = fan::to_wstring(this->get_current_value(i));
-
-						bool resize = text_renderer::get_text(i * 3 + 2).size() != new_string.size();
-
-						fan_2d::graphics::gui::text_renderer::set_text(i * 3 + 2, new_string);
-
-					});
-				}
-
-				void push_back(const typename circle_slider<T>::property_t& property) {
-					circle_text_slider::circle_slider::push_back(property);
-
-					const fan::vec2 left_text_size = fan_2d::graphics::gui::text_renderer::get_text_size(fan::to_wstring(property.min), property.font_size);
-
-					fan::vec2 left_or_up;
-
-					if (property.box_size.x > property.box_size.y) {
-						left_or_up = property.position - fan::vec2(property.box_size.x, left_text_size.y / 2 + property.button_radius * text_gap_multiplier);
-					}
-					else {
-						left_or_up = property.position + fan::vec2(left_text_size.x + property.button_radius * text_gap_multiplier, -property.box_size.y + left_text_size.y / 2 - property.button_radius);
-					}
-
-					fan_2d::graphics::gui::text_renderer::properties_t p3;
-					p3.text = fan::to_wstring(property.min);
-					p3.font_size = property.font_size;
-					p3.position = left_or_up;
-					p3.text_color = fan_2d::graphics::gui::defaults::text_color;
-
-					fan_2d::graphics::gui::text_renderer::push_back(
-						p3
-					);
-
-					const fan::vec2 right_text_size = fan_2d::graphics::gui::text_renderer::get_text_size(fan::to_wstring(property.max), property.font_size);
-
-					fan::vec2 right_or_down;
-
-					if (property.box_size.x > property.box_size.y) {
-						right_or_down = property.position + fan::vec2(property.box_size.x + right_text_size.x / 4, -right_text_size.y / 2 - property.button_radius * text_gap_multiplier);
-					}
-					else {
-						right_or_down = property.position + fan::vec2(left_text_size.x + property.button_radius * text_gap_multiplier, property.box_size.y - left_text_size.y / 2 + property.button_radius);
-					}
-
-					fan_2d::graphics::gui::text_renderer::properties_t p;
-					p.text = fan::to_wstring(property.max);
-					p.font_size = property.font_size;
-					p.position = right_or_down;
-					p.text_color = fan_2d::graphics::gui::defaults::text_color;
-
-					fan_2d::graphics::gui::text_renderer::push_back(
-						p
-					);
-
-					const fan::vec2 middle_text_size = fan_2d::graphics::gui::text_renderer::get_text_size(fan::to_wstring(property.current), property.font_size);
-
-					fan::vec2 middle;
-
-					if (property.box_size.x > property.box_size.y) {
-						middle = property.position + fan::vec2(0, -middle_text_size.y / 2 - property.button_radius * text_gap_multiplier);
-					}
-					else {
-						middle = property.position + fan::vec2(middle_text_size.x + property.button_radius * text_gap_multiplier, 0);
-					}
-
-					fan_2d::graphics::gui::text_renderer::properties_t p2;
-					p2.text = fan::to_wstring(property.current);
-					p2.font_size = property.font_size;
-					p2.position = middle;
-					p2.text_color = fan_2d::graphics::gui::defaults::text_color;
-
-					fan_2d::graphics::gui::text_renderer::push_back(
-						p2
-					);
-				}
-
-				void draw() {
-					// depth test
-					//fan_2d::graphics::draw([&] {
-						fan_2d::graphics::gui::circle_slider<value_type_t>::draw();
-						fan_2d::graphics::gui::text_renderer::draw();
-					//});
-				}
-
-				void write_data() {
-					circle_text_slider::circle_slider::write_data();
-					circle_text_slider::text_renderer::write_data();
-				}
-				void edit_data(uint32_t i) {
-					circle_text_slider::circle_slider::edit_data(i);
-					circle_text_slider::text_renderer::edit_data(i * 3, i * 3 + 2);
-				}
-				void edit_data(uint32_t begin, uint32_t end) {
-					circle_text_slider::circle_slider::edit_data(begin, end);
-					circle_text_slider::text_renderer::edit_data(begin * 3, end * 3 + 3); // ?
-				}
-				
-				void enable_draw() {
-					circle_text_slider::circle_slider::enable_draw();
-					circle_text_slider::text_renderer::enable_draw();
-				}
-				void disable_draw() {
-					circle_text_slider::circle_slider::disable_draw();
-					circle_text_slider::text_renderer::disable_draw();
-				}
-
-
-				using circle_slider<T>::enable_draw;
-				using circle_slider<T>::disable_draw;
-
-			};
-
-			class checkbox : 
-				protected fan::class_duplicator<fan_2d::graphics::line, 99>,
-				protected fan::class_duplicator<fan_2d::graphics::rectangle, 99>, 
-				protected fan::class_duplicator<fan_2d::graphics::gui::text_renderer, 99>,
-				public base::mouse<checkbox> {
-
-			protected:
-
-				using line_t = fan::class_duplicator<fan_2d::graphics::line, 99>;
-				using rectangle_t = fan::class_duplicator<fan_2d::graphics::rectangle, 99>;
-				using text_renderer_t = fan::class_duplicator<fan_2d::graphics::gui::text_renderer, 99>;
-
-			public:
-
-				struct properties_t {
-					fan::vec2 position;
-
-					f32_t font_size;
-
-					fan::utf16_string text;
-
-					uint8_t line_thickness = 2;
-
-					f32_t box_size_multiplier = 1;
-
-					bool checked = false;
-				};
-
-				checkbox(fan::camera* camera, fan_2d::graphics::gui::theme theme);
-
-				void push_back(const checkbox::properties_t& property);
-
-				void draw();
-
-				void on_check(std::function<void(uint32_t i)> function);
-				void on_uncheck(std::function<void(uint32_t i)> function);
-
-				uint32_t size() const;
-				bool inside(uint32_t i, const fan::vec2& position = fan::math::inf) const;
-
-				fan::camera* get_camera();
-
-				void write_data();
-				void edit_data(uint32_t i);
-				void edit_data(uint32_t begin, uint32_t end);
-
-				void lib_add_on_input(fan::window *window, uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage);
-
-				void lib_add_on_mouse_event(fan::window *window, uint32_t i, fan_2d::graphics::gui::mouse_stage stage);
-
-				bool locked(uint32_t i) const { return false; }
-
-				void enable_draw();
-				void disable_draw();
-
-			protected:
-
-				std::function<void(uint32_t)> m_on_check;
-				std::function<void(uint32_t)> m_on_uncheck;
-
-				fan_2d::graphics::gui::theme m_theme;
-
-				std::deque<bool> m_visible;
-				std::deque<checkbox::properties_t> m_properties;
-
-			};
-
-			struct dropdown_menu : protected rectangle_text_button_sized {
-
-				struct properties_t {
-					fan::utf16_string text = empty_string;
-
-					fan::vec2 position;
-
-					f32_t font_size = fan_2d::graphics::gui::defaults::font_size;
-
-					text_position_e text_position = text_position_e::left;
-
-					fan::vec2 size;
-
-					f32_t advance = 0;
-
-					std::vector<fan::utf16_string> dropdown_texts;
-				};
-
-				dropdown_menu(fan::camera* camera, const fan_2d::graphics::gui::theme& theme);
-
-				void push_back(const properties_t& property);
-
-				void draw();
-
-				using rectangle_text_button_sized::get_camera;
-
-			protected:
-
-				std::vector<src_dst_t> m_hitboxes;
-
-				uint32_t m_hovered = -1;
-
-				std::deque<uint32_t> m_amount_per_menu;
-
-			};
-
-			struct progress_bar : protected fan_2d::graphics::rectangle {
-
-			protected:
-
-				using rectangle_t = fan_2d::graphics::rectangle;
-
-				struct progress_bar_t {
-					f32_t inner_size_multipliers;
-					f32_t progress;
-					bool progress_x = false;
-				};
-
-				std::vector<progress_bar_t> m_progress_bar_properties;
-
-			public:
-
-				progress_bar(fan::camera* camera);
-
-				struct properties_t {
-
-					fan::vec2 position;
-					fan::vec2 size;
-
-					fan::color back_color;
-					fan::color front_color;
-
-					f32_t inner_size_multiplier = 0.8;
-
-					f32_t progress = 0;
-
-					bool progress_x = true;
-
-				};
-
-				void push_back(const properties_t& properties);
-
-				void clear();
-
-				f32_t get_progress(uint32_t i) const;
-				void set_progress(uint32_t i, f32_t progress);
-
-				fan::vec2 get_position(uint32_t i) const;
-				void set_position(uint32_t i, const fan::vec2& position);
-
-				using fan_2d::graphics::rectangle::enable_draw;
-				using fan_2d::graphics::rectangle::disable_draw;
-
-			};
-
+//
+//			struct rectangle_selectable_button_sized : public rectangle_text_button_sized{
+//
+//				rectangle_selectable_button_sized(fan::camera* camera);
+//
+//				uint32_t get_selected(uint32_t i) const;
+//				void set_selected(uint32_t i);
+//
+//				void add_on_select(std::function<void(uint32_t i)> function);
+//
+//				void lib_add_on_input(fan::window *window, uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage) override;
+//
+//				void lib_add_on_mouse_move(fan::window *window, uint32_t i, fan_2d::graphics::gui::mouse_stage stage) override;
+//
+//			protected:
+//
+//				std::vector<std::function<void(uint32_t)>> m_on_select;
+//
+//				uint32_t m_selected = (uint32_t)fan::uninitialized;
+//
+//			};
+//
+//			namespace text_box_properties {
+//
+//				inline int blink_speed(500); // ms
+//				inline fan::color cursor_color(fan::colors::white);
+//				inline fan::color select_color(fan::colors::blue - fan::color(0, 0, 0, 0.5));
+//
+//			}
+//
+//			namespace font_properties {
+//
+//				inline f32_t space_width(15); // remove pls
+//
+//			}
+//
+//			class sprite_text_box :
+//				protected fan::class_duplicator<fan_2d::graphics::sprite, 0>,
+//				protected fan_2d::graphics::gui::text_renderer {
+//
+//			public:
+//
+//				using properties_t = button_properties_t;
+//
+//				using sprite_t = fan::class_duplicator<fan_2d::graphics::sprite, 0>;
+//
+//				sprite_text_box(fan::camera* camera, const std::string& path);
+//
+//				void push_back(const properties_t& properties);
+//
+//				void draw(uint32_t begin = fan::uninitialized, uint32_t end = fan::uninitialized);
+//
+//				define_get_property_size
+//
+//					fan::camera* get_camera();
+//
+//				uint64_t size() const;
+//				bool inside(uint32_t i, const fan::vec2& position = fan::math::inf) const;
+//
+//				fan_2d::graphics::image_t image;
+//
+//			protected:
+//
+//				std::vector<properties_t> m_properties;
+//			};
+//
+//			struct sprite_text_button :
+//				public fan_2d::graphics::gui::sprite_text_box,
+//				public base::mouse<sprite_text_button> {
+//
+//				sprite_text_button(fan::camera* camera, const std::string& path);
+//
+//				void lib_add_on_input(fan::window *window, uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage);
+//
+//				void lib_add_on_mouse_move(fan::window *window, uint32_t i, fan_2d::graphics::gui::mouse_stage stage);
+//
+//				bool locked(uint32_t i) const { return false; }
+//
+//			};
+//
+//			struct scrollbar : public fan_2d::graphics::rectangle, public fan_2d::graphics::gui::base::mouse<scrollbar> {
+//
+//				enum class scroll_direction_e {
+//					horizontal,
+//					vertical,
+//				};
+//
+//				struct properties_t {
+//					fan::vec2 position;
+//					fan::vec2 size;
+//					fan::color color;
+//					scroll_direction_e scroll_direction;
+//					f32_t current;
+//					f32_t length;
+//					uint32_t outline_thickness;
+//				};
+//
+//				using on_scroll_t = std::function<void(uint32_t i, f32_t current)>;
+//
+//				scrollbar(fan::camera* camera);
+//
+//				void push_back(const properties_t& instance);
+//
+//				void draw();
+//
+//				void write_data();
+//
+//				fan::camera* get_camera();
+//
+//				void add_on_scroll(on_scroll_t function);
+//
+//			protected:
+//
+//				struct scroll_properties_t {
+//					scroll_direction_e scroll_direction;
+//					f32_t length;
+//					f32_t current;
+//					uint32_t outline_thickness;
+//				};
+//
+//				std::vector<scroll_properties_t> m_properties;
+//
+//				std::vector<on_scroll_t> m_on_scroll;
+//
+//			};
+//
+//			// takes slider value type as parameter
+//			template <typename T>
+//			class circle_slider : protected fan_2d::graphics::circle, protected fan_2d::graphics::rounded_rectangle {
+//			public:
+//
+//				struct property_t {
+//
+//					T min;
+//					T max;
+//
+//					T current;
+//
+//					fan::vec2 position;
+//					fan::vec2 box_size;
+//					f32_t box_radius;
+//					f32_t button_radius;
+//					fan::color box_color;
+//					fan::color button_color;
+//
+//					fan::color text_color = fan_2d::graphics::gui::defaults::text_color;
+//
+//					f32_t font_size = fan_2d::graphics::gui::defaults::font_size;
+//				};
+//
+//				circle_slider(fan::camera* camera)
+//					: fan_2d::graphics::circle(camera), fan_2d::graphics::rounded_rectangle(camera), m_click_begin(fan::uninitialized), m_moving_id(fan::uninitialized)
+//				{
+//					camera->m_window->add_key_callback(fan::mouse_left, fan::key_state::press, [&] (fan::window*) {
+//
+//						// last ones are on the bottom
+//						for (uint32_t i = fan_2d::graphics::circle::size(); i-- ; ) {
+//							if (fan_2d::graphics::circle::inside(i)) {
+//
+//								m_click_begin = fan_2d::graphics::rounded_rectangle::m_camera->m_window->get_mouse_position();
+//								m_moving_id = i;
+//
+//								return;
+//							}
+//						}
+//
+//						const fan::vec2 mouse_position = fan_2d::graphics::rounded_rectangle::m_camera->m_window->get_mouse_position();
+//
+//						for (uint32_t i = fan_2d::graphics::circle::size(); i-- ; ) {
+//
+//							const fan::vec2 box_position = fan_2d::graphics::rounded_rectangle::get_position(i);
+//							const fan::vec2 box_size = fan_2d::graphics::rounded_rectangle::get_size(i);
+//
+//							const f32_t circle_diameter = fan_2d::graphics::circle::get_radius(i) * 2;
+//
+//							const bool horizontal = box_size.x > box_size.y;
+//
+//							if (fan_2d::collision::rectangle::point_inside_no_rotation(mouse_position, box_position - box_size - fan::vec2(horizontal ? 0 : circle_diameter / 2 - 2, horizontal ? circle_diameter / 2 - 2 : 0), box_position + fan::vec2(horizontal ? box_size.x : circle_diameter, horizontal ? circle_diameter : box_size.y))) {
+//
+//								m_click_begin = fan_2d::graphics::rounded_rectangle::m_camera->m_window->get_mouse_position();
+//								m_moving_id = i;
+//
+//								fan::vec2 circle_position = fan_2d::graphics::circle::get_position(i);
+//
+//								if (horizontal) {
+//									fan_2d::graphics::circle::set_position(m_moving_id, fan::vec2(mouse_position.x, circle_position.y));
+//								}
+//								else {
+//									fan_2d::graphics::circle::set_position(m_moving_id, fan::vec2(circle_position.x, mouse_position.y));
+//								}
+//
+//								circle_position = fan_2d::graphics::circle::get_position(i);
+//
+//								f32_t min = get_min_value(m_moving_id);
+//								f32_t max = get_max_value(m_moving_id);
+//
+//								f32_t length = box_size[!horizontal] * 2;
+//
+//								T new_value = min + (((circle_position[!horizontal] - (box_position[!horizontal] - box_size[!horizontal])) / length) * (max - min));
+//
+//								if (new_value == get_current_value(m_moving_id)) {
+//									return;
+//								}
+//
+//								set_current_value(m_moving_id, new_value);
+//
+//								for (int i = 0; i < 2; i++) {
+//									if (m_on_click[i]) {
+//										m_on_click[i](m_moving_id);
+//									}
+//									if (m_on_drag[i]) {
+//										m_on_drag[i](m_moving_id);
+//									}
+//								}
+//							}
+//						}
+//					});
+//
+//					camera->m_window->add_key_callback(fan::mouse_left, fan::key_state::release, [&] (fan::window*) {
+//
+//						m_click_begin = fan::uninitialized;
+//						m_moving_id = fan::uninitialized;
+//
+//					});
+//
+//					camera->m_window->add_mouse_move_callback([&](fan::window*, const fan::vec2& position) {
+//
+//						if (m_click_begin == fan::uninitialized) {
+//							return;
+//						}
+//
+//						const fan::vec2 box_position = fan_2d::graphics::rounded_rectangle::get_position(m_moving_id);
+//						const fan::vec2 box_size = fan_2d::graphics::rounded_rectangle::get_size(m_moving_id);
+//
+//						fan::vec2 circle_position = fan_2d::graphics::circle::get_position(m_moving_id);
+//
+//						const bool horizontal = box_size.x > box_size.y;
+//
+//						if (horizontal) {
+//						}
+//						else {
+//							circle_position.y = m_click_begin.y + (position.y - m_click_begin.y);
+//						}
+//
+//						f32_t length = box_size[!horizontal] * 2;
+//
+//						f32_t min = get_min_value(m_moving_id);
+//						f32_t max = get_max_value(m_moving_id);
+//
+//						circle_position[!horizontal] = m_click_begin[!horizontal] + (position[!horizontal] - m_click_begin[!horizontal]);
+//
+//						circle_position = circle_position.clamp(
+//							fan::vec2(box_position.x - box_size.x - circle::get_radius(m_moving_id), box_position.y - box_size.y - circle::get_radius(m_moving_id)),
+//							fan::vec2(box_position.x + box_size.x, box_position.y + box_size.y)
+//						);
+//
+//						T new_value = min + (((circle_position[!horizontal] - (box_position[!horizontal] - box_size[!horizontal] - circle::get_radius(m_moving_id) )) / length) * (max - min));
+//
+//						if (new_value == get_current_value(m_moving_id)) {
+//							return;
+//						}
+//
+//						new_value = fan::clamp(new_value, (T)min, (T)max);
+//
+//						set_current_value(m_moving_id, new_value);
+//
+//						fan_2d::graphics::circle::set_position(m_moving_id, circle_position);
+//
+//						for (int i = 0; i < 2; i++) {
+//							if (m_on_drag[i]) {
+//								m_on_drag[i](m_moving_id);
+//							}
+//						}
+//
+//						this->edit_data(m_moving_id);
+//					});
+//				}
+//
+//				void push_back(const circle_slider<T>::property_t& property)
+//				{
+//					m_properties.emplace_back(property);
+//					m_properties[m_properties.size() - 1].current = fan::clamp(m_properties[m_properties.size() - 1].current, property.min, property.max);
+//
+//					rounded_rectangle::properties_t properties;
+//					properties.position = property.position;
+//					properties.size = property.box_size;
+//					properties.radius = property.box_radius;
+//					properties.color = property.box_color;
+//					properties.angle = 0;
+//
+//					fan_2d::graphics::rounded_rectangle::push_back(properties);
+//
+//					if (property.box_size.x > property.box_size.y) {
+//
+//						f32_t min = property.position.x;
+//						f32_t max = property.position.x + property.box_size.x * 2;
+//
+//						f32_t new_x = (f32_t(property.current - property.min) / (property.max - property.min)) * (max - min);
+//
+//						fan_2d::graphics::circle::properties_t cp;
+//						cp.position = property.position + fan::vec2(new_x - property.box_size.x, 0);
+//						cp.radius = property.button_radius;
+//						cp.color = property.button_color;
+//
+//						fan_2d::graphics::circle::push_back(cp);
+//					}
+//					else {
+//
+//						f32_t min = property.position.y;
+//						f32_t max = property.position.y + property.box_size.y * 2;
+//
+//						f32_t new_y = (f32_t(property.current - property.min) / (property.max - property.min)) * (max - min);
+//
+//						fan_2d::graphics::circle::properties_t cp;
+//						cp.position = property.position + fan::vec2(0, new_y - property.box_size.y);
+//						cp.radius = property.button_radius;
+//						cp.color = property.button_color;
+//
+//						fan_2d::graphics::circle::push_back(cp);
+//					}
+//				}
+//
+//				auto get_min_value(uint32_t i) const {
+//					return m_properties[i].min;
+//				}
+//				void set_min_value(uint32_t i, T value) {
+//					m_properties[i].min = value;
+//				}
+//				auto get_max_value(uint32_t i) const {
+//					return m_properties[i].max;
+//				}
+//				void set_max_value(uint32_t i, T value) {
+//					m_properties[i].max = value;
+//				}
+//				auto get_current_value(uint32_t i) const {
+//					return m_properties[i].current;
+//				}
+//				void set_current_value(uint32_t i, T value) {
+//					m_properties[i].current = value;
+//				}
+//
+//				void on_drag(const std::function<void(uint32_t)>& function) {
+//					on_drag(true, function);
+//					m_on_drag[1] = function;
+//				}
+//
+//				void write_data() {
+//					fan_2d::graphics::rounded_rectangle::write_data();
+//					fan_2d::graphics::circle::write_data();
+//				}
+//				void edit_data(uint32_t i) {
+//					fan_2d::graphics::rounded_rectangle::edit_data(i);
+//					fan_2d::graphics::circle::edit_data(i);
+//				}
+//				void edit_data(uint32_t begin, uint32_t end) {
+//					fan_2d::graphics::rounded_rectangle::edit_data(begin, end);
+//					fan_2d::graphics::circle::edit_data(begin, end);
+//				}
+//
+//				void enable_draw() {
+//					fan_2d::graphics::rounded_rectangle::enable_draw();
+//					fan_2d::graphics::circle::enable_draw();
+//				}
+//				void disable_draw() {
+//					fan_2d::graphics::rounded_rectangle::disable_draw();
+//					fan_2d::graphics::circle::disable_draw();
+//				}
+//
+//			protected:
+//
+//				void on_drag(bool user, const std::function<void(uint32_t)>& function) {
+//					m_on_drag[user] = function;
+//				}
+//
+//				void on_click(bool user, const std::function<void(uint32_t)>& function) {
+//					m_on_click[user] = function;
+//				}
+//
+//				std::deque<circle_slider<T>::property_t> m_properties;
+//
+//				fan::vec2 m_click_begin;
+//
+//				uint32_t m_moving_id;
+//
+//				std::function<void(uint32_t i)> m_on_drag[2]; // 0 lib, 1 user
+//				std::function<void(uint32_t)> m_on_click[2]; // 0 lib, 1 user
+//
+//			};
+//
+//			template <typename T>
+//			class circle_text_slider : public circle_slider<T>, protected fan_2d::graphics::gui::text_renderer {
+//			public:
+//
+//				using value_type_t = T;
+//
+//				static constexpr f32_t text_gap_multiplier = 1.5;
+//
+//				circle_text_slider(fan::camera* camera) : circle_slider<T>(camera), fan_2d::graphics::gui::text_renderer(camera) {
+//					circle_text_slider::circle_slider::on_drag(false, [&](uint32_t i) {
+//						auto new_string = fan::to_wstring(this->get_current_value(i));
+//
+//						fan_2d::graphics::gui::text_renderer::set_text(i * 3 + 2, new_string);
+//					});
+//
+//					circle_text_slider::circle_slider::on_click(false, [&] (uint32_t i) {
+//
+//						auto new_string = fan::to_wstring(this->get_current_value(i));
+//
+//						bool resize = text_renderer::get_text(i * 3 + 2).size() != new_string.size();
+//
+//						fan_2d::graphics::gui::text_renderer::set_text(i * 3 + 2, new_string);
+//
+//					});
+//				}
+//
+//				void push_back(const typename circle_slider<T>::property_t& property) {
+//					circle_text_slider::circle_slider::push_back(property);
+//
+//					const fan::vec2 left_text_size = fan_2d::graphics::gui::text_renderer::get_text_size(fan::to_wstring(property.min), property.font_size);
+//
+//					fan::vec2 left_or_up;
+//
+//					if (property.box_size.x > property.box_size.y) {
+//						left_or_up = property.position - fan::vec2(property.box_size.x, left_text_size.y / 2 + property.button_radius * text_gap_multiplier);
+//					}
+//					else {
+//						left_or_up = property.position + fan::vec2(left_text_size.x + property.button_radius * text_gap_multiplier, -property.box_size.y + left_text_size.y / 2 - property.button_radius);
+//					}
+//
+//					fan_2d::graphics::gui::text_renderer::properties_t p3;
+//					p3.text = fan::to_wstring(property.min);
+//					p3.font_size = property.font_size;
+//					p3.position = left_or_up;
+//					p3.text_color = fan_2d::graphics::gui::defaults::text_color;
+//
+//					fan_2d::graphics::gui::text_renderer::push_back(
+//						p3
+//					);
+//
+//					const fan::vec2 right_text_size = fan_2d::graphics::gui::text_renderer::get_text_size(fan::to_wstring(property.max), property.font_size);
+//
+//					fan::vec2 right_or_down;
+//
+//					if (property.box_size.x > property.box_size.y) {
+//						right_or_down = property.position + fan::vec2(property.box_size.x + right_text_size.x / 4, -right_text_size.y / 2 - property.button_radius * text_gap_multiplier);
+//					}
+//					else {
+//						right_or_down = property.position + fan::vec2(left_text_size.x + property.button_radius * text_gap_multiplier, property.box_size.y - left_text_size.y / 2 + property.button_radius);
+//					}
+//
+//					fan_2d::graphics::gui::text_renderer::properties_t p;
+//					p.text = fan::to_wstring(property.max);
+//					p.font_size = property.font_size;
+//					p.position = right_or_down;
+//					p.text_color = fan_2d::graphics::gui::defaults::text_color;
+//
+//					fan_2d::graphics::gui::text_renderer::push_back(
+//						p
+//					);
+//
+//					const fan::vec2 middle_text_size = fan_2d::graphics::gui::text_renderer::get_text_size(fan::to_wstring(property.current), property.font_size);
+//
+//					fan::vec2 middle;
+//
+//					if (property.box_size.x > property.box_size.y) {
+//						middle = property.position + fan::vec2(0, -middle_text_size.y / 2 - property.button_radius * text_gap_multiplier);
+//					}
+//					else {
+//						middle = property.position + fan::vec2(middle_text_size.x + property.button_radius * text_gap_multiplier, 0);
+//					}
+//
+//					fan_2d::graphics::gui::text_renderer::properties_t p2;
+//					p2.text = fan::to_wstring(property.current);
+//					p2.font_size = property.font_size;
+//					p2.position = middle;
+//					p2.text_color = fan_2d::graphics::gui::defaults::text_color;
+//
+//					fan_2d::graphics::gui::text_renderer::push_back(
+//						p2
+//					);
+//				}
+//
+//				void draw() {
+//					// depth test
+//					//fan_2d::graphics::draw([&] {
+//						fan_2d::graphics::gui::circle_slider<value_type_t>::draw();
+//						fan_2d::graphics::gui::text_renderer::draw();
+//					//});
+//				}
+//
+//				void write_data() {
+//					circle_text_slider::circle_slider::write_data();
+//					circle_text_slider::text_renderer::write_data();
+//				}
+//				void edit_data(uint32_t i) {
+//					circle_text_slider::circle_slider::edit_data(i);
+//					circle_text_slider::text_renderer::edit_data(i * 3, i * 3 + 2);
+//				}
+//				void edit_data(uint32_t begin, uint32_t end) {
+//					circle_text_slider::circle_slider::edit_data(begin, end);
+//					circle_text_slider::text_renderer::edit_data(begin * 3, end * 3 + 3); // ?
+//				}
+//				
+//				void enable_draw() {
+//					circle_text_slider::circle_slider::enable_draw();
+//					circle_text_slider::text_renderer::enable_draw();
+//				}
+//				void disable_draw() {
+//					circle_text_slider::circle_slider::disable_draw();
+//					circle_text_slider::text_renderer::disable_draw();
+//				}
+//
+//
+//				using circle_slider<T>::enable_draw;
+//				using circle_slider<T>::disable_draw;
+//
+//			};
+//
+//			class checkbox : 
+//				protected fan::class_duplicator<fan_2d::graphics::line, 99>,
+//				protected fan::class_duplicator<fan_2d::graphics::rectangle, 99>, 
+//				protected fan::class_duplicator<fan_2d::graphics::gui::text_renderer, 99>,
+//				public base::mouse<checkbox> {
+//
+//			protected:
+//
+//				using line_t = fan::class_duplicator<fan_2d::graphics::line, 99>;
+//				using rectangle_t = fan::class_duplicator<fan_2d::graphics::rectangle, 99>;
+//				using text_renderer_t = fan::class_duplicator<fan_2d::graphics::gui::text_renderer, 99>;
+//
+//			public:
+//
+//				struct properties_t {
+//					fan::vec2 position;
+//
+//					f32_t font_size;
+//
+//					fan::utf16_string text;
+//
+//					uint8_t line_thickness = 2;
+//
+//					f32_t box_size_multiplier = 1;
+//
+//					bool checked = false;
+//				};
+//
+//				checkbox(fan::camera* camera, fan_2d::graphics::gui::theme theme);
+//
+//				void push_back(const checkbox::properties_t& property);
+//
+//				void draw();
+//
+//				void on_check(std::function<void(uint32_t i)> function);
+//				void on_uncheck(std::function<void(uint32_t i)> function);
+//
+//				uint32_t size() const;
+//				bool inside(uint32_t i, const fan::vec2& position = fan::math::inf) const;
+//
+//				fan::camera* get_camera();
+//
+//				void write_data();
+//				void edit_data(uint32_t i);
+//				void edit_data(uint32_t begin, uint32_t end);
+//
+//				void lib_add_on_input(fan::window *window, uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage);
+//
+//				void lib_add_on_mouse_move(fan::window *window, uint32_t i, fan_2d::graphics::gui::mouse_stage stage);
+//
+//				bool locked(uint32_t i) const { return false; }
+//
+//				void enable_draw();
+//				void disable_draw();
+//
+//			protected:
+//
+//				std::function<void(uint32_t)> m_on_check;
+//				std::function<void(uint32_t)> m_on_uncheck;
+//
+//				fan_2d::graphics::gui::theme m_theme;
+//
+//				std::deque<bool> m_visible;
+//				std::deque<checkbox::properties_t> m_properties;
+//
+//			};
+//
+//			struct dropdown_menu : protected rectangle_text_button_sized {
+//
+//				struct properties_t {
+//					fan::utf16_string text = empty_string;
+//
+//					fan::vec2 position;
+//
+//					f32_t font_size = fan_2d::graphics::gui::defaults::font_size;
+//
+//					text_position_e text_position = text_position_e::left;
+//
+//					fan::vec2 size;
+//
+//					f32_t advance = 0;
+//
+//					std::vector<fan::utf16_string> dropdown_texts;
+//				};
+//
+//				dropdown_menu(fan::camera* camera, const fan_2d::graphics::gui::theme& theme);
+//
+//				void push_back(const properties_t& property);
+//
+//				void draw();
+//
+//				using rectangle_text_button_sized::get_camera;
+//
+//			protected:
+//
+//				std::vector<src_dst_t> m_hitboxes;
+//
+//				uint32_t m_hovered = -1;
+//
+//				std::deque<uint32_t> m_amount_per_menu;
+//
+//			};
+//
+//			struct progress_bar : protected fan_2d::graphics::rectangle {
+//
+//			protected:
+//
+//				using rectangle_t = fan_2d::graphics::rectangle;
+//
+//				struct progress_bar_t {
+//					f32_t inner_size_multipliers;
+//					f32_t progress;
+//					bool progress_x = false;
+//				};
+//
+//				std::vector<progress_bar_t> m_progress_bar_properties;
+//
+//			public:
+//
+//				progress_bar(fan::camera* camera);
+//
+//				struct properties_t {
+//
+//					fan::vec2 position;
+//					fan::vec2 size;
+//
+//					fan::color back_color;
+//					fan::color front_color;
+//
+//					f32_t inner_size_multiplier = 0.8;
+//
+//					f32_t progress = 0;
+//
+//					bool progress_x = true;
+//
+//				};
+//
+//				void push_back(const properties_t& properties);
+//
+//				void clear();
+//
+//				f32_t get_progress(uint32_t i) const;
+//				void set_progress(uint32_t i, f32_t progress);
+//
+//				fan::vec2 get_position(uint32_t i) const;
+//				void set_position(uint32_t i, const fan::vec2& position);
+//
+//				using fan_2d::graphics::rectangle::enable_draw;
+//				using fan_2d::graphics::rectangle::disable_draw;
+//
+//			};
+//
 		}
-
 	}
-
 }

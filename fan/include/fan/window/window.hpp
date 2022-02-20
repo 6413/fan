@@ -254,11 +254,7 @@ namespace fan {
 
 		}
 
-		void execute(const std::function<void()>& function);
-
-		void loop(const std::function<void()>& function);
-
-		void swap_buffers() const;
+		void print_opengl_version();
 
 		std::string get_name() const;
 		void set_name(const std::string& name);
@@ -378,21 +374,6 @@ namespace fan {
 		callback_id_t add_move_callback(const std::function<void(fan::window*)>& function);
 		void remove_move_callback(callback_id_t idt);
 
-		callback_id_t push_draw_call(void*, const std::function<void()>& function);
-		void edit_draw_call(callback_id_t id, void*, const std::function<void()>& function);
-		void erase_draw_call(callback_id_t id);
-		/*void switch_draw_call(void* from);*/
-		void clear_draw_calls();
-		callback_id_t draw_call_size() const;
-
-		callback_id_t push_write_call(void* this_, const std::function<void()>& function);
-		void edit_write_call(callback_id_t id, void* this_, std::function<void()> function);
-		void remove_write_call(callback_id_t id);
-
-		callback_id_t push_reserved_call(void*, std::function<void()> function);
-		void edit_reserved_call(callback_id_t id, void*, const std::function<void()>& function);
-		void erase_reserved_call(callback_id_t id);
-
 		void set_error_callback();
 
 		void set_background_color(const fan::color& color);
@@ -415,13 +396,9 @@ namespace fan {
 
 		fan::vec2i get_raw_mouse_offset() const;
 
-		static void handle_events();
+		void handle_events();
 
 		void auto_close(bool state);
-
-		bll_t<std::pair<void*, std::function<void()>>> m_reserved_update;
-		bll_t<std::pair<void*, std::function<void()>>> m_draw_queue;
-		bll_t<std::pair<void*, std::function<void()>>> m_write_queue;
 
 		std::vector<std::function<void()>> m_onetime_queue;
 
@@ -432,7 +409,6 @@ namespace fan {
 
 #endif
 		bll_t<mouse_move_position_callback_t> m_mouse_move_position_callback;
-	private:
 
 		static constexpr fan::input banned_keys[]{
 			fan::key_enter,
