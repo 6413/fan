@@ -6,7 +6,7 @@ in vec4 input1;
 in vec4 input2;
 in vec4 input3;
 in vec4 input4;
-in vec4 input5;
+in vec2 input5;
 
 out vec4 color;
 
@@ -113,11 +113,9 @@ void main() {
 	vec2 layout_rotation_point = vec2(input2[1], input2[2]);
 	vec3 layout_rotation_vector = vec3(input2[3], input3[0], input3[1]);
 	vec2 layout_texture_coordinates = vec2(input3[2], input3[3]);
-	uint layout_RenderOPCode0 = uint(input4[0]);
-	uint layout_RenderOPCode1 = uint(input4[1]);
-	float layout_font_size = float(input4[2]);
-	vec4 layout_outline_color = vec4(input4[3], input5[0], input5[1], input5[2]);
-	float layout_outline_size = float(input5[3]);
+	float layout_font_size = float(input4[0]);
+	vec4 layout_outline_color = vec4(input4[1], input4[2], input4[3], input5[0]);
+	float layout_outline_size = float(input5[1]);
 
 	mat4 m = mat4(1);
 

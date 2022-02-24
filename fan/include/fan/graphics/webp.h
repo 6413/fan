@@ -1,5 +1,7 @@
 #pragma once
 
+#include <fan/types/types.hpp>
+
 // if windows fails with duplicat resource, remove mux folder from libwebp
 #include <webp/encode.h>
 #include <webp/decode.h>

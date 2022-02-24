@@ -1,5 +1,7 @@
 #pragma once
 
+#include <fan/types/types.hpp>
+
 #include <fan/graphics/graphics.hpp>
 
 #include <vpx/vpx_decoder.h>

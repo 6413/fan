@@ -1,5 +1,7 @@
 #pragma once
 
+#include <fan/types/types.hpp>
+
 #include <fan/types/color.hpp>
 
 namespace fan_2d {
@@ -72,6 +74,8 @@ namespace fan_2d {
 				}checkbox;
 
 			};
+
+			using theme_ptr_t = fan::ptr_maker_t<theme>;
 
 			namespace themes {
 

@@ -28,7 +28,7 @@ namespace fan {
 
 #ifdef fan_platform_unix
 
-        inline static Display* m_display;
+        inline Display* m_display;
 
         static Display* get_display()
         {

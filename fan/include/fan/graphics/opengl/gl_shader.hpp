@@ -1,5 +1,7 @@
 #pragma once
 
+#include <fan/types/types.hpp>
+
 #include <fan/graphics/renderer.hpp>
 
 #if fan_renderer == fan_renderer_opengl
@@ -15,12 +17,22 @@
 #include <fan/graphics/shared_core.hpp>
 
 namespace fan {
-  class base_shader {
+  class shader_t {
   public:
 
     int projection_view[2];
 
-    ~base_shader() {
+    shader_t() = default;
+
+    void open() {
+      id = fan::uninitialized;
+
+      vertex = fan::uninitialized;
+      fragment = fan::uninitialized;
+      geometry = fan::uninitialized;
+    }
+
+    void close() {
       this->remove();
     }
 
@@ -43,7 +55,7 @@ namespace fan {
 
     void set_vertex(const std::string& vertex_code) {
 
-      if (vertex != -1) {
+      if (vertex != fan::uninitialized) {
         glDeleteShader(vertex);
       }
 
@@ -282,7 +294,7 @@ namespace fan {
 
       auto location = glGetUniformLocation(id, name.c_str());
 
-    #ifdef fan_debug
+    #ifdef fan_debug == fan_debug_soft
       fan_validate_value(location, validate_error_message(name));
     #endif
       if constexpr (std::is_same<fan::mat4::value_type::value_type, float>::value) {
@@ -308,13 +320,9 @@ namespace fan {
       }
     }
 
-    unsigned int id = -1;
+    uint32_t id;
 
-    uint32_t vertex = -1, fragment = -1, geometry = -1;
-
-    std::string m_vertex_path;
-    std::string m_fragment_path;
-    std::string m_geometry_path;
+    uint32_t vertex, fragment, geometry;
 
   private:
 
@@ -363,11 +371,6 @@ namespace fan {
       }
     }
 };
-
-  struct shader_t : public std::shared_ptr<fan::base_shader> {
-    shader_t() : std::shared_ptr<fan::base_shader>(std::make_shared<fan::base_shader>(fan::base_shader())) {}
-  };
-
 }
 
 

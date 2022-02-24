@@ -203,9 +203,6 @@ fan::window::window(const fan::vec2i& window_size, const std::string& name, uint
 		m_vulkan = new fan::vulkan(&m_size, (void*)this->get_handle());
 
 #endif
-
-	this->set_vsync(true);
-
 }
 
 fan::window::window(const window& window) : fan::window(window.m_size, window.m_name, window.m_flags) {}
@@ -1552,6 +1549,9 @@ void fan::window::initialize_window(const std::string& name, const fan::vec2i& w
 
 	#elif defined(fan_platform_unix)
 
+	m_xim = 0;
+	m_xic = 0;
+
 	// if vulkan
 	XInitThreads();
 
@@ -1770,15 +1770,13 @@ void fan::window::initialize_window(const std::string& name, const fan::vec2i& w
 		m_keys_down[i] = false;
 	}
 
-#if fan_renderer == fan_renderer_opengl
+	m_position = position;
 
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	m_previous_size = m_size;
 
-	glViewport(0, 0, window_size.x, window_size.y);
-
-#endif
-
+	for (int i = 0; i != fan::input::last; ++i) {
+		m_keys_down[i] = false;
+	}
 
 	set_window_by_id(m_window, this);
 }

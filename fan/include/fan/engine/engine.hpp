@@ -450,7 +450,16 @@ namespace fan_2d {
 
 			std::vector<std::function<void()>> m_queue_after_step;
 
-			engine_t(const fan::vec2& gravity) : camera(&window), world(fan_2d::world(fan::vec2().b2())) {}
+			engine_t(const fan::vec2& gravity) : world(fan_2d::world(fan::vec2().b2())) {
+				context.init();
+				context.bind_to_window(&window);
+				context.set_viewport(0, window.get_size());
+
+				window.add_resize_callback([&](fan::window*, const fan::vec2& s) {
+					context.set_viewport(0, s);
+				});
+
+			}
 
 			void step(f32_t time_step) {
 				

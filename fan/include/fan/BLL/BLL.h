@@ -1,4 +1,4 @@
-#include <fan/VEC.h>
+#include <fan/types/memory.h>
 
 #ifndef BLL_set_prefix
 	#error ifndef BLL_set_prefix

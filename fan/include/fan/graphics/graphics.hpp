@@ -1,5 +1,7 @@
 #pragma once
 
+#include <fan/types/types.hpp>
+
 #include <fan/graphics/renderer.hpp>
 
 #if fan_renderer == fan_renderer_opengl
