@@ -1,5 +1,7 @@
 #pragma once
 
+#include <fan/types/types.hpp>
+
 #include <fan/graphics/renderer.hpp>
 
 #if fan_renderer == fan_renderer_opengl
@@ -59,6 +61,8 @@ namespace fan_2d {
 
 		struct rectangle {
 
+			rectangle() = default;
+
 			struct properties_t {
 				fan::color color;
 				fan::vec2 position;
@@ -90,24 +94,24 @@ namespace fan_2d {
 			// erases everything
 			void clear(fan::opengl::context_t* context);
 
-			rectangle_corners_t get_corners(fan::opengl::context_t* context, uint32_t i = 0) const;
+			rectangle_corners_t get_corners(fan::opengl::context_t* context, uint32_t i) const;
 
-			const fan::color get_color(fan::opengl::context_t* context, uint32_t i = 0) const;
+			const fan::color get_color(fan::opengl::context_t* context, uint32_t i) const;
 			void set_color(fan::opengl::context_t* context, uint32_t i, const fan::color& color);
 
-			fan::vec2 get_position(fan::opengl::context_t* context, uint32_t i = 0) const;
+			fan::vec2 get_position(fan::opengl::context_t* context, uint32_t i) const;
 			void set_position(fan::opengl::context_t* context, uint32_t i, const fan::vec2& position);
 
-			fan::vec2 get_size(fan::opengl::context_t* context, uint32_t i = 0) const;
+			fan::vec2 get_size(fan::opengl::context_t* context, uint32_t i) const;
 			void set_size(fan::opengl::context_t* context, uint32_t i, const fan::vec2& size);
 
-			f32_t get_angle(fan::opengl::context_t* context, uint32_t i = 0) const;
+			f32_t get_angle(fan::opengl::context_t* context, uint32_t i) const;
 			void set_angle(fan::opengl::context_t* context, uint32_t i, f32_t angle);
 
-			fan::vec2 get_rotation_point(fan::opengl::context_t* context, uint32_t i = 0) const;
+			fan::vec2 get_rotation_point(fan::opengl::context_t* context, uint32_t i) const;
 			void set_rotation_point(fan::opengl::context_t* context, uint32_t i, const fan::vec2& rotation_point);
 
-			fan::vec3 get_rotation_vector(fan::opengl::context_t* context, uint32_t i = 0) const;
+			fan::vec3 get_rotation_vector(fan::opengl::context_t* context, uint32_t i) const;
 			void set_rotation_vector(fan::opengl::context_t* context, uint32_t i, const fan::vec3& rotation_vector);
 
 			uint32_t size(fan::opengl::context_t* context) const;
@@ -127,7 +131,7 @@ namespace fan_2d {
 			fan::graphics::core::queue_helper_t m_queue_helper;
 			uint32_t m_draw_node_reference;
 		};
-		struct rectangle0 : public rectangle {
+		/*struct rectangle0 : public rectangle {
 
 			void open(fan::opengl::context_t* context, void* user_ptr, std::function<void(void*, uint64_t, uint32_t)> erase_cb);
 
@@ -145,11 +149,11 @@ namespace fan_2d {
 
 			void* m_user_ptr = nullptr;
 
-			std::vector<uint64_t> m_push_back_ids;
+			fan::hector_t<uint64_t> m_push_back_ids;
 
 			std::function<void(void*, uint64_t, uint32_t)> m_erase_cb;
 
-		};
+		};*/
 
 		// makes line from src (line start) to dst (line end)
 		struct line : protected fan_2d::graphics::rectangle {
@@ -197,7 +201,10 @@ namespace fan_2d {
 		struct sprite : 
 			protected fan_2d::graphics::rectangle {
 
+			sprite() = default;
+
 			void open(fan::opengl::context_t* context);
+			void close(fan::opengl::context_t* context);
 
 			struct properties_t : rectangle::properties_t {
 
@@ -211,32 +218,20 @@ namespace fan_2d {
 					fan::vec2(1, 0),
 					fan::vec2(0, 0)
 				};
-
-				uint32_t RenderOPCode0 = 0;
-				uint32_t RenderOPCode1 = 0;
-
 				fan_2d::graphics::image_t image;
 			};
 
 			static constexpr uint32_t offset_texture_coordinates = offsetof(properties_t, texture_coordinates);
-			static constexpr uint32_t offset_renderopcode0 = offset_texture_coordinates + sizeof(fan::vec2);
-			static constexpr uint32_t offset_renderopcode1 = offset_renderopcode0 + sizeof(uint32_t);
 
 			// fan_2d::graphics::load_image::texture
 			void push_back(fan::opengl::context_t* context, const sprite::properties_t& properties);
 
-			void insert(fan::opengl::context_t* context, uint32_t i, uint32_t texture_coordinates_i, const sprite::properties_t& properties);
+			void insert(fan::opengl::context_t* context, uint32_t i, const sprite::properties_t& properties);
 
 			void reload_sprite(fan::opengl::context_t* context, uint32_t i, fan_2d::graphics::image_t image);
 
 			f32_t get_transparency(fan::opengl::context_t* context, uint32_t i) const;
 			void set_transparency(fan::opengl::context_t* context, uint32_t i, f32_t transparency);
-
-			uint32_t get_RenderOPCode0(fan::opengl::context_t* context, uint32_t i) const;
-			void set_RenderOPCode0(fan::opengl::context_t* context, uint32_t i, uint32_t OPCode);
-
-			uint32_t get_RenderOPCode1(fan::opengl::context_t* context, uint32_t i) const;
-			void set_RenderOPCode1(fan::opengl::context_t* context, uint32_t i, uint32_t OPCode);
 
 			std::array<fan::vec2, 4> get_texture_coordinates(fan::opengl::context_t* context, uint32_t i);
 			// set texture coordinates before position or size
@@ -269,19 +264,31 @@ namespace fan_2d {
 
 			void regenerate_texture_switch();
 
-			std::vector<uint32_t> m_textures;
+			struct store_sprite_t {
+				uint32_t m_texture;
+				uint32_t m_switch_texture;
+			};
 
-			std::vector<uint32_t> m_switch_texture;
+			fan::hector_t<store_sprite_t> m_store_sprite;
 		};
 
 		// moves last to erased spot
 		struct sprite0 : public sprite {
 
-			void open(fan::opengl::context_t* context, void* user_ptr, std::function<void(void*, uint64_t, uint32_t)> erase_cb) {
+			typedef void(*erase_cb_t)(void*, uint64_t, uint32_t);
+
+			sprite0() = default;
+
+			void open(fan::opengl::context_t* context, void* user_ptr, erase_cb_t erase_cb) {
 				sprite::open(context);
 
 				m_erase_cb = erase_cb;
 				m_user_ptr = user_ptr;
+				m_push_back_ids.open();
+			}
+
+			void close(fan::opengl::context_t* context) {
+				m_push_back_ids.close();
 			}
 
 			struct properties_t : public sprite::properties_t {
@@ -289,7 +296,7 @@ namespace fan_2d {
 			};
 			
 			void push_back(fan::opengl::context_t* context, const properties_t& properties) {
-				m_push_back_ids.emplace_back(properties.id);
+				m_push_back_ids.push_back(properties.id);
 				fan_2d::graphics::sprite::push_back(context, properties);
 			}
 
@@ -297,24 +304,30 @@ namespace fan_2d {
 
 				if (i != this->size(context) - 1) {
 
-					m_glsl_buffer.erase_move_ram_buffer(i * sprite::vertex_count, (this->size(context) - 1) * sprite::vertex_count);
+					std::memmove(
+						&m_glsl_buffer.m_buffer[i * sprite::vertex_count * m_glsl_buffer.m_element_size],
+						&m_glsl_buffer.m_buffer[(this->size(context) - 1) * sprite::vertex_count * m_glsl_buffer.m_element_size],
+						m_glsl_buffer.m_element_size * sprite::vertex_count
+					);
+
+					m_glsl_buffer.erase_instance((this->size(context) - 1) * sprite::vertex_count, 1, sprite::vertex_count);
 
 					m_erase_cb(m_user_ptr, *(m_push_back_ids.end() - 1), i);
 
 					m_push_back_ids[i] = *(m_push_back_ids.end() - 1);
 					m_push_back_ids.pop_back();
 
-					m_textures[i] = *(m_textures.end() - 1);
+					m_store_sprite[i] = *(m_store_sprite.end() - 1);
 
-					m_textures.pop_back();
+					m_store_sprite.pop_back();
 	
 					regenerate_texture_switch();
 
 					m_queue_helper.edit(
 						context, 
 						i * sprite::vertex_count *  m_glsl_buffer.m_element_size,
-						(this->size(context)) * sprite::vertex_count *  m_glsl_buffer.m_element_size,
-						& m_glsl_buffer
+						(this->size(context)) * sprite::vertex_count * m_glsl_buffer.m_element_size,
+						&m_glsl_buffer
 					);
 				}
 				else {
@@ -327,11 +340,11 @@ namespace fan_2d {
 
 		protected:
 
-			void* m_user_ptr = nullptr;
+			void* m_user_ptr;
 
-			std::vector<uint64_t> m_push_back_ids;
+			fan::hector_t<uint64_t> m_push_back_ids;
 
-			std::function<void(void*, uint64_t, uint32_t)> m_erase_cb;
+			erase_cb_t m_erase_cb;
 
 		};
 //
@@ -346,23 +359,23 @@ namespace fan_2d {
 //					m_erase_cb(erase_cb),
 //					m_user_ptr(user_ptr)
 //			{
-//				m_shader->set_vertex(
+//				m_shader.set_vertex(
 //					#include <fan/graphics/glsl/opengl/2D/sprite_light_frame_map.vs>
 //				);
 //
-//				m_shader->set_fragment(
+//				m_shader.set_fragment(
 //					#include <fan/graphics/glsl/opengl/2D/sprite_light_frame_map.fs>
 //				);
 //
-//				m_shader->compile();
+//				m_shader.compile();
 //
 //				rectangle::initialize();
 //
 //				fan::bind_vao(*rectangle::get_vao(), [&] {
-//					texture_coordinates_t::initialize_buffers(m_shader->id, location_texture_coordinate, false, 2);
-//					RenderOPCode0_t::initialize_buffers(m_shader->id, location_RenderOPCode0, false, 1);
-//					RenderOPCode1_t::initialize_buffers(m_shader->id, location_RenderOPCode1, false, 1);
-//					light_data_t::initialize_buffers(m_shader->id, layout_light_data, false, light_data_t::value_type::size());
+//					texture_coordinates_t::initialize_buffers(m_shader.id, location_texture_coordinate, false, 2);
+//					RenderOPCode0_t::initialize_buffers(m_shader.id, location_RenderOPCode0, false, 1);
+//					RenderOPCode1_t::initialize_buffers(m_shader.id, location_RenderOPCode1, false, 1);
+//					light_data_t::initialize_buffers(m_shader.id, layout_light_data, false, light_data_t::value_type::size());
 //				});
 //			}
 //
@@ -507,15 +520,15 @@ namespace fan_2d {
 //			shader_sprite(fan::camera* camera, const std::string& custom_fragment_shader) 
 //				: sprite(camera, true)
 //			{
-//				m_shader->set_vertex(
+//				m_shader.set_vertex(
 //					#include <fan/graphics/glsl/opengl/2D/sprite.vs>
 //				);
 //
-//				m_shader->set_fragment(
+//				m_shader.set_fragment(
 //					custom_fragment_shader
 //				);
 //
-//				m_shader->compile();
+//				m_shader.compile();
 //
 //				sprite::initialize();
 //			}
@@ -544,15 +557,15 @@ namespace fan_2d {
 //				: sprite0(camera, true, user_ptr, erase_cb)
 //			{
 //
-//				m_shader->set_vertex(
+//				m_shader.set_vertex(
 //					#include <fan/graphics/glsl/opengl/2D/sprite.vs>
 //				);
 //
-//				m_shader->set_fragment(
+//				m_shader.set_fragment(
 //					custom_fragment_shader
 //				);
 //
-//				m_shader->compile();
+//				m_shader.compile();
 //
 //				sprite0::initialize();
 //			}
@@ -598,12 +611,12 @@ namespace fan_2d {
 //		protected:
 //
 //			void draw() {
-//				m_shader->use();
+//				m_shader.use();
 //
 //					for (int i = 0; i < m_multi_textures.size(); i++) {
 //						
 //						for (int j = 0; j < m_multi_textures[i].size(); j++) {
-//							m_shader->set_int((std::string("texture_sampler") + std::to_string(j)).c_str(), j);
+//							m_shader.set_int((std::string("texture_sampler") + std::to_string(j)).c_str(), j);
 //							glActiveTexture(GL_TEXTURE0 + j);
 //							glBindTexture(GL_TEXTURE_2D, m_multi_textures[i][j]->texture);
 //						}

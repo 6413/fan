@@ -9,6 +9,7 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::rectangle_text_box_sized::
 	outer_rect_t::open(context);
 	inner_rect_t::open(context);
 	fan_2d::graphics::gui::text_renderer::open(context);
+	m_store.open();
 }
 
 void fan_2d::graphics::gui::rectangle_text_box_sized::rectangle_text_box_sized::close(fan::opengl::context_t* context)
@@ -16,12 +17,32 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::rectangle_text_box_sized::
 	outer_rect_t::close(context);
 	inner_rect_t::close(context);
 	fan_2d::graphics::gui::text_renderer::close(context);
+	for (int i = 0; i < m_store.size(); i++) {
+		m_store[i].m_properties.text.close();
+		m_store[i].m_properties.place_holder.close();
+		m_store[i].m_properties.theme.close();
+	}
+	m_store.close();
 }
 
 void fan_2d::graphics::gui::rectangle_text_box_sized::push_back(fan::opengl::context_t* context, const fan_2d::graphics::gui::rectangle_text_box_sized::properties_t& property)
 {
-	m_properties.emplace_back(property);
-	theme.emplace_back(property.theme);
+	store_t store;
+
+	store.m_properties.place_holder.open();
+	store.m_properties.text.open();
+	store.m_properties.theme.open();
+
+	store.m_properties.font_size = property.font_size;
+	store.m_properties.offset = property.offset;
+	*store.m_properties.place_holder = property.font_size;
+	store.m_properties.position = property.position;
+	store.m_properties.size = property.size;
+	*store.m_properties.text = property.text;
+	store.m_properties.text_position = property.text_position;
+	*store.m_properties.theme = property.theme;
+
+	m_store.push_back(store);
 
 	const auto str = property.place_holder.empty() ? property.text : property.place_holder;
 
@@ -69,7 +90,7 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::push_back(fan::opengl::con
 
 	inner_rect_t::push_back(context, rect_properties);
 
-	auto corners = inner_rect_t::get_corners(context, m_properties.size() - 1);
+	auto corners = inner_rect_t::get_corners(context, m_store.size() - 1);
 
 	const f32_t t = property.theme.button.outline_thickness;
 
@@ -139,7 +160,7 @@ bool fan_2d::graphics::gui::rectangle_text_box_sized::inside(fan::opengl::contex
 
 void fan_2d::graphics::gui::rectangle_text_box_sized::set_text(fan::opengl::context_t* context, uint32_t i, const fan::utf16_string& text) {
 
-	switch (m_properties[i].text_position) {
+	switch (m_store[i].m_properties.text_position) {
 		case text_position_e::left:
 		{
 			fan_2d::graphics::gui::text_renderer::set_text(context, i, text);
@@ -155,7 +176,7 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::set_text(fan::opengl::cont
 	
 	auto corners = inner_rect_t::get_corners(context, i);
 
-	const f32_t t = theme[i].button.outline_thickness;
+	const f32_t t = m_store[i].m_properties.theme->button.outline_thickness;
 
 	corners[1].x -= t;
 	corners[3].x -= t;
@@ -186,7 +207,7 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::set_size(fan::opengl::cont
 
 	auto corners = inner_rect_t::get_corners(context, i);
 
-	const f32_t t = theme[i].button.outline_thickness;
+	const f32_t t = m_store[i].m_properties.theme->button.outline_thickness;
 
 	corners[1].x -= t;
 	corners[3].x -= t;
@@ -246,15 +267,15 @@ fan_2d::graphics::gui::src_dst_t fan_2d::graphics::gui::rectangle_text_box_sized
 
 	fan::vec2 src, dst;
 
-	if (m_properties[i].text_position == fan_2d::graphics::gui::text_position_e::left) {
+	if (m_store[i].m_properties.text_position == fan_2d::graphics::gui::text_position_e::left) {
 
-		src += (this->get_position(context, i) + fan::vec2(0, this->get_size(context, i).y / 2) + theme[i].button.outline_thickness);
+		src += (this->get_position(context, i) + fan::vec2(0, this->get_size(context, i).y / 2) + m_store[i].m_properties.theme->button.outline_thickness);
 
 		src.y -= line_height / 2;
 
-		src += m_properties[i].offset;
+		src += m_store[i].m_properties.offset;
 	}
-	else if (m_properties[i].text_position == fan_2d::graphics::gui::text_position_e::middle) {
+	else if (m_store[i].m_properties.text_position == fan_2d::graphics::gui::text_position_e::middle) {
 		auto text_size = get_text_size(context, i);
 		src += this->get_position(context, i) + fan::vec2(-text_size.x / 2, 0);
 	}
@@ -292,12 +313,12 @@ fan::vec2 fan_2d::graphics::gui::rectangle_text_box_sized::get_text_starting_poi
 {
 	fan::vec2 src;
 
-	if (m_properties[i].text_position == fan_2d::graphics::gui::text_position_e::left) {
+	if (m_store[i].m_properties.text_position == fan_2d::graphics::gui::text_position_e::left) {
 		src = this->get_position(context, i);
 		src.y += font.font['\n'].metrics.size.y * convert_font_size(context, get_font_size(context, i));
-		src += m_properties[i].offset;
+		src += m_store[i].m_properties.offset;
 	}
-	else if (m_properties[i].text_position == fan_2d::graphics::gui::text_position_e::middle){
+	else if (m_store[i].m_properties.text_position == fan_2d::graphics::gui::text_position_e::middle){
 		auto text_size = text_renderer::get_text_size(context, get_text(context, i), text_renderer::get_font_size(context, i));
 		text_size.y = fan_2d::graphics::gui::text_renderer::get_line_height(context, get_font_size(context, i));
 		src = this->get_position(context, i) - text_size * 0.5;
@@ -308,12 +329,12 @@ fan::vec2 fan_2d::graphics::gui::rectangle_text_box_sized::get_text_starting_poi
 
 fan_2d::graphics::gui::rectangle_text_box_sized::properties_t fan_2d::graphics::gui::rectangle_text_box_sized::get_property(fan::opengl::context_t* context, uint32_t i) const
 {
-	return m_properties[i];
+	return *(fan_2d::graphics::gui::rectangle_text_box_sized::properties_t*)&m_store[i].m_properties;
 }
 
 void fan_2d::graphics::gui::rectangle_text_box_sized::set_offset(fan::opengl::context_t* context, uint32_t i, const fan::vec2& offset)
 {
-	m_properties[i].offset = offset;
+	m_store[i].m_properties.offset = offset;
 
 	auto new_position = this->get_position(context, i) + offset;
 
@@ -327,19 +348,19 @@ uintptr_t fan_2d::graphics::gui::rectangle_text_box_sized::size(fan::opengl::con
 
 void fan_2d::graphics::gui::rectangle_text_box_sized::erase(fan::opengl::context_t* context, uint32_t i)
 {
-	fan::class_duplicator<fan_2d::graphics::rectangle, 0>::erase(context, i);
-	fan::class_duplicator<fan_2d::graphics::rectangle, 1>::erase(context, i);
+	inner_rect_t::erase(context, i);
+	outer_rect_t::erase(context, i * 4, i * 4 + 4);
 	fan_2d::graphics::gui::text_renderer::erase(context, i);
-
-	m_properties.erase(m_properties.begin() + i);
+	
+	m_store.erase(i);
 }
 
 void fan_2d::graphics::gui::rectangle_text_box_sized::erase(fan::opengl::context_t* context, uint32_t begin, uint32_t end)
 {
-	fan::class_duplicator<fan_2d::graphics::rectangle, 0>::erase(context, begin, end);
-	fan::class_duplicator<fan_2d::graphics::rectangle, 1>::erase(context, begin, end);
+	inner_rect_t::erase(context, begin, end);
+	outer_rect_t::erase(context, begin * 4, end * 4);
 	fan_2d::graphics::gui::text_renderer::erase(context, begin, end);
-	m_properties.erase(m_properties.begin() + begin, m_properties.begin() + end);
+	m_store.erase(begin, end);
 }
 
 void fan_2d::graphics::gui::rectangle_text_box_sized::clear(fan::opengl::context_t* context)
@@ -347,13 +368,12 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::clear(fan::opengl::context
 	fan::class_duplicator<fan_2d::graphics::rectangle, 0>::clear(context);
 	fan::class_duplicator<fan_2d::graphics::rectangle, 1>::clear(context);
 	fan_2d::graphics::gui::text_renderer::clear(context);
-	m_properties.clear();
-	theme.clear();
+	m_store.clear();
 }
 
 //void fan_2d::graphics::gui::rectangle_text_box_sized::set_theme(fan_2d::graphics::gui::theme theme_)
 //{
-//	theme[i] = theme_;
+//	m_store[i].m_properties.theme = theme_;
 //
 //	for (int i = 0; i < this->size(); i++) {
 //		this->set_theme(i, theme);
@@ -362,11 +382,11 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::clear(fan::opengl::context
 
 void fan_2d::graphics::gui::rectangle_text_box_sized::update_theme(fan::opengl::context_t* context, uint32_t i)
 {
-	inner_rect_t::set_color(context, i, theme[i].button.color);
-	outer_rect_t::set_color(context, i * 4 + 0, theme[i].button.outline_color);
-	outer_rect_t::set_color(context, i * 4 + 1, theme[i].button.outline_color);
-	outer_rect_t::set_color(context, i * 4 + 2, theme[i].button.outline_color);
-	outer_rect_t::set_color(context, i * 4 + 3, theme[i].button.outline_color);
+	inner_rect_t::set_color(context, i, m_store[i].m_properties.theme->button.color);
+	outer_rect_t::set_color(context, i * 4 + 0, m_store[i].m_properties.theme->button.outline_color);
+	outer_rect_t::set_color(context, i * 4 + 1, m_store[i].m_properties.theme->button.outline_color);
+	outer_rect_t::set_color(context, i * 4 + 2, m_store[i].m_properties.theme->button.outline_color);
+	outer_rect_t::set_color(context, i * 4 + 3, m_store[i].m_properties.theme->button.outline_color);
 }
 
 void fan_2d::graphics::gui::rectangle_text_box_sized::set_theme(fan::opengl::context_t* context, uint32_t i, const fan_2d::graphics::gui::theme& theme_)
@@ -501,14 +521,14 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::disable_draw(fan::opengl::
 //		text,
 //		text_renderer::get_font_size(i),
 //		0,
-//		m_properties[i].padding
+//		m_store[i].m_properties.padding
 //	);
 //
 //	inner_rect_t::set_position(i, inner_rect_t::get_position(i) + (rect_size - inner_rect_t::get_size()) * 0.5);
 //
 //	inner_rect_t::set_size(i, rect_size);
 //
-//	fan_2d::graphics::gui::text_renderer::set_position(i, inner_rect_t::get_position(i) + m_properties[i].padding * 0.5);
+//	fan_2d::graphics::gui::text_renderer::set_position(i, inner_rect_t::get_position(i) + m_store[i].m_properties.padding * 0.5);
 //
 //	fan_2d::graphics::gui::text_renderer::set_text(i, text);
 //
@@ -555,7 +575,7 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::disable_draw(fan::opengl::
 //}
 //
 //fan::vec2 fan_2d::graphics::gui::rectangle_text_box::get_padding(uint32_t i) const {
-//	return m_properties[i].padding;
+//	return m_store[i].m_properties.padding;
 //}
 //
 //f32_t fan_2d::graphics::gui::rectangle_text_box::get_font_size(uint32_t i) const
@@ -565,7 +585,7 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::disable_draw(fan::opengl::
 //
 //fan_2d::graphics::gui::rectangle_text_box::properties_t fan_2d::graphics::gui::rectangle_text_box::get_property(uint32_t i) const
 //{
-//	return m_properties[i];
+//	return m_store[i].m_properties;
 //}
 //
 //fan::color fan_2d::graphics::gui::rectangle_text_box::get_color(uint32_t i) const
@@ -778,7 +798,7 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::disable_draw(fan::opengl::
 //			m_focused_button_id = fan::uninitialized;
 //		}
 //		m_reserved[i] |= (uint32_t)button_states_e::locked;
-//		m_theme[i] = fan_2d::graphics::gui::themes::locked();
+//		m_m_store[i].m_properties.theme = fan_2d::graphics::gui::themes::locked();
 //		update_theme(i);
 //	}
 //	else {
@@ -815,7 +835,7 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::disable_draw(fan::opengl::
 //}
 //
 //void fan_2d::graphics::gui::circle_button::update_theme(uint32_t i) {
-//	circle::set_color(i, m_theme[i].button.color);
+//	circle::set_color(i, m_m_store[i].m_properties.theme->button.color);
 //}
 //
 //void fan_2d::graphics::gui::circle_button::lib_add_on_input(fan::window *window, uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage) {
@@ -826,22 +846,22 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::disable_draw(fan::opengl::
 //
 //	if (stage == mouse_stage::inside && state == fan::key_state::press) {
 //
-//		circle::set_color(i, m_theme[i].button.click_color);
+//		circle::set_color(i, m_m_store[i].m_properties.theme->button.click_color);
 //
 //	}
 //	else if (stage == mouse_stage::inside && state == fan::key_state::release) {
 //
-//		circle::set_color(i, m_theme[i].button.hover_color);
+//		circle::set_color(i, m_m_store[i].m_properties.theme->button.hover_color);
 //
 //	}
 //	else if (stage == mouse_stage::outside && state == fan::key_state::release) {
 //
-//		circle::set_color(i, m_theme[i].button.color);
+//		circle::set_color(i, m_m_store[i].m_properties.theme->button.color);
 //
 //		for (int j = 0; j < this->size(); j++) {
 //			if (this->inside(j)) {
 //
-//				circle::set_color(j, m_theme[i].button.hover_color);
+//				circle::set_color(j, m_m_store[i].m_properties.theme->button.hover_color);
 //
 //				break;
 //
@@ -852,10 +872,10 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::disable_draw(fan::opengl::
 //
 //void fan_2d::graphics::gui::circle_button::lib_add_on_mouse_move(fan::window *window, uint32_t i, fan_2d::graphics::gui::mouse_stage stage) {
 //	if (stage == mouse_stage::inside) {
-//		circle::set_color(i, m_theme[i].button.hover_color);
+//		circle::set_color(i, m_m_store[i].m_properties.theme->button.hover_color);
 //	}
 //	else {
-//		circle::set_color(i, m_theme[i].button.color);
+//		circle::set_color(i, m_m_store[i].m_properties.theme->button.color);
 //	}
 //}
 //
@@ -1024,6 +1044,13 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::disable_draw(fan::opengl::
 void fan_2d::graphics::gui::text_renderer_clickable::open(fan::window *window, fan::opengl::context_t* context) {
 	text_renderer::open(context);
 	m_button_event.open(window, context);
+	m_store.open();
+}
+
+void fan_2d::graphics::gui::text_renderer_clickable::close(fan::window *window, fan::opengl::context_t* context) {
+	text_renderer::close(context);
+	m_button_event.close(window, context);
+	m_store.close();
 }
 
 void fan_2d::graphics::gui::text_renderer_clickable::lib_add_on_input(fan::window *window, fan::opengl::context_t* context, uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage) {
@@ -1037,7 +1064,7 @@ void fan_2d::graphics::gui::text_renderer_clickable::lib_add_on_input(fan::windo
 			switch (state) {
 				case fan::key_state::press: {
 
-					if (previous_states[i] == 2) {
+					if (m_store[i].previous_states == 2) {
 						text_renderer::set_text_color(context, i, text_renderer::get_text_color(context, i) + (click_strength - hover_strength));
 						fan::color c;
 						if ((c = text_renderer::get_outline_color(context, i)) != 0) {
@@ -1052,7 +1079,7 @@ void fan_2d::graphics::gui::text_renderer_clickable::lib_add_on_input(fan::windo
 						}
 					}
 					
-					previous_states[i] = 1;
+					m_store[i].previous_states = 1;
 					// click
 					break;
 				}
@@ -1064,7 +1091,7 @@ void fan_2d::graphics::gui::text_renderer_clickable::lib_add_on_input(fan::windo
 						text_renderer::set_outline_color(context, i, text_renderer::get_outline_color(context, i) - (click_strength - hover_strength));
 					}
 
-					previous_states[i] = 2;
+					m_store[i].previous_states = 2;
 					// hover
 					break;
 				}
@@ -1082,7 +1109,7 @@ void fan_2d::graphics::gui::text_renderer_clickable::lib_add_on_input(fan::windo
 						text_renderer::set_outline_color(context, i, text_renderer::get_outline_color(context, i) - click_strength);
 					}
 
-					previous_states[i] = 0;
+					m_store[i].previous_states = 0;
 
 					// return original
 					break;
@@ -1093,7 +1120,7 @@ void fan_2d::graphics::gui::text_renderer_clickable::lib_add_on_input(fan::windo
 		}
 		case mouse_stage::inside_drag: {
 
-			if (previous_states[i] == 2) {
+			if (m_store[i].previous_states == 2) {
 				return;
 			}
 
@@ -1103,7 +1130,7 @@ void fan_2d::graphics::gui::text_renderer_clickable::lib_add_on_input(fan::windo
 				text_renderer::set_outline_color(context, i, text_renderer::get_outline_color(context, i) + hover_strength);
 			}
 
-			previous_states[i] = 2;
+			m_store[i].previous_states = 2;
 
 			break;
 		}
@@ -1116,7 +1143,7 @@ void fan_2d::graphics::gui::text_renderer_clickable::lib_add_on_mouse_move(fan::
 	switch (stage) {
 		case mouse_stage::inside: {
 
-			if (previous_states[i] == 2) {
+			if (m_store[i].previous_states == 2) {
 				return;
 			}
 
@@ -1126,17 +1153,17 @@ void fan_2d::graphics::gui::text_renderer_clickable::lib_add_on_mouse_move(fan::
 				text_renderer::set_outline_color(context, i, text_renderer::get_outline_color(context, i) + hover_strength);
 			}
 
-			previous_states[i] = 2;
+			m_store[i].previous_states = 2;
 			
 			break;
 		}
 		default: { // outside, outside drag
 
-			if (m_button_event.holding_button() == (uint32_t)-1 || previous_states[i] == 0) {
+			if (m_button_event.holding_button() == (uint32_t)-1 || m_store[i].previous_states == 0) {
 				return;
 			}
 
-			switch (previous_states[i]) {
+			switch (m_store[i].previous_states) {
 				case 1: {
 					text_renderer::set_text_color(context, i, text_renderer::get_text_color(context, i) - click_strength);
 					fan::color c;
@@ -1155,7 +1182,7 @@ void fan_2d::graphics::gui::text_renderer_clickable::lib_add_on_mouse_move(fan::
 				}
 			}
 
-			previous_states[i] = 0;
+			m_store[i].previous_states = 0;
 
 			break;
 		}
@@ -1164,41 +1191,44 @@ void fan_2d::graphics::gui::text_renderer_clickable::lib_add_on_mouse_move(fan::
 
 void fan_2d::graphics::gui::text_renderer_clickable::push_back(fan::window *window, fan::opengl::context_t* context,const text_renderer_clickable::properties_t& properties)
 {
-	m_hitboxes.emplace_back(hitbox_t{properties.hitbox_position, properties.hitbox_size});
-	previous_states.resize(previous_states.size() + 1, 0);
+	store_t store;
+	store.m_hitbox = hitbox_t{properties.hitbox_position, properties.hitbox_size};
+	store.previous_states = 0;
+	m_store.push_back(store);
+
 	text_renderer::push_back(context, properties);
 }
 
 void fan_2d::graphics::gui::text_renderer_clickable::set_hitbox(fan::window *window, fan::opengl::context_t* context,uint32_t i, const fan::vec2& hitbox_position, const fan::vec2& hitbox_size)
 {
-	m_hitboxes[i].hitbox_position = hitbox_position;
-	m_hitboxes[i].hitbox_size = hitbox_size;
+	m_store[i].m_hitbox.hitbox_position = hitbox_position;
+	m_store[i].m_hitbox.hitbox_size = hitbox_size;
 }
 
 fan::vec2 fan_2d::graphics::gui::text_renderer_clickable::get_hitbox_position(fan::window *window, fan::opengl::context_t* context,uint32_t i) const
 {
-	return m_hitboxes[i].hitbox_position;
+	return m_store[i].m_hitbox.hitbox_position;
 }
 
 void fan_2d::graphics::gui::text_renderer_clickable::set_hitbox_position(fan::window *window, fan::opengl::context_t* context,uint32_t i, const fan::vec2& hitbox_position)
 {
-	m_hitboxes[i].hitbox_position = hitbox_position;
+	m_store[i].m_hitbox.hitbox_position = hitbox_position;
 }
 
 fan::vec2 fan_2d::graphics::gui::text_renderer_clickable::get_hitbox_size(fan::window *window, fan::opengl::context_t* context,uint32_t i) const
 {
-	return m_hitboxes[i].hitbox_size;
+	return m_store[i].m_hitbox.hitbox_size;
 }
 
 void fan_2d::graphics::gui::text_renderer_clickable::set_hitbox_size(fan::window *window, fan::opengl::context_t* context,uint32_t i, const fan::vec2& hitbox_size)
 {
-	m_hitboxes[i].hitbox_size = hitbox_size;
+	m_store[i].m_hitbox.hitbox_size = hitbox_size;
 }
 
 bool fan_2d::graphics::gui::text_renderer_clickable::inside(fan::opengl::context_t* context, uint32_t i, const fan::vec2& p) const
 {
-	const fan::vec2 src = m_hitboxes[i].hitbox_position - m_hitboxes[i].hitbox_size;
-	const fan::vec2 dst = m_hitboxes[i].hitbox_position + m_hitboxes[i].hitbox_size;
+	const fan::vec2 src = m_store[i].m_hitbox.hitbox_position - m_store[i].m_hitbox.hitbox_size;
+	const fan::vec2 dst = m_store[i].m_hitbox.hitbox_position + m_store[i].m_hitbox.hitbox_size;
 
 	return fan_2d::collision::rectangle::point_inside_no_rotation(p, src, dst);
 }
@@ -1209,6 +1239,7 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::open(fan::window* windo
 	fan_2d::graphics::gui::rectangle_text_box_sized::open(context);
 	m_key_event.open(window, context);
 	m_button_event.open(window, context);
+	m_reserved.open();
 }
 
 void fan_2d::graphics::gui::rectangle_text_button_sized::close(fan::window* window, fan::opengl::context_t* context)
@@ -1216,6 +1247,14 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::close(fan::window* wind
 	fan_2d::graphics::gui::rectangle_text_box_sized::close(context);
 	m_key_event.close(window, context);
 	m_button_event.close(window, context);
+	m_reserved.close();
+
+	if (base::button_event_t<rectangle_text_button_sized>::pointer_remove_flag == 1) {
+		base::button_event_t<rectangle_text_button_sized>::pointer_remove_flag = 0;
+	}
+	else {
+
+	}
 }
 
 void fan_2d::graphics::gui::rectangle_text_button_sized::push_back(fan::window* window, fan::opengl::context_t* context, properties_t properties)
@@ -1238,16 +1277,16 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::push_back(fan::window* 
 
 void fan_2d::graphics::gui::rectangle_text_button_sized::set_place_holder(fan::window* window, fan::opengl::context_t* context, uint32_t i, const fan::utf16_string& place_holder)
 {
-	FED_MoveCursorFreeStyleToEndOfLine(&m_key_event.m_wed[i], m_key_event.cursor_reference[i]);
+	FED_MoveCursorFreeStyleToEndOfLine(&m_key_event.m_store[i].m_wed, m_key_event.m_store[i].cursor_reference);
 
-	for (int j = 0; j < m_text[i].size(); j++) {
-		FED_DeleteCharacterFromCursor(&m_key_event.m_wed[i], m_key_event.cursor_reference[i]);
+	for (int j = 0; j < ((text_renderer::store_t*)&m_store[i])->m_text->size(); j++) {
+		FED_DeleteCharacterFromCursor(&m_key_event.m_store[i].m_wed, m_key_event.m_store[i].cursor_reference);
 	}
 
 	rectangle_text_box_sized::text_renderer::set_text_color(context, i, fan_2d::graphics::gui::defaults::text_color_place_holder);
 	this->set_text(context, i, place_holder);
 
-	if (m_key_event.m_input_allowed[i]) {
+	if (m_key_event.m_store[i].m_input_allowed) {
 		m_key_event.update_cursor(window, context, i);
 	}
 
@@ -1272,27 +1311,25 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::backspace_callback(fan:
 
 void fan_2d::graphics::gui::rectangle_text_button_sized::text_callback(fan::window* window, fan::opengl::context_t* context, uint32_t i)
 {
-	if (this->get_text_color(context, i) != this->theme[i].button.text_color) {
-		this->set_text_color(context, i, this->theme[i].button.text_color);
+	if (this->get_text_color(context, i) != this->m_store[i].m_properties.theme->button.text_color) {
+		this->set_text_color(context, i, this->m_store[i].m_properties.theme->button.text_color);
 	}
 }
 
 void fan_2d::graphics::gui::rectangle_text_button_sized::erase(fan::window* window, fan::opengl::context_t* context, uint32_t i)
 {
 	rectangle_text_button_sized::rectangle_text_box_sized::erase(context, i);
-	m_reserved.erase(m_reserved.begin() + i);
+	m_reserved.erase(i);
 	m_key_event.set_focus(window, context, -1);
-	/*rectangle_text_button_sized::mouse::erase(i);
-	rectangle_text_button_sized::text_input::erase(i);*/
+	m_key_event.erase(window, context, i);
 }
 
 void fan_2d::graphics::gui::rectangle_text_button_sized::erase(fan::window* window, fan::opengl::context_t* context, uint32_t begin, uint32_t end)
 {
 	rectangle_text_button_sized::rectangle_text_box_sized::erase(context, begin, end);
-	m_reserved.erase(m_reserved.begin() + begin, m_reserved.begin() + end);
+	m_reserved.erase(begin, end);
 	m_key_event.set_focus(window, context, -1);
-	//rectangle_text_button_sized::mouse::erase(begin, end);
-	//rectangle_text_button_sized::text_input::erase(begin, end);
+	m_key_event.erase(window, context, begin, end);
 }
 
 void fan_2d::graphics::gui::rectangle_text_button_sized::clear(fan::window* window, fan::opengl::context_t* context)
@@ -1314,7 +1351,7 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::set_locked(fan::window*
 		}
 		m_reserved[i] |= (uint32_t)button_states_e::locked;
 		if (change_theme) {
-			theme[i] = fan_2d::graphics::gui::themes::locked();
+			*m_store[i].m_properties.theme = fan_2d::graphics::gui::themes::locked();
 			update_theme(context, i);
 		}
 	}
@@ -1333,7 +1370,7 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::lib_add_on_input(fan::w
 		return;
 	}
 
-	theme[i].button.m_click_callback(window, i, key, state, stage);
+	m_store[i].m_properties.theme->button.m_click_callback(window, i, key, state, stage);
 
 	if (key != fan::mouse_left) {
 		return;
@@ -1353,12 +1390,12 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::lib_add_on_input(fan::w
 
 			switch (state) {
 				case fan::key_state::press: {
-					change_color_f(this, i, theme[i].button.click_color, theme[i].button.click_outline_color);
+					change_color_f(this, i, m_store[i].m_properties.theme->button.click_color, m_store[i].m_properties.theme->button.click_outline_color);
 					break;
 				}
 				case fan::key_state::release: {
 					focus::set_focus(focus::properties_t(window->get_handle(), this, i));
-					if (m_key_event.m_input_allowed[i]) {
+					if (m_key_event.m_store[i].m_input_allowed) {
 						m_key_event.render_cursor = true;
 						m_key_event.update_cursor(window, context, i);
 						m_key_event.cursor_timer.restart();
@@ -1367,7 +1404,7 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::lib_add_on_input(fan::w
 					else {
 						m_key_event.render_cursor = false;
 					}
-					change_color_f(this, i, theme[i].button.hover_color, theme[i].button.hover_outline_color);
+					change_color_f(this, i, m_store[i].m_properties.theme->button.hover_color, m_store[i].m_properties.theme->button.hover_outline_color);
 					break;
 				}
 			}
@@ -1380,10 +1417,10 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::lib_add_on_input(fan::w
 					break;
 				}
 				case fan::key_state::release: {
-					change_color_f(this, i, theme[i].button.color, theme[i].button.outline_color);
+					change_color_f(this, i, m_store[i].m_properties.theme->button.color, m_store[i].m_properties.theme->button.outline_color);
 					for (int j = 0; j < this->size(context); j++) {
 						if (this->inside(context, j, window->get_mouse_position()) && !this->locked(window, context, j)) {
-							change_color_f(this, j, theme[i].button.hover_color, theme[i].button.hover_outline_color);
+							change_color_f(this, j, m_store[i].m_properties.theme->button.hover_color, m_store[i].m_properties.theme->button.hover_outline_color);
 							break;
 						}
 					}
@@ -1401,26 +1438,26 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::lib_add_on_mouse_move(f
 		return;
 	}
 
-	theme[i].button.m_hover_callback(window, i, stage);
+	m_store[i].m_properties.theme->button.m_hover_callback(window, i, stage);
 
 	switch (stage) {
 		case mouse_stage::inside: {
 			
-			inner_rect_t::set_color(context, i, theme[i].button.hover_color);
-			outer_rect_t::set_color(context, i * 4 + 0, theme[i].button.hover_outline_color);
-			outer_rect_t::set_color(context, i * 4 + 1, theme[i].button.hover_outline_color);
-			outer_rect_t::set_color(context, i * 4 + 2, theme[i].button.hover_outline_color);
-			outer_rect_t::set_color(context, i * 4 + 3, theme[i].button.hover_outline_color);
+			inner_rect_t::set_color(context, i, m_store[i].m_properties.theme->button.hover_color);
+			outer_rect_t::set_color(context, i * 4 + 0, m_store[i].m_properties.theme->button.hover_outline_color);
+			outer_rect_t::set_color(context, i * 4 + 1, m_store[i].m_properties.theme->button.hover_outline_color);
+			outer_rect_t::set_color(context, i * 4 + 2, m_store[i].m_properties.theme->button.hover_outline_color);
+			outer_rect_t::set_color(context, i * 4 + 3, m_store[i].m_properties.theme->button.hover_outline_color);
 
 			break;
 		}
 		default: { // outside, outside drag
 
-			inner_rect_t::set_color(context, i, theme[i].button.color);
-			outer_rect_t::set_color(context, i * 4 + 0, theme[i].button.outline_color);
-			outer_rect_t::set_color(context, i * 4 + 1, theme[i].button.outline_color);
-			outer_rect_t::set_color(context, i * 4 + 2, theme[i].button.outline_color);
-			outer_rect_t::set_color(context, i * 4 + 3, theme[i].button.outline_color);
+			inner_rect_t::set_color(context, i, m_store[i].m_properties.theme->button.color);
+			outer_rect_t::set_color(context, i * 4 + 0, m_store[i].m_properties.theme->button.outline_color);
+			outer_rect_t::set_color(context, i * 4 + 1, m_store[i].m_properties.theme->button.outline_color);
+			outer_rect_t::set_color(context, i * 4 + 2, m_store[i].m_properties.theme->button.outline_color);
+			outer_rect_t::set_color(context, i * 4 + 3, m_store[i].m_properties.theme->button.outline_color);
 
 			break;
 		}
@@ -1902,12 +1939,12 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::disable_draw(fan::windo
 //{
 //	this->m_selected = i;
 //
-//	inner_rect_t::set_color(i, theme[i].button.hover_color);
+//	inner_rect_t::set_color(i, m_store[i].m_properties.theme->button.hover_color);
 //
-//	outer_rect_t::set_color(i * 4 + 0, theme[i].button.hover_outline_color);
-//	outer_rect_t::set_color(i * 4 + 1, theme[i].button.hover_outline_color);
-//	outer_rect_t::set_color(i * 4 + 2, theme[i].button.hover_outline_color);
-//	outer_rect_t::set_color(i * 4 + 3, theme[i].button.hover_outline_color);
+//	outer_rect_t::set_color(i * 4 + 0, m_store[i].m_properties.theme->button.hover_outline_color);
+//	outer_rect_t::set_color(i * 4 + 1, m_store[i].m_properties.theme->button.hover_outline_color);
+//	outer_rect_t::set_color(i * 4 + 2, m_store[i].m_properties.theme->button.hover_outline_color);
+//	outer_rect_t::set_color(i * 4 + 3, m_store[i].m_properties.theme->button.hover_outline_color);
 //
 //	inner_rect_t::edit_data(i);
 //
@@ -1923,12 +1960,12 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::disable_draw(fan::windo
 //{
 //	if (stage == mouse_stage::inside && state == fan::key_state::press) {
 //
-//		inner_rect_t::set_color(i, theme[i].button.click_color);
+//		inner_rect_t::set_color(i, m_store[i].m_properties.theme->button.click_color);
 //
-//		outer_rect_t::set_color(i * 4 + 0, theme[i].button.click_outline_color);
-//		outer_rect_t::set_color(i * 4 + 1, theme[i].button.click_outline_color);
-//		outer_rect_t::set_color(i * 4 + 2, theme[i].button.click_outline_color);
-//		outer_rect_t::set_color(i * 4 + 3, theme[i].button.click_outline_color);
+//		outer_rect_t::set_color(i * 4 + 0, m_store[i].m_properties.theme->button.click_outline_color);
+//		outer_rect_t::set_color(i * 4 + 1, m_store[i].m_properties.theme->button.click_outline_color);
+//		outer_rect_t::set_color(i * 4 + 2, m_store[i].m_properties.theme->button.click_outline_color);
+//		outer_rect_t::set_color(i * 4 + 3, m_store[i].m_properties.theme->button.click_outline_color);
 //
 //		inner_rect_t::edit_data(i);
 //
@@ -1936,12 +1973,12 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::disable_draw(fan::windo
 //	}
 //	else if (stage == mouse_stage::inside && state == fan::key_state::release) {
 //
-//		inner_rect_t::set_color(i, theme[i].button.hover_color);
+//		inner_rect_t::set_color(i, m_store[i].m_properties.theme->button.hover_color);
 //
-//		outer_rect_t::set_color(i * 4 + 0, theme[i].button.hover_outline_color);
-//		outer_rect_t::set_color(i * 4 + 1, theme[i].button.hover_outline_color);
-//		outer_rect_t::set_color(i * 4 + 2, theme[i].button.hover_outline_color);
-//		outer_rect_t::set_color(i * 4 + 3, theme[i].button.hover_outline_color);
+//		outer_rect_t::set_color(i * 4 + 0, m_store[i].m_properties.theme->button.hover_outline_color);
+//		outer_rect_t::set_color(i * 4 + 1, m_store[i].m_properties.theme->button.hover_outline_color);
+//		outer_rect_t::set_color(i * 4 + 2, m_store[i].m_properties.theme->button.hover_outline_color);
+//		outer_rect_t::set_color(i * 4 + 3, m_store[i].m_properties.theme->button.hover_outline_color);
 //
 //		inner_rect_t::edit_data(i);
 //
@@ -1949,12 +1986,12 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::disable_draw(fan::windo
 //
 //		// default previous selected
 //		if (m_selected != i && m_selected != (uint32_t)fan::uninitialized) {
-//			inner_rect_t::set_color(m_selected, theme[i].button.color);
+//			inner_rect_t::set_color(m_selected, m_store[i].m_properties.theme->button.color);
 //
-//			outer_rect_t::set_color(m_selected * 4 + 0, theme[i].button.outline_color);
-//			outer_rect_t::set_color(m_selected * 4 + 1, theme[i].button.outline_color);
-//			outer_rect_t::set_color(m_selected * 4 + 2, theme[i].button.outline_color);
-//			outer_rect_t::set_color(m_selected * 4 + 3, theme[i].button.outline_color);
+//			outer_rect_t::set_color(m_selected * 4 + 0, m_store[i].m_properties.theme->button.outline_color);
+//			outer_rect_t::set_color(m_selected * 4 + 1, m_store[i].m_properties.theme->button.outline_color);
+//			outer_rect_t::set_color(m_selected * 4 + 2, m_store[i].m_properties.theme->button.outline_color);
+//			outer_rect_t::set_color(m_selected * 4 + 3, m_store[i].m_properties.theme->button.outline_color);
 //
 //			inner_rect_t::edit_data(m_selected);
 //
@@ -1975,12 +2012,12 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::disable_draw(fan::windo
 //	else if (stage == mouse_stage::outside && state == fan::key_state::release) {
 //
 //		if (m_selected != i) {
-//			inner_rect_t::set_color(i, theme[i].button.color);
+//			inner_rect_t::set_color(i, m_store[i].m_properties.theme->button.color);
 //
-//			outer_rect_t::set_color(i * 4 + 0, theme[i].button.outline_color);
-//			outer_rect_t::set_color(i * 4 + 1, theme[i].button.outline_color);
-//			outer_rect_t::set_color(i * 4 + 2, theme[i].button.outline_color);
-//			outer_rect_t::set_color(i * 4 + 3, theme[i].button.outline_color);
+//			outer_rect_t::set_color(i * 4 + 0, m_store[i].m_properties.theme->button.outline_color);
+//			outer_rect_t::set_color(i * 4 + 1, m_store[i].m_properties.theme->button.outline_color);
+//			outer_rect_t::set_color(i * 4 + 2, m_store[i].m_properties.theme->button.outline_color);
+//			outer_rect_t::set_color(i * 4 + 3, m_store[i].m_properties.theme->button.outline_color);
 //
 //			inner_rect_t::edit_data(i);
 //
@@ -1994,12 +2031,12 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::disable_draw(fan::windo
 //	switch (stage) {
 //    case mouse_stage::inside: {
 //      
-//			inner_rect_t::set_color(i, theme[i].button.hover_color);
+//			inner_rect_t::set_color(i, m_store[i].m_properties.theme->button.hover_color);
 //
-//			outer_rect_t::set_color(i * 4 + 0, theme[i].button.hover_outline_color);
-//			outer_rect_t::set_color(i * 4 + 1, theme[i].button.hover_outline_color);
-//			outer_rect_t::set_color(i * 4 + 2, theme[i].button.hover_outline_color);
-//			outer_rect_t::set_color(i * 4 + 3, theme[i].button.hover_outline_color);
+//			outer_rect_t::set_color(i * 4 + 0, m_store[i].m_properties.theme->button.hover_outline_color);
+//			outer_rect_t::set_color(i * 4 + 1, m_store[i].m_properties.theme->button.hover_outline_color);
+//			outer_rect_t::set_color(i * 4 + 2, m_store[i].m_properties.theme->button.hover_outline_color);
+//			outer_rect_t::set_color(i * 4 + 3, m_store[i].m_properties.theme->button.hover_outline_color);
 //
 //			inner_rect_t::edit_data(i);
 //
@@ -2011,12 +2048,12 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::disable_draw(fan::windo
 //
 //			if (m_selected != i) {
 //
-//				inner_rect_t::set_color(i, theme[i].button.hover_color);
+//				inner_rect_t::set_color(i, m_store[i].m_properties.theme->button.hover_color);
 //
-//				outer_rect_t::set_color(i * 4 + 0, theme[i].button.hover_outline_color);
-//				outer_rect_t::set_color(i * 4 + 1, theme[i].button.hover_outline_color);
-//				outer_rect_t::set_color(i * 4 + 2, theme[i].button.hover_outline_color);
-//				outer_rect_t::set_color(i * 4 + 3, theme[i].button.hover_outline_color);
+//				outer_rect_t::set_color(i * 4 + 0, m_store[i].m_properties.theme->button.hover_outline_color);
+//				outer_rect_t::set_color(i * 4 + 1, m_store[i].m_properties.theme->button.hover_outline_color);
+//				outer_rect_t::set_color(i * 4 + 2, m_store[i].m_properties.theme->button.hover_outline_color);
+//				outer_rect_t::set_color(i * 4 + 3, m_store[i].m_properties.theme->button.hover_outline_color);
 //
 //				inner_rect_t::edit_data(i);
 //
@@ -2028,12 +2065,12 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::disable_draw(fan::windo
 //		case mouse_stage::outside: {
 //
 //			if (m_selected != i) {
-//				inner_rect_t::set_color(i, theme[i].button.color);
+//				inner_rect_t::set_color(i, m_store[i].m_properties.theme->button.color);
 //
-//				outer_rect_t::set_color(i * 4 + 0, theme[i].button.outline_color);
-//				outer_rect_t::set_color(i * 4 + 1, theme[i].button.outline_color);
-//				outer_rect_t::set_color(i * 4 + 2, theme[i].button.outline_color);
-//				outer_rect_t::set_color(i * 4 + 3, theme[i].button.outline_color);
+//				outer_rect_t::set_color(i * 4 + 0, m_store[i].m_properties.theme->button.outline_color);
+//				outer_rect_t::set_color(i * 4 + 1, m_store[i].m_properties.theme->button.outline_color);
+//				outer_rect_t::set_color(i * 4 + 2, m_store[i].m_properties.theme->button.outline_color);
+//				outer_rect_t::set_color(i * 4 + 3, m_store[i].m_properties.theme->button.outline_color);
 //
 //				inner_rect_t::edit_data(i);
 //

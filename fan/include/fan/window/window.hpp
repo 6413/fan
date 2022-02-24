@@ -19,7 +19,6 @@
 #include <fan/time/time.hpp>
 #include <fan/window/window_input.hpp>
 
-#include <fan/graphics/image.hpp>
 #include <fan/bll.hpp>
 
 #include <deque>
@@ -399,8 +398,6 @@ namespace fan {
 		void handle_events();
 
 		void auto_close(bool state);
-
-		std::vector<std::function<void()>> m_onetime_queue;
 
 #if fan_renderer == fan_renderer_vulkan
 

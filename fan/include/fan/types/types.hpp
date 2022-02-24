@@ -214,6 +214,37 @@ namespace fan {
 		//exit(1);
 	}
 
+	template <typename T>
+	struct ptr_maker_t {
+
+		void open() {
+			ptr = new T;
+		}
+
+		void close() {
+			delete ptr;
+		}
+
+		T& operator*() {
+			return *ptr;
+		}
+		T& operator*() const {
+			return *ptr;
+		}
+		T* operator->() {
+			return ptr;
+		}
+		T& operator[](uintptr_t i) const {
+			return ptr[i];
+		}
+		T& operator[](uintptr_t i) {
+			return ptr[i];
+		}
+
+		T* ptr;
+
+	};
+
 }
 
 //template <platform_t T_platform>
@@ -233,3 +264,8 @@ namespace fan {
 
 #define OFFSETLESS(ptr_m, t_m, d_m) \
 	(t_m *)((uint8_t *)(ptr_m) - offsetof(t_m, d_m))
+
+#define fan_debug_soft 1
+#define fan_debug_hard 2
+
+#define fan_debug fan_debug_soft

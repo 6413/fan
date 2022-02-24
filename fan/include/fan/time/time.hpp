@@ -123,7 +123,7 @@ namespace fan {
 
 		struct clock {
 
-			clock() {}
+			clock() = default;
 
 			template <time_unit unit>
 			clock(const base_time_unit<unit>& time_unit_) {
@@ -207,8 +207,8 @@ namespace fan {
 
 			}
 
-			uint64_t m_timer = 0;
-			uint64_t m_time = 0;
+			uint64_t m_timer;
+			uint64_t m_time;
 
 			time_unit time_unit_value;
 

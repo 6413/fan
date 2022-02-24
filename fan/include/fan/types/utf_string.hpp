@@ -237,4 +237,7 @@ namespace fan {
 		return out;
 	}
 
+	using utf8_string_ptr_t = fan::ptr_maker_t<utf8_string>;
+	using utf16_string_ptr_t = fan::ptr_maker_t<utf16_string>;
+
 }

@@ -20,27 +20,30 @@
 //
 void fan_2d::graphics::gui::text_renderer::open(fan::opengl::context_t* context) {
 
-	m_shader->set_vertex(
+	m_shader.open();
+
+	m_store.open();
+
+	m_shader.set_vertex(
     #include <fan/graphics/glsl/opengl/2D/text.vs>
   );
 
-	m_shader->set_fragment(
+	m_shader.set_fragment(
     #include <fan/graphics/glsl/opengl/2D/text.fs>
   );
 
-	m_shader->compile();
+	m_shader.compile();
 
 	m_glsl_buffer.open();
-  m_glsl_buffer.init(m_shader->id, 
+  m_glsl_buffer.init(m_shader.id, 
     sizeof(fan_2d::graphics::rectangle::properties_t) +
     sizeof(fan::vec2) +// texture_coordinates
-    sizeof(uint32_t) + // render op code 0
-    sizeof(uint32_t) +  // render op code 1
 		sizeof(f32_t) +  // font size
 		sizeof(fan::color) +  // outline color
 		sizeof(f32_t)  // outline size
   );
   m_queue_helper.open();
+	m_store_sprite.open();
 
 	static constexpr const char* font_name = "bitter";
 
@@ -52,12 +55,17 @@ void fan_2d::graphics::gui::text_renderer::open(fan::opengl::context_t* context)
 }
 
 void fan_2d::graphics::gui::text_renderer::close(fan::opengl::context_t* context) {
+	for (int i = 0; i < m_store.size(); i++) {
+		m_store[i].m_text.close();
+	}
+	m_store.close();
+
   sprite::close(context);
 }
 
 void fan_2d::graphics::gui::text_renderer::enable_draw(fan::opengl::context_t* context)
 {
-	context->enable_draw(this, [] (fan::opengl::context_t* c, void* d) { ((fan_2d::graphics::gui::text_renderer*)d)->draw(c); });
+	m_draw_node_reference = context->enable_draw(this, [] (fan::opengl::context_t* c, void* d) { ((decltype(this))d)->draw(c); });
 }
 
 void fan_2d::graphics::gui::text_renderer::disable_draw(fan::opengl::context_t* context)
@@ -71,8 +79,8 @@ void fan_2d::graphics::gui::text_renderer::draw(fan::opengl::context_t* context,
 		return;
 	}
 
-	auto begin_ = begin == 0 || begin == fan::uninitialized ? 0 : m_indices[begin - 1];
-	auto end_ = end == 0 ? 0 : end == fan::uninitialized ? m_indices[m_indices.size() - 1] : m_indices[end - 1];
+	auto begin_ = begin == 0 || begin == fan::uninitialized ? 0 : m_store[begin - 1].m_indices;
+	auto end_ = end == 0 ? 0 : end == fan::uninitialized ? m_store[m_store.size() - 1].m_indices : m_store[end - 1].m_indices;
 
 	fan_2d::graphics::sprite::draw(context, begin_, end_);
 }
@@ -83,10 +91,12 @@ void fan_2d::graphics::gui::text_renderer::push_back(fan::opengl::context_t* con
 		throw std::runtime_error("text cannot be empty");
 	}
 
-	m_position.emplace_back(properties.position);
-	m_text.emplace_back(properties.text);
+	store_t store;
+	store.m_text.open();
 
-	m_indices.emplace_back(m_indices.empty() ? properties.text.size() : m_indices[m_indices.size() - 1] + properties.text.size());
+	store.m_position = properties.position;
+	*store.m_text = properties.text;
+	store.m_indices = m_store.empty() ? properties.text.size() : m_store[m_store.size() - 1].m_indices + properties.text.size();
 
 	fan::vec2 text_size = get_text_size(context, properties.text, properties.font_size);
 
@@ -101,7 +111,9 @@ void fan_2d::graphics::gui::text_renderer::push_back(fan::opengl::context_t* con
 
 	f32_t average_height = 0;
 
-	m_new_lines.resize(m_new_lines.size() + 1, new_lines);
+	store.m_new_lines = new_lines;
+
+	m_store.push_back(store);
 
 	for (int i = 0; i < properties.text.size(); i++) {
 
@@ -144,8 +156,11 @@ void fan_2d::graphics::gui::text_renderer::insert(fan::opengl::context_t* contex
 		throw std::runtime_error("text cannot be empty");
 	}
 
-	m_position.insert(m_position.begin() + i, properties.position);
-	m_text.insert(m_text.begin() + i, properties.text);
+	store_t store;
+	store.m_text.open();
+
+	store.m_position = properties.position;
+	*store.m_text = properties.text;
 
 	fan::vec2 text_size = get_text_size(context, properties.text, properties.font_size);
 
@@ -160,7 +175,8 @@ void fan_2d::graphics::gui::text_renderer::insert(fan::opengl::context_t* contex
 
 	f32_t average_height = 0;
 
-	m_new_lines.insert(m_new_lines.begin() + i, new_lines);
+	store.m_new_lines = new_lines;
+	m_store.insert(m_store.begin() + i, store);
 
 	for (int j = 0; j < properties.text.size(); j++) {
 
@@ -201,13 +217,13 @@ void fan_2d::graphics::gui::text_renderer::insert(fan::opengl::context_t* contex
 
 void fan_2d::graphics::gui::text_renderer::set_position(fan::opengl::context_t* context, uint32_t i, const fan::vec2& position)
 {
-	const uint32_t index = i == 0 ? 0 : m_indices[i - 1];
+	const uint32_t index = i == 0 ? 0 : m_store[i - 1].m_indices;
 
 	const fan::vec2 offset = position - get_position(context, i);
 
-	m_position[i] = position;
+	m_store[i].m_position = position;
 
-	for (int j = 0; j < m_text[i].size(); j++) {
+	for (int j = 0; j < m_store[i].m_text->size(); j++) {
 
 		sprite::set_position(context, index + j, sprite::get_position(context, index + j) + offset);
 
@@ -222,11 +238,11 @@ void fan_2d::graphics::gui::text_renderer::set_position(fan::opengl::context_t* 
 
 	}
 }
-//
-//uint32_t fan_2d::graphics::gui::text_renderer::size(fan::opengl::context_t* context) const {
-//	return m_text.size();
-//}
-//
+
+uint32_t fan_2d::graphics::gui::text_renderer::size(fan::opengl::context_t* context) const {
+	return m_store.size();
+}
+
 f32_t fan_2d::graphics::gui::text_renderer::get_font_size(fan::opengl::context_t* context, uintptr_t i) const
 {
 	return *(f32_t*)m_glsl_buffer.get_instance(get_index(i) * sprite::vertex_count, offset_font_size);
@@ -350,30 +366,18 @@ void fan_2d::graphics::gui::text_renderer::set_outline_size(fan::opengl::context
 
 void fan_2d::graphics::gui::text_renderer::erase(fan::opengl::context_t* context, uintptr_t i) {
 
-	uint64_t begin = get_index(i);
-	uint64_t end = get_index(i + 1);
+	sprite::erase(context, get_index(i), get_index(i + 1));
 
-	m_glsl_buffer.erase_instance(get_index(i));
-
-	sprite::erase(context, begin, end);
-
-	m_text.erase(m_text.begin() + i);
-	m_position.erase(m_position.begin() + i);
-	m_new_lines.erase(m_new_lines.begin() + i);
+	m_store.erase(i);
 
 	this->regenerate_indices();
 }
 
 void fan_2d::graphics::gui::text_renderer::erase(fan::opengl::context_t* context, uintptr_t begin, uintptr_t end) {
 
-	uint64_t begin_ = begin == 0 ? 0 : m_indices[begin - 1];
-	uint64_t end_ = end == 0 ? 0 : m_indices[end - 1];
+	sprite::erase(context, get_index(begin), get_index(end));
 
-	m_glsl_buffer.erase_instance(get_index(begin_), end_ - begin_);
-
-	m_text.erase(m_text.begin() + begin_, m_text.begin() + end_);
-	m_position.erase(m_position.begin() + begin_, m_position.begin() + end_);
-	m_new_lines.erase(m_new_lines.begin() + begin_, m_new_lines.begin() + end_);
+	m_store.erase(begin, end);
 
 	this->regenerate_indices();
 }
@@ -382,11 +386,7 @@ void fan_2d::graphics::gui::text_renderer::clear(fan::opengl::context_t* context
 
 	sprite::clear(context);
 
-	m_text.clear();
-	m_position.clear();
-
-	m_indices.clear();
-	m_new_lines.clear();
+	m_store.clear();
 
 	fan::throw_error("erase from glsl_buffer");
 }

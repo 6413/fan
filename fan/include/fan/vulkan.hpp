@@ -1300,7 +1300,7 @@ namespace fan {
 
 		static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
-#ifdef fan_debug
+#ifdef fan_debug == fan_debug_soft
 		// decreases fps when enabled
 		static constexpr bool enable_validation_layers = true;
 #else

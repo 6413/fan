@@ -1,5 +1,7 @@
 #pragma once
 
+#include <fan/types/types.hpp>
+
 #include <fan/graphics/renderer.hpp>
 
 #if fan_renderer == fan_renderer_opengl
@@ -9,8 +11,7 @@
 #include <fan/graphics/camera.hpp>
 #include <fan/graphics/opengl/gl_shader.hpp>
 #include <fan/window/window.hpp>
-
-//#define fan_debug
+#include <fan/types/memory.h>
 
 namespace fan {
 
@@ -28,6 +29,8 @@ namespace fan {
 
       struct queue_helper_t {
 
+        queue_helper_t() = default;
+
 			  void open();
 
 			  void close(fan::opengl::context_t* context);
@@ -36,7 +39,7 @@ namespace fan {
 
 			  void edit(fan::opengl::context_t* context, uint32_t begin, uint32_t end, glsl_buffer_t* buffer);
 
-			  void on_edit();
+			  void on_edit(fan::opengl::context_t* context);
 
 			  void reset_edit();
 
@@ -60,7 +63,7 @@ namespace fan {
 
 		struct context_t {
 
-    #ifdef fan_debug
+    #ifdef fan_debug == fan_debug_soft
 
       bool m_init[3]{};
 
@@ -180,11 +183,6 @@ namespace fan {
         static constexpr f32_t buffer_increment = 1;
 
         void open() {
-          #ifdef fan_debug
-          if (m_vbo != -1) {
-            fan::throw_error("tried to allocate already allocated vbo - remove() needs to be called before create");
-          }
-        #endif
           m_element_size = 0;
           m_buffer_size = 0;
 
@@ -192,11 +190,12 @@ namespace fan {
 
           glGenBuffers(1, &m_vbo);
           this->allocate_buffer(default_buffer_size);
+          m_buffer.open();
           m_buffer.reserve(default_buffer_size);
         }
 
         void close() {
-        #ifdef fan_debug
+        #ifdef fan_debug == fan_debug_soft
           if (m_vbo == -1) {
             fan::throw_error("tried to remove non existent vbo");
           }
@@ -204,6 +203,7 @@ namespace fan {
           glDeleteBuffers(1, &m_vbo);
 
           m_vao.close();
+          m_buffer.close();
         }
 
         void init(uint32_t program, uint32_t size) {
@@ -260,6 +260,11 @@ namespace fan {
           m_buffer_size = size;
         }
         void* get_buffer_data(GLintptr offset) const {
+        #ifdef fan_debug == fan_debug_soft
+          if (offset > m_buffer.size()) {
+            fan::throw_error("invalid access");
+          }
+        #endif
           return (void*)&m_buffer[offset];
         }
 
@@ -273,26 +278,37 @@ namespace fan {
 
         void write_vram_all() {
           
-          if (m_buffer.size() > m_buffer_size) {
+          /*if (m_buffer.size() > m_buffer_size) {
 
-            m_vao.bind();
-
-            this->bind();
-
-            m_buffer_size = m_buffer.capacity();
-
-            fan::graphics::core::write_glbuffer(m_vbo, m_buffer.data(), m_buffer_size);
           }
           else {
-            fan::graphics::core::edit_glbuffer(m_vbo, &m_buffer[0], 0,  m_buffer.size());
-          }
+            if (m_buffer.empty()) {
+              allocate_buffer(0);
+            }
+            else {
+              fan::graphics::core::edit_glbuffer(m_vbo, &m_buffer[0], 0, m_buffer.size());
+            }
+          }*/
+
+          m_vao.bind();
+
+          this->bind();
+
+          m_buffer_size = m_buffer.size();
+
+          fan::graphics::core::write_glbuffer(m_vbo, m_buffer.begin(), m_buffer_size);
         }
         
         void* get_instance(uint32_t i, uint32_t byte_offset) const {
           return get_buffer_data(i * m_element_size + byte_offset);
         }
         void edit_ram_instance(uint32_t i, const void* data, uint32_t byte_offset, uint32_t sizeof_data) {
-          std::memcpy(&m_buffer[i * m_element_size + byte_offset], data, sizeof_data);
+          #ifdef fan_debug == fan_debug_soft
+            if (i * m_element_size + byte_offset + sizeof_data > m_buffer.size()) {
+              fan::throw_error("invalid access");
+            }
+          #endif
+          std::memmove(m_buffer.begin() + i * m_element_size + byte_offset, data, sizeof_data);
         }
         void edit_vram_instance(uint32_t i, const void* data, uint32_t byte_offset, uint32_t sizeof_data) {
           fan::graphics::core::edit_glbuffer(m_vbo, data, i * m_element_size + byte_offset, sizeof_data);
@@ -301,39 +317,59 @@ namespace fan {
           fan::graphics::core::edit_glbuffer(m_vbo, &m_buffer[begin], begin, end - begin);
         }
         // moves element from end to x - used for optimized earsing where draw order doesnt matter
-        void erase_move_ram_buffer(uint32_t dst, uint32_t src) {
-          std::memcpy(&m_buffer[dst * m_element_size], &m_buffer[src * m_element_size], m_element_size);
+        void move_ram_buffer(uint32_t dst, uint32_t src) {
+           #ifdef fan_debug
+            if (dst * m_element_size + m_element_size > m_buffer.size()) {
+              fan::throw_error("invalid access");
+            }
+            if (src * m_element_size + m_element_size > m_buffer.size()) {
+              fan::throw_error("invalid access");
+            }
+          #endif
+          std::memmove(&m_buffer[dst * m_element_size], &m_buffer[src * m_element_size], m_element_size);
         }
 
-        void erase_instance(uint32_t i, uint32_t count = 1) {
-
-          m_buffer.erase(m_buffer.begin() + i * m_element_size, m_buffer.begin() + (i * count) * m_element_size);
-
-          m_buffer_size = m_buffer.size();
-
-          fan::graphics::core::write_glbuffer(m_vbo, m_buffer.data(), m_buffer_size);
+        void erase_instance(uint32_t i, uint32_t count, uint32_t vertex_count) {
+          #ifdef fan_debug == fan_debug_soft
+            if (i * m_element_size > m_buffer.size()) {
+              fan::throw_error("invalid access");
+            }
+            if (i * m_element_size + m_element_size * count * vertex_count > m_buffer.size()) {
+              fan::throw_error("invalid access");
+            }
+          #endif
+          m_buffer.erase(i * m_element_size, i * m_element_size + m_element_size * count * vertex_count);
         }
 
-        void clear() {
-          // do we use default init size
-          fan::graphics::core::write_glbuffer(m_vbo, nullptr, 0);
+        void clear_ram() {
+          m_buffer.clear();
         }
 
-        void print_buffer() {
-          void* buffer = malloc(m_buffer.size());
+        template <typename T>
+        void print_ram_buffer(uint32_t i, uint32_t byte_offset) {
+          fan::print((T)m_buffer[i * m_element_size + byte_offset]);
+        }
+
+        template <typename T>
+        void print_vram_buffer(uint32_t i, uint32_t size, uint32_t byte_offset) {
+          T value;
 
           this->bind();
-
-          glGetBufferSubData(GL_ARRAY_BUFFER, 0, m_buffer.size() - m_element_size, buffer);
-
-          for (int i = 0; i < m_buffer.size() / 4; i++) {
-            fan::print(((f32_t*)buffer)[i]);
-          }
-
-          free(buffer);
+          glGetBufferSubData(GL_ARRAY_BUFFER, i * m_element_size + byte_offset, size, &value);
+          fan::print(value);
         }
 
-        void draw(fan::opengl::context_t* context, fan::shader_t shader) {
+        void confirm_buffer() {
+          uint8_t* ptr = (uint8_t*)get_buffer_data(0);
+
+          for (int i = 0; i < m_buffer.size(); i++) {
+            if (m_buffer[i] != ptr[i]) {
+              fan::throw_error("ram and vram data is different");
+            }
+          }
+        }
+
+        void draw(fan::opengl::context_t* context, fan::shader_t shader, uint32_t begin, uint32_t end) {
           m_vao.bind();
           const fan::vec2 viewport_size = context->viewport_size;
 
@@ -350,25 +386,21 @@ namespace fan {
 		      fan::mat4 view(1);
 		      view = context->camera.get_view_matrix(view.translate(fan::vec3((f_t)viewport_size.x * 0.5, (f_t)viewport_size.y * 0.5, -700.0f)));
 
-		      shader->use();
-		      shader->set_projection(projection);
-		      shader->set_view(view);
+		      shader.use();
+		      shader.set_projection(projection);
+		      shader.set_view(view);
 
           // possibly disable depth test here
-		      glDrawArrays(GL_TRIANGLES, 0, m_buffer.size() / sizeof(f32_t));
+		      glDrawArrays(GL_TRIANGLES, begin, end);
         }
 
-        uint32_t m_vbo
-        #ifdef fan_debug
-          = -1;
-        #endif
-          ;
+        uint32_t m_vbo;
         uint32_t m_element_size;
         uint64_t m_buffer_size;
 
         fan::graphics::core::vao_t m_vao;
         
-        std::vector<uint8_t> m_buffer;
+        fan::hector_t<uint8_t> m_buffer;
 
       };
 
@@ -407,7 +439,9 @@ inline void fan::graphics::core::queue_helper_t::edit(fan::opengl::context_t* co
   m_edit_index = context->m_write_queue.push_back(buffer_queue_t{this, buffer});
 }
 
-inline void fan::graphics::core::queue_helper_t::on_edit() {
+inline void fan::graphics::core::queue_helper_t::on_edit(fan::opengl::context_t* context) {
+  context->m_write_queue.erase(m_edit_index);
+
 	m_min_edit = fan::uninitialized;
 	m_max_edit = 0;
 
@@ -415,7 +449,7 @@ inline void fan::graphics::core::queue_helper_t::on_edit() {
 }
 
 inline void fan::graphics::core::queue_helper_t::reset_edit() {
-	m_min_edit = -1;
+	m_min_edit = fan::uninitialized;
 	m_max_edit = 0;
 
 	m_edit_index = fan::uninitialized;
@@ -423,18 +457,22 @@ inline void fan::graphics::core::queue_helper_t::reset_edit() {
 
 inline void fan::opengl::context_t::init() {
 
-  #ifdef fan_debug
+  #ifdef fan_debug == fan_debug_soft
+    std::memset(m_init, 0, sizeof(m_init));
     m_init[0] = 1;
   #endif
 
 	if (glewInit() != GLEW_OK) {
 		fan::throw_error("failed to initialize glew");
 	}
+
+  glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 inline void fan::opengl::context_t::bind_to_window(fan::window* window) {
 
-  #ifdef fan_debug
+  #ifdef fan_debug == fan_debug_soft
     m_init[1] = 1;
   #endif
 
@@ -452,10 +490,11 @@ inline void fan::opengl::context_t::bind_to_window(fan::window* window) {
 
 	#endif
 
+  window->set_vsync(true);
 }
 
 inline void fan::opengl::context_t::set_viewport(const fan::vec2& viewport_position, const fan::vec2& viewport_size_) {
-  #ifdef fan_debug
+  #ifdef fan_debug == fan_debug_soft
     m_init[2] = 1;
   #endif
 	glViewport(viewport_position.x, viewport_position.y, viewport_size_.x, viewport_size_.y);
@@ -469,7 +508,7 @@ inline void fan::opengl::context_t::process() {
 
 	#endif
 
-  #ifdef fan_debug
+  #ifdef fan_debug == fan_debug_soft
     for (int j = 0; j < 3; j++) {
       if (!m_init[j]) {
         switch(j) {
@@ -493,13 +532,13 @@ inline void fan::opengl::context_t::process() {
 
 		m_write_queue.start_safe_next(it);
     
-    if (m_write_queue[it].glsl_buffer->m_buffer.capacity() > m_write_queue[it].glsl_buffer->m_buffer_size) {
+  //  if (m_write_queue[it].glsl_buffer->m_buffer.capacity() > m_write_queue[it].glsl_buffer->m_buffer_size) {
       m_write_queue[it].glsl_buffer->write_vram_all();
-    }
-    else {
-      m_write_queue[it].glsl_buffer->edit_vram_buffer(m_write_queue[it].queue_helper->m_min_edit, m_write_queue[it].queue_helper->m_max_edit);
-    }
-    m_write_queue[it].queue_helper->on_edit();
+   // }
+  //  else {
+   //   m_write_queue[it].glsl_buffer->edit_vram_buffer(m_write_queue[it].queue_helper->m_min_edit, m_write_queue[it].queue_helper->m_max_edit);
+   // }
+    m_write_queue[it].queue_helper->on_edit(this);
 
 		it = m_write_queue.end_safe_next();
 	}

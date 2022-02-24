@@ -1,5 +1,7 @@
 #pragma once
 
+#include <fan/types/types.hpp>
+
 #include <fan/window/window.hpp>
 
 #include <fan/graphics/camera.hpp>
@@ -101,10 +103,6 @@ namespace fan_2d {
 					}
 #endif
 				}
-			}
-
-			~image_T() {
-				this->free();
 			}
 
 #if fan_renderer == fan_renderer_opengl
