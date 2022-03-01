@@ -132,13 +132,13 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::push_back(fan::opengl::con
 	outer_rect_t::push_back(context, properties);
 }
 
-void fan_2d::graphics::gui::rectangle_text_box_sized::draw(fan::opengl::context_t* context, uint32_t begin, uint32_t end)
+void fan_2d::graphics::gui::rectangle_text_box_sized::draw(fan::opengl::context_t* context)
 {
 	// depth test
-	inner_rect_t::draw(context, begin == (uint32_t)-1 ? 0 : begin, end == (uint32_t)-1 ? inner_rect_t::size(context) : end);
-	outer_rect_t::draw(context, begin == (uint32_t)-1 ? 0 : begin * 4, end == (uint32_t)-1 ? outer_rect_t::size(context) : end * 4);
+	inner_rect_t::draw(context);
+	outer_rect_t::draw(context);
 
-	fan_2d::graphics::gui::text_renderer::draw(context, begin, end);
+	fan_2d::graphics::gui::text_renderer::draw(context);
 }
 
 void fan_2d::graphics::gui::rectangle_text_box_sized::set_position(fan::opengl::context_t* context, uint32_t i, const fan::vec2& position)
@@ -1266,7 +1266,7 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::push_back(fan::window* 
 	}
 
 	rectangle_text_button_sized::rectangle_text_box_sized::push_back(context, properties);
-
+	
 	m_key_event.push_back(window, context, properties.character_limit, properties.character_width, properties.line_limit);
 
 	if (inside(context, size(context) - 1, window->get_mouse_position()) && properties.button_state != button_states_e::locked) {
@@ -1292,9 +1292,9 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::set_place_holder(fan::w
 
 }
 
-void fan_2d::graphics::gui::rectangle_text_button_sized::draw(fan::window* window, fan::opengl::context_t* context, uint32_t begin, uint32_t end)
+void fan_2d::graphics::gui::rectangle_text_button_sized::draw(fan::window* window, fan::opengl::context_t* context)
 {
-	rectangle_text_button_sized::rectangle_text_box_sized::draw(context, begin, end);
+	rectangle_text_button_sized::rectangle_text_box_sized::draw(context);
 	m_key_event.draw(window, context);
 }
 

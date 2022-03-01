@@ -30,40 +30,31 @@ namespace fan {
     }
 
     template <typename T>
-    void insert(type_t* i, T* begin, T* end) {
-    #ifdef fan_debug == fan_debug_soft
+    void insert(uintptr_t i, T* begin, T* end) {
+    #if fan_debug >= fan_debug_soft
 
     #endif
       uintptr_t n = uintptr_t(end - begin);
 
-      uintptr_t index = uintptr_t(i - ptr);
-
-      uintptr_t previous_size = m_size - index;
-
       m_size += n;
       handle_buffer();
 
-      std::memmove(ptr + index + n, ptr + index, previous_size * sizeof(type_t));
-      std::memmove(ptr + index, begin, n * sizeof(T));
+      uintptr_t previous_size = m_size - i - n;
+
+      std::memmove(ptr + i + n, ptr + i, previous_size * sizeof(type_t));
+      std::memmove(ptr + i, begin, n * sizeof(T));
     }
 
-    void insert(type_t* i, type_t element) {
-    #ifdef fan_debug == fan_debug_soft
-        if (uintptr_t(i - ptr) > m_size) {
-          fan::throw_error("invalid erase location 0");
-        }
-    #endif
+    void insert(uintptr_t i, type_t element) {
       uintptr_t n = 1;
 
-      uintptr_t index = uintptr_t(i - ptr);
-
-      uintptr_t previous_size = m_size - index;
+      uintptr_t previous_size = m_size - i;
 
       m_size += n;
       handle_buffer();
 
-      std::memmove(ptr + index + n, ptr + index, previous_size * sizeof(type_t));
-      *(ptr + index) = element;
+      std::memmove(ptr + i + n, ptr + i, previous_size * sizeof(type_t));
+      *(ptr + i) = element;
     }
 
     void erase(uintptr_t i) {
@@ -71,7 +62,7 @@ namespace fan {
     }
 
     void erase(uintptr_t begin, uintptr_t end) {
-      #ifdef fan_debug == fan_debug_soft
+      #if fan_debug >= fan_debug_soft
 
         if (end - begin > m_size) {
           fan::throw_error("invalid erase location 0");
@@ -88,17 +79,14 @@ namespace fan {
       #endif
       uintptr_t n = end - begin;
 
-      uintptr_t previous_size = m_size - n;
-
-      if (m_size > n) {
-        for (int i = 0; i < n; i++) {
-          ptr[begin + i] = ptr[n + i];
-        }
-      }
+      std::memmove(ptr + begin, ptr + end, (m_size - end) * sizeof(type_t));
 
       m_size -= n;
       handle_buffer();
 
+      if (m_size == 0) {
+        this->clear();
+      }
     }
 
     bool empty() const {
@@ -113,6 +101,10 @@ namespace fan {
 
       if(m_size >= m_capacity){
         m_capacity = m_size + get_buffer_size();
+        ptr = (type_t*)resize_buffer(ptr, m_capacity * sizeof(type_t));
+      }
+      if (m_size <= m_capacity) {
+        m_capacity = m_size;
         ptr = (type_t*)resize_buffer(ptr, m_capacity * sizeof(type_t));
       }
     }
@@ -136,10 +128,20 @@ namespace fan {
     }
 
     const type_t& operator[](uintptr_t i) const {
+    #if fan_debug >= fan_debug_soft
+      if (i >= m_size) {
+        fan::throw_error("invalid pointer access");
+      }
+    #endif
       return *(ptr + i);
     }
 
     type_t& operator[](uintptr_t i) {
+    #if fan_debug >= fan_debug_soft
+      if (i >= m_size) {
+        fan::throw_error("invalid pointer access");
+      }
+    #endif
       return *(ptr + i);
     }
 
@@ -177,7 +179,7 @@ namespace fan {
       close();
     }
 
-    static constexpr uintptr_t buffer_increment = 0xfff;
+    static constexpr uintptr_t buffer_increment = 0x1;
 
   protected:
 

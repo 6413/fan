@@ -294,7 +294,7 @@ namespace fan {
 
       auto location = glGetUniformLocation(id, name.c_str());
 
-    #ifdef fan_debug == fan_debug_soft
+    #if fan_debug >= fan_debug_soft
       fan_validate_value(location, validate_error_message(name));
     #endif
       if constexpr (std::is_same<fan::mat4::value_type::value_type, float>::value) {
