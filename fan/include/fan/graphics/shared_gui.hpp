@@ -16,6 +16,8 @@
 #include <fan/physics/collision/rectangle.hpp>
 #include <fan/physics/collision/circle.hpp>
 
+#include <fan/graphics/opengl/objects/text_renderer.h>
+
 namespace fan_2d {
 
 	namespace graphics {
@@ -72,396 +74,6 @@ namespace fan_2d {
 
 			};*/
 
-			struct text_renderer 
-#if fan_renderer == fan_renderer_opengl
-
-				:
-				protected fan_2d::graphics::sprite
-
-#elif fan_renderer == fan_renderer_vulkan
-
-#endif
-			
-			{
-
-				text_renderer() = default;
-
-				struct properties_t {
-					fan::utf16_string text; 
-					f32_t font_size;
-					fan::vec2 position;
-					fan::color text_color;
-					fan::color outline_color = fan::color(0, 0, 0, 0);
-					f32_t outline_size = 0.3;
-					fan::vec2 rotation_point;
-					f32_t angle = 0;
-				};
-
-				void open(fan::opengl::context_t* context);
-				void close(fan::opengl::context_t* context);
-
-				void push_back(fan::opengl::context_t* context, properties_t properties);
-
-				void insert(fan::opengl::context_t* context, uint32_t i, properties_t properties);
-
-				fan::vec2 get_position(fan::opengl::context_t* context, uint32_t i) const {
-					return m_store[i].m_position;
-				}
-				void set_position(fan::opengl::context_t* context, uint32_t i, const fan::vec2& position);
-
-				uint32_t size(fan::opengl::context_t* context) const;
-
-				static fan::font::single_info_t get_letter_info(fan::opengl::context_t* context, wchar_t c, f32_t font_size) {
-					auto found = font.font.find(c);
-
-					if (found == font.font.end()) {
-						throw std::runtime_error("failed to find character: " + std::to_string((int)c));
-					}
-
-					f32_t converted_size = text_renderer::convert_font_size(context, font_size);
-
-					fan::font::single_info_t font_info;
-					font_info.metrics.size = found->second.metrics.size * converted_size;
-					font_info.metrics.offset = found->second.metrics.offset * converted_size;
-					font_info.metrics.advance = (found->second.metrics.advance * converted_size);
-
-					font_info.glyph = found->second.glyph;
-					font_info.mapping = found->second.mapping;
-
-					return font_info;
-				}
-
-				static fan::font::single_info_t get_letter_info(fan::opengl::context_t* context, uint8_t* c, f32_t font_size) {
-
-					auto found = font.font.find(fan::utf16_string(c).data()[0]);
-
-					if (found == font.font.end()) {
-						throw std::runtime_error("failed to find character: " + std::to_string(fan::utf16_string(c).data()[0]));
-					}
-
-					f32_t converted_size = text_renderer::convert_font_size(context, font_size);
-
-					fan::font::single_info_t font_info;
-					font_info.metrics.size = found->second.metrics.size * converted_size;
-					font_info.metrics.offset = found->second.metrics.offset * converted_size;
-					font_info.metrics.advance = (found->second.metrics.advance * converted_size);
-
-					font_info.glyph = found->second.glyph;
-					font_info.mapping = found->second.mapping;
-
-					return font_info;
-				}
-
-				/*fan::vec2 get_character_position(fan::opengl::context_t* context, uint32_t i, uint32_t j, f32_t font_size) const {
-					fan::vec2 position = text_renderer::get_position(context, i);
-
-					auto converted_size = convert_font_size(context, font_size);
-
-					for (int k = 0; k < j; k++) {
-						position.x += font.font[m_store[i].m_text[k]].metrics.advance * converted_size;
-					}
-
-					position.y = i * (font.line_height * converted_size);
-
-					return position;
-				}*/
-
-				f32_t get_font_size(fan::opengl::context_t* context, uintptr_t i) const;
-				void set_font_size(fan::opengl::context_t* context, uint32_t i, f32_t font_size);
-
-				f32_t get_angle(fan::opengl::context_t* context, uint32_t i) const;
-				void set_angle(fan::opengl::context_t* context, uint32_t i, f32_t angle);
-
-				f32_t get_rotation_point(fan::opengl::context_t* context, uint32_t i) const;
-				void set_rotation_point(fan::opengl::context_t* context, uint32_t i, const fan::vec2& rotation_point);
-
-				fan::color get_outline_color(fan::opengl::context_t* context, uint32_t i) const;
-				void set_outline_color(fan::opengl::context_t* context, uint32_t i, const fan::color& outline_color);
-
-				f32_t get_outline_size(fan::opengl::context_t* context, uint32_t i) const;
-				void set_outline_size(fan::opengl::context_t* context, uint32_t i, f32_t outline_size);
-
-				static f32_t convert_font_size(fan::opengl::context_t* context, f32_t font_size) {
-					return font_size / font.size;
-				}
-
-				void erase(fan::opengl::context_t* context, uintptr_t i);
-
-				void erase(fan::opengl::context_t* context, uintptr_t begin, uintptr_t end);
-
-				void clear(fan::opengl::context_t* context);
-
-				static f32_t get_line_height(fan::opengl::context_t* context, f32_t font_size) {
-					return font.line_height * convert_font_size(context, font_size);
-				}
-
-				fan::utf16_string get_text(fan::opengl::context_t* context, uint32_t i) const {
-					return *m_store[i].m_text;
-				}
-				void set_text(fan::opengl::context_t* context, uint32_t i, const fan::utf16_string& text);
-
-				fan::color get_text_color(fan::opengl::context_t* context, uint32_t i, uint32_t j = 0) const;
-				void set_text_color(fan::opengl::context_t* context, uint32_t i, const fan::color& color);
-				void set_text_color(fan::opengl::context_t* context, uint32_t i, uint32_t j, const fan::color& color);
-
-				fan::vec2 get_text_size(fan::opengl::context_t* context, uint32_t i) {
-
-					uint32_t begin = 0;
-					uint32_t end = 0;
-
-					for (int j = 0; j < i; j++) {
-						begin += m_store[j].m_text->size();
-					}
-
-					end = begin + m_store[i].m_text->size() - 1;
-
-					auto p_first = sprite::get_position(context, begin);
-					auto p_last = sprite::get_position(context, end);
-
-					auto s_first = sprite::get_size(context, begin);
-					auto s_last = sprite::get_size(context, end);
-
-					return fan::vec2((p_last.x + s_last.x) - (p_first.x - s_first.x), font.line_height);
-				}
-
-				static fan::vec2 get_text_size(fan::opengl::context_t* context, const fan::utf16_string& text, f32_t font_size) {
-					fan::vec2 text_size;
-
-					text_size.y = font.line_height;
-
-					f32_t width = 0;
-
-					for (int i = 0; i < text.size(); i++) {
-
-						switch (text[i]) {
-							case '\n': {
-								text_size.x = std::max(width, text_size.x);
-								text_size.y += font.line_height;
-								width = 0;
-								continue;
-							}
-						}
-
-						auto letter = font.font[text[i]];
-
-						if (i == text.size() - 1) {
-							width += letter.glyph.size.x;
-						}
-						else {
-							width += letter.metrics.advance;
-						}
-					}
-
-					text_size.x = std::max(width, text_size.x);
-
-					return text_size * convert_font_size(context, font_size);
-				}
-
-				static f32_t get_original_font_size(fan::opengl::context_t* context) {
-					return font.size;
-				}
-
-				inline static fan::font::font_t font;
-				inline static fan_2d::graphics::image_t font_image = nullptr;
-
-				static uint64_t get_new_lines(fan::opengl::context_t* context, const fan::utf16_string& str)
-				{
-					uint64_t new_lines = 0;
-					const wchar_t* p = str.data();
-					for (int i = 0; i < str.size(); i++) {
-						if (p[i] == '\n') {
-							new_lines++;
-						}
-					}
-
-					return new_lines;
-				}
-
-				void enable_draw(fan::opengl::context_t* context);
-				void disable_draw(fan::opengl::context_t* context);
-
-			protected:
-
-				void draw(fan::opengl::context_t* context, uint32_t begin = fan::uninitialized, uint32_t end = fan::uninitialized);
-
-				void insert_letter(fan::opengl::context_t* context, uint32_t i, uint32_t j, wchar_t letter, f32_t font_size, fan::vec2& position, const fan::color& color, f32_t& advance);
-				void push_back_letter(fan::opengl::context_t* context, wchar_t letter, f32_t font_size, fan::vec2& position, const fan::color& color, f32_t& advance);
-
-				void regenerate_indices() {
-
-					for (int i = 0; i < m_store.size(); i++) {
-						if (i == 0) {
-							m_store[i].m_indices = m_store[i].m_text->size();
-						}
-						else {
-							m_store[i].m_indices = m_store[i - 1].m_indices + m_store[i].m_text->size();
-						}
-					}
-				}
-
-				struct store_t {
-					fan::utf16_string_ptr_t m_text;
-					fan::vec2 m_position;
-					uint32_t m_indices;
-					uint32_t m_new_lines;
-				};
-
-				fan::hector_t<store_t> m_store;
-
-				struct letter_t {
-					fan::vec2 texture_position;
-					fan::vec2 texture_size;
-					std::array<fan::vec2, 4> texture_coordinates;
-
-					fan::vec2 size;
-					fan::vec2 offset;
-				};
-
-				letter_t get_letter(fan::opengl::context_t* context, wchar_t character, f32_t font_size) {
-
-					auto letter_info = get_letter_info(context, character, font_size);
-
-					letter_t letter;
-					letter.texture_position = letter_info.glyph.position / font_image->size;
-					letter.texture_size = letter_info.glyph.size / font_image->size;
-
-					fan::vec2 src = letter.texture_position;
-					fan::vec2 dst = src + letter.texture_size;
-
-					letter.texture_coordinates = { {
-						fan::vec2(src.x, src.y),
-						fan::vec2(dst.x, src.y),
-						fan::vec2(dst.x, dst.y),
-						fan::vec2(src.x, dst.y)
-					} };
-
-					letter.size = letter_info.metrics.size / 2;
-					letter.offset = letter_info.metrics.offset;
-
-					return letter;
-				}
-
-				void push_letter(fan::opengl::context_t* context, wchar_t character, properties_t properties) {
-
-					letter_t letter = get_letter(context, character, properties.font_size);
-
-					fan_2d::graphics::sprite::properties_t p;
-					p.position = properties.position + fan::vec2(letter.size.x, -letter.size.y) + fan::vec2(letter.offset.x, -letter.offset.y);
-
-					p.size = letter.size;
-					p.image = font_image;
-					p.texture_coordinates = letter.texture_coordinates;
-
-					fan_2d::graphics::sprite::push_back(context, p);
-
-					fan_2d::graphics::sprite::set_color(context, fan_2d::graphics::sprite::size(context) - 1, properties.text_color);
-
-					for (uint32_t j = 0; j < sprite::vertex_count; j++) {
-						m_glsl_buffer.edit_ram_instance(
-							(rectangle::size(context) - 1) * sprite::vertex_count + j,
-							&properties.font_size,
-							offset_font_size,
-							sizeof(f32_t)
-						);
-						m_glsl_buffer.edit_ram_instance(
-							(rectangle::size(context) - 1) * sprite::vertex_count + j,
-							&properties.outline_color,
-							offset_outline_color,
-							sizeof(fan::color)
-						);
-						m_glsl_buffer.edit_ram_instance(
-							(rectangle::size(context) - 1) * sprite::vertex_count + j,
-							&properties.outline_size,
-							offset_outline_size,
-							sizeof(f32_t)
-						);
-					}
-				}
-
-				static constexpr uint32_t offset_font_size = offset_texture_coordinates + sizeof(fan::vec2);
-				static constexpr uint32_t offset_outline_color = offset_font_size + sizeof(f32_t);
-				static constexpr uint32_t offset_outline_size = offset_outline_color + sizeof(fan::color);
-
-				void insert_letter(fan::opengl::context_t* context, uint32_t i, wchar_t character, properties_t properties) {
-
-					letter_t letter = get_letter(context, character, properties.font_size);
-
-					fan_2d::graphics::sprite::properties_t p;
-					p.position = properties.position + fan::vec2(letter.size.x, -letter.size.y) + fan::vec2(letter.offset.x, -letter.offset.y);
-
-					p.size = letter.size;
-					p.image = font_image;
-					p.texture_coordinates = letter.texture_coordinates;
-
-					fan_2d::graphics::sprite::insert(context, i, p);
-
-					fan_2d::graphics::sprite::set_color(context, i, properties.text_color);
-
-					for (uint32_t j = 0; j < sprite::vertex_count; j++) {
-						m_glsl_buffer.edit_ram_instance(
-							i * sprite::vertex_count + j,
-							&properties.font_size,
-							offset_font_size,
-							sizeof(f32_t)
-						);
-						m_glsl_buffer.edit_ram_instance(
-							i * sprite::vertex_count + j,
-							&properties.outline_color,
-							offset_outline_color,
-							sizeof(fan::color)
-						);
-						m_glsl_buffer.edit_ram_instance(
-							i * sprite::vertex_count + j,
-							&properties.outline_size,
-							offset_outline_size,
-							sizeof(f32_t)
-						);
-					}
-				}
-
-				constexpr uint32_t get_index(uint32_t i) const {
-					return i == 0 ? 0 : m_store[i - 1].m_indices;
-				}
-
-#if fan_renderer == fan_renderer_opengl
-
-#elif fan_renderer == fan_renderer_vulkan
-
-				struct instance_t {
-
-					fan::vec2 position;
-					fan::vec2 size;
-					f32_t angle;
-					fan::color color;
-					f32_t font_size;
-					fan::vec2 text_rotation_point;
-					std::array<fan::vec2, 6> texture_coordinate;
-
-				};
-
-				queue_helper_t m_queue_helper;
-
-				uint32_t m_draw_index = -1;
-
-				view_projection_t view_projection{};
-
-				using instance_buffer_t = fan::gpu_memory::buffer_object<instance_t, fan::gpu_memory::buffer_type::buffer>;
-
-				instance_buffer_t* instance_buffer = nullptr;
-
-				uint32_t m_begin = 0;
-				uint32_t m_end = 0;
-
-				fan::gpu_memory::uniform_handler* uniform_handler = nullptr;
-
-				std::vector<VkDeviceSize> descriptor_offsets;
-			#ifdef fan_renderer == fan_renderer_vulkan
-				uint64_t pipeline_offset = 0;
-			#endif
-#endif
-
-			};
-
 			struct text_renderer0 : public text_renderer {
 
 				typedef void(*index_change_cb_t)(void*, uint64_t);
@@ -499,9 +111,6 @@ namespace fan_2d {
 				void erase(uintptr_t begin, uintptr_t end) = delete;
 
 			protected:
-
-				using rectangle::get_color;
-				using rectangle::set_color;
 
 				index_change_cb_t m_index_change_cb;
 
@@ -773,8 +382,8 @@ namespace fan_2d {
 //
 //
 			struct src_dst_t {
-				fan::vec2 src;
-				fan::vec2 dst;
+				fan::vec2 src = 0;
+				fan::vec2 dst = 0;
 			};
 
 			template <typename T>
@@ -1626,11 +1235,11 @@ namespace fan_2d {
 //
 			struct rectangle_button_sized_properties {
 
-				fan::utf16_string text = empty_string;
+				fan::utf16_string text;
 
 				fan::utf16_string place_holder;
 
-				fan::vec2 position;
+				fan::vec2 position = 0;
 
 				f32_t font_size = fan_2d::graphics::gui::defaults::font_size;
 
@@ -1638,9 +1247,9 @@ namespace fan_2d {
 
 				fan_2d::graphics::gui::theme theme = fan_2d::graphics::gui::themes::deep_blue();
 
-				fan::vec2 size;
+				fan::vec2 size = 0;
 
-				fan::vec2 offset;
+				fan::vec2 offset = 0;
 
 			};
 //
@@ -1742,7 +1351,7 @@ namespace fan_2d {
 					p_t m_properties;
 				};
 
-				void draw(fan::opengl::context_t* context, uint32_t begin = fan::uninitialized, uint32_t end = fan::uninitialized);
+				void draw(fan::opengl::context_t* context);
 
 				void write_data();
 
@@ -2035,7 +1644,7 @@ namespace fan_2d {
 
 			protected:
 
-				void draw(fan::window* window, fan::opengl::context_t* context, uint32_t begin = fan::uninitialized, uint32_t end = fan::uninitialized);
+				void draw(fan::window* window, fan::opengl::context_t* context);
 
 				fan::hector_t<uint32_t> m_reserved;
 			};

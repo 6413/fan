@@ -6,7 +6,6 @@
 #include <sstream>
 #include <functional>
 #include <any>
-
 typedef intptr_t si_t;
 typedef uintptr_t uint_t;
 typedef intptr_t sint_t;
@@ -172,7 +171,7 @@ namespace fan {
 	}
 
 	// prints warning if value is -1
-	#define fan_validate_value(value, text) if (value == (decltype(value))fan::uninitialized) { }
+	#define fan_validate_value(value, text) if (value == (decltype(value))fan::uninitialized) { fan::throw_error(text); }
 
 	template <typename T>
 	constexpr T clamp(T value, T min, T max) {
@@ -247,6 +246,7 @@ namespace fan {
 
 }
 
+
 //template <platform_t T_platform>
 //concept platform_windows = T_platform == platform_t::windows;
  
@@ -265,7 +265,8 @@ namespace fan {
 #define OFFSETLESS(ptr_m, t_m, d_m) \
 	(t_m *)((uint8_t *)(ptr_m) - offsetof(t_m, d_m))
 
+#define fan_debug_none 0
 #define fan_debug_soft 1
 #define fan_debug_hard 2
 
-#define fan_debug fan_debug_soft
+#define fan_debug fan_debug_hard

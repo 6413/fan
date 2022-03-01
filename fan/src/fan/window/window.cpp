@@ -159,6 +159,7 @@ fan::window::window(const fan::vec2i& window_size, const std::string& name, uint
 	m_fps(0), m_last_frame(0), m_current_frame(0), m_delta_time(0), m_vsync(false), m_close(false),
 	m_name(name), m_flags(flags), m_current_key(0), m_reserved_flags(0), m_focused(true), m_auto_close(true)
 {
+	m_fps_timer.m_time = 0;
 	if (flag_values::m_size_mode == fan::window::mode::not_set) {
 		flag_values::m_size_mode = fan::window::default_size_mode;
 	}

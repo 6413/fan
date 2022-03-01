@@ -211,7 +211,7 @@ namespace fan {
 					FrameCacheList_Node->data.PieceCacheIndex = PieceCacheIndex;
 				}
 				else {
-					FrameCacheList_Reserve(&audio->FrameCacheList, PieceCache->ref);
+					FrameCacheList_Unlink(&audio->FrameCacheList, PieceCache->ref);
 					FrameCacheList_linkPrev(&audio->FrameCacheList, audio->FrameCacheList.dst, PieceCache->ref);
 				}
 				FrameCacheList_Node_t* FrameCacheList_Node = FrameCacheList_GetNodeByReference(&audio->FrameCacheList, PieceCache->ref);
@@ -236,7 +236,8 @@ namespace fan {
 				if (PlayInfoNode->data.PlayID == (uint32_t)-1) {
 					/* properties are ignored */
 					TH_lock(&audio->PlayInfoListMutex);
-					PlayInfoList_unlink(&audio->PlayInfoList, PlayInfoReference);
+					PlayInfoList_Unlink(&audio->PlayInfoList, PlayInfoReference);
+					PlayInfoList_Recycle(&audio->PlayInfoList, PlayInfoReference);
 					TH_unlock(&audio->PlayInfoListMutex);
 				}
 				else {
@@ -259,7 +260,8 @@ namespace fan {
 					else {
 						RemoveFromPlayList(audio, PlayInfoNode->data.PlayID);
 						TH_lock(&audio->PlayInfoListMutex);
-						PlayInfoList_unlink(&audio->PlayInfoList, PlayInfoReference);
+						PlayInfoList_Unlink(&audio->PlayInfoList, PlayInfoReference);
+						PlayInfoList_Recycle(&audio->PlayInfoList, PlayInfoReference);
 						TH_unlock(&audio->PlayInfoListMutex);
 					}
 				}
@@ -281,7 +283,7 @@ namespace fan {
 				Play_t* Play = &((Play_t*)audio->PlayList.ptr)[PlayID];
 				Play->Reference = PlayInfoReference;
 				PlayInfoList_Node_t* PlayInfoNode = PlayInfoList_GetNodeByReference(&audio->PlayInfoList, PlayInfoReference);
-#ifdef fan_debug
+#if fan_debug
 				if (PlayInfoNode->data.PlayID != (uint32_t)-1) {
 					/* trying play sound that already playing */
 					fan::throw_error("fan_debug");
@@ -290,7 +292,7 @@ namespace fan {
 				PlayInfoNode->data.PlayID = PlayID;
 			}
 			void data_callback(ma_device* Device, void* Output, const void* Input, ma_uint32 FrameCount) {
-#ifdef fan_debug
+#if fan_debug
 				if (FrameCount != constants::CallFrameCount) {
 					fan::throw_error("fan_debug");
 				}
@@ -459,7 +461,8 @@ namespace fan {
 					}
 					node->data.piece->Cache[node->data.PieceCacheIndex].ref = (FrameCacheList_NodeReference_t)-1;
 					FrameCacheList_NodeReference_t NextReference = node->NextNodeReference;
-					FrameCacheList_unlink(&audio->FrameCacheList, ref);
+					FrameCacheList_Unlink(&audio->FrameCacheList, ref);
+					FrameCacheList_Recycle(&audio->FrameCacheList, ref);
 					ref = NextReference;
 				}
 				audio->Tick++;
@@ -559,7 +562,7 @@ namespace fan {
 		}
 
 		uint32_t SoundPlay(audio_t* audio, piece_t* piece, uint32_t GroupID, const PropertiesSoundPlay_t* Properties) {
-#ifdef fan_debug
+#if fan_debug
 			if (GroupID >= audio->GroupAmount) {
 				fan::throw_error("fan_debug");
 			}

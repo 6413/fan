@@ -6,6 +6,8 @@
 
 #include <fan/graphics/camera.hpp>
 
+#include <fan/graphics/webp.h>
+
 #define get_properties(v) decltype(v)::properties_t
 
 namespace fan_2d {
@@ -67,6 +69,11 @@ namespace fan_2d {
 			float x = input.x * cos(a) - input.y * sin(a);
 			float y = input.x * sin(a) + input.y * cos(a);
 			return fan::vec2(x, y);
+		}
+
+		static constexpr fan::vec2 convert_tc_4_2_6(const std::array<fan::vec2, 4>* tx, uint32_t i) {
+			constexpr std::array<uint8_t, 8> table{0, 1, 2, 2, 3, 0};
+			return (*tx)[table[i]];
 		}
 
 		struct load_properties_t {
@@ -132,5 +139,125 @@ namespace fan_2d {
 			// opengl alloc pixels, glGetTexImage(pixels), glTexImage2D(pixels)
 			assert(0);
 		}
+
+		namespace image_load_properties {
+			inline uint32_t visual_output = GL_CLAMP_TO_BORDER;
+			inline uintptr_t internal_format = GL_RGBA;
+			inline uintptr_t format = GL_RGBA;
+			inline uintptr_t type = GL_UNSIGNED_BYTE;
+			inline uintptr_t filter = GL_LINEAR;
+		}
+
+		// fan::get_device(window)
+		static image_t load_image(const std::string& path) {
+		#if fan_renderer == fan_renderer_opengl
+
+		#if fan_assert_if_same_path_loaded_multiple_times
+
+			static std::unordered_map<std::string, bool> existing_images;
+
+			if (existing_images.find(path) != existing_images.end()) {
+				fan::throw_error("image already existing " + path);
+			}
+
+			existing_images[path] = 0;
+
+		#endif
+
+			fan_2d::graphics::image_t info = new fan_2d::graphics::image_T;
+
+			auto image = fan::webp::load_image(path);
+
+			glGenTextures(1, &info->texture);
+
+			glBindTexture(GL_TEXTURE_2D, info->texture);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, fan_2d::graphics::image_load_properties::visual_output);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, fan_2d::graphics::image_load_properties::visual_output);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, fan_2d::graphics::image_load_properties::filter);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, fan_2d::graphics::image_load_properties::filter);
+
+			uintptr_t internal_format = 0, format = 0, type = 0;
+
+			internal_format = GL_RGBA;
+			format = GL_RGBA;
+			type = GL_UNSIGNED_BYTE;
+
+			info->size = image.size;
+
+			glTexImage2D(GL_TEXTURE_2D, 0, internal_format, info->size.x, info->size.y, 0, format, type, image.data);
+
+			fan::webp::free_image(image.data);
+
+			glGenerateMipmap(GL_TEXTURE_2D);
+			glBindTexture(GL_TEXTURE_2D, 0);
+
+			return info;
+		#endif
+
+		}
+
+		//image_t load_image(fan::window* window, const pixel_data_t& pixel_data);
+		static fan_2d::graphics::image_t load_image(const fan::webp::image_info_t& image_info)
+		{
+		#if fan_renderer == fan_renderer_opengl
+			fan_2d::graphics::image_t info = new fan_2d::graphics::image_T;
+
+			glGenTextures(1, &info->texture);
+
+			glBindTexture(GL_TEXTURE_2D, info->texture);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, fan_2d::graphics::image_load_properties::visual_output);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, fan_2d::graphics::image_load_properties::visual_output);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, fan_2d::graphics::image_load_properties::filter);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, fan_2d::graphics::image_load_properties::filter);
+
+			uintptr_t internal_format = 0, format = 0, type = 0;
+
+			internal_format = GL_RGBA;
+			format = GL_RGBA;
+			type = GL_UNSIGNED_BYTE;
+
+			info->size = image_info.size;
+
+			glTexImage2D(GL_TEXTURE_2D, 0, internal_format, info->size.x, info->size.y, 0, format, type, image_info.data);
+
+			fan::webp::free_image(image_info.data);
+
+			glGenerateMipmap(GL_TEXTURE_2D);
+
+			glBindTexture(GL_TEXTURE_2D, 0);
+
+			return info;
+		#endif
+		}
+		static fan_2d::graphics::image_t load_image(const fan_2d::graphics::image_info_t& image_info) {
+		#if fan_renderer == fan_renderer_opengl
+			fan_2d::graphics::image_t info = new fan_2d::graphics::image_T;
+
+			glGenTextures(1, &info->texture);
+
+			glBindTexture(GL_TEXTURE_2D, info->texture);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, fan_2d::graphics::image_load_properties::visual_output);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, fan_2d::graphics::image_load_properties::visual_output);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, fan_2d::graphics::image_load_properties::filter);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, fan_2d::graphics::image_load_properties::filter);
+
+			uintptr_t internal_format = 0, format = 0, type = 0;
+
+			internal_format = GL_RGBA;
+			format = GL_RGBA;
+			type = GL_UNSIGNED_BYTE;
+
+			info->size = image_info.size;
+
+			glTexImage2D(GL_TEXTURE_2D, 0, internal_format, info->size.x, info->size.y, 0, format, type, image_info.data);
+
+			glGenerateMipmap(GL_TEXTURE_2D);
+
+			glBindTexture(GL_TEXTURE_2D, 0);
+
+			return info;
+		#endif
+		}
+
 	}
 }
