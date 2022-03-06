@@ -18,6 +18,7 @@ namespace fan_2d {
 				f32_t angle = 0;
 				fan::vec2 rotation_point = 0;
 				fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
+				f32_t render_depth = 0;
 			};
 
 			static constexpr uint32_t vertex_count = 6;
@@ -28,17 +29,18 @@ namespace fan_2d {
 			static constexpr uint32_t offset_angle = offsetof(properties_t, angle);
 			static constexpr uint32_t offset_rotation_point = offsetof(properties_t, rotation_point);
 			static constexpr uint32_t offset_rotation_vector = offsetof(properties_t, rotation_vector);
-			static constexpr uint32_t element_byte_size = offset_rotation_vector + sizeof(properties_t::rotation_vector);
+			static constexpr uint32_t offset_render_depth = offsetof(properties_t, render_depth);
+			static constexpr uint32_t element_byte_size = offset_render_depth + sizeof(properties_t::render_depth);
 
 			void open(fan::opengl::context_t* context) {
 				m_shader.open();
 
 				m_shader.set_vertex(
-				#include <fan/graphics/glsl/opengl/2D/objects/rectangle.vs>
+				#include <fan/graphics/glsl/opengl/2D/objects/depth/depth_rectangle.vs>
 				);
 
 				m_shader.set_fragment(
-				#include <fan/graphics/glsl/opengl/2D/objects/rectangle.fs>
+				#include <fan/graphics/glsl/opengl/2D/objects/depth/depth_rectangle.fs>
 				);
 
 				m_shader.compile();
@@ -63,6 +65,7 @@ namespace fan_2d {
 			}
 
 			void push_back(fan::opengl::context_t* context, rectangle::properties_t properties) {
+				properties.render_depth += size(context) * 0.00000003;
 				for (int i = 0; i < vertex_count; i++) {
 					m_glsl_buffer.push_ram_instance(&properties, sizeof(properties));
 				}
@@ -292,7 +295,7 @@ namespace fan_2d {
 				m_draw_node_reference = context->enable_draw(this, [](fan::opengl::context_t* c, void* d) { ((decltype(this))d)->draw(c); });
 			}
 			void disable_draw(fan::opengl::context_t* context) {
-			#ifdef fan_debug == fan_debug_soft
+			#ifdef fan_debug >= fan_debug_soft
 				if (m_draw_node_reference == fan::uninitialized) {
 					fan::throw_error("trying to disable unenabled draw call");
 				}
@@ -302,7 +305,6 @@ namespace fan_2d {
 
 			// pushed to window draw queue
 			void draw(fan::opengl::context_t* context) {
-				context->set_depth_test(false);
 				m_glsl_buffer.draw(
 					context,
 					m_shader,

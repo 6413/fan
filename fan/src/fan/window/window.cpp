@@ -379,11 +379,11 @@ void fan::window::set_name(const std::string& name)
 void fan::window::calculate_delta_time()
 {
 	m_current_frame = fan::time::clock::now();
-	m_delta_time = (f32_t)fan::time::clock::elapsed(m_last_frame) / 1000000000;
+	m_delta_time = (f64_t)fan::time::clock::elapsed(m_last_frame) / 1000000000;
 	m_last_frame = m_current_frame;
 }
 
-f_t fan::window::get_delta_time() const
+f64_t fan::window::get_delta_time() const
 {
 	return m_delta_time;
 }

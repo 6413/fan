@@ -10,6 +10,28 @@ namespace fan_2d {
 				fan_2d::graphics::pixel_data_t pixel_data;
 			};
 
+			void open(fan::opengl::context_t* context) {
+
+				m_shader.open();
+
+				m_shader.set_vertex(
+				#include <fan/graphics/glsl/opengl/2D/objects/yuv420p_renderer.vs>
+				);
+
+				m_shader.set_fragment(
+				#include <fan/graphics/glsl/opengl/2D/objects/yuv420p_renderer.fs>
+				);
+
+				m_shader.compile();
+
+				m_store_sprite.open();
+				m_glsl_buffer.open();
+				m_glsl_buffer.init(m_shader.id, element_byte_size);
+				m_queue_helper.open();
+
+				m_draw_node_reference = fan::uninitialized;
+			}
+
 			void push_back(fan::opengl::context_t* context, const yuv420p_renderer::properties_t& properties) {
 
 				m_store_sprite.resize(m_store_sprite.size() + 3);
@@ -57,6 +79,7 @@ namespace fan_2d {
 				property.angle = properties.angle;
 				property.rotation_point = properties.rotation_point;
 				property.rotation_vector = properties.rotation_vector;
+				property.texture_coordinates = properties.texture_coordinates;
 
 				fan_2d::graphics::sprite::push_back(context, property);
 

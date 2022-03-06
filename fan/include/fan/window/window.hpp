@@ -259,7 +259,7 @@ namespace fan {
 		void set_name(const std::string& name);
 
 		void calculate_delta_time();
-		f_t get_delta_time() const;
+		f64_t get_delta_time() const;
 
 		fan::vec2i get_mouse_position() const;
 		fan::vec2i get_previous_mouse_position() const;
@@ -482,14 +482,14 @@ namespace fan {
 
 		uintptr_t m_max_fps;
 
-		f_t m_fps_next_tick;
+		f64_t m_fps_next_tick;
 		bool m_received_fps;
 		uintptr_t m_fps;
 		fan::time::clock m_fps_timer;
 
-		f_t m_last_frame;
-		f_t m_current_frame;
-		f_t m_delta_time;
+		f64_t m_last_frame;
+		f64_t m_current_frame;
+		f64_t m_delta_time;
 
 		bool m_vsync;
 
