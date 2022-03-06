@@ -8,6 +8,7 @@ uniform lowp sampler2D sampler_u;
 uniform lowp sampler2D sampler_v;
 
 in vec2 texture_coordinate;
+in float render_depth;
 
 void main() {
 
@@ -28,5 +29,6 @@ void main() {
   rgb.z = yuv.x + 2.017 * yuv.y;
 
 	color = vec4(rgb.x, rgb.y, rgb.z, 1);
+  gl_FragDepth = 0.999 - render_depth;
 }
 )"

@@ -1,13 +1,15 @@
 R"(
 #version 130
 
-in vec2 layout_position;
-in float layout_angle;
-in vec2 layout_rotation_point;
-in vec3 layout_rotation_vector;
-in vec4 layout_color;
+in vec4 input0;
+in vec4 input1;
+in vec4 input2;
+in vec4 input3;
+in float input4;
 
-varying vec4 color;
+out vec4 i_color;
+
+out float AspectRatio;
 
 uniform mat4 projection;
 uniform mat4 view;
@@ -24,7 +26,7 @@ mat4 translate(mat4 m, vec3 v) {
 }
 
 mat4 scale(mat4 m, vec3 v) {
-	mat4 matrix;
+	mat4 matrix = mat4(1);
 
 	matrix[0][0] = m[0][0] * v[0];
 	matrix[0][1] = m[0][1] * v[0];
@@ -85,11 +87,37 @@ mat4 rotate(mat4 m, float angle, vec3 v) {
 	return matrix;
 }
 
+vec2 rectangle_vertices[] = vec2[](
+	vec2(-1.0, -1.0),
+	vec2(1.0, -1.0),
+	vec2(1.0, 1.0),
+
+	vec2(1.0, 1.0),
+	vec2(-1.0, 1.0),
+	vec2(-1.0, -1.0)
+);
+
+out vec2 texture_coordinate;
+
+out float render_depth;
+
 void main() {
 
-	mat4 m = mat4(1); 
+	vec4 layout_color = vec4(input0[0], input0[1], input0[2], input0[3]);
+	vec2 layout_position = vec2(input1[0], input1[1]);
+	vec2 layout_size = vec2(input1[2], input1[3]);
+	float layout_angle = input2[0];
+	vec2 layout_rotation_point = vec2(input2[1], input2[2]);
+	vec3 layout_rotation_vector = vec3(input2[3], input3[0], input3[1]);
+	float layout_render_order = input3[2];
+	vec2 layout_texture_coordinates = vec2(input3[3], input4);
 
-	m = translate(m, vec3(layout_rotation_point, 0));
+	texture_coordinate = layout_texture_coordinates;
+	render_depth = layout_render_order;
+
+	mat4 m = mat4(1);
+
+	m = translate(m, vec3(layout_position + layout_rotation_point, 0));
 
 	if (!isnan(layout_angle) && !isinf(layout_angle)) {
 		vec3 rotation_vector;
@@ -104,9 +132,13 @@ void main() {
 		m = rotate(m, layout_angle, rotation_vector);
 	}
 
-	m = translate(m, vec3(layout_position - layout_rotation_point, 0));
+	m = translate(m, vec3(-layout_rotation_point, 0));
 
-	gl_Position = projection * view * m * vec4(1, 1, 0, 1);
-    color = layout_color;
+	m = scale(m, vec3(layout_size.x, layout_size.y, 0));
+
+	gl_Position = projection * view * m * vec4(rectangle_vertices[gl_VertexID % 6], 0, 1);
+
+	i_color = layout_color;
+	AspectRatio = layout_size.x / layout_size.y;
 }
 )"

@@ -104,6 +104,12 @@ namespace fan {
 
 namespace fan {
 
+  namespace graphics {
+    struct render_flags {
+      static constexpr uint16_t depth_test = 1;
+    };
+  }
+
   namespace opengl {
 
 		struct context_t {
@@ -139,6 +145,10 @@ namespace fan {
 
       uint32_t enable_draw(void* data, draw_cb_t);
       void disable_draw(uint32_t node_reference);
+
+      void set_depth_test(bool flag);
+
+      uint32_t m_flags;
 		};
 
   }
@@ -224,8 +234,7 @@ namespace fan {
 
         glsl_buffer_t() = default;
 
-        static constexpr uint32_t default_buffer_size = 0;
-        static constexpr f32_t buffer_increment = 1;
+        static constexpr uint32_t default_buffer_size = 0xfff;
 
         void open() {
           m_buffer_size = 0;
@@ -320,23 +329,11 @@ namespace fan {
 
         void write_vram_all() {
           
-          /*if (m_buffer.size() > m_buffer_size) {
-
-          }
-          else {
-            if (m_buffer.empty()) {
-              allocate_buffer(0);
-            }
-            else {
-              fan::graphics::core::edit_glbuffer(m_vbo, &m_buffer[0], 0, m_buffer.size());
-            }
-          }*/
-
           m_vao.bind();
 
           this->bind();
 
-          m_buffer_size = m_buffer.size();
+          m_buffer_size = m_buffer.capacity();
 
           fan::graphics::core::write_glbuffer(m_vbo, m_buffer.begin(), m_buffer_size);
         }
@@ -356,7 +353,10 @@ namespace fan {
           fan::graphics::core::edit_glbuffer(m_vbo, data, i * element_byte_size + byte_offset, sizeof_data);
         }
         void edit_vram_buffer(uint32_t begin, uint32_t end) {
-          if (begin >= m_buffer_size || end > m_buffer_size || begin == end) {
+          if (begin == end) {
+            return;
+          }
+          if (end > m_buffer_size) {
             this->write_vram_all();
           }
           else {
@@ -386,6 +386,8 @@ namespace fan {
             }
           #endif
           m_buffer.erase(i * element_byte_size, i * element_byte_size + element_byte_size * count * vertex_count);
+
+          //m_buffer_size = m_buffer.capacity();
         }
         void erase(uint32_t begin, uint32_t end) {
         #if fan_debug >= fan_debug_soft
@@ -397,6 +399,8 @@ namespace fan {
           }
         #endif
           m_buffer.erase(begin, end);
+
+          //m_buffer_size = m_buffer.capacity();
         }
 
         void clear_ram() {
@@ -443,8 +447,8 @@ namespace fan {
             ((f32_t)viewport_size.x + (f32_t)viewport_size.x * 0.5), 
             ((f32_t)viewport_size.y + (f32_t)viewport_size.y * 0.5), 
             ((f32_t)viewport_size.y * 0.5), 
-            -1, 
-            1000.0f
+            0.01,
+            1000.0
           );
 
 		      fan::mat4 view(1);
@@ -499,17 +503,6 @@ inline void fan::graphics::core::queue_helper_t::edit(fan::opengl::context_t* co
     return;
   }
 
-#if fan_debug == fan_debug_hard
-
-  buffer->edit_vram_buffer(m_min_edit, m_max_edit);
-
-  m_min_edit = fan::uninitialized;
-  m_max_edit = 0;
-
-  return;
-
-#endif
-
   m_edit_index = context->m_write_queue.push_back(buffer_queue_t{this, buffer});
 }
 
@@ -542,6 +535,8 @@ inline void fan::opengl::context_t::init() {
 
   glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+  m_flags = 0;
 }
 
 inline void fan::opengl::context_t::bind_to_window(fan::window* window) {
@@ -645,6 +640,27 @@ inline uint32_t fan::opengl::context_t::enable_draw(void * data, draw_cb_t cb)
 inline void fan::opengl::context_t::disable_draw(uint32_t node_reference)
 {
  m_draw_queue.erase(node_reference);
+}
+
+inline void fan::opengl::context_t::set_depth_test(bool flag)
+{
+  switch (flag) {
+  case false: {
+    if (m_flags & fan::graphics::render_flags::depth_test) {
+      glDisable(GL_DEPTH_TEST);
+      m_flags &= ~fan::graphics::render_flags::depth_test;
+    }
+    break;
+  }
+  default: {
+    if (!(m_flags & fan::graphics::render_flags::depth_test)) {
+      glEnable(GL_DEPTH_TEST);
+      m_flags |= fan::graphics::render_flags::depth_test;
+    }
+  }
+  }
+
+  
 }
 
 #endif

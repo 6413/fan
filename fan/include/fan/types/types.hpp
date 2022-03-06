@@ -6,6 +6,7 @@
 #include <sstream>
 #include <functional>
 #include <any>
+
 typedef intptr_t si_t;
 typedef uintptr_t uint_t;
 typedef intptr_t sint_t;
@@ -191,7 +192,6 @@ namespace fan {
 
 	};
 
-
 	static std::wstring str_to_wstr(const std::string& s)
 	{
 		std::wstring ret(s.begin(), s.end());
@@ -269,4 +269,8 @@ namespace fan {
 #define fan_debug_soft 1
 #define fan_debug_hard 2
 
-#define fan_debug fan_debug_hard
+#define fan_debug fan_debug_soft
+
+#ifdef fan_platform_windows
+	#pragma comment(lib, "Onecore.lib")
+#endif

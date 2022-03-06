@@ -7,14 +7,14 @@
 namespace fan {
 
   template <typename type_t>
-  struct hector_t{
+  struct hector_t {
 
-    void open(){
+    void open() {
       m_size = 0;
       m_capacity = 0;
       ptr = 0;
     }
-    void close(){
+    void close() {
       resize_buffer(ptr, 0);
       open();
     }
@@ -62,21 +62,21 @@ namespace fan {
     }
 
     void erase(uintptr_t begin, uintptr_t end) {
-      #if fan_debug >= fan_debug_soft
+    #if fan_debug >= fan_debug_soft
 
-        if (end - begin > m_size) {
-          fan::throw_error("invalid erase location 0");
-        }
+      if (end - begin > m_size) {
+        fan::throw_error("invalid erase location 0");
+      }
 
-        if (begin > m_size) {
-          fan::throw_error("invalid erase location 1");
-        }
+      if (begin > m_size) {
+        fan::throw_error("invalid erase location 1");
+      }
 
-        if (end > m_size) {
-          fan::throw_error("invalid erase location 2");
-        }
+      if (end > m_size) {
+        fan::throw_error("invalid erase location 2");
+      }
 
-      #endif
+    #endif
       uintptr_t n = end - begin;
 
       std::memmove(ptr + begin, ptr + end, (m_size - end) * sizeof(type_t));
@@ -99,14 +99,14 @@ namespace fan {
 
     void handle_buffer() {
 
-      if(m_size >= m_capacity){
+      if (m_size >= m_capacity) {
         m_capacity = m_size + get_buffer_size();
         ptr = (type_t*)resize_buffer(ptr, m_capacity * sizeof(type_t));
       }
-      if (m_size <= m_capacity) {
+      /*if (m_size <= m_capacity) {
         m_capacity = m_size;
         ptr = (type_t*)resize_buffer(ptr, m_capacity * sizeof(type_t));
-      }
+      }*/
     }
 
     void resize(uintptr_t size) {
@@ -174,46 +174,46 @@ namespace fan {
     type_t* end() {
       return ptr + m_size;
     }
-    
+
     void clear() {
       close();
     }
 
-    static constexpr uintptr_t buffer_increment = 0x1;
+    static constexpr uintptr_t buffer_increment = 0xfffff;
 
   protected:
 
-    static uint8_t *resize_buffer(void *ptr, uintptr_t size){
-      if(ptr){
-        if(size){
-          void *rptr = (void *)realloc(ptr, size);
-          if(rptr == 0){
+    static uint8_t* resize_buffer(void* ptr, uintptr_t size) {
+      if (ptr) {
+        if (size) {
+          void* rptr = (void*)realloc(ptr, size);
+          if (rptr == 0) {
             fan::throw_error("realloc failed - ptr:" + std::to_string((uintptr_t)ptr) + " size:" + std::to_string(size));
           }
-          return (uint8_t *)rptr;
+          return (uint8_t*)rptr;
         }
-        else{
+        else {
           free(ptr);
           return 0;
         }
       }
-      else{
-        if(size){
-          void *rptr = (void *)malloc(size);
-          if(rptr == 0){
+      else {
+        if (size) {
+          void* rptr = (void*)malloc(size);
+          if (rptr == 0) {
             fan::throw_error("malloc failed - ptr:" + std::to_string((uintptr_t)ptr) + " size:" + std::to_string(size));
           }
-          return (uint8_t *)rptr;
+          return (uint8_t*)rptr;
         }
-        else{
+        else {
           return 0;
         }
       }
     }
 
-    constexpr uintptr_t get_buffer_size(){
+    constexpr uintptr_t get_buffer_size() {
       constexpr uintptr_t r = buffer_increment / sizeof(type_t);
-      if(!r){
+      if (!r) {
         return 1;
       }
       return r;
@@ -221,7 +221,7 @@ namespace fan {
 
     uintptr_t m_size;
     uintptr_t m_capacity;
-    type_t *ptr;
+    type_t* ptr;
   };
 
 }
@@ -232,19 +232,19 @@ namespace fan {
 #define A_set_buffer 512
 #endif
 
-  static uint64_t _vector_calculate_buffer(uint64_t size){
+  static uint64_t _vector_calculate_buffer(uint64_t size) {
     uint64_t r = A_set_buffer / size;
-    if(!r){
+    if (!r) {
       return 1;
     }
     return r;
   }
 
-  typedef struct{
+  typedef struct {
     fan::hector_t<uint8_t> ptr;
     uint64_t Current, Possible, Type, Buffer;
   }vector_t;
-  static void vector_init(vector_t *vec, uint64_t size){
+  static void vector_init(vector_t* vec, uint64_t size) {
     vec->Current = 0;
     vec->Possible = 0;
     vec->Type = size;
@@ -252,21 +252,21 @@ namespace fan {
     vec->ptr.open();
   }
 
-  static void _vector_handle(vector_t *vec){
+  static void _vector_handle(vector_t* vec) {
     vec->Possible = vec->Current + vec->Buffer;
     vec->ptr.resize(vec->Possible * vec->Type);
   }
-  static void VEC_handle(vector_t *vec){
-    if(vec->Current >= vec->Possible){
+  static void VEC_handle(vector_t* vec) {
+    if (vec->Current >= vec->Possible) {
       _vector_handle(vec);
     }
   }
-  static void vector_handle0(vector_t *vec, uintptr_t amount){
+  static void vector_handle0(vector_t* vec, uintptr_t amount) {
     vec->Current += amount;
     VEC_handle(vec);
   }
 
-  static void vector_free(vector_t *vec){
+  static void vector_free(vector_t* vec) {
     vec->ptr.close();
     vec->Current = 0;
     vec->Possible = 0;

@@ -28,17 +28,17 @@ namespace fan_2d {
 			static constexpr uint32_t offset_angle = offsetof(properties_t, angle);
 			static constexpr uint32_t offset_rotation_point = offsetof(properties_t, rotation_point);
 			static constexpr uint32_t offset_rotation_vector = offsetof(properties_t, rotation_vector);
-			static constexpr uint32_t element_byte_size = offset_rotation_vector + sizeof(fan::vec3);
+			static constexpr uint32_t element_byte_size = offset_rotation_vector + sizeof(properties_t::rotation_vector);
 
 			void open(fan::opengl::context_t* context) {
 				m_shader.open();
 
 				m_shader.set_vertex(
-				#include <fan/graphics/glsl/opengl/2D/rectangle.vs>
+				#include <fan/graphics/glsl/opengl/2D/objects/rectangle.vs>
 				);
 
 				m_shader.set_fragment(
-				#include <fan/graphics/glsl/opengl/2D/rectangle.fs>
+				#include <fan/graphics/glsl/opengl/2D/objects/rectangle.fs>
 				);
 
 				m_shader.compile();
@@ -90,12 +90,10 @@ namespace fan_2d {
 			void erase(fan::opengl::context_t* context, uint32_t i) {
 				m_glsl_buffer.erase_instance(i * vertex_count, 1, element_byte_size, vertex_count);
 
-				uint32_t to = m_glsl_buffer.m_buffer.size();
-
 				m_queue_helper.edit(
 					context,
 					i * vertex_count * element_byte_size,
-					to,
+					m_glsl_buffer.m_buffer.size(),
 					&m_glsl_buffer
 				);
 			}
@@ -266,8 +264,8 @@ namespace fan_2d {
 				}
 				m_queue_helper.edit(
 					context,
-					i * vertex_count * element_byte_size + offset_rotation_point,
-					(i + 1) * (vertex_count)*element_byte_size - offset_rotation_point,
+					i * vertex_count * element_byte_size + offset_rotation_vector,
+					(i + 1) * (vertex_count)*element_byte_size - offset_rotation_vector,
 					&m_glsl_buffer
 				);
 			}
@@ -304,6 +302,7 @@ namespace fan_2d {
 
 			// pushed to window draw queue
 			void draw(fan::opengl::context_t* context) {
+				context->set_depth_test(false);
 				m_glsl_buffer.draw(
 					context,
 					m_shader,

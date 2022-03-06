@@ -38,12 +38,11 @@ namespace fan_2d {
 
 				if (i != this->size(context) - 1) {
 
-					for (int j = 0; j < vertex_count; j++) {
-						for (int k = 0; k < element_byte_size; k++) {
-							m_glsl_buffer.m_buffer[(i * vertex_count + j) * element_byte_size + k] =
-								m_glsl_buffer.m_buffer[((this->size(context) - 1) * vertex_count + j) * element_byte_size + k];
-						}
-					}
+					std::memmove(
+						m_glsl_buffer.m_buffer.begin() + i * vertex_count * element_byte_size, 
+						m_glsl_buffer.m_buffer.end() - element_byte_size * vertex_count, 
+						element_byte_size * vertex_count
+					);
 
 					m_glsl_buffer.erase_instance((this->size(context) - 1) * vertex_count, 1, element_byte_size, sprite::vertex_count);
 

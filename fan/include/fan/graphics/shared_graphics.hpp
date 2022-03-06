@@ -23,10 +23,10 @@ namespace fan_2d {
 				std::memcpy(linesize, image_data.linesize, sizeof(image_data.linesize));
 			}*/
 
-			uint8_t* pixels[4];
-			int linesize[4];
+			uint8_t* pixels[4]{};
+			int linesize[4]{};
 			// width and height - in some cases there is linesize so it can be different than original image size
-			fan::vec2i size;
+			fan::vec2i size=0;
 			//AVPixelFormat format;
 			// 32bpp AVPixelFormat::AV_PIX_FMT_BGR0
 		};
@@ -145,7 +145,7 @@ namespace fan_2d {
 			inline uintptr_t internal_format = GL_RGBA;
 			inline uintptr_t format = GL_RGBA;
 			inline uintptr_t type = GL_UNSIGNED_BYTE;
-			inline uintptr_t filter = GL_LINEAR;
+			inline uintptr_t filter = GL_NEAREST;
 		}
 
 		// fan::get_device(window)

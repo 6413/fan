@@ -7,11 +7,29 @@
 
 namespace fan {
 
+
+	struct character_t;
 	struct utf8_string;
 	struct utf16_string;
 
 	static std::wstring utf8_to_utf16(const uint8_t* utf8);
 	static fan::utf8_string utf16_to_utf8(const wchar_t* utf16);
+
+	struct character_t {
+		character_t(wchar_t c_) : c(c_) {}
+		character_t(uint8_t* c_) {
+			std::wstring str = utf8_to_utf16(c_);
+		#if fan_debug >= fan_debug_soft
+			if (str.size() > 2) {
+				fan::throw_error("character bigger than expected");
+			}
+		#endif
+
+			c = str[0];
+		}
+
+		wchar_t c;
+	};
 
 	static uint8_t utf8_get_sizeof_character(uint8_t byte) {
 		if (byte < 0x80) {
@@ -93,6 +111,9 @@ namespace fan {
 
 		using inherit_t = std::wstring;
 
+		utf16_string(character_t c) {
+			this->push_back(c);
+		}
 		utf16_string(const std::string& str) : utf16_string(str.data()) {} // visual studio magics
 		utf16_string(const std::wstring& str) : inherit_t(str) {} // visual studio magics
 
@@ -105,6 +126,10 @@ namespace fan {
 
 		utf8_string to_utf8() const {
 			return utf8_string(fan::utf16_to_utf8(this->data()));
+		}
+
+		inline void push_back(character_t character) {
+			inherit_t::push_back(character.c);
 		}
 
 		friend std::wostream& operator<<(std::wostream& os, const utf16_string& str);

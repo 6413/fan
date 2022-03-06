@@ -6,8 +6,8 @@
 #include <fan/font.hpp>
 
 namespace fan_2d {
-  namespace graphics {
-    namespace gui {
+	namespace graphics {
+		namespace gui {
 
 			struct text_renderer {
 
@@ -63,11 +63,11 @@ namespace fan_2d {
 					m_shader.open();
 
 					m_shader.set_vertex(
-					#include <fan/graphics/glsl/opengl/2D/text.vs>
+					#include <fan/graphics/glsl/opengl/2D/objects/text.vs>
 					);
 
 					m_shader.set_fragment(
-					#include <fan/graphics/glsl/opengl/2D/text.fs>
+					#include <fan/graphics/glsl/opengl/2D/objects/text.fs>
 					);
 
 					m_shader.compile();
@@ -159,6 +159,7 @@ namespace fan_2d {
 						letter_properties.outline_color = properties.outline_color;
 						letter_properties.outline_size = properties.outline_size;
 						letter_properties.angle = properties.angle;
+						letter_properties.rotation_vector = fan::vec3(0, 0, 1);
 						letter_properties.rotation_point = (properties.position - fan::vec2(0, text_size.y / 2 - (average_height / properties.text.size()) / 2)) + properties.rotation_point;
 
 						push_letter(context, properties.text[i], letter_properties);
@@ -197,7 +198,7 @@ namespace fan_2d {
 
 						if (properties.text[j] == '\n') {
 							left = properties.position.x - text_size.x / 2;
-							properties.position.y += fan_2d::graphics::gui::text_renderer::get_line_height(context, properties.font_size);
+							properties.position.y += font.get_line_height(properties.font_size);
 						}
 
 						auto letter = get_letter_info(context, properties.text[j], properties.font_size);
@@ -211,6 +212,7 @@ namespace fan_2d {
 						letter_properties.outline_color = properties.outline_color;
 						letter_properties.outline_size = properties.outline_size;
 						letter_properties.angle = properties.angle;
+						letter_properties.rotation_vector = fan::vec3(0, 0, 1);
 						letter_properties.rotation_point = properties.position - fan::vec2(0, text_size.y / 2 - (average_height / properties.text.size()) / 2) + properties.rotation_point;
 
 						insert_letter(context, get_index(i) + j, properties.text[j], letter_properties);
@@ -252,13 +254,13 @@ namespace fan_2d {
 				}
 
 				static fan::font::single_info_t get_letter_info(fan::opengl::context_t* context, wchar_t c, f32_t font_size) {
-					auto found = font.font.find(c);
+					auto found = font.characters.find(c);
 
-					if (found == font.font.end()) {
+					if (found == font.characters.end()) {
 						throw std::runtime_error("failed to find character: " + std::to_string((int)c));
 					}
 
-					f32_t converted_size = text_renderer::convert_font_size(context, font_size);
+					f32_t converted_size = font.convert_font_size(font_size);
 
 					fan::font::single_info_t font_info;
 					font_info.metrics.size = found->second.metrics.size * converted_size;
@@ -273,13 +275,13 @@ namespace fan_2d {
 
 				static fan::font::single_info_t get_letter_info(fan::opengl::context_t* context, uint8_t* c, f32_t font_size) {
 
-					auto found = font.font.find(fan::utf16_string(c).data()[0]);
+					auto found = font.characters.find(fan::utf16_string(c).data()[0]);
 
-					if (found == font.font.end()) {
+					if (found == font.characters.end()) {
 						throw std::runtime_error("failed to find character: " + std::to_string(fan::utf16_string(c).data()[0]));
 					}
 
-					f32_t converted_size = text_renderer::convert_font_size(context, font_size);
+					f32_t converted_size = font.convert_font_size(font_size);
 
 					fan::font::single_info_t font_info;
 					font_info.metrics.size = found->second.metrics.size * converted_size;
@@ -321,7 +323,7 @@ namespace fan_2d {
 
 					this->erase(context, i);
 
-					text_renderer::properties_t properties;
+					properties_t properties;
 					properties.text = text;
 					properties.font_size = font_size;
 					properties.position = position;
@@ -342,13 +344,13 @@ namespace fan_2d {
 							&angle,
 							element_byte_size,
 							offset_angle,
-							sizeof(text_renderer::properties_t::angle)
+							sizeof(properties_t::angle)
 						);
 					}
 					m_queue_helper.edit(
 						context,
 						get_index(i) * vertex_count * element_byte_size + offset_angle,
-						get_index(i + 1) * (vertex_count)* element_byte_size - offset_angle,
+						get_index(i + 1) * (vertex_count)*element_byte_size - offset_angle,
 						&m_glsl_buffer
 					);
 				}
@@ -363,13 +365,13 @@ namespace fan_2d {
 							&rotation_point,
 							element_byte_size,
 							offset_rotation_point,
-							sizeof(text_renderer::properties_t::rotation_point)
+							sizeof(properties_t::rotation_point)
 						);
 					}
 					m_queue_helper.edit(
 						context,
 						get_index(i) * vertex_count * element_byte_size + offset_rotation_point,
-						get_index(i + 1) * (vertex_count) * element_byte_size - offset_rotation_point,
+						get_index(i + 1) * (vertex_count)*element_byte_size - offset_rotation_point,
 						&m_glsl_buffer
 					);
 				}
@@ -384,7 +386,7 @@ namespace fan_2d {
 							&outline_color,
 							element_byte_size,
 							offset_outline_color,
-							sizeof(text_renderer::properties_t::outline_color)
+							sizeof(properties_t::outline_color)
 						);
 					}
 					m_queue_helper.edit(
@@ -405,7 +407,7 @@ namespace fan_2d {
 							&outline_size,
 							element_byte_size,
 							offset_outline_size,
-							sizeof(text_renderer::properties_t::outline_color)
+							sizeof(properties_t::outline_color)
 						);
 					}
 					m_queue_helper.edit(
@@ -425,16 +427,12 @@ namespace fan_2d {
 					uint32_t src = get_index(i);
 					uint32_t dst = get_index(i + 1);
 
-					uint32_t from = m_glsl_buffer.m_buffer.size();
-
 					m_glsl_buffer.erase(src * vertex_count * element_byte_size, dst * vertex_count * element_byte_size);
-
-					uint32_t to = m_glsl_buffer.m_buffer.size();
 
 					m_queue_helper.edit(
 						context,
-						from,
-						to,
+						src * vertex_count * element_byte_size,
+						m_glsl_buffer.m_buffer.size(),
 						&m_glsl_buffer
 					);
 
@@ -450,16 +448,12 @@ namespace fan_2d {
 					uint32_t src = get_index(begin);
 					uint32_t dst = get_index(end);
 
-					uint32_t from = m_glsl_buffer.m_buffer.size();
-
 					m_glsl_buffer.erase(src * vertex_count * element_byte_size, dst * vertex_count * element_byte_size);
-
-					uint32_t to = m_glsl_buffer.m_buffer.size();
 
 					m_queue_helper.edit(
 						context,
-						from, 
-						to,
+						src * vertex_count * element_byte_size,
+						m_glsl_buffer.m_buffer.size(),
 						&m_glsl_buffer
 					);
 
@@ -483,8 +477,6 @@ namespace fan_2d {
 					m_store_sprite.clear();
 
 					m_store.clear();
-
-					fan::throw_error("erase from glsl_buffer");
 				}
 
 
@@ -511,7 +503,7 @@ namespace fan_2d {
 
 					this->erase(context, i);
 
-					text_renderer::properties_t properties;
+					properties_t properties;
 
 					properties.text = text;
 					properties.font_size = font_size;
@@ -583,7 +575,7 @@ namespace fan_2d {
 						}
 						}
 
-						auto letter = font.font[text[i]];
+						auto letter = font.characters[text[i]];
 
 						if (i == text.size() - 1) {
 							width += letter.glyph.size.x;
@@ -791,6 +783,6 @@ namespace fan_2d {
 
 			};
 
-    }
-  }
+		}
+	}
 }

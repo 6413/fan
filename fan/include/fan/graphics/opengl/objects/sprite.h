@@ -16,11 +16,11 @@ namespace fan_2d {
 				m_shader.open();
 
 				m_shader.set_vertex(
-				#include <fan/graphics/glsl/opengl/2D/sprite.vs>
+				#include <fan/graphics/glsl/opengl/2D/objects/sprite.vs>
 				);
 
 				m_shader.set_fragment(
-				#include <fan/graphics/glsl/opengl/2D/sprite.fs>
+				#include <fan/graphics/glsl/opengl/2D/objects/sprite.fs>
 				);
 
 				m_shader.compile();
@@ -129,11 +129,6 @@ namespace fan_2d {
 				m_store_sprite.resize(m_store_sprite.size() + 1);
 
 				m_store_sprite[m_store_sprite.size() - 1].m_texture = properties.image->texture;
-
-			#if fan_debug == fan_debug_hard
-				m_glsl_buffer.write_vram_all();
-				this->draw(context);
-			#endif
 			}
 
 			void insert(fan::opengl::context_t* context, uint32_t i, const sprite::properties_t& properties) {
@@ -382,8 +377,8 @@ namespace fan_2d {
 				}
 				m_queue_helper.edit(
 					context,
-					i * vertex_count * element_byte_size + offset_rotation_point,
-					(i + 1) * (vertex_count)*element_byte_size - offset_rotation_point,
+					i * vertex_count * element_byte_size + offset_rotation_vector,
+					(i + 1) * (vertex_count)*element_byte_size - offset_rotation_vector,
 					&m_glsl_buffer
 				);
 			}
