@@ -1,6 +1,6 @@
 #pragma once
 
-#include <fan/types/types.hpp>
+#include <fan/types/types.h>
 
 #include <fan/types/memory.h>
 
@@ -9,10 +9,13 @@ namespace fan {
   template <typename type_t>
   struct hector_t {
 
+    inline static int x = 0;
+
     void open() {
       m_size = 0;
       m_capacity = 0;
       ptr = 0;
+      x = 1;
     }
     void close() {
       resize_buffer(ptr, 0);
@@ -20,6 +23,9 @@ namespace fan {
     }
 
     void push_back(const type_t& value) {
+      if (!x) {
+        fan::throw_error("err");
+      }
       m_size++;
       handle_buffer();
       ptr[m_size - 1] = value;
@@ -31,7 +37,7 @@ namespace fan {
 
     template <typename T>
     void insert(uintptr_t i, T* begin, T* end) {
-    #if fan_debug >= fan_debug_soft
+    #if fan_debug >= fan_debug_low
 
     #endif
       uintptr_t n = uintptr_t(end - begin);
@@ -62,7 +68,7 @@ namespace fan {
     }
 
     void erase(uintptr_t begin, uintptr_t end) {
-    #if fan_debug >= fan_debug_soft
+    #if fan_debug >= fan_debug_low
 
       if (end - begin > m_size) {
         fan::throw_error("invalid erase location 0");
@@ -128,7 +134,7 @@ namespace fan {
     }
 
     const type_t& operator[](uintptr_t i) const {
-    #if fan_debug >= fan_debug_soft
+    #if fan_debug >= fan_debug_low
       if (i >= m_size) {
         fan::throw_error("invalid pointer access");
       }
@@ -137,7 +143,7 @@ namespace fan {
     }
 
     type_t& operator[](uintptr_t i) {
-    #if fan_debug >= fan_debug_soft
+    #if fan_debug >= fan_debug_low
       if (i >= m_size) {
         fan::throw_error("invalid pointer access");
       }
@@ -179,18 +185,20 @@ namespace fan {
       close();
     }
 
-    static constexpr uintptr_t buffer_increment = 0xfffff;
+    static constexpr uintptr_t buffer_increment = 0x100000;
 
   protected:
 
-    static uint8_t* resize_buffer(void* ptr, uintptr_t size) {
+    static type_t* resize_buffer(void* ptr, uintptr_t size) {
       if (ptr) {
         if (size) {
-          void* rptr = (void*)realloc(ptr, size);
+          type_t* rptr = (type_t*)realloc(ptr, size);
+        #if fan_debug >= fan_debug_low
           if (rptr == 0) {
             fan::throw_error("realloc failed - ptr:" + std::to_string((uintptr_t)ptr) + " size:" + std::to_string(size));
           }
-          return (uint8_t*)rptr;
+        #endif
+          return rptr;
         }
         else {
           free(ptr);
@@ -199,11 +207,13 @@ namespace fan {
       }
       else {
         if (size) {
-          void* rptr = (void*)malloc(size);
+          type_t* rptr = (type_t*)malloc(size);
+        #if fan_debug >= fan_debug_low
           if (rptr == 0) {
             fan::throw_error("malloc failed - ptr:" + std::to_string((uintptr_t)ptr) + " size:" + std::to_string(size));
           }
-          return (uint8_t*)rptr;
+        #endif
+          return rptr;
         }
         else {
           return 0;
@@ -212,7 +222,7 @@ namespace fan {
     }
 
     constexpr uintptr_t get_buffer_size() {
-      constexpr uintptr_t r = buffer_increment / sizeof(type_t);
+      constexpr uintptr_t r = buffer_increment;
       if (!r) {
         return 1;
       }

@@ -1,4 +1,4 @@
-#include <fan/window/window_input.hpp>
+#include <fan/window/window_input.h>
 
 uint16_t fan::window_input::convert_keys_to_fan(uint16_t key) {
 	switch (key) {

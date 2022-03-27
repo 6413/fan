@@ -124,7 +124,7 @@ void main() {
 
 	m = scale(m, vec3(layout_size.x, layout_size.y, 0));
 
-	gl_Position = projection * view * m * vec4(rectangle_vertices[gl_VertexID % 6].x, rectangle_vertices[gl_VertexID % 6].y, 0, 1);
+	gl_Position = projection * view * m * vec4(rectangle_vertices[gl_VertexID % 6], 0, 1);
 
 	color = layout_color;
 }
