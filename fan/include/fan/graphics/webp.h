@@ -1,12 +1,12 @@
 #pragma once
 
-#include <fan/types/types.hpp>
+#include <fan/types/types.h>
 
 // if windows fails with duplicat resource, remove mux folder from libwebp
 #include <webp/encode.h>
 #include <webp/decode.h>
 
-#include <fan/io/file.hpp>
+#include <fan/io/file.h>
 
 namespace fan {
 	namespace webp {
@@ -25,14 +25,14 @@ namespace fan {
       return image_info;
     }
 
-    static image_info_t load_image(const std::string& file) {
+    static image_info_t load_image(const std::string_view file) {
     
-      auto data = fan::io::file::read(file);
+      auto data = fan::io::file::read(std::string(file));
 
       auto image_info = decode((const uint8_t*)data.data(), data.size());
 
       if (image_info.data == nullptr) {
-        fan::throw_error("failed to open image");
+        fan::throw_error("failed to open image " + std::string(file));
       }
 
       return image_info;

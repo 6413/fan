@@ -1,0 +1,15 @@
+VAR="_metrics.txt"
+VAR2=".png"
+if [ -z "$1" ]
+  then
+	echo "first arg takes ttf file"
+	exit 1
+fi
+
+if [ -z "$2" ]
+  then
+	echo "second arg takes output name"
+	exit 1
+fi
+
+./ttf2png -s 120 -f 4 $1 -o "$2$VAR2" -p -d "$2$VAR" -r U+0020,U+007e -r U+20AC,U+20AC

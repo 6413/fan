@@ -1,13 +1,14 @@
 R"(
-#version 430
+#version 130
 
 in vec4 input0;
 in vec4 input1;
 in vec4 input2;
 in vec4 input3;
-in float input4;
 
-out vec4 color;
+out vec4 i_color;
+
+out float AspectRatio;
 
 uniform mat4 projection;
 uniform mat4 view;
@@ -54,7 +55,7 @@ mat4 rotate(mat4 m, float angle, vec3 v) {
 	vec3 axis = vec3(normalize(v));
 	vec3 temp = vec3(axis * (1.0f - c));
 
-	mat4 rotation = mat4(1);
+	mat4 rotation;
 	rotation[0][0] = c + temp[0] * axis[0];
 	rotation[0][1] = temp[0] * axis[1] + s * axis[2];
 	rotation[0][2] = temp[0] * axis[2] - s * axis[1];
@@ -67,7 +68,7 @@ mat4 rotate(mat4 m, float angle, vec3 v) {
 	rotation[2][1] = temp[2] * axis[1] - s * axis[0];
 	rotation[2][2] = c + temp[2] * axis[2];
 
-	mat4 matrix = mat4(1);
+	mat4 matrix;
 	matrix[0][0] = (m[0][0] * rotation[0][0]) + (m[1][0] * rotation[0][1]) + (m[2][0] * rotation[0][2]);
 	matrix[1][0] = (m[0][1] * rotation[0][0]) + (m[1][1] * rotation[0][1]) + (m[2][1] * rotation[0][2]);
 	matrix[2][0] = (m[0][2] * rotation[0][0]) + (m[1][2] * rotation[0][1]) + (m[2][2] * rotation[0][2]);
@@ -96,7 +97,6 @@ vec2 rectangle_vertices[] = vec2[](
 );
 
 out vec2 texture_coordinate;
-out float render_depth;
 
 void main() {
 
@@ -106,11 +106,9 @@ void main() {
 	float layout_angle = input2[0];
 	vec2 layout_rotation_point = vec2(input2[1], input2[2]);
 	vec3 layout_rotation_vector = vec3(input2[3], input3[0], input3[1]);
-	float layout_render_order = input3[2];
-	vec2 layout_texture_coordinates = vec2(input3[3], input4);
+	vec2 layout_texture_coordinates = vec2(input3[2], input3[3]);
 
 	texture_coordinate = layout_texture_coordinates;
-	render_depth = layout_render_order;
 
 	mat4 m = mat4(1);
 
@@ -134,5 +132,8 @@ void main() {
 	m = scale(m, vec3(layout_size.x, layout_size.y, 0));
 
 	gl_Position = projection * view * m * vec4(rectangle_vertices[gl_VertexID % 6], 0, 1);
+
+	i_color = layout_color;
+	AspectRatio = layout_size.x / layout_size.y;
 }
 )"

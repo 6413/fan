@@ -1,22 +1,22 @@
-﻿#include <fan/graphics/graphics.hpp>
+﻿#include <fan/graphics/graphics.h>
 
-#include <fan/graphics/themes.hpp>
+#include <fan/graphics/themes.h>
 
-#include <fan/graphics/shared_gui.hpp>
+#include <fan/graphics/shared_gui.h>
 
-void fan_2d::graphics::gui::rectangle_text_box_sized::rectangle_text_box_sized::open(fan::opengl::context_t* context)
+void fan_2d::opengl::gui::rectangle_text_box_sized::rectangle_text_box_sized::open(fan::opengl::context_t* context)
 {
 	outer_rect_t::open(context);
 	inner_rect_t::open(context);
-	fan_2d::graphics::gui::text_renderer::open(context);
+	fan_2d::opengl::gui::text_renderer_t::open(context);
 	m_store.open();
 }
 
-void fan_2d::graphics::gui::rectangle_text_box_sized::rectangle_text_box_sized::close(fan::opengl::context_t* context)
+void fan_2d::opengl::gui::rectangle_text_box_sized::rectangle_text_box_sized::close(fan::opengl::context_t* context)
 {
 	outer_rect_t::close(context);
 	inner_rect_t::close(context);
-	fan_2d::graphics::gui::text_renderer::close(context);
+	fan_2d::opengl::gui::text_renderer_t::close(context);
 	for (int i = 0; i < m_store.size(); i++) {
 		m_store[i].m_properties.text.close();
 		m_store[i].m_properties.place_holder.close();
@@ -25,7 +25,7 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::rectangle_text_box_sized::
 	m_store.close();
 }
 
-void fan_2d::graphics::gui::rectangle_text_box_sized::push_back(fan::opengl::context_t* context, const fan_2d::graphics::gui::rectangle_text_box_sized::properties_t& property)
+void fan_2d::opengl::gui::rectangle_text_box_sized::push_back(fan::opengl::context_t* context, const fan_2d::opengl::gui::rectangle_text_box_sized::properties_t& property)
 {
 	store_t store;
 
@@ -46,7 +46,7 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::push_back(fan::opengl::con
 
 	const auto str = property.place_holder.empty() ? property.text : property.place_holder;
 
-	fan_2d::graphics::gui::text_renderer::properties_t text_properties;
+	fan_2d::opengl::gui::text_renderer_t::properties_t text_properties;
 
 	switch (property.text_position) {
 	case text_position_e::left:
@@ -62,7 +62,7 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::push_back(fan::opengl::con
 		text_properties.outline_color = property.theme.button.text_outline_color;
 		text_properties.outline_size = property.theme.button.text_outline_size;
 
-		fan_2d::graphics::gui::text_renderer::push_back(context, text_properties);
+		fan_2d::opengl::gui::text_renderer_t::push_back(context, text_properties);
 
 		break;
 	}
@@ -76,7 +76,7 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::push_back(fan::opengl::con
 		text_properties.outline_color = property.theme.button.text_outline_color;
 		text_properties.outline_size = property.theme.button.text_outline_size;
 
-		fan_2d::graphics::gui::text_renderer::push_back(context, text_properties);
+		fan_2d::opengl::gui::text_renderer_t::push_back(context, text_properties);
 
 		break;
 	}
@@ -132,16 +132,16 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::push_back(fan::opengl::con
 	outer_rect_t::push_back(context, properties);
 }
 
-void fan_2d::graphics::gui::rectangle_text_box_sized::draw(fan::opengl::context_t* context)
+void fan_2d::opengl::gui::rectangle_text_box_sized::draw(fan::opengl::context_t* context)
 {
 	// depth test
 	inner_rect_t::draw(context);
 	outer_rect_t::draw(context);
 
-	fan_2d::graphics::gui::text_renderer::draw(context);
+	fan_2d::opengl::gui::text_renderer_t::draw(context);
 }
 
-void fan_2d::graphics::gui::rectangle_text_box_sized::set_position(fan::opengl::context_t* context, uint32_t i, const fan::vec2& position)
+void fan_2d::opengl::gui::rectangle_text_box_sized::set_position(fan::opengl::context_t* context, uint32_t i, const fan::vec2& position)
 {
 	const auto offset = position - rectangle_text_box_sized::get_position(context, i);
 
@@ -150,25 +150,25 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::set_position(fan::opengl::
 	}
 
 	rectangle_text_box_sized::inner_rect_t::set_position(context, i, inner_rect_t::get_position(context, i) + offset);
-	rectangle_text_box_sized::text_renderer::set_position(context, i, rectangle_text_box_sized::text_renderer::get_position(context, i) + offset);
+	rectangle_text_box_sized::text_renderer_t::set_position(context, i, rectangle_text_box_sized::text_renderer_t::get_position(context, i) + offset);
 }
 
-bool fan_2d::graphics::gui::rectangle_text_box_sized::inside(fan::opengl::context_t* context, uintptr_t i, const fan::vec2& position) const
+bool fan_2d::opengl::gui::rectangle_text_box_sized::inside(fan::opengl::context_t* context, uintptr_t i, const fan::vec2& position) const
 {
 	return inner_rect_t::inside(context, i, position);
 }
 
-void fan_2d::graphics::gui::rectangle_text_box_sized::set_text(fan::opengl::context_t* context, uint32_t i, const fan::utf16_string& text) {
+void fan_2d::opengl::gui::rectangle_text_box_sized::set_text(fan::opengl::context_t* context, uint32_t i, const fan::utf16_string& text) {
 
 	switch (m_store[i].m_properties.text_position) {
 	case text_position_e::left:
 	{
-		fan_2d::graphics::gui::text_renderer::set_text(context, i, text);
+		fan_2d::opengl::gui::text_renderer_t::set_text(context, i, text);
 		break;
 	}
 	case text_position_e::middle:
 	{
-		fan_2d::graphics::gui::text_renderer::set_text(context, i, text);
+		fan_2d::opengl::gui::text_renderer_t::set_text(context, i, text);
 
 		break;
 	}
@@ -199,7 +199,7 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::set_text(fan::opengl::cont
 	outer_rect_t::set_size(context, i * 4 + 3, fan::vec2(t, corners[2].y - corners[0].y + t) / 2 + fan::vec2(0, 0.5));
 }
 
-void fan_2d::graphics::gui::rectangle_text_box_sized::set_size(fan::opengl::context_t* context, uint32_t i, const fan::vec2& size)
+void fan_2d::opengl::gui::rectangle_text_box_sized::set_size(fan::opengl::context_t* context, uint32_t i, const fan::vec2& size)
 {
 
 	const auto offset = size - rectangle_text_box_sized::get_size(context, i);
@@ -230,44 +230,44 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::set_size(fan::opengl::cont
 	outer_rect_t::set_size(context, i * 4 + 3, size == 0 ? 0 : (fan::vec2(t, corners[2].y - corners[0].y + t) / 2 + fan::vec2(0, 0.5)));
 }
 
-fan::color fan_2d::graphics::gui::rectangle_text_box_sized::get_text_color(fan::opengl::context_t* context, uint32_t i) const
+fan::color fan_2d::opengl::gui::rectangle_text_box_sized::get_text_color(fan::opengl::context_t* context, uint32_t i) const
 {
-	return text_renderer::get_text_color(context, i);
+	return text_renderer_t::get_text_color(context, i);
 }
 
-void fan_2d::graphics::gui::rectangle_text_box_sized::set_text_color(fan::opengl::context_t* context, uint32_t i, const fan::color& color)
+void fan_2d::opengl::gui::rectangle_text_box_sized::set_text_color(fan::opengl::context_t* context, uint32_t i, const fan::color& color)
 {
-	text_renderer::set_text_color(context, i, color);
+	text_renderer_t::set_text_color(context, i, color);
 }
 
-fan::vec2 fan_2d::graphics::gui::rectangle_text_box_sized::get_position(fan::opengl::context_t* context, uint32_t i) const
+fan::vec2 fan_2d::opengl::gui::rectangle_text_box_sized::get_position(fan::opengl::context_t* context, uint32_t i) const
 {
 	return inner_rect_t::get_position(context, i);
 }
 
-fan::vec2 fan_2d::graphics::gui::rectangle_text_box_sized::get_size(fan::opengl::context_t* context, uint32_t i) const
+fan::vec2 fan_2d::opengl::gui::rectangle_text_box_sized::get_size(fan::opengl::context_t* context, uint32_t i) const
 {
 	return inner_rect_t::get_size(context, i);
 }
 
-f32_t fan_2d::graphics::gui::rectangle_text_box_sized::get_font_size(fan::opengl::context_t* context, uint32_t i) const
+f32_t fan_2d::opengl::gui::rectangle_text_box_sized::get_font_size(fan::opengl::context_t* context, uint32_t i) const
 {
-	return text_renderer::get_font_size(context, i);
+	return text_renderer_t::get_font_size(context, i);
 }
 
-fan::color fan_2d::graphics::gui::rectangle_text_box_sized::get_color(fan::opengl::context_t* context, uint32_t i) const
+fan::color fan_2d::opengl::gui::rectangle_text_box_sized::get_color(fan::opengl::context_t* context, uint32_t i) const
 {
 	return inner_rect_t::get_color(context, i);
 }
 
-fan_2d::graphics::gui::src_dst_t fan_2d::graphics::gui::rectangle_text_box_sized::get_cursor(fan::opengl::context_t* context, uint32_t i, uint32_t x, uint32_t y)
+fan_2d::opengl::gui::src_dst_t fan_2d::opengl::gui::rectangle_text_box_sized::get_cursor(fan::opengl::context_t* context, uint32_t i, uint32_t x, uint32_t y)
 {
 	f32_t font_size = get_font_size(context, i);
-	f32_t line_height = fan_2d::graphics::gui::text_renderer::get_line_height(context, font_size);
+	f32_t line_height = fan_2d::opengl::gui::text_renderer_t::get_line_height(context, font_size);
 
 	fan::vec2 src, dst;
 
-	if (m_store[i].m_properties.text_position == fan_2d::graphics::gui::text_position_e::left) {
+	if (m_store[i].m_properties.text_position == fan_2d::opengl::gui::text_position_e::left) {
 
 		src += (this->get_position(context, i) + fan::vec2(0, this->get_size(context, i).y / 2) + m_store[i].m_properties.theme->button.outline_thickness);
 
@@ -275,7 +275,7 @@ fan_2d::graphics::gui::src_dst_t fan_2d::graphics::gui::rectangle_text_box_sized
 
 		src += m_store[i].m_properties.offset;
 	}
-	else if (m_store[i].m_properties.text_position == fan_2d::graphics::gui::text_position_e::middle) {
+	else if (m_store[i].m_properties.text_position == fan_2d::opengl::gui::text_position_e::middle) {
 		auto text_size = get_text_size(context, i);
 		src += this->get_position(context, i) + fan::vec2(-text_size.x / 2, 0);
 	}
@@ -298,7 +298,7 @@ fan_2d::graphics::gui::src_dst_t fan_2d::graphics::gui::rectangle_text_box_sized
 			continue;
 		}
 
-		auto letter_info = fan_2d::graphics::gui::text_renderer::get_letter_info(context, fan::utf16_string(wc).to_utf8().data(), font_size);
+		auto letter_info = fan_2d::opengl::gui::text_renderer_t::get_letter_info(context, fan::utf16_string(wc).to_utf8().data(), font_size);
 		src.x += letter_info.metrics.advance;
 	}
 
@@ -309,69 +309,69 @@ fan_2d::graphics::gui::src_dst_t fan_2d::graphics::gui::rectangle_text_box_sized
 	return { src, dst };
 }
 
-fan::vec2 fan_2d::graphics::gui::rectangle_text_box_sized::get_text_starting_point(fan::opengl::context_t* context, uint32_t i) const
+fan::vec2 fan_2d::opengl::gui::rectangle_text_box_sized::get_text_starting_point(fan::opengl::context_t* context, uint32_t i) const
 {
 	fan::vec2 src;
 
-	if (m_store[i].m_properties.text_position == fan_2d::graphics::gui::text_position_e::left) {
+	if (m_store[i].m_properties.text_position == fan_2d::opengl::gui::text_position_e::left) {
 		src = this->get_position(context, i);
 		src.y += font.characters['\n'].metrics.size.y * convert_font_size(context, get_font_size(context, i));
 		src += m_store[i].m_properties.offset;
 	}
-	else if (m_store[i].m_properties.text_position == fan_2d::graphics::gui::text_position_e::middle) {
-		auto text_size = text_renderer::get_text_size(context, get_text(context, i), text_renderer::get_font_size(context, i));
-		text_size.y = fan_2d::graphics::gui::text_renderer::get_line_height(context, get_font_size(context, i));
+	else if (m_store[i].m_properties.text_position == fan_2d::opengl::gui::text_position_e::middle) {
+		auto text_size = text_renderer_t::get_text_size(context, get_text(context, i), text_renderer_t::get_font_size(context, i));
+		text_size.y = fan_2d::opengl::gui::text_renderer_t::get_line_height(context, get_font_size(context, i));
 		src = this->get_position(context, i) - text_size * 0.5;
 	}
 
 	return src;
 }
 
-fan_2d::graphics::gui::rectangle_text_box_sized::properties_t fan_2d::graphics::gui::rectangle_text_box_sized::get_property(fan::opengl::context_t* context, uint32_t i) const
+fan_2d::opengl::gui::rectangle_text_box_sized::properties_t fan_2d::opengl::gui::rectangle_text_box_sized::get_property(fan::opengl::context_t* context, uint32_t i) const
 {
-	return *(fan_2d::graphics::gui::rectangle_text_box_sized::properties_t*)&m_store[i].m_properties;
+	return *(fan_2d::opengl::gui::rectangle_text_box_sized::properties_t*)&m_store[i].m_properties;
 }
 
-void fan_2d::graphics::gui::rectangle_text_box_sized::set_offset(fan::opengl::context_t* context, uint32_t i, const fan::vec2& offset)
+void fan_2d::opengl::gui::rectangle_text_box_sized::set_offset(fan::opengl::context_t* context, uint32_t i, const fan::vec2& offset)
 {
 	m_store[i].m_properties.offset = offset;
 
 	auto new_position = this->get_position(context, i) + offset;
 
-	fan_2d::graphics::gui::text_renderer::set_position(context, i, new_position);
+	fan_2d::opengl::gui::text_renderer_t::set_position(context, i, new_position);
 }
 
-uintptr_t fan_2d::graphics::gui::rectangle_text_box_sized::size(fan::opengl::context_t* context) const
+uintptr_t fan_2d::opengl::gui::rectangle_text_box_sized::size(fan::opengl::context_t* context) const
 {
 	return inner_rect_t::size(context);
 }
 
-void fan_2d::graphics::gui::rectangle_text_box_sized::erase(fan::opengl::context_t* context, uint32_t i)
+void fan_2d::opengl::gui::rectangle_text_box_sized::erase(fan::opengl::context_t* context, uint32_t i)
 {
 	inner_rect_t::erase(context, i);
 	outer_rect_t::erase(context, i * 4, i * 4 + 4);
-	fan_2d::graphics::gui::text_renderer::erase(context, i);
+	fan_2d::opengl::gui::text_renderer_t::erase(context, i);
 
 	m_store.erase(i);
 }
 
-void fan_2d::graphics::gui::rectangle_text_box_sized::erase(fan::opengl::context_t* context, uint32_t begin, uint32_t end)
+void fan_2d::opengl::gui::rectangle_text_box_sized::erase(fan::opengl::context_t* context, uint32_t begin, uint32_t end)
 {
 	inner_rect_t::erase(context, begin, end);
 	outer_rect_t::erase(context, begin * 4, end * 4);
-	fan_2d::graphics::gui::text_renderer::erase(context, begin, end);
+	fan_2d::opengl::gui::text_renderer_t::erase(context, begin, end);
 	m_store.erase(begin, end);
 }
 
-void fan_2d::graphics::gui::rectangle_text_box_sized::clear(fan::opengl::context_t* context)
+void fan_2d::opengl::gui::rectangle_text_box_sized::clear(fan::opengl::context_t* context)
 {
-	fan::class_duplicator<fan_2d::graphics::rectangle, 0>::clear(context);
-	fan::class_duplicator<fan_2d::graphics::rectangle, 1>::clear(context);
-	fan_2d::graphics::gui::text_renderer::clear(context);
+	fan::class_duplicator<fan_2d::opengl::rectangle_t, 0>::clear(context);
+	fan::class_duplicator<fan_2d::opengl::rectangle_t, 1>::clear(context);
+	fan_2d::opengl::gui::text_renderer_t::clear(context);
 	m_store.clear();
 }
 
-//void fan_2d::graphics::gui::rectangle_text_box_sized::set_theme(fan_2d::graphics::gui::theme theme_)
+//void fan_2d::opengl::gui::rectangle_text_box_sized::set_theme(fan_2d::opengl::gui::theme theme_)
 //{
 //	m_store[i].m_properties.theme = theme_;
 //
@@ -380,7 +380,7 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::clear(fan::opengl::context
 //	}
 //}
 
-void fan_2d::graphics::gui::rectangle_text_box_sized::update_theme(fan::opengl::context_t* context, uint32_t i)
+void fan_2d::opengl::gui::rectangle_text_box_sized::update_theme(fan::opengl::context_t* context, uint32_t i)
 {
 	inner_rect_t::set_color(context, i, m_store[i].m_properties.theme->button.color);
 	outer_rect_t::set_color(context, i * 4 + 0, m_store[i].m_properties.theme->button.outline_color);
@@ -389,7 +389,7 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::update_theme(fan::opengl::
 	outer_rect_t::set_color(context, i * 4 + 3, m_store[i].m_properties.theme->button.outline_color);
 }
 
-void fan_2d::graphics::gui::rectangle_text_box_sized::set_theme(fan::opengl::context_t* context, uint32_t i, const fan_2d::graphics::gui::theme& theme_)
+void fan_2d::opengl::gui::rectangle_text_box_sized::set_theme(fan::opengl::context_t* context, uint32_t i, const fan_2d::opengl::gui::theme& theme_)
 {
 	inner_rect_t::set_color(context, i, theme_.button.color);
 	outer_rect_t::set_color(context, i * 4 + 0, theme_.button.outline_color);
@@ -398,34 +398,34 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::set_theme(fan::opengl::con
 	outer_rect_t::set_color(context, i * 4 + 3, theme_.button.outline_color);
 }
 
-void fan_2d::graphics::gui::rectangle_text_box_sized::enable_draw(fan::opengl::context_t* context)
+void fan_2d::opengl::gui::rectangle_text_box_sized::enable_draw(fan::opengl::context_t* context)
 {
 	inner_rect_t::enable_draw(context);
 	outer_rect_t::enable_draw(context);
-	fan_2d::graphics::gui::text_renderer::enable_draw(context);
+	fan_2d::opengl::gui::text_renderer_t::enable_draw(context);
 }
 
-void fan_2d::graphics::gui::rectangle_text_box_sized::disable_draw(fan::opengl::context_t* context)
+void fan_2d::opengl::gui::rectangle_text_box_sized::disable_draw(fan::opengl::context_t* context)
 {
-	fan::class_duplicator<fan_2d::graphics::rectangle, 0>::disable_draw(context);
-	fan::class_duplicator<fan_2d::graphics::rectangle, 1>::disable_draw(context);
-	fan_2d::graphics::gui::text_renderer::disable_draw(context);
+	fan::class_duplicator<fan_2d::opengl::rectangle_t, 0>::disable_draw(context);
+	fan::class_duplicator<fan_2d::opengl::rectangle_t, 1>::disable_draw(context);
+	fan_2d::opengl::gui::text_renderer_t::disable_draw(context);
 }
 
-//void fan_2d::graphics::gui::rectangle_text_box_sized::set_draw_order(uint32_t i)
+//void fan_2d::opengl::gui::rectangle_text_box_sized::set_draw_order(uint32_t i)
 //{
-//	fan::class_duplicator<fan_2d::graphics::rectangle, 0>::set_draw_order(i);
-//	fan::class_duplicator<fan_2d::graphics::rectangle, 1>::set_draw_order(i);
-//	fan_2d::graphics::gui::text_renderer::set_draw_order(i);
+//	fan::class_duplicator<fan_2d::opengl::rectangle, 0>::set_draw_order(i);
+//	fan::class_duplicator<fan_2d::opengl::rectangle, 1>::set_draw_order(i);
+//	fan_2d::opengl::gui::text_renderer_t::set_draw_order(i);
 //}
 
-//fan_2d::graphics::gui::rectangle_text_box::rectangle_text_box(fan::camera* camera, fan_2d::graphics::gui::theme theme)
+//fan_2d::opengl::gui::rectangle_text_box::rectangle_text_box(fan::camera* camera, fan_2d::opengl::gui::theme theme)
 //	:
 //	inner_rect_t(camera),
 //	outer_rect_t(camera),
-//	fan_2d::graphics::gui::text_renderer(camera), theme(theme) {}
+//	fan_2d::opengl::gui::text_renderer_t(camera), theme(theme) {}
 //
-//void fan_2d::graphics::gui::rectangle_text_box::push_back(const properties_t& property)
+//void fan_2d::opengl::gui::rectangle_text_box::push_back(const properties_t& property)
 //{
 //	m_properties.emplace_back(property);
 //
@@ -434,20 +434,20 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::disable_draw(fan::opengl::
 //	rect_properties.size = get_button_size(
 //		property.text, 
 //		property.font_size, 
-//		text_renderer::get_new_lines(property.text), 
+//		text_renderer_t::get_new_lines(property.text), 
 //		property.padding
 //	);
 //	rect_properties.rotation_point = rect_properties.position;
 //	rect_properties.color = theme.button.color;
 //
-//	fan_2d::graphics::gui::text_renderer::properties_t text_properties;
+//	fan_2d::opengl::gui::text_renderer_t::properties_t text_properties;
 //	text_properties.text = property.text;
 //	text_properties.font_size = property.font_size;
 //	text_properties.position = property.position + property.padding * 0.5 + fan::vec2(theme.button.outline_thickness, 0);
 //	text_properties.text_color = theme.button.text_color;
 //	text_properties.outline_color = theme.button.outline_color;
 //	text_properties.outline_size = theme.button.text_outline_size;
-//	fan_2d::graphics::gui::text_renderer::push_back(text_properties);
+//	fan_2d::opengl::gui::text_renderer_t::push_back(text_properties);
 //
 //	inner_rect_t::push_back(rect_properties);
 //
@@ -484,16 +484,16 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::disable_draw(fan::opengl::
 //	outer_rect_t::push_back(properties);
 //}
 //
-//void fan_2d::graphics::gui::rectangle_text_box::draw(uint32_t begin, uint32_t end)
+//void fan_2d::opengl::gui::rectangle_text_box::draw(uint32_t begin, uint32_t end)
 //{
 //	// depth test
 //	inner_rect_t::draw(begin == (uint32_t)-1 ? 0 : begin, end == (uint32_t)-1 ? outer_rect_t::size() : end);		
 //	outer_rect_t::draw(begin == (uint32_t)-1 ? 0 : begin, end == (uint32_t)-1 ? outer_rect_t::size() : end);
 //
-//	fan_2d::graphics::gui::text_renderer::draw();
+//	fan_2d::opengl::gui::text_renderer_t::draw();
 //}
 //
-//void fan_2d::graphics::gui::rectangle_text_box::set_position(uint32_t i, const fan::vec2& position)
+//void fan_2d::opengl::gui::rectangle_text_box::set_position(uint32_t i, const fan::vec2& position)
 //{
 //	const auto offset = position - rectangle_text_box::get_position(i);
 //
@@ -502,24 +502,24 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::disable_draw(fan::opengl::
 //	}
 //
 //	rectangle_text_box::inner_rect_t::set_position(i, rectangle_text_box::inner_rect_t::get_position(i) + offset);
-//	rectangle_text_box::text_renderer::set_position(i, rectangle_text_box::text_renderer::get_position(i) + offset);
+//	rectangle_text_box::text_renderer_t::set_position(i, rectangle_text_box::text_renderer_t::get_position(i) + offset);
 //}
 //
-//bool fan_2d::graphics::gui::rectangle_text_box::inside(uintptr_t i, const fan::vec2& position) const
+//bool fan_2d::opengl::gui::rectangle_text_box::inside(uintptr_t i, const fan::vec2& position) const
 //{
 //	return inner_rect_t::inside(i, position);
 //}
 //
-//fan::utf16_string fan_2d::graphics::gui::rectangle_text_box::get_text(uint32_t i) const {
-//	return fan_2d::graphics::gui::rectangle_text_box::text_renderer::get_text(i);
+//fan::utf16_string fan_2d::opengl::gui::rectangle_text_box::get_text(uint32_t i) const {
+//	return fan_2d::opengl::gui::rectangle_text_box::text_renderer_t::get_text(i);
 //}
 //
-//void fan_2d::graphics::gui::rectangle_text_box::set_text(uint32_t i, const fan::utf16_string& text) {
+//void fan_2d::opengl::gui::rectangle_text_box::set_text(uint32_t i, const fan::utf16_string& text) {
 //	
 //
 //	auto rect_size = get_button_size(
 //		text,
-//		text_renderer::get_font_size(i),
+//		text_renderer_t::get_font_size(i),
 //		0,
 //		m_store[i].m_properties.padding
 //	);
@@ -528,9 +528,9 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::disable_draw(fan::opengl::
 //
 //	inner_rect_t::set_size(i, rect_size);
 //
-//	fan_2d::graphics::gui::text_renderer::set_position(i, inner_rect_t::get_position(i) + m_store[i].m_properties.padding * 0.5);
+//	fan_2d::opengl::gui::text_renderer_t::set_position(i, inner_rect_t::get_position(i) + m_store[i].m_properties.padding * 0.5);
 //
-//	fan_2d::graphics::gui::text_renderer::set_text(i, text);
+//	fan_2d::opengl::gui::text_renderer_t::set_text(i, text);
 //
 //	auto corners = inner_rect_t::get_corners(i);
 //
@@ -555,47 +555,47 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::disable_draw(fan::opengl::
 //	outer_rect_t::set_size(i * 4 + 3, fan::vec2(t, corners[2].y - corners[0].y + t) / 2);
 //}
 //
-//fan::color fan_2d::graphics::gui::rectangle_text_box::get_text_color(uint32_t i) const
+//fan::color fan_2d::opengl::gui::rectangle_text_box::get_text_color(uint32_t i) const
 //{
-//	return text_renderer::get_text_color(i);
+//	return text_renderer_t::get_text_color(i);
 //}
 //
-//void fan_2d::graphics::gui::rectangle_text_box::set_text_color(uint32_t i, const fan::color& color)
+//void fan_2d::opengl::gui::rectangle_text_box::set_text_color(uint32_t i, const fan::color& color)
 //{
-//	text_renderer::set_text_color(i, color);
+//	text_renderer_t::set_text_color(i, color);
 //}
 //
-//fan::vec2 fan_2d::graphics::gui::rectangle_text_box::get_position(uint32_t i) const {
+//fan::vec2 fan_2d::opengl::gui::rectangle_text_box::get_position(uint32_t i) const {
 //	return inner_rect_t::get_position(i);
 //}
 //
-//fan::vec2 fan_2d::graphics::gui::rectangle_text_box::get_size(uint32_t i) const
+//fan::vec2 fan_2d::opengl::gui::rectangle_text_box::get_size(uint32_t i) const
 //{
 //	return inner_rect_t::get_size(i);
 //}
 //
-//fan::vec2 fan_2d::graphics::gui::rectangle_text_box::get_padding(uint32_t i) const {
+//fan::vec2 fan_2d::opengl::gui::rectangle_text_box::get_padding(uint32_t i) const {
 //	return m_store[i].m_properties.padding;
 //}
 //
-//f32_t fan_2d::graphics::gui::rectangle_text_box::get_font_size(uint32_t i) const
+//f32_t fan_2d::opengl::gui::rectangle_text_box::get_font_size(uint32_t i) const
 //{
-//	return rectangle_text_box::text_renderer::get_font_size(i);
+//	return rectangle_text_box::text_renderer_t::get_font_size(i);
 //}
 //
-//fan_2d::graphics::gui::rectangle_text_box::properties_t fan_2d::graphics::gui::rectangle_text_box::get_property(uint32_t i) const
+//fan_2d::opengl::gui::rectangle_text_box::properties_t fan_2d::opengl::gui::rectangle_text_box::get_property(uint32_t i) const
 //{
 //	return m_store[i].m_properties;
 //}
 //
-//fan::color fan_2d::graphics::gui::rectangle_text_box::get_color(uint32_t i) const
+//fan::color fan_2d::opengl::gui::rectangle_text_box::get_color(uint32_t i) const
 //{
 //	return inner_rect_t::get_color(i);
 //}
 //
-//fan_2d::graphics::gui::src_dst_t fan_2d::graphics::gui::rectangle_text_box::get_cursor(uint32_t i, uint32_t x, uint32_t y)
+//fan_2d::opengl::gui::src_dst_t fan_2d::opengl::gui::rectangle_text_box::get_cursor(uint32_t i, uint32_t x, uint32_t y)
 //{
-//	f32_t converted = fan_2d::graphics::gui::text_renderer::convert_font_size(this->get_font_size(i));
+//	f32_t converted = fan_2d::opengl::gui::text_renderer_t::convert_font_size(this->get_font_size(i));
 //
 //	fan::vec2 src, dst;
 //
@@ -623,7 +623,7 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::disable_draw(fan::opengl::
 //
 //		wstr.push_back(letter);
 //
-//		auto letter_info = fan_2d::graphics::gui::text_renderer::get_letter_info(fan::utf16_string(wstr).to_utf8().data(), this->get_font_size(i));
+//		auto letter_info = fan_2d::opengl::gui::text_renderer_t::get_letter_info(fan::utf16_string(wstr).to_utf8().data(), this->get_font_size(i));
 //
 //		if (j == x - 1) {
 //			src.x += letter_info.metrics.size.x + (letter_info.metrics.advance - letter_info.metrics.size.x) / 2 - 1;
@@ -634,9 +634,9 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::disable_draw(fan::opengl::
 //
 //	}
 //
-//	src.y += fan_2d::graphics::gui::text_renderer::font.font['\n'].metrics.size.y * converted * y;
+//	src.y += fan_2d::opengl::gui::text_renderer_t::font.font['\n'].metrics.size.y * converted * y;
 //
-//	dst = src + fan::vec2(0, fan_2d::graphics::gui::text_renderer::font.font['\n'].metrics.size.y * converted);
+//	dst = src + fan::vec2(0, fan_2d::opengl::gui::text_renderer_t::font.font['\n'].metrics.size.y * converted);
 //
 //	dst = dst - src + fan::vec2(cursor_properties::line_thickness, 0);
 //
@@ -644,67 +644,67 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::disable_draw(fan::opengl::
 //	return { src, dst };
 //}
 //
-//fan::vec2 fan_2d::graphics::gui::rectangle_text_box::get_text_starting_point(uint32_t i) const
+//fan::vec2 fan_2d::opengl::gui::rectangle_text_box::get_text_starting_point(uint32_t i) const
 //{
 //	return this->get_position(i) + this->get_padding(i) / 2;
 //}
 //
-//fan::camera* fan_2d::graphics::gui::rectangle_text_box::get_camera()
+//fan::camera* fan_2d::opengl::gui::rectangle_text_box::get_camera()
 //{
 //	return inner_rect_t::m_camera;
 //}
 //
-//uintptr_t fan_2d::graphics::gui::rectangle_text_box::size() const
+//uintptr_t fan_2d::opengl::gui::rectangle_text_box::size() const
 //{
 //	return inner_rect_t::size();
 //}
 //
-//void fan_2d::graphics::gui::rectangle_text_box::write_data() {
+//void fan_2d::opengl::gui::rectangle_text_box::write_data() {
 //	inner_rect_t::write_data();
 //	outer_rect_t::write_data();
-//	graphics::gui::text_renderer::write_data();
+//	graphics::gui::text_renderer_t::write_data();
 //}
 //
-//void fan_2d::graphics::gui::rectangle_text_box::edit_data(uint32_t i) {
+//void fan_2d::opengl::gui::rectangle_text_box::edit_data(uint32_t i) {
 //	inner_rect_t::edit_data(i);
 //	outer_rect_t::edit_data(i * 4, i * 4 + 4); // 4 outlines
-//	text_renderer::edit_data(i);
+//	text_renderer_t::edit_data(i);
 //}
 //
-//void fan_2d::graphics::gui::rectangle_text_box::edit_data(uint32_t begin, uint32_t end) {
+//void fan_2d::opengl::gui::rectangle_text_box::edit_data(uint32_t begin, uint32_t end) {
 //	inner_rect_t::edit_data(begin, end);
 //	outer_rect_t::edit_data(begin, end);
-//	graphics::gui::text_renderer::edit_data(begin, end);
+//	graphics::gui::text_renderer_t::edit_data(begin, end);
 //}
 //
-//void fan_2d::graphics::gui::rectangle_text_box::erase(uint32_t i)
+//void fan_2d::opengl::gui::rectangle_text_box::erase(uint32_t i)
 //{
-//	fan::class_duplicator<fan_2d::graphics::rectangle, 0>::erase(i);
-//	fan::class_duplicator<fan_2d::graphics::rectangle, 1>::erase(i);
-//	fan_2d::graphics::gui::text_renderer::erase(i);
+//	fan::class_duplicator<fan_2d::opengl::rectangle, 0>::erase(i);
+//	fan::class_duplicator<fan_2d::opengl::rectangle, 1>::erase(i);
+//	fan_2d::opengl::gui::text_renderer_t::erase(i);
 //
 //	m_properties.erase(m_properties.begin() + i);
 //}
 //
-//void fan_2d::graphics::gui::rectangle_text_box::erase(uint32_t begin, uint32_t end)
+//void fan_2d::opengl::gui::rectangle_text_box::erase(uint32_t begin, uint32_t end)
 //{
-//	fan::class_duplicator<fan_2d::graphics::rectangle, 0>::erase(begin, end);
-//	fan::class_duplicator<fan_2d::graphics::rectangle, 1>::erase(begin, end);
-//	fan_2d::graphics::gui::text_renderer::erase(begin, end);
+//	fan::class_duplicator<fan_2d::opengl::rectangle, 0>::erase(begin, end);
+//	fan::class_duplicator<fan_2d::opengl::rectangle, 1>::erase(begin, end);
+//	fan_2d::opengl::gui::text_renderer_t::erase(begin, end);
 //
 //	m_properties.erase(m_properties.begin() + begin, m_properties.begin() + end);
 //}
 //
-//void fan_2d::graphics::gui::rectangle_text_box::clear()
+//void fan_2d::opengl::gui::rectangle_text_box::clear()
 //{
-//	fan::class_duplicator<fan_2d::graphics::rectangle, 0>::clear();
-//	fan::class_duplicator<fan_2d::graphics::rectangle, 1>::clear();
-//	fan_2d::graphics::gui::text_renderer::clear();
+//	fan::class_duplicator<fan_2d::opengl::rectangle, 0>::clear();
+//	fan::class_duplicator<fan_2d::opengl::rectangle, 1>::clear();
+//	fan_2d::opengl::gui::text_renderer_t::clear();
 //
 //	m_properties.clear();
 //}
 //
-//void fan_2d::graphics::gui::rectangle_text_box::set_theme(fan_2d::graphics::gui::theme theme_)
+//void fan_2d::opengl::gui::rectangle_text_box::set_theme(fan_2d::opengl::gui::theme theme_)
 //{
 //	theme = theme_;
 //
@@ -713,7 +713,7 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::disable_draw(fan::opengl::
 //	}
 //}
 //
-//void fan_2d::graphics::gui::rectangle_text_box::set_theme(uint32_t i, fan_2d::graphics::gui::theme theme_)
+//void fan_2d::opengl::gui::rectangle_text_box::set_theme(uint32_t i, fan_2d::opengl::gui::theme theme_)
 //{
 //	theme = theme_;
 //
@@ -725,27 +725,27 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::disable_draw(fan::opengl::
 //	outer_rect_t::set_color(i * 4 + 3, theme.button.outline_color);
 //}
 //
-//void fan_2d::graphics::gui::rectangle_text_box::enable_draw()
+//void fan_2d::opengl::gui::rectangle_text_box::enable_draw()
 //{
 //	inner_rect_t::enable_draw();
 //	outer_rect_t::enable_draw();
-//	fan_2d::graphics::gui::text_renderer::enable_draw();
+//	fan_2d::opengl::gui::text_renderer_t::enable_draw();
 //}
 //
-//void fan_2d::graphics::gui::rectangle_text_box::disable_draw()
+//void fan_2d::opengl::gui::rectangle_text_box::disable_draw()
 //{
 //	inner_rect_t::disable_draw();
 //	outer_rect_t::disable_draw();
-//	fan_2d::graphics::gui::text_renderer::disable_draw();
+//	fan_2d::opengl::gui::text_renderer_t::disable_draw();
 //}
 //
-//fan_2d::graphics::gui::circle_button::circle_button(fan::camera* camera) :
-//	fan_2d::graphics::circle(camera),
-//	fan_2d::graphics::gui::base::mouse<fan_2d::graphics::gui::circle_button>(this)
+//fan_2d::opengl::gui::circle_button::circle_button(fan::camera* camera) :
+//	fan_2d::opengl::circle(camera),
+//	fan_2d::opengl::gui::base::mouse<fan_2d::opengl::gui::circle_button>(this)
 //{
 //
 //}
-//fan_2d::graphics::gui::circle_button::~circle_button() {
+//fan_2d::opengl::gui::circle_button::~circle_button() {
 //	if (pointer_remove_flag == 1) {
 //		pointer_remove_flag = 0;
 //	}
@@ -754,51 +754,51 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::disable_draw(fan::opengl::
 //	}
 //}
 //
-//void fan_2d::graphics::gui::circle_button::push_back(properties_t properties) {
+//void fan_2d::opengl::gui::circle_button::push_back(properties_t properties) {
 //	m_reserved.emplace_back((uint32_t)properties.button_state);
 //	if (properties.button_state == button_states_e::locked) {
 //
-//		properties.theme = fan_2d::graphics::gui::themes::locked();
+//		properties.theme = fan_2d::opengl::gui::themes::locked();
 //	}
 //
-//	fan_2d::graphics::circle::properties_t p;
+//	fan_2d::opengl::circle::properties_t p;
 //	p.position = properties.position;
 //	p.radius = properties.radius;
 //	p.color = properties.theme.button.color;
 //
-//	fan_2d::graphics::circle::push_back(p);
+//	fan_2d::opengl::circle::push_back(p);
 //
 //	m_theme.emplace_back(properties.theme);
 //
 //	if (inside(size() - 1) && properties.button_state != button_states_e::locked) {
 //		circle_button::mouse::m_focused_button_id = size() - 1;
-//		lib_add_on_mouse_move(m_camera->m_window, circle_button::mouse::m_focused_button_id, fan_2d::graphics::gui::mouse_stage::inside);
+//		lib_add_on_mouse_move(m_camera->m_window, circle_button::mouse::m_focused_button_id, fan_2d::opengl::gui::mouse_stage::inside);
 //	}
 //}
 //
-//void fan_2d::graphics::gui::circle_button::erase(uint32_t i) {
+//void fan_2d::opengl::gui::circle_button::erase(uint32_t i) {
 //	circle::erase(i);
 //	m_theme.erase(m_theme.begin() + i);
 //	m_reserved.erase(m_reserved.begin() + i);
 //}
-//void fan_2d::graphics::gui::circle_button::erase(uint32_t begin, uint32_t end) {
+//void fan_2d::opengl::gui::circle_button::erase(uint32_t begin, uint32_t end) {
 //	circle::erase(begin, end);
 //	m_theme.erase(m_theme.begin() + begin, m_theme.begin() + end);
 //	m_reserved.erase(m_reserved.begin() + begin, m_reserved.begin() + end);
 //}
-//void fan_2d::graphics::gui::circle_button::clear() {
+//void fan_2d::opengl::gui::circle_button::clear() {
 //	circle::clear();
 //	m_theme.clear();
 //	m_reserved.clear();
 //}
 //
-//void fan_2d::graphics::gui::circle_button::set_locked(uint32_t i, bool flag) {
+//void fan_2d::opengl::gui::circle_button::set_locked(uint32_t i, bool flag) {
 //	if (flag) {
 //		if (m_focused_button_id == i) {
 //			m_focused_button_id = fan::uninitialized;
 //		}
 //		m_reserved[i] |= (uint32_t)button_states_e::locked;
-//		m_m_store[i].m_properties.theme = fan_2d::graphics::gui::themes::locked();
+//		m_m_store[i].m_properties.theme = fan_2d::opengl::gui::themes::locked();
 //		update_theme(i);
 //	}
 //	else {
@@ -810,11 +810,11 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::disable_draw(fan::opengl::
 //	}
 //}
 //
-//bool fan_2d::graphics::gui::circle_button::locked(uint32_t i) const {
+//bool fan_2d::opengl::gui::circle_button::locked(uint32_t i) const {
 //	return m_reserved[i] & (uint32_t)button_states_e::locked;
 //}
 //
-//void fan_2d::graphics::gui::circle_button::enable_draw() {
+//void fan_2d::opengl::gui::circle_button::enable_draw() {
 //	if (circle::m_draw_index == -1 || circle::m_camera->m_window->m_draw_queue[circle::m_draw_index].first != this) {
 //		circle::m_draw_index = circle::m_camera->m_window->push_draw_call(this, [&] {
 //			this->draw();
@@ -826,7 +826,7 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::disable_draw(fan::opengl::
 //		});
 //	}
 //}
-//void fan_2d::graphics::gui::circle_button::disable_draw() {
+//void fan_2d::opengl::gui::circle_button::disable_draw() {
 //	if (m_draw_index == -1) {
 //		return;
 //	}
@@ -834,11 +834,11 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::disable_draw(fan::opengl::
 //	m_camera->m_window->erase_draw_call(m_draw_index);
 //}
 //
-//void fan_2d::graphics::gui::circle_button::update_theme(uint32_t i) {
+//void fan_2d::opengl::gui::circle_button::update_theme(uint32_t i) {
 //	circle::set_color(i, m_m_store[i].m_properties.theme->button.color);
 //}
 //
-//void fan_2d::graphics::gui::circle_button::lib_add_on_input(fan::window *window, uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage) {
+//void fan_2d::opengl::gui::circle_button::lib_add_on_input(fan::window_t *window, uint32_t i, uint16_t key, fan::key_state state, fan_2d::opengl::gui::mouse_stage stage) {
 //
 //	if (key != fan::mouse_left) {
 //		return;
@@ -870,7 +870,7 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::disable_draw(fan::opengl::
 //	}
 //}
 //
-//void fan_2d::graphics::gui::circle_button::lib_add_on_mouse_move(fan::window *window, uint32_t i, fan_2d::graphics::gui::mouse_stage stage) {
+//void fan_2d::opengl::gui::circle_button::lib_add_on_mouse_move(fan::window_t *window, uint32_t i, fan_2d::opengl::gui::mouse_stage stage) {
 //	if (stage == mouse_stage::inside) {
 //		circle::set_color(i, m_m_store[i].m_properties.theme->button.hover_color);
 //	}
@@ -879,22 +879,22 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::disable_draw(fan::opengl::
 //	}
 //}
 //
-//fan::camera* fan_2d::graphics::gui::circle_button::get_camera() {
+//fan::camera* fan_2d::opengl::gui::circle_button::get_camera() {
 //	return m_camera;
 //}
 //
-//fan_2d::graphics::gui::rectangle_text_button::rectangle_text_button(fan::camera* camera, fan_2d::graphics::gui::theme theme_)
+//fan_2d::opengl::gui::rectangle_text_button::rectangle_text_button(fan::camera* camera, fan_2d::opengl::gui::theme theme_)
 //	: 
-//	fan_2d::graphics::gui::rectangle_text_box(camera, theme_),
+//	fan_2d::opengl::gui::rectangle_text_box(camera, theme_),
 //	rectangle_text_button::mouse(this), rectangle_text_button::text_input<rectangle_text_button>(this) {
 //}
 //
-//void fan_2d::graphics::gui::rectangle_text_button::push_back(const properties_t& properties)
+//void fan_2d::opengl::gui::rectangle_text_button::push_back(const properties_t& properties)
 //{
 //	rectangle_text_button::rectangle_text_box::push_back(properties);
 //	rectangle_text_button::text_input::push_back(properties.character_limit, properties.character_width, properties.line_limit);
 //}
-//void fan_2d::graphics::gui::rectangle_text_button::set_place_holder(uint32_t i, const fan::utf16_string& place_holder)
+//void fan_2d::opengl::gui::rectangle_text_button::set_place_holder(uint32_t i, const fan::utf16_string& place_holder)
 //{
 //	FED_MoveCursorFreeStyleToEndOfLine(&m_wed[i], cursor_reference[i]);
 //
@@ -902,20 +902,20 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::disable_draw(fan::opengl::
 //		FED_DeleteCharacterFromCursor(&m_wed[i], cursor_reference[i]);
 //	}
 //
-//	rectangle_text_button::text_renderer::set_text_color(i, fan_2d::graphics::gui::defaults::text_color_place_holder);
+//	rectangle_text_button::text_renderer_t::set_text_color(i, fan_2d::opengl::gui::defaults::text_color_place_holder);
 //	this->set_text(i, place_holder);
 //
 //	if (m_input_allowed[i]) {
 //		update_cursor(i);
 //	}
 //}
-//void fan_2d::graphics::gui::rectangle_text_button::draw()
+//void fan_2d::opengl::gui::rectangle_text_button::draw()
 //{
 //	rectangle_text_button::rectangle_text_box::draw();
 //	input_instance_t::draw();
 //}
 //
-//void fan_2d::graphics::gui::rectangle_text_button::backspace_callback(uint32_t i)
+//void fan_2d::opengl::gui::rectangle_text_button::backspace_callback(uint32_t i)
 //{
 //	auto current_string = m_box->get_text(i);
 //	auto current_property = m_box->get_property(i);
@@ -926,35 +926,35 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::disable_draw(fan::opengl::
 //	}
 //}
 //
-//void fan_2d::graphics::gui::rectangle_text_button::text_callback(uint32_t i)
+//void fan_2d::opengl::gui::rectangle_text_button::text_callback(uint32_t i)
 //{
 //	if (m_box->get_text_color(i) != m_box->theme.button.text_color) {
 //		m_box->set_text_color(i, m_box->theme.button.text_color);
 //	}
 //}
 //
-//void fan_2d::graphics::gui::rectangle_text_button::erase(uint32_t i)
+//void fan_2d::opengl::gui::rectangle_text_button::erase(uint32_t i)
 //{
 //	rectangle_text_button::rectangle_text_box::erase(i);
 //	/*rectangle_text_button::mouse::erase(i);
 //	rectangle_text_button::text_input::erase(i);*/
 //}
 //
-//void fan_2d::graphics::gui::rectangle_text_button::erase(uint32_t begin, uint32_t end)
+//void fan_2d::opengl::gui::rectangle_text_button::erase(uint32_t begin, uint32_t end)
 //{
 //	rectangle_text_button::rectangle_text_box::erase(begin, end);
 //	//rectangle_text_button::mouse::erase(begin, end);
 //	//rectangle_text_button::text_input::erase(begin, end);
 //}
 //
-//void fan_2d::graphics::gui::rectangle_text_button::clear()
+//void fan_2d::opengl::gui::rectangle_text_button::clear()
 //{
 //	rectangle_text_button::rectangle_text_box::clear();
 //	//rectangle_text_button::mouse::clear();
 //	//rectangle_text_button::text_input::clear();
 //}
 //
-//void fan_2d::graphics::gui::rectangle_text_button::lib_add_on_input(fan::window *window, uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage)
+//void fan_2d::opengl::gui::rectangle_text_button::lib_add_on_input(fan::window_t *window, uint32_t i, uint16_t key, fan::key_state state, fan_2d::opengl::gui::mouse_stage stage)
 //{
 //	if (key != fan::mouse_left) {
 //		return;
@@ -1007,7 +1007,7 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::disable_draw(fan::opengl::
 //	}
 //}
 //
-//void fan_2d::graphics::gui::rectangle_text_button::lib_add_on_mouse_move(fan::window *window, uint32_t i, fan_2d::graphics::gui::mouse_stage stage)
+//void fan_2d::opengl::gui::rectangle_text_button::lib_add_on_mouse_move(fan::window_t *window, uint32_t i, fan_2d::opengl::gui::mouse_stage stage)
 //{
 //	
 //	switch (stage) {
@@ -1036,24 +1036,24 @@ void fan_2d::graphics::gui::rectangle_text_box_sized::disable_draw(fan::opengl::
 //  }
 //}
 //
-//bool fan_2d::graphics::gui::rectangle_text_button::locked(uint32_t i) const
+//bool fan_2d::opengl::gui::rectangle_text_button::locked(uint32_t i) const
 //{
 //	return false; // ?
 //}
 //
-void fan_2d::graphics::gui::text_renderer_clickable::open(fan::window* window, fan::opengl::context_t* context) {
-	text_renderer::open(context);
+void fan_2d::opengl::gui::text_renderer_clickable::open(fan::window_t* window, fan::opengl::context_t* context) {
+	text_renderer_t::open(context);
 	m_button_event.open(window, context);
 	m_store.open();
 }
 
-void fan_2d::graphics::gui::text_renderer_clickable::close(fan::window* window, fan::opengl::context_t* context) {
-	text_renderer::close(context);
+void fan_2d::opengl::gui::text_renderer_clickable::close(fan::window_t* window, fan::opengl::context_t* context) {
+	text_renderer_t::close(context);
 	m_button_event.close(window, context);
 	m_store.close();
 }
 
-void fan_2d::graphics::gui::text_renderer_clickable::lib_add_on_input(fan::window* window, fan::opengl::context_t* context, uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage) {
+void fan_2d::opengl::gui::text_renderer_clickable::lib_add_on_input(fan::window_t* window, fan::opengl::context_t* context, uint32_t i, uint16_t key, fan::key_state state, fan_2d::opengl::gui::mouse_stage stage) {
 
 	if (key != fan::mouse_left) {
 		return;
@@ -1065,17 +1065,17 @@ void fan_2d::graphics::gui::text_renderer_clickable::lib_add_on_input(fan::windo
 		case fan::key_state::press: {
 
 			if (m_store[i].previous_states == 2) {
-				text_renderer::set_text_color(context, i, text_renderer::get_text_color(context, i) + (click_strength - hover_strength));
+				text_renderer_t::set_text_color(context, i, text_renderer_t::get_text_color(context, i) + (click_strength - hover_strength));
 				fan::color c;
-				if ((c = text_renderer::get_outline_color(context, i)) != 0) {
-					text_renderer::set_outline_color(context, i, text_renderer::get_outline_color(context, i) + (click_strength - hover_strength));
+				if ((c = text_renderer_t::get_outline_color(context, i)) != 0) {
+					text_renderer_t::set_outline_color(context, i, text_renderer_t::get_outline_color(context, i) + (click_strength - hover_strength));
 				}
 			}
 			else {
-				text_renderer::set_text_color(context, i, text_renderer::get_text_color(context, i) + click_strength);
+				text_renderer_t::set_text_color(context, i, text_renderer_t::get_text_color(context, i) + click_strength);
 				fan::color c;
-				if ((c = text_renderer::get_outline_color(context, i)) != 0) {
-					text_renderer::set_outline_color(context, i, text_renderer::get_outline_color(context, i) + click_strength);
+				if ((c = text_renderer_t::get_outline_color(context, i)) != 0) {
+					text_renderer_t::set_outline_color(context, i, text_renderer_t::get_outline_color(context, i) + click_strength);
 				}
 			}
 
@@ -1085,10 +1085,10 @@ void fan_2d::graphics::gui::text_renderer_clickable::lib_add_on_input(fan::windo
 		}
 		case fan::key_state::release: {
 
-			text_renderer::set_text_color(context, i, text_renderer::get_text_color(context, i) - (click_strength - hover_strength));
+			text_renderer_t::set_text_color(context, i, text_renderer_t::get_text_color(context, i) - (click_strength - hover_strength));
 			fan::color c;
-			if ((c = text_renderer::get_outline_color(context, i)) != 0) {
-				text_renderer::set_outline_color(context, i, text_renderer::get_outline_color(context, i) - (click_strength - hover_strength));
+			if ((c = text_renderer_t::get_outline_color(context, i)) != 0) {
+				text_renderer_t::set_outline_color(context, i, text_renderer_t::get_outline_color(context, i) - (click_strength - hover_strength));
 			}
 
 			m_store[i].previous_states = 2;
@@ -1103,10 +1103,10 @@ void fan_2d::graphics::gui::text_renderer_clickable::lib_add_on_input(fan::windo
 		switch (state) {
 		case fan::key_state::release: {
 
-			text_renderer::set_text_color(context, i, text_renderer::get_text_color(context, i) - click_strength);
+			text_renderer_t::set_text_color(context, i, text_renderer_t::get_text_color(context, i) - click_strength);
 			fan::color c;
-			if ((c = text_renderer::get_outline_color(context, i)) != 0) {
-				text_renderer::set_outline_color(context, i, text_renderer::get_outline_color(context, i) - click_strength);
+			if ((c = text_renderer_t::get_outline_color(context, i)) != 0) {
+				text_renderer_t::set_outline_color(context, i, text_renderer_t::get_outline_color(context, i) - click_strength);
 			}
 
 			m_store[i].previous_states = 0;
@@ -1124,10 +1124,10 @@ void fan_2d::graphics::gui::text_renderer_clickable::lib_add_on_input(fan::windo
 			return;
 		}
 
-		text_renderer::set_text_color(context, i, text_renderer::get_text_color(context, i) + hover_strength);
+		text_renderer_t::set_text_color(context, i, text_renderer_t::get_text_color(context, i) + hover_strength);
 		fan::color c;
-		if ((c = text_renderer::get_outline_color(context, i)) != 0) {
-			text_renderer::set_outline_color(context, i, text_renderer::get_outline_color(context, i) + hover_strength);
+		if ((c = text_renderer_t::get_outline_color(context, i)) != 0) {
+			text_renderer_t::set_outline_color(context, i, text_renderer_t::get_outline_color(context, i) + hover_strength);
 		}
 
 		m_store[i].previous_states = 2;
@@ -1138,7 +1138,7 @@ void fan_2d::graphics::gui::text_renderer_clickable::lib_add_on_input(fan::windo
 
 }
 
-void fan_2d::graphics::gui::text_renderer_clickable::lib_add_on_mouse_move(fan::window* window, fan::opengl::context_t* context, uint32_t i, fan_2d::graphics::gui::mouse_stage stage) {
+void fan_2d::opengl::gui::text_renderer_clickable::lib_add_on_mouse_move(fan::window_t* window, fan::opengl::context_t* context, uint32_t i, fan_2d::opengl::gui::mouse_stage stage) {
 
 	switch (stage) {
 	case mouse_stage::inside: {
@@ -1147,10 +1147,10 @@ void fan_2d::graphics::gui::text_renderer_clickable::lib_add_on_mouse_move(fan::
 			return;
 		}
 
-		text_renderer::set_text_color(context, i, text_renderer::get_text_color(context, i) + hover_strength);
+		text_renderer_t::set_text_color(context, i, text_renderer_t::get_text_color(context, i) + hover_strength);
 		fan::color c;
-		if ((c = text_renderer::get_outline_color(context, i)) != 0) {
-			text_renderer::set_outline_color(context, i, text_renderer::get_outline_color(context, i) + hover_strength);
+		if ((c = text_renderer_t::get_outline_color(context, i)) != 0) {
+			text_renderer_t::set_outline_color(context, i, text_renderer_t::get_outline_color(context, i) + hover_strength);
 		}
 
 		m_store[i].previous_states = 2;
@@ -1165,18 +1165,18 @@ void fan_2d::graphics::gui::text_renderer_clickable::lib_add_on_mouse_move(fan::
 
 		switch (m_store[i].previous_states) {
 		case 1: {
-			text_renderer::set_text_color(context, i, text_renderer::get_text_color(context, i) - click_strength);
+			text_renderer_t::set_text_color(context, i, text_renderer_t::get_text_color(context, i) - click_strength);
 			fan::color c;
-			if ((c = text_renderer::get_outline_color(context, i)) != 0) {
-				text_renderer::set_outline_color(context, i, text_renderer::get_outline_color(context, i) - click_strength);
+			if ((c = text_renderer_t::get_outline_color(context, i)) != 0) {
+				text_renderer_t::set_outline_color(context, i, text_renderer_t::get_outline_color(context, i) - click_strength);
 			}
 			break;
 		}
 		case 2: {
-			text_renderer::set_text_color(context, i, text_renderer::get_text_color(context, i) - hover_strength);
+			text_renderer_t::set_text_color(context, i, text_renderer_t::get_text_color(context, i) - hover_strength);
 			fan::color c;
-			if ((c = text_renderer::get_outline_color(context, i)) != 0) {
-				text_renderer::set_outline_color(context, i, text_renderer::get_outline_color(context, i) - hover_strength);
+			if ((c = text_renderer_t::get_outline_color(context, i)) != 0) {
+				text_renderer_t::set_outline_color(context, i, text_renderer_t::get_outline_color(context, i) - hover_strength);
 			}
 			break;
 		}
@@ -1189,43 +1189,43 @@ void fan_2d::graphics::gui::text_renderer_clickable::lib_add_on_mouse_move(fan::
 	}
 }
 
-void fan_2d::graphics::gui::text_renderer_clickable::push_back(fan::window* window, fan::opengl::context_t* context, const text_renderer_clickable::properties_t& properties)
+void fan_2d::opengl::gui::text_renderer_clickable::push_back(fan::window_t* window, fan::opengl::context_t* context, const text_renderer_clickable::properties_t& properties)
 {
 	store_t store;
 	store.m_hitbox = hitbox_t{ properties.hitbox_position, properties.hitbox_size };
 	store.previous_states = 0;
 	m_store.push_back(store);
 
-	text_renderer::push_back(context, properties);
+	text_renderer_t::push_back(context, properties);
 }
 
-void fan_2d::graphics::gui::text_renderer_clickable::set_hitbox(fan::window* window, fan::opengl::context_t* context, uint32_t i, const fan::vec2& hitbox_position, const fan::vec2& hitbox_size)
+void fan_2d::opengl::gui::text_renderer_clickable::set_hitbox(fan::window_t* window, fan::opengl::context_t* context, uint32_t i, const fan::vec2& hitbox_position, const fan::vec2& hitbox_size)
 {
 	m_store[i].m_hitbox.hitbox_position = hitbox_position;
 	m_store[i].m_hitbox.hitbox_size = hitbox_size;
 }
 
-fan::vec2 fan_2d::graphics::gui::text_renderer_clickable::get_hitbox_position(fan::window* window, fan::opengl::context_t* context, uint32_t i) const
+fan::vec2 fan_2d::opengl::gui::text_renderer_clickable::get_hitbox_position(fan::window_t* window, fan::opengl::context_t* context, uint32_t i) const
 {
 	return m_store[i].m_hitbox.hitbox_position;
 }
 
-void fan_2d::graphics::gui::text_renderer_clickable::set_hitbox_position(fan::window* window, fan::opengl::context_t* context, uint32_t i, const fan::vec2& hitbox_position)
+void fan_2d::opengl::gui::text_renderer_clickable::set_hitbox_position(fan::window_t* window, fan::opengl::context_t* context, uint32_t i, const fan::vec2& hitbox_position)
 {
 	m_store[i].m_hitbox.hitbox_position = hitbox_position;
 }
 
-fan::vec2 fan_2d::graphics::gui::text_renderer_clickable::get_hitbox_size(fan::window* window, fan::opengl::context_t* context, uint32_t i) const
+fan::vec2 fan_2d::opengl::gui::text_renderer_clickable::get_hitbox_size(fan::window_t* window, fan::opengl::context_t* context, uint32_t i) const
 {
 	return m_store[i].m_hitbox.hitbox_size;
 }
 
-void fan_2d::graphics::gui::text_renderer_clickable::set_hitbox_size(fan::window* window, fan::opengl::context_t* context, uint32_t i, const fan::vec2& hitbox_size)
+void fan_2d::opengl::gui::text_renderer_clickable::set_hitbox_size(fan::window_t* window, fan::opengl::context_t* context, uint32_t i, const fan::vec2& hitbox_size)
 {
 	m_store[i].m_hitbox.hitbox_size = hitbox_size;
 }
 
-bool fan_2d::graphics::gui::text_renderer_clickable::inside(fan::opengl::context_t* context, uint32_t i, const fan::vec2& p) const
+bool fan_2d::opengl::gui::text_renderer_clickable::inside(fan::opengl::context_t* context, uint32_t i, const fan::vec2& p) const
 {
 	const fan::vec2 src = m_store[i].m_hitbox.hitbox_position - m_store[i].m_hitbox.hitbox_size;
 	const fan::vec2 dst = m_store[i].m_hitbox.hitbox_position + m_store[i].m_hitbox.hitbox_size;
@@ -1234,17 +1234,17 @@ bool fan_2d::graphics::gui::text_renderer_clickable::inside(fan::opengl::context
 }
 
 
-void fan_2d::graphics::gui::rectangle_text_button_sized::open(fan::window* window, fan::opengl::context_t* context)
+void fan_2d::opengl::gui::rectangle_text_button_sized::open(fan::window_t* window, fan::opengl::context_t* context)
 {
-	fan_2d::graphics::gui::rectangle_text_box_sized::open(context);
+	fan_2d::opengl::gui::rectangle_text_box_sized::open(context);
 	m_key_event.open(window, context);
 	m_button_event.open(window, context);
 	m_reserved.open();
 }
 
-void fan_2d::graphics::gui::rectangle_text_button_sized::close(fan::window* window, fan::opengl::context_t* context)
+void fan_2d::opengl::gui::rectangle_text_button_sized::close(fan::window_t* window, fan::opengl::context_t* context)
 {
-	fan_2d::graphics::gui::rectangle_text_box_sized::close(context);
+	fan_2d::opengl::gui::rectangle_text_box_sized::close(context);
 	m_key_event.close(window, context);
 	m_button_event.close(window, context);
 	m_reserved.close();
@@ -1257,12 +1257,12 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::close(fan::window* wind
 	}
 }
 
-void fan_2d::graphics::gui::rectangle_text_button_sized::push_back(fan::window* window, fan::opengl::context_t* context, properties_t properties)
+void fan_2d::opengl::gui::rectangle_text_button_sized::push_back(fan::window_t* window, fan::opengl::context_t* context, properties_t properties)
 {
 	m_reserved.emplace_back((uint32_t)properties.button_state);
 	if (properties.button_state == button_states_e::locked) {
 
-		properties.theme = fan_2d::graphics::gui::themes::locked();
+		properties.theme = fan_2d::opengl::gui::themes::locked();
 	}
 
 	rectangle_text_button_sized::rectangle_text_box_sized::push_back(context, properties);
@@ -1271,19 +1271,19 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::push_back(fan::window* 
 
 	if (inside(context, size(context) - 1, window->get_mouse_position()) && properties.button_state != button_states_e::locked) {
 		m_button_event.m_focused_button_id = size(context) - 1;
-		lib_add_on_mouse_move(window, context, m_button_event.m_focused_button_id, fan_2d::graphics::gui::mouse_stage::inside);
+		lib_add_on_mouse_move(window, context, m_button_event.m_focused_button_id, fan_2d::opengl::gui::mouse_stage::inside);
 	}
 }
 
-void fan_2d::graphics::gui::rectangle_text_button_sized::set_place_holder(fan::window* window, fan::opengl::context_t* context, uint32_t i, const fan::utf16_string& place_holder)
+void fan_2d::opengl::gui::rectangle_text_button_sized::set_place_holder(fan::window_t* window, fan::opengl::context_t* context, uint32_t i, const fan::utf16_string& place_holder)
 {
 	FED_MoveCursorFreeStyleToEndOfLine(&m_key_event.m_store[i].m_wed, m_key_event.m_store[i].cursor_reference);
 
-	for (int j = 0; j < ((text_renderer::store_t*)&m_store[i])->m_text->size(); j++) {
+	for (int j = 0; j < ((text_renderer_t::store_t*)&m_store[i])->m_text->size(); j++) {
 		FED_DeleteCharacterFromCursor(&m_key_event.m_store[i].m_wed, m_key_event.m_store[i].cursor_reference);
 	}
 
-	rectangle_text_box_sized::text_renderer::set_text_color(context, i, fan_2d::graphics::gui::defaults::text_color_place_holder);
+	rectangle_text_box_sized::text_renderer_t::set_text_color(context, i, fan_2d::opengl::gui::defaults::text_color_place_holder);
 	this->set_text(context, i, place_holder);
 
 	if (m_key_event.m_store[i].m_input_allowed) {
@@ -1292,13 +1292,13 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::set_place_holder(fan::w
 
 }
 
-void fan_2d::graphics::gui::rectangle_text_button_sized::draw(fan::window* window, fan::opengl::context_t* context)
+void fan_2d::opengl::gui::rectangle_text_button_sized::draw(fan::window_t* window, fan::opengl::context_t* context)
 {
 	rectangle_text_button_sized::rectangle_text_box_sized::draw(context);
 	m_key_event.draw(window, context);
 }
 
-void fan_2d::graphics::gui::rectangle_text_button_sized::backspace_callback(fan::window* window, fan::opengl::context_t* context, uint32_t i)
+void fan_2d::opengl::gui::rectangle_text_button_sized::backspace_callback(fan::window_t* window, fan::opengl::context_t* context, uint32_t i)
 {
 	auto current_string = this->get_text(context, i);
 	auto current_property = this->get_property(context, i);
@@ -1309,14 +1309,14 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::backspace_callback(fan:
 	}
 }
 
-void fan_2d::graphics::gui::rectangle_text_button_sized::text_callback(fan::window* window, fan::opengl::context_t* context, uint32_t i)
+void fan_2d::opengl::gui::rectangle_text_button_sized::text_callback(fan::window_t* window, fan::opengl::context_t* context, uint32_t i)
 {
 	if (this->get_text_color(context, i) != this->m_store[i].m_properties.theme->button.text_color) {
 		this->set_text_color(context, i, this->m_store[i].m_properties.theme->button.text_color);
 	}
 }
 
-void fan_2d::graphics::gui::rectangle_text_button_sized::erase(fan::window* window, fan::opengl::context_t* context, uint32_t i)
+void fan_2d::opengl::gui::rectangle_text_button_sized::erase(fan::window_t* window, fan::opengl::context_t* context, uint32_t i)
 {
 	rectangle_text_button_sized::rectangle_text_box_sized::erase(context, i);
 	m_reserved.erase(i);
@@ -1324,7 +1324,7 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::erase(fan::window* wind
 	m_key_event.erase(window, context, i);
 }
 
-void fan_2d::graphics::gui::rectangle_text_button_sized::erase(fan::window* window, fan::opengl::context_t* context, uint32_t begin, uint32_t end)
+void fan_2d::opengl::gui::rectangle_text_button_sized::erase(fan::window_t* window, fan::opengl::context_t* context, uint32_t begin, uint32_t end)
 {
 	rectangle_text_button_sized::rectangle_text_box_sized::erase(context, begin, end);
 	m_reserved.erase(begin, end);
@@ -1332,7 +1332,7 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::erase(fan::window* wind
 	m_key_event.erase(window, context, begin, end);
 }
 
-void fan_2d::graphics::gui::rectangle_text_button_sized::clear(fan::window* window, fan::opengl::context_t* context)
+void fan_2d::opengl::gui::rectangle_text_button_sized::clear(fan::window_t* window, fan::opengl::context_t* context)
 {
 	rectangle_text_button_sized::rectangle_text_box_sized::clear(context);
 	m_reserved.clear();
@@ -1344,14 +1344,14 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::clear(fan::window* wind
 	//rectangle_text_button_sized::text_input::clear();
 }
 
-void fan_2d::graphics::gui::rectangle_text_button_sized::set_locked(fan::window* window, fan::opengl::context_t* context, uint32_t i, bool flag, bool change_theme) {
+void fan_2d::opengl::gui::rectangle_text_button_sized::set_locked(fan::window_t* window, fan::opengl::context_t* context, uint32_t i, bool flag, bool change_theme) {
 	if (flag) {
 		if (m_button_event.m_focused_button_id == i) {
 			m_button_event.m_focused_button_id = fan::uninitialized;
 		}
 		m_reserved[i] |= (uint32_t)button_states_e::locked;
 		if (change_theme) {
-			*m_store[i].m_properties.theme = fan_2d::graphics::gui::themes::locked();
+			*m_store[i].m_properties.theme = fan_2d::opengl::gui::themes::locked();
 			update_theme(context, i);
 		}
 	}
@@ -1364,7 +1364,7 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::set_locked(fan::window*
 
 }
 
-void fan_2d::graphics::gui::rectangle_text_button_sized::lib_add_on_input(fan::window* window, fan::opengl::context_t* context, uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage)
+void fan_2d::opengl::gui::rectangle_text_button_sized::lib_add_on_input(fan::window_t* window, fan::opengl::context_t* context, uint32_t i, uint16_t key, fan::key_state state, fan_2d::opengl::gui::mouse_stage stage)
 {
 	if (this->locked(window, context, i)) {
 		return;
@@ -1376,17 +1376,17 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::lib_add_on_input(fan::w
 		return;
 	}
 
-	static auto change_color_f = [context](fan_2d::graphics::gui::rectangle_text_button_sized* rtbs, uint32_t i, const fan::color& in, const fan::color& out) {
+	static auto change_color_f = [context](fan_2d::opengl::gui::rectangle_text_button_sized* rtbs, uint32_t i, const fan::color& in, const fan::color& out) {
 
-		((fan_2d::graphics::gui::rectangle_text_button_sized::inner_rect_t*)rtbs)->set_color(context, i, in);
-		((fan_2d::graphics::gui::rectangle_text_button_sized::outer_rect_t*)rtbs)->set_color(context, i * 4 + 0, out);
-		((fan_2d::graphics::gui::rectangle_text_button_sized::outer_rect_t*)rtbs)->set_color(context, i * 4 + 1, out);
-		((fan_2d::graphics::gui::rectangle_text_button_sized::outer_rect_t*)rtbs)->set_color(context, i * 4 + 2, out);
-		((fan_2d::graphics::gui::rectangle_text_button_sized::outer_rect_t*)rtbs)->set_color(context, i * 4 + 3, out);
+		((fan_2d::opengl::gui::rectangle_text_button_sized::inner_rect_t*)rtbs)->set_color(context, i, in);
+		((fan_2d::opengl::gui::rectangle_text_button_sized::outer_rect_t*)rtbs)->set_color(context, i * 4 + 0, out);
+		((fan_2d::opengl::gui::rectangle_text_button_sized::outer_rect_t*)rtbs)->set_color(context, i * 4 + 1, out);
+		((fan_2d::opengl::gui::rectangle_text_button_sized::outer_rect_t*)rtbs)->set_color(context, i * 4 + 2, out);
+		((fan_2d::opengl::gui::rectangle_text_button_sized::outer_rect_t*)rtbs)->set_color(context, i * 4 + 3, out);
 	};
 
 	switch (stage) {
-	case fan_2d::graphics::gui::mouse_stage::inside: {
+	case fan_2d::opengl::gui::mouse_stage::inside: {
 
 		switch (state) {
 		case fan::key_state::press: {
@@ -1410,7 +1410,7 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::lib_add_on_input(fan::w
 		}
 		break;
 	}
-	case fan_2d::graphics::gui::mouse_stage::outside: {
+	case fan_2d::opengl::gui::mouse_stage::outside: {
 		switch (state) {
 		case fan::key_state::press: {
 			focus::set_focus(focus::no_focus);
@@ -1432,7 +1432,7 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::lib_add_on_input(fan::w
 	}
 }
 
-void fan_2d::graphics::gui::rectangle_text_button_sized::lib_add_on_mouse_move(fan::window* window, fan::opengl::context_t* context, uint32_t i, fan_2d::graphics::gui::mouse_stage stage)
+void fan_2d::opengl::gui::rectangle_text_button_sized::lib_add_on_mouse_move(fan::window_t* window, fan::opengl::context_t* context, uint32_t i, fan_2d::opengl::gui::mouse_stage stage)
 {
 	if (this->locked(window, context, i)) {
 		return;
@@ -1465,40 +1465,40 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::lib_add_on_mouse_move(f
 
 }
 
-bool fan_2d::graphics::gui::rectangle_text_button_sized::locked(fan::window* window, fan::opengl::context_t* context, uint32_t i) const
+bool fan_2d::opengl::gui::rectangle_text_button_sized::locked(fan::window_t* window, fan::opengl::context_t* context, uint32_t i) const
 {
 	return m_reserved[i] & (uint32_t)button_states_e::locked;
 }
 
-void fan_2d::graphics::gui::rectangle_text_button_sized::enable_draw(fan::window* window, fan::opengl::context_t* context)
+void fan_2d::opengl::gui::rectangle_text_button_sized::enable_draw(fan::window_t* window, fan::opengl::context_t* context)
 {
 	rectangle_text_box_sized::enable_draw(context);
 	m_key_event.enable_draw(window, context);
 }
 
-void fan_2d::graphics::gui::rectangle_text_button_sized::disable_draw(fan::window* window, fan::opengl::context_t* context)
+void fan_2d::opengl::gui::rectangle_text_button_sized::disable_draw(fan::window_t* window, fan::opengl::context_t* context)
 {
 	rectangle_text_box_sized::disable_draw(context);
 	m_key_event.disable_draw(window, context);
 }
 //
-//fan_2d::graphics::gui::sprite_text_box::sprite_text_box(fan::camera* camera, const std::string& path)
-//	:  sprite_t(camera), fan_2d::graphics::gui::text_renderer(camera), image(fan_2d::graphics::load_image(camera->m_window, path)) { }
+//fan_2d::opengl::gui::sprite_text_box::sprite_text_box(fan::camera* camera, const std::string& path)
+//	:  sprite_t(camera), fan_2d::opengl::gui::text_renderer_t(camera), image(fan::opengl::load_image(camera->m_window, path)) { }
 //
-//fan::camera* fan_2d::graphics::gui::sprite_text_box::get_camera()
+//fan::camera* fan_2d::opengl::gui::sprite_text_box::get_camera()
 //{
 //	return sprite_t::m_camera;
 //}
 //
-//uint64_t fan_2d::graphics::gui::sprite_text_box::size() const {
+//uint64_t fan_2d::opengl::gui::sprite_text_box::size() const {
 //	return sprite_t::size();
 //}
 //
-//bool fan_2d::graphics::gui::sprite_text_box::inside(uint32_t i, const fan::vec2& position) const {
+//bool fan_2d::opengl::gui::sprite_text_box::inside(uint32_t i, const fan::vec2& position) const {
 //	return sprite_t::inside(i, position);
 //}
 //
-//void fan_2d::graphics::gui::sprite_text_box::push_back(const properties_t& properties)
+//void fan_2d::opengl::gui::sprite_text_box::push_back(const properties_t& properties)
 //{
 //	m_properties.emplace_back(properties);
 //
@@ -1508,42 +1508,42 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::disable_draw(fan::windo
 //	s_properties.size = get_button_size(
 //		properties.text,
 //		properties.font_size,
-//		text_renderer::get_new_lines(properties.text),
+//		text_renderer_t::get_new_lines(properties.text),
 //		properties.padding
 //	);
 //
-//	fan_2d::graphics::gui::text_renderer::properties_t text_properties;
+//	fan_2d::opengl::gui::text_renderer_t::properties_t text_properties;
 //	text_properties.text = properties.text;
 //	text_properties.font_size = properties.font_size;
 //	text_properties.position = fan::vec2(properties.position.x + properties.padding.x * 0.5, properties.position.y + properties.padding.y * 0.5);
-//	text_properties.text_color = fan_2d::graphics::gui::defaults::text_color;
+//	text_properties.text_color = fan_2d::opengl::gui::defaults::text_color;
 //
-//	fan_2d::graphics::gui::text_renderer::push_back(text_properties);
+//	fan_2d::opengl::gui::text_renderer_t::push_back(text_properties);
 //
 //
 //	sprite_t::push_back(s_properties);
 //}
 //
-//void fan_2d::graphics::gui::sprite_text_box::draw(uint32_t begin, uint32_t end)
+//void fan_2d::opengl::gui::sprite_text_box::draw(uint32_t begin, uint32_t end)
 //{
 //	sprite_t::draw(begin, end);
-//	fan_2d::graphics::gui::text_renderer::draw();
+//	fan_2d::opengl::gui::text_renderer_t::draw();
 //}
 //
-//fan_2d::graphics::gui::sprite_text_button::sprite_text_button(fan::camera* camera, const std::string& path)
-//	: fan_2d::graphics::gui::sprite_text_box(camera, path),
+//fan_2d::opengl::gui::sprite_text_button::sprite_text_button(fan::camera* camera, const std::string& path)
+//	: fan_2d::opengl::gui::sprite_text_box(camera, path),
 //	sprite_text_button::mouse(this) {}
 //
-//void fan_2d::graphics::gui::sprite_text_button::lib_add_on_input(fan::window *window, uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage)
+//void fan_2d::opengl::gui::sprite_text_button::lib_add_on_input(fan::window_t *window, uint32_t i, uint16_t key, fan::key_state state, fan_2d::opengl::gui::mouse_stage stage)
 //{
 //}
 //
-//void fan_2d::graphics::gui::sprite_text_button::lib_add_on_mouse_move(fan::window *window, uint32_t i, fan_2d::graphics::gui::mouse_stage stage)
+//void fan_2d::opengl::gui::sprite_text_button::lib_add_on_mouse_move(fan::window_t *window, uint32_t i, fan_2d::opengl::gui::mouse_stage stage)
 //{
 //}
 //
-////fan_2d::graphics::gui::scrollbar::scrollbar(fan::camera* camera) :
-////	fan_2d::graphics::rectangle(camera), scrollbar::mouse(this) {
+////fan_2d::opengl::gui::scrollbar::scrollbar(fan::camera* camera) :
+////	fan_2d::opengl::rectangle(camera), scrollbar::mouse(this) {
 ////
 ////	scrollbar::mouse::add_on_input([&](uint32_t i, fan::key_state state, mouse_stage mouse_stage) {
 ////		
@@ -1573,13 +1573,13 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::disable_draw(fan::windo
 ////						max_x
 ////					);
 ////
-////					if (fan_2d::graphics::rectangle::get_position(i) == offset) {
+////					if (fan_2d::opengl::rectangle::get_position(i) == offset) {
 ////						return;
 ////					}
 ////
 ////					m_properties[i / 2].current = offset.x - min_x;
 ////
-////					fan_2d::graphics::rectangle::set_position(i, offset);
+////					fan_2d::opengl::rectangle::set_position(i, offset);
 ////
 ////					break;
 ////				}
@@ -1598,13 +1598,13 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::disable_draw(fan::windo
 ////						max_y
 ////					);
 ////
-////					if (fan_2d::graphics::rectangle::get_position(i) == offset) {
+////					if (fan_2d::opengl::rectangle::get_position(i) == offset) {
 ////						return;
 ////					}
 ////
 ////					m_properties[i / 2].current = offset.y - min_y;
 ////
-////					fan_2d::graphics::rectangle::set_position(i, offset);
+////					fan_2d::opengl::rectangle::set_position(i, offset);
 ////
 ////					break;
 ////				}
@@ -1652,13 +1652,13 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::disable_draw(fan::windo
 ////						max_x
 ////					);
 ////
-////					if (fan_2d::graphics::rectangle::get_position(i) == offset) {
+////					if (fan_2d::opengl::rectangle::get_position(i) == offset) {
 ////						return;
 ////					}
 ////
 ////					m_properties[i / 2].current = offset.x - min_x;
 ////
-////					fan_2d::graphics::rectangle::set_position(i, offset);
+////					fan_2d::opengl::rectangle::set_position(i, offset);
 ////
 ////					break;
 ////				}
@@ -1678,13 +1678,13 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::disable_draw(fan::windo
 ////						max_y
 ////					);
 ////
-////					if (fan_2d::graphics::rectangle::get_position(i) == offset) {
+////					if (fan_2d::opengl::rectangle::get_position(i) == offset) {
 ////						return;
 ////					}
 ////
 ////					m_properties[i / 2].current = offset.y - min_y;
 ////
-////					fan_2d::graphics::rectangle::set_position(i, offset);
+////					fan_2d::opengl::rectangle::set_position(i, offset);
 ////
 ////					break;
 ////				}
@@ -1703,9 +1703,9 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::disable_draw(fan::windo
 ////
 ////}
 ////
-////void fan_2d::graphics::gui::scrollbar::push_back(const properties_t& instance)
+////void fan_2d::opengl::gui::scrollbar::push_back(const properties_t& instance)
 ////{
-////	fan_2d::graphics::rectangle::properties_t r_property;
+////	fan_2d::opengl::rectangle::properties_t r_property;
 ////	r_property.position = instance.position - (f32_t)instance.outline_thickness;
 ////	r_property.size = 
 ////		instance.size +
@@ -1714,13 +1714,13 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::disable_draw(fan::windo
 ////		fan::vec2(0, instance.length)) + instance.outline_thickness * 2;
 ////	r_property.color = instance.color - 0.5;
 ////
-////	fan_2d::graphics::rectangle::push_back(r_property);
+////	fan_2d::opengl::rectangle::push_back(r_property);
 ////
 ////	r_property.position = instance.position;
 ////	r_property.size = instance.size;
 ////	r_property.color = instance.color;
 ////
-////	fan_2d::graphics::rectangle::push_back(r_property);
+////	fan_2d::opengl::rectangle::push_back(r_property);
 ////
 ////	scroll_properties_t sbp;
 ////	sbp.length = instance.length;
@@ -1734,27 +1734,27 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::disable_draw(fan::windo
 ////	scrollbar::mouse::push_back();
 ////}
 ////
-////void fan_2d::graphics::gui::scrollbar::draw()
+////void fan_2d::opengl::gui::scrollbar::draw()
 ////{
-////	fan_2d::graphics::rectangle::draw();
+////	fan_2d::opengl::rectangle::draw();
 ////}
 ////
-////void fan_2d::graphics::gui::scrollbar::write_data()
+////void fan_2d::opengl::gui::scrollbar::write_data()
 ////{
-////	fan_2d::graphics::rectangle::write_data();
+////	fan_2d::opengl::rectangle::write_data();
 ////}
 ////
-////fan::camera* fan_2d::graphics::gui::scrollbar::get_camera()
+////fan::camera* fan_2d::opengl::gui::scrollbar::get_camera()
 ////{
-////	return fan_2d::graphics::rectangle::m_camera;
+////	return fan_2d::opengl::rectangle::m_camera;
 ////}
 ////
-////void fan_2d::graphics::gui::scrollbar::add_on_scroll(on_scroll_t function)
+////void fan_2d::opengl::gui::scrollbar::add_on_scroll(on_scroll_t function)
 ////{
 ////	m_on_scroll.emplace_back(function);
 ////}
 //
-//fan_2d::graphics::gui::checkbox::checkbox(fan::camera* camera, fan_2d::graphics::gui::theme theme)
+//fan_2d::opengl::gui::checkbox::checkbox(fan::camera* camera, fan_2d::opengl::gui::theme theme)
 //	: checkbox::rectangle_t(camera), 
 //	checkbox::line_t(camera), 
 //	checkbox::text_renderer_t(camera),
@@ -1763,7 +1763,7 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::disable_draw(fan::windo
 //
 //}
 //
-//void fan_2d::graphics::gui::checkbox::push_back(const checkbox::properties_t& property)
+//void fan_2d::opengl::gui::checkbox::push_back(const checkbox::properties_t& property)
 //{
 //	m_properties.emplace_back(property);
 //
@@ -1771,7 +1771,7 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::disable_draw(fan::windo
 //	
 //	f32_t text_middle_height = text_renderer_t::get_line_height(property.font_size);
 //
-//	fan_2d::graphics::rectangle::properties_t properties;
+//	fan_2d::opengl::rectangle::properties_t properties;
 //	properties.position = property.position;
 //	properties.size = text_middle_height / 2 * property.box_size_multiplier;
 //	properties.color = m_theme.checkbox.color;
@@ -1786,7 +1786,7 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::disable_draw(fan::windo
 //
 //	auto text_size = text_renderer_t::get_text_size(property.text, property.font_size);
 //
-//	fan_2d::graphics::gui::text_renderer::properties_t text_properties;
+//	fan_2d::opengl::gui::text_renderer_t::properties_t text_properties;
 //
 //	text_properties.text = property.text;
 //	text_properties.font_size = property.font_size;
@@ -1794,17 +1794,17 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::disable_draw(fan::windo
 //	text_properties.text_color = m_theme.checkbox.text_color;
 //}
 //
-//void fan_2d::graphics::gui::checkbox::draw()
+//void fan_2d::opengl::gui::checkbox::draw()
 //{
 //	// depth test
-//	//fan_2d::graphics::draw([&] {
+//	//fan_2d::opengl::draw([&] {
 //		
-//		for (int i = 0; i < fan_2d::graphics::line::size() / 2; i++) {
+//		for (int i = 0; i < fan_2d::opengl::line::size() / 2; i++) {
 //			checkbox::rectangle_t::draw();
 //
 //			if (m_visible[i]) {
 //				checkbox::line_t::draw();
-//				//fan_2d::graphics::line::draw(i * 2 + 1, i * 2 + 2);
+//				//fan_2d::opengl::line::draw(i * 2 + 1, i * 2 + 2);
 //			}
 //		}
 //
@@ -1812,49 +1812,49 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::disable_draw(fan::windo
 //	//});
 //}
 //
-//void fan_2d::graphics::gui::checkbox::on_check(std::function<void(uint32_t i)> function)
+//void fan_2d::opengl::gui::checkbox::on_check(std::function<void(uint32_t i)> function)
 //{
 //	m_on_check = function;
 //}
 //
-//void fan_2d::graphics::gui::checkbox::on_uncheck(std::function<void(uint32_t i)> function)
+//void fan_2d::opengl::gui::checkbox::on_uncheck(std::function<void(uint32_t i)> function)
 //{
 //	m_on_uncheck = function;
 //}
 //
-//uint32_t fan_2d::graphics::gui::checkbox::size() const
+//uint32_t fan_2d::opengl::gui::checkbox::size() const
 //{
 //	return rectangle_t::size();
 //}
 //
-//bool fan_2d::graphics::gui::checkbox::inside(uint32_t i, const fan::vec2& position) const
+//bool fan_2d::opengl::gui::checkbox::inside(uint32_t i, const fan::vec2& position) const
 //{
 //	return rectangle_t::inside(i, position);
 //}
 //
-//fan::camera* fan_2d::graphics::gui::checkbox::get_camera()
+//fan::camera* fan_2d::opengl::gui::checkbox::get_camera()
 //{
 //	return checkbox::rectangle_t::m_camera;
 //}
 //
-//void fan_2d::graphics::gui::checkbox::write_data() {
+//void fan_2d::opengl::gui::checkbox::write_data() {
 //	checkbox::line_t::write_data();
 //	checkbox::rectangle_t::write_data();
 //	checkbox::text_renderer_t::write_data();
 //}
 //
-//void fan_2d::graphics::gui::checkbox::edit_data(uint32_t i) {
+//void fan_2d::opengl::gui::checkbox::edit_data(uint32_t i) {
 //	checkbox::line_t::edit_data(i);
 //	checkbox::rectangle_t::edit_data(i);
 //	checkbox::text_renderer_t::edit_data(i);
 //}
-//void fan_2d::graphics::gui::checkbox::edit_data(uint32_t begin, uint32_t end) {
+//void fan_2d::opengl::gui::checkbox::edit_data(uint32_t begin, uint32_t end) {
 //	checkbox::line_t::edit_data(begin, end);
 //	checkbox::rectangle_t::edit_data(begin, end);
 //	checkbox::text_renderer_t::edit_data(begin, end);
 //}
 //
-//void fan_2d::graphics::gui::checkbox::lib_add_on_input(fan::window *window, uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage)
+//void fan_2d::opengl::gui::checkbox::lib_add_on_input(fan::window_t *window, uint32_t i, uint16_t key, fan::key_state state, fan_2d::opengl::gui::mouse_stage stage)
 //{
 //	if (key != fan::mouse_left) {
 //		return;
@@ -1883,7 +1883,7 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::disable_draw(fan::windo
 //	}
 //}
 //
-//void fan_2d::graphics::gui::checkbox::lib_add_on_mouse_move(fan::window *window, uint32_t i, fan_2d::graphics::gui::mouse_stage stage)
+//void fan_2d::opengl::gui::checkbox::lib_add_on_mouse_move(fan::window_t *window, uint32_t i, fan_2d::opengl::gui::mouse_stage stage)
 //{
 //	switch (stage) {
 //		case mouse_stage::inside: {
@@ -1903,7 +1903,7 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::disable_draw(fan::windo
 //	}
 //}
 //
-//void fan_2d::graphics::gui::checkbox::enable_draw()
+//void fan_2d::opengl::gui::checkbox::enable_draw()
 //{
 //	if (checkbox::text_renderer_t::m_draw_index == -1 || checkbox::text_renderer_t::m_camera->m_window->m_draw_queue[checkbox::text_renderer_t::m_draw_index].first != this) {
 //		checkbox::text_renderer_t::m_draw_index = checkbox::text_renderer_t::m_camera->m_window->push_draw_call(this, [&] {
@@ -1917,25 +1917,25 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::disable_draw(fan::windo
 //	}
 //}
 //
-//void fan_2d::graphics::gui::checkbox::disable_draw()
+//void fan_2d::opengl::gui::checkbox::disable_draw()
 //{
 //	checkbox::line_t::disable_draw();
 //	checkbox::rectangle_t::disable_draw();
 //	checkbox::text_renderer_t::disable_draw();
 //}
 //
-//fan_2d::graphics::gui::rectangle_selectable_button_sized::rectangle_selectable_button_sized(fan::camera* camera) :
+//fan_2d::opengl::gui::rectangle_selectable_button_sized::rectangle_selectable_button_sized(fan::camera* camera) :
 //	rectangle_text_button_sized(true, camera)
 //{
 //
 //}
 //
-//uint32_t fan_2d::graphics::gui::rectangle_selectable_button_sized::get_selected(uint32_t i) const
+//uint32_t fan_2d::opengl::gui::rectangle_selectable_button_sized::get_selected(uint32_t i) const
 //{
 //	return this->m_selected;
 //}
 //
-//void fan_2d::graphics::gui::rectangle_selectable_button_sized::set_selected(uint32_t i)
+//void fan_2d::opengl::gui::rectangle_selectable_button_sized::set_selected(uint32_t i)
 //{
 //	this->m_selected = i;
 //
@@ -1951,12 +1951,12 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::disable_draw(fan::windo
 //	outer_rect_t::edit_data(i * 4, i * 4 + 4);
 //}
 //
-//void fan_2d::graphics::gui::rectangle_selectable_button_sized::add_on_select(std::function<void(uint32_t)> function)
+//void fan_2d::opengl::gui::rectangle_selectable_button_sized::add_on_select(std::function<void(uint32_t)> function)
 //{
 //	m_on_select.push_back(function);
 //}
 //
-//void fan_2d::graphics::gui::rectangle_selectable_button_sized::lib_add_on_input(fan::window *window, uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage)
+//void fan_2d::opengl::gui::rectangle_selectable_button_sized::lib_add_on_input(fan::window_t *window, uint32_t i, uint16_t key, fan::key_state state, fan_2d::opengl::gui::mouse_stage stage)
 //{
 //	if (stage == mouse_stage::inside && state == fan::key_state::press) {
 //
@@ -2026,7 +2026,7 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::disable_draw(fan::windo
 //	}
 //}
 //
-//void fan_2d::graphics::gui::rectangle_selectable_button_sized::lib_add_on_mouse_move(fan::window *window, uint32_t i, fan_2d::graphics::gui::mouse_stage stage)
+//void fan_2d::opengl::gui::rectangle_selectable_button_sized::lib_add_on_mouse_move(fan::window_t *window, uint32_t i, fan_2d::opengl::gui::mouse_stage stage)
 //{
 //	switch (stage) {
 //    case mouse_stage::inside: {
@@ -2082,8 +2082,8 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::disable_draw(fan::windo
 //  }
 //}
 //
-////fan_2d::graphics::gui::dropdown_menu::dropdown_menu(fan::camera* camera, const fan_2d::graphics::gui::theme& theme) :
-////	fan_2d::graphics::gui::rectangle_text_button_sized(camera, theme)
+////fan_2d::opengl::gui::dropdown_menu::dropdown_menu(fan::camera* camera, const fan_2d::opengl::gui::theme& theme) :
+////	fan_2d::opengl::gui::rectangle_text_button_sized(camera, theme)
 ////{
 ////
 ////	add_on_input([&](uint32_t i, fan::key_state state, mouse_stage stage) {
@@ -2159,7 +2159,7 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::disable_draw(fan::windo
 ////	}, false);
 ////}
 ////
-////void fan_2d::graphics::gui::dropdown_menu::push_back(const properties_t& property)
+////void fan_2d::opengl::gui::dropdown_menu::push_back(const properties_t& property)
 ////{
 ////	m_amount_per_menu.emplace_back(property.dropdown_texts.size() + 1);
 ////
@@ -2187,7 +2187,7 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::disable_draw(fan::windo
 ////	m_hitboxes.emplace_back(hitbox);
 ////}
 ////
-////void fan_2d::graphics::gui::dropdown_menu::draw()
+////void fan_2d::opengl::gui::dropdown_menu::draw()
 ////{
 ////	uint32_t offset = 0;
 ////	for (int i = 0; i < m_amount_per_menu.size(); i++) {
@@ -2196,12 +2196,12 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::disable_draw(fan::windo
 ////	}
 ////}
 //
-//fan_2d::graphics::gui::progress_bar::progress_bar(fan::camera* camera)
-//	: fan_2d::graphics::rectangle(camera)
+//fan_2d::opengl::gui::progress_bar::progress_bar(fan::camera* camera)
+//	: fan_2d::opengl::rectangle(camera)
 //{
 //}
 //
-//void fan_2d::graphics::gui::progress_bar::push_back(const properties_t& properties)
+//void fan_2d::opengl::gui::progress_bar::push_back(const properties_t& properties)
 //{
 //	rectangle_t::properties_t p;
 //	p.position = properties.position;
@@ -2256,18 +2256,18 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::disable_draw(fan::windo
 //	m_progress_bar_properties.emplace_back(bp);
 //}
 //
-//void fan_2d::graphics::gui::progress_bar::clear()
+//void fan_2d::opengl::gui::progress_bar::clear()
 //{
 //	rectangle_t::clear();
 //	m_progress_bar_properties.clear();
 //}
 //
-//f32_t fan_2d::graphics::gui::progress_bar::get_progress(uint32_t i) const
+//f32_t fan_2d::opengl::gui::progress_bar::get_progress(uint32_t i) const
 //{
 //	return m_progress_bar_properties[i].progress;
 //}
 //
-//void fan_2d::graphics::gui::progress_bar::set_progress(uint32_t i, f32_t progress)
+//void fan_2d::opengl::gui::progress_bar::set_progress(uint32_t i, f32_t progress)
 //{
 //	progress = fan::clamp(progress, 0.0f, 100.0f);
 //
@@ -2313,12 +2313,12 @@ void fan_2d::graphics::gui::rectangle_text_button_sized::disable_draw(fan::windo
 //
 //}
 //
-//fan::vec2 fan_2d::graphics::gui::progress_bar::get_position(uint32_t i) const
+//fan::vec2 fan_2d::opengl::gui::progress_bar::get_position(uint32_t i) const
 //{
 //	return rectangle_t::get_position(i * 2);
 //}
 //
-//void fan_2d::graphics::gui::progress_bar::set_position(uint32_t i, const fan::vec2& position)
+//void fan_2d::opengl::gui::progress_bar::set_position(uint32_t i, const fan::vec2& position)
 //{
 //	const fan::vec2 offset = position - rectangle_t::get_position(i * 2);
 //

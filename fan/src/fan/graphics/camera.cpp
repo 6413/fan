@@ -1,4 +1,4 @@
-#include <fan/graphics/camera.hpp>
+#include <fan/graphics/camera.h>
 
 fan::camera::camera() : m_yaw(0), m_pitch(0) {
 	this->update_view();
@@ -48,6 +48,16 @@ void fan::camera::set_front(const fan::vec3 front)
 	this->m_front = front;
 }
 
+fan::vec3 fan::camera::get_right() const
+{
+	return m_right;
+}
+
+void fan::camera::set_right(const fan::vec3 right)
+{
+	m_right = right;
+}
+
 fan::vec3 fan::camera::get_velocity() const
 {
 	return fan::camera::m_velocity;
@@ -94,4 +104,13 @@ void fan::camera::update_view() {
 	this->m_front = fan_3d::math::normalize(fan::math::direction_vector<fan::vec3>(this->m_yaw, this->m_pitch));
 	this->m_right = fan_3d::math::normalize(fan::math::cross(this->world_up, this->m_front)); 
 	this->m_up = fan_3d::math::normalize(fan::math::cross(this->m_front, this->m_right));
+}
+
+void fan::camera::rotate_camera(fan::vec2 offset) {
+	offset *= sensitivity;
+
+	this->set_yaw(this->get_yaw() + offset.x);
+	this->set_pitch(this->get_pitch() + offset.y);
+
+	this->update_view();
 }
