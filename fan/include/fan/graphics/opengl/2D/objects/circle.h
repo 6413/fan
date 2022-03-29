@@ -1,6 +1,7 @@
 #pragma once
 
 #include <fan/graphics/opengl/gl_core.h>
+#include <fan/graphics/opengl/gl_shader.h>
 #include <fan/graphics/shared_graphics.h>
 #include <fan/physics/collision/rectangle.h>
 
@@ -31,28 +32,30 @@ namespace fan_2d {
 			static constexpr uint32_t element_byte_size = offset_rotation_vector + sizeof(properties_t::rotation_vector);
 
 			void open(fan::opengl::context_t* context) {
-				m_shader.open();
+				m_shader.open(context);
 
 				m_shader.set_vertex(
-				#include <fan/graphics/glsl/opengl/2D/objects/circle.vs>
+					context, 
+					#include <fan/graphics/glsl/opengl/2D/objects/circle.vs>
 				);
 
 				m_shader.set_fragment(
-				#include <fan/graphics/glsl/opengl/2D/objects/circle.fs>
+					context, 
+					#include <fan/graphics/glsl/opengl/2D/objects/circle.fs>
 				);
 
-				m_shader.compile();
+				m_shader.compile(context);
 
-				m_glsl_buffer.open();
-				m_glsl_buffer.init(m_shader.id, element_byte_size);
+				m_glsl_buffer.open(context);
+				m_glsl_buffer.init(context, m_shader.id, element_byte_size);
 				m_queue_helper.open();
 				m_draw_node_reference = fan::uninitialized;
 			}
 			void close(fan::opengl::context_t* context) {
 
-				m_glsl_buffer.close();
+				m_glsl_buffer.close(context);
 				m_queue_helper.close(context);
-				m_shader.close();
+				m_shader.close(context);
 
 				if (m_draw_node_reference == fan::uninitialized) {
 					return;
@@ -64,7 +67,7 @@ namespace fan_2d {
 
 			void push_back(fan::opengl::context_t* context, properties_t properties) {
 				for (int i = 0; i < vertex_count; i++) {
-					m_glsl_buffer.push_ram_instance(&properties, sizeof(properties));
+					m_glsl_buffer.push_ram_instance(context, &properties, sizeof(properties));
 				}
 				m_queue_helper.edit(
 					context,
@@ -76,7 +79,7 @@ namespace fan_2d {
 
 			void insert(fan::opengl::context_t* context, uint32_t i, properties_t properties) {
 				for (int j = 0; j < vertex_count; j++) {
-					m_glsl_buffer.insert_ram_instance(i * vertex_count + j, &properties, sizeof(properties));
+					m_glsl_buffer.insert_ram_instance(context, i * vertex_count + j, &properties, sizeof(properties));
 				}
 				m_queue_helper.edit(
 					context,
@@ -88,7 +91,7 @@ namespace fan_2d {
 
 
 			void erase(fan::opengl::context_t* context, uint32_t i) {
-				m_glsl_buffer.erase_instance(i * vertex_count, 1, element_byte_size, vertex_count);
+				m_glsl_buffer.erase_instance(context, i * vertex_count, 1, element_byte_size, vertex_count);
 
 				m_queue_helper.edit(
 					context,
@@ -100,7 +103,7 @@ namespace fan_2d {
 
 			void erase(fan::opengl::context_t* context, uint32_t begin, uint32_t end) {
 
-				m_glsl_buffer.erase_instance(begin * vertex_count, end - begin, element_byte_size, vertex_count);
+				m_glsl_buffer.erase_instance(context, begin * vertex_count, end - begin, element_byte_size, vertex_count);
 
 				uint32_t to = m_glsl_buffer.m_buffer.size();
 
@@ -114,7 +117,7 @@ namespace fan_2d {
 
 			// erases everything
 			void clear(fan::opengl::context_t* context) {
-				m_glsl_buffer.clear_ram();
+				m_glsl_buffer.clear_ram(context);
 				m_queue_helper.edit(
 					context,
 					0,
@@ -142,11 +145,12 @@ namespace fan_2d {
 			}
 
 			const fan::color get_color(fan::opengl::context_t* context, uint32_t i) const {
-				return *(fan::color*)m_glsl_buffer.get_instance(i * vertex_count, element_byte_size, offset_color);
+				return *(fan::color*)m_glsl_buffer.get_instance(context, i * vertex_count, element_byte_size, offset_color);
 			}
 			void set_color(fan::opengl::context_t* context, uint32_t i, const fan::color& color) {
 				for (int j = 0; j < vertex_count; j++) {
 					m_glsl_buffer.edit_ram_instance(
+						context,
 						i * vertex_count + j,
 						&color,
 						element_byte_size,
@@ -164,11 +168,12 @@ namespace fan_2d {
 			}
 
 			fan::vec2 get_position(fan::opengl::context_t* context, uint32_t i) const {
-				return *(fan::vec2*)m_glsl_buffer.get_instance(i * vertex_count, element_byte_size, offset_position);
+				return *(fan::vec2*)m_glsl_buffer.get_instance(context, i * vertex_count, element_byte_size, offset_position);
 			}
 			void set_position(fan::opengl::context_t* context, uint32_t i, const fan::vec2& position) {
 				for (int j = 0; j < vertex_count; j++) {
 					m_glsl_buffer.edit_ram_instance(
+						context, 
 						i * vertex_count + j,
 						&position,
 						element_byte_size,
@@ -185,11 +190,12 @@ namespace fan_2d {
 			}
 
 			f32_t get_size(fan::opengl::context_t* context, uint32_t i) const {
-				return *(f32_t*)m_glsl_buffer.get_instance(i * vertex_count, element_byte_size, offset_size);
+				return *(f32_t*)m_glsl_buffer.get_instance(context, i * vertex_count, element_byte_size, offset_size);
 			}
 			void set_size(fan::opengl::context_t* context, uint32_t i, f32_t size) {
 				for (int j = 0; j < vertex_count; j++) {
 					m_glsl_buffer.edit_ram_instance(
+						context, 
 						i * vertex_count + j,
 						&size,
 						element_byte_size,
@@ -206,13 +212,14 @@ namespace fan_2d {
 			}
 
 			f32_t get_angle(fan::opengl::context_t* context, uint32_t i) const {
-				return *(f32_t*)m_glsl_buffer.get_instance(i * vertex_count, element_byte_size, offset_angle);
+				return *(f32_t*)m_glsl_buffer.get_instance(context, i * vertex_count, element_byte_size, offset_angle);
 			}
 			void set_angle(fan::opengl::context_t* context, uint32_t i, f32_t angle) {
 				f32_t a = fmod(angle, fan::math::pi * 2);
 
 				for (int j = 0; j < vertex_count; j++) {
 					m_glsl_buffer.edit_ram_instance(
+						context, 
 						i * vertex_count + j,
 						&a,
 						element_byte_size,
@@ -229,11 +236,12 @@ namespace fan_2d {
 			}
 
 			fan::vec2 get_rotation_point(fan::opengl::context_t* context, uint32_t i) const {
-				return *(fan::vec2*)m_glsl_buffer.get_instance(i * vertex_count, element_byte_size, offset_rotation_point);
+				return *(fan::vec2*)m_glsl_buffer.get_instance(context, i * vertex_count, element_byte_size, offset_rotation_point);
 			}
 			void set_rotation_point(fan::opengl::context_t* context, uint32_t i, const fan::vec2& rotation_point) {
 				for (int j = 0; j < vertex_count; j++) {
 					m_glsl_buffer.edit_ram_instance(
+						context, 
 						i * vertex_count + j,
 						&rotation_point,
 						element_byte_size,
@@ -250,11 +258,12 @@ namespace fan_2d {
 			}
 
 			fan::vec3 get_rotation_vector(fan::opengl::context_t* context, uint32_t i) const {
-				return *(fan::vec3*)m_glsl_buffer.get_instance(i * vertex_count, element_byte_size, offset_rotation_vector);
+				return *(fan::vec3*)m_glsl_buffer.get_instance(context, i * vertex_count, element_byte_size, offset_rotation_vector);
 			}
 			void set_rotation_vector(fan::opengl::context_t* context, uint32_t i, const fan::vec3& rotation_vector) {
 				for (int j = 0; j < vertex_count; j++) {
 					m_glsl_buffer.edit_ram_instance(
+						context, 
 						i * vertex_count + j,
 						&rotation_vector,
 						element_byte_size,
@@ -303,9 +312,27 @@ namespace fan_2d {
 			// pushed to window draw queue
 			void draw(fan::opengl::context_t* context) {
 				context->set_depth_test(false);
+				const fan::vec2 viewport_size = context->viewport_size;
+
+				fan::mat4 projection(1);
+				projection = fan::math::ortho<fan::mat4>(
+					(f32_t)viewport_size.x * 0.5,
+					((f32_t)viewport_size.x + (f32_t)viewport_size.x * 0.5), 
+					((f32_t)viewport_size.y + (f32_t)viewport_size.y * 0.5), 
+					((f32_t)viewport_size.y * 0.5), 
+					0.01,
+					1000.0
+				);
+
+				fan::mat4 view(1);
+				view = context->camera.get_view_matrix(view.translate(fan::vec3((f_t)viewport_size.x * 0.5, (f_t)viewport_size.y * 0.5, -700.0f)));
+
+				m_shader.use(context);
+				m_shader.set_projection(context, projection);
+				m_shader.set_view(context, view);
+
 				m_glsl_buffer.draw(
 					context,
-					m_shader,
 					0,
 					this->size(context) * vertex_count
 				);

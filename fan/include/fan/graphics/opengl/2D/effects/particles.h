@@ -1,5 +1,6 @@
 #pragma once
 
+#include <fan/graphics/opengl/gl_shader.h>
 #include <fan/graphics/opengl/gl_core.h>
 #include <fan/graphics/shared_graphics.h>
 #include <fan/physics/collision/rectangle.h>
@@ -15,26 +16,28 @@ namespace fan_2d {
 
       void open(fan::opengl::context_t* context) {
 
-        m_shader.open();
+        m_shader.open(context);
 
         m_shader.set_vertex(
-        #include <fan/graphics/glsl/opengl/2D/effects/particles.vs>
+          context,
+          #include <fan/graphics/glsl/opengl/2D/effects/particles.vs>
         );
 
         m_shader.set_fragment(
-        #include <fan/graphics/glsl/opengl/2D/effects/particles.fs>
+          context,
+          #include <fan/graphics/glsl/opengl/2D/effects/particles.fs>
         );
 
-        glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
+        context->opengl.glEnable(fan::opengl::GL_VERTEX_PROGRAM_POINT_SIZE);
 
-        m_shader.compile();
+        m_shader.compile(context);
 
         m_draw_node_reference = fan::uninitialized;
         
         instance.count = 0;
       }
       void close(fan::opengl::context_t* context) {
-        m_shader.close();
+        m_shader.close(context);
 
         if (m_draw_node_reference == fan::uninitialized) {
           return;
@@ -45,18 +48,18 @@ namespace fan_2d {
       }
 
       struct properties_t {
+        uint64_t timeout = 1e+9;
+        uint32_t count = 1;
+        f32_t radius = 100;
+
         fan::vec2 position = 0;
-        fan::vec2 size = 0;
+        uint32_t size = 0;
         f32_t angle = 0;
-        fan::vec2 rotation_point = 0;
         fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
         fan::vec2 position_velocity = 0;
         f32_t angle_velocity = 0;
 
         fan::opengl::image_t* image;
-
-        uint64_t timeout = 1e+9;
-        uint32_t count = 1;
       };
 
       void set(const properties_t& p) {
@@ -77,7 +80,7 @@ namespace fan_2d {
       fan::vec2 get_size(fan::opengl::context_t* context, uint32_t i) const {
         return instance.size;
       }
-      void set_size(fan::opengl::context_t* context, const fan::vec2& size) {
+      void set_size(fan::opengl::context_t* context, uint32_t size) {
         instance.size = size;
       }
 
@@ -143,14 +146,14 @@ namespace fan_2d {
 		      fan::mat4 view(1);
 		      view = context->camera.get_view_matrix(view.translate(fan::vec3((f_t)viewport_size.x * 0.5, (f_t)viewport_size.y * 0.5, -700.0f)));
 
-		      m_shader.set_projection(projection);
-		      m_shader.set_view(view);
+		      m_shader.set_projection(context, projection);
+		      m_shader.set_view(context, view);
 
-		      glDrawArrays(GL_POINTS, begin, end - begin);
+		      context->opengl.glDrawArrays(fan::opengl::GL_POINTS, begin, end - begin);
       }
 
       void draw(fan::opengl::context_t* context) {
-        m_shader.use();
+        m_shader.use(context);
 
         //uint32_t texture_id = fan::uninitialized;
         //uint32_t from = 0;
@@ -174,16 +177,19 @@ namespace fan_2d {
         //  to++;
         //}
 
-        m_shader.set_uint("vertex_count", vertex_count);
-        m_shader.set_uint("count", instance.count);
-        m_shader.set_vec2("position", instance.position);
-        m_shader.set_vec2("size", instance.size);
-        m_shader.set_float("angle", instance.angle);
-        m_shader.set_vec2("position_velocity", instance.position_velocity);
-        m_shader.set_vec2("angle_velocity", instance.angle_velocity);
-        m_shader.set_vec3("rotation_vector", instance.rotation_vector);
+        m_shader.set_uint(context, "vertex_count", vertex_count);
+        m_shader.set_uint(context, "count", instance.count);
+        m_shader.set_float(context, "timeout", (f32_t)instance.timeout / 1e+9);
+        m_shader.set_float(context, "radius", instance.radius);
 
-        m_shader.set_float("time", m_delta);
+        m_shader.set_vec2(context, "position", instance.position);
+        m_shader.set_uint(context, "size", instance.size);
+        //m_shader.set_float(context, "angle", instance.angle);
+        m_shader.set_vec2(context, "position_velocity", instance.position_velocity);
+        m_shader.set_vec2(context, "angle_velocity", instance.angle_velocity);
+        m_shader.set_vec3(context, "rotation_vector", instance.rotation_vector);
+
+        m_shader.set_float(context, "time", m_delta);
 
         draw_vertex(
           context,

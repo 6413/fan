@@ -42,20 +42,19 @@ namespace fan {
 
 			image_t* info = new image_t;
 
-			glGenTextures(1, &info->texture);
-
-			glBindTexture(GL_TEXTURE_2D, info->texture);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, p.visual_output);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, p.visual_output);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, p.filter);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, p.filter);
+			context->opengl.glGenTextures(1, &info->texture);
+			context->opengl.glBindTexture(GL_TEXTURE_2D, info->texture);
+			context->opengl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, p.visual_output);
+			context->opengl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, p.visual_output);
+			context->opengl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, p.filter);
+			context->opengl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, p.filter);
 
 			info->size = image_info.size;
 
-			glTexImage2D(GL_TEXTURE_2D, 0, p.internal_format, info->size.x, info->size.y, 0, p.format, p.type, image_info.data);
+			context->opengl.glTexImage2D(GL_TEXTURE_2D, 0, p.internal_format, info->size.x, info->size.y, 0, p.format, p.type, image_info.data);
 
-			glGenerateMipmap(GL_TEXTURE_2D);
-			glBindTexture(GL_TEXTURE_2D, 0);
+			context->opengl.glGenerateMipmap(GL_TEXTURE_2D);
+			context->opengl.glBindTexture(GL_TEXTURE_2D, 0);
 
 			return info;
 		}
@@ -77,13 +76,13 @@ namespace fan {
 			return load_image(context, fan::webp::load_image(path), p);
 		}
 
-		static void unload_image(image_t* image) {
+		static void unload_image(fan::opengl::context_t* context, image_t* image) {
 		#if fan_debug >= fan_debug_low
-			if (image == 0 || image->texture) {
+			if (image == 0 || image->texture == 0) {
 				fan::throw_error("texture does not exist");
 			}
 		#endif
-			glDeleteTextures(1, &image->texture);
+			context->opengl.glDeleteTextures(1, &image->texture);
 
 		#if fan_debug >= fan_debug_low
 			image->texture = 0;

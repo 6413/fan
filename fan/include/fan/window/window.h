@@ -8,6 +8,8 @@
 	#define _CRT_SECURE_NO_WARNINGS
 #endif
 
+#include <fan/graphics/opengl/gl_defines.h>
+
 #include <fan/graphics/renderer.h>
 
 #include <fan/math/random.h>
@@ -48,10 +50,12 @@
 	#include <X11/keysym.h>
 	#include <X11/XKBlib.h>
 
-	#include <GL/glxew.h>
-
 	#include <sys/time.h>
 	#include <unistd.h>
+	#include <dlfcn.h>
+
+	#define GLX_CONTEXT_MAJOR_VERSION_ARB       0x2091
+	#define GLX_CONTEXT_MINOR_VERSION_ARB       0x2092
 
 #undef index
 
@@ -100,33 +104,7 @@ namespace fan {
 
 	struct window_t;
 
-
-#ifdef fan_platform_windows
-
-	typedef BOOL (WINAPI * PFNWGLGETPIXELFORMATATTRIBIVARBPROC) (HDC hdc, const int* piAttribIList, const FLOAT *pfAttribFList, UINT nMaxFormats, int *piFormats, UINT *nNumFormats);
-	typedef HGLRC (WINAPI * PFNWGLCREATECONTEXTATTRIBSARBPROC) (HDC hDC, HGLRC hShareContext, const int* attribList);
-
-	inline PFNWGLGETPIXELFORMATATTRIBIVARBPROC wglChoosePixelFormatARB;
-	inline PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB;
-
-#if fan_renderer == fan_renderer_opengl
-
-	constexpr int WINDOW_MINOR_VERSION = WGL_CONTEXT_MINOR_VERSION_ARB;
-	constexpr int WINDOW_MAJOR_VERSION = WGL_CONTEXT_MAJOR_VERSION_ARB;
-
-	constexpr int WINDOW_SAMPLE_BUFFER = WGL_SAMPLE_BUFFERS_ARB;
-	constexpr int OPENGL_SAMPLES = WGL_SAMPLES_ARB;
-
-#endif
-	#elif defined(fan_platform_unix)
-
-	constexpr int WINDOW_MINOR_VERSION = GLX_CONTEXT_MINOR_VERSION_ARB;
-	constexpr int WINDOW_MAJOR_VERSION = GLX_CONTEXT_MAJOR_VERSION_ARB;
-
-	constexpr int WINDOW_SAMPLE_BUFFER = GLX_SAMPLE_BUFFERS;
-	constexpr int OPENGL_SAMPLES = GLX_SAMPLES;
-
-	#endif
+	void* get_proc_address(const char* name);
 
 	fan::vec2i get_screen_resolution();
 
@@ -195,7 +173,6 @@ namespace fan {
 		struct flags {
 			static constexpr int no_mouse = get_flag_value(0);
 			static constexpr int no_resize = get_flag_value(1);
-			static constexpr int anti_aliasing = get_flag_value(2);
 			static constexpr int mode = get_flag_value(3);
 			static constexpr int borderless = get_flag_value(4);
 			static constexpr int full_screen = get_flag_value(5);
@@ -203,7 +180,6 @@ namespace fan {
 
 		static constexpr const char* default_window_name = "window";
 		static constexpr vec2i default_window_size = fan::vec2i(800, 600);
-		static constexpr vec2i default_opengl_version = fan::vec2i(2, 1); // major minor
 		static constexpr mode default_size_mode = mode::windowed;
 
 		// for static value storing
@@ -228,7 +204,7 @@ namespace fan {
 			#elif defined(fan_platform_unix)
 
 		#if fan_renderer == fan_renderer_opengl
-			glXDestroyContext(fan::sys::m_display, m_context);
+			//glXDestroyContext(fan::sys::m_display, m_context);
 		#endif
 			XCloseDisplay(fan::sys::m_display);
 			fan::sys::m_display = 0;
@@ -240,8 +216,6 @@ namespace fan {
 		#endif
 
 		}
-
-		void print_opengl_version();
 
 		std::string get_name() const;
 		void set_name(const std::string& name);
@@ -262,9 +236,6 @@ namespace fan {
 		uintptr_t get_max_fps() const;
 		void set_max_fps(uintptr_t fps);
 
-		bool vsync_enabled() const;
-		void set_vsync(bool value);
-
 		// use fan::window_t::resolutions for window sizes
 		void set_full_screen(const fan::vec2i& size = uninitialized);
 		void set_windowed_full_screen(const fan::vec2i& size = uninitialized);
@@ -282,9 +253,8 @@ namespace fan {
 		template <uintptr_t flag, typename T = 
 			typename std::conditional<flag & fan::window_t::flags::no_mouse, bool,
 			typename std::conditional<flag & fan::window_t::flags::no_resize, bool,
-			typename std::conditional<flag & fan::window_t::flags::anti_aliasing, int,
 			typename std::conditional<flag & fan::window_t::flags::mode, fan::window_t::mode, int
-			>>>>::type>
+			>>>::type>
 			static constexpr void set_flag_value(T value) {
 			if constexpr(static_cast<bool>(flag & fan::window_t::flags::no_mouse)) {
 				flag_values::m_no_mouse = value;
@@ -292,19 +262,11 @@ namespace fan {
 			else if constexpr(static_cast<bool>(flag & fan::window_t::flags::no_resize)) {
 				flag_values::m_no_resize = value;
 			}
-			else if constexpr(static_cast<bool>(flag & fan::window_t::flags::anti_aliasing)) {
-				flag_values::m_samples = value;
-#if fan_renderer == fan_renderer_vulkan
-				fan::vulkan::msaa_samples = (decltype(fan::vulkan::msaa_samples))value;
-				fan::vulkan::reload_swapchain = true;
-#endif
-			}
 			else if constexpr(static_cast<bool>(flag & fan::window_t::flags::mode)) {
-				if (value > fan::window_t::mode::full_screen) {
-					fan::print("fan window error: failed to set window mode flag to: ", fan::eti(value));
-					exit(1);
+				if ((int)value > (int)fan::window_t::mode::full_screen) {
+					fan::throw_error("fan window error: failed to set window mode flag to: " + std::to_string((int)value));
 				}
-				flag_values::m_size_mode = value;
+				flag_values::m_size_mode = (fan::window_t::mode)value;
 			}
 			else if constexpr (static_cast<bool>(flag & fan::window_t::flags::borderless)) {
 				flag_values::m_size_mode = value ? fan::window_t::mode::borderless : flag_values::m_size_mode;
@@ -322,13 +284,6 @@ namespace fan {
 			}
 			if constexpr (static_cast<bool>(flags & fan::window_t::flags::no_resize)) {
 				fan::window_t::flag_values::m_no_resize = true;
-			}
-			if constexpr (static_cast<bool>(flags & fan::window_t::flags::anti_aliasing)) {
-				fan::window_t::flag_values::m_samples = 8;
-#if fan_renderer == fan_renderer_vulkan
-				fan::vulkan::msaa_samples = (decltype(fan::vulkan::msaa_samples))8;
-				fan::vulkan::reload_swapchain = true;
-#endif
 			}
 			if constexpr (static_cast<bool>(flags & fan::window_t::flags::borderless)) {
 				fan::window_t::flag_values::m_size_mode = fan::window_t::mode::borderless;
@@ -420,13 +375,12 @@ namespace fan {
 
 		#elif defined(fan_platform_unix)
 
-		inline static int m_screen;
 		inline static Atom m_atom_delete_window;
 		XSetWindowAttributes m_window_attribs;
 		XVisualInfo* m_visual;
 
 	//#if fan_renderer == fan_renderer_opengl
-		inline static GLXContext m_context;
+		inline static fan::opengl::glx::GLXContext m_context;
 	//#endif
 
 		XIM m_xim;
@@ -475,8 +429,6 @@ namespace fan {
 		f64_t m_current_frame;
 		f64_t m_delta_time;
 
-		bool m_vsync;
-
 		bool m_close;
 
 		std::string m_name;
@@ -499,13 +451,8 @@ namespace fan {
 
 		struct flag_values {
 
-			static inline int m_minor_version = fan::uninitialized;
-			static inline int m_major_version = fan::uninitialized;
-
 			static inline bool m_no_mouse = false;
 			static inline bool m_no_resize = false;
-
-			static inline uint8_t m_samples = fan::uninitialized;
 
 			static inline mode m_size_mode;
 

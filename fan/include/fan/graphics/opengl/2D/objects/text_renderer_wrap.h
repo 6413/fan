@@ -1,6 +1,6 @@
 #pragma once
 
-#include <fan/graphics/opengl/objects/text_renderer_raw.h>
+//#include <fan/graphics/opengl/objects/text_renderer_raw.h>
 
 //namespace fan_2d {
 //	namespace graphics {

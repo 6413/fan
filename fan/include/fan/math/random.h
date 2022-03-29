@@ -104,7 +104,7 @@ namespace fan {
     static uint32_t get_output_with_percent(const std::vector<percent_output_t>& po) {
 
       for (int i = 0; i < po.size(); i++) {
-        if (!(1.0 / fan::random::value_i64(0, ~0) < 1.0 / (po[i].percent * (uint32_t)~0))) {
+        if (!(1.0 / fan::random::value_i64(0, (uint32_t)~0) < 1.0 / (po[i].percent * (uint32_t)~0))) {
           return po[i].output;
         }
       }

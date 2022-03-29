@@ -5,10 +5,12 @@ out vec4 i_color;
 
 uniform uint vertex_count;
 uniform uint count;
+uniform float timeout;
+uniform float radius;
 uniform vec2 position;
-uniform vec2 size;
+uniform uint size;
 uniform vec2 position_velocity;
-uniform vec2 angle_velocity;
+uniform float angle_velocity;
 uniform vec3 rotation_vector;
 
 uniform float time;
@@ -129,6 +131,35 @@ vec2 vec2_direction(uint r, uint r2, float min, float max) {
   return vec2(cos(rr), sin(rr2));
 }
 
+uint rgb(float ratio)
+{
+    //we want to normalize ratio so that it fits in to 6 regions
+    //where each region is 256 units long
+    uint normalized = uint(ratio * 256 * 6);
+
+    //find the region for this position
+    uint region = normalized / 256u;
+
+    //find the distance to the start of the closest region
+    uint x = normalized % 256u;
+
+    uint r = 0u, g = 0u, b = 0u;
+    switch (region)
+    {
+    case 0u: r = 255u; g = 0u;   b = 0u;   g += x; break;
+    case 1u: r = 255u; g = 255u; b = 0u;   r -= x; break;
+    case 2u: r = 0u;   g = 255u; b = 0u;   b += x; break;
+    case 3u: r = 0u;   g = 255u; b = 255u; g -= x; break;
+    case 4u: r = 0u;   g = 0u;   b = 255u; r += x; break;
+    case 5u: r = 255u; g = 0u;   b = 255u; b -= x; break;
+    }
+    return r + (g << 8u) + (b << 16u);
+}
+
+float normalize(float value, float min, float max) {
+	return (value - min) / (max - min);
+}
+
 void main() {
 
 	vec2 resolution = vec2(view[3][0], view[3][1]) * 2;
@@ -140,33 +171,36 @@ void main() {
 	uint seed;
 	seed = id * count;
 	float new_time = time + floatConstruct(RAND(seed));
-	seed = uint(new_time / 10.0);
+	seed = uint(new_time / timeout);
 	seed *= id * count;
 	seed *= 4u;
-	float time_mod = mod(new_time, 10.0);
+	float time_mod = mod(new_time, timeout);
 
 	vec2 pos;
-	pos.x = (floatConstruct(RAND(seed + 0u))) * 300 + 1920 / 2 - 150;
-	pos.y = (floatConstruct(RAND(seed + 1u))) * 300 + 800;
-	vec2 velocity = vec2_direction(RAND(seed + 2u), RAND(seed + 3u), 3.141 / 4, 3.141 - 3.141 / 2) * (floatConstruct(RAND(seed + 4u)) * 10000);
+	pos.x = (floatConstruct(RAND(seed + 0u))) * radius + position.x - radius * 0.5;
+	pos.y = (floatConstruct(RAND(seed + 1u))) * radius + position.y - radius * 0.5;
+	vec2 velocity = vec2_direction(RAND(seed + 2u), RAND(seed + 3u), 0, 3.141 * 2) * (floatConstruct(RAND(seed + 4u)) * position_velocity);
 
-	pos.x += velocity.x * time_mod / 10.0;
-	pos.y += velocity.y * time_mod / 10.0;
+	pos.x += velocity.x * time_mod / timeout;
+	pos.y += velocity.y * time_mod / timeout;
 
-	vec2 middle = vec2(0, 0);
+	m = translate(m, vec3(pos, 0));
 
-	m = translate(m, vec3(vec2(pos) + middle, 0));
+	m = rotate(m, time_mod * angle_velocity * 3.141 * 2, rotation_vector);
 
-	m = rotate(m, time_mod * 10 * 3.141 * 2, vec3(0, 0, 1));
-
-	m = translate(m, vec3(-middle, 0));
-
-	gl_PointSize = 5;
+	gl_PointSize = size;
 
 	gl_Position = projection * view * m * vec4(triangle_vertices[gl_VertexID % 3], 0, 1);
-	float r = floatConstruct(RAND(id * 3u + 0u));
-	float g = floatConstruct(RAND(id * 3u + 1u));
-	float b = floatConstruct(RAND(id * 3u + 2u));
+	//uint hex = uint(rgb(normalize(gl_VertexID, 0, count)));
+
+	//float r = float((hex >> 16u) & 255u) / 255.0;
+	//float g = float((hex >> 8u) & 255u) / 255.0;
+	//float b = float((hex >> 0u) & 255u) / 255.0;
+
+	float r = normalize(abs(position.x - pos.x), 0, 100);
+	float g = 0;
+	float b = normalize(abs(position.x - pos.x), 0, 30);
+
 	i_color = vec4(r, g, b, 1);
 }
 )"

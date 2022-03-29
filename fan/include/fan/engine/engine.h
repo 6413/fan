@@ -451,6 +451,8 @@ namespace fan_2d {
 			std::vector<std::function<void()>> m_queue_after_step;
 
 			engine_t(const fan::vec2& gravity) : world(fan_2d::world(fan::vec2().b2())) {
+				window.open();
+
 				context.init();
 				context.bind_to_window(&window);
 				context.set_viewport(0, window.get_size());

@@ -2,6 +2,10 @@
 
 #include <fan/types/types.h>
 
+#if defined(fan_compiler_visual_studio)
+#pragma comment(lib, "lib/libwebp/libwebp.lib")
+#endif
+
 // if windows fails with duplicat resource, remove mux folder from libwebp
 #include <webp/encode.h>
 #include <webp/decode.h>
