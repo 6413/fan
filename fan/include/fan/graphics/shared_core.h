@@ -4,6 +4,8 @@
 
 #include <fan/graphics/renderer.h>
 
+#include <fan/graphics/opengl/gl_defines.h>
+
 namespace fan_2d {
 
     namespace opengl {
@@ -19,9 +21,9 @@ namespace fan_2d {
 
 		enum class face_e {
 #if fan_renderer == fan_renderer_opengl
-			front = GL_FRONT,
-			back = GL_BACK,
-			front_and_back = GL_FRONT_AND_BACK
+			front = fan::opengl::GL_FRONT,
+			back = fan::opengl::GL_BACK,
+			front_and_back = fan::opengl::GL_FRONT_AND_BACK
 #elif fan_renderer == fan_renderer_vulkan
 			front = VK_CULL_MODE_FRONT_BIT,
 			back = VK_CULL_MODE_BACK_BIT,
@@ -34,9 +36,9 @@ namespace fan_2d {
 
 #if fan_renderer == fan_renderer_opengl
 
-			point = GL_POINT,
-			line = GL_LINE,
-			fill = GL_FILL
+			point = fan::opengl::GL_POINT,
+			line = fan::opengl::GL_LINE,
+			fill = fan::opengl::GL_FILL
 
 #elif fan_renderer == fan_renderer_vulkan
 			point = VK_POLYGON_MODE_POINT,

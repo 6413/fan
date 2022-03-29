@@ -16,21 +16,6 @@
 #define fan_renderer fan_set_graphics_renderer
 
 #if fan_renderer == fan_renderer_opengl
-	#include <glad/gl.h>
-
-	#ifdef fan_platform_windows
-
-		#include <wgl/wgl.h>
-
-		#pragma comment(lib, "User32.lib")
-
-		#pragma comment(lib, "opengl32.lib")
-
-		#pragma comment(lib, "Gdi32.lib")
-
-		#undef min
-		#undef max
-	#endif
 
 #else
 

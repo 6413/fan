@@ -14,8 +14,6 @@
     #include <X11/keysym.h>
     #include <X11/XKBlib.h>
 
-    #include <GL/glxew.h>
-
     #include <sys/time.h>
     #include <unistd.h>
 
@@ -29,6 +27,7 @@ namespace fan {
 #ifdef fan_platform_unix
 
         inline Display* m_display;
+        static int m_screen;
 
         static Display* get_display()
         {

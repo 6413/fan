@@ -90,27 +90,29 @@ namespace fan_3d {
       static constexpr uint32_t element_byte_size = offset_tanget + sizeof(fan::vec3);
 
       void open(fan::opengl::context_t* context) {
-        m_shader.open();
+        m_shader.open(context);
 
         m_shader.set_vertex(
-        #include <fan/graphics/glsl/opengl/3D/objects/model.vs>
+          context, 
+          #include <fan/graphics/glsl/opengl/3D/objects/model.vs>
         );
 
         m_shader.set_fragment(
-        #include <fan/graphics/glsl/opengl/3D/objects/model.fs>
+          context, 
+          #include <fan/graphics/glsl/opengl/3D/objects/model.fs>
         );
 
-        m_shader.compile();
+        m_shader.compile(context);
 
         m_draw_node_reference = fan::uninitialized;
 
         m_model_instance.m_indices.open();
-        m_model_instance.m_glsl_buffer.open();
-        m_model_instance.m_glsl_buffer.init(m_shader.id, element_byte_size);
+        m_model_instance.m_glsl_buffer.open(context);
+        m_model_instance.m_glsl_buffer.init(context, m_shader.id, element_byte_size);
       }
       void close(fan::opengl::context_t* context) {
 
-        m_shader.close();
+        m_shader.close(context);
 
         if (m_draw_node_reference == fan::uninitialized) {
           return;
@@ -118,7 +120,7 @@ namespace fan_3d {
 
         context->disable_draw(m_draw_node_reference);
         m_draw_node_reference = fan::uninitialized;
-        glDeleteBuffers(1, &m_model_instance.m_ebo);
+        context->opengl.glDeleteBuffers(1, &m_model_instance.m_ebo);
         m_model_instance.m_indices.close();
       }
 
@@ -138,18 +140,18 @@ namespace fan_3d {
           instance.normal = properties.loaded_model->normals[i];
           instance.texture_coordinate = properties.loaded_model->texture_coordinates[i];
           instance.tanget = properties.loaded_model->tangets[i];
-          m_model_instance.m_glsl_buffer.push_ram_instance(&instance, element_byte_size);
+          m_model_instance.m_glsl_buffer.push_ram_instance(context, &instance, element_byte_size);
         }
 
         for (int i = 0; i < properties.loaded_model->indices.size(); i++) {
           m_model_instance.m_indices.push_back(properties.loaded_model->indices[i]);
         }
 
-        glGenBuffers(1, &m_model_instance.m_ebo);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_model_instance.m_ebo);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t) * m_model_instance.m_indices.size(), m_model_instance.m_indices.data(), GL_STATIC_DRAW);
+        context->opengl.glGenBuffers(1, &m_model_instance.m_ebo);
+        context->opengl.glBindBuffer(fan::opengl::GL_ELEMENT_ARRAY_BUFFER, m_model_instance.m_ebo);
+        context->opengl.glBufferData(fan::opengl::GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t) * m_model_instance.m_indices.size(), m_model_instance.m_indices.data(), fan::opengl::GL_STATIC_DRAW);
 
-        m_model_instance.m_glsl_buffer.write_vram_all();
+        m_model_instance.m_glsl_buffer.write_vram_all(context);
         this->draw(context);
       }
 
@@ -282,7 +284,7 @@ namespace fan_3d {
       void draw(fan::opengl::context_t* context) {
         context->set_depth_test(true);
 
-        m_shader.use();
+        m_shader.use(context);
 
         const fan::vec2 viewport_size = context->viewport_size;
 
@@ -292,11 +294,11 @@ namespace fan_3d {
         fan::mat4 view(1);
         view = context->camera.get_view_matrix();
 
-        m_shader.use();
-        m_shader.set_projection(projection);
-        m_shader.set_view(view);
+        m_shader.use(context);
+        m_shader.set_projection(context, projection);
+        m_shader.set_view(context, view);
 
-        m_model_instance.m_glsl_buffer.m_vao.bind();
+        m_model_instance.m_glsl_buffer.m_vao.bind(context);
 
         fan::mat4 m[2];
         m[0][0][0] = m_model_instance.position.x;
@@ -330,23 +332,23 @@ namespace fan_3d {
           }
         #endif
 
-        m_shader.set_int("texture_diffuse", 0);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, m_textures.diffuse);
+        m_shader.set_int(context, "texture_diffuse", 0);
+        context->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
+        context->opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, m_textures.diffuse);
 
-        m_shader.set_int("texture_depth", 1);
-        glActiveTexture(GL_TEXTURE0 + 1);
-        glBindTexture(GL_TEXTURE_2D, m_textures.depth);
+        m_shader.set_int(context, "texture_depth", 1);
+        context->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + 1);
+        context->opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, m_textures.depth);
 
-        m_shader.set_int("skybox", 2);
-        glActiveTexture(GL_TEXTURE0 + 2);
-        glBindTexture(GL_TEXTURE_2D, m_model_instance.skybox.texture);
+        m_shader.set_int(context, "skybox", 2);
+        context->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + 2);
+        context->opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, m_model_instance.skybox.texture);
 
-        m_shader.set_mat4("model_input", &m[0][0][0], std::size(m));
-        m_shader.set_float("s", s);
-        m_shader.set_vec3("p", m_model_instance.light_position);
+        m_shader.set_mat4(context, "model_input", &m[0][0][0], std::size(m));
+        m_shader.set_float(context, "s", s);
+        m_shader.set_vec3(context, "p", m_model_instance.light_position);
 
-        glDrawArrays(GL_TRIANGLES, 0, m_model_instance.m_glsl_buffer.m_buffer.size() / element_byte_size);
+        context->opengl.glDrawArrays(fan::opengl::GL_TRIANGLES, 0, m_model_instance.m_glsl_buffer.m_buffer.size() / element_byte_size);
       }
 
       model_instance_t m_model_instance;

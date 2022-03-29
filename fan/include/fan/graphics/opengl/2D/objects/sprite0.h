@@ -44,7 +44,7 @@ namespace fan_2d {
 						element_byte_size * vertex_count
 					);
 
-					m_glsl_buffer.erase_instance((this->size(context) - 1) * vertex_count, 1, element_byte_size, sprite_t::vertex_count);
+					m_glsl_buffer.erase_instance(context, (this->size(context) - 1) * vertex_count, 1, element_byte_size, sprite_t::vertex_count);
 
 					m_erase_cb(m_user_ptr, *(m_push_back_ids.end() - 1), i);
 
@@ -56,13 +56,18 @@ namespace fan_2d {
 					m_store_sprite.pop_back();
 
 					uint32_t to = m_glsl_buffer.m_buffer.size();
-
-					m_queue_helper.edit(
-						context,
-						i * vertex_count * element_byte_size,
-						to,
-						&m_glsl_buffer
-					);
+					if (to == 0) {
+						// erase queue if there will be no objects left (special case)
+						m_queue_helper.on_edit(context);
+					}
+					else {
+						m_queue_helper.edit(
+							context,
+							i * vertex_count * element_byte_size,
+							to,
+							&m_glsl_buffer
+						);
+					}
 				}
 				else {
 					sprite_t::erase(context, i);

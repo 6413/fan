@@ -1,5 +1,6 @@
 #pragma once
 
+#include <fan/graphics/opengl/gl_shader.h>
 #include <fan/graphics/shared_graphics.h>
 
 namespace fan_2d {
@@ -16,21 +17,23 @@ namespace fan_2d {
 
 			void open(fan::opengl::context_t* context) {
 
-				m_shader.open();
+				m_shader.open(context);
 
 				m_shader.set_vertex(
+					context, 
 					#include <fan/graphics/glsl/opengl/2D/objects/yuv420p_renderer.vs>
 				);
 
 				m_shader.set_fragment(
+					context, 
 					#include <fan/graphics/glsl/opengl/2D/objects/yuv420p_renderer.fs>
 				);
 
-				m_shader.compile();
+				m_shader.compile(context);
 
 				m_store_sprite.open();
-				m_glsl_buffer.open();
-				m_glsl_buffer.init(m_shader.id, element_byte_size);
+				m_glsl_buffer.open(context);
+				m_glsl_buffer.init(context, m_shader.id, element_byte_size);
 				m_queue_helper.open();
 
 				m_draw_node_reference = fan::uninitialized;
@@ -40,42 +43,42 @@ namespace fan_2d {
 
 				m_store_sprite.resize(m_store_sprite.size() + 3);
 
-				glGenTextures(1, &m_store_sprite[m_store_sprite.size() - 3].m_texture);
-				glGenTextures(1, &m_store_sprite[m_store_sprite.size() - 2].m_texture);
-				glGenTextures(1, &m_store_sprite[m_store_sprite.size() - 1].m_texture);
+				context->opengl.glGenTextures(1, &m_store_sprite[m_store_sprite.size() - 3].m_texture);
+				context->opengl.glGenTextures(1, &m_store_sprite[m_store_sprite.size() - 2].m_texture);
+				context->opengl.glGenTextures(1, &m_store_sprite[m_store_sprite.size() - 1].m_texture);
 
-				glBindTexture(GL_TEXTURE_2D, m_store_sprite[m_store_sprite.size() - 3].m_texture);
+				context->opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, m_store_sprite[m_store_sprite.size() - 3].m_texture);
 
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, properties.pixel_data.size.x, properties.pixel_data.size.y, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, properties.pixel_data.pixels[0]);
+				context->opengl.glTexImage2D(fan::opengl::GL_TEXTURE_2D, 0, fan::opengl::GL_LUMINANCE, properties.pixel_data.size.x, properties.pixel_data.size.y, 0, fan::opengl::GL_LUMINANCE, fan::opengl::GL_UNSIGNED_BYTE, properties.pixel_data.pixels[0]);
 				//glGenerateMipmap(GL_TEXTURE_2D);
 
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, properties.visual_output);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, properties.visual_output);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, properties.filter);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, properties.filter);
+				context->opengl.glTexParameteri(fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_S, properties.visual_output);
+				context->opengl.glTexParameteri(fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_T, properties.visual_output);
+				context->opengl.glTexParameteri(fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MIN_FILTER, properties.filter);
+				context->opengl.glTexParameteri(fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MAG_FILTER, properties.filter);
 
-				glBindTexture(GL_TEXTURE_2D, m_store_sprite[m_store_sprite.size() - 2].m_texture);
+				context->opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, m_store_sprite[m_store_sprite.size() - 2].m_texture);
 
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, properties.pixel_data.size.x / 2, properties.pixel_data.size.y / 2, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, properties.pixel_data.pixels[1]);
+				context->opengl.glTexImage2D(fan::opengl::GL_TEXTURE_2D, 0, fan::opengl::GL_LUMINANCE, properties.pixel_data.size.x / 2, properties.pixel_data.size.y / 2, 0, fan::opengl::GL_LUMINANCE, fan::opengl::GL_UNSIGNED_BYTE, properties.pixel_data.pixels[1]);
 				//	glGenerateMipmap(GL_TEXTURE_2D);
 
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, properties.visual_output);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, properties.visual_output);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, properties.filter);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, properties.filter);
+				context->opengl.glTexParameteri(fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_S, properties.visual_output);
+				context->opengl.glTexParameteri(fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_T, properties.visual_output);
+				context->opengl.glTexParameteri(fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MIN_FILTER, properties.filter);
+				context->opengl.glTexParameteri(fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MAG_FILTER, properties.filter);
 
-				glBindTexture(GL_TEXTURE_2D, m_store_sprite[m_store_sprite.size() - 1].m_texture);
+				context->opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, m_store_sprite[m_store_sprite.size() - 1].m_texture);
 
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, properties.pixel_data.size.x / 2, properties.pixel_data.size.y / 2, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, properties.pixel_data.pixels[2]);
+				context->opengl.glTexImage2D(fan::opengl::GL_TEXTURE_2D, 0, fan::opengl::GL_LUMINANCE, properties.pixel_data.size.x / 2, properties.pixel_data.size.y / 2, 0, fan::opengl::GL_LUMINANCE, fan::opengl::GL_UNSIGNED_BYTE, properties.pixel_data.pixels[2]);
 
 				//glGenerateMipmap(GL_TEXTURE_2D);
 
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, properties.visual_output);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, properties.visual_output);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, properties.filter);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, properties.filter);
+				context->opengl.glTexParameteri(fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_S, properties.visual_output);
+				context->opengl.glTexParameteri(fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_T, properties.visual_output);
+				context->opengl.glTexParameteri(fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MIN_FILTER, properties.filter);
+				context->opengl.glTexParameteri(fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MAG_FILTER, properties.filter);
 
-				glBindTexture(GL_TEXTURE_2D, 0);
+				context->opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, 0);
 
 				sprite_t::properties_t property;
 				property.position = properties.position;
@@ -92,14 +95,12 @@ namespace fan_2d {
 			}
 
 			void reload_pixels(fan::opengl::context_t* context, uint32_t i, const fan_2d::opengl::pixel_data_t& pixel_data) {
-				glBindTexture(GL_TEXTURE_2D, m_store_sprite[i * 3].m_texture);
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, pixel_data.size.x, pixel_data.size.y, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, pixel_data.pixels[0]);
-
-				glBindTexture(GL_TEXTURE_2D, m_store_sprite[i * 3 + 1].m_texture);
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, pixel_data.size.x / 2, pixel_data.size.y / 2, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, pixel_data.pixels[1]);
-
-				glBindTexture(GL_TEXTURE_2D, m_store_sprite[i * 3 + 2].m_texture);
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, pixel_data.size.x / 2, pixel_data.size.y / 2, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, pixel_data.pixels[2]);
+				context->opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, m_store_sprite[i * 3].m_texture);
+				context->opengl.glTexImage2D(fan::opengl::GL_TEXTURE_2D, 0, fan::opengl::GL_LUMINANCE, pixel_data.size.x, pixel_data.size.y, 0, fan::opengl::GL_LUMINANCE, fan::opengl::GL_UNSIGNED_BYTE, pixel_data.pixels[0]);
+				context->opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, m_store_sprite[i * 3 + 1].m_texture);
+				context->opengl.glTexImage2D(fan::opengl::GL_TEXTURE_2D, 0, fan::opengl::GL_LUMINANCE, pixel_data.size.x / 2, pixel_data.size.y / 2, 0, fan::opengl::GL_LUMINANCE, fan::opengl::GL_UNSIGNED_BYTE, pixel_data.pixels[1]);
+				context->opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, m_store_sprite[i * 3 + 2].m_texture);
+				context->opengl.glTexImage2D(fan::opengl::GL_TEXTURE_2D, 0, fan::opengl::GL_LUMINANCE, pixel_data.size.x / 2, pixel_data.size.y / 2, 0, fan::opengl::GL_LUMINANCE, fan::opengl::GL_UNSIGNED_BYTE, pixel_data.pixels[2]);
 
 				image_size[i] = pixel_data.size;
 			}
@@ -118,25 +119,43 @@ namespace fan_2d {
 
 			void draw(fan::opengl::context_t* context)
 			{
-				m_shader.use();
+				m_shader.use(context);
 
-				m_shader.set_int("sampler_y", 0);
-				m_shader.set_int("sampler_u", 1);
-				m_shader.set_int("sampler_v", 2);
+				m_shader.set_int(context, "sampler_y", 0);
+				m_shader.set_int(context, "sampler_u", 1);
+				m_shader.set_int(context, "sampler_v", 2);
 
 				for (int i = 0; i < sprite_t::size(context); i++) {
-					glActiveTexture(GL_TEXTURE0 + 0);
-					glBindTexture(GL_TEXTURE_2D, m_store_sprite[i * 3].m_texture);
+					context->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + 0);
+					context->opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, m_store_sprite[i * 3].m_texture);
 
-					glActiveTexture(GL_TEXTURE0 + 1);
-					glBindTexture(GL_TEXTURE_2D, m_store_sprite[i * 3 + 1].m_texture);
+					context->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + 1);
+					context->opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, m_store_sprite[i * 3 + 1].m_texture);
 
-					glActiveTexture(GL_TEXTURE0 + 2);
-					glBindTexture(GL_TEXTURE_2D, m_store_sprite[i * 3 + 2].m_texture);
+					context->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + 2);
+					context->opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, m_store_sprite[i * 3 + 2].m_texture);
+
+					const fan::vec2 viewport_size = context->viewport_size;
+
+					fan::mat4 projection(1);
+					projection = fan::math::ortho<fan::mat4>(
+						(f32_t)viewport_size.x * 0.5,
+						((f32_t)viewport_size.x + (f32_t)viewport_size.x * 0.5), 
+						((f32_t)viewport_size.y + (f32_t)viewport_size.y * 0.5), 
+						((f32_t)viewport_size.y * 0.5), 
+						0.01,
+						1000.0
+					);
+
+					fan::mat4 view(1);
+					view = context->camera.get_view_matrix(view.translate(fan::vec3((f_t)viewport_size.x * 0.5, (f_t)viewport_size.y * 0.5, -700.0f)));
+
+					m_shader.use(context);
+					m_shader.set_view(context, view);
+					m_shader.set_projection(context, projection);
 
 					m_glsl_buffer.draw(
 						context,
-						m_shader,
 						i * vertex_count,
 						(i + 1) * vertex_count
 					);

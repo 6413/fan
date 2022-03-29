@@ -4,14 +4,12 @@
 
 #include <fan/graphics/renderer.h>
 
-#if fan_renderer == fan_renderer_opengl
-
-#include <fan/types/types.h>
 #include <fan/types/color.h>
 #include <fan/graphics/camera.h>
-#include <fan/graphics/opengl/gl_shader.h>
 #include <fan/window/window.h>
 #include <fan/types/memory.h>
+
+#include <fan/graphics/opengl/gl_init.h>
 
 #ifdef fan_platform_windows
   #include <dbghelp.h>
@@ -19,46 +17,46 @@
 
 namespace fan {
 
-	static void print_callstack() {
+  static void print_callstack() {
 
-	#ifdef fan_platform_windows
-			uint16_t i;
-			uint16_t frames;
-			void *stack[0xff];
-			SYMBOL_INFO *symbol;
-			HANDLE process;
+  #ifdef fan_platform_windows
+      uint16_t i;
+      uint16_t frames;
+      void *stack[0xff];
+      SYMBOL_INFO *symbol;
+      HANDLE process;
 
-			SymSetOptions(SYMOPT_LOAD_LINES | SYMOPT_DEFERRED_LOADS | SYMOPT_INCLUDE_32BIT_MODULES);
+      SymSetOptions(SYMOPT_LOAD_LINES | SYMOPT_DEFERRED_LOADS | SYMOPT_INCLUDE_32BIT_MODULES);
 
-			process = GetCurrentProcess();
+      process = GetCurrentProcess();
 
-			if (!SymInitialize(process, NULL, TRUE)) {
-				int err = GetLastError();
-				printf("[_PR_DumpTrace] SymInitialize failed %d", err);
-			}
+      if (!SymInitialize(process, NULL, TRUE)) {
+        int err = GetLastError();
+        printf("[_PR_DumpTrace] SymInitialize failed %d", err);
+      }
 
-			frames = CaptureStackBackTrace(0, 0xff, stack, NULL);
-			symbol = (SYMBOL_INFO*)calloc(sizeof(SYMBOL_INFO) + 1024 * sizeof(uint8_t), 1);
-			symbol->MaxNameLen = 1023;
-			symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+      frames = CaptureStackBackTrace(0, 0xff, stack, NULL);
+      symbol = (SYMBOL_INFO*)calloc(sizeof(SYMBOL_INFO) + 1024 * sizeof(uint8_t), 1);
+      symbol->MaxNameLen = 1023;
+      symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
 
-			for (i = 0; i < frames; i++) {
-				SymFromAddr(process, (DWORD64)(stack[i]), 0, symbol);
-				DWORD Displacement;
-				IMAGEHLP_LINE64 Line;
-				Line.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
-				if (SymGetLineFromAddr64(process, (DWORD64)(stack[i]), &Displacement, &Line)) {
-					printf("%i: %s:%u\n", frames - i - 1, symbol->Name, Line.LineNumber);
-				}
-				else {
-					printf("%i: %s:0x%x\n", frames - i - 1, symbol->Name, symbol->Address);
-				}
-			}
+      for (i = 0; i < frames; i++) {
+        SymFromAddr(process, (DWORD64)(stack[i]), 0, symbol);
+        DWORD Displacement;
+        IMAGEHLP_LINE64 Line;
+        Line.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
+        if (SymGetLineFromAddr64(process, (DWORD64)(stack[i]), &Displacement, &Line)) {
+          printf("%i: %s:%u\n", frames - i - 1, symbol->Name, Line.LineNumber);
+        }
+        else {
+          printf("%i: %s:0x%x\n", frames - i - 1, symbol->Name, symbol->Address);
+        }
+      }
 
-			free(symbol);
-	#endif
+      free(symbol);
+  #endif
 
-		}
+    }
 
 
   namespace opengl {
@@ -77,23 +75,23 @@ namespace fan {
 
         queue_helper_t() = default;
 
-			  void open();
+        void open();
 
-			  void close(fan::opengl::context_t* context);
+        void close(fan::opengl::context_t* context);
 
         bool is_queued() const;
 
-			  void edit(fan::opengl::context_t* context, uint32_t begin, uint32_t end, glsl_buffer_t* buffer);
+        void edit(fan::opengl::context_t* context, uint32_t begin, uint32_t end, glsl_buffer_t* buffer);
 
-			  void on_edit(fan::opengl::context_t* context);
+        void on_edit(fan::opengl::context_t* context);
 
-			  void reset_edit();
+        void reset_edit();
 
-			  uint32_t m_edit_index;
+        uint32_t m_edit_index;
 
-			  uint32_t m_min_edit;
-			  uint32_t m_max_edit;
-		  };
+        uint32_t m_min_edit;
+        uint32_t m_max_edit;
+      };
 
       struct buffer_queue_t {
         fan::opengl::core::queue_helper_t* queue_helper;
@@ -113,16 +111,23 @@ namespace fan {
 
   namespace opengl {
 
-		struct context_t {
+    struct context_t {
 
-    #if fan_debug >= fan_debug_medium
+      struct properties_t {
+        properties_t() {
+          samples = 1;
+          major = 2;
+          minor = 1;
+        }
 
-      bool m_init[3]{};
+        uint16_t samples;
+        uint8_t major;
+        uint8_t minor;
+      };
 
-    #endif
-
-			fan::camera camera;
-			fan::vec2 viewport_size;
+      fan::camera camera;
+      fan::vec2 viewport_size;
+      fan::opengl::opengl_t opengl;
 
       typedef void(*draw_cb_t)(context_t*, void*);
 
@@ -131,65 +136,47 @@ namespace fan {
         draw_cb_t draw_cb;
       };
 
-			bll_t<draw_queue_t> m_draw_queue;
-			bll_t<fan::opengl::core::buffer_queue_t> m_write_queue;
+      bll_t<draw_queue_t> m_draw_queue;
+      bll_t<fan::opengl::core::buffer_queue_t> m_write_queue;
 
-			void init();
+      void init();
 
-			void bind_to_window(fan::window_t* window);
+      void bind_to_window(fan::window_t* window, const properties_t& p = properties_t());
 
-			void set_viewport(const fan::vec2& viewport_position, const fan::vec2& viewport_size_);
+      void set_viewport(const fan::vec2& viewport_position, const fan::vec2& viewport_size_);
 
-			void process();
+      void process();
 
-			void render(fan::window_t* window);
+      void render(fan::window_t* window);
 
       uint32_t enable_draw(void* data, draw_cb_t);
       void disable_draw(uint32_t node_reference);
 
       void set_depth_test(bool flag);
 
-      static void* get_proc_address(const char* name) {
-        #if defined(fan_platform_windows)
-         void *p = (void *)wglGetProcAddress(name);
-        if(p == 0 ||
-          (p == (void*)0x1) || (p == (void*)0x2) || (p == (void*)0x3) ||
-          (p == (void*)-1) )
-        {
-          HMODULE module = LoadLibraryA("opengl32.dll");
-          p = (void *)GetProcAddress(module, name);
-        }
-
-        return p;
-
-        #elif defined(fan_platform_unix)
-
-        return (void*)glXGetProcAddress(name);
-
-        #endif
-      }
+      void set_vsync(fan::window_t* window, bool flag);
 
       static void message_callback(GLenum source,
-	    GLenum type,
-	    GLuint id,
-	    GLenum severity,
-	    GLsizei length,
-	    const GLchar* message,
-	    const void* userParam )
+      GLenum type,
+      GLuint id,
+      GLenum severity,
+      GLsizei length,
+      const GLchar* message,
+      const void* userParam )
       {
-	      if (type == 33361) { // gl_static_draw
-		      return;
-	      }
-	      fan::print_no_space(type == GL_DEBUG_TYPE_ERROR ? "opengl error:" : "", type, ", severity:", severity, ", message:", message);
+        if (type == 33361) { // gl_static_draw
+          return;
+        }
+        fan::print_no_space(type == GL_DEBUG_TYPE_ERROR ? "opengl error:" : "", type, ", severity:", severity, ", message:", message);
       }
 
-      static void set_error_callback() {
-        glEnable(GL_DEBUG_OUTPUT);
-	      glDebugMessageCallback((GLDEBUGPROC)message_callback, 0);
+      void set_error_callback() {
+        opengl.glEnable(GL_DEBUG_OUTPUT);
+        opengl.glDebugMessageCallback((GLDEBUGPROC)message_callback, 0);
       }
 
       uint32_t m_flags;
-		};
+    };
 
   }
 }
@@ -200,50 +187,50 @@ namespace fan {
 
     namespace core {
 
-      static int get_buffer_size(uint32_t target_buffer, uint32_t buffer_object) {
-		    int size = 0;
+      static int get_buffer_size(fan::opengl::context_t* context, uint32_t target_buffer, uint32_t buffer_object) {
+        int size = 0;
 
-		    glBindBuffer(target_buffer, buffer_object);
-		    glGetBufferParameteriv(target_buffer, GL_BUFFER_SIZE, &size);
+        context->opengl.glBindBuffer(target_buffer, buffer_object);
+        context->opengl.glGetBufferParameteriv(target_buffer, fan::opengl::GL_BUFFER_SIZE, &size);
 
-		    return size;
-	    }
+        return size;
+      }
 
-	    static void write_glbuffer(unsigned int buffer, const void* data, uintptr_t size, uint32_t usage = GL_STATIC_DRAW, uintptr_t target = GL_ARRAY_BUFFER)
-	    {
-		    glBindBuffer(target, buffer);
+      static void write_glbuffer(fan::opengl::context_t* context, unsigned int buffer, const void* data, uintptr_t size, uint32_t usage = GL_STATIC_DRAW, uintptr_t target = GL_ARRAY_BUFFER)
+      {
+        context->opengl.glBindBuffer(target, buffer);
 
-		    glBufferData(target, size, data, usage);
-		    /*if (target == GL_SHADER_STORAGE_BUFFER) {
-			    glBindBufferBase(target, location, buffer);
-		    }*/
-	    }
+        context->opengl.glBufferData(target, size, data, usage);
+        /*if (target == GL_SHADER_STORAGE_BUFFER) {
+          glBindBufferBase(target, location, buffer);
+        }*/
+      }
 
-	    static void edit_glbuffer(unsigned int buffer, const void* data, uintptr_t offset, uintptr_t size, uintptr_t target = GL_ARRAY_BUFFER)
-	    {
-		    glBindBuffer(target, buffer);
+      static void edit_glbuffer(fan::opengl::context_t* context, unsigned int buffer, const void* data, uintptr_t offset, uintptr_t size, uintptr_t target = GL_ARRAY_BUFFER)
+      {
+        context->opengl.glBindBuffer(target, buffer);
 
     #if fan_debug
 
-		    int buffer_size = get_buffer_size(target, buffer);
+        int buffer_size = get_buffer_size(context, target, buffer);
 
-		    if (buffer_size < size || (offset + size) > buffer_size) {
-			    throw std::runtime_error("tried to write more than allocated");
-		    }
+        if (buffer_size < size || (offset + size) > buffer_size) {
+          throw std::runtime_error("tried to write more than allocated");
+        }
 
     #endif
 
-		    glBufferSubData(target, offset, size, data);
-		    glBindBuffer(target, 0);
-		   /* if (target == GL_SHADER_STORAGE_BUFFER) {
-			    glBindBufferBase(target, location, buffer);
-		    }*/
-	    }
+        context->opengl.glBufferSubData(target, offset, size, data);
+        context->opengl.glBindBuffer(target, 0);
+       /* if (target == GL_SHADER_STORAGE_BUFFER) {
+          glBindBufferBase(target, location, buffer);
+        }*/
+      }
 
       // not tested
-      static int get_bound_buffer() {
+      static int get_bound_buffer(fan::opengl::context_t* context) {
         int buffer_id;
-        glGetIntegerv(GL_VERTEX_BINDING_BUFFER, &buffer_id);
+        context->opengl.glGetIntegerv(fan::opengl::GL_VERTEX_BINDING_BUFFER, &buffer_id);
         return buffer_id;
       }
 
@@ -251,19 +238,19 @@ namespace fan {
 
         vao_t() = default;
 
-        void open() {
-          glCreateVertexArrays(1, &m_vao);
+        void open(fan::opengl::context_t* context) {
+          context->opengl.glCreateVertexArrays(1, &m_vao);
         }
 
-        void close() {
-          glDeleteVertexArrays(1, &m_vao);
+        void close(fan::opengl::context_t* context) {
+          context->opengl.glDeleteVertexArrays(1, &m_vao);
         }
 
-        void bind() const {
-          glBindVertexArray(m_vao);
+        void bind(fan::opengl::context_t* context) const {
+          context->opengl.glBindVertexArray(m_vao);
         }
-        void unbind() const {
-          glBindVertexArray(0);
+        void unbind(fan::opengl::context_t* context) const {
+          context->opengl.glBindVertexArray(0);
         }
 
         uint32_t m_vao;
@@ -276,43 +263,43 @@ namespace fan {
 
         static constexpr uint32_t default_buffer_size = 0xfff;
 
-        void open() {
+        void open(fan::opengl::context_t* context) {
           m_buffer_size = 0;
 
-          m_vao.open();
+          m_vao.open(context);
 
-          glGenBuffers(1, &m_vbo);
-          this->allocate_buffer(default_buffer_size);
+          context->opengl.glGenBuffers(1, &m_vbo);
+          this->allocate_buffer(context, default_buffer_size);
           m_buffer.open();
           m_buffer.reserve(default_buffer_size);
         }
 
-        void close() {
+        void close(fan::opengl::context_t* context) {
         #if fan_debug >= fan_debug_low
           if (m_vbo == -1) {
             fan::throw_error("tried to remove non existent vbo");
           }
         #endif
-          glDeleteBuffers(1, &m_vbo);
+          context->opengl.glDeleteBuffers(1, &m_vbo);
 
-          m_vao.close();
+          m_vao.close(context);
           m_buffer.close();
         }
 
-        void init(uint32_t program, uint32_t element_byte_size) {
+        void init(fan::opengl::context_t* context, uint32_t program, uint32_t element_byte_size) {
 
-          m_vao.bind();
+          m_vao.bind(context);
 
-          this->bind();
+          this->bind(context);
 
           uint32_t element_count = element_byte_size / sizeof(f32_t) / 4;
 
           for (int i = 0; i < element_count; i++) {
 
-            int location = glGetAttribLocation(program, (std::string("input") + std::to_string(i)).c_str());
-            glEnableVertexAttribArray(location);
+            int location = context->opengl.glGetAttribLocation(program, (std::string("input") + std::to_string(i)).c_str());
+            context->opengl.glEnableVertexAttribArray(location);
 
-            glVertexAttribPointer(
+            context->opengl.glVertexAttribPointer(
               location, 
               4, 
               GL_FLOAT, 
@@ -326,10 +313,10 @@ namespace fan {
             return;
           }
 
-          int location = glGetAttribLocation(program, (std::string("input") + std::to_string(element_count)).c_str());
-          glEnableVertexAttribArray(location);
+          int location = context->opengl.glGetAttribLocation(program, (std::string("input") + std::to_string(element_count)).c_str());
+          context->opengl.glEnableVertexAttribArray(location);
 
-          glVertexAttribPointer(
+          context->opengl.glVertexAttribPointer(
             location, 
             (element_byte_size / sizeof(f32_t)) % 4, 
             GL_FLOAT, 
@@ -339,15 +326,15 @@ namespace fan {
           );
         }
 
-        void bind() const {
-          glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+        void bind(fan::opengl::context_t* context) const {
+          context->opengl.glBindBuffer(fan::opengl::GL_ARRAY_BUFFER, m_vbo);
         }
         void unbind() const {
           //glBindBuffer(GL_ARRAY_BUFFER, 0);
         }
 
-        void allocate_buffer(uint64_t size) {
-          fan::opengl::core::write_glbuffer(m_vbo, nullptr, size);
+        void allocate_buffer(fan::opengl::context_t* context, uint64_t size) {
+          fan::opengl::core::write_glbuffer(context, m_vbo, nullptr, size);
           m_buffer_size = size;
         }
         void* get_buffer_data(GLintptr offset) const {
@@ -359,29 +346,29 @@ namespace fan {
           return (void*)&m_buffer[offset];
         }
 
-        void push_ram_instance(const void* data, uint32_t element_byte_size) {
+        void push_ram_instance(fan::opengl::context_t* context, const void* data, uint32_t element_byte_size) {
           m_buffer.insert(m_buffer.size(), (uint8_t*)data, (uint8_t*)data + element_byte_size);
         }
 
-        void insert_ram_instance(uint32_t i, const void* data, uint32_t element_byte_size) {
+        void insert_ram_instance(fan::opengl::context_t* context, uint32_t i, const void* data, uint32_t element_byte_size) {
           m_buffer.insert(i * element_byte_size, (uint8_t*)data, (uint8_t*)data + element_byte_size);
         }
 
-        void write_vram_all() {
+        void write_vram_all(fan::opengl::context_t* context) {
           
-          m_vao.bind();
+          m_vao.bind(context);
 
-          this->bind();
+          this->bind(context);
 
           m_buffer_size = m_buffer.capacity();
 
-          fan::opengl::core::write_glbuffer(m_vbo, m_buffer.begin(), m_buffer_size);
+          fan::opengl::core::write_glbuffer(context, m_vbo, m_buffer.begin(), m_buffer_size);
         }
         
-        void* get_instance(uint32_t i, uint32_t element_byte_size, uint32_t byte_offset) const {
+        void* get_instance(fan::opengl::context_t* context, uint32_t i, uint32_t element_byte_size, uint32_t byte_offset) const {
           return get_buffer_data(i * element_byte_size + byte_offset);
         }
-        void edit_ram_instance(uint32_t i, const void* data, uint32_t element_byte_size, uint32_t byte_offset, uint32_t sizeof_data) {
+        void edit_ram_instance(fan::opengl::context_t* context, uint32_t i, const void* data, uint32_t element_byte_size, uint32_t byte_offset, uint32_t sizeof_data) {
           #if fan_debug >= fan_debug_low
             if (i * element_byte_size + byte_offset + sizeof_data > m_buffer.size()) {
               fan::throw_error("invalid access");
@@ -389,22 +376,22 @@ namespace fan {
           #endif
           std::memmove(m_buffer.begin() + i * element_byte_size + byte_offset, data, sizeof_data);
         }
-        void edit_vram_instance(uint32_t i, const void* data, uint32_t element_byte_size, uint32_t byte_offset, uint32_t sizeof_data) {
-          fan::opengl::core::edit_glbuffer(m_vbo, data, i * element_byte_size + byte_offset, sizeof_data);
+        void edit_vram_instance(fan::opengl::context_t* context, uint32_t i, const void* data, uint32_t element_byte_size, uint32_t byte_offset, uint32_t sizeof_data) {
+          fan::opengl::core::edit_glbuffer(context, m_vbo, data, i * element_byte_size + byte_offset, sizeof_data);
         }
-        void edit_vram_buffer(uint32_t begin, uint32_t end) {
+        void edit_vram_buffer(fan::opengl::context_t* context, uint32_t begin, uint32_t end) {
           if (begin == end) {
             return;
           }
           if (end > m_buffer_size) {
-            this->write_vram_all();
+            this->write_vram_all(context);
           }
           else {
-            fan::opengl::core::edit_glbuffer(m_vbo, &m_buffer[begin], begin, end - begin);
+            fan::opengl::core::edit_glbuffer(context, m_vbo, &m_buffer[begin], begin, end - begin);
           }
         }
         // moves element from end to x - used for optimized earsing where draw order doesnt matter
-        void move_ram_buffer(uint32_t element_byte_size, uint32_t dst, uint32_t src) {
+        void move_ram_buffer(fan::opengl::context_t* context, uint32_t element_byte_size, uint32_t dst, uint32_t src) {
            #if fan_debug
             if (dst * element_byte_size + element_byte_size > m_buffer.size()) {
               fan::throw_error("invalid access");
@@ -416,7 +403,7 @@ namespace fan {
           std::memmove(&m_buffer[dst * element_byte_size], &m_buffer[src * element_byte_size], element_byte_size);
         }
 
-        void erase_instance(uint32_t i, uint32_t count, uint32_t element_byte_size, uint32_t vertex_count) {
+        void erase_instance(fan::opengl::context_t* context, uint32_t i, uint32_t count, uint32_t element_byte_size, uint32_t vertex_count) {
           #if fan_debug >= fan_debug_low
             if (i * element_byte_size > m_buffer.size()) {
               fan::throw_error("invalid access");
@@ -429,7 +416,7 @@ namespace fan {
 
           //m_buffer_size = m_buffer.capacity();
         }
-        void erase(uint32_t begin, uint32_t end) {
+        void erase(fan::opengl::context_t* context, uint32_t begin, uint32_t end) {
         #if fan_debug >= fan_debug_low
           if (begin > m_buffer.size()) {
             fan::throw_error("invalid access");
@@ -443,25 +430,25 @@ namespace fan {
           //m_buffer_size = m_buffer.capacity();
         }
 
-        void clear_ram() {
+        void clear_ram(fan::opengl::context_t* context) {
           m_buffer.clear();
         }
 
         template <typename T>
-        void print_ram_buffer(uint32_t i, uint32_t element_byte_size, uint32_t byte_offset) {
+        void print_ram_buffer(fan::opengl::context_t* context, uint32_t i, uint32_t element_byte_size, uint32_t byte_offset) {
           fan::print((T)m_buffer[i * element_byte_size + byte_offset]);
         }
 
         template <typename T>
-        void print_vram_buffer(uint32_t i, uint32_t size, uint32_t element_byte_size, uint32_t byte_offset) {
+        void print_vram_buffer(fan::opengl::context_t* context, uint32_t i, uint32_t size, uint32_t element_byte_size, uint32_t byte_offset) {
           T value;
 
-          this->bind();
+          this->bind(context);
           glGetBufferSubData(GL_ARRAY_BUFFER, i * element_byte_size + byte_offset, size, &value);
           fan::print(value);
         }
 
-        void confirm_buffer() {
+        void confirm_buffer(fan::opengl::context_t* context) {
 
           if (m_buffer.empty()) {
             return;
@@ -477,29 +464,12 @@ namespace fan {
           }
         }
 
-        void draw(fan::opengl::context_t* context, fan::shader_t shader, uint32_t begin, uint32_t end) {
-          m_vao.bind();
-          const fan::vec2 viewport_size = context->viewport_size;
+        void draw(fan::opengl::context_t* context, uint32_t begin, uint32_t end) {
 
-          fan::mat4 projection(1);
-		      projection = fan::math::ortho<fan::mat4>(
-            (f32_t)viewport_size.x * 0.5,
-            ((f32_t)viewport_size.x + (f32_t)viewport_size.x * 0.5), 
-            ((f32_t)viewport_size.y + (f32_t)viewport_size.y * 0.5), 
-            ((f32_t)viewport_size.y * 0.5), 
-            0.01,
-            1000.0
-          );
-
-		      fan::mat4 view(1);
-		      view = context->camera.get_view_matrix(view.translate(fan::vec3((f_t)viewport_size.x * 0.5, (f_t)viewport_size.y * 0.5, -700.0f)));
-
-		      shader.use();
-		      shader.set_projection(projection);
-		      shader.set_view(view);
-
+          m_vao.bind(context);
+          
           // possibly disable depth test here
-		      glDrawArrays(GL_TRIANGLES, begin, end - begin);
+          context->opengl.glDrawArrays(GL_TRIANGLES, begin, end - begin);
         }
 
         uint32_t m_vbo;
@@ -517,17 +487,17 @@ namespace fan {
 
 inline void fan::opengl::core::queue_helper_t::open() {
 
-	m_edit_index = fan::uninitialized;
+  m_edit_index = fan::uninitialized;
 
-	m_min_edit = fan::uninitialized;
-	m_max_edit = 0;
+  m_min_edit = fan::uninitialized;
+  m_max_edit = 0;
 }
 
 inline void fan::opengl::core::queue_helper_t::close(fan::opengl::context_t* context) {
-	if (is_queued()) {
-		context->m_write_queue.erase(m_edit_index);
-		reset_edit();
-	}
+  if (is_queued()) {
+    context->m_write_queue.erase(m_edit_index);
+    reset_edit();
+  }
 }
 
 inline bool fan::opengl::core::queue_helper_t::is_queued() const {
@@ -536,10 +506,12 @@ inline bool fan::opengl::core::queue_helper_t::is_queued() const {
 
 inline void fan::opengl::core::queue_helper_t::edit(fan::opengl::context_t* context, uint32_t begin, uint32_t end, glsl_buffer_t* buffer) {
 
-	m_min_edit = std::min(m_min_edit, begin);
-	m_max_edit = std::max(m_max_edit, end);
+  m_min_edit = std::min(m_min_edit, begin);
+  m_max_edit = std::max(m_max_edit, end);
 
-	if (is_queued()) {
+  buffer->edit_vram_buffer(context, begin, end);
+
+  if (is_queued()) {
     return;
   }
 
@@ -555,36 +527,22 @@ inline void fan::opengl::core::queue_helper_t::edit(fan::opengl::context_t* cont
 inline void fan::opengl::core::queue_helper_t::on_edit(fan::opengl::context_t* context) {
   context->m_write_queue.erase(m_edit_index);
 
-	m_min_edit = fan::uninitialized;
-	m_max_edit = 0;
+  m_min_edit = fan::uninitialized;
+  m_max_edit = 0;
 
-	m_edit_index = fan::uninitialized;
+  m_edit_index = fan::uninitialized;
 }
 
 inline void fan::opengl::core::queue_helper_t::reset_edit() {
-	m_min_edit = fan::uninitialized;
-	m_max_edit = 0;
+  m_min_edit = fan::uninitialized;
+  m_max_edit = 0;
 
-	m_edit_index = fan::uninitialized;
+  m_edit_index = fan::uninitialized;
 }
 
 inline void fan::opengl::context_t::init() {
-
-  #if fan_debug >= fan_debug_medium
-    std::memset(m_init, 0, sizeof(m_init));
-    m_init[0] = 1;
-  #endif
-
-  auto f = &get_proc_address;
-
-  auto x = gladLoadGL((GLADloadfunc)f);
-
-	if (!x) {
-		fan::throw_error("failed to initialize glad");
-	}
-
-  glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  
+  opengl.open();
 
   #if fan_debug >= fan_debug_high
     context_t::set_error_callback();
@@ -593,97 +551,137 @@ inline void fan::opengl::context_t::init() {
   m_flags = 0;
 }
 
-inline void fan::opengl::context_t::bind_to_window(fan::window_t* window) {
+inline void fan::opengl::context_t::bind_to_window(fan::window_t* window, const properties_t& p) {
 
-  #if fan_debug >= fan_debug_medium
-    m_init[1] = 1;
+  #if defined(fan_platform_windows)
+
+    window->m_hdc = GetDC(window->m_window);
+
+    int pixel_format_attribs[19] = {
+        WGL_DRAW_TO_WINDOW_ARB, fan::opengl::GL_TRUE,
+        WGL_SUPPORT_OPENGL_ARB, fan::opengl::GL_TRUE,
+        WGL_DOUBLE_BUFFER_ARB, fan::opengl::GL_TRUE,
+        WGL_PIXEL_TYPE_ARB, WGL_TYPE_RGBA_ARB,
+        WGL_COLOR_BITS_ARB, 32,
+        WGL_DEPTH_BITS_ARB, 24,
+        WGL_STENCIL_BITS_ARB, 8,
+        WGL_SAMPLE_BUFFERS_ARB, true, // Number of buffers (must be 1 at time of writing)
+        WGL_SAMPLES_ARB, p.samples,        // Number of samples
+        0
+    };
+    if (!p.samples) {
+        // set back to zero to disable antialising
+        for (int i = 0; i < 4; i++) {
+            pixel_format_attribs[14 + i] = 0;
+        }
+    }
+    int pixel_format;
+    UINT num_formats;
+
+    opengl.internal.wglChoosePixelFormatARB(window->m_hdc, pixel_format_attribs, 0, 1, &pixel_format, &num_formats);
+    if (!num_formats) {
+        fan::throw_error("failed to choose pixel format:" + std::to_string(GetLastError()));
+    }
+
+    PIXELFORMATDESCRIPTOR pfd;
+    memset(&pfd, 0, sizeof(pfd));
+    if (!DescribePixelFormat(window->m_hdc, pixel_format, sizeof(pfd), &pfd)) {
+      fan::throw_error("failed to describe pixel format:" + std::to_string(GetLastError()));
+    }
+    if (!SetPixelFormat(window->m_hdc, pixel_format, &pfd)) {
+        fan::throw_error("failed to set pixel format:" + std::to_string(GetLastError()));
+    }
+
+    const int gl_attributes[] = {
+        WGL_CONTEXT_MINOR_VERSION_ARB, p.minor,
+        WGL_CONTEXT_MAJOR_VERSION_ARB, p.major,
+        WGL_CONTEXT_PROFILE_MASK_ARB,  WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
+        0,
+    };
+
+    if (!window->m_context) {
+    
+        if (p.major < 3) {
+            window->m_context = wglCreateContext(window->m_hdc);
+        }
+        else {
+            window->m_context = opengl.internal.wglCreateContextAttribsARB(window->m_hdc, 0, gl_attributes);
+        }
+
+        if (!window->m_context) {
+            fan::print("failed to create context");
+            exit(1);
+        }
+    }
+
+    if (!wglMakeCurrent(window->m_hdc, window->m_context)) {
+        fan::print("failed to make current");
+        exit(1);
+    }
+
+  if (wglGetCurrentContext() != window->m_context) {
+    wglMakeCurrent(window->m_hdc, window->m_context);
+  }
+
+  #elif defined(fan_platform_unix)
+
+  if (opengl.internal.glXGetCurrentContext() != window->m_context) {
+    opengl.internal.glXMakeCurrent(fan::sys::m_display, window->m_window, window->m_context);
+  }
+
   #endif
 
-	#if defined(fan_platform_windows)
-
-	if (wglGetCurrentContext() != window->m_context) {
-		wglMakeCurrent(window->m_hdc, window->m_context);
-	}
-
-	#elif defined(fan_platform_unix)
-
-	if (glXGetCurrentContext() != window->m_context) {
-		glXMakeCurrent(fan::sys::m_display, window->m_window, window->m_context);
-	}
-
-	#endif
-
-  window->set_vsync(true);
+  opengl.glEnable(GL_BLEND);
+  opengl.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 inline void fan::opengl::context_t::set_viewport(const fan::vec2& viewport_position, const fan::vec2& viewport_size_) {
-  #if fan_debug >= fan_debug_medium
-    m_init[2] = 1;
-  #endif
-	glViewport(viewport_position.x, viewport_position.y, viewport_size_.x, viewport_size_.y);
-	viewport_size = viewport_size_;
+  opengl.glViewport(viewport_position.x, viewport_position.y, viewport_size_.x, viewport_size_.y);
+  viewport_size = viewport_size_;
 }
 
 inline void fan::opengl::context_t::process() {
-	#if fan_renderer == fan_renderer_opengl
+  #if fan_renderer == fan_renderer_opengl
 
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    opengl.glClear(fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
 
-	#endif
-
-  #if fan_debug >= fan_debug_medium
-    for (int j = 0; j < 3; j++) {
-      if (!m_init[j]) {
-        switch(j) {
-          case 0: {
-            fan::throw_error("fan::opengl::context_t not initialized with fan::opengl::context_t::init()");
-          }
-          case 1: {
-            fan::print_warning("possible missing bind for context_t - for binding context to window use fan::opengl::context_t::bind_to_window()");
-          }
-          case 2: {
-            fan::print_warning("possibly not set view port - to set viewport for context use fan::opengl::context_t::set_viewport()");
-          }
-        }
-      }
-    }
   #endif
 
-	uint32_t it = m_write_queue.begin();
+  uint32_t it = m_write_queue.begin();
 
-	while (it != m_write_queue.end()) {
+  while (it != m_write_queue.end()) {
 
-		m_write_queue.start_safe_next(it);
+    m_write_queue.start_safe_next(it);
     
     if (m_write_queue[it].glsl_buffer->m_buffer.capacity() > m_write_queue[it].glsl_buffer->m_buffer_size) {
-      m_write_queue[it].glsl_buffer->write_vram_all();
+      m_write_queue[it].glsl_buffer->write_vram_all(this);
     }
     else {
-      m_write_queue[it].glsl_buffer->edit_vram_buffer(m_write_queue[it].queue_helper->m_min_edit, m_write_queue[it].queue_helper->m_max_edit);
+      m_write_queue[it].glsl_buffer->edit_vram_buffer(this, m_write_queue[it].queue_helper->m_min_edit, m_write_queue[it].queue_helper->m_max_edit);
     }
     m_write_queue[it].queue_helper->on_edit(this);
 
-		it = m_write_queue.end_safe_next();
-	}
+    it = m_write_queue.end_safe_next();
+  }
 
-	m_write_queue.clear();
-	m_write_queue.open();
+  m_write_queue.clear();
+  m_write_queue.open();
 
-	it = m_draw_queue.begin();
+  it = m_draw_queue.begin();
 
-	while (it != m_draw_queue.end()) {
-		m_draw_queue.start_safe_next(it);
-		m_draw_queue[it].draw_cb(this, m_draw_queue[it].data);
-		it = m_draw_queue.end_safe_next();
-	}
+  while (it != m_draw_queue.end()) {
+    m_draw_queue.start_safe_next(it);
+    m_draw_queue[it].draw_cb(this, m_draw_queue[it].data);
+    it = m_draw_queue.end_safe_next();
+  }
 }
 
 inline void fan::opengl::context_t::render(fan::window_t* window) {
-	#ifdef fan_platform_windows
-		SwapBuffers(window->m_hdc);
-	#elif defined(fan_platform_unix)
-		glXSwapBuffers(fan::sys::m_display, window->m_window);
-	#endif
+  #ifdef fan_platform_windows
+    SwapBuffers(window->m_hdc);
+  #elif defined(fan_platform_unix)
+    opengl.internal.glXSwapBuffers(fan::sys::m_display, window->m_window);
+  #endif
 }
 
 inline uint32_t fan::opengl::context_t::enable_draw(void * data, draw_cb_t cb)
@@ -701,14 +699,14 @@ inline void fan::opengl::context_t::set_depth_test(bool flag)
   switch (flag) {
   case false: {
     if (m_flags & fan::opengl::render_flags::depth_test) {
-      glDisable(GL_DEPTH_TEST);
+      opengl.glDisable(fan::opengl::GL_DEPTH_TEST);
       m_flags &= ~fan::opengl::render_flags::depth_test;
     }
     break;
   }
   default: {
     if (!(m_flags & fan::opengl::render_flags::depth_test)) {
-      glEnable(GL_DEPTH_TEST);
+      opengl.glEnable(fan::opengl::GL_DEPTH_TEST);
       m_flags |= fan::opengl::render_flags::depth_test;
     }
   }
@@ -717,4 +715,23 @@ inline void fan::opengl::context_t::set_depth_test(bool flag)
   
 }
 
-#endif
+inline void fan::opengl::context_t::set_vsync(fan::window_t* window, bool flag)
+{
+  #if defined(fan_platform_windows)
+
+      wglMakeCurrent(window->m_hdc, window->m_context);
+
+  #elif defined(fan_platform_unix)
+
+      opengl.internal.glXMakeCurrent(fan::sys::m_display, window->m_window, window->m_context);
+
+  #endif
+
+  #ifdef fan_platform_windows
+
+      opengl.internal.wglSwapIntervalEXT(flag);
+
+  #elif defined(fan_platform_unix)
+      opengl.internal.glXSwapIntervalEXT(fan::sys::m_display, opengl.internal.glXGetCurrentDrawable(), flag);
+  #endif
+}

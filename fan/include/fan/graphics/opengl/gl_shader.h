@@ -13,6 +13,8 @@
 
 #include <fan/graphics/shared_core.h>
 
+#include <fan/graphics/opengl/gl_core.h>
+
 namespace fan {
   struct shader_t {
 
@@ -20,7 +22,7 @@ namespace fan {
 
     shader_t() = default;
 
-    void open() {
+    void open(fan::opengl::context_t* context) {
       id = fan::uninitialized;
 
       vertex = fan::uninitialized;
@@ -28,312 +30,312 @@ namespace fan {
       geometry = fan::uninitialized;
     }
 
-    void close() {
-      this->remove();
+    void close(fan::opengl::context_t* context) {
+      this->remove(context);
     }
 
-    void use() const
+    void use(fan::opengl::context_t* context) const
     {
-      glUseProgram(id);
+      context->opengl.glUseProgram(id);
     }
 
-    void remove() {
+    void remove(fan::opengl::context_t* context) {
       fan_validate_buffer(id, {
-        glValidateProgram(id);
+        context->opengl.glValidateProgram(id);
       int status = 0;
-      glGetProgramiv(id, GL_VALIDATE_STATUS, &status);
+      context->opengl.glGetProgramiv(id, fan::opengl::GL_VALIDATE_STATUS, &status);
       if (status) {
-        glDeleteProgram(id);
+        context->opengl.glDeleteProgram(id);
       }
       id = fan::uninitialized;
         });
     }
 
-    void set_vertex(const std::string& vertex_code) {
+    void set_vertex(fan::opengl::context_t* context, const std::string& vertex_code) {
 
       if (vertex != fan::uninitialized) {
-        glDeleteShader(vertex);
+        context->opengl.glDeleteShader(vertex);
       }
 
-      vertex = glCreateShader(GL_VERTEX_SHADER);
+      vertex = context->opengl.glCreateShader(fan::opengl::GL_VERTEX_SHADER);
 
       char* ptr = (char*)vertex_code.c_str();
 
-      glShaderSource(vertex, 1, &ptr, NULL);
+      context->opengl.glShaderSource(vertex, 1, &ptr, NULL);
 
-      glCompileShader(vertex);
+      context->opengl.glCompileShader(vertex);
 
-      checkCompileErrors(vertex, "VERTEX");
+      checkCompileErrors(context, vertex, "VERTEX");
     }
 
-    void set_fragment(const std::string& fragment_code) {
+    void set_fragment(fan::opengl::context_t* context, const std::string& fragment_code) {
 
       if (fragment != -1) {
-        glDeleteShader(fragment);
+        context->opengl.glDeleteShader(fragment);
       }
 
-      fragment = glCreateShader(GL_FRAGMENT_SHADER);
+      fragment = context->opengl.glCreateShader(fan::opengl::GL_FRAGMENT_SHADER);
 
       char* ptr = (char*)fragment_code.c_str();
 
-      glShaderSource(fragment, 1, &ptr, NULL);
+      context->opengl.glShaderSource(fragment, 1, &ptr, NULL);
 
-      glCompileShader(fragment);
-      checkCompileErrors(fragment, "FRAGMENT");
+      context->opengl.glCompileShader(fragment);
+      checkCompileErrors(context, fragment, "FRAGMENT");
     }
 
-    void set_geometry(const std::string& geometry_code) {
+    void set_geometry(fan::opengl::context_t* context, const std::string& geometry_code) {
       if (geometry != -1) {
-        glDeleteShader(geometry);
+        context->opengl.glDeleteShader(geometry);
       }
 
-      geometry = glCreateShader(GL_GEOMETRY_SHADER);
+      geometry = context->opengl.glCreateShader(fan::opengl::GL_GEOMETRY_SHADER);
 
       char* ptr = (char*)geometry_code.c_str();
-      glShaderSource(geometry, 1, &ptr, NULL);
+      context->opengl.glShaderSource(geometry, 1, &ptr, NULL);
 
-      glCompileShader(geometry);
-      checkCompileErrors(geometry, "GEOMETRY");
+      context->opengl.glCompileShader(geometry);
+      checkCompileErrors(context, geometry, "GEOMETRY");
     }
 
-    void compile() {
+    void compile(fan::opengl::context_t* context) {
       if (id != -1) {
-        glDeleteProgram(id);
+        context->opengl.glDeleteProgram(id);
       }
 
-      id = glCreateProgram();
+      id = context->opengl.glCreateProgram();
       if (vertex != -1) {
-        glAttachShader(id, vertex);
+        context->opengl.glAttachShader(id, vertex);
       }
       if (fragment != -1) {
-        glAttachShader(id, fragment);
+        context->opengl.glAttachShader(id, fragment);
       }
       if (geometry != -1) {
-        glAttachShader(id, geometry);
+        context->opengl.glAttachShader(id, geometry);
       }
 
-      glLinkProgram(id);
-      checkCompileErrors(id, "PROGRAM");
+      context->opengl.glLinkProgram(id);
+      checkCompileErrors(context, id, "PROGRAM");
 
       if (vertex != -1) {
-        glDeleteShader(vertex);
+        context->opengl.glDeleteShader(vertex);
         vertex = -1;
       }
       if (fragment != -1) {
-        glDeleteShader(fragment);
+        context->opengl.glDeleteShader(fragment);
         fragment = -1;
       }
       if (geometry != -1) {
-        glDeleteShader(geometry);
+        context->opengl.glDeleteShader(geometry);
         geometry = -1;
       }
 
-      projection_view[0] = glGetUniformLocation(id, "projection");
-      projection_view[1] = glGetUniformLocation(id, "view");
+      projection_view[0] = context->opengl.glGetUniformLocation(id, "projection");
+      projection_view[1] = context->opengl.glGetUniformLocation(id, "view");
     }
 
-    void enable_draw(fan_2d::opengl::shape shape, uint32_t first, uint32_t count) {
+    void enable_draw(fan::opengl::context_t* context, fan_2d::opengl::shape shape, uint32_t first, uint32_t count) {
       uint32_t mode = 0;
 
       switch (shape) {
       case fan_2d::opengl::shape::line: {
-        mode = GL_LINES;
+        mode = fan::opengl::GL_LINES;
         break;
       }
       case fan_2d::opengl::shape::line_strip: {
-        mode = GL_LINE_STRIP;
+        mode = fan::opengl::GL_LINE_STRIP;
         break;
       }
       case fan_2d::opengl::shape::triangle: {
-        mode = GL_TRIANGLES;
+        mode = fan::opengl::GL_TRIANGLES;
         break;
       }
       case fan_2d::opengl::shape::triangle_strip: {
-        mode = GL_TRIANGLE_STRIP;
+        mode = fan::opengl::GL_TRIANGLE_STRIP;
         break;
       }
       case fan_2d::opengl::shape::triangle_fan: {
-        mode = GL_TRIANGLE_FAN;
+        mode = fan::opengl::GL_TRIANGLE_FAN;
         break;
       }
       default: {
-        mode = GL_TRIANGLES;
+        mode = fan::opengl::GL_TRIANGLES;
         fan::print("fan warning - unset input assembly topology in graphics pipeline");
         break;
       }
       }
 
-      glDrawArrays(mode, first, count);
+      context->opengl.glDrawArrays(mode, first, count);
     }
 
     static constexpr auto validate_error_message = [](const auto str) {
       return "failed to set value for:" + str + " check if variable is used in file so that its not optimized away";
     };
 
-    void set_bool(const std::string& name, bool value) const {
-      auto location = glGetUniformLocation(id, name.c_str());
+    void set_bool(fan::opengl::context_t* context, const std::string& name, bool value) const {
+      auto location = context->opengl.glGetUniformLocation(id, name.c_str());
 
       #if fan_debug >= fan_debug_low
       fan_validate_value(location, validate_error_message(name));
       #endif
 
-      glUniform1i(location, value);
+      context->opengl.glUniform1i(location, value);
     }
 
-    void set_int(const std::string& name, int value) const
+    void set_int(fan::opengl::context_t* context, const std::string& name, int value) const
     {
-      auto location = glGetUniformLocation(id, name.c_str());
+      auto location = context->opengl.glGetUniformLocation(id, name.c_str());
     #if fan_debug >= fan_debug_low
       fan_validate_value(location, validate_error_message(name));
     #endif
-      glUniform1i(location, value);
+      context->opengl.glUniform1i(location, value);
     }
 
-    void set_uint(const std::string& name, uint32_t value) const {
-       auto location = glGetUniformLocation(id, name.c_str());
+    void set_uint(fan::opengl::context_t* context, const std::string& name, uint32_t value) const {
+       auto location = context->opengl.glGetUniformLocation(id, name.c_str());
     #if fan_debug >= fan_debug_low
       fan_validate_value(location, validate_error_message(name));
     #endif
-      glUniform1ui(location, value);
+      context->opengl.glUniform1ui(location, value);
     }
 
-    void set_int_array(const std::string& name, int* values, int size) const {
-      auto location = glGetUniformLocation(id, name.c_str());
+    void set_int_array(fan::opengl::context_t* context, const std::string& name, int* values, int size) const {
+      auto location = context->opengl.glGetUniformLocation(id, name.c_str());
 
       fan_validate_value(location, validate_error_message(name));
 
-      glUniform1iv(location, size, values);
+      context->opengl.glUniform1iv(location, size, values);
     }
 
-    void set_float(const std::string& name, fan::vec2::value_type value) const
+    void set_float(fan::opengl::context_t* context, const std::string& name, fan::vec2::value_type value) const
     {
-      auto location = glGetUniformLocation(id, name.c_str());
+      auto location = context->opengl.glGetUniformLocation(id, name.c_str());
       #if fan_debug >= fan_debug_low
         fan_validate_value(location, validate_error_message(name));
       #endif
 
       if constexpr (std::is_same<fan::vec2::value_type, f32_t>::value) {
-        glUniform1f(location, value);
+        context->opengl.glUniform1f(location, value);
       }
       else {
-        glUniform1d(location, value);
+        context->opengl.glUniform1d(location, value);
       }
     }
 
-    void set_vec2(const std::string& name, const fan::vec2& value) const
+    void set_vec2(fan::opengl::context_t* context, const std::string& name, const fan::vec2& value) const
     {
-      auto location = glGetUniformLocation(id, name.c_str());
+      auto location = context->opengl.glGetUniformLocation(id, name.c_str());
 
       #if fan_debug >= fan_debug_low
         fan_validate_value(location, validate_error_message(name));
       #endif
 
       if constexpr (std::is_same<fan::vec2::value_type, f32_t>::value) {
-        glUniform2fv(location, 1, (f32_t*)&value.x);
+        context->opengl.glUniform2fv(location, 1, (f32_t*)&value.x);
       }
       else {
-        glUniform2dv(location, 1, (f64_t*)&value.x);
+        context->opengl.glUniform2dv(location, 1, (f64_t*)&value.x);
       }
     }
 
-    void set_vec2(const std::string& name, f32_t x, f32_t y) const
+    void set_vec2(fan::opengl::context_t* context, const std::string& name, f32_t x, f32_t y) const
     {
-      auto location = glGetUniformLocation(id, name.c_str());
+      auto location = context->opengl.glGetUniformLocation(id, name.c_str());
 
       #if fan_debug >= fan_debug_low
       fan_validate_value(location, validate_error_message(name));
       #endif
 
       if constexpr (std::is_same<fan::vec2::value_type, f32_t>::value) {
-        glUniform2f(location, x, y);
+        context->opengl.glUniform2f(location, x, y);
       }
       else {
-        glUniform2d(location, x, y);
+        context->opengl.glUniform2d(location, x, y);
       }
     }
 
-    void set_vec3(const std::string& name, const fan::vec3& value) const
+    void set_vec3(fan::opengl::context_t* context, const std::string& name, const fan::vec3& value) const
     {
-      auto location = glGetUniformLocation(id, name.c_str());
+      auto location = context->opengl.glGetUniformLocation(id, name.c_str());
 
       #if fan_debug >= fan_debug_low
       fan_validate_value(location, validate_error_message(name));
       #endif
 
       if constexpr (std::is_same<fan::vec3::value_type, float>::value) {
-        glUniform3f(location, value.x, value.y, value.z);
+        context->opengl.glUniform3f(location, value.x, value.y, value.z);
       }
       else {
-        glUniform3d(location, value.x, value.y, value.z);
+        context->opengl.glUniform3d(location, value.x, value.y, value.z);
       }
     }
 
-    void set_vec4(const std::string& name, const fan::color& color) const
+    void set_vec4(fan::opengl::context_t* context, const std::string& name, const fan::color& color) const
     {
-      auto location = glGetUniformLocation(id, name.c_str());
+      auto location = context->opengl.glGetUniformLocation(id, name.c_str());
 
       #if fan_debug >= fan_debug_low
       fan_validate_value(location, validate_error_message(name));
       #endif
 
       if constexpr (std::is_same<fan::vec4::value_type, float>::value) {
-        glUniform4f(location, color.r, color.g, color.b, color.a);
+        context->opengl.glUniform4f(location, color.r, color.g, color.b, color.a);
       }
       else {
-        glUniform4d(location, color.r, color.g, color.b, color.a);
+        context->opengl.glUniform4d(location, color.r, color.g, color.b, color.a);
       }
     }
 
-    void set_vec4(const std::string& name, f32_t x, f32_t y, f32_t z, f32_t w) const
+    void set_vec4(fan::opengl::context_t* context, const std::string& name, f32_t x, f32_t y, f32_t z, f32_t w) const
     {
-      auto location = glGetUniformLocation(id, name.c_str());
+      auto location = context->opengl.glGetUniformLocation(id, name.c_str());
 
       #if fan_debug >= fan_debug_low
       fan_validate_value(location, validate_error_message(name));
       #endif
 
       if constexpr (std::is_same<fan::vec4::value_type, float>::value) {
-        glUniform4f(location, x, y, z, w);
+        context->opengl.glUniform4f(location, x, y, z, w);
       }
       else {
-        glUniform4d(location, x, y, z, w);
+        context->opengl.glUniform4d(location, x, y, z, w);
       }
     }
 
-    void set_projection(fan::mat4 mat) {
-      glUniformMatrix4fv(projection_view[0], 1, GL_FALSE, (f32_t*)&mat[0][0]);
+    void set_projection(fan::opengl::context_t* context, fan::mat4 mat) {
+      context->opengl.glUniformMatrix4fv(projection_view[0], 1, fan::opengl::GL_FALSE, (f32_t*)&mat[0][0]);
     }
-    void set_view(fan::mat4 mat) {
-      glUniformMatrix4fv(projection_view[1], 1, GL_FALSE, (f32_t*)&mat[0][0]);
+    void set_view(fan::opengl::context_t* context, fan::mat4 mat) {
+      context->opengl.glUniformMatrix4fv(projection_view[1], 1, fan::opengl::GL_FALSE, (f32_t*)&mat[0][0]);
     }
 
-    void set_mat4(const std::string& name, fan::mat4 mat) const {
+    void set_mat4(fan::opengl::context_t* context, const std::string& name, fan::mat4 mat) const {
 
-      auto location = glGetUniformLocation(id, name.c_str());
+      auto location = context->opengl.glGetUniformLocation(id, name.c_str());
 
     #if fan_debug >= fan_debug_low
       fan_validate_value(location, validate_error_message(name));
     #endif
       if constexpr (std::is_same<fan::mat4::value_type::value_type, float>::value) {
-        glUniformMatrix4fv(location, 1, GL_FALSE, (f32_t*)&mat[0][0]);
+        context->opengl.glUniformMatrix4fv(location, 1, fan::opengl::GL_FALSE, (f32_t*)&mat[0][0]);
       }
       else {
-        glUniformMatrix4dv(location, 1, GL_FALSE, (f64_t*)&mat[0][0]);
+        context->opengl.glUniformMatrix4dv(location, 1, fan::opengl::GL_FALSE, (f64_t*)&mat[0][0]);
       }
 
     }
 
-    void set_mat4(const std::string& name, f32_t* value, uint32_t count) const {
+    void set_mat4(fan::opengl::context_t* context, const std::string& name, f32_t* value, uint32_t count) const {
 
-      auto location = glGetUniformLocation(id, name.c_str());
+      auto location = context->opengl.glGetUniformLocation(id, name.c_str());
 
       fan_validate_value(location, validate_error_message(name));
 
       if constexpr (std::is_same<fan::mat4::value_type::value_type, float>::value) {
-        glUniformMatrix4fv(location, count, GL_FALSE, value);
+        context->opengl.glUniformMatrix4fv(location, count, fan::opengl::GL_FALSE, value);
       }
       else {
-        glUniformMatrix4dv(location, count, GL_FALSE, (f64_t*)value);
+        context->opengl.glUniformMatrix4dv(location, count, fan::opengl::GL_FALSE, (f64_t*)value);
       }
     }
 
@@ -343,17 +345,17 @@ namespace fan {
 
   private:
 
-    void checkCompileErrors(GLuint shader, std::string type)
+    void checkCompileErrors(fan::opengl::context_t* context, fan::opengl::GLuint shader, std::string type)
     {
-      GLint success;
+      fan::opengl::GLint success;
 
       bool program = type == "PROGRAM";
 
       if (program == false) {
-        glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+        context->opengl.glGetShaderiv(shader, fan::opengl::GL_COMPILE_STATUS, &success);
       }
       else {
-        glGetProgramiv(shader, GL_LINK_STATUS, &success);
+        context->opengl.glGetProgramiv(shader, fan::opengl::GL_LINK_STATUS, &success);
       }
 
       if (success) {
@@ -361,7 +363,7 @@ namespace fan {
       }
 
       int buffer_size = 0;
-      glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &buffer_size);
+      context->opengl.glGetShaderiv(shader, fan::opengl::GL_INFO_LOG_LENGTH, &buffer_size);
 
 
       if (buffer_size <= 0) {
@@ -376,9 +378,9 @@ namespace fan {
 
       #define get_info_log(is_program, program, str_buffer, size) \
                 if (is_program) \
-                glGetProgramInfoLog(program, size, nullptr, buffer.data()); \
+                context->opengl.glGetProgramInfoLog(program, size, nullptr, buffer.data()); \
                 else \
-                glGetShaderInfoLog(program, size, nullptr, buffer.data());
+                context->opengl.glGetShaderInfoLog(program, size, nullptr, buffer.data());
 
         get_info_log(program, shader, buffer, buffer_size);
 

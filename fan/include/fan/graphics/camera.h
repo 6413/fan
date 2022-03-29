@@ -5,60 +5,118 @@
 
 namespace fan {
 
-	class camera {
-	public:
+  class camera {
+  public:
 
-		camera();
+    camera() : m_yaw(0), m_pitch(0) {
+      this->update_view();
+    }
 
-		//void rotate_camera(bool when);
+    //void rotate_camera(bool when);
 
-		fan::mat4 get_view_matrix() const;
-		fan::mat4 get_view_matrix(const fan::mat4& m) const;
+    fan::mat4 get_view_matrix() const {
+      return fan::math::look_at_left<fan::mat4>(this->m_position, m_position + m_front, this->m_up);
+    }
 
-		fan::vec3 get_position() const;
-		void set_position(const fan::vec3& position);
+    fan::mat4 get_view_matrix(const fan::mat4& m) const {
+      return m * fan::math::look_at_left<fan::mat4>(this->m_position, this->m_position + m_front, this->world_up);
+    }
 
-		fan::vec3 get_front() const;
-		void set_front(const fan::vec3 front);
+    fan::vec3 get_position() const {
+      return this->m_position;
+    }
+    void set_position(const fan::vec3& position) {
+      this->m_position = position;
+    }
 
-		fan::vec3 get_right() const;
-		void set_right(const fan::vec3 right);
+    fan::vec3 get_front() const {
+      return this->m_front;
+    }
 
-		fan::vec3 get_velocity() const;
-		void set_velocity(const fan::vec3& velocity);
+    void set_front(const fan::vec3 front) {
+      this->m_front = front;
+    }
 
-		f_t get_yaw() const;
-		void set_yaw(f_t angle);
 
-		f_t get_pitch() const;
-		void set_pitch(f_t angle);
+    fan::vec3 get_right() const {
+      return m_right;
+    }
 
-		bool first_movement = true;
+    void set_right(const fan::vec3 right) {
+      m_right = right;
+    }
 
-		void update_view();
+    fan::vec3 get_velocity() const {
+      return fan::camera::m_velocity;
+    }
 
-		void rotate_camera(fan::vec2 offset);
+    void set_velocity(const fan::vec3& velocity) {
+      fan::camera::m_velocity = velocity;
+    }
 
-		static constexpr f_t sensitivity = 0.1;
+    f32_t get_yaw() const {
+      return this->m_yaw;
+    }
+    void set_yaw(f32_t angle) {
+      this->m_yaw = angle;
+      if (m_yaw > fan::camera::max_yaw) {
+        m_yaw = -fan::camera::max_yaw;
+      }
+      if (m_yaw < -fan::camera::max_yaw) {
+        m_yaw = fan::camera::max_yaw;
+      }
+    }
 
-		static constexpr f_t max_yaw = 180;
-		static constexpr f_t max_pitch = 89;
+    f32_t get_pitch() const {
+      return this->m_pitch;
+    }
+    void set_pitch(f32_t angle) {
+      this->m_pitch = angle;
+      if (this->m_pitch > fan::camera::max_pitch) {
+        this->m_pitch = fan::camera::max_pitch;
+      }
+      if (this->m_pitch < -fan::camera::max_pitch) {
+        this->m_pitch = -fan::camera::max_pitch;
+      }
+    }
 
-		static constexpr f_t gravity = 500;
-		static constexpr f_t jump_force = 100;
+    bool first_movement = true;
 
-		static constexpr fan::vec3 world_up = fan::vec3(0, 1, 0);
+    void update_view() {
+      this->m_front = fan_3d::math::normalize(fan::math::direction_vector<fan::vec3>(this->m_yaw, this->m_pitch));
+      this->m_right = fan_3d::math::normalize(fan::math::cross(this->world_up, this->m_front));
+      this->m_up = fan_3d::math::normalize(fan::math::cross(this->m_front, this->m_right));
+    }
 
-	protected:
+    void rotate_camera(fan::vec2 offset) {
+      offset *= sensitivity;
 
-		fan::vec3 m_position;
-		fan::vec3 m_front;
+      this->set_yaw(this->get_yaw() + offset.x);
+      this->set_pitch(this->get_pitch() + offset.y);
 
-		f32_t m_yaw;
-		f32_t m_pitch;
-		fan::vec3 m_right;
-		fan::vec3 m_up;
-		fan::vec3 m_velocity;
+      this->update_view();
+    }
 
-	};
+    static constexpr f32_t sensitivity = 0.1;
+
+    static constexpr f32_t max_yaw = 180;
+    static constexpr f32_t max_pitch = 89;
+
+    static constexpr f32_t gravity = 500;
+    static constexpr f32_t jump_force = 100;
+
+    static constexpr fan::vec3 world_up = fan::vec3(0, 1, 0);
+
+  protected:
+
+    fan::vec3 m_position;
+    fan::vec3 m_front;
+
+    f32_t m_yaw;
+    f32_t m_pitch;
+    fan::vec3 m_right;
+    fan::vec3 m_up;
+    fan::vec3 m_velocity;
+
+  };
 }
