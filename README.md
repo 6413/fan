@@ -1,27 +1,31 @@
 # fan
-2D/3D stuff using C++ OpenGL/Vulkan
 
-Installation and compilation:
+**Example code:**
 
-### Windows
+// Code creates window and context with it
+#include <fan/graphics/graphics.h>
 
-Compiled using Visual Studio 2019 (project file is in the directory)
+int main() {
 
-### Ubuntu/Debian
-```
-sudo apt install libglew-dev -y &&
-sudo apt install libassimp-dev -y &&
-sudo apt install libfreetype6-dev -y && 
-sudo apt install libopenal-dev -y &&
-sudo apt install libvulkan-dev -y &&
-make
-```
+  fan::window_t w;
+  w.open();
 
-### Arch linux
-```
-sudo pacman -S assimp -y &&
-sudo pacman -S openal -y &&
-sudo pacman -S box2d -y &&
-sudo pacman -S vulkan-utils -y &&
-make
-```
+  fan::opengl::context_t c;
+  c.init();
+  c.bind_to_window(&w);
+  c.set_viewport(0, w.get_size());
+
+  while(1) {
+
+    uint32_t window_event = w.handle_events();
+    if(window_event & fan::window_t::events::close){
+      w.close();
+      break;
+    }
+
+    c.process();
+    c.render(&w);
+  }
+
+  return 0;
+}
