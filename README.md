@@ -1,8 +1,9 @@
 # fan
 
 **Example code:**
+```
+// Creates window and opengl context
 
-// Code creates window and context with it
 #include <fan/graphics/graphics.h>
 
 int main() {
@@ -29,3 +30,4 @@ int main() {
 
   return 0;
 }
+```
