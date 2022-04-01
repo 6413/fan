@@ -667,13 +667,13 @@ namespace fan_2d {
 					fan::mat4 view(1);
 					view = context->camera.get_view_matrix(view.translate(fan::vec3((f_t)viewport_size.x * 0.5, (f_t)viewport_size.y * 0.5, -700.0f)));
 
-					uint32_t begin_ = get_index(begin);
+					uint32_t begin_ = get_index(begin) * vertex_count;
 					uint32_t end_;
 					if (end == fan::uninitialized) {
 						end_ = letter_vertex_size() * vertex_count;
 					}
 					else {
-						end_ = get_index(end);
+						end_ = get_index(end) * vertex_count;
 					}
 
 					m_shader.use(context);

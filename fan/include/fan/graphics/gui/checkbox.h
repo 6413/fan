@@ -20,7 +20,7 @@ namespace fan_2d {
 
       struct checkbox_t {
 
-        typedef void(*checkbox_action_cb)(checkbox_t*, fan::window_t*, uint32_t i);
+        typedef void(*checkbox_action_cb)(checkbox_t*, fan::window_t*, uint32_t i, void* userptr);
 
         struct properties_t {
           fan::utf16_string text;
@@ -49,6 +49,7 @@ namespace fan_2d {
           rp.size = 0;
           rp.color = p.background_color;
           m_background.push_back(context, rp);
+          m_cb = [](checkbox_t*, fan::window_t*, uint32_t i, void* userptr){};
           m_checkbox.m_button_event.set_on_input(this, [](fan::window_t* window, fan::opengl::context_t* context, uint32_t i, uint16_t key, fan::key_state key_state, fan_2d::graphics::gui::mouse_stage mouse_stage, void* user_ptr) {
             if (key != fan::mouse_left) {
               return;
@@ -59,15 +60,18 @@ namespace fan_2d {
             if (mouse_stage != fan_2d::graphics::gui::mouse_stage::inside) {
               return;
             }
-            ((decltype(this))user_ptr)->m_checkbox_store[i].m_checked = !((decltype(this))user_ptr)->m_checkbox_store[i].m_checked;
-            if (((decltype(this))user_ptr)->m_checkbox_store[i].m_checked == 0) {
-              ((decltype(this))user_ptr)->m_check.set_color(context, i * 2, fan::colors::transparent);
-              ((decltype(this))user_ptr)->m_check.set_color(context, i * 2 + 1, fan::colors::transparent);
+            auto thiS = (decltype(this))user_ptr;
+
+            thiS->m_checkbox_store[i].m_checked = !thiS->m_checkbox_store[i].m_checked;
+            if (thiS->m_checkbox_store[i].m_checked == 0) {
+              thiS->m_check.set_color(context, i * 2, fan::colors::transparent);
+              thiS->m_check.set_color(context, i * 2 + 1, fan::colors::transparent);
             }
             else {
-              ((decltype(this))user_ptr)->m_check.set_color(context, i * 2, ((decltype(this))user_ptr)->m_checkbox_store[i].m_theme.checkbox.check_color);
-              ((decltype(this))user_ptr)->m_check.set_color(context, i * 2 + 1, ((decltype(this))user_ptr)->m_checkbox_store[i].m_theme.checkbox.check_color);
+              thiS->m_check.set_color(context, i * 2, thiS->m_checkbox_store[i].m_theme.checkbox.check_color);
+              thiS->m_check.set_color(context, i * 2 + 1, thiS->m_checkbox_store[i].m_theme.checkbox.check_color);
             }
+            thiS->m_cb((decltype(this))user_ptr, window, i, thiS->m_userptr);
           });
         }
         void close(fan::window_t* window, fan::opengl::context_t* context) {
@@ -128,29 +132,9 @@ namespace fan_2d {
           m_checkbox_store.push_back(sbs);
         }
 
-        void on_check_action(fan::window_t* window, fan::opengl::context_t* context, checkbox_action_cb cb) {
-          c_cb = cb;
-          m_checkbox.m_button_event.set_on_input(this, [](fan::window_t* window, fan::opengl::context_t* context, uint32_t i, uint16_t key, fan::key_state key_state, fan_2d::graphics::gui::mouse_stage mouse_stage, void* user_ptr) {
-            if (key != fan::key_left) {
-              return;
-            }
-            if (key_state != fan::key_state::release) {
-              return;
-            }
-            if (mouse_stage != fan_2d::graphics::gui::mouse_stage::inside) {
-              return;
-            }
-            ((decltype(this))user_ptr)->m_checkbox_store[i].m_checked = !((decltype(this))user_ptr)->m_checkbox_store[i].m_checked;
-            if (((decltype(this))user_ptr)->m_checkbox_store[i].m_checked == 0) {
-              ((decltype(this))user_ptr)->m_check.set_color(context, i * 2, fan::colors::transparent);
-              ((decltype(this))user_ptr)->m_check.set_color(context, i * 2 + 1, fan::colors::transparent);
-            }
-            else {
-              ((decltype(this))user_ptr)->m_check.set_color(context, i * 2, ((decltype(this))user_ptr)->m_checkbox_store[i].m_theme.checkbox.check_color);
-              ((decltype(this))user_ptr)->m_check.set_color(context, i * 2 + 1, ((decltype(this))user_ptr)->m_checkbox_store[i].m_theme.checkbox.check_color);
-            }
-            ((decltype(this))user_ptr)->c_cb((decltype(this))user_ptr, window, i);
-          });
+        void set_on_check_action(fan::window_t* window, fan::opengl::context_t* context, void* userptr, checkbox_action_cb cb) {
+          m_userptr = userptr;
+          m_cb = cb;
         }
 
         void enable_draw(fan::window_t* window, fan::opengl::context_t* context) {
@@ -174,9 +158,10 @@ namespace fan_2d {
 
         fan::hector_t<selection_box_store_t> m_checkbox_store;
 
-        checkbox_action_cb c_cb;
+        checkbox_action_cb m_cb;
 
         open_properties_t m_op;
+        void* m_userptr;
       };
 
     }

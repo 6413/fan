@@ -70,9 +70,11 @@ namespace fan_2d {
               }
             }
             if (object->m_button_event.m_focused_button_id != fan::uninitialized) {
-              object->lib_add_on_mouse_move(w, context, object->m_button_event.m_focused_button_id, mouse_stage::outside, object->m_button_event.mouse_user_ptr);
-              object->m_button_event.on_mouse_event_function(w, context, object->m_button_event.m_focused_button_id, mouse_stage::outside, object->m_button_event.mouse_user_ptr);
-              object->m_button_event.m_focused_button_id = fan::uninitialized;
+              if (!object->locked(w, context, object->m_button_event.m_focused_button_id)) {
+                object->lib_add_on_mouse_move(w, context, object->m_button_event.m_focused_button_id, mouse_stage::outside, object->m_button_event.mouse_user_ptr);
+                object->m_button_event.on_mouse_event_function(w, context, object->m_button_event.m_focused_button_id, mouse_stage::outside, object->m_button_event.mouse_user_ptr);
+                object->m_button_event.m_focused_button_id = fan::uninitialized;
+              }
             }
           });
 
@@ -88,13 +90,17 @@ namespace fan_2d {
               if (state == fan::key_state::press) {
                 if (object->m_button_event.m_focused_button_id != fan::uninitialized) {
                   object->m_button_event.m_do_we_hold_button = 1;
-                  object->lib_add_on_input(w, context, object->m_button_event.m_focused_button_id, key, fan::key_state::press, mouse_stage::inside, object->m_button_event.key_user_ptr);
-                  object->m_button_event.on_input_function(w, context, object->m_button_event.m_focused_button_id, key, fan::key_state::press, mouse_stage::inside, object->m_button_event.key_user_ptr);
+                  if (!object->locked(w, context, object->m_button_event.m_focused_button_id)) {
+                    object->lib_add_on_input(w, context, object->m_button_event.m_focused_button_id, key, fan::key_state::press, mouse_stage::inside, object->m_button_event.key_user_ptr);
+                    object->m_button_event.on_input_function(w, context, object->m_button_event.m_focused_button_id, key, fan::key_state::press, mouse_stage::inside, object->m_button_event.key_user_ptr);
+                  }
                 }
                 else {
                   for (int i = object->size(w, context); i--; ) {
-                    object->lib_add_on_input(w, context, i, key, state, mouse_stage::outside, object->m_button_event.key_user_ptr);
-                    object->m_button_event.on_input_function(w, context, i, key, state, mouse_stage::outside, object->m_button_event.key_user_ptr);
+                  if (object->inside(w, context, i, fan::vec2(context->camera.get_position()) + w->get_mouse_position()) && !object->locked(w, context, i)) {
+                      object->lib_add_on_input(w, context, i, key, state, mouse_stage::outside, object->m_button_event.key_user_ptr);
+                      object->m_button_event.on_input_function(w, context, i, key, state, mouse_stage::outside, object->m_button_event.key_user_ptr);
+                    }
                   }
                   return; // clicked at space
                 }

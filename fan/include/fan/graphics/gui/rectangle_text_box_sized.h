@@ -80,7 +80,7 @@ namespace fan_2d {
                 property.position.x + property.theme.button.outline_thickness - property.size.x * 0.5,
                 property.position.y + property.theme.button.outline_thickness
               ) + property.offset;
-              text_properties.text_color = property.place_holder.empty() ? property.theme.button.text_color : defaults::text_color_place_holder;
+              text_properties.text_color = property.place_holder.empty() || str[0] != '\0' ? property.theme.button.text_color : defaults::text_color_place_holder;
               text_properties.outline_color = property.theme.button.text_outline_color;
               text_properties.outline_size = property.theme.button.text_outline_size;
 
@@ -93,7 +93,7 @@ namespace fan_2d {
               text_properties.text = str;
               text_properties.font_size = property.font_size;
               text_properties.position = property.position + property.offset;
-              text_properties.text_color = property.text.size() && property.text[0] != '\0' ? property.theme.button.text_color : defaults::text_color_place_holder;
+              text_properties.text_color = property.text.size() || property.text[0] != '\0' ? property.theme.button.text_color : defaults::text_color_place_holder;
 
               text_properties.outline_color = property.theme.button.text_outline_color;
               text_properties.outline_size = property.theme.button.text_outline_size;
