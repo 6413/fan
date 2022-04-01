@@ -1,11 +1,11 @@
 R"(
 #version 130
 
-in vec4 color;
+in vec4 instance_color;
 
-out vec4 r_color;
+out vec4 color;
 
 void main() {
-    r_color = color;
+    color = instance_color;
 }
 )"

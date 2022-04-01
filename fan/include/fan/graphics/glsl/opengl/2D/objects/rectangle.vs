@@ -6,7 +6,7 @@ in vec4 input1;
 in vec4 input2;
 in vec2 input3;
 
-out vec4 color;
+out vec4 instance_color;
 
 uniform mat4 projection;
 uniform mat4 view;
@@ -126,6 +126,6 @@ void main() {
 
 	gl_Position = projection * view * m * vec4(rectangle_vertices[gl_VertexID % 6], 0, 1);
 
-	color = layout_color;
+	instance_color = layout_color;
 }
 )"

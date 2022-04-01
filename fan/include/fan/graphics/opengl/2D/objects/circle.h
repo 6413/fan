@@ -15,7 +15,7 @@ namespace fan_2d {
 			struct properties_t {
 				fan::color color;
 				fan::vec2 position = 0;
-				f32_t size = 0;
+				f32_t radius = 0;
 				f32_t angle = 0;
 				fan::vec2 rotation_point = 0;
 				fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
@@ -25,7 +25,7 @@ namespace fan_2d {
 
 			static constexpr uint32_t offset_color = offsetof(properties_t, color);
 			static constexpr uint32_t offset_position = offsetof(properties_t, position);
-			static constexpr uint32_t offset_size = offsetof(properties_t, size);
+			static constexpr uint32_t offset_size = offsetof(properties_t, radius);
 			static constexpr uint32_t offset_angle = offsetof(properties_t, angle);
 			static constexpr uint32_t offset_rotation_point = offsetof(properties_t, rotation_point);
 			static constexpr uint32_t offset_rotation_vector = offsetof(properties_t, rotation_vector);
@@ -128,7 +128,7 @@ namespace fan_2d {
 
 			fan_2d::opengl::rectangle_corners_t get_corners(fan::opengl::context_t* context, uint32_t i) const {
 				auto position = this->get_position(context, i);
-				auto size = this->get_size(context, i);
+				auto size = this->get_radius(context, i);
 
 				fan::vec2 mid = position;
 
@@ -189,10 +189,10 @@ namespace fan_2d {
 				);
 			}
 
-			f32_t get_size(fan::opengl::context_t* context, uint32_t i) const {
+			f32_t get_radius(fan::opengl::context_t* context, uint32_t i) const {
 				return *(f32_t*)m_glsl_buffer.get_instance(context, i * vertex_count, element_byte_size, offset_size);
 			}
-			void set_size(fan::opengl::context_t* context, uint32_t i, f32_t size) {
+			void set_radius(fan::opengl::context_t* context, uint32_t i, f32_t size) {
 				for (int j = 0; j < vertex_count; j++) {
 					m_glsl_buffer.edit_ram_instance(
 						context, 
@@ -200,7 +200,7 @@ namespace fan_2d {
 						&size,
 						element_byte_size,
 						offset_size,
-						sizeof(properties_t::size)
+						sizeof(properties_t::radius)
 					);
 				}
 				m_queue_helper.edit(

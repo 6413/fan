@@ -153,6 +153,7 @@ namespace fan {
 		static constexpr fan::color yellow = fan::color::hex(0xFFFF00);
 		static constexpr fan::color cyan = fan::color::hex(0x00FFFF);
 		static constexpr fan::color magenta = fan::color::hex(0xFF00FF);
+		static constexpr fan::color transparent = fan::color(0, 0, 0, 0);
 
 	}
 

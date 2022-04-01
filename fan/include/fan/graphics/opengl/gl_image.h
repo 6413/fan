@@ -19,7 +19,7 @@ namespace fan {
 
 			uint32_t texture;
 
-			fan::vec2ui size;
+			fan::vec2i size;
 		};
 
 		namespace image_load_properties_defaults {

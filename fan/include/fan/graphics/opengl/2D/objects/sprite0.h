@@ -32,11 +32,17 @@ namespace fan_2d {
 			void push_back(fan::opengl::context_t* context, const properties_t& properties) {
 				m_push_back_ids.push_back(properties.id);
 				fan_2d::opengl::sprite_t::push_back(context, properties);
+				if ((f32_t)m_glsl_buffer.m_buffer.size() / vertex_count / element_byte_size != m_glsl_buffer.m_buffer.size() / vertex_count / element_byte_size) {
+						fan::print("problem");
+					}
 			}
 
 			void erase(fan::opengl::context_t* context, uint32_t i) {
 
 				if (i != this->size(context) - 1) {
+					if ((f32_t)m_glsl_buffer.m_buffer.size() / vertex_count / element_byte_size != m_glsl_buffer.m_buffer.size() / vertex_count / element_byte_size) {
+						fan::print("problem");
+					}
 
 					std::memmove(
 						m_glsl_buffer.m_buffer.begin() + i * vertex_count * element_byte_size, 
@@ -60,7 +66,7 @@ namespace fan_2d {
 						// erase queue if there will be no objects left (special case)
 						m_queue_helper.on_edit(context);
 					}
-					else {
+					else if (to >= i *  vertex_count * element_byte_size) {
 						m_queue_helper.edit(
 							context,
 							i * vertex_count * element_byte_size,

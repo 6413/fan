@@ -642,7 +642,6 @@ inline void fan::opengl::context_t::set_viewport(const fan::vec2& viewport_posit
 
 inline void fan::opengl::context_t::process() {
   #if fan_renderer == fan_renderer_opengl
-
     opengl.glClear(fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
 
   #endif

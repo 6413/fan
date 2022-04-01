@@ -41,6 +41,17 @@ namespace fan {
 			characters_t characters;
 			f32_t line_height;
 
+			
+			auto get_character(wchar_t c) {
+				auto found = characters.find(c);
+				#if fan_debug >= fan_debug_low
+					if (found == characters.end()) {
+						fan::throw_error("failed to find character from font");
+					}
+				#endif
+				return found->second;
+			}
+
 			uint16_t get_font_index(fan::character_t character) const {
 				auto found = characters.find(character.c);
 			#if fan_debug >= fan_debug_low

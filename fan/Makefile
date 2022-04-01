@@ -1,8 +1,8 @@
-GPP = clang++
+GPP = clang++ -w
 
 ARCH := $(shell grep "Arch Linux" /etc/os-release 2>/dev/null)
 
-CFLAGS = -g -std=c++2a -I /usr/local/include -I . -I include/vpx #-O3 -march=native -mtune=native
+CFLAGS = -g -std=c++2a -I /usr/local/include -I include/vpx #-O3 -march=native -mtune=native
 
 ifdef ARCH
 MAINFLAGS = -g -L /usr/local/lib -lGL -lGLEW -lX11 -lXrandr -lassimp -lavcodec -lavutil -lavformat -lswscale -lvulkan -lbox2d -I WITCH

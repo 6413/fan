@@ -135,7 +135,7 @@ namespace fan {
 
     const type_t& operator[](uintptr_t i) const {
     #if fan_debug >= fan_debug_low
-      if (i >= m_capacity) {
+      if (i >= m_size) {
         fan::throw_error("invalid pointer access");
       }
     #endif
@@ -144,7 +144,7 @@ namespace fan {
 
     type_t& operator[](uintptr_t i) {
     #if fan_debug >= fan_debug_low
-      if (i >= m_capacity) {
+      if (i >= m_size) {
         fan::throw_error("invalid pointer access");
       }
     #endif
@@ -185,7 +185,7 @@ namespace fan {
       close();
     }
 
-    static constexpr uintptr_t buffer_increment = 0x100000;
+    static constexpr uintptr_t buffer_increment = 0x10000;
 
   protected:
 
