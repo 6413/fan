@@ -334,12 +334,11 @@ namespace fan_2d {
 				m_glsl_buffer.draw(
 					context,
 					begin * vertex_count,
-					(end) == fan::uninitialized ? this->size(context) * vertex_count : end
+					end == fan::uninitialized ? this->size(context) * vertex_count : end * vertex_count
 				);
 			}
 
 			uint32_t m_draw_node_reference;
-		private:
 
 			fan::shader_t m_shader;
 			fan::opengl::core::glsl_buffer_t m_glsl_buffer;

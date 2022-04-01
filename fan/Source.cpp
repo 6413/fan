@@ -17,24 +17,23 @@ int main() {
   fan_2d::opengl::gui::text_renderer_t x;
   x.open(&context);
 
-  fan_2d::graphics::gui::checkbox_t sb;
-  fan_2d::graphics::gui::checkbox_t::open_properties_t op;
-  op.position = fan::vec2(400, 100);
-  op.background_color = fan::color(1, 1, 1, 0.1);
-  op.gui_size = 50;
-  op.max_text_length = fan_2d::opengl::gui::text_renderer_t::get_text_size(&context, "raspberries", op.gui_size).x;
+  fan_2d::graphics::gui::select_box_t sb;
+  fan_2d::graphics::gui::select_box_t::open_properties_t op;
+  op.position = fan::vec2(400, 400);
+  op.gui_size = 25;
+  op.max_text_length = 130;
   sb.open(&w, &context, op);
-
-
-  fan_2d::graphics::gui::checkbox_t::properties_t p;
-  p.theme = fan_2d::graphics::gui::themes::transparent();
-  p.text = "apples";
-  sb.push_back(&w, &context, p);
-  p.text = "pineapples";
-  sb.push_back(&w, &context, p);
-  p.text = "raspberries";
-  sb.push_back(&w, &context, p);
   sb.enable_draw(&w, &context);
+
+  fan_2d::graphics::gui::select_box_t::properties_t sp;
+  sp.text = "rectangle";
+  sb.push_back(&w, &context, sp);
+  sp.text = "sprite";
+  sb.push_back(&w, &context, sp);
+  sb.set_on_select_action(&w, &context, 0, [](fan_2d::graphics::gui::select_box_t*, fan::window_t*, uint32_t i, void*) {
+    fan::print(i);
+  });
+
 
   while(1) {
 

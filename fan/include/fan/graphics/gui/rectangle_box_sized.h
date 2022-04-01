@@ -47,10 +47,11 @@ namespace fan_2d {
           m_store.push_back(store);
 
           fan_2d::opengl::rectangle_t::properties_t rect_properties;
-          rect_properties.color = property.theme.button.color;
+          rect_properties.color = property.theme.button.outline_color;
           rect_properties.position = property.position;
           rect_properties.size = property.size;
           m_box.push_back(context, rect_properties);
+          rect_properties.color = property.theme.button.color;
           rect_properties.size -= property.theme.button.outline_thickness;
           m_box.push_back(context, rect_properties);
         }
