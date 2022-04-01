@@ -327,6 +327,10 @@ namespace fan {
 			return fan_2d::math::dot(*this, vector);
 		}
 
+		constexpr auto angle() const {
+			return atan2(y, x);
+		}
+
 		template <typename T>
 		friend std::ostream& operator<<(std::ostream& os, const _vec2<T>& vector);
 
@@ -347,7 +351,7 @@ namespace fan {
 		using value_type = _Ty;
 		using vec_t = _vec3<_Ty>;
 
-		constexpr _vec3() : x(0), y(0), z(0) {}
+		_vec3() = default;
 		constexpr _vec3(_Ty x, _Ty y, _Ty z) : x(x), y(y), z(z) {}
 		constexpr _vec3(_Ty value) : x(value), y(value), z(value) {}
 

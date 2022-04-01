@@ -34,8 +34,8 @@ void main() {
   //
   //    color = vec4(text_color.rgb, alpha);
   //}
-  float width = outline_size;
   float smoothing = 1.0 / (font_size / 12);
+  float width = 1.0 - (outline_size);
 
   float distance = 1.0 - TEXTURE2D(texture_sampler, texture_coordinate).r;
   float alpha = 1.0 - smoothstep(width, width + smoothing, distance);

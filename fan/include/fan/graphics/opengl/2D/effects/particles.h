@@ -12,7 +12,7 @@ namespace fan_2d {
 
       particles_t() = default;
 
-      static constexpr auto vertex_count = 1;
+      static constexpr auto vertex_count = 3;
 
       void open(fan::opengl::context_t* context) {
 
@@ -48,22 +48,39 @@ namespace fan_2d {
       }
 
       struct properties_t {
-        uint64_t timeout = 1e+9;
-        uint32_t count = 1;
-        f32_t radius = 100;
+        properties_t() = default;
 
-        fan::vec2 position = 0;
-        uint32_t size = 0;
-        f32_t angle = 0;
-        fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
-        fan::vec2 position_velocity = 0;
-        f32_t angle_velocity = 0;
+        uint64_t begin_time;
+        uint64_t alive_time;
+        uint64_t respawn_time;
+        uint32_t count;
+        fan::vec2 position;
+        fan::vec2 size;
+        f32_t angle;
+        fan::vec3 rotation_vector;
+        fan::vec2 position_velocity;
+        f32_t angle_velocity;
+        f32_t begin_angle;
+        f32_t end_angle;
 
         fan::opengl::image_t* image;
       };
 
-      void set(const properties_t& p) {
+      void set(properties_t p) {
+        //p.begin_time;
+        p.alive_time = .5e+9;
+        p.respawn_time = 0e+9;
+        //p.count = 1;
+        //p.position = 0;
+        p.size = 2;
+        p.angle = 0;
+        p.rotation_vector = fan::vec3(0, 0, 1);
+        //p.position_velocity = 0;
+        //p.angle_velocity = 0;
+        p.begin_angle = -fan::math::pi / 4;
+        p.end_angle = -fan::math::pi / 2;
         instance = p;
+        instance.begin_time = fan::time::clock::now();
       }
 
       void reload_sprite(fan::opengl::context_t* context, uint32_t i, fan::opengl::image_t* image) {
@@ -103,6 +120,20 @@ namespace fan_2d {
       }
       void set_angle_velocity(fan::opengl::context_t* context, f32_t angle_velocity) {
         instance.angle_velocity = angle_velocity;
+      }
+
+      f32_t get_begin_angle(fan::opengl::context_t* context, uint32_t i) const {
+        return instance.angle_velocity;
+      }
+      void set_begin_angle(fan::opengl::context_t* context, f32_t begin_angle) {
+        instance.begin_angle = begin_angle;
+      }
+
+      f32_t get_end_angle(fan::opengl::context_t* context, uint32_t i) const {
+        return instance.end_angle;
+      }
+      void set_end_angle(fan::opengl::context_t* context, f32_t end_angle) {
+        instance.end_angle = end_angle;
       }
 
       uint32_t size(fan::opengl::context_t* context) const {
@@ -149,7 +180,7 @@ namespace fan_2d {
 		      m_shader.set_projection(context, projection);
 		      m_shader.set_view(context, view);
 
-		      context->opengl.glDrawArrays(fan::opengl::GL_POINTS, begin, end - begin);
+		      context->opengl.glDrawArrays(fan::opengl::GL_TRIANGLES, begin, end - begin);
       }
 
       void draw(fan::opengl::context_t* context) {
@@ -177,19 +208,18 @@ namespace fan_2d {
         //  to++;
         //}
 
+        m_shader.set_float(context, "time", m_delta);
         m_shader.set_uint(context, "vertex_count", vertex_count);
         m_shader.set_uint(context, "count", instance.count);
-        m_shader.set_float(context, "timeout", (f32_t)instance.timeout / 1e+9);
-        m_shader.set_float(context, "radius", instance.radius);
-
+        m_shader.set_float(context, "alive_time", (f32_t)instance.alive_time / 1e+9);
+        m_shader.set_float(context, "respawn_time", (f32_t)instance.respawn_time / 1e+9);
         m_shader.set_vec2(context, "position", instance.position);
-        m_shader.set_uint(context, "size", instance.size);
-        //m_shader.set_float(context, "angle", instance.angle);
+        m_shader.set_vec2(context, "size", instance.size);
         m_shader.set_vec2(context, "position_velocity", instance.position_velocity);
-        m_shader.set_vec2(context, "angle_velocity", instance.angle_velocity);
+        m_shader.set_float(context, "angle_velocity", instance.angle_velocity);
         m_shader.set_vec3(context, "rotation_vector", instance.rotation_vector);
-
-        m_shader.set_float(context, "time", m_delta);
+        m_shader.set_float(context, "begin_angle", instance.begin_angle);
+        m_shader.set_float(context, "end_angle", instance.end_angle);
 
         draw_vertex(
           context,
@@ -198,8 +228,8 @@ namespace fan_2d {
         );
       }
 
-      void set_delta(fan::opengl::context_t* context, f32_t delta) {
-        m_delta = delta;
+      void set_delta(fan::opengl::context_t* context, uint64_t delta) {
+        m_delta = (f64_t)(delta - instance.begin_time) / 1e+9;
 			}
 
       properties_t instance;

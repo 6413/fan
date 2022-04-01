@@ -20,7 +20,7 @@ namespace fan_2d {
 					fan::vec2 position = 0;
 					fan::color text_color;
 					fan::color outline_color = fan::color(0, 0, 0, 0);
-					f32_t outline_size = 0.3;
+					f32_t outline_size = 0.7;
 					fan::vec2 rotation_point = 0;
 					f32_t angle = 0;
 				};
@@ -65,12 +65,12 @@ namespace fan_2d {
 
 					m_shader.set_vertex(
 						context, 
-						#include <fan/graphics/glsl/opengl/2D/objects/text.vs>
+						#include <fan/graphics/glsl/opengl/2D/gui/text.vs>
 					);
 
 					m_shader.set_fragment(
 						context, 
-						#include <fan/graphics/glsl/opengl/2D/objects/text.fs>
+						#include <fan/graphics/glsl/opengl/2D/gui/text.fs>
 					);
 
 					m_shader.compile(context);
@@ -647,7 +647,7 @@ namespace fan_2d {
 					context->disable_draw(m_draw_node_reference);
 				}
 
-				void draw(fan::opengl::context_t* context) {
+				void draw(fan::opengl::context_t* context, uint32_t begin = 0, uint32_t end = fan::uninitialized) {
 					m_shader.use(context);
 					m_shader.set_int(context, "texture_sampler", 0);
 					context->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
@@ -667,13 +667,22 @@ namespace fan_2d {
 					fan::mat4 view(1);
 					view = context->camera.get_view_matrix(view.translate(fan::vec3((f_t)viewport_size.x * 0.5, (f_t)viewport_size.y * 0.5, -700.0f)));
 
+					uint32_t begin_ = get_index(begin);
+					uint32_t end_;
+					if (end == fan::uninitialized) {
+						end_ = letter_vertex_size() * vertex_count;
+					}
+					else {
+						end_ = get_index(end);
+					}
+
 					m_shader.use(context);
 					m_shader.set_view(context, view);
 					m_shader.set_projection(context, projection);
 					m_glsl_buffer.draw(
 						context,
-						0,
-						letter_vertex_size() * vertex_count
+						begin_,
+						end_
 					);
 				}
 

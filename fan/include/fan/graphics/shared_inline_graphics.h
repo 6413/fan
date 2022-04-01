@@ -1,3 +1,5 @@
+#pragma once
+
 //#include <fan/time/time.h>
 //#include <fan/physics/collision/circle.h>
 //

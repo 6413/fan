@@ -8,7 +8,14 @@ namespace fan {
   class camera {
   public:
 
-    camera() : m_yaw(0), m_pitch(0) {
+    camera() {
+      m_yaw = 0;
+      m_pitch = 0;
+      m_right = 0;
+      m_up = 0;
+      m_velocity = 0;
+      m_position = 0;
+      m_front = 0;
       this->update_view();
     }
 
@@ -109,14 +116,14 @@ namespace fan {
 
   protected:
 
-    fan::vec3 m_position;
-    fan::vec3 m_front;
-
     f32_t m_yaw;
     f32_t m_pitch;
     fan::vec3 m_right;
     fan::vec3 m_up;
     fan::vec3 m_velocity;
+    fan::vec3 m_position;
+    fan::vec3 m_front;
+
 
   };
 }

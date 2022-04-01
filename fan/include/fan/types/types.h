@@ -244,6 +244,21 @@ namespace fan {
 
 	};
 
+	template <typename T, typename T2>
+	struct pair_t{
+		T first;
+		T2 second;
+	};
+
+	template <typename T, typename T2>
+	pair_t<T, T2> make_pair(T a, T2 b) {
+		return pair_t<T, T2>{a, b};
+	}
+
+	template <typename T, typename U>
+	constexpr auto offsetless(void* ptr, U T::*member) {
+		return (T*)((uint8_t*)(ptr) - ((char*)&((T*)nullptr->*member) - (char*)nullptr));
+	}
 }
 
 

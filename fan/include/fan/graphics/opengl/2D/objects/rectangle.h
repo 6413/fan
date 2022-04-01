@@ -161,8 +161,8 @@ namespace fan_2d {
 
 				m_queue_helper.edit(
 					context,
-					i * vertex_count * element_byte_size + offset_color,
-					(i + 1) * (vertex_count)*element_byte_size - offset_color,
+					i * vertex_count * element_byte_size,
+					(i + 1) * (vertex_count)*element_byte_size,
 					&m_glsl_buffer
 				);
 			}
@@ -310,7 +310,7 @@ namespace fan_2d {
 			}
 
 			// pushed to window draw queue
-			void draw(fan::opengl::context_t* context) {
+			void draw(fan::opengl::context_t* context, uint32_t begin = 0, uint32_t end = fan::uninitialized) {
 				context->set_depth_test(false);
 				const fan::vec2 viewport_size = context->viewport_size;
 
@@ -333,8 +333,8 @@ namespace fan_2d {
 
 				m_glsl_buffer.draw(
 					context,
-					0,
-					this->size(context) * vertex_count
+					begin * vertex_count,
+					(end) == fan::uninitialized ? this->size(context) * vertex_count : end
 				);
 			}
 

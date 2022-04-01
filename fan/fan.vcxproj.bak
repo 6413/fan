@@ -94,20 +94,19 @@
     <ClCompile>
       <WarningLevel>Level1</WarningLevel>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>
-      </PreprocessorDefinitions>
+      <PreprocessorDefinitions>set_durums_pc</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
-      <IntrinsicFunctions>false</IntrinsicFunctions>
-      <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
-      <WholeProgramOptimization>false</WholeProgramOptimization>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)src\box2d;$(SolutionDir);$(SolutionDir)include\opus;$(SolutionDir)src\libwebp;$(SolutionDir)src\libwebp\src;$(SolutionDIr)include\dav1d;$(SolutionDir)include\vpx;$(SolutionDir)src\dav1d;$(SolutionDIr)include\dav1d\dav1d</AdditionalIncludeDirectories>
-      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)src\box2d;$(SolutionDir);$(SolutionDir)include\opus;$(SolutionDir)src\libwebp;$(SolutionDir)src\libwebp\src;$(SolutionDIr)include\dav1d;$(SolutionDir)include\vpx;$(SolutionDir)src\dav1d;$(SolutionDIr)include\dav1d\dav1d;C:\Users\123\Documents\GitHub\fan\fan</AdditionalIncludeDirectories>
+      <Optimization>MaxSpeed</Optimization>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <EnableParallelCodeGeneration>false</EnableParallelCodeGeneration>
@@ -119,25 +118,27 @@
       <AdditionalDependencies>
       </AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy /y "$(TargetPath)" "$(SolutionDir)/test"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <WarningLevel>Level1</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>false</IntrinsicFunctions>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>
-      </PreprocessorDefinitions>
+      <PreprocessorDefinitions>set_durums_pc</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <Optimization>Disabled</Optimization>
-      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
-      <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
+      <Optimization>MaxSpeed</Optimization>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)src\box2d;$(SolutionDir);$(SolutionDir)include\opus;$(SolutionDir)src\libwebp;$(SolutionDir)src\libwebp\src;$(SolutionDIr)include\dav1d;$(SolutionDir)include\vpx;$(SolutionDir)src\dav1d;$(SolutionDIr)include\dav1d\dav1d</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)src\box2d;$(SolutionDir);$(SolutionDir)include\opus;$(SolutionDir)src\libwebp;$(SolutionDir)src\libwebp\src;$(SolutionDIr)include\dav1d;$(SolutionDir)include\vpx;$(SolutionDir)src\dav1d;$(SolutionDIr)include\dav1d\dav1d;C:\Users\123\Documents\GitHub\fan\fan</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <WholeProgramOptimization>false</WholeProgramOptimization>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
@@ -152,25 +153,27 @@
       <AdditionalDependencies>
       </AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy /y "$(TargetPath)" "$(SolutionDir)/test"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <WarningLevel>Level1</WarningLevel>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>
-      </PreprocessorDefinitions>
+      <PreprocessorDefinitions>set_durums_pc</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
-      <IntrinsicFunctions>false</IntrinsicFunctions>
-      <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
-      <WholeProgramOptimization>false</WholeProgramOptimization>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)src\box2d;$(SolutionDir);$(SolutionDir)include\opus;$(SolutionDir)src\libwebp;$(SolutionDir)src\libwebp\src;$(SolutionDIr)include\dav1d;$(SolutionDir)include\vpx;$(SolutionDir)src\dav1d;$(SolutionDIr)include\dav1d\dav1d</AdditionalIncludeDirectories>
-      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)src\box2d;$(SolutionDir);$(SolutionDir)include\opus;$(SolutionDir)src\libwebp;$(SolutionDir)src\libwebp\src;$(SolutionDIr)include\dav1d;$(SolutionDir)include\vpx;$(SolutionDir)src\dav1d;$(SolutionDIr)include\dav1d\dav1d;C:\Users\123\Documents\GitHub\fan\fan</AdditionalIncludeDirectories>
+      <Optimization>MaxSpeed</Optimization>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <EnableParallelCodeGeneration>false</EnableParallelCodeGeneration>
@@ -182,25 +185,27 @@
       <AdditionalDependencies>
       </AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy /y "$(TargetPath)" "$(SolutionDir)/test"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <WarningLevel>Level1</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>false</IntrinsicFunctions>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>
-      </PreprocessorDefinitions>
+      <PreprocessorDefinitions>set_durums_pc</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <Optimization>Disabled</Optimization>
-      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
-      <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
+      <Optimization>MaxSpeed</Optimization>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)src\box2d;$(SolutionDir);$(SolutionDir)include\opus;$(SolutionDir)src\libwebp;$(SolutionDir)src\libwebp\src;$(SolutionDIr)include\dav1d;$(SolutionDir)include\vpx;$(SolutionDir)src\dav1d;$(SolutionDIr)include\dav1d\dav1d</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)src\box2d;$(SolutionDir);$(SolutionDir)include\opus;$(SolutionDir)src\libwebp;$(SolutionDir)src\libwebp\src;$(SolutionDIr)include\dav1d;$(SolutionDir)include\vpx;$(SolutionDir)src\dav1d;$(SolutionDIr)include\dav1d\dav1d;C:\Users\123\Documents\GitHub\fan\fan</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <WholeProgramOptimization>false</WholeProgramOptimization>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
@@ -215,60 +220,19 @@
       <AdditionalDependencies>
       </AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy /y "$(TargetPath)" "$(SolutionDir)/test"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Source.cpp" />
-    <ClCompile Include="src\box2d\collision\b2_broad_phase.cpp" />
-    <ClCompile Include="src\box2d\collision\b2_chain_shape.cpp" />
-    <ClCompile Include="src\box2d\collision\b2_circle_shape.cpp" />
-    <ClCompile Include="src\box2d\collision\b2_collide_circle.cpp" />
-    <ClCompile Include="src\box2d\collision\b2_collide_edge.cpp" />
-    <ClCompile Include="src\box2d\collision\b2_collide_polygon.cpp" />
-    <ClCompile Include="src\box2d\collision\b2_collision.cpp" />
-    <ClCompile Include="src\box2d\collision\b2_distance.cpp" />
-    <ClCompile Include="src\box2d\collision\b2_dynamic_tree.cpp" />
-    <ClCompile Include="src\box2d\collision\b2_edge_shape.cpp" />
-    <ClCompile Include="src\box2d\collision\b2_polygon_shape.cpp" />
-    <ClCompile Include="src\box2d\collision\b2_time_of_impact.cpp" />
-    <ClCompile Include="src\box2d\common\b2_block_allocator.cpp" />
-    <ClCompile Include="src\box2d\common\b2_draw.cpp" />
-    <ClCompile Include="src\box2d\common\b2_math.cpp" />
-    <ClCompile Include="src\box2d\common\b2_settings.cpp" />
-    <ClCompile Include="src\box2d\common\b2_stack_allocator.cpp" />
-    <ClCompile Include="src\box2d\common\b2_timer.cpp" />
-    <ClCompile Include="src\box2d\dynamics\b2_body.cpp" />
-    <ClCompile Include="src\box2d\dynamics\b2_chain_circle_contact.cpp" />
-    <ClCompile Include="src\box2d\dynamics\b2_chain_polygon_contact.cpp" />
-    <ClCompile Include="src\box2d\dynamics\b2_circle_contact.cpp" />
-    <ClCompile Include="src\box2d\dynamics\b2_contact.cpp" />
-    <ClCompile Include="src\box2d\dynamics\b2_contact_manager.cpp" />
-    <ClCompile Include="src\box2d\dynamics\b2_contact_solver.cpp" />
-    <ClCompile Include="src\box2d\dynamics\b2_distance_joint.cpp" />
-    <ClCompile Include="src\box2d\dynamics\b2_edge_circle_contact.cpp" />
-    <ClCompile Include="src\box2d\dynamics\b2_edge_polygon_contact.cpp" />
-    <ClCompile Include="src\box2d\dynamics\b2_fixture.cpp" />
-    <ClCompile Include="src\box2d\dynamics\b2_friction_joint.cpp" />
-    <ClCompile Include="src\box2d\dynamics\b2_gear_joint.cpp" />
-    <ClCompile Include="src\box2d\dynamics\b2_island.cpp" />
-    <ClCompile Include="src\box2d\dynamics\b2_joint.cpp" />
-    <ClCompile Include="src\box2d\dynamics\b2_motor_joint.cpp" />
-    <ClCompile Include="src\box2d\dynamics\b2_mouse_joint.cpp" />
-    <ClCompile Include="src\box2d\dynamics\b2_polygon_circle_contact.cpp" />
-    <ClCompile Include="src\box2d\dynamics\b2_polygon_contact.cpp" />
-    <ClCompile Include="src\box2d\dynamics\b2_prismatic_joint.cpp" />
-    <ClCompile Include="src\box2d\dynamics\b2_pulley_joint.cpp" />
-    <ClCompile Include="src\box2d\dynamics\b2_revolute_joint.cpp" />
-    <ClCompile Include="src\box2d\dynamics\b2_weld_joint.cpp" />
-    <ClCompile Include="src\box2d\dynamics\b2_wheel_joint.cpp" />
-    <ClCompile Include="src\box2d\dynamics\b2_world.cpp" />
-    <ClCompile Include="src\box2d\dynamics\b2_world_callbacks.cpp" />
-    <ClCompile Include="src\box2d\rope\b2_rope.cpp" />
+    <ClCompile Include="dev\src\main.cpp" />
     <ClCompile Include="src\fan\graphics\camera.cpp" />
     <ClCompile Include="src\fan\graphics\shared_graphics.cpp" />
     <ClCompile Include="src\fan\graphics\shared_gui.cpp" />
     <ClCompile Include="src\fan\graphics\vulkan\vk_gui.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
     <ClCompile Include="src\fan\window\window_input.cpp" />
+    <ClCompile Include="src\glad\gl.c" />
     <ClCompile Include="src\libwebp\src\dec\alpha_dec.c" />
     <ClCompile Include="src\libwebp\src\dec\buffer_dec.c" />
     <ClCompile Include="src\libwebp\src\dec\frame_dec.c" />
@@ -380,34 +344,74 @@
     <ClCompile Include="src\libwebp\src\utils\utils.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="dev\src\BlockEnum.h" />
+    <ClInclude Include="dev\src\engine\engine.h" />
+    <ClInclude Include="dev\src\game\entity\block\block.h" />
+    <ClInclude Include="dev\src\game\entity\block\types.h" />
+    <ClInclude Include="dev\src\game\entity\building_EmendationStation\building_EmendationStation.h" />
+    <ClInclude Include="dev\src\game\entity\building_EmendationStation\types.h" />
+    <ClInclude Include="dev\src\game\entity\building_FuelStation\building_FuelStation.h" />
+    <ClInclude Include="dev\src\game\entity\building_FuelStation\types.h" />
+    <ClInclude Include="dev\src\game\entity\building_JunkShop\building_JunkShop.h" />
+    <ClInclude Include="dev\src\game\entity\building_JunkShop\types.h" />
+    <ClInclude Include="dev\src\game\entity\building_MineralProcess\building_MineralProcess.h" />
+    <ClInclude Include="dev\src\game\entity\building_MineralProcess\types.h" />
+    <ClInclude Include="dev\src\game\entity\dirt_corner\dirt_corner.h" />
+    <ClInclude Include="dev\src\game\entity\dirt_corner\types.h" />
+    <ClInclude Include="dev\src\game\entity\FloatingDirtPiece\FloatingDirtPiece.h" />
+    <ClInclude Include="dev\src\game\entity\FloatingDirtPiece\types.h" />
+    <ClInclude Include="dev\src\game\entity\FloatingText\FloatingText.h" />
+    <ClInclude Include="dev\src\game\entity\FloatingText\types.h" />
+    <ClInclude Include="dev\src\game\entity\ship\ship.h" />
+    <ClInclude Include="dev\src\game\entity\ship\types.h" />
+    <ClInclude Include="dev\src\stage.hpp" />
     <ClInclude Include="include\fan\audio.hpp" />
-    <ClInclude Include="include\fan\audio\audio.hpp" />
+    <ClInclude Include="include\fan\audio\audio.h" />
+    <ClInclude Include="include\fan\audio\miniaudio.h" />
+    <ClInclude Include="include\fan\bll.h" />
     <ClInclude Include="include\fan\BLL\BLL.h" />
     <ClInclude Include="include\fan\BLL\internal\basic_types.h" />
     <ClInclude Include="include\fan\BLL\internal\rest.h" />
     <ClInclude Include="include\fan\color.hpp" />
     <ClInclude Include="include\fan\da.h" />
+    <ClInclude Include="include\fan\engine\engine.h" />
     <ClInclude Include="include\fan\engine\graphics\graphics.hpp" />
     <ClInclude Include="include\fan\fast_noise.hpp" />
     <ClInclude Include="include\fan\fast_noise\fast_noise.hpp" />
     <ClInclude Include="include\fan\fbsp\rectangle.hpp" />
+    <ClInclude Include="include\fan\fed\FED.h" />
     <ClInclude Include="include\fan\fed\internal\private.h" />
     <ClInclude Include="include\fan\fed\internal\public.h" />
     <ClInclude Include="include\fan\fed\internal\types.h" />
     <ClInclude Include="include\fan\fed\WED.h" />
     <ClInclude Include="include\fan\file.hpp" />
-    <ClInclude Include="include\fan\font.hpp" />
+    <ClInclude Include="include\fan\font.h" />
     <ClInclude Include="include\fan\global_vars.hpp" />
     <ClInclude Include="include\fan\graphics.hpp" />
-    <ClInclude Include="include\fan\graphics\camera.hpp" />
-    <ClInclude Include="include\fan\graphics\graphics.hpp" />
-    <ClInclude Include="include\fan\graphics\gui.hpp" />
-    <ClInclude Include="include\fan\graphics\opengl\gl_core.hpp" />
-    <ClInclude Include="include\fan\graphics\opengl\gl_graphics.hpp" />
-    <ClInclude Include="include\fan\graphics\opengl\gl_gui.hpp" />
-    <ClInclude Include="include\fan\graphics\opengl\gl_image.hpp" />
-    <ClInclude Include="include\fan\graphics\opengl\gl_shader.hpp" />
+    <ClInclude Include="include\fan\graphics\camera.h" />
+    <ClInclude Include="include\fan\graphics\graphics.h" />
+    <ClInclude Include="include\fan\graphics\gui.h" />
+    <ClInclude Include="include\fan\graphics\opengl\2D\effects\particles.h" />
+    <ClInclude Include="include\fan\graphics\opengl\2D\objects\circle.h" />
+    <ClInclude Include="include\fan\graphics\opengl\2D\objects\depth\depth_rectangle.h" />
+    <ClInclude Include="include\fan\graphics\opengl\2D\objects\depth\depth_sprite.h" />
+    <ClInclude Include="include\fan\graphics\opengl\2D\objects\rectangle.h" />
+    <ClInclude Include="include\fan\graphics\opengl\2D\objects\sprite.h" />
+    <ClInclude Include="include\fan\graphics\opengl\2D\objects\sprite0.h" />
+    <ClInclude Include="include\fan\graphics\opengl\2D\objects\text_renderer.h" />
+    <ClInclude Include="include\fan\graphics\opengl\2D\objects\text_renderer_raw.h" />
+    <ClInclude Include="include\fan\graphics\opengl\2D\objects\text_renderer_wrap.h" />
+    <ClInclude Include="include\fan\graphics\opengl\2D\objects\yuv420p_renderer.h" />
+    <ClInclude Include="include\fan\graphics\opengl\3D\objects\model.h" />
+    <ClInclude Include="include\fan\graphics\opengl\3D\objects\skybox.h" />
+    <ClInclude Include="include\fan\graphics\opengl\gl_core.h" />
+    <ClInclude Include="include\fan\graphics\opengl\gl_graphics.h" />
+    <ClInclude Include="include\fan\graphics\opengl\gl_gui.h" />
+    <ClInclude Include="include\fan\graphics\opengl\gl_image.h" />
+    <ClInclude Include="include\fan\graphics\opengl\gl_shader.h" />
+    <ClInclude Include="include\fan\graphics\opengl\gl_texture.h" />
     <ClInclude Include="include\fan\graphics\opengl\objects\2D\depth\depth_sprite.h" />
+    <ClInclude Include="include\fan\graphics\opengl\objects\2D\flame.h" />
     <ClInclude Include="include\fan\graphics\opengl\objects\2D\rectangle.h" />
     <ClInclude Include="include\fan\graphics\opengl\objects\2D\sprite.h" />
     <ClInclude Include="include\fan\graphics\opengl\objects\2D\sprite0.h" />
@@ -416,57 +420,67 @@
     <ClInclude Include="include\fan\graphics\opengl\objects\2D\text_renderer_wrap.h" />
     <ClInclude Include="include\fan\graphics\opengl\objects\2D\yuv420p_renderer.h" />
     <ClInclude Include="include\fan\graphics\opengl\objects\3D\model.h" />
-    <ClInclude Include="include\fan\graphics\renderer.hpp" />
+    <ClInclude Include="include\fan\graphics\opengl\objects\3D\skybox.h" />
+    <ClInclude Include="include\fan\graphics\physics\collision\circle.h" />
+    <ClInclude Include="include\fan\graphics\physics\collision\rectangle.h" />
+    <ClInclude Include="include\fan\graphics\physics\collision\triangle.h" />
+    <ClInclude Include="include\fan\graphics\physics\physics.h" />
+    <ClInclude Include="include\fan\graphics\physics\raycast\rectangle.h" />
+    <ClInclude Include="include\fan\graphics\renderer.h" />
     <ClInclude Include="include\fan\graphics\shared.hpp" />
-    <ClInclude Include="include\fan\graphics\shared_core.hpp" />
-    <ClInclude Include="include\fan\graphics\shared_graphics.hpp" />
-    <ClInclude Include="include\fan\graphics\shared_gui.hpp" />
-    <ClInclude Include="include\fan\graphics\shared_inline_graphics.hpp" />
-    <ClInclude Include="include\fan\graphics\themes.hpp" />
-    <ClInclude Include="include\fan\graphics\video_decoder.hpp" />
-    <ClInclude Include="include\fan\graphics\vulkan\vk_core.hpp" />
-    <ClInclude Include="include\fan\graphics\vulkan\vk_descriptor.hpp" />
-    <ClInclude Include="include\fan\graphics\vulkan\vk_graphics.hpp" />
-    <ClInclude Include="include\fan\graphics\vulkan\vk_gui.hpp" />
-    <ClInclude Include="include\fan\graphics\vulkan\vk_pipeline.hpp" />
-    <ClInclude Include="include\fan\graphics\vulkan\vk_shader.hpp" />
+    <ClInclude Include="include\fan\graphics\shared_core.h" />
+    <ClInclude Include="include\fan\graphics\shared_graphics.h" />
+    <ClInclude Include="include\fan\graphics\shared_gui.h" />
+    <ClInclude Include="include\fan\graphics\shared_inline_graphics.h" />
+    <ClInclude Include="include\fan\graphics\themes.h" />
+    <ClInclude Include="include\fan\graphics\video_decoder.h" />
+    <ClInclude Include="include\fan\graphics\vpx\tools_common.h" />
+    <ClInclude Include="include\fan\graphics\vpx\video_common.h" />
+    <ClInclude Include="include\fan\graphics\vpx\video_reader.h" />
+    <ClInclude Include="include\fan\graphics\vpx\y4minput.h" />
+    <ClInclude Include="include\fan\graphics\vulkan\vk_core.h" />
+    <ClInclude Include="include\fan\graphics\vulkan\vk_descriptor.h" />
+    <ClInclude Include="include\fan\graphics\vulkan\vk_graphics.h" />
+    <ClInclude Include="include\fan\graphics\vulkan\vk_gui.h" />
+    <ClInclude Include="include\fan\graphics\vulkan\vk_pipeline.h" />
+    <ClInclude Include="include\fan\graphics\vulkan\vk_shader.h" />
     <ClInclude Include="include\fan\graphics\webp.h" />
     <ClInclude Include="include\fan\graphics\window\window.hpp" />
     <ClInclude Include="include\fan\graphics\window\window_input.hpp" />
     <ClInclude Include="include\fan\input.hpp" />
-    <ClInclude Include="include\fan\io\file.hpp" />
-    <ClInclude Include="include\fan\io\io.hpp" />
+    <ClInclude Include="include\fan\io\file.h" />
+    <ClInclude Include="include\fan\io\io.h" />
     <ClInclude Include="include\fan\math.hpp" />
-    <ClInclude Include="include\fan\math\math.hpp" />
-    <ClInclude Include="include\fan\math\random.hpp" />
+    <ClInclude Include="include\fan\math\math.h" />
+    <ClInclude Include="include\fan\math\random.h" />
     <ClInclude Include="include\fan\network.hpp" />
-    <ClInclude Include="include\fan\network\network.hpp" />
-    <ClInclude Include="include\fan\physics\collision\circle.hpp" />
-    <ClInclude Include="include\fan\physics\collision\rectangle.hpp" />
-    <ClInclude Include="include\fan\physics\collision\triangle.hpp" />
-    <ClInclude Include="include\fan\physics\physics.hpp" />
-    <ClInclude Include="include\fan\physics\raycast\rectangle.hpp" />
+    <ClInclude Include="include\fan\network\network.h" />
+    <ClInclude Include="include\fan\physics\collision\circle.h" />
+    <ClInclude Include="include\fan\physics\collision\rectangle.h" />
+    <ClInclude Include="include\fan\physics\collision\triangle.h" />
+    <ClInclude Include="include\fan\physics\physics.h" />
+    <ClInclude Include="include\fan\physics\raycast\rectangle.h" />
     <ClInclude Include="include\fan\shader.h" />
     <ClInclude Include="include\fan\soil2\SOIL2.h" />
-    <ClInclude Include="include\fan\system.hpp" />
+    <ClInclude Include="include\fan\system.h" />
     <ClInclude Include="include\fan\time.hpp" />
-    <ClInclude Include="include\fan\time\time.hpp" />
+    <ClInclude Include="include\fan\time\time.h" />
     <ClInclude Include="include\fan\types.h" />
-    <ClInclude Include="include\fan\types\color.hpp" />
+    <ClInclude Include="include\fan\types\color.h" />
     <ClInclude Include="include\fan\types\da.hpp" />
     <ClInclude Include="include\fan\types\list.hpp" />
-    <ClInclude Include="include\fan\types\matrix.hpp" />
-    <ClInclude Include="include\fan\types\quaternion.hpp" />
-    <ClInclude Include="include\fan\types\types.hpp" />
-    <ClInclude Include="include\fan\types\vector.hpp" />
-    <ClInclude Include="include\fan\types\utf_string.hpp" />
-    <ClInclude Include="include\fan\utf_string.hpp" />
+    <ClInclude Include="include\fan\types\matrix.h" />
+    <ClInclude Include="include\fan\types\quaternion.h" />
+    <ClInclude Include="include\fan\types\types.h" />
+    <ClInclude Include="include\fan\types\vector.h" />
+    <ClInclude Include="include\fan\types\utf_string.h" />
+    <ClInclude Include="include\fan\utf_string.h" />
     <ClInclude Include="include\fan\types\memory.h" />
     <ClInclude Include="include\fan\vector.h" />
-    <ClInclude Include="include\fan\vulkan.hpp" />
-    <ClInclude Include="include\fan\window\window.hpp" />
-    <ClInclude Include="include\fan\window\window_input.hpp" />
-    <ClInclude Include="include\fast_obj\fast_obj.h" />
+    <ClInclude Include="include\fan\vulkan.h" />
+    <ClInclude Include="include\fan\window\window.h" />
+    <ClInclude Include="include\fan\window\window_input.h" />
+    <ClInclude Include="include\fan\graphics\fast_obj\fast_obj.h" />
     <ClInclude Include="src\box2d\dynamics\b2_chain_circle_contact.h" />
     <ClInclude Include="src\box2d\dynamics\b2_chain_polygon_contact.h" />
     <ClInclude Include="src\box2d\dynamics\b2_circle_contact.h" />
@@ -568,12 +582,12 @@
     <ClInclude Include="src\libwebp\src\webp\types.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="include\fan\graphics\glsl\opengl\2D\effects\particles.fs" />
+    <None Include="include\fan\graphics\glsl\opengl\2D\effects\particles.vs" />
     <None Include="include\fan\graphics\glsl\opengl\2D\objects\depth\depth_rectangle.fs" />
     <None Include="include\fan\graphics\glsl\opengl\2D\objects\depth\depth_rectangle.vs" />
     <None Include="include\fan\graphics\glsl\opengl\2D\objects\depth\depth_sprite.fs" />
     <None Include="include\fan\graphics\glsl\opengl\2D\objects\depth\depth_sprite.vs" />
-    <None Include="include\fan\graphics\glsl\opengl\3D\simple_animation.fs" />
-    <None Include="include\fan\graphics\glsl\opengl\3D\simple_animation.vs" />
     <None Include="src\dav1d\ext\x86\x86inc.asm" />
     <None Include="src\dav1d\x86\cdef16_avx2.asm" />
     <None Include="src\dav1d\x86\cdef16_sse.asm" />

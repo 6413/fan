@@ -7,7 +7,7 @@
 #if fan_renderer == fan_renderer_opengl
 
 #include <fan/graphics/graphics.h>
-#include <fan/graphics/themes.h>
+#include <fan/graphics/gui/themes.h>
 
 #include <fan/physics/collision/rectangle.h>
 

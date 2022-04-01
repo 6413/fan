@@ -5,13 +5,17 @@ out vec4 i_color;
 
 uniform uint vertex_count;
 uniform uint count;
-uniform float timeout;
 uniform float radius;
 uniform vec2 position;
-uniform uint size;
+uniform vec2 size;
 uniform vec2 position_velocity;
 uniform float angle_velocity;
 uniform vec3 rotation_vector;
+uniform float alive_time;
+uniform float respawn_time;
+uniform float begin_angle;
+uniform float end_angle;
+uniform sampler2D s;
 
 uniform float time;
 
@@ -113,11 +117,10 @@ mat4 rotate(mat4 m, float angle, vec3 v) {
 	return matrix;
 }
 
-const float triangle_height = 0.86602540378443864676372317075294;
-const float offset = sqrt(3) / 6;
-
 vec2 triangle_vertices[] = vec2[](
-	vec2(0, 0)
+	vec2(0, (2 * sqrt(3)) / 6),
+	vec2(-1.0 / 2, -sqrt(3) / 6),
+	vec2(1.0 / 2, -sqrt(3) / 6)
 );
 
 out vec2 texture_coordinate;
@@ -170,37 +173,41 @@ void main() {
 
 	uint seed;
 	seed = id * count;
-	float new_time = time + floatConstruct(RAND(seed));
-	seed = uint(new_time / timeout);
+	float new_time = time + floatConstruct(RAND(seed)) * 10000.0;
+	seed = uint(new_time / (alive_time + respawn_time));
 	seed *= id * count;
 	seed *= 4u;
-	float time_mod = mod(new_time, timeout);
 
 	vec2 pos;
-	pos.x = (floatConstruct(RAND(seed + 0u))) * radius + position.x - radius * 0.5;
-	pos.y = (floatConstruct(RAND(seed + 1u))) * radius + position.y - radius * 0.5;
-	vec2 velocity = vec2_direction(RAND(seed + 2u), RAND(seed + 3u), 0, 3.141 * 2) * (floatConstruct(RAND(seed + 4u)) * position_velocity);
+	pos.x = position.x;
+	pos.y = position.y;
+	vec2 velocity = vec2_direction(RAND(seed + 2u), RAND(seed + 3u), begin_angle, end_angle);
 
-	pos.x += velocity.x * time_mod / timeout;
-	pos.y += velocity.y * time_mod / timeout;
+	float time_mod = mod(new_time, alive_time + respawn_time);
+	time_mod -= respawn_time;
+	if(time_mod < 0){
+		i_color = vec4(0, 0, 0, 0);
+		return;
+	}
+	float length = sqrt(velocity[0] * velocity[0] + velocity[1] * velocity[1]);
+	if (length != 0) {
+		velocity /= length;
+	}
+	velocity *= position_velocity;
+
+	pos.x += velocity.x * time_mod;
+	pos.y += velocity.y * time_mod;
 
 	m = translate(m, vec3(pos, 0));
-
 	m = rotate(m, time_mod * angle_velocity * 3.141 * 2, rotation_vector);
-
-	gl_PointSize = size;
+	m = scale(m, vec3(size, 0));
 
 	gl_Position = projection * view * m * vec4(triangle_vertices[gl_VertexID % 3], 0, 1);
-	//uint hex = uint(rgb(normalize(gl_VertexID, 0, count)));
 
-	//float r = float((hex >> 16u) & 255u) / 255.0;
-	//float g = float((hex >> 8u) & 255u) / 255.0;
-	//float b = float((hex >> 0u) & 255u) / 255.0;
-
-	float r = normalize(abs(position.x - pos.x), 0, 100);
+	float r = 1;
 	float g = 0;
-	float b = normalize(abs(position.x - pos.x), 0, 30);
+	float b = 0;
 
-	i_color = vec4(r, g, b, 1);
+	i_color = vec4(r, g, b, 1.0 - normalize(abs(position.x - pos.x), 0, 100));
 }
 )"

@@ -308,6 +308,7 @@ namespace fan {
         glValidateProgram = (decltype(glValidateProgram))get_proc_address("glValidateProgram", &internal);
         glGetShaderiv = (decltype(glGetShaderiv))get_proc_address("glGetShaderiv", &internal);
         glDepthFunc = (decltype(glDepthFunc))get_proc_address("glDepthFunc", &internal);
+        glPolygonMode = (decltype(glPolygonMode))get_proc_address("glPolygonMode", &internal);
 
         internal.close(&p);
 
@@ -376,6 +377,7 @@ namespace fan {
       PFNGLVALIDATEPROGRAMPROC glValidateProgram;
       PFNGLGETSHADERIVPROC glGetShaderiv;
       PFNGLDEPTHFUNCPROC glDepthFunc;
+      PFNGLPOLYGONMODEPROC glPolygonMode;
 
     };
 

@@ -8,11 +8,27 @@
 #include <functional>
 #include <cmath>
 
-namespace fan { namespace math { } }
+namespace fan { 
+	namespace math {
+		constexpr f_t pi = 3.14159265358979323846264338327950288419716939937510;
+		constexpr f_t half_pi = pi / 2;
+		constexpr f_t two_pi = pi * 2;
+	}
+}
 
 namespace fan_2d {
 	
 	namespace math {
+
+		// for reverse y coordinates
+		template <typename vector2d_t>
+		vector2d_t velocity_resolve_in_collision(const vector2d_t& velocity_src, const vector2d_t& velocity_dst, const vector2d_t& normal) {
+			vector2d_t direction = velocity_dst - velocity_src;
+			f32_t angle = fan::math::pi - 2 * atan2(-normal.y, -normal.x);
+			f32_t cos_ = cos(angle);
+			f32_t sin_ = sin(angle);
+			return velocity_dst + vector2d_t(direction.x * cos_ - direction.y * sin_, -(direction.x * sin_ + direction.y * cos_));
+		}
 
 		template <typename vector_t>
 		constexpr auto dot(const vector_t& x, const vector_t& y) {
@@ -246,10 +262,6 @@ namespace fan {
 			functionPtr();
 			printf("end\n");
 		}
-
-		constexpr f_t pi = 3.14159265358979323846264338327950288419716939937510;
-		constexpr f_t half_pi = pi / 2;
-		constexpr f_t two_pi = pi * 2;
 
 		// converts degrees to radians
 		template<typename T>
