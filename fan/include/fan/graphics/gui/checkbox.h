@@ -14,10 +14,6 @@ namespace fan_2d {
   namespace graphics {
     namespace gui {
 
-      using line_backend_t = fan_2d::opengl::line_t;
-      using rectangle_backend_t = fan_2d::opengl::rectangle_t;
-      using text_renderer_backend_t = fan_2d::opengl::gui::text_renderer_t;
-
       struct checkbox_t {
 
         typedef void(*checkbox_action_cb)(checkbox_t*, fan::window_t*, uint32_t i, void* userptr);
@@ -44,7 +40,7 @@ namespace fan_2d {
           m_text.open(context);
           m_background.open(context);
           m_op = p;
-          rectangle_backend_t::properties_t rp;
+          fan_2d::graphics::rectangle_t::properties_t rp;
           rp.position = p.position;
           rp.size = 0;
           rp.color = p.background_color;
@@ -102,7 +98,7 @@ namespace fan_2d {
             bc_size
           );
 
-          line_backend_t::properties_t lp;
+          fan_2d::graphics::line_t::properties_t lp;
           lp.src = box_position + box_size;
           lp.dst = box_position - box_size;
           lp.color = p.checked ? p.theme.checkbox.check_color : fan::colors::transparent;
@@ -117,7 +113,7 @@ namespace fan_2d {
           rp.theme = p.theme;
           m_checkbox.push_back(window, context, rp);
 
-          text_renderer_backend_t::properties_t trp;
+          fan_2d::opengl::gui::text_renderer_t::properties_t trp;
           trp.position = box_position + fan::vec2(text_size.x / 2 + box_size.x * 2, 0);
           trp.text_color = p.theme.checkbox.text_color;
           trp.font_size = m_op.gui_size;
@@ -146,10 +142,10 @@ namespace fan_2d {
 
      // protected:
 
-        line_backend_t m_check;
+        fan_2d::graphics::line_t m_check;
         fan_2d::graphics::gui::rectangle_button_sized_t m_checkbox;
-        text_renderer_backend_t m_text;
-        rectangle_backend_t m_background;
+        fan_2d::opengl::gui::text_renderer_t m_text;
+        fan_2d::opengl::rectangle_t m_background;
 
         struct selection_box_store_t {
           uint8_t m_checked;

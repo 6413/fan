@@ -13,7 +13,7 @@ uint16_t fan::window_input::convert_keys_to_fan(uint16_t key) {
 		case 0x0D: { return fan::input::key_enter; }
 		case 0x10: { return fan::input::key_shift; }
 		case 0x11: { return fan::input::key_control; }
-		case 0x12: { return fan::input::key_menu; }
+		case 0x12: { return fan::input::key_left_alt; }
 		case 0x13: { return fan::input::key_pause; }
 		case 0x14: { return fan::input::key_caps_lock; }
 		case 0x1B: { return fan::input::key_escape; }
@@ -67,6 +67,7 @@ uint16_t fan::window_input::convert_keys_to_fan(uint16_t key) {
 		case 0x58: { return fan::input::key_x; }
 		case 0x59: { return fan::input::key_y; }
 		case 0x5A: { return fan::input::key_z; }
+		case 0x5D: { return fan::input::key_menu; }
 
 		case 0x60: { return fan::input::key_numpad_0; }
 		case 0x61: { return fan::input::key_numpad_1; }

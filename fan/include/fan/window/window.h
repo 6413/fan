@@ -22,6 +22,7 @@
 #include <fan/window/window_input.h>
 
 #include <fan/bll.h>
+#include <fan/types/memory.h>
 
 #include <deque>
 #include <codecvt>
@@ -154,10 +155,17 @@ namespace fan {
 		};
 
 		typedef void(*keys_callback_cb_t)(fan::window_t*, uint16_t, key_state, void* user_ptr);
-		typedef void(*key_callback_cb_t)(fan::window_t*, void* user_ptr);
+		typedef void(*key_callback_cb_t)(fan::window_t*, uint16_t key, void* user_ptr);
+		typedef void(*keys_combo_callback_cb_t)(fan::window_t*, void* user_ptr);
+		using key_combo_callback_t = struct{
+			uint16_t last_key;
+			fan::hector_t<uint16_t> key_combo;
+
+			keys_combo_callback_cb_t function;
+		};
 
 		typedef void(*text_callback_cb_t)(fan::window_t*, uint32_t key, void* user_ptr);
-		typedef void(*mouse_move_position_callback_cb_t)(fan::window_t* window, const fan::vec2i& position, void* user_ptr);
+		typedef void(*mouse_position_callback_cb_t)(fan::window_t* window, const fan::vec2i& position, void* user_ptr);
 		typedef void(*close_callback_cb_t)(fan::window_t*, void* user_ptr);
 		typedef void(*resize_callback_cb_t)(fan::window_t*, const fan::vec2i& window_size, void* user_ptr);
 		typedef void(*move_callback_cb_t)(fan::window_t*, void* user_ptr);
@@ -303,13 +311,16 @@ namespace fan {
 		void edit_key_callback(callback_id_t id, uint16_t key, key_state state, void* user_ptr);
 		void remove_key_callback(callback_id_t id);
 
+		// the last key entered is the triggering key
+		callback_id_t add_key_combo_callback(uint16_t* keys, uint32_t n, void* user_ptr, keys_combo_callback_cb_t function);
+
 		callback_id_t add_text_callback(void* user_ptr, text_callback_cb_t function);
 		void remove_text_callback(callback_id_t id);
 
 		callback_id_t add_close_callback(void* user_ptr, close_callback_cb_t function);
 		void remove_close_callback(callback_id_t id);
 
-		callback_id_t add_mouse_move_callback(void* user_ptr, mouse_move_position_callback_cb_t function);
+		callback_id_t add_mouse_move_callback(void* user_ptr, mouse_position_callback_cb_t function);
 		void remove_mouse_move_callback(const callback_id_t id);
 
 		callback_id_t add_resize_callback(void* user_ptr, resize_callback_cb_t function);
@@ -399,12 +410,13 @@ namespace fan {
 
 		bll_t<pair_t<keys_callback_cb_t, void*>> m_keys_callback;
 		bll_t<key_callback_t> m_key_callback;
+		bll_t<key_combo_callback_t> m_key_combo_callback;
+
 		bll_t<pair_t<text_callback_cb_t, void*>> m_text_callback;
-		
 		bll_t<pair_t<move_callback_cb_t, void*>> m_move_callback;
 		bll_t<pair_t<resize_callback_cb_t, void*>> m_resize_callback;
 		bll_t<pair_t<close_callback_cb_t, void*>> m_close_callback;
-		bll_t<pair_t<mouse_move_position_callback_cb_t, void*>> m_mouse_move_position_callback;
+		bll_t<pair_t<mouse_position_callback_cb_t, void*>> m_mouse_position_callback;
 
 		keymap_t m_keys_down;
 

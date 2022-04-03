@@ -7,6 +7,7 @@
 
 #include <iostream>
 #include <exception>
+#include <cstring>
 
 namespace fan {
 
