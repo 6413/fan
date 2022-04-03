@@ -1,51 +1,75 @@
 #include <fan/graphics/gui.h>
+#include <fan/graphics/gui/be.h>
+
+struct pile_t {
+  fan::window_t w;
+  fan::opengl::context_t c;
+  fan_2d::graphics::rectangle_t r;
+  union {
+    struct{
+
+    }outside;
+    struct{
+
+    }inside;
+  };
+};
+
+void hover_cb(fan_2d::graphics::gui::be_t* be, uint32_t index, fan_2d::graphics::gui::mouse_stage mouse_stage) {
+  pile_t* pile = (pile_t*)be->get_userptr();
+  switch (mouse_stage) {
+    case fan_2d::graphics::gui::mouse_stage::inside: {
+      fan::print("i", index);
+      break;
+    }
+    case fan_2d::graphics::gui::mouse_stage::outside: {
+      fan::print("o", index);
+      break;
+    }
+  }
+}
 
 int main() {
-  fan::window_t w;
-  w.open();
 
-  fan::opengl::context_t context;
-  context.init();
-  fan::opengl::context_t::properties_t cp;
-  cp.samples = 0;
-  context.bind_to_window(&w, cp);
-  context.set_viewport(0, w.get_size());
-  w.add_resize_callback(&context, [](fan::window_t*, const fan::vec2i& s, void* p) {
-    ((fan::opengl::context_t*)(p))->set_viewport(0, s);
-  });
+  pile_t p;
+  p.w.open();
 
-  fan_2d::opengl::gui::text_renderer_t x;
-  x.open(&context);
+  p.c.init();
+  p.c.bind_to_window(&p.w);
+  p.c.set_viewport(0, p.w.get_size());
 
-  fan_2d::graphics::gui::select_box_t sb;
-  fan_2d::graphics::gui::select_box_t::open_properties_t op;
-  op.position = fan::vec2(400, 400);
-  op.gui_size = 25;
-  op.max_text_length = 130;
-  sb.open(&w, &context, op);
-  sb.enable_draw(&w, &context);
+  p.r.open(&p.c);
+  p.r.enable_draw(&p.c);
+  {
+    fan_2d::graphics::rectangle_t::properties_t pp;
+    pp.position = p.w.get_size() / 2;
+    pp.size = 50;
+    pp.color = fan::colors::white;
+    p.r.push_back(&p.c, pp);
+  }
 
-  fan_2d::graphics::gui::select_box_t::properties_t sp;
-  sp.text = "rectangle";
-  sb.push_back(&w, &context, sp);
-  sp.text = "sprite";
-  sb.push_back(&w, &context, sp);
-  sb.set_on_select_action(&w, &context, 0, [](fan_2d::graphics::gui::select_box_t*, fan::window_t*, uint32_t i, void*) {
-    fan::print(i);
-  });
+  fan_2d::graphics::gui::be_t rtbs;
+  rtbs.open();
+  rtbs.bind_to_window(&p.w);
+  
+  fan_2d::graphics::gui::be_t::properties_t pp;
+  pp.size = p.r.get_size(&p.c, 0);
+  pp.position = p.r.get_position(&p.c, 0);
 
+  rtbs.push_back(pp);
+
+  rtbs.set_userptr(&p);
 
   while(1) {
 
+    uint32_t window_event = p.w.handle_events();
+    if(window_event & fan::window_t::events::close){
+      p.w.close();
+      break;
+    }
 
-    uint32_t window_event_flag = w.handle_events();
-     if(window_event_flag & fan::window_t::events::close){
-       w.close();
-       break;
-     }
-
-    context.process();
-    context.render(&w);
+    p.c.process();
+    p.c.render(&p.w);
   }
 
   return 0;

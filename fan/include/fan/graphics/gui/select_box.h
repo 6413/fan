@@ -12,9 +12,6 @@ namespace fan_2d {
   namespace graphics {
     namespace gui {
 
-      using rectangle_backend_t = fan_2d::opengl::rectangle_t;
-      using text_renderer_backend_t = fan_2d::opengl::gui::text_renderer_t;
-
       struct select_box_t {
 
         typedef void(*checkbox_action_cb)(select_box_t*, fan::window_t*, uint32_t i, void* userptr);
