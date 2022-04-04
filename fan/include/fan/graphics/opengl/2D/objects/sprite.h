@@ -12,7 +12,14 @@ namespace fan_2d {
 
       sprite_t() = default;
 
-      void open(fan::opengl::context_t* context) {
+      struct open_properties_t {
+
+        open_properties_t() : light(nullptr) {};
+
+        fan_2d::graphics::lighting::light_t* light;
+      };
+
+      void open(fan::opengl::context_t* context, open_properties_t p = open_properties_t()) {
 
         m_shader.open(context);
 
@@ -34,6 +41,7 @@ namespace fan_2d {
         m_queue_helper.open();
 
         m_draw_node_reference = fan::uninitialized;
+        m_light = p.light;
       }
       void close(fan::opengl::context_t* context) {
 
@@ -67,6 +75,8 @@ namespace fan_2d {
           fan::vec2(0, 0)
         };
 
+        f32_t allow_lighting = false;
+
         fan::opengl::image_t* image;
       };
 
@@ -82,6 +92,7 @@ namespace fan_2d {
         fan::vec3 rotation_vector;
 
         fan::vec2 texture_coordinates;
+        f32_t allow_lighting;
       };
 
     public:
@@ -93,7 +104,8 @@ namespace fan_2d {
       static constexpr uint32_t offset_rotation_point = offsetof(instance_t, rotation_point);
       static constexpr uint32_t offset_rotation_vector = offsetof(instance_t, rotation_vector);
       static constexpr uint32_t offset_texture_coordinates = offsetof(instance_t, texture_coordinates);
-      static constexpr uint32_t element_byte_size = offset_texture_coordinates + sizeof(fan::vec2);
+      static constexpr uint32_t offset_allow_lighting = offsetof(instance_t, allow_lighting);
+      static constexpr uint32_t element_byte_size = offset_allow_lighting + sizeof(f32_t);
 
       static constexpr uint32_t vertex_count = 6;
 
@@ -107,6 +119,7 @@ namespace fan_2d {
         instance.angle = properties.angle;
         instance.rotation_point = properties.rotation_point;
         instance.rotation_vector = properties.rotation_vector;
+        instance.allow_lighting = properties.allow_lighting;
 
         for (int i = 0; i < vertex_count; i++) {
           instance.texture_coordinates = fan_2d::opengl::convert_tc_4_2_6(&properties.texture_coordinates, i);
@@ -134,6 +147,7 @@ namespace fan_2d {
         instance.angle = properties.angle;
         instance.rotation_point = properties.rotation_point;
         instance.rotation_vector = properties.rotation_vector;
+        instance.allow_lighting = properties.allow_lighting;
 
         for (int j = 0; j < vertex_count; j++) {
           instance.texture_coordinates = fan_2d::opengl::convert_tc_4_2_6(&properties.texture_coordinates, j);
@@ -464,6 +478,31 @@ namespace fan_2d {
           to++;
         }
 
+        if (m_light != nullptr) {
+          uint32_t render_codeu[4];
+          f32_t render_codef[255];
+
+          render_codeu[0] = m_light->size();
+          uint32_t render_codeu_byte_index = 1;
+          uint32_t render_codef_index = 0;
+
+          for (uint32_t i = 0; i < m_light->size(); i++) {
+            render_codef[render_codef_index++] = m_light->get_position(i).x;
+            render_codef[render_codef_index++] = m_light->get_position(i).y;
+
+            render_codef[render_codef_index++] = m_light->get_radius(i);
+            render_codef[render_codef_index++] = m_light->get_intensity(i);
+
+            render_codef[render_codef_index++] = m_light->get_ambient_strength(i);
+            render_codef[render_codef_index++] = m_light->get_color(i).r;
+            render_codef[render_codef_index++] = m_light->get_color(i).g;
+            render_codef[render_codef_index++] = m_light->get_color(i).b;
+          }
+
+          m_shader.set_float_array(context, "render_codef", render_codef, std::size(render_codef));
+          m_shader.set_uint_array(context, "render_codeu", render_codeu, std::size(render_codeu));
+        }
+
         if (to) {
           m_glsl_buffer.draw(
             context,
@@ -484,6 +523,7 @@ namespace fan_2d {
       fan::opengl::core::glsl_buffer_t m_glsl_buffer;
       fan::opengl::core::queue_helper_t m_queue_helper;
       uint32_t m_draw_node_reference;
+      fan_2d::graphics::lighting::light_t* m_light;
     };
 
   }

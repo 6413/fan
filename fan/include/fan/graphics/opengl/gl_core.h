@@ -10,6 +10,7 @@
 #include <fan/types/memory.h>
 
 #include <fan/graphics/opengl/gl_init.h>
+#include <fan/graphics/light.h>
 
 #ifdef fan_platform_windows
   #include <dbghelp.h>
@@ -115,7 +116,7 @@ namespace fan {
 
       struct properties_t {
         properties_t() {
-          samples = 1;
+          samples = 0;
           major = 2;
           minor = 1;
         }

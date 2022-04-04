@@ -72,7 +72,7 @@ namespace fan_2d {
         p.respawn_time = 0e+9;
         //p.count = 1;
         //p.position = 0;
-        p.size = 2;
+        p.size = 15;
         p.angle = 0;
         p.rotation_vector = fan::vec3(0, 0, 1);
         //p.position_velocity = 0;
