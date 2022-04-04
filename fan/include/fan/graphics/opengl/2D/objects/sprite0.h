@@ -12,8 +12,8 @@ namespace fan_2d {
 
 			sprite0_t() = default;
 
-			void open(fan::opengl::context_t* context, void* user_ptr, erase_cb_t erase_cb) {
-				sprite_t::open(context);
+			void open(fan::opengl::context_t* context, const sprite_t::open_properties_t& p, void* user_ptr, erase_cb_t erase_cb) {
+				sprite_t::open(context, p);
 
 				m_erase_cb = erase_cb;
 				m_user_ptr = user_ptr;

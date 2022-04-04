@@ -10,6 +10,16 @@
 	#include <fan/graphics/vulkan/vk_graphics.h>
 #endif
 
+namespace fan {
+	namespace graphics {
+
+		#if fan_renderer == fan_renderer_opengl
+			using fan::opengl::load_image;
+		#endif
+
+	}
+}
+
 namespace fan_2d {
 	namespace graphics {
 
@@ -18,7 +28,6 @@ namespace fan_2d {
 			using fan_2d::opengl::rectangle_t;
 			using fan_2d::opengl::circle_t;
 			using fan_2d::opengl::sprite_t;
-		#else
 
 		#endif
 

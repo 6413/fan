@@ -204,10 +204,10 @@ void main() {
 
 	gl_Position = projection * view * m * vec4(triangle_vertices[gl_VertexID % 3], 0, 1);
 
-	float r = 1;
-	float g = 0;
-	float b = 0;
+	float r = 1.0;
+	float g = 0.1;
+	float b = 0.1;
 
-	i_color = vec4(r, g, b, 1.0 - normalize(abs(position.x - pos.x), 0, 100));
+	i_color = vec4(r, g, b, 1);
 }
 )"
