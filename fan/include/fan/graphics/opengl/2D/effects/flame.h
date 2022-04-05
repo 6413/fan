@@ -8,9 +8,9 @@
 namespace fan_2d {
   namespace opengl {
 
-    struct sprite_t {
+    struct flame_t {
 
-      sprite_t() = default;
+      flame_t() = default;
 
       struct open_properties_t {
 
@@ -25,12 +25,12 @@ namespace fan_2d {
 
         m_shader.set_vertex(
           context,
-          #include <fan/graphics/glsl/opengl/2D/objects/sprite.vs>
+          #include <fan/graphics/glsl/opengl/2D/effects/flame.vs>
         );
 
         m_shader.set_fragment(
           context,
-          #include <fan/graphics/glsl/opengl/2D/objects/sprite.fs>
+          #include <fan/graphics/glsl/opengl/2D/effects/flame.fs>
         );
 
         m_shader.compile(context);
@@ -160,7 +160,7 @@ namespace fan_2d {
           &m_glsl_buffer
         );
 
-        store_sprite_t sst;
+        store_flame_t sst;
         sst.m_texture = properties.image->texture;
 
         m_store_sprite.insert(i, sst);
@@ -432,6 +432,10 @@ namespace fan_2d {
         context->disable_draw(m_draw_node_reference);
       }
 
+      void set_delta(fan::opengl::context_t* context, f32_t delta) {
+        m_delta = delta;
+      }
+
   //	protected:
 
       void draw(fan::opengl::context_t* context) {
@@ -503,6 +507,8 @@ namespace fan_2d {
           m_shader.set_uint_array(context, "render_codeu", render_codeu, std::size(render_codeu));
         }
 
+        m_shader.set_float(context, "iTime", m_delta);
+
         if (to) {
           m_glsl_buffer.draw(
             context,
@@ -513,17 +519,18 @@ namespace fan_2d {
 
       }
 
-      struct store_sprite_t {
+      struct store_flame_t {
         uint32_t m_texture;
       };
 
-      fan::hector_t<store_sprite_t> m_store_sprite;
+      fan::hector_t<store_flame_t> m_store_sprite;
 
       fan::shader_t m_shader;
       fan::opengl::core::glsl_buffer_t m_glsl_buffer;
       fan::opengl::core::queue_helper_t m_queue_helper;
       uint32_t m_draw_node_reference;
       fan_2d::graphics::lighting::light_t* m_light;
+      f32_t m_delta;
     };
 
   }

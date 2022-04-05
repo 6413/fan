@@ -18,12 +18,12 @@ namespace fan_2d {
 
 				m_shader.set_vertex(
 					context, 
-					#include <fan/graphics/glsl/opengl/2D/depth_sprite.vs>
+					#include <fan/graphics/glsl/opengl/2D/objects/depth/depth_sprite.vs>
 				);
 
 				m_shader.set_fragment(
 					context, 
-					#include <fan/graphics/glsl/opengl/2D/depth_sprite.fs>
+					#include <fan/graphics/glsl/opengl/2D/objects/depth/depth_sprite.fs>
 				);
 
 				m_shader.compile(context);
@@ -31,14 +31,14 @@ namespace fan_2d {
 				m_store_sprite.open();
 				m_glsl_buffer.open(context);
 				m_glsl_buffer.init(context, m_shader.id, element_byte_size);
-				m_queue_helper.open(context);
+				m_queue_helper.open();
 
 				m_draw_node_reference = fan::uninitialized;
 			}
 			void close(fan::opengl::context_t* context) {
 
 				m_glsl_buffer.close(context);
-				m_queue_helper.close(context, context);
+				m_queue_helper.close(context);
 				m_shader.close(context);
 
 				if (m_draw_node_reference == fan::uninitialized) {
@@ -196,8 +196,8 @@ namespace fan_2d {
 				}
 				m_queue_helper.edit(
 					context,
-					i * vertex_count * element_byte_size + offset_texture_coordinates,
-					(i + 1) * (vertex_count)*element_byte_size - offset_texture_coordinates,
+					i * vertex_count * element_byte_size,
+					(i + 1) * (vertex_count)*element_byte_size,
 					&m_glsl_buffer
 				);
 			}
@@ -205,7 +205,7 @@ namespace fan_2d {
 			void erase(fan::opengl::context_t* context, uint32_t i) {
 				m_glsl_buffer.erase_instance(context, i * vertex_count, 1, element_byte_size, vertex_count);
 
-				uint32_t to = m_glsl_buffer.m_buffer.size(context);
+				uint32_t to = m_glsl_buffer.m_buffer.size();
 
 				m_store_sprite.erase(i);
 
@@ -219,7 +219,7 @@ namespace fan_2d {
 			void erase(fan::opengl::context_t* context, uint32_t begin, uint32_t end) {
 				m_glsl_buffer.erase_instance(context, begin * vertex_count, end - begin, element_byte_size, vertex_count);
 
-				uint32_t to = m_glsl_buffer.m_buffer.size(context);
+				uint32_t to = m_glsl_buffer.m_buffer.size();
 
 				m_queue_helper.edit(
 					context,
@@ -273,14 +273,14 @@ namespace fan_2d {
 						&color,
 						element_byte_size,
 						offset_color,
-						sizeof(rectangle::properties_t::color)
+						sizeof(properties_t::color)
 					);
 				}
 
 				m_queue_helper.edit(
 					context,
-					i * vertex_count * element_byte_size + offset_color,
-					(i + 1) * (vertex_count)*element_byte_size - offset_color,
+					i * vertex_count * element_byte_size,
+					(i + 1) * (vertex_count)*element_byte_size,
 					&m_glsl_buffer
 				);
 			}
@@ -301,8 +301,8 @@ namespace fan_2d {
 				}
 				m_queue_helper.edit(
 					context,
-					i * vertex_count * element_byte_size + offset_position,
-					(i + 1) * (vertex_count)*element_byte_size - offset_position,
+					i * vertex_count * element_byte_size,
+					(i + 1) * (vertex_count)*element_byte_size,
 					&m_glsl_buffer
 				);
 			}
@@ -323,8 +323,8 @@ namespace fan_2d {
 				}
 				m_queue_helper.edit(
 					context,
-					i * vertex_count * element_byte_size + offset_size,
-					(i + 1) * (vertex_count)*element_byte_size - offset_size,
+					i * vertex_count * element_byte_size,
+					(i + 1) * (vertex_count)*element_byte_size,
 					&m_glsl_buffer
 				);
 			}
@@ -347,8 +347,8 @@ namespace fan_2d {
 				}
 				m_queue_helper.edit(
 					context,
-					i * vertex_count * element_byte_size + offset_angle,
-					(i + 1) * (vertex_count)*element_byte_size - offset_angle,
+					i * vertex_count * element_byte_size,
+					(i + 1) * (vertex_count)*element_byte_size,
 					&m_glsl_buffer
 				);
 			}
@@ -369,8 +369,8 @@ namespace fan_2d {
 				}
 				m_queue_helper.edit(
 					context,
-					i * vertex_count * element_byte_size + offset_rotation_point,
-					(i + 1) * (vertex_count)*element_byte_size - offset_rotation_point,
+					i * vertex_count * element_byte_size,
+					(i + 1) * (vertex_count)*element_byte_size,
 					&m_glsl_buffer
 				);
 			}
@@ -391,14 +391,14 @@ namespace fan_2d {
 				}
 				m_queue_helper.edit(
 					context,
-					i * vertex_count * element_byte_size + offset_rotation_vector,
-					(i + 1) * (vertex_count)*element_byte_size - offset_rotation_vector,
+					i * vertex_count * element_byte_size,
+					(i + 1) * (vertex_count)*element_byte_size,
 					&m_glsl_buffer
 				);
 			}
 
 			uint32_t size(fan::opengl::context_t* context) const {
-				return m_glsl_buffer.m_buffer.size(context) / element_byte_size / vertex_count;
+				return m_glsl_buffer.m_buffer.size() / element_byte_size / vertex_count;
 			}
 
 			bool inside(fan::opengl::context_t* context, uint32_t i, const fan::vec2& position) const {
@@ -435,7 +435,7 @@ namespace fan_2d {
 			//	protected:
 
 			void draw(fan::opengl::context_t* context) {
-				m_shader.use();
+				m_shader.use(context);
 
 				const fan::vec2 viewport_size = context->viewport_size;
 
@@ -464,7 +464,6 @@ namespace fan_2d {
 						if (to) {
 							m_glsl_buffer.draw(
 								context,
-								m_shader,
 								(from)*vertex_count,
 								(from + to) * vertex_count
 							);
@@ -472,9 +471,9 @@ namespace fan_2d {
 						from = i;
 						to = 0;
 						texture_id = m_store_sprite[i].m_texture;
-						m_shader.set_int("texture_sampler", 0);
-						glActiveTexture(GL_TEXTURE0);
-						glBindTexture(GL_TEXTURE_2D, texture_id);
+						m_shader.set_int(context, "texture_sampler", 0);
+						context->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
+						context->opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, texture_id);
 					}
 					to++;
 				}
@@ -482,7 +481,6 @@ namespace fan_2d {
 				if (to) {
 					m_glsl_buffer.draw(
 						context,
-						m_shader,
 						(from)*vertex_count,
 						(from + to) * vertex_count
 					);
