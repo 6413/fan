@@ -24,6 +24,7 @@
 #include <fan/graphics/opengl/2D/objects/depth/depth_rectangle.h>
 
 #include <fan/graphics/opengl/2D/effects/particles.h>
+#include <fan/graphics/opengl/2D/effects/flame.h>
 
 #include <fan/graphics/opengl/3D/objects/model.h>
 #include <fan/graphics/opengl/3D/objects/skybox.h>

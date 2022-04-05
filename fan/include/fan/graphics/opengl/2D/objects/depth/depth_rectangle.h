@@ -164,8 +164,8 @@ namespace fan_2d {
 
 				m_queue_helper.edit(
 					context,
-					i * vertex_count * element_byte_size + offset_color,
-					(i + 1) * (vertex_count)*element_byte_size - offset_color,
+					i * vertex_count * element_byte_size,
+					(i + 1) * (vertex_count)*element_byte_size,
 					&m_glsl_buffer
 				);
 			}
@@ -186,8 +186,8 @@ namespace fan_2d {
 				}
 				m_queue_helper.edit(
 					context,
-					i * vertex_count * element_byte_size + offset_position,
-					(i + 1) * (vertex_count)*element_byte_size - offset_position,
+					i * vertex_count * element_byte_size,
+					(i + 1) * (vertex_count)*element_byte_size,
 					&m_glsl_buffer
 				);
 			}
@@ -208,8 +208,8 @@ namespace fan_2d {
 				}
 				m_queue_helper.edit(
 					context,
-					i * vertex_count * element_byte_size + offset_size,
-					(i + 1) * (vertex_count)*element_byte_size - offset_size,
+					i * vertex_count * element_byte_size,
+					(i + 1) * (vertex_count)*element_byte_size,
 					&m_glsl_buffer
 				);
 			}
@@ -232,8 +232,8 @@ namespace fan_2d {
 				}
 				m_queue_helper.edit(
 					context,
-					i * vertex_count * element_byte_size + offset_angle,
-					(i + 1) * (vertex_count)*element_byte_size - offset_angle,
+					i * vertex_count * element_byte_size,
+					(i + 1) * (vertex_count)*element_byte_size,
 					&m_glsl_buffer
 				);
 			}
@@ -254,8 +254,8 @@ namespace fan_2d {
 				}
 				m_queue_helper.edit(
 					context,
-					i * vertex_count * element_byte_size + offset_rotation_point,
-					(i + 1) * (vertex_count)*element_byte_size - offset_rotation_point,
+					i * vertex_count * element_byte_size,
+					(i + 1) * (vertex_count)*element_byte_size,
 					&m_glsl_buffer
 				);
 			}
@@ -276,8 +276,8 @@ namespace fan_2d {
 				}
 				m_queue_helper.edit(
 					context,
-					i * vertex_count * element_byte_size + offset_rotation_vector,
-					(i + 1) * (vertex_count)*element_byte_size - offset_rotation_vector,
+					i * vertex_count * element_byte_size,
+					(i + 1) * (vertex_count)*element_byte_size,
 					&m_glsl_buffer
 				);
 			}
