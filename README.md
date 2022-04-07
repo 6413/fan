@@ -15,6 +15,9 @@ int main() {
   c.init();
   c.bind_to_window(&w);
   c.set_viewport(0, w.get_size());
+  w.add_resize_callback(&c, [](fan::window_t*, const fan::vec2i& size, void* userptr) {
+    ((fan::opengl::context_t*)userptr)->set_viewport(0, size);
+  });
 
   while(1) {
 
