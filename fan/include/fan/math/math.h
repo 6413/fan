@@ -138,23 +138,23 @@ namespace fan {
         {
           uint32_t dxLo;
           uint32_t dxHi;
-        };
+        }dx;
       };
       du = d;
-      uint32_t exp = dxHi & EXP_MASK;
+      uint32_t exp = dx.dxHi & EXP_MASK;
       if (exp >= MIN_INTEGRAL_DIGITS_EXP)
         if (exp < MIN_INTEGRAL_ONLY_EXP)
           if (exp <= MAX_INTEGRAL32_EXP)
           {
             unsigned shift = (unsigned)(exp >> HI_MANTISSA_BITS) - EXP_BIAS;
-            dxHi &= ~(NEG_HI_MANTISSA_MASK >> shift);
-            dxLo = 0;
+            dx.dxHi &= ~(NEG_HI_MANTISSA_MASK >> shift);
+            dx.dxLo = 0;
             return du;
           }
           else
           {
             unsigned shift = (unsigned)(exp >> HI_MANTISSA_BITS) - EXP_BIAS - HI_MANTISSA_BITS;
-            dxLo &= ~(NEG_LO_MANTISSA_MASK >> shift);
+            dx.dxLo &= ~(NEG_LO_MANTISSA_MASK >> shift);
             return du;
           }
         else
@@ -164,8 +164,8 @@ namespace fan {
             return du + du;
       else
       {
-        dxHi &= SIGN_MASK;
-        dxLo = 0;
+        dx.dxHi &= SIGN_MASK;
+        dx.dxLo = 0;
         return du;
       }
 		}

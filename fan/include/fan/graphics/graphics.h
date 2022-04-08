@@ -20,6 +20,17 @@ namespace fan {
 	}
 }
 
+namespace fan {
+	namespace graphics {
+
+		#if fan_renderer == fan_renderer_opengl
+			using fan::opengl::context_t;
+		#endif
+
+
+	}
+}
+
 namespace fan_2d {
 	namespace graphics {
 

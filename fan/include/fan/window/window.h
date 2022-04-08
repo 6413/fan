@@ -70,11 +70,14 @@ namespace fan {
 
 #endif
 
+	static void set_console_visibility(bool visible) {
+		#ifdef fan_platform_windows
+			ShowWindow(GetConsoleWindow(), visible ? SW_SHOW : SW_HIDE);
+		#endif
+	}
+
 	#ifdef fan_platform_windows
 
-	static void set_console_visibility(bool visible) {
-		ShowWindow(GetConsoleWindow(), visible ? SW_SHOW : SW_HIDE);
-	}
 
 	using window_handle_t = HWND;
 

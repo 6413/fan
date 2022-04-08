@@ -20,10 +20,12 @@ namespace fan_2d {
           f32_t intensity = 1;
           f32_t ambient_strength = 0.1;
           fan::color color = fan::colors::white;
+          fan::vec2 rotation_point;
+          f32_t angle;
         };
 
-        void push_back(const properties_t& p) {
-          instance.push_back(p);
+        uint32_t push_back(const properties_t& p) {
+          return instance.push_back(p);
         }
 
         fan::vec2 get_position(uint32_t i) const {
@@ -59,6 +61,20 @@ namespace fan_2d {
         }
         void set_color(uint32_t i, const fan::color& color) {
           instance[i].color = color;
+        }
+
+        fan::vec2 get_rotation_point(uint32_t i) const {
+          return instance[i].rotation_point;
+        }
+        void set_rotation_point(uint32_t i, const fan::vec2& rotation_point) {
+          instance[i].rotation_point = rotation_point;
+        }
+
+        f32_t get_angle(uint32_t i) const {
+          return instance[i].angle;
+        }
+        void set_angle(uint32_t i, f32_t angle) {
+          instance[i].angle = angle;
         }
 
         uint32_t size() const {

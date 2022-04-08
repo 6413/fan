@@ -42,6 +42,7 @@ namespace fan_2d {
 
         m_draw_node_reference = fan::uninitialized;
         m_light = p.light;
+        m_delta = 0;
       }
       void close(fan::opengl::context_t* context) {
 
@@ -483,8 +484,8 @@ namespace fan_2d {
         }
 
         if (m_light != nullptr) {
-          uint32_t render_codeu[4];
-          f32_t render_codef[255];
+          uint32_t render_codeu[4] = {0};
+          f32_t render_codef[255] = {0};
 
           render_codeu[0] = m_light->size();
           uint32_t render_codeu_byte_index = 1;
@@ -501,6 +502,10 @@ namespace fan_2d {
             render_codef[render_codef_index++] = m_light->get_color(i).r;
             render_codef[render_codef_index++] = m_light->get_color(i).g;
             render_codef[render_codef_index++] = m_light->get_color(i).b;
+
+            render_codef[render_codef_index++] = m_light->get_rotation_point(i).x;
+            render_codef[render_codef_index++] = m_light->get_rotation_point(i).y;
+            render_codef[render_codef_index++] = m_light->get_angle(i);
           }
 
           m_shader.set_float_array(context, "render_codef", render_codef, std::size(render_codef));

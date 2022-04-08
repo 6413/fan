@@ -9,26 +9,21 @@ namespace fan {
   template <typename type_t>
   struct hector_t {
 
-    inline static int x = 0;
-
     void open() {
       m_size = 0;
       m_capacity = 0;
       ptr = 0;
-      x = 1;
     }
     void close() {
       resize_buffer(ptr, 0);
       open();
     }
 
-    void push_back(const type_t& value) {
-      if (!x) {
-        fan::throw_error("err");
-      }
+    uintptr_t push_back(const type_t& value) {
       m_size++;
       handle_buffer();
       ptr[m_size - 1] = value;
+      return m_size - 1;
     }
 
     void emplace_back(type_t&& value) {

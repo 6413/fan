@@ -20,7 +20,7 @@ namespace fan_2d {
 					fan::vec2 position = 0;
 					fan::color text_color;
 					fan::color outline_color = fan::color(0, 0, 0, 0);
-					f32_t outline_size = 0.7;
+					f32_t outline_size = 0.8;
 					fan::vec2 rotation_point = 0;
 					f32_t angle = 0;
 				};

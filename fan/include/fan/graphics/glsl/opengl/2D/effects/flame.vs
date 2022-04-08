@@ -8,7 +8,7 @@ in vec4 input3;
 in float input4;
 
 out vec4 i_color;
-out vec2 f_position;
+out vec2 fragment_position;
 out float allow_lighting;
 out vec2 resolution;
 
@@ -138,7 +138,7 @@ void main() {
 
 	gl_Position = projection * view * m * vec4(rectangle_vertices[gl_VertexID % 6], 0, 1);
 
-	f_position = (m * vec4(rectangle_vertices[gl_VertexID % 6], 0, 1)).xy;
+	fragment_position = (m * vec4(rectangle_vertices[gl_VertexID % 6], 0, 1)).xy;
 	i_color = layout_color;
 	resolution = layout_size;
 }
