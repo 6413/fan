@@ -443,10 +443,17 @@ namespace fan_2d {
 
 					this->regenerate_indices();
 
+					uint32_t to = m_glsl_buffer.m_buffer.size();
+
+					if (to == 0) {
+						// erase queue if there will be no objects left (special case)
+						return;
+					}
+
 					m_queue_helper.edit(
 						context,
 						src * vertex_count * element_byte_size,
-						m_glsl_buffer.m_buffer.size(),
+						to,
 						&m_glsl_buffer
 					);
 				}
@@ -464,26 +471,25 @@ namespace fan_2d {
 
 					this->regenerate_indices();
 
+					uint32_t to = m_glsl_buffer.m_buffer.size();
+
+					if (to == 0) {
+						// erase queue if there will be no objects left (special case)
+						return;
+					}
+
 					m_queue_helper.edit(
 						context,
 						src * vertex_count * element_byte_size,
-						m_glsl_buffer.m_buffer.size(),
+						to,
 						&m_glsl_buffer
 					);
 				}
 
 				void clear(fan::opengl::context_t* context) {
-
 					m_glsl_buffer.clear_ram(context);
 					m_store.clear();
 					m_store_sprite.clear();
-
-					m_queue_helper.edit(
-						context,
-						0,
-						(this->size(context)) * vertex_count * element_byte_size,
-						&m_glsl_buffer
-					);
 				}
 
 

@@ -11,8 +11,8 @@ namespace fan_2d {
 
 
 			constexpr bool point_inside(const fan::vec2& v1, const fan::vec2& v2, const fan::vec2& v3, const fan::vec2& point) {
-				float d1, d2, d3;
-				bool has_neg, has_pos;
+				float d1 = 0, d2 = 0, d3 = 0;
+				bool has_neg = 0, has_pos = 0;
 
 				d1 = fan::math::sign(point, v1, v2);
 				d2 = fan::math::sign(point, v2, v3);

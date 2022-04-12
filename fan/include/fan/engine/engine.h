@@ -811,18 +811,20 @@ namespace fan_2d {
 
 				this->collider_list[reference].removed = 1;
 
-				auto f = [r = reference, this] {
+				uint64_t ptr = (uint64_t)this;
 
-					auto ptr = collider_callbacks_t<user_struct>::get_body(r)->get_fixture_list();
+				auto f = [r = reference, userptr = ptr] {
+					collider_wrap_t* thiS = (collider_wrap_t*)userptr;
+					auto ptr = thiS->get_body(r)->get_fixture_list();
 
 					while (ptr) {
 						auto ptr_next = ptr->get_next();
-						collider_callbacks_t<user_struct>::get_body(r)->destroy_fixture(ptr);
+						thiS->get_body(r)->destroy_fixture(ptr);
 						ptr = ptr_next;
 					}
 
-					m_engine->world.destroy_body(collider_callbacks_t<user_struct>::get_body(r));
-					collider_callbacks_t<user_struct>::collider_list.unlink(r);
+					thiS->m_engine->world.destroy_body(thiS->get_body(r));
+					thiS->collider_list.unlink(r);
 				};
 
 				if (m_engine->world.is_locked()) {
@@ -834,7 +836,7 @@ namespace fan_2d {
 					
 			}
 
-		protected:
+		public:
 
 			fan_2d::engine::engine_t* m_engine;
 

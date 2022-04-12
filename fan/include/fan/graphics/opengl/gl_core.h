@@ -165,7 +165,7 @@ namespace fan {
       const GLchar* message,
       const void* userParam )
       {
-        if (type == 33361) { // gl_static_draw
+        if (type == 33361 || type == 33360) { // gl_static_draw
           return;
         }
         fan::print_no_space(type == GL_DEBUG_TYPE_ERROR ? "opengl error:" : "", type, ", severity:", severity, ", message:", message);
@@ -197,7 +197,7 @@ namespace fan {
         return size;
       }
 
-      static void write_glbuffer(fan::opengl::context_t* context, unsigned int buffer, const void* data, uintptr_t size, uint32_t usage = GL_STATIC_DRAW, uintptr_t target = GL_ARRAY_BUFFER)
+      static void write_glbuffer(fan::opengl::context_t* context, unsigned int buffer, const void* data, uintptr_t size, uint32_t usage = GL_DYNAMIC_DRAW, uintptr_t target = GL_ARRAY_BUFFER)
       {
         context->opengl.glBindBuffer(target, buffer);
 
@@ -381,7 +381,7 @@ namespace fan {
           fan::opengl::core::edit_glbuffer(context, m_vbo, data, i * element_byte_size + byte_offset, sizeof_data);
         }
         void edit_vram_buffer(fan::opengl::context_t* context, uint32_t begin, uint32_t end) {
-          if (begin == end) {
+          if (begin == end || m_buffer.empty()) {
             return;
           }
           if (end > m_buffer_size) {
@@ -510,17 +510,18 @@ inline void fan::opengl::core::queue_helper_t::edit(fan::opengl::context_t* cont
   m_min_edit = std::min(m_min_edit, begin);
   m_max_edit = std::max(m_max_edit, end);
 
-  buffer->edit_vram_buffer(context, begin, end);
+  #if fan_debug >= fan_debug_low
+  if (buffer->m_buffer.data() == nullptr) {
+    fan::throw_error("invalid edit");
+  }
+
+#endif
+
+  m_max_edit = buffer->m_buffer.size();
 
   if (is_queued()) {
     return;
   }
-
-#if fan_debug >= fan_debug_low
-  if (buffer->m_buffer.size() < begin || buffer->m_buffer.size() < end) {
-    fan::throw_error("invalid edit");
-  }
-#endif
 
   m_edit_index = context->m_write_queue.push_back(buffer_queue_t{this, buffer});
 }

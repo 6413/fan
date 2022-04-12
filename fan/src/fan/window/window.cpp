@@ -45,7 +45,7 @@ static constexpr const char* shared_library = "opengl32.dll";
 static constexpr const char* shared_library = "libGL.so.1";
 
 static void open_lib_handle(void** handle) {
-  *handle = dlopen(shared_library, RTLD_LAZY);
+  *handle = dlopen(shared_library, RTLD_LAZY | RTLD_NODELETE);
   #if fan_debug >= fan_debug_low
   if (*handle == nullptr) {
     fan::throw_error(dlerror());
@@ -458,20 +458,6 @@ fan::window_t::mode fan::window_t::get_size_mode() const
 void fan::window_t::set_size_mode(const mode& mode)
 {
   flag_values::m_size_mode = mode;
-}
-
-template <typename type>
-type fan::window_t::get_window_storage(const fan::window_handle_t& window, const std::string& location) {
-  auto found = m_window_storage.find(std::make_pair(window, location));
-  if (found == m_window_storage.end()) {
-    return {};
-  }
-  return std::any_cast<type>(found->second);
-}
-
-void fan::window_t::set_window_storage(const fan::window_handle_t& window, const std::string& location, std::any data)
-{
-  m_window_storage.insert_or_assign(std::make_pair(window, location), data);
 }
 
 fan::window_t::callback_id_t fan::window_t::add_keys_callback(void* user_ptr, keys_callback_cb_t function)
@@ -1235,6 +1221,9 @@ void fan::window_t::initialize_window(const std::string& name, const fan::vec2i&
   void* lib_handle;
   open_lib_handle(&lib_handle);
   fan::opengl::glx::PFNGLXGETPROCADDRESSPROC glXGetProcAddress = (decltype(glXGetProcAddress))get_lib_proc(&lib_handle, "glXGetProcAddress");
+  if (glXGetProcAddress == nullptr) {
+    fan::throw_error("failed to initialize glxGetprocAddress");
+  }
   close_lib_handle(&lib_handle);
   static fan::opengl::glx::PFNGLXMAKECURRENTPROC glXMakeCurrent = (decltype(glXMakeCurrent))glXGetProcAddress((const fan::opengl::GLubyte*)"glXMakeCurrent");
   static fan::opengl::glx::PFNGLXGETCURRENTDRAWABLEPROC glXGetCurrentDrawable = (decltype(glXGetCurrentDrawable))glXGetProcAddress((const fan::opengl::GLubyte*)"glXGetCurrentDrawable");

@@ -64,16 +64,14 @@ namespace fan_2d {
 					uint32_t to = m_glsl_buffer.m_buffer.size();
 					if (to == 0) {
 						// erase queue if there will be no objects left (special case)
-						m_queue_helper.on_edit(context);
+						return;
 					}
-					else if (to >= i *  vertex_count * element_byte_size) {
-						m_queue_helper.edit(
-							context,
-							i * vertex_count * element_byte_size,
-							to,
-							&m_glsl_buffer
-						);
-					}
+					m_queue_helper.edit(
+						context,
+						i * vertex_count * element_byte_size,
+						to,
+						&m_glsl_buffer
+					);
 				}
 				else {
 					sprite_t::erase(context, i);

@@ -134,22 +134,6 @@ namespace fan {
 	
 	#endif
 
-	template <typename T>
-	struct nested_value_type : std::type_identity<T> { };
-
-	template <typename T>
-	using nested_value_type_t = typename nested_value_type<T>::type;
-
-	template <typename T, std::size_t N>
-	struct nested_value_type<std::array<T, N>>
-		: std::type_identity<nested_value_type_t<T>> { };
-
-	template <typename T>
-	concept is_arithmetic_t = std::is_arithmetic<T>::value;
-
-	template <typename T>
-	concept is_not_arithmetic_t = !is_arithmetic_t<T>;
-
 	template <bool _Test, uintptr_t _Ty1, uintptr_t _Ty2>
 	struct conditional_value {
 		static constexpr auto value = _Ty1;

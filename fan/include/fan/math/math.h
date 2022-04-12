@@ -307,7 +307,7 @@ namespace fan {
 				if ( y == 0.0f ) return 0.0f;
 				return -PIBY2_f32_t;
 			}
-			f32_t atan;
+			f32_t atan = 0;
 			f32_t z = y/x;
 			if ( fabs( z ) < 1.0f )
 			{

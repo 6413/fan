@@ -18,7 +18,7 @@ namespace fan {
 
     _matrix2x2() = default;
 
-    template <fan::is_arithmetic_t T>
+    template <typename T>
     constexpr _matrix2x2(T x, T y, T z, T w) : m_array{ fan::vec2{x, y}, fan::vec2{z, w} } {}
 
     template <typename T, typename T2>

@@ -20,8 +20,8 @@ namespace fan_2d {
           f32_t intensity = 1;
           f32_t ambient_strength = 0.1;
           fan::color color = fan::colors::white;
-          fan::vec2 rotation_point;
-          f32_t angle;
+          fan::vec2 rotation_point = fan::vec2(0, 0);
+          f32_t angle = 0;
         };
 
         uint32_t push_back(const properties_t& p) {
