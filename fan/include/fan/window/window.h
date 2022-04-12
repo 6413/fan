@@ -122,8 +122,6 @@ namespace fan {
 
 	uintptr_t get_screen_refresh_rate();
 
-	inline std::unordered_map<std::pair<fan::window_handle_t, std::string>, std::any, pair_hash> m_window_storage;
-
 	inline std::unordered_map<fan::window_handle_t, fan::window_t*> window_id_storage;
 
 	fan::window_t* get_window_by_id(fan::window_handle_t wid);
@@ -258,10 +256,6 @@ namespace fan {
 
 		mode get_size_mode() const;
 		void set_size_mode(const mode& mode);
-
-		template <typename type_t>
-		static type_t get_window_storage(const fan::window_handle_t& window, const std::string& location);
-		static void set_window_storage(const fan::window_handle_t& window, const std::string& location, std::any data);
 
 		template <uintptr_t flag, typename T = 
 			typename std::conditional<flag & fan::window_t::flags::no_mouse, bool,

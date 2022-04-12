@@ -294,7 +294,7 @@ namespace fan {
 			return vec_t(std::clamp(x, min, max), std::clamp(y, min, max));
 		}
 
-		template <fan::is_not_arithmetic_t T>
+		template <typename T>
 		constexpr vec_t clamp(const T min, T max) const {
 			return vec_t(fan::clamp(x, min[0], max[0]), fan::clamp(y, min[1], max[1]));
 		}
@@ -557,7 +557,7 @@ namespace fan {
 			return vec_t(std::clamp(x, min, max), std::clamp(y, min, max), std::clamp(z, min, max));
 		}
 
-		template <fan::is_not_arithmetic_t T>
+		template <typename T>
 		constexpr vec_t clamp(const T min, T max) const {
 			return vec_t(std::clamp(x, min[0], max[0]), std::clamp(y, min[1], max[1]), std::clamp(z, min[2], max[2]));
 		}
@@ -814,7 +814,7 @@ namespace fan {
 			return vec_t(std::clamp(x, min, max), std::clamp(y, min, max), std::clamp(z, min, max), std::clamp(w, min, max));
 		}
 
-		template <fan::is_not_arithmetic_t T>
+		template <typename T>
 		constexpr vec_t clamp(const T min, T max) const {
 			return vec_t(std::clamp(x, min[0], max[0]), std::clamp(y, min[1], max[1]), std::clamp(z, min[2], max[2]), std::clamp(w, min[3], max[3]));
 		}

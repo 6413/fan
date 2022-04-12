@@ -207,6 +207,10 @@ namespace fan_2d {
 
         uint32_t to = m_glsl_buffer.m_buffer.size();
         m_store_sprite.erase(i);
+        if (to == 0) {
+					// erase queue if there will be no objects left (special case)
+          return;
+				}
 
         m_queue_helper.edit(
           context,
@@ -220,26 +224,25 @@ namespace fan_2d {
         m_glsl_buffer.erase_instance(context, begin * vertex_count, end - begin, element_byte_size, vertex_count);
 
         uint32_t to = m_glsl_buffer.m_buffer.size();
-
         m_store_sprite.erase(begin, end);
-        m_queue_helper.edit(
-          context,
-          begin * vertex_count * element_byte_size,
-          to,
-          &m_glsl_buffer
-        );
+				if (to == 0) {
+					// erase queue if there will be no objects left (special case)
+          return;
+				}
+        else {
+          m_queue_helper.edit(
+            context,
+            begin * vertex_count * element_byte_size,
+            to,
+            &m_glsl_buffer
+          );
+        }
       }
 
       // removes everything
       void clear(fan::opengl::context_t* context) {
         m_glsl_buffer.clear_ram(context);
         m_store_sprite.clear();
-        m_queue_helper.edit(
-          context,
-          0,
-          (this->size(context)) * vertex_count * element_byte_size,
-          &m_glsl_buffer
-        );
       }
 
       fan_2d::opengl::rectangle_corners_t get_corners(fan::opengl::context_t* context, uint32_t i) const {
