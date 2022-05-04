@@ -19,6 +19,7 @@ namespace fan_2d {
           uint32_t character_limit = -1;
           uint32_t line_limit = -1;
           button_states_e button_state = button_states_e::clickable;
+          bool allow_input = false;
         };
 
         void open(fan::window_t* window, fan::opengl::context_t* context) {
@@ -50,6 +51,10 @@ namespace fan_2d {
 
           m_key_event.push_back(window, context, properties.character_limit, properties.character_width, properties.line_limit);
 
+          if (properties.allow_input) {
+            m_key_event.allow_input(window, rtbs.size(context) - 1, true);
+          }
+
           if (inside(window, context, size(window, context) - 1, window->get_mouse_position()) && properties.button_state != button_states_e::locked) {
             m_button_event.m_focused_button_id = size(window, context) - 1;
             lib_add_on_mouse_move(window, context, m_button_event.m_focused_button_id, fan_2d::graphics::gui::mouse_stage::inside, m_button_event.mouse_user_ptr);
@@ -71,13 +76,13 @@ namespace fan_2d {
 
         void backspace_callback(fan::window_t* window, fan::opengl::context_t* context, uint32_t i)
         {
-          auto current_string = rtbs.get_text(context, i);
+          /*auto current_string = rtbs.get_text(context, i);
           auto current_property = rtbs.get_property(context, i);
 
           if (current_string.size() && current_string[0] == '\0' && current_property.place_holder.size()) {
             rtbs.set_text(context, i, current_property.place_holder);
             rtbs.set_text_color(context, i, defaults::text_color_place_holder);
-          }
+          }*/
         }
 
         void text_callback(fan::window_t* window, fan::opengl::context_t* context, uint32_t i)
@@ -109,6 +114,7 @@ namespace fan_2d {
           m_reserved.clear();
 
           m_key_event.set_focus(window, context, fan::uninitialized);
+          m_key_event.clear(window, context);
 
           // otherwise default add_inputs in constructor will be erased as well
           //rectangle_text_button_sized::mouse::clear();
@@ -191,7 +197,9 @@ namespace fan_2d {
                     m_key_event.render_cursor = true;
                     m_key_event.update_cursor(window, context, i);
                     m_key_event.cursor_timer.restart();
-                    m_key_event.m_cursor.enable_draw(context);
+                    if (m_key_event.m_cursor.m_draw_node_reference == fan::uninitialized) {
+                      m_key_event.m_cursor.enable_draw(context);
+                    }
                   }
                   else {
                     m_key_event.render_cursor = false;

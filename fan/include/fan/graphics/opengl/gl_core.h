@@ -127,6 +127,7 @@ namespace fan {
       };
 
       fan::camera camera;
+      fan::vec2 viewport_position;
       fan::vec2 viewport_size;
       fan::opengl::opengl_t opengl;
 
@@ -144,6 +145,8 @@ namespace fan {
 
       void bind_to_window(fan::window_t* window, const properties_t& p = properties_t());
 
+      fan::vec2 get_viewport_position() const;
+      fan::vec2 get_viewport_size() const;
       void set_viewport(const fan::vec2& viewport_position, const fan::vec2& viewport_size_);
 
       void process();
@@ -544,6 +547,9 @@ inline void fan::opengl::core::queue_helper_t::reset_edit() {
 
 inline void fan::opengl::context_t::init() {
   
+  m_draw_queue.open();
+  m_write_queue.open();
+
   opengl.open();
 
   #if fan_debug >= fan_debug_high
@@ -557,7 +563,7 @@ inline void fan::opengl::context_t::bind_to_window(fan::window_t* window, const 
 
   #if defined(fan_platform_windows)
 
-    window->m_hdc = GetDC(window->m_window);
+    window->m_hdc = GetDC(window->m_window_handle);
 
     int pixel_format_attribs[19] = {
         WGL_DRAW_TO_WINDOW_ARB, fan::opengl::GL_TRUE,
@@ -628,7 +634,7 @@ inline void fan::opengl::context_t::bind_to_window(fan::window_t* window, const 
   #elif defined(fan_platform_unix)
 
   if (opengl.internal.glXGetCurrentContext() != window->m_context) {
-    opengl.internal.glXMakeCurrent(fan::sys::m_display, window->m_window, window->m_context);
+    opengl.internal.glXMakeCurrent(fan::sys::m_display, window->m_window_handle, window->m_context);
   }
 
   #endif
@@ -637,8 +643,19 @@ inline void fan::opengl::context_t::bind_to_window(fan::window_t* window, const 
   opengl.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
-inline void fan::opengl::context_t::set_viewport(const fan::vec2& viewport_position, const fan::vec2& viewport_size_) {
-  opengl.glViewport(viewport_position.x, viewport_position.y, viewport_size_.x, viewport_size_.y);
+inline fan::vec2 fan::opengl::context_t::get_viewport_position() const
+{
+  return viewport_position;
+}
+
+inline fan::vec2 fan::opengl::context_t::get_viewport_size() const
+{
+  return viewport_size;
+}
+
+inline void fan::opengl::context_t::set_viewport(const fan::vec2& viewport_position_, const fan::vec2& viewport_size_) {
+  opengl.glViewport(viewport_position_.x, viewport_position_.y, viewport_size_.x, viewport_size_.y);
+  viewport_position = viewport_position_;
   viewport_size = viewport_size_;
 }
 
@@ -681,7 +698,7 @@ inline void fan::opengl::context_t::render(fan::window_t* window) {
   #ifdef fan_platform_windows
     SwapBuffers(window->m_hdc);
   #elif defined(fan_platform_unix)
-    opengl.internal.glXSwapBuffers(fan::sys::m_display, window->m_window);
+    opengl.internal.glXSwapBuffers(fan::sys::m_display, window->m_window_handle);
   #endif
 }
 
@@ -724,7 +741,7 @@ inline void fan::opengl::context_t::set_vsync(fan::window_t* window, bool flag)
 
   #elif defined(fan_platform_unix)
 
-      opengl.internal.glXMakeCurrent(fan::sys::m_display, window->m_window, window->m_context);
+      opengl.internal.glXMakeCurrent(fan::sys::m_display, window->m_window_handle, window->m_context);
 
   #endif
 

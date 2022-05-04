@@ -162,24 +162,6 @@ namespace fan_2d {
       //	protected:
 
       void draw_vertex(fan::opengl::context_t* context, uint32_t begin, uint32_t end) {
-          const fan::vec2 viewport_size = context->viewport_size;
-
-          fan::mat4 projection(1);
-		      projection = fan::math::ortho<fan::mat4>(
-            (f32_t)viewport_size.x * 0.5,
-            ((f32_t)viewport_size.x + (f32_t)viewport_size.x * 0.5), 
-            ((f32_t)viewport_size.y + (f32_t)viewport_size.y * 0.5), 
-            ((f32_t)viewport_size.y * 0.5), 
-            0.01,
-            1000.0
-          );
-
-		      fan::mat4 view(1);
-		      view = context->camera.get_view_matrix(view.translate(fan::vec3((f_t)viewport_size.x * 0.5, (f_t)viewport_size.y * 0.5, -700.0f)));
-
-		      m_shader.set_projection(context, projection);
-		      m_shader.set_view(context, view);
-
 		      context->opengl.glDrawArrays(fan::opengl::GL_TRIANGLES, begin, end - begin);
       }
 

@@ -20,7 +20,7 @@ namespace fan_2d {
 					fan::vec2 position = 0;
 					fan::color text_color;
 					fan::color outline_color = fan::color(0, 0, 0, 0);
-					f32_t outline_size = 0.8;
+					f32_t outline_size = fan_2d::graphics::gui::defaults::text_renderer_outline_size;
 					fan::vec2 rotation_point = 0;
 					f32_t angle = 0;
 				};
@@ -587,8 +587,8 @@ namespace fan_2d {
 					auto p_first = get_letter_position(context, begin);
 					auto p_last = get_letter_position(context, end);
 
-					auto s_first = get_letter_position(context, begin);
-					auto s_last = get_letter_position(context, end);
+					auto s_first = get_letter_size(context, begin);
+					auto s_last = get_letter_size(context, end);
 
 					return fan::vec2((p_last.x + s_last.x) - (p_first.x - s_first.x), font.line_height);
 				}
@@ -658,20 +658,6 @@ namespace fan_2d {
 					m_shader.set_int(context, "texture_sampler", 0);
 					context->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
 					context->opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, font_image->texture);
-					const fan::vec2 viewport_size = context->viewport_size;
-
-					fan::mat4 projection(1);
-					projection = fan::math::ortho<fan::mat4>(
-						(f32_t)viewport_size.x * 0.5,
-						((f32_t)viewport_size.x + (f32_t)viewport_size.x * 0.5), 
-						((f32_t)viewport_size.y + (f32_t)viewport_size.y * 0.5), 
-						((f32_t)viewport_size.y * 0.5), 
-						0.01,
-						1000.0
-					);
-
-					fan::mat4 view(1);
-					view = context->camera.get_view_matrix(view.translate(fan::vec3((f_t)viewport_size.x * 0.5, (f_t)viewport_size.y * 0.5, -700.0f)));
 
 					uint32_t begin_ = get_index(begin) * vertex_count;
 					uint32_t end_;
@@ -683,8 +669,7 @@ namespace fan_2d {
 					}
 
 					m_shader.use(context);
-					m_shader.set_view(context, view);
-					m_shader.set_projection(context, projection);
+
 					m_glsl_buffer.draw(
 						context,
 						begin_,
@@ -821,6 +806,11 @@ namespace fan_2d {
 						&m_glsl_buffer
 					);
 				}
+
+				fan::vec2 get_letter_size(fan::opengl::context_t* context, uint32_t i) const {
+					return *(fan::vec2*)m_glsl_buffer.get_instance(context, i * vertex_count, element_byte_size, offset_size);
+				}
+
 				uint32_t letter_vertex_size() const {
 					return m_glsl_buffer.m_buffer.size() / element_byte_size / vertex_count;
 				}
@@ -843,7 +833,6 @@ namespace fan_2d {
 				fan::opengl::core::glsl_buffer_t m_glsl_buffer;
 				fan::opengl::core::queue_helper_t m_queue_helper;
 				uint32_t m_draw_node_reference;
-
 			};
 
 		}

@@ -122,7 +122,12 @@ namespace fan {
 
 	uintptr_t get_screen_refresh_rate();
 
-	inline std::unordered_map<fan::window_handle_t, fan::window_t*> window_id_storage;
+	struct window_id_storage_t {
+		fan::window_handle_t window_handle;
+		fan::window_t* window_ptr;
+	};
+
+	inline bll_t<window_id_storage_t> window_id_storage;
 
 	fan::window_t* get_window_by_id(fan::window_handle_t wid);
 	void set_window_by_id(fan::window_handle_t wid, fan::window_t* window);
@@ -333,8 +338,6 @@ namespace fan {
 		// when finished getting fps returns fps otherwise 0
 		uintptr_t get_fps(bool window_title = true, bool print = true);
 
-		bool key_press(uint16_t key) const;
-
 		bool focused() const;
 
 		void destroy_window();
@@ -363,7 +366,12 @@ namespace fan {
 			fan::key_delete
 		};
 
-		using keymap_t = std::unordered_map<uint16_t, bool>;
+		struct keystate_t {
+			uint16_t key;
+			bool press;
+		};
+
+		using keymap_t = fan::hector_t<keystate_t>;
 		using timer_interval_t = fan::time::milliseconds;
 
 		static void window_input_action(fan::window_handle_t window, uint16_t key);
@@ -397,13 +405,11 @@ namespace fan {
 
 		#endif
 
-		void reset_keys();
-
 		void initialize_window(const std::string& name, const fan::vec2i& window_size, uint64_t flags);
 
 		// crossplatform variables
 
-		window_handle_t m_window;
+		window_handle_t m_window_handle;
 
 		bll_t<pair_t<keys_callback_cb_t, void*>> m_keys_callback;
 		bll_t<key_callback_t> m_key_callback;
@@ -414,12 +420,6 @@ namespace fan {
 		bll_t<pair_t<resize_callback_cb_t, void*>> m_resize_callback;
 		bll_t<pair_t<close_callback_cb_t, void*>> m_close_callback;
 		bll_t<pair_t<mouse_position_callback_cb_t, void*>> m_mouse_position_callback;
-
-		keymap_t m_keys_down;
-
-		// for releasing key after pressing it in key callback
-		keymap_t m_keys_action;
-		keymap_t m_keys_reset;
 
 		fan::vec2i m_size;
 		fan::vec2i m_previous_size;

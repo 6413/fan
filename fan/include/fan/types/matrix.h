@@ -67,9 +67,7 @@ namespace fan {
 
     using value_type = fan::_vec4<type_t>;
 
-    constexpr _matrix4x4() : m_array{} {
-    
-    }
+    constexpr _matrix4x4() = default;
 
     constexpr _matrix4x4(type_t value) {
       std::memset(m_array.data(), 0, sizeof(type_t) * 4 * 4);

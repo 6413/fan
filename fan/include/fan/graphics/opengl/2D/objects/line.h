@@ -32,6 +32,7 @@ namespace fan_2d {
       static constexpr uint32_t element_byte_size = sizeof(instance_t);
 
       void open(fan::opengl::context_t* context) {
+
 				m_shader.open(context);
 
 				m_shader.set_vertex(
@@ -118,26 +119,11 @@ namespace fan_2d {
 			// pushed to window draw queue
 			void draw(fan::opengl::context_t* context) {
 				context->set_depth_test(false);
-				const fan::vec2 viewport_size = context->viewport_size;
-
-				fan::mat4 projection(1);
-				projection = fan::math::ortho<fan::mat4>(
-					(f32_t)viewport_size.x * 0.5,
-					((f32_t)viewport_size.x + (f32_t)viewport_size.x * 0.5), 
-					((f32_t)viewport_size.y + (f32_t)viewport_size.y * 0.5), 
-					((f32_t)viewport_size.y * 0.5), 
-					0.01,
-					1000.0
-				);
-				fan::mat4 view(1);
-				view = context->camera.get_view_matrix(view.translate(fan::vec3((f_t)viewport_size.x * 0.5, (f_t)viewport_size.y * 0.5, -700.0f)));
 
 				m_shader.use(context);
-				m_shader.set_projection(context, projection);
-				m_shader.set_view(context, view);
 
 				m_glsl_buffer.m_vao.bind(context);
-          
+
         // possibly disable depth test here
         context->opengl.glDrawArrays(fan::opengl::GL_LINES, 0, this->size(context) * vertex_count);
 			}

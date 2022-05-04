@@ -102,7 +102,7 @@ namespace fan_2d {
 
         void erase(fan::opengl::context_t* context, uint32_t i)
         {
-          m_box.erase(context, i * 2, i * 2 + 1);
+          m_box.erase(context, i * 2, i * 2 + 2);
 
           m_store.erase(i);
         }

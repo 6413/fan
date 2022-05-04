@@ -29,9 +29,6 @@ namespace fan_2d {
 
         using properties_t = rectangle_text_box_sized_properties;
 
-        using inner_rect_t = fan::class_duplicator<fan_2d::opengl::rectangle_t, 0>;
-        using outer_rect_t = fan::class_duplicator<fan_2d::opengl::rectangle_t, 1>;
-
         rectangle_text_box_sized_t() = default;
 
         void open(fan::opengl::context_t* context)
@@ -63,6 +60,7 @@ namespace fan_2d {
           *store.m_properties.place_holder = property.font_size;
           *store.m_properties.text = property.text;
           store.m_properties.text_position = property.text_position;
+          store.m_properties.offset = property.offset;
 
           m_store.push_back(store);
 
@@ -73,12 +71,12 @@ namespace fan_2d {
           switch (property.text_position) {
             case text_position_e::left:
             {
-
+              fan::vec2 text_size = tr.get_text_size(context, property.text, property.font_size);
               text_properties.text = str;
               text_properties.font_size = property.font_size;
               text_properties.position = fan::vec2(
-                property.position.x + property.theme.button.outline_thickness - property.size.x * 0.5,
-                property.position.y + property.theme.button.outline_thickness
+                property.position.x - property.size.x + text_size.x * 0.5,
+                property.position.y
               ) + property.offset;
               text_properties.text_color = property.place_holder.empty() || str[0] != '\0' ? property.theme.button.text_color : defaults::text_color_place_holder;
               text_properties.outline_color = property.theme.button.text_outline_color;
@@ -104,7 +102,7 @@ namespace fan_2d {
             }
           }
 
-          inner_rect_t::properties_t rect_properties;
+          fan_2d::graphics::rectangle_t::properties_t rect_properties;
           rect_properties.position = property.position;
           rect_properties.size = property.size;
           //rect_properties.rotation_point = rect_properties.position;
@@ -126,6 +124,16 @@ namespace fan_2d {
 
         void set_position(fan::opengl::context_t* context, uint32_t i, const fan::vec2& position) {
           rbs.set_position(context, i, position);
+          switch (m_store[i].m_properties.text_position) {
+            case text_position_e::middle: {
+              tr.set_position(context, i, position + m_store[i].m_properties.offset);
+              break;
+            }
+            case text_position_e::left: {
+              tr.set_position(context, i, fan::vec2(position.x + get_size(context, i).x, position.y) + m_store[i].m_properties.offset);
+              break;
+            }
+          }
         }
 
         bool inside(fan::opengl::context_t* context, uintptr_t i, const fan::vec2& position) const
@@ -138,6 +146,17 @@ namespace fan_2d {
             case text_position_e::left:
             {
               tr.set_text(context, i, text);
+
+              fan::vec2 position = get_position(context, i);
+              fan::vec2 size = get_size(context, i);
+              fan::vec2 text_size = tr.get_text_size(context, i);
+              tr.set_position(context, i, 
+                fan::vec2(
+                  position.x - size.x + text_size.x * 0.5,
+                  position.y
+                ) + m_store[i].m_properties.offset
+              );
+              
               break;
             }
             case text_position_e::middle:
@@ -191,20 +210,10 @@ namespace fan_2d {
           f32_t font_size = get_font_size(context, i);
           f32_t line_height = fan_2d::opengl::gui::text_renderer_t::get_line_height(context, font_size);
 
-          fan::vec2 src, dst;
+          fan::vec2 src = 0, dst = 0;
 
-          if (m_store[i].m_properties.text_position == fan_2d::graphics::gui::text_position_e::left) {
-
-            src += (this->get_position(context, i) + fan::vec2(0, this->get_size(context, i).y / 2) + rbs.m_store[i].m_properties.theme->button.outline_thickness);
-
-            src.y -= line_height / 2;
-
-            src += rbs.m_store[i].m_properties.offset;
-          }
-          else if (m_store[i].m_properties.text_position == fan_2d::graphics::gui::text_position_e::middle) {
-            auto text_size = tr.get_text_size(context, i);
-            src += this->get_position(context, i) + fan::vec2(-text_size.x / 2, 0);
-          }
+          auto text_size = tr.get_text_size(context, i);
+          src += tr.get_position(context, i) + fan::vec2(-text_size.x / 2, 0) + rbs.m_store[i].m_properties.offset;
 
           uint32_t offset = 0;
 
@@ -251,11 +260,6 @@ namespace fan_2d {
           }
 
           return src;
-        }
-
-        properties_t get_property(fan::opengl::context_t* context, uint32_t i) const
-        {
-          return *(properties_t*)&m_store[i].m_properties;
         }
 
         void set_offset(fan::opengl::context_t* context, uint32_t i, const fan::vec2& offset) {
@@ -313,6 +317,7 @@ namespace fan_2d {
           fan::utf16_string_ptr_t place_holder;
           f32_t font_size = fan_2d::graphics::gui::defaults::font_size;
           text_position_e text_position = text_position_e::middle;
+          fan::vec2 offset;
         };
 
         struct store_t {

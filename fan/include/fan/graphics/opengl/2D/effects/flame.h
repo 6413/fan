@@ -14,9 +14,7 @@ namespace fan_2d {
 
       struct open_properties_t {
 
-        open_properties_t() : light(nullptr) {};
-
-        fan_2d::graphics::lighting::light_t* light;
+        open_properties_t() {};
       };
 
       void open(fan::opengl::context_t* context, open_properties_t p = open_properties_t()) {
@@ -41,7 +39,6 @@ namespace fan_2d {
         m_queue_helper.open();
 
         m_draw_node_reference = fan::uninitialized;
-        m_light = p.light;
         m_delta = 0;
       }
       void close(fan::opengl::context_t* context) {
@@ -447,24 +444,7 @@ namespace fan_2d {
       void draw(fan::opengl::context_t* context) {
         m_shader.use(context);
 
-        const fan::vec2 viewport_size = context->viewport_size;
-
-				fan::mat4 projection(1);
-				projection = fan::math::ortho<fan::mat4>(
-					(f32_t)viewport_size.x * 0.5,
-					((f32_t)viewport_size.x + (f32_t)viewport_size.x * 0.5), 
-					((f32_t)viewport_size.y + (f32_t)viewport_size.y * 0.5), 
-					((f32_t)viewport_size.y * 0.5), 
-					0.01,
-					1000.0
-				);
-
-				fan::mat4 view(1);
-				view = context->camera.get_view_matrix(view.translate(fan::vec3((f_t)viewport_size.x * 0.5, (f_t)viewport_size.y * 0.5, -700.0f)));
-
 				m_shader.use(context);
-				m_shader.set_view(context, view);
-				m_shader.set_projection(context, projection);
 
         uint32_t texture_id = fan::uninitialized;
         uint32_t from = 0;
@@ -486,35 +466,6 @@ namespace fan_2d {
             context->opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, texture_id);
           }
           to++;
-        }
-
-        if (m_light != nullptr) {
-          uint32_t render_codeu[4] = {0};
-          f32_t render_codef[255] = {0};
-
-          render_codeu[0] = m_light->size();
-          uint32_t render_codeu_byte_index = 1;
-          uint32_t render_codef_index = 0;
-
-          for (uint32_t i = 0; i < m_light->size(); i++) {
-            render_codef[render_codef_index++] = m_light->get_position(i).x;
-            render_codef[render_codef_index++] = m_light->get_position(i).y;
-
-            render_codef[render_codef_index++] = m_light->get_radius(i);
-            render_codef[render_codef_index++] = m_light->get_intensity(i);
-
-            render_codef[render_codef_index++] = m_light->get_ambient_strength(i);
-            render_codef[render_codef_index++] = m_light->get_color(i).r;
-            render_codef[render_codef_index++] = m_light->get_color(i).g;
-            render_codef[render_codef_index++] = m_light->get_color(i).b;
-
-            render_codef[render_codef_index++] = m_light->get_rotation_point(i).x;
-            render_codef[render_codef_index++] = m_light->get_rotation_point(i).y;
-            render_codef[render_codef_index++] = m_light->get_angle(i);
-          }
-
-          m_shader.set_float_array(context, "render_codef", render_codef, std::size(render_codef));
-          m_shader.set_uint_array(context, "render_codeu", render_codeu, std::size(render_codeu));
         }
 
         m_shader.set_float(context, "iTime", m_delta);
@@ -539,7 +490,6 @@ namespace fan_2d {
       fan::opengl::core::glsl_buffer_t m_glsl_buffer;
       fan::opengl::core::queue_helper_t m_queue_helper;
       uint32_t m_draw_node_reference;
-      fan_2d::graphics::lighting::light_t* m_light;
       f32_t m_delta;
     };
 

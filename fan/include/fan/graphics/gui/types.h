@@ -9,7 +9,7 @@ namespace fan_2d {
 				inline fan::color text_color(1);
 				inline fan::color text_color_place_holder = fan::color::hex(0x757575);
 				inline f32_t font_size(32);
-				constexpr f32_t text_renderer_outline_size = 0.6;
+				constexpr f32_t text_renderer_outline_size = 0.8;
 			}
 
       enum class text_position_e {

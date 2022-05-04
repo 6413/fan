@@ -13,27 +13,18 @@ namespace fan {
       m_pitch = 0;
       m_right = 0;
       m_up = 0;
-      m_velocity = 0;
-      m_position = 0;
       m_front = 0;
       this->update_view();
     }
 
     //void rotate_camera(bool when);
 
-    fan::mat4 get_view_matrix() const {
-      return fan::math::look_at_left<fan::mat4>(this->m_position, m_position + m_front, this->m_up);
+    fan::mat4 get_view_matrix(const fan::vec2& position) const {
+      return fan::math::look_at_left<fan::mat4>(fan::vec3(position), fan::vec3(position) + m_front, this->m_up);
     }
 
-    fan::mat4 get_view_matrix(const fan::mat4& m) const {
-      return m * fan::math::look_at_left<fan::mat4>(this->m_position, this->m_position + m_front, this->world_up);
-    }
-
-    fan::vec3 get_position() const {
-      return this->m_position;
-    }
-    void set_position(const fan::vec3& position) {
-      this->m_position = position;
+    fan::mat4 get_view_matrix(const fan::mat4& m, const fan::vec2& position) const {
+      return m * fan::math::look_at_left<fan::mat4>(fan::vec3(position), fan::vec3(position) + m_front, this->world_up);
     }
 
     fan::vec3 get_front() const {
@@ -51,14 +42,6 @@ namespace fan {
 
     void set_right(const fan::vec3 right) {
       m_right = right;
-    }
-
-    fan::vec3 get_velocity() const {
-      return fan::camera::m_velocity;
-    }
-
-    void set_velocity(const fan::vec3& velocity) {
-      fan::camera::m_velocity = velocity;
     }
 
     f32_t get_yaw() const {
@@ -120,10 +103,6 @@ namespace fan {
     f32_t m_pitch;
     fan::vec3 m_right;
     fan::vec3 m_up;
-    fan::vec3 m_velocity;
-    fan::vec3 m_position;
     fan::vec3 m_front;
-
-
   };
 }

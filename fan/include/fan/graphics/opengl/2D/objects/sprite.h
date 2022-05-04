@@ -14,9 +14,7 @@ namespace fan_2d {
 
       struct open_properties_t {
 
-        open_properties_t() : light(nullptr) {};
-
-        fan_2d::graphics::lighting::light_t* light;
+        open_properties_t() {};
       };
 
       void open(fan::opengl::context_t* context, open_properties_t p = open_properties_t()) {
@@ -41,7 +39,6 @@ namespace fan_2d {
         m_queue_helper.open();
 
         m_draw_node_reference = fan::uninitialized;
-        m_light = p.light;
       }
       void close(fan::opengl::context_t* context) {
 
@@ -68,7 +65,7 @@ namespace fan_2d {
         fan::vec2 rotation_point = 0;
         fan::vec3 rotation_vector = 0;
 
-        std::array<fan::vec2, 4> texture_coordinates {
+        std::array<fan::vec2, 4> texture_coordinates{
           fan::vec2(0, 1),
           fan::vec2(1, 1),
           fan::vec2(1, 0),
@@ -175,9 +172,9 @@ namespace fan_2d {
 
         return std::array<fan::vec2, 4>{
           coordinates[0],
-          coordinates[1],
-          coordinates[2],
-          coordinates[5]
+            coordinates[1],
+            coordinates[2],
+            coordinates[5]
         };
       }
       // set texture coordinates before position or size
@@ -186,7 +183,7 @@ namespace fan_2d {
         for (uint32_t j = 0; j < vertex_count; j++) {
           fan::vec2 tc = fan_2d::opengl::convert_tc_4_2_6(&texture_coordinates, j);
           m_glsl_buffer.edit_ram_instance(
-            context, 
+            context,
             i * vertex_count + j,
             &tc,
             element_byte_size,
@@ -197,7 +194,7 @@ namespace fan_2d {
         m_queue_helper.edit(
           context,
           i * vertex_count * element_byte_size,
-          (i + 1) * (vertex_count) * element_byte_size,
+          (i + 1) * (vertex_count)*element_byte_size,
           &m_glsl_buffer
         );
       }
@@ -208,9 +205,9 @@ namespace fan_2d {
         uint32_t to = m_glsl_buffer.m_buffer.size();
         m_store_sprite.erase(i);
         if (to == 0) {
-					// erase queue if there will be no objects left (special case)
+          // erase queue if there will be no objects left (special case)
           return;
-				}
+        }
 
         m_queue_helper.edit(
           context,
@@ -225,10 +222,10 @@ namespace fan_2d {
 
         uint32_t to = m_glsl_buffer.m_buffer.size();
         m_store_sprite.erase(begin, end);
-				if (to == 0) {
-					// erase queue if there will be no objects left (special case)
+        if (to == 0) {
+          // erase queue if there will be no objects left (special case)
           return;
-				}
+        }
         else {
           m_queue_helper.edit(
             context,
@@ -269,7 +266,7 @@ namespace fan_2d {
       void set_color(fan::opengl::context_t* context, uint32_t i, const fan::color& color) {
         for (int j = 0; j < vertex_count; j++) {
           m_glsl_buffer.edit_ram_instance(
-            context, 
+            context,
             i * vertex_count + j,
             &color,
             element_byte_size,
@@ -292,7 +289,7 @@ namespace fan_2d {
       void set_position(fan::opengl::context_t* context, uint32_t i, const fan::vec2& position) {
         for (int j = 0; j < vertex_count; j++) {
           m_glsl_buffer.edit_ram_instance(
-            context, 
+            context,
             i * vertex_count + j,
             &position,
             element_byte_size,
@@ -418,46 +415,28 @@ namespace fan_2d {
       void enable_draw(fan::opengl::context_t* context) {
         this->draw(context);
 
-      #if fan_debug >= fan_debug_low
+        #if fan_debug >= fan_debug_low
         if (m_draw_node_reference != fan::uninitialized) {
           fan::throw_error("trying to call enable_draw twice");
         }
-      #endif
+        #endif
 
         m_draw_node_reference = context->enable_draw(this, [](fan::opengl::context_t* c, void* d) { ((decltype(this))d)->draw(c); });
       }
       void disable_draw(fan::opengl::context_t* context) {
-      #if fan_debug >= fan_debug_low
+        #if fan_debug >= fan_debug_low
         if (m_draw_node_reference == fan::uninitialized) {
           fan::throw_error("trying to disable unenabled draw call");
         }
-      #endif
+        #endif
         context->disable_draw(m_draw_node_reference);
       }
 
-  //	protected:
+      fan::mat4 projection;
+      fan::mat4 view;
 
       void draw(fan::opengl::context_t* context) {
         m_shader.use(context);
-
-        const fan::vec2 viewport_size = context->viewport_size;
-
-				fan::mat4 projection(1);
-				projection = fan::math::ortho<fan::mat4>(
-					(f32_t)viewport_size.x * 0.5,
-					((f32_t)viewport_size.x + (f32_t)viewport_size.x * 0.5), 
-					((f32_t)viewport_size.y + (f32_t)viewport_size.y * 0.5), 
-					((f32_t)viewport_size.y * 0.5), 
-					0.01,
-					1000.0
-				);
-
-				fan::mat4 view(1);
-				view = context->camera.get_view_matrix(view.translate(fan::vec3((f_t)viewport_size.x * 0.5, (f_t)viewport_size.y * 0.5, -700.0f)));
-
-				m_shader.use(context);
-				m_shader.set_view(context, view);
-				m_shader.set_projection(context, projection);
 
         uint32_t texture_id = fan::uninitialized;
         uint32_t from = 0;
@@ -467,7 +446,7 @@ namespace fan_2d {
             if (to) {
               m_glsl_buffer.draw(
                 context,
-                (from) * vertex_count,
+                (from)*vertex_count,
                 (from + to) * vertex_count
               );
             }
@@ -481,39 +460,10 @@ namespace fan_2d {
           to++;
         }
 
-        if (m_light != nullptr) {
-          uint32_t render_codeu[4] = {0};
-          f32_t render_codef[255] = {0};
-
-          render_codeu[0] = m_light->size();
-          uint32_t render_codeu_byte_index = 1;
-          uint32_t render_codef_index = 0;
-
-          for (uint32_t i = 0; i < m_light->size(); i++) {
-            render_codef[render_codef_index++] = m_light->get_position(i).x;
-            render_codef[render_codef_index++] = m_light->get_position(i).y;
-
-            render_codef[render_codef_index++] = m_light->get_radius(i);
-            render_codef[render_codef_index++] = m_light->get_intensity(i);
-
-            render_codef[render_codef_index++] = m_light->get_ambient_strength(i);
-            render_codef[render_codef_index++] = m_light->get_color(i).r;
-            render_codef[render_codef_index++] = m_light->get_color(i).g;
-            render_codef[render_codef_index++] = m_light->get_color(i).b;
-
-            render_codef[render_codef_index++] = m_light->get_rotation_point(i).x;
-            render_codef[render_codef_index++] = m_light->get_rotation_point(i).y;
-            render_codef[render_codef_index++] = m_light->get_angle(i);
-          }
-
-          m_shader.set_float_array(context, "render_codef", render_codef, std::size(render_codef));
-          m_shader.set_uint_array(context, "render_codeu", render_codeu, std::size(render_codeu));
-        }
-
         if (to) {
           m_glsl_buffer.draw(
             context,
-            (from) * vertex_count,
+            (from)*vertex_count,
             (from + to) * vertex_count
           );
         }
@@ -530,7 +480,6 @@ namespace fan_2d {
       fan::opengl::core::glsl_buffer_t m_glsl_buffer;
       fan::opengl::core::queue_helper_t m_queue_helper;
       uint32_t m_draw_node_reference;
-      fan_2d::graphics::lighting::light_t* m_light;
     };
 
   }
