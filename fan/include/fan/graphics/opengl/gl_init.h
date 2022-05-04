@@ -311,6 +311,9 @@ namespace fan {
         glPolygonMode = (decltype(glPolygonMode))get_proc_address("glPolygonMode", &internal);
         glUniform1uiv = (decltype(glUniform1uiv))get_proc_address("glUniform1uiv", &internal);
         glUniform1fv = (decltype(glUniform1fv))get_proc_address("glUniform1fv", &internal);
+        glMatrixMode = (decltype(glMatrixMode))get_proc_address("glUniform1fv", &internal);
+        glLoadIdentity = (decltype(glLoadIdentity))get_proc_address("glUniform1fv", &internal);
+        glOrtho = (decltype(glOrtho))get_proc_address("glUniform1fv", &internal);
 
         internal.close(&p);
 
@@ -382,6 +385,9 @@ namespace fan {
       PFNGLPOLYGONMODEPROC glPolygonMode;
       PFNGLUNIFORM1UIVPROC glUniform1uiv;
       PFNGLUNIFORM4FVPROC glUniform1fv;
+      PFNGLMATRIXMODEPROC glMatrixMode;
+      PFNGLLOADIDENTITYPROC glLoadIdentity;
+      PFNGLORTHOPROC glOrtho;
 
     };
 

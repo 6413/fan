@@ -32,6 +32,7 @@ namespace fan_2d {
 			static constexpr uint32_t element_byte_size = offset_rotation_vector + sizeof(properties_t::rotation_vector);
 
 			void open(fan::opengl::context_t* context) {
+
 				m_shader.open(context);
 
 				m_shader.set_vertex(
@@ -50,6 +51,7 @@ namespace fan_2d {
 				m_glsl_buffer.init(context, m_shader.id, element_byte_size);
 				m_queue_helper.open();
 				m_draw_node_reference = fan::uninitialized;
+
 			}
 			void close(fan::opengl::context_t* context) {
 
@@ -184,8 +186,8 @@ namespace fan_2d {
 				}
 				m_queue_helper.edit(
 					context,
-					i * vertex_count * element_byte_size + offset_position,
-					(i + 1) * (vertex_count)*element_byte_size - offset_position,
+					i * vertex_count * element_byte_size,
+					(i + 1) * (vertex_count)*element_byte_size,
 					&m_glsl_buffer
 				);
 			}
@@ -288,7 +290,7 @@ namespace fan_2d {
 			bool inside(fan::opengl::context_t* context, uint32_t i, const fan::vec2& position) const {
 
 				auto corners = get_corners(context, i);
-
+				assert(0);
 				return fan_2d::collision::rectangle::point_inside(
 					corners[0],
 					corners[1],
@@ -308,29 +310,14 @@ namespace fan_2d {
 				}
 			#endif
 				context->disable_draw(m_draw_node_reference);
+				m_draw_node_reference = fan::uninitialized;
 			}
 
 			// pushed to window draw queue
 			void draw(fan::opengl::context_t* context, uint32_t begin = 0, uint32_t end = fan::uninitialized) {
 				context->set_depth_test(false);
-				const fan::vec2 viewport_size = context->viewport_size;
-
-				fan::mat4 projection(1);
-				projection = fan::math::ortho<fan::mat4>(
-					(f32_t)viewport_size.x * 0.5,
-					((f32_t)viewport_size.x + (f32_t)viewport_size.x * 0.5), 
-					((f32_t)viewport_size.y + (f32_t)viewport_size.y * 0.5), 
-					((f32_t)viewport_size.y * 0.5), 
-					0.01,
-					1000.0
-				);
-
-				fan::mat4 view(1);
-				view = context->camera.get_view_matrix(view.translate(fan::vec3((f_t)viewport_size.x * 0.5, (f_t)viewport_size.y * 0.5, -700.0f)));
 
 				m_shader.use(context);
-				m_shader.set_projection(context, projection);
-				m_shader.set_view(context, view);
 
 				m_glsl_buffer.draw(
 					context,

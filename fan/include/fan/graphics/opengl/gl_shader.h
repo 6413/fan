@@ -15,6 +15,8 @@
 
 #include <fan/graphics/opengl/gl_core.h>
 
+#include <fan/graphics/opengl/matrices.h>
+
 namespace fan {
   struct shader_t {
 
@@ -27,7 +29,6 @@ namespace fan {
 
       vertex = fan::uninitialized;
       fragment = fan::uninitialized;
-      geometry = fan::uninitialized;
     }
 
     void close(fan::opengl::context_t* context) {
@@ -51,6 +52,21 @@ namespace fan {
         });
     }
 
+    void set_vertex(fan::opengl::context_t* context, char* vertex_ptr, fan::opengl::GLint length) {
+
+      if (vertex != fan::uninitialized) {
+        context->opengl.glDeleteShader(vertex);
+      }
+
+      vertex = context->opengl.glCreateShader(fan::opengl::GL_VERTEX_SHADER);
+
+      context->opengl.glShaderSource(vertex, 1, &vertex_ptr, &length);
+
+      context->opengl.glCompileShader(vertex);
+
+      checkCompileErrors(context, vertex, "VERTEX");
+    }
+
     void set_vertex(fan::opengl::context_t* context, const std::string& vertex_code) {
 
       if (vertex != fan::uninitialized) {
@@ -60,14 +76,27 @@ namespace fan {
       vertex = context->opengl.glCreateShader(fan::opengl::GL_VERTEX_SHADER);
 
       char* ptr = (char*)vertex_code.c_str();
+      fan::opengl::GLint length = vertex_code.size();
 
-      context->opengl.glShaderSource(vertex, 1, &ptr, NULL);
+      context->opengl.glShaderSource(vertex, 1, &ptr, &length);
 
       context->opengl.glCompileShader(vertex);
 
       checkCompileErrors(context, vertex, "VERTEX");
     }
 
+    void set_fragment(fan::opengl::context_t* context, char* fragment_ptr, fan::opengl::GLint length) {
+
+      if (fragment != -1) {
+        context->opengl.glDeleteShader(fragment);
+      }
+
+      fragment = context->opengl.glCreateShader(fan::opengl::GL_FRAGMENT_SHADER);
+      context->opengl.glShaderSource(fragment, 1, &fragment_ptr, &length);
+
+      context->opengl.glCompileShader(fragment);
+      checkCompileErrors(context, fragment, "FRAGMENT");
+    }
     void set_fragment(fan::opengl::context_t* context, const std::string& fragment_code) {
 
       if (fragment != -1) {
@@ -77,25 +106,12 @@ namespace fan {
       fragment = context->opengl.glCreateShader(fan::opengl::GL_FRAGMENT_SHADER);
 
       char* ptr = (char*)fragment_code.c_str();
+      fan::opengl::GLint length = fragment_code.size();
 
-      context->opengl.glShaderSource(fragment, 1, &ptr, NULL);
+      context->opengl.glShaderSource(fragment, 1, &ptr, &length);
 
       context->opengl.glCompileShader(fragment);
       checkCompileErrors(context, fragment, "FRAGMENT");
-    }
-
-    void set_geometry(fan::opengl::context_t* context, const std::string& geometry_code) {
-      if (geometry != -1) {
-        context->opengl.glDeleteShader(geometry);
-      }
-
-      geometry = context->opengl.glCreateShader(fan::opengl::GL_GEOMETRY_SHADER);
-
-      char* ptr = (char*)geometry_code.c_str();
-      context->opengl.glShaderSource(geometry, 1, &ptr, NULL);
-
-      context->opengl.glCompileShader(geometry);
-      checkCompileErrors(context, geometry, "GEOMETRY");
     }
 
     void compile(fan::opengl::context_t* context) {
@@ -110,9 +126,6 @@ namespace fan {
       if (fragment != -1) {
         context->opengl.glAttachShader(id, fragment);
       }
-      if (geometry != -1) {
-        context->opengl.glAttachShader(id, geometry);
-      }
 
       context->opengl.glLinkProgram(id);
       checkCompileErrors(context, id, "PROGRAM");
@@ -125,47 +138,9 @@ namespace fan {
         context->opengl.glDeleteShader(fragment);
         fragment = -1;
       }
-      if (geometry != -1) {
-        context->opengl.glDeleteShader(geometry);
-        geometry = -1;
-      }
 
       projection_view[0] = context->opengl.glGetUniformLocation(id, "projection");
       projection_view[1] = context->opengl.glGetUniformLocation(id, "view");
-    }
-
-    void enable_draw(fan::opengl::context_t* context, fan_2d::opengl::shape shape, uint32_t first, uint32_t count) {
-      uint32_t mode = 0;
-
-      switch (shape) {
-      case fan_2d::opengl::shape::line: {
-        mode = fan::opengl::GL_LINES;
-        break;
-      }
-      case fan_2d::opengl::shape::line_strip: {
-        mode = fan::opengl::GL_LINE_STRIP;
-        break;
-      }
-      case fan_2d::opengl::shape::triangle: {
-        mode = fan::opengl::GL_TRIANGLES;
-        break;
-      }
-      case fan_2d::opengl::shape::triangle_strip: {
-        mode = fan::opengl::GL_TRIANGLE_STRIP;
-        break;
-      }
-      case fan_2d::opengl::shape::triangle_fan: {
-        mode = fan::opengl::GL_TRIANGLE_FAN;
-        break;
-      }
-      default: {
-        mode = fan::opengl::GL_TRIANGLES;
-        fan::print("fan warning - unset input assembly topology in graphics pipeline");
-        break;
-      }
-      }
-
-      context->opengl.glDrawArrays(mode, first, count);
     }
 
     static constexpr auto validate_error_message = [](const auto str) {
@@ -173,13 +148,7 @@ namespace fan {
     };
 
     void set_bool(fan::opengl::context_t* context, const std::string& name, bool value) const {
-      auto location = context->opengl.glGetUniformLocation(id, name.c_str());
-
-      #if fan_debug >= fan_debug_low
-      fan_validate_value(location, validate_error_message(name));
-      #endif
-
-      context->opengl.glUniform1i(location, value);
+      set_int(context, name, value);
     }
 
     void set_int(fan::opengl::context_t* context, const std::string& name, int value) const
@@ -319,11 +288,18 @@ namespace fan {
       }
     }
 
-    void set_projection(fan::opengl::context_t* context, fan::mat4 mat) {
-      context->opengl.glUniformMatrix4fv(projection_view[0], 1, fan::opengl::GL_FALSE, (f32_t*)&mat[0][0]);
+    static void matrices_inform_cb(fan::opengl::matrices_t* matrices, void* updateptr, void* userptr) {
+      shader_t* shader = (shader_t*)userptr;
+      fan::opengl::context_t* context = (fan::opengl::context_t*)updateptr;
+      shader->use(context);
+      context->opengl.glUniformMatrix4fv(shader->projection_view[0], 1, fan::opengl::GL_FALSE, &matrices->m_projection[0][0]);
     }
-    void set_view(fan::opengl::context_t* context, fan::mat4 mat) {
-      context->opengl.glUniformMatrix4fv(projection_view[1], 1, fan::opengl::GL_FALSE, (f32_t*)&mat[0][0]);
+
+    void bind_matrices(fan::opengl::context_t* context, fan::opengl::matrices_t* matrices) {
+      matrix_inform_id = matrices->push_inform(matrices_inform_cb, this);
+    }
+    void unbind_matrices(fan::opengl::context_t* context, fan::opengl::matrices_t* matrices) {
+      matrices->erase_inform(matrix_inform_id);
     }
 
     void set_mat4(fan::opengl::context_t* context, const std::string& name, fan::mat4 mat) const {
@@ -356,9 +332,11 @@ namespace fan {
       }
     }
 
+    uint32_t matrix_inform_id;
+
     uint32_t id;
 
-    uint32_t vertex, fragment, geometry;
+    uint32_t vertex, fragment;
 
   private:
 

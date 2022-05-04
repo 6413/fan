@@ -11,370 +11,283 @@
 namespace fan_2d {
   namespace graphics {
     namespace gui {
-			using namespace fan_2d::graphics::gui::focus;
-
-			template <typename T>
-			struct key_event_t {
-
-				/* used for hold precise floats on FED */
-				/* bigger number means better precision */
-				static constexpr uint32_t line_multiplier = 100;
-
-				//virtual void on_input_callback() = 0;
-
-				uint32_t text_callback_id;
-				uint32_t keys_callback_id;
-				uint32_t mouse_move_callback_id;
-
-				fan::vec2 click_begin;
-
-				void open(fan::window_t* window, fan::opengl::context_t* context) {
-					m_store.open();
-					m_draw_index2 = fan::uninitialized;
-					render_cursor = false;
-					m_cursor.open(context);
-					cursor_timer = fan::time::clock(cursor_properties::blink_speed);
-					mouse_move_callback_id = fan::uninitialized;
-					text_callback_id = fan::uninitialized;
-					keys_callback_id = fan::uninitialized;
-					mouse_move_callback_id = fan::uninitialized;
-
-					cursor_timer.start();
-
-					//keys_callback_id = window->add_keys_callback(context, [](fan::window_t* w, uint16 key, fan::key_state state, void* user_ptr) {
+      using namespace fan_2d::graphics::gui::focus;
 
-					//	auto object = OFFSETLESS(this, T, m_key_event);
-
-					//	// not pushed
-					//	if (current_focus.i >= m_store.size()) {
-					//		return;
-					//	}
+      template <typename T>
+      struct key_event_t {
 
-					//	fan_2d::graphics::gui::focus::properties_t p;
-					//	p.window_handle = (void*)w->get_handle();
-					//	p.shape = this;
+        typedef void(*focus_loss_cb_t)(fan::window_t* window, fan::opengl::context_t* context, uint32_t i, void* userptr);
 
-					//	if (
-					//		!fan_2d::graphics::gui::focus::has_no_focus(p) ||
-					//		!m_store[current_focus.i].m_input_allowed
-					//		) {
-					//		return;
-					//	}
+        /* used for hold precise floats on FED */
+        /* bigger number means better precision */
+        static constexpr uint32_t line_multiplier = 100;
 
-					//	switch (state) {
-					//	case fan::key_state::press: {
+        void open(fan::window_t* w, fan::opengl::context_t* c) {
 
-					//		if (mouse_move_callback_id != -1) {
-					//			break;
-					//		}
+          context = c;
+          window = w;
+          object = OFFSETLESS(this, T, m_key_event);
 
-					//		click_begin = fan::cast<f32_t>(w->get_mouse_position()) - object->get_text_starting_point(w, context, current_focus.i);
+          m_store.open();
+          m_cursor.open(context);
+          cursor_timer = fan::time::clock(cursor_properties::blink_speed);
+          cursor_timer.start();
 
-					//		mouse_move_callback_id = w->add_mouse_move_callback([this, context, object](fan::window_t* w, const fan::vec2& p) {
-					//			if (!w->key_press(fan::mouse_left)) {
-					//				return;
-					//			}
+          mouse_move_callback_id = fan::uninitialized;
 
-					//			fan_2d::graphics::gui::focus::properties_t fp;
-					//			fp.window_handle = (void*)w->get_handle();
-					//			fp.shape = this;
+          focus_loss_cb = [](fan::window_t* window, fan::opengl::context_t* context, uint32_t i, void* userptr) {};
 
-					//			if (
-					//				!fan_2d::graphics::gui::focus::has_no_focus(fp) ||
-					//				!m_store[current_focus.i].m_input_allowed)
-					//			{
-					//				return;
-					//			}
+          keys_callback_id = window->add_keys_callback(this, [](fan::window_t* window, uint16 key, fan::key_state state, void* userptr) {
+            key_event_t<T>* instance = (key_event_t<T>*)userptr;
 
-					//			fan::vec2 src = click_begin;
-					//			// dst release
-					//			fan::vec2 dst = fan::cast<f32_t>(w->get_mouse_position()) - object->get_text_starting_point(w, context, current_focus.i);
-					//			dst.x = fan::clamp(dst.x, (f32_t)0, dst.x);
+            if (state == fan::key_state::release) {
+              return;
+            }
 
-					//			FED_LineReference_t FirstLineReference = _FED_LineList_GetNodeFirst(&m_store[current_focus.i].m_wed.LineList);
-					//			FED_LineReference_t LineReference0, LineReference1;
-					//			FED_CharacterReference_t CharacterReference0, CharacterReference1;
-					//			FED_GetLineAndCharacter(&m_store[current_focus.i].m_wed, FirstLineReference, src.y, src.x * line_multiplier, &LineReference0, &CharacterReference0);
-					//			FED_GetLineAndCharacter(&m_store[current_focus.i].m_wed, FirstLineReference, dst.y, dst.x * line_multiplier, &LineReference1, &CharacterReference1);
-					//			FED_ConvertCursorToSelection(&m_store[current_focus.i].m_wed, m_store[current_focus.i].cursor_reference, LineReference0, CharacterReference0, LineReference1, CharacterReference1);
+            if (current_focus.i == no_focus) {
+              return;
+            }
+            if (!instance->input_allowed(window, current_focus.i)) {
+              return;
+            }
+            if (!instance->is_focused()) {
+              return;
+            }
 
-					//			update_cursor(w, context, current_focus.i);
+            FED_CursorReference_t cursor_reference = instance->m_store[current_focus.i].cursor_reference;
+            FED_t* wed = &instance->m_store[current_focus.i].m_wed;
 
-					//			render_cursor = true;
-					//			cursor_timer.restart();
-					//			m_cursor.enable_draw(context);
-					//		});
+            switch (key) {
+              case fan::key_backspace: {
+                if (instance->object->get_text(window, instance->context, current_focus.i).size() == 1) {
+                  instance->object->backspace_callback(window, instance->context, current_focus.i);
+                  FED_DeleteCharacterFromCursor(
+                    wed,
+                    cursor_reference
+                  );
+                  instance->object->set_text(window, instance->context, current_focus.i, L" ");
 
-					//		break;
-					//	}
-					//	case fan::key_state::release: {
+                  break;
+                }
 
-					//		if (mouse_move_callback_id != -1) {
-					//			w->remove_mouse_move_callback(mouse_move_callback_id);
-					//			mouse_move_callback_id = -1;
-					//		}
+                FED_DeleteCharacterFromCursor(
+                  wed,
+                  cursor_reference
+                );
 
-					//		return;
-					//		break;
-					//	}
-					//	}
+                instance->update_text(window, instance->context, current_focus.i);
 
-					//	render_cursor = true;
-					//	cursor_timer.restart();
-					//	m_cursor.enable_draw(context);
+                instance->object->backspace_callback(window, instance->context, current_focus.i);
 
-					//	switch (key) {
-					//	case fan::key_backspace: {
-					//		if (object->get_text(w, context, current_focus.i).size() == 1) {
-					//			object->backspace_callback(w, context, current_focus.i);
-					//			FED_DeleteCharacterFromCursor(&m_store[current_focus.i].m_wed, m_store[current_focus.i].cursor_reference);
-					//			object->set_text(w, context, current_focus.i, L" ");
+                instance->update_cursor(window, instance->context, current_focus.i);
 
-					//			break;
-					//		}
+                break;
+              }
+              case fan::key_delete: {
 
-					//		FED_DeleteCharacterFromCursor(&m_store[current_focus.i].m_wed, m_store[current_focus.i].cursor_reference);
+                if (instance->object->get_text(window, instance->context, current_focus.i).size() == 1) {
+                  instance->object->backspace_callback(window, instance->context, current_focus.i);
+                  FED_DeleteCharacterFromCursorRight(wed, cursor_reference);
+                  instance->object->set_text(window, instance->context, current_focus.i, L" ");
+                  break;
+                }
 
-					//		update_text(w, context, current_focus.i);
+                FED_DeleteCharacterFromCursorRight(wed, cursor_reference);
 
-					//		object->backspace_callback(w, context, current_focus.i);
+                instance->update_text(window, instance->context, current_focus.i);
 
-					//		update_cursor(w, context, current_focus.i);
+                instance->object->backspace_callback(window, instance->context, current_focus.i);
 
-					//		break;
-					//	}
-					//	case fan::key_delete: {
-					//		FED_DeleteCharacterFromCursorRight(&m_store[current_focus.i].m_wed, m_store[current_focus.i].cursor_reference);
+                instance->update_cursor(window, instance->context, current_focus.i);
 
-					//		update_text(w, context, current_focus.i);
+                break;
+              }
+              case fan::key_left: {
+                FED_MoveCursorFreeStyleToLeft(wed, cursor_reference);
 
-					//		object->backspace_callback(w, context, current_focus.i);
+                instance->update_cursor(window, instance->context, current_focus.i);
 
-					//		break;
-					//	}
-					//	case fan::key_left: {
-					//		FED_MoveCursorFreeStyleToLeft(&m_store[current_focus.i].m_wed, m_store[current_focus.i].cursor_reference);
+                break;
+              }
+              case fan::key_right: {
 
-					//		update_cursor(w, context, current_focus.i);
+                FED_MoveCursorFreeStyleToRight(wed, cursor_reference);
 
-					//		break;
-					//	}
-					//	case fan::key_right: {
+                instance->update_cursor(window, instance->context, current_focus.i);
 
-					//		FED_MoveCursorFreeStyleToRight(&m_store[current_focus.i].m_wed, m_store[current_focus.i].cursor_reference);
+                break;
+              }
+              case fan::key_up: {
+                FED_MoveCursorFreeStyleToUp(wed, cursor_reference);
 
-					//		update_cursor(w, context, current_focus.i);
+                instance->update_cursor(window, instance->context, current_focus.i);
 
-					//		break;
-					//	}
-					//	case fan::key_up: {
-					//		FED_MoveCursorFreeStyleToUp(&m_store[current_focus.i].m_wed, m_store[current_focus.i].cursor_reference);
+                break;
+              }
+              case fan::key_down: {
+                FED_MoveCursorFreeStyleToDown(wed, cursor_reference);
 
-					//		update_cursor(w, context, current_focus.i);
+                instance->update_cursor(window, instance->context, current_focus.i);
 
-					//		break;
-					//	}
-					//	case fan::key_down: {
-					//		FED_MoveCursorFreeStyleToDown(&m_store[current_focus.i].m_wed, m_store[current_focus.i].cursor_reference);
+                break;
+              }
+              case fan::key_home: {
+                FED_MoveCursorFreeStyleToBeginOfLine(wed, cursor_reference);
 
-					//		update_cursor(w, context, current_focus.i);
+                instance->update_cursor(window, instance->context, current_focus.i);
 
-					//		break;
-					//	}
-					//	case fan::key_home: {
-					//		FED_MoveCursorFreeStyleToBeginOfLine(&m_store[current_focus.i].m_wed, m_store[current_focus.i].cursor_reference);
+                break;
+              }
+              case fan::key_end: {
+                FED_MoveCursorFreeStyleToEndOfLine(wed, cursor_reference);
 
-					//		update_cursor(w, context, current_focus.i);
+                instance->update_cursor(window, instance->context, current_focus.i);
 
-					//		break;
-					//	}
-					//	case fan::key_end: {
-					//		FED_MoveCursorFreeStyleToEndOfLine(&m_store[current_focus.i].m_wed, m_store[current_focus.i].cursor_reference);
+                break;
+              }
+              case fan::key_enter: {
 
-					//		update_cursor(w, context, current_focus.i);
+                instance->set_focus(focus::no_focus);
 
-					//		break;
-					//	}
-					//	case fan::key_enter: {
+                break;
+              }
+              case fan::key_tab: {
 
-					//		focus::set_focus(focus::no_focus);
+                auto current_focus = focus::get_focus();
 
-					//		break;
-					//	}
-					//	case fan::key_tab: {
+                // if keypress(shift)
+                if (0) {
+                  if (current_focus.i - 1 == ~0) {
+                    current_focus.i = instance->object->size(window, instance->context) - 1;
+                  }
+                  else {
+                    current_focus.i = (current_focus.i - 1) % instance->object->size(window, instance->context);
+                  }
+                }
+                else {
+                  current_focus.i = (current_focus.i + 1) % instance->object->size(window, instance->context);
+                }
 
-					//		auto current_focus = focus::get_focus();
+                instance->set_focus(current_focus.i);
 
-					//		if (w->key_press(fan::key_shift)) {
-					//			if (current_focus.i - 1 == ~0) {
-					//				current_focus.i = object->size(w, context) - 1;
-					//			}
-					//			else {
-					//				current_focus.i = (current_focus.i - 1) % object->size(w, context);
-					//			}
-					//		}
-					//		else {
-					//			current_focus.i = (current_focus.i + 1) % object->size(w, context);
-					//		}
+                instance->update_cursor(window, instance->context, current_focus.i);
 
-					//		focus::set_focus(current_focus);
+                break;
+              }
+            }
 
-					//		update_cursor(w, context, current_focus.i);
+          });
 
-					//		break;
-					//	}
-					//	case fan::mouse_left: {
+          text_callback_id = window->add_text_callback(this, [](fan::window_t* window, uint32_t character, void* user_ptr) {
 
-					//		// src press
-					//		fan::vec2 src = fan::cast<f32_t>(w->get_mouse_position()) - object->get_text_starting_point(w, context, current_focus.i);
-					//		// dst release
-					//		src.x = fan::clamp(src.x, (f32_t)0, src.x);
-					//		fan::vec2 dst = src;
+            key_event_t<T>* instance = (key_event_t<T>*)user_ptr;
 
-					//		FED_LineReference_t FirstLineReference = _FED_LineList_GetNodeFirst(&m_store[current_focus.i].m_wed.LineList);
-					//		FED_LineReference_t LineReference0, LineReference1;
-					//		FED_CharacterReference_t CharacterReference0, CharacterReference1;
-					//		FED_GetLineAndCharacter(&m_store[current_focus.i].m_wed, FirstLineReference, src.y, src.x * line_multiplier, &LineReference0, &CharacterReference0);
-					//		FED_GetLineAndCharacter(&m_store[current_focus.i].m_wed, FirstLineReference, dst.y, dst.x * line_multiplier, &LineReference1, &CharacterReference1);
-					//		FED_ConvertCursorToSelection(&m_store[current_focus.i].m_wed, m_store[current_focus.i].cursor_reference, LineReference0, CharacterReference0, LineReference1, CharacterReference1);
+            if (current_focus.i == no_focus) {
+              return;
+            }
+            if (!instance->input_allowed(window, current_focus.i)) {
+              return;
+            }
+            if (!instance->is_focused()) {
+              return;
+            }
 
-					//		update_cursor(w, context, current_focus.i);
+            instance->render_cursor = true;
+            instance->cursor_timer.restart();
 
-					//		break;
-					//	}
-					//	case fan::key_v: {
+            if (instance->m_cursor.m_draw_node_reference == fan::uninitialized) {
+              instance->m_cursor.enable_draw(instance->context);
+            }
 
-					//		if (w->key_press(fan::key_control)) {
+            FED_CursorReference_t cursor_reference = instance->m_store[current_focus.i].cursor_reference;
+            FED_t* wed = &instance->m_store[current_focus.i].m_wed;
 
-					//			auto pasted_text = fan::io::get_clipboard_text(w->get_handle());
+            fan::utf8_string utf8;
+            utf8.push_back(character);
 
-					//			for (int i = 0; i < pasted_text.size(); i++) {
-					//				add_character(context, &m_store[current_focus.i].m_wed, &m_store[current_focus.i].cursor_reference, pasted_text[i], object->get_font_size(w, context, current_focus.i));
-					//			}
+            auto wc = utf8.to_utf16()[0];
 
-					//			update_text(w, context, current_focus.i);
-					//		}
+            f32_t font_size = instance->object->get_font_size(window, instance->context, current_focus.i);
+            instance->add_character(instance->context, wed, &cursor_reference, character, font_size);
 
-					//		break;
-					//	}
-					//	}
+            fan::vector_t text_vector;
+            vector_init(&text_vector, sizeof(uint8_t));
 
-					//});
+            fan::vector_t cursor_vector;
+            vector_init(&cursor_vector, sizeof(FED_ExportedCursor_t));
 
-					//text_callback_id = window->add_text_callback([this, context, object = OFFSETLESS(this, T, m_key_event)](fan::window_t* w, uint32_t character) {
+            uint32_t line_index = 0;
+            FED_LineReference_t line_reference = FED_GetLineReferenceByLineIndex(wed, 0);
 
-					//	fan_2d::graphics::gui::focus::properties_t p;
-					//	p.window_handle = (void*)w->get_handle();
-					//	p.shape = this;
+            std::vector<FED_ExportedCursor_t*> exported_cursors;
 
-					//	if (current_focus.i >= m_store.size()) {
-					//		return;
-					//	}
+            while (1) {
+              bool is_endline;
+              FED_ExportLine(wed, line_reference, &text_vector, &cursor_vector, &is_endline, utf8_data_callback);
 
-					//	if (
-					//		!fan_2d::graphics::gui::focus::has_no_focus(p) ||
-					//		!m_store[current_focus.i].m_input_allowed
-					//		) {
-					//		return;
-					//	}
+              line_reference = _FED_LineList_GetNodeByReference(&wed->LineList, line_reference)->NextNodeReference;
 
-					//	render_cursor = true;
-					//	cursor_timer.restart();
+              for (uint_t i = 0; i < cursor_vector.Current; i++) {
+                FED_ExportedCursor_t* exported_cursor = &((FED_ExportedCursor_t*)cursor_vector.ptr.data())[i];
+                exported_cursor->y = line_index;
+                exported_cursors.emplace_back(exported_cursor);
+              }
 
-					//	m_cursor.enable_draw(context);
+              cursor_vector.Current = 0;
 
-					//	fan::utf8_string utf8;
-					//	utf8.push_back(character);
+              if (line_reference == wed->LineList.dst) {
+                break;
+              }
 
-					//	auto wc = utf8.to_utf16()[0];
+              fan::VEC_handle(&text_vector);
+              text_vector.ptr[text_vector.Current] = '\n';
+              text_vector.Current++;
 
-					//	f32_t font_size = object->get_font_size(w, context, current_focus.i);
-					//	add_character(context, &m_store[current_focus.i].m_wed, &m_store[current_focus.i].cursor_reference, character, font_size);
+              line_index++;
+            }
 
-					//	fan::vector_t text_vector;
-					//	vector_init(&text_vector, sizeof(uint8_t));
+            fan::VEC_handle(&text_vector);
+            text_vector.ptr[text_vector.Current] = 0;
+            text_vector.Current++;
 
-					//	fan::vector_t cursor_vector;
-					//	vector_init(&cursor_vector, sizeof(FED_ExportedCursor_t));
+            instance->object->set_text(window, instance->context, current_focus.i, text_vector.ptr.data());
 
-					//	uint32_t line_index = 0;
-					//	FED_LineReference_t line_reference = FED_GetLineReferenceByLineIndex(&m_store[current_focus.i].m_wed, 0);
+            instance->object->text_callback(window, instance->context, current_focus.i);
 
-					//	std::vector<FED_ExportedCursor_t*> exported_cursors;
+            for (int i = 0; i < exported_cursors.size(); i++) {
 
-					//	while (1) {
-					//		bool is_endline;
-					//		FED_ExportLine(&m_store[current_focus.i].m_wed, line_reference, &text_vector, &cursor_vector, &is_endline, utf8_data_callback);
+              FED_ExportedCursor_t* exported_cursor = exported_cursors[i];
 
-					//		line_reference = _FED_LineList_GetNodeByReference(&m_store[current_focus.i].m_wed.LineList, line_reference)->NextNodeReference;
+              auto src_dst = instance->get_cursor_src_dst(window, instance->context, current_focus.i, exported_cursor->x, exported_cursor->y);
 
-					//		for (uint_t i = 0; i < cursor_vector.Current; i++) {
-					//			FED_ExportedCursor_t* exported_cursor = &((FED_ExportedCursor_t*)cursor_vector.ptr.data())[i];
-					//			exported_cursor->y = line_index;
-					//			exported_cursors.emplace_back(exported_cursor);
-					//		}
+              instance->m_cursor.set_position(instance->context, 0, src_dst.src);
+              instance->m_cursor.set_size(instance->context, 0, src_dst.dst);
+              instance->update_cursor(window, instance->context, current_focus.i);
+            }
+          });
 
-					//		cursor_vector.Current = 0;
+        }
+        void close(fan::window_t* window, fan::opengl::context_t* context) {
+          m_store.close();
 
-					//		if (line_reference == m_store[current_focus.i].m_wed.LineList.dst) {
-					//			break;
-					//		}
-
-					//		{
-					//			fan::VEC_handle(&text_vector);
-					//			text_vector.ptr[text_vector.Current] = '\n';
-					//			text_vector.Current++;
-					//		}
-
-
-					//		line_index++;
-					//	}
-
-					//	{
-					//		fan::VEC_handle(&text_vector);
-					//		text_vector.ptr[text_vector.Current] = 0;
-					//		text_vector.Current++;
-					//	}
-
-					//	object->set_text(w, context, current_focus.i, text_vector.ptr.data());
-
-					//	object->text_callback(w, context, current_focus.i);
-
-					//	for (int i = 0; i < exported_cursors.size(); i++) {
-
-					//		FED_ExportedCursor_t* exported_cursor = exported_cursors[i];
-
-					//		auto src_dst = get_cursor_src_dst(w, context, current_focus.i, exported_cursor->x, exported_cursor->y);
-
-					//		m_cursor.set_position(context, 0, src_dst.src);
-					//		m_cursor.set_size(context, 0, src_dst.dst);
-					//		update_cursor(w, context, current_focus.i);
-
-					//	}
-					//});
-				}
-
-				void close(fan::window_t* window, fan::opengl::context_t* context) {
-					m_store.close();
-
-					if (keys_callback_id != -1) {
+					if (keys_callback_id != fan::uninitialized) {
 						window->remove_keys_callback(keys_callback_id);
-						keys_callback_id = -1;
+						keys_callback_id = fan::uninitialized;
 					}
 
-					if (text_callback_id != -1) {
+					if (text_callback_id != fan::uninitialized) {
 						window->remove_text_callback(text_callback_id);
-						text_callback_id = -1;
+						text_callback_id = fan::uninitialized;
 					}
 
-					if (m_draw_index2 != -1) {
-						context->m_draw_queue.erase(m_draw_index2);
-						m_draw_index2 = -1;
+					if (m_draw_node_reference != fan::uninitialized) {
+						context->m_draw_queue.erase(m_draw_node_reference);
+						m_draw_node_reference = fan::uninitialized;
 					}
 
-					if (mouse_move_callback_id != -1) {
+					if (mouse_move_callback_id != fan::uninitialized) {
 						window->remove_mouse_move_callback(mouse_move_callback_id);
-						mouse_move_callback_id = -1;
+						mouse_move_callback_id = fan::uninitialized;
 					}
 
 					auto focus = focus::get_focus();
@@ -386,336 +299,365 @@ namespace fan_2d {
 						fp.window_handle = 0;
 						focus::set_focus(fp);
 					}
-				}
-
-				void add_character(fan::opengl::context_t* context, FED_t* wed, FED_CursorReference_t* cursor_reference, FED_Data_t character, f32_t font_size) {
-
-					auto found = fan_2d::opengl::gui::text_renderer_t::font.characters.find(character);
-
-					if (found == fan_2d::opengl::gui::text_renderer_t::font.characters.end()) {
-						return;
-					}
-
-					auto letter = fan_2d::opengl::gui::text_renderer_t::get_letter_info(context, character, font_size);
-
-					FED_AddCharacterToCursor(
-						wed,
-						*cursor_reference,
-						character,
-						letter.metrics.advance * line_multiplier
-					);
-				}
-
-				// must be called after T::push_back
-				void push_back(fan::window_t* window, fan::opengl::context_t* context, uint32_t character_limit, f32_t line_width_limit, uint32_t line_limit) {
-					auto object = (T*)OFFSETLESS(this, T, m_key_event);
-
-					m_store.resize(m_store.size() + 1);
-					uint64_t offset = m_store.size() - 1;
-					FED_open(&m_store[offset].m_wed, fan_2d::opengl::gui::text_renderer_t::font.line_height, line_width_limit * line_multiplier, line_limit, character_limit);
-					m_store[offset].cursor_reference = FED_cursor_open(&m_store[offset].m_wed);
-					m_store[offset].m_input_allowed = false;
+        }
+
+        void add_character(fan::opengl::context_t* context, FED_t* wed, FED_CursorReference_t* cursor_reference, FED_Data_t character, f32_t font_size) {
+
+          auto found = fan_2d::opengl::gui::text_renderer_t::font.characters.find(character);
+
+          if (found == fan_2d::opengl::gui::text_renderer_t::font.characters.end()) {
+            return;
+          }
+
+          auto letter = fan_2d::opengl::gui::text_renderer_t::get_letter_info(context, character, font_size);
+
+          FED_AddCharacterToCursor(
+            wed,
+            *cursor_reference,
+            character,
+            letter.metrics.advance * line_multiplier
+          );
+        }
+
+        // must be called after T::push_back
+        void push_back(fan::window_t* window, fan::opengl::context_t* context, uint32_t character_limit, f32_t line_width_limit, uint32_t line_limit) {
+          auto object = (T*)OFFSETLESS(this, T, m_key_event);
+
+          m_store.resize(m_store.size() + 1);
+          uint64_t offset = m_store.size() - 1;
+          FED_open(&m_store[offset].m_wed, fan_2d::opengl::gui::text_renderer_t::font.line_height, line_width_limit * line_multiplier, line_limit, character_limit);
+          m_store[offset].cursor_reference = FED_cursor_open(&m_store[offset].m_wed);
+          m_store[offset].m_input_allowed = false;
+
+          auto str = object->get_text(window, context, offset);
 
-					auto str = object->get_text(window, context, offset);
+          for (int i = 0; i < str.size(); i++) {
+            add_character(context, &m_store[offset].m_wed, &m_store[offset].cursor_reference, str[i], object->get_font_size(window, context, offset));
+          }
 
-					for (int i = 0; i < str.size(); i++) {
-						add_character(context, &m_store[offset].m_wed, &m_store[offset].cursor_reference, str[i], object->get_font_size(window, context, offset));
-					}
+          update_cursor(window, context, object->size(window, context) - 1);
+        }
 
-					update_cursor(window, context, object->size(window, context) - 1);
-				}
+        // box i
+        void set_line_width(fan::window_t* window, uint32_t i, f32_t line_width) {
+          FED_SetLineWidth(&m_store[i].m_wed, line_width * line_multiplier);
+        }
 
-				// box i
-				void set_line_width(fan::window_t* window, uint32_t i, f32_t line_width) {
-					FED_SetLineWidth(&m_store[i].m_wed, line_width * line_multiplier);
-				}
+        bool input_allowed(fan::window_t* window, uint32_t i) const {
+          return m_store[i].m_input_allowed;
+        }
 
-				bool input_allowed(fan::window_t* window, uint32_t i) const {
-					return m_store[i].m_input_allowed;
-				}
+        void allow_input(fan::window_t* window, uint32_t i, bool state) {
+          m_store[i].m_input_allowed = state;
 
-				void allow_input(fan::window_t* window, uint32_t i, bool state) {
-					m_store[i].m_input_allowed = state;
+          auto current_focus = focus::get_focus();
+          fan_2d::graphics::gui::focus::properties_t p;
+          p.window_handle = (void*)window->get_handle();
+          p.shape = this;
+          p.i = i;
 
-					auto current_focus = focus::get_focus();
-					fan_2d::graphics::gui::focus::properties_t p;
-					p.window_handle = (void*)window->get_handle();
-					p.shape = this;
-					p.i = i;
+          if (fan_2d::graphics::gui::focus::has_focus(p)) {
+            focus::set_focus(focus::no_focus);
+          }
+        }
 
-					if (fan_2d::graphics::gui::focus::has_focus(p)) {
-						focus::set_focus(focus::no_focus);
-					}
-				}
+        void enable_draw(fan::window_t* window, fan::opengl::context_t* context) {
+          m_draw_node_reference = context->enable_draw(this, [](fan::opengl::context_t* c, void* d) {
+            key_event_t<T>* thiS = ((decltype(this))d);
+            thiS->draw(thiS->window, thiS->context);
+          });
+        }
+        void disable_draw(fan::window_t* window, fan::opengl::context_t* context) {
+          #if fan_debug >= fan_debug_low
+          if (m_draw_node_reference == fan::uninitialized) {
+            fan::throw_error("trying to disable unenabled draw call");
+          }
+          #endif
+          context->disable_draw(m_draw_node_reference);
+        }
 
-				uint32_t m_draw_index2;
+        void draw(fan::window_t* window, fan::opengl::context_t* context) {
 
-				void enable_draw(fan::window_t* window, fan::opengl::context_t* context) {
-					/*if (m_draw_index2 == -1 || context->m_draw_queue[m_draw_index2].first != this) {
-						m_draw_index2 = window->push_draw_call(this, [&] {
-							this->draw(window, context);
-						});
-					}
-					else {
-						window->edit_draw_call(m_draw_index2, this, [&] {
-							this->draw(window, context);
-						});
-					}*/
-				}
-				void disable_draw(fan::window_t* window, fan::opengl::context_t* context) {
-					if (m_draw_index2 == -1) {
-						return;
-					}
+          if (cursor_timer.finished()) {
+            cursor_timer.restart();
 
-					context->m_draw_queue.erase(m_draw_index2);
-					m_draw_index2 = -1;
-				}
+            auto focus_ = focus::get_focus();
 
-				void draw(fan::window_t* window, fan::opengl::context_t* context) {
+            if (
+              m_cursor.m_draw_node_reference == fan::uninitialized &&
+              has_focus(focus_) && render_cursor &&
+              focus_ == get_focus_info(window) &&
+              m_store[focus_.i].m_input_allowed
+              ) {
+              m_cursor.enable_draw(context);
+            }
+            else if (m_cursor.m_draw_node_reference != fan::uninitialized) {
+              m_cursor.disable_draw(context);
+            }
+            render_cursor = !render_cursor;
+          }
 
-					if (cursor_timer.finished()) {
-						render_cursor = !render_cursor;
-						cursor_timer.restart();
+        }
 
-						auto focus_ = focus::get_focus();
+        focus::properties_t get_focus_info(fan::window_t* window) const {
+          return { (void*)window->get_handle(), (void*)this->object, 0 };
+        }
 
-						if (render_cursor && focus_ == get_focus_info(window) && m_store[focus_.i].m_input_allowed) {
-							m_cursor.enable_draw(context);
-						}
-						else {
-							m_cursor.disable_draw(context);
-						}
-					}
+        uint32_t get_focus() const {
+          auto current_focus = focus::get_focus();
 
-				}
+          if (current_focus == get_focus_info()) {
+            return current_focus.i;
+          }
 
-				focus::properties_t get_focus_info(fan::window_t* window) const {
-					return { (void*)window->get_handle(), (void*)this, 0 };
-				}
+          return focus::no_focus;
+        }
+        void set_focus(fan::window_t* window, fan::opengl::context_t* context, uintptr_t focus_id) {
 
-				uint32_t get_focus() const {
-					auto current_focus = focus::get_focus();
+          auto current_focus = get_focus_info(window);
 
-					if (current_focus == get_focus_info()) {
-						return current_focus.i;
-					}
+          current_focus.i = focus_id;
 
-					return focus::no_focus;
-				}
-				void set_focus(fan::window_t* window, fan::opengl::context_t* context, uintptr_t focus_id) {
+          this->set_focus(current_focus.i);
 
-					auto current_focus = get_focus_info(window);
+          update_cursor(window, context, focus_id);
+        }
 
-					current_focus.i = focus_id;
+        void erase(fan::window_t* window, fan::opengl::context_t* context, uint32_t i) {
 
-					focus::set_focus(current_focus);
+          FED_cursor_close(&m_store[i].m_wed, m_store[i].cursor_reference);
 
-					update_cursor(window, context, focus_id);
-				}
+          FED_close(&m_store[i].m_wed);
 
-				void erase(fan::window_t* window, fan::opengl::context_t* context, uint32_t i) {
+          m_store.erase(i);
 
-					FED_cursor_close(&m_store[i].m_wed, m_store[i].cursor_reference);
+          m_cursor.clear(context);
+        }
 
-					FED_close(&m_store[i].m_wed);
+        void erase(fan::window_t* window, fan::opengl::context_t* context, uint32_t begin, uint32_t end) {
 
-					m_store.erase(i);
+          for (int j = begin; j < end - begin; j++) {
+            FED_cursor_close(&m_store[j].m_wed, m_store[j].cursor_reference);
+          }
 
-					m_cursor.clear(context);
-				}
+          for (int j = begin; j < end - begin; j++) {
+            FED_close(&m_store[j].m_wed);
+          }
 
-				void erase(fan::window_t* window, fan::opengl::context_t* context, uint32_t begin, uint32_t end) {
+          m_store.erase(begin, end);
 
-					for (int j = begin; j < end - begin; j++) {
-						FED_cursor_close(&m_store[j].m_wed, m_store[j].cursor_reference);
-					}
+          m_cursor.clear(context);
+        }
 
-					for (int j = begin; j < end - begin; j++) {
-						FED_close(&m_store[j].m_wed);
-					}
+        void clear(fan::window_t* window, fan::opengl::context_t* context) {
+          m_store.clear();
+          m_cursor.clear(context);
+        }
 
-					m_store.erase(begin, end);
+        static void utf8_data_callback(fan::vector_t* string, FED_Data_t data) {
+          uint8_t size = fan::utf8_get_sizeof_character(data);
+          for (uint8_t i = 0; i < size; i++) {
+            {
+              fan::VEC_handle(string);
+              string->ptr[string->Current] = data;
+              string->Current++;
+            }
+            data >>= 8;
+          }
+        }
 
-					m_cursor.clear(context);
-				}
+        // check focus before calling
+        src_dst_t get_cursor_src_dst(fan::window_t* window, fan::opengl::context_t* context, uint32_t rtb_index, uint32_t x, uint32_t line_index) {
+          auto object = OFFSETLESS(this, T, m_key_event);
+          return object->get_cursor(window, context, rtb_index, x, line_index);
+        }
 
-				void clear(fan::window_t* window, fan::opengl::context_t* context) {
-					m_store.clear();
-					m_cursor.clear(context);
-				}
+        void update_text(fan::window_t* window, fan::opengl::context_t* context, uint32_t i) {
 
-				static void utf8_data_callback(fan::vector_t* string, FED_Data_t data) {
-					uint8_t size = fan::utf8_get_sizeof_character(data);
-					for (uint8_t i = 0; i < size; i++) {
-						{
-							fan::VEC_handle(string);
-							string->ptr[string->Current] = data;
-							string->Current++;
-						}
-						data >>= 8;
-					}
-				}
+          auto object = (T*)OFFSETLESS(this, T, m_key_event);
 
-				// check focus before calling
-				src_dst_t get_cursor_src_dst(fan::window_t* window, fan::opengl::context_t* context, uint32_t rtb_index, uint32_t x, uint32_t line_index) {
-					auto object = OFFSETLESS(this, T, m_key_event);
-					return object->get_cursor(window, context, rtb_index, x, line_index);
-				}
+          fan::vector_t text_vector;
+          vector_init(&text_vector, sizeof(uint8_t));
 
-				void update_text(fan::window_t* window, fan::opengl::context_t* context, uint32_t i) {
+          fan::vector_t cursor_vector;
+          vector_init(&cursor_vector, sizeof(FED_ExportedCursor_t));
 
-					auto object = (T*)OFFSETLESS(this, T, m_key_event);
+          bool is_endline;
 
-					fan::vector_t text_vector;
-					vector_init(&text_vector, sizeof(uint8_t));
+          FED_LineReference_t line_reference = FED_GetLineReferenceByLineIndex(&m_store[i].m_wed, 0);
 
-					fan::vector_t cursor_vector;
-					vector_init(&cursor_vector, sizeof(FED_ExportedCursor_t));
+          while (1) {
+            bool is_endline;
+            FED_ExportLine(&m_store[i].m_wed, line_reference, &text_vector, &cursor_vector, &is_endline, utf8_data_callback);
 
-					bool is_endline;
+            line_reference = _FED_LineList_GetNodeByReference(&m_store[i].m_wed.LineList, line_reference)->NextNodeReference;
 
-					FED_LineReference_t line_reference = FED_GetLineReferenceByLineIndex(&m_store[i].m_wed, 0);
+            cursor_vector.Current = 0;
 
-					while (1) {
-						bool is_endline;
-						FED_ExportLine(&m_store[i].m_wed, line_reference, &text_vector, &cursor_vector, &is_endline, utf8_data_callback);
+            if (line_reference == m_store[i].m_wed.LineList.dst) {
+              break;
+            }
 
-						line_reference = _FED_LineList_GetNodeByReference(&m_store[i].m_wed.LineList, line_reference)->NextNodeReference;
+            {
+              fan::VEC_handle(&text_vector);
+              text_vector.ptr[text_vector.Current] = '\n';
+              text_vector.Current++;
+            }
 
-						cursor_vector.Current = 0;
+          }
 
-						if (line_reference == m_store[i].m_wed.LineList.dst) {
-							break;
-						}
+          {
+            fan::VEC_handle(&text_vector);
+            text_vector.ptr[text_vector.Current] = 0;
+            text_vector.Current++;
+          }
 
-						{
-							fan::VEC_handle(&text_vector);
-							text_vector.ptr[text_vector.Current] = '\n';
-							text_vector.Current++;
-						}
+          object->set_text(window, context, i, text_vector.ptr.data());
 
-					}
+          object->text_callback(window, context, i);
+        }
 
-					{
-						fan::VEC_handle(&text_vector);
-						text_vector.ptr[text_vector.Current] = 0;
-						text_vector.Current++;
-					}
+        void update_cursor(fan::window_t* window, fan::opengl::context_t* context, uint32_t i) {
 
-					object->set_text(window, context, i, text_vector.ptr.data());
+          if (!(focus::get_focus() == get_focus_info(window)) || i == fan::uninitialized) {
+            return;
+          }
 
-					object->text_callback(window, context, i);
-				}
+          fan::vector_t text_vector;
+          vector_init(&text_vector, sizeof(uint8_t));
 
-				void update_cursor(fan::window_t* window, fan::opengl::context_t* context, uint32_t i) {
+          fan::vector_t cursor_vector;
+          vector_init(&cursor_vector, sizeof(FED_ExportedCursor_t));
 
-					if (!(focus::get_focus() == get_focus_info(window)) || i == fan::uninitialized) {
-						return;
-					}
+          uint32_t line_index = 0; /* we dont know which line we are at so */
+          FED_LineReference_t line_reference = FED_GetLineReferenceByLineIndex(&m_store[i].m_wed, 0);
+          //auto t = fan::time::clock::now();
 
-					fan::vector_t text_vector;
-					vector_init(&text_vector, sizeof(uint8_t));
+          m_cursor.clear(context);
+          //fan::print(fan::time::clock::elapsed(t));
+          while (1) {
+            bool is_endline;
+            FED_ExportLine(&m_store[i].m_wed, line_reference, &text_vector, &cursor_vector, &is_endline, utf8_data_callback);
 
-					fan::vector_t cursor_vector;
-					vector_init(&cursor_vector, sizeof(FED_ExportedCursor_t));
+            line_reference = _FED_LineList_GetNodeByReference(&m_store[i].m_wed.LineList, line_reference)->NextNodeReference;
 
-					uint32_t line_index = 0; /* we dont know which line we are at so */
-					FED_LineReference_t line_reference = FED_GetLineReferenceByLineIndex(&m_store[i].m_wed, 0);
-					//auto t = fan::time::clock::now();
+            for (uint_t j = 0; j < cursor_vector.Current; j++) {
+              FED_ExportedCursor_t* exported_cursor = &((FED_ExportedCursor_t*)cursor_vector.ptr.data())[j];
 
-					m_cursor.clear(context);
-					//fan::print(fan::time::clock::elapsed(t));
-					while (1) {
-						bool is_endline;
-						FED_ExportLine(&m_store[i].m_wed, line_reference, &text_vector, &cursor_vector, &is_endline, utf8_data_callback);
+              auto src_dst = get_cursor_src_dst(window, context, i, exported_cursor->x, line_index);
 
-						line_reference = _FED_LineList_GetNodeByReference(&m_store[i].m_wed.LineList, line_reference)->NextNodeReference;
+              fan_2d::opengl::rectangle_t::properties_t cursor_properties;
+              cursor_properties.color = cursor_properties::color;
+              cursor_properties.position = src_dst.src;
+              cursor_properties.size = src_dst.dst;
 
-						for (uint_t j = 0; j < cursor_vector.Current; j++) {
-							FED_ExportedCursor_t* exported_cursor = &((FED_ExportedCursor_t*)cursor_vector.ptr.data())[j];
+              m_cursor.push_back(context, cursor_properties);
+            }
 
-							auto src_dst = get_cursor_src_dst(window, context, i, exported_cursor->x, line_index);
+            cursor_vector.Current = 0;
 
-							fan_2d::opengl::rectangle_t::properties_t cursor_properties;
-							cursor_properties.color = cursor_properties::color;
-							cursor_properties.position = src_dst.src;
-							cursor_properties.size = src_dst.dst;
+            if (line_reference == m_store[i].m_wed.LineList.dst) {
+              break;
+            }
 
-							m_cursor.push_back(context, cursor_properties);
-						}
+            line_index++;
+          }
+        }
 
-						cursor_vector.Current = 0;
+        std::vector<src_dst_t> get_cursor_src_dsts(uint32_t i) {
 
-						if (line_reference == m_store[i].m_wed.LineList.dst) {
-							break;
-						}
+          if (!(focus::get_focus() == get_focus_info())) {
+            return {};
+          }
 
-						line_index++;
-					}
-				}
+          std::vector<src_dst_t> cursor_src_dsts;
 
-				std::vector<src_dst_t> get_cursor_src_dsts(uint32_t i) {
+          fan::vector_t text_vector;
+          vector_init(&text_vector, sizeof(uint8_t));
 
-					if (!(focus::get_focus() == get_focus_info())) {
-						return {};
-					}
+          fan::vector_t cursor_vector;
+          vector_init(&cursor_vector, sizeof(FED_ExportedCursor_t));
 
-					std::vector<src_dst_t> cursor_src_dsts;
+          uint32_t line_index = 0;
+          FED_LineReference_t line_reference = FED_GetLineReferenceByLineIndex(&m_store[i].m_wed, 0);
 
-					fan::vector_t text_vector;
-					vector_init(&text_vector, sizeof(uint8_t));
+          while (1) {
+            bool is_endline;
+            FED_ExportLine(&m_store[i].m_wed, line_reference, &text_vector, &cursor_vector, &is_endline, utf8_data_callback);
 
-					fan::vector_t cursor_vector;
-					vector_init(&cursor_vector, sizeof(FED_ExportedCursor_t));
+            line_reference = _FED_LineList_GetNodeByReference(&m_store[i].m_wed.LineList, line_reference)->NextNodeReference;
 
-					uint32_t line_index = 0;
-					FED_LineReference_t line_reference = FED_GetLineReferenceByLineIndex(&m_store[i].m_wed, 0);
+            for (uint_t i = 0; i < cursor_vector.Current; i++) {
+              FED_ExportedCursor_t* exported_cursor = &((FED_ExportedCursor_t*)cursor_vector.ptr.data())[i];
+              exported_cursor->y = line_index;
+              cursor_src_dsts.emplace_back(get_cursor_src_dst(0, i, exported_cursor->x, exported_cursor->y));
+            }
 
-					while (1) {
-						bool is_endline;
-						FED_ExportLine(&m_store[i].m_wed, line_reference, &text_vector, &cursor_vector, &is_endline, utf8_data_callback);
+            cursor_vector.Current = 0;
 
-						line_reference = _FED_LineList_GetNodeByReference(&m_store[i].m_wed.LineList, line_reference)->NextNodeReference;
+            if (line_reference == m_store[i].m_wed.LineList.dst) {
+              break;
+            }
 
-						for (uint_t i = 0; i < cursor_vector.Current; i++) {
-							FED_ExportedCursor_t* exported_cursor = &((FED_ExportedCursor_t*)cursor_vector.ptr.data())[i];
-							exported_cursor->y = line_index;
-							cursor_src_dsts.emplace_back(get_cursor_src_dst(0, i, exported_cursor->x, exported_cursor->y));
-						}
+            {
+              fan::VEC_handle(&text_vector);
+              text_vector.ptr[text_vector.Current] = '\n';
+              text_vector.Current++;
+            }
 
-						cursor_vector.Current = 0;
+            line_index++;
+          }
 
-						if (line_reference == m_store[i].m_wed.LineList.dst) {
-							break;
-						}
+          return cursor_src_dsts;
+        }
 
-						{
-							fan::VEC_handle(&text_vector);
-							text_vector.ptr[text_vector.Current] = '\n';
-							text_vector.Current++;
-						}
+        bool is_focused() const {
+          fan_2d::graphics::gui::focus::properties_t p;
+          p.window_handle = (void*)window->get_handle();
+          p.shape = object;
 
-						line_index++;
-					}
+          return !fan_2d::graphics::gui::focus::has_no_focus(p);
+        }
 
-					return cursor_src_dsts;
-				}
+        void set_on_focus_loss_callback(void* userptr_, focus_loss_cb_t focus_loss_cb_) {
+          focus_loss_cb = focus_loss_cb_;
+          focus_loss_userptr = userptr_;
+        }
 
-				bool render_cursor;
+        void set_focus(uint32_t focus_id) {
+          focus_loss_cb(window, context, current_focus.i, focus_loss_userptr);
+          focus::set_focus(focus_id);
+        }
 
-				fan::time::clock cursor_timer;
+        uint32_t m_draw_node_reference;
 
-				struct store_t {
-					FED_CursorReference_t cursor_reference;
-					FED_t m_wed;
-					uint32_t m_input_allowed;
-				};
+        bool render_cursor;
 
-				fan::hector_t<store_t> m_store;
+        fan::time::clock cursor_timer;
 
-				fan_2d::opengl::rectangle_t m_cursor;
+        struct store_t {
+          FED_CursorReference_t cursor_reference;
+          FED_t m_wed;
+          uint32_t m_input_allowed;
+        };
 
-			};
+        fan::hector_t<store_t> m_store;
+
+        fan_2d::opengl::rectangle_t m_cursor;
+        fan::graphics::context_t* context;
+        fan::window_t* window;
+        T* object;
+
+        uint32_t text_callback_id;
+        uint32_t keys_callback_id;
+        uint32_t mouse_move_callback_id;
+
+        fan::vec2 click_begin;
+
+        focus_loss_cb_t focus_loss_cb;
+        void* focus_loss_userptr;
+
+      };
     }
   }
 }

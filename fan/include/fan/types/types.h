@@ -24,231 +24,296 @@ typedef f32_t cf_t;
 
 namespace fan {
 
-	constexpr auto uninitialized = -1;
+  constexpr auto uninitialized = -1;
 
-	// converts enum to int
-	template <typename Enumeration>
-	constexpr auto eti(Enumeration const value)
-	-> typename std::underlying_type<Enumeration>::type
-	{
-		return static_cast<
-			typename std::underlying_type<Enumeration>::type
-		>(value);
-	}
-	
-	template <typename T>
-	std::ostream& operator<<(std::ostream& os, const std::vector<T>& vector) noexcept
-	{
-		for (uintptr_t i = 0; i < vector.size(); i++) {
-			os << vector[i] << ' ';
-		}
-		return os;
-	}
+  // converts enum to int
+  template <typename Enumeration>
+  constexpr auto eti(Enumeration const value)
+    -> typename std::underlying_type<Enumeration>::type
+  {
+    return static_cast<
+      typename std::underlying_type<Enumeration>::type
+    >(value);
+  }
 
-	template <typename T>
-	std::ostream& operator<<(std::ostream& os, const std::vector<std::vector<T>>& vector) noexcept
-	{
-		for (uintptr_t i = 0; i < vector.size(); i++) {
-			for (uintptr_t j = 0; j < vector[i].size(); j++) {
-				os << vector[i][j] << ' ';
-			}
-			os << '\n';
-		}
-		return os;
-	}
+  template <typename T>
+  std::ostream& operator<<(std::ostream& os, const std::vector<T>& vector) noexcept
+  {
+    for (uintptr_t i = 0; i < vector.size(); i++) {
+      os << vector[i] << ' ';
+    }
+    return os;
+  }
 
-	template <typename ...Args>
-	constexpr void print_no_space(const Args&... args) {
-		((std::cout << args), ...) << '\n';
-	}
+  template <typename T>
+  std::ostream& operator<<(std::ostream& os, const std::vector<std::vector<T>>& vector) noexcept
+  {
+    for (uintptr_t i = 0; i < vector.size(); i++) {
+      for (uintptr_t j = 0; j < vector[i].size(); j++) {
+        os << vector[i][j] << ' ';
+      }
+      os << '\n';
+    }
+    return os;
+  }
 
-	template <typename ...Args>
-	constexpr void print_no_endline(const Args&... args) {
-		((std::cout << args << ' '), ...);
-	}
+  template <typename ...Args>
+  constexpr void print_no_space(const Args&... args) {
+    ((std::cout << args), ...) << '\n';
+  }
 
-	template <typename ...Args>
-	constexpr void wprint_no_endline(const Args&... args) {
-		((std::wcout << args << ' '), ...);
-	}
+  template <typename ...Args>
+  constexpr void print_no_endline(const Args&... args) {
+    ((std::cout << args << ' '), ...);
+  }
 
-	template <typename ...Args>
-	constexpr void print(const Args&... args) {
-		((std::cout << args << ' '), ...) << '\n';
-	}
+  template <typename ...Args>
+  constexpr void wprint_no_endline(const Args&... args) {
+    ((std::wcout << args << ' '), ...);
+  }
 
-	template <typename ...Args>
-	constexpr void wprint(const Args&... args) {
-		((std::wcout << args << " "), ...) << '\n';
-	}
+  template <typename ...Args>
+  constexpr void print(const Args&... args) {
+    ((std::cout << args << ' '), ...) << '\n';
+  }
 
-	template <typename T>
-	constexpr uintptr_t vector_byte_size(const typename std::vector<T>& vector)
-	{
-		return sizeof(T) * vector.size();
-	}
+  template <typename ...Args>
+  constexpr void wprint(const Args&... args) {
+    ((std::wcout << args << " "), ...) << '\n';
+  }
 
-	template <typename T>
-	std::wstring to_wstring(const T a_value, const int n = 2)
-	{
-		std::wostringstream out;
-		out.precision(n);
-		out << std::fixed << a_value;
-		return out.str();
-	}
+  template <typename T>
+  constexpr uintptr_t vector_byte_size(const typename std::vector<T>& vector)
+  {
+    return sizeof(T) * vector.size();
+  }
 
-	template <typename T, typename T2>
-	constexpr bool is_flag(T value, T2 flag) {
-		return (value & flag) == flag;
-	}
+  template <typename T>
+  std::wstring to_wstring(const T a_value, const int n = 2)
+  {
+    std::wostringstream out;
+    out.precision(n);
+    out << std::fixed << a_value;
+    return out.str();
+  }
 
-	enum class platform_t { windows, linux };
+  template <typename T, typename T2>
+  constexpr bool is_flag(T value, T2 flag) {
+    return (value & flag) == flag;
+  }
 
-	#if defined(_WIN32) || defined(_WIN64)
+  enum class platform_t { windows, linux };
 
-		constexpr platform_t platform = platform_t::windows;
-		#define fan_platform_windows
+  #if defined(_WIN32) || defined(_WIN64)
 
-		#ifdef _MSC_VER
-			#define fan_compiler_visual_studio
-		#elif defined(__clang__)
-			#define fan_compiler_clang
-		#elif defined(__GNUC__)
-			#define fan_compiler_gcc
-		#endif
+  constexpr platform_t platform = platform_t::windows;
+  #define fan_platform_windows
 
-	#elif defined(__linux__)
+  #ifdef _MSC_VER
+  #define fan_compiler_visual_studio
+  #elif defined(__clang__)
+  #define fan_compiler_clang
+  #elif defined(__GNUC__)
+  #define fan_compiler_gcc
+  #endif
 
-		constexpr platform_t platform = platform_t::windows;
-		#define fan_platform_linux
-		#define fan_platform_unix
+  #elif defined(__linux__)
 
-	#elif defined(__unix__)
+  constexpr platform_t platform = platform_t::windows;
+  #define fan_platform_linux
+  #define fan_platform_unix
 
-		#define fan_platform_unix
+  #elif defined(__unix__)
 
-	#elif defined(__FreeBSD__)
+  #define fan_platform_unix
 
-		#define fan_platform_freebsd
-		#define fan_platform_unix
-	
-	#endif
+  #elif defined(__FreeBSD__)
 
-	template <bool _Test, uintptr_t _Ty1, uintptr_t _Ty2>
-	struct conditional_value {
-		static constexpr auto value = _Ty1;
-	};
+  #define fan_platform_freebsd
+  #define fan_platform_unix
 
-	template <uintptr_t _Ty1, uintptr_t _Ty2>
-	struct conditional_value<false, _Ty1, _Ty2> {
-		static constexpr auto value = _Ty2;
-	};
+  #endif
 
-	template <bool _Test, uintptr_t _Ty1, uintptr_t _Ty2>
-	struct conditional_value_t {
-		static constexpr auto value = conditional_value<_Test, _Ty1, _Ty2>::value;
-	};
+  template <bool _Test, uintptr_t _Ty1, uintptr_t _Ty2>
+  struct conditional_value {
+    static constexpr auto value = _Ty1;
+  };
 
-	#define fan_validate_buffer(buffer, function) \
+  template <uintptr_t _Ty1, uintptr_t _Ty2>
+  struct conditional_value<false, _Ty1, _Ty2> {
+    static constexpr auto value = _Ty2;
+  };
+
+  template <bool _Test, uintptr_t _Ty1, uintptr_t _Ty2>
+  struct conditional_value_t {
+    static constexpr auto value = conditional_value<_Test, _Ty1, _Ty2>::value;
+  };
+
+  #define fan_validate_buffer(buffer, function) \
 	if (buffer != static_cast<decltype(buffer)>(fan::uninitialized)) \
 	{ \
 		function; \
 	}
 
-	// prints warning if value is -1
-	#define fan_validate_value(value, text) if (value == (decltype(value))fan::uninitialized) { fan::throw_error(text); }
+  // prints warning if value is -1
+  #define fan_validate_value(value, text) if (value == (decltype(value))fan::uninitialized) { fan::throw_error(text); }
 
-	template <typename T>
-	constexpr T clamp(T value, T min, T max) {
-		if (value < min) {
-			return min;
-		}
-		if (value > max) {
-			return max;
-		}
-		return value;
-	}
+  template <typename T>
+  constexpr T clamp(T value, T min, T max) {
+    if (value < min) {
+      return min;
+    }
+    if (value > max) {
+      return max;
+    }
+    return value;
+  }
 
-	template <typename T, uint32_t duplicate_id = 0>
-	class class_duplicator : public T {
-	
-		using T::T;
+  template <typename T, uint32_t duplicate_id = 0>
+  class class_duplicator : public T {
 
-	};
+    using T::T;
 
-	static std::wstring str_to_wstr(const std::string& s)
-	{
-		std::wstring ret(s.begin(), s.end());
-		return ret;
-	}
+  };
 
-	static void print_warning(const std::string& message) {
-		#ifndef fan_disable_warnings
-			fan::print("fan warning: ", message);
-		#endif
-	}
+  static std::wstring str_to_wstr(const std::string& s)
+  {
+    std::wstring ret(s.begin(), s.end());
+    return ret;
+  }
 
-	static void throw_error(const std::string& message) {
-		fan::print(message);
-#ifdef fan_compiler_visual_studio
-		system("pause");
-#endif
-		throw std::runtime_error("");
-		//exit(1);
-	}
+  // slow
+  template <typename T>
+  static std::vector<T> string_to_values(const std::string& str)
+  {
+    std::vector<T> values;
 
-	template <typename T>
-	struct ptr_maker_t {
+    std::stringstream ss;
+    ss << str;
 
-		void open() {
-			ptr = new T;
-		}
+    std::string temp;
+    T found;
+    while (!ss.eof()) {
 
-		void close() {
-			delete ptr;
-		}
+      ss >> temp;
 
-		T& operator*() {
-			return *ptr;
-		}
-		T& operator*() const {
-			return *ptr;
-		}
-		T* operator->() {
-			return ptr;
-		}
-		T& operator[](uintptr_t i) const {
-			return ptr[i];
-		}
-		T& operator[](uintptr_t i) {
-			return ptr[i];
-		}
+      if (std::stringstream(temp) >> found) {
+        values.push_back(found);
+      }
+    }
+    return values;
+  }
 
-		T* ptr;
+   // slow
+  template <typename T>
+  static std::vector<T> string_to_values(const std::wstring& str)
+  {
+    std::vector<T> values;
 
-	};
+    std::wstringstream ss;
+    ss << str;
 
-	template <typename T, typename T2>
-	struct pair_t{
-		T first;
-		T2 second;
-	};
+    std::wstring temp;
+    T found;
+    while (!ss.eof()) {
 
-	template <typename T, typename T2>
-	pair_t<T, T2> make_pair(T a, T2 b) {
-		return pair_t<T, T2>{a, b};
-	}
+      ss >> temp;
 
-	template <typename T, typename U>
-	constexpr auto offsetless(void* ptr, U T::*member) {
-		return (T*)((uint8_t*)(ptr) - ((char*)&((T*)nullptr->*member) - (char*)nullptr));
-	}
+      if (std::wstringstream(temp) >> found) {
+        values.push_back(found);
+      }
+    }
+    return values;
+  }
+
+  static void print_warning(const std::string& message) {
+    #ifndef fan_disable_warnings
+    fan::print("fan warning: ", message);
+    #endif
+  }
+
+  static void throw_error(const std::string& message) {
+    fan::print(message);
+    #ifdef fan_compiler_visual_studio
+    system("pause");
+    #endif
+    throw std::runtime_error("");
+    //exit(1);
+  }
+
+  template <typename T>
+  struct ptr_maker_t {
+
+    void open() {
+      ptr = new T;
+    }
+
+    void close() {
+      delete ptr;
+    }
+
+    T& operator*() {
+      return *ptr;
+    }
+    T& operator*() const {
+      return *ptr;
+    }
+    T* operator->() {
+      return ptr;
+    }
+    T& operator[](uintptr_t i) const {
+      return ptr[i];
+    }
+    T& operator[](uintptr_t i) {
+      return ptr[i];
+    }
+
+    T* ptr;
+
+  };
+
+  template <typename T, typename T2>
+  struct pair_t {
+    T first;
+    T2 second;
+  };
+
+  template <typename T, typename T2>
+  pair_t<T, T2> make_pair(T a, T2 b) {
+    return pair_t<T, T2>{a, b};
+  }
+
+  template <typename T, typename U>
+  constexpr auto offsetless(void* ptr, U T::* member) {
+    return (T*)((uint8_t*)(ptr)-((char*)&((T*)nullptr->*member) - (char*)nullptr));
+  }
+
+  template <typename T>
+  std::string combine_values(T t) {
+    if constexpr (std::is_same<T, const char*>::value) {
+      return t;
+    }
+    else {
+      return std::to_string(t);
+    }
+  }
+
+  template <typename T2, typename ...T>
+  std::string combine_values(T2 first, T... args) {
+    if constexpr (std::is_same<T2, const char*>::value ||
+      std::is_same<T2, std::string>::value) {
+      return first + f(args...);
+    }
+    else {
+      return std::to_string(first) + f(args...);
+    }
+  }
 }
 
 
 //template <platform_t T_platform>
 //concept platform_windows = T_platform == platform_t::windows;
- 
+
 //template <platform_t T_platform>
 //concept platform_linux = T_platform == platform_t::linux;
 
@@ -270,9 +335,9 @@ namespace fan {
 #define fan_debug_high 3
 
 #ifndef fan_debug
-	#define fan_debug fan_debug_none
+#define fan_debug fan_debug_none
 #endif
 
 #ifdef fan_platform_windows
-	#pragma comment(lib, "Onecore.lib")
+#pragma comment(lib, "Onecore.lib")
 #endif

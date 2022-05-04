@@ -1,109 +1,89 @@
 // Creates window and opengl context
-
+#define fan_debug 3
 #include <fan/graphics/graphics.h>
-#include <fan/physics/static_joint.h>
-
-struct pile_t {
-  fan::window_t w;
-  fan::opengl::context_t c;
-  fan_2d::graphics::rectangle_t r;
-  fan_2d::graphics::sprite_t s;
-};
-
-void user_set_position_cb(void* userptr, uint8_t joint_type, uint32_t joint_id, const fan::vec2& position) {
-  pile_t* pile = (pile_t*)userptr;
-  switch (joint_type) {
-    case 0: {
-      pile->r.set_position(&pile->c, joint_id, position);
-      break;
-    }
-    case 1: {
-      pile->s.set_position(&pile->c, joint_id, position);
-      break;
-    }
-  }
-}
-
-void user_set_angle_cb(void* userptr, uint8_t joint_type, uint32_t joint_id, const fan::vec2& position, f32_t angle) {
-  pile_t* pile = (pile_t*)userptr;
-  switch (joint_type) {
-    case 0: {
-      pile->r.set_position(&pile->c, joint_id, position);
-      pile->r.set_angle(&pile->c, joint_id, angle);
-      break;
-    }
-    case 1: {
-      pile->s.set_position(&pile->c, joint_id, position);
-      pile->s.set_angle(&pile->c, joint_id, angle);
-      break;
-    }
-  }
-}
 
 int main() {
 
-  pile_t pile;
+  fan::window_t window;
+  window.open();
 
-  pile.w.open();
-
-
-  pile.c.init();
-  pile.c.bind_to_window(&pile.w);
-  pile.c.set_viewport(0, pile.w.get_size());
-  pile.w.add_resize_callback(&pile.c, [](fan::window_t*, const fan::vec2i& size, void* userptr) {
-    ((fan::opengl::context_t*)userptr)->set_viewport(0, size);
-  });
+  fan::opengl::context_t context;
+  context.init();
+  context.bind_to_window(&window);
+  //context.set_viewport(0, window.get_size());
 
 
-  pile.r.open(&pile.c);
+  fan_2d::graphics::rectangle_t r[2];
+  r[0].open(&context);
   fan_2d::graphics::rectangle_t::properties_t rp;
-  rp.position = pile.w.get_size() / 2;
-  rp.size = 100;
+  rp.position = fan::vec2(0, 0);
+  rp.size = 10;
   rp.color = fan::colors::red;
-  pile.r.push_back(&pile.c, rp);
-  pile.r.enable_draw(&pile.c);
+  r[0].push_back(&context, rp);
+  rp.color = fan::colors::blue;
+  r[1].open(&context);
+  r[1].push_back(&context, rp);
 
-  
-  pile.s.open(&pile.c);
-  fan_2d::graphics::sprite_t::properties_t sp;
-  sp.position = pile.w.get_size() / 4;
-  sp.size = 100;
-  sp.image = fan::graphics::load_image(&pile.c, "images/block/Dirt.webp");
-  pile.s.push_back(&pile.c, sp);
-  pile.s.push_back(&pile.c, sp);
-  pile.s.enable_draw(&pile.c);
+  fan::opengl::matrices_t matrices;
+  matrices.open();
 
-  fan_2d::physics::joint_head_t joint_head;
-  joint_head.joint_type = 0;
-  joint_head.joint_id = 0;
-  joint_head.rotation_point = fan::vec2(-100, -100);
-  joint_head.joint_tail.open();
-  fan_2d::physics::joint_tail_t joint_tail;
-  joint_tail.rotation_point = 0;
-  joint_tail.joint_id = 0;
-  joint_tail.m_position = fan::vec2(-200, 0);
-  joint_tail.joint_type = 1;
-  joint_tail.joint_tail.open();
-  joint_head.joint_tail.push_back(joint_tail);
+  r[0].m_shader.bind_matrices(&context, &matrices);
+  r[1].m_shader.bind_matrices(&context, &matrices);
 
-  joint_tail.m_position = fan::vec2(-200, 0);
-  joint_tail.joint_id = 1;
+  matrices.set_ortho(&context, fan::vec2(-1, 1), fan::vec2(-1, 1));
 
-  joint_head.joint_tail[0].joint_tail.push_back(joint_tail);
+  fan::vec2 window_size = window.get_size();
+
+  fan::graphics::viewport_t viewport[2];
+  fan::graphics::viewport_t::properties_t vp;
+  vp.position = 0;
+  vp.size = fan::vec2(window_size.x / 2, window_size.y); 
+  viewport[0].open(&context);
+  viewport[0].set(&context, vp);
+  vp.position = fan::vec2(window_size.x / 2, 0);
+  viewport[1].open(&context);
+  viewport[1].set(&context, vp);
+
+  viewport[0].enable(&context);
+  r[0].enable_draw(&context);
+
+  viewport[1].enable(&context);
+  r[1].enable_draw(&context);
+
+  context.set_vsync(&window, 0);
+
+  struct pile_t {
+    fan::graphics::viewport_t* v;
+    fan::opengl::context_t* context;
+  }pile;
+
+  pile.v = viewport;
+  pile.context = &context;
+  window.add_resize_callback(&pile, [](fan::window_t* w, const fan::vec2i& window_size, void* userptr) {
+    pile_t* pile = (pile_t*)userptr;
+    fan::graphics::viewport_t::properties_t p;
+    p.position = 0;
+    p.size = fan::vec2(window_size.x / 2, window_size.y);
+    pile->v[0].set(pile->context, p);
+    p.position = fan::vec2(window_size.x / 2, 0);
+    pile->v[1].set(pile->context, p);
+
+
+    //((fan::opengl::context_t*)userptr)->set_viewport(0, size);
+  });
 
   while(1) {
 
-    joint_head.set_position(&pile, user_set_position_cb, pile.w.get_mouse_position());
-    joint_head.set_angle(&pile, user_set_position_cb, user_set_angle_cb, pile.w.get_mouse_position(), fan::time::clock::now() / 1e+9);
+    window.get_fps();
 
-    uint32_t window_event = pile.w.handle_events();
+    uint32_t window_event = window.handle_events();
     if(window_event & fan::window_t::events::close){
-      pile.w.close();
+      window.close();
       break;
     }
 
-    pile.c.process();
-    pile.c.render(&pile.w);
+    context.process();
+    context.render(&window);
   }
 
   return 0;

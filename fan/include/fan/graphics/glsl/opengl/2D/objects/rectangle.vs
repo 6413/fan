@@ -9,7 +9,6 @@ in vec2 input3;
 out vec4 instance_color;
 
 uniform mat4 projection;
-uniform mat4 view;
 
 mat4 translate(mat4 m, vec3 v) {
 	mat4 matrix = m;
@@ -124,7 +123,7 @@ void main() {
 
 	m = scale(m, vec3(layout_size.x, layout_size.y, 0));
 
-	gl_Position = projection * view * m * vec4(rectangle_vertices[gl_VertexID % 6], 0, 1);
+	gl_Position = projection * m * vec4(rectangle_vertices[gl_VertexID % 6], 0, 1);
 
 	instance_color = layout_color;
 }

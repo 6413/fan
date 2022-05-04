@@ -44,6 +44,7 @@ namespace fan_2d {
 
 				static bool has_focus(const properties_t& focus) {
 					return
+						current_focus.i != fan::uninitialized &&
 						current_focus.window_handle == focus.window_handle &&
 						current_focus.shape == focus.shape &&
 						current_focus.i == focus.i;

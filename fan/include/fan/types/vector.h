@@ -610,7 +610,7 @@ namespace fan {
 		using value_type = _Ty;
 		using vec_t = _vec3<_Ty>;
 
-		constexpr _vec4() : x(0), y(0), z(0), w(0) {}
+		constexpr _vec4() = default;
 		constexpr _vec4(_Ty x, _Ty y, _Ty z, _Ty w) : x(x), y(y), z(z), w(w) {}
 		constexpr _vec4(_Ty value) : x(value), y(value), z(value), w(value) {}
 

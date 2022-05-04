@@ -1,7 +1,6 @@
 #pragma once
 
-#include <vector>
-#include <cstdint>
+#include <fan/types/memory.h>
 
 #define BLL_set_debug_InvalidAction 1
 
@@ -13,11 +12,11 @@
 template <typename type_t, typename node_type_t = uint32_t>
 struct bll_t {
 
-	bll_t() {
-		open();
-	}
+	bll_t() = default;
 
 	void open() {
+
+		nodes.open();
 
 		nodes.resize(2);
 
@@ -34,6 +33,9 @@ struct bll_t {
 			SafeNext = (node_type_t)-1;
 		#endif
 
+	}
+	void close() {
+		nodes.close();
 	}
 
 	const constexpr type_t operator[](node_type_t node_reference) const {
@@ -362,7 +364,7 @@ struct bll_t {
 	node_type_t src;
 	node_type_t dst;
 
-	std::vector<node_t> nodes;
+	fan::hector_t<node_t> nodes;
 };
 
 #undef BLL_set_SafeNext
