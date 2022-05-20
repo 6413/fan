@@ -1,6 +1,6 @@
 # fan
 
-**Example window creation code:**
+**Example window creation:**
 ```
 // Creates window and opengl context
 
@@ -35,7 +35,7 @@ int main() {
 }
 ```
 
-**Example rectangle rendering code:**
+**Example rectangle rendering:**
 ```
 // Creates window, opengl context and renders a rectangle
 
