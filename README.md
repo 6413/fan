@@ -41,7 +41,7 @@ int main() {
 
 #include <fan/graphics/graphics.h>
 
-//#define gui_demo
+#define gui_demo
 
 struct pile_t {
   fan::opengl::matrices_t matrices;
@@ -62,7 +62,7 @@ int main() {
     pile_t* pile = (pile_t*)userptr;
 
     pile->context.set_viewport(0, size);
-    #ifndef gui_demo
+    #ifdef gui_demo
       pile->matrices.set_ortho(&pile->context, fan::vec2(0, size.x), fan::vec2(0, size.y));
     #endif
   });
@@ -77,20 +77,20 @@ int main() {
 
   fan_2d::graphics::rectangle_t::properties_t p;
   #ifdef gui_demo
-    p.position = 0;
-    p.size = 0.5;
-  #else
     p.position = pile.window.get_size() / 2;
     p.size = 100;
+  #else
+    p.position = 0;
+    p.size = 0.5;
   #endif
   p.color = fan::colors::red;
   r.push_back(&pile.context, p);
 
   fan::vec2 window_size = pile.window.get_size();
     #ifdef gui_demo
-    pile.matrices.set_ortho(&pile.context, fan::vec2(-1, 1), fan::vec2(1, -1));
-  #else
     pile.matrices.set_ortho(&pile.context, fan::vec2(0, window_size.x), fan::vec2(0, window_size.y));
+  #else
+    pile.matrices.set_ortho(&pile.context, fan::vec2(-1, 1), fan::vec2(1, -1));
   #endif
 
   while(1) {
