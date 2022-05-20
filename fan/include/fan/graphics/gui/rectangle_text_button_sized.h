@@ -27,6 +27,8 @@ namespace fan_2d {
           m_key_event.open(window, context);
           m_button_event.open(window, context);
           m_reserved.open();
+
+          viewport_collision_offset = 0;
         }
 
         void close(fan::window_t* window, fan::opengl::context_t* context) {
@@ -167,7 +169,13 @@ namespace fan_2d {
               m_button_event.m_focused_button_id = i;
             }
           }
+        }
 
+        void* get_userptr(fan::window_t* window, fan::opengl::context_t* context, uint32_t i) {
+          return rtbs.get_userptr(context, i);
+        }
+        void* set_userptr(fan::window_t* window, fan::opengl::context_t* context, uint32_t i, void* userptr) {
+          rtbs.set_userptr(context, i, userptr);
         }
 
         void lib_add_on_input(fan::window_t* window, fan::opengl::context_t* context, uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage, void* user_ptr)
@@ -279,12 +287,25 @@ namespace fan_2d {
           m_key_event.disable_draw(window, context);
         }
 
+        void bind_matrices(fan::opengl::context_t* context, fan::opengl::matrices_t* matrices) {
+          rtbs.bind_matrices(context, matrices);
+          m_key_event.m_cursor.m_shader.bind_matrices(context, matrices);
+        }
+
+        fan::vec2 get_viewport_collision_offset() const {
+          return viewport_collision_offset;
+        }
+        void set_viewport_collision_offset(const fan::vec2& offset) {
+          viewport_collision_offset = offset;
+        }
+
         fan_2d::graphics::gui::rectangle_text_box_sized_t rtbs;
         fan_2d::graphics::gui::key_event_t<rectangle_text_button_sized_t> m_key_event;
         fan_2d::graphics::gui::button_event_t<rectangle_text_button_sized_t> m_button_event;
 
       protected:
 
+        fan::vec2 viewport_collision_offset;
         fan::hector_t<uint32_t> m_reserved;
       };
     }

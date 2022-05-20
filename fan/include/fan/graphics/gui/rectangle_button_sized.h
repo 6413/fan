@@ -21,6 +21,8 @@ namespace fan_2d {
           rbs.open(context);
           m_button_event.open(window, context);
           m_reserved.open();
+
+          viewport_collision_offset = 0;
         }
 
         void close(fan::window_t* window, fan::opengl::context_t* context)
@@ -198,12 +200,20 @@ namespace fan_2d {
           return rbs.inside(context, i, position);
         }
 
+        fan::vec2 get_viewport_collision_offset() const {
+          return viewport_collision_offset;
+        }
+        void set_viewport_collision_offset(const fan::vec2& offset) {
+          viewport_collision_offset = offset;
+        }
+
         fan_2d::graphics::gui::button_event_t<rectangle_button_sized_t> m_button_event;
 
         fan_2d::graphics::gui::rectangle_box_sized_t rbs;
 
       protected:
 
+        fan::vec2 viewport_collision_offset;
         fan::hector_t<uint32_t> m_reserved;
       };
     }

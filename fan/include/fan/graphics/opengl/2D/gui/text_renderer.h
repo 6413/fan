@@ -25,6 +25,10 @@ namespace fan_2d {
 					f32_t angle = 0;
 				};
 
+				void bind_matrices(fan::opengl::context_t* context, fan::opengl::matrices_t* matrices) {
+					m_shader.bind_matrices(context, matrices);
+        }
+
 			private:
 
 				struct instance_t {
@@ -231,7 +235,7 @@ namespace fan_2d {
 				void set_position(fan::opengl::context_t* context, uint32_t i, const fan::vec2& position) {
 					const uint32_t index = i == 0 ? 0 : m_store[i - 1].m_indices;
 
-					const fan::vec2 offset = position - get_position(context, i);
+					const fan::vec2 offset = position - text_renderer_t::get_position(context, i);
 
 					m_store[i].m_position = position;
 
@@ -677,7 +681,7 @@ namespace fan_2d {
 					);
 				}
 
-			protected:
+			//protected:
 
 				void regenerate_indices() {
 

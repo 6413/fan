@@ -1,0 +1,215 @@
+case builder_draw_type_t::text_renderer_clickable: {
+
+  fan::vec2 position = fan::vec2(pile->builder_draw_types.trc.get_position(&pile->window, &pile->context, click_collision_.builder_draw_type_index));
+  fan::vec2 size = fan::vec2(pile->builder_draw_types.trc.get_hitbox_size(&pile->window, &pile->context, click_collision_.builder_draw_type_index));
+
+  decltype(pile->builder_draw_types.rtbs)::properties_t properties_button_p;
+  properties_button_p.text = fan::to_wstring(position.x, 0) + L", " + fan::to_wstring(position.y, 0);
+  properties_button_p.size = fan::vec2(constants::gui_size * 5, constants::gui_size);
+  properties_button_p.font_size = constants::gui_size;
+  properties_button_p.theme = fan_2d::graphics::gui::themes::gray();
+  properties_button_p.text_position = fan_2d::graphics::gui::text_position_e::left;
+  properties_button_p.allow_input = true;
+  properties_button_p.position = fan::vec2(
+    constants::properties_box_pad,
+    fan::vec2(pile->editor_draw_types.builder_types.get_size(&pile->window, &pile->context, click_collision_.builder_draw_type)).y
+  ) + 10;
+
+  pile->editor_draw_types.properties_button.push_back(&pile->window, &pile->context, properties_button_p);
+
+  decltype(pile->editor_draw_types.properties_button_text)::properties_t properties_text_p;
+
+  auto calculate_text_position = [&]() {
+    properties_text_p.position.x = 0;
+    properties_text_p.position.x += constants::properties_text_pad;
+    properties_text_p.position.x += fan_2d::graphics::gui::text_renderer_t::get_text_size(
+      &pile->context,
+      properties_text_p.text,
+      properties_text_p.font_size
+    ).x * 0.5;
+    properties_text_p.position.y = properties_button_p.position.y;
+  };
+
+  properties_text_p.text = "position";
+  properties_text_p.font_size = constants::gui_size;
+  properties_text_p.text_color = fan::colors::white;
+  calculate_text_position();
+
+  pile->editor_draw_types.properties_button_text.push_back(&pile->context, properties_text_p);
+
+  properties_button_p.position.y += 50;
+
+  properties_button_p.text = fan::to_wstring(size.x, 0) + L", " + fan::to_wstring(size.y, 0);
+  pile->editor_draw_types.properties_button.push_back(&pile->window, &pile->context, properties_button_p);
+
+  properties_text_p.text = "size";
+  calculate_text_position();
+
+  pile->editor_draw_types.properties_button_text.push_back(&pile->context, properties_text_p);
+
+  properties_button_p.position.y += 50;
+
+  properties_button_p.text = pile->builder_draw_types.trc.get_text(&pile->context, click_collision_.builder_draw_type_index);
+  pile->editor_draw_types.properties_button.push_back(&pile->window, &pile->context, properties_button_p);
+
+  properties_text_p.text = "text";
+  calculate_text_position();
+
+  pile->editor_draw_types.properties_button_text.push_back(&pile->context, properties_text_p);
+
+  properties_button_p.position.y += 50;
+
+  fan::color text_color = pile->builder_draw_types.trc.get_text_color(&pile->context, click_collision_.builder_draw_type_index);
+  uint32_t r = text_color.r * 255, g = text_color.g * 255, b = text_color.b * 255, a = text_color.a * 255;
+  r = fan::clamp(r, 0u, 255u);
+  g = fan::clamp(g, 0u, 255u);
+  b = fan::clamp(b, 0u, 255u);
+  a = fan::clamp(a, 0u, 255u);
+  char hexcol[24];
+  snprintf(hexcol, sizeof hexcol, "%02x%02x%02x%02x", r & 0xff, g & 0xff, b & 0xff, a & 0xff);
+  properties_button_p.text = hexcol;
+  pile->editor_draw_types.properties_button.push_back(&pile->window, &pile->context, properties_button_p);
+
+  properties_text_p.text = "text color";
+  calculate_text_position();
+
+  pile->editor_draw_types.properties_button_text.push_back(&pile->context, properties_text_p);
+
+  properties_button_p.position.y += 50;
+
+  properties_text_p.text = " ";
+  calculate_text_position();
+
+  properties_button_p.allow_input = false;
+  properties_button_p.text = "erase";
+  properties_button_p.theme = fan_2d::graphics::gui::themes::deep_red();
+  properties_button_p.size.x = 30;
+  properties_button_p.position.x = properties_button_p.size.x + constants::properties_text_pad;
+  properties_button_p.text_position = fan_2d::graphics::gui::text_position_e::middle;
+  pile->editor_draw_types.properties_button.push_back(&pile->window, &pile->context, properties_button_p);
+
+  pile->editor_draw_types.properties_button_text.push_back(&pile->context, properties_text_p);
+
+  pile->editor_draw_types.properties_button.m_button_event.set_on_input(pile, [](
+    fan::window_t* window, fan::opengl::context_t* context, uint32_t i, uint16_t key, fan::key_state key_state, mouse_stage mouse_stage, void* userptr) {
+    pile_t* pile = (pile_t*)userptr;
+
+    if (key != fan::mouse_left) {
+      return;
+    }
+
+    if (key_state != fan::key_state::release) {
+      return;
+    }
+    if (mouse_stage != fan_2d::graphics::gui::mouse_stage::inside) {
+      return;
+    }
+
+    switch (pile->editor_draw_types.selected_draw_type) {
+      case builder_draw_type_t::text_renderer_clickable: {
+        switch (i) {
+          case 4: {
+            #include "erase_active.h"
+            break;
+          }
+        }
+      }
+    }
+  });
+
+  pile->editor_draw_types.properties_button.m_key_event.set_on_focus_loss_callback(pile,
+    [](fan::window_t* window, fan::graphics::context_t* context, uint32_t i, void* userptr) {
+    pile_t* pile = (pile_t*)userptr;
+
+    // already updated through move release
+    if (pile->editor_draw_types.properties_button.size(window, context) == 0) {
+      return;
+    }
+
+    switch (pile->editor_draw_types.selected_draw_type) {
+      case builder_draw_type_t::text_renderer_clickable: {
+        // position, size, etc...
+        switch (i) {
+          case 0: {
+            std::vector<int> values = fan::string_to_values<int>(
+              pile->editor_draw_types.properties_button.get_text(
+              window,
+              context,
+              i
+              )
+            );
+
+            fan::vec2 position;
+
+            if (values.size() != 2) {
+              fan::print("invalid position, usage: x, y");
+              position = 0;
+            }
+            else {
+              position = *(fan::vec2i*)values.data();
+            }
+
+            pile->builder_draw_types.trc.set_position(
+              window,
+              context,
+              pile->editor_draw_types.selected_draw_type_index,
+              position
+            );
+            break;
+          }
+          case 1: {
+            std::vector<int> values = fan::string_to_values<int>(
+              pile->editor_draw_types.properties_button.get_text(
+              window,
+              context,
+              i
+              )
+            );
+
+            fan::vec2 size;
+
+            if (values.size() != 2) {
+              fan::print("invalid size, usage: x, y");
+              size = 0;
+            }
+            else {
+              size = *(fan::vec2i*)values.data();
+            }
+
+            pile->builder_draw_types.trc.set_hitbox_size(
+              window,
+              context,
+              pile->editor_draw_types.selected_draw_type_index,
+              size
+            );
+            break;
+          }
+          case 2: {
+            pile->builder_draw_types.trc.set_text(
+              context,
+              pile->editor_draw_types.selected_draw_type_index,
+              pile->editor_draw_types.properties_button.get_text(window, context, i)
+            );
+            break;
+          }
+          case 3: {
+
+            pile->builder_draw_types.trc.set_text_color(
+              context,
+              pile->editor_draw_types.selected_draw_type_index,
+              fan::color::hex(std::stoul(pile->editor_draw_types.properties_button.get_text(
+              window,
+              context,
+              i
+            ), nullptr, 16))
+            );
+            break;
+          }
+        }
+        break;
+      }
+    }
+  });
+
+  break;
+}

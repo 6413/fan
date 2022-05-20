@@ -23,6 +23,8 @@ namespace fan_2d {
         fan::vec2 size = 0;
 
         fan::vec2 offset = 0;
+        
+        void* userptr;
       };
 
       struct rectangle_text_box_sized_t {
@@ -63,6 +65,7 @@ namespace fan_2d {
           *store.m_properties.place_holder = property.font_size;
           *store.m_properties.text = property.text;
           store.m_properties.text_position = property.text_position;
+          store.m_properties.userptr = property.userptr;
 
           m_store.push_back(store);
 
@@ -313,6 +316,7 @@ namespace fan_2d {
           fan::utf16_string_ptr_t place_holder;
           f32_t font_size = fan_2d::graphics::gui::defaults::font_size;
           text_position_e text_position = text_position_e::middle;
+          void* userptr;
         };
 
         struct store_t {

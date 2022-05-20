@@ -13,9 +13,9 @@
 #include <fan/audio/miniaudio.h>
 
 #ifdef fan_compiler_visual_studio
-#pragma comment(lib, "lib/opus/opus.lib")
-#pragma comment(lib, "lib/ogg/libogg.lib")
-#pragma comment(lib, "lib/opus/opusfile.lib")
+	#pragma comment(lib, "lib/opus/opus.lib")
+	#pragma comment(lib, "lib/ogg/libogg.lib")
+	#pragma comment(lib, "lib/opus/opusfile.lib")
 #endif
 
 namespace fan {
@@ -32,52 +32,34 @@ namespace fan {
 				const uint32_t CallFrameCount = 480;
 				const uint32_t ChannelAmount = 2;
 				const uint32_t FrameCacheAmount = 4800;
-				const uint64_t FrameCacheTime = opus_decode_sample_rate / CallFrameCount * 1; /* 1 second */
-			}
-
-			static void opus_print_error(int error) {
-				switch (error) {
-				case OP_FALSE:  fan::print("OP_FALSE"); break;
-				case OP_EOF:  fan::print("OP_EOF"); break;
-				case OP_HOLE:  fan::print("OP_HOLE"); break;
-				case OP_EREAD:  fan::print("OP_EREAD"); break;
-				case OP_EFAULT:  fan::print("OP_EFAULT"); break;
-				case OP_EIMPL:  fan::print("OP_EIMPL"); break;
-				case OP_EINVAL: fan::print("OP_EINVAL"); break;
-				case OP_ENOTFORMAT: fan::print("OP_ENOTFORMAT"); break;
-				case OP_EBADHEADER: fan::print("OP_EBADHEADER"); break;
-				case OP_EVERSION: fan::print("OP_EVERSION"); break;
-				case OP_ENOTAUDIO: fan::print("OP_ENOTAUDIO"); break;
-				case OP_EBADPACKET: fan::print("OP_EBADPACKET"); break;
-				case OP_EBADLINK: fan::print("OP_EBADLINK"); break;
-				case OP_ENOSEEK: fan::print("OP_ENOSEEK"); break;
-				case OP_EBADTIMESTAMP: fan::print("OP_EBADTIMESTAMP"); break;
-				default:
-					fan::print("Unknown error code");
-				}
+				const uint64_t FrameCacheTime = opus_decode_sample_rate / CallFrameCount * 1; // 1 second
 			}
 
 			struct holder_t {
 				OggOpusFile* decoder;
-				OpusHead* head;
+				const OpusHead* head;
 			};
 
 			static void seek(holder_t* holder, uint64_t offset) {
-				if (int error = op_pcm_seek(holder->decoder, offset)) {
-					opus_print_error(error);
-					throw std::runtime_error("failed to seek audio file");
+				sint32_t err = op_pcm_seek(holder->decoder, offset);
+				if (err != 0) {
+					// TOOD
+					// op_pcm_seek() documented as seeking/reading from file.
+					// in our design we dont want to do file i/o at realtime.
+					// so if seek fails for some reason it must be fatal problem.
+					fan::throw_error("fan::audio::seek failed to seek audio file");
 				}
 			}
 
-#define BLL_set_prefix FrameCacheList
-#define BLL_set_type_node uint32_t
-#define BLL_set_node_data \
+			#define BLL_set_prefix FrameCacheList
+			#define BLL_set_type_node uint32_t
+			#define BLL_set_node_data \
 				uint64_t LastAccessTime; \
 				f32_t Frames[constants::FrameCacheAmount][constants::ChannelAmount]; \
 				piece_t *piece; \
 				uint32_t PieceCacheIndex;
-#define BLL_set_ResizeListAfterClear 1
-#include <WITCH/BLL/BLL.h>
+			#define BLL_set_ResizeListAfterClear 1
+			#include <WITCH/BLL/BLL.h>
 
 			static void decode(holder_t* holder, f32_t* Output, uint64_t offset, uint32_t FrameCount) {
 				seek(holder, offset);
@@ -112,16 +94,16 @@ namespace fan {
 			f32_t FadeOutTo = 0;
 		};
 		namespace {
-#define BLL_set_prefix PlayInfoList
-#define BLL_set_type_node uint32_t
-#define BLL_set_node_data \
+			#define BLL_set_prefix PlayInfoList
+			#define BLL_set_type_node uint32_t
+			#define BLL_set_node_data \
 				piece_t *piece; \
 				uint32_t GroupID; \
 				uint32_t PlayID; \
 				PropertiesSoundPlay_t properties; \
 				uint64_t offset;
-#define BLL_set_ResizeListAfterClear 1
-#include <WITCH/BLL/BLL.h>
+			#define BLL_set_ResizeListAfterClear 1
+			#include <WITCH/BLL/BLL.h>
 
 			enum class MessageType_t {
 				SoundPlay,
@@ -283,20 +265,20 @@ namespace fan {
 				Play_t* Play = &((Play_t*)audio->PlayList.ptr)[PlayID];
 				Play->Reference = PlayInfoReference;
 				PlayInfoList_Node_t* PlayInfoNode = PlayInfoList_GetNodeByReference(&audio->PlayInfoList, PlayInfoReference);
-#if fan_debug
-				if (PlayInfoNode->data.PlayID != (uint32_t)-1) {
-					/* trying play sound that already playing */
-					fan::throw_error("fan_debug");
-				}
-#endif
+				#if fan_debug >= 0
+					if (PlayInfoNode->data.PlayID != (uint32_t)-1) {
+						/* trying play sound that already playing */
+						fan::throw_error("fan_debug");
+					}
+				#endif
 				PlayInfoNode->data.PlayID = PlayID;
 			}
 			void data_callback(ma_device* Device, void* Output, const void* Input, ma_uint32 FrameCount) {
-#if fan_debug
-				if (FrameCount != constants::CallFrameCount) {
-					fan::throw_error("fan_debug");
-				}
-#endif
+				#if fan_debug >= 0
+					if (FrameCount != constants::CallFrameCount) {
+						fan::throw_error("fan_debug");
+					}
+				#endif
 				audio_t* audio = (audio_t*)Device->pUserData;
 				if (audio->MessageQueueList.Current) {
 					TH_lock(&audio->MessageQueueListMutex);
@@ -376,8 +358,8 @@ namespace fan {
 					}CalculatedVariables;
 				gt_ReOffset:
 					CanBeReadFrameCount = piece->raw_size - PlayInfoNode->data.offset;
-					if (CanBeReadFrameCount > constants::CallFrameCount) {
-						CanBeReadFrameCount = constants::CallFrameCount;
+					if (CanBeReadFrameCount > constants::CallFrameCount - OutputIndex) {
+						CanBeReadFrameCount = constants::CallFrameCount - OutputIndex;
 					}
 					if (Properties->Flags.FadeIn || Properties->Flags.FadeOut) {
 						f32_t TotalFade = Properties->FadeTo - Properties->FadeFrom;
@@ -398,12 +380,12 @@ namespace fan {
 							CalculatedVariables.FadePerFrame *= -1;
 						}
 					}
-					while (OutputIndex != CanBeReadFrameCount) {
+					while (CanBeReadFrameCount != 0) {
 						f32_t* FrameCachePointer;
 						uint32_t FrameCacheAmount;
 						GetFrames(audio, piece, PlayInfoNode->data.offset, audio->Tick, &FrameCachePointer, &FrameCacheAmount);
-						if (OutputIndex + FrameCacheAmount > CanBeReadFrameCount) {
-							FrameCacheAmount = CanBeReadFrameCount - OutputIndex;
+						if (FrameCacheAmount > CanBeReadFrameCount) {
+							FrameCacheAmount = CanBeReadFrameCount;
 						}
 						if (Properties->Flags.FadeIn || Properties->Flags.FadeOut) {
 							f32_t CurrentVolume = Properties->FadeFrom / Properties->FadeTo;
@@ -428,6 +410,7 @@ namespace fan {
 						}
 						PlayInfoNode->data.offset += FrameCacheAmount;
 						OutputIndex += FrameCacheAmount;
+						CanBeReadFrameCount -= FrameCacheAmount;
 					}
 					if (Properties->Flags.FadeIn || Properties->Flags.FadeOut) {
 						if (Properties->Flags.FadeIn) {
@@ -447,6 +430,7 @@ namespace fan {
 							if (OutputIndex != constants::CallFrameCount) {
 								goto gt_ReOffset;
 							}
+							return;
 						}
 						PropertiesSoundStop_t PropertiesSoundStop;
 						RemoveFromPlayInfoList(audio, PlayInfoReference, &PropertiesSoundStop);
@@ -562,11 +546,11 @@ namespace fan {
 		}
 
 		uint32_t SoundPlay(audio_t* audio, piece_t* piece, uint32_t GroupID, const PropertiesSoundPlay_t* Properties) {
-#if fan_debug
-			if (GroupID >= audio->GroupAmount) {
-				fan::throw_error("fan_debug");
-			}
-#endif
+			#if fan_debug >= 0
+				if (GroupID >= audio->GroupAmount) {
+					fan::throw_error("fan_debug");
+				}
+			#endif
 			TH_lock(&audio->PlayInfoListMutex);
 			PlayInfoList_NodeReference_t PlayInfoReference = PlayInfoList_NewNode(&audio->PlayInfoList);
 			PlayInfoList_Node_t* PlayInfoNode = PlayInfoList_GetNodeByReference(&audio->PlayInfoList, PlayInfoReference);
@@ -589,31 +573,53 @@ namespace fan {
 		}
 
 		namespace {
-			static holder_t get_file_info(const std::string& path) {
+			sint32_t get_holder(holder_t& holder, const std::string& path) {
 
-				holder_t holder;
-
-				int error = 0;
-				holder.decoder = op_open_file(path.c_str(), &error);
-				if (error != 0) {
-					opus_print_error(error);
-					throw std::runtime_error("failed to open opus file");
+				sint32_t err;
+				holder.decoder = op_open_file(path.c_str(), &err);
+				if (err != 0) {
+					return err;
 				}
 
-				holder.head = (OpusHead*)op_head(holder.decoder, 0);
+				holder.head = (OpusHead *)op_head(holder.decoder, 0);
 
-				return holder;
+				return 0;
 			}
 		}
-		void piece_open_from_file(fan::audio::audio_t* audio, fan::audio::piece_t* piece, const std::string& path) {
+		void _piece_open_rest(fan::audio::audio_t* audio, fan::audio::piece_t* piece){
 			piece->audio = audio;
-			piece->holder = get_file_info(path);
 			piece->raw_size = op_pcm_total(piece->holder.decoder, 0);
 			uint32_t CacheAmount = piece->raw_size / constants::FrameCacheAmount + !!(piece->raw_size % constants::FrameCacheAmount);
 			piece->Cache = (PieceCache_t*)A_resize(0, CacheAmount * sizeof(PieceCache_t));
 			for (uint32_t i = 0; i < CacheAmount; i++) {
 				piece->Cache[i].ref = (FrameCacheList_NodeReference_t)-1;
 			}
+		}
+		sint32_t piece_open(fan::audio::audio_t* audio, fan::audio::piece_t* piece, const std::string& path) {
+
+			sint32_t err;
+			piece->holder.decoder = op_open_file(path.c_str(), &err);
+			if (err != 0) {
+				return err;
+			}
+			piece->holder.head = op_head(piece->holder.decoder, 0);
+
+			_piece_open_rest(audio, piece);
+
+			return 0;
+		}
+		sint32_t piece_open(fan::audio::audio_t* audio, fan::audio::piece_t* piece, void *data, uintptr_t size) {
+
+			sint32_t err;
+			piece->holder.decoder = op_open_memory((const uint8_t *)data, size, &err);
+			if (err != 0) {
+				return err;
+			}
+			piece->holder.head = op_head(piece->holder.decoder, 0);
+
+			_piece_open_rest(audio, piece);
+
+			return 0;
 		}
 	}
 }

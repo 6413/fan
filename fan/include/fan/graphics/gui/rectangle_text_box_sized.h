@@ -23,6 +23,8 @@ namespace fan_2d {
         fan::vec2 size = 0;
 
         fan::vec2 offset = 0;
+
+        void* userptr;
       };
 
       struct rectangle_text_box_sized_t {
@@ -61,6 +63,7 @@ namespace fan_2d {
           *store.m_properties.text = property.text;
           store.m_properties.text_position = property.text_position;
           store.m_properties.offset = property.offset;
+          store.m_properties.userptr = property.userptr;
 
           m_store.push_back(store);
 
@@ -309,6 +312,18 @@ namespace fan_2d {
           tr.disable_draw(context);
         }
 
+        void bind_matrices(fan::opengl::context_t* context, fan::opengl::matrices_t* matrices) {
+          rbs.m_box.m_shader.bind_matrices(context, matrices);
+          tr.m_shader.bind_matrices(context, matrices);
+        }
+
+        void* get_userptr(fan::opengl::context_t* context, uint32_t i) {
+          return m_store[i].m_properties.userptr;
+        }
+        void* set_userptr(fan::opengl::context_t* context, uint32_t i, void* userptr) {
+          return m_store[i].m_properties.userptr = userptr;
+        }
+
         fan_2d::graphics::gui::rectangle_box_sized_t rbs;
         fan_2d::opengl::gui::text_renderer_t tr;
 
@@ -318,6 +333,7 @@ namespace fan_2d {
           f32_t font_size = fan_2d::graphics::gui::defaults::font_size;
           text_position_e text_position = text_position_e::middle;
           fan::vec2 offset;
+          void* userptr;
         };
 
         struct store_t {

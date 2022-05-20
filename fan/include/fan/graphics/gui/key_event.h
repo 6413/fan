@@ -33,6 +33,7 @@ namespace fan_2d {
           cursor_timer = fan::time::clock(cursor_properties::blink_speed);
           cursor_timer.start();
 
+          m_draw_node_reference = fan::uninitialized;
           mouse_move_callback_id = fan::uninitialized;
 
           focus_loss_cb = [](fan::window_t* window, fan::opengl::context_t* context, uint32_t i, void* userptr) {};
@@ -45,6 +46,9 @@ namespace fan_2d {
             }
 
             if (current_focus.i == no_focus) {
+              return;
+            }
+            if (current_focus.i >= instance->m_store.size()) {
               return;
             }
             if (!instance->input_allowed(window, current_focus.i)) {
@@ -185,6 +189,9 @@ namespace fan_2d {
             if (current_focus.i == no_focus) {
               return;
             }
+            if (current_focus.i >= instance->m_store.size()) {
+              return;
+            }
             if (!instance->input_allowed(window, current_focus.i)) {
               return;
             }
@@ -194,10 +201,6 @@ namespace fan_2d {
 
             instance->render_cursor = true;
             instance->cursor_timer.restart();
-
-            if (instance->m_cursor.m_draw_node_reference == fan::uninitialized) {
-              instance->m_cursor.enable_draw(instance->context);
-            }
 
             FED_CursorReference_t cursor_reference = instance->m_store[current_focus.i].cursor_reference;
             FED_t* wed = &instance->m_store[current_focus.i].m_wed;
@@ -260,9 +263,9 @@ namespace fan_2d {
 
               auto src_dst = instance->get_cursor_src_dst(window, instance->context, current_focus.i, exported_cursor->x, exported_cursor->y);
 
+              instance->update_cursor(window, instance->context, current_focus.i);
               instance->m_cursor.set_position(instance->context, 0, src_dst.src);
               instance->m_cursor.set_size(instance->context, 0, src_dst.dst);
-              instance->update_cursor(window, instance->context, current_focus.i);
             }
           });
 
@@ -362,6 +365,7 @@ namespace fan_2d {
         }
 
         void enable_draw(fan::window_t* window, fan::opengl::context_t* context) {
+          m_cursor.enable_draw(context);
           m_draw_node_reference = context->enable_draw(this, [](fan::opengl::context_t* c, void* d) {
             key_event_t<T>* thiS = ((decltype(this))d);
             thiS->draw(thiS->window, thiS->context);
@@ -384,15 +388,15 @@ namespace fan_2d {
             auto focus_ = focus::get_focus();
 
             if (
-              m_cursor.m_draw_node_reference == fan::uninitialized &&
               has_focus(focus_) && render_cursor &&
               focus_ == get_focus_info(window) &&
               m_store[focus_.i].m_input_allowed
               ) {
-              m_cursor.enable_draw(context);
+              update_cursor(window, context, focus_.i);
+              m_cursor.draw(context);
             }
-            else if (m_cursor.m_draw_node_reference != fan::uninitialized) {
-              m_cursor.disable_draw(context);
+            else {
+              m_cursor.clear(context);
             }
             render_cursor = !render_cursor;
           }
