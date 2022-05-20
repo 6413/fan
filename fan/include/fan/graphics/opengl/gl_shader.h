@@ -293,10 +293,12 @@ namespace fan {
       fan::opengl::context_t* context = (fan::opengl::context_t*)updateptr;
       shader->use(context);
       context->opengl.glUniformMatrix4fv(shader->projection_view[0], 1, fan::opengl::GL_FALSE, &matrices->m_projection[0][0]);
+      context->opengl.glUniformMatrix4fv(shader->projection_view[1], 1, fan::opengl::GL_FALSE, &matrices->m_view[0][0]);
     }
 
     void bind_matrices(fan::opengl::context_t* context, fan::opengl::matrices_t* matrices) {
       matrix_inform_id = matrices->push_inform(matrices_inform_cb, this);
+      matrices_inform_cb(matrices, context, this);
     }
     void unbind_matrices(fan::opengl::context_t* context, fan::opengl::matrices_t* matrices) {
       matrices->erase_inform(matrix_inform_id);

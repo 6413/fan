@@ -171,6 +171,10 @@ namespace fan {
 			return matrix;
 		}
 
+    constexpr fan::vec3 get_translation() const {
+			return fan::vec3((*this)[3][0], (*this)[3][1], (*this)[3][2]);
+		}
+
 		constexpr fan::vec3 get_scale() const {
 			return fan::vec3((*this)[0][0], (*this)[1][1], (*this)[2][2]);
 		}

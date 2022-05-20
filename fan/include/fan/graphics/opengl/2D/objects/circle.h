@@ -329,7 +329,7 @@ namespace fan_2d {
 				);
 			}
 
-		private:
+		//private:
 
 			fan::shader_t m_shader;
 			fan::opengl::core::glsl_buffer_t m_glsl_buffer;

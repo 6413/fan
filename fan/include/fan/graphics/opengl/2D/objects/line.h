@@ -132,9 +132,13 @@ namespace fan_2d {
 				return m_glsl_buffer.m_buffer.size() / element_byte_size / vertex_count;
 			}
 
+			void bind_matrices(fan::opengl::context_t* context, fan::opengl::matrices_t* matrices) {
+        m_shader.bind_matrices(context, matrices);
+      }
+
       uint32_t m_draw_node_reference;
 
-    private:
+    //private:
 
       fan::shader_t m_shader;
       fan::opengl::core::glsl_buffer_t m_glsl_buffer;

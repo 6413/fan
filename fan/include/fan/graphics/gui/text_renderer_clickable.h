@@ -25,6 +25,8 @@ namespace fan_2d {
           text_renderer_t::open(context);
           m_button_event.open(window, context);
           m_store.open();
+
+          viewport_collision_offset = 0;
         }
 
         void close(fan::window_t* window, fan::opengl::context_t* context) {
@@ -221,14 +223,34 @@ namespace fan_2d {
         }
         bool locked(fan::window_t* window, fan::opengl::context_t* context, uint32_t i) const { return 0; }
 
+        fan::vec2 get_viewport_collision_offset() const {
+          return viewport_collision_offset;
+        }
+        void set_viewport_collision_offset(const fan::vec2& offset) {
+          viewport_collision_offset = offset;
+        }
+
         static constexpr f32_t hover_strength = 0.2;
         static constexpr f32_t click_strength = 0.3;
 
         fan_2d::graphics::gui::button_event_t<text_renderer_clickable> m_button_event;
 
+        void erase(fan::window_t* window, fan::opengl::context_t* context, uintptr_t i) {
+          m_store.erase(i);
+          text_renderer_t::erase(context, i);
+        }
+
+        fan::vec2 get_position(fan::window_t* window, fan::opengl::context_t* context, uint32_t i) const {
+          return text_renderer_t::get_position(context, i);
+        }
+        void set_position(fan::window_t* window, fan::opengl::context_t* context, uint32_t i, const fan::vec2& position) {
+          fan::vec2 offset = position - text_renderer_t::get_position(context, i);
+          text_renderer_t::set_position(context, i, position);
+          m_store[i].m_hitbox.hitbox_position += offset;
+        }
+
       protected:
 
-        using text_renderer_t::erase;
         using text_renderer_t::insert;
 
         struct hitbox_t {
@@ -240,6 +262,8 @@ namespace fan_2d {
           hitbox_t m_hitbox;
           uint8_t previous_states;
         };
+
+        fan::vec2 viewport_collision_offset;
 
         fan::hector_t<store_t> m_store;
       };

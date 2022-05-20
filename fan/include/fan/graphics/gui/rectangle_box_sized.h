@@ -12,6 +12,7 @@ namespace fan_2d {
         fan_2d::graphics::gui::theme theme = fan_2d::graphics::gui::themes::deep_blue();
         fan::vec2 size = 0;
         fan::vec2 offset = 0;
+        void* userptr;
       };
 
       struct rectangle_box_sized_t {
@@ -43,6 +44,7 @@ namespace fan_2d {
 
           store.m_properties.offset = property.offset;
           *store.m_properties.theme = property.theme;
+          store.m_properties.userptr = property.userptr;
 
           m_store.push_back(store);
 
@@ -156,6 +158,7 @@ namespace fan_2d {
         struct p_t {
           theme_ptr_t theme;
           fan::vec2 offset;
+          void* userptr;
         };
 
         struct store_t {
