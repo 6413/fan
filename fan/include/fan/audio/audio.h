@@ -94,6 +94,7 @@ namespace fan {
 			f32_t FadeOutTo = 0;
 		};
 		namespace {
+			#define BLL_set_debug_InvalidAction 1
 			#define BLL_set_prefix PlayInfoList
 			#define BLL_set_type_node uint32_t
 			#define BLL_set_node_data \
@@ -285,61 +286,61 @@ namespace fan {
 					for (uint32_t i = 0; i < audio->MessageQueueList.Current; i++) {
 						Message_t* Message = &((Message_t*)audio->MessageQueueList.ptr)[i];
 						switch (Message->Type) {
-						case MessageType_t::SoundPlay: {
-							AddSoundToPlay(audio, Message->Data.SoundPlay.PlayInfoReference);
-							break;
-						}
-						case MessageType_t::SoundStop: {
-							RemoveFromPlayInfoList(audio, Message->Data.SoundStop.PlayInfoReference, &Message->Data.SoundStop.Properties);
-							break;
-						}
-						case MessageType_t::PauseGroup: {
-							uint32_t GroupID = Message->Data.PauseGroup.GroupID;
-							PlayInfoList_NodeReference_t LastPlayInfoReference = audio->GroupList[GroupID].LastReference;
-							PlayInfoList_NodeReference_t PlayInfoReference = audio->GroupList[GroupID].FirstReference;
-							TH_lock(&audio->PlayInfoListMutex);
-							PlayInfoReference = PlayInfoList_GetNodeByReference(&audio->PlayInfoList, PlayInfoReference)->NextNodeReference;
-							TH_unlock(&audio->PlayInfoListMutex);
-							while (PlayInfoReference != LastPlayInfoReference) {
-								PlayInfoList_Node_t* PlayInfoNode = PlayInfoList_GetNodeByReference(&audio->PlayInfoList, PlayInfoReference);
-								if (PlayInfoNode->data.PlayID != (uint32_t)-1) {
-									RemoveFromPlayList(audio, PlayInfoNode->data.PlayID);
-									PlayInfoNode->data.PlayID = (uint32_t)-1;
+							case MessageType_t::SoundPlay: {
+								AddSoundToPlay(audio, Message->Data.SoundPlay.PlayInfoReference);
+								break;
+							}
+							case MessageType_t::SoundStop: {
+								RemoveFromPlayInfoList(audio, Message->Data.SoundStop.PlayInfoReference, &Message->Data.SoundStop.Properties);
+								break;
+							}
+							case MessageType_t::PauseGroup: {
+								uint32_t GroupID = Message->Data.PauseGroup.GroupID;
+								PlayInfoList_NodeReference_t LastPlayInfoReference = audio->GroupList[GroupID].LastReference;
+								PlayInfoList_NodeReference_t PlayInfoReference = audio->GroupList[GroupID].FirstReference;
+								TH_lock(&audio->PlayInfoListMutex);
+								PlayInfoReference = PlayInfoList_GetNodeByReference(&audio->PlayInfoList, PlayInfoReference)->NextNodeReference;
+								TH_unlock(&audio->PlayInfoListMutex);
+								while (PlayInfoReference != LastPlayInfoReference) {
+									PlayInfoList_Node_t* PlayInfoNode = PlayInfoList_GetNodeByReference(&audio->PlayInfoList, PlayInfoReference);
+									if (PlayInfoNode->data.PlayID != (uint32_t)-1) {
+										RemoveFromPlayList(audio, PlayInfoNode->data.PlayID);
+										PlayInfoNode->data.PlayID = (uint32_t)-1;
+									}
+									PlayInfoReference = PlayInfoNode->NextNodeReference;
 								}
-								PlayInfoReference = PlayInfoNode->NextNodeReference;
+								break;
 							}
-							break;
-						}
-						case MessageType_t::ResumeGroup: {
-							uint32_t GroupID = Message->Data.PauseGroup.GroupID;
-							PlayInfoList_NodeReference_t LastPlayInfoReference = audio->GroupList[GroupID].LastReference;
-							PlayInfoList_NodeReference_t PlayInfoReference = audio->GroupList[GroupID].FirstReference;
-							TH_lock(&audio->PlayInfoListMutex);
-							PlayInfoReference = PlayInfoList_GetNodeByReference(&audio->PlayInfoList, PlayInfoReference)->NextNodeReference;
-							TH_unlock(&audio->PlayInfoListMutex);
-							while (PlayInfoReference != LastPlayInfoReference) {
-								PlayInfoList_Node_t* PlayInfoNode = PlayInfoList_GetNodeByReference(&audio->PlayInfoList, PlayInfoReference);
-								if (PlayInfoNode->data.PlayID == (uint32_t)-1) {
-									AddSoundToPlay(audio, PlayInfoReference);
+							case MessageType_t::ResumeGroup: {
+								uint32_t GroupID = Message->Data.PauseGroup.GroupID;
+								PlayInfoList_NodeReference_t LastPlayInfoReference = audio->GroupList[GroupID].LastReference;
+								PlayInfoList_NodeReference_t PlayInfoReference = audio->GroupList[GroupID].FirstReference;
+								TH_lock(&audio->PlayInfoListMutex);
+								PlayInfoReference = PlayInfoList_GetNodeByReference(&audio->PlayInfoList, PlayInfoReference)->NextNodeReference;
+								TH_unlock(&audio->PlayInfoListMutex);
+								while (PlayInfoReference != LastPlayInfoReference) {
+									PlayInfoList_Node_t* PlayInfoNode = PlayInfoList_GetNodeByReference(&audio->PlayInfoList, PlayInfoReference);
+									if (PlayInfoNode->data.PlayID == (uint32_t)-1) {
+										AddSoundToPlay(audio, PlayInfoReference);
+									}
+									PlayInfoReference = PlayInfoNode->NextNodeReference;
 								}
-								PlayInfoReference = PlayInfoNode->NextNodeReference;
+								break;
 							}
-							break;
-						}
-						case MessageType_t::StopGroup: {
-							uint32_t GroupID = Message->Data.PauseGroup.GroupID;
-							PlayInfoList_NodeReference_t LastPlayInfoReference = audio->GroupList[GroupID].LastReference;
-							PlayInfoList_NodeReference_t PlayInfoReference = audio->GroupList[GroupID].FirstReference;
-							TH_lock(&audio->PlayInfoListMutex);
-							PlayInfoReference = PlayInfoList_GetNodeByReference(&audio->PlayInfoList, PlayInfoReference)->NextNodeReference;
-							while (PlayInfoReference != LastPlayInfoReference) {
-								PlayInfoList_Node_t* PlayInfoNode = PlayInfoList_GetNodeByReference(&audio->PlayInfoList, PlayInfoReference);
-								PropertiesSoundStop_t Properties;
-								RemoveFromPlayInfoList(audio, PlayInfoReference, &Properties);
-								PlayInfoReference = PlayInfoNode->NextNodeReference;
+							case MessageType_t::StopGroup: {
+								uint32_t GroupID = Message->Data.PauseGroup.GroupID;
+								PlayInfoList_NodeReference_t LastPlayInfoReference = audio->GroupList[GroupID].LastReference;
+								PlayInfoList_NodeReference_t PlayInfoReference = audio->GroupList[GroupID].FirstReference;
+								TH_lock(&audio->PlayInfoListMutex);
+								PlayInfoReference = PlayInfoList_GetNodeByReference(&audio->PlayInfoList, PlayInfoReference)->NextNodeReference;
+								while (PlayInfoReference != LastPlayInfoReference) {
+									PlayInfoList_Node_t* PlayInfoNode = PlayInfoList_GetNodeByReference(&audio->PlayInfoList, PlayInfoReference);
+									PropertiesSoundStop_t Properties;
+									RemoveFromPlayInfoList(audio, PlayInfoReference, &Properties);
+									PlayInfoReference = PlayInfoNode->NextNodeReference;
+								}
+								TH_unlock(&audio->PlayInfoListMutex);
 							}
-							TH_unlock(&audio->PlayInfoListMutex);
-						}
 						}
 					}
 					audio->MessageQueueList.Current = 0;
@@ -367,18 +368,17 @@ namespace fan {
 						if (TotalFade < CurrentFadeTime) {
 							CanBeReadFrameCount = TotalFade * constants::opus_decode_sample_rate;
 							if (CanBeReadFrameCount == 0) {
-								PropertiesSoundStop_t PropertiesSoundStop;
-								RemoveFromPlayInfoList(audio, PlayInfoReference, &PropertiesSoundStop);
-								continue;
+								if(Properties->Flags.FadeIn == true){
+									Properties->Flags.FadeIn = false;
+								}
+								else if(Properties->Flags.FadeOut == true){
+									PropertiesSoundStop_t PropertiesSoundStop;
+									RemoveFromPlayInfoList(audio, PlayInfoReference, &PropertiesSoundStop);
+									continue;
+								}
 							}
 						}
 						CalculatedVariables.FadePerFrame = (f32_t)1 / (Properties->FadeTo * constants::opus_decode_sample_rate);
-						if (Properties->Flags.FadeIn) {
-
-						}
-						else if (Properties->Flags.FadeOut) {
-							CalculatedVariables.FadePerFrame *= -1;
-						}
 					}
 					while (CanBeReadFrameCount != 0) {
 						f32_t* FrameCachePointer;
@@ -387,16 +387,24 @@ namespace fan {
 						if (FrameCacheAmount > CanBeReadFrameCount) {
 							FrameCacheAmount = CanBeReadFrameCount;
 						}
-						if (Properties->Flags.FadeIn || Properties->Flags.FadeOut) {
+						if (Properties->Flags.FadeIn) {
 							f32_t CurrentVolume = Properties->FadeFrom / Properties->FadeTo;
-							if (Properties->Flags.FadeOut) {
-								CurrentVolume = (f32_t)1 - CurrentVolume;
-							}
 							for (uint32_t i = 0; i < FrameCacheAmount; i++) {
 								for (uint32_t iChannel = 0; iChannel < constants::ChannelAmount; iChannel++) {
 									((f32_t*)Output)[(OutputIndex + i) * constants::ChannelAmount + iChannel] += FrameCachePointer[i * constants::ChannelAmount + iChannel] * CurrentVolume;
 								}
 								CurrentVolume += CalculatedVariables.FadePerFrame;
+							}
+							Properties->FadeFrom += (f32_t)FrameCacheAmount / constants::opus_decode_sample_rate;
+						}
+						else if (Properties->Flags.FadeOut) {
+							f32_t CurrentVolume = Properties->FadeFrom / Properties->FadeTo;
+							CurrentVolume = (f32_t)1 - CurrentVolume;
+							for (uint32_t i = 0; i < FrameCacheAmount; i++) {
+								for (uint32_t iChannel = 0; iChannel < constants::ChannelAmount; iChannel++) {
+									((f32_t*)Output)[(OutputIndex + i) * constants::ChannelAmount + iChannel] += FrameCachePointer[i * constants::ChannelAmount + iChannel] * CurrentVolume;
+								}
+								CurrentVolume -= CalculatedVariables.FadePerFrame;
 							}
 							Properties->FadeFrom += (f32_t)FrameCacheAmount / constants::opus_decode_sample_rate;
 						}
@@ -412,30 +420,40 @@ namespace fan {
 						OutputIndex += FrameCacheAmount;
 						CanBeReadFrameCount -= FrameCacheAmount;
 					}
-					if (Properties->Flags.FadeIn || Properties->Flags.FadeOut) {
-						if (Properties->Flags.FadeIn) {
-							if (Properties->FadeFrom + constants::OneSampleTime > Properties->FadeTo) {
-								Properties->Flags.FadeIn = false;
-							}
+
+					#define JumpIfNeeded() \
+						if(OutputIndex != constants::CallFrameCount) { goto gt_ReOffset; }
+
+					if (PlayInfoNode->data.offset == piece->raw_size) {
+						if (Properties->Flags.Loop == true) {
+							PlayInfoNode->data.offset = 0;
 						}
-						else if (Properties->FadeFrom >= Properties->FadeTo) {
+					}
+					if (Properties->Flags.FadeIn) {
+						if (Properties->FadeFrom >= Properties->FadeTo) {
+							Properties->Flags.FadeIn = false;
+						}
+						JumpIfNeeded();
+					}
+					else if (Properties->Flags.FadeOut) {
+						if (Properties->FadeFrom >= Properties->FadeTo) {
 							PropertiesSoundStop_t PropertiesSoundStop;
 							RemoveFromPlayInfoList(audio, PlayInfoReference, &PropertiesSoundStop);
 							continue;
 						}
+						JumpIfNeeded();
 					}
-					if (PlayInfoNode->data.offset == piece->raw_size) {
-						if (Properties->Flags.Loop == true) {
-							PlayInfoNode->data.offset = 0;
-							if (OutputIndex != constants::CallFrameCount) {
-								goto gt_ReOffset;
-							}
-							return;
+					else{
+						if (PlayInfoNode->data.offset == piece->raw_size) {
+							PropertiesSoundStop_t PropertiesSoundStop;
+							RemoveFromPlayInfoList(audio, PlayInfoReference, &PropertiesSoundStop);
+							continue;
 						}
-						PropertiesSoundStop_t PropertiesSoundStop;
-						RemoveFromPlayInfoList(audio, PlayInfoReference, &PropertiesSoundStop);
-						continue;
+						JumpIfNeeded();
 					}
+
+					#undef JumpIfNeeded
+
 					PlayID++;
 				}
 				for (FrameCacheList_NodeReference_t ref = FrameCacheList_GetNodeFirst(&audio->FrameCacheList); ref != audio->FrameCacheList.dst;) {

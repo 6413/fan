@@ -7,9 +7,47 @@ namespace fan_2d {
     namespace gui {
       namespace fgm {
 
+        struct load_t {
+          void open(fan::window_t* window, fan::opengl::context_t* context) {
+            rtbs.open(window, context);
+
+            fan::vec2 window_size = window->get_size();
+
+            matrices.open();
+            matrices.set_ortho(context, fan::vec2(0, window_size.x), fan::vec2(0, window_size.y));
+
+            rtbs.bind_matrices(context, &matrices);
+            trc.bind_matrices(context, &matrices);
+          }
+          void close(fan::window_t* window, fan::opengl::context_t* context) {
+            rtbs.close(window, context);
+            trc.close(window, context);
+          }
+
+          void load(fan::opengl::context_t* context, const char* path) {
+            FILE* f = fopen(path, "r+b");
+            if (!f) {
+              fan::throw_error("failed to open file stream");
+            }
+
+            rtbs.write_in(context, f);
+            fclose(f);
+          }
+
+          void enable_draw(fan::window_t* window, fan::opengl::context_t* context) {
+            rtbs.enable_draw(window, context);
+          }
+
+          fan_2d::graphics::gui::rectangle_text_button_sized_t rtbs;
+          fan_2d::graphics::gui::text_renderer_clickable trc;
+
+          fan::opengl::matrices_t matrices;
+
+        };
+
         struct pile_t;
 
-        struct editor_draw_types_t {
+        struct editor_t {
 
           fan::opengl::matrices_t gui_matrices;
           fan::opengl::matrices_t gui_properties_matrices;
@@ -25,10 +63,15 @@ namespace fan_2d {
             static constexpr f32_t scroll_speed = 10;
 
             static constexpr f32_t properties_box_pad = 160;
+
+            static constexpr f32_t resize_rectangle_size = 5;
           };
 
           struct flags_t {
             static constexpr uint32_t moving = (1 << 0);
+            static constexpr uint32_t resizing = (1 << 1);
+            static constexpr uint32_t ignore_properties_close = (1 << 3);
+            static constexpr uint32_t ignore_moving = (1 << 4);
           };
 
           struct builder_draw_type_t {
@@ -41,7 +84,13 @@ namespace fan_2d {
             uint32_t builder_draw_type_index;
           };
 
+          struct userptr_t {
+            uint32_t depth_nodereference;
+            uint32_t id;
+          };
+
           bool is_inside_builder_viewport(pile_t* pile, const fan::vec2& position);
+          bool is_inside_types_viewport(pile_t* pile, const fan::vec2& position);
           bool is_inside_properties_viewport(pile_t* pile, const fan::vec2& position);
 
           bool click_collision(pile_t* pile, click_collision_t* click_collision_);
@@ -51,6 +100,8 @@ namespace fan_2d {
 
           void open(pile_t* pile);
 
+          void update_resize_rectangles(pile_t* pile);
+
           fan::vec2 builder_viewport_size;
           fan::vec2 origin_shapes;
           fan::vec2 origin_properties;
@@ -58,33 +109,39 @@ namespace fan_2d {
           uint32_t builder_draw_type;
           uint32_t builder_draw_type_index;
 
-          uint32_t selected_draw_type;
-          uint32_t selected_draw_type_index;
+          uint32_t selected_type;
+          uint32_t selected_type_index;
 
-          fan::vec2 moving_position;
+          fan::vec2 click_position;
 
           uint8_t flags;
 
-          struct depth_map_t {
-            uint32_t builder_draw_type;
-            uint32_t builder_draw_type_index;
+          struct depth_t {
+            uint32_t depth;
+            uint32_t type;
+            uint32_t index;
           };
 
-          fan::hector_t<depth_map_t> depth_map;
+          fan::hector_t<depth_t> depth_map;
 
           fan_2d::graphics::line_t outline;
           fan_2d::graphics::gui::rectangle_text_button_sized_t builder_types;
           fan_2d::graphics::gui::text_renderer_t properties_button_text;
           fan_2d::graphics::gui::rectangle_text_button_sized_t properties_button;
+
+          fan_2d::graphics::gui::rectangle_button_sized_t resize_rectangles;
+
+          uint32_t depth_index;
+
+          uint8_t resize_stage;
         };
 
-        struct builder_draw_types_t {
+        struct builder_t {
 
           void open(pile_t* pile);
 
-          fan_2d::graphics::gui::rectangle_text_button_sized_t rtbs;
           uint32_t rtbs_id_counter;
-
+          fan_2d::graphics::gui::rectangle_text_button_sized_t rtbs;
           fan_2d::graphics::gui::text_renderer_clickable trc;
         };
 
@@ -93,8 +150,8 @@ namespace fan_2d {
           fan::window_t window;
           fan::opengl::context_t context;
 
-          editor_draw_types_t editor_draw_types;
-          builder_draw_types_t builder_draw_types;
+          editor_t editor;
+          builder_t builder;
 
           void open() {
             
@@ -109,39 +166,50 @@ namespace fan_2d {
               pile->context.set_viewport(0, size);
 
               fan::vec2 window_size = pile->window.get_size();
-              pile->editor_draw_types.gui_matrices.set_ortho(&pile->context, fan::vec2(0, window_size.x), fan::vec2(0, window_size.y));
-              pile->editor_draw_types.gui_properties_matrices.set_ortho(
+              pile->editor.gui_matrices.set_ortho(&pile->context, fan::vec2(0, window_size.x), fan::vec2(0, window_size.y));
+              pile->editor.gui_properties_matrices.set_ortho(
                 &pile->context, 
                 fan::vec2(
                   0, 
-                  window_size.x - pile->editor_draw_types.origin_properties.x
+                  window_size.x - pile->editor.origin_properties.x
                 ), 
                 fan::vec2(
                 0, 
-                window_size.y - pile->editor_draw_types.origin_properties.y)
+                window_size.y - pile->editor.origin_properties.y)
               );
 
               fan::graphics::viewport_t::properties_t vp;
 
-              vp.size = fan::vec2(window_size.x, window_size.y) - pile->editor_draw_types.origin_properties; 
-              vp.position = fan::vec2(pile->editor_draw_types.origin_properties.x, 0);
+              vp.size = fan::vec2(window_size.x, window_size.y) - pile->editor.origin_properties; 
+              vp.position = fan::vec2(pile->editor.origin_properties.x, 0);
 
-              pile->editor_draw_types.properties_viewport.set(&pile->context, vp);
+              pile->editor.properties_viewport.set(&pile->context, vp);
               vp.position = 0;
               vp.size = window_size;
-              pile->editor_draw_types.builder_viewport.set(&pile->context, vp);
+              pile->editor.builder_viewport.set(&pile->context, vp);
             });
 
-            editor_draw_types.gui_matrices.open();
-            editor_draw_types.gui_properties_matrices.open();
+            editor.gui_matrices.open();
+            editor.gui_properties_matrices.open();
 
-            builder_draw_types.open(this);
-            editor_draw_types.open(this);
+            builder.open(this);
+            editor.open(this);
 
             fan::vec2 window_size = window.get_size();
-            editor_draw_types.gui_matrices.set_ortho(&context, fan::vec2(0, window_size.x), fan::vec2(0, window_size.y));
-            editor_draw_types.gui_properties_matrices.set_ortho(&context, fan::vec2(0, window_size.x - editor_draw_types.origin_properties.x), fan::vec2(0, window_size.y - editor_draw_types.origin_properties.y));
+            editor.gui_matrices.set_ortho(&context, fan::vec2(0, window_size.x), fan::vec2(0, window_size.y));
+            editor.gui_properties_matrices.set_ortho(&context, fan::vec2(0, window_size.x - editor.origin_properties.x), fan::vec2(0, window_size.y - editor.origin_properties.y));
           }
+
+          void save(const char* filename) {
+            FILE* f = fopen(filename, "w+b");
+            if (!f) {
+              fan::throw_error("failed to open file stream");
+            }
+
+            builder.rtbs.write_out(&context, f);
+            fclose(f);
+          }
+
         };
 
         #include <fan/graphics/gui/fgm/editor/editor.h>

@@ -151,6 +151,35 @@ namespace fan_2d {
           m_box.disable_draw(context);
         }
 
+        // IO +
+
+        void write_out(fan::opengl::context_t* context, FILE* f) const {
+				  m_box.write_out(context, f);
+          uint64_t count = m_store.size() * sizeof(store_t);
+          fwrite(&count, sizeof(count), 1, f);
+					fwrite(m_store.data(), sizeof(store_t) * m_store.size(), 1, f);
+          for (uint32_t i = 0; i < count / sizeof(store_t); i++) {
+            fwrite(m_store[i].m_properties.theme.ptr, sizeof(fan_2d::graphics::gui::theme), 1, f);
+          }
+			  }
+        void write_in(fan::opengl::context_t* context, FILE* f) {
+          m_box.write_in(context, f);
+          uint64_t count;
+          fread(&count, sizeof(count), 1, f);
+          m_store.resize(count / sizeof(store_t));  
+				  fread(m_store.data(), count, 1, f);
+          for (uint32_t i = 0; i < count / sizeof(store_t); i++) {
+            m_store[i].m_properties.theme.open();
+            fread(m_store[i].m_properties.theme.ptr, sizeof(fan_2d::graphics::gui::theme), 1, f);
+          }
+			  }
+
+        // IO -
+
+        void bind_matrices(fan::opengl::context_t* context, fan::opengl::matrices_t* matrices) {
+          m_box.bind_matrices(context, matrices);
+        }
+
         fan_2d::opengl::rectangle_t m_box;
 
       //protected:

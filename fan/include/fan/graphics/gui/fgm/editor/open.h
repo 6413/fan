@@ -1,5 +1,6 @@
 depth_map.open();
 
+depth_index = 0;
 properties_camera = 0;
 
 builder_viewport_size = constants::builder_viewport_size;
@@ -33,6 +34,10 @@ vp.size = fan::vec2(window_size.x, window_size.y);
 builder_viewport.open(&pile->context);
 builder_viewport.set(&pile->context, vp);
 builder_viewport.enable(&pile->context);
+
+resize_rectangles.open(&pile->window, &pile->context);
+resize_rectangles.enable_draw(&pile->window, &pile->context);
+resize_rectangles.bind_matrices(&pile->context, &gui_matrices);
 
 outline.open(&pile->context);
 decltype(outline)::properties_t line_p;
@@ -69,6 +74,13 @@ builder_types_p.theme = fan_2d::graphics::gui::themes::gray();
 builder_types.push_back(&pile->window, &pile->context, builder_types_p);
 builder_types_p.position.y += 50;
 builder_types_p.text = "Clickable text";
+builder_types.push_back(&pile->window, &pile->context, builder_types_p);
+
+builder_types_p.position.x -= 30;
+builder_types_p.position.y += 170;
+builder_types_p.size.x /= 2;
+builder_types_p.size.y /= 1.2;
+builder_types_p.text = "export";
 builder_types.push_back(&pile->window, &pile->context, builder_types_p);
 
 builder_types.bind_matrices(&pile->context, &gui_matrices);

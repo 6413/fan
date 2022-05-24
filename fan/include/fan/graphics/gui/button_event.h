@@ -50,7 +50,7 @@ namespace fan_2d {
               if (object->m_button_event.m_focused_button_id >= object->size(w, context)) {
                 object->m_button_event.m_focused_button_id = fan::uninitialized;
               }
-              else if (object->inside(w, context, object->m_button_event.m_focused_button_id, w->get_mouse_position() - object->get_viewport_collision_offset()) || object->locked(w, context, object->m_button_event.m_focused_button_id)) {
+              else if (object->inside(w, context, object->m_button_event.m_focused_button_id, w->get_mouse_position() - object->get_viewport_collision_offset()) && !object->locked(w, context, object->m_button_event.m_focused_button_id)) {
                 return;
               }
             }
@@ -133,7 +133,6 @@ namespace fan_2d {
                       break;
                     }
                   }
-
                   pointer_remove_flag = 1;
                   object->m_button_event.on_input_function(w, context, object->m_button_event.m_focused_button_id, key, fan::key_state::release, mouse_stage::outside, object->m_button_event.key_user_ptr);
                   if (pointer_remove_flag == 0) {

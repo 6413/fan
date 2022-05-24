@@ -279,7 +279,8 @@ namespace fan {
 
 			font.line_height = font.size * 1.5;
 
-			while (lines[iline++] != "# code index") {}
+			while (lines[iline++].find("# code index") == std::string::npos) {
+			}
 
 			parse_stage_e stage = parse_stage_e::mapping;
 
@@ -299,7 +300,7 @@ namespace fan {
 				iline++;
 			}
 
-			while (lines[iline++] != "# index width height offset_x offset_y advance") {}
+			while (lines[iline++].find("# index width height offset_x offset_y advance") == std::string::npos) {}
 
 			while (1) {
 				if (lines[iline] == "") {
@@ -315,7 +316,7 @@ namespace fan {
 				iline++;
 			}
 
-			while (lines[iline++] != "# index x y width height border") {}
+			while (lines[iline++].find("# index x y width height border") == std::string::npos) {}
 
 			while (1) {
 

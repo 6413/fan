@@ -72,8 +72,6 @@ namespace fan_2d {
           fan::vec2(0, 0)
         };
 
-        f32_t allow_lighting = false;
-
         fan::opengl::image_t* image;
       };
 
@@ -89,7 +87,6 @@ namespace fan_2d {
         fan::vec3 rotation_vector;
 
         fan::vec2 texture_coordinates;
-        f32_t allow_lighting;
       };
 
     public:
@@ -101,8 +98,7 @@ namespace fan_2d {
       static constexpr uint32_t offset_rotation_point = offsetof(instance_t, rotation_point);
       static constexpr uint32_t offset_rotation_vector = offsetof(instance_t, rotation_vector);
       static constexpr uint32_t offset_texture_coordinates = offsetof(instance_t, texture_coordinates);
-      static constexpr uint32_t offset_allow_lighting = offsetof(instance_t, allow_lighting);
-      static constexpr uint32_t element_byte_size = offset_allow_lighting + sizeof(f32_t);
+      static constexpr uint32_t element_byte_size = offset_texture_coordinates + sizeof(fan::vec2);
 
       static constexpr uint32_t vertex_count = 6;
 
@@ -116,7 +112,6 @@ namespace fan_2d {
         instance.angle = properties.angle;
         instance.rotation_point = properties.rotation_point;
         instance.rotation_vector = properties.rotation_vector;
-        instance.allow_lighting = properties.allow_lighting;
 
         for (int i = 0; i < vertex_count; i++) {
           instance.texture_coordinates = fan_2d::opengl::convert_tc_4_2_6(&properties.texture_coordinates, i);
@@ -144,7 +139,6 @@ namespace fan_2d {
         instance.angle = properties.angle;
         instance.rotation_point = properties.rotation_point;
         instance.rotation_vector = properties.rotation_vector;
-        instance.allow_lighting = properties.allow_lighting;
 
         for (int j = 0; j < vertex_count; j++) {
           instance.texture_coordinates = fan_2d::opengl::convert_tc_4_2_6(&properties.texture_coordinates, j);

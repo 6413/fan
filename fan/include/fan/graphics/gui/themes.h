@@ -19,10 +19,11 @@ namespace fan_2d {
 
 					button() = default;
 
-					std::function<void(fan::window_t *window, uint32_t index, uint16_t key, fan::key_state key_state, mouse_stage mouse_stage, void* user_ptr)> m_click_callback = 
-					[](fan::window_t *window, uint32_t index, uint16_t key, fan::key_state key_state, mouse_stage mouse_stage, void* user_ptr){};
-					std::function<void(fan::window_t *window, uint32_t index, mouse_stage mouse_stage, void* user_ptr)> m_hover_callback = 
-					[](fan::window_t *window, uint32_t index, mouse_stage mouse_stage, void* user_ptr){};
+					typedef void(*click_callback_t)(fan::window_t *window, uint32_t index, uint16_t key, fan::key_state key_state, mouse_stage mouse_stage, void* user_ptr);
+					typedef void(*hover_callback_t)(fan::window_t *window, uint32_t index, mouse_stage mouse_stage, void* user_ptr);
+
+					click_callback_t m_click_callback = 0;
+					hover_callback_t m_hover_callback = 0;
 
 					enum class states_e {
 						outside,

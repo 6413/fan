@@ -1,9 +1,9 @@
 case builder_draw_type_t::rectangle_text_button_sized: {
 
-  fan::vec2 position = fan::vec2(pile->builder_draw_types.rtbs.get_position(&pile->window, &pile->context, click_collision_.builder_draw_type_index));
-  fan::vec2 size = fan::vec2(pile->builder_draw_types.rtbs.get_size(&pile->window, &pile->context, click_collision_.builder_draw_type_index));
+  fan::vec2 position = fan::vec2(pile->builder.rtbs.get_position(&pile->window, &pile->context, click_collision_.builder_draw_type_index));
+  fan::vec2 size = fan::vec2(pile->builder.rtbs.get_size(&pile->window, &pile->context, click_collision_.builder_draw_type_index));
 
-  decltype(pile->builder_draw_types.rtbs)::properties_t properties_button_p;
+  decltype(pile->builder.rtbs)::properties_t properties_button_p;
   properties_button_p.text = fan::to_wstring(position.x, 0) + L", " + fan::to_wstring(position.y, 0);
   properties_button_p.size = fan::vec2(constants::gui_size * 5, constants::gui_size);
   properties_button_p.font_size = constants::gui_size;
@@ -12,12 +12,12 @@ case builder_draw_type_t::rectangle_text_button_sized: {
   properties_button_p.allow_input = true;
   properties_button_p.position = fan::vec2(
     constants::properties_box_pad,
-    fan::vec2(pile->editor_draw_types.builder_types.get_size(&pile->window, &pile->context, click_collision_.builder_draw_type)).y
+    fan::vec2(pile->editor.builder_types.get_size(&pile->window, &pile->context, click_collision_.builder_draw_type)).y
   ) + 10;
 
-  pile->editor_draw_types.properties_button.push_back(&pile->window, &pile->context, properties_button_p);
+  pile->editor.properties_button.push_back(&pile->window, &pile->context, properties_button_p);
 
-  decltype(pile->editor_draw_types.properties_button_text)::properties_t properties_text_p;
+  decltype(pile->editor.properties_button_text)::properties_t properties_text_p;
 
   auto calculate_text_position = [&]() {
     properties_text_p.position.x = 0;
@@ -35,38 +35,38 @@ case builder_draw_type_t::rectangle_text_button_sized: {
   properties_text_p.text_color = fan::colors::white;
   calculate_text_position();
 
-  pile->editor_draw_types.properties_button_text.push_back(&pile->context, properties_text_p);
+  pile->editor.properties_button_text.push_back(&pile->context, properties_text_p);
 
   properties_button_p.position.y += 50;
 
   properties_button_p.text = fan::to_wstring(size.x, 0) + L", " + fan::to_wstring(size.y, 0);
-  pile->editor_draw_types.properties_button.push_back(&pile->window, &pile->context, properties_button_p);
+  pile->editor.properties_button.push_back(&pile->window, &pile->context, properties_button_p);
 
   properties_text_p.text = "size";
   calculate_text_position();
 
-  pile->editor_draw_types.properties_button_text.push_back(&pile->context, properties_text_p);
+  pile->editor.properties_button_text.push_back(&pile->context, properties_text_p);
 
   properties_button_p.position.y += 50;
 
-  properties_button_p.text = pile->builder_draw_types.rtbs.get_text(&pile->window, &pile->context, click_collision_.builder_draw_type_index);
-  pile->editor_draw_types.properties_button.push_back(&pile->window, &pile->context, properties_button_p);
+  properties_button_p.text = pile->builder.rtbs.get_text(&pile->window, &pile->context, click_collision_.builder_draw_type_index);
+  pile->editor.properties_button.push_back(&pile->window, &pile->context, properties_button_p);
 
   properties_text_p.text = "text";
   calculate_text_position();
 
-  pile->editor_draw_types.properties_button_text.push_back(&pile->context, properties_text_p);
+  pile->editor.properties_button_text.push_back(&pile->context, properties_text_p);
 
   properties_button_p.position.y += 50;
 
-  properties_button_p.userptr = pile->builder_draw_types.rtbs.get_userptr(&pile->window, &pile->context, click_collision_.builder_draw_type_index);
-  properties_button_p.text = std::to_string((uint32_t)properties_button_p.userptr);
-  pile->editor_draw_types.properties_button.push_back(&pile->window, &pile->context, properties_button_p);
+  properties_button_p.userptr = pile->builder.rtbs.get_userptr(&pile->window, &pile->context, click_collision_.builder_draw_type_index);
+  properties_button_p.text = std::to_string(*(uint32_t*)&properties_button_p.userptr);
+  pile->editor.properties_button.push_back(&pile->window, &pile->context, properties_button_p);
 
   properties_text_p.text = "id";
   calculate_text_position();
 
-  pile->editor_draw_types.properties_button_text.push_back(&pile->context, properties_text_p);
+  pile->editor.properties_button_text.push_back(&pile->context, properties_text_p);
   properties_button_p.position.y += 50;
 
   properties_text_p.text = " ";
@@ -78,11 +78,11 @@ case builder_draw_type_t::rectangle_text_button_sized: {
   properties_button_p.size.x = 30;
   properties_button_p.position.x = properties_button_p.size.x + constants::properties_text_pad;
   properties_button_p.text_position = fan_2d::graphics::gui::text_position_e::middle;
-  pile->editor_draw_types.properties_button.push_back(&pile->window, &pile->context, properties_button_p);
+  pile->editor.properties_button.push_back(&pile->window, &pile->context, properties_button_p);
 
-  pile->editor_draw_types.properties_button_text.push_back(&pile->context, properties_text_p);
+  pile->editor.properties_button_text.push_back(&pile->context, properties_text_p);
 
-  pile->editor_draw_types.properties_button.m_button_event.set_on_input(pile, [](
+  pile->editor.properties_button.m_button_event.set_on_input(pile, [](
     fan::window_t* window, fan::opengl::context_t* context, uint32_t i, uint16_t key, fan::key_state key_state, mouse_stage mouse_stage, void* userptr) {
     pile_t* pile = (pile_t*)userptr;
 
@@ -97,7 +97,7 @@ case builder_draw_type_t::rectangle_text_button_sized: {
       return;
     }
 
-    switch (pile->editor_draw_types.selected_draw_type) {
+    switch (pile->editor.selected_type) {
       case builder_draw_type_t::rectangle_text_button_sized: {
         switch (i) {
           case 4: {
@@ -109,22 +109,22 @@ case builder_draw_type_t::rectangle_text_button_sized: {
     }
   });
 
-  pile->editor_draw_types.properties_button.m_key_event.set_on_focus_loss_callback(pile,
+  pile->editor.properties_button.m_key_event.set_on_focus_loss_callback(pile,
     [](fan::window_t* window, fan::graphics::context_t* context, uint32_t i, void* userptr) {
     pile_t* pile = (pile_t*)userptr;
 
     // already updated through move release
-    if (pile->editor_draw_types.properties_button.size(window, context) == 0) {
+    if (pile->editor.properties_button.size(window, context) == 0) {
       return;
     }
 
-    switch (pile->editor_draw_types.selected_draw_type) {
+    switch (pile->editor.selected_type) {
       case builder_draw_type_t::rectangle_text_button_sized: {
         // position, size, etc...
         switch (i) {
           case 0: {
             std::vector<int> values = fan::string_to_values<int>(
-              pile->editor_draw_types.properties_button.get_text(
+              pile->editor.properties_button.get_text(
               window,
               context,
               i
@@ -141,17 +141,17 @@ case builder_draw_type_t::rectangle_text_button_sized: {
               position = *(fan::vec2i*)values.data();
             }
 
-            pile->builder_draw_types.rtbs.set_position(
+            pile->builder.rtbs.set_position(
               window,
               context,
-              pile->editor_draw_types.selected_draw_type_index,
+              pile->editor.selected_type_index,
               position
             );
             break;
           }
           case 1: {
             std::vector<int> values = fan::string_to_values<int>(
-              pile->editor_draw_types.properties_button.get_text(
+              pile->editor.properties_button.get_text(
               window,
               context,
               i
@@ -168,20 +168,29 @@ case builder_draw_type_t::rectangle_text_button_sized: {
               size = *(fan::vec2i*)values.data();
             }
 
-            pile->builder_draw_types.rtbs.set_size(
+            pile->builder.rtbs.set_size(
               window,
               context,
-              pile->editor_draw_types.selected_draw_type_index,
+              pile->editor.selected_type_index,
               size
             );
             break;
           }
           case 2: {
-            pile->builder_draw_types.rtbs.set_text(
+            pile->builder.rtbs.set_text(
               window,
               context,
-              pile->editor_draw_types.selected_draw_type_index,
-              pile->editor_draw_types.properties_button.get_text(window, context, i)
+              pile->editor.selected_type_index,
+              pile->editor.properties_button.get_text(window, context, i)
+            );
+            break;
+          }
+          case 3: {
+            pile->builder.rtbs.set_userptr(
+              window,
+              context,
+              pile->editor.selected_type_index,
+              (void*)std::stoi(pile->editor.properties_button.get_text(window, context, i))
             );
             break;
           }
