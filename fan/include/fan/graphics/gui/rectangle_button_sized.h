@@ -109,7 +109,9 @@ namespace fan_2d {
             return;
           }
 
-          rbs.m_store[i].m_properties.theme->button.m_click_callback(window, i, key, state, stage, user_ptr);
+          if (rbs.m_store[i].m_properties.theme->button.m_click_callback) {
+            rbs.m_store[i].m_properties.theme->button.m_click_callback(window, i, key, state, stage, user_ptr);
+          }
 
           if (key != fan::mouse_left) {
             return;
@@ -163,7 +165,9 @@ namespace fan_2d {
             return;
           }
 
-          rbs.m_store[i].m_properties.theme->button.m_hover_callback(window, i, stage, user_ptr);
+          if (rbs.m_store[i].m_properties.theme->button.m_hover_callback) {
+            rbs.m_store[i].m_properties.theme->button.m_hover_callback(window, i, stage, user_ptr);
+          }
 
           switch (stage) {
             case mouse_stage::inside: {
@@ -205,6 +209,17 @@ namespace fan_2d {
         }
         void set_viewport_collision_offset(const fan::vec2& offset) {
           viewport_collision_offset = offset;
+        }
+
+        void bind_matrices(fan::opengl::context_t* context, fan::opengl::matrices_t* matrices) {
+          rbs.bind_matrices(context, matrices);
+        }
+
+        fan::vec2 get_position(fan::window_t* window, fan::opengl::context_t* context, uint32_t i) const {
+          return rbs.get_position(context, i);
+        }
+        void set_position(fan::window_t* window, fan::opengl::context_t* context, uint32_t i, const fan::vec2& position) {
+          rbs.set_position(context, i, position);
         }
 
         fan_2d::graphics::gui::button_event_t<rectangle_button_sized_t> m_button_event;

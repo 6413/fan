@@ -20,10 +20,14 @@ namespace fan {
       fan::vec2i size;
     };
 
-	  static image_info_t decode(const uint8_t* webp_data, std::size_t size) {
+    static bool get_image_size(const std::string_view file, fan::vec2i* size) {
+      auto data = fan::io::file::read(std::string(file));
+      return WebPGetInfo((uint8_t*)data.data(), data.size(), &size->x, &size->y) != 1;
+    }
 
+	  static image_info_t decode(const uint8_t* webp_data, std::size_t size) {
+      
       image_info_t image_info;
-    
       image_info.data = WebPDecodeRGBA(webp_data, size, &image_info.size.x, &image_info.size.y);
 
       return image_info;
@@ -44,7 +48,6 @@ namespace fan {
 
     static void free_image(void* ptr) {
       WebPFree(ptr);
-      ptr = nullptr;
     }
   
   }

@@ -23,6 +23,7 @@ namespace fan_2d {
 					f32_t outline_size = fan_2d::graphics::gui::defaults::text_renderer_outline_size;
 					fan::vec2 rotation_point = 0;
 					f32_t angle = 0;
+					void* userptr;
 				};
 
 				void bind_matrices(fan::opengl::context_t* context, fan::opengl::matrices_t* matrices) {
@@ -79,7 +80,6 @@ namespace fan_2d {
 
 					m_shader.compile(context);
 
-					m_store_sprite.open();
 					m_glsl_buffer.open(context);
 					m_glsl_buffer.init(context, m_shader.id, element_byte_size);
 					m_queue_helper.open();
@@ -109,8 +109,6 @@ namespace fan_2d {
 					context->disable_draw(m_draw_node_reference);
 					m_draw_node_reference = fan::uninitialized;
 
-					m_store_sprite.close();
-
 					for (int i = 0; i < m_store.size(); i++) {
 						m_store[i].m_text.close();
 					}
@@ -130,6 +128,7 @@ namespace fan_2d {
 					store.m_position = properties.position;
 					*store.m_text = properties.text;
 					store.m_indices = m_store.empty() ? properties.text.size() : m_store[m_store.size() - 1].m_indices + properties.text.size();
+					store.userptr = properties.userptr;
 
 					fan::vec2 text_size = get_text_size(context, properties.text, properties.font_size);
 
@@ -441,8 +440,6 @@ namespace fan_2d {
 
 					m_glsl_buffer.erase(context, src * vertex_count * element_byte_size, dst * vertex_count * element_byte_size);
 
-					m_store_sprite.erase(src, dst);
-
 					m_store.erase(i);
 
 					this->regenerate_indices();
@@ -469,8 +466,6 @@ namespace fan_2d {
 
 					m_glsl_buffer.erase(context, src * vertex_count * element_byte_size, dst * vertex_count * element_byte_size);
 
-					m_store_sprite.erase(src, dst);
-
 					m_store.erase(begin, end);
 
 					this->regenerate_indices();
@@ -493,7 +488,6 @@ namespace fan_2d {
 				void clear(fan::opengl::context_t* context) {
 					m_glsl_buffer.clear_ram(context);
 					m_store.clear();
-					m_store_sprite.clear();
 				}
 
 
@@ -681,6 +675,13 @@ namespace fan_2d {
 					);
 				}
 
+				void* get_userptr(uint32_t i) {
+					return m_store[i].userptr;
+				}
+				void* set_userptr(uint32_t i, void* userptr) {
+					m_store[i].userptr = userptr;
+				}
+
 			//protected:
 
 				void regenerate_indices() {
@@ -750,10 +751,6 @@ namespace fan_2d {
 						to,
 						&m_glsl_buffer
 					);
-
-					m_store_sprite.resize(m_store_sprite.size() + 1);
-
-					m_store_sprite[m_store_sprite.size() - 1].m_texture = font_image->texture;
 				}
 
 				void insert_letter(fan::opengl::context_t* context, uint32_t i, wchar_t character, instance_t instance) {
@@ -778,11 +775,6 @@ namespace fan_2d {
 						to,
 						&m_glsl_buffer
 					);
-
-					store_sprite_t sst;
-					sst.m_texture = font_image->texture;
-
-					m_store_sprite.insert(i, sst);
 				}
 
 				constexpr uint32_t get_index(uint32_t i) const {
@@ -819,19 +811,53 @@ namespace fan_2d {
 					return m_glsl_buffer.m_buffer.size() / element_byte_size / vertex_count;
 				}
 
+				// IO +
+
+				void write_out(fan::opengl::context_t* context, FILE* f) const {
+					uint64_t buffer_size = m_glsl_buffer.m_buffer.size();
+					fwrite(&buffer_size, sizeof(uint64_t), 1, f);
+					fwrite(m_glsl_buffer.m_buffer.data(), m_glsl_buffer.m_buffer.size(), 1, f);
+					buffer_size = m_store.size();
+					fwrite(&buffer_size, sizeof(uint64_t), 1, f);
+					for (uint32_t i = 0; i < m_store.size(); i++) {
+						buffer_size = m_store[i].m_text.ptr->size();
+						fwrite(&buffer_size, sizeof(uint64_t), 1, f);
+						fwrite(m_store[i].m_text.ptr->data(), buffer_size, 1, f);
+					}
+					buffer_size = sizeof(store_t) * m_store.size();
+					fwrite(&buffer_size, sizeof(uint64_t), 1, f);
+					fwrite(m_store.data(), sizeof(store_t) * m_store.size(), 1, f);
+				}
+				void write_in(fan::opengl::context_t* context, FILE* f) {
+          uint64_t count;
+          fread(&count, sizeof(count), 1, f);
+					m_glsl_buffer.m_buffer.resize(count);
+					fread(m_glsl_buffer.m_buffer.data(), count, 1, f);
+					m_glsl_buffer.write_vram_all(context);
+					uint64_t loop;
+					fread(&loop, sizeof(loop), 1, f);
+					m_store.resize(loop);
+					for (uint32_t i = 0; i < loop; i++) {
+						fread(&count, sizeof(count), 1, f);
+						m_store[i].m_text.open();
+						m_store[i].m_text.ptr->resize(count);
+						fread(m_store[i].m_text.ptr->data(), count, 1, f);
+					}
+					fread(&count, sizeof(count), 1, f);
+				  fread(m_store.data(), count, 1, f);
+			  }
+
+        // IO -
+
 				struct store_t {
 					fan::utf16_string_ptr_t m_text;
 					fan::vec2 m_position;
 					uint32_t m_indices;
 					uint32_t m_new_lines;
-				};
-
-				struct store_sprite_t {
-					uint32_t m_texture;
+					void* userptr;
 				};
 
 				fan::hector_t<store_t> m_store;
-				fan::hector_t<store_sprite_t> m_store_sprite;
 
 				fan::shader_t m_shader;
 				fan::opengl::core::glsl_buffer_t m_glsl_buffer;

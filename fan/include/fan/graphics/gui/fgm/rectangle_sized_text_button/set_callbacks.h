@@ -1,4 +1,4 @@
-pile->builder_draw_types.rtbs.properties_button.m_button_event.set_on_input(pile, [](
+pile->builder.rtbs.properties_button.m_button_event.set_on_input(pile, [](
   fan::window_t* window, fan::opengl::context_t* context, uint32_t i, uint16_t key, fan::key_state key_state, mouse_stage mouse_stage, void* userptr) {
   pile_t* pile = (pile_t*)userptr;
 

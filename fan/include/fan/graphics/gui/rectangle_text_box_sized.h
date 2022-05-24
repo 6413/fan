@@ -324,6 +324,26 @@ namespace fan_2d {
           return m_store[i].m_properties.userptr = userptr;
         }
 
+         // IO +
+
+        void write_out(fan::opengl::context_t* context, FILE* f) const {
+				  rbs.write_out(context, f);
+          tr.write_out(context, f);
+          uint64_t count = m_store.size() * sizeof(store_t);
+          fwrite(&count, sizeof(count), 1, f);
+					fwrite(m_store.data(), sizeof(store_t) * m_store.size(), 1, f);
+			  }
+        void write_in(fan::opengl::context_t* context, FILE* f) {
+          rbs.write_in(context, f);
+          tr.write_in(context, f);
+          uint64_t count;
+          fread(&count, sizeof(count), 1, f);
+          m_store.resize(count / sizeof(store_t));
+				  fread(m_store.data(), count, 1, f);
+			  }
+
+        // IO -
+
         fan_2d::graphics::gui::rectangle_box_sized_t rbs;
         fan_2d::opengl::gui::text_renderer_t tr;
 

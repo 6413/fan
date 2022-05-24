@@ -9,6 +9,8 @@ namespace fan {
   template <typename type_t>
   struct hector_t {
 
+    using value_type = type_t;
+
     void open() {
       m_size = 0;
       m_capacity = 0;
@@ -182,7 +184,7 @@ namespace fan {
 
     static constexpr uintptr_t buffer_increment = 0x10000;
 
-  protected:
+ // protected:
 
     static type_t* resize_buffer(void* ptr, uintptr_t size) {
       if (ptr) {

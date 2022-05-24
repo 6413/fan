@@ -174,7 +174,7 @@ namespace fan_2d {
         void* get_userptr(fan::window_t* window, fan::opengl::context_t* context, uint32_t i) {
           return rtbs.get_userptr(context, i);
         }
-        void* set_userptr(fan::window_t* window, fan::opengl::context_t* context, uint32_t i, void* userptr) {
+        void set_userptr(fan::window_t* window, fan::opengl::context_t* context, uint32_t i, void* userptr) {
           rtbs.set_userptr(context, i, userptr);
         }
 
@@ -184,7 +184,9 @@ namespace fan_2d {
             return;
           }
 
-          rtbs.rbs.m_store[i].m_properties.theme->button.m_click_callback(window, i, key, state, stage, user_ptr);
+          if (rtbs.rbs.m_store[i].m_properties.theme->button.m_click_callback) {
+            rtbs.rbs.m_store[i].m_properties.theme->button.m_click_callback(window, i, key, state, stage, user_ptr);
+          }
 
           if (key != fan::mouse_left) {
             return;
@@ -249,7 +251,9 @@ namespace fan_2d {
             return;
           }
 
-          rtbs.rbs.m_store[i].m_properties.theme->button.m_hover_callback(window, i, stage, user_ptr);
+          if (rtbs.rbs.m_store[i].m_properties.theme->button.m_hover_callback) {
+            rtbs.rbs.m_store[i].m_properties.theme->button.m_hover_callback(window, i, stage, user_ptr);
+          }
 
           switch (stage) {
             case mouse_stage::inside: {
@@ -299,11 +303,31 @@ namespace fan_2d {
           viewport_collision_offset = offset;
         }
 
+         // IO +
+
+        void write_out(fan::opengl::context_t* context, FILE* f) const {
+				  rtbs.write_out(context, f);
+          uint64_t count = m_reserved.size() * sizeof(decltype(m_reserved)::value_type);
+          fwrite(&count, sizeof(count), 1, f);
+					fwrite(m_reserved.data(), sizeof(decltype(m_reserved)::value_type) * m_reserved.size(), 1, f);
+          m_key_event.write_out(context, f);
+			  }
+        void write_in(fan::opengl::context_t* context, FILE* f) {
+          rtbs.write_in(context, f);
+          uint64_t count;
+          fread(&count, sizeof(count), 1, f);
+          m_reserved.resize(count / sizeof(decltype(m_reserved)::value_type));
+				  fread(m_reserved.data(), count, 1, f);
+          m_key_event.write_in(context, f);
+			  }
+
+        // IO -
+
         fan_2d::graphics::gui::rectangle_text_box_sized_t rtbs;
         fan_2d::graphics::gui::key_event_t<rectangle_text_button_sized_t> m_key_event;
         fan_2d::graphics::gui::button_event_t<rectangle_text_button_sized_t> m_button_event;
 
-      protected:
+     // protected:
 
         fan::vec2 viewport_collision_offset;
         fan::hector_t<uint32_t> m_reserved;

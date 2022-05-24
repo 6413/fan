@@ -2,115 +2,245 @@
 
 #include <memory>
 
+#include <fan/graphics/webp.h>
+#include <fan/types/memory.h>
+#include <fan/graphics/opengl/gl_image.h>
+
 // reference https://web.archive.org/web/20170703203916/http://clb.demon.fi/projects/rectangle-bin-packing
 
 namespace fan {
   namespace tp {
 
-    struct texture_pack {
-			struct texture {
-				std::shared_ptr<texture> left;
-				std::shared_ptr<texture> right;
+    struct texture_packd {
+      struct internal_texture_t {
 
-				// The top-left coordinate of the rectangle.
-				fan::vec2i position;
-				fan::vec2i size;
+        // The top-left coordinate of the rectangle.
+        fan::vec2i position;
+        fan::vec2i size;
 
-				friend std::ostream& operator<<(std::ostream& os, const texture& tex) {
-					os << '{' << "\n position:" << tex.position << "\n size:" << tex.size << "\n}";
-					return os;
-				}
-			};
+        friend std::ostream& operator<<(std::ostream& os, const internal_texture_t& tex) {
+          os << '{' << "\n position:" << tex.position << "\n size:" << tex.size << "\n}";
+          return os;
+        }
+      };
 
-			void open(const fan::vec2& size) {
-				bin_size = size;
-				root.left = root.right = 0;
-				root.position = 0;
-				root.size = size;
-			}
-			void close() {
+      struct pixel_data_t {
+        fan::vec2i size;
+        uint8_t* data;
+      };
+      uint32_t pack_amount;
+      fan::hector_t<fan::hector_t<internal_texture_t>> texture_list;
+      fan::hector_t<pixel_data_t> pixel_data_list;
 
-			}
+      pixel_data_t get_pixel_data(uint32_t pack_id) {
+        return pixel_data_list[pack_id];
+      }
 
-			texture *push(const fan::vec2& size) {
-				return push(&root, size);
-			}
+      fan::opengl::image_t* load_image(fan::opengl::context_t* context, uint32_t pack_id) {
+        fan::webp::image_info_t image_info;
+        image_info.data = pixel_data_list[pack_id].data;
+        image_info.size = pixel_data_list[pack_id].size;
+        return fan::opengl::load_image(context, image_info);
+      }
 
-			f32_t occupancy() const {
-				uint32_t totalSurfaceArea = bin_size.x + bin_size.y;
-				uint32_t usedSurfaceArea = used_surface_area(root);
+      void open(const char* filename) {
+        texture_list.open();
+        pixel_data_list.open();
 
-				return (f32_t)usedSurfaceArea/totalSurfaceArea;
-			}
+        std::string data = fan::io::file::read(filename);
+        uint32_t data_index = 0;
+        pack_amount = *(uint32_t*)&data[data_index];
+        texture_list.resize(pack_amount);
+        pixel_data_list.resize(pack_amount);
+        data_index += sizeof(pack_amount);
+        for (uint32_t i = 0; i < pack_amount; i++) {
+          uint32_t texture_amount = *(uint32_t*)&data[data_index];
+          data_index += sizeof(pack_amount);
+          texture_list[i].open();
+          for (uint32_t j = 0; j < texture_amount; j++) {
+            texture_packd::internal_texture_t internal_texture_t;
+            internal_texture_t.position = *(fan::vec2i*)&data[data_index];
+            data_index += sizeof(fan::vec2i);
+            internal_texture_t.size = *(fan::vec2i*)&data[data_index];
+            data_index += sizeof(fan::vec2i);
+            texture_list[i].push_back(internal_texture_t);
+          }
+          pixel_data_list[i].size = *(fan::vec2i*)&data[data_index];
+          data_index += sizeof(fan::vec2i);
+          pixel_data_list[i].data = new uint8_t[pixel_data_list[i].size.multiply() * 4];
+          memcpy(pixel_data_list[i].data, &data[data_index], pixel_data_list[i].size.multiply() * 4);
+          data_index += pixel_data_list[i].size.multiply() * 4;
+        }
 
-		private:
-			texture root;
+      }
+      void close() {
+        for (uint32_t i = 0; i < pack_amount; i++) {
+          texture_list[i].close();
+          delete[] pixel_data_list[i].data;
+        }
+        texture_list.close();
+        pixel_data_list.close();
+      }
 
-			fan::vec2i bin_size;
+    };
 
-			unsigned long used_surface_area(const texture &node) const {
-				if (node.left || node.right) {
-					unsigned long usedSurfaceArea = node.size.x * node.size.y;
-					if (node.left) {
-						usedSurfaceArea += used_surface_area(*node.left);
-					}
-					if (node.right) {
-						usedSurfaceArea += used_surface_area(*node.right);
-					}
-					return usedSurfaceArea;
-				}
-				return 0;
-			}
+    struct texture_packe {
+      struct texture_t {
+        fan::vec2i position;
+        fan::vec2i size;
+        std::string filepath;
+      };
+      struct internal_texture_t {
+        std::shared_ptr<internal_texture_t> d[2];
 
-			texture *push(texture *node, const fan::vec2i& size) {
-				if (node->left || node->right) {
-					if (node->left) {
-						texture *newNode = push(node->left.get(), size);
-						if (newNode)
-							return newNode;
-					}
-					if (node->right) {
-						texture *newNode = push(node->right.get(), size);
-						if (newNode)
-							return newNode;
-					}
-					return nullptr;
-				}
+        // The top-left coordinate of the rectangle.
+        fan::vec2i position;
+        fan::vec2i size;
 
-				if (size.x > node->size.x || size.y > node->size.y) {
-					return nullptr;
-				}
+        friend std::ostream& operator<<(std::ostream& os, const internal_texture_t& tex) {
+          os << '{' << "\n position:" << tex.position << "\n size:" << tex.size << "\n}";
+          return os;
+        }
+      };
 
-				int w = node->size.x - size.x;
-				int h = node->size.y - size.y;
-				node->left = std::make_shared<texture>();
-				node->right = std::make_shared<texture>();
-				if (w <= h) {
-					node->left->position.x = node->position.x + size.x;
-					node->left->position.y = node->position.y;
-					node->left->size.x = w;
-					node->left->size.y = size.y;
+      void open() {
+      }
+      void close() {
+      }
 
-					node->right->position.x = node->position.x;
-					node->right->position.y = node->position.y + size.y;
-					node->right->size.x = node->size.x;
-					node->right->size.y = h;
-				}
-				else {
-					node->left->position.x = node->position.x;
-					node->left->position.y = node->position.y + size.y;
-					node->left->size.x = size.x;
-					node->left->size.y = h;
+      uint32_t push_pack(const fan::vec2i& size) {
+        pack_t pack;
+        pack.bin_size = size;
+        pack.root.d[0] = pack.root.d[1] = 0;
+        pack.root.position = 0;
+        pack.root.size = size;
+        pack_list.push_back(pack);
+        return pack_list.size() - 1;
+      }
 
-					node->right->position.x = node->position.x + size.x;
-					node->right->position.y = node->position.y;
-					node->right->size.x = w;
-					node->right->size.y = node->size.y;
-				}
-				node->size = size;
-				return node;
-			}
+      void push_texture(uint32_t pack_id, const std::string& filepath) {
+        fan::vec2i size;
+        if (fan::webp::get_image_size(filepath, &size)) {
+          fan::throw_error("failed to open image:" + filepath);
+        }
 
-		};
+        internal_texture_t* it = push(&pack_list[pack_id].root, size);
+        if (it == nullptr) {
+          fan::print_warning("failed to push to pack:" + filepath);
+          return;
+        }
+        texture_t texture;
+        texture.position = it->position;
+        texture.size = it->size;
+        texture.filepath = filepath;
+        pack_list[pack_id].texture_list.push_back(texture);
+      }
+
+      void save(const char* filename) {
+        FILE* f = fopen(filename, "w+b");
+        if (!f) {
+          fan::throw_error(std::string("failed to open file:") + filename);
+        }
+
+        uint32_t pack_amount = pack_list.size();
+        fwrite(&pack_amount, sizeof(pack_amount), 1, f);
+
+        for (uint32_t i = 0; i < pack_amount; i++) {
+          uint32_t count = pack_list[i].texture_list.size();
+          fwrite(&count, sizeof(count), 1, f);
+
+          std::vector<uint8_t> r(pack_list[i].bin_size.x * pack_list[i].bin_size.y * 4);
+          for (uint32_t j = 0; j < count; j++) {
+            texture_t* t = &pack_list[i].texture_list[j];
+            fan::webp::image_info_t image_info = fan::webp::load_image(t->filepath);
+            fwrite(t->position.data(), sizeof(t->position), 1, f);
+            fwrite(t->size.data(), sizeof(t->size), 1, f);
+            for (uint32_t y = t->position.y; y < t->position.y + t->size.y; y++) {
+              memcpy(
+                r.data() + (y * pack_list[i].bin_size.x + t->position.x) * 4,
+                &image_info.data[(y - t->position.y) * t->size.x * 4],
+                t->size.x * 4
+              );
+            }
+            fan::webp::free_image(image_info.data);
+          }
+
+          fwrite(pack_list[i].bin_size.data(), sizeof(pack_list[i].bin_size), 1, f);
+          fwrite(r.data(), sizeof(decltype(r)::value_type) * r.size(), 1, f);
+        }
+        fclose(f);
+      }
+
+    private:
+      struct pack_t {
+        internal_texture_t root;
+        fan::vec2ui bin_size;
+        std::vector<texture_t> texture_list;
+      };
+      std::vector<pack_t> pack_list;
+
+      unsigned long used_surface_area(const internal_texture_t& node) const {
+        if (node.d[0] || node.d[1]) {
+          unsigned long usedSurfaceArea = node.size.x * node.size.y;
+          if (node.d[0]) {
+            usedSurfaceArea += used_surface_area(*node.d[0]);
+          }
+          if (node.d[1]) {
+            usedSurfaceArea += used_surface_area(*node.d[1]);
+          }
+          return usedSurfaceArea;
+        }
+        return 0;
+      }
+
+      internal_texture_t* push(internal_texture_t* node, const fan::vec2i& size) {
+        if (node->d[0] || node->d[1]) {
+          if (node->d[0]) {
+            internal_texture_t* newNode = push(node->d[0].get(), size);
+            if (newNode)
+              return newNode;
+          }
+          if (node->d[1]) {
+            internal_texture_t* newNode = push(node->d[1].get(), size);
+            if (newNode)
+              return newNode;
+          }
+          return nullptr;
+        }
+
+        if (size.x > node->size.x || size.y > node->size.y) {
+          return nullptr;
+        }
+
+        int w = node->size.x - size.x;
+        int h = node->size.y - size.y;
+        node->d[0] = std::make_shared<internal_texture_t>();
+        node->d[1] = std::make_shared<internal_texture_t>();
+        if (w <= h) {
+          node->d[0]->position.x = node->position.x + size.x;
+          node->d[0]->position.y = node->position.y;
+          node->d[0]->size.x = w;
+          node->d[0]->size.y = size.y;
+
+          node->d[1]->position.x = node->position.x;
+          node->d[1]->position.y = node->position.y + size.y;
+          node->d[1]->size.x = node->size.x;
+          node->d[1]->size.y = h;
+        }
+        else {
+          node->d[0]->position.x = node->position.x;
+          node->d[0]->position.y = node->position.y + size.y;
+          node->d[0]->size.x = size.x;
+          node->d[0]->size.y = h;
+
+          node->d[1]->position.x = node->position.x + size.x;
+          node->d[1]->position.y = node->position.y;
+          node->d[1]->size.x = w;
+          node->d[1]->size.y = node->size.y;
+        }
+        node->size = size;
+        return node;
+      }
+    };
   }
 }

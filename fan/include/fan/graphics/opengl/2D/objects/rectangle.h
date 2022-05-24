@@ -330,6 +330,36 @@ namespace fan_2d {
 				);
 			}
 
+			// IO +
+
+			void write_out(fan::opengl::context_t* context, FILE* f) const {
+				uint64_t buffer_size = m_glsl_buffer.m_buffer.size();
+				fwrite(&buffer_size, sizeof(uint64_t), 1, f);
+				fwrite(m_glsl_buffer.m_buffer.data(), buffer_size, 1, f);
+			}
+			void write_in(fan::opengl::context_t* context, FILE* f) {
+				uint64_t to_read;
+				fread(&to_read, sizeof(uint64_t), 1, f);
+				m_glsl_buffer.m_buffer.resize(to_read);
+				fread(m_glsl_buffer.m_buffer.data(), to_read, 1, f);
+				m_glsl_buffer.write_vram_all(context);
+			}
+
+			void bind_matrices(fan::opengl::context_t* context, fan::opengl::matrices_t* matrices) {
+				m_shader.bind_matrices(context, matrices);
+			}
+
+		/*	void save(fan::opengl::context_t* context, const char* path) const {
+				fan::io::file::write(path, get_buffer(context), std::ios_base::binary);
+			}
+			void load(fan::opengl::context_t* context, const char* path) {
+				std::string buffer = fan::io::file::read(path);
+				m_glsl_buffer.m_buffer.insert(m_glsl_buffer.m_buffer.size(), (uint8_t*)buffer.data(), (uint8_t*)buffer.data() + buffer.size());
+				m_glsl_buffer.write_vram_all(context);
+			}*/
+
+			// IO -
+
 			uint32_t m_draw_node_reference;
 
 			fan::shader_t m_shader;

@@ -7,7 +7,6 @@
 #if fan_renderer == fan_renderer_opengl
 
 #include <fan/graphics/opengl/gl_core.h>
-#include <fan/graphics/opengl/gl_texture.h>
 
 #include <fan/graphics/shared_core.h>
 #include <fan/graphics/shared_graphics.h>
@@ -21,6 +20,7 @@
 #include <fan/graphics/opengl/2D/objects/circle.h>
 #include <fan/graphics/opengl/2D/objects/sprite.h>
 #include <fan/graphics/opengl/2D/objects/sprite0.h>
+#include <fan/graphics/opengl/2D/objects/sprite1.h>
 #include <fan/graphics/opengl/2D/objects/yuv420p_renderer.h>
 
 #include <fan/graphics/opengl/2D/objects/depth/depth_rectangle.h>

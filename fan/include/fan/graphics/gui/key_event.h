@@ -633,6 +633,18 @@ namespace fan_2d {
           focus::set_focus(focus_id);
         }
 
+        void write_out(fan::opengl::context_t* context, FILE* f) const {
+          uint64_t count = m_store.size();
+          fwrite(&count, sizeof(count), 1, f);
+          fwrite(m_store.data(), sizeof(store_t) * count, 1, f);
+        }
+        void write_in(fan::opengl::context_t* context, FILE* f) {
+          uint64_t count;
+          fread(&count, sizeof(uint64_t), 1, f);
+          m_store.resize(count);
+          fread(m_store.data(), sizeof(store_t) * count, 1, f);
+        }
+
         uint32_t m_draw_node_reference;
 
         bool render_cursor;

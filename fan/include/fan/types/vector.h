@@ -322,6 +322,10 @@ namespace fan {
 		static constexpr uintptr_t size() { return 2; }
 		constexpr void print() const { std::cout << x << " " << y << std::endl; }
 
+		constexpr auto multiply() const {
+			return x * y;
+		}
+
 		template <typename T>
 		constexpr auto dot(T vector) const {
 			return fan_2d::math::dot(*this, vector);

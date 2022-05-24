@@ -249,6 +249,13 @@ namespace fan_2d {
           m_store[i].m_hitbox.hitbox_position += offset;
         }
 
+        fan::vec2 get_size(fan::window_t* window, fan::opengl::context_t* context, uint32_t i) const {
+          return m_store[i].m_hitbox.hitbox_size;
+        }
+        void set_size(fan::window_t* window, fan::opengl::context_t* context, uint32_t i, const fan::vec2& size) {
+          m_store[i].m_hitbox.hitbox_size = size;
+        }
+
       protected:
 
         using text_renderer_t::insert;

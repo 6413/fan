@@ -271,6 +271,11 @@ namespace fan_2d {
           m_key_event.disable_draw(window, context);
         }
 
+        void bind_matrices(fan::opengl::context_t* context, fan::opengl::matrices_t* matrices) {
+          rtbs.bind_matrices(context, matrices);
+          m_key_event.m_cursor.m_shader.bind_matrices(context, matrices);
+        }
+
         fan_2d::graphics::gui::rectangle_text_box_t rtbs;
         fan_2d::graphics::gui::key_event_t<rectangle_text_button_t> m_key_event;
         fan_2d::graphics::gui::button_event_t<rectangle_text_button_t> m_button_event;
