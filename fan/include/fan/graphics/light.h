@@ -7,7 +7,7 @@ namespace fan_2d {
     namespace lighting {
       struct light_t {
 
-        enum class light_e{
+        enum class light_e {
           light_added,
           light_removed
         };
@@ -130,6 +130,67 @@ namespace fan_2d {
         uint32_t size() const {
           return m_instance.size();
         }
+
+        fan::vec4 calculate_lighting(
+          const fan::vec2& light_position,
+          const fan::vec3& light_color,
+          const f32_t intensity,
+          const f32_t radius,
+          const fan::vec2& fragment_position
+        )
+        {
+          if (intensity < 0.1 || radius < 0.1) {
+            return fan::vec4(0, 0, 0, 1);
+          }
+          fan::vec2 light_direction = (light_position - fragment_position).normalize();
+          if (!light_direction) {
+            return fan::vec4(1, 1, 1, 1.0);
+          }
+          f32_t diff = std::abs(light_direction.length());
+          fan::vec3 diffuse = light_color * diff;
+          f32_t distance = (light_position - fragment_position).length();
+          f32_t cutoff = radius / 2;
+          if (distance > radius) {
+            distance *= distance / radius;
+          }
+          f32_t distance_strength = distance / intensity;
+          f32_t attenuation = 1.0 / (distance_strength * distance_strength);
+          // ambient *= attenuation;
+          diffuse *= attenuation;
+          diffuse += fan::clamp(1.0 / ((distance / (radius) * (distance / (radius)))), 0.0, 0.5);
+          return fan::vec4(diffuse, 1.0);
+        }
+
+        void calculate_light_map(
+          uint8_t* map,
+          fan::vec2 camera_position,
+          fan::vec2 matrix_size,
+          const fan::vec2ui& r
+        ) {
+          camera_position -= matrix_size;
+          matrix_size *= 2;
+          for (uint32_t y = 0; y < r.y; y++) {
+            for (uint32_t x = 0; x < r.x; x++) {
+              f32_t sum = 0;
+              uint32_t it = m_instance.begin();
+              while (it != m_instance.end()) {
+                fan::vec4 ret = calculate_lighting(
+                 light_t::get_position(it),
+                 light_t::get_color(it),
+                 light_t::get_intensity(it),
+                 light_t::get_radius(it),
+                 (camera_position)+(matrix_size / r) * fan::vec2(x, y)
+                );
+
+                sum += *std::max_element(ret.begin(), ret.end() - 1);
+                it = m_instance.next(it);
+              }
+              map[y * r.x + x] = fan::clamp(sum * 255, (f32_t)0, (f32_t)255);
+              //fan::print((f32_t)map[y * r.x + x]);
+            }
+          }
+        }
+
 
         bll_t<properties_t> m_instance;
 

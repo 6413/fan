@@ -475,7 +475,7 @@ namespace fan {
           // possibly disable depth test here
           context->opengl.glDrawArrays(GL_TRIANGLES, begin, end - begin);
         }
-
+        
         uint32_t m_vbo;
         uint64_t m_buffer_size;
 

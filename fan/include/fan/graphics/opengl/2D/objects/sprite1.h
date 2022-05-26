@@ -492,6 +492,10 @@ namespace fan_2d {
         }
 
         if (to) {
+          fan::opengl::GLint viewport[4];
+          context->opengl.glGetIntegerv(fan::opengl::GL_VIEWPORT, viewport);
+          m_shader.set_vec2(context, "viewport_size", fan::vec2(viewport[2], viewport[3]));
+
           m_glsl_buffer.draw(
             context,
             (from)*vertex_count,

@@ -9,8 +9,7 @@ in float input4;
 
 out vec4 i_color;
 out vec2 fragment_position;
-
-out float AspectRatio;
+out vec2 matrix_size;
 
 uniform mat4 projection;
 uniform mat4 view;
@@ -137,6 +136,6 @@ void main() {
 
 	fragment_position = (m * vec4(rectangle_vertices[gl_VertexID % 6], 0, 1)).xy;
 	i_color = layout_color;
-	AspectRatio = layout_size.x / layout_size.y;
+	matrix_size = vec2(-1.0 / projection[0][0], -1.0/projection[1][1]);
 }
 )"
