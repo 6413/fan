@@ -622,25 +622,13 @@ namespace fan {
 		constexpr _vec4(const _vec2<type_t>& a, const _vec2<type2>& b) : x(a.x), y(a.y), z(b.x), w(b.y) {}
 
 		template <typename type_t, typename type2>
-		constexpr _vec4(_vec2<type_t>&& a, _vec2<type2>&& b) : x(std::move(a.x)), y(std::move(a.y)), z(std::move(b.x)), w(std::move(b.y)) {}
-
-		template <typename type_t, typename type2>
 		constexpr _vec4(const _vec3<type_t> vector, type2 value) : x(vector.x), y(vector.y), z(vector.z), w(value) {}
-
-		template <typename type_t, typename type2>
-		constexpr _vec4(_vec3<type_t>&& vector, type2&& value) : x(std::move(vector.x)), y(std::move(vector.y)), z(std::move(vector.z)), w(std::move(value)) {}
 
 		template <typename type_t>
 		constexpr _vec4(const _vec4<type_t>& vector) : x(vector.x), y(vector.y), z(vector.z), w(vector.w) {}
 
 		template <typename type_t>
-		constexpr _vec4(_vec4<type_t>&& vector) : x(std::move(vector.x)), y(std::move(vector.y)), z(std::move(vector.z)), w(std::move(vector.w)) {}
-
-		template <typename type_t>
 		constexpr _vec4(const std::array<type_t, 4>& array) : x(array[0]), y(array[1]), z(array[2]), w(array[3]) {}
-
-		template <typename type_t>
-		constexpr _vec4(std::array<type_t, 4>&& array) : x(std::move(array[0])), y(std::move(array[1])), z(std::move(array[2])), w(std::move(array[3])) {}
 
 		template <typename type_t>
 		constexpr _vec4(const type_t* begin, const type_t* end) 

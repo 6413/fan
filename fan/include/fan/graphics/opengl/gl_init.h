@@ -315,7 +315,6 @@ namespace fan {
         glLoadIdentity = (decltype(glLoadIdentity))get_proc_address("glLoadIdentity", &internal);
         glOrtho = (decltype(glOrtho))get_proc_address("glOrtho", &internal);
         glHint = (decltype(glHint))get_proc_address("glHint", &internal);
-
         internal.close(&p);
 
         opengl_initialized = true;
