@@ -1,6 +1,11 @@
 // Creates window, opengl context and renders a rectangle
 
-#include <fan/graphics/graphics.h>
+#define _INCLUDE_TOKEN(p0, p1) <p0/p1>
+
+#define FAN_INCLUDE_PATH /mnt/c/libs/fan/include
+#include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
+
+#include _FAN_PATH(graphics/graphics.h)
 
 //#define gui_demo
 

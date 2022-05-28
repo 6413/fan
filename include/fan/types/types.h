@@ -1,5 +1,20 @@
 #pragma once
 
+#define STRINGIFY(p0) #p0
+
+#ifndef FAN_INCLUDE_PATH
+  #define FAN_INCLUDE_PATH C:/libs/fan/include
+	#define _FAN_PATH(p0) <C:/libs/fan/include/fan/p0>
+#else
+	#define _FAN_PATH(p0) <FAN_INCLUDE_PATH/fan/p0>
+#endif
+
+#ifndef FAN_LIB_PATH
+  #define FAN_LIB_PATH C:/libs/fan/lib
+#endif
+
+#define _FAN_LIB_PATH(p0) STRINGIFY(FAN_LIB_PATH ## / ##p0)
+
 #include <iostream>
 #include <array>
 #include <vector>

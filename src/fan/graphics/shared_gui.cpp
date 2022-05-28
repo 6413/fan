@@ -1,6 +1,11 @@
-﻿#include <fan/graphics/graphics.h>
+﻿#define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 
-#include <fan/graphics/shared_gui.h>
+#define FAN_INCLUDE_PATH /mnt/c/libs/fan/include
+#include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
+
+#include _FAN_PATH(graphics/graphics.h)
+
+#include _FAN_PATH(graphics/shared_gui.h)
 
 //void fan_2d::opengl::gui::rectangle_text_box_sized::set_draw_order(uint32_t i)
 //{
