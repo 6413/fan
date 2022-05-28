@@ -43,7 +43,7 @@ namespace fan {
 
 			// pushed to window draw queue
 			void step(fan::opengl::context_t* context) {
-				context->opengl.glViewport(m_position.x, m_position.y, m_size.x, m_size.y);
+				context->opengl.call(context->opengl.glViewport, m_position.x, m_position.y, m_size.x, m_size.y);
 			}
 
 			fan::vec2 m_position;

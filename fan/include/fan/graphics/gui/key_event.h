@@ -302,6 +302,13 @@ namespace fan_2d {
 						fp.window_handle = 0;
 						focus::set_focus(fp);
 					}
+
+          if (m_draw_node_reference != fan::uninitialized) {
+            disable_draw(window, context);
+          }
+          if (m_cursor.m_draw_node_reference != fan::uninitialized) {
+            m_cursor.disable_draw(context);
+          }
         }
 
         void add_character(fan::opengl::context_t* context, FED_t* wed, FED_CursorReference_t* cursor_reference, FED_Data_t character, f32_t font_size) {

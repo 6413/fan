@@ -12,16 +12,26 @@ namespace fan {
   namespace tp {
 
     struct texture_packd {
-      struct internal_texture_t {
+      struct texture_t {
 
         // The top-left coordinate of the rectangle.
+        uint32_t pack_id;
+        uint64_t hash;
         fan::vec2i position;
         fan::vec2i size;
 
-        friend std::ostream& operator<<(std::ostream& os, const internal_texture_t& tex) {
+
+        friend std::ostream& operator<<(std::ostream& os, const texture_t& tex) {
           os << '{' << "\n position:" << tex.position << "\n size:" << tex.size << "\n}";
           return os;
         }
+
+      };
+
+      struct ti_t {
+        uint32_t pack_id;
+        fan::vec2i position;
+        fan::vec2i size;
       };
 
       struct pixel_data_t {
@@ -29,7 +39,7 @@ namespace fan {
         uint8_t* data;
       };
       uint32_t pack_amount;
-      fan::hector_t<fan::hector_t<internal_texture_t>> texture_list;
+      fan::hector_t<fan::hector_t<texture_t>> texture_list;
       fan::hector_t<pixel_data_t> pixel_data_list;
 
       pixel_data_t get_pixel_data(uint32_t pack_id) {
@@ -58,28 +68,59 @@ namespace fan {
           data_index += sizeof(pack_amount);
           texture_list[i].open();
           for (uint32_t j = 0; j < texture_amount; j++) {
-            texture_packd::internal_texture_t internal_texture_t;
-            internal_texture_t.position = *(fan::vec2i*)&data[data_index];
+            texture_packd::texture_t texture;
+            texture.hash = *(uint64_t*)&data[data_index];
+            data_index += sizeof(uint64_t);
+            texture.position = *(fan::vec2i*)&data[data_index];
             data_index += sizeof(fan::vec2i);
-            internal_texture_t.size = *(fan::vec2i*)&data[data_index];
+            texture.size = *(fan::vec2i*)&data[data_index];
             data_index += sizeof(fan::vec2i);
-            texture_list[i].push_back(internal_texture_t);
+            texture_list[i].push_back(texture);
           }
-          pixel_data_list[i].size = *(fan::vec2i*)&data[data_index];
-          data_index += sizeof(fan::vec2i);
-          pixel_data_list[i].data = new uint8_t[pixel_data_list[i].size.multiply() * 4];
-          memcpy(pixel_data_list[i].data, &data[data_index], pixel_data_list[i].size.multiply() * 4);
-          data_index += pixel_data_list[i].size.multiply() * 4;
+          uint32_t size = *(uint32_t*)&data[data_index];
+          data_index += sizeof(uint32_t);
+
+          pixel_data_list[i].data = WebPDecodeRGBA(
+            (const uint8_t*)&data[data_index],
+            size,
+            &pixel_data_list[i].size.x,
+            &pixel_data_list[i].size.y
+          );
+          data_index += size;
         }
 
       }
       void close() {
         for (uint32_t i = 0; i < pack_amount; i++) {
           texture_list[i].close();
-          delete[] pixel_data_list[i].data;
+          WebPFree(pixel_data_list[i].data);
         }
         texture_list.close();
         pixel_data_list.close();
+      }
+
+      bool qti(const std::string& name, ti_t* ti) {
+
+        std::hash<std::string> hasher;
+        uint64_t hash = hasher(name);
+
+        //std::find_if(texture_list[0].begin(), texture_list[texture_list.size()].end(),
+        //  [](const texture_t& a, const texture_t& b) {
+        //  return a.hash == b.hash;
+        //});
+
+        for (uint32_t i = 0; i < texture_list.size(); i++) {
+          for (uint32_t j = 0; j < texture_list[i].size(); j++) {
+            if (texture_list[i][j].hash == hash) {
+              ti->pack_id = i;
+              ti->position = texture_list[i][j].position;
+              ti->size = texture_list[i][j].size;
+              return 1;
+            }
+          }
+        }
+
+        return 0;
       }
 
     };
@@ -89,6 +130,7 @@ namespace fan {
         fan::vec2i position;
         fan::vec2i size;
         std::string filepath;
+        std::string name;
       };
       struct internal_texture_t {
         std::shared_ptr<internal_texture_t> d[2];
@@ -118,7 +160,7 @@ namespace fan {
         return pack_list.size() - 1;
       }
 
-      void push_texture(uint32_t pack_id, const std::string& filepath) {
+      void push_texture(uint32_t pack_id, const std::string& filepath, const std::string& name) {
         fan::vec2i size;
         if (fan::webp::get_image_size(filepath, &size)) {
           fan::throw_error("failed to open image:" + filepath);
@@ -133,6 +175,7 @@ namespace fan {
         texture.position = it->position;
         texture.size = it->size;
         texture.filepath = filepath;
+        texture.name = name;
         pack_list[pack_id].texture_list.push_back(texture);
       }
 
@@ -153,6 +196,9 @@ namespace fan {
           for (uint32_t j = 0; j < count; j++) {
             texture_t* t = &pack_list[i].texture_list[j];
             fan::webp::image_info_t image_info = fan::webp::load_image(t->filepath);
+            std::hash<std::string> hasher;
+            uint64_t hashed = hasher(t->name);
+            fwrite(&hashed, sizeof(hashed), 1, f);
             fwrite(t->position.data(), sizeof(t->position), 1, f);
             fwrite(t->size.data(), sizeof(t->size), 1, f);
             for (uint32_t y = t->position.y; y < t->position.y + t->size.y; y++) {
@@ -165,8 +211,11 @@ namespace fan {
             fan::webp::free_image(image_info.data);
           }
 
-          fwrite(pack_list[i].bin_size.data(), sizeof(pack_list[i].bin_size), 1, f);
-          fwrite(r.data(), sizeof(decltype(r)::value_type) * r.size(), 1, f);
+          uint8_t* ptr;
+          uint32_t ptr_size = WebPEncodeRGBA(r.data(), pack_list[i].bin_size.x, pack_list[i].bin_size.y, pack_list[i].bin_size.x * 4, 100, &ptr);
+          fwrite(&ptr_size, sizeof(ptr_size), 1, f);
+          fwrite(ptr, ptr_size, 1, f);
+          WebPFree(ptr);
         }
         fclose(f);
       }

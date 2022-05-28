@@ -6,6 +6,7 @@
 #include <sstream>
 #include <functional>
 #include <any>
+#include <type_traits>
 
 typedef intptr_t si_t;
 typedef uintptr_t uint_t;
@@ -308,6 +309,9 @@ namespace fan {
       return std::to_string(first) + f(args...);
     }
   }
+
+  template<typename Callable>
+  using return_type_of_t = typename decltype(std::function{std::declval<Callable>()})::result_type;
 }
 
 

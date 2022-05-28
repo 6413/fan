@@ -209,7 +209,7 @@ namespace fan {
 
     private:
 
-      static void* get_proc_address(const char* name, internal_t* internal)
+      static void* get_proc_address_(const char* name, internal_t* internal)
       {
         #if defined(fan_platform_windows)
           void *p = (void *)wglGetProcAddress(name);
@@ -236,7 +236,13 @@ namespace fan {
         #endif
       }
 
+      #define get_proc_address(name, internal_) \
+        name = (decltype(name))get_proc_address_(#name, internal_); \
+        function_map.insert(std::make_pair((void*)name, #name));
+
     public:
+
+      std::unordered_map<void*, std::string> function_map;
 
       void open() {
 
@@ -248,77 +254,118 @@ namespace fan {
 
         internal.open(&p);
 
-        glGetString = (PFNGLGETSTRINGPROC)get_proc_address("glGetString", &internal);
-        glViewport = (decltype(glViewport))get_proc_address("glViewport", &internal);
-        glBlendFunc = (decltype(glBlendFunc))get_proc_address("glBlendFunc", &internal);
-        glCreateVertexArrays = (decltype(glCreateVertexArrays))get_proc_address("glCreateVertexArrays", &internal);
-        glDeleteVertexArrays = (decltype(glDeleteVertexArrays))get_proc_address("glDeleteVertexArrays", &internal);
-        glBindVertexArray = (decltype(glBindVertexArray))get_proc_address("glBindVertexArray", &internal);
-        glGenBuffers = (decltype(glGenBuffers))get_proc_address("glGenBuffers", &internal);
-        glBindBuffer = (decltype(glBindBuffer))get_proc_address("glBindBuffer", &internal);
-        glBufferData = (decltype(glBufferData))get_proc_address("glBufferData", &internal);
-        glDeleteBuffers = (decltype(glDeleteBuffers))get_proc_address("glDeleteBuffers", &internal);
-        glBufferSubData = (decltype(glBufferSubData))get_proc_address("glBufferSubData", &internal);
-        glClear = (decltype(glClear))get_proc_address("glClear", &internal);
-        glClearColor = (decltype(glClearColor))get_proc_address("glClearColor", &internal);
-        glDebugMessageCallback = (decltype(glDebugMessageCallback))get_proc_address("glDebugMessageCallback", &internal);
-        glEnable = (decltype(glEnable))get_proc_address("glEnable", &internal);
-        glDisable = (decltype(glDisable))get_proc_address("glDisable", &internal);
-        glDrawArrays = (decltype(glDrawArrays))get_proc_address("glDrawArrays", &internal);
-        glEnableVertexAttribArray = (decltype(glEnableVertexAttribArray))get_proc_address("glEnableVertexAttribArray", &internal);
-        glGetAttribLocation = (decltype(glGetAttribLocation))get_proc_address("glGetAttribLocation", &internal);
-        glGetBufferParameteriv = (decltype(glGetBufferParameteriv))get_proc_address("glGetBufferParameteriv", &internal);
-        glGetIntegerv = (decltype(glGetIntegerv))get_proc_address("glGetIntegerv", &internal);
-        glVertexAttribPointer = (decltype(glVertexAttribPointer))get_proc_address("glVertexAttribPointer", &internal);
-        glGenTextures = (decltype(glGenTextures))get_proc_address("glGenTextures", &internal);
-        glDeleteTextures = (decltype(glDeleteTextures))get_proc_address("glDeleteTextures", &internal);
-        glBindTexture = (decltype(glBindTexture))get_proc_address("glBindTexture", &internal);
-        glTexImage2D = (decltype(glTexImage2D))get_proc_address("glTexImage2D", &internal);
-        glTexParameteri = (decltype(glTexParameteri))get_proc_address("glTexParameteri", &internal);
-        glActiveTexture = (decltype(glActiveTexture))get_proc_address("glActiveTexture", &internal);
-        glAttachShader = (decltype(glAttachShader))get_proc_address("glAttachShader", &internal);
-        glCreateShader = (decltype(glCreateShader))get_proc_address("glCreateShader", &internal);
-        glDeleteShader = (decltype(glDeleteShader))get_proc_address("glDeleteShader", &internal);
-        glCompileShader = (decltype(glCompileShader))get_proc_address("glCompileShader", &internal);
-        glCreateProgram = (decltype(glCreateProgram))get_proc_address("glCreateProgram", &internal);
-        glDeleteProgram = (decltype(glDeleteProgram))get_proc_address("glDeleteProgram", &internal);
-        glGenerateMipmap = (decltype(glGenerateMipmap))get_proc_address("glGenerateMipmap", &internal);
-        glGetProgramInfoLog = (decltype(glGetProgramInfoLog))get_proc_address("glGetProgramInfoLog", &internal);
-        glGetProgramiv = (decltype(glGetProgramiv))get_proc_address("glGetProgramiv", &internal);
-        glGetShaderInfoLog = (decltype(glGetShaderInfoLog))get_proc_address("glGetShaderInfoLog", &internal);
-        glGetUniformLocation = (decltype(glGetUniformLocation))get_proc_address("glGetUniformLocation", &internal);
-        glLinkProgram = (decltype(glLinkProgram))get_proc_address("glLinkProgram", &internal);
-        glShaderSource = (decltype(glShaderSource))get_proc_address("glShaderSource", &internal);
-        glUniform1d = (decltype(glUniform1d))get_proc_address("glUniform1d", &internal);
-        glUniform1f = (decltype(glUniform1f))get_proc_address("glUniform1f", &internal);
-        glUniform1i = (decltype(glUniform1i))get_proc_address("glUniform1i", &internal);
-        glUniform1iv = (decltype(glUniform1iv))get_proc_address("glUniform1iv", &internal);
-        glUniform1ui = (decltype(glUniform1ui))get_proc_address("glUniform1ui", &internal);
-        glUniform2d = (decltype(glUniform2d))get_proc_address("glUniform2d", &internal);
-        glUniform2dv = (decltype(glUniform2dv))get_proc_address("glUniform2dv", &internal);
-        glUniform2f = (decltype(glUniform2f))get_proc_address("glUniform2f", &internal);
-        glUniform2fv = (decltype(glUniform2fv))get_proc_address("glUniform2fv", &internal);
-        glUniform3d = (decltype(glUniform3d))get_proc_address("glUniform3d", &internal);
-        glUniform3f = (decltype(glUniform3f))get_proc_address("glUniform3f", &internal);
-        glUniform4d = (decltype(glUniform4d))get_proc_address("glUniform4d", &internal);
-        glUniform4f = (decltype(glUniform4f))get_proc_address("glUniform4f", &internal);
-        glUniformMatrix4fv = (decltype(glUniformMatrix4fv))get_proc_address("glUniformMatrix4fv", &internal);
-        glUniformMatrix4dv = (decltype(glUniformMatrix4dv))get_proc_address("glUniformMatrix4dv", &internal);
-        glUseProgram = (decltype(glUseProgram))get_proc_address("glUseProgram", &internal);
-        glValidateProgram = (decltype(glValidateProgram))get_proc_address("glValidateProgram", &internal);
-        glGetShaderiv = (decltype(glGetShaderiv))get_proc_address("glGetShaderiv", &internal);
-        glDepthFunc = (decltype(glDepthFunc))get_proc_address("glDepthFunc", &internal);
-        glPolygonMode = (decltype(glPolygonMode))get_proc_address("glPolygonMode", &internal);
-        glUniform1uiv = (decltype(glUniform1uiv))get_proc_address("glUniform1uiv", &internal);
-        glUniform1fv = (decltype(glUniform1fv))get_proc_address("glUniform1fv", &internal);
-        glMatrixMode = (decltype(glMatrixMode))get_proc_address("glMatrixMode", &internal);
-        glLoadIdentity = (decltype(glLoadIdentity))get_proc_address("glLoadIdentity", &internal);
-        glOrtho = (decltype(glOrtho))get_proc_address("glOrtho", &internal);
-        glHint = (decltype(glHint))get_proc_address("glHint", &internal);
+        get_proc_address(glGetString, &internal);
+        get_proc_address(glViewport, &internal);
+        get_proc_address(glBlendFunc, &internal);
+        get_proc_address(glCreateVertexArrays, &internal);
+        get_proc_address(glDeleteVertexArrays, &internal);
+        get_proc_address(glBindVertexArray, &internal);
+        get_proc_address(glGenBuffers, &internal);
+        get_proc_address(glBindBuffer, &internal);
+        get_proc_address(glBufferData, &internal);
+        get_proc_address(glDeleteBuffers, &internal);
+        get_proc_address(glBufferSubData, &internal);
+        get_proc_address(glClear, &internal);
+        get_proc_address(glClearColor, &internal);
+        get_proc_address(glDebugMessageCallback, &internal);
+        get_proc_address(glEnable, &internal);
+        get_proc_address(glDisable, &internal);
+        get_proc_address(glDrawArrays, &internal);
+        get_proc_address(glEnableVertexAttribArray, &internal);
+        get_proc_address(glGetAttribLocation, &internal);
+        get_proc_address(glGetBufferParameteriv, &internal);
+        get_proc_address(glGetIntegerv, &internal);
+        get_proc_address(glVertexAttribPointer, &internal);
+        get_proc_address(glGenTextures, &internal);
+        get_proc_address(glDeleteTextures, &internal);
+        get_proc_address(glBindTexture, &internal);
+        get_proc_address(glTexImage2D, &internal);
+        get_proc_address(glTexParameteri, &internal);
+        get_proc_address(glActiveTexture, &internal);
+        get_proc_address(glAttachShader, &internal);
+        get_proc_address(glCreateShader, &internal);
+        get_proc_address(glDeleteShader, &internal);
+        get_proc_address(glCompileShader, &internal);
+        get_proc_address(glCreateProgram, &internal);
+        get_proc_address(glDeleteProgram, &internal);
+        get_proc_address(glGenerateMipmap, &internal);
+        get_proc_address(glGetProgramInfoLog, &internal);
+        get_proc_address(glGetProgramiv, &internal);
+        get_proc_address(glGetShaderInfoLog, &internal);
+        get_proc_address(glGetUniformLocation, &internal);
+        get_proc_address(glLinkProgram, &internal);
+        get_proc_address(glShaderSource, &internal);
+        get_proc_address(glUniform1d, &internal);
+        get_proc_address(glUniform1f, &internal);
+        get_proc_address(glUniform1i, &internal);
+        get_proc_address(glUniform1iv, &internal);
+        get_proc_address(glUniform1ui, &internal);
+        get_proc_address(glUniform2d, &internal);
+        get_proc_address(glUniform2dv, &internal);
+        get_proc_address(glUniform2f, &internal);
+        get_proc_address(glUniform2fv, &internal);
+        get_proc_address(glUniform3d, &internal);
+        get_proc_address(glUniform3f, &internal);
+        get_proc_address(glUniform4d, &internal);
+        get_proc_address(glUniform4f, &internal);
+        get_proc_address(glUniformMatrix4fv, &internal);
+        get_proc_address(glUniformMatrix4dv, &internal);
+        get_proc_address(glUseProgram, &internal);
+        get_proc_address(glValidateProgram, &internal);
+        get_proc_address(glGetShaderiv, &internal);
+        get_proc_address(glDepthFunc, &internal);
+        get_proc_address(glPolygonMode, &internal);
+        get_proc_address(glUniform1uiv, &internal);
+        get_proc_address(glUniform1fv, &internal);
+        get_proc_address(glMatrixMode, &internal);
+        get_proc_address(glLoadIdentity, &internal);
+        get_proc_address(glOrtho, &internal);
+        get_proc_address(glHint, &internal);
+        get_proc_address(glFlush, &internal);
+        get_proc_address(glFinish, &internal);
+
         internal.close(&p);
 
         opengl_initialized = true;
       }
+
+      fan::time::clock c;
+
+      void execute_before(const std::string& function_name) {
+        #if fan_debug >= fan_debug_high
+          c.start();
+        #endif
+      }
+
+      void execute_after(const std::string& function_name) {
+        #if fan_debug >= fan_debug_high
+          glFlush();
+          glFinish();
+          auto elapsed = c.elapsed();
+          if (elapsed > 1000000) {
+            fan::print_no_space("slow function call ns:", elapsed, ", function::" + function_name);
+          }
+        #endif
+      }
+      
+      //efine call_opengl
+
+      template <typename T, typename ...T2>
+      constexpr auto call(const T& t, T2&&... args) {
+        execute_before(function_map[(void*)t]);
+        if constexpr (std::is_same<fan::return_type_of_t<T>, void>::value) {
+          t(args...);
+          execute_after(function_map[(void*)t]);
+        }
+        else {
+          auto r = t(args...);
+          execute_after(function_map[(void*)t]);
+          // now can execute after too
+          return r;
+        }
+      }
+
+      //protected:
 
       internal_t internal;
 
@@ -389,6 +436,8 @@ namespace fan {
       PFNGLLOADIDENTITYPROC glLoadIdentity;
       PFNGLORTHOPROC glOrtho;
       PFNGLHINTPROC glHint;
+      PFNGLFLUSHPROC glFlush;
+      PFNGLFINISHPROC glFinish;
 
     };
 

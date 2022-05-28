@@ -20,8 +20,6 @@ void main() {
   vec4 texture_color = texture(texture_sampler, flipped_y);
   vec2 idk = gl_FragCoord.xy / viewport_size;
   vec4 light = texture(texture_light_map, vec2(idk.x, 1.0 - idk.y));
-
-  o_color = texture_color * i_color;
-  o_color.xyz *= light.x;
+  o_color = texture_color * vec4(light.xyz, 1) * i_color;
 }
 )"
