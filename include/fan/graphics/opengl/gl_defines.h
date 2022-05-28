@@ -1850,7 +1850,7 @@ namespace fan {
      *    http://www.khronos.org/registry/implementers_guide.pdf
      *
      * This file should be included as
-     *        #include <KHR/khrplatform.h)
+     *        #include <KHR/khrplatform.h>
      * by Khronos client API header files that use its types and defines.
      *
      * The types in khrplatform.h should only be used to define API-specific types.
@@ -1951,9 +1951,9 @@ namespace fan {
 
 
          /*
-          * Using <stdint.h)
+          * Using <stdint.h>
           */
-    #include <stdint.h)
+    #include <stdint.h>
     typedef int32_t                 khronos_int32_t;
     typedef uint32_t                khronos_uint32_t;
     typedef int64_t                 khronos_int64_t;
@@ -1978,9 +1978,9 @@ namespace fan {
     #elif defined(__VMS ) || defined(__sgi)
 
          /*
-          * Using <inttypes.h)
+          * Using <inttypes.h>
           */
-    #include <inttypes.h)
+    #include <inttypes.h>
     typedef int32_t                 khronos_int32_t;
     typedef uint32_t                khronos_uint32_t;
     typedef int64_t                 khronos_int64_t;
@@ -2032,7 +2032,7 @@ namespace fan {
          /*
           * Generic fallback
           */
-    #include <stdint.h)
+    #include <stdint.h>
     typedef int32_t                 khronos_int32_t;
     typedef uint32_t                khronos_uint32_t;
     typedef int64_t                 khronos_int64_t;
@@ -3293,7 +3293,7 @@ namespace fan {
 
         #if defined(_WIN32) && !defined(APIENTRY) && !defined(__CYGWIN__) && !defined(__SCITECH_SNAP__)
         #define WIN32_LEAN_AND_MEAN 1
-        #include <windows.h)
+        #include <windows.h>
         #endif
 
         /* Generated on date 20211115 */
