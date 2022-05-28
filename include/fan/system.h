@@ -9,15 +9,15 @@
 
 #ifdef fan_platform_unix
 
-    #include <X11/Xlib.h)
-    #include <X11/Xutil.h)
-    #include <X11/Xos.h)
-    #include <X11/Xatom.h)
-    #include <X11/keysym.h)
-    #include <X11/XKBlib.h)
+    #include <X11/Xlib.h>
+    #include <X11/Xutil.h>
+    #include <X11/Xos.h>
+    #include <X11/Xatom.h>
+    #include <X11/keysym.h>
+    #include <X11/XKBlib.h>
 
-    #include <sys/time.h)
-    #include <unistd.h)
+    #include <sys/time.h>
+    #include <unistd.h>
 
 #endif
 
