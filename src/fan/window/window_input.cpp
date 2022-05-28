@@ -1,4 +1,9 @@
-#include <fan/window/window_input.h>
+#define _INCLUDE_TOKEN(p0, p1) <p0/p1>
+
+#define FAN_INCLUDE_PATH /mnt/c/libs/fan/include
+#include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
+
+#include _FAN_PATH(window/window_input.h)
 
 uint16_t fan::window_input::convert_keys_to_fan(uint16_t key) {
 	switch (key) {
