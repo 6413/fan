@@ -42,19 +42,19 @@ namespace fan {
 
 			image_t* info = new image_t;
 
-			context->opengl.glGenTextures(1, &info->texture);
-			context->opengl.glBindTexture(GL_TEXTURE_2D, info->texture);
-			context->opengl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, p.visual_output);
-			context->opengl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, p.visual_output);
-			context->opengl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, p.filter);
-			context->opengl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, p.filter);
+			context->opengl.call(context->opengl.glGenTextures, 1, &info->texture);
+			context->opengl.call(context->opengl.glBindTexture, GL_TEXTURE_2D, info->texture);
+			context->opengl.call(context->opengl.glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, p.visual_output);
+			context->opengl.call(context->opengl.glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, p.visual_output);
+			context->opengl.call(context->opengl.glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, p.filter);
+			context->opengl.call(context->opengl.glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, p.filter);
 
 			info->size = image_info.size;
 
-			context->opengl.glTexImage2D(GL_TEXTURE_2D, 0, p.internal_format, info->size.x, info->size.y, 0, p.format, p.type, image_info.data);
+			context->opengl.call(context->opengl.glTexImage2D, GL_TEXTURE_2D, 0, p.internal_format, info->size.x, info->size.y, 0, p.format, p.type, image_info.data);
 
-			context->opengl.glGenerateMipmap(GL_TEXTURE_2D);
-			context->opengl.glBindTexture(GL_TEXTURE_2D, 0);
+			context->opengl.call(context->opengl.glGenerateMipmap, GL_TEXTURE_2D);
+			context->opengl.call(context->opengl.glBindTexture, GL_TEXTURE_2D, 0);
 
 			return info;
 		}
@@ -78,8 +78,8 @@ namespace fan {
 
 		static void reload_pixels(fan::opengl::context_t* context, image_t* image, const fan::webp::image_info_t& image_info, const image_load_properties_t& p = image_load_properties_t()) {
 			image->size = image_info.size;
-			context->opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, image->texture);
-			context->opengl.glTexImage2D(GL_TEXTURE_2D, 0, p.internal_format, image->size.x, image->size.y, 0, p.format, p.type, image_info.data);
+			context->opengl.call(context->opengl.glBindTexture, fan::opengl::GL_TEXTURE_2D, image->texture);
+			context->opengl.call(context->opengl.glTexImage2D, GL_TEXTURE_2D, 0, p.internal_format, image->size.x, image->size.y, 0, p.format, p.type, image_info.data);
 		}
 
 		static void unload_image(fan::opengl::context_t* context, image_t* image) {
@@ -111,22 +111,22 @@ namespace fan {
 
       pixels -= size.x * size.y * fan::color::size();
 
-      context->opengl.glGenTextures(1, &image->texture);
+      context->opengl.call(context->opengl.glGenTextures, 1, &image->texture);
 
-			context->opengl.glBindTexture(GL_TEXTURE_2D, image->texture);
-			context->opengl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, p.visual_output);
-			context->opengl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, p.visual_output);
-			context->opengl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, p.filter);
-			context->opengl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, p.filter);
+			context->opengl.call(context->opengl.glBindTexture, GL_TEXTURE_2D, image->texture);
+			context->opengl.call(context->opengl.glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, p.visual_output);
+			context->opengl.call(context->opengl.glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, p.visual_output);
+			context->opengl.call(context->opengl.glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, p.filter);
+			context->opengl.call(context->opengl.glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, p.filter);
 
       image->size = size;
 
-			context->opengl.glTexImage2D(GL_TEXTURE_2D, 0, p.internal_format, image->size.x, image->size.y, 0, p.format, p.type, pixels);
+			context->opengl.call(context->opengl.glTexImage2D, GL_TEXTURE_2D, 0, p.internal_format, image->size.x, image->size.y, 0, p.format, p.type, pixels);
 
       free(pixels);
 
-			context->opengl.glGenerateMipmap(GL_TEXTURE_2D);
-			context->opengl.glBindTexture(GL_TEXTURE_2D, 0);
+			context->opengl.call(context->opengl.glGenerateMipmap, GL_TEXTURE_2D);
+			context->opengl.call(context->opengl.glBindTexture, GL_TEXTURE_2D, 0);
 
       return image;
     }

@@ -14,7 +14,6 @@ namespace fan_2d {
 
         enum class light_update_e {
           position,
-          size,
           radius,
           intensity,
           ambient_strength,
@@ -132,6 +131,7 @@ namespace fan_2d {
         }
 
         fan::vec4 calculate_lighting(
+          const uint8_t type,
           const fan::vec2& light_position,
           const fan::vec3& light_color,
           const f32_t intensity,
@@ -139,26 +139,32 @@ namespace fan_2d {
           const fan::vec2& fragment_position
         )
         {
-          if (intensity < 0.1 || radius < 0.1) {
-            return fan::vec4(0, 0, 0, 1);
+          switch (type) {
+            case 0: {
+              f32_t dscore = radius - (light_position - fragment_position).length();
+              dscore = std::max(dscore, 0.f) / radius;
+              fan::vec4 r;
+              *(fan::vec3*)&r = light_color * dscore;
+
+              return r;
+            }
+            case 1: {
+              f32_t dscore = radius - (light_position - fragment_position).length();
+              dscore = std::max(dscore, 0.f) / radius;
+              if (fragment_position.y > 0) {
+                //dscore /= fragment_position.y;
+                f32_t d = fragment_position.y / (64 * 4);
+                d = 1.0f - d;
+                d = std::max(d, 0.0f);
+                dscore = d;
+              }
+              fan::vec4 r;
+              *(fan::vec3*)&r = light_color * dscore;
+
+              return r;
+            }
           }
-          fan::vec2 light_direction = (light_position - fragment_position).normalize();
-          if (!light_direction) {
-            return fan::vec4(1, 1, 1, 1.0);
-          }
-          f32_t diff = std::abs(light_direction.length());
-          fan::vec3 diffuse = light_color * diff;
-          f32_t distance = (light_position - fragment_position).length();
-          f32_t cutoff = radius / 2;
-          if (distance > radius) {
-            distance *= distance / radius;
-          }
-          f32_t distance_strength = distance / intensity;
-          f32_t attenuation = 1.0 / (distance_strength * distance_strength);
-          // ambient *= attenuation;
-          diffuse *= attenuation;
-          diffuse += fan::clamp(1.0 / ((distance / (radius) * (distance / (radius)))), 0.0, 0.5);
-          return fan::vec4(diffuse, 1.0);
+          return 0;
         }
 
         void calculate_light_map(
@@ -171,10 +177,11 @@ namespace fan_2d {
           matrix_size *= 2;
           for (uint32_t y = 0; y < r.y; y++) {
             for (uint32_t x = 0; x < r.x; x++) {
-              f32_t sum = 0;
+              fan::vec4 sum(0, 0, 0, 1);
               uint32_t it = m_instance.begin();
               while (it != m_instance.end()) {
                 fan::vec4 ret = calculate_lighting(
+                 light_t::get_type(it),
                  light_t::get_position(it),
                  light_t::get_color(it),
                  light_t::get_intensity(it),
@@ -182,10 +189,17 @@ namespace fan_2d {
                  (camera_position)+(matrix_size / r) * fan::vec2(x, y)
                 );
 
-                sum += *std::max_element(ret.begin(), ret.end() - 1);
+                *(fan::vec3*)&sum += *(fan::vec3*)&ret;
+                sum.w = std::min(sum.w, ret.w);
                 it = m_instance.next(it);
               }
-              map[y * r.x + x] = fan::clamp(sum * 255, (f32_t)0, (f32_t)255);
+
+              *(fan::vec3*)&sum = *(fan::vec3*)&sum / std::max(fan::vec3(sum).max(), 1.0f);
+
+              map[(y * r.x + x) * 4 + 0] = sum.x * 0xff;
+              map[(y * r.x + x) * 4 + 1] = sum.y * 0xff;
+              map[(y * r.x + x) * 4 + 2] = sum.z * 0xff;
+              map[(y * r.x + x) * 4 + 3] = sum.w * 0xff;
               //fan::print((f32_t)map[y * r.x + x]);
             }
           }

@@ -825,6 +825,8 @@ namespace fan {
 		auto end() { return begin() + size(); }
 		auto data() { return begin(); }
 
+		constexpr _Ty max() const { return std::max({ x, y, z, w }); }
+
 		constexpr void print() const { std::cout << x << " " << y << " " << z << " " << w << std::endl; }
 
 		template <typename T>

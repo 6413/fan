@@ -175,8 +175,8 @@ namespace fan {
       }
 
       void set_error_callback() {
-        opengl.glEnable(GL_DEBUG_OUTPUT);
-        opengl.glDebugMessageCallback((GLDEBUGPROC)message_callback, 0);
+        opengl.call(opengl.glEnable, GL_DEBUG_OUTPUT);
+        opengl.call(opengl.glDebugMessageCallback, (GLDEBUGPROC)message_callback, (void*)0);
       }
 
       uint32_t m_flags;
@@ -194,17 +194,17 @@ namespace fan {
       static int get_buffer_size(fan::opengl::context_t* context, uint32_t target_buffer, uint32_t buffer_object) {
         int size = 0;
 
-        context->opengl.glBindBuffer(target_buffer, buffer_object);
-        context->opengl.glGetBufferParameteriv(target_buffer, fan::opengl::GL_BUFFER_SIZE, &size);
+        context->opengl.call(context->opengl.glBindBuffer, target_buffer, buffer_object);
+        context->opengl.call(context->opengl.glGetBufferParameteriv, target_buffer, fan::opengl::GL_BUFFER_SIZE, &size);
 
         return size;
       }
 
       static void write_glbuffer(fan::opengl::context_t* context, unsigned int buffer, const void* data, uintptr_t size, uint32_t usage = GL_DYNAMIC_DRAW, uintptr_t target = GL_ARRAY_BUFFER)
       {
-        context->opengl.glBindBuffer(target, buffer);
+        context->opengl.call(context->opengl.glBindBuffer, target, buffer);
 
-        context->opengl.glBufferData(target, size, data, usage);
+        context->opengl.call(context->opengl.glBufferData, target, size, data, usage);
         /*if (target == GL_SHADER_STORAGE_BUFFER) {
           glBindBufferBase(target, location, buffer);
         }*/
@@ -212,7 +212,7 @@ namespace fan {
 
       static void edit_glbuffer(fan::opengl::context_t* context, unsigned int buffer, const void* data, uintptr_t offset, uintptr_t size, uintptr_t target = GL_ARRAY_BUFFER)
       {
-        context->opengl.glBindBuffer(target, buffer);
+        context->opengl.call(context->opengl.glBindBuffer, target, buffer);
 
     #if fan_debug
 
@@ -224,8 +224,8 @@ namespace fan {
 
     #endif
 
-        context->opengl.glBufferSubData(target, offset, size, data);
-        context->opengl.glBindBuffer(target, 0);
+        context->opengl.call(context->opengl.glBufferSubData, target, offset, size, data);
+        context->opengl.call(context->opengl.glBindBuffer, target, 0);
        /* if (target == GL_SHADER_STORAGE_BUFFER) {
           glBindBufferBase(target, location, buffer);
         }*/
@@ -234,7 +234,7 @@ namespace fan {
       // not tested
       static int get_bound_buffer(fan::opengl::context_t* context) {
         int buffer_id;
-        context->opengl.glGetIntegerv(fan::opengl::GL_VERTEX_BINDING_BUFFER, &buffer_id);
+        context->opengl.call(context->opengl.glGetIntegerv, fan::opengl::GL_VERTEX_BINDING_BUFFER, &buffer_id);
         return buffer_id;
       }
 
@@ -243,18 +243,18 @@ namespace fan {
         vao_t() = default;
 
         void open(fan::opengl::context_t* context) {
-          context->opengl.glCreateVertexArrays(1, &m_vao);
+          context->opengl.call(context->opengl.glCreateVertexArrays, 1, &m_vao);
         }
 
         void close(fan::opengl::context_t* context) {
-          context->opengl.glDeleteVertexArrays(1, &m_vao);
+          context->opengl.call(context->opengl.glDeleteVertexArrays, 1, &m_vao);
         }
 
         void bind(fan::opengl::context_t* context) const {
-          context->opengl.glBindVertexArray(m_vao);
+          context->opengl.call(context->opengl.glBindVertexArray, m_vao);
         }
         void unbind(fan::opengl::context_t* context) const {
-          context->opengl.glBindVertexArray(0);
+          context->opengl.call(context->opengl.glBindVertexArray, 0);
         }
 
         uint32_t m_vao;
@@ -272,7 +272,7 @@ namespace fan {
 
           m_vao.open(context);
 
-          context->opengl.glGenBuffers(1, &m_vbo);
+          context->opengl.call(context->opengl.glGenBuffers, 1, &m_vbo);
           this->allocate_buffer(context, default_buffer_size);
           m_buffer.open();
           m_buffer.reserve(default_buffer_size);
@@ -284,7 +284,7 @@ namespace fan {
             fan::throw_error("tried to remove non existent vbo");
           }
         #endif
-          context->opengl.glDeleteBuffers(1, &m_vbo);
+          context->opengl.call(context->opengl.glDeleteBuffers, 1, &m_vbo);
 
           m_vao.close(context);
           m_buffer.close();
@@ -300,10 +300,10 @@ namespace fan {
 
           for (int i = 0; i < element_count; i++) {
 
-            int location = context->opengl.glGetAttribLocation(program, (std::string("input") + std::to_string(i)).c_str());
-            context->opengl.glEnableVertexAttribArray(location);
+            int location = context->opengl.call(context->opengl.glGetAttribLocation, program, (std::string("input") + std::to_string(i)).c_str());
+            context->opengl.call(context->opengl.glEnableVertexAttribArray, location);
 
-            context->opengl.glVertexAttribPointer(
+            context->opengl.call(context->opengl.glVertexAttribPointer,
               location, 
               4, 
               GL_FLOAT, 
@@ -317,10 +317,10 @@ namespace fan {
             return;
           }
 
-          int location = context->opengl.glGetAttribLocation(program, (std::string("input") + std::to_string(element_count)).c_str());
-          context->opengl.glEnableVertexAttribArray(location);
+          int location = context->opengl.call(context->opengl.glGetAttribLocation, program, (std::string("input") + std::to_string(element_count)).c_str());
+          context->opengl.call(context->opengl.glEnableVertexAttribArray, location);
 
-          context->opengl.glVertexAttribPointer(
+          context->opengl.call(context->opengl.glVertexAttribPointer,
             location, 
             (element_byte_size / sizeof(f32_t)) % 4, 
             GL_FLOAT, 
@@ -331,7 +331,7 @@ namespace fan {
         }
 
         void bind(fan::opengl::context_t* context) const {
-          context->opengl.glBindBuffer(fan::opengl::GL_ARRAY_BUFFER, m_vbo);
+          context->opengl.call(context->opengl.glBindBuffer, fan::opengl::GL_ARRAY_BUFFER, m_vbo);
         }
         void unbind() const {
           //glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -473,7 +473,7 @@ namespace fan {
           m_vao.bind(context);
           
           // possibly disable depth test here
-          context->opengl.glDrawArrays(GL_TRIANGLES, begin, end - begin);
+          context->opengl.call(context->opengl.glDrawArrays, GL_TRIANGLES, begin, end - begin);
         }
         
         uint32_t m_vbo;
@@ -586,7 +586,8 @@ inline void fan::opengl::context_t::bind_to_window(fan::window_t* window, const 
     int pixel_format;
     UINT num_formats;
 
-    opengl.internal.wglChoosePixelFormatARB(window->m_hdc, pixel_format_attribs, 0, 1, &pixel_format, &num_formats);
+    opengl.call(opengl.internal.wglChoosePixelFormatARB, window->m_hdc, pixel_format_attribs, (float*)0, 1, &pixel_format, &num_formats);
+
     if (!num_formats) {
         fan::throw_error("failed to choose pixel format:" + std::to_string(GetLastError()));
     }
@@ -613,7 +614,7 @@ inline void fan::opengl::context_t::bind_to_window(fan::window_t* window, const 
             window->m_context = wglCreateContext(window->m_hdc);
         }
         else {
-            window->m_context = opengl.internal.wglCreateContextAttribsARB(window->m_hdc, 0, gl_attributes);
+            window->m_context = opengl.call(opengl.internal.wglCreateContextAttribsARB, window->m_hdc, (HGLRC)0, gl_attributes);
         }
 
         if (!window->m_context) {
@@ -639,8 +640,8 @@ inline void fan::opengl::context_t::bind_to_window(fan::window_t* window, const 
 
   #endif
 
-  opengl.glEnable(GL_BLEND);
-  opengl.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  opengl.call(opengl.glEnable, GL_BLEND);
+  opengl.call(opengl.glBlendFunc, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 inline fan::vec2 fan::opengl::context_t::get_viewport_position() const
@@ -654,14 +655,16 @@ inline fan::vec2 fan::opengl::context_t::get_viewport_size() const
 }
 
 inline void fan::opengl::context_t::set_viewport(const fan::vec2& viewport_position_, const fan::vec2& viewport_size_) {
-  opengl.glViewport(viewport_position_.x, viewport_position_.y, viewport_size_.x, viewport_size_.y);
+  opengl.call(opengl.glViewport, viewport_position_.x, viewport_position_.y, viewport_size_.x, viewport_size_.y);
   viewport_position = viewport_position_;
   viewport_size = viewport_size_;
 }
 
 inline void fan::opengl::context_t::process() {
   #if fan_renderer == fan_renderer_opengl
-    opengl.glClear(fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
+    
+  opengl.call(opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
+
 
   #endif
 
@@ -686,7 +689,10 @@ inline void fan::opengl::context_t::process() {
   m_write_queue.open();
 
   it = m_draw_queue.begin();
-
+  if (it == 0) {
+    
+    fan::print("problemAAAAAAAAAAAAAAAAAAAAAAAAA\nAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+  }
   while (it != m_draw_queue.end()) {
     m_draw_queue.start_safe_next(it);
     m_draw_queue[it].draw_cb(this, m_draw_queue[it].data);
@@ -717,14 +723,14 @@ inline void fan::opengl::context_t::set_depth_test(bool flag)
   switch (flag) {
   case false: {
     if (m_flags & fan::opengl::render_flags::depth_test) {
-      opengl.glDisable(fan::opengl::GL_DEPTH_TEST);
+      opengl.call(opengl.glDisable, fan::opengl::GL_DEPTH_TEST);
       m_flags &= ~fan::opengl::render_flags::depth_test;
     }
     break;
   }
   default: {
     if (!(m_flags & fan::opengl::render_flags::depth_test)) {
-      opengl.glEnable(fan::opengl::GL_DEPTH_TEST);
+      opengl.call(opengl.glEnable, fan::opengl::GL_DEPTH_TEST);
       m_flags |= fan::opengl::render_flags::depth_test;
     }
   }
@@ -747,7 +753,7 @@ inline void fan::opengl::context_t::set_vsync(fan::window_t* window, bool flag)
 
   #ifdef fan_platform_windows
 
-      opengl.internal.wglSwapIntervalEXT(flag);
+      opengl.call(opengl.internal.wglSwapIntervalEXT, flag);
 
   #elif defined(fan_platform_unix)
       opengl.internal.glXSwapIntervalEXT(fan::sys::m_display, opengl.internal.glXGetCurrentDrawable(), flag);
