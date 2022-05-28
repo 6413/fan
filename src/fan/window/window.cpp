@@ -1,6 +1,9 @@
+#ifndef FAN_INCLUDE_PATH
+  #define FAN_INCLUDE_PATH C:/libs/fan/include
+#endif
+
 #define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 
-#define FAN_INCLUDE_PATH C:/libs/fan/include
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
 #include _FAN_PATH(window/window.h)
@@ -13,7 +16,7 @@
 #if fan_renderer == fan_renderer_opengl
 //#include <fan/graphics/opengl/gl_init.h>
 #endif
-
+//
 #ifdef fan_platform_windows
 
 #include <dwmapi.h>
