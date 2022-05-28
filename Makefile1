@@ -1,0 +1,53 @@
+GPP = g++ -w -fPIE
+
+ARCH := $(shell grep "Arch Linux" /etc/os-release 2>/dev/null)
+
+CFLAGS = -g -I /usr/src -std=c++2a -I /usr/local/include -I . -I include/vpx -I include -I /usr/include/opus/ #-O3 -march=native -mtune=native
+
+ALL_LIBS = -g -L /usr/local/lib -lGL -lGLEW -lX11 -lXrandr -lassimp -lavcodec -lavutil -lavformat -lswscale -lvulkan -I WITCH -I include/fan -lwebp -ldl -lpthread -lopusfile
+
+ifdef ARCH
+MAINFLAGS = $(ALL_LIBS) -lbox2d
+else
+MAINFLAGS = $(ALL_LIBS) -lBox2D 
+endif 
+
+MAIN = Source.cpp
+
+TARGET = a.out
+
+default : $(TARGET) run
+
+LIBS = fan_main.o fan_window.o fan_window_input.o fan_vk_gui.o fan_shared_gui.o fan_shared_graphics.o
+
+LIBNAME = fan.a
+
+$(TARGET): $(LIBS)
+	$(GPP) $(CFLAGS) $(LIBS) $(MAINFLAGS) -o $(TARGET)
+	
+fan_main.o:	$(MAIN)
+	$(GPP) $(CFLAGS) -c $(MAIN) -o fan_main.o
+
+fan_window.o:	src/fan/window/window.cpp
+	$(GPP) $(CFLAGS) -c src/fan/window/window.cpp -o fan_window.o
+	
+fan_window_input.o:	src/fan/window/window_input.cpp
+	$(GPP) $(CFLAGS) -c src/fan/window/window_input.cpp -o fan_window_input.o
+	
+fan_vk_gui.o:	src/fan/graphics/vulkan/vk_gui.cpp
+	$(GPP) $(CFLAGS) -c src/fan/graphics/vulkan/vk_gui.cpp -o fan_vk_gui.o
+	
+fan_shared_graphics.o:	src/fan/graphics/shared_graphics.cpp
+	$(GPP) $(CFLAGS) -c src/fan/graphics/shared_graphics.cpp -o fan_shared_graphics.o
+	
+fan_shared_gui.o:	src/fan/graphics/shared_gui.cpp
+	$(GPP) $(CFLAGS) -c src/fan/graphics/shared_gui.cpp -o fan_shared_gui.o
+	
+	
+clean:
+	rm -f fan_*.o
+	rm -f $(LIBNAME)
+	
+run:	$(LIBS)
+	ar rvs $(LIBNAME) $(LIBS)
+	#rm -f fan_*.o
