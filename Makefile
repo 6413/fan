@@ -1,16 +1,18 @@
 GPP = clang++
 
+CFLAGS = -std=c++2a -I /usr/local/include -I include -O3 -march=native -mtune=native
+
 ifeq ($(OS),Windows_NT)
 	AR = llvm-ar
 	RM = del 
 	LIBNAME = fan_windows_clang.a
 else
+	CFLAGS += -DFAN_INCLUDE_PATH=/usr/include
 	AR = ar
 	RM = rm -f
 	LIBNAME = fan.a
 endif
 
-CFLAGS = -std=c++2a -I /usr/local/include -I include -O3 -march=native -mtune=native
 ifeq ($(OS),Windows_NT)
 	CFLAGS +=  -I src/libwebp -I src/libwebp/src
 endif
