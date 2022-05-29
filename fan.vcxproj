@@ -287,7 +287,6 @@
     <None Include="src\dav1d\x86\refmvs.asm" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="dev\src\engine\engine.h" />
     <ClInclude Include="include\fan\audio\audio.h" />
     <ClInclude Include="include\fan\audio\miniaudio.h" />
     <ClInclude Include="include\fan\bll.h" />
@@ -335,6 +334,7 @@
     <ClInclude Include="include\fan\graphics\opengl\2D\objects\rectangle.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\objects\sprite.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\objects\sprite0.h" />
+    <ClInclude Include="include\fan\graphics\opengl\2D\objects\sprite1.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\objects\yuv420p_renderer.h" />
     <ClInclude Include="include\fan\graphics\opengl\3D\objects\model.h" />
     <ClInclude Include="include\fan\graphics\opengl\3D\objects\skybox.h" />
@@ -345,7 +345,6 @@
     <ClInclude Include="include\fan\graphics\opengl\gl_image.h" />
     <ClInclude Include="include\fan\graphics\opengl\gl_init.h" />
     <ClInclude Include="include\fan\graphics\opengl\gl_shader.h" />
-    <ClInclude Include="include\fan\graphics\opengl\gl_texture.h" />
     <ClInclude Include="include\fan\physics\static_joint.h" />
     <ClInclude Include="include\fan\graphics\renderer.h" />
     <ClInclude Include="include\fan\graphics\shared_core.h" />

@@ -63,12 +63,12 @@
 //
 //        m_shader.set_vertex(
 //          context, 
-//          #include _FAN_PATH(graphics/glsl/opengl/3D/objects/skybox.vs>
+//          #include _FAN_PATH(graphics/glsl/opengl/3D/objects/skybox.vs)
 //        );
 //
 //        m_shader.set_fragment(
 //          context, 
-//          #include _FAN_PATH(graphics/glsl/opengl/3D/objects/skybox.fs>
+//          #include _FAN_PATH(graphics/glsl/opengl/3D/objects/skybox.fs)
 //        );
 //
 //        m_shader.compile(context);

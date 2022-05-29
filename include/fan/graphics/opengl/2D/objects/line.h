@@ -37,12 +37,12 @@ namespace fan_2d {
 
 				m_shader.set_vertex(
 					context, 
-					#include _FAN_PATH(graphics/glsl/opengl/2D/objects/line.vs>
+					#include _FAN_PATH(graphics/glsl/opengl/2D/objects/line.vs)
 				);
 
 				m_shader.set_fragment(
 					context, 
-					#include _FAN_PATH(graphics/glsl/opengl/2D/objects/line.fs>
+					#include _FAN_PATH(graphics/glsl/opengl/2D/objects/line.fs)
 				);
 
 				m_shader.compile(context);

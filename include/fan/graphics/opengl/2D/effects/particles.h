@@ -20,12 +20,12 @@ namespace fan_2d {
 
         m_shader.set_vertex(
           context,
-          #include _FAN_PATH(graphics/glsl/opengl/2D/effects/particles.vs>
+          #include _FAN_PATH(graphics/glsl/opengl/2D/effects/particles.vs)
         );
 
         m_shader.set_fragment(
           context,
-          #include _FAN_PATH(graphics/glsl/opengl/2D/effects/particles.fs>
+          #include _FAN_PATH(graphics/glsl/opengl/2D/effects/particles.fs)
         );
 
         context->opengl.glEnable(fan::opengl::GL_VERTEX_PROGRAM_POINT_SIZE);

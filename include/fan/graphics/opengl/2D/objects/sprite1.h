@@ -15,7 +15,6 @@ namespace fan_2d {
       sprite1_t() = default;
 
       struct open_properties_t {
-
         open_properties_t() {};
       };
 
@@ -25,12 +24,12 @@ namespace fan_2d {
 
         m_shader.set_vertex(
           context,
-          #include _FAN_PATH(graphics/glsl/opengl/2D/objects/sprite1.vs>
+          #include _FAN_PATH(graphics/glsl/opengl/2D/objects/sprite1.vs)
         );
 
         m_shader.set_fragment(
           context,
-          #include _FAN_PATH(graphics/glsl/opengl/2D/objects/sprite1.fs>
+          #include _FAN_PATH(graphics/glsl/opengl/2D/objects/sprite1.fs)
         );
 
         m_shader.compile(context);
@@ -45,8 +44,9 @@ namespace fan_2d {
         m_erase_cb = erase_cb;
 				m_user_ptr = user_ptr;
       }
-      void close(fan::opengl::context_t* context) {
 
+      void close(fan::opengl::context_t* context)
+      {
         m_glsl_buffer.close(context);
         m_queue_helper.close(context);
         m_shader.close(context);

@@ -23,12 +23,12 @@ namespace fan_2d {
 
         m_shader.set_vertex(
           context,
-          #include _FAN_PATH(graphics/glsl/opengl/2D/effects/flame.vs>
+          #include _FAN_PATH(graphics/glsl/opengl/2D/effects/flame.vs)
         );
 
         m_shader.set_fragment(
           context,
-          #include _FAN_PATH(graphics/glsl/opengl/2D/effects/flame.fs>
+          #include _FAN_PATH(graphics/glsl/opengl/2D/effects/flame.fs)
         );
 
         m_shader.compile(context);

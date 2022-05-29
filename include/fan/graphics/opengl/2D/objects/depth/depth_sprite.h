@@ -18,12 +18,12 @@ namespace fan_2d {
 
 				m_shader.set_vertex(
 					context, 
-					#include _FAN_PATH(graphics/glsl/opengl/2D/objects/depth/depth_sprite.vs>
+					#include _FAN_PATH(graphics/glsl/opengl/2D/objects/depth/depth_sprite.vs)
 				);
 
 				m_shader.set_fragment(
 					context, 
-					#include _FAN_PATH(graphics/glsl/opengl/2D/objects/depth/depth_sprite.fs>
+					#include _FAN_PATH(graphics/glsl/opengl/2D/objects/depth/depth_sprite.fs)
 				);
 
 				m_shader.compile(context);

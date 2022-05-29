@@ -9,8 +9,6 @@
 	#define _FAN_PATH(p0) <FAN_INCLUDE_PATH/fan/p0>
 #endif
 
-#define _FAN_LIB_PATH(p0) STRINGIFY(C:/libs/fan/lib ## / ##p0)
-
 #include <iostream>
 #include <array>
 #include <vector>

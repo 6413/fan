@@ -5,9 +5,7 @@
 #include _FAN_PATH(types/types.h)
 
 #ifdef fan_compiler_visual_studio
-	#pragma comment(lib, _FAN_LIB_PATH(opus/opus.lib))
-	#pragma comment(lib, _FAN_LIB_PATH(ogg/libogg.lib))
-	#pragma comment(lib, _FAN_LIB_PATH(opus/opusfile.lib))
+
 #endif
 
 #ifndef fan_audio_set_backend
