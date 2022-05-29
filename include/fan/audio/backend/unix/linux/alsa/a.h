@@ -1,7 +1,7 @@
-#include <WITCH/WITCH.h)
-#include <WITCH/TH/TH.h)
+#include <WITCH/WITCH.h>
+#include <WITCH/TH/TH.h>
 
-#include <alsa/asoundlib.h)
+#include <alsa/asoundlib.h>
 
 struct piece_t;
 
@@ -31,7 +31,7 @@ namespace {
 		piece_t *piece; \
 		uint32_t PieceCacheIndex;
 	#define BLL_set_ResizeListAfterClear 1
-	#include <WITCH/BLL/BLL.h)
+	#include <WITCH/BLL/BLL.h>
 
 	static void decode(holder_t* holder, f32_t* Output, uint64_t offset, uint32_t FrameCount) {
 		seek(holder, offset);
@@ -75,7 +75,7 @@ namespace {
 		PropertiesSoundPlay_t properties; \
 		uint64_t offset;
 	#define BLL_set_ResizeListAfterClear 1
-	#include <WITCH/BLL/BLL.h)
+	#include <WITCH/BLL/BLL.h>
 
 	enum class MessageType_t {
 		SoundPlay,
@@ -444,7 +444,18 @@ namespace {
       data_callback(audio, frames);
       snd_pcm_sframes_t rframes = snd_pcm_writei(audio->snd_pcm, frames, constants::CallFrameCount);
       if (rframes != constants::CallFrameCount) {
-        fan::throw_error("snd_pcm_writei");
+				switch(rframes){
+					case -EPIPE:{
+						int r = snd_pcm_recover(audio->snd_pcm, -EPIPE, 0);
+						if(r != 0){
+							fan::throw_error("failed to recover");
+						}
+						break;
+					}
+					default:{
+        		fan::throw_error("snd_pcm_writei");
+					}
+				}
       }
     }
   }

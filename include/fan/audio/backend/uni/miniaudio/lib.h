@@ -10996,7 +10996,7 @@ IMPLEMENTATION
 #include <stdio.h>
 #if !defined(_MSC_VER) && !defined(__DMC__)
     #include <strings.h>    /* For strcasecmp(). */
-    #include <wchar.h> >    /* For wcslen(), wcsrtombs() */
+    #include <wchar.h>    /* For wcslen(), wcsrtombs() */
 #endif
 #ifdef _MSC_VER
     #include <float.h>      /* For _controlfp_s constants */
