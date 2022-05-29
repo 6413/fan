@@ -4,7 +4,7 @@
 
 
 #if defined(fan_compiler_visual_studio)
-  #pragma comment(lib, _FAN_LIB_PATH(libwebp/libwebp.lib))
+  
 #endif
 
 // if windows fails with duplicat resource, remove mux folder from libwebp

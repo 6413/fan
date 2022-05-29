@@ -70,12 +70,12 @@ namespace fan_2d {
 
 					m_shader.set_vertex(
 						context, 
-						#include _FAN_PATH(graphics/glsl/opengl/2D/gui/text.vs>
+						#include _FAN_PATH(graphics/glsl/opengl/2D/gui/text.vs)
 					);
 
 					m_shader.set_fragment(
 						context, 
-						#include _FAN_PATH(graphics/glsl/opengl/2D/gui/text.fs>
+						#include _FAN_PATH(graphics/glsl/opengl/2D/gui/text.fs)
 					);
 
 					m_shader.compile(context);

@@ -39,12 +39,12 @@ namespace fan_2d {
 
 				m_shader.set_vertex(
 					context, 
-					#include _FAN_PATH(graphics/glsl/opengl/2D/objects/depth/depth_rectangle.vs>
+					#include _FAN_PATH(graphics/glsl/opengl/2D/objects/depth/depth_rectangle.vs)
 				);
 
 				m_shader.set_fragment(
 					context, 
-					#include _FAN_PATH(graphics/glsl/opengl/2D/objects/depth/depth_rectangle.fs>
+					#include _FAN_PATH(graphics/glsl/opengl/2D/objects/depth/depth_rectangle.fs)
 				);
 
 				m_shader.compile(context);

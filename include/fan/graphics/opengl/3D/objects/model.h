@@ -94,12 +94,12 @@
 //
 //        m_shader.set_vertex(
 //          context, 
-//          #include _FAN_PATH(graphics/glsl/opengl/3D/objects/model.vs>
+//          #include _FAN_PATH(graphics/glsl/opengl/3D/objects/model.vs)
 //        );
 //
 //        m_shader.set_fragment(
 //          context, 
-//          #include _FAN_PATH(graphics/glsl/opengl/3D/objects/model.fs>
+//          #include _FAN_PATH(graphics/glsl/opengl/3D/objects/model.fs)
 //        );
 //
 //        m_shader.compile(context);

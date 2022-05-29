@@ -47,7 +47,7 @@ namespace {
 				&Output[TotalRead * constants::ChannelAmount],
 				(FrameCount - TotalRead) * constants::ChannelAmount);
 			if (read <= 0) {
-				fan::throw_error("help " + std::to_string(read));
+				fan::throw_error("help " + ::std::to_string(read));
 				break;
 			}
 
@@ -383,12 +383,12 @@ namespace {
 					Properties->FadeFrom += (f32_t)FrameCacheAmount / constants::opus_decode_sample_rate;
 				}
 				else {
-					std::transform(
+					::std::transform(
 						&FrameCachePointer[0],
 						&FrameCachePointer[FrameCacheAmount * constants::ChannelAmount],
 						&((f32_t*)Output)[OutputIndex * constants::ChannelAmount],
 						&((f32_t*)Output)[OutputIndex * constants::ChannelAmount],
-						std::plus<f32_t>{});
+						::std::plus<f32_t>{});
 				}
 				PlayInfoNode->data.offset += FrameCacheAmount;
 				OutputIndex += FrameCacheAmount;
@@ -476,7 +476,7 @@ void audio_open(audio_t* audio, uint32_t GroupAmount) {
 
 	ma_result r;
 	if ((r = ma_context_init(NULL, 0, NULL, &audio->context)) != MA_SUCCESS) {
-		fan::throw_error("error" + std::to_string(r));
+		fan::throw_error("error" + ::std::to_string(r));
 	}
 
 	ma_device_config config = ma_device_config_init(ma_device_type_playback);
@@ -488,7 +488,7 @@ void audio_open(audio_t* audio, uint32_t GroupAmount) {
 	config.periodSizeInFrames = constants::CallFrameCount;
 
 	if ((r = ma_device_init(&audio->context, &config, &audio->device)) != MA_SUCCESS) {
-		fan::throw_error("ma_device_init" + std::to_string(r));
+		fan::throw_error("ma_device_init" + ::std::to_string(r));
 	}
 }
 
@@ -565,7 +565,7 @@ uint32_t SoundPlay(audio_t* audio, piece_t* piece, uint32_t GroupID, const Prope
 }
 
 namespace {
-	sint32_t get_holder(holder_t& holder, const std::string& path) {
+	sint32_t get_holder(holder_t& holder, const ::std::string& path) {
 
 		sint32_t err;
 		holder.decoder = op_open_file(path.c_str(), &err);
@@ -587,7 +587,7 @@ void _piece_open_rest(fan::audio::audio_t* audio, fan::audio::piece_t* piece){
 		piece->Cache[i].ref = (FrameCacheList_NodeReference_t)-1;
 	}
 }
-sint32_t piece_open(fan::audio::audio_t* audio, fan::audio::piece_t* piece, const std::string& path) {
+sint32_t piece_open(fan::audio::audio_t* audio, fan::audio::piece_t* piece, const ::std::string& path) {
 
 	sint32_t err;
 	piece->holder.decoder = op_open_file(path.c_str(), &err);
