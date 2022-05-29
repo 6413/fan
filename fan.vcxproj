@@ -224,9 +224,8 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>
-      </AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\libs\fan\lib\libwebp;C:\libs\fan\lib\opus;C:\libs\fan\lib\ogg;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libogg.lib;opus.lib;opusfile.lib;libwebp.lib;</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy /y "$(TargetPath)" "$(SolutionDir)/test"</Command>
@@ -288,6 +287,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\fan\audio\audio.h" />
+    <ClInclude Include="include\fan\audio\backend\unix\linux\alsa\a.h" />
+    <ClInclude Include="include\fan\audio\backend\uni\miniaudio\a.h" />
+    <ClInclude Include="include\fan\audio\backend\uni\miniaudio\lib.h" />
     <ClInclude Include="include\fan\audio\miniaudio.h" />
     <ClInclude Include="include\fan\bll.h" />
     <ClInclude Include="include\fan\BLL\BLL.h" />
@@ -306,6 +308,30 @@
     <ClInclude Include="include\fan\graphics\gui.h" />
     <ClInclude Include="include\fan\graphics\gui\be.h" />
     <ClInclude Include="include\fan\graphics\gui\button_event.h" />
+    <ClInclude Include="include\fan\graphics\gui\fgm\builder.h" />
+    <ClInclude Include="include\fan\graphics\gui\fgm\editor\editor.h" />
+    <ClInclude Include="include\fan\graphics\gui\fgm\editor\open.h" />
+    <ClInclude Include="include\fan\graphics\gui\fgm\editor\set_callbacks.h" />
+    <ClInclude Include="include\fan\graphics\gui\fgm\fgm.h" />
+    <ClInclude Include="include\fan\graphics\gui\fgm\input\key_delete.h" />
+    <ClInclude Include="include\fan\graphics\gui\fgm\input\mouse_left.h" />
+    <ClInclude Include="include\fan\graphics\gui\fgm\input\mouse_scroll_down.h" />
+    <ClInclude Include="include\fan\graphics\gui\fgm\input\mouse_scroll_up.h" />
+    <ClInclude Include="include\fan\graphics\gui\fgm\rectangle_sized_text_button\corners.h" />
+    <ClInclude Include="include\fan\graphics\gui\fgm\rectangle_sized_text_button\create.h" />
+    <ClInclude Include="include\fan\graphics\gui\fgm\rectangle_sized_text_button\erase_active.h" />
+    <ClInclude Include="include\fan\graphics\gui\fgm\rectangle_sized_text_button\move.h" />
+    <ClInclude Include="include\fan\graphics\gui\fgm\rectangle_sized_text_button\open.h" />
+    <ClInclude Include="include\fan\graphics\gui\fgm\rectangle_sized_text_button\open_build_properties.h" />
+    <ClInclude Include="include\fan\graphics\gui\fgm\rectangle_sized_text_button\resize.h" />
+    <ClInclude Include="include\fan\graphics\gui\fgm\rectangle_sized_text_button\set_callbacks.h" />
+    <ClInclude Include="include\fan\graphics\gui\fgm\text_renderer_clickable\corners.h" />
+    <ClInclude Include="include\fan\graphics\gui\fgm\text_renderer_clickable\create.h" />
+    <ClInclude Include="include\fan\graphics\gui\fgm\text_renderer_clickable\erase_active.h" />
+    <ClInclude Include="include\fan\graphics\gui\fgm\text_renderer_clickable\move.h" />
+    <ClInclude Include="include\fan\graphics\gui\fgm\text_renderer_clickable\open.h" />
+    <ClInclude Include="include\fan\graphics\gui\fgm\text_renderer_clickable\open_build_properties.h" />
+    <ClInclude Include="include\fan\graphics\gui\fgm\text_renderer_clickable\resize.h" />
     <ClInclude Include="include\fan\graphics\gui\focus.h" />
     <ClInclude Include="include\fan\graphics\gui\key_event.h" />
     <ClInclude Include="include\fan\graphics\gui\rectangle_box_sized.h" />
@@ -345,6 +371,9 @@
     <ClInclude Include="include\fan\graphics\opengl\gl_image.h" />
     <ClInclude Include="include\fan\graphics\opengl\gl_init.h" />
     <ClInclude Include="include\fan\graphics\opengl\gl_shader.h" />
+    <ClInclude Include="include\fan\graphics\opengl\matrices.h" />
+    <ClInclude Include="include\fan\graphics\opengl\texture_pack.h" />
+    <ClInclude Include="include\fan\graphics\opengl\viewport.h" />
     <ClInclude Include="include\fan\physics\static_joint.h" />
     <ClInclude Include="include\fan\graphics\renderer.h" />
     <ClInclude Include="include\fan\graphics\shared_core.h" />
@@ -375,6 +404,7 @@
     <ClInclude Include="include\fan\physics\raycast\rectangle.h" />
     <ClInclude Include="include\fan\system.h" />
     <ClInclude Include="include\fan\time\time.h" />
+    <ClInclude Include="include\fan\tp\tp.h" />
     <ClInclude Include="include\fan\types\color.h" />
     <ClInclude Include="include\fan\types\matrix.h" />
     <ClInclude Include="include\fan\types\memory.h" />

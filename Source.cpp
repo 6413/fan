@@ -7,6 +7,9 @@
 
 #include _FAN_PATH(graphics/graphics.h)
 
+
+#include _FAN_PATH(tp/tp.h)
+
 #define gui_demo
 
 struct pile_t {
@@ -35,36 +38,41 @@ int main() {
 
   pile.matrices.open();
 
+  fan::tp::texture_packd texturepack;
+  texturepack.open("texturepack");
 
-  fan_2d::graphics::rectangle_t r;
+  fan_2d::graphics::sprite_t r;
   r.open(&pile.context);
   r.m_shader.bind_matrices(&pile.context, &pile.matrices);
   r.enable_draw(&pile.context);
 
-  fan_2d::graphics::rectangle_t::properties_t p;
-  #ifdef gui_demo
-    p.position = pile.window.get_size() / 2;
-    p.size = 100;
-  #else
-    p.position = 0;
-    p.size = 0.5;
-  #endif
-  p.color = fan::colors::red;
+  fan_2d::graphics::sprite_t::properties_t p;
+#ifdef gui_demo
+#else
+  p.position = 0;
+  p.size = 0.5;
+#endif
+  p.image = texturepack.load_image(&pile.context, 0);
+  p.size = p.image->size / 2;
+  p.position = p.size;
   r.push_back(&pile.context, p);
 
   fan::vec2 window_size = pile.window.get_size();
-    #ifdef gui_demo
-    pile.matrices.set_ortho(&pile.context, fan::vec2(0, window_size.x), fan::vec2(0, window_size.y));
-  #else
-    pile.matrices.set_ortho(&pile.context, fan::vec2(-1, 1), fan::vec2(1, -1));
-  #endif
+#ifdef gui_demo
+  pile.matrices.set_ortho(&pile.context, fan::vec2(0, window_size.x), fan::vec2(0, window_size.y));
+#else
+  pile.matrices.set_ortho(&pile.context, fan::vec2(-1, 1), fan::vec2(1, -1));
+#endif
 
-  pile.context.set_vsync(&pile.window, false);
+  fan::tp::texture_packd::ti_t ti;
+  if (texturepack.qti("images/entity_ship.webp", &ti))
+  {
+    fan::print(ti.pack_id, ti.position, ti.size);
+  }
+  
   
   while(1) {
 
-    pile.window.get_fps();
-    
     uint32_t window_event = pile.window.handle_events();
     if(window_event & fan::window_t::events::close){
       pile.window.close();
