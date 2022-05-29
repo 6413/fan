@@ -3,10 +3,9 @@
 #define STRINGIFY(p0) #p0
 
 #ifndef FAN_INCLUDE_PATH
-  #define FAN_INCLUDE_PATH C:/libs/fan/include
-	#define _FAN_PATH(p0) <C:/libs/fan/include/fan/p0>
+  #define _FAN_PATH(p0) <fan/p0>
 #else
-	#define _FAN_PATH(p0) <FAN_INCLUDE_PATH/fan/p0>
+  #define _FAN_PATH(p0) <FAN_INCLUDE_PATH/fan/p0>
 #endif
 
 #include <iostream>
