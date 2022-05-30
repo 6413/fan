@@ -75,11 +75,7 @@ namespace fan {
 
 		return load_image(context, fan::webp::load_image(path), p);
 	}
-	
-	static image_t* load_image(fan::opengl::context_t* context, const std::string_view path, const image_load_properties_t& p = image_load_properties_t()) {
-
-	}
-
+  	
 	static void reload_pixels(fan::opengl::context_t* context, image_t* image, const fan::webp::image_info_t& image_info, const image_load_properties_t& p = image_load_properties_t()) {
 		image->size = image_info.size;
 		context->opengl.call(context->opengl.glBindTexture, fan::opengl::GL_TEXTURE_2D, image->texture);

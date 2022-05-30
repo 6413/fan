@@ -38,8 +38,8 @@ int main() {
 
   pile.matrices.open();
 
-  fan::tp::texture_packd texturepack;
-  texturepack.open("texturepack");
+  fan::opengl::texturepack texturepack;
+  texturepack.open(&pile.context, "texturepack");
 
   fan_2d::graphics::sprite_t r;
   r.open(&pile.context);
@@ -52,7 +52,9 @@ int main() {
   p.position = 0;
   p.size = 0.5;
 #endif
-  p.image = texturepack.load_image(&pile.context, 0);
+  fan::opengl::texturepack::ti_t ti;
+  texturepack.qti("texturepack", &ti);
+  p.load_texturepack(&pile.context, &texturepack, &ti);
   p.size = p.image->size / 2;
   p.position = p.size;
   r.push_back(&pile.context, p);
@@ -64,12 +66,6 @@ int main() {
   pile.matrices.set_ortho(&pile.context, fan::vec2(-1, 1), fan::vec2(1, -1));
 #endif
 
-  fan::tp::texture_packd::ti_t ti;
-  if (texturepack.qti("images/entity_ship.webp", &ti))
-  {
-    fan::print(ti.pack_id, ti.position, ti.size);
-  }
-  
   
   while(1) {
 

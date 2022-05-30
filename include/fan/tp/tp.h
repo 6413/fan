@@ -98,7 +98,7 @@ namespace fan {
           }
 
           uint8_t* ptr;
-          uint32_t ptr_size = WebPEncodeRGBA(r.data(), pack_list[i].bin_size.x, pack_list[i].bin_size.y, pack_list[i].bin_size.x * 4, 1, &ptr);
+          uint32_t ptr_size = WebPEncodeRGBA(r.data(), pack_list[i].bin_size.x, pack_list[i].bin_size.y, pack_list[i].bin_size.x * 4, 100, &ptr);
           fwrite(&ptr_size, sizeof(ptr_size), 1, f);
           fwrite(ptr, ptr_size, 1, f);
           WebPFree(ptr);

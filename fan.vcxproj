@@ -290,7 +290,6 @@
     <ClInclude Include="include\fan\audio\backend\unix\linux\alsa\a.h" />
     <ClInclude Include="include\fan\audio\backend\uni\miniaudio\a.h" />
     <ClInclude Include="include\fan\audio\backend\uni\miniaudio\lib.h" />
-    <ClInclude Include="include\fan\audio\miniaudio.h" />
     <ClInclude Include="include\fan\bll.h" />
     <ClInclude Include="include\fan\BLL\BLL.h" />
     <ClInclude Include="include\fan\BLL\internal\basic_types.h" />
