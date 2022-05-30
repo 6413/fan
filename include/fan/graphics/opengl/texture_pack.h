@@ -2,11 +2,9 @@
 
 #include _FAN_PATH(graphics/opengl/gl_image.h)
 
-namespace fan
-{
-  namespace tp {
-    struct texture_packd
-    {
+namespace fan {
+  namespace opengl {
+    struct texturepack {
       struct texture_t {
 
         // The top-left coordinate of the rectangle.
@@ -40,13 +38,6 @@ namespace fan
         return pixel_data_list[pack_id];
       }
 
-      fan::opengl::image_t* load_image(fan::opengl::context_t* context, uint32_t pack_id) {
-        fan::webp::image_info_t image_info;
-        image_info.data = pixel_data_list[pack_id].data;
-        image_info.size = pixel_data_list[pack_id].size;
-        return fan::opengl::load_image(context, image_info);
-      }
-
       void open(fan::opengl::context_t* context, const char* filename) {
         texture_list.open();
         pixel_data_list.open();
@@ -62,7 +53,7 @@ namespace fan
           data_index += sizeof(pack_amount);
           texture_list[i].open();
           for (uint32_t j = 0; j < texture_amount; j++) {
-            texture_packd::texture_t texture;
+            texturepack::texture_t texture;
             texture.hash = *(uint64_t*)&data[data_index];
             data_index += sizeof(uint64_t);
             texture.position = *(fan::vec2i*)&data[data_index];
@@ -82,15 +73,14 @@ namespace fan
             &image_info.size.y
           );
           data_index += size;
-          
           pixel_data_list[i].image = fan::opengl::load_image(context, image_info); 
+          WebPFree(image_info.data);
         }
 
       }
       void close() {
         for (uint32_t i = 0; i < pack_amount; i++) {
           texture_list[i].close();
-          WebPFree(pixel_data_list[i].data);
         }
         texture_list.close();
         pixel_data_list.close();

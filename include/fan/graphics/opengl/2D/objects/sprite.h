@@ -3,6 +3,7 @@
 #include _FAN_PATH(graphics/opengl/gl_core.h)
 #include _FAN_PATH(graphics/opengl/gl_shader.h)
 #include _FAN_PATH(graphics/shared_graphics.h)
+#include _FAN_PATH(graphics/opengl/texture_pack.h)
 #include _FAN_PATH(physics/collision/rectangle.h)
 
 namespace fan_2d {
@@ -73,6 +74,23 @@ namespace fan_2d {
         };
 
         fan::opengl::image_t* image;
+
+        void load_texturepack(fan::opengl::context_t* context, fan::opengl::texturepack* texture_packd, fan::opengl::texturepack::ti_t* ti) {
+          image = texture_packd->pixel_data_list[ti->pack_id].image;
+          const fan::vec2 texture_position = fan::cast<f32_t>(ti->position) / image->size;
+          const fan::vec2 texture_size = fan::cast<f32_t>(ti->size) / image->size * 20;
+          texture_coordinates = {
+            
+            /*fan::vec2(0, 1),
+            fan::vec2(0.5, 1),
+            fan::vec2(0.5, 0.5),
+            fan::vec2(0, 0.5)*/
+            //fan::vec2(texture_position.x, texture_position.y + texture_size.y),
+            //fan::vec2(texture_position.x + texture_size.x, texture_position.y + texture_size.y),
+            //fan::vec2(texture_position.x + texture_size.x, texture_position.y),
+            //fan::vec2(texture_position.x, texture_position.y)
+          };
+        }
       };
 
     private:

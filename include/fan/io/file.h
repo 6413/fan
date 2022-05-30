@@ -29,7 +29,9 @@ namespace fan {
 					iterate_directory(entry.path().string(), function);
 					continue;
 				}
-				function(entry.path().string());
+				std::string str = entry.path().string();
+				std::replace(str.begin(), str.end(), '\\', '/');
+				function(str);
 			}
 		}
 
