@@ -1,9 +1,11 @@
 // Creates window and opengl context
 
+
 #define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 
 #define FAN_INCLUDE_PATH C:/libs/fan/include
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
+#define fan_debug fan_debug_high
 
 #include _FAN_PATH(graphics/graphics.h)
 #include _FAN_PATH(graphics/gui/fgm/fgm.h)

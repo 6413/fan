@@ -571,7 +571,7 @@ namespace fan_2d {
 					);
 				}
 
-				fan::vec2 get_text_size(fan::opengl::context_t* context, uint32_t i) {
+				fan::vec2 get_text_size(fan::opengl::context_t* context, uint32_t i) const {
 
 					uint32_t begin = 0;
 					uint32_t end = 0;
@@ -588,7 +588,7 @@ namespace fan_2d {
 					auto s_first = get_letter_size(context, begin);
 					auto s_last = get_letter_size(context, end);
 
-					return fan::vec2((p_last.x + s_last.x) - (p_first.x - s_first.x), font.line_height);
+					return fan::vec2((p_last.x + s_last.x) - (p_first.x - s_first.x), get_line_height(context, get_font_size(context, i)));
 				}
 
 				static fan::vec2 get_text_size(fan::opengl::context_t* context, const fan::utf16_string& text, f32_t font_size) {
@@ -629,7 +629,7 @@ namespace fan_2d {
 				}
 
 				inline static fan::font::font_t font;
-				inline static fan::opengl::image_t font_image{-1, -1};
+				inline static fan::opengl::image_t font_image{(uint32_t)fan::uninitialized, fan::uninitialized};
 
 				static uint64_t get_new_lines(fan::opengl::context_t* context, const fan::utf16_string& str)
 				{
@@ -699,7 +699,7 @@ namespace fan_2d {
 				struct letter_t {
 					fan::vec2 texture_position = 0;
 					fan::vec2 texture_size = 0;
-					std::array<fan::vec2, 4> texture_coordinates;
+					fan::_vec4<fan::vec2> texture_coordinates;
 
 					fan::vec2 size = 0;
 					fan::vec2 offset = 0;
@@ -716,12 +716,12 @@ namespace fan_2d {
 					fan::vec2 src = letter.texture_position;
 					fan::vec2 dst = src + letter.texture_size;
 
-					letter.texture_coordinates = { {
+					letter.texture_coordinates = {
 							fan::vec2(src.x, src.y),
 							fan::vec2(dst.x, src.y),
 							fan::vec2(dst.x, dst.y),
 							fan::vec2(src.x, dst.y)
-						} };
+						};
 
 					letter.size = letter_info.metrics.size / 2;
 					letter.offset = letter_info.metrics.offset;
@@ -809,6 +809,16 @@ namespace fan_2d {
 
 				uint32_t letter_vertex_size() const {
 					return m_glsl_buffer.m_buffer.size() / element_byte_size / vertex_count;
+				}
+
+				bool inside(fan::opengl::context_t* context, uint32_t i, const fan::vec2& p) const {
+					fan::vec2 position = get_position(context, i);
+					fan::vec2 size = get_text_size(context, i);
+					return fan_2d::collision::rectangle::point_inside_no_rotation(
+						p,
+						position - size / 2,
+						position + size / 2
+					);
 				}
 
 				// IO +

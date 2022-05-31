@@ -24,6 +24,7 @@ namespace fan_2d {
 
         void open(fan::window_t* w, fan::opengl::context_t* c) {
 
+          previous_key = fan::uninitialized;
           context = c;
           window = w;
           object = OFFSETLESS(this, T, m_key_event);
@@ -159,8 +160,7 @@ namespace fan_2d {
 
                 auto current_focus = focus::get_focus();
 
-                // if keypress(shift)
-                if (0) {
+                if (instance->previous_key == fan::key_left_shift) {
                   if (current_focus.i - 1 == ~0) {
                     current_focus.i = instance->object->size(window, instance->context) - 1;
                   }
@@ -176,10 +176,35 @@ namespace fan_2d {
 
                 instance->update_cursor(window, instance->context, current_focus.i);
 
-                break;
+                // dont update last key
+                return;
               }
-            }
+              case fan::key_v: {
 
+							if (instance->previous_key == fan::key_left_control) {
+
+								auto pasted_text = fan::io::get_clipboard_text(window->get_handle());
+
+								for (int i = 0; i < pasted_text.size(); i++) {
+									instance->add_character(
+                    instance->context, 
+                    &instance->m_store[current_focus.i].m_wed, 
+                    &instance->m_store[current_focus.i].cursor_reference, 
+                    pasted_text[i], 
+                    instance->object->get_font_size(window, instance->context, current_focus.i)
+                  );
+								}
+
+								instance->update_text(window, instance->context, current_focus.i);
+
+                // dont update last key
+                return;
+							}
+
+							break;
+						}
+            }
+            instance->previous_key = key;
           });
 
           text_callback_id = window->add_text_callback(this, [](fan::window_t* window, uint32_t character, void* user_ptr) {
@@ -679,6 +704,7 @@ namespace fan_2d {
 
         focus_loss_cb_t focus_loss_cb;
         void* focus_loss_userptr;
+        uint16_t previous_key;
 
       };
     }

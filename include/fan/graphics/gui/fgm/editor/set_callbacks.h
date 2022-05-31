@@ -12,20 +12,20 @@ builder_types.m_button_event.set_on_input(pile,
   if (key != fan::mouse_left) {
     return;
   }
-  if (mouse_stage != fan_2d::graphics::gui::mouse_stage::inside) {
+  if (mouse_stage != fan_2d::graphics::gui::mouse_stage::inside && key_state == fan::key_state::press) {
     return;
   }
 
   pile_t* pile = (pile_t*)user_ptr;
 
-  if (!pile->editor.is_inside_types_viewport(pile, window->get_mouse_position())) {
+  if (!pile->editor.is_inside_types_viewport(pile, window->get_mouse_position()) && key_state == fan::key_state::press) {
     return;
   }
 
   switch (index) {
 
-    #include _FAN_PATH(graphics/gui/fgm/rectangle_sized_text_button/create.h)
-    #include _FAN_PATH(graphics/gui/fgm/text_renderer_clickable/create.h)
+    #include _FAN_PATH(graphics/gui/fgm/sprite/create.h)
+    #include _FAN_PATH(graphics/gui/fgm/text_renderer/create.h)
   }
 });
 
@@ -40,14 +40,14 @@ pile->window.add_mouse_move_callback(pile,
     }
 
     switch (pile->editor.selected_type) {
-      #include _FAN_PATH(graphics/gui/fgm/rectangle_sized_text_button/move.h)
-      #include _FAN_PATH(graphics/gui/fgm/text_renderer_clickable/move.h)
+      #include _FAN_PATH(graphics/gui/fgm/sprite/move.h)
+      #include _FAN_PATH(graphics/gui/fgm/text_renderer/move.h)
     }
   }
   if (pile->editor.flags & flags_t::resizing) {
     switch (pile->editor.selected_type) {
-      #include _FAN_PATH(graphics/gui/fgm/rectangle_sized_text_button/resize.h)
-      #include _FAN_PATH(graphics/gui/fgm/text_renderer_clickable/resize.h)
+      #include _FAN_PATH(graphics/gui/fgm/sprite/resize.h)
+      #include _FAN_PATH(graphics/gui/fgm/text_renderer/resize.h)
     }
   }
 
@@ -99,12 +99,12 @@ pile->editor.resize_rectangles.m_button_event.set_on_input(pile,
   
   pile->editor.resize_stage = index;
   switch (pile->editor.selected_type) {
-    case builder_draw_type_t::rectangle_text_button_sized: {
-      pile->editor.click_position = pile->builder.rtbs.get_position(&pile->window, &pile->context, pile->editor.selected_type_index);
+    case builder_draw_type_t::sprite: {
+      pile->editor.click_position = pile->builder.sprite.get_position(&pile->context, pile->editor.selected_type_index);
       break;
     }
-    case builder_draw_type_t::text_renderer_clickable: {
-      pile->editor.click_position = pile->builder.trc.get_position(&pile->window, &pile->context, pile->editor.selected_type_index);
+    case builder_draw_type_t::text_renderer: {
+      pile->editor.click_position = pile->builder.tr.get_position(&pile->context, pile->editor.selected_type_index);
       break;
     }
   }

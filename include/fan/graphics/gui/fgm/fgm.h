@@ -7,7 +7,7 @@ namespace fan_2d {
     namespace gui {
       namespace fgm {
 
-        struct load_t {
+        /*struct load_t {
           void open(fan::window_t* window, fan::opengl::context_t* context) {
             rtbs.open(window, context);
 
@@ -39,11 +39,11 @@ namespace fan_2d {
           }
 
           fan_2d::graphics::gui::rectangle_text_button_sized_t rtbs;
-          fan_2d::graphics::gui::text_renderer_clickable trc;
+          fan_2d::graphics::gui::text_renderer tr;
 
           fan::opengl::matrices_t matrices;
 
-        };
+        };*/
 
         struct pile_t;
 
@@ -75,8 +75,8 @@ namespace fan_2d {
           };
 
           struct builder_draw_type_t {
-            static constexpr uint32_t rectangle_text_button_sized = 0;
-            static constexpr uint32_t text_renderer_clickable = 1;
+            static constexpr uint32_t sprite = 0;
+            static constexpr uint32_t text_renderer = 1;
           };
 
           struct click_collision_t {
@@ -102,6 +102,9 @@ namespace fan_2d {
 
           void update_resize_rectangles(pile_t* pile);
 
+          void depth_map_push(pile_t* pile, uint32_t type, uint32_t index);
+          void depth_map_erase_active(pile_t* pile);
+
           fan::vec2 builder_viewport_size;
           fan::vec2 origin_shapes;
           fan::vec2 origin_properties;
@@ -113,6 +116,7 @@ namespace fan_2d {
           uint32_t selected_type_index;
 
           fan::vec2 click_position;
+          fan::vec2 move_offset;
 
           uint8_t flags;
 
@@ -140,9 +144,9 @@ namespace fan_2d {
 
           void open(pile_t* pile);
 
-          uint32_t rtbs_id_counter;
-          fan_2d::graphics::gui::rectangle_text_button_sized_t rtbs;
-          fan_2d::graphics::gui::text_renderer_clickable trc;
+          fan_2d::graphics::sprite_t sprite;
+          fan_2d::graphics::gui::text_renderer_t tr;
+          fan_2d::graphics::gui::be_t button_event;
         };
 
         struct pile_t {
@@ -200,15 +204,15 @@ namespace fan_2d {
             editor.gui_properties_matrices.set_ortho(&context, fan::vec2(0, window_size.x - editor.origin_properties.x), fan::vec2(0, window_size.y - editor.origin_properties.y));
           }
 
-          void save(const char* filename) {
+          /*void save(const char* filename) {
             FILE* f = fopen(filename, "w+b");
             if (!f) {
               fan::throw_error("failed to open file stream");
             }
 
-            builder.rtbs.write_out(&context, f);
+            builder.sprite.write_out(&context, f);
             fclose(f);
-          }
+          }*/
 
         };
 

@@ -17,11 +17,18 @@ namespace fan {
       };
 
       struct load_properties_t {
-        uint32_t visual_output = load_properties_defaults::visual_output;
-        uintptr_t internal_format = load_properties_defaults::internal_format;
-        uintptr_t format = load_properties_defaults::format;
-        uintptr_t type = load_properties_defaults::type;
-        uintptr_t filter = load_properties_defaults::filter;
+        load_properties_t() {
+          visual_output = load_properties_defaults::visual_output;
+          internal_format = load_properties_defaults::internal_format;
+          format = load_properties_defaults::format;
+          type = load_properties_defaults::type;
+          filter = load_properties_defaults::filter;
+        }
+        uint32_t visual_output;
+        uintptr_t internal_format;
+        uintptr_t format;
+        uintptr_t type;
+        uintptr_t filter;
       };
 
       void load(fan::opengl::context_t* context, const fan::webp::image_info_t image_info, load_properties_t p = load_properties_t()) {
@@ -66,19 +73,19 @@ namespace fan {
 
       void unload(fan::opengl::context_t* context, image_t image) {
         #if fan_debug >= fan_debug_low
-        if (image == 0 || image.texture == 0) {
+        if (image.texture == fan::uninitialized) {
           fan::throw_error("texture does not exist");
         }
         #endif
         context->opengl.glDeleteTextures(1, &image.texture);
 
         #if fan_debug >= fan_debug_low
-        image.texture = 0;
+        image.texture = fan::uninitialized;
         #endif
       }
 
       // creates single colored text size.x*size.y sized
-      void create(fan::opengl::context_t* context, fan::vec2ui size, const fan::color& color, load_properties_t p = load_properties_t()) {
+      void create(fan::opengl::context_t* context, const fan::color& color, load_properties_t p = load_properties_t()) {
         uint8_t* pixels = (uint8_t*)malloc(sizeof(uint8_t) * (size.x * size.y * fan::color::size()));
         for (int y = 0; y < size.y; y++) {
           for (int x = 0; x < size.x; x++) {
@@ -107,6 +114,73 @@ namespace fan {
 
         context->opengl.call(context->opengl.glGenerateMipmap, GL_TEXTURE_2D);
         context->opengl.call(context->opengl.glBindTexture, GL_TEXTURE_2D, 0);
+      }
+
+      void create_missing_texture(fan::opengl::context_t* context, load_properties_t p = load_properties_t()) {
+        uint8_t* pixels = (uint8_t*)malloc(sizeof(uint8_t) * (2 * 2 * fan::color::size()));
+        uint32_t pixel = 0;
+
+        pixels[pixel++] = 0;
+        pixels[pixel++] = 0;
+        pixels[pixel++] = 0;
+        pixels[pixel++] = 255;
+
+        pixels[pixel++] = 255;
+        pixels[pixel++] = 0;
+        pixels[pixel++] = 220;
+        pixels[pixel++] = 255;
+
+        pixels[pixel++] = 255;
+        pixels[pixel++] = 0;
+        pixels[pixel++] = 220;
+        pixels[pixel++] = 255;
+
+        pixels[pixel++] = 0;
+        pixels[pixel++] = 0;
+        pixels[pixel++] = 0;
+        pixels[pixel++] = 255;
+
+        p.visual_output = fan::opengl::GL_REPEAT;
+
+        context->opengl.call(context->opengl.glGenTextures, 1, &texture);
+
+        context->opengl.call(context->opengl.glBindTexture, GL_TEXTURE_2D, texture);
+        context->opengl.call(context->opengl.glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, p.visual_output);
+        context->opengl.call(context->opengl.glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, p.visual_output);
+        context->opengl.call(context->opengl.glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, p.filter);
+        context->opengl.call(context->opengl.glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, p.filter);
+
+        size = size;
+
+        context->opengl.call(context->opengl.glTexImage2D, GL_TEXTURE_2D, 0, p.internal_format, 2, 2, 0, p.format, p.type, pixels);
+
+        free(pixels);
+
+        context->opengl.call(context->opengl.glGenerateMipmap, GL_TEXTURE_2D);
+        context->opengl.call(context->opengl.glBindTexture, GL_TEXTURE_2D, 0);
+      }
+
+      fan::_vec4<fan::vec2> calculate_aspect_ratio(const fan::vec2& size, f32_t scale) {
+
+        fan::_vec4<fan::vec2> tc = {
+          fan::vec2(0, 1),
+          fan::vec2(1, 1),
+          fan::vec2(1, 0),
+          fan::vec2(0, 0)
+        };
+
+        f32_t a = size.x / size.y;
+        fan::vec2 n = size.normalize();
+
+        for (uint32_t i = 0; i < 8; i++) {
+          if (size.x < size.y) {
+            tc[i % 4][i / 4] *= n[i / 4] / a * scale;
+          }
+          else {
+            tc[i % 4][i / 4] *= n[i / 4] * a * scale;
+          }
+        }
+        return tc;
       }
 
       uint32_t texture;

@@ -23,8 +23,6 @@
 	#include _FAN_PATH(graphics/opengl/2D/gui/text_renderer0.h)
 #endif
 
-#include _FAN_PATH(graphics/gui/text_renderer_clickable.h)
-#include _FAN_PATH(graphics/gui/rectangle_text_box_sized.h)
 #include _FAN_PATH(graphics/gui/rectangle_text_button_sized.h)
 #include _FAN_PATH(graphics/gui/checkbox.h)
 #include _FAN_PATH(graphics/gui/select_box.h)
@@ -399,7 +397,7 @@ namespace fan_2d {
 				};*/
 
 			//
-			//			struct rectangle_selectable_button_sized : public rectangle_text_button_sized{
+			//			struct rectangle_selectable_button_sized : public sprite{
 			//
 			//				rectangle_selectable_button_sized(fan::camera* camera);
 			//
@@ -983,7 +981,7 @@ namespace fan_2d {
 			//
 			//			};
 			//
-			//			struct dropdown_menu : protected rectangle_text_button_sized {
+			//			struct dropdown_menu : protected sprite {
 			//
 			//				struct properties_t {
 			//					fan::utf16_string text = empty_string;
@@ -1007,7 +1005,7 @@ namespace fan_2d {
 			//
 			//				void draw();
 			//
-			//				using rectangle_text_button_sized::get_camera;
+			//				using sprite::get_camera;
 			//
 			//			protected:
 			//

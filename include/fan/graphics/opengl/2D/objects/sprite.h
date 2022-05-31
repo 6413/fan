@@ -66,7 +66,7 @@ namespace fan_2d {
         fan::vec2 rotation_point = 0;
         fan::vec3 rotation_vector = 0;
 
-        std::array<fan::vec2, 4> texture_coordinates{
+        fan::_vec4<fan::vec2> texture_coordinates{
           fan::vec2(0, 1),
           fan::vec2(1, 1),
           fan::vec2(1, 0),
@@ -179,13 +179,13 @@ namespace fan_2d {
 
         return std::array<fan::vec2, 4>{
           coordinates[0],
-            coordinates[1],
-            coordinates[2],
-            coordinates[5]
+          coordinates[1],
+          coordinates[2],
+          coordinates[5]
         };
       }
       // set texture coordinates before position or size
-      void set_texture_coordinates(fan::opengl::context_t* context, uint32_t i, const std::array<fan::vec2, 4>& texture_coordinates) {
+      void set_texture_coordinates(fan::opengl::context_t* context, uint32_t i, const fan::_vec4<fan::vec2>& texture_coordinates) {
 
         for (uint32_t j = 0; j < vertex_count; j++) {
           fan::vec2 tc = fan_2d::opengl::convert_tc_4_2_6(&texture_coordinates, j);
@@ -438,6 +438,10 @@ namespace fan_2d {
         #endif
         context->disable_draw(m_draw_node_reference);
       }
+
+      void bind_matrices(fan::opengl::context_t* context, fan::opengl::matrices_t* matrices) {
+				m_shader.bind_matrices(context, matrices);
+			}
 
       fan::mat4 projection;
       fan::mat4 view;

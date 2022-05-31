@@ -1,6 +1,5 @@
 depth_map.open();
-
-depth_index = 0;
+move_offset = 0;
 properties_camera = 0;
 
 builder_viewport_size = constants::builder_viewport_size;

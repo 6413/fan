@@ -1083,7 +1083,7 @@
 //}
 //
 //fan_2d::opengl::gui::rectangle_selectable_button_sized::rectangle_selectable_button_sized(fan::camera* camera) :
-//	rectangle_text_button_sized(true, camera)
+//	sprite(true, camera)
 //{
 //
 //}
@@ -1241,7 +1241,7 @@
 //}
 //
 ////fan_2d::opengl::gui::dropdown_menu::dropdown_menu(fan::camera* camera, const fan_2d::opengl::gui::theme& theme) :
-////	fan_2d::opengl::gui::rectangle_text_button_sized(camera, theme)
+////	fan_2d::opengl::gui::sprite(camera, theme)
 ////{
 ////
 ////	add_on_input([&](uint32_t i, fan::key_state state, mouse_stage stage) {
@@ -1321,7 +1321,7 @@
 ////{
 ////	m_amount_per_menu.emplace_back(property.dropdown_texts.size() + 1);
 ////
-////	rectangle_text_button_sized::properties_t rp;
+////	sprite::properties_t rp;
 ////	rp.position = property.position;
 ////	rp.size = property.size;
 ////	rp.text_position = property.text_position;
@@ -1332,12 +1332,12 @@
 ////	src_dst_t hitbox;
 ////	hitbox.src = rp.position - rp.size * 0.5;
 ////
-////	rectangle_text_button_sized::push_back(rp);
+////	sprite::push_back(rp);
 ////
 ////	for (int i = 0; i < property.dropdown_texts.size(); i++) {
 ////		rp.text = property.dropdown_texts[i];
 ////		rp.position.y += rp.size.y;
-////		rectangle_text_button_sized::push_back(rp);
+////		sprite::push_back(rp);
 ////	}
 ////
 ////	hitbox.dst = rp.position + fan::vec2(rp.size.x * 0.5, rp.size.y * 0.5);
@@ -1349,7 +1349,7 @@
 ////{
 ////	uint32_t offset = 0;
 ////	for (int i = 0; i < m_amount_per_menu.size(); i++) {
-////		rectangle_text_button_sized::draw(offset, (i == m_hovered) ? m_amount_per_menu[i] : 1);
+////		sprite::draw(offset, (i == m_hovered) ? m_amount_per_menu[i] : 1);
 ////		offset += m_amount_per_menu[i];
 ////	}
 ////}
