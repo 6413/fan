@@ -87,7 +87,7 @@ namespace fan_2d {
 
 					m_draw_node_reference = fan::uninitialized;
 
-					font_image = fan::opengl::load_image(std::string("fonts/") + open_properties.font_name + ".webp");
+					font_image = fan::opengl::load(std::string("fonts/") + open_properties.font_name + ".webp");
 					
 					font = fan::font::parse_font(std::string("fonts/") + open_properties.font_name + "_metrics.txt");
 				}
@@ -543,7 +543,7 @@ namespace fan_2d {
 				fan::opengl::core::queue_helper_t m_queue_helper;
 				uint32_t m_draw_node_reference;
 
-				fan::opengl::image_t* font_image;
+				fan::opengl::image_t font_image;
 
 			public:
 				fan::font::font_t font;

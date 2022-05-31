@@ -641,7 +641,7 @@
 //
 //
 //fan_2d::opengl::gui::sprite_text_box::sprite_text_box(fan::camera* camera, const std::string& path)
-//	:  sprite_t(camera), fan_2d::opengl::gui::text_renderer_t(camera), image(fan::opengl::load_image(camera->m_window, path)) { }
+//	:  sprite_t(camera), fan_2d::opengl::gui::text_renderer_t(camera), image(fan::opengl::load(camera->m_window, path)) { }
 //
 //fan::camera* fan_2d::opengl::gui::sprite_text_box::get_camera()
 //{

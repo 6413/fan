@@ -34,7 +34,7 @@ namespace fan {
       return image_info;
     }
 
-    static image_info_t load_image(const std::string_view file) {
+    static image_info_t load(const std::string_view file) {
     
       auto data = fan::io::file::read(std::string(file));
 

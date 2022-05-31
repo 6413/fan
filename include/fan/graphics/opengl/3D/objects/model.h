@@ -203,19 +203,19 @@
 //        #endif
 //
 //        if (mesh->materials->map_Kd.path == nullptr) {
-//          textures.diffuse = fan::opengl::load_image(context, "models/missing_texture.webp")->texture;
+//          textures.diffuse = fan::opengl::load(context, "models/missing_texture.webp")->texture;
 //        }
 //        else {
 //          std::string diffuse_path = mesh->materials->map_Kd.path;
 //
-//          textures.diffuse = fan::opengl::load_image(context, "models/" + path_maker(diffuse_path))->texture;
+//          textures.diffuse = fan::opengl::load(context, "models/" + path_maker(diffuse_path))->texture;
 //        }
 //        if (mesh->materials->map_bump.path == nullptr) {
-//          textures.depth = fan::opengl::load_image(context, "models/missing_depth.webp")->texture;
+//          textures.depth = fan::opengl::load(context, "models/missing_depth.webp")->texture;
 //        }
 //        else {
 //          std::string depth_path = mesh->materials->map_bump.path;
-//          textures.depth = fan::opengl::load_image(context, "models/" + path_maker(depth_path))->texture;
+//          textures.depth = fan::opengl::load(context, "models/" + path_maker(depth_path))->texture;
 //        }
 //        return textures;
 //      }
