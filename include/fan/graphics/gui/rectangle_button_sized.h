@@ -79,8 +79,8 @@ namespace fan_2d {
           m_reserved.clear();
 
           // otherwise default add_inputs in constructor will be erased as well
-          //rectangle_text_button_sized::mouse::clear();
-          //rectangle_text_button_sized::text_input::clear();
+          //sprite::mouse::clear();
+          //sprite::text_input::clear();
         }
 
         void set_locked(fan::window_t* window, fan::opengl::context_t* context, uint32_t i, bool flag, bool change_theme) {

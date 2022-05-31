@@ -270,6 +270,9 @@ namespace fan {
     T* operator->() {
       return ptr;
     }
+    T* operator->() const {
+      return ptr;
+    }
     T& operator[](uintptr_t i) const {
       return ptr[i];
     }
@@ -308,7 +311,7 @@ namespace fan {
   }
 
   template <typename T2, typename ...T>
-  std::string combine_values(T2 first, T... args) {
+  static std::string combine_values(T2 first, T... args) {
     if constexpr (std::is_same<T2, const char*>::value ||
       std::is_same<T2, std::string>::value) {
       return first + f(args...);
@@ -320,6 +323,11 @@ namespace fan {
 
   template<typename Callable>
   using return_type_of_t = typename decltype(std::function{std::declval<Callable>()})::result_type;
+
+  inline uint64_t get_hash(const std::string str) {
+    static std::hash<std::string> hasher;
+    return hasher(str);
+  }
 }
 
 

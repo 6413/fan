@@ -250,19 +250,19 @@ struct bll_t {
 			assert(0);
 		}
 
-		if (reference == dst) {
-			assert(0);
-		}
+		//if (reference == dst) {
+		//	assert(0);
+		//}
 
 		if (reference >= nodes.size()) {
 			assert(0);
 		}
 
-		auto x = this->get_node_by_reference(reference)->next;
+	//	auto x = this->get_node_by_reference(reference)->next;
 
-		if (x == src) {
+		/*if (x == src) {
 			assert(0);
-		}
+		}*/
 
 #endif
 

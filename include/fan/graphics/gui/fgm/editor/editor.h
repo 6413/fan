@@ -9,13 +9,42 @@ inline void fan_2d::graphics::gui::fgm::editor_t::update_resize_rectangles(pile_
   fan::vec2 positions[8];
   
   switch (pile->editor.selected_type) {
-    #include _FAN_PATH(graphics/gui/fgm/rectangle_sized_text_button/corners.h)
-    #include _FAN_PATH(graphics/gui/fgm/text_renderer_clickable/corners.h)
+    #include _FAN_PATH(graphics/gui/fgm/sprite/corners.h)
+    #include _FAN_PATH(graphics/gui/fgm/text_renderer/corners.h)
   }
 
   for (uint32_t i = 0; i < 8; i++) {
     pile->editor.resize_rectangles.set_position(&pile->window, &pile->context, i, positions[i]);
   }
+}
+
+inline void fan_2d::graphics::gui::fgm::editor_t::depth_map_erase_active(pile_t* pile)
+{
+  for (uint32_t i = 0; i < pile->editor.depth_map.size(); i++) {
+    if (pile->editor.depth_map[i].type == pile->editor.selected_type &&
+        pile->editor.depth_map[i].index == pile->editor.selected_type_index) {
+      pile->editor.depth_map.erase(i);
+
+      for (uint32_t j = i; j < pile->editor.depth_map.size(); j++) {
+        if (pile->editor.selected_type != pile->editor.depth_map[j].type) {
+          continue;
+        }
+        pile->editor.depth_map[j].index--;
+      }
+
+      pile->editor.close_build_properties(pile);
+      break;
+    }
+  }
+}
+
+inline void fan_2d::graphics::gui::fgm::editor_t::depth_map_push(pile_t* pile, uint32_t type, uint32_t index)
+{
+  depth_t depth;
+  depth.depth = pile->editor.depth_index++;
+  depth.type = type;
+  depth.index = index;
+  pile->editor.depth_map.push_back(depth);
 }
 
 void editor_t::open_build_properties(pile_t* pile, click_collision_t click_collision_)
@@ -26,8 +55,8 @@ void editor_t::open_build_properties(pile_t* pile, click_collision_t click_colli
   fan::vec2 positions[8];
 
   switch (selected_type) {
-    #include _FAN_PATH(graphics/gui/fgm/rectangle_sized_text_button/corners.h)
-    #include _FAN_PATH(graphics/gui/fgm/text_renderer_clickable/corners.h)
+    #include _FAN_PATH(graphics/gui/fgm/sprite/corners.h)
+    #include _FAN_PATH(graphics/gui/fgm/text_renderer/corners.h)
   }
 
   for (uint32_t i = 0; i < 8; i++) {
@@ -38,8 +67,8 @@ void editor_t::open_build_properties(pile_t* pile, click_collision_t click_colli
   }
 
   switch (click_collision_.builder_draw_type) {    
-    #include _FAN_PATH(graphics/gui/fgm/rectangle_sized_text_button/open_build_properties.h)
-    #include _FAN_PATH(graphics/gui/fgm/text_renderer_clickable/open_build_properties.h)
+    #include _FAN_PATH(graphics/gui/fgm/sprite/open_build_properties.h)
+    #include _FAN_PATH(graphics/gui/fgm/text_renderer/open_build_properties.h)
     #include "fgm.h"
   }
 }
@@ -79,14 +108,14 @@ bool editor_t::click_collision(pile_t* pile, click_collision_t* click_collision_
   for (uint32_t i = 0; i < pile->editor.depth_map.size(); i++) {
     if (pile->editor.depth_map[i].depth > frontest) {
       switch (pile->editor.depth_map[i].type) {
-        case builder_draw_type_t::rectangle_text_button_sized: {
-          if (!pile->builder.rtbs.inside(&pile->window, &pile->context, pile->editor.depth_map[i].index, pile->window.get_mouse_position())) {
+        case builder_draw_type_t::sprite: {
+          if (!pile->builder.sprite.inside(&pile->context, pile->editor.depth_map[i].index, pile->window.get_mouse_position())) {
             continue;
           }
           break;
         }
-        case builder_draw_type_t::text_renderer_clickable: {
-          if (!pile->builder.trc.inside(&pile->window, &pile->context, pile->editor.depth_map[i].index, pile->window.get_mouse_position())) {
+        case builder_draw_type_t::text_renderer: {
+          if (!pile->builder.tr.inside(&pile->context, pile->editor.depth_map[i].index, pile->window.get_mouse_position())) {
             continue;
           }
           break;

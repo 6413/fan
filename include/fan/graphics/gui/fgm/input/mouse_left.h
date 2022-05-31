@@ -13,14 +13,16 @@
 
          pile->editor.flags |= flags_t::moving;
          switch (click_collision.builder_draw_type) {
-           case builder_draw_type_t::rectangle_text_button_sized: {
+           case builder_draw_type_t::sprite: {
 
-             pile->editor.click_position = pile->builder.rtbs.get_position(&pile->window, &pile->context, click_collision.builder_draw_type_index);
+             pile->editor.click_position = pile->builder.sprite.get_position(&pile->context, click_collision.builder_draw_type_index);
+             pile->editor.move_offset = pile->editor.click_position - pile->window.get_mouse_position();
              break;
            }
-           case builder_draw_type_t::text_renderer_clickable: {
+           case builder_draw_type_t::text_renderer: {
 
-             pile->editor.click_position = pile->builder.trc.get_position(&pile->window, &pile->context, click_collision.builder_draw_type_index);
+             pile->editor.click_position = pile->builder.tr.get_position(&pile->context, click_collision.builder_draw_type_index);
+             pile->editor.move_offset = pile->editor.click_position - pile->window.get_mouse_position();
              break;
            }
          }
@@ -42,14 +44,16 @@
      }
      case fan::key_state::release: {
 
-      for (uint32_t i = 0; i < pile->editor.builder_types.size(&pile->window, &pile->context); i++) {
+      /*for (uint32_t i = 0; i < pile->editor.builder_types.size(&pile->window, &pile->context); i++) {
         if (pile->editor.builder_types.inside(&pile->window, &pile->context, i, pile->window.get_mouse_position()) &&
             pile->editor.builder_types.get_text(&pile->window, &pile->context, i) == L"export"
           ) {
           pile->save("123");
           return;
-        }
-      }
+        }*/
+     // }
+
+       pile->editor.move_offset = 0;
 
        pile->editor.flags &= ~flags_t::moving;
 

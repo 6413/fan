@@ -1,7 +1,7 @@
- case builder_draw_type_t::rectangle_text_button_sized: {
+case builder_draw_type_t::text_renderer: {
 
-  fan::vec2 middle = pile->builder.rtbs.get_position(&pile->window, &pile->context, pile->editor.selected_type_index);
-  fan::vec2 size = pile->builder.rtbs.get_size(&pile->window, &pile->context, pile->editor.selected_type_index);
+  fan::vec2 middle = pile->builder.tr.get_position(&pile->context, pile->editor.selected_type_index);
+  fan::vec2 size = pile->builder.tr.get_text_size(&pile->context, pile->editor.selected_type_index) / 2;
 
   positions[0] = middle + fan::vec2(-size.x, -size.y);
   positions[1] = middle + fan::vec2(0, -size.y);
@@ -11,6 +11,6 @@
   positions[5] = middle + fan::vec2(-size.x, size.y);
   positions[6] = middle + fan::vec2(0, size.y);
   positions[7] = middle + fan::vec2(size.x, size.y);
-      
+
   break;
 }

@@ -1,9 +1,9 @@
-case builder_draw_type_t::text_renderer_clickable: {
+case builder_draw_type_t::text_renderer: {
 
-  fan::vec2 position = fan::vec2(pile->builder.trc.get_position(&pile->window, &pile->context, click_collision_.builder_draw_type_index));
-  fan::vec2 size = fan::vec2(pile->builder.trc.get_hitbox_size(&pile->window, &pile->context, click_collision_.builder_draw_type_index));
+  fan::vec2 position = fan::vec2(pile->builder.tr.get_position(&pile->context, click_collision_.builder_draw_type_index));
+  fan::vec2 size = fan::vec2(pile->builder.tr.get_text_size(&pile->context, click_collision_.builder_draw_type_index));
 
-  decltype(pile->builder.rtbs)::properties_t properties_button_p;
+  decltype(pile->editor.properties_button)::properties_t properties_button_p;
   properties_button_p.text = fan::to_wstring(position.x, 0) + L", " + fan::to_wstring(position.y, 0);
   properties_button_p.size = fan::vec2(constants::gui_size * 5, constants::gui_size);
   properties_button_p.font_size = constants::gui_size;
@@ -49,7 +49,7 @@ case builder_draw_type_t::text_renderer_clickable: {
 
   properties_button_p.position.y += 50;
 
-  properties_button_p.text = pile->builder.trc.get_text(&pile->context, click_collision_.builder_draw_type_index);
+  properties_button_p.text = pile->builder.tr.get_text(&pile->context, click_collision_.builder_draw_type_index);
   pile->editor.properties_button.push_back(&pile->window, &pile->context, properties_button_p);
 
   properties_text_p.text = "text";
@@ -59,7 +59,7 @@ case builder_draw_type_t::text_renderer_clickable: {
 
   properties_button_p.position.y += 50;
 
-  fan::color text_color = pile->builder.trc.get_text_color(&pile->context, click_collision_.builder_draw_type_index);
+  fan::color text_color = pile->builder.tr.get_text_color(&pile->context, click_collision_.builder_draw_type_index);
   uint32_t r = text_color.r * 255, g = text_color.g * 255, b = text_color.b * 255, a = text_color.a * 255;
   r = fan::clamp(r, 0u, 255u);
   g = fan::clamp(g, 0u, 255u);
@@ -106,7 +106,7 @@ case builder_draw_type_t::text_renderer_clickable: {
     }
 
     switch (pile->editor.selected_type) {
-      case builder_draw_type_t::text_renderer_clickable: {
+      case builder_draw_type_t::text_renderer: {
         switch (i) {
           case 4: {
             #include "erase_active.h"
@@ -127,7 +127,7 @@ case builder_draw_type_t::text_renderer_clickable: {
     }
 
     switch (pile->editor.selected_type) {
-      case builder_draw_type_t::text_renderer_clickable: {
+      case builder_draw_type_t::text_renderer: {
         // position, size, etc...
         switch (i) {
           case 0: {
@@ -149,8 +149,7 @@ case builder_draw_type_t::text_renderer_clickable: {
               position = *(fan::vec2i*)values.data();
             }
 
-            pile->builder.trc.set_position(
-              window,
+            pile->builder.tr.set_position(
               context,
               pile->editor.selected_type_index,
               position
@@ -158,7 +157,7 @@ case builder_draw_type_t::text_renderer_clickable: {
             break;
           }
           case 1: {
-            std::vector<int> values = fan::string_to_values<int>(
+           /* std::vector<int> values = fan::string_to_values<int>(
               pile->editor.properties_button.get_text(
               window,
               context,
@@ -176,16 +175,18 @@ case builder_draw_type_t::text_renderer_clickable: {
               size = *(fan::vec2i*)values.data();
             }
 
-            pile->builder.trc.set_hitbox_size(
+            pile->builder.tr.set_hitbox_size(
               window,
               context,
               pile->editor.selected_type_index,
               size
-            );
+            );*/
+
+            // TODO WITH BE_T
             break;
           }
           case 2: {
-            pile->builder.trc.set_text(
+            pile->builder.tr.set_text(
               context,
               pile->editor.selected_type_index,
               pile->editor.properties_button.get_text(window, context, i)
@@ -194,7 +195,7 @@ case builder_draw_type_t::text_renderer_clickable: {
           }
           case 3: {
 
-            pile->builder.trc.set_text_color(
+            pile->builder.tr.set_text_color(
               context,
               pile->editor.selected_type_index,
               fan::color::hex(std::stoul(pile->editor.properties_button.get_text(

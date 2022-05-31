@@ -8,10 +8,9 @@
 
 #include _FAN_PATH(graphics/graphics.h)
 #include _FAN_PATH(graphics/gui/themes.h)
-
-#include _FAN_PATH(physics/collision/rectangle.h)
-
 #include _FAN_PATH(graphics/shared_gui.h)
+
+
 //
 //namespace fan_2d {
 //

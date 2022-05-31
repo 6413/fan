@@ -1,26 +1,29 @@
-GPP = g++ -w -fPIE
+GPP = clang++
 
-ARCH := $(shell grep "Arch Linux" /etc/os-release 2>/dev/null)
+CFLAGS = -ferror-limit=100 -w -std=c++2a -I /usr/local/include -I include -O3 -march=native -mtune=native
 
-CFLAGS = -g -I /usr/src -std=c++2a -I /usr/local/include -I . -I include/vpx -I include -I /usr/include/opus/ #-O3 -march=native -mtune=native
-
-ALL_LIBS = -g -L /usr/local/lib -lGL -lGLEW -lX11 -lXrandr -lassimp -lavcodec -lavutil -lavformat -lswscale -lvulkan -I WITCH -I include/fan -lwebp -ldl -lpthread -lopusfile
-
-ifdef ARCH
-MAINFLAGS = $(ALL_LIBS) -lbox2d
+ifeq ($(OS),Windows_NT)
+	AR = llvm-ar
+	RM = del 
+	LIBNAME = fan_windows_clang.a
 else
-MAINFLAGS = $(ALL_LIBS) -lBox2D 
-endif 
+	CFLAGS += -DFAN_INCLUDE_PATH=/usr/include
+	AR = ar
+	RM = rm -f
+	LIBNAME = fan.a
+endif
 
-MAIN = Source.cpp
+ifeq ($(OS),Windows_NT)
+	CFLAGS +=  -I src/libwebp -I src/libwebp/src
+endif
 
-TARGET = a.out
-
-default : $(TARGET) run
+FAN_OBJECT_FOLDER = 
 
 LIBS = fan_main.o fan_window.o fan_window_input.o fan_vk_gui.o fan_shared_gui.o fan_shared_graphics.o
 
-LIBNAME = fan.a
+TARGET = a.out
+
+MAIN = Source.cpp
 
 $(TARGET): $(LIBS)
 	$(GPP) $(CFLAGS) $(LIBS) $(MAINFLAGS) -o $(TARGET)
@@ -28,26 +31,19 @@ $(TARGET): $(LIBS)
 fan_main.o:	$(MAIN)
 	$(GPP) $(CFLAGS) -c $(MAIN) -o fan_main.o
 
-fan_window.o:	src/fan/window/window.cpp
-	$(GPP) $(CFLAGS) -c src/fan/window/window.cpp -o fan_window.o
+fan_window.o:  src/fan/window/window.cpp
+	$(GPP) $(CFLAGS) -c src/fan/window/window.cpp -o $(FAN_OBJECT_FOLDER)fan_window.o
 	
 fan_window_input.o:	src/fan/window/window_input.cpp
-	$(GPP) $(CFLAGS) -c src/fan/window/window_input.cpp -o fan_window_input.o
-	
-fan_vk_gui.o:	src/fan/graphics/vulkan/vk_gui.cpp
-	$(GPP) $(CFLAGS) -c src/fan/graphics/vulkan/vk_gui.cpp -o fan_vk_gui.o
-	
-fan_shared_graphics.o:	src/fan/graphics/shared_graphics.cpp
-	$(GPP) $(CFLAGS) -c src/fan/graphics/shared_graphics.cpp -o fan_shared_graphics.o
-	
+	$(GPP) $(CFLAGS) -c src/fan/window/window_input.cpp -o $(FAN_OBJECT_FOLDER)fan_window_input.o
+
 fan_shared_gui.o:	src/fan/graphics/shared_gui.cpp
-	$(GPP) $(CFLAGS) -c src/fan/graphics/shared_gui.cpp -o fan_shared_gui.o
-	
-	
+	$(GPP) $(CFLAGS) -c src/fan/graphics/shared_gui.cpp -o $(FAN_OBJECT_FOLDER)fan_shared_gui.o
+
+fan_shared_graphics.o:	src/fan/graphics/shared_graphics.cpp
+	$(GPP) $(CFLAGS) -c src/fan/graphics/shared_graphics.cpp -o fan_shared_graphics.o	
 clean:
-	rm -f fan_*.o
-	rm -f $(LIBNAME)
-	
+	$(RM) fan_*.o
+
 run:	$(LIBS)
-	ar rvs $(LIBNAME) $(LIBS)
-	#rm -f fan_*.o
+	$(AR) rvs $(LIBNAME) $(LIBS)

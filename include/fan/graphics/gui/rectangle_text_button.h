@@ -111,8 +111,8 @@ namespace fan_2d {
           m_key_event.set_focus(window, context, fan::uninitialized);
 
           // otherwise default add_inputs in constructor will be erased as well
-          //rectangle_text_button_sized::mouse::clear();
-          //rectangle_text_button_sized::text_input::clear();
+          //sprite::mouse::clear();
+          //sprite::text_input::clear();
         }
 
         fan::utf16_string get_text(fan::window_t* window, fan::opengl::context_t* context, uint32_t i) const {

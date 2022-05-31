@@ -1,6 +1,5 @@
 #pragma once
 
-#include _FAN_PATH(graphics/gui/rectangle_text_box_sized.h)
 #include _FAN_PATH(graphics/gui/button_event.h)
 #include _FAN_PATH(graphics/gui/key_event.h)
 #include _FAN_PATH(physics/collision/circle.h)
@@ -96,15 +95,18 @@ namespace fan_2d {
               }
             }
 
-            for (int i = object->size(); i--; ) {
-              if (inside(object, i, object->coordinate_offset + w->get_mouse_position())) {
+            uint32_t it = object->m_button_data.end();
+            it = object->m_button_data.prev(it);
+            while (it != object->m_button_data.src) {
+              if (inside(object, it, object->coordinate_offset + w->get_mouse_position())) {
                 if (object->m_focused_button_id != fan::uninitialized) {
                   object->on_mouse_event_function(object, object->m_focused_button_id, mouse_stage::outside);
                 }
-                object->m_focused_button_id = i;
+                object->m_focused_button_id = it;
                 object->on_mouse_event_function(object, object->m_focused_button_id, mouse_stage::inside);
                 return;
               }
+              it = object->m_button_data.prev(it);
             }
             if (object->m_focused_button_id != fan::uninitialized) {
               object->on_mouse_event_function(object, object->m_focused_button_id, mouse_stage::outside);
@@ -122,10 +124,13 @@ namespace fan_2d {
                   object->on_input_function(object, object->m_focused_button_id, key, fan::key_state::press, mouse_stage::inside);
                 }
                 else {
-                  for (int i = object->size(); i--; ) {
-                  if (inside(object, i, object->coordinate_offset + w->get_mouse_position())) {
-                      object->on_input_function(object, i, key, state, mouse_stage::outside);
+                  uint32_t it = object->m_button_data.end();
+                  it = object->m_button_data.prev(it);
+                  while (it != object->m_button_data.begin()) {
+                    if (inside(object, it, object->coordinate_offset + w->get_mouse_position())) {
+                      object->on_input_function(object, it, key, state, mouse_stage::outside);
                     }
+                    it = object->m_button_data.prev(it);
                   }
                   return; // clicked at space
                 }
@@ -148,12 +153,15 @@ namespace fan_2d {
                   }
                 }
                 else {
-                  for (int i = object->size(); i--; ) {
-                    if (inside(object, i, object->coordinate_offset + w->get_mouse_position())) {
-                      object->on_input_function(object, i, key, fan::key_state::release, mouse_stage::inside_drag);
-                      object->m_focused_button_id = i;
+                  uint32_t it = object->m_button_data.end();
+                  it = object->m_button_data.prev(it);
+                  while (it != object->m_button_data.src) {
+                    if (inside(object, it, object->coordinate_offset + w->get_mouse_position())) {
+                      object->on_input_function(object, it, key, fan::key_state::release, mouse_stage::inside_drag);
+                      object->m_focused_button_id = it;
                       break;
                     }
+                    it = object->m_button_data.prev(it);
                   }
 
                   pointer_remove_flag = 1;
@@ -187,10 +195,10 @@ namespace fan_2d {
           m_userptr = userptr;
         }
 
-        void push_back(const properties_t& p) {
+        uint32_t push_back(const properties_t& p) {
           button_data_t b;
           b.properties = p;
-          m_button_data.push_back(b);
+          return m_button_data.push_back(b);
         }
 
         // used for camera position
@@ -233,7 +241,7 @@ namespace fan_2d {
           uint16_t old_key;
         };
 
-        fan::hector_t<button_data_t> m_button_data;
+        bll_t<button_data_t> m_button_data;
 
         void* m_userptr;
         fan::vec2 coordinate_offset;
