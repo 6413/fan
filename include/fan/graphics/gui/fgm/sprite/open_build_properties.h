@@ -57,6 +57,18 @@ case builder_draw_type_t::sprite: {
   calculate_text_position();
 
   pile->editor.properties_button_text.push_back(&pile->context, properties_text_p);*/
+
+  properties_button_p.position.y += 50;
+
+  properties_button_p.text = fan::to_wstring(size.x, 0) + L", " + fan::to_wstring(size.y, 0);
+  pile->editor.properties_button.push_back(&pile->window, &pile->context, properties_button_p);
+
+  properties_text_p.text = "image path:";
+  calculate_text_position();
+
+  pile->editor.properties_button_text.push_back(&pile->context, properties_text_p);
+
+
   properties_button_p.position.y += 50;
 
   properties_text_p.text = " ";
@@ -90,7 +102,7 @@ case builder_draw_type_t::sprite: {
     switch (pile->editor.selected_type) {
       case builder_draw_type_t::sprite: {
         switch (i) {
-          case 2: {
+          case 3: {
             #include "erase_active.h"
             break;
           }
@@ -136,6 +148,9 @@ case builder_draw_type_t::sprite: {
               pile->editor.selected_type_index,
               position
             );
+
+            pile->editor.update_resize_rectangles(pile);
+
             break;
           }
           case 1: {
@@ -162,6 +177,30 @@ case builder_draw_type_t::sprite: {
               pile->editor.selected_type_index,
               size
             );
+
+            pile->editor.update_resize_rectangles(pile);
+            break;
+          }
+          case 2: {
+            std::string path = pile->editor.properties_button.get_text(
+              window,
+              context,
+              i
+            );
+
+            fan::graphics::image_t image;
+            if (!image.load_image(&pile->context, path)) {
+              pile->editor.print(pile, "failed to load image:" + path);
+            }
+
+
+            pile->builder.sprite.reload_sprite(
+              context,
+              pile->editor.selected_type_index,
+              image
+            );
+
+            pile->editor.update_resize_rectangles(pile);
             break;
           }
         }

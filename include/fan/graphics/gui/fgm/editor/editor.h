@@ -6,6 +6,10 @@ void editor_t::open(pile_t* pile) {
 
 inline void fan_2d::graphics::gui::fgm::editor_t::update_resize_rectangles(pile_t* pile)
 {
+  if (!pile->editor.resize_rectangles.size(&pile->window, &pile->context)) {
+    return;
+  }
+
   fan::vec2 positions[8];
   
   switch (pile->editor.selected_type) {
@@ -36,6 +40,11 @@ inline void fan_2d::graphics::gui::fgm::editor_t::depth_map_erase_active(pile_t*
       break;
     }
   }
+}
+
+inline void fan_2d::graphics::gui::fgm::editor_t::print(pile_t* pile, const std::string& message)
+{
+  fan::print(message);
 }
 
 inline void fan_2d::graphics::gui::fgm::editor_t::depth_map_push(pile_t* pile, uint32_t type, uint32_t index)

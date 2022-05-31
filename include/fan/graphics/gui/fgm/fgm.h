@@ -57,12 +57,13 @@ namespace fan_2d {
           fan::vec2 properties_camera;
 
           struct constants {
-            static constexpr fan::vec2 builder_viewport_size = fan::vec2(600, 600);
+            static constexpr fan::vec2 window_size = fan::vec2(900, 700);
+            static constexpr fan::vec2 builder_viewport_size = fan::vec2(600, window_size.y);
             static constexpr f32_t gui_size = 16;
             static constexpr f32_t properties_text_pad = 10;
             static constexpr f32_t scroll_speed = 10;
 
-            static constexpr f32_t properties_box_pad = 160;
+            static constexpr f32_t properties_box_pad = 180;
 
             static constexpr f32_t resize_rectangle_size = 5;
           };
@@ -104,6 +105,7 @@ namespace fan_2d {
 
           void depth_map_push(pile_t* pile, uint32_t type, uint32_t index);
           void depth_map_erase_active(pile_t* pile);
+          void print(pile_t* pile, const std::string& message);
 
           fan::vec2 builder_viewport_size;
           fan::vec2 origin_shapes;
@@ -159,7 +161,7 @@ namespace fan_2d {
 
           void open() {
             
-            window.open();
+            window.open(editor_t::constants::window_size);
             context.init();
             context.bind_to_window(&window);
             context.set_viewport(0, window.get_size());
