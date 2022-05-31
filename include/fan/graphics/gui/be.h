@@ -3,6 +3,7 @@
 #include _FAN_PATH(graphics/gui/rectangle_text_box_sized.h)
 #include _FAN_PATH(graphics/gui/button_event.h)
 #include _FAN_PATH(graphics/gui/key_event.h)
+#include _FAN_PATH(physics/collision/circle.h)
 
 namespace fan_2d {
   namespace graphics {
@@ -12,9 +13,23 @@ namespace fan_2d {
         typedef void(*on_input_cb)(be_t*, uint32_t index, uint16_t key, fan::key_state key_state, fan_2d::graphics::gui::mouse_stage mouse_stage);
         typedef void(*on_mouse_move_cb)(be_t*, uint32_t index, mouse_stage mouse_stage);
 
+        struct hitbox_type_t {
+          static constexpr uint8_t rectangle = 0;
+          static constexpr uint8_t circle = 1;
+        };
+
         struct properties_t {
-          fan::vec2 position;
-          fan::vec2 size;
+          uint8_t hitbox_type;
+          union {
+            struct{
+              fan::vec2 position;
+              fan::vec2 size;
+            }hitbox_rectangle;
+            struct{
+              fan::vec2 position;
+              f32_t radius;
+            }hitbox_circle;
+          };
         };
 
         struct key_info_t {
@@ -50,9 +65,23 @@ namespace fan_2d {
           on_mouse_event_function = [](be_t*, uint32_t index, fan_2d::graphics::gui::mouse_stage mouse_stage) {};
 
           static auto inside = [](be_t* object, uint32_t i, const fan::vec2& p) {
-            fan::vec2 src = object->m_button_data[i].properties.position - object->m_button_data[i].properties.size;
-            fan::vec2 dst = object->m_button_data[i].properties.position + object->m_button_data[i].properties.size;
-            return fan_2d::collision::rectangle::point_inside_no_rotation(p, src, dst);
+
+            switch(object->m_button_data[i].properties.hitbox_type) {
+              case hitbox_type_t::rectangle: {
+                return fan_2d::collision::rectangle::point_inside_no_rotation(
+                  p, 
+                  object->m_button_data[i].properties.hitbox_rectangle.position - object->m_button_data[i].properties.hitbox_rectangle.size, 
+                  object->m_button_data[i].properties.hitbox_rectangle.position + object->m_button_data[i].properties.hitbox_rectangle.size
+                );
+              }
+              case hitbox_type_t::circle: {
+                return fan_2d::collision::circle::point_inside(
+                  p, 
+                  object->m_button_data[i].properties.hitbox_circle.position,
+                  object->m_button_data[i].properties.hitbox_circle.radius
+                );
+              }
+            }
           };
 
           add_mouse_move_callback_id = w->add_mouse_move_callback(this, [](fan::window_t* w, const fan::vec2i&, void* user_ptr) {
@@ -184,6 +213,8 @@ namespace fan_2d {
           on_mouse_event_function = function;
         }
 
+    //  protected:
+
         on_input_cb on_input_function;
         on_mouse_move_cb on_mouse_event_function;
 
@@ -200,7 +231,6 @@ namespace fan_2d {
         struct button_data_t {
           properties_t properties;
           uint16_t old_key;
-
         };
 
         fan::hector_t<button_data_t> m_button_data;

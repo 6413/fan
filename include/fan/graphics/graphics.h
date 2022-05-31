@@ -14,16 +14,6 @@ namespace fan {
 	namespace graphics {
 
 		#if fan_renderer == fan_renderer_opengl
-			using fan::opengl::load_image;
-		#endif
-
-	}
-}
-
-namespace fan {
-	namespace graphics {
-
-		#if fan_renderer == fan_renderer_opengl
 			using fan::opengl::context_t;
 			using fan::opengl::matrices_t;
 			using fan::opengl::viewport_t;

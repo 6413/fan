@@ -63,7 +63,7 @@ namespace fan_2d {
         f32_t begin_angle;
         f32_t end_angle;
 
-        fan::opengl::image_t* image;
+        fan::opengl::image_t image;
       };
 
       void set(properties_t p) {
@@ -83,7 +83,7 @@ namespace fan_2d {
         instance.begin_time = fan::time::clock::now();
       }
 
-      void reload_sprite(fan::opengl::context_t* context, uint32_t i, fan::opengl::image_t* image) {
+      void reload_sprite(fan::opengl::context_t* context, uint32_t i, const fan::opengl::image_t& image) {
         instance.image = image;
       }
 
@@ -172,7 +172,7 @@ namespace fan_2d {
         //uint32_t from = 0;
         //uint32_t to = 0;
         //for (uint32_t i = 0; i < this->size(context); i++) {
-        //  if (texture_id != instance.image->texture) {
+        //  if (texture_id != instance.image.texture) {
         //    if (to) {
         //      draw_vertex(
         //        context,
@@ -182,7 +182,7 @@ namespace fan_2d {
         //    }
         //    from = i;
         //    to = 0;
-        //    texture_id = instance.image->texture;
+        //    texture_id = instance.image.texture;
         //  //  m_shader.set_int("texture_sampler", 0);
         //    glActiveTexture(GL_TEXTURE0);
         //    glBindTexture(GL_TEXTURE_2D, texture_id);

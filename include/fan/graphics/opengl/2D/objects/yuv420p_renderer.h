@@ -11,8 +11,8 @@ namespace fan_2d {
 
 			struct properties_t : public fan_2d::opengl::sprite_t::properties_t {
 				fan_2d::opengl::pixel_data_t pixel_data;
-				uint32_t filter = fan::opengl::image_load_properties_defaults::filter;
-				uint32_t visual_output = fan::opengl::image_load_properties_defaults::visual_output;
+				uint32_t filter = fan::opengl::image_t::load_properties_defaults::filter;
+				uint32_t visual_output = fan::opengl::image_t::load_properties_defaults::visual_output;
 			};
 
 			void open(fan::opengl::context_t* context) {
@@ -87,7 +87,7 @@ namespace fan_2d {
 				property.rotation_point = properties.rotation_point;
 				property.rotation_vector = properties.rotation_vector;
 				property.texture_coordinates = properties.texture_coordinates;
-				property.image = nullptr;
+				property.image.texture = fan::uninitialized;
 
 				fan_2d::opengl::sprite_t::push_back(context, property);
 

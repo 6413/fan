@@ -90,8 +90,8 @@ namespace fan_2d {
 
 					static constexpr const char* font_name = "bitter";
 
-					if (!font_image) {
-						font_image = fan::opengl::load_image(context, std::string("fonts/") + font_name + ".webp");
+					if (font_image.texture == fan::uninitialized) {
+						font_image.load(context, std::string("fonts/") + font_name + ".webp");
 					}
 
 					font = fan::font::parse_font(std::string("fonts/") + font_name + "_metrics.txt");
@@ -629,7 +629,7 @@ namespace fan_2d {
 				}
 
 				inline static fan::font::font_t font;
-				inline static fan::opengl::image_t* font_image = nullptr;
+				inline static fan::opengl::image_t font_image{-1, -1};
 
 				static uint64_t get_new_lines(fan::opengl::context_t* context, const fan::utf16_string& str)
 				{
@@ -655,7 +655,7 @@ namespace fan_2d {
 					m_shader.use(context);
 					m_shader.set_int(context, "texture_sampler", 0);
 					context->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
-					context->opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, font_image->texture);
+					context->opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, font_image.texture);
 
 					uint32_t begin_ = get_index(begin) * vertex_count;
 					uint32_t end_;
@@ -710,8 +710,8 @@ namespace fan_2d {
 					auto letter_info = get_letter_info(context, character, font_size);
 
 					letter_t letter;
-					letter.texture_position = letter_info.glyph.position / font_image->size;
-					letter.texture_size = letter_info.glyph.size / font_image->size;
+					letter.texture_position = letter_info.glyph.position / font_image.size;
+					letter.texture_size = letter_info.glyph.size / font_image.size;
 
 					fan::vec2 src = letter.texture_position;
 					fan::vec2 dst = src + letter.texture_size;

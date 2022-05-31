@@ -78,15 +78,15 @@ namespace fan_2d {
           fan::vec2(0, 0)
         };
 
-        fan::opengl::image_t* image = 0;
-        fan::opengl::image_t* light_map = 0;
+        fan::opengl::image_t image = 0;
+        fan::opengl::image_t light_map = 0;
 
         uint64_t id = fan::uninitialized;
 
         void load_texturepack(fan::opengl::context_t* context, fan::opengl::texturepack* texture_packd, fan::opengl::texturepack::ti_t* ti) {
           image = texture_packd->pixel_data_list[ti->pack_id].image;
-          const fan::vec2 texture_position = fan::cast<f32_t>(ti->position) / image->size;
-          const fan::vec2 texture_size = fan::cast<f32_t>(ti->size) / image->size;
+          const fan::vec2 texture_position = fan::cast<f32_t>(ti->position) / image.size;
+          const fan::vec2 texture_size = fan::cast<f32_t>(ti->size) / image.size;
           texture_coordinates = {
             fan::vec2(texture_position.x, 1.0 - (texture_position.y + texture_size.y)),
             fan::vec2(texture_position.x + texture_size.x, 1.0 - (texture_position.y + texture_size.y)),
@@ -123,7 +123,7 @@ namespace fan_2d {
 
       static constexpr uint32_t vertex_count = 6;
 
-      // fan::opengl::load_image::texture
+      // fan::opengl::load::texture
       void push_back(fan::opengl::context_t* context, const properties_t& properties) {
 
         instance_t instance;
@@ -145,15 +145,15 @@ namespace fan_2d {
           &m_glsl_buffer
         );
 
-        if (properties.image == nullptr) {
+        if (properties.image.texture == fan::uninitialized) {
           fan::throw_error("a");
         }
-        if (properties.light_map == nullptr) {
+        if (properties.light_map.texture == fan::uninitialized) {
           fan::throw_error("a");
         }
         m_store_sprite.resize(m_store_sprite.size() + 1);
-        m_store_sprite[m_store_sprite.size() - 1].m_texture[0] = properties.image->texture;
-        m_store_sprite[m_store_sprite.size() - 1].m_texture[1] = properties.light_map->texture;
+        m_store_sprite[m_store_sprite.size() - 1].m_texture[0] = properties.image.texture;
+        m_store_sprite[m_store_sprite.size() - 1].m_texture[1] = properties.light_map.texture;
         m_store_sprite[m_store_sprite.size() - 1].m_id = properties.id;
       }
 
@@ -179,15 +179,15 @@ namespace fan_2d {
         );
 
         store_sprite_t sst;
-        sst.m_texture[0] = properties.image->texture;
-        sst.m_texture[1] = properties.light_map->texture;
+        sst.m_texture[0] = properties.image.texture;
+        sst.m_texture[1] = properties.light_map.texture;
         sst.m_id = properties.id;
 
         m_store_sprite.insert(i, sst);
       }
 
-     /* void reload_sprite(fan::opengl::context_t* context, uint32_t i, fan::opengl::image_t* image) {
-        m_store_sprite[i].m_texture = image->texture;
+     /* void reload_sprite(fan::opengl::context_t* context, uint32_t i, fan::opengl::image_t image) {
+        m_store_sprite[i].m_texture = image.texture;
       }*/
 
       std::array<fan::vec2, 4> get_texture_coordinates(fan::opengl::context_t* context, uint32_t i) {

@@ -28,7 +28,7 @@ namespace fan {
       };
 
       struct pixel_data_t {
-        fan::opengl::image_t* image;
+        fan::opengl::image_t image;
       };
       uint32_t pack_amount;
       fan::hector_t<fan::hector_t<texture_t>> texture_list;
@@ -73,7 +73,7 @@ namespace fan {
             &image_info.size.y
           );
           data_index += size;
-          pixel_data_list[i].image = fan::opengl::load_image(context, image_info); 
+          pixel_data_list[i].image.load(context, image_info); 
           WebPFree(image_info.data);
         }
 
