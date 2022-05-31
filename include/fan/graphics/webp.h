@@ -26,25 +26,24 @@ namespace fan {
       return WebPGetInfo((uint8_t*)data.data(), data.size(), &size->x, &size->y) != 1;
     }
 
-	  static image_info_t decode(const uint8_t* webp_data, std::size_t size) {
+	  static bool decode(const uint8_t* webp_data, std::size_t size, image_info_t* image_info) {
       
       image_info_t image_info;
       image_info.data = WebPDecodeRGBA(webp_data, size, &image_info.size.x, &image_info.size.y);
-
-      return image_info;
+      return image_info->data == 0;
     }
 
-    static image_info_t load(const std::string_view file) {
+    static bool load(const std::string_view file, image_info_t* image_info) {
     
       auto data = fan::io::file::read(std::string(file));
 
-      auto image_info = decode((const uint8_t*)data.data(), data.size());
-
-      if (image_info.data == nullptr) {
-        fan::throw_error("failed to open image " + std::string(file));
+      bool failed = decode((const uint8_t*)data.data(), data.size(), image_info);
+      if (failed) {
+        fan::print_warning(std::string("failed to load image:") + file);
+        return false;
       }
 
-      return image_info;
+      return true;
     }
 
     static void free_image(void* ptr) {

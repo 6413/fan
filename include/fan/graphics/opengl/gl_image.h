@@ -31,7 +31,7 @@ namespace fan {
         uintptr_t filter;
       };
 
-      void load(fan::opengl::context_t* context, const fan::webp::image_info_t image_info, load_properties_t p = load_properties_t()) {
+      bool load(fan::opengl::context_t* context, const fan::webp::image_info_t image_info, load_properties_t p = load_properties_t()) {
 
         context->opengl.call(context->opengl.glGenTextures, 1, &texture);
         context->opengl.call(context->opengl.glBindTexture, GL_TEXTURE_2D, texture);
@@ -46,9 +46,11 @@ namespace fan {
 
         context->opengl.call(context->opengl.glGenerateMipmap, GL_TEXTURE_2D);
         context->opengl.call(context->opengl.glBindTexture, GL_TEXTURE_2D, 0);
+
+        return true;
       }
 
-      void load(fan::opengl::context_t* context, const std::string_view path, const load_properties_t& p = load_properties_t()) {
+      bool load(fan::opengl::context_t* context, const std::string_view path, const load_properties_t& p = load_properties_t()) {
 
         #if fan_assert_if_same_path_loaded_multiple_times
 
@@ -62,7 +64,7 @@ namespace fan {
 
         #endif
 
-        load(context, fan::webp::load(path), p);
+        return load(context, fan::webp::load(path), p);
       }
 
       void reload_pixels(fan::opengl::context_t* context, image_t image, const fan::webp::image_info_t& image_info, const load_properties_t& p = load_properties_t()) {

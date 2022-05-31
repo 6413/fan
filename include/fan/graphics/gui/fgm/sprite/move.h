@@ -5,9 +5,7 @@ case builder_draw_type_t::sprite: {
     position + pile->editor.move_offset
   );
 
-  if (pile->editor.resize_rectangles.size(&pile->window, &pile->context)) {
-    pile->editor.update_resize_rectangles(pile);
-  }
+  pile->editor.update_resize_rectangles(pile);
 
   break;
 }
