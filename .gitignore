@@ -2,7 +2,6 @@
 *.db
 *.sarif
 *.opendb
-*.txt
 *.obj
 *.pdb
 *.xml

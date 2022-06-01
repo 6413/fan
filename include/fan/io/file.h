@@ -86,7 +86,7 @@ namespace fan {
 
 				std::ifstream file(path.c_str(), std::ifstream::ate | std::ifstream::binary);
 				if (file.fail()) {
-					fan::throw_error("path does not exist " + path);
+					fan::print_warning("path does not exist " + path);
 				}
 				std::string data;
 				data.resize(file.tellg());

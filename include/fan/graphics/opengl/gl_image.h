@@ -47,7 +47,7 @@ namespace fan {
         context->opengl.call(context->opengl.glGenerateMipmap, GL_TEXTURE_2D);
         context->opengl.call(context->opengl.glBindTexture, GL_TEXTURE_2D, 0);
 
-        return true;
+        return 0;
       }
 
       bool load(fan::opengl::context_t* context, const std::string_view path, const load_properties_t& p = load_properties_t()) {
@@ -64,7 +64,12 @@ namespace fan {
 
         #endif
 
-        return load(context, fan::webp::load(path), p);
+        fan::webp::image_info_t image_info;
+        if (!fan::webp::load(path, &image_info)) {
+          return 1;
+        }
+
+        return load(context, image_info, p);
       }
 
       void reload_pixels(fan::opengl::context_t* context, image_t image, const fan::webp::image_info_t& image_info, const load_properties_t& p = load_properties_t()) {
