@@ -240,6 +240,11 @@ namespace fan {
     fan::print("fan warning: ", message);
     #endif
   }
+  static void print_warning_no_space(const std::string& message) {
+    #ifndef fan_disable_warnings
+    fan::print_no_space("fan warning:", message);
+    #endif
+  }
 
   static void throw_error(const std::string& message) {
     fan::print(message);

@@ -68,7 +68,7 @@ decltype(builder_types)::properties_t builder_types_p;
 builder_types_p.font_size = constants::gui_size;
 builder_types_p.size = fan::vec2(constants::gui_size * 4, constants::gui_size);
 builder_types_p.position = origin + fan::vec2(50 + builder_types_p.size.x / 2, 50);
-builder_types_p.text = "Button";
+builder_types_p.text = "sprite";
 builder_types_p.theme = fan_2d::graphics::gui::themes::gray();
 builder_types.push_back(&pile->window, &pile->context, builder_types_p);
 builder_types_p.position.y += 50;

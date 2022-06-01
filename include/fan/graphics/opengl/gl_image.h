@@ -6,6 +6,13 @@
 namespace fan {
   namespace opengl {
 
+    static constexpr fan::_vec4<fan::vec2> default_texture_coordinates = {
+      fan::vec2(0, 1),
+      fan::vec2(1, 1),
+      fan::vec2(1, 0),
+      fan::vec2(0, 0)
+    };
+
     struct image_t {
 
       struct load_properties_defaults {
