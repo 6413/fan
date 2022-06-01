@@ -12,7 +12,7 @@ namespace fan_2d {
   namespace graphics {
     namespace gui {
       // text color needs to be less than 1.0 or 255 in rgb to see color change
-      struct text_renderer :
+      struct text_renderer_clickable_t :
         public fan_2d::opengl::gui::text_renderer_t
       {
 
@@ -174,7 +174,7 @@ namespace fan_2d {
           }
         }
 
-        void push_back(fan::window_t* window, fan::opengl::context_t* context, const text_renderer::properties_t& properties)
+        void push_back(fan::window_t* window, fan::opengl::context_t* context, const text_renderer_clickable_t::properties_t& properties)
         {
           store_t store;
           store.m_hitbox = hitbox_t{ properties.hitbox_position, properties.hitbox_size };
@@ -233,7 +233,7 @@ namespace fan_2d {
         static constexpr f32_t hover_strength = 0.2;
         static constexpr f32_t click_strength = 0.3;
 
-        fan_2d::graphics::gui::button_event_t<text_renderer> m_button_event;
+        fan_2d::graphics::gui::button_event_t<text_renderer_clickable_t> m_button_event;
 
         void erase(fan::window_t* window, fan::opengl::context_t* context, uintptr_t i) {
           m_store.erase(i);
