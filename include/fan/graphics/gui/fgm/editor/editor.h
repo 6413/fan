@@ -78,7 +78,7 @@ void editor_t::open_build_properties(pile_t* pile, click_collision_t click_colli
   switch (click_collision_.builder_draw_type) {    
     #include _FAN_PATH(graphics/gui/fgm/sprite/open_build_properties.h)
     #include _FAN_PATH(graphics/gui/fgm/text_renderer/open_build_properties.h)
-    #include "fgm.h"
+    #include _FAN_PATH(graphics/gui/fgm/fgm.h)
   }
 }
 
