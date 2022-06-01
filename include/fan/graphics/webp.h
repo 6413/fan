@@ -27,9 +27,7 @@ namespace fan {
     }
 
 	  static bool decode(const uint8_t* webp_data, std::size_t size, image_info_t* image_info) {
-      
-      image_info_t image_info;
-      image_info.data = WebPDecodeRGBA(webp_data, size, &image_info.size.x, &image_info.size.y);
+      image_info->data = WebPDecodeRGBA(webp_data, size, &image_info->size.x, &image_info->size.y);
       return image_info->data == 0;
     }
 
@@ -39,7 +37,7 @@ namespace fan {
 
       bool failed = decode((const uint8_t*)data.data(), data.size(), image_info);
       if (failed) {
-        fan::print_warning(std::string("failed to load image:") + file);
+        fan::print_warning(std::string("failed to load image:") + std::string(file));
         return false;
       }
 

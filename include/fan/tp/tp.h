@@ -81,9 +81,8 @@ namespace fan {
           std::vector<uint8_t> r(pack_list[i].bin_size.x * pack_list[i].bin_size.y * 4);
           for (uint32_t j = 0; j < count; j++) {
             texture_t* t = &pack_list[i].texture_list[j];
-            fan::webp::image_info_t image_info = fan::webp::load(t->filepath);
-            std::hash<std::string> hasher;
-            uint64_t hashed = hasher(t->name);
+            fan::webp::image_info_t image_info = fan::webp::load_image(t->filepath);
+            uint64_t hashed = fan::get_hash(t->name);
             fwrite(&hashed, sizeof(hashed), 1, f);
             fwrite(t->position.data(), sizeof(t->position), 1, f);
             fwrite(t->size.data(), sizeof(t->size), 1, f);

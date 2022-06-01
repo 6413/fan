@@ -60,7 +60,8 @@ case builder_draw_type_t::sprite: {
 
   properties_button_p.position.y += 50;
 
-  properties_button_p.text = fan::to_wstring(size.x, 0) + L", " + fan::to_wstring(size.y, 0);
+  properties_button_p.text = " ";
+
   pile->editor.properties_button.push_back(&pile->window, &pile->context, properties_button_p);
 
   properties_text_p.text = "image path:";
@@ -182,15 +183,17 @@ case builder_draw_type_t::sprite: {
             break;
           }
           case 2: {
-            std::string path = pile->editor.properties_button.get_text(
+            fan::utf16_string wpath = pile->editor.properties_button.get_text(
               window,
               context,
               i
             );
 
-            fan::graphics::image_t image;
-            if (!image.load_image(&pile->context, path)) {
-              pile->editor.print(pile, "failed to load image:" + path);
+            std::string path(wpath.begin(), wpath.end());
+
+            fan::opengl::image_t image;
+            if (!image.load(&pile->context, path)) {
+              pile->editor.print(pile, std::string("failed to load image:") + path);
             }
 
 
@@ -199,6 +202,8 @@ case builder_draw_type_t::sprite: {
               pile->editor.selected_type_index,
               image
             );
+
+            pile->editor.properties_button.set_text(window, context, 2, path);
 
             pile->editor.update_resize_rectangles(pile);
             break;

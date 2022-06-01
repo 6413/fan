@@ -87,9 +87,7 @@ namespace fan {
       }
 
       bool qti(const std::string& name, ti_t* ti) {
-
-        std::hash<std::string> hasher;
-        uint64_t hash = hasher(name);
+        uint64_t hash = fan::get_hash(name);
 
         //std::find_if(texture_list[0].begin(), texture_list[texture_list.size()].end(),
         //  [](const texture_t& a, const texture_t& b) {

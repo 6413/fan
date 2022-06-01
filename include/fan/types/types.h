@@ -324,9 +324,18 @@ namespace fan {
   template<typename Callable>
   using return_type_of_t = typename decltype(std::function{std::declval<Callable>()})::result_type;
 
-  inline uint64_t get_hash(const std::string str) {
-    static std::hash<std::string> hasher;
-    return hasher(str);
+  constexpr uint64_t get_hash(const std::string& str) {
+    uint64_t result = 0xcbf29ce484222325; // FNV offset basis
+
+    uint32_t i = 0;
+
+    while(str[i] != 0) {
+        result ^= str[i];
+        result *= 1099511628211; // FNV prime
+        i++;
+    }
+
+    return result;
   }
 }
 
