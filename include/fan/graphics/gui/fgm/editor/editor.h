@@ -91,6 +91,7 @@ void editor_t::close_build_properties(pile_t* pile)
   pile->editor.properties_button.clear(&pile->window, &pile->context);
   pile->editor.properties_button_text.clear(&pile->context);
   pile->editor.resize_rectangles.clear(&pile->window, &pile->context);
+  pile->editor.selected_type = fan::uninitialized;
 }
 
 bool editor_t::is_inside_builder_viewport(pile_t* pile, const fan::vec2& position)

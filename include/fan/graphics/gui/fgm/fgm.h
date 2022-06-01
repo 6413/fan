@@ -117,6 +117,9 @@ namespace fan_2d {
           uint32_t selected_type;
           uint32_t selected_type_index;
 
+          uint32_t copied_type;
+          uint32_t copied_type_index;
+
           fan::vec2 click_position;
           fan::vec2 move_offset;
 

@@ -312,6 +312,7 @@
     <ClInclude Include="include\fan\graphics\gui\fgm\editor\open.h" />
     <ClInclude Include="include\fan\graphics\gui\fgm\editor\set_callbacks.h" />
     <ClInclude Include="include\fan\graphics\gui\fgm\fgm.h" />
+    <ClInclude Include="include\fan\graphics\gui\fgm\input\copy_paste.h" />
     <ClInclude Include="include\fan\graphics\gui\fgm\input\key_delete.h" />
     <ClInclude Include="include\fan\graphics\gui\fgm\input\mouse_left.h" />
     <ClInclude Include="include\fan\graphics\gui\fgm\input\mouse_scroll_down.h" />

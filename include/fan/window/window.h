@@ -351,6 +351,8 @@ namespace fan {
 		void* get_user_data() const;
 		void set_user_data(void* user_data);
 
+		bool key_pressed(uint16_t key) const;
+
 #if fan_renderer == fan_renderer_vulkan
 
 

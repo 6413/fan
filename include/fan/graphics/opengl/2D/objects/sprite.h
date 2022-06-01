@@ -174,6 +174,10 @@ namespace fan_2d {
         m_store_sprite[i].m_texture = image.texture;
       }
 
+      uint32_t get_texture(fan::opengl::context_t* context, uint32_t i) const {
+        return m_store_sprite[i].m_texture;
+      }
+
       std::array<fan::vec2, 4> get_texture_coordinates(fan::opengl::context_t* context, uint32_t i) {
         fan::vec2* coordinates = (fan::vec2*)m_glsl_buffer.get_instance(context, i * vertex_count, element_byte_size, offset_texture_coordinates);
 

@@ -2,6 +2,8 @@ depth_map.open();
 move_offset = 0;
 properties_camera = 0;
 
+pile->editor.selected_type = fan::uninitialized;
+
 builder_viewport_size = constants::builder_viewport_size;
 origin_shapes = fan::vec2(builder_viewport_size.x, 0);
 origin_properties = fan::vec2(builder_viewport_size.x, builder_viewport_size.y / 2);
@@ -72,7 +74,7 @@ builder_types_p.text = "sprite";
 builder_types_p.theme = fan_2d::graphics::gui::themes::gray();
 builder_types.push_back(&pile->window, &pile->context, builder_types_p);
 builder_types_p.position.y += 50;
-builder_types_p.text = "Clickable text";
+builder_types_p.text = "text";
 builder_types.push_back(&pile->window, &pile->context, builder_types_p);
 
 builder_types_p.position.x -= 30;
