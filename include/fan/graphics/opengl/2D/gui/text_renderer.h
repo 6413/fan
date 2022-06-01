@@ -118,10 +118,6 @@ namespace fan_2d {
 
 				void push_back(fan::opengl::context_t* context, properties_t properties) {
 
-					if (properties.text.empty()) {
-						throw std::runtime_error("text cannot be empty");
-					}
-
 					store_t store;
 					store.m_text.open();
 
@@ -572,6 +568,10 @@ namespace fan_2d {
 				}
 
 				fan::vec2 get_text_size(fan::opengl::context_t* context, uint32_t i) const {
+
+					if (m_store[i].m_text->size() == 0) {
+						 return fan::vec2(0, get_line_height(context, get_font_size(context, i)));
+					}
 
 					uint32_t begin = 0;
 					uint32_t end = 0;

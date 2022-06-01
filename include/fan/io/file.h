@@ -82,18 +82,18 @@ namespace fan {
 				return data;
 			}
 
-			static std::string read(const std::string& path) {
+			static bool read(const std::string& path, std::string* str) {
 
 				std::ifstream file(path.c_str(), std::ifstream::ate | std::ifstream::binary);
 				if (file.fail()) {
-					fan::print_warning("path does not exist " + path);
+					fan::print_warning_no_space("path does not exist:" + path);
+					return 0;
 				}
-				std::string data;
-				data.resize(file.tellg());
+				str->resize(file.tellg());
 				file.seekg(0, std::ios::beg);
-				file.read(&data[0], data.size());
+				file.read(&(*str)[0], str->size());
 				file.close();
-				return data;
+				return true;
 			}
 
 			template <typename T>

@@ -42,7 +42,8 @@ namespace fan {
         texture_list.open();
         pixel_data_list.open();
 
-        std::string data = fan::io::file::read(filename);
+        std::string data;
+        fan::io::file::read(filename, &data);
         uint32_t data_index = 0;
         pack_amount = *(uint32_t*)&data[data_index];
         texture_list.resize(pack_amount);

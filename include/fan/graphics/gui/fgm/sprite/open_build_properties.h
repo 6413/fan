@@ -60,7 +60,8 @@ case builder_draw_type_t::sprite: {
 
   properties_button_p.position.y += 50;
 
-  properties_button_p.text = " ";
+  properties_button_p.text = "";
+  calculate_text_position();
 
   pile->editor.properties_button.push_back(&pile->window, &pile->context, properties_button_p);
 
@@ -69,11 +70,7 @@ case builder_draw_type_t::sprite: {
 
   pile->editor.properties_button_text.push_back(&pile->context, properties_text_p);
 
-
   properties_button_p.position.y += 50;
-
-  properties_text_p.text = " ";
-  calculate_text_position();
 
   properties_button_p.allow_input = false;
   properties_button_p.text = "erase";
@@ -192,20 +189,39 @@ case builder_draw_type_t::sprite: {
             std::string path(wpath.begin(), wpath.end());
 
             fan::opengl::image_t image;
-            if (!image.load(&pile->context, path)) {
-              pile->editor.print(pile, std::string("failed to load image:") + path);
+            if (path == "\\null") {
+              image.create_missing_texture(&pile->context);
+              pile->builder.sprite.reload_sprite(
+                context,
+                pile->editor.selected_type_index,
+                image
+              );
+              pile->builder.sprite.set_texture_coordinates(
+                context,
+                pile->editor.selected_type_index,
+                image.calculate_aspect_ratio(
+                  pile->builder.sprite.get_size(context, pile->editor.selected_type_index),
+                  3
+                )
+              );
             }
-
-
-            pile->builder.sprite.reload_sprite(
-              context,
-              pile->editor.selected_type_index,
-              image
-            );
-
-            pile->editor.properties_button.set_text(window, context, 2, path);
-
-            pile->editor.update_resize_rectangles(pile);
+            else if (image.load(&pile->context, path)) {
+              pile->editor.print(pile, std::string("failed to load image:") + path);
+              pile->editor.properties_button.set_text(window, context, 2, " ");
+            }
+            else {
+              pile->editor.properties_button.set_text(window, context, 2, path);
+              pile->builder.sprite.reload_sprite(
+                context,
+                pile->editor.selected_type_index,
+                image
+              );
+              pile->builder.sprite.set_texture_coordinates(
+                context,
+                pile->editor.selected_type_index,
+                fan::opengl::default_texture_coordinates
+              );
+            }
             break;
           }
         }
