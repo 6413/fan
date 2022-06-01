@@ -63,7 +63,9 @@ pile->window.add_keys_callback(pile,
     #include _FAN_PATH(graphics/gui/fgm/input/mouse_scroll_up.h)
     #include _FAN_PATH(graphics/gui/fgm/input/mouse_scroll_down.h)
     #include _FAN_PATH(graphics/gui/fgm/input/key_delete.h)
+    #include _FAN_PATH(graphics/gui/fgm/input/copy_paste.h)
   }
+
 });
 
 pile->editor.resize_rectangles.m_button_event.set_on_input(pile,

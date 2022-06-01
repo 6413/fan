@@ -2137,3 +2137,22 @@ void fan::window_t::set_user_data(void* user_data)
 {
   m_user_data = user_data;
 }
+
+bool fan::window_t::key_pressed(uint16_t key) const
+{
+  #if defined(fan_platform_windows)
+
+    return GetKeyState(fan::window_input::convert_fan_to_keys(key)) & 0x8000;
+  #elif defined(fan_platform_unix)
+
+  assert(0);
+
+  /*char keys_return[32];
+  XQueryKeymap(fan::sys::m_display, keys_return);
+  KeyCode kc2 = XKeysymToKeycode(fan::sys::m_display, XK_Shift_L );
+  bool bShiftPressed = !!( keys_return[ kc2>>3 ] & ( 1<<(kc2&7) ) );
+  printf("Shift is %spressed\n", bShiftPressed ? "" : "not ");
+  XCloseDisplay(dpy);*/
+
+  #endif
+}
