@@ -20,3 +20,5 @@
 *.vsidx
 
 *.o
+.vs/fan/v17/.suo
+*.exe
