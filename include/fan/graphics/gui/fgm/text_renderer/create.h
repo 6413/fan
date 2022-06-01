@@ -27,35 +27,33 @@ case builder_draw_type_t::text_renderer: {
       switch (pile->editor.builder_draw_type) {
         case builder_draw_type_t::text_renderer: {
 
-          //// if object is not within builder_viewport we will delete it
-          //if (!pile->editor.is_inside_builder_viewport(
-          //  pile,
-          //  pile->builder.tr.get_hitbox_position(
-          //  &pile->window,
-          //  &pile->context,
-          //  pile->editor.builder_draw_type_index
-          //  ) +
-          //  pile->builder.tr.get_hitbox_size(
-          //  &pile->window,
-          //  &pile->context,
-          //  pile->editor.builder_draw_type_index
-          //  )
-          //  ))
-          //{
-          //  pile->editor.close_build_properties(pile);
-          //  pile->builder.tr.erase(
-          //    &pile->context,
-          //    pile->editor.builder_draw_type_index
-          //  );
-          //  pile->editor.depth_map.erase(pile->editor.depth_map.size() - 1);
-          //}
-          //else {
+          // if object is not within builder_viewport we will delete it
+          if (!pile->editor.is_inside_builder_viewport(
+            pile,
+            pile->builder.tr.get_position(
+            &pile->context,
+            pile->editor.builder_draw_type_index
+            ) +
+            pile->builder.tr.get_text_size(
+            &pile->context,
+            pile->editor.builder_draw_type_index
+            )
+            ))
+          {
+            pile->editor.close_build_properties(pile);
+            pile->builder.tr.erase(
+              &pile->context,
+              pile->editor.builder_draw_type_index
+            );
+            pile->editor.depth_map.erase(pile->editor.depth_map.size() - 1);
+          }
+          else {
             pile->editor.close_build_properties(pile);
             click_collision_t click_collision;
             click_collision.builder_draw_type = pile->editor.builder_draw_type;
             click_collision.builder_draw_type_index = pile->editor.builder_draw_type_index;
             pile->editor.open_build_properties(pile, click_collision);
-          //}
+          }
           break;
         }
       }

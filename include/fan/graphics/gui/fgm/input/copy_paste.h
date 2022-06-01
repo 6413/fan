@@ -32,7 +32,7 @@ case fan::key_v: {
       sprite_p.position = pile->builder.sprite.get_position(&pile->context, pile->editor.copied_type_index);
       sprite_p.size = pile->builder.sprite.get_size(&pile->context, pile->editor.copied_type_index);
       sprite_p.image.texture = pile->builder.sprite.get_texture(&pile->context, pile->editor.copied_type_index);
-      sprite_p.texture_coordinates = sprite_p.image.calculate_aspect_ratio(sprite_p.size, 3);
+      sprite_p.texture_coordinates = pile->builder.sprite.get_texture_coordinates(&pile->context, pile->editor.copied_type_index);
       pile->builder.sprite.push_back(&pile->context, sprite_p);
 
       pile->editor.depth_map_push(pile, builder_draw_type_t::sprite, pile->builder.sprite.size(&pile->context) - 1);
