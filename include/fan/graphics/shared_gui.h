@@ -23,6 +23,8 @@
 	#include _FAN_PATH(graphics/opengl/2D/gui/text_renderer0.h)
 #endif
 
+#include _FAN_PATH(graphics/gui/text_renderer_clickable.h)
+
 #include _FAN_PATH(graphics/gui/rectangle_text_button_sized.h)
 #include _FAN_PATH(graphics/gui/checkbox.h)
 #include _FAN_PATH(graphics/gui/select_box.h)
