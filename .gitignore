@@ -18,3 +18,5 @@
 *.db-shm
 *.db-wal
 *.vsidx
+
+*.o
