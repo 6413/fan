@@ -1,4 +1,4 @@
-// Creates window, opengl context and renders a rectangle
+// Example of button events for hitboxes
 
 #define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 
