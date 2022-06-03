@@ -160,7 +160,7 @@ namespace fan {
         context->opengl.call(context->opengl.glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, p.filter);
         context->opengl.call(context->opengl.glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, p.filter);
 
-        size = size;
+        size = fan::vec2i(2, 2);
 
         context->opengl.call(context->opengl.glTexImage2D, GL_TEXTURE_2D, 0, p.internal_format, 2, 2, 0, p.format, p.type, pixels);
 
