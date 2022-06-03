@@ -80,7 +80,7 @@ namespace fan {
         #if defined(fan_platform_windows)
           // create dummy window to initialize functions thank u microsoft
           // generate random class name to dont collide with other window classes xd
-          auto str = fan::random::string(10);
+          auto str = fan::random::string(15);
           WNDCLASSA window_class = {
             .style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC,
             .lpfnWndProc = DefWindowProcA,
