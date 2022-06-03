@@ -280,10 +280,15 @@ namespace fan {
 
 		constexpr _Ty min() const { return std::min(x, y); }
 		constexpr _Ty max() const { return std::max(x, y); }
+		constexpr _vec2<value_type> max(value_type max) const { return _vec2<value_type>(std::max(x, max), std::max(y, max)); }
 		constexpr vec_t abs() const { return vec_t(fan::math::abs(x), fan::math::abs(y)); }
 
 		constexpr vec_t clamp(_Ty min, _Ty max) const {
 			return vec_t(std::clamp(x, min, max), std::clamp(y, min, max));
+		}
+
+		constexpr vec_t get_sign() const {
+			return vec_t((_Ty(0) < x) - (x < _Ty(0)), (_Ty(0) < y) - (y < _Ty(0)));
 		}
 
 		template <typename T>

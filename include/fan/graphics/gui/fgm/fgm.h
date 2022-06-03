@@ -7,43 +7,53 @@ namespace fan_2d {
     namespace gui {
       namespace fgm {
 
-        /*struct load_t {
-          void open(fan::window_t* window, fan::opengl::context_t* context) {
-            rtbs.open(window, context);
+        struct load_t {
+          void open(fan::window_t* window, fan::opengl::context_t* context_) {
+            context = context_;
+            sprite.open(context);
 
             fan::vec2 window_size = window->get_size();
 
             matrices.open();
             matrices.set_ortho(context, fan::vec2(0, window_size.x), fan::vec2(0, window_size.y));
 
-            rtbs.bind_matrices(context, &matrices);
-            trc.bind_matrices(context, &matrices);
+            sprite.bind_matrices(context, &matrices);
+            tr.bind_matrices(context, &matrices);
+
+            window->add_resize_callback(this, [](fan::window_t* window, const fan::vec2i& size, void* userptr) {
+              load_t* pile = (load_t*)userptr;
+
+              pile->context->set_viewport(0, size);
+
+              fan::vec2 window_size = window->get_size();
+              pile->matrices.set_ortho(pile->context, fan::vec2(0, window_size.x), fan::vec2(0, window_size.y));
+            });
           }
           void close(fan::window_t* window, fan::opengl::context_t* context) {
-            rtbs.close(window, context);
-            trc.close(window, context);
+            sprite.close(context);
+            tr.close(context);
           }
 
-          void load(fan::opengl::context_t* context, const char* path) {
+          void load(fan::opengl::context_t* context, const char* path, fan::opengl::texturepack* tp) {
             FILE* f = fopen(path, "r+b");
             if (!f) {
               fan::throw_error("failed to open file stream");
             }
 
-            rtbs.write_in(context, f);
+            sprite.write_in_texturepack(context, f, tp, 0);
             fclose(f);
           }
 
           void enable_draw(fan::window_t* window, fan::opengl::context_t* context) {
-            rtbs.enable_draw(window, context);
+            sprite.enable_draw(context);
           }
 
-          fan_2d::graphics::gui::rectangle_text_button_sized_t rtbs;
-          fan_2d::graphics::gui::text_renderer tr;
+          fan_2d::graphics::sprite_t sprite;
+          fan_2d::graphics::gui::text_renderer_t tr;
 
           fan::opengl::matrices_t matrices;
-
-        };*/
+          fan::opengl::context_t* context;
+        };
 
         struct pile_t;
 
@@ -121,6 +131,10 @@ namespace fan_2d {
           uint32_t copied_type_index;
 
           fan::vec2 click_position;
+          fan::vec2 resize_position;
+          fan::vec2 resize_size;
+
+
           fan::vec2 move_offset;
 
           uint8_t flags;
@@ -162,13 +176,15 @@ namespace fan_2d {
           editor_t editor;
           builder_t builder;
 
-          void open() {
-            
+          fan::opengl::texturepack tp;
+
+          void open(int argc, char** argv) {
             window.open(editor_t::constants::window_size);
             context.init();
             context.bind_to_window(&window);
             context.set_viewport(0, window.get_size());
-        
+            tp.open(&context, argv[1]);
+
             window.add_resize_callback(this, [](fan::window_t*, const fan::vec2i& size, void* userptr) {
               pile_t* pile = (pile_t*)userptr;
 
@@ -209,15 +225,15 @@ namespace fan_2d {
             editor.gui_properties_matrices.set_ortho(&context, fan::vec2(0, window_size.x - editor.origin_properties.x), fan::vec2(0, window_size.y - editor.origin_properties.y));
           }
 
-          /*void save(const char* filename) {
+          void save(const char* filename) {
             FILE* f = fopen(filename, "w+b");
             if (!f) {
               fan::throw_error("failed to open file stream");
             }
 
-            builder.sprite.write_out(&context, f);
+            builder.sprite.write_out_texturepack(&context, f);
             fclose(f);
-          }*/
+          }
 
         };
 

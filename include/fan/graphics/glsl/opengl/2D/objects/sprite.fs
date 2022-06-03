@@ -12,7 +12,7 @@ uniform sampler2D texture_sampler;
 
 void main() {
 
-  vec2 flipped_y = vec2(texture_coordinate.x, 1.0 - texture_coordinate.y);
+  vec2 flipped_y = vec2(texture_coordinate.x, texture_coordinate.y);
 
   vec4 texture_color = texture(texture_sampler, flipped_y);
 

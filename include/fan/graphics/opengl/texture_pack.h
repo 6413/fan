@@ -74,7 +74,7 @@ namespace fan {
             &image_info.size.y
           );
           data_index += size;
-          pixel_data_list[i].image.load(context, image_info); 
+          pixel_data_list[i].image.load(context, image_info);
           WebPFree(image_info.data);
         }
 
@@ -97,16 +97,17 @@ namespace fan {
 
         for (uint32_t i = 0; i < texture_list.size(); i++) {
           for (uint32_t j = 0; j < texture_list[i].size(); j++) {
+            fan::print(texture_list[i][j].hash);
             if (texture_list[i][j].hash == hash) {
               ti->pack_id = i;
               ti->position = texture_list[i][j].position;
               ti->size = texture_list[i][j].size;
-              return 1;
+              return 0;
             }
           }
         }
 
-        return 0;
+        return 1;
       }
     };
   }

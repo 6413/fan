@@ -5,7 +5,6 @@ in vec4 input0;
 in vec4 input1;
 in vec4 input2;
 in vec4 input3;
-in float input4;
 
 out vec4 i_color;
 out vec2 fragment_position;
@@ -109,10 +108,8 @@ void main() {
 	vec2 layout_rotation_point = vec2(input2[1], input2[2]);
 	vec3 layout_rotation_vector = vec3(input2[3], input3[0], input3[1]);
 	vec2 layout_texture_coordinates = vec2(input3[2], input3[3]);
-	float layout_allow_lighting = input4;
 
 	texture_coordinate = layout_texture_coordinates;
-	allow_lighting = layout_allow_lighting;
 
 	mat4 m = mat4(1);
 

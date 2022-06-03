@@ -81,8 +81,10 @@ namespace fan {
           std::vector<uint8_t> r(pack_list[i].bin_size.x * pack_list[i].bin_size.y * 4);
           for (uint32_t j = 0; j < count; j++) {
             texture_t* t = &pack_list[i].texture_list[j];
-            fan::webp::image_info_t image_info = fan::webp::load_image(t->filepath);
+            fan::webp::image_info_t image_info;
+            fan::webp::load(t->filepath, &image_info);
             uint64_t hashed = fan::get_hash(t->name);
+            fan::print(t->name, hashed);
             fwrite(&hashed, sizeof(hashed), 1, f);
             fwrite(t->position.data(), sizeof(t->position), 1, f);
             fwrite(t->size.data(), sizeof(t->size), 1, f);
@@ -97,7 +99,7 @@ namespace fan {
           }
 
           uint8_t* ptr;
-          uint32_t ptr_size = WebPEncodeRGBA(r.data(), pack_list[i].bin_size.x, pack_list[i].bin_size.y, pack_list[i].bin_size.x * 4, 100, &ptr);
+          uint32_t ptr_size = fan::webp::encode_rgba(r.data(), pack_list[i].bin_size, 100, &ptr);
           fwrite(&ptr_size, sizeof(ptr_size), 1, f);
           fwrite(ptr, ptr_size, 1, f);
           WebPFree(ptr);

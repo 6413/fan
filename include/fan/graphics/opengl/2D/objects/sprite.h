@@ -66,12 +66,7 @@ namespace fan_2d {
         fan::vec2 rotation_point = 0;
         fan::vec3 rotation_vector = 0;
 
-        fan::_vec4<fan::vec2> texture_coordinates{
-          fan::vec2(0, 1),
-          fan::vec2(1, 1),
-          fan::vec2(1, 0),
-          fan::vec2(0, 0)
-        };
+        fan::_vec4<fan::vec2> texture_coordinates = fan::opengl::default_texture_coordinates;
 
         fan::opengl::image_t image;
 
@@ -80,10 +75,10 @@ namespace fan_2d {
           const fan::vec2 texture_position = fan::cast<f32_t>(ti->position) / image.size;
           const fan::vec2 texture_size = fan::cast<f32_t>(ti->size) / image.size;
           texture_coordinates = {
-            fan::vec2(texture_position.x, 1.0 - (texture_position.y + texture_size.y)),
-            fan::vec2(texture_position.x + texture_size.x, 1.0 - (texture_position.y + texture_size.y)),
-            fan::vec2(texture_position.x + texture_size.x, 1.0 - texture_position.y),
-            fan::vec2(texture_position.x, 1.0 - texture_position.y)
+            fan::vec2(texture_position.x, texture_position.y), // top left
+            fan::vec2(texture_position.x + texture_size.x, texture_position.y), // top right
+            fan::vec2(texture_position.x + texture_size.x, texture_position.y + texture_size.y), // bottom right
+            fan::vec2(texture_position.x, texture_position.y + texture_size.y) // bottom left
           };
         }
       };
@@ -139,7 +134,7 @@ namespace fan_2d {
 
         if (properties.image.texture != fan::uninitialized) {
           m_store_sprite.resize(m_store_sprite.size() + 1);
-          m_store_sprite[m_store_sprite.size() - 1].m_texture = properties.image.texture;
+          m_store_sprite[m_store_sprite.size() - 1].image = properties.image;
         }
       }
 
@@ -165,17 +160,29 @@ namespace fan_2d {
         );
 
         store_sprite_t sst;
-        sst.m_texture = properties.image.texture;
+        sst.image = properties.image;
 
         m_store_sprite.insert(i, sst);
       }
 
-      void reload_sprite(fan::opengl::context_t* context, uint32_t i, fan::opengl::image_t image) {
-        m_store_sprite[i].m_texture = image.texture;
+      void load_texturepack(fan::opengl::context_t* context, uint32_t i, fan::opengl::texturepack* texture_packd, fan::opengl::texturepack::ti_t* ti) {
+        m_store_sprite[i].image = texture_packd->pixel_data_list[ti->pack_id].image;
+        const fan::vec2 texture_position = fan::cast<f32_t>(ti->position) / texture_packd->pixel_data_list[ti->pack_id].image.size;
+        const fan::vec2 texture_size = fan::cast<f32_t>(ti->size) / texture_packd->pixel_data_list[ti->pack_id].image.size;
+        this->set_texture_coordinates(context, i, {
+          fan::vec2(texture_position.x, texture_position.y), // top left
+          fan::vec2(texture_position.x + texture_size.x, texture_position.y), // top right
+          fan::vec2(texture_position.x + texture_size.x, texture_position.y + texture_size.y), // bottom right
+          fan::vec2(texture_position.x, texture_position.y + texture_size.y) // bottom left
+        });
       }
 
-      uint32_t get_texture(fan::opengl::context_t* context, uint32_t i) const {
-        return m_store_sprite[i].m_texture;
+      void reload_sprite(fan::opengl::context_t* context, uint32_t i, fan::opengl::image_t image) {
+        m_store_sprite[i].image = image;
+      }
+
+      fan::opengl::image_t get_image(fan::opengl::context_t* context, uint32_t i) const {
+        return m_store_sprite[i].image;
       }
 
       std::array<fan::vec2, 4> get_texture_coordinates(fan::opengl::context_t* context, uint32_t i) {
@@ -447,6 +454,68 @@ namespace fan_2d {
 				m_shader.bind_matrices(context, matrices);
 			}
 
+      void write_out(fan::opengl::context_t* context, FILE* f) const {
+				uint64_t buffer_size = m_glsl_buffer.m_buffer.size();
+				fwrite(&buffer_size, sizeof(uint64_t), 1, f);
+				fwrite(m_glsl_buffer.m_buffer.data(), buffer_size, 1, f);
+
+        for (uint32_t i = 0; i < this->size(context); i++) {
+          uint8_t* data;
+          m_store_sprite[i].image.get_pixel_data(context, &data);
+          uint8_t* ptr;
+          uint32_t ptr_size = fan::webp::encode_rgba(data, m_store_sprite[i].image.size, 100, &ptr);
+          fwrite(&ptr_size, sizeof(ptr_size), 1, f);
+          fwrite(ptr, ptr_size, 1, f);
+          WebPFree(ptr);
+        }
+			}
+			void write_in(fan::opengl::context_t* context, FILE* f) {
+				uint64_t to_read;
+				fread(&to_read, sizeof(uint64_t), 1, f);
+				m_glsl_buffer.m_buffer.resize(to_read);
+				fread(m_glsl_buffer.m_buffer.data(), to_read, 1, f);
+				m_glsl_buffer.write_vram_all(context);
+        
+        m_store_sprite.resize(this->size(context));
+
+        for (uint32_t i = 0; i < this->size(context); i++) {
+          uint32_t image_size;
+          fread(&image_size, sizeof(image_size), 1, f);
+          uint8_t* data = (uint8_t*)malloc(image_size);
+
+          fan::webp::image_info_t image_info;
+          image_info.data = WebPDecodeRGBA(
+            data,
+            image_size,
+            &image_info.size.x,
+            &image_info.size.y
+          );
+          m_store_sprite[i].image.load(context, image_info);
+
+          free(data);
+          fan::webp::free_image(image_info.data);
+        }
+			}
+
+      void write_out_texturepack(fan::opengl::context_t* context, FILE* f) const {
+				uint64_t buffer_size = m_glsl_buffer.m_buffer.size();
+				fwrite(&buffer_size, sizeof(uint64_t), 1, f);
+				fwrite(m_glsl_buffer.m_buffer.data(), buffer_size, 1, f);
+			}
+      // a bit design problem, need to provei 
+      void write_in_texturepack(fan::opengl::context_t* context, FILE* f, fan::opengl::texturepack* tp, uint32_t pack_id) {
+				uint64_t to_read;
+				fread(&to_read, sizeof(uint64_t), 1, f);
+				m_glsl_buffer.m_buffer.resize(to_read);
+				fread(m_glsl_buffer.m_buffer.data(), to_read, 1, f);
+				m_glsl_buffer.write_vram_all(context);
+        m_store_sprite.resize(this->size(context));
+
+        for (uint32_t i = 0; i < this->size(context); i++) {
+          m_store_sprite[i].image = tp->get_pixel_data(pack_id).image;
+        }
+			}
+
       fan::mat4 projection;
       fan::mat4 view;
 
@@ -457,7 +526,7 @@ namespace fan_2d {
         uint32_t from = 0;
         uint32_t to = 0;
         for (uint32_t i = 0; i < this->size(context); i++) {
-          if (texture_id != m_store_sprite[i].m_texture) {
+          if (texture_id != m_store_sprite[i].image.texture) {
             if (to) {
               m_glsl_buffer.draw(
                 context,
@@ -467,7 +536,7 @@ namespace fan_2d {
             }
             from = i;
             to = 0;
-            texture_id = m_store_sprite[i].m_texture;
+            texture_id = m_store_sprite[i].image.texture;
             m_shader.set_int(context, "texture_sampler", 0);
             context->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
             context->opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, texture_id);
@@ -486,7 +555,7 @@ namespace fan_2d {
       }
 
       struct store_sprite_t {
-        uint32_t m_texture;
+        fan::opengl::image_t image;
       };
 
       fan::hector_t<store_sprite_t> m_store_sprite;

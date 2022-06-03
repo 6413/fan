@@ -65,7 +65,7 @@ case builder_draw_type_t::sprite: {
 
   pile->editor.properties_button.push_back(&pile->window, &pile->context, properties_button_p);
 
-  properties_text_p.text = "image path:";
+  properties_text_p.text = "image name:";
   calculate_text_position();
 
   pile->editor.properties_button_text.push_back(&pile->context, properties_text_p);
@@ -189,6 +189,8 @@ case builder_draw_type_t::sprite: {
             std::string path(wpath.begin(), wpath.end());
 
             fan::opengl::image_t image;
+            fan::opengl::texturepack::ti_t ti;
+
             if (path == "\\null") {
               image.create_missing_texture(&pile->context);
               pile->builder.sprite.reload_sprite(
@@ -205,22 +207,13 @@ case builder_draw_type_t::sprite: {
                 )
               );
             }
-            else if (image.load(&pile->context, path)) {
+            else if (pile->tp.qti(path, &ti)) {
               pile->editor.print(pile, std::string("failed to load image:") + path);
               pile->editor.properties_button.set_text(window, context, 2, " ");
             }
             else {
               pile->editor.properties_button.set_text(window, context, 2, path);
-              pile->builder.sprite.reload_sprite(
-                context,
-                pile->editor.selected_type_index,
-                image
-              );
-              pile->builder.sprite.set_texture_coordinates(
-                context,
-                pile->editor.selected_type_index,
-                fan::opengl::default_texture_coordinates
-              );
+              pile->builder.sprite.load_texturepack(context, pile->editor.selected_type_index, &pile->tp, &ti);
             }
             break;
           }

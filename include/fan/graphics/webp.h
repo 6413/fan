@@ -45,6 +45,9 @@ namespace fan {
 
       return true;
     }
+    static uint32_t encode_rgba(const uint8_t* in, const fan::vec2& size, float quality, uint8_t** out) {
+      return WebPEncodeRGBA(in, size.x, size.y, size.x * 4, quality, out);
+    }
 
     static void free_image(void* ptr) {
       WebPFree(ptr);

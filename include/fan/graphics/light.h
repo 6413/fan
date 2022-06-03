@@ -149,15 +149,10 @@ namespace fan_2d {
               return r;
             }
             case 1: {
-              f32_t dscore = radius - (light_position - fragment_position).length();
-              dscore = std::max(dscore, 0.f) / radius;
-              if (fragment_position.y > 0) {
-                //dscore /= fragment_position.y;
-                f32_t d = fragment_position.y / (64 * 4);
-                d = 1.0f - d;
-                d = std::max(d, 0.0f);
-                dscore = d;
-              }
+              f32_t dscore = fragment_position.y / 64;
+              dscore = (4.0f - dscore) / 4.0f;
+              dscore = fan::clamp(dscore, 0.0f, 1.0f);
+
               fan::vec4 r;
               *(fan::vec3*)&r = light_color * dscore;
 

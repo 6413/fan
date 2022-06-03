@@ -115,15 +115,22 @@ namespace fan {
           p->hdc = GetDC(p->hwnd);
 
           PIXELFORMATDESCRIPTOR pfd = {
-            sizeof(pfd),
+            sizeof(PIXELFORMATDESCRIPTOR),
             1,
-            PFD_TYPE_RGBA,
-            PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER,
-            32,
-            8,
+            PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER,    // Flags
+            PFD_TYPE_RGBA,        // The kind of framebuffer. RGBA or palette.
+            32,                   // Colordepth of the framebuffer.
+            0, 0, 0, 0, 0, 0,
+            0,
+            0,
+            0,
+            0, 0, 0, 0,
+            24,                   // Number of bits for the depthbuffer
+            8,                    // Number of bits for the stencilbuffer
+            0,                    // Number of Aux buffers in the framebuffer.
             PFD_MAIN_PLANE,
-            24,
-            8,
+            0,
+            0, 0, 0
           };
 
           int pixel_format = ChoosePixelFormat(p->hdc, &pfd);
@@ -248,9 +255,9 @@ namespace fan {
 
         if (opengl_initialized) {
           return;
-        }
-
+        };
         internal_t::properties_t p;
+        memset(&p, 0, sizeof(p));
 
         internal.open(&p);
 
@@ -279,6 +286,7 @@ namespace fan {
         get_proc_address(glGenTextures, &internal);
         get_proc_address(glDeleteTextures, &internal);
         get_proc_address(glBindTexture, &internal);
+        get_proc_address(glGetTexImage, &internal);
         get_proc_address(glTexImage2D, &internal);
         get_proc_address(glTexParameteri, &internal);
         get_proc_address(glActiveTexture, &internal);
@@ -323,6 +331,7 @@ namespace fan {
         get_proc_address(glHint, &internal);
         get_proc_address(glFlush, &internal);
         get_proc_address(glFinish, &internal);
+        get_proc_address(glGetTexLevelParameteriv, &internal);
 
         internal.close(&p);
 
@@ -394,6 +403,7 @@ namespace fan {
       PFNGLGENTEXTURESPROC glGenTextures;
       PFNGLDELETETEXTURESPROC glDeleteTextures;
       PFNGLBINDTEXTUREPROC glBindTexture;
+      PFNGLGETTEXTUREIMAGEPROC glGetTexImage;
       PFNGLTEXIMAGE2DPROC glTexImage2D;
       PFNGLTEXPARAMETERIPROC glTexParameteri;
       PFNGLACTIVETEXTUREPROC glActiveTexture;
@@ -438,6 +448,7 @@ namespace fan {
       PFNGLHINTPROC glHint;
       PFNGLFLUSHPROC glFlush;
       PFNGLFINISHPROC glFinish;
+      PFNGLGETTEXTURELEVELPARAMETERIVPROC glGetTexLevelParameteriv;
 
     };
 

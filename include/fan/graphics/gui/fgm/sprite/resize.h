@@ -1,49 +1,118 @@
 case builder_draw_type_t::sprite: {
+
+  fan::vec2 offset = pile->window.get_mouse_position() - pile->editor.click_position;
+  fan::vec2 position = pile->builder.sprite.get_position(&pile->context, pile->editor.selected_type_index);
+  fan::vec2 size = pile->builder.sprite.get_size(&pile->context, pile->editor.selected_type_index);
+
   switch (pile->editor.resize_stage) {
     case 0: {
-      fan::vec2 offset = pile->window.get_mouse_position() - pile->editor.click_position;
-
-      fan::vec2 size = pile->builder.sprite.get_size(&pile->context, pile->editor.selected_type_index);
-      if (offset.x < 5) {
-        offset.x = 5;
+      if (size.x * 2 - offset.x >= 32) {
+        size.x += -offset.x / 2;
+        position.x += offset.x / 2;
+        pile->editor.click_position.x = pile->window.get_mouse_position().x;
       }
-      if (offset.y < 5) {
-        offset.y = 5;
+      if (size.y * 2 - offset.y >= 32) {
+        size.y += -offset.y / 2;
+        position.y -= -offset.y / 2;
+        pile->editor.click_position.y = pile->window.get_mouse_position().y;
       }
-      pile->builder.sprite.set_size(&pile->context, pile->editor.selected_type_index, offset.abs());
-
-      fan::vec2 position = pile->builder.sprite.get_position(&pile->context, pile->editor.selected_type_index);
-
-      pile->builder.sprite.set_position(&pile->context, pile->editor.selected_type_index,
-        position + fan::vec2(
-        (fan::math::abs(offset.x) - fan::math::abs(size.x)) * (!std::signbit(offset.x) ? 1 : -1), 0
-      ));
-
+      break;
+    }
+    case 1: {
+      /*if (size.x * 2 - offset.x >= 32) {
+        size.x += -offset.x / 2;
+        position.x -= -offset.x / 2;
+        pile->editor.click_position.x = pile->window.get_mouse_position().x;
+      }*/
+      if (size.y * 2 - offset.y >= 32) {
+        size.y += -offset.y / 2;
+        position.y -= -offset.y / 2;
+        pile->editor.click_position.y = pile->window.get_mouse_position().y;
+      }
+      break;
+    }
+    case 2: {
+      if (size.x * 2 + offset.x >= 32) {
+        size.x += offset.x / 2;
+        position.x += offset.x / 2;
+        pile->editor.click_position.x = pile->window.get_mouse_position().x;
+      }
+      if (size.y * 2 - offset.y >= 32) {
+        size.y += -offset.y / 2;
+        position.y -= -offset.y / 2;
+        pile->editor.click_position.y = pile->window.get_mouse_position().y;
+      }
       break;
     }
     case 3: {
-      fan::vec2 offset = pile->window.get_mouse_position() - pile->editor.click_position;
-
-      fan::vec2 size = pile->builder.sprite.get_size(&pile->context, pile->editor.selected_type_index);
-
-      offset = offset.abs();
-
-      if (offset.x < 5) {
-        offset.x = 5;
+      if (size.x * 2 + offset.x >= 32) {
+        size.x += offset.x / 2;
+        position.x += offset.x / 2;
+        pile->editor.click_position.x = pile->window.get_mouse_position().x;
       }
-      if (offset.y < 5) {
-        offset.y = 5;
+      /*if (size.y * 2 - offset.y >= 32) {
+        size.y += -offset.y / 2;
+        position.y -= -offset.y / 2;
+        pile->editor.click_position.y = pile->window.get_mouse_position().y;
+      }*/
+      break;
+    }
+    case 4: {
+      if (size.x * 2 + offset.x >= 32) {
+        size.x += offset.x / 2;
+        position.x += offset.x / 2;
+        pile->editor.click_position.x = pile->window.get_mouse_position().x;
       }
-      fan::print(offset, pile->window.get_mouse_position(), pile->editor.click_position);
-      pile->builder.sprite.set_size(&pile->context, pile->editor.selected_type_index, offset.abs());
-
-      fan::vec2 position = pile->builder.sprite.get_position(&pile->context, pile->editor.selected_type_index);
-
-      pile->builder.sprite.set_position(&pile->context, pile->editor.selected_type_index, 
-        position - (offset - size)
-      );
-
+      if (size.y * 2 + offset.y >= 32) {
+        size.y += offset.y / 2;
+        position.y += offset.y / 2;
+        pile->editor.click_position.y = pile->window.get_mouse_position().y;
+      }
+      break;
+    }
+    case 5: {
+      /*if (size.x * 2 - offset.x >= 32) {
+        size.x += -offset.x / 2;
+        position.x -= -offset.x / 2;
+        pile->editor.click_position.x = pile->window.get_mouse_position().x;
+      }*/
+      if (size.y * 2 + offset.y >= 32) {
+        size.y += offset.y / 2;
+        position.y += offset.y / 2;
+        pile->editor.click_position.y = pile->window.get_mouse_position().y;
+      }
+      break;
+    }
+    case 6: {
+      if (size.x * 2 - offset.x >= 32) {
+        size.x -= offset.x / 2;
+        position.x -= -offset.x / 2;
+        pile->editor.click_position.x = pile->window.get_mouse_position().x;
+      }
+      if (size.y * 2 + offset.y >= 32) {
+        size.y += offset.y / 2;
+        position.y += offset.y / 2;
+        pile->editor.click_position.y = pile->window.get_mouse_position().y;
+      }
+      break;
+    }
+    case 7: {
+      if (size.x * 2 - offset.x >= 32) {
+        size.x += -offset.x / 2;
+        position.x += offset.x / 2;
+        pile->editor.click_position.x = pile->window.get_mouse_position().x;
+      }
+      /*if (size.y * 2 - offset.y >= 32) {
+        size.y += -offset.y / 2;
+        position.y -= -offset.y / 2;
+        pile->editor.click_position.y = pile->window.get_mouse_position().y;
+      }*/
       break;
     }
   }
+
+  pile->builder.sprite.set_position(&pile->context, pile->editor.selected_type_index,
+  position
+  );
+  pile->builder.sprite.set_size(&pile->context, pile->editor.selected_type_index, size);
 }

@@ -89,6 +89,7 @@ pile->editor.resize_rectangles.m_button_event.set_on_input(pile,
     pile->editor.flags &= ~flags_t::ignore_properties_close;
     pile->editor.flags &= ~flags_t::ignore_moving;
     pile->editor.flags &= ~flags_t::resizing;
+    return;
   }
 
   if (mouse_stage != fan_2d::graphics::gui::mouse_stage::inside) {
@@ -100,17 +101,7 @@ pile->editor.resize_rectangles.m_button_event.set_on_input(pile,
   }
   
   pile->editor.resize_stage = index;
-  switch (pile->editor.selected_type) {
-    case builder_draw_type_t::sprite: {
-      pile->editor.click_position = pile->builder.sprite.get_position(&pile->context, pile->editor.selected_type_index);
-      break;
-    }
-    case builder_draw_type_t::text_renderer: {
-      pile->editor.click_position = pile->builder.tr.get_position(&pile->context, pile->editor.selected_type_index);
-      break;
-    }
-  }
-  //pile->editor.click_position = window->get_mouse_position();
+  pile->editor.click_position = pile->window.get_mouse_position();
   pile->editor.flags |= flags_t::ignore_properties_close;
   pile->editor.flags |= flags_t::ignore_moving;
   pile->editor.flags |= flags_t::resizing;
