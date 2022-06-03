@@ -308,11 +308,11 @@ namespace fan_2d {
 				m_draw_node_reference = context->enable_draw(this, [](fan::opengl::context_t* c, void* d) { ((decltype(this))d)->draw(c); });
 			}
 			void disable_draw(fan::opengl::context_t* context) {
-			#ifdef fan_debug == fan_debug_low
-				if (m_draw_node_reference == fan::uninitialized) {
-					fan::throw_error("trying to disable unenabled draw call");
-				}
-			#endif
+				#if fan_debug >= fan_debug_low
+					if (m_draw_node_reference == fan::uninitialized) {
+						fan::throw_error("trying to disable unenabled draw call");
+					}
+				#endif
 				context->disable_draw(m_draw_node_reference);
 			}
 

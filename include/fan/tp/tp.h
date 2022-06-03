@@ -84,7 +84,6 @@ namespace fan {
             fan::webp::image_info_t image_info;
             fan::webp::load(t->filepath, &image_info);
             uint64_t hashed = fan::get_hash(t->name);
-            fan::print(t->name, hashed);
             fwrite(&hashed, sizeof(hashed), 1, f);
             fwrite(t->position.data(), sizeof(t->position), 1, f);
             fwrite(t->size.data(), sizeof(t->size), 1, f);
