@@ -7,10 +7,10 @@ namespace fan {
   namespace opengl {
 
     static constexpr fan::_vec4<fan::vec2> default_texture_coordinates = {
-      fan::vec2(0, 1),
-      fan::vec2(1, 1),
-      fan::vec2(1, 0),
-      fan::vec2(0, 0)
+      fan::vec2(0, 0), // top left
+      fan::vec2(1, 0), // top right
+      fan::vec2(1, 1), // bottom right
+      fan::vec2(0, 1) // bottom left
     };
 
     struct image_t {
@@ -191,6 +191,21 @@ namespace fan {
           }
         }
         return tc;
+      }
+
+      void get_pixel_data(fan::opengl::context_t* context, void* data) const {
+
+        data = malloc(size.multiply() * 4);
+
+        context->opengl.call(
+          context->opengl.glGetTexImage, 
+          fan::opengl::GL_TEXTURE_2D,
+          0,
+          fan::opengl::GL_RGBA,
+          size.multiply() * 4,
+          fan::opengl::GL_UNSIGNED_BYTE,
+          data
+        );
       }
 
       uint32_t texture;

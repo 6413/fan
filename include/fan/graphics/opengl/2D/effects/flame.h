@@ -66,14 +66,7 @@ namespace fan_2d {
         fan::vec2 rotation_point = 0;
         fan::vec3 rotation_vector = 0;
 
-        fan::_vec4<fan::vec2> texture_coordinates {
-          fan::vec2(0, 1),
-          fan::vec2(1, 1),
-          fan::vec2(1, 0),
-          fan::vec2(0, 0)
-        };
-
-        f32_t allow_lighting = false;
+        fan::_vec4<fan::vec2> texture_coordinates = fan::opengl::default_texture_coordinates;
 
         fan::opengl::image_t image;
 
@@ -82,10 +75,10 @@ namespace fan_2d {
           const fan::vec2 texture_position = fan::cast<f32_t>(ti->position) / image.size;
           const fan::vec2 texture_size = fan::cast<f32_t>(ti->size) / image.size;
           texture_coordinates = {
-            fan::vec2(texture_position.x, 1.0 - (texture_position.y + texture_size.y)),
-            fan::vec2(texture_position.x + texture_size.x, 1.0 - (texture_position.y + texture_size.y)),
-            fan::vec2(texture_position.x + texture_size.x, 1.0 - texture_position.y),
-            fan::vec2(texture_position.x, 1.0 - texture_position.y)
+            fan::vec2(texture_position.x, texture_position.y), // top left
+            fan::vec2(texture_position.x + texture_size.x, texture_position.y), // top right
+            fan::vec2(texture_position.x + texture_size.x, texture_position.y + texture_size.y), // bottom right
+            fan::vec2(texture_position.x, texture_position.y + texture_size.y) // bottom left
           };
         }
       };
@@ -102,7 +95,6 @@ namespace fan_2d {
         fan::vec3 rotation_vector;
 
         fan::vec2 texture_coordinates;
-        f32_t allow_lighting;
       };
 
     public:
@@ -114,8 +106,7 @@ namespace fan_2d {
       static constexpr uint32_t offset_rotation_point = offsetof(instance_t, rotation_point);
       static constexpr uint32_t offset_rotation_vector = offsetof(instance_t, rotation_vector);
       static constexpr uint32_t offset_texture_coordinates = offsetof(instance_t, texture_coordinates);
-      static constexpr uint32_t offset_allow_lighting = offsetof(instance_t, allow_lighting);
-      static constexpr uint32_t element_byte_size = offset_allow_lighting + sizeof(f32_t);
+      static constexpr uint32_t element_byte_size = offset_texture_coordinates + sizeof(fan::vec2);
 
       static constexpr uint32_t vertex_count = 6;
 
@@ -129,7 +120,6 @@ namespace fan_2d {
         instance.angle = properties.angle;
         instance.rotation_point = properties.rotation_point;
         instance.rotation_vector = properties.rotation_vector;
-        instance.allow_lighting = properties.allow_lighting;
 
         for (int i = 0; i < vertex_count; i++) {
           instance.texture_coordinates = fan_2d::opengl::convert_tc_4_2_6(&properties.texture_coordinates, i);
@@ -157,7 +147,6 @@ namespace fan_2d {
         instance.angle = properties.angle;
         instance.rotation_point = properties.rotation_point;
         instance.rotation_vector = properties.rotation_vector;
-        instance.allow_lighting = properties.allow_lighting;
 
         for (int j = 0; j < vertex_count; j++) {
           instance.texture_coordinates = fan_2d::opengl::convert_tc_4_2_6(&properties.texture_coordinates, j);

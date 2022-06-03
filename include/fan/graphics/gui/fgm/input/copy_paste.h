@@ -31,7 +31,7 @@ case fan::key_v: {
       fan_2d::graphics::sprite_t::properties_t sprite_p;
       sprite_p.position = pile->builder.sprite.get_position(&pile->context, pile->editor.copied_type_index);
       sprite_p.size = pile->builder.sprite.get_size(&pile->context, pile->editor.copied_type_index);
-      sprite_p.image.texture = pile->builder.sprite.get_texture(&pile->context, pile->editor.copied_type_index);
+      sprite_p.image = pile->builder.sprite.get_image(&pile->context, pile->editor.copied_type_index);
       sprite_p.texture_coordinates = pile->builder.sprite.get_texture_coordinates(&pile->context, pile->editor.copied_type_index);
       pile->builder.sprite.push_back(&pile->context, sprite_p);
 

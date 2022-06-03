@@ -44,14 +44,14 @@
      }
      case fan::key_state::release: {
 
-      /*for (uint32_t i = 0; i < pile->editor.builder_types.size(&pile->window, &pile->context); i++) {
+      for (uint32_t i = 0; i < pile->editor.builder_types.size(&pile->window, &pile->context); i++) {
         if (pile->editor.builder_types.inside(&pile->window, &pile->context, i, pile->window.get_mouse_position()) &&
             pile->editor.builder_types.get_text(&pile->window, &pile->context, i) == L"export"
           ) {
           pile->save("123");
           return;
-        }*/
-     // }
+        }
+      }
 
        pile->editor.move_offset = 0;
 
