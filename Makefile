@@ -1,6 +1,6 @@
 GPP = clang++
 
-CFLAGS = -w -std=c++2a -I /usr/local/include -I include -O3 -march=native -mtune=native
+CFLAGS = -w -std=c++2a -I /usr/local/include -I include -g -fsanitize=address -Wl #-O3 -march=native -mtune=native
 
 ifeq ($(OS),Windows_NT)
 	AR = llvm-ar
