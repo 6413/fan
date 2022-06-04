@@ -57,7 +57,6 @@ namespace fan {
         if (fan::webp::get_image_size(filepath, &size)) {
           fan::throw_error("failed to open image:" + filepath);
         }
-        fan::print(texture_properties.preferred_pack_size);
         uint32_t pack_id = 0;
         gt_resize_pack: 
         if (pack_id == pack_list.size()) {
@@ -178,10 +177,12 @@ namespace fan {
             if (newNode)
               return newNode;
           }
+          fan::print("a");
           return nullptr;
         }
 
         if (size.x > node->size.x || size.y > node->size.y) {
+          fan::print("b");
           return nullptr;
         }
 
