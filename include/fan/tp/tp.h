@@ -144,7 +144,6 @@ namespace fan {
       }
 
       void tree_debug(uint32_t pack_id, internal_texture_t* node) {
-        fan::print("bbbbb", node, node->position);
         if (node->d[0]) {
           tree_debug(pack_id, node->d[0].get());
         }
@@ -180,8 +179,6 @@ namespace fan {
       }
 
       internal_texture_t* push(internal_texture_t* node, const fan::vec2i& size) {
-        fan::print("adfa", node, node->d[0], node->d[1]);
-        exit(0);
         if (node->d[0] || node->d[1]) {
           if (node->d[0]) {
             internal_texture_t* newNode = push(node->d[0].get(), size);
@@ -193,16 +190,10 @@ namespace fan {
             if (newNode)
               return newNode;
           }
-          if (&pack_list[0].root == node) {
-            fan::print("a");
-          }
           return nullptr;
         }
 
         if (size.x > node->size.x || size.y > node->size.y) {
-          if (&pack_list[0].root == node) {
-            fan::print("b");
-          }
           return nullptr;
         }
 
