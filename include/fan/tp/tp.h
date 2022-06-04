@@ -46,6 +46,37 @@ namespace fan {
         return pack_list.size() - 1;
       }
 
+      struct texture_properties_t {
+        fan::vec2ui preferred_pack_size = 1024;
+      };
+
+      void push_texture(const std::string& filepath, const std::string& name, const texture_properties_t& texture_properties) {
+        fan::vec2i size;
+        if (fan::webp::get_image_size(filepath, &size)) {
+          fan::throw_error("failed to open image:" + filepath);
+        }
+        uint32_t pack_id = 0;
+        gt_resize_pack: 
+        if (pack_id == pack_list.size()) {
+          push_pack(texture_properties.preferred_pack_size);
+        }
+        internal_texture_t* it = push(&pack_list[pack_id].root, size);
+        if (it == nullptr) {
+          if (size.x > texture_properties.preferred_pack_size.x || 
+              size.y > texture_properties.preferred_pack_size.y) {
+            fan::throw_error("too big");
+          }
+          pack_id++;
+          goto gt_resize_pack;
+        }
+        texture_t texture;
+        texture.position = it->position;
+        texture.size = it->size;
+        texture.filepath = filepath;
+        texture.name = name;
+        pack_list[pack_id].texture_list.push_back(texture);
+      }
+
       void push_texture(uint32_t pack_id, const std::string& filepath, const std::string& name) {
         fan::vec2i size;
         if (fan::webp::get_image_size(filepath, &size)) {
