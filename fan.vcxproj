@@ -379,6 +379,7 @@
     <ClInclude Include="include\fan\graphics\opengl\matrices.h" />
     <ClInclude Include="include\fan\graphics\opengl\texture_pack.h" />
     <ClInclude Include="include\fan\graphics\opengl\viewport.h" />
+    <ClInclude Include="include\fan\io\directory.h" />
     <ClInclude Include="include\fan\physics\static_joint.h" />
     <ClInclude Include="include\fan\graphics\renderer.h" />
     <ClInclude Include="include\fan\graphics\shared_core.h" />
