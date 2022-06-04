@@ -17,10 +17,10 @@ namespace fan {
 
       struct load_properties_defaults {
         static constexpr uint32_t visual_output = GL_CLAMP_TO_BORDER;
-        static constexpr uintptr_t internal_format = GL_RGBA;
-        static constexpr uintptr_t format = GL_RGBA;
-        static constexpr uintptr_t type = GL_UNSIGNED_BYTE;
-        static constexpr uintptr_t filter = GL_NEAREST;
+        static constexpr uint32_t internal_format = GL_RGBA;
+        static constexpr uint32_t format = GL_RGBA;
+        static constexpr uint32_t type = GL_UNSIGNED_BYTE;
+        static constexpr uint32_t filter = GL_NEAREST;
       };
 
       struct load_properties_t {
@@ -46,8 +46,6 @@ namespace fan {
         size = image_info.size;
 
         context->opengl.call(context->opengl.glTexImage2D, GL_TEXTURE_2D, 0, p.internal_format, size.x, size.y, 0, p.format, p.type, image_info.data);
-
-        context->opengl.call(context->opengl.glGenerateMipmap, GL_TEXTURE_2D);
         context->opengl.call(context->opengl.glBindTexture, GL_TEXTURE_2D, 0);
 
         return 0;

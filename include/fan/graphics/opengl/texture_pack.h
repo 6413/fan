@@ -74,7 +74,14 @@ namespace fan {
             &image_info.size.y
           );
           data_index += size;
-          pixel_data_list[i].image.load(context, image_info);
+          uint32_t visual_output = *(uint32_t*)&data[data_index];
+          data_index += sizeof(uint32_t);
+          uint32_t filter = *(uint32_t*)&data[data_index];
+          data_index += sizeof(uint32_t);
+          fan::opengl::image_t::load_properties_t lp;
+          lp.visual_output = visual_output;
+          lp.filter = filter;
+          pixel_data_list[i].image.load(context, image_info, lp);
           WebPFree(image_info.data);
         }
 

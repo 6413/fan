@@ -36,12 +36,14 @@ namespace fan {
       void close() {
       }
 
-      uint32_t push_pack(const fan::vec2i& size) {
+      uint32_t push_pack(const fan::vec2i& size, uint32_t visual_output, uint32_t filter) {
         pack_t pack;
         pack.bin_size = size;
         pack.root.d[0] = pack.root.d[1] = 0;
         pack.root.position = 0;
         pack.root.size = size;
+        pack.visual_output = visual_output;
+        pack.filter = filter;
         pack_list.push_back(pack);
         return pack_list.size() - 1;
       }
@@ -57,10 +59,11 @@ namespace fan {
         if (fan::webp::get_image_size(filepath, &size)) {
           fan::throw_error("failed to open image:" + filepath);
         }
+
         uint32_t pack_id = 0;
         gt_resize_pack: 
         if (pack_id == pack_list.size()) {
-          push_pack(texture_properties.preferred_pack_size);
+          push_pack(texture_properties.preferred_pack_size, fan::opengl::image_t::load_properties_defaults::visual_output, fan::opengl::image_t::load_properties_defaults::filter);
         }
         internal_texture_t* it = push(&pack_list[pack_id].root, size);
         if (it == nullptr) {
@@ -131,10 +134,12 @@ namespace fan {
           }
 
           uint8_t* ptr;
-          uint32_t ptr_size = fan::webp::encode_rgba(r.data(), pack_list[i].bin_size, 100, &ptr);
+          uint32_t ptr_size = fan::webp::encode_lossless_rgba(r.data(), pack_list[i].bin_size, &ptr);
           fwrite(&ptr_size, sizeof(ptr_size), 1, f);
           fwrite(ptr, ptr_size, 1, f);
           WebPFree(ptr);
+          fwrite(&pack_list[i].visual_output, sizeof(uint32_t), 1, f);
+          fwrite(&pack_list[i].filter, sizeof(uint32_t), 1, f);
         }
         fclose(f);
       }
@@ -161,6 +166,8 @@ namespace fan {
         internal_texture_t root;
         fan::vec2ui bin_size;
         std::vector<texture_t> texture_list;
+        uint32_t visual_output;
+        uint32_t filter;
       };
       std::vector<pack_t> pack_list;
 
