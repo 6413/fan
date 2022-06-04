@@ -18,12 +18,9 @@ int main() {
 
   fan::tp::texture_packe e;
   e.open();
-  fan::io::iterate_directory("C:/libs/fatherload/dev/images_out", [&] (std::string path) {
+  fan::io::iterate_directory_by_image_size("C:/libs/fatherload/dev/images_out", [&] (std::string path) {
     std::string p = path;
     p = p.substr(strlen("C:/libs/fatherload/dev/images_out/"), std::string::npos);
-    if (p == "background") {
-      fan::print("c");
-    }
     e.push_texture(path, p);
     });
   fan::print(e.size());
