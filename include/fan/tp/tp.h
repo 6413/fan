@@ -137,6 +137,10 @@ namespace fan {
         fclose(f);
       }
 
+      uint32_t size() const {
+        return pack_list.size();
+      }
+
     private:
       struct pack_t {
         internal_texture_t root;
