@@ -1,7 +1,6 @@
 #pragma once
 
 #include _FAN_PATH(types/types.h)
-
 #include _FAN_PATH(types/vector.h)
 
 #include <fstream>
@@ -10,30 +9,6 @@
 
 namespace fan {
 	namespace io {
-
-		static bool directory_exists(const std::string& directory) {
-			return std::filesystem::exists(directory);
-		}
-
-		static void iterate_directory(
-			const std::string& path, 
-			const std::function<void(const std::string& path)>& function
-		) {
-
-			if (!directory_exists(path)) {
-				fan::throw_error("directory does not exist");
-			}
-
-			for (const auto & entry : std::filesystem::directory_iterator(path)) {
-				if (entry.is_directory()) {
-					iterate_directory(entry.path().string(), function);
-					continue;
-				}
-				std::string str = entry.path().string();
-				std::replace(str.begin(), str.end(), '\\', '/');
-				function(str);
-			}
-		}
 
 		namespace file {
 

@@ -12,6 +12,7 @@
 #include _FAN_PATH(graphics/graphics.h)
 
 #include _FAN_PATH(tp/tp.h)
+#include _FAN_PATH(io/directory.h)
 
 int main() {
 
