@@ -47,10 +47,12 @@ namespace fan {
       }
 
       struct texture_properties_t {
+        texture_properties_t() {}
+
         fan::vec2ui preferred_pack_size = 1024;
       };
 
-      void push_texture(const std::string& filepath, const std::string& name, const texture_properties_t& texture_properties) {
+      void push_texture(const std::string& filepath, const std::string& name, const texture_properties_t& texture_properties = texture_properties_t()) {
         fan::vec2i size;
         if (fan::webp::get_image_size(filepath, &size)) {
           fan::throw_error("failed to open image:" + filepath);
