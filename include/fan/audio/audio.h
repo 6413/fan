@@ -11,7 +11,7 @@
 #ifndef fan_audio_set_backend
 	#if defined(fan_platform_unix)
 		#if defined(fan_platform_linux)
-			#define fan_audio_set_backend 1
+			#define fan_audio_set_backend 0
 		#else
 			#define fan_audio_set_backend 0
 		#endif
@@ -22,18 +22,14 @@
 	#endif
 #endif
 
+#include _WITCH_PATH(WITCH.h)
+#include _WITCH_PATH(TH/TH.h)
+
 namespace fan {
 	namespace audio {
-		namespace { namespace constants {
-			const uint32_t opus_decode_sample_rate = 48000;
+		#include "CommonTypes.h"
 
-			const f32_t OneSampleTime = (f32_t)1 / opus_decode_sample_rate;
-
-			const uint32_t CallFrameCount = 480;
-			const uint32_t ChannelAmount = 2;
-			const uint32_t FrameCacheAmount = 4800;
-			const uint64_t FrameCacheTime = opus_decode_sample_rate / CallFrameCount * 1; // 1 second
-		}}
+		#include "CommonDefine.h"
 
 		#if fan_audio_set_backend == 0
 			#include "backend/uni/miniaudio/a.h"
