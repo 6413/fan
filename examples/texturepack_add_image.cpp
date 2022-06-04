@@ -17,11 +17,14 @@ int main() {
 
   fan::tp::texture_packe e;
   e.open();
-  e.push_pack(fan::vec2(2048, 3072));
-  fan::io::iterate_directory("images", [&] (std::string path) {
+  fan::io::iterate_directory("C:/libs/fatherload/dev/images_out", [&] (std::string path) {
     std::string p = path;
-    p = p.substr(strlen("images/"), std::string::npos);
-    e.push_texture(0, path, p);
-  });
+    p = p.substr(strlen("C:/libs/fatherload/dev/images_out/"), std::string::npos);
+    if (p == "background") {
+      fan::print("c");
+    }
+    e.push_texture(path, p);
+    });
+  fan::print(e.size());
   e.save("TexturePack");
 }

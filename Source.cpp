@@ -1,1 +1,1 @@
-#include "examples/texturepack_view.cpp"
+#include "examples/texturepack_add_image.cpp"
