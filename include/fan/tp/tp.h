@@ -177,12 +177,16 @@ namespace fan {
             if (newNode)
               return newNode;
           }
-          fan::print("a");
+          if (&pack_list[0].root == node) {
+            fan::print("a");
+          }
           return nullptr;
         }
 
         if (size.x > node->size.x || size.y > node->size.y) {
-          fan::print("b");
+          if (&pack_list[0].root == node) {
+            fan::print("b");
+          }
           return nullptr;
         }
 
