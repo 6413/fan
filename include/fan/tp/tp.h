@@ -57,6 +57,7 @@ namespace fan {
         if (fan::webp::get_image_size(filepath, &size)) {
           fan::throw_error("failed to open image:" + filepath);
         }
+        fan::print(texture_properties.preferred_pack_size);
         uint32_t pack_id = 0;
         gt_resize_pack: 
         if (pack_id == pack_list.size()) {

@@ -1,0 +1,1 @@
+C:\libs\fan\x64\Debug\fan.exe
