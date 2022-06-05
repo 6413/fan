@@ -15,6 +15,11 @@ void *_audio_thread_func(void *p) {
     f32_t frames[_constants::CallFrameCount * _constants::ChannelAmount] = {0};
 
     _DataCallback(&audio->common, frames);
+
+    for(uint32_t i = 0; i < _constants::CallFrameCount * _constants::ChannelAmount; i++){
+      frames[i] *= audio->Volume;
+    }
+
     snd_pcm_sframes_t rframes = snd_pcm_writei(audio->snd_pcm, frames, _constants::CallFrameCount);
     if (rframes != _constants::CallFrameCount) {
       switch(rframes){
@@ -31,9 +36,6 @@ void *_audio_thread_func(void *p) {
       }
     }
 
-    for(uint32_t i = 0; i < _constants::CallFrameCount * _constants::ChannelAmount; i++){
-      frames[i] *= audio->Volume;
-    }
   }
   return 0;
 }
