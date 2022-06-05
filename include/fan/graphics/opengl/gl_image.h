@@ -69,7 +69,7 @@ namespace fan {
         if (!fan::webp::load(path, &image_info)) {
           return 1;
         }
-
+        fan::webp::free_image(image_info.data);
         return load(context, image_info, p);
       }
 
