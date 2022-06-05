@@ -177,8 +177,10 @@ namespace fan_2d {
         });
       }
 
-      void reload_sprite(fan::opengl::context_t* context, uint32_t i, fan::opengl::image_t image) {
+      fan::opengl::image_t reload_sprite(fan::opengl::context_t* context, uint32_t i, fan::opengl::image_t image) {
+        fan::opengl::image_t old = m_store_sprite[i].image;
         m_store_sprite[i].image = image;
+        return old;
       }
 
       fan::opengl::image_t get_image(fan::opengl::context_t* context, uint32_t i) const {
