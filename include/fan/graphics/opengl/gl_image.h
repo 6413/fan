@@ -69,8 +69,10 @@ namespace fan {
         if (!fan::webp::load(path, &image_info)) {
           return 1;
         }
+        bool ret = load(context, image_info, p);
+
         fan::webp::free_image(image_info.data);
-        return load(context, image_info, p);
+        return ret;
       }
 
       void reload_pixels(fan::opengl::context_t* context, const fan::webp::image_info_t& image_info, const load_properties_t& p = load_properties_t()) {
