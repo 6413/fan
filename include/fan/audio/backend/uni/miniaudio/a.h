@@ -10,7 +10,6 @@ struct audio_t {
   ma_device device;
 };
 
-
 void _miniaudio_DataCallback(ma_device *Device, void *Output, const void *Input, ma_uint32 FrameCount) {
   #if fan_debug >= 0
     if (FrameCount != _constants::CallFrameCount) {
