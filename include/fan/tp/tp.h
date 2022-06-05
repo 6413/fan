@@ -65,10 +65,17 @@ namespace fan {
         if (pack_id == pack_list.size()) {
           push_pack(texture_properties.preferred_pack_size, fan::opengl::image_t::load_properties_defaults::visual_output, fan::opengl::image_t::load_properties_defaults::filter);
         }
-        internal_texture_t* it = push(&pack_list[pack_id].root, size);
+        fan::vec2ui push_size = size;
+        if (size.x != texture_properties.preferred_pack_size.x) {
+          push_size.x += 2;
+        }
+        if (size.y != texture_properties.preferred_pack_size.y) {
+          push_size.y += 2;
+        }
+        internal_texture_t* it = push(&pack_list[pack_id].root, push_size);
         if (it == nullptr) {
-          if (size.x > texture_properties.preferred_pack_size.x || 
-              size.y > texture_properties.preferred_pack_size.y) {
+          if (push_size.x > texture_properties.preferred_pack_size.x || 
+              push_size.y > texture_properties.preferred_pack_size.y) {
             fan::throw_error("too big");
           }
           pack_id++;
@@ -76,7 +83,13 @@ namespace fan {
         }
         texture_t texture;
         texture.position = it->position;
-        texture.size = it->size;
+        texture.size = size;
+        if (texture.size.x != texture_properties.preferred_pack_size.x) {
+          texture.position.x++;
+        }
+        if (texture.size.y != texture_properties.preferred_pack_size.y) {
+          texture.position.y++;
+        }
         texture.filepath = filepath;
         texture.name = name;
         pack_list[pack_id].texture_list.push_back(texture);
@@ -87,15 +100,27 @@ namespace fan {
         if (fan::webp::get_image_size(filepath, &size)) {
           fan::throw_error("failed to open image:" + filepath);
         }
-
-        internal_texture_t* it = push(&pack_list[pack_id].root, size);
+        fan::vec2ui push_size = size;
+        if (size.x != pack_list[pack_id].bin_size.x) {
+          push_size.x += 2;
+        }
+        if (size.y != pack_list[pack_id].bin_size.y) {
+          push_size.y += 2;
+        }
+        internal_texture_t* it = push(&pack_list[pack_id].root, push_size);
         if (it == nullptr) {
           fan::print_warning("failed to push to pack:" + filepath);
           return;
         }
         texture_t texture;
         texture.position = it->position;
-        texture.size = it->size;
+        texture.size = size;
+        if (texture.size.x != pack_list[pack_id].bin_size.x) {
+          texture.position.x++;
+        }
+        if (texture.size.y != pack_list[pack_id].bin_size.y) {
+          texture.position.y++;
+        }
         texture.filepath = filepath;
         texture.name = name;
         pack_list[pack_id].texture_list.push_back(texture);
@@ -129,6 +154,53 @@ namespace fan {
                 &image_info.data[(y - t->position.y) * t->size.x * 4],
                 t->size.x * 4
               );
+            }
+            {
+              fan::vec2ui pp = t->position;
+              if (pp.x != 0) {
+                pp.x--;
+              }
+              if (pp.y != 0) {
+                pp.y--;
+              }
+              fan::vec2ui ps = t->size + 2;
+
+              for (uint32_t y = pp.y; y != pp.y + ps.y; y++) {
+                for (uint32_t x = pp.x; x != pp.x + ps.x; x++) {
+
+                  static auto fill_pad = [&](int px, int py) {
+                    r[(y * pack_list[i].bin_size.x + x) * 4 + 0] = r[((y + py) * pack_list[i].bin_size.x + x + px) * 4 + 0];
+                    r[(y * pack_list[i].bin_size.x + x) * 4 + 1] = r[((y + py) * pack_list[i].bin_size.x + x + px) * 4 + 1];
+                    r[(y * pack_list[i].bin_size.x + x) * 4 + 2] = r[((y + py) * pack_list[i].bin_size.x + x + px) * 4 + 2];
+                    r[(y * pack_list[i].bin_size.x + x) * 4 + 3] = r[((y + py) * pack_list[i].bin_size.x + x + px) * 4 + 3];
+                  };
+
+                  if (x == pp.x && y == pp.y) {
+                    fill_pad(1, 1);
+                  }
+                  else if (x == pp.x + ps.x - 1 && y == pp.y) {
+                    fill_pad(-1, 1);
+                  }
+                  else if (x == pp.x + ps.x - 1 && y == pp.y + ps.y - 1) {
+                    fill_pad(-1, -1);
+                  }
+                  else if (x == pp.x && y == pp.y + ps.y - 1) {
+                    fill_pad(1, -1);
+                  }
+                  else if (x == pp.x) {
+                    fill_pad(1, 0);
+                  }
+                  else if (x == pp.x + ps.x - 1) {
+                    fill_pad(-1, 0);
+                  }
+                  else if (y == pp.y) {
+                    fill_pad(0, 1);
+                  }
+                  else if (y == pp.y + ps.y - 1) {
+                    fill_pad(0, -1);
+                  }
+                }
+              }
             }
             fan::webp::free_image(image_info.data);
           }
