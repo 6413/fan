@@ -237,8 +237,7 @@ case builder_draw_type_t::hitbox: {
                 context,
                 i
               );
-
-              code_builder(wpath, "gui_maker/on_click_cb");
+              code_builder(wpath, STRINGIFY(_FAN_PATH("")) ## "gui_maker/on_click_cb");
 
               break;
             }
@@ -249,7 +248,7 @@ case builder_draw_type_t::hitbox: {
                 i
               );
 
-              code_builder(wpath, "gui_maker/on_release_cb");
+              code_builder(wpath, STRINGIFY(_FAN_PATH("")) ## "gui_maker/on_release_cb");
 
               break;
             }
