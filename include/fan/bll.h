@@ -253,9 +253,9 @@ struct bll_t {
 
 #if BLL_set_debug_InvalidAction == 1
 
-		if (reference == src) {
-			assert(0);
-		}
+		//if (reference == src) {
+		//	assert(0);
+		//}
 
 		//if (reference == dst) {
 		//	assert(0);
