@@ -1,0 +1,6 @@
+switch(index) {
+case 1: {
+#include <helloworld>
+}
+
+}

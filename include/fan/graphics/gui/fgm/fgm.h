@@ -1,59 +1,12 @@
 #pragma once
 
-#include _FAN_PATH(graphics/gui.h)
+#include _FAN_PATH(graphics/gui/gui.h)
+#include _FAN_PATH(graphics/gui/be.h)
 
 namespace fan_2d {
   namespace graphics {
     namespace gui {
       namespace fgm {
-
-        struct load_t {
-          void open(fan::window_t* window, fan::opengl::context_t* context_) {
-            context = context_;
-            sprite.open(context);
-
-            fan::vec2 window_size = window->get_size();
-
-            matrices.open();
-            matrices.set_ortho(context, fan::vec2(0, window_size.x), fan::vec2(0, window_size.y));
-
-            sprite.bind_matrices(context, &matrices);
-            tr.bind_matrices(context, &matrices);
-
-            window->add_resize_callback(this, [](fan::window_t* window, const fan::vec2i& size, void* userptr) {
-              load_t* pile = (load_t*)userptr;
-
-              pile->context->set_viewport(0, size);
-
-              fan::vec2 window_size = window->get_size();
-              pile->matrices.set_ortho(pile->context, fan::vec2(0, window_size.x), fan::vec2(0, window_size.y));
-            });
-          }
-          void close(fan::window_t* window, fan::opengl::context_t* context) {
-            sprite.close(context);
-            tr.close(context);
-          }
-
-          void load(fan::opengl::context_t* context, const char* path, fan::opengl::texturepack* tp) {
-            FILE* f = fopen(path, "r+b");
-            if (!f) {
-              fan::throw_error("failed to open file stream");
-            }
-
-            sprite.write_in_texturepack(context, f, tp, 0);
-            fclose(f);
-          }
-
-          void enable_draw(fan::window_t* window, fan::opengl::context_t* context) {
-            sprite.enable_draw(context);
-          }
-
-          fan_2d::graphics::sprite_t sprite;
-          fan_2d::graphics::gui::text_renderer_t tr;
-
-          fan::opengl::matrices_t matrices;
-          fan::opengl::context_t* context;
-        };
 
         struct pile_t;
 
@@ -88,6 +41,7 @@ namespace fan_2d {
           struct builder_draw_type_t {
             static constexpr uint32_t sprite = 0;
             static constexpr uint32_t text_renderer = 1;
+            static constexpr uint32_t hitbox = 2;
           };
 
           struct click_collision_t {
@@ -165,7 +119,7 @@ namespace fan_2d {
 
           fan_2d::graphics::sprite_t sprite;
           fan_2d::graphics::gui::text_renderer_t tr;
-          fan_2d::graphics::gui::be_t button_event;
+          fan_2d::graphics::sprite_t hitbox;
         };
 
         struct pile_t {
@@ -232,6 +186,19 @@ namespace fan_2d {
             }
 
             builder.sprite.write_out_texturepack(&context, f);
+            fan_2d::graphics::gui::be_t be;
+            be.open();
+            fan_2d::graphics::gui::be_t::properties_t p;
+            for (uint32_t i = 0; i < builder.hitbox.size(&context); i++) {
+              // FIX LATER ALLOW CIRCLE TOO
+              p.hitbox_type = fan_2d::graphics::gui::be_t::hitbox_type_t::rectangle;
+              p.hitbox_rectangle.position = builder.hitbox.get_position(&context, i);
+              p.hitbox_rectangle.size = builder.hitbox.get_size(&context, i);
+              be.push_back(p);
+            }
+
+            be.write_out(&context, f);
+
             fclose(f);
           }
 

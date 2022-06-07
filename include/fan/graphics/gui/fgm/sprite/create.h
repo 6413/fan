@@ -39,11 +39,7 @@ case builder_draw_type_t::sprite: {
             )
             ))
           {
-            pile->editor.close_build_properties(pile);
-            pile->builder.sprite.erase(
-              &pile->context,
-              pile->editor.builder_draw_type_index
-            );
+            #include "erase_active.h"
           }
           else {
             pile->editor.close_build_properties(pile);

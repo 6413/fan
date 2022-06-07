@@ -43,7 +43,7 @@ int main() {
 
   fan_2d::graphics::sprite_t r;
   r.open(&pile.context);
-  r.m_shader.bind_matrices(&pile.context, &pile.matrices);
+  r.bind_matrices(&pile.context, &pile.matrices);
   r.enable_draw(&pile.context);
 
   fan_2d::graphics::sprite_t::properties_t p;

@@ -32,7 +32,7 @@
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <EnableASAN>false</EnableASAN>
-    <EnableFuzzer>true</EnableFuzzer>
+    <EnableFuzzer>false</EnableFuzzer>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -41,7 +41,7 @@
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
     <EnableASAN>false</EnableASAN>
-    <EnableFuzzer>true</EnableFuzzer>
+    <EnableFuzzer>false</EnableFuzzer>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -49,16 +49,16 @@
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <EnableASAN>false</EnableASAN>
-    <EnableFuzzer>true</EnableFuzzer>
+    <EnableFuzzer>false</EnableFuzzer>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
     <EnableASAN>false</EnableASAN>
-    <EnableFuzzer>true</EnableFuzzer>
+    <EnableFuzzer>false</EnableFuzzer>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -143,7 +143,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)src\box2d;$(SolutionDir);$(SolutionDir)include\opus;$(SolutionDir)src\libwebp;$(SolutionDir)src\libwebp\src;$(SolutionDIr)include\dav1d;$(SolutionDir)include\vpx</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <EnableParallelCodeGeneration>false</EnableParallelCodeGeneration>
@@ -216,7 +216,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)src\box2d;$(SolutionDir);$(SolutionDir)include\opus;$(SolutionDir)src\libwebp;$(SolutionDir)src\libwebp\src;$(SolutionDIr)include\dav1d;$(SolutionDir)include\vpx</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <EnableParallelCodeGeneration>false</EnableParallelCodeGeneration>
@@ -227,7 +227,7 @@
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>false</EnableCOMDATFolding>
       <OptimizeReferences>false</OptimizeReferences>
-      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>C:\libs\fan\lib\libwebp;C:\libs\fan\lib\opus;C:\libs\fan\lib\ogg;</AdditionalLibraryDirectories>
       <AdditionalDependencies>libwebp.lib;libwebp.a;libogg.lib;opus.lib;opusfile.lib;</AdditionalDependencies>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
@@ -309,10 +309,19 @@
     <ClInclude Include="include\fan\graphics\camera.h" />
     <ClInclude Include="include\fan\graphics\fast_obj\fast_obj.h" />
     <ClInclude Include="include\fan\graphics\graphics.h" />
-    <ClInclude Include="include\fan\graphics\gui.h" />
+    <ClInclude Include="include\fan\graphics\gui\fgm\hitbox\corners.h" />
+    <ClInclude Include="include\fan\graphics\gui\fgm\hitbox\erase_active.h" />
+    <ClInclude Include="include\fan\graphics\gui\fgm\hitbox\open_build_properties.h" />
+    <ClInclude Include="include\fan\graphics\gui\fgm\hitbox\resize.h" />
+    <ClInclude Include="include\fan\graphics\gui\fgm\import.h" />
+    <ClInclude Include="include\fan\graphics\gui\gui.h" />
     <ClInclude Include="include\fan\graphics\gui\be.h" />
     <ClInclude Include="include\fan\graphics\gui\button_event.h" />
     <ClInclude Include="include\fan\graphics\gui\fgm\builder.h" />
+    <ClInclude Include="include\fan\graphics\gui\fgm\hitbox\create.h" />
+    <ClInclude Include="include\fan\graphics\gui\fgm\hitbox\move.h" />
+    <ClInclude Include="include\fan\graphics\gui\fgm\hitbox\open.h" />
+    <ClInclude Include="input_cb.h" />
     <ClInclude Include="include\fan\graphics\gui\fgm\editor\editor.h" />
     <ClInclude Include="include\fan\graphics\gui\fgm\editor\open.h" />
     <ClInclude Include="include\fan\graphics\gui\fgm\editor\set_callbacks.h" />
@@ -329,7 +338,6 @@
     <ClInclude Include="include\fan\graphics\gui\fgm\sprite\open.h" />
     <ClInclude Include="include\fan\graphics\gui\fgm\sprite\open_build_properties.h" />
     <ClInclude Include="include\fan\graphics\gui\fgm\sprite\resize.h" />
-    <ClInclude Include="include\fan\graphics\gui\fgm\sprite\set_callbacks.h" />
     <ClInclude Include="include\fan\graphics\gui\fgm\text_renderer\corners.h" />
     <ClInclude Include="include\fan\graphics\gui\fgm\text_renderer\create.h" />
     <ClInclude Include="include\fan\graphics\gui\fgm\text_renderer\erase_active.h" />

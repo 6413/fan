@@ -238,6 +238,13 @@ struct bll_t {
 		return this->dst;
 	}
 
+	const constexpr node_type_t rbegin() {
+		return src;
+	}
+	const constexpr node_type_t rend() {
+		return prev(end());
+	}
+
 	/*void iterator::operator++(iterator it) {
 
 	}*/
@@ -354,6 +361,29 @@ struct bll_t {
 		return Node->next;
 	}
 #endif
+
+	// Note: sizeof(src) when reading out
+	void write_out(FILE* f) {
+		fwrite(&src, sizeof(src), 1, f);
+		fwrite(&dst, sizeof(dst), 1, f);
+		fwrite(&e.c, sizeof(e.c), 1, f);
+		fwrite(&e.p, sizeof(e.p), 1, f);
+
+		uint32_t count = nodes.size();
+		fwrite(&count, sizeof(count), 1, f);
+		fwrite(nodes.data(), sizeof(node_t) * nodes.size(), 1, f);
+	}
+	void write_in(FILE* f) {
+		fread(&src, sizeof(src), 1, f);
+		fread(&dst, sizeof(dst), 1, f);
+		fread(&e.c, sizeof(e.c), 1, f);
+		fread(&e.p, sizeof(e.p), 1, f);
+
+		uint32_t count;
+		fread(&count, sizeof(count), 1, f);
+		nodes.resize(count);
+		fread(nodes.data(), count * sizeof(node_t), 1, f);
+	}
 
 //protected:											
 

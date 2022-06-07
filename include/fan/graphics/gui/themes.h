@@ -95,26 +95,26 @@ namespace fan_2d {
 
 				struct deep_blue : public fan_2d::graphics::gui::theme {
 
-					deep_blue() {
+					deep_blue(f32_t intensity = 1) {
 
-						button.color = fan::color(0, 0, 0.3);
-						button.outline_color = fan::color(0, 0, 0.5);
+						button.color = fan::color(0, 0, 0.3) * intensity;
+						button.outline_color = fan::color(0, 0, 0.5) * intensity;
 						button.text_color = fan_2d::graphics::gui::defaults::text_color;
-						button.text_outline_color = fan::colors::black;
-						button.text_outline_size = fan_2d::graphics::gui::defaults::text_renderer_outline_size;
+						button.text_outline_color = fan::colors::black * intensity;
+						button.text_outline_size = fan_2d::graphics::gui::defaults::text_renderer_outline_size * intensity;
 						button.outline_thickness = 2; // px
 						
-						button.hover_color = button.color + 0.1;
-						button.hover_outline_color = button.outline_color + 0.1;
+						button.hover_color = (button.color + 0.1) * intensity;
+						button.hover_outline_color = (button.outline_color + 0.1) * intensity;
 						
-						button.click_color = button.hover_color + 0.05;
-						button.click_outline_color = button.click_color + 0.05;
+						button.click_color = (button.hover_color + 0.05) * intensity;
+						button.click_outline_color = (button.click_color + 0.05) * intensity;
 
-						checkbox.color = button.color;
-						checkbox.text_color = button.text_color;
-						checkbox.hover_color = button.hover_color;
-						checkbox.click_color = button.click_color;
-						checkbox.check_color = fan::color(1, 1, 1);
+						checkbox.color = button.color * intensity;
+						checkbox.text_color = button.text_color * intensity;
+						checkbox.hover_color = button.hover_color * intensity;
+						checkbox.click_color = button.click_color * intensity;
+						checkbox.check_color = fan::color(1, 1, 1) * intensity;
 
 					}
 

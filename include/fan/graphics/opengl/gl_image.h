@@ -74,6 +74,21 @@ namespace fan {
         fan::webp::free_image(image_info.data);
         return ret;
       }
+      bool load(fan::opengl::context_t* context, fan::color* colors, const fan::vec2ui& size_, load_properties_t p = load_properties_t()) {
+        context->opengl.call(context->opengl.glGenTextures, 1, &texture);
+        context->opengl.call(context->opengl.glBindTexture, GL_TEXTURE_2D, texture);
+        context->opengl.call(context->opengl.glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, p.visual_output);
+        context->opengl.call(context->opengl.glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, p.visual_output);
+        context->opengl.call(context->opengl.glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, p.filter);
+        context->opengl.call(context->opengl.glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, p.filter);
+
+        size = size_;
+
+        context->opengl.call(context->opengl.glTexImage2D, GL_TEXTURE_2D, 0, fan::opengl::GL_RGBA32F, size.x, size.y, 0, p.format, fan::opengl::GL_FLOAT, (uint8_t*)colors);
+        context->opengl.call(context->opengl.glBindTexture, GL_TEXTURE_2D, 0);
+
+        return 0;
+      }
 
       void reload_pixels(fan::opengl::context_t* context, const fan::webp::image_info_t& image_info, const load_properties_t& p = load_properties_t()) {
         size = image_info.size;

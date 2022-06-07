@@ -25,6 +25,12 @@
              pile->editor.move_offset = pile->editor.click_position - pile->window.get_mouse_position();
              break;
            }
+           case builder_draw_type_t::hitbox: {
+
+             pile->editor.click_position = pile->builder.hitbox.get_position(&pile->context, click_collision.builder_draw_type_index);
+             pile->editor.move_offset = pile->editor.click_position - pile->window.get_mouse_position();
+             break;
+           }
          }
          pile->editor.click_position -= pile->window.get_mouse_position();
 

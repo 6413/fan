@@ -40,12 +40,7 @@ case builder_draw_type_t::text_renderer: {
             )
             ))
           {
-            pile->editor.close_build_properties(pile);
-            pile->builder.tr.erase(
-              &pile->context,
-              pile->editor.builder_draw_type_index
-            );
-            pile->editor.depth_map.erase(pile->editor.depth_map.size() - 1);
+            #include "erase_active.h"
           }
           else {
             pile->editor.close_build_properties(pile);

@@ -187,15 +187,8 @@ namespace fan_2d {
         return m_store_sprite[i].image;
       }
 
-      std::array<fan::vec2, 4> get_texture_coordinates(fan::opengl::context_t* context, uint32_t i) {
-        fan::vec2* coordinates = (fan::vec2*)m_glsl_buffer.get_instance(context, i * vertex_count, element_byte_size, offset_texture_coordinates);
-
-        return std::array<fan::vec2, 4>{
-          coordinates[0],
-          coordinates[1],
-          coordinates[2],
-          coordinates[5]
-        };
+      fan::vec2 get_texture_coordinates(fan::opengl::context_t* context, uint32_t i, uint32_t j) const {
+        return *(fan::vec2*)m_glsl_buffer.get_instance(context, i * vertex_count + j, element_byte_size, offset_texture_coordinates);
       }
       // set texture coordinates before position or size
       void set_texture_coordinates(fan::opengl::context_t* context, uint32_t i, const fan::_vec4<fan::vec2>& texture_coordinates) {
