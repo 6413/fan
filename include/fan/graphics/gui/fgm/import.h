@@ -10,6 +10,7 @@ namespace fan_2d {
           void open(fan::window_t* window, fan::opengl::context_t* context_) {
             context = context_;
             sprite.open(context);
+            tr.open(context);
 
             fan::vec2 window_size = window->get_size();
 
@@ -43,6 +44,7 @@ namespace fan_2d {
             }
 
             sprite.write_in_texturepack(context, f, tp, 0);
+            tr.write_in(context, f);
             be.write_in(context, f);
             fclose(f);
             be.set_on_input([](fan_2d::graphics::gui::be_t*, uint32_t index, uint16_t key, fan::key_state key_state, fan_2d::graphics::gui::mouse_stage mouse_stage) {
@@ -65,6 +67,7 @@ namespace fan_2d {
 
           void enable_draw(fan::window_t* window, fan::opengl::context_t* context) {
             sprite.enable_draw(context);
+            tr.enable_draw(context);
           }
 
           fan_2d::graphics::sprite_t sprite;

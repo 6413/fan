@@ -186,6 +186,7 @@ namespace fan_2d {
             }
 
             builder.sprite.write_out_texturepack(&context, f);
+            builder.tr.write_out(&context, f);
             fan_2d::graphics::gui::be_t be;
             be.open();
             fan_2d::graphics::gui::be_t::properties_t p;
