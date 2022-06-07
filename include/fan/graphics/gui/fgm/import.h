@@ -56,7 +56,7 @@ namespace fan_2d {
 
             sprite.write_in_texturepack(context, f, tp, 0);
             tr.write_in(context, f);
-            be.write_in(context, f);
+            be.write_in(f);
 
             uint32_t count;
             fread(&count, sizeof(count), 1, f);

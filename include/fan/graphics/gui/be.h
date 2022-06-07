@@ -219,10 +219,10 @@ namespace fan_2d {
           on_mouse_event_function = function;
         }
 
-        void write_in(fan::opengl::context_t* context, FILE* f) {
+        void write_in(FILE* f) {
           m_button_data.write_in(f);
         }
-        void write_out(fan::opengl::context_t* context, FILE* f) {
+        void write_out(FILE* f) {
           m_button_data.write_out(f);
         }
 
