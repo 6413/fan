@@ -53,11 +53,11 @@ namespace fan_2d {
               }
               switch (key_state) {
                 case fan::key_state::press: {
-                  #include <gui_maker/on_click_cb>
+                  #include _FAN_PATH(gui_maker/on_click_cb)
                   break;
                 }
                 case fan::key_state::release: {
-                  #include <gui_maker/on_release_cb>
+                  #include _FAN_PATH(gui_maker/on_release_cb)
                   break;
                 }
               }
