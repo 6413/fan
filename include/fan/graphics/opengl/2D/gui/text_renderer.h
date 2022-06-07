@@ -281,7 +281,10 @@ namespace fan_2d {
 					auto found = font.characters.find(fan::utf16_string(c).data()[0]);
 
 					if (found == font.characters.end()) {
-						throw std::runtime_error("failed to find character: " + std::to_string(fan::utf16_string(c).data()[0]));
+						fan::print_warning("failed to find character: " + std::to_string(fan::utf16_string(c).data()[0]));
+						fan::font::single_info_t font_info;
+						memset(&font_info, 0, sizeof(font_info));
+						return font_info;
 					}
 
 					f32_t converted_size = font.convert_font_size(font_size);

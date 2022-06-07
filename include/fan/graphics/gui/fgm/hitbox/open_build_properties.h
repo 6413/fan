@@ -50,23 +50,14 @@ case builder_draw_type_t::hitbox: {
 
   properties_button_p.position.y += 50;
 
-  properties_button_p.text = "";
+  properties_button_p.text = pile->editor.button_ids[click_collision_.builder_draw_type_index];
   pile->editor.properties_button.push_back(&pile->window, &pile->context, properties_button_p);
 
-  properties_text_p.text = "on click";
+  properties_text_p.text = "id";
   calculate_text_position();
 
-  pile->editor.properties_button_text.push_back(&pile->context, properties_text_p);
+  pile->editor.properties_button_text.push_back(&pile->context, properties_text_p);;
 
-  properties_button_p.position.y += 50;
-
-  properties_button_p.text = "";
-  pile->editor.properties_button.push_back(&pile->window, &pile->context, properties_button_p);
-
-  properties_text_p.text = "on release";
-  calculate_text_position();
-
-  pile->editor.properties_button_text.push_back(&pile->context, properties_text_p);
   /* properties_button_p.position.y += 50;
 
   properties_button_p.userptr = pile->builder.rtbs.get_userptr(&pile->window, &pile->context, click_collision_.builder_draw_type_index);
@@ -125,50 +116,6 @@ case builder_draw_type_t::hitbox: {
       if (pile->editor.properties_button.size(window, context) == 0) {
         return;
       }
-
-      static auto code_builder = [&](const fan::utf16_string& wpath, const std::string& save_path) {
-        std::string path(wpath.begin(), wpath.end());
-
-        if (!fan::io::file::exists(path)) {
-          fan::print_warning("path does not exist:" + path);
-        }
-
-        std::string data;
-        fan::io::file::read(save_path, &data);
-        // selected type and bll? + 1 for bll nodes xd
-        std::string index = std::to_string(pile->editor.selected_type_index + 1);
-        std::string case_line = "case " + index + ":" + " {";
-
-        std::size_t begin = data.find(case_line);
-
-        path.insert(0, "\n#include \"");
-        path.insert(path.size(), "\"\n");
-        path.insert(0, case_line);
-        path.insert(path.size(), "}");
-        path.insert(path.size(), "\n");
-
-        if (begin != std::string::npos) {
-          std::size_t end = data.find_first_of("}", begin);
-          if (end == std::string::npos) {
-            fan::throw_error("corrupted:" + save_path);
-          }
-          end += 2;
-          data.erase(begin, end - begin);
-          data.insert(begin, path);
-
-        }
-        // if case does not exist, create new
-        else {
-          std::size_t it = data.find_last_of("}");
-          if (it == std::string::npos) {
-            fan::throw_error("corrupted:" + save_path);
-          }
-          it -= 1;
-          data.insert(it, path);
-        }
-
-        fan::io::file::write(save_path, data, std::ios_base::binary);
-      };
 
       switch (pile->editor.selected_type) {
         case builder_draw_type_t::hitbox: {
@@ -237,20 +184,13 @@ case builder_draw_type_t::hitbox: {
                 context,
                 i
               );
-              code_builder(wpath, std::string(STRINGIFY_DEFINE(FAN_INCLUDE_PATH)) + "/fan/" + "gui_maker/on_click_cb");
-
-              break;
-            }
-            case 3: {
-              fan::utf16_string wpath = pile->editor.properties_button.get_text(
-                window,
-                context,
-                i
-              );
-
-              code_builder(wpath, std::string(STRINGIFY_DEFINE(FAN_INCLUDE_PATH)) + "/fan/" + "gui_maker/on_release_cb");
-
-              break;
+              std::string path(wpath.begin(), wpath.end());
+              if (!pile->editor.check_for_colliding_button_ids(path)) {
+                pile->editor.button_ids[pile->editor.selected_type_index] = path;
+                break;
+              }
+              fan::print_warning(std::string("failed to add id:") + path);
+              pile->editor.properties_button.set_text(window, context, i, pile->editor.button_ids[pile->editor.selected_type_index]);
             }
           }
           break;

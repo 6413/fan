@@ -231,6 +231,9 @@ namespace fan_2d {
           }
 
           for (int j = 0; j < x; j++) {
+            if (j + offset >= str.size()) {
+              break;
+            }
             wchar_t wc = str[j + offset];
             if (wc == '\n') {
               continue;

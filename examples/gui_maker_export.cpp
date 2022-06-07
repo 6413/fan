@@ -1,6 +1,5 @@
 // Example of opening gui maker
 
-
 #define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 
 #ifndef FAN_INCLUDE_PATH
@@ -23,6 +22,7 @@ int main(int argc, char** argv) {
   pile.open(argc, argv);
 
   pile.context.set_vsync(&pile.window, 0);
+  
 
   while (1) {
 

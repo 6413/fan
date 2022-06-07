@@ -7,7 +7,7 @@
   #define FAN_INCLUDE_PATH C:/libs/fan/include
 #endif
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
-#define fan_debug fan_debug_high
+#define fan_debug fan_debug_low
 
 #include _FAN_PATH(graphics/graphics.h)
 #include _FAN_PATH(graphics/gui/fgm/import.h)
@@ -34,17 +34,20 @@ int main(int argc, char** argv) {
   load.load(&window, &context, "123", &tp);
   load.enable_draw(&window, &context);
 
-  context.set_vsync(&window, 0);
- /* fan_2d::graphics::sprite_t s;
-  s.open(&context);
-  s.bind_matrices(&context, &load.matrices);
-  s.enable_draw(&context);
+  load.set_on_input([](const std::string& id, fan_2d::graphics::gui::be_t* be, uint32_t index, uint16_t key, fan::key_state key_state
+    ,fan_2d::graphics::gui::mouse_stage mouse_stage) {
+      if (mouse_stage != fan_2d::graphics::gui::mouse_stage::inside) {
+        return;
+      }
+      if (key != fan::mouse_left) {
+        return;
+      }
+      if (key_state != fan::key_state::release) {
+        return;
+      }
+  });
 
-  fan_2d::graphics::sprite_t::properties_t sp;
-  sp.position = 100;
-  sp.size = 64;
-  sp.image = tp.get_pixel_data(0).image;
-  s.push_back(&context, sp);*/
+  context.set_vsync(&window, 0);
 
   while (1) {
 
