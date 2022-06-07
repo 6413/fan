@@ -1,6 +1,7 @@
 #pragma once
 
 #define STRINGIFY(p0) #p0
+#define STRINGIFY_DEFINE(a) STRINGIFY(a)
 
 #ifndef FAN_INCLUDE_PATH
   #define _FAN_PATH(p0) <fan/p0>
