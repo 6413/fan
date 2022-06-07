@@ -141,8 +141,8 @@ case builder_draw_type_t::hitbox: {
 
         std::size_t begin = data.find(case_line);
 
-        path.insert(0, "\n#include <");
-        path.insert(path.size(), ">\n");
+        path.insert(0, "\n#include \"");
+        path.insert(path.size(), "\"\n");
         path.insert(0, case_line);
         path.insert(path.size(), "}");
         path.insert(path.size(), "\n");
