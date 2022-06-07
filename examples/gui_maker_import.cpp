@@ -10,7 +10,7 @@
 #define fan_debug fan_debug_high
 
 #include _FAN_PATH(graphics/graphics.h)
-#include _FAN_PATH(graphics/gui/fgm/fgm.h)
+#include _FAN_PATH(graphics/gui/fgm/import.h)
 
 int main(int argc, char** argv) {
 
@@ -31,10 +31,20 @@ int main(int argc, char** argv) {
 
   fan_2d::graphics::gui::fgm::load_t load;
   load.open(&window, &context);
-  load.load(&context, "123", &tp);
+  load.load(&window, &context, "123", &tp);
   load.enable_draw(&window, &context);
 
   context.set_vsync(&window, 0);
+ /* fan_2d::graphics::sprite_t s;
+  s.open(&context);
+  s.bind_matrices(&context, &load.matrices);
+  s.enable_draw(&context);
+
+  fan_2d::graphics::sprite_t::properties_t sp;
+  sp.position = 100;
+  sp.size = 64;
+  sp.image = tp.get_pixel_data(0).image;
+  s.push_back(&context, sp);*/
 
   while (1) {
 

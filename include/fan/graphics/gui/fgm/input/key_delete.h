@@ -10,6 +10,10 @@ case fan::key_delete: {
           #include _FAN_PATH(graphics/gui/fgm/text_renderer/erase_active.h)
           break;
         }
+        case builder_draw_type_t::hitbox: {
+          #include _FAN_PATH(graphics/gui/fgm/hitbox/erase_active.h)
+          break;
+        }
       }
     }
   }

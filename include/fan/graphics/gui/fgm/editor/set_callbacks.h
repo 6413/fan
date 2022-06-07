@@ -26,6 +26,7 @@ builder_types.m_button_event.set_on_input(pile,
 
     #include _FAN_PATH(graphics/gui/fgm/sprite/create.h)
     #include _FAN_PATH(graphics/gui/fgm/text_renderer/create.h)
+    #include _FAN_PATH(graphics/gui/fgm/hitbox/create.h)
   }
 });
 
@@ -42,12 +43,14 @@ pile->window.add_mouse_move_callback(pile,
     switch (pile->editor.selected_type) {
       #include _FAN_PATH(graphics/gui/fgm/sprite/move.h)
       #include _FAN_PATH(graphics/gui/fgm/text_renderer/move.h)
+      #include _FAN_PATH(graphics/gui/fgm/hitbox/move.h)
     }
   }
   if (pile->editor.flags & flags_t::resizing) {
     switch (pile->editor.selected_type) {
       #include _FAN_PATH(graphics/gui/fgm/sprite/resize.h)
       #include _FAN_PATH(graphics/gui/fgm/text_renderer/resize.h)
+      #include _FAN_PATH(graphics/gui/fgm/hitbox/resize.h)
     }
   }
 

@@ -15,6 +15,7 @@ inline void fan_2d::graphics::gui::fgm::editor_t::update_resize_rectangles(pile_
   switch (pile->editor.selected_type) {
     #include _FAN_PATH(graphics/gui/fgm/sprite/corners.h)
     #include _FAN_PATH(graphics/gui/fgm/text_renderer/corners.h)
+    #include _FAN_PATH(graphics/gui/fgm/hitbox/corners.h)
   }
 
   for (uint32_t i = 0; i < 8; i++) {
@@ -66,18 +67,21 @@ void editor_t::open_build_properties(pile_t* pile, click_collision_t click_colli
   switch (selected_type) {
     #include _FAN_PATH(graphics/gui/fgm/sprite/corners.h)
     #include _FAN_PATH(graphics/gui/fgm/text_renderer/corners.h)
+    #include _FAN_PATH(graphics/gui/fgm/hitbox/corners.h)
   }
 
   for (uint32_t i = 0; i < 8; i++) {
     fan_2d::graphics::gui::rectangle_button_sized_t::properties_t p;
     p.position = positions[i];
     p.size = constants::resize_rectangle_size;
+    p.theme = fan_2d::graphics::gui::themes::deep_blue(0.8);
     pile->editor.resize_rectangles.push_back(&pile->window, &pile->context, p);
   }
 
   switch (click_collision_.builder_draw_type) {    
     #include _FAN_PATH(graphics/gui/fgm/sprite/open_build_properties.h)
     #include _FAN_PATH(graphics/gui/fgm/text_renderer/open_build_properties.h)
+    #include _FAN_PATH(graphics/gui/fgm/hitbox/open_build_properties.h)
     #include _FAN_PATH(graphics/gui/fgm/fgm.h)
   }
 }
@@ -130,9 +134,20 @@ bool editor_t::click_collision(pile_t* pile, click_collision_t* click_collision_
           }
           break;
         }
+        case builder_draw_type_t::hitbox: {
+          if (!pile->builder.hitbox.inside(&pile->context, pile->editor.depth_map[i].index, pile->window.get_mouse_position())) {
+            continue;
+          }
+          break;
+        }
+        default: {
+          fan::throw_error("not added shape to collision");
+        }
       }
-      frontest = pile->editor.depth_map[i].depth;
-      front = pile->editor.depth_map[i];
+      if (frontest < pile->editor.depth_map[i].depth) {
+        frontest = pile->editor.depth_map[i].depth;
+        front = pile->editor.depth_map[i];
+      }
     }
   }
 

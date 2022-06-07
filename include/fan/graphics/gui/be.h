@@ -49,6 +49,9 @@ namespace fan_2d {
         void open() {
           m_button_data.open();
           coordinate_offset = 0;
+
+          on_input_function = [](be_t*, uint32_t index, uint16_t key, fan::key_state key_state, fan_2d::graphics::gui::mouse_stage mouse_stage) {};
+          on_mouse_event_function = [](be_t*, uint32_t index, fan_2d::graphics::gui::mouse_stage mouse_stage) {};
         }
         void close() {
           m_button_data.close();
@@ -60,8 +63,6 @@ namespace fan_2d {
           m_focused_button_id = fan::uninitialized;
           add_keys_callback_id = fan::uninitialized;
           add_mouse_move_callback_id = fan::uninitialized;
-          on_input_function = [](be_t*, uint32_t index, uint16_t key, fan::key_state key_state, fan_2d::graphics::gui::mouse_stage mouse_stage) {};
-          on_mouse_event_function = [](be_t*, uint32_t index, fan_2d::graphics::gui::mouse_stage mouse_stage) {};
 
           static auto inside = [](be_t* object, uint32_t i, const fan::vec2& p) {
 
@@ -95,9 +96,8 @@ namespace fan_2d {
               }
             }
 
-            uint32_t it = object->m_button_data.end();
-            it = object->m_button_data.prev(it);
-            while (it != object->m_button_data.src) {
+            uint32_t it = object->m_button_data.rend();
+            while (it != object->m_button_data.rbegin()) {
               if (inside(object, it, object->coordinate_offset + w->get_mouse_position())) {
                 if (object->m_focused_button_id != fan::uninitialized) {
                   object->on_mouse_event_function(object, object->m_focused_button_id, mouse_stage::outside);
@@ -124,8 +124,7 @@ namespace fan_2d {
                   object->on_input_function(object, object->m_focused_button_id, key, fan::key_state::press, mouse_stage::inside);
                 }
                 else {
-                  uint32_t it = object->m_button_data.end();
-                  it = object->m_button_data.prev(it);
+                  uint32_t it = object->m_button_data.rend();
                   while (it != object->m_button_data.begin()) {
                     if (inside(object, it, object->coordinate_offset + w->get_mouse_position())) {
                       object->on_input_function(object, it, key, state, mouse_stage::outside);
@@ -153,9 +152,8 @@ namespace fan_2d {
                   }
                 }
                 else {
-                  uint32_t it = object->m_button_data.end();
-                  it = object->m_button_data.prev(it);
-                  while (it != object->m_button_data.src) {
+                  uint32_t it = object->m_button_data.rend();
+                  while (it != object->m_button_data.rbegin()) {
                     if (inside(object, it, object->coordinate_offset + w->get_mouse_position())) {
                       object->on_input_function(object, it, key, fan::key_state::release, mouse_stage::inside_drag);
                       object->m_focused_button_id = it;
@@ -221,6 +219,13 @@ namespace fan_2d {
           on_mouse_event_function = function;
         }
 
+        void write_in(fan::opengl::context_t* context, FILE* f) {
+          m_button_data.write_in(f);
+        }
+        void write_out(fan::opengl::context_t* context, FILE* f) {
+          m_button_data.write_out(f);
+        }
+
     //  protected:
 
         on_input_cb on_input_function;
@@ -238,7 +243,6 @@ namespace fan_2d {
 
         struct button_data_t {
           properties_t properties;
-          uint16_t old_key;
         };
 
         bll_t<button_data_t> m_button_data;

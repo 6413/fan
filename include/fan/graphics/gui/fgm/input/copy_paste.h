@@ -32,7 +32,13 @@ case fan::key_v: {
       sprite_p.position = pile->builder.sprite.get_position(&pile->context, pile->editor.copied_type_index);
       sprite_p.size = pile->builder.sprite.get_size(&pile->context, pile->editor.copied_type_index);
       sprite_p.image = pile->builder.sprite.get_image(&pile->context, pile->editor.copied_type_index);
-      sprite_p.texture_coordinates = pile->builder.sprite.get_texture_coordinates(&pile->context, pile->editor.copied_type_index);
+      sprite_p.texture_coordinates =
+      {
+        pile->builder.sprite.get_texture_coordinates(&pile->context, pile->editor.copied_type_index, 0),
+        pile->builder.sprite.get_texture_coordinates(&pile->context, pile->editor.copied_type_index, 1),
+        pile->builder.sprite.get_texture_coordinates(&pile->context, pile->editor.copied_type_index, 2),
+        pile->builder.sprite.get_texture_coordinates(&pile->context, pile->editor.copied_type_index, 4)
+      };
       pile->builder.sprite.push_back(&pile->context, sprite_p);
 
       pile->editor.depth_map_push(pile, builder_draw_type_t::sprite, pile->builder.sprite.size(&pile->context) - 1);

@@ -73,9 +73,15 @@ builder_types_p.position = origin + fan::vec2(50 + builder_types_p.size.x / 2, 5
 builder_types_p.text = "sprite";
 builder_types_p.theme = fan_2d::graphics::gui::themes::gray();
 builder_types.push_back(&pile->window, &pile->context, builder_types_p);
+
 builder_types_p.position.y += 50;
 builder_types_p.text = "text";
 builder_types.push_back(&pile->window, &pile->context, builder_types_p);
+
+builder_types_p.position.y += 50;
+builder_types_p.text = "hitbox";
+builder_types.push_back(&pile->window, &pile->context, builder_types_p);
+
 
 builder_types_p.position.x -= 30;
 builder_types_p.position.y += 170;

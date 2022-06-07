@@ -1,0 +1,1 @@
+C:\libs\fan\x64\Release\fan.exe
