@@ -226,6 +226,16 @@ namespace fan {
       return r;
     }
 
+    void write_out(FILE* f) {
+      fwrite(&m_size, sizeof(m_size), 1, f);
+      fwrite(ptr, m_size * sizeof(type_t), 1, f);
+    }
+    void write_in(FILE* f) {
+      fread(&m_size, sizeof(m_size), 1, f);
+      ptr = (type_t*)resize_buffer(ptr, sizeof(type_t) * m_size);
+      fread(ptr, m_size * sizeof(type_t), 1, f);
+    }
+
     uintptr_t m_size;
     uintptr_t m_capacity;
     type_t* ptr;

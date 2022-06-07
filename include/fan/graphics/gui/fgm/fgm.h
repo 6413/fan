@@ -201,7 +201,7 @@ namespace fan_2d {
               be.push_back(p);
             }
 
-            be.write_out(&context, f);
+            be.write_out(f);
             uint32_t count = editor.button_ids.size();
             fwrite(&count, sizeof(count), 1, f);
             for (uint32_t i = 0; i < count; i++) {
@@ -209,6 +209,58 @@ namespace fan_2d {
               fwrite(&s, sizeof(s), 1, f);
               fwrite(editor.button_ids[i].data(), editor.button_ids[i].size(), 1, f);
             }
+            editor.depth_map.write_out(f);
+
+            fclose(f);
+          }
+
+          void load_file(const char* path) {
+            FILE* f = fopen(path, "r+b");
+            if (!f) {
+              fan::throw_error("failed to open file stream");
+            }
+
+            builder.sprite.write_in_texturepack(&context, f, &tp, 0);
+            builder.tr.write_in(&context, f);
+            fan_2d::graphics::gui::be_t be;
+            be.open();
+            be.write_in(f);
+
+            uint32_t count;
+            fread(&count, sizeof(count), 1, f);
+            editor.button_ids.resize(count);
+            for (uint32_t i = 0; i < count; i++) {
+              uint32_t s;
+              fread(&s, sizeof(s), 1, f);
+              editor.button_ids[i].resize(s);
+              fread(editor.button_ids[i].data(), s, 1, f);
+              fan_2d::graphics::sprite_t::properties_t sprite_p;
+              fan::color colors[9];
+              colors[0] = fan::colors::gray - fan::color(0, 0, 0, 0.1);
+              colors[1] = fan::colors::gray - fan::color(0, 0, 0, 0.1);
+              colors[2] = fan::colors::gray - fan::color(0, 0, 0, 0.1);
+              colors[3] = fan::colors::gray - fan::color(0, 0, 0, 0.1);
+              colors[4] = fan::colors::transparent;
+              colors[5] = fan::colors::gray - fan::color(0, 0, 0, 0.1);
+              colors[6] = fan::colors::gray - fan::color(0, 0, 0, 0.1);
+              colors[7] = fan::colors::gray - fan::color(0, 0, 0, 0.1);
+              colors[8] = fan::colors::gray - fan::color(0, 0, 0, 0.1);
+              sprite_p.image.load(&context, colors, fan::vec2ui(3, 3));
+              switch (be.m_button_data[i + 1].properties.hitbox_type) {
+                case fan_2d::graphics::gui::be_t::hitbox_type_t::rectangle: {
+                  // BLL + 1
+                  sprite_p.position = be.m_button_data[i + 1].properties.hitbox_rectangle.position;
+                  sprite_p.size = be.m_button_data[i + 1].properties.hitbox_rectangle.size;
+                  
+                  break;
+                }
+                case fan_2d::graphics::gui::be_t::hitbox_type_t::circle: {
+                  break;
+                }
+              }
+              builder.hitbox.push_back(&context, sprite_p);
+            }
+            editor.depth_map.write_in(f);
 
             fclose(f);
           }
