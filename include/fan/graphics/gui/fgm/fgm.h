@@ -68,8 +68,10 @@ namespace fan_2d {
           void update_resize_rectangles(pile_t* pile);
 
           void depth_map_push(pile_t* pile, uint32_t type, uint32_t index);
-          void depth_map_erase_active(pile_t* pile);
+          void editor_erase_active(pile_t* pile);
           void print(pile_t* pile, const std::string& message);
+
+          bool check_for_colliding_button_ids(const std::string& id);
 
           fan::vec2 builder_viewport_size;
           fan::vec2 origin_shapes;
@@ -100,6 +102,7 @@ namespace fan_2d {
           };
 
           fan::hector_t<depth_t> depth_map;
+          std::vector<std::string> button_ids;
 
           fan_2d::graphics::line_t outline;
           fan_2d::graphics::gui::rectangle_text_button_sized_t builder_types;
@@ -199,6 +202,13 @@ namespace fan_2d {
             }
 
             be.write_out(&context, f);
+            uint32_t count = editor.button_ids.size();
+            fwrite(&count, sizeof(count), 1, f);
+            for (uint32_t i = 0; i < count; i++) {
+              uint32_t s = editor.button_ids[i].size();
+              fwrite(&s, sizeof(s), 1, f);
+              fwrite(editor.button_ids[i].data(), editor.button_ids[i].size(), 1, f);
+            }
 
             fclose(f);
           }

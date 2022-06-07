@@ -209,7 +209,6 @@ case builder_draw_type_t::sprite: {
             }
             else if (pile->tp.qti(path, &ti)) {
               pile->editor.print(pile, std::string("failed to load image:") + path);
-              pile->editor.properties_button.set_text(window, context, 2, " ");
             }
             else {
               pile->editor.properties_button.set_text(window, context, 2, path);

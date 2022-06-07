@@ -2,6 +2,7 @@ void editor_t::open(pile_t* pile) {
 
   #include "open.h"
   #include "set_callbacks.h"
+#include "fgm.h"
 }
 
 inline void fan_2d::graphics::gui::fgm::editor_t::update_resize_rectangles(pile_t* pile)
@@ -23,7 +24,7 @@ inline void fan_2d::graphics::gui::fgm::editor_t::update_resize_rectangles(pile_
   }
 }
 
-inline void fan_2d::graphics::gui::fgm::editor_t::depth_map_erase_active(pile_t* pile)
+inline void fan_2d::graphics::gui::fgm::editor_t::editor_erase_active(pile_t* pile)
 {
   for (uint32_t i = 0; i < pile->editor.depth_map.size(); i++) {
     if (pile->editor.depth_map[i].type == pile->editor.selected_type &&
@@ -37,6 +38,9 @@ inline void fan_2d::graphics::gui::fgm::editor_t::depth_map_erase_active(pile_t*
         pile->editor.depth_map[j].index--;
       }
 
+      if (pile->editor.selected_type == builder_draw_type_t::hitbox) {
+        pile->editor.button_ids.erase(pile->editor.button_ids.begin() + pile->editor.selected_type_index);
+      }
       pile->editor.close_build_properties(pile);
       break;
     }
@@ -46,6 +50,16 @@ inline void fan_2d::graphics::gui::fgm::editor_t::depth_map_erase_active(pile_t*
 inline void fan_2d::graphics::gui::fgm::editor_t::print(pile_t* pile, const std::string& message)
 {
   fan::print(message);
+}
+
+inline bool fan_2d::graphics::gui::fgm::editor_t::check_for_colliding_button_ids(const std::string& id)
+{
+  for (uint32_t i = 0; i < button_ids.size(); i++) {
+    if (id == button_ids[i]) {
+      return true;
+    }
+  }
+  return false;
 }
 
 inline void fan_2d::graphics::gui::fgm::editor_t::depth_map_push(pile_t* pile, uint32_t type, uint32_t index)
