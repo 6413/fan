@@ -1,7 +1,7 @@
 case builder_draw_type_t::text_renderer: {
 
-  fan::vec2 position = fan::vec2(pile->builder.tr.get_position(&pile->context, click_collision_.builder_draw_type_index));
-  fan::vec2 size = fan::vec2(pile->builder.tr.get_text_size(&pile->context, click_collision_.builder_draw_type_index));
+  fan::vec2 position = pile->builder.tr.get_position(&pile->context, click_collision_.builder_draw_type_index);
+  fan::vec2 size = pile->builder.tr.get_text_size(&pile->context, click_collision_.builder_draw_type_index);
 
   decltype(pile->editor.properties_button)::properties_t properties_button_p;
   properties_button_p.text = fan::to_wstring(position.x, 0) + L", " + fan::to_wstring(position.y, 0);
@@ -39,10 +39,20 @@ case builder_draw_type_t::text_renderer: {
 
   properties_button_p.position.y += 50;
 
-  properties_button_p.text = fan::to_wstring(size.x, 0) + L", " + fan::to_wstring(size.y, 0);
+  properties_button_p.text = fan::to_wstring(pile->builder.tr.get_font_size(&pile->context, click_collision_.builder_draw_type_index));
   pile->editor.properties_button.push_back(&pile->window, &pile->context, properties_button_p);
 
-  properties_text_p.text = "size";
+  properties_text_p.text = "font size";
+  calculate_text_position();
+
+  pile->editor.properties_button_text.push_back(&pile->context, properties_text_p);
+
+  properties_button_p.position.y += 50;
+
+  properties_button_p.text = fan::to_wstring(pile->builder.tr.get_outline_size(&pile->context, click_collision_.builder_draw_type_index));
+  pile->editor.properties_button.push_back(&pile->window, &pile->context, properties_button_p);
+
+  properties_text_p.text = "outline size";
   calculate_text_position();
 
   pile->editor.properties_button_text.push_back(&pile->context, properties_text_p);
@@ -71,6 +81,22 @@ case builder_draw_type_t::text_renderer: {
   pile->editor.properties_button.push_back(&pile->window, &pile->context, properties_button_p);
 
   properties_text_p.text = "text color";
+  calculate_text_position();
+
+  pile->editor.properties_button_text.push_back(&pile->context, properties_text_p);
+
+  properties_button_p.position.y += 50;
+
+  fan::color outline_color = pile->builder.tr.get_outline_color(&pile->context, click_collision_.builder_draw_type_index);
+  r = fan::clamp((uint32_t)(outline_color.r * 255), 0u, 255u);
+  g = fan::clamp((uint32_t)(outline_color.g * 255), 0u, 255u);
+  b = fan::clamp((uint32_t)(outline_color.b * 255), 0u, 255u);
+  a = fan::clamp((uint32_t)(outline_color.a * 255), 0u, 255u);
+  snprintf(hexcol, sizeof hexcol, "%02x%02x%02x%02x", r & 0xff, g & 0xff, b & 0xff, a & 0xff);
+  properties_button_p.text = hexcol;
+  pile->editor.properties_button.push_back(&pile->window, &pile->context, properties_button_p);
+
+  properties_text_p.text = "outline color";
   calculate_text_position();
 
   pile->editor.properties_button_text.push_back(&pile->context, properties_text_p);
@@ -108,7 +134,7 @@ case builder_draw_type_t::text_renderer: {
     switch (pile->editor.selected_type) {
       case builder_draw_type_t::text_renderer: {
         switch (i) {
-          case 4: {
+          case 6: {
             #include "erase_active.h"
             break;
           }
@@ -159,7 +185,7 @@ case builder_draw_type_t::text_renderer: {
             break;
           }
           case 1: {
-           /* std::vector<int> values = fan::string_to_values<int>(
+            f32_t font_size = std::stof(
               pile->editor.properties_button.get_text(
               window,
               context,
@@ -167,27 +193,34 @@ case builder_draw_type_t::text_renderer: {
               )
             );
 
-            fan::vec2 size;
-
-            if (values.size() != 2) {
-              fan::print("invalid size, usage: x, y");
-              size = 0;
-            }
-            else {
-              size = *(fan::vec2i*)values.data();
-            }
-
-            pile->builder.tr.set_hitbox_size(
-              window,
+            pile->builder.tr.set_font_size(
               context,
               pile->editor.selected_type_index,
-              size
-            );*/
+              font_size
+            );
 
-            // TODO WITH BE_T
+            pile->editor.update_resize_rectangles(pile);
+
             break;
           }
           case 2: {
+            f32_t font_size = std::stof(
+              pile->editor.properties_button.get_text(
+                window,
+                context,
+                i
+              )
+            );
+
+            pile->builder.tr.set_outline_size(
+              context,
+              pile->editor.selected_type_index,
+              font_size
+            );
+
+            break;
+          }
+          case 3: {
             pile->builder.tr.set_text(
               context,
               pile->editor.selected_type_index,
@@ -195,7 +228,7 @@ case builder_draw_type_t::text_renderer: {
             );
             break;
           }
-          case 3: {
+          case 4: {
 
             pile->builder.tr.set_text_color(
               context,
@@ -205,6 +238,19 @@ case builder_draw_type_t::text_renderer: {
               context,
               i
             ), nullptr, 16))
+            );
+            break;
+          }
+          case 5: {
+
+            pile->builder.tr.set_outline_color(
+              context,
+              pile->editor.selected_type_index,
+              fan::color::hex(std::stoul(pile->editor.properties_button.get_text(
+                window,
+                context,
+                i
+              ), nullptr, 16))
             );
             break;
           }

@@ -52,13 +52,6 @@ namespace fan {
 		}
 
 		static constexpr color hex(unsigned int hex) {
-			if (hex <= 0xffffff) {
-				return color::rgb(
-					(hex >> 16) & 0xff,
-					(hex >> 8) & 0xff,
-					(hex >> 0) & 0xff
-				);
-			}
 			return color::rgb(
 				(hex >> 24) & 0xff,
 				(hex >> 16) & 0xff,
@@ -141,18 +134,18 @@ namespace fan {
 	namespace colors {
 
 		static constexpr fan::color black =  fan::color(0, 0, 0);
-		static constexpr fan::color gray = fan::color::hex(0x808080);
+		static constexpr fan::color gray = fan::color::hex(0x808080FF);
 		static constexpr fan::color red = fan::color(1, 0, 0);
 		static constexpr fan::color green = fan::color(0, 1, 0);
 		static constexpr fan::color blue = fan::color(0, 0, 1);
 		static constexpr fan::color white = fan::color(1, 1, 1);
-		static constexpr fan::color aqua = fan::color::hex(0x00FFFF);
-		static constexpr fan::color purple = fan::color::hex(0x800080);
-		static constexpr fan::color orange = fan::color::hex(0xFFA500);
-		static constexpr fan::color pink = fan::color::hex(0xFF35B8);
-		static constexpr fan::color yellow = fan::color::hex(0xFFFF00);
-		static constexpr fan::color cyan = fan::color::hex(0x00FFFF);
-		static constexpr fan::color magenta = fan::color::hex(0xFF00FF);
+		static constexpr fan::color aqua = fan::color::hex(0x00FFFFFF);
+		static constexpr fan::color purple = fan::color::hex(0x800080FF);
+		static constexpr fan::color orange = fan::color::hex(0xFFA500FF);
+		static constexpr fan::color pink = fan::color::hex(0xFF35B8FF);
+		static constexpr fan::color yellow = fan::color::hex(0xFFFF00FF);
+		static constexpr fan::color cyan = fan::color::hex(0x00FFFFFF);
+		static constexpr fan::color magenta = fan::color::hex(0xFF00FFFF);
 		static constexpr fan::color transparent = fan::color(0, 0, 0, 0);
 
 	}

@@ -19,7 +19,7 @@ namespace fan_2d {
 					f32_t font_size;
 					fan::vec2 position = 0;
 					fan::color text_color;
-					fan::color outline_color = fan::color(0, 0, 0, 0);
+					fan::color outline_color = fan::color(0, 0, 0, 1);
 					f32_t outline_size = 0.3;
 					fan::vec2 rotation_point = 0;
 					f32_t angle = 0;
@@ -281,8 +281,8 @@ namespace fan_2d {
 					}
 					m_queue_helper.edit(
 						context,
-						i * vertex_count * element_byte_size + offset_outline_color,
-						(i + 1) * (vertex_count)*element_byte_size - offset_outline_color,
+						i * vertex_count * element_byte_size,
+						(i + 1) * (vertex_count)*element_byte_size,
 						&m_glsl_buffer
 					);
 				}
@@ -291,14 +291,14 @@ namespace fan_2d {
 					return *(f32_t*)m_glsl_buffer.get_instance(context, i * vertex_count, element_byte_size, offset_outline_size);
 				}
 				void set_outline_size(fan::opengl::context_t* context, uint32_t i, f32_t outline_size) {
-					for (uint32_t j = 0; j < vertex_count; j++) {
+					for (int j = get_index(i) * vertex_count; j < get_index(i + 1) * vertex_count; j++) {
 						m_glsl_buffer.edit_ram_instance(
 							context, 
 							i * vertex_count + j,
 							&outline_size,
 							element_byte_size,
 							offset_outline_size,
-							sizeof(fan::color)
+							sizeof(properties_t::outline_size)
 						);
 					}
 					m_queue_helper.edit(

@@ -19,7 +19,7 @@ namespace fan_2d {
 					f32_t font_size;
 					fan::vec2 position = 0;
 					fan::color text_color;
-					fan::color outline_color = fan::color(0, 0, 0, 0);
+					fan::color outline_color = fan::color(0, 0, 0, 1);
 					f32_t outline_size = fan_2d::graphics::gui::defaults::text_renderer_outline_size;
 					fan::vec2 rotation_point = 0;
 					f32_t angle = 0;
@@ -91,7 +91,9 @@ namespace fan_2d {
 					static constexpr const char* font_name = "bitter";
 
 					if (font_image.texture == fan::uninitialized) {
-						font_image.load(context, std::string("fonts/") + font_name + ".webp");
+						fan::opengl::image_t::load_properties_t lp;
+						lp.filter = fan::opengl::GL_LINEAR;
+						font_image.load(context, std::string("fonts/") + font_name + ".webp", lp);
 					}
 
 					font = fan::font::parse_font(std::string("fonts/") + font_name + "_metrics.txt");
@@ -344,10 +346,10 @@ namespace fan_2d {
 					return *(f32_t*)m_glsl_buffer.get_instance(context, get_index(i) * vertex_count, element_byte_size, offset_angle);
 				}
 				void set_angle(fan::opengl::context_t* context, uint32_t i, f32_t angle) {
-					for (int j = get_index(i) * vertex_count; j < get_index(i + 1) * vertex_count; j += vertex_count) {
+					for (int j = get_index(i) * vertex_count; j < get_index(i + 1) * vertex_count; j++) {
 						m_glsl_buffer.edit_ram_instance(
 							context, 
-							j,
+							i * vertex_count + j,
 							&angle,
 							element_byte_size,
 							offset_angle,
@@ -356,8 +358,8 @@ namespace fan_2d {
 					}
 					m_queue_helper.edit(
 						context,
-						get_index(i) * vertex_count * element_byte_size + offset_angle,
-						get_index(i + 1) * (vertex_count)*element_byte_size - offset_angle,
+						get_index(i) * vertex_count * element_byte_size,
+						get_index(i + 1) * (vertex_count)*element_byte_size,
 						&m_glsl_buffer
 					);
 				}
@@ -366,10 +368,10 @@ namespace fan_2d {
 					return *(f32_t*)m_glsl_buffer.get_instance(context, get_index(i) * vertex_count, element_byte_size, offset_rotation_point);
 				}
 				void set_rotation_point(fan::opengl::context_t* context, uint32_t i, const fan::vec2& rotation_point) {
-					for (int j = get_index(i) * vertex_count; j < get_index(i + 1) * vertex_count; j += vertex_count) {
+					for (int j = get_index(i) * vertex_count; j < get_index(i + 1) * vertex_count; j++) {
 						m_glsl_buffer.edit_ram_instance(
 							context, 
-							j,
+							i * vertex_count + j,
 							&rotation_point,
 							element_byte_size,
 							offset_rotation_point,
@@ -378,8 +380,8 @@ namespace fan_2d {
 					}
 					m_queue_helper.edit(
 						context,
-						get_index(i) * vertex_count * element_byte_size + offset_rotation_point,
-						get_index(i + 1) * (vertex_count)*element_byte_size - offset_rotation_point,
+						get_index(i) * vertex_count * element_byte_size,
+						get_index(i + 1) * (vertex_count)*element_byte_size,
 						&m_glsl_buffer
 					);
 				}
@@ -388,10 +390,10 @@ namespace fan_2d {
 					return *(fan::color*)m_glsl_buffer.get_instance(context, get_index(i) * vertex_count, element_byte_size, offset_outline_color);
 				}
 				void set_outline_color(fan::opengl::context_t* context, uint32_t i, const fan::color& outline_color) {
-					for (int j = get_index(i) * vertex_count; j < get_index(i + 1) * vertex_count; j += vertex_count) {
+					for (int j = get_index(i) * vertex_count; j < get_index(i + 1) * vertex_count; j++) {
 						m_glsl_buffer.edit_ram_instance(
 							context, 
-							j,
+							i * vertex_count + j,
 							&outline_color,
 							element_byte_size,
 							offset_outline_color,
@@ -400,8 +402,8 @@ namespace fan_2d {
 					}
 					m_queue_helper.edit(
 						context,
-						get_index(i) * vertex_count * element_byte_size + offset_outline_color,
-						get_index(i + 1) * (vertex_count)*element_byte_size - offset_outline_color,
+						get_index(i) * vertex_count * element_byte_size,
+						get_index(i + 1) * (vertex_count)*element_byte_size,
 						&m_glsl_buffer
 					);
 				}
@@ -410,20 +412,20 @@ namespace fan_2d {
 					return *(f32_t*)m_glsl_buffer.get_instance(context, get_index(i) * vertex_count, element_byte_size, offset_outline_size);
 				}
 				void set_outline_size(fan::opengl::context_t* context, uint32_t i, f32_t outline_size) {
-					for (int j = get_index(i) * vertex_count; j < get_index(i + 1) * vertex_count; j += vertex_count) {
+					for (int j = get_index(i) * vertex_count; j < get_index(i + 1) * vertex_count; j++) {
 						m_glsl_buffer.edit_ram_instance(
 							context, 
-							j,
+							i * vertex_count + j,
 							&outline_size,
 							element_byte_size,
 							offset_outline_size,
-							sizeof(properties_t::outline_color)
+							sizeof(properties_t::outline_size)
 						);
 					}
 					m_queue_helper.edit(
 						context,
-						get_index(i) * vertex_count * element_byte_size + offset_outline_size,
-						get_index(i + 1) * (vertex_count)*element_byte_size - offset_outline_size,
+						get_index(i) * vertex_count * element_byte_size,
+						get_index(i + 1) * (vertex_count) * element_byte_size,
 						&m_glsl_buffer
 					);
 				}
@@ -830,34 +832,32 @@ namespace fan_2d {
 					uint64_t buffer_size = m_glsl_buffer.m_buffer.size();
 					fwrite(&buffer_size, sizeof(uint64_t), 1, f);
 					fwrite(m_glsl_buffer.m_buffer.data(), m_glsl_buffer.m_buffer.size(), 1, f);
-					buffer_size = m_store.size();
-					fwrite(&buffer_size, sizeof(uint64_t), 1, f);
+					uint32_t count = m_store.size();
+					fwrite(&count, sizeof(count), 1, f);
+					fwrite(m_store.data(), sizeof(store_t) * m_store.size(), 1, f);
 					for (uint32_t i = 0; i < m_store.size(); i++) {
 						buffer_size = m_store[i].m_text.ptr->size();
 						fwrite(&buffer_size, sizeof(uint64_t), 1, f);
-						fwrite(m_store[i].m_text.ptr->data(), buffer_size, 1, f);
+						fwrite(m_store[i].m_text.ptr->data(), buffer_size * sizeof(wchar_t), 1, f);
 					}
-					buffer_size = sizeof(store_t) * m_store.size();
-					fwrite(&buffer_size, sizeof(uint64_t), 1, f);
-					fwrite(m_store.data(), sizeof(store_t) * m_store.size(), 1, f);
 				}
 				void write_in(fan::opengl::context_t* context, FILE* f) {
-          uint64_t count;
-          fread(&count, sizeof(count), 1, f);
-					m_glsl_buffer.m_buffer.resize(count);
-					fread(m_glsl_buffer.m_buffer.data(), count, 1, f);
+          uint64_t buffer_size;
+          fread(&buffer_size, sizeof(buffer_size), 1, f);
+					m_glsl_buffer.m_buffer.resize(buffer_size);
+					fread(m_glsl_buffer.m_buffer.data(), buffer_size, 1, f);
 					m_glsl_buffer.write_vram_all(context);
-					uint64_t loop;
-					fread(&loop, sizeof(loop), 1, f);
-					m_store.resize(loop);
-					for (uint32_t i = 0; i < loop; i++) {
-						fread(&count, sizeof(count), 1, f);
-						m_store[i].m_text.open();
-						m_store[i].m_text.ptr->resize(count);
-						fread(m_store[i].m_text.ptr->data(), count, 1, f);
-					}
+					uint32_t count;
 					fread(&count, sizeof(count), 1, f);
-				  fread(m_store.data(), count, 1, f);
+					m_store.resize(count);
+				  fread(m_store.data(), count * sizeof(store_t), 1, f);
+					for (uint32_t i = 0; i < count; i++) {
+						uint64_t slength;
+						fread(&slength, sizeof(slength), 1, f);
+						m_store[i].m_text.open();
+						m_store[i].m_text.ptr->resize(slength);
+						fread(m_store[i].m_text.ptr->data(), slength * sizeof(wchar_t), 1, f);
+					}
 			  }
 
         // IO -

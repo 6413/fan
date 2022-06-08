@@ -45,6 +45,12 @@ int main(int argc, char** argv) {
       if (key_state != fan::key_state::release) {
         return;
       }
+
+
+
+      if (id == "moi") {
+        system("start chrome.exe");
+      }
   });
 
   context.set_vsync(&window, 0);

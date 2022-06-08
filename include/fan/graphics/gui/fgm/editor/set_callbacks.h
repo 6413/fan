@@ -110,3 +110,18 @@ pile->editor.resize_rectangles.m_button_event.set_on_input(pile,
   pile->editor.flags |= flags_t::resizing;
 
 });
+
+pile->editor.builder_types.m_key_event.set_on_focus_loss_callback(pile,
+  [](fan::window_t* window, fan::graphics::context_t* context, uint32_t i, void* userptr) {
+
+    pile_t* pile = (pile_t*)userptr;
+
+    switch (i) {
+      case 4: {
+        fan::utf16_string sw = pile->editor.builder_types.get_text(window, context, i);
+        std::string s(sw.begin(), sw.end());
+        s.erase(std::remove_if(s.begin(), s.end(), ::isspace), s.end());
+        break;
+      }
+  }
+});
