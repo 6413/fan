@@ -35,7 +35,7 @@ namespace fan {
 				}
 				std::string str = entry.path().string();
 				std::replace(str.begin(), str.end(), '\\', '/');
-				fan::vec2i image_size;
+				fan::vec2ui image_size;
 				if (fan::webp::get_image_size(str, &image_size)) {
 					fan::throw_error("failed to get image size:" + str);
 				}
