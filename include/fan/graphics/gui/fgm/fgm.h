@@ -72,6 +72,7 @@ namespace fan_2d {
           void editor_erase_active(pile_t* pile);
           void print(pile_t* pile, const std::string& message);
 
+          bool check_for_colliding_hitbox_ids(const std::string& id);
           bool check_for_colliding_button_ids(const std::string& id);
 
           fan::vec2 builder_viewport_size;
@@ -102,6 +103,7 @@ namespace fan_2d {
           };
 
           fan::hector_t<depth_t> depth_map;
+          std::vector<std::string> hitbox_ids;
           std::vector<std::string> button_ids;
 
           fan_2d::graphics::line_t outline;
@@ -194,6 +196,7 @@ namespace fan_2d {
 
             builder.sprite.write_out_texturepack(&context, f);
             builder.tr.write_out(&context, f);
+            builder.button.write_out(&context, f);
             fan_2d::graphics::gui::be_t be;
             be.open();
             fan_2d::graphics::gui::be_t::properties_t p;
@@ -206,7 +209,14 @@ namespace fan_2d {
             }
 
             be.write_out(f);
-            uint32_t count = editor.button_ids.size();
+            uint32_t count = editor.hitbox_ids.size();
+            fwrite(&count, sizeof(count), 1, f);
+            for (uint32_t i = 0; i < count; i++) {
+              uint32_t s = editor.hitbox_ids[i].size();
+              fwrite(&s, sizeof(s), 1, f);
+              fwrite(editor.hitbox_ids[i].data(), editor.hitbox_ids[i].size(), 1, f);
+            }
+            count = editor.button_ids.size();
             fwrite(&count, sizeof(count), 1, f);
             for (uint32_t i = 0; i < count; i++) {
               uint32_t s = editor.button_ids[i].size();
@@ -226,18 +236,22 @@ namespace fan_2d {
 
             builder.sprite.write_in_texturepack(&context, f, &tp, 0);
             builder.tr.write_in(&context, f);
+            builder.button.write_in(&context, f);
             fan_2d::graphics::gui::be_t be;
             be.open();
             be.write_in(f);
 
             uint32_t count;
             fread(&count, sizeof(count), 1, f);
-            editor.button_ids.resize(count);
+            editor.hitbox_ids.resize(count);
             for (uint32_t i = 0; i < count; i++) {
               uint32_t s;
               fread(&s, sizeof(s), 1, f);
-              editor.button_ids[i].resize(s);
-              fread(editor.button_ids[i].data(), s, 1, f);
+              editor.hitbox_ids[i].resize(s);
+              fread(editor.hitbox_ids[i].data(), s, 1, f);
+            }
+
+            for (uint32_t i = 0; i < count; i++) {
               fan_2d::graphics::sprite_t::properties_t sprite_p;
               fan::color colors[9];
               colors[0] = fan::colors::gray - fan::color(0, 0, 0, 0.1);
@@ -264,6 +278,17 @@ namespace fan_2d {
               }
               builder.hitbox.push_back(&context, sprite_p);
             }
+
+            fread(&count, sizeof(count), 1, f);
+            editor.button_ids.resize(count);
+
+            for (uint32_t i = 0; i < count; i++) {
+              uint32_t s;
+              fread(&s, sizeof(s), 1, f);
+              editor.button_ids[i].resize(s);
+              fread(editor.button_ids[i].data(), s, 1, f);
+            }
+
             editor.depth_map.write_in(f);
 
             fclose(f);

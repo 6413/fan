@@ -9,6 +9,7 @@ case builder_draw_type_t::button: {
       button_p.size = pile->editor.builder_types.get_size(&pile->window, &pile->context, 0);
       button_p.theme = fan_2d::graphics::gui::themes::gray();
       button_p.font_size = constants::gui_size;
+      button_p.text = "button";
       pile->builder.button.push_back(&pile->window, &pile->context, button_p);
 
       pile->editor.depth_map_push(pile, builder_draw_type_t::button, pile->builder.button.size(&pile->window, &pile->context) - 1);
@@ -17,6 +18,11 @@ case builder_draw_type_t::button: {
       pile->editor.builder_draw_type_index = pile->builder.button.size(&pile->window, &pile->context) - 1;
       pile->editor.selected_type = editor_t::builder_draw_type_t::button;
       pile->editor.selected_type_index = pile->editor.builder_draw_type_index;
+
+      bool result;
+      uint32_t i = 0;
+      for (; result = pile->editor.check_for_colliding_button_ids(std::to_string(i)); i++) {}
+        pile->editor.button_ids.push_back(std::to_string(i));
 
       break;
     }

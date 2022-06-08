@@ -19,7 +19,9 @@ namespace fan_2d {
             context = context_;
             sprite.open(context);
             tr.open(context);
+            button.open(window, context);
 
+            hitbox_ids = new std::vector<std::string>();
             button_ids = new std::vector<std::string>();
 
             fan::vec2 window_size = window->get_size();
@@ -29,6 +31,7 @@ namespace fan_2d {
 
             sprite.bind_matrices(context, &matrices);
             tr.bind_matrices(context, &matrices);
+            button.bind_matrices(context, &matrices);
 
             window->add_resize_callback(this, [](fan::window_t* window, const fan::vec2i& size, void* userptr) {
               load_t* pile = (load_t*)userptr;
@@ -44,7 +47,9 @@ namespace fan_2d {
             sprite.close(context);
             tr.close(context);
             be.close();
+            button.close(window, context);
             matrices.close();
+            delete hitbox_ids;
             delete button_ids;
           }
 
@@ -56,9 +61,18 @@ namespace fan_2d {
 
             sprite.write_in_texturepack(context, f, tp, 0);
             tr.write_in(context, f);
+            button.write_in(context, f);
             be.write_in(f);
 
             uint32_t count;
+            fread(&count, sizeof(count), 1, f);
+            hitbox_ids->resize(count);
+            for (uint32_t i = 0; i < count; i++) {
+              uint32_t s;
+              fread(&s, sizeof(s), 1, f);
+              (*hitbox_ids)[i].resize(s);
+              fread((*hitbox_ids)[i].data(), s, 1, f);
+            }
             fread(&count, sizeof(count), 1, f);
             button_ids->resize(count);
             for (uint32_t i = 0; i < count; i++) {
@@ -73,11 +87,11 @@ namespace fan_2d {
             be.set_on_input([](fan_2d::graphics::gui::be_t* be, uint32_t index, uint16_t key, fan::key_state 
               key_state, fan_2d::graphics::gui::mouse_stage mouse_stage) {
               load_t* load = (load_t*)be->get_userptr();
-              load->on_input_function((*load->button_ids)[index - 1], be, index, key, key_state, mouse_stage);
+              load->on_input_function((*load->hitbox_ids)[index - 1], be, index, key, key_state, mouse_stage);
             });
             be.set_on_mouse_event([](be_t* be, uint32_t index, mouse_stage mouse_stage) {
               load_t* load = (load_t*)be->get_userptr();
-              load->on_mouse_event_function((*load->button_ids)[index - 1], be, index, mouse_stage);
+              load->on_mouse_event_function((*load->hitbox_ids)[index - 1], be, index, mouse_stage);
             });
             be.bind_to_window(window);
           }
@@ -100,6 +114,7 @@ namespace fan_2d {
           void enable_draw(fan::window_t* window, fan::opengl::context_t* context) {
             sprite.enable_draw(context);
             tr.enable_draw(context);
+            button.enable_draw(window, context);
           }
 
           fan_2d::graphics::sprite_t sprite;
@@ -108,6 +123,10 @@ namespace fan_2d {
           fan::opengl::matrices_t matrices;
           fan::opengl::context_t* context;
           fan_2d::graphics::gui::be_t be;
+
+          fan_2d::graphics::gui::rectangle_text_button_sized_t button;
+
+          std::vector<std::string>* hitbox_ids;
           std::vector<std::string>* button_ids;
 
           on_input_cb on_input_function;
