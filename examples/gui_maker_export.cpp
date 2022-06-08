@@ -20,11 +20,12 @@ int main(int argc, char** argv) {
   fan_2d::graphics::gui::fgm::pile_t pile;
 
   pile.open(argc, argv);
-  pile.load_file("123");
+  //pile.load_file("123");
   pile.context.set_vsync(&pile.window, 0);
-  
 
   while (1) {
+
+    pile.window.get_fps();
 
     uint32_t window_event = pile.window.handle_events();
     if (window_event & fan::window_t::events::close) {

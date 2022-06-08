@@ -82,6 +82,7 @@ builder_types_p.position.y += 50;
 builder_types_p.text = "hitbox";
 builder_types.push_back(&pile->window, &pile->context, builder_types_p);
 
+fan::vec2 old_p = builder_types_p.position;
 
 builder_types_p.position.x -= 30;
 builder_types_p.position.y += 170;
@@ -89,5 +90,26 @@ builder_types_p.size.x /= 2;
 builder_types_p.size.y /= 1.2;
 builder_types_p.text = "export";
 builder_types.push_back(&pile->window, &pile->context, builder_types_p);
+
+builder_text.open(&pile->context);
+builder_text.enable_draw(&pile->context);
+builder_text.bind_matrices(&pile->context, &gui_matrices);
+
+decltype(builder_text)::properties_t builder_text_p;
+
+builder_text_p.position = old_p;
+builder_text_p.position.y += 50;
+builder_text_p.text = "upload image \nto texturepack";
+builder_text_p.font_size = constants::gui_size;
+builder_text_p.text_color = fan::colors::white;
+
+builder_text.push_back(&pile->context, builder_text_p);
+
+builder_types_p.position = old_p;
+builder_types_p.position.y = builder_text_p.position.y + 50;
+
+builder_types_p.text = " ";
+builder_types.push_back(&pile->window, &pile->context, builder_types_p);
+builder_types.m_key_event.allow_input(&pile->window, builder_types.size(&pile->window, &pile->context) - 1, true);
 
 builder_types.bind_matrices(&pile->context, &gui_matrices);

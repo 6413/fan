@@ -90,7 +90,6 @@ namespace fan_2d {
           fan::vec2 resize_position;
           fan::vec2 resize_size;
 
-
           fan::vec2 move_offset;
 
           uint8_t flags;
@@ -106,6 +105,9 @@ namespace fan_2d {
 
           fan_2d::graphics::line_t outline;
           fan_2d::graphics::gui::rectangle_text_button_sized_t builder_types;
+
+          fan_2d::graphics::gui::text_renderer_t builder_text;
+
           fan_2d::graphics::gui::text_renderer_t properties_button_text;
           fan_2d::graphics::gui::rectangle_text_button_sized_t properties_button;
 
