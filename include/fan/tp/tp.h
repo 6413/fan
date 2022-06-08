@@ -457,7 +457,7 @@ namespace fan {
       uint32_t visual_output;
       uint32_t filter;
 
-      void open(const open_properties_t& op) {
+      void open(const open_properties_t& op = open_properties_t()) {
         preferred_pack_size = op.preferred_pack_size;
         visual_output = op.visual_output;
         filter = op.filter;
@@ -699,17 +699,6 @@ namespace fan {
         fwrite(&visual_output, sizeof(uint32_t), 1, f);
         fwrite(&filter, sizeof(uint32_t), 1, f);
 
-        /*
-      struct texture_t {
-        fan::vec2ui size;
-        std::vector<uint8_t> decoded_data;
-        std::string name;
-        uint32_t visual_output;
-        uint32_t filter;
-        uint32_t group_id;
-      };
-        */
-
         uint32_t texture_list_size = texture_list.size();
         fwrite(&texture_list_size, sizeof(texture_list_size), 1, f);
         for (uint32_t i = 0; i < texture_list.size(); i++) {
@@ -760,11 +749,19 @@ namespace fan {
           data_index += sizeof(uint32_t);
           t.group_id = *(uint32_t*)&data[data_index];
           data_index += sizeof(uint32_t);
+          texture_list.push_back(t);
         }
       }
 
       uint32_t size() const {
         return pack_list.size();
+      }
+
+      fan::webp::image_info_t get_pixel_data(uint32_t pack_id) {
+        fan::webp::image_info_t image_info;
+        image_info.data = pack_list[pack_id].pixel_data.data();
+        image_info.size = pack_list[pack_id].pack_size;
+        return image_info;
       }
 
       private:
