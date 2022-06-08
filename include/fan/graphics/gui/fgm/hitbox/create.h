@@ -28,10 +28,9 @@ case builder_draw_type_t::hitbox: {
       pile->editor.selected_type_index = pile->editor.builder_draw_type_index;
 
       bool result;
-
       uint32_t i = 0;
-      for (; result = pile->editor.check_for_colliding_button_ids(std::to_string(i)); i++) {}
-      pile->editor.button_ids.push_back(std::to_string(i));
+      for (; result = pile->editor.check_for_colliding_hitbox_ids(std::to_string(i)); i++) {}
+      pile->editor.hitbox_ids.push_back(std::to_string(i));
 
       break;
     }

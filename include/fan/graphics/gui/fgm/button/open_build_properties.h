@@ -47,6 +47,16 @@ case builder_draw_type_t::button: {
 
   pile->editor.properties_button_text.push_back(&pile->context, properties_text_p);
   
+  properties_button_p.position.y += 50;
+
+  properties_button_p.text = pile->editor.button_ids[click_collision_.builder_draw_type_index];
+  pile->editor.properties_button.push_back(&pile->window, &pile->context, properties_button_p);
+
+  properties_text_p.text = "id";
+  calculate_text_position();
+
+  pile->editor.properties_button_text.push_back(&pile->context, properties_text_p);
+
  /* properties_button_p.position.y += 50;
 
   properties_button_p.userptr = pile->builder.rtbs.get_userptr(&pile->window, &pile->context, click_collision_.builder_draw_type_index);
@@ -132,6 +142,7 @@ case builder_draw_type_t::button: {
             }
 
             pile->builder.button.set_position(
+              window,
               context,
               pile->editor.selected_type_index,
               position
@@ -161,6 +172,7 @@ case builder_draw_type_t::button: {
             }
 
             pile->builder.button.set_size(
+              window,
               context,
               pile->editor.selected_type_index,
               size
@@ -168,6 +180,20 @@ case builder_draw_type_t::button: {
 
             pile->editor.update_resize_rectangles(pile);
             break;
+          }
+          case 2: {
+            fan::utf16_string wpath = pile->editor.properties_button.get_text(
+              window,
+              context,
+              i
+            );
+            std::string path(wpath.begin(), wpath.end());
+            if (!pile->editor.check_for_colliding_button_ids(path)) {
+              pile->editor.button_ids[pile->editor.selected_type_index] = path;
+              break;
+            }
+            fan::print_warning(std::string("failed to add id:") + path);
+            pile->editor.properties_button.set_text(window, context, i, pile->editor.button_ids[pile->editor.selected_type_index]);
           }
         }
         break;

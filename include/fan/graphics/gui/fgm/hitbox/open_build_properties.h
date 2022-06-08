@@ -50,13 +50,13 @@ case builder_draw_type_t::hitbox: {
 
   properties_button_p.position.y += 50;
 
-  properties_button_p.text = pile->editor.button_ids[click_collision_.builder_draw_type_index];
+  properties_button_p.text = pile->editor.hitbox_ids[click_collision_.builder_draw_type_index];
   pile->editor.properties_button.push_back(&pile->window, &pile->context, properties_button_p);
 
   properties_text_p.text = "id";
   calculate_text_position();
 
-  pile->editor.properties_button_text.push_back(&pile->context, properties_text_p);;
+  pile->editor.properties_button_text.push_back(&pile->context, properties_text_p);
 
   /* properties_button_p.position.y += 50;
 
@@ -187,12 +187,12 @@ case builder_draw_type_t::hitbox: {
                 i
               );
               std::string path(wpath.begin(), wpath.end());
-              if (!pile->editor.check_for_colliding_button_ids(path)) {
-                pile->editor.button_ids[pile->editor.selected_type_index] = path;
+              if (!pile->editor.check_for_colliding_hitbox_ids(path)) {
+                pile->editor.hitbox_ids[pile->editor.selected_type_index] = path;
                 break;
               }
               fan::print_warning(std::string("failed to add id:") + path);
-              pile->editor.properties_button.set_text(window, context, i, pile->editor.button_ids[pile->editor.selected_type_index]);
+              pile->editor.properties_button.set_text(window, context, i, pile->editor.hitbox_ids[pile->editor.selected_type_index]);
             }
           }
           break;

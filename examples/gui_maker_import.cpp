@@ -46,12 +46,25 @@ int main(int argc, char** argv) {
         return;
       }
 
-      if (id == "drill") {
-        fan::print("drill");
+      fan::print(id);
+  });
+
+  load.button.m_button_event.set_on_input(&load, [](fan::window_t* window, fan::opengl::context_t* context, uint32_t index,
+    uint16_t key, fan::key_state key_state, fan_2d::graphics::gui::mouse_stage mouse_stage, void* user_ptr) {
+
+      fan_2d::graphics::gui::fgm::load_t* load = (fan_2d::graphics::gui::fgm::load_t*)user_ptr;
+
+      if (mouse_stage != fan_2d::graphics::gui::mouse_stage::inside) {
+        return;
       }
-      if (id == "dirt") {
-        fan::print("dirt");
+      if (key != fan::mouse_left) {
+        return;
       }
+      if (key_state != fan::key_state::release) {
+        return;
+      }
+
+      fan::print((*load->button_ids)[index]);
   });
 
   context.set_vsync(&window, 0);
