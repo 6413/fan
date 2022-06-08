@@ -34,7 +34,7 @@
 #define FAST_OBJ_VERSION_MINOR  2
 #define FAST_OBJ_VERSION        ((FAST_OBJ_VERSION_MAJOR << 8) | FAST_OBJ_VERSION_MINOR)
 
-#include <stdlib.h)
+#include <stdlib.h>
 
 
 typedef struct
@@ -171,8 +171,8 @@ extern "C" {
 
 #ifdef FAST_OBJ_IMPLEMENTATION
 
-#include <stdio.h)
-#include <string.h)
+#include <stdio.h>
+#include <string.h>
 
 #ifndef FAST_OBJ_REALLOC
 #define FAST_OBJ_REALLOC        realloc

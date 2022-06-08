@@ -126,6 +126,37 @@ namespace fan {
         pack_list[pack_id].texture_list.push_back(texture);
       }
 
+      void load(const char* filename) {
+        FILE* f = fopen(filename, "r+b");
+        if (!f) {
+          fan::throw_error(std::string("failed to open file:") + filename);
+        }
+
+        uint32_t pack_amount;
+        fread(&pack_amount, sizeof(pack_amount), 1, f);
+
+        struct store_t {
+          fan::vec2i position;
+          fan::vec2i size;
+        };
+
+        std::vector<store_t> store;
+
+        for (uint32_t i = 0; i < pack_amount; i + ) {
+          uint32_t count;
+          fread(&count, sizeof(count), 1, f);
+
+          for (uint32_t j = 0; j < count; j++) {
+            uint64_t hashed;
+            fwrite(&hashed, sizeof(hashed), 1, f);
+            fwrite(t->position.data(), sizeof(t->position), 1, f);
+            fwrite(t->size.data(), sizeof(t->size), 1, f);
+          }
+
+
+        }
+      }
+
       void save(const char* filename) {
         FILE* f = fopen(filename, "w+b");
         if (!f) {

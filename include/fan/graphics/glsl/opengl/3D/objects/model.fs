@@ -24,9 +24,9 @@ void main() {
   vec4 object_color = vec4(1, 1, 1, 1);
 
 
-  vec3 light_color = vec3(0.5, 0, 0);
+  vec3 light_color = vec3(1, 1, 1);
 
-  vec3 ambient = 0.1 * light_color;
+  vec3 ambient = 0.8 * light_color;
 
   vec4 diffuse_map = texture(texture_diffuse, texture_coordinate);
 
@@ -43,14 +43,16 @@ void main() {
 
   vec3 specular = vec3(0.5) * spec;
 
-  if (s > 0) {
-    color = vec4(ambient + diffuse + specular, diffuse_map.w);
+  if (true) {
+    color = vec4(ambient + diffuse + specular, 1);
   }
   else {
     vec3 i = normalize(fragment_position - view_position);
     vec3 r = reflect(i, normalize(normal));
     color = vec4(texture(skybox, r).rgb * vec3(1, 0.3, 0.3), diffuse_map.w);
   }
+
+    //color = vec4,
 }
 
 )"

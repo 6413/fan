@@ -46,10 +46,11 @@ int main(int argc, char** argv) {
         return;
       }
 
-
-
-      if (id == "moi") {
-        system("start chrome.exe");
+      if (id == "drill") {
+        fan::print("drill");
+      }
+      if (id == "dirt") {
+        fan::print("dirt");
       }
   });
 
