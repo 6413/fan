@@ -101,7 +101,9 @@ case builder_draw_type_t::sprite: {
       case builder_draw_type_t::sprite: {
         switch (i) {
           case 3: {
-            #include "erase_active.h"
+            switch (pile->editor.selected_type) {
+              #include "erase_active.h"
+            }
             break;
           }
         }

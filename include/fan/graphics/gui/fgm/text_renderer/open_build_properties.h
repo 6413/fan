@@ -135,7 +135,9 @@ case builder_draw_type_t::text_renderer: {
       case builder_draw_type_t::text_renderer: {
         switch (i) {
           case 6: {
-            #include "erase_active.h"
+            switch (pile->editor.selected_type) {
+              #include "erase_active.h"
+            }
             break;
           }
         }

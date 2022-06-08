@@ -16,22 +16,28 @@
            case builder_draw_type_t::sprite: {
 
              pile->editor.click_position = pile->builder.sprite.get_position(&pile->context, click_collision.builder_draw_type_index);
-             pile->editor.move_offset = pile->editor.click_position - pile->window.get_mouse_position();
              break;
            }
            case builder_draw_type_t::text_renderer: {
 
              pile->editor.click_position = pile->builder.tr.get_position(&pile->context, click_collision.builder_draw_type_index);
-             pile->editor.move_offset = pile->editor.click_position - pile->window.get_mouse_position();
              break;
            }
            case builder_draw_type_t::hitbox: {
 
              pile->editor.click_position = pile->builder.hitbox.get_position(&pile->context, click_collision.builder_draw_type_index);
-             pile->editor.move_offset = pile->editor.click_position - pile->window.get_mouse_position();
              break;
            }
+           case builder_draw_type_t::button: {
+
+             pile->editor.click_position = pile->builder.button.get_position(&pile->window, &pile->context, click_collision.builder_draw_type_index);
+             break;
+           }
+           default: {
+             fan::throw_error("click position not set for current shape");
+           }
          }
+         pile->editor.move_offset = pile->editor.click_position - pile->window.get_mouse_position();
          pile->editor.click_position -= pile->window.get_mouse_position();
 
          return;

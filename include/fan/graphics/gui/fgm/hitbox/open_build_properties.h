@@ -100,7 +100,9 @@ case builder_draw_type_t::hitbox: {
         case builder_draw_type_t::hitbox: {
           switch (i) {
             case 4: {
-              #include "erase_active.h"
+              switch (pile->editor.selected_type) {
+                #include "erase_active.h"
+              }
               break;
             }
           }
