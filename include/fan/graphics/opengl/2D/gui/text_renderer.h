@@ -346,10 +346,10 @@ namespace fan_2d {
 					return *(f32_t*)m_glsl_buffer.get_instance(context, get_index(i) * vertex_count, element_byte_size, offset_angle);
 				}
 				void set_angle(fan::opengl::context_t* context, uint32_t i, f32_t angle) {
-					for (int j = get_index(i) * vertex_count; j < get_index(i + 1) * vertex_count; j++) {
+					for (int j = 0; j < m_store[i].m_text->size() * vertex_count; j++) {
 						m_glsl_buffer.edit_ram_instance(
 							context, 
-							i * vertex_count + j,
+							get_index(i) * vertex_count + j,
 							&angle,
 							element_byte_size,
 							offset_angle,
@@ -368,10 +368,10 @@ namespace fan_2d {
 					return *(f32_t*)m_glsl_buffer.get_instance(context, get_index(i) * vertex_count, element_byte_size, offset_rotation_point);
 				}
 				void set_rotation_point(fan::opengl::context_t* context, uint32_t i, const fan::vec2& rotation_point) {
-					for (int j = get_index(i) * vertex_count; j < get_index(i + 1) * vertex_count; j++) {
+					for (int j = 0; j < m_store[i].m_text->size() * vertex_count; j++) {
 						m_glsl_buffer.edit_ram_instance(
 							context, 
-							i * vertex_count + j,
+							get_index(i) * vertex_count + j,
 							&rotation_point,
 							element_byte_size,
 							offset_rotation_point,
@@ -390,10 +390,10 @@ namespace fan_2d {
 					return *(fan::color*)m_glsl_buffer.get_instance(context, get_index(i) * vertex_count, element_byte_size, offset_outline_color);
 				}
 				void set_outline_color(fan::opengl::context_t* context, uint32_t i, const fan::color& outline_color) {
-					for (int j = get_index(i) * vertex_count; j < get_index(i + 1) * vertex_count; j++) {
+					for (int j = 0; j < m_store[i].m_text->size() * vertex_count; j++) {
 						m_glsl_buffer.edit_ram_instance(
 							context, 
-							i * vertex_count + j,
+							get_index(i) * vertex_count + j,
 							&outline_color,
 							element_byte_size,
 							offset_outline_color,
@@ -412,10 +412,10 @@ namespace fan_2d {
 					return *(f32_t*)m_glsl_buffer.get_instance(context, get_index(i) * vertex_count, element_byte_size, offset_outline_size);
 				}
 				void set_outline_size(fan::opengl::context_t* context, uint32_t i, f32_t outline_size) {
-					for (int j = get_index(i) * vertex_count; j < get_index(i + 1) * vertex_count; j++) {
+					for (int j = 0; j < m_store[i].m_text->size() * vertex_count; j++) {
 						m_glsl_buffer.edit_ram_instance(
 							context, 
-							i * vertex_count + j,
+							get_index(i) * vertex_count + j,
 							&outline_size,
 							element_byte_size,
 							offset_outline_size,
@@ -424,7 +424,7 @@ namespace fan_2d {
 					}
 					m_queue_helper.edit(
 						context,
-						get_index(i) * vertex_count * element_byte_size,
+						i * vertex_count * element_byte_size,
 						get_index(i + 1) * (vertex_count) * element_byte_size,
 						&m_glsl_buffer
 					);

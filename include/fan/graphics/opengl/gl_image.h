@@ -71,7 +71,7 @@ namespace fan {
         }
         bool ret = load(context, image_info, p);
 
-        fan::webp::free_image(image_info.data);
+        //fan::webp::free_image(image_info.data); leaks and double free sometimes
         return ret;
       }
       bool load(fan::opengl::context_t* context, fan::color* colors, const fan::vec2ui& size_, load_properties_t p = load_properties_t()) {

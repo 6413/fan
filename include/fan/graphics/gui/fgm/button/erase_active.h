@@ -1,4 +1,4 @@
-case builder_draw_type_t::sprite: {
+case builder_draw_type_t::button: {
   pile->builder.sprite.erase(
              &pile->context,
              pile->editor.selected_type_index

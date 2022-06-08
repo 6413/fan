@@ -82,6 +82,10 @@ builder_types_p.position.y += 50;
 builder_types_p.text = "hitbox";
 builder_types.push_back(&pile->window, &pile->context, builder_types_p);
 
+builder_types_p.position.y += 50;
+builder_types_p.text = "button";
+builder_types.push_back(&pile->window, &pile->context, builder_types_p);
+
 fan::vec2 old_p = builder_types_p.position;
 
 builder_types_p.position.x -= 30;

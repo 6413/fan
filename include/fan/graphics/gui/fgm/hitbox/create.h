@@ -54,7 +54,9 @@ case builder_draw_type_t::hitbox: {
             )
           ))
           {
-            #include "erase_active.h"
+            switch (pile->editor.builder_draw_type) {
+              #include "erase_active.h"
+            }
           }
           else {
             pile->editor.close_build_properties(pile);

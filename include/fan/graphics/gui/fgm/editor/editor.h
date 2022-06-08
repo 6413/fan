@@ -14,9 +14,7 @@ inline void fan_2d::graphics::gui::fgm::editor_t::update_resize_rectangles(pile_
   fan::vec2 positions[8];
   
   switch (pile->editor.selected_type) {
-    #include _FAN_PATH(graphics/gui/fgm/sprite/corners.h)
-    #include _FAN_PATH(graphics/gui/fgm/text_renderer/corners.h)
-    #include _FAN_PATH(graphics/gui/fgm/hitbox/corners.h)
+    #include _FAN_PATH(graphics/gui/fgm/includes/corners.h)
   }
 
   for (uint32_t i = 0; i < 8; i++) {
@@ -150,6 +148,12 @@ bool editor_t::click_collision(pile_t* pile, click_collision_t* click_collision_
         }
         case builder_draw_type_t::hitbox: {
           if (!pile->builder.hitbox.inside(&pile->context, pile->editor.depth_map[i].index, pile->window.get_mouse_position())) {
+            continue;
+          }
+          break;
+        }
+        case builder_draw_type_t::button: {
+          if (!pile->builder.button.inside(&pile->window, &pile->context, pile->editor.depth_map[i].index, pile->window.get_mouse_position())) {
             continue;
           }
           break;

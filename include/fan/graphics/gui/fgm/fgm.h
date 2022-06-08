@@ -42,6 +42,7 @@ namespace fan_2d {
             static constexpr uint32_t sprite = 0;
             static constexpr uint32_t text_renderer = 1;
             static constexpr uint32_t hitbox = 2;
+            static constexpr uint32_t button = 3;
           };
 
           struct click_collision_t {
@@ -125,6 +126,7 @@ namespace fan_2d {
           fan_2d::graphics::sprite_t sprite;
           fan_2d::graphics::gui::text_renderer_t tr;
           fan_2d::graphics::sprite_t hitbox;
+          fan_2d::graphics::gui::rectangle_text_button_sized_t button;
         };
 
         struct pile_t {
