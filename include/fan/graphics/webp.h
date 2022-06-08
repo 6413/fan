@@ -21,10 +21,10 @@ namespace fan {
       fan::vec2i size;
     };
 
-    static bool get_image_size(const std::string_view file, fan::vec2i* size) {
+    static bool get_image_size(const std::string_view file, fan::vec2ui* size) {
       std::string data;
       fan::io::file::read(std::string(file), &data);
-      return WebPGetInfo((uint8_t*)data.data(), data.size(), &size->x, &size->y) != 1;
+      return WebPGetInfo((uint8_t*)data.data(), data.size(), (int*)&size->x, (int*)&size->y) != 1;
     }
 
 	  static bool decode(const uint8_t* webp_data, std::size_t size, image_info_t* image_info) {
@@ -40,10 +40,10 @@ namespace fan {
       bool failed = decode((const uint8_t*)data.data(), data.size(), image_info);
       if (failed) {
         fan::print_warning(std::string("failed to load image:") + std::string(file));
-        return false;
+        return true;
       }
 
-      return true;
+      return false;
     }
     static uint32_t encode_rgba(const uint8_t* in, const fan::vec2& size, f32_t quality, uint8_t** out) {
       return WebPEncodeRGBA(in, size.x, size.y, size.x * 4, quality, out);

@@ -52,7 +52,7 @@ int main() {
   p.position = 0;
   p.size = 0.5;
 #endif
-  p.image = texturepack.get_pixel_data(0).image;
+  p.image = texturepack.get_pixel_data(1).image;
   p.size = p.image.size / 2;
   p.position = p.size;
   r.push_back(&pile.context, p);
