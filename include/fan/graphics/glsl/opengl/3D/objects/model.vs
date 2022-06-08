@@ -51,7 +51,7 @@ mat4 rotate(mat4 m, float angle, vec3 v) {
   vec3 axis = vec3(normalize(v));
   vec3 temp = vec3(axis * (1.0f - c));
 
-  mat4 rotation;
+  mat4 rotation = mat4(1);
   rotation[0][0] = c + temp[0] * axis[0];
   rotation[0][1] = temp[0] * axis[1] + s * axis[2];
   rotation[0][2] = temp[0] * axis[2] - s * axis[1];
@@ -64,7 +64,7 @@ mat4 rotate(mat4 m, float angle, vec3 v) {
   rotation[2][1] = temp[2] * axis[1] - s * axis[0];
   rotation[2][2] = c + temp[2] * axis[2];
 
-  mat4 matrix;
+  mat4 matrix = mat4(1);
   matrix[0][0] = (m[0][0] * rotation[0][0]) + (m[1][0] * rotation[0][1]) + (m[2][0] * rotation[0][2]);
   matrix[1][0] = (m[0][1] * rotation[0][0]) + (m[1][1] * rotation[0][1]) + (m[2][1] * rotation[0][2]);
   matrix[2][0] = (m[0][2] * rotation[0][0]) + (m[1][2] * rotation[0][1]) + (m[2][2] * rotation[0][2]);

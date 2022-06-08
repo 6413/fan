@@ -41,7 +41,7 @@ void main() {
   float distance = 1.0 - TEXTURE2D(texture_sampler, texture_coordinate).r;
   float alpha = 1.0 - smoothstep(width, width + smoothing, distance);
 
-  float distance2 = 1.0 - TEXTURE2D(texture_sampler, texture_coordinate + vec2(0.005, 0)).r;
+  float distance2 = 1.0 - TEXTURE2D(texture_sampler, texture_coordinate).r;
   float outline_alpha = 1.0 - smoothstep(border_width, border_width + border_edge, distance2);
 
   float final_alpha = alpha + (1.0 - alpha) * outline_alpha;
