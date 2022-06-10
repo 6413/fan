@@ -14,8 +14,8 @@
 
 int main(int argc, char** argv) {
 
-  if (argc < 2) {
-    fan::throw_error("invalid amount of arguments. Usage:*.exe texturepack");
+  if (argc < 3) {
+    fan::throw_error("invalid amount of arguments. Usage:*.exe compiled texturepack");
   }
 
   fan::window_t window;

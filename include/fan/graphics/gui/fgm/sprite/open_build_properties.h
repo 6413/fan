@@ -60,12 +60,12 @@ case builder_draw_type_t::sprite: {
 
   properties_button_p.position.y += 50;
 
-  properties_button_p.text = "";
+  properties_button_p.text = pile->editor.sprite_image_names[pile->editor.selected_type_index];
   calculate_text_position();
 
   pile->editor.properties_button.push_back(&pile->window, &pile->context, properties_button_p);
 
-  properties_text_p.text = "texture name:";
+  properties_text_p.text = "image name:";
   calculate_text_position();
 
   pile->editor.properties_button_text.push_back(&pile->context, properties_text_p);
@@ -210,10 +210,12 @@ case builder_draw_type_t::sprite: {
                   3
                 )
               );
+              pile->editor.sprite_image_names[pile->editor.selected_type_index] = "";
             }
             else if (!pile->tp.qti(path, &ti)) {
               pile->editor.properties_button.set_text(window, context, 2, path);
               pile->builder.sprite.load_texturepack(context, pile->editor.selected_type_index, &pile->tp, &ti);
+              pile->editor.sprite_image_names[pile->editor.selected_type_index] = path;
             }
             else {
               if (pile->tp.push_texture(path, tp)) {
@@ -223,6 +225,7 @@ case builder_draw_type_t::sprite: {
               pile->tp.qti(path, &ti);
               pile->editor.properties_button.set_text(window, context, 2, path);
               pile->builder.sprite.load_texturepack(context, pile->editor.selected_type_index, &pile->tp, &ti);
+              pile->editor.sprite_image_names[pile->editor.selected_type_index] = path;
             }
             break;
           }

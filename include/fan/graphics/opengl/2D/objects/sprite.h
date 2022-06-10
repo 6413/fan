@@ -520,7 +520,9 @@ namespace fan_2d {
 				fwrite(m_glsl_buffer.m_buffer.data(), buffer_size, 1, f);
 			}
       // a bit design problem, need to provei 
-      void write_in_texturepack(fan::opengl::context_t* context, FILE* f, fan::opengl::texturepack* tp, uint32_t pack_id) {
+      void write_in_texturepack(fan::opengl::context_t* context, FILE* f, fan::tp::texture_packe0* tp, std::vector<std::string>* names) {
+        tp->process();
+
 				uint64_t to_read;
 				fread(&to_read, sizeof(uint64_t), 1, f);
 				m_glsl_buffer.m_buffer.resize(to_read);
@@ -529,7 +531,27 @@ namespace fan_2d {
         m_store_sprite.resize(this->size(context));
 
         for (uint32_t i = 0; i < this->size(context); i++) {
-          m_store_sprite[i].image = tp->get_pixel_data(pack_id).image;
+
+          uint32_t count;
+          fread(&count, sizeof(count), 1, f);
+          (*names).resize((*names).size() + 1);
+          (*names)[(*names).size() - 1].resize(count);
+          fread((*names)[(*names).size() - 1].data(), count, 1, f);
+
+          const std::string& name = (*names)[(*names).size() - 1];
+
+          fan::tp::ti_t ti;
+
+          if (name.empty()) {
+            m_store_sprite[i].image.create_missing_texture(context);
+          }
+          else if (tp->qti(name.data(), &ti)) {
+            fan::throw_error(std::string("failed to find:") + name);
+          }
+
+          else {
+            m_store_sprite[i].image.load(context, tp->get_pixel_data(ti.pack_id));
+          }
         }
 			}
 

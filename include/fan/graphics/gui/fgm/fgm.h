@@ -106,6 +106,7 @@ namespace fan_2d {
           fan::hector_t<depth_t> depth_map;
           std::vector<std::string> hitbox_ids;
           std::vector<std::string> button_ids;
+          std::vector<std::string> sprite_image_names;
 
           fan_2d::graphics::line_t outline;
           fan_2d::graphics::gui::rectangle_text_button_sized_t builder_types;
@@ -142,6 +143,9 @@ namespace fan_2d {
 
           fan::tp::texture_packe0 tp;
 
+          std::string tp_project_name;
+          std::string compiled_tp_name;
+
           void open(int argc, char** argv) {
             window.open(editor_t::constants::window_size);
             context.init();
@@ -149,8 +153,10 @@ namespace fan_2d {
             context.set_viewport(0, window.get_size());
             fan::tp::texture_packe0::open_properties_t op;
             tp.open(op);
-            tp.load(argv[1]);
+            tp_project_name = argv[1];
+            tp.load(tp_project_name.data());
             tp.process();
+            compiled_tp_name = argv[2];
 
             window.add_resize_callback(this, [](fan::window_t*, const fan::vec2i& size, void* userptr) {
               pile_t* pile = (pile_t*)userptr;
@@ -199,6 +205,12 @@ namespace fan_2d {
             }
 
             builder.sprite.write_out_texturepack(&context, f);
+            for (uint32_t i = 0; i < editor.sprite_image_names.size(); i++) {
+              uint32_t count = editor.sprite_image_names[i].size();
+              fwrite(&count, sizeof(count), 1, f);
+              fwrite(editor.sprite_image_names[i].data(), count, 1, f);
+            }
+
             builder.tr.write_out(&context, f);
             builder.button.write_out(&context, f);
             fan_2d::graphics::gui::be_t be;
@@ -230,15 +242,18 @@ namespace fan_2d {
             editor.depth_map.write_out(f);
 
             fclose(f);
+
+            tp.save(tp_project_name.data());
+            tp.save_compiled(compiled_tp_name.data());
           }
 
           void load_file(const char* path) {
             FILE* f = fopen(path, "r+b");
             if (!f) {
-              fan::throw_error("failed to open file stream");
+              fan::throw_error(std::string("failed to open file:") + path);
             }
 
-//            builder.sprite.write_in_texturepack(&context, f, &tp, 0);
+            builder.sprite.write_in_texturepack(&context, f, &tp, &editor.sprite_image_names);
             builder.tr.write_in(&context, f);
             builder.button.write_in(&context, f);
             fan_2d::graphics::gui::be_t be;

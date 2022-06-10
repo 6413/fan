@@ -14,13 +14,13 @@
 int main(int argc, char** argv) {
 
   if (argc < 2) {
-    fan::throw_error("invalid amount of arguments. Usage:*.exe texturepack");
+    fan::throw_error("invalid amount of arguments. Usage:*.exe texturepack texturepackout");
   }
 
   fan_2d::graphics::gui::fgm::pile_t pile;
 
   pile.open(argc, argv);
-  //pile.load_file("123");
+  pile.load_file("123");
   pile.context.set_vsync(&pile.window, 0);
 
   while (1) {

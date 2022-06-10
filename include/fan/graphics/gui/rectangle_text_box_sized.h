@@ -268,6 +268,9 @@ namespace fan_2d {
           return src;
         }
 
+        fan::vec2 set_offset(fan::opengl::context_t* context, uint32_t i) const {
+          return rbs.m_store[i].m_properties.offset;
+        }
         void set_offset(fan::opengl::context_t* context, uint32_t i, const fan::vec2& offset) {
           rbs.m_store[i].m_properties.offset = offset;
           tr.set_position(context, i, get_position(context, i) + offset);
