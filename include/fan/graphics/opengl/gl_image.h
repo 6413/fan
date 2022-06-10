@@ -66,8 +66,8 @@ namespace fan {
         #endif
 
         fan::webp::image_info_t image_info;
-        if (!fan::webp::load(path, &image_info)) {
-          return 1;
+        if (fan::webp::load(path, &image_info)) {
+          return 0;
         }
         bool ret = load(context, image_info, p);
 

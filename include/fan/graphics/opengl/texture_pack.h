@@ -1,6 +1,7 @@
 #pragma once
 
 #include _FAN_PATH(graphics/opengl/gl_image.h)
+#include _FAN_PATH(tp/tp.h)
 
 namespace fan {
   namespace opengl {
@@ -19,12 +20,6 @@ namespace fan {
           return os;
         }
 
-      };
-
-      struct ti_t {
-        uint32_t pack_id;
-        fan::vec2i position;
-        fan::vec2i size;
       };
 
       struct pixel_data_t {
@@ -94,7 +89,7 @@ namespace fan {
         pixel_data_list.close();
       }
 
-      bool qti(const std::string& name, ti_t* ti) {
+      bool qti(const std::string& name, fan::tp::ti_t* ti) {
         uint64_t hash = fan::get_hash(name);
 
         //std::find_if(texture_list[0].begin(), texture_list[texture_list.size()].end(),

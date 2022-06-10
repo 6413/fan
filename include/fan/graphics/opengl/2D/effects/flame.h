@@ -70,7 +70,7 @@ namespace fan_2d {
 
         fan::opengl::image_t image;
 
-        void load_texturepack(fan::opengl::context_t* context, fan::opengl::texturepack* texture_packd, fan::opengl::texturepack::ti_t* ti) {
+        void load_texturepack(fan::opengl::context_t* context, fan::opengl::texturepack* texture_packd, fan::tp::ti_t* ti) {
           image = texture_packd->pixel_data_list[ti->pack_id].image;
           const fan::vec2 texture_position = fan::cast<f32_t>(ti->position) / image.size;
           const fan::vec2 texture_size = fan::cast<f32_t>(ti->size) / image.size;

@@ -11,6 +11,12 @@
 namespace fan {
   namespace tp {
 
+    struct ti_t {
+      uint32_t pack_id;
+      fan::vec2i position;
+      fan::vec2i size;
+    };
+
     struct texture_packe {
 
       struct texture_t {
@@ -486,11 +492,11 @@ namespace fan {
         return push_pack(p);
       }
 
-      void push_texture(const std::string& filepath, const texture_properties_t& texture_properties = texture_properties_t()) {
+      bool push_texture(const std::string& image_path, const texture_properties_t& texture_properties = texture_properties_t()) {
 
         if (texture_properties.name.empty()) {
           fan::print_warning("texture properties name empty");
-          return;
+          return 1;
         }
 
         for (uint32_t gti = 0; gti < texture_list.size(); gti++) {
@@ -501,9 +507,9 @@ namespace fan {
         }
 
         fan::webp::image_info_t image_info;
-        if (fan::webp::load(filepath, &image_info)) {
+        if (fan::webp::load(image_path, &image_info)) {
           fan::print_warning("failed to load");
-          return;
+          return 1;
         }
 
         texture_t t;
@@ -517,6 +523,7 @@ namespace fan {
         t.group_id = texture_properties.group_id;
 
         texture_list.push_back(t);
+        return 0;
       }
 
       void process() {
@@ -646,11 +653,45 @@ namespace fan {
                 pp.y--;
               }
               fan::vec2ui ps = t->size + 2;
+              if (ps.x > pack_list[i].pack_size.x) {
+                continue;
+              }
+              if (ps.y > pack_list[i].pack_size.y) {
+                continue;
+              }
 
               for (uint32_t y = pp.y; y != pp.y + ps.y; y++) {
                 for (uint32_t x = pp.x; x != pp.x + ps.x; x++) {
 
                   static auto fill_pad = [&](int px, int py) {
+
+                    switch (px) {
+                      case -1: {
+                        if (x == 0) {
+                          return;
+                        }
+                        break;
+                      }
+                      case 1: {
+                        if (x == pp.x && x == pp.x + ps.x) {
+                          return;
+                        }
+                      }
+                    };
+                    switch (py) {
+                      case -1: {
+                        if (y == 0) {
+                          return;
+                        }
+                        break;
+                      }
+                      case 1: {
+                        if (y == pp.x && y == pp.x + ps.x) {
+                          return;
+                        }
+                      }
+                    };
+
                     pack_list[i].pixel_data[(y * pack_list[i].pack_size.x + x) * 4 + 0] = pack_list[i].pixel_data[((y + py) * pack_list[i].pack_size.x + x + px) * 4 + 0];
                     pack_list[i].pixel_data[(y * pack_list[i].pack_size.x + x) * 4 + 1] = pack_list[i].pixel_data[((y + py) * pack_list[i].pack_size.x + x + px) * 4 + 1];
                     pack_list[i].pixel_data[(y * pack_list[i].pack_size.x + x) * 4 + 2] = pack_list[i].pixel_data[((y + py) * pack_list[i].pack_size.x + x + px) * 4 + 2];
@@ -762,6 +803,25 @@ namespace fan {
         image_info.data = pack_list[pack_id].pixel_data.data();
         image_info.size = pack_list[pack_id].pack_size;
         return image_info;
+      }
+
+      bool qti(const std::string& name, fan::tp::ti_t* ti) {
+        //std::find_if(texture_list[0].begin(), texture_list[texture_list.size()].end(),
+        //  [](const texture_t& a, const texture_t& b) {
+        //  return a.hash == b.hash;
+        //});
+
+        for (uint32_t i = 0; i < pack_list.size(); i++) {
+          for (uint32_t j = 0; j < pack_list[i].texture_list.size(); j++) {
+            if (pack_list[i].texture_list[j].name == name) {
+              ti->pack_id = i;
+              ti->position = pack_list[i].texture_list[j].position;
+              ti->size = pack_list[i].texture_list[j].size;
+              return 0;
+            }
+          }
+        }
+        return 1;
       }
 
       private:
