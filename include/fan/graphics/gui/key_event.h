@@ -362,7 +362,7 @@ namespace fan_2d {
           uint64_t offset = m_store.size() - 1;
           FED_open(&m_store[offset].m_wed, fan_2d::opengl::gui::text_renderer_t::font.line_height, line_width_limit * line_multiplier, line_limit, character_limit);
           m_store[offset].cursor_reference = FED_cursor_open(&m_store[offset].m_wed);
-          m_store[offset].m_input_allowed = false;
+          m_store[offset].m_input_allowed = false; // ?
 
           auto str = object->get_text(window, context, offset);
 
@@ -462,7 +462,7 @@ namespace fan_2d {
         void erase(fan::window_t* window, fan::opengl::context_t* context, uint32_t i) {
 
           FED_cursor_close(&m_store[i].m_wed, m_store[i].cursor_reference);
-
+          
           FED_close(&m_store[i].m_wed);
 
           m_store.erase(i);
@@ -668,13 +668,31 @@ namespace fan_2d {
         void write_out(fan::opengl::context_t* context, FILE* f) const {
           uint64_t count = m_store.size();
           fwrite(&count, sizeof(count), 1, f);
-          fwrite(m_store.data(), sizeof(store_t) * count, 1, f);
+          for (uint32_t i = 0; i < count; i++) {
+            fwrite(&m_store[i].m_input_allowed, sizeof(uint32_t), 1, f);
+            fwrite(&m_store[i].character_limit, sizeof(uint32_t), 1, f);
+            fwrite(&m_store[i].line_width_limit, sizeof(f32_t), 1, f);
+            fwrite(&m_store[i].line_limit, sizeof(uint32_t), 1, f);
+          }
         }
         void write_in(fan::opengl::context_t* context, FILE* f) {
           uint64_t count;
           fread(&count, sizeof(uint64_t), 1, f);
           m_store.resize(count);
-          fread(m_store.data(), sizeof(store_t) * count, 1, f);
+          for (uint32_t i = 0; i < count; i++) {
+            fread(&m_store[i].m_input_allowed, sizeof(uint32_t), 1, f);
+            fread(&m_store[i].character_limit, sizeof(uint32_t), 1, f);
+            fread(&m_store[i].line_width_limit, sizeof(f32_t), 1, f);
+            fread(&m_store[i].line_limit, sizeof(uint32_t), 1, f);
+            FED_open(&m_store[i].m_wed, fan_2d::opengl::gui::text_renderer_t::font.line_height, m_store[i].line_width_limit * line_multiplier, m_store[i].line_limit, m_store[i].character_limit);
+            m_store[i].cursor_reference = FED_cursor_open(&m_store[i].m_wed);
+
+            auto text = object->get_text(window, context, i);
+
+            for (uint32_t j = 0; j < text.size(); j++) {
+              add_character(context, &m_store[i].m_wed, &m_store[i].cursor_reference, text[i], object->get_font_size(window, context, i));
+            }
+          }
         }
 
         uint32_t m_draw_node_reference;
@@ -687,6 +705,9 @@ namespace fan_2d {
           FED_CursorReference_t cursor_reference;
           FED_t m_wed;
           uint32_t m_input_allowed;
+          uint32_t character_limit;
+          f32_t line_width_limit;
+          uint32_t line_limit;
         };
 
         fan::hector_t<store_t> m_store;

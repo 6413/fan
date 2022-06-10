@@ -18,6 +18,8 @@ case builder_draw_type_t::sprite: {
       pile->editor.selected_type = editor_t::builder_draw_type_t::sprite;
       pile->editor.selected_type_index = pile->editor.builder_draw_type_index;
 
+      pile->editor.sprite_image_names.push_back("");
+
       break;
     }
     case fan::key_state::release: {
