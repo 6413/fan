@@ -2,6 +2,7 @@
 
 #include _FAN_PATH(graphics/gui/gui.h)
 #include _FAN_PATH(graphics/gui/be.h)
+#include _FAN_PATH(tp/tp.h)
 
 namespace fan_2d {
   namespace graphics {
@@ -139,14 +140,17 @@ namespace fan_2d {
           editor_t editor;
           builder_t builder;
 
-          fan::opengl::texturepack tp;
+          fan::tp::texture_packe0 tp;
 
           void open(int argc, char** argv) {
             window.open(editor_t::constants::window_size);
             context.init();
             context.bind_to_window(&window);
             context.set_viewport(0, window.get_size());
-            tp.open(&context, argv[1]);
+            fan::tp::texture_packe0::open_properties_t op;
+            tp.open(op);
+            tp.load(argv[1]);
+            tp.process();
 
             window.add_resize_callback(this, [](fan::window_t*, const fan::vec2i& size, void* userptr) {
               pile_t* pile = (pile_t*)userptr;
@@ -234,7 +238,7 @@ namespace fan_2d {
               fan::throw_error("failed to open file stream");
             }
 
-            builder.sprite.write_in_texturepack(&context, f, &tp, 0);
+//            builder.sprite.write_in_texturepack(&context, f, &tp, 0);
             builder.tr.write_in(&context, f);
             builder.button.write_in(&context, f);
             fan_2d::graphics::gui::be_t be;

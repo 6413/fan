@@ -76,8 +76,19 @@ namespace fan_2d {
 
         uint64_t id = fan::uninitialized;
 
-        void load_texturepack(fan::opengl::context_t* context, fan::opengl::texturepack* texture_packd, fan::opengl::texturepack::ti_t* ti) {
+        void load_texturepack(fan::opengl::context_t* context, fan::opengl::texturepack* texture_packd, fan::tp::ti_t* ti) {
           image = texture_packd->pixel_data_list[ti->pack_id].image;
+          const fan::vec2 texture_position = fan::cast<f32_t>(ti->position) / image.size;
+          const fan::vec2 texture_size = fan::cast<f32_t>(ti->size) / image.size;
+          texture_coordinates = {
+            fan::vec2(texture_position.x, texture_position.y), // top left
+            fan::vec2(texture_position.x + texture_size.x, texture_position.y), // top right
+            fan::vec2(texture_position.x + texture_size.x, texture_position.y + texture_size.y), // bottom right
+            fan::vec2(texture_position.x, texture_position.y + texture_size.y) // bottom left
+          };
+        }
+        void load_texturepack(fan::opengl::context_t* context, fan::tp::texture_packe0* texture_packd, fan::tp::ti_t* ti) {
+          image.load(context, texture_packd->get_pixel_data(ti->pack_id));
           const fan::vec2 texture_position = fan::cast<f32_t>(ti->position) / image.size;
           const fan::vec2 texture_size = fan::cast<f32_t>(ti->size) / image.size;
           texture_coordinates = {
@@ -173,7 +184,7 @@ namespace fan_2d {
         m_store_sprite.insert(i, sst);
       }
 
-      void load_texturepack(fan::opengl::context_t* context, uint32_t i, fan::opengl::texturepack* texture_packd, fan::opengl::texturepack::ti_t* ti) {
+      void load_texturepack(fan::opengl::context_t* context, uint32_t i, fan::opengl::texturepack* texture_packd, fan::tp::ti_t* ti) {
         m_store_sprite[i].image = texture_packd->pixel_data_list[ti->pack_id].image;
         const fan::vec2 texture_position = fan::cast<f32_t>(ti->position) / texture_packd->pixel_data_list[ti->pack_id].image.size;
         const fan::vec2 texture_size = fan::cast<f32_t>(ti->size) / texture_packd->pixel_data_list[ti->pack_id].image.size;
@@ -183,6 +194,18 @@ namespace fan_2d {
           fan::vec2(texture_position.x + texture_size.x, texture_position.y + texture_size.y), // bottom right
           fan::vec2(texture_position.x, texture_position.y + texture_size.y) // bottom left
         });
+      }
+
+      void load_texturepack(fan::opengl::context_t* context, uint32_t i, fan::tp::texture_packe0* texture_packd, fan::tp::ti_t* ti) {
+        m_store_sprite[i].image.load(context, texture_packd->get_pixel_data(ti->pack_id));
+        const fan::vec2 texture_position = fan::cast<f32_t>(ti->position) / m_store_sprite[i].image.size;
+        const fan::vec2 texture_size = fan::cast<f32_t>(ti->size) / m_store_sprite[i].image.size;
+        this->set_texture_coordinates(context, i, {
+          fan::vec2(texture_position.x, texture_position.y), // top left
+          fan::vec2(texture_position.x + texture_size.x, texture_position.y), // top right
+          fan::vec2(texture_position.x + texture_size.x, texture_position.y + texture_size.y), // bottom right
+          fan::vec2(texture_position.x, texture_position.y + texture_size.y) // bottom left
+          });
       }
 
       void reload_sprite(fan::opengl::context_t* context, uint32_t i, fan::opengl::image_t image) {
