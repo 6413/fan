@@ -3,8 +3,7 @@ R"(
 #version 140
 
 in vec4 input0;
-in vec4 input1;
-in vec3 input2;
+in float input1;
 
 uniform mat4 projection;
 uniform mat4 view;
@@ -98,9 +97,9 @@ uniform mat4 model_input[2];
 void main() {
 
   vec3 layout_vertex = vec3(input0[0], input0[1], input0[2]);
-  vec2 layout_texture_coordinate = vec2(input0[3], input1[0]);
-  vec3 layout_normal = vec3(input1[1], input1[2], input1[3]);
-  vec3 layout_tanget = vec3(input2[0], input2[1], input2[2]);
+  vec2 layout_texture_coordinate = vec2(input0[3], input1);
+  //vec3 layout_normal = vec3(input1[1], input1[2], input1[3]);
+  //vec3 layout_tanget = vec3(input2[0], input2[1], input2[2]);
   vec3 layout_position = model_input[0][0].xyz;
   vec3 layout_size = vec3(model_input[0][0].a, model_input[0][1].xy);
   float layout_angle = model_input[0][1].z;
@@ -129,23 +128,23 @@ void main() {
 
   m = scale(m, layout_size);
 
-  mat3 normal_matrix = transpose(inverse(mat3(m)));
-  vec3 T = normalize(normal_matrix * layout_tanget);
-  vec3 N = normalize(normal_matrix * layout_normal);
-  T = normalize(T - dot(T, N) * N);
-  vec3 B = cross(N, T);
-    
-  mat3 tbn = transpose(mat3(T, B, N));
-
+ // mat3 normal_matrix = transpose(inverse(mat3(m)));
+ // vec3 T = normalize(normal_matrix * layout_tanget);
+ // vec3 N = normalize(normal_matrix * layout_normal);
+ // T = normalize(T - dot(T, N) * N);
+ // vec3 B = cross(N, T);
+ //   
+ // mat3 tbn = transpose(mat3(T, B, N));
+ //
   fragment_position = vec3(m * vec4(layout_vertex, 1));
   texture_coordinate = layout_texture_coordinate;
-  normal = mat3(transpose(inverse(m))) * layout_normal;
-  is_light = layout_is_light;
-  view_position = layout_view_position;
-  vec3 light_position = p;
-  tanget_fragment_position = tbn * fragment_position;
-  tanget_view_position = tbn * view_position;
-  tanget_light_position = tbn * light_position;
+ // normal = mat3(transpose(inverse(m))) * layout_normal;
+ // is_light = layout_is_light;
+ // view_position = layout_view_position;
+ // vec3 light_position = p;
+ // tanget_fragment_position = tbn * fragment_position;
+ // tanget_view_position = tbn * view_position;
+ // tanget_light_position = tbn * light_position;
 
   gl_Position = projection * view * vec4(fragment_position, 1);
 }

@@ -724,8 +724,6 @@ void fan::window_t::destroy_window()
     return;
   }
 
-  fan::window_id_storage.erase(this->m_window_handle);
-
   XFree(m_visual);
   XFreeColormap(fan::sys::m_display, m_window_attribs.colormap);
   XDestroyWindow(fan::sys::m_display, m_window_handle);

@@ -43,7 +43,7 @@ int main() {
   model.enable_draw(&pile.context);
   
   fan_3d::opengl::model_t::properties_t mp;
-  mp.loaded_model = fan_3d::opengl::model_t::load_model(&pile.context, "models/test.obj");
+  mp.loaded_model = fan_3d::opengl::model_t::load_model(&pile.context, "models/test2.obj");
   mp.position = fan::vec3(0, 0, 0);
 
   fan::vec3 camera_position = 0;
@@ -58,7 +58,7 @@ int main() {
   f32_t a = 0;
   model.set_rotation_vector(&pile.context, 0, fan::vec3(1, 1, 0));
   pile.context.set_vsync(&pile.window, false);
-  model.set_light_position(&pile.context, fan::vec3(5, 0, 0));
+ // model.set_light_position(&pile.context, fan::vec3(5, 0, 0));
   while(1) {
 
     model.set_angle(&pile.context, a += pile.window.get_delta_time());
