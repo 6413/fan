@@ -1,8 +1,8 @@
 #pragma once
 
 #include _FAN_PATH(types/types.h)
-
 #include _FAN_PATH(types/memory.h)
+#include _FAN_PATH(io/file.h)
 
 namespace fan {
 
@@ -226,14 +226,14 @@ namespace fan {
       return r;
     }
 
-    void write_out(FILE* f) {
-      fwrite(&m_size, sizeof(m_size), 1, f);
-      fwrite(ptr, m_size * sizeof(type_t), 1, f);
+    void write_out(fan::io::file::file_t* f) {
+      fan::io::file::write(f, &m_size, sizeof(m_size), 1);
+      fan::io::file::write(f, ptr, m_size * sizeof(type_t), 1);
     }
-    void write_in(FILE* f) {
-      fread(&m_size, sizeof(m_size), 1, f);
+    void write_in(fan::io::file::file_t* f) {
+      fan::io::file::read(f, &m_size, sizeof(m_size), 1);
       ptr = (type_t*)resize_buffer(ptr, sizeof(type_t) * m_size);
-      fread(ptr, m_size * sizeof(type_t), 1, f);
+      fan::io::file::read(f, ptr, m_size * sizeof(type_t), 1);
     }
 
     uintptr_t m_size;

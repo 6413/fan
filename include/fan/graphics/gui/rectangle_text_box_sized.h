@@ -342,20 +342,20 @@ namespace fan_2d {
 
          // IO +
 
-        void write_out(fan::opengl::context_t* context, FILE* f) const {
+        void write_out(fan::opengl::context_t* context, fan::io::file::file_t* f) const {
 				  rbs.write_out(context, f);
           tr.write_out(context, f);
           uint64_t count = m_store.size() * sizeof(store_t);
-          fwrite(&count, sizeof(count), 1, f);
-					fwrite(m_store.data(), sizeof(store_t) * m_store.size(), 1, f);
+          fan::io::file::write(f, &count, sizeof(count), 1);
+					fan::io::file::write(f, m_store.data(), sizeof(store_t) * m_store.size(), 1);
 			  }
         void write_in(fan::opengl::context_t* context, FILE* f) {
           rbs.write_in(context, f);
           tr.write_in(context, f);
           uint64_t count;
-          fread(&count, sizeof(count), 1, f);
+          fan::io::file::read(f, &count, sizeof(count), 1);
           m_store.resize(count / sizeof(store_t));
-				  fread(m_store.data(), count, 1, f);
+          fan::io::file::read(f, m_store.data(), count, 1);
 			  }
 
         // IO -

@@ -473,31 +473,31 @@ namespace fan_2d {
 
       void write_out(fan::opengl::context_t* context, FILE* f) const {
 				uint64_t buffer_size = m_glsl_buffer.m_buffer.size();
-				fwrite(&buffer_size, sizeof(uint64_t), 1, f);
-				fwrite(m_glsl_buffer.m_buffer.data(), buffer_size, 1, f);
+				fan::io::file::write(f, &buffer_size, sizeof(uint64_t), 1);
+				fan::io::file::write(f, m_glsl_buffer.m_buffer.data(), buffer_size, 1);
 
         for (uint32_t i = 0; i < this->size(context); i++) {
           uint8_t* data;
           m_store_sprite[i].image.get_pixel_data(context, &data);
           uint8_t* ptr;
           uint32_t ptr_size = fan::webp::encode_rgba(data, m_store_sprite[i].image.size, 100, &ptr);
-          fwrite(&ptr_size, sizeof(ptr_size), 1, f);
-          fwrite(ptr, ptr_size, 1, f);
+          fan::io::file::write(f, &ptr_size, sizeof(ptr_size), 1);
+          fan::io::file::write(f, ptr, ptr_size, 1);
           WebPFree(ptr);
         }
 			}
 			void write_in(fan::opengl::context_t* context, FILE* f) {
 				uint64_t to_read;
-				fread(&to_read, sizeof(uint64_t), 1, f);
+        fan::io::file::read(f, &to_read, sizeof(uint64_t), 1);
 				m_glsl_buffer.m_buffer.resize(to_read);
-				fread(m_glsl_buffer.m_buffer.data(), to_read, 1, f);
+        fan::io::file::read(f, m_glsl_buffer.m_buffer.data(), to_read, 1);
 				m_glsl_buffer.write_vram_all(context);
         
         m_store_sprite.resize(this->size(context));
 
         for (uint32_t i = 0; i < this->size(context); i++) {
           uint32_t image_size;
-          fread(&image_size, sizeof(image_size), 1, f);
+          fan::io::file::read(f, &image_size, sizeof(image_size), 1);
           uint8_t* data = (uint8_t*)malloc(image_size);
 
           fan::webp::image_info_t image_info;
@@ -514,28 +514,28 @@ namespace fan_2d {
         }
 			}
 
-      void write_out_texturepack(fan::opengl::context_t* context, FILE* f) const {
+      void write_out_texturepack(fan::opengl::context_t* context, fan::io::file::file_t* f) const {
 				uint64_t buffer_size = m_glsl_buffer.m_buffer.size();
-				fwrite(&buffer_size, sizeof(uint64_t), 1, f);
-				fwrite(m_glsl_buffer.m_buffer.data(), buffer_size, 1, f);
+				fan::io::file::write(f, &buffer_size, sizeof(uint64_t), 1);
+        fan::io::file::write(f, m_glsl_buffer.m_buffer.data(), buffer_size, 1);
 			}
-      void write_in_texturepack(fan::opengl::context_t* context, FILE* f, fan::tp::texture_packe0* tp, std::vector<std::string>* names) {
+      void write_in_texturepack(fan::opengl::context_t* context, fan::io::file::file_t* f, fan::tp::texture_packe0* tp, std::vector<std::string>* names) {
         tp->process();
 
 				uint64_t to_read;
-				fread(&to_read, sizeof(uint64_t), 1, f);
+				fan::io::file::read(f, &to_read, sizeof(uint64_t), 1);
 				m_glsl_buffer.m_buffer.resize(to_read);
-				fread(m_glsl_buffer.m_buffer.data(), to_read, 1, f);
+        fan::io::file::read(f, m_glsl_buffer.m_buffer.data(), to_read, 1);
 				m_glsl_buffer.write_vram_all(context);
         m_store_sprite.resize(this->size(context));
 
         for (uint32_t i = 0; i < this->size(context); i++) {
 
           uint32_t count;
-          fread(&count, sizeof(count), 1, f);
+          fan::io::file::read(f, &count, sizeof(count), 1);
           (*names).resize((*names).size() + 1);
           (*names)[(*names).size() - 1].resize(count);
-          fread((*names)[(*names).size() - 1].data(), count, 1, f);
+          fan::io::file::read(f, (*names)[(*names).size() - 1].data(), count, 1);
 
           const std::string& name = (*names)[(*names).size() - 1];
 
@@ -555,19 +555,19 @@ namespace fan_2d {
 			}
       void write_in_texturepack(fan::opengl::context_t* context, FILE* f, fan::opengl::texturepack* tp,  std::vector<std::string>* names) {
         uint64_t to_read;
-        fread(&to_read, sizeof(uint64_t), 1, f);
+        fan::io::file::read(f, &to_read, sizeof(uint64_t), 1);
         m_glsl_buffer.m_buffer.resize(to_read);
-        fread(m_glsl_buffer.m_buffer.data(), to_read, 1, f);
+        fan::io::file::read(f, m_glsl_buffer.m_buffer.data(), to_read, 1);
         m_glsl_buffer.write_vram_all(context);
         m_store_sprite.resize(this->size(context));
 
         for (uint32_t i = 0; i < this->size(context); i++) {
 
           uint32_t count;
-          fread(&count, sizeof(count), 1, f);
+          fan::io::file::read(f, &count, sizeof(count), 1);
           (*names).resize((*names).size() + 1);
           (*names)[(*names).size() - 1].resize(count);
-          fread((*names)[(*names).size() - 1].data(), count, 1, f);
+          fan::io::file::read(f, (*names)[(*names).size() - 1].data(), count, 1);
 
           const std::string& name = (*names)[(*names).size() - 1];
 

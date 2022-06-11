@@ -332,16 +332,16 @@ namespace fan_2d {
 
 			// IO +
 
-			void write_out(fan::opengl::context_t* context, FILE* f) const {
+			void write_out(fan::opengl::context_t* context, fan::io::file::file_t* f) const {
 				uint64_t buffer_size = m_glsl_buffer.m_buffer.size();
-				fwrite(&buffer_size, sizeof(uint64_t), 1, f);
-				fwrite(m_glsl_buffer.m_buffer.data(), buffer_size, 1, f);
+				fan::io::file::write(f, &buffer_size, sizeof(uint64_t), 1);
+				fan::io::file::write(f, m_glsl_buffer.m_buffer.data(), buffer_size, 1);
 			}
-			void write_in(fan::opengl::context_t* context, FILE* f) {
+			void write_in(fan::opengl::context_t* context, fan::io::file::file_t* f) {
 				uint64_t to_read;
-				fread(&to_read, sizeof(uint64_t), 1, f);
+				fan::io::file::read(f, &to_read, sizeof(uint64_t), 1);
 				m_glsl_buffer.m_buffer.resize(to_read);
-				fread(m_glsl_buffer.m_buffer.data(), to_read, 1, f);
+				fan::io::file::read(f, m_glsl_buffer.m_buffer.data(), to_read, 1);
 				m_glsl_buffer.write_vram_all(context);
 			}
 

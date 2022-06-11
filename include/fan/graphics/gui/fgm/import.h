@@ -56,9 +56,11 @@ namespace fan_2d {
           }
 
           void load(fan::window_t* window, fan::opengl::context_t* context, const char* path, fan::opengl::texturepack* tp) {
-            FILE* f = fopen(path, "r+b");
-            if (!f) {
-              fan::throw_error("failed to open file stream");
+            fan::io::file::file_t* f;
+            fan::io::file::properties_t fp;
+            fp.mode = "r+b";
+            if (fan::io::file::open(f, filename, fp)) {
+              fan::throw_error(std::string("failed to open file:") + filename);
             }
 
             sprite.write_in_texturepack(context, f, tp, sprite_image_names);
@@ -67,21 +69,21 @@ namespace fan_2d {
             be.write_in(f);
 
             uint32_t count;
-            fread(&count, sizeof(count), 1, f);
+            fan::io::file::read(f, &count, sizeof(count), 1);
             hitbox_ids->resize(count);
             for (uint32_t i = 0; i < count; i++) {
               uint32_t s;
-              fread(&s, sizeof(s), 1, f);
+              fan::io::file::read(f, &s, sizeof(s), 1);
               (*hitbox_ids)[i].resize(s);
-              fread((*hitbox_ids)[i].data(), s, 1, f);
+              fan::io::file::read(f, (*hitbox_ids)[i].data(), s, 1);
             }
-            fread(&count, sizeof(count), 1, f);
+            fan::io::file::read(f, &count, sizeof(count), 1);
             button_ids->resize(count);
             for (uint32_t i = 0; i < count; i++) {
               uint32_t s;
-              fread(&s, sizeof(s), 1, f);
+              fan::io::file::read(f, &s, sizeof(s), 1);
               (*button_ids)[i].resize(s);
-              fread((*button_ids)[i].data(), s, 1, f);
+              fan::io::file::read(f, (*button_ids)[i].data(), s, 1);
             }
 
             fclose(f);
