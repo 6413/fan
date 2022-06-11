@@ -206,7 +206,7 @@ case builder_draw_type_t::text_renderer: {
             break;
           }
           case 2: {
-            f32_t font_size = std::stof(
+            f32_t outline_size = std::stof(
               pile->editor.properties_button.get_text(
                 window,
                 context,
@@ -217,7 +217,7 @@ case builder_draw_type_t::text_renderer: {
             pile->builder.tr.set_outline_size(
               context,
               pile->editor.selected_type_index,
-              font_size
+              outline_size
             );
 
             break;
