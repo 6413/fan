@@ -131,6 +131,7 @@ namespace fan {
 
 	fan::window_t* get_window_by_id(fan::window_handle_t wid);
 	void set_window_by_id(fan::window_handle_t wid, fan::window_t* window);
+	void erase_window_id(fan::window_handle_t wid);
 
 	struct window_t {
 

@@ -193,6 +193,18 @@ void fan::set_window_by_id(fan::window_handle_t wid, fan::window_t* window) {
   window_id_storage.push_back({wid, window});
 }
 
+void fan::erase_window_id(fan::window_handle_t wid)
+{
+  uint32_t it = window_id_storage.begin();
+  while(it != window_id_storage.end()) {
+    if (window_id_storage[it].window_handle == wid) {
+      window_id_storage.erase(it);
+      return;
+    }
+    it = window_id_storage.next(it);
+  }
+}
+
 std::string fan::window_t::get_name() const
 {
   return m_name;
@@ -692,7 +704,7 @@ bool fan::window_t::focused() const
 
 void fan::window_t::destroy_window()
 {
-  window_id_storage.close();
+  fan::erase_window_id(this->m_window_handle);
 
   #if defined(fan_platform_windows)
 
