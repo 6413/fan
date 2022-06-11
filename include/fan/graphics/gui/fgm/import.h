@@ -59,8 +59,8 @@ namespace fan_2d {
             fan::io::file::file_t* f;
             fan::io::file::properties_t fp;
             fp.mode = "r+b";
-            if (fan::io::file::open(f, filename, fp)) {
-              fan::throw_error(std::string("failed to open file:") + filename);
+            if (fan::io::file::open(&f, path, fp)) {
+              fan::throw_error(std::string("failed to open file:") + path);
             }
 
             sprite.write_in_texturepack(context, f, tp, sprite_image_names);

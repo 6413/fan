@@ -117,4 +117,6 @@ case builder_draw_type_t::button: {
   pile->builder.button.set_size(&pile->window, &pile->context, pile->editor.selected_type_index, size);
 
   pile->editor.update_resize_rectangles(pile);
+
+  break;
 }

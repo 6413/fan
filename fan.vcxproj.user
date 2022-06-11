@@ -6,21 +6,21 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LocalDebuggerEnvironment>PATH=%PATH%;$(SolutionDir)lib\al;$(SolutionDir)lib\assimp;$(SolutionDir)lib\glew;$(SolutionDir)lib\av;$(SolutionDir)lib\box2d;$(SolutionDir)lib\WITCH\uv</LocalDebuggerEnvironment>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerCommandArguments>TexturePack TexturePackCompiled</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>TexturePack TexturePackCompiled 123</LocalDebuggerCommandArguments>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LocalDebuggerEnvironment>PATH=%PATH%;$(SolutionDir)lib\al;$(SolutionDir)lib\assimp;$(SolutionDir)lib\glew;$(SolutionDir)lib\av;$(SolutionDir)lib\box2d;$(SolutionDir)lib\WITCH\uv</LocalDebuggerEnvironment>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerCommandArguments>TexturePack TexturePackCompiled</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>TexturePack TexturePackCompiled 123</LocalDebuggerCommandArguments>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LocalDebuggerEnvironment>PATH=%PATH%;$(SolutionDir)lib\al;$(SolutionDir)lib\assimp;$(SolutionDir)lib\glew;$(SolutionDir)lib\av;$(SolutionDir)lib\box2d;$(SolutionDir)lib\WITCH\uv</LocalDebuggerEnvironment>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerCommandArguments>TexturePack TexturePackCompiled</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>TexturePack TexturePackCompiled 123</LocalDebuggerCommandArguments>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LocalDebuggerEnvironment>PATH=%PATH%;$(SolutionDir)lib\al;$(SolutionDir)lib\assimp;$(SolutionDir)lib\glew;$(SolutionDir)lib\av;$(SolutionDir)lib\box2d;$(SolutionDir)lib\WITCH\uv</LocalDebuggerEnvironment>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerCommandArguments>TexturePack TexturePackCompiled</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>TexturePack TexturePackCompiled 123</LocalDebuggerCommandArguments>
   </PropertyGroup>
 </Project>

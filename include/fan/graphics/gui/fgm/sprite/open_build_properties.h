@@ -220,6 +220,7 @@ case builder_draw_type_t::sprite: {
             else {
               if (pile->tp.push_texture(path, tp)) {
                 pile->editor.print(pile, std::string("failed to load image:") + path);
+                break;
               }
               pile->tp.process();
               pile->tp.qti(path, &ti);

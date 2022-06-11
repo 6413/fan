@@ -6,7 +6,7 @@
   #define FAN_INCLUDE_PATH C:/libs/fan/include
 #endif
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
-#define fan_debug fan_debug_high
+#define fan_debug fan_debug_medium
 
 #include _FAN_PATH(graphics/graphics.h)
 #include _FAN_PATH(graphics/gui/fgm/fgm.h)
@@ -14,13 +14,13 @@
 int main(int argc, char** argv) {
 
   if (argc < 2) {
-    fan::throw_error("invalid amount of arguments. Usage:*.exe texturepack texturepackout");
+    fan::throw_error("invalid amount of arguments. Usage:*.exe texturepack texturepackout (load_filename)");
   }
 
   fan_2d::graphics::gui::fgm::pile_t pile;
 
   pile.open(argc, argv);
-  pile.load_file("123");
+  //pile.load_file("123");
   pile.context.set_vsync(&pile.window, 0);
 
   while (1) {
