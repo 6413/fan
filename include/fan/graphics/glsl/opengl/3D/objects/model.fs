@@ -7,7 +7,6 @@ out vec4 color;
 in vec3 fragment_position;
 in vec2 texture_coordinate;
 in vec3 normal;
-in float is_light;
 in vec3 view_position;
 in vec3 tanget_fragment_position;
 in vec3 tanget_view_position;
@@ -28,7 +27,7 @@ void main() {
 
   vec3 ambient = 0.8 * light_color;
 
-  vec4 diffuse_map = texture(texture_diffuse, texture_coordinate);
+  vec4 diffuse_map = texture(texture_diffuse, vec2(texture_coordinate.x, 1.0 - texture_coordinate.y));
 
   vec3 texture_normal = texture(texture_depth, texture_coordinate).xyz;
   texture_normal = normalize(texture_normal * 2 - 1.0); 
@@ -52,7 +51,7 @@ void main() {
     color = vec4(texture(skybox, r).rgb * vec3(1, 0.3, 0.3), diffuse_map.w);
   }
 
-    //color = vec4,
+   color = diffuse_map;
 }
 
 )"
