@@ -65,7 +65,7 @@ case builder_draw_type_t::sprite: {
 
   pile->editor.properties_button.push_back(&pile->window, &pile->context, properties_button_p);
 
-  properties_text_p.text = "image name:";
+  properties_text_p.text = "image name";
   calculate_text_position();
 
   pile->editor.properties_button_text.push_back(&pile->context, properties_text_p);

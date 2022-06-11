@@ -14,8 +14,8 @@
 
 int main(int argc, char** argv) {
 
-  if (argc < 3) {
-    fan::throw_error("invalid amount of arguments. Usage:*.exe compiled texturepack");
+  if (argc < 2) {
+    fan::throw_error("invalid amount of arguments. Usage:*.exe compiled_texturepack");
   }
 
   fan::window_t window;
@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
   context.set_viewport(0, window.get_size());
 
   fan::opengl::texturepack tp;
-  tp.open(&context, argv[1]);
+  tp.open(&context, argv[2]);
 
   fan_2d::graphics::gui::fgm::load_t load;
   load.open(&window, &context);

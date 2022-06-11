@@ -23,6 +23,7 @@ namespace fan_2d {
 
             hitbox_ids = new std::vector<std::string>();
             button_ids = new std::vector<std::string>();
+            sprite_image_names = new std::vector<std::string>();
 
             fan::vec2 window_size = window->get_size();
 
@@ -51,6 +52,7 @@ namespace fan_2d {
             matrices.close();
             delete hitbox_ids;
             delete button_ids;
+            delete sprite_image_names;
           }
 
           void load(fan::window_t* window, fan::opengl::context_t* context, const char* path, fan::opengl::texturepack* tp) {
@@ -59,7 +61,7 @@ namespace fan_2d {
               fan::throw_error("failed to open file stream");
             }
 
-            sprite.write_in_texturepack(context, f, tp, 0);
+            sprite.write_in_texturepack(context, f, tp, sprite_image_names);
             tr.write_in(context, f);
             button.write_in(context, f);
             be.write_in(f);
@@ -128,6 +130,7 @@ namespace fan_2d {
 
           std::vector<std::string>* hitbox_ids;
           std::vector<std::string>* button_ids;
+          std::vector<std::string>* sprite_image_names;
 
           on_input_cb on_input_function;
           on_mouse_move_cb on_mouse_event_function;

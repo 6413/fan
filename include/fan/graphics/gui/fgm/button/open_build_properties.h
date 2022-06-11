@@ -57,16 +57,69 @@ case builder_draw_type_t::button: {
 
   pile->editor.properties_button_text.push_back(&pile->context, properties_text_p);
 
- /* properties_button_p.position.y += 50;
+  properties_button_p.position.y += 50;
 
-  properties_button_p.userptr = pile->builder.rtbs.get_userptr(&pile->window, &pile->context, click_collision_.builder_draw_type_index);
-  properties_button_p.text = std::to_string(*(uint32_t*)&properties_button_p.userptr);
+  properties_button_p.text = fan::to_wstring(pile->builder.button.get_font_size(&pile->window, &pile->context, click_collision_.builder_draw_type_index));
   pile->editor.properties_button.push_back(&pile->window, &pile->context, properties_button_p);
 
-  properties_text_p.text = "id";
+  properties_text_p.text = "font size";
   calculate_text_position();
 
-  pile->editor.properties_button_text.push_back(&pile->context, properties_text_p);*/
+  pile->editor.properties_button_text.push_back(&pile->context, properties_text_p);
+
+  properties_button_p.position.y += 50;
+
+  properties_button_p.text = fan::to_wstring(pile->builder.button.get_outline_size(&pile->window, &pile->context, click_collision_.builder_draw_type_index));
+  pile->editor.properties_button.push_back(&pile->window, &pile->context, properties_button_p);
+
+  properties_text_p.text = "outline size";
+  calculate_text_position();
+
+  pile->editor.properties_button_text.push_back(&pile->context, properties_text_p);
+
+  properties_button_p.position.y += 50;
+
+  properties_button_p.text = pile->builder.button.get_text(&pile->window, &pile->context, click_collision_.builder_draw_type_index);
+  pile->editor.properties_button.push_back(&pile->window, &pile->context, properties_button_p);
+
+  properties_text_p.text = "text";
+  calculate_text_position();
+
+  pile->editor.properties_button_text.push_back(&pile->context, properties_text_p);
+
+  properties_button_p.position.y += 50;
+
+  fan::color text_color = pile->builder.button.get_text_color(&pile->window, &pile->context, click_collision_.builder_draw_type_index);
+  uint32_t r = text_color.r * 255, g = text_color.g * 255, b = text_color.b * 255, a = text_color.a * 255;
+  r = fan::clamp(r, 0u, 255u);
+  g = fan::clamp(g, 0u, 255u);
+  b = fan::clamp(b, 0u, 255u);
+  a = fan::clamp(a, 0u, 255u);
+  char hexcol[24];
+  snprintf(hexcol, sizeof hexcol, "%02x%02x%02x%02x", r & 0xff, g & 0xff, b & 0xff, a & 0xff);
+  properties_button_p.text = hexcol;
+  pile->editor.properties_button.push_back(&pile->window, &pile->context, properties_button_p);
+
+  properties_text_p.text = "text color";
+  calculate_text_position();
+
+  pile->editor.properties_button_text.push_back(&pile->context, properties_text_p);
+
+  properties_button_p.position.y += 50;
+
+  fan::color outline_color = pile->builder.button.get_outline_color(&pile->window, &pile->context, click_collision_.builder_draw_type_index);
+  r = fan::clamp((uint32_t)(outline_color.r * 255), 0u, 255u);
+  g = fan::clamp((uint32_t)(outline_color.g * 255), 0u, 255u);
+  b = fan::clamp((uint32_t)(outline_color.b * 255), 0u, 255u);
+  a = fan::clamp((uint32_t)(outline_color.a * 255), 0u, 255u);
+  snprintf(hexcol, sizeof hexcol, "%02x%02x%02x%02x", r & 0xff, g & 0xff, b & 0xff, a & 0xff);
+  properties_button_p.text = hexcol;
+  pile->editor.properties_button.push_back(&pile->window, &pile->context, properties_button_p);
+
+  properties_text_p.text = "outline color";
+  calculate_text_position();
+
+  pile->editor.properties_button_text.push_back(&pile->context, properties_text_p);
 
   properties_button_p.position.y += 50;
 
@@ -77,8 +130,6 @@ case builder_draw_type_t::button: {
   properties_button_p.position.x = properties_button_p.size.x + constants::properties_text_pad;
   properties_button_p.text_position = fan_2d::graphics::gui::text_position_e::middle;
   pile->editor.properties_button.push_back(&pile->window, &pile->context, properties_button_p);
-
-  pile->editor.properties_button_text.push_back(&pile->context, properties_text_p);
 
   pile->editor.properties_button.m_button_event.set_on_input(pile, [](
     fan::window_t* window, fan::opengl::context_t* context, uint32_t i, uint16_t key, fan::key_state key_state, mouse_stage mouse_stage, void* userptr) {
@@ -98,7 +149,7 @@ case builder_draw_type_t::button: {
     switch (pile->editor.selected_type) {
       case builder_draw_type_t::button: {
         switch (i) {
-          case 3: {
+          case 8: {
             switch (pile->editor.selected_type) {
               #include "erase_active.h"
             }
@@ -194,6 +245,80 @@ case builder_draw_type_t::button: {
             }
             fan::print_warning(std::string("failed to add id:") + path);
             pile->editor.properties_button.set_text(window, context, i, pile->editor.button_ids[pile->editor.selected_type_index]);
+          }
+          case 3: {
+            f32_t font_size = std::stof(
+              pile->editor.properties_button.get_text(
+                window,
+                context,
+                i
+              )
+            );
+
+            pile->builder.button.set_font_size(
+              window,
+              context,
+              pile->editor.selected_type_index,
+              font_size
+            );
+
+            pile->editor.update_resize_rectangles(pile);
+            break;
+          }
+          case 4: {
+            f32_t outline_size = std::stof(
+              pile->editor.properties_button.get_text(
+                window,
+                context,
+                i
+              )
+            );
+
+            pile->builder.button.set_outline_size(
+              window,
+              context,
+              pile->editor.selected_type_index,
+              outline_size
+            );
+
+            break;
+          }
+          case 5: {
+            pile->builder.button.set_text(
+              window,
+              context,
+              pile->editor.selected_type_index,
+              pile->editor.properties_button.get_text(window, context, i)
+            );
+            break;
+          }
+          case 6: {
+
+            pile->builder.button.set_text_color(
+              window,
+              context,
+              pile->editor.selected_type_index,
+              fan::color::hex(std::stoul(pile->editor.properties_button.get_text(
+                window,
+                context,
+                i
+              ), nullptr, 16))
+            );
+            break;
+          }
+          case 7: {
+
+            pile->builder.button.set_outline_color(
+              window,
+              context,
+              pile->editor.selected_type_index,
+              fan::color::hex(std::stoul(pile->editor.properties_button.get_text(
+                window,
+                context,
+                i
+              ), nullptr, 16))
+            );
+            break;
           }
         }
         break;

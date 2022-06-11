@@ -174,16 +174,6 @@ namespace fan_2d {
           rbs.set_size(context, i, size);
         }
 
-        fan::color get_text_color(fan::opengl::context_t* context, uint32_t i) const
-        {
-          return tr.get_text_color(context, i);
-        }
-
-        void set_text_color(fan::opengl::context_t* context, uint32_t i, const fan::color& color)
-        {
-          tr.set_text_color(context, i, color);
-        }
-
         fan::vec2 get_position(fan::opengl::context_t* context, uint32_t i) const
         {
           return rbs.get_position(context, i);
@@ -198,7 +188,27 @@ namespace fan_2d {
         {
           return tr.get_font_size(context, i);
         }
-
+        void set_font_size(fan::opengl::context_t* context, uint32_t i, f32_t font_size) {
+          tr.set_font_size(context, i, font_size);
+        }
+        f32_t get_outline_size(fan::opengl::context_t* context, uint32_t i) const {
+          return tr.get_outline_size(context, i);
+        }
+        void set_outline_size(fan::opengl::context_t* context, uint32_t i, f32_t outline_size) {
+          tr.set_outline_size(context, i, outline_size);
+        }
+        fan::color get_text_color(fan::opengl::context_t* context, uint32_t i, uint32_t j = 0) const {
+          return tr.get_text_color(context, i, j);
+        }
+        void set_text_color(fan::opengl::context_t* context, uint32_t i, const fan::color& color) {
+          tr.set_text_color(context, i, color);
+        }
+        fan::color get_outline_color(fan::opengl::context_t* context, uint32_t i) const {
+          return tr.get_outline_color(context, i);
+        }
+        void set_outline_color(fan::opengl::context_t* context, uint32_t i, const fan::color& outline_color) {
+          tr.set_outline_color(context, i, outline_color);
+        }
         fan::color get_color(fan::opengl::context_t* context, uint32_t i) const
         {
           return rbs.get_color(context, i);
