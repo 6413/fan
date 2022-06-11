@@ -64,6 +64,8 @@ case fan::key_v: {
       tr_p.text = pile->builder.tr.get_text(&pile->context, pile->editor.copied_type_index);
       tr_p.font_size = pile->builder.tr.get_font_size(&pile->context, pile->editor.copied_type_index);
       tr_p.text_color = pile->builder.tr.get_text_color(&pile->context, pile->editor.copied_type_index);
+      tr_p.outline_color = pile->builder.tr.get_outline_color(&pile->context, pile->editor.copied_type_index);
+      tr_p.outline_size = pile->builder.tr.get_outline_size(&pile->context, pile->editor.copied_type_index);
      
       pile->builder.tr.push_back(&pile->context, tr_p);
 
@@ -71,6 +73,62 @@ case fan::key_v: {
 
       pile->editor.builder_draw_type = editor_t::builder_draw_type_t::text_renderer;
       pile->editor.builder_draw_type_index = pile->builder.tr.size(&pile->context) - 1;
+
+      pile->editor.close_build_properties(pile);
+
+      pile->editor.selected_type = editor_t::builder_draw_type_t::text_renderer;
+      pile->editor.selected_type_index = pile->editor.builder_draw_type_index;
+
+      click_collision_t click_collision;
+      click_collision.builder_draw_type = pile->editor.selected_type;
+      click_collision.builder_draw_type_index = pile->editor.selected_type_index;
+      pile->editor.open_build_properties(pile, click_collision);
+
+      break;
+    }
+    case builder_draw_type_t::hitbox: {
+
+      fan_2d::graphics::sprite_t::properties_t sprite_p;
+      sprite_p.position = pile->window.get_mouse_position();
+      sprite_p.size = pile->editor.builder_types.get_size(&pile->window, &pile->context, 0);
+      sprite_p.image = pile->builder.hitbox.get_image(&pile->context, pile->builder.hitbox.size(&pile->context) - 1);
+      pile->builder.hitbox.push_back(&pile->context, sprite_p);
+
+      pile->editor.depth_map_push(pile, builder_draw_type_t::hitbox, pile->builder.hitbox.size(&pile->context) - 1);
+
+      pile->editor.builder_draw_type = editor_t::builder_draw_type_t::hitbox;
+      pile->editor.builder_draw_type_index = pile->builder.hitbox.size(&pile->context) - 1;
+
+      pile->editor.close_build_properties(pile);
+
+      pile->editor.selected_type = editor_t::builder_draw_type_t::hitbox;
+      pile->editor.selected_type_index = pile->editor.builder_draw_type_index;
+
+      bool result;
+      uint32_t i = 0;
+      for (; result = pile->editor.check_for_colliding_hitbox_ids(std::to_string(i)); i++) {}
+      pile->editor.hitbox_ids.push_back(std::to_string(i));
+
+      click_collision_t click_collision;
+      click_collision.builder_draw_type = pile->editor.selected_type;
+      click_collision.builder_draw_type_index = pile->editor.selected_type_index;
+      pile->editor.open_build_properties(pile, click_collision);
+
+      break;
+    }
+    case builder_draw_type_t::button: {
+      fan_2d::graphics::gui::rectangle_text_button_sized_t::properties_t button_p;
+      button_p.position = pile->builder.button.get_position(&pile->window, &pile->context, pile->editor.copied_type_index);
+      button_p.text = pile->builder.button.get_text(&pile->window, &pile->context, pile->editor.copied_type_index);
+      button_p.font_size = pile->builder.button.get_font_size(&pile->window, &pile->context, pile->editor.copied_type_index);
+      button_p.theme = pile->builder.button.get_theme(&pile->window, &pile->context, pile->editor.copied_type_index);
+
+      pile->builder.button.push_back(&pile->window, &pile->context, button_p);
+
+      pile->editor.depth_map_push(pile, builder_draw_type_t::button, pile->builder.button.size(&pile->window, &pile->context) - 1);
+
+      pile->editor.builder_draw_type = editor_t::builder_draw_type_t::text_renderer;
+      pile->editor.builder_draw_type_index = pile->builder.button.size(&pile->window, &pile->context) - 1;
 
       pile->editor.close_build_properties(pile);
 

@@ -169,6 +169,9 @@ namespace fan_2d {
         void set_size(fan::window_t* window, fan::opengl::context_t* context, uint32_t i, const fan::vec2& size) {
           rtbs.set_size(context, i, size);
         }
+        fan_2d::graphics::gui::theme get_theme(fan::window_t* window, fan::opengl::context_t* context, uint32_t i) const {
+          return rtbs.get_theme(context, i);
+        }
         void set_theme(fan::window_t* window, fan::opengl::context_t* context, uint32_t i, const fan_2d::graphics::gui::theme& theme) {
           rtbs.set_theme(context, i, theme);
         }

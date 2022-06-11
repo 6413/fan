@@ -108,13 +108,13 @@ namespace fan {
 				std::ifstream file(path.c_str(), std::ifstream::ate | std::ifstream::binary);
 				if (file.fail()) {
 					fan::print_warning_no_space("path does not exist:" + path);
-					return 0;
+					return 1;
 				}
 				str->resize(file.tellg());
 				file.seekg(0, std::ios::beg);
 				file.read(&(*str)[0], str->size());
 				file.close();
-				return true;
+				return 0;
 			}
 
 			template <typename T>

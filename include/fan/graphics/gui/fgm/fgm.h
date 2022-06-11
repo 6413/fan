@@ -196,6 +196,10 @@ namespace fan_2d {
             fan::vec2 window_size = window.get_size();
             editor.gui_matrices.set_ortho(&context, fan::vec2(0, window_size.x), fan::vec2(0, window_size.y));
             editor.gui_properties_matrices.set_ortho(&context, fan::vec2(0, window_size.x - editor.origin_properties.x), fan::vec2(0, window_size.y - editor.origin_properties.y));
+
+            if (argc >= 4) {
+              load_file(argv[3]);
+            }
           }
 
           void save(const char* filename) {

@@ -231,6 +231,13 @@ namespace fan_3d {
       }
 
       static void parse_model(loaded_model_t* m, fastObjMesh* obj) {
+
+        uint32_t j = 0;
+        for (uint32_t i = 0; i < obj->object_count; i++) {
+          fan::print(obj->objects[i].face_count, obj->objects[i].name);
+          j += obj->objects[i].face_count;
+        }
+
         uint32_t i = 0;
         auto push_tangets = [&]{
            if (!(i % 3) && i) {

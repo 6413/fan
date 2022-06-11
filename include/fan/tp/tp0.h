@@ -377,6 +377,9 @@ namespace fan {
       void load(const char* filename) {
         std::string data;
         fan::io::file::read(filename, &data);
+        if (data.empty()) {
+          return;
+        }
         uint32_t data_index = 0;
 
         visual_output = *(uint32_t*)&data[data_index];

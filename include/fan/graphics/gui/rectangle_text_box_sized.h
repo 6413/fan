@@ -314,6 +314,9 @@ namespace fan_2d {
           rbs.update_theme(context, i);
         }
 
+        fan_2d::graphics::gui::theme get_theme(fan::opengl::context_t* context, uint32_t i) const {
+          return rbs.get_theme(context, i);
+        }
         void set_theme(fan::opengl::context_t* context, uint32_t i, const fan_2d::graphics::gui::theme& theme_) {
           rbs.set_theme(context, i, theme_);
         }

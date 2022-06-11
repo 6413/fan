@@ -116,4 +116,6 @@ case builder_draw_type_t::hitbox: {
   );
   pile->builder.hitbox.set_size(&pile->context, pile->editor.selected_type_index, size);
   pile->editor.update_resize_rectangles(pile);
+
+  break;
 }

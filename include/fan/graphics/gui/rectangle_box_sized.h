@@ -127,6 +127,10 @@ namespace fan_2d {
           m_box.set_color(context, i * 2 + 1, m_store[i].m_properties.theme->button.color);
         }
 
+        fan_2d::graphics::gui::theme get_theme(fan::opengl::context_t* context, uint32_t i) const
+        {
+          return *m_store[i].m_properties.theme.ptr;
+        }
         void set_theme(fan::opengl::context_t* context, uint32_t i, const fan_2d::graphics::gui::theme& theme_)
         {
           m_box.set_color(context, i * 2, theme_.button.outline_color);
