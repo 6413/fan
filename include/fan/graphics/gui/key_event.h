@@ -665,25 +665,25 @@ namespace fan_2d {
           focus::set_focus(focus_id);
         }
 
-        void write_out(fan::opengl::context_t* context, FILE* f) const {
+        void write_out(fan::opengl::context_t* context, fan::io::file::file_t* f) {
           uint64_t count = m_store.size();
-          fwrite(&count, sizeof(count), 1, f);
+          fan::io::file::write(f, &count, sizeof(count), 1);
           for (uint32_t i = 0; i < count; i++) {
-            fwrite(&m_store[i].m_input_allowed, sizeof(uint32_t), 1, f);
-            fwrite(&m_store[i].character_limit, sizeof(uint32_t), 1, f);
-            fwrite(&m_store[i].line_width_limit, sizeof(f32_t), 1, f);
-            fwrite(&m_store[i].line_limit, sizeof(uint32_t), 1, f);
+            fan::io::file::write(f, &m_store[i].m_input_allowed, sizeof(uint32_t), 1);
+            fan::io::file::write(f, &m_store[i].character_limit, sizeof(uint32_t), 1);
+            fan::io::file::write(f, &m_store[i].line_width_limit, sizeof(f32_t), 1);
+            fan::io::file::write(f, &m_store[i].line_limit, sizeof(uint32_t), 1);
           }
         }
         void write_in(fan::opengl::context_t* context, FILE* f) {
           uint64_t count;
-          fread(&count, sizeof(uint64_t), 1, f);
+          fan::io::file::read(f, &count, sizeof(uint64_t), 1);
           m_store.resize(count);
           for (uint32_t i = 0; i < count; i++) {
-            fread(&m_store[i].m_input_allowed, sizeof(uint32_t), 1, f);
-            fread(&m_store[i].character_limit, sizeof(uint32_t), 1, f);
-            fread(&m_store[i].line_width_limit, sizeof(f32_t), 1, f);
-            fread(&m_store[i].line_limit, sizeof(uint32_t), 1, f);
+            fan::io::file::read(f, &m_store[i].m_input_allowed, sizeof(uint32_t), 1);
+            fan::io::file::read(f, &m_store[i].character_limit, sizeof(uint32_t), 1);
+            fan::io::file::read(f, &m_store[i].line_width_limit, sizeof(f32_t), 1);
+            fan::io::file::read(f, &m_store[i].line_limit, sizeof(uint32_t), 1);
             FED_open(&m_store[i].m_wed, fan_2d::opengl::gui::text_renderer_t::font.line_height, m_store[i].line_width_limit * line_multiplier, m_store[i].line_limit, m_store[i].character_limit);
             m_store[i].cursor_reference = FED_cursor_open(&m_store[i].m_wed);
 

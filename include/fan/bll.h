@@ -1,6 +1,7 @@
 #pragma once
 
 #include _FAN_PATH(types/memory.h)
+#include _FAN_PATH(io/file.h)
 
 #include <assert.h>
 
@@ -363,26 +364,26 @@ struct bll_t {
 #endif
 
 	// Note: sizeof(src) when reading out
-	void write_out(FILE* f) {
-		fwrite(&src, sizeof(src), 1, f);
-		fwrite(&dst, sizeof(dst), 1, f);
-		fwrite(&e.c, sizeof(e.c), 1, f);
-		fwrite(&e.p, sizeof(e.p), 1, f);
+	void write_out(fan::io::file::file_t* f) {
+		fan::io::file::write(f, &src, sizeof(src), 1);
+		fan::io::file::write(f, &dst, sizeof(dst), 1);
+		fan::io::file::write(f, &e.c, sizeof(e.c), 1);
+		fan::io::file::write(f, &e.p, sizeof(e.p), 1);
 
 		uint32_t count = nodes.size();
-		fwrite(&count, sizeof(count), 1, f);
-		fwrite(nodes.data(), sizeof(node_t) * nodes.size(), 1, f);
+		fan::io::file::write(f, &count, sizeof(count), 1);
+		fan::io::file::write(f, nodes.data(), sizeof(node_t) * nodes.size(), 1);
 	}
-	void write_in(FILE* f) {
-		fread(&src, sizeof(src), 1, f);
-		fread(&dst, sizeof(dst), 1, f);
-		fread(&e.c, sizeof(e.c), 1, f);
-		fread(&e.p, sizeof(e.p), 1, f);
+	void write_in(fan::io::file::file_t* f) {
+		fan::io::file::read(f, &src, sizeof(src), 1);
+		fan::io::file::read(f, &dst, sizeof(dst), 1);
+		fan::io::file::read(f, &e.c, sizeof(e.c), 1);
+		fan::io::file::read(f, &e.p, sizeof(e.p), 1);
 
 		uint32_t count;
 		fread(&count, sizeof(count), 1, f);
 		nodes.resize(count);
-		fread(nodes.data(), count * sizeof(node_t), 1, f);
+		fan::io::file::read(f, nodes.data(), count * sizeof(node_t), 1);
 	}
 
 //protected:											

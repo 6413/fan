@@ -281,35 +281,37 @@ namespace fan {
       }
 
       void save(const char* filename) {
-        FILE* f = fopen(filename, "w+b");
-        if (!f) {
+        fan::io::file::file_t* f;
+        fan::io::file::properties_t fp;
+        fp.mode = "w+b";
+        if (fan::io::file::open(&f, filename, fp)) {
           fan::throw_error(std::string("failed to open file:") + filename);
         }
 
         uint32_t pack_amount = pack_list.size();
-        fwrite(&pack_amount, sizeof(pack_amount), 1, f);
+        fan::io::file::write(f, &pack_amount, sizeof(pack_amount), 1);
 
         for (uint32_t i = 0; i < pack_amount; i++) {
           uint32_t count = pack_list[i].texture_list.size();
-          fwrite(&count, sizeof(count), 1, f);
+          fan::io::file::write(f, &count, sizeof(count), 1);
 
           for (uint32_t j = 0; j < count; j++) {
             pack_t::texture_t* t = &pack_list[i].texture_list[j];
             uint64_t hashed = fan::get_hash(t->name);
-            fwrite(&hashed, sizeof(hashed), 1, f);
-            fwrite(t->position.data(), sizeof(t->position), 1, f);
-            fwrite(t->size.data(), sizeof(t->size), 1, f);
+            fan::io::file::write(f, &hashed, sizeof(hashed), 1);
+            fan::io::file::write(f, t->position.data(), sizeof(t->position), 1);
+            fan::io::file::write(f, t->size.data(), sizeof(t->size), 1);
           }
 
           uint8_t* ptr;
           uint32_t ptr_size = fan::webp::encode_lossless_rgba(pack_list[i].pixel_data.data(), pack_list[i].pack_size, &ptr);
-          fwrite(&ptr_size, sizeof(ptr_size), 1, f);
-          fwrite(ptr, ptr_size, 1, f);
+          fan::io::file::write(f, &ptr_size, sizeof(ptr_size), 1);
+          fan::io::file::write(f, ptr, ptr_size, 1);
           WebPFree(ptr);
-          fwrite(&pack_list[i].visual_output, sizeof(uint32_t), 1, f);
-          fwrite(&pack_list[i].filter, sizeof(uint32_t), 1, f);
+          fan::io::file::write(f, &pack_list[i].visual_output, sizeof(uint32_t), 1);
+          fan::io::file::write(f, &pack_list[i].filter, sizeof(uint32_t), 1);
         }
-        fclose(f);
+        fan::io::file::close(f);
       }
 
       uint32_t size() const {

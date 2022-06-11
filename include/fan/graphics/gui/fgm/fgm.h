@@ -199,16 +199,18 @@ namespace fan_2d {
           }
 
           void save(const char* filename) {
-            FILE* f = fopen(filename, "w+b");
-            if (!f) {
-              fan::throw_error("failed to open file stream");
+            fan::io::file::file_t* f;
+            fan::io::file::properties_t fp;
+            fp.mode = "w+b";
+            if (fan::io::file::open(&f, filename, fp)) {
+              fan::throw_error(std::string("failed to open file:") + filename);
             }
 
             builder.sprite.write_out_texturepack(&context, f);
             for (uint32_t i = 0; i < editor.sprite_image_names.size(); i++) {
               uint32_t count = editor.sprite_image_names[i].size();
-              fwrite(&count, sizeof(count), 1, f);
-              fwrite(editor.sprite_image_names[i].data(), count, 1, f);
+              fan::io::file::write(f, &count, sizeof(count), 1);
+              fan::io::file::write(f, editor.sprite_image_names[i].data(), count, 1);
             }
 
             builder.tr.write_out(&context, f);
@@ -226,31 +228,33 @@ namespace fan_2d {
 
             be.write_out(f);
             uint32_t count = editor.hitbox_ids.size();
-            fwrite(&count, sizeof(count), 1, f);
+            fan::io::file::write(f, &count, sizeof(count), 1);
             for (uint32_t i = 0; i < count; i++) {
               uint32_t s = editor.hitbox_ids[i].size();
-              fwrite(&s, sizeof(s), 1, f);
-              fwrite(editor.hitbox_ids[i].data(), editor.hitbox_ids[i].size(), 1, f);
+              fan::io::file::write(f, &s, sizeof(s), 1);
+              fan::io::file::write(f, editor.hitbox_ids[i].data(), editor.hitbox_ids[i].size(), 1);
             }
             count = editor.button_ids.size();
-            fwrite(&count, sizeof(count), 1, f);
+            fan::io::file::write(f, &count, sizeof(count), 1);
             for (uint32_t i = 0; i < count; i++) {
               uint32_t s = editor.button_ids[i].size();
-              fwrite(&s, sizeof(s), 1, f);
-              fwrite(editor.button_ids[i].data(), editor.button_ids[i].size(), 1, f);
+              fan::io::file::write(f, &s, sizeof(s), 1);
+              fan::io::file::write(f, editor.button_ids[i].data(), editor.button_ids[i].size(), 1);
             }
             editor.depth_map.write_out(f);
 
-            fclose(f);
+            fan::io::file::close(f);
 
             tp.save(tp_project_name.data());
             tp.save_compiled(compiled_tp_name.data());
           }
 
-          void load_file(const char* path) {
-            FILE* f = fopen(path, "r+b");
-            if (!f) {
-              fan::throw_error(std::string("failed to open file:") + path);
+          void load_file(const char* filename) {
+            fan::io::file::file_t* f;
+            fan::io::file::properties_t fp;
+            fp.mode = "r+b";
+            if (fan::io::file::open(&f, filename, fp)) {
+              fan::throw_error(std::string("failed to open file:") + filename);
             }
 
             builder.sprite.write_in_texturepack(&context, f, &tp, &editor.sprite_image_names);
@@ -261,13 +265,13 @@ namespace fan_2d {
             be.write_in(f);
 
             uint32_t count;
-            fread(&count, sizeof(count), 1, f);
+            fan::io::file::read(f, &count, sizeof(count), 1);
             editor.hitbox_ids.resize(count);
             for (uint32_t i = 0; i < count; i++) {
               uint32_t s;
-              fread(&s, sizeof(s), 1, f);
+              fan::io::file::read(f, &s, sizeof(s), 1);
               editor.hitbox_ids[i].resize(s);
-              fread(editor.hitbox_ids[i].data(), s, 1, f);
+              fan::io::file::read(f, editor.hitbox_ids[i].data(), s, 1);
             }
 
             for (uint32_t i = 0; i < count; i++) {
@@ -298,19 +302,19 @@ namespace fan_2d {
               builder.hitbox.push_back(&context, sprite_p);
             }
 
-            fread(&count, sizeof(count), 1, f);
+            fan::io::file::read(f, &count, sizeof(count), 1);
             editor.button_ids.resize(count);
 
             for (uint32_t i = 0; i < count; i++) {
               uint32_t s;
-              fread(&s, sizeof(s), 1, f);
+              fan::io::file::read(f, &s, sizeof(s), 1);
               editor.button_ids[i].resize(s);
-              fread(editor.button_ids[i].data(), s, 1, f);
+              fan::io::file::read(f, editor.button_ids[i].data(), s, 1);
             }
 
             editor.depth_map.write_in(f);
 
-            fclose(f);
+            fan::io::file::close(f);
           }
 
         };

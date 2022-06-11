@@ -828,35 +828,35 @@ namespace fan_2d {
 
 				// IO +
 
-				void write_out(fan::opengl::context_t* context, FILE* f) const {
+				void write_out(fan::opengl::context_t* context, fan::io::file::file_t* f) const {
 					uint64_t buffer_size = m_glsl_buffer.m_buffer.size();
-					fwrite(&buffer_size, sizeof(uint64_t), 1, f);
-					fwrite(m_glsl_buffer.m_buffer.data(), m_glsl_buffer.m_buffer.size(), 1, f);
+					fan::io::file::write(f, &buffer_size, sizeof(uint64_t), 1);
+					fan::io::file::write(f, m_glsl_buffer.m_buffer.data(), m_glsl_buffer.m_buffer.size(), 1);
 					uint32_t count = m_store.size();
-					fwrite(&count, sizeof(count), 1, f);
-					fwrite(m_store.data(), sizeof(store_t) * m_store.size(), 1, f);
+					fan::io::file::write(f, &count, sizeof(count), 1);
+					fan::io::file::write(f, m_store.data(), sizeof(store_t) * m_store.size(), 1);
 					for (uint32_t i = 0; i < m_store.size(); i++) {
 						buffer_size = m_store[i].m_text.ptr->size();
-						fwrite(&buffer_size, sizeof(uint64_t), 1, f);
-						fwrite(m_store[i].m_text.ptr->data(), buffer_size * sizeof(wchar_t), 1, f);
+						fan::io::file::write(f, &buffer_size, sizeof(uint64_t), 1);
+						fan::io::file::write(f, m_store[i].m_text.ptr->data(), buffer_size * sizeof(wchar_t), 1);
 					}
 				}
-				void write_in(fan::opengl::context_t* context, FILE* f) {
+				void write_in(fan::opengl::context_t* context, fan::io::file::file_t* f) {
           uint64_t buffer_size;
-          fread(&buffer_size, sizeof(buffer_size), 1, f);
+					fan::io::file::read(f, &buffer_size, sizeof(buffer_size), 1);
 					m_glsl_buffer.m_buffer.resize(buffer_size);
-					fread(m_glsl_buffer.m_buffer.data(), buffer_size, 1, f);
+					fan::io::file::read(f, m_glsl_buffer.m_buffer.data(), buffer_size, 1);
 					m_glsl_buffer.write_vram_all(context);
 					uint32_t count;
-					fread(&count, sizeof(count), 1, f);
+					fan::io::file::read(f, &count, sizeof(count), 1);
 					m_store.resize(count);
-				  fread(m_store.data(), count * sizeof(store_t), 1, f);
+					fan::io::file::read(f, m_store.data(), count * sizeof(store_t), 1);
 					for (uint32_t i = 0; i < count; i++) {
 						uint64_t slength;
-						fread(&slength, sizeof(slength), 1, f);
+						fan::io::file::read(f, &slength, sizeof(slength), 1);
 						m_store[i].m_text.open();
 						m_store[i].m_text.ptr->resize(slength);
-						fread(m_store[i].m_text.ptr->data(), slength * sizeof(wchar_t), 1, f);
+						fan::io::file::read(f, m_store[i].m_text.ptr->data(), slength * sizeof(wchar_t), 1);
 					}
 			  }
 

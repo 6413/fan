@@ -326,19 +326,19 @@ namespace fan_2d {
 
          // IO +
 
-        void write_out(fan::opengl::context_t* context, FILE* f) const {
+        void write_out(fan::opengl::context_t* context, fan::io::file::file_t* f) {
 				  rtbs.write_out(context, f);
           uint64_t count = m_reserved.size() * sizeof(decltype(m_reserved)::value_type);
-          fwrite(&count, sizeof(count), 1, f);
-					fwrite(m_reserved.data(), sizeof(decltype(m_reserved)::value_type) * m_reserved.size(), 1, f);
+          fan::io::file::write(f, &count, sizeof(count), 1);
+					fan::io::file::write(f, m_reserved.data(), sizeof(decltype(m_reserved)::value_type) * m_reserved.size(), 1);
           m_key_event.write_out(context, f);
 			  }
-        void write_in(fan::opengl::context_t* context, FILE* f) {
+        void write_in(fan::opengl::context_t* context, fan::io::file::file_t* f) {
           rtbs.write_in(context, f);
           uint64_t count;
-          fread(&count, sizeof(count), 1, f);
+          fan::io::file::read(f, &count, sizeof(count), 1);
           m_reserved.resize(count / sizeof(decltype(m_reserved)::value_type));
-				  fread(m_reserved.data(), count, 1, f);
+          fan::io::file::read(f, m_reserved.data(), count, 1);
           m_key_event.write_in(context, f);
 			  }
 
