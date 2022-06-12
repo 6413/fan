@@ -5,7 +5,7 @@ case builder_draw_type_t::sprite: {
       pile->editor.click_position = pile->window.get_mouse_position();
 
       fan_2d::graphics::sprite_t::properties_t sprite_p;
-      sprite_p.position = pile->window.get_mouse_position();
+      sprite_p.position = pile->editor.get_mouse_position(pile);
       sprite_p.size = pile->editor.builder_types.get_size(&pile->window, &pile->context, 0);
       sprite_p.image.create_missing_texture(&pile->context);
       sprite_p.texture_coordinates = sprite_p.image.calculate_aspect_ratio(sprite_p.size, 3);

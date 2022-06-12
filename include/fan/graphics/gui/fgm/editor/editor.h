@@ -78,6 +78,11 @@ inline bool fan_2d::graphics::gui::fgm::editor_t::check_for_colliding_button_ids
   return false;
 }
 
+inline fan::vec2 fan_2d::graphics::gui::fgm::editor_t::get_mouse_position(pile_t* pile)
+{
+  return fan::transform_mouse_position(&pile->window);
+}
+
 inline void fan_2d::graphics::gui::fgm::editor_t::depth_map_push(pile_t* pile, uint32_t type, uint32_t index)
 {
   depth_t depth;
@@ -103,6 +108,7 @@ void editor_t::open_build_properties(pile_t* pile, click_collision_t click_colli
     p.position = positions[i];
     p.size = constants::resize_rectangle_size;
     p.theme = fan_2d::graphics::gui::themes::deep_blue(0.8);
+    p.theme.button.outline_thickness = 0.001;
     pile->editor.resize_rectangles.push_back(&pile->window, &pile->context, p);
   }
 
@@ -125,12 +131,12 @@ void editor_t::close_build_properties(pile_t* pile)
 
 bool editor_t::is_inside_builder_viewport(pile_t* pile, const fan::vec2& position)
 {
-  return fan_2d::collision::rectangle::point_inside_no_rotation(position, 0, builder_viewport_size);
+  return fan_2d::collision::rectangle::point_inside_no_rotation(position, -1, builder_viewport_size);
 }
 
 inline bool fan_2d::graphics::gui::fgm::editor_t::is_inside_types_viewport(pile_t* pile, const fan::vec2& position)
 {
-  return fan_2d::collision::rectangle::point_inside_no_rotation(position, fan::vec2(builder_viewport_size.x, 0), fan::vec2(pile->window.get_size().x, origin_properties.y));
+  return fan_2d::collision::rectangle::point_inside_no_rotation(position, fan::vec2(builder_viewport_size.x, -1), fan::vec2(1, 0));
 }
 
 bool editor_t::is_inside_properties_viewport(pile_t* pile, const fan::vec2& position)
@@ -146,27 +152,30 @@ bool editor_t::click_collision(pile_t* pile, click_collision_t* click_collision_
   
   for (uint32_t i = 0; i < pile->editor.depth_map.size(); i++) {
     if (pile->editor.depth_map[i].depth > frontest) {
+      fan::vec2 mp = pile->editor.get_mouse_position(pile);
+      uint32_t idx = pile->editor.depth_map[i].index;
+
       switch (pile->editor.depth_map[i].type) {
         case builder_draw_type_t::sprite: {
-          if (!pile->builder.sprite.inside(&pile->context, pile->editor.depth_map[i].index, pile->window.get_mouse_position())) {
+          if (!pile->builder.sprite.inside(&pile->context, idx, mp)) {
             continue;
           }
           break;
         }
         case builder_draw_type_t::text_renderer: {
-          if (!pile->builder.tr.inside(&pile->context, pile->editor.depth_map[i].index, pile->window.get_mouse_position())) {
+          if (!pile->builder.tr.inside(&pile->context, idx, mp)) {
             continue;
           }
           break;
         }
         case builder_draw_type_t::hitbox: {
-          if (!pile->builder.hitbox.inside(&pile->context, pile->editor.depth_map[i].index, pile->window.get_mouse_position())) {
+          if (!pile->builder.hitbox.inside(&pile->context, idx, mp)) {
             continue;
           }
           break;
         }
         case builder_draw_type_t::button: {
-          if (!pile->builder.button.inside(&pile->window, &pile->context, pile->editor.depth_map[i].index, pile->window.get_mouse_position())) {
+          if (!pile->builder.button.inside(&pile->window, &pile->context, idx, mp)) {
             continue;
           }
           break;

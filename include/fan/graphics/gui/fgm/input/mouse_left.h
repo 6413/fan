@@ -37,8 +37,8 @@
              fan::throw_error("click position not set for current shape");
            }
          }
-         pile->editor.move_offset = pile->editor.click_position - pile->window.get_mouse_position();
-         pile->editor.click_position -= pile->window.get_mouse_position();
+         pile->editor.move_offset = pile->editor.click_position - pile->editor.get_mouse_position(pile);
+         pile->editor.click_position -= pile->editor.get_mouse_position(pile);
 
          return;
        }

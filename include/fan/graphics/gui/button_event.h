@@ -3,6 +3,12 @@
 #include _FAN_PATH(window/window.h)
 #include _FAN_PATH(graphics/opengl/gl_core.h)
 
+namespace fan {
+  static auto transform_mouse_position = [] (fan::window_t* w) {
+    return (fan::cast<f32_t>(w->get_mouse_position()) / w->get_size() - 0.5) * 2;
+  };
+}
+
 namespace fan_2d {
   namespace graphics {
     namespace gui {
@@ -50,12 +56,12 @@ namespace fan_2d {
               if (object->m_button_event.m_focused_button_id >= object->size(w, context)) {
                 object->m_button_event.m_focused_button_id = fan::uninitialized;
               }
-              else if (object->inside(w, context, object->m_button_event.m_focused_button_id, w->get_mouse_position() - object->get_viewport_collision_offset()) && !object->locked(w, context, object->m_button_event.m_focused_button_id)) {
+              else if (object->inside(w, context, object->m_button_event.m_focused_button_id, fan::transform_mouse_position(w) -object->get_viewport_collision_offset()) && !object->locked(w, context, object->m_button_event.m_focused_button_id)) {
                 return;
               }
             }
             for (int i = object->size(w, context); i--; ) {
-              if (object->inside(w, context, i, w->get_mouse_position() - object->get_viewport_collision_offset()) && !object->locked(w, context, i)) {
+              if (object->inside(w, context, i, fan::transform_mouse_position(w) - object->get_viewport_collision_offset()) && !object->locked(w, context, i)) {
                 if (object->m_button_event.m_focused_button_id != fan::uninitialized) {
                   object->lib_add_on_mouse_move(w, context, object->m_button_event.m_focused_button_id, mouse_stage::outside, object->m_button_event.mouse_user_ptr);
                   object->m_button_event.on_mouse_event_function(w, context, object->m_button_event.m_focused_button_id, mouse_stage::outside, object->m_button_event.mouse_user_ptr);
@@ -94,7 +100,7 @@ namespace fan_2d {
                 }
                 else {
                   for (int i = object->size(w, context); i--; ) {
-                  if (object->inside(w, context, i, w->get_mouse_position() - object->get_viewport_collision_offset()) && !object->locked(w, context, i)) {
+                  if (object->inside(w, context, i, fan::transform_mouse_position(w) - object->get_viewport_collision_offset()) && !object->locked(w, context, i)) {
                       object->lib_add_on_input(w, context, i, key, state, mouse_stage::outside, object->m_button_event.key_user_ptr);
                       object->m_button_event.on_input_function(w, context, i, key, state, mouse_stage::outside, object->m_button_event.key_user_ptr);
                     }
@@ -114,7 +120,7 @@ namespace fan_2d {
                 if (object->m_button_event.m_focused_button_id >= object->size(w, context)) {
                   object->m_button_event.m_focused_button_id = fan::uninitialized;
                 }
-                else if (object->inside(w, context, object->m_button_event.m_focused_button_id, w->get_mouse_position() - object->get_viewport_collision_offset()) && !object->locked(w, context, object->m_button_event.m_focused_button_id)) {
+                else if (object->inside(w, context, object->m_button_event.m_focused_button_id, fan::transform_mouse_position(w) - object->get_viewport_collision_offset()) && !object->locked(w, context, object->m_button_event.m_focused_button_id)) {
                   object->lib_add_on_input(w, context, object->m_button_event.m_focused_button_id, key, fan::key_state::release, mouse_stage::inside, object->m_button_event.key_user_ptr);
                   pointer_remove_flag = 1;
                   object->m_button_event.on_input_function(w, context, object->m_button_event.m_focused_button_id, key, fan::key_state::release, mouse_stage::inside, object->m_button_event.key_user_ptr);
@@ -127,7 +133,7 @@ namespace fan_2d {
                   object->lib_add_on_input(w, context, object->m_button_event.m_focused_button_id, key, fan::key_state::release, mouse_stage::outside, object->m_button_event.key_user_ptr);
 
                   for (int i = object->size(w, context); i--; ) {
-                    if (object->inside(w, context, i, w->get_mouse_position() - object->get_viewport_collision_offset()) && !object->locked(w, context, i)) {
+                    if (object->inside(w, context, i, fan::transform_mouse_position(w) - object->get_viewport_collision_offset()) && !object->locked(w, context, i)) {
                       object->lib_add_on_input(w, context, i, key, fan::key_state::release, mouse_stage::inside_drag, object->m_button_event.key_user_ptr);
                       object->m_button_event.m_focused_button_id = i;
                       break;

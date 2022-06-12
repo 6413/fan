@@ -33,7 +33,7 @@ void main() {
   //
   //    color = vec4(text_color.rgb, alpha);
   //}
-  float smoothing = 1.0 / (font_size / 5);
+  float smoothing = 1.0 / ((font_size * 800) / 5);
   float width = 0.7 - smoothing;
   float border_width = 0.5 + (outline_size / 7 + 0.065);
   float border_edge =  0.1 + (outline_size / 7 + 0.065);
