@@ -22,14 +22,16 @@ namespace fan_2d {
 
           struct constants {
             static constexpr fan::vec2 window_size = fan::vec2(900, 700);
-            static constexpr fan::vec2 builder_viewport_size = fan::vec2(600, window_size.y);
-            static constexpr f32_t gui_size = 16;
-            static constexpr f32_t properties_text_pad = 10;
+            static constexpr fan::vec2 builder_viewport_size = fan::vec2(0.5, 1);
+            static constexpr f32_t gui_size = 0.05;
+            static constexpr f32_t properties_text_pad = 0.05;
             static constexpr f32_t scroll_speed = 10;
 
             static constexpr f32_t properties_box_pad = 180;
 
-            static constexpr f32_t resize_rectangle_size = 5;
+            static constexpr f32_t resize_rectangle_size = 0.01;
+
+            static constexpr f32_t matrix_multiplier = 0.08;
           };
 
           struct flags_t {
@@ -75,6 +77,8 @@ namespace fan_2d {
 
           bool check_for_colliding_hitbox_ids(const std::string& id);
           bool check_for_colliding_button_ids(const std::string& id);
+
+          fan::vec2 get_mouse_position(pile_t* pile);
 
           fan::vec2 builder_viewport_size;
           fan::vec2 origin_shapes;
@@ -158,13 +162,13 @@ namespace fan_2d {
             tp.process();
             compiled_tp_name = argv[2];
 
-            window.add_resize_callback(this, [](fan::window_t*, const fan::vec2i& size, void* userptr) {
+            window.add_resize_callback(this, [](fan::window_t* w, const fan::vec2i& size, void* userptr) {
               pile_t* pile = (pile_t*)userptr;
 
               pile->context.set_viewport(0, size);
 
-              fan::vec2 window_size = pile->window.get_size();
-              pile->editor.gui_matrices.set_ortho(&pile->context, fan::vec2(0, window_size.x), fan::vec2(0, window_size.y));
+              fan::vec2 window_size = size;
+
               pile->editor.gui_properties_matrices.set_ortho(
                 &pile->context, 
                 fan::vec2(
@@ -178,13 +182,24 @@ namespace fan_2d {
 
               fan::graphics::viewport_t::properties_t vp;
 
-              vp.size = fan::vec2(window_size.x, window_size.y) - pile->editor.origin_properties; 
-              vp.position = fan::vec2(pile->editor.origin_properties.x, 0);
+              vp.size = fan::vec2(window_size.x - window_size.x / 2 * pile->editor.origin_properties.x, window_size.y);
+              vp.position = fan::vec2(window_size.x, 0);
 
               pile->editor.properties_viewport.set(&pile->context, vp);
               vp.position = 0;
               vp.size = window_size;
               pile->editor.builder_viewport.set(&pile->context, vp);
+
+              fan::vec2 prev_w_size = w->get_previous_size();
+              fan::vec2 prev_ratio = prev_w_size / prev_w_size.max();
+              std::swap(prev_ratio.x, prev_ratio.y);
+              fan::vec2 ratio = window_size / window_size.max();
+              std::swap(ratio.x, ratio.y);
+
+              for (uint32_t i = 0; i < pile->editor.builder_types.size(&pile->window, &pile->context); i++) {
+                fan::vec2 new_size = pile->editor.builder_types.get_size(&pile->window, &pile->context, i) / prev_ratio * ratio;
+                pile->editor.builder_types.set_size(&pile->window, &pile->context, i, new_size);
+              }
             });
 
             editor.gui_matrices.open();
@@ -194,7 +209,7 @@ namespace fan_2d {
             editor.open(this);
 
             fan::vec2 window_size = window.get_size();
-            editor.gui_matrices.set_ortho(&context, fan::vec2(0, window_size.x), fan::vec2(0, window_size.y));
+            editor.gui_matrices.set_ortho(&context, fan::vec2(-1, 1), fan::vec2(-1, 1));
             editor.gui_properties_matrices.set_ortho(&context, fan::vec2(0, window_size.x - editor.origin_properties.x), fan::vec2(0, window_size.y - editor.origin_properties.y));
 
             if (argc >= 4) {

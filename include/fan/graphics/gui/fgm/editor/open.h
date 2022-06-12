@@ -1,21 +1,20 @@
 depth_map.open();
 move_offset = 0;
 properties_camera = 0;
+flags = 0;
 
 pile->editor.selected_type = fan::uninitialized;
 
 builder_viewport_size = constants::builder_viewport_size;
 origin_shapes = fan::vec2(builder_viewport_size.x, 0);
-origin_properties = fan::vec2(builder_viewport_size.x, builder_viewport_size.y / 2);
-
-flags = 0;
+origin_properties = fan::vec2(builder_viewport_size.x, 0);
 
 fan::vec2 window_size = pile->window.get_size();
 
 fan::graphics::viewport_t::properties_t vp;
 
-vp.size = fan::vec2(window_size.x, window_size.y) - origin_properties;
-vp.position = fan::vec2(origin_properties.x, 0);
+vp.size = fan::vec2(window_size.x - window_size.x / 2 * origin_properties.x, window_size.y);
+vp.position = fan::vec2(window_size.x, 0);
 
 properties_viewport.open(&pile->context);
 properties_viewport.set(&pile->context, vp);
@@ -44,7 +43,7 @@ outline.open(&pile->context);
 decltype(outline)::properties_t line_p;
 line_p.color = fan::colors::white;
 
-line_p.src = fan::vec2(constants::builder_viewport_size.x, 0);
+line_p.src = fan::vec2(constants::builder_viewport_size.x, -1);
 line_p.dst = constants::builder_viewport_size;
 outline.push_back(&pile->context, line_p);
 outline.bind_matrices(&pile->context, &gui_matrices);
@@ -53,8 +52,8 @@ line_p.src = fan::vec2(0, constants::builder_viewport_size.y);
 line_p.dst = constants::builder_viewport_size;
 outline.push_back(&pile->context, line_p);
 
-line_p.src = fan::vec2(constants::builder_viewport_size.x, constants::builder_viewport_size.y / 2);
-line_p.dst = fan::vec2(pile->window.get_size().x, constants::builder_viewport_size.y / 2);
+line_p.src = fan::vec2(constants::builder_viewport_size.x, 0);
+line_p.dst = fan::vec2(1, 0);
 
 outline.push_back(&pile->context, line_p);
 
@@ -66,30 +65,34 @@ fan::vec2 origin = fan::vec2(constants::builder_viewport_size.x, 0);
 builder_types.open(&pile->window, &pile->context);
 builder_types.enable_draw(&pile->window, &pile->context);
 
+fan::vec2 ratio = window_size / window_size.max();
+std::swap(ratio.x, ratio.y);
+
 decltype(builder_types)::properties_t builder_types_p;
 builder_types_p.font_size = constants::gui_size;
-builder_types_p.size = fan::vec2(constants::gui_size * 4, constants::gui_size);
-builder_types_p.position = origin + fan::vec2(50 + builder_types_p.size.x / 2, 50);
+builder_types_p.size = fan::vec2(constants::gui_size * 4, constants::gui_size) * ratio;
+builder_types_p.position = fan::vec2(0.75, -0.8);
 builder_types_p.text = "sprite";
 builder_types_p.theme = fan_2d::graphics::gui::themes::gray();
+builder_types_p.theme.button.outline_thickness = 0.005;
 builder_types.push_back(&pile->window, &pile->context, builder_types_p);
 
-builder_types_p.position.y += 50;
+builder_types_p.position.y += 0.1;
 builder_types_p.text = "text";
 builder_types.push_back(&pile->window, &pile->context, builder_types_p);
 
-builder_types_p.position.y += 50;
+builder_types_p.position.y += 0.1;
 builder_types_p.text = "hitbox";
 builder_types.push_back(&pile->window, &pile->context, builder_types_p);
 
-builder_types_p.position.y += 50;
+builder_types_p.position.y += 0.1;
 builder_types_p.text = "button";
 builder_types.push_back(&pile->window, &pile->context, builder_types_p);
 
 fan::vec2 old_p = builder_types_p.position;
 
-builder_types_p.position.x -= 30;
-builder_types_p.position.y += 120;
+builder_types_p.position.x -= 0.1;
+builder_types_p.position.y += 0.4;
 builder_types_p.size.x /= 2;
 builder_types_p.size.y /= 1.2;
 builder_types_p.text = "export";

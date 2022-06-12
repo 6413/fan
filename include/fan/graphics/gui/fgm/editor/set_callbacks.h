@@ -18,7 +18,7 @@ builder_types.m_button_event.set_on_input(pile,
 
   pile_t* pile = (pile_t*)user_ptr;
 
-  if (!pile->editor.is_inside_types_viewport(pile, window->get_mouse_position()) && key_state == fan::key_state::press) {
+  if (!pile->editor.is_inside_types_viewport(pile, pile->editor.get_mouse_position(pile)) && key_state == fan::key_state::press) {
     return;
   }
 
