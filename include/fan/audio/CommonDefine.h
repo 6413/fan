@@ -26,37 +26,74 @@ void _audio_common_open(_audio_common_t *audio_common, uint32_t GroupAmount) {
   _FrameCacheList_open(&audio_common->FrameCacheList);
 }
 
-void _seek(_OpusHolder_t* holder, uint64_t offset) {
-  sint32_t err = op_pcm_seek(holder->decoder, offset);
-  if (err != 0) {
-    // TOOD
-    // op_pcm_seek() documented as seeking/reading from file.
-    // in our design we dont want to do file i/o at realtime.
-    // so if seek fails for some reason it must be fatal problem.
-    fan::throw_error("fan::audio::seek failed to seek audio file");
-  }
-}
-
-void _decode(_OpusHolder_t* holder, f32_t* Output, uint64_t offset, uint32_t FrameCount) {
-  _seek(holder, offset);
-
-  uint64_t TotalRead = 0;
-
-  while (TotalRead != FrameCount) {
-    int read = op_read_float_stereo(
-      holder->decoder,
-      &Output[TotalRead * _constants::ChannelAmount],
-      (FrameCount - TotalRead) * _constants::ChannelAmount);
-    if (read <= 0) {
-      fan::throw_error("help " + ::std::to_string(read));
+void _decode_copy(
+  uint8_t ChannelAmount,
+  uint32_t BeginCut,
+  uint32_t EndCut,
+  f32_t *F2_20,
+  f32_t *Output,
+  uint32_t *OutputIndex
+){
+  switch(ChannelAmount){
+    case 1:{
+      /* need manuel interleave */
+      for(uint32_t i = BeginCut; i < EndCut; i++){
+        Output[*OutputIndex + 0] = F2_20[i];
+        Output[*OutputIndex + 1] = F2_20[i];
+        *OutputIndex += 2;
+      }
       break;
     }
-
-    TotalRead += read;
+    case 2:{
+      uint32_t fc = EndCut - BeginCut;
+      MEM_copy(
+        &F2_20[BeginCut * 2],
+        &Output[*OutputIndex],
+        fc * 2 * sizeof(f32_t));
+      *OutputIndex += fc * 2;
+      break;
+    }
   }
 }
 
-void _GetFrames(_FrameCacheList_t *FrameCacheList, piece_t* piece, uint64_t Offset, uint64_t Time, f32_t** FramePointer, uint32_t* FrameAmount) {
+void _decode(piece_t *piece, f32_t *Output, uint64_t offset, uint32_t FrameCount) {
+  uint64_t PieceFrameOffset = offset;
+
+  uint32_t SegmentIndex = PieceFrameOffset / _constants::Opus::SegmentFrameAmount20;
+
+  uint32_t OutputIndex = 0;
+  while(OutputIndex / 2 != FrameCount){
+    uint32_t BeginCut = 0;
+    if(offset > SegmentIndex * _constants::Opus::SegmentFrameAmount20){
+      BeginCut = (SegmentIndex * _constants::Opus::SegmentFrameAmount20) % _constants::Opus::SegmentFrameAmount20;
+    }
+    uint32_t EndCut = _constants::Opus::SegmentFrameAmount20;
+    if(OutputIndex / 2 + _constants::Opus::SegmentFrameAmount20 > FrameCount){
+      EndCut = (OutputIndex / 2 + _constants::Opus::SegmentFrameAmount20) % _constants::Opus::SegmentFrameAmount20;
+    }
+
+    _SACSegment_t *SACSegment = &((_SACSegment_t *)piece->SACData)[SegmentIndex];
+    f32_t F2_20[_constants::Opus::SegmentFrameAmount20 * 5 * 2];
+    sint32_t oerr = opus_decode_float(
+      piece->od,
+      &piece->SACData[SACSegment->Offset],
+      SACSegment->Size,
+      F2_20,
+      _constants::Opus::SegmentFrameAmount20 * 5,
+      0);
+
+    if(oerr != _constants::Opus::SegmentFrameAmount20){
+      fan::print("help", oerr);
+      fan::throw_error("a");
+    }
+
+    _decode_copy(piece->ChannelAmount, BeginCut, EndCut, F2_20, Output, &OutputIndex);
+
+    SegmentIndex++;
+  }
+}
+
+void _GetFrames(_FrameCacheList_t *FrameCacheList, piece_t *piece, uint64_t Offset, uint64_t Time, f32_t **FramePointer, uint32_t *FrameAmount) {
   uint32_t PieceCacheIndex = Offset / _constants::FrameCacheAmount;
   _PieceCache_t* PieceCache = &piece->Cache[PieceCacheIndex];
   if (PieceCache->ref == (_FrameCacheList_NodeReference_t)-1) {
@@ -64,10 +101,10 @@ void _GetFrames(_FrameCacheList_t *FrameCacheList, piece_t* piece, uint64_t Offs
     _FrameCacheList_Node_t* FrameCacheList_Node = _FrameCacheList_GetNodeByReference(FrameCacheList, PieceCache->ref);
     uint64_t FrameOffset = (uint64_t)PieceCacheIndex * _constants::FrameCacheAmount;
     uint32_t FrameAmount = _constants::FrameCacheAmount;
-    if (FrameOffset + FrameAmount > piece->raw_size) {
-      FrameAmount = piece->raw_size - FrameOffset;
+    if (FrameOffset + FrameAmount > piece->FrameAmount) {
+      FrameAmount = piece->FrameAmount - FrameOffset;
     }
-    _decode(&piece->holder, &FrameCacheList_Node->data.Frames[0][0], FrameOffset, FrameAmount);
+    _decode(piece, &FrameCacheList_Node->data.Frames[0][0], FrameOffset, FrameAmount);
     FrameCacheList_Node->data.piece = piece;
     FrameCacheList_Node->data.PieceCacheIndex = PieceCacheIndex;
   }
@@ -140,36 +177,101 @@ void _RemoveFromPlayInfoList(_audio_common_t *audio_common, uint32_t PlayInfoRef
   }
 }
 
-void _piece_open_rest(_audio_common_t *audio_common, fan::audio::piece_t *piece){
-  piece->audio_common = audio_common;
-  piece->raw_size = op_pcm_total(piece->holder.decoder, 0);
-  uint32_t CacheAmount = piece->raw_size / _constants::FrameCacheAmount + !!(piece->raw_size % _constants::FrameCacheAmount);
+sint32_t piece_open(audio_t *audio, fan::audio::piece_t *piece, void *data, uintptr_t size) {
+  piece->audio_common = (_audio_common_t *)audio;
+
+  #define tbs(p0) \
+    if(DataIndex + (p0) > size){ \
+      return -1; \
+    }
+
+  uint8_t *Data = (uint8_t *)data;
+  uintptr_t DataIndex = 0;
+
+  _SACHead_t *SACHead;
+  tbs(sizeof(_SACHead_t));
+  SACHead = (_SACHead_t *)&Data[DataIndex];
+  DataIndex += sizeof(_SACHead_t);
+
+  piece->ChannelAmount = SACHead->ChannelAmount;
+
+  tbs(SACHead->TotalSegments);
+  uint8_t *SACSegmentSizes = &Data[DataIndex];
+
+  piece->TotalSegments = 0;
+  uint64_t TotalOfSACSegmentSizes = 0;
+  for(uint32_t i = 0; i < SACHead->TotalSegments; i++){
+    TotalOfSACSegmentSizes += SACSegmentSizes[i];
+    if(SACSegmentSizes[i] == 0xff){
+      continue;
+    }
+    piece->TotalSegments++;
+  }
+
+  uint64_t PieceSegmentSizes = piece->TotalSegments * sizeof(_SACSegment_t);
+  {
+    DataIndex += SACHead->TotalSegments;
+    uint64_t LeftSize = size - DataIndex;
+    if(TotalOfSACSegmentSizes != LeftSize){
+      fan::throw_error("corrupted sac?");
+    }
+    uintptr_t ssize = PieceSegmentSizes + LeftSize;
+    piece->SACData = A_resize(0, ssize);
+    MEM_copy(&Data[DataIndex], &piece->SACData[PieceSegmentSizes], LeftSize);
+  }
+
+  {
+    uint16_t BeforeSum = 0;
+    uint32_t psi = 0;
+    uint32_t DataOffset = PieceSegmentSizes;
+    for(uint32_t i = 0; i < SACHead->TotalSegments; i++){
+      BeforeSum += SACSegmentSizes[i];
+      if(SACSegmentSizes[i] == 0xff){
+        continue;
+      }
+      ((_SACSegment_t *)piece->SACData)[psi].Offset = DataOffset;
+      ((_SACSegment_t *)piece->SACData)[psi].Size = BeforeSum;
+      DataOffset += BeforeSum;
+      BeforeSum = 0;
+      psi++;
+    }
+  }
+
+  #undef tbs
+
+  {
+    int err;
+    piece->od = opus_decoder_create(48000, piece->ChannelAmount, &err);
+    if(err != OPUS_OK){
+      fan::throw_error("why");
+    }
+  }
+
+  piece->FrameOffset = 0;
+
+  piece->FrameAmount = (uint64_t)piece->TotalSegments * _constants::Opus::SegmentFrameAmount20;
+
+  uint32_t CacheAmount = piece->FrameAmount / _constants::FrameCacheAmount + !!(piece->FrameAmount % _constants::FrameCacheAmount);
   piece->Cache = (_PieceCache_t*)A_resize(0, CacheAmount * sizeof(_PieceCache_t));
   for (uint32_t i = 0; i < CacheAmount; i++) {
     piece->Cache[i].ref = (_FrameCacheList_NodeReference_t)-1;
   }
-}
-sint32_t piece_open(audio_t *audio, fan::audio::piece_t* piece, const ::std::string& path) {
-  sint32_t err;
-  piece->holder.decoder = op_open_file(path.c_str(), &err);
-  if (err != 0) {
-    return err;
-  }
-  piece->holder.head = op_head(piece->holder.decoder, 0);
-
-  _piece_open_rest((_audio_common_t *)audio, piece);
 
   return 0;
 }
-sint32_t piece_open(audio_t *audio, fan::audio::piece_t* piece, void *data, uintptr_t size) {
+sint32_t piece_open(audio_t *audio, fan::audio::piece_t *piece, const std::string &path) {
   sint32_t err;
-  piece->holder.decoder = op_open_memory((const uint8_t *)data, size, &err);
-  if (err != 0) {
+
+  std::string sd;
+  err = fan::io::file::read(path, &sd);
+  if(err != 0){
     return err;
   }
-  piece->holder.head = op_head(piece->holder.decoder, 0);
 
-  _piece_open_rest((_audio_common_t *)audio, piece);
+  err = piece_open(audio, piece, sd.data(), sd.size());
+  if(err != 0){
+    return err;
+  }
 
   return 0;
 }
@@ -310,7 +412,7 @@ void _DataCallback(_audio_common_t *audio_common, f32_t *Output) {
       f32_t FadePerFrame;
     }CalculatedVariables;
   gt_ReOffset:
-    CanBeReadFrameCount = piece->raw_size - PlayInfoNode->data.offset;
+    CanBeReadFrameCount = piece->FrameAmount - PlayInfoNode->data.offset;
     if (CanBeReadFrameCount > _constants::CallFrameCount - OutputIndex) {
       CanBeReadFrameCount = _constants::CallFrameCount - OutputIndex;
     }
@@ -382,7 +484,7 @@ void _DataCallback(_audio_common_t *audio_common, f32_t *Output) {
     #define JumpIfNeeded() \
       if(OutputIndex != _constants::CallFrameCount) { goto gt_ReOffset; }
 
-    if (PlayInfoNode->data.offset == piece->raw_size) {
+    if (PlayInfoNode->data.offset == piece->FrameAmount) {
       if (Properties->Flags.Loop == true) {
         PlayInfoNode->data.offset = 0;
       }
@@ -402,7 +504,7 @@ void _DataCallback(_audio_common_t *audio_common, f32_t *Output) {
       JumpIfNeeded();
     }
     else{
-      if (PlayInfoNode->data.offset == piece->raw_size) {
+      if (PlayInfoNode->data.offset == piece->FrameAmount) {
         PropertiesSoundStop_t PropertiesSoundStop;
         _RemoveFromPlayInfoList(audio_common, PlayInfoReference, &PropertiesSoundStop);
         continue;

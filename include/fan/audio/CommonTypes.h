@@ -1,5 +1,13 @@
+#include <opus/opus.h>
+
+#include _WITCH_PATH(WITCH.h)
+#include _WITCH_PATH(TH/TH.h)
+
 namespace _constants {
   const uint32_t opus_decode_sample_rate = 48000;
+  namespace Opus{
+    const uint32_t SegmentFrameAmount20 = 960;
+  }
 
   const f32_t OneSampleTime = (f32_t)1 / opus_decode_sample_rate;
 
@@ -9,10 +17,22 @@ namespace _constants {
   const uint64_t FrameCacheTime = opus_decode_sample_rate / CallFrameCount * 1; // 1 second
 }
 
-struct _OpusHolder_t {
-  OggOpusFile* decoder;
-  const OpusHead* head;
+
+#pragma pack(push, 1)
+
+struct _SACHead_t{
+  uint8_t Sign;
+  uint16_t Checksum;
+  uint8_t ChannelAmount;
+  uint32_t TotalSegments;
 };
+
+struct _SACSegment_t{
+  uint32_t Offset;
+  uint16_t Size;
+};
+
+#pragma pack(pop)
 
 struct piece_t;
 
@@ -110,8 +130,12 @@ struct _audio_common_t{
 
 struct piece_t {
   _audio_common_t *audio_common;
-  _OpusHolder_t holder;
-  uint64_t raw_size;
+  uint8_t ChannelAmount;
+  uint32_t TotalSegments;
+  uint8_t *SACData;
+  OpusDecoder *od;
+  uint64_t FrameOffset;
+  uint64_t FrameAmount;
   _PieceCache_t *Cache;
 };
 

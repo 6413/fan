@@ -2,7 +2,7 @@ case builder_draw_type_t::sprite: {
   switch (key_state) {
     case fan::key_state::press: {
       pile->editor.flags |= flags_t::moving;
-      pile->editor.click_position = pile->window.get_mouse_position();
+      pile->editor.click_position = pile->editor.get_mouse_position(pile);
 
       fan_2d::graphics::sprite_t::properties_t sprite_p;
       sprite_p.position = pile->editor.get_mouse_position(pile);
