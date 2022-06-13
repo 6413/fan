@@ -131,12 +131,12 @@ void editor_t::close_build_properties(pile_t* pile)
 
 bool editor_t::is_inside_builder_viewport(pile_t* pile, const fan::vec2& position)
 {
-  return fan_2d::collision::rectangle::point_inside_no_rotation(position, -1, builder_viewport_size);
+  return fan_2d::collision::rectangle::point_inside_no_rotation(position, -1, builder_viewport_src);
 }
 
 inline bool fan_2d::graphics::gui::fgm::editor_t::is_inside_types_viewport(pile_t* pile, const fan::vec2& position)
 {
-  return fan_2d::collision::rectangle::point_inside_no_rotation(position, fan::vec2(builder_viewport_size.x, -1), fan::vec2(1, 0));
+  return fan_2d::collision::rectangle::point_inside_no_rotation(position, fan::vec2(builder_viewport_src.x, -1), fan::vec2(1, 0));
 }
 
 bool editor_t::is_inside_properties_viewport(pile_t* pile, const fan::vec2& position)

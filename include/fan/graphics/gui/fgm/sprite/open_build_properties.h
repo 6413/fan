@@ -8,12 +8,13 @@ case builder_draw_type_t::sprite: {
   properties_button_p.size = fan::vec2(constants::gui_size * 5, constants::gui_size);
   properties_button_p.font_size = constants::gui_size;
   properties_button_p.theme = fan_2d::graphics::gui::themes::gray();
+  properties_button_p.theme.button.outline_thickness = 0.01;
   properties_button_p.text_position = fan_2d::graphics::gui::text_position_e::left;
   properties_button_p.allow_input = true;
   properties_button_p.position = fan::vec2(
     constants::properties_box_pad,
     fan::vec2(pile->editor.builder_types.get_size(&pile->window, &pile->context, click_collision_.builder_draw_type)).y
-  ) + 10;
+  );
 
   pile->editor.properties_button.push_back(&pile->window, &pile->context, properties_button_p);
 
@@ -31,13 +32,12 @@ case builder_draw_type_t::sprite: {
   };
 
   properties_text_p.text = "position";
-  properties_text_p.font_size = constants::gui_size;
+  properties_text_p.font_size = constants::gui_size * 4;
   properties_text_p.text_color = fan::colors::white;
   calculate_text_position();
-
   pile->editor.properties_button_text.push_back(&pile->context, properties_text_p);
 
-  properties_button_p.position.y += 50;
+  properties_button_p.position.y += constants::matrix_multiplier * 50;
 
   properties_button_p.text = fan::to_wstring(size.x, 0) + L", " + fan::to_wstring(size.y, 0);
   pile->editor.properties_button.push_back(&pile->window, &pile->context, properties_button_p);

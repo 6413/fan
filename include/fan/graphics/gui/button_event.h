@@ -4,8 +4,9 @@
 #include _FAN_PATH(graphics/opengl/gl_core.h)
 
 namespace fan {
-  static auto transform_mouse_position = [] (fan::window_t* w) {
-    return (fan::cast<f32_t>(w->get_mouse_position()) / w->get_size() - 0.5) * 2;
+  static fan::vec2 transform_mouse_position(fan::window_t* w) {
+    fan::vec2 ratio = fan::cast<f32_t>(w->get_size()) / w->get_size().max();
+    return fan::cast<f32_t>(w->get_mouse_position()) / w->get_size() / ratio * 2 - 1;
   };
 }
 

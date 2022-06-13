@@ -96,12 +96,12 @@ pile->editor.resize_rectangles.m_button_event.set_on_input(pile,
     return;
   }
 
-  if (!pile->editor.is_inside_builder_viewport(pile, window->get_mouse_position())) {
+  if (!pile->editor.is_inside_builder_viewport(pile, pile->editor.get_mouse_position(pile))) {
     return;
   }
   
   pile->editor.resize_stage = index;
-  pile->editor.click_position = pile->window.get_mouse_position();
+  pile->editor.click_position = pile->editor.get_mouse_position(pile);
   pile->editor.flags |= flags_t::ignore_properties_close;
   pile->editor.flags |= flags_t::ignore_moving;
   pile->editor.flags |= flags_t::resizing;

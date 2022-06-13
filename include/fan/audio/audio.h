@@ -1,7 +1,5 @@
 #pragma once
 
-#include <opus/opusfile.h>
-
 #ifndef fan_audio_set_backend
   #if defined(fan_platform_unix)
     #if defined(fan_platform_linux)
@@ -15,9 +13,6 @@
     #error ?
   #endif
 #endif
-
-#include _WITCH_PATH(WITCH.h)
-#include _WITCH_PATH(TH/TH.h)
 
 namespace fan {
   namespace audio {

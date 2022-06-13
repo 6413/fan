@@ -22,16 +22,17 @@ namespace fan_2d {
 
           struct constants {
             static constexpr fan::vec2 window_size = fan::vec2(900, 700);
-            static constexpr fan::vec2 builder_viewport_size = fan::vec2(0.5, 1);
+            static constexpr fan::vec2 builder_viewport_src = fan::vec2(0.75, 0);
+            static constexpr fan::vec2 builder_viewport_dst = fan::vec2(0.75, 1);
             static constexpr f32_t gui_size = 0.05;
-            static constexpr f32_t properties_text_pad = 0.05;
+            static constexpr f32_t properties_text_pad = -0.8;
             static constexpr f32_t scroll_speed = 10;
 
-            static constexpr f32_t properties_box_pad = 180;
+            static constexpr f32_t properties_box_pad = 0.01;
 
             static constexpr f32_t resize_rectangle_size = 0.01;
 
-            static constexpr f32_t matrix_multiplier = 0.08;
+            static constexpr f32_t matrix_multiplier = 0.004;
           };
 
           struct flags_t {
@@ -80,7 +81,8 @@ namespace fan_2d {
 
           fan::vec2 get_mouse_position(pile_t* pile);
 
-          fan::vec2 builder_viewport_size;
+          fan::vec2 builder_viewport_src;
+          fan::vec2 builder_viewport_dst;
           fan::vec2 origin_shapes;
           fan::vec2 origin_properties;
 
@@ -112,7 +114,15 @@ namespace fan_2d {
           std::vector<std::string> button_ids;
           std::vector<std::string> sprite_image_names;
 
-          fan_2d::graphics::line_t outline;
+          struct line_t : fan_2d::graphics::line_t {
+            void push_back(fan::opengl::context_t* context, properties_t p) {
+              pile_t* pile = OFFSETLESS(context, pile_t, context);
+              fan::vec2 ratio = pile->get_ratio(pile);
+              p.src *= ratio;
+              p.dst *= ratio;
+              fan_2d::graphics::line_t::push_back(context, p);
+            }
+          }outline;
           fan_2d::graphics::gui::rectangle_text_button_sized_t builder_types;
 
           fan_2d::graphics::gui::text_renderer_t builder_text;
@@ -121,6 +131,8 @@ namespace fan_2d {
           fan_2d::graphics::gui::rectangle_text_button_sized_t properties_button;
 
           fan_2d::graphics::gui::rectangle_button_sized_t resize_rectangles;
+
+          std::vector<std::vector<fan::vec2>> original_position;
 
           uint32_t depth_index;
 
@@ -150,6 +162,11 @@ namespace fan_2d {
           std::string tp_project_name;
           std::string compiled_tp_name;
 
+          fan::vec2 get_ratio() const {
+            fan::vec2 ratio = fan::cast<f32_t>(window.get_size()) / window.get_size().max();
+            return ratio;
+          }
+
           void open(int argc, char** argv) {
             window.open(editor_t::constants::window_size);
             context.init();
@@ -169,17 +186,6 @@ namespace fan_2d {
 
               fan::vec2 window_size = size;
 
-              pile->editor.gui_properties_matrices.set_ortho(
-                &pile->context, 
-                fan::vec2(
-                  0, 
-                  window_size.x - pile->editor.origin_properties.x
-                ), 
-                fan::vec2(
-                0, 
-                window_size.y - pile->editor.origin_properties.y)
-              );
-
               fan::graphics::viewport_t::properties_t vp;
 
               vp.size = fan::vec2(window_size.x - window_size.x / 2 * pile->editor.origin_properties.x, window_size.y);
@@ -190,15 +196,24 @@ namespace fan_2d {
               vp.size = window_size;
               pile->editor.builder_viewport.set(&pile->context, vp);
 
-              fan::vec2 prev_w_size = w->get_previous_size();
-              fan::vec2 prev_ratio = prev_w_size / prev_w_size.max();
-              std::swap(prev_ratio.x, prev_ratio.y);
-              fan::vec2 ratio = window_size / window_size.max();
+           /*   fan::vec2 ratio = window_size / window_size.max();
               std::swap(ratio.x, ratio.y);
 
-              for (uint32_t i = 0; i < pile->editor.builder_types.size(&pile->window, &pile->context); i++) {
+              pile->editor.gui_matrices.set_ortho(&pile->context, fan::vec2(-1, 1) * ratio, fan::vec2(-1, 1) * ratio);
+              pile->editor.gui_properties_matrices.set_ortho(&pile->context, fan::vec2(-1, 1.0 - pile->editor.origin_properties.x) * ratio, fan::vec2(-1, 1.0 - pile->editor.origin_properties.y) * ratio);*/
+
+              /*for (uint32_t i = 0; i < pile->editor.builder_types.size(&pile->window, &pile->context); i++) {
                 fan::vec2 new_size = pile->editor.builder_types.get_size(&pile->window, &pile->context, i) / prev_ratio * ratio;
                 pile->editor.builder_types.set_size(&pile->window, &pile->context, i, new_size);
+              }*/
+
+              fan::vec2 ratio = window_size / window_size.max();
+              pile->editor.gui_matrices.set_ortho(&pile->context, fan::vec2(-1, 1) * ratio.x, fan::vec2(-1, 1) * ratio.y);
+              pile->editor.gui_properties_matrices.set_ortho(&pile->context, fan::vec2(-1, 1.0 - pile->editor.origin_properties.x) * ratio.x, fan::vec2(-1, 1.0 - pile->editor.origin_properties.y) * ratio.y);
+              
+
+              for (uint32_t i = 0; i < pile->editor.builder_types.size(&pile->window, &pile->context); i++) {
+                pile->editor.builder_types.set_position(&pile->window, &pile->context, i, pile->editor.original_position[0][i] * ratio);
               }
             });
 
@@ -209,8 +224,14 @@ namespace fan_2d {
             editor.open(this);
 
             fan::vec2 window_size = window.get_size();
-            editor.gui_matrices.set_ortho(&context, fan::vec2(-1, 1), fan::vec2(-1, 1));
-            editor.gui_properties_matrices.set_ortho(&context, fan::vec2(0, window_size.x - editor.origin_properties.x), fan::vec2(0, window_size.y - editor.origin_properties.y));
+            fan::vec2 ratio = window_size / window_size.max();
+            //std::swap(ratio.x, ratio.y);
+            editor.gui_matrices.set_ortho(&context, fan::vec2(0, 1) * ratio.x, fan::vec2(0, 1) * ratio.y);
+            //editor.gui_properties_matrices.set_ortho(&context, fan::vec2(-1, 1.0 - editor.origin_properties.x) * ratio.x, fan::vec2(-1, 1.0 - editor.origin_properties.y) * ratio.y);
+            //std::swap(ratio.x, ratio.y);
+            for (uint32_t i = 0; i < editor.builder_types.size(&window, &context); i++) {
+              editor.builder_types.set_position(&window, &context, i, editor.original_position[0][i] * ratio);
+            }
 
             if (argc >= 4) {
               load_file(argv[3]);
