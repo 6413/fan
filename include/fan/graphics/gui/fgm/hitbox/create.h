@@ -5,7 +5,7 @@ case builder_draw_type_t::hitbox: {
       pile->editor.click_position = pile->window.get_mouse_position();
 
       fan_2d::graphics::sprite_t::properties_t sprite_p;
-      sprite_p.position = pile->window.get_mouse_position();
+      sprite_p.position = pile->editor.get_mouse_position(pile);
       sprite_p.size = pile->editor.builder_types.get_size(&pile->window, &pile->context, 0);
       fan::color colors[9];
       colors[0] = fan::colors::gray - fan::color(0, 0, 0, 0.1);

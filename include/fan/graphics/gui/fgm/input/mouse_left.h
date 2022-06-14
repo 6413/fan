@@ -69,7 +69,7 @@
 
        pile->editor.flags &= ~flags_t::moving;
 
-       if (!pile->editor.is_inside_builder_viewport(pile, pile->window.get_mouse_position())) {
+       if (!pile->editor.is_inside_builder_viewport(pile, pile->editor.get_mouse_position(pile))) {
          return;
        }
 

@@ -22,17 +22,17 @@ namespace fan_2d {
 
           struct constants {
             static constexpr fan::vec2 window_size = fan::vec2(900, 700);
-            static constexpr fan::vec2 builder_viewport_src = fan::vec2(0.75, 0);
-            static constexpr fan::vec2 builder_viewport_dst = fan::vec2(0.75, 1);
-            static constexpr f32_t gui_size = 0.05;
-            static constexpr f32_t properties_text_pad = -0.8;
-            static constexpr f32_t scroll_speed = 10;
+            static constexpr fan::vec2 builder_viewport_src = fan::vec2(0.7, 0);
+            static constexpr fan::vec2 builder_viewport_dst = fan::vec2(0.7, 1);
+            static constexpr f32_t gui_size = 0.02;
+            static constexpr f32_t properties_text_pad = 0.008;
+            static constexpr f32_t scroll_speed = 0.01;
 
-            static constexpr f32_t properties_box_pad = 0.01;
+            static constexpr f32_t properties_box_pad = 0.2;
 
-            static constexpr f32_t resize_rectangle_size = 0.01;
+            static constexpr f32_t resize_rectangle_size = 0.007;
 
-            static constexpr f32_t matrix_multiplier = 0.004;
+            static constexpr f32_t matrix_multiplier = 0.00125;
           };
 
           struct flags_t {
@@ -70,6 +70,7 @@ namespace fan_2d {
 
           void open(pile_t* pile);
 
+          void push_resize_rectangles(pile_t* pile, click_collision_t click_collision_);
           void update_resize_rectangles(pile_t* pile);
 
           void depth_map_push(pile_t* pile, uint32_t type, uint32_t index);
@@ -115,20 +116,20 @@ namespace fan_2d {
           std::vector<std::string> sprite_image_names;
 
           struct line_t : fan_2d::graphics::line_t {
-            void push_back(fan::opengl::context_t* context, properties_t p) {
-              pile_t* pile = OFFSETLESS(context, pile_t, context);
-              fan::vec2 ratio = pile->get_ratio(pile);
-              p.src *= ratio;
-              p.dst *= ratio;
-              fan_2d::graphics::line_t::push_back(context, p);
-            }
+            void push_back(fan::opengl::context_t* context, properties_t p);
           }outline;
-          fan_2d::graphics::gui::rectangle_text_button_sized_t builder_types;
+          struct text_renderer_t : fan_2d::graphics::gui::text_renderer_t {
+            void push_back(fan::opengl::context_t* context, properties_t properties);
+          };
+          struct rectangle_text_button_sized_t : fan_2d::graphics::gui::rectangle_text_button_sized_t {
+            void push_back(fan::window_t* window, fan::opengl::context_t* context, properties_t properties);
+          };
+          rectangle_text_button_sized_t builder_types;
 
-          fan_2d::graphics::gui::text_renderer_t builder_text;
+          text_renderer_t builder_text;
 
-          fan_2d::graphics::gui::text_renderer_t properties_button_text;
-          fan_2d::graphics::gui::rectangle_text_button_sized_t properties_button;
+          text_renderer_t properties_button_text;
+          rectangle_text_button_sized_t properties_button;
 
           fan_2d::graphics::gui::rectangle_button_sized_t resize_rectangles;
 
@@ -208,10 +209,8 @@ namespace fan_2d {
               }*/
 
               fan::vec2 ratio = window_size / window_size.max();
-              pile->editor.gui_matrices.set_ortho(&pile->context, fan::vec2(-1, 1) * ratio.x, fan::vec2(-1, 1) * ratio.y);
-              pile->editor.gui_properties_matrices.set_ortho(&pile->context, fan::vec2(-1, 1.0 - pile->editor.origin_properties.x) * ratio.x, fan::vec2(-1, 1.0 - pile->editor.origin_properties.y) * ratio.y);
-              
-
+              pile->editor.gui_matrices.set_ortho(&pile->context, fan::vec2(0, 1) * ratio.x, fan::vec2(0, 1) * ratio.y);
+              pile->editor.gui_properties_matrices.set_ortho(&pile->context, fan::vec2(0, 1.0 - pile->editor.origin_properties.x) * ratio.x, fan::vec2(0, 0.5) * ratio.y);
               for (uint32_t i = 0; i < pile->editor.builder_types.size(&pile->window, &pile->context); i++) {
                 pile->editor.builder_types.set_position(&pile->window, &pile->context, i, pile->editor.original_position[0][i] * ratio);
               }
@@ -227,11 +226,7 @@ namespace fan_2d {
             fan::vec2 ratio = window_size / window_size.max();
             //std::swap(ratio.x, ratio.y);
             editor.gui_matrices.set_ortho(&context, fan::vec2(0, 1) * ratio.x, fan::vec2(0, 1) * ratio.y);
-            //editor.gui_properties_matrices.set_ortho(&context, fan::vec2(-1, 1.0 - editor.origin_properties.x) * ratio.x, fan::vec2(-1, 1.0 - editor.origin_properties.y) * ratio.y);
-            //std::swap(ratio.x, ratio.y);
-            for (uint32_t i = 0; i < editor.builder_types.size(&window, &context); i++) {
-              editor.builder_types.set_position(&window, &context, i, editor.original_position[0][i] * ratio);
-            }
+            editor.gui_properties_matrices.set_ortho(&context, fan::vec2(0, 1.0 - editor.origin_properties.x) * ratio.x, fan::vec2(0, 0.5) * ratio.y);
 
             if (argc >= 4) {
               load_file(argv[3]);
@@ -365,4 +360,24 @@ namespace fan_2d {
       }
     }
   }
+}
+
+void fan_2d::graphics::gui::fgm::editor_t::line_t::push_back(fan::opengl::context_t* context, fan_2d::graphics::line_t::properties_t p){
+ pile_t* pile = OFFSETLESS(context, pile_t, context);
+ fan::vec2 ratio = pile->get_ratio();
+ p.src *= ratio;
+ p.dst *= ratio;
+ fan_2d::graphics::line_t::push_back(context, p);
+}
+void fan_2d::graphics::gui::fgm::editor_t::text_renderer_t::push_back(fan::opengl::context_t* context, fan_2d::graphics::gui::text_renderer_t::properties_t p){
+  pile_t* pile = OFFSETLESS(context, pile_t, context);
+  fan::vec2 ratio = pile->get_ratio();
+  p.position *= ratio;
+  fan_2d::graphics::gui::text_renderer_t::push_back(context, p);
+}
+void fan_2d::graphics::gui::fgm::editor_t::rectangle_text_button_sized_t::push_back(fan::window_t* window, fan::opengl::context_t* context, fan_2d::graphics::gui::rectangle_text_button_sized_t::properties_t p){
+  pile_t* pile = OFFSETLESS(context, pile_t, context);
+  fan::vec2 ratio = pile->get_ratio();
+  p.position *= ratio;
+  fan_2d::graphics::gui::rectangle_text_button_sized_t::push_back(window, context, p);
 }

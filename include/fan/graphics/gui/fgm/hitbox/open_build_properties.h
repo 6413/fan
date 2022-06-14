@@ -4,16 +4,17 @@ case builder_draw_type_t::hitbox: {
   fan::vec2 size = fan::vec2(pile->builder.hitbox.get_size(&pile->context, click_collision_.builder_draw_type_index));
 
   decltype(pile->editor.properties_button)::properties_t properties_button_p;
-  properties_button_p.text = fan::to_wstring(position.x, 0) + L", " + fan::to_wstring(position.y, 0);
-  properties_button_p.size = fan::vec2(constants::gui_size * 5, constants::gui_size);
+  properties_button_p.text = fan::to_wstring(position.x, 3) + L", " + fan::to_wstring(position.y, 3);
+  properties_button_p.size = fan::vec2(constants::gui_size * 3, constants::gui_size);
   properties_button_p.font_size = constants::gui_size;
   properties_button_p.theme = fan_2d::graphics::gui::themes::gray();
+  properties_button_p.theme.button.outline_thickness = 0.001;
   properties_button_p.text_position = fan_2d::graphics::gui::text_position_e::left;
   properties_button_p.allow_input = true;
   properties_button_p.position = fan::vec2(
     constants::properties_box_pad,
     fan::vec2(pile->editor.builder_types.get_size(&pile->window, &pile->context, click_collision_.builder_draw_type)).y
-  ) + 10;
+  ) + fan::vec2(0, constants::gui_size);
 
   pile->editor.properties_button.push_back(&pile->window, &pile->context, properties_button_p);
 
@@ -37,9 +38,9 @@ case builder_draw_type_t::hitbox: {
 
   pile->editor.properties_button_text.push_back(&pile->context, properties_text_p);
 
-  properties_button_p.position.y += 50;
+  properties_button_p.position.y += constants::matrix_multiplier * 50;
 
-  properties_button_p.text = fan::to_wstring(size.x, 0) + L", " + fan::to_wstring(size.y, 0);
+  properties_button_p.text = fan::to_wstring(size.x, 3) + L", " + fan::to_wstring(size.y, 3);
   pile->editor.properties_button.push_back(&pile->window, &pile->context, properties_button_p);
 
   properties_text_p.text = "size";
@@ -48,7 +49,7 @@ case builder_draw_type_t::hitbox: {
   pile->editor.properties_button_text.push_back(&pile->context, properties_text_p);
 
 
-  properties_button_p.position.y += 50;
+  properties_button_p.position.y += constants::matrix_multiplier * 50;
 
   properties_button_p.text = pile->editor.hitbox_ids[click_collision_.builder_draw_type_index];
   pile->editor.properties_button.push_back(&pile->window, &pile->context, properties_button_p);
@@ -69,12 +70,13 @@ case builder_draw_type_t::hitbox: {
 
   pile->editor.properties_button_text.push_back(&pile->context, properties_text_p);*/
 
-  properties_button_p.position.y += 50;
+  properties_button_p.position.y += constants::matrix_multiplier * 50;
 
   properties_button_p.allow_input = false;
   properties_button_p.text = "erase";
   properties_button_p.theme = fan_2d::graphics::gui::themes::deep_red();
-  properties_button_p.size.x = 30;
+  properties_button_p.theme.button.outline_thickness = 0.001;
+  properties_button_p.size /= 2;
   properties_button_p.position.x = properties_button_p.size.x + constants::properties_text_pad;
   properties_button_p.text_position = fan_2d::graphics::gui::text_position_e::middle;
   pile->editor.properties_button.push_back(&pile->window, &pile->context, properties_button_p);

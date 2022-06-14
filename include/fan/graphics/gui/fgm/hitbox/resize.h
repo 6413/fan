@@ -1,20 +1,20 @@
 case builder_draw_type_t::hitbox: {
 
-  fan::vec2 offset = pile->window.get_mouse_position() - pile->editor.click_position;
+  fan::vec2 offset = pile->editor.get_mouse_position(pile) - pile->editor.click_position;
   fan::vec2 position = pile->builder.hitbox.get_position(&pile->context, pile->editor.selected_type_index);
   fan::vec2 size = pile->builder.hitbox.get_size(&pile->context, pile->editor.selected_type_index);
 
   switch (pile->editor.resize_stage) {
     case 0: {
-      if (size.x * 2 - offset.x >= 32) {
+      if (size.x * 2 - offset.x >= constants::matrix_multiplier * 32) {
         size.x += -offset.x / 2;
         position.x += offset.x / 2;
-        pile->editor.click_position.x = pile->window.get_mouse_position().x;
+        pile->editor.click_position.x = pile->editor.get_mouse_position(pile) .x;
       }
-      if (size.y * 2 - offset.y >= 32) {
+      if (size.y * 2 - offset.y >= constants::matrix_multiplier * 32) {
         size.y += -offset.y / 2;
         position.y -= -offset.y / 2;
-        pile->editor.click_position.y = pile->window.get_mouse_position().y;
+        pile->editor.click_position.y = pile->editor.get_mouse_position(pile) .y;
       }
       break;
     }
@@ -24,31 +24,31 @@ case builder_draw_type_t::hitbox: {
       position.x -= -offset.x / 2;
       pile->editor.click_position.x = pile->window.get_mouse_position().x;
       }*/
-      if (size.y * 2 - offset.y >= 32) {
+      if (size.y * 2 - offset.y >= constants::matrix_multiplier * 32) {
         size.y += -offset.y / 2;
         position.y -= -offset.y / 2;
-        pile->editor.click_position.y = pile->window.get_mouse_position().y;
+        pile->editor.click_position.y = pile->editor.get_mouse_position(pile) .y;
       }
       break;
     }
     case 2: {
-      if (size.x * 2 + offset.x >= 32) {
+      if (size.x * 2 + offset.x >= constants::matrix_multiplier * 32) {
         size.x += offset.x / 2;
         position.x += offset.x / 2;
-        pile->editor.click_position.x = pile->window.get_mouse_position().x;
+        pile->editor.click_position.x = pile->editor.get_mouse_position(pile).x;
       }
-      if (size.y * 2 - offset.y >= 32) {
+      if (size.y * 2 - offset.y >= constants::matrix_multiplier * 32) {
         size.y += -offset.y / 2;
         position.y -= -offset.y / 2;
-        pile->editor.click_position.y = pile->window.get_mouse_position().y;
+        pile->editor.click_position.y = pile->editor.get_mouse_position(pile).y;
       }
       break;
     }
     case 3: {
-      if (size.x * 2 + offset.x >= 32) {
+      if (size.x * 2 + offset.x >= constants::matrix_multiplier * 32) {
         size.x += offset.x / 2;
         position.x += offset.x / 2;
-        pile->editor.click_position.x = pile->window.get_mouse_position().x;
+        pile->editor.click_position.x = pile->editor.get_mouse_position(pile).x;
       }
       /*if (size.y * 2 - offset.y >= 32) {
       size.y += -offset.y / 2;
@@ -58,15 +58,15 @@ case builder_draw_type_t::hitbox: {
       break;
     }
     case 4: {
-      if (size.x * 2 + offset.x >= 32) {
+      if (size.x * 2 + offset.x >= constants::matrix_multiplier * 32) {
         size.x += offset.x / 2;
         position.x += offset.x / 2;
-        pile->editor.click_position.x = pile->window.get_mouse_position().x;
+        pile->editor.click_position.x = pile->editor.get_mouse_position(pile).x;
       }
-      if (size.y * 2 + offset.y >= 32) {
+      if (size.y * 2 + offset.y >= constants::matrix_multiplier * 32) {
         size.y += offset.y / 2;
         position.y += offset.y / 2;
-        pile->editor.click_position.y = pile->window.get_mouse_position().y;
+        pile->editor.click_position.y = pile->editor.get_mouse_position(pile).y;
       }
       break;
     }
@@ -76,31 +76,31 @@ case builder_draw_type_t::hitbox: {
       position.x -= -offset.x / 2;
       pile->editor.click_position.x = pile->window.get_mouse_position().x;
       }*/
-      if (size.y * 2 + offset.y >= 32) {
+      if (size.y * 2 + offset.y >= constants::matrix_multiplier * 32) {
         size.y += offset.y / 2;
         position.y += offset.y / 2;
-        pile->editor.click_position.y = pile->window.get_mouse_position().y;
+        pile->editor.click_position.y = pile->editor.get_mouse_position(pile).y;
       }
       break;
     }
     case 6: {
-      if (size.x * 2 - offset.x >= 32) {
+      if (size.x * 2 - offset.x >= constants::matrix_multiplier * 32) {
         size.x -= offset.x / 2;
         position.x -= -offset.x / 2;
-        pile->editor.click_position.x = pile->window.get_mouse_position().x;
+        pile->editor.click_position.x = pile->editor.get_mouse_position(pile).x;
       }
-      if (size.y * 2 + offset.y >= 32) {
+      if (size.y * 2 + offset.y >= constants::matrix_multiplier * 32) {
         size.y += offset.y / 2;
         position.y += offset.y / 2;
-        pile->editor.click_position.y = pile->window.get_mouse_position().y;
+        pile->editor.click_position.y = pile->editor.get_mouse_position(pile).y;
       }
       break;
     }
     case 7: {
-      if (size.x * 2 - offset.x >= 32) {
+      if (size.x * 2 - offset.x >= constants::matrix_multiplier * 32) {
         size.x += -offset.x / 2;
         position.x += offset.x / 2;
-        pile->editor.click_position.x = pile->window.get_mouse_position().x;
+        pile->editor.click_position.x = pile->editor.get_mouse_position(pile).x;
       }
       /*if (size.y * 2 - offset.y >= 32) {
       size.y += -offset.y / 2;

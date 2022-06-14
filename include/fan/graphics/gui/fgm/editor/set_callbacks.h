@@ -39,6 +39,9 @@ pile->window.add_mouse_move_callback(pile,
 
     switch (pile->editor.selected_type) {
       #include _FAN_PATH(graphics/gui/fgm/includes/move.h)
+      case (uint32_t)-1: {
+        break;
+      }
       default: {
         fan::throw_error("failed to move current shape - add it to includes");
       }

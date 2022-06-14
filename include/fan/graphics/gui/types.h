@@ -29,7 +29,7 @@ namespace fan_2d {
 				inline fan::color color = fan::colors::white;
 				// nanoseconds
 				inline fan::time::nanoseconds blink_speed = 1e+8;
-				inline f32_t line_thickness = 1;
+				inline f32_t line_thickness = 0.002;
 			}
     }
   }

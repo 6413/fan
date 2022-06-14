@@ -5,7 +5,7 @@ case builder_draw_type_t::text_renderer: {
       pile->editor.click_position = pile->window.get_mouse_position();
 
       fan_2d::graphics::gui::text_renderer_t::properties_t tr_p;
-      tr_p.position = pile->window.get_mouse_position();
+      tr_p.position = pile->editor.get_mouse_position(pile);
       tr_p.text = "text";
       tr_p.font_size = constants::gui_size;
       tr_p.text_color = fan::colors::white;

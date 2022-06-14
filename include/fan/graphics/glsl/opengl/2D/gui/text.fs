@@ -20,20 +20,7 @@ out vec4 color;
 
 
 void main() {
-
-
-  //if (outline_color.a != 0) {
-  //   
-  //}
-  //else {
-  //    float width = 0.5;
-  //    float smoothing = 1.0 / (font_size / 8);
-  //    float distance = 1.0 - TEXTURE2D(texture_sampler, texture_coordinate).r;
-  //    float alpha = 1.0 - smoothstep(width, width + smoothing, distance);
-  //
-  //    color = vec4(text_color.rgb, alpha);
-  //}
-  float smoothing = 1.0 / ((font_size * 300) / 5);
+  float smoothing = 1.0 / ((font_size * 600) / 5);
   float width = 0.7 - smoothing;
   float border_width = 0.5 + (outline_size / 7 + 0.065);
   float border_edge =  0.1 + (outline_size / 7 + 0.065);

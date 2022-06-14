@@ -5,6 +5,27 @@ void editor_t::open(pile_t* pile) {
 #include "fgm.h"
 }
 
+inline void fan_2d::graphics::gui::fgm::editor_t::push_resize_rectangles(pile_t* pile, click_collision_t click_collision_)
+{
+  selected_type = click_collision_.builder_draw_type;
+  selected_type_index = click_collision_.builder_draw_type_index;
+
+  fan::vec2 positions[8];
+
+  switch (selected_type) {
+    #include _FAN_PATH(graphics/gui/fgm/includes/corners.h)
+  }
+
+  for (uint32_t i = 0; i < 8; i++) {
+    fan_2d::graphics::gui::rectangle_button_sized_t::properties_t p;
+    p.position = positions[i];
+    p.size = constants::resize_rectangle_size;
+    p.theme = fan_2d::graphics::gui::themes::deep_blue(0.8);
+    p.theme.button.outline_thickness = 0.001;
+    pile->editor.resize_rectangles.push_back(&pile->window, &pile->context, p);
+  }
+}
+
 inline void fan_2d::graphics::gui::fgm::editor_t::update_resize_rectangles(pile_t* pile)
 {
   if (!pile->editor.resize_rectangles.size(&pile->window, &pile->context)) {
@@ -94,23 +115,7 @@ inline void fan_2d::graphics::gui::fgm::editor_t::depth_map_push(pile_t* pile, u
 
 void editor_t::open_build_properties(pile_t* pile, click_collision_t click_collision_)
 {
-  selected_type = click_collision_.builder_draw_type;
-  selected_type_index = click_collision_.builder_draw_type_index;
-
-  fan::vec2 positions[8];
-
-  switch (selected_type) {
-    #include _FAN_PATH(graphics/gui/fgm/includes/corners.h)
-  }
-
-  for (uint32_t i = 0; i < 8; i++) {
-    fan_2d::graphics::gui::rectangle_button_sized_t::properties_t p;
-    p.position = positions[i];
-    p.size = constants::resize_rectangle_size;
-    p.theme = fan_2d::graphics::gui::themes::deep_blue(0.8);
-    p.theme.button.outline_thickness = 0.001;
-    pile->editor.resize_rectangles.push_back(&pile->window, &pile->context, p);
-  }
+  push_resize_rectangles(pile, click_collision_);
 
   switch (click_collision_.builder_draw_type) {    
     #include _FAN_PATH(graphics/gui/fgm/includes/open_build_properties.h)
@@ -131,12 +136,12 @@ void editor_t::close_build_properties(pile_t* pile)
 
 bool editor_t::is_inside_builder_viewport(pile_t* pile, const fan::vec2& position)
 {
-  return fan_2d::collision::rectangle::point_inside_no_rotation(position, -1, builder_viewport_src);
+  return fan_2d::collision::rectangle::point_inside_no_rotation(position, 0, builder_viewport_dst);
 }
 
 inline bool fan_2d::graphics::gui::fgm::editor_t::is_inside_types_viewport(pile_t* pile, const fan::vec2& position)
 {
-  return fan_2d::collision::rectangle::point_inside_no_rotation(position, fan::vec2(builder_viewport_src.x, -1), fan::vec2(1, 0));
+  return fan_2d::collision::rectangle::point_inside_no_rotation(position, builder_viewport_src, fan::vec2(1, 0.5));
 }
 
 bool editor_t::is_inside_properties_viewport(pile_t* pile, const fan::vec2& position)

@@ -3,21 +3,21 @@ move_offset = 0;
 properties_camera = 0;
 flags = 0;
 
-original_position.resize(original_position.size() + 1);
+original_position.resize(original_position.size() + 3);
 
 pile->editor.selected_type = fan::uninitialized;
 
 builder_viewport_src = constants::builder_viewport_src;
 builder_viewport_dst = constants::builder_viewport_dst;
 origin_shapes = fan::vec2(builder_viewport_src.x, 0);
-origin_properties = fan::vec2(builder_viewport_src.x, 0);
+origin_properties = fan::vec2(builder_viewport_src.x, 0.5);
 
 fan::vec2 window_size = pile->window.get_size();
 
 fan::graphics::viewport_t::properties_t vp;
 
-vp.size = fan::vec2(window_size.x - (window_size.x - window_size.x / 2 * origin_properties.x), window_size.y / 2);
-vp.position = fan::vec2(window_size.x - window_size.x / 2 * origin_properties.x, 0);
+vp.size = fan::vec2(1.0 - builder_viewport_src.x, 0.5) * window_size;
+vp.position = fan::vec2(builder_viewport_src.x, 0) * window_size;
 
 properties_viewport.open(&pile->context);
 properties_viewport.set(&pile->context, vp);
@@ -26,7 +26,7 @@ properties_viewport.enable(&pile->context);
 properties_button.open(&pile->window, &pile->context);
 properties_button.enable_draw(&pile->window, &pile->context);
 properties_button.bind_matrices(&pile->context, &gui_properties_matrices);
-properties_button.set_viewport_collision_offset(origin_properties);
+properties_button.set_viewport_collision_offset(fan::vec2(origin_properties.x, 0.39));
 
 properties_button_text.open(&pile->context);
 properties_button_text.enable_draw(&pile->context);
@@ -65,33 +65,33 @@ builder_types.enable_draw(&pile->window, &pile->context);
 decltype(builder_types)::properties_t builder_types_p;
 builder_types_p.font_size = constants::gui_size;
 builder_types_p.size = fan::vec2(constants::gui_size * 4, constants::gui_size);
-builder_types_p.position = fan::vec2(0.75, -0.8);
+builder_types_p.position = fan::vec2(builder_viewport_src.x + 0.12, 0.1);
 builder_types_p.text = "sprite";
 builder_types_p.theme = fan_2d::graphics::gui::themes::gray();
-builder_types_p.theme.button.outline_thickness = 0.005;
+builder_types_p.theme.button.outline_thickness = 0.0005;
 builder_types.push_back(&pile->window, &pile->context, builder_types_p);
 
 original_position[0].push_back(builder_types_p.position);
 
-builder_types_p.position.y += 0.1;
+builder_types_p.position.y += constants::gui_size * 3;
 builder_types_p.text = "text";
 builder_types.push_back(&pile->window, &pile->context, builder_types_p);
 original_position[0].push_back(builder_types_p.position);
 
-builder_types_p.position.y += 0.1;
+builder_types_p.position.y += constants::gui_size * 3;
 builder_types_p.text = "hitbox";
 builder_types.push_back(&pile->window, &pile->context, builder_types_p);
 original_position[0].push_back(builder_types_p.position);
 
-builder_types_p.position.y += 0.1;
+builder_types_p.position.y += constants::gui_size * 3;
 builder_types_p.text = "button";
 builder_types.push_back(&pile->window, &pile->context, builder_types_p);
 original_position[0].push_back(builder_types_p.position);
 
 fan::vec2 old_p = builder_types_p.position;
 
-builder_types_p.position.x -= 0.1;
-builder_types_p.position.y += 0.4;
+builder_types_p.position.x -= 0.07;
+builder_types_p.position.y += constants::gui_size * 7;
 builder_types_p.size.x /= 2;
 builder_types_p.size.y /= 1.2;
 builder_types_p.text = "export";
