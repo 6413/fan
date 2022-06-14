@@ -317,6 +317,9 @@ namespace fan_2d {
 				}*/
 
 				f32_t get_font_size(fan::opengl::context_t* context, uintptr_t i) const {
+					if (get_index(i) * vertex_count * element_byte_size + offset_font_size >= m_glsl_buffer.m_buffer.size()) {
+						return 0;
+					}
 					return *(f32_t*)m_glsl_buffer.get_instance(context, get_index(i) * vertex_count, element_byte_size, offset_font_size);
 				}
 				void set_font_size(fan::opengl::context_t* context, uint32_t i, f32_t font_size) {

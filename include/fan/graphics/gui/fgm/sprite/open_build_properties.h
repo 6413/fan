@@ -4,17 +4,17 @@ case builder_draw_type_t::sprite: {
   fan::vec2 size = fan::vec2(pile->builder.sprite.get_size(&pile->context, click_collision_.builder_draw_type_index));
 
   decltype(pile->editor.properties_button)::properties_t properties_button_p;
-  properties_button_p.text = fan::to_wstring(position.x, 0) + L", " + fan::to_wstring(position.y, 0);
-  properties_button_p.size = fan::vec2(constants::gui_size * 5, constants::gui_size);
+  properties_button_p.text = fan::to_wstring(position.x, 3) + L", " + fan::to_wstring(position.y, 3);
+  properties_button_p.size = fan::vec2(constants::gui_size * 3, constants::gui_size);
   properties_button_p.font_size = constants::gui_size;
   properties_button_p.theme = fan_2d::graphics::gui::themes::gray();
-  properties_button_p.theme.button.outline_thickness = 0.01;
+  properties_button_p.theme.button.outline_thickness = 0.001;
   properties_button_p.text_position = fan_2d::graphics::gui::text_position_e::left;
   properties_button_p.allow_input = true;
   properties_button_p.position = fan::vec2(
     constants::properties_box_pad,
     fan::vec2(pile->editor.builder_types.get_size(&pile->window, &pile->context, click_collision_.builder_draw_type)).y
-  );
+  ) + fan::vec2(0, constants::gui_size);
 
   pile->editor.properties_button.push_back(&pile->window, &pile->context, properties_button_p);
 
@@ -32,14 +32,14 @@ case builder_draw_type_t::sprite: {
   };
 
   properties_text_p.text = "position";
-  properties_text_p.font_size = constants::gui_size * 4;
+  properties_text_p.font_size = constants::gui_size;
   properties_text_p.text_color = fan::colors::white;
   calculate_text_position();
   pile->editor.properties_button_text.push_back(&pile->context, properties_text_p);
 
   properties_button_p.position.y += constants::matrix_multiplier * 50;
 
-  properties_button_p.text = fan::to_wstring(size.x, 0) + L", " + fan::to_wstring(size.y, 0);
+  properties_button_p.text = fan::to_wstring(size.x, 3) + L", " + fan::to_wstring(size.y, 3);
   pile->editor.properties_button.push_back(&pile->window, &pile->context, properties_button_p);
 
   properties_text_p.text = "size";
@@ -58,7 +58,7 @@ case builder_draw_type_t::sprite: {
 
   pile->editor.properties_button_text.push_back(&pile->context, properties_text_p);*/
 
-  properties_button_p.position.y += 50;
+  properties_button_p.position.y += constants::matrix_multiplier * 50;
 
   properties_button_p.text = pile->editor.sprite_image_names[pile->editor.selected_type_index];
   calculate_text_position();
@@ -70,12 +70,13 @@ case builder_draw_type_t::sprite: {
 
   pile->editor.properties_button_text.push_back(&pile->context, properties_text_p);
 
-  properties_button_p.position.y += 50;
+  properties_button_p.position.y += constants::matrix_multiplier * 50;
 
   properties_button_p.allow_input = false;
   properties_button_p.text = "erase";
   properties_button_p.theme = fan_2d::graphics::gui::themes::deep_red();
-  properties_button_p.size.x = 30;
+  properties_button_p.theme.button.outline_thickness = 0.001;
+  //properties_button_p.size /= 2;
   properties_button_p.position.x = properties_button_p.size.x + constants::properties_text_pad;
   properties_button_p.text_position = fan_2d::graphics::gui::text_position_e::middle;
   pile->editor.properties_button.push_back(&pile->window, &pile->context, properties_button_p);
@@ -125,7 +126,7 @@ case builder_draw_type_t::sprite: {
         // position, size, etc...
         switch (i) {
           case 0: {
-            std::vector<int> values = fan::string_to_values<int>(
+            std::vector<f32_t> values = fan::string_to_values<f32_t>(
               pile->editor.properties_button.get_text(
               window,
               context,
@@ -140,7 +141,7 @@ case builder_draw_type_t::sprite: {
               position = 0;
             }
             else {
-              position = *(fan::vec2i*)values.data();
+              position = *(fan::vec2*)values.data();
             }
 
             pile->builder.sprite.set_position(
@@ -154,7 +155,7 @@ case builder_draw_type_t::sprite: {
             break;
           }
           case 1: {
-            std::vector<int> values = fan::string_to_values<int>(
+            std::vector<f32_t> values = fan::string_to_values<f32_t>(
               pile->editor.properties_button.get_text(
               window,
               context,
@@ -169,7 +170,7 @@ case builder_draw_type_t::sprite: {
               size = 0;
             }
             else {
-              size = *(fan::vec2i*)values.data();
+              size = *(fan::vec2*)values.data();
             }
 
             pile->builder.sprite.set_size(
@@ -189,11 +190,15 @@ case builder_draw_type_t::sprite: {
             );
 
             std::string path(wpath.begin(), wpath.end());
+            std::string::iterator end_pos = std::remove(path.begin(), path.end(), ' ');
+            path.erase(end_pos, path.end());
 
             fan::opengl::image_t image;
             fan::tp::ti_t ti;
             fan::tp::texture_packe0::texture_properties_t tp;
             tp.name = path;
+
+            pile->editor.properties_button.set_text(window, context, 2, path);
 
             if (path == "\\null") {
               image.create_missing_texture(&pile->context);
@@ -213,7 +218,6 @@ case builder_draw_type_t::sprite: {
               pile->editor.sprite_image_names[pile->editor.selected_type_index] = "";
             }
             else if (!pile->tp.qti(path, &ti)) {
-              pile->editor.properties_button.set_text(window, context, 2, path);
               pile->builder.sprite.load_texturepack(context, pile->editor.selected_type_index, &pile->tp, &ti);
               pile->editor.sprite_image_names[pile->editor.selected_type_index] = path;
             }
@@ -224,7 +228,6 @@ case builder_draw_type_t::sprite: {
               }
               pile->tp.process();
               pile->tp.qti(path, &ti);
-              pile->editor.properties_button.set_text(window, context, 2, path);
               pile->builder.sprite.load_texturepack(context, pile->editor.selected_type_index, &pile->tp, &ti);
               pile->editor.sprite_image_names[pile->editor.selected_type_index] = path;
             }

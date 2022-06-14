@@ -43,6 +43,8 @@ case fan::key_v: {
 
       pile->editor.depth_map_push(pile, builder_draw_type_t::sprite, pile->builder.sprite.size(&pile->context) - 1);
 
+      pile->editor.sprite_image_names.push_back(" ");
+
       pile->editor.builder_draw_type = editor_t::builder_draw_type_t::sprite;
       pile->editor.builder_draw_type_index = pile->builder.sprite.size(&pile->context) - 1;
 

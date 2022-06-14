@@ -3,7 +3,7 @@ case builder_draw_type_t::button: {
     &pile->window,
     &pile->context,
     pile->editor.selected_type_index,
-    position + pile->editor.move_offset
+    pile->editor.get_mouse_position(pile) + pile->editor.move_offset
   );
 
   break;
