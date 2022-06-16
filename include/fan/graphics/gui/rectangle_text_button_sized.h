@@ -327,6 +327,30 @@ namespace fan_2d {
           viewport_collision_offset = offset;
         }
 
+        void set_text_aspect_ratio(fan::window_t* window, fan::opengl::context_t* context, bool divide) {
+          uint32_t i_offset = 0;
+
+          fan::vec2 prev_window_size = window->get_previous_size();
+          fan::vec2 prev_ratio = prev_window_size / prev_window_size.max();
+          std::swap(prev_ratio.x, prev_ratio.y);
+
+          fan::vec2 window_size = window->get_size();
+          fan::vec2 ratio = window_size / window_size.max();
+          std::swap(ratio.x, ratio.y);
+
+          for (uint32_t k = 0; k < rtbs.tr.m_store.size(); k++) {
+            for (int j = 0; j < rtbs.tr.m_store[k].m_text->size(); j++) {
+              if (divide) {
+                rtbs.tr.set_letter_size(context, i_offset + j, rtbs.tr.get_letter_size(context, i_offset + j) / prev_ratio * ratio);
+              }
+              else {
+                rtbs.tr.set_letter_size(context, i_offset + j, rtbs.tr.get_letter_size(context, i_offset + j) * ratio);
+              }
+            }
+            i_offset += rtbs.tr.m_store[k].m_text->size();
+          }
+        }
+
          // IO +
 
         void write_out(fan::opengl::context_t* context, fan::io::file::file_t* f) {

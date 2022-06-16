@@ -332,7 +332,10 @@ namespace fan {
         get_proc_address(glFlush, &internal);
         get_proc_address(glFinish, &internal);
         get_proc_address(glGetTexLevelParameteriv, &internal);
-
+        get_proc_address(glGetUniformBlockIndex, &internal);
+        get_proc_address(glUniformBlockBinding, &internal);
+        get_proc_address(glBindBufferRange, &internal);
+        
         internal.close(&p);
 
         opengl_initialized = true;
@@ -449,6 +452,9 @@ namespace fan {
       PFNGLFLUSHPROC glFlush;
       PFNGLFINISHPROC glFinish;
       PFNGLGETTEXTURELEVELPARAMETERIVPROC glGetTexLevelParameteriv;
+      PFNGLGETUNIFORMBLOCKINDEXPROC glGetUniformBlockIndex;
+      PFNGLUNIFORMBLOCKBINDINGPROC glUniformBlockBinding;
+      PFNGLBINDBUFFERRANGEPROC glBindBufferRange;
 
     };
 

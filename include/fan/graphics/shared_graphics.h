@@ -76,7 +76,7 @@ namespace fan_2d {
 		}
 
 		static constexpr fan::vec2 convert_tc_4_2_6(const fan::_vec4<fan::vec2>* tx, uint32_t i) {
-			constexpr std::array<uint8_t, 8> table{0, 1, 2, 2, 3, 0};
+			constexpr std::array<uint8_t, 6> table{0, 1, 2, 2, 3, 0};
 			return (*tx)[table[i]];
 		}
 	}

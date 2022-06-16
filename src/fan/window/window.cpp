@@ -1234,7 +1234,7 @@ void fan::window_t::initialize_window(const std::string& name, const fan::vec2i&
   int minor_glx = 0, major_glx = 0;
   glXQueryVersion(fan::sys::m_display, &major_glx, &minor_glx);
 
-  constexpr auto major = 2;
+  constexpr auto major = 3;
   constexpr auto minor = 1;
 
   if (minor_glx < minor && major_glx <= major) {
@@ -1370,8 +1370,8 @@ void fan::window_t::initialize_window(const std::string& name, const fan::vec2i&
 
   //TODO FIX
   int gl_attribs[] = {
-    GLX_CONTEXT_MINOR_VERSION_ARB, 1,
-    GLX_CONTEXT_MAJOR_VERSION_ARB, 2,
+    GLX_CONTEXT_MINOR_VERSION_ARB, minor,
+    GLX_CONTEXT_MAJOR_VERSION_ARB, major,
     GLX_CONTEXT_PROFILE_MASK_ARB, GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
     0
   };

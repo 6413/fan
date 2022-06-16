@@ -182,7 +182,7 @@ namespace fan {
       close();
     }
 
-    static constexpr uintptr_t buffer_increment = 0x10000;
+    static constexpr uintptr_t buffer_increment = 0x100000;
 
  // protected:
 

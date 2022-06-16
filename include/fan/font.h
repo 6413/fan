@@ -37,6 +37,7 @@ namespace fan {
 		using characters_t = std::unordered_map<uint32_t, single_info_t>;
 
 		struct font_t {
+
 			f32_t size;
 			characters_t characters;
 			f32_t line_height;
@@ -242,8 +243,7 @@ namespace fan {
 
 		static font_t parse_font(const std::string& path) {
 			if (!fan::io::file::exists(path)) {
-				fan::print("font not found", path);
-				exit(1);
+				fan::throw_error(std::string("font not found") + path);
 			}
 
 			std::ifstream file(path);

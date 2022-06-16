@@ -71,22 +71,22 @@ builder_types_p.theme = fan_2d::graphics::gui::themes::gray();
 builder_types_p.theme.button.outline_thickness = 0.0005;
 builder_types.push_back(&pile->window, &pile->context, builder_types_p);
 
-original_position[0].push_back(builder_types_p.position);
+original_position[0].push_back(builder_types_p.size);
 
 builder_types_p.position.y += constants::gui_size * 3;
 builder_types_p.text = "text";
 builder_types.push_back(&pile->window, &pile->context, builder_types_p);
-original_position[0].push_back(builder_types_p.position);
+original_position[0].push_back(builder_types_p.size);
 
 builder_types_p.position.y += constants::gui_size * 3;
 builder_types_p.text = "hitbox";
 builder_types.push_back(&pile->window, &pile->context, builder_types_p);
-original_position[0].push_back(builder_types_p.position);
+original_position[0].push_back(builder_types_p.size);
 
 builder_types_p.position.y += constants::gui_size * 3;
 builder_types_p.text = "button";
 builder_types.push_back(&pile->window, &pile->context, builder_types_p);
-original_position[0].push_back(builder_types_p.position);
+original_position[0].push_back(builder_types_p.size);
 
 fan::vec2 old_p = builder_types_p.position;
 
@@ -97,7 +97,7 @@ builder_types_p.size.y /= 1.2;
 builder_types_p.text = "export";
 builder_types.push_back(&pile->window, &pile->context, builder_types_p);
 
-original_position[0].push_back(builder_types_p.position);
+original_position[0].push_back(builder_types_p.size);
 
 builder_text.open(&pile->context);
 builder_text.enable_draw(&pile->context);

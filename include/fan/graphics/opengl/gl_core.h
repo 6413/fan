@@ -265,9 +265,19 @@ namespace fan {
 
         glsl_buffer_t() = default;
 
+        
         static constexpr uint32_t default_buffer_size = 0xfff;
 
-        void open(fan::opengl::context_t* context) {
+        struct open_properties_t {
+          open_properties_t() {}
+
+          uint32_t target = fan::opengl::GL_ARRAY_BUFFER;
+          uint32_t usage  = fan::opengl::GL_DYNAMIC_DRAW;
+        };
+
+        open_properties_t op;
+
+        void open(fan::opengl::context_t* context, open_properties_t op_ = open_properties_t()) {
           m_buffer_size = 0;
 
           m_vao.open(context);
@@ -276,6 +286,7 @@ namespace fan {
           this->allocate_buffer(context, default_buffer_size);
           m_buffer.open();
           m_buffer.reserve(default_buffer_size);
+          op = op_;
         }
 
         void close(fan::opengl::context_t* context) {
@@ -296,11 +307,34 @@ namespace fan {
 
           this->bind(context);
 
+          switch (op.target) {
+            case fan::opengl::GL_UNIFORM_BUFFER: {
+              // BUFFER INDEX HARDCODED TO 0
+              context->opengl.call(context->opengl.glBindBufferRange, fan::opengl::GL_UNIFORM_BUFFER, 0, m_vbo, 0, element_byte_size);
+              return;
+            }
+            case fan::opengl::GL_ARRAY_BUFFER: {
+              break;
+            }
+            default: {
+              fan::throw_error("invalid gl buffer backend");
+            }
+          }
+
+          if (op.target != fan::opengl::GL_ARRAY_BUFFER) {
+            return;
+          }
+
           uint32_t element_count = element_byte_size / sizeof(f32_t) / 4;
 
           for (int i = 0; i < element_count; i++) {
 
             int location = context->opengl.call(context->opengl.glGetAttribLocation, program, (std::string("input") + std::to_string(i)).c_str());
+            #if fan_debug >= fan_debug_low
+              if (location == fan::uninitialized) {
+                fan::throw_error("failed to set input attribute");
+              }
+            #endif
             context->opengl.call(context->opengl.glEnableVertexAttribArray, location);
 
             context->opengl.call(context->opengl.glVertexAttribPointer,
@@ -338,7 +372,7 @@ namespace fan {
         }
 
         void allocate_buffer(fan::opengl::context_t* context, uint64_t size) {
-          fan::opengl::core::write_glbuffer(context, m_vbo, nullptr, size);
+          fan::opengl::core::write_glbuffer(context, m_vbo, nullptr, size, op.usage, op.target);
           m_buffer_size = size;
         }
         void* get_buffer_data(GLintptr offset) const {
@@ -366,7 +400,7 @@ namespace fan {
 
           m_buffer_size = m_buffer.capacity();
 
-          fan::opengl::core::write_glbuffer(context, m_vbo, m_buffer.begin(), m_buffer_size);
+          fan::opengl::core::write_glbuffer(context, m_vbo, m_buffer.begin(), m_buffer_size, op.usage, op.target);
         }
         
         void* get_instance(fan::opengl::context_t* context, uint32_t i, uint32_t element_byte_size, uint32_t byte_offset) const {
@@ -381,7 +415,7 @@ namespace fan {
           std::memmove(m_buffer.begin() + i * element_byte_size + byte_offset, data, sizeof_data);
         }
         void edit_vram_instance(fan::opengl::context_t* context, uint32_t i, const void* data, uint32_t element_byte_size, uint32_t byte_offset, uint32_t sizeof_data) {
-          fan::opengl::core::edit_glbuffer(context, m_vbo, data, i * element_byte_size + byte_offset, sizeof_data);
+          fan::opengl::core::edit_glbuffer(context, m_vbo, data, i * element_byte_size + byte_offset, sizeof_data, op.target);
         }
         void edit_vram_buffer(fan::opengl::context_t* context, uint32_t begin, uint32_t end) {
           if (begin == end || m_buffer.empty()) {
@@ -391,7 +425,7 @@ namespace fan {
             this->write_vram_all(context);
           }
           else {
-            fan::opengl::core::edit_glbuffer(context, m_vbo, &m_buffer[begin], begin, end - begin);
+            fan::opengl::core::edit_glbuffer(context, m_vbo, &m_buffer[begin], begin, end - begin, op.target);
           }
         }
         // moves element from end to x - used for optimized earsing where draw order doesnt matter
@@ -468,6 +502,17 @@ namespace fan {
           }
         }
 
+        void bind_uniform_block(fan::opengl::context_t* context, uint32_t program, const char* name, uint32_t buffer_index = 0) {
+          uint32_t index = context->opengl.call(context->opengl.glGetUniformBlockIndex, program, name);
+          #if fan_debug >= fan_debug_low
+          if (index == fan::uninitialized) {
+            fan::throw_error(std::string("failed to initialize uniform block:") + name);
+          }
+          #endif
+
+          context->opengl.call(context->opengl.glUniformBlockBinding, program, index, buffer_index);
+        }
+
         void draw(fan::opengl::context_t* context, uint32_t begin, uint32_t end) {
 
           m_vao.bind(context);
@@ -484,7 +529,6 @@ namespace fan {
         fan::hector_t<uint8_t> m_buffer;
 
       };
-
     }
   }
 }
@@ -519,7 +563,6 @@ inline void fan::opengl::core::queue_helper_t::edit(fan::opengl::context_t* cont
   }
 
 #endif
-
   m_max_edit = buffer->m_buffer.size();
 
   if (is_queued()) {
@@ -686,13 +729,9 @@ inline void fan::opengl::context_t::process() {
   }
 
   m_write_queue.clear();
-  m_write_queue.open();
 
   it = m_draw_queue.begin();
-  if (it == 0) {
-    
-    fan::print("problemAAAAAAAAAAAAAAAAAAAAAAAAA\nAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
-  }
+
   while (it != m_draw_queue.end()) {
     m_draw_queue.start_safe_next(it);
     m_draw_queue[it].draw_cb(this, m_draw_queue[it].data);
