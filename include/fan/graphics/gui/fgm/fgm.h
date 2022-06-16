@@ -209,11 +209,13 @@ namespace fan_2d {
               }*/
 
               fan::vec2 ratio = window_size / window_size.max();
-              pile->editor.gui_matrices.set_ortho(&pile->context, fan::vec2(0, 1) * ratio.x, fan::vec2(0, 1) * ratio.y);
-              pile->editor.gui_properties_matrices.set_ortho(&pile->context, fan::vec2(0, 1.0 - pile->editor.origin_properties.x) * ratio.x, fan::vec2(0, 0.5) * ratio.y);
+              std::swap(ratio.x, ratio.y);
+              pile->editor.gui_matrices.set_ortho(&pile->context, fan::vec2(0, 1), fan::vec2(0, 1));
+              pile->editor.gui_properties_matrices.set_ortho(&pile->context, fan::vec2(0, 1.0 - pile->editor.origin_properties.x), fan::vec2(0, 0.5));
               for (uint32_t i = 0; i < pile->editor.builder_types.size(&pile->window, &pile->context); i++) {
-                pile->editor.builder_types.set_position(&pile->window, &pile->context, i, pile->editor.original_position[0][i] * ratio);
+                pile->editor.builder_types.set_size(&pile->window, &pile->context, i, pile->editor.original_position[0][i] * ratio);
               }
+              pile->editor.builder_types.set_text_aspect_ratio(&pile->window, &pile->context, true);
             });
 
             editor.gui_matrices.open();
@@ -225,8 +227,10 @@ namespace fan_2d {
             fan::vec2 window_size = window.get_size();
             fan::vec2 ratio = window_size / window_size.max();
             //std::swap(ratio.x, ratio.y);
-            editor.gui_matrices.set_ortho(&context, fan::vec2(0, 1) * ratio.x, fan::vec2(0, 1) * ratio.y);
-            editor.gui_properties_matrices.set_ortho(&context, fan::vec2(0, 1.0 - editor.origin_properties.x) * ratio.x, fan::vec2(0, 0.5) * ratio.y);
+            editor.gui_matrices.set_ortho(&context, fan::vec2(0, 1), fan::vec2(0, 1));
+            editor.gui_properties_matrices.set_ortho(&context, fan::vec2(0, 1.0 - editor.origin_properties.x), fan::vec2(0, 0.5));
+
+            editor.builder_types.set_text_aspect_ratio(&window, &context, false);
 
             if (argc >= 4) {
               load_file(argv[3]);

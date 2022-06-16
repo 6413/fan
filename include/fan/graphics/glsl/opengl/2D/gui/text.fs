@@ -17,8 +17,6 @@ in float outline_size;
 
 out vec4 color;
 
-
-
 void main() {
   float smoothing = 1.0 / ((font_size * 600) / 5);
   float width = 0.7 - smoothing;

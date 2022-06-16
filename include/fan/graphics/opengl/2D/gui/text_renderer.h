@@ -230,7 +230,7 @@ namespace fan_2d {
 					return m_store[i].m_position;
 				}
 				void set_position(fan::opengl::context_t* context, uint32_t i, const fan::vec2& position) {
-					const uint32_t index = i == 0 ? 0 : m_store[i - 1].m_indices;
+					const uint32_t index = get_index(i);
 
 					const fan::vec2 offset = position - text_renderer_t::get_position(context, i);
 
@@ -805,14 +805,32 @@ namespace fan_2d {
 					}
 					m_queue_helper.edit(
 						context,
-						i * vertex_count * element_byte_size + offset_position,
-						(i + 1) * (vertex_count)*element_byte_size - offset_position,
+						i * vertex_count * element_byte_size,
+						(i + 1) * (vertex_count)*element_byte_size,
 						&m_glsl_buffer
 					);
 				}
 
 				fan::vec2 get_letter_size(fan::opengl::context_t* context, uint32_t i) const {
 					return *(fan::vec2*)m_glsl_buffer.get_instance(context, i * vertex_count, element_byte_size, offset_size);
+				}
+				void set_letter_size(fan::opengl::context_t* context, uint32_t i, const fan::vec2& position) {
+					for (int j = 0; j < vertex_count; j++) {
+						m_glsl_buffer.edit_ram_instance(
+							context, 
+							i * vertex_count + j,
+							&position,
+							element_byte_size,
+							offset_size,
+							sizeof(fan::vec2)
+						);
+					}
+					m_queue_helper.edit(
+						context,
+						i * vertex_count * element_byte_size,
+						(i + 1) * (vertex_count)*element_byte_size,
+						&m_glsl_buffer
+					);
 				}
 
 				uint32_t letter_vertex_size() const {
