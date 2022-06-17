@@ -200,7 +200,7 @@ namespace fan {
         return size;
       }
 
-      static void write_glbuffer(fan::opengl::context_t* context, unsigned int buffer, const void* data, uintptr_t size, uint32_t usage = GL_DYNAMIC_DRAW, uintptr_t target = GL_ARRAY_BUFFER)
+      static void write_glbuffer(fan::opengl::context_t* context, unsigned int buffer, const void* data, uintptr_t size, uint32_t usage, uintptr_t target)
       {
         context->opengl.call(context->opengl.glBindBuffer, target, buffer);
 
@@ -210,7 +210,7 @@ namespace fan {
         }*/
       }
 
-      static void edit_glbuffer(fan::opengl::context_t* context, unsigned int buffer, const void* data, uintptr_t offset, uintptr_t size, uintptr_t target = GL_ARRAY_BUFFER)
+      static void edit_glbuffer(fan::opengl::context_t* context, unsigned int buffer, const void* data, uintptr_t offset, uintptr_t size, uintptr_t target)
       {
         context->opengl.call(context->opengl.glBindBuffer, target, buffer);
 
@@ -301,6 +301,10 @@ namespace fan {
           m_buffer.close();
         }
 
+        void bind_buffer_range(fan::opengl::context_t* context, uint32_t bytes_size) {
+          context->opengl.call(context->opengl.glBindBufferRange, fan::opengl::GL_UNIFORM_BUFFER, 0, m_vbo, 0, bytes_size);
+        }
+
         void init(fan::opengl::context_t* context, uint32_t program, uint32_t element_byte_size) {
 
           m_vao.bind(context);
@@ -310,7 +314,7 @@ namespace fan {
           switch (op.target) {
             case fan::opengl::GL_UNIFORM_BUFFER: {
               // BUFFER INDEX HARDCODED TO 0
-              context->opengl.call(context->opengl.glBindBufferRange, fan::opengl::GL_UNIFORM_BUFFER, 0, m_vbo, 0, element_byte_size);
+              bind_buffer_range(context, element_byte_size);
               return;
             }
             case fan::opengl::GL_ARRAY_BUFFER: {
@@ -365,7 +369,7 @@ namespace fan {
         }
 
         void bind(fan::opengl::context_t* context) const {
-          context->opengl.call(context->opengl.glBindBuffer, fan::opengl::GL_ARRAY_BUFFER, m_vbo);
+          context->opengl.call(context->opengl.glBindBuffer, op.target, m_vbo);
         }
         void unbind() const {
           //glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -482,7 +486,7 @@ namespace fan {
           T value;
 
           this->bind(context);
-          glGetBufferSubData(GL_ARRAY_BUFFER, i * element_byte_size + byte_offset, size, &value);
+          glGetBufferSubData(op.target, i * element_byte_size + byte_offset, size, &value);
           fan::print(value);
         }
 

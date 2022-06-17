@@ -24,6 +24,10 @@
 #include _FAN_PATH(graphics/opengl/2D/objects/yuv420p_renderer.h)
 
 #include _FAN_PATH(graphics/opengl/font.h)
+#include _FAN_PATH(graphics/opengl/2D/objects/letter_renderer.h)
+//#include _FAN_PATH(graphics/opengl/2D/objects/text_renderer.h)
+
+#include _FAN_PATH(graphics/opengl/font.h)
 
 #include _FAN_PATH(graphics/opengl/2D/objects/depth/depth_rectangle.h)
 

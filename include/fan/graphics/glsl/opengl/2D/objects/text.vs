@@ -8,6 +8,8 @@ out vec2 texture_coordinate;
 out float render_size;
 
 uniform vec2 matrix_ratio;
+uniform mat4 view;
+uniform mat4 projection;
 
 layout (std140) uniform instance_t {
 	struct{	
@@ -17,7 +19,7 @@ layout (std140) uniform instance_t {
 		vec2 tc_position;
 		vec2 tc_size;
 		
-	}st[256];
+	}st[512];
 }instance;
 
 vec2 rectangle_vertices[] = vec2[](
@@ -31,12 +33,12 @@ vec2 rectangle_vertices[] = vec2[](
 );
 
 vec2 tc[] = vec2[](
-  vec2(0, 1),
-  vec2(1, 1),
-  vec2(1, 0),
-	vec2(1, 0),
-	vec2(0, 0),
-	vec2(0, 1)
+	vec2(0, 0), // top left
+	vec2(1, 0), // top right
+	vec2(1, 1), // bottom right
+	vec2(1, 1), // bottom right
+	vec2(0, 1), // bottom left
+	vec2(0, 0) // top left
 );
 
 vec2 swap(vec2 i) {
@@ -48,7 +50,7 @@ void main() {
 
 	vec2 ratio_size = get_instance().size * swap(matrix_ratio);
 
-  gl_Position.xy = rectangle_vertices[id] * ratio_size + get_instance().position;
+  gl_Position = view * projection * vec4(rectangle_vertices[id] * ratio_size + get_instance().position, 0, 1);
 	text_color = get_instance().color;
 	texture_coordinate = tc[id] * get_instance().tc_size + get_instance().tc_position;
 	render_size = dot(get_instance().size, swap(matrix_ratio));

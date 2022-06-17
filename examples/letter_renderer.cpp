@@ -7,14 +7,19 @@
 
 #define fan_debug fan_debug_none
 
-#include _FAN_PATH(graphics/gui/gui.h)
-#include _FAN_PATH(graphics/opengl/2D/objects/text_renderer_string.h)
+#include _FAN_PATH(graphics/graphics.h)
 
 struct pile_t {
   fan::opengl::matrices_t matrices;
   fan::window_t window;
   fan::opengl::context_t context;
 };
+
+using letter_t = fan_2d::graphics::letter_t<int, int>;
+
+void cb(letter_t* l, uint32_t src, uint32_t dst, void *p) {
+  fan::print(src, dst);
+}
 
 int main() {
 
@@ -29,22 +34,28 @@ int main() {
     pile_t* pile = (pile_t*)userptr;
 
     pile->context.set_viewport(0, size);
-  });
+
+    fan::vec2 ratio = fan::cast<f32_t>(size) / size.max();
+    });
 
   pile.matrices.open();
 
 
-  fan_2d::graphics::letter_t letter;
+  letter_t letter;
 
   fan_2d::graphics::font_t font;
   font.open(&pile.context, "fonts/bitter");
-  letter.open(&pile.context, &font);
+  int x;
+  letter.open(&pile.context, &font, (letter_t::move_cb_t)cb, &x);
+  letter.bind_matrices(&pile.context, &pile.matrices);
 
-  fan_2d::graphics::letter_t::properties_t p;
+  letter_t::properties_t p;
 
-  for (uint32_t i = 0; i < 5; i++) {
-    p.position = fan::vec2(fan::random::value_f32(-0.7, 0.7), fan::random::value_f32(-0.7, 0.7));
-    p.color = fan::random::color();
+  uint32_t count = 10000;
+
+  for (uint32_t i = 0; i < count; i++) {
+    p.position = fan::vec2(fan::random::value_f32(0.1, .9), fan::random::value_f32(.1, .9));
+    p.color = fan::color(1, 0, f32_t(i) / count, 1);
     p.font_size = 0.1;
     std::string str = fan::random::string(1);
     std::wstring w(str.begin(), str.end());
@@ -52,15 +63,18 @@ int main() {
 
     letter.push_back(&pile.context, p);
   }
+
   letter.enable_draw(&pile.context);
 
   fan::vec2 window_size = pile.window.get_size();
 
-  pile.matrices.set_ortho(&pile.context, fan::vec2(0, window_size.x), fan::vec2(0, window_size.y));
+  pile.matrices.set_ortho(&pile.context, fan::vec2(0, 1), fan::vec2(0, 1));
 
   pile.context.set_vsync(&pile.window, 0);
 
   while(1) {
+
+    letter.erase(&pile.context, 0);
 
     pile.window.get_fps();
 

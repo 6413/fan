@@ -178,6 +178,13 @@ namespace fan {
       return ptr + m_size;
     }
 
+    type_t* gb() {
+      return ptr;
+    }
+    type_t* ge() {
+      return ptr + m_size - 1;
+    }
+
     void clear() {
       close();
     }
@@ -219,7 +226,7 @@ namespace fan {
     }
 
     constexpr uintptr_t get_buffer_size() {
-      constexpr uintptr_t r = buffer_increment;
+      constexpr uintptr_t r = buffer_increment / sizeof(type_t);
       if (!r) {
         return 1;
       }
