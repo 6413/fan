@@ -379,7 +379,7 @@
     <ClInclude Include="include\fan\graphics\opengl\2D\gui\text_renderer0.h" />
     <ClInclude Include="include\fan\graphics\gui\checkbox.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\gui\text_renderer_raw.h" />
-    <ClInclude Include="include\fan\graphics\opengl\2D\objects\text_renderer_string.h" />
+    <ClInclude Include="include\fan\graphics\opengl\2D\objects\letter_renderer.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\gui\text_renderer_wrap.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\objects\circle.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\objects\depth\depth_rectangle.h" />
