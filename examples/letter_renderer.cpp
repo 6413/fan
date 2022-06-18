@@ -36,7 +36,7 @@ int main() {
     pile->context.set_viewport(0, size);
 
     fan::vec2 ratio = fan::cast<f32_t>(size) / size.max();
-    });
+  });
 
   pile.matrices.open();
 
@@ -51,7 +51,7 @@ int main() {
 
   letter_t::properties_t p;
 
-  uint32_t count = 10000;
+  uint32_t count = 5;
 
   for (uint32_t i = 0; i < count; i++) {
     p.position = fan::vec2(fan::random::value_f32(0.1, .9), fan::random::value_f32(.1, .9));
@@ -73,8 +73,6 @@ int main() {
   pile.context.set_vsync(&pile.window, 0);
 
   while(1) {
-
-    letter.erase(&pile.context, 0);
 
     pile.window.get_fps();
 

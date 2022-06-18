@@ -237,7 +237,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Source.cpp" />
+    <ClCompile Include="examples\text_renderer.cpp" />
     <ClCompile Include="src\fan\graphics\shared_graphics.cpp" />
     <ClCompile Include="src\fan\graphics\shared_gui.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
@@ -308,6 +308,7 @@
     <ClInclude Include="include\fan\font.h" />
     <ClInclude Include="include\fan\graphics\camera.h" />
     <ClInclude Include="include\fan\graphics\fast_obj\fast_obj.h" />
+    <ClInclude Include="include\fan\graphics\opengl\2D\objects\text_renderer.h" />
     <ClInclude Include="include\fan\graphics\opengl\font.h" />
     <ClInclude Include="include\fan\graphics\graphics.h" />
     <ClInclude Include="include\fan\graphics\gui\fgm\button\corners.h" />

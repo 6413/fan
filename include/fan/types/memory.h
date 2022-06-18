@@ -112,10 +112,11 @@ namespace fan {
       }*/
     }
 
-    void resize(uintptr_t size) {
+    uintptr_t resize(uintptr_t size) {
       ptr = (type_t*)resize_buffer(ptr, size * sizeof(type_t));
       m_size = size;
       m_capacity = size;
+      return m_size - 1;
     }
 
     void reserve(uintptr_t size) {

@@ -22,33 +22,34 @@ namespace fan_2d {
       };
 
       struct instance_t {
-        fan::vec2 position;
-        fan::vec2 size;
-        fan::color color;
-        fan::vec2 tc_position;
-        fan::vec2 tc_size;
+        alignas(8)  fan::vec2 position;
+        alignas(8)  fan::vec2 size;
+        alignas(16) fan::color color;
+        alignas(8)  fan::vec2 tc_position;
+        alignas(8) fan::vec2 tc_size;
       };
 
-      static constexpr uint32_t letter_max_size = 512;
-      
+      static constexpr uint32_t letter_max_size = 256;
+
       static constexpr uint32_t offset_position = offsetof(instance_t, position);
       static constexpr uint32_t offset_size = offsetof(instance_t, size);
       static constexpr uint32_t offset_color = offsetof(instance_t, color);
       static constexpr uint32_t offset_tc_position = offsetof(instance_t, tc_position);
       static constexpr uint32_t offset_tc_size = offsetof(instance_t, tc_size);
-      static constexpr uint32_t element_byte_size = offset_tc_size + sizeof(instance_t::tc_size);
+      static constexpr uint32_t element_byte_size = sizeof(instance_t);
 
       void open(fan::opengl::context_t* context, fan_2d::graphics::font_t* font_, move_cb_t move_cb_, user_global_data_t* gd) {
+
         m_shader.open(context);
 
         m_shader.set_vertex(
           context,
-          #include _FAN_PATH(graphics/glsl/opengl/2D/objects/text.vs)
+#include _FAN_PATH(graphics/glsl/opengl/2D/objects/text.vs)
         );
 
         m_shader.set_fragment(
           context,
-          #include _FAN_PATH(graphics/glsl/opengl/2D/objects/text.fs)
+#include _FAN_PATH(graphics/glsl/opengl/2D/objects/text.fs)
         );
 
         m_shader.compile(context);
@@ -64,8 +65,8 @@ namespace fan_2d {
       void close(fan::opengl::context_t* context) {
         m_shader.close(context);
         for (uint32_t i = 0; i < blocks.size(); i++) {
-          blocks[i].uniform_blocks.close(context);
-          blocks[i].m_queue_helper.close(context);
+          blocks[i].uniform_buffer.close(context);
+          blocks[i].queue_helper.close(context);
         }
         blocks.close();
       }
@@ -84,14 +85,16 @@ namespace fan_2d {
 
       uint32_t push_back(fan::opengl::context_t* context, const properties_t& p) {
         instance_t it;
+        //   it.offset = 0;
         it.position = p.position;
         it.color = p.color;
-        
+
         fan::font::single_info_t si = font->info.get_letter_info(p.letter_id, p.font_size);
-        
+
         it.tc_position = si.glyph.position / font->image.size;
-        it.tc_size = si.glyph.size / font->image.size;
-        
+        it.tc_size.x = si.glyph.size.x / font->image.size.x;
+        it.tc_size.y = si.glyph.size.y / font->image.size.y;
+
         it.size = si.metrics.size / 2;
 
         uint32_t i = 0;
@@ -113,14 +116,16 @@ namespace fan_2d {
         blocks[i].uniform_buffer.push_ram_instance(context, &it, element_byte_size);
         blocks[i].user_letter_data[blocks[i].uniform_buffer.m_buffer.size() / element_byte_size - 1] = p.data;
 
-        blocks[i].queue_helper.edit(
-          context,
-          blocks[i].uniform_buffer.m_buffer.size() - element_byte_size,
-          blocks[i].uniform_buffer.m_buffer.size(),
-          &blocks[i].uniform_buffer
-        );
+        /* blocks[i].queue_helper.edit(
+           context,
+           blocks[i].uniform_buffer.m_buffer.size() - element_byte_size,
+           blocks[i].uniform_buffer.m_buffer.size(),
+           &blocks[i].uniform_buffer
+         );*/
 
-        return i * letter_max_size + (blocks[i].uniform_buffer.m_buffer.size() / sizeof(it) - 1);
+        blocks[i].uniform_buffer.write_vram_all(context);
+
+        return i * letter_max_size + (blocks[i].uniform_buffer.m_buffer.size() / element_byte_size - 1);
       }
       void erase(fan::opengl::context_t* context, uint32_t id) {
         uint32_t block_id = id / letter_max_size;
@@ -165,8 +170,8 @@ namespace fan_2d {
         }
 
         move_cb(
-          this, 
-          last_letter_id + last_block_id * letter_max_size, id, 
+          this,
+          last_letter_id + last_block_id * letter_max_size, id,
           &blocks[block_id].user_letter_data[letter_id]
         );
       }
@@ -174,27 +179,26 @@ namespace fan_2d {
       void enable_draw(fan::opengl::context_t* context) {
         this->draw(context);
 
-        #if fan_debug >= fan_debug_low
+#if fan_debug >= fan_debug_low
         if (m_draw_node_reference != fan::uninitialized) {
           fan::throw_error("trying to call enable_draw twice");
         }
-        #endif
+#endif
 
         m_draw_node_reference = context->enable_draw(this, [](fan::opengl::context_t* c, void* d) { ((decltype(this))d)->draw(c); });
       }
       void disable_draw(fan::opengl::context_t* context) {
-        #if fan_debug >= fan_debug_low
+#if fan_debug >= fan_debug_low
         if (m_draw_node_reference == fan::uninitialized) {
           fan::throw_error("trying to disable unenabled draw call");
         }
-        #endif
+#endif
         context->disable_draw(m_draw_node_reference);
       }
 
       void draw(fan::opengl::context_t* context) {
         m_shader.use(context);
 
-        m_shader.set_vec2(context, "matrix_ratio", context->viewport_size / context->viewport_size.max());
         m_shader.set_int(context, "texture_sampler", 0);
         context->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
         context->opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, font->image.texture);
@@ -215,7 +219,7 @@ namespace fan_2d {
       }
 
       fan::shader_t m_shader;
-      struct block_t{
+      struct block_t {
         fan::opengl::core::glsl_buffer_t uniform_buffer;
         fan::opengl::core::queue_helper_t queue_helper;
         user_letter_data_t user_letter_data[letter_max_size];

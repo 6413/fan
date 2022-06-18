@@ -272,6 +272,7 @@ namespace fan {
         get_proc_address(glBufferData, &internal);
         get_proc_address(glDeleteBuffers, &internal);
         get_proc_address(glBufferSubData, &internal);
+        get_proc_address(glGetBufferSubData, &internal);
         get_proc_address(glClear, &internal);
         get_proc_address(glClearColor, &internal);
         get_proc_address(glDebugMessageCallback, &internal);
@@ -391,6 +392,7 @@ namespace fan {
       PFNGLBUFFERDATAPROC glBufferData;
       PFNGLDELETEBUFFERSPROC glDeleteBuffers;
       PFNGLBUFFERSUBDATAPROC glBufferSubData;
+      PFNGLGETBUFFERSUBDATAPROC glGetBufferSubData;
       PFNGLCLEARPROC glClear;
       PFNGLCLEARCOLORPROC glClearColor;
       PFNGLDEBUGMESSAGECALLBACKPROC glDebugMessageCallback;
