@@ -410,6 +410,12 @@ namespace fan {
         void* get_instance(fan::opengl::context_t* context, uint32_t i, uint32_t element_byte_size, uint32_t byte_offset) const {
           return get_buffer_data(i * element_byte_size + byte_offset);
         }
+        void* get_vram_instance(fan::opengl::context_t* context, uint32_t i, uint32_t element_byte_size, uint32_t byte_offset) {
+          uint8_t* buffer = new uint8_t[element_byte_size];
+          this->bind(context);
+          context->opengl.call(context->opengl.glGetBufferSubData, op.target, i * element_byte_size + byte_offset, element_byte_size, buffer);
+          return buffer;
+        }
         void edit_ram_instance(fan::opengl::context_t* context, uint32_t i, const void* data, uint32_t element_byte_size, uint32_t byte_offset, uint32_t sizeof_data) {
           #if fan_debug >= fan_debug_low
             if (i * element_byte_size + byte_offset + sizeof_data > m_buffer.size()) {
@@ -486,7 +492,7 @@ namespace fan {
           T value;
 
           this->bind(context);
-          glGetBufferSubData(op.target, i * element_byte_size + byte_offset, size, &value);
+          context->opengl.call(context->opengl.glGetBufferSubData, op.target, i * element_byte_size + byte_offset, size, &value);
           fan::print(value);
         }
 

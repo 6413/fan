@@ -13,13 +13,12 @@ struct pile_t {
   fan::opengl::matrices_t matrices;
   fan::window_t window;
   fan::opengl::context_t context;
+  fan_2d::graphics::text_renderer_t tr;
 };
 
-using letter_t = fan_2d::graphics::letter_t<int, int>;
-
-void cb(letter_t* l, uint32_t src, uint32_t dst, void *p) {
-  fan::print(src, dst);
-}
+//void cb(letter_t* l, uint32_t src, uint32_t dst, void *p) {
+//  fan::print(src, dst);
+//}
 
 int main() {
 
@@ -34,39 +33,24 @@ int main() {
     pile_t* pile = (pile_t*)userptr;
 
     pile->context.set_viewport(0, size);
-
     fan::vec2 ratio = fan::cast<f32_t>(size) / size.max();
+    pile->matrices.set_ortho(&pile->context, fan::vec2(0, 1) * ratio.x, fan::vec2(0, 1) * ratio.y);
   });
 
   pile.matrices.open();
 
-
-  letter_t letter;
-
   fan_2d::graphics::font_t font;
   font.open(&pile.context, "fonts/bitter");
   int x;
-  letter.open(&pile.context, &font, (letter_t::move_cb_t)cb, &x);
-  letter.bind_matrices(&pile.context, &pile.matrices);
+  pile.tr.open(&pile.context, &font);
+  pile.tr.bind_matrices(&pile.context, &pile.matrices);
 
-  letter_t::properties_t p;
+  fan_2d::graphics::text_renderer_t::properties_t p;
+  p.text = "ab asdfsads";
+  p.position = 0.5;
+  pile.tr.push_back(&pile.context, p);
 
-  uint32_t count = 5;
-
-  for (uint32_t i = 0; i < count; i++) {
-    p.position = fan::vec2(fan::random::value_f32(0.1, .9), fan::random::value_f32(.1, .9));
-    p.color = fan::color(1, 0, f32_t(i) / count, 1);
-    p.font_size = 0.1;
-    std::string str = fan::random::string(1);
-    std::wstring w(str.begin(), str.end());
-    p.letter_id = font.decode_letter(w[0]);
-
-    letter.push_back(&pile.context, p);
-  }
-
-  letter.enable_draw(&pile.context);
-
-  fan::vec2 window_size = pile.window.get_size();
+  pile.tr.enable_draw(&pile.context);
 
   pile.matrices.set_ortho(&pile.context, fan::vec2(0, 1), fan::vec2(0, 1));
 

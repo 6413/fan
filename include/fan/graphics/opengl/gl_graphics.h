@@ -25,7 +25,7 @@
 
 #include _FAN_PATH(graphics/opengl/font.h)
 #include _FAN_PATH(graphics/opengl/2D/objects/letter_renderer.h)
-//#include _FAN_PATH(graphics/opengl/2D/objects/text_renderer.h)
+#include _FAN_PATH(graphics/opengl/2D/objects/text_renderer.h)
 
 #include _FAN_PATH(graphics/opengl/font.h)
 
