@@ -45,10 +45,19 @@ int main() {
   pile.tr.open(&pile.context, &font);
   pile.tr.bind_matrices(&pile.context, &pile.matrices);
 
+  constexpr auto c = 1000;
+
+  uint32_t ids[c];
+
   fan_2d::graphics::text_renderer_t::properties_t p;
-  p.text = "ab asdfsads";
-  p.position = 0.5;
-  pile.tr.push_back(&pile.context, p);
+  
+  p.font_size = 0.05;
+  for (uint32_t i = 0; i < c; i++) {
+    p.position = fan::random::vec2(0.1, 0.9);
+    p.text = fan::random::string(5);
+    ids[i] = pile.tr.push_back(&pile.context, p);
+  }
+  
 
   pile.tr.enable_draw(&pile.context);
 
@@ -57,6 +66,11 @@ int main() {
   pile.context.set_vsync(&pile.window, 0);
 
   while(1) {
+
+    pile.tr.erase(&pile.context, ids[0]);
+    p.position = fan::random::vec2(0.1, 0.9);
+    p.text = fan::random::string(5);
+    ids[0] = pile.tr.push_back(&pile.context, p);
 
     pile.window.get_fps();
 

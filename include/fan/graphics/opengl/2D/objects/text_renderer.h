@@ -7,7 +7,14 @@ namespace fan_2d {
 
     struct text_renderer_t {
 
-      using letter_t = fan_2d::graphics::letter_t<int, int>;
+    #pragma pack(push, 1)
+      struct letter_data_t {
+        uint16_t id0;
+        uint16_t id1;
+      };
+    #pragma pack(pop)
+
+      using letter_t = fan_2d::graphics::letter_t<int, letter_data_t>;
 
       struct properties_t {
         f32_t font_size = 0.1;
@@ -16,14 +23,16 @@ namespace fan_2d {
         fan::utf16_string text;
       };
 
-      static void cb(letter_t* l, uint32_t src, uint32_t dst, void *p) {
-        fan::print(src, dst);
+      static void cb(letter_t* l, uint32_t src, uint32_t dst, letter_data_t *letter_data) {
+        text_renderer_t* tr = OFFSETLESS(l, text_renderer_t, letters);
+        tr->letter_ids[letter_data->id0][letter_data->id1] = dst;
       }
 
       void open(fan::opengl::context_t* context, font_t* font) {
         letter_ids.open();
         int x;
         letters.open(context, font, (letter_t::move_cb_t)cb, &x);
+        e.amount = 0;
       }
       void close(fan::opengl::context_t* context) {
         for (uint32_t i = 0; i < letter_ids.size(); i++) {
@@ -65,8 +74,17 @@ namespace fan_2d {
         letter_t::properties_t p;
         p.color = properties.color;
         p.font_size = properties.font_size;
-        uint32_t id = letter_ids.resize(letter_ids.size() + 1);
+        uint32_t id;
+        if (e.amount != 0) {
+          id = e.id0;
+          e.id0 = *(uint32_t*)&letter_ids[e.id0];
+          e.amount--;
+        }
+        else {
+          id = letter_ids.resize(letter_ids.size() + 1);
+        }
         letter_ids[id].open();
+        p.data.id0 = id;
 
         fan::vec2 text_size = get_text_size(context, properties.text, properties.font_size);
         f32_t left = properties.position.x - text_size.x / 2;
@@ -80,10 +98,20 @@ namespace fan_2d {
           p.position = fan::vec2(left - letter_info.metrics.offset.x, properties.position.y) + (fan::vec2(letter_info.metrics.size.x, -letter_info.metrics.size.y) / 2 + fan::vec2(letter_info.metrics.offset.x, -letter_info.metrics.offset.y));
 
 
+          p.data.id1 = letter_ids[id].size();
           letter_ids[id].push_back(letters.push_back(context, p));
           left += letter_info.metrics.advance;
         }
-        return 0;
+        return id;
+      }
+      void erase(fan::opengl::context_t* context, uint32_t id) {
+        for (uint32_t i = 0; i < letter_ids[id].size(); i++) {
+          letters.erase(context, letter_ids[id][i]);
+        }
+        letter_ids[id].close();
+        *(uint32_t*)&letter_ids[id] = e.id0;
+        e.id0 = id;
+        e.amount++;
       }
 
       void bind_matrices(fan::opengl::context_t* context, fan::opengl::matrices_t* matrices) {
@@ -98,6 +126,13 @@ namespace fan_2d {
       }
 
       letter_t letters;
+
+      struct{
+        uint16_t id0;
+
+        uint32_t amount;
+      }e;
+
       fan::hector_t<fan::hector_t<uint32_t>> letter_ids;
     };
 

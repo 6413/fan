@@ -128,6 +128,7 @@ namespace fan_2d {
         return i * letter_max_size + (blocks[i].uniform_buffer.m_buffer.size() / element_byte_size - 1);
       }
       void erase(fan::opengl::context_t* context, uint32_t id) {
+        
         uint32_t block_id = id / letter_max_size;
         uint32_t letter_id = id % letter_max_size;
 
@@ -137,8 +138,8 @@ namespace fan_2d {
             blocks[block_id].uniform_buffer.close(context);
             blocks[block_id].queue_helper.close(context);
             blocks.m_size -= 1;
-            return;
           }
+          return;
         }
 
         uint32_t last_block_id = blocks.size() - 1;
@@ -154,12 +155,15 @@ namespace fan_2d {
           0,
           element_byte_size
         );
-        blocks[block_id].queue_helper.edit(
-          context,
-          letter_id * element_byte_size,
-          letter_id * element_byte_size + element_byte_size,
-          &blocks[block_id].uniform_buffer
-        );
+
+        //if (blocks[block_id].uniform_buffer.m_buffer.size() < letter_id * element_byte_size) {
+          blocks[block_id].queue_helper.edit(
+            context,
+            letter_id * element_byte_size,
+            letter_id * element_byte_size + element_byte_size,
+            &blocks[block_id].uniform_buffer
+          );
+        //}
 
         blocks[last_block_id].uniform_buffer.m_buffer.m_size -= element_byte_size;
 
@@ -169,9 +173,12 @@ namespace fan_2d {
           blocks.m_size -= 1;
         }
 
+        blocks[block_id].user_letter_data[letter_id] = blocks[last_block_id].user_letter_data[last_letter_id];
+
         move_cb(
           this,
-          last_letter_id + last_block_id * letter_max_size, id,
+          last_letter_id + last_block_id * letter_max_size,
+          id,
           &blocks[block_id].user_letter_data[letter_id]
         );
       }
