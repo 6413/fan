@@ -18,7 +18,7 @@ struct pile_t {
 using letter_t = fan_2d::graphics::letter_t<int, int>;
 
 void cb(letter_t* l, uint32_t src, uint32_t dst, void *p) {
-  fan::print(src, dst);
+  //fan::print(src, dst);
 }
 
 int main() {
@@ -51,7 +51,7 @@ int main() {
 
   letter_t::properties_t p;
 
-  uint32_t count = 5;
+  uint32_t count = 256;
 
   for (uint32_t i = 0; i < count; i++) {
     p.position = fan::vec2(fan::random::value_f32(0.1, .9), fan::random::value_f32(.1, .9));
@@ -71,8 +71,19 @@ int main() {
   pile.matrices.set_ortho(&pile.context, fan::vec2(0, 1), fan::vec2(0, 1));
 
   pile.context.set_vsync(&pile.window, 0);
+  //pile.window.set_max_fps(2);
 
   while(1) {
+    static uint32_t _h = 0;
+    letter.erase(&pile.context, _h);
+    p.position = fan::vec2(fan::random::value_f32(0.1, .9), fan::random::value_f32(.1, .9));
+    p.color = fan::color(0, 0, 1, 1);
+    p.font_size = 0.1;
+    std::string str = fan::random::string(1);
+    std::wstring w(str.begin(), str.end());
+    p.letter_id = font.decode_letter(w[0]);
+
+    letter.push_back(&pile.context, p);
 
     pile.window.get_fps();
 

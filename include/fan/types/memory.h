@@ -18,7 +18,6 @@ namespace fan {
     }
     void close() {
       resize_buffer(ptr, 0);
-      open();
     }
 
     uintptr_t push_back(const type_t& value) {
@@ -188,6 +187,7 @@ namespace fan {
 
     void clear() {
       close();
+      open();
     }
 
     static constexpr uintptr_t buffer_increment = 0x100000;

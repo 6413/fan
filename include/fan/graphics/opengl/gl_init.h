@@ -243,13 +243,18 @@ namespace fan {
         #endif
       }
 
-      #define get_proc_address(name, internal_) \
-        name = (decltype(name))get_proc_address_(#name, internal_); \
-        function_map.insert(std::make_pair((void*)name, #name));
 
     public:
 
+    #if fan_debug >= fan_debug_high
+      #define get_proc_address(name, internal_) \
+        name = (decltype(name))get_proc_address_(#name, internal_); \
+        function_map.insert(std::make_pair((void*)name, #name));
       std::unordered_map<void*, std::string> function_map;
+    #else
+      #define get_proc_address(name, internal_) name = (decltype(name))get_proc_address_(#name, internal_);
+    #endif
+      
 
       void open() {
 
@@ -342,23 +347,24 @@ namespace fan {
         opengl_initialized = true;
       }
 
+      #undef get_proc_address
+
+      #if fan_debug >= fan_debug_high
+
       fan::time::clock c;
 
       void execute_before(const std::string& function_name) {
-        #if fan_debug >= fan_debug_high
-          c.start();
-        #endif
+        c.start();
       }
 
+      // TODO if function empty probably some WGL/GLX function, initialized in bind window
       void execute_after(const std::string& function_name) {
-        #if fan_debug >= fan_debug_high
-          glFlush();
-          glFinish();
-          auto elapsed = c.elapsed();
-          if (elapsed > 1000000) {
-            fan::print_no_space("slow function call ns:", elapsed, ", function::" + function_name);
-          }
-        #endif
+        glFlush();
+        glFinish();
+        auto elapsed = c.elapsed();
+        if (elapsed > 1000000) {
+          fan::print_no_space("slow function call ns:", elapsed, ", function::" + function_name);
+        }
       }
       
       //efine call_opengl
@@ -373,10 +379,22 @@ namespace fan {
         else {
           auto r = t(args...);
           execute_after(function_map[(void*)t]);
-          // now can execute after too
           return r;
         }
       }
+      #else
+
+      template <typename T, typename ...T2>
+      constexpr auto call(const T& t, T2&&... args) {
+        if constexpr (std::is_same<fan::return_type_of_t<T>, void>::value) {
+          t(args...);
+        }
+        else {
+          return t(args...);
+        }
+      }
+
+      #endif
 
       //protected:
 
