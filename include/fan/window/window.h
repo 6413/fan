@@ -34,6 +34,8 @@
 
 #ifdef fan_platform_windows
 
+	#pragma comment(lib, "opengl32.lib")
+
 	#include <Windows.h>
 
 	#undef min

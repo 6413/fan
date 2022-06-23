@@ -7,7 +7,6 @@
 #if defined(fan_platform_windows)
   #include <Windows.h>
   #pragma comment(lib, "User32.lib")
-  #pragma comment(lib, "opengl32.lib")
   #pragma comment(lib, "Gdi32.lib")
 
 #elif defined(fan_platform_unix)

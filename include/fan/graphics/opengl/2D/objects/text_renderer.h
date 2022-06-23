@@ -135,6 +135,5 @@ namespace fan_2d {
 
       fan::hector_t<fan::hector_t<uint32_t>> letter_ids;
     };
-
   }
 }
