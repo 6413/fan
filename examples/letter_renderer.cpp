@@ -5,7 +5,7 @@
 #define FAN_INCLUDE_PATH C:/libs/fan/include
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
-#define fan_debug fan_debug_none
+#define fan_debug fan_debug_high
 
 #include _FAN_PATH(graphics/graphics.h)
 
@@ -51,7 +51,7 @@ int main() {
 
   letter_t::properties_t p;
 
-  uint32_t count = 256;
+  uint32_t count = 1000;
 
   for (uint32_t i = 0; i < count; i++) {
     p.position = fan::vec2(fan::random::value_f32(0.1, .9), fan::random::value_f32(.1, .9));
@@ -66,6 +66,12 @@ int main() {
 
   letter.enable_draw(&pile.context);
 
+  fan::color color = letter.get(&pile.context, 0, &letter_t::instance_t::color);
+  fan::print(color);
+  letter.set(&pile.context, 0, &letter_t::instance_t::color, fan::color(0, 0, 1));
+  color = letter.get(&pile.context, 0, &letter_t::instance_t::color);
+  fan::print(color);
+
   fan::vec2 window_size = pile.window.get_size();
 
   pile.matrices.set_ortho(&pile.context, fan::vec2(0, 1), fan::vec2(0, 1));
@@ -76,14 +82,14 @@ int main() {
   while(1) {
     static uint32_t _h = 0;
     letter.erase(&pile.context, _h);
-    p.position = fan::vec2(fan::random::value_f32(0.1, .9), fan::random::value_f32(.1, .9));
-    p.color = fan::color(0, 0, 1, 1);
-    p.font_size = 0.1;
-    std::string str = fan::random::string(1);
-    std::wstring w(str.begin(), str.end());
-    p.letter_id = font.decode_letter(w[0]);
+    //p.position = fan::vec2(fan::random::value_f32(0.1, .9), fan::random::value_f32(.1, .9));
+    //p.color = fan::color(0, 0, 1, 1);
+    //p.font_size = 0.1;
+    //std::string str = fan::random::string(1);
+    //std::wstring w(str.begin(), str.end());
+    //p.letter_id = font.decode_letter(w[0]);
 
-    letter.push_back(&pile.context, p);
+    //letter.push_back(&pile.context, p);
 
     pile.window.get_fps();
 

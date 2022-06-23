@@ -31,16 +31,16 @@ int main() {
   pile.matrices.open();
 
 
-  fan_2d::graphics::gui::rectangle_text_button_sized_t rtbs;
+  fan_2d::graphics::gui::rectangle_text_box_sized_t rtbs;
   fan_2d::graphics::gui::rectangle_text_button_sized_t::properties_t p;
 
-  rtbs.open(&pile.window, &pile.context);
+  rtbs.open(&pile.context);
   rtbs.bind_matrices(&pile.context, &pile.matrices);
-  rtbs.enable_draw(&pile.window, &pile.context);
+  rtbs.enable_draw(&pile.context);
   p.position = pile.window.get_size() / 2;
   p.size = 100;
-
-  rtbs.push_back(&pile.window, &pile.context, p);
+  p.text = "hi";
+  rtbs.push_back(&pile.context, p);
 
   fan::vec2 window_size = pile.window.get_size();
 
