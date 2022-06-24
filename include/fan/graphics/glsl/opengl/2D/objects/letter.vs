@@ -17,7 +17,7 @@ layout (std140) uniform instance_t {
     vec4 color;
 		vec2 tc_position;
 		vec2 tc_size;
-	}st[512];
+	}st[256];
 }instance;
 
 vec2 rectangle_vertices[] = vec2[](
