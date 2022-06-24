@@ -30,8 +30,6 @@ namespace fan_2d {
 					m_shader.bind_matrices(context, matrices);
         }
 
-			private:
-
 				struct instance_t {
 
 					fan::color color;

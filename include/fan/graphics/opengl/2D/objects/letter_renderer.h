@@ -5,31 +5,40 @@
 namespace fan_2d {
   namespace graphics {
 
-    template <typename T_user_global_data, typename T_user_letter_data>
+    template <typename T_user_global_data, typename T_user_instance_data>
     struct letter_t {
 
       using user_global_data_t = T_user_global_data;
-      using user_letter_data_t = T_user_letter_data;
+      using user_instance_data_t = T_user_instance_data;
 
-      using move_cb_t = void(*)(letter_t*, uint32_t src, uint32_t dst, user_letter_data_t*);
+      using move_cb_t = void(*)(letter_t*, uint32_t src, uint32_t dst, user_instance_data_t*);
 
       struct properties_t {
         f32_t font_size = 16;
         fan::vec2 position = 0;
         fan::color color = fan::colors::white;
         uint16_t letter_id;
-        user_letter_data_t data;
+        user_instance_data_t data;
       };
 
       struct instance_t {
-         fan::vec2 position;
-         fan::vec2 size;
-         fan::color color;
-         fan::vec2 tc_position;
+        fan::vec2 position;
+        fan::vec2 size;
+        fan::color color;
+        fan::vec2 tc_position;
         fan::vec2 tc_size;
       };
 
-      static constexpr uint32_t letter_max_size = 256;
+      static constexpr uint32_t max_instance_size = 256;
+
+      struct id_t{
+        id_t(uint32_t id) {
+          block = id / max_instance_size;
+          instance = id % max_instance_size;
+        }
+        uint32_t block;
+        uint32_t instance;
+      };
 
       void open(fan::opengl::context_t* context, fan_2d::graphics::font_t* font_, move_cb_t move_cb_, user_global_data_t* gd) {
 
@@ -37,12 +46,12 @@ namespace fan_2d {
 
         m_shader.set_vertex(
           context,
-#include _FAN_PATH(graphics/glsl/opengl/2D/objects/text.vs)
+#include _FAN_PATH(graphics/glsl/opengl/2D/objects/letter.vs)
         );
 
         m_shader.set_fragment(
           context,
-#include _FAN_PATH(graphics/glsl/opengl/2D/objects/text.fs)
+#include _FAN_PATH(graphics/glsl/opengl/2D/objects/letter.fs)
         );
 
         m_shader.compile(context);
@@ -80,7 +89,7 @@ namespace fan_2d {
         uint32_t i = 0;
 
         for (; i < blocks.size(); i++) {
-          if (blocks[i].uniform_buffer.size() != letter_max_size) {
+          if (blocks[i].uniform_buffer.size() != max_instance_size) {
             break;
           }
         }
@@ -92,24 +101,24 @@ namespace fan_2d {
         }
 
         blocks[i].uniform_buffer.push_ram_instance(context, it);
-        blocks[i].user_letter_data[blocks[i].uniform_buffer.size() - 1] = p.data;
+        blocks[i].user_instance_data[blocks[i].uniform_buffer.size() - 1] = p.data;
 
-        uint32_t src = blocks[i].uniform_buffer.size() % letter_max_size;
+        uint32_t src = blocks[i].uniform_buffer.size() % max_instance_size;
 
         blocks[i].uniform_buffer.common.edit(
           context,
           src,
-          std::min(src, letter_max_size)
+          std::min(src, max_instance_size)
         );
 
-        return i * letter_max_size + (blocks[i].uniform_buffer.size() - 1);
+        return i * max_instance_size + (blocks[i].uniform_buffer.size() - 1);
       }
       void erase(fan::opengl::context_t* context, uint32_t id) {
         
-        uint32_t block_id = id / letter_max_size;
-        uint32_t letter_id = id % letter_max_size;
+        uint32_t block_id = id / max_instance_size;
+        uint32_t instance_id = id % max_instance_size;
 
-        if (block_id == blocks.size() - 1 && letter_id == blocks.ge()->uniform_buffer.size() - 1) {
+        if (block_id == blocks.size() - 1 && instance_id == blocks.ge()->uniform_buffer.size() - 1) {
           blocks[block_id].uniform_buffer.common.m_size -= blocks[block_id].uniform_buffer.common.buffer_bytes_size;
           if (blocks[block_id].uniform_buffer.size() == 0) {
             blocks[block_id].uniform_buffer.close(context);
@@ -119,13 +128,13 @@ namespace fan_2d {
         }
 
         uint32_t last_block_id = blocks.size() - 1;
-        uint32_t last_letter_id = blocks[last_block_id].uniform_buffer.size() - 1;
+        uint32_t last_instance_id = blocks[last_block_id].uniform_buffer.size() - 1;
 
-        instance_t* data = blocks[block_id].uniform_buffer.get_instance(context, last_letter_id);
+        instance_t* data = blocks[block_id].uniform_buffer.get_instance(context, last_instance_id);
 
         blocks[block_id].uniform_buffer.edit_ram_instance(
           context,
-          letter_id,
+          instance_id,
           data,
           0,
           sizeof(instance_t)
@@ -133,13 +142,13 @@ namespace fan_2d {
 
         blocks[block_id].uniform_buffer.common.edit(
           context,
-          letter_id,
-          letter_id + 1
+          instance_id,
+          instance_id + 1
         );
 
         blocks[last_block_id].uniform_buffer.common.m_size -= blocks[block_id].uniform_buffer.common.buffer_bytes_size;
 
-        blocks[block_id].user_letter_data[letter_id] = blocks[last_block_id].user_letter_data[last_letter_id];
+        blocks[block_id].user_instance_data[instance_id] = blocks[last_block_id].user_instance_data[last_instance_id];
 
         if (blocks[last_block_id].uniform_buffer.size() == 0) {
           blocks[last_block_id].uniform_buffer.close(context);
@@ -149,9 +158,9 @@ namespace fan_2d {
 
         move_cb(
           this,
-          last_letter_id + last_block_id * letter_max_size,
+          last_instance_id + last_block_id * max_instance_size,
           id,
-          &blocks[block_id].user_letter_data[letter_id]
+          &blocks[block_id].user_instance_data[instance_id]
         );
       }
 
@@ -198,22 +207,26 @@ namespace fan_2d {
       }
 
       template <typename T>
-      T get(fan::opengl::context_t* context, uint32_t id, T instance_t::*member) {
-        uint32_t block_id = id / letter_max_size;
-        uint32_t letter_id = id % letter_max_size;
-        return blocks[block_id].uniform_buffer.get_instance(context, letter_id)->*member;
+      T get(fan::opengl::context_t* context, const id_t& id, T instance_t::*member) {
+        uint32_t block_id = id / max_instance_size;
+        uint32_t instance_id = id % max_instance_size;
+        return blocks[block_id].uniform_buffer.get_instance(context, instance_id)->*member;
       }
       template <typename T>
-      void set(fan::opengl::context_t* context, uint32_t id, T instance_t::*member, const T& value) {
-        uint32_t block_id = id / letter_max_size;
-        uint32_t letter_id = id % letter_max_size;
-        blocks[block_id].uniform_buffer.edit_ram_instance(context, letter_id, &value, fan::ofof<instance_t, T>(member), sizeof(T));
+      void set(fan::opengl::context_t* context, const id_t& id, T instance_t::*member, const T& value) {
+        uint32_t block_id = id / max_instance_size;
+        uint32_t instance_id = id % max_instance_size;
+        blocks[block_id].uniform_buffer.edit_ram_instance(context, instance_id, &value, fan::ofof<instance_t, T>(member), sizeof(T));
+      }
+
+      void set_user_instance_data(fan::opengl::context_t* context, const id_t& id, const user_instance_data_t& user_instance_data) {
+        blocks[id.block].user_instance_data[id.instance] = user_instance_data;
       }
 
       fan::shader_t m_shader;
       struct block_t {
-        fan::opengl::core::uniform_block_t<instance_t, letter_max_size> uniform_buffer;
-        user_letter_data_t user_letter_data[letter_max_size];
+        fan::opengl::core::uniform_block_t<instance_t, max_instance_size> uniform_buffer;
+        user_instance_data_t user_instance_data[max_instance_size];
       };
       uint32_t m_draw_node_reference;
 
