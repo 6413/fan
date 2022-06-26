@@ -17,16 +17,16 @@ struct pile_t {
 };
 
 // filler                         
-using rectangle_t = fan_2d::graphics::rectangle_t<pile_t*, uint32_t>;
+using sprite_t = fan_2d::graphics::sprite_t<pile_t*, uint32_t>;
 
-void cb(rectangle_t* l, uint32_t src, uint32_t dst, uint32_t *p) {
+void cb(sprite_t* l, uint32_t src, uint32_t dst, uint32_t *p) {
   l->user_global_data->ids[*p] = dst;
 }
 
 int main() {
 
   pile_t pile;
-  
+
   pile.window.open();
 
   pile.context.init();
@@ -41,30 +41,33 @@ int main() {
     fan::vec2 ratio = window_size / window_size.max();
     std::swap(ratio.x, ratio.y);
     pile->matrices.set_ortho(&pile->context, fan::vec2(-1, 1) * ratio.x, fan::vec2(-1, 1) * ratio.y);
-  });
+    });
 
   pile.matrices.open();
 
 
   pile.ids.open();
 
-  rectangle_t r;
-  r.open(&pile.context, (rectangle_t::move_cb_t)cb, &pile);
-  r.bind_matrices(&pile.context, &pile.matrices);
-  r.enable_draw(&pile.context);
+  sprite_t s;
+  s.open(&pile.context, (sprite_t::move_cb_t)cb, &pile);
+  s.bind_matrices(&pile.context, &pile.matrices);
+  s.enable_draw(&pile.context);
 
-  rectangle_t::properties_t p;
+  sprite_t::properties_t p;
 
-  p.size = fan::vec2(2.0 / 100, 1);
 
-  for (uint32_t i = 0; i < 100; i++) {
-    p.position = fan::vec2(-1.0 + (f32_t)i / 50, 0);
-    p.color = fan::color((f32_t)i / 100, 0, 0);
-    uint32_t it = pile.ids.push_back(r.push_back(&pile.context, p));
-    r.set_user_instance_data(&pile.context, pile.ids[it], it);
+  fan::opengl::image_t::load_properties_t lp;
+  lp.filter = fan::opengl::GL_LINEAR;
+  p.image.load(&pile.context, "images/test.webp", lp);
+  p.size = fan::cast<f32_t>(p.image.size) / pile.window.get_size();
+
+  for (uint32_t i = 0; i < 1; i++) {
+    p.position = fan::vec2(0, 0);
+    uint32_t it = pile.ids.push_back(s.push_back(&pile.context, p));
+    s.set_user_instance_data(&pile.context, pile.ids[it], it);
 
     /* EXAMPLE ERASE
-    r.erase(&pile.context, pile.ids[it]);
+    s.erase(&pile.context, pile.ids[it]);
     pile.ids.erase(it);
     */
   }

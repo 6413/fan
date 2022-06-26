@@ -19,7 +19,7 @@
 //#include _FAN_PATH(graphics/opengl/2D/objects/line.h)
 #include _FAN_PATH(graphics/opengl/2D/objects/rectangle.h)
 //#include _FAN_PATH(graphics/opengl/2D/objects/circle.h)
-//#include _FAN_PATH(graphics/opengl/2D/objects/sprite.h)
+#include _FAN_PATH(graphics/opengl/2D/objects/sprite.h)
 //#include _FAN_PATH(graphics/opengl/2D/objects/sprite0.h)
 //#include _FAN_PATH(graphics/opengl/2D/objects/sprite1.h)
 //#include _FAN_PATH(graphics/opengl/2D/objects/yuv420p_renderer.h)

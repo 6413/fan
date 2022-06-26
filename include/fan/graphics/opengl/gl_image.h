@@ -7,10 +7,10 @@ namespace fan {
   namespace opengl {
 
     static constexpr fan::_vec4<fan::vec2> default_texture_coordinates = {
-      fan::vec2(0, 0), // top left
-      fan::vec2(1, 0), // top right
-      fan::vec2(1, 1), // bottom right
-      fan::vec2(0, 1) // bottom left
+      vec2(0, 0),
+      vec2(1, 0),
+      vec2(1, 1),
+      vec2(0, 1)
     };
 
     struct image_t {
