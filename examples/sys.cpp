@@ -8,6 +8,9 @@
 #include <thread>
 
 int main() {
+	printf("enter loop time in seconds:");
+	uint64_t time;
+	std::cin >> time;
 
 	fan::sys::input input;
 
@@ -15,13 +18,11 @@ int main() {
 
 	bool direction = false;
 
-	uint32_t ps = 0;
-
 	fan::print("press f2 to initialize clicking position");
 	fan::print("press f4 start loop");
 	fan::print("press f9 quit loop");
 
-	fan::vec2 p[9] = { 0 };
+	std::vector<fan::vec2> p;
 
 	volatile bool quit = 0;
 
@@ -38,9 +39,8 @@ int main() {
 		switch (key) {
 			case fan::key_f2: {
 				auto f = [&] {
-					p[ps] = fan::sys::input::get_mouse_position();
-					fan::print("initialized click:", ps, "to:", p[ps]);
-					ps = (ps + 1 % 9);
+					p.push_back(fan::sys::input::get_mouse_position());
+					fan::print("initialized click:", p.size() - 1, "to:", *(p.end() - 1));
 				};
 
 				std::thread t(f);
@@ -52,7 +52,7 @@ int main() {
 			case fan::key_f4: {
 				auto f = [&] {
 					while (1) {
-						for (uint32_t i = 0; i < 9; i++) {
+						for (uint32_t i = 0; i < p.size(); i++) {
 							if (quit) {
 								quit = 0;
 								return;
@@ -64,6 +64,7 @@ int main() {
 							fan::print("clicked position", p[i]);
 							fan::delay(fan::time::nanoseconds(1.5e+9));
 						}
+						fan::delay(fan::time::nanoseconds(time * 1e+9));
 					}
 				};
 

@@ -3,14 +3,13 @@ R"(
 
 in vec2 texture_coordinate;
 
-in vec4 i_color;
-in vec2 fragment_position;
+in vec4 instance_color;
 
 out vec4 o_color;
 
 uniform sampler2D texture_sampler;
 
 void main() {
-  o_color = texture(texture_sampler, texture_coordinate) * i_color;
+  o_color = texture(texture_sampler, texture_coordinate) * instance_color;
 }
 )"

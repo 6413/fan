@@ -13,9 +13,9 @@ layout (std140) uniform instance_t {
 		vec2 position;
 		vec2 size;
 		vec4 color;
+		vec3 rotation_vector;
 		float angle;
 		vec2 rotation_point;
-		vec3 rotation_vector;
 	}st[256];
 }instance;
 

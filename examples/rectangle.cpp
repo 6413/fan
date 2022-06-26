@@ -50,7 +50,7 @@ int main() {
 
   rectangle_t r;
   r.open(&pile.context, (rectangle_t::move_cb_t)cb, &pile);
-  r.m_shader.bind_matrices(&pile.context, &pile.matrices);
+  r.bind_matrices(&pile.context, &pile.matrices);
   r.enable_draw(&pile.context);
 
   rectangle_t::properties_t p;

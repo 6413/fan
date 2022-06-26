@@ -6,7 +6,7 @@
 #include _FAN_PATH(physics/collision/rectangle.h)
 
 namespace fan_2d {
-  namespace graphics {
+  namespace opengl {
 
     template <typename T_user_global_data, typename T_user_instance_data>
     struct rectangle_t {
@@ -20,9 +20,10 @@ namespace fan_2d {
         fan::vec2 position = 0;
         fan::vec2 size = 0;
         fan::color color = fan::colors::white;
+        fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
         f32_t angle = 0;
         fan::vec2 rotation_point = 0;
-        alignas(16) fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
+        fan::vec2 pad;
       };
 
       struct properties_t : instance_t {
