@@ -195,6 +195,8 @@ namespace fan_2d {
         //context->opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
         //context->opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, light_map_id); /* TODO get by magic */
 
+        m_shader.set_float(context, "input", input);
+
         uint32_t texture_id = fan::uninitialized;
         for (uint32_t block_id = 0; block_id < blocks.size(); block_id++) {
           blocks[block_id].uniform_buffer.bind_buffer_range(context, blocks[block_id].uniform_buffer.size());
@@ -252,6 +254,7 @@ namespace fan_2d {
       }
 
       fan::shader_t m_shader;
+      f32_t input = 0;
 
       struct block_t {
         fan::opengl::core::uniform_block_t<instance_t, max_instance_size> uniform_buffer;
