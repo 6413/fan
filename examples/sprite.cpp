@@ -82,11 +82,11 @@ int main() {
 
     switch (key) {
       case fan::mouse_scroll_up: {
-        pile.input += 0.1;
+        pile.input += 0.05;
         break;
       }
       case fan::mouse_scroll_down: {
-        pile.input -= 0.1;
+        pile.input -= 0.05;
         break;
       }
     }

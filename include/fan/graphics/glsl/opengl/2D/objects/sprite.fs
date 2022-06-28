@@ -43,7 +43,7 @@ vec2 iResolution = vec2(800, 600);
 
 vec2 p = gl_FragCoord.xy / iResolution.xy;
 
-	vec2 uv = p*vec2(iResolution.x/iResolution.y,1.0);
+	vec2 uv = p*vec2(iResolution.x/iResolution.y,1.0) + input;
 	
 	float f = 0.0;
 
