@@ -394,7 +394,6 @@
     <ClInclude Include="include\fan\graphics\opengl\2D\objects\line.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\objects\rectangle.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\objects\sprite.h" />
-    <ClInclude Include="include\fan\graphics\opengl\2D\objects\sprite0.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\objects\sprite1.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\objects\yuv420p_renderer.h" />
     <ClInclude Include="include\fan\graphics\opengl\3D\objects\model.h" />
