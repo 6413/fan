@@ -55,14 +55,13 @@ int main() {
 
   sprite_t::properties_t p;
 
-
   fan::opengl::image_t::load_properties_t lp;
   lp.filter = fan::opengl::GL_LINEAR;
   p.image.load(&pile.context, "images/test.webp", lp);
   p.size = fan::cast<f32_t>(p.image.size) / pile.window.get_size();
 
   for (uint32_t i = 0; i < 1; i++) {
-    p.position = fan::vec2(0, 0);
+    p.position = fan::random::vec2(-1, 1);
     uint32_t it = pile.ids.push_back(s.push_back(&pile.context, p));
     s.set_user_instance_data(&pile.context, pile.ids[it], it);
 
