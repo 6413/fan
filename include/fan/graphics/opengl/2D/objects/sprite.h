@@ -15,6 +15,7 @@ namespace fan_2d {
       using user_global_data_t = T_user_global_data;
       using user_instance_data_t = T_user_instance_data;
 
+      using draw_cb_t = void(*)(fan::opengl::context_t* context, sprite_t*, void*);
       using move_cb_t = void(*)(sprite_t*, uint32_t src, uint32_t dst, user_instance_data_t*);
 
       struct instance_t {
@@ -81,6 +82,7 @@ namespace fan_2d {
 
         user_global_data = gd;
         move_cb = move_cb_;
+        draw_cb = [](fan::opengl::context_t* context, sprite_t*, void*) {};
       }
       void close(fan::opengl::context_t* context) {
         m_shader.close(context);
@@ -189,13 +191,31 @@ namespace fan_2d {
         context->disable_draw(m_draw_node_reference);
       }
 
+      void set_vertex(fan::opengl::context_t* context, const std::string& str) {
+        m_shader.set_vertex(context, str);
+      }
+      void set_fragment(fan::opengl::context_t* context, const std::string& str) {
+        m_shader.set_fragment(context, str);
+      }
+      void compile(fan::opengl::context_t* context) {
+        m_shader.compile(context);
+      }
+
+      void set_draw_cb(fan::opengl::context_t* context, draw_cb_t draw_cb_, void* userptr = 0) {
+        draw_cb = draw_cb_;
+        draw_userdata = userptr;
+      }
+      void set_draw_cb_userptr(fan::opengl::context_t* context, void* userptr) {
+        draw_userdata = userptr;
+      }
+
       void draw(fan::opengl::context_t* context) {
         m_shader.use(context);
 
+        draw_cb(context, this, draw_userdata);
+
         //context->opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
         //context->opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, light_map_id); /* TODO get by magic */
-
-        m_shader.set_float(context, "input", input);
 
         uint32_t texture_id = fan::uninitialized;
         for (uint32_t block_id = 0; block_id < blocks.size(); block_id++) {
@@ -254,7 +274,6 @@ namespace fan_2d {
       }
 
       fan::shader_t m_shader;
-      f32_t input = 0;
 
       struct block_t {
         fan::opengl::core::uniform_block_t<instance_t, max_instance_size> uniform_buffer;
@@ -267,6 +286,8 @@ namespace fan_2d {
 
       user_global_data_t user_global_data;
       move_cb_t move_cb;
+      draw_cb_t draw_cb;
+      void* draw_userdata;
     };
   }
 }
