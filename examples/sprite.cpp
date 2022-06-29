@@ -57,7 +57,7 @@ int main() {
 
   fan::opengl::image_t::load_properties_t lp;
   lp.filter = fan::opengl::GL_LINEAR;
-  p.image.load(&pile.context, "images/planeetta.webp", lp);
+  p.image.load(&pile.context, "images/test.webp", lp);
   p.size = fan::cast<f32_t>(p.image.size) / pile.window.get_size();
 
     p.position = fan::random::vec2(0, 0);
@@ -75,22 +75,6 @@ int main() {
   fan::vec2 ratio = window_size / window_size.max();
   std::swap(ratio.x, ratio.y);
   pile.matrices.set_ortho(&pile.context, fan::vec2(-1, 1), fan::vec2(-1, 1));
-
-  pile.window.add_keys_callback(&s, [](fan::window_t*, uint16_t key, fan::key_state key_state, void* user_ptr) {
-
-    sprite_t& pile = *(sprite_t*)user_ptr;
-
-    switch (key) {
-      case fan::mouse_scroll_up: {
-        pile.input += 0.05;
-        break;
-      }
-      case fan::mouse_scroll_down: {
-        pile.input -= 0.05;
-        break;
-      }
-    }
-  });
 
   while(1) {
 
