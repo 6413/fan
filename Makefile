@@ -19,9 +19,11 @@ endif
 
 FAN_OBJECT_FOLDER = 
 
-all: fan_window.o fan_window_input.o fan_shared_gui.o fan_shared_graphics.o run
+all: fan_window.o fan_window_input.o run \
+  #fan_shared_gui.o fan_shared_graphics.o
 
-LIBS = fan_window.o fan_window_input.o fan_shared_gui.o fan_shared_graphics.o
+LIBS = fan_window.o fan_window_input.o \
+  #fan_shared_gui.o fan_shared_graphics.o
 
 fan_window.o:  src/fan/window/window.cpp
 	$(GPP) $(CFLAGS) -c src/fan/window/window.cpp -o $(FAN_OBJECT_FOLDER)fan_window.o
@@ -29,11 +31,11 @@ fan_window.o:  src/fan/window/window.cpp
 fan_window_input.o:	src/fan/window/window_input.cpp
 	$(GPP) $(CFLAGS) -c src/fan/window/window_input.cpp -o $(FAN_OBJECT_FOLDER)fan_window_input.o
 
-fan_shared_gui.o:	src/fan/graphics/shared_gui.cpp
-	$(GPP) $(CFLAGS) -c src/fan/graphics/shared_gui.cpp -o $(FAN_OBJECT_FOLDER)fan_shared_gui.o
+# fan_shared_gui.o:	src/fan/graphics/shared_gui.cpp
+	# $(GPP) $(CFLAGS) -c src/fan/graphics/shared_gui.cpp -o $(FAN_OBJECT_FOLDER)fan_shared_gui.o
 
-fan_shared_graphics.o:	src/fan/graphics/shared_graphics.cpp
-	$(GPP) $(CFLAGS) -c src/fan/graphics/shared_graphics.cpp -o fan_shared_graphics.o	
+# fan_shared_graphics.o:	src/fan/graphics/shared_graphics.cpp
+	# $(GPP) $(CFLAGS) -c src/fan/graphics/shared_graphics.cpp -o fan_shared_graphics.o	
 clean:
 	$(RM) fan_*.o
 

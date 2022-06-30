@@ -107,7 +107,7 @@ namespace fan_2d {
 
         blocks[i].uniform_buffer.common.edit(
           context,
-          src,
+          src - 1,
           std::min(src, max_instance_size)
         );
 

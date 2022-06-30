@@ -2,7 +2,6 @@
 
 #include _FAN_PATH(graphics/gui/themes.h)
 #include _FAN_PATH(graphics/opengl/2D/objects/rectangle.h)
-#include _FAN_PATH(graphics/opengl/2D/gui/text_renderer.h)
 
 namespace fan_2d {
   namespace graphics {
@@ -15,15 +14,18 @@ namespace fan_2d {
         void* userptr;
       };
 
+      template <typename T_user_global_data, typename T_user_instance_data>
       struct rectangle_box_sized_t {
+
+        using rect_t = fan_2d::opengl::rectangle_t<T_user_global_data, T_user_instance_data>;
 
         using properties_t = rectangle_box_sized_properties;
 
         rectangle_box_sized_t() = default;
 
-        void open(fan::opengl::context_t* context)
+        void open(fan::opengl::context_t* context, rect_t::move_cb_t move_cb_, const T_user_global_data& gd)
         {
-          m_box.open(context);
+          m_box.open(context, move_cb_, gd);
           m_store.open();
         }
 
@@ -48,7 +50,7 @@ namespace fan_2d {
 
           m_store.push_back(store);
 
-          fan_2d::opengl::rectangle_t::properties_t rect_properties;
+          typename fan_2d::opengl::rectangle_t<T_user_global_data, T_user_instance_data>::properties_t rect_properties;
           rect_properties.color = property.theme.button.outline_color;
           rect_properties.position = property.position;
           rect_properties.size = property.size;
@@ -184,7 +186,7 @@ namespace fan_2d {
           m_box.bind_matrices(context, matrices);
         }
 
-        fan_2d::opengl::rectangle_t m_box;
+        rect_t m_box;
 
       //protected:
 

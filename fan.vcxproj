@@ -245,7 +245,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="examples\custom_sprite.cpp" />
+    <ClCompile Include="examples\button.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
     <ClCompile Include="src\fan\window\window_input.cpp" />
   </ItemGroup>
@@ -315,6 +315,7 @@
     <ClInclude Include="include\fan\graphics\camera.h" />
     <ClInclude Include="include\fan\graphics\fast_obj\fast_obj.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\objects\text_renderer.h" />
+    <ClInclude Include="include\fan\graphics\opengl\2D\objects\sprite1.h" />
     <ClInclude Include="include\fan\graphics\opengl\font.h" />
     <ClInclude Include="include\fan\graphics\graphics.h" />
     <ClInclude Include="include\fan\graphics\gui\fgm\button\corners.h" />
@@ -382,7 +383,6 @@
     <ClInclude Include="include\fan\graphics\light.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\effects\flame.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\effects\particles.h" />
-    <ClInclude Include="include\fan\graphics\opengl\2D\gui\text_renderer.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\gui\text_renderer0.h" />
     <ClInclude Include="include\fan\graphics\gui\checkbox.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\gui\text_renderer_raw.h" />
