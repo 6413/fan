@@ -3,7 +3,7 @@
 #include _FAN_PATH(graphics/opengl/2D/objects/letter_renderer.h)
 
 namespace fan_2d {
-  namespace graphics {
+  namespace opengl {
 
     struct text_renderer_t {
 
@@ -20,6 +20,8 @@ namespace fan_2d {
         f32_t font_size = 0.1;
         fan::vec2 position = 0;
         fan::color color = fan::colors::white;
+        fan::color outline_color;
+        f32_t outline_size;
         fan::utf16_string text;
       };
 
@@ -28,7 +30,7 @@ namespace fan_2d {
         tr->letter_ids[letter_data->id0][letter_data->id1] = dst;
       }
 
-      void open(fan::opengl::context_t* context, font_t* font) {
+      void open(fan::opengl::context_t* context, fan_2d::graphics::font_t* font) {
         letter_ids.open();
         int x;
         letters.open(context, font, (letter_t::move_cb_t)cb, &x);
@@ -95,7 +97,7 @@ namespace fan_2d {
           p.letter_id = letters.font->decode_letter(properties.text[i]);
           auto letter_info = letters.font->info.get_letter_info(properties.text[i], properties.font_size);
           
-          p.position = fan::vec2(left - letter_info.metrics.offset.x, properties.position.y) + (fan::vec2(letter_info.metrics.size.x, -letter_info.metrics.size.y) / 2 + fan::vec2(letter_info.metrics.offset.x, -letter_info.metrics.offset.y));
+          p.position = fan::vec2(left - letter_info.metrics.offset.x, properties.position.y) + (fan::vec2(letter_info.metrics.size.x, 0) / 2 + fan::vec2(letter_info.metrics.offset.x, -letter_info.metrics.offset.y));
 
 
           p.data.id1 = letter_ids[id].size();

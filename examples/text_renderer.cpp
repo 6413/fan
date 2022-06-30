@@ -13,7 +13,7 @@ struct pile_t {
   fan::opengl::matrices_t matrices;
   fan::window_t window;
   fan::opengl::context_t context;
-  fan_2d::graphics::text_renderer_t tr;
+  fan_2d::opengl::text_renderer_t tr;
 };
 
 //void cb(letter_t* l, uint32_t src, uint32_t dst, void *p) {
@@ -49,7 +49,7 @@ int main() {
 
   uint32_t ids[c];
 
-  fan_2d::graphics::text_renderer_t::properties_t p;
+  fan_2d::opengl::text_renderer_t::properties_t p;
   
   p.font_size = 0.05;
   for (uint32_t i = 0; i < c; i++) {
