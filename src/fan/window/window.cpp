@@ -52,7 +52,7 @@
 
 #if defined(fan_platform_windows)
 static constexpr const char* shared_library = "opengl32.dll";
-#elif defined(fan_platform_unix)
+#elif defined(fan_platform_unix) || defined(fan_platform_android)
 static constexpr const char* shared_library = "libGL.so.1";
 
 static void open_lib_handle(void** handle) {

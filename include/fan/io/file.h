@@ -5,6 +5,7 @@
 
 #include <fstream>
 #include <string>
+#undef index // xos.h
 #include <filesystem>
 
 namespace fan {

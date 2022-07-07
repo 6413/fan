@@ -16,9 +16,10 @@
 #include <functional>
 #include <any>
 #include <type_traits>
+#include <cstdint>
 
 typedef intptr_t si_t;
-typedef uintptr_t uint_t;
+//typedef uintptr_t uint_t;
 typedef intptr_t sint_t;
 typedef int8_t sint8_t;
 typedef int16_t sint16_t;
@@ -112,11 +113,11 @@ namespace fan {
     return (value & flag) == flag;
   }
 
-  enum class platform_t { windows, linux };
+  //enum class platform_t { windows, linux };
 
   #if defined(_WIN32) || defined(_WIN64)
 
-  constexpr platform_t platform = platform_t::windows;
+  //constexpr platform_t platform = platform_t::windows;
   #define fan_platform_windows
 
   #ifdef _MSC_VER
@@ -126,10 +127,13 @@ namespace fan {
   #elif defined(__GNUC__)
   #define fan_compiler_gcc
   #endif
+  #elif defined(__ANDROID__ )
+
+  #define fan_platform_android
 
   #elif defined(__linux__)
 
-  constexpr platform_t platform = platform_t::windows;
+ // constexpr platform_t platform = platform_t::windows;
   #define fan_platform_linux
   #define fan_platform_unix
 
@@ -252,7 +256,9 @@ namespace fan {
     #ifdef fan_compiler_visual_studio
     system("pause");
     #endif
+#if __cpp_exceptions
     throw std::runtime_error("");
+#endif
     //exit(1);
   }
 

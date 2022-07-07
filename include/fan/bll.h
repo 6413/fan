@@ -386,6 +386,8 @@ struct bll_t {
 		fan::io::file::read(f, nodes.data(), count * sizeof(node_t), 1);
 	}
 
+
+
 //protected:											
 
 #if BLL_set_SafeNext

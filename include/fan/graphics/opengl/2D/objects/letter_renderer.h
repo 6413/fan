@@ -40,7 +40,7 @@ namespace fan_2d {
         uint32_t instance;
       };
 
-      void open(fan::opengl::context_t* context, fan_2d::graphics::font_t* font_, move_cb_t move_cb_, user_global_data_t* gd) {
+      void open(fan::opengl::context_t* context, fan_2d::graphics::font_t* font_, move_cb_t move_cb_, const user_global_data_t& gd) {
 
         m_shader.open(context);
 
@@ -61,7 +61,7 @@ namespace fan_2d {
         m_draw_node_reference = fan::uninitialized;
 
         font = font_;
-        user_global_data = *gd;
+        user_global_data = gd;
         move_cb = move_cb_;
       }
       void close(fan::opengl::context_t* context) {

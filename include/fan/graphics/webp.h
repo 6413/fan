@@ -2,6 +2,7 @@
 
 #include _FAN_PATH(types/types.h)
 
+#ifndef fan_platform_android
 
 #if defined(fan_compiler_visual_studio)
   
@@ -58,3 +59,5 @@ namespace fan {
   
   }
 }
+
+#endif

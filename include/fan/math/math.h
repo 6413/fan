@@ -25,8 +25,8 @@ namespace fan_2d {
 		vector2d_t velocity_resolve_in_collision(const vector2d_t& velocity_src, const vector2d_t& velocity_dst, const vector2d_t& normal) {
 			vector2d_t direction = velocity_dst - velocity_src;
 			f32_t angle = fan::math::pi - 2 * atan2(-normal.y, -normal.x);
-			f32_t cos_ = cos(angle);
-			f32_t sin_ = sin(angle);
+			f32_t cos_ = std::cos(angle);
+			f32_t sin_ = std::sin(angle);
 			return velocity_dst + vector2d_t(direction.x * cos_ - direction.y * sin_, -(direction.x * sin_ + direction.y * cos_));
 		}
 
@@ -118,7 +118,7 @@ namespace fan {
 		constexpr f_t infinite = inf;
 		constexpr f_t infinity = infinite;
 
-		constexpr f32_t fast_trunc(f32_t d) {
+		static f32_t fast_trunc(f32_t d) {
       unsigned constexpr MANTISSA_BITS = 52,
         HI_MANTISSA_BITS = 20,
         EXP_BIAS = 0x3FF,
@@ -170,7 +170,7 @@ namespace fan {
       }
 		}
 
-		constexpr f32_t fast_fmod(f32_t v, f32_t m)
+		inline f32_t fast_fmod(f32_t v, f32_t m)
     {
         return v - fast_trunc(v / m ) * m ;
     }
@@ -344,12 +344,39 @@ namespace fan {
 		inline vector_t direction_vector(f32_t angle)
 		{
 			return vector_t(
-				sin(angle),
-				-cos(angle)
+				std::sin(angle),
+				-std::cos(angle)
 			);
 		}
 
 		// depends about world rotation
+
+		inline f32_t sin(f32_t x) {
+			float res=0, pow=x, fact=1;
+			for(int i=0; i<5; ++i)
+			{
+				res+=pow/fact;
+				pow*=-1*x*x;
+				fact*=(2*(i+1))*(2*(i+1)+1);
+			}
+
+			return res;
+		}
+
+		inline f32_t cos(f32_t x) {
+			double t, s ;
+			int p;
+			p = 0;
+			s = 1.0;
+			t = 1.0;
+			while(fabs(t/s) > .0001f)
+			{
+				p++;
+				t = (-t * x * x) / ((2 * p - 1) * (2 * p));
+				s += t;
+			}
+			return s;
+		}
 
 		template <typename vector_t>
 		inline vector_t direction_vector(f32_t alpha, f32_t beta)

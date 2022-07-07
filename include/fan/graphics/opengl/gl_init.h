@@ -3,6 +3,7 @@
 #include _FAN_PATH(graphics/opengl/gl_defines.h)
 
 #include _FAN_PATH(math/random.h)
+#include _FAN_PATH(time/time.h)
 
 #if defined(fan_platform_windows)
   #include <Windows.h>
@@ -11,6 +12,8 @@
 
 #elif defined(fan_platform_unix)
 #endif
+
+#include <unordered_map>
 
 namespace fan {
 
@@ -205,6 +208,8 @@ namespace fan {
         fan::opengl::glx::PFNGLXSWAPBUFFERSPROC glXSwapBuffers;
         fan::opengl::glx::PFNGLXCREATENEWCONTEXTPROC glXCreateNewContext;
         fan::opengl::glx::PFNGLXCREATECONTEXTATTRIBSARBPROC glXCreateContextAttribsARB;
+      #elif defined(fan_platform_android)
+        EGLContext context;
       #endif
 
     };
@@ -234,6 +239,10 @@ namespace fan {
         #endif
 
         return p;
+
+        #elif defined(fan_platform_android)
+        
+        return (void*)eglGetProcAddress(name);
 
         #elif defined(fan_platform_unix)
 
@@ -268,7 +277,7 @@ namespace fan {
         get_proc_address(glGetString, &internal);
         get_proc_address(glViewport, &internal);
         get_proc_address(glBlendFunc, &internal);
-        get_proc_address(glCreateVertexArrays, &internal);
+        get_proc_address(glGenVertexArrays, &internal);
         get_proc_address(glDeleteVertexArrays, &internal);
         get_proc_address(glBindVertexArray, &internal);
         get_proc_address(glGenBuffers, &internal);
@@ -401,7 +410,7 @@ namespace fan {
 
       PFNGLVIEWPORTPROC glViewport;
       PFNGLBLENDFUNCPROC glBlendFunc;
-      PFNGLCREATEVERTEXARRAYSPROC glCreateVertexArrays;
+      PFNGLCREATEVERTEXARRAYSPROC glGenVertexArrays;
       PFNGLDELETEVERTEXARRAYSPROC glDeleteVertexArrays;
       PFNGLBINDVERTEXARRAYPROC glBindVertexArray;
       PFNGLGENBUFFERSPROC glGenBuffers;

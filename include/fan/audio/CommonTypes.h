@@ -1,22 +1,43 @@
-#include <opus/opus.h>
-
-#include _WITCH_PATH(WITCH.h)
-#include _WITCH_PATH(TH/TH.h)
-
 namespace _constants {
   const uint32_t opus_decode_sample_rate = 48000;
   namespace Opus{
     const uint32_t SegmentFrameAmount20 = 960;
+    const uint32_t SupportedChannels = 2;
+    const uint32_t CacheDecoderPerChannel = 0x08;
+    const uint32_t CacheSegmentAmount = 0x400;
+    const uint32_t DecoderWarmUpAmount = 0x04;
   }
 
   const f32_t OneSampleTime = (f32_t)1 / opus_decode_sample_rate;
 
   const uint32_t CallFrameCount = 480;
   const uint32_t ChannelAmount = 2;
-  const uint32_t FrameCacheAmount = 4800;
+  const uint32_t FrameCacheAmount = Opus::SegmentFrameAmount20;
   const uint64_t FrameCacheTime = opus_decode_sample_rate / CallFrameCount * 1; // 1 second
 }
 
+struct piece_t;
+
+typedef uint8_t _DecoderID_t;
+typedef uint32_t _SegmentID_t;
+typedef uint16_t _CacheID_t;
+
+struct _DecoderHead_t{
+  _CacheID_t CacheID;
+};
+
+#define BLL_set_prefix _DecoderList
+#define BLL_set_type_node _DecoderID_t
+#include _WITCH_PATH(BLL/BLL.h)
+
+#define BLL_set_prefix _CacheList
+#define BLL_set_type_node _CacheID_t
+#define BLL_set_node_data \
+  f32_t Samples[_constants::FrameCacheAmount * _constants::ChannelAmount]; \
+  _DecoderID_t DecoderID; \
+  piece_t *piece; \
+  _SegmentID_t SegmentID;
+#include _WITCH_PATH(BLL/BLL.h)
 
 #pragma pack(push, 1)
 
@@ -24,27 +45,18 @@ struct _SACHead_t{
   uint8_t Sign;
   uint16_t Checksum;
   uint8_t ChannelAmount;
+  uint16_t BeginCut;
+  uint16_t EndCut;
   uint32_t TotalSegments;
 };
 
 struct _SACSegment_t{
   uint32_t Offset;
   uint16_t Size;
+  _CacheID_t CacheID;
 };
 
 #pragma pack(pop)
-
-struct piece_t;
-
-#define BLL_set_prefix _FrameCacheList
-#define BLL_set_type_node uint32_t
-#define BLL_set_node_data \
-  uint64_t LastAccessTime; \
-  f32_t Frames[_constants::FrameCacheAmount][_constants::ChannelAmount]; \
-  piece_t *piece; \
-  uint32_t PieceCacheIndex;
-#define BLL_set_ResizeListAfterClear 1
-#include _WITCH_PATH(BLL/BLL.h)
 
 struct PropertiesSoundPlay_t {
   struct {
@@ -107,10 +119,6 @@ struct _Play_t {
   _PlayInfoList_NodeReference_t Reference;
 };
 
-struct _PieceCache_t {
-  _FrameCacheList_NodeReference_t ref;
-};
-
 struct _audio_common_t{
   TH_mutex_t PlayInfoListMutex;
   _PlayInfoList_t PlayInfoList;
@@ -123,20 +131,22 @@ struct _audio_common_t{
   TH_mutex_t MessageQueueListMutex;
   VEC_t MessageQueueList;
 
-  _FrameCacheList_t FrameCacheList;
+  _DecoderList_t DecoderList[_constants::Opus::SupportedChannels];
 
-  uint64_t Tick;
+  _CacheList_t CacheList;
 };
 
 struct piece_t {
   _audio_common_t *audio_common;
   uint8_t ChannelAmount;
+  uint16_t BeginCut;
   uint32_t TotalSegments;
   uint8_t *SACData;
-  OpusDecoder *od;
-  uint64_t FrameOffset;
   uint64_t FrameAmount;
-  _PieceCache_t *Cache;
+
+  uint64_t GetFrameAmount(){
+    return FrameAmount - BeginCut;
+  }
 };
 
 /* will used for userspace functions. casted to _audio_common_t internally */
