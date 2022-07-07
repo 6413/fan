@@ -14,6 +14,17 @@
   #endif
 #endif
 
+#include _WITCH_PATH(WITCH.h)
+
+#include _WITCH_PATH(TH/TH.h)
+
+#include _WITCH_PATH(FS/FS.h)
+#include _WITCH_PATH(T/T.h)
+
+#include _FAN_PATH(io/file.h)
+
+#include <opus/opus.h>
+
 namespace fan {
   namespace audio {
     #include "CommonTypes.h"

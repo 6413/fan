@@ -7,7 +7,7 @@ ifeq ($(OS),Windows_NT)
 	RM = del 
 	LIBNAME = fan_windows_clang.a
 else
-	CFLAGS += -DFAN_INCLUDE_PATH=/usr/include
+	CFLAGS += -DFAN_INCLUDE_PATH=/usr/include -fPIE
 	AR = ar
 	RM = rm -f
 	LIBNAME = fan.a

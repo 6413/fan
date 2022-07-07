@@ -2,6 +2,7 @@
 #pragma once
 
 #include _FAN_PATH(io/file.h)
+#include <unordered_map>
 
 namespace fan {
 

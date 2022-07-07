@@ -2,6 +2,8 @@
 
 #include _FAN_PATH(types/types.h)
 
+#ifndef fan_platform_android
+
 #include _FAN_PATH(system.h)
 
 #ifdef fan_compiler_visual_studio
@@ -52,6 +54,8 @@
 	#include <X11/Xatom.h>
 	#include <X11/keysym.h>
 	#include <X11/XKBlib.h>
+
+	#undef index // xos.h
 
 	#include <sys/time.h>
 	#include <unistd.h>
@@ -589,3 +593,11 @@ namespace fan {
 	}
 
 }
+
+#else
+
+namespace fan {
+	using window_t = int;
+}
+
+#endif

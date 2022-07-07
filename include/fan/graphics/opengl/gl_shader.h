@@ -382,7 +382,7 @@ namespace fan {
 
         fan::print("failed to compile type: " + type, buffer);
 
-        throw std::runtime_error("failed to compile shaders");
+        fan::throw_error("failed to compile shaders");
       }
     }
 };

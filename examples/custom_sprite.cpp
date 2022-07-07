@@ -100,6 +100,7 @@ struct sprite_t : fan_2d::graphics::sprite_t<pile_t*, uint32_t> {
 			        o_color.b = b;
 		        }
 	        }
+          o_color.a = 1;
         }
       )"
     );
@@ -147,7 +148,6 @@ int main() {
 
   pile.matrices.open();
 
-
   pile.ids.open();
 
   sprite_t s;
@@ -158,7 +158,7 @@ int main() {
   sprite_t::properties_t p;
 
   fan::opengl::image_t::load_properties_t lp;
-  lp.filter = fan::opengl::GL_LINEAR;
+  lp.filter = fan::opengl::GL_NEAREST;
   p.image.load(&pile.context, "images/planet.webp", lp);
   p.size = fan::cast<f32_t>(p.image.size) / pile.window.get_size();
 

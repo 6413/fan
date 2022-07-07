@@ -19,15 +19,15 @@
 #include _FAN_PATH(graphics/gui/focus.h)
 
 #if fan_renderer == fan_renderer_opengl
-	#include _FAN_PATH(graphics/opengl/2D/gui/text_renderer.h)
-	#include _FAN_PATH(graphics/opengl/2D/gui/text_renderer0.h)
+	#include _FAN_PATH(graphics/gui/rectangle_text_box.h)
+	#include _FAN_PATH(graphics/gui/rectangle_text_button.h)
 #endif
 
-#include _FAN_PATH(graphics/gui/text_renderer_clickable.h)
+//#include _FAN_PATH(graphics/gui/text_renderer_clickable.h)
 
-#include _FAN_PATH(graphics/gui/rectangle_text_button_sized.h)
-#include _FAN_PATH(graphics/gui/checkbox.h)
-#include _FAN_PATH(graphics/gui/select_box.h)
+//#include _FAN_PATH(graphics/gui/rectangle_text_button_sized.h)
+//#include _FAN_PATH(graphics/gui/checkbox.h)
+//#include _FAN_PATH(graphics/gui/select_box.h)
 
 namespace fan_2d {
 

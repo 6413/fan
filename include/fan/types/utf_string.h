@@ -36,7 +36,7 @@ namespace fan {
 			return 1;
 		}
 		if (byte < 0xc0) {
-			throw std::runtime_error("not utf8 character");
+			fan::throw_error("not utf8 character");
 			return 1;
 		}
 		if (byte < 0xe0) {
@@ -49,7 +49,7 @@ namespace fan {
 			return 4;
 		}
 
-		throw std::runtime_error("not utf8 character");
+		fan::throw_error("not utf8 character");
 		return 1;
 	}
 
@@ -166,7 +166,7 @@ namespace fan {
 			}
 			else if (ch <= 0xBF)
 			{
-				throw std::logic_error("not a utf-8 string");
+				fan::throw_error("not a utf-8 string");
 			}
 			else if (ch <= 0xDF)
 			{
@@ -185,20 +185,20 @@ namespace fan {
 			}
 			else
 			{
-				throw std::runtime_error("not a utf-8 string");
+				fan::throw_error("not a utf-8 string");
 			}
 			for (size_t j = 0; j < todo; ++j)
 			{
 				unsigned char ch = utf8[i++];
 				if (ch < 0x80 || ch > 0xBF)
-					throw std::runtime_error("not a utf-8 string");
+					fan::throw_error("not a utf-8 string");
 				uni <<= 6;
 				uni += ch & 0x3F;
 			}
 			if (uni >= 0xD800 && uni <= 0xDFFF)
-				throw std::runtime_error("not a utf-8 string");
+				fan::throw_error("not a utf-8 string");
 			if (uni > 0x10FFFF)
-				throw std::runtime_error("not a utf-8 string");
+				fan::throw_error("not a utf-8 string");
 			unicode.push_back(uni);
 		}
 		std::wstring utf16;

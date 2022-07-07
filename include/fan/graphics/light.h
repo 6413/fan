@@ -1,6 +1,8 @@
 #pragma once
 
+#include _FAN_PATH(types/types.h)
 #include _FAN_PATH(types/vector.h)
+#include _FAN_PATH(bll.h)
 
 namespace fan_2d {
   namespace graphics {

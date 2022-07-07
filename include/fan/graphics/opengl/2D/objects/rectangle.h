@@ -27,6 +27,9 @@ namespace fan_2d {
       };
 
       struct properties_t : instance_t {
+
+        using type_t = rectangle_t;
+
         user_instance_data_t data;
       };
 
@@ -91,7 +94,7 @@ namespace fan_2d {
         blocks[i].uniform_buffer.push_ram_instance(context, it);
         blocks[i].user_instance_data[blocks[i].uniform_buffer.size() - 1] = p.data;
 
-        blocks[i].uniform_buffer.write_vram_all(context);
+        blocks[i].uniform_buffer.write_vram_all(context); // TODO fix
 
         return i * max_instance_size + (blocks[i].uniform_buffer.size() - 1);
       }
@@ -194,6 +197,13 @@ namespace fan_2d {
 
       void set_user_instance_data(fan::opengl::context_t* context, const id_t& id, const user_instance_data_t& user_instance_data) {
         blocks[id.block].user_instance_data[id.instance] = user_instance_data;
+      }
+
+      user_instance_data_t get_user_instance_data(const id_t& id) {
+        return blocks[id.block].user_instance_data[id.instance];
+      }
+      user_global_data_t get_user_global_data() {
+        return user_global_data;
       }
 
       fan::shader_t m_shader;

@@ -27,9 +27,12 @@ namespace fan_2d {
         fan::vec2 rotation_point = 0;
         fan::vec2 tc_position = 0;
         fan::vec2 tc_size = 1;
+        fan::vec2 pad;
       };
 
       struct properties_t : public instance_t {
+        using type_t = sprite_t;
+
         fan::opengl::image_t image;
 
         void load_texturepack(fan::opengl::context_t* context, fan::opengl::texturepack* texture_packd, fan::tp::ti_t* ti) {
@@ -267,6 +270,7 @@ namespace fan_2d {
       template <typename T>
       void set(fan::opengl::context_t* context, const id_t& id, T instance_t::*member, const T& value) {
         blocks[id.block].uniform_buffer.edit_ram_instance(context, id.instance, &value, fan::ofof<instance_t, T>(member), sizeof(T));
+        blocks[id.block].uniform_buffer.write_vram_all(context); // TODO Fix
       }
 
       void set_user_instance_data(fan::opengl::context_t* context, const id_t& id, const user_instance_data_t& user_instance_data) {

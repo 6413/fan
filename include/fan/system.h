@@ -16,6 +16,8 @@
 #include <X11/keysym.h>
 #include <X11/XKBlib.h>
 
+#undef index // xos.h
+
 #include <sys/time.h>
 #include <unistd.h>
 

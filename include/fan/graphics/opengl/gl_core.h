@@ -85,8 +85,8 @@ namespace fan {
 
       struct properties_t {
         properties_t() {
-          samples = 0;
-          major = 2;
+          samples = 1;
+          major = 3;
           minor = 1;
         }
 
@@ -186,7 +186,7 @@ namespace fan {
         int buffer_size = get_buffer_size(context, target, buffer);
 
         if (buffer_size < size || (offset + size) > buffer_size) {
-          throw std::runtime_error("tried to write more than allocated");
+          fan::throw_error("tried to write more than allocated");
         }
 
 #endif
@@ -210,7 +210,7 @@ namespace fan {
         vao_t() = default;
 
         void open(fan::opengl::context_t* context) {
-          context->opengl.call(context->opengl.glCreateVertexArrays, 1, &m_vao);
+          context->opengl.call(context->opengl.glGenVertexArrays, 1, &m_vao);
         }
 
         void close(fan::opengl::context_t* context) {
