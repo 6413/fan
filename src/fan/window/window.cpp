@@ -11,8 +11,6 @@
 #include _FAN_PATH(types/utf_string.h)
 #include _FAN_PATH(font.h)
 
-#include _FAN_PATH(graphics/shared_core.h)
-
 #if fan_renderer == fan_renderer_opengl
 //#include <fan/graphics/opengl/gl_init.h>
 #endif

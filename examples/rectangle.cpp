@@ -3,31 +3,28 @@
 #define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 
 #define FAN_INCLUDE_PATH C:/libs/fan/include
+#define fan_debug 1
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
 #include _FAN_PATH(graphics/graphics.h)
 
-using id_holder_t = bll_t<uint32_t>;
+constexpr uint32_t count = 10000;
 
 struct pile_t {
   fan::opengl::matrices_t matrices;
   fan::window_t window;
   fan::opengl::context_t context;
-  id_holder_t ids;
+  fan::opengl::cid_t cids[count];
 };
 
 // filler                         
-using rectangle_t = fan_2d::graphics::rectangle_t<pile_t*, uint32_t>;
-
-void cb(rectangle_t* l, uint32_t src, uint32_t dst, uint32_t *p) {
-  l->user_global_data->ids[*p] = dst;
-}
+using rectangle_t = fan_2d::graphics::rectangle_t;
 
 int main() {
 
   pile_t pile;
   
-  pile.window.open();
+  pile.window.open(fan::vec2(600, 600));
 
   pile.context.init();
   pile.context.bind_to_window(&pile.window);
@@ -45,28 +42,22 @@ int main() {
 
   pile.matrices.open();
 
-
-  pile.ids.open();
-
   rectangle_t r;
-  r.open(&pile.context, (rectangle_t::move_cb_t)cb, &pile);
+  r.open(&pile.context);
   r.bind_matrices(&pile.context, &pile.matrices);
   r.enable_draw(&pile.context);
 
   rectangle_t::properties_t p;
 
-  p.size = fan::vec2(2.0 / 100, 1);
+  p.size = fan::vec2(1.0 / count, 1);
 
-  for (uint32_t i = 0; i < 100; i++) {
-    p.position = fan::vec2(-1.0 + (f32_t)i / 50, 0);
-    p.color = fan::color((f32_t)i / 100, 0, 0);
-    uint32_t it = pile.ids.push_back(r.push_back(&pile.context, p));
-    r.set_user_instance_data(&pile.context, pile.ids[it], it);
+  for (uint32_t i = 0; i < count; i++) {
+    p.position = fan::vec2(-1.0 + (f32_t)i / (count / 2), 0);
+    p.color = fan::color((f32_t)i / count, (f32_t)i / count + 00.1, (f32_t)i / count);
+    r.push_back(&pile.context, &pile.cids[i], p);
 
-    /* EXAMPLE ERASE
-    r.erase(&pile.context, pile.ids[it]);
-    pile.ids.erase(it);
-    */
+     //EXAMPLE ERASE
+    //r.erase(&pile.context, &pile.cids[i]);
   }
 
   fan::vec2 window_size = pile.window.get_size();
@@ -74,7 +65,18 @@ int main() {
   std::swap(ratio.x, ratio.y);
   pile.matrices.set_ortho(&pile.context, fan::vec2(-1, 1) * ratio.x, fan::vec2(-1, 1) * ratio.y);
 
+  uint32_t s = 0;
+
+  pile.context.set_vsync(&pile.window, 0);
+  //pile.window.set_max_fps(25);
+
   while(1) {
+   // fan::print(s, pile.cids[s].id);
+    r.erase(&pile.context, &pile.cids[s]);
+
+    s++;
+
+    pile.window.get_fps();
 
     uint32_t window_event = pile.window.handle_events();
     if(window_event & fan::window_t::events::close){

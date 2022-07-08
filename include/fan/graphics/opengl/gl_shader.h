@@ -11,8 +11,6 @@
 #include _FAN_PATH(types/matrix.h)
 #include _FAN_PATH(time/time.h)
 
-#include _FAN_PATH(graphics/shared_core.h)
-
 #include _FAN_PATH(graphics/opengl/gl_core.h)
 
 #include _FAN_PATH(graphics/opengl/matrices.h)
