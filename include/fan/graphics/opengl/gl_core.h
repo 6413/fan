@@ -64,6 +64,10 @@ namespace fan {
 
     struct context_t;
 
+    struct cid_t {
+      uint32_t id;
+    };
+
   }
 }
 
@@ -293,6 +297,8 @@ namespace fan {
 
       template <typename type_t, uint32_t element_size>
       struct uniform_block_t {
+
+        static constexpr uint32_t element_byte_size = element_size;
 
         uniform_block_t() = default;
 
