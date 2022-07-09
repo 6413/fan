@@ -5,19 +5,9 @@
 namespace fan_2d {
   namespace opengl {
 
-    template <typename T_user_global_data>
     struct text_renderer_t {
 
-      using user_global_data_t = T_user_global_data;
-
-    #pragma pack(push, 1)
-      struct letter_data_t {
-        uint16_t id0;
-        uint16_t id1;
-      };
-    #pragma pack(pop)
-
-      using letter_t = fan_2d::graphics::letter_t<user_global_data_t, letter_data_t>;
+      using letter_t = fan_2d::graphics::letter_t;
 
       struct properties_t {
 
@@ -30,11 +20,6 @@ namespace fan_2d {
         f32_t outline_size;
         fan::utf16_string text;
       };
-
-      static void cb(letter_t* l, uint32_t src, uint32_t dst, letter_data_t *letter_data) {
-        text_renderer_t* tr = OFFSETLESS(l, text_renderer_t, letters);
-        tr->letter_ids[letter_data->id0][letter_data->id1] = dst;
-      }
 
       void open(fan::opengl::context_t* context) {
         letter_ids.open();
@@ -89,7 +74,6 @@ namespace fan_2d {
           id = letter_ids.resize(letter_ids.size() + 1);
         }
         letter_ids[id].open();
-        p.data.id0 = id;
 
         fan::vec2 text_size = get_text_size(context, letters, properties.text, properties.font_size);
         f32_t left = properties.position.x - text_size.x / 2;
@@ -102,16 +86,15 @@ namespace fan_2d {
           
           p.position = fan::vec2(left - letter_info.metrics.offset.x, properties.position.y) + (fan::vec2(letter_info.metrics.size.x, 0) / 2 + fan::vec2(letter_info.metrics.offset.x, -letter_info.metrics.offset.y));
 
-
-          p.data.id1 = letter_ids[id].size();
-          letter_ids[id].push_back(letters->push_back(context, p));
+          letter_ids[id].resize(letter_ids[id].size() + 1);
+          letters->push_back(context, &letter_ids[id][letter_ids[id].size() - 1], p);
           left += letter_info.metrics.advance;
         }
         return id;
       }
       void erase(fan::opengl::context_t* context, letter_t* letters, uint32_t id) {
         for (uint32_t i = 0; i < letter_ids[id].size(); i++) {
-          letters->erase(context, letter_ids[id][i]);
+          letters->erase(context, &letter_ids[id][i]);
         }
         letter_ids[id].close();
         *(uint32_t*)&letter_ids[id] = e.id0;
@@ -125,7 +108,7 @@ namespace fan_2d {
         uint32_t amount;
       }e;
 
-      fan::hector_t<fan::hector_t<uint32_t>> letter_ids;
+      fan::hector_t<fan::hector_t<fan::opengl::cid_t>> letter_ids;
     };
   }
 }
