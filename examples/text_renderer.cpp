@@ -9,16 +9,15 @@
 
 #include _FAN_PATH(graphics/graphics.h)
 
+using letter_t = fan_2d::graphics::letter_t;
+
 struct pile_t {
   fan::opengl::matrices_t matrices;
   fan::window_t window;
   fan::opengl::context_t context;
+  letter_t letter;
   fan_2d::opengl::text_renderer_t tr;
 };
-
-//void cb(letter_t* l, uint32_t src, uint32_t dst, void *p) {
-//  fan::print(src, dst);
-//}
 
 int main() {
 
@@ -42,8 +41,8 @@ int main() {
   fan_2d::graphics::font_t font;
   font.open(&pile.context, "fonts/bitter");
   int x;
-  pile.tr.open(&pile.context, &font);
-  pile.tr.bind_matrices(&pile.context, &pile.matrices);
+  pile.tr.open(&pile.context);
+  //pile.tr.bind_matrices(&pile.context, &pile.matrices);
 
   constexpr auto c = 1000;
 
@@ -51,26 +50,30 @@ int main() {
 
   fan_2d::opengl::text_renderer_t::properties_t p;
   
+  pile.letter.open(&pile.context, &font);
+  pile.letter.bind_matrices(&pile.context, &pile.matrices);
+
   p.font_size = 0.05;
   for (uint32_t i = 0; i < c; i++) {
     p.position = fan::random::vec2(0.1, 0.9);
     p.text = fan::random::string(5);
-    ids[i] = pile.tr.push_back(&pile.context, p);
+    ids[i] = pile.tr.push_back(&pile.context, &pile.letter, p);
   }
   
-
-  pile.tr.enable_draw(&pile.context);
+  pile.letter.enable_draw(&pile.context);
 
   pile.matrices.set_ortho(&pile.context, fan::vec2(0, 1), fan::vec2(0, 1));
 
   pile.context.set_vsync(&pile.window, 0);
 
+  uint32_t i = 0;
+
   while(1) {
 
-    pile.tr.erase(&pile.context, ids[0]);
-    p.position = fan::random::vec2(0.1, 0.9);
+    pile.tr.erase(&pile.context, &pile.letter, ids[i++]);
+    /*p.position = fan::random::vec2(0.1, 0.9);
     p.text = fan::random::string(5);
-    ids[0] = pile.tr.push_back(&pile.context, p);
+    ids[0] = pile.tr.push_back(&pile.context, &pile.letter, p);*/
 
     pile.window.get_fps();
 

@@ -7,21 +7,17 @@
 
 #include _FAN_PATH(graphics/graphics.h)
 
-using id_holder_t = bll_t<uint32_t>;
+constexpr uint32_t count = 10000;
 
 struct pile_t {
   fan::opengl::matrices_t matrices;
   fan::window_t window;
   fan::opengl::context_t context;
-  id_holder_t ids;
+  fan::opengl::cid_t cids[count];
 };
 
 // filler                         
-using sprite_t = fan_2d::graphics::sprite_t<pile_t*, uint32_t>;
-
-void cb(sprite_t* l, uint32_t src, uint32_t dst, uint32_t *p) {
-  l->user_global_data->ids[*p] = dst;
-}
+using sprite_t = fan_2d::graphics::sprite_t;
 
 int main() {
 
@@ -45,11 +41,8 @@ int main() {
 
   pile.matrices.open();
 
-
-  pile.ids.open();
-
   sprite_t s;
-  s.open(&pile.context, (sprite_t::move_cb_t)cb, &pile);
+  s.open(&pile.context);
   s.bind_matrices(&pile.context, &pile.matrices);
   s.enable_draw(&pile.context);
 
@@ -60,10 +53,9 @@ int main() {
   p.image.load(&pile.context, "images/test.webp", lp);
   p.size = fan::cast<f32_t>(p.image.size) / pile.window.get_size();
 
-    p.position = fan::random::vec2(0, 0);
-  for (uint32_t i = 0; i < 1; i++) {
-    uint32_t it = pile.ids.push_back(s.push_back(&pile.context, p));
-    s.set_user_instance_data(&pile.context, pile.ids[it], it);
+  for (uint32_t i = 0; i < count; i++) {
+    p.position = fan::random::vec2(-1, 1);
+    s.push_back(&pile.context, &pile.cids[i], p);
 
     /* EXAMPLE ERASE
     s.erase(&pile.context, pile.ids[it]);
@@ -76,7 +68,15 @@ int main() {
   std::swap(ratio.x, ratio.y);
   pile.matrices.set_ortho(&pile.context, fan::vec2(-1, 1), fan::vec2(-1, 1));
 
+  uint32_t i = 0;
+
+  pile.context.set_vsync(&pile.window, 0);
+
   while(1) {
+
+    pile.window.get_fps();
+
+    s.erase(&pile.context, &pile.cids[i++]);
 
     uint32_t window_event = pile.window.handle_events();
     if(window_event & fan::window_t::events::close){

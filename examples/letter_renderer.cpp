@@ -9,17 +9,16 @@
 
 #include _FAN_PATH(graphics/graphics.h)
 
+constexpr uint32_t count = 1000;
+
 struct pile_t {
   fan::opengl::matrices_t matrices;
   fan::window_t window;
   fan::opengl::context_t context;
+  fan::opengl::cid_t cids[count];
 };
 
-using letter_t = fan_2d::graphics::letter_t<int, int>;
-
-void cb(letter_t* l, uint32_t src, uint32_t dst, void *p) {
-  //fan::print(src, dst);
-}
+using letter_t = fan_2d::graphics::letter_t;
 
 int main() {
 
@@ -45,13 +44,10 @@ int main() {
 
   fan_2d::graphics::font_t font;
   font.open(&pile.context, "fonts/bitter");
-  int x;
-  letter.open(&pile.context, &font, (letter_t::move_cb_t)cb, &x);
+  letter.open(&pile.context, &font);
   letter.bind_matrices(&pile.context, &pile.matrices);
 
   letter_t::properties_t p;
-
-  uint32_t count = 1000;
 
   for (uint32_t i = 0; i < count; i++) {
     p.position = fan::vec2(fan::random::value_f32(0.1, .9), fan::random::value_f32(.1, .9));
@@ -61,15 +57,15 @@ int main() {
     std::wstring w(str.begin(), str.end());
     p.letter_id = font.decode_letter(w[0]);
 
-    letter.push_back(&pile.context, p);
+    letter.push_back(&pile.context, &pile.cids[i], p);
   }
 
   letter.enable_draw(&pile.context);
 
-  fan::color color = letter.get(&pile.context, 0, &letter_t::instance_t::color);
+  fan::color color = letter.get(&pile.context, &pile.cids[0], &letter_t::instance_t::color);
   fan::print(color);
-  letter.set(&pile.context, 0, &letter_t::instance_t::color, fan::color(0, 0, 1));
-  color = letter.get(&pile.context, 0, &letter_t::instance_t::color);
+  letter.set(&pile.context, &pile.cids[0], &letter_t::instance_t::color, fan::color(0, 0, 1));
+  color = letter.get(&pile.context, &pile.cids[0], &letter_t::instance_t::color);
   fan::print(color);
 
   fan::vec2 window_size = pile.window.get_size();
@@ -79,9 +75,9 @@ int main() {
   pile.context.set_vsync(&pile.window, 0);
   //pile.window.set_max_fps(2);
 
+  static uint32_t i = 0;
   while(1) {
-    static uint32_t _h = 0;
-    letter.erase(&pile.context, _h);
+    letter.erase(&pile.context, &pile.cids[i]);
     //p.position = fan::vec2(fan::random::value_f32(0.1, .9), fan::random::value_f32(.1, .9));
     //p.color = fan::color(0, 0, 1, 1);
     //p.font_size = 0.1;
