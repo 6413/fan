@@ -5,12 +5,14 @@
 #include _FAN_PATH(graphics/shared_graphics.h)
 #include _FAN_PATH(physics/collision/rectangle.h)
 
+#include _FAN_PATH(graphics/opengl/2D/objects/text_renderer.h)
+
 namespace fan_2d {
   namespace opengl {
 
-    struct rectangle_t {
+    struct rectangle_text_box_t {
 
-      using draw_cb_t = void(*)(fan::opengl::context_t* context, rectangle_t*, void*);
+      using draw_cb_t = void(*)(fan::opengl::context_t* context, rectangle_text_box_t*, void*);
 
       struct instance_t {
         fan::vec2 position = 0;
@@ -18,13 +20,17 @@ namespace fan_2d {
         fan::color color = fan::colors::white;
         fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
         f32_t angle = 0;
+        fan::color outline_color;
         fan::vec2 rotation_point = 0;
-        fan::vec2 pad;
+        f32_t outline_size;
+        f32_t pad;
       };
 
       struct properties_t : instance_t {
 
-        using type_t = rectangle_t;
+        fan::utf16_string text;
+
+        using type_t = rectangle_text_box_t;
       };
 
       static constexpr uint32_t max_instance_size = 256;
@@ -43,12 +49,12 @@ namespace fan_2d {
 
         m_shader.set_vertex(
           context,
-#include _FAN_PATH(graphics/glsl/opengl/2D/objects/rectangle.vs)
+#include _FAN_PATH(graphics/glsl/opengl/2D/objects/rectangle_box.vs)
         );
 
         m_shader.set_fragment(
           context,
-#include _FAN_PATH(graphics/glsl/opengl/2D/objects/rectangle.fs)
+#include _FAN_PATH(graphics/glsl/opengl/2D/objects/rectangle_box.fs)
         );
 
         m_shader.compile(context);
@@ -56,7 +62,7 @@ namespace fan_2d {
         blocks.open();
 
         m_draw_node_reference = fan::uninitialized;
-        draw_cb = [](fan::opengl::context_t* context, rectangle_t*, void*) {};
+        draw_cb = [](fan::opengl::context_t* context, rectangle_text_box_t*, void*) {};
       }
       void close(fan::opengl::context_t* context) {
         m_shader.close(context);
@@ -102,14 +108,14 @@ namespace fan_2d {
         uint32_t block_id = id / max_instance_size;
         uint32_t instance_id = id % max_instance_size;
 
-        #if fan_debug >= fan_debug_medium
+#if fan_debug >= fan_debug_medium
         if (block_id >= blocks.size()) {
           fan::throw_error("invalid access");
         }
         if (instance_id >= blocks[block_id].uniform_buffer.size()) {
           fan::throw_error("invalid access");
         }
-        #endif
+#endif
 
         if (block_id == blocks.size() - 1 && instance_id == blocks.ge()->uniform_buffer.size() - 1) {
           blocks[block_id].uniform_buffer.common.m_size -= blocks[block_id].uniform_buffer.common.buffer_bytes_size;
@@ -229,6 +235,8 @@ namespace fan_2d {
 
       draw_cb_t draw_cb;
       void* draw_userdata;
+
+      fan_2d::opengl::text_renderer_t text_renderer;
     };
   }
 }

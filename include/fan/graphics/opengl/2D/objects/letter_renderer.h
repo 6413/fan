@@ -1,5 +1,8 @@
 #pragma once
 
+#include _FAN_PATH(font.h)
+#include _FAN_PATH(graphics/opengl/font.h)
+
 #include _FAN_PATH(graphics/graphics.h)
 
 namespace fan_2d {

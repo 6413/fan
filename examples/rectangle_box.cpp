@@ -3,37 +3,31 @@
 #define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 
 #define FAN_INCLUDE_PATH C:/libs/fan/include
+#define fan_debug 1
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
-#include _FAN_PATH(graphics/gui/gui.h)
+#include _FAN_PATH(graphics/graphics.h)
 
+constexpr uint32_t count = 1;
 
-using id_holder_t = bll_t<uint32_t>;
-
-struct pile_t;
-
-using text_box_t = fan_2d::graphics::gui::rectangle_text_box_t;
-using letter_t = text_box_t::letter_t;
+using rectangle_box_t = fan_2d::opengl::rectangle_box_t;
 
 struct pile_t {
   fan::opengl::matrices_t matrices;
   fan::window_t window;
   fan::opengl::context_t context;
-  id_holder_t ids;
-  text_box_t text_box;
-  letter_t letters;
+  fan::opengl::cid_t cids[count];
 };
 
 int main() {
 
   pile_t pile;
 
-  pile.window.open();
+  pile.window.open(fan::vec2(600, 600));
 
   pile.context.init();
   pile.context.bind_to_window(&pile.window);
   pile.context.set_viewport(0, pile.window.get_size());
-
   pile.window.add_resize_callback(&pile, [](fan::window_t*, const fan::vec2i& size, void* userptr) {
     pile_t* pile = (pile_t*)userptr;
 
@@ -47,32 +41,34 @@ int main() {
 
   pile.matrices.open();
 
-  pile.ids.open();
+  rectangle_box_t r;
+  r.open(&pile.context);
+  r.bind_matrices(&pile.context, &pile.matrices);
+  r.enable_draw(&pile.context);
 
-  fan_2d::graphics::font_t font;
-  font.open(&pile.context, "fonts/bitter");
+  rectangle_box_t::properties_t p;
 
-  pile.letters.open(&pile.context, &font);
-  pile.letters.bind_matrices(&pile.context, &pile.matrices);
+  p.size = fan::vec2(0.3, 0.1);
 
-  pile.text_box.open(&pile.context);
-  pile.text_box.bind_matrices(&pile.context, &pile.matrices);
-  text_box_t::properties_t tp;
-  tp.theme.button.outline_thickness = 0.005;
-  tp.position = 0;
-  tp.size = fan::vec2(0.4, 0.1);
-  tp.text = "HeLoWoRlD_";
-  pile.text_box.push_back(&pile.context, &pile.letters, tp);
-  pile.text_box.enable_draw(&pile.context);
-
-  pile.letters.enable_draw(&pile.context);
+  for (uint32_t i = 0; i < count; i++) {
+    p.position = fan::vec2(0, 0);
+    p.color = fan::colors::red - 0.6;
+    p.outline_color = fan::colors::red - 0.5;
+    p.outline_size = 0.1;
+    r.push_back(&pile.context, &pile.cids[i], p);
+  }
 
   fan::vec2 window_size = pile.window.get_size();
   fan::vec2 ratio = window_size / window_size.max();
   std::swap(ratio.x, ratio.y);
   pile.matrices.set_ortho(&pile.context, fan::vec2(-1, 1) * ratio.x, fan::vec2(-1, 1) * ratio.y);
 
+  pile.context.set_vsync(&pile.window, 0);
+  //pile.window.set_max_fps(25);
+
   while(1) {
+
+    pile.window.get_fps();
 
     uint32_t window_event = pile.window.handle_events();
     if(window_event & fan::window_t::events::close){

@@ -102,9 +102,6 @@ namespace fan_2d {
           blocks[i].uniform_buffer.bind_uniform_block(context, m_shader.id, "instance_t");
         }
 
-        uint32_t src = blocks[i].uniform_buffer.size() - 1;
-        src *= blocks[i].uniform_buffer.element_byte_size;
-
         blocks[i].uniform_buffer.push_ram_instance(context, it);
 
         const uint32_t instance_id = blocks[i].uniform_buffer.size() - 1;
@@ -113,8 +110,8 @@ namespace fan_2d {
 
         blocks[i].uniform_buffer.common.edit(
           context,
-          src,
-          instance_id
+          instance_id,
+          instance_id + 1
         );
 
         cid->id = i * max_instance_size + instance_id;
@@ -214,7 +211,9 @@ namespace fan_2d {
 
       void set_draw_cb(fan::opengl::context_t* context, draw_cb_t draw_cb_, void* userptr = 0) {
         draw_cb = draw_cb_;
-        draw_userdata = userptr;
+        if (userptr != nullptr) {
+          draw_userdata = userptr;
+        }
       }
       void set_draw_cb_userptr(fan::opengl::context_t* context, void* userptr) {
         draw_userdata = userptr;

@@ -14,21 +14,17 @@ namespace fan_2d {
         void* userptr;
       };
 
-      template <typename T_user_global_data, typename T_user_instance_data>
       struct rectangle_box_t {
 
-        using user_global_data_t = T_user_global_data;
-        using user_instance_data_t = T_user_instance_data;
-
-        using rectangle_t = fan_2d::opengl::rectangle_t<T_user_global_data, T_user_instance_data>;
+        using rectangle_t = fan_2d::opengl::rectangle_t;
 
         using properties_t = rectangle_box_sized_properties;
 
         rectangle_box_t() = default;
 
-        void open(fan::opengl::context_t* context, rectangle_t::move_cb_t move_cb_, const T_user_global_data& gd)
+        void open(fan::opengl::context_t* context)
         {
-          m_box.open(context, move_cb_, gd);
+          m_box.open(context);
           m_store.open();
         }
 
@@ -41,7 +37,7 @@ namespace fan_2d {
           m_store.close();
         }
 
-        void push_back(fan::opengl::context_t* context, const properties_t& property)
+        void push_back(fan::opengl::context_t* context, fan::opengl::cid_t* cid, const properties_t& property)
         {
           store_t store;
 
@@ -57,10 +53,10 @@ namespace fan_2d {
           rect_properties.color = property.theme.button.outline_color;
           rect_properties.position = property.position;
           rect_properties.size = property.size;
-          m_box.push_back(context, rect_properties);
+          //m_box.push_back(context, rect_properties);
           rect_properties.color = property.theme.button.color;
           rect_properties.size -= property.theme.button.outline_thickness;
-          m_box.push_back(context, rect_properties);
+          //m_box.push_back(context, rect_properties);
         }
 
         void draw(fan::opengl::context_t* context)
@@ -68,86 +64,21 @@ namespace fan_2d {
           m_box.draw(context);
         }
 
-        void set_position(fan::opengl::context_t* context, uint32_t i, const fan::vec2& position) {
-          m_box.set_position(context, i * 2, position);
-          m_box.set_position(context, i * 2 + 1, position);
-        }
-
-        bool inside(fan::opengl::context_t* context, uintptr_t i, const fan::vec2& position) const {
-          return m_box.inside(context, i * 2, position);
-        }
-
-        void set_size(fan::opengl::context_t* context, uint32_t i, const fan::vec2& size) {
-          m_box.set_size(context, i * 2, size);
-          m_box.set_size(context, i * 2 + 1, size - m_store[i].m_properties.theme->button.outline_thickness);
-        }
-
-        fan::vec2 get_position(fan::opengl::context_t* context, uint32_t i) const
-        {
-          return m_box.get_position(context, i * 2);
-        }
-
-        fan::vec2 get_size(fan::opengl::context_t* context, uint32_t i) const
-        {
-          return m_box.get_size(context, i * 2);
-        }
-
-        fan::color get_color(fan::opengl::context_t* context, uint32_t i) const
-        {
-          return m_box.get_color(context, i * 2);
-        }
-
         properties_t get_property(fan::opengl::context_t* context, uint32_t i) const
         {
           return *(properties_t*)&m_store[i].m_properties;
         }
 
-        uintptr_t size(fan::opengl::context_t* context) const
-        {
-          return m_box.size(context) / 2;
-        }
+        //void erase(fan::opengl::context_t* context, fan::opengl::cid_t* id)
+        //{
+        //  //m_box.erase(context.);
 
-        void erase(fan::opengl::context_t* context, uint32_t i)
-        {
-          m_box.erase(context, i * 2, i * 2 + 2);
-
-          m_store.erase(i);
-        }
-
-        void erase(fan::opengl::context_t* context, uint32_t begin, uint32_t end)
-        {
-          m_box.erase(context, begin * 2, end * 2);
-          m_store.erase(begin, end);
-        }
-
-        void clear(fan::opengl::context_t* context)
-        {
-          m_box.clear(context);
-          m_store.clear();
-        }
-
-        void update_theme(fan::opengl::context_t* context, uint32_t i)
-        {
-          m_box.set_color(context, i * 2, m_store[i].m_properties.theme->button.outline_color);
-          m_box.set_color(context, i * 2 + 1, m_store[i].m_properties.theme->button.color);
-        }
+        //  m_store.erase(i);
+        //}
 
         fan_2d::graphics::gui::theme get_theme(fan::opengl::context_t* context, uint32_t i) const
         {
           return *m_store[i].m_properties.theme.ptr;
-        }
-        void set_theme(fan::opengl::context_t* context, uint32_t i, const fan_2d::graphics::gui::theme& theme_)
-        {
-          m_box.set_color(context, i * 2, theme_.button.outline_color);
-          m_box.set_color(context, i * 2 + 1, theme_.button.color);
-          *m_store[i].m_properties.theme.ptr = theme_;
-        }
-
-        void set_background_color(fan::opengl::context_t* context, uint32_t i, const fan::color& color) {
-          m_box.set_color(context, i * 2, color);
-        }
-        void set_foreground_color(fan::opengl::context_t* context, uint32_t i, const fan::color& color) {
-          m_box.set_color(context, i * 2 + 1, color);
         }
 
         void enable_draw(fan::opengl::context_t* context)
@@ -160,16 +91,9 @@ namespace fan_2d {
           m_box.disable_draw(context);
         }
 
-        user_instance_data_t get_user_instance_data(uint32_t id) {
-          return m_box.get_user_instance_data(id);
-        }
-        user_global_data_t get_user_global_data() {
-          return m_box.get_user_global_data();
-        }
-
         // IO +
 
-        void write_out(fan::opengl::context_t* context, fan::io::file::file_t* f) const {
+       /* void write_out(fan::opengl::context_t* context, fan::io::file::file_t* f) const {
 				  m_box.write_out(context, f);
           uint64_t count = m_store.size() * sizeof(store_t);
           fan::io::file::write(f, &count, sizeof(count), 1);
@@ -188,7 +112,7 @@ namespace fan_2d {
             m_store[i].m_properties.theme.open();
             fan::io::file::read(f, m_store[i].m_properties.theme.ptr, sizeof(fan_2d::graphics::gui::theme), 1);
           }
-			  }
+			  }*/
 
         // IO -
 

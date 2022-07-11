@@ -23,6 +23,11 @@
 //#include _FAN_PATH(graphics/opengl/2D/objects/sprite1.h)
 //#include _FAN_PATH(graphics/opengl/2D/objects/yuv420p_renderer.h)
 //
+
+#include _FAN_PATH(graphics/opengl/2D/objects/rectangle_box.h)
+#include _FAN_PATH(graphics/opengl/2D/objects/rectangle_text_box.h)
+
+#include _FAN_PATH(font.h)
 #include _FAN_PATH(graphics/opengl/font.h)
 #include _FAN_PATH(graphics/opengl/2D/objects/letter_renderer.h)
 #include _FAN_PATH(graphics/opengl/2D/objects/text_renderer.h)
