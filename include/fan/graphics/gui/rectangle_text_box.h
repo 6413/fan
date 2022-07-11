@@ -7,13 +7,10 @@ namespace fan_2d {
   namespace graphics {
     namespace gui {
 
-      template <typename T_user_global_data, typename T_user_instance_data>
       struct rectangle_text_box_t {
 
-        using user_global_data_t = T_user_global_data;
-        using user_instance_data_t = T_user_instance_data;
-        using box_t = fan_2d::graphics::gui::rectangle_box_t<T_user_global_data, T_user_instance_data>;
-        using text_renderer_t = fan_2d::opengl::text_renderer_t<user_global_data_t>;
+        using box_t = fan_2d::graphics::gui::rectangle_box_t;
+        using text_renderer_t = fan_2d::opengl::text_renderer_t;
         using letter_t = text_renderer_t::letter_t;
 
         struct properties_t {
@@ -32,9 +29,9 @@ namespace fan_2d {
 
         rectangle_text_box_t() = default;
 
-        void open(fan::opengl::context_t* context, box_t::rectangle_t::move_cb_t move_cb_, const T_user_global_data& gd)
+        void open(fan::opengl::context_t* context)
         {
-          rbs.open(context, move_cb_, gd);
+          rbs.open(context);
           tr.open(context);
           m_store.open();
         }
@@ -50,7 +47,7 @@ namespace fan_2d {
           m_store.close();
         }
 
-        void push_back(fan::opengl::context_t* context, text_renderer_t::letter_t* letters, const properties_t& property)
+        void push_back(fan::opengl::context_t* context, text_renderer_t::letter_t* letters, fan::opengl::cid_t* cid, const properties_t& property)
         {
           store_t store;
 
@@ -108,110 +105,16 @@ namespace fan_2d {
           rbsp.theme = property.theme;
           rbsp.position = property.position;
           rbsp.size = property.size;
-          rbs.push_back(context, rbsp);
+          rbs.push_back(context, cid, rbsp);
         }
 
         void draw(fan::opengl::context_t* context) {
           rbs.draw(context);
-          tr.draw(context);
-        }
-
-        void set_position(fan::opengl::context_t* context, uint32_t i, const fan::vec2& position) {
-          rbs.set_position(context, i, position);
-          switch (m_store[i].m_properties.text_position) {
-            case text_position_e::middle: {
-              tr.set_position(context, i, position + m_store[i].m_properties.offset);
-              break;
-            }
-            case text_position_e::left: {
-              tr.set_position(context, i, fan::vec2(position.x + get_size(context, i).x, position.y) + m_store[i].m_properties.offset);
-              break;
-            }
-          }
-        }
-
-        bool inside(fan::opengl::context_t* context, uintptr_t i, const fan::vec2& position) const
-        {
-          return rbs.inside(context, i, position);
-        }
-
-        void set_text(fan::opengl::context_t* context, uint32_t i, const fan::utf16_string& text) {
-          switch (m_store[i].m_properties.text_position) {
-            case text_position_e::left:
-            {
-              tr.set_text(context, i, text);
-
-              fan::vec2 position = get_position(context, i);
-              fan::vec2 size = get_size(context, i);
-              fan::vec2 text_size = tr.get_text_size(context, i);
-              tr.set_position(context, i, 
-                fan::vec2(
-                  position.x - size.x + text_size.x * 0.5,
-                  position.y
-                ) + m_store[i].m_properties.offset
-              );
-              
-              break;
-            }
-            case text_position_e::middle:
-            {
-              tr.set_text(context, i, text);
-              break;
-            }
-          }
-        }
-
-        void set_size(fan::opengl::context_t* context, uint32_t i, const fan::vec2& size) {
-          rbs.set_size(context, i, size);
-        }
-
-        fan::vec2 get_position(fan::opengl::context_t* context, uint32_t i) const
-        {
-          return rbs.get_position(context, i);
-        }
-
-        fan::vec2 get_size(fan::opengl::context_t* context, uint32_t i) const
-        {
-          return rbs.get_size(context, i);
-        }
-
-        f32_t get_font_size(fan::opengl::context_t* context, uint32_t i) const
-        {
-          return tr.get_font_size(context, i);
-        }
-        void set_font_size(fan::opengl::context_t* context, uint32_t i, f32_t font_size) {
-          tr.set_font_size(context, i, font_size);
-        }
-        f32_t get_outline_size(fan::opengl::context_t* context, uint32_t i) const {
-          return tr.get_outline_size(context, i);
-        }
-        void set_outline_size(fan::opengl::context_t* context, uint32_t i, f32_t outline_size) {
-          tr.set_outline_size(context, i, outline_size);
-        }
-        fan::color get_text_color(fan::opengl::context_t* context, uint32_t i, uint32_t j = 0) const {
-          return tr.get_text_color(context, i, j);
-        }
-        void set_text_color(fan::opengl::context_t* context, uint32_t i, const fan::color& color) {
-          tr.set_text_color(context, i, color);
-        }
-        fan::color get_outline_color(fan::opengl::context_t* context, uint32_t i) const {
-          return tr.get_outline_color(context, i);
-        }
-        void set_outline_color(fan::opengl::context_t* context, uint32_t i, const fan::color& outline_color) {
-          tr.set_outline_color(context, i, outline_color);
-        }
-        fan::color get_color(fan::opengl::context_t* context, uint32_t i) const
-        {
-          return rbs.get_color(context, i);
-        }
-
-        fan::utf16_string get_text(fan::opengl::context_t* context, uint32_t i) const {
-          return tr.get_text(context, i);
         }
 
         fan_2d::graphics::gui::src_dst_t get_cursor(fan::opengl::context_t* context, uint32_t i, uint32_t x, uint32_t y)
         {
-          f32_t font_size = get_font_size(context, i);
+        /*  f32_t font_size = get_font_size(context, i);
           f32_t line_height = fan_2d::opengl::text_renderer_t::get_line_height(context, font_size);
 
           fan::vec2 src = 0, dst = 0;
@@ -248,12 +151,12 @@ namespace fan_2d {
 
           dst = fan::vec2(cursor_properties::line_thickness / 2, line_height / 2);
 
-          return { src, dst };
+          return { src, dst };*/
         }
 
         fan::vec2 get_text_starting_point(fan::opengl::context_t* context, uint32_t i) const
         {
-          fan::vec2 src;
+         /* fan::vec2 src;
 
           if (m_store[i].m_properties.text_position == fan_2d::graphics::gui::text_position_e::left) {
             src = this->get_position(context, i);
@@ -266,50 +169,28 @@ namespace fan_2d {
             src = this->get_position(context, i) - text_size * 0.5;
           }
 
-          return src;
+          return src;*/
         }
 
-        fan::vec2 set_offset(fan::opengl::context_t* context, uint32_t i) const {
+        fan::vec2 get_offset(fan::opengl::context_t* context, uint32_t i) const {
           return rbs.m_store[i].m_properties.offset;
         }
-        void set_offset(fan::opengl::context_t* context, uint32_t i, const fan::vec2& offset) {
-          rbs.m_store[i].m_properties.offset = offset;
-          tr.set_position(context, i, get_position(context, i) + offset);
-        }
 
-        uintptr_t size(fan::opengl::context_t* context) const {
-          return rbs.size(context);
-        }
-
-        void erase(fan::opengl::context_t* context, uint32_t i)
+        void erase(fan::opengl::context_t* context, letter_t* letter, uint32_t i)
         {
-          rbs.erase(context, i);
-          tr.erase(context, i);
+          //rbs.erase(context, i);
+          tr.erase(context, letter, i);
           m_store.erase(i);
         }
 
-        void erase(fan::opengl::context_t* context, uint32_t begin, uint32_t end)
-        {
-          rbs.erase(context, begin, end);
-          tr.erase(context, begin, end);
-          m_store.erase(begin, end);
-        }
-
-        void clear(fan::opengl::context_t* context) {
+       /* void clear(fan::opengl::context_t* context) {
           rbs.clear(context);
           tr.clear(context);
           m_store.clear();
-        }
-
-        void update_theme(fan::opengl::context_t* context, uint32_t i) {
-          rbs.update_theme(context, i);
-        }
+        }*/
 
         fan_2d::graphics::gui::theme get_theme(fan::opengl::context_t* context, uint32_t i) const {
           return rbs.get_theme(context, i);
-        }
-        void set_theme(fan::opengl::context_t* context, uint32_t i, const fan_2d::graphics::gui::theme& theme_) {
-          rbs.set_theme(context, i, theme_);
         }
 
         void enable_draw(fan::opengl::context_t* context) {
@@ -323,33 +204,6 @@ namespace fan_2d {
         void bind_matrices(fan::opengl::context_t* context, fan::opengl::matrices_t* matrices) {
           rbs.m_box.m_shader.bind_matrices(context, matrices);
         }
-
-        user_instance_data_t get_user_instance_data(uint32_t id) {
-          return rbs.get_user_instance_data(id);
-        }
-        user_global_data_t get_user_global_data() {
-          return rbs.get_user_global_data();
-        }
-
-         // IO +
-
-        void write_out(fan::opengl::context_t* context, fan::io::file::file_t* f) const {
-				  rbs.write_out(context, f);
-          tr.write_out(context, f);
-          uint64_t count = m_store.size() * sizeof(store_t);
-          fan::io::file::write(f, &count, sizeof(count), 1);
-					fan::io::file::write(f, m_store.data(), sizeof(store_t) * m_store.size(), 1);
-			  }
-        void write_in(fan::opengl::context_t* context, FILE* f) {
-          rbs.write_in(context, f);
-          tr.write_in(context, f);
-          uint64_t count;
-          fan::io::file::read(f, &count, sizeof(count), 1);
-          m_store.resize(count / sizeof(store_t));
-          fan::io::file::read(f, m_store.data(), count, 1);
-			  }
-
-        // IO -
 
         box_t rbs;
         text_renderer_t tr;

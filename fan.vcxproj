@@ -245,7 +245,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="examples\text_renderer.cpp" />
+    <ClCompile Include="examples\rectangle_box.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
     <ClCompile Include="src\fan\window\window_input.cpp" />
   </ItemGroup>
@@ -297,6 +297,7 @@
     <None Include="src\dav1d\x86\refmvs.asm" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="examples\rectangle_text_box.cpp" />
     <ClInclude Include="include\fan\audio\audio.h" />
     <ClInclude Include="include\fan\audio\backend\unix\linux\alsa\a.h" />
     <ClInclude Include="include\fan\audio\backend\uni\miniaudio\a.h" />
@@ -314,7 +315,10 @@
     <ClInclude Include="include\fan\font.h" />
     <ClInclude Include="include\fan\graphics\camera.h" />
     <ClInclude Include="include\fan\graphics\fast_obj\fast_obj.h" />
+    <ClInclude Include="include\fan\graphics\gui\rectangle_text_box.h" />
     <ClInclude Include="include\fan\graphics\gui\rectangle_text_button.h" />
+    <ClInclude Include="include\fan\graphics\opengl\2D\objects\rectangle_box.h" />
+    <ClInclude Include="include\fan\graphics\opengl\2D\objects\rectangle_text_box.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\objects\text_renderer.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\objects\sprite1.h" />
     <ClInclude Include="include\fan\graphics\opengl\font.h" />
@@ -371,7 +375,6 @@
     <ClInclude Include="include\fan\graphics\gui\focus.h" />
     <ClInclude Include="include\fan\graphics\gui\key_event.h" />
     <ClInclude Include="include\fan\graphics\gui\rectangle_box.h" />
-    <ClInclude Include="include\fan\graphics\gui\rectangle_text_box.h" />
     <ClInclude Include="include\fan\graphics\gui\select_box.h" />
     <ClInclude Include="include\fan\graphics\gui\sprite_button_sized.h" />
     <ClInclude Include="include\fan\graphics\gui\text_renderer_clickable.h" />

@@ -10,6 +10,8 @@ namespace fan_2d {
 
     struct rectangle_t {
 
+      using draw_cb_t = void(*)(fan::opengl::context_t* context, rectangle_t*, void*);
+
       struct instance_t {
         fan::vec2 position = 0;
         fan::vec2 size = 0;
@@ -54,6 +56,7 @@ namespace fan_2d {
         blocks.open();
 
         m_draw_node_reference = fan::uninitialized;
+        draw_cb = [](fan::opengl::context_t* context, rectangle_t*, void*) {};
       }
       void close(fan::opengl::context_t* context) {
         m_shader.close(context);
@@ -80,9 +83,6 @@ namespace fan_2d {
           blocks[i].uniform_buffer.bind_uniform_block(context, m_shader.id, "instance_t");
         }
 
-        uint32_t src = blocks[i].uniform_buffer.size() - 1;
-        src *= blocks[i].uniform_buffer.element_byte_size;
-
         blocks[i].uniform_buffer.push_ram_instance(context, it);
 
         const uint32_t instance_id = blocks[i].uniform_buffer.size() - 1;
@@ -91,8 +91,8 @@ namespace fan_2d {
 
         blocks[i].uniform_buffer.common.edit(
           context,
-          src,
-          instance_id
+          instance_id,
+          instance_id + 1
         );
 
         cid->id = i * max_instance_size + instance_id;
@@ -169,6 +169,10 @@ namespace fan_2d {
       void draw(fan::opengl::context_t* context) {
         m_shader.use(context);
 
+        if (draw_cb) {
+          draw_cb(context, this, draw_userdata);
+        }
+
         for (uint32_t i = 0; i < blocks.size(); i++) {
           blocks[i].uniform_buffer.bind_buffer_range(context, blocks[i].uniform_buffer.size());
 
@@ -193,6 +197,26 @@ namespace fan_2d {
         blocks[id.block].uniform_buffer.edit_ram_instance(context, id.instance, &value, fan::ofof<instance_t, T>(member), sizeof(T));
       }
 
+      void set_vertex(fan::opengl::context_t* context, const std::string& str) {
+        m_shader.set_vertex(context, str);
+      }
+      void set_fragment(fan::opengl::context_t* context, const std::string& str) {
+        m_shader.set_fragment(context, str);
+      }
+      void compile(fan::opengl::context_t* context) {
+        m_shader.compile(context);
+      }
+
+      void set_draw_cb(fan::opengl::context_t* context, draw_cb_t draw_cb_, void* userptr = 0) {
+        draw_cb = draw_cb_;
+        if (userptr != nullptr) {
+          draw_userdata = userptr;
+        }
+      }
+      void set_draw_cb_userptr(fan::opengl::context_t* context, void* userptr) {
+        draw_userdata = userptr;
+      }
+
       fan::shader_t m_shader;
 
       struct block_t {
@@ -202,6 +226,9 @@ namespace fan_2d {
       uint32_t m_draw_node_reference;
 
       fan::hector_t<block_t> blocks;
+
+      draw_cb_t draw_cb;
+      void* draw_userdata;
     };
   }
 }

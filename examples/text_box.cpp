@@ -12,7 +12,7 @@ using id_holder_t = bll_t<uint32_t>;
 
 struct pile_t;
 
-using text_box_t = fan_2d::graphics::gui::rectangle_text_box_t<pile_t*, uint32_t>;
+using text_box_t = fan_2d::graphics::gui::rectangle_text_box_t;
 using letter_t = text_box_t::letter_t;
 
 struct pile_t {
@@ -23,14 +23,6 @@ struct pile_t {
   text_box_t text_box;
   letter_t letters;
 };
-
-void letter_cb(letter_t* l, uint32_t src, uint32_t dst, text_box_t::text_renderer_t::letter_data_t* lp) {
-  //l->user_global_data->ids[*p] = dst;
-}
-
-void text_box_cb(text_box_t::box_t::rectangle_t* l, uint32_t src, uint32_t dst, uint32_t *p) {
-  l->get_user_global_data()->ids[*p] = dst;
-}
 
 int main() {
 
@@ -60,10 +52,10 @@ int main() {
   fan_2d::graphics::font_t font;
   font.open(&pile.context, "fonts/bitter");
 
-  pile.letters.open(&pile.context, &font, letter_cb, &pile);
+  pile.letters.open(&pile.context, &font);
   pile.letters.bind_matrices(&pile.context, &pile.matrices);
 
-  pile.text_box.open(&pile.context, text_box_cb, &pile);
+  pile.text_box.open(&pile.context);
   pile.text_box.bind_matrices(&pile.context, &pile.matrices);
   text_box_t::properties_t tp;
   tp.theme.button.outline_thickness = 0.005;
