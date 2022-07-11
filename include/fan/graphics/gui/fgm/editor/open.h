@@ -68,7 +68,7 @@ builder_types_p.size = fan::vec2(constants::gui_size * 4, constants::gui_size);
 builder_types_p.position = fan::vec2(builder_viewport_src.x + 0.12, 0.1);
 builder_types_p.text = "sprite";
 builder_types_p.theme = fan_2d::graphics::gui::themes::gray();
-builder_types_p.theme.button.outline_thickness = 0.0005;
+builder_types_p.theme.button.outline_size = 0.0005;
 builder_types.push_back(&pile->window, &pile->context, builder_types_p);
 
 original_position[0].push_back(builder_types_p.size);
