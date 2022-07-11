@@ -6,11 +6,11 @@
 #define fan_debug 1
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
-#include _FAN_PATH(graphics/graphics.h)
+#include _FAN_PATH(graphics/gui/gui.h)
 
 constexpr uint32_t count = 1;
 
-using rectangle_box_t = fan_2d::opengl::rectangle_box_t;
+using rectangle_box_t = fan_2d::graphics::gui::rectangle_box_t;
 
 struct pile_t {
   fan::opengl::matrices_t matrices;
@@ -52,9 +52,7 @@ int main() {
 
   for (uint32_t i = 0; i < count; i++) {
     p.position = fan::vec2(0, 0);
-    p.color = fan::colors::red - 0.6;
-    p.outline_color = fan::colors::red - 0.5;
-    p.outline_size = 0.1;
+    p.theme = fan_2d::graphics::gui::themes::deep_red();
     r.push_back(&pile.context, &pile.cids[i], p);
   }
 

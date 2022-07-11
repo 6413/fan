@@ -75,7 +75,7 @@ namespace fan_2d {
 						button.text_color = fan_2d::graphics::gui::defaults::text_color;
 						button.text_outline_color = fan::colors::black;
 						button.text_outline_size = fan_2d::graphics::gui::defaults::text_renderer_outline_size;
-						button.outline_thickness = 0; // px
+						button.outline_thickness = 0.1; // px
 
 						button.hover_color = button.color + 0.1;
 						button.hover_outline_color = button.outline_color + 0.1;
@@ -102,7 +102,7 @@ namespace fan_2d {
 						button.text_color = fan_2d::graphics::gui::defaults::text_color;
 						button.text_outline_color = fan::colors::black * intensity;
 						button.text_outline_size = fan_2d::graphics::gui::defaults::text_renderer_outline_size * intensity;
-						button.outline_thickness = 2; // px
+						button.outline_thickness = 0.1;
 						
 						button.hover_color = (button.color + 0.1) * intensity;
 						button.hover_outline_color = (button.outline_color + 0.1) * intensity;
@@ -129,7 +129,7 @@ namespace fan_2d {
 						button.text_color = fan_2d::graphics::gui::defaults::text_color;
 						button.text_outline_color = fan::colors::black;
 						button.text_outline_size = fan_2d::graphics::gui::defaults::text_renderer_outline_size;
-						button.outline_thickness = 2; // px
+						button.outline_thickness = 0.1; // px
 
 						button.hover_color = button.color + 0.1;
 						button.hover_outline_color = button.outline_color + 0.1;
@@ -156,7 +156,7 @@ namespace fan_2d {
 						button.text_color = fan_2d::graphics::gui::defaults::text_color;
 						button.text_outline_color = fan::colors::black;
 						button.text_outline_size = fan_2d::graphics::gui::defaults::text_renderer_outline_size;
-						button.outline_thickness = 2; // px
+						button.outline_thickness = 0.1; // px
 
 						button.hover_color = button.color + 0.1;
 						button.hover_outline_color = button.outline_color + 0.1;
@@ -183,7 +183,7 @@ namespace fan_2d {
 						button.text_color = fan_2d::graphics::gui::defaults::text_color;
 						button.text_outline_color = fan::colors::black;
 						button.text_outline_size = fan_2d::graphics::gui::defaults::text_renderer_outline_size;
-						button.outline_thickness = 2; // px
+						button.outline_thickness = 0.1; // px
 
 						button.hover_color = button.color + 0.1;
 						button.hover_outline_color = button.outline_color + 0.1;
@@ -210,7 +210,7 @@ namespace fan_2d {
 						button.text_color = fan_2d::graphics::gui::defaults::text_color;
 						button.text_outline_color = fan::colors::black;
 						button.text_outline_size = fan_2d::graphics::gui::defaults::text_renderer_outline_size;
-						button.outline_thickness = 2; // px
+						button.outline_thickness = 0.1; // px
 
 						button.hover_color = fan::color(0.0, 0.0, 0.0, 0.15);
 						button.hover_outline_color = fan::color(0.0, 0.0, 0.0, 0.15);

@@ -84,7 +84,7 @@ namespace fan_2d {
           p.letter_id = letters->font->decode_letter(properties.text[i]);
           auto letter_info = letters->font->info.get_letter_info(properties.text[i], properties.font_size);
           
-          p.position = fan::vec2(left - letter_info.metrics.offset.x, properties.position.y) + (fan::vec2(letter_info.metrics.size.x, 0) / 2 + fan::vec2(letter_info.metrics.offset.x, -letter_info.metrics.offset.y));
+          p.position = fan::vec2(left - letter_info.metrics.offset.x, properties.position.y) + (fan::vec2(letter_info.metrics.size.x, properties.font_size - letter_info.metrics.size.y) / 2 + fan::vec2(letter_info.metrics.offset.x, -letter_info.metrics.offset.y));
 
           letter_ids[id].resize(letter_ids[id].size() + 1);
           letters->push_back(context, &letter_ids[id][letter_ids[id].size() - 1], p);

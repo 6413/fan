@@ -12,8 +12,6 @@ namespace fan_2d {
 
         //using user_global_data_t = T_user_global_data;
 
-        using move_cb_t = void(*)(be_t*, uint32_t src, uint32_t dst);
-
         typedef void(*on_input_cb)(be_t*, uint32_t index, uint16_t key, fan::key_state key_state, fan_2d::graphics::gui::mouse_stage mouse_stage);
         typedef void(*on_mouse_move_cb)(be_t*, uint32_t index, mouse_stage mouse_stage);
 
@@ -54,13 +52,12 @@ namespace fan_2d {
           fan_2d::graphics::gui::mouse_stage mouse_stage;
         };
 
-        void open(move_cb_t move_cb_) {
+        void open() {
           m_button_data.open();
           coordinate_offset = 0;
 
           on_input_function = [](be_t*, uint32_t index, uint16_t key, fan::key_state key_state, fan_2d::graphics::gui::mouse_stage mouse_stage) {};
           on_mouse_event_function = [](be_t*, uint32_t index, fan_2d::graphics::gui::mouse_stage mouse_stage) {};
-          move_cb = move_cb_;
         }
         void close() {
           m_button_data.close();
@@ -190,17 +187,18 @@ namespace fan_2d {
           }
         }
 
-        uint32_t push_back(const properties_t& p) {
+        void push_back(fan::opengl::cid_t* cid, const properties_t& p) {
           button_data_t b;
           b.properties = p;
-          return m_button_data.push_back(b);
+          cid->id = m_button_data.push_back(b);
         }
         void erase(uint32_t i) {
           uint32_t src = m_button_data.size() - 1;
           uint32_t dst = i;
           m_button_data[i] = m_button_data[m_button_data.size() - 1];
+          m_button_data[i].cid->id = i; // maybe
           m_button_data.pop_back();
-          move_cb(this, src, dst);
+
         }
 
         // used for camera position
@@ -247,13 +245,12 @@ namespace fan_2d {
 
         struct button_data_t {
           properties_t properties;
+          fan::opengl::cid_t* cid;
         };
 
         fan::hector_t<button_data_t> m_button_data;
 
         fan::vec2 coordinate_offset;
-
-        move_cb_t move_cb;
 
         /*union {
           struct{
