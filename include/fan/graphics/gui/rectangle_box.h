@@ -82,7 +82,7 @@ namespace fan_2d {
           instance_t it = p;
           it.color = p.theme.button.color;
           it.outline_color = p.theme.button.outline_color;
-          it.outline_size = p.theme.button.outline_thickness;
+          it.outline_size = p.theme.button.outline_size;
           uint32_t i = 0;
 
           for (; i < blocks.size(); i++) {

@@ -8,7 +8,7 @@ case builder_draw_type_t::hitbox: {
   properties_button_p.size = fan::vec2(constants::gui_size * 3, constants::gui_size);
   properties_button_p.font_size = constants::gui_size;
   properties_button_p.theme = fan_2d::graphics::gui::themes::gray();
-  properties_button_p.theme.button.outline_thickness = 0.001;
+  properties_button_p.theme.button.outline_size = 0.001;
   properties_button_p.text_position = fan_2d::graphics::gui::text_position_e::left;
   properties_button_p.allow_input = true;
   properties_button_p.position = fan::vec2(
@@ -75,7 +75,7 @@ case builder_draw_type_t::hitbox: {
   properties_button_p.allow_input = false;
   properties_button_p.text = "erase";
   properties_button_p.theme = fan_2d::graphics::gui::themes::deep_red();
-  properties_button_p.theme.button.outline_thickness = 0.001;
+  properties_button_p.theme.button.outline_size = 0.001;
   properties_button_p.size /= 2;
   properties_button_p.position.x = properties_button_p.size.x + constants::properties_text_pad;
   properties_button_p.text_position = fan_2d::graphics::gui::text_position_e::middle;

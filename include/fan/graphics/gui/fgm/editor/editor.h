@@ -21,7 +21,7 @@ inline void fan_2d::graphics::gui::fgm::editor_t::push_resize_rectangles(pile_t*
     p.position = positions[i];
     p.size = constants::resize_rectangle_size;
     p.theme = fan_2d::graphics::gui::themes::deep_blue(0.8);
-    p.theme.button.outline_thickness = 0.001;
+    p.theme.button.outline_size = 0.001;
     pile->editor.resize_rectangles.push_back(&pile->window, &pile->context, p);
   }
 }

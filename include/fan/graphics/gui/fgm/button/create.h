@@ -8,7 +8,7 @@ case builder_draw_type_t::button: {
       button_p.position = pile->editor.get_mouse_position(pile);
       button_p.size = pile->editor.builder_types.get_size(&pile->window, &pile->context, 0);
       button_p.theme = fan_2d::graphics::gui::themes::gray();
-      button_p.theme.button.outline_thickness = 0.001;
+      button_p.theme.button.outline_size = 0.001;
       button_p.font_size = constants::gui_size;
       button_p.text = "button";
       pile->builder.button.push_back(&pile->window, &pile->context, button_p);

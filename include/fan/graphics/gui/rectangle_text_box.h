@@ -91,7 +91,7 @@ namespace fan_2d {
 
           it.color = p.theme.button.color;
           it.outline_color = p.theme.button.outline_color;
-          it.outline_size = p.theme.button.outline_thickness;
+          it.outline_size = p.theme.button.outline_size;
           fan_2d::opengl::text_renderer_t::properties_t tp;
           tp.color = p.theme.button.text_color;
           tp.font_size = p.font_size;
@@ -227,6 +227,12 @@ namespace fan_2d {
         template <typename T>
         void set(fan::opengl::context_t* context, const id_t& id, T instance_t::* member, const T& value) {
           blocks[id.block].uniform_buffer.edit_ram_instance(context, id.instance, &value, fan::ofof<instance_t, T>(member), sizeof(T));
+
+          blocks[id.block].uniform_buffer.common.edit(
+            context,
+            id.instance,
+            id.instance + 1
+          );
         }
 
         void set_vertex(fan::opengl::context_t* context, const std::string& str) {
@@ -247,6 +253,12 @@ namespace fan_2d {
         }
         void set_draw_cb_userptr(fan::opengl::context_t* context, void* userptr) {
           draw_userdata = userptr;
+        }
+
+        void set_theme(fan::opengl::context_t* context, fan::opengl::cid_t* cid, const fan_2d::graphics::gui::theme& theme) {
+          set(context, cid, &instance_t::color, theme.button.color);
+          set(context, cid, &instance_t::outline_color, theme.button.outline_color);
+          set(context, cid, &instance_t::outline_size, theme.button.outline_size);
         }
 
         fan::shader_t m_shader;
