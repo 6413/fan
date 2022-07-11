@@ -6,11 +6,11 @@
 #define fan_debug 1
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
-#include _FAN_PATH(graphics/graphics.h)
+#include _FAN_PATH(graphics/gui/gui.h)
 
 constexpr uint32_t count = 1;
 
-using rectangle_text_box_t = fan_2d::opengl::rectangle_text_box_t;
+using rectangle_text_box_t = fan_2d::graphics::gui::rectangle_text_box_t;
 
 struct pile_t {
   fan::opengl::matrices_t matrices;
@@ -37,7 +37,7 @@ int main() {
     fan::vec2 ratio = window_size / window_size.max();
     std::swap(ratio.x, ratio.y);
     pile->matrices.set_ortho(&pile->context, fan::vec2(-1, 1) * ratio.x, fan::vec2(-1, 1) * ratio.y);
-    });
+  });
 
   pile.matrices.open();
 
@@ -49,13 +49,19 @@ int main() {
   rectangle_text_box_t::properties_t p;
 
   p.size = fan::vec2(0.3, 0.1);
+  p.text = L"hello world";
+
+  fan_2d::graphics::font_t font;
+  font.open(&pile.context, "fonts/bitter");
+
+  fan_2d::graphics::letter_t letter;
+  letter.open(&pile.context, &font);
+  letter.bind_matrices(&pile.context, &pile.matrices);
+  letter.enable_draw(&pile.context);
 
   for (uint32_t i = 0; i < count; i++) {
     p.position = fan::vec2(0, 0);
-    p.color = fan::colors::red - 0.6;
-    p.outline_color = fan::colors::red - 0.5;
-    p.outline_size = 0.1;
-    r.push_back(&pile.context, &pile.cids[i], p);
+    r.push_back(&pile.context, &letter, &pile.cids[i], p);
   }
 
   fan::vec2 window_size = pile.window.get_size();

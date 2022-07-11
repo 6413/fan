@@ -9,8 +9,8 @@
 
 struct pile_t;
 
-using rectangle_t = fan_2d::graphics::rectangle_t<pile_t*, uint32_t>;
-using rectangle_text_button_t = fan_2d::graphics::gui::rectangle_text_button_t<pile_t*, uint32_t>;
+using rectangle_t = fan_2d::graphics::rectangle_t;
+using rectangle_text_button_t = fan_2d::graphics::gui::rectangle_text_button_t;
 using letter_t = rectangle_text_button_t::letter_t;
 
 struct pile_t {
@@ -24,19 +24,11 @@ struct draw_pile_types_t {
   rectangle_t rectangle;
 };
 
-using loco_t = fan_2d::graphics::loco_t<draw_pile_types_t>;
-
-void letter_cb(letter_t* l, uint32_t src, uint32_t dst, rectangle_text_button_t::text_renderer_t::letter_data_t* lp) {
-  
-}
-
-void text_button_cb(rectangle_text_button_t::box_t::rectangle_t* l, uint32_t src, uint32_t dst, uint32_t *p) {
-  
-}
-
-void be_cb(fan_2d::graphics::gui::be_t*, uint32_t src, uint32_t dst) {
-
-}
+#define loco_rectangle
+#define loco_sprite
+#define loco_letter
+#define loco_rectangle_text_button
+#include _FAN_PATH(graphics/loco.h)
 
 int main() {
 
@@ -68,14 +60,14 @@ int main() {
   lp.font = &font;
   loco.open(lp);
 
-  loco.letter.open(&loco.context, &font, letter_cb, &pile);
+  loco.letter.open(&loco.context, &font);
   loco.letter.bind_matrices(&loco.context, &loco.matrices);
 
-  loco.rectangle_text_button.open(&loco.context, text_button_cb, &pile);
+  loco.rectangle_text_button.open(&loco.context);
   loco.rectangle_text_button.bind_matrices(&loco.context, &loco.matrices);
 
   fan_2d::graphics::gui::be_t be;
-  be.open(be_cb);
+  be.open();
   be.bind_to_window(&pile.window);
 
   rectangle_text_button_t::properties_t tp;
@@ -83,7 +75,8 @@ int main() {
   tp.position = 0;
   tp.size = fan::vec2(0.4, 0.1);
   tp.text = "HeLoWoRlD_";
-  loco.rectangle_text_button.push_back(&loco.context, &be, &loco.letter, tp);
+  fan::opengl::cid_t cid;
+  loco.rectangle_text_button.push_back(&loco.context, &be, &loco.letter, &cid, tp);
   loco.rectangle_text_button.enable_draw(&loco.context);
 
   loco.letter.enable_draw(&loco.context);

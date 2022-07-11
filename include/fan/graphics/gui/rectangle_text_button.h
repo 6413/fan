@@ -10,9 +10,9 @@ namespace fan_2d {
       struct rectangle_text_button_t {
 
         using text_box_t = fan_2d::graphics::gui::rectangle_text_box_t;
-        using text_renderer_t = text_box_t::text_renderer_t;
-        using letter_t = text_box_t::letter_t;
-        using box_t = text_box_t::box_t;
+        using text_renderer_t = fan_2d::opengl::text_renderer_t;
+        using letter_t = text_renderer_t::letter_t;
+        //using box_t = text_box_t::box;
 
         struct properties_t : text_box_t::properties_t {
 
@@ -34,7 +34,7 @@ namespace fan_2d {
           be_p.hitbox_type = fan_2d::graphics::gui::be_t::hitbox_type_t::rectangle;
           be_p.hitbox_rectangle.position = p.position;
           be_p.hitbox_rectangle.size = p.size;
-          button_event->push_back(be_p);
+          button_event->push_back(cid, be_p);
         }
 
         void enable_draw(fan::opengl::context_t* context) {

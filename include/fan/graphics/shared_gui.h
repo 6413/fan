@@ -21,6 +21,7 @@
 #if fan_renderer == fan_renderer_opengl
 	#include _FAN_PATH(graphics/gui/rectangle_text_box.h)
 	#include _FAN_PATH(graphics/gui/rectangle_text_button.h)
+	#include _FAN_PATH(graphics/gui/rectangle_box.h)
 #endif
 
 //#include _FAN_PATH(graphics/gui/text_renderer_clickable.h)
