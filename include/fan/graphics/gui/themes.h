@@ -4,7 +4,6 @@
 
 #include _FAN_PATH(types/color.h)
 
-#include _FAN_PATH(graphics/gui/button_event.h)
 #include _FAN_PATH(graphics/gui/types.h)
 
 namespace fan_2d {
@@ -18,12 +17,6 @@ namespace fan_2d {
 				struct button {
 
 					button() = default;
-
-					typedef void(*click_callback_t)(fan::window_t *window, uint32_t index, uint16_t key, fan::key_state key_state, mouse_stage mouse_stage, void* user_ptr);
-					typedef void(*hover_callback_t)(fan::window_t *window, uint32_t index, mouse_stage mouse_stage, void* user_ptr);
-
-					click_callback_t m_click_callback = 0;
-					hover_callback_t m_hover_callback = 0;
 
 					enum class states_e {
 						outside,

@@ -314,6 +314,7 @@
     <ClInclude Include="include\fan\font.h" />
     <ClInclude Include="include\fan\graphics\camera.h" />
     <ClInclude Include="include\fan\graphics\fast_obj\fast_obj.h" />
+    <ClInclude Include="include\fan\graphics\gui\ke.h" />
     <ClInclude Include="include\fan\graphics\gui\rectangle_text_button.h" />
     <ClInclude Include="include\fan\graphics\gui\rectangle_box.h" />
     <ClInclude Include="include\fan\graphics\gui\rectangle_text_box.h" />
@@ -343,7 +344,6 @@
     <ClInclude Include="include\fan\graphics\gui\fgm\includes\resize.h" />
     <ClInclude Include="include\fan\graphics\gui\gui.h" />
     <ClInclude Include="include\fan\graphics\gui\be.h" />
-    <ClInclude Include="include\fan\graphics\gui\button_event.h" />
     <ClInclude Include="include\fan\graphics\gui\fgm\builder.h" />
     <ClInclude Include="include\fan\graphics\gui\fgm\hitbox\create.h" />
     <ClInclude Include="include\fan\graphics\gui\fgm\hitbox\move.h" />
