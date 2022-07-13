@@ -7,7 +7,6 @@
 
 #include _FAN_PATH(graphics/gui/gui.h)
 
-struct pile_t;
 
 using rectangle_t = fan_2d::graphics::rectangle_t;
 using rectangle_text_button_t = fan_2d::graphics::gui::rectangle_text_button_t;
@@ -55,8 +54,8 @@ int main() {
 
   rectangle_text_button_t::properties_t tp;
   tp.position = 0;
-  tp.size = fan::vec2(0.4, 0.1);
-  tp.text = "HeLoWoRlD_";
+  tp.size = fan::vec2(0.3, 0.1);
+  tp.text = "hello world";
   fan::opengl::cid_t cid;
   loco.push_back(&cid, tp);
   loco.rectangle_text_button.enable_draw(&loco.context);

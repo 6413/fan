@@ -1,6 +1,5 @@
 #pragma once
 
-#include _FAN_PATH(graphics/gui/button_event.h)
 #include _FAN_PATH(graphics/gui/key_event.h)
 #include _FAN_PATH(physics/collision/circle.h)
 
@@ -8,12 +7,19 @@ namespace fan_2d {
   namespace graphics {
     namespace gui {
 
+      enum class mouse_stage {
+        outside,
+        inside,
+        outside_drag,
+        inside_drag // when dragged from other element and released inside other element
+      };
+
       struct be_t {
 
         //using user_global_data_t = T_user_global_data;
 
-        typedef void(*on_input_cb)(fan::opengl::context_t* context, be_t*, fan::opengl::cid_t* object_index, uint16_t key, fan::key_state key_state, fan_2d::graphics::gui::mouse_stage mouse_stage, void* userptr);
-        typedef void(*on_mouse_move_cb)(fan::opengl::context_t* context, be_t*, fan::opengl::cid_t* object_index, mouse_stage mouse_stage, void* userptr);
+        typedef void(*on_input_cb)(fan::opengl::context_t* context, be_t*, uint32_t element_id, uint16_t key, fan::key_state key_state, fan_2d::graphics::gui::mouse_stage mouse_stage, void* userptr);
+        typedef void(*on_mouse_move_cb)(fan::opengl::context_t* context, be_t*, uint32_t element_id, mouse_stage mouse_stage, void* userptr);
 
         struct hitbox_type_t {
           static constexpr uint8_t rectangle = 0;
@@ -28,6 +34,7 @@ namespace fan_2d {
           on_mouse_move_cb on_mouse_event_function;
 
           void* userptr;
+          uint32_t element_id;
 
           uint8_t hitbox_type;
           union {
@@ -43,13 +50,6 @@ namespace fan_2d {
         };
 
         struct key_info_t {
-          be_t* be;
-          uint32_t index;
-          uint16_t key;
-          fan::key_state key_state;
-          fan_2d::graphics::gui::mouse_stage mouse_stage;
-        };
-        struct mouse_info_t {
           be_t* be;
           uint32_t index;
           uint16_t key;
@@ -98,18 +98,21 @@ namespace fan_2d {
             }
           }
 
-          for (uint32_t i = m_button_data.size(); i--; ) {
+
+          uint32_t i = m_button_data.rbegin();
+          while (i != m_button_data.rend()) {
             if (inside(i, coordinate_offset + mouse_position)) {
               if (m_focused_button_id != fan::uninitialized) {
-                m_button_data[i].properties.on_mouse_event_function(context, this, m_button_data[i].object_cid, mouse_stage::outside, m_button_data[i].properties.userptr);
+                m_button_data[i].properties.on_mouse_event_function(context, this, m_button_data[i].properties.element_id, mouse_stage::outside, m_button_data[i].properties.userptr);
               }
               m_focused_button_id = i;
-              m_button_data[i].properties.on_mouse_event_function(context, this, m_button_data[m_focused_button_id].object_cid, mouse_stage::inside, m_button_data[i].properties.userptr);
+              m_button_data[i].properties.on_mouse_event_function(context, this, m_button_data[m_focused_button_id].properties.element_id, mouse_stage::inside, m_button_data[i].properties.userptr);
               return;
             }
+            i = m_button_data.rnext(i);
           }
           if (m_focused_button_id != fan::uninitialized) {
-            m_button_data[m_focused_button_id].properties.on_mouse_event_function(context, this, m_button_data[m_focused_button_id].object_cid, mouse_stage::outside, m_button_data[m_focused_button_id].properties.userptr);
+            m_button_data[m_focused_button_id].properties.on_mouse_event_function(context, this, m_button_data[m_focused_button_id].properties.element_id, mouse_stage::outside, m_button_data[m_focused_button_id].properties.userptr);
             m_focused_button_id = fan::uninitialized;
           }
         }
@@ -119,13 +122,15 @@ namespace fan_2d {
             if (state == fan::key_state::press) {
               if (m_focused_button_id != fan::uninitialized) {
                 m_do_we_hold_button = 1;
-                m_button_data[m_focused_button_id].properties.on_input_function(context, this, m_button_data[m_focused_button_id].object_cid, button, fan::key_state::press, mouse_stage::inside, m_button_data[m_focused_button_id].properties.userptr);
+                m_button_data[m_focused_button_id].properties.on_input_function(context, this, m_button_data[m_focused_button_id].properties.element_id, button, fan::key_state::press, mouse_stage::inside, m_button_data[m_focused_button_id].properties.userptr);
               }
               else {
-                for (uint32_t i = m_button_data.size(); i--; ) {
+                uint32_t i = m_button_data.rbegin();
+                while (i != m_button_data.rend()) {
                   if (inside(i, coordinate_offset + mouse_position)) {
-                    m_button_data[i].properties.on_input_function(context, this, m_button_data[i].object_cid, button, state, mouse_stage::outside, m_button_data[i].properties.userptr);
+                    m_button_data[i].properties.on_input_function(context, this, m_button_data[i].properties.element_id, button, state, mouse_stage::outside, m_button_data[i].properties.userptr);
                   }
+                  i = m_button_data.rnext(i);
                 }
                 return; // clicked at space
               }
@@ -141,23 +146,25 @@ namespace fan_2d {
             else {
               if (inside(m_focused_button_id, coordinate_offset + mouse_position)) {
                 pointer_remove_flag = 1;
-                m_button_data[m_focused_button_id].properties.on_input_function(context, this, m_button_data[m_focused_button_id].object_cid, button, fan::key_state::release, mouse_stage::inside, m_button_data[m_focused_button_id].properties.userptr);
+                m_button_data[m_focused_button_id].properties.on_input_function(context, this, m_button_data[m_focused_button_id].properties.element_id, button, fan::key_state::release, mouse_stage::inside, m_button_data[m_focused_button_id].properties.userptr);
                 if (pointer_remove_flag == 0) {
                   return;
                   //rtb is deleted
                 }
               }
               else {
-                for (uint32_t i = m_button_data.size(); i--; ) {
+                uint32_t i = m_button_data.rbegin();
+                while (i != m_button_data.rend()) {
                   if (inside(i, coordinate_offset + mouse_position)) {
-                    m_button_data[i].properties.on_input_function(context, this, m_button_data[i].object_cid, button, fan::key_state::release, mouse_stage::inside_drag, m_button_data[i].properties.userptr);
+                    m_button_data[i].properties.on_input_function(context, this, m_button_data[i].properties.element_id, button, fan::key_state::release, mouse_stage::inside_drag, m_button_data[i].properties.userptr);
                     m_focused_button_id = i;
                     break;
                   }
+                  i = m_button_data.rnext(i);
                 }
 
                 pointer_remove_flag = 1;
-                m_button_data[m_focused_button_id].properties.on_input_function(context, this, m_button_data[m_focused_button_id].object_cid, button, fan::key_state::release, mouse_stage::outside, m_button_data[m_focused_button_id].properties.userptr);
+                m_button_data[m_focused_button_id].properties.on_input_function(context, this, m_button_data[m_focused_button_id].properties.element_id, button, fan::key_state::release, mouse_stage::outside, m_button_data[m_focused_button_id].properties.userptr);
                 if (pointer_remove_flag == 0) {
                   return;
                 }
@@ -169,18 +176,17 @@ namespace fan_2d {
           }
         }
 
-        void push_back(fan::opengl::cid_t* cid, fan::opengl::cid_t* object_cid, const properties_t& p) {
+        uint32_t push_back(const properties_t& p) {
           button_data_t b;
           b.properties = p;
-          cid->id = m_button_data.push_back(b);
-          m_button_data[m_button_data.size() - 1].object_cid = object_cid;
+          return m_button_data.push_back(b);
         }
-        void erase(uint32_t i) {
+        void erase(uint32_t i, fan::opengl::cid_t* cid) {
           uint32_t src = m_button_data.size() - 1;
           uint32_t dst = i;
           m_button_data[i] = m_button_data[m_button_data.size() - 1];
-          m_button_data[i].cid->id = i; // maybe
-          m_button_data.pop_back();
+          cid->id = i; // maybe
+          //m_button_data.pop_back();
         }
 
         // used for camera position
@@ -212,11 +218,9 @@ namespace fan_2d {
 
         struct button_data_t {
           properties_t properties;
-          fan::opengl::cid_t* cid;
-          fan::opengl::cid_t* object_cid;
         };
 
-        fan::hector_t<button_data_t> m_button_data;
+        bll_t<button_data_t> m_button_data;
 
         fan::vec2 coordinate_offset;
       };

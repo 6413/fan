@@ -240,10 +240,10 @@ struct bll_t {
 	}
 
 	const constexpr node_type_t rbegin() {
-		return src;
+		return prev(end());
 	}
 	const constexpr node_type_t rend() {
-		return prev(end());
+		return src;
 	}
 
 	/*void iterator::operator++(iterator it) {
@@ -298,6 +298,10 @@ struct bll_t {
 		#endif
 
 		return this->get_node_by_reference(reference)->next;
+	}
+
+	constexpr node_type_t rnext(node_type_t reference) {
+		return prev(reference);
 	}
 
 	constexpr void clear() {

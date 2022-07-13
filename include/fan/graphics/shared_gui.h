@@ -13,7 +13,6 @@
 #include _FAN_PATH(physics/collision/rectangle.h)
 #include _FAN_PATH(physics/collision/circle.h)
 
-#include _FAN_PATH(graphics/gui/button_event.h)
 #include _FAN_PATH(graphics/gui/key_event.h)
 #include _FAN_PATH(graphics/gui/themes.h)
 #include _FAN_PATH(graphics/gui/focus.h)
