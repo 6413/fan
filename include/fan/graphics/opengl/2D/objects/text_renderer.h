@@ -112,12 +112,12 @@ namespace fan_2d {
       }
 
       template <typename T>
-      T get(fan::opengl::context_t* context, const id_t& id, T letter_t::instance_t::*member) {
-        return letter_t::blocks[id.block].uniform_buffer.get_instance(context, id.instance)->*member;
+      T get(fan::opengl::context_t* context, letter_t* letters, const id_t& id, T letter_t::instance_t::*member) {
+        return letters->blocks[id.block].uniform_buffer.get_instance(context, id.instance)->*member;
       }
       template <typename T>
-      void set(fan::opengl::context_t* context, const id_t& id, T letter_t::instance_t::*member, const T& value) {
-        letter_t::blocks[id.block].uniform_buffer.edit_ram_instance(context, id.instance, &value, fan::ofof<letter_t::instance_t, T>(member), sizeof(T));
+      void set(fan::opengl::context_t* context, letter_t* letters, const id_t& id, T letter_t::instance_t::*member, const T& value) {
+        letters->blocks[id.block].uniform_buffer.edit_ram_instance(context, id.instance, &value, fan::ofof<letter_t::instance_t, T>(member), sizeof(T));
       }
 
       struct{
