@@ -280,6 +280,10 @@ namespace fan_2d {
         blocks[id.block].uniform_buffer.write_vram_all(context); // TODO Fix
       }
 
+      //uint32_t size() const {
+      //  return blocks.size();
+      //}
+
       fan::shader_t m_shader;
 
       struct block_t {

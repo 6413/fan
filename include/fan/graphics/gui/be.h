@@ -36,6 +36,8 @@ namespace fan_2d {
           void* userptr;
           uint32_t element_id;
 
+          uint32_t depth = 0;
+
           uint8_t hitbox_type;
           union {
             struct{
@@ -88,7 +90,7 @@ namespace fan_2d {
           }
         };
 
-        void feed_mouse_move(fan::opengl::context_t* context, const fan::vec2& mouse_position) {
+        void feed_mouse_move(fan::opengl::context_t* context, const fan::vec2& mouse_position, uint32_t depth) {
           if (m_do_we_hold_button == 1) {
             return;
           }
@@ -101,6 +103,9 @@ namespace fan_2d {
 
           uint32_t i = m_button_data.rbegin();
           while (i != m_button_data.rend()) {
+            if (m_button_data[i].properties.depth != depth) {
+              continue;
+            }
             if (inside(i, coordinate_offset + mouse_position)) {
               if (m_focused_button_id != fan::uninitialized) {
                 m_button_data[i].properties.on_mouse_event_function(context, this, m_button_data[i].properties.element_id, mouse_stage::outside, m_button_data[i].properties.userptr);
@@ -117,7 +122,7 @@ namespace fan_2d {
           }
         }
 
-        void feed_mouse_input(fan::opengl::context_t* context, uint16_t button, fan::key_state state, const fan::vec2& mouse_position) {
+        void feed_mouse_input(fan::opengl::context_t* context, uint16_t button, fan::key_state state, const fan::vec2& mouse_position, uint32_t depth) {
           if (m_do_we_hold_button == 0) {
             if (state == fan::key_state::press) {
               if (m_focused_button_id != fan::uninitialized) {
@@ -127,6 +132,9 @@ namespace fan_2d {
               else {
                 uint32_t i = m_button_data.rbegin();
                 while (i != m_button_data.rend()) {
+                  if (m_button_data[i].properties.depth != depth) {
+                    continue;
+                  }
                   if (inside(i, coordinate_offset + mouse_position)) {
                     m_button_data[i].properties.on_input_function(context, this, m_button_data[i].properties.element_id, button, state, mouse_stage::outside, m_button_data[i].properties.userptr);
                   }
@@ -144,6 +152,9 @@ namespace fan_2d {
               return; // double press
             }
             else {
+              if (m_button_data[m_focused_button_id].properties.depth != depth) {
+                return;
+              }
               if (inside(m_focused_button_id, coordinate_offset + mouse_position)) {
                 pointer_remove_flag = 1;
                 m_button_data[m_focused_button_id].properties.on_input_function(context, this, m_button_data[m_focused_button_id].properties.element_id, button, fan::key_state::release, mouse_stage::inside, m_button_data[m_focused_button_id].properties.userptr);
