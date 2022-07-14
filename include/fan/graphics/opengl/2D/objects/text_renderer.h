@@ -21,6 +21,15 @@ namespace fan_2d {
         fan::utf16_string text;
       };
 
+      struct id_t{
+        id_t(fan::opengl::cid_t* cid) {
+          block = cid->id / letter_t::max_instance_size;
+          instance = cid->id % letter_t::max_instance_size;
+        }
+        uint32_t block;
+        uint32_t instance;
+      };
+
       void open(fan::opengl::context_t* context) {
         letter_ids.open();
         e.amount = 0;
@@ -100,6 +109,15 @@ namespace fan_2d {
         *(uint32_t*)&letter_ids[id] = e.id0;
         e.id0 = id;
         e.amount++;
+      }
+
+      template <typename T>
+      T get(fan::opengl::context_t* context, const id_t& id, T letter_t::instance_t::*member) {
+        return letter_t::blocks[id.block].uniform_buffer.get_instance(context, id.instance)->*member;
+      }
+      template <typename T>
+      void set(fan::opengl::context_t* context, const id_t& id, T letter_t::instance_t::*member, const T& value) {
+        letter_t::blocks[id.block].uniform_buffer.edit_ram_instance(context, id.instance, &value, fan::ofof<letter_t::instance_t, T>(member), sizeof(T));
       }
 
       struct{

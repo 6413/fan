@@ -31,6 +31,7 @@ namespace fan_2d {
 			using fan_2d::opengl::rectangle_t;
 		//	using fan_2d::opengl::circle_t;
 			using fan_2d::opengl::sprite_t;
+			using fan_2d::opengl::text_renderer_t;
 
 		//#endif
 

@@ -101,12 +101,12 @@ struct loco_t {
     when any feed function comes loco will check focus_shape_type. if its  uninitialized loco will query input if input is on something if its related with something. It will assign focus_shape_type to what its supposed to be.
   */
 
-  void feed_mouse_move(fan::opengl::context_t* context, const fan::vec2& mouse_position) {
-    button_event.feed_mouse_move(context, mouse_position);
+  void feed_mouse_move(fan::opengl::context_t* context, const fan::vec2& mouse_position, uint32_t depth) {
+    button_event.feed_mouse_move(context, mouse_position, depth);
   }
 
-  void feed_mouse_input(fan::opengl::context_t* context, uint16_t button, fan::key_state key_state, const fan::vec2& mouse_position) {
-    button_event.feed_mouse_input(context, button, key_state, mouse_position);
+  void feed_mouse_input(fan::opengl::context_t* context, uint16_t button, fan::key_state key_state, const fan::vec2& mouse_position, uint32_t depth) {
+    button_event.feed_mouse_input(context, button, key_state, mouse_position, depth);
   }
 
   void feed_keyboard(fan::opengl::context_t* context, uint16_t key, fan::key_state key_state) {

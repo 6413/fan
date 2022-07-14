@@ -65,13 +65,13 @@ int main() {
   pile.window.add_keys_callback(&loco, [](fan::window_t* window, uint16_t key, fan::key_state key_state, void* user_ptr) {
     loco_t& loco = *(loco_t*)user_ptr;
     fan::vec2 window_size = window->get_size();
-    loco.feed_mouse_input(&loco.context, key, key_state, fan::cast<f32_t>(window->get_mouse_position()) / window_size * 2 - 1);
+    loco.feed_mouse_input(&loco.context, key, key_state, fan::cast<f32_t>(window->get_mouse_position()) / window_size * 2 - 1, 0); // depth
   });
 
   pile.window.add_mouse_move_callback(&loco, [](fan::window_t* window, const fan::vec2i& mouse_position, void* user_ptr) {
     loco_t& loco = *(loco_t*)user_ptr;
     fan::vec2 window_size = window->get_size();
-    loco.feed_mouse_move(&loco.context, fan::cast<f32_t>(mouse_position) / window_size * 2 - 1);
+    loco.feed_mouse_move(&loco.context, fan::cast<f32_t>(mouse_position) / window_size * 2 - 1, 0); // depth
   });
 
   while(1) {

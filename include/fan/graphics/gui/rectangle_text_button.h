@@ -113,6 +113,9 @@ namespace fan_2d {
         void bind_matrices(fan::opengl::context_t* context, fan::opengl::matrices_t* matrices) {
           text_box.bind_matrices(context, matrices);
         }
+        void unbind_matrices(fan::opengl::context_t* context, fan::opengl::matrices_t* matrices) {
+          text_box.unbind_matrices(context, matrices);
+        }
 
         text_box_t text_box;
 

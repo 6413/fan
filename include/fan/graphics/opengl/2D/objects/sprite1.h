@@ -1,21 +1,22 @@
 #pragma once
 
-#include _FAN_PATH(graphics/opengl/2D/objects/sprite1.h)
+#include _FAN_PATH(graphics/opengl/2D/objects/sprite.h)
 
 namespace fan_2d {
   namespace opengl {
-    template <typename T_user_global_data, typename T_user_instance_data>
-    struct sprite1_t : sprite_t<T_user_global_data, T_user_instance_data> {
 
-      using inherit_T = sprite_t;
+    struct sprite1_t : fan_2d::opengl::sprite_t{
 
-      void open(fan::opengl::image_t light_map) {
-        sprite_t::open(context, move_cb_, gd);
+      using inherit_t = fan_2d::opengl::sprite_t;
+
+      void open(fan::opengl::context_t* context, fan::opengl::image_t light_map) {
+        sprite_t::open(context);
         set_vertex(
           context,
             #include _FAN_PATH(graphics/glsl/opengl/2D/objects/sprite.vs)
         );
         set_fragment(
+          context,
           R"(
           #version 330
 
@@ -49,11 +50,11 @@ namespace fan_2d {
         fan::opengl::image_t light_map;
       }store;
 
-      static void draw_cb(fan::opengl::context_t* context, sprite_t::inherit_t* sprite, void* userptr) {
-        sprite_t::store_t& input = *(sprite_t::store_t*)userptr;
+      static void draw_cb(fan::opengl::context_t* context, inherit_t* sprite, void* userptr) {
+        sprite1_t::store_t& store = *(sprite1_t::store_t*)userptr;
         sprite->m_shader.set_int(context, "texture_light_map", 1);
         context->opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
-        context->opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, store.light_map);
+        context->opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, store.light_map.texture);
       }
     };
   }
