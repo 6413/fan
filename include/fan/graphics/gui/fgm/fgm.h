@@ -114,8 +114,7 @@ namespace fan_2d {
           uint32_t builder_draw_type;
           uint32_t builder_draw_type_index;
 
-          uint32_t selected_type;
-          uint32_t selected_type_index;
+          shape_t selected_shape;
 
           uint32_t copied_type;
           uint32_t copied_type_index;

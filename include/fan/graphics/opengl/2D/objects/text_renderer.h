@@ -117,7 +117,7 @@ namespace fan_2d {
       }
       template <typename T, typename T2>
       void set(fan::opengl::context_t* context, letter_t* letters, const id_t& id, T letter_t::instance_t::*member, const T2& value) {
-        letters->blocks[id.block].uniform_buffer.edit_ram_instance(context, id.instance, (T*)&value, fan::ofof<instance_t, T>(member), sizeof(T));
+        letters->blocks[id.block].uniform_buffer.edit_ram_instance(context, id.instance, (T*)&value, fan::ofof<letter_t::instance_t, T>(member), sizeof(T));
         letters->blocks[id.block].uniform_buffer.common.edit(
           context,
           id.instance,
