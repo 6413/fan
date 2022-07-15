@@ -8,7 +8,7 @@
 
 #include _FAN_PATH(graphics/graphics.h)
 
-constexpr uint32_t count = 1;
+constexpr uint32_t count = 1000;
 
 struct pile_t {
   fan::opengl::matrices_t matrices;
