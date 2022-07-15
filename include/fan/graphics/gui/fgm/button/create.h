@@ -4,7 +4,7 @@ case builder_draw_type_t::button: {
       pile->editor.flags |= flags_t::moving;
       pile->editor.click_position = pile->window.get_mouse_position();
 
-      fan_2d::graphics::gui::rectangle_text_button_sized_t::properties_t button_p;
+      fan_2d::graphics::gui::rectangle_text_button_t::properties_t button_p;
       button_p.position = pile->editor.get_mouse_position(pile);
       button_p.size = pile->editor.builder_types.get_size(&pile->window, &pile->context, 0);
       button_p.theme = fan_2d::graphics::gui::themes::gray();
