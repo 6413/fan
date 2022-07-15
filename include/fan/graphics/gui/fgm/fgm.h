@@ -150,6 +150,8 @@ namespace fan_2d {
           };
           rectangle_text_button_sized_t builder_types;
 
+          letter_t letter;
+
           text_renderer_t builder_text;
 
           text_renderer_t properties_button_text;
