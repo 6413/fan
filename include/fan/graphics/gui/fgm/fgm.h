@@ -87,13 +87,16 @@ namespace fan_2d {
             union {
               struct {
                 fan::opengl::cid_t cid;
-              }rectangle;
-              struct {
-                fan::opengl::cid_t cid;
               }sprite;
               struct {
                 fan::opengl::cid_t cid;
-              }sprite;
+              }text_renderer;
+              struct {
+                uint32_t id;
+              }hitbox;
+              struct {
+                fan::opengl::cid_t cid;
+              }button;
             }data;
           };
 

@@ -1,38 +1,25 @@
-//#include <fan/types/types.h>
-#include <cstdint>
-#include <iostream>
-#include <fan/types/types.h>
-struct rectangle;
-struct sprite;
+#define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 
-template <typename type_t, typename instance_data_t>
-using global_cb_t = void(*)(type_t* ptr, uint32_t src, uint32_t dst, instance_data_t*);
+#define FAN_INCLUDE_PATH C:/libs/fan/include
+#include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
-struct draw_pile_t;
+#include _FAN_PATH(io/file.h)
 
-struct rectangle {
-  void move_cb();
+struct a_t {
+  fan::vec2 p;
+  double x;
 };
 
-struct draw_pile_t {
-
-  template <typename T>
-  static void global_move_cb(T x, uint32_t src, uint32_t dst);
-
-  global_cb_t<void*, void*> m_global_cb;
-
-
-  rectangle rectangle;
-
-};
-
-void rectangle::move_cb()  {
-  draw_pile_t::global_move_cb(this, 0, 1);
+template <typename T, typename T2>
+void set(a_t* a, T a_t::* member, T2 v) {
+  a->*member = v;
 }
-
-
 template <typename T>
-void draw_pile_t::global_move_cb(T x, uint32_t src, uint32_t dst) {
-  fan::print(typeid(T).name());
+void set2(a_t* a, T a_t::* member, T v) {
+  a->*member = v;
 }
 
+int main() {
+  a_t x;
+  set(&x, &a_t::x, 3);
+} 
