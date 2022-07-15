@@ -3,148 +3,227 @@
 #include _FAN_PATH(graphics/opengl/gl_core.h)
 #include _FAN_PATH(graphics/opengl/gl_shader.h)
 #include _FAN_PATH(graphics/shared_graphics.h)
+#include _FAN_PATH(physics/collision/rectangle.h)
 
 namespace fan_2d {
-
   namespace opengl {
 
     struct line_t {
 
-      struct properties_t {
+      using draw_cb_t = void(*)(fan::opengl::context_t* context, line_t*, void*);
+
+      struct instance_t {
         fan::color color;
         fan::vec2 src;
         fan::vec2 dst;
       };
 
-    private:
+      struct properties_t : instance_t {
 
-      struct instance_t {
-        fan::color color;
-        fan::vec2 vertex;
+        using type_t = line_t;
       };
 
-    public:
+      static constexpr uint32_t max_instance_size = 256;
 
-      static constexpr uint32_t vertex_count = 2;
-
-      static constexpr uint32_t offset_color = offsetof(instance_t, color);
-      static constexpr uint32_t offset_position = offsetof(instance_t, vertex);
-      static constexpr uint32_t element_byte_size = sizeof(instance_t);
+      struct id_t{
+        id_t(fan::opengl::cid_t* cid) {
+          block = cid->id / max_instance_size;
+          instance = cid->id % max_instance_size;
+        }
+        uint32_t block;
+        uint32_t instance;
+      };
 
       void open(fan::opengl::context_t* context) {
+        m_shader.open(context);
 
-				m_shader.open(context);
+        m_shader.set_vertex(
+          context,
+        #include _FAN_PATH(graphics/glsl/opengl/2D/objects/line.vs)
+        );
 
-				m_shader.set_vertex(
-					context, 
-					#include _FAN_PATH(graphics/glsl/opengl/2D/objects/line.vs)
-				);
+        m_shader.set_fragment(
+          context,
+        #include _FAN_PATH(graphics/glsl/opengl/2D/objects/line.fs)
+        );
 
-				m_shader.set_fragment(
-					context, 
-					#include _FAN_PATH(graphics/glsl/opengl/2D/objects/line.fs)
-				);
+        m_shader.compile(context);
 
-				m_shader.compile(context);
+        blocks.open();
 
-				m_glsl_buffer.open(context);
-				m_glsl_buffer.init(context, m_shader.id, element_byte_size);
-				m_queue_helper.open();
-				m_draw_node_reference = fan::uninitialized;
-			}
-			void close(fan::opengl::context_t* context) {
-
-				m_glsl_buffer.close(context);
-				m_queue_helper.close(context);
-				m_shader.close(context);
-
-				if (m_draw_node_reference == fan::uninitialized) {
-					return;
-				}
-
-				context->disable_draw(m_draw_node_reference);
-				m_draw_node_reference = fan::uninitialized;
-			}
-
-      void push_back(fan::opengl::context_t* context, const properties_t& p) {
-        instance_t instance;
-        instance.color = p.color;
-        instance.vertex = p.src;
-        m_glsl_buffer.push_ram_instance(context, &instance, sizeof(instance));
-        instance.vertex = p.dst;
-        m_glsl_buffer.push_ram_instance(context, &instance, sizeof(instance));
-				m_glsl_buffer.write_vram_all(context);
+        m_draw_node_reference = fan::uninitialized;
+        draw_cb = [](fan::opengl::context_t* context, line_t*, void*) {};
+      }
+      void close(fan::opengl::context_t* context) {
+        m_shader.close(context);
+        for (uint32_t i = 0; i < blocks.size(); i++) {
+          blocks[i].uniform_buffer.close(context);
+        }
+        blocks.close();
       }
 
-      void set_line(fan::opengl::context_t* context, uint32_t i, const fan::vec2& src, const fan::vec2& dst) {
-        i *= vertex_count;
-        m_glsl_buffer.edit_ram_instance(context, i, &src, element_byte_size, sizeof(fan::color), sizeof(src));
-        m_glsl_buffer.edit_ram_instance(context, i + 1, &dst, element_byte_size, sizeof(fan::color), sizeof(dst));
-				m_queue_helper.edit(
-					context,
-					i * element_byte_size,
-					(i + vertex_count) * element_byte_size,
-					&m_glsl_buffer
-				);
+      void push_back(fan::opengl::context_t* context, fan::opengl::cid_t* cid, const properties_t& p) {
+        instance_t it = p;
+
+        uint32_t i = 0;
+
+        for (; i < blocks.size(); i++) {
+          if (blocks[i].uniform_buffer.size() != max_instance_size) {
+            break;
+          }
+        }
+
+        if (i == blocks.size()) {
+          blocks.push_back({});
+          blocks[i].uniform_buffer.open(context);
+          blocks[i].uniform_buffer.bind_uniform_block(context, m_shader.id, "instance_t");
+        }
+
+        blocks[i].uniform_buffer.push_ram_instance(context, it);
+
+        const uint32_t instance_id = blocks[i].uniform_buffer.size() - 1;
+
+        blocks[i].cid[instance_id] = cid;
+
+        blocks[i].uniform_buffer.common.edit(
+          context,
+          instance_id,
+          instance_id + 1
+        );
+
+        cid->id = i * max_instance_size + instance_id;
+      }
+      void erase(fan::opengl::context_t* context, fan::opengl::cid_t* cid) {
+        uint32_t id = cid->id;
+        uint32_t block_id = id / max_instance_size;
+        uint32_t instance_id = id % max_instance_size;
+
+      #if fan_debug >= fan_debug_medium
+        if (block_id >= blocks.size()) {
+          fan::throw_error("invalid access");
+        }
+        if (instance_id >= blocks[block_id].uniform_buffer.size()) {
+          fan::throw_error("invalid access");
+        }
+      #endif
+
+        if (block_id == blocks.size() - 1 && instance_id == blocks.ge()->uniform_buffer.size() - 1) {
+          blocks[block_id].uniform_buffer.common.m_size -= blocks[block_id].uniform_buffer.common.buffer_bytes_size;
+          if (blocks[block_id].uniform_buffer.size() == 0) {
+            blocks[block_id].uniform_buffer.close(context);
+            blocks.m_size -= 1;
+          }
+          return;
+        }
+
+        uint32_t last_block_id = blocks.size() - 1;
+        uint32_t last_instance_id = blocks[last_block_id].uniform_buffer.size() - 1;
+
+        instance_t* last_instance_data = blocks[last_block_id].uniform_buffer.get_instance(context, last_instance_id);
+
+        blocks[block_id].uniform_buffer.edit_ram_instance(
+          context,
+          instance_id,
+          last_instance_data,
+          0,
+          sizeof(instance_t)
+        );
+
+        blocks[block_id].uniform_buffer.write_vram_all(context);
+
+        blocks[last_block_id].uniform_buffer.common.m_size -= blocks[last_block_id].uniform_buffer.common.buffer_bytes_size;
+
+        blocks[block_id].cid[instance_id] = blocks[last_block_id].cid[last_instance_id];
+        blocks[block_id].cid[instance_id]->id = block_id * max_instance_size + instance_id;
+
+        if (blocks[last_block_id].uniform_buffer.size() == 0) {
+          blocks[last_block_id].uniform_buffer.close(context);
+          blocks.m_size -= 1;
+        }
       }
 
-      fan::color get_color(fan::opengl::context_t* context, uint32_t i) {
-        return *(fan::color*)m_glsl_buffer.get_buffer_data(i * 2 * element_byte_size);
+      void enable_draw(fan::opengl::context_t* context) {
+        this->draw(context);
+
+      #if fan_debug >= fan_debug_low
+        if (m_draw_node_reference != fan::uninitialized) {
+          fan::throw_error("trying to call enable_draw twice");
+        }
+      #endif
+
+        m_draw_node_reference = context->enable_draw(this, [](fan::opengl::context_t* c, void* d) { ((decltype(this))d)->draw(c); });
       }
-      void set_color(fan::opengl::context_t* context, uint32_t i, const fan::color& color) {
-        i *= vertex_count;
-        m_glsl_buffer.edit_ram_instance(context, i, &color, element_byte_size, 0, sizeof(fan::color));
-				m_glsl_buffer.edit_ram_instance(context, i + 1, &color, element_byte_size, 0, sizeof(fan::color));
-				m_queue_helper.edit(
-					context,
-					i * element_byte_size,
-					(i + vertex_count) * element_byte_size,
-					&m_glsl_buffer
-				);
+      void disable_draw(fan::opengl::context_t* context) {
+      #if fan_debug >= fan_debug_low
+        if (m_draw_node_reference == fan::uninitialized) {
+          fan::throw_error("trying to disable unenabled draw call");
+        }
+      #endif
+        context->disable_draw(m_draw_node_reference);
       }
 
-      
-			void enable_draw(fan::opengl::context_t* context) {
-				m_draw_node_reference = context->enable_draw(this, [](fan::opengl::context_t* c, void* d) { ((decltype(this))d)->draw(c); });
-			}
-			void disable_draw(fan::opengl::context_t* context) {
-			#if fan_debug >= fan_debug_low
-				if (m_draw_node_reference == fan::uninitialized) {
-					fan::throw_error("trying to disable unenabled draw call");
-				}
-			#endif
-				context->disable_draw(m_draw_node_reference);
-			}
+      void draw(fan::opengl::context_t* context) {
+        m_shader.use(context);
 
-			// pushed to window draw queue
-			void draw(fan::opengl::context_t* context) {
-				context->set_depth_test(false);
+        if (draw_cb) {
+          draw_cb(context, this, draw_userdata);
+        }
 
-				m_shader.use(context);
+        for (uint32_t i = 0; i < blocks.size(); i++) {
+          blocks[i].uniform_buffer.bind_buffer_range(context, blocks[i].uniform_buffer.size());
 
-				m_glsl_buffer.m_vao.bind(context);
+          blocks[i].uniform_buffer.common.m_vao.bind(context);
 
-        // possibly disable depth test here
-        context->opengl.glDrawArrays(fan::opengl::GL_LINES, 0, this->size(context) * vertex_count);
-			}
+          // possibly disable depth test here
+          context->opengl.call(context->opengl.glDrawArrays, fan::opengl::GL_LINES, 0, blocks[i].uniform_buffer.size() * 2);
+        }
+      }
 
-			uint32_t size(fan::opengl::context_t* context) const {
-				return m_glsl_buffer.m_buffer.size() / element_byte_size / vertex_count;
-			}
-
-			void bind_matrices(fan::opengl::context_t* context, fan::opengl::matrices_t* matrices) {
+      void bind_matrices(fan::opengl::context_t* context, fan::opengl::matrices_t* matrices) {
         m_shader.bind_matrices(context, matrices);
       }
 
-      uint32_t m_draw_node_reference;
+      template <typename T>
+      T get(fan::opengl::context_t* context, const id_t& id, T instance_t::*member) {
+        return blocks[id.block].uniform_buffer.get_instance(context, id.instance)->*member;
+      }
+      template <typename T>
+      void set(fan::opengl::context_t* context, const id_t& id, T instance_t::*member, const T& value) {
+        blocks[id.block].uniform_buffer.edit_ram_instance(context, id.instance, &value, fan::ofof<instance_t, T>(member), sizeof(T));
+      }
 
-    //private:
+      void set_vertex(fan::opengl::context_t* context, const std::string& str) {
+        m_shader.set_vertex(context, str);
+      }
+      void set_fragment(fan::opengl::context_t* context, const std::string& str) {
+        m_shader.set_fragment(context, str);
+      }
+      void compile(fan::opengl::context_t* context) {
+        m_shader.compile(context);
+      }
+
+      void set_draw_cb(fan::opengl::context_t* context, draw_cb_t draw_cb_, void* userptr = 0) {
+        draw_cb = draw_cb_;
+        if (userptr != nullptr) {
+          draw_userdata = userptr;
+        }
+      }
+      void set_draw_cb_userptr(fan::opengl::context_t* context, void* userptr) {
+        draw_userdata = userptr;
+      }
 
       fan::shader_t m_shader;
-      fan::opengl::core::glsl_buffer_t m_glsl_buffer;
-      fan::opengl::core::queue_helper_t m_queue_helper;
 
+      struct block_t {
+        fan::opengl::core::uniform_block_t<instance_t, max_instance_size> uniform_buffer;
+        fan::opengl::cid_t* cid[max_instance_size];
+      };
+      uint32_t m_draw_node_reference;
+
+      fan::hector_t<block_t> blocks;
+
+      draw_cb_t draw_cb;
+      void* draw_userdata;
     };
-
   }
 }

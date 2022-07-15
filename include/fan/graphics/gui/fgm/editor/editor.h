@@ -17,7 +17,7 @@ inline void fan_2d::graphics::gui::fgm::editor_t::push_resize_rectangles(pile_t*
   }
 
   for (uint32_t i = 0; i < 8; i++) {
-    fan_2d::graphics::gui::rectangle_button_sized_t::properties_t p;
+    fan_2d::graphics::gui::rectangle_button_t::properties_t p;
     p.position = positions[i];
     p.size = constants::resize_rectangle_size;
     p.theme = fan_2d::graphics::gui::themes::deep_blue(0.8);

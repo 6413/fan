@@ -61,7 +61,7 @@ case fan::key_v: {
       break;
     }
     case builder_draw_type_t::text_renderer: {
-      fan_2d::graphics::gui::text_renderer_t::properties_t tr_p;
+      fan_2d::graphics::text_renderer_t::properties_t tr_p;
       tr_p.position = pile->builder.tr.get_position(&pile->context, pile->editor.copied_type_index);
       tr_p.text = pile->builder.tr.get_text(&pile->context, pile->editor.copied_type_index);
       tr_p.font_size = pile->builder.tr.get_font_size(&pile->context, pile->editor.copied_type_index);
@@ -119,7 +119,7 @@ case fan::key_v: {
       break;
     }
     case builder_draw_type_t::button: {
-      fan_2d::graphics::gui::rectangle_text_button_sized_t::properties_t button_p;
+      fan_2d::graphics::gui::rectangle_text_button_t::properties_t button_p;
       button_p.position = pile->builder.button.get_position(&pile->window, &pile->context, pile->editor.copied_type_index);
       button_p.text = pile->builder.button.get_text(&pile->window, &pile->context, pile->editor.copied_type_index);
       button_p.font_size = pile->builder.button.get_font_size(&pile->window, &pile->context, pile->editor.copied_type_index);

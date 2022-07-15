@@ -1,26 +1,25 @@
 R"(
-#version 130
+#version 140
 
-in vec4 input0;
-in vec2 input1;
-
-uniform mat4 projection;
-uniform mat4 view;
+#define get_instance() instance.st[gl_VertexID / 2]
 
 out vec4 instance_color;
 
-vec2 line_vertices[] = vec2[](
-	vec2(0, 0),
-  vec2(300, 300)
-);
+uniform mat4 view;
+uniform mat4 projection;
 
+layout (std140) uniform instance_t {
+	struct{
+		vec4 color;
+		vec2 src;
+		vec2 dst;
+	}st[256];
+}instance;
 
 void main() {
-  vec4 color = vec4(input0[0], input0[1], input0[2], input0[3]);
-  vec2 position = vec2(input1[0], input1[1]);
+	uint id = uint(gl_VertexID);
 
-  gl_Position = projection * view * vec4(position, 0, 1);
-  instance_color = color;
+  gl_Position = view * projection * vec4(((id & 1u) == 0u) ? get_instance().src : get_instance().dst, 0, 1);
+	instance_color = get_instance().color;
 }
-
 )"
