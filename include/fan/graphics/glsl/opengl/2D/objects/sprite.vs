@@ -47,8 +47,15 @@ void main() {
 	uint id = uint(gl_VertexID % 6);
 
 	vec2 ratio_size = get_instance().size;
+	vec2 rp = rectangle_vertices[id];
+	
+	float c = cos(get_instance().angle);
+	float s = sin(get_instance().angle);
 
-  gl_Position = view * projection * vec4(rectangle_vertices[id] * ratio_size + get_instance().position, 0, 1);
+	float x = rp.x * c - rp.y * s;
+	float y = rp.x * s + rp.y * c;
+
+  gl_Position = view * projection * vec4(vec2(x, y) * ratio_size + get_instance().position, 0, 1);
 	instance_color = get_instance().color;
 	texture_coordinate = tc[id] * get_instance().tc_size + get_instance().tc_position;
 }
