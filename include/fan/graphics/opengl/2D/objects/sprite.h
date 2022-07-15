@@ -164,8 +164,6 @@ namespace fan_2d {
           instance_id + 1
         );*/
 
-        blocks[block_id].uniform_buffer.write_vram_all(context);
-
         blocks[last_block_id].uniform_buffer.common.m_size -= blocks[block_id].uniform_buffer.common.buffer_bytes_size;
 
         blocks[block_id].image[instance_id] = blocks[last_block_id].image[last_instance_id];

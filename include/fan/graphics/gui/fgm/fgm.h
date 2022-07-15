@@ -142,10 +142,10 @@ namespace fan_2d {
             void push_back(fan::opengl::context_t* context, properties_t p);
           }outline;
           struct text_renderer_t : fan_2d::graphics::text_renderer_t {
-            void push_back(fan::opengl::context_t* context, properties_t properties);
+            void push_back(fan::opengl::context_t* context, letter_t* letter, properties_t properties);
           };
           struct rectangle_text_button_sized_t : fan_2d::graphics::gui::rectangle_text_button_t {
-            void push_back(fan::window_t* window, fan::opengl::context_t* context, properties_t properties);
+            void push_back(fan::opengl::context_t* context, letter_t* letter, properties_t p){
           };
           rectangle_text_button_sized_t builder_types;
 
@@ -400,15 +400,15 @@ void fan_2d::graphics::gui::fgm::editor_t::line_t::push_back(fan::opengl::contex
  cids.push_back(shape);
  
 }
-void fan_2d::graphics::gui::fgm::editor_t::text_renderer_t::push_back(fan::opengl::context_t* context, fan_2d::graphics::text_renderer_t::properties_t p){
+void fan_2d::graphics::gui::fgm::editor_t::text_renderer_t::push_back(fan::opengl::context_t* context, letter_t* letter, fan_2d::graphics::text_renderer_t::properties_t p){
   pile_t* pile = OFFSETLESS(context, pile_t, context);
   fan::vec2 ratio = pile->get_ratio();
   p.position *= ratio;
   shape_t shape;
   shape.type = builder_draw_type_t::text_renderer;
-  fan_2d::graphics::text_renderer_t::push_back(context, p);
+  fan_2d::graphics::text_renderer_t::push_back(context, letter, p);
 }
-void fan_2d::graphics::gui::fgm::editor_t::rectangle_text_button_sized_t::push_back(fan::window_t* window, fan::opengl::context_t* context, fan_2d::graphics::gui::rectangle_text_button_sized_t::properties_t p){
+void fan_2d::graphics::gui::fgm::editor_t::rectangle_text_button_sized_t::push_back(fan::opengl::context_t* context, letter_t* letter, fan_2d::graphics::gui::rectangle_text_button_t::properties_t p){
   pile_t* pile = OFFSETLESS(context, pile_t, context);
   fan::vec2 ratio = pile->get_ratio();
   p.position *= ratio;

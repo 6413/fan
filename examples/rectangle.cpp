@@ -8,7 +8,7 @@
 
 #include _FAN_PATH(graphics/graphics.h)
 
-constexpr uint32_t count = 10000;
+constexpr uint32_t count = 1;
 
 struct pile_t {
   fan::opengl::matrices_t matrices;
@@ -72,7 +72,7 @@ int main() {
 
   while(1) {
    // fan::print(s, pile.cids[s].id);
-    r.erase(&pile.context, &pile.cids[s]);
+    //r.erase(&pile.context, &pile.cids[s]);
 
     s++;
 

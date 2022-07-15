@@ -129,8 +129,6 @@ namespace fan_2d {
           sizeof(instance_t)
         );
 
-        blocks[block_id].uniform_buffer.write_vram_all(context);
-
         blocks[last_block_id].uniform_buffer.common.m_size -= blocks[last_block_id].uniform_buffer.common.buffer_bytes_size;
 
         blocks[block_id].cid[instance_id] = blocks[last_block_id].cid[last_instance_id];
@@ -190,7 +188,11 @@ namespace fan_2d {
       template <typename T, typename T2>
       void set(fan::opengl::context_t* context, const id_t& id, T instance_t::*member, const T2& value) {
         blocks[id.block].uniform_buffer.edit_ram_instance(context, id.instance, (T*)&value, fan::ofof<instance_t, T>(member), sizeof(T));
-        blocks[id.block].uniform_buffer.write_vram_all(context); // TODO Fix
+        blocks[id.block].uniform_buffer.common.edit(
+          context,
+          id.instance,
+          id.instance + 1
+        );
       }
 
       void set_vertex(fan::opengl::context_t* context, const std::string& str) {
