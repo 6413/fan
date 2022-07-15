@@ -270,6 +270,8 @@ namespace fan {
             return;
           }
 
+          context->process();
+
           m_edit_index = context->m_write_queue.push_back(this);
         }
 
@@ -315,6 +317,7 @@ namespace fan {
           common.open(context);
           common.buffer_bytes_size = sizeof(type_t);
           fan::opengl::core::write_glbuffer(context, common.m_vbo, 0, sizeof(type_t) * element_size, op.usage, op.target);
+          fan::print(get_buffer_size(context, op.target, common.m_vbo));
         }
 
         void close(fan::opengl::context_t* context) {
@@ -350,14 +353,15 @@ namespace fan {
           common.m_size += sizeof(type_t);
         }
 
-        void write_vram_all(fan::opengl::context_t* context) {
+        // uniform block preallocates
+        /*void write_vram_all(fan::opengl::context_t* context) {
 
           common.m_vao.bind(context);
 
           this->bind(context);
 
           fan::opengl::core::write_glbuffer(context, common.m_vbo, (void*)buffer, common.m_size, op.usage, op.target);
-        }
+        }*/
 
         type_t* get_instance(fan::opengl::context_t* context, uint32_t i) {
           return (type_t*)&buffer[i * sizeof(type_t)];

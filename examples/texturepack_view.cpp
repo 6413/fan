@@ -39,7 +39,7 @@ int main() {
   pile.matrices.open();
 
   fan::opengl::texturepack texturepack;
-  texturepack.open(&pile.context, "texturepack");
+  texturepack.open(&pile.context, "TexturePack");
 
   fan_2d::graphics::sprite_t r;
   r.open(&pile.context);
@@ -52,10 +52,11 @@ int main() {
   p.position = 0;
   p.size = 0.5;
 #endif
-  p.image = texturepack.get_pixel_data(1).image;
+  p.image = texturepack.get_pixel_data(0).image;
   p.size = p.image.size / 2;
   p.position = p.size;
-  r.push_back(&pile.context, p);
+  fan::opengl::cid_t cid;
+  r.push_back(&pile.context, &cid, p);
 
   fan::vec2 window_size = pile.window.get_size();
 #ifdef gui_demo
