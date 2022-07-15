@@ -1,3 +1,4 @@
+cids.open();
 depth_map.open();
 move_offset = 0;
 properties_camera = 0;

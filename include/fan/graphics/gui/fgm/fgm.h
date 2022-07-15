@@ -47,6 +47,7 @@ namespace fan_2d {
             static constexpr uint32_t text_renderer = 1;
             static constexpr uint32_t hitbox = 2;
             static constexpr uint32_t button = 3;
+            static constexpr uint32_t line = 4;
           };
 
           struct click_collision_t {
@@ -97,6 +98,9 @@ namespace fan_2d {
               struct {
                 fan::opengl::cid_t cid;
               }button;
+              struct {
+                fan::opengl::cid_t cid;
+              }line;
             }data;
           };
 
@@ -389,7 +393,11 @@ void fan_2d::graphics::gui::fgm::editor_t::line_t::push_back(fan::opengl::contex
  fan::vec2 ratio = pile->get_ratio();
  p.src *= ratio;
  p.dst *= ratio;
- fan_2d::graphics::line_t::push_back(context, p);
+ shape_t* shape = new shape_t;
+ shape->type = builder_draw_type_t::line;
+ fan_2d::graphics::line_t::push_back(context, &shape->data.line.cid, p);
+ cids.push_back(shape);
+ 
 }
 void fan_2d::graphics::gui::fgm::editor_t::text_renderer_t::push_back(fan::opengl::context_t* context, fan_2d::graphics::text_renderer_t::properties_t p){
   pile_t* pile = OFFSETLESS(context, pile_t, context);
@@ -403,5 +411,5 @@ void fan_2d::graphics::gui::fgm::editor_t::rectangle_text_button_sized_t::push_b
   pile_t* pile = OFFSETLESS(context, pile_t, context);
   fan::vec2 ratio = pile->get_ratio();
   p.position *= ratio;
-  fan_2d::graphics::gui::rectangle_text_button_sized_t::push_back(window, context, p);
+  fan_2d::graphics::gui::rectangle_text_button_t::push_back(window, context, p);
 }
