@@ -29,15 +29,6 @@ vec2 rectangle_vertices[] = vec2[](
 	vec2(-1.0, -1.0)
 );
 
-vec2 tc[] = vec2[](
-	vec2(0, 0), // top left
-	vec2(1, 0), // top right
-	vec2(1, 1), // bottom right
-	vec2(1, 1), // bottom right
-	vec2(0, 1), // bottom left
-	vec2(0, 0) // top left
-);
-
 void main() {
 	uint id = uint(gl_VertexID % 6);
 

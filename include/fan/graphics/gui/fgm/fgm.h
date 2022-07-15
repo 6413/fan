@@ -118,10 +118,10 @@ namespace fan_2d {
           struct line_t : fan_2d::graphics::line_t {
             void push_back(fan::opengl::context_t* context, properties_t p);
           }outline;
-          struct text_renderer_t : fan_2d::graphics::gui::text_renderer_t {
+          struct text_renderer_t : fan_2d::graphics::text_renderer_t {
             void push_back(fan::opengl::context_t* context, properties_t properties);
           };
-          struct rectangle_text_button_sized_t : fan_2d::graphics::gui::rectangle_text_button_sized_t {
+          struct rectangle_text_button_sized_t : fan_2d::graphics::gui::rectangle_text_button_t {
             void push_back(fan::window_t* window, fan::opengl::context_t* context, properties_t properties);
           };
           rectangle_text_button_sized_t builder_types;
@@ -131,7 +131,7 @@ namespace fan_2d {
           text_renderer_t properties_button_text;
           rectangle_text_button_sized_t properties_button;
 
-          fan_2d::graphics::gui::rectangle_button_sized_t resize_rectangles;
+          fan_2d::graphics::gui::rectangle_text_button_t resize_rectangles;
 
           std::vector<std::vector<fan::vec2>> original_position;
 
@@ -145,9 +145,9 @@ namespace fan_2d {
           void open(pile_t* pile);
 
           fan_2d::graphics::sprite_t sprite;
-          fan_2d::graphics::gui::text_renderer_t tr;
+          fan_2d::graphics::text_renderer_t tr;
           fan_2d::graphics::sprite_t hitbox;
-          fan_2d::graphics::gui::rectangle_text_button_sized_t button;
+          fan_2d::graphics::gui::rectangle_text_button_t button;
         };
 
         struct pile_t {
@@ -230,130 +230,128 @@ namespace fan_2d {
             editor.gui_matrices.set_ortho(&context, fan::vec2(0, 1), fan::vec2(0, 1));
             editor.gui_properties_matrices.set_ortho(&context, fan::vec2(0, 1.0 - editor.origin_properties.x), fan::vec2(0, 0.5));
 
-            editor.builder_types.set_text_aspect_ratio(&window, &context, false);
-
             if (argc >= 4) {
               load_file(argv[3]);
             }
           }
 
           void save(const char* filename) {
-            fan::io::file::file_t* f;
-            fan::io::file::properties_t fp;
-            fp.mode = "w+b";
-            if (fan::io::file::open(&f, filename, fp)) {
-              fan::throw_error(std::string("failed to open file:") + filename);
-            }
+            //fan::io::file::file_t* f;
+            //fan::io::file::properties_t fp;
+            //fp.mode = "w+b";
+            //if (fan::io::file::open(&f, filename, fp)) {
+            //  fan::throw_error(std::string("failed to open file:") + filename);
+            //}
 
-            builder.sprite.write_out_texturepack(&context, f);
-            for (uint32_t i = 0; i < editor.sprite_image_names.size(); i++) {
-              uint32_t count = editor.sprite_image_names[i].size();
-              fan::io::file::write(f, &count, sizeof(count), 1);
-              fan::io::file::write(f, editor.sprite_image_names[i].data(), count, 1);
-            }
+            //builder.sprite.write_out_texturepack(&context, f);
+            //for (uint32_t i = 0; i < editor.sprite_image_names.size(); i++) {
+            //  uint32_t count = editor.sprite_image_names[i].size();
+            //  fan::io::file::write(f, &count, sizeof(count), 1);
+            //  fan::io::file::write(f, editor.sprite_image_names[i].data(), count, 1);
+            //}
 
-            builder.tr.write_out(&context, f);
-            builder.button.write_out(&context, f);
-            fan_2d::graphics::gui::be_t be;
-            be.open();
-            fan_2d::graphics::gui::be_t::properties_t p;
-            for (uint32_t i = 0; i < builder.hitbox.size(&context); i++) {
-              // FIX LATER ALLOW CIRCLE TOO
-              p.hitbox_type = fan_2d::graphics::gui::be_t::hitbox_type_t::rectangle;
-              p.hitbox_rectangle.position = builder.hitbox.get_position(&context, i);
-              p.hitbox_rectangle.size = builder.hitbox.get_size(&context, i);
-              be.push_back(p);
-            }
+            //builder.tr.write_out(&context, f);
+            //builder.button.write_out(&context, f);
+            //fan_2d::graphics::gui::be_t be;
+            //be.open();
+            //fan_2d::graphics::gui::be_t::properties_t p;
+            //for (uint32_t i = 0; i < builder.hitbox.size(&context); i++) {
+            //  // FIX LATER ALLOW CIRCLE TOO
+            //  p.hitbox_type = fan_2d::graphics::gui::be_t::hitbox_type_t::rectangle;
+            //  p.hitbox_rectangle.position = builder.hitbox.get_position(&context, i);
+            //  p.hitbox_rectangle.size = builder.hitbox.get_size(&context, i);
+            //  be.push_back(p);
+            //}
 
-            be.write_out(f);
-            uint32_t count = editor.hitbox_ids.size();
-            fan::io::file::write(f, &count, sizeof(count), 1);
-            for (uint32_t i = 0; i < count; i++) {
-              uint32_t s = editor.hitbox_ids[i].size();
-              fan::io::file::write(f, &s, sizeof(s), 1);
-              fan::io::file::write(f, editor.hitbox_ids[i].data(), editor.hitbox_ids[i].size(), 1);
-            }
-            count = editor.button_ids.size();
-            fan::io::file::write(f, &count, sizeof(count), 1);
-            for (uint32_t i = 0; i < count; i++) {
-              uint32_t s = editor.button_ids[i].size();
-              fan::io::file::write(f, &s, sizeof(s), 1);
-              fan::io::file::write(f, editor.button_ids[i].data(), editor.button_ids[i].size(), 1);
-            }
-            editor.depth_map.write_out(f);
+            //be.write_out(f);
+            //uint32_t count = editor.hitbox_ids.size();
+            //fan::io::file::write(f, &count, sizeof(count), 1);
+            //for (uint32_t i = 0; i < count; i++) {
+            //  uint32_t s = editor.hitbox_ids[i].size();
+            //  fan::io::file::write(f, &s, sizeof(s), 1);
+            //  fan::io::file::write(f, editor.hitbox_ids[i].data(), editor.hitbox_ids[i].size(), 1);
+            //}
+            //count = editor.button_ids.size();
+            //fan::io::file::write(f, &count, sizeof(count), 1);
+            //for (uint32_t i = 0; i < count; i++) {
+            //  uint32_t s = editor.button_ids[i].size();
+            //  fan::io::file::write(f, &s, sizeof(s), 1);
+            //  fan::io::file::write(f, editor.button_ids[i].data(), editor.button_ids[i].size(), 1);
+            //}
+            //editor.depth_map.write_out(f);
 
-            fan::io::file::close(f);
+            //fan::io::file::close(f);
 
-            tp.save(tp_project_name.data());
-            tp.save_compiled(compiled_tp_name.data());
+            //tp.save(tp_project_name.data());
+            //tp.save_compiled(compiled_tp_name.data());
           }
 
           void load_file(const char* filename) {
-            fan::io::file::file_t* f;
-            fan::io::file::properties_t fp;
-            fp.mode = "r+b";
-            if (fan::io::file::open(&f, filename, fp)) {
-              fan::throw_error(std::string("failed to open file:") + filename);
-            }
+            //fan::io::file::file_t* f;
+            //fan::io::file::properties_t fp;
+            //fp.mode = "r+b";
+            //if (fan::io::file::open(&f, filename, fp)) {
+            //  fan::throw_error(std::string("failed to open file:") + filename);
+            //}
 
-            builder.sprite.write_in_texturepack(&context, f, &tp, &editor.sprite_image_names);
-            builder.tr.write_in(&context, f);
-            builder.button.write_in(&context, f);
-            fan_2d::graphics::gui::be_t be;
-            be.open();
-            be.write_in(f);
+            //builder.sprite.write_in_texturepack(&context, f, &tp, &editor.sprite_image_names);
+            //builder.tr.write_in(&context, f);
+            //builder.button.write_in(&context, f);
+            //fan_2d::graphics::gui::be_t be;
+            //be.open();
+            //be.write_in(f);
 
-            uint32_t count;
-            fan::io::file::read(f, &count, sizeof(count), 1);
-            editor.hitbox_ids.resize(count);
-            for (uint32_t i = 0; i < count; i++) {
-              uint32_t s;
-              fan::io::file::read(f, &s, sizeof(s), 1);
-              editor.hitbox_ids[i].resize(s);
-              fan::io::file::read(f, editor.hitbox_ids[i].data(), s, 1);
-            }
+            //uint32_t count;
+            //fan::io::file::read(f, &count, sizeof(count), 1);
+            //editor.hitbox_ids.resize(count);
+            //for (uint32_t i = 0; i < count; i++) {
+            //  uint32_t s;
+            //  fan::io::file::read(f, &s, sizeof(s), 1);
+            //  editor.hitbox_ids[i].resize(s);
+            //  fan::io::file::read(f, editor.hitbox_ids[i].data(), s, 1);
+            //}
 
-            for (uint32_t i = 0; i < count; i++) {
-              fan_2d::graphics::sprite_t::properties_t sprite_p;
-              fan::color colors[9];
-              colors[0] = fan::colors::gray - fan::color(0, 0, 0, 0.1);
-              colors[1] = fan::colors::gray - fan::color(0, 0, 0, 0.1);
-              colors[2] = fan::colors::gray - fan::color(0, 0, 0, 0.1);
-              colors[3] = fan::colors::gray - fan::color(0, 0, 0, 0.1);
-              colors[4] = fan::colors::transparent;
-              colors[5] = fan::colors::gray - fan::color(0, 0, 0, 0.1);
-              colors[6] = fan::colors::gray - fan::color(0, 0, 0, 0.1);
-              colors[7] = fan::colors::gray - fan::color(0, 0, 0, 0.1);
-              colors[8] = fan::colors::gray - fan::color(0, 0, 0, 0.1);
-              sprite_p.image.load(&context, colors, fan::vec2ui(3, 3));
-              switch (be.m_button_data[i + 1].properties.hitbox_type) {
-                case fan_2d::graphics::gui::be_t::hitbox_type_t::rectangle: {
-                  // BLL + 1
-                  sprite_p.position = be.m_button_data[i + 1].properties.hitbox_rectangle.position;
-                  sprite_p.size = be.m_button_data[i + 1].properties.hitbox_rectangle.size;
-                  
-                  break;
-                }
-                case fan_2d::graphics::gui::be_t::hitbox_type_t::circle: {
-                  break;
-                }
-              }
-              builder.hitbox.push_back(&context, sprite_p);
-            }
+            //for (uint32_t i = 0; i < count; i++) {
+            //  fan_2d::graphics::sprite_t::properties_t sprite_p;
+            //  fan::color colors[9];
+            //  colors[0] = fan::colors::gray - fan::color(0, 0, 0, 0.1);
+            //  colors[1] = fan::colors::gray - fan::color(0, 0, 0, 0.1);
+            //  colors[2] = fan::colors::gray - fan::color(0, 0, 0, 0.1);
+            //  colors[3] = fan::colors::gray - fan::color(0, 0, 0, 0.1);
+            //  colors[4] = fan::colors::transparent;
+            //  colors[5] = fan::colors::gray - fan::color(0, 0, 0, 0.1);
+            //  colors[6] = fan::colors::gray - fan::color(0, 0, 0, 0.1);
+            //  colors[7] = fan::colors::gray - fan::color(0, 0, 0, 0.1);
+            //  colors[8] = fan::colors::gray - fan::color(0, 0, 0, 0.1);
+            //  sprite_p.image.load(&context, colors, fan::vec2ui(3, 3));
+            //  switch (be.m_button_data[i + 1].properties.hitbox_type) {
+            //    case fan_2d::graphics::gui::be_t::hitbox_type_t::rectangle: {
+            //      // BLL + 1
+            //      sprite_p.position = be.m_button_data[i + 1].properties.hitbox_rectangle.position;
+            //      sprite_p.size = be.m_button_data[i + 1].properties.hitbox_rectangle.size;
+            //      
+            //      break;
+            //    }
+            //    case fan_2d::graphics::gui::be_t::hitbox_type_t::circle: {
+            //      break;
+            //    }
+            //  }
+            //  builder.hitbox.push_back(&context, sprite_p);
+            //}
 
-            fan::io::file::read(f, &count, sizeof(count), 1);
-            editor.button_ids.resize(count);
+            //fan::io::file::read(f, &count, sizeof(count), 1);
+            //editor.button_ids.resize(count);
 
-            for (uint32_t i = 0; i < count; i++) {
-              uint32_t s;
-              fan::io::file::read(f, &s, sizeof(s), 1);
-              editor.button_ids[i].resize(s);
-              fan::io::file::read(f, editor.button_ids[i].data(), s, 1);
-            }
+            //for (uint32_t i = 0; i < count; i++) {
+            //  uint32_t s;
+            //  fan::io::file::read(f, &s, sizeof(s), 1);
+            //  editor.button_ids[i].resize(s);
+            //  fan::io::file::read(f, editor.button_ids[i].data(), s, 1);
+            //}
 
-            editor.depth_map.write_in(f);
+            //editor.depth_map.write_in(f);
 
-            fan::io::file::close(f);
+            //fan::io::file::close(f);
           }
 
         };
