@@ -270,7 +270,7 @@ namespace fan {
             return;
           }
 
-          context->process();
+          //context->process();
 
           m_edit_index = context->m_write_queue.push_back(this);
         }
@@ -317,7 +317,6 @@ namespace fan {
           common.open(context);
           common.buffer_bytes_size = sizeof(type_t);
           fan::opengl::core::write_glbuffer(context, common.m_vbo, 0, sizeof(type_t) * element_size, op.usage, op.target);
-          fan::print(get_buffer_size(context, op.target, common.m_vbo));
         }
 
         void close(fan::opengl::context_t* context) {
@@ -537,8 +536,9 @@ inline void fan::opengl::context_t::process() {
 
     void* buffer = &m_write_queue[it][1];
 
-    uint64_t src = m_write_queue[it]->m_min_edit * m_write_queue[it]->buffer_bytes_size;
-    uint64_t dst = m_write_queue[it]->m_max_edit * m_write_queue[it]->buffer_bytes_size;
+    uint64_t src = 0;
+    uint64_t dst = fan::opengl::core::get_buffer_size(this, fan::opengl::GL_UNIFORM_BUFFER, m_write_queue[it]->m_vbo);
+    //uint64_t dst = m_write_queue[it]->m_max_edit * m_write_queue[it]->buffer_bytes_size;
 
     fan::opengl::core::edit_glbuffer(this, m_write_queue[it]->m_vbo, buffer, src, dst - src, fan::opengl::GL_UNIFORM_BUFFER);
 

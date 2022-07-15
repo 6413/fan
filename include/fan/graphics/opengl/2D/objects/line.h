@@ -141,7 +141,6 @@ namespace fan_2d {
       }
 
       void enable_draw(fan::opengl::context_t* context) {
-        this->draw(context);
 
       #if fan_debug >= fan_debug_low
         if (m_draw_node_reference != fan::uninitialized) {
