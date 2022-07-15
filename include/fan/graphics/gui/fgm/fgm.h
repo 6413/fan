@@ -82,6 +82,23 @@ namespace fan_2d {
 
           fan::vec2 get_mouse_position(pile_t* pile);
 
+          struct shape_t {
+            uint8_t type;
+            union {
+              struct {
+                fan::opengl::cid_t cid;
+              }rectangle;
+              struct {
+                fan::opengl::cid_t cid;
+              }sprite;
+              struct {
+                fan::opengl::cid_t cid;
+              }sprite;
+            }data;
+          };
+
+          fan::hector_t<shape_t*> cids;
+
           fan::vec2 builder_viewport_src;
           fan::vec2 builder_viewport_dst;
           fan::vec2 origin_shapes;
@@ -371,11 +388,13 @@ void fan_2d::graphics::gui::fgm::editor_t::line_t::push_back(fan::opengl::contex
  p.dst *= ratio;
  fan_2d::graphics::line_t::push_back(context, p);
 }
-void fan_2d::graphics::gui::fgm::editor_t::text_renderer_t::push_back(fan::opengl::context_t* context, fan_2d::graphics::gui::text_renderer_t::properties_t p){
+void fan_2d::graphics::gui::fgm::editor_t::text_renderer_t::push_back(fan::opengl::context_t* context, fan_2d::graphics::text_renderer_t::properties_t p){
   pile_t* pile = OFFSETLESS(context, pile_t, context);
   fan::vec2 ratio = pile->get_ratio();
   p.position *= ratio;
-  fan_2d::graphics::gui::text_renderer_t::push_back(context, p);
+  shape_t shape;
+  shape.type = builder_draw_type_t::text_renderer;
+  fan_2d::graphics::text_renderer_t::push_back(context, p);
 }
 void fan_2d::graphics::gui::fgm::editor_t::rectangle_text_button_sized_t::push_back(fan::window_t* window, fan::opengl::context_t* context, fan_2d::graphics::gui::rectangle_text_button_sized_t::properties_t p){
   pile_t* pile = OFFSETLESS(context, pile_t, context);
