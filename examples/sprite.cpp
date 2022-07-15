@@ -7,7 +7,7 @@
 
 #include _FAN_PATH(graphics/graphics.h)
 
-constexpr uint32_t count = 10000;
+constexpr uint32_t count = 1;
 
 struct pile_t {
   fan::opengl::matrices_t matrices;
@@ -49,12 +49,13 @@ int main() {
   sprite_t::properties_t p;
 
   fan::opengl::image_t::load_properties_t lp;
-  lp.filter = fan::opengl::GL_LINEAR;
+  lp.filter = fan::opengl::GL_NEAREST;
   p.image.load(&pile.context, "images/test.webp", lp);
-  p.size = fan::cast<f32_t>(p.image.size) / pile.window.get_size();
+  p.size = 0.5;
 
   for (uint32_t i = 0; i < count; i++) {
-    p.position = fan::random::vec2(-1, 1);
+    p.position = fan::vec2(0, 0);
+    p.angle = fan::math::pi / 2;
     s.push_back(&pile.context, &pile.cids[i], p);
 
     /* EXAMPLE ERASE
@@ -72,11 +73,14 @@ int main() {
 
   pile.context.set_vsync(&pile.window, 0);
 
+  f32_t x = 0;
+
   while(1) {
 
     pile.window.get_fps();
-
-    s.erase(&pile.context, &pile.cids[i++]);
+    s.set(&pile.context, &pile.cids[0], &sprite_t::instance_t::angle, x);
+    x += pile.window.get_delta_time();
+   // s.erase(&pile.context, &pile.cids[i++]);
 
     uint32_t window_event = pile.window.handle_events();
     if(window_event & fan::window_t::events::close){
