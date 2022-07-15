@@ -10,9 +10,9 @@
 
 namespace fan { 
 	namespace math {
-		constexpr f32_t pi = 3.14159265358979323846264338327950288419716939937510;
-		constexpr f32_t half_pi = pi / 2;
-		constexpr f32_t two_pi = pi * 2;
+		constexpr f_t pi = 3.14159265358979323846264338327950288419716939937510;
+		constexpr f_t half_pi = pi / 2;
+		constexpr f_t two_pi = pi * 2;
 	}
 }
 
@@ -36,7 +36,7 @@ namespace fan_2d {
 		}
 
 		template <typename _Ty, typename _Ty2>
-		constexpr f32_t distance(const _Ty& src, const _Ty2& dst) {
+		constexpr f_t distance(const _Ty& src, const _Ty2& dst) {
 			const auto x = src[0] - dst[0];
 			const auto y = src[1] - dst[1];
 
@@ -44,13 +44,13 @@ namespace fan_2d {
 		}
 
 		template <typename _Ty>
-		constexpr f32_t vector_length(const _Ty& vector) {
+		constexpr f_t vector_length(const _Ty& vector) {
 			return distance<_Ty>(_Ty(), vector);
 		}
 
 		template <typename T>
 		inline T normalize(const T& vector) {
-			f32_t length = sqrt(fan_2d::math::dot(vector, vector));
+			f_t length = sqrt(fan_2d::math::dot(vector, vector));
 			if (!length) {
 				return T();
 			}
@@ -81,7 +81,7 @@ namespace fan_3d {
 		}
 
 		template <typename _Ty, typename _Ty2>
-		constexpr f32_t distance(const _Ty& src, const _Ty2& dst) {
+		constexpr f_t distance(const _Ty& src, const _Ty2& dst) {
 			const auto x = src[0] - dst[0];
 			const auto y = src[1] - dst[1];
 			const auto z = src[2] - dst[2];
@@ -90,7 +90,7 @@ namespace fan_3d {
 		}
 
 		template <typename _Ty>
-		constexpr f32_t vector_length(const _Ty& vector) {
+		constexpr f_t vector_length(const _Ty& vector) {
 			return distance<_Ty>(_Ty(), vector);
 		}
 
@@ -114,9 +114,9 @@ namespace fan {
 
 	namespace math {
 
-		constexpr f32_t inf = INFINITY;
-		constexpr f32_t infinite = inf;
-		constexpr f32_t infinity = infinite;
+		constexpr f_t inf = INFINITY;
+		constexpr f_t infinite = inf;
+		constexpr f_t infinity = infinite;
 
 		static f32_t fast_trunc(f32_t d) {
       unsigned constexpr MANTISSA_BITS = 52,
@@ -227,7 +227,7 @@ namespace fan {
 			return fan::math::inf;
 		}
 
-		inline auto pythagorean(f32_t a, f32_t b) {
+		inline auto pythagorean(f_t a, f_t b) {
 			return std::sqrt((a * a) + (b * b));
 		}
 
@@ -399,12 +399,12 @@ namespace fan {
 		//}
 
 
-		inline f32_t distance(f32_t src, f32_t dst) {
+		inline f_t distance(f_t src, f_t dst) {
 			return std::abs(std::abs(dst) - std::abs(src));
 		}
 
 		template <typename _Ty, typename _Ty2>
-		constexpr f32_t custom_pythagorean_no_sqrt(const _Ty& src, const _Ty2& dst) {
+		constexpr f_t custom_pythagorean_no_sqrt(const _Ty& src, const _Ty2& dst) {
 			return std::abs(src[0] - dst[0]) + std::abs(src[1] - dst[1]);
 		}
 
@@ -421,7 +421,7 @@ namespace fan {
 
 		// left
 		template <typename matrix_t>
-		constexpr auto ortho(f32_t left, f32_t right, f32_t bottom, f32_t top, f32_t zNear, f32_t zFar) {
+		constexpr auto ortho(f_t left, f_t right, f_t bottom, f_t top, f_t zNear, f_t zFar) {
 			matrix_t matrix(1);
 			matrix[0][0] = 2.0 / (right - left);
 			matrix[1][1] = 2.0 / (top - bottom);
@@ -433,7 +433,7 @@ namespace fan {
 		}
 
 		template <typename matrix_t>
-		constexpr auto ortho_right(f32_t left, f32_t right, f32_t bottom, f32_t top, f32_t zNear, f32_t zFar) {
+		constexpr auto ortho_right(f_t left, f_t right, f_t bottom, f_t top, f_t zNear, f_t zFar) {
 			matrix_t matrix(1);
 			matrix[0][0] = 2.0 / (right - left);
 			matrix[1][1] = 2.0 / (top - bottom);
@@ -445,14 +445,14 @@ namespace fan {
 		}
 
 		template <typename matrix_t>
-		constexpr matrix_t perspective(f32_t fovy, f32_t aspect, f32_t zNear, f32_t zFar) {
-			f32_t const tanHalfFovy = tan(fovy / static_cast<f32_t>(2));
+		constexpr matrix_t perspective(f_t fovy, f_t aspect, f_t zNear, f_t zFar) {
+			f_t const tanHalfFovy = tan(fovy / static_cast<f_t>(2));
 			matrix_t matrix{};
-			matrix[0][0] = static_cast<f32_t>(1) / (aspect * tanHalfFovy);
-			matrix[1][1] = static_cast<f32_t>(1) / (tanHalfFovy);
+			matrix[0][0] = static_cast<f_t>(1) / (aspect * tanHalfFovy);
+			matrix[1][1] = static_cast<f_t>(1) / (tanHalfFovy);
 			matrix[2][2] = -(zFar + zNear) / (zFar - zNear);
-			matrix[2][3] = -static_cast<f32_t>(1);
-			matrix[3][2] = -(static_cast<f32_t>(2) * zFar * zNear) / (zFar - zNear);
+			matrix[2][3] = -static_cast<f_t>(1);
+			matrix[3][2] = -(static_cast<f_t>(2) * zFar * zNear) / (zFar - zNear);
 			return matrix;
 		}
 
@@ -496,9 +496,9 @@ namespace fan {
 			matrix[0][2] = -f[0];
 			matrix[1][2] = -f[1];
 			matrix[2][2] = -f[2];
-			f32_t x = -fan_3d::math::dot(s, eye);
-			f32_t y = -fan_3d::math::dot(u, eye);
-			f32_t z = fan_3d::math::dot(f, eye);
+			f_t x = -fan_3d::math::dot(s, eye);
+			f_t y = -fan_3d::math::dot(u, eye);
+			f_t z = fan_3d::math::dot(f, eye);
 			matrix[3][0] = x;
 			matrix[3][1] = y;
 			matrix[3][2] = z;
@@ -536,12 +536,12 @@ namespace fan {
 
 		template <typename T>
 		constexpr T intersection_point(const T& p1Start, const T& p1End, const T& p2Start, const T& p2End, bool infinite_long_ray) {
-			f32_t den = (p1Start[0] - p1End[0]) * (p2Start[1] - p2End[1]) - (p1Start[1] - p1End[1]) * (p2Start[0] - p2End[0]);
+			f_t den = (p1Start[0] - p1End[0]) * (p2Start[1] - p2End[1]) - (p1Start[1] - p1End[1]) * (p2Start[0] - p2End[0]);
 			if (!den) {
 				return RAY_DID_NOT_HIT;
 			}
-			f32_t t = ((p1Start[0] - p2Start[0]) * (p2Start[1] - p2End[1]) - (p1Start[1] - p2Start[1]) * (p2Start[0] - p2End[0])) / den;
-			f32_t u = -((p1Start[0] - p1End[0]) * (p1Start[1] - p2Start[1]) - (p1Start[1] - p1End[1]) * (p1Start[0] - p2Start[0])) / den;
+			f_t t = ((p1Start[0] - p2Start[0]) * (p2Start[1] - p2End[1]) - (p1Start[1] - p2Start[1]) * (p2Start[0] - p2End[0])) / den;
+			f_t u = -((p1Start[0] - p1End[0]) * (p1Start[1] - p2Start[1]) - (p1Start[1] - p1End[1]) * (p1Start[0] - p2Start[0])) / den;
 
 			if (!infinite_long_ray) {
 				if (t >= 0 && t <= 1 && u >= 0 && u <= 1) {
