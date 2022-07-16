@@ -49,7 +49,12 @@ void main() {
 	vec2 swapped = vec2(1, 1);
 	vec2 ratio_size = get_instance().size * swapped;
 
-  gl_Position = view * projection * vec4(rectangle_vertices[id] * ratio_size + get_instance().position, 0, 1);
+	mat4 m = view;
+	m[3][0] = 0;
+	m[3][1] = 0;
+
+  gl_Position = m * projection * vec4(rectangle_vertices[id] * ratio_size + get_instance().position + vec2(view[3][0], view[3][1]), 0, 1);
+
 	text_color = get_instance().color;
 	texture_coordinate = tc[id] * get_instance().tc_size + get_instance().tc_position;
 	render_size = dot(get_instance().size, swapped);

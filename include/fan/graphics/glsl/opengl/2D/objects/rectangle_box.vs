@@ -57,12 +57,16 @@ R"(
 
 		vec2 rp = rectangle_vertices[id];
 	
-		float c = cos(get_instance().angle);
-		float s = sin(get_instance().angle);
+		float c = cos(-get_instance().angle);
+		float s = sin(-get_instance().angle);
 
 		float x = rp.x * c - rp.y * s;
 		float y = rp.x * s + rp.y * c;
 
-		gl_Position = view * projection * vec4(vec2(x, y) * ratio_size + get_instance().position, 0, 1);
+		mat4 m = view;
+		m[3][0] = 0;
+		m[3][1] = 0;
+
+		gl_Position = m * projection * vec4(vec2(x, y) * get_instance().size + get_instance().position + vec2(view[3][0], view[3][1]), 0, 1);
   }
 )"
