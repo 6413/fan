@@ -36,7 +36,7 @@ namespace fan_2d {
         );
         sprite_t::compile(context);
         store = {};
-        sprite_t::set_draw_cb(context, sprite_t::draw_cb, &store);
+        sprite_t::set_draw_cb(context, sprite1_t::draw_cb, &store);
         store.light_map = light_map;
       }
       struct store_t{
@@ -46,6 +46,7 @@ namespace fan_2d {
       static void draw_cb(fan::opengl::context_t* context, inherit_t* sprite, void* userptr) {
         sprite1_t::store_t& store = *(sprite1_t::store_t*)userptr;
         sprite->m_shader.set_int(context, "texture_light_map", 1);
+        sprite->m_shader.set_vec2(context, "viewport_size", context->get_viewport_size());
         context->opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
         context->opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, store.light_map.texture);
       }
