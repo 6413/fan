@@ -156,6 +156,11 @@ namespace fan_2d {
             blocks[last_block_id].uniform_buffer.close(context);
             blocks.m_size -= 1;
           }
+          blocks[block_id].uniform_buffer.common.edit(
+            context,
+            instance_id,
+            instance_id + 1
+          );
         }
 
         void enable_draw(fan::opengl::context_t* context) {
@@ -189,7 +194,7 @@ namespace fan_2d {
 
             blocks[i].uniform_buffer.draw(
               context,
-              0,
+              0 * 6,
               blocks[i].uniform_buffer.size() * 6
             );
           }

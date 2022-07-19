@@ -107,17 +107,17 @@ namespace fan_2d {
         const uint32_t instance_id = blocks[i].uniform_buffer.size() - 1;
 
         blocks[i].cid[instance_id] = cid;
-
+        
         blocks[i].uniform_buffer.common.edit(
           context,
-          instance_id,
+          0,
           instance_id + 1
         );
 
         cid->id = i * max_instance_size + instance_id;
 
         if (p.image.texture != fan::uninitialized) {
-          blocks[i].image[blocks[i].uniform_buffer.size() - 1] = p.image;
+          blocks[i].image[instance_id] = p.image;
         }
       }
       void erase(fan::opengl::context_t* context, fan::opengl::cid_t* cid) {
@@ -157,13 +157,6 @@ namespace fan_2d {
           sizeof(instance_t)
         );
 
-
-      /*  blocks[block_id].uniform_buffer.common.edit(
-          context,
-          instance_id,
-          instance_id + 1
-        );*/
-
         blocks[last_block_id].uniform_buffer.common.m_size -= blocks[block_id].uniform_buffer.common.buffer_bytes_size;
 
         blocks[block_id].image[instance_id] = blocks[last_block_id].image[last_instance_id];
@@ -175,6 +168,12 @@ namespace fan_2d {
           blocks[last_block_id].uniform_buffer.close(context);
           blocks.m_size -= 1;
         }
+
+        blocks[block_id].uniform_buffer.common.edit(
+          context,
+          0,
+          max_instance_size
+        );
       }
 
       void enable_draw(fan::opengl::context_t* context) {
@@ -233,7 +232,7 @@ namespace fan_2d {
               if (to) {
                 blocks[block_id].uniform_buffer.draw(
                   context,
-                  from, // TODO may need multiple with something
+                  from * 6,
                   to * 6
                 );
               }
@@ -250,7 +249,7 @@ namespace fan_2d {
           if (to) {
             blocks[block_id].uniform_buffer.draw(
               context,
-              from, // TODO may need multiple with something
+              from * 6,
               to * 6
             );
           }
