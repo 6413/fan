@@ -734,7 +734,7 @@ namespace fan_2d {
 				instance_buffer->get_value(i).angle = angle;
 
 				m_queue_helper.edit(i, i + 1, [&] {
-					this->edit_data(m_queue_helper.m_min_edit, m_queue_helper.m_max_edit);
+					this->edit_data(m_queue_helper.m_first_edit, m_queue_helper.m_count_edit);
 				});
 			}
 
@@ -745,7 +745,7 @@ namespace fan_2d {
 				instance_buffer->get_value(i).color = color;
 
 				m_queue_helper.edit(i, i + 1, [&] {
-					this->edit_data(m_queue_helper.m_min_edit, m_queue_helper.m_max_edit);
+					this->edit_data(m_queue_helper.m_first_edit, m_queue_helper.m_count_edit);
 				});
 			}
 
@@ -756,7 +756,7 @@ namespace fan_2d {
 				instance_buffer->m_instance[i].position = position;
 
 				m_queue_helper.edit(i, i + 1, [&] {
-					this->edit_data(m_queue_helper.m_min_edit, m_queue_helper.m_max_edit);
+					this->edit_data(m_queue_helper.m_first_edit, m_queue_helper.m_count_edit);
 				});
 			}
 
@@ -767,7 +767,7 @@ namespace fan_2d {
 				instance_buffer->get_value(i).size = size;
 
 				m_queue_helper.edit(i, i + 1, [&] {
-					this->edit_data(m_queue_helper.m_min_edit, m_queue_helper.m_max_edit);
+					this->edit_data(m_queue_helper.m_first_edit, m_queue_helper.m_count_edit);
 				});
 			}
 
@@ -778,7 +778,7 @@ namespace fan_2d {
 				instance_buffer->get_value(i).rotation_point = rotation_point;
 
 				m_queue_helper.edit(i, i + 1, [&] {
-					this->edit_data(m_queue_helper.m_min_edit, m_queue_helper.m_max_edit);
+					this->edit_data(m_queue_helper.m_first_edit, m_queue_helper.m_count_edit);
 				});
 			}
 
@@ -789,7 +789,7 @@ namespace fan_2d {
 				instance_buffer->get_value(i).rotation_vector = rotation_vector;
 
 				m_queue_helper.edit(i, i + 1, [&] {
-					this->edit_data(m_queue_helper.m_min_edit, m_queue_helper.m_max_edit);
+					this->edit_data(m_queue_helper.m_first_edit, m_queue_helper.m_count_edit);
 				});
 			}
 
@@ -1517,7 +1517,7 @@ namespace fan_2d {
 				instance_buffer->get_value(i).angle = angle;
 
 				m_queue_helper.edit(i, i + 1, [&] {
-					this->edit_data(m_queue_helper.m_min_edit, m_queue_helper.m_max_edit);
+					this->edit_data(m_queue_helper.m_first_edit, m_queue_helper.m_count_edit);
 				});
 			}
 
@@ -1528,7 +1528,7 @@ namespace fan_2d {
 				instance_buffer->m_instance[i].position = position;
 
 				m_queue_helper.edit(i, i + 1, [&] {
-					this->edit_data(m_queue_helper.m_min_edit, m_queue_helper.m_max_edit);
+					this->edit_data(m_queue_helper.m_first_edit, m_queue_helper.m_count_edit);
 				});
 			}
 
@@ -1539,7 +1539,7 @@ namespace fan_2d {
 				instance_buffer->get_value(i).size = size;
 
 				m_queue_helper.edit(i, i + 1, [&] {
-					this->edit_data(m_queue_helper.m_min_edit, m_queue_helper.m_max_edit);
+					this->edit_data(m_queue_helper.m_first_edit, m_queue_helper.m_count_edit);
 				});
 			}
 
@@ -1550,7 +1550,7 @@ namespace fan_2d {
 				instance_buffer->get_value(i).rotation_point = rotation_point;
 
 				m_queue_helper.edit(i, i + 1, [&] {
-					this->edit_data(m_queue_helper.m_min_edit, m_queue_helper.m_max_edit);
+					this->edit_data(m_queue_helper.m_first_edit, m_queue_helper.m_count_edit);
 				});
 			}
 
@@ -1561,7 +1561,7 @@ namespace fan_2d {
 				instance_buffer->get_value(i).rotation_vector = rotation_vector;
 
 				m_queue_helper.edit(i, i + 1, [&] {
-					this->edit_data(m_queue_helper.m_min_edit, m_queue_helper.m_max_edit);
+					this->edit_data(m_queue_helper.m_first_edit, m_queue_helper.m_count_edit);
 				});
 			}
 
@@ -1572,7 +1572,7 @@ namespace fan_2d {
 				instance_buffer->get_value(i).transparency = transparency;
 
 				m_queue_helper.edit(i, i + 1, [&] {
-					this->edit_data(m_queue_helper.m_min_edit, m_queue_helper.m_max_edit);
+					this->edit_data(m_queue_helper.m_first_edit, m_queue_helper.m_count_edit);
 				});
 			}
 

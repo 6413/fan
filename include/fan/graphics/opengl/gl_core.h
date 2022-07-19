@@ -278,10 +278,7 @@ namespace fan {
         void on_edit(fan::opengl::context_t* context) {
           context->m_write_queue.erase(m_edit_index);
 
-          m_min_edit = fan::uninitialized;
-          m_max_edit = 0;
-
-          m_edit_index = fan::uninitialized;
+          reset_edit();
         }
 
         void reset_edit() {
@@ -334,12 +331,6 @@ namespace fan {
           context->opengl.call(context->opengl.glBindBufferRange, fan::opengl::GL_UNIFORM_BUFFER, 0, common.m_vbo, 0, bytes_size * sizeof(type_t));
         }
 
-        void init(fan::opengl::context_t* context, uint32_t element_byte_size) {
-          common.m_vao.bind(context);
-          this->bind(context);
-          bind_buffer_range(context, element_byte_size);
-        }
-
         void bind(fan::opengl::context_t* context) const {
           context->opengl.call(context->opengl.glBindBuffer, op.target, common.m_vbo);
         }
@@ -348,7 +339,7 @@ namespace fan {
         }
 
         void push_ram_instance(fan::opengl::context_t* context, const type_t& data) {
-          std::memcpy(&buffer[common.m_size], (void*)&data, common.buffer_bytes_size);
+          std::memmove(&buffer[common.m_size], (void*)&data, common.buffer_bytes_size);
           common.m_size += sizeof(type_t);
         }
 
@@ -536,9 +527,8 @@ inline void fan::opengl::context_t::process() {
 
     void* buffer = &m_write_queue[it][1];
 
-    uint64_t src = 0;
-    uint64_t dst = fan::opengl::core::get_buffer_size(this, fan::opengl::GL_UNIFORM_BUFFER, m_write_queue[it]->m_vbo);
-    //uint64_t dst = m_write_queue[it]->m_max_edit * m_write_queue[it]->buffer_bytes_size;
+    uint64_t src = m_write_queue[it]->m_min_edit * m_write_queue[it]->buffer_bytes_size;
+    uint64_t dst = m_write_queue[it]->m_max_edit * m_write_queue[it]->buffer_bytes_size;
 
     fan::opengl::core::edit_glbuffer(this, m_write_queue[it]->m_vbo, buffer, src, dst - src, fan::opengl::GL_UNIFORM_BUFFER);
 
