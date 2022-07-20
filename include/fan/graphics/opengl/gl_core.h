@@ -180,6 +180,10 @@ namespace fan {
           glBindBufferBase(target, location, buffer);
         }*/
       }
+      static void get_glbuffer(fan::opengl::context_t* context, void* data, uint32_t buffer_id, uintptr_t size, uintptr_t offset, uintptr_t target) {
+        context->opengl.call(context->opengl.glBindBuffer, target, buffer_id);
+        context->opengl.call(context->opengl.glGetBufferSubData, target, offset, size, data);
+      }
 
       static void edit_glbuffer(fan::opengl::context_t* context, unsigned int buffer, const void* data, uintptr_t offset, uintptr_t size, uintptr_t target)
       {
@@ -196,7 +200,6 @@ namespace fan {
 #endif
 
         context->opengl.call(context->opengl.glBufferSubData, target, offset, size, data);
-        context->opengl.call(context->opengl.glBindBuffer, target, 0);
         /* if (target == GL_SHADER_STORAGE_BUFFER) {
            glBindBufferBase(target, location, buffer);
          }*/
@@ -243,8 +246,8 @@ namespace fan {
 
           m_edit_index = fan::uninitialized;
 
-          m_min_edit = fan::uninitialized;
-          m_max_edit = 0;
+          m_min_edit = 0xffffffff;
+          m_max_edit = 0x00000000;
 
           m_size = 0;
           m_vao.open(context);
@@ -270,20 +273,16 @@ namespace fan {
             return;
           }
 
-          //context->process();
-
           m_edit_index = context->m_write_queue.push_back(this);
         }
 
         void on_edit(fan::opengl::context_t* context) {
-          context->m_write_queue.erase(m_edit_index);
-
           reset_edit();
         }
 
         void reset_edit() {
-          m_min_edit = fan::uninitialized;
-          m_max_edit = 0;
+          m_min_edit = 0xffffffff;
+          m_max_edit = 0x00000000;
 
           m_edit_index = fan::uninitialized;
         }
@@ -356,6 +355,9 @@ namespace fan {
         type_t* get_instance(fan::opengl::context_t* context, uint32_t i) {
           return (type_t*)&buffer[i * sizeof(type_t)];
         }
+        void get_vram_instance(fan::opengl::context_t* context, type_t* data, uint32_t i) {
+          fan::opengl::core::get_glbuffer(context, data, common.m_vbo, sizeof(type_t), i * sizeof(type_t), op.target);
+        }
         void edit_ram_instance(fan::opengl::context_t* context, uint32_t i, const void* data, uint32_t byte_offset, uint32_t sizeof_data) {
 #if fan_debug >= fan_debug_low
           if (i + byte_offset + sizeof_data > common.m_size) {
@@ -365,7 +367,7 @@ namespace fan {
           std::memmove(buffer + i * sizeof(type_t) + byte_offset, data, sizeof_data);
         }
 
-        void bind_uniform_block(fan::opengl::context_t* context, uint32_t program, const char* name, uint32_t buffer_index = 0) {
+        void init_uniform_block(fan::opengl::context_t* context, uint32_t program, const char* name, uint32_t buffer_index = 0) {
           uint32_t index = context->opengl.call(context->opengl.glGetUniformBlockIndex, program, name);
 #if fan_debug >= fan_debug_low
           if (index == fan::uninitialized) {
@@ -376,12 +378,12 @@ namespace fan {
           context->opengl.call(context->opengl.glUniformBlockBinding, program, index, buffer_index);
         }
 
-        void draw(fan::opengl::context_t* context, uint32_t begin, uint32_t end) {
+        void draw(fan::opengl::context_t* context, uint32_t begin, uint32_t count) {
 
           common.m_vao.bind(context);
 
           // possibly disable depth test here
-          context->opengl.call(context->opengl.glDrawArrays, fan::opengl::GL_TRIANGLES, begin, end - begin);
+          context->opengl.call(context->opengl.glDrawArrays, fan::opengl::GL_TRIANGLES, begin, count);
         }
 
         uint32_t size() const {
@@ -523,18 +525,18 @@ inline void fan::opengl::context_t::process() {
 
   while (it != m_write_queue.end()) {
 
-    m_write_queue.start_safe_next(it);
-
-    void* buffer = &m_write_queue[it][1];
-
     uint64_t src = m_write_queue[it]->m_min_edit * m_write_queue[it]->buffer_bytes_size;
     uint64_t dst = m_write_queue[it]->m_max_edit * m_write_queue[it]->buffer_bytes_size;
+
+    uint8_t* buffer = (uint8_t*)&m_write_queue[it][1];
+
+    buffer += src;
 
     fan::opengl::core::edit_glbuffer(this, m_write_queue[it]->m_vbo, buffer, src, dst - src, fan::opengl::GL_UNIFORM_BUFFER);
 
     m_write_queue[it]->on_edit(this);
 
-    it = m_write_queue.end_safe_next();
+    it = m_write_queue.next(it);
   }
 
   m_write_queue.clear();

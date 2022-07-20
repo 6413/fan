@@ -81,35 +81,30 @@ namespace fan_2d {
 
         it.size = si.metrics.size / 2;
 
-        uint32_t i = 0;
+        uint32_t block_id = blocks.size() - 1;
 
-        for (; i < blocks.size(); i++) {
-          if (blocks[i].uniform_buffer.size() != max_instance_size) {
-            break;
-          }
-        }
-
-        if (i == blocks.size()) {
+        if (block_id == (uint32_t)-1 || blocks[block_id].uniform_buffer.size() == max_instance_size) {
           blocks.push_back({});
-          blocks[i].uniform_buffer.open(context);
-          blocks[i].uniform_buffer.bind_uniform_block(context, m_shader.id, "instance_t");
+          block_id++;
+          blocks[block_id].uniform_buffer.open(context);
+          blocks[block_id].uniform_buffer.init_uniform_block(context, m_shader.id, "instance_t");
         }
 
-        blocks[i].uniform_buffer.push_ram_instance(context, it);
+        blocks[block_id].uniform_buffer.push_ram_instance(context, it);
 
-        uint32_t src = blocks[i].uniform_buffer.size() % max_instance_size;
+        uint32_t src = blocks[block_id].uniform_buffer.size() % max_instance_size;
 
-        const uint32_t instance_id = blocks[i].uniform_buffer.size() - 1;
+        const uint32_t instance_id = blocks[block_id].uniform_buffer.size() - 1;
 
-        blocks[i].cid[instance_id] = cid;
+        blocks[block_id].cid[instance_id] = cid;
 
-        blocks[i].uniform_buffer.common.edit(
+        blocks[block_id].uniform_buffer.common.edit(
           context,
           src - 1,
           std::min(src, max_instance_size)
         );
 
-        cid->id = i * max_instance_size + instance_id;
+        cid->id = block_id * max_instance_size + instance_id;
       }
       void erase(fan::opengl::context_t* context, fan::opengl::cid_t* cid) {
         

@@ -187,16 +187,16 @@ namespace fan_2d {
                 );
 
                 *(fan::vec3*)&sum += *(fan::vec3*)&ret;
-                sum.w = std::min(sum.w, ret.w);
+                sum.w = 0;
                 it = m_instance.next(it);
               }
 
               *(fan::vec3*)&sum = *(fan::vec3*)&sum / std::max(fan::vec3(sum).max(), 1.0f);
 
-              map[(y * r.x + x) * 4 + 0] = sum.x * 0xff;
-              map[(y * r.x + x) * 4 + 1] = sum.y * 0xff;
-              map[(y * r.x + x) * 4 + 2] = sum.z * 0xff;
-              map[(y * r.x + x) * 4 + 3] = sum.w * 0xff;
+              map[(y * r.x + x) * 4 + 0] =0xff;
+              map[(y * r.x + x) * 4 + 1] =0xff;
+              map[(y * r.x + x) * 4 + 2] =0xff;
+              map[(y * r.x + x) * 4 + 3] =0xff;
               //fan::print((f32_t)map[y * r.x + x]);
             }
           }

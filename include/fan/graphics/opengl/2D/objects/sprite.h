@@ -88,37 +88,30 @@ namespace fan_2d {
       void push_back(fan::opengl::context_t* context, fan::opengl::cid_t* cid, const properties_t& p) {
         instance_t it = p;
 
-        uint32_t i = 0;
+        uint32_t block_id = blocks.size() - 1;
 
-        for (; i < blocks.size(); i++) {
-          if (blocks[i].uniform_buffer.size() != max_instance_size) {
-            break;
-          }
-        }
-
-        if (i == blocks.size()) {
+        if (block_id == (uint32_t)-1 || blocks[block_id].uniform_buffer.size() == max_instance_size) {
           blocks.push_back({});
-          blocks[i].uniform_buffer.open(context);
-          blocks[i].uniform_buffer.bind_uniform_block(context, m_shader.id, "instance_t");
+          block_id++;
+          blocks[block_id].uniform_buffer.open(context);
+          blocks[block_id].uniform_buffer.init_uniform_block(context, m_shader.id, "instance_t");
         }
-
-        blocks[i].uniform_buffer.push_ram_instance(context, it);
-
-        const uint32_t instance_id = blocks[i].uniform_buffer.size() - 1;
-
-        blocks[i].cid[instance_id] = cid;
         
-        blocks[i].uniform_buffer.common.edit(
+        blocks[block_id].uniform_buffer.push_ram_instance(context, it);
+
+        const uint32_t instance_id = blocks[block_id].uniform_buffer.size() - 1;
+
+        blocks[block_id].cid[instance_id] = cid;
+        
+        blocks[block_id].uniform_buffer.common.edit(
           context,
-          0,
+          instance_id,
           instance_id + 1
         );
 
-        cid->id = i * max_instance_size + instance_id;
+        cid->id = block_id * max_instance_size + instance_id;
 
-        if (p.image.texture != fan::uninitialized) {
-          blocks[i].image[instance_id] = p.image;
-        }
+        blocks[block_id].image[instance_id] = p.image;
       }
       void erase(fan::opengl::context_t* context, fan::opengl::cid_t* cid) {
 
@@ -127,12 +120,12 @@ namespace fan_2d {
 
         
         #if fan_debug >= fan_debug_medium
-        if (block_id >= blocks.size()) {
-          fan::throw_error("invalid access");
-        }
-        if (instance_id >= blocks[block_id].uniform_buffer.size()) {
-          fan::throw_error("invalid access");
-        }
+          if (block_id >= blocks.size()) {
+            fan::throw_error("invalid access");
+          }
+          if (instance_id >= blocks[block_id].uniform_buffer.size()) {
+            fan::throw_error("invalid access");
+          }
         #endif
 
         if (block_id == blocks.size() - 1 && instance_id == blocks.ge()->uniform_buffer.size() - 1) {
@@ -157,7 +150,7 @@ namespace fan_2d {
           sizeof(instance_t)
         );
 
-        blocks[last_block_id].uniform_buffer.common.m_size -= blocks[block_id].uniform_buffer.common.buffer_bytes_size;
+        blocks[last_block_id].uniform_buffer.common.m_size -= sizeof(instance_t);
 
         blocks[block_id].image[instance_id] = blocks[last_block_id].image[last_instance_id];
 
@@ -171,8 +164,8 @@ namespace fan_2d {
 
         blocks[block_id].uniform_buffer.common.edit(
           context,
-          0,
-          max_instance_size
+          instance_id,
+          instance_id + 1
         );
       }
 
@@ -219,6 +212,8 @@ namespace fan_2d {
         m_shader.use(context);
 
         draw_cb(context, this, draw_userdata);
+
+
 
         uint32_t texture_id = fan::uninitialized;
         for (uint32_t block_id = 0; block_id < blocks.size(); block_id++) {
@@ -273,10 +268,6 @@ namespace fan_2d {
           id.instance + 1
         );
       }
-
-      //uint32_t size() const {
-      //  return blocks.size();
-      //}
 
       fan::shader_t m_shader;
 
