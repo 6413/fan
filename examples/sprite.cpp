@@ -7,7 +7,7 @@
 
 #include _FAN_PATH(graphics/graphics.h)
 
-constexpr uint32_t count = 1000;
+constexpr uint32_t count = 10;
 
 struct pile_t {
   fan::opengl::matrices_t matrices;
@@ -50,13 +50,31 @@ int main() {
 
   fan::opengl::image_t::load_properties_t lp;
   lp.filter = fan::opengl::GL_NEAREST;
-  p.image.load(&pile.context, "images/test.webp", lp);
+  
   p.size = 0.05;
 
+ /* uint32_t c = 0;
+  for (f32_t i = 0; i < 5; i++) {
+    for (f32_t j = 0; j < 5; j++) {
+      p.position = fan::vec2(i / 5, j / 5) * 2 - 1 + 0.05;
+      s.push_back(&pile.context, &pile.cids[c], p);
+      c++;
+    }
+  }*/
+
+  p.position = fan::vec2(-0.8, -0.8);
+  p.image.load(&pile.context, "images/asteroid.webp", lp);
+  s.push_back(&pile.context, &pile.cids[0], p);
+
+  p.position = fan::vec2(-0.5, -0.5);
+  p.image.load(&pile.context, "images/planet.webp", lp);
+  s.push_back(&pile.context, &pile.cids[1], p);
+
+  p.position = fan::vec2(0, 0);
+  p.image.load(&pile.context, "images/test.webp", lp);
+  s.push_back(&pile.context, &pile.cids[2], p);
+
   for (uint32_t i = 0; i < count; i++) {
-    p.position = fan::random::vec2(-1, 1);
-    p.angle = fan::math::pi / 2;
-    s.push_back(&pile.context, &pile.cids[i], p);
 
     /* EXAMPLE ERASE
     s.erase(&pile.context, pile.ids[it]);
@@ -76,28 +94,23 @@ int main() {
 
   bool x = 0;
 
-  while(1) {
+  s.erase(&pile.context, &pile.cids[0]);
 
-    //pile.window.get_fps();
-    //s.set(&pile.context, &pile.cids[0], &sprite_t::instance_t::angle, x);
-    //x += pile.window.get_delta_time();
-    p.position = fan::random::vec2(-1, 1);
-    s.erase(&pile.context, &pile.cids[i]);
-    s.push_back(&pile.context, &pile.cids[i - 1], p);
-    fan::print(i);
-    if (i >= count - 1) {
-      x = !x;
-    }
-    if (!x) {
-      i++;
-    }
-    else {
-      i--;
-      if (i == 0 && x) {
-        x = !x;
-        i = 1;
+  while(1) {
+  /*  for (f32_t i = 0; i < 5; i++) {
+      for (f32_t j = 0; j < 5; j++) {
+        s.erase(&pile.context, &pile.cids[(uint32_t)i * 5 + (uint32_t)j]);
       }
     }
+
+    uint32_t c = 0;
+    for (f32_t i = 0; i < 5; i++) {
+      for (f32_t j = 0; j < 5; j++) {
+        p.position = fan::vec2(i / 5, j / 5) * 2 - 1 + 0.05;
+        s.push_back(&pile.context, &pile.cids[c], p);
+        c++;
+      }
+    }*/
 
     uint32_t window_event = pile.window.handle_events();
     if(window_event & fan::window_t::events::close){
