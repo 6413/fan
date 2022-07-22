@@ -45,12 +45,14 @@ int main() {
   tp.position = 0;
   tp.size = fan::vec2(0.3, 0.1);
   tp.text = "hello world";
-  tp.mouse_move_cb = [](const loco_t::mouse_move_data_t& mm_d) {
+  tp.mouse_move_cb = [] (const loco_t::mouse_move_data_t& mm_d) -> uint8_t {
     fan::print((int)mm_d.mouse_stage, mm_d.depth);
+    return 0;
   };
-  tp.mouse_input_cb = [](const loco_t::mouse_input_data_t& ii_d) {
+  tp.mouse_input_cb = [](const loco_t::mouse_input_data_t& ii_d) -> uint8_t {
 
     fan::print(ii_d.key, (int)ii_d.key_state, (int)ii_d.mouse_stage, ii_d.depth);
+    return 0;
   };
   uint32_t ids[2];
   loco->push_back(0, 0, &ids[0], tp);

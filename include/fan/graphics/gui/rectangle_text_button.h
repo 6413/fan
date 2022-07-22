@@ -16,13 +16,13 @@ namespace fan_2d {
         //using box_t = text_box_t::box;
 
         struct properties_t : text_box_t::properties_t {
-          be_t::on_input_cb_t mouse_input_cb = [](const be_t::mouse_input_data_t&){};
-          be_t::on_mouse_move_cb_t mouse_move_cb = [](const be_t::mouse_move_data_t&){};
+          be_t::on_input_cb_t mouse_input_cb = [](const be_t::mouse_input_data_t&) -> uint8_t {return 1; };
+          be_t::on_mouse_move_cb_t mouse_move_cb = [](const be_t::mouse_move_data_t&) -> uint8_t { return 1; };
 
           void* userptr;
         };
 
-        static void mouse_move_cb(const be_t::mouse_move_data_t& mm_data) {
+        static uint8_t mouse_move_cb(const be_t::mouse_move_data_t& mm_data) {
           switch (mm_data.mouse_stage) {
             case mouse_stage::inside: {
               rectangle_text_button_t* rtb = (rectangle_text_button_t*)mm_data.userptr[0];
@@ -37,10 +37,11 @@ namespace fan_2d {
               break;
             }
           }
+          return 1;
         }
-        static void mouse_input_cb(const be_t::mouse_input_data_t& ii_data) {
+        static uint8_t mouse_input_cb(const be_t::mouse_input_data_t& ii_data) {
           if (ii_data.key != fan::mouse_left) {
-            return;
+            return 1;
           }
           switch (ii_data.mouse_stage) {
             case mouse_stage::inside: {
@@ -64,6 +65,7 @@ namespace fan_2d {
               break;
             }
           }
+          return 1;
         }
 
         void open(fan::opengl::context_t* context)

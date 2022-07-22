@@ -131,13 +131,19 @@ struct loco_t {
 
   void feed_mouse_move(fan::opengl::context_t* context, const fan::vec2& mouse_position) {
     for (uint32_t depth = max_depths; depth--; ) {
-      element_depth[depth].button_event.feed_mouse_move(context, mouse_position, depth);
+       uint32_t r = element_depth[depth].button_event.feed_mouse_move(context, mouse_position, depth);
+       if (r == 0) {
+         break;
+       }
     }
   }
 
   void feed_mouse_input(fan::opengl::context_t* context, uint16_t button, fan::key_state key_state, const fan::vec2& mouse_position) {
     for (uint32_t depth = max_depths; depth--; ) {
       element_depth[depth].button_event.feed_mouse_input(context, button, key_state, mouse_position, depth);
+     /* if (!element_depth[depth].can_we_go_behind()) {
+        break;
+      }*/
     }
   }
 
