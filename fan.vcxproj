@@ -379,15 +379,10 @@
     <ClInclude Include="include\fan\graphics\gui\themes.h" />
     <ClInclude Include="include\fan\graphics\gui\types.h" />
     <ClInclude Include="include\fan\graphics\light.h" />
-    <ClInclude Include="include\fan\graphics\opengl\2D\effects\flame.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\effects\particles.h" />
     <ClInclude Include="include\fan\graphics\gui\checkbox.h" />
-    <ClInclude Include="include\fan\graphics\opengl\2D\gui\text_renderer_raw.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\objects\letter_renderer.h" />
-    <ClInclude Include="include\fan\graphics\opengl\2D\gui\text_renderer_wrap.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\objects\circle.h" />
-    <ClInclude Include="include\fan\graphics\opengl\2D\objects\depth\depth_rectangle.h" />
-    <ClInclude Include="include\fan\graphics\opengl\2D\objects\depth\depth_sprite.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\objects\line.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\objects\rectangle.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\objects\sprite.h" />

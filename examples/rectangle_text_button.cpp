@@ -7,24 +7,13 @@
 
 #include _FAN_PATH(graphics/gui/gui.h)
 
-
-using rectangle_t = fan_2d::graphics::rectangle_t;
 using rectangle_text_button_t = fan_2d::graphics::gui::rectangle_text_button_t;
 using letter_t = rectangle_text_button_t::letter_t;
 
 struct pile_t {
   fan::window_t window;
-};
+};;
 
-struct draw_pile_types_t {
-  fan::opengl::matrices_t matrices;
-  rectangle_text_button_t rectangle_text_button;
-  letter_t letter;
-  rectangle_t rectangle;
-};
-
-#define loco_rectangle
-#define loco_sprite
 #define loco_letter
 #define loco_rectangle_text_button
 #include _FAN_PATH(graphics/loco.h)
@@ -72,13 +61,13 @@ int main() {
   pile.window.add_keys_callback(&loco, [](fan::window_t* window, uint16_t key, fan::key_state key_state, void* user_ptr) {
     loco_t& loco = *(loco_t*)user_ptr;
     fan::vec2 window_size = window->get_size();
-    loco.feed_mouse_input(&loco.context, key, key_state, fan::cast<f32_t>(window->get_mouse_position()) / window_size * 2 - 1, 0);
+    loco.feed_mouse_input(&loco.context, key, key_state, fan::cast<f32_t>(window->get_mouse_position()) / window_size * 2 - 1);
   });
 
   pile.window.add_mouse_move_callback(&loco, [](fan::window_t* window, const fan::vec2i& mouse_position, void* user_ptr) {
     loco_t& loco = *(loco_t*)user_ptr;
     fan::vec2 window_size = window->get_size();
-    loco.feed_mouse_move(&loco.context, fan::cast<f32_t>(mouse_position) / window_size * 2 - 1, 0);
+    loco.feed_mouse_move(&loco.context, fan::cast<f32_t>(mouse_position) / window_size * 2 - 1);
   });
 
   while(1) {
