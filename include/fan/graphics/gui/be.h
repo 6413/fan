@@ -32,8 +32,8 @@ namespace fan_2d {
           fan::key_state key_state;
         };
 
-        typedef void(*on_input_cb_t)(const mouse_input_data_t&);
-        typedef void(*on_mouse_move_cb_t)(const mouse_move_data_t&);
+        typedef uint8_t(*on_input_cb_t)(const mouse_input_data_t&);
+        typedef uint8_t(*on_mouse_move_cb_t)(const mouse_move_data_t&);
 
         struct hitbox_type_t {
           static constexpr uint8_t rectangle = 0;
@@ -103,13 +103,13 @@ namespace fan_2d {
           }
         };
 
-        void feed_mouse_move(fan::opengl::context_t* context, const fan::vec2& mouse_position, uint32_t depth) {
+        uint8_t feed_mouse_move(fan::opengl::context_t* context, const fan::vec2& mouse_position, uint32_t depth) {
           if (m_do_we_hold_button == 1) {
-            return;
+            return 1;
           }
           if (m_focused_button_id != fan::uninitialized) {
             if (inside(m_focused_button_id, coordinate_offset + mouse_position)) {
-              return;
+              return 1;
             }
           }
 
@@ -142,8 +142,10 @@ namespace fan_2d {
               mm_data.userptr[2] = m_button_data[m_focused_button_id].properties.userptr[2];
               mm_data.depth = depth;
               m_button_data[m_focused_button_id].on_mouse_move_lib_cb(mm_data);
-              m_button_data[m_focused_button_id].properties.on_mouse_event_function(mm_data);
-              return;
+              if (!m_button_data[m_focused_button_id].properties.on_mouse_event_function(mm_data)) {
+                return 0;
+              }
+              return 1;
             }
             i = m_button_data.rnext(i);
           }
@@ -158,12 +160,14 @@ namespace fan_2d {
             mm_data.userptr[2] = m_button_data[m_focused_button_id].properties.userptr[2];
             mm_data.depth = depth;
             m_button_data[m_focused_button_id].on_mouse_move_lib_cb(mm_data);
-            m_button_data[m_focused_button_id].properties.on_mouse_event_function(mm_data);
             m_focused_button_id = fan::uninitialized;
+            if (!m_button_data[m_focused_button_id].properties.on_mouse_event_function(mm_data)) {
+              return 0;
+            }
           }
         }
 
-        void feed_mouse_input(fan::opengl::context_t* context, uint16_t button, fan::key_state state, const fan::vec2& mouse_position, uint32_t depth) {
+        uint8_t feed_mouse_input(fan::opengl::context_t* context, uint16_t button, fan::key_state state, const fan::vec2& mouse_position, uint32_t depth) {
           if (m_do_we_hold_button == 0) {
             if (state == fan::key_state::press) {
               if (m_focused_button_id != fan::uninitialized) {
@@ -181,7 +185,9 @@ namespace fan_2d {
                 ii_data.userptr[2] = m_button_data[m_focused_button_id].properties.userptr[2];
                 ii_data.depth = depth;
                 m_button_data[m_focused_button_id].on_input_lib_cb(ii_data);
-                m_button_data[m_focused_button_id].properties.on_input_function(ii_data);
+                if (!m_button_data[m_focused_button_id].properties.on_input_function(ii_data)) {
+                  return 0;
+                }
               }
               else {
                 uint32_t i = m_button_data.rbegin();
@@ -194,24 +200,26 @@ namespace fan_2d {
                     ii_data.mouse_stage = mouse_stage::outside;
                     ii_data.key = button;
                     ii_data.key_state = state;
-                    ii_data.userptr[0] = m_button_data[m_focused_button_id].properties.userptr[0];
-                    ii_data.userptr[1] = m_button_data[m_focused_button_id].properties.userptr[1];
-                    ii_data.userptr[2] = m_button_data[m_focused_button_id].properties.userptr[2];
+                    ii_data.userptr[0] = m_button_data[i].properties.userptr[0];
+                    ii_data.userptr[1] = m_button_data[i].properties.userptr[1];
+                    ii_data.userptr[2] = m_button_data[i].properties.userptr[2];
                     m_button_data[i].on_input_lib_cb(ii_data);
-                    m_button_data[i].properties.on_input_function(ii_data);
+                    if (!m_button_data[i].properties.on_input_function(ii_data)) {
+                      return 0;
+                    }
                   }
                   i = m_button_data.rnext(i);
                 }
-                return; // clicked at space
+                return 1; // clicked at space
               }
             }
             else {
-              return;
+              return 1;
             }
           }
           else {
             if (state == fan::key_state::press) {
-              return; // double press
+              return 1; // double press
             }
             else {
               if (inside(m_focused_button_id, coordinate_offset + mouse_position)) {
@@ -230,7 +238,7 @@ namespace fan_2d {
                 m_button_data[m_focused_button_id].on_input_lib_cb(ii_data);
                 m_button_data[m_focused_button_id].properties.on_input_function(ii_data);
                 if (pointer_remove_flag == 0) {
-                  return;
+                  return 1;
                   //rtb is deleted
                 }
               }
@@ -270,9 +278,11 @@ namespace fan_2d {
                 ii_data.userptr[2] = m_button_data[m_focused_button_id].properties.userptr[2];
                 ii_data.depth = depth;
                 m_button_data[m_focused_button_id].on_input_lib_cb(ii_data);
-                m_button_data[m_focused_button_id].properties.on_input_function(ii_data);
+                if (!m_button_data[m_focused_button_id].properties.on_input_function(ii_data)) {
+                  return 0;
+                }
                 if (pointer_remove_flag == 0) {
-                  return;
+                  return 1;
                 }
 
                 pointer_remove_flag = 0;
@@ -282,7 +292,7 @@ namespace fan_2d {
           }
         }
 
-        uint32_t push_back(const properties_t& p, on_input_cb_t on_input_lib_cb = [](const mouse_input_data_t&){}, on_mouse_move_cb_t on_mouse_move_lib_cb = [](const mouse_move_data_t&){}) {
+        uint32_t push_back(const properties_t& p, on_input_cb_t on_input_lib_cb = [](const mouse_input_data_t&) -> uint8_t { return 1; }, on_mouse_move_cb_t on_mouse_move_lib_cb = [](const mouse_move_data_t&) -> uint8_t { return 1; }) {
           button_data_t b;
           b.properties = p;
           b.on_input_lib_cb = on_input_lib_cb;
