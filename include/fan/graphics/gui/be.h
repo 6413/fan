@@ -23,7 +23,7 @@ namespace fan_2d {
           be_t* button_event;
           uint32_t element_id;
           mouse_stage mouse_stage;
-          void* userptr;
+          void* userptr[3];
           uint32_t depth;
         };
 
@@ -47,7 +47,8 @@ namespace fan_2d {
           on_input_cb_t on_input_function;
           on_mouse_move_cb_t on_mouse_event_function;
 
-          void* userptr;
+          void* userptr[3];
+
           fan::opengl::cid_t* element_cid;
 
           uint8_t hitbox_type;
@@ -122,7 +123,9 @@ namespace fan_2d {
                 mm_data.button_event = this;
                 mm_data.element_id = m_button_data[m_focused_button_id].properties.element_cid->id;
                 mm_data.mouse_stage = mouse_stage::outside;
-                mm_data.userptr = m_button_data[m_focused_button_id].properties.userptr;
+                mm_data.userptr[0] = m_button_data[m_focused_button_id].properties.userptr[0];
+                mm_data.userptr[1] = m_button_data[m_focused_button_id].properties.userptr[1];
+                mm_data.userptr[2] = m_button_data[m_focused_button_id].properties.userptr[2];
                 mm_data.depth = depth;
                 m_button_data[m_focused_button_id].on_mouse_move_lib_cb(mm_data);
                 m_button_data[m_focused_button_id].properties.on_mouse_event_function(mm_data);
@@ -134,7 +137,9 @@ namespace fan_2d {
               mm_data.button_event = this;
               mm_data.element_id = m_button_data[m_focused_button_id].properties.element_cid->id;
               mm_data.mouse_stage = mouse_stage::inside;
-              mm_data.userptr = m_button_data[m_focused_button_id].properties.userptr;
+              mm_data.userptr[0] = m_button_data[m_focused_button_id].properties.userptr[0];
+              mm_data.userptr[1] = m_button_data[m_focused_button_id].properties.userptr[1];
+              mm_data.userptr[2] = m_button_data[m_focused_button_id].properties.userptr[2];
               mm_data.depth = depth;
               m_button_data[m_focused_button_id].on_mouse_move_lib_cb(mm_data);
               m_button_data[m_focused_button_id].properties.on_mouse_event_function(mm_data);
@@ -148,7 +153,9 @@ namespace fan_2d {
             mm_data.button_event = this;
             mm_data.element_id = m_button_data[m_focused_button_id].properties.element_cid->id;
             mm_data.mouse_stage = mouse_stage::outside;
-            mm_data.userptr = m_button_data[m_focused_button_id].properties.userptr;
+            mm_data.userptr[0] = m_button_data[m_focused_button_id].properties.userptr[0];
+            mm_data.userptr[1] = m_button_data[m_focused_button_id].properties.userptr[1];
+            mm_data.userptr[2] = m_button_data[m_focused_button_id].properties.userptr[2];
             mm_data.depth = depth;
             m_button_data[m_focused_button_id].on_mouse_move_lib_cb(mm_data);
             m_button_data[m_focused_button_id].properties.on_mouse_event_function(mm_data);
@@ -169,7 +176,9 @@ namespace fan_2d {
                 ii_data.mouse_stage = mouse_stage::inside;
                 ii_data.key = button;
                 ii_data.key_state = fan::key_state::press;
-                ii_data.userptr = m_button_data[m_focused_button_id].properties.userptr;
+                ii_data.userptr[0] = m_button_data[m_focused_button_id].properties.userptr[0];
+                ii_data.userptr[1] = m_button_data[m_focused_button_id].properties.userptr[1];
+                ii_data.userptr[2] = m_button_data[m_focused_button_id].properties.userptr[2];
                 ii_data.depth = depth;
                 m_button_data[m_focused_button_id].on_input_lib_cb(ii_data);
                 m_button_data[m_focused_button_id].properties.on_input_function(ii_data);
@@ -185,7 +194,9 @@ namespace fan_2d {
                     ii_data.mouse_stage = mouse_stage::outside;
                     ii_data.key = button;
                     ii_data.key_state = state;
-                    ii_data.userptr = m_button_data[i].properties.userptr;
+                    ii_data.userptr[0] = m_button_data[m_focused_button_id].properties.userptr[0];
+                    ii_data.userptr[1] = m_button_data[m_focused_button_id].properties.userptr[1];
+                    ii_data.userptr[2] = m_button_data[m_focused_button_id].properties.userptr[2];
                     m_button_data[i].on_input_lib_cb(ii_data);
                     m_button_data[i].properties.on_input_function(ii_data);
                   }
@@ -212,7 +223,9 @@ namespace fan_2d {
                 ii_data.mouse_stage = mouse_stage::inside;
                 ii_data.key = button;
                 ii_data.key_state = fan::key_state::release;
-                ii_data.userptr = m_button_data[m_focused_button_id].properties.userptr;
+                ii_data.userptr[0] = m_button_data[m_focused_button_id].properties.userptr[0];
+                ii_data.userptr[1] = m_button_data[m_focused_button_id].properties.userptr[1];
+                ii_data.userptr[2] = m_button_data[m_focused_button_id].properties.userptr[2];
                 ii_data.depth = depth;
                 m_button_data[m_focused_button_id].on_input_lib_cb(ii_data);
                 m_button_data[m_focused_button_id].properties.on_input_function(ii_data);
@@ -233,7 +246,9 @@ namespace fan_2d {
                     ii_data.mouse_stage = mouse_stage::inside_drag;
                     ii_data.key = button;
                     ii_data.key_state = fan::key_state::release;
-                    ii_data.userptr = m_button_data[m_focused_button_id].properties.userptr;
+                    ii_data.userptr[0] = m_button_data[m_focused_button_id].properties.userptr[0];
+                    ii_data.userptr[1] = m_button_data[m_focused_button_id].properties.userptr[1];
+                    ii_data.userptr[2] = m_button_data[m_focused_button_id].properties.userptr[2];
                     ii_data.depth = depth;
                     m_button_data[m_focused_button_id].on_input_lib_cb(ii_data);
                     m_button_data[m_focused_button_id].properties.on_input_function(ii_data);
@@ -250,7 +265,9 @@ namespace fan_2d {
                 ii_data.mouse_stage = mouse_stage::outside;
                 ii_data.key = button;
                 ii_data.key_state = fan::key_state::release;
-                ii_data.userptr = m_button_data[m_focused_button_id].properties.userptr;
+                ii_data.userptr[0] = m_button_data[m_focused_button_id].properties.userptr[0];
+                ii_data.userptr[1] = m_button_data[m_focused_button_id].properties.userptr[1];
+                ii_data.userptr[2] = m_button_data[m_focused_button_id].properties.userptr[2];
                 ii_data.depth = depth;
                 m_button_data[m_focused_button_id].on_input_lib_cb(ii_data);
                 m_button_data[m_focused_button_id].properties.on_input_function(ii_data);
@@ -273,6 +290,7 @@ namespace fan_2d {
           return m_button_data.push_back(b);
         }
         void erase(uint32_t node_reference) {
+          delete m_button_data[node_reference].properties.element_cid;
           m_button_data.erase(node_reference);
         }
 

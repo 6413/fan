@@ -17,6 +17,8 @@ layout (std140) uniform instance_t {
     vec4 color;
 		vec2 tc_position;
 		vec2 tc_size;
+    vec4 outline_color;
+    float outline_size;
 	}st[256];
 }instance;
 

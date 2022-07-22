@@ -15,6 +15,8 @@ namespace fan_2d {
 
         using draw_cb_t = void(*)(fan::opengl::context_t* context, rectangle_text_box_t*, void*);
 
+        using letter_t = fan_2d::opengl::text_renderer_t::letter_t;
+
         struct instance_t {
           fan::vec2 position = 0;
           fan::vec2 size = 0;
@@ -86,20 +88,8 @@ namespace fan_2d {
           text_renderer.close(context);
         }
 
-        void push_back(fan::opengl::context_t* context, fan_2d::opengl::text_renderer_t::letter_t* letters, fan::opengl::cid_t* cid, const properties_t& p) {
+        void push_back(fan::opengl::context_t* context, letter_t* letters, fan::opengl::cid_t* cid, const properties_t& p) {
           instance_t it = p;
-
-          it.color = p.theme.button.color;
-          it.outline_color = p.theme.button.outline_color;
-          it.outline_size = p.theme.button.outline_size;
-          fan_2d::opengl::text_renderer_t::properties_t tp;
-          tp.color = p.theme.button.text_color;
-          tp.font_size = p.font_size;
-          tp.outline_color = p.theme.button.text_outline_color;
-          tp.outline_size = p.theme.button.text_outline_size;
-          tp.position = p.position;
-          tp.text = p.text;
-          text_renderer.push_back(context, letters, tp);
 
           uint32_t block_id = blocks.size() - 1;
 
@@ -114,8 +104,6 @@ namespace fan_2d {
 
           const uint32_t instance_id = blocks[block_id].uniform_buffer.size() - 1;
 
-          blocks[block_id].cid[instance_id] = cid;
-
           blocks[block_id].uniform_buffer.common.edit(
             context,
             instance_id,
@@ -123,6 +111,17 @@ namespace fan_2d {
           );
 
           cid->id = block_id * max_instance_size + instance_id;
+
+          blocks[block_id].cid[instance_id] = cid;
+
+          fan_2d::opengl::text_renderer_t::properties_t tp;
+          tp.color = p.theme.button.text_color;
+          tp.font_size = p.font_size;
+          tp.position = p.position;
+          tp.text = p.text;
+          blocks[block_id].tr_id[instance_id] = text_renderer.push_back(context, letters, tp);
+
+          set_theme(context, letters, cid, p.theme);
         }
         void erase(fan::opengl::context_t* context, fan::opengl::cid_t* cid) {
           uint32_t id = cid->id;
@@ -164,6 +163,9 @@ namespace fan_2d {
 
           blocks[block_id].cid[instance_id] = blocks[last_block_id].cid[last_instance_id];
           blocks[block_id].cid[instance_id]->id = block_id * max_instance_size + instance_id;
+          blocks[block_id].themes[instance_id] = blocks[last_block_id].themes[last_instance_id];
+          blocks[block_id].tr_id[instance_id] = blocks[last_block_id].tr_id[last_instance_id];
+
 
           if (blocks[last_block_id].uniform_buffer.size() == 0) {
             blocks[last_block_id].uniform_buffer.close(context);
@@ -254,10 +256,16 @@ namespace fan_2d {
           draw_userdata = userptr;
         }
 
-        void set_theme(fan::opengl::context_t* context, fan::opengl::cid_t* cid, const fan_2d::graphics::gui::theme& theme) {
-          set(context, cid, &instance_t::color, theme.button.color);
-          set(context, cid, &instance_t::outline_color, theme.button.outline_color);
-          set(context, cid, &instance_t::outline_size, theme.button.outline_size);
+        fan_2d::graphics::gui::theme get_theme(fan::opengl::context_t* context, const id_t& id) const {
+          return blocks[id.block].themes[id.instance];
+        }
+        void set_theme(fan::opengl::context_t* context, letter_t* letter, const id_t& id, const fan_2d::graphics::gui::theme& theme) {
+          blocks[id.block].themes[id.instance] = theme;
+          set(context, blocks[id.block].cid[id.instance], &instance_t::color, theme.button.color);
+          set(context, blocks[id.block].cid[id.instance], &instance_t::outline_color, theme.button.outline_color);
+          set(context, blocks[id.block].cid[id.instance], &instance_t::outline_size, theme.button.outline_size);
+          text_renderer.set(context, letter, blocks[id.block].tr_id[id.instance], &letter_t::instance_t::outline_color, blocks[id.block].themes->button.text_outline_color);
+          text_renderer.set(context, letter, blocks[id.block].tr_id[id.instance], &letter_t::instance_t::outline_size, blocks[id.block].themes->button.text_outline_color);
         }
 
         fan::shader_t m_shader;
@@ -265,6 +273,8 @@ namespace fan_2d {
         struct block_t {
           fan::opengl::core::uniform_block_t<instance_t, max_instance_size> uniform_buffer;
           fan::opengl::cid_t* cid[max_instance_size];
+          fan_2d::graphics::gui::theme themes[max_instance_size];
+          uint32_t tr_id[max_instance_size];
         };
         uint32_t m_draw_node_reference;
 

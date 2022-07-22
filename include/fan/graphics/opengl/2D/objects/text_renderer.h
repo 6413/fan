@@ -111,18 +111,18 @@ namespace fan_2d {
         e.amount++;
       }
 
-      template <typename T>
-      T get(fan::opengl::context_t* context, letter_t* letters, const id_t& id, T letter_t::instance_t::*member) {
-        return letters->blocks[id.block].uniform_buffer.get_instance(context, id.instance)->*member;
-      }
+      //template <typename T>
+      //T get(fan::opengl::context_t* context, letter_t* letters, uint32_t id, T letter_t::instance_t::*member) {
+      //  return letters->blocks[id.block].uniform_buffer.get_instance(context, id.instance)->*member;
+      //  for (uint32_t i = 0; i < letter_ids[id].size(); i++) {
+      //    letters->erase(context, &letter_ids[id][i]);
+      //  }
+      //}
       template <typename T, typename T2>
-      void set(fan::opengl::context_t* context, letter_t* letters, const id_t& id, T letter_t::instance_t::*member, const T2& value) {
-        letters->blocks[id.block].uniform_buffer.edit_ram_instance(context, id.instance, (T*)&value, fan::ofof<letter_t::instance_t, T>(member), sizeof(T));
-        letters->blocks[id.block].uniform_buffer.common.edit(
-          context,
-          id.instance,
-          id.instance + 1
-        );
+      void set(fan::opengl::context_t* context, letter_t* letters, uint32_t id, T letter_t::instance_t::*member, const T2& value) {
+        for (uint32_t i = 0; i < letter_ids[id].size(); i++) {
+          letters->set(context, &letter_ids[id][i], member, value);
+        }
       }
 
       struct{

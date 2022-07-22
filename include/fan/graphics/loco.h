@@ -98,8 +98,8 @@ struct loco_t {
     }
   #endif
   #if defined(loco_rectangle_text_button)
-    void push_back(uint32_t depth, fan::opengl::cid_t* cid, const fan_2d::graphics::gui::rectangle_text_button_t::properties_t& p) {
-      rectangle_text_button.push_back(&context, &button_event_depths[depth], &letter, p);
+    void push_back(uint32_t depth, uint32_t* id, const fan_2d::graphics::gui::rectangle_text_button_t::properties_t& p) {
+      *id = rectangle_text_button.push_back(&context, &button_event_depths[depth], &letter, p);
     }
   #endif
 
