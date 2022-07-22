@@ -14,6 +14,47 @@ namespace fan_2d {
 
 				theme() = default;
 
+				//template <typename T>
+				//theme operator+(T value) const {
+				//	theme t;
+				//	t.button.color = button.color + value;
+				//	t.button.outline_color = button.outline_color + value;
+				//	t.button.text_color = button.text_color + value;
+				//	t.button.text_outline_color = button.text_outline_color + value;
+				//	t.button.text_outline_size = button.text_outline_size;
+
+				//	return t;
+				//}
+				//template <typename T>
+				//theme operator-(T value) {
+				//	return operator+(-value);
+				//}
+
+				template <typename T>
+				theme operator*(T value) const {
+					theme t;
+					t.button.color = button.color * value;
+					t.button.outline_color = button.outline_color * value;
+					t.button.text_outline_color = button.text_outline_color * value;
+					t.button.text_color = button.text_color;
+					t.button.text_outline_size = button.text_outline_size;
+					t.button.outline_size = button.outline_size;
+
+					return t;
+				}
+				template <typename T>
+				theme operator/(T value) const {
+					theme t;
+					t.button.color = button.color / value;
+					t.button.outline_color = button.outline_color / value;
+					t.button.text_outline_color = button.text_outline_color / value;
+					t.button.text_color = button.text_color;
+					t.button.text_outline_size = button.text_outline_size;
+					t.button.outline_size = button.outline_size;
+
+					return t;
+				}
+
 				struct button {
 
 					button() = default;
@@ -31,6 +72,7 @@ namespace fan_2d {
 					f32_t text_outline_size;
 
 					f32_t outline_size;
+
 				}button;
 			};
 
@@ -56,7 +98,7 @@ namespace fan_2d {
 						button.outline_color = fan::color(0, 0, 0.5) * intensity;
 						button.text_color = fan_2d::graphics::gui::defaults::text_color;
 						button.text_outline_color = fan::colors::black * intensity;
-						button.text_outline_size = fan_2d::graphics::gui::defaults::text_renderer_outline_size * intensity;
+						button.text_outline_size = fan_2d::graphics::gui::defaults::text_renderer_outline_size;
 						button.outline_size = 0.1;
 					}
 				};	

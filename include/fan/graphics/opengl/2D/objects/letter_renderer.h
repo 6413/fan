@@ -23,6 +23,9 @@ namespace fan_2d {
         fan::color color;
         fan::vec2 tc_position;
         fan::vec2 tc_size;
+        fan::color outline_color;
+        f32_t outline_size;
+        f32_t pad[3];
       };
 
       static constexpr uint32_t max_instance_size = 256;
@@ -204,9 +207,9 @@ namespace fan_2d {
       T get(fan::opengl::context_t* context, const id_t& id, T instance_t::*member) {
         return blocks[id.block].uniform_buffer.get_instance(context, id.instance)->*member;
       }
-      template <typename T>
-      void set(fan::opengl::context_t* context, const id_t& id, T instance_t::*member, const T& value) {
-        blocks[id.block].uniform_buffer.edit_ram_instance(context, id.instance, &value, fan::ofof<instance_t, T>(member), sizeof(T));
+      template <typename T, typename T2>
+      void set(fan::opengl::context_t* context, const id_t& id, T instance_t::*member, const T2& value) {
+        blocks[id.block].uniform_buffer.edit_ram_instance(context, id.instance, (T*)&value, fan::ofof<instance_t, T>(member), sizeof(T));
       }
 
       fan::shader_t m_shader;

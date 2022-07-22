@@ -18,18 +18,22 @@ namespace fan_2d {
         struct properties_t : text_box_t::properties_t {
           be_t::on_input_cb_t mouse_input_cb = [](const be_t::mouse_input_data_t&){};
           be_t::on_mouse_move_cb_t mouse_move_cb = [](const be_t::mouse_move_data_t&){};
+
+          void* userptr;
         };
 
         static void mouse_move_cb(const be_t::mouse_move_data_t& mm_data) {
           switch (mm_data.mouse_stage) {
             case mouse_stage::inside: {
-              rectangle_text_button_t* rtb = (rectangle_text_button_t*)mm_data.userptr;
-              rtb->text_box.set_theme(mm_data.context,  &rtb->list[mm_data.element_id].cid_text_box, fan_2d::graphics::gui::themes::deep_red(1.1));
+              rectangle_text_button_t* rtb = (rectangle_text_button_t*)mm_data.userptr[0];
+              rtb->text_box.set_theme(mm_data.context, (letter_t*)mm_data.userptr[1], rtb->list[mm_data.element_id].cid_text_box, rtb->text_box.get_theme(mm_data.context, rtb->list[mm_data.element_id].cid_text_box) * 1.1);
               break;
             }
             case mouse_stage::outside: {
-              rectangle_text_button_t* rtb = (rectangle_text_button_t*)mm_data.userptr;
-              rtb->text_box.set_theme(mm_data.context,  &rtb->list[mm_data.element_id].cid_text_box, fan_2d::graphics::gui::themes::deep_red(1));
+              rectangle_text_button_t* rtb = (rectangle_text_button_t*)mm_data.userptr[0];
+              letter_t* letter = (letter_t*)mm_data.userptr[1];
+              
+              rtb->text_box.set_theme(mm_data.context, (letter_t*)mm_data.userptr[1], rtb->list[mm_data.element_id].cid_text_box, rtb->text_box.get_theme(mm_data.context, rtb->list[mm_data.element_id].cid_text_box) / 1.1);
               break;
             }
           }
@@ -40,22 +44,23 @@ namespace fan_2d {
           }
           switch (ii_data.mouse_stage) {
             case mouse_stage::inside: {
-              rectangle_text_button_t* rtb = (rectangle_text_button_t*)ii_data.userptr;
+              rectangle_text_button_t* rtb = (rectangle_text_button_t*)ii_data.userptr[0];
               switch (ii_data.key_state) {
                 case fan::key_state::press: {
-                  rtb->text_box.set_theme(ii_data.context, &rtb->list[ii_data.element_id].cid_text_box, fan_2d::graphics::gui::themes::deep_red(1.2));
+                  rtb->text_box.set_theme(ii_data.context, (letter_t*)ii_data.userptr[1], rtb->list[ii_data.element_id].cid_text_box,
+                    rtb->text_box.get_theme(ii_data.context, rtb->list[ii_data.element_id].cid_text_box) * 1.2);
                   break;
                 }
                 case fan::key_state::release: {
-                  rtb->text_box.set_theme(ii_data.context,  &rtb->list[ii_data.element_id].cid_text_box, fan_2d::graphics::gui::themes::deep_red(1));
+                  rtb->text_box.set_theme(ii_data.context, (letter_t*)ii_data.userptr[1], rtb->list[ii_data.element_id].cid_text_box, rtb->text_box.get_theme(ii_data.context, rtb->list[ii_data.element_id].cid_text_box) / 1.2);
                   break;
                 }
               }
               break;
             }
             case mouse_stage::outside: {
-              rectangle_text_button_t* rtb = (rectangle_text_button_t*)ii_data.userptr;
-              rtb->text_box.set_theme(ii_data.context,  &rtb->list[ii_data.element_id].cid_text_box, fan_2d::graphics::gui::themes::deep_red(1));
+              rectangle_text_button_t* rtb = (rectangle_text_button_t*)ii_data.userptr[0];
+              rtb->text_box.set_theme(ii_data.context, (letter_t*)ii_data.userptr[1], rtb->list[ii_data.element_id].cid_text_box, rtb->text_box.get_theme(ii_data.context, rtb->list[ii_data.element_id].cid_text_box) / 1.2);
               break;
             }
           }
@@ -70,6 +75,9 @@ namespace fan_2d {
 
         void close(fan::opengl::context_t* context)
         {
+          for (uint32_t i = 0; i < list.size(); i++) {
+            delete list[i].cid_text_box;
+          }
           list.close();
           text_box.close(context);
         }
@@ -85,7 +93,8 @@ namespace fan_2d {
             id = list.resize(list.size() + 1);
           }
 
-          text_box.push_back(context, letters, &list[id].cid_text_box, p);
+          list[id].cid_text_box = new fan::opengl::cid_t;
+          text_box.push_back(context, letters, list[id].cid_text_box, p);
 
           fan_2d::graphics::gui::be_t::properties_t be_p;
           be_p.hitbox_type = fan_2d::graphics::gui::be_t::hitbox_type_t::rectangle;
@@ -93,15 +102,17 @@ namespace fan_2d {
           be_p.hitbox_rectangle.size = p.size;
           be_p.on_input_function = p.mouse_input_cb;
           be_p.on_mouse_event_function = p.mouse_move_cb;
-          be_p.userptr = this;
-          be_p.element_cid = &list[id].cid_text_box;
+          be_p.userptr[0] = this;
+          be_p.userptr[1] = letters;
+          be_p.userptr[2] = p.userptr;
+          be_p.element_cid = list[id].cid_text_box;
           list[id].button_event_id = button_event->push_back(be_p, mouse_input_cb, mouse_move_cb);
 
           return id;
         }
 
-        void set_theme(fan::opengl::context_t* context, fan::opengl::cid_t* cid, const fan_2d::graphics::gui::theme& theme) {
-          text_box.set_theme(context, cid, theme);
+        void set_theme(fan::opengl::context_t* context, letter_t* letter, fan::opengl::cid_t* cid, const fan_2d::graphics::gui::theme& theme) {
+          text_box.set_theme(context, letter, cid, theme);
         }
 
         void enable_draw(fan::opengl::context_t* context) {
@@ -128,7 +139,7 @@ namespace fan_2d {
         }e;
 
         struct element_t {
-          fan::opengl::cid_t cid_text_box;
+          fan::opengl::cid_t* cid_text_box;
           uint32_t button_event_id;
         };
 
