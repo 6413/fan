@@ -49,21 +49,16 @@ int main() {
     fan::print((int)mm_d.mouse_stage, mm_d.depth);
   };
   tp.mouse_input_cb = [](const loco_t::mouse_input_data_t& ii_d) {
-    if (ii_d.depth != 1) {
-      return;
-    }
+
     fan::print(ii_d.key, (int)ii_d.key_state, (int)ii_d.mouse_stage, ii_d.depth);
   };
   uint32_t ids[2];
-  loco->push_back(0, &ids[0], tp);
+  loco->push_back(0, 0, &ids[0], tp);
   tp.theme = fan_2d::graphics::gui::themes::gray();
-  tp.position.x += 0.05;
+  tp.position.x += 0.1;
   tp.text = "hw2";
-  loco->push_back(1, &ids[1], tp);
+  loco->push_back(1, 1, &ids[1], tp);
   //             ^ depth
-  loco->rectangle_text_button.enable_draw(&loco->context);
-
-  loco->letter.enable_draw(&loco->context);
 
   pile.window.add_keys_callback(loco, [](fan::window_t* window, uint16_t key, fan::key_state key_state, void* user_ptr) {
     loco_t* loco = (loco_t*)user_ptr;
