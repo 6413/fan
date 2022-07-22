@@ -56,8 +56,15 @@ int main() {
   tp.position = 0;
   tp.size = fan::vec2(0.3, 0.1);
   tp.text = "hello world";
+  tp.mouse_move_cb = [](const loco_t::mouse_move_data_t& mm_d) {
+    fan::print((int)mm_d.mouse_stage, mm_d.depth);
+  };
+  tp.mouse_input_cb = [](const loco_t::mouse_input_data_t& ii_d) {
+    fan::print(ii_d.key, (int)ii_d.key_state, (int)ii_d.mouse_stage, ii_d.depth);
+  };
   fan::opengl::cid_t cid;
-  loco.push_back(&cid, tp);
+  loco.push_back(0, &cid, tp);
+  //             ^ depth
   loco.rectangle_text_button.enable_draw(&loco.context);
 
   loco.letter.enable_draw(&loco.context);
@@ -65,13 +72,13 @@ int main() {
   pile.window.add_keys_callback(&loco, [](fan::window_t* window, uint16_t key, fan::key_state key_state, void* user_ptr) {
     loco_t& loco = *(loco_t*)user_ptr;
     fan::vec2 window_size = window->get_size();
-    loco.feed_mouse_input(&loco.context, key, key_state, fan::cast<f32_t>(window->get_mouse_position()) / window_size * 2 - 1, 0); // depth
+    loco.feed_mouse_input(&loco.context, key, key_state, fan::cast<f32_t>(window->get_mouse_position()) / window_size * 2 - 1, 0);
   });
 
   pile.window.add_mouse_move_callback(&loco, [](fan::window_t* window, const fan::vec2i& mouse_position, void* user_ptr) {
     loco_t& loco = *(loco_t*)user_ptr;
     fan::vec2 window_size = window->get_size();
-    loco.feed_mouse_move(&loco.context, fan::cast<f32_t>(mouse_position) / window_size * 2 - 1, 0); // depth
+    loco.feed_mouse_move(&loco.context, fan::cast<f32_t>(mouse_position) / window_size * 2 - 1, 0);
   });
 
   while(1) {

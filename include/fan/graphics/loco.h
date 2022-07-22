@@ -24,7 +24,12 @@ struct loco_t {
     fan_2d::graphics::gui::rectangle_text_button_t rectangle_text_button;
   #endif
 
-  fan_2d::graphics::gui::be_t button_event;
+  static constexpr uint32_t max_depths = 100;
+
+
+  fan_2d::graphics::gui::be_t button_event_depths[max_depths];
+  using mouse_input_data_t = fan_2d::graphics::gui::be_t::mouse_input_data_t;
+  using mouse_move_data_t = fan_2d::graphics::gui::be_t::mouse_move_data_t;
 
   uint32_t focus_shape_type;
   uint32_t focus_shape_id;
@@ -40,7 +45,9 @@ struct loco_t {
   };
 
   void open(const properties_t& p) {
-    button_event.open();
+    for (uint32_t depth = 0; depth < max_depths; depth++) {
+      button_event_depths[depth].open();
+    }
 
     #if defined(loco_letter)
       font.open(&context, loco_font);
@@ -91,10 +98,14 @@ struct loco_t {
     }
   #endif
   #if defined(loco_rectangle_text_button)
-    void push_back(fan::opengl::cid_t* cid, const fan_2d::graphics::gui::rectangle_text_button_t::properties_t& p) {
-      rectangle_text_button.push_back(&context, &button_event, &letter, p);
+    void push_back(uint32_t depth, fan::opengl::cid_t* cid, const fan_2d::graphics::gui::rectangle_text_button_t::properties_t& p) {
+      rectangle_text_button.push_back(&context, &button_event_depths[depth], &letter, p);
     }
   #endif
+
+    uint32_t push_back(uint32_t depth, const fan_2d::graphics::gui::be_t::properties_t& p) {
+      return button_event_depths[depth].push_back(p);
+    }
 
   /*
   
@@ -102,11 +113,11 @@ struct loco_t {
   */
 
   void feed_mouse_move(fan::opengl::context_t* context, const fan::vec2& mouse_position, uint32_t depth) {
-    button_event.feed_mouse_move(context, mouse_position, depth);
+    button_event_depths[depth].feed_mouse_move(context, mouse_position, depth);
   }
 
   void feed_mouse_input(fan::opengl::context_t* context, uint16_t button, fan::key_state key_state, const fan::vec2& mouse_position, uint32_t depth) {
-    button_event.feed_mouse_input(context, button, key_state, mouse_position, depth);
+    button_event_depths[depth].feed_mouse_input(context, button, key_state, mouse_position, depth);
   }
 
   void feed_keyboard(fan::opengl::context_t* context, uint16_t key, fan::key_state key_state) {

@@ -16,45 +16,46 @@ namespace fan_2d {
         //using box_t = text_box_t::box;
 
         struct properties_t : text_box_t::properties_t {
-
+          be_t::on_input_cb_t mouse_input_cb = [](const be_t::mouse_input_data_t&){};
+          be_t::on_mouse_move_cb_t mouse_move_cb = [](const be_t::mouse_move_data_t&){};
         };
 
-        static void mouse_move_cb(fan::opengl::context_t* context, fan_2d::graphics::gui::be_t* be, uint32_t object_index, mouse_stage ms, void* userptr) {
-          switch (ms) {
+        static void mouse_move_cb(const be_t::mouse_move_data_t& mm_data) {
+          switch (mm_data.mouse_stage) {
             case mouse_stage::inside: {
-              rectangle_text_button_t* rtb = (rectangle_text_button_t*)userptr;
-              rtb->text_box.set_theme(context,  &rtb->list[object_index].cid_text_box, fan_2d::graphics::gui::themes::deep_red(1.1));
+              rectangle_text_button_t* rtb = (rectangle_text_button_t*)mm_data.userptr;
+              rtb->text_box.set_theme(mm_data.context,  &rtb->list[mm_data.element_id].cid_text_box, fan_2d::graphics::gui::themes::deep_red(1.1));
               break;
             }
             case mouse_stage::outside: {
-              rectangle_text_button_t* rtb = (rectangle_text_button_t*)userptr;
-              rtb->text_box.set_theme(context,  &rtb->list[object_index].cid_text_box, fan_2d::graphics::gui::themes::deep_red(1));
+              rectangle_text_button_t* rtb = (rectangle_text_button_t*)mm_data.userptr;
+              rtb->text_box.set_theme(mm_data.context,  &rtb->list[mm_data.element_id].cid_text_box, fan_2d::graphics::gui::themes::deep_red(1));
               break;
             }
           }
         }
-        static void mouse_input_cb(fan::opengl::context_t* context, be_t*, uint32_t object_index, uint16_t key, fan::key_state key_state, fan_2d::graphics::gui::mouse_stage ms, void* userptr) {
-          if (key != fan::mouse_left) {
+        static void mouse_input_cb(const be_t::mouse_input_data_t& ii_data) {
+          if (ii_data.key != fan::mouse_left) {
             return;
           }
-          switch (ms) {
+          switch (ii_data.mouse_stage) {
             case mouse_stage::inside: {
-              rectangle_text_button_t* rtb = (rectangle_text_button_t*)userptr;
-              switch (key_state) {
+              rectangle_text_button_t* rtb = (rectangle_text_button_t*)ii_data.userptr;
+              switch (ii_data.key_state) {
                 case fan::key_state::press: {
-                  rtb->text_box.set_theme(context, &rtb->list[object_index].cid_text_box, fan_2d::graphics::gui::themes::deep_red(1.2));
+                  rtb->text_box.set_theme(ii_data.context, &rtb->list[ii_data.element_id].cid_text_box, fan_2d::graphics::gui::themes::deep_red(1.2));
                   break;
                 }
                 case fan::key_state::release: {
-                  rtb->text_box.set_theme(context,  &rtb->list[object_index].cid_text_box, fan_2d::graphics::gui::themes::deep_red(1));
+                  rtb->text_box.set_theme(ii_data.context,  &rtb->list[ii_data.element_id].cid_text_box, fan_2d::graphics::gui::themes::deep_red(1));
                   break;
                 }
               }
               break;
             }
             case mouse_stage::outside: {
-              rectangle_text_button_t* rtb = (rectangle_text_button_t*)userptr;
-              rtb->text_box.set_theme(context,  &rtb->list[object_index].cid_text_box, fan_2d::graphics::gui::themes::deep_red(1));
+              rectangle_text_button_t* rtb = (rectangle_text_button_t*)ii_data.userptr;
+              rtb->text_box.set_theme(ii_data.context,  &rtb->list[ii_data.element_id].cid_text_box, fan_2d::graphics::gui::themes::deep_red(1));
               break;
             }
           }
@@ -90,10 +91,11 @@ namespace fan_2d {
           be_p.hitbox_type = fan_2d::graphics::gui::be_t::hitbox_type_t::rectangle;
           be_p.hitbox_rectangle.position = p.position;
           be_p.hitbox_rectangle.size = p.size;
-          be_p.on_mouse_event_function = mouse_move_cb;
-          be_p.on_input_function = mouse_input_cb;
+          be_p.on_input_function = p.mouse_input_cb;
+          be_p.on_mouse_event_function = p.mouse_move_cb;
           be_p.userptr = this;
-          list[id].button_event_id = button_event->push_back(be_p);
+          be_p.element_cid = &list[id].cid_text_box;
+          list[id].button_event_id = button_event->push_back(be_p, mouse_input_cb, mouse_move_cb);
 
           return id;
         }
