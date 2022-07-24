@@ -118,6 +118,7 @@ namespace fan_2d {
           tp.font_size = p.font_size;
           tp.position = p.position;
           tp.text = p.text;
+          tp.position.z += p.position.z + 0.0001;
           blocks[block_id].tr_id[instance_id] = text_renderer.push_back(context, letters, tp);
 
           set_theme(context, letters, cid, p.theme);

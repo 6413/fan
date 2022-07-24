@@ -2,35 +2,62 @@ struct loco_t {
 
   struct properties_t {
     fan::opengl::matrices_t* matrices;
+    fan::opengl::context_t* context;
   };
 
   static constexpr uint32_t max_depths = 100;
 
-  struct {
-
   #if defined(loco_rectangle)
-    fan_2d::graphics::rectangle_t rectangle;
+    struct rectangle_t : fan_2d::graphics::rectangle_t {
+    private:
+      using fan_2d::graphics::rectangle_t::push_back;
+    public:
+      void push_back(fan::opengl::cid_t* cid, const properties_t& p) {
+        loco_t* loco = OFFSETLESS(this, loco_t, rectangle);
+        fan_2d::graphics::rectangle_t::push_back(loco->context, cid, p);
+      }
+    }rectangle;
   #endif
   #if defined(loco_sprite)
-    fan_2d::graphics::sprite_t sprite;
+    struct sprite_t : fan_2d::graphics::sprite_t {
+      void push_back(fan::opengl::cid_t* cid, const properties_t& p) {
+        loco_t* loco = OFFSETLESS(this, loco_t, sprite);
+        fan_2d::graphics::sprite_t::push_back(loco->context, cid, p);
+      }
+    private:
+      using fan_2d::graphics::sprite_t::push_back;
+    }sprite;
   #endif
   #if defined(loco_letter)
-    #if !defined(loco_font)
-      #define loco_font "fonts/bitter"
-    #endif
-    fan_2d::graphics::letter_t letter;
+  #if !defined(loco_font)
+  #define loco_font "fonts/bitter"
+  #endif
+    struct letter_t : fan_2d::graphics::letter_t {
+      void push_back(fan::opengl::cid_t* cid, const properties_t& p) {
+        loco_t* loco = OFFSETLESS(this, loco_t, letter);
+        fan_2d::graphics::letter_t::push_back(loco->context, cid, p);
+      }
+    private:
+      using fan_2d::graphics::letter_t::push_back;
+      }letter;
   #endif
   #if defined(loco_rectangle_text_button)
   #if !defined(loco_letter)
   #error need to enable loco_letter to use rectangle_text_button
   #undef loco_rectangle_text_button
   #endif
-    fan_2d::graphics::gui::rectangle_text_button_t rectangle_text_button;
+    struct button_t : fan_2d::graphics::gui::rectangle_text_button_t {
+      uint32_t push_back(uint32_t input_depth, const properties_t& p) {
+        loco_t* loco = OFFSETLESS(this, loco_t, button);
+        return fan_2d::graphics::gui::rectangle_text_button_t::push_back(loco->context, &loco->element_depth[input_depth].input_hitbox, &loco->letter, p);
+      }
+    private:
+      using fan_2d::graphics::gui::rectangle_text_button_t::push_back;
+    }button;
   #endif
 
-
-  fan_2d::graphics::gui::be_t button_event;
-
+  struct {
+  fan_2d::graphics::gui::be_t input_hitbox;
   }element_depth[max_depths];
 
   using mouse_input_data_t = fan_2d::graphics::gui::be_t::mouse_input_data_t;
@@ -50,79 +77,62 @@ struct loco_t {
   };
 
   void open(const properties_t& p) {
+    context = p.context;
+
     for (uint32_t depth = 0; depth < max_depths; depth++) {
 
-      element_depth[depth].button_event.open();
+      element_depth[depth].input_hitbox.open();
+    }
 
     #if defined(loco_letter)
-      font.open(&context, loco_font);
+      font.open(context, loco_font);
     #endif
 
     #if defined(loco_rectangle)
-      element_depth[depth].rectangle.open(&context);
-      element_depth[depth].rectangle.bind_matrices(&context, p.matrices);
-      element_depth[depth].rectangle.enable_draw(&context);
+      rectangle.open(context);
+      rectangle.bind_matrices(context, p.matrices);
+      rectangle.enable_draw(context);
     #endif
     #if defined(loco_sprite)
-      element_depth[depth].sprite.open(&context);
-      element_depth[depth].sprite.bind_matrices(&context, p.matrices);
-      element_depth[depth].sprite.enable_draw(&context);
+      sprite.open(context);
+      sprite.bind_matrices(context, p.matrices);
+      sprite.enable_draw(context);
     #endif
     #if defined(loco_rectangle_text_button)
-      element_depth[depth].rectangle_text_button.open(&context);
-      element_depth[depth].rectangle_text_button.bind_matrices(&context, p.matrices);
-      element_depth[depth].rectangle_text_button.enable_draw(&context);
+      button.open(context);
+      button.bind_matrices(context, p.matrices);
+      button.enable_draw(context);
     #endif
     #if defined(loco_letter)
-      element_depth[depth].letter.open(&context, &font);
-      element_depth[depth].letter.bind_matrices(&context, p.matrices);
-      element_depth[depth].letter.enable_draw(&context);
+      letter.open(context, &font);
+      letter.bind_matrices(context, p.matrices);
+      letter.enable_draw(context);
     #endif
-
-    }
 
     focus_shape_type = fan::uninitialized;
   }
   void close(const properties_t& p) {
-    for (uint32_t depth = 0; depth < max_depths; depth++) {
-      #if defined(loco_rectangle)
-        element_depth[depth].rectangle.unbind_matrices(&context, p.matrices);
-        element_depth[depth].rectangle.close(&context);
-      #endif
-      #if defined(loco_sprite)
-        element_depth[depth].sprite.unbind_matrices(&context, p.matrices);
-        element_depth[depth].sprite.close(&context);
-      #endif
-      #if defined(loco_letter)
-        element_depth[depth].letter.unbind_matrices(&context, p.matrices);
-        element_depth[depth].letter.close(&context);
-      #endif
-      #if defined(loco_rectangle_text_button)
-        element_depth[depth].rectangle_text_button.unbind_matrices(&context, p.matrices);
-        element_depth[depth].rectangle_text_button.close(&context);
-      #endif
-    }
+    #if defined(loco_rectangle)
+      rectangle.unbind_matrices(context, p.matrices);
+      rectangle.close(context);
+    #endif
+    #if defined(loco_sprite)
+      sprite.unbind_matrices(context, p.matrices);
+      sprite.close(context);
+    #endif
+    #if defined(loco_letter)
+      letter.unbind_matrices(context, p.matrices);
+      letter.close(context);
+    #endif
+    #if defined(loco_rectangle_text_button)
+      button.unbind_matrices(context, p.matrices);
+      button.close(context);
+    #endif
   }
 
-  #if defined(loco_rectangle)
-    void push_back(uint32_t depth, fan::opengl::cid_t* cid, const fan_2d::graphics::rectangle_t::properties_t& p) {
-      element_depth[depth].rectangle.push_back(&context, cid, p);
-    }
-  #endif
-  #if defined(loco_sprite)
-    void push_back(uint32_t depth, fan::opengl::cid_t* cid, const fan_2d::graphics::sprite_t::properties_t& p) {
-      element_depth[depth].sprite.push_back(&context, cid, p);
-    }
-  #endif
-  #if defined(loco_rectangle_text_button)
-    void push_back(uint32_t depth, uint32_t input_depth, uint32_t* id, const fan_2d::graphics::gui::rectangle_text_button_t::properties_t& p) {
-      *id = element_depth[depth].rectangle_text_button.push_back(&context, &element_depth[input_depth].button_event, &element_depth[depth].letter, p);
-    }
-  #endif
-
-    uint32_t push_back(uint32_t depth, const fan_2d::graphics::gui::be_t::properties_t& p) {
-      return element_depth[depth].button_event.push_back(p);
-    }
+  uint32_t push_back_input_hitbox(uint32_t depth, const fan_2d::graphics::gui::be_t::properties_t& p) {
+    return element_depth[depth].input_hitbox.push_back(p);
+  }
 
   /*
   
@@ -131,7 +141,7 @@ struct loco_t {
 
   void feed_mouse_move(fan::opengl::context_t* context, const fan::vec2& mouse_position) {
     for (uint32_t depth = max_depths; depth--; ) {
-       uint32_t r = element_depth[depth].button_event.feed_mouse_move(context, mouse_position, depth);
+       uint32_t r = element_depth[depth].input_hitbox.feed_mouse_move(context, mouse_position, depth);
        if (r == 0) {
          break;
        }
@@ -140,7 +150,7 @@ struct loco_t {
 
   void feed_mouse_input(fan::opengl::context_t* context, uint16_t button, fan::key_state key_state, const fan::vec2& mouse_position) {
     for (uint32_t depth = max_depths; depth--; ) {
-      element_depth[depth].button_event.feed_mouse_input(context, button, key_state, mouse_position, depth);
+      element_depth[depth].input_hitbox.feed_mouse_input(context, button, key_state, mouse_position, depth);
      /* if (!element_depth[depth].can_we_go_behind()) {
         break;
       }*/
@@ -148,8 +158,8 @@ struct loco_t {
   }
 
   void feed_keyboard(fan::opengl::context_t* context, uint16_t key, fan::key_state key_state) {
-    //button_event.feed_keyboard(context, key, key_state);
+    //input_hitbox.feed_keyboard(context, key, key_state);
   }
 
-  fan::opengl::context_t context;
+  fan::opengl::context_t* context;
 };

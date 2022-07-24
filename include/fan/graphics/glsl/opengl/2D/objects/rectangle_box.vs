@@ -67,6 +67,6 @@ R"(
 		m[3][0] = 0;
 		m[3][1] = 0;
 
-		gl_Position = m * projection * vec4(vec2(x, y) * get_instance().size + get_instance().position + vec2(view[3][0], view[3][1]), 0, 1);
+		gl_Position = m * projection * vec4(vec2(x, y) * get_instance().size + get_instance().position.xy + vec2(view[3][0], view[3][1]), get_instance().position.z, 1);
   }
 )"

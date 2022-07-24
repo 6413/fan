@@ -12,7 +12,7 @@ namespace fan_2d {
 
       struct properties_t {
         f32_t font_size = 16;
-        fan::vec2 position = 0;
+        fan::vec3 position = 0;
         fan::color color = fan::colors::white;
         uint16_t letter_id;
       };
