@@ -14,8 +14,13 @@ namespace fan_2d {
 
       struct instance_t {
         fan::color color;
-        fan::vec2 src;
+        fan::vec3 src;
+      private:
+        f32_t pad;
+      public:
         fan::vec2 dst;
+      private:
+        f32_t pad2[2];
       };
 
       struct properties_t : instance_t {

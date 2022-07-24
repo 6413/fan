@@ -123,10 +123,83 @@ namespace fan {
       static void send_string(const std::string& str, uint32_t delay_between) {
         for (int i = 0; i < str.size(); i++) {
 
-          if (str[i] == '1') {
-            fan::sys::input::send_keyboard_event(fan::key_1, fan::key_state::press);
-            fan::sys::input::send_keyboard_event(fan::key_1, fan::key_state::release);
+          bool c = 0;
 
+          // dont peek im lazy xd
+          switch (str[i]) {
+            case '1': {
+              fan::sys::input::send_keyboard_event(fan::key_1, fan::key_state::press);
+              Sleep(delay_between);
+              fan::sys::input::send_keyboard_event(fan::key_1, fan::key_state::release);
+              c = true;
+              break;
+            }
+            case '2': {
+              fan::sys::input::send_keyboard_event(fan::key_2, fan::key_state::press);
+              Sleep(delay_between);
+              fan::sys::input::send_keyboard_event(fan::key_2, fan::key_state::release);
+              c = true;
+              break;
+            }
+            case '3': {
+              fan::sys::input::send_keyboard_event(fan::key_3, fan::key_state::press);
+              Sleep(delay_between);
+              fan::sys::input::send_keyboard_event(fan::key_3, fan::key_state::release);
+              c = true;
+              break;
+            }
+            case '4': {
+              fan::sys::input::send_keyboard_event(fan::key_4, fan::key_state::press);
+              Sleep(delay_between);
+              fan::sys::input::send_keyboard_event(fan::key_4, fan::key_state::release);
+              c = true;
+              break;
+            }
+            case '5': {
+              fan::sys::input::send_keyboard_event(fan::key_5, fan::key_state::press);
+              Sleep(delay_between);
+              fan::sys::input::send_keyboard_event(fan::key_5, fan::key_state::release);
+              c = true;
+              break;
+            }
+            case '6': {
+              fan::sys::input::send_keyboard_event(fan::key_6, fan::key_state::press);
+              Sleep(delay_between);
+              fan::sys::input::send_keyboard_event(fan::key_6, fan::key_state::release);
+              c = true;
+              break;
+            }
+            case '7': {
+              fan::sys::input::send_keyboard_event(fan::key_7, fan::key_state::press);
+              Sleep(delay_between);
+              fan::sys::input::send_keyboard_event(fan::key_7, fan::key_state::release);
+              c = true;
+              break;
+            }
+            case '8': {
+              fan::sys::input::send_keyboard_event(fan::key_8, fan::key_state::press);
+              Sleep(delay_between);
+              fan::sys::input::send_keyboard_event(fan::key_8, fan::key_state::release);
+              c = true;
+              break;
+            }
+            case '9': {
+              fan::sys::input::send_keyboard_event(fan::key_9, fan::key_state::press);
+              Sleep(delay_between);
+              fan::sys::input::send_keyboard_event(fan::key_9, fan::key_state::release);
+              c = true;
+              break;
+            }
+            case '0': {
+              fan::sys::input::send_keyboard_event(fan::key_0, fan::key_state::press);
+              Sleep(delay_between);
+              fan::sys::input::send_keyboard_event(fan::key_0, fan::key_state::release);
+              c = true;
+              break;
+            }
+          }
+
+          if (c) {
             continue;
           }
 
@@ -148,14 +221,14 @@ namespace fan {
           };
 
           switch (str[i] + offset) {
-            case '.': {
+          /*  case '.': {
               send_press(fan::key_period, delay_between);
               break;
-            }
-            case ',': {
+            }*/
+           /* case ',': {
               send_press(fan::key_comma, delay_between);
               break;
-            }
+            }*/
             case ' ': {
               send_press(fan::key_space, delay_between);
               break;
@@ -186,18 +259,18 @@ namespace fan {
               fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::key_state::release);
               break;
             }
-            case '*': {
+           /* case '*': {
               fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::key_state::press);
               send_press(fan::key_apostrophe, delay_between);
               fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::key_state::release);
               break;
-            }
-            case ';': {
+            }*/
+            /*case ';': {
               fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::key_state::press);
               send_press(fan::key_comma, delay_between);
               fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::key_state::release);
               break;
-            }
+            }*/
             default: {
               send_press(str[i] + offset, delay_between);
             }

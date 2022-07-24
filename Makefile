@@ -1,7 +1,11 @@
 GPP = clang++
 
-CFLAGS = -w -std=c++2a -I /usr/local/include -I include -g -Wl #-O3 -march=native -mtune=native
+DEBUGFLAGS = -g
+RELEASEFLAGS = -s -fdata-sections -ffunction-sections -Wl,--gc-sections -mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -O3
 
+CFLAGS = -w -std=c++2a -I /usr/local/include -I include -g -Wl #-O3 -march=native -mtune=native $(RELEASEFLAGS)
+
+BASE_PATH = lib/fan/
 ifeq ($(OS),Windows_NT)
 	AR = llvm-ar
 	RM = del 
@@ -11,19 +15,17 @@ else
 	AR = ar
 	RM = rm -f
 	LIBNAME = fan.a
+  FAN_OBJECT_FOLDER = $(BASE_PATH);
 endif
 
 ifeq ($(OS),Windows_NT)
-	CFLAGS +=  -I src/libwebp -I src/libwebp/src
+  #                        magic - replace / with \ thanks to windows
+  FAN_OBJECT_FOLDER = $(subst /,\,$(BASE_PATH))
 endif
 
-FAN_OBJECT_FOLDER = 
+all: fan_window.o fan_window_input.o run
 
-all: fan_window.o fan_window_input.o run \
-  #fan_shared_gui.o fan_shared_graphics.o
-
-LIBS = fan_window.o fan_window_input.o \
-  #fan_shared_gui.o fan_shared_graphics.o
+LIBS = $(FAN_OBJECT_FOLDER)fan_window.o $(FAN_OBJECT_FOLDER)fan_window_input.o
 
 fan_window.o:  src/fan/window/window.cpp
 	$(GPP) $(CFLAGS) -c src/fan/window/window.cpp -o $(FAN_OBJECT_FOLDER)fan_window.o
@@ -31,13 +33,8 @@ fan_window.o:  src/fan/window/window.cpp
 fan_window_input.o:	src/fan/window/window_input.cpp
 	$(GPP) $(CFLAGS) -c src/fan/window/window_input.cpp -o $(FAN_OBJECT_FOLDER)fan_window_input.o
 
-# fan_shared_gui.o:	src/fan/graphics/shared_gui.cpp
-	# $(GPP) $(CFLAGS) -c src/fan/graphics/shared_gui.cpp -o $(FAN_OBJECT_FOLDER)fan_shared_gui.o
-
-# fan_shared_graphics.o:	src/fan/graphics/shared_graphics.cpp
-	# $(GPP) $(CFLAGS) -c src/fan/graphics/shared_graphics.cpp -o fan_shared_graphics.o	
 clean:
-	$(RM) fan_*.o
+	$(RM) $(FAN_OBJECT_FOLDER)fan_*.o
 
 run:	$(LIBS)
-	$(AR) rvs $(LIBNAME) $(LIBS)
+	$(AR) rvs $(FAN_OBJECT_FOLDER)$(LIBNAME) $(LIBS)

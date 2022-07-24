@@ -10,12 +10,12 @@ uniform mat4 projection;
 
 layout (std140) uniform instance_t {
 	struct{
-		vec2 position;
+		vec3 position;
 		vec2 size;
+		vec2 rotation_point;
 		vec4 color;
 		vec3 rotation_vector;
 		float angle;
-		vec2 rotation_point;
 	}st[256];
 }instance;
 
@@ -46,7 +46,7 @@ void main() {
 	m[3][0] = 0;
 	m[3][1] = 0;
 
-  gl_Position = m * projection * vec4(vec2(x, y) * get_instance().size + get_instance().position + vec2(view[3][0], view[3][1]), 0, 1);
+  gl_Position = m * projection * vec4(vec2(x, y) * get_instance().size + get_instance().position.xy + vec2(view[3][0], view[3][1]), get_instance().position.z, 1);
 
 	instance_color = get_instance().color;
 }

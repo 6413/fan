@@ -18,14 +18,15 @@ namespace fan_2d {
       };
 
       struct instance_t {
-        fan::vec2 position;
-        fan::vec2 size;
-        fan::color color;
-        fan::vec2 tc_position;
-        fan::vec2 tc_size;
-        fan::color outline_color;
+        fan::vec3 position;
         f32_t outline_size;
-        f32_t pad[3];
+        fan::vec2 size;
+        fan::vec2 tc_position;
+        fan::color color;
+        fan::color outline_color;
+        fan::vec2 tc_size;
+      private:
+        f32_t pad[2];
       };
 
       static constexpr uint32_t max_instance_size = 256;
