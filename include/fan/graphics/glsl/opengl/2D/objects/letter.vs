@@ -12,13 +12,13 @@ uniform mat4 projection;
 
 layout (std140) uniform instance_t {
 	struct{	
-		vec2 position;
-		vec2 size;
-    vec4 color;
-		vec2 tc_position;
-		vec2 tc_size;
-    vec4 outline_color;
+		vec3 position;
     float outline_size;
+		vec2 size;
+		vec2 tc_position;
+    vec4 color;
+    vec4 outline_color;
+		vec2 tc_size;
 	}st[256];
 }instance;
 

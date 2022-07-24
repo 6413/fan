@@ -15,15 +15,14 @@ namespace fan_2d {
         using draw_cb_t = void(*)(fan::opengl::context_t* context, rectangle_box_t*, void*);
 
         struct instance_t {
-          fan::vec2 position = 0;
-          fan::vec2 size = 0;
-          fan::color color = fan::colors::white;
-          fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
+          fan::vec3 position = 0;
           f32_t angle = 0;
-          fan::color outline_color;
+          fan::vec2 size = 0;
           fan::vec2 rotation_point = 0;
+          fan::color color = fan::colors::white;
+          fan::color outline_color;
+          fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
           f32_t outline_size;
-          f32_t pad;
         };
 
         struct properties_t : instance_t {

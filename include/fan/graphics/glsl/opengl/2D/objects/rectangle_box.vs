@@ -14,13 +14,13 @@ R"(
 
   layout (std140) uniform instance_t {
 	  struct{
-		  vec2 position;
-		  vec2 size;
-		  vec4 color;
-		  vec3 rotation_vector;
+		  vec3 position;
 		  float angle;
-			vec4 outline_color;
+		  vec2 size;
 		  vec2 rotation_point;
+		  vec4 color;
+			vec4 outline_color;
+		  vec3 rotation_vector;
 			float outline_size;
 	  }st[256];
   }instance;
