@@ -495,6 +495,8 @@ inline void fan::opengl::context_t::bind_to_window(fan::window_t* window, const 
 
   opengl.call(opengl.glEnable, GL_BLEND);
   opengl.call(opengl.glBlendFunc, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+  set_depth_test(true);
 }
 
 inline fan::vec2 fan::opengl::context_t::get_viewport_position() const

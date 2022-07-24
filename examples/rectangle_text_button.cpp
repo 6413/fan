@@ -14,20 +14,25 @@ struct pile_t {
   fan::window_t window;
 };;
 
+// for testing
+#define loco_rectangle
+#define loco_sprite
+
 #define loco_letter
 #define loco_rectangle_text_button
 #include _FAN_PATH(graphics/loco.h)
 
 int main() {
 
-  loco_t* loco = new loco_t;
+  loco_t loco;
 
   pile_t pile;
   pile.window.open();
 
-  loco->context.init();
-  loco->context.bind_to_window(&pile.window);
-  loco->context.set_viewport(0, pile.window.get_size());
+  fan::opengl::context_t context;
+  context.init();
+  context.bind_to_window(&pile.window);
+  context.set_viewport(0, pile.window.get_size());
 
   fan::opengl::matrices_t matrices;
   matrices.open();
@@ -35,11 +40,12 @@ int main() {
   fan::vec2 window_size = pile.window.get_size();
   fan::vec2 ratio = window_size / window_size.max();
   std::swap(ratio.x, ratio.y);
-  matrices.set_ortho(&loco->context, fan::vec2(-1, 1), fan::vec2(-1, 1));
+  matrices.set_ortho(&context, fan::vec2(-1, 1), fan::vec2(-1, 1));
 
   loco_t::properties_t lp;
   lp.matrices = &matrices;
-  loco->open(lp);
+  lp.context = &context;
+  loco.open(lp);
 
   rectangle_text_button_t::properties_t tp;
   tp.position = 0;
@@ -55,23 +61,24 @@ int main() {
     return 0;
   };
   uint32_t ids[2];
-  loco->push_back(0, 0, &ids[0], tp);
+  ids[0] = loco.button.push_back(0, tp);
   tp.theme = fan_2d::graphics::gui::themes::gray();
   tp.position.x += 0.1;
+  tp.position.z += 0.2;
   tp.text = "hw2";
-  loco->push_back(1, 1, &ids[1], tp);
+  ids[1] = loco.button.push_back(1, tp);
   //             ^ depth
 
-  pile.window.add_keys_callback(loco, [](fan::window_t* window, uint16_t key, fan::key_state key_state, void* user_ptr) {
-    loco_t* loco = (loco_t*)user_ptr;
+  pile.window.add_keys_callback(&loco, [](fan::window_t* window, uint16_t key, fan::key_state key_state, void* user_ptr) {
+    loco_t& loco = *(loco_t*)user_ptr;
     fan::vec2 window_size = window->get_size();
-    loco->feed_mouse_input(&loco->context, key, key_state, fan::cast<f32_t>(window->get_mouse_position()) / window_size * 2 - 1);
+    loco.feed_mouse_input(loco.context, key, key_state, fan::cast<f32_t>(window->get_mouse_position()) / window_size * 2 - 1);
   });
 
-  pile.window.add_mouse_move_callback(loco, [](fan::window_t* window, const fan::vec2i& mouse_position, void* user_ptr) {
-    loco_t* loco = (loco_t*)user_ptr;
+  pile.window.add_mouse_move_callback(&loco, [](fan::window_t* window, const fan::vec2i& mouse_position, void* user_ptr) {
+    loco_t& loco = *(loco_t*)user_ptr;
     fan::vec2 window_size = window->get_size();
-    loco->feed_mouse_move(&loco->context, fan::cast<f32_t>(mouse_position) / window_size * 2 - 1);
+    loco.feed_mouse_move(loco.context, fan::cast<f32_t>(mouse_position) / window_size * 2 - 1);
   });
 
   while(1) {
@@ -82,8 +89,8 @@ int main() {
       break;
     }
 
-    loco->context.process();
-    loco->context.render(&pile.window);
+    context.process();
+    context.render(&pile.window);
   }
 
   return 0;

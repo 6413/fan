@@ -22,18 +22,34 @@ namespace fan_2d {
           void* userptr;
         };
 
+      protected:
+
+        static void lib_set_theme(
+          rectangle_text_button_t* rtb,
+          fan::opengl::context_t* context,
+          letter_t* letter,
+          uint32_t element_id,
+          f32_t intensity
+          ) {
+          rtb->text_box.set_theme(context, letter, rtb->list[element_id].cid_text_box, rtb->text_box.get_theme(context, rtb->list[element_id].cid_text_box) * intensity);
+        }
+
+      #define make_code_small_plis(d_n, i) lib_set_theme( \
+        (rectangle_text_button_t*)d_n.userptr[0], \
+          d_n.context, \
+          (letter_t*)d_n.userptr[1], \
+          d_n.element_id, \
+          i \
+        );
+
         static uint8_t mouse_move_cb(const be_t::mouse_move_data_t& mm_data) {
           switch (mm_data.mouse_stage) {
             case mouse_stage::inside: {
-              rectangle_text_button_t* rtb = (rectangle_text_button_t*)mm_data.userptr[0];
-              rtb->text_box.set_theme(mm_data.context, (letter_t*)mm_data.userptr[1], rtb->list[mm_data.element_id].cid_text_box, rtb->text_box.get_theme(mm_data.context, rtb->list[mm_data.element_id].cid_text_box) * 1.1);
+              make_code_small_plis(mm_data, 1.1);
               break;
             }
             case mouse_stage::outside: {
-              rectangle_text_button_t* rtb = (rectangle_text_button_t*)mm_data.userptr[0];
-              letter_t* letter = (letter_t*)mm_data.userptr[1];
-              
-              rtb->text_box.set_theme(mm_data.context, (letter_t*)mm_data.userptr[1], rtb->list[mm_data.element_id].cid_text_box, rtb->text_box.get_theme(mm_data.context, rtb->list[mm_data.element_id].cid_text_box) / 1.1);
+              make_code_small_plis(mm_data, 1.0 / 1.1);
               break;
             }
           }
@@ -45,28 +61,29 @@ namespace fan_2d {
           }
           switch (ii_data.mouse_stage) {
             case mouse_stage::inside: {
-              rectangle_text_button_t* rtb = (rectangle_text_button_t*)ii_data.userptr[0];
               switch (ii_data.key_state) {
                 case fan::key_state::press: {
-                  rtb->text_box.set_theme(ii_data.context, (letter_t*)ii_data.userptr[1], rtb->list[ii_data.element_id].cid_text_box,
-                    rtb->text_box.get_theme(ii_data.context, rtb->list[ii_data.element_id].cid_text_box) * 1.2);
+                  make_code_small_plis(ii_data, 1.2);
                   break;
                 }
                 case fan::key_state::release: {
-                  rtb->text_box.set_theme(ii_data.context, (letter_t*)ii_data.userptr[1], rtb->list[ii_data.element_id].cid_text_box, rtb->text_box.get_theme(ii_data.context, rtb->list[ii_data.element_id].cid_text_box) / 1.2);
+                  make_code_small_plis(ii_data, 1.0 / 1.2);
                   break;
                 }
               }
               break;
             }
             case mouse_stage::outside: {
-              rectangle_text_button_t* rtb = (rectangle_text_button_t*)ii_data.userptr[0];
-              rtb->text_box.set_theme(ii_data.context, (letter_t*)ii_data.userptr[1], rtb->list[ii_data.element_id].cid_text_box, rtb->text_box.get_theme(ii_data.context, rtb->list[ii_data.element_id].cid_text_box) / 1.2);
+              make_code_small_plis(ii_data, 1.0 / 1.2);
               break;
             }
           }
           return 1;
         }
+
+      #undef make_code_small_plis
+
+      public:
 
         void open(fan::opengl::context_t* context)
         {
@@ -136,7 +153,6 @@ namespace fan_2d {
 
         struct{
           uint32_t id;
-
           uint32_t amount;
         }e;
 

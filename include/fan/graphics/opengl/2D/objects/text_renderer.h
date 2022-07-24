@@ -14,7 +14,7 @@ namespace fan_2d {
         using type_t = text_renderer_t;
 
         f32_t font_size = 0.1;
-        fan::vec2 position = 0;
+        fan::vec3 position = 0;
         fan::color color = fan::colors::white;
         fan::color outline_color;
         f32_t outline_size;
@@ -94,6 +94,7 @@ namespace fan_2d {
           auto letter_info = letters->font->info.get_letter_info(properties.text[i], properties.font_size);
           
           p.position = fan::vec2(left - letter_info.metrics.offset.x, properties.position.y) + (fan::vec2(letter_info.metrics.size.x, properties.font_size - letter_info.metrics.size.y) / 2 + fan::vec2(letter_info.metrics.offset.x, -letter_info.metrics.offset.y));
+          p.position.z = properties.position.z;
 
           letter_ids[id].resize(letter_ids[id].size() + 1);
           letters->push_back(context, &letter_ids[id][letter_ids[id].size() - 1], p);

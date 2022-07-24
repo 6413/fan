@@ -160,10 +160,10 @@ namespace fan_2d {
             mm_data.userptr[2] = m_button_data[m_focused_button_id].properties.userptr[2];
             mm_data.depth = depth;
             m_button_data[m_focused_button_id].on_mouse_move_lib_cb(mm_data);
-            m_focused_button_id = fan::uninitialized;
             if (!m_button_data[m_focused_button_id].properties.on_mouse_event_function(mm_data)) {
               return 0;
             }
+            m_focused_button_id = fan::uninitialized;
           }
         }
 
