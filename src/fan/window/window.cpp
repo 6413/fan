@@ -2157,3 +2157,9 @@ bool fan::window_t::key_pressed(uint16_t key) const
 
   #endif
 }
+
+int main();
+
+int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd) {
+  return main();
+}

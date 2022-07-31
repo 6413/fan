@@ -48,7 +48,7 @@ namespace fan_2d {
         sprite->m_shader.set_int(context, "texture_light_map", 1);
         sprite->m_shader.set_vec2(context, "viewport_size", context->get_viewport_size());
         context->opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
-        context->opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, store.light_map.texture);
+        context->opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, *store.light_map.get_texture(context));
       }
     };
   }

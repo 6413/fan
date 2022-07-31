@@ -285,20 +285,9 @@ namespace fan {
       }
     }
 
-    static void matrices_inform_cb(fan::opengl::matrices_t* matrices, void* updateptr, void* userptr) {
-      shader_t* shader = (shader_t*)userptr;
-      fan::opengl::context_t* context = (fan::opengl::context_t*)updateptr;
-      shader->use(context);
-      context->opengl.call(context->opengl.glUniformMatrix4fv, shader->projection_view[0], 1, fan::opengl::GL_FALSE, &matrices->m_projection[0][0]);
-      context->opengl.call(context->opengl.glUniformMatrix4fv, shader->projection_view[1], 1, fan::opengl::GL_FALSE, &matrices->m_view[0][0]);
-    }
-
-    void bind_matrices(fan::opengl::context_t* context, fan::opengl::matrices_t* matrices) {
-      matrix_inform_id = matrices->push_inform(matrices_inform_cb, this);
-      matrices_inform_cb(matrices, context, this);
-    }
-    void unbind_matrices(fan::opengl::context_t* context, fan::opengl::matrices_t* matrices) {
-      matrices->erase_inform(matrix_inform_id);
+    void set_matrices(fan::opengl::context_t* context, fan::opengl::matrices_t* matrices) {
+      context->opengl.call(context->opengl.glUniformMatrix4fv, projection_view[0], 1, fan::opengl::GL_FALSE, &matrices->m_projection[0][0]);
+      context->opengl.call(context->opengl.glUniformMatrix4fv, projection_view[1], 1, fan::opengl::GL_FALSE, &matrices->m_view[0][0]);
     }
 
     void set_mat4(fan::opengl::context_t* context, const std::string& name, fan::mat4 mat) const {

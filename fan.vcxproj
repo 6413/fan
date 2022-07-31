@@ -99,10 +99,10 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
-      <IntrinsicFunctions>false</IntrinsicFunctions>
-      <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
-      <OmitFramePointers>false</OmitFramePointers>
-      <EnableFiberSafeOptimizations>false</EnableFiberSafeOptimizations>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <OmitFramePointers>true</OmitFramePointers>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <WholeProgramOptimization>false</WholeProgramOptimization>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)src\box2d;$(SolutionDir);$(SolutionDir)include\opus;$(SolutionDir)src\libwebp;$(SolutionDir)src\libwebp\src;$(SolutionDIr)include\dav1d;$(SolutionDir)include\vpx</AdditionalIncludeDirectories>
@@ -116,13 +116,13 @@
       <StructMemberAlignment>Default</StructMemberAlignment>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>C:\libs\fan\lib\libwebp;C:\libs\fan\lib\opus;C:\libs\fan\lib\ogg;</AdditionalLibraryDirectories>
       <AdditionalDependencies>libwebp.lib;libwebp.a;libogg.lib;opus.lib;opusfile.lib;</AdditionalDependencies>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+      <SubSystem>Console</SubSystem>
     </Link>
     <PostBuildEvent>
       <Command>xcopy /y "$(TargetPath)" "$(SolutionDir)/test"</Command>
@@ -132,16 +132,16 @@
     <ClCompile>
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>false</IntrinsicFunctions>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>set_durums_pc</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <Optimization>Disabled</Optimization>
       <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
-      <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
-      <OmitFramePointers>false</OmitFramePointers>
-      <EnableFiberSafeOptimizations>false</EnableFiberSafeOptimizations>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <OmitFramePointers>true</OmitFramePointers>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)src\box2d;$(SolutionDir);$(SolutionDir)include\opus;$(SolutionDir)src\libwebp;$(SolutionDir)src\libwebp\src;$(SolutionDIr)include\dav1d;$(SolutionDir)include\vpx</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <WholeProgramOptimization>false</WholeProgramOptimization>
@@ -155,13 +155,13 @@
       <StructMemberAlignment>Default</StructMemberAlignment>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>C:\libs\fan\lib\libwebp;C:\libs\fan\lib\opus;C:\libs\fan\lib\ogg;</AdditionalLibraryDirectories>
       <AdditionalDependencies>libwebp.lib;libwebp.a;libogg.lib;opus.lib;opusfile.lib;</AdditionalDependencies>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+      <SubSystem>Console</SubSystem>
     </Link>
     <PostBuildEvent>
       <Command>xcopy /y "$(TargetPath)" "$(SolutionDir)/test"</Command>
@@ -176,10 +176,10 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
-      <IntrinsicFunctions>false</IntrinsicFunctions>
-      <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
-      <OmitFramePointers>false</OmitFramePointers>
-      <EnableFiberSafeOptimizations>false</EnableFiberSafeOptimizations>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <OmitFramePointers>true</OmitFramePointers>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <WholeProgramOptimization>false</WholeProgramOptimization>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)src\box2d;$(SolutionDir);$(SolutionDir)include\opus;$(SolutionDir)src\libwebp;$(SolutionDir)src\libwebp\src;$(SolutionDIr)include\dav1d;$(SolutionDir)include\vpx</AdditionalIncludeDirectories>
@@ -193,13 +193,13 @@
       <StructMemberAlignment>Default</StructMemberAlignment>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>C:\libs\fan\lib\libwebp;C:\libs\fan\lib\opus;C:\libs\fan\lib\ogg;</AdditionalLibraryDirectories>
       <AdditionalDependencies>libwebp.lib;libwebp.a;libogg.lib;opus.lib;opusfile.lib;</AdditionalDependencies>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+      <SubSystem>Console</SubSystem>
     </Link>
     <PostBuildEvent>
       <Command>xcopy /y "$(TargetPath)" "$(SolutionDir)/test"</Command>
@@ -209,16 +209,16 @@
     <ClCompile>
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>false</IntrinsicFunctions>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>set_durums_pc</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <Optimization>Disabled</Optimization>
       <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
-      <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
-      <OmitFramePointers>false</OmitFramePointers>
-      <EnableFiberSafeOptimizations>false</EnableFiberSafeOptimizations>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <OmitFramePointers>true</OmitFramePointers>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)src\box2d;$(SolutionDir);$(SolutionDir)include\opus;$(SolutionDir)src\libwebp;$(SolutionDir)src\libwebp\src;$(SolutionDIr)include\dav1d;$(SolutionDir)include\vpx</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <WholeProgramOptimization>false</WholeProgramOptimization>
@@ -232,26 +232,28 @@
       <StructMemberAlignment>Default</StructMemberAlignment>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>false</EnableCOMDATFolding>
       <OptimizeReferences>false</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>C:\libs\fan\lib\libwebp;C:\libs\fan\lib\opus;C:\libs\fan\lib\ogg;</AdditionalLibraryDirectories>
       <AdditionalDependencies>libwebp.lib;libwebp.a;libogg.lib;opus.lib;opusfile.lib;</AdditionalDependencies>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+      <SubSystem>Console</SubSystem>
     </Link>
     <PostBuildEvent>
       <Command>xcopy /y "$(TargetPath)" "$(SolutionDir)/test"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="examples\rectangle_text_button.cpp" />
+    <ClCompile Include="examples\post_process.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
     <ClCompile Include="src\fan\window\window_input.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="include\fan\graphics\glsl\opengl\2D\effects\flame.fs" />
     <None Include="include\fan\graphics\glsl\opengl\2D\effects\flame.vs" />
+    <None Include="include\fan\graphics\glsl\opengl\2D\effects\post_process.fs" />
+    <None Include="include\fan\graphics\glsl\opengl\2D\effects\post_process.vs" />
     <None Include="src\dav1d\ext\x86\x86inc.asm" />
     <None Include="src\dav1d\x86\cdef16_avx2.asm" />
     <None Include="src\dav1d\x86\cdef16_sse.asm" />
@@ -314,11 +316,13 @@
     <ClInclude Include="include\fan\font.h" />
     <ClInclude Include="include\fan\graphics\camera.h" />
     <ClInclude Include="include\fan\graphics\fast_obj\fast_obj.h" />
+    <ClInclude Include="include\fan\graphics\gui\fgm\fgm.h" />
     <ClInclude Include="include\fan\graphics\gui\ke.h" />
     <ClInclude Include="include\fan\graphics\gui\rectangle_text_button.h" />
     <ClInclude Include="include\fan\graphics\gui\rectangle_box.h" />
     <ClInclude Include="include\fan\graphics\gui\rectangle_text_box.h" />
     <ClInclude Include="include\fan\graphics\loco.h" />
+    <ClInclude Include="include\fan\graphics\opengl\2D\effects\post_process.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\objects\text_renderer.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\objects\sprite1.h" />
     <ClInclude Include="include\fan\graphics\opengl\font.h" />
@@ -344,33 +348,6 @@
     <ClInclude Include="include\fan\graphics\gui\fgm\includes\resize.h" />
     <ClInclude Include="include\fan\graphics\gui\gui.h" />
     <ClInclude Include="include\fan\graphics\gui\be.h" />
-    <ClInclude Include="include\fan\graphics\gui\fgm\builder.h" />
-    <ClInclude Include="include\fan\graphics\gui\fgm\hitbox\create.h" />
-    <ClInclude Include="include\fan\graphics\gui\fgm\hitbox\move.h" />
-    <ClInclude Include="include\fan\graphics\gui\fgm\hitbox\open.h" />
-    <ClInclude Include="include\fan\graphics\gui\fgm\editor\editor.h" />
-    <ClInclude Include="include\fan\graphics\gui\fgm\editor\open.h" />
-    <ClInclude Include="include\fan\graphics\gui\fgm\editor\set_callbacks.h" />
-    <ClInclude Include="include\fan\graphics\gui\fgm\fgm.h" />
-    <ClInclude Include="include\fan\graphics\gui\fgm\input\copy_paste.h" />
-    <ClInclude Include="include\fan\graphics\gui\fgm\input\key_delete.h" />
-    <ClInclude Include="include\fan\graphics\gui\fgm\input\mouse_left.h" />
-    <ClInclude Include="include\fan\graphics\gui\fgm\input\mouse_scroll_down.h" />
-    <ClInclude Include="include\fan\graphics\gui\fgm\input\mouse_scroll_up.h" />
-    <ClInclude Include="include\fan\graphics\gui\fgm\sprite\corners.h" />
-    <ClInclude Include="include\fan\graphics\gui\fgm\sprite\create.h" />
-    <ClInclude Include="include\fan\graphics\gui\fgm\sprite\erase_active.h" />
-    <ClInclude Include="include\fan\graphics\gui\fgm\sprite\move.h" />
-    <ClInclude Include="include\fan\graphics\gui\fgm\sprite\open.h" />
-    <ClInclude Include="include\fan\graphics\gui\fgm\sprite\open_build_properties.h" />
-    <ClInclude Include="include\fan\graphics\gui\fgm\sprite\resize.h" />
-    <ClInclude Include="include\fan\graphics\gui\fgm\text_renderer\corners.h" />
-    <ClInclude Include="include\fan\graphics\gui\fgm\text_renderer\create.h" />
-    <ClInclude Include="include\fan\graphics\gui\fgm\text_renderer\erase_active.h" />
-    <ClInclude Include="include\fan\graphics\gui\fgm\text_renderer\move.h" />
-    <ClInclude Include="include\fan\graphics\gui\fgm\text_renderer\open.h" />
-    <ClInclude Include="include\fan\graphics\gui\fgm\text_renderer\open_build_properties.h" />
-    <ClInclude Include="include\fan\graphics\gui\fgm\text_renderer\resize.h" />
     <ClInclude Include="include\fan\graphics\gui\focus.h" />
     <ClInclude Include="include\fan\graphics\gui\key_event.h" />
     <ClInclude Include="include\fan\graphics\gui\select_box.h" />
@@ -399,7 +376,9 @@
     <ClInclude Include="include\fan\graphics\opengl\matrices.h" />
     <ClInclude Include="include\fan\graphics\opengl\texture_pack.h" />
     <ClInclude Include="include\fan\graphics\opengl\viewport.h" />
+    <ClInclude Include="include\fan\graphics\transform_interpolator.h" />
     <ClInclude Include="include\fan\io\directory.h" />
+    <ClInclude Include="include\fan\ks.h" />
     <ClInclude Include="include\fan\lhb.h" />
     <ClInclude Include="include\fan\physics\static_joint.h" />
     <ClInclude Include="include\fan\graphics\renderer.h" />

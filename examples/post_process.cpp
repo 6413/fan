@@ -43,6 +43,15 @@ int main() {
 
   pile.matrices.open();
 
+  fan_2d::opengl::post_process_t post_process;
+  fan::opengl::core::renderbuffer_t::properties_t rp;
+  rp.size = pile.window.get_size();
+  if (post_process.open(&pile.context, rp)) {
+    fan::throw_error("failed to initialize frame buffer");
+  }
+
+  post_process.start_capture(&pile.context);
+
   sprite_t s;
   s.open(&pile.context);
   s.enable_draw(&pile.context);
@@ -51,85 +60,40 @@ int main() {
 
   fan::opengl::image_t::load_properties_t lp;
   lp.filter = fan::opengl::GL_NEAREST;
-  
-  p.size = .01;
 
- /* uint32_t c = 0;
-  for (f32_t i = 0; i < 5; i++) {
-    for (f32_t j = 0; j < 5; j++) {
-      p.position = fan::vec2(i / 5, j / 5) * 2 - 1 + 0.05;
-      s.push_back(&pile.context, &pile.cids[c], p);
-      c++;
-    }
-  }*/
+  p.size = 1;
 
-
-  const char* images[] = { "images/asteroid.webp", "images/planet.webp", "images/test.webp" };
-
-  fan::opengl::image_t im[8];
-  for (uint32_t i = 0; i < 8; i++) {
-    im[i].load(&pile.context, images[fan::random::value_i64(0, 2)], lp);
-  }
-
-  for (uint32_t i = 0; i < 167; i++) {
-    p.position = fan::random::vec2(-1, 1);
-    uint32_t r = fan::random::value_i64(0, 7);
-    p.image = im[r];
-    s.push_back(&pile.context, &pile.cids[0], p);
-  }
+  p.position = 0;
+  p.image.load(&pile.context, "images/grass.webp");
+  s.push_back(&pile.context, &pile.cids[0], p);
 
   pile.context.set_vsync(&pile.window, 0);
 
   for (uint32_t i = 0; i < count; i++) {
 
-    /* EXAMPLE ERASE
-    s.erase(&pile.context, pile.ids[it]);
-    pile.ids.erase(it);
-    */
   }
-
-  
 
   fan::vec2 window_size = pile.window.get_size();
   fan::vec2 ratio = window_size / window_size.max();
   std::swap(ratio.x, ratio.y);
   pile.matrices.set_ortho(fan::vec2(-1, 1), fan::vec2(-1, 1));
 
-  uint32_t i = 1;
-
   pile.context.set_vsync(&pile.window, 0);
 
-
-  bool x = 0;
-
-  //s.erase(&pile.context, &pile.cids[0]);
-  
   while(1) {
     pile.window.get_fps();
     s.m_shader.use(&pile.context);
     s.m_shader.set_matrices(&pile.context, &pile.matrices);  
-  /*  for (f32_t i = 0; i < 5; i++) {
-      for (f32_t j = 0; j < 5; j++) {
-        s.erase(&pile.context, &pile.cids[(uint32_t)i * 5 + (uint32_t)j]);
-      }
-    }
-
-    uint32_t c = 0;
-    for (f32_t i = 0; i < 5; i++) {
-      for (f32_t j = 0; j < 5; j++) {
-        p.position = fan::vec2(i / 5, j / 5) * 2 - 1 + 0.05;
-        s.push_back(&pile.context, &pile.cids[c], p);
-        c++;
-      }
-    }*/
 
     uint32_t window_event = pile.window.handle_events();
     if(window_event & fan::window_t::events::close){
       pile.window.close();
       break;
     }
-
     pile.context.process();
+    post_process.sprite.m_shader.use(&pile.context);
+    post_process.sprite.m_shader.set_matrices(&pile.context, &pile.matrices);
+    post_process.draw(&pile.context);
     pile.context.render(&pile.window);
   }
 

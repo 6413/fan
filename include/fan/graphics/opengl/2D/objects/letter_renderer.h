@@ -187,7 +187,7 @@ namespace fan_2d {
 
         m_shader.set_int(context, "texture_sampler", 0);
         context->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
-        context->opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, font->image.texture);
+        font->image.bind_texture(context);
 
         for (uint32_t i = 0; i < blocks.size(); i++) {
           blocks[i].uniform_buffer.bind_buffer_range(context, blocks[i].uniform_buffer.size());
@@ -198,13 +198,6 @@ namespace fan_2d {
             blocks[i].uniform_buffer.size() * 6
           );
         }
-      }
-
-      void bind_matrices(fan::opengl::context_t* context, fan::opengl::matrices_t* matrices) {
-        m_shader.bind_matrices(context, matrices);
-      }
-      void unbind_matrices(fan::opengl::context_t* context, fan::opengl::matrices_t* matrices) {
-        m_shader.unbind_matrices(context, matrices);
       }
 
       template <typename T>

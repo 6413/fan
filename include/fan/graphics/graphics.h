@@ -17,9 +17,8 @@ namespace fan {
 			using fan::opengl::context_t;
 			using fan::opengl::matrices_t;
 			using fan::opengl::viewport_t;
+			using fan::opengl::open_matrices;
 		#endif
-
-
 	}
 }
 

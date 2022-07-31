@@ -1,24 +1,42 @@
-// Creates window, opengl context and renders a rectangle
-
 #define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 
 #define FAN_INCLUDE_PATH C:/libs/fan/include
-#define fan_debug 1
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
-#include _FAN_PATH(system.h)
+#include _FAN_PATH(graphics/graphics.h)
 
-int main() {
-  while (!GetAsyncKeyState(VK_SPACE)) { Sleep(100); }
-  fan::sys::input input;
-  input.send_string("connect 54f84ac8a8f5\n", 1);
-  input.send_string("register 1\n", 1);
-  input.send_string("123\n", 1);
-  input.send_string("login 1 123\n", 1);
-  input.send_string("createlobby 0\n", 1);
-  input.send_string("joinlobby 0\n", 1);
-  input.send_string("createchannel screenshare\n", 1);
-  input.send_string("joinchannel 0\n", 1);
-  input.send_string("share\n", 1);
-  input.send_string("inputcontrol 1\n", 1);
+#include <unordered_map>
+#include <iostream>
+#include <memory_resource>
+
+int main(){
+
+  constexpr uint32_t count = 0x1000;
+  std::byte stack[count * sizeof(uint32_t)];
+  std::pmr::monotonic_buffer_resource rsrc(stack, sizeof(stack));
+  std::pmr::unordered_map < uint32_t, uint32_t> map{ {{}}, &rsrc };
+
+  map.reserve(count);
+
+  fan::time::clock c;
+  c.start();
+
+  for (uint32_t i = 0; i < count; i++) {
+    map.emplace(std::make_pair(i, i));
+  }
+  fan::print((f32_t)c.elapsed() / 1e+9);
+  for (uint32_t i = 0; i < count; i++) {
+    auto found = map.find(i);
+    if (found == map.end()) {
+      std::cout << "somethgni";
+      break;
+    }
+    else {
+      if (found->second != i) {
+        std::cout << "something";
+        break;
+      }
+    }
+  }
+  
 }

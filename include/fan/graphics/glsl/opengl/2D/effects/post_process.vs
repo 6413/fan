@@ -26,13 +26,13 @@ layout (std140) uniform instance_t {
 }instance;
 
 vec2 rectangle_vertices[] = vec2[](
-	vec2(-1.0, -1.0),
-	vec2(1.0, -1.0),
-	vec2(1.0, 1.0),
-
-	vec2(1.0, 1.0),
 	vec2(-1.0, 1.0),
-	vec2(-1.0, -1.0)
+	vec2(1.0, 1.0),
+	vec2(1.0, -1.0),
+
+	vec2(1.0, -1.0),
+	vec2(-1.0, -1.0),
+	vec2(-1.0, 1.0)
 );
 
 vec2 tc[] = vec2[](

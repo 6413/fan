@@ -107,8 +107,8 @@ namespace fan_2d {
         
         blocks[block_id].uniform_buffer.common.edit(
           context,
-          instance_id,
-          instance_id + 1
+          instance_id * sizeof(instance_t),
+          instance_id * sizeof(instance_t) + sizeof(instance_t)
         );
 
         cid->id = block_id * max_instance_size + instance_id;
@@ -166,8 +166,8 @@ namespace fan_2d {
 
         blocks[block_id].uniform_buffer.common.edit(
           context,
-          instance_id,
-          instance_id + 1
+          instance_id * sizeof(instance_t),
+          instance_id * sizeof(instance_t) + sizeof(instance_t)
         );
       }
 
@@ -215,8 +215,6 @@ namespace fan_2d {
 
         draw_cb(context, this, draw_userdata);
 
-
-
         uint32_t texture_id = fan::uninitialized;
         for (uint32_t block_id = 0; block_id < blocks.size(); block_id++) {
           blocks[block_id].uniform_buffer.bind_buffer_range(context, blocks[block_id].uniform_buffer.size());
@@ -225,7 +223,7 @@ namespace fan_2d {
           uint32_t to = 0;
 
           for (uint32_t i = 0; i < blocks[block_id].uniform_buffer.size(); i++) {
-            if (texture_id != blocks[block_id].image[i].texture) {
+            if (texture_id != *blocks[block_id].image[i].get_texture(context)) {
               if (to) {
                 blocks[block_id].uniform_buffer.draw(
                   context,
@@ -235,7 +233,7 @@ namespace fan_2d {
               }
               from = i;
               to = 0;
-              texture_id = blocks[block_id].image[i].texture;
+              texture_id = *blocks[block_id].image[i].get_texture(context);
               m_shader.set_int(context, "texture_sampler", 0);
               context->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
               context->opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, texture_id);
@@ -253,13 +251,6 @@ namespace fan_2d {
         }
       }
 
-      void bind_matrices(fan::opengl::context_t* context, fan::opengl::matrices_t* matrices) {
-        m_shader.bind_matrices(context, matrices);
-      }
-      void unbind_matrices(fan::opengl::context_t* context, fan::opengl::matrices_t* matrices) {
-        m_shader.unbind_matrices(context, matrices);
-      }
-
       template <typename T>
       T get(fan::opengl::context_t* context, const id_t& id, T instance_t::*member) {
         return blocks[id.block].uniform_buffer.get_instance(context, id.instance)->*member;
@@ -269,8 +260,8 @@ namespace fan_2d {
         blocks[id.block].uniform_buffer.edit_ram_instance(context, id.instance, (T*)&value, fan::ofof<instance_t, T>(member), sizeof(T));
         blocks[id.block].uniform_buffer.common.edit(
           context,
-          id.instance,
-          id.instance + 1
+          id.instance * sizeof(instance_t) + fan::ofof<instance_t, T>(member),
+          id.instance * sizeof(instance_t) + fan::ofof<instance_t, T>(member) + sizeof(T)
         );
       }
 

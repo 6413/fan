@@ -182,10 +182,6 @@ namespace fan_2d {
         }
       }
 
-      void bind_matrices(fan::opengl::context_t* context, fan::opengl::matrices_t* matrices) {
-        m_shader.bind_matrices(context, matrices);
-      }
-
       template <typename T>
       T get(fan::opengl::context_t* context, const id_t& id, T instance_t::*member) {
         return blocks[id.block].uniform_buffer.get_instance(context, id.instance)->*member;
