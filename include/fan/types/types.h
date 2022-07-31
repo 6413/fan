@@ -384,6 +384,10 @@ namespace fan {
 #define fan_debug fan_debug_none
 #endif
 
+#ifndef fan_use_uninitialized
+  #define fan_use_uninitialized 0
+#endif
+
 #ifdef fan_platform_windows
 #pragma comment(lib, "Onecore.lib")
 #endif

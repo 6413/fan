@@ -1,11 +1,33 @@
+#include _FAN_PATH(graphics/gui/be.h)
+
 struct loco_t {
 
   struct properties_t {
-    fan::opengl::matrices_t* matrices;
-    fan::opengl::context_t* context;
+  #ifndef loco_window
+    fan::window_t* window;
+  #endif
+  #ifndef loco_context
+    fan::context_t* context;
+  #endif
   };
 
   static constexpr uint32_t max_depths = 100;
+
+  fan::window_t* get_window() {
+  #ifdef loco_window
+    return &window;
+  #else
+    return window;
+  #endif
+  }
+
+  fan::opengl::context_t* get_context() {
+  #ifdef loco_context
+    return &context;
+  #else
+    return context;
+  #endif
+  }
 
   #if defined(loco_rectangle)
     struct rectangle_t : fan_2d::graphics::rectangle_t {
@@ -14,7 +36,7 @@ struct loco_t {
     public:
       void push_back(fan::opengl::cid_t* cid, const properties_t& p) {
         loco_t* loco = OFFSETLESS(this, loco_t, rectangle);
-        fan_2d::graphics::rectangle_t::push_back(loco->context, cid, p);
+        fan_2d::graphics::rectangle_t::push_back(loco->get_context(), cid, p);
       }
     }rectangle;
   #endif
@@ -22,7 +44,7 @@ struct loco_t {
     struct sprite_t : fan_2d::graphics::sprite_t {
       void push_back(fan::opengl::cid_t* cid, const properties_t& p) {
         loco_t* loco = OFFSETLESS(this, loco_t, sprite);
-        fan_2d::graphics::sprite_t::push_back(loco->context, cid, p);
+        fan_2d::graphics::sprite_t::push_back(loco->get_context(), cid, p);
       }
     private:
       using fan_2d::graphics::sprite_t::push_back;
@@ -35,13 +57,13 @@ struct loco_t {
     struct letter_t : fan_2d::graphics::letter_t {
       void push_back(fan::opengl::cid_t* cid, const properties_t& p) {
         loco_t* loco = OFFSETLESS(this, loco_t, letter);
-        fan_2d::graphics::letter_t::push_back(loco->context, cid, p);
+        fan_2d::graphics::letter_t::push_back(loco->get_context(), cid, p);
       }
     private:
       using fan_2d::graphics::letter_t::push_back;
       }letter;
   #endif
-  #if defined(loco_rectangle_text_button)
+  #if defined(loco_button)
   #if !defined(loco_letter)
   #error need to enable loco_letter to use rectangle_text_button
   #undef loco_rectangle_text_button
@@ -49,7 +71,7 @@ struct loco_t {
     struct button_t : fan_2d::graphics::gui::rectangle_text_button_t {
       uint32_t push_back(uint32_t input_depth, const properties_t& p) {
         loco_t* loco = OFFSETLESS(this, loco_t, button);
-        return fan_2d::graphics::gui::rectangle_text_button_t::push_back(loco->context, &loco->element_depth[input_depth].input_hitbox, &loco->letter, p);
+        return fan_2d::graphics::gui::rectangle_text_button_t::push_back(loco->get_context(), &loco->element_depth[input_depth].input_hitbox, &loco->letter, p);
       }
     private:
       using fan_2d::graphics::gui::rectangle_text_button_t::push_back;
@@ -77,7 +99,36 @@ struct loco_t {
   };
 
   void open(const properties_t& p) {
-    context = p.context;
+
+    #ifdef loco_window
+      window.open();
+    #else
+      window = p.window;
+    #endif
+
+    get_window()->add_keys_callback(this, [](fan::window_t* window, uint16_t key, fan::key_state key_state, void* user_ptr) {
+      loco_t& loco = *(loco_t*)user_ptr;
+      fan::vec2 window_size = window->get_size();
+      // not custom ortho friendly - made for -1 1
+      loco.feed_mouse_input(loco.get_context(), key, key_state, fan::cast<f32_t>(window->get_mouse_position()) / window_size * 2 - 1);
+    });
+
+    get_window()->add_mouse_move_callback(this, [](fan::window_t* window, const fan::vec2i& mouse_position, void* user_ptr) {
+      loco_t& loco = *(loco_t*)user_ptr;
+      fan::vec2 window_size = window->get_size();
+      // not custom ortho friendly - made for -1 1
+      loco.feed_mouse_move(loco.get_context(), fan::cast<f32_t>(mouse_position) / window_size * 2 - 1);
+    });
+
+    get_window()->add_resize_callback(this, [](fan::window_t*, const fan::vec2i& size, void* userptr) {
+      loco_t* pile = (loco_t*)userptr;
+
+      pile->get_context()->set_viewport(0, size);
+    });
+
+    context.init();
+    context.bind_to_window(&window);
+    context.set_viewport(0, window.get_size());
 
     for (uint32_t depth = 0; depth < max_depths; depth++) {
 
@@ -85,48 +136,40 @@ struct loco_t {
     }
 
     #if defined(loco_letter)
-      font.open(context, loco_font);
+      font.open(get_context(), loco_font);
     #endif
 
     #if defined(loco_rectangle)
-      rectangle.open(context);
-      rectangle.bind_matrices(context, p.matrices);
-      rectangle.enable_draw(context);
+      rectangle.open(get_context());
+      rectangle.enable_draw(get_context());
     #endif
     #if defined(loco_sprite)
-      sprite.open(context);
-      sprite.bind_matrices(context, p.matrices);
-      sprite.enable_draw(context);
+      sprite.open(get_context());
+      sprite.enable_draw(get_context());
     #endif
-    #if defined(loco_rectangle_text_button)
-      button.open(context);
-      button.bind_matrices(context, p.matrices);
-      button.enable_draw(context);
+    #if defined(loco_button)
+      button.open(get_context());
+      button.enable_draw(get_context());
     #endif
     #if defined(loco_letter)
-      letter.open(context, &font);
-      letter.bind_matrices(context, p.matrices);
-      letter.enable_draw(context);
+      letter.open(get_context(), &font);
+      letter.enable_draw(get_context());
     #endif
 
     focus_shape_type = fan::uninitialized;
   }
   void close(const properties_t& p) {
     #if defined(loco_rectangle)
-      rectangle.unbind_matrices(context, p.matrices);
-      rectangle.close(context);
+      rectangle.close(get_context());
     #endif
     #if defined(loco_sprite)
-      sprite.unbind_matrices(context, p.matrices);
-      sprite.close(context);
+      sprite.close(get_context());
     #endif
     #if defined(loco_letter)
-      letter.unbind_matrices(context, p.matrices);
-      letter.close(context);
+      letter.close(get_context());
     #endif
     #if defined(loco_rectangle_text_button)
-      button.unbind_matrices(context, p.matrices);
-      button.close(context);
+      button.close(get_context());
     #endif
   }
 
@@ -161,5 +204,47 @@ struct loco_t {
     //input_hitbox.feed_keyboard(context, key, key_state);
   }
 
-  fan::opengl::context_t* context;
+  uint32_t process_frame() {
+    #ifdef loco_window
+      uint32_t window_event = get_window()->handle_events();
+      if(window_event & fan::window_t::events::close){
+        get_window()->close();
+        return window_event;
+      }
+    #endif
+      get_context()->process();
+    #ifdef loco_window
+    get_context()->render(get_window());
+      return window_event;
+    #else
+      return 0;
+    #endif
+  }
+
+  bool window_open(uint32_t event) {
+    return event != fan::window_t::events::close;
+  }
+  uint32_t get_fps() {
+    return get_window()->get_fps();
+  }
+
+  void set_vsync(bool flag) {
+    get_context()->set_vsync(get_window(), flag);
+  }
+
+  protected:
+
+
+  #ifdef loco_window
+    fan::window_t window;
+  #else
+    fan::window_t* window;
+  #endif
+
+  #ifdef loco_context
+    fan::opengl::context_t context;
+  #else
+    fan::opengl::context_t* context;
+  #endif
+
 };

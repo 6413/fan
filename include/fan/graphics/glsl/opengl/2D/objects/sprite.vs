@@ -5,6 +5,7 @@ R"(
 
 out vec4 instance_color;
 out vec2 texture_coordinate;
+out float texture_id;
 
 uniform mat4 view;
 uniform mat4 projection;

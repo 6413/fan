@@ -35,7 +35,6 @@
 #include <optional>
 
 #ifdef fan_platform_windows
-
 	#pragma comment(lib, "opengl32.lib")
 
 	#include <Windows.h>
@@ -149,6 +148,7 @@ namespace fan {
 		};
 
 		struct events {
+			static constexpr uint32_t none = 0;
 			static constexpr uint32_t close = 1 << 0;
 		};
 

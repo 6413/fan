@@ -7,7 +7,7 @@
 
 namespace fan {
   namespace opengl {
-
+    
     static constexpr fan::_vec4<fan::vec2> default_texture_coordinates = {
       vec2(0, 0),
       vec2(1, 0),
@@ -36,10 +36,28 @@ namespace fan {
         uintptr_t           filter = load_properties_defaults::filter;
       };
 
+      void create_texture(fan::opengl::context_t* context) {
+        texture_reference = image_list_NewNode(&context->image_list);
+        context->opengl.call(context->opengl.glGenTextures, 1, get_texture(context));
+      }
+      void erase_texture(fan::opengl::context_t* context) {
+        context->opengl.glDeleteTextures(1, get_texture(context));
+      }
+
+      void bind_texture(fan::opengl::context_t* context) {
+        context->opengl.call(context->opengl.glBindTexture, GL_TEXTURE_2D, *get_texture(context));
+      }
+
+      GLuint* get_texture(fan::opengl::context_t* context) {
+        image_list_Node_t* node = image_list_GetNodeByReference(&context->image_list, texture_reference);
+        return &node->data.texture_id;
+      }
+
       bool load(fan::opengl::context_t* context, const fan::webp::image_info_t image_info, load_properties_t p = load_properties_t()) {
 
-        context->opengl.call(context->opengl.glGenTextures, 1, &texture);
-        context->opengl.call(context->opengl.glBindTexture, GL_TEXTURE_2D, texture);
+        create_texture(context);
+        bind_texture(context);
+
         context->opengl.call(context->opengl.glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, p.visual_output);
         context->opengl.call(context->opengl.glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, p.visual_output);
         context->opengl.call(context->opengl.glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, p.filter);
@@ -48,7 +66,6 @@ namespace fan {
         size = image_info.size;
 
         context->opengl.call(context->opengl.glTexImage2D, GL_TEXTURE_2D, 0, p.internal_format, size.x, size.y, 0, p.format, p.type, image_info.data);
-        context->opengl.call(context->opengl.glBindTexture, GL_TEXTURE_2D, 0);
 
         return 0;
       }
@@ -77,8 +94,10 @@ namespace fan {
         return ret;
       }
       bool load(fan::opengl::context_t* context, fan::color* colors, const fan::vec2ui& size_, load_properties_t p = load_properties_t()) {
-        context->opengl.call(context->opengl.glGenTextures, 1, &texture);
-        context->opengl.call(context->opengl.glBindTexture, GL_TEXTURE_2D, texture);
+
+        create_texture(context);
+        bind_texture(context);
+
         context->opengl.call(context->opengl.glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, p.visual_output);
         context->opengl.call(context->opengl.glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, p.visual_output);
         context->opengl.call(context->opengl.glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, p.filter);
@@ -87,28 +106,20 @@ namespace fan {
         size = size_;
 
         context->opengl.call(context->opengl.glTexImage2D, GL_TEXTURE_2D, 0, fan::opengl::GL_RGBA32F, size.x, size.y, 0, p.format, fan::opengl::GL_FLOAT, (uint8_t*)colors);
-        context->opengl.call(context->opengl.glBindTexture, GL_TEXTURE_2D, 0);
 
         return 0;
       }
 
       void reload_pixels(fan::opengl::context_t* context, const fan::webp::image_info_t& image_info, const load_properties_t& p = load_properties_t()) {
+
+        bind_texture(context);
+
         size = image_info.size;
-        context->opengl.call(context->opengl.glBindTexture, fan::opengl::GL_TEXTURE_2D, texture);
         context->opengl.call(context->opengl.glTexImage2D, GL_TEXTURE_2D, 0, p.internal_format, size.x, size.y, 0, p.format, p.type, image_info.data);
       }
 
       void unload(fan::opengl::context_t* context) {
-        #if fan_debug >= fan_debug_low
-        if (texture == fan::uninitialized) {
-          fan::throw_error("texture does not exist");
-        }
-        #endif
-        context->opengl.glDeleteTextures(1, &texture);
-
-        #if fan_debug >= fan_debug_low
-        texture = fan::uninitialized;
-        #endif
+        erase_texture(context);
       }
 
       // creates single colored text size.x*size.y sized
@@ -127,9 +138,9 @@ namespace fan {
 
         pixels -= size.x * size.y * fan::color::size();
 
-        context->opengl.call(context->opengl.glGenTextures, 1, &texture);
+        create_texture(context);
+        bind_texture(context);
 
-        context->opengl.call(context->opengl.glBindTexture, GL_TEXTURE_2D, texture);
         context->opengl.call(context->opengl.glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, p.visual_output);
         context->opengl.call(context->opengl.glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, p.visual_output);
         context->opengl.call(context->opengl.glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, p.filter);
@@ -140,7 +151,6 @@ namespace fan {
         free(pixels);
 
         context->opengl.call(context->opengl.glGenerateMipmap, GL_TEXTURE_2D);
-        context->opengl.call(context->opengl.glBindTexture, GL_TEXTURE_2D, 0);
       }
 
       void create_missing_texture(fan::opengl::context_t* context, load_properties_t p = load_properties_t()) {
@@ -169,9 +179,9 @@ namespace fan {
 
         p.visual_output = fan::opengl::GL_REPEAT;
 
-        context->opengl.call(context->opengl.glGenTextures, 1, &texture);
+        create_texture(context);
+        bind_texture(context);
 
-        context->opengl.call(context->opengl.glBindTexture, GL_TEXTURE_2D, texture);
         context->opengl.call(context->opengl.glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, p.visual_output);
         context->opengl.call(context->opengl.glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, p.visual_output);
         context->opengl.call(context->opengl.glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, p.filter);
@@ -184,7 +194,6 @@ namespace fan {
         free(pixels);
 
         context->opengl.call(context->opengl.glGenerateMipmap, GL_TEXTURE_2D);
-        context->opengl.call(context->opengl.glBindTexture, GL_TEXTURE_2D, 0);
       }
 
       fan::_vec4<fan::vec2> calculate_aspect_ratio(const fan::vec2& size, f32_t scale) {
@@ -225,7 +234,9 @@ namespace fan {
         );
       }
 
-      uint32_t texture;
+    protected:
+      fan::opengl::image_list_NodeReference_t texture_reference;
+    public:
       fan::vec2i size;
     };
   }

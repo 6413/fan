@@ -10,42 +10,35 @@
 using rectangle_text_button_t = fan_2d::graphics::gui::rectangle_text_button_t;
 using letter_t = rectangle_text_button_t::letter_t;
 
-struct pile_t {
-  fan::window_t window;
-};;
-
+#define loco_window
+#define loco_context
 // for testing
 #define loco_rectangle
 #define loco_sprite
 
 #define loco_letter
-#define loco_rectangle_text_button
+#define loco_button
 #include _FAN_PATH(graphics/loco.h)
+
+struct pile_t {
+
+  void open() {
+    loco.open(loco_t::properties_t());
+    matrices = fan::graphics::open_matrices(
+      loco.get_window()->get_size(),
+      fan::vec2(-1, 1),
+      fan::vec2(-1, 1)
+    );
+  }
+
+  loco_t loco;
+  fan::opengl::matrices_t matrices;
+};
 
 int main() {
 
-  loco_t loco;
-
   pile_t pile;
-  pile.window.open();
-
-  fan::opengl::context_t context;
-  context.init();
-  context.bind_to_window(&pile.window);
-  context.set_viewport(0, pile.window.get_size());
-
-  fan::opengl::matrices_t matrices;
-  matrices.open();
-
-  fan::vec2 window_size = pile.window.get_size();
-  fan::vec2 ratio = window_size / window_size.max();
-  std::swap(ratio.x, ratio.y);
-  matrices.set_ortho(&context, fan::vec2(-1, 1), fan::vec2(-1, 1));
-
-  loco_t::properties_t lp;
-  lp.matrices = &matrices;
-  lp.context = &context;
-  loco.open(lp);
+  pile.open();
 
   rectangle_text_button_t::properties_t tp;
   tp.position = 0;
@@ -61,36 +54,15 @@ int main() {
     return 0;
   };
   uint32_t ids[2];
-  ids[0] = loco.button.push_back(0, tp);
+  ids[0] = pile.loco.button.push_back(0, tp);
   tp.theme = fan_2d::graphics::gui::themes::gray();
   tp.position.x += 0.1;
   tp.position.z += 0.2;
   tp.text = "hw2";
-  ids[1] = loco.button.push_back(1, tp);
-  //             ^ depth
+  ids[1] = pile.loco.button.push_back(1, tp);
 
-  pile.window.add_keys_callback(&loco, [](fan::window_t* window, uint16_t key, fan::key_state key_state, void* user_ptr) {
-    loco_t& loco = *(loco_t*)user_ptr;
-    fan::vec2 window_size = window->get_size();
-    loco.feed_mouse_input(loco.context, key, key_state, fan::cast<f32_t>(window->get_mouse_position()) / window_size * 2 - 1);
-  });
+  while(pile.loco.window_open(pile.loco.process_frame())) {
 
-  pile.window.add_mouse_move_callback(&loco, [](fan::window_t* window, const fan::vec2i& mouse_position, void* user_ptr) {
-    loco_t& loco = *(loco_t*)user_ptr;
-    fan::vec2 window_size = window->get_size();
-    loco.feed_mouse_move(loco.context, fan::cast<f32_t>(mouse_position) / window_size * 2 - 1);
-  });
-
-  while(1) {
-
-    uint32_t window_event = pile.window.handle_events();
-    if(window_event & fan::window_t::events::close){
-      pile.window.close();
-      break;
-    }
-
-    context.process();
-    context.render(&pile.window);
   }
 
   return 0;

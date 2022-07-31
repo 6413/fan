@@ -349,7 +349,17 @@ namespace fan {
         get_proc_address(glGetUniformBlockIndex, &internal);
         get_proc_address(glUniformBlockBinding, &internal);
         get_proc_address(glBindBufferRange, &internal);
-        
+        get_proc_address(glGenFramebuffers, &internal);
+        get_proc_address(glBindFramebuffer, &internal);
+        get_proc_address(glFramebufferTexture2D, &internal);
+        get_proc_address(glGenRenderbuffers, &internal);
+        get_proc_address(glBindRenderbuffer, &internal);
+        get_proc_address(glRenderbufferStorage, &internal);
+        get_proc_address(glFramebufferRenderbuffer, &internal);
+        get_proc_address(glCheckFramebufferStatus, &internal);
+        get_proc_address(glDeleteFramebuffers, &internal);
+        get_proc_address(glDeleteRenderbuffers, &internal);
+
         internal.close(&p);
 
         opengl_initialized = true;
@@ -483,7 +493,16 @@ namespace fan {
       PFNGLGETUNIFORMBLOCKINDEXPROC glGetUniformBlockIndex;
       PFNGLUNIFORMBLOCKBINDINGPROC glUniformBlockBinding;
       PFNGLBINDBUFFERRANGEPROC glBindBufferRange;
-
+      PFNGLGENFRAMEBUFFERSPROC glGenFramebuffers;
+      PFNGLDELETEFRAMEBUFFERSPROC glDeleteFramebuffers;
+      PFNGLBINDFRAMEBUFFERPROC glBindFramebuffer;
+      PFNGLFRAMEBUFFERTEXTURE2DPROC glFramebufferTexture2D;
+      PFNGLGENRENDERBUFFERSPROC glGenRenderbuffers;
+      PFNGLDELETERENDERBUFFERSPROC glDeleteRenderbuffers;
+      PFNGLBINDRENDERBUFFERPROC glBindRenderbuffer;
+      PFNGLRENDERBUFFERSTORAGEPROC glRenderbufferStorage;
+      PFNGLFRAMEBUFFERRENDERBUFFERPROC glFramebufferRenderbuffer;
+      PFNGLCHECKFRAMEBUFFERSTATUSPROC glCheckFramebufferStatus;
     };
 
   }

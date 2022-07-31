@@ -71,6 +71,14 @@ namespace fan {
   }
 }
 
+#define BLL_set_BaseLibrary 1
+#define BLL_set_namespace fan::opengl
+#define BLL_set_prefix image_list
+#define BLL_set_type_node uint8_t
+#define BLL_set_node_data fan::opengl::GLuint texture_id;
+#define BLL_set_Link 0
+#include _FAN_PATH(BLL/BLL.h)
+
 namespace fan {
 
   namespace opengl {
@@ -92,6 +100,7 @@ namespace fan {
           samples = 1;
           major = 3;
           minor = 1;
+          
         }
 
         uint16_t samples;
@@ -99,6 +108,7 @@ namespace fan {
         uint8_t minor;
       };
 
+      fan::opengl::image_list_t image_list;
       fan::camera camera;
       fan::vec2 viewport_position;
       fan::vec2 viewport_size;
@@ -114,7 +124,8 @@ namespace fan {
       bll_t<draw_queue_t> m_draw_queue;
       bll_t<core::uniform_block_common_t*> m_write_queue;
 
-      void init();
+      void open();
+      void close();
 
       void bind_to_window(fan::window_t* window, const properties_t& p = properties_t());
 
@@ -141,15 +152,15 @@ namespace fan {
       const GLchar* message,
       const void* userParam)
       {
-        if (type == 33361 || type == 33360) { // gl_static_draw
-          return;
-        }
+        //if (type == 33361 || type == 33360) { // gl_static_draw
+        //  return;
+        //}
         fan::print_no_space(type == GL_DEBUG_TYPE_ERROR ? "opengl error:" : "", type, ", severity:", severity, ", message:", message);
       }
 
       void set_error_callback() {
         opengl.call(opengl.glEnable, GL_DEBUG_OUTPUT);
-        opengl.call(opengl.glDebugMessageCallback, (GLDEBUGPROC)message_callback, (void*)0);
+        opengl.call(opengl.glDebugMessageCallback, message_callback, (void*)0);
       }
 
       uint32_t m_flags;
@@ -272,8 +283,9 @@ namespace fan {
           if (is_queued()) {
             return;
           }
-
           m_edit_index = context->m_write_queue.push_back(this);
+
+         // context->process();
         }
 
         void on_edit(fan::opengl::context_t* context) {
@@ -394,22 +406,88 @@ namespace fan {
         uint8_t buffer[element_size * sizeof(type_t)];
       };
 #pragma pack(pop)
+
+      struct framebuffer_t {
+
+        struct properties_t {
+          fan::opengl::GLenum internalformat = fan::opengl::GL_DEPTH_STENCIL_ATTACHMENT;
+        };
+
+        void open(fan::opengl::context_t* context) {
+          context->opengl.call(context->opengl.glGenFramebuffers, 1, &framebuffer);
+        }
+        void close(fan::opengl::context_t* context) {
+          context->opengl.call(context->opengl.glDeleteFramebuffers, 1, &framebuffer);
+        }
+
+        void bind(fan::opengl::context_t* context) const {
+          context->opengl.call(context->opengl.glBindFramebuffer, fan::opengl::GL_FRAMEBUFFER, framebuffer);
+        }
+        void unbind(fan::opengl::context_t* context) const {
+          context->opengl.call(context->opengl.glBindFramebuffer, fan::opengl::GL_FRAMEBUFFER, 0);
+        }
+
+        bool ready(fan::opengl::context_t* context) const {
+          return context->opengl.call(context->opengl.glCheckFramebufferStatus, fan::opengl::GL_FRAMEBUFFER) == 
+            fan::opengl::GL_FRAMEBUFFER_COMPLETE;
+        }
+
+        void bind_to_renderbuffer(fan::opengl::context_t* context, fan::opengl::GLenum renderbuffer, const properties_t& p = properties_t()) {
+          bind(context);
+          context->opengl.call(context->opengl.glFramebufferRenderbuffer, GL_FRAMEBUFFER, p.internalformat, GL_RENDERBUFFER, renderbuffer);
+        }
+
+        // texture must be binded with texture.bind();
+        void bind_to_texture(fan::opengl::context_t* context, fan::opengl::GLuint texture) {
+          context->opengl.call(context->opengl.glFramebufferTexture2D, GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
+        }
+
+        fan::opengl::GLuint framebuffer;
+      };
+
+      struct renderbuffer_t {
+
+        struct properties_t {
+          GLenum internalformat = fan::opengl::GL_DEPTH24_STENCIL8;
+          fan::vec2ui size;
+        };
+
+        void open(fan::opengl::context_t* context, const properties_t& p) {
+          context->opengl.call(context->opengl.glGenRenderbuffers, 1, &renderbuffer);
+          set_storage(context, p);
+        }
+        void close(fan::opengl::context_t* context) {
+          context->opengl.call(context->opengl.glDeleteRenderbuffers, 1, &renderbuffer);
+        }
+        void bind(fan::opengl::context_t* context) const {
+          context->opengl.call(context->opengl.glBindRenderbuffer, fan::opengl::GL_RENDERBUFFER, renderbuffer);
+        }
+        void set_storage(fan::opengl::context_t* context, const properties_t& p) const {
+          bind(context);
+          context->opengl.call(context->opengl.glRenderbufferStorage, fan::opengl::GL_RENDERBUFFER, p.internalformat, p.size.x, p.size.y);
+        }
+
+        fan::opengl::GLuint renderbuffer;
+      };
     }
   }
 }
 
-inline void fan::opengl::context_t::init() {
+inline void fan::opengl::context_t::open() {
+  image_list_open(&image_list);
 
   m_draw_queue.open();
   m_write_queue.open();
 
   opengl.open();
 
-#if fan_debug >= fan_debug_high
-  context_t::set_error_callback();
-#endif
-
   m_flags = 0;
+}
+inline void fan::opengl::context_t::close() {
+  image_list_close(&image_list);
+
+  m_draw_queue.close();
+  m_write_queue.close();
 }
 
 inline void fan::opengl::context_t::bind_to_window(fan::window_t* window, const properties_t& p) {
@@ -497,6 +575,10 @@ inline void fan::opengl::context_t::bind_to_window(fan::window_t* window, const 
   opengl.call(opengl.glBlendFunc, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
   set_depth_test(true);
+
+  #if fan_debug >= fan_debug_high
+    context_t::set_error_callback();
+  #endif
 }
 
 inline fan::vec2 fan::opengl::context_t::get_viewport_position() const
@@ -527,8 +609,8 @@ inline void fan::opengl::context_t::process() {
 
   while (it != m_write_queue.end()) {
 
-    uint64_t src = m_write_queue[it]->m_min_edit * m_write_queue[it]->buffer_bytes_size;
-    uint64_t dst = m_write_queue[it]->m_max_edit * m_write_queue[it]->buffer_bytes_size;
+    uint64_t src = m_write_queue[it]->m_min_edit;
+    uint64_t dst = m_write_queue[it]->m_max_edit;
 
     uint8_t* buffer = (uint8_t*)&m_write_queue[it][1];
 

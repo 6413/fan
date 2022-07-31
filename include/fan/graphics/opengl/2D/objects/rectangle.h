@@ -10,6 +10,14 @@ namespace fan_2d {
 
     struct rectangle_t {
 
+      template<typename T>
+      inline void freeContainer(T& p_container)
+      {
+        T empty;
+        using std::swap;
+        swap(p_container, empty);
+      }
+
       using draw_cb_t = void(*)(fan::opengl::context_t* context, rectangle_t*, void*);
 
       struct instance_t {
@@ -26,16 +34,24 @@ namespace fan_2d {
 
       struct properties_t : instance_t {
 
+        fan::opengl::matrices_t* matrix;
+
         using type_t = rectangle_t;
       };
 
+      // todo remove, pointers change
+      static constexpr uint32_t reserve = 4000;
+
+      static constexpr uint32_t blocks_array_size = 0x01000000;
       static constexpr uint32_t max_instance_size = 256;
 
       struct id_t{
         id_t(fan::opengl::cid_t* cid) {
-          block = cid->id / max_instance_size;
+          ba_id = cid->id / blocks_array_size;
+          block = (cid->id & (blocks_array_size - 1)) / max_instance_size;
           instance = cid->id % max_instance_size;
         }
+        uint32_t ba_id;
         uint32_t block;
         uint32_t instance;
       };
@@ -55,20 +71,42 @@ namespace fan_2d {
 
         m_shader.compile(context);
 
-        blocks.open();
+        blocks_array.open();
+        // todo block pointers are changing help
+        blocks_array.reserve(reserve);
 
         m_draw_node_reference = fan::uninitialized;
         draw_cb = [](fan::opengl::context_t* context, rectangle_t*, void*) {};
+
+        query = new std::unordered_map<uintptr_t, uint32_t>;
       }
       void close(fan::opengl::context_t* context) {
         m_shader.close(context);
-        for (uint32_t i = 0; i < blocks.size(); i++) {
-          blocks[i].uniform_buffer.close(context);
+        for (auto& it : blocks_array) {
+          for (uint32_t i = 0; i < blocks_array.size(); i++) {
+            it.blocks[i].uniform_buffer.close(context);
+          }
         }
-        blocks.close();
+        blocks_array.close();
+        delete query;
       }
 
       void push_back(fan::opengl::context_t* context, fan::opengl::cid_t* cid, const properties_t& p) {
+        auto found = query->find((uintptr_t)p.matrix);
+        if (found == query->end()) {
+          query->insert({ (uintptr_t)p.matrix, blocks_array.size() });
+          fan::hector_t<block_t> h;
+          h.open();
+          h.reserve(reserve);
+          blocks_array_t ba;
+          ba.blocks = h;
+          ba.matrix = p.matrix;
+          blocks_array.push_back(ba);
+          found = query->find((uintptr_t)p.matrix);
+        }
+        uint32_t ba_id = found->second;
+        fan::hector_t<block_t> &blocks = blocks_array[ba_id].blocks;
+
         instance_t it = p;
 
         uint32_t block_id = blocks.size() - 1;
@@ -88,61 +126,58 @@ namespace fan_2d {
 
         blocks[block_id].uniform_buffer.common.edit(
           context,
-          instance_id,
-          instance_id + 1
+          instance_id * sizeof(instance_t),
+          instance_id * sizeof(instance_t) + sizeof(instance_t)
         );
 
-        cid->id = block_id * max_instance_size + instance_id;
+        cid->id = ba_id * blocks_array_size + block_id * max_instance_size + instance_id;
       }
-      void erase(fan::opengl::context_t* context, fan::opengl::cid_t* cid) {
-        uint32_t id = cid->id;
-        uint32_t block_id = id / max_instance_size;
-        uint32_t instance_id = id % max_instance_size;
-
-        #if fan_debug >= fan_debug_medium
+      void erase(fan::opengl::context_t* context, const id_t& id) {
+        
+       /* #if fan_debug >= fan_debug_medium
         if (block_id >= blocks.size()) {
           fan::throw_error("invalid access");
         }
         if (instance_id >= blocks[block_id].uniform_buffer.size()) {
           fan::throw_error("invalid access");
         }
-        #endif
+        #endif*/
 
-        if (block_id == blocks.size() - 1 && instance_id == blocks.ge()->uniform_buffer.size() - 1) {
-          blocks[block_id].uniform_buffer.common.m_size -= blocks[block_id].uniform_buffer.common.buffer_bytes_size;
-          if (blocks[block_id].uniform_buffer.size() == 0) {
-            blocks[block_id].uniform_buffer.close(context);
-            blocks.m_size -= 1;
+        if (id.block == blocks_array.size() - 1 && id.instance == blocks_array[id.ba_id].blocks.ge()->uniform_buffer.size() - 1) {
+          blocks_array[id.ba_id].blocks[id.block].uniform_buffer.common.m_size -= blocks_array[id.ba_id].blocks[id.block].uniform_buffer.common.buffer_bytes_size;
+          if (blocks_array[id.ba_id].blocks[id.block].uniform_buffer.size() == 0) {
+            blocks_array[id.ba_id].blocks[id.block].uniform_buffer.close(context);
+            blocks_array.m_size -= 1;
           }
           return;
         }
 
-        uint32_t last_block_id = blocks.size() - 1;
-        uint32_t last_instance_id = blocks[last_block_id].uniform_buffer.size() - 1;
+        uint32_t last_block_id = blocks_array.size() - 1;
+        uint32_t last_instance_id = blocks_array[id.ba_id].blocks[last_block_id].uniform_buffer.size() - 1;
 
-        instance_t* last_instance_data = blocks[last_block_id].uniform_buffer.get_instance(context, last_instance_id);
+        instance_t* last_instance_data = blocks_array[id.ba_id].blocks[last_block_id].uniform_buffer.get_instance(context, last_instance_id);
 
-        blocks[block_id].uniform_buffer.edit_ram_instance(
+        blocks_array[id.ba_id].blocks[id.block].uniform_buffer.edit_ram_instance(
           context,
-          instance_id,
+          id.instance,
           last_instance_data,
           0,
           sizeof(instance_t)
         );
 
-        blocks[last_block_id].uniform_buffer.common.m_size -= blocks[last_block_id].uniform_buffer.common.buffer_bytes_size;
+        blocks_array[id.ba_id].blocks[last_block_id].uniform_buffer.common.m_size -= blocks_array[id.ba_id].blocks[last_block_id].uniform_buffer.common.buffer_bytes_size;
 
-        blocks[block_id].cid[instance_id] = blocks[last_block_id].cid[last_instance_id];
-        blocks[block_id].cid[instance_id]->id = block_id * max_instance_size + instance_id;
+        blocks_array[id.ba_id].blocks[id.block].cid[id.instance] = blocks_array[id.ba_id].blocks[last_block_id].cid[last_instance_id];
+        blocks_array[id.ba_id].blocks[id.block].cid[id.instance]->id = id.ba_id * blocks_array_size + id.block * max_instance_size + id.instance;
 
-        if (blocks[last_block_id].uniform_buffer.size() == 0) {
-          blocks[last_block_id].uniform_buffer.close(context);
-          blocks.m_size -= 1;
+        if (blocks_array[id.ba_id].blocks[last_block_id].uniform_buffer.size() == 0) {
+          blocks_array[id.ba_id].blocks[last_block_id].uniform_buffer.close(context);
+          blocks_array[id.ba_id].blocks.m_size -= 1;
         }
-        blocks[block_id].uniform_buffer.common.edit(
+        blocks_array[id.ba_id].blocks[id.block].uniform_buffer.common.edit(
           context,
-          instance_id,
-          instance_id + 1
+          id.instance * sizeof(instance_t),
+          id.instance * sizeof(instance_t) + sizeof(instance_t)
         );
       }
 
@@ -166,41 +201,39 @@ namespace fan_2d {
       }
 
       void draw(fan::opengl::context_t* context) {
+
+
         m_shader.use(context);
 
         if (draw_cb) {
           draw_cb(context, this, draw_userdata);
         }
 
-        for (uint32_t i = 0; i < blocks.size(); i++) {
-          blocks[i].uniform_buffer.bind_buffer_range(context, blocks[i].uniform_buffer.size());
+        for (auto& it : blocks_array) {
+          m_shader.set_matrices(context, it.matrix);
+          for (uint32_t i = 0; i < it.blocks.size(); i++) {
+            it.blocks[i].uniform_buffer.bind_buffer_range(context, it.blocks[i].uniform_buffer.size());
 
-          blocks[i].uniform_buffer.draw(
-            context,
-            0 * 6,
-            blocks[i].uniform_buffer.size() * 6
-          );
+            it.blocks[i].uniform_buffer.draw(
+              context,
+              0 * 6,
+              it.blocks[i].uniform_buffer.size() * 6
+            );
+          }
         }
-      }
-
-      void bind_matrices(fan::opengl::context_t* context, fan::opengl::matrices_t* matrices) {
-        m_shader.bind_matrices(context, matrices);
-      }
-      void unbind_matrices(fan::opengl::context_t* context, fan::opengl::matrices_t* matrices) {
-        m_shader.unbind_matrices(context, matrices);
       }
 
       template <typename T>
       T get(fan::opengl::context_t* context, const id_t& id, T instance_t::*member) {
-        return blocks[id.block].uniform_buffer.get_instance(context, id.instance)->*member;
+        return blocks_array[id.ba_id].blocks[id.block].uniform_buffer.get_instance(context, id.instance)->*member;
       }
       template <typename T, typename T2>
       void set(fan::opengl::context_t* context, const id_t& id, T instance_t::*member, const T2& value) {
-        blocks[id.block].uniform_buffer.edit_ram_instance(context, id.instance, (T*)&value, fan::ofof<instance_t, T>(member), sizeof(T));
-        blocks[id.block].uniform_buffer.common.edit(
+        blocks_array[id.ba_id].blocks[id.block].uniform_buffer.edit_ram_instance(context, id.instance, (T*)&value, fan::ofof<instance_t, T>(member), sizeof(T));
+        blocks_array[id.ba_id].blocks[id.block].uniform_buffer.common.edit(
           context,
-          id.instance,
-          id.instance + 1
+          id.instance * sizeof(instance_t) + fan::ofof<instance_t, T>(member),
+          id.instance * sizeof(instance_t) + fan::ofof<instance_t, T>(member) + sizeof(T)
         );
       }
 
@@ -226,13 +259,21 @@ namespace fan_2d {
 
       fan::shader_t m_shader;
 
+
       struct block_t {
         fan::opengl::core::uniform_block_t<instance_t, max_instance_size> uniform_buffer;
         fan::opengl::cid_t* cid[max_instance_size];
       };
       uint32_t m_draw_node_reference;
 
-      fan::hector_t<block_t> blocks;
+      struct blocks_array_t {
+        fan::opengl::matrices_t* matrix;
+        fan::hector_t<block_t> blocks;
+      };
+
+      fan::hector_t<blocks_array_t> blocks_array;
+
+      std::unordered_map<uintptr_t, uint32_t>* query;
 
       draw_cb_t draw_cb;
       void* draw_userdata;

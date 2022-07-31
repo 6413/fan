@@ -4,6 +4,7 @@ R"(
 in vec2 texture_coordinate;
 
 in vec4 instance_color;
+in float texture_id;
 
 out vec4 o_color;
 
