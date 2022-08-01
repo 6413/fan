@@ -44,7 +44,8 @@ namespace fan_2d {
         sp.position = 0;
         sp.image = texture_colorbuffer;
         sp.size = 1;
-        sprite.push_back(context, &cid, sp);
+        assert(0);
+        //sprite.push_back(context, &cid, sp);
 
         return ret;
       }

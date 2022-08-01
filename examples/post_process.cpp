@@ -79,11 +79,27 @@ int main() {
   pile.matrices.set_ortho(fan::vec2(-1, 1), fan::vec2(-1, 1));
 
   pile.context.set_vsync(&pile.window, 0);
-
+  fan::time::clock c;
+  uint64_t time = 0;
   while(1) {
-    pile.window.get_fps();
+    uint32_t fps = pile.window.get_fps();
+    if (fps) {
+      fan::print(time / fps);
+      time = 0;
+    }
+    
+
     s.m_shader.use(&pile.context);
     s.m_shader.set_matrices(&pile.context, &pile.matrices);  
+    pile.context.opengl.call(pile.context.opengl.glFlush);
+    pile.context.opengl.call(pile.context.opengl.glFinish);
+    c.start();
+    s.m_shader.set_int(&pile.context, "texture_sampler", 0);
+    pile.context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
+    pile.context.opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, 1);
+    pile.context.opengl.call(pile.context.opengl.glFlush);
+    pile.context.opengl.call(pile.context.opengl.glFinish);
+    time += c.elapsed();
 
     uint32_t window_event = pile.window.handle_events();
     if(window_event & fan::window_t::events::close){

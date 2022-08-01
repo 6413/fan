@@ -2,12 +2,18 @@
   namespace BLL_set_namespace {
 #endif
 
-typedef BLL_set_type_node _P(NodeReference_t);
+BLL_StructBegin(_P(NodeReference_t))
+  BLL_set_type_node NRI;
+
+  #ifdef BLL_set_NodeReference_Overload_Declare
+    BLL_set_NodeReference_Overload_Declare
+  #endif
+BLL_StructEnd(_P(NodeReference_t))
 
 #if BLL_set_PadNode == 0
   #pragma pack(push, 1)
 #endif
-typedef struct{
+BLL_StructBegin(_P(Node_t))
   #if BLL_set_Link == 1
     #if BLL_set_PreferNextFirst == 1
       _P(NodeReference_t) NextNodeReference;
@@ -28,12 +34,12 @@ typedef struct{
       #endif
     };
   #endif
-}_P(Node_t);
+BLL_StructEnd(_P(Node_t))
 #if BLL_set_PadNode == 0
   #pragma pack(pop)
 #endif
 
-typedef struct{
+BLL_StructBegin(_P(t))
   #if BLL_set_StoreFormat == 0
     #if BLL_set_BaseLibrary == 0
       VEC_t nodes;
@@ -47,7 +53,7 @@ typedef struct{
   #endif
   struct{
     _P(NodeReference_t) c;
-    _P(NodeReference_t) p;
+    BLL_set_type_node p;
   }e;
   #ifndef BLL_set_node_data
     uint32_t NodeSize;
@@ -55,7 +61,7 @@ typedef struct{
   #if BLL_set_SafeNext
     _P(NodeReference_t) SafeNext;
   #endif
-}_P(t);
+BLL_StructEnd(_P(t))
 
 #ifdef BLL_set_namespace
   }

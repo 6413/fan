@@ -126,7 +126,7 @@ struct loco_t {
       pile->get_context()->set_viewport(0, size);
     });
 
-    context.init();
+    context.open();
     context.bind_to_window(&window);
     context.set_viewport(0, window.get_size());
 

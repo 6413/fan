@@ -13,8 +13,6 @@
 
 #include _FAN_PATH(graphics/opengl/gl_core.h)
 
-#include _FAN_PATH(graphics/opengl/matrices.h)
-
 namespace fan {
   struct shader_t {
 

@@ -6,8 +6,6 @@
 #define fan_debug 1
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
-#define fan_windows_subsystem fan_windows_subsystem_windows
-
 #include _FAN_PATH(graphics/graphics.h)
 
 #define loco_window
@@ -26,6 +24,7 @@ struct pile_t {
   void open() {
     loco.open(loco_t::properties_t());
     fan::graphics::open_matrices(
+      loco.get_context(),
       &matrices,
       loco.get_window()->get_size(),
       ortho_x,
@@ -56,7 +55,7 @@ int main() {
   fan_2d::graphics::rectangle_t::properties_t p;
 
   p.size = fan::vec2(1.0 / count, 1);
-  p.matrix = &pile.matrices;
+  p.matrices_reference = &pile.matrices;
 
   for (uint32_t i = 0; i < count; i++) {
     p.position = fan::vec2(-1.0 + (f32_t)i / (count / 2), 0);
@@ -68,6 +67,9 @@ int main() {
   }
 
   pile.loco.set_vsync(false);
+
+  pile.loco.rectangle.m_shader.use(pile.loco.get_context());
+  pile.loco.rectangle.m_shader.set_matrices(pile.loco.get_context(), &pile.matrices);  
 
   while(pile.loco.window_open(pile.loco.process_frame())) {
     pile.loco.get_fps();
