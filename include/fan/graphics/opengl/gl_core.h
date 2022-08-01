@@ -63,6 +63,7 @@ namespace fan {
   namespace opengl {
 
     struct context_t;
+    struct matrices_t;
 
     struct cid_t {
       uint32_t id;
@@ -79,19 +80,93 @@ namespace fan {
 #define BLL_set_Link 0
 #include _FAN_PATH(BLL/BLL.h)
 
+#define BLL_set_BaseLibrary 1
+#define BLL_set_namespace fan::opengl
+#define BLL_set_prefix matrices_list
+#define BLL_set_type_node uint8_t
+#define BLL_set_node_data fan::opengl::matrices_t* matrices_id;
+#define BLL_set_Link 0
+#define BLL_set_declare_basic_types 1
+#define BLL_set_declare_rest 0
+#define BLL_set_KeepSettings 1
+#define BLL_set_StructFormat 1
+#define BLL_set_NodeReference_Overload_Declare \
+  void operator=(fan::opengl::matrices_t* matrices);
+#include _FAN_PATH(BLL/BLL.h)
+
 namespace fan {
-
-  namespace opengl {
-    struct render_flags {
-      static constexpr uint16_t depth_test = 1;
-    };
-  }
-
   namespace opengl {
 
     namespace core {
       struct uniform_block_common_t;
     }
+
+    struct matrices_t {
+
+      void open(fan::opengl::context_t* context);
+      void close(fan::opengl::context_t* context);
+
+      fan::vec3 get_camera_position() const {
+        return camera_position;
+      }
+      void set_camera_position(const fan::vec3& cp) {
+        camera_position = cp;
+
+        m_view[3][0] = 0;
+        m_view[3][1] = 0;
+        m_view[3][2] = 0;
+        m_view = m_view.translate(camera_position);
+        fan::vec3 position = m_view.get_translation();
+        constexpr fan::vec3 front(0, 0, 1);
+
+        m_view = fan::math::look_at_left<fan::mat4>(position, position + front, fan::camera::world_up);
+      }
+
+      void set_ortho(const fan::vec2& x, const fan::vec2& y) {
+        m_projection = fan::math::ortho<fan::mat4>(
+          x.x,
+          x.y,
+          y.y,
+          y.x,
+          0.1,
+          100.0
+          );
+
+        m_view[3][0] = 0;
+        m_view[3][1] = 0;
+        m_view[3][2] = 0;
+        m_view = m_view.translate(camera_position);
+        fan::vec3 position = m_view.get_translation();
+        constexpr fan::vec3 front(0, 0, 1);
+
+        m_view = fan::math::look_at_left<fan::mat4>(position, position + front, fan::camera::world_up);
+      }
+      
+      fan::mat4 m_projection;
+      // temporary
+      fan::mat4 m_view;
+
+      fan::vec3 camera_position;
+
+      matrices_list_NodeReference_t matrices_reference;
+    };
+
+    static void open_matrices(fan::opengl::context_t* context, matrices_t* matrices, fan::vec2 window_size, const fan::vec2& x, const fan::vec2& y);
+  }
+}
+
+#define BLL_set_declare_basic_types 0
+#define BLL_set_declare_rest 1
+#define BLL_set_KeepSettings 0
+#undef BLL_set_NodeReference_Overload_Declare
+#include _FAN_PATH(BLL/BLL.h)
+
+void fan::opengl::matrices_list_NodeReference_t::operator=(fan::opengl::matrices_t* matrices) {
+  NRI = matrices->matrices_reference.NRI;
+}
+
+namespace fan {
+  namespace opengl {
 
     struct context_t {
 
@@ -109,6 +184,7 @@ namespace fan {
       };
 
       fan::opengl::image_list_t image_list;
+      fan::opengl::matrices_list_t matrices_list;
       fan::camera camera;
       fan::vec2 viewport_position;
       fan::vec2 viewport_size;
@@ -165,9 +241,15 @@ namespace fan {
 
       uint32_t m_flags;
     };
-
   }
 }
+
+//static void open_matrices(fan::opengl::context_t* context, matrices_t* matrices, fan::vec2 window_size, const fan::vec2& x, const fan::vec2& y) {
+//  matrices->open(context);
+//  fan::vec2 ratio = window_size / window_size.max();
+//  std::swap(ratio.x, ratio.y);
+//  matrices->set_ortho(fan::vec2(x.x, x.y), fan::vec2(y.x, y.y));
+//}
 
 namespace fan {
   namespace opengl {
@@ -410,6 +492,7 @@ namespace fan {
       struct framebuffer_t {
 
         struct properties_t {
+          properties_t() {}
           fan::opengl::GLenum internalformat = fan::opengl::GL_DEPTH_STENCIL_ATTACHMENT;
         };
 
@@ -448,6 +531,7 @@ namespace fan {
       struct renderbuffer_t {
 
         struct properties_t {
+          properties_t() {}
           GLenum internalformat = fan::opengl::GL_DEPTH24_STENCIL8;
           fan::vec2ui size;
         };
@@ -475,6 +559,7 @@ namespace fan {
 
 inline void fan::opengl::context_t::open() {
   image_list_open(&image_list);
+  matrices_list_open(&matrices_list);
 
   m_draw_queue.open();
   m_write_queue.open();
@@ -485,6 +570,7 @@ inline void fan::opengl::context_t::open() {
 }
 inline void fan::opengl::context_t::close() {
   image_list_close(&image_list);
+  matrices_list_close(&matrices_list);
 
   m_draw_queue.close();
   m_write_queue.close();
@@ -652,25 +738,13 @@ inline void fan::opengl::context_t::disable_draw(uint32_t node_reference)
   m_draw_queue.erase(node_reference);
 }
 
-inline void fan::opengl::context_t::set_depth_test(bool flag)
-{
-  switch (flag) {
-    case false: {
-      if (m_flags & fan::opengl::render_flags::depth_test) {
-        opengl.call(opengl.glDisable, fan::opengl::GL_DEPTH_TEST);
-        m_flags &= ~fan::opengl::render_flags::depth_test;
-      }
-      break;
-    }
-    default: {
-      if (!(m_flags & fan::opengl::render_flags::depth_test)) {
-        opengl.call(opengl.glEnable, fan::opengl::GL_DEPTH_TEST);
-        m_flags |= fan::opengl::render_flags::depth_test;
-      }
-    }
+inline void fan::opengl::context_t::set_depth_test(bool flag) {
+  if (flag) {
+    opengl.call(opengl.glEnable, fan::opengl::GL_DEPTH_TEST);
   }
-
-
+  else {
+    opengl.call(opengl.glDisable, fan::opengl::GL_DEPTH_TEST);
+  }
 }
 
 inline void fan::opengl::context_t::set_vsync(fan::window_t* window, bool flag)
@@ -692,4 +766,20 @@ inline void fan::opengl::context_t::set_vsync(fan::window_t* window, bool flag)
 #elif defined(fan_platform_unix)
   opengl.internal.glXSwapIntervalEXT(fan::sys::m_display, opengl.internal.glXGetCurrentDrawable(), flag);
 #endif
+}
+
+void fan::opengl::matrices_t::open(fan::opengl::context_t* context) {
+  m_view = fan::mat4(1);
+  camera_position = 0;
+  matrices_reference = matrices_list_NewNode(&context->matrices_list);
+}
+void fan::opengl::matrices_t::close(fan::opengl::context_t* context) {
+  matrices_list_Recycle(&context->matrices_list, matrices_reference);
+}
+
+void fan::opengl::open_matrices(fan::opengl::context_t* context, fan::opengl::matrices_t* matrices, fan::vec2 window_size, const fan::vec2& x, const fan::vec2& y) {
+  matrices->open(context);
+  fan::vec2 ratio = window_size / window_size.max();
+  std::swap(ratio.x, ratio.y);
+  matrices->set_ortho(fan::vec2(x.x, x.y), fan::vec2(y.x, y.y));
 }

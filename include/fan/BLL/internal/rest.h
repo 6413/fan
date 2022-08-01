@@ -3,6 +3,16 @@
 #endif
 
 static
+bool
+_P(IsNodeReferenceEqual)
+(
+  _P(NodeReference_t) p0,
+  _P(NodeReference_t) p1
+){
+  return p0.NRI == p1.NRI;
+}
+
+static
 uintptr_t
 _P(GetNodeSize)
 (
@@ -24,9 +34,9 @@ _P(GetNodeSize)
     _P(NodeReference_t) NodeReference
   ){
     #if BLL_set_BaseLibrary == 0
-      return NodeReference >= list->nodes.Current;
+      return NodeReference.NRI >= list->nodes.Current;
     #elif BLL_set_BaseLibrary == 1
-      return NodeReference >= list->nodes.size();
+      return NodeReference.NRI >= list->nodes.size();
     #endif
   }
 #else
@@ -41,7 +51,7 @@ _P(GetNodeSize)
     _P(t) *list,
     _P(Node_t) *Node
   ){
-    if(Node->PrevNodeReference == -1){
+    if(Node->PrevNodeReference == _P(NodeReference_t)-1){
       return 1;
     }
     return 0;
@@ -67,12 +77,12 @@ _PP(GetNodeByReference)
 ){
   #if BLL_set_StoreFormat == 0
     #if defined(BLL_set_node_data)
-      return &((_P(Node_t) *)&list->nodes.ptr[0])[NodeReference];
+      return &((_P(Node_t) *)&list->nodes.ptr[0])[NodeReference.NRI];
     #else
-      return (_P(Node_t) *)&list->nodes.ptr[NodeReference * list->NodeSize];
+      return (_P(Node_t) *)&list->nodes.ptr[NodeReference.NRI * list->NodeSize];
     #endif
   #elif BLL_set_StoreFormat == 1
-    return (_P(Node_t) *)NodeReference;
+    return (_P(Node_t) *)NodeReference.NRI;
   #endif
 }
 
@@ -116,11 +126,13 @@ _P(GetNodeByReference)
   (
     _P(t) *list
   ){
+    _P(NodeReference_t) r;
     #if BLL_set_BaseLibrary == 0
-      return list->nodes.Current - list->e.p - 2;
+      r.NRI = list->nodes.Current - list->e.p - 2;
     #elif BLL_set_BaseLibrary == 1
-      return list->nodes.size() - list->e.p - 2;
+      r.NRI = list->nodes.size() - list->e.p - 2;
     #endif
+    return r;
   }
 #else
   /* pain */
@@ -143,16 +155,18 @@ _P(NewNode_alloc)
 (
   _P(t) *list
 ){
+  _P(NodeReference_t) r;
   #if BLL_set_StoreFormat == 0
     #if BLL_set_BaseLibrary == 0
       VEC_handle(&list->nodes);
-      return list->nodes.Current++;
+      r.NRI = list->nodes.Current++;
     #elif BLL_set_BaseLibrary == 1
-      return list->nodes.push_back({});
+      r.NRI = list->nodes.push_back({});
     #endif
   #elif BLL_set_StoreFormat == 1
-    return (_P(NodeReference_t))BLL_set_StoreFormat1_alloc_open(_P(GetNodeSize)(list));
+    r.NRI = BLL_set_StoreFormat1_alloc_open(_P(GetNodeSize)(list));
   #endif
+  return r;
 }
 static
 _P(NodeReference_t)
@@ -169,8 +183,8 @@ _P(NewNode)
   }
   #if BLL_set_debug_InvalidAction >= 1
     _P(Node_t) *Node = _PP(GetNodeByReference)(list, NodeReference);
-    Node->PrevNodeReference = -3;
-    Node->NextNodeReference = -3;
+    Node->PrevNodeReference = _P(NodeReference_t)-1;
+    Node->NextNodeReference = _P(NodeReference_t)-1;
   #endif
   return NodeReference;
 }
@@ -270,9 +284,9 @@ _P(NewNode)
     _P(t) *list
   ){
     _P(NodeReference_t) nr = list->src;
-    while(nr != list->dst){
+    while(!_P(IsNodeReferenceEqual)(nr, list->dst)){
       _P(NodeReference_t) nnr = _P(GetNodeByReference)(list, nr)->NextNodeReference;
-      BLL_set_StoreFormat1_alloc_close((void *)nr);
+      BLL_set_StoreFormat1_alloc_close((void *)nr.NRI);
       nr = nnr;
     }
   }
@@ -284,7 +298,7 @@ _P(NewNode)
   ){
     while(list->e.p){
       _P(NodeReference_t) nr = _P(NewNode_empty)(list);
-      BLL_set_StoreFormat1_alloc_close((void *)nr);
+      BLL_set_StoreFormat1_alloc_close((void *)nr.NRI);
     }
   }
 #endif
@@ -336,7 +350,7 @@ _P(open)
   #endif
 
   #if BLL_set_UseUninitialisedValues == 0
-    list->e.c = 0;
+    list->e.c.NRI = 0;
   #endif
 
   #if BLL_set_StoreFormat == 0
@@ -380,8 +394,12 @@ _P(Clear)
   #endif
   #if BLL_set_ResizeListAfterClear
     #if BLL_set_StoreFormat == 0
-      list->nodes.Possible = 2;
-      list->nodes.ptr = list->nodes.resize(list->nodes.ptr, list->nodes.Possible * list->nodes.Type);
+      #if BLL_set_BaseLibrary == 0
+        list->nodes.Possible = 2;
+        list->nodes.ptr = list->nodes.resize(list->nodes.ptr, list->nodes.Possible * list->nodes.Type);
+      #elif BLL_set_BaseLibrary == 1
+        list->nodes.resize(2);
+      #endif
     #elif BLL_set_StoreFormat == 1
       _P(_StoreFormat1_close_EmptyNodes)(list);
     #endif
@@ -509,7 +527,7 @@ _P(Recycle)
 
   Node->NextNodeReference = list->e.c;
   #if BLL_set_IsNodeUnlinked == 1
-    Node->PrevNodeReference = -1;
+    Node->PrevNodeReference = _P(NodeReference_t)-1;
   #endif
   list->e.c = NodeReference;
   list->e.p++;
@@ -547,10 +565,10 @@ _P(Recycle)
         srcNodeReference
       );
       srcNodeReference = srcNode->NextNodeReference;
-      if(srcNodeReference == dstNodeReference){
+      if(_P(IsNodeReferenceEqual)(srcNodeReference, dstNodeReference)){
         return 0;
       }
-    }while(srcNodeReference != list->dst);
+    }while(!_P(IsNodeReferenceEqual)(srcNodeReference, list->dst));
     return 1;
   }
 #endif

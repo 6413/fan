@@ -42,6 +42,7 @@ namespace fan {
       }
       void erase_texture(fan::opengl::context_t* context) {
         context->opengl.glDeleteTextures(1, get_texture(context));
+        image_list_Recycle(&context->image_list, texture_reference);
       }
 
       void bind_texture(fan::opengl::context_t* context) {

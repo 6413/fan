@@ -1,14 +1,15 @@
 #ifndef BLL_set_BaseLibrary
   #define BLL_set_BaseLibrary 0
 #endif
-#if BLL_set_BaseLibrary == 0
-  #define _BLL_INCLUDE _WITCH_PATH
-#elif BLL_set_BaseLibrary == 1
-  #define _BLL_INCLUDE _FAN_PATH
-#endif
 
+#ifndef BLL_set_KeepSettings
+  #define BLL_set_KeepSettings 0
+#endif
 #ifndef BLL_set_prefix
   #error ifndef BLL_set_prefix
+#endif
+#ifndef BLL_set_StructFormat
+  #define BLL_set_StructFormat 0
 #endif
 #ifndef BLL_set_declare_basic_types
   #define BLL_set_declare_basic_types 1
@@ -110,6 +111,12 @@
   #endif
 #endif
 
+#if BLL_set_BaseLibrary == 0
+  #define _BLL_INCLUDE _WITCH_PATH
+#elif BLL_set_BaseLibrary == 1
+  #define _BLL_INCLUDE _FAN_PATH
+#endif
+
 #if BLL_set_StoreFormat == 0
   #if BLL_set_BaseLibrary == 0
     #include _BLL_INCLUDE(VEC/VEC.h)
@@ -121,6 +128,14 @@
 #define _P(p0) CONCAT3(BLL_set_prefix, _, p0)
 #define _PP(p0) CONCAT4(_, BLL_set_prefix, _, p0)
 
+#if BLL_set_StructFormat == 0
+  #define BLL_StructBegin(n) typedef struct{
+  #define BLL_StructEnd(n) }n;
+#elif BLL_set_StructFormat == 1
+  #define BLL_StructBegin(n) struct n{
+  #define BLL_StructEnd(n) };
+#endif
+
 #if BLL_set_declare_basic_types == 1
   #include _BLL_INCLUDE(BLL/internal/basic_types.h)
 #endif
@@ -128,31 +143,42 @@
   #include _BLL_INCLUDE(BLL/internal/rest.h)
 #endif
 
+#undef BLL_StructBegin
+#undef BLL_StructEnd
+
 #undef _P
 #undef _PP
 
-#undef BLL_set_prefix
-#undef BLL_set_declare_basic_types
-#undef BLL_set_declare_rest
-#undef BLL_set_type_node
-#ifdef BLL_set_node_data
-  #undef BLL_set_node_data
-#endif
-#undef BLL_set_PreferNextFirst
-#undef BLL_set_PadNode
-#undef BLL_set_debug_InvalidAction
-#undef BLL_set_debug_InvalidAction_srcAccess
-#undef BLL_set_debug_InvalidAction_dstAccess
-#undef BLL_set_IsNodeUnlinked
-#undef BLL_set_SafeNext
-#undef BLL_set_ResizeListAfterClear
-#undef BLL_set_UseUninitialisedValues
-#undef BLL_set_Link
-#undef BLL_set_StoreFormat
-#undef BLL_set_SyntaxStyle
-#ifdef BLL_set_namespace
-  #undef BLL_set_namespace
-#endif
-
 #undef _BLL_INCLUDE
-#undef BLL_set_BaseLibrary
+
+#if BLL_set_KeepSettings == 0
+  #undef BLL_set_KeepSettings
+  #undef BLL_set_StructFormat
+  #undef BLL_set_prefix
+  #undef BLL_set_declare_basic_types
+  #undef BLL_set_declare_rest
+  #undef BLL_set_type_node
+  #ifdef BLL_set_node_data
+    #undef BLL_set_node_data
+  #endif
+  #undef BLL_set_PreferNextFirst
+  #undef BLL_set_PadNode
+  #undef BLL_set_debug_InvalidAction
+  #undef BLL_set_debug_InvalidAction_srcAccess
+  #undef BLL_set_debug_InvalidAction_dstAccess
+  #undef BLL_set_IsNodeUnlinked
+  #undef BLL_set_SafeNext
+  #undef BLL_set_ResizeListAfterClear
+  #undef BLL_set_UseUninitialisedValues
+  #undef BLL_set_Link
+  #undef BLL_set_StoreFormat
+  #undef BLL_set_SyntaxStyle
+  #ifdef BLL_set_NodeReference_Overload_Declare
+    #undef BLL_set_NodeReference_Overload_Declare
+  #endif
+  #ifdef BLL_set_namespace
+    #undef BLL_set_namespace
+  #endif
+
+  #undef BLL_set_BaseLibrary
+#endif

@@ -36,7 +36,7 @@ namespace fan_2d {
         );
         sprite_t::compile(context);
         store = {};
-        sprite_t::set_draw_cb(context, sprite1_t::draw_cb, &store);
+       // sprite_t::set_draw_cb(context, sprite1_t::draw_cb, &store);
         store.light_map = light_map;
       }
       struct store_t{
