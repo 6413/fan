@@ -40,10 +40,17 @@ struct pile_t {
         ortho_y * ratio.y
       );
     });
+    loco.get_window()->add_resize_callback(this, [](fan::window_t*, const fan::vec2i& size, void* userptr) {
+      pile_t* pile = (pile_t*)userptr;
+
+      pile->viewport.set_viewport(pile->loco.get_context(), 0, size);
+    });
+    viewport.set_viewport(loco.get_context(), 0, loco.get_window()->get_size());
   }
 
   loco_t loco;
   fan::opengl::matrices_t matrices;
+  fan::opengl::viewport_t viewport;
   fan::opengl::cid_t cids[count];
 };
 
@@ -55,7 +62,8 @@ int main() {
   fan_2d::graphics::rectangle_t::properties_t p;
 
   p.size = fan::vec2(1.0 / count, 1);
-  p.matrices_reference = &pile.matrices;
+  p.matrices = &pile.matrices;
+  p.viewport = &pile.viewport;
 
   for (uint32_t i = 0; i < count; i++) {
     p.position = fan::vec2(-1.0 + (f32_t)i / (count / 2), 0);

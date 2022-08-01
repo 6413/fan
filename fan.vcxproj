@@ -375,7 +375,6 @@
     <ClInclude Include="include\fan\graphics\opengl\gl_init.h" />
     <ClInclude Include="include\fan\graphics\opengl\gl_shader.h" />
     <ClInclude Include="include\fan\graphics\opengl\texture_pack.h" />
-    <ClInclude Include="include\fan\graphics\opengl\viewport.h" />
     <ClInclude Include="include\fan\graphics\transform_interpolator.h" />
     <ClInclude Include="include\fan\io\directory.h" />
     <ClInclude Include="include\fan\ks.h" />

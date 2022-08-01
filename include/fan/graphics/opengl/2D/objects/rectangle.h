@@ -25,16 +25,16 @@ namespace fan_2d {
       static constexpr uint32_t max_instance_size = 128;
 
       struct block_properties_t {
-        fan::opengl::matrices_list_NodeReference_t matrices_reference;
+        fan::opengl::matrices_list_NodeReference_t matrices;
+        fan::opengl::viewport_list_NodeReference_t viewport;
       };
 
       struct properties_t : instance_t {
-        fan::opengl::matrices_t* matrices;
-
         union {
           struct {
             // sb block properties contents come here
-            fan::opengl::matrices_list_NodeReference_t matrices_reference;
+            fan::opengl::matrices_list_NodeReference_t matrices;
+            fan::opengl::viewport_list_NodeReference_t viewport;
           };
           block_properties_t block_properties;
         };
