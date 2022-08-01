@@ -13,8 +13,6 @@
 
 #include _FAN_PATH(graphics/webp.h)
 
-#include _FAN_PATH(graphics/opengl/viewport.h)
-
 #include _FAN_PATH(graphics/opengl/2D/objects/line.h)
 #include _FAN_PATH(graphics/opengl/2D/objects/rectangle.h)
 //#include _FAN_PATH(graphics/opengl/2D/objects/circle.h)

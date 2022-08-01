@@ -63,6 +63,7 @@ namespace fan {
   namespace opengl {
 
     struct context_t;
+    struct viewport_t;
     struct matrices_t;
 
     struct cid_t {
@@ -82,6 +83,60 @@ namespace fan {
 
 #define BLL_set_BaseLibrary 1
 #define BLL_set_namespace fan::opengl
+#define BLL_set_prefix viewport_list
+#define BLL_set_type_node uint8_t
+#define BLL_set_node_data fan::opengl::viewport_t* viewport_id;
+#define BLL_set_Link 0
+#define BLL_set_declare_basic_types 1
+#define BLL_set_declare_rest 0
+#define BLL_set_KeepSettings 1
+#define BLL_set_StructFormat 1
+#define BLL_set_NodeReference_Overload_Declare \
+  void operator=(fan::opengl::viewport_t* viewport);
+#include _FAN_PATH(BLL/BLL.h)
+
+namespace fan {
+  namespace opengl {
+
+    namespace core {
+      struct uniform_block_common_t;
+    }
+
+    struct viewport_t {
+
+      fan::vec2 get_viewport_position() const
+      {
+        return viewport_position;
+      }
+
+      fan::vec2 get_viewport_size() const
+      {
+        return viewport_size;
+      }
+
+      void set_viewport(fan::opengl::context_t* context, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_);
+
+      fan::vec2 viewport_position;
+      fan::vec2 viewport_size;
+
+      fan::opengl::viewport_list_NodeReference_t viewport_reference;
+    };
+
+  }
+}
+
+#define BLL_set_declare_basic_types 0
+#define BLL_set_declare_rest 1
+#define BLL_set_KeepSettings 0
+#undef BLL_set_NodeReference_Overload_Declare
+#include _FAN_PATH(BLL/BLL.h)
+
+void fan::opengl::viewport_list_NodeReference_t::operator=(fan::opengl::viewport_t* viewport) {
+  NRI = viewport->viewport_reference.NRI;
+}
+
+#define BLL_set_BaseLibrary 1
+#define BLL_set_namespace fan::opengl
 #define BLL_set_prefix matrices_list
 #define BLL_set_type_node uint8_t
 #define BLL_set_node_data fan::opengl::matrices_t* matrices_id;
@@ -94,13 +149,8 @@ namespace fan {
   void operator=(fan::opengl::matrices_t* matrices);
 #include _FAN_PATH(BLL/BLL.h)
 
-namespace fan {
+namespace fan{
   namespace opengl {
-
-    namespace core {
-      struct uniform_block_common_t;
-    }
-
     struct matrices_t {
 
       void open(fan::opengl::context_t* context);
@@ -184,10 +234,9 @@ namespace fan {
       };
 
       fan::opengl::image_list_t image_list;
+      fan::opengl::viewport_list_t viewport_list;
       fan::opengl::matrices_list_t matrices_list;
       fan::camera camera;
-      fan::vec2 viewport_position;
-      fan::vec2 viewport_size;
       fan::opengl::opengl_t opengl;
 
       typedef void(*draw_cb_t)(context_t*, void*);
@@ -204,10 +253,6 @@ namespace fan {
       void close();
 
       void bind_to_window(fan::window_t* window, const properties_t& p = properties_t());
-
-      fan::vec2 get_viewport_position() const;
-      fan::vec2 get_viewport_size() const;
-      void set_viewport(const fan::vec2& viewport_position, const fan::vec2& viewport_size_);
 
       void process();
 
@@ -559,6 +604,7 @@ namespace fan {
 
 inline void fan::opengl::context_t::open() {
   image_list_open(&image_list);
+  viewport_list_open(&viewport_list);
   matrices_list_open(&matrices_list);
 
   m_draw_queue.open();
@@ -570,6 +616,7 @@ inline void fan::opengl::context_t::open() {
 }
 inline void fan::opengl::context_t::close() {
   image_list_close(&image_list);
+  viewport_list_close(&viewport_list);
   matrices_list_close(&matrices_list);
 
   m_draw_queue.close();
@@ -667,22 +714,6 @@ inline void fan::opengl::context_t::bind_to_window(fan::window_t* window, const 
   #endif
 }
 
-inline fan::vec2 fan::opengl::context_t::get_viewport_position() const
-{
-  return viewport_position;
-}
-
-inline fan::vec2 fan::opengl::context_t::get_viewport_size() const
-{
-  return viewport_size;
-}
-
-inline void fan::opengl::context_t::set_viewport(const fan::vec2& viewport_position_, const fan::vec2& viewport_size_) {
-  opengl.call(opengl.glViewport, viewport_position_.x, viewport_position_.y, viewport_size_.x, viewport_size_.y);
-  viewport_position = viewport_position_;
-  viewport_size = viewport_size_;
-}
-
 inline void fan::opengl::context_t::process() {
 #if fan_renderer == fan_renderer_opengl
 
@@ -766,6 +797,12 @@ inline void fan::opengl::context_t::set_vsync(fan::window_t* window, bool flag)
 #elif defined(fan_platform_unix)
   opengl.internal.glXSwapIntervalEXT(fan::sys::m_display, opengl.internal.glXGetCurrentDrawable(), flag);
 #endif
+}
+
+void fan::opengl::viewport_t::set_viewport(fan::opengl::context_t* context, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_)  {
+  viewport_position = viewport_position_;
+  viewport_size = viewport_size_;
+  context->opengl.call(context->opengl.glViewport, viewport_position.x, viewport_position.y, viewport_size.x, viewport_size.y);
 }
 
 void fan::opengl::matrices_t::open(fan::opengl::context_t* context) {

@@ -87,8 +87,6 @@ namespace fan_2d {
         fan::vec2 text_size = get_text_size(context, letters, properties.text, properties.font_size);
         f32_t left = properties.position.x - text_size.x / 2;
 
-        fan::vec2 matrix_ratio = context->viewport_size / context->viewport_size.max();
-
         for (uint32_t i = 0; i < properties.text.size(); i++) {
           p.letter_id = letters->font->decode_letter(properties.text[i]);
           auto letter_info = letters->font->info.get_letter_info(properties.text[i], properties.font_size);

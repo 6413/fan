@@ -120,15 +120,8 @@ struct loco_t {
       loco.feed_mouse_move(loco.get_context(), fan::cast<f32_t>(mouse_position) / window_size * 2 - 1);
     });
 
-    get_window()->add_resize_callback(this, [](fan::window_t*, const fan::vec2i& size, void* userptr) {
-      loco_t* pile = (loco_t*)userptr;
-
-      pile->get_context()->set_viewport(0, size);
-    });
-
     context.open();
     context.bind_to_window(&window);
-    context.set_viewport(0, window.get_size());
 
     for (uint32_t depth = 0; depth < max_depths; depth++) {
 
