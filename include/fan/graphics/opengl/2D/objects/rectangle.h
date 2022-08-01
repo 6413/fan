@@ -43,12 +43,7 @@ namespace fan_2d {
       void draw(fan::opengl::context_t* context) {
         m_shader.use(context);
 
-
         for (uint32_t i = 0; i < blocks.size(); i++) {
-
-          pile.loco.rectangle.m_shader.use(pile.loco.get_context());
-          pile.loco.rectangle.m_shader.set_matrices(pile.loco.get_context(), &pile.matrices);  
-
           blocks[i].uniform_buffer.bind_buffer_range(context, blocks[i].uniform_buffer.size());
 
           blocks[i].uniform_buffer.draw(
