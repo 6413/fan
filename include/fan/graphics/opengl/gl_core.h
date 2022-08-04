@@ -67,7 +67,7 @@ namespace fan {
     struct matrices_t;
 
     struct cid_t {
-      uint32_t id;
+      uint64_t id;
     };
 
   }
@@ -103,6 +103,9 @@ namespace fan {
     }
 
     struct viewport_t {
+
+      void open(fan::opengl::context_t* context, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_);
+      void close(fan::opengl::context_t* context);
 
       fan::vec2 get_viewport_position() const
       {
@@ -239,27 +242,12 @@ namespace fan {
       fan::camera camera;
       fan::opengl::opengl_t opengl;
 
-      typedef void(*draw_cb_t)(context_t*, void*);
-
-      struct draw_queue_t {
-        void* data;
-        draw_cb_t draw_cb;
-      };
-
-      bll_t<draw_queue_t> m_draw_queue;
-      bll_t<core::uniform_block_common_t*> m_write_queue;
-
       void open();
       void close();
 
       void bind_to_window(fan::window_t* window, const properties_t& p = properties_t());
 
-      void process();
-
       void render(fan::window_t* window);
-
-      uint32_t enable_draw(void* data, draw_cb_t);
-      void disable_draw(uint32_t node_reference);
 
       void set_depth_test(bool flag);
 
@@ -373,165 +361,6 @@ namespace fan {
 
       };
 
-
-      struct uniform_block_common_t {
-        uint32_t m_vbo;
-        fan::opengl::core::vao_t m_vao;
-        uint32_t buffer_bytes_size;
-        uint32_t m_size;
-
-        void open(fan::opengl::context_t* context) {
-
-          m_edit_index = fan::uninitialized;
-
-          m_min_edit = 0xffffffff;
-          m_max_edit = 0x00000000;
-
-          m_size = 0;
-          m_vao.open(context);
-        }
-        void close(fan::opengl::context_t* context) {
-          if (is_queued()) {
-            context->m_write_queue.erase(m_edit_index);
-            reset_edit();
-          }
-          m_vao.close(context);
-        }
-
-        bool is_queued() const {
-          return m_edit_index != fan::uninitialized;
-        }
-
-        void edit(fan::opengl::context_t* context, uint32_t begin, uint32_t end) {
-
-          m_min_edit = std::min(m_min_edit, begin);
-          m_max_edit = std::max(m_max_edit, end);
-
-          if (is_queued()) {
-            return;
-          }
-          m_edit_index = context->m_write_queue.push_back(this);
-
-         // context->process();
-        }
-
-        void on_edit(fan::opengl::context_t* context) {
-          reset_edit();
-        }
-
-        void reset_edit() {
-          m_min_edit = 0xffffffff;
-          m_max_edit = 0x00000000;
-
-          m_edit_index = fan::uninitialized;
-        }
-
-        uint32_t m_edit_index;
-
-        uint32_t m_min_edit;
-        uint32_t m_max_edit;
-      };
-
-      template <typename type_t, uint32_t element_size>
-      struct uniform_block_t {
-
-        static constexpr uint32_t element_byte_size = element_size;
-
-        uniform_block_t() = default;
-
-        struct open_properties_t {
-          open_properties_t() {}
-
-          uint32_t target = fan::opengl::GL_UNIFORM_BUFFER;
-          uint32_t usage = fan::opengl::GL_DYNAMIC_DRAW;
-        }op;
-
-        void open(fan::opengl::context_t* context, open_properties_t op_ = open_properties_t()) {
-          context->opengl.call(context->opengl.glGenBuffers, 1, &common.m_vbo);
-          op = op_;
-          common.open(context);
-          common.buffer_bytes_size = sizeof(type_t);
-          fan::opengl::core::write_glbuffer(context, common.m_vbo, 0, sizeof(type_t) * element_size, op.usage, op.target);
-        }
-
-        void close(fan::opengl::context_t* context) {
-#if fan_debug >= fan_debug_low
-          if (common.m_vbo == -1) {
-            fan::throw_error("tried to remove non existent vbo");
-          }
-#endif
-          context->opengl.call(context->opengl.glDeleteBuffers, 1, &common.m_vbo);
-
-          common.close(context);
-        }
-
-        void bind_buffer_range(fan::opengl::context_t* context, uint32_t bytes_size) {
-          context->opengl.call(context->opengl.glBindBufferRange, fan::opengl::GL_UNIFORM_BUFFER, 0, common.m_vbo, 0, bytes_size * sizeof(type_t));
-        }
-
-        void bind(fan::opengl::context_t* context) const {
-          context->opengl.call(context->opengl.glBindBuffer, op.target, common.m_vbo);
-        }
-        void unbind() const {
-          //glBindBuffer(GL_ARRAY_BUFFER, 0);
-        }
-
-        void push_ram_instance(fan::opengl::context_t* context, const type_t& data) {
-          std::memmove(&buffer[common.m_size], (void*)&data, common.buffer_bytes_size);
-          common.m_size += sizeof(type_t);
-        }
-
-        // uniform block preallocates
-        /*void write_vram_all(fan::opengl::context_t* context) {
-
-          common.m_vao.bind(context);
-
-          this->bind(context);
-
-          fan::opengl::core::write_glbuffer(context, common.m_vbo, (void*)buffer, common.m_size, op.usage, op.target);
-        }*/
-
-        type_t* get_instance(fan::opengl::context_t* context, uint32_t i) {
-          return (type_t*)&buffer[i * sizeof(type_t)];
-        }
-        void get_vram_instance(fan::opengl::context_t* context, type_t* data, uint32_t i) {
-          fan::opengl::core::get_glbuffer(context, data, common.m_vbo, sizeof(type_t), i * sizeof(type_t), op.target);
-        }
-        void edit_ram_instance(fan::opengl::context_t* context, uint32_t i, const void* data, uint32_t byte_offset, uint32_t sizeof_data) {
-#if fan_debug >= fan_debug_low
-          if (i + byte_offset + sizeof_data > common.m_size) {
-            fan::throw_error("invalid access");
-          }
-#endif
-          std::memmove(buffer + i * sizeof(type_t) + byte_offset, data, sizeof_data);
-        }
-
-        void init_uniform_block(fan::opengl::context_t* context, uint32_t program, const char* name, uint32_t buffer_index = 0) {
-          uint32_t index = context->opengl.call(context->opengl.glGetUniformBlockIndex, program, name);
-#if fan_debug >= fan_debug_low
-          if (index == fan::uninitialized) {
-            fan::throw_error(std::string("failed to initialize uniform block:") + name);
-          }
-#endif
-
-          context->opengl.call(context->opengl.glUniformBlockBinding, program, index, buffer_index);
-        }
-
-        void draw(fan::opengl::context_t* context, uint32_t begin, uint32_t count) {
-
-          common.m_vao.bind(context);
-
-          // possibly disable depth test here
-          context->opengl.call(context->opengl.glDrawArrays, fan::opengl::GL_TRIANGLES, begin, count);
-        }
-
-        uint32_t size() const {
-          return common.m_size / sizeof(type_t);
-        }
-
-        uniform_block_common_t common;
-        uint8_t buffer[element_size * sizeof(type_t)];
-      };
 #pragma pack(pop)
 
       struct framebuffer_t {
@@ -607,9 +436,6 @@ inline void fan::opengl::context_t::open() {
   viewport_list_open(&viewport_list);
   matrices_list_open(&matrices_list);
 
-  m_draw_queue.open();
-  m_write_queue.open();
-
   opengl.open();
 
   m_flags = 0;
@@ -618,9 +444,6 @@ inline void fan::opengl::context_t::close() {
   image_list_close(&image_list);
   viewport_list_close(&viewport_list);
   matrices_list_close(&matrices_list);
-
-  m_draw_queue.close();
-  m_write_queue.close();
 }
 
 inline void fan::opengl::context_t::bind_to_window(fan::window_t* window, const properties_t& p) {
@@ -714,59 +537,12 @@ inline void fan::opengl::context_t::bind_to_window(fan::window_t* window, const 
   #endif
 }
 
-inline void fan::opengl::context_t::process() {
-#if fan_renderer == fan_renderer_opengl
-
-  opengl.call(opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
-
-
-#endif
-
-  uint32_t it = m_write_queue.begin();
-
-  while (it != m_write_queue.end()) {
-
-    uint64_t src = m_write_queue[it]->m_min_edit;
-    uint64_t dst = m_write_queue[it]->m_max_edit;
-
-    uint8_t* buffer = (uint8_t*)&m_write_queue[it][1];
-
-    buffer += src;
-
-    fan::opengl::core::edit_glbuffer(this, m_write_queue[it]->m_vbo, buffer, src, dst - src, fan::opengl::GL_UNIFORM_BUFFER);
-
-    m_write_queue[it]->on_edit(this);
-
-    it = m_write_queue.next(it);
-  }
-
-  m_write_queue.clear();
-
-  it = m_draw_queue.begin();
-
-  while (it != m_draw_queue.end()) {
-    m_draw_queue.start_safe_next(it);
-    m_draw_queue[it].draw_cb(this, m_draw_queue[it].data);
-    it = m_draw_queue.end_safe_next();
-  }
-}
-
 inline void fan::opengl::context_t::render(fan::window_t* window) {
 #ifdef fan_platform_windows
   SwapBuffers(window->m_hdc);
 #elif defined(fan_platform_unix)
   opengl.internal.glXSwapBuffers(fan::sys::m_display, window->m_window_handle);
 #endif
-}
-
-inline uint32_t fan::opengl::context_t::enable_draw(void* data, draw_cb_t cb)
-{
-  return m_draw_queue.push_back(fan::opengl::context_t::draw_queue_t{ data, cb });
-}
-
-inline void fan::opengl::context_t::disable_draw(uint32_t node_reference)
-{
-  m_draw_queue.erase(node_reference);
 }
 
 inline void fan::opengl::context_t::set_depth_test(bool flag) {
@@ -799,6 +575,18 @@ inline void fan::opengl::context_t::set_vsync(fan::window_t* window, bool flag)
 #endif
 }
 
+inline void fan::opengl::viewport_t::open(fan::opengl::context_t * context, const fan::vec2 & viewport_position_, const fan::vec2 & viewport_size_) {
+  viewport_position = viewport_position_;
+  viewport_size = viewport_size_;
+  viewport_reference = viewport_list_NewNode(&context->viewport_list);
+  auto node = viewport_list_GetNodeByReference(&context->viewport_list, viewport_reference);
+  node->data.viewport_id = this;
+}
+
+inline void fan::opengl::viewport_t::close(fan::opengl::context_t * context) {
+  viewport_list_Recycle(&context->viewport_list, viewport_reference);
+}
+
 void fan::opengl::viewport_t::set_viewport(fan::opengl::context_t* context, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_)  {
   viewport_position = viewport_position_;
   viewport_size = viewport_size_;
@@ -809,6 +597,8 @@ void fan::opengl::matrices_t::open(fan::opengl::context_t* context) {
   m_view = fan::mat4(1);
   camera_position = 0;
   matrices_reference = matrices_list_NewNode(&context->matrices_list);
+  auto node = matrices_list_GetNodeByReference(&context->matrices_list, matrices_reference);
+  node->data.matrices_id = this;
 }
 void fan::opengl::matrices_t::close(fan::opengl::context_t* context) {
   matrices_list_Recycle(&context->matrices_list, matrices_reference);

@@ -21,19 +21,3 @@ namespace fan {
 		#endif
 	}
 }
-
-namespace fan_2d {
-	namespace graphics {
-
-		//#if fan_renderer == fan_renderer_opengl
-			using fan_2d::opengl::line_t;
-			using fan_2d::opengl::rectangle_t;
-		//	using fan_2d::opengl::circle_t;
-			using fan_2d::opengl::sprite_t;
-			using fan_2d::opengl::text_renderer_t;
-
-		//#endif
-
-
-	}
-}

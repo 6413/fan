@@ -1,5 +1,16 @@
 #include _FAN_PATH(graphics/gui/be.h)
 
+#define BDBT_set_prefix loco_bdbt
+#define BDBT_set_type_node uint16_t
+#define BDBT_set_BitPerNode 2
+#define BDBT_set_declare_basic_types 1
+#define BDBT_set_declare_rest 1
+#define BDBT_set_declare_Key 0
+#define BDBT_set_BaseLibrary 1
+#include _FAN_PATH(BDBT/BDBT.h)
+
+#include _FAN_PATH(graphics/opengl/uniform_block.h)
+
 struct loco_t {
 
   struct properties_t {
@@ -29,16 +40,12 @@ struct loco_t {
   #endif
   }
 
+  loco_bdbt_t bdbt;
+
   #if defined(loco_rectangle)
-    struct rectangle_t : fan_2d::graphics::rectangle_t {
-    private:
-      using fan_2d::graphics::rectangle_t::push_back;
-    public:
-      void push_back(fan::opengl::cid_t* cid, const properties_t& p) {
-        loco_t* loco = OFFSETLESS(this, loco_t, rectangle);
-        fan_2d::graphics::rectangle_t::push_back(loco->get_context(), cid, p);
-      }
-    }rectangle;
+    #include _FAN_PATH(graphics/opengl/2D/objects/rectangle.h)
+
+    rectangle_t rectangle;
   #endif
   #if defined(loco_sprite)
     struct sprite_t : fan_2d::graphics::sprite_t {
@@ -106,6 +113,8 @@ struct loco_t {
       window = p.window;
     #endif
 
+    loco_bdbt_open(&bdbt);
+
     get_window()->add_keys_callback(this, [](fan::window_t* window, uint16_t key, fan::key_state key_state, void* user_ptr) {
       loco_t& loco = *(loco_t*)user_ptr;
       fan::vec2 window_size = window->get_size();
@@ -133,8 +142,7 @@ struct loco_t {
     #endif
 
     #if defined(loco_rectangle)
-      rectangle.open(get_context());
-      rectangle.enable_draw(get_context());
+      rectangle.open(this);
     #endif
     #if defined(loco_sprite)
       sprite.open(get_context());
@@ -150,10 +158,15 @@ struct loco_t {
     #endif
 
     focus_shape_type = fan::uninitialized;
+
+    m_write_queue.open();
   }
   void close(const properties_t& p) {
+
+    loco_bdbt_close(&bdbt);
+
     #if defined(loco_rectangle)
-      rectangle.close(get_context());
+      rectangle.close(this);
     #endif
     #if defined(loco_sprite)
       sprite.close(get_context());
@@ -164,6 +177,8 @@ struct loco_t {
     #if defined(loco_rectangle_text_button)
       button.close(get_context());
     #endif
+
+    m_write_queue.close();
   }
 
   uint32_t push_back_input_hitbox(uint32_t depth, const fan_2d::graphics::gui::be_t::properties_t& p) {
@@ -205,9 +220,29 @@ struct loco_t {
         return window_event;
       }
     #endif
-      get_context()->process();
+      #if fan_renderer == fan_renderer_opengl
+
+      get_context()->opengl.call(get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
+
+      #endif
+
+      m_write_queue.process(get_context());
+
+    #if defined(loco_rectangle)
+      rectangle.draw(this);
+    #endif
+    #if defined(loco_sprite)
+      sprite.draw(this);
+    #endif
+    #if defined(loco_letter)
+      letter.draw(this);
+    #endif
+    #if defined(loco_rectangle_text_button)
+      button.draw(this);
+    #endif
+
     #ifdef loco_window
-    get_context()->render(get_window());
+      get_context()->render(get_window());
       return window_event;
     #else
       return 0;
@@ -225,8 +260,9 @@ struct loco_t {
     get_context()->set_vsync(get_window(), flag);
   }
 
-  protected:
+  fan::opengl::core::uniform_write_queue_t m_write_queue;
 
+protected:
 
   #ifdef loco_window
     fan::window_t window;
