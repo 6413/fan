@@ -2,6 +2,7 @@
 
 #include _FAN_PATH(graphics/gui/key_event.h)
 #include _FAN_PATH(physics/collision/circle.h)
+#include _FAN_PATH(physics/collision/rectangle.h)
 
 namespace fan_2d {
   namespace graphics {

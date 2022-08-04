@@ -54,15 +54,7 @@
   #define BLL_set_StoreFormat 0
 #endif
 #ifndef BLL_set_type_node
-  #if BLL_set_StoreFormat == 1
-    #define BLL_set_type_node uintptr_t
-  #else
-    #define BLL_set_type_node uint32_t
-  #endif
-#else
-  #if BLL_set_StoreFormat == 1
-    #error when (BLL_set_StoreFormat == 1) you cant set BLL_set_StoreFormat.
-  #endif
+  #define BLL_set_type_node uint32_t
 #endif
 #ifndef BLL_set_SyntaxStyle
   #define BLL_set_SyntaxStyle 0
@@ -74,15 +66,6 @@
   #endif
   #if BLL_set_IsNodeUnlinked != 0
     #error (IsNodeUnlinked != 0) is not available with (Link == 0) yet.
-  #endif
-#endif
-
-#if BLL_set_StoreFormat == 1
-  #ifndef BLL_set_StoreFormat1_alloc_open
-    #error ?
-  #endif
-  #ifndef BLL_set_StoreFormat1_alloc_close
-    #error ?
   #endif
 #endif
 
@@ -111,18 +94,31 @@
   #endif
 #endif
 
+#if BLL_set_StoreFormat == 1
+  #ifndef BLL_set_StoreFormat1_alloc_open
+    #error ?
+  #endif
+  #ifndef BLL_set_StoreFormat1_alloc_close
+    #error ?
+  #endif
+  #if BLL_set_Link == 1
+    #error not yet
+  #endif
+  #ifndef BLL_set_StoreFormat1_ElementPerBlock
+    #define BLL_set_StoreFormat1_ElementPerBlock 1
+  #endif
+#endif
+
 #if BLL_set_BaseLibrary == 0
   #define _BLL_INCLUDE _WITCH_PATH
 #elif BLL_set_BaseLibrary == 1
   #define _BLL_INCLUDE _FAN_PATH
 #endif
 
-#if BLL_set_StoreFormat == 0
-  #if BLL_set_BaseLibrary == 0
-    #include _BLL_INCLUDE(VEC/VEC.h)
-  #elif BLL_set_BaseLibrary == 1
-    #include _BLL_INCLUDE(types/memory.h)
-  #endif
+#if BLL_set_BaseLibrary == 0
+  #include _BLL_INCLUDE(VEC/VEC.h)
+#elif BLL_set_BaseLibrary == 1
+  #include _BLL_INCLUDE(types/memory.h)
 #endif
 
 #define _P(p0) CONCAT3(BLL_set_prefix, _, p0)
@@ -152,6 +148,9 @@
 #undef _BLL_INCLUDE
 
 #if BLL_set_KeepSettings == 0
+  #ifdef BLL_set_StoreFormat1_ElementPerBlock
+    #undef BLL_set_StoreFormat1_ElementPerBlock
+  #endif
   #undef BLL_set_KeepSettings
   #undef BLL_set_StructFormat
   #undef BLL_set_prefix

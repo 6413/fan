@@ -1,21 +1,17 @@
-#include <utility>
-#include <type_traits>
+#include <compare>
+#include <iostream>
+#include <stack>
 
-
-struct x_t{
-  float operator=(int);
+struct point {
+  uint8_t bit : 1000;
+  auto operator<=>(const point&) const = default;
+  int x, y, z;
 };
 
-template<typename T> class C : public T
-{
-  using type_t = std::invoke_result_t<decltype(&T::operator=), T>;
-};
+int main(){
+  point a = point(1, 2, 3);
+  point b = point(3, 2, 1);
+  //std::cout << a > b;
 
-decltype(((x_t*)nullptr)->operator=({})) x_t::operator=(int x) {
-  return 10;
-}
-
-int main() {
-  x_t x;
-  return (x = 5);
+  return 0;
 }

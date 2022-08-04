@@ -25,23 +25,23 @@ _P(GetNodeSize)
   #endif
 }
 
-#if BLL_set_StoreFormat == 0
-  static
-  bool
-  _P(IsNodeReferenceInvalid)
-  (
-    _P(t) *list,
-    _P(NodeReference_t) NodeReference
-  ){
+static
+bool
+_P(IsNodeReferenceInvalid)
+(
+  _P(t) *list,
+  _P(NodeReference_t) NodeReference
+){
+  #if BLL_set_StoreFormat == 0
     #if BLL_set_BaseLibrary == 0
       return NodeReference.NRI >= list->nodes.Current;
     #elif BLL_set_BaseLibrary == 1
       return NodeReference.NRI >= list->nodes.size();
     #endif
-  }
-#else
-  /* pain */
-#endif
+  #elif BLL_set_StoreFormat == 1
+    return NodeReference.NRI >= list->NodeCurrent;
+  #endif
+}
 
 #if BLL_set_IsNodeUnlinked == 1
   static
@@ -82,6 +82,14 @@ _PP(GetNodeByReference)
       return (_P(Node_t) *)&list->nodes.ptr[NodeReference.NRI * list->NodeSize];
     #endif
   #elif BLL_set_StoreFormat == 1
+    #if defined(BLL_set_node_data)
+      _P(BlockIndex_t) bi = NodeReference.NRI / BLL_set_StoreFormat1_ElementPerBlock;
+      _P(BlockModulo_t) bm = NodeReference.NRI % BLL_set_StoreFormat1_ElementPerBlock;
+      _P(Node_t) *n = &((_P(Node_t) *)((void **)&list->Blocks.ptr[0])[bi])[bm];
+      return n;
+    #else
+      #error not implemented yet
+    #endif
     return (_P(Node_t) *)NodeReference.NRI;
   #endif
 }
@@ -119,23 +127,51 @@ _P(GetNodeByReference)
   return Node;
 }
 
-#if BLL_set_StoreFormat == 0
+static
+BLL_set_type_node
+_P(usage)
+(
+  _P(t) *list
+){
+  #if BLL_set_StoreFormat == 0
+    #if BLL_set_Link == 0
+      #if BLL_set_BaseLibrary == 0
+        return list->nodes.Current - list->e.p;
+      #elif BLL_set_BaseLibrary == 1
+        return list->nodes.size() - list->e.p;
+      #endif
+    #elif BLL_set_Link == 1
+      #if BLL_set_BaseLibrary == 0
+        return list->nodes.Current - list->e.p - 2;
+      #elif BLL_set_BaseLibrary == 1
+        return list->nodes.size() - list->e.p - 2;
+      #endif
+    #endif
+  #elif BLL_set_StoreFormat == 1
+    #if BLL_set_Link == 0
+      return list->NodeCurrent - list->e.p;
+    #elif BLL_set_Link == 1
+      #error help
+    #endif
+  #endif
+}
+
+#if BLL_set_StoreFormat == 1
   static
-  _P(NodeReference_t)
-  _P(usage)
+  void
+  _P(_PushNewBlock)
   (
     _P(t) *list
   ){
-    _P(NodeReference_t) r;
+    _P(Node_t) *n = (_P(Node_t) *)BLL_set_StoreFormat1_alloc_open(
+      sizeof(_P(Node_t)) * BLL_set_StoreFormat1_ElementPerBlock);
     #if BLL_set_BaseLibrary == 0
-      r.NRI = list->nodes.Current - list->e.p - 2;
+      VEC_handle0(&list->Blocks, 1);
+      ((_P(Node_t) **)list->Blocks.ptr)[list->nodes.Current - 1] = n;
     #elif BLL_set_BaseLibrary == 1
-      r.NRI = list->nodes.size() - list->e.p - 2;
+      list->Blocks.push_back(n);
     #endif
-    return r;
   }
-#else
-  /* pain */
 #endif
 
 static
@@ -164,7 +200,10 @@ _P(NewNode_alloc)
       r.NRI = list->nodes.push_back({});
     #endif
   #elif BLL_set_StoreFormat == 1
-    r.NRI = BLL_set_StoreFormat1_alloc_open(_P(GetNodeSize)(list));
+    if(list->NodeCurrent % BLL_set_StoreFormat1_ElementPerBlock == 0){
+      _P(_PushNewBlock)(list);
+    }
+    r.NRI = list->NodeCurrent++;
   #endif
   return r;
 }
@@ -279,26 +318,18 @@ _P(NewNode)
 #if BLL_set_StoreFormat == 1
   static
   void
-  _P(_StoreFormat1_close_UsedNodes)
+  _P(_StoreFormat1_CloseAllocatedBlocks)
   (
     _P(t) *list
   ){
-    _P(NodeReference_t) nr = list->src;
-    while(!_P(IsNodeReferenceEqual)(nr, list->dst)){
-      _P(NodeReference_t) nnr = _P(GetNodeByReference)(list, nr)->NextNodeReference;
-      BLL_set_StoreFormat1_alloc_close((void *)nr.NRI);
-      nr = nnr;
-    }
-  }
-  static
-  void
-  _P(_StoreFormat1_close_EmptyNodes)
-  (
-    _P(t) *list
-  ){
-    while(list->e.p){
-      _P(NodeReference_t) nr = _P(NewNode_empty)(list);
-      BLL_set_StoreFormat1_alloc_close((void *)nr.NRI);
+    #if BLL_set_BaseLibrary == 0
+      _P(BlockIndex_t) BlockAmount = list->Blocks.Current;
+    #elif BLL_set_BaseLibrary == 1
+      _P(BlockIndex_t) BlockAmount = list->Blocks.size();
+    #endif
+    for(_P(BlockIndex_t) i = 0; i < BlockAmount; i++){
+      void *p = (void *)((_P(Node_t) **)&list->Blocks.ptr[0])[i];
+      BLL_set_StoreFormat1_alloc_close(p);
     }
   }
 #endif
@@ -311,13 +342,13 @@ _P(_AfterInitNodes)
 ){
   list->e.p = 0;
   #if BLL_set_StoreFormat == 0
-    #if BLL_set_BaseLibrary == 0
-      VEC_handle0(&list->nodes, 2);
-    #elif BLL_set_BaseLibrary == 1
-      list->nodes.resize(2);
-    #endif
-    
     #if BLL_set_Link == 1
+      #if BLL_set_BaseLibrary == 0
+        VEC_handle0(&list->nodes, 2);
+      #elif BLL_set_BaseLibrary == 1
+        list->nodes.resize(2);
+      #endif
+
       list->src = 0;
       list->dst = 1;
     #endif
@@ -359,6 +390,13 @@ _P(open)
     #elif BLL_set_BaseLibrary == 1
       list->nodes.open();
     #endif
+  #elif BLL_set_StoreFormat == 1
+    list->NodeCurrent = 0;
+    #if BLL_set_BaseLibrary == 0
+      VEC_init(&list->Blocks, NodeSize * BLL_set_StoreFormat1_ElementPerBlock, A_resize);
+    #elif BLL_set_BaseLibrary == 1
+      list->Blocks.open();
+    #endif
   #endif
   _P(_AfterInitNodes)(list);
 
@@ -379,29 +417,59 @@ _P(close)
       list->nodes.close();
     #endif
   #elif BLL_set_StoreFormat == 1
-    _P(_StoreFormat1_close_UsedNodes)(list);
-    _P(_StoreFormat1_close_EmptyNodes)(list);
+    #if BLL_set_Link == 0
+      _P(_StoreFormat1_CloseAllocatedBlocks)(list);
+      #if BLL_set_BaseLibrary == 0
+        VEC_free(&list->Blocks);
+      #elif BLL_set_BaseLibrary == 1
+        list->Blocks.close();
+      #endif
+    #elif BLL_set_Link == 1
+      #error help
+    #endif
   #endif
 }
 static
 void
-_P(Clear)
+_P(Clear) /* TODO those 2 numbers in this function needs to be flexible */
 (
   _P(t) *list
 ){
-  #if BLL_set_StoreFormat == 1
-    _P(_StoreFormat1_close_UsedNodes)(list);
-  #endif
-  #if BLL_set_ResizeListAfterClear
+  #if BLL_set_ResizeListAfterClear == 0
     #if BLL_set_StoreFormat == 0
       #if BLL_set_BaseLibrary == 0
+        list->nodes.Current = 0;
+      #elif BLL_set_BaseLibrary == 1
+        list->nodes.resize(0);
+      #endif
+    #elif BLL_set_StoreFormat == 1
+      _P(_StoreFormat1_CloseAllocatedBlocks)(list);
+      #if BLL_set_BaseLibrary == 0
+        list->Blocks.Current = 0;
+      #elif BLL_set_BaseLibrary == 1
+        list->Blocks.resize(0);
+      #endif
+    #endif
+  #else
+    #if BLL_set_StoreFormat == 0
+      #if BLL_set_BaseLibrary == 0
+        list->nodes.Current = 0;
         list->nodes.Possible = 2;
         list->nodes.ptr = list->nodes.resize(list->nodes.ptr, list->nodes.Possible * list->nodes.Type);
       #elif BLL_set_BaseLibrary == 1
-        list->nodes.resize(2);
+        /* TODO fan hector doesnt have function for capacity change */
+        list->nodes.resize(0);
       #endif
     #elif BLL_set_StoreFormat == 1
-      _P(_StoreFormat1_close_EmptyNodes)(list);
+      _P(_StoreFormat1_CloseAllocatedBlocks)(list);
+      #if BLL_set_BaseLibrary == 0
+        list->Blocks.Current = 0;
+        list->Blocks.Possible = 2;
+        list->Blocks.ptr = list->nodes.resize(list->nodes.ptr, list->nodes.Possible * list->nodes.Type);
+      #elif BLL_set_BaseLibrary == 1
+        /* TODO fan hector doesnt have function for capacity change */
+        list->nodes.resize(0);
+      #endif
     #endif
   #endif
   _P(_AfterInitNodes)(list);

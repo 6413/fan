@@ -14,10 +14,10 @@
 #define loco_rectangle
 #include _FAN_PATH(graphics/loco.h)
 
-constexpr uint32_t count = 1000;
+constexpr uint32_t count = 1e+6;
 
 struct pile_t {
-
+  
   static constexpr fan::vec2 ortho_x = fan::vec2(-1, 1);
   static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
 
@@ -25,7 +25,14 @@ struct pile_t {
     loco.open(loco_t::properties_t());
     fan::graphics::open_matrices(
       loco.get_context(),
-      &matrices,
+      &matrices[0],
+      loco.get_window()->get_size(),
+      ortho_x,
+      ortho_y
+    );
+    fan::graphics::open_matrices(
+      loco.get_context(),
+      &matrices[1],
       loco.get_window()->get_size(),
       ortho_x,
       ortho_y
@@ -35,7 +42,11 @@ struct pile_t {
       fan::vec2 ratio = window_size / window_size.max();
       std::swap(ratio.x, ratio.y);
       pile_t* pile = (pile_t*)userptr;
-      pile->matrices.set_ortho(
+      pile->matrices[0].set_ortho(
+        ortho_x * ratio.x, 
+        ortho_y * ratio.y
+      );
+      pile->matrices[1].set_ortho(
         ortho_x * ratio.x, 
         ortho_y * ratio.y
       );
@@ -45,42 +56,45 @@ struct pile_t {
 
       pile->viewport.set_viewport(pile->loco.get_context(), 0, size);
     });
-    viewport.set_viewport(loco.get_context(), 0, loco.get_window()->get_size());
+    viewport.open(loco.get_context(), 0, loco.get_window()->get_size());
   }
 
   loco_t loco;
-  fan::opengl::matrices_t matrices;
+  fan::opengl::matrices_t matrices[2];
   fan::opengl::viewport_t viewport;
   fan::opengl::cid_t cids[count];
 };
 
 int main() {
 
-  pile_t pile;
-  pile.open();
+  pile_t* pile = new pile_t;
+  pile->open();
 
-  fan_2d::graphics::rectangle_t::properties_t p;
+  loco_t::rectangle_t::properties_t p;
 
   p.size = fan::vec2(1.0 / count, 1);
-  p.matrices = &pile.matrices;
-  p.viewport = &pile.viewport;
+  p.matrices = &pile->matrices[0];
+  p.viewport = &pile->viewport;
 
+  fan::time::clock c; 
+  c.start();
   for (uint32_t i = 0; i < count; i++) {
     p.position = fan::vec2(-1.0 + (f32_t)i / (count / 2), 0);
     p.color = fan::color((f32_t)i / count, (f32_t)i / count + 00.1, (f32_t)i / count);
-    pile.loco.rectangle.push_back(&pile.cids[i], p);
-
+    pile->loco.rectangle.push_back(&pile->loco, &pile->cids[i], p);
+    if (i == 1) {
+      p.matrices = &pile->matrices[1];
+    }
      //EXAMPLE ERASE
-    //r.erase(&pile.context, &pile.cids[i]);
+    //r.erase(&pile->context, &pile->cids[i]);
   }
 
-  pile.loco.set_vsync(false);
+  fan::print((f32_t)c.elapsed() / 1e+9);
 
-  pile.loco.rectangle.m_shader.use(pile.loco.get_context());
-  pile.loco.rectangle.m_shader.set_matrices(pile.loco.get_context(), &pile.matrices);  
+  pile->loco.set_vsync(false);
 
-  while(pile.loco.window_open(pile.loco.process_frame())) {
-    pile.loco.get_fps();
+  while(pile->loco.window_open(pile->loco.process_frame())) {
+    pile->loco.get_fps();
   }
 
   return 0;

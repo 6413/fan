@@ -10,6 +10,21 @@ BLL_StructBegin(_P(NodeReference_t))
   #endif
 BLL_StructEnd(_P(NodeReference_t))
 
+#if BLL_set_StoreFormat == 1
+  /* TODO can be more smaller */
+  typedef BLL_set_type_node _P(BlockIndex_t);
+
+  #if BLL_set_StoreFormat1_ElementPerBlock <= 0xff
+    typedef uint8_t _P(BlockModulo_t);
+  #elif BLL_set_StoreFormat1_ElementPerBlock <= 0xffff
+    typedef uint16_t _P(BlockModulo_t);
+  #elif BLL_set_StoreFormat1_ElementPerBlock <= 0xffffffff
+    typedef uint32_t _P(BlockModulo_t);
+  #else
+    #error no
+  #endif
+#endif
+
 #if BLL_set_PadNode == 0
   #pragma pack(push, 1)
 #endif
@@ -46,6 +61,15 @@ BLL_StructBegin(_P(t))
     #elif BLL_set_BaseLibrary == 1
       fan::hector_t<_P(Node_t)> nodes;
     #endif
+  #elif BLL_set_StoreFormat == 1
+    #if BLL_set_BaseLibrary == 0
+      VEC_t Blocks;
+    #elif BLL_set_BaseLibrary == 1
+      fan::hector_t<_P(Node_t) *> Blocks;
+    #endif
+  #endif
+  #if BLL_set_StoreFormat == 1
+    BLL_set_type_node NodeCurrent;
   #endif
   #if BLL_set_Link == 1
     _P(NodeReference_t) src;

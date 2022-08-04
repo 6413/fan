@@ -36,6 +36,17 @@ namespace fan {
         uintptr_t           filter = load_properties_defaults::filter;
       };
 
+      /*
+            void open(fan::opengl::context_t* context, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_) {
+        viewport_reference = viewport_list_NewNode(&context->viewport_list);
+        auto node = viewport_list_GetNodeByReference(&context->viewport_list, viewport_reference);
+        node->data.viewport_id = this;
+      }
+      void close(fan::opengl::context_t* context) {
+        viewport_list_Recycle(&context->viewport_list, viewport_reference);
+      }
+      */
+
       void create_texture(fan::opengl::context_t* context) {
         texture_reference = image_list_NewNode(&context->image_list);
         context->opengl.call(context->opengl.glGenTextures, 1, get_texture(context));
