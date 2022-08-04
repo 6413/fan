@@ -118,7 +118,7 @@ struct rectangle_t {
   #define BLL_set_StoreFormat 1
   #define BLL_set_StoreFormat1_alloc_open malloc
   #define BLL_set_StoreFormat1_alloc_close free
-  #define BLL_set_node_type uint16_t
+  #define BLL_set_type_node uint16_t
   #define BLL_set_node_data \
   fan::hector_t<rectangle_t::block_t> blocks;
   #include _FAN_PATH(BLL/BLL.h)

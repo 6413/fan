@@ -1,14 +1,14 @@
 R"(
 #version 140
 
-#define get_instance() st[gl_VertexID / 6]
+#define get_instance() instance[gl_VertexID / 6]
 
 out vec4 instance_color;
 
 uniform mat4 view;
 uniform mat4 projection;
 
-struct _{
+struct block_instance_t{
 	vec3 position;
 	vec2 size;
 	vec2 rotation_point;
@@ -18,7 +18,7 @@ struct _{
 };
 
 layout (std140) uniform instance_t {
-	_ st[256];
+	block_instance_t instance[256];
 };
 
 vec2 rectangle_vertices[] = vec2[](
