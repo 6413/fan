@@ -5,17 +5,19 @@ RELEASEFLAGS = -s -fdata-sections -ffunction-sections -Wl,--gc-sections -mmmx -m
 
 CFLAGS = -w -std=c++2a -I /usr/local/include -I include -g -Wl #-O3 -march=native -mtune=native $(RELEASEFLAGS)
 
-BASE_PATH = lib/fan/
+BASE_PATH = 
+
 ifeq ($(OS),Windows_NT)
 	AR = llvm-ar
 	RM = del 
 	LIBNAME = fan_windows_clang.a
+  BASE_PATH += lib/fan/
 else
 	CFLAGS += -DFAN_INCLUDE_PATH=/usr/include -fPIE
 	AR = ar
 	RM = rm -f
 	LIBNAME = fan.a
-  FAN_OBJECT_FOLDER = $(BASE_PATH);
+  FAN_OBJECT_FOLDER = $(BASE_PATH)
 endif
 
 ifeq ($(OS),Windows_NT)
