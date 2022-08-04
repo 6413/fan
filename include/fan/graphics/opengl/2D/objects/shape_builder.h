@@ -115,7 +115,7 @@ void set(loco_t* loco, fan::opengl::cid_t *cid, T instance_t::*member, const T2&
   id_t id(this, cid);
   id.block->uniform_buffer.edit_ram_instance(loco->get_context(), id.instance_id, (T*)&value, fan::ofof<instance_t, T>(member), sizeof(T));
   id.block->uniform_buffer.common.edit(
-    context,
+    loco->get_context(),
     id.instance_id * sizeof(instance_t) + fan::ofof<instance_t, T>(member),
     id.instance_id * sizeof(instance_t) + fan::ofof<instance_t, T>(member) + sizeof(T)
   );
