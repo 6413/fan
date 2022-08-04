@@ -50,7 +50,7 @@ struct rectangle_t {
       loco_bdbt_rectangle_viewport_KeyInFrom(&loco->bdbt, &p.viewport, KeyIndex, nr, lnr.NRI);
       nr = lnr.NRI;
     }
-    auto ln = loco_rectangle_viewport_list_GetNodeByReference(&viewport_list, (loco_rectangle_viewport_list_NodeReference_t)nr);
+    auto ln = loco_rectangle_viewport_list_GetNodeByReference(&viewport_list, *(loco_rectangle_viewport_list_NodeReference_t*)&nr);
     
     sb_push_back(loco, ln->data.blocks, cid, p);
   }
@@ -74,7 +74,7 @@ struct rectangle_t {
           node->data.viewport_id->get_viewport_position(),
           node->data.viewport_id->get_viewport_size()
         );
-        auto kt1_node = loco_rectangle_viewport_list_GetNodeByReference(&viewport_list, (loco_rectangle_viewport_list_NodeReference_t)kt1.Output);
+        auto kt1_node = loco_rectangle_viewport_list_GetNodeByReference(&viewport_list, *(loco_rectangle_viewport_list_NodeReference_t*)&kt1.Output);
         for (uint32_t i = 0; i < kt1_node->data.blocks.size(); i++) {
           kt1_node->data.blocks[i].uniform_buffer.bind_buffer_range(loco->get_context(), kt1_node->data.blocks[i].uniform_buffer.size());
 
@@ -135,7 +135,7 @@ struct rectangle_t {
     id_t(rectangle_t* rectangle, fan::opengl::cid_t* cid) {
 
       idr_t idr = *(idr_t *)&cid->id;
-      loco_rectangle_viewport_list_Node_t *n = loco_rectangle_viewport_list_GetNodeByReference(&rectangle->viewport_list, (loco_rectangle_viewport_list_NodeReference_t)idr.block_id);
+      loco_rectangle_viewport_list_Node_t *n = loco_rectangle_viewport_list_GetNodeByReference(&rectangle->viewport_list, *(loco_rectangle_viewport_list_NodeReference_t*)&idr);
       block = &n->data.blocks[idr.hector_id];
       instance_id = idr.instance_id;
     }

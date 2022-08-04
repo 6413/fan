@@ -112,7 +112,7 @@ namespace fan {
           fan::opengl::core::write_glbuffer(context, common.m_vbo, 0, sizeof(type_t) * element_size, op.usage, op.target);
         }
 
-        void close(fan::opengl::context_t* context) {
+        void close(fan::opengl::context_t* context, uniform_write_queue_t* write_queue) {
           #if fan_debug >= fan_debug_low
           if (common.m_vbo == -1) {
             fan::throw_error("tried to remove non existent vbo");
@@ -120,7 +120,7 @@ namespace fan {
           #endif
           context->opengl.call(context->opengl.glDeleteBuffers, 1, &common.m_vbo);
 
-          common.close(context);
+          common.close(context, write_queue);
         }
 
         void bind_buffer_range(fan::opengl::context_t* context, uint32_t bytes_size) {
