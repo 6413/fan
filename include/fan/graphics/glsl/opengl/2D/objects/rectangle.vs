@@ -8,15 +8,17 @@ out vec4 instance_color;
 uniform mat4 view;
 uniform mat4 projection;
 
-layout (std140) uniform instance_t {
-	struct{
+struct _{
 		vec3 position;
 		vec2 size;
 		vec2 rotation_point;
 		vec4 color;
 		vec3 rotation_vector;
 		float angle;
-	}st[256];
+};
+
+layout (std140) uniform instance_t {
+	_ st[256];
 }instance;
 
 vec2 rectangle_vertices[] = vec2[](
