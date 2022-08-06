@@ -1,6 +1,7 @@
 #pragma once
 
 #include _FAN_PATH(types/types.h)
+#include _FAN_PATH(types/masterpiece.h)
 
 #include _FAN_PATH(graphics/renderer.h)
 
@@ -67,7 +68,9 @@ namespace fan {
     struct matrices_t;
 
     struct cid_t {
-      uint64_t id;
+      uint16_t bm_id;
+      uint16_t block_id;
+      uint8_t instance_id;
     };
 
   }

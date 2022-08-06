@@ -31,7 +31,6 @@
 #include <locale>
 #include <climits>
 #include <type_traits>
-#include <any>
 #include <optional>
 
 #ifdef fan_platform_windows
@@ -489,7 +488,7 @@ namespace fan {
 			#ifdef fan_platform_windows
 
 			if (!OpenClipboard(nullptr)) {
-				throw std::runtime_error("failed to open clipboard");
+				fan::throw_error("failed to open clipboard");
 			}
 
 			HANDLE data = GetClipboardData(CF_UNICODETEXT);
@@ -500,7 +499,7 @@ namespace fan {
 
 			wchar_t* text = static_cast<wchar_t*>(GlobalLock(data));
 			if (text == nullptr) {
-				throw std::runtime_error("copyboard text was nullptr");
+				fan::throw_error("copyboard text was nullptr");
 			}
 
 			copied_text = text;
@@ -517,7 +516,7 @@ namespace fan {
 			Display *display = XOpenDisplay(NULL);
 
 			if (!display) {
-				throw std::runtime_error("failed to open display");
+				fan::throw_error("failed to open display");
 			}
 
 			XEvent ev;

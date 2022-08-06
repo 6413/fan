@@ -113,7 +113,8 @@ namespace fan_2d {
               return 1;
             }
           }
-
+          // fix element_id
+        //  assert(0);
 
           uint32_t i = m_button_data.rbegin();
           while (i != m_button_data.rend()) {
@@ -122,7 +123,7 @@ namespace fan_2d {
                 mouse_move_data_t mm_data;
                 mm_data.context = context;
                 mm_data.button_event = this;
-                mm_data.element_id = m_button_data[m_focused_button_id].properties.element_cid->id;
+                //mm_data.element_id = m_button_data[m_focused_button_id].properties.element_cid->id;
                 mm_data.mouse_stage = mouse_stage_e::outside;
                 mm_data.userptr[0] = m_button_data[m_focused_button_id].properties.userptr[0];
                 mm_data.userptr[1] = m_button_data[m_focused_button_id].properties.userptr[1];
@@ -136,7 +137,7 @@ namespace fan_2d {
               mouse_move_data_t mm_data;
               mm_data.context = context;
               mm_data.button_event = this;
-              mm_data.element_id = m_button_data[m_focused_button_id].properties.element_cid->id;
+              //mm_data.element_id = m_button_data[m_focused_button_id].properties.element_cid->id;
               mm_data.mouse_stage = mouse_stage_e::inside;
               mm_data.userptr[0] = m_button_data[m_focused_button_id].properties.userptr[0];
               mm_data.userptr[1] = m_button_data[m_focused_button_id].properties.userptr[1];
@@ -154,7 +155,7 @@ namespace fan_2d {
             mouse_move_data_t mm_data;
             mm_data.context = context;
             mm_data.button_event = this;
-            mm_data.element_id = m_button_data[m_focused_button_id].properties.element_cid->id;
+            //mm_data.element_id = m_button_data[m_focused_button_id].properties.element_cid->id;
             mm_data.mouse_stage = mouse_stage_e::outside;
             mm_data.userptr[0] = m_button_data[m_focused_button_id].properties.userptr[0];
             mm_data.userptr[1] = m_button_data[m_focused_button_id].properties.userptr[1];
@@ -177,7 +178,7 @@ namespace fan_2d {
                 mouse_input_data_t ii_data;
                 ii_data.context = context;
                 ii_data.button_event = this;
-                ii_data.element_id = m_button_data[m_focused_button_id].properties.element_cid->id;
+                //ii_data.element_id = m_button_data[m_focused_button_id].properties.element_cid->id;
                 ii_data.mouse_stage = mouse_stage_e::inside;
                 ii_data.key = button;
                 ii_data.key_state = fan::key_state::press;
@@ -197,7 +198,7 @@ namespace fan_2d {
                     mouse_input_data_t ii_data;
                     ii_data.context = context;
                     ii_data.button_event = this;
-                    ii_data.element_id = m_button_data[i].properties.element_cid->id;
+                    //ii_data.element_id = m_button_data[i].properties.element_cid->id;
                     ii_data.mouse_stage = mouse_stage_e::outside;
                     ii_data.key = button;
                     ii_data.key_state = state;
@@ -228,7 +229,7 @@ namespace fan_2d {
                 mouse_input_data_t ii_data;
                 ii_data.context = context;
                 ii_data.button_event = this;
-                ii_data.element_id = m_button_data[m_focused_button_id].properties.element_cid->id;
+                //ii_data.element_id = m_button_data[m_focused_button_id].properties.element_cid->id;
                 ii_data.mouse_stage = mouse_stage_e::inside;
                 ii_data.key = button;
                 ii_data.key_state = fan::key_state::release;
@@ -251,7 +252,7 @@ namespace fan_2d {
                     mouse_input_data_t ii_data;
                     ii_data.context = context;
                     ii_data.button_event = this;
-                    ii_data.element_id = m_button_data[m_focused_button_id].properties.element_cid->id;
+                    //ii_data.element_id = m_button_data[m_focused_button_id].properties.element_cid->id;
                     ii_data.mouse_stage = mouse_stage_e::inside_drag;
                     ii_data.key = button;
                     ii_data.key_state = fan::key_state::release;
@@ -270,7 +271,7 @@ namespace fan_2d {
                 mouse_input_data_t ii_data;
                 ii_data.context = context;
                 ii_data.button_event = this;
-                ii_data.element_id = m_button_data[m_focused_button_id].properties.element_cid->id;
+                //ii_data.element_id = m_button_data[m_focused_button_id].properties.element_cid->id;
                 ii_data.mouse_stage = mouse_stage_e::outside;
                 ii_data.key = button;
                 ii_data.key_state = fan::key_state::release;

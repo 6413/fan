@@ -3264,6 +3264,8 @@ namespace fan {
 }
     #if defined(fan_platform_windows)
       #include <Windows.h>
+        #undef min
+        #undef max
     #elif defined(fan_platform_unix)
 
       #include <X11/X.h>

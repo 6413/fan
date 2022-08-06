@@ -292,6 +292,7 @@ namespace fan {
         get_proc_address(glEnable, &internal);
         get_proc_address(glDisable, &internal);
         get_proc_address(glDrawArrays, &internal);
+        get_proc_address(glDrawArraysInstanced, &internal);
         get_proc_address(glEnableVertexAttribArray, &internal);
         get_proc_address(glGetAttribLocation, &internal);
         get_proc_address(glGetBufferParameteriv, &internal);
@@ -435,6 +436,7 @@ namespace fan {
       PFNGLENABLEPROC glEnable;
       PFNGLDISABLEPROC glDisable;
       PFNGLDRAWARRAYSPROC glDrawArrays;
+      PFNGLDRAWARRAYSINSTANCEDPROC glDrawArraysInstanced;
       PFNGLENABLEVERTEXATTRIBARRAYPROC glEnableVertexAttribArray;
       PFNGLGETATTRIBLOCATIONPROC glGetAttribLocation;
       PFNGLGETBUFFERPARAMETERIVPROC glGetBufferParameteriv;

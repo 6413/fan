@@ -151,7 +151,7 @@ _P(usage)
     #if BLL_set_Link == 0
       return list->NodeCurrent - list->e.p;
     #elif BLL_set_Link == 1
-      #error help
+      return list->NodeCurrent - list->e.p - 2;
     #endif
   #endif
 }
@@ -197,7 +197,7 @@ _P(NewNode_alloc)
       VEC_handle(&list->nodes);
       r.NRI = list->nodes.Current++;
     #elif BLL_set_BaseLibrary == 1
-      r.NRI = list->nodes.push_back({});
+      r.NRI = list->nodes.push_back(decltype(list->nodes)::value_type());
     #endif
   #elif BLL_set_StoreFormat == 1
     if(list->NodeCurrent % BLL_set_StoreFormat1_ElementPerBlock == 0){
@@ -417,15 +417,11 @@ _P(close)
       list->nodes.close();
     #endif
   #elif BLL_set_StoreFormat == 1
-    #if BLL_set_Link == 0
-      _P(_StoreFormat1_CloseAllocatedBlocks)(list);
-      #if BLL_set_BaseLibrary == 0
-        VEC_free(&list->Blocks);
-      #elif BLL_set_BaseLibrary == 1
-        list->Blocks.close();
-      #endif
-    #elif BLL_set_Link == 1
-      #error help
+    _P(_StoreFormat1_CloseAllocatedBlocks)(list);
+    #if BLL_set_BaseLibrary == 0
+      VEC_free(&list->Blocks);
+    #elif BLL_set_BaseLibrary == 1
+      list->Blocks.close();
     #endif
   #endif
 }

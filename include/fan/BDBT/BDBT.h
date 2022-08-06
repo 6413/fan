@@ -81,21 +81,13 @@
   #include _BDBT_INCLUDE(BDBT/internal/rest.h)
 #endif
 #if BDBT_set_declare_Key == 1
-  #ifndef BDBT_set_KeySize
-    #error KeySize needs to be defined
-  #endif
-  #define _BDBT_set_KeySize_BeforeLast (BDBT_set_KeySize - 8)
-  #include _BDBT_INCLUDE(BDBT/internal/Key.h)
-  #undef _BDBT_set_KeySize_BeforeLast
+  #include _BDBT_INCLUDE(BDBT/internal/Key/Key.h)
 #endif
 
 #undef _BDBT_P
 #undef _BDBT_BP
 
 #undef _BDBT_set_ElementPerNode
-#ifdef BDBT_set_KeySize
-  #undef BDBT_set_KeySize
-#endif
 #undef BDBT_set_BitPerNode
 #undef BDBT_set_prefix
 #undef BDBT_set_declare_Key

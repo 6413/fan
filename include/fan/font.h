@@ -193,7 +193,7 @@ namespace fan {
 					auto utf = reverse_mapping->find(r.value);
 
 					if (utf == reverse_mapping->end()) {
-						throw std::runtime_error("utf was not found from map index");
+						fan::throw_error("utf was not found from map index");
 					}
 
 					l.utf = utf->second;
@@ -220,7 +220,7 @@ namespace fan {
 					auto utf = reverse_mapping->find(r.value);
 
 					if (utf == reverse_mapping->end()) {
-						throw std::runtime_error("utf was not found from map index");
+						fan::throw_error("utf was not found from map index");
 					}
 
 					l.utf = utf->second;

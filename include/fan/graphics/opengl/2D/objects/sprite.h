@@ -5,6 +5,7 @@
 #include _FAN_PATH(graphics/shared_graphics.h)
 #include _FAN_PATH(physics/collision/rectangle.h)
 #include _FAN_PATH(graphics/opengl/texture_pack.h)
+#include _FAN_PATH(graphics/opengl/uniform_block.h)
 
 namespace fan_2d {
   namespace opengl {
@@ -59,8 +60,12 @@ namespace fan_2d {
 
       static constexpr uint32_t max_instance_size = 128;
 
+      struct cid_t {
+        uint32_t id;
+      };
+
       struct id_t{
-        id_t(fan::opengl::cid_t* cid) {
+        id_t(cid_t* cid) {
           block = cid->id / max_instance_size;
           instance = cid->id % max_instance_size;
         }
@@ -88,30 +93,30 @@ namespace fan_2d {
         m_draw_node_reference = fan::uninitialized;
       }
       void close(fan::opengl::context_t* context) {
-        m_shader.close(context);
+      /*  m_shader.close(context);
         for (uint32_t i = 0; i < blocks.size(); i++) {
           blocks[i].uniform_buffer.close(context);
         }
-        blocks.close();
+        blocks.close();*/
       }
 
       void enable_draw(fan::opengl::context_t* context) {
 
-#if fan_debug >= fan_debug_low
-        if (m_draw_node_reference != fan::uninitialized) {
-          fan::throw_error("trying to call enable_draw twice");
-        }
-#endif
-
-        m_draw_node_reference = context->enable_draw(this, [](fan::opengl::context_t* c, void* d) { ((decltype(this))d)->draw(c); });
-      }
-      void disable_draw(fan::opengl::context_t* context) {
-#if fan_debug >= fan_debug_low
-        if (m_draw_node_reference == fan::uninitialized) {
-          fan::throw_error("trying to disable unenabled draw call");
-        }
-#endif
-        context->disable_draw(m_draw_node_reference);
+//#if fan_debug >= fan_debug_low
+//        if (m_draw_node_reference != fan::uninitialized) {
+//          fan::throw_error("trying to call enable_draw twice");
+//        }
+//#endif
+//
+//        m_draw_node_reference = context->enable_draw(this, [](fan::opengl::context_t* c, void* d) { ((decltype(this))d)->draw(c); });
+//      }
+//      void disable_draw(fan::opengl::context_t* context) {
+//#if fan_debug >= fan_debug_low
+//        if (m_draw_node_reference == fan::uninitialized) {
+//          fan::throw_error("trying to disable unenabled draw call");
+//        }
+//#endif
+//        context->disable_draw(m_draw_node_reference);
       }
 
       void set_vertex(fan::opengl::context_t* context, const std::string& str) {
