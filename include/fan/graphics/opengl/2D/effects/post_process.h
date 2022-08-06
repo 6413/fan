@@ -60,13 +60,13 @@ namespace fan_2d {
       }
 
       void start_capture(fan::opengl::context_t* context) {
-        draw_nodereference = context->enable_draw(this, [](fan::opengl::context_t* context, void* d) { 
-          post_process_t* post = (post_process_t*)d;
+        //draw_nodereference = context->enable_draw(this, [](fan::opengl::context_t* context, void* d) { 
+          post_process_t* post = (post_process_t*)this;
           post->framebuffer.bind(context);
           context->opengl.call(context->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
           context->set_depth_test(true);
           // probably want to glclear here if trash comes
-        });
+       // });
       }
 
       void draw(fan::opengl::context_t* context) {

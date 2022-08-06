@@ -1,20 +1,34 @@
+#release
 GPP = clang++
+#debug for address sanitizer
+#GPP = clang-cl /MT -fsanitize=address  /std:c++latest
 
-CFLAGS = -std=c++2a -I /usr/local/include -I include -g #-O3 -march=native -mtune=native
-MAINFLAGS = -L /usr/local/lib -lGL -lGLEW -lX11 -lXrandr -lassimp -lavcodec -lavutil -lavformat -lswscale -lbox2d -lvulkan
 
-MAIN = Source.cpp
+CFLAGS =  -g -std=c++2a -I include -I C:/libs/fan/src/libwebp -I C:/libs/fan/src/libwebp/src #-O3 -march=native -mtune=native \
+  #-fsanitize=address -fno-omit-frame-pointer
+
+MAIN = examples/rectangle.cpp
 
 TARGET = a.out
 
-FAN_OBJECT_FOLDER = /usr/src/fan/graphics/opengl/
+FAN_OBJECT_FOLDER = 
+
+LIBS =
+
+ifeq ($(OS),Windows_NT)
+  FAN_OBJECT_FOLDER += lib/fan/
+
+  CFLAGS += $(FAN_OBJECT_FOLDER)fan_windows_clang.a
+else
+  FAN_OBJECT_FOLDER += /usr/src/fan/graphics/opengl/
+  MAINFLAGS += -lX11 -lXrandr -L /usr/local/lib
+  CFLAGS += -I /usr/local/include
+endif
 
 default : $(TARGET)
 
-LIBS = $(FAN_OBJECT_FOLDER)fan_window.o $(FAN_OBJECT_FOLDER)fan_window_input.o $(FAN_OBJECT_FOLDER)fan_camera.o $(FAN_OBJECT_FOLDER)fan_gl_graphics.o $(FAN_OBJECT_FOLDER)fan_gl_gui.o $(FAN_OBJECT_FOLDER)fan_vk_graphics.o $(FAN_OBJECT_FOLDER)fan_vk_gui.o
-
-$(TARGET): fan_main.o $(LIBS)
-	$(GPP) $(CFLAGS) $(MAINFLAGS) fan_main.o $(LIBS)
+$(TARGET): fan_main.o
+	$(GPP) $(CFLAGS) $(MAINFLAGS) fan_main.o
 	
 fan_main.o:	$(MAIN)
 	$(GPP) $(CFLAGS) -c $(MAIN) -o fan_main.o

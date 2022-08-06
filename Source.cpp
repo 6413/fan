@@ -1,17 +1,12 @@
-#include <compare>
 #include <iostream>
-#include <stack>
+#include <type_traits>
+#include <fan/types/types.h>
+#include <fan/types/masterpiece.h>
 
-struct point {
-  uint8_t bit : 1000;
-  auto operator<=>(const point&) const = default;
-  int x, y, z;
-};
+int main() {
+  fan::masterpiece_t<int[]> x;
 
-int main(){
-  point a = point(1, 2, 3);
-  point b = point(3, 2, 1);
-  //std::cout << a > b;
-
-  return 0;
+  x.iterate([&] (auto i) {
+    fan::print(0, typeid(x.get_value<i>()).name());
+  });
 }

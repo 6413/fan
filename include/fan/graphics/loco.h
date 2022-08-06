@@ -9,6 +9,17 @@
 #define BDBT_set_BaseLibrary 1
 #include _FAN_PATH(BDBT/BDBT.h)
 
+#define BDBT_set_prefix loco_bdbt
+#define BDBT_set_type_node uint16_t
+#define BDBT_set_KeySize 0
+#define BDBT_set_BitPerNode 2
+#define BDBT_set_declare_basic_types 0
+#define BDBT_set_declare_rest 0
+#define BDBT_set_declare_Key 1
+#define BDBT_set_base_prefix loco_bdbt
+#define BDBT_set_BaseLibrary 1
+#include _FAN_PATH(BDBT/BDBT.h)
+
 #include _FAN_PATH(graphics/opengl/uniform_block.h)
 
 struct loco_t {

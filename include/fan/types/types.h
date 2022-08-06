@@ -14,7 +14,6 @@
 #include <vector>
 #include <sstream>
 #include <functional>
-#include <any>
 #include <type_traits>
 #include <cstdint>
 
@@ -379,6 +378,8 @@ namespace fan {
 #define fan_debug_low 1
 #define fan_debug_medium 2
 #define fan_debug_high 3
+
+#define __ca__ ,
 
 #ifndef fan_debug
 #define fan_debug fan_debug_none

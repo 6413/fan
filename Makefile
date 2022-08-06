@@ -1,9 +1,14 @@
+#release
 GPP = clang++
+#debug for address sanitizer
+#GPP = clang-cl /std:c++latest -v -g -fsanitize=address -fsanitize=address /MD "C:\Program Files\LLVM\lib\clang\14.0.0\lib\windows\clang_rt.asan_cxx-x86_64.lib"
 
-DEBUGFLAGS = -g
-RELEASEFLAGS = -s -fdata-sections -ffunction-sections -Wl,--gc-sections -mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -O3
 
-CFLAGS = -w -std=c++2a -I /usr/local/include -I include -g -Wl #-O3 -march=native -mtune=native $(RELEASEFLAGS)
+DEBUGFLAGS = 
+RELEASEFLAGS = -s -fdata-sections -ffunction-sections -Wl,--gc-sections -mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -O3 -Os -flto -fno-unroll-loops -fno-exceptions -fno-rtti -mllvm --enable-merge-functions
+
+CFLAGS = -std=c++2a -w -I include -Wl  \
+   #$(RELEASEFLAGS)
 
 BASE_PATH = 
 
@@ -13,7 +18,7 @@ ifeq ($(OS),Windows_NT)
 	LIBNAME = fan_windows_clang.a
   BASE_PATH += lib/fan/
 else
-	CFLAGS += -DFAN_INCLUDE_PATH=/usr/include -fPIE
+	CFLAGS += -DFAN_INCLUDE_PATH=/usr/include -fPIE -I /usr/local/include
 	AR = ar
 	RM = rm -f
 	LIBNAME = fan.a

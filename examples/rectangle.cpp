@@ -3,7 +3,7 @@
 #define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 
 #define FAN_INCLUDE_PATH C:/libs/fan/include
-#define fan_debug 1
+#define fan_debug 0
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
 #include _FAN_PATH(graphics/graphics.h)
@@ -34,8 +34,8 @@ struct pile_t {
       loco.get_context(),
       &matrices[1],
       loco.get_window()->get_size(),
-      ortho_x,
-      ortho_y
+      fan::vec2(0, 800),
+      fan::vec2(0, 600)
     );
     loco.get_window()->add_resize_callback(this, [](fan::window_t* window, const fan::vec2i& size, void* userptr) {
       fan::vec2 window_size = window->get_size();
@@ -73,20 +73,27 @@ int main() {
   loco_t::rectangle_t::properties_t p;
 
   p.size = fan::vec2(1.0 / count, 1);
+  //p.block_properties.
   p.matrices = &pile->matrices[0];
   p.viewport = &pile->viewport;
 
   fan::time::clock c; 
   c.start();
   for (uint32_t i = 0; i < count; i++) {
+    if (i == 1) {
+      p.matrices = &pile->matrices[1];
+      p.position = fan::vec3(300, 300, 1);
+      p.color = fan::colors::red;
+      p.size = 200;
+      pile->loco.rectangle.push_back(&pile->loco, &pile->cids[i], p);
+      p.matrices = &pile->matrices[0];
+      p.size = fan::vec2(1.0 / count, 1);
+    }
     p.position = fan::vec2(-1.0 + (f32_t)i / (count / 2), 0);
     p.color = fan::color((f32_t)i / count, (f32_t)i / count + 00.1, (f32_t)i / count);
     pile->loco.rectangle.push_back(&pile->loco, &pile->cids[i], p);
-    if (i == 1) {
-      p.matrices = &pile->matrices[1];
-    }
      //EXAMPLE ERASE
-    //r.erase(&pile->context, &pile->cids[i]);
+    //pile->loco.rectangle.erase(&pile->loco, &pile->cids[i]);
   }
 
   fan::print((f32_t)c.elapsed() / 1e+9);

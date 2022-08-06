@@ -11,7 +11,7 @@
 
 constexpr uint32_t count = 10;
 
-struct pile_t {
+struct pile_t { 
   fan::opengl::matrices_t matrices;
   fan::window_t window;
   fan::opengl::context_t context;

@@ -11,6 +11,8 @@
 #define WIN32_LEAN_AND_MEAN
 
 #include <Windows.h>
+#undef min
+#undef max
 
 typedef long(*NtDelayExecution_t)(int Alertable, PLARGE_INTEGER DelayInterval);
 typedef long(* ZwSetTimerResolution_t)(IN ULONG RequestedResolution, IN BOOLEAN Set, OUT PULONG ActualResolution);

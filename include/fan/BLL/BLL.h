@@ -101,9 +101,6 @@
   #ifndef BLL_set_StoreFormat1_alloc_close
     #error ?
   #endif
-  #if BLL_set_Link == 1
-    #error not yet
-  #endif
   #ifndef BLL_set_StoreFormat1_ElementPerBlock
     #define BLL_set_StoreFormat1_ElementPerBlock 1
   #endif
