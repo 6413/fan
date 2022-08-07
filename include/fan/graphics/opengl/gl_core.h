@@ -66,6 +66,7 @@ namespace fan {
     struct context_t;
     struct viewport_t;
     struct matrices_t;
+    struct image_t;
 
     struct cid_t {
       uint16_t bm_id;
@@ -82,7 +83,34 @@ namespace fan {
 #define BLL_set_type_node uint8_t
 #define BLL_set_node_data fan::opengl::GLuint texture_id;
 #define BLL_set_Link 0
+#define BLL_set_StructFormat 1
+#define BLL_set_NodeReference_Overload_Declare \
+  void operator=(fan::opengl::image_t* image);
 #include _FAN_PATH(BLL/BLL.h)
+
+namespace fan {
+  namespace opengl {
+    template <uint8_t n_>
+    struct textureid_t : fan::opengl::image_list_NodeReference_t{
+      static constexpr const char* texture_names[] = {
+        "_t00", "_t01", "_t02", "_t03",
+        "_t04", "_t05", "_t06", "_t07",
+        "_t08", "_t09", "_t10", "_t11",
+        "_t12", "_t13", "_t14", "_t15"
+        "_t16", "_t17", "_t18", "_t19", 
+        "_t20", "_t21", "_t22", "_t23",
+        "_t24", "_t25", "_t26", "_t27",
+        "_t28", "_t29", "_t30", "_t31",
+      };
+      static constexpr uint8_t n = n_;
+      static constexpr auto name = texture_names[n];
+
+      void operator=(fan::opengl::image_t* image) {
+        fan::opengl::image_list_NodeReference_t::operator=(image);
+      }
+    };
+  }
+}
 
 #define BLL_set_BaseLibrary 1
 #define BLL_set_namespace fan::opengl
@@ -239,6 +267,7 @@ namespace fan {
         uint8_t minor;
       };
 
+      fan::opengl::GLuint current_program;
       fan::opengl::image_list_t image_list;
       fan::opengl::viewport_list_t viewport_list;
       fan::opengl::matrices_list_t matrices_list;
@@ -442,6 +471,7 @@ inline void fan::opengl::context_t::open() {
   opengl.open();
 
   m_flags = 0;
+  current_program = fan::uninitialized;
 }
 inline void fan::opengl::context_t::close() {
   image_list_close(&image_list);
@@ -534,6 +564,7 @@ inline void fan::opengl::context_t::bind_to_window(fan::window_t* window, const 
   opengl.call(opengl.glBlendFunc, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
   set_depth_test(true);
+ // opengl.call(opengl.glFrontFace, GL_CCW);
 
   #if fan_debug >= fan_debug_high
     context_t::set_error_callback();

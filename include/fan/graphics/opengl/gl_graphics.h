@@ -13,22 +13,11 @@
 
 #include _FAN_PATH(graphics/webp.h)
 
-//#include _FAN_PATH(graphics/opengl/2D/objects/line.h)
-//#include _FAN_PATH(graphics/opengl/2D/objects/rectangle.h)
-//#include _FAN_PATH(graphics/opengl/2D/objects/circle.h)
-#include _FAN_PATH(graphics/opengl/2D/objects/sprite.h)
-//#include _FAN_PATH(graphics/opengl/2D/objects/sprite1.h)
-//#include _FAN_PATH(graphics/opengl/2D/objects/sprite0.h)
-//#include _FAN_PATH(graphics/opengl/2D/objects/sprite1.h)
-//#include _FAN_PATH(graphics/opengl/2D/objects/yuv420p_renderer.h)
-//
-
 #include _FAN_PATH(font.h)
 #include _FAN_PATH(graphics/opengl/font.h)
 //#include _FAN_PATH(graphics/opengl/2D/objects/letter_renderer.h)
 //#include _FAN_PATH(graphics/opengl/2D/objects/text_renderer.h)
 
-#include _FAN_PATH(graphics/opengl/2D/effects/post_process.h)
 //
 //
 //#include _FAN_PATH(graphics/opengl/2D/objects/depth/depth_rectangle.h)

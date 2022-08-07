@@ -360,6 +360,13 @@ namespace fan {
         get_proc_address(glCheckFramebufferStatus, &internal);
         get_proc_address(glDeleteFramebuffers, &internal);
         get_proc_address(glDeleteRenderbuffers, &internal);
+        get_proc_address(glDepthMask, &internal);
+        get_proc_address(glCullFace, &internal);
+        get_proc_address(glFrontFace, &internal);
+        get_proc_address(glBlendEquation, &internal);
+        get_proc_address(glAlphaFunc, &internal);
+        
+        
 
         internal.close(&p);
 
@@ -505,6 +512,11 @@ namespace fan {
       PFNGLRENDERBUFFERSTORAGEPROC glRenderbufferStorage;
       PFNGLFRAMEBUFFERRENDERBUFFERPROC glFramebufferRenderbuffer;
       PFNGLCHECKFRAMEBUFFERSTATUSPROC glCheckFramebufferStatus;
+      PFNGLDEPTHMASKPROC glDepthMask;
+      PFNGLCULLFACEPROC glCullFace;
+      PFNGLFRONTFACEPROC glFrontFace;
+      PFNGLBLENDEQUATIONPROC glBlendEquation;
+      PFNGLALPHAFUNCPROC glAlphaFunc;
     };
 
   }

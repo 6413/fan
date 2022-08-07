@@ -31,9 +31,12 @@ namespace fan {
       this->remove(context);
     }
 
-    void use(fan::opengl::context_t* context) const
-    {
+    void use(fan::opengl::context_t* context) const {
+      if (id == context->current_program) {
+        return;
+      }
       context->opengl.call(context->opengl.glUseProgram, id);
+      context->current_program = id;
     }
 
     void remove(fan::opengl::context_t* context) {
@@ -320,7 +323,7 @@ namespace fan {
 
     uint32_t matrix_inform_id;
 
-    uint32_t id;
+    fan::opengl::GLuint id;
 
     uint32_t vertex, fragment;
 

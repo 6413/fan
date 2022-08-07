@@ -3,102 +3,99 @@
 #define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 
 #define FAN_INCLUDE_PATH C:/libs/fan/include
+#define fan_debug 0
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
-
-#define fan_debug fan_debug_high
 
 #include _FAN_PATH(graphics/graphics.h)
 
-constexpr uint32_t count = 1000;
+#define loco_window
+#define loco_context
+
+#define loco_letter
+#include _FAN_PATH(graphics/loco.h)
+
+constexpr uint32_t count = 10;
 
 struct pile_t {
-  fan::opengl::matrices_t matrices;
-  fan::window_t window;
-  fan::opengl::context_t context;
+
+  static constexpr fan::vec2 ortho_x = fan::vec2(-1, 1);
+  static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
+
+  void open() {
+    loco.open(loco_t::properties_t());
+    fan::graphics::open_matrices(
+      loco.get_context(),
+      &matrices[0],
+      loco.get_window()->get_size(),
+      ortho_x,
+      ortho_y
+    );
+    fan::graphics::open_matrices(
+      loco.get_context(),
+      &matrices[1],
+      loco.get_window()->get_size(),
+      fan::vec2(0, 800),
+      fan::vec2(0, 600)
+    );
+    loco.get_window()->add_resize_callback(this, [](fan::window_t* window, const fan::vec2i& size, void* userptr) {
+      fan::vec2 window_size = window->get_size();
+      fan::vec2 ratio = window_size / window_size.max();
+      std::swap(ratio.x, ratio.y);
+      pile_t* pile = (pile_t*)userptr;
+      pile->matrices[0].set_ortho(
+        ortho_x * ratio.x, 
+        ortho_y * ratio.y
+      );
+      pile->matrices[1].set_ortho(
+        ortho_x * ratio.x, 
+        ortho_y * ratio.y
+      );
+      });
+    loco.get_window()->add_resize_callback(this, [](fan::window_t*, const fan::vec2i& size, void* userptr) {
+      pile_t* pile = (pile_t*)userptr;
+
+      pile->viewport.set_viewport(pile->loco.get_context(), 0, size);
+      });
+    viewport.open(loco.get_context(), 0, loco.get_window()->get_size());
+  }
+
+  loco_t loco;
+  fan::opengl::matrices_t matrices[2];
+  fan::opengl::viewport_t viewport;
   fan::opengl::cid_t cids[count];
 };
 
-using letter_t = fan_2d::graphics::letter_t;
-
 int main() {
 
-  pile_t pile;
+  pile_t* pile = new pile_t;
+  pile->open();
 
-  pile.window.open();
+  loco_t::letter_t::properties_t p;
 
-  pile.context.init();
-  pile.context.bind_to_window(&pile.window);
-  pile.context.set_viewport(0, pile.window.get_size());
-  pile.window.add_resize_callback(&pile, [](fan::window_t*, const fan::vec2i& size, void* userptr) {
-    pile_t* pile = (pile_t*)userptr;
-
-    pile->context.set_viewport(0, size);
-
-    fan::vec2 ratio = fan::cast<f32_t>(size) / size.max();
-  });
-
-  pile.matrices.open();
-
-
-  letter_t letter;
-
-  fan_2d::graphics::font_t font;
-  font.open(&pile.context, "fonts/bitter");
-  letter.open(&pile.context, &font);
-  letter.bind_matrices(&pile.context, &pile.matrices);
-
-  letter_t::properties_t p;
+  p.viewport = &pile->viewport;
+  p.matrices = &pile->matrices[0];
 
   for (uint32_t i = 0; i < count; i++) {
-    p.position = fan::vec2(fan::random::value_f32(0.1, .9), fan::random::value_f32(.1, .9));
+    p.position = fan::vec2(fan::random::value_f32(-1, 1), fan::random::value_f32(-1, 1));
     p.color = fan::color(1, 0, f32_t(i) / count, 1);
-    p.font_size = 0.1;
+    p.font_size = 0.5;
     std::string str = fan::random::string(1);
     std::wstring w(str.begin(), str.end());
-    p.letter_id = font.decode_letter(w[0]);
+    p.letter_id = pile->loco.font.decode_letter(w[0]);
 
-    letter.push_back(&pile.context, &pile.cids[i], p);
+    pile->loco.letter.push_back(&pile->loco, &pile->cids[i], p);
   }
 
-  letter.enable_draw(&pile.context);
+  fan::print(pile->loco.letter.get(&pile->loco, &pile->cids[0], &loco_t::letter_t::instance_t::position));
 
-  fan::color color = letter.get(&pile.context, &pile.cids[0], &letter_t::instance_t::color);
-  fan::print(color);
-  letter.set(&pile.context, &pile.cids[0], &letter_t::instance_t::color, fan::color(0, 0, 1));
-  color = letter.get(&pile.context, &pile.cids[0], &letter_t::instance_t::color);
-  fan::print(color);
-
-  fan::vec2 window_size = pile.window.get_size();
-
-  pile.matrices.set_ortho(&pile.context, fan::vec2(0, 1), fan::vec2(0, 1));
-
-  pile.context.set_vsync(&pile.window, 0);
-  //pile.window.set_max_fps(2);
-
-  static uint32_t i = 0;
-  while(1) {
-    letter.erase(&pile.context, &pile.cids[i]);
-    //p.position = fan::vec2(fan::random::value_f32(0.1, .9), fan::random::value_f32(.1, .9));
-    //p.color = fan::color(0, 0, 1, 1);
-    //p.font_size = 0.1;
-    //std::string str = fan::random::string(1);
-    //std::wstring w(str.begin(), str.end());
-    //p.letter_id = font.decode_letter(w[0]);
-
-    //letter.push_back(&pile.context, p);
-
-    pile.window.get_fps();
-
-    // letter.set_position(&pile.context, 0, fan::cast<f32_t>(pile.window.get_mouse_position()) / pile.window.get_size());
-
-    uint32_t window_event = pile.window.handle_events();
-    if(window_event & fan::window_t::events::close){
-      pile.window.close();
-      break;
-    }
-
-    pile.context.process();
-    pile.context.render(&pile.window);
+  pile->loco.set_vsync(false);
+  uint32_t x = 0;
+  while(pile->loco.window_open(pile->loco.process_frame())) {
+    /* if(x < count) {
+    pile->loco.rectangle.erase(&pile->loco, &pile->cids[x]);
+    x++;
+    }*/
+    pile->loco.get_fps();
   }
 
   return 0;

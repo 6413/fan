@@ -246,12 +246,15 @@ namespace fan {
         );
       }
 
-    protected:
       fan::opengl::image_list_NodeReference_t texture_reference;
-    public:
+    //public:
       fan::vec2i size;
     };
   }
 }
 
+
+void fan::opengl::image_list_NodeReference_t::operator=(fan::opengl::image_t* image) {
+  NRI = image->texture_reference.NRI;
+}
 #endif

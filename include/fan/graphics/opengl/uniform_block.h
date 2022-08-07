@@ -179,8 +179,8 @@ namespace fan {
 
           common.m_vao.bind(context);
 
-          // possibly disable depth test here
           //context->opengl.call(context->opengl.glDrawArraysInstanced, fan::opengl::GL_TRIANGLES, begin, count / 6, 6);
+
           context->opengl.call(context->opengl.glDrawArrays, fan::opengl::GL_TRIANGLES, begin, count);
         }
 

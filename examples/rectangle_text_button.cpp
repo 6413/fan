@@ -40,7 +40,7 @@ int main() {
   pile_t pile;
   pile.open();
 
-  rectangle_text_button_t::properties_t tp;
+  loco_t::rectangle_text_button_t::properties_t tp;
   tp.position = 0;
   tp.size = fan::vec2(0.3, 0.1);
   tp.text = "hello world";

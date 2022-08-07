@@ -4,10 +4,10 @@ GPP = clang++
 #GPP = clang-cl /MT -fsanitize=address  /std:c++latest
 
 
-CFLAGS =  -g -std=c++2a -I include -I C:/libs/fan/src/libwebp -I C:/libs/fan/src/libwebp/src #-O3 -march=native -mtune=native \
+CFLAGS =  -w -g -std=c++2a -I include -I C:/libs/fan/src/libwebp -I C:/libs/fan/src/libwebp/src #-O3 -march=native -mtune=native \
   #-fsanitize=address -fno-omit-frame-pointer
 
-MAIN = examples/rectangle.cpp
+MAIN = examples/rectangle_box.cpp
 
 TARGET = a.out
 

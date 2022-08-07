@@ -1,7 +1,7 @@
 R"(
 #version 150
 
-#define get_instance() instance.st[gl_VertexID / 6]
+#define get_instance() instance[gl_VertexID / 6]
 
 out vec4 instance_color;
 out vec2 texture_coordinate;
@@ -10,7 +10,7 @@ out float texture_id;
 uniform mat4 view;
 uniform mat4 projection;
 
-struct _{
+struct block_instance_t{
 	vec3 position;
 	vec2 size;
 	vec2 rotation_point;
@@ -22,8 +22,8 @@ struct _{
 };
 
 layout (std140) uniform instance_t {
-	_ st[128];
-}instance;
+	block_instance_t instance[204];
+};
 
 vec2 rectangle_vertices[] = vec2[](
 	vec2(-1.0, -1.0),

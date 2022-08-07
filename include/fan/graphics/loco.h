@@ -1,4 +1,5 @@
 #include _FAN_PATH(graphics/gui/be.h)
+#include _FAN_PATH(graphics/gui/themes.h)
 
 #define BDBT_set_prefix loco_bdbt
 #define BDBT_set_type_node uint16_t
@@ -65,35 +66,57 @@ struct loco_t {
     );
   }
 
+  template <uint8_t n>
+  void process_block_properties_element(auto* shape, fan::opengl::textureid_t<n> tid) {
+    auto node = fan::opengl::image_list_GetNodeByReference(&get_context()->image_list, tid);
+    shape->m_shader.set_int(get_context(), tid.name, n);
+    get_context()->opengl.call(get_context()->opengl.glActiveTexture, fan::opengl::GL_TEXTURE0 + n);
+    get_context()->opengl.call(get_context()->opengl.glBindTexture, fan::opengl::GL_TEXTURE_2D, node->data.texture_id);
+  }
+
   loco_bdbt_t bdbt;
+
+  // automatically gets necessary macros for shapes
+
+  #if defined(loco_text_box) && !defined(loco_letter)
+    #define loco_letter
+  #endif
+  #if defined(loco_text_box) && !defined(loco_text)
+    #define loco_text
+  #endif
+  #if defined(loco_text_box) && !defined(loco_box)
+    #define loco_box
+  #endif
 
   #if defined(loco_rectangle)
     #include _FAN_PATH(graphics/opengl/2D/objects/rectangle.h)
-
     rectangle_t rectangle;
   #endif
   #if defined(loco_sprite)
-    struct sprite_t : fan_2d::graphics::sprite_t {
-      void push_back(fan::opengl::cid_t* cid, const properties_t& p) {
-        loco_t* loco = OFFSETLESS(this, loco_t, sprite);
-        fan_2d::graphics::sprite_t::push_back(loco->get_context(), cid, p);
-      }
-    private:
-      using fan_2d::graphics::sprite_t::push_back;
-    }sprite;
+    #include _FAN_PATH(graphics/opengl/2D/objects/sprite.h)
+    sprite_t sprite;
   #endif
   #if defined(loco_letter)
-  #if !defined(loco_font)
-  #define loco_font "fonts/bitter"
+    #if !defined(loco_font)
+    #define loco_font "fonts/bitter"
+    #endif
+    #include _FAN_PATH(graphics/opengl/2D/objects/letter_renderer.h)
+    letter_t letter;
   #endif
-    struct letter_t : fan_2d::graphics::letter_t {
-      void push_back(fan::opengl::cid_t* cid, const properties_t& p) {
-        loco_t* loco = OFFSETLESS(this, loco_t, letter);
-        fan_2d::graphics::letter_t::push_back(loco->get_context(), cid, p);
-      }
-    private:
-      using fan_2d::graphics::letter_t::push_back;
-      }letter;
+  #if defined(loco_text)
+    #include _FAN_PATH(graphics/opengl/2D/objects/text_renderer.h)
+    text_renderer_t text;
+    using text_t = text_renderer_t;
+  #endif
+  #if defined(loco_box)
+    #include _FAN_PATH(graphics/gui/rectangle_box.h)
+    rectangle_box_t box;
+    using box_t = rectangle_box_t;
+  #endif
+  #if defined(loco_text_box)
+    #include _FAN_PATH(graphics/gui/rectangle_text_box.h)
+    rectangle_text_box_t text_box;
+    using text_box_t = rectangle_text_box_t;
   #endif
   #if defined(loco_button)
   #if !defined(loco_letter)
@@ -170,16 +193,22 @@ struct loco_t {
       rectangle.open(this);
     #endif
     #if defined(loco_sprite)
-      sprite.open(get_context());
-      sprite.enable_draw(get_context());
-    #endif
-    #if defined(loco_button)
-      button.open(get_context());
-      button.enable_draw(get_context());
+      sprite.open(this);
     #endif
     #if defined(loco_letter)
-      letter.open(get_context(), &font);
-      letter.enable_draw(get_context());
+      letter.open(this);
+    #endif
+    #if defined(loco_text)
+      text.open(this);
+    #endif
+    #if defined(loco_box)
+      box.open(this);
+    #endif
+    #if defined(loco_text_box)
+      text_box.open(this);
+    #endif
+    #if defined(loco_button)
+      button.open(this);
     #endif
 
     focus_shape_type = fan::uninitialized;
@@ -194,13 +223,22 @@ struct loco_t {
       rectangle.close(this);
     #endif
     #if defined(loco_sprite)
-      sprite.close(get_context());
+      sprite.close(this);
     #endif
     #if defined(loco_letter)
-      letter.close(get_context());
+      letter.close(this);
     #endif
-    #if defined(loco_rectangle_text_button)
-      button.close(get_context());
+    #if defined(loco_text)
+      text.close(this);
+    #endif
+    #if defined(loco_box)
+      box.close(this);
+    #endif
+    #if defined(loco_text_box)
+      text_box.close(this);
+    #endif
+    #if defined(loco_button)
+      button.close(this);
     #endif
 
     m_write_queue.close();
@@ -246,9 +284,9 @@ struct loco_t {
       }
     #endif
       #if fan_renderer == fan_renderer_opengl
-
+      //get_context()->opengl.call(get_context()->opengl.glDepthMask, 0);
+     // get_context()->opengl.call(get_context()->opengl.glClearColor, 1, 0, 0, 0);
       get_context()->opengl.call(get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
-
       #endif
 
       m_write_queue.process(get_context());
@@ -260,9 +298,13 @@ struct loco_t {
       sprite.draw(this);
     #endif
     #if defined(loco_letter)
+      // loco_t::text gets drawn here as well as it uses letter
       letter.draw(this);
     #endif
-    #if defined(loco_rectangle_text_button)
+    #if defined(loco_box)
+      box.draw(this);
+    #endif
+    #if defined(loco_button)
       button.draw(this);
     #endif
 

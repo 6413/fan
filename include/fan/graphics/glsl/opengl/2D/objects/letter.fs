@@ -7,7 +7,7 @@ in vec4 text_color;
 in vec2 texture_coordinate;
 in float render_size;
 
-uniform sampler2D texture_sampler;
+uniform sampler2D _t00;
 
 float outline_magic(float outline_size) {
   return 0;
@@ -21,7 +21,7 @@ float get_outline_edge(float outline_size) {
 }
 
 void main() {
-  float distance = texture(texture_sampler, texture_coordinate).r;
+  float distance = texture(_t00, texture_coordinate).r;
   float smoothing = 1.0 / (render_size * 100);
   float width = 0.4;
   float alpha = smoothstep(width, width + smoothing, distance);
@@ -30,6 +30,10 @@ void main() {
   float border_edge =  get_outline_edge(1);
 
   float outline_alpha = smoothstep(border_width, border_width + border_edge, distance);
+
+  if (outline_alpha < 0.1) {
+    discard;
+  }
 
   vec3 final_color = mix(vec3(1, 0, 1), text_color.rgb, outline_alpha);
 

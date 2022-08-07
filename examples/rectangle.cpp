@@ -14,7 +14,7 @@
 #define loco_rectangle
 #include _FAN_PATH(graphics/loco.h)
 
-constexpr uint32_t count = 1e+6;
+constexpr uint32_t count = 10000;
 
 struct pile_t {
   
@@ -80,7 +80,7 @@ int main() {
   fan::time::clock c; 
   c.start();
   for (uint32_t i = 0; i < count; i++) {
-    if (i == 1) {
+    if (i == 0) {
       p.matrices = &pile->matrices[1];
       p.position = fan::vec3(300, 300, 1);
       p.color = fan::colors::red;
@@ -88,6 +88,7 @@ int main() {
       pile->loco.rectangle.push_back(&pile->loco, &pile->cids[i], p);
       p.matrices = &pile->matrices[0];
       p.size = fan::vec2(1.0 / count, 1);
+      continue;
     }
     p.position = fan::vec2(-1.0 + (f32_t)i / (count / 2), 0);
     p.color = fan::color((f32_t)i / count, (f32_t)i / count + 00.1, (f32_t)i / count);
@@ -99,8 +100,12 @@ int main() {
   fan::print((f32_t)c.elapsed() / 1e+9);
 
   pile->loco.set_vsync(false);
-
+  uint32_t x = 0;
   while(pile->loco.window_open(pile->loco.process_frame())) {
+    if(x < count) {
+      pile->loco.rectangle.erase(&pile->loco, &pile->cids[x]);
+      x++;
+    }
     pile->loco.get_fps();
   }
 
