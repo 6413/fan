@@ -33,28 +33,19 @@ void sb_close(loco_t* loco) {
 void sb_push_back(loco_t* loco, fan::opengl::cid_t* cid, properties_t& p) {
  
   loco_bdbt_NodeReference_t nr = root;
-  p.block_properties.iterate([&](auto i, auto* element) {
-    loco_bdbt_Key_t<sizeof(*element) * 8> k;
-    typename decltype(k)::KeySize_t ki;
-    k.Query(&loco->bdbt, element, &ki, &nr);
-    if (ki != sizeof(*element) * 8) {
-      if constexpr(i != p.block_properties.count) {
-        auto bdbt_nr = loco_bdbt_NewNode(&loco->bdbt);
-        k.InFrom(&loco->bdbt, element, ki, nr, bdbt_nr);
-        nr = bdbt_nr;
-      }
-      else {
-        auto lnr = shape_bm_NewNode(&bm_list);
-        auto ln = shape_bm_GetNodeByReference(&bm_list, lnr);
-        ln->data.first_block = bll_block_NewNodeLast(&blocks);
-        bll_block_GetNodeByReference(&blocks, ln->data.first_block)->data.block.open(loco, this);
-        ln->data.last_block = ln->data.first_block;
-        ln->data.block_properties = p.block_properties;
-        k.InFrom(&loco->bdbt, element, ki, nr, lnr.NRI);
-        nr = lnr.NRI;
-      }
-    }
-  });
+  loco_bdbt_Key_t<sizeof(block_properties_t) * 8> k;
+  typename decltype(k)::KeySize_t ki;
+  k.Query(&loco->bdbt, &p.block_properties, &ki, &nr);
+  if (ki != sizeof(block_properties_t) * 8) {
+    auto lnr = shape_bm_NewNode(&bm_list);
+    auto ln = shape_bm_GetNodeByReference(&bm_list, lnr);
+    ln->data.first_block = bll_block_NewNodeLast(&blocks);
+    bll_block_GetNodeByReference(&blocks, ln->data.first_block)->data.block.open(loco, this);
+    ln->data.last_block = ln->data.first_block;
+    ln->data.block_properties = p.block_properties;
+    k.InFrom(&loco->bdbt, &p.block_properties, ki, nr, lnr.NRI);
+    nr = lnr.NRI;
+  }
 
   instance_t it = p;
 
@@ -90,9 +81,9 @@ void sb_push_back(loco_t* loco, fan::opengl::cid_t* cid, properties_t& p) {
 
   block->p[instance_id] = p.block_properties;
 }
-void erase(loco_t* loco, fan::opengl::cid_t* cid, auto custom_remove) {
-
-  auto bm_node = shape_bm_GetNodeByReference(&bm_list, *(shape_bm_NodeReference_t*)&cid->bm_id);
+void erase(loco_t* loco, fan::opengl::cid_t* cid) {
+  auto bm_id = *(shape_bm_NodeReference_t*)&cid->bm_id;
+  auto bm_node = shape_bm_GetNodeByReference(&bm_list, bm_id);
 
   auto block_id = *(bll_block_NodeReference_t*)&cid->block_id;
   auto block_node = bll_block_GetNodeByReference(&blocks, *(bll_block_NodeReference_t*)&cid->block_id);
@@ -106,20 +97,25 @@ void erase(loco_t* loco, fan::opengl::cid_t* cid, auto custom_remove) {
   if (bll_block_IsNodeReferenceEqual(block_id, last_block_id) && cid->instance_id == block->uniform_buffer.size() - 1) {
     block->uniform_buffer.common.m_size -= sizeof(instance_t);
     if (block->uniform_buffer.size() == 0) {
-      block->close(loco, this);
+      block->close(loco);
       bll_block_Unlink(&blocks, block_id);
       bll_block_Recycle(&blocks, block_id);
       if (bll_block_IsNodeReferenceEqual(last_block_id, bm_node->data.first_block)) {
-        custom_remove();
+        loco_bdbt_Key_t<sizeof(block_properties_t) * 8> k;
+        typename decltype(k)::KeySize_t ki;
+        k.Remove(&loco->bdbt, &bm_node->data.block_properties, root);
+        shape_bm_Recycle(&bm_list, bm_id);
       }
-      last_block_id = block_node->PrevNodeReference;
+      else {
+        last_block_id = block_node->PrevNodeReference;
+      }
     }
     return;
   }
 
   instance_t* last_instance_data = last_block->uniform_buffer.get_instance(loco->get_context(), last_instance_id);
 
-  block_node->uniform_buffer.edit_ram_instance(
+  block->uniform_buffer.edit_ram_instance(
     loco->get_context(),
     cid->instance_id,
     last_instance_data,
@@ -129,24 +125,25 @@ void erase(loco_t* loco, fan::opengl::cid_t* cid, auto custom_remove) {
 
   last_block->uniform_buffer.common.m_size -= sizeof(instance_t);
 
-  block_node->p[cid->instance_id] = last_block->p[last_instance_id];
+  block->p[cid->instance_id] = last_block->p[last_instance_id];
 
-  block_node->cid[cid->instance_id] = last_block->cid[last_instance_id];
-  block_node->cid[cid->instance_id]->block_id = block_id.NRI;
-  block_node->cid[cid->instance_id]->instance_id = cid->instance_id;
+  block->cid[cid->instance_id] = last_block->cid[last_instance_id];
+  block->cid[cid->instance_id]->block_id = block_id.NRI;
+  block->cid[cid->instance_id]->instance_id = cid->instance_id;
 
   if (last_block->uniform_buffer.size() == 0) {
     auto lpnr = last_block_node->PrevNodeReference;
 
-    last_block->close(loco, this);
+    last_block->close(loco);
     bll_block_Unlink(&blocks, last_block_id);
     bll_block_Recycle(&blocks, last_block_id);
 
     bm_node->data.last_block = lpnr;
   }
 
-  block_node->uniform_buffer.common.edit(
+  block->uniform_buffer.common.edit(
     loco->get_context(),
+    &loco->m_write_queue,
     cid->instance_id * sizeof(instance_t),
     cid->instance_id * sizeof(instance_t) + sizeof(instance_t)
   );
@@ -237,6 +234,8 @@ struct block_t {
   block_properties_t p[max_instance_size];
 };
 
+protected:
+
 loco_bdbt_NodeReference_t root;
 
 #define BLL_set_prefix bll_block
@@ -263,6 +262,8 @@ bll_block_t blocks;
 #include _FAN_PATH(BLL/BLL.h)
 
 shape_bm_t bm_list;
+
+public:
 
 #undef sb_shader_vertex_path
 #undef sb_shader_fragment_path

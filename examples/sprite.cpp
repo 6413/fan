@@ -3,134 +3,99 @@
 #define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 
 #define FAN_INCLUDE_PATH C:/libs/fan/include
+#define fan_debug 0
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
-#define fan_debug 0
-
 #include _FAN_PATH(graphics/graphics.h)
+
+#define loco_window
+#define loco_context
+
+#define loco_sprite
+#include _FAN_PATH(graphics/loco.h)
 
 constexpr uint32_t count = 10;
 
 struct pile_t {
-  fan::opengl::matrices_t matrices;
-  fan::window_t window;
-  fan::opengl::context_t context;
+
+  static constexpr fan::vec2 ortho_x = fan::vec2(-1, 1);
+  static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
+
+  void open() {
+    loco.open(loco_t::properties_t());
+    fan::graphics::open_matrices(
+      loco.get_context(),
+      &matrices[0],
+      loco.get_window()->get_size(),
+      ortho_x,
+      ortho_y
+    );
+    fan::graphics::open_matrices(
+      loco.get_context(),
+      &matrices[1],
+      loco.get_window()->get_size(),
+      fan::vec2(0, 800),
+      fan::vec2(0, 600)
+    );
+    loco.get_window()->add_resize_callback(this, [](fan::window_t* window, const fan::vec2i& size, void* userptr) {
+      fan::vec2 window_size = window->get_size();
+      fan::vec2 ratio = window_size / window_size.max();
+      std::swap(ratio.x, ratio.y);
+      pile_t* pile = (pile_t*)userptr;
+      pile->matrices[0].set_ortho(
+        ortho_x * ratio.x, 
+        ortho_y * ratio.y
+      );
+      pile->matrices[1].set_ortho(
+        ortho_x * ratio.x, 
+        ortho_y * ratio.y
+      );
+      });
+    loco.get_window()->add_resize_callback(this, [](fan::window_t*, const fan::vec2i& size, void* userptr) {
+      pile_t* pile = (pile_t*)userptr;
+
+      pile->viewport.set_viewport(pile->loco.get_context(), 0, size);
+      });
+    viewport.open(loco.get_context(), 0, loco.get_window()->get_size());
+  }
+
+  loco_t loco;
+  fan::opengl::matrices_t matrices[2];
+  fan::opengl::viewport_t viewport;
   fan::opengl::cid_t cids[count];
 };
 
-// filler
-using sprite_t = fan_2d::graphics::sprite_t;
-
 int main() {
 
-  pile_t pile;
+  pile_t* pile = new pile_t;
+  pile->open();
 
-  pile.window.open();
+  loco_t::sprite_t::properties_t p;
 
-  pile.context.open();
-  pile.context.bind_to_window(&pile.window);
-  pile.context.set_viewport(0, pile.window.get_size());
-  pile.window.add_resize_callback(&pile, [](fan::window_t*, const fan::vec2i& size, void* userptr) {
-    pile_t* pile = (pile_t*)userptr;
+  p.size = fan::vec2(0.3, 0.3);
+  //p.block_properties.
+  p.matrices = &pile->matrices[0];
+  p.viewport = &pile->viewport;
 
-    pile->context.set_viewport(0, size);
+  fan::time::clock c; 
+  c.start();
+  fan::opengl::image_t image;
+  image.load(pile->loco.get_context(), "images/circle.webp");
+  p.image = &image;
+  p.position = fan::vec2(0, 0);
+  // p.color = fan::color((f32_t)i / count, (f32_t)i / count + 00.1, (f32_t)i / count);
+  pile->loco.sprite.push_back(&pile->loco, &pile->cids[0], p);
 
-    fan::vec2 window_size = pile->window.get_size();
-    fan::vec2 ratio = window_size / window_size.max();
-    std::swap(ratio.x, ratio.y);
-    //pile->matrices.set_ortho(&pile->context, fan::vec2(-1, 1) * ratio.x, fan::vec2(-1, 1) * ratio.y);
-    });
+  fan::print((f32_t)c.elapsed() / 1e+9);
 
-  pile.matrices.open();
-
-  sprite_t s;
-  s.open(&pile.context);
-  s.enable_draw(&pile.context);
-
-  sprite_t::properties_t p;
-
-  fan::opengl::image_t::load_properties_t lp;
-  lp.filter = fan::opengl::GL_NEAREST;
-  
-  p.size = .01;
-
- /* uint32_t c = 0;
-  for (f32_t i = 0; i < 5; i++) {
-    for (f32_t j = 0; j < 5; j++) {
-      p.position = fan::vec2(i / 5, j / 5) * 2 - 1 + 0.05;
-      s.push_back(&pile.context, &pile.cids[c], p);
-      c++;
-    }
-  }*/
-
-
-  const char* images[] = { "images/asteroid.webp", "images/planet.webp", "images/test.webp" };
-
-  fan::opengl::image_t im[8];
-  for (uint32_t i = 0; i < 8; i++) {
-    im[i].load(&pile.context, images[fan::random::value_i64(0, 2)], lp);
-  }
-
-  for (uint32_t i = 0; i < 167; i++) {
-    p.position = fan::random::vec2(-1, 1);
-    uint32_t r = fan::random::value_i64(0, 7);
-    p.image = im[r];
-    s.push_back(&pile.context, &pile.cids[0], p);
-  }
-
-  pile.context.set_vsync(&pile.window, 0);
-
-  for (uint32_t i = 0; i < count; i++) {
-
-    /* EXAMPLE ERASE
-    s.erase(&pile.context, pile.ids[it]);
-    pile.ids.erase(it);
-    */
-  }
-
-  
-
-  fan::vec2 window_size = pile.window.get_size();
-  fan::vec2 ratio = window_size / window_size.max();
-  std::swap(ratio.x, ratio.y);
-  pile.matrices.set_ortho(fan::vec2(-1, 1), fan::vec2(-1, 1));
-
-  uint32_t i = 1;
-
-  pile.context.set_vsync(&pile.window, 0);
-
-
-  bool x = 0;
-
-  //s.erase(&pile.context, &pile.cids[0]);
-  
-  while(1) {
-    pile.window.get_fps();
-    s.m_shader.use(&pile.context);
-    s.m_shader.set_matrices(&pile.context, &pile.matrices);  
-  /*  for (f32_t i = 0; i < 5; i++) {
-      for (f32_t j = 0; j < 5; j++) {
-        s.erase(&pile.context, &pile.cids[(uint32_t)i * 5 + (uint32_t)j]);
-      }
-    }
-
-    uint32_t c = 0;
-    for (f32_t i = 0; i < 5; i++) {
-      for (f32_t j = 0; j < 5; j++) {
-        p.position = fan::vec2(i / 5, j / 5) * 2 - 1 + 0.05;
-        s.push_back(&pile.context, &pile.cids[c], p);
-        c++;
-      }
+  pile->loco.set_vsync(false);
+  uint32_t x = 0;
+  while(pile->loco.window_open(pile->loco.process_frame())) {
+   /* if(x < count) {
+      pile->loco.rectangle.erase(&pile->loco, &pile->cids[x]);
+      x++;
     }*/
-
-    uint32_t window_event = pile.window.handle_events();
-    if(window_event & fan::window_t::events::close){
-      pile.window.close();
-      break;
-    }
-
-    pile.context.process();
-    pile.context.render(&pile.window);
+    pile->loco.get_fps();
   }
 
   return 0;

@@ -91,21 +91,6 @@ namespace fan {
       }
     }
 
-   /* template <size_t N = 0, typename T = masterpiece_reversed_t>
-    auto runtime_access(size_t idx, void** a = nullptr) {
-      if constexpr (N == 0) {
-        a = (void**)this;
-      }
-
-      if (N == idx) {
-        return &((T*)a)->x_;
-      }
-
-      if constexpr (N + 1 <= count) {
-        runtime_access<N + 1, T::base>(idx, a);
-      }
-    }*/
-
     template <uint32_t depth = 0>
     constexpr void iterate(auto lambda) {
       if constexpr(depth > count) {
