@@ -51,6 +51,20 @@ struct loco_t {
   #endif
   }
 
+  void process_block_properties_element(auto* shape, fan::opengl::matrices_list_NodeReference_t matrices_id) {
+    auto node = fan::opengl::matrices_list_GetNodeByReference(&get_context()->matrices_list, matrices_id);
+    shape->m_shader.set_matrices(get_context(), node->data.matrices_id);
+  }
+
+  void process_block_properties_element(auto* shape, fan::opengl::viewport_list_NodeReference_t viewport_id) {
+    auto node = fan::opengl::viewport_list_GetNodeByReference(&get_context()->viewport_list, viewport_id);
+    node->data.viewport_id->set_viewport(
+      get_context(),
+      node->data.viewport_id->get_viewport_position(),
+      node->data.viewport_id->get_viewport_size()
+    );
+  }
+
   loco_bdbt_t bdbt;
 
   #if defined(loco_rectangle)
