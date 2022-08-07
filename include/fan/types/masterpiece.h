@@ -58,6 +58,26 @@ namespace fan {
 
     using base = masterpiece_reversed_t<Rest...>;
 
+  protected:
+    template <uint32_t N, typename... Ts>
+    struct get;
+
+    template <uint32_t N, typename T, typename... Ts>
+    struct get<N, fan::masterpiece_reversed_t<T, Ts...>>
+    {
+      using type = typename get<N + 1, fan::masterpiece_reversed_t<Ts...>>::type;
+    };
+
+    template <typename T, typename... Ts>
+    struct get<count, fan::masterpiece_reversed_t<T, Ts...>>
+    {
+      using type = T;
+    };
+  public:
+
+    template <int N>
+    using get_type = get <N, masterpiece_reversed_t<T, Rest...>>;
+
     template <uint32_t i, typename _Ty = masterpiece_reversed_t<T, Rest...>, uint32_t depth = count>
     constexpr auto get_value(_Ty* a = nullptr) {
       if constexpr (depth == count) {
