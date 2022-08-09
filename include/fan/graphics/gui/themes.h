@@ -33,9 +33,10 @@ namespace fan_2d {
 				template <typename T>
 				theme_t operator*(T value) const {
 					theme_t t;
-					t.button.color = button.color * value;
-					t.button.outline_color = button.outline_color * value;
-					t.button.text_outline_color = button.text_outline_color * value;
+					t.theme_reference = theme_reference;
+					t.button.color = button.color.mult_no_alpha(value);
+					t.button.outline_color = button.outline_color.mult_no_alpha(value);
+					t.button.text_outline_color = button.text_outline_color.mult_no_alpha(value);
 					t.button.text_color = button.text_color;
 					t.button.text_outline_size = button.text_outline_size;
 					t.button.outline_size = button.outline_size;
@@ -45,6 +46,7 @@ namespace fan_2d {
 				template <typename T>
 				theme_t operator/(T value) const {
 					theme_t t;
+					t.theme_reference = theme_reference;
 					t.button.color = button.color / value;
 					t.button.outline_color = button.outline_color / value;
 					t.button.text_outline_color = button.text_outline_color / value;

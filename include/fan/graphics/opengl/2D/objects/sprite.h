@@ -1,4 +1,4 @@
-struct sprite_t {
+struct sb_sprite_name {
 
   struct instance_t {
     fan::vec3 position = 0;
@@ -45,8 +45,12 @@ struct sprite_t {
   }
 
   static constexpr uint32_t max_instance_size = std::min(256ull, 4096 / (sizeof(instance_t) / 4));
-  #define sb_shader_vertex_path _FAN_PATH(graphics/glsl/opengl/2D/objects/sprite.vs)
-  #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/objects/sprite.fs)
+  #ifndef sb_shader_vertex_path
+    #define sb_shader_vertex_path _FAN_PATH(graphics/glsl/opengl/2D/objects/sprite.vs)
+  #endif
+  #ifndef sb_shader_fragment_path
+    #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/objects/sprite.fs)
+  #endif
   #include _FAN_PATH(graphics/opengl/2D/objects/shape_builder.h)
 
   void open(loco_t* loco) {
@@ -56,3 +60,7 @@ struct sprite_t {
     sb_close(loco);
   }
 };
+
+#undef sb_shader_vertex_path
+#undef sb_shader_fragment_path
+#undef sb_sprite_name

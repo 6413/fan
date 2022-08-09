@@ -13,19 +13,15 @@ protected:
 
   static void lib_set_theme(
     loco_t* loco,
-    uint32_t element_id,
+    fan::opengl::cid_t* cid,
     f32_t intensity
     ) {
-    fan::opengl::cid_t cid;
-    cid.block_id = 0;
-    cid.bm_id = 0;
-    cid.instance_id = 1;
-    loco->text_box.set_theme(loco, 0, &cid, &(*loco->text_box.get_theme(loco, &cid) * intensity));
+    loco->text_box.set_theme(loco, 0, cid, &(*loco->text_box.get_theme(loco, cid) * intensity));
   }
 
 #define make_code_small_plis(d_n, i) lib_set_theme( \
   (loco_t*)d_n.userptr[0], \
-    d_n.element_id, \
+    (fan::opengl::cid_t*)d_n.element_id, \
     i \
   );
 
@@ -54,7 +50,7 @@ protected:
             break;
           }
           case fan::key_state::release: {
-            make_code_small_plis(ii_data, 1.0 / 1.2);
+            make_code_small_plis(ii_data, 1.1);
             break;
           }
         }
@@ -80,13 +76,10 @@ public:
 
   void close(loco_t* loco)
   {
-    for (uint32_t i = 0; i < list.size(); i++) {
-      delete list[i].cid_text_box;
-    }
     list.close();
   }
 
-  uint32_t push_back(loco_t* loco, fan_2d::graphics::gui::be_t* button_event, properties_t& p) {
+  void push_back(loco_t* loco, fan::opengl::cid_t* cid, fan_2d::graphics::gui::be_t* button_event, properties_t& p) {
     uint32_t id;
     if (e.amount != 0) {
       id = e.id;
@@ -96,9 +89,7 @@ public:
     else {
       id = list.resize(list.size() + 1);
     }
-
-    list[id].cid_text_box = new fan::opengl::cid_t;
-    loco->text_box.push_back(loco, list[id].cid_text_box, p);
+    loco->text_box.push_back(loco, cid, p);
 
     fan_2d::graphics::gui::be_t::properties_t be_p;
     be_p.hitbox_type = fan_2d::graphics::gui::be_t::hitbox_type_t::rectangle;
@@ -108,10 +99,8 @@ public:
     be_p.on_mouse_event_function = p.mouse_move_cb;
     be_p.userptr[0] = loco;
     be_p.userptr[2] = p.userptr;
-    be_p.element_cid = list[id].cid_text_box;
+    be_p.cid = cid;
     list[id].button_event_id = button_event->push_back(be_p, mouse_input_cb, mouse_move_cb);
-
-    return id;
   }
 
   void set_theme(loco_t* loco, fan::opengl::cid_t* cid, fan_2d::graphics::gui::theme_t* theme) {
@@ -125,7 +114,6 @@ public:
   }e;
 
   struct element_t {
-    fan::opengl::cid_t* cid_text_box;
     uint32_t button_event_id;
   };
 

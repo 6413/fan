@@ -118,6 +118,11 @@ namespace fan {
 		constexpr color operator/(T value) const {
 			return color(r / value, g / value, b / value);
 		}
+
+		template <typename T>
+		constexpr color mult_no_alpha(T value) const {
+			return color(r * value, g * value, b * value);
+		}
 		void print() const {
 			std::cout << "{ " << r << ", " << g << ", " << b << ", " << a << " }";
 		}

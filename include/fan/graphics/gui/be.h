@@ -22,7 +22,7 @@ namespace fan_2d {
         struct mouse_move_data_t {
           fan::opengl::context_t* context;
           be_t* button_event;
-          uint32_t element_id;
+          void* element_id;
           mouse_stage_e mouse_stage;
           void* userptr[3];
           uint32_t depth;
@@ -50,7 +50,7 @@ namespace fan_2d {
 
           void* userptr[3];
 
-          fan::opengl::cid_t* element_cid;
+          void* cid;
 
           uint8_t hitbox_type;
           union {
@@ -113,8 +113,6 @@ namespace fan_2d {
               return 1;
             }
           }
-          // fix element_id
-        //  assert(0);
 
           uint32_t i = m_button_data.rbegin();
           while (i != m_button_data.rend()) {
@@ -123,7 +121,7 @@ namespace fan_2d {
                 mouse_move_data_t mm_data;
                 mm_data.context = context;
                 mm_data.button_event = this;
-                //mm_data.element_id = m_button_data[m_focused_button_id].properties.element_cid->id;
+                mm_data.element_id = m_button_data[m_focused_button_id].properties.cid;
                 mm_data.mouse_stage = mouse_stage_e::outside;
                 mm_data.userptr[0] = m_button_data[m_focused_button_id].properties.userptr[0];
                 mm_data.userptr[1] = m_button_data[m_focused_button_id].properties.userptr[1];
@@ -137,7 +135,7 @@ namespace fan_2d {
               mouse_move_data_t mm_data;
               mm_data.context = context;
               mm_data.button_event = this;
-              //mm_data.element_id = m_button_data[m_focused_button_id].properties.element_cid->id;
+              mm_data.element_id = m_button_data[m_focused_button_id].properties.cid;
               mm_data.mouse_stage = mouse_stage_e::inside;
               mm_data.userptr[0] = m_button_data[m_focused_button_id].properties.userptr[0];
               mm_data.userptr[1] = m_button_data[m_focused_button_id].properties.userptr[1];
@@ -155,7 +153,7 @@ namespace fan_2d {
             mouse_move_data_t mm_data;
             mm_data.context = context;
             mm_data.button_event = this;
-            //mm_data.element_id = m_button_data[m_focused_button_id].properties.element_cid->id;
+            mm_data.element_id = m_button_data[m_focused_button_id].properties.cid;
             mm_data.mouse_stage = mouse_stage_e::outside;
             mm_data.userptr[0] = m_button_data[m_focused_button_id].properties.userptr[0];
             mm_data.userptr[1] = m_button_data[m_focused_button_id].properties.userptr[1];
@@ -163,6 +161,7 @@ namespace fan_2d {
             mm_data.depth = depth;
             m_button_data[m_focused_button_id].on_mouse_move_lib_cb(mm_data);
             if (!m_button_data[m_focused_button_id].properties.on_mouse_event_function(mm_data)) {
+              m_focused_button_id = fan::uninitialized;
               return 0;
             }
             m_focused_button_id = fan::uninitialized;
@@ -178,7 +177,7 @@ namespace fan_2d {
                 mouse_input_data_t ii_data;
                 ii_data.context = context;
                 ii_data.button_event = this;
-                //ii_data.element_id = m_button_data[m_focused_button_id].properties.element_cid->id;
+                ii_data.element_id = m_button_data[m_focused_button_id].properties.cid;
                 ii_data.mouse_stage = mouse_stage_e::inside;
                 ii_data.key = button;
                 ii_data.key_state = fan::key_state::press;
@@ -198,7 +197,7 @@ namespace fan_2d {
                     mouse_input_data_t ii_data;
                     ii_data.context = context;
                     ii_data.button_event = this;
-                    //ii_data.element_id = m_button_data[i].properties.element_cid->id;
+                    ii_data.element_id = m_button_data[i].properties.cid;
                     ii_data.mouse_stage = mouse_stage_e::outside;
                     ii_data.key = button;
                     ii_data.key_state = state;
@@ -229,7 +228,7 @@ namespace fan_2d {
                 mouse_input_data_t ii_data;
                 ii_data.context = context;
                 ii_data.button_event = this;
-                //ii_data.element_id = m_button_data[m_focused_button_id].properties.element_cid->id;
+                ii_data.element_id = m_button_data[m_focused_button_id].properties.cid;
                 ii_data.mouse_stage = mouse_stage_e::inside;
                 ii_data.key = button;
                 ii_data.key_state = fan::key_state::release;
@@ -252,7 +251,7 @@ namespace fan_2d {
                     mouse_input_data_t ii_data;
                     ii_data.context = context;
                     ii_data.button_event = this;
-                    //ii_data.element_id = m_button_data[m_focused_button_id].properties.element_cid->id;
+                    ii_data.element_id = m_button_data[m_focused_button_id].properties.cid;
                     ii_data.mouse_stage = mouse_stage_e::inside_drag;
                     ii_data.key = button;
                     ii_data.key_state = fan::key_state::release;
@@ -271,7 +270,7 @@ namespace fan_2d {
                 mouse_input_data_t ii_data;
                 ii_data.context = context;
                 ii_data.button_event = this;
-                //ii_data.element_id = m_button_data[m_focused_button_id].properties.element_cid->id;
+                ii_data.element_id = m_button_data[m_focused_button_id].properties.cid;
                 ii_data.mouse_stage = mouse_stage_e::outside;
                 ii_data.key = button;
                 ii_data.key_state = fan::key_state::release;
@@ -281,9 +280,11 @@ namespace fan_2d {
                 ii_data.depth = depth;
                 m_button_data[m_focused_button_id].on_input_lib_cb(ii_data);
                 if (!m_button_data[m_focused_button_id].properties.on_input_function(ii_data)) {
+                  m_do_we_hold_button = 0;
                   return 0;
                 }
                 if (pointer_remove_flag == 0) {
+                  m_do_we_hold_button = 0;
                   return 1;
                 }
 
@@ -302,7 +303,6 @@ namespace fan_2d {
           return m_button_data.push_back(b);
         }
         void erase(uint32_t node_reference) {
-          delete m_button_data[node_reference].properties.element_cid;
           m_button_data.erase(node_reference);
         }
 

@@ -34,7 +34,7 @@ struct loco_t {
   #endif
   };
 
-  static constexpr uint32_t max_depths = 100;
+  static constexpr uint32_t max_depths = 2;
 
   fan::window_t* get_window() {
   #ifdef loco_window
@@ -109,6 +109,7 @@ struct loco_t {
     rectangle_t rectangle;
   #endif
   #if defined(loco_sprite)
+    #define sb_sprite_name sprite_t
     #include _FAN_PATH(graphics/opengl/2D/objects/sprite.h)
     sprite_t sprite;
   #endif
@@ -137,13 +138,20 @@ struct loco_t {
   #if defined(loco_button)
     #include _FAN_PATH(graphics/gui/rectangle_text_button.h)
     struct button_t : rectangle_text_button_t {
-      uint32_t push_back(uint32_t input_depth, properties_t& p) {
+      void push_back(uint32_t input_depth, fan::opengl::cid_t* cid, properties_t& p) {
         loco_t* loco = OFFSETLESS(this, loco_t, button);
-        return rectangle_text_button_t::push_back(loco, &loco->element_depth[input_depth].input_hitbox, p);
+        rectangle_text_button_t::push_back(loco, cid, &loco->element_depth[input_depth].input_hitbox, p);
       }
     private:
       using rectangle_text_button_t::push_back;
     }button;
+  #endif
+  #if defined(loco_post_process)
+    #define sb_shader_vertex_path _FAN_PATH(graphics/glsl/opengl/2D/effects/post_process.vs)
+    #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/effects/post_process.fs)
+    #define sb_sprite_name post_sprite_t
+    #include _FAN_PATH(graphics/opengl/2D/effects/post_process.h)
+    post_process_t post_process;
   #endif
 
   struct {
@@ -223,6 +231,14 @@ struct loco_t {
     #if defined(loco_button)
       button.open(this);
     #endif
+    #if defined(loco_post_process)
+      fan::opengl::core::renderbuffer_t::properties_t rp;
+      rp.size = get_window()->get_size();
+      if (post_process.open(this, rp)) {
+        fan::throw_error("failed to initialize frame buffer");
+      }
+      post_process.start_capture(this);
+    #endif
 
     focus_shape_type = fan::uninitialized;
 
@@ -252,6 +268,9 @@ struct loco_t {
     #endif
     #if defined(loco_button)
       button.close(this);
+    #endif
+    #if defined(loco_post_process)
+      post_process.close(this);
     #endif
 
     m_write_queue.close();
@@ -317,6 +336,9 @@ struct loco_t {
     #endif
     #if defined(loco_box)
       box.draw(this);
+    #endif
+    #if defined(loco_post_process)
+      post_process.draw(this);
     #endif
 
     #ifdef loco_window
