@@ -10,7 +10,7 @@ out float texture_id;
 uniform mat4 view;
 uniform mat4 projection;
 
-struct _{
+struct block_instance_t{
 	vec3 position;
 	vec2 size;
 	vec2 rotation_point;
@@ -22,7 +22,7 @@ struct _{
 };
 
 layout (std140) uniform instance_t {
-	_ st[128];
+	block_instance_t st[204];
 }instance;
 
 vec2 rectangle_vertices[] = vec2[](

@@ -1,90 +1,74 @@
-#pragma once
+struct post_process_t {
+  bool open(loco_t* loco, const fan::opengl::core::renderbuffer_t::properties_t& p) {
+    framebuffer.open(loco->get_context());
+    framebuffer.bind(loco->get_context());
 
-#include _FAN_PATH(graphics/opengl/gl_core.h)
-#include _FAN_PATH(graphics/opengl/2D/objects/sprite.h)
+    fan::webp::image_info_t image_info;
+    image_info.data = 0;
+    image_info.size = p.size;
+    fan::opengl::image_t::load_properties_t lp;
+    lp.format = fan::opengl::GL_RGB;
+    lp.internal_format = fan::opengl::GL_RGB;
+    lp.filter = fan::opengl::GL_LINEAR;
+    texture_colorbuffer.load(loco->get_context(), image_info);
 
-namespace fan_2d {
-  namespace opengl {
-    struct post_process_t {
-      bool open(fan::opengl::context_t* context, const fan::opengl::core::renderbuffer_t::properties_t& p) {
-        framebuffer.open(context);
-        framebuffer.bind(context);
+    framebuffer.bind_to_texture(loco->get_context(), *texture_colorbuffer.get_texture(loco->get_context()));
 
-        fan::webp::image_info_t image_info;
-        image_info.data = 0;
-        image_info.size = p.size;
-        fan::opengl::image_t::load_properties_t lp;
-        lp.format = fan::opengl::GL_RGB;
-        lp.internal_format = fan::opengl::GL_RGB;
-        lp.filter = fan::opengl::GL_LINEAR;
-        texture_colorbuffer.load(context, image_info);
+    renderbuffer.open(loco->get_context(), p);
+    framebuffer.bind_to_renderbuffer(loco->get_context(), renderbuffer.renderbuffer);
 
-        framebuffer.bind_to_texture(context, *texture_colorbuffer.get_texture(context));
+    bool ret = !framebuffer.ready(loco->get_context());
+    framebuffer.unbind(loco->get_context());
 
-        renderbuffer.open(context, p);
-        framebuffer.bind_to_renderbuffer(context, renderbuffer.renderbuffer);
+    sprite.open(loco);
 
-        bool ret = !framebuffer.ready(context);
-        framebuffer.unbind(context);
-
-        sprite.open(context);
-
-        sprite.set_vertex(
-          context,
-          #include _FAN_PATH(graphics/glsl/opengl/2D/effects/post_process.vs)
-        );
-        sprite.set_fragment(
-          context,
-          #include _FAN_PATH(graphics/glsl/opengl/2D/effects/post_process.fs)
-        );
-        sprite.compile(context);
-
-        fan::opengl::cid_t cid;
-        sprite_t::properties_t sp;
-        sp.position = 0;
-        sp.image = texture_colorbuffer;
-        sp.size = 1;
-        assert(0);
-        //sprite.push_back(context, &cid, sp);
-
-        return ret;
-      }
-      void close(fan::opengl::context_t* context) {
-        texture_colorbuffer.unload(context);
-        framebuffer.close(context);
-        renderbuffer.close(context);
-      }
-
-      void update_renderbuffer(fan::opengl::context_t* context, const fan::opengl::core::renderbuffer_t::properties_t& p) {
-        renderbuffer.set_storage(context, p);
-      }
-
-      void start_capture(fan::opengl::context_t* context) {
-        //draw_nodereference = context->enable_draw(this, [](fan::opengl::context_t* context, void* d) { 
-          post_process_t* post = (post_process_t*)this;
-          post->framebuffer.bind(context);
-          context->opengl.call(context->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
-          context->set_depth_test(true);
-          // probably want to glclear here if trash comes
-       // });
-      }
-
-      void draw(fan::opengl::context_t* context) {
-        framebuffer.unbind(context); // not sure if necessary
-        context->opengl.call(context->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT);
-        context->set_depth_test(false);
-        sprite.draw(context);
-      }
-
-      fan::opengl::core::renderbuffer_t renderbuffer;
-      fan::opengl::core::framebuffer_t framebuffer;
-
-      fan::opengl::image_t texture_colorbuffer;
-
-      // for test purposes
-      sprite_t sprite;
-
-      uint32_t draw_nodereference;
-    };
+    return ret;
   }
-}
+  void close(loco_t* loco) {
+    texture_colorbuffer.unload(loco->get_context());
+    framebuffer.close(loco->get_context());
+    renderbuffer.close(loco->get_context());
+  }
+
+  void push(loco_t* loco, fan::opengl::viewport_t* viewport, fan::opengl::matrices_t* matrices) {
+    fan::opengl::cid_t cid;
+    post_sprite_t::properties_t sp;
+    sp.viewport = viewport;
+    sp.matrices = matrices;
+    sp.position = 0;
+    sp.image = &texture_colorbuffer;
+    sp.size = 1;
+    sprite.push_back(loco, &cid, sp);
+  }
+
+  void update_renderbuffer(loco_t* loco, const fan::opengl::core::renderbuffer_t::properties_t& p) {
+    renderbuffer.set_storage(loco->get_context(), p);
+  }
+
+  void start_capture(loco_t* loco) {
+    //draw_nodereference = context->enable_draw(this, [](fan::opengl::context_t* context, void* d) { 
+      post_process_t* post = (post_process_t*)this;
+      post->framebuffer.bind(loco->get_context());
+      loco->get_context()->opengl.call(loco->get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
+      loco->get_context()->set_depth_test(true);
+      // probably want to glclear here if trash comes
+    // });
+  }
+
+  void draw(loco_t* loco) {
+    framebuffer.unbind(loco->get_context()); // not sure if necessary
+    loco->get_context()->opengl.call(loco->get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT);
+    loco->get_context()->set_depth_test(false);
+    sprite.draw(loco);
+  }
+
+  fan::opengl::core::renderbuffer_t renderbuffer;
+  fan::opengl::core::framebuffer_t framebuffer;
+
+  fan::opengl::image_t texture_colorbuffer;
+
+  uint32_t draw_nodereference;
+
+  #include _FAN_PATH(graphics/opengl/2D/objects/sprite.h)
+  post_sprite_t sprite;
+};

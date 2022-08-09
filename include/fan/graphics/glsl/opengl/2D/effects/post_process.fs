@@ -8,7 +8,7 @@ R"(
 
   out vec4 o_color;
 
-  uniform sampler2D texture_sampler;
+  uniform sampler2D _t00;
 
   const float offset = 1.0 / 300.0;
 
@@ -35,19 +35,19 @@ R"(
     //vec3 sampleTex[9];
     //for(int i = 0; i < 9; i++)
     //{
-    //    sampleTex[i] = vec3(texture(texture_sampler, texture_coordinate.st + offsets[i]));
+    //    sampleTex[i] = vec3(texture(_t00, texture_coordinate.st + offsets[i]));
     //}
     //vec3 col = vec3(0.0);
     //for(int i = 0; i < 9; i++)
     //    col += sampleTex[i] * kernel[i];
 
-    o_color.rgb = texture(texture_sampler, texture_coordinate).rgb;
+    o_color.rgb = texture(_t00, texture_coordinate).rgb;
     const vec3 W = vec3(0.2125, 0.7154, 0.0721);
     vec3 intensity = vec3(dot(o_color.rgb, W));
     o_color.rgb = mix(intensity, o_color.rgb, vec3(0.5));
-    o_color.r = pow(o_color.r, 0.1);
-    o_color.g = pow(o_color.g, 0.1);
-    o_color.b = pow(o_color.b, 0.1);
+    //o_color.r = pow(o_color.r, 0.1);
+    //o_color.g = pow(o_color.g, 0.1);
+    //o_color.b = pow(o_color.b, 0.1);
     o_color.a = 1;
   }
 )"

@@ -54,13 +54,13 @@ int main() {
   };
   fan_2d::graphics::gui::themes::gray gray_theme;
   gray_theme.open(pile.loco.get_context());
-  uint32_t ids[2];
   tp.theme = &gray_theme;
-  ids[0] = pile.loco.button.push_back(0, tp);
+  fan::opengl::cid_t cids[2];
+  pile.loco.button.push_back(0, &cids[0], tp);
   tp.position.x += 0.1;
   tp.position.z += 0.2;
   tp.text = "hw2";
-  ids[1] = pile.loco.button.push_back(1, tp);
+  pile.loco.button.push_back(1, &cids[1], tp);
 
   while(pile.loco.window_open(pile.loco.process_frame())) {
 

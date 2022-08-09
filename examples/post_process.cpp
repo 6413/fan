@@ -3,114 +3,98 @@
 #define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 
 #define FAN_INCLUDE_PATH C:/libs/fan/include
-#include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
-
 #define fan_debug 0
+#include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
 #include _FAN_PATH(graphics/graphics.h)
 
-constexpr uint32_t count = 10;
+#define loco_window
+#define loco_context
 
-struct pile_t { 
-  fan::opengl::matrices_t matrices;
-  fan::window_t window;
-  fan::opengl::context_t context;
+#define loco_sprite
+#define loco_post_process
+#include _FAN_PATH(graphics/loco.h)
+
+constexpr uint32_t count = 1;
+
+struct pile_t {
+
+  static constexpr fan::vec2 ortho_x = fan::vec2(-1, 1);
+  static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
+
+  void open() {
+    loco.open(loco_t::properties_t());
+    fan::graphics::open_matrices(
+      loco.get_context(),
+      &matrices[0],
+      loco.get_window()->get_size(),
+      ortho_x,
+      ortho_y
+    );
+    fan::graphics::open_matrices(
+      loco.get_context(),
+      &matrices[1],
+      loco.get_window()->get_size(),
+      fan::vec2(0, 800),
+      fan::vec2(0, 600)
+    );
+    loco.get_window()->add_resize_callback(this, [](fan::window_t* window, const fan::vec2i& size, void* userptr) {
+      fan::vec2 window_size = window->get_size();
+      fan::vec2 ratio = window_size / window_size.max();
+      std::swap(ratio.x, ratio.y);
+      pile_t* pile = (pile_t*)userptr;
+      pile->matrices[0].set_ortho(
+        ortho_x * ratio.x, 
+        ortho_y * ratio.y
+      );
+      pile->matrices[1].set_ortho(
+        ortho_x * ratio.x, 
+        ortho_y * ratio.y
+      );
+      });
+    loco.get_window()->add_resize_callback(this, [](fan::window_t*, const fan::vec2i& size, void* userptr) {
+      pile_t* pile = (pile_t*)userptr;
+
+      pile->viewport.set_viewport(pile->loco.get_context(), 0, size);
+      });
+    viewport.open(loco.get_context(), 0, loco.get_window()->get_size());
+  }
+
+  loco_t loco;
+  fan::opengl::matrices_t matrices[2];
+  fan::opengl::viewport_t viewport;
   fan::opengl::cid_t cids[count];
 };
 
-// filler
-using sprite_t = fan_2d::graphics::sprite_t;
-
 int main() {
 
-  pile_t pile;
+  pile_t* pile = new pile_t;
+  pile->open();
 
-  pile.window.open();
+  loco_t::sprite_t::properties_t p;
 
-  pile.context.open();
-  pile.context.bind_to_window(&pile.window);
-  pile.context.set_viewport(0, pile.window.get_size());
-  pile.window.add_resize_callback(&pile, [](fan::window_t*, const fan::vec2i& size, void* userptr) {
-    pile_t* pile = (pile_t*)userptr;
+  //p.block_properties.
+  p.matrices = &pile->matrices[0];
+  p.viewport = &pile->viewport;
 
-    pile->context.set_viewport(0, size);
-
-    fan::vec2 window_size = pile->window.get_size();
-    fan::vec2 ratio = window_size / window_size.max();
-    std::swap(ratio.x, ratio.y);
-    //pile->matrices.set_ortho(&pile->context, fan::vec2(-1, 1) * ratio.x, fan::vec2(-1, 1) * ratio.y);
-    });
-
-  pile.matrices.open();
-
-  fan_2d::opengl::post_process_t post_process;
-  fan::opengl::core::renderbuffer_t::properties_t rp;
-  rp.size = pile.window.get_size();
-  if (post_process.open(&pile.context, rp)) {
-    fan::throw_error("failed to initialize frame buffer");
-  }
-
-  post_process.start_capture(&pile.context);
-
-  sprite_t s;
-  s.open(&pile.context);
-  s.enable_draw(&pile.context);
-
-  sprite_t::properties_t p;
-
-  fan::opengl::image_t::load_properties_t lp;
-  lp.filter = fan::opengl::GL_NEAREST;
-
+  fan::opengl::image_t image;
+  image.load(pile->loco.get_context(), "images/grass.webp");
+  p.image = &image;
   p.size = 1;
+  p.position = fan::vec2(0, 0);
+  p.position.z = 0;
+  pile->loco.sprite.push_back(&pile->loco, &pile->cids[0], p);
 
-  p.position = 0;
-  p.image.load(&pile.context, "images/grass.webp");
-  s.push_back(&pile.context, &pile.cids[0], p);
+  pile->loco.post_process.push(&pile->loco, &pile->viewport, &pile->matrices[0]);
 
-  pile.context.set_vsync(&pile.window, 0);
-
-  for (uint32_t i = 0; i < count; i++) {
-
-  }
-
-  fan::vec2 window_size = pile.window.get_size();
-  fan::vec2 ratio = window_size / window_size.max();
-  std::swap(ratio.x, ratio.y);
-  pile.matrices.set_ortho(fan::vec2(-1, 1), fan::vec2(-1, 1));
-
-  pile.context.set_vsync(&pile.window, 0);
-  fan::time::clock c;
-  uint64_t time = 0;
-  while(1) {
-    uint32_t fps = pile.window.get_fps();
-    if (fps) {
-      fan::print(time / fps);
-      time = 0;
-    }
-    
-
-    s.m_shader.use(&pile.context);
-    s.m_shader.set_matrices(&pile.context, &pile.matrices);  
-    pile.context.opengl.call(pile.context.opengl.glFlush);
-    pile.context.opengl.call(pile.context.opengl.glFinish);
-    c.start();
-    s.m_shader.set_int(&pile.context, "texture_sampler", 0);
-    pile.context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
-    pile.context.opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, 1);
-    pile.context.opengl.call(pile.context.opengl.glFlush);
-    pile.context.opengl.call(pile.context.opengl.glFinish);
-    time += c.elapsed();
-
-    uint32_t window_event = pile.window.handle_events();
-    if(window_event & fan::window_t::events::close){
-      pile.window.close();
-      break;
-    }
-    pile.context.process();
-    post_process.sprite.m_shader.use(&pile.context);
-    post_process.sprite.m_shader.set_matrices(&pile.context, &pile.matrices);
-    post_process.draw(&pile.context);
-    pile.context.render(&pile.window);
+  pile->loco.set_vsync(false);
+  uint32_t x = 0;
+  while(pile->loco.window_open(pile->loco.process_frame())) {
+    /* if(x < count) {
+    pile->loco.rectangle.erase(&pile->loco, &pile->cids[x]);
+    x++;
+    }*/
+    pile->loco.get_fps();
   }
 
   return 0;
