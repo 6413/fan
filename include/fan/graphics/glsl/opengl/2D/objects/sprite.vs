@@ -1,5 +1,5 @@
 R"(
-#version 150
+#version 140
 
 #define get_instance() instance[gl_VertexID / 6]
 

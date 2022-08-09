@@ -175,13 +175,13 @@ namespace fan {
           context->opengl.call(context->opengl.glUniformBlockBinding, program, index, buffer_index);
         }
 
-        void draw(fan::opengl::context_t* context, uint32_t begin, uint32_t count) {
+        void draw(fan::opengl::context_t* context, uint32_t begin, uint32_t count, uint32_t draw_mode = fan::opengl::GL_TRIANGLES) {
 
           common.m_vao.bind(context);
 
           //context->opengl.call(context->opengl.glDrawArraysInstanced, fan::opengl::GL_TRIANGLES, begin, count / 6, 6);
 
-          context->opengl.call(context->opengl.glDrawArrays, fan::opengl::GL_TRIANGLES, begin, count);
+          context->opengl.call(context->opengl.glDrawArrays, draw_mode, begin, count);
         }
 
         uint32_t size() const {

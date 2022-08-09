@@ -3,78 +3,91 @@
 #define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 
 #define FAN_INCLUDE_PATH C:/libs/fan/include
-#define fan_debug 3
+#define fan_debug 0
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
 #include _FAN_PATH(graphics/graphics.h)
 
-struct pile_t {
-  fan::opengl::matrices_t matrices;
-  fan::window_t window;
-  fan::opengl::context_t context;
-  fan::opengl::cid_t cids[1];
-};
+#define loco_window
+#define loco_context
 
-// filler                         
-using line_t = fan_2d::graphics::line_t;
+#define loco_line
+#include _FAN_PATH(graphics/loco.h)
+
+constexpr uint32_t count = 1e+6;
+
+struct pile_t {
+
+  static constexpr fan::vec2 ortho_x = fan::vec2(-1, 1);
+  static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
+
+  void open() {
+    loco.open(loco_t::properties_t());
+    fan::graphics::open_matrices(
+      loco.get_context(),
+      &matrices,
+      loco.get_window()->get_size(),
+      ortho_x,
+      ortho_y
+    );
+    loco.get_window()->add_resize_callback(this, [](fan::window_t* window, const fan::vec2i& size, void* userptr) {
+      fan::vec2 window_size = window->get_size();
+      fan::vec2 ratio = window_size / window_size.max();
+      std::swap(ratio.x, ratio.y);
+      pile_t* pile = (pile_t*)userptr;
+      pile->matrices.set_ortho(
+        ortho_x * ratio.x, 
+        ortho_y * ratio.y
+      );
+      pile->matrices.set_ortho(
+        ortho_x * ratio.x, 
+        ortho_y * ratio.y
+      );
+      });
+    loco.get_window()->add_resize_callback(this, [](fan::window_t*, const fan::vec2i& size, void* userptr) {
+      pile_t* pile = (pile_t*)userptr;
+
+      pile->viewport.set_viewport(pile->loco.get_context(), 0, size);
+      });
+    viewport.open(loco.get_context(), 0, loco.get_window()->get_size());
+  }
+
+  loco_t loco;
+  fan::opengl::matrices_t matrices;
+  fan::opengl::viewport_t viewport;
+  fan::opengl::cid_t cids[count];
+};
 
 int main() {
 
-  pile_t pile;
+  pile_t* pile = new pile_t;
+  pile->open();
 
-  pile.window.open(fan::vec2(600, 600));
+  loco_t::line_t::properties_t p;
 
-  pile.context.init();
-  pile.context.bind_to_window(&pile.window);
-  pile.context.set_viewport(0, pile.window.get_size());
-  pile.window.add_resize_callback(&pile, [](fan::window_t*, const fan::vec2i& size, void* userptr) {
-    pile_t* pile = (pile_t*)userptr;
+  //p.block_properties.
+  p.matrices = &pile->matrices;
+  p.viewport = &pile->viewport;
 
-    pile->context.set_viewport(0, size);
+  fan::time::clock c; 
+  c.start();
+  for (uint32_t i = 0; i < count; i++) {
+    p.src = fan::random::vec2(-100, 100);
+    p.dst = fan::random::vec2(-100, 100);
+    p.color = fan::random::color();
+    pile->loco.line.push_back(&pile->loco, &pile->cids[i], p);
+    //EXAMPLE ERASE
+    //pile->loco.rectangle.erase(&pile->loco, &pile->cids[i]);
+  }
 
-    fan::vec2 window_size = pile->window.get_size();
-    fan::vec2 ratio = window_size / window_size.max();
-    std::swap(ratio.x, ratio.y);
-    pile->matrices.set_ortho(&pile->context, fan::vec2(-1, 1) * ratio.x, fan::vec2(-1, 1) * ratio.y);
-    });
+  fan::print((f32_t)c.elapsed() / 1e+9);
 
-  pile.matrices.open();
-
-  line_t r;
-  r.open(&pile.context);
-  r.bind_matrices(&pile.context, &pile.matrices);
-  r.enable_draw(&pile.context);
-
-  line_t::properties_t p;
-  p.color = fan::colors::red;
-  p.src = 0;
-  p.dst = -1;
-  r.push_back(&pile.context, &pile.cids[0], p);
-
-  p.src = fan::vec2(0.5, 0.5);
-  p.dst = fan::vec2(-0.5, 0.1);
-  p.color = fan::colors::white;
-  r.push_back(&pile.context, &pile.cids[0], p);
-
-  pile.matrices.set_ortho(&pile.context, fan::vec2(-1, 1), fan::vec2(-1, 1));
-
-  uint32_t s = 0;
-
-  pile.context.set_vsync(&pile.window, 0);
-  //pile.window.set_max_fps(25);
-
-  while(1) {
-
-    pile.window.get_fps();
-
-    uint32_t window_event = pile.window.handle_events();
-    if(window_event & fan::window_t::events::close){
-      pile.window.close();
-      break;
+  pile->loco.set_vsync(false);
+  while(pile->loco.window_open(pile->loco.process_frame())) {
+    for (uint32_t i = 0; i < count; i++) {
+      pile->loco.line.set(&pile->loco, &pile->cids[i], &loco_t::line_t::instance_t::dst, pile->loco.get_mouse_position());
     }
-
-    pile.context.process();
-    pile.context.render(&pile.window);
+    pile->loco.get_fps();
   }
 
   return 0;

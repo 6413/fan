@@ -45,7 +45,7 @@ int main() {
     if (mm_d.changed) {
       fan::print("cb", (int)mm_d.mouse_stage, mm_d.depth);
     }
-    return 0;
+    return 1;
   };
   tp.mouse_input_cb = [](const loco_t::mouse_input_data_t& ii_d) -> uint8_t {
     fan::print(ii_d.key, (int)ii_d.key_state, (int)ii_d.mouse_stage, ii_d.depth);

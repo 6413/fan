@@ -64,10 +64,9 @@ struct button_t {
     be_p.hitbox_type = fan_2d::graphics::gui::be_t::hitbox_type_t::rectangle;
     be_p.hitbox_rectangle.position = p.position;
     be_p.hitbox_rectangle.size = p.size;
-    be_p.on_input_function = p.mouse_input_cb;
-    be_p.on_mouse_event_function = p.mouse_move_cb;
-    be_p.userptr[0] = loco;
-    be_p.userptr[2] = p.userptr;
+    be_p.on_input_cb = p.mouse_input_cb;
+    be_p.on_mouse_event_cb = p.mouse_move_cb;
+    be_p.userptr = p.userptr;
     be_p.cid = cid;
     if (p.disable_highlight) {
       block->p[cid->instance_id].be_id = loco->element_depth[depth].input_hitbox.push_back(

@@ -1,3 +1,7 @@
+#ifndef sb_vertex_count
+  #define sb_vertex_count 6
+#endif
+
 void sb_open(loco_t* loco) {
 
   root = loco_bdbt_NewNode(&loco->bdbt);
@@ -186,7 +190,7 @@ void compile(loco_t* loco) {
 }
 
 template <uint32_t depth = 0>
-void traverse_draw(loco_t* loco, auto nr) {
+void traverse_draw(loco_t* loco, auto nr, uint32_t draw_mode) {
   if constexpr(depth == instance_properties_t::key_t::count + 1) {
     auto bmn = shape_bm_GetNodeByReference(&bm_list, *(shape_bm_NodeReference_t*)&nr);
     auto bnr = bmn->data.first_block;
@@ -200,8 +204,9 @@ void traverse_draw(loco_t* loco, auto nr) {
 
       node->data.block.uniform_buffer.draw(
         loco->get_context(),
-        0 * 6,
-        node->data.block.uniform_buffer.size() * 6
+        0 * sb_vertex_count,
+        node->data.block.uniform_buffer.size() * sb_vertex_count,
+        draw_mode
       );
       if (bll_block_IsNodeReferenceEqual(bnr, bmn->data.last_block)) {
         break;
@@ -216,14 +221,14 @@ void traverse_draw(loco_t* loco, auto nr) {
     typename instance_properties_t::key_t::get_type<depth>::type o;
     while(kt.Traverse(&loco->bdbt, &o)) {
       loco->process_block_properties_element(this, o);
-      traverse_draw<depth + 1>(loco, kt.Output);
+      traverse_draw<depth + 1>(loco, kt.Output, draw_mode);
     }
   }
 }
 
-void sb_draw(loco_t* loco) {
+void sb_draw(loco_t* loco, uint32_t draw_mode = fan::opengl::GL_TRIANGLES) {
   m_shader.use(loco->get_context());
-  traverse_draw(loco, root);
+  traverse_draw(loco, root, draw_mode);
 }
 
 fan::shader_t m_shader;
@@ -275,3 +280,4 @@ public:
 
 #undef sb_shader_vertex_path
 #undef sb_shader_fragment_path
+#undef sb_vertex_count
