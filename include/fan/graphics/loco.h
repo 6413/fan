@@ -3,6 +3,7 @@
 struct loco_t;
 
 #include _FAN_PATH(graphics/gui/be.h)
+#include _FAN_PATH(graphics/gui/ke.h)
 
 #define BDBT_set_prefix loco_bdbt
 #define BDBT_set_type_node uint16_t
@@ -37,7 +38,7 @@ struct loco_t {
   #endif
   };
 
-  static constexpr uint32_t max_depths = 2;
+  static constexpr uint32_t max_depths = 10;
 
   fan::window_t* get_window() {
   #ifdef loco_window
@@ -107,6 +108,10 @@ struct loco_t {
     #endif
   #endif
 
+  #if defined(loco_line)
+  #include _FAN_PATH(graphics/opengl/2D/objects/line.h)
+  line_t line;
+  #endif
   #if defined(loco_rectangle)
     #include _FAN_PATH(graphics/opengl/2D/objects/rectangle.h)
     rectangle_t rectangle;
@@ -142,13 +147,14 @@ struct loco_t {
 
   struct {
     fan_2d::graphics::gui::be_t input_hitbox;
+    fan_2d::graphics::gui::ke_t keyboard_event;
   }element_depth[max_depths];
 
   using mouse_input_data_t = fan_2d::graphics::gui::be_t::mouse_input_data_t;
   using mouse_move_data_t = fan_2d::graphics::gui::be_t::mouse_move_data_t;
 
   uint32_t focus_shape_type;
-  uint32_t focus_shape_id;
+  void* focus_shape_id;
 
   #if defined(loco_letter)
     fan_2d::graphics::font_t font;
@@ -162,6 +168,8 @@ struct loco_t {
 
   void open(const properties_t& p) {
 
+    focus_shape_id = (void*)fan::uninitialized;
+
     #ifdef loco_window
       window.open();
     #else
@@ -170,32 +178,39 @@ struct loco_t {
 
     loco_bdbt_open(&bdbt);
 
-    get_window()->add_keys_callback(this, [](fan::window_t* window, uint16_t key, fan::key_state key_state, void* user_ptr) {
+    get_window()->add_buttons_callback(this, [](fan::window_t* window, uint16_t key, fan::key_state key_state, void* user_ptr) {
       loco_t& loco = *(loco_t*)user_ptr;
       fan::vec2 window_size = window->get_size();
-      // not custom ortho friendly - made for -1 1
-      loco.feed_mouse_input(key, key_state, fan::cast<f32_t>(window->get_mouse_position()) / window_size * 2 - 1);
+      loco.feed_mouse_input(key, key_state, loco.get_mouse_position());
+    });
+
+    get_window()->add_keys_callback(this, [](fan::window_t* window, uint16_t key, fan::key_state key_state, void* user_ptr) {
+      loco_t& loco = *(loco_t*)user_ptr;
+      loco.feed_keyboard(key, key_state);
     });
 
     get_window()->add_mouse_move_callback(this, [](fan::window_t* window, const fan::vec2i& mouse_position, void* user_ptr) {
       loco_t& loco = *(loco_t*)user_ptr;
       fan::vec2 window_size = window->get_size();
       // not custom ortho friendly - made for -1 1
-      loco.feed_mouse_move(fan::cast<f32_t>(mouse_position) / window_size * 2 - 1);
+      loco.feed_mouse_move(loco.get_mouse_position());
     });
 
     context.open();
     context.bind_to_window(&window);
 
     for (uint32_t depth = 0; depth < max_depths; depth++) {
-
       element_depth[depth].input_hitbox.open();
+      element_depth[depth].keyboard_event.open();
     }
 
     #if defined(loco_letter)
       font.open(get_context(), loco_font);
     #endif
 
+    #if defined(loco_line)
+      line.open(this);
+    #endif
     #if defined(loco_rectangle)
       rectangle.open(this);
     #endif
@@ -226,8 +241,16 @@ struct loco_t {
   }
   void close(const properties_t& p) {
 
+    for (uint32_t depth = 0; depth < max_depths; depth++) {
+      element_depth[depth].input_hitbox.close();
+      element_depth[depth].keyboard_event.close();
+    }
+
     loco_bdbt_close(&bdbt);
 
+    #if defined(loco_line)
+      line.close(this);
+    #endif
     #if defined(loco_rectangle)
       rectangle.close(this);
     #endif
@@ -253,11 +276,9 @@ struct loco_t {
   uint32_t push_back_input_hitbox(uint32_t depth, const fan_2d::graphics::gui::be_t::properties_t& p) {
     return element_depth[depth].input_hitbox.push_back(p);
   }
-
-  /*
-  
-    when any feed function comes loco will check focus_shape_type. if its  uninitialized loco will query input if input is on something if its related with something. It will assign focus_shape_type to what its supposed to be.
-  */
+  uint32_t push_back_keyboard_event(uint32_t depth, const fan_2d::graphics::gui::ke_t::properties_t& p) {
+    return element_depth[depth].keyboard_event.push_back(p);
+  }
 
   void feed_mouse_move(const fan::vec2& mouse_position) {
     for (uint32_t depth = max_depths; depth--; ) {
@@ -267,7 +288,7 @@ struct loco_t {
        }
        #if fan_debug >= fan_debug_medium
        else if (r != 1) {
-         fan::throw_error("early access problems (something not initialized)");
+         fan::throw_error("early access problems xd (something not initialized)");
        }
        #endif
     }
@@ -275,20 +296,25 @@ struct loco_t {
 
   void feed_mouse_input(uint16_t button, fan::key_state key_state, const fan::vec2& mouse_position) {
     for (uint32_t depth = max_depths; depth--; ) {
-      uint32_t r = element_depth[depth].input_hitbox.feed_mouse_input(this, button, key_state, mouse_position, depth);
+      uint32_t r = element_depth[depth].input_hitbox.feed_mouse_input(this, button, key_state, mouse_position, depth, &focus_shape_id);
       if (r == 0) {
         break;
       }
       #if fan_debug >= fan_debug_medium
       else if (r != 1) {
-        fan::throw_error("early access problems (something not initialized)");
+        fan::throw_error("early access problems xd (something not initialized)");
       }
       #endif
     }
   }
 
-  void feed_keyboard(fan::opengl::context_t* context, uint16_t key, fan::key_state key_state) {
-    //input_hitbox.feed_keyboard(context, key, key_state);
+  void feed_keyboard(uint16_t key, fan::key_state key_state) {
+    for (uint32_t depth = max_depths; depth--; ) {
+      uint32_t r = element_depth[depth].keyboard_event.feed_keyboard(this, key, key_state, depth);
+      if (r == 0) {
+        break;
+      }
+    }
   }
 
   uint32_t process_frame() {
@@ -300,13 +326,15 @@ struct loco_t {
       }
     #endif
       #if fan_renderer == fan_renderer_opengl
-      //get_context()->opengl.call(get_context()->opengl.glDepthMask, 0);
      // get_context()->opengl.call(get_context()->opengl.glClearColor, 1, 0, 0, 0);
       get_context()->opengl.call(get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
       #endif
 
       m_write_queue.process(get_context());
 
+    #if defined(loco_line)
+      line.draw(this);
+    #endif
     #if defined(loco_rectangle)
       rectangle.draw(this);
     #endif
@@ -342,6 +370,12 @@ struct loco_t {
 
   void set_vsync(bool flag) {
     get_context()->set_vsync(get_window(), flag);
+  }
+
+  fan::vec2 get_mouse_position() {
+    fan::vec2 window_size = get_window()->get_size();
+    // not custom ortho friendly - made for -1 1
+    return fan::cast<f32_t>(get_window()->get_mouse_position()) / window_size * 2 - 1;
   }
 
   fan::opengl::core::uniform_write_queue_t m_write_queue;

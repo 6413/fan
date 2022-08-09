@@ -477,6 +477,16 @@ void fan::window_t::set_size_mode(const mode& mode)
   flag_values::m_size_mode = mode;
 }
 
+fan::window_t::callback_id_t fan::window_t::add_buttons_callback(void* user_ptr, buttons_callback_cb_t function)
+{
+  return this->m_buttons_callback.push_back(fan::make_pair(function, user_ptr));
+}
+
+void fan::window_t::remove_buttons_callback(callback_id_t id)
+{
+  this->m_buttons_callback.unlink(id);
+}
+
 fan::window_t::callback_id_t fan::window_t::add_keys_callback(void* user_ptr, keys_callback_cb_t function)
 {
   return this->m_keys_callback.push_back(fan::make_pair(function, user_ptr));
@@ -748,6 +758,7 @@ void fan::window_t::destroy_window()
 
   #endif
 
+  m_buttons_callback.close();
   m_keys_callback.close();
 	m_key_callback.close();
 	m_key_combo_callback.close();
@@ -1113,6 +1124,7 @@ static bool isExtensionSupported(const char* extList, const char* extension) {
 
 void fan::window_t::initialize_window(const std::string& name, const fan::vec2i& window_size, uint64_t flags)
 {
+  m_buttons_callback.open();
   m_keys_callback.open();
 	m_key_callback.open();
 	m_key_combo_callback.open();
@@ -1568,13 +1580,13 @@ uint32_t fan::window_t::handle_events() {
 
         fan::window_t::window_input_mouse_action(window->m_window_handle, key);
 
-        auto it = window->m_keys_callback.begin();
+        auto it = window->m_buttons_callback.begin();
 
-        while (it != window->m_keys_callback.end()) {
+        while (it != window->m_buttons_callback.end()) {
 
-          window->m_keys_callback[it].first(window, key, key_state::press, window->m_keys_callback[it].second);
+          window->m_buttons_callback[it].first(window, key, key_state::press, window->m_buttons_callback[it].second);
 
-          it = window->m_keys_callback.next(it);
+          it = window->m_buttons_callback.next(it);
         }
 
         break;
@@ -1591,13 +1603,13 @@ uint32_t fan::window_t::handle_events() {
 
         fan::window_t::window_input_mouse_action(window->m_window_handle, key);
 
-        auto it = window->m_keys_callback.begin();
+        auto it = window->m_buttons_callback.begin();
 
-        while (it != window->m_keys_callback.end()) {
+        while (it != window->m_buttons_callback.end()) {
 
-          window->m_keys_callback[it].first(window, key, key_state::press, window->m_keys_callback[it].second);
+          window->m_buttons_callback[it].first(window, key, key_state::press, window->m_buttons_callback[it].second);
 
-          it = window->m_keys_callback.next(it);
+          it = window->m_buttons_callback.next(it);
         }
 
         break;
@@ -1614,13 +1626,13 @@ uint32_t fan::window_t::handle_events() {
 
         fan::window_t::window_input_mouse_action(window->m_window_handle, key);
 
-        auto it = window->m_keys_callback.begin();
+        auto it = window->m_buttons_callback.begin();
 
-        while (it != window->m_keys_callback.end()) {
+        while (it != window->m_buttons_callback.end()) {
 
-          window->m_keys_callback[it].first(window, key, key_state::press, window->m_keys_callback[it].second);
+          window->m_buttons_callback[it].first(window, key, key_state::press, window->m_buttons_callback[it].second);
 
-          it = window->m_keys_callback.next(it);
+          it = window->m_buttons_callback.next(it);
         }
 
         break;
@@ -1661,13 +1673,13 @@ uint32_t fan::window_t::handle_events() {
 
         fan::window_t::window_input_mouse_action(window->m_window_handle, zDelta < 0 ? fan::input::mouse_scroll_down : fan::input::mouse_scroll_up);
 
-        auto it = window->m_keys_callback.begin();
+        auto it = window->m_buttons_callback.begin();
 
-        while (it != window->m_keys_callback.end()) {
+        while (it != window->m_buttons_callback.end()) {
 
-          window->m_keys_callback[it].first(window, zDelta < 0 ? fan::input::mouse_scroll_down : fan::input::mouse_scroll_up, key_state::press, window->m_keys_callback[it].second);
+          window->m_buttons_callback[it].first(window, zDelta < 0 ? fan::input::mouse_scroll_down : fan::input::mouse_scroll_up, key_state::press, window->m_buttons_callback[it].second);
 
-          it = window->m_keys_callback.next(it);
+          it = window->m_buttons_callback.next(it);
         }
 
         break;
@@ -1753,15 +1765,13 @@ uint32_t fan::window_t::handle_events() {
 
           else if (fan::is_flag(raw->data.mouse.usButtonFlags, RI_MOUSE_LEFT_BUTTON_UP)) {
 
-            auto it = window->m_keys_callback.begin();
+            auto it = window->m_buttons_callback.begin();
 
-            while (it != window->m_keys_callback.end()) {
+            while (it != window->m_buttons_callback.end()) {
 
-              window->m_keys_callback.start_safe_next(it);
+              window->m_buttons_callback[it].first(window, fan::input::mouse_left, key_state::release, window->m_buttons_callback[it].second);
 
-              window->m_keys_callback[it].first(window, fan::mouse_left, key_state::release, window->m_keys_callback[it].second);
-
-              it = window->m_keys_callback.end_safe_next();
+              it = window->m_buttons_callback.next(it);
             }
 
             window_input_up(window->m_window_handle, fan::input::mouse_left); allow_outside = false;
@@ -1769,15 +1779,13 @@ uint32_t fan::window_t::handle_events() {
 
           else if (fan::is_flag(raw->data.mouse.usButtonFlags, RI_MOUSE_MIDDLE_BUTTON_UP)) {
 
-            auto it = window->m_keys_callback.begin();
+            auto it = window->m_buttons_callback.begin();
 
-            while (it != window->m_keys_callback.end()) {
+            while (it != window->m_buttons_callback.end()) {
 
-              window->m_keys_callback.start_safe_next(it);
+              window->m_buttons_callback[it].first(window, fan::input::mouse_middle, key_state::release, window->m_buttons_callback[it].second);
 
-              window->m_keys_callback[it].first(window, fan::mouse_middle, key_state::release, window->m_keys_callback[it].second);
-
-              it = window->m_keys_callback.end_safe_next();
+              it = window->m_buttons_callback.next(it);
             }
 
             window_input_up(window->m_window_handle, fan::input::mouse_middle); allow_outside = false;
@@ -1785,15 +1793,13 @@ uint32_t fan::window_t::handle_events() {
 
           else if (fan::is_flag(raw->data.mouse.usButtonFlags, RI_MOUSE_RIGHT_BUTTON_UP)) {
 
-            auto it = window->m_keys_callback.begin();
+            auto it = window->m_buttons_callback.begin();
 
-            while (it != window->m_keys_callback.end()) {
+            while (it != window->m_buttons_callback.end()) {
 
-              window->m_keys_callback.start_safe_next(it);
+              window->m_buttons_callback[it].first(window, fan::input::mouse_right, key_state::release, window->m_buttons_callback[it].second);
 
-              window->m_keys_callback[it].first(window, fan::mouse_right, key_state::release, window->m_keys_callback[it].second);
-
-              it = window->m_keys_callback.end_safe_next();
+              it = window->m_buttons_callback.next(it);
             }
 
             window_input_up(window->m_window_handle, fan::input::mouse_right); allow_outside = false;
@@ -2072,14 +2078,13 @@ uint32_t fan::window_t::handle_events() {
 
         window->window_input_mouse_action(window->m_window_handle, key);
 
-        auto it = window->m_keys_callback.begin();
+        auto it = window->m_buttons_callback.begin();
 
-        while (it != window->m_keys_callback.end()) {
-          window->m_keys_callback.start_safe_next(it);
+        while (it != window->m_buttons_callback.end()) {
 
-          window->m_keys_callback[it].first(window, key, key_state::press, window->m_keys_callback[it].second);
+          window->m_buttons_callback[it].first(window, key, key_state::press, window->m_buttons_callback[it].second);
 
-          it = window->m_keys_callback.end_safe_next();
+          it = window->m_buttons_callback.next(it);
         }
 
         break;
@@ -2106,13 +2111,13 @@ uint32_t fan::window_t::handle_events() {
         auto key = fan::window_input::convert_keys_to_fan(event.xbutton.button);
         window->window_input_up(window->m_window_handle, key);
 
-        auto it = window->m_keys_callback.begin();
+        auto it = window->m_buttons_callback.begin();
 
-        while (it != window->m_keys_callback.end()) {
+        while (it != window->m_buttons_callback.end()) {
 
-          window->m_keys_callback.start_safe_next(it);
-          window->m_keys_callback[it].first(window, key, key_state::release, window->m_keys_callback[it].second);
-          it = window->m_keys_callback.end_safe_next();
+          window->m_buttons_callback[it].first(window, key, key_state::release, window->m_buttons_callback[it].second);
+
+          it = window->m_buttons_callback.next(it);
         }
 
         break;

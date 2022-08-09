@@ -43,13 +43,10 @@ namespace fan_2d {
         };
 
         struct properties_t {
+          on_input_cb_t on_input_cb;
+          on_mouse_move_cb_t on_mouse_event_cb;
 
-          using type_t = be_t;
-
-          on_input_cb_t on_input_function;
-          on_mouse_move_cb_t on_mouse_event_function;
-
-          void* userptr[3];
+          void* userptr;
 
           void* cid;
 
@@ -64,14 +61,6 @@ namespace fan_2d {
               f32_t radius;
             }hitbox_circle;
           };
-        };
-
-        struct key_info_t {
-          be_t* be;
-          uint32_t index;
-          uint16_t key;
-          fan::key_state key_state;
-          fan_2d::graphics::gui::mouse_stage_e mouse_stage;
         };
 
         void open() {
@@ -107,44 +96,44 @@ namespace fan_2d {
 
         uint8_t feed_mouse_move(loco_t* loco, const fan::vec2& mouse_position, uint32_t depth) {
           #define move_data(index) \
-          mm_data.loco = loco;   \
-          mm_data.button_event = this;   \
-          mm_data.element_id = m_button_data[index].properties.cid;   \
-          mm_data.userptr = m_button_data[index].properties.userptr;   \
-          mm_data.depth = depth;   \
-          m_button_data[index].on_mouse_move_lib_cb(mm_data);   \
-          if (!m_button_data[index].properties.on_mouse_event_function(mm_data)) {   \
+          move_data.loco = loco;   \
+          move_data.button_event = this;   \
+          move_data.element_id = m_button_data[index].properties.cid;   \
+          move_data.userptr = m_button_data[index].properties.userptr;   \
+          move_data.depth = depth;   \
+          m_button_data[index].on_mouse_move_lib_cb(move_data);   \
+          if (!m_button_data[index].properties.on_mouse_event_cb(move_data)) {   \
             return 0;   \
           }
 
-          if (m_do_we_hold_button == 1) {
-            mouse_move_data_t mm_data;
-            mm_data.changed = false;
+          if (m_do_we_hold_button == 1 && m_focused_button_id != fan::uninitialized) {
+            mouse_move_data_t move_data;
+            move_data.changed = false;
             if (inside(m_focused_button_id, coordinate_offset + mouse_position)) {
-              mm_data.mouse_stage = mouse_stage_e::inside;
+              move_data.mouse_stage = mouse_stage_e::inside;
               move_data(m_focused_button_id);
             }
             else {
               uint32_t id = m_focused_button_id;
               m_focused_button_id = fan::uninitialized;
-              mm_data.mouse_stage = mouse_stage_e::outside;
+              move_data.mouse_stage = mouse_stage_e::outside;
               move_data(id);
             }
             
           }
           if (m_focused_button_id != fan::uninitialized) {
-            mouse_move_data_t mm_data;
+            mouse_move_data_t move_data;
             
             if (inside(m_focused_button_id, coordinate_offset + mouse_position)) {
-              mm_data.changed = false;
-              mm_data.mouse_stage = mouse_stage_e::inside;
+              move_data.changed = false;
+              move_data.mouse_stage = mouse_stage_e::inside;
               move_data(m_focused_button_id);
             }
             else {
               uint32_t id = m_focused_button_id;
               m_focused_button_id = fan::uninitialized;
-              mm_data.changed = true;
-              mm_data.mouse_stage = mouse_stage_e::outside;
+              move_data.changed = true;
+              move_data.mouse_stage = mouse_stage_e::outside;
               move_data(id);
             }
           }
@@ -153,16 +142,16 @@ namespace fan_2d {
             if (inside(i, coordinate_offset + mouse_position)) {
               m_focused_button_id = i;
 
-              mouse_move_data_t mm_data;
-              mm_data.changed = true;
-              mm_data.mouse_stage = mouse_stage_e::inside;
+              mouse_move_data_t move_data;
+              move_data.changed = true;
+              move_data.mouse_stage = mouse_stage_e::inside;
               move_data(m_focused_button_id);
               return 1;
             }
             else {
-              mouse_move_data_t mm_data;
-              mm_data.changed = false;
-              mm_data.mouse_stage = mouse_stage_e::outside;
+              mouse_move_data_t move_data;
+              move_data.changed = false;
+              move_data.mouse_stage = mouse_stage_e::outside;
               move_data(i);
             }
             i = m_button_data.rnext(i);
@@ -170,16 +159,23 @@ namespace fan_2d {
           return 1;
         }
 
-        uint8_t feed_mouse_input(loco_t* loco, uint16_t button, fan::key_state state, const fan::vec2& mouse_position, uint32_t depth) {
+        uint8_t feed_mouse_input(loco_t* loco, uint16_t button, fan::key_state state, const fan::vec2& mouse_position, uint32_t depth, void** focus_id) {
+          auto reset_focus = [&] {
+            *focus_id = (void*)fan::uninitialized;
+          };
+          auto set_focus = [&](auto id) {
+            *focus_id = (void*)m_button_data[id].properties.cid;
+          };
+
           #define input_data(index) \
-          ii_data.loco = loco; \
-          ii_data.button_event = this; \
-          ii_data.element_id = m_button_data[index].properties.cid; \
-          ii_data.key = button; \
-          ii_data.userptr = m_button_data[index].properties.userptr; \
-          ii_data.depth = depth; \
-          m_button_data[index].on_input_lib_cb(ii_data); \
-          if (!m_button_data[index].properties.on_input_function(ii_data)) { \
+          input_data.loco = loco; \
+          input_data.button_event = this; \
+          input_data.element_id = m_button_data[index].properties.cid; \
+          input_data.key = button; \
+          input_data.userptr = m_button_data[index].properties.userptr; \
+          input_data.depth = depth; \
+          m_button_data[index].on_input_lib_cb(input_data); \
+          if (!m_button_data[index].properties.on_input_cb(input_data)) { \
             return 0; \
           }
 
@@ -188,22 +184,25 @@ namespace fan_2d {
               if (m_focused_button_id != fan::uninitialized) {
                 m_do_we_hold_button = 1;
 
-                mouse_input_data_t ii_data;
-                ii_data.mouse_stage = mouse_stage_e::inside;
-                ii_data.key_state = fan::key_state::press;
+                mouse_input_data_t input_data;
+                input_data.key_state = fan::key_state::press;
+                input_data.mouse_stage = mouse_stage_e::inside;
+                set_focus(m_focused_button_id);
                 input_data(m_focused_button_id);
               }
               else {
                 uint32_t i = m_button_data.rbegin();
                 while (i != m_button_data.rend()) {
                   if (inside(i, coordinate_offset + mouse_position)) {
-                    mouse_input_data_t ii_data;
-                    ii_data.key_state = fan::key_state::press;
-                    ii_data.mouse_stage = mouse_stage_e::inside;
+                    mouse_input_data_t input_data;
+                    input_data.key_state = fan::key_state::press;
+                    input_data.mouse_stage = mouse_stage_e::inside;
+                    set_focus(i);
                     input_data(i);
                   }
                   i = m_button_data.rnext(i);
                 }
+                reset_focus();
                 return 1; // clicked at space
               }
             }
@@ -211,9 +210,9 @@ namespace fan_2d {
               uint32_t i = m_button_data.rbegin();
               while (i != m_button_data.rend()) {
                 if (inside(i, coordinate_offset + mouse_position)) {
-                  mouse_input_data_t ii_data;
-                  ii_data.mouse_stage = mouse_stage_e::inside;
-                  ii_data.key_state = fan::key_state::release;
+                  mouse_input_data_t input_data;
+                  input_data.mouse_stage = mouse_stage_e::inside;
+                  input_data.key_state = fan::key_state::release;
                   input_data(i);
                 }
                 /* maybe not possible xd
@@ -221,9 +220,9 @@ namespace fan_2d {
                   fan::throw_error("b");
                   m_do_we_hold_button = 0;
                   m_focused_button_id = i;
-                  mouse_input_data_t ii_data;
-                  ii_data.mouse_stage = mouse_stage_e::outside;
-                  ii_data.key_state = fan::key_state::release;
+                  mouse_input_data_t input_data;
+                  input_data.mouse_stage = mouse_stage_e::outside;
+                  input_data.key_state = fan::key_state::release;
                   input_data(m_focused_button_id);
                 }*/
                 i = m_button_data.rnext(i);
@@ -235,13 +234,13 @@ namespace fan_2d {
             if (state == fan::key_state::press) {
               return 1; // double press
             }
-            else {
+            else if (m_focused_button_id != fan::uninitialized){
               if (inside(m_focused_button_id, coordinate_offset + mouse_position)) {
                 pointer_remove_flag = 1;
                 m_do_we_hold_button = 0;
-                mouse_input_data_t ii_data;
-                ii_data.mouse_stage = mouse_stage_e::inside;
-                ii_data.key_state = fan::key_state::release;
+                mouse_input_data_t input_data;
+                input_data.mouse_stage = mouse_stage_e::inside;
+                input_data.key_state = fan::key_state::release;
                 input_data(m_focused_button_id);
                 if (pointer_remove_flag == 0) {
                   return 1;
@@ -254,9 +253,9 @@ namespace fan_2d {
                   if (inside(i, coordinate_offset + mouse_position)) {
                     m_do_we_hold_button = 0;
                     m_focused_button_id = i;
-                    mouse_input_data_t ii_data;
-                    ii_data.mouse_stage = mouse_stage_e::inside_drag;
-                    ii_data.key_state = fan::key_state::release;
+                    mouse_input_data_t input_data;
+                    input_data.mouse_stage = mouse_stage_e::inside_drag;
+                    input_data.key_state = fan::key_state::release;
                     input_data(m_focused_button_id);
                     break;
                   }
@@ -266,9 +265,9 @@ namespace fan_2d {
                 pointer_remove_flag = 1;
                 m_do_we_hold_button = 0;
                 m_focused_button_id = fan::uninitialized;
-                mouse_input_data_t ii_data;
-                ii_data.mouse_stage = mouse_stage_e::outside;
-                ii_data.key_state = fan::key_state::release;
+                mouse_input_data_t input_data;
+                input_data.mouse_stage = mouse_stage_e::outside;
+                input_data.key_state = fan::key_state::release;
                 input_data(m_focused_button_id);
                 if (pointer_remove_flag == 0) {
                   return 1;
@@ -333,3 +332,6 @@ namespace fan_2d {
     }
   }
 }
+
+#undef input_data
+#undef move_data

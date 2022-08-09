@@ -1,20 +1,22 @@
 R"(
 #version 140
 
-#define get_instance() instance.st[gl_VertexID / 2]
+#define get_instance() instance[gl_VertexID / 2]
 
 out vec4 instance_color;
 
 uniform mat4 view;
 uniform mat4 projection;
 
+struct block_instance_t {
+	vec4 color;
+	vec3 src;
+	vec2 dst;
+};
+
 layout (std140) uniform instance_t {
-	struct{
-		vec4 color;
-		vec3 src;
-		vec2 dst;
-	}st[256];
-}instance;
+	block_instance_t instance[256];
+};
 
 void main() {
 	uint id = uint(gl_VertexID);

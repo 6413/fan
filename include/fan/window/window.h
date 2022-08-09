@@ -166,6 +166,7 @@ namespace fan {
 			constexpr static fan::vec2i r_1920x1080 = fan::vec2i(1920, 1080);
 		};
 
+		typedef void(*buttons_callback_cb_t)(fan::window_t*, uint16_t, key_state, void* user_ptr);
 		typedef void(*keys_callback_cb_t)(fan::window_t*, uint16_t, key_state, void* user_ptr);
 		typedef void(*key_callback_cb_t)(fan::window_t*, uint16_t key, void* user_ptr);
 		typedef void(*keys_combo_callback_cb_t)(fan::window_t*, void* user_ptr);
@@ -312,6 +313,9 @@ namespace fan {
 		}
 		typedef uint32_t callback_id_t;
 
+		callback_id_t add_buttons_callback(void* user_ptr, buttons_callback_cb_t function);
+		void remove_buttons_callback(callback_id_t id);
+
 		callback_id_t add_keys_callback(void* user_ptr, keys_callback_cb_t function);
 		void remove_keys_callback(callback_id_t id);
 
@@ -419,6 +423,7 @@ namespace fan {
 
 		window_handle_t m_window_handle;
 
+		bll_t<pair_t<keys_callback_cb_t, void*>> m_buttons_callback;
 		bll_t<pair_t<keys_callback_cb_t, void*>> m_keys_callback;
 		bll_t<key_callback_t> m_key_callback;
 		bll_t<key_combo_callback_t> m_key_combo_callback;
