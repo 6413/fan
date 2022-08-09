@@ -1,4 +1,7 @@
 #include _FAN_PATH(graphics/graphics.h)
+
+struct loco_t;
+
 #include _FAN_PATH(graphics/gui/be.h)
 
 #define BDBT_set_prefix loco_bdbt
@@ -171,14 +174,14 @@ struct loco_t {
       loco_t& loco = *(loco_t*)user_ptr;
       fan::vec2 window_size = window->get_size();
       // not custom ortho friendly - made for -1 1
-      loco.feed_mouse_input(loco.get_context(), key, key_state, fan::cast<f32_t>(window->get_mouse_position()) / window_size * 2 - 1);
+      loco.feed_mouse_input(key, key_state, fan::cast<f32_t>(window->get_mouse_position()) / window_size * 2 - 1);
     });
 
     get_window()->add_mouse_move_callback(this, [](fan::window_t* window, const fan::vec2i& mouse_position, void* user_ptr) {
       loco_t& loco = *(loco_t*)user_ptr;
       fan::vec2 window_size = window->get_size();
       // not custom ortho friendly - made for -1 1
-      loco.feed_mouse_move(loco.get_context(), fan::cast<f32_t>(mouse_position) / window_size * 2 - 1);
+      loco.feed_mouse_move(fan::cast<f32_t>(mouse_position) / window_size * 2 - 1);
     });
 
     context.open();
@@ -256,9 +259,9 @@ struct loco_t {
     when any feed function comes loco will check focus_shape_type. if its  uninitialized loco will query input if input is on something if its related with something. It will assign focus_shape_type to what its supposed to be.
   */
 
-  void feed_mouse_move(fan::opengl::context_t* context, const fan::vec2& mouse_position) {
+  void feed_mouse_move(const fan::vec2& mouse_position) {
     for (uint32_t depth = max_depths; depth--; ) {
-       uint32_t r = element_depth[depth].input_hitbox.feed_mouse_move(context, mouse_position, depth);
+       uint32_t r = element_depth[depth].input_hitbox.feed_mouse_move(this, mouse_position, depth);
        if (r == 0) {
          break;
        }
@@ -270,9 +273,9 @@ struct loco_t {
     }
   }
 
-  void feed_mouse_input(fan::opengl::context_t* context, uint16_t button, fan::key_state key_state, const fan::vec2& mouse_position) {
+  void feed_mouse_input(uint16_t button, fan::key_state key_state, const fan::vec2& mouse_position) {
     for (uint32_t depth = max_depths; depth--; ) {
-      uint32_t r = element_depth[depth].input_hitbox.feed_mouse_input(context, button, key_state, mouse_position, depth);
+      uint32_t r = element_depth[depth].input_hitbox.feed_mouse_input(this, button, key_state, mouse_position, depth);
       if (r == 0) {
         break;
       }

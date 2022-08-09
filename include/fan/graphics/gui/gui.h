@@ -14,8 +14,6 @@
 
 #endif
 
-#include _FAN_PATH(graphics/gui/be.h)
-
 namespace fan_2d {
 	namespace graphics {
 		namespace gui {
