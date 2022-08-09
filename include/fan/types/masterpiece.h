@@ -68,10 +68,10 @@ namespace fan {
       using type = typename get<N + 1, fan::masterpiece_reversed_t<Ts...>>::type;
     };
 
-    template <typename T, typename... Ts>
-    struct get<count, fan::masterpiece_reversed_t<T, Ts...>>
+    template <typename T2, typename... Ts>
+    struct get<count, fan::masterpiece_reversed_t<T2, Ts...>>
     {
-      using type = T;
+      using type = T2;
     };
   public:
 

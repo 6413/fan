@@ -1,5 +1,3 @@
-#pragma once
-
 #include _FAN_PATH(types/types.h)
 
 #include _FAN_PATH(types/color.h)
@@ -10,9 +8,11 @@ namespace fan_2d {
 	namespace graphics {
 		namespace gui {
 
-			struct theme {
+			struct theme_t {
 
-				theme() = default;
+				theme_t() = default;
+				void open(fan::opengl::context_t* context);
+				void close(fan::opengl::context_t* context);
 
 				//template <typename T>
 				//theme operator+(T value) const {
@@ -31,8 +31,8 @@ namespace fan_2d {
 				//}
 
 				template <typename T>
-				theme operator*(T value) const {
-					theme t;
+				theme_t operator*(T value) const {
+					theme_t t;
 					t.button.color = button.color * value;
 					t.button.outline_color = button.outline_color * value;
 					t.button.text_outline_color = button.text_outline_color * value;
@@ -43,8 +43,8 @@ namespace fan_2d {
 					return t;
 				}
 				template <typename T>
-				theme operator/(T value) const {
-					theme t;
+				theme_t operator/(T value) const {
+					theme_t t;
 					t.button.color = button.color / value;
 					t.button.outline_color = button.outline_color / value;
 					t.button.text_outline_color = button.text_outline_color / value;
@@ -74,13 +74,15 @@ namespace fan_2d {
 					f32_t outline_size;
 
 				}button;
+
+				fan::opengl::theme_list_NodeReference_t theme_reference;
 			};
 
-			using theme_ptr_t = fan::ptr_maker_t<theme>;
+			using theme_ptr_t = fan::ptr_maker_t<theme_t>;
 
 			namespace themes {
 
-				struct empty : public fan_2d::graphics::gui::theme {
+				struct empty : public fan_2d::graphics::gui::theme_t {
 					empty() {
 
 						button.color = fan::color(0, 0, 0);
@@ -92,7 +94,7 @@ namespace fan_2d {
 					}
 				};	
 
-				struct deep_blue : public fan_2d::graphics::gui::theme {
+				struct deep_blue : public fan_2d::graphics::gui::theme_t {
 					deep_blue(f32_t intensity = 1) {
 						button.color = fan::color(0, 0, 0.3) * intensity;
 						button.outline_color = fan::color(0, 0, 0.5) * intensity;
@@ -103,7 +105,7 @@ namespace fan_2d {
 					}
 				};	
 
-				struct deep_red : public fan_2d::graphics::gui::theme {
+				struct deep_red : public fan_2d::graphics::gui::theme_t {
 
 					deep_red(f32_t intensity = 1) {
 
@@ -116,7 +118,7 @@ namespace fan_2d {
 					}
 				};
 
-				struct white : public fan_2d::graphics::gui::theme {
+				struct white : public fan_2d::graphics::gui::theme_t {
 					white() {
 
 						button.color = fan::color(0.8, 0.8, 0.8);
@@ -128,7 +130,7 @@ namespace fan_2d {
 					}
 				};	
 
-				struct locked : public fan_2d::graphics::gui::theme {
+				struct locked : public fan_2d::graphics::gui::theme_t {
 					locked() {
 						button.color = fan::color(0.2, 0.2, 0.2, 0.8);
 						button.outline_color = fan::color(0.3, 0.3, 0.3, 0.8);
@@ -139,7 +141,7 @@ namespace fan_2d {
 					}
 				};	
 
-				struct hidden : public fan_2d::graphics::gui::theme {
+				struct hidden : public fan_2d::graphics::gui::theme_t {
 					hidden() {
 						button.color = fan::color(0.0, 0.0, 0.0, 0.3);
 						button.outline_color = fan::color(0.0, 0.0, 0.0, 0.3);
@@ -150,7 +152,7 @@ namespace fan_2d {
 					}
 				};
 
-				struct transparent : public fan_2d::graphics::gui::theme {
+				struct transparent : public fan_2d::graphics::gui::theme_t {
 					transparent(f32_t intensity = 0.3) {
 						button.color = fan::color(intensity, intensity, intensity, intensity);
 						button.outline_color = fan::color(intensity + 0.2, intensity + 0.2, intensity + 0.2, intensity + 0.2);
@@ -161,7 +163,7 @@ namespace fan_2d {
 					}
 				};
 
-				struct gray : public fan_2d::graphics::gui::theme {
+				struct gray : public fan_2d::graphics::gui::theme_t {
 					gray(f32_t intensity = 1) {
 
 						button.color = fan::color(0.2, 0.2, 0.2, 1) * intensity;
@@ -173,7 +175,7 @@ namespace fan_2d {
 					}
 				};
 
-				struct custom : public fan_2d::graphics::gui::theme {
+				struct custom : public fan_2d::graphics::gui::theme_t {
 					struct properties_t {
 						fan::color color;
 						fan::color outline_color;

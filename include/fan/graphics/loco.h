@@ -1,5 +1,5 @@
+#include _FAN_PATH(graphics/graphics.h)
 #include _FAN_PATH(graphics/gui/be.h)
-#include _FAN_PATH(graphics/gui/themes.h)
 
 #define BDBT_set_prefix loco_bdbt
 #define BDBT_set_type_node uint16_t
@@ -78,14 +78,30 @@ struct loco_t {
 
   // automatically gets necessary macros for shapes
 
-  #if defined(loco_text_box) && !defined(loco_letter)
-    #define loco_letter
+  #if defined(loco_text_box)
+    #if !defined(loco_letter)
+      #define loco_letter
+    #endif
+    #if !defined(loco_text)
+      #define loco_text
+    #endif
+    #if !defined(loco_box)
+      #define loco_box
+    #endif
   #endif
-  #if defined(loco_text_box) && !defined(loco_text)
-    #define loco_text
-  #endif
-  #if defined(loco_text_box) && !defined(loco_box)
-    #define loco_box
+  #if defined(loco_button)
+    #if !defined(loco_letter)
+      #define loco_letter
+    #endif
+    #if !defined(loco_text)
+      #define loco_text
+    #endif
+    #if !defined(loco_box)
+      #define loco_box
+    #endif
+    #if !defined(loco_text_box)
+      #define loco_text_box
+    #endif
   #endif
 
   #if defined(loco_rectangle)
@@ -98,43 +114,40 @@ struct loco_t {
   #endif
   #if defined(loco_letter)
     #if !defined(loco_font)
-    #define loco_font "fonts/bitter"
+      #define loco_font "fonts/bitter"
     #endif
     #include _FAN_PATH(graphics/opengl/2D/objects/letter_renderer.h)
     letter_t letter;
   #endif
   #if defined(loco_text)
     #include _FAN_PATH(graphics/opengl/2D/objects/text_renderer.h)
-    text_renderer_t text;
     using text_t = text_renderer_t;
+    text_t text;
   #endif
   #if defined(loco_box)
     #include _FAN_PATH(graphics/gui/rectangle_box.h)
-    rectangle_box_t box;
     using box_t = rectangle_box_t;
+    box_t box;
   #endif
   #if defined(loco_text_box)
     #include _FAN_PATH(graphics/gui/rectangle_text_box.h)
-    rectangle_text_box_t text_box;
     using text_box_t = rectangle_text_box_t;
+    text_box_t text_box;
   #endif
   #if defined(loco_button)
-  #if !defined(loco_letter)
-  #error need to enable loco_letter to use rectangle_text_button
-  #undef loco_rectangle_text_button
-  #endif
-    struct button_t : fan_2d::graphics::gui::rectangle_text_button_t {
-      uint32_t push_back(uint32_t input_depth, const properties_t& p) {
+    #include _FAN_PATH(graphics/gui/rectangle_text_button.h)
+    struct button_t : rectangle_text_button_t {
+      uint32_t push_back(uint32_t input_depth, properties_t& p) {
         loco_t* loco = OFFSETLESS(this, loco_t, button);
-        return fan_2d::graphics::gui::rectangle_text_button_t::push_back(loco->get_context(), &loco->element_depth[input_depth].input_hitbox, &loco->letter, p);
+        return rectangle_text_button_t::push_back(loco, &loco->element_depth[input_depth].input_hitbox, p);
       }
     private:
-      using fan_2d::graphics::gui::rectangle_text_button_t::push_back;
+      using rectangle_text_button_t::push_back;
     }button;
   #endif
 
   struct {
-  fan_2d::graphics::gui::be_t input_hitbox;
+    fan_2d::graphics::gui::be_t input_hitbox;
   }element_depth[max_depths];
 
   using mouse_input_data_t = fan_2d::graphics::gui::be_t::mouse_input_data_t;
@@ -295,6 +308,7 @@ struct loco_t {
       rectangle.draw(this);
     #endif
     #if defined(loco_sprite)
+      // can be moved
       sprite.draw(this);
     #endif
     #if defined(loco_letter)
@@ -303,9 +317,6 @@ struct loco_t {
     #endif
     #if defined(loco_box)
       box.draw(this);
-    #endif
-    #if defined(loco_button)
-      button.draw(this);
     #endif
 
     #ifdef loco_window

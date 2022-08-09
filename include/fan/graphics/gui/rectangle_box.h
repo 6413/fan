@@ -13,29 +13,37 @@ struct rectangle_box_t {
 
   static constexpr uint32_t max_instance_size = std::min(256ull, 4096 / (sizeof(instance_t) / 4));
 
-  typedef fan::masterpiece_t<
-    fan::opengl::matrices_list_NodeReference_t,
-    fan::opengl::viewport_list_NodeReference_t
-  >block_properties_t;
+  struct instance_properties_t {
+    struct key_t : fan::masterpiece_t<
+      fan::opengl::matrices_list_NodeReference_t,
+      fan::opengl::viewport_list_NodeReference_t
+    > {}key;
+
+    fan::opengl::theme_list_NodeReference_t theme;
+  };
 
   struct properties_t : instance_t {
-    fan_2d::graphics::gui::theme theme = fan_2d::graphics::gui::themes::deep_red();
-
+   // properties_t() : theme(fan_2d::graphics::gui::themes::deep_red()) {}
     union {
       struct {
         fan::opengl::matrices_list_NodeReference_t matrices;
         fan::opengl::viewport_list_NodeReference_t viewport;
+        fan::opengl::theme_list_NodeReference_t theme;
       };
-      block_properties_t block_properties;
+      instance_properties_t instance_properties;
     };
   };
 
   void push_back(loco_t* loco, fan::opengl::cid_t* cid, properties_t& p) {
-    p.color = p.theme.button.color;
-    p.outline_color = p.theme.button.outline_color;
-    p.outline_size = p.theme.button.outline_size;
+    auto theme = get_theme(loco, p.theme);
+    p.color = theme->button.color;
+    p.outline_color = theme->button.outline_color;
+    p.outline_size = theme->button.outline_size;
 
     sb_push_back(loco, cid, p);
+  }
+  void erase(loco_t* loco, fan::opengl::cid_t* cid) {
+    sb_erase(loco, cid);
   }
 
   void draw(loco_t* loco) {
@@ -51,5 +59,20 @@ struct rectangle_box_t {
   }
   void close(loco_t* loco) {
     sb_close(loco);
+  }
+
+  fan_2d::graphics::gui::theme_t* get_theme(loco_t* loco, fan::opengl::theme_list_NodeReference_t nr) {
+    return fan::opengl::theme_list_GetNodeByReference(&loco->get_context()->theme_list, nr)->data.theme_id;
+  }
+  fan_2d::graphics::gui::theme_t* get_theme(loco_t* loco, fan::opengl::cid_t* cid) {
+    auto block_node = bll_block_GetNodeByReference(&blocks, *(bll_block_NodeReference_t*)&cid->block_id);
+    return get_theme(loco, block_node->data.block.p[cid->instance_id].theme);
+  }
+  void set_theme(loco_t* loco, fan::opengl::cid_t* cid, fan_2d::graphics::gui::theme_t* theme) {
+    set(loco, cid, &instance_t::color, theme->button.color);
+    set(loco, cid, &instance_t::outline_color, theme->button.outline_color);
+    set(loco, cid, &instance_t::outline_size, theme->button.outline_size);
+    auto block_node = bll_block_GetNodeByReference(&blocks, *(bll_block_NodeReference_t*)&cid->block_id);
+    block_node->data.block.p[cid->instance_id].theme = theme;
   }
 };

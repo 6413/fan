@@ -14,7 +14,6 @@
 #include _FAN_PATH(physics/collision/circle.h)
 
 #include _FAN_PATH(graphics/gui/key_event.h)
-#include _FAN_PATH(graphics/gui/themes.h)
 #include _FAN_PATH(graphics/gui/focus.h)
 
 #if fan_renderer == fan_renderer_opengl
@@ -233,7 +232,7 @@ namespace fan_2d {
 			//				using inner_rect_t = fan::class_duplicator<fan_2d::opengl::rectangle, 0>;
 			//				using outer_rect_t = fan::class_duplicator<fan_2d::opengl::rectangle, 1>;
 			//
-			//				rectangle_text_box(fan::camera* camera, fan_2d::opengl::gui::theme theme);
+			//				rectangle_text_box(fan::camera* camera, fan_2d::opengl::gui::theme_t theme);
 			//
 			//				void push_back(const properties_t& properties);
 			//
@@ -284,9 +283,9 @@ namespace fan_2d {
 			//
 			//				void clear();
 			//
-			//				void set_theme(fan_2d::opengl::gui::theme theme_);
+			//				void set_theme(fan_2d::opengl::gui::theme_t theme_);
 			//
-			//				void set_theme(uint32_t i, fan_2d::opengl::gui::theme theme_);
+			//				void set_theme(uint32_t i, fan_2d::opengl::gui::theme_t theme_);
 			//
 			//				void enable_draw();
 			//				void disable_draw();
@@ -296,7 +295,7 @@ namespace fan_2d {
 			//
 			//				using graphics::gui::text_renderer_t::font;
 			//
-			//				fan_2d::opengl::gui::theme theme;
+			//				fan_2d::opengl::gui::theme_t theme;
 			//
 			//			protected:
 			//
@@ -319,7 +318,7 @@ namespace fan_2d {
 			//
 			//				using input_instance_t = fan_2d::opengl::gui::text_input<rectangle_text_button>;
 			//
-			//				rectangle_text_button(fan::camera* camera, fan_2d::opengl::gui::theme theme);
+			//				rectangle_text_button(fan::camera* camera, fan_2d::opengl::gui::theme_t theme);
 			//
 			//				void push_back(const properties_t& properties);
 			//
@@ -359,7 +358,7 @@ namespace fan_2d {
 
 						f32_t radius;
 
-						fan_2d::opengl::gui::theme theme;
+						fan_2d::opengl::gui::theme_t theme;
 
 						button_states_e button_state = button_states_e::clickable;
 					};
@@ -393,7 +392,7 @@ namespace fan_2d {
 
 				protected:
 
-					std::vector<fan_2d::opengl::gui::theme> m_theme;
+					std::vector<fan_2d::opengl::gui::theme_t> m_theme;
 					std::vector<uint32_t> m_reserved;
 
 				};*/
@@ -976,7 +975,7 @@ namespace fan_2d {
 			//				std::function<void(uint32_t)> m_on_check;
 			//				std::function<void(uint32_t)> m_on_uncheck;
 			//
-			//				fan_2d::opengl::gui::theme m_theme;
+			//				fan_2d::opengl::gui::theme_t m_theme;
 			//
 			//				std::deque<bool> m_visible;
 			//				std::deque<checkbox::properties_t> m_properties;
@@ -1001,7 +1000,7 @@ namespace fan_2d {
 			//					std::vector<fan::utf16_string> dropdown_texts;
 			//				};
 			//
-			//				dropdown_menu(fan::camera* camera, const fan_2d::opengl::gui::theme& theme);
+			//				dropdown_menu(fan::camera* camera, const fan_2d::opengl::gui::theme_t& theme);
 			//
 			//				void push_back(const properties_t& property);
 			//

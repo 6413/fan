@@ -6,8 +6,6 @@
 #define fan_debug 0
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
-#include _FAN_PATH(graphics/graphics.h)
-
 #define loco_window
 #define loco_context
 
@@ -77,12 +75,15 @@ int main() {
 
   p.size = fan::vec2(0.3, 0.1);
 
+  fan_2d::graphics::gui::themes::deep_red red_theme;
+  red_theme.open(pile->loco.get_context());
+
   for (uint32_t i = 0; i < count; i++) {
     p.position = fan::vec2(0, 0);
-    p.theme = fan_2d::graphics::gui::themes::deep_red();
+    p.theme = &red_theme;
     pile->loco.box.push_back(&pile->loco, &pile->cids[i], p);
   }
-
+  fan::print(pile->loco.box.get(&pile->loco, &pile->cids[0], &loco_t::box_t::instance_t::color));
   pile->loco.set_vsync(false);
   uint32_t x = 0;
   while(pile->loco.window_open(pile->loco.process_frame())) {

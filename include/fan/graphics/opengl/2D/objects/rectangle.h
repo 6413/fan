@@ -12,10 +12,12 @@ struct rectangle_t {
     f32_t angle = 0;
   };
 
-  typedef fan::masterpiece_t<
-    fan::opengl::matrices_list_NodeReference_t,
-    fan::opengl::viewport_list_NodeReference_t
-  >block_properties_t;
+  struct instance_properties_t {
+    struct key_t : fan::masterpiece_t<
+      fan::opengl::matrices_list_NodeReference_t,
+      fan::opengl::viewport_list_NodeReference_t
+    > {}key;
+  };
       
   struct properties_t : instance_t {
     union {
@@ -23,12 +25,15 @@ struct rectangle_t {
         fan::opengl::matrices_list_NodeReference_t matrices;
         fan::opengl::viewport_list_NodeReference_t viewport;
       };
-      block_properties_t block_properties;
+      instance_properties_t instance_properties;
     };
   };
 
   void push_back(loco_t* loco, fan::opengl::cid_t* cid, properties_t& p) {
     sb_push_back(loco, cid, p);
+  }
+  void erase(loco_t* loco, fan::opengl::cid_t* cid) {
+    sb_erase(loco, cid);
   }
 
   void draw(loco_t* loco) {

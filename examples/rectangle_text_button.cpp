@@ -7,16 +7,9 @@
 
 #include _FAN_PATH(graphics/gui/gui.h)
 
-using rectangle_text_button_t = fan_2d::graphics::gui::rectangle_text_button_t;
-using letter_t = rectangle_text_button_t::letter_t;
-
 #define loco_window
 #define loco_context
-// for testing
-#define loco_rectangle
-#define loco_sprite
 
-#define loco_letter
 #define loco_button
 #include _FAN_PATH(graphics/loco.h)
 
@@ -24,15 +17,19 @@ struct pile_t {
 
   void open() {
     loco.open(loco_t::properties_t());
-    matrices = fan::graphics::open_matrices(
+    fan::graphics::open_matrices(
+      loco.get_context(),
+      &matrices,
       loco.get_window()->get_size(),
       fan::vec2(-1, 1),
       fan::vec2(-1, 1)
     );
+    viewport.open(loco.get_context(), 0, loco.get_window()->get_size());
   }
 
   loco_t loco;
   fan::opengl::matrices_t matrices;
+  fan::opengl::viewport_t viewport;
 };
 
 int main() {
@@ -40,7 +37,9 @@ int main() {
   pile_t pile;
   pile.open();
 
-  loco_t::rectangle_text_button_t::properties_t tp;
+  loco_t::button_t::properties_t tp;
+  tp.matrices = &pile.matrices;
+  tp.viewport = &pile.viewport;
   tp.position = 0;
   tp.size = fan::vec2(0.3, 0.1);
   tp.text = "hello world";
@@ -53,9 +52,11 @@ int main() {
     fan::print(ii_d.key, (int)ii_d.key_state, (int)ii_d.mouse_stage, ii_d.depth);
     return 0;
   };
+  fan_2d::graphics::gui::themes::gray gray_theme;
+  gray_theme.open(pile.loco.get_context());
   uint32_t ids[2];
+  tp.theme = &gray_theme;
   ids[0] = pile.loco.button.push_back(0, tp);
-  tp.theme = fan_2d::graphics::gui::themes::gray();
   tp.position.x += 0.1;
   tp.position.z += 0.2;
   tp.text = "hw2";

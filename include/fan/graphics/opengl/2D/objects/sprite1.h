@@ -21,7 +21,7 @@ struct sprite1_t {
     fan::opengl::textureid_t<1>,
     fan::opengl::matrices_list_NodeReference_t,
     fan::opengl::viewport_list_NodeReference_t
-  >block_properties_t;
+  >instance_properties_t;
 
   struct properties_t : instance_t {
     union {
@@ -31,12 +31,15 @@ struct sprite1_t {
         fan::opengl::matrices_list_NodeReference_t matrices;
         fan::opengl::viewport_list_NodeReference_t viewport;
       };
-      block_properties_t block_properties;
+      instance_properties_t instance_properties;
     };
   };
 
   void push_back(loco_t* loco, fan::opengl::cid_t* cid, properties_t& p) {
     sb_push_back(loco, cid, p);
+  }
+  void erase(loco_t* loco, fan::opengl::cid_t* cid) {
+    sb_erase(loco, cid);
   }
 
   void draw(loco_t* loco) {

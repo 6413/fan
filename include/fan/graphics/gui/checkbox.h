@@ -21,7 +21,7 @@
 //          fan::utf16_string text;
 //          fan::vec2 text_position = 0;
 //          fan::vec2 background_padding = 0;
-//          fan_2d::graphics::gui::theme theme = fan_2d::graphics::gui::themes::deep_blue();
+//          fan_2d::graphics::gui::theme_t theme = fan_2d::graphics::gui::themes::deep_blue();
 //          bool checked = false;
 //        };
 //
@@ -148,7 +148,7 @@
 //
 //        struct selection_box_store_t {
 //          uint8_t m_checked;
-//          fan_2d::graphics::gui::theme m_theme;
+//          fan_2d::graphics::gui::theme_t m_theme;
 //        };
 //
 //        fan::hector_t<selection_box_store_t> m_checkbox_store;
