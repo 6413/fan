@@ -62,8 +62,8 @@ namespace fan {
     template <uint32_t N, typename... Ts>
     struct get;
 
-    template <uint32_t N, typename T, typename... Ts>
-    struct get<N, fan::masterpiece_reversed_t<T, Ts...>>
+    template <uint32_t N, typename T2, typename... Ts>
+    struct get<N, fan::masterpiece_reversed_t<T2, Ts...>>
     {
       using type = typename get<N + 1, fan::masterpiece_reversed_t<Ts...>>::type;
     };
