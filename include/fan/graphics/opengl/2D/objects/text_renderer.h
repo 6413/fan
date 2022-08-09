@@ -72,6 +72,8 @@ struct text_renderer_t {
     typename loco_t::letter_t::properties_t p;
     p.color = properties.color;
     p.font_size = properties.font_size;
+    p.viewport = properties.viewport;
+    p.matrices = properties.matrices;
     uint32_t id;
     if (e.amount != 0) {
       id = e.id0;

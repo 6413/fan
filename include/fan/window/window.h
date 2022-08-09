@@ -166,10 +166,10 @@ namespace fan {
 			constexpr static fan::vec2i r_1920x1080 = fan::vec2i(1920, 1080);
 		};
 
-		typedef void(*buttons_callback_cb_t)(fan::window_t*, uint16_t, key_state, void* user_ptr);
-		typedef void(*keys_callback_cb_t)(fan::window_t*, uint16_t, key_state, void* user_ptr);
-		typedef void(*key_callback_cb_t)(fan::window_t*, uint16_t key, void* user_ptr);
-		typedef void(*keys_combo_callback_cb_t)(fan::window_t*, void* user_ptr);
+		typedef void(*buttons_callback_cb_t)(fan::window_t*, uint16_t, key_state, void* userptr);
+		typedef void(*keys_callback_cb_t)(fan::window_t*, uint16_t, key_state, void* userptr);
+		typedef void(*key_callback_cb_t)(fan::window_t*, uint16_t key, void* userptr);
+		typedef void(*keys_combo_callback_cb_t)(fan::window_t*, void* userptr);
 		using key_combo_callback_t = struct{
 			uint16_t last_key;
 			fan::hector_t<uint16_t> key_combo;
@@ -177,11 +177,11 @@ namespace fan {
 			keys_combo_callback_cb_t function;
 		};
 
-		typedef void(*text_callback_cb_t)(fan::window_t*, uint32_t key, void* user_ptr);
-		typedef void(*mouse_position_callback_cb_t)(fan::window_t* window, const fan::vec2i& position, void* user_ptr);
-		typedef void(*close_callback_cb_t)(fan::window_t*, void* user_ptr);
-		typedef void(*resize_callback_cb_t)(fan::window_t*, const fan::vec2i& window_size, void* user_ptr);
-		typedef void(*move_callback_cb_t)(fan::window_t*, void* user_ptr);
+		typedef void(*text_callback_cb_t)(fan::window_t*, uint32_t key, void* userptr);
+		typedef void(*mouse_position_callback_cb_t)(fan::window_t* window, const fan::vec2i& position, void* userptr);
+		typedef void(*close_callback_cb_t)(fan::window_t*, void* userptr);
+		typedef void(*resize_callback_cb_t)(fan::window_t*, const fan::vec2i& window_size, void* userptr);
+		typedef void(*move_callback_cb_t)(fan::window_t*, void* userptr);
 
 		using key_callback_t = struct{
 
@@ -190,7 +190,7 @@ namespace fan {
 
 			key_callback_cb_t function;
 
-			void* user_ptr;
+			void* userptr;
 		};
 
 		struct flags {
@@ -313,32 +313,32 @@ namespace fan {
 		}
 		typedef uint32_t callback_id_t;
 
-		callback_id_t add_buttons_callback(void* user_ptr, buttons_callback_cb_t function);
+		callback_id_t add_buttons_callback(void* userptr, buttons_callback_cb_t function);
 		void remove_buttons_callback(callback_id_t id);
 
-		callback_id_t add_keys_callback(void* user_ptr, keys_callback_cb_t function);
+		callback_id_t add_keys_callback(void* userptr, keys_callback_cb_t function);
 		void remove_keys_callback(callback_id_t id);
 
-		callback_id_t add_key_callback(uint16_t key, key_state state, void* user_ptr, key_callback_cb_t function);
-		void edit_key_callback(callback_id_t id, uint16_t key, key_state state, void* user_ptr);
+		callback_id_t add_key_callback(uint16_t key, key_state state, void* userptr, key_callback_cb_t function);
+		void edit_key_callback(callback_id_t id, uint16_t key, key_state state, void* userptr);
 		void remove_key_callback(callback_id_t id);
 
 		// the last key entered is the triggering key
-		callback_id_t add_key_combo_callback(uint16_t* keys, uint32_t n, void* user_ptr, keys_combo_callback_cb_t function);
+		callback_id_t add_key_combo_callback(uint16_t* keys, uint32_t n, void* userptr, keys_combo_callback_cb_t function);
 
-		callback_id_t add_text_callback(void* user_ptr, text_callback_cb_t function);
+		callback_id_t add_text_callback(void* userptr, text_callback_cb_t function);
 		void remove_text_callback(callback_id_t id);
 
-		callback_id_t add_close_callback(void* user_ptr, close_callback_cb_t function);
+		callback_id_t add_close_callback(void* userptr, close_callback_cb_t function);
 		void remove_close_callback(callback_id_t id);
 
-		callback_id_t add_mouse_move_callback(void* user_ptr, mouse_position_callback_cb_t function);
+		callback_id_t add_mouse_move_callback(void* userptr, mouse_position_callback_cb_t function);
 		void remove_mouse_move_callback(const callback_id_t id);
 
-		callback_id_t add_resize_callback(void* user_ptr, resize_callback_cb_t function);
+		callback_id_t add_resize_callback(void* userptr, resize_callback_cb_t function);
 		void remove_resize_callback(callback_id_t id);
 
-		callback_id_t add_move_callback(void* user_ptr, move_callback_cb_t function);
+		callback_id_t add_move_callback(void* userptr, move_callback_cb_t function);
 		void remove_move_callback(callback_id_t idt);
 
 		void set_background_color(const fan::color& color);
