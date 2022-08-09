@@ -44,23 +44,24 @@ int main() {
   tp.size = fan::vec2(0.3, 0.1);
   tp.text = "hello world";
   tp.mouse_move_cb = [] (const loco_t::mouse_move_data_t& mm_d) -> uint8_t {
-    fan::print((int)mm_d.mouse_stage, mm_d.depth);
+    if (mm_d.changed) {
+      fan::print("cb", (int)mm_d.mouse_stage, mm_d.depth);
+    }
     return 0;
   };
   tp.mouse_input_cb = [](const loco_t::mouse_input_data_t& ii_d) -> uint8_t {
-
     fan::print(ii_d.key, (int)ii_d.key_state, (int)ii_d.mouse_stage, ii_d.depth);
-    return 0;
+    return 1;
   };
   fan_2d::graphics::gui::themes::gray gray_theme;
   gray_theme.open(pile.loco.get_context());
   tp.theme = &gray_theme;
   fan::opengl::cid_t cids[2];
-  pile.loco.button.push_back(0, &cids[0], tp);
+  pile.loco.button.push_back(&pile.loco, 0, &cids[0], tp);
   tp.position.x += 0.1;
   tp.position.z += 0.2;
   tp.text = "hw2";
-  pile.loco.button.push_back(1, &cids[1], tp);
+  pile.loco.button.push_back(&pile.loco, 1, &cids[1], tp);
 
   while(pile.loco.window_open(pile.loco.process_frame())) {
 

@@ -30,7 +30,9 @@ void sb_close(loco_t* loco) {
   //}
 }
 
-void sb_push_back(loco_t* loco, fan::opengl::cid_t* cid, properties_t& p) {
+struct block_t;
+
+block_t* sb_push_back(loco_t* loco, fan::opengl::cid_t* cid, properties_t& p) {
  
   loco_bdbt_NodeReference_t nr = root;
   loco_bdbt_Key_t<sizeof(instance_properties_t::key_t) * 8> k;
@@ -80,6 +82,7 @@ void sb_push_back(loco_t* loco, fan::opengl::cid_t* cid, properties_t& p) {
   cid->instance_id = instance_id;
 
   block->p[instance_id] = p.instance_properties;
+  return block;
 }
 void sb_erase(loco_t* loco, fan::opengl::cid_t* cid) {
   auto bm_id = *(shape_bm_NodeReference_t*)&cid->bm_id;
@@ -147,6 +150,12 @@ void sb_erase(loco_t* loco, fan::opengl::cid_t* cid) {
     cid->instance_id * sizeof(instance_t),
     cid->instance_id * sizeof(instance_t) + sizeof(instance_t)
   );
+}
+
+block_t* sb_get_block(loco_t* loco, fan::opengl::cid_t* cid) {
+  auto block_id = *(bll_block_NodeReference_t*)&cid->block_id;
+  auto block_node = bll_block_GetNodeByReference(&blocks, *(bll_block_NodeReference_t*)&cid->block_id);
+  return &block_node->data.block;
 }
 
 template <typename T>
