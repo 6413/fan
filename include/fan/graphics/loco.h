@@ -125,26 +125,9 @@ struct loco_t {
     using text_t = text_renderer_t;
     text_t text;
   #endif
-  #if defined(loco_box)
-    #include _FAN_PATH(graphics/gui/rectangle_box.h)
-    using box_t = rectangle_box_t;
-    box_t box;
-  #endif
-  #if defined(loco_text_box)
-    #include _FAN_PATH(graphics/gui/rectangle_text_box.h)
-    using text_box_t = rectangle_text_box_t;
-    text_box_t text_box;
-  #endif
   #if defined(loco_button)
     #include _FAN_PATH(graphics/gui/rectangle_text_button.h)
-    struct button_t : rectangle_text_button_t {
-      void push_back(uint32_t input_depth, fan::opengl::cid_t* cid, properties_t& p) {
-        loco_t* loco = OFFSETLESS(this, loco_t, button);
-        rectangle_text_button_t::push_back(loco, cid, &loco->element_depth[input_depth].input_hitbox, p);
-      }
-    private:
-      using rectangle_text_button_t::push_back;
-    }button;
+    button_t button;
   #endif
   #if defined(loco_post_process)
     #define sb_shader_vertex_path _FAN_PATH(graphics/glsl/opengl/2D/effects/post_process.vs)
@@ -222,12 +205,6 @@ struct loco_t {
     #if defined(loco_text)
       text.open(this);
     #endif
-    #if defined(loco_box)
-      box.open(this);
-    #endif
-    #if defined(loco_text_box)
-      text_box.open(this);
-    #endif
     #if defined(loco_button)
       button.open(this);
     #endif
@@ -260,12 +237,6 @@ struct loco_t {
     #if defined(loco_text)
       text.close(this);
     #endif
-    #if defined(loco_box)
-      box.close(this);
-    #endif
-    #if defined(loco_text_box)
-      text_box.close(this);
-    #endif
     #if defined(loco_button)
       button.close(this);
     #endif
@@ -291,15 +262,25 @@ struct loco_t {
        if (r == 0) {
          break;
        }
+       #if fan_debug >= fan_debug_medium
+       else if (r != 1) {
+         fan::throw_error("early access problems (something not initialized)");
+       }
+       #endif
     }
   }
 
   void feed_mouse_input(fan::opengl::context_t* context, uint16_t button, fan::key_state key_state, const fan::vec2& mouse_position) {
     for (uint32_t depth = max_depths; depth--; ) {
-      element_depth[depth].input_hitbox.feed_mouse_input(context, button, key_state, mouse_position, depth);
-     /* if (!element_depth[depth].can_we_go_behind()) {
+      uint32_t r = element_depth[depth].input_hitbox.feed_mouse_input(context, button, key_state, mouse_position, depth);
+      if (r == 0) {
         break;
-      }*/
+      }
+      #if fan_debug >= fan_debug_medium
+      else if (r != 1) {
+        fan::throw_error("early access problems (something not initialized)");
+      }
+      #endif
     }
   }
 
@@ -334,8 +315,8 @@ struct loco_t {
       // loco_t::text gets drawn here as well as it uses letter
       letter.draw(this);
     #endif
-    #if defined(loco_box)
-      box.draw(this);
+    #if defined(loco_button)
+      button.draw(this);
     #endif
     #if defined(loco_post_process)
       post_process.draw(this);
