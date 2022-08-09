@@ -2,6 +2,7 @@
 
 #include _FAN_PATH(font.h)
 #include _FAN_PATH(graphics/opengl/gl_core.h)
+#include _FAN_PATH(graphics/opengl/gl_image.h)
 
 namespace fan_2d {
   namespace graphics {

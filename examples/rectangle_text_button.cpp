@@ -5,8 +5,6 @@
 #define FAN_INCLUDE_PATH C:/libs/fan/include
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
-#include _FAN_PATH(graphics/gui/gui.h)
-
 #define loco_window
 #define loco_context
 
