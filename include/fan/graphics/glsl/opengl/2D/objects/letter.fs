@@ -30,13 +30,16 @@ void main() {
   float border_edge =  get_outline_edge(1);
 
   float outline_alpha = smoothstep(border_width, border_width + border_edge, distance);
-
-  if (outline_alpha < 0.1) {
+  if (outline_alpha == 0) {
     discard;
   }
 
   vec3 final_color = mix(vec3(1, 0, 1), text_color.rgb, outline_alpha);
 
   color = vec4(final_color, outline_alpha);
+
+  if (outline_alpha < 0.5) {
+    color.rgb = vec3(0, 0, 0);
+  }
 }
 )"

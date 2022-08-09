@@ -14,7 +14,7 @@
 #define loco_sprite
 #include _FAN_PATH(graphics/loco.h)
 
-constexpr uint32_t count = 10;
+constexpr uint32_t count = 1;
 
 struct pile_t {
 
@@ -72,21 +72,19 @@ int main() {
 
   loco_t::sprite_t::properties_t p;
 
-  p.size = fan::vec2(0.3, 0.3);
+  p.size = fan::vec2(1, 1);
   //p.block_properties.
   p.matrices = &pile->matrices[0];
   p.viewport = &pile->viewport;
 
-  fan::time::clock c; 
-  c.start();
   fan::opengl::image_t image;
-  image.load(pile->loco.get_context(), "images/circle.webp");
+  image.load(pile->loco.get_context(), "images/test.webp");
   p.image = &image;
   p.position = fan::vec2(0, 0);
+  p.position.z = 0;
+  p.color = fan::color(100, 100, 100);
   // p.color = fan::color((f32_t)i / count, (f32_t)i / count + 00.1, (f32_t)i / count);
   pile->loco.sprite.push_back(&pile->loco, &pile->cids[0], p);
-
-  fan::print((f32_t)c.elapsed() / 1e+9);
 
   pile->loco.set_vsync(false);
   uint32_t x = 0;

@@ -19,9 +19,9 @@ struct rectangle_text_box_t {
 
   void push_back(loco_t* loco, fan::opengl::cid_t* cid, properties_t& p) {
     loco->box.push_back(loco, cid, p);
-
+    auto theme = loco->box.get_theme(loco, p.theme);
     loco_t::text_t::properties_t tp;
-    tp.color = p.theme.button.text_color;
+    tp.color = theme->button.text_color;
     tp.font_size = p.font_size;
     tp.position = p.position;
     tp.text = p.text;
@@ -29,7 +29,7 @@ struct rectangle_text_box_t {
     // do something with id xd
     uint32_t id = loco->text.push_back(loco, tp);
 
-    set_theme(loco, id, cid, p.theme);
+    set_theme(loco, id, cid, theme);
   }
   void erase(loco_t* loco, fan::opengl::cid_t* cid) {
     loco->box.erase(loco, cid);
@@ -53,12 +53,13 @@ struct rectangle_text_box_t {
   void set_text(loco_t* loco, uint32_t id, T loco_t::letter_t::instance_t::*member, const T2& value) {
     loco->text.set(loco, id, member, value);
   }
+  fan_2d::graphics::gui::theme_t* get_theme(loco_t* loco, fan::opengl::cid_t* cid) {
+    return loco->box.get_theme(loco, cid);
+  }
 
-  void set_theme(loco_t* loco, uint32_t text_id, fan::opengl::cid_t* cid, const fan_2d::graphics::gui::theme& theme) {
-    set_box(loco, cid, &instance_t::color, theme.button.color);
-    set_box(loco, cid, &instance_t::outline_color, theme.button.outline_color);
-    set_box(loco, cid, &instance_t::outline_size, theme.button.outline_size);
-    set_text(loco, text_id, &loco_t::letter_t::instance_t::outline_color, theme.button.text_outline_color);
-    set_text(loco, text_id, &loco_t::letter_t::instance_t::outline_size, theme.button.text_outline_color);
+  void set_theme(loco_t* loco, uint32_t text_id, fan::opengl::cid_t* cid, fan_2d::graphics::gui::theme_t* theme) {
+    loco->box.set_theme(loco, cid, theme);
+    //set(loco, text_id, &loco_t::letter_t::instance_t::outline_color, theme.button.text_outline_color);
+    //set(loco, text_id, &loco_t::letter_t::instance_t::outline_size, theme.button.text_outline_color);
   }
 };

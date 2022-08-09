@@ -112,6 +112,40 @@ namespace fan {
   }
 }
 
+namespace fan_2d {
+  namespace graphics {
+    namespace gui {
+      struct theme_t;
+    }
+  }
+}
+
+#define BLL_set_BaseLibrary 1
+#define BLL_set_namespace fan::opengl
+#define BLL_set_prefix theme_list
+#define BLL_set_type_node uint8_t
+#define BLL_set_node_data fan_2d::graphics::gui::theme_t* theme_id;
+#define BLL_set_Link 0
+#define BLL_set_declare_basic_types 1
+#define BLL_set_declare_rest 0
+#define BLL_set_KeepSettings 1
+#define BLL_set_StructFormat 1
+#define BLL_set_NodeReference_Overload_Declare \
+  void operator=(fan_2d::graphics::gui::theme_t* theme);
+#include _FAN_PATH(BLL/BLL.h)
+
+#include _FAN_PATH(graphics/gui/themes.h)
+
+#define BLL_set_declare_basic_types 0
+#define BLL_set_declare_rest 1
+#define BLL_set_KeepSettings 0
+#undef BLL_set_NodeReference_Overload_Declare
+#include _FAN_PATH(BLL/BLL.h)
+
+void fan::opengl::theme_list_NodeReference_t::operator=(fan_2d::graphics::gui::theme_t* theme) {
+  NRI = theme->theme_reference.NRI;
+}
+
 #define BLL_set_BaseLibrary 1
 #define BLL_set_namespace fan::opengl
 #define BLL_set_prefix viewport_list
@@ -268,6 +302,7 @@ namespace fan {
       };
 
       fan::opengl::GLuint current_program;
+      fan::opengl::theme_list_t theme_list;
       fan::opengl::image_list_t image_list;
       fan::opengl::viewport_list_t viewport_list;
       fan::opengl::matrices_list_t matrices_list;
@@ -464,6 +499,7 @@ namespace fan {
 }
 
 inline void fan::opengl::context_t::open() {
+  theme_list_open(&theme_list);
   image_list_open(&image_list);
   viewport_list_open(&viewport_list);
   matrices_list_open(&matrices_list);
@@ -474,6 +510,7 @@ inline void fan::opengl::context_t::open() {
   current_program = fan::uninitialized;
 }
 inline void fan::opengl::context_t::close() {
+  theme_list_close(&theme_list);
   image_list_close(&image_list);
   viewport_list_close(&viewport_list);
   matrices_list_close(&matrices_list);
@@ -607,6 +644,16 @@ inline void fan::opengl::context_t::set_vsync(fan::window_t* window, bool flag)
 #elif defined(fan_platform_unix)
   opengl.internal.glXSwapIntervalEXT(fan::sys::m_display, opengl.internal.glXGetCurrentDrawable(), flag);
 #endif
+}
+
+void fan_2d::graphics::gui::theme_t::open(fan::opengl::context_t* context){
+  theme_reference = fan::opengl::theme_list_NewNode(&context->theme_list);
+  auto node = theme_list_GetNodeByReference(&context->theme_list, theme_reference);
+  node->data.theme_id = this;
+}
+
+void fan_2d::graphics::gui::theme_t::close(fan::opengl::context_t* context){
+  fan::opengl::theme_list_Recycle(&context->theme_list, theme_reference);
 }
 
 inline void fan::opengl::viewport_t::open(fan::opengl::context_t * context, const fan::vec2 & viewport_position_, const fan::vec2 & viewport_size_) {

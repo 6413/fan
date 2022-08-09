@@ -78,29 +78,17 @@ int main() {
 
   p.size = fan::vec2(0.3, 0.1);
   p.text = "moi";
+  p.font_size = 0.5;
+
+  fan_2d::graphics::gui::themes::deep_red red_theme;
+  red_theme.open(pile->loco.get_context());
 
   for (uint32_t i = 0; i < count; i++) {
     p.position = fan::random::vec2(-1, 1);
-    p.theme = fan_2d::graphics::gui::themes::deep_red();
+    p.theme = &red_theme;
     pile->loco.text_box.push_back(&pile->loco, &pile->cids[i], p);
   }
   
-  loco_t::sprite_t::properties_t sp;
-
-  sp.size = fan::vec2(0.3, 0.3);
-  //p.block_properties.
-  sp.matrices = &pile->matrices[0];
-  sp.viewport = &pile->viewport;
-
-  fan::time::clock c; 
-  c.start();
-  fan::opengl::image_t image;
-  image.load(pile->loco.get_context(), "images/circle.webp");
-  sp.image = &image;
-  sp.position = fan::vec3(0, 0, 3);
-  // p.color = fan::color((f32_t)i / count, (f32_t)i / count + 00.1, (f32_t)i / count);
-  pile->loco.sprite.push_back(&pile->loco, &pile->cids[0], sp);
-
   pile->loco.set_vsync(false);
   uint32_t x = 0;
   while(pile->loco.window_open(pile->loco.process_frame())) {

@@ -7,7 +7,6 @@
 #if fan_renderer == fan_renderer_opengl
 
 #include _FAN_PATH(graphics/graphics.h)
-#include _FAN_PATH(graphics/gui/themes.h)
 #include _FAN_PATH(graphics/shared_gui.h)
 #include _FAN_PATH(graphics/gui/be.h)
 

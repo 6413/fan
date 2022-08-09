@@ -16,7 +16,7 @@ struct text_renderer_t {
         fan::opengl::matrices_list_NodeReference_t matrices;
         fan::opengl::viewport_list_NodeReference_t viewport;
       };
-      loco_t::letter_t::block_properties_t block_properties;
+      loco_t::letter_t::instance_properties_t instance_properties;
     };
   };
 
