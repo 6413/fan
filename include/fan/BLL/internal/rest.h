@@ -197,7 +197,7 @@ _P(NewNode_alloc)
       VEC_handle(&list->nodes);
       r.NRI = list->nodes.Current++;
     #elif BLL_set_BaseLibrary == 1
-      r.NRI = list->nodes.push_back(decltype(list->nodes)::value_type());
+      r.NRI = list->nodes.push_back({});
     #endif
   #elif BLL_set_StoreFormat == 1
     if(list->NodeCurrent % BLL_set_StoreFormat1_ElementPerBlock == 0){
@@ -349,8 +349,8 @@ _P(_AfterInitNodes)
         list->nodes.resize(2);
       #endif
 
-      list->src = 0;
-      list->dst = 1;
+      list->src.NRI = 0;
+      list->dst.NRI = 1;
     #endif
   #elif BLL_set_StoreFormat == 1
     #if BLL_set_Link == 1
