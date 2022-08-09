@@ -55,6 +55,8 @@ struct button_t {
     tp.position = p.position;
     tp.text = p.text;
     tp.position.z += p.position.z + 0.001;
+    tp.viewport = p.viewport;
+    tp.matrices = p.matrices;
     auto block = sb_push_back(loco, cid, p);
     block->p[cid->instance_id].text_id = loco->text.push_back(loco, tp);
 
@@ -68,6 +70,7 @@ struct button_t {
     be_p.on_mouse_event_cb = p.mouse_move_cb;
     be_p.userptr = p.userptr;
     be_p.cid = cid;
+    be_p.viewport = fan::opengl::viewport_list_GetNodeByReference(&loco->get_context()->viewport_list, p.viewport)->data.viewport_id;
     if (p.disable_highlight) {
       block->p[cid->instance_id].be_id = loco->element_depth[depth].input_hitbox.push_back(
         be_p, 

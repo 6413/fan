@@ -1,40 +1,50 @@
-// Example of opening gui maker
-
 #define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 
-#ifndef FAN_INCLUDE_PATH
-  #define FAN_INCLUDE_PATH C:/libs/fan/include
-#endif
+#define FAN_INCLUDE_PATH C:/libs/fan/include
+#define fan_debug 1
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
-#define fan_debug fan_debug_medium
+
+#define fan_windows_subsystem fan_windows_subsystem_windows
 
 #include _FAN_PATH(graphics/graphics.h)
-#include _FAN_PATH(graphics/gui/fgm/fgm.h)
 
-int main(int argc, char** argv) {
+#define loco_window
+#define loco_context
 
-  if (argc < 2) {
-    fan::throw_error("invalid amount of arguments. Usage:*.exe texturepack texturepackout (load_filename)");
+#define loco_line
+#define loco_button
+#include _FAN_PATH(graphics/loco.h)
+
+struct pile_t {
+
+  void open() {
+    loco.open(loco_t::properties_t());
+    fgm.open(&loco);
+    /*loco.get_window()->add_resize_callback(this, [](fan::window_t* window, const fan::vec2i& size, void* userptr) {
+      fan::vec2 window_size = window->get_size();
+      fan::vec2 ratio = window_size / window_size.max();
+      std::swap(ratio.x, ratio.y);
+      pile_t* pile = (pile_t*)userptr;
+      pile->matrices.set_ortho(
+        ortho_x * ratio.x, 
+        ortho_y * ratio.y
+      );
+    });*/
   }
 
-  fan_2d::graphics::gui::fgm::pile_t pile;
+  loco_t loco;
+  #include _FAN_PATH(graphics/gui/fgm/fgm.h)
+  fgm_t fgm;
+};
 
-  pile.open(argc, argv);
-  //pile.load_file("123");
-  pile.context.set_vsync(&pile.window, 0);
+int main() {
+  pile_t pile;
+  pile.open();
 
-  while (1) {
+  pile.loco.set_vsync(false);
 
-    pile.window.get_fps();
-
-    uint32_t window_event = pile.window.handle_events();
-    if (window_event & fan::window_t::events::close) {
-      pile.window.close();
-      break;
-    }
-
-    pile.context.process();
-    pile.context.render(&pile.window);
+  while(pile.loco.window_open(pile.loco.process_frame())) {
+    pile.loco.get_fps();
   }
 
   return 0;

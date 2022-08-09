@@ -1,5 +1,3 @@
-#pragma once
-
 #include _FAN_PATH(graphics/gui/key_event.h)
 #include _FAN_PATH(physics/collision/circle.h)
 #include _FAN_PATH(physics/collision/rectangle.h)
@@ -17,7 +15,7 @@ namespace fan_2d {
 
       struct be_t {
 
-        //using user_global_data_t = T_user_global_data;
+        fan::window_t* get_window(loco_t* loco);
 
         struct mouse_move_data_t {
           loco_t* loco;
@@ -50,6 +48,8 @@ namespace fan_2d {
 
           void* cid;
 
+          fan::opengl::viewport_t* viewport;
+
           uint8_t hitbox_type;
           union {
             struct{
@@ -65,7 +65,6 @@ namespace fan_2d {
 
         void open() {
           m_button_data.open();
-          coordinate_offset = 0;
           m_old_mouse_stage = fan::uninitialized;
           m_do_we_hold_button = 0;
           m_focused_button_id = fan::uninitialized;
@@ -74,14 +73,14 @@ namespace fan_2d {
           m_button_data.close();
         }
 
-        auto inside(uint32_t i, const fan::vec2& p) {
-
+        auto inside(loco_t* loco, uint32_t i, const fan::vec2& p) {
           switch(m_button_data[i].properties.hitbox_type) {
             case hitbox_type_t::rectangle: {
+              fan::vec2 size = m_button_data[i].properties.hitbox_rectangle.size;
               return fan_2d::collision::rectangle::point_inside_no_rotation(
                 p, 
-                m_button_data[i].properties.hitbox_rectangle.position - m_button_data[i].properties.hitbox_rectangle.size, 
-                m_button_data[i].properties.hitbox_rectangle.position + m_button_data[i].properties.hitbox_rectangle.size
+                m_button_data[i].properties.hitbox_rectangle.position - size, 
+                m_button_data[i].properties.hitbox_rectangle.position + size
               );
             }
             case hitbox_type_t::circle: {
@@ -93,7 +92,7 @@ namespace fan_2d {
             }
           }
         };
-
+ 
         uint8_t feed_mouse_move(loco_t* loco, const fan::vec2& mouse_position, uint32_t depth) {
           #define move_data(index) \
           move_data.loco = loco;   \
@@ -106,10 +105,20 @@ namespace fan_2d {
             return 0;   \
           }
 
+          auto get_mouse_position = [&](uint32_t i) {
+            fan::vec2 viewport_position = m_button_data[i].properties.viewport->get_viewport_position(); 
+            fan::vec2 viewport_size = m_button_data[i].properties.viewport->get_viewport_size();
+            fan::vec2 window_size = get_window(loco)->get_size();
+            fan::vec2 rp = (mouse_position - viewport_position) / (viewport_size / 2);
+            rp.x -= 1;
+            rp.y += 1;
+            return rp;
+          };
+
           if (m_do_we_hold_button == 1 && m_focused_button_id != fan::uninitialized) {
             mouse_move_data_t move_data;
             move_data.changed = false;
-            if (inside(m_focused_button_id, coordinate_offset + mouse_position)) {
+            if (inside(loco, m_focused_button_id, get_mouse_position(m_focused_button_id))) {
               move_data.mouse_stage = mouse_stage_e::inside;
               move_data(m_focused_button_id);
             }
@@ -124,7 +133,7 @@ namespace fan_2d {
           if (m_focused_button_id != fan::uninitialized) {
             mouse_move_data_t move_data;
             
-            if (inside(m_focused_button_id, coordinate_offset + mouse_position)) {
+            if (inside(loco, m_focused_button_id, get_mouse_position(m_focused_button_id))) {
               move_data.changed = false;
               move_data.mouse_stage = mouse_stage_e::inside;
               move_data(m_focused_button_id);
@@ -139,7 +148,7 @@ namespace fan_2d {
           }
           uint32_t i = m_button_data.rbegin();
           while (i != m_button_data.rend()) {
-            if (inside(i, coordinate_offset + mouse_position)) {
+            if (inside(loco, i, get_mouse_position(i))) {
               m_focused_button_id = i;
 
               mouse_move_data_t move_data;
@@ -165,6 +174,15 @@ namespace fan_2d {
           };
           auto set_focus = [&](auto id) {
             *focus_id = (void*)m_button_data[id].properties.cid;
+          };
+          auto get_mouse_position = [&](uint32_t i) {
+            fan::vec2 viewport_position = m_button_data[i].properties.viewport->get_viewport_position(); 
+            fan::vec2 viewport_size = m_button_data[i].properties.viewport->get_viewport_size();
+            fan::vec2 window_size = get_window(loco)->get_size();
+            fan::vec2 rp = (mouse_position - viewport_position) / (viewport_size / 2);
+            rp.x -= 1;
+            rp.y += 1;
+            return rp;
           };
 
           #define input_data(index) \
@@ -193,7 +211,7 @@ namespace fan_2d {
               else {
                 uint32_t i = m_button_data.rbegin();
                 while (i != m_button_data.rend()) {
-                  if (inside(i, coordinate_offset + mouse_position)) {
+                  if (inside(loco, i, get_mouse_position(i))) {
                     mouse_input_data_t input_data;
                     input_data.key_state = fan::key_state::press;
                     input_data.mouse_stage = mouse_stage_e::inside;
@@ -209,7 +227,7 @@ namespace fan_2d {
             else {
               uint32_t i = m_button_data.rbegin();
               while (i != m_button_data.rend()) {
-                if (inside(i, coordinate_offset + mouse_position)) {
+                if (inside(loco, i, get_mouse_position(i))) {
                   mouse_input_data_t input_data;
                   input_data.mouse_stage = mouse_stage_e::inside;
                   input_data.key_state = fan::key_state::release;
@@ -235,7 +253,7 @@ namespace fan_2d {
               return 1; // double press
             }
             else if (m_focused_button_id != fan::uninitialized){
-              if (inside(m_focused_button_id, coordinate_offset + mouse_position)) {
+              if (inside(loco, m_focused_button_id, get_mouse_position(m_focused_button_id))) {
                 pointer_remove_flag = 1;
                 m_do_we_hold_button = 0;
                 mouse_input_data_t input_data;
@@ -250,7 +268,7 @@ namespace fan_2d {
               else {
                 uint32_t i = m_button_data.rbegin();
                 while (i != m_button_data.rend()) {
-                  if (inside(i, coordinate_offset + mouse_position)) {
+                  if (inside(loco, i, get_mouse_position(i))) {
                     m_do_we_hold_button = 0;
                     m_focused_button_id = i;
                     mouse_input_data_t input_data;
@@ -264,11 +282,12 @@ namespace fan_2d {
 
                 pointer_remove_flag = 1;
                 m_do_we_hold_button = 0;
+                uint32_t id = m_focused_button_id;
                 m_focused_button_id = fan::uninitialized;
                 mouse_input_data_t input_data;
                 input_data.mouse_stage = mouse_stage_e::outside;
                 input_data.key_state = fan::key_state::release;
-                input_data(m_focused_button_id);
+                input_data(id);
                 if (pointer_remove_flag == 0) {
                   return 1;
                 }
@@ -290,14 +309,6 @@ namespace fan_2d {
         }
         void erase(uint32_t node_reference) {
           m_button_data.erase(node_reference);
-        }
-
-        // used for camera position
-        fan::vec2 get_coordinate_offset() const {
-          return coordinate_offset;
-        }
-        void set_coordinate_offset(const fan::vec2& offset) {
-          coordinate_offset = offset;
         }
 
         uint32_t size() const {
@@ -326,8 +337,6 @@ namespace fan_2d {
         };
 
         bll_t<button_data_t> m_button_data;
-
-        fan::vec2 coordinate_offset;
       };
     }
   }
@@ -335,3 +344,4 @@ namespace fan_2d {
 
 #undef input_data
 #undef move_data
+#undef dummy_position

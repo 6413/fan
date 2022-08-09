@@ -38,7 +38,7 @@ struct loco_t {
   #endif
   };
 
-  static constexpr uint32_t max_depths = 10;
+  static constexpr uint32_t max_depths = 1;
 
   fan::window_t* get_window() {
   #ifdef loco_window
@@ -372,10 +372,16 @@ struct loco_t {
     get_context()->set_vsync(get_window(), flag);
   }
 
-  fan::vec2 get_mouse_position() {
+  fan::vec2 transform_matrix(const fan::vec2& position) {
     fan::vec2 window_size = get_window()->get_size();
     // not custom ortho friendly - made for -1 1
-    return fan::cast<f32_t>(get_window()->get_mouse_position()) / window_size * 2 - 1;
+    return position / window_size * 2 - 1;
+  }
+
+  fan::vec2 get_mouse_position() {
+    // not custom ortho friendly - made for -1 1
+    //return transform_matrix(get_window()->get_mouse_position());
+    return get_window()->get_mouse_position();
   }
 
   fan::opengl::core::uniform_write_queue_t m_write_queue;
@@ -395,3 +401,7 @@ protected:
   #endif
 
 };
+
+fan::window_t* fan_2d::graphics::gui::be_t::get_window(loco_t* loco) {
+  return loco->get_window();
+}
