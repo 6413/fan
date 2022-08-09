@@ -153,7 +153,7 @@ struct button_t {
     }
 
   #define dont_look_here(d_n, i) lib_set_theme( \
-  (loco_t*)d_n.userptr[0], \
+    d_n.loco, \
     (fan::opengl::cid_t*)d_n.element_id, \
     i \
   );

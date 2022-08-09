@@ -20,11 +20,11 @@ namespace fan_2d {
         //using user_global_data_t = T_user_global_data;
 
         struct mouse_move_data_t {
-          fan::opengl::context_t* context;
+          loco_t* loco;
           be_t* button_event;
           void* element_id;
           mouse_stage_e mouse_stage;
-          void* userptr[3];
+          void* userptr;
           uint32_t depth;
           bool changed;
         };
@@ -105,14 +105,12 @@ namespace fan_2d {
           }
         };
 
-        uint8_t feed_mouse_move(fan::opengl::context_t* context, const fan::vec2& mouse_position, uint32_t depth) {
+        uint8_t feed_mouse_move(loco_t* loco, const fan::vec2& mouse_position, uint32_t depth) {
           #define move_data(index) \
-          mm_data.context = context;   \
+          mm_data.loco = loco;   \
           mm_data.button_event = this;   \
           mm_data.element_id = m_button_data[index].properties.cid;   \
-          mm_data.userptr[0] = m_button_data[index].properties.userptr[0];   \
-          mm_data.userptr[1] = m_button_data[index].properties.userptr[1];   \
-          mm_data.userptr[2] = m_button_data[index].properties.userptr[2];   \
+          mm_data.userptr = m_button_data[index].properties.userptr;   \
           mm_data.depth = depth;   \
           m_button_data[index].on_mouse_move_lib_cb(mm_data);   \
           if (!m_button_data[index].properties.on_mouse_event_function(mm_data)) {   \
@@ -172,15 +170,13 @@ namespace fan_2d {
           return 1;
         }
 
-        uint8_t feed_mouse_input(fan::opengl::context_t* context, uint16_t button, fan::key_state state, const fan::vec2& mouse_position, uint32_t depth) {
+        uint8_t feed_mouse_input(loco_t* loco, uint16_t button, fan::key_state state, const fan::vec2& mouse_position, uint32_t depth) {
           #define input_data(index) \
-          ii_data.context = context; \
+          ii_data.loco = loco; \
           ii_data.button_event = this; \
           ii_data.element_id = m_button_data[index].properties.cid; \
           ii_data.key = button; \
-          ii_data.userptr[0] = m_button_data[index].properties.userptr[0]; \
-          ii_data.userptr[1] = m_button_data[index].properties.userptr[1]; \
-          ii_data.userptr[2] = m_button_data[index].properties.userptr[2]; \
+          ii_data.userptr = m_button_data[index].properties.userptr; \
           ii_data.depth = depth; \
           m_button_data[index].on_input_lib_cb(ii_data); \
           if (!m_button_data[index].properties.on_input_function(ii_data)) { \

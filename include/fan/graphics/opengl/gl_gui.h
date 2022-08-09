@@ -8,7 +8,6 @@
 
 #include _FAN_PATH(graphics/graphics.h)
 #include _FAN_PATH(graphics/shared_gui.h)
-#include _FAN_PATH(graphics/gui/be.h)
 
 namespace fan_2d {
   namespace graphics {
