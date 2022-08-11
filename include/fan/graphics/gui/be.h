@@ -49,6 +49,7 @@ namespace fan_2d {
           void* cid;
 
           fan::opengl::viewport_t* viewport;
+          uint32_t shape_type;
 
           uint8_t hitbox_type;
           union {
@@ -159,7 +160,6 @@ namespace fan_2d {
               move_data.changed = true;
               move_data.mouse_stage = mouse_stage_e::inside;
               move_data(m_focused_button_id);
-              return 1;
             }
             else {
               mouse_move_data_t move_data;
@@ -172,11 +172,12 @@ namespace fan_2d {
           return 1;
         }
 
-        uint8_t feed_mouse_input(loco_t* loco, uint16_t button, fan::key_state state, const fan::vec2& mouse_position, uint32_t depth, void** focus_id) {
+        uint8_t feed_mouse_input(loco_t* loco, uint16_t button, fan::key_state state, const fan::vec2& mouse_position, uint32_t depth, uint32_t* focus_type, void** focus_id) {
           auto reset_focus = [&] {
-            *focus_id = (void*)fan::uninitialized;
+            *focus_type = fan::uninitialized;
           };
           auto set_focus = [&](auto id) {
+            *focus_type = m_button_data[id].properties.shape_type;
             *focus_id = (void*)m_button_data[id].properties.cid;
           };
           auto get_mouse_position = [&](uint32_t i) {

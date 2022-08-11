@@ -153,8 +153,28 @@ struct loco_t {
   using mouse_input_data_t = fan_2d::graphics::gui::be_t::mouse_input_data_t;
   using mouse_move_data_t = fan_2d::graphics::gui::be_t::mouse_move_data_t;
 
-  uint32_t focus_shape_type;
-  void* focus_shape_id;
+  struct focus_t {
+
+    void open() {
+      shape_type = fan::uninitialized;
+    }
+    void close() {
+
+    }
+
+    focus_t get() const {
+      return *this;
+    }
+    void set(const focus_t& f) {
+      shape_type = f.shape_type;
+      shape_id = f.shape_id;
+    }
+
+    uint32_t shape_type;
+    void* shape_id;
+  };
+
+  focus_t focus;
 
   #if defined(loco_letter)
     fan_2d::graphics::font_t font;
@@ -168,7 +188,7 @@ struct loco_t {
 
   void open(const properties_t& p) {
 
-    focus_shape_id = (void*)fan::uninitialized;
+    focus.open();
 
     #ifdef loco_window
       window.open();
@@ -235,11 +255,11 @@ struct loco_t {
       post_process.start_capture(this);
     #endif
 
-    focus_shape_type = fan::uninitialized;
-
     m_write_queue.open();
   }
   void close(const properties_t& p) {
+
+    focus.close();
 
     for (uint32_t depth = 0; depth < max_depths; depth++) {
       element_depth[depth].input_hitbox.close();
@@ -296,7 +316,7 @@ struct loco_t {
 
   void feed_mouse_input(uint16_t button, fan::key_state key_state, const fan::vec2& mouse_position) {
     for (uint32_t depth = max_depths; depth--; ) {
-      uint32_t r = element_depth[depth].input_hitbox.feed_mouse_input(this, button, key_state, mouse_position, depth, &focus_shape_id);
+      uint32_t r = element_depth[depth].input_hitbox.feed_mouse_input(this, button, key_state, mouse_position, depth, &focus.shape_type, &focus.shape_id);
       if (r == 0) {
         break;
       }
@@ -389,6 +409,10 @@ struct loco_t {
     x.y = (get_mouse_position().y - viewport_position.y - viewport_size.y / 2) / (viewport_size.y / 2) + (viewport_position.y / viewport_size.y) * 2;
     return x;
   }
+
+  struct shapes {
+    static constexpr uint32_t button = 0;
+  };
 
   fan::opengl::core::uniform_write_queue_t m_write_queue;
 

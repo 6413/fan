@@ -199,7 +199,6 @@ void traverse_draw(loco_t* loco, auto nr, uint32_t draw_mode) {
     auto bnr = bmn->data.first_block;
 
     while(1) {
-      fan::print((int)bnr.NRI);
       auto node = bll_block_GetNodeByReference(&blocks, bnr);
       node->data.block.uniform_buffer.bind_buffer_range(
         loco->get_context(), 

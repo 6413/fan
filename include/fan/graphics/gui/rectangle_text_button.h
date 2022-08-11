@@ -73,7 +73,10 @@ struct button_t {
     be_p.on_input_cb = p.mouse_input_cb;
     be_p.on_mouse_event_cb = p.mouse_move_cb;
     be_p.userptr = p.userptr;
-    be_p.cid = cid;
+    be_p.shape_type = loco_t::shapes::button;
+    fan::print("warning we do not want to allocate");
+    fan::opengl::cid_t* c = new fan::opengl::cid_t(*cid);
+    be_p.cid = c;
     be_p.viewport = fan::opengl::viewport_list_GetNodeByReference(&loco->get_context()->viewport_list, p.viewport)->data.viewport_id;
     #if fan_debug >= fan_debug_low
       if (p.depth >= loco->max_depths) {
@@ -91,10 +94,10 @@ struct button_t {
       block->p[cid->instance_id].be_id = loco->element_depth[p.depth].input_hitbox.push_back(be_p, mouse_input_cb, mouse_move_cb);
     }
   }
-  void erase(loco_t* loco, uint32_t depth, fan::opengl::cid_t* cid) {
+  void erase(loco_t* loco, fan::opengl::cid_t* cid) {
     auto block = sb_get_block(loco, cid);
     loco->text.erase(loco, block->p[cid->instance_id].text_id);
-    loco->element_depth[depth].input_hitbox.erase(block->p[cid->instance_id].be_id);
+    loco->element_depth[block->p[cid->instance_id].depth].input_hitbox.erase(block->p[cid->instance_id].be_id);
 
     sb_erase(loco, cid);
   }
@@ -162,12 +165,20 @@ struct button_t {
     loco->element_depth[block->p[cid->instance_id].depth].input_hitbox.set_position(block->p[cid->instance_id].be_id, position);
   }
 
+  fan::opengl::matrices_t* get_matrices(loco_t* loco, fan::opengl::cid_t* cid) {
+    auto block = sb_get_block(loco, cid);
+    return fan::opengl::matrices_list_GetNodeByReference(&loco->get_context()->matrices_list, *block->p[cid->instance_id].key.get_value<0>())->data.matrices_id;
+  }
   void set_matrices(loco_t* loco, fan::opengl::cid_t* cid, fan::opengl::matrices_list_NodeReference_t n) {
     auto block = sb_get_block(loco, cid);
     *block->p[cid->instance_id].key.get_value<0>() = n;
     loco->text.set_matrices(loco, block->p[cid->instance_id].text_id, n);
   }
 
+  fan::opengl::viewport_t* get_viewport(loco_t* loco, fan::opengl::cid_t* cid) {
+    auto block = sb_get_block(loco, cid);
+    return fan::opengl::viewport_list_GetNodeByReference(&loco->get_context()->viewport_list, *block->p[cid->instance_id].key.get_value<1>())->data.viewport_id;
+  }
   void set_viewport(loco_t* loco, fan::opengl::cid_t* cid, fan::opengl::viewport_list_NodeReference_t n) {
     auto block = sb_get_block(loco, cid);
     *block->p[cid->instance_id].key.get_value<1>() = n;
@@ -181,10 +192,6 @@ struct button_t {
     fan::opengl::cid_t* cid,
     f32_t intensity
   ) {
-    if (cid->block_id == 2) {
-      fan::print("ab");
-    }
-    
     loco->button.set_theme(loco, cid, &(*loco->button.get_theme(loco, cid)), intensity);
   }
 
