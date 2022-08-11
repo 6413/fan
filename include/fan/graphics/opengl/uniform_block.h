@@ -155,13 +155,22 @@ namespace fan {
         void get_vram_instance(fan::opengl::context_t* context, type_t* data, uint32_t i) {
           fan::opengl::core::get_glbuffer(context, data, common.m_vbo, sizeof(type_t), i * sizeof(type_t), op.target);
         }
-        void edit_ram_instance(fan::opengl::context_t* context, uint32_t i, const void* data, uint32_t byte_offset, uint32_t sizeof_data) {
+        void edit_instance(fan::opengl::context_t* context, uint32_t i, auto member, auto value) {
           #if fan_debug >= fan_debug_low
-          if (i + byte_offset + sizeof_data > common.m_size) {
-            fan::throw_error("invalid access");
+          if (i * sizeof(type_t) >= common.m_size) {
+            fan::throw_error("uninitialized access");
           }
           #endif
-          std::memmove(buffer + i * sizeof(type_t) + byte_offset, data, sizeof_data);
+          ((type_t*)buffer)[i].*member = value;
+        }
+        // for copying whole thing
+        void copy_instance(fan::opengl::context_t* context, uint32_t i, type_t* instance) {
+          #if fan_debug >= fan_debug_low
+          if (i * sizeof(type_t) >= common.m_size) {
+            fan::throw_error("uninitialized access");
+          }
+          #endif
+          std::memmove(buffer + i * sizeof(type_t), instance, sizeof(type_t));
         }
 
         void init_uniform_block(fan::opengl::context_t* context, uint32_t program, const char* name, uint32_t buffer_index = 0) {

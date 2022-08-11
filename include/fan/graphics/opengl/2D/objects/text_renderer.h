@@ -118,7 +118,8 @@ struct text_renderer_t {
   template <typename T, typename T2>
   void set(loco_t* loco, uint32_t id, T loco_t::letter_t::instance_t::*member, const T2& value) {
     for (uint32_t i = 0; i < letter_ids[id].size(); i++) {
-      loco->letter.set(loco, &letter_ids[id][i], member, value);
+      auto current = loco->letter.get(loco, &letter_ids[id][i], member);
+      loco->letter.set(loco, &letter_ids[id][i], member, current - (current - value));
     }
   }
 

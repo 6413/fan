@@ -1,8 +1,8 @@
 #pragma once
 
 #include _FAN_PATH(types/types.h)
-#include _FAN_PATH(types/memory.h)
 #include _FAN_PATH(io/file.h)
+#include <memory>
 
 namespace fan {
 

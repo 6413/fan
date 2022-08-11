@@ -38,13 +38,14 @@ struct pile_t {
 };
 
 int main() {
-  pile_t pile;
-  pile.open();
+  pile_t* pile = new pile_t;
 
-  pile.loco.set_vsync(false);
+  pile->open();
 
-  while(pile.loco.window_open(pile.loco.process_frame())) {
-    pile.loco.get_fps();
+  pile->loco.set_vsync(false);
+
+  while(pile->loco.window_open(pile->loco.process_frame())) {
+    pile->loco.get_fps();
   }
 
   return 0;

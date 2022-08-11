@@ -383,6 +383,12 @@ struct loco_t {
     //return transform_matrix(get_window()->get_mouse_position());
     return get_window()->get_mouse_position();
   }
+  fan::vec2 get_mouse_position(const fan::vec2& viewport_position, const fan::vec2& viewport_size) {
+    fan::vec2 rp = (get_mouse_position() - viewport_position) / (viewport_size / 2);
+    rp.x -= 1;
+    rp.y += 1;
+    return rp;
+  }
 
   fan::opengl::core::uniform_write_queue_t m_write_queue;
 
