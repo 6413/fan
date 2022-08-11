@@ -19,15 +19,27 @@ struct letter_t {
       fan::opengl::matrices_list_NodeReference_t,
       fan::opengl::viewport_list_NodeReference_t
     > {}key;
+    f32_t font_size;
+    uint16_t letter_id;
   };
 
   struct properties_t : instance_t {
-    f32_t font_size = 16;
-    uint16_t letter_id;
+    properties_t() : font_size(16) {}
+    properties_t(const instance_t& it) {
+      position = it.position;
+      outline_size = it.outline_size;
+      size = it.size;
+      tc_position = it.tc_position;
+      color = it.color;
+      outline_color = it.outline_color;
+      tc_size = it.tc_size;
+    }
     union {
       struct {
         fan::opengl::matrices_list_NodeReference_t matrices;
         fan::opengl::viewport_list_NodeReference_t viewport;
+        f32_t font_size;
+        uint16_t letter_id;
       };
       instance_properties_t instance_properties;
     };
@@ -57,6 +69,13 @@ struct letter_t {
     sb_draw(loco);
   }
 
+  properties_t get_properties(loco_t* loco, fan::opengl::cid_t* cid) {
+    properties_t p;
+    p = *sb_get_block(loco, cid)->uniform_buffer.get_instance(loco->get_context(), cid->instance_id);
+    p.instance_properties = sb_get_block(loco, cid)->p[cid->instance_id];
+    return p;
+  }
+
   #define sb_shader_vertex_path _FAN_PATH(graphics/glsl/opengl/2D/objects/letter.vs)
   #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/objects/letter.fs)
   #include _FAN_PATH(graphics/opengl/2D/objects/shape_builder.h)
@@ -66,5 +85,15 @@ struct letter_t {
   }
   void close(loco_t* loco) {
     sb_close(loco);
+  }
+
+  void set_matrices(loco_t* loco, fan::opengl::cid_t* cid, fan::opengl::matrices_list_NodeReference_t n) {
+    auto block = sb_get_block(loco, cid);
+    *block->p[cid->instance_id].key.get_value<0>() = n;
+  }
+
+  void set_viewport(loco_t* loco, fan::opengl::cid_t* cid, fan::opengl::viewport_list_NodeReference_t n) {
+    auto block = sb_get_block(loco, cid);
+    *block->p[cid->instance_id].key.get_value<1>() = n;
   }
 };

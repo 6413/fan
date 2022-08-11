@@ -12,6 +12,7 @@
 
 #include _FAN_PATH(graphics/opengl/gl_init.h)
 #include _FAN_PATH(graphics/light.h)
+#include _FAN_PATH(physics/collision/rectangle.h)
 
 #ifdef fan_platform_windows
 #include <dbghelp.h>
@@ -85,7 +86,8 @@ namespace fan {
 #define BLL_set_Link 0
 #define BLL_set_StructFormat 1
 #define BLL_set_NodeReference_Overload_Declare \
-  void operator=(fan::opengl::image_t* image);
+  image_list_NodeReference_t() = default; \
+  image_list_NodeReference_t(fan::opengl::image_t* image);
 #include _FAN_PATH(BLL/BLL.h)
 
 namespace fan {
@@ -131,7 +133,8 @@ namespace fan_2d {
 #define BLL_set_KeepSettings 1
 #define BLL_set_StructFormat 1
 #define BLL_set_NodeReference_Overload_Declare \
-  void operator=(fan_2d::graphics::gui::theme_t* theme);
+  theme_list_NodeReference_t() = default; \
+  theme_list_NodeReference_t(fan_2d::graphics::gui::theme_t*);
 #include _FAN_PATH(BLL/BLL.h)
 
 #include _FAN_PATH(graphics/gui/themes.h)
@@ -142,7 +145,7 @@ namespace fan_2d {
 #undef BLL_set_NodeReference_Overload_Declare
 #include _FAN_PATH(BLL/BLL.h)
 
-void fan::opengl::theme_list_NodeReference_t::operator=(fan_2d::graphics::gui::theme_t* theme) {
+fan::opengl::theme_list_NodeReference_t::theme_list_NodeReference_t(fan_2d::graphics::gui::theme_t* theme) {
   NRI = theme->theme_reference.NRI;
 }
 
@@ -157,7 +160,8 @@ void fan::opengl::theme_list_NodeReference_t::operator=(fan_2d::graphics::gui::t
 #define BLL_set_KeepSettings 1
 #define BLL_set_StructFormat 1
 #define BLL_set_NodeReference_Overload_Declare \
-  void operator=(fan::opengl::viewport_t* viewport);
+  viewport_list_NodeReference_t() = default; \
+  viewport_list_NodeReference_t(fan::opengl::viewport_t*);
 #include _FAN_PATH(BLL/BLL.h)
 
 namespace fan {
@@ -184,6 +188,10 @@ namespace fan {
 
       void set_viewport(fan::opengl::context_t* context, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_);
 
+      bool inside(const fan::vec2& position) const {
+        return fan_2d::collision::rectangle::point_inside_no_rotation(position, viewport_position - viewport_size / 2, viewport_size);
+      }
+
       fan::vec2 viewport_position;
       fan::vec2 viewport_size;
 
@@ -199,7 +207,7 @@ namespace fan {
 #undef BLL_set_NodeReference_Overload_Declare
 #include _FAN_PATH(BLL/BLL.h)
 
-void fan::opengl::viewport_list_NodeReference_t::operator=(fan::opengl::viewport_t* viewport) {
+fan::opengl::viewport_list_NodeReference_t::viewport_list_NodeReference_t(fan::opengl::viewport_t* viewport) {
   NRI = viewport->viewport_reference.NRI;
 }
 
@@ -214,7 +222,8 @@ void fan::opengl::viewport_list_NodeReference_t::operator=(fan::opengl::viewport
 #define BLL_set_KeepSettings 1
 #define BLL_set_StructFormat 1
 #define BLL_set_NodeReference_Overload_Declare \
-  void operator=(fan::opengl::matrices_t* matrices);
+  matrices_list_NodeReference_t() = default; \
+  matrices_list_NodeReference_t(fan::opengl::matrices_t* matrices);
 #include _FAN_PATH(BLL/BLL.h)
 
 namespace fan{
@@ -279,7 +288,7 @@ namespace fan{
 #undef BLL_set_NodeReference_Overload_Declare
 #include _FAN_PATH(BLL/BLL.h)
 
-void fan::opengl::matrices_list_NodeReference_t::operator=(fan::opengl::matrices_t* matrices) {
+fan::opengl::matrices_list_NodeReference_t::matrices_list_NodeReference_t(fan::opengl::matrices_t* matrices) {
   NRI = matrices->matrices_reference.NRI;
 }
 

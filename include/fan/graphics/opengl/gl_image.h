@@ -254,7 +254,7 @@ namespace fan {
 }
 
 
-void fan::opengl::image_list_NodeReference_t::operator=(fan::opengl::image_t* image) {
+fan::opengl::image_list_NodeReference_t::image_list_NodeReference_t(fan::opengl::image_t* image) {
   NRI = image->texture_reference.NRI;
 }
 #endif

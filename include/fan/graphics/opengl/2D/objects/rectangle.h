@@ -51,4 +51,14 @@ struct rectangle_t {
   void close(loco_t* loco) {
     sb_close(loco);
   }
+
+  void set_matrices(loco_t* loco, fan::opengl::cid_t* cid, fan::opengl::matrices_list_NodeReference_t n) {
+    auto block = sb_get_block(loco, cid);
+    *block->p[cid->instance_id].key.get_value<0>() = n;
+  }
+
+  void set_viewport(loco_t* loco, fan::opengl::cid_t* cid, fan::opengl::viewport_list_NodeReference_t n) {
+    auto block = sb_get_block(loco, cid);
+    *block->p[cid->instance_id].key.get_value<1>() = n;
+  }
 };

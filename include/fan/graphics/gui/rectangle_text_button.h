@@ -24,9 +24,12 @@ struct button_t {
     fan::opengl::theme_list_NodeReference_t theme;
     uint32_t text_id;
     uint32_t be_id;
+    uint32_t depth;
   };
 
   struct properties_t : instance_t {
+    properties_t() : depth(0) {}
+
     fan::utf16_string text;
     f32_t font_size = 0.1;
     be_t::on_input_cb_t mouse_input_cb = [](const be_t::mouse_input_data_t&) -> uint8_t { return 1; };
@@ -42,12 +45,13 @@ struct button_t {
         fan::opengl::theme_list_NodeReference_t theme;
         uint32_t text_id;
         uint32_t be_id;
+        uint32_t depth;
       };
       instance_properties_t instance_properties;
     };
   };
 
-  void push_back(loco_t* loco, uint32_t depth, fan::opengl::cid_t* cid, properties_t& p) {
+  void push_back(loco_t* loco, fan::opengl::cid_t* cid, properties_t& p) {
     auto theme = loco->button.get_theme(loco, p.theme);
     loco_t::text_t::properties_t tp;
     tp.color = theme->button.text_color;
@@ -71,15 +75,20 @@ struct button_t {
     be_p.userptr = p.userptr;
     be_p.cid = cid;
     be_p.viewport = fan::opengl::viewport_list_GetNodeByReference(&loco->get_context()->viewport_list, p.viewport)->data.viewport_id;
+    #if fan_debug >= fan_debug_low
+      if (p.depth >= loco->max_depths) {
+        fan::throw_error("invalid access");
+      }
+    #endif
     if (p.disable_highlight) {
-      block->p[cid->instance_id].be_id = loco->element_depth[depth].input_hitbox.push_back(
+      block->p[cid->instance_id].be_id = loco->element_depth[p.depth].input_hitbox.push_back(
         be_p, 
         [](const be_t::mouse_input_data_t&)->uint8_t { return 1; /* continue*/ },
         [](const be_t::mouse_move_data_t&)->uint8_t { return 1; /* continue*/ }
       );
     }
     else {
-      block->p[cid->instance_id].be_id = loco->element_depth[depth].input_hitbox.push_back(be_p, mouse_input_cb, mouse_move_cb);
+      block->p[cid->instance_id].be_id = loco->element_depth[p.depth].input_hitbox.push_back(be_p, mouse_input_cb, mouse_move_cb);
     }
   }
   void erase(loco_t* loco, uint32_t depth, fan::opengl::cid_t* cid) {
@@ -146,6 +155,25 @@ struct button_t {
     loco->text.set(loco, block->p[cid->instance_id].text_id, member, value);
   }
 
+  void set_position(loco_t* loco, fan::opengl::cid_t* cid, const fan::vec2& position) {
+    auto block = sb_get_block(loco, cid);
+    set_text(loco, cid, &loco_t::letter_t::instance_t::position, position);
+    set_button(loco, cid, &instance_t::position, position);
+    loco->element_depth[block->p[cid->instance_id].depth].input_hitbox.set_position(block->p[cid->instance_id].be_id, position);
+  }
+
+  void set_matrices(loco_t* loco, fan::opengl::cid_t* cid, fan::opengl::matrices_list_NodeReference_t n) {
+    auto block = sb_get_block(loco, cid);
+    *block->p[cid->instance_id].key.get_value<0>() = n;
+    loco->text.set_matrices(loco, block->p[cid->instance_id].text_id, n);
+  }
+
+  void set_viewport(loco_t* loco, fan::opengl::cid_t* cid, fan::opengl::viewport_list_NodeReference_t n) {
+    auto block = sb_get_block(loco, cid);
+    *block->p[cid->instance_id].key.get_value<1>() = n;
+    loco->text.set_viewport(loco, block->p[cid->instance_id].text_id, n);
+  }
+
   protected:
 
   static void lib_set_theme(
@@ -153,6 +181,10 @@ struct button_t {
     fan::opengl::cid_t* cid,
     f32_t intensity
   ) {
+    if (cid->block_id == 2) {
+      fan::print("ab");
+    }
+    
     loco->button.set_theme(loco, cid, &(*loco->button.get_theme(loco, cid)), intensity);
   }
 
