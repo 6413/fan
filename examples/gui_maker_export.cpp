@@ -45,11 +45,8 @@ int main() {
   pile->loco.set_vsync(false);
 
   while(pile->loco.window_open(pile->loco.process_frame())) {
-    fan::print(pile->loco.get_mouse_position(
-      pile->fgm.viewport[pile_t::fgm_t::viewport_area::editor].get_viewport_position(),
-      pile->fgm.viewport[pile_t::fgm_t::viewport_area::editor].get_viewport_size()
-    ));
     pile->loco.get_fps();
+    fan::print(pile->loco.focus.shape_type, pile->loco.focus.shape_id);
   }
 
   return 0;
