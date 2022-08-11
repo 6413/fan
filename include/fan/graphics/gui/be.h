@@ -108,7 +108,6 @@ namespace fan_2d {
           auto get_mouse_position = [&](uint32_t i) {
             fan::vec2 viewport_position = m_button_data[i].properties.viewport->get_viewport_position(); 
             fan::vec2 viewport_size = m_button_data[i].properties.viewport->get_viewport_size();
-            fan::vec2 window_size = get_window(loco)->get_size();
             fan::vec2 rp = (mouse_position - viewport_position) / (viewport_size / 2);
             rp.x -= 1;
             rp.y += 1;
@@ -178,7 +177,6 @@ namespace fan_2d {
           auto get_mouse_position = [&](uint32_t i) {
             fan::vec2 viewport_position = m_button_data[i].properties.viewport->get_viewport_position(); 
             fan::vec2 viewport_size = m_button_data[i].properties.viewport->get_viewport_size();
-            fan::vec2 window_size = get_window(loco)->get_size();
             fan::vec2 rp = (mouse_position - viewport_position) / (viewport_size / 2);
             rp.x -= 1;
             rp.y += 1;

@@ -156,7 +156,7 @@ namespace fan_2d {
 			}
 			void set_color(fan::opengl::context_t* context, uint32_t i, const fan::color& color) {
 				for (int j = 0; j < vertex_count; j++) {
-					m_glsl_buffer.edit_ram_instance(
+					m_glsl_buffer.edit_instance(
 						context,
 						i * vertex_count + j,
 						&color,
@@ -179,7 +179,7 @@ namespace fan_2d {
 			}
 			void set_position(fan::opengl::context_t* context, uint32_t i, const fan::vec2& position) {
 				for (int j = 0; j < vertex_count; j++) {
-					m_glsl_buffer.edit_ram_instance(
+					m_glsl_buffer.edit_instance(
 						context, 
 						i * vertex_count + j,
 						&position,
@@ -201,7 +201,7 @@ namespace fan_2d {
 			}
 			void set_radius(fan::opengl::context_t* context, uint32_t i, f32_t size) {
 				for (int j = 0; j < vertex_count; j++) {
-					m_glsl_buffer.edit_ram_instance(
+					m_glsl_buffer.edit_instance(
 						context, 
 						i * vertex_count + j,
 						&size,
@@ -225,7 +225,7 @@ namespace fan_2d {
 				f32_t a = fmod(angle, fan::math::pi * 2);
 
 				for (int j = 0; j < vertex_count; j++) {
-					m_glsl_buffer.edit_ram_instance(
+					m_glsl_buffer.edit_instance(
 						context, 
 						i * vertex_count + j,
 						&a,
@@ -247,7 +247,7 @@ namespace fan_2d {
 			}
 			void set_rotation_point(fan::opengl::context_t* context, uint32_t i, const fan::vec2& rotation_point) {
 				for (int j = 0; j < vertex_count; j++) {
-					m_glsl_buffer.edit_ram_instance(
+					m_glsl_buffer.edit_instance(
 						context, 
 						i * vertex_count + j,
 						&rotation_point,
@@ -269,7 +269,7 @@ namespace fan_2d {
 			}
 			void set_rotation_vector(fan::opengl::context_t* context, uint32_t i, const fan::vec3& rotation_vector) {
 				for (int j = 0; j < vertex_count; j++) {
-					m_glsl_buffer.edit_ram_instance(
+					m_glsl_buffer.edit_instance(
 						context, 
 						i * vertex_count + j,
 						&rotation_vector,

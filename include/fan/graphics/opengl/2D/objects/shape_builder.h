@@ -122,12 +122,10 @@ void sb_erase(loco_t* loco, fan::opengl::cid_t* cid) {
 
   instance_t* last_instance_data = last_block->uniform_buffer.get_instance(loco->get_context(), last_instance_id);
 
-  block->uniform_buffer.edit_ram_instance(
+  block->uniform_buffer.copy_instance(
     loco->get_context(),
     cid->instance_id,
-    last_instance_data,
-    0,
-    sizeof(instance_t)
+    last_instance_data
   );
 
   last_block->uniform_buffer.common.m_size -= sizeof(instance_t);
@@ -164,17 +162,17 @@ block_t* sb_get_block(loco_t* loco, fan::opengl::cid_t* cid) {
 
 template <typename T>
 T get(loco_t* loco, fan::opengl::cid_t *cid, T instance_t::*member) {
-  auto block_node = bll_block_GetNodeByReference(&blocks, *(bll_block_NodeReference_t*)&cid->block_id);
-  return block_node->data.block.uniform_buffer.get_instance(loco->get_context(), cid->instance_id)->*member;
+  auto block = sb_get_block(loco, cid);
+  return block->uniform_buffer.get_instance(loco->get_context(), cid->instance_id)->*member;
 }
 template <typename T, typename T2>
 void set(loco_t* loco, fan::opengl::cid_t *cid, T instance_t::*member, const T2& value) {
-  auto block_node = bll_block_GetNodeByReference(&blocks, *(bll_block_NodeReference_t*)&cid->block_id);
-  block_node->data.block.uniform_buffer.edit_ram_instance(loco->get_context(), cid->instance_id, (T*)&value, fan::ofof<instance_t, T>(member), sizeof(T));
-  block_node->data.block.uniform_buffer.common.edit(
+  auto block = sb_get_block(loco, cid);
+  block->uniform_buffer.edit_instance(loco->get_context(), cid->instance_id, member, value);
+  block->uniform_buffer.common.edit(
     loco->get_context(),
     &loco->m_write_queue,
-    cid->instance_id * sizeof(instance_t) + fan::ofof<instance_t, T>(member),
+    0,
     cid->instance_id * sizeof(instance_t) + fan::ofof<instance_t, T>(member) + sizeof(T)
   );
 }

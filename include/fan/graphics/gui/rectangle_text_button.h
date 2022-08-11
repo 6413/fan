@@ -136,23 +136,25 @@ struct button_t {
   }
 
   template <typename T>
-  T get_text(loco_t* loco, uint32_t id, T loco_t::letter_t::instance_t::* member) {
-    return loco->text.get(loco, id, member);
+  T get_text(loco_t* loco, fan::opengl::cid_t* cid, T loco_t::letter_t::instance_t::* member) {
+    auto block = sb_get_block(loco, cid);
+    return loco->text.get(loco, block->p[cid->instance_id].text_id, member);
   }
   template <typename T, typename T2>
-  void set_text(loco_t* loco, uint32_t id, T loco_t::letter_t::instance_t::*member, const T2& value) {
-    loco->text.set(loco, id, member, value);
+  void set_text(loco_t* loco, fan::opengl::cid_t* cid, T loco_t::letter_t::instance_t::*member, const T2& value) {
+    auto block = sb_get_block(loco, cid);
+    loco->text.set(loco, block->p[cid->instance_id].text_id, member, value);
   }
 
   protected:
 
-    static void lib_set_theme(
-      loco_t* loco,
-      fan::opengl::cid_t* cid,
-      f32_t intensity
-    ) {
-      loco->button.set_theme(loco, cid, &(*loco->button.get_theme(loco, cid)), intensity);
-    }
+  static void lib_set_theme(
+    loco_t* loco,
+    fan::opengl::cid_t* cid,
+    f32_t intensity
+  ) {
+    loco->button.set_theme(loco, cid, &(*loco->button.get_theme(loco, cid)), intensity);
+  }
 
   #define dont_look_here(d_n, i) lib_set_theme( \
     d_n.loco, \
