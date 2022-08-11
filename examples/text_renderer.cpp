@@ -87,6 +87,7 @@ int main() {
   pile->loco.set_vsync(false);
   uint32_t x = 0;
   while(pile->loco.window_open(pile->loco.process_frame())) {
+    pile->loco.text.set(&pile->loco, pile->ids[0], &loco_t::letter_t::instance_t::position, pile->loco.transform_matrix(pile->loco.get_mouse_position()));
     /* if(x < count) {
     pile->loco.rectangle.erase(&pile->loco, &pile->cids[x]);
     x++;

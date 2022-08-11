@@ -102,8 +102,10 @@ void sb_erase(loco_t* loco, fan::opengl::cid_t* cid) {
   uint32_t last_instance_id = last_block->uniform_buffer.size() - 1;
 
   if (bll_block_IsNodeReferenceEqual(block_id, last_block_id) && cid->instance_id == block->uniform_buffer.size() - 1) {
+    fan::print("m_size", block->uniform_buffer.common.m_size, sizeof(instance_t));
     block->uniform_buffer.common.m_size -= sizeof(instance_t);
     if (block->uniform_buffer.size() == 0) {
+      auto lpnr = block_node->PrevNodeReference;
       block->close(loco);
       bll_block_Unlink(&blocks, block_id);
       bll_block_Recycle(&blocks, block_id);
@@ -111,12 +113,15 @@ void sb_erase(loco_t* loco, fan::opengl::cid_t* cid) {
         loco_bdbt_Key_t<sizeof(instance_properties_t) * 8> k;
         typename decltype(k)::KeySize_t ki;
         k.Remove(&loco->bdbt, &bm_node->data.instance_properties.key, root);
+        fan::print("a", shape_bm_usage(&bm_list));
         shape_bm_Recycle(&bm_list, bm_id);
       }
       else {
-        last_block_id = block_node->PrevNodeReference;
+        fan::print("here");
+        last_block_id = lpnr;
       }
     }
+    fan::print(shape_bm_usage(&bm_list));
     return;
   }
 
@@ -172,7 +177,7 @@ void set(loco_t* loco, fan::opengl::cid_t *cid, T instance_t::*member, const T2&
   block->uniform_buffer.common.edit(
     loco->get_context(),
     &loco->m_write_queue,
-    0,
+    cid->instance_id * sizeof(instance_t) + fan::ofof<instance_t, T>(member),
     cid->instance_id * sizeof(instance_t) + fan::ofof<instance_t, T>(member) + sizeof(T)
   );
 }
@@ -194,6 +199,7 @@ void traverse_draw(loco_t* loco, auto nr, uint32_t draw_mode) {
     auto bnr = bmn->data.first_block;
 
     while(1) {
+      fan::print((int)bnr.NRI);
       auto node = bll_block_GetNodeByReference(&blocks, bnr);
       node->data.block.uniform_buffer.bind_buffer_range(
         loco->get_context(), 

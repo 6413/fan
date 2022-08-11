@@ -38,7 +38,7 @@ struct loco_t {
   #endif
   };
 
-  static constexpr uint32_t max_depths = 1;
+  static constexpr uint32_t max_depths = 2;
 
   fan::window_t* get_window() {
   #ifdef loco_window
@@ -384,10 +384,10 @@ struct loco_t {
     return get_window()->get_mouse_position();
   }
   fan::vec2 get_mouse_position(const fan::vec2& viewport_position, const fan::vec2& viewport_size) {
-    fan::vec2 rp = (get_mouse_position() - viewport_position) / (viewport_size / 2);
-    rp.x -= 1;
-    rp.y += 1;
-    return rp;
+    fan::vec2 x;
+    x.x = (get_mouse_position().x - viewport_position.x - viewport_size.x / 2) / (viewport_size.x / 2);
+    x.y = (get_mouse_position().y - viewport_position.y - viewport_size.y / 2) / (viewport_size.y / 2) + (viewport_position.y / viewport_size.y) * 2;
+    return x;
   }
 
   fan::opengl::core::uniform_write_queue_t m_write_queue;

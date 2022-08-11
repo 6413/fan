@@ -108,10 +108,10 @@ namespace fan_2d {
           auto get_mouse_position = [&](uint32_t i) {
             fan::vec2 viewport_position = m_button_data[i].properties.viewport->get_viewport_position(); 
             fan::vec2 viewport_size = m_button_data[i].properties.viewport->get_viewport_size();
-            fan::vec2 rp = (mouse_position - viewport_position) / (viewport_size / 2);
-            rp.x -= 1;
-            rp.y += 1;
-            return rp;
+            fan::vec2 x;
+            x.x = (mouse_position.x - viewport_position.x - viewport_size.x / 2) / (viewport_size.x / 2);
+            x.y = (mouse_position.y - viewport_position.y - viewport_size.y / 2) / (viewport_size.y / 2) + (viewport_position.y / viewport_size.y) * 2;
+            return x;
           };
 
           if (m_do_we_hold_button == 1 && m_focused_button_id != fan::uninitialized) {
@@ -123,11 +123,13 @@ namespace fan_2d {
             }
             else {
               uint32_t id = m_focused_button_id;
-              m_focused_button_id = fan::uninitialized;
+              if (!m_do_we_hold_button) {
+                m_focused_button_id = fan::uninitialized;
+              }
               move_data.mouse_stage = mouse_stage_e::outside;
               move_data(id);
             }
-            
+            return 1;
           }
           if (m_focused_button_id != fan::uninitialized) {
             mouse_move_data_t move_data;
@@ -139,11 +141,14 @@ namespace fan_2d {
             }
             else {
               uint32_t id = m_focused_button_id;
-              m_focused_button_id = fan::uninitialized;
+              if (!m_do_we_hold_button) {
+                m_focused_button_id = fan::uninitialized;
+              }
               move_data.changed = true;
               move_data.mouse_stage = mouse_stage_e::outside;
               move_data(id);
             }
+            return 1;
           }
           uint32_t i = m_button_data.rbegin();
           while (i != m_button_data.rend()) {
@@ -177,10 +182,10 @@ namespace fan_2d {
           auto get_mouse_position = [&](uint32_t i) {
             fan::vec2 viewport_position = m_button_data[i].properties.viewport->get_viewport_position(); 
             fan::vec2 viewport_size = m_button_data[i].properties.viewport->get_viewport_size();
-            fan::vec2 rp = (mouse_position - viewport_position) / (viewport_size / 2);
-            rp.x -= 1;
-            rp.y += 1;
-            return rp;
+            fan::vec2 x;
+            x.x = (mouse_position.x - viewport_position.x - viewport_size.x / 2) / (viewport_size.x / 2);
+            x.y = (mouse_position.y - viewport_position.y - viewport_size.y / 2) / (viewport_size.y / 2) + (viewport_position.y / viewport_size.y) * 2;
+            return x;
           };
 
           #define input_data(index) \
@@ -264,19 +269,19 @@ namespace fan_2d {
                 }
               }
               else {
-                uint32_t i = m_button_data.rbegin();
-                while (i != m_button_data.rend()) {
-                  if (inside(loco, i, get_mouse_position(i))) {
-                    m_do_we_hold_button = 0;
-                    m_focused_button_id = i;
-                    mouse_input_data_t input_data;
-                    input_data.mouse_stage = mouse_stage_e::inside_drag;
-                    input_data.key_state = fan::key_state::release;
-                    input_data(m_focused_button_id);
-                    break;
-                  }
-                  i = m_button_data.rnext(i);
-                }
+                //uint32_t i = m_button_data.rbegin();
+                //while (i != m_button_data.rend()) {
+                //  if (inside(loco, i, get_mouse_position(i))) {
+                //    m_do_we_hold_button = 0;
+                //    m_focused_button_id = i;
+                //    mouse_input_data_t input_data;
+                //    input_data.mouse_stage = mouse_stage_e::inside_drag;
+                //    input_data.key_state = fan::key_state::release;
+                //    input_data(m_focused_button_id);
+                //    break;
+                //  }
+                //  i = m_button_data.rnext(i);
+                //}
 
                 pointer_remove_flag = 1;
                 m_do_we_hold_button = 0;
@@ -318,6 +323,19 @@ namespace fan_2d {
         }
         void write_out(FILE* f) {
           m_button_data.write_out(f);
+        }
+
+        void set_position(uint32_t nr, const fan::vec2& position) {
+          switch(m_button_data[nr].properties.hitbox_type) {
+            case hitbox_type_t::rectangle: {
+              m_button_data[nr].properties.hitbox_rectangle.position = position;
+              break;
+            }
+            case hitbox_type_t::circle: {
+              m_button_data[nr].properties.hitbox_circle.position = position;
+              break;
+            }
+          }
         }
 
     //  protected:
