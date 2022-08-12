@@ -26,20 +26,20 @@ void main() {
   float width = 0.4;
   float alpha = smoothstep(width, width + smoothing, distance);
 
-  float border_width = get_outline_width(1);
-  float border_edge =  get_outline_edge(1);
+  float border_width = get_outline_width(0);
+  float border_edge =  get_outline_edge(0);
 
   float outline_alpha = smoothstep(border_width, border_width + border_edge, distance);
-  if (outline_alpha == 0) {
+
+ // vec3 final_color = mix(vec3(0, 0, 0), text_color.rgb, outline_alpha);
+
+  if (alpha < 0.5) {
     discard;
   }
+  color = vec4(text_color.rgb, alpha);
 
-  vec3 final_color = mix(vec3(1, 0, 1), text_color.rgb, outline_alpha);
-
-  color = vec4(final_color, outline_alpha);
-
-  if (outline_alpha < 0.5) {
-    color.rgb = vec3(0, 0, 0);
-  }
+  //if (outline_alpha < 0.5) {
+  //  color.rgb = vec3(0, 0, 0);
+  //}
 }
 )"

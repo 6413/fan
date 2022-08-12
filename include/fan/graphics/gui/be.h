@@ -222,6 +222,14 @@ namespace fan_2d {
                     set_focus(i);
                     input_data(i);
                   }
+                  else {
+                    mouse_input_data_t input_data;
+                    input_data.changed = false;
+                    input_data.key_state = fan::key_state::press;
+                    input_data.mouse_stage = mouse_stage_e::outside;
+                    set_focus(i);
+                    input_data(i)
+                  }
                   i = m_button_data.rnext(i);
                 }
                 reset_focus();
