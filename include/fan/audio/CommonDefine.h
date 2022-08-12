@@ -30,7 +30,7 @@ void _audio_common_open(_audio_common_t *audio_common, uint32_t GroupAmount) {
       uint8_t *dld = (uint8_t *)_DecoderList_GetNodeReferenceData(dl, r);
 
       _DecoderHead_t *DecoderHead = (_DecoderHead_t *)dld;
-      DecoderHead->CacheID = (_CacheID_t)-1;
+      DecoderHead->CacheID = _CacheList_GetConstantInvalidNodeReference();
 
       OpusDecoder *od = (OpusDecoder *)&dld[sizeof(_DecoderHead_t)];
       int re = opus_decoder_init(od, 48000, Channel + 1);
@@ -45,7 +45,7 @@ void _audio_common_open(_audio_common_t *audio_common, uint32_t GroupAmount) {
     _CacheList_NodeReference_t r = _CacheList_NewNodeLast_alloc(&audio_common->CacheList);
     _CacheList_Node_t *n = _CacheList_GetNodeByReference(&audio_common->CacheList, r);
     n->data.SegmentID = (_SegmentID_t)-1;
-    n->data.DecoderID = (_DecoderID_t)-1;
+    n->data.DecoderID = _DecoderList_GetConstantInvalidNodeReference();
   }
 }
 
@@ -77,14 +77,15 @@ _CacheID_t _GetCacheID(_audio_common_t *audio_common, piece_t *piece, _SegmentID
   _CacheID_t clid = _CacheList_GetNodeLast(&audio_common->CacheList);
   _CacheList_Node_t *cln = _CacheList_GetNodeByReference(&audio_common->CacheList, clid);
   if(cln->data.SegmentID != (_SegmentID_t)-1){
-    ((_SACSegment_t *)cln->data.piece->SACData)[cln->data.SegmentID].CacheID = (_CacheID_t)-1;
+    ((_SACSegment_t *)cln->data.piece->SACData)[cln->data.SegmentID].CacheID =
+      _CacheList_GetConstantInvalidNodeReference();
     _DecoderID_t dlid = cln->data.DecoderID;
-    if(dlid != (_DecoderID_t)-1){
+    if(_DecoderList_IsNodeReferenceInvalidConstant(dlid) == false){
       _DecoderList_t *dl = &audio_common->DecoderList[cln->data.piece->ChannelAmount - 1];
       _DecoderHead_t *DecoderHead = (_DecoderHead_t *)_DecoderList_GetNodeReferenceData(
         dl,
         dlid);
-      DecoderHead->CacheID = (_CacheID_t)-1;
+      DecoderHead->CacheID = _CacheList_GetConstantInvalidNodeReference();
       _DecoderList_ReLinkAsLast(dl, dlid);
     }
   }
@@ -128,11 +129,11 @@ _DecoderID_t _GetDecoderID(_audio_common_t *audio_common, piece_t *piece, _Segme
 
   if(SegmentID != 0){
     _CacheID_t pclid = ((_SACSegment_t *)piece->SACData)[SegmentID - 1].CacheID;
-    if(pclid != (_CacheID_t)-1){
+    if(_CacheList_IsNodeReferenceInvalidConstant(pclid) == false){
       _CacheList_Node_t *pcln = _CacheList_GetNodeByReference(&audio_common->CacheList, pclid);
       _DecoderID_t DecoderID = pcln->data.DecoderID;
-      if(DecoderID != (_DecoderID_t)-1){
-        pcln->data.DecoderID = (_DecoderID_t)-1;
+      if(_DecoderList_IsNodeReferenceInvalidConstant(DecoderID) == false){
+        pcln->data.DecoderID = _DecoderList_GetConstantInvalidNodeReference();
         return DecoderID;
       }
     }
@@ -145,9 +146,9 @@ _DecoderID_t _GetDecoderID(_audio_common_t *audio_common, piece_t *piece, _Segme
   _DecoderHead_t *DecoderHead = (_DecoderHead_t *)dld;
 
   _CacheID_t dclid = DecoderHead->CacheID;
-  if(dclid != (_CacheID_t)-1){
+  if(_CacheList_IsNodeReferenceInvalidConstant(dclid) == false){
     _CacheList_Node_t *dcln = _CacheList_GetNodeByReference(&audio_common->CacheList, dclid);
-    dcln->data.DecoderID = (_DecoderID_t)-1;
+    dcln->data.DecoderID = _DecoderList_GetConstantInvalidNodeReference();
   }
 
   OpusDecoder *od = (OpusDecoder *)&dld[sizeof(_DecoderHead_t)];
@@ -203,7 +204,7 @@ void _GetFrames(_audio_common_t *audio_common, piece_t *piece, uint64_t Offset, 
   _SegmentID_t SegmentID = Offset / _constants::FrameCacheAmount;
   uint32_t PieceCacheMod = Offset % _constants::FrameCacheAmount;
   _CacheID_t *CacheID = &((_SACSegment_t *)piece->SACData)[SegmentID].CacheID;
-  if(*CacheID == (_CacheID_t)-1){
+  if(_CacheList_IsNodeReferenceInvalidConstant(*CacheID) == true){
     _DecodeSegment(audio_common, piece, SegmentID);
   }
   _CacheList_ReLinkAsFirst(&audio_common->CacheList, *CacheID);
@@ -226,7 +227,12 @@ void _AddSoundToPlay(_audio_common_t *audio_common, _PlayInfoList_NodeReference_
   #endif
   PlayInfoNode->data.PlayID = PlayID;
 }
-void _RemoveFromPlayList(_audio_common_t *audio_common, uint32_t PlayID) {
+void
+_RemoveFromPlayList
+(
+  _audio_common_t *audio_common,
+  uint32_t PlayID
+){
   /* super fast remove */
   ((_Play_t *)audio_common->PlayList.ptr)[PlayID] = ((_Play_t *)audio_common->PlayList.ptr)[--audio_common->PlayList.Current];
 
@@ -235,7 +241,13 @@ void _RemoveFromPlayList(_audio_common_t *audio_common, uint32_t PlayID) {
   _PlayInfoList_Node_t *PlayInfoNode = _PlayInfoList_GetNodeByReference(&audio_common->PlayInfoList, PlayInfoReference);
   PlayInfoNode->data.PlayID = PlayID;
 }
-void _RemoveFromPlayInfoList(_audio_common_t *audio_common, uint32_t PlayInfoReference, const PropertiesSoundStop_t* Properties) {
+void
+_RemoveFromPlayInfoList
+(
+  _audio_common_t *audio_common,
+  _PlayInfoList_NodeReference_t PlayInfoReference,
+  const PropertiesSoundStop_t* Properties
+){
   _PlayInfoList_Node_t *PlayInfoNode = _PlayInfoList_GetNodeByReference(&audio_common->PlayInfoList, PlayInfoReference);
   if (PlayInfoNode->data.PlayID == (uint32_t)-1) {
     /* properties are ignored */
@@ -331,7 +343,7 @@ sint32_t piece_open(audio_t *audio, fan::audio::piece_t *piece, void *data, uint
       }
       ((_SACSegment_t *)piece->SACData)[psi].Offset = DataOffset;
       ((_SACSegment_t *)piece->SACData)[psi].Size = BeforeSum;
-      ((_SACSegment_t *)piece->SACData)[psi].CacheID = (_CacheID_t)-1;
+      ((_SACSegment_t *)piece->SACData)[psi].CacheID = _CacheList_GetConstantInvalidNodeReference();
       DataOffset += BeforeSum;
       BeforeSum = 0;
       psi++;
@@ -384,7 +396,7 @@ void audio_resume_group(audio_t *audio, uint32_t GroupID) {
   TH_unlock(&audio_common->MessageQueueListMutex);
 }
 
-uint32_t SoundPlay(audio_t *audio, piece_t *piece, uint32_t GroupID, const PropertiesSoundPlay_t *Properties) {
+SoundPlayID_t SoundPlay(audio_t *audio, piece_t *piece, uint32_t GroupID, const PropertiesSoundPlay_t *Properties) {
   _audio_common_t *audio_common = (_audio_common_t *)audio;
   #if fan_debug >= 0
     if (GroupID >= audio_common->GroupAmount) {

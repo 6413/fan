@@ -18,26 +18,54 @@ namespace _constants {
 
 struct piece_t;
 
-typedef uint8_t _DecoderID_t;
-typedef uint32_t _SegmentID_t;
-typedef uint16_t _CacheID_t;
+typedef uint8_t _DecoderID_Size_t;
+typedef uint16_t _CacheID_Size_t;
 
-struct _DecoderHead_t{
-  _CacheID_t CacheID;
-};
-
+#define BLL_set_BaseLibrary 1
 #define BLL_set_prefix _DecoderList
-#define BLL_set_type_node _DecoderID_t
+#define BLL_set_type_node _DecoderID_Size_t
+#define BLL_set_declare_NodeReference 1
+#define BLL_set_declare_basic_types 0
+#define BLL_set_declare_rest 0
 #include _WITCH_PATH(BLL/BLL.h)
 
+#define BLL_set_BaseLibrary 1
 #define BLL_set_prefix _CacheList
-#define BLL_set_type_node _CacheID_t
+#define BLL_set_type_node _CacheID_Size_t
+#define BLL_set_declare_NodeReference 1
+#define BLL_set_declare_basic_types 0
+#define BLL_set_declare_rest 0
+#include _WITCH_PATH(BLL/BLL.h)
+
+typedef _DecoderList_NodeReference_t _DecoderID_t;
+typedef _CacheList_NodeReference_t _CacheID_t;
+
+typedef uint32_t _SegmentID_t;
+
+#define BLL_set_BaseLibrary 1
+#define BLL_set_prefix _DecoderList
+#define BLL_set_type_node _DecoderID_Size_t
+#define BLL_set_declare_NodeReference 0
+#define BLL_set_declare_basic_types 1
+#define BLL_set_declare_rest 1
+#include _WITCH_PATH(BLL/BLL.h)
+
+#define BLL_set_BaseLibrary 1
+#define BLL_set_prefix _CacheList
+#define BLL_set_type_node _CacheID_Size_t
 #define BLL_set_node_data \
   f32_t Samples[_constants::FrameCacheAmount * _constants::ChannelAmount]; \
   _DecoderID_t DecoderID; \
   piece_t *piece; \
   _SegmentID_t SegmentID;
+#define BLL_set_declare_NodeReference 0
+#define BLL_set_declare_basic_types 1
+#define BLL_set_declare_rest 1
 #include _WITCH_PATH(BLL/BLL.h)
+
+struct _DecoderHead_t{
+  _CacheID_t CacheID;
+};
 
 #pragma pack(push, 1)
 
@@ -82,6 +110,8 @@ struct PropertiesSoundStop_t {
 #define BLL_set_ResizeListAfterClear 1
 #include _WITCH_PATH(BLL/BLL.h)
 
+typedef _PlayInfoList_NodeReference_t SoundPlayID_t;
+
 enum class _MessageType_t {
   SoundPlay,
   SoundStop,
@@ -93,10 +123,10 @@ struct _Message_t {
   _MessageType_t Type;
   union {
     struct {
-      uint32_t PlayInfoReference;
+      _PlayInfoList_NodeReference_t PlayInfoReference;
     }SoundPlay;
     struct {
-      uint32_t PlayInfoReference;
+      _PlayInfoList_NodeReference_t PlayInfoReference;
       PropertiesSoundStop_t Properties;
     }SoundStop;
     struct {

@@ -48,6 +48,26 @@ struct fgm_t {
       fgm->viewport[0].set_viewport(pile->loco.get_context(), 0, ws);
     });*/
 
+    loco->get_window()->add_keys_callback(loco, [](fan::window_t*, uint16_t key, fan::key_state key_state, void* userptr) {
+      pile_t* pile = OFFSETLESS(userptr, pile_t, loco);
+      switch(key) {
+        case fan::key_delete: {
+          switch(key_state) {
+            case fan::key_state::press: {
+              switch (pile->loco.focus.shape_type) {
+                case loco_t::shapes::button: {
+                  pile->fgm.builder_button.erase(&pile->loco, (fan::opengl::cid_t*)pile->loco.focus.shape_id);
+                  break;
+                }
+              }
+              break;
+            }
+          }
+          break;
+        }
+      }
+    });
+
     loco->get_window()->add_mouse_move_callback(loco, [](fan::window_t* window, const fan::vec2i& position, void* userptr) {
       pile_t* pile = OFFSETLESS(userptr, pile_t, loco);
       switch(pile->loco.focus.shape_type) {
@@ -150,6 +170,9 @@ struct fgm_t {
           }
         }
        // pile->loco.focus.shape_type = fan::uninitialized;
+        return 1;
+      }
+      if (ii_d.mouse_stage != fan_2d::graphics::gui::mouse_stage_e::inside) {
         return 1;
       }
       pile->fgm.action_flag |= action::move;
@@ -255,10 +278,12 @@ struct fgm_t {
           pile->fgm.builder_button.release(&pile->loco);
           return 1;
         }
+        if (ii_d.key_state == fan::key_state::press && ii_d.mouse_stage == fan_2d::graphics::gui::mouse_stage_e::outside) {
+          pile->fgm.active.clear(&pile->loco);
+        }
         pile->fgm.action_flag |= action::move;
         auto viewport = pile->loco.button.get_viewport(&pile->loco, (fan::opengl::cid_t*)ii_d.element_id);
         pile->fgm.move_offset =  fan::vec2(pile->loco.button.get_button(&pile->loco, (fan::opengl::cid_t*)ii_d.element_id, &loco_t::button_t::instance_t::position)) - pile->loco.get_mouse_position(viewport->get_viewport_position(), viewport->get_viewport_size());
-        pile->fgm.active.set_corners(&pile->loco, pile->fgm.builder_button.get_corners(&pile->loco, (fan::opengl::cid_t*)ii_d.element_id));
         return 1;
       };
       p.userptr = loco;
@@ -303,14 +328,14 @@ struct fgm_t {
       }
       for (uint32_t i = 0; i < corners.count; i++) {
         p.position = corners.corners[i];
-        //push_back(loco, p);
+        push_back(loco, p);
       }
     }
     void set_corners(loco_t* loco, const corners_t& corners) {
-     /* pile_t* pile = OFFSETLESS(loco, pile_t, loco);
+      pile_t* pile = OFFSETLESS(loco, pile_t, loco);
       for (uint32_t i = 0; i < corners.count; i++) {
         pile->loco.button.set_position(loco, cids[i], corners.corners[i]);
-      }*/
+      }
     }
 
     void clear(loco_t* loco) {
