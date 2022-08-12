@@ -89,9 +89,6 @@ struct loco_t {
     #if !defined(loco_text)
       #define loco_text
     #endif
-    #if !defined(loco_box)
-      #define loco_box
-    #endif
   #endif
   #if defined(loco_button)
     #if !defined(loco_letter)
@@ -99,9 +96,6 @@ struct loco_t {
     #endif
     #if !defined(loco_text)
       #define loco_text
-    #endif
-    #if !defined(loco_box)
-      #define loco_box
     #endif
     #if !defined(loco_text_box)
       #define loco_text_box
@@ -364,7 +358,7 @@ struct loco_t {
     #endif
     #if defined(loco_letter)
       // loco_t::text gets drawn here as well as it uses letter
-      letter.draw(this);
+    //  letter.draw(this);
     #endif
     #if defined(loco_button)
       button.draw(this);

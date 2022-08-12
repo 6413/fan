@@ -22,12 +22,13 @@ struct pile_t {
       fan::vec2(-1, 1),
       fan::vec2(-1, 1)
     );
-    viewport.open(loco.get_context(), 0, loco.get_window()->get_size());
+    viewport[0].open(loco.get_context(), 0, loco.get_window()->get_size());
+    viewport[1].open(loco.get_context(), 0, loco.get_window()->get_size());
   }
 
   loco_t loco;
   fan::opengl::matrices_t matrices;
-  fan::opengl::viewport_t viewport;
+  fan::opengl::viewport_t viewport[2];
 };
 
 int main() {
@@ -37,7 +38,7 @@ int main() {
 
   loco_t::button_t::properties_t tp;
   tp.matrices = &pile.matrices;
-  tp.viewport = &pile.viewport;
+  tp.viewport = &pile.viewport[0];
   tp.position = 0;
   tp.size = fan::vec2(0.3, 0.1);
   tp.text = "hello world";
@@ -55,11 +56,18 @@ int main() {
   gray_theme.open(pile.loco.get_context());
   tp.theme = &gray_theme;
   fan::opengl::cid_t cids[2];
-  pile.loco.button.push_back(&pile.loco, 0, &cids[0], tp);
+  fan::print(loco_bdbt_usage(&pile.loco.bdbt));
+  pile.loco.button.push_back(&pile.loco, &cids[0], tp);
+  fan::print(loco_bdbt_usage(&pile.loco.bdbt));
+  tp.viewport = &pile.viewport[1];
   tp.position.x += 0.1;
   tp.position.z += 0.2;
   tp.text = "hw2";
-  pile.loco.button.push_back(&pile.loco, 1, &cids[1], tp);
+  pile.loco.button.push_back(&pile.loco, &cids[1], tp);
+  fan::print(loco_bdbt_usage(&pile.loco.bdbt));
+
+  pile.loco.button.erase(&pile.loco, &cids[1]);
+  fan::print(loco_bdbt_usage(&pile.loco.bdbt));
 
   while(pile.loco.window_open(pile.loco.process_frame())) {
 

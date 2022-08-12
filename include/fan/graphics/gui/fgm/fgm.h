@@ -303,14 +303,14 @@ struct fgm_t {
       }
       for (uint32_t i = 0; i < corners.count; i++) {
         p.position = corners.corners[i];
-        push_back(loco, p);
+        //push_back(loco, p);
       }
     }
     void set_corners(loco_t* loco, const corners_t& corners) {
-      pile_t* pile = OFFSETLESS(loco, pile_t, loco);
+     /* pile_t* pile = OFFSETLESS(loco, pile_t, loco);
       for (uint32_t i = 0; i < corners.count; i++) {
         pile->loco.button.set_position(loco, cids[i], corners.corners[i]);
-      }
+      }*/
     }
 
     void clear(loco_t* loco) {

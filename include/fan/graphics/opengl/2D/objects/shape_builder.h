@@ -3,10 +3,10 @@
 #endif
 
 void sb_open(loco_t* loco) {
-
   root = loco_bdbt_NewNode(&loco->bdbt);
   bll_block_open(&blocks);
   shape_bm_open(&bm_list);
+  
 
   m_shader.open(loco->get_context());
   m_shader.set_vertex(
@@ -102,7 +102,7 @@ void sb_erase(loco_t* loco, fan::opengl::cid_t* cid) {
   uint32_t last_instance_id = last_block->uniform_buffer.size() - 1;
 
   if (bll_block_IsNodeReferenceEqual(block_id, last_block_id) && cid->instance_id == block->uniform_buffer.size() - 1) {
-    fan::print("m_size", block->uniform_buffer.common.m_size, sizeof(instance_t));
+    //fan::print("m_size", this, block->uniform_buffer.common.m_size, sizeof(instance_t));
     block->uniform_buffer.common.m_size -= sizeof(instance_t);
     if (block->uniform_buffer.size() == 0) {
       auto lpnr = block_node->PrevNodeReference;
@@ -113,15 +113,16 @@ void sb_erase(loco_t* loco, fan::opengl::cid_t* cid) {
         loco_bdbt_Key_t<sizeof(instance_properties_t) * 8> k;
         typename decltype(k)::KeySize_t ki;
         k.Remove(&loco->bdbt, &bm_node->data.instance_properties.key, root);
-        fan::print("a", shape_bm_usage(&bm_list));
+        //fan::print("bm_list size", shape_bm_usage(&bm_list), loco_bdbt_usage(&loco->bdbt));
+        //fan::print(this, (uint32_t)((uint8_t*)&bm_node->data.instance_properties.key)[0], (uint32_t)((uint8_t*)&bm_node->data.instance_properties.key)[1]);
         shape_bm_Recycle(&bm_list, bm_id);
       }
       else {
-        fan::print("here");
+        //fan::print("here");
         last_block_id = lpnr;
       }
     }
-    fan::print(shape_bm_usage(&bm_list));
+  //  fan::print(shape_bm_usage(&bm_list));
     return;
   }
 
