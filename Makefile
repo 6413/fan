@@ -7,27 +7,26 @@ GPP = clang++
 DEBUGFLAGS = 
 RELEASEFLAGS = -s -fdata-sections -ffunction-sections -Wl,--gc-sections -mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -O3 -Os -flto -fno-unroll-loops -fno-exceptions -fno-rtti -mllvm --enable-merge-functions
 
-CFLAGS = -std=c++2a -w -I include -Wl   \
+CFLAGS = -std=c++2a -w -I include -Wl  \
    #$(RELEASEFLAGS)
 
 BASE_PATH = 
+
+FAN_OBJECT_FOLDER=
 
 ifeq ($(OS),Windows_NT)
 	AR = llvm-ar
 	RM = del 
 	LIBNAME = fan_windows_clang.a
   BASE_PATH += lib/fan/
+  FAN_OBJECT_FOLDER = $(subst /,\,$(BASE_PATH))
 else
+  BASE_PATH += lib/fan/
 	CFLAGS += -DFAN_INCLUDE_PATH=/usr/include -fPIE -I /usr/local/include
 	AR = ar
 	RM = rm -f
 	LIBNAME = fan.a
   FAN_OBJECT_FOLDER = $(BASE_PATH)
-endif
-
-ifeq ($(OS),Windows_NT)
-  #                        magic - replace / with \ thanks to windows
-  FAN_OBJECT_FOLDER = $(subst /,\,$(BASE_PATH))
 endif
 
 all: fan_window.o fan_window_input.o run

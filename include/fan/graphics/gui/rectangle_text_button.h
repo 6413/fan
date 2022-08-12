@@ -62,7 +62,7 @@ struct button_t {
     tp.viewport = p.viewport;
     tp.matrices = p.matrices;
     auto block = sb_push_back(loco, cid, p);
-   // block->p[cid->instance_id].text_id = loco->text.push_back(loco, tp);
+    block->p[cid->instance_id].text_id = loco->text.push_back(loco, tp);
 
     set_theme(loco, cid, theme, 1);
 
@@ -97,7 +97,8 @@ struct button_t {
   void erase(loco_t* loco, fan::opengl::cid_t* cid) {
     auto block = sb_get_block(loco, cid);
     instance_properties_t* p = &block->p[cid->instance_id];
-   // loco->text.erase(loco, p->text_id);
+    loco->text.erase(loco, p->text_id);
+    delete loco->element_depth[p->depth].input_hitbox.m_button_data[p->be_id].properties.cid;
     loco->element_depth[p->depth].input_hitbox.erase(p->be_id);
 
     sb_erase(loco, cid);
@@ -133,10 +134,10 @@ struct button_t {
     set(loco, cid, &instance_t::outline_size, t.button.outline_size);
     auto block = sb_get_block(loco, cid);
     block->p[cid->instance_id].theme = theme;
-    //loco->text.set(loco, block->p[cid->instance_id].text_id, 
-    //  &loco_t::letter_t::instance_t::outline_color, t.button.text_outline_color);
-  //  loco->text.set(loco, block->p[cid->instance_id].text_id, 
-      //&loco_t::letter_t::instance_t::outline_size, t.button.text_outline_size);
+    loco->text.set(loco, block->p[cid->instance_id].text_id, 
+      &loco_t::letter_t::instance_t::outline_color, t.button.text_outline_color);
+    loco->text.set(loco, block->p[cid->instance_id].text_id, 
+      &loco_t::letter_t::instance_t::outline_size, t.button.text_outline_size);
   }
 
   template <typename T>
@@ -161,7 +162,7 @@ struct button_t {
 
   void set_position(loco_t* loco, fan::opengl::cid_t* cid, const fan::vec2& position) {
     auto block = sb_get_block(loco, cid);
-  //  set_text(loco, cid, &loco_t::letter_t::instance_t::position, position);
+    set_text(loco, cid, &loco_t::letter_t::instance_t::position, position);
     set_button(loco, cid, &instance_t::position, position);
     loco->element_depth[block->p[cid->instance_id].depth].input_hitbox.set_position(block->p[cid->instance_id].be_id, position);
   }

@@ -110,7 +110,7 @@ void sb_erase(loco_t* loco, fan::opengl::cid_t* cid) {
       bll_block_Unlink(&blocks, block_id);
       bll_block_Recycle(&blocks, block_id);
       if (bll_block_IsNodeReferenceEqual(last_block_id, bm_node->data.first_block)) {
-        loco_bdbt_Key_t<sizeof(instance_properties_t) * 8> k;
+        loco_bdbt_Key_t<sizeof(instance_properties_t::key_t) * 8> k;
         typename decltype(k)::KeySize_t ki;
         k.Remove(&loco->bdbt, &bm_node->data.instance_properties.key, root);
         //fan::print("bm_list size", shape_bm_usage(&bm_list), loco_bdbt_usage(&loco->bdbt));
