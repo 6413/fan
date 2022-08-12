@@ -44,7 +44,7 @@ struct sb_sprite_name {
     sb_draw(loco);
   }
 
-  static constexpr uint32_t max_instance_size = std::min(256ull, 4096 / (sizeof(instance_t) / 4));
+  static constexpr uint32_t max_instance_size = fan::min(256, 4096 / (sizeof(instance_t) / 4));
   #ifndef sb_shader_vertex_path
     #define sb_shader_vertex_path _FAN_PATH(graphics/glsl/opengl/2D/objects/sprite.vs)
   #endif

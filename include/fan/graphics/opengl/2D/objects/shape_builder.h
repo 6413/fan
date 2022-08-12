@@ -219,7 +219,7 @@ void traverse_draw(loco_t* loco, auto nr, uint32_t draw_mode) {
     }
   }
   else {
-    loco_bdbt_Key_t<sizeof(instance_properties_t::key_t::get_type<depth>::type) * 8> k;
+    loco_bdbt_Key_t<sizeof(typename instance_properties_t::key_t::get_type<depth>::type) * 8> k;
     typename decltype(k)::Traverse_t kt;
     kt.init(nr);
     typename instance_properties_t::key_t::get_type<depth>::type o;

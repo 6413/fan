@@ -7,7 +7,7 @@ GPP = clang++
 DEBUGFLAGS = 
 RELEASEFLAGS = -s -fdata-sections -ffunction-sections -Wl,--gc-sections -mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -O3 -Os -flto -fno-unroll-loops -fno-exceptions -fno-rtti -mllvm --enable-merge-functions
 
-CFLAGS = -std=c++2a -w -I include -Wl  \
+CFLAGS = -std=c++2a -w -I include -Wl   \
    #$(RELEASEFLAGS)
 
 BASE_PATH = 
