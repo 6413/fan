@@ -358,7 +358,7 @@ struct loco_t {
     #endif
     #if defined(loco_letter)
       // loco_t::text gets drawn here as well as it uses letter
-    //  letter.draw(this);
+      letter.draw(this);
     #endif
     #if defined(loco_button)
       button.draw(this);
