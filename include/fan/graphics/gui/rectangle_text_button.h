@@ -13,7 +13,7 @@ struct button_t {
     f32_t outline_size;
   };
 
-  static constexpr uint32_t max_instance_size = std::min(256ull, 4096 / (sizeof(instance_t) / 4));
+  static constexpr uint32_t max_instance_size = fan::min(256, 4096 / (sizeof(instance_t) / 4));
 
   struct instance_properties_t {
     struct key_t : fan::masterpiece_t<

@@ -278,8 +278,8 @@ namespace fan {
 		constexpr vec_t ceil() const { return vec_t(std::ceil(x), std::ceil(y)); }
 		constexpr vec_t ceil(_Ty value) const { return vec_t(std::ceil(x / value), std::ceil(y / value)); }
 
-		constexpr _Ty min() const { return std::min(x, y); }
-		constexpr _Ty max() const { return std::max(x, y); }
+		constexpr _Ty min() const { return fan::min(x, y); }
+		constexpr _Ty max() const { return fan::max(x, y); }
 		constexpr _vec2<value_type> max(value_type max) const { return _vec2<value_type>(std::max(x, max), std::max(y, max)); }
 		constexpr vec_t abs() const { return vec_t(fan::math::abs(x), fan::math::abs(y)); }
 

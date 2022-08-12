@@ -14,7 +14,7 @@ struct sprite1_t {
     fan::vec2 tc_size = 1;
   };
 
-  static constexpr uint32_t max_instance_size = std::min(256ull, 4096 / (sizeof(instance_t) / 4));
+  static constexpr uint32_t max_instance_size = fan::min(256, 4096 / (sizeof(instance_t) / 4));
 
   typedef fan::masterpiece_t<
     fan::opengl::textureid_t<0>,

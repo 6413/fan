@@ -182,6 +182,15 @@ namespace fan {
     return value;
   }
 
+  template <typename T, typename T2>
+  constexpr T min(T x, T2 y) {
+    return x < y ? x : y;
+  }
+  template <typename T, typename T2>
+  constexpr T max(T x, T2 y) {
+    return x > y ? x : y;
+  }
+
   template <typename T, uint32_t duplicate_id = 0>
   class class_duplicator : public T {
 

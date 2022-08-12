@@ -77,7 +77,7 @@ namespace fan_2d {
 
 				}button;
 
-				theme_list_NodeReference_t theme_reference;
+				fan::opengl::theme_list_NodeReference_t theme_reference;
 			};
 
 			using theme_ptr_t = fan::ptr_maker_t<theme_t>;

@@ -4,7 +4,7 @@ GPP = clang++
 #GPP = clang-cl /MT -fsanitize=address  /std:c++latest
 
 
-CFLAGS =  -w -g -std=c++2a -I include -I C:/libs/fan/src/libwebp -I C:/libs/fan/src/libwebp/src #-O3 -march=native -mtune=native \
+CFLAGS =  -w -g -std=c++2a -I include #-O3 -march=native -mtune=native \
   #-fsanitize=address -fno-omit-frame-pointer
 
 MAIN = examples/rectangle_text_button.cpp
@@ -19,10 +19,11 @@ ifeq ($(OS),Windows_NT)
   FAN_OBJECT_FOLDER += lib/fan/
 
   CFLAGS += $(FAN_OBJECT_FOLDER)fan_windows_clang.a
+  CFLAGS += -I C:/libs/fan/src/libwebp -I C:/libs/fan/src/libwebp/src C:/libs/fan/lib/libwebp/libwebp.a C:/libs/fan/lib/opus/libopus.a
 else
-  FAN_OBJECT_FOLDER += /usr/src/fan/graphics/opengl/
-  MAINFLAGS += -lX11 -lXrandr -L /usr/local/lib
-  CFLAGS += -I /usr/local/include
+  FAN_OBJECT_FOLDER += /usr/src/fan/graphics/opengl/ 
+  CFLAGS += -I /usr/local/include -lX11 -lXrandr -L /usr/local/lib -lopus -lGL -lwebp fan.a
+  CFLAGS += -DFAN_INCLUDE_PATH=/mnt/c/libs/fan/include
 endif
 
 default : $(TARGET)
