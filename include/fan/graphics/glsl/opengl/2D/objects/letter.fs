@@ -10,14 +10,14 @@ in float render_size;
 uniform sampler2D _t00;
 
 float outline_magic(float outline_size) {
-  return 0;
+  return 0.0f;
 }
 
 float get_outline_width(float outline_size) {
-  return 0.5;
+  return 0.5f;
 }
 float get_outline_edge(float outline_size) {
-  return 0.1;
+  return 0.1f;
 }
 
 void main() {

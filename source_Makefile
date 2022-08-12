@@ -15,14 +15,17 @@ FAN_OBJECT_FOLDER =
 
 LIBS =
 
+BASE_PATH = 
+
 ifeq ($(OS),Windows_NT)
   FAN_OBJECT_FOLDER += lib/fan/
 
   CFLAGS += $(FAN_OBJECT_FOLDER)fan_windows_clang.a
   CFLAGS += -I C:/libs/fan/src/libwebp -I C:/libs/fan/src/libwebp/src C:/libs/fan/lib/libwebp/libwebp.a C:/libs/fan/lib/opus/libopus.a
+  BASE_PATH += lib/fan/
 else
   FAN_OBJECT_FOLDER += /usr/src/fan/graphics/opengl/ 
-  CFLAGS += -I /usr/local/include -lX11 -lXrandr -L /usr/local/lib -lopus -lGL -lwebp fan.a
+  CFLAGS += -I /usr/local/include -lX11 -lXrandr -L /usr/local/lib -lopus -lGL -lwebp -ldl fan.a
   CFLAGS += -DFAN_INCLUDE_PATH=/mnt/c/libs/fan/include
 endif
 
