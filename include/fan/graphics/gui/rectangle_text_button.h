@@ -76,6 +76,7 @@ struct button_t {
     be_p.shape_type = loco_t::shapes::button;
     fan::print("warning we do not want to allocate");
     fan::opengl::cid_t* c = new fan::opengl::cid_t(*cid);
+    fan::print("allcoated", c);
     be_p.cid = c;
     be_p.viewport = fan::opengl::viewport_list_GetNodeByReference(&loco->get_context()->viewport_list, p.viewport)->data.viewport_id;
     #if fan_debug >= fan_debug_low
@@ -97,7 +98,9 @@ struct button_t {
   void erase(loco_t* loco, fan::opengl::cid_t* cid) {
     auto block = sb_get_block(loco, cid);
     instance_properties_t* p = &block->p[cid->instance_id];
+    fan::print("removed text", p->text_id);
     loco->text.erase(loco, p->text_id);
+    fan::print("deleted", loco->element_depth[p->depth].input_hitbox.m_button_data[p->be_id].properties.cid);
     delete loco->element_depth[p->depth].input_hitbox.m_button_data[p->be_id].properties.cid;
     loco->element_depth[p->depth].input_hitbox.erase(p->be_id);
 
@@ -221,6 +224,9 @@ struct button_t {
   }
   static uint8_t mouse_input_cb(const be_t::mouse_input_data_t& ii_data) {
     if (ii_data.key != fan::mouse_left) {
+      return 1;
+    }
+    if (!ii_data.changed) {
       return 1;
     }
     switch (ii_data.mouse_stage) {

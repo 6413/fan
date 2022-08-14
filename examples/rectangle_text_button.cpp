@@ -57,19 +57,22 @@ int main() {
   fan_2d::graphics::gui::themes::gray gray_theme;
   gray_theme.open(pile.loco.get_context());
   tp.theme = &gray_theme;
-  fan::opengl::cid_t cids[2];
+  constexpr auto count = 10;
+  fan::opengl::cid_t cids[count];
   fan::print(loco_bdbt_usage(&pile.loco.bdbt));
-  pile.loco.button.push_back(&pile.loco, &cids[0], tp);
-  fan::print(loco_bdbt_usage(&pile.loco.bdbt));
-  tp.viewport = &pile.viewport[1];
-  tp.position.x += 0.1;
-  tp.position.z += 0.2;
-  tp.text = "hw2";
-  pile.loco.button.push_back(&pile.loco, &cids[1], tp);
-  fan::print(loco_bdbt_usage(&pile.loco.bdbt));
+  //fan::print(loco_bdbt_usage(&pile.loco.bdbt));
+  //tp.viewport = &pile.viewport[1];
+  //tp.position.x += 0.1;
+  //tp.position.z += 0.2;
+  //tp.text = "hw2";
+  //pile.loco.button.push_back(&pile.loco, &cids[1], tp);
+  ////for (uint32_t i = 0; i < )
+  //pile.loco.button.push_back(&pile.loco, &cids[2], tp);
+  //fan::print(loco_bdbt_usage(&pile.loco.bdbt));
 
-  pile.loco.button.erase(&pile.loco, &cids[1]);
-  fan::print(loco_bdbt_usage(&pile.loco.bdbt));
+  
+
+ // pile.loco.button.set(&pile.loco, &cids[2], &loco_t::button_t::instance_t::position, 0);
 
   while(pile.loco.window_open(pile.loco.process_frame())) {
 

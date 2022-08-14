@@ -157,9 +157,9 @@ namespace fan {
         }
         void edit_instance(fan::opengl::context_t* context, uint32_t i, auto member, auto value) {
           #if fan_debug >= fan_debug_low
-          if (i * sizeof(type_t) >= common.m_size) {
+         /* if (i * sizeof(type_t) >= common.m_size) {
             fan::throw_error("uninitialized access");
-          }
+          }*/
           #endif
           ((type_t*)buffer)[i].*member = value;
         }

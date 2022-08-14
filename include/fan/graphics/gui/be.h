@@ -20,6 +20,7 @@ namespace fan_2d {
         struct mouse_move_data_t {
           loco_t* loco;
           be_t* button_event;
+          uint32_t shape_type;
           void* element_id;
           mouse_stage_e mouse_stage;
           void* userptr;
@@ -98,6 +99,7 @@ namespace fan_2d {
           #define move_data(index) \
           move_data.loco = loco;   \
           move_data.button_event = this;   \
+          move_data.shape_type = m_button_data[index].properties.shape_type; \
           move_data.element_id = m_button_data[index].properties.cid;   \
           move_data.userptr = m_button_data[index].properties.userptr;   \
           move_data.depth = depth;   \
@@ -192,6 +194,7 @@ namespace fan_2d {
           #define input_data(index) \
           input_data.loco = loco; \
           input_data.button_event = this; \
+          input_data.shape_type = m_button_data[index].properties.shape_type; \
           input_data.element_id = m_button_data[index].properties.cid; \
           input_data.key = button; \
           input_data.userptr = m_button_data[index].properties.userptr; \
