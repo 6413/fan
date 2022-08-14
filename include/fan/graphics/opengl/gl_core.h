@@ -93,7 +93,7 @@ namespace fan {
 namespace fan {
   namespace opengl {
     template <uint8_t n_>
-    struct textureid_t {
+    struct textureid_t : image_list_NodeReference_t{
       static constexpr std::array<const char*, 32> texture_names = {
         "_t00", "_t01", "_t02", "_t03",
         "_t04", "_t05", "_t06", "_t07",
