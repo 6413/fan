@@ -108,7 +108,7 @@ namespace fan {
       static constexpr auto name = texture_names[n];
 
       void operator=(fan::opengl::image_t* image) {
-        image_list_NodeReference_t::operator=(image);
+        fan::opengl::image_list_NodeReference_t::operator=(image);
       }
     };
   }
