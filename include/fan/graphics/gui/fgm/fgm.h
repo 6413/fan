@@ -70,7 +70,7 @@ struct fgm_t {
 
     loco->get_window()->add_mouse_move_callback(loco, [](fan::window_t* window, const fan::vec2i& position, void* userptr) {
       pile_t* pile = OFFSETLESS(userptr, pile_t, loco);
-      switch(pile->loco.focus.shape_type) {
+      switch (pile->loco.focus.shape_type) {
         case loco_t::shapes::button: {
           if (!(pile->fgm.action_flag & action::move)) {
             return;
@@ -83,7 +83,9 @@ struct fgm_t {
               pile->fgm.viewport[viewport_area::editor].get_viewport_size()
             ) + pile->fgm.move_offset
           );
-          pile->fgm.active.set_corners(&pile->loco, pile->fgm.builder_button.get_corners(&pile->loco, (fan::opengl::cid_t*)pile->loco.focus.shape_id));
+          if (pile->fgm.builder_button.sanitize_cid((fan::opengl::cid_t*)pile->loco.focus.shape_id)) {
+            pile->fgm.active.set_corners(&pile->loco, pile->fgm.builder_button.get_corners(&pile->loco, (fan::opengl::cid_t*)pile->loco.focus.shape_id));
+          }
           break;
         }
       }
@@ -152,7 +154,7 @@ struct fgm_t {
     ebp.mouse_input_cb = [](const loco_t::mouse_input_data_t& ii_d) -> uint8_t {
       pile_t* pile = OFFSETLESS(ii_d.userptr, pile_t, loco);
       if (ii_d.key != fan::mouse_left) {
-        return 1;
+        return 0;
       }
       if (ii_d.key_state != fan::key_state::press) {
         pile->fgm.builder_button.release(&pile->loco);
@@ -170,10 +172,10 @@ struct fgm_t {
           }
         }
        // pile->loco.focus.shape_type = fan::uninitialized;
-        return 1;
+        return 0;
       }
       if (ii_d.mouse_stage != fan_2d::graphics::gui::mouse_stage_e::inside) {
-        return 1;
+        return 0;
       }
       pile->fgm.action_flag |= action::move;
       builder_button_t::properties_t bbp;
@@ -190,7 +192,7 @@ struct fgm_t {
       bbp.font_size = scale_object_with_viewport(fan::vec2(0.2), &pile->fgm.viewport[viewport_area::types], &pile->fgm.viewport[viewport_area::editor]).x;
       //bbp.font_size = 0.2;
       pile->fgm.builder_button.push_back(&pile->loco, bbp);
-      return 1;
+      return 0;
     };
     editor_button.push_back(loco, ebp);
    
@@ -232,6 +234,17 @@ struct fgm_t {
       cids[cids.size() - 1] = new fan::opengl::cid_t;
       loco->button.push_back(loco, cids[cids.size() - 1], p);
     }
+    void sanitize_cid(fan::opengl::cid_t* cid) {
+      bool found = false;
+      for (auto i : cids) {
+        if (cid == i) {
+          found = true;
+        }
+      }
+      if (!found) {
+        fan::throw_error("invalid cid");
+      }
+    }
     fan::hector_t<fan::opengl::cid_t*> cids;
   }editor_button;
 
@@ -272,29 +285,58 @@ struct fgm_t {
       p.mouse_input_cb = [](const loco_t::mouse_input_data_t& ii_d) -> uint8_t {
         pile_t* pile = OFFSETLESS(ii_d.userptr, pile_t, loco);
         if (ii_d.key != fan::mouse_left) {
-          return 1;
+          return 0;
         }
         if (ii_d.key_state == fan::key_state::release) {
           pile->fgm.builder_button.release(&pile->loco);
-          return 1;
+          return 0;
         }
         if (ii_d.key_state == fan::key_state::press && ii_d.mouse_stage == fan_2d::graphics::gui::mouse_stage_e::outside) {
           pile->fgm.active.clear(&pile->loco);
+          return 0;
+        }
+        if (ii_d.mouse_stage != fan_2d::graphics::gui::mouse_stage_e::inside) {
+          return 0;
         }
         pile->fgm.action_flag |= action::move;
         auto viewport = pile->loco.button.get_viewport(&pile->loco, (fan::opengl::cid_t*)ii_d.element_id);
         pile->fgm.move_offset =  fan::vec2(pile->loco.button.get_button(&pile->loco, (fan::opengl::cid_t*)ii_d.element_id, &loco_t::button_t::instance_t::position)) - pile->loco.get_mouse_position(viewport->get_viewport_position(), viewport->get_viewport_size());
-        return 1;
+        pile->fgm.builder_button.sanitize_cid((fan::opengl::cid_t*)ii_d.element_id);
+        if (!pile->fgm.active.size()) {
+          pile->fgm.active.push_corners(&pile->loco, pile->fgm.builder_button.get_corners(&pile->loco, (fan::opengl::cid_t*)ii_d.element_id));
+        }
+        else {
+          pile->fgm.active.set_corners(&pile->loco, pile->fgm.builder_button.get_corners(&pile->loco, (fan::opengl::cid_t*)ii_d.element_id));
+        }
+        
+        return 0;
       };
       p.userptr = loco;
       loco->button.push_back(loco, cids[cids.size() - 1], p);
       loco->focus.shape_type = loco_t::shapes::button;
       loco->focus.shape_id = cids[cids.size() - 1];
-      pile->fgm.active.push_corners(&pile->loco, pile->fgm.builder_button.get_corners(&pile->loco, (fan::opengl::cid_t*)pile->loco.focus.shape_id));
+      sanitize_cid((fan::opengl::cid_t*)pile->loco.focus.shape_id);
+      if (!pile->fgm.active.size()) {
+        pile->fgm.active.push_corners(&pile->loco, pile->fgm.builder_button.get_corners(&pile->loco, (fan::opengl::cid_t*)pile->loco.focus.shape_id));
+      }
+      else {
+        pile->fgm.active.set_corners(&pile->loco, pile->fgm.builder_button.get_corners(&pile->loco, (fan::opengl::cid_t*)pile->loco.focus.shape_id));
+      }
     }
     void erase(loco_t* loco, fan::opengl::cid_t* cid) {
       loco->button.erase(loco, cid);
     }
+
+    bool sanitize_cid(fan::opengl::cid_t* cid) {
+      bool found = false;
+      for (auto i : cids) {
+        if (cid == i) {
+          found = true;
+        }
+      }
+      return found;
+    }
+
     fan::hector_t<fan::opengl::cid_t*> cids;
   }builder_button;
 
@@ -315,6 +357,9 @@ struct fgm_t {
       loco->button.push_back(loco, cids[cids.size() - 1], p);
     }
     void push_corners(loco_t* loco, const corners_t& corners) {
+      if (!cids.empty()) {
+        fan::throw_error("a");
+      }
       pile_t* pile = OFFSETLESS(loco, pile_t, loco);
       active_rectangles_t::properties_t p;
       p.size = r_size;
@@ -332,6 +377,9 @@ struct fgm_t {
       }
     }
     void set_corners(loco_t* loco, const corners_t& corners) {
+      if (cids.empty()) {
+        fan::throw_error("a");
+      }
       pile_t* pile = OFFSETLESS(loco, pile_t, loco);
       for (uint32_t i = 0; i < corners.count; i++) {
         pile->loco.button.set_position(loco, cids[i], corners.corners[i]);
@@ -346,7 +394,21 @@ struct fgm_t {
       }
       cids.clear();
     }
-    
+
+    uint32_t size() const {
+      return cids.size();
+    }
+    void sanitize_cid(fan::opengl::cid_t* cid) {
+      bool found = false;
+      for (auto i : cids) {
+        if (cid == i) {
+          found = true;
+        }
+      }
+      if (!found) {
+        fan::throw_error("invalid cid");
+      }
+    }
     fan::hector_t<fan::opengl::cid_t*> cids;
   }active;
 

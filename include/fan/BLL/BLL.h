@@ -2,6 +2,20 @@
   #define BLL_set_BaseLibrary 0
 #endif
 
+#ifndef BLL_set_Language
+  #if BLL_set_BaseLibrary == 0
+    #ifdef WL_CPP
+      #define BLL_set_Language 1
+    #else
+      #define BLL_set_Language 0
+    #endif
+  #elif BLL_set_BaseLibrary == 1
+    #define BLL_set_Language 1
+  #else
+    #error ?
+  #endif
+#endif
+
 #ifndef BLL_set_KeepSettings
   #define BLL_set_KeepSettings 0
 #endif
@@ -9,7 +23,16 @@
   #error ifndef BLL_set_prefix
 #endif
 #ifndef BLL_set_StructFormat
-  #define BLL_set_StructFormat 0
+  #if BLL_set_Language == 0
+    #define BLL_set_StructFormat 0
+  #elif BLL_set_Language == 1
+    #define BLL_set_StructFormat 1
+  #else
+    #error ?
+  #endif
+#endif
+#ifndef BLL_set_declare_NodeReference
+  #define BLL_set_declare_NodeReference 1
 #endif
 #ifndef BLL_set_declare_basic_types
   #define BLL_set_declare_basic_types 1
@@ -56,8 +79,14 @@
 #ifndef BLL_set_type_node
   #define BLL_set_type_node uint32_t
 #endif
+#ifndef BLL_set_NodeSizeType
+  #define BLL_set_NodeSizeType uint32_t
+#endif
 #ifndef BLL_set_SyntaxStyle
   #define BLL_set_SyntaxStyle 0
+#endif
+#ifndef BLL_set_ConstantInvalidNodeReference_Listless
+  #define BLL_set_ConstantInvalidNodeReference_Listless 1
 #endif
 
 #if BLL_set_Link == 0
@@ -112,12 +141,6 @@
   #define _BLL_INCLUDE _FAN_PATH
 #endif
 
-#if BLL_set_BaseLibrary == 0
-  #include _BLL_INCLUDE(VEC/VEC.h)
-#elif BLL_set_BaseLibrary == 1
-  #include _BLL_INCLUDE(types/memory.h)
-#endif
-
 #define _P(p0) CONCAT3(BLL_set_prefix, _, p0)
 #define _PP(p0) CONCAT4(_, BLL_set_prefix, _, p0)
 
@@ -129,11 +152,17 @@
   #define BLL_StructEnd(n) };
 #endif
 
+#if BLL_set_declare_NodeReference == 1
+  #include "internal/NodeReference.h"
+  #ifdef BLL_set_NodeReference_Overload_Declare
+    #undef BLL_set_NodeReference_Overload_Declare
+  #endif
+#endif
 #if BLL_set_declare_basic_types == 1
-  #include _BLL_INCLUDE(BLL/internal/basic_types.h)
+  #include "internal/basic_types.h"
 #endif
 #if BLL_set_declare_rest == 1
-  #include _BLL_INCLUDE(BLL/internal/rest.h)
+  #include "internal/rest.h"
 #endif
 
 #undef BLL_StructBegin
@@ -151,8 +180,10 @@
   #undef BLL_set_KeepSettings
   #undef BLL_set_StructFormat
   #undef BLL_set_prefix
+  #undef BLL_set_declare_NodeReference
   #undef BLL_set_declare_basic_types
   #undef BLL_set_declare_rest
+  #undef BLL_set_NodeSizeType
   #undef BLL_set_type_node
   #ifdef BLL_set_node_data
     #undef BLL_set_node_data
@@ -169,12 +200,12 @@
   #undef BLL_set_Link
   #undef BLL_set_StoreFormat
   #undef BLL_set_SyntaxStyle
-  #ifdef BLL_set_NodeReference_Overload_Declare
-    #undef BLL_set_NodeReference_Overload_Declare
-  #endif
+  #undef BLL_set_ConstantInvalidNodeReference_Listless
   #ifdef BLL_set_namespace
     #undef BLL_set_namespace
   #endif
+
+  #undef BLL_set_Language
 
   #undef BLL_set_BaseLibrary
 #endif

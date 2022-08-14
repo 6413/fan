@@ -2,14 +2,6 @@
   namespace BLL_set_namespace {
 #endif
 
-BLL_StructBegin(_P(NodeReference_t))
-  BLL_set_type_node NRI;
-
-  #ifdef BLL_set_NodeReference_Overload_Declare
-    BLL_set_NodeReference_Overload_Declare
-  #endif
-BLL_StructEnd(_P(NodeReference_t))
-
 #if BLL_set_StoreFormat == 1
   /* TODO can be more smaller */
   typedef BLL_set_type_node _P(BlockIndex_t);
@@ -54,19 +46,28 @@ BLL_StructEnd(_P(Node_t))
   #pragma pack(pop)
 #endif
 
+#if BLL_set_StoreFormat == 0
+  #define BVEC_set_prefix _P(_NodeList)
+  #define BVEC_set_NodeType BLL_set_type_node
+  #ifdef BLL_set_node_data
+    #define BVEC_set_NodeData _P(Node_t)
+  #endif
+  #include _BLL_INCLUDE(BVEC/BVEC.h)
+#elif BLL_set_StoreFormat == 1
+  #ifndef BLL_set_node_data
+    #error not yet
+  #endif
+  #define BVEC_set_prefix _P(_BlockList)
+  #define BVEC_set_NodeType BLL_set_type_node
+  #define BVEC_set_NodeData _P(Node_t) *
+  #include _BLL_INCLUDE(BVEC/BVEC.h)
+#endif
+
 BLL_StructBegin(_P(t))
   #if BLL_set_StoreFormat == 0
-    #if BLL_set_BaseLibrary == 0
-      VEC_t nodes;
-    #elif BLL_set_BaseLibrary == 1
-      fan::hector_t<_P(Node_t)> nodes;
-    #endif
+    _P(_NodeList_t) NodeList;
   #elif BLL_set_StoreFormat == 1
-    #if BLL_set_BaseLibrary == 0
-      VEC_t Blocks;
-    #elif BLL_set_BaseLibrary == 1
-      fan::hector_t<_P(Node_t) *> Blocks;
-    #endif
+    _P(_BlockList_t) BlockList;
   #endif
   #if BLL_set_StoreFormat == 1
     BLL_set_type_node NodeCurrent;

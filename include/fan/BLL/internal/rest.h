@@ -13,16 +13,32 @@ _P(IsNodeReferenceEqual)
 }
 
 static
-uintptr_t
+BLL_set_NodeSizeType
 _P(GetNodeSize)
 (
   _P(t) *list
 ){
+  /* this function doesnt check store format */
+  /* can give compile error in future */
+
   #ifdef BLL_set_node_data
     return sizeof(_P(Node_t));
   #else
-    return list->NodeSize;
+    return _P(_NodeList_GetNodeSize)(&list->NodeList);
   #endif
+}
+
+static
+_P(NodeReference_t)
+_P(GetConstantInvalidNodeReference)
+(
+  #if BLL_set_ConstantInvalidNodeReference_Listless == 0
+    _P(t) *list
+  #endif
+){
+  _P(NodeReference_t) nr;
+  nr.NRI = (BLL_set_type_node)-1;
+  return nr;
 }
 
 static
@@ -33,14 +49,30 @@ _P(IsNodeReferenceInvalid)
   _P(NodeReference_t) NodeReference
 ){
   #if BLL_set_StoreFormat == 0
-    #if BLL_set_BaseLibrary == 0
-      return NodeReference.NRI >= list->nodes.Current;
-    #elif BLL_set_BaseLibrary == 1
-      return NodeReference.NRI >= list->nodes.size();
-    #endif
+    return NodeReference.NRI >= list->NodeList.Current;
   #elif BLL_set_StoreFormat == 1
     return NodeReference.NRI >= list->NodeCurrent;
   #endif
+}
+
+/* basically same with IsNodeReferenceInvalid */
+/* only difference this function made for compare with GetConstantInvalidNodeReference */
+/* so it can be faster in some cases */
+static
+bool
+_P(IsNodeReferenceInvalidConstant)
+(
+  #if BLL_set_ConstantInvalidNodeReference_Listless == 0
+    _P(t) *list,
+  #endif
+  _P(NodeReference_t) NodeReference
+){
+  _P(NodeReference_t) inr = _P(GetConstantInvalidNodeReference)(
+    #if BLL_set_ConstantInvalidNodeReference_Listless == 0
+      list
+    #endif
+  );
+  return inr.NRI == NodeReference.NRI;
 }
 
 #if BLL_set_IsNodeUnlinked == 1
@@ -76,16 +108,13 @@ _PP(GetNodeByReference)
   _P(NodeReference_t) NodeReference
 ){
   #if BLL_set_StoreFormat == 0
-    #if defined(BLL_set_node_data)
-      return &((_P(Node_t) *)&list->nodes.ptr[0])[NodeReference.NRI];
-    #else
-      return (_P(Node_t) *)&list->nodes.ptr[NodeReference.NRI * list->NodeSize];
-    #endif
+    return (_P(Node_t) *)_P(_NodeList_GetNode)(&list->NodeList, NodeReference.NRI);
   #elif BLL_set_StoreFormat == 1
     #if defined(BLL_set_node_data)
       _P(BlockIndex_t) bi = NodeReference.NRI / BLL_set_StoreFormat1_ElementPerBlock;
       _P(BlockModulo_t) bm = NodeReference.NRI % BLL_set_StoreFormat1_ElementPerBlock;
-      _P(Node_t) *n = &((_P(Node_t) *)((void **)&list->Blocks.ptr[0])[bi])[bm];
+      /* TODO this looks like mess check it */
+      _P(Node_t) *n = &((_P(Node_t) *)((void **)&list->BlockList.ptr[0])[bi])[bm];
       return n;
     #else
       #error not implemented yet
@@ -135,17 +164,9 @@ _P(usage)
 ){
   #if BLL_set_StoreFormat == 0
     #if BLL_set_Link == 0
-      #if BLL_set_BaseLibrary == 0
-        return list->nodes.Current - list->e.p;
-      #elif BLL_set_BaseLibrary == 1
-        return list->nodes.size() - list->e.p;
-      #endif
+      return list->NodeList.Current - list->e.p;
     #elif BLL_set_Link == 1
-      #if BLL_set_BaseLibrary == 0
-        return list->nodes.Current - list->e.p - 2;
-      #elif BLL_set_BaseLibrary == 1
-        return list->nodes.size() - list->e.p - 2;
-      #endif
+      return list->NodeList.Current - list->e.p - 2;
     #endif
   #elif BLL_set_StoreFormat == 1
     #if BLL_set_Link == 0
@@ -165,12 +186,7 @@ _P(usage)
   ){
     _P(Node_t) *n = (_P(Node_t) *)BLL_set_StoreFormat1_alloc_open(
       sizeof(_P(Node_t)) * BLL_set_StoreFormat1_ElementPerBlock);
-    #if BLL_set_BaseLibrary == 0
-      VEC_handle0(&list->Blocks, 1);
-      ((_P(Node_t) **)list->Blocks.ptr)[list->nodes.Current - 1] = n;
-    #elif BLL_set_BaseLibrary == 1
-      list->Blocks.push_back(n);
-    #endif
+    _P(_BlockList_Add)(&list->BlockList, &n);
   }
 #endif
 
@@ -193,12 +209,8 @@ _P(NewNode_alloc)
 ){
   _P(NodeReference_t) r;
   #if BLL_set_StoreFormat == 0
-    #if BLL_set_BaseLibrary == 0
-      VEC_handle(&list->nodes);
-      r.NRI = list->nodes.Current++;
-    #elif BLL_set_BaseLibrary == 1
-      r.NRI = list->nodes.push_back({});
-    #endif
+    r.NRI = list->NodeList.Current;
+    _P(_NodeList_AddEmpty)(&list->NodeList, 1);
   #elif BLL_set_StoreFormat == 1
     if(list->NodeCurrent % BLL_set_StoreFormat1_ElementPerBlock == 0){
       _P(_PushNewBlock)(list);
@@ -322,13 +334,9 @@ _P(NewNode)
   (
     _P(t) *list
   ){
-    #if BLL_set_BaseLibrary == 0
-      _P(BlockIndex_t) BlockAmount = list->Blocks.Current;
-    #elif BLL_set_BaseLibrary == 1
-      _P(BlockIndex_t) BlockAmount = list->Blocks.size();
-    #endif
+    _P(BlockIndex_t) BlockAmount = list->BlockList.Current;
     for(_P(BlockIndex_t) i = 0; i < BlockAmount; i++){
-      void *p = (void *)((_P(Node_t) **)&list->Blocks.ptr[0])[i];
+      void *p = (void *)((_P(Node_t) **)&list->BlockList.ptr[0])[i];
       BLL_set_StoreFormat1_alloc_close(p);
     }
   }
@@ -343,11 +351,7 @@ _P(_AfterInitNodes)
   list->e.p = 0;
   #if BLL_set_StoreFormat == 0
     #if BLL_set_Link == 1
-      #if BLL_set_BaseLibrary == 0
-        VEC_handle0(&list->nodes, 2);
-      #elif BLL_set_BaseLibrary == 1
-        list->nodes.resize(2);
-      #endif
+      _P(_NodeList_Reserve)(&list->NodeList, 2);
 
       list->src.NRI = 0;
       list->dst.NRI = 1;
@@ -371,13 +375,12 @@ _P(open)
 (
   _P(t) *list
   #ifndef BLL_set_node_data
-    , uintptr_t NodeDataSize
+    , BLL_set_NodeSizeType NodeDataSize
   #endif
 ){
-  uintptr_t NodeSize = sizeof(_P(Node_t));
+  BLL_set_NodeSizeType NodeSize = sizeof(_P(Node_t));
   #ifndef BLL_set_node_data
     NodeSize += NodeDataSize;
-    list->NodeSize = NodeSize;
   #endif
 
   #if BLL_set_UseUninitialisedValues == 0
@@ -385,18 +388,14 @@ _P(open)
   #endif
 
   #if BLL_set_StoreFormat == 0
-    #if BLL_set_BaseLibrary == 0
-      VEC_init(&list->nodes, NodeSize, A_resize);
-    #elif BLL_set_BaseLibrary == 1
-      list->nodes.open();
+    #ifdef BLL_set_node_data
+      _P(_NodeList_Open)(&list->NodeList);
+    #else
+      _P(_NodeList_Open)(&list->NodeList, NodeSize);
     #endif
   #elif BLL_set_StoreFormat == 1
     list->NodeCurrent = 0;
-    #if BLL_set_BaseLibrary == 0
-      VEC_init(&list->Blocks, NodeSize * BLL_set_StoreFormat1_ElementPerBlock, A_resize);
-    #elif BLL_set_BaseLibrary == 1
-      list->Blocks.open();
-    #endif
+    _P(_BlockList_Open)(&list->BlockList);
   #endif
   _P(_AfterInitNodes)(list);
 
@@ -411,18 +410,10 @@ _P(close)
   _P(t) *list
 ){
   #if BLL_set_StoreFormat == 0
-    #if BLL_set_BaseLibrary == 0
-      VEC_free(&list->nodes);
-    #elif BLL_set_BaseLibrary == 1
-      list->nodes.close();
-    #endif
+    _P(_NodeList_Close)(&list->NodeList);
   #elif BLL_set_StoreFormat == 1
     _P(_StoreFormat1_CloseAllocatedBlocks)(list);
-    #if BLL_set_BaseLibrary == 0
-      VEC_free(&list->Blocks);
-    #elif BLL_set_BaseLibrary == 1
-      list->Blocks.close();
-    #endif
+    _P(_BlockList_Close)(&list->BlockList);
   #endif
 }
 static
@@ -433,41 +424,21 @@ _P(Clear) /* TODO those 2 numbers in this function needs to be flexible */
 ){
   #if BLL_set_ResizeListAfterClear == 0
     #if BLL_set_StoreFormat == 0
-      #if BLL_set_BaseLibrary == 0
-        list->nodes.Current = 0;
-      #elif BLL_set_BaseLibrary == 1
-        list->nodes.resize(0);
-      #endif
+      list->NodeList.Current = 0;
     #elif BLL_set_StoreFormat == 1
       _P(_StoreFormat1_CloseAllocatedBlocks)(list);
-      #if BLL_set_BaseLibrary == 0
-        list->Blocks.Current = 0;
-      #elif BLL_set_BaseLibrary == 1
-        list->Blocks.resize(0);
-      #endif
+      list->BlockList.Current = 0;
     #endif
   #else
     #if BLL_set_StoreFormat == 0
-      #if BLL_set_BaseLibrary == 0
-        list->nodes.Current = 0;
-        list->nodes.Possible = 2;
-        list->nodes.ptr = list->nodes.resize(list->nodes.ptr, list->nodes.Possible * list->nodes.Type);
-      #elif BLL_set_BaseLibrary == 1
-        /* TODO fan hector doesnt have function for capacity change */
-        list->nodes.resize(0);
-      #endif
+      list->NodeList.Current = 0;
+      _P(_NodeList_Reserve)(&list->NodeList, 2);
     #elif BLL_set_StoreFormat == 1
       _P(_StoreFormat1_CloseAllocatedBlocks)(list);
-      #if BLL_set_BaseLibrary == 0
-        list->Blocks.Current = 0;
-        list->Blocks.Possible = 2;
-        list->Blocks.ptr = list->nodes.resize(list->nodes.ptr, list->nodes.Possible * list->nodes.Type);
-      #elif BLL_set_BaseLibrary == 1
-        /* TODO fan hector doesnt have function for capacity change */
-        list->nodes.resize(0);
-      #endif
+      _P(_BlockList_ClearWithBuffer)(&list->BlockList);
     #endif
   #endif
+
   _P(_AfterInitNodes)(list);
 }
 

@@ -22,7 +22,7 @@ namespace fan {
 
   static void print_callstack() {
 
-#ifdef fan_platform_windows
+    #ifdef fan_platform_windows
     uint16_t i;
     uint16_t frames;
     void* stack[0xff];
@@ -57,7 +57,7 @@ namespace fan {
     }
 
     free(symbol);
-#endif
+    #endif
 
   }
 
@@ -105,7 +105,7 @@ namespace fan {
         "_t28", "_t29", "_t30", "_t31",
       };
       static constexpr uint8_t n = n_;
-      static constexpr auto name = texture_names[n];
+      static constexpr auto name = texture_names[n_];
 
       void operator=(fan::opengl::image_t* image) {
         image_list_NodeReference_t::operator=(image);
@@ -128,6 +128,7 @@ namespace fan_2d {
 #define BLL_set_type_node uint8_t
 #define BLL_set_node_data fan_2d::graphics::gui::theme_t* theme_id;
 #define BLL_set_Link 0
+#define BLL_set_declare_NodeReference 1
 #define BLL_set_declare_basic_types 1
 #define BLL_set_declare_rest 0
 #define BLL_set_KeepSettings 1
@@ -139,6 +140,7 @@ namespace fan_2d {
 
 #include _FAN_PATH(graphics/gui/themes.h)
 
+#define BLL_set_declare_NodeReference 0
 #define BLL_set_declare_basic_types 0
 #define BLL_set_declare_rest 1
 #define BLL_set_KeepSettings 0
@@ -155,6 +157,7 @@ fan::opengl::theme_list_NodeReference_t::theme_list_NodeReference_t(fan_2d::grap
 #define BLL_set_type_node uint8_t
 #define BLL_set_node_data fan::opengl::viewport_t* viewport_id;
 #define BLL_set_Link 0
+#define BLL_set_declare_NodeReference 1
 #define BLL_set_declare_basic_types 1
 #define BLL_set_declare_rest 0
 #define BLL_set_KeepSettings 1
@@ -201,6 +204,7 @@ namespace fan {
   }
 }
 
+#define BLL_set_declare_NodeReference 0
 #define BLL_set_declare_basic_types 0
 #define BLL_set_declare_rest 1
 #define BLL_set_KeepSettings 0
@@ -217,6 +221,7 @@ fan::opengl::viewport_list_NodeReference_t::viewport_list_NodeReference_t(fan::o
 #define BLL_set_type_node uint8_t
 #define BLL_set_node_data fan::opengl::matrices_t* matrices_id;
 #define BLL_set_Link 0
+#define BLL_set_declare_NodeReference 1
 #define BLL_set_declare_basic_types 1
 #define BLL_set_declare_rest 0
 #define BLL_set_KeepSettings 1
@@ -268,7 +273,7 @@ namespace fan{
 
         m_view = fan::math::look_at_left<fan::mat4>(position, position + front, fan::camera::world_up);
       }
-      
+
       fan::mat4 m_projection;
       // temporary
       fan::mat4 m_view;
@@ -282,6 +287,7 @@ namespace fan{
   }
 }
 
+#define BLL_set_declare_NodeReference 0
 #define BLL_set_declare_basic_types 0
 #define BLL_set_declare_rest 1
 #define BLL_set_KeepSettings 0
@@ -302,7 +308,7 @@ namespace fan {
           samples = 1;
           major = 3;
           minor = 1;
-          
+
         }
 
         uint16_t samples;
@@ -330,12 +336,12 @@ namespace fan {
       void set_vsync(fan::window_t* window, bool flag);
 
       static void message_callback(GLenum source,
-      GLenum type,
-      GLuint id,
-      GLenum severity,
-      GLsizei length,
-      const GLchar* message,
-      const void* userParam)
+        GLenum type,
+        GLuint id,
+        GLenum severity,
+        GLsizei length,
+        const GLchar* message,
+        const void* userParam)
       {
         //if (type == 33361 || type == 33360) { // gl_static_draw
         //  return;
@@ -379,7 +385,7 @@ namespace fan {
 
         context->opengl.call(context->opengl.glBufferData, target, size, data, usage);
         /*if (target == GL_SHADER_STORAGE_BUFFER) {
-          glBindBufferBase(target, location, buffer);
+        glBindBufferBase(target, location, buffer);
         }*/
       }
       static void get_glbuffer(fan::opengl::context_t* context, void* data, uint32_t buffer_id, uintptr_t size, uintptr_t offset, uintptr_t target) {
@@ -391,7 +397,7 @@ namespace fan {
       {
         context->opengl.call(context->opengl.glBindBuffer, target, buffer);
 
-#if fan_debug >= fan_debug_high
+        #if fan_debug >= fan_debug_high
 
         int buffer_size = get_buffer_size(context, target, buffer);
 
@@ -399,12 +405,12 @@ namespace fan {
           fan::throw_error("tried to write more than allocated");
         }
 
-#endif
+        #endif
 
         context->opengl.call(context->opengl.glBufferSubData, target, offset, size, data);
         /* if (target == GL_SHADER_STORAGE_BUFFER) {
-           glBindBufferBase(target, location, buffer);
-         }*/
+        glBindBufferBase(target, location, buffer);
+        }*/
       }
 
       // not tested
@@ -413,7 +419,7 @@ namespace fan {
         context->opengl.call(context->opengl.glGetIntegerv, fan::opengl::GL_VERTEX_BINDING_BUFFER, &buffer_id);
         return buffer_id;
       }
-#pragma pack(push, 1)
+      #pragma pack(push, 1)
       struct vao_t {
 
         vao_t() = default;
@@ -437,7 +443,7 @@ namespace fan {
 
       };
 
-#pragma pack(pop)
+      #pragma pack(pop)
 
       struct framebuffer_t {
 
@@ -527,21 +533,21 @@ inline void fan::opengl::context_t::close() {
 
 inline void fan::opengl::context_t::bind_to_window(fan::window_t* window, const properties_t& p) {
 
-#if defined(fan_platform_windows)
+  #if defined(fan_platform_windows)
 
   window->m_hdc = GetDC(window->m_window_handle);
 
   int pixel_format_attribs[19] = {
-      WGL_DRAW_TO_WINDOW_ARB, fan::opengl::GL_TRUE,
-      WGL_SUPPORT_OPENGL_ARB, fan::opengl::GL_TRUE,
-      WGL_DOUBLE_BUFFER_ARB, fan::opengl::GL_TRUE,
-      WGL_PIXEL_TYPE_ARB, WGL_TYPE_RGBA_ARB,
-      WGL_COLOR_BITS_ARB, 32,
-      WGL_DEPTH_BITS_ARB, 24,
-      WGL_STENCIL_BITS_ARB, 8,
-      WGL_SAMPLE_BUFFERS_ARB, true, // Number of buffers (must be 1 at time of writing)
-      WGL_SAMPLES_ARB, p.samples,        // Number of samples
-      0
+    WGL_DRAW_TO_WINDOW_ARB, fan::opengl::GL_TRUE,
+    WGL_SUPPORT_OPENGL_ARB, fan::opengl::GL_TRUE,
+    WGL_DOUBLE_BUFFER_ARB, fan::opengl::GL_TRUE,
+    WGL_PIXEL_TYPE_ARB, WGL_TYPE_RGBA_ARB,
+    WGL_COLOR_BITS_ARB, 32,
+    WGL_DEPTH_BITS_ARB, 24,
+    WGL_STENCIL_BITS_ARB, 8,
+    WGL_SAMPLE_BUFFERS_ARB, true, // Number of buffers (must be 1 at time of writing)
+    WGL_SAMPLES_ARB, p.samples,        // Number of samples
+    0
   };
   if (!p.samples) {
     // set back to zero to disable antialising
@@ -568,10 +574,10 @@ inline void fan::opengl::context_t::bind_to_window(fan::window_t* window, const 
   }
 
   const int gl_attributes[] = {
-      WGL_CONTEXT_MINOR_VERSION_ARB, p.minor,
-      WGL_CONTEXT_MAJOR_VERSION_ARB, p.major,
-      WGL_CONTEXT_PROFILE_MASK_ARB,  WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
-      0,
+    WGL_CONTEXT_MINOR_VERSION_ARB, p.minor,
+    WGL_CONTEXT_MAJOR_VERSION_ARB, p.major,
+    WGL_CONTEXT_PROFILE_MASK_ARB,  WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
+    0,
   };
 
   if (!window->m_context) {
@@ -598,31 +604,31 @@ inline void fan::opengl::context_t::bind_to_window(fan::window_t* window, const 
     wglMakeCurrent(window->m_hdc, window->m_context);
   }
 
-#elif defined(fan_platform_unix)
+  #elif defined(fan_platform_unix)
 
   if (opengl.internal.glXGetCurrentContext() != window->m_context) {
     opengl.internal.glXMakeCurrent(fan::sys::m_display, window->m_window_handle, window->m_context);
   }
 
-#endif
+  #endif
 
   opengl.call(opengl.glEnable, GL_BLEND);
   opengl.call(opengl.glBlendFunc, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
   set_depth_test(true);
- // opengl.call(opengl.glFrontFace, GL_CCW);
+  // opengl.call(opengl.glFrontFace, GL_CCW);
 
   #if fan_debug >= fan_debug_high
-    context_t::set_error_callback();
+  context_t::set_error_callback();
   #endif
 }
 
 inline void fan::opengl::context_t::render(fan::window_t* window) {
-#ifdef fan_platform_windows
+  #ifdef fan_platform_windows
   SwapBuffers(window->m_hdc);
-#elif defined(fan_platform_unix)
+  #elif defined(fan_platform_unix)
   opengl.internal.glXSwapBuffers(fan::sys::m_display, window->m_window_handle);
-#endif
+  #endif
 }
 
 inline void fan::opengl::context_t::set_depth_test(bool flag) {
@@ -636,23 +642,23 @@ inline void fan::opengl::context_t::set_depth_test(bool flag) {
 
 inline void fan::opengl::context_t::set_vsync(fan::window_t* window, bool flag)
 {
-#if defined(fan_platform_windows)
+  #if defined(fan_platform_windows)
 
   wglMakeCurrent(window->m_hdc, window->m_context);
 
-#elif defined(fan_platform_unix)
+  #elif defined(fan_platform_unix)
 
   opengl.internal.glXMakeCurrent(fan::sys::m_display, window->m_window_handle, window->m_context);
 
-#endif
+  #endif
 
-#ifdef fan_platform_windows
+  #ifdef fan_platform_windows
 
   opengl.call(opengl.internal.wglSwapIntervalEXT, flag);
 
-#elif defined(fan_platform_unix)
+  #elif defined(fan_platform_unix)
   opengl.internal.glXSwapIntervalEXT(fan::sys::m_display, opengl.internal.glXGetCurrentDrawable(), flag);
-#endif
+  #endif
 }
 
 void fan_2d::graphics::gui::theme_t::open(fan::opengl::context_t* context){
