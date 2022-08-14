@@ -251,7 +251,7 @@ struct loco_t {
 
     m_write_queue.open();
   }
-  void close(const properties_t& p) {
+  void close() {
 
     focus.close();
 

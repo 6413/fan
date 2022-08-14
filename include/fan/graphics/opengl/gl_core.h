@@ -93,8 +93,8 @@ namespace fan {
 namespace fan {
   namespace opengl {
     template <uint8_t n_>
-    struct textureid_t : image_list_NodeReference_t{
-      static constexpr const char* texture_names[] = {
+    struct textureid_t {
+      static constexpr std::array<const char*, 32> texture_names = {
         "_t00", "_t01", "_t02", "_t03",
         "_t04", "_t05", "_t06", "_t07",
         "_t08", "_t09", "_t10", "_t11",
@@ -102,10 +102,10 @@ namespace fan {
         "_t16", "_t17", "_t18", "_t19", 
         "_t20", "_t21", "_t22", "_t23",
         "_t24", "_t25", "_t26", "_t27",
-        "_t28", "_t29", "_t30", "_t31",
+        "_t28", "_t29", "_t30", "_t31"
       };
       static constexpr uint8_t n = n_;
-      static constexpr auto name = texture_names[n_];
+      static constexpr auto name = texture_names[n];
 
       void operator=(fan::opengl::image_t* image) {
         image_list_NodeReference_t::operator=(image);
