@@ -331,7 +331,7 @@ struct loco_t {
     }
   }
 
-  uint32_t process_frame() {
+  uint32_t process_frame(std::function<void()> f) {
     #ifdef loco_window
       uint32_t window_event = get_window()->handle_events();
       if(window_event & fan::window_t::events::close){
@@ -346,6 +346,7 @@ struct loco_t {
 
       m_write_queue.process(get_context());
 
+    f();
     #if defined(loco_line)
       line.draw(this);
     #endif
