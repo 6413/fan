@@ -301,7 +301,9 @@ struct fgm_t {
         pile->fgm.action_flag |= action::move;
         auto viewport = pile->loco.button.get_viewport(&pile->loco, (fan::opengl::cid_t*)ii_d.element_id);
         pile->fgm.move_offset =  fan::vec2(pile->loco.button.get_button(&pile->loco, (fan::opengl::cid_t*)ii_d.element_id, &loco_t::button_t::instance_t::position)) - pile->loco.get_mouse_position(viewport->get_viewport_position(), viewport->get_viewport_size());
-        pile->fgm.builder_button.sanitize_cid((fan::opengl::cid_t*)ii_d.element_id);
+        if (!pile->fgm.builder_button.sanitize_cid((fan::opengl::cid_t*)ii_d.element_id)) {
+          return 0;
+        }
         if (!pile->fgm.active.size()) {
           pile->fgm.active.push_corners(&pile->loco, pile->fgm.builder_button.get_corners(&pile->loco, (fan::opengl::cid_t*)ii_d.element_id));
         }
