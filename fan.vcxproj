@@ -245,7 +245,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="examples\gui_maker_export.cpp" />
+    <ClCompile Include="examples\rectangle_text_button.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
     <ClCompile Include="src\fan\window\window_input.cpp" />
   </ItemGroup>
@@ -317,6 +317,7 @@
     <ClInclude Include="include\fan\graphics\gui\text_renderer_clickable.h" />
     <ClInclude Include="include\fan\graphics\gui\themes.h" />
     <ClInclude Include="include\fan\graphics\gui\types.h" />
+    <ClInclude Include="include\fan\graphics\gui\vfi.h" />
     <ClInclude Include="include\fan\graphics\light.h" />
     <ClInclude Include="include\fan\graphics\loco.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\effects\particles.h" />

@@ -44,7 +44,7 @@ int main() {
 
   pile->loco.set_vsync(false);
 
-  while(pile->loco.window_open(pile->loco.process_frame())) {
+  while(pile->loco.window_open(pile->loco.process_frame([]{}))) {
     pile->loco.get_fps();
     //fan::print(pile->loco.focus.shape_type, pile->loco.focus.shape_id);
   }
