@@ -32,8 +32,8 @@ struct button_t {
 
     fan::utf16_string text;
     f32_t font_size = 0.1;
-    be_t::on_input_cb_t mouse_input_cb = [](const be_t::mouse_input_data_t&) -> uint8_t { return 1; };
-    be_t::on_mouse_move_cb_t mouse_move_cb = [](const be_t::mouse_move_data_t&) -> uint8_t { return 1; };
+    loco_t::vfi_t::mouse_button_cb_t mouse_button_cb = [](const loco_t::vfi_t::mouse_button_data_t&) -> void { return; };
+    loco_t::vfi_t::mouse_move_cb_t mouse_move_cb = [](const loco_t::vfi_t::mouse_move_data_t&) -> void { return; };
 
     void* userptr;
     bool disable_highlight = false;
@@ -58,7 +58,7 @@ struct button_t {
     tp.font_size = p.font_size;
     tp.position = p.position;
     tp.text = p.text;
-    tp.position.z += p.position.z + 0.001;
+    tp.position.z += p.position.z + 0.5;
     tp.viewport = p.viewport;
     tp.matrices = p.matrices;
     auto block = sb_push_back(loco, cid, p);
@@ -66,34 +66,47 @@ struct button_t {
 
     set_theme(loco, cid, theme, 1);
 
-    fan_2d::graphics::gui::be_t::properties_t be_p;
-    be_p.hitbox_type = fan_2d::graphics::gui::be_t::hitbox_type_t::rectangle;
-    be_p.hitbox_rectangle.position = p.position;
-    be_p.hitbox_rectangle.size = p.size;
-    be_p.on_input_cb = p.mouse_input_cb;
-    be_p.on_mouse_event_cb = p.mouse_move_cb;
-    be_p.userptr = p.userptr;
-    be_p.shape_type = loco_t::shapes::button;
-    fan::print("warning we do not want to allocate");
-    fan::opengl::cid_t* c = new fan::opengl::cid_t(*cid);
-    fan::print("allcoated", c);
-    be_p.cid = c;
-    be_p.viewport = fan::opengl::viewport_list_GetNodeByReference(&loco->get_context()->viewport_list, p.viewport)->data.viewport_id;
-    #if fan_debug >= fan_debug_low
-      if (p.depth >= loco->max_depths) {
-        fan::throw_error("invalid access");
-      }
-    #endif
-    if (p.disable_highlight) {
-      block->p[cid->instance_id].be_id = loco->element_depth[p.depth].input_hitbox.push_back(
-        be_p, 
-        [](const be_t::mouse_input_data_t&)->uint8_t { return 1; /* continue*/ },
-        [](const be_t::mouse_move_data_t&)->uint8_t { return 1; /* continue*/ }
-      );
-    }
-    else {
-      block->p[cid->instance_id].be_id = loco->element_depth[p.depth].input_hitbox.push_back(be_p, mouse_input_cb, mouse_move_cb);
-    }
+    auto depth = loco->vfi.push_depth();
+    loco_t::vfi_t::properties_t vfip;
+    vfip.depth = depth;
+    vfip.shape_type = loco_t::vfi_t::shape_t::rectangle;
+    vfip.shape.rectangle.matrices = p.matrices;
+    vfip.shape.rectangle.viewport = p.viewport;
+    vfip.shape.rectangle.position = p.position;
+    vfip.shape.rectangle.size = p.size;
+    vfip.mouse_button_cb = p.mouse_button_cb;
+    vfip.mouse_move_cb = p.mouse_move_cb;
+
+    loco->vfi.push_shape(vfip);
+    
+    //fan_2d::graphics::gui::be_t::properties_t be_p;
+    //be_p.hitbox_type = fan_2d::graphics::gui::be_t::hitbox_type_t::rectangle;
+    //be_p.hitbox_rectangle.position = p.position;
+    //be_p.hitbox_rectangle.size = p.size;
+    //be_p.on_input_cb = p.mouse_input_cb;
+    //be_p.on_mouse_event_cb = p.mouse_move_cb;
+    //be_p.userptr = p.userptr;
+    //be_p.shape_type = loco_t::shapes::button;
+    //fan::print("warning we do not want to allocate");
+    //fan::opengl::cid_t* c = new fan::opengl::cid_t(*cid);
+    //fan::print("allcoated", c);
+    //be_p.cid = c;
+    //be_p.viewport = fan::opengl::viewport_list_GetNodeByReference(&loco->get_context()->viewport_list, p.viewport)->data.viewport_id;
+    //#if fan_debug >= fan_debug_low
+    //  if (p.depth >= loco->max_depths) {
+    //    fan::throw_error("invalid access");
+    //  }
+    //#endif
+    //if (p.disable_highlight) {
+    //  block->p[cid->instance_id].be_id = loco->element_depth[p.depth].input_hitbox.push_back(
+    //    be_p, 
+    //    [](const be_t::mouse_input_data_t&)->uint8_t { return 1; /* continue*/ },
+    //    [](const be_t::mouse_move_data_t&)->uint8_t { return 1; /* continue*/ }
+    //  );
+    //}
+    //else {
+    //  block->p[cid->instance_id].be_id = loco->element_depth[p.depth].input_hitbox.push_back(be_p, mouse_input_cb, mouse_move_cb);
+    //}
   }
   void erase(loco_t* loco, fan::opengl::cid_t* cid) {
     auto block = sb_get_block(loco, cid);
@@ -200,23 +213,17 @@ struct button_t {
     loco->button.set_theme(loco, cid, &(*loco->button.get_theme(loco, cid)), intensity);
   }
 
-  #define dont_look_here(d_n, i) lib_set_theme( \
-    d_n.loco, \
-    (fan::opengl::cid_t*)d_n.element_id, \
-    i \
-  );
-
   static uint8_t mouse_move_cb(const be_t::mouse_move_data_t& mm_data) {
     if (!mm_data.changed) {
       return 1;
     }
     switch (mm_data.mouse_stage) {
       case fan_2d::graphics::gui::mouse_stage_e::inside: {
-        dont_look_here(mm_data, 1.1);
+        lib_set_theme(mm_data.loco, (fan::opengl::cid_t*)mm_data.element_id, 1.1);
         break;
       }
       case fan_2d::graphics::gui::mouse_stage_e::outside: {
-        dont_look_here(mm_data, 1.0);
+        lib_set_theme(mm_data.loco, (fan::opengl::cid_t*)mm_data.element_id, 1.0);
         break;
       }
     }
@@ -233,23 +240,21 @@ struct button_t {
       case fan_2d::graphics::gui::mouse_stage_e::inside: {
         switch (ii_data.key_state) {
           case fan::key_state::press: {
-            dont_look_here(ii_data, 1.2);
+            lib_set_theme(ii_data.loco, (fan::opengl::cid_t*)ii_data.element_id, 1.2);
             break;
           }
           case fan::key_state::release: {
-            dont_look_here(ii_data, 1.1);
+            lib_set_theme(ii_data.loco, (fan::opengl::cid_t*)ii_data.element_id, 1.1);
             break;
           }
         }
         break;
       }
       case fan_2d::graphics::gui::mouse_stage_e::outside: {
-        dont_look_here(ii_data, 1.0 / 1.2);
+        lib_set_theme(ii_data.loco, (fan::opengl::cid_t*)ii_data.element_id, 1.0 / 1.2);
         break;
       }
     }
     return 1;
   }
-
-  #undef dont_look_here
 };

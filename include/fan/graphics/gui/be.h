@@ -8,9 +8,7 @@ namespace fan_2d {
 
       enum class mouse_stage_e {
         outside,
-        inside,
-        outside_drag,
-        inside_drag // when dragged from other element and released inside other element
+        inside
       };
 
       struct be_t {
@@ -47,10 +45,10 @@ namespace fan_2d {
 
           void* userptr;
 
+          uint32_t shape_type;
           void* cid;
 
           fan::opengl::viewport_t* viewport;
-          uint32_t shape_type;
 
           uint8_t hitbox_type;
           union {

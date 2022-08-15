@@ -29,6 +29,8 @@ struct loco_t;
 
 struct loco_t {
 
+  #include _FAN_PATH(graphics/gui/vfi.h)
+
   struct properties_t {
   #ifndef loco_window
     fan::window_t* window;
@@ -144,8 +146,10 @@ struct loco_t {
     fan_2d::graphics::gui::ke_t keyboard_event;
   }element_depth[max_depths];
 
-  using mouse_input_data_t = fan_2d::graphics::gui::be_t::mouse_input_data_t;
-  using mouse_move_data_t = fan_2d::graphics::gui::be_t::mouse_move_data_t;
+  using mouse_move_data_t = vfi_t::mouse_move_data_t;
+  using mouse_input_data_t = vfi_t::mouse_button_data_t;
+
+  vfi_t vfi;
 
   struct focus_t {
 
@@ -154,14 +158,6 @@ struct loco_t {
     }
     void close() {
 
-    }
-
-    focus_t get() const {
-      return *this;
-    }
-    void set(const focus_t& f) {
-      shape_type = f.shape_type;
-      shape_id = f.shape_id;
     }
 
     uint32_t shape_type;
@@ -182,6 +178,7 @@ struct loco_t {
 
   void open(const properties_t& p) {
 
+    vfi.open();
     focus.open();
 
     #ifdef loco_window
@@ -206,7 +203,6 @@ struct loco_t {
     get_window()->add_mouse_move_callback(this, [](fan::window_t* window, const fan::vec2i& mouse_position, void* user_ptr) {
       loco_t& loco = *(loco_t*)user_ptr;
       fan::vec2 window_size = window->get_size();
-      // not custom ortho friendly - made for -1 1
       loco.feed_mouse_move(loco.get_mouse_position());
     });
 
@@ -253,6 +249,8 @@ struct loco_t {
   }
   void close() {
 
+    vfi.close();
+
     focus.close();
 
     for (uint32_t depth = 0; depth < max_depths; depth++) {
@@ -295,31 +293,12 @@ struct loco_t {
   }
 
   void feed_mouse_move(const fan::vec2& mouse_position) {
-    for (uint32_t depth = max_depths; depth--; ) {
-       uint32_t r = element_depth[depth].input_hitbox.feed_mouse_move(this, mouse_position, depth);
-       if (r == 0) {
-         break;
-       }
-       #if fan_debug >= fan_debug_medium
-       else if (r != 1) {
-         fan::throw_error("early access problems xd (something not initialized)");
-       }
-       #endif
-    }
+    vfi.feed_mouse_move(this, mouse_position);
+   
   }
 
   void feed_mouse_input(uint16_t button, fan::key_state key_state, const fan::vec2& mouse_position) {
-    for (uint32_t depth = max_depths; depth--; ) {
-      uint32_t r = element_depth[depth].input_hitbox.feed_mouse_input(this, button, key_state, mouse_position, depth, &focus.shape_type, &focus.shape_id);
-      if (r == 0) {
-        break;
-      }
-      #if fan_debug >= fan_debug_medium
-      else if (r != 1) {
-        fan::throw_error("early access problems xd (something not initialized)");
-      }
-      #endif
-    }
+
   }
 
   void feed_keyboard(uint16_t key, fan::key_state key_state) {
