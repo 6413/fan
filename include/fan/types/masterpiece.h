@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 namespace fan {
 
   // reversing masterpiece
@@ -50,7 +52,7 @@ namespace fan {
   template <typename T, typename ...Rest>
   struct masterpiece_reversed_t<T, Rest...> : masterpiece_reversed_t<Rest...> {
 
-    static constexpr std::size_t count = sizeof...(Rest);
+    static constexpr uint32_t count = sizeof...(Rest);
 
     using value_type = T;
 
@@ -90,6 +92,15 @@ namespace fan {
         return get_value<i, typename _Ty::base, depth - 1>(a);
       }
     }
+    template <typename get_type, typename _Ty = masterpiece_reversed_t<T, Rest...>, uint32_t depth = count>
+    static constexpr uint32_t get_index_with_type() {
+      if constexpr (std::is_same<get_type, _Ty::value_type>::value) {
+        return depth;
+      }
+      if constexpr (depth > 0) {
+        return get_index_with_type<get_type, typename _Ty::base, depth - 1>();
+      }
+    }
 
     template <uint32_t depth = 0>
     constexpr void iterate(auto lambda) {
@@ -107,7 +118,7 @@ namespace fan {
   struct masterpiece_reversed_t<T> {
     T x_;
 
-    static constexpr std::size_t count = 1;
+    static constexpr uint32_t count = 1;
 
     using value_type = T;
 

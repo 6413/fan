@@ -102,7 +102,6 @@ void sb_erase(loco_t* loco, fan::opengl::cid_t* cid) {
   uint32_t last_instance_id = last_block->uniform_buffer.size() - 1;
 
   if (bll_block_IsNodeReferenceEqual(block_id, last_block_id) && cid->instance_id == block->uniform_buffer.size() - 1) {
-    //fan::print("m_size", this, block->uniform_buffer.common.m_size, sizeof(instance_t));
     block->uniform_buffer.common.m_size -= sizeof(instance_t);
     if (block->uniform_buffer.size() == 0) {
       auto lpnr = block_node->PrevNodeReference;
@@ -113,8 +112,6 @@ void sb_erase(loco_t* loco, fan::opengl::cid_t* cid) {
         loco_bdbt_Key_t<sizeof(instance_properties_t::key_t) * 8> k;
         typename decltype(k)::KeySize_t ki;
         k.Remove(&loco->bdbt, &bm_node->data.instance_properties.key, root);
-        //fan::print("bm_list size", shape_bm_usage(&bm_list), loco_bdbt_usage(&loco->bdbt));
-        //fan::print(this, (uint32_t)((uint8_t*)&bm_node->data.instance_properties.key)[0], (uint32_t)((uint8_t*)&bm_node->data.instance_properties.key)[1]);
         shape_bm_Recycle(&bm_list, bm_id);
       }
       else {
@@ -233,6 +230,16 @@ void traverse_draw(loco_t* loco, auto nr, uint32_t draw_mode) {
 void sb_draw(loco_t* loco, uint32_t draw_mode = fan::opengl::GL_TRIANGLES) {
   m_shader.use(loco->get_context());
   traverse_draw(loco, root, draw_mode);
+}
+
+void sb_set_key(loco_t* loco, fan::opengl::cid_t* cid, auto properties_t::*member, auto value) {
+  auto block = sb_get_block(loco, cid);
+  properties_t p;
+  *(instance_t*)&p = *block->uniform_buffer.get_instance(loco->get_context(), cid->instance_id);
+  p.instance_properties = block->p[cid->instance_id];
+  p.*member = value;
+  sb_erase(loco, cid);
+  sb_push_back(loco, cid, p);
 }
 
 fan::shader_t m_shader;

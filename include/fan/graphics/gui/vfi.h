@@ -143,6 +143,10 @@ struct vfi_t {
 
   using properties_t = common_shape_properties_t;
 
+  void set_mouse_focus(shape_id_t id) {
+    focus.mouse = id;
+  }
+
   shape_id_t push_shape(const properties_t& p) {
     auto nr = shape_list_NewNodeLast(&shape_list);
     auto n = shape_list_GetNodeByReference(&shape_list, nr);
@@ -228,19 +232,54 @@ struct vfi_t {
     }
   };
 
+  mouse_move_data_t get_mouse_move_focus_data() {
+    loco_t* loco = OFFSETLESS(this, loco_t, vfi);
+    magic_vec2 position = loco->get_mouse_position();
+    mouse_move_data_t mouse_move_data;
+    mouse_move_data.vfi = this;
+    auto* data = &shape_list_GetNodeByReference(&shape_list, focus.mouse)->data;
+    fan::vec2 tp = position.transform(loco, data->shape_type, &data->shape_data);
+    focus.method.mouse.position = tp;
+    mouse_move_data.mouse_stage = inside(loco, data->shape_type, &data->shape_data, tp);
+    mouse_move_data.flag = &focus.method.mouse.flags;
+    mouse_move_data.udata = data->udata;
+    mouse_move_data.position = tp;
+    return mouse_move_data;
+  }
+  //mouse_button_data_t get_mouse_button_focus_data(magic_vec2 position) {
+  //  loco_t* loco = OFFSETLESS(this, loco_t, vfi);
+  //  mouse_move_data_t mouse_move_data;
+  //  mouse_move_data.vfi = this;
+  //  auto* data = &shape_list_GetNodeByReference(&shape_list, focus.mouse)->data;
+  //  fan::vec2 tp = position.transform(loco, data->shape_type, &data->shape_data);
+  //  focus.method.mouse.position = tp;
+  //  mouse_move_data.mouse_stage = inside(loco, data->shape_type, &data->shape_data, tp);
+  //  mouse_move_data.flag = &focus.method.mouse.flags;
+  //  mouse_move_data.udata = data->udata;
+  //  mouse_move_data.position = tp;
+  //  return mouse_move_data;
+  //}
+
   void feed_mouse_move(loco_t* loco, magic_vec2 position) {
 
     mouse_move_data_t mouse_move_data;
     mouse_move_data.vfi = this;
+    mouse_move_data.flag = &focus.method.mouse.flags;
     if (!focus.mouse.is_invalid()) {
       auto* data = &shape_list_GetNodeByReference(&shape_list, focus.mouse)->data;
       fan::vec2 tp = position.transform(loco, data->shape_type, &data->shape_data);
       focus.method.mouse.position = tp;
       mouse_move_data.mouse_stage = inside(loco, data->shape_type, &data->shape_data, tp);
-      mouse_move_data.flag = &focus.method.mouse.flags;
       mouse_move_data.udata = data->udata;
       mouse_move_data.position = tp;
+      shape_id_t bcbfm = focus.mouse;
       data->shape_data.mouse_move_cb(mouse_move_data);
+      if (bcbfm != focus.mouse) {
+        data = &shape_list_GetNodeByReference(&shape_list, focus.mouse)->data;
+        tp = position.transform(loco, data->shape_type, &data->shape_data);
+        focus.method.mouse.position = tp;
+        mouse_move_data.mouse_stage = inside(loco, data->shape_type, &data->shape_data, tp);
+      }
       if (focus.method.mouse.flags.ignore_move_focus_check == true) {
         return;
       }
@@ -295,7 +334,13 @@ struct vfi_t {
     mouse_button_data.mouse_stage = inside(loco, data->shape_type, &data->shape_data, focus.method.mouse.position);
     mouse_button_data.flag = &focus.method.mouse.flags;
     mouse_button_data.udata = data->udata;
+    shape_id_t bcbfm = focus.mouse;
     data->shape_data.mouse_button_cb(mouse_button_data);
+
+    if (bcbfm != focus.mouse) {
+      data = &shape_list_GetNodeByReference(&shape_list, focus.mouse)->data;
+      mouse_button_data.mouse_stage = inside(loco, data->shape_type, &data->shape_data, focus.method.mouse.position);
+    }
 
     if (mouse_button_data.mouse_stage == mouse_stage_e::outside) {
       if (focus.method.mouse.flags.ignore_move_focus_check == false) {
