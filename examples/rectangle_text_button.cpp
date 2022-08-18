@@ -49,7 +49,17 @@ int main() {
     fan::print(mm_d.position, (int)mm_d.mouse_stage);
   };
   tp.mouse_button_cb = [](const loco_t::mouse_input_data_t& ii_d) -> void {
-
+    if (ii_d.flag->ignore_move_focus_check == false) {
+      if (ii_d.button == fan::mouse_left && ii_d.button_state == fan::key_state::press) {
+        ii_d.flag->ignore_move_focus_check = true;
+      }
+    }
+    else {
+      if (ii_d.button == fan::mouse_left && ii_d.button_state == fan::key_state::release) {
+        ii_d.flag->ignore_move_focus_check = false;
+      }
+    }
+    fan::print(ii_d.button, (int)ii_d.button_state, (int)ii_d.mouse_stage);
   };
   fan_2d::graphics::gui::themes::gray gray_theme;
   gray_theme.open(pile.loco.get_context());
@@ -57,9 +67,11 @@ int main() {
   constexpr auto count = 10;
   fan::opengl::cid_t cids[count];
   fan::print(loco_bdbt_usage(&pile.loco.bdbt));
-  tp.depth = 0;
-  pile.loco.button.push_back(&pile.loco, &cids[1], tp);
-
+  pile.loco.button.push_back(&pile.loco, &cids[0], tp);
+  tp.position.x += 0.4;
+  tp.position.z += 10;
+  //pile.loco.button.push_back(&pile.loco, &cids[1], tp);
+  //pile.loco.button.set_position(0, 0, 0);
   
 
  // pile.loco.button.set(&pile.loco, &cids[2], &loco_t::button_t::instance_t::position, 0);

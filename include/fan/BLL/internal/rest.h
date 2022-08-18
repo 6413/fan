@@ -351,7 +351,7 @@ _P(_AfterInitNodes)
   list->e.p = 0;
   #if BLL_set_StoreFormat == 0
     #if BLL_set_Link == 1
-      _P(_NodeList_Reserve)(&list->NodeList, 2);
+      _P(_NodeList_AddEmpty)(&list->NodeList, 2);
 
       list->src.NRI = 0;
       list->dst.NRI = 1;
