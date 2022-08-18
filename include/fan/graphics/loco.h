@@ -2,9 +2,6 @@
 
 struct loco_t;
 
-#include _FAN_PATH(graphics/gui/be.h)
-#include _FAN_PATH(graphics/gui/ke.h)
-
 #define BDBT_set_prefix loco_bdbt
 #define BDBT_set_type_node uint16_t
 #define BDBT_set_BitPerNode 2
@@ -142,24 +139,9 @@ struct loco_t {
   #endif
 
   using mouse_move_data_t = vfi_t::mouse_move_data_t;
-  using mouse_input_data_t = vfi_t::mouse_button_data_t;
+  using mouse_button_data_t = vfi_t::mouse_button_data_t;
 
   vfi_t vfi;
-
-  struct focus_t {
-
-    void open() {
-      shape_type = fan::uninitialized;
-    }
-    void close() {
-
-    }
-
-    uint32_t shape_type;
-    void* shape_id;
-  };
-
-  focus_t focus;
 
   #if defined(loco_letter)
     fan_2d::graphics::font_t font;
@@ -174,7 +156,6 @@ struct loco_t {
   void open(const properties_t& p) {
 
     vfi.open();
-    focus.open();
 
     #ifdef loco_window
       window.open();
@@ -240,8 +221,6 @@ struct loco_t {
   void close() {
 
     vfi.close();
-
-    focus.close();
 
     loco_bdbt_close(&bdbt);
 
@@ -390,7 +369,3 @@ protected:
   #endif
 
 };
-
-fan::window_t* fan_2d::graphics::gui::be_t::get_window(loco_t* loco) {
-  return loco->get_window();
-}

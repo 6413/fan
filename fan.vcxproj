@@ -245,7 +245,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="examples\rectangle_text_button.cpp" />
+    <ClCompile Include="examples\gui_maker_export.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
     <ClCompile Include="src\fan\window\window_input.cpp" />
   </ItemGroup>
@@ -306,11 +306,9 @@
     <ClInclude Include="include\fan\graphics\camera.h" />
     <ClInclude Include="include\fan\graphics\fast_obj\fast_obj.h" />
     <ClInclude Include="include\fan\graphics\graphics.h" />
-    <ClInclude Include="include\fan\graphics\gui\be.h" />
     <ClInclude Include="include\fan\graphics\gui\checkbox.h" />
     <ClInclude Include="include\fan\graphics\gui\fgm\fgm.h" />
     <ClInclude Include="include\fan\graphics\gui\focus.h" />
-    <ClInclude Include="include\fan\graphics\gui\ke.h" />
     <ClInclude Include="include\fan\graphics\gui\key_event.h" />
     <ClInclude Include="include\fan\graphics\gui\rectangle_text_button.h" />
     <ClInclude Include="include\fan\graphics\gui\select_box.h" />
@@ -323,6 +321,7 @@
     <ClInclude Include="include\fan\graphics\opengl\2D\effects\particles.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\effects\post_process.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\objects\circle.h" />
+    <ClInclude Include="include\fan\graphics\opengl\2D\objects\hardcode.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\objects\letter_renderer.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\objects\line.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\objects\rectangle.h" />

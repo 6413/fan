@@ -1,27 +1,14 @@
+#include <fan/types/masterpiece.h>
 #include <fan/types/types.h>
-#include <fan/types/vector.h>
 
-struct A{
-  static constexpr auto a = 0;
-  static constexpr auto b = 1;
-
+struct s_t {
+  using type = int;
+  type x;
 };
-
-struct R{
-  static constexpr auto c = 0;
-  static constexpr auto d = 1;
-};
-
-struct g{
-  A a;
-  R r;
-};
-
-
-void f() {
-
-}
 
 int main() {
-  g g;
+  fan::masterpiece_t<int, double> x;
+  using b = decltype(x)::get_type<0>();
+  decltype(decltype(x)::get_type<1>())::type
+  fan::print(typeid(b).name());
 }

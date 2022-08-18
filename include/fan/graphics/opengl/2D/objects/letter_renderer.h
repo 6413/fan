@@ -88,12 +88,10 @@ struct letter_t {
   }
 
   void set_matrices(loco_t* loco, fan::opengl::cid_t* cid, fan::opengl::matrices_list_NodeReference_t n) {
-    auto block = sb_get_block(loco, cid);
-    *block->p[cid->instance_id].key.get_value<0>() = n;
+    sb_set_key(loco, cid, &properties_t::matrices, n);
   }
 
   void set_viewport(loco_t* loco, fan::opengl::cid_t* cid, fan::opengl::viewport_list_NodeReference_t n) {
-    auto block = sb_get_block(loco, cid);
-    *block->p[cid->instance_id].key.get_value<1>() = n;
+    sb_set_key(loco, cid, &properties_t::viewport, n);
   }
 };

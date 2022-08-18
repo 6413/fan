@@ -1,7 +1,5 @@
 struct button_t {
 
-  using be_t = fan_2d::graphics::gui::be_t;
-
   static constexpr f32_t inactive = 1.0;
   static constexpr f32_t hover = 1.1;
   static constexpr f32_t press = 1.2;
@@ -19,11 +17,14 @@ struct button_t {
 
   static constexpr uint32_t max_instance_size = fan::min(256, 4096 / (sizeof(instance_t) / 4));
 
+  #define hardcore0_t fan::opengl::matrices_list_NodeReference_t
+  #define hardcore0_n matrices
+  #define hardcore1_t fan::opengl::viewport_list_NodeReference_t
+  #define hardcore1_n viewport
+  #include _FAN_PATH(graphics/opengl/2D/objects/hardcode.h)
+
   struct instance_properties_t {
-    struct key_t : fan::masterpiece_t<
-      fan::opengl::matrices_list_NodeReference_t,
-      fan::opengl::viewport_list_NodeReference_t
-    > {}key;
+    struct key_t : parsed_masterpiece_t {}key;
 
     fan::opengl::theme_list_NodeReference_t theme;
     uint32_t text_id;
@@ -44,8 +45,7 @@ struct button_t {
 
     union {
       struct {
-        fan::opengl::matrices_list_NodeReference_t matrices;
-        fan::opengl::viewport_list_NodeReference_t viewport;
+        expand_all
         fan::opengl::theme_list_NodeReference_t theme;
         uint32_t text_id;
         uint32_t be_id;
@@ -90,7 +90,7 @@ struct button_t {
       mmd.udata = block->p[cid->instance_id].userptr;
       block->p[cid->instance_id].mouse_move_cb(mmd);
     };
-    vfip.mouse_button_cb = [](const loco_t::mouse_input_data_t& ii_d) -> void {
+    vfip.mouse_button_cb = [](const loco_t::mouse_button_data_t& ii_d) -> void {
       loco_t* loco = OFFSETLESS(ii_d.vfi, loco_t, vfi);
       fan::opengl::cid_t* cid = (fan::opengl::cid_t*)ii_d.udata;
       auto block = loco->button.sb_get_block(loco, cid);
@@ -112,8 +112,7 @@ struct button_t {
         }
       }
 
-      
-      loco_t::mouse_input_data_t mid = ii_d;
+      loco_t::mouse_button_data_t mid = ii_d;
       mid.udata = block->p[cid->instance_id].userptr;
       block->p[cid->instance_id].mouse_button_cb(mid);
     };
@@ -211,7 +210,7 @@ struct button_t {
   }
   void set_matrices(loco_t* loco, fan::opengl::cid_t* cid, fan::opengl::matrices_list_NodeReference_t n) {
     auto block = sb_get_block(loco, cid);
-    *block->p[cid->instance_id].key.get_value<0>() = n;
+    sb_set_key(loco, cid, &properties_t::matrices, n);
     loco->text.set_matrices(loco, block->p[cid->instance_id].text_id, n);
   }
 
@@ -221,62 +220,12 @@ struct button_t {
   }
   void set_viewport(loco_t* loco, fan::opengl::cid_t* cid, fan::opengl::viewport_list_NodeReference_t n) {
     auto block = sb_get_block(loco, cid);
-    *block->p[cid->instance_id].key.get_value<1>() = n;
+    sb_set_key(loco, cid, &properties_t::viewport, n);
     loco->text.set_viewport(loco, block->p[cid->instance_id].text_id, n);
   }
 
-  protected:
-
-  static void lib_set_theme(
-    loco_t* loco,
-    fan::opengl::cid_t* cid,
-    f32_t intensity
-  ) {
-    loco->button.set_theme(loco, cid, &(*loco->button.get_theme(loco, cid)), intensity);
-  }
-
-  static uint8_t mouse_move_cb(const be_t::mouse_move_data_t& mm_data) {
-    if (!mm_data.changed) {
-      return 1;
-    }
-    switch (mm_data.mouse_stage) {
-      case fan_2d::graphics::gui::mouse_stage_e::inside: {
-        lib_set_theme(mm_data.loco, (fan::opengl::cid_t*)mm_data.element_id, 1.1);
-        break;
-      }
-      case fan_2d::graphics::gui::mouse_stage_e::outside: {
-        lib_set_theme(mm_data.loco, (fan::opengl::cid_t*)mm_data.element_id, 1.0);
-        break;
-      }
-    }
-    return 1;
-  }
-  static uint8_t mouse_input_cb(const be_t::mouse_input_data_t& ii_data) {
-    if (ii_data.key != fan::mouse_left) {
-      return 1;
-    }
-    if (!ii_data.changed) {
-      return 1;
-    }
-    switch (ii_data.mouse_stage) {
-      case fan_2d::graphics::gui::mouse_stage_e::inside: {
-        switch (ii_data.key_state) {
-          case fan::key_state::press: {
-            lib_set_theme(ii_data.loco, (fan::opengl::cid_t*)ii_data.element_id, 1.2);
-            break;
-          }
-          case fan::key_state::release: {
-            lib_set_theme(ii_data.loco, (fan::opengl::cid_t*)ii_data.element_id, 1.1);
-            break;
-          }
-        }
-        break;
-      }
-      case fan_2d::graphics::gui::mouse_stage_e::outside: {
-        lib_set_theme(ii_data.loco, (fan::opengl::cid_t*)ii_data.element_id, 1.0 / 1.2);
-        break;
-      }
-    }
-    return 1;
+  void set_theme(fan::opengl::cid_t* cid, f32_t state) {
+    loco_t* loco = OFFSETLESS(this, loco_t, button);
+    loco->button.set_theme(loco, cid, loco->button.get_theme(loco, cid), state);
   }
 };
