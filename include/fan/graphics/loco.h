@@ -141,11 +141,6 @@ struct loco_t {
     post_process_t post_process;
   #endif
 
-  struct {
-    fan_2d::graphics::gui::be_t input_hitbox;
-    fan_2d::graphics::gui::ke_t keyboard_event;
-  }element_depth[max_depths];
-
   using mouse_move_data_t = vfi_t::mouse_move_data_t;
   using mouse_input_data_t = vfi_t::mouse_button_data_t;
 
@@ -192,7 +187,7 @@ struct loco_t {
     get_window()->add_buttons_callback(this, [](fan::window_t* window, uint16_t key, fan::key_state key_state, void* user_ptr) {
       loco_t& loco = *(loco_t*)user_ptr;
       fan::vec2 window_size = window->get_size();
-      loco.feed_mouse_input(key, key_state, loco.get_mouse_position());
+      loco.feed_mouse_button(key, key_state, loco.get_mouse_position());
     });
 
     get_window()->add_keys_callback(this, [](fan::window_t* window, uint16_t key, fan::key_state key_state, void* user_ptr) {
@@ -208,11 +203,6 @@ struct loco_t {
 
     context.open();
     context.bind_to_window(&window);
-
-    for (uint32_t depth = 0; depth < max_depths; depth++) {
-      element_depth[depth].input_hitbox.open();
-      element_depth[depth].keyboard_event.open();
-    }
 
     #if defined(loco_letter)
       font.open(get_context(), loco_font);
@@ -253,11 +243,6 @@ struct loco_t {
 
     focus.close();
 
-    for (uint32_t depth = 0; depth < max_depths; depth++) {
-      element_depth[depth].input_hitbox.close();
-      element_depth[depth].keyboard_event.close();
-    }
-
     loco_bdbt_close(&bdbt);
 
     #if defined(loco_line)
@@ -285,29 +270,29 @@ struct loco_t {
     m_write_queue.close();
   }
 
-  uint32_t push_back_input_hitbox(uint32_t depth, const fan_2d::graphics::gui::be_t::properties_t& p) {
-    return element_depth[depth].input_hitbox.push_back(p);
+  vfi_t::shape_id_t push_back_input_hitbox(uint32_t depth, const vfi_t::properties_t& p) {
+    return vfi.push_shape(p);
   }
-  uint32_t push_back_keyboard_event(uint32_t depth, const fan_2d::graphics::gui::ke_t::properties_t& p) {
+ /* uint32_t push_back_keyboard_event(uint32_t depth, const fan_2d::graphics::gui::ke_t::properties_t& p) {
     return element_depth[depth].keyboard_event.push_back(p);
-  }
+  }*/
 
   void feed_mouse_move(const fan::vec2& mouse_position) {
     vfi.feed_mouse_move(this, mouse_position);
    
   }
 
-  void feed_mouse_input(uint16_t button, fan::key_state key_state, const fan::vec2& mouse_position) {
-
+  void feed_mouse_button(uint16_t button, fan::key_state key_state, const fan::vec2& mouse_position) {
+    vfi.feed_mouse_button(this, button, key_state);
   }
 
   void feed_keyboard(uint16_t key, fan::key_state key_state) {
-    for (uint32_t depth = max_depths; depth--; ) {
+    /*for (uint32_t depth = max_depths; depth--; ) {
       uint32_t r = element_depth[depth].keyboard_event.feed_keyboard(this, key, key_state, depth);
       if (r == 0) {
         break;
       }
-    }
+    }*/
   }
 
   uint32_t process_frame(std::function<void()> f) {
