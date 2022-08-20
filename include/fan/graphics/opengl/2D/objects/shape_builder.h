@@ -2,7 +2,13 @@
   #define sb_vertex_count 6
 #endif
 
-void sb_open(loco_t* loco) {
+loco_t* get_loco() {
+  loco_t* loco = OFFSETLESS(this, loco_t, sb_shape_var_name);
+  return loco;
+}
+
+void sb_open() {
+  loco_t* loco = get_loco();
   root = loco_bdbt_NewNode(&loco->bdbt);
   bll_block_open(&blocks);
   shape_bm_open(&bm_list);
@@ -19,7 +25,8 @@ void sb_open(loco_t* loco) {
   );
   m_shader.compile(loco->get_context());
 }
-void sb_close(loco_t* loco) {
+void sb_close() {
+  loco_t* loco = get_loco();
 
   bll_block_close(&blocks);
   shape_bm_close(&bm_list);
@@ -36,7 +43,8 @@ void sb_close(loco_t* loco) {
 
 struct block_t;
 
-block_t* sb_push_back(loco_t* loco, fan::opengl::cid_t* cid, properties_t& p) {
+block_t* sb_push_back(fan::opengl::cid_t* cid, properties_t& p) {
+  loco_t* loco = get_loco();
  
   loco_bdbt_NodeReference_t nr = root;
   loco_bdbt_Key_t<sizeof(instance_properties_t::key_t) * 8> k;
@@ -88,7 +96,8 @@ block_t* sb_push_back(loco_t* loco, fan::opengl::cid_t* cid, properties_t& p) {
   block->p[instance_id] = p.instance_properties;
   return block;
 }
-void sb_erase(loco_t* loco, fan::opengl::cid_t* cid) {
+void sb_erase(fan::opengl::cid_t* cid) {
+  loco_t* loco = get_loco();
   auto bm_id = *(shape_bm_NodeReference_t*)&cid->bm_id;
   auto bm_node = shape_bm_GetNodeByReference(&bm_list, bm_id);
 
@@ -157,20 +166,23 @@ void sb_erase(loco_t* loco, fan::opengl::cid_t* cid) {
   );
 }
 
-block_t* sb_get_block(loco_t* loco, fan::opengl::cid_t* cid) {
+block_t* sb_get_block(fan::opengl::cid_t* cid) {
+  loco_t* loco = get_loco();
   auto block_id = *(bll_block_NodeReference_t*)&cid->block_id;
   auto block_node = bll_block_GetNodeByReference(&blocks, *(bll_block_NodeReference_t*)&cid->block_id);
   return &block_node->data.block;
 }
 
 template <typename T>
-T get(loco_t* loco, fan::opengl::cid_t *cid, T instance_t::*member) {
-  auto block = sb_get_block(loco, cid);
+T get(fan::opengl::cid_t *cid, T instance_t::*member) {
+  loco_t* loco = get_loco();
+  auto block = sb_get_block(cid);
   return block->uniform_buffer.get_instance(loco->get_context(), cid->instance_id)->*member;
 }
 template <typename T, typename T2>
-void set(loco_t* loco, fan::opengl::cid_t *cid, T instance_t::*member, const T2& value) {
-  auto block = sb_get_block(loco, cid);
+void set(fan::opengl::cid_t *cid, T instance_t::*member, const T2& value) {
+  loco_t* loco = get_loco();
+  auto block = sb_get_block(cid);
   block->uniform_buffer.edit_instance(loco->get_context(), cid->instance_id, member, value);
   block->uniform_buffer.common.edit(
     loco->get_context(),
@@ -180,18 +192,22 @@ void set(loco_t* loco, fan::opengl::cid_t *cid, T instance_t::*member, const T2&
   );
 }
 
-void set_vertex(loco_t* loco, const std::string& str) {
+void set_vertex(const std::string& str) {
+  loco_t* loco = get_loco();
   m_shader.set_vertex(loco->get_context(), str);
 }
-void set_fragment(loco_t* loco, const std::string& str) {
+void set_fragment(const std::string& str) {
+  loco_t* loco = get_loco();
   m_shader.set_fragment(loco->get_context(), str);
 }
-void compile(loco_t* loco) {
+void compile() {
+  loco_t* loco = get_loco();
   m_shader.compile(loco->get_context());
 }
 
 template <uint32_t depth = 0>
-void traverse_draw(loco_t* loco, auto nr, uint32_t draw_mode) {
+void traverse_draw(auto nr, uint32_t draw_mode) {
+  loco_t* loco = get_loco();
   if constexpr(depth == instance_properties_t::key_t::count + 1) {
     auto bmn = shape_bm_GetNodeByReference(&bm_list, *(shape_bm_NodeReference_t*)&nr);
     auto bnr = bmn->data.first_block;
@@ -222,24 +238,26 @@ void traverse_draw(loco_t* loco, auto nr, uint32_t draw_mode) {
     typename instance_properties_t::key_t::get_type<depth>::type o;
     while(kt.Traverse(&loco->bdbt, &o)) {
       loco->process_block_properties_element(this, o);
-      traverse_draw<depth + 1>(loco, kt.Output, draw_mode);
+      traverse_draw<depth + 1>(kt.Output, draw_mode);
     }
   }
 }
 
-void sb_draw(loco_t* loco, uint32_t draw_mode = fan::opengl::GL_TRIANGLES) {
+void sb_draw(uint32_t draw_mode = fan::opengl::GL_TRIANGLES) {
+  loco_t* loco = get_loco();
   m_shader.use(loco->get_context());
-  traverse_draw(loco, root, draw_mode);
+  traverse_draw(root, draw_mode);
 }
 
-void sb_set_key(loco_t* loco, fan::opengl::cid_t* cid, auto properties_t::*member, auto value) {
-  auto block = sb_get_block(loco, cid);
+void sb_set_key(fan::opengl::cid_t* cid, auto properties_t::*member, auto value) {
+  loco_t* loco = get_loco();
+  auto block = sb_get_block(cid);
   properties_t p;
   *(instance_t*)&p = *block->uniform_buffer.get_instance(loco->get_context(), cid->instance_id);
   p.instance_properties = block->p[cid->instance_id];
   p.*member = value;
-  sb_erase(loco, cid);
-  sb_push_back(loco, cid, p);
+  sb_erase(cid);
+  sb_push_back(cid, p);
 }
 
 fan::shader_t m_shader;

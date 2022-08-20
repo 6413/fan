@@ -45,7 +45,8 @@ struct letter_t {
     };
   };
 
-  void push_back(loco_t* loco, fan::opengl::cid_t* cid, properties_t& p) {
+  void push_back(fan::opengl::cid_t* cid, properties_t& p) {
+    loco_t* loco = get_loco();
     fan::font::single_info_t si = loco->font.info.get_letter_info(p.letter_id, p.font_size);
 
     p.tc_position = si.glyph.position / loco->font.image.size;
@@ -54,25 +55,27 @@ struct letter_t {
 
     p.size = si.metrics.size / 2;
 
-    sb_push_back(loco, cid, p);
+    sb_push_back(cid, p);
   }
-  void erase(loco_t* loco, fan::opengl::cid_t* cid) {
-    sb_erase(loco, cid);
+  void erase(fan::opengl::cid_t* cid) {
+    sb_erase(cid);
   }
 
-  void draw(loco_t* loco) {
+  void draw() {
+    loco_t* loco = get_loco();
     m_shader.use(loco->get_context());
     m_shader.set_int(loco->get_context(), "_t00", 0);
     loco->get_context()->opengl.call(loco->get_context()->opengl.glActiveTexture, fan::opengl::GL_TEXTURE0);
     loco->font.image.bind_texture(loco->get_context());
     
-    sb_draw(loco);
+    sb_draw();
   }
 
-  properties_t get_properties(loco_t* loco, fan::opengl::cid_t* cid) {
+  properties_t get_properties(fan::opengl::cid_t* cid) {
+    loco_t* loco = get_loco();
     properties_t p;
-    p = *sb_get_block(loco, cid)->uniform_buffer.get_instance(loco->get_context(), cid->instance_id);
-    p.instance_properties = sb_get_block(loco, cid)->p[cid->instance_id];
+    p = *sb_get_block(cid)->uniform_buffer.get_instance(loco->get_context(), cid->instance_id);
+    p.instance_properties = sb_get_block(cid)->p[cid->instance_id];
     return p;
   }
 
@@ -80,18 +83,18 @@ struct letter_t {
   #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/objects/letter.fs)
   #include _FAN_PATH(graphics/opengl/2D/objects/shape_builder.h)
 
-  void open(loco_t* loco) {
-    sb_open(loco);
+  void open() {
+    sb_open();
   }
-  void close(loco_t* loco) {
-    sb_close(loco);
-  }
-
-  void set_matrices(loco_t* loco, fan::opengl::cid_t* cid, fan::opengl::matrices_list_NodeReference_t n) {
-    sb_set_key(loco, cid, &properties_t::matrices, n);
+  void close() {
+    sb_close();
   }
 
-  void set_viewport(loco_t* loco, fan::opengl::cid_t* cid, fan::opengl::viewport_list_NodeReference_t n) {
-    sb_set_key(loco, cid, &properties_t::viewport, n);
+  void set_matrices(fan::opengl::cid_t* cid, fan::opengl::matrices_list_NodeReference_t n) {
+    sb_set_key(cid, &properties_t::matrices, n);
+  }
+
+  void set_viewport(fan::opengl::cid_t* cid, fan::opengl::viewport_list_NodeReference_t n) {
+    sb_set_key(cid, &properties_t::viewport, n);
   }
 };

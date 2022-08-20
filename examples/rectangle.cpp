@@ -82,18 +82,18 @@ int main() {
     }
     p.position = fan::vec2((f32_t)i / 2, (f32_t)i / 2);
     p.color = fan::random::color();
-    pile->loco.rectangle.push_back(&pile->loco, &pile->cids[i], p);
+    pile->loco.rectangle.push_back(&pile->cids[i], p);
      //EXAMPLE ERASE
     //pile->loco.rectangle.erase(&pile->loco, &pile->cids[i]);
   }
 
   fan::print((f32_t)c.elapsed() / 1e+9);
 
-  pile->loco.rectangle.erase(&pile->loco, &pile->cids[1]);
+  pile->loco.rectangle.erase(&pile->cids[1]);
 
   pile->loco.set_vsync(false);
   uint32_t x = 0;
-  while(pile->loco.window_open(pile->loco.process_frame())) {
+  while(pile->loco.window_open(pile->loco.process_frame([]{}))) {
     
     pile->loco.get_fps();
   }

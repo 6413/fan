@@ -2,13 +2,17 @@
 #include <fan/types/types.h>
 
 struct s_t {
+  #define something x
   using type = int;
   type x;
+  void F() {
+    OFFSETLESS(0, s_t, something);
+  }
+  #undef something
 };
 
+
+
 int main() {
-  fan::masterpiece_t<int, double> x;
-  using b = decltype(x)::get_type<0>();
-  decltype(decltype(x)::get_type<1>())::type
-  fan::print(typeid(b).name());
+  
 }

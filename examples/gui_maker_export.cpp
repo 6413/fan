@@ -13,13 +13,14 @@
 
 #define loco_line
 #define loco_button
+#define loco_var_name loco
 #include _FAN_PATH(graphics/loco.h)
 
 struct pile_t {
 
   void open() {
     loco.open(loco_t::properties_t());
-    fgm.open(&loco);
+    fgm.open();
     /*loco.get_window()->add_resize_callback(this, [](fan::window_t* window, const fan::vec2i& size, void* userptr) {
       fan::vec2 window_size = window->get_size();
       fan::vec2 ratio = window_size / window_size.max();
@@ -32,9 +33,10 @@ struct pile_t {
     });*/
   }
 
-  loco_t loco;
+  loco_t loco_var_name;
+  #define fgm_var_name fgm
   #include _FAN_PATH(graphics/gui/fgm/fgm.h)
-  fgm_t fgm;
+  fgm_t fgm_var_name;
 };
 
 int main() {
@@ -42,7 +44,8 @@ int main() {
 
   pile->open();
 
-  pile->loco.set_vsync(false);
+  //pile->loco.set_vsync(false);
+  //pile->loco.get_window()->set_max_fps(5);
 
   while(pile->loco.window_open(pile->loco.process_frame([]{}))) {
     pile->loco.get_fps();

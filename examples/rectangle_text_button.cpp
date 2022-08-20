@@ -48,7 +48,7 @@ int main() {
   tp.mouse_move_cb = [] (const loco_t::mouse_move_data_t& mm_d) -> void {
     fan::print(mm_d.position, (int)mm_d.mouse_stage);
   };
-  tp.mouse_button_cb = [](const loco_t::mouse_input_data_t& ii_d) -> void {
+  tp.mouse_button_cb = [](const loco_t::mouse_button_data_t& ii_d) -> void {
     if (ii_d.flag->ignore_move_focus_check == false) {
       if (ii_d.button == fan::mouse_left && ii_d.button_state == fan::key_state::press) {
         ii_d.flag->ignore_move_focus_check = true;
@@ -67,7 +67,7 @@ int main() {
   constexpr auto count = 10;
   fan::opengl::cid_t cids[count];
   fan::print(loco_bdbt_usage(&pile.loco.bdbt));
-  pile.loco.button.push_back(&pile.loco, &cids[0], tp);
+  pile.loco.button.push_back(&cids[0], tp);
   tp.position.x += 0.4;
   tp.position.z += 10;
   //pile.loco.button.push_back(&pile.loco, &cids[1], tp);

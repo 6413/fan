@@ -33,15 +33,15 @@ struct sb_sprite_name {
     };
   };
 
-  void push_back(loco_t* loco, fan::opengl::cid_t* cid, properties_t& p) {
-    sb_push_back(loco, cid, p);
+  void push_back(fan::opengl::cid_t* cid, properties_t& p) {
+    sb_push_back(cid, p);
   }
-  void erase(loco_t* loco, fan::opengl::cid_t* cid) {
-    sb_erase(loco, cid);
+  void erase(fan::opengl::cid_t* cid) {
+    sb_erase(cid);
   }
 
-  void draw(loco_t* loco) {
-    sb_draw(loco);
+  void draw() {
+    sb_draw();
   }
 
   static constexpr uint32_t max_instance_size = fan::min(256, 4096 / (sizeof(instance_t) / 4));
@@ -53,11 +53,11 @@ struct sb_sprite_name {
   #endif
   #include _FAN_PATH(graphics/opengl/2D/objects/shape_builder.h)
 
-  void open(loco_t* loco) {
-    sb_open(loco);
+  void open() {
+    sb_open();
   }
-  void close(loco_t* loco) {
-    sb_close(loco);
+  void close() {
+    sb_close();
   }
 
   /*void set_matrices(loco_t* loco, fan::opengl::cid_t* cid, fan::opengl::matrices_list_NodeReference_t n) {
