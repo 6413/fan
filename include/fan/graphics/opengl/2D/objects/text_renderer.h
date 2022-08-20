@@ -20,6 +20,11 @@ struct text_renderer_t {
     };
   };
 
+  loco_t* get_loco() {
+    loco_t* loco = OFFSETLESS(this, loco_t, sb_shape_var_name);
+    return loco;
+  }
+
   /* struct id_t{
     id_t(fan::opengl::cid_t* cid) {
       block = cid->id / letter_t::max_instance_size;
@@ -29,22 +34,24 @@ struct text_renderer_t {
     uint32_t instance;
   };*/
 
-  void open(loco_t* loco) {
+  void open() {
     letter_ids.open();
     e.amount = 0;
   }
-  void close(loco_t* loco) {
+  void close() {
     for (uint32_t i = 0; i < letter_ids.size(); i++) {
       letter_ids[i].close();
     }
     letter_ids.close();
   }
 
-  f32_t convert_font_size(loco_t* loco, f32_t font_size) {
+  f32_t convert_font_size(f32_t font_size) {
+    loco_t* loco = get_loco();
     return font_size / loco->font.info.size;
   }
 
-  fan::vec2 get_text_size(loco_t* loco, const fan::utf16_string& text, f32_t font_size) {
+  fan::vec2 get_text_size(const fan::utf16_string& text, f32_t font_size) {
+    loco_t* loco = get_loco();
     fan::vec2 text_size = 0;
 
     text_size.y = loco->font.info.line_height;
@@ -65,9 +72,10 @@ struct text_renderer_t {
 
     text_size.x = std::max(width, text_size.x);
 
-    return text_size * convert_font_size(loco, font_size);
+    return text_size * convert_font_size(font_size);
   }
-  fan::vec2 get_text_size(loco_t* loco, uint32_t id) {
+  fan::vec2 get_text_size(uint32_t id) {
+    loco_t* loco = get_loco();
     fan::vec2 text_size = 0;
 
     text_size.y = loco->font.info.line_height;
@@ -76,7 +84,7 @@ struct text_renderer_t {
     f32_t font_size = 0;
 
     for (int i = 0; i < letter_ids[id].size(); i++) {
-      auto p =  loco->letter.get_properties(loco, &letter_ids[id][i]);
+      auto p =  loco->letter.get_properties(&letter_ids[id][i]);
 
       font_size = p.font_size;
       auto letter =  loco->font.info.get_letter_info(p.letter_id, font_size);
@@ -85,16 +93,17 @@ struct text_renderer_t {
         width += letter.glyph.size.x;
       }
       else {
-        width += letter.metrics.advance / convert_font_size(loco, font_size);
+        width += letter.metrics.advance / convert_font_size(font_size);
       }
     }
 
     text_size.x = std::max(width, text_size.x);
 
-    return text_size * convert_font_size(loco, font_size);
+    return text_size * convert_font_size(font_size);
   }
 
-  uint32_t push_back(loco_t* loco, properties_t properties) {
+  uint32_t push_back(properties_t properties) {
+    loco_t* loco = get_loco();
     typename loco_t::letter_t::properties_t p;
     p.color = properties.color;
     p.font_size = properties.font_size;
@@ -113,7 +122,7 @@ struct text_renderer_t {
     }
     letter_ids[id].open();
 
-    fan::vec2 text_size = get_text_size(loco, properties.text, properties.font_size);
+    fan::vec2 text_size = get_text_size(properties.text, properties.font_size);
     f32_t left = properties.position.x - text_size.x / 2;
 
     for (uint32_t i = 0; i < properties.text.size(); i++) {
@@ -124,15 +133,16 @@ struct text_renderer_t {
       p.position.z = properties.position.z;
 
       letter_ids[id].resize(letter_ids[id].size() + 1);
-      loco->letter.push_back(loco, &letter_ids[id][letter_ids[id].size() - 1], p);
+      loco->letter.push_back(&letter_ids[id][letter_ids[id].size() - 1], p);
       left += letter_info.metrics.advance;
     }
     return id;
   }
 
-  void erase(loco_t* loco, uint32_t id) {
+  void erase(uint32_t id) {
+    loco_t* loco = get_loco();
     for (uint32_t i = 0; i < letter_ids[id].size(); i++) {
-      loco->letter.erase(loco, &letter_ids[id][i]);
+      loco->letter.erase(&letter_ids[id][i]);
     }
     letter_ids[id].close();
     *(uint32_t*)&letter_ids[id] = e.id0;
@@ -141,44 +151,47 @@ struct text_renderer_t {
   }
 
   template <typename T>
-  T get(loco_t* loco, uint32_t id, T loco_t::letter_t::instance_t::*member) {
-    return loco->letter.get(loco, &letter_ids[id][0], member);
+  T get(uint32_t id, T loco_t::letter_t::instance_t::*member) {
+    return loco->letter.get(&letter_ids[id][0], member);
   }
   template <typename T, typename T2>
-  void set(loco_t* loco, uint32_t id, T loco_t::letter_t::instance_t::*member, const T2& value) {
+  void set(uint32_t id, T loco_t::letter_t::instance_t::*member, const T2& value) {
+    loco_t* loco = get_loco();
     fan::vec2 text_size;
     f32_t left;
     if constexpr (std::is_same<T, fan::vec3>::value)
-      text_size = get_text_size(loco, id);
+      text_size = get_text_size(id);
       left = ((f32_t*)&value)[0] - text_size.x / 2;
     for (uint32_t i = 0; i < letter_ids[id].size(); i++) {
-      auto p = loco->letter.get_properties(loco, &letter_ids[id][i]);
-      loco->letter.erase(loco, &letter_ids[id][i]);
+      auto p = loco->letter.get_properties(&letter_ids[id][i]);
+      loco->letter.erase(&letter_ids[id][i]);
       ;
       if constexpr(std::is_same<T, fan::vec3>::value)
       if (fan::ofof(member) == fan::ofof(&loco_t::letter_t::instance_t::position)) {
         auto letter_info = loco->font.info.get_letter_info(p.letter_id, p.font_size);
         p.position = fan::vec2(left - letter_info.metrics.offset.x, ((f32_t*)&value)[1]) + (fan::vec2(letter_info.metrics.size.x, p.font_size - letter_info.metrics.size.y) / 2 + fan::vec2(letter_info.metrics.offset.x, -letter_info.metrics.offset.y));
         p.position.z += 0.001;
-        loco->letter.push_back(loco, &letter_ids[id][i], p);
+        loco->letter.push_back(&letter_ids[id][i], p);
         left += letter_info.metrics.advance;
       }
       if (fan::ofof(member) != fan::ofof(&loco_t::letter_t::instance_t::position)) {
         p.*member = value;
-        loco->letter.push_back(loco, &letter_ids[id][i], p);
+        loco->letter.push_back(&letter_ids[id][i], p);
       }
     }
   }
 
-  void set_matrices(loco_t* loco, uint32_t id, fan::opengl::matrices_list_NodeReference_t n) {
+  void set_matrices(uint32_t id, fan::opengl::matrices_list_NodeReference_t n) {
+    loco_t* loco = get_loco();
     for (uint32_t i = 0; i < letter_ids[id].size(); i++) {
-      loco->letter.set_matrices(loco, &letter_ids[id][i], n);
+      loco->letter.set_matrices(&letter_ids[id][i], n);
     }
   }
 
-  void set_viewport(loco_t* loco, uint32_t id, fan::opengl::viewport_list_NodeReference_t n) {
+  void set_viewport(uint32_t id, fan::opengl::viewport_list_NodeReference_t n) {
+    loco_t* loco = get_loco();
     for (uint32_t i = 0; i < letter_ids[id].size(); i++) {
-      loco->letter.set_viewport(loco, &letter_ids[id][i], n);
+      loco->letter.set_viewport(&letter_ids[id][i], n);
     }
   }
 

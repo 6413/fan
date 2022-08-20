@@ -2,6 +2,10 @@
 
 struct vfi_t {
 
+  loco_t* get_loco() {
+    return OFFSETLESS(this, loco_t, vfi);
+  }
+
   void open() {
     focus.mouse.invalidate();
     focus.keyboard.invalidate();
@@ -168,6 +172,13 @@ struct vfi_t {
     }
     return nr;
   }
+  void erase(shape_id_t id) {
+    if (focus.mouse == id) {
+      focus.mouse.invalidate();
+    }
+    shape_list_Unlink(&shape_list, id);
+    shape_list_Recycle(&shape_list, id);
+  }
 
   template <typename T>
   void set_always(shape_id_t id, auto T::*member, auto value) {
@@ -180,12 +191,16 @@ struct vfi_t {
     n->data.shape_data.shape.rectangle.*member = value;
   }
 
-  static fan::vec2 transform_position(const fan::vec2& p, fan::opengl::viewport_t* viewport, fan::opengl::matrices_t* matrices) {
+  fan::vec2 transform_position(const fan::vec2& p, fan::opengl::viewport_t* viewport, fan::opengl::matrices_t* matrices) {
     fan::vec2 viewport_position = viewport->get_viewport_position(); 
     fan::vec2 viewport_size = viewport->get_viewport_size();
     fan::vec2 x;
     x.x = (p.x - viewport_position.x - viewport_size.x / 2) / (viewport_size.x / 2);
-    x.y = (p.y - viewport_position.y - viewport_size.y / 2) / (viewport_size.y / 2) + (viewport_position.y / viewport_size.y) * 2;
+    f32_t y = get_loco()->get_window()->get_size().y / 2 - p.y;
+    x.y = ( viewport_position.y - viewport_size.y / 2 - y) / (viewport_size.y / 2);
+    if (viewport->viewport_reference.NRI == 2) {
+      fan::print(x);
+    }
     return x;
   }
 
@@ -206,39 +221,36 @@ struct vfi_t {
     }
   };
 
-  struct magic_vec2 : fan::vec2 {
-    using fan::vec2::_vec2;
-
-    fan::vec2 transform(loco_t* loco, shape_type_t shape_type, common_shape_data_t* shape_data) const {
-      switch (shape_type) {
-        case shape_t::always: {
-          break;
-        }
-        case shape_t::rectangle: {
-          return transform_position(
-            *this,
-            fan::opengl::viewport_list_GetNodeByReference(
-              &loco->get_context()->viewport_list,
-              shape_data->shape.rectangle.viewport
-            )->data.viewport_id,
-            fan::opengl::matrices_list_GetNodeByReference(
-              &loco->get_context()->matrices_list,
-              shape_data->shape.rectangle.matrices
-            )->data.matrices_id
-          );
-          break;
-        }
+  fan::vec2 transform(const fan::vec2& v, shape_type_t shape_type, common_shape_data_t* shape_data) {
+    loco_t* loco = get_loco();
+    switch (shape_type) {
+      case shape_t::always: {
+        return v;
+      }
+      case shape_t::rectangle: {
+        return transform_position(
+          v,
+          fan::opengl::viewport_list_GetNodeByReference(
+            &loco->get_context()->viewport_list,
+            shape_data->shape.rectangle.viewport
+          )->data.viewport_id,
+          fan::opengl::matrices_list_GetNodeByReference(
+            &loco->get_context()->matrices_list,
+            shape_data->shape.rectangle.matrices
+          )->data.matrices_id
+        );
+        break;
       }
     }
-  };
+  }
 
   mouse_move_data_t get_mouse_move_focus_data() {
-    loco_t* loco = OFFSETLESS(this, loco_t, vfi);
-    magic_vec2 position = loco->get_mouse_position();
+    loco_t* loco = get_loco();
+    fan::vec2 position = loco->get_mouse_position();
     mouse_move_data_t mouse_move_data;
     mouse_move_data.vfi = this;
     auto* data = &shape_list_GetNodeByReference(&shape_list, focus.mouse)->data;
-    fan::vec2 tp = position.transform(loco, data->shape_type, &data->shape_data);
+    fan::vec2 tp = transform(position, data->shape_type, &data->shape_data);
     focus.method.mouse.position = tp;
     mouse_move_data.mouse_stage = inside(loco, data->shape_type, &data->shape_data, tp);
     mouse_move_data.flag = &focus.method.mouse.flags;
@@ -260,14 +272,14 @@ struct vfi_t {
   //  return mouse_move_data;
   //}
 
-  void feed_mouse_move(loco_t* loco, magic_vec2 position) {
+  void feed_mouse_move(loco_t* loco, const fan::vec2& position) {
 
     mouse_move_data_t mouse_move_data;
     mouse_move_data.vfi = this;
     mouse_move_data.flag = &focus.method.mouse.flags;
     if (!focus.mouse.is_invalid()) {
       auto* data = &shape_list_GetNodeByReference(&shape_list, focus.mouse)->data;
-      fan::vec2 tp = position.transform(loco, data->shape_type, &data->shape_data);
+      fan::vec2 tp = transform(position, data->shape_type, &data->shape_data);
       focus.method.mouse.position = tp;
       mouse_move_data.mouse_stage = inside(loco, data->shape_type, &data->shape_data, tp);
       mouse_move_data.udata = data->udata;
@@ -276,14 +288,14 @@ struct vfi_t {
       data->shape_data.mouse_move_cb(mouse_move_data);
       if (bcbfm != focus.mouse) {
         data = &shape_list_GetNodeByReference(&shape_list, focus.mouse)->data;
-        tp = position.transform(loco, data->shape_type, &data->shape_data);
+        tp = transform(position, data->shape_type, &data->shape_data);
         focus.method.mouse.position = tp;
         mouse_move_data.mouse_stage = inside(loco, data->shape_type, &data->shape_data, tp);
       }
       if (focus.method.mouse.flags.ignore_move_focus_check == true) {
         return;
       }
-      if (mouse_move_data.mouse_stage == mouse_stage_e::inside) {
+      if (data->shape_type != shape_t::always && mouse_move_data.mouse_stage == mouse_stage_e::inside) {
         return;
       }
     }
@@ -294,7 +306,7 @@ struct vfi_t {
     auto it = shape_list_GetNodeFirst(&shape_list);
     while(it != shape_list.dst) {
       auto* n = shape_list_GetNodeByReference(&shape_list, it);
-      fan::vec2 tp = position.transform(loco, n->data.shape_type, &n->data.shape_data);
+      fan::vec2 tp = transform(position, n->data.shape_type, &n->data.shape_data);
       mouse_move_data.mouse_stage = inside(loco, n->data.shape_type, &n->data.shape_data, tp);
       if (mouse_move_data.mouse_stage == mouse_stage_e::inside) {
         if (n->data.shape_data.depth > closest_z) {
@@ -306,7 +318,7 @@ struct vfi_t {
     }
     if (closest_z != -1) {
       auto* n = shape_list_GetNodeByReference(&shape_list, closest_z_nr);
-      fan::vec2 tp = position.transform(loco, n->data.shape_type, &n->data.shape_data);
+      fan::vec2 tp = transform(position, n->data.shape_type, &n->data.shape_data);
       focus.method.mouse.position = tp;
       mouse_move_data.position = tp;
       mouse_move_data.mouse_stage = inside(loco, n->data.shape_type, &n->data.shape_data, tp);

@@ -7,7 +7,7 @@
 
 namespace fan {
   namespace opengl {
-    
+   
     static constexpr fan::_vec4<fan::vec2> default_texture_coordinates = {
       vec2(0, 0),
       vec2(1, 0),
@@ -231,16 +231,14 @@ namespace fan {
         return tc;
       }
 
-      void get_pixel_data(fan::opengl::context_t* context, void* data) const {
-
-        data = malloc(size.multiply() * 4);
+      void get_pixel_data(fan::opengl::context_t* context, void* data, fan::opengl::GLenum format) {
+        bind_texture(context);
 
         context->opengl.call(
           context->opengl.glGetTexImage, 
           fan::opengl::GL_TEXTURE_2D,
           0,
-          fan::opengl::GL_RGBA,
-          size.multiply() * 4,
+          format,
           fan::opengl::GL_UNSIGNED_BYTE,
           data
         );

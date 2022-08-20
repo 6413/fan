@@ -453,7 +453,7 @@ namespace fan {
       PFNGLGENTEXTURESPROC glGenTextures;
       PFNGLDELETETEXTURESPROC glDeleteTextures;
       PFNGLBINDTEXTUREPROC glBindTexture;
-      PFNGLGETTEXTUREIMAGEPROC glGetTexImage;
+      PFNGLGETTEXIMAGEPROC glGetTexImage;
       PFNGLTEXIMAGE2DPROC glTexImage2D;
       PFNGLTEXPARAMETERIPROC glTexParameteri;
       PFNGLACTIVETEXTUREPROC glActiveTexture;

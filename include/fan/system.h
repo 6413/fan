@@ -4,11 +4,20 @@
 #include _FAN_PATH(window/window_input.h)
 
 #include _FAN_PATH(types/vector.h)
+#include _FAN_PATH(types/memory.h)
 
 #include <assert.h>
 #include <any>
 
-#ifdef fan_platform_unix
+#if defined(fan_platform_windows)
+  #include <DXGI.h>
+  #include <DXGI1_2.h>
+  #include <D3D11.h>
+
+  #pragma comment(lib, "Dxgi.lib")
+  #pragma comment(lib, "D3D11.lib")
+
+#elif defined(fan_platform_unix)
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
@@ -445,6 +454,227 @@ namespace fan {
 
 #endif
 
-  }
+    //sint32_t MD_SCR_Get_Resolution(MD_SCR_Resolution_t *Resolution){
+    //  RECT desktop;
+    //  const HWND hDesktop = GetDesktopWindow();
+    //  GetWindowRect(hDesktop, &desktop);
+    //  Resolution->x = desktop.right;
+    //  Resolution->y = desktop.bottom;
+    //  return 0;
+    //}
 
+    typedef struct{
+      IDXGIOutputDuplication *duplication;
+      ID3D11Texture2D *texture;
+      ID3D11Device *device;
+      ID3D11DeviceContext *context;
+      D3D11_TEXTURE2D_DESC tex_desc;
+
+      //MD_SCR_Geometry_t Geometry;
+    }MD_SCR_t;
+    static sint32_t MD_SCR_open(MD_SCR_t *scr){
+      scr->duplication = 0;
+      scr->texture = 0;
+      scr->device = 0;
+      scr->context = 0;
+
+      IDXGIFactory1 *factory = 0;
+
+      if(CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void **)(&factory)) != S_OK){
+        return 1;
+      }
+
+      IDXGIAdapter1 *adapter = 0;
+
+      fan::hector_t<IDXGIAdapter1*> adapters;
+      adapters.open();
+
+      IDXGIOutput *output = 0;
+      fan::hector_t<IDXGIOutput*> outputs;
+      outputs.open();
+
+      while(factory->EnumAdapters1(adapters.size(), &adapter) != DXGI_ERROR_NOT_FOUND){
+        DXGI_ADAPTER_DESC1 desc;
+        if(adapter->GetDesc1(&desc) != S_OK){
+          continue;
+        }
+        adapters.push_back(adapter);
+        while(adapter->EnumOutputs(outputs.size(), &output) != DXGI_ERROR_NOT_FOUND){
+          DXGI_OUTPUT_DESC desc;
+          if(output->GetDesc(&desc) != S_OK){
+            continue;
+          }
+          outputs.push_back(output);
+        }
+      }
+
+      if(!outputs.size()){
+        adapters.close();
+        outputs.close();
+        return 1;
+      }
+      if(!adapters.size()){
+        adapters.close();
+        outputs.close();
+        return 1;
+      }
+
+      D3D_FEATURE_LEVEL feature_level;
+
+      auto result = D3D11CreateDevice(*((IDXGIAdapter1 **)adapters.ptr),
+        D3D_DRIVER_TYPE_UNKNOWN,
+        NULL,
+        NULL,
+        NULL,
+        0,
+        D3D11_SDK_VERSION,
+        &scr->device,
+        &feature_level,
+        &scr->context
+      );
+
+      if(result != S_OK){
+        adapters.close();
+        outputs.close();
+        return 1;
+      }
+
+      output = *((IDXGIOutput **)outputs.ptr);
+      IDXGIOutput1* output1 = 0;
+
+      if(output->QueryInterface(__uuidof(IDXGIOutput1), (void**)&output1) != S_OK){
+        adapters.close();
+        outputs.close();
+        return 1;
+      }
+
+      output1->DuplicateOutput(scr->device, &scr->duplication);
+
+      if(!scr->duplication){
+        adapters.close();
+        outputs.close();
+        return 1;
+      }
+
+      DXGI_OUTPUT_DESC output_desc;
+      if(output->GetDesc(&output_desc) != S_OK){
+        adapters.close();
+        outputs.close();
+        return 1;
+      }
+
+      if(!output_desc.DesktopCoordinates.right || !output_desc.DesktopCoordinates.bottom){
+        adapters.close();
+        outputs.close();
+        return 1;
+      }
+
+      scr->tex_desc.Width = output_desc.DesktopCoordinates.right;
+      scr->tex_desc.Height = output_desc.DesktopCoordinates.bottom;
+      scr->tex_desc.MipLevels = 1;
+      scr->tex_desc.ArraySize = 1;
+      scr->tex_desc.Format = DXGI_FORMAT_AYUV ;
+      scr->tex_desc.SampleDesc.Count = 1;
+      scr->tex_desc.SampleDesc.Quality = 0;
+      scr->tex_desc.Usage = D3D11_USAGE_STAGING;
+      scr->tex_desc.BindFlags = 0;
+      scr->tex_desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+      scr->tex_desc.MiscFlags = 0;
+
+      //scr->Geometry.Resolution.x = scr->tex_desc.Width;
+      //scr->Geometry.Resolution.y = scr->tex_desc.Height;
+
+      result = scr->device->CreateTexture2D(&scr->tex_desc, NULL, &scr->texture);
+
+      if(result != S_OK){
+        adapters.close();
+        outputs.close();
+        return 1;
+      }
+
+      for(uintptr_t i = 0; i < adapters.size(); i++){
+        IDXGIAdapter1 *ca = ((IDXGIAdapter1 **)adapters.ptr)[i];
+        if(!ca){
+          continue;
+        }
+        ca->Release();
+        ca = 0;
+      }
+
+      adapters.close();
+
+      for(uintptr_t i = 0; i < outputs.size(); i++){
+        IDXGIOutput *co = ((IDXGIOutput **)outputs.ptr)[i];
+        if(!co){
+          continue;
+        }
+        co->Release();
+        co = 0;
+      }
+      outputs.close();
+
+      if(output1){
+        output1->Release();
+        output1 = 0;
+      }
+
+      if(factory){
+        factory->Release();
+        factory = 0;
+      }
+
+      return 0;
+    }
+    static void MD_SCR_close(MD_SCR_t *scr){
+      scr->context->Release();
+      scr->device->Release();
+      scr->texture->Release();
+      scr->duplication->Release();
+    }
+
+    static uint8_t *MD_SCR_read(MD_SCR_t *scr){
+      DXGI_OUTDUPL_DESC duplication_desc;
+      scr->duplication->GetDesc(&duplication_desc);
+
+      DXGI_OUTDUPL_FRAME_INFO frame_info;
+      IDXGIResource *desktop_resource = NULL;
+      ID3D11Texture2D *tex = NULL;
+      DXGI_MAPPED_RECT mapped_rect;
+
+      auto result = scr->duplication->AcquireNextFrame(0, &frame_info, &desktop_resource);
+      if(result != S_OK){
+        return 0;
+      }
+      if(desktop_resource->QueryInterface(__uuidof(ID3D11Texture2D), (void **)&tex) != S_OK){
+        return 0;
+      }
+
+      scr->context->CopyResource(scr->texture, tex);
+
+      D3D11_MAPPED_SUBRESOURCE map;
+      HRESULT map_result = scr->context->Map(scr->texture, 0, D3D11_MAP_READ, 0, &map);
+
+      //scr->Geometry.LineSize = map.RowPitch;
+
+      scr->context->Unmap(scr->texture, 0);
+
+      if(tex){
+        tex->Release();
+        tex = NULL;
+      }
+      if(desktop_resource){
+        desktop_resource->Release();
+        desktop_resource = NULL;
+      }
+      if(scr->duplication->ReleaseFrame() != S_OK){
+        return 0;
+      }
+
+      if(map_result != S_OK){
+        return 0;
+      }
+      return (uint8_t *)map.pData;
+    }
+
+  }
 }

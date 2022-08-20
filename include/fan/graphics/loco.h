@@ -26,7 +26,12 @@ struct loco_t;
 
 struct loco_t {
 
+  #define vfi_var_name vfi
   #include _FAN_PATH(graphics/gui/vfi.h)
+  using mouse_move_data_t = vfi_t::mouse_move_data_t;
+  using mouse_button_data_t = vfi_t::mouse_button_data_t;
+
+  vfi_t vfi_var_name;
 
   struct properties_t {
   #ifndef loco_window
@@ -102,33 +107,52 @@ struct loco_t {
   #endif
 
   #if defined(loco_line)
-  #include _FAN_PATH(graphics/opengl/2D/objects/line.h)
-  line_t line;
+    #define sb_shape_var_name line
+    #include _FAN_PATH(graphics/opengl/2D/objects/line.h)
+    line_t sb_shape_var_name;
+    #undef sb_shape_var_name
   #endif
   #if defined(loco_rectangle)
+    #define sb_shape_var_name rectangle
     #include _FAN_PATH(graphics/opengl/2D/objects/rectangle.h)
-    rectangle_t rectangle;
+    rectangle_t sb_shape_var_name;
+    #undef sb_shape_var_name
+  #endif
+  #if defined(loco_yuv420p)
+    #define sb_shape_var_name yuv420p
+    #define sb_sprite_name yuv420p_t
+    #include _FAN_PATH(graphics/opengl/2D/objects/yuv420p.h)
+    yuv420p_t sb_shape_var_name;
+    #undef sb_shape_var_name
   #endif
   #if defined(loco_sprite)
+    #define sb_shape_var_name sprite
     #define sb_sprite_name sprite_t
     #include _FAN_PATH(graphics/opengl/2D/objects/sprite.h)
-    sprite_t sprite;
+    sprite_t sb_shape_var_name;
+    #undef sb_shape_var_name
   #endif
   #if defined(loco_letter)
     #if !defined(loco_font)
       #define loco_font "fonts/bitter"
     #endif
+    #define sb_shape_var_name letter
     #include _FAN_PATH(graphics/opengl/2D/objects/letter_renderer.h)
-    letter_t letter;
+    letter_t sb_shape_var_name;
+    #undef sb_shape_var_name
   #endif
   #if defined(loco_text)
+    #define sb_shape_var_name text
     #include _FAN_PATH(graphics/opengl/2D/objects/text_renderer.h)
     using text_t = text_renderer_t;
-    text_t text;
+    text_t sb_shape_var_name;
+    #undef sb_shape_var_name
   #endif
   #if defined(loco_button)
+    #define sb_shape_var_name button
     #include _FAN_PATH(graphics/gui/rectangle_text_button.h)
-    button_t button;
+    button_t sb_shape_var_name;
+    #undef sb_shape_var_name
   #endif
   #if defined(loco_post_process)
     #define sb_shader_vertex_path _FAN_PATH(graphics/glsl/opengl/2D/effects/post_process.vs)
@@ -137,11 +161,6 @@ struct loco_t {
     #include _FAN_PATH(graphics/opengl/2D/effects/post_process.h)
     post_process_t post_process;
   #endif
-
-  using mouse_move_data_t = vfi_t::mouse_move_data_t;
-  using mouse_button_data_t = vfi_t::mouse_button_data_t;
-
-  vfi_t vfi;
 
   #if defined(loco_letter)
     fan_2d::graphics::font_t font;
@@ -155,7 +174,7 @@ struct loco_t {
 
   void open(const properties_t& p) {
 
-    vfi.open();
+    vfi_var_name.open();
 
     #ifdef loco_window
       window.open();
@@ -190,30 +209,33 @@ struct loco_t {
     #endif
 
     #if defined(loco_line)
-      line.open(this);
+      line.open();
     #endif
     #if defined(loco_rectangle)
-      rectangle.open(this);
+      rectangle.open();
+    #endif
+   #if defined(loco_yuv420p)
+      yuv420p.open();
     #endif
     #if defined(loco_sprite)
-      sprite.open(this);
+      sprite.open();
     #endif
     #if defined(loco_letter)
-      letter.open(this);
+      letter.open();
     #endif
     #if defined(loco_text)
-      text.open(this);
+      text.open();
     #endif
     #if defined(loco_button)
-      button.open(this);
+      button.open();
     #endif
     #if defined(loco_post_process)
       fan::opengl::core::renderbuffer_t::properties_t rp;
       rp.size = get_window()->get_size();
-      if (post_process.open(this, rp)) {
+      if (post_process.open(rp)) {
         fan::throw_error("failed to initialize frame buffer");
       }
-      post_process.start_capture(this);
+      post_process.start_capture();
     #endif
 
     m_write_queue.open();
@@ -225,25 +247,28 @@ struct loco_t {
     loco_bdbt_close(&bdbt);
 
     #if defined(loco_line)
-      line.close(this);
+      line.close();
     #endif
     #if defined(loco_rectangle)
-      rectangle.close(this);
+      rectangle.close();
+    #endif
+    #if defined(loco_yuv420p)
+      yuv420p.close();
     #endif
     #if defined(loco_sprite)
-      sprite.close(this);
+      sprite.close();
     #endif
     #if defined(loco_letter)
-      letter.close(this);
+      letter.close();
     #endif
     #if defined(loco_text)
-      text.close(this);
+      text.close();
     #endif
     #if defined(loco_button)
-      button.close(this);
+      button.close();
     #endif
     #if defined(loco_post_process)
-      post_process.close(this);
+      post_process.close();
     #endif
 
     m_write_queue.close();
@@ -291,24 +316,27 @@ struct loco_t {
 
     f();
     #if defined(loco_line)
-      line.draw(this);
+      line.draw();
     #endif
     #if defined(loco_rectangle)
-      rectangle.draw(this);
+      rectangle.draw();
+    #endif
+    #if defined(loco_yuv420p)
+      yuv420p.draw();
     #endif
     #if defined(loco_sprite)
       // can be moved
-      sprite.draw(this);
+      sprite.draw();
     #endif
     #if defined(loco_letter)
       // loco_t::text gets drawn here as well as it uses letter
-      letter.draw(this);
+      letter.draw();
     #endif
     #if defined(loco_button)
-      button.draw(this);
+      button.draw();
     #endif
     #if defined(loco_post_process)
-      post_process.draw(this);
+      post_process.draw();
     #endif
 
     #ifdef loco_window
@@ -348,10 +376,6 @@ struct loco_t {
     return x;
   }
 
-  struct shapes {
-    static constexpr uint32_t button = 0;
-  };
-
   fan::opengl::core::uniform_write_queue_t m_write_queue;
 
 protected:
@@ -367,5 +391,4 @@ protected:
   #else
     fan::opengl::context_t* context;
   #endif
-
 };
