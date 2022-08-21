@@ -176,7 +176,7 @@ namespace fan {
 
     struct viewport_t {
 
-      void open(fan::opengl::context_t* context, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size);
+      void open(fan::opengl::context_t* context);
       void close(fan::opengl::context_t* context);
 
       fan::vec2 get_viewport_position() const
@@ -254,16 +254,17 @@ namespace fan{
         m_view = fan::math::look_at_left<fan::mat4>(position, position + front, fan::camera::world_up);
       }
 
-      void set_ortho(const fan::vec2& x, const fan::vec2& y) {
+      void set_ortho(const fan::vec2& x, const fan::vec2& y, const fan::vec2& ratio_) {
+        ratio = ratio_;
+
         m_projection = fan::math::ortho<fan::mat4>(
-          x.x,
-          x.y,
-          y.y,
-          y.x,
+          x.x * ratio.x,
+          x.y * ratio.x,
+          y.y * ratio.y,
+          y.x * ratio.y,
           -1,
           0x10000
-          );
-
+        );
         coordinates.left = x.x;
         coordinates.right = x.y;
         coordinates.bottom = y.y;
@@ -289,16 +290,17 @@ namespace fan{
         struct {
           f32_t left;
           f32_t right;
-          f32_t bottom;
           f32_t top;
+          f32_t bottom;
         };
         fan::vec4 v;
       }coordinates;
+      fan::vec2 ratio;
 
       matrices_list_NodeReference_t matrices_reference;
     };
 
-    static void open_matrices(fan::opengl::context_t* context, matrices_t* matrices, fan::vec2 window_size, const fan::vec2& x, const fan::vec2& y);
+    static void open_matrices(fan::opengl::context_t* context, matrices_t* matrices, fan::vec2 window_size, const fan::vec2& x, const fan::vec2& y, const fan::vec2& ratio);
   }
 }
 
@@ -686,11 +688,10 @@ void fan_2d::graphics::gui::theme_t::close(fan::opengl::context_t* context){
   fan::opengl::theme_list_Recycle(&context->theme_list, theme_reference);
 }
 
-inline void fan::opengl::viewport_t::open(fan::opengl::context_t * context, const fan::vec2 & viewport_position_, const fan::vec2 & viewport_size_, const fan::vec2& window_size) {
+inline void fan::opengl::viewport_t::open(fan::opengl::context_t * context) {
   viewport_reference = viewport_list_NewNode(&context->viewport_list);
   auto node = viewport_list_GetNodeByReference(&context->viewport_list, viewport_reference);
   node->data.viewport_id = this;
-  set_viewport(context, viewport_position_, viewport_size_, window_size);
 }
 
 inline void fan::opengl::viewport_t::close(fan::opengl::context_t * context) {
@@ -720,9 +721,9 @@ void fan::opengl::matrices_t::close(fan::opengl::context_t* context) {
   matrices_list_Recycle(&context->matrices_list, matrices_reference);
 }
 
-void fan::opengl::open_matrices(fan::opengl::context_t* context, fan::opengl::matrices_t* matrices, fan::vec2 window_size, const fan::vec2& x, const fan::vec2& y) {
+void fan::opengl::open_matrices(fan::opengl::context_t* context, fan::opengl::matrices_t* matrices, fan::vec2 window_size, const fan::vec2& x, const fan::vec2& y, const fan::vec2& ratio) {
   matrices->open(context);
   //fan::vec2 ratio = window_size / window_size.max();
   //std::swap(ratio.x, ratio.y);
-  matrices->set_ortho(fan::vec2(x.x, x.y), fan::vec2(y.x, y.y));
+  matrices->set_ortho(fan::vec2(x.x, x.y), fan::vec2(y.x, y.y), ratio);
 }

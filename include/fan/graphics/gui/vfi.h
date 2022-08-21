@@ -8,6 +8,7 @@ struct vfi_t {
 
   void open() {
     focus.mouse.invalidate();
+    focus.method.mouse.flags.ignore_move_focus_check = false;
     focus.keyboard.invalidate();
     shape_list_open(&shape_list);
   }
@@ -179,8 +180,7 @@ struct vfi_t {
     shape_list_Unlink(&shape_list, id);
     shape_list_Recycle(&shape_list, id);
   }
-
-  template <typename T>
+    template <typename T>
   void set_always(shape_id_t id, auto T::*member, auto value) {
     auto n = shape_list_GetNodeByReference(&shape_list, id);
     n->data.shape_data.shape.always.*member = value;
@@ -195,27 +195,20 @@ struct vfi_t {
       
     fan::vec2 viewport_position = viewport->get_viewport_position(); 
     fan::vec2 viewport_size = viewport->get_viewport_size();
-   
-    fan::vec2 tp;
+
+    ////fan::vec2 ratio = viewport_size / viewport_size.max();
 
     f32_t l = matrices->coordinates.left;
     f32_t r = matrices->coordinates.right;
     f32_t t = matrices->coordinates.top;
     f32_t b = matrices->coordinates.bottom;
 
-    f32_t viewport_src_x = viewport_position.x;
-    f32_t viewport_dst_x = viewport_position.x + viewport_size.x;
-
-    tp.x = (p.x - viewport_position.x - viewport_size.x / (r - l)) / (viewport_size.x / (r - l));
-    tp.y = (p.y - viewport_position.y - viewport_size.y / (b - t)) / (viewport_size.y / (b - t));
-
-    /*tp.x = l + abs(mouse_position.x - viewport_position.x) / viewport_size.x * (r-l);
-    tp.y = t + abs(mouse_position.y - viewport_position.y) / viewport_size.y * (b - t);*/
-
-    if (viewport->viewport_reference.NRI == 2) {
-      fan::print(tp);
-    }
-
+    fan::vec2 tp = p - viewport_position;
+    fan::vec2 d = viewport_size ;
+    tp /= d;
+    tp -= fan::vec2(r, b) / 2;
+    tp *= 2;
+    tp *= matrices->ratio;
     return tp;
   }
 

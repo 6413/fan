@@ -159,9 +159,11 @@ struct text_renderer_t {
     loco_t* loco = get_loco();
     fan::vec2 text_size;
     f32_t left;
-    if constexpr (std::is_same<T, fan::vec3>::value)
+    if constexpr (std::is_same<T, fan::vec3>::value) {
       text_size = get_text_size(id);
       left = ((f32_t*)&value)[0] - text_size.x / 2;
+    }
+      
     for (uint32_t i = 0; i < letter_ids[id].size(); i++) {
       auto p = loco->letter.get_properties(&letter_ids[id][i]);
       loco->letter.erase(&letter_ids[id][i]);
@@ -170,7 +172,7 @@ struct text_renderer_t {
       if (fan::ofof(member) == fan::ofof(&loco_t::letter_t::instance_t::position)) {
         auto letter_info = loco->font.info.get_letter_info(p.letter_id, p.font_size);
         p.position = fan::vec2(left - letter_info.metrics.offset.x, ((f32_t*)&value)[1]) + (fan::vec2(letter_info.metrics.size.x, p.font_size - letter_info.metrics.size.y) / 2 + fan::vec2(letter_info.metrics.offset.x, -letter_info.metrics.offset.y));
-        p.position.z += 0.001;
+        p.position.z = value.z;
         loco->letter.push_back(&letter_ids[id][i], p);
         left += letter_info.metrics.advance;
       }
