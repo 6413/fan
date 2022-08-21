@@ -40,6 +40,8 @@ struct button_t {
     loco_t::vfi_t::mouse_button_cb_t mouse_button_cb = [](const loco_t::vfi_t::mouse_button_data_t&) -> void { return; };
     loco_t::vfi_t::mouse_move_cb_t mouse_move_cb = [](const loco_t::vfi_t::mouse_move_data_t&) -> void { return; };
 
+    loco_t::vfi_t::iflags_t vfi_flags;
+
     uint64_t userptr;
     bool disable_highlight = false;
 
@@ -77,6 +79,7 @@ struct button_t {
     vfip.shape.rectangle.position = p.position;
     vfip.shape.rectangle.size = p.size;
     vfip.udata = (uint64_t)cid;
+    vfip.flags = p.vfi_flags;
     if (!p.disable_highlight) {
       vfip.mouse_move_cb = [](const loco_t::mouse_move_data_t& mm_d) -> void {
         loco_t* loco = OFFSETLESS(mm_d.vfi, loco_t, vfi_var_name);
@@ -242,6 +245,7 @@ struct button_t {
     loco_t* loco = get_loco();
     auto data = loco->vfi.get_mouse_move_focus_data();
     fan::opengl::cid_t* cid = (fan::opengl::cid_t*)data.udata;
+    fan::print(cid->block_id);
     auto block = sb_get_block(cid);
     data.udata = block->p[cid->instance_id].userptr;
     return data;

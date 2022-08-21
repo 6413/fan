@@ -49,11 +49,13 @@ struct fgm_t {
     return (value + 1) / 2 * window_size;
   }
   fan::vec2 position_to_coordinates(const fan::vec2& value) {
+
     loco_t* loco = get_loco();
     fan::vec2 window_size = loco->get_window()->get_size();
+    
     fan::vec2 ret = value / window_size;
-    ret *= 2;
-    return ret - 1;
+    ret -= 2.0 / 2;
+    return fan::vec2(0.5, ret.y);
   }
   static fan::vec2 scale_object_with_viewport(const fan::vec2& size, fan::opengl::viewport_t* from, fan::opengl::viewport_t* to) {
     fan::vec2 f = from->get_viewport_size();
@@ -61,12 +63,15 @@ struct fgm_t {
     return size / (t / f);
   }
 
+  bool is_selected(pile_t* pile) {
+    return !pile->loco.vfi.focus.method.mouse.active_button_id.is_invalid();
+  }
+
   void open() {
     loco_t* loco = get_loco();
 
     line_y_offset_between_types_and_properties = 0.2;
 
-    selected = 0;
     move_offset = 0;
     action_flag = 0;
     theme = fan_2d::graphics::gui::themes::deep_red();
@@ -74,7 +79,7 @@ struct fgm_t {
 
     loco->get_window()->add_keys_callback(loco, [](fan::window_t*, uint16_t key, fan::key_state key_state, void* userptr) {
       pile_t* pile = OFFSETLESS(userptr, pile_t, loco);
-      if (pile->fgm.selected == nullptr) {
+      if (!pile->fgm.is_selected(pile)) {
         return;
       }
       switch(key) {
@@ -86,6 +91,8 @@ struct fgm_t {
               switch (instance->shape) {
                 case shapes::button: {
                   pile->fgm.builder_button.erase(&instance->cid);
+                  pile->fgm.active.clear();
+                  pile->loco.vfi.invalidate_focus();
                   break;
                 }
               }
@@ -95,15 +102,15 @@ struct fgm_t {
           break;
         }
         case fan::key_up: {
-          //auto focused = pile->loco.vfi.get_mouse_move_focus_data();
-          instance_t* instance = (instance_t*)pile->fgm.selected;
-          switch (instance->shape) {
-          case shapes::button: {
-            instance->z++;
-            break;
-          }
-          }
-          break;
+          ////auto focused = pile->loco.vfi.get_mouse_move_focus_data();
+          //instance_t* instance = (instance_t*)pile->fgm.selected;
+          //switch (instance->shape) {
+          //case shapes::button: {
+          //  instance->z++;
+          //  break;
+          //}
+          //}
+          //break;
         }
       }
     });
@@ -171,6 +178,30 @@ struct fgm_t {
         coordinate_system.y,
         ratio
       );
+
+      fan::vec2 src = fan::vec2(coordinate_system[0][0], coordinate_system[1][0]);
+      fan::print(pile->fgm.viewport[viewport_area::types].viewport_position.x, pile->fgm.position_to_coordinates(pile->fgm.viewport[viewport_area::types].viewport_position).x);
+      fan::vec2 dst = fan::vec2(pile->fgm.position_to_coordinates(pile->fgm.viewport[viewport_area::types].viewport_position).x, coordinate_system[1][0]);
+
+      pile->loco.line.set_line(
+        &pile->fgm.line.instance[0]->cid, 
+        src,
+        dst
+      );
+      src = dst;
+      dst.y += coordinate_system[0][1] - coordinate_system[0][0];
+      pile->loco.line.set_line(
+        &pile->fgm.line.instance[1]->cid,
+        src,
+        dst
+      );
+      src = fan::vec2(coordinate_system[0][0], coordinate_system[0][1]);
+      src = fan::vec2(coordinate_system[1][1], coordinate_system[1][1]);
+      pile->loco.line.set_line(
+        &pile->fgm.line.instance[2]->cid,
+        src,
+        dst
+      );
     };
 
     loco->get_window()->add_resize_callback(this, [](fan::window_t* window, const fan::vec2i& ws, void* userptr) {
@@ -190,14 +221,13 @@ struct fgm_t {
     viewport[viewport_area::types].open(loco->get_context());
     viewport[viewport_area::properties].open(loco->get_context());
 
-    resize_cb(loco->get_window(), this);
-
     loco_t::vfi_t::properties_t p;
     p.shape_type = loco_t::vfi_t::shape_t::always;
     p.shape.always.z = 0;
     p.mouse_button_cb = [](const loco_t::mouse_button_data_t& mb) {
       pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco);
       pile->fgm.active.clear();
+      pile->loco.vfi.invalidate_focus();
     };
     loco->vfi.push_shape(p);
 
@@ -210,18 +240,15 @@ struct fgm_t {
     line_t::properties_t lp;
     lp.viewport = &viewport[viewport_area::global];
     lp.matrices = &matrices[viewport_area::global];
-    lp.src = fan::vec2(-1.0 , -1.0);
-    lp.dst = fan::vec2(position_to_coordinates(viewport[viewport_area::types].viewport_position).x, -1.0);
     lp.color = fan::colors::white;
+    // update these in resize
     line.push_back(lp);
-    lp.src = lp.dst;
-    lp.dst.y += +2.0;
     line.push_back(lp);
-    lp.src = fan::vec2(-1, 1);
-    lp.dst = fan::vec2(1, 1);
     lp.viewport = &viewport[viewport_area::global];
     line.push_back(lp);
 
+    resize_cb(loco->get_window(), this);
+    
     editor_button_t::properties_t ebp;
     ebp.matrices = &matrices[viewport_area::types];
     ebp.viewport = &viewport[viewport_area::types];
@@ -416,9 +443,8 @@ struct fgm_t {
         }
         pile->fgm.action_flag |= action::move;
         auto viewport = pile->loco.button.get_viewport(&instance->cid);
-        pile->fgm.move_offset =  fan::vec2(pile->loco.button.get_button(&instance->cid, &loco_t::button_t::instance_t::position)) - pile->loco.get_mouse_position(viewport->get_viewport_position(), viewport->get_viewport_size());
+        pile->fgm.move_offset =  fan::vec2(pile->loco.button.get_button(&instance->cid, &loco_t::button_t::instance_t::position)) - ii_d.position;
         pile->fgm.active.move_corners(pile->fgm.builder_button.get_corners(&instance->cid));
-        pile->fgm.selected = instance;
         return;
       };
       p.mouse_move_cb = [](const loco_t::mouse_move_data_t& ii_d) -> void {
@@ -447,6 +473,7 @@ struct fgm_t {
     void erase(fan::opengl::cid_t* cid) {
       loco_t* loco = get_loco();
       loco->button.erase(cid);
+      release();
     }
 
     //bool sanitize_cid(fan::opengl::cid_t* cid) {
@@ -485,6 +512,7 @@ struct fgm_t {
       uint32_t i = instance.resize(instance.size() + 1);
       instance[i] = new instance_t;
       instance[i]->shape = shapes::button;
+      p.vfi_flags.ignore_button = true;
       loco->button.push_back(&instance[i]->cid, p);
     }
     void push_corners(const corners_t& corners) {
@@ -620,5 +648,4 @@ struct fgm_t {
   uint32_t action_flag;
 
   fan::vec2 move_offset;
-  fgm_t::instance_t* selected;
 };
