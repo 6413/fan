@@ -355,6 +355,8 @@ namespace fan {
 		_vec3() = default;
 		constexpr _vec3(_Ty x, _Ty y, _Ty z) : x(x), y(y), z(z) {}
 		constexpr _vec3(_Ty value) : x(value), y(value), z(value) {}
+		template <typename T>
+		constexpr _vec3(const fan::_vec2<T>& v, auto value) : x(v.x), y(v.y), z(value) {}
 
 		template <typename type_t>
 		constexpr _vec3(const _vec3<type_t>& vec) : x(vec.x), y(vec.y), z(vec.z) {}
@@ -796,6 +798,12 @@ namespace fan {
 		constexpr _vec4<value_type> operator*(_Type single_value) const
 		{
 			return _vec4<_Type>(this->x * single_value, this->y * single_value, this->z * single_value, this->w * single_value);
+		}
+
+		template <typename _Type>
+		constexpr _vec4<value_type> operator*(const fan::_vec2<_Type>& v) const
+		{
+			return _vec4<_Type>(this->x * v.x, this->y * v.y, this->z * v.x, this->w * v.y);
 		}
 
 		template <typename _Type>

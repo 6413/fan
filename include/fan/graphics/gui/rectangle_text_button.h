@@ -62,7 +62,7 @@ struct button_t {
     tp.font_size = p.font_size;
     tp.position = p.position;
     tp.text = p.text;
-    tp.position.z += p.position.z + 10;
+    tp.position.z += p.position.z + 0.5;
     tp.viewport = p.viewport;
     tp.matrices = p.matrices;
     auto block = sb_push_back(cid, p);
@@ -77,46 +77,48 @@ struct button_t {
     vfip.shape.rectangle.position = p.position;
     vfip.shape.rectangle.size = p.size;
     vfip.udata = (uint64_t)cid;
-    vfip.mouse_move_cb = [] (const loco_t::mouse_move_data_t& mm_d) -> void {
-      loco_t* loco = OFFSETLESS(mm_d.vfi, loco_t, vfi_var_name);
-      loco_t::mouse_move_data_t mmd = mm_d;
-      fan::opengl::cid_t* cid = (fan::opengl::cid_t*)mm_d.udata;
-      auto block = loco->button.sb_get_block(cid);
-      if (mm_d.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside) {
-        loco->button.set_theme(cid, loco->button.get_theme(cid), hover);
-      }
-      else {
-        loco->button.set_theme(cid, loco->button.get_theme(cid), inactive);
-      }
-      mmd.udata = block->p[cid->instance_id].userptr;
-      block->p[cid->instance_id].mouse_move_cb(mmd);
-    };
-    vfip.mouse_button_cb = [](const loco_t::mouse_button_data_t& ii_d) -> void {
-      loco_t* loco = OFFSETLESS(ii_d.vfi, loco_t, vfi_var_name);
-      fan::opengl::cid_t* cid = (fan::opengl::cid_t*)ii_d.udata;
-      auto block = loco->button.sb_get_block(cid);
-      if (ii_d.flag->ignore_move_focus_check == false) {
-        if (ii_d.button == fan::mouse_left && ii_d.button_state == fan::key_state::press) {
-          loco->button.set_theme(cid, loco->button.get_theme(cid), press);
-          ii_d.flag->ignore_move_focus_check = true;
+    if (!p.disable_highlight) {
+      vfip.mouse_move_cb = [](const loco_t::mouse_move_data_t& mm_d) -> void {
+        loco_t* loco = OFFSETLESS(mm_d.vfi, loco_t, vfi_var_name);
+        loco_t::mouse_move_data_t mmd = mm_d;
+        fan::opengl::cid_t* cid = (fan::opengl::cid_t*)mm_d.udata;
+        auto block = loco->button.sb_get_block(cid);
+        if (mm_d.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside) {
+          loco->button.set_theme(cid, loco->button.get_theme(cid), hover);
         }
-      }
-      else {
-        if (ii_d.button == fan::mouse_left && ii_d.button_state == fan::key_state::release) {
-          if (ii_d.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside) {
-            loco->button.set_theme(cid, loco->button.get_theme(cid), hover);
-          }
-          else {
-            loco->button.set_theme(cid, loco->button.get_theme(cid), inactive);
-          }
-          ii_d.flag->ignore_move_focus_check = false;
+        else {
+          loco->button.set_theme(cid, loco->button.get_theme(cid), inactive);
         }
-      }
+        mmd.udata = block->p[cid->instance_id].userptr;
+        block->p[cid->instance_id].mouse_move_cb(mmd);
+      };
+      vfip.mouse_button_cb = [](const loco_t::mouse_button_data_t& ii_d) -> void {
+        loco_t* loco = OFFSETLESS(ii_d.vfi, loco_t, vfi_var_name);
+        fan::opengl::cid_t* cid = (fan::opengl::cid_t*)ii_d.udata;
+        auto block = loco->button.sb_get_block(cid);
+        if (ii_d.flag->ignore_move_focus_check == false) {
+          if (ii_d.button == fan::mouse_left && ii_d.button_state == fan::key_state::press) {
+            loco->button.set_theme(cid, loco->button.get_theme(cid), press);
+            ii_d.flag->ignore_move_focus_check = true;
+          }
+        }
+        else {
+          if (ii_d.button == fan::mouse_left && ii_d.button_state == fan::key_state::release) {
+            if (ii_d.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside) {
+              loco->button.set_theme(cid, loco->button.get_theme(cid), hover);
+            }
+            else {
+              loco->button.set_theme(cid, loco->button.get_theme(cid), inactive);
+            }
+            ii_d.flag->ignore_move_focus_check = false;
+          }
+        }
 
-      loco_t::mouse_button_data_t mid = ii_d;
-      mid.udata = block->p[cid->instance_id].userptr;
-      block->p[cid->instance_id].mouse_button_cb(mid);
-    };
+        loco_t::mouse_button_data_t mid = ii_d;
+        mid.udata = block->p[cid->instance_id].userptr;
+        block->p[cid->instance_id].mouse_button_cb(mid);
+      };
+    }
 
     block->p[cid->instance_id].vfi_id = loco->vfi.push_shape(vfip);
     block->p[cid->instance_id].mouse_button_cb = p.mouse_button_cb;
@@ -195,10 +197,10 @@ struct button_t {
     loco->text.set(block->p[cid->instance_id].text_id, member, value);
   }
 
-  void set_position(fan::opengl::cid_t* cid, const fan::vec2& position) {
+  void set_position(fan::opengl::cid_t* cid, const fan::vec3& position) {
     loco_t* loco = get_loco();
     auto block = sb_get_block(cid);
-    set_text(cid, &loco_t::letter_t::instance_t::position, position);
+    set_text(cid, &loco_t::letter_t::instance_t::position, position + fan::vec3(0, 0, 0.5));
     set_button(cid, &instance_t::position, position);
     loco->vfi.set_rectangle(
       block->p[cid->instance_id].vfi_id,
@@ -232,7 +234,16 @@ struct button_t {
   }
 
   void set_theme(fan::opengl::cid_t* cid, f32_t state) {
-    loco_t* loco = OFFSETLESS(this, loco_t, button);
+    loco_t* loco = get_loco();
     loco->button.set_theme(cid, loco->button.get_theme(cid), state);
+  }
+
+  auto get_mouse_move_focus_data() {
+    loco_t* loco = get_loco();
+    auto data = loco->vfi.get_mouse_move_focus_data();
+    fan::opengl::cid_t* cid = (fan::opengl::cid_t*)data.udata;
+    auto block = sb_get_block(cid);
+    data.udata = block->p[cid->instance_id].userptr;
+    return data;
   }
 };
