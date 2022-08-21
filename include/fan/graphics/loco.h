@@ -70,7 +70,8 @@ struct loco_t {
     node->data.viewport_id->set_viewport(
       get_context(),
       node->data.viewport_id->get_viewport_position(),
-      node->data.viewport_id->get_viewport_size()
+      node->data.viewport_id->get_viewport_size(),
+      get_window()->get_size()
     );
   }
 
