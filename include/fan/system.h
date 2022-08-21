@@ -573,7 +573,7 @@ namespace fan {
       scr->tex_desc.Height = output_desc.DesktopCoordinates.bottom;
       scr->tex_desc.MipLevels = 1;
       scr->tex_desc.ArraySize = 1;
-      scr->tex_desc.Format = DXGI_FORMAT_AYUV ;
+      scr->tex_desc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
       scr->tex_desc.SampleDesc.Count = 1;
       scr->tex_desc.SampleDesc.Quality = 0;
       scr->tex_desc.Usage = D3D11_USAGE_STAGING;

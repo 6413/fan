@@ -29,6 +29,8 @@ struct fgm_t {
 
   static constexpr fan::vec2 button_size = fan::vec2(0.5, 0.1);
 
+  f32_t line_y_offset_between_types_and_properties;
+
   loco_t* get_loco() {
     // ?
     return (loco_t*)((uint8_t*)OFFSETLESS(this, pile_t, fgm_var_name) + offsetof(pile_t, loco_var_name));
@@ -48,6 +50,8 @@ struct fgm_t {
 
   void open() {
     loco_t* loco = get_loco();
+
+    line_y_offset_between_types_and_properties = 0.2;
 
     selected = 0;
     move_offset = 0;
@@ -106,26 +110,30 @@ struct fgm_t {
     viewport[viewport_area::global].open(
       loco->get_context(), 
       0, 
-      translate_viewport_position(loco, fan::vec2(1, 1))
+      translate_viewport_position(loco, fan::vec2(1, 1)),
+      loco->get_window()->get_size()
     );
     viewport[viewport_area::editor].open(
       loco->get_context(), 
       0, 
-      translate_viewport_position(loco, editor_size)
+      translate_viewport_position(loco, editor_size),
+      loco->get_window()->get_size()
     );
     {
-      fan::vec2 top_viewport = translate_viewport_position(loco, fan::vec2(editor_size.x, 0));
-      fan::vec2 bottom_viewport = translate_viewport_position(loco, fan::vec2(-0.5, 0));
+      fan::vec2 top_viewport = translate_viewport_position(loco, fan::vec2(editor_size.x, -1));
+      fan::vec2 bottom_viewport = translate_viewport_position(loco, fan::vec2(1, line_y_offset_between_types_and_properties)) - top_viewport;
       viewport[viewport_area::types].open(
         loco->get_context(),
         top_viewport,
-        bottom_viewport
+        bottom_viewport,
+        loco->get_window()->get_size()
       );
-      top_viewport = translate_viewport_position(loco, fan::vec2(editor_size.x, -1));
+      top_viewport.y += translate_viewport_position(loco, fan::vec2(0, line_y_offset_between_types_and_properties)).y;
       viewport[viewport_area::properties].open(
         loco->get_context(),
         top_viewport,
-        bottom_viewport
+        bottom_viewport,
+        loco->get_window()->get_size()
       );
     }
 
@@ -162,7 +170,7 @@ struct fgm_t {
     editor_button_t::properties_t ebp;
     ebp.matrices = &matrices;
     ebp.viewport = &viewport[viewport_area::types];
-    ebp.position = fan::vec2(0, -0.8);
+    ebp.position = fan::vec2(0, 0);
     ebp.size = button_size;
     ebp.theme = &theme;
     ebp.text = "button";

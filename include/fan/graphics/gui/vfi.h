@@ -192,16 +192,31 @@ struct vfi_t {
   }
 
   fan::vec2 transform_position(const fan::vec2& p, fan::opengl::viewport_t* viewport, fan::opengl::matrices_t* matrices) {
+      
     fan::vec2 viewport_position = viewport->get_viewport_position(); 
     fan::vec2 viewport_size = viewport->get_viewport_size();
-    fan::vec2 x;
-    x.x = (p.x - viewport_position.x - viewport_size.x / 2) / (viewport_size.x / 2);
-    f32_t y = get_loco()->get_window()->get_size().y / 2 - p.y;
-    x.y = ( viewport_position.y - viewport_size.y / 2 - y) / (viewport_size.y / 2);
+   
+    fan::vec2 tp;
+
+    f32_t l = matrices->coordinates.left;
+    f32_t r = matrices->coordinates.right;
+    f32_t t = matrices->coordinates.top;
+    f32_t b = matrices->coordinates.bottom;
+
+    f32_t viewport_src_x = viewport_position.x;
+    f32_t viewport_dst_x = viewport_position.x + viewport_size.x;
+
+    tp.x = (p.x - viewport_position.x - viewport_size.x / (r - l)) / (viewport_size.x / (r - l));
+    tp.y = (p.y - viewport_position.y - viewport_size.y / (b - t)) / (viewport_size.y / (b - t));
+
+    /*tp.x = l + abs(mouse_position.x - viewport_position.x) / viewport_size.x * (r-l);
+    tp.y = t + abs(mouse_position.y - viewport_position.y) / viewport_size.y * (b - t);*/
+
     if (viewport->viewport_reference.NRI == 2) {
-      fan::print(x);
+      fan::print(tp);
     }
-    return x;
+
+    return tp;
   }
 
   mouse_stage_e inside(loco_t* loco, shape_type_t shape_type, common_shape_data_t* data, const fan::vec2& p) {
