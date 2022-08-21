@@ -51,4 +51,9 @@ struct line_t {
   void close() {
     sb_close();
   }
+
+  void set_line(fan::opengl::cid_t* cid, const fan::vec3& src, const fan::vec3& dst) {
+    set(cid, &instance_t::src, src);
+    set(cid, &instance_t::dst, dst);
+  }
 };

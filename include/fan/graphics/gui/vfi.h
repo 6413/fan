@@ -8,6 +8,7 @@ struct vfi_t {
 
   void open() {
     focus.mouse.invalidate();
+    focus.method.mouse.active_button_id.invalidate();
     focus.method.mouse.flags.ignore_move_focus_check = false;
     focus.keyboard.invalidate();
     shape_list_open(&shape_list);
@@ -49,12 +50,17 @@ struct vfi_t {
   };
 
   struct iflags_t {
+    iflags_t() : ignore_button(0) {
+
+    }
+    uint32_t ignore_button : 1;
     //static constexpr shape_type_t always_check_top_focus = 1 << 0;
   };
 
   typedef uint16_t shape_id_integer_t;
 
   struct focus_method_mouse_flag {
+    focus_method_mouse_flag() : ignore_move_focus_check(0) {}
     uint32_t ignore_move_focus_check : 1;
   };
 
@@ -73,6 +79,7 @@ struct vfi_t {
 
   struct mouse_button_data_t {
     vfi_t* vfi;
+    fan::vec2 position;
     uint16_t button;
     fan::key_state button_state;
     mouse_stage_e mouse_stage;
@@ -135,6 +142,7 @@ struct vfi_t {
 
     struct {
       struct {
+        shape_id_t active_button_id;
         fan::vec2 position;
         focus_method_mouse_flag flags;
       }mouse;
@@ -150,6 +158,7 @@ struct vfi_t {
 
   void set_mouse_focus(shape_id_t id) {
     focus.mouse = id;
+    focus.method.mouse.active_button_id = id;
   }
 
   shape_id_t push_shape(const properties_t& p) {
@@ -257,7 +266,12 @@ struct vfi_t {
     fan::vec2 position = loco->get_mouse_position();
     mouse_move_data_t mouse_move_data;
     mouse_move_data.vfi = this;
-    auto* data = &shape_list_GetNodeByReference(&shape_list, focus.mouse)->data;
+    #if fan_debug >= fan_debug_low
+      if (focus.method.mouse.active_button_id.is_invalid()) {
+        fan::throw_error("trying to get id even though none is selected");
+      }
+    #endif
+    auto* data = &shape_list_GetNodeByReference(&shape_list, focus.method.mouse.active_button_id)->data;
     fan::vec2 tp = transform(position, data->shape_type, &data->shape_data);
     focus.method.mouse.position = tp;
     mouse_move_data.mouse_stage = inside(loco, data->shape_type, &data->shape_data, tp);
@@ -284,8 +298,8 @@ struct vfi_t {
 
     mouse_move_data_t mouse_move_data;
     mouse_move_data.vfi = this;
-    mouse_move_data.flag = &focus.method.mouse.flags;
     if (!focus.mouse.is_invalid()) {
+      mouse_move_data.flag = &focus.method.mouse.flags;
       auto* data = &shape_list_GetNodeByReference(&shape_list, focus.mouse)->data;
       fan::vec2 tp = transform(position, data->shape_type, &data->shape_data);
       focus.method.mouse.position = tp;
@@ -349,17 +363,27 @@ struct vfi_t {
     mouse_button_data.button = button;
     mouse_button_data.button_state = state;
 
-    uint32_t d = 0;
     auto* data = &shape_list_GetNodeByReference(&shape_list, focus.mouse)->data;
-    mouse_button_data.mouse_stage = inside(loco, data->shape_type, &data->shape_data, focus.method.mouse.position);
+
+    mouse_button_data.position = focus.method.mouse.position;
+    mouse_button_data.mouse_stage = inside(loco, data->shape_type, &data->shape_data, mouse_button_data.position);
     mouse_button_data.flag = &focus.method.mouse.flags;
     mouse_button_data.udata = data->udata;
     shape_id_t bcbfm = focus.mouse;
+
+    if (mouse_button_data.mouse_stage == mouse_stage_e::inside && state == fan::key_state::press && data->shape_type != shape_t::always && !data->flags.ignore_button) {
+      focus.method.mouse.active_button_id = focus.mouse;
+    }
+
     data->shape_data.mouse_button_cb(mouse_button_data);
 
     if (bcbfm != focus.mouse) {
+      if (focus.mouse.is_invalid()) {
+        return;
+      }
       data = &shape_list_GetNodeByReference(&shape_list, focus.mouse)->data;
-      mouse_button_data.mouse_stage = inside(loco, data->shape_type, &data->shape_data, focus.method.mouse.position);
+      mouse_button_data.position = focus.method.mouse.position;
+      mouse_button_data.mouse_stage = inside(loco, data->shape_type, &data->shape_data, mouse_button_data.position);
     }
 
     if (mouse_button_data.mouse_stage == mouse_stage_e::outside) {
@@ -368,5 +392,11 @@ struct vfi_t {
         feed_mouse_move(loco, focus.method.mouse.position);
       }
     }
+  }
+
+  void invalidate_focus() {
+    focus.mouse.invalidate();
+    focus.method.mouse.active_button_id.invalidate();
+    focus.method.mouse.flags.ignore_move_focus_check = false;
   }
 };
