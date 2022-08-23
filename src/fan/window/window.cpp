@@ -1985,16 +1985,16 @@ uint32_t fan::window_t::handle_events() {
           }
           else {
 
-            auto utf8_str = fan::utf16_to_utf8((wchar_t*)str.data());
+            //auto utf8_str = fan::utf16_to_utf8((wchar_t*)str.data());
 
-            auto it = window->m_text_callback.begin();
+            //auto it = window->m_text_callback.begin();
 
-            while (it != window->m_text_callback.end()) {
+            //while (it != window->m_text_callback.end()) {
 
-              window->m_text_callback[it].first(window, utf8_str.get_character(0), window->m_text_callback[it].second);
+            //  window->m_text_callback[it].first(window, utf8_str.get_character(0), window->m_text_callback[it].second);
 
-              it = window->m_text_callback.next(it);
-            }
+            //  it = window->m_text_callback.next(it);
+            //}
           }
         }
 

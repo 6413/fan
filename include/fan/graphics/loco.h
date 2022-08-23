@@ -238,7 +238,6 @@ struct loco_t {
       if (post_process.open(rp)) {
         fan::throw_error("failed to initialize frame buffer");
       }
-      post_process.start_capture();
     #endif
 
     m_write_queue.open();

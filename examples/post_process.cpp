@@ -82,7 +82,8 @@ int main() {
   pile->loco.post_process.push(&pile->viewport, &pile->matrices);
 
   pile->loco.set_vsync(false);
-  uint32_t x = 0;
+
+  pile->loco.post_process.start_capture(0);
 
   pile->loco.loop([&] {
     pile->loco.get_fps();
