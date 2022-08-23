@@ -245,7 +245,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="examples\gui_maker_export.cpp" />
+    <ClCompile Include="examples\post_process.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
     <ClCompile Include="src\fan\window\window_input.cpp" />
   </ItemGroup>
@@ -367,7 +367,6 @@
     <ClInclude Include="include\fan\physics\collision\rectangle.h" />
     <ClInclude Include="include\fan\physics\collision\triangle.h" />
     <ClInclude Include="include\fan\physics\physics.h" />
-    <ClInclude Include="include\fan\physics\raycast\rectangle.h" />
     <ClInclude Include="include\fan\physics\static_joint.h" />
     <ClInclude Include="include\fan\system.h" />
     <ClInclude Include="include\fan\time\time.h" />
@@ -381,7 +380,6 @@
     <ClInclude Include="include\fan\types\types.h" />
     <ClInclude Include="include\fan\types\utf_string.h" />
     <ClInclude Include="include\fan\types\vector.h" />
-    <ClInclude Include="include\fan\utf_string.h" />
     <ClInclude Include="include\fan\vulkan.h" />
     <ClInclude Include="include\fan\window\window.h" />
     <ClInclude Include="include\fan\window\window_input.h" />

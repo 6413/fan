@@ -2,8 +2,6 @@
 
 #include _FAN_PATH(physics/collision/triangle.h)
 
-#include _FAN_PATH(physics/raycast/rectangle.h)
-
 namespace fan_2d {
 
 	namespace collision {

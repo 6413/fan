@@ -1,18 +1,12 @@
-#include <fan/types/masterpiece.h>
-#include <fan/types/types.h>
-
-struct s_t {
-  #define something x
-  using type = int;
-  type x;
-  void F() {
-    OFFSETLESS(0, s_t, something);
-  }
-  #undef something
-};
-
-
+#include <exception>
+#include <iostream>
 
 int main() {
-  
+  try {
+    int x;
+    throw std::runtime_error("a");
+  }
+  catch (...) {
+
+  }
 }

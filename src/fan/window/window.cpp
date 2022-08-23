@@ -1512,7 +1512,7 @@ uint32_t fan::window_t::handle_events() {
       case WM_CHAR:
       {
 
-        auto window = fan::get_window_by_id(msg.hwnd);
+      /*  auto window = fan::get_window_by_id(msg.hwnd);
 
         if (!window) {
           break;
@@ -1566,7 +1566,7 @@ uint32_t fan::window_t::handle_events() {
 
         }
 
-        break;
+        break;*/
       }
       case WM_LBUTTONDOWN:
       {
