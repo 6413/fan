@@ -1,7 +1,8 @@
 struct post_process_t {
 
   loco_t* get_loco() {
-    return sprite.get_loco();
+    loco_t* loco = OFFSETLESS(this, loco_t, sb_post_process_var_name);
+    return loco;
   }
 
   bool open(const fan::opengl::core::renderbuffer_t::properties_t& p) {
@@ -14,10 +15,10 @@ struct post_process_t {
     image_info.data = 0;
     image_info.size = p.size;
     fan::opengl::image_t::load_properties_t lp;
-    lp.format = fan::opengl::GL_RGB;
-    lp.internal_format = fan::opengl::GL_RGB;
+    lp.format = fan::opengl::GL_RGBA;
+    lp.internal_format = fan::opengl::GL_RGBA;
     lp.filter = fan::opengl::GL_LINEAR;
-    texture_colorbuffer.load(loco->get_context(), image_info);
+    texture_colorbuffer.load(loco->get_context(), image_info, lp);
 
     framebuffer.bind_to_texture(loco->get_context(), *texture_colorbuffer.get_texture(loco->get_context()));
 
@@ -47,7 +48,7 @@ struct post_process_t {
     sp.matrices = matrices;
     sp.position = 0;
     sp.image = &texture_colorbuffer;
-    sp.size = 1;
+    sp.size = 10;
     sprite.push_back(&cid, sp);
   }
 
@@ -63,6 +64,9 @@ struct post_process_t {
     post->framebuffer.bind(loco->get_context());
     loco->get_context()->opengl.call(loco->get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
     loco->get_context()->set_depth_test(true);
+  }
+  void end_capture() {
+
   }
 
   void draw() {
@@ -81,7 +85,14 @@ struct post_process_t {
 
   uint32_t draw_nodereference;
 
+  #define temp_shape_var_name sb_shape_var_name
   #define sb_shape_var_name sprite
+  #define sb_get_loco \
+    loco_t* get_loco() { \
+      loco_t* loco = OFFSETLESS(OFFSETLESS(this, post_process_t, sb_shape_var_name), loco_t, sb_post_process_var_name); \
+      return loco; \
+    }
   #include _FAN_PATH(graphics/opengl/2D/objects/sprite.h)
   post_sprite_t sb_shape_var_name;
+  #undef sb_offsetless
 };

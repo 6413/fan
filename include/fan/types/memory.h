@@ -3,6 +3,7 @@
 #include _FAN_PATH(types/types.h)
 #include _FAN_PATH(io/file.h)
 #include <memory>
+#include <cstring>
 
 namespace fan {
 
