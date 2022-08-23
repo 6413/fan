@@ -320,10 +320,10 @@ namespace fan {
     return ((::size_t) & reinterpret_cast<char const volatile&>((((T*)0)->*member)));
   }
 
-  template <typename T, typename U>
-  constexpr auto offsetless(void* ptr, U T::* member) {
-    return (T*)((uint8_t*)(ptr)-((char*)&((T*)nullptr->*member) - (char*)nullptr));
-  }
+  //template <typename T, typename U>
+  //constexpr auto offsetless(void* ptr, U T::* member) {
+  //  return (T*)((uint8_t*)(ptr)-((char*)&((T*)nullptr->*member) - (char*)nullptr));
+  //}
 
   template <typename T>
   std::string combine_values(T t) {

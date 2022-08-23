@@ -63,10 +63,6 @@ struct fgm_t {
     return size / (t / f);
   }
 
-  bool is_selected(pile_t* pile) {
-    return !pile->loco.vfi.focus.method.mouse.active_button_id.is_invalid();
-  }
-
   void open() {
     loco_t* loco = get_loco();
 
@@ -78,41 +74,41 @@ struct fgm_t {
     theme.open(loco->get_context());
 
     loco->get_window()->add_keys_callback(loco, [](fan::window_t*, uint16_t key, fan::key_state key_state, void* userptr) {
-      pile_t* pile = OFFSETLESS(userptr, pile_t, loco);
-      if (!pile->fgm.is_selected(pile)) {
-        return;
-      }
-      switch(key) {
-        case fan::key_delete: {
-          switch(key_state) {
-            case fan::key_state::press: {
-              auto focused = pile->loco.button.get_mouse_move_focus_data();
-              instance_t* instance = (instance_t*)focused.udata;
-              switch (instance->shape) {
-                case shapes::button: {
-                  pile->fgm.builder_button.erase(&instance->cid);
-                  pile->fgm.active.clear();
-                  pile->loco.vfi.invalidate_focus();
-                  break;
-                }
-              }
-              break;
-            }
-          }
-          break;
-        }
-        case fan::key_up: {
-          ////auto focused = pile->loco.vfi.get_mouse_move_focus_data();
-          //instance_t* instance = (instance_t*)pile->fgm.selected;
-          //switch (instance->shape) {
-          //case shapes::button: {
-          //  instance->z++;
-          //  break;
-          //}
-          //}
-          //break;
-        }
-      }
+      //pile_t* pile = OFFSETLESS(userptr, pile_t, loco);
+      //if (!pile->fgm.is_selected(pile)) {
+      //  return;
+      //}
+      //switch(key) {
+      //  case fan::key_delete: {
+      //    switch(key_state) {
+      //      case fan::key_state::press: {
+      //        auto focused = pile->loco.button.get_mouse_move_focus_data();
+      //        instance_t* instance = (instance_t*)focused.udata;
+      //        switch (instance->shape) {
+      //          case shapes::button: {
+      //            pile->fgm.builder_button.erase(&instance->cid);
+      //            pile->fgm.active.clear();
+      //            pile->loco.vfi.invalidate_focus();
+      //            break;
+      //          }
+      //        }
+      //        break;
+      //      }
+      //    }
+      //    break;
+      //  }
+      //  case fan::key_up: {
+      //    ////auto focused = pile->loco.vfi.get_mouse_move_focus_data();
+      //    //instance_t* instance = (instance_t*)pile->fgm.selected;
+      //    //switch (instance->shape) {
+      //    //case shapes::button: {
+      //    //  instance->z++;
+      //    //  break;
+      //    //}
+      //    //}
+      //    //break;
+      //  }
+      //}
     });
 
     static auto resize_cb = [] (fan::window_t* window, void* userptr) {
@@ -522,7 +518,7 @@ struct fgm_t {
       pile_t* pile = get_pile();
       active_rectangles_t::properties_t p;
       p.size = r_size;
-      auto data = pile->loco.button.get_mouse_move_focus_data();
+      auto data = pile->loco.button.get_mouse_udata();
       instance_t* instance = (instance_t*)data.udata;
       switch(instance->shape) {
         case shapes::button: {

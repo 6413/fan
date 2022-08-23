@@ -54,7 +54,7 @@ namespace fan {
 				return found->second;
 			}
 
-			uint16_t get_font_index(fan::character_t character) const {
+		/*	uint16_t get_font_index(fan::character_t character) const {
 				auto found = characters.find(character.c);
 			#if fan_debug >= fan_debug_low
 				if (found == characters.end()) {
@@ -62,7 +62,7 @@ namespace fan {
 				}
 			#endif
 				return std::distance(characters.begin(), found);
-			}
+			}*/
 			characters_t::const_iterator get_font_instance(uint16_t font_index) const {
 				fan::font::characters_t::const_iterator found = characters.begin();
 				std::advance(found, font_index);
@@ -118,16 +118,16 @@ namespace fan {
 			f32_t get_line_height(f32_t font_size) const {
 				return line_height * convert_font_size(font_size);
 			}
-			fan::vec2 get_text_size(const fan::utf16_string& text, f32_t font_size) {
+			fan::vec2 get_text_size(const char* str, f32_t font_size) {
 				fan::vec2 text_size = 0;
 
 				text_size.y = line_height;
 
 				f32_t width = 0;
 
-				for (int i = 0; i < text.size(); i++) {
+				for (int i = 0; str[i] != 0; i++) {
 
-					switch (text[i]) {
+					switch (str[i]) {
 					case '\n': {
 						text_size.x = std::max(width, text_size.x);
 						text_size.y += line_height;
@@ -136,9 +136,9 @@ namespace fan {
 					}
 					}
 
-					auto letter = characters[text[i]];
+					auto letter = characters[str[i]];
 
-					if (i == text.size() - 1) {
+					if (str[i + 1] == 0) {
 						width += letter.glyph.size.x;
 					}
 					else {

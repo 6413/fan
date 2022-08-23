@@ -68,7 +68,7 @@ namespace fan {
       return newstr;
     }
 
-    static fan::utf16_string utf_string(uint32_t len) {
+   /* static fan::utf16_string utf_string(uint32_t len) {
       fan::utf16_string str = L"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
       fan::utf16_string newstr;
       int pos;
@@ -77,7 +77,7 @@ namespace fan {
         newstr += str.substr(pos, 1);
       }
       return newstr;
-    }
+    }*/
 
     inline fan::vec2 vec2(f32_t min, f32_t max) {
       return fan::vec2(fan::random::value_f32(min, max), fan::random::value_f32(min, max));
@@ -104,7 +104,7 @@ namespace fan {
     static uint32_t get_output_with_percent(const std::vector<percent_output_t>& po) {
 
       for (int i = 0; i < po.size(); i++) {
-        if (!(1.0 / fan::random::value_i64(0, (uint32_t)~0) < 1.0 / (po[i].percent * (uint32_t)~0))) {
+        if (!(1.0 / fan::random::value_i64(0, (uint32_t)~0) < 1.0 / (po[i].percent * ~(uint32_t)0))) {
           return po[i].output;
         }
       }

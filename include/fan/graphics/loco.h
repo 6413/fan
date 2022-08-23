@@ -300,20 +300,13 @@ struct loco_t {
     }*/
   }
 
-  uint32_t process_frame(std::function<void()> f) {
-    #ifdef loco_window
-      uint32_t window_event = get_window()->handle_events();
-      if(window_event & fan::window_t::events::close){
-        get_window()->close();
-        return window_event;
-      }
+  void process_frame(const std::function<void()>& f) {
+    #if fan_renderer == fan_renderer_opengl
+    // get_context()->opengl.call(get_context()->opengl.glClearColor, 1, 0, 0, 0);
+    get_context()->opengl.call(get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
     #endif
-      #if fan_renderer == fan_renderer_opengl
-     // get_context()->opengl.call(get_context()->opengl.glClearColor, 1, 0, 0, 0);
-      get_context()->opengl.call(get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
-      #endif
 
-      m_write_queue.process(get_context());
+    m_write_queue.process(get_context());
 
     f();
     #if defined(loco_line)
@@ -342,9 +335,6 @@ struct loco_t {
 
     #ifdef loco_window
       get_context()->render(get_window());
-      return window_event;
-    #else
-      return 0;
     #endif
   }
 
@@ -378,6 +368,18 @@ struct loco_t {
   }
 
   fan::opengl::core::uniform_write_queue_t m_write_queue;
+
+  void loop(const auto& lambda) {
+    while (1) {
+      uint32_t window_event = get_window()->handle_events();
+      if(window_event & fan::window_t::events::close){
+        get_window()->close();
+        break;
+      }
+      
+      process_frame(lambda);
+    }
+  }
 
 protected:
 

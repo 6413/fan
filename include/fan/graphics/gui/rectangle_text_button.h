@@ -103,6 +103,7 @@ struct button_t {
           if (ii_d.button == fan::mouse_left && ii_d.button_state == fan::key_state::press) {
             loco->button.set_theme(cid, loco->button.get_theme(cid), press);
             ii_d.flag->ignore_move_focus_check = true;
+            loco->vfi.set_focus_keyboard(loco->vfi.get_focus_mouse());
           }
         }
         else {
@@ -114,6 +115,7 @@ struct button_t {
               loco->button.set_theme(cid, loco->button.get_theme(cid), inactive);
             }
             ii_d.flag->ignore_move_focus_check = false;
+            loco->vfi.invalidate_focus_keyboard();
           }
         }
 
@@ -241,13 +243,12 @@ struct button_t {
     loco->button.set_theme(cid, loco->button.get_theme(cid), state);
   }
 
-  auto get_mouse_move_focus_data() {
+  // gets udata from current focus
+  uint64_t get_mouse_udata() {
     loco_t* loco = get_loco();
-    auto data = loco->vfi.get_mouse_move_focus_data();
-    fan::opengl::cid_t* cid = (fan::opengl::cid_t*)data.udata;
-    fan::print(cid->block_id);
+    auto udata = loco->vfi.get_mouse_udata();
+    fan::opengl::cid_t* cid = (fan::opengl::cid_t*)udata;
     auto block = sb_get_block(cid);
-    data.udata = block->p[cid->instance_id].userptr;
-    return data;
+    return block->p[cid->instance_id].userptr;
   }
 };
