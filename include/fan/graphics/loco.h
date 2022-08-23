@@ -158,9 +158,11 @@ struct loco_t {
   #if defined(loco_post_process)
     #define sb_shader_vertex_path _FAN_PATH(graphics/glsl/opengl/2D/effects/post_process.vs)
     #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/effects/post_process.fs)
+    #define sb_post_process_var_name post_process
     #define sb_sprite_name post_sprite_t
     #include _FAN_PATH(graphics/opengl/2D/effects/post_process.h)
-    post_process_t post_process;
+    post_process_t sb_post_process_var_name;
+    #undef sb_post_process_var_name
   #endif
 
   #if defined(loco_letter)

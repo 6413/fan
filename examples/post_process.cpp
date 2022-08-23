@@ -3,7 +3,7 @@
 #define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 
 #define FAN_INCLUDE_PATH C:/libs/fan/include
-#define fan_debug 0
+#define fan_debug 3
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
 #include _FAN_PATH(graphics/graphics.h)
@@ -70,9 +70,11 @@ int main() {
   p.viewport = &pile->viewport;
 
   fan::opengl::image_t image;
-  image.load(pile->loco.get_context(), "images/grass.webp");
+  fan::opengl::image_t::load_properties_t lp;
+  lp.filter = fan::opengl::GL_LINEAR;
+  image.load(pile->loco.get_context(), "images/stars.webp");
   p.image = &image;
-  p.size = 1;
+  p.size = 0.1;
   p.position = fan::vec2(0, 0);
   p.position.z = 0;
   pile->loco.sprite.push_back(&pile->cids[0], p);

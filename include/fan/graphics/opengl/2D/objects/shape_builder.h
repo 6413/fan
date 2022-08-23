@@ -1,11 +1,16 @@
+#ifndef sb_get_loco
+  #define sb_get_loco \
+  loco_t* get_loco() { \
+    loco_t* loco = OFFSETLESS(this, loco_t, sb_shape_var_name); \
+    return loco; \
+  }
+#endif
+
+sb_get_loco
+
 #ifndef sb_vertex_count
   #define sb_vertex_count 6
 #endif
-
-loco_t* get_loco() {
-  loco_t* loco = OFFSETLESS(this, loco_t, sb_shape_var_name);
-  return loco;
-}
 
 void sb_open() {
   loco_t* loco = get_loco();

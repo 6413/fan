@@ -452,8 +452,6 @@ namespace fan {
 
     };
 
-#endif
-
     //sint32_t MD_SCR_Get_Resolution(MD_SCR_Resolution_t *Resolution){
     //  RECT desktop;
     //  const HWND hDesktop = GetDesktopWindow();
@@ -675,6 +673,6 @@ namespace fan {
       }
       return (uint8_t *)map.pData;
     }
-
+    #endif
   }
 }
