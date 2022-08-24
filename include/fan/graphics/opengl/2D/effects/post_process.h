@@ -19,7 +19,7 @@ struct post_process_t {
       fan::opengl::image_t::load_properties_t lp;
       lp.format = fan::opengl::GL_RGBA;
       lp.internal_format = fan::opengl::GL_RGBA;
-      lp.filter = fan::opengl::GL_LINEAR;
+      lp.filter = fan::opengl::GL_LINEAR_MIPMAP_LINEAR;
       textures[i].texture_colorbuffer.load(loco->get_context(), image_info, lp);
 
       textures[i].framebuffer.bind_to_texture(loco->get_context(), *textures[i].texture_colorbuffer.get_texture(loco->get_context()));
@@ -55,7 +55,7 @@ struct post_process_t {
       sp.matrices = matrices;
       sp.position = 0;
       sp.image = &textures[i].texture_colorbuffer;
-      sp.size = 10;
+      sp.size = 1;
       sprite.push_back(&textures[i].cid, sp);
     }
   }
@@ -80,26 +80,54 @@ struct post_process_t {
   void draw() {
     auto loco = get_loco();
 
+    // get rid of random texture artifacts
+    start_capture(1);
+    end_capture(1);
+
     sprite.m_shader.use(loco->get_context());
     sprite.m_shader.set_int(loco->get_context(), "_t01", 1);
-    loco->get_context()->opengl.call(loco->get_context()->opengl.glActiveTexture, fan::opengl::GL_TEXTURE1);
-    loco->get_context()->opengl.call(loco->get_context()->opengl.glBindTexture, fan::opengl::GL_TEXTURE_2D, *textures[1].texture_colorbuffer.get_texture(loco->get_context()));
+    sprite.m_shader.set_int(loco->get_context(), "which", 0);
+    
+    auto& opengl = loco->get_context()->opengl;
+
+    opengl.call(opengl.glActiveTexture, fan::opengl::GL_TEXTURE1);
+    opengl.call(opengl.glBindTexture, fan::opengl::GL_TEXTURE_2D, *textures[1].texture_colorbuffer.get_texture(loco->get_context()));
+
     end_capture(0);
-    loco->get_context()->opengl.call(loco->get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT);
+
+    opengl.call(opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT);
     loco->get_context()->set_depth_test(false);
 
     start_capture(1);
+
+    opengl.call(opengl.glBindTexture, fan::opengl::GL_TEXTURE_2D, *textures[0].texture_colorbuffer.get_texture(loco->get_context()));
 
     sprite.draw();
 
     end_capture(1);
 
-    sprite.m_shader.use(loco->get_context());
-    sprite.m_shader.set_int(loco->get_context(), "_t01", 1);
-    loco->get_context()->opengl.call(loco->get_context()->opengl.glActiveTexture, fan::opengl::GL_TEXTURE1);
-    loco->get_context()->opengl.call(loco->get_context()->opengl.glBindTexture, fan::opengl::GL_TEXTURE_2D, *textures[1].texture_colorbuffer.get_texture(loco->get_context()));
 
-    loco->get_context()->opengl.call(loco->get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT);
+    opengl.call(opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT);
+    loco->get_context()->set_depth_test(false);
+    sprite.m_shader.set_int(loco->get_context(), "which", 1);
+
+    start_capture(2);
+
+    opengl.call(opengl.glBindTexture, fan::opengl::GL_TEXTURE_2D, *textures[1].texture_colorbuffer.get_texture(loco->get_context()));
+
+    sprite.draw();
+
+    end_capture(2);
+
+    sprite.m_shader.use(loco->get_context());
+    sprite.m_shader.set_int(loco->get_context(), "_t02", 2);
+    sprite.m_shader.set_int(loco->get_context(), "which", 2);
+    opengl.call(opengl.glActiveTexture, fan::opengl::GL_TEXTURE2);
+    opengl.call(opengl.glBindTexture, fan::opengl::GL_TEXTURE_2D, *textures[2].texture_colorbuffer.get_texture(loco->get_context()));
+    opengl.call(opengl.glTexParameterf, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_LOD_BIAS, 6);
+    opengl.call(opengl.glGenerateMipmap, fan::opengl::GL_TEXTURE_2D);
+
+    opengl.call(opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT);
     loco->get_context()->set_depth_test(false);
     sprite.draw();
   }
@@ -110,7 +138,7 @@ struct post_process_t {
     fan::opengl::core::renderbuffer_t renderbuffer;
     fan::opengl::core::framebuffer_t framebuffer;
     fan::opengl::image_t texture_colorbuffer;
-  }textures[2];
+  }textures[3];
 
   uint32_t draw_nodereference;
 
