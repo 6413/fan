@@ -365,9 +365,8 @@ namespace fan {
         get_proc_address(glFrontFace, &internal);
         get_proc_address(glBlendEquation, &internal);
         get_proc_address(glAlphaFunc, &internal);
+        get_proc_address(glTexParameterf, &internal);
         
-        
-
         internal.close(&p);
 
         opengl_initialized = true;
@@ -517,6 +516,7 @@ namespace fan {
       PFNGLFRONTFACEPROC glFrontFace;
       PFNGLBLENDEQUATIONPROC glBlendEquation;
       PFNGLALPHAFUNCPROC glAlphaFunc;
+      PFNGLTEXPARAMETERFPROC glTexParameterf;
     };
 
   }
