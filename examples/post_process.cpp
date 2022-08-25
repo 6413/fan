@@ -19,8 +19,8 @@ constexpr uint32_t count = 1;
 
 struct pile_t {
 
-  static constexpr fan::vec2 ortho_x = fan::vec2(-1, 1);
-  static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
+  static constexpr fan::vec2 ortho_x = fan::vec2(0, 1920);
+  static constexpr fan::vec2 ortho_y = fan::vec2(0, 1080);
 
   void open() {
     loco.open(loco_t::properties_t());
@@ -32,7 +32,7 @@ struct pile_t {
       ortho_y,
       1
     );
-    loco.get_window()->add_resize_callback(this, [](fan::window_t* window, const fan::vec2i& size, void* userptr) {
+  /*  loco.get_window()->add_resize_callback(this, [](fan::window_t* window, const fan::vec2i& size, void* userptr) {
       fan::vec2 window_size = window->get_size();
       fan::vec2 ratio = window_size / window_size.max();
       std::swap(ratio.x, ratio.y);
@@ -47,7 +47,7 @@ struct pile_t {
       pile_t* pile = (pile_t*)userptr;
 
       pile->viewport.set_viewport(pile->loco.get_context(), 0, size, pile->loco.get_window()->get_size());
-    });
+    });*/
     viewport.open(loco.get_context());
     viewport.set_viewport(loco.get_context(), 0, loco.get_window()->get_size(), loco.get_window()->get_size());
   }
@@ -72,10 +72,10 @@ int main() {
   fan::opengl::image_t image;
   fan::opengl::image_t::load_properties_t lp;
   lp.filter = fan::opengl::GL_LINEAR;
-  image.load(pile->loco.get_context(), "images/cube.webp");
+  image.load(pile->loco.get_context(), "images/stars2.webp");
   p.image = &image;
-  p.size = 1;
-  p.position = fan::vec2(0, 0);
+  p.size = pile->loco.get_window()->get_size() / 2;
+  p.position = pile->loco.get_window()->get_size() / 2;
   p.position.z = 0;
   pile->loco.sprite.push_back(&pile->cids[0], p);
 
@@ -83,7 +83,7 @@ int main() {
 
   pile->loco.set_vsync(false);
 
-  pile->loco.post_process.start_capture(0);
+  pile->loco.post_process.start_capture();
 
   pile->loco.loop([&] {
     pile->loco.get_fps();

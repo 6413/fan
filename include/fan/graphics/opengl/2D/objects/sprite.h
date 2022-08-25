@@ -69,6 +69,21 @@ struct sb_sprite_name {
     auto block = sb_get_block(loco, cid);
     *block->p[cid->instance_id].key.get_value<1>() = n;
   }*/
+
+  void set_image(fan::opengl::cid_t* cid, uint32_t id) {
+    loco_t* loco = get_loco();
+    auto block = sb_get_block(cid);
+    auto node = fan::opengl::_image_list_GetNodeByReference(&loco->get_context()->image_list, *block->p[cid->instance_id].key.get_value<0>());
+    node->data.texture_id = id;
+    //sb_set_key(cid, &properties_t::image, n);
+  }
+  void set_viewport_value(fan::opengl::cid_t* cid, fan::vec2 p, fan::vec2 s) {
+    loco_t* loco = get_loco();
+    auto block = sb_get_block(cid);
+    auto node = fan::opengl::viewport_list_GetNodeByReference(&loco->get_context()->viewport_list, *block->p[cid->instance_id].key.get_value<2>());
+    node->data.viewport_id->set_viewport(loco->get_context(), p, s, loco->get_window()->get_size());
+    //sb_set_key(cid, &properties_t::image, n);
+  }
 };
 
 #undef sb_shader_vertex_path

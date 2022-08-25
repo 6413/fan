@@ -324,7 +324,7 @@ namespace fan {
         properties_t() {
           samples = 1;
           major = 3;
-          minor = 1;
+          minor = 2;
 
         }
 
@@ -522,6 +522,10 @@ namespace fan {
         void set_storage(fan::opengl::context_t* context, const properties_t& p) const {
           bind(context);
           context->opengl.call(context->opengl.glRenderbufferStorage, fan::opengl::GL_RENDERBUFFER, p.internalformat, p.size.x, p.size.y);
+        }
+        void bind_to_renderbuffer(fan::opengl::context_t* context, const properties_t& p = properties_t()) {
+          bind(context);
+          context->opengl.call(context->opengl.glFramebufferRenderbuffer, GL_FRAMEBUFFER, p.internalformat, GL_RENDERBUFFER, renderbuffer);
         }
 
         fan::opengl::GLuint renderbuffer;

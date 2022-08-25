@@ -216,7 +216,7 @@ namespace fan_2d {
 
       properties_t instance;
 
-      fan::shader_t m_shader;
+      fan::opengl::shader_t m_shader;
       uint32_t m_draw_node_reference;
 
       f32_t m_delta;

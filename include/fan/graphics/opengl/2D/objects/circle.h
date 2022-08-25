@@ -331,7 +331,7 @@ namespace fan_2d {
 
 		//private:
 
-			fan::shader_t m_shader;
+			fan::opengl::shader_t m_shader;
 			fan::opengl::core::glsl_buffer_t m_glsl_buffer;
 			fan::opengl::core::queue_helper_t m_queue_helper;
 			uint32_t m_draw_node_reference;

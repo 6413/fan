@@ -265,7 +265,7 @@ void sb_set_key(fan::opengl::cid_t* cid, auto properties_t::*member, auto value)
   sb_push_back(cid, p);
 }
 
-fan::shader_t m_shader;
+fan::opengl::shader_t m_shader;
 
 struct block_t {
   void open(loco_t* loco, auto* shape) {

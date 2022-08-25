@@ -320,7 +320,7 @@ namespace fan_3d {
 
       model_instance_t m_model_instance;
 
-      fan::shader_t m_shader;
+      fan::opengl::shader_t m_shader;
       uint32_t m_draw_node_reference;
       textures_t m_textures;
 

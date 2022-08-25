@@ -124,7 +124,7 @@ namespace fan_3d {
 
       uint32_t m_texture;
       uint32_t m_draw_node_reference;
-      fan::shader_t m_shader;
+      fan::opengl::shader_t m_shader;
     };
 
   }
