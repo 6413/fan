@@ -94,7 +94,7 @@ namespace fan {
     }
     template <typename get_type, typename _Ty = masterpiece_reversed_t<T, Rest...>, uint32_t depth = count>
     static constexpr uint32_t get_index_with_type() {
-      if constexpr (std::is_same<get_type, _Ty::value_type>::value) {
+      if constexpr (std::is_same<get_type, typename _Ty::value_type>::value) {
         return depth;
       }
       if constexpr (depth > 0) {

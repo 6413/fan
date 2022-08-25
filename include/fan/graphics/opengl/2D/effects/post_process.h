@@ -117,34 +117,62 @@ struct post_process_t {
 			fan::opengl::shader_t old_shader = sprite->m_shader;
 			sprite->m_shader = shader_downsample;
 			sprite->m_shader.use(loco->get_context());
+			sprite->m_shader.set_int(loco->get_context(), "_t00", 0);
 			sprite->m_shader.set_vec2(loco->get_context(), "resolution", loco->get_window()->get_size());
-			
 			sprite->set_image(&pp->cid, *image->get_texture(loco->get_context()));
-			loco->get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
-			image->bind_texture(loco->get_context());
+			loco->get_context()->opengl.call(
+				loco->get_context()->opengl.glFramebufferTexture2D,
+				fan::opengl::GL_FRAMEBUFFER,
+				fan::opengl::GL_COLOR_ATTACHMENT0,
+				fan::opengl::GL_TEXTURE_2D,
+				*mips[0].image.get_texture(loco->get_context()),
+			0
+			);
+			//sprite->m_shader.set_int(loco->get_context(), "_t01", 1);
+			//loco->get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
+			//mips[0].image.bind_texture(loco->get_context());
+			
+			sprite->draw();
 
-			for (uint32_t i = 0; i < mips.size(); i++) {
-				auto mip = mips[i];
+			sprite->m_shader = shader_bloom;
+			sprite->m_shader.use(loco->get_context());
+			sprite->m_shader.set_int(loco->get_context(), "_t00", 0);
+			sprite->m_shader.set_vec2(loco->get_context(), "resolution", loco->get_window()->get_size());
+			sprite->set_image(&pp->cid, *mips[0].image.get_texture(loco->get_context()));
 
-				sprite->set_viewport_value(&pp->cid, 0, mip.size);
+			sprite->draw();
 
-				loco->get_context()->opengl.call(
-					loco->get_context()->opengl.glFramebufferTexture2D,
-					fan::opengl::GL_FRAMEBUFFER,
-					fan::opengl::GL_COLOR_ATTACHMENT0,
-					fan::opengl::GL_TEXTURE_2D,
-					*mip.image.get_texture(loco->get_context()),
-					0
-				);
+			//fan::opengl::shader_t old_shader = sprite->m_shader;
+			//sprite->m_shader = shader_downsample;
+			//sprite->m_shader.use(loco->get_context());
+			//sprite->m_shader.set_vec2(loco->get_context(), "resolution", loco->get_window()->get_size());
+			//
+			//sprite->set_image(&pp->cid, *image->get_texture(loco->get_context()));
+			//loco->get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
+			//image->bind_texture(loco->get_context());
 
-				sprite->draw();
-				
-				sprite->m_shader.set_vec2(loco->get_context(), "resolution", mip.size);
-				sprite->set_image(&pp->cid, *mip.image.get_texture(loco->get_context()));
-				mip.image.bind_texture(loco->get_context());
-			}
+			//for (uint32_t i = 0; i < mips.size(); i++) {
+			//	auto mip = mips[i];
 
-			sprite->m_shader = old_shader;
+			//	//sprite->set_viewport_value(&pp->cid, 0, mip.size);
+
+			//	loco->get_context()->opengl.call(
+			//		loco->get_context()->opengl.glFramebufferTexture2D,
+			//		fan::opengl::GL_FRAMEBUFFER,
+			//		fan::opengl::GL_COLOR_ATTACHMENT0,
+			//		fan::opengl::GL_TEXTURE_2D,
+			//		*mip.image.get_texture(loco->get_context()),
+			//		0
+			//	);
+
+			//	sprite->draw();
+			//	
+			//	sprite->m_shader.set_vec2(loco->get_context(), "resolution", mip.size);
+			//	sprite->set_image(&pp->cid, *mip.image.get_texture(loco->get_context()));
+			//	mip.image.bind_texture(loco->get_context());
+			//}
+
+			//sprite->m_shader = old_shader;
 		}
 		void draw_upsamples(f32_t filter_radius) {
 			auto loco = get_loco();
@@ -205,7 +233,11 @@ struct post_process_t {
 
 			framebuffer.unbind(loco->get_context());
 
+			
+			//loco->get_context()->opengl.call(loco->get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
 			get_post_process()->sprite.set_viewport_value(&get_post_process()->cid, 0, window_size);
+			get_post_process()->sprite.set_image(&get_post_process()->cid, *mips[0].image.get_texture(loco->get_context()));
+			get_post_process()->sprite.draw();
 		}
 
 		fan::hector_t<mip_t> mips;
@@ -278,10 +310,10 @@ struct post_process_t {
 
 		hdr_fbo.unbind(loco->get_context());
 
+		sprite.open();
+
 		static constexpr uint32_t mip_count = 6;
 		bloom.open(loco->get_window()->get_size(), mip_count);
-
-		sprite.open();
 
 		return 0;
 	}
@@ -311,7 +343,7 @@ struct post_process_t {
 	void start_capture() {
 		auto loco = get_loco();
 		hdr_fbo.bind(loco->get_context());
-		//loco->get_context()->opengl.call(loco->get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
+		loco->get_context()->opengl.call(loco->get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
 	}
 	void end_capture() {
 		auto loco = get_loco();
@@ -323,7 +355,17 @@ struct post_process_t {
 
 		auto loco = get_loco();
 
-		//loco->get_context()->opengl.call(loco->get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
+		loco->get_context()->opengl.call(loco->get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
+		/*fan::opengl::shader_t old_shader = sprite.m_shader;
+		sprite.m_shader = bloom.shader_bloom;
+		sprite.m_shader.use(loco->get_context());
+		sprite.m_shader.set_int(loco->get_context(), "_t00", 0);
+		sprite.set_image(&cid, *color_buffers[1].get_texture(loco->get_context()));
+		sprite.m_shader.set_int(loco->get_context(), "_t01", 1);
+		loco->get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
+		bloom.mips[0].image.bind_texture(loco->get_context());*/
+
+		//sprite.draw();
 
 		constexpr float bloom_filter_radius = 0.1;
 		bloom.draw(&color_buffers[1], bloom_filter_radius);
