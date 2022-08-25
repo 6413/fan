@@ -134,10 +134,14 @@ struct post_process_t {
 			
 			sprite->draw();
 
+			loco->get_context()->opengl.call(loco->get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
+
+			framebuffer.unbind(loco->get_context());
+
 			sprite->m_shader = shader_bloom;
 			sprite->m_shader.use(loco->get_context());
 			sprite->m_shader.set_int(loco->get_context(), "_t00", 0);
-			sprite->m_shader.set_vec2(loco->get_context(), "resolution", loco->get_window()->get_size());
+			//sprite->m_shader.set_vec2(loco->get_context(), "resolution", loco->get_window()->get_size());
 			sprite->set_image(&pp->cid, *mips[0].image.get_texture(loco->get_context()));
 
 			sprite->draw();
@@ -231,13 +235,11 @@ struct post_process_t {
 
 			fan::vec2 window_size = loco->get_window()->get_size();
 
-			framebuffer.unbind(loco->get_context());
-
 			
-			//loco->get_context()->opengl.call(loco->get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
-			get_post_process()->sprite.set_viewport_value(&get_post_process()->cid, 0, window_size);
-			get_post_process()->sprite.set_image(&get_post_process()->cid, *mips[0].image.get_texture(loco->get_context()));
-			get_post_process()->sprite.draw();
+			////loco->get_context()->opengl.call(loco->get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
+			//get_post_process()->sprite.set_viewport_value(&get_post_process()->cid, 0, window_size);
+			//get_post_process()->sprite.set_image(&get_post_process()->cid, *mips[0].image.get_texture(loco->get_context()));
+			//get_post_process()->sprite.draw();
 		}
 
 		fan::hector_t<mip_t> mips;

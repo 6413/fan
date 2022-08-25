@@ -174,7 +174,7 @@
 		while (*(utf8 + i))
 		{
 			unsigned long uni;
-			size_t todo;
+			size_t todo = 0;
 			unsigned char ch = utf8[i++];
 			if (ch <= 0x7F)
 			{
