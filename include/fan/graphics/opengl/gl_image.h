@@ -79,7 +79,7 @@ namespace fan {
 
         context->opengl.call(context->opengl.glTexImage2D, GL_TEXTURE_2D, 0, p.internal_format, size.x, size.y, 0, p.format, p.type, image_info.data);
 
-        context->opengl.call(context->opengl.glGenerateMipmap, GL_TEXTURE_2D);
+        //context->opengl.call(context->opengl.glGenerateMipmap, GL_TEXTURE_2D);
         
         return 0;
       }
