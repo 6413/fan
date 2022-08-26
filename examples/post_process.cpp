@@ -83,7 +83,8 @@ int main() {
 
 	pile->loco.set_vsync(false);
 
-	pile->loco.get_window()->add_buttons_callback(pile, [](fan::window_t* w, uint16_t key, fan::key_state ks, void* userptr) {
+	pile->loco.get_window()->add_buttons_callback(pile, 
+		[](fan::window_t* w, uint16_t key, fan::key_state ks, void* userptr) {
 		pile_t* pile = (pile_t*)userptr;
 
 		if (ks != fan::key_state::press) {

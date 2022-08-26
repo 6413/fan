@@ -18,7 +18,7 @@ namespace fan {
 	namespace webp {
 
     struct image_info_t {
-      uint8_t* data;
+      void* data;
       fan::vec2i size;
     };
 

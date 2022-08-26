@@ -9,7 +9,7 @@ struct text_renderer_t {
     fan::color color = fan::colors::white;
     fan::color outline_color = fan::colors::black;
     f32_t outline_size = 0.5;
-    fan::utf16_string text;
+    std::string text;
 
     union {
       struct {
@@ -50,7 +50,7 @@ struct text_renderer_t {
     return font_size / loco->font.info.size;
   }
 
-  fan::vec2 get_text_size(const fan::utf16_string& text, f32_t font_size) {
+  fan::vec2 get_text_size(const std::string& text, f32_t font_size) {
     loco_t* loco = get_loco();
     fan::vec2 text_size = 0;
 

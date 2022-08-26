@@ -19,9 +19,9 @@ namespace fan_2d {
         image.unload(context);
       }
 
-      //uint32_t decode_letter(wchar_t c) const {
-      //  return info.get_font_index(c);
-      //}
+      uint32_t decode_letter(uint8_t c) const {
+        return info.get_font_index(c);
+      }
 
       fan::font::font_t info;
       fan::opengl::image_t image;

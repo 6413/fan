@@ -28,14 +28,16 @@ struct pile_t {
       &matrices,
       loco.get_window()->get_size(),
       ortho_x,
-      ortho_y
+      ortho_y,
+      1
     );
-    loco.get_window()->add_resize_callback(this, [](fan::window_t*, const fan::vec2i& size, void* userptr) {
+    loco.get_window()->add_resize_callback(this, [](fan::window_t* w, const fan::vec2i& size, void* userptr) {
       pile_t* pile = (pile_t*)userptr;
 
-      pile->viewport.set_viewport(pile->loco.get_context(), 0, size);
-      });
-    viewport.open(loco.get_context(), 0, loco.get_window()->get_size());
+      pile->viewport.set_viewport(pile->loco.get_context(), 0, size, w->get_size());
+    });
+    viewport.open(loco.get_context());
+    viewport.set_viewport(loco.get_context(), 0, loco.get_window()->get_size(), loco.get_window()->get_size());
   }
 
   loco_t loco;
@@ -69,10 +71,10 @@ int main() {
 
   //fan::print(y);
   pile->loco.set_vsync(false);
-  while(pile->loco.window_open(pile->loco.process_frame([]{}))) {
 
+  pile->loco.loop([&] {
     pile->loco.get_fps();
-  }
+  });
 
   return 0;
 }

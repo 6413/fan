@@ -223,7 +223,7 @@ struct fgm_t {
     p.mouse_button_cb = [](const loco_t::mouse_button_data_t& mb) {
       pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco);
       pile->fgm.active.clear();
-      pile->loco.vfi.invalidate_focus();
+      pile->loco.vfi.invalidate_focus_mouse();
     };
     loco->vfi.push_shape(p);
 
@@ -360,7 +360,7 @@ struct fgm_t {
         pile->loco.button.set_theme(&instance->cid, loco_t::button_t::inactive);
         auto builder_cid = &pile->fgm.builder_button.instance[pile->fgm.builder_button.instance.size() - 1]->cid;
         auto block = pile->loco.button.sb_get_block(builder_cid);
-        pile->loco.vfi.set_mouse_focus(block->p[builder_cid->instance_id].vfi_id);
+        pile->loco.vfi.set_focus_mouse(block->p[builder_cid->instance_id].vfi_id);
         return;
       };
       loco->button.push_back(&instance[i]->cid, p);
@@ -462,7 +462,7 @@ struct fgm_t {
       pile->loco.button.set_theme(&instance[i]->cid, loco_t::button_t::inactive);
       auto builder_cid = &instance[i]->cid;
       auto block = pile->loco.button.sb_get_block(builder_cid);
-      pile->loco.vfi.set_mouse_focus(block->p[builder_cid->instance_id].vfi_id);
+      pile->loco.vfi.set_focus_mouse(block->p[builder_cid->instance_id].vfi_id);
       pile->fgm.active.move_corners(pile->fgm.builder_button.get_corners(&instance[i]->cid));
 
     }
@@ -519,7 +519,7 @@ struct fgm_t {
       active_rectangles_t::properties_t p;
       p.size = r_size;
       auto data = pile->loco.button.get_mouse_udata();
-      instance_t* instance = (instance_t*)data.udata;
+      instance_t* instance = (instance_t*)data;
       switch(instance->shape) {
         case shapes::button: {
           p.viewport = pile->loco.button.get_viewport(&instance->cid);
@@ -583,8 +583,8 @@ struct fgm_t {
   struct properties_menu_t {
 
     struct properties_t {
-      fan::utf16_string text_value;
-      fan::utf16_string text;
+      std::string text_value;
+      std::string text;
     };
 
     loco_t* get_loco() {

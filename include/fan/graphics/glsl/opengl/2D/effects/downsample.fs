@@ -93,6 +93,7 @@ R"(
 			groups[4] *= KarisAverage(groups[4]);
 			o_color = groups[0]+groups[1]+groups[2]+groups[3]+groups[4];
 			o_color = max(o_color, 0.0001f);
+			
 		//	break;
 		//default:
 			//o_color = e*0.125;                // ok
