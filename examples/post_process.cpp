@@ -19,8 +19,8 @@ constexpr uint32_t count = 1;
 
 struct pile_t {
 
-	static constexpr fan::vec2 ortho_x = fan::vec2(0, 1920);
-	static constexpr fan::vec2 ortho_y = fan::vec2(0, 1080);
+	static constexpr fan::vec2 ortho_x = fan::vec2(-1, 1);
+	static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
 
 	void open() {
 		loco.open(loco_t::properties_t());
@@ -72,10 +72,10 @@ int main() {
 	fan::opengl::image_t image;
 	fan::opengl::image_t::load_properties_t lp;
 	lp.filter = fan::opengl::GL_LINEAR;
-	image.load(pile->loco.get_context(), "images/sky.webp");
+	image.load(pile->loco.get_context(), "images/d.webp");
 	p.image = &image;
-	p.size = pile->loco.get_window()->get_size() / 2;
-	p.position = pile->loco.get_window()->get_size() / 2;
+	p.size = 1;
+	p.position = 0;
 	p.position.z = 0;
 	pile->loco.sprite.push_back(&pile->cids[0], p);
 
