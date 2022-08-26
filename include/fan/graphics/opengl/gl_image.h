@@ -103,7 +103,7 @@ namespace fan {
           return 0;
         }
         bool ret = load(context, image_info, p);
-
+        fan::webp::free_image(image_info.data);
         //fan::webp::free_image(image_info.data); leaks and double free sometimes
         return ret;
       }
