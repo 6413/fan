@@ -63,7 +63,7 @@ int main() {
   std::string str;
   fan::io::file::read("output.yuv", &str);
 
-  p.load_yuv(pile->loco.get_context(), (uint8_t*)str.data(), image_size);
+  p.load_yuv(&pile->loco, (uint8_t*)str.data(), image_size);
 
   p.position = fan::vec2(0, 0);
   p.position.z = 0;

@@ -26,42 +26,40 @@ struct sb_sprite_name {
 
   struct properties_t : instance_t {
 
-    void load_yuv(fan::opengl::context_t* context, void* data, const fan::vec2& image_size) {
+      #define _load_yuv(_f) \
+      fan::opengl::context_t* context = loco->get_context(); \
+      fan::opengl::image_t::load_properties_t lp; \
+      lp.format = fan::opengl::GL_RED; \
+      lp.internal_format = fan::opengl::GL_RED; \
+                                 \
+      fan::webp::image_info_t ii; \
+                                \
+      ii.data = data[0]; \
+      ii.size = image_size; \
+      loco->sb_shape_var_name.image[0]._f(context, ii, lp); \
+                                \
+      ii.data = data[1]; \
+      ii.size = image_size / 2; \
+      loco->sb_shape_var_name.image[1]._f(context, ii, lp); \
+                                \
+      ii.data = data[2]; \
+      loco->sb_shape_var_name.image[2]._f(context, ii, lp); 
 
+    void load_yuv(loco_t* loco, void* data, const fan::vec2& image_size) {
       void* datas[3];
       uint64_t offset = 0;
       datas[0] = data;
       datas[1] = (uint8_t*)data + (offset += image_size.multiply());
       datas[2] = (uint8_t*)data + (offset += image_size.multiply() / 4);
-      load_yuv(context, datas, image_size);
+      load_yuv(loco, datas, image_size);
     }
     // void*[3]
-    void load_yuv(fan::opengl::context_t* context, void** data, const fan::vec2& image_size) {
+    void load_yuv(loco_t* loco, void** data, const fan::vec2& image_size) {
+      _load_yuv(load);
 
-      fan::opengl::image_t image[3];
-
-      fan::opengl::image_t::load_properties_t lp;
-      lp.format = fan::opengl::GL_RED;
-      lp.internal_format = fan::opengl::GL_RED;
-
-
-      fan::webp::image_info_t ii;
-
-      ii.data = data[0];
-      ii.size = image_size;
-
-      image[0].load(context, ii, lp);
-
-      ii.data = data[1];
-      ii.size = image_size / 2;
-      image[1].load(context, ii, lp);
-
-      ii.data = data[2];
-      image[2].load(context, ii, lp);
-
-      y = &image[0];
-      u = &image[1];
-      v = &image[2];
+      y = &loco->sb_shape_var_name.image[0];
+      u = &loco->sb_shape_var_name.image[1];
+      v = &loco->sb_shape_var_name.image[2];
     }
 
     union {
@@ -85,6 +83,12 @@ struct sb_sprite_name {
 
   void draw() {
     sb_draw();
+  }
+
+  void reload_yuv(fan::opengl::cid_t* cid, void** data, const fan::vec2& image_size) {
+    auto loco = get_loco();
+    _load_yuv(reload_pixels);
+    set_image_data(cid, &image[0], &image[1], &image[2]);
   }
 
   static constexpr uint32_t max_instance_size = fan::min(256, 4096 / (sizeof(instance_t) / 4));
@@ -115,6 +119,8 @@ struct sb_sprite_name {
     sb_set_key(cid, &properties_t::v, v);
   }
 
+  fan::opengl::image_t image[3];
+
   /*void set_matrices(loco_t* loco, fan::opengl::cid_t* cid, fan::opengl::matrices_list_NodeReference_t n) {
   auto block = sb_get_block(loco, cid);
   *block->p[cid->instance_id].key.get_value<0>() = n;
@@ -126,4 +132,5 @@ struct sb_sprite_name {
   }*/
 };
 
+#undef _load_yuv
 #undef sb_sprite_name
