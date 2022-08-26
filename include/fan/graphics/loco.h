@@ -309,9 +309,12 @@ struct loco_t {
 
     m_write_queue.process(get_context());
 
-    post_process.start_capture();
+    #ifndef loco_post_process
+      post_process.start_capture();
+    #endif
 
     f();
+
     #if defined(loco_line)
       line.draw();
     #endif
