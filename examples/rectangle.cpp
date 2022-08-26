@@ -28,7 +28,8 @@ struct pile_t {
       &matrices,
       loco.get_window()->get_size(),
       ortho_x,
-      ortho_y
+      ortho_y,
+      1
     );
     loco.get_window()->add_resize_callback(this, [](fan::window_t* window, const fan::vec2i& size, void* userptr) {
       fan::vec2 window_size = window->get_size();
@@ -36,8 +37,9 @@ struct pile_t {
       std::swap(ratio.x, ratio.y);
       pile_t* pile = (pile_t*)userptr;
       pile->matrices.set_ortho(
-        ortho_x * ratio.x, 
-        ortho_y * ratio.y
+        ortho_x, 
+        ortho_y,
+        ratio
       );
     });
     loco.get_window()->add_resize_callback(this, [](fan::window_t*, const fan::vec2i& size, void* userptr) {
@@ -45,8 +47,8 @@ struct pile_t {
 
       //pile->viewport.set_viewport(pile->loco.get_context(), 0, size);
     });
-    viewport[0].open(loco.get_context(), 0, loco.get_window()->get_size());
-    viewport[1].open(loco.get_context(), 0, loco.get_window()->get_size());
+    viewport[0].open(loco.get_context());
+    viewport[1].open(loco.get_context());
   }
 
   loco_t loco;
@@ -93,10 +95,9 @@ int main() {
 
   pile->loco.set_vsync(false);
   uint32_t x = 0;
-  while(pile->loco.window_open(pile->loco.process_frame([]{}))) {
-    
-    pile->loco.get_fps();
-  }
 
+  pile->loco.loop([&] {
+    pile->loco.get_fps();
+  });
   return 0;
 }

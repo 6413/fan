@@ -1,18 +1,19 @@
 R"(
-	#version 330
+	#version 330 core
 
 	layout (location = 0) out vec3 o_color;
 
 	in vec2 texture_coordinate;
 
-	uniform vec2 resolution;
-
 	uniform sampler2D _t00;
 
-	void main() {
-		float x = resolution.x;
-		float y = resolution.y;
+	uniform vec2 resolution;
 
+	void main() {
+
+		float x = 1.0 / resolution.x;
+		float y = 1.0 / resolution.y;
+		
 		// Take 13 samples around current texel:
 		// a - b - c
 		// - j - k -
@@ -77,6 +78,7 @@ R"(
 			o_color += (a+c+g+i)*0.03125;     // ok
 			o_color += (b+d+f+h)*0.0625;      // ok
 			o_color += (j+k+l+m)*0.125;       // ok
-		//}
+			//o_color.rgb = vec3(1, 0, 0);
+		////}
 	}
 )"

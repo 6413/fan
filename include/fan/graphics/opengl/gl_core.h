@@ -494,8 +494,8 @@ namespace fan {
         }
 
         // texture must be binded with texture.bind();
-        void bind_to_texture(fan::opengl::context_t* context, fan::opengl::GLuint texture) {
-          context->opengl.call(context->opengl.glFramebufferTexture2D, GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
+        static void bind_to_texture(fan::opengl::context_t* context, fan::opengl::GLuint texture, fan::opengl::GLenum attatchment) {
+          context->opengl.call(context->opengl.glFramebufferTexture2D, GL_FRAMEBUFFER, attatchment, GL_TEXTURE_2D, texture, 0);
         }
 
         fan::opengl::GLuint framebuffer;
@@ -509,9 +509,9 @@ namespace fan {
           fan::vec2ui size;
         };
 
-        void open(fan::opengl::context_t* context, const properties_t& p) {
+        void open(fan::opengl::context_t* context) {
           context->opengl.call(context->opengl.glGenRenderbuffers, 1, &renderbuffer);
-          set_storage(context, p);
+          //set_storage(context, p);
         }
         void close(fan::opengl::context_t* context) {
           context->opengl.call(context->opengl.glDeleteRenderbuffers, 1, &renderbuffer);
@@ -708,8 +708,8 @@ void fan::opengl::viewport_t::set_viewport(fan::opengl::context_t* context, cons
 
   context->opengl.call(
     context->opengl.glViewport, 
-    viewport_position.x,
-    window_size.y - viewport_size_.y - viewport_position.y,
+    0,
+    0,
     viewport_size.x, viewport_size.y
   );
 }
