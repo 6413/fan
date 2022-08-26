@@ -180,7 +180,7 @@ struct loco_t {
     vfi_var_name.open();
 
     #ifdef loco_window
-      window.open(fan::vec2(1920, 1080));
+      window.open(fan::vec2(640, 640));
     #else
       window = p.window;
     #endif
