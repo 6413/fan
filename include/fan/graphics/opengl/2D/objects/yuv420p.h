@@ -26,32 +26,37 @@ struct sb_sprite_name {
 
   struct properties_t : instance_t {
 
-    void load_yuv(fan::opengl::context_t* context, uint8_t* data, const fan::vec2& image_size) {
+    void load_yuv(fan::opengl::context_t* context, void* data, const fan::vec2& image_size) {
+
+      void* datas[3];
+      uint64_t offset = 0;
+      datas[0] = data;
+      datas[1] = (uint8_t*)data + (offset += image_size.multiply());
+      datas[2] = (uint8_t*)data + (offset += image_size.multiply() / 4);
+      load_yuv(context, datas, image_size);
+    }
+    // void*[3]
+    void load_yuv(fan::opengl::context_t* context, void** data, const fan::vec2& image_size) {
 
       fan::opengl::image_t image[3];
-
-      uint64_t offset = 0;
 
       fan::opengl::image_t::load_properties_t lp;
       lp.format = fan::opengl::GL_RED;
       lp.internal_format = fan::opengl::GL_RED;
 
-      offset += image_size.multiply();
 
       fan::webp::image_info_t ii;
 
-      ii.data = data;
+      ii.data = data[0];
       ii.size = image_size;
 
       image[0].load(context, ii, lp);
 
-      ii.data = data + offset;
+      ii.data = data[1];
       ii.size = image_size / 2;
       image[1].load(context, ii, lp);
 
-      offset += image_size.multiply() / 4;
-
-      ii.data = data + offset;
+      ii.data = data[2];
       image[2].load(context, ii, lp);
 
       y = &image[0];

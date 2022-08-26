@@ -12,12 +12,23 @@ R"(
 
 	uniform float bloom;
 
+	float luma(vec3 color) {
+		return dot(color, vec3(0.299, 0.587, 0.114));
+	}
+
 	void main() {
     vec3 result = vec3(0.0);
 		vec3 hdrColor = texture(_t00, texture_coordinate).rgb;
 		vec3 bloomColor = texture(_t01, texture_coordinate).rgb;
+		//if (luma(bloomColor) < 0.5) {
+		//	bloomColor *= luma(bloomColor);
+		//}
 		//result = bloomColor;
-		result = mix(hdrColor, bloomColor, bloom); // linear interpolation
+		float b = bloom;
+		//if (hdrColor.r < 0.8 && hdrColor.g < 0.8 && hdrColor.b < 0.8) {
+		//	bloomColor /= 5;
+		//}
+		result = mix(hdrColor, bloomColor, b); // linear interpolation
 		//result = vec3(1.0) - exp(-result * 1.0);
 		//// also gamma correct while we're at it
 		//const float gamma = 2.2;

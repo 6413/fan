@@ -25,7 +25,6 @@ struct loco_t;
 #include _FAN_PATH(graphics/opengl/uniform_block.h)
 
 struct loco_t {
-
   #define vfi_var_name vfi
   #include _FAN_PATH(graphics/gui/vfi.h)
   using mouse_move_data_t = vfi_t::mouse_move_data_t;
@@ -180,7 +179,7 @@ struct loco_t {
     vfi_var_name.open();
 
     #ifdef loco_window
-      window.open(fan::vec2(640, 640));
+      window.open(fan::vec2(1920, 1080));
     #else
       window = p.window;
     #endif
@@ -304,7 +303,7 @@ struct loco_t {
   void process_frame(const std::function<void()>& f) {
     #if fan_renderer == fan_renderer_opengl
     // get_context()->opengl.call(get_context()->opengl.glClearColor, 1, 0, 0, 0);
-    //get_context()->opengl.call(get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
+    get_context()->opengl.call(get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
     #endif
 
     m_write_queue.process(get_context());

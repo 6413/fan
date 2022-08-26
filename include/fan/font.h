@@ -54,15 +54,15 @@ namespace fan {
 				return found->second;
 			}
 
-		/*	uint16_t get_font_index(fan::character_t character) const {
-				auto found = characters.find(character.c);
+			uint16_t get_font_index(uint8_t character) const {
+				auto found = characters.find(character);
 			#if fan_debug >= fan_debug_low
 				if (found == characters.end()) {
 					fan::throw_error("failed to find character from font");
 				}
 			#endif
 				return std::distance(characters.begin(), found);
-			}*/
+			}
 			characters_t::const_iterator get_font_instance(uint16_t font_index) const {
 				fan::font::characters_t::const_iterator found = characters.begin();
 				std::advance(found, font_index);
@@ -71,7 +71,7 @@ namespace fan {
 			f32_t convert_font_size(f32_t font_size) const {
 				return font_size / this->size;
 			}
-			fan::font::single_info_t get_letter_info(uint16_t font_index, f32_t font_size) const {
+			/*fan::font::single_info_t get_letter_info(uint16_t font_index, f32_t font_size) const {
 
 				auto found = get_font_instance(font_index);
 
@@ -92,16 +92,18 @@ namespace fan {
 				font_info.mapping = found->second.mapping;
 
 				return font_info;
-			}
+			}*/
 
-			fan::font::single_info_t get_letter_info(wchar_t c, f32_t font_size) const {
-				auto found = this->characters.find(c);
+			fan::font::single_info_t get_letter_info(uint32_t c, f32_t font_size) const {
 
-			#if fan_debug >= fan_debug_low
-				if (found == characters.end()) {
-					throw std::runtime_error("failed to find character: " + std::to_string((int)c));
-				}
-			#endif
+				#if fan_debug >= fan_debug_low
+					if (c >= characters.size()) {
+						throw std::runtime_error("failed to find character: " + std::to_string((int)c));
+					}
+				#endif
+
+				auto found = characters.begin();
+				std::advance(found, c);
 
 				f32_t converted_size = convert_font_size(font_size);
 

@@ -35,7 +35,7 @@ struct button_t {
   };
 
   struct properties_t : instance_t {
-    fan::utf16_string text;
+    std::string text;
     f32_t font_size = 0.1;
     loco_t::vfi_t::mouse_button_cb_t mouse_button_cb = [](const loco_t::vfi_t::mouse_button_data_t&) -> void { return; };
     loco_t::vfi_t::mouse_move_cb_t mouse_move_cb = [](const loco_t::vfi_t::mouse_move_data_t&) -> void { return; };

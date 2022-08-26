@@ -43,5 +43,6 @@ R"(
 		o_color += (b+d+f+h)*2.0;
 		o_color += (a+c+g+i);
 		o_color *= 1.0 / 16.0;
+		//o_color = vec3(0, 0, 0);
 	}
 )"
