@@ -300,19 +300,17 @@ struct loco_t {
     }*/
   }
 
-  void process_frame(const std::function<void()>& f) {
+  void process_frame() {
     #if fan_renderer == fan_renderer_opengl
     // get_context()->opengl.call(get_context()->opengl.glClearColor, 1, 0, 0, 0);
     get_context()->opengl.call(get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
     #endif
 
-    m_write_queue.process(get_context());
-
     #ifdef loco_post_process
       post_process.start_capture();
     #endif
 
-    f();
+    m_write_queue.process(get_context());
 
     #if defined(loco_line)
       line.draw();
@@ -381,8 +379,10 @@ struct loco_t {
         get_window()->close();
         break;
       }
-      
-      process_frame(lambda);
+
+      lambda();
+
+      process_frame();
     }
   }
 
