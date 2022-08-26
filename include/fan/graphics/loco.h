@@ -309,7 +309,7 @@ struct loco_t {
 
     m_write_queue.process(get_context());
 
-    #ifndef loco_post_process
+    #ifdef loco_post_process
       post_process.start_capture();
     #endif
 
