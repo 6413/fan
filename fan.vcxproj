@@ -245,7 +245,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="examples\yuv420p.cpp" />
+    <ClCompile Include="examples\gui_maker_export.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
     <ClCompile Include="src\fan\window\window_input.cpp" />
   </ItemGroup>
