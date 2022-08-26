@@ -384,6 +384,10 @@ struct loco_t {
     }
   }
 
+  static loco_t* get_loco(fan::window_t* window) {
+    return OFFSETLESS(window, loco_t, window);
+  }
+
 protected:
 
   #ifdef loco_window
