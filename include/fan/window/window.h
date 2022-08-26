@@ -358,9 +358,6 @@ namespace fan {
 
 		uint32_t handle_events();
 
-		void* get_user_data() const;
-		void set_user_data(void* user_data);
-
 		bool key_pressed(uint16_t key) const;
 
 #if fan_renderer == fan_renderer_vulkan
@@ -470,8 +467,6 @@ namespace fan {
 		fan::color m_background_color;
 
 		fan::vec2i m_previous_mouse_position;
-
-		void* m_user_data;
 
 		struct flag_values {
 

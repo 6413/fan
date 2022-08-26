@@ -2141,16 +2141,6 @@ uint32_t fan::window_t::handle_events() {
   return m_event_flags;
 }
 
-void* fan::window_t::get_user_data() const
-{
-  return m_user_data;
-}
-
-void fan::window_t::set_user_data(void* user_data)
-{
-  m_user_data = user_data;
-}
-
 bool fan::window_t::key_pressed(uint16_t key) const
 {
   #if defined(fan_platform_windows)
