@@ -111,9 +111,9 @@ int main() {
   fan::print(loco_bdbt_usage(&pile.loco.bdbt));
   pile.loco.button.push_back(&cids[0], tp);
 
-  while(pile.loco.window_open(pile.loco.process_frame([]{}))) {
+  pile.loco.loop([&] {
 
-  }
+  });
 
   return 0;
 }

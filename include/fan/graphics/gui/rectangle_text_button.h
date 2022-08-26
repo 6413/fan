@@ -102,7 +102,7 @@ struct button_t {
         if (ii_d.flag->ignore_move_focus_check == false) {
           if (ii_d.button == fan::mouse_left && ii_d.button_state == fan::key_state::press) {
             loco->button.set_theme(cid, loco->button.get_theme(cid), press);
-            ii_d.flag->ignore_move_focus_check = true;
+            //ii_d.flag->ignore_move_focus_check = true;
             loco->vfi.set_focus_keyboard(loco->vfi.get_focus_mouse());
           }
         }
@@ -115,7 +115,7 @@ struct button_t {
               loco->button.set_theme(cid, loco->button.get_theme(cid), inactive);
             }
             ii_d.flag->ignore_move_focus_check = false;
-            loco->vfi.invalidate_focus_keyboard();
+            //loco->vfi.invalidate_focus_keyboard();
           }
         }
 

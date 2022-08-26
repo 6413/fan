@@ -127,7 +127,7 @@ struct text_renderer_t {
 
     for (uint32_t i = 0; i < properties.text.size(); i++) {
       p.letter_id = loco->font.decode_letter(properties.text[i]);
-      auto letter_info = loco->font.info.get_letter_info(properties.text[i], properties.font_size);
+      auto letter_info = loco->font.info.get_letter_info(p.letter_id, properties.font_size);
 
       p.position = fan::vec2(left - letter_info.metrics.offset.x, properties.position.y) + (fan::vec2(letter_info.metrics.size.x, properties.font_size - letter_info.metrics.size.y) / 2 + fan::vec2(letter_info.metrics.offset.x, -letter_info.metrics.offset.y));
       p.position.z = properties.position.z;
