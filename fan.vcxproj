@@ -245,15 +245,11 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="examples\bloom.cpp" />
+    <ClCompile Include="examples\gui_maker_export.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
     <ClCompile Include="src\fan\window\window_input.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="include\fan\graphics\glsl\opengl\2D\effects\bloom.fs" />
-    <None Include="include\fan\graphics\glsl\opengl\2D\effects\downsample.fs" />
-    <None Include="include\fan\graphics\glsl\opengl\2D\effects\downsample.vs" />
-    <None Include="include\fan\graphics\glsl\opengl\2D\effects\upsample.fs" />
     <None Include="src\dav1d\ext\x86\x86inc.asm" />
     <None Include="src\dav1d\x86\cdef16_avx2.asm" />
     <None Include="src\dav1d\x86\cdef16_sse.asm" />

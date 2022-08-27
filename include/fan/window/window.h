@@ -452,7 +452,7 @@ namespace fan {
 
 		bool m_close;
 
-		std::string m_name;
+		std::string* m_name;
 
 		uintptr_t m_flags;
 		uint64_t m_event_flags;
