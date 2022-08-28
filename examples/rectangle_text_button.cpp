@@ -101,7 +101,12 @@ int main() {
     fan::print(mm_d.position, (int)mm_d.mouse_stage);
   };
   tp.mouse_button_cb = [](const loco_t::mouse_button_data_t& ii_d) -> void {
-
+   /* if (ii_d.button_state == fan::key_state::press) {
+      ii_d.flag->ignore_move_focus_check = true;
+    }
+    else {
+      ii_d.flag->ignore_move_focus_check = false;
+    }*/
   };
   fan_2d::graphics::gui::themes::gray gray_theme;
   gray_theme.open(pile.loco.get_context());
