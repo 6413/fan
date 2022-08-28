@@ -31,14 +31,19 @@ struct button_t {
     loco_t::vfi_t::shape_id_t vfi_id;
     loco_t::vfi_t::mouse_button_cb_t mouse_button_cb;
     loco_t::vfi_t::mouse_move_cb_t mouse_move_cb;
+    loco_t::vfi_t::keyboard_cb_t keyboard_cb;
     uint64_t userptr;
   };
 
   struct properties_t : instance_t {
+    properties_t() {
+      mouse_button_cb = [](const loco_t::vfi_t::mouse_button_data_t&) -> void { return; };
+      mouse_move_cb = [](const loco_t::vfi_t::mouse_move_data_t&) -> void { return; };
+      keyboard_cb = [](const loco_t::vfi_t::keyboard_data_t&) -> void { return; };
+    }
+
     std::string text;
     f32_t font_size = 0.1;
-    loco_t::vfi_t::mouse_button_cb_t mouse_button_cb = [](const loco_t::vfi_t::mouse_button_data_t&) -> void { return; };
-    loco_t::vfi_t::mouse_move_cb_t mouse_move_cb = [](const loco_t::vfi_t::mouse_move_data_t&) -> void { return; };
 
     loco_t::vfi_t::iflags_t vfi_flags;
 
@@ -50,7 +55,11 @@ struct button_t {
         expand_all
         fan::opengl::theme_list_NodeReference_t theme;
         uint32_t text_id;
-        uint32_t be_id;
+        loco_t::vfi_t::shape_id_t vfi_id;
+        loco_t::vfi_t::mouse_button_cb_t mouse_button_cb;
+        loco_t::vfi_t::mouse_move_cb_t mouse_move_cb;
+        loco_t::vfi_t::keyboard_cb_t keyboard_cb;
+        uint64_t userptr;
       };
       instance_properties_t instance_properties;
     };
@@ -86,11 +95,13 @@ struct button_t {
         loco_t::mouse_move_data_t mmd = mm_d;
         fan::opengl::cid_t* cid = (fan::opengl::cid_t*)mm_d.udata;
         auto block = loco->button.sb_get_block(cid);
-        if (mm_d.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside) {
-          loco->button.set_theme(cid, loco->button.get_theme(cid), hover);
-        }
-        else {
-          loco->button.set_theme(cid, loco->button.get_theme(cid), inactive);
+        if (mm_d.flag->ignore_move_focus_check == false) {
+          if (mm_d.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside) {
+            loco->button.set_theme(cid, loco->button.get_theme(cid), hover);
+          }
+          else {
+            loco->button.set_theme(cid, loco->button.get_theme(cid), inactive);
+          }
         }
         mmd.udata = block->p[cid->instance_id].userptr;
         block->p[cid->instance_id].mouse_move_cb(mmd);
@@ -102,7 +113,7 @@ struct button_t {
         if (ii_d.flag->ignore_move_focus_check == false) {
           if (ii_d.button == fan::mouse_left && ii_d.button_state == fan::key_state::press) {
             loco->button.set_theme(cid, loco->button.get_theme(cid), press);
-            //ii_d.flag->ignore_move_focus_check = true;
+            ii_d.flag->ignore_move_focus_check = true;
             loco->vfi.set_focus_keyboard(loco->vfi.get_focus_mouse());
           }
         }
@@ -115,13 +126,20 @@ struct button_t {
               loco->button.set_theme(cid, loco->button.get_theme(cid), inactive);
             }
             ii_d.flag->ignore_move_focus_check = false;
-            //loco->vfi.invalidate_focus_keyboard();
           }
         }
 
         loco_t::mouse_button_data_t mid = ii_d;
         mid.udata = block->p[cid->instance_id].userptr;
         block->p[cid->instance_id].mouse_button_cb(mid);
+      };
+      vfip.keyboard_cb = [](const loco_t::keyboard_data_t& kd) -> void {
+        loco_t* loco = OFFSETLESS(kd.vfi, loco_t, vfi_var_name);
+        fan::opengl::cid_t* cid = (fan::opengl::cid_t*)kd.udata;
+        loco_t::keyboard_data_t kd_ = kd;
+        auto block = loco->button.sb_get_block(cid);
+        kd_.udata = block->p[cid->instance_id].userptr;
+        block->p[cid->instance_id].keyboard_cb(kd_);
       };
     }
 
@@ -247,6 +265,14 @@ struct button_t {
   uint64_t get_mouse_udata() {
     loco_t* loco = get_loco();
     auto udata = loco->vfi.get_mouse_udata();
+    fan::opengl::cid_t* cid = (fan::opengl::cid_t*)udata;
+    auto block = sb_get_block(cid);
+    return block->p[cid->instance_id].userptr;
+  }
+
+  uint64_t get_keyboard_udata() {
+    loco_t* loco = get_loco();
+    auto udata = loco->vfi.get_keyboard_udata();
     fan::opengl::cid_t* cid = (fan::opengl::cid_t*)udata;
     auto block = sb_get_block(cid);
     return block->p[cid->instance_id].userptr;

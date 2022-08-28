@@ -3,12 +3,11 @@
 struct vfi_t {
 
   loco_t* get_loco() {
-    return OFFSETLESS(this, loco_t, vfi);
+    return OFFSETLESS(this, loco_t, vfi_var_name);
   }
 
   void open() {
     focus.mouse.invalidate();
-    focus.method.mouse.flags.ignore_move_focus_check = false;
     focus.keyboard.invalidate();
     shape_list_open(&shape_list);
   }
@@ -101,6 +100,7 @@ struct vfi_t {
   struct common_shape_data_t { 
     mouse_move_cb_t mouse_move_cb;
     mouse_button_cb_t mouse_button_cb;
+    keyboard_cb_t keyboard_cb;
     f32_t depth;
     union{
       shape_data_always_t always; 
@@ -172,6 +172,7 @@ struct vfi_t {
     n->data.udata = p.udata;
     n->data.shape_data.mouse_move_cb = p.mouse_move_cb;
     n->data.shape_data.mouse_button_cb = p.mouse_button_cb;
+    n->data.shape_data.keyboard_cb = p.keyboard_cb;
     switch(p.shape_type) {
       case shape_t::always:{
         n->data.shape_data.depth = p.shape.always.z;
@@ -189,6 +190,9 @@ struct vfi_t {
     if (focus.mouse == id) {
       focus.mouse.invalidate();
     }
+    if (focus.keyboard == id) {
+      focus.keyboard.invalidate();
+    }
     shape_list_Unlink(&shape_list, id);
     shape_list_Recycle(&shape_list, id);
   }
@@ -203,12 +207,10 @@ struct vfi_t {
     n->data.shape_data.shape.rectangle.*member = value;
   }
 
-  fan::vec2 transform_position(const fan::vec2& p, fan::opengl::viewport_t* viewport, fan::opengl::matrices_t* matrices) {
+  static fan::vec2 transform_position(const fan::vec2& p, fan::opengl::viewport_t* viewport, fan::opengl::matrices_t* matrices) {
       
-    fan::vec2 viewport_position = viewport->get_viewport_position(); 
-    fan::vec2 viewport_size = viewport->get_viewport_size();
-
-    ////fan::vec2 ratio = viewport_size / viewport_size.max();
+    fan::vec2 viewport_position = viewport->get_position(); 
+    fan::vec2 viewport_size = viewport->get_size();
 
     f32_t l = matrices->coordinates.left;
     f32_t r = matrices->coordinates.right;
@@ -216,11 +218,9 @@ struct vfi_t {
     f32_t b = matrices->coordinates.bottom;
 
     fan::vec2 tp = p - viewport_position;
-    fan::vec2 d = viewport_size ;
+    fan::vec2 d = viewport_size;
     tp /= d;
-    tp -= fan::vec2(r, b) / 2;
-    tp *= 2;
-    tp *= matrices->ratio;
+    tp = fan::vec2(r * tp.x - l * tp.x + l, b * tp.y - t * tp.y + t);
     return tp;
   }
 
@@ -264,11 +264,16 @@ struct vfi_t {
     }
   }
 
+  void init_focus_mouse_flag() {
+    focus.method.mouse.flags.ignore_move_focus_check = false;
+  }
+
   shape_id_t get_focus_mouse() {
     return focus.mouse;
   }
   void set_focus_mouse(shape_id_t id) {
     focus.mouse = id;
+    init_focus_mouse_flag();
   }
   shape_id_t get_focus_keyboard() {
     return focus.mouse;
@@ -286,16 +291,25 @@ struct vfi_t {
   }
 
   uint64_t get_mouse_udata() {
-#if fan_debug >= fan_debug_low
+    #if fan_debug >= fan_debug_low
       if (focus.mouse.is_invalid()) {
           fan::throw_error("trying to get id even though none is selected");
       }
-#endif
+    #endif
     return shape_list_GetNodeByReference(&shape_list, focus.mouse)->data.udata;
   }
 
-  void feed_mouse_move(loco_t* loco, const fan::vec2& position) {
+  uint64_t get_keyboard_udata() {
+    #if fan_debug >= fan_debug_low
+      if (focus.keyboard.is_invalid()) {
+          fan::throw_error("trying to get id even though none is selected");
+      }
+    #endif
+    return shape_list_GetNodeByReference(&shape_list, focus.keyboard)->data.udata;
+  }
 
+  void feed_mouse_move(const fan::vec2& position) {
+    loco_t* loco = get_loco();
     focus.method.mouse.position = position;
     mouse_move_data_t mouse_move_data;
     mouse_move_data.vfi = this;
@@ -342,7 +356,7 @@ struct vfi_t {
       fan::vec2 tp = transform(position, n->data.shape_type, &n->data.shape_data);
       mouse_move_data.position = tp;
       mouse_move_data.mouse_stage = inside(loco, n->data.shape_type, &n->data.shape_data, tp);
-      focus.mouse = closest_z_nr;
+      set_focus_mouse(closest_z_nr);
       mouse_move_data.udata = n->data.udata;
       n->data.shape_data.mouse_move_cb(mouse_move_data);
       return;
@@ -351,7 +365,8 @@ struct vfi_t {
     return;
   }
 
-  void feed_mouse_button(loco_t* loco, uint16_t button, fan::key_state state) {
+  void feed_mouse_button(uint16_t button, fan::key_state state) {
+    loco_t* loco = get_loco();
     mouse_button_data_t mouse_button_data;
     mouse_button_data.vfi = this;
     if (focus.mouse.is_invalid()) {
@@ -383,8 +398,26 @@ struct vfi_t {
     if (mouse_button_data.mouse_stage == mouse_stage_e::outside) {
       if (focus.method.mouse.flags.ignore_move_focus_check == false) {
         focus.mouse.invalidate();
-        feed_mouse_move(loco, focus.method.mouse.position);
+        feed_mouse_move(focus.method.mouse.position);
       }
     }
+  }
+   void feed_keyboard(uint16_t key, fan::key_state key_state) {
+    loco_t* loco = get_loco();
+    keyboard_data_t keyboard_data;
+    keyboard_data.vfi = this;
+    if (focus.keyboard.is_invalid()) {
+      return;
+    }
+
+    keyboard_data.key = key;
+    keyboard_data.key_state = key_state;
+
+    auto* data = &shape_list_GetNodeByReference(&shape_list, focus.keyboard)->data;
+
+    keyboard_data.udata = data->udata;
+    shape_id_t bcbfk = focus.keyboard;
+
+    data->shape_data.keyboard_cb(keyboard_data);
   }
 };

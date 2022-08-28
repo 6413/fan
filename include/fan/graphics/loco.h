@@ -27,8 +27,10 @@ struct loco_t;
 struct loco_t {
   #define vfi_var_name vfi
   #include _FAN_PATH(graphics/gui/vfi.h)
+
   using mouse_move_data_t = vfi_t::mouse_move_data_t;
   using mouse_button_data_t = vfi_t::mouse_button_data_t;
+  using keyboard_data_t = vfi_t::keyboard_data_t;
 
   vfi_t vfi_var_name;
 
@@ -68,8 +70,8 @@ struct loco_t {
     auto node = fan::opengl::viewport_list_GetNodeByReference(&get_context()->viewport_list, viewport_id);
     node->data.viewport_id->set_viewport(
       get_context(),
-      node->data.viewport_id->get_viewport_position(),
-      node->data.viewport_id->get_viewport_size(),
+      node->data.viewport_id->get_position(),
+      node->data.viewport_id->get_size(),
       get_window()->get_size()
     );
   }
@@ -179,7 +181,7 @@ struct loco_t {
     vfi_var_name.open();
 
     #ifdef loco_window
-      window.open(fan::vec2(1920, 1080));
+      window.open(fan::vec2(800, 800));
     #else
       window = p.window;
     #endif
@@ -283,21 +285,16 @@ struct loco_t {
   }*/
 
   void feed_mouse_move(const fan::vec2& mouse_position) {
-    vfi.feed_mouse_move(this, mouse_position);
+    vfi.feed_mouse_move(mouse_position);
    
   }
 
   void feed_mouse_button(uint16_t button, fan::key_state key_state, const fan::vec2& mouse_position) {
-    vfi.feed_mouse_button(this, button, key_state);
+    vfi.feed_mouse_button(button, key_state);
   }
 
   void feed_keyboard(uint16_t key, fan::key_state key_state) {
-    /*for (uint32_t depth = max_depths; depth--; ) {
-      uint32_t r = element_depth[depth].keyboard_event.feed_keyboard(this, key, key_state, depth);
-      if (r == 0) {
-        break;
-      }
-    }*/
+    vfi.feed_keyboard(key, key_state);
   }
 
   void process_frame() {

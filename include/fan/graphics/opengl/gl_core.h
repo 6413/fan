@@ -179,12 +179,12 @@ namespace fan {
       void open(fan::opengl::context_t* context);
       void close(fan::opengl::context_t* context);
 
-      fan::vec2 get_viewport_position() const
+      fan::vec2 get_position() const
       {
         return viewport_position;
       }
 
-      fan::vec2 get_viewport_size() const
+      fan::vec2 get_size() const
       {
         return viewport_size;
       }
@@ -255,20 +255,18 @@ namespace fan{
       }
 
       void set_ortho(const fan::vec2& x, const fan::vec2& y, const fan::vec2& ratio_) {
-        ratio = ratio_;
-
         m_projection = fan::math::ortho<fan::mat4>(
-          x.x * ratio.x,
-          x.y * ratio.x,
-          y.y * ratio.y,
-          y.x * ratio.y,
+          x.x * ratio_.x,
+          x.y * ratio_.x,
+          y.y * ratio_.y,
+          y.x * ratio_.y,
           -1,
           0x10000
         );
-        coordinates.left = x.x;
-        coordinates.right = x.y;
-        coordinates.bottom = y.y;
-        coordinates.top = y.x;
+        coordinates.left = x.x * ratio_.x;
+        coordinates.right = x.y * ratio_.x;
+        coordinates.bottom = y.y * ratio_.y;
+        coordinates.top = y.x * ratio_.y;
 
         m_view[3][0] = 0;
         m_view[3][1] = 0;
@@ -295,7 +293,6 @@ namespace fan{
         };
         fan::vec4 v;
       }coordinates;
-      fan::vec2 ratio;
 
       matrices_list_NodeReference_t matrices_reference;
     };
