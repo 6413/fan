@@ -37,8 +37,7 @@ struct fgm_t {
     return (loco_t*)((uint8_t*)OFFSETLESS(this, pile_t, fgm_var_name) + offsetof(pile_t, loco_var_name));
   }
 
-  fan::vec2 editor_size;
-
+  // for -1 - 1 matrix
   fan::vec2 translate_viewport_position(const fan::vec2& value) {
     loco_t* loco = get_loco();
     fan::vec2 window_size = loco->get_window()->get_size();
@@ -66,6 +65,16 @@ struct fgm_t {
   fan::vec2 translate_to_global(const fan::vec2& position) const {
     return position / viewport[viewport_area::global].get_size() * 2 - 1;
   }
+  fan::vec2 get_viewport_dst(fan::opengl::viewport_t* from, fan::opengl::viewport_t* to) {
+    return (from->get_size() + from->get_position()) / (to->get_size() / 2) - 1;
+  }
+
+
+  void invalidate_focus() {
+    loco_t* loco = get_loco();
+    loco->vfi.invalidate_focus_mouse();
+    loco->vfi.invalidate_focus_keyboard();
+  }
 
   void open() {
     loco_t* loco = get_loco();
@@ -77,47 +86,8 @@ struct fgm_t {
     theme = fan_2d::graphics::gui::themes::deep_red();
     theme.open(loco->get_context());
 
-    loco->get_window()->add_keys_callback(loco, [](fan::window_t*, uint16_t key, fan::key_state key_state, void* userptr) {
-      //pile_t* pile = OFFSETLESS(userptr, pile_t, loco);
-      //if (!pile->fgm.is_selected(pile)) {
-      //  return;
-      //}
-      //switch(key) {
-      //  case fan::key_delete: {
-      //    switch(key_state) {
-      //      case fan::key_state::press: {
-      //        auto focused = pile->loco.button.get_mouse_move_focus_data();
-      //        instance_t* instance = (instance_t*)focused.udata;
-      //        switch (instance->shape) {
-      //          case shapes::button: {
-      //            pile->fgm.builder_button.erase(&instance->cid);
-      //            pile->fgm.active.clear();
-      //            pile->loco.vfi.invalidate_focus();
-      //            break;
-      //          }
-      //        }
-      //        break;
-      //      }
-      //    }
-      //    break;
-      //  }
-      //  case fan::key_up: {
-      //    ////auto focused = pile->loco.vfi.get_mouse_move_focus_data();
-      //    //instance_t* instance = (instance_t*)pile->fgm.selected;
-      //    //switch (instance->shape) {
-      //    //case shapes::button: {
-      //    //  instance->z++;
-      //    //  break;
-      //    //}
-      //    //}
-      //    //break;
-      //  }
-      //}
-    });
-
     static auto resize_cb = [] (fan::window_t* window, void* userptr) {
       fan::vec2 window_size = window->get_size();
-      //std::swap(ratio.x, ratio.y);
       fgm_t* fgm = (fgm_t*)userptr;
       pile_t* pile = OFFSETLESS(fgm, pile_t, fgm);
       fan::vec2 viewport_size = pile->fgm.translate_viewport_position(fan::vec2(1, 1));
@@ -134,10 +104,11 @@ struct fgm_t {
         1
       );
 
+      fan::vec2 viewport_position = pile->fgm.translate_viewport_position(pile->fgm.editor_position);
       viewport_size = pile->fgm.translate_viewport_position(pile->fgm.editor_size);
       pile->fgm.viewport[viewport_area::editor].set_viewport(
         pile->loco.get_context(),
-        0,
+        viewport_position,
         viewport_size,
         pile->loco.get_window()->get_size()
       );
@@ -148,12 +119,11 @@ struct fgm_t {
         ratio
       );
 
-      fan::vec2 top_viewport = pile->fgm.translate_viewport_position(fan::vec2(pile->fgm.editor_size.x, -1));
-      fan::print(top_viewport, pile->loco.get_window()->get_size());
-      viewport_size = pile->fgm.translate_viewport_position(fan::vec2(1, pile->fgm.line_y_offset_between_types_and_properties)) - top_viewport;
+      viewport_position = pile->fgm.translate_viewport_position(fan::vec2(pile->fgm.properties_line_position.x, -1));
+      viewport_size = pile->fgm.translate_viewport_position(fan::vec2(1, pile->fgm.line_y_offset_between_types_and_properties)) - viewport_position;
       pile->fgm.viewport[viewport_area::types].set_viewport(
         pile->loco.get_context(),
-        top_viewport,
+        viewport_position,
         viewport_size,
         pile->loco.get_window()->get_size()
       );
@@ -165,10 +135,10 @@ struct fgm_t {
         ratio
       );
 
-      top_viewport.y += pile->fgm.translate_viewport_position(fan::vec2(0, pile->fgm.line_y_offset_between_types_and_properties)).y;
+      viewport_position.y += pile->fgm.translate_viewport_position(fan::vec2(0, pile->fgm.line_y_offset_between_types_and_properties)).y;
       pile->fgm.viewport[viewport_area::properties].set_viewport(
         pile->loco.get_context(),
-        top_viewport,
+        viewport_position,
         viewport_size,
         pile->loco.get_window()->get_size()
       );
@@ -182,6 +152,49 @@ struct fgm_t {
 
       fan::vec3 src, dst;
 
+      fan::vec2 global_size_position = pile->fgm.get_viewport_dst(&pile->fgm.viewport[viewport_area::editor], &pile->fgm.viewport[viewport_area::global]);
+
+      src = pile->fgm.editor_position;
+      dst.x = global_size_position.x;
+      dst.y = src.y;
+
+      src.z = dst.z = 10;
+      pile->loco.line.set_line(
+        &pile->fgm.line.instance[0]->cid,
+        src,
+        dst
+      );
+
+      src = dst;
+      dst.y = global_size_position.y;
+
+      src.z = dst.z = 10;
+      pile->loco.line.set_line(
+        &pile->fgm.line.instance[1]->cid,
+        src,
+        dst
+      );
+
+      src = dst;
+      dst.x = pile->fgm.editor_position.x;
+
+      src.z = dst.z = 10;
+      pile->loco.line.set_line(
+        &pile->fgm.line.instance[2]->cid,
+        src,
+        dst
+      );
+
+      src = dst;
+      dst.y = pile->fgm.editor_position.y;
+
+      src.z = dst.z = 10;
+      pile->loco.line.set_line(
+        &pile->fgm.line.instance[3]->cid,
+        src,
+        dst
+      );
+
       src = pile->fgm.translate_to_global(
         pile->fgm.viewport[viewport_area::types].get_position()
       );
@@ -189,7 +202,7 @@ struct fgm_t {
       dst.y = pile->fgm.matrices[viewport_area::global].coordinates.bottom;
       src.z = dst.z = 10;
       pile->loco.line.set_line(
-        &pile->fgm.line.instance[0]->cid,
+        &pile->fgm.line.instance[4]->cid,
         src,
         dst
       );
@@ -203,7 +216,7 @@ struct fgm_t {
       );
       src.z = dst.z = 10;
       pile->loco.line.set_line(
-        &pile->fgm.line.instance[1]->cid,
+        &pile->fgm.line.instance[5]->cid,
         src,
         dst
       );
@@ -214,7 +227,9 @@ struct fgm_t {
     });
 
     // half size
-    editor_size = fan::vec2(0.5, 1);
+    properties_line_position = fan::vec2(0.5, 0);
+    editor_position = -0.9;
+    editor_size = properties_line_position.x - 0.1 + (-1.0 -editor_position.x);
 
     matrices[viewport_area::global].open(loco->get_context());
     matrices[viewport_area::editor].open(loco->get_context());
@@ -232,8 +247,7 @@ struct fgm_t {
     p.mouse_button_cb = [](const loco_t::mouse_button_data_t& mb) {
       pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco);
       pile->fgm.active.clear();
-      pile->loco.vfi.invalidate_focus_mouse();
-      pile->loco.vfi.invalidate_focus_keyboard();
+      pile->fgm.invalidate_focus();
     };
     loco->vfi.push_shape(p);
 
@@ -241,15 +255,21 @@ struct fgm_t {
     editor_button.open();
     builder_button.open();
     active.open();
-    menu.open(fan::vec2(1, button_size.y * 1.5));
+    menu.open(fan::vec2(1.05, button_size.y * 1.5));
 
     line_t::properties_t lp;
     lp.viewport = &viewport[viewport_area::global];
     lp.matrices = &matrices[viewport_area::global];
     lp.color = fan::colors::white;
-    // update these in resize
+    
+    // editor window
     line.push_back(lp);
-    lp.viewport = &viewport[viewport_area::global];
+    line.push_back(lp);
+    line.push_back(lp);
+    line.push_back(lp);
+
+    // properties
+    line.push_back(lp);
     line.push_back(lp);
 
     resize_cb(loco->get_window(), this);
@@ -264,8 +284,8 @@ struct fgm_t {
     editor_button.push_back(ebp);
 
     properties_menu_t::properties_t menup;
-    menup.text = "position";
-    menup.text_value = "100, 100";
+    menup.text = "ratio";
+    menup.text_value = "1, 1";
     menu.push_back(menup);
   }
   void close() {
@@ -329,24 +349,6 @@ struct fgm_t {
         if (ii_d.button != fan::mouse_left) {
           return;
         }
-        if (ii_d.button_state != fan::key_state::press) {
-          pile->fgm.builder_button.release();
-          if (!pile->fgm.viewport[viewport_area::editor].inside(pile->loco.get_mouse_position())) {
-            //switch (pile->loco.focus.shape_type) {
-            //  case loco_t::shapes::button: {
-            //    pile->fgm.builder_button.erase(&pile->loco, (fan::opengl::cid_t*)pile->loco.focus.shape_id);
-            //  /*  pile->loco.button.set_viewport(
-            //      &pile->loco,
-            //      (fan::opengl::cid_t*)pile->fgm.selected_index,
-            //      &pile->fgm.viewport[viewport_area::editor]
-            //    );*/
-            //    break;
-            //  }
-            //}
-          }
-          // pile->loco.focus.shape_type = fan::uninitialized;
-          return;
-        }
         if (ii_d.mouse_stage != loco_t::vfi_t::mouse_stage_e::inside) {
           return;
         }
@@ -359,7 +361,7 @@ struct fgm_t {
           pile->fgm.viewport[viewport_area::editor].get_size()
         );
 
-        bbp.size = scale_object_with_viewport(button_size, &pile->fgm.viewport[viewport_area::types], &pile->fgm.viewport[viewport_area::editor]);
+        bbp.size = button_size;
         //bbp.size = button_size;
         bbp.theme = &pile->fgm.theme;
         bbp.text = "button";
@@ -375,17 +377,6 @@ struct fgm_t {
       };
       loco->button.push_back(&instance[i]->cid, p);
     }
-   /* void sanitize_cid(fan::opengl::cid_t* cid) {
-      bool found = false;
-      for (auto i : cids) {
-        if (cid == i) {
-          found = true;
-        }
-      }
-      if (!found) {
-        fan::throw_error("invalid cid");
-      }
-    }*/
 
     fan::hector_t<instance_t*> instance;
   }editor_button;
@@ -442,6 +433,10 @@ struct fgm_t {
         }
         if (ii_d.button_state == fan::key_state::release) {
           pile->fgm.builder_button.release();
+          if (!pile->fgm.viewport[viewport_area::editor].inside(pile->loco.get_mouse_position())) {
+            pile->fgm.builder_button.erase(&instance->cid);
+            pile->fgm.active.clear();
+          }
           return;
         }
         if (ii_d.mouse_stage != loco_t::vfi_t::mouse_stage_e::inside) {
@@ -480,8 +475,7 @@ struct fgm_t {
             case shapes::button: {
               pile->fgm.builder_button.erase(&instance->cid);
               pile->fgm.active.clear();
-              pile->loco.vfi.invalidate_focus_keyboard();
-              pile->loco.vfi.invalidate_focus_mouse();
+              pile->fgm.invalidate_focus();
               break;
             }
             }
@@ -506,16 +500,6 @@ struct fgm_t {
       loco->button.erase(cid);
       release();
     }
-
-    //bool sanitize_cid(fan::opengl::cid_t* cid) {
-    //  bool found = false;
-    //  for (auto i : cids) {
-    //    if (cid == i) {
-    //      found = true;
-    //    }
-    //  }
-    //  return found;
-    //}
     fan::hector_t<instance_t*> instance;
   }builder_button;
 
@@ -578,7 +562,7 @@ struct fgm_t {
       }
     }
 
-    void move_corners(const corners_t& corners) {
+    void move_corners(const pile_t::fgm_t::corners_t& corners) {
       pile_t* pile = get_pile();
       if (!size()) {
         pile->fgm.active.push_corners(corners);
@@ -600,18 +584,6 @@ struct fgm_t {
     uint32_t size() const {
       return instance.size();
     }
-    //void sanitize_cid(fan::opengl::cid_t* cid) {
-    //  bool found = false;
-    //  for (auto i : cids) {
-    //    if (cid == i) {
-    //      found = true;
-    //    }
-    //  }
-    //  if (!found) {
-    //    fan::throw_error("invalid cid");
-    //  }
-    //}
-
     fan::hector_t<instance_t*> instance;
   }active;
 
@@ -679,4 +651,9 @@ struct fgm_t {
   uint32_t action_flag;
 
   fan::vec2 move_offset;
+
+  fan::vec2 properties_line_position;
+
+  fan::vec2 editor_position;
+  fan::vec2 editor_size;
 };

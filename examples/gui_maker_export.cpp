@@ -44,7 +44,7 @@ int main() {
 
   pile->open();
 
-  //pile->loco.set_vsync(false);
+  pile->loco.set_vsync(false);
   //pile->loco.get_window()->set_max_fps(5);
 
   pile->loco.loop([&] {
