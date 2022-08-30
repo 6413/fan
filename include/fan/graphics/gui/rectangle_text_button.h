@@ -47,7 +47,6 @@ struct button_t {
 
     loco_t::vfi_t::iflags_t vfi_flags;
 
-    uint64_t userptr;
     bool disable_highlight = false;
 
     union {

@@ -5,12 +5,12 @@ GPP = clang++
 
 
 DEBUGFLAGS = 
-RELEASEFLAGS = -s -fdata-sections -ffunction-sections -Wl,--gc-sections -mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -O3 -Os -flto -fno-unroll-loops -fno-exceptions -fno-rtti -mllvm --enable-merge-functions
+RELEASEFLAGS = -s -fdata-sections -ffunction-sections -Wl -mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -O3 -Os #-fno-exceptions -fno-rtti -flto -fno-unroll-loops -mllvm --enable-merge-functions 
 
 CFLAGS = -std=c++2a -w -I include -Wl  \
    #$(RELEASEFLAGS)
 
-BASE_PATH = 
+BASE_PATH =
 
 FAN_OBJECT_FOLDER=
 
@@ -18,7 +18,7 @@ ifeq ($(OS),Windows_NT)
 	AR = llvm-ar
 	RM = del 
 	LIBNAME = fan_windows_clang.a
-  BASE_PATH += lib/fan/
+  BASE_PATH +=C:/libs/fan/lib/fan/
   FAN_OBJECT_FOLDER = $(subst /,\,$(BASE_PATH))
 else
   BASE_PATH += lib/fan/
