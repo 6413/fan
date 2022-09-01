@@ -473,23 +473,21 @@ struct fgm_t {
 
         if (instance->holding_special_key) {
           fan::vec3 rs = pile->loco.button.get_size(&instance->cid);
+          fan::print("resizing", ii_d.position);
 
           static constexpr f32_t minimum_rectangle_size = 0.01;
-
-          if (rs.x < minimum_rectangle_size) {
-            rs.x = minimum_rectangle_size;
-            pile->fgm.resize_offset = ii_d.position;
-            //return;
-          }
-          if (rs.y < minimum_rectangle_size) {
-            rs.y = minimum_rectangle_size;
-            pile->fgm.resize_offset = ii_d.position;
-           // return;
-          }
-
           switch(pile->fgm.resize_side) {
           case fan_2d::collision::rectangle::sides_e::bottom_right: {
-            pile->loco.button.set_size(&instance->cid, rs + (ii_d.position - pile->fgm.resize_offset));
+            rs += (ii_d.position - pile->fgm.resize_offset);
+						if (rs.x < minimum_rectangle_size) {
+							rs.x = minimum_rectangle_size;
+							//return;
+						}
+						if (rs.y < minimum_rectangle_size) {
+							rs.y = minimum_rectangle_size;
+							// return;
+						}
+            pile->loco.button.set_size(&instance->cid, rs);
             pile->fgm.resize_offset = ii_d.position;
             break;
           }
