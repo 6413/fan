@@ -1047,6 +1047,31 @@ LRESULT fan::window_t::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lp
         break;
       }
 
+      for (uint16_t i = fan::first; i != fan::last; i++) {
+        if (GetAsyncKeyState(fan::window_input::convert_fan_to_keys(i))) {
+          if (i >= fan::mouse_left) {
+            auto it = fwindow->m_buttons_callback.begin();
+            while (it != fwindow->m_buttons_callback.end()) {
+              fwindow->m_buttons_callback.start_safe_next(it);
+
+              fwindow->m_buttons_callback[it].first(fwindow, i, key_state::release, fwindow->m_buttons_callback[it].second);
+
+              it = fwindow->m_buttons_callback.end_safe_next();
+            }
+          }
+          else {
+            auto it = fwindow->m_keys_callback.begin();
+            while (it != fwindow->m_keys_callback.end()) {
+              fwindow->m_keys_callback.start_safe_next(it);
+
+              fwindow->m_keys_callback[it].first(fwindow, i, key_state::release, fwindow->m_keys_callback[it].second);
+
+              it = fwindow->m_keys_callback.end_safe_next();
+            }
+          }
+        }
+      }
+
       fwindow->m_focused = false;
       break;
     }
@@ -1569,6 +1594,7 @@ uint32_t fan::window_t::handle_events() {
         }
 
         break;*/
+        break;
       }
       case WM_LBUTTONDOWN:
       {
