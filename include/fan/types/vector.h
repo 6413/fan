@@ -338,10 +338,9 @@ namespace fan {
 		template <typename T>
 		friend std::ofstream& operator<<(std::ofstream& os, const _vec2<T>& vector);
 
-		std::string to_string() const {
-			return std::string(std::to_string(this->x) + ' '+ std::to_string(this->y));
+		std::string to_string(int precision = 2) const {
+			return std::string(fan::to_string(this->x, precision) + ' '+ fan::to_string(this->y, precision));
 		}
-
 	};
 
 	template <typename _Ty = f32_t>
@@ -657,6 +656,9 @@ namespace fan {
 		template <typename T>
 		friend std::ostream& operator<<(std::ostream& os, const _vec3<T>& vector);
 
+		std::string to_string(int precision = 2) const {
+			return std::string(fan::to_string(this->x, precision) + ' '+ fan::to_string(this->y, precision) + ' '+ fan::to_string(this->z, precision));
+		}
 	};
 
 	template <typename _Ty = f32_t>
@@ -891,6 +893,14 @@ namespace fan {
 		template <typename T>
 		friend std::ostream& operator<<(std::ostream& os, const _vec4<T>& vector);
 
+		std::string to_string(int precision = 2) const {
+			return std::string(
+				fan::to_string(this->x, precision) + ' ' + 
+				fan::to_string(this->y, precision) + ' ' + 
+				fan::to_string(this->z, precision) + ' ' + 
+				fan::to_string(this->w, precision) 
+			);
+		}
 	};
 
 	template <typename T>

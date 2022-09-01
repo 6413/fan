@@ -1,20 +1,23 @@
 #include <fan/types/types.h>
 
-template <typename T>
-struct a_t{
-  void f() {
-    fan::print(sizeof(T));
-  }
-};
+#define name a_t
 
-struct b_t : a_t<b_t> {
-  void f2() {
-    fan::print(sizeof(*this));
-  }
-  uint32_t x{1};
+
+struct 
+	CONCAT(name, _)
+{
+
 };
+#ifdef BLL_set_declare_rest
+struct name : CONCAT(name, _) {
+	functions
+#endif
+}
+
+void open(name*) {
+
+}
 
 int main() {
-  b_t b;
-  b.f2();
+
 }

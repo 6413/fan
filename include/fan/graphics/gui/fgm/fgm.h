@@ -93,11 +93,20 @@ struct fgm_t {
 		return corners;
 	}
 
+  void open_editor_properties() {
+    menu.clear();
+    properties_menu_t::properties_t menup;
+    menup.text = "ratio";
+    menup.text_value = editor_ratio.to_string();
+    menu.push_back(menup);
+  }
+
   void open() {
     loco_t* loco = get_loco();
 
     line_y_offset_between_types_and_properties = 0.0;
 
+    editor_ratio = fan::vec2(1, 1);
     move_offset = 0;
     action_flag = 0;
     theme = fan_2d::graphics::gui::themes::deep_red();
@@ -262,6 +271,7 @@ struct fgm_t {
     p.mouse_button_cb = [](const loco_t::mouse_button_data_t& mb) {
       pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco);
       pile->fgm.invalidate_focus();
+      pile->fgm.open_editor_properties();
     };
     loco->vfi.push_shape(p);
 
@@ -296,10 +306,7 @@ struct fgm_t {
     ebp.text = "button";
     editor_button.push_back(ebp);
 
-    properties_menu_t::properties_t menup;
-    menup.text = "ratio";
-    menup.text_value = "1, 1";
-    menu.push_back(menup);
+    open_editor_properties();
   }
   void close() {
     line.close();
@@ -386,6 +393,7 @@ struct fgm_t {
         auto block = pile->loco.button.sb_get_block(builder_cid);
         pile->loco.vfi.set_focus_mouse(block->p[builder_cid->instance_id].vfi_id);
         pile->loco.vfi.feed_mouse_button(fan::mouse_left, fan::key_state::press);
+        pile->fgm.builder_button.open_properties(builder_cid);
         return;
       };
       loco->button.push_back(&instance[i]->cid, p);
@@ -402,6 +410,16 @@ struct fgm_t {
     }
     pile_t* get_pile() {
       return OFFSETLESS(get_loco(), pile_t, loco_var_name);
+    }
+
+    void open_properties(fan::opengl::cid_t* instance) {
+      auto pile = get_pile();
+      pile->fgm.menu.clear();
+
+      properties_menu_t::properties_t menup;
+      menup.text = "position";
+      menup.text_value = pile->loco.button.get_button(instance, &loco_t::button_t::instance_t::position).to_string();
+      pile->fgm.menu.push_back(menup);
     }
 
     void open() {
@@ -459,8 +477,8 @@ struct fgm_t {
         pile->fgm.click_position = ii_d.position;
         pile->fgm.move_offset =  fan::vec2(pile->loco.button.get_button(&instance->cid, &loco_t::button_t::instance_t::position)) - pile->fgm.click_position;
         pile->fgm.resize_offset = pile->fgm.click_position;
-        fan::vec3 rp = pile->loco.button.get_position(&instance->cid);
-        fan::vec3 rs = pile->loco.button.get_size(&instance->cid);
+        fan::vec3 rp = pile->loco.button.get_button(&instance->cid, &loco_t::button_t::instance_t::position);
+        fan::vec3 rs = pile->loco.button.get_button(&instance->cid, &loco_t::button_t::instance_t::size);
         pile->fgm.resize_side = fan_2d::collision::rectangle::get_side_collision(ii_d.position, rp, rs);
         return;
       };
@@ -472,26 +490,40 @@ struct fgm_t {
         instance_t* instance = (instance_t*)ii_d.udata;
 
         if (instance->holding_special_key) {
-          fan::vec3 rs = pile->loco.button.get_size(&instance->cid);
-          fan::print("resizing", ii_d.position);
+          fan::vec3 ps = pile->loco.button.get_button(&instance->cid, &loco_t::button_t::instance_t::position);
+          fan::vec3 rs = pile->loco.button.get_button(&instance->cid, &loco_t::button_t::instance_t::size);
 
-          static constexpr f32_t minimum_rectangle_size = 0.01;
-          switch(pile->fgm.resize_side) {
-          case fan_2d::collision::rectangle::sides_e::bottom_right: {
-            rs += (ii_d.position - pile->fgm.resize_offset);
-						if (rs.x < minimum_rectangle_size) {
-							rs.x = minimum_rectangle_size;
-							//return;
-						}
-						if (rs.y < minimum_rectangle_size) {
-							rs.y = minimum_rectangle_size;
-							// return;
-						}
-            pile->loco.button.set_size(&instance->cid, rs);
-            pile->fgm.resize_offset = ii_d.position;
-            break;
+          static constexpr f32_t minimum_rectangle_size = 0.03;
+          static constexpr fan::vec2i multiplier[] = { {-1, -1}, {1, -1}, {1, 1}, {-1, 1} };
+
+          rs += (ii_d.position - pile->fgm.resize_offset) * multiplier[pile->fgm.resize_side] / 2;
+
+          bool ret = 0;
+          auto set_rectangle_size = [&](auto fan::vec3::*c) {
+            if (rs.*c < minimum_rectangle_size) {
+              rs.*c = minimum_rectangle_size;
+              uint8_t offset = (4 - fan::ofof(c)) / 4;
+              if (rs[offset] > minimum_rectangle_size) {
+                pile->fgm.resize_offset[offset] = ii_d.position[offset];
+              }
+              ret = 1;
+            }
+          };
+
+          set_rectangle_size(&fan::vec3::x);
+          set_rectangle_size(&fan::vec3::y);
+
+          pile->loco.button.set_size(&instance->cid, rs);
+
+          ps += (ii_d.position - pile->fgm.resize_offset) / 2;
+          pile->loco.button.set_position(&instance->cid, ps);
+
+          if (ret) {
+            return;
           }
-          }
+
+          pile->fgm.resize_offset = ii_d.position;
+          pile->fgm.move_offset = fan::vec2(pile->loco.button.get_button(&instance->cid, &loco_t::button_t::instance_t::position)) - ii_d.position;
           return;
         }
 
@@ -561,6 +593,7 @@ struct fgm_t {
     void open(const fan::vec2& off) {
       instance.open();
       offset = off;
+      o_offset = off;
     }
     void close() {
       instance.close();
@@ -592,11 +625,23 @@ struct fgm_t {
       instance[i]->text_id = pile->loco.text.push_back(tp);
     }
 
+    void clear() {
+      auto loco = get_loco();
+      for (uint32_t i = 0; i < instance.size(); i++) {
+        loco->text.erase(instance[i]->text_id);
+        loco->button.erase(&instance[i]->cid);
+        delete instance[i];
+      }
+      instance.clear();
+      offset = o_offset;
+    }
+
     struct i_t : instance_t {
       uint32_t text_id;
     };
 
     fan::vec2 offset;
+    fan::vec2 o_offset;
     fan::hector_t<i_t*> instance;
   }menu;
 
@@ -616,4 +661,5 @@ struct fgm_t {
 
   fan::vec2 editor_position;
   fan::vec2 editor_size;
+  fan::vec2 editor_ratio;
 };

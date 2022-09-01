@@ -83,6 +83,7 @@ struct vfi_t {
     mouse_stage_e mouse_stage;
     focus_method_mouse_flag* flag;
     uint64_t udata;
+    uint64_t udata2;
   };
 
   struct keyboard_data_t {

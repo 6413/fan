@@ -26,6 +26,7 @@ struct button_t {
   struct instance_properties_t {
     struct key_t : parsed_masterpiece_t {}key;
 
+    uint8_t selected;
     fan::opengl::theme_list_NodeReference_t theme;
     uint32_t text_id;
     loco_t::vfi_t::shape_id_t vfi_id;
@@ -40,6 +41,7 @@ struct button_t {
       mouse_button_cb = [](const loco_t::vfi_t::mouse_button_data_t&) -> void { return; };
       mouse_move_cb = [](const loco_t::vfi_t::mouse_move_data_t&) -> void { return; };
       keyboard_cb = [](const loco_t::vfi_t::keyboard_data_t&) -> void { return; };
+      selected = 0;
     }
 
     std::string text;
@@ -52,6 +54,7 @@ struct button_t {
     union {
       struct {
         expand_all
+        uint8_t selected;
         fan::opengl::theme_list_NodeReference_t theme;
         uint32_t text_id;
         loco_t::vfi_t::shape_id_t vfi_id;
@@ -94,7 +97,7 @@ struct button_t {
         loco_t::mouse_move_data_t mmd = mm_d;
         fan::opengl::cid_t* cid = (fan::opengl::cid_t*)mm_d.udata;
         auto block = loco->button.sb_get_block(cid);
-        if (mm_d.flag->ignore_move_focus_check == false) {
+        if (mm_d.flag->ignore_move_focus_check == false && !block->p[cid->instance_id].selected) {
           if (mm_d.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside) {
             loco->button.set_theme(cid, loco->button.get_theme(cid), hover);
           }
@@ -109,14 +112,14 @@ struct button_t {
         loco_t* loco = OFFSETLESS(ii_d.vfi, loco_t, vfi_var_name);
         fan::opengl::cid_t* cid = (fan::opengl::cid_t*)ii_d.udata;
         auto block = loco->button.sb_get_block(cid);
-        if (ii_d.flag->ignore_move_focus_check == false) {
+        if (ii_d.flag->ignore_move_focus_check == false && !block->p[cid->instance_id].selected) {
           if (ii_d.button == fan::mouse_left && ii_d.button_state == fan::key_state::press) {
             loco->button.set_theme(cid, loco->button.get_theme(cid), press);
             ii_d.flag->ignore_move_focus_check = true;
             loco->vfi.set_focus_keyboard(loco->vfi.get_focus_mouse());
           }
         }
-        else {
+        else if (!block->p[cid->instance_id].selected) {
           if (ii_d.button == fan::mouse_left && ii_d.button_state == fan::key_state::release) {
             if (ii_d.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside) {
               loco->button.set_theme(cid, loco->button.get_theme(cid), hover);
@@ -130,6 +133,7 @@ struct button_t {
 
         loco_t::mouse_button_data_t mid = ii_d;
         mid.udata = block->p[cid->instance_id].userptr;
+        mid.udata2 = ii_d.udata;
         block->p[cid->instance_id].mouse_button_cb(mid);
       };
       vfip.keyboard_cb = [](const loco_t::keyboard_data_t& kd) -> void {
@@ -219,9 +223,6 @@ struct button_t {
     loco->text.set(block->p[cid->instance_id].text_id, member, value);
   }
 
-  fan::vec3 get_position(fan::opengl::cid_t* cid) {
-    return get_button(cid, &instance_t::position);
-  }
   void set_position(fan::opengl::cid_t* cid, const fan::vec3& position) {
     loco_t* loco = get_loco();
     auto block = sb_get_block(cid);
@@ -232,9 +233,6 @@ struct button_t {
       &loco_t::vfi_t::set_rectangle_t::position,
       position
     );
-  }
-  fan::vec3 get_size(fan::opengl::cid_t* cid) {
-    return get_button(cid, &instance_t::size);
   }
   void set_size(fan::opengl::cid_t* cid, const fan::vec3& size) {
     loco_t* loco = get_loco();
@@ -291,5 +289,11 @@ struct button_t {
     fan::opengl::cid_t* cid = (fan::opengl::cid_t*)udata;
     auto block = sb_get_block(cid);
     return block->p[cid->instance_id].userptr;
+  }
+
+  void set_selected(fan::opengl::cid_t* cid, bool flag) {
+    loco_t* loco = get_loco();
+    auto block = sb_get_block(cid);
+    block->p[cid->instance_id].selected = flag;
   }
 };

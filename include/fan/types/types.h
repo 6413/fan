@@ -141,6 +141,14 @@ namespace fan {
   }
 
   template <typename T>
+  std::string to_string(const T a_value, const int n = 2)
+  {
+    std::ostringstream out;
+    out.precision(n);
+    out << std::fixed << a_value;
+    return out.str();
+  }
+  template <typename T>
   std::wstring to_wstring(const T a_value, const int n = 2)
   {
     std::wostringstream out;
