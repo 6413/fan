@@ -456,11 +456,15 @@ struct fgm_t {
         }
         pile->fgm.action_flag |= action::move;
         auto viewport = pile->loco.button.get_viewport(&instance->cid);
-        pile->fgm.move_offset =  fan::vec2(pile->loco.button.get_button(&instance->cid, &loco_t::button_t::instance_t::position)) - ii_d.position;
+        pile->fgm.click_position = ii_d.position;
+        pile->fgm.move_offset =  fan::vec2(pile->loco.button.get_button(&instance->cid, &loco_t::button_t::instance_t::position)) - pile->fgm.click_position;
+        pile->fgm.resize_offset = pile->fgm.click_position;
+        fan::vec3 rp = pile->loco.button.get_position(&instance->cid);
+        fan::vec3 rs = pile->loco.button.get_size(&instance->cid);
+        pile->fgm.resize_side = fan_2d::collision::rectangle::get_side_collision(ii_d.position, rp, rs);
         return;
       };
       p.mouse_move_cb = [](const loco_t::mouse_move_data_t& ii_d) -> void {
-      
         if (ii_d.flag->ignore_move_focus_check == false) {
           return;
         }
@@ -468,12 +472,25 @@ struct fgm_t {
         instance_t* instance = (instance_t*)ii_d.udata;
 
         if (instance->holding_special_key) {
-          fan::vec3 rp = pile->loco.button.get_position(&instance->cid);
           fan::vec3 rs = pile->loco.button.get_size(&instance->cid);
-          uint8_t side = fan_2d::collision::rectangle::get_side_collision(ii_d.position, rp, rs);
-          switch(side) {
+
+          static constexpr f32_t minimum_rectangle_size = 0.01;
+
+          if (rs.x < minimum_rectangle_size) {
+            rs.x = minimum_rectangle_size;
+            pile->fgm.resize_offset = ii_d.position;
+            //return;
+          }
+          if (rs.y < minimum_rectangle_size) {
+            rs.y = minimum_rectangle_size;
+            pile->fgm.resize_offset = ii_d.position;
+           // return;
+          }
+
+          switch(pile->fgm.resize_side) {
           case fan_2d::collision::rectangle::sides_e::bottom_right: {
-            pile->loco.button.set_size(&instance->cid, 0.5);
+            pile->loco.button.set_size(&instance->cid, rs + (ii_d.position - pile->fgm.resize_offset));
+            pile->fgm.resize_offset = ii_d.position;
             break;
           }
           }
@@ -508,7 +525,7 @@ struct fgm_t {
           }
           break;
         }
-        case fan::key_left_alt: {
+        case fan::key_c: {
           instance->holding_special_key = kd.key_state == fan::key_state::release ? 0 : 1;
           break;
         }
@@ -594,6 +611,8 @@ struct fgm_t {
 
   fan::vec2 click_position;
   fan::vec2 move_offset;
+  fan::vec2 resize_offset;
+  uint8_t resize_side;
 
   fan::vec2 properties_line_position;
 
