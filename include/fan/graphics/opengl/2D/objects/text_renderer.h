@@ -152,6 +152,7 @@ struct text_renderer_t {
 
   template <typename T>
   T get(uint32_t id, T loco_t::letter_t::instance_t::*member) {
+    loco_t* loco = get_loco();
     return loco->letter.get(&letter_ids[id][0], member);
   }
   template <typename T, typename T2>
