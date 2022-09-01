@@ -17,6 +17,34 @@ namespace fan_2d {
 					   point.y >= src.y && point.y <= dst.y;
 			}
 
+
+			struct sides_e {
+				static constexpr uint8_t top_left = 0;
+				static constexpr uint8_t top_right = 1;
+				static constexpr uint8_t bottom_right = 2;
+				static constexpr uint8_t bottom_left = 3;
+			};
+
+			/* returns position of point
+					 |-------|
+			     | x | x |
+					 |---|---|
+					 | x | x |
+			     |---|---|
+			*/
+			uint8_t get_side_collision(const fan::vec2& point, const fan::vec2& p, const fan::vec2& s) {
+				if (point.x <= p.x && point.y <= p.y) {
+					return sides_e::top_left;
+				}
+				if (point.x >= p.x && point.y <= p.y) {
+					return sides_e::top_right;
+				}
+				if (point.x >= p.x && point.y >= p.y) {
+					return sides_e::bottom_right;
+				}
+				return sides_e::bottom_left;
+			}
+
 		//	constexpr fan::da_t<uintptr_t, 2> get_velocity_corners_2d(const fan::da_t<f_t, 2>& vel) {
 		//		if (vel[0] >= 0)
 		//			if (vel[1] >= 0)

@@ -219,6 +219,9 @@ struct button_t {
     loco->text.set(block->p[cid->instance_id].text_id, member, value);
   }
 
+  fan::vec3 get_position(fan::opengl::cid_t* cid) {
+    return get_button(cid, &instance_t::position);
+  }
   void set_position(fan::opengl::cid_t* cid, const fan::vec3& position) {
     loco_t* loco = get_loco();
     auto block = sb_get_block(cid);
@@ -228,6 +231,19 @@ struct button_t {
       block->p[cid->instance_id].vfi_id,
       &loco_t::vfi_t::set_rectangle_t::position,
       position
+    );
+  }
+  fan::vec3 get_size(fan::opengl::cid_t* cid) {
+    return get_button(cid, &instance_t::size);
+  }
+  void set_size(fan::opengl::cid_t* cid, const fan::vec3& size) {
+    loco_t* loco = get_loco();
+    auto block = sb_get_block(cid);
+    set_button(cid, &instance_t::size, size);
+    loco->vfi.set_rectangle(
+      block->p[cid->instance_id].vfi_id,
+      &loco_t::vfi_t::set_rectangle_t::size,
+      size
     );
   }
 

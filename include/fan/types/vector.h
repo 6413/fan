@@ -931,6 +931,10 @@ namespace fan {
 	using vec3i = _vec3<int>;
 	using vec4i = _vec4<int>;
 
+	using vec2si = vec2i;
+	using vec3si = vec3i;
+	using vec4si = vec4i;
+
 	using vec2ui = _vec2<uint32_t>;
 	using vec3ui = _vec3<uint32_t>;
 	using vec4ui = _vec4<uint32_t>;
