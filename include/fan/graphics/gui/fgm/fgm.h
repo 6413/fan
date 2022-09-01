@@ -4,6 +4,7 @@ struct fgm_t {
     f32_t z = 0;
     fan::opengl::cid_t cid;
     uint16_t shape;
+    uint8_t holding_special_key = 0;
   };
 
   struct shapes {
@@ -260,7 +261,6 @@ struct fgm_t {
     p.shape.always.z = 0;
     p.mouse_button_cb = [](const loco_t::mouse_button_data_t& mb) {
       pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco);
-      pile->fgm.active.clear();
       pile->fgm.invalidate_focus();
     };
     loco->vfi.push_shape(p);
@@ -268,9 +268,7 @@ struct fgm_t {
     line.open();
     editor_button.open();
     builder_button.open();
-    active.open();
     menu.open(fan::vec2(1.05, button_size.y * 1.5));
-		viewport_resize.open();
 
     line_t::properties_t lp;
     lp.viewport = &viewport[viewport_area::global];
@@ -302,8 +300,6 @@ struct fgm_t {
     menup.text = "ratio";
     menup.text_value = "1, 1";
     menu.push_back(menup);
-	
-		viewport_resize.move_corners(get_corners(editor_position, editor_size));
   }
   void close() {
     line.close();
@@ -452,7 +448,6 @@ struct fgm_t {
           pile->fgm.builder_button.release();
           if (!pile->fgm.viewport[viewport_area::editor].inside(pile->loco.get_mouse_position())) {
             pile->fgm.builder_button.erase(&instance->cid);
-            pile->fgm.active.clear();
           }
           return;
         }
@@ -462,7 +457,6 @@ struct fgm_t {
         pile->fgm.action_flag |= action::move;
         auto viewport = pile->loco.button.get_viewport(&instance->cid);
         pile->fgm.move_offset =  fan::vec2(pile->loco.button.get_button(&instance->cid, &loco_t::button_t::instance_t::position)) - ii_d.position;
-        pile->fgm.active.move_corners(pile->fgm.builder_button.get_corners(&instance->cid));
         return;
       };
       p.mouse_move_cb = [](const loco_t::mouse_move_data_t& ii_d) -> void {
@@ -472,26 +466,39 @@ struct fgm_t {
         }
         pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi_var_name), pile_t, loco_var_name);
         instance_t* instance = (instance_t*)ii_d.udata;
+
+        if (instance->holding_special_key) {
+          fan::vec3 rp = pile->loco.button.get_position(&instance->cid);
+          fan::vec3 rs = pile->loco.button.get_size(&instance->cid);
+          uint8_t side = fan_2d::collision::rectangle::get_side_collision(ii_d.position, rp, rs);
+          switch(side) {
+          case fan_2d::collision::rectangle::sides_e::bottom_right: {
+            pile->loco.button.set_size(&instance->cid, 0.5);
+            break;
+          }
+          }
+          return;
+        }
+
         fan::vec3 p;
         p.x = ii_d.position.x + pile->fgm.move_offset.x;
         p.y = ii_d.position.y + pile->fgm.move_offset.y;
         p.z = instance->z;
         pile->loco.button.set_position(&instance->cid, p);
-        pile->fgm.active.move_corners(pile->fgm.builder_button.get_corners(&instance->cid));
       };
       p.keyboard_cb = [](const loco_t::keyboard_data_t& kd) -> void {
         pile_t* pile = OFFSETLESS(OFFSETLESS(kd.vfi, loco_t, vfi_var_name), pile_t, loco_var_name);
+        auto udata = pile->loco.button.get_keyboard_udata();
+        instance_t* instance = (instance_t*)udata;
 
         switch (kd.key) {
         case fan::key_delete: {
           switch (kd.key_state) {
           case fan::key_state::press: {
-            auto udata = pile->loco.button.get_keyboard_udata();
-            instance_t* instance = (instance_t*)udata;
+            
             switch (instance->shape) {
             case shapes::button: {
               pile->fgm.builder_button.erase(&instance->cid);
-              pile->fgm.active.clear();
               pile->fgm.invalidate_focus();
               break;
             }
@@ -499,6 +506,10 @@ struct fgm_t {
             break;
           }
           }
+          break;
+        }
+        case fan::key_left_alt: {
+          instance->holding_special_key = kd.key_state == fan::key_state::release ? 0 : 1;
           break;
         }
         }
@@ -509,8 +520,6 @@ struct fgm_t {
       auto builder_cid = &instance[i]->cid;
       auto block = pile->loco.button.sb_get_block(builder_cid);
       pile->loco.vfi.set_focus_mouse(block->p[builder_cid->instance_id].vfi_id);
-      pile->fgm.active.move_corners(pile->fgm.builder_button.get_corners(&instance[i]->cid));
-
     }
     void erase(fan::opengl::cid_t* cid) {
       loco_t* loco = get_loco();
@@ -519,157 +528,6 @@ struct fgm_t {
     }
     fan::hector_t<instance_t*> instance;
   }builder_button;
-
-  struct active_rectangles_t {
-    using properties_t = loco_t::button_t::properties_t;
-
-    static constexpr f32_t r_size = 0.015;
-
-    loco_t* get_loco() {
-      return (loco_t*)((uint8_t*)OFFSETLESS(OFFSETLESS(this, fgm_t, active), pile_t, fgm_var_name) + offsetof(pile_t, loco_var_name));
-    }
-    pile_t* get_pile() {
-      return OFFSETLESS(get_loco(), pile_t, loco_var_name);
-    }
-
-    void open() {
-      instance.open();
-    }
-    void close() {
-      instance.close();
-    }
-    void push_back(properties_t& p) {
-      p.position.z = 1;
-      loco_t* loco = get_loco();
-      uint32_t i = instance.resize(instance.size() + 1);
-      instance[i] = new instance_t;
-      instance[i]->shape = shapes::button;
-      p.vfi_flags.ignore_button = true;
-      loco->button.push_back(&instance[i]->cid, p);
-    }
-    void push_corners(const corners_t& corners) {
-      pile_t* pile = get_pile();
-      active_rectangles_t::properties_t p;
-      p.size = r_size;
-      auto data = pile->loco.button.get_mouse_udata();
-      instance_t* instance = (instance_t*)data;
-      switch(instance->shape) {
-        case shapes::button: {
-          p.viewport = pile->loco.button.get_viewport(&instance->cid);
-          p.matrices = pile->loco.button.get_matrices(&instance->cid);
-          p.theme = pile->loco.button.get_theme(&instance->cid);
-          break;
-        }
-      }
-      for (uint32_t i = 0; i < corners.count; i++) {
-        p.position = corners.corners[i];
-        push_back(p);
-      }
-    }
-    void set_corners(const corners_t& corners) {
-      pile_t* pile = get_pile();
-      for (uint32_t i = 0; i < corners.count; i++) {
-        pile->loco.button.set_position(&instance[i]->cid, corners.corners[i]);
-      }
-    }
-
-    void move_corners(const pile_t::fgm_t::corners_t& corners) {
-      pile_t* pile = get_pile();
-      if (!size()) {
-        pile->fgm.active.push_corners(corners);
-      }
-      else {
-        pile->fgm.active.set_corners(corners);
-      }
-    }
-
-    void clear() {
-      pile_t* pile = get_pile();
-      for (uint32_t i = 0; i < instance.size(); i++) {
-        pile->loco.button.erase(&instance[i]->cid);
-        delete instance[i];
-      }
-      instance.clear();
-    }
-
-    uint32_t size() const {
-      return instance.size();
-    }
-    fan::hector_t<instance_t*> instance;
-  }active;
-
-	struct viewport_resize_t {
-    using properties_t = loco_t::button_t::properties_t;
-
-    static constexpr f32_t r_size = 0.015;
-
-    loco_t* get_loco() {
-      return (loco_t*)((uint8_t*)OFFSETLESS(OFFSETLESS(this, fgm_t, viewport_resize), pile_t, fgm_var_name) + offsetof(pile_t, loco_var_name));
-    }
-    pile_t* get_pile() {
-      return OFFSETLESS(get_loco(), pile_t, loco_var_name);
-    }
-
-    void open() {
-      instance.open();
-    }
-    void close() {
-      instance.close();
-    }
-    void push_back(properties_t& p) {
-      p.position.z = 1;
-      loco_t* loco = get_loco();
-      uint32_t i = instance.resize(instance.size() + 1);
-      instance[i] = new instance_t;
-      instance[i]->shape = shapes::button;
-      p.vfi_flags.ignore_button = true;
-      loco->button.push_back(&instance[i]->cid, p);
-    }
-    void push_corners(const corners_t& corners) {
-      pile_t* pile = get_pile();
-      viewport_resize_t::properties_t p;
-      p.size = r_size;
-		  p.viewport = &pile->fgm.viewport[viewport_area::global];
-			p.matrices = &pile->fgm.matrices[viewport_area::global];
-			static fan_2d::graphics::gui::theme_t theme = fan_2d::graphics::gui::themes::gray();
-			theme.open(pile->loco.get_context());
-			p.theme = &theme;
-      for (uint32_t i = 0; i < corners.count; i++) {
-        p.position = corners.corners[i];
-        push_back(p);
-      }
-    }
-    void set_corners(const corners_t& corners) {
-      pile_t* pile = get_pile();
-      for (uint32_t i = 0; i < corners.count; i++) {
-        pile->loco.button.set_position(&instance[i]->cid, corners.corners[i]);
-      }
-    }
-
-    void move_corners(const pile_t::fgm_t::corners_t& corners) {
-      pile_t* pile = get_pile();
-      if (!size()) {
-        pile->fgm.viewport_resize.push_corners(corners);
-      }
-      else {
-        pile->fgm.viewport_resize.set_corners(corners);
-      }
-    }
-
-    void clear() {
-      pile_t* pile = get_pile();
-      for (uint32_t i = 0; i < instance.size(); i++) {
-        pile->loco.button.erase(&instance[i]->cid);
-        delete instance[i];
-      }
-      instance.clear();
-    }
-
-    uint32_t size() const {
-      return instance.size();
-    }
-    fan::hector_t<instance_t*> instance;
-  }viewport_resize;
 
   struct properties_menu_t {
 
