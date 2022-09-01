@@ -107,6 +107,20 @@ struct loco_t {
       #define loco_text_box
     #endif
   #endif
+  #if defined(loco_menu_maker)
+   #if !defined(loco_letter)
+      #define loco_letter
+    #endif
+    #if !defined(loco_text)
+      #define loco_text
+    #endif
+    #if !defined(loco_text_box)
+      #define loco_text_box
+    #endif
+    #if !defined(loco_button)
+      #define loco_button
+    #endif
+  #endif
 
   #if defined(loco_line)
     #define sb_shape_var_name line
@@ -155,6 +169,52 @@ struct loco_t {
     #include _FAN_PATH(graphics/gui/rectangle_text_button.h)
     button_t sb_shape_var_name;
     #undef sb_shape_var_name
+  #endif
+  #if defined(loco_menu_maker)
+    #define sb_menu_maker_var_name menu_maker
+    #define sb_menu_maker_type_name menu_maker_base_t
+    #include _FAN_PATH(graphics/gui/menu_maker.h)
+    struct menu_maker_t {
+      using properties_t = menu_maker_base_t::properties_t;
+      using open_properties_t = menu_maker_base_t::open_properties_t;
+
+      #define BLL_set_BaseLibrary 1
+      #define BLL_set_prefix instance
+      #define BLL_set_type_node uint16_t
+      #define BLL_set_node_data menu_maker_base_t base;
+      #define BLL_set_Link 1
+      #include _FAN_PATH(BLL/BLL.h)
+
+      using id_t = instance_NodeReference_t;
+
+      loco_t* get_loco() {
+		    loco_t* loco = OFFSETLESS(this, loco_t, sb_menu_maker_var_name);
+		    return loco;
+	    }
+
+      void open() {
+        instance_open(&instances);
+      }
+      void close() {
+        instance_close(&instances);
+      }
+
+      instance_NodeReference_t push_menu(const open_properties_t& op) {
+        auto nr = instance_NewNodeLast(&instances);
+        auto node = instance_GetNodeByReference(&instances, nr);
+        node->data.base.open(op);
+        return nr;
+      }
+      void push_back(instance_NodeReference_t id, const properties_t& properties) {
+        auto node = instance_GetNodeByReference(&instances, id);
+        node->data.base.push_back(get_loco(), properties);
+      }
+
+      instance_t instances;
+
+    }sb_menu_maker_var_name;
+    #undef sb_menu_maker_var_name
+    #undef sb_menu_maker_type_name
   #endif
   #if defined(loco_post_process)
     #define sb_shader_vertex_path _FAN_PATH(graphics/glsl/opengl/2D/effects/post_process.vs)
@@ -233,6 +293,9 @@ struct loco_t {
     #if defined(loco_button)
       button.open();
     #endif
+    #if defined(loco_menu_maker)
+      menu_maker.open();
+    #endif
     #if defined(loco_post_process)
       fan::opengl::core::renderbuffer_t::properties_t rp;
       rp.size = get_window()->get_size();
@@ -269,6 +332,9 @@ struct loco_t {
     #endif
     #if defined(loco_button)
       button.close();
+    #endif
+    #if defined(loco_menu_maker)
+      menu_maker.close();
     #endif
     #if defined(loco_post_process)
       post_process.close();
@@ -332,7 +398,6 @@ struct loco_t {
     #if defined(loco_post_process)
       post_process.draw();
     #endif
-
     #ifdef loco_window
       get_context()->render(get_window());
     #endif
