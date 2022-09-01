@@ -592,6 +592,7 @@ struct fgm_t {
 
   uint32_t action_flag;
 
+  fan::vec2 click_position;
   fan::vec2 move_offset;
 
   fan::vec2 properties_line_position;

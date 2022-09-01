@@ -9,11 +9,6 @@
   #define _FAN_PATH(p0) <FAN_INCLUDE_PATH/fan/p0>
 #endif
 
-// TBD
-#if __cplusplus >= 199711L
-  #define fan_std23
-#endif
-
 #include <iostream>
 #include <array>
 #include <vector>
@@ -55,7 +50,12 @@
 
 #endif
 
-#if defined(fan_std23) && defined(fan_compiler_visual_studio)
+// TBD
+#if __cplusplus >= 199711L && defined(fan_compiler_visual_studio)
+  #define fan_std23
+#endif
+
+#if defined(fan_std23)
   #include <stacktrace>
 #endif
 

@@ -219,8 +219,8 @@ void fan::window_t::set_name(const std::string& name)
 
   #elif defined(fan_platform_unix)
 
-  XStoreName(fan::sys::m_display, m_window_handle, name->c_str());
-  XSetIconName(fan::sys::m_display, m_window_handle, name->c_str());
+  XStoreName(fan::sys::m_display, m_window_handle, m_name->c_str());
+  XSetIconName(fan::sys::m_display, m_window_handle, m_name->c_str());
 
   #endif
 
