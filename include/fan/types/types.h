@@ -9,6 +9,11 @@
   #define _FAN_PATH(p0) <FAN_INCLUDE_PATH/fan/p0>
 #endif
 
+// TBD
+#if __cplusplus >= 199711L
+  #define fan_std23
+#endif
+
 #include <iostream>
 #include <array>
 #include <vector>
@@ -16,6 +21,43 @@
 #include <functional>
 #include <type_traits>
 #include <cstdint>
+
+#if defined(_WIN32) || defined(_WIN64)
+
+ //constexpr platform_t platform = platform_t::windows;
+#define fan_platform_windows
+
+#ifdef _MSC_VER
+#define fan_compiler_visual_studio
+#elif defined(__clang__)
+#define fan_compiler_clang
+#elif defined(__GNUC__)
+#define fan_compiler_gcc
+#endif
+#elif defined(__ANDROID__ )
+
+#define fan_platform_android
+
+#elif defined(__linux__)
+
+// constexpr platform_t platform = platform_t::windows;
+#define fan_platform_linux
+#define fan_platform_unix
+
+#elif defined(__unix__)
+
+#define fan_platform_unix
+
+#elif defined(__FreeBSD__)
+
+#define fan_platform_freebsd
+#define fan_platform_unix
+
+#endif
+
+#if defined(fan_std23) && defined(fan_compiler_visual_studio)
+  #include <stacktrace>
+#endif
 
 typedef intptr_t si_t;
 //typedef uintptr_t uint_t;
@@ -111,41 +153,6 @@ namespace fan {
   constexpr bool is_flag(T value, T2 flag) {
     return (value & flag) == flag;
   }
-
-  //enum class platform_t { windows, linux };
-
-  #if defined(_WIN32) || defined(_WIN64)
-
-  //constexpr platform_t platform = platform_t::windows;
-  #define fan_platform_windows
-
-  #ifdef _MSC_VER
-  #define fan_compiler_visual_studio
-  #elif defined(__clang__)
-  #define fan_compiler_clang
-  #elif defined(__GNUC__)
-  #define fan_compiler_gcc
-  #endif
-  #elif defined(__ANDROID__ )
-
-  #define fan_platform_android
-
-  #elif defined(__linux__)
-
- // constexpr platform_t platform = platform_t::windows;
-  #define fan_platform_linux
-  #define fan_platform_unix
-
-  #elif defined(__unix__)
-
-  #define fan_platform_unix
-
-  #elif defined(__FreeBSD__)
-
-  #define fan_platform_freebsd
-  #define fan_platform_unix
-
-  #endif
 
   template <bool _Test, uintptr_t _Ty1, uintptr_t _Ty2>
   struct conditional_value {
@@ -362,6 +369,22 @@ namespace fan {
 
     return result;
   }
+
+
+  namespace debug {
+
+    static void print_stacktrace() {
+#ifdef fan_std23
+      std::stacktrace st;
+      fan::print(st.current());
+#elif defined(fan_platform_unix)
+      // waiting for stacktrace to be released for clang lib++
+#else
+      fan::print("stacktrace not supported");
+#endif
+    }
+  }
+
 }
 
 
