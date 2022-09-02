@@ -332,7 +332,7 @@ namespace fan {
 
   template <typename T, typename U>
   constexpr auto ofof(U T::* member) {
-    return ((::size_t) & reinterpret_cast<char const volatile&>((((T*)0)->*member)));
+    return (char*)&((T*)nullptr->*member) - (char*)nullptr;
   }
 
   //template <typename T, typename U>
