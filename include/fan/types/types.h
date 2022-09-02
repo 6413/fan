@@ -330,10 +330,68 @@ namespace fan {
     return pair_t<T, T2>{a, b};
   }
 
-  template <typename T, typename U>
-  constexpr auto ofof(U T::* member) {
-    return (char*)&((T*)nullptr->*member) - (char*)nullptr;
-  }
+#pragma pack(push, 1)
+	template <typename Member, std::size_t O>
+	struct Pad {
+		char pad[O];
+		Member m;
+	};
+#pragma pack(pop)
+
+	template<typename Member>
+	struct Pad<Member, 0> {
+		Member m;
+	};
+
+	template <typename Base, typename Member, std::size_t O>
+	struct MakeUnion {
+		union U {
+			char c;
+			Base base;
+			Pad<Member, O> pad;
+			constexpr U() noexcept : c{} {};
+		};
+		constexpr static U u{};
+	};
+
+	template <typename Member, typename Base, typename Orig>
+	struct ofof_impl {
+		template<std::size_t off, auto union_part = &MakeUnion<Base, Member, off>::u>
+		static constexpr std::ptrdiff_t offset2(Member Orig::* member) {
+			if constexpr (off > sizeof(Base)) {
+				throw 1;
+			}
+			else {
+				const auto diff1 = &((static_cast<const Orig*>(&union_part->base))->*member);
+				const auto diff2 = &union_part->pad.m;
+				if (diff1 > diff2) {
+					constexpr auto MIN = sizeof(Member) < alignof(Orig) ? sizeof(Member) : alignof(Orig);
+					return offset2<off + MIN>(member);
+				}
+				else {
+					return off;
+				}
+			}
+		}
+	};
+
+
+	template<class Member, class Base>
+	std::tuple<Member, Base> get_types(Member Base::*);
+
+	template <class TheBase = void, class TT>
+	inline constexpr std::ptrdiff_t ofof(TT member) {
+		using T = decltype(get_types(std::declval<TT>()));
+		using Member = std::tuple_element_t<0, T>;
+		using Orig = std::tuple_element_t<1, T>;
+		using Base = std::conditional_t<std::is_void_v<TheBase>, Orig, TheBase>;
+		return ofof_impl<Member, Base, Orig>::template offset2<0>(member);
+	}
+
+	template <auto member, class TheBase = void>
+	inline constexpr std::ptrdiff_t ofof() {
+		return ofof<TheBase>(member);
+	}
 
   //template <typename T, typename U>
   //constexpr auto offsetless(void* ptr, U T::* member) {
