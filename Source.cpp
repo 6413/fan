@@ -1,23 +1,15 @@
+#include <iostream>
 #include <fan/types/types.h>
 
-#define name a_t
+struct st_t {
+  int a;
 
-
-struct 
-	CONCAT(name, _)
-{
-
+  template <typename T>
+  static constexpr auto AN(T st_t::* x) {
+    return fan::ofof(x) / sizeof(int);
+  }
 };
-#ifdef BLL_set_declare_rest
-struct name : CONCAT(name, _) {
-	functions
-#endif
-}
-
-void open(name*) {
-
-}
 
 int main() {
-
+  constexpr auto x = st_t::AN(&st_t::a);
 }
