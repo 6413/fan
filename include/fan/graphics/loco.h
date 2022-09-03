@@ -28,9 +28,32 @@ struct loco_t {
   #define vfi_var_name vfi
   #include _FAN_PATH(graphics/gui/vfi.h)
 
-  using mouse_move_data_t = vfi_t::mouse_move_data_t;
-  using mouse_button_data_t = vfi_t::mouse_button_data_t;
-  using keyboard_data_t = vfi_t::keyboard_data_t;
+  struct mouse_move_data_t : vfi_t::mouse_move_data_t {
+    mouse_move_data_t(const vfi_t::mouse_move_data_t& mm) : vfi_t::mouse_move_data_t(mm) {
+
+    }
+
+    fan::opengl::cid_t* cid;
+  };
+  struct mouse_button_data_t : vfi_t::mouse_button_data_t{
+    mouse_button_data_t(const vfi_t::mouse_button_data_t& mm) : vfi_t::mouse_button_data_t(mm) {
+
+    }
+
+    fan::opengl::cid_t* cid;
+  };
+  struct keyboard_data_t : vfi_t::keyboard_data_t {
+    keyboard_data_t(const vfi_t::keyboard_data_t& mm) : vfi_t::keyboard_data_t(mm) {
+
+    }
+
+    fan::opengl::cid_t* cid;
+  };
+
+  typedef void(*mouse_move_cb_t)(const mouse_move_data_t&);
+  typedef void(*mouse_button_cb_t)(const mouse_button_data_t&);
+
+  typedef void(*keyboard_cb_t)(const keyboard_data_t&);
 
   vfi_t vfi_var_name;
 
@@ -183,6 +206,7 @@ struct loco_t {
       #define BLL_set_type_node uint16_t
       #define BLL_set_node_data menu_maker_base_t base;
       #define BLL_set_Link 1
+      #define BLL_set_StoreFormat 1
       #include _FAN_PATH(BLL/BLL.h)
 
       using id_t = instance_NodeReference_t;
@@ -202,12 +226,22 @@ struct loco_t {
       instance_NodeReference_t push_menu(const open_properties_t& op) {
         auto nr = instance_NewNodeLast(&instances);
         auto node = instance_GetNodeByReference(&instances, nr);
-        node->data.base.open(op);
+        node->data.base.open(get_loco(), op);
         return nr;
+      }
+      void erase_menu(instance_NodeReference_t id) {
+        auto node = instance_GetNodeByReference(&instances, id);
+        node->data.base.close(get_loco());
+        instance_Unlink(&instances, id);
+        instance_Recycle(&instances, id);
       }
       void push_back(instance_NodeReference_t id, const properties_t& properties) {
         auto node = instance_GetNodeByReference(&instances, id);
         node->data.base.push_back(get_loco(), properties);
+      }
+      fan::opengl::cid_t* get_selected(instance_NodeReference_t id) {
+        auto node = instance_GetNodeByReference(&instances, id);
+        return node->data.base.selected;
       }
 
       instance_t instances;

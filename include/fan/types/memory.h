@@ -250,6 +250,31 @@ namespace fan {
     type_t* ptr;
   };
 
+  template <typename type_t>
+  struct hector_vector_t {
+
+    void open() {
+      ptr.open();
+    }
+    void close() {
+      ptr.close();
+    }
+
+    auto size() {
+      return ptr->size();
+    }
+
+    auto operator[](auto i) {
+      return (*ptr)[i];
+    }
+
+    void push_back(const auto& v) {
+      ptr->push_back(v);
+    }
+
+    fan::ptr_maker_t<std::vector<type_t>> ptr;
+  };
+
 }
 
 namespace fan {

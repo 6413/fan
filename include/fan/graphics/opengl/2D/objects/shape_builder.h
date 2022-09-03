@@ -192,8 +192,8 @@ void set(fan::opengl::cid_t *cid, T instance_t::*member, const T2& value) {
   block->uniform_buffer.common.edit(
     loco->get_context(),
     &loco->m_write_queue,
-    cid->instance_id * sizeof(instance_t) + fan::ofof<instance_t, T>(member),
-    cid->instance_id * sizeof(instance_t) + fan::ofof<instance_t, T>(member) + sizeof(T)
+    cid->instance_id * sizeof(instance_t) + fan::ofof(member),
+    cid->instance_id * sizeof(instance_t) + fan::ofof(member) + sizeof(T)
   );
 }
 
