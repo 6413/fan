@@ -30,17 +30,17 @@ struct button_t {
     fan::opengl::theme_list_NodeReference_t theme;
     uint32_t text_id;
     loco_t::vfi_t::shape_id_t vfi_id;
-    loco_t::vfi_t::mouse_button_cb_t mouse_button_cb;
-    loco_t::vfi_t::mouse_move_cb_t mouse_move_cb;
-    loco_t::vfi_t::keyboard_cb_t keyboard_cb;
+    loco_t::mouse_button_cb_t mouse_button_cb;
+    loco_t::mouse_move_cb_t mouse_move_cb;
+    loco_t::keyboard_cb_t keyboard_cb;
     uint64_t userptr;
   };
 
   struct properties_t : instance_t {
     properties_t() {
-      mouse_button_cb = [](const loco_t::vfi_t::mouse_button_data_t&) -> void { return; };
-      mouse_move_cb = [](const loco_t::vfi_t::mouse_move_data_t&) -> void { return; };
-      keyboard_cb = [](const loco_t::vfi_t::keyboard_data_t&) -> void { return; };
+      mouse_button_cb = [](const loco_t::mouse_button_data_t&) -> void { return; };
+      mouse_move_cb = [](const loco_t::mouse_move_data_t&) -> void { return; };
+      keyboard_cb = [](const loco_t::keyboard_data_t&) -> void { return; };
       selected = 0;
     }
 
@@ -58,9 +58,9 @@ struct button_t {
         fan::opengl::theme_list_NodeReference_t theme;
         uint32_t text_id;
         loco_t::vfi_t::shape_id_t vfi_id;
-        loco_t::vfi_t::mouse_button_cb_t mouse_button_cb;
-        loco_t::vfi_t::mouse_move_cb_t mouse_move_cb;
-        loco_t::vfi_t::keyboard_cb_t keyboard_cb;
+        loco_t::mouse_button_cb_t mouse_button_cb;
+        loco_t::mouse_move_cb_t mouse_move_cb;
+        loco_t::keyboard_cb_t keyboard_cb;
         uint64_t userptr;
       };
       instance_properties_t instance_properties;
@@ -92,7 +92,7 @@ struct button_t {
     vfip.udata = (uint64_t)cid;
     vfip.flags = p.vfi_flags;
     if (!p.disable_highlight) {
-      vfip.mouse_move_cb = [](const loco_t::mouse_move_data_t& mm_d) -> void {
+      vfip.mouse_move_cb = [](const loco_t::vfi_t::mouse_move_data_t& mm_d) -> void {
         loco_t* loco = OFFSETLESS(mm_d.vfi, loco_t, vfi_var_name);
         loco_t::mouse_move_data_t mmd = mm_d;
         fan::opengl::cid_t* cid = (fan::opengl::cid_t*)mm_d.udata;
@@ -106,9 +106,10 @@ struct button_t {
           }
         }
         mmd.udata = block->p[cid->instance_id].userptr;
+        mmd.cid = cid;
         block->p[cid->instance_id].mouse_move_cb(mmd);
       };
-      vfip.mouse_button_cb = [](const loco_t::mouse_button_data_t& ii_d) -> void {
+      vfip.mouse_button_cb = [](const loco_t::vfi_t::mouse_button_data_t& ii_d) -> void {
         loco_t* loco = OFFSETLESS(ii_d.vfi, loco_t, vfi_var_name);
         fan::opengl::cid_t* cid = (fan::opengl::cid_t*)ii_d.udata;
         auto block = loco->button.sb_get_block(cid);
@@ -132,16 +133,17 @@ struct button_t {
         }
 
         loco_t::mouse_button_data_t mid = ii_d;
+        mid.cid = cid;
         mid.udata = block->p[cid->instance_id].userptr;
-        mid.udata2 = ii_d.udata;
         block->p[cid->instance_id].mouse_button_cb(mid);
       };
-      vfip.keyboard_cb = [](const loco_t::keyboard_data_t& kd) -> void {
+      vfip.keyboard_cb = [](const loco_t::vfi_t::keyboard_data_t& kd) -> void {
         loco_t* loco = OFFSETLESS(kd.vfi, loco_t, vfi_var_name);
         fan::opengl::cid_t* cid = (fan::opengl::cid_t*)kd.udata;
         loco_t::keyboard_data_t kd_ = kd;
         auto block = loco->button.sb_get_block(cid);
         kd_.udata = block->p[cid->instance_id].userptr;
+        kd_.cid = cid;
         block->p[cid->instance_id].keyboard_cb(kd_);
       };
     }
@@ -152,7 +154,7 @@ struct button_t {
     block->p[cid->instance_id].userptr = p.userptr;
   }
   void erase(fan::opengl::cid_t* cid) {
-    loco_t* loco = OFFSETLESS(this, loco_t, button);
+    loco_t* loco = get_loco();
     auto block = sb_get_block(cid);
     instance_properties_t* p = &block->p[cid->instance_id];
     loco->text.erase(p->text_id);
@@ -170,22 +172,26 @@ struct button_t {
 
   void open() {
     sb_open();
+    loco_t* loco = get_loco();
   }
   void close() {
+    loco_t* loco = get_loco();
+    // check erase, need to somehow iterate block
+    assert(0);
     sb_close();
   }
 
   fan_2d::graphics::gui::theme_t* get_theme(fan::opengl::theme_list_NodeReference_t nr) {
-    loco_t* loco = OFFSETLESS(this, loco_t, button);
+    loco_t* loco = get_loco();
     return fan::opengl::theme_list_GetNodeByReference(&loco->get_context()->theme_list, nr)->data.theme_id;
   }
   fan_2d::graphics::gui::theme_t* get_theme(fan::opengl::cid_t* cid) {
-    loco_t* loco = OFFSETLESS(this, loco_t, button);
+    loco_t* loco = get_loco();
     auto block_node = bll_block_GetNodeByReference(&blocks, *(bll_block_NodeReference_t*)&cid->block_id);
     return get_theme(block_node->data.block.p[cid->instance_id].theme);
   }
   void set_theme(fan::opengl::cid_t* cid, fan_2d::graphics::gui::theme_t* theme, f32_t intensity) {
-    loco_t* loco = OFFSETLESS(this, loco_t, button);
+    loco_t* loco = get_loco();
     fan_2d::graphics::gui::theme_t t = *theme;
     t = t * intensity;
     set(cid, &instance_t::color, t.button.color);
@@ -201,7 +207,7 @@ struct button_t {
 
   template <typename T>
   T get_button(fan::opengl::cid_t* cid, T instance_t::* member) {
-    loco_t* loco = OFFSETLESS(this, loco_t, button);
+    loco_t* loco = get_loco();
     return loco->button.get(cid, member);
   }
   template <typename T, typename T2>

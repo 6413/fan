@@ -72,9 +72,9 @@ int main() {
 	fan::opengl::image_t image;
 	fan::opengl::image_t::load_properties_t lp;
 	lp.filter = fan::opengl::GL_LINEAR;
-	image.load(pile->loco.get_context(), "images/sky.webp");
+	image.load(pile->loco.get_context(), "images/b.webp");
 	p.image = &image;
-	p.size = 1;
+	p.size = fan::cast<f32_t>(image.size) / pile->loco.get_window()->get_size();
 	p.position = 0;
 	p.position.z = 0;
 	pile->loco.sprite.push_back(&pile->cids[0], p);

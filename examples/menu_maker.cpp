@@ -40,13 +40,8 @@ struct pile_t {
       pile->viewport.set_viewport(pile->loco.get_context(), 0, pile->loco.get_window()->get_size(), pile->loco.get_window()->get_size());
      });
 
-    fan::vec2 position = 0;
-    fan::vec2 size = loco.get_window()->get_size();
-    //position.y -= 200;
-    //position.y += size.y / 2;
-    //size.y /= 2;
     viewport.open(loco.get_context());
-    viewport.set_viewport(loco.get_context(), position, size, loco.get_window()->get_size());
+    viewport.set_viewport(loco.get_context(), position, window_size, window_size);
   }
 
   loco_t loco;
@@ -96,13 +91,11 @@ int main() {
         return;
       }
       pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco);
-      fan::opengl::cid_t* cid = (fan::opengl::cid_t*)mb.udata2;
+      fan::opengl::cid_t* cid = mb.cid;
       if (mb.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside) {
-        pile->loco.button.set_selected(cid, true);
         pile->loco.button.set_theme(cid, pile->loco.button.get_theme(cid), loco_t::button_t::press);
       }
       else {
-        pile->loco.button.set_selected(cid, false);
         pile->loco.button.set_theme(cid, pile->loco.button.get_theme(cid), loco_t::button_t::inactive);
       }
     };

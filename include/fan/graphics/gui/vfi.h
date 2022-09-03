@@ -83,7 +83,6 @@ struct vfi_t {
     mouse_stage_e mouse_stage;
     focus_method_mouse_flag* flag;
     uint64_t udata;
-    uint64_t udata2;
   };
 
   struct keyboard_data_t {
@@ -197,7 +196,7 @@ struct vfi_t {
     shape_list_Unlink(&shape_list, id);
     shape_list_Recycle(&shape_list, id);
   }
-    template <typename T>
+  template <typename T>
   void set_always(shape_id_t id, auto T::*member, auto value) {
     auto n = shape_list_GetNodeByReference(&shape_list, id);
     n->data.shape_data.shape.always.*member = value;
@@ -206,6 +205,11 @@ struct vfi_t {
   void set_rectangle(shape_id_t id, auto T::*member, auto value) {
     auto n = shape_list_GetNodeByReference(&shape_list, id);
     n->data.shape_data.shape.rectangle.*member = value;
+  }
+
+  void set_common_data(shape_id_t id, auto common_shape_data_t::*member, auto value) {
+    auto n = shape_list_GetNodeByReference(&shape_list, id);
+    n->data.shape_data.*member = value;
   }
 
   static fan::vec2 transform_position(const fan::vec2& p, fan::opengl::viewport_t* viewport, fan::opengl::matrices_t* matrices) {

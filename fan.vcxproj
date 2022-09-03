@@ -245,7 +245,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Source.cpp" />
+    <ClCompile Include="examples\stage_maker.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
     <ClCompile Include="src\fan\window\window_input.cpp" />
   </ItemGroup>
@@ -307,8 +307,8 @@
     <ClInclude Include="include\fan\graphics\fast_obj\fast_obj.h" />
     <ClInclude Include="include\fan\graphics\graphics.h" />
     <ClInclude Include="include\fan\graphics\gui\checkbox.h" />
-    <ClInclude Include="include\fan\graphics\gui\fgm\fgm.h" />
     <ClInclude Include="include\fan\graphics\gui\focus.h" />
+    <ClInclude Include="include\fan\graphics\gui\stage_maker.h" />
     <ClInclude Include="include\fan\graphics\gui\key_event.h" />
     <ClInclude Include="include\fan\graphics\gui\menu_maker.h" />
     <ClInclude Include="include\fan\graphics\gui\rectangle_text_button.h" />
