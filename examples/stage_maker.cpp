@@ -54,7 +54,7 @@ int main() {
 
   pile->loco.loop([&] {
     pile->loco.get_fps();
-    fan::print(pile->loco.menu_maker.get_selected(pile->stage_maker.instances[pile_t::stage_maker_t::stage_t::state_instance].menu_id));
+    //fan::print(pile->loco.menu_maker.get_selected(pile->stage_maker.instances[pile_t::stage_maker_t::stage_t::state_instance].menu_id));
   });
 
  // pile->close();

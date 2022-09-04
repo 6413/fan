@@ -47,8 +47,7 @@ struct sb_menu_maker_type_name {
 	}
 	void close(loco_t* loco) {
 		for (uint32_t i = 0; i < instances.size(); i++) {
-			// delete allocated vfi udata
-			assert(0);
+			delete (cb_data_t*)loco->button.get_id_udata(loco->button.sb_get_block(&instances[i]->cid)->p[instances[i]->cid.instance_id].vfi_id);
 			loco->button.erase(&instances[i]->cid);
 			delete instances[i];
 		}
@@ -57,7 +56,7 @@ struct sb_menu_maker_type_name {
 	}
 	void push_back(loco_t* loco, const properties_t& p) {
 		loco_t::button_t::properties_t bp;
-		bp.position = global.position + global.offset + fan::vec3(0, 0, global.position.z + 0.01);
+		bp.position = global.position + global.offset + fan::vec3(0, 0, 0.01);
 		bp.theme = global.theme;
 		bp.text = p.text;
 		bp.size = fan::vec2(global.gui_size * 5, global.gui_size);
@@ -101,7 +100,7 @@ struct sb_menu_maker_type_name {
 		cb_data_t cb_data;
 		cb_data.udata = (uint64_t)this;
 		cb_data.udata2 = (uint64_t)instances[i];
-		bp.userptr = (uint64_t)new cb_data_t(cb_data);
+		bp.userptr = (uint64_t)(new cb_data_t(cb_data));
 		loco->button.push_back(&instances[instances.size() - 1]->cid, bp);
 		global.offset.y += bp.size.y * 2;
 	}
