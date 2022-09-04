@@ -56,7 +56,9 @@ struct sb_menu_maker_type_name {
 	}
 	void push_back(loco_t* loco, const properties_t& p) {
 		loco_t::button_t::properties_t bp;
-		bp.position = global.position + global.offset + fan::vec3(0, 0, 0.01);
+		bp.position = global.position;
+		bp.position.y += global.offset.y;
+		bp.position.z += 0.01;
 		bp.theme = global.theme;
 		bp.text = p.text;
 		bp.size = fan::vec2(global.gui_size * 5, global.gui_size);

@@ -54,6 +54,7 @@
 #if __cplusplus >= 199711L && defined(fan_compiler_visual_studio)
   #define fan_std23
 #endif
+#undef fan_std23
 
 #if defined(fan_std23)
   #include <stacktrace>

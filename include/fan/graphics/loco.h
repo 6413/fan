@@ -50,10 +50,9 @@ struct loco_t {
     fan::opengl::cid_t* cid;
   };
 
-  typedef void(*mouse_move_cb_t)(const mouse_move_data_t&);
-  typedef void(*mouse_button_cb_t)(const mouse_button_data_t&);
-
-  typedef void(*keyboard_cb_t)(const keyboard_data_t&);
+  using mouse_move_cb_t = std::function<void(const mouse_move_data_t&)>;
+  using mouse_button_cb_t = std::function<void(const mouse_button_data_t&)>;
+  using keyboard_cb_t =  std::function<void(const keyboard_data_t&)>;
 
   vfi_t vfi_var_name;
 
@@ -91,7 +90,7 @@ struct loco_t {
 
   void process_block_properties_element(auto* shape, fan::opengl::viewport_list_NodeReference_t viewport_id) {
     auto node = fan::opengl::viewport_list_GetNodeByReference(&get_context()->viewport_list, viewport_id);
-    node->data.viewport_id->set_viewport(
+    node->data.viewport_id->set(
       get_context(),
       node->data.viewport_id->get_position(),
       node->data.viewport_id->get_size(),

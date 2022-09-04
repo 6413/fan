@@ -20,7 +20,8 @@
 #if BLL_set_PadNode == 0
   #pragma pack(push, 1)
 #endif
-BLL_StructBegin(_P(Node_t))
+  BLL_StructBegin(_P(Node_t))
+    _P(Node_t)(const _P(Node_t)&) = default;
   #if BLL_set_Link == 1
     #if BLL_set_PreferNextFirst == 1
       _P(NodeReference_t) NextNodeReference;
@@ -31,7 +32,7 @@ BLL_StructBegin(_P(Node_t))
     #endif
   #endif
   #ifdef BLL_set_node_data
-    union{
+    //union{
       struct{
         BLL_set_node_data
       }data;
@@ -39,7 +40,7 @@ BLL_StructBegin(_P(Node_t))
         /* used for empty next */
         _P(NodeReference_t) NextNodeReference;
       #endif
-    };
+   // };
   #endif
 BLL_StructEnd(_P(Node_t))
 #if BLL_set_PadNode == 0

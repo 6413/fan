@@ -458,7 +458,7 @@ namespace fan_2d {
 				context.set_viewport(0, window.get_size());
 
 				window.add_resize_callback(&context, [](fan::window_t*, const fan::vec2i& s, void* user_ptr) {
-					((fan::opengl::context_t*)user_ptr)->set_viewport(0, s);
+					((fan::opengl::context_t*)user_ptr)->set(0, s);
 				});
 
 			}

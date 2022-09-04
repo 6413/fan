@@ -14,17 +14,28 @@ struct sb_sprite_name {
     fan::vec2 tc_size = 1;
   };
 
+  #define hardcode0_t fan::opengl::textureid_t<0>
+  #define hardcode0_n y
+  #define hardcode1_t fan::opengl::textureid_t<1>
+  #define hardcode1_n u
+  #define hardcode2_t fan::opengl::textureid_t<2>
+  #define hardcode2_n v
+
+  #define hardcode3_t fan::opengl::matrices_list_NodeReference_t
+  #define hardcode3_n matrices
+  #define hardcode4_t fan::opengl::viewport_list_NodeReference_t
+  #define hardcode4_n viewport
+  #include _FAN_PATH(graphics/opengl/2D/objects/hardcode_open.h)
+
   struct instance_properties_t {
-    struct key_t : fan::masterpiece_t<
-      fan::opengl::textureid_t<0>,
-      fan::opengl::textureid_t<1>,
-      fan::opengl::textureid_t<2>,
-      fan::opengl::matrices_list_NodeReference_t,
-      fan::opengl::viewport_list_NodeReference_t
-    > {}key;
+    struct key_t : parsed_masterpiece_t {}key;
+    expand_get_functions
   };
 
-  struct properties_t : instance_t {
+  struct properties_t : instance_t, instance_properties_t {
+    properties_t() = default;
+    properties_t(const instance_t& i) : instance_t(i) {}
+    properties_t(const instance_properties_t& p) : instance_properties_t(p) {}
 
       #define _load_yuv(_f) \
       fan::opengl::context_t* context = loco->get_context(); \
@@ -57,21 +68,10 @@ struct sb_sprite_name {
     void load_yuv(loco_t* loco, void** data, const fan::vec2& image_size) {
       _load_yuv(load);
 
-      y = &loco->sb_shape_var_name.image[0];
-      u = &loco->sb_shape_var_name.image[1];
-      v = &loco->sb_shape_var_name.image[2];
+      get_y() = &loco->sb_shape_var_name.image[0];
+      get_u() = &loco->sb_shape_var_name.image[1];
+      get_v() = &loco->sb_shape_var_name.image[2];
     }
-
-    union {
-      struct {
-        fan::opengl::textureid_t<0> y;
-        fan::opengl::textureid_t<1> u;
-        fan::opengl::textureid_t<2> v;
-        fan::opengl::matrices_list_NodeReference_t matrices;
-        fan::opengl::viewport_list_NodeReference_t viewport;
-      };
-      instance_properties_t instance_properties;
-    };
   };
 
   void push_back(fan::opengl::cid_t* cid, properties_t& p) {
@@ -114,9 +114,9 @@ struct sb_sprite_name {
     fan::opengl::textureid_t<1> u,
     fan::opengl::textureid_t<2> v
   ) {
-    sb_set_key(cid, &properties_t::y, y);
-    sb_set_key(cid, &properties_t::u, u);
-    sb_set_key(cid, &properties_t::v, v);
+    sb_set_key<instance_properties_t::key_t::get_index_with_type<decltype(y)>()>(cid, y);
+    sb_set_key<instance_properties_t::key_t::get_index_with_type<decltype(u)>()>(cid, u);
+    sb_set_key<instance_properties_t::key_t::get_index_with_type<decltype(v)>()>(cid, v);
   }
 
   fan::opengl::image_t image[3];
@@ -126,7 +126,7 @@ struct sb_sprite_name {
   *block->p[cid->instance_id].key.get_value<0>() = n;
   }
 
-  void set_viewport(loco_t* loco, fan::opengl::cid_t* cid, fan::opengl::viewport_list_NodeReference_t n) {
+  void set(loco_t* loco, fan::opengl::cid_t* cid, fan::opengl::viewport_list_NodeReference_t n) {
   auto block = sb_get_block(loco, cid);
   *block->p[cid->instance_id].key.get_value<1>() = n;
   }*/
@@ -134,3 +134,5 @@ struct sb_sprite_name {
 
 #undef _load_yuv
 #undef sb_sprite_name
+
+#include _FAN_PATH(graphics/opengl/2D/objects/hardcode_close.h)

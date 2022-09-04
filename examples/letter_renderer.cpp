@@ -25,42 +25,30 @@ struct pile_t {
     loco.open(loco_t::properties_t());
     fan::graphics::open_matrices(
       loco.get_context(),
-      &matrices[0],
-      loco.get_window()->get_size(),
+      &matrices,
       ortho_x,
       ortho_y
-    );
-    fan::graphics::open_matrices(
-      loco.get_context(),
-      &matrices[1],
-      loco.get_window()->get_size(),
-      fan::vec2(0, 800),
-      fan::vec2(0, 600)
     );
     loco.get_window()->add_resize_callback(this, [](fan::window_t* window, const fan::vec2i& size, void* userptr) {
       fan::vec2 window_size = window->get_size();
       fan::vec2 ratio = window_size / window_size.max();
-      std::swap(ratio.x, ratio.y);
       pile_t* pile = (pile_t*)userptr;
-      pile->matrices[0].set_ortho(
+      pile->matrices.set_ortho(
         ortho_x * ratio.x, 
         ortho_y * ratio.y
       );
-      pile->matrices[1].set_ortho(
-        ortho_x * ratio.x, 
-        ortho_y * ratio.y
-      );
-      });
+    });
     loco.get_window()->add_resize_callback(this, [](fan::window_t*, const fan::vec2i& size, void* userptr) {
       pile_t* pile = (pile_t*)userptr;
 
-      pile->viewport.set_viewport(pile->loco.get_context(), 0, size);
-      });
-    viewport.open(loco.get_context(), 0, loco.get_window()->get_size());
+      pile->viewport.set(pile->loco.get_context(), 0, size, size );
+    });
+    viewport.open(loco.get_context());
+    viewport.set(loco.get_context(), 0, loco.get_window()->get_size(), loco.get_window()->get_size());
   }
 
   loco_t loco;
-  fan::opengl::matrices_t matrices[2];
+  fan::opengl::matrices_t matrices;
   fan::opengl::viewport_t viewport;
   fan::opengl::cid_t cids[count];
 };
@@ -72,8 +60,8 @@ int main() {
 
   loco_t::letter_t::properties_t p;
 
-  p.viewport = &pile->viewport;
-  p.matrices = &pile->matrices[0];
+  p.get_viewport() = &pile->viewport;
+  p.get_matrices() = &pile->matrices;
 
   for (uint32_t i = 0; i < count; i++) {
     p.position = fan::vec2(fan::random::value_f32(-1, 1), fan::random::value_f32(-1, 1));
@@ -83,20 +71,16 @@ int main() {
     std::wstring w(str.begin(), str.end());
     p.letter_id = pile->loco.font.decode_letter(w[0]);
 
-    pile->loco.letter.push_back(&pile->loco, &pile->cids[i], p);
+    pile->loco.letter.push_back(&pile->cids[i], p);
   }
 
-  fan::print(pile->loco.letter.get(&pile->loco, &pile->cids[0], &loco_t::letter_t::instance_t::position));
+  fan::print(pile->loco.letter.get(&pile->cids[0], &loco_t::letter_t::instance_t::position));
 
   pile->loco.set_vsync(false);
-  uint32_t x = 0;
-  while(pile->loco.window_open(pile->loco.process_frame())) {
-    /* if(x < count) {
-    pile->loco.rectangle.erase(&pile->loco, &pile->cids[x]);
-    x++;
-    }*/
+
+  pile->loco.loop([&] {
     pile->loco.get_fps();
-  }
+  });
 
   return 0;
 }

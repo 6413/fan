@@ -22,10 +22,8 @@ struct pile_t {
     fan::graphics::open_matrices(
       loco.get_context(),
       &matrices,
-      loco.get_window()->get_size(),
-      fan::vec2(-1, 1),
-      fan::vec2(-1, 1),
-      ratio
+      fan::vec2(-1, 1) * ratio.x,
+      fan::vec2(-1, 1) * ratio.y
     );
     loco.get_window()->add_resize_callback(this, [](fan::window_t* window, const fan::vec2i& size, void* userptr) {
       fan::vec2 window_size = window->get_size();
@@ -33,11 +31,10 @@ struct pile_t {
       //std::swap(ratio.x, ratio.y);
       pile_t* pile = (pile_t*)userptr;
       pile->matrices.set_ortho(
-        fan::vec2(-1, 1),
-        fan::vec2(-1, 1),
-        ratio
+        fan::vec2(-1, 1) * ratio.x,
+        fan::vec2(-1, 1) * ratio.y
       );
-      pile->viewport[0].set_viewport(pile->loco.get_context(), 0, pile->loco.get_window()->get_size(), pile->loco.get_window()->get_size());
+      pile->viewport.set(pile->loco.get_context(), 0, pile->loco.get_window()->get_size(), pile->loco.get_window()->get_size());
      });
 
     loco.get_window()->add_keys_callback(0, [](fan::window_t* w, uint16_t key, fan::key_state key_state, void* userptr) {
@@ -71,13 +68,13 @@ struct pile_t {
     //position.y -= 200;
     //position.y += size.y / 2;
     //size.y /= 2;
-    viewport[0].open(loco.get_context());
-    viewport[0].set_viewport(loco.get_context(), position, size, loco.get_window()->get_size());
+    viewport.open(loco.get_context());
+    viewport.set(loco.get_context(), position, size, loco.get_window()->get_size());
   }
 
   loco_t loco;
   fan::opengl::matrices_t matrices;
-  fan::opengl::viewport_t viewport[2];
+  fan::opengl::viewport_t viewport;
 };
 
 int main() {
@@ -86,8 +83,8 @@ int main() {
   pile.open();
 
   loco_t::button_t::properties_t tp;
-  tp.matrices = &pile.matrices;
-  tp.viewport = &pile.viewport[0];
+  tp.get_matrices() = &pile.matrices;
+  tp.get_viewport() = &pile.viewport;
  // tp.position = 400;
   tp.position = 0;
   //tp.position.y = 0;

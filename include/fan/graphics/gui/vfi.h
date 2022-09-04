@@ -1,5 +1,7 @@
 // very flexible input
 
+#include<functional>
+
 struct vfi_t {
 
   loco_t* get_loco() {
@@ -92,15 +94,14 @@ struct vfi_t {
     uint64_t udata;
   };
 
-  typedef void(*mouse_move_cb_t)(const mouse_move_data_t&);
-  typedef void(*mouse_button_cb_t)(const mouse_button_data_t&);
+  using mouse_move_cb_t = std::function<void(const mouse_move_data_t&)>;
+  using mouse_button_cb_t = std::function<void(const mouse_button_data_t&)>;
+  using keyboard_cb_t =  std::function<void(const keyboard_data_t&)>;
 
-  typedef void(*keyboard_cb_t)(const keyboard_data_t&);
-
-  struct common_shape_data_t { 
-    mouse_move_cb_t mouse_move_cb;
-    mouse_button_cb_t mouse_button_cb;
-    keyboard_cb_t keyboard_cb;
+  struct common_shape_data_t {
+    std::function<void(const mouse_move_data_t&)> mouse_move_cb;
+    std::function<void(const mouse_button_data_t&)> mouse_button_cb;
+    std::function<void(const keyboard_data_t&)> keyboard_cb;
     f32_t depth;
     union{
       shape_data_always_t always; 
@@ -110,9 +111,9 @@ struct vfi_t {
 
   struct common_shape_properties_t {
     shape_type_t shape_type;
-    mouse_move_cb_t mouse_move_cb = [](const mouse_move_data_t&) -> void {};
-    mouse_button_cb_t mouse_button_cb = [](const mouse_button_data_t&) -> void {};
-    keyboard_cb_t keyboard_cb = [](const keyboard_data_t&) -> void {};
+    std::function<void(const mouse_move_data_t&)> mouse_move_cb;
+    std::function<void(const mouse_button_data_t&)> mouse_button_cb;
+    std::function<void(const keyboard_data_t&)> keyboard_cb;
     union {
       shape_properties_always_t always; 
       shape_properties_rectangle_t rectangle; 

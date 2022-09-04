@@ -1,23 +1,13 @@
 struct text_renderer_t {
 
-  struct properties_t {
-
+  struct properties_t : loco_t::letter_t::instance_properties_t {
     using type_t = text_renderer_t;
 
-    f32_t font_size = 0.1;
     fan::vec3 position = 0;
     fan::color color = fan::colors::white;
     fan::color outline_color = fan::colors::black;
     f32_t outline_size = 0.5;
     std::string text;
-
-    union {
-      struct {
-        fan::opengl::matrices_list_NodeReference_t matrices;
-        fan::opengl::viewport_list_NodeReference_t viewport;
-      };
-      loco_t::letter_t::instance_properties_t instance_properties;
-    };
   };
 
   loco_t* get_loco() {
@@ -112,8 +102,8 @@ struct text_renderer_t {
     typename loco_t::letter_t::properties_t p;
     p.color = properties.color;
     p.font_size = properties.font_size;
-    p.viewport = properties.viewport;
-    p.matrices = properties.matrices;
+    p.get_viewport() = properties.get_viewport();
+    p.get_matrices() = properties.get_matrices();
     p.outline_color = properties.outline_color;
     p.outline_size = properties.outline_size;
     uint32_t id;

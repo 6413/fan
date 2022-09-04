@@ -37,11 +37,11 @@ struct pile_t {
         fan::vec2(-1, 1),
         ratio
       );
-      pile->viewport.set_viewport(pile->loco.get_context(), 0, pile->loco.get_window()->get_size(), pile->loco.get_window()->get_size());
+      pile->viewport.set(pile->loco.get_context(), 0, pile->loco.get_window()->get_size(), pile->loco.get_window()->get_size());
      });
 
     viewport.open(loco.get_context());
-    viewport.set_viewport(loco.get_context(), position, window_size, window_size);
+    viewport.set(loco.get_context(), position, window_size, window_size);
   }
 
   loco_t loco;
