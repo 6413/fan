@@ -22,10 +22,8 @@ struct pile_t {
     fan::graphics::open_matrices(
       loco.get_context(),
       &matrices,
-      loco.get_window()->get_size(),
-      fan::vec2(-1, 1),
-      fan::vec2(-1, 1),
-      ratio
+      fan::vec2(-1, 1) * ratio.x,
+      fan::vec2(-1, 1) * ratio.y
     );
     loco.get_window()->add_resize_callback(this, [](fan::window_t* window, const fan::vec2i& size, void* userptr) {
       fan::vec2 window_size = window->get_size();
@@ -33,15 +31,14 @@ struct pile_t {
       //std::swap(ratio.x, ratio.y);
       pile_t* pile = (pile_t*)userptr;
       pile->matrices.set_ortho(
-        fan::vec2(-1, 1),
-        fan::vec2(-1, 1),
-        ratio
+        fan::vec2(-1, 1) * ratio.x,
+        fan::vec2(-1, 1) * ratio.y
       );
       pile->viewport.set(pile->loco.get_context(), 0, pile->loco.get_window()->get_size(), pile->loco.get_window()->get_size());
      });
 
     viewport.open(loco.get_context());
-    viewport.set(loco.get_context(), position, window_size, window_size);
+    viewport.set(loco.get_context(), 0, window_size, window_size);
   }
 
   loco_t loco;
@@ -70,15 +67,13 @@ int main() {
   ids[1] = pile.loco.menu_maker.push_menu(op);
   loco_t::menu_maker_t::properties_t p;
   p.text = "Create New Stage";
-  p.userptr = (uint64_t)&ids[1];
-  p.mouse_button_cb = [](const loco_t::mouse_button_data_t& mb) {
+  p.mouse_button_cb = [&](const loco_t::mouse_button_data_t& mb) {
     if (mb.button != fan::mouse_left) {
       return;
     }
     if (mb.button_state != fan::key_state::release) {
       return;
     }
-    loco_t::menu_maker_t::id_t id = *(loco_t::menu_maker_t::id_t*)mb.udata;
     pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco);
     loco_t::menu_maker_t::properties_t p;
     static int x = 0;
@@ -99,7 +94,7 @@ int main() {
         pile->loco.button.set_theme(cid, pile->loco.button.get_theme(cid), loco_t::button_t::inactive);
       }
     };
-    pile->loco.menu_maker.push_back(id, p);
+    pile->loco.menu_maker.push_back(ids[1], p);
   };
 
   pile.loco.menu_maker.push_back(ids[0], p);

@@ -281,21 +281,18 @@ struct loco_t {
 
     loco_bdbt_open(&bdbt);
 
-    get_window()->add_buttons_callback(this, [](fan::window_t* window, uint16_t key, fan::key_state key_state, void* user_ptr) {
-      loco_t& loco = *(loco_t*)user_ptr;
+    get_window()->add_buttons_callback([&](fan::window_t* window, uint16_t key, fan::key_state key_state) {
       fan::vec2 window_size = window->get_size();
-      loco.feed_mouse_button(key, key_state, loco.get_mouse_position());
+      feed_mouse_button(key, key_state, get_mouse_position());
     });
 
-    get_window()->add_keys_callback(this, [](fan::window_t* window, uint16_t key, fan::key_state key_state, void* user_ptr) {
-      loco_t& loco = *(loco_t*)user_ptr;
-      loco.feed_keyboard(key, key_state);
+    get_window()->add_keys_callback([&](fan::window_t* window, uint16_t key, fan::key_state key_state) {
+      feed_keyboard(key, key_state);
     });
 
-    get_window()->add_mouse_move_callback(this, [](fan::window_t* window, const fan::vec2i& mouse_position, void* user_ptr) {
-      loco_t& loco = *(loco_t*)user_ptr;
+    get_window()->add_mouse_move_callback([&](fan::window_t* window, const fan::vec2i& mouse_position) {
       fan::vec2 window_size = window->get_size();
-      loco.feed_mouse_move(loco.get_mouse_position());
+      feed_mouse_move(get_mouse_position());
     });
 
     context.open();

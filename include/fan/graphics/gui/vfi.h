@@ -74,7 +74,6 @@ struct vfi_t {
     fan::vec2 position;
     mouse_stage_e mouse_stage;
     focus_method_mouse_flag* flag;
-    uint64_t udata;
   };
 
   struct mouse_button_data_t {
@@ -84,14 +83,12 @@ struct vfi_t {
     fan::key_state button_state;
     mouse_stage_e mouse_stage;
     focus_method_mouse_flag* flag;
-    uint64_t udata;
   };
 
   struct keyboard_data_t {
     vfi_t* vfi;
     uint16_t key;
     fan::key_state key_state;
-    uint64_t udata;
   };
 
   using mouse_move_cb_t = std::function<void(const mouse_move_data_t&)>;
@@ -119,7 +116,6 @@ struct vfi_t {
       shape_properties_rectangle_t rectangle; 
     }shape;
     iflags_t flags;
-    uint64_t udata;
   }; 
 
   using set_shape_t = decltype(common_shape_data_t::shape);
@@ -131,8 +127,7 @@ struct vfi_t {
   #define BLL_set_node_data \
     shape_type_t shape_type; \
     common_shape_data_t shape_data; \
-    iflags_t flags; \
-    uint64_t udata;
+    iflags_t flags;
   #define BLL_set_Link 1
   #define BLL_set_StructFormat 1
   #define BLL_set_NodeReference_Overload_Declare \
@@ -170,7 +165,6 @@ struct vfi_t {
     auto n = shape_list_GetNodeByReference(&shape_list, nr);
     n->data.shape_type = p.shape_type;
     n->data.flags = p.flags;
-    n->data.udata = p.udata;
     n->data.shape_data.mouse_move_cb = p.mouse_move_cb;
     n->data.shape_data.mouse_button_cb = p.mouse_button_cb;
     n->data.shape_data.keyboard_cb = p.keyboard_cb;
@@ -296,33 +290,6 @@ struct vfi_t {
     focus.keyboard.invalidate();
   }
 
-  auto get_id_udata(shape_id_t id) {
-    #if fan_debug >= fan_debug_low
-      if (id.is_invalid()) {
-          fan::throw_error("trying to get id even though none is selected");
-      }
-    #endif
-    return shape_list_GetNodeByReference(&shape_list, id)->data.udata;
-  }
-
-  uint64_t get_mouse_udata() {
-    #if fan_debug >= fan_debug_low
-      if (focus.mouse.is_invalid()) {
-          fan::throw_error("trying to get id even though none is selected");
-      }
-    #endif
-    return shape_list_GetNodeByReference(&shape_list, focus.mouse)->data.udata;
-  }
-
-  uint64_t get_keyboard_udata() {
-    #if fan_debug >= fan_debug_low
-      if (focus.keyboard.is_invalid()) {
-          fan::throw_error("trying to get id even though none is selected");
-      }
-    #endif
-    return shape_list_GetNodeByReference(&shape_list, focus.keyboard)->data.udata;
-  }
-
   void feed_mouse_move(const fan::vec2& position) {
     loco_t* loco = get_loco();
     focus.method.mouse.position = position;
@@ -333,7 +300,6 @@ struct vfi_t {
       auto* data = &shape_list_GetNodeByReference(&shape_list, focus.mouse)->data;
       fan::vec2 tp = transform(position, data->shape_type, &data->shape_data);
       mouse_move_data.mouse_stage = inside(loco, data->shape_type, &data->shape_data, tp);
-      mouse_move_data.udata = data->udata;
       mouse_move_data.position = tp;
       shape_id_t bcbfm = focus.mouse;
       data->shape_data.mouse_move_cb(mouse_move_data);
@@ -372,7 +338,6 @@ struct vfi_t {
       mouse_move_data.position = tp;
       mouse_move_data.mouse_stage = inside(loco, n->data.shape_type, &n->data.shape_data, tp);
       set_focus_mouse(closest_z_nr);
-      mouse_move_data.udata = n->data.udata;
       n->data.shape_data.mouse_move_cb(mouse_move_data);
       return;
     }
@@ -396,7 +361,6 @@ struct vfi_t {
     mouse_button_data.position = transform(focus.method.mouse.position, data->shape_type, &data->shape_data);
     mouse_button_data.mouse_stage = inside(loco, data->shape_type, &data->shape_data, mouse_button_data.position);
     mouse_button_data.flag = &focus.method.mouse.flags;
-    mouse_button_data.udata = data->udata;
     shape_id_t bcbfm = focus.mouse;
 
     data->shape_data.mouse_button_cb(mouse_button_data);
@@ -430,7 +394,6 @@ struct vfi_t {
 
     auto* data = &shape_list_GetNodeByReference(&shape_list, focus.keyboard)->data;
 
-    keyboard_data.udata = data->udata;
     shape_id_t bcbfk = focus.keyboard;
 
     data->shape_data.keyboard_cb(keyboard_data);
