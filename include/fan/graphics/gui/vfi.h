@@ -295,6 +295,15 @@ struct vfi_t {
     focus.keyboard.invalidate();
   }
 
+  auto get_id_udata(shape_id_t id) {
+    #if fan_debug >= fan_debug_low
+      if (id.is_invalid()) {
+          fan::throw_error("trying to get id even though none is selected");
+      }
+    #endif
+    return shape_list_GetNodeByReference(&shape_list, id)->data.udata;
+  }
+
   uint64_t get_mouse_udata() {
     #if fan_debug >= fan_debug_low
       if (focus.mouse.is_invalid()) {

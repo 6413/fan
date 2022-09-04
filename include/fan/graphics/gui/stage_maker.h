@@ -77,7 +77,6 @@ struct stage_maker_t {
 		op.viewport = &viewport;
 		op.gui_size = gui_size * 3;
 		op.position = fan::vec2(op.gui_size * (5.0 / 3), -1.0 + op.gui_size);
-		op.position.z = 0.5;
 		instances[stage_t::state_instance].menu_id = loco.menu_maker.push_menu(op);
 
 		switch (current_stage) {
@@ -122,7 +121,6 @@ struct stage_maker_t {
 
 		op.gui_size = gui_size;
 		op.position = fan::vec2(-1.0 + op.gui_size * 5, -1.0 + op.gui_size * 1);
-		op.position.z = 0.01;
 		instance_t instance;
 		instance.menu_id = loco.menu_maker.push_menu(op);
 		instances.push_back(instance);
@@ -281,21 +279,21 @@ struct stage_maker_t {
 	//    loco.vfi.invalidate_focus_keyboard();
 	//  }
 
-	 // corners_t get_corners(const fan::vec2& position, const fan::vec2& size) {
-		//  loco_t* loco = get_loco();
-		//  fan::vec2 c = position;
-		//  fan::vec2 s = size;
-		//  corners_t corners;
-		//  corners.corners[0] = c - s;
-		//  corners.corners[1] = fan::vec2(c.x, c.y - s.y);
-		//  corners.corners[2] = fan::vec2(c.x + s.x, c.y - s.y);
-		//  corners.corners[3] = fan::vec2(c.x - s.x, c.y);
-		//  corners.corners[4] = fan::vec2(c.x + s.x, c.y);
-		//  corners.corners[5] = fan::vec2(c.x - s.x, c.y + s.y);
-		//  corners.corners[6] = fan::vec2(c.x, c.y + s.y);
-		//  corners.corners[7] = fan::vec2(c.x + s.x, c.y + s.y);
-		//  return corners;
-	 // }
+	//  corners_t get_corners(const fan::vec2& position, const fan::vec2& size) {
+	//	  loco_t* loco = get_loco();
+	//	  fan::vec2 c = position;
+	//	  fan::vec2 s = size;
+	//	  corners_t corners;
+	//	  corners.corners[0] = c - s;
+	//	  corners.corners[1] = fan::vec2(c.x, c.y - s.y);
+	//	  corners.corners[2] = fan::vec2(c.x + s.x, c.y - s.y);
+	//	  corners.corners[3] = fan::vec2(c.x - s.x, c.y);
+	//	  corners.corners[4] = fan::vec2(c.x + s.x, c.y);
+	//	  corners.corners[5] = fan::vec2(c.x - s.x, c.y + s.y);
+	//	  corners.corners[6] = fan::vec2(c.x, c.y + s.y);
+	//	  corners.corners[7] = fan::vec2(c.x + s.x, c.y + s.y);
+	//	  return corners;
+	//  }
 
 	//  void open_editor_properties() {
 	//    menu.clear();
@@ -351,7 +349,7 @@ struct stage_maker_t {
 
 	//      viewport_position = pile->fgm.translate_viewport_position(fan::vec2(pile->fgm.properties_line_position.x, -1));
 	//      viewport_size = pile->fgm.translate_viewport_position(fan::vec2(1, pile->fgm.line_y_offset_between_types_and_properties)) - viewport_position;
-	//      pile->fgm.viewport[viewport_area::types].set_viewport(
+	//      pile->stage_maker.fgm.viewport[viewport_area::types].set_viewport(
 	//        pile->loco.get_context(),
 	//        viewport_position,
 	//        viewport_size,
@@ -866,5 +864,5 @@ struct stage_maker_t {
 	//  fan::vec2 editor_position;
 	//  fan::vec2 editor_size;
 	//  fan::vec2 editor_ratio;
-	//};
+	//}fgm;
 };

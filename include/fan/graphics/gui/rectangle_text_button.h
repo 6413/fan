@@ -280,6 +280,15 @@ struct button_t {
     loco->button.set_theme(cid, loco->button.get_theme(cid), state);
   }
 
+    // gets udata from current focus
+  uint64_t get_id_udata(loco_t::vfi_t::shape_id_t id) {
+    loco_t* loco = get_loco();
+    auto udata = loco->vfi.get_id_udata(id);
+    fan::opengl::cid_t* cid = (fan::opengl::cid_t*)udata;
+    auto block = sb_get_block(cid);
+    return block->p[cid->instance_id].userptr;
+  }
+
   // gets udata from current focus
   uint64_t get_mouse_udata() {
     loco_t* loco = get_loco();
