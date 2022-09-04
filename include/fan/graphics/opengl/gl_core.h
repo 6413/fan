@@ -189,7 +189,7 @@ namespace fan {
         return viewport_size;
       }
 
-      void set_viewport(fan::opengl::context_t* context, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size);
+      void set(fan::opengl::context_t* context, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size);
 
       bool inside(const fan::vec2& position) const {
         return fan_2d::collision::rectangle::point_inside_no_rotation(position, viewport_position - viewport_size / 2, viewport_size);
@@ -254,19 +254,19 @@ namespace fan{
         m_view = fan::math::look_at_left<fan::mat4>(position, position + front, fan::camera::world_up);
       }
 
-      void set_ortho(const fan::vec2& x, const fan::vec2& y, const fan::vec2& ratio_) {
+      void set_ortho(const fan::vec2& x, const fan::vec2& y) {
         m_projection = fan::math::ortho<fan::mat4>(
-          x.x * ratio_.x,
-          x.y * ratio_.x,
-          y.y * ratio_.y,
-          y.x * ratio_.y,
+          x.x,
+          x.y,
+          y.y,
+          y.x,
           -1,
           0x10000
         );
-        coordinates.left = x.x * ratio_.x;
-        coordinates.right = x.y * ratio_.x;
-        coordinates.bottom = y.y * ratio_.y;
-        coordinates.top = y.x * ratio_.y;
+        coordinates.left = x.x;
+        coordinates.right = x.y;
+        coordinates.bottom = y.y;
+        coordinates.top = y.x;
 
         m_view[3][0] = 0;
         m_view[3][1] = 0;
@@ -297,7 +297,7 @@ namespace fan{
       matrices_list_NodeReference_t matrices_reference;
     };
 
-    static void open_matrices(fan::opengl::context_t* context, matrices_t* matrices, fan::vec2 window_size, const fan::vec2& x, const fan::vec2& y, const fan::vec2& ratio);
+    static void open_matrices(fan::opengl::context_t* context, matrices_t* matrices, const fan::vec2& x, const fan::vec2& y);
   }
 }
 
@@ -699,7 +699,7 @@ inline void fan::opengl::viewport_t::close(fan::opengl::context_t * context) {
   viewport_list_Recycle(&context->viewport_list, viewport_reference);
 }
 
-void fan::opengl::viewport_t::set_viewport(fan::opengl::context_t* context, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size)  {
+void fan::opengl::viewport_t::set(fan::opengl::context_t* context, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size)  {
   viewport_position = viewport_position_;
   viewport_size = viewport_size_;
 
@@ -722,9 +722,7 @@ void fan::opengl::matrices_t::close(fan::opengl::context_t* context) {
   matrices_list_Recycle(&context->matrices_list, matrices_reference);
 }
 
-void fan::opengl::open_matrices(fan::opengl::context_t* context, fan::opengl::matrices_t* matrices, fan::vec2 window_size, const fan::vec2& x, const fan::vec2& y, const fan::vec2& ratio) {
+void fan::opengl::open_matrices(fan::opengl::context_t* context, fan::opengl::matrices_t* matrices, const fan::vec2& x, const fan::vec2& y) {
   matrices->open(context);
-  //fan::vec2 ratio = window_size / window_size.max();
-  //std::swap(ratio.x, ratio.y);
-  matrices->set_ortho(fan::vec2(x.x, x.y), fan::vec2(y.x, y.y), ratio);
+  matrices->set_ortho(fan::vec2(x.x, x.y), fan::vec2(y.x, y.y));
 }

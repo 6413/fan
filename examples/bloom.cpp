@@ -27,10 +27,8 @@ struct pile_t {
 		fan::graphics::open_matrices(
 			loco.get_context(),
 			&matrices,
-			loco.get_window()->get_size(),
 			ortho_x,
-			ortho_y,
-			1
+			ortho_y
 		);
 		/*  loco.get_window()->add_resize_callback(this, [](fan::window_t* window, const fan::vec2i& size, void* userptr) {
 				fan::vec2 window_size = window->get_size();
@@ -49,7 +47,7 @@ struct pile_t {
 				pile->viewport.set_viewport(pile->loco.get_context(), 0, size, pile->loco.get_window()->get_size());
 			});*/
 		viewport.open(loco.get_context());
-		viewport.set_viewport(loco.get_context(), 0, loco.get_window()->get_size(), loco.get_window()->get_size());
+		viewport.set(loco.get_context(), 0, loco.get_window()->get_size(), loco.get_window()->get_size());
 	}
 
 	loco_t loco;
@@ -66,14 +64,14 @@ int main() {
 	loco_t::sprite_t::properties_t p;
 
 	//p.block_properties.
-	p.matrices = &pile->matrices;
-	p.viewport = &pile->viewport;
+	p.get_matrices() = &pile->matrices;
+	p.get_viewport() = &pile->viewport;
 
 	fan::opengl::image_t image;
 	fan::opengl::image_t::load_properties_t lp;
 	lp.filter = fan::opengl::GL_LINEAR;
 	image.load(pile->loco.get_context(), "images/b.webp");
-	p.image = &image;
+	p.get_image() = &image;
 	p.size = fan::cast<f32_t>(image.size) / pile->loco.get_window()->get_size();
 	p.position = 0;
 	p.position.z = 0;

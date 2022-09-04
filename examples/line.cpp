@@ -14,42 +14,31 @@
 #define loco_line
 #include _FAN_PATH(graphics/loco.h)
 
-constexpr uint32_t count = 1e+6;
+constexpr uint32_t count = 1e+4;
 
 struct pile_t {
 
-  static constexpr fan::vec2 ortho_x = fan::vec2(-1, 1);
-  static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
-
   void open() {
     loco.open(loco_t::properties_t());
+    auto window_size = loco.get_window()->get_size();
     fan::graphics::open_matrices(
       loco.get_context(),
       &matrices,
-      loco.get_window()->get_size(),
-      ortho_x,
-      ortho_y
+      fan::vec2(0, window_size.x),
+      fan::vec2(0, window_size.y)
     );
     loco.get_window()->add_resize_callback(this, [](fan::window_t* window, const fan::vec2i& size, void* userptr) {
       fan::vec2 window_size = window->get_size();
       fan::vec2 ratio = window_size / window_size.max();
-      std::swap(ratio.x, ratio.y);
       pile_t* pile = (pile_t*)userptr;
       pile->matrices.set_ortho(
-        ortho_x * ratio.x, 
-        ortho_y * ratio.y
+        fan::vec2(0, window_size.x) * ratio.x, 
+        fan::vec2(0, window_size.y) * ratio.y
       );
-      pile->matrices.set_ortho(
-        ortho_x * ratio.x, 
-        ortho_y * ratio.y
-      );
-      });
-    loco.get_window()->add_resize_callback(this, [](fan::window_t*, const fan::vec2i& size, void* userptr) {
-      pile_t* pile = (pile_t*)userptr;
-
-      pile->viewport.set_viewport(pile->loco.get_context(), 0, size);
-      });
-    viewport.open(loco.get_context(), 0, loco.get_window()->get_size());
+      pile->viewport.set(pile->loco.get_context(), 0, size, size);
+    });
+    viewport.open(loco.get_context());
+    viewport.set(loco.get_context(), 0, window_size, window_size);
   }
 
   loco_t loco;
@@ -66,29 +55,28 @@ int main() {
   loco_t::line_t::properties_t p;
 
   //p.block_properties.
-  p.matrices = &pile->matrices;
-  p.viewport = &pile->viewport;
+  p.get_matrices() = &pile->matrices;
+  p.get_viewport() = &pile->viewport;
 
   fan::time::clock c; 
   c.start();
   for (uint32_t i = 0; i < count; i++) {
-    p.src = fan::random::vec2(-100, 100);
-    p.dst = fan::random::vec2(-100, 100);
+    p.src = fan::random::vec2(0, 800);
+    p.dst = fan::random::vec2(0, 800);
     p.color = fan::random::color();
-    pile->loco.line.push_back(&pile->loco, &pile->cids[i], p);
-    //EXAMPLE ERASE
-    //pile->loco.rectangle.erase(&pile->loco, &pile->cids[i]);
+    pile->loco.line.push_back(&pile->cids[i], p);
   }
 
   fan::print((f32_t)c.elapsed() / 1e+9);
 
   pile->loco.set_vsync(false);
-  while(pile->loco.window_open(pile->loco.process_frame())) {
+
+  pile->loco.loop([&] {
     for (uint32_t i = 0; i < count; i++) {
-      pile->loco.line.set(&pile->loco, &pile->cids[i], &loco_t::line_t::instance_t::dst, pile->loco.get_mouse_position());
+      pile->loco.line.set(&pile->cids[i], &loco_t::line_t::instance_t::dst, pile->loco.get_mouse_position());
     }
     pile->loco.get_fps();
-  }
+  });
 
   return 0;
 }

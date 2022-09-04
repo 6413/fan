@@ -14,35 +14,24 @@ struct letter_t {
 
   static constexpr uint32_t max_instance_size = fan::min(256ull, 4096 / (sizeof(instance_t) / 4));
 
+  #define hardcode0_t fan::opengl::matrices_list_NodeReference_t
+  #define hardcode0_n matrices
+  #define hardcode1_t fan::opengl::viewport_list_NodeReference_t
+  #define hardcode1_n viewport
+  #include _FAN_PATH(graphics/opengl/2D/objects/hardcode_open.h)
+
   struct instance_properties_t {
-    struct key_t : fan::masterpiece_t<
-      fan::opengl::matrices_list_NodeReference_t,
-      fan::opengl::viewport_list_NodeReference_t
-    > {}key;
+    struct key_t : parsed_masterpiece_t {}key;
+    expand_get_functions
+
     f32_t font_size;
     uint16_t letter_id;
   };
 
-  struct properties_t : instance_t {
-    properties_t() : font_size(16) {}
-    properties_t(const instance_t& it) {
-      position = it.position;
-      outline_size = it.outline_size;
-      size = it.size;
-      tc_position = it.tc_position;
-      color = it.color;
-      outline_color = it.outline_color;
-      tc_size = it.tc_size;
-    }
-    union {
-      struct {
-        fan::opengl::matrices_list_NodeReference_t matrices;
-        fan::opengl::viewport_list_NodeReference_t viewport;
-        f32_t font_size;
-        uint16_t letter_id;
-      };
-      instance_properties_t instance_properties;
-    };
+  struct properties_t : instance_t, instance_properties_t {
+    properties_t() = default;
+    properties_t(const instance_t& i) : instance_t(i) {}
+    properties_t(const instance_properties_t& p) : instance_properties_t(p) {}
   };
 
   void push_back(fan::opengl::cid_t* cid, properties_t& p) {
@@ -75,7 +64,7 @@ struct letter_t {
     loco_t* loco = get_loco();
     properties_t p;
     p = *sb_get_block(cid)->uniform_buffer.get_instance(loco->get_context(), cid->instance_id);
-    p.instance_properties = sb_get_block(cid)->p[cid->instance_id];
+    *(instance_properties_t*)&p = sb_get_block(cid)->p[cid->instance_id];
     return p;
   }
 
@@ -91,10 +80,12 @@ struct letter_t {
   }
 
   void set_matrices(fan::opengl::cid_t* cid, fan::opengl::matrices_list_NodeReference_t n) {
-    sb_set_key(cid, &properties_t::matrices, n);
+    sb_set_key<instance_properties_t::key_t::get_index_with_type<decltype(n)>()>(cid, n);
   }
 
   void set_viewport(fan::opengl::cid_t* cid, fan::opengl::viewport_list_NodeReference_t n) {
-    sb_set_key(cid, &properties_t::viewport, n);
+    sb_set_key<instance_properties_t::key_t::get_index_with_type<decltype(n)>()>(cid, n);
   }
 };
+
+#include _FAN_PATH(graphics/opengl/2D/objects/hardcode_close.h)

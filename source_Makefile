@@ -7,7 +7,7 @@ GPP = clang++
 CFLAGS =  -w -g -std=c++2a -I include #-O3 -march=native -mtune=native \
   #-fsanitize=address -fno-omit-frame-pointer
 
-MAIN = examples/gui_maker_export.cpp
+MAIN = examples/sprite.cpp
 
 TARGET = a.out
 

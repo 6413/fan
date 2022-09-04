@@ -58,7 +58,7 @@
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
     <EnableASAN>true</EnableASAN>
-    <EnableFuzzer>true</EnableFuzzer>
+    <EnableFuzzer>false</EnableFuzzer>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -245,7 +245,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="examples\stage_maker.cpp" />
+    <ClCompile Include="examples\rectangle_text_button.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
     <ClCompile Include="src\fan\window\window_input.cpp" />
   </ItemGroup>
@@ -322,7 +322,8 @@
     <ClInclude Include="include\fan\graphics\opengl\2D\effects\particles.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\effects\post_process.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\objects\circle.h" />
-    <ClInclude Include="include\fan\graphics\opengl\2D\objects\hardcode.h" />
+    <ClInclude Include="include\fan\graphics\opengl\2D\objects\hardcode_close.h" />
+    <ClInclude Include="include\fan\graphics\opengl\2D\objects\hardcode_open.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\objects\letter_renderer.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\objects\line.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\objects\rectangle.h" />

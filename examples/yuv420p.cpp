@@ -26,18 +26,16 @@ struct pile_t {
     fan::graphics::open_matrices(
       loco.get_context(),
       &matrices,
-      loco.get_window()->get_size(),
       ortho_x,
-      ortho_y,
-      1
+      ortho_y
     );
     loco.get_window()->add_resize_callback(this, [](fan::window_t* w, const fan::vec2i& size, void* userptr) {
       pile_t* pile = (pile_t*)userptr;
 
-      pile->viewport.set_viewport(pile->loco.get_context(), 0, size, w->get_size());
+      pile->viewport.set(pile->loco.get_context(), 0, size, w->get_size());
     });
     viewport.open(loco.get_context());
-    viewport.set_viewport(loco.get_context(), 0, loco.get_window()->get_size(), loco.get_window()->get_size());
+    viewport.set(loco.get_context(), 0, loco.get_window()->get_size(), loco.get_window()->get_size());
   }
 
   loco_t loco;
@@ -55,8 +53,8 @@ int main() {
 
   p.size = fan::vec2(1, 1);
   //p.block_properties.
-  p.matrices = &pile->matrices;
-  p.viewport = &pile->viewport;
+  p.get_matrices() = &pile->matrices;
+  p.get_viewport() = &pile->viewport;
 
   constexpr fan::vec2ui image_size = fan::vec2ui(1920, 1050);
 
