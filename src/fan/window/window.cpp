@@ -477,9 +477,9 @@ void fan::window_t::set_size_mode(const mode& mode)
   flag_values::m_size_mode = mode;
 }
 
-fan::window_t::callback_id_t fan::window_t::add_buttons_callback(void* userptr, buttons_callback_cb_t function)
+fan::window_t::callback_id_t fan::window_t::add_buttons_callback(buttons_callback_cb_t function)
 {
-  return this->m_buttons_callback.push_back(fan::make_pair(function, userptr));
+  return this->m_buttons_callback.push_back(function);
 }
 
 void fan::window_t::remove_buttons_callback(callback_id_t id)
@@ -487,9 +487,9 @@ void fan::window_t::remove_buttons_callback(callback_id_t id)
   this->m_buttons_callback.unlink(id);
 }
 
-fan::window_t::callback_id_t fan::window_t::add_keys_callback(void* userptr, keys_callback_cb_t function)
+fan::window_t::callback_id_t fan::window_t::add_keys_callback(keys_callback_cb_t function)
 {
-  return this->m_keys_callback.push_back(fan::make_pair(function, userptr));
+  return this->m_keys_callback.push_back(function);
 }
 
 void fan::window_t::remove_keys_callback(fan::window_t::callback_id_t id)
@@ -497,16 +497,15 @@ void fan::window_t::remove_keys_callback(fan::window_t::callback_id_t id)
   this->m_keys_callback.unlink(id);
 }
 
-fan::window_t::callback_id_t fan::window_t::add_key_callback(uint16_t key, key_state state, void* userptr, key_callback_cb_t function)
+fan::window_t::callback_id_t fan::window_t::add_key_callback(uint16_t key, key_state state, key_callback_cb_t function)
 {
-  return this->m_key_callback.push_back(key_callback_t{ key, state, function, userptr });
+  return this->m_key_callback.push_back(key_callback_t{ key, state, function, });
 }
 
-void fan::window_t::edit_key_callback(callback_id_t id, uint16_t key, key_state state, void* userptr)
+void fan::window_t::edit_key_callback(callback_id_t id, uint16_t key, key_state state)
 {
   m_key_callback[id].key = key;
   m_key_callback[id].state = state;
-  m_key_callback[id].userptr = userptr;
 }
 
 void fan::window_t::remove_key_callback(callback_id_t id)
@@ -514,7 +513,7 @@ void fan::window_t::remove_key_callback(callback_id_t id)
   this->m_key_callback.erase(id);
 }
 
-fan::window_t::callback_id_t fan::window_t::add_key_combo_callback(uint16_t* keys, uint32_t n, void* userptr, keys_combo_callback_cb_t function)
+fan::window_t::callback_id_t fan::window_t::add_key_combo_callback(uint16_t* keys, uint32_t n, keys_combo_callback_cb_t function)
 {
   assert(0);
   return 0;
@@ -546,9 +545,9 @@ fan::window_t::callback_id_t fan::window_t::add_key_combo_callback(uint16_t* key
   return m_key_combo_callback.push_back(p);*/
 }
 
-fan::window_t::callback_id_t fan::window_t::add_text_callback(void* userptr, text_callback_cb_t function)
+fan::window_t::callback_id_t fan::window_t::add_text_callback(text_callback_cb_t function)
 {
-  return m_text_callback.push_back(fan::make_pair(function, userptr));
+  return m_text_callback.push_back(function);
 }
 
 void fan::window_t::remove_text_callback(fan::window_t::callback_id_t id)
@@ -556,9 +555,9 @@ void fan::window_t::remove_text_callback(fan::window_t::callback_id_t id)
   m_text_callback.erase(id);
 }
 
-fan::window_t::callback_id_t fan::window_t::add_close_callback(void* userptr, close_callback_cb_t function)
+fan::window_t::callback_id_t fan::window_t::add_close_callback(close_callback_cb_t function)
 {
-  return m_close_callback.push_back(fan::make_pair(function, userptr));
+  return m_close_callback.push_back(function);
 }
 
 void fan::window_t::remove_close_callback(fan::window_t::callback_id_t id)
@@ -566,9 +565,9 @@ void fan::window_t::remove_close_callback(fan::window_t::callback_id_t id)
   this->m_close_callback.erase(id);
 }
 
-fan::window_t::callback_id_t fan::window_t::add_mouse_move_callback(void* userptr, mouse_position_callback_cb_t function)
+fan::window_t::callback_id_t fan::window_t::add_mouse_move_callback(mouse_position_callback_cb_t function)
 {
-  return this->m_mouse_position_callback.push_back(fan::make_pair(function, userptr));
+  return this->m_mouse_position_callback.push_back(function);
 }
 
 void fan::window_t::remove_mouse_move_callback(fan::window_t::callback_id_t id)
@@ -576,17 +575,17 @@ void fan::window_t::remove_mouse_move_callback(fan::window_t::callback_id_t id)
   this->m_mouse_position_callback.erase(id);
 }
 
-fan::window_t::callback_id_t fan::window_t::add_resize_callback(void* userptr, resize_callback_cb_t function) {
-  return this->m_resize_callback.push_back(fan::make_pair(function, userptr));
+fan::window_t::callback_id_t fan::window_t::add_resize_callback(resize_callback_cb_t function) {
+  return this->m_resize_callback.push_back(function);
 }
 
 void fan::window_t::remove_resize_callback(fan::window_t::callback_id_t id) {
   this->m_resize_callback.erase(id);
 }
 
-fan::window_t::callback_id_t fan::window_t::add_move_callback(void* userptr, move_callback_cb_t function)
+fan::window_t::callback_id_t fan::window_t::add_move_callback(move_callback_cb_t function)
 {
-  return this->m_move_callback.push_back(fan::make_pair(function, userptr));
+  return this->m_move_callback.push_back(function);
 }
 
 void fan::window_t::remove_move_callback(fan::window_t::callback_id_t id)
@@ -808,7 +807,7 @@ void fan::window_t::window_input_action(fan::window_handle_t window, uint16_t ke
     }
 
     if (fwindow->m_key_callback[it].function) {
-      fwindow->m_key_callback[it].function(fwindow, key, fwindow->m_key_callback[it].userptr);
+      fwindow->m_key_callback[it].function(fwindow, key);
     }
 
     it = fwindow->m_key_callback.end_safe_next();
@@ -840,7 +839,7 @@ void fan::window_t::window_input_mouse_action(fan::window_handle_t window, uint1
       continue;
     }
     if (fwindow->m_key_callback[it].function) {
-      fwindow->m_key_callback[it].function(fwindow, key, fwindow->m_key_callback[it].userptr);
+      fwindow->m_key_callback[it].function(fwindow, key);
     }
 
     it = fwindow->m_key_callback.end_safe_next();
@@ -875,7 +874,7 @@ void fan::window_t::window_input_up(fan::window_handle_t window, uint16_t key)
       continue;
     }
     if (fwindow->m_key_callback[it].function) {
-      fwindow->m_key_callback[it].function(fwindow, key, fwindow->m_key_callback[it].userptr);
+      fwindow->m_key_callback[it].function(fwindow, key);
     }
 
     it = fwindow->m_key_callback.end_safe_next();
@@ -1022,7 +1021,7 @@ LRESULT fan::window_t::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lp
 
       while (it != fwindow->m_resize_callback.end()) {
 
-        fwindow->m_resize_callback[it].first(fwindow, fwindow->m_size, fwindow->m_resize_callback[it].second);
+        fwindow->m_resize_callback[it](fwindow, fwindow->m_size);
 
         it = fwindow->m_resize_callback.next(it);
       }
@@ -1054,7 +1053,7 @@ LRESULT fan::window_t::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lp
             while (it != fwindow->m_buttons_callback.end()) {
               fwindow->m_buttons_callback.start_safe_next(it);
 
-              fwindow->m_buttons_callback[it].first(fwindow, i, key_state::release, fwindow->m_buttons_callback[it].second);
+              fwindow->m_buttons_callback[it](fwindow, i, key_state::release);
 
               it = fwindow->m_buttons_callback.end_safe_next();
             }
@@ -1064,7 +1063,7 @@ LRESULT fan::window_t::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lp
             while (it != fwindow->m_keys_callback.end()) {
               fwindow->m_keys_callback.start_safe_next(it);
 
-              fwindow->m_keys_callback[it].first(fwindow, i, key_state::release, fwindow->m_keys_callback[it].second);
+              fwindow->m_keys_callback[it](fwindow, i, key_state::release);
 
               it = fwindow->m_keys_callback.end_safe_next();
             }
@@ -1101,7 +1100,7 @@ LRESULT fan::window_t::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lp
       //}
 
       for (int i = 0; i < fwindow->m_close_callback.size(); i++) {
-        fwindow->m_close_callback[i].first(fwindow, fwindow->m_close_callback[i].second);
+        fwindow->m_close_callback[i](fwindow);
       }
 
       fwindow->m_event_flags |= fan::window_t::events::close;
@@ -1487,7 +1486,7 @@ uint32_t fan::window_t::handle_events() {
 
       m_mouse_position_callback.start_safe_next(it);
 
-      m_mouse_position_callback[it].first(this, m_mouse_position, m_mouse_position_callback[it].second);
+      m_mouse_position_callback[it](this, m_mouse_position);
 
       it = m_mouse_position_callback.end_safe_next();
     }
@@ -1529,7 +1528,7 @@ uint32_t fan::window_t::handle_events() {
 
           window->m_keys_callback.start_safe_next(it);
 
-          window->m_keys_callback[it].first(window, key, repeat ? fan::key_state::repeat : fan::key_state::press, window->m_keys_callback[it].second);
+          window->m_keys_callback[it](window, key, repeat ? fan::key_state::repeat : fan::key_state::press);
 
           it = window->m_keys_callback.end_safe_next();
         }
@@ -1612,7 +1611,7 @@ uint32_t fan::window_t::handle_events() {
 
         while (it != window->m_buttons_callback.end()) {
 
-          window->m_buttons_callback[it].first(window, key, key_state::press, window->m_buttons_callback[it].second);
+          window->m_buttons_callback[it](window, key, key_state::press);
 
           it = window->m_buttons_callback.next(it);
         }
@@ -1635,7 +1634,7 @@ uint32_t fan::window_t::handle_events() {
 
         while (it != window->m_buttons_callback.end()) {
 
-          window->m_buttons_callback[it].first(window, key, key_state::press, window->m_buttons_callback[it].second);
+          window->m_buttons_callback[it](window, key, key_state::press);
 
           it = window->m_buttons_callback.next(it);
         }
@@ -1658,7 +1657,7 @@ uint32_t fan::window_t::handle_events() {
 
         while (it != window->m_buttons_callback.end()) {
 
-          window->m_buttons_callback[it].first(window, key, key_state::press, window->m_buttons_callback[it].second);
+          window->m_buttons_callback[it](window, key, key_state::press);
 
           it = window->m_buttons_callback.next(it);
         }
@@ -1685,7 +1684,7 @@ uint32_t fan::window_t::handle_events() {
         while (it != window->m_keys_callback.end()) {
           window->m_keys_callback.start_safe_next(it);
 
-          window->m_keys_callback[it].first(window, key, key_state::release, window->m_keys_callback[it].second);
+          window->m_keys_callback[it](window, key, key_state::release);
 
           it = window->m_keys_callback.end_safe_next();
         }
@@ -1705,7 +1704,7 @@ uint32_t fan::window_t::handle_events() {
 
         while (it != window->m_buttons_callback.end()) {
 
-          window->m_buttons_callback[it].first(window, zDelta < 0 ? fan::input::mouse_scroll_down : fan::input::mouse_scroll_up, key_state::press, window->m_buttons_callback[it].second);
+          window->m_buttons_callback[it](window, zDelta < 0 ? fan::input::mouse_scroll_down : fan::input::mouse_scroll_up, key_state::press);
 
           it = window->m_buttons_callback.next(it);
         }
@@ -1797,7 +1796,7 @@ uint32_t fan::window_t::handle_events() {
 
             while (it != window->m_buttons_callback.end()) {
 
-              window->m_buttons_callback[it].first(window, fan::input::mouse_left, key_state::release, window->m_buttons_callback[it].second);
+              window->m_buttons_callback[it](window, fan::input::mouse_left, key_state::release);
 
               it = window->m_buttons_callback.next(it);
             }
@@ -1811,7 +1810,7 @@ uint32_t fan::window_t::handle_events() {
 
             while (it != window->m_buttons_callback.end()) {
 
-              window->m_buttons_callback[it].first(window, fan::input::mouse_middle, key_state::release, window->m_buttons_callback[it].second);
+              window->m_buttons_callback[it](window, fan::input::mouse_middle, key_state::release);
 
               it = window->m_buttons_callback.next(it);
             }
@@ -1825,7 +1824,7 @@ uint32_t fan::window_t::handle_events() {
 
             while (it != window->m_buttons_callback.end()) {
 
-              window->m_buttons_callback[it].first(window, fan::input::mouse_right, key_state::release, window->m_buttons_callback[it].second);
+              window->m_buttons_callback[it](window, fan::input::mouse_right, key_state::release);
 
               it = window->m_buttons_callback.next(it);
             }

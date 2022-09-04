@@ -107,10 +107,8 @@ struct stage_maker_t {
 		fan::graphics::open_matrices(
 			loco.get_context(),
 			&matrices,
-			loco.get_window()->get_size(),
-			fan::vec2(-1, 1),
-			fan::vec2(-1, 1),
-			ratio
+			fan::vec2(-1, 1) * ratio.x,
+			fan::vec2(-1, 1) * ratio.y
 		);
 
 		viewport.open(loco.get_context());
@@ -314,10 +312,9 @@ struct stage_maker_t {
 	    theme = fan_2d::graphics::gui::themes::deep_red();
 	    theme.open(loco.get_context());
 
-	    static auto resize_cb = [] (fan::window_t* window, void* userptr) {
-	      fan::vec2 window_size = window->get_size();
-	      fgm_t* fgm = (fgm_t*)userptr;
-	      pile_t* pile = OFFSETLESS(OFFSETLESS(fgm, stage_maker_t, fgm), pile_t, stage_maker);
+	    static auto resize_cb = [&] () {
+	      fan::vec2 window_size = get_loco()->get_window()->get_size();
+	      pile_t* pile = OFFSETLESS(OFFSETLESS(this, stage_maker_t, fgm), pile_t, stage_maker);
 	      fan::vec2 viewport_size = pile->stage_maker.fgm.translate_viewport_position(fan::vec2(1, 1));
 	      pile->stage_maker.fgm.viewport[viewport_area::global].set(
 	        pile->loco.get_context(),
@@ -327,9 +324,8 @@ struct stage_maker_t {
 	      );
 	      fan::vec2 ratio = viewport_size / viewport_size.max();
 	      pile->stage_maker.fgm.matrices[viewport_area::global].set_ortho(
-	        fan::vec2(-1, 1),
-	        fan::vec2(-1, 1),
-	        1
+	        fan::vec2(-1, 1) * ratio.x,
+	        fan::vec2(-1, 1) * ratio.y
 	      );
 
 	      fan::vec2 viewport_position = pile->stage_maker.fgm.translate_viewport_position(pile->stage_maker.fgm.editor_position - pile->stage_maker.fgm.editor_size);
@@ -342,9 +338,8 @@ struct stage_maker_t {
 	      );
 	      ratio = viewport_size / viewport_size.max();
 	      pile->stage_maker.fgm.matrices[viewport_area::editor].set_ortho(
-	        fan::vec2(-1, 1),
-	        fan::vec2(-1, 1),
-	        ratio
+	        fan::vec2(-1, 1) * ratio.x,
+	        fan::vec2(-1, 1) * ratio.y
 	      );
 
 	      viewport_position = pile->stage_maker.fgm.translate_viewport_position(fan::vec2(pile->stage_maker.fgm.properties_line_position.x, -1));
@@ -358,9 +353,8 @@ struct stage_maker_t {
 
 	      ratio = viewport_size / viewport_size.max();
 	      pile->stage_maker.fgm.matrices[viewport_area::types].set_ortho(
-	        fan::vec2(-1, 1),
-	        fan::vec2(-1, 1),
-	        ratio
+	        fan::vec2(-1, 1) * ratio.x,
+	        fan::vec2(-1, 1) * ratio.y
 	      );
 
 	      viewport_position.y += pile->stage_maker.fgm.translate_viewport_position(fan::vec2(0, pile->stage_maker.fgm.line_y_offset_between_types_and_properties)).y;
@@ -373,9 +367,8 @@ struct stage_maker_t {
 
 	      ratio = viewport_size / viewport_size.max();
 	      pile->stage_maker.fgm.matrices[viewport_area::properties].set_ortho(
-	        fan::vec2(-1, 1),
-	        fan::vec2(-1, 1),
-	        ratio
+	        fan::vec2(-1, 1) * ratio.x,
+	        fan::vec2(-1, 1) * ratio.y
 	      );
 
 	      fan::vec3 src, dst;
@@ -448,8 +441,8 @@ struct stage_maker_t {
 	      );
 	    };
 
-	    loco.get_window()->add_resize_callback(this, [](fan::window_t* window, const fan::vec2i& ws, void* userptr) {
-	      resize_cb(window, userptr);
+	    loco.get_window()->add_resize_callback([&](fan::window_t* window, const fan::vec2i& ws) {
+	      resize_cb();
 	    });
 
 	    // half size
@@ -483,8 +476,8 @@ struct stage_maker_t {
 	    menu.open(fan::vec2(1.05, button_size.y * 1.5));
 
 	    line_t::properties_t lp;
-	    lp.viewport = &viewport[viewport_area::global];
-	    lp.matrices = &matrices[viewport_area::global];
+	    lp.get_viewport() = &viewport[viewport_area::global];
+	    lp.get_matrices() = &matrices[viewport_area::global];
 	    lp.color = fan::colors::white;
 	  
 	    // editor window
@@ -497,11 +490,11 @@ struct stage_maker_t {
 	    line.push_back(lp);
 	    line.push_back(lp);
 
-	    resize_cb(loco.get_window(), this);
+	    resize_cb();
 	  
 	    editor_button_t::properties_t ebp;
-	    ebp.matrices = &matrices[viewport_area::types];
-	    ebp.viewport = &viewport[viewport_area::types];
+	    ebp.get_matrices() = &matrices[viewport_area::types];
+	    ebp.get_viewport()  = &viewport[viewport_area::types];
 	    ebp.position = fan::vec2(0, matrices[viewport_area::types].coordinates.top * 0.9);
 	    ebp.size = button_size;
 	    ebp.theme = &theme;
@@ -564,10 +557,8 @@ struct stage_maker_t {
 	      uint32_t i = instance.resize(instance.size() + 1);
 	      instance[i] = new instance_t;
 	      instance[i]->shape = shapes::button;
-	      p.userptr = (uint64_t)instance[i];
-	      p.mouse_button_cb = [](const loco_t::mouse_button_data_t& ii_d) -> void {
+	      p.mouse_button_cb = [instance = instance[i]](const loco_t::mouse_button_data_t& ii_d) -> void {
 	        pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi), pile_t, loco);
-	        instance_t* instance = (instance_t*)ii_d.udata;
 	        if (ii_d.button != fan::mouse_left) {
 	          return;
 	        }
@@ -576,8 +567,8 @@ struct stage_maker_t {
 	        }
 	        pile->stage_maker.fgm.action_flag |= action::move;
 	        builder_button_t::properties_t bbp;
-	        bbp.matrices = &pile->stage_maker.fgm.matrices[viewport_area::editor];
-	        bbp.viewport = &pile->stage_maker.fgm.viewport[viewport_area::editor];
+	        bbp.get_matrices() = &pile->stage_maker.fgm.matrices[viewport_area::editor];
+	        bbp.get_viewport() = &pile->stage_maker.fgm.viewport[viewport_area::editor];
 	        bbp.position = pile->loco.get_mouse_position(
 	          pile->stage_maker.fgm.viewport[viewport_area::editor].get_position(),
 	          pile->stage_maker.fgm.viewport[viewport_area::editor].get_size()
@@ -658,9 +649,8 @@ struct stage_maker_t {
 	      instance[i] = new instance_t;
 	      instance[i]->shape = shapes::button;
 	      instance[i]->z = 0;
-	      p.mouse_button_cb = [](const loco_t::mouse_button_data_t& ii_d) -> void {
+	      p.mouse_button_cb = [instance = instance[i]](const loco_t::mouse_button_data_t& ii_d) -> void {
 	        pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi_var_name), pile_t, loco_var_name);
-	        instance_t* instance = (instance_t*)ii_d.udata;
 	        if (ii_d.button != fan::mouse_left) {
 	          return;
 	        }
@@ -684,12 +674,11 @@ struct stage_maker_t {
 	        pile->stage_maker.fgm.resize_side = fan_2d::collision::rectangle::get_side_collision(ii_d.position, rp, rs);
 	        return;
 	      };
-	      p.mouse_move_cb = [](const loco_t::mouse_move_data_t& ii_d) -> void {
+	      p.mouse_move_cb = [instance = instance[i]](const loco_t::mouse_move_data_t& ii_d) -> void {
 	        if (ii_d.flag->ignore_move_focus_check == false) {
 	          return;
 	        }
 	        pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi_var_name), pile_t, loco_var_name);
-	        instance_t* instance = (instance_t*)ii_d.udata;
 
 	        if (instance->holding_special_key) {
 	          fan::vec3 ps = pile->loco.button.get_button(&instance->cid, &loco_t::button_t::instance_t::position);
@@ -735,10 +724,8 @@ struct stage_maker_t {
 	        p.z = instance->z;
 	        pile->loco.button.set_position(&instance->cid, p);
 	      };
-	      p.keyboard_cb = [](const loco_t::keyboard_data_t& kd) -> void {
+	      p.keyboard_cb = [instance = instance[i]](const loco_t::keyboard_data_t& kd) -> void {
 	        pile_t* pile = OFFSETLESS(OFFSETLESS(kd.vfi, loco_t, vfi_var_name), pile_t, loco_var_name);
-	        auto udata = pile->loco.button.get_keyboard_udata();
-	        instance_t* instance = (instance_t*)udata;
 
 	        switch (kd.key) {
 	        case fan::key_delete: {
@@ -763,7 +750,6 @@ struct stage_maker_t {
 	        }
 	        }
 	      };
-	      p.userptr = (uint64_t)instance[i];
 	      loco.button.push_back(&instance[i]->cid, p);
 	      pile->loco.button.set_theme(&instance[i]->cid, loco_t::button_t::inactive);
 	      auto builder_cid = &instance[i]->cid;
@@ -809,8 +795,8 @@ struct stage_maker_t {
 	      p.position = fan::vec2(-1, -1) + offset;
 	      p.position.z = 1;
 	      p.theme = &pile->stage_maker.fgm.theme;
-	      p.matrices = &pile->stage_maker.fgm.matrices[viewport_area::properties];
-	      p.viewport = &pile->stage_maker.fgm.viewport[viewport_area::properties];
+	      p.get_matrices() = &pile->stage_maker.fgm.matrices[viewport_area::properties];
+	      p.get_viewport() = &pile->stage_maker.fgm.viewport[viewport_area::properties];
 	      p.text = mp.text_value;
 	     // p.disable_highlight = true;
 	      uint32_t i = instance.resize(instance.size() + 1);
@@ -822,8 +808,8 @@ struct stage_maker_t {
 	      fan::vec2 text_size = pile->loco.text.get_text_size(tp.text, p.font_size);
 	      tp.position = p.position - fan::vec3(text_size.x / 1.5 + p.size.x, 0, 0);
 	      tp.font_size = p.font_size;
-	      tp.matrices = p.matrices;
-	      tp.viewport = p.viewport;
+	      tp.get_matrices() = p.get_matrices();
+	      tp.get_viewport() = p.get_viewport();
 	      instance[i]->text_id = pile->loco.text.push_back(tp);
 	    }
 
