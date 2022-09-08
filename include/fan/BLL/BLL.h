@@ -1,3 +1,14 @@
+/* +++ outdated +++ */
+
+#ifdef BLL_set_KeepSettings
+  #error outdated setting. dont use it
+#endif
+#ifdef BLL_set_declare_basic_types
+  #error outdated setting. now it shipped with BLL_set_declare_rest
+#endif
+
+/* --- outdated --- */
+
 #ifndef BLL_set_BaseLibrary
   #define BLL_set_BaseLibrary 0
 #endif
@@ -16,9 +27,10 @@
   #endif
 #endif
 
-#ifndef BLL_set_KeepSettings
-  #define BLL_set_KeepSettings 0
+#ifndef BLL_set_AreWeInsideStruct
+  #define BLL_set_AreWeInsideStruct 0
 #endif
+
 #ifndef BLL_set_prefix
   #error ifndef BLL_set_prefix
 #endif
@@ -33,9 +45,6 @@
 #endif
 #ifndef BLL_set_declare_NodeReference
   #define BLL_set_declare_NodeReference 1
-#endif
-#ifndef BLL_set_declare_basic_types
-  #define BLL_set_declare_basic_types 1
 #endif
 #ifndef BLL_set_declare_rest
   #define BLL_set_declare_rest 1
@@ -142,7 +151,6 @@
 #endif
 
 #define _P(p0) CONCAT3(BLL_set_prefix, _, p0)
-#define _PP(p0) CONCAT4(_, BLL_set_prefix, _, p0)
 
 #if BLL_set_StructFormat == 0
   #define BLL_StructBegin(n) typedef struct{
@@ -158,54 +166,87 @@
     #undef BLL_set_NodeReference_Overload_Declare
   #endif
 #endif
-#if BLL_set_declare_basic_types == 1
-  #include "internal/basic_types.h"
-#endif
 #if BLL_set_declare_rest == 1
+  /* _BLL_POFTWBIT; prefix of function that would be inside type */
+  /* _BLL_SOFTWBIT; settings of function that would be inside type */
+  /* _BLL_PBLLTFF; pass bll type for functon */
+  /* _BLL_PBLLTFFC; _BLL_PBLLTFF but with comma */
+  /* _BLL_DBLLTFF; declare bll type for functon */
+  /* _BLL_DBLLTFFC; _BLL_DBLLTFF but with comma */
+  /* _BLL_OCIBLLTFFE; only comma if bll type for function exists */
+  #if BLL_set_Language == 0
+    #define _BLL_POFTWBIT(p0) _P(p0)
+    #define _BLL_SOFTWBIT static
+    #define _BLL_PBLLTFF _pList
+    #define _BLL_PBLLTFFC _BLL_PBLLTFF,
+    #define _BLL_DBLLTFF _P(t) *_BLL_PBLLTFF
+    #define _BLL_DBLLTFFC _BLL_DBLLTFF,
+    #define _BLL_GetList _BLL_PBLLTFF
+    #define _BLL_OCIBLLTFFE ,
+  #elif BLL_set_Language == 1
+    #define _BLL_POFTWBIT(p0) p0
+    #define _BLL_SOFTWBIT
+    #define _BLL_PBLLTFF
+    #define _BLL_PBLLTFFC
+    #define _BLL_DBLLTFF
+    #define _BLL_DBLLTFFC
+    #define _BLL_GetList this
+    #define _BLL_OCIBLLTFFE
+  #endif
+
   #include "internal/rest.h"
+
+  #undef _BLL_POFTWBIT
+  #undef _BLL_SOFTWBIT
+  #undef _BLL_PBLLTFF
+  #undef _BLL_PBLLTFFC
+  #undef _BLL_DBLLTFF
+  #undef _BLL_DBLLTFFC
+  #undef _BLL_GetList
+  #undef _BLL_OCIBLLTFFE
 #endif
 
 #undef BLL_StructBegin
 #undef BLL_StructEnd
 
 #undef _P
-#undef _PP
 
 #undef _BLL_INCLUDE
 
-#if BLL_set_KeepSettings == 0
-  #ifdef BLL_set_StoreFormat1_ElementPerBlock
-    #undef BLL_set_StoreFormat1_ElementPerBlock
-  #endif
-  #undef BLL_set_KeepSettings
-  #undef BLL_set_StructFormat
-  #undef BLL_set_prefix
-  #undef BLL_set_declare_NodeReference
-  #undef BLL_set_declare_basic_types
-  #undef BLL_set_declare_rest
-  #undef BLL_set_NodeSizeType
-  #undef BLL_set_type_node
-  #ifdef BLL_set_node_data
-    #undef BLL_set_node_data
-  #endif
-  #undef BLL_set_PreferNextFirst
-  #undef BLL_set_PadNode
-  #undef BLL_set_debug_InvalidAction
-  #undef BLL_set_debug_InvalidAction_srcAccess
-  #undef BLL_set_debug_InvalidAction_dstAccess
-  #undef BLL_set_IsNodeUnlinked
-  #undef BLL_set_SafeNext
-  #undef BLL_set_ResizeListAfterClear
-  #undef BLL_set_UseUninitialisedValues
-  #undef BLL_set_Link
-  #undef BLL_set_StoreFormat
-  #undef BLL_set_SyntaxStyle
-  #undef BLL_set_ConstantInvalidNodeReference_Listless
-  #ifdef BLL_set_namespace
-    #undef BLL_set_namespace
-  #endif
-
-  #undef BLL_set_Language
-
-  #undef BLL_set_BaseLibrary
+#ifdef BLL_set_StoreFormat1_ElementPerBlock
+  #undef BLL_set_StoreFormat1_ElementPerBlock
 #endif
+#ifndef BLL_set_CPP_Node_ConstructDestruct
+  #undef BLL_set_CPP_Node_ConstructDestruct
+#endif
+#undef BLL_set_StructFormat
+#undef BLL_set_prefix
+#undef BLL_set_declare_NodeReference
+#undef BLL_set_declare_rest
+#undef BLL_set_NodeSizeType
+#undef BLL_set_type_node
+#ifdef BLL_set_node_data
+  #undef BLL_set_node_data
+#endif
+#undef BLL_set_PreferNextFirst
+#undef BLL_set_PadNode
+#undef BLL_set_debug_InvalidAction
+#undef BLL_set_debug_InvalidAction_srcAccess
+#undef BLL_set_debug_InvalidAction_dstAccess
+#undef BLL_set_IsNodeUnlinked
+#undef BLL_set_SafeNext
+#undef BLL_set_ResizeListAfterClear
+#undef BLL_set_UseUninitialisedValues
+#undef BLL_set_Link
+#undef BLL_set_StoreFormat
+#undef BLL_set_SyntaxStyle
+#undef BLL_set_ConstantInvalidNodeReference_Listless
+#ifdef BLL_set_namespace
+  #undef BLL_set_namespace
+#endif
+
+#undef BLL_set_AreWeInsideStruct
+
+#undef BLL_set_Language
+
+#undef BLL_set_BaseLibrary
