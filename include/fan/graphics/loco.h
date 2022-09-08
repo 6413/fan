@@ -84,26 +84,24 @@ struct loco_t {
   }
 
   void process_block_properties_element(auto* shape, fan::opengl::matrices_list_NodeReference_t matrices_id) {
-    auto node = fan::opengl::matrices_list_GetNodeByReference(&get_context()->matrices_list, matrices_id);
-    shape->m_shader.set_matrices(get_context(), node->data.matrices_id);
+    shape->m_shader.set_matrices(get_context(), get_context()->matrices_list[matrices_id].matrices_id);
   }
 
   void process_block_properties_element(auto* shape, fan::opengl::viewport_list_NodeReference_t viewport_id) {
-    auto node = fan::opengl::viewport_list_GetNodeByReference(&get_context()->viewport_list, viewport_id);
-    node->data.viewport_id->set(
+    auto data = &get_context()->viewport_list[viewport_id];
+    data->viewport_id->set(
       get_context(),
-      node->data.viewport_id->get_position(),
-      node->data.viewport_id->get_size(),
+      data->viewport_id->get_position(),
+      data->viewport_id->get_size(),
       get_window()->get_size()
     );
   }
 
   template <uint8_t n>
   void process_block_properties_element(auto* shape, fan::opengl::textureid_t<n> tid) {
-    auto node = fan::opengl::image_list_GetNodeByReference(&get_context()->image_list, tid);
     shape->m_shader.set_int(get_context(), tid.name, n);
     get_context()->opengl.call(get_context()->opengl.glActiveTexture, fan::opengl::GL_TEXTURE0 + n);
-    get_context()->opengl.call(get_context()->opengl.glBindTexture, fan::opengl::GL_TEXTURE_2D, node->data.texture_id);
+    get_context()->opengl.call(get_context()->opengl.glBindTexture, fan::opengl::GL_TEXTURE_2D, get_context()->image_list[tid].texture_id);
   }
 
   loco_bdbt_t bdbt;

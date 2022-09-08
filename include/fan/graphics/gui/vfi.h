@@ -11,10 +11,10 @@ struct vfi_t {
   void open() {
     focus.mouse.invalidate();
     focus.keyboard.invalidate();
-    shape_list_open(&shape_list);
+    shape_list.open();
   }
   void close() {
-    shape_list_close(&shape_list);
+    shape_list.close();
   }
 
   typedef uint16_t shape_type_t;
@@ -121,22 +121,7 @@ struct vfi_t {
   using set_shape_t = decltype(common_shape_data_t::shape);
   using set_rectangle_t = decltype(set_shape_t::rectangle);
 
-  #define BLL_set_BaseLibrary 1
-  #define BLL_set_prefix shape_list
-  #define BLL_set_type_node shape_id_integer_t
-  #define BLL_set_node_data \
-    shape_type_t shape_type; \
-    common_shape_data_t shape_data; \
-    iflags_t flags;
-  #define BLL_set_Link 1
-  #define BLL_set_StructFormat 1
-  #define BLL_set_NodeReference_Overload_Declare \
-    bool is_invalid() const { \
-      return NRI == (shape_id_integer_t)fan::uninitialized; \
-    } \
-    void invalidate() { \
-      NRI = fan::uninitialized; \
-    }
+  #include "vfi_shape_list_settings.h"
   #include _FAN_PATH(BLL/BLL.h)
 
   typedef shape_list_NodeReference_t shape_id_t;
@@ -161,21 +146,21 @@ struct vfi_t {
   using properties_t = common_shape_properties_t;
 
   shape_id_t push_shape(const properties_t& p) {
-    auto nr = shape_list_NewNodeLast(&shape_list);
-    auto n = shape_list_GetNodeByReference(&shape_list, nr);
-    n->data.shape_type = p.shape_type;
-    n->data.flags = p.flags;
-    n->data.shape_data.mouse_move_cb = p.mouse_move_cb;
-    n->data.shape_data.mouse_button_cb = p.mouse_button_cb;
-    n->data.shape_data.keyboard_cb = p.keyboard_cb;
+    auto nr = shape_list.NewNodeLast();
+    auto& instance = shape_list[nr];
+    instance.shape_type = p.shape_type;
+    instance.flags = p.flags;
+    instance.shape_data.mouse_move_cb = p.mouse_move_cb;
+    instance.shape_data.mouse_button_cb = p.mouse_button_cb;
+    instance.shape_data.keyboard_cb = p.keyboard_cb;
     switch(p.shape_type) {
       case shape_t::always:{
-        n->data.shape_data.depth = p.shape.always.z;
+        instance.shape_data.depth = p.shape.always.z;
         break;
       }
       case shape_t::rectangle:{
-        n->data.shape_data.depth = p.shape.rectangle.position.z;
-        n->data.shape_data.shape.rectangle = p.shape.rectangle;
+        instance.shape_data.depth = p.shape.rectangle.position.z;
+        instance.shape_data.shape.rectangle = p.shape.rectangle;
         break;
       }
     }
@@ -188,23 +173,20 @@ struct vfi_t {
     if (focus.keyboard == id) {
       focus.keyboard.invalidate();
     }
-    shape_list_Unlink(&shape_list, id);
-    shape_list_Recycle(&shape_list, id);
+    shape_list.Unlink(id);
+    shape_list.Recycle(id);
   }
   template <typename T>
   void set_always(shape_id_t id, auto T::*member, auto value) {
-    auto n = shape_list_GetNodeByReference(&shape_list, id);
-    n->data.shape_data.shape.always.*member = value;
+    shape_list[id].shape_data.shape.always.*member = value;
   }
   template <typename T>
   void set_rectangle(shape_id_t id, auto T::*member, auto value) {
-    auto n = shape_list_GetNodeByReference(&shape_list, id);
-    n->data.shape_data.shape.rectangle.*member = value;
+    shape_list[id].shape_data.shape.rectangle.*member = value;
   }
 
   void set_common_data(shape_id_t id, auto common_shape_data_t::*member, auto value) {
-    auto n = shape_list_GetNodeByReference(&shape_list, id);
-    n->data.shape_data.*member = value;
+    shape_list[id].shape_data.*member = value;
   }
 
   static fan::vec2 transform_position(const fan::vec2& p, fan::opengl::viewport_t* viewport, fan::opengl::matrices_t* matrices) {
@@ -250,14 +232,8 @@ struct vfi_t {
       case shape_t::rectangle: {
         return transform_position(
           v,
-          fan::opengl::viewport_list_GetNodeByReference(
-            &loco->get_context()->viewport_list,
-            shape_data->shape.rectangle.viewport
-          )->data.viewport_id,
-          fan::opengl::matrices_list_GetNodeByReference(
-            &loco->get_context()->matrices_list,
-            shape_data->shape.rectangle.matrices
-          )->data.matrices_id
+          loco->get_context()->viewport_list[shape_data->shape.rectangle.viewport].viewport_id,
+          loco->get_context()->matrices_list[shape_data->shape.rectangle.matrices].matrices_id
         );
         break;
       }
@@ -297,21 +273,21 @@ struct vfi_t {
     mouse_move_data.vfi = this;
     if (!focus.mouse.is_invalid()) {
       mouse_move_data.flag = &focus.method.mouse.flags;
-      auto* data = &shape_list_GetNodeByReference(&shape_list, focus.mouse)->data;
-      fan::vec2 tp = transform(position, data->shape_type, &data->shape_data);
-      mouse_move_data.mouse_stage = inside(loco, data->shape_type, &data->shape_data, tp);
+      auto& data = shape_list[focus.mouse];
+      fan::vec2 tp = transform(position, data.shape_type, &data.shape_data);
+      mouse_move_data.mouse_stage = inside(loco, data.shape_type, &data.shape_data, tp);
       mouse_move_data.position = tp;
       shape_id_t bcbfm = focus.mouse;
-      data->shape_data.mouse_move_cb(mouse_move_data);
+      data.shape_data.mouse_move_cb(mouse_move_data);
       if (bcbfm != focus.mouse) {
-        data = &shape_list_GetNodeByReference(&shape_list, focus.mouse)->data;
-        tp = transform(position, data->shape_type, &data->shape_data);
-        mouse_move_data.mouse_stage = inside(loco, data->shape_type, &data->shape_data, tp);
+        data = shape_list[focus.mouse];
+        tp = transform(position, data.shape_type, &data.shape_data);
+        mouse_move_data.mouse_stage = inside(loco, data.shape_type, &data.shape_data, tp);
       }
       if (focus.method.mouse.flags.ignore_move_focus_check == true) {
         return;
       }
-      if (data->shape_type != shape_t::always && mouse_move_data.mouse_stage == mouse_stage_e::inside) {
+      if (data.shape_type != shape_t::always && mouse_move_data.mouse_stage == mouse_stage_e::inside) {
         return;
       }
     }
@@ -319,26 +295,26 @@ struct vfi_t {
     f32_t closest_z = -1;
     shape_list_NodeReference_t closest_z_nr;
 
-    auto it = shape_list_GetNodeFirst(&shape_list);
+    auto it = shape_list.GetNodeFirst();
     while(it != shape_list.dst) {
-      auto* n = shape_list_GetNodeByReference(&shape_list, it);
-      fan::vec2 tp = transform(position, n->data.shape_type, &n->data.shape_data);
-      mouse_move_data.mouse_stage = inside(loco, n->data.shape_type, &n->data.shape_data, tp);
+      auto& data = shape_list[it];
+      fan::vec2 tp = transform(position, data.shape_type, &data.shape_data);
+      mouse_move_data.mouse_stage = inside(loco, data.shape_type, &data.shape_data, tp);
       if (mouse_move_data.mouse_stage == mouse_stage_e::inside) {
-        if (n->data.shape_data.depth > closest_z) {
-          closest_z = n->data.shape_data.depth;
+        if (data.shape_data.depth > closest_z) {
+          closest_z = data.shape_data.depth;
           closest_z_nr = it;
         }
       }
-      it = n->NextNodeReference;
+      it = it.Next(&shape_list);
     }
     if (closest_z != -1) {
-      auto* n = shape_list_GetNodeByReference(&shape_list, closest_z_nr);
-      fan::vec2 tp = transform(position, n->data.shape_type, &n->data.shape_data);
+      auto& data = shape_list[closest_z_nr];
+      fan::vec2 tp = transform(position, data.shape_type, &data.shape_data);
       mouse_move_data.position = tp;
-      mouse_move_data.mouse_stage = inside(loco, n->data.shape_type, &n->data.shape_data, tp);
+      mouse_move_data.mouse_stage = inside(loco, data.shape_type, &data.shape_data, tp);
       set_focus_mouse(closest_z_nr);
-      n->data.shape_data.mouse_move_cb(mouse_move_data);
+      data.shape_data.mouse_move_cb(mouse_move_data);
       return;
     }
     focus.mouse.invalidate();
@@ -356,7 +332,7 @@ struct vfi_t {
     mouse_button_data.button = button;
     mouse_button_data.button_state = state;
 
-    auto* data = &shape_list_GetNodeByReference(&shape_list, focus.mouse)->data;
+    auto* data = &shape_list[focus.mouse];
 
     mouse_button_data.position = transform(focus.method.mouse.position, data->shape_type, &data->shape_data);
     mouse_button_data.mouse_stage = inside(loco, data->shape_type, &data->shape_data, mouse_button_data.position);
@@ -369,7 +345,7 @@ struct vfi_t {
       if (focus.mouse.is_invalid()) {
         return;
       }
-      data = &shape_list_GetNodeByReference(&shape_list, focus.mouse)->data;
+      data = &shape_list[focus.mouse];
       mouse_button_data.position = transform(focus.method.mouse.position, data->shape_type, &data->shape_data);
       mouse_button_data.mouse_stage = inside(loco, data->shape_type, &data->shape_data, mouse_button_data.position);
     }
@@ -392,10 +368,8 @@ struct vfi_t {
     keyboard_data.key = key;
     keyboard_data.key_state = key_state;
 
-    auto* data = &shape_list_GetNodeByReference(&shape_list, focus.keyboard)->data;
-
     shape_id_t bcbfk = focus.keyboard;
 
-    data->shape_data.keyboard_cb(keyboard_data);
+    shape_list[focus.keyboard].shape_data.keyboard_cb(keyboard_data);
   }
 };

@@ -6,21 +6,18 @@ typedef FED_set_DataType FED_Data_t;
 
 #define BLL_set_BaseLibrary 1
 #define BLL_set_prefix _FED_CharacterList
-#define BLL_set_declare_basic_types 1
 #define BLL_set_declare_rest 0
 #include _FAN_PATH(BLL/BLL.h)
 typedef _FED_CharacterList_NodeReference_t FED_CharacterReference_t;
 
 #define BLL_set_BaseLibrary 1
 #define BLL_set_prefix _FED_LineList
-#define BLL_set_declare_basic_types 1
 #define BLL_set_declare_rest 0
 #include _FAN_PATH(BLL/BLL.h)
 typedef _FED_LineList_NodeReference_t FED_LineReference_t;
 
 #define BLL_set_BaseLibrary 1
 #define BLL_set_prefix _FED_CursorList
-#define BLL_set_declare_basic_types 1
 #define BLL_set_declare_rest 0
 #include _FAN_PATH(BLL/BLL.h)
 typedef _FED_CursorList_NodeReference_t FED_CursorReference_t;
@@ -33,7 +30,6 @@ typedef struct{
 }_FED_Character_t;
 #define BLL_set_BaseLibrary 1
 #define BLL_set_prefix _FED_CharacterList
-#define BLL_set_declare_basic_types 0
 #define BLL_set_declare_rest 1
 #define BLL_set_node_data _FED_Character_t data;
 #define BLL_set_debug_InvalidAction FED_set_debug_InvalidCharacterAccess
@@ -46,7 +42,6 @@ typedef struct{
 }_FED_Line_t;
 #define BLL_set_BaseLibrary 1
 #define BLL_set_prefix _FED_LineList
-#define BLL_set_declare_basic_types 0
 #define BLL_set_declare_rest 1
 #define BLL_set_node_data _FED_Line_t data;
 #define BLL_set_debug_InvalidAction FED_set_debug_InvalidLineAccess
@@ -70,7 +65,6 @@ typedef struct{
 }FED_Cursor_t;
 #define BLL_set_BaseLibrary 1
 #define BLL_set_prefix _FED_CursorList
-#define BLL_set_declare_basic_types 0
 #define BLL_set_declare_rest 1
 #define BLL_set_node_data FED_Cursor_t data;
 #define BLL_set_debug_InvalidAction FED_set_debug_InvalidCursorAccess

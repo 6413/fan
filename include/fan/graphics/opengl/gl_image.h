@@ -48,12 +48,12 @@ namespace fan {
       */
 
       void create_texture(fan::opengl::context_t* context) {
-        texture_reference = image_list_NewNode(&context->image_list);
+        texture_reference = context->image_list.NewNode();
         context->opengl.call(context->opengl.glGenTextures, 1, get_texture(context));
       }
       void erase_texture(fan::opengl::context_t* context) {
         context->opengl.glDeleteTextures(1, get_texture(context));
-        image_list_Recycle(&context->image_list, texture_reference);
+        context->image_list.Recycle(texture_reference);
       }
 
       void bind_texture(fan::opengl::context_t* context) {
@@ -61,8 +61,7 @@ namespace fan {
       }
 
       GLuint* get_texture(fan::opengl::context_t* context) {
-        image_list_Node_t* node = image_list_GetNodeByReference(&context->image_list, texture_reference);
-        return &node->data.texture_id;
+        return &context->image_list[texture_reference].texture_id;
       }
 
       bool load(fan::opengl::context_t* context, const fan::webp::image_info_t image_info, load_properties_t p = load_properties_t()) {

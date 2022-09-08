@@ -25,19 +25,19 @@ struct pile_t {
       fan::vec2(-1, 1) * ratio.x,
       fan::vec2(-1, 1) * ratio.y
     );
-    loco.get_window()->add_resize_callback(this, [](fan::window_t* window, const fan::vec2i& size, void* userptr) {
+    loco.get_window()->add_resize_callback([&](fan::window_t* window, const fan::vec2i& size) {
       fan::vec2 window_size = window->get_size();
       fan::vec2 ratio = window_size / window_size.max();
       //std::swap(ratio.x, ratio.y);
-      pile_t* pile = (pile_t*)userptr;
-      pile->matrices.set_ortho(
+      //pile_t* pile = (pile_t*)userptr;
+      matrices.set_ortho(
         fan::vec2(-1, 1) * ratio.x,
         fan::vec2(-1, 1) * ratio.y
       );
-      pile->viewport.set(pile->loco.get_context(), 0, pile->loco.get_window()->get_size(), pile->loco.get_window()->get_size());
+      viewport.set(loco.get_context(), 0, loco.get_window()->get_size(), loco.get_window()->get_size());
      });
 
-    loco.get_window()->add_keys_callback(0, [](fan::window_t* w, uint16_t key, fan::key_state key_state, void* userptr) {
+    loco.get_window()->add_keys_callback([](fan::window_t* w, uint16_t key, fan::key_state key_state) {
       if (key_state == fan::key_state::release) {
         return;
       }

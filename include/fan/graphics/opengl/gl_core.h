@@ -78,16 +78,7 @@ namespace fan {
   }
 }
 
-#define BLL_set_BaseLibrary 1
-#define BLL_set_namespace fan::opengl
-#define BLL_set_prefix image_list
-#define BLL_set_type_node uint8_t
-#define BLL_set_node_data fan::opengl::GLuint texture_id;
-#define BLL_set_Link 0
-#define BLL_set_StructFormat 1
-#define BLL_set_NodeReference_Overload_Declare \
-  image_list_NodeReference_t() = default; \
-  image_list_NodeReference_t(fan::opengl::image_t* image);
+#include "image_list_builder_settings.h"
 #include _FAN_PATH(BLL/BLL.h)
 
 namespace fan {
@@ -122,49 +113,25 @@ namespace fan_2d {
   }
 }
 
-#define BLL_set_BaseLibrary 1
-#define BLL_set_namespace fan::opengl
-#define BLL_set_prefix theme_list
-#define BLL_set_type_node uint8_t
-#define BLL_set_node_data fan_2d::graphics::gui::theme_t* theme_id;
-#define BLL_set_Link 0
+#include "themes_list_builder_settings.h"
 #define BLL_set_declare_NodeReference 1
-#define BLL_set_declare_basic_types 1
 #define BLL_set_declare_rest 0
-#define BLL_set_KeepSettings 1
-#define BLL_set_StructFormat 1
-#define BLL_set_NodeReference_Overload_Declare \
-  theme_list_NodeReference_t() = default; \
-  theme_list_NodeReference_t(fan_2d::graphics::gui::theme_t*);
 #include _FAN_PATH(BLL/BLL.h)
 
 #include _FAN_PATH(graphics/gui/themes.h)
 
+#include "themes_list_builder_settings.h"
 #define BLL_set_declare_NodeReference 0
-#define BLL_set_declare_basic_types 0
 #define BLL_set_declare_rest 1
-#define BLL_set_KeepSettings 0
-#undef BLL_set_NodeReference_Overload_Declare
 #include _FAN_PATH(BLL/BLL.h)
 
 fan::opengl::theme_list_NodeReference_t::theme_list_NodeReference_t(fan_2d::graphics::gui::theme_t* theme) {
   NRI = theme->theme_reference.NRI;
 }
 
-#define BLL_set_BaseLibrary 1
-#define BLL_set_namespace fan::opengl
-#define BLL_set_prefix viewport_list
-#define BLL_set_type_node uint8_t
-#define BLL_set_node_data fan::opengl::viewport_t* viewport_id;
-#define BLL_set_Link 0
+#include "viewport_list_builder_settings.h"
 #define BLL_set_declare_NodeReference 1
-#define BLL_set_declare_basic_types 1
 #define BLL_set_declare_rest 0
-#define BLL_set_KeepSettings 1
-#define BLL_set_StructFormat 1
-#define BLL_set_NodeReference_Overload_Declare \
-  viewport_list_NodeReference_t() = default; \
-  viewport_list_NodeReference_t(fan::opengl::viewport_t*);
 #include _FAN_PATH(BLL/BLL.h)
 
 namespace fan {
@@ -204,31 +171,18 @@ namespace fan {
   }
 }
 
+#include "viewport_list_builder_settings.h"
 #define BLL_set_declare_NodeReference 0
-#define BLL_set_declare_basic_types 0
 #define BLL_set_declare_rest 1
-#define BLL_set_KeepSettings 0
-#undef BLL_set_NodeReference_Overload_Declare
 #include _FAN_PATH(BLL/BLL.h)
 
 fan::opengl::viewport_list_NodeReference_t::viewport_list_NodeReference_t(fan::opengl::viewport_t* viewport) {
   NRI = viewport->viewport_reference.NRI;
 }
 
-#define BLL_set_BaseLibrary 1
-#define BLL_set_namespace fan::opengl
-#define BLL_set_prefix matrices_list
-#define BLL_set_type_node uint8_t
-#define BLL_set_node_data fan::opengl::matrices_t* matrices_id;
-#define BLL_set_Link 0
+#include "matrices_list_builder_settings.h"
 #define BLL_set_declare_NodeReference 1
-#define BLL_set_declare_basic_types 1
 #define BLL_set_declare_rest 0
-#define BLL_set_KeepSettings 1
-#define BLL_set_StructFormat 1
-#define BLL_set_NodeReference_Overload_Declare \
-  matrices_list_NodeReference_t() = default; \
-  matrices_list_NodeReference_t(fan::opengl::matrices_t* matrices);
 #include _FAN_PATH(BLL/BLL.h)
 
 namespace fan{
@@ -301,11 +255,9 @@ namespace fan{
   }
 }
 
+#include "matrices_list_builder_settings.h"
 #define BLL_set_declare_NodeReference 0
-#define BLL_set_declare_basic_types 0
 #define BLL_set_declare_rest 1
-#define BLL_set_KeepSettings 0
-#undef BLL_set_NodeReference_Overload_Declare
 #include _FAN_PATH(BLL/BLL.h)
 
 fan::opengl::matrices_list_NodeReference_t::matrices_list_NodeReference_t(fan::opengl::matrices_t* matrices) {
@@ -532,10 +484,10 @@ namespace fan {
 }
 
 inline void fan::opengl::context_t::open() {
-  theme_list_open(&theme_list);
-  image_list_open(&image_list);
-  viewport_list_open(&viewport_list);
-  matrices_list_open(&matrices_list);
+  theme_list.open();
+  image_list.open();
+  viewport_list.open();
+  matrices_list.open();
 
   opengl.open();
 
@@ -543,10 +495,10 @@ inline void fan::opengl::context_t::open() {
   current_program = fan::uninitialized;
 }
 inline void fan::opengl::context_t::close() {
-  theme_list_close(&theme_list);
-  image_list_close(&image_list);
-  viewport_list_close(&viewport_list);
-  matrices_list_close(&matrices_list);
+  theme_list.close();
+  image_list.close();
+  viewport_list.close();
+  matrices_list.close();
 }
 
 inline void fan::opengl::context_t::bind_to_window(fan::window_t* window, const properties_t& p) {
@@ -680,23 +632,21 @@ inline void fan::opengl::context_t::set_vsync(fan::window_t* window, bool flag)
 }
 
 void fan_2d::graphics::gui::theme_t::open(fan::opengl::context_t* context){
-  theme_reference = fan::opengl::theme_list_NewNode(&context->theme_list);
-  auto node = theme_list_GetNodeByReference(&context->theme_list, theme_reference);
-  node->data.theme_id = this;
+  theme_reference = context->theme_list.NewNode();
+  context->theme_list[theme_reference].theme_id = this;
 }
 
 void fan_2d::graphics::gui::theme_t::close(fan::opengl::context_t* context){
-  fan::opengl::theme_list_Recycle(&context->theme_list, theme_reference);
+  context->theme_list.Recycle(theme_reference);
 }
 
 inline void fan::opengl::viewport_t::open(fan::opengl::context_t * context) {
-  viewport_reference = viewport_list_NewNode(&context->viewport_list);
-  auto node = viewport_list_GetNodeByReference(&context->viewport_list, viewport_reference);
-  node->data.viewport_id = this;
+  viewport_reference = context->viewport_list.NewNode();
+  context->viewport_list[viewport_reference].viewport_id = this;
 }
 
 inline void fan::opengl::viewport_t::close(fan::opengl::context_t * context) {
-  viewport_list_Recycle(&context->viewport_list, viewport_reference);
+  context->viewport_list.Recycle(viewport_reference);
 }
 
 void fan::opengl::viewport_t::set(fan::opengl::context_t* context, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size)  {
@@ -714,12 +664,11 @@ void fan::opengl::viewport_t::set(fan::opengl::context_t* context, const fan::ve
 void fan::opengl::matrices_t::open(fan::opengl::context_t* context) {
   m_view = fan::mat4(1);
   camera_position = 0;
-  matrices_reference = matrices_list_NewNode(&context->matrices_list);
-  auto node = matrices_list_GetNodeByReference(&context->matrices_list, matrices_reference);
-  node->data.matrices_id = this;
+  matrices_reference = context->matrices_list.NewNode();
+  context->matrices_list[matrices_reference].matrices_id = this;
 }
 void fan::opengl::matrices_t::close(fan::opengl::context_t* context) {
-  matrices_list_Recycle(&context->matrices_list, matrices_reference);
+  context->matrices_list.Recycle(matrices_reference);
 }
 
 void fan::opengl::open_matrices(fan::opengl::context_t* context, fan::opengl::matrices_t* matrices, const fan::vec2& x, const fan::vec2& y) {
