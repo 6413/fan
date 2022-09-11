@@ -30,7 +30,7 @@ struct text_renderer_t {
   }
   void close() {
     for (uint32_t i = 0; i < letter_ids.size(); i++) {
-      cid_close(&letter_ids[i]);
+      letter_ids[i].close();
     }
     letter_ids.close();
   }
@@ -73,15 +73,15 @@ struct text_renderer_t {
     f32_t width = 0;
     f32_t font_size = 0;
 
-    auto it = cid_GetNodeFirst(&letter_ids[id]);
+    auto it = letter_ids[id].GetNodeFirst();
 
     while (it != letter_ids[id].dst) {
-      auto node = cid_GetNodeByReference(&letter_ids[id], it);
+      auto node = letter_ids[id].GetNodeByReference(it);
 
       auto p = loco->letter.get_properties(&node->data.cid);
 
       font_size = p.font_size;
-      auto letter =  loco->font.info.get_letter_info(p.letter_id, font_size);
+      auto letter = loco->font.info.get_letter_info(p.letter_id, font_size);
       if (node->NextNodeReference == letter_ids[id].dst) {
         width += letter.glyph.size.x;
       }
@@ -115,7 +115,7 @@ struct text_renderer_t {
     else {
       id = letter_ids.resize(letter_ids.size() + 1);
     }
-    cid_open(&letter_ids[id]);
+    letter_ids[id].open();
 
     fan::vec2 text_size = get_text_size(properties.text, properties.font_size);
     f32_t left = properties.position.x - text_size.x / 2;
@@ -127,8 +127,8 @@ struct text_renderer_t {
       p.position = fan::vec2(left - letter_info.metrics.offset.x, properties.position.y) + (fan::vec2(letter_info.metrics.size.x, properties.font_size - letter_info.metrics.size.y) / 2 + fan::vec2(letter_info.metrics.offset.x, -letter_info.metrics.offset.y));
       p.position.z = properties.position.z;
 
-      auto nr = cid_NewNodeLast(&letter_ids[id]);
-      auto n = cid_GetNodeByReference(&letter_ids[id], nr);
+      auto nr = letter_ids[id].NewNodeLast();
+      auto n = letter_ids[id].GetNodeByReference(nr);
       loco->letter.push_back(&n->data.cid, p);
       left += letter_info.metrics.advance;
     }
@@ -138,15 +138,15 @@ struct text_renderer_t {
   void erase(uint32_t id) {
     loco_t* loco = get_loco();
 
-    auto it = cid_GetNodeFirst(&letter_ids[id]);
+    auto it = letter_ids[id].GetNodeFirst();
 
     while (it != letter_ids[id].dst) {
-      auto node = cid_GetNodeByReference(&letter_ids[id], it);
+      auto node = letter_ids[id].GetNodeByReference(it);
       loco->letter.erase(&node->data.cid);
 
       it = node->NextNodeReference;
     }
-    cid_close(&letter_ids[id]);
+    letter_ids[id].close();
     *(uint32_t*)&letter_ids[id] = e.id0;
     e.id0 = id;
     e.amount++;
@@ -155,7 +155,7 @@ struct text_renderer_t {
   template <typename T>
   T get(uint32_t id, T loco_t::letter_t::instance_t::*member) {
     loco_t* loco = get_loco();
-    return loco->letter.get(&letter_ids[id][0], member);
+    return loco->letter.get(id, member); // ?
   }
   template <typename T, typename T2>
   void set(uint32_t id, T loco_t::letter_t::instance_t::*member, const T2& value) {
@@ -167,10 +167,10 @@ struct text_renderer_t {
       left = ((f32_t*)&value)[0] - text_size.x / 2;
     }
       
-    auto it = cid_GetNodeFirst(&letter_ids[id]);
+    auto it = letter_ids[id].GetNodeFirst();
 
     while (it != letter_ids[id].dst) {
-      auto node = cid_GetNodeByReference(&letter_ids[id], it);
+      auto node = letter_ids[id].GetNodeByReference(it);
 
       auto p = loco->letter.get_properties(&node->data.cid);
       loco->letter.erase(&node->data.cid);
@@ -194,10 +194,10 @@ struct text_renderer_t {
   void set_matrices(uint32_t id, fan::opengl::matrices_list_NodeReference_t n) {
     loco_t* loco = get_loco();
 
-    auto it = cid_GetNodeFirst(&letter_ids[id]);
+    auto it = letter_ids[id].GetNodeFirst();
 
     while (it != letter_ids[id].dst) {
-      auto node = cid_GetNodeByReference(&letter_ids[id], it);
+      auto node = letter_ids[id].GetNodeByReference(it);
       loco->letter.set_matrices(&node->data.cid, n);
       it = node->NextNodeReference;
     }
@@ -206,10 +206,10 @@ struct text_renderer_t {
   void set_viewport(uint32_t id, fan::opengl::viewport_list_NodeReference_t n) {
     loco_t* loco = get_loco();
 
-    auto it = cid_GetNodeFirst(&letter_ids[id]);
+    auto it = letter_ids[id].GetNodeFirst();
 
     while (it != letter_ids[id].dst) {
-      auto node = cid_GetNodeByReference(&letter_ids[id], it);
+      auto node = letter_ids[id].GetNodeByReference(it);
       loco->letter.set_viewport(&node->data.cid, n);
       it = node->NextNodeReference;
     }
@@ -235,6 +235,7 @@ struct text_renderer_t {
   }e;
 
 
+  #define BLL_set_AreWeInsideStruct 1
   #define BLL_set_BaseLibrary 1
   #define BLL_set_prefix cid
   #define BLL_set_type_node uint16_t

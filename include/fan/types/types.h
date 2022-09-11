@@ -17,6 +17,8 @@
 #include <type_traits>
 #include <cstdint>
 
+#include _FAN_PATH(types/function.h)
+
 #if defined(_WIN32) || defined(_WIN64)
 
  //constexpr platform_t platform = platform_t::windows;

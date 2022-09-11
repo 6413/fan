@@ -25,16 +25,15 @@ struct pile_t {
       fan::vec2(-1, 1) * ratio.x,
       fan::vec2(-1, 1) * ratio.y
     );
-    loco.get_window()->add_resize_callback(this, [](fan::window_t* window, const fan::vec2i& size, void* userptr) {
-      fan::vec2 window_size = window->get_size();
+    loco.get_window()->add_resize_callback([&](fan::window_t* window, const fan::vec2i& size) {
+      fan::vec2 window_size = size;
       fan::vec2 ratio = window_size / window_size.max();
       //std::swap(ratio.x, ratio.y);
-      pile_t* pile = (pile_t*)userptr;
-      pile->matrices.set_ortho(
+      matrices.set_ortho(
         fan::vec2(-1, 1) * ratio.x,
         fan::vec2(-1, 1) * ratio.y
       );
-      pile->viewport.set(pile->loco.get_context(), 0, pile->loco.get_window()->get_size(), pile->loco.get_window()->get_size());
+      viewport.set(loco.get_context(), 0, size, size);
      });
 
     viewport.open(loco.get_context());
@@ -48,23 +47,23 @@ struct pile_t {
 
 int main() {
 
-  pile_t pile;
-  pile.open();
+  pile_t* pile = new pile_t;
+  pile->open();
 
   loco_t::menu_maker_t::id_t ids[2];
 
   loco_t::menu_maker_t::open_properties_t op;
-  op.matrices = &pile.matrices;
-  op.viewport = &pile.viewport;
+  op.matrices = &pile->matrices;
+  op.viewport = &pile->viewport;
   fan_2d::graphics::gui::theme_t theme = fan_2d::graphics::gui::themes::deep_red();
-  theme.open(pile.loco.get_context());
+  theme.open(pile->loco.get_context());
   op.theme = &theme;
   op.gui_size = 0.05;
   op.position = fan::vec2(-1.0 + op.gui_size * 5, -1.0 + op.gui_size * 1);
-  ids[0] = pile.loco.menu_maker.push_menu(op);
+  ids[0] = pile->loco.menu_maker.push_menu(op);
   op.gui_size *= 3;
   op.position = fan::vec2(op.gui_size * (5.0 / 3), -1.0 + op.gui_size);
-  ids[1] = pile.loco.menu_maker.push_menu(op);
+  ids[1] = pile->loco.menu_maker.push_menu(op);
   loco_t::menu_maker_t::properties_t p;
   p.text = "Create New Stage";
   p.mouse_button_cb = [&](const loco_t::mouse_button_data_t& mb) {
@@ -97,13 +96,13 @@ int main() {
     pile->loco.menu_maker.push_back(ids[1], p);
   };
 
-  pile.loco.menu_maker.push_back(ids[0], p);
+  pile->loco.menu_maker.push_back(ids[0], p);
   p.text = "Gui stage";
-  pile.loco.menu_maker.push_back(ids[0], p);
+  pile->loco.menu_maker.push_back(ids[0], p);
   p.text = "Function stage";
-  pile.loco.menu_maker.push_back(ids[0], p);
+  pile->loco.menu_maker.push_back(ids[0], p);
 
-  pile.loco.loop([&] {
+  pile->loco.loop([&] {
 
   });
 

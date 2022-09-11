@@ -271,8 +271,8 @@ struct vfi_t {
     focus.method.mouse.position = position;
     mouse_move_data_t mouse_move_data;
     mouse_move_data.vfi = this;
+    mouse_move_data.flag = &focus.method.mouse.flags;
     if (!focus.mouse.is_invalid()) {
-      mouse_move_data.flag = &focus.method.mouse.flags;
       auto& data = shape_list[focus.mouse];
       fan::vec2 tp = transform(position, data.shape_type, &data.shape_data);
       mouse_move_data.mouse_stage = inside(loco, data.shape_type, &data.shape_data, tp);

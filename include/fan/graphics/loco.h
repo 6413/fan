@@ -198,6 +198,8 @@ struct loco_t {
       using properties_t = menu_maker_base_t::properties_t;
       using open_properties_t = menu_maker_base_t::open_properties_t;
 
+      #define BLL_set_AreWeInsideStruct 1
+      #define BLL_set_CPP_Node_ConstructDestruct
       #define BLL_set_BaseLibrary 1
       #define BLL_set_prefix instance
       #define BLL_set_type_node uint16_t
@@ -214,31 +216,27 @@ struct loco_t {
 	    }
 
       void open() {
-        instance_open(&instances);
+        instances.open();
       }
       void close() {
-        instance_close(&instances);
+        instances.close();
       }
 
       instance_NodeReference_t push_menu(const open_properties_t& op) {
-        auto nr = instance_NewNodeLast(&instances);
-        auto node = instance_GetNodeByReference(&instances, nr);
-        node->data.base.open(get_loco(), op);
+        auto nr = instances.NewNodeLast();
+        instances[nr].base.open(get_loco(), op);
         return nr;
       }
       void erase_menu(instance_NodeReference_t id) {
-        auto node = instance_GetNodeByReference(&instances, id);
-        node->data.base.close(get_loco());
-        instance_Unlink(&instances, id);
-        instance_Recycle(&instances, id);
+        instances[id].base.close(get_loco());
+        instances.Unlink(id);
+        instances.Recycle(id);
       }
       void push_back(instance_NodeReference_t id, const properties_t& properties) {
-        auto node = instance_GetNodeByReference(&instances, id);
-        node->data.base.push_back(get_loco(), properties);
+        instances[id].base.push_back(get_loco(), properties);
       }
       fan::opengl::cid_t* get_selected(instance_NodeReference_t id) {
-        auto node = instance_GetNodeByReference(&instances, id);
-        return node->data.base.selected;
+        return instances[id].base.selected;
       }
 
       instance_t instances;
@@ -289,7 +287,6 @@ struct loco_t {
     });
 
     get_window()->add_mouse_move_callback([&](fan::window_t* window, const fan::vec2i& mouse_position) {
-      fan::vec2 window_size = window->get_size();
       feed_mouse_move(get_mouse_position());
     });
 
@@ -380,7 +377,6 @@ struct loco_t {
 
   void feed_mouse_move(const fan::vec2& mouse_position) {
     vfi.feed_mouse_move(mouse_position);
-   
   }
 
   void feed_mouse_button(uint16_t button, fan::key_state key_state, const fan::vec2& mouse_position) {

@@ -322,8 +322,6 @@ namespace fan {
         }
       }
 
-      uint32_t matrix_inform_id;
-
       fan::opengl::GLuint id;
 
       uint32_t vertex, fragment;

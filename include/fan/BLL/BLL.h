@@ -132,17 +132,28 @@
   #endif
 #endif
 
-#if BLL_set_StoreFormat == 1
+#if BLL_set_StoreFormat == 0
+  #ifndef BLL_set_StoreFormat0_alloc_open
+    #define BLL_set_StoreFormat0_alloc_open malloc
+  #endif
+  #ifndef BLL_set_StoreFormat0_alloc_resize
+    #define BLL_set_StoreFormat0_alloc_resize realloc
+  #endif
+  #ifndef BLL_set_StoreFormat0_alloc_close
+    #define BLL_set_StoreFormat0_alloc_close free
+  #endif
+#elif BLL_set_StoreFormat == 1
   #ifndef BLL_set_StoreFormat1_alloc_open
-    #error ?
+    #define BLL_set_StoreFormat1_alloc_open malloc
   #endif
   #ifndef BLL_set_StoreFormat1_alloc_close
-    #error ?
+    #define BLL_set_StoreFormat1_alloc_close free
   #endif
   #ifndef BLL_set_StoreFormat1_ElementPerBlock
     #define BLL_set_StoreFormat1_ElementPerBlock 1
   #endif
 #endif
+
 
 #if BLL_set_BaseLibrary == 0
   #define _BLL_INCLUDE _WITCH_PATH
@@ -219,34 +230,29 @@
 #ifndef BLL_set_CPP_Node_ConstructDestruct
   #undef BLL_set_CPP_Node_ConstructDestruct
 #endif
-#undef BLL_set_StructFormat
-#undef BLL_set_prefix
-#undef BLL_set_declare_NodeReference
-#undef BLL_set_declare_rest
-#undef BLL_set_NodeSizeType
-#undef BLL_set_type_node
 #ifdef BLL_set_node_data
   #undef BLL_set_node_data
 #endif
-#undef BLL_set_PreferNextFirst
-#undef BLL_set_PadNode
-#undef BLL_set_debug_InvalidAction
-#undef BLL_set_debug_InvalidAction_srcAccess
 #undef BLL_set_debug_InvalidAction_dstAccess
-#undef BLL_set_IsNodeUnlinked
-#undef BLL_set_SafeNext
-#undef BLL_set_ResizeListAfterClear
-#undef BLL_set_UseUninitialisedValues
-#undef BLL_set_Link
-#undef BLL_set_StoreFormat
-#undef BLL_set_SyntaxStyle
+#undef BLL_set_debug_InvalidAction_srcAccess
 #undef BLL_set_ConstantInvalidNodeReference_Listless
+#undef BLL_set_NodeSizeType
+#undef BLL_set_type_node
+#undef BLL_set_StoreFormat
+#undef BLL_set_Link
+#undef BLL_set_UseUninitialisedValues
+#undef BLL_set_ResizeListAfterClear
+#undef BLL_set_SafeNext
+#undef BLL_set_IsNodeUnlinked
+#undef BLL_set_debug_InvalidAction
+#undef BLL_set_PreferNextFirst
+#undef BLL_set_declare_rest
+#undef BLL_set_declare_NodeReference
+#undef BLL_set_StructFormat
+#undef BLL_set_AreWeInsideStruct
+#undef BLL_set_prefix
 #ifdef BLL_set_namespace
   #undef BLL_set_namespace
 #endif
-
-#undef BLL_set_AreWeInsideStruct
-
 #undef BLL_set_Language
-
 #undef BLL_set_BaseLibrary
