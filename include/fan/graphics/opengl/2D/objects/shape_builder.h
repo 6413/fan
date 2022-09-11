@@ -15,10 +15,9 @@ sb_get_loco
 void sb_open() {
   loco_t* loco = get_loco();
   root = loco_bdbt_NewNode(&loco->bdbt);
-  bll_block_open(&blocks);
-  shape_bm_open(&bm_list);
+  blocks.open();
+  bm_list.open();
   
-
   m_shader.open(loco->get_context());
   m_shader.set_vertex(
     loco->get_context(),
@@ -33,8 +32,8 @@ void sb_open() {
 void sb_close() {
   loco_t* loco = get_loco();
 
-  bll_block_close(&blocks);
-  shape_bm_close(&bm_list);
+  blocks.close();
+  bm_list.close();
 
   assert(0);
   //loco_bdbt_close(&loco->bdbt);
@@ -56,26 +55,26 @@ block_t* sb_push_back(fan::opengl::cid_t* cid, properties_t& p) {
   typename decltype(k)::KeySize_t ki;
   k.Query(&loco->bdbt, &p.key, &ki, &nr);
   if (ki != sizeof(instance_properties_t::key_t) * 8) {
-    auto lnr = shape_bm_NewNode(&bm_list);
-    auto ln = shape_bm_GetNodeByReference(&bm_list, lnr);
-    ln->data.first_block = bll_block_NewNodeLast(&blocks);
-    bll_block_GetNodeByReference(&blocks, ln->data.first_block)->data.block.open(loco, this);
-    ln->data.last_block = ln->data.first_block;
-    ln->data.instance_properties = *(instance_properties_t*)&p;
+    auto lnr = bm_list.NewNode();
+    auto ln = &bm_list[lnr];
+    ln->first_block = blocks.NewNodeLast();
+    blocks[ln->first_block].block.open(loco, this);
+    ln->last_block = ln->first_block;
+    ln->instance_properties = *(instance_properties_t*)&p;
     k.InFrom(&loco->bdbt, &p.key, ki, nr, lnr.NRI);
     nr = lnr.NRI;
   }
 
   instance_t it = p;
 
-  shape_bm_Node_t* bmn = shape_bm_GetNodeByReference(&bm_list, *(shape_bm_NodeReference_t*)&nr);
-  block_t* last_block = &bll_block_GetNodeByReference(&blocks, bmn->data.last_block)->data.block;
+  shape_bm_Node_t* bmn = bm_list.GetNodeByReference(*(shape_bm_NodeReference_t*)&nr);
+  block_t* last_block = &blocks[bmn->data.last_block].block;
 
   if (last_block->uniform_buffer.size() == max_instance_size) {
-    auto nnr = bll_block_NewNode(&blocks);
-    bll_block_linkNext(&blocks, bmn->data.last_block, nnr);
+    auto nnr = blocks.NewNode();
+    blocks.linkNext(bmn->data.last_block, nnr);
     bmn->data.last_block = nnr;
-    last_block = &bll_block_GetNodeByReference(&blocks, bmn->data.last_block)->data.block;
+    last_block = &blocks[bmn->data.last_block].block;
     last_block->open(loco, this);
   }
 
@@ -104,29 +103,29 @@ block_t* sb_push_back(fan::opengl::cid_t* cid, properties_t& p) {
 void sb_erase(fan::opengl::cid_t* cid) {
   loco_t* loco = get_loco();
   auto bm_id = *(shape_bm_NodeReference_t*)&cid->bm_id;
-  auto bm_node = shape_bm_GetNodeByReference(&bm_list, bm_id);
+  auto bm_node = bm_list.GetNodeByReference(bm_id);
 
   auto block_id = *(bll_block_NodeReference_t*)&cid->block_id;
-  auto block_node = bll_block_GetNodeByReference(&blocks, *(bll_block_NodeReference_t*)&cid->block_id);
+  auto block_node = blocks.GetNodeByReference(*(bll_block_NodeReference_t*)&cid->block_id);
   auto block = &block_node->data.block;
 
   auto& last_block_id = bm_node->data.last_block;
-  auto* last_block_node = bll_block_GetNodeByReference(&blocks, last_block_id);
+  auto* last_block_node = blocks.GetNodeByReference(last_block_id);
   block_t* last_block = &last_block_node->data.block;
   uint32_t last_instance_id = last_block->uniform_buffer.size() - 1;
 
-  if (bll_block_IsNodeReferenceEqual(block_id, last_block_id) && cid->instance_id == block->uniform_buffer.size() - 1) {
+  if (block_id == last_block_id && cid->instance_id == block->uniform_buffer.size() - 1) {
     block->uniform_buffer.common.m_size -= sizeof(instance_t);
     if (block->uniform_buffer.size() == 0) {
       auto lpnr = block_node->PrevNodeReference;
       block->close(loco);
-      bll_block_Unlink(&blocks, block_id);
-      bll_block_Recycle(&blocks, block_id);
-      if (bll_block_IsNodeReferenceEqual(last_block_id, bm_node->data.first_block)) {
+      blocks.Unlink(block_id);
+      blocks.Recycle(block_id);
+      if (last_block_id == bm_node->data.first_block) {
         loco_bdbt_Key_t<sizeof(instance_properties_t::key_t) * 8> k;
         typename decltype(k)::KeySize_t ki;
         k.Remove(&loco->bdbt, &bm_node->data.instance_properties.key, root);
-        shape_bm_Recycle(&bm_list, bm_id);
+        bm_list.Recycle(bm_id);
       }
       else {
         //fan::print("here");
@@ -157,8 +156,8 @@ void sb_erase(fan::opengl::cid_t* cid) {
     auto lpnr = last_block_node->PrevNodeReference;
 
     last_block->close(loco);
-    bll_block_Unlink(&blocks, last_block_id);
-    bll_block_Recycle(&blocks, last_block_id);
+    blocks.Unlink(last_block_id);
+    blocks.Recycle(last_block_id);
 
     bm_node->data.last_block = lpnr;
   }
@@ -173,9 +172,8 @@ void sb_erase(fan::opengl::cid_t* cid) {
 
 block_t* sb_get_block(fan::opengl::cid_t* cid) {
   loco_t* loco = get_loco();
-  auto block_id = *(bll_block_NodeReference_t*)&cid->block_id;
-  auto block_node = bll_block_GetNodeByReference(&blocks, *(bll_block_NodeReference_t*)&cid->block_id);
-  return &block_node->data.block;
+  auto& block_node = blocks[*(bll_block_NodeReference_t*)&cid->block_id];
+  return &block_node.block;
 }
 
 template <typename T>
@@ -214,11 +212,11 @@ template <uint32_t depth = 0>
 void traverse_draw(auto nr, uint32_t draw_mode) {
   loco_t* loco = get_loco();
   if constexpr(depth == instance_properties_t::key_t::count + 1) {
-    auto bmn = shape_bm_GetNodeByReference(&bm_list, *(shape_bm_NodeReference_t*)&nr);
+    auto bmn = bm_list.GetNodeByReference(*(shape_bm_NodeReference_t*)&nr);
     auto bnr = bmn->data.first_block;
 
     while(1) {
-      auto node = bll_block_GetNodeByReference(&blocks, bnr);
+      auto node = blocks.GetNodeByReference(bnr);
       node->data.block.uniform_buffer.bind_buffer_range(
         loco->get_context(), 
         node->data.block.uniform_buffer.size()
@@ -230,17 +228,20 @@ void traverse_draw(auto nr, uint32_t draw_mode) {
         node->data.block.uniform_buffer.size() * sb_vertex_count,
         draw_mode
       );
-      if (bll_block_IsNodeReferenceEqual(bnr, bmn->data.last_block)) {
+      if (bnr == bmn->data.last_block) {
         break;
       }
       bnr = node->NextNodeReference;
     }
   }
   else {
-    loco_bdbt_Key_t<sizeof(typename instance_properties_t::key_t::get_type<depth>::type) * 8> k;
-    typename decltype(k)::Traverse_t kt;
+    //loco_bdbt_Key_t<sizeof(typename instance_properties_t::key_t::get_type<depth>::type) * 8> k;
+    typename loco_bdbt_Key_t<sizeof(typename instance_properties_t::key_t::get_type<depth>::type) * 8>::Traverse_t kt;
     kt.init(nr);
     typename instance_properties_t::key_t::get_type<depth>::type o;
+#if fan_use_uninitialized == 0
+    memset(&o, 0, sizeof(o));
+#endif
     while(kt.Traverse(&loco->bdbt, &o)) {
       loco->process_block_properties_element(this, o);
       traverse_draw<depth + 1>(kt.Output, draw_mode);
@@ -286,12 +287,14 @@ protected:
 
 loco_bdbt_NodeReference_t root;
 
+#define BLL_set_CPP_Node_ConstructDestruct
+#define BLL_set_AreWeInsideStruct 1
 #define BLL_set_prefix bll_block
 #define BLL_set_BaseLibrary 1
 #define BLL_set_Link 1
 #define BLL_set_StoreFormat 1
-#define BLL_set_StoreFormat1_alloc_open malloc
-#define BLL_set_StoreFormat1_alloc_close free
+//#define BLL_set_StoreFormat1_alloc_open malloc
+//#define BLL_set_StoreFormat1_alloc_close free
 #define BLL_set_type_node uint16_t
 #define BLL_set_node_data \
     block_t block;
@@ -299,6 +302,8 @@ loco_bdbt_NodeReference_t root;
 
 bll_block_t blocks;
 
+#define BLL_set_CPP_Node_ConstructDestruct
+#define BLL_set_AreWeInsideStruct 1
 #define BLL_set_prefix shape_bm
 #define BLL_set_BaseLibrary 1
 #define BLL_set_Link 0

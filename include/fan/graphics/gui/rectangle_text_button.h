@@ -66,7 +66,7 @@ struct button_t {
     auto block = sb_push_back(cid, p);
     block->p[cid->instance_id].text_id = loco->text.push_back(tp);
 
-    set_theme(cid, theme, 1);
+    set_theme(cid, theme, inactive);
 
     loco_t::vfi_t::properties_t vfip;
     vfip.shape_type = loco_t::vfi_t::shape_t::rectangle;
@@ -158,12 +158,11 @@ struct button_t {
 
   fan_2d::graphics::gui::theme_t* get_theme(fan::opengl::theme_list_NodeReference_t nr) {
     loco_t* loco = get_loco();
-    return fan::opengl::theme_list_GetNodeByReference(&loco->get_context()->theme_list, nr)->data.theme_id;
+    return loco->get_context()->theme_list[nr].theme_id;
   }
   fan_2d::graphics::gui::theme_t* get_theme(fan::opengl::cid_t* cid) {
     loco_t* loco = get_loco();
-    auto block_node = bll_block_GetNodeByReference(&blocks, *(bll_block_NodeReference_t*)&cid->block_id);
-    return get_theme(block_node->data.block.p[cid->instance_id].theme);
+    return get_theme(blocks[*(bll_block_NodeReference_t*)&cid->block_id].block.p[cid->instance_id].theme);
   }
   void set_theme(fan::opengl::cid_t* cid, fan_2d::graphics::gui::theme_t* theme, f32_t intensity) {
     loco_t* loco = get_loco();
@@ -229,7 +228,7 @@ struct button_t {
   fan::opengl::matrices_t* get_matrices(fan::opengl::cid_t* cid) {
     auto block = sb_get_block(cid);
     loco_t* loco = get_loco();
-    return fan::opengl::matrices_list_GetNodeByReference(&loco->get_context()->matrices_list, *block->p[cid->instance_id].key.get_value<0>())->data.matrices_id;
+    return loco->get_context()->matrices_list[*block->p[cid->instance_id].key.get_value<0>()].matrices_id;
   }
   void set_matrices(fan::opengl::cid_t* cid, fan::opengl::matrices_list_NodeReference_t n) {
     sb_set_key<instance_properties_t::key_t::get_index_with_type<decltype(n)>()>(cid, n);
@@ -241,7 +240,7 @@ struct button_t {
   fan::opengl::viewport_t* get_viewport(fan::opengl::cid_t* cid) {
     loco_t* loco = get_loco();
     auto block = sb_get_block(cid);
-    return fan::opengl::viewport_list_GetNodeByReference(&loco->get_context()->viewport_list, *block->p[cid->instance_id].key.get_value<1>())->data.viewport_id;
+    return loco->get_context()->viewport_list[*block->p[cid->instance_id].key.get_value<1>()].viewport_id;
   }
   void set_viewport(fan::opengl::cid_t* cid, fan::opengl::viewport_list_NodeReference_t n) {
     loco_t* loco = get_loco();

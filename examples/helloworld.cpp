@@ -32,13 +32,13 @@ struct pile_t {
       fan::vec2 ratio = window_size / window_size.max();
       std::swap(ratio.x, ratio.y);
       matrices.set_ortho(
-        ortho_x * ratio.x, 
+        ortho_x * ratio.x,
         ortho_y * ratio.y
       );
-    });
+      });
     loco.get_window()->add_resize_callback([&](fan::window_t*, const fan::vec2i& size) {
       viewport.set(loco.get_context(), 0, size, size);
-    });
+      });
     viewport.open(loco.get_context());
     viewport.set(loco.get_context(), 0, loco.get_window()->get_size(), loco.get_window()->get_size());
   }
@@ -49,7 +49,6 @@ struct pile_t {
 };
 
 int main() {
-
   pile_t* pile = new pile_t;
   pile->open();
 

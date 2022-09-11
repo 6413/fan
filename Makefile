@@ -7,7 +7,7 @@ GPP = clang++
 DEBUGFLAGS = 
 RELEASEFLAGS = -s -fdata-sections -ffunction-sections -Wl -mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -O3 -Os #-fno-exceptions -fno-rtti -flto -fno-unroll-loops -mllvm --enable-merge-functions 
 
-CFLAGS = -std=c++2a -w -I include -Wl  \
+CFLAGS = -g -std=c++2a -w -I include #-Wl #-fPIE  \
    #$(RELEASEFLAGS)
 
 BASE_PATH =
@@ -22,7 +22,7 @@ ifeq ($(OS),Windows_NT)
   FAN_OBJECT_FOLDER = $(subst /,\,$(BASE_PATH))
 else
   BASE_PATH += lib/fan/
-	CFLAGS += -DFAN_INCLUDE_PATH=/usr/include -fPIE -I /usr/local/include
+	CFLAGS += -DFAN_INCLUDE_PATH=/usr/include -I /usr/local/include
 	AR = ar
 	RM = rm -f
 	LIBNAME = fan.a

@@ -1,3 +1,4 @@
+#define BLL_set_StoreFormat 1
 #define BLL_set_AreWeInsideStruct 1
 #define BLL_set_CPP_Node_ConstructDestruct
 #define BLL_set_BaseLibrary 1

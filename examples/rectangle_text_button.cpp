@@ -105,7 +105,7 @@ int main() {
       ii_d.flag->ignore_move_focus_check = false;
     }*/
   };
-  fan_2d::graphics::gui::themes::gray gray_theme;
+  fan_2d::graphics::gui::theme_t gray_theme = fan_2d::graphics::gui::themes::deep_red();
   gray_theme.open(pile.loco.get_context());
   tp.theme = &gray_theme;
   constexpr auto count = 10;
@@ -113,8 +113,9 @@ int main() {
   fan::print(loco_bdbt_usage(&pile.loco.bdbt));
   pile.loco.button.push_back(&cids[0], tp);
 
+  //pile.loco.button.set_theme(&cids[0], &gray_theme, 0.1);
   pile.loco.loop([&] {
-
+    //pile.loco.button.set(&cids[0], &loco_t::button_t::instance_t::position, fan::vec2(-0.5, .5));
   });
 
   return 0;
