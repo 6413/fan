@@ -166,10 +166,10 @@ namespace fan {
 			constexpr static fan::vec2i r_1920x1080 = fan::vec2i(1920, 1080);
 		};
 
-		using buttons_callback_cb_t = std::function<void(fan::window_t*, uint16_t, key_state)>;
-		using keys_callback_cb_t = std::function<void(fan::window_t*, uint16_t, key_state)>;
-		using key_callback_cb_t = std::function<void(fan::window_t*, uint16_t key)>;
-		using keys_combo_callback_cb_t = std::function<void(fan::window_t*)>;
+		using buttons_callback_cb_t = fan::function_t<void(fan::window_t*, uint16_t, key_state)>;
+		using keys_callback_cb_t = fan::function_t<void(fan::window_t*, uint16_t, key_state)>;
+		using key_callback_cb_t = fan::function_t<void(fan::window_t*, uint16_t key)>;
+		using keys_combo_callback_cb_t = fan::function_t<void(fan::window_t*)>;
 		using key_combo_callback_store_t = struct{
 			uint16_t last_key;
 			fan::hector_t<uint16_t> key_combo;
@@ -177,11 +177,11 @@ namespace fan {
 			keys_combo_callback_cb_t function;
 		};
 
-		using text_callback_cb_t = std::function<void(fan::window_t*, uint32_t key)>;
-		using mouse_position_callback_cb_t = std::function<void(fan::window_t* window, const fan::vec2i& position)>;
-		using close_callback_cb_t = std::function<void(fan::window_t*)>;
-		using resize_callback_cb_t = std::function<void(fan::window_t*, const fan::vec2i& window_size)>;
-		using move_callback_cb_t = std::function<void(fan::window_t*)>;
+		using text_callback_cb_t = fan::function_t<void(fan::window_t*, uint32_t key)>;
+		using mouse_position_callback_cb_t = fan::function_t<void(fan::window_t* window, const fan::vec2i& position)>;
+		using close_callback_cb_t = fan::function_t<void(fan::window_t*)>;
+		using resize_callback_cb_t = fan::function_t<void(fan::window_t*, const fan::vec2i& window_size)>;
+		using move_callback_cb_t = fan::function_t<void(fan::window_t*)>;
 
 		using key_callback_store_t = struct{
 

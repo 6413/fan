@@ -50,9 +50,9 @@ struct loco_t {
     fan::opengl::cid_t* cid;
   };
 
-  using mouse_move_cb_t = std::function<void(const mouse_move_data_t&)>;
-  using mouse_button_cb_t = std::function<void(const mouse_button_data_t&)>;
-  using keyboard_cb_t =  std::function<void(const keyboard_data_t&)>;
+  using mouse_move_cb_t = fan::function_t<void(const mouse_move_data_t&)>;
+  using mouse_button_cb_t = fan::function_t<void(const mouse_button_data_t&)>;
+  using keyboard_cb_t = fan::function_t<void(const keyboard_data_t&)>;
 
   vfi_t vfi_var_name;
 
