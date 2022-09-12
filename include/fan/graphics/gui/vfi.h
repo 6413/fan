@@ -91,14 +91,14 @@ struct vfi_t {
     fan::key_state key_state;
   };
 
-  using mouse_move_cb_t = std::function<void(const mouse_move_data_t&)>;
-  using mouse_button_cb_t = std::function<void(const mouse_button_data_t&)>;
-  using keyboard_cb_t =  std::function<void(const keyboard_data_t&)>;
+  using mouse_move_cb_t = fan::function_t<void(const mouse_move_data_t&)>;
+  using mouse_button_cb_t = fan::function_t<void(const mouse_button_data_t&)>;
+  using keyboard_cb_t = fan::function_t<void(const keyboard_data_t&)>;
 
   struct common_shape_data_t {
-    std::function<void(const mouse_move_data_t&)> mouse_move_cb;
-    std::function<void(const mouse_button_data_t&)> mouse_button_cb;
-    std::function<void(const keyboard_data_t&)> keyboard_cb;
+    fan::function_t<void(const mouse_move_data_t&)> mouse_move_cb;
+    fan::function_t<void(const mouse_button_data_t&)> mouse_button_cb;
+    fan::function_t<void(const keyboard_data_t&)> keyboard_cb;
     f32_t depth;
     union{
       shape_data_always_t always; 
@@ -108,9 +108,9 @@ struct vfi_t {
 
   struct common_shape_properties_t {
     shape_type_t shape_type;
-    std::function<void(const mouse_move_data_t&)> mouse_move_cb;
-    std::function<void(const mouse_button_data_t&)> mouse_button_cb;
-    std::function<void(const keyboard_data_t&)> keyboard_cb;
+    fan::function_t<void(const mouse_move_data_t&)> mouse_move_cb;
+    fan::function_t<void(const mouse_button_data_t&)> mouse_button_cb;
+    fan::function_t<void(const keyboard_data_t&)> keyboard_cb;
     union {
       shape_properties_always_t always; 
       shape_properties_rectangle_t rectangle; 

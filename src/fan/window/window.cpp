@@ -831,9 +831,7 @@ void fan::window_t::window_input_action(fan::window_handle_t window, uint16_t ke
       continue;
     }
 
-    if (fwindow->m_key_callback[it].data.function) {
-      fwindow->m_key_callback[it].data.function(fwindow, key);
-    }
+    fwindow->m_key_callback[it].data.function(fwindow, key);
 
     it = fwindow->m_key_callback.EndSafeNext();
   }
@@ -863,9 +861,8 @@ void fan::window_t::window_input_mouse_action(fan::window_handle_t window, uint1
       it = fwindow->m_key_callback.EndSafeNext();
       continue;
     }
-    if (fwindow->m_key_callback[it].data.function) {
-      fwindow->m_key_callback[it].data.function(fwindow, key);
-    }
+
+    fwindow->m_key_callback[it].data.function(fwindow, key);
 
     it = fwindow->m_key_callback.EndSafeNext();
   }
@@ -898,9 +895,8 @@ void fan::window_t::window_input_up(fan::window_handle_t window, uint16_t key)
       it = fwindow->m_key_callback.EndSafeNext();
       continue;
     }
-    if (fwindow->m_key_callback[it].data.function) {
-      fwindow->m_key_callback[it].data.function(fwindow, key);
-    }
+    
+    fwindow->m_key_callback[it].data.function(fwindow, key);
 
     it = fwindow->m_key_callback.EndSafeNext();
   }

@@ -16,31 +16,49 @@ namespace fan {
     //  data = new func_t<decltype(l) >>(l);
     //};
 
-    function_t() : func(0) {};
+    function_t() = default;
 
     template <typename T>
     function_t(T lambda) : func(new func_t<T>(lambda)) {}
 
+
+    //template <typename T>
+    //function_t(const T& lambda) : func(new func_t<T>(lambda)) {}
+
     //template <typename T>
     //function_t(T&& lambda) : func(new func_t<T>(lambda)) {}
 
-    function_t(const function_t& f) {
-      func = f.func;
-    }
-    function_t(function_t&& f) {
+    //function_t(const function_t& f) {
+    //  //delete func;
+    //  func = f.func;
+    //}
+    function_t(const function_t& f) = default;
+    /*function_t(function_t&& f) {
       func = std::move(f.func);
       f.func = 0;
-    }
+    }*/
+
+    //template <typename T2>
+    //function_t& operator=(const T2& f) {
+    //  func = new func_t<T2>(f);
+
+    //  return *this;
+    //};
 
     template <typename T2>
-    function_t& operator=(T2 f) {
-      func = new func_t<T2>(f);
+    function_t& operator=(const T2& f) {
+      func = std::make_shared< func_t<T2>>(func_t<T2>(f));
 
       return *this;
     };
 
     function_t& operator=(const function_t& f) = default;
-    function_t& operator=(function_t&& f) = default;
+    function_t& operator=(function_t&& f) {
+      *func = *f.func;
+      f.func = 0;
+
+      return *this;
+    }
 
     //template <typename T2>
     //function_t& operator=(T2&& f) {
@@ -48,8 +66,6 @@ namespace fan {
     //  func = new func_t<T2>(f);
     //  return *this;
     //};
-
-    ~function_t() { delete func; }
 
     struct func_base_t {
       func_base_t() = default;
@@ -67,10 +83,10 @@ namespace fan {
       T f;
     };
 
-    return_type operator()(args_t... args) {
+    return_type operator()(args_t... args) const {
       return (*func)(args...);
     }
 
-    func_base_t* func;
+    std::shared_ptr<func_base_t> func;
   };
 }

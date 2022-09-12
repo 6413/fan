@@ -95,15 +95,17 @@ int main() {
     };
     pile->loco.menu_maker.push_back(ids[1], p);
   };
-
+  
   pile->loco.menu_maker.push_back(ids[0], p);
   p.text = "Gui stage";
   pile->loco.menu_maker.push_back(ids[0], p);
   p.text = "Function stage";
   pile->loco.menu_maker.push_back(ids[0], p);
 
-  pile->loco.loop([&] {
+  pile->loco.get_context()->set_vsync(pile->loco.get_window(), 0);
 
+  pile->loco.loop([&] {
+    pile->loco.get_fps();
   });
 
   return 0;

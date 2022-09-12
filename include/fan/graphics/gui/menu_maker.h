@@ -19,10 +19,6 @@ struct sb_menu_maker_type_name {
 		fan::opengl::matrices_list_NodeReference_t matrices;
 	};
 
-	static void f(const loco_t::vfi_t::mouse_move_data_t& mm_d) {
-
-	}
-
 	void open(loco_t* loco, const open_properties_t& op) {
 		instances.open();
 		global = op;
@@ -32,7 +28,7 @@ struct sb_menu_maker_type_name {
     vfip.shape_type = loco_t::vfi_t::shape_t::always;
     vfip.shape.always.z = op.position.z;
 
-    vfip.mouse_move_cb = f;
+    vfip.mouse_move_cb = [](const loco_t::vfi_t::mouse_move_data_t& ii_d) -> void {};
     vfip.mouse_button_cb = [&](const loco_t::vfi_t::mouse_button_data_t& ii_d) -> void {
 			if (ii_d.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside) {
 				selected = nullptr;

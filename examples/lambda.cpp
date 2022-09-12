@@ -6,8 +6,8 @@
 #include <fan/time/time.h>
 #include <type_traits>
 
-//#define test_pushback 1
-#define test_assign 0
+//#define test_pushback 0
+//#define test_assign 1
 
 void lambda(int x) {
 
@@ -50,7 +50,7 @@ int main(int arg) {
   }
   fan::print("assign 0", c.elapsed());
 #elif defined(test_assign) && test_assign == 1
-  std::vector<function_t<int()>> cpp;
+  std::vector<fan::function_t<int()>> cpp;
   cpp.resize(count);
   c.start();
   uint32_t x = 0;
