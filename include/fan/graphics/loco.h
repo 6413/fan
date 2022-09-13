@@ -223,11 +223,13 @@ struct loco_t {
       }
 
       instance_NodeReference_t push_menu(const open_properties_t& op) {
+        fan::print("+");
         auto nr = instances.NewNodeLast();
         instances[nr].base.open(get_loco(), op);
         return nr;
       }
       void erase_menu(instance_NodeReference_t id) {
+        fan::print("-");
         instances[id].base.close(get_loco());
         instances.Unlink(id);
         instances.Recycle(id);
