@@ -76,6 +76,9 @@ namespace fan {
 				decltype(std::ios_base::binary | std::ios_base::app) mode = std::ios_base::binary | std::ios_base::app
 			) {
 				std::ofstream ofile(path, mode);
+				if (ofile.fail()) {
+					fan::throw_error("failed to write to:" + path);
+				}
 				ofile << data;
 				ofile.close();
 			}
@@ -87,6 +90,9 @@ namespace fan {
 				decltype(std::ios_base::binary | std::ios_base::app) mode = std::ios_base::binary | std::ios_base::app
 			) {
 				std::ofstream ofile(path, mode);
+				if (ofile.fail()) {
+					fan::throw_error("failed to write to:" + path);
+				}
 				ofile.write(reinterpret_cast<const char*>(&vector[0]), vector.size() * sizeof(T));
 				ofile.close();
 			}
