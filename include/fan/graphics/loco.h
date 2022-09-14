@@ -222,23 +222,72 @@ struct loco_t {
         instances.close();
       }
 
+      uint32_t get_instance_id(instance_NodeReference_t id, fan::opengl::cid_t* cid) {
+        for (uint32_t i = 0; i < instances[id].base.instances.size(); i++) {
+          if (&instances[id].base.instances[i]->cid == cid) {
+            return i;
+          }
+        }
+        return fan::uninitialized;
+      }
+
       instance_NodeReference_t push_menu(const open_properties_t& op) {
-        fan::print("+");
         auto nr = instances.NewNodeLast();
         instances[nr].base.open(get_loco(), op);
         return nr;
       }
+
+      void erase_button(instance_NodeReference_t id, fan::opengl::cid_t* cid) {
+        set_selected(id, nullptr);
+        instances[id].base.erase(get_loco(), get_instance_id(id, cid));
+      }
       void erase_menu(instance_NodeReference_t id) {
-        fan::print("-");
         instances[id].base.close(get_loco());
         instances.Unlink(id);
         instances.Recycle(id);
       }
-      void push_back(instance_NodeReference_t id, const properties_t& properties) {
-        instances[id].base.push_back(get_loco(), properties);
+      fan::opengl::cid_t* push_back(instance_NodeReference_t id, const properties_t& properties) {
+        return instances[id].base.push_back(get_loco(), properties);
+      }
+      void set_selected(instance_NodeReference_t id, fan::opengl::cid_t* cid) {
+        instances[id].base.selected = cid;
       }
       fan::opengl::cid_t* get_selected(instance_NodeReference_t id) {
         return instances[id].base.selected;
+      }
+      uint32_t get_selected_id(instance_NodeReference_t id) {
+        return instances[id].base.selected_id;
+      }
+      fan::vec2& get_offset(instance_NodeReference_t id) {
+        return instances[id].base.global.offset;
+      }
+      uint32_t size(instance_NodeReference_t id) {
+        return instances[id].base.instances.size();
+      }
+
+      void erase_and_update(instance_NodeReference_t id, fan::opengl::cid_t* cid) {
+        uint32_t i = get_instance_id(id, cid);
+
+        auto loco = get_loco();
+        fan::vec2 previous_button_size = loco->button.get_button(cid, &loco_t::button_t::instance_t::size);
+        erase_button(id, cid);
+        instances[id].base.global.offset.y -= previous_button_size.y * 2;
+
+        for (; i < instances[id].base.instances.size(); i++) {
+          auto b_position = loco->button.get_button(
+            &instances[id].base.instances[i]->cid,
+            &loco_t::button_t::instance_t::position
+          );
+          auto b_size = loco->button.get_button(
+            &instances[id].base.instances[i]->cid,
+            &loco_t::button_t::instance_t::size
+          );
+          b_position.y -= b_size.y * 2;
+          loco->button.set_position(
+            &instances[id].base.instances[i]->cid,
+            b_position
+          );
+        }
       }
 
       instance_t instances;

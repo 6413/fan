@@ -37,6 +37,7 @@
 	#pragma comment(lib, "opengl32.lib")
 
 	#include <Windows.h>
+	#include <shellapi.h>
 
 	#undef min
 	#undef max
