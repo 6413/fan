@@ -9,10 +9,11 @@
 
 #include _FAN_PATH(graphics/loco.h)
 
-struct pile_t {
 
-	#define stage_loader_path ../../
-	#include _FAN_PATH(graphics/gui/stage_loader.h)
+#define stage_loader_path ../../
+#include _FAN_PATH(graphics/gui/stage_loader.h)
+
+struct pile_t {
 
 	stage_loader_t stage_loader;
 	loco_t loco;
@@ -34,9 +35,14 @@ int main() {
 	pile_t pile;
 	pile.open();
 
-	pile.stage_loader.
+	auto stage0ptr = pile.stage_loader.get_stage<stage_loader_t::stage::stage0_t>(0);
+	stage0ptr->open();
+	stage0ptr->close();
+	
 
 	pile.loco.loop([&] {
+
+		stage0ptr->update();
 
 	});
 	
