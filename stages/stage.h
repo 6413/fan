@@ -6,13 +6,10 @@ struct stage_common_t{
 };
 		
 struct stage {
-  struct stage0_t {
+	static struct stage0_t {
     #include "stage/stage0.h"
-  };
-  struct stage1_t {
-    #include "stage/stage1.h"
-  };
-  struct stage2_t {
-    #include "stage/stage2.h"
+  }stage0;
+  static std::vector<uint64_t> stages{
+	   new stage0_t(stage0.stage_common),
   };
 };

@@ -34,6 +34,8 @@ int main() {
 	pile_t pile;
 	pile.open();
 
+	pile.stage_loader.
+
 	pile.loco.loop([&] {
 
 	});

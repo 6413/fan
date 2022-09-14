@@ -36,7 +36,12 @@ struct stage_maker_t {
 			return; \
 		}
 
-	static constexpr const char* stage_folder_name = "stage/";
+	static constexpr const char* stage_folder_name = "stages";
+	static auto get_file_fullpath(const std::string& stage_name) {
+		return std::string(stage_folder_name) + "/" +
+			stage_name + ".h";
+	};
+
 	static constexpr f32_t gui_size = 0.05;
 
 	loco_t* get_loco() {
@@ -148,8 +153,80 @@ struct stage_maker_t {
 };
 		
 struct stage {
+	static std::vector<stage_common_t*> stages{
+	};
 };
 )";
+
+		static auto get_stage_name = [this](pile_t* pile, uint32_t id) {
+			return button_data[id].text;
+		};
+
+		static auto write_stage = [&](pile_t* pile) {
+			auto file_name = get_file_fullpath("stage");
+
+			fan::io::file::write(file_name,
+				stage_h_str,
+				std::ios_base::binary
+			);
+		};
+
+		static auto append_stage_to_file = [&](pile_t* pile, const std::string& stage_name) {
+			if (stage_h_str.find(stage_name) != std::string::npos) {
+				return;
+			}
+
+			static constexpr std::string_view find_end_str("static std::");
+			auto struct_stage_end = stage_h_str.find(find_end_str);
+
+			if (struct_stage_end == std::string::npos) {
+				fan::throw_error("corrupted stage.h");
+			}
+
+			std::string append_struct = "static struct " + stage_name + "_t {\n";
+			append_struct += std::string("    ") + R"(#include "stage/)" + stage_name + R"(.h")" + "\n";
+			append_struct += "  }" + stage_name + ";\n  ";
+			stage_h_str.insert(struct_stage_end, append_struct);
+
+			static constexpr std::string_view find_vector("};\n};");
+			auto struct_vector_end = stage_h_str.find(find_vector);
+			if (struct_vector_end == std::string::npos) {
+				fan::throw_error("corrupted stage.h");
+			}
+
+			// problem: adds ',' to end
+			std::string append_vector = std::string("   new stage_common_t(") + stage_name + ".stage_common),\n  ";
+			stage_h_str.insert(struct_vector_end, append_vector);
+		};
+
+		static auto write_stage_instance = [this](pile_t* pile, uint32_t id) {
+			auto stage_name = get_stage_name(pile, id);
+			auto file_name = get_file_fullpath(stage_name);
+
+			fan::io::file::write(file_name,
+				R"(struct user_data_t {
+
+}user_data;
+
+stage_common_t stage_common = {
+	.open = [] {
+		
+	},
+	.close = [] {
+		
+	},
+	.window_resize_callback = [] {
+		
+	}
+	.update = [] {
+		
+	}
+};)", std::ios_base::binary
+			);
+
+			append_stage_to_file(pile, stage_name);
+			write_stage(pile);
+		};
 
 		instances.open();
 		stage.main.instances.open();
@@ -201,48 +278,56 @@ struct stage {
 			pile->stage_maker.open_stage(stage_maker_t::stage_t::stage_e::main);
 			instance_t* instance = &pile->stage_maker.instances[stage_maker_t::stage_t::stage_instance];
 
-			loco_t::menu_maker_t::properties_t p;
-			static uint32_t x = 0;
-			p.text = std::string("stage") + fan::to_string(x++);
-			button_data_t bd;
-			bd.text = p.text;
-			button_data.push_back(bd);
-			p.mouse_button_cb = [this, &loco](const loco_t::mouse_button_data_t& mb) {
+			static auto create_stage = [&]() {
+				loco_t::menu_maker_t::properties_t p;
+				static uint32_t x = 0;
+				p.text = std::string("stage") + fan::to_string(x++);
+				button_data_t bd;
+				bd.text = p.text;
+				button_data.push_back(bd);
+				p.mouse_button_cb = [this, &loco](const loco_t::mouse_button_data_t& mb) {
 
-				use_key_lambda(fan::mouse_left, fan::key_state::release);
+					use_key_lambda(fan::mouse_left, fan::key_state::release);
 
-				pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco_var_name);
-				fan::opengl::cid_t* cid = mb.cid;
-				if (mb.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside) {
-					if (loco.menu_maker.size(instances[stage_t::stage_options].menu_id) > 3) {
-						return;
+					pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco_var_name);
+					fan::opengl::cid_t* cid = mb.cid;
+					if (mb.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside) {
+						if (loco.menu_maker.size(instances[stage_t::stage_options].menu_id) > 3) {
+							return;
+						}
+
+						loco_t::menu_maker_t::properties_t p;
+						p.text = "Erase";
+						p.theme = &erase_theme;
+						p.mouse_button_cb = [&loco, this](const loco_t::mouse_button_data_t& mb) {
+
+							use_key_lambda(fan::mouse_left, fan::key_state::release);
+
+							pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco_var_name);
+
+							// reset selected
+							loco.menu_maker.erase_button(instances[stage_t::stage_options].menu_id, mb.cid);
+
+							loco.menu_maker.erase_and_update(
+								instances[stage_t::stage_instance].menu_id,
+								loco.menu_maker.get_selected(instances[stage_t::stage_instance].menu_id)
+							);
+						};
+						auto& current_y = loco.menu_maker.get_offset(instances[stage_t::stage_options].menu_id).y;
+						auto old_y = current_y;
+						current_y = 1.9;
+						loco.menu_maker.push_back(instances[stage_t::stage_options].menu_id, p);
+						current_y = old_y;
 					}
-
-					loco_t::menu_maker_t::properties_t p;
-					p.text = "Erase";
-					p.theme = &erase_theme;
-					p.mouse_button_cb = [&loco, this](const loco_t::mouse_button_data_t& mb) {
-
-						use_key_lambda(fan::mouse_left, fan::key_state::release);
-
-						pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco_var_name);
-
-						// reset selected
-						loco.menu_maker.erase_button(instances[stage_t::stage_options].menu_id, mb.cid);
-
-						loco.menu_maker.erase_and_update(
-							instances[stage_t::stage_instance].menu_id, 
-							loco.menu_maker.get_selected(instances[stage_t::stage_instance].menu_id)
-						);
-					};
-					auto& current_y = loco.menu_maker.get_offset(instances[stage_t::stage_options].menu_id).y;
-					auto old_y = current_y;
-					current_y = 1.9;
-					loco.menu_maker.push_back(instances[stage_t::stage_options].menu_id, p);
-					current_y = old_y;
-				}
+				};
+				pile->stage_maker.push_stage_main(p);
 			};
-			pile->stage_maker.push_stage_main(p);
+			
+			create_stage();
+			auto last_node = pile->loco.menu_maker.instances.GetNodeLast();
+			auto& base_instances = pile->loco.menu_maker.instances[last_node].base.instances;
+			uint32_t last_instance_id = base_instances.size() - 1;
+			write_stage_instance(pile, last_instance_id);
 		};
 
 		loco.menu_maker.push_back(instances[stage_t::stage_options].menu_id, p);
@@ -259,66 +344,20 @@ struct stage {
 		loco.menu_maker.push_back(instances[stage_t::stage_options].menu_id, p);
 		p.text = "Function stage";
 
-		static auto write_stage = [&](pile_t* pile) {
-			auto file_name = std::string(stage_folder_name) + 
-				"stage.h";
-
-			fan::io::file::write(file_name,
-				stage_h_str,
-				std::ios_base::binary
-			);
-		};
-
-		static auto append_stage_to_file = [&](pile_t* pile, const std::string& stage_name) {
-			if (stage_h_str.find(stage_name) != std::string::npos) {
-				return;
-			}
-
-			// finds struct stage "};"
-			auto struct_stage_end = stage_h_str.find_last_of("}");
-			std::string append_struct = "  struct " + stage_name + "_t {\n";
-			append_struct += std::string("    ") + R"(#include "stage/)" + stage_name + R"(.h")" + "\n";
-			append_struct += "  };\n";
-			stage_h_str.insert(struct_stage_end, append_struct);
-		};
-
-		static auto write_stage_instance = [&](pile_t* pile) {
-			auto stage_name = button_data[
-				pile->loco.menu_maker.get_selected_id(pile->stage_maker.instances[stage_maker_t::stage_t::stage_instance].menu_id)
-			].text;
-			auto file_name = std::string(stage_folder_name) +
-				stage_name + ".h";
-
-			fan::io::file::write(file_name,
-				R"(struct user_data_t {
-
-};
-
-stage_common_t stage_common = {
-	.open = [] {
-		
-	},
-	.close = [] {
-		
-	},
-	.window_resize_callback = [] {
-		
-	}
-};)", std::ios_base::binary
-			);
-
-			append_stage_to_file(pile, stage_name);
-			write_stage(pile);
-			open_file_gui(file_name);
-		};
-
 		p.mouse_button_cb = [](const loco_t::mouse_button_data_t& mb) {
 
 			use_key_lambda(fan::mouse_left, fan::key_state::release);
 
 			pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco_var_name);
 
-			write_stage_instance(pile);
+			open_file_gui(
+				get_file_fullpath(
+					get_stage_name(
+						pile, 
+						pile->loco.menu_maker.get_selected_id(pile->stage_maker.instances[stage_maker_t::stage_t::stage_instance].menu_id)
+					)
+				)
+			);
 		};
 		loco.menu_maker.push_back(instances[stage_t::stage_options].menu_id, p);
 	}
