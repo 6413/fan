@@ -4,6 +4,8 @@ struct sb_menu_maker_type_name {
     std::string text_value;
     std::string text;
 
+		fan_2d::graphics::gui::theme_t* theme = 0;
+
 		loco_t::mouse_button_cb_t mouse_button_cb = [](const loco_t::mouse_button_data_t&) -> void { return; };
     loco_t::mouse_move_cb_t mouse_move_cb = [](const loco_t::mouse_move_data_t&) -> void { return; };
     loco_t::keyboard_cb_t keyboard_cb = [](const loco_t::keyboard_data_t&) -> void { return; };
@@ -29,9 +31,17 @@ struct sb_menu_maker_type_name {
     vfip.shape.always.z = op.position.z;
 
     vfip.mouse_move_cb = [](const loco_t::vfi_t::mouse_move_data_t& ii_d) -> void {};
-    vfip.mouse_button_cb = [&](const loco_t::vfi_t::mouse_button_data_t& ii_d) -> void {
-			if (ii_d.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside) {
-				selected = nullptr;
+    vfip.mouse_button_cb = [&, loco](const loco_t::vfi_t::mouse_button_data_t& mb) -> void {
+
+			if (mb.button != fan::mouse_left) {
+				return;
+			}
+
+			if (mb.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside) {
+				if (selected) {
+					//loco->button.set_theme(selected, loco->button.get_theme(selected), loco_t::button_t::inactive);
+				}
+				//selected = nullptr;
 			}
 		};
     vfip.keyboard_cb = [](const loco_t::vfi_t::keyboard_data_t& kd) -> void {
@@ -48,12 +58,17 @@ struct sb_menu_maker_type_name {
 		loco->vfi.erase(empty_click_id);
 		instances.clear();
 	}
-	void push_back(loco_t* loco, const properties_t& p) {
+	fan::opengl::cid_t* push_back(loco_t* loco, const properties_t& p) {
 		loco_t::button_t::properties_t bp;
 		bp.position = global.position;
 		bp.position.y += global.offset.y;
 		bp.position.z += 0.01;
-		bp.theme = global.theme;
+		if (p.theme == 0) {
+			bp.theme = global.theme;
+		}
+		else {
+			bp.theme = p.theme;
+		}
 		bp.text = p.text;
 		bp.size = fan::vec2(global.gui_size * 5, global.gui_size);
 		bp.get_viewport()  = global.viewport;
@@ -62,14 +77,31 @@ struct sb_menu_maker_type_name {
 		uint32_t i = instances.resize(instances.size() + 1);
 		instances[i] = new instance_t;
 
-		bp.mouse_move_cb = [cb = p.mouse_move_cb](const loco_t::mouse_move_data_t& d) -> void { 
-			cb(d);
+		bp.mouse_move_cb = [this, loco, cb = p.mouse_move_cb](const loco_t::mouse_move_data_t& d) -> void { 
+			if (selected == d.cid) {
+				loco->button.set_theme(d.cid, loco->button.get_theme(d.cid), loco_t::button_t::press);
+			}
+			else {
+				cb(d);
+			}
 		};
-		bp.mouse_button_cb = [this, cb = p.mouse_button_cb, instance = instances[i]](const loco_t::mouse_button_data_t& d) -> void {
-			if (d.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside) {
-				selected = &instance->cid;
+		bp.mouse_button_cb = [loco, this, cb = p.mouse_button_cb, i](const loco_t::mouse_button_data_t& d) -> void {
+
+			if (d.button != fan::mouse_left) {
+				return;
+			}
+
+			if (d.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside && d.button_state == fan::key_state::release) {
+				if (selected) {
+					loco->button.set_theme(selected, loco->button.get_theme(selected), loco_t::button_t::inactive);
+				}
+				selected = &instances[i]->cid;
+				selected_id = i;
 			}
 			cb(d);
+			if (selected == d.cid && d.button_state == fan::key_state::release) {
+				loco->button.set_theme(d.cid, loco->button.get_theme(d.cid), loco_t::button_t::press);
+			}
 		};
 		bp.keyboard_cb = [cb = p.keyboard_cb](const loco_t::keyboard_data_t& d) -> void { 
 			cb(d);
@@ -77,6 +109,13 @@ struct sb_menu_maker_type_name {
 
 		loco->button.push_back(&instances[instances.size() - 1]->cid, bp);
 		global.offset.y += bp.size.y * 2;
+
+		return &instances[instances.size() - 1]->cid;
+	}
+
+	void erase(loco_t* loco, uint32_t id) {
+		loco->button.erase(&instances[id]->cid);
+		instances.erase(id);
 	}
 
 	struct instance_t {
@@ -97,6 +136,7 @@ struct sb_menu_maker_type_name {
 	}global;
 
 	fan::opengl::cid_t* selected;
+	uint32_t selected_id;
 	loco_t::vfi_t::shape_id_t empty_click_id;
 
 	void set_empty_click_mouse_move_cb(loco_t* loco, loco_t::vfi_t::mouse_move_cb_t mouse_move_cb) {
@@ -109,3 +149,5 @@ struct sb_menu_maker_type_name {
     loco->vfi.set_common_data(empty_click_id, &loco_t::vfi_t::common_shape_data_t::keyboard_cb, keyboard_cb);
   }
 };
+
+#undef use_key_lambda

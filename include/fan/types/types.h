@@ -16,6 +16,7 @@
 #include <functional>
 #include <type_traits>
 #include <cstdint>
+#include <regex>
 
 #include _FAN_PATH(types/function.h)
 

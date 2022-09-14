@@ -1,8 +1,8 @@
 struct button_t {
 
   static constexpr f32_t inactive = 1.0;
-  static constexpr f32_t hover = 1.1;
-  static constexpr f32_t press = 1.2;
+  static constexpr f32_t hover = 1.2;
+  static constexpr f32_t press = 1.4;
 
   struct instance_t {
     fan::vec3 position = 0;
