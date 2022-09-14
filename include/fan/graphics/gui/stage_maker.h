@@ -145,15 +145,8 @@ struct stage_maker_t {
 
 	void open() {
 		
-		stage_h_str = R"(struct stage_common_t{
-	fan::function_t<void()> open;
-	fan::function_t<void()> close;
-	fan::function_t<void()> window_resize_callback;
-	fan::function_t<void()> update;
-};
-		
-struct stage {
-	static std::vector<stage_common_t*> stages{
+		stage_h_str = R"(struct stage {
+	inline static std::vector<void*> stages{
 	};
 };
 )";
@@ -176,15 +169,15 @@ struct stage {
 				return;
 			}
 
-			static constexpr std::string_view find_end_str("static std::");
+			static constexpr std::string_view find_end_str("inline static std::");
 			auto struct_stage_end = stage_h_str.find(find_end_str);
 
 			if (struct_stage_end == std::string::npos) {
 				fan::throw_error("corrupted stage.h");
 			}
 
-			std::string append_struct = "static struct " + stage_name + "_t {\n";
-			append_struct += std::string("    ") + R"(#include "stage/)" + stage_name + R"(.h")" + "\n";
+			std::string append_struct = "inline static struct " + stage_name + "_t {\n";
+			append_struct += std::string("    ") + R"(#include ")" + get_file_fullpath(stage_name) + R"(")" + "\n";
 			append_struct += "  }" + stage_name + ";\n  ";
 			stage_h_str.insert(struct_stage_end, append_struct);
 
@@ -195,7 +188,7 @@ struct stage {
 			}
 
 			// problem: adds ',' to end
-			std::string append_vector = std::string("   new stage_common_t(") + stage_name + ".stage_common),\n  ";
+			std::string append_vector = std::string("   &") + stage_name + ",\n  ";
 			stage_h_str.insert(struct_vector_end, append_vector);
 		};
 
@@ -205,23 +198,21 @@ struct stage {
 
 			fan::io::file::write(file_name,
 				R"(struct user_data_t {
-
+	
 }user_data;
 
-stage_common_t stage_common = {
-	.open = [] {
-		
-	},
-	.close = [] {
-		
-	},
-	.window_resize_callback = [] {
-		
-	}
-	.update = [] {
-		
-	}
-};)", std::ios_base::binary
+void open() {
+	
+}
+void close() {
+	
+}
+void window_resize_cb() {
+	
+}
+void update() {
+	
+})", std::ios_base::binary
 			);
 
 			append_stage_to_file(pile, stage_name);

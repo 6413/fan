@@ -4,13 +4,18 @@
 
 struct stage_loader_t {
 
-	#include _FAN_PATH(CONCAT2(stage_loader_path, stage/stage.h))
+	#include _FAN_PATH(CONCAT2(stage_loader_path, stages/stage.h))
 
 	void open() {
 		
 	}
 	void close() {
 
+	}
+
+	template <typename T>
+	auto* get_stage(uint32_t i) {
+		return (T*)stage::stages[i];
 	}
 
 };

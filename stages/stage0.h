@@ -1,18 +1,16 @@
 struct user_data_t {
 
-};
+}user_data;
 
-stage_common_t stage_common = {
-	.open = [] {
+void open() {
+	fan::print("open");
+}
+void close() {
+	fan::print("close");
+}
+void window_resize_cb() {
 		
-	},
-	.close = [] {
+}
+void update() {
 		
-	},
-	.window_resize_callback = [] {
-		
-	}
-	.update = [] {
-		
-	}
-};
+}
