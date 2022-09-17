@@ -226,7 +226,7 @@ static void lib_close(stage_common_t* sc) {
 			fan::throw_error("corrupted stage.h");
 		}
 
-		std::string append_struct = "inline static struct " + stage_name + "_t {\n";
+		std::string append_struct = "struct " + stage_name + "_t {\n";
 		append_struct += std::string("    ") + R"(#include ")" + get_file_fullpath(stage_name) + R"(")" + "\n";
 		append_struct += "  };\n  ";
 		stage_h_str.insert(struct_stage_end, append_struct);
