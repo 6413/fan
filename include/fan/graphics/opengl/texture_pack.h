@@ -37,7 +37,7 @@ namespace fan {
         texture_list.open();
         pixel_data_list.open();
 
-        std::string data;
+        fan::string data;
         fan::io::file::read(filename, &data);
         uint32_t data_index = 0;
         pack_amount = *(uint32_t*)&data[data_index];
@@ -89,7 +89,7 @@ namespace fan {
         pixel_data_list.close();
       }
 
-      bool qti(const std::string& name, fan::tp::ti_t* ti) {
+      bool qti(const fan::string& name, fan::tp::ti_t* ti) {
         uint64_t hash = fan::get_hash(name);
 
         //std::find_if(texture_list[0].begin(), texture_list[texture_list.size()].end(),

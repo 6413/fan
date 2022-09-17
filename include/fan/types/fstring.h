@@ -1,0 +1,243 @@
+#pragma once
+
+#include <vector>
+#include <cstring>
+#include <memory>
+#include <algorithm>
+#include <string>
+
+namespace fan {
+	struct string {
+		
+		using value_type = std::vector<char>;
+
+		constexpr string() {
+			str.push_back(0);
+		}
+		constexpr string (char c) {
+			str.push_back(c);
+			str.push_back(0);
+		}
+		constexpr string(const char* s) : str(s, s + strlen(s)) {
+			str.push_back(0);
+		}
+		constexpr string(value_type::const_iterator beg, value_type::const_iterator end) : str(beg, end) {
+			str.push_back(0);
+		}
+		constexpr string(std::string_view sv) : str(sv.begin(), sv.end()) {
+			str.push_back(0);
+		}
+
+		constexpr bool empty() const {
+			return !size();
+		}
+
+		constexpr std::size_t size() const {
+			if (str.size()) {
+				return str.size() - 1;
+			}
+			return std::size_t(0);
+		}
+
+		constexpr const char* c_str() const {
+			return str.data();
+		}
+
+		constexpr void clear() {
+			str.clear();
+		}
+
+		constexpr auto begin() const {
+			return str.begin();
+		}
+		constexpr auto end() const {
+			if (str.size()) {
+				return str.end() - 1;
+			}
+			return str.end();
+		}
+
+		constexpr auto begin() {
+			return str.begin();
+		}
+		constexpr auto end() {
+			if (str.size()) {
+				return str.end() - 1;
+			}
+			return str.end();
+		}
+
+		constexpr void insert(value_type::const_iterator where, value_type::const_iterator begin, value_type::const_iterator end) {
+			str.insert(where, begin, end);
+		}
+		constexpr void insert(value_type::const_iterator iter, const string& s) {
+			str.insert(iter, s.begin(), s.end());
+		}
+		constexpr void insert(std::size_t where, const string& s) {
+			str.insert(begin() + where, s.begin(), s.end());
+		}
+
+		constexpr auto append(const string& s) {
+			insert(end(), s);
+			return *this;
+		}
+
+		constexpr void erase(std::size_t beg, std::size_t count) {
+			str.erase(str.begin() + beg, str.begin() + beg + count);
+		}
+		constexpr void erase(std::size_t where) {
+			str.erase(str.begin() + where);
+		}
+		constexpr void erase(value_type::const_iterator where) {
+			str.erase(where);
+		}
+		constexpr void erase(value_type::const_iterator begin, value_type::const_iterator end) {
+			str.erase(begin, end);
+		}
+
+		constexpr string substr(std::size_t beg, std::size_t n) const {
+			if (beg > size() || beg + n > size()) {
+				return *this;
+			}
+			return string(begin() + beg, begin() + beg + n);
+		}
+		constexpr string substr(value_type::const_iterator beg, std::size_t n) const {
+			return string(beg, beg + n);
+		}
+
+		constexpr std::size_t find(const string& s) const {
+			auto found = std::search(begin(), end(), s.begin(), s.end());
+			if (found == end()) {
+				return npos;
+			}
+			return std::distance(begin(), found);
+		}
+		constexpr std::size_t find(const string& s, std::size_t start) const {
+			auto found = std::search(begin() + start, end(), s.begin(), s.end());
+			if (found == end()) {
+				return npos;
+			}
+			return std::distance(begin(), found);
+		}
+
+		template<class Iterator> struct is_not_in_range
+		{
+			Iterator const begin;
+			Iterator const end;
+			is_not_in_range(Iterator const& b, Iterator const& e)
+				: begin(b)
+				, end(e) {}
+			template<class Value> bool operator()(Value& v)
+			{
+				return std::find(begin, end, v) == end;
+			}
+		};
+
+		constexpr std::size_t find_first_of(const string& s, std::size_t start = 0) const {
+			auto found = std::find_first_of(begin() + start, end(), s.begin(), s.end());
+			if (found == end()) {
+				return npos;
+			}
+			return std::distance(begin(), found);
+		}
+
+		std::size_t find_first_not_of(const string& s, std::size_t start = 0) const {
+			std::string ss = c_str();
+			return ss.find_first_not_of(s, start);
+		}
+
+		constexpr std::size_t find_last_of(const string& s, std::size_t start = 0) const {
+			auto found = std::find_end(begin() + start, begin(), s.begin(), s.end());
+			if (found == end()) {
+				return npos;
+			}
+			return std::distance(begin(), found);
+		}
+
+		constexpr bool equals(const string& s) const {
+			if (size() != s.size()) {
+				return false;
+			}
+			if (empty() && s.empty()) {
+				return true;
+			}
+			if (empty()) {
+				return false;
+			}
+			return std::equal(begin(), end() - 1, s.begin(), s.end() - 1);
+		}
+
+		constexpr bool operator==(const string& s) const {
+			return equals(s);
+		}
+
+		bool operator!=(const string& s) const {
+			return !equals(s);
+		}
+
+		constexpr string& operator+=(const string& s) {
+			insert(end(), s);
+			return *this;
+		}
+
+		constexpr string& operator+=(const char* s) {
+			insert(end(), s);
+			return *this;
+		}
+
+		constexpr string operator+(const string& s) const {
+			string result = *this;
+			result.insert(result.end(), s);
+			return result;
+		}
+		constexpr string operator+(const char* c) const {
+			string result = *this;
+			result.insert(result.end(), c);
+			return result;
+		}
+
+		constexpr char& operator[](std::size_t i) {
+			return str[i];
+		}
+		constexpr char operator[](std::size_t i) const {
+			return str[i];
+		}
+
+		constexpr char* data() noexcept {
+			return str.data();
+		}
+
+		constexpr const char* data() const noexcept {
+			return str.data();
+		}
+
+		void resize(std::size_t c) {
+			str.resize(c + 1);
+		}
+		void replace_all(const fan::string& search, const fan::string& replace) {
+			for (size_t pos = 0; ; pos += replace.size()) {
+				// Locate the substring to replace
+				pos = find(search, pos);
+				if (pos == fan::string::npos) break;
+				// Replace by erasing and inserting
+				erase(pos, search.size());
+				insert(pos, replace);
+			}
+		}
+
+		friend std::ostream& operator<<(std::ostream& os, const string& s);
+
+		static constexpr std::size_t npos = -1;
+		value_type str;
+	};
+
+	static std::ostream& operator<<(std::ostream& os, const fan::string& s) {
+		return os << s.c_str();
+	}
+}
+
+static fan::string operator+(const char* left, const fan::string& s) {
+	fan::string str;
+	str.insert(str.begin(), left);
+	return str;
+}

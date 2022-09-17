@@ -226,7 +226,7 @@ namespace fan_2d {
       uint32_t fourcc;
       //const VpxInterface *decoder = NULL;
 
-      void open(const std::string& file_path, properties_t& properties) {
+      void open(const fan::string& file_path, properties_t& properties) {
         codec = new vpx_codec_ctx_t;
 
         reader = vpx_video_reader_open(file_path.c_str());

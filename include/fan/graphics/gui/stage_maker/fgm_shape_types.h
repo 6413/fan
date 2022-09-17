@@ -173,7 +173,7 @@ struct builder_button_t {
 			);
 			auto file_name = pile->stage_maker.get_file_fullpath(stage_name);
 
-			std::string str;
+			fan::string str;
 			fan::io::file::read(file_name, &str);
 
 			std::size_t button_id = -1;
@@ -188,11 +188,11 @@ struct builder_button_t {
 				fan::throw_error("some corruption xd");
 			}
 
-			if (str.find(std::to_string(button_id) + "(") != std::string::npos) {
+			if (str.find(fan::to_string(button_id) + "(") != fan::string::npos) {
 				return 0;
 			}
 
-			str += "\n\nstatic int mouse_button_cb" + std::to_string(button_id) + "(const loco_t::mouse_button_data_t& mb){\n  return 0;\n}";
+			str += "\n\nstatic int mouse_button_cb" + fan::to_string(button_id) + "(const loco_t::mouse_button_data_t& mb){\n  return 0;\n}";
 
 			fan::io::file::write(file_name, str, std::ios_base::binary);
 
@@ -375,7 +375,7 @@ struct builder_button_t {
 		uint16_t shape;
 		uint8_t holding_special_key = 0;
 		f32_t z;
-		std::string text;
+		fan::string text;
 		fan_2d::graphics::gui::theme_t theme;
 	};
 

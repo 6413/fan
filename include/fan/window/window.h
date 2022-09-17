@@ -214,7 +214,7 @@ namespace fan {
 		window_t& operator=(const window_t&) = delete;
 		window_t& operator=(window_t&&) = delete;
 
-		void open(const fan::vec2i& window_size = fan::window_t::default_window_size, const std::string& name = default_window_name, uint64_t flags = 0);
+		void open(const fan::vec2i& window_size = fan::window_t::default_window_size, const fan::string& name = default_window_name, uint64_t flags = 0);
 		void close();
 
 		void destroy() {
@@ -239,8 +239,8 @@ namespace fan {
 
 		}
 
-		std::string get_name() const;
-		void set_name(const std::string& name);
+		fan::string get_name() const;
+		void set_name(const fan::string& name);
 
 		void calculate_delta_time();
 		f64_t get_delta_time() const;
@@ -466,7 +466,7 @@ namespace fan {
 
 		#endif
 
-		void initialize_window(const std::string& name, const fan::vec2i& window_size, uint64_t flags);
+		void initialize_window(const fan::string& name, const fan::vec2i& window_size, uint64_t flags);
 
 		// crossplatform variables
 
@@ -493,7 +493,7 @@ namespace fan {
 
 		bool m_close;
 
-		std::string* m_name;
+		fan::string* m_name;
 
 		uintptr_t m_flags;
 		uint64_t m_event_flags;

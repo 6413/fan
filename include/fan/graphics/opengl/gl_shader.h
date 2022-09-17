@@ -67,7 +67,7 @@ namespace fan {
         checkCompileErrors(context, vertex, "VERTEX");
       }
 
-      void set_vertex(fan::opengl::context_t* context, const std::string& vertex_code) {
+      void set_vertex(fan::opengl::context_t* context, const fan::string& vertex_code) {
 
         if (vertex != fan::uninitialized) {
           context->opengl.call(context->opengl.glDeleteShader, vertex);
@@ -96,7 +96,7 @@ namespace fan {
         context->opengl.glCompileShader(fragment);
         checkCompileErrors(context, fragment, "FRAGMENT");
       }
-      void set_fragment(fan::opengl::context_t* context, const std::string& fragment_code) {
+      void set_fragment(fan::opengl::context_t* context, const fan::string& fragment_code) {
 
         if (fragment != -1) {
           context->opengl.call(context->opengl.glDeleteShader, fragment);
@@ -146,11 +146,11 @@ namespace fan {
         return "failed to set value for:" + str + " check if variable is used in file so that its not optimized away";
       };
 
-      void set_bool(fan::opengl::context_t* context, const std::string& name, bool value) const {
+      void set_bool(fan::opengl::context_t* context, const fan::string& name, bool value) const {
         set_int(context, name, value);
       }
 
-      void set_int(fan::opengl::context_t* context, const std::string& name, int value) const
+      void set_int(fan::opengl::context_t* context, const fan::string& name, int value) const
       {
         auto location = context->opengl.call(context->opengl.glGetUniformLocation, id, name.c_str());
 #if fan_debug >= fan_debug_low
@@ -159,7 +159,7 @@ namespace fan {
         context->opengl.call(context->opengl.glUniform1i, location, value);
       }
 
-      void set_uint(fan::opengl::context_t* context, const std::string& name, uint32_t value) const {
+      void set_uint(fan::opengl::context_t* context, const fan::string& name, uint32_t value) const {
         auto location = context->opengl.call(context->opengl.glGetUniformLocation, id, name.c_str());
 #if fan_debug >= fan_debug_low
         fan_validate_value(location, validate_error_message(name));
@@ -167,7 +167,7 @@ namespace fan {
         context->opengl.call(context->opengl.glUniform1ui, location, value);
       }
 
-      void set_int_array(fan::opengl::context_t* context, const std::string& name, int* values, int size) const {
+      void set_int_array(fan::opengl::context_t* context, const fan::string& name, int* values, int size) const {
         auto location = context->opengl.call(context->opengl.glGetUniformLocation, id, name.c_str());
 #if fan_debug >= fan_debug_low
         fan_validate_value(location, validate_error_message(name));
@@ -175,7 +175,7 @@ namespace fan {
 
         context->opengl.call(context->opengl.glUniform1iv, location, size, values);
       }
-      void set_uint_array(fan::opengl::context_t* context, const std::string& name, uint32_t* values, int size) const {
+      void set_uint_array(fan::opengl::context_t* context, const fan::string& name, uint32_t* values, int size) const {
         auto location = context->opengl.call(context->opengl.glGetUniformLocation, id, name.c_str());
 #if fan_debug >= fan_debug_low
         fan_validate_value(location, validate_error_message(name));
@@ -183,7 +183,7 @@ namespace fan {
 
         context->opengl.call(context->opengl.glUniform1uiv, location, size, values);
       }
-      void set_float_array(fan::opengl::context_t* context, const std::string& name, f32_t* values, int size) const {
+      void set_float_array(fan::opengl::context_t* context, const fan::string& name, f32_t* values, int size) const {
         auto location = context->opengl.call(context->opengl.glGetUniformLocation, id, name.c_str());
 #if fan_debug >= fan_debug_low
         fan_validate_value(location, validate_error_message(name));
@@ -192,7 +192,7 @@ namespace fan {
         context->opengl.call(context->opengl.glUniform1fv, location, size, values);
       }
 
-      void set_float(fan::opengl::context_t* context, const std::string& name, fan::vec2::value_type value) const
+      void set_float(fan::opengl::context_t* context, const fan::string& name, fan::vec2::value_type value) const
       {
         auto location = context->opengl.call(context->opengl.glGetUniformLocation, id, name.c_str());
 #if fan_debug >= fan_debug_low
@@ -207,7 +207,7 @@ namespace fan {
         }
       }
 
-      void set_vec2(fan::opengl::context_t* context, const std::string& name, const fan::vec2& value) const
+      void set_vec2(fan::opengl::context_t* context, const fan::string& name, const fan::vec2& value) const
       {
         auto location = context->opengl.call(context->opengl.glGetUniformLocation, id, name.c_str());
 
@@ -223,7 +223,7 @@ namespace fan {
         }
       }
 
-      void set_vec2(fan::opengl::context_t* context, const std::string& name, f32_t x, f32_t y) const
+      void set_vec2(fan::opengl::context_t* context, const fan::string& name, f32_t x, f32_t y) const
       {
         auto location = context->opengl.call(context->opengl.glGetUniformLocation, id, name.c_str());
 
@@ -239,7 +239,7 @@ namespace fan {
         }
       }
 
-      void set_vec3(fan::opengl::context_t* context, const std::string& name, const fan::vec3& value) const
+      void set_vec3(fan::opengl::context_t* context, const fan::string& name, const fan::vec3& value) const
       {
         auto location = context->opengl.call(context->opengl.glGetUniformLocation, id, name.c_str());
 
@@ -255,7 +255,7 @@ namespace fan {
         }
       }
 
-      void set_vec4(fan::opengl::context_t* context, const std::string& name, const fan::color& color) const
+      void set_vec4(fan::opengl::context_t* context, const fan::string& name, const fan::color& color) const
       {
         auto location = context->opengl.call(context->opengl.glGetUniformLocation, id, name.c_str());
 
@@ -271,7 +271,7 @@ namespace fan {
         }
       }
 
-      void set_vec4(fan::opengl::context_t* context, const std::string& name, f32_t x, f32_t y, f32_t z, f32_t w) const
+      void set_vec4(fan::opengl::context_t* context, const fan::string& name, f32_t x, f32_t y, f32_t z, f32_t w) const
       {
         auto location = context->opengl.call(context->opengl.glGetUniformLocation, id, name.c_str());
 
@@ -292,7 +292,7 @@ namespace fan {
         context->opengl.call(context->opengl.glUniformMatrix4fv, projection_view[1], 1, fan::opengl::GL_FALSE, &matrices->m_view[0][0]);
       }
 
-      void set_mat4(fan::opengl::context_t* context, const std::string& name, fan::mat4 mat) const {
+      void set_mat4(fan::opengl::context_t* context, const fan::string& name, fan::mat4 mat) const {
 
         auto location = context->opengl.call(context->opengl.glGetUniformLocation, id, name.c_str());
 
@@ -308,7 +308,7 @@ namespace fan {
 
       }
 
-      void set_mat4(fan::opengl::context_t* context, const std::string& name, f32_t* value, uint32_t count) const {
+      void set_mat4(fan::opengl::context_t* context, const fan::string& name, f32_t* value, uint32_t count) const {
 
         auto location = context->opengl.call(context->opengl.glGetUniformLocation, id, name.c_str());
 
@@ -328,7 +328,7 @@ namespace fan {
 
     private:
 
-      void checkCompileErrors(fan::opengl::context_t* context, fan::opengl::GLuint shader, std::string type)
+      void checkCompileErrors(fan::opengl::context_t* context, fan::opengl::GLuint shader, fan::string type)
       {
         fan::opengl::GLint success;
 
@@ -353,7 +353,7 @@ namespace fan {
           return;
         }
 
-        std::string buffer;
+        fan::string buffer;
         buffer.resize(buffer_size);
 
         if (!success)
@@ -366,7 +366,7 @@ namespace fan {
                 context->opengl.call(context->opengl.glGetShaderInfoLog, program, size, nullptr, buffer.data());
 
           get_info_log(program, shader, buffer, buffer_size);
-
+          
           fan::print("failed to compile type: " + type, buffer);
 
           fan::throw_error("failed to compile shaders");

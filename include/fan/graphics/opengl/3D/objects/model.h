@@ -43,7 +43,7 @@ namespace fan_3d {
         fan_3d::opengl::skybox::loaded_skybox_t skybox;
       };
 
-      static loaded_model_t* load_model(fan::opengl::context_t* context, const std::string& path) {
+      static loaded_model_t* load_model(fan::opengl::context_t* context, const fan::string& path) {
         
         fastObjMesh* mesh = fast_obj_read(path.c_str());
 
@@ -188,7 +188,7 @@ namespace fan_3d {
 
         textures_t textures;
 
-        static auto path_maker = [](std::string p) -> std::string {
+        static auto path_maker = [](fan::string p) -> fan::string {
 
           auto found = p.find_last_of('\\');
           p = p.erase(0, found + 1);
@@ -209,7 +209,7 @@ namespace fan_3d {
           textures.diffuse.load(context, "models/missing_texture.webp");
         }
         else {
-          std::string diffuse_path = mesh->materials->map_Kd.path;
+          fan::string diffuse_path = mesh->materials->map_Kd.path;
 
           textures.diffuse.load(context, "models/" + path_maker(diffuse_path));
         }
@@ -217,7 +217,7 @@ namespace fan_3d {
           textures.depth.load(context, "models/missing_depth.webp");
         }
         else {
-          std::string depth_path = mesh->materials->map_bump.path;
+          fan::string depth_path = mesh->materials->map_bump.path;
           textures.depth.load(context, "models/" + path_maker(depth_path));
         }*/
         return textures;

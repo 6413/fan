@@ -57,10 +57,10 @@ namespace fan {
       return (f32_t)value_i64(min * float_accuracy, max * float_accuracy) / float_accuracy;
     }
 
-    static std::string string(uint32_t len) {
-      std::string str = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-      std::string newstr;
-      int pos;
+    static fan::string string(uint32_t len) {
+      fan::string str = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+      fan::string newstr;
+      std::size_t pos;
       while(newstr.size() != len) {
         pos = fan::random::value_i64(0, str.size() - 1);
         newstr += str.substr(pos, 1);

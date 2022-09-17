@@ -177,7 +177,7 @@ namespace fan {
           uint32_t index = context->opengl.call(context->opengl.glGetUniformBlockIndex, program, name);
           #if fan_debug >= fan_debug_low
           if (index == fan::uninitialized) {
-            fan::throw_error(std::string("failed to initialize uniform block:") + name);
+            fan::throw_error(fan::string("failed to initialize uniform block:") + name);
           }
           #endif
 

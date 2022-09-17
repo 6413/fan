@@ -23,8 +23,8 @@ namespace fan {
     };
 
     static bool get_image_size(const std::string_view file, fan::vec2ui* size) {
-      std::string data;
-      fan::io::file::read(std::string(file), &data);
+      fan::string data;
+      fan::io::file::read(fan::string(file), &data);
       return WebPGetInfo((uint8_t*)data.data(), data.size(), (int*)&size->x, (int*)&size->y) != 1;
     }
 
@@ -35,12 +35,12 @@ namespace fan {
 
     static bool load(const std::string_view file, image_info_t* image_info) {
     
-      std::string data;
-      fan::io::file::read(std::string(file), &data);
+      fan::string data;
+      fan::io::file::read(fan::string(file), &data);
 
       bool failed = decode((const uint8_t*)data.data(), data.size(), image_info);
       if (failed) {
-        fan::print_warning(std::string("failed to load image:") + std::string(file));
+        fan::print_warning(fan::string("failed to load image:") + fan::string(file));
         return true;
       }
 

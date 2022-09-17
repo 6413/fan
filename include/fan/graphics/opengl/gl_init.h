@@ -234,7 +234,7 @@ namespace fan {
 
         #if fan_debug >= fan_debug_low
           if (p == nullptr) {
-            fan::throw_error(std::string("failed to load proc:") + name + ", with error:" + std::to_string(GetLastError()));
+            fan::throw_error(fan::string("failed to load proc:") + name + ", with error:" + fan::to_string(GetLastError()));
           }
         #endif
 
@@ -258,7 +258,7 @@ namespace fan {
       #define get_proc_address(name, internal_) \
         name = (decltype(name))get_proc_address_(#name, internal_); \
         function_map.insert(std::make_pair((void*)name, #name));
-      std::unordered_map<void*, std::string> function_map;
+      std::unordered_map<void*, fan::string> function_map;
     #else
       #define get_proc_address(name, internal_) name = (decltype(name))get_proc_address_(#name, internal_);
     #endif
@@ -379,12 +379,12 @@ namespace fan {
 
       fan::time::clock c;
 
-      void execute_before(const std::string& function_name) {
+      void execute_before(const fan::string& function_name) {
         c.start();
       }
 
       // TODO if function empty probably some WGL/GLX function, initialized in bind window
-      void execute_after(const std::string& function_name) {
+      void execute_after(const fan::string& function_name) {
         glFlush();
         glFinish();
         auto elapsed = c.elapsed();

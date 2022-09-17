@@ -87,7 +87,7 @@ namespace fan {
 
         #if fan_assert_if_same_path_loaded_multiple_times
 
-        static std::unordered_map<std::string, bool> existing_images;
+        static std::unordered_map<fan::string, bool> existing_images;
 
         if (existing_images.find(path) != existing_images.end()) {
           fan::throw_error("image already existing " + path);

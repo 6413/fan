@@ -195,11 +195,11 @@ void set(fan::opengl::cid_t *cid, T instance_t::*member, const T2& value) {
   );
 }
 
-void set_vertex(const std::string& str) {
+void set_vertex(const fan::string& str) {
   loco_t* loco = get_loco();
   m_shader.set_vertex(loco->get_context(), str);
 }
-void set_fragment(const std::string& str) {
+void set_fragment(const fan::string& str) {
   loco_t* loco = get_loco();
   m_shader.set_fragment(loco->get_context(), str);
 }

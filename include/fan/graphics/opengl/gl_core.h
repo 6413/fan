@@ -531,16 +531,16 @@ inline void fan::opengl::context_t::bind_to_window(fan::window_t* window, const 
   opengl.call(opengl.internal.wglChoosePixelFormatARB, window->m_hdc, pixel_format_attribs, (float*)0, 1, &pixel_format, &num_formats);
 
   if (!num_formats) {
-    fan::throw_error("failed to choose pixel format:" + std::to_string(GetLastError()));
+    fan::throw_error("failed to choose pixel format:" + fan::to_string(GetLastError()));
   }
 
   PIXELFORMATDESCRIPTOR pfd;
   memset(&pfd, 0, sizeof(pfd));
   if (!DescribePixelFormat(window->m_hdc, pixel_format, sizeof(pfd), &pfd)) {
-    fan::throw_error("failed to describe pixel format:" + std::to_string(GetLastError()));
+    fan::throw_error("failed to describe pixel format:" + fan::to_string(GetLastError()));
   }
   if (!SetPixelFormat(window->m_hdc, pixel_format, &pfd)) {
-    fan::throw_error("failed to set pixel format:" + std::to_string(GetLastError()));
+    fan::throw_error("failed to set pixel format:" + fan::to_string(GetLastError()));
   }
 
   const int gl_attributes[] = {

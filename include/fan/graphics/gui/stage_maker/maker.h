@@ -1,19 +1,8 @@
-static void string_replace_all(std::string& s, const std::string& search, const std::string& replace) {
-	for (size_t pos = 0; ; pos += replace.length()) {
-		// Locate the substring to replace
-		pos = s.find(search, pos);
-		if (pos == std::string::npos) break;
-		// Replace by erasing and inserting
-		s.erase(pos, search.length());
-		s.insert(pos, replace);
-	}
-}
-
-static void open_file_gui(const std::string& path) {
+static void open_file_gui(const fan::string& path) {
 #if defined(fan_platform_windows)
 	// thanks microsoft
-	std::string dir_file_path = path;
-	string_replace_all(dir_file_path, "/", R"(\\)");
+	fan::string dir_file_path = path;
+	dir_file_path.replace_all("/", R"(\\)");
 
 	ShellExecute(
 		0,
@@ -37,8 +26,8 @@ struct stage_maker_t {
 		}
 
 	static constexpr const char* stage_folder_name = "stages";
-	static auto get_file_fullpath(const std::string& stage_name) {
-		return std::string(stage_folder_name) + "/" +
+	static auto get_file_fullpath(const fan::string& stage_name) {
+		return fan::string(stage_folder_name) + "/" +
 			stage_name + ".h";
 	};
 
@@ -61,11 +50,11 @@ static void lib_open(loco_t* loco, stage_common_t* sc, const stage_common_t::ope
 
 	sc->instances.open();
 
-	std::string fgm_name = fan::file_name(__FILE__);
+	fan::string fgm_name = fan::file_name(__FILE__);
 	fgm_name.pop_back(); // remove
 	fgm_name.pop_back(); // .h
-	std::string full_path = std::string("stages/") + fgm_name + ".fgm";
-	std::string f;
+	fan::string full_path = fan::string("stages/") + fgm_name + ".fgm";
+	fan::string f;
 	if (!fan::io::file::exists(full_path)) {
 		return;
 	}
@@ -76,7 +65,7 @@ static void lib_open(loco_t* loco, stage_common_t* sc, const stage_common_t::ope
 		auto p = fan::io::file::read_data<fan::vec3>(f, off);
 		auto s = fan::io::file::read_data<fan::vec2>(f, off);
 		auto fs = fan::io::file::read_data<f32_t>(f, off);
-		auto text = fan::io::file::read_data<std::string>(f, off);
+		auto text = fan::io::file::read_data<fan::string>(f, off);
 		fan::io::file::read_data<fan_2d::graphics::gui::theme_t>(f, off);
 		typename loco_t::button_t::properties_t bp;
 		bp.position = p;
@@ -109,7 +98,7 @@ static void lib_close(stage_common_t* sc) {
 			struct button_t{
 				fan::vec2 position;
 				fan::vec2 size;
-				std::string text;
+				fan::string text;
 				f32_t font_size;
 				fan_2d::graphics::gui::theme_t theme;
 			};
@@ -214,35 +203,35 @@ static void lib_close(stage_common_t* sc) {
 		);
 	};
 
-	auto append_stage_to_file(pile_t* pile, const std::string& stage_name) {
-		if (stage_h_str.find(stage_name) != std::string::npos) {
+	auto append_stage_to_file(pile_t* pile, const fan::string& stage_name) {
+		if (stage_h_str.find(stage_name) != fan::string::npos) {
 			return;
 		}
 
-		static constexpr std::string_view find_end_str("inline static std::");
+		static constexpr const char* find_end_str("inline static std::");
 		auto struct_stage_end = stage_h_str.find(find_end_str);
 
-		if (struct_stage_end == std::string::npos) {
+		if (struct_stage_end == fan::string::npos) {
 			fan::throw_error("corrupted stage.h");
 		}
 
-		std::string append_struct = "struct " + stage_name + "_t {\n";
-		append_struct += std::string("    ") + R"(#include ")" + get_file_fullpath(stage_name) + R"(")" + "\n";
+		fan::string append_struct = "struct " + stage_name + "_t {\n";
+		append_struct += fan::string("    ") + R"(#include ")" + get_file_fullpath(stage_name) + R"(")" + "\n";
 		append_struct += "  };\n  ";
 		stage_h_str.insert(struct_stage_end, append_struct);
 
-		//static constexpr std::string_view find_vector("};\n};");
+		//static constexpr fan::string_view find_vector("};\n};");
 		//auto struct_vector_end = stage_h_str.find(find_vector);
-		//if (struct_vector_end == std::string::npos) {
+		//if (struct_vector_end == fan::string::npos) {
 		//	fan::throw_error("corrupted stage.h");
 		//}
 
 		//// problem: adds ',' to end
-		//std::string append_vector = std::string("   &") + stage_name + ",\n  ";
+		//fan::string append_vector = fan::string("   &") + stage_name + ",\n  ";
 		//stage_h_str.insert(struct_vector_end, append_vector);
 	};
 
-	std::string get_selected_name(
+	fan::string get_selected_name(
 		pile_t* pile, 
 		loco_t::menu_maker_t::instance_NodeReference_t nr,
 		loco_t::menu_maker_base_t::instance_NodeReference_t id
@@ -253,7 +242,7 @@ static void lib_close(stage_common_t* sc) {
 		return t;
 	}
 
-	std::string get_selected_name_last(pile_t* pile) {
+	fan::string get_selected_name_last(pile_t* pile) {
 		auto nr = pile->loco.menu_maker.instances.GetNodeLast();
 		return get_selected_name(
 			pile,
@@ -323,7 +312,7 @@ static void lib_close(stage_common_t* sc) {
 			static auto create_stage = [this, loco]() {
 				loco_t::menu_maker_t::properties_t p;
 				static uint32_t x = 0;
-				p.text = std::string("stage") + fan::to_string(x++);
+				p.text = fan::string("stage") + fan::to_string(x++);
 				p.mouse_button_cb = [this](const loco_t::mouse_button_data_t& mb) -> int {
 
 					use_key_lambda(fan::mouse_left, fan::key_state::release);
@@ -484,7 +473,7 @@ struct stage {
 	fan::opengl::viewport_t viewport;
 	fan_2d::graphics::gui::theme_t theme;
 	fan_2d::graphics::gui::theme_t erase_theme;
-	std::string stage_h_str;
+	fan::string stage_h_str;
 
 	loco_t::menu_maker_base_t::instance_NodeReference_t in_gui_editor_id;
 	loco_t::menu_maker_base_t::instance_NodeReference_t erase_button_id;
