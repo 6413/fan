@@ -228,6 +228,13 @@ struct text_renderer_t {
   //  }
   //}
 
+  f32_t get_font_size(uint32_t id) {
+    auto loco = get_loco();
+    auto it = letter_ids[id].GetNodeFirst();
+    auto node = letter_ids[id].GetNodeByReference(it);
+    return loco->letter.get_properties(&node->data.cid).font_size;
+  }
+
   struct{
     uint16_t id0;
 

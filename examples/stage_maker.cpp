@@ -40,7 +40,7 @@ struct pile_t {
 
   loco_t loco_var_name;
   #define stage_maker_var_name stage_maker
-  #include _FAN_PATH(graphics/gui/stage_maker.h)
+  #include _FAN_PATH(graphics/gui/stage_maker/maker.h)
   stage_maker_t stage_maker_var_name;
 };
 

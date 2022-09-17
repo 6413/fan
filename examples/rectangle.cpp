@@ -40,10 +40,10 @@ struct pile_t {
     viewport.open(loco.get_context());
     viewport.set(loco.get_context(), 0, window_size, window_size);
   }
-
-  loco_t loco;
   fan::opengl::matrices_t matrices;
   fan::opengl::viewport_t viewport;
+
+  loco_t loco;
   fan::opengl::cid_t cid;
 };
 

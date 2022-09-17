@@ -80,7 +80,6 @@ namespace fan {
 					fan::throw_error("failed to write to:" + path);
 				}
 				ofile << data;
-				ofile.close();
 			}
 
 			template <typename T>
@@ -94,7 +93,6 @@ namespace fan {
 					fan::throw_error("failed to write to:" + path);
 				}
 				ofile.write(reinterpret_cast<const char*>(&vector[0]), vector.size() * sizeof(T));
-				ofile.close();
 			}
 
 			static std::vector<std::string> read_line(const std::string& path) {
@@ -120,7 +118,6 @@ namespace fan {
 				str->resize(file.tellg());
 				file.seekg(0, std::ios::beg);
 				file.read(&(*str)[0], str->size());
-				file.close();
 				return 0;
 			}
 
@@ -136,7 +133,6 @@ namespace fan {
 				vector.resize(size / sizeof(T));
 				file.seekg(0, std::ios::beg);
 				file.read(reinterpret_cast<char*>(&vector[0]), size);
-				file.close();
 				return vector;
 			}
 
@@ -216,6 +212,22 @@ namespace fan {
 				return { begin, end, v };
 			}
 
+			template <typename T>
+			T read_data(auto& f, auto& off) {
+				if constexpr (std::is_same<std::string, T>::value) {
+					uint64_t len = read_data<uint64_t>(f, off);
+					std::string str;
+					str.resize(len);
+					memcpy(str.data(), &f[off], len);
+					off += len;
+					return str;
+				}
+				else {
+					auto obj = &f[off];
+					off += sizeof(T);
+					return *(T*)obj;
+				}
+			}
 		}
 	}
 }

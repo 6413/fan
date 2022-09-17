@@ -50,9 +50,10 @@ struct loco_t {
     fan::opengl::cid_t* cid;
   };
 
-  using mouse_move_cb_t = fan::function_t<void(const mouse_move_data_t&)>;
-  using mouse_button_cb_t = fan::function_t<void(const mouse_button_data_t&)>;
-  using keyboard_cb_t = fan::function_t<void(const keyboard_data_t&)>;
+  // return type if deleted
+  using mouse_move_cb_t = fan::function_t<int(const mouse_move_data_t&)>;
+  using mouse_button_cb_t = fan::function_t<int(const mouse_button_data_t&)>;
+  using keyboard_cb_t = fan::function_t<int(const keyboard_data_t&)>;
 
   vfi_t vfi_var_name;
 
@@ -222,13 +223,15 @@ struct loco_t {
         instances.close();
       }
 
-      uint32_t get_instance_id(instance_NodeReference_t id, fan::opengl::cid_t* cid) {
-        for (uint32_t i = 0; i < instances[id].base.instances.size(); i++) {
-          if (&instances[id].base.instances[i]->cid == cid) {
-            return i;
+      menu_maker_base_t::instance_NodeReference_t get_instance_id(instance_NodeReference_t id, fan::opengl::cid_t* cid) {
+        auto it = instances[id].base.instances.GetNodeFirst();
+        while (it != instances[id].base.instances.dst) {
+          if (&instances[id].base.instances[it].cid == cid) {
+            return it;
           }
         }
-        return fan::uninitialized;
+        fan::throw_error("failed to find instance id (corruption (gl))");
+        return{};
       }
 
       instance_NodeReference_t push_menu(const open_properties_t& op) {
@@ -237,56 +240,81 @@ struct loco_t {
         return nr;
       }
 
-      void erase_button(instance_NodeReference_t id, fan::opengl::cid_t* cid) {
-        set_selected(id, nullptr);
-        instances[id].base.erase(get_loco(), get_instance_id(id, cid));
+      void erase_button_soft(instance_NodeReference_t nr, menu_maker_base_t::instance_NodeReference_t id) {
+        set_selected(nr, nullptr);
+        instances[nr].base.erase_soft(get_loco(), id);
+      }
+      void erase_button(instance_NodeReference_t nr, menu_maker_base_t::instance_NodeReference_t id) {
+        set_selected(nr, nullptr);
+        instances[nr].base.erase(get_loco(), id);
+      }
+      void erase_menu_soft(instance_NodeReference_t id) {
+        instances[id].base.soft_close(get_loco());
+        //instances.Unlink(id);
+        //instances.Recycle(id);
       }
       void erase_menu(instance_NodeReference_t id) {
         instances[id].base.close(get_loco());
         instances.Unlink(id);
         instances.Recycle(id);
       }
-      fan::opengl::cid_t* push_back(instance_NodeReference_t id, const properties_t& properties) {
+      auto push_initialized(instance_NodeReference_t nr, menu_maker_base_t::instance_NodeReference_t id) {
+        return instances[nr].base.push_initialized(get_loco(), id);
+      }
+      auto push_back(instance_NodeReference_t id, const properties_t& properties) {
         return instances[id].base.push_back(get_loco(), properties);
       }
       void set_selected(instance_NodeReference_t id, fan::opengl::cid_t* cid) {
-        instances[id].base.selected = cid;
+        instances[id].base.set_selected(get_loco(), cid);
+      }
+      void set_selected(instance_NodeReference_t nr, menu_maker_base_t::instance_NodeReference_t id) {
+        instances[nr].base.set_selected(get_loco(), id);
+      }
+      std::string get_selected_text(instance_NodeReference_t nr) {
+        return instances[nr].base.get_selected_text(get_loco());
       }
       fan::opengl::cid_t* get_selected(instance_NodeReference_t id) {
         return instances[id].base.selected;
       }
-      uint32_t get_selected_id(instance_NodeReference_t id) {
+      menu_maker_base_t::instance_NodeReference_t get_selected_id(instance_NodeReference_t id) {
         return instances[id].base.selected_id;
       }
       fan::vec2& get_offset(instance_NodeReference_t id) {
         return instances[id].base.global.offset;
       }
-      uint32_t size(instance_NodeReference_t id) {
-        return instances[id].base.instances.size();
+      auto size(instance_NodeReference_t nr) {
+        return instances[nr].base.instances.usage();
       }
-
-      void erase_and_update(instance_NodeReference_t id, fan::opengl::cid_t* cid) {
-        uint32_t i = get_instance_id(id, cid);
-
+      bool is_visually_valid(instance_NodeReference_t nr, menu_maker_base_t::instance_NodeReference_t id) {
+        return instances[nr].base.is_visually_valid(id);
+      }
+      void erase_and_update(instance_NodeReference_t nr, menu_maker_base_t::instance_NodeReference_t id) {
         auto loco = get_loco();
-        fan::vec2 previous_button_size = loco->button.get_button(cid, &loco_t::button_t::instance_t::size);
-        erase_button(id, cid);
-        instances[id].base.global.offset.y -= previous_button_size.y * 2;
+        fan::vec2 previous_button_size = loco->button.get_button(
+          &loco->menu_maker.instances[nr].base.instances[id].cid, 
+          &loco_t::button_t::instance_t::size
+        );
+        auto it = id;
+        it = it.Next(&instances[nr].base.instances);
+        erase_button(nr, id);
+        instances[nr].base.global.offset.y -= previous_button_size.y * 2;
 
-        for (; i < instances[id].base.instances.size(); i++) {
+        while (it != instances[nr].base.instances.dst) {
           auto b_position = loco->button.get_button(
-            &instances[id].base.instances[i]->cid,
+            &instances[nr].base.instances[it].cid,
             &loco_t::button_t::instance_t::position
           );
           auto b_size = loco->button.get_button(
-            &instances[id].base.instances[i]->cid,
+            &instances[nr].base.instances[it].cid,
             &loco_t::button_t::instance_t::size
           );
           b_position.y -= b_size.y * 2;
           loco->button.set_position(
-            &instances[id].base.instances[i]->cid,
+            &instances[nr].base.instances[it].cid,
             b_position
           );
+          instances[nr].base.instances[it].position = b_position;
+          it = it.Next(&instances[nr].base.instances);
         }
       }
 
