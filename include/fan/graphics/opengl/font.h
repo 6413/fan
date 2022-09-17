@@ -9,7 +9,7 @@ namespace fan_2d {
 
     struct font_t {
 
-      void open(fan::opengl::context_t* context, const std::string& image_path) {
+      void open(fan::opengl::context_t* context, const fan::string& image_path) {
         fan::opengl::image_t::load_properties_t lp;
         lp.filter = fan::opengl::GL_LINEAR;
         image.load(context, image_path + ".webp", lp);

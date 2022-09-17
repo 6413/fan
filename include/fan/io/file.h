@@ -31,7 +31,7 @@ namespace fan {
 			static bool open(file_t** f, const char* path, const properties_t& p) {
 				*f = fopen(path, p.mode);
 				if (f == nullptr) {
-					fan::print_warning(std::string("failed to open file:") + path);
+					fan::print_warning(fan::string("failed to open file:") + path);
 					close(*f);
 					return 1;
 				}
@@ -59,32 +59,32 @@ namespace fan {
 				return 0;
 			}
 
-			inline uint64_t file_size(const std::string& filename)
+			inline uint64_t file_size(const fan::string& filename)
 			{
-				std::ifstream f(filename, std::ifstream::ate | std::ifstream::binary);
+				std::ifstream f(filename.c_str(), std::ifstream::ate | std::ifstream::binary);
 				return f.tellg(); 
 			}
 
-			inline bool exists(const std::string& name) {
-				std::ifstream file(name);
+			inline bool exists(const fan::string& name) {
+				std::ifstream file(name.c_str());
 				return file.good();
 			}
 
 			inline void write(
-				std::string path,
-				const std::string& data,
+				fan::string path,
+				const fan::string& data,
 				decltype(std::ios_base::binary | std::ios_base::app) mode = std::ios_base::binary | std::ios_base::app
 			) {
-				std::ofstream ofile(path, mode);
+				std::ofstream ofile(path.c_str(), mode);
 				if (ofile.fail()) {
 					fan::throw_error("failed to write to:" + path);
 				}
-				ofile << data;
+				ofile.write(data.c_str(), data.size());
 			}
 
 			template <typename T>
 			static inline void write(
-				std::string path,
+				fan::string path,
 				const std::vector<T>& vector,
 				decltype(std::ios_base::binary | std::ios_base::app) mode = std::ios_base::binary | std::ios_base::app
 			) {
@@ -95,20 +95,20 @@ namespace fan {
 				ofile.write(reinterpret_cast<const char*>(&vector[0]), vector.size() * sizeof(T));
 			}
 
-			static std::vector<std::string> read_line(const std::string& path) {
+			static std::vector<fan::string> read_line(const fan::string& path) {
 
 				std::ifstream file(path.c_str(), std::ifstream::binary);
 				if (file.fail()) {
 					fan::throw_error("path does not exist " + path);
 				}
-				std::vector<std::string> data;
+				std::vector<fan::string> data;
 				for (std::string line; std::getline(file, line); ) {
-					data.push_back(line);
+					data.push_back(line.c_str());
 				}
 				return data;
 			}
 
-			static bool read(const std::string& path, std::string* str) {
+			static bool read(const fan::string& path, fan::string* str) {
 
 				std::ifstream file(path.c_str(), std::ifstream::ate | std::ifstream::binary);
 				if (file.fail()) {
@@ -122,7 +122,7 @@ namespace fan {
 			}
 
 			template <typename T>
-			static std::vector<T> read(const std::string& path) {
+			static std::vector<T> read(const fan::string& path) {
 				std::ifstream file(path.c_str(), std::ifstream::ate | std::ifstream::binary);
 				if (!file.good()) {
 					fan::print("path does not exist " + path);
@@ -148,7 +148,7 @@ namespace fan {
 
 			static const char* digits = "0123456789";
 
-			static int get_string_valuei(const std::string& str, const std::string& find, std::size_t offset = 0) {
+			static int get_string_valuei(const fan::string& str, const fan::string& find, std::size_t offset = 0) {
 
 				std::size_t found = str.find(find, offset);
 
@@ -164,15 +164,15 @@ namespace fan {
 
 				std::size_t end = str.find_first_not_of(digits, begin);
 
-				if (end == std::string::npos) {
+				if (end == fan::string::npos) {
 					end = str.size();
 				}
 
-				return std::stoi(std::string(str.begin() + begin - negative, str.begin() + end));
+				fan::string ret(str.begin() + begin - negative, str.begin() + end);
+				return std::stoi(ret.data());
 			}
 
-			static str_int_t get_string_valuei_n(const std::string& str, std::size_t offset = 0) {
-
+			static str_int_t get_string_valuei_n(const fan::string& str, std::size_t offset = 0) {
 				int64_t begin = str.find_first_of(digits, offset);
 
 				bool negative = 0;
@@ -184,14 +184,15 @@ namespace fan {
 				}
 
 				std::size_t end = str.find_first_not_of(digits, begin);
-				if (end == std::string::npos) {
+				if (end == fan::string::npos) {
 					end = str.size();
 				}
 
-				return { (std::size_t)begin, end, std::stoi(std::string(str.begin() + begin - negative, str.begin() + end)) };
+				fan::string ret(str.begin() + begin - negative, str.begin() + end);
+				return { (std::size_t)begin, end, std::stoi(ret.c_str()) };
 			}
 
-			static str_vec2i_t get_string_valuevec2i_n(const std::string& str, std::size_t offset = 0) {
+			static str_vec2i_t get_string_valuevec2i_n(const fan::string& str, std::size_t offset = 0) {
 
 				fan::vec2i v;
 
@@ -214,9 +215,9 @@ namespace fan {
 
 			template <typename T>
 			T read_data(auto& f, auto& off) {
-				if constexpr (std::is_same<std::string, T>::value) {
+				if constexpr (std::is_same<fan::string, T>::value) {
 					uint64_t len = read_data<uint64_t>(f, off);
-					std::string str;
+					fan::string str;
 					str.resize(len);
 					memcpy(str.data(), &f[off], len);
 					off += len;

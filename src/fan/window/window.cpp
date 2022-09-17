@@ -203,12 +203,12 @@ void fan::erase_window_id(fan::window_handle_t wid)
   }
 }
 
-std::string fan::window_t::get_name() const
+fan::string fan::window_t::get_name() const
 {
   return *m_name;
 }
 
-void fan::window_t::set_name(const std::string& name)
+void fan::window_t::set_name(const fan::string& name)
 {
 
   *m_name = name;
@@ -640,14 +640,14 @@ uintptr_t fan::window_t::get_fps(bool window_name, bool print)
   }
 
   if (m_fps_timer.finished()) {
-    std::string fps_info;
+    fan::string fps_info;
     if (window_name || print) {
       fps_info.append(
-          std::string("FPS: ") +
-          std::to_string(m_fps) +
-          std::string(" frame time: ") +
-          std::to_string(1.0 / m_fps * 1000) +
-          std::string(" ms")
+          fan::string("FPS: ") +
+          fan::to_string(m_fps) +
+          fan::string(" frame time: ") +
+          fan::to_string(1.0 / m_fps * 1000) +
+          fan::string(" ms")
       ).c_str();
     }
     if (window_name) {
@@ -666,7 +666,7 @@ uintptr_t fan::window_t::get_fps(bool window_name, bool print)
   return 0;
 }
 
-void fan::window_t::open(const fan::vec2i& window_size, const std::string& name, uint64_t flags)
+void fan::window_t::open(const fan::vec2i& window_size, const fan::string& name, uint64_t flags)
 {
   m_size = window_size;
   m_mouse_position = 0;
@@ -676,7 +676,7 @@ void fan::window_t::open(const fan::vec2i& window_size, const std::string& name,
   m_last_frame = fan::time::clock::now();
   m_current_frame = fan::time::clock::now();
   m_delta_time = 0;
-  m_name = new std::string(name);
+  m_name = new fan::string(name);
   m_flags = flags;
   m_current_key = 0;
   m_reserved_flags = 0;
@@ -1172,7 +1172,7 @@ static bool isExtensionSupported(const char* extList, const char* extension) {
 }
 #endif
 
-void fan::window_t::initialize_window(const std::string& name, const fan::vec2i& window_size, uint64_t flags)
+void fan::window_t::initialize_window(const fan::string& name, const fan::vec2i& window_size, uint64_t flags)
 {
   m_buttons_callback.open();
   m_keys_callback.open();
@@ -1225,7 +1225,7 @@ void fan::window_t::initialize_window(const std::string& name, const fan::vec2i&
       0, 0, 0, 0);
 
   if (!m_window_handle) {
-    fan::throw_error("failed to initialize window:" + std::to_string(GetLastError()));
+    fan::throw_error("failed to initialize window:" + fan::to_string(GetLastError()));
   }
 
   RAWINPUTDEVICE r_id;
@@ -1237,7 +1237,7 @@ void fan::window_t::initialize_window(const std::string& name, const fan::vec2i&
   BOOL result = RegisterRawInputDevices(&r_id, 1, sizeof(RAWINPUTDEVICE));
 
   if (!result) {
-    fan::throw_error("failed to register raw input:" + std::to_string(result));
+    fan::throw_error("failed to register raw input:" + fan::to_string(result));
   }
 
   ShowCursor(!flag_values::m_no_mouse);

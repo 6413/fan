@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include _FAN_PATH(io/file.h)
@@ -169,7 +168,7 @@ namespace fan {
 			single_info_t font_info;
 		};
 
-		static line_t parse_line(std::unordered_multimap<uint32_t, uint32_t>* reverse_mapping, const std::string& line, parse_stage_e stage) {
+		static line_t parse_line(std::unordered_multimap<uint32_t, uint32_t>* reverse_mapping, const fan::string& line, parse_stage_e stage) {
 			switch (stage) {
 				case parse_stage_e::mapping: {
 
@@ -244,18 +243,18 @@ namespace fan {
 			}
 		}
 
-		static font_t parse_font(const std::string& path) {
+		static font_t parse_font(const fan::string& path) {
 			if (!fan::io::file::exists(path)) {
-				fan::throw_error(std::string("font not found") + path);
+				fan::throw_error(fan::string("font not found") + path);
 			}
 
-			std::ifstream file(path);
+			std::ifstream file(path.c_str());
 
-			std::vector<std::string> lines;
+			std::vector<fan::string> lines;
 			std::string line;
 
 			while (std::getline(file, line)) {
-				lines.push_back(line);
+				lines.push_back(line.data());
 			}
 
 			f32_t flowest = -fan::math::inf;
@@ -282,7 +281,7 @@ namespace fan {
 
 			font.line_height = font.size * 1.5;
 
-			while (lines[iline++].find("# code index") == std::string::npos) {
+			while (lines[iline++].find("# code index") == fan::string::npos) {
 			}
 
 			parse_stage_e stage = parse_stage_e::mapping;
@@ -290,7 +289,7 @@ namespace fan {
 			std::unordered_multimap<uint32_t, uint32_t> reverse_mapping;
 
 			while (1) {
-				if (lines[iline] == "") {
+				if (lines[iline].empty()) {
 					stage = parse_stage_e::metrics_info;
 					break;
 				}
@@ -303,10 +302,10 @@ namespace fan {
 				iline++;
 			}
 
-			while (lines[iline++].find("# index width height offset_x offset_y advance") == std::string::npos) {}
+			while (lines[iline++].find("# index width height offset_x offset_y advance") == fan::string::npos) {}
 
 			while (1) {
-				if (lines[iline] == "") {
+				if (lines[iline].empty()) {
 					stage = parse_stage_e::glyph_info;
 					break;
 				}
@@ -319,11 +318,11 @@ namespace fan {
 				iline++;
 			}
 
-			while (lines[iline++].find("# index x y width height border") == std::string::npos) {}
+			while (lines[iline++].find("# index x y width height border") == fan::string::npos) {}
 
 			while (1) {
 
-				if (lines[iline] == "") {
+				if (lines[iline].empty()) {
 
 					font.characters[L'\n'].glyph.position = 0;
 					font.characters[L'\n'].glyph.size = 0;

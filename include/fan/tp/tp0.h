@@ -11,7 +11,7 @@ namespace fan {
       struct texture_t {
         fan::vec2ui size;
         std::vector<uint8_t> decoded_data;
-        std::string name;
+        fan::string name;
         uint32_t visual_output;
         uint32_t filter;
         uint32_t group_id;
@@ -39,7 +39,7 @@ namespace fan {
       struct texture_properties_t {
         texture_properties_t() {}
 
-        std::string name;
+        fan::string name;
         uint32_t visual_output = -1;
         uint32_t filter = -1;
         uint32_t group_id = -1;
@@ -78,7 +78,7 @@ namespace fan {
         return push_pack(p);
       }
 
-      bool push_texture(const std::string& image_path, const texture_properties_t& texture_properties = texture_properties_t()) {
+      bool push_texture(const fan::string& image_path, const texture_properties_t& texture_properties = texture_properties_t()) {
 
         if (texture_properties.name.empty()) {
           fan::print_warning("texture properties name empty");
@@ -318,7 +318,7 @@ namespace fan {
       void save(const char* filename) {
         FILE* f = fopen(filename, "w+b");
         if (!f) {
-          fan::throw_error(std::string("failed to open file:") + filename);
+          fan::throw_error(fan::string("failed to open file:") + filename);
         }
 
         uint32_t pack_amount = pack_list.size();
@@ -345,7 +345,7 @@ namespace fan {
         fan::io::file::properties_t fp;
         fp.mode = "w+b";
         if (fan::io::file::open(&f, filename, fp)) {
-          fan::throw_error(std::string("failed to open file:") + filename);
+          fan::throw_error(fan::string("failed to open file:") + filename);
         }
 
         uint32_t pack_amount = pack_list.size();
@@ -375,7 +375,7 @@ namespace fan {
       }
 
       void load(const char* filename) {
-        std::string data;
+        fan::string data;
         fan::io::file::read(filename, &data);
         if (data.empty()) {
           return;
@@ -427,7 +427,7 @@ namespace fan {
         return image_info;
       }
 
-      bool qti(const std::string& name, fan::tp::ti_t* ti) {
+      bool qti(const fan::string& name, fan::tp::ti_t* ti) {
         //std::find_if(texture_list[0].begin(), texture_list[texture_list.size()].end(),
         //  [](const texture_t& a, const texture_t& b) {
         //  return a.hash == b.hash;
@@ -465,7 +465,7 @@ namespace fan {
         struct texture_t {
           fan::vec2ui position;
           fan::vec2ui size;
-          std::string name;
+          fan::string name;
         };
         std::vector<texture_t> texture_list;
         uint32_t visual_output;

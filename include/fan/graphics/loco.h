@@ -270,7 +270,7 @@ struct loco_t {
       void set_selected(instance_NodeReference_t nr, menu_maker_base_t::instance_NodeReference_t id) {
         instances[nr].base.set_selected(get_loco(), id);
       }
-      std::string get_selected_text(instance_NodeReference_t nr) {
+      fan::string get_selected_text(instance_NodeReference_t nr) {
         return instances[nr].base.get_selected_text(get_loco());
       }
       fan::opengl::cid_t* get_selected(instance_NodeReference_t id) {

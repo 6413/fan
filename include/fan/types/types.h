@@ -18,8 +18,6 @@
 #include <cstdint>
 #include <regex>
 
-#include _FAN_PATH(types/function.h)
-
 #if defined(_WIN32) || defined(_WIN64)
 
  //constexpr platform_t platform = platform_t::windows;
@@ -137,6 +135,12 @@ namespace fan {
   constexpr void wprint(const Args&... args) {
     ((std::wcout << args << " "), ...) << '\n';
   }
+}
+
+#include _FAN_PATH(types/function.h)
+#include _FAN_PATH(types/fstring.h)
+
+namespace fan {
 
   template <typename T>
   constexpr uintptr_t vector_byte_size(const typename std::vector<T>& vector)
@@ -145,12 +149,12 @@ namespace fan {
   }
 
   template <typename T>
-  std::string to_string(const T a_value, const int n = 2)
+  fan::string to_string(const T a_value, const int n = 2)
   {
     std::ostringstream out;
     out.precision(n);
     out << std::fixed << a_value;
-    return out.str();
+    return out.str().c_str();
   }
   template <typename T>
   std::wstring to_wstring(const T a_value, const int n = 2)
@@ -158,7 +162,7 @@ namespace fan {
     std::wostringstream out;
     out.precision(n);
     out << std::fixed << a_value;
-    return out.str();
+    return out.str().c_str();
   }
 
   template <typename T, typename T2>
@@ -217,7 +221,7 @@ namespace fan {
 
   };
 
-  static std::wstring str_to_wstr(const std::string& s)
+  static std::wstring str_to_wstr(const fan::string& s)
   {
     std::wstring ret(s.begin(), s.end());
     return ret;
@@ -225,14 +229,14 @@ namespace fan {
 
   // slow
   template <typename T>
-  static std::vector<T> string_to_values(const std::string& str)
+  static std::vector<T> string_to_values(const fan::string& str)
   {
     std::vector<T> values;
 
     std::stringstream ss;
     ss << str;
 
-    std::string temp;
+    fan::string temp;
     T found;
     while (!ss.eof()) {
 
@@ -267,18 +271,18 @@ namespace fan {
     return values;
   }
 
-  static void print_warning(const std::string& message) {
+  static void print_warning(const fan::string& message) {
     #ifndef fan_disable_warnings
     fan::print("fan warning: ", message);
     #endif
   }
-  static void print_warning_no_space(const std::string& message) {
+  static void print_warning_no_space(const fan::string& message) {
     #ifndef fan_disable_warnings
     fan::print_no_space("fan warning:", message);
     #endif
   }
 
-  static void throw_error(const std::string& message) {
+  static void throw_error(const fan::string& message) {
     fan::print(message);
     #ifdef fan_compiler_visual_studio
     system("pause");
@@ -403,7 +407,7 @@ namespace fan {
   //}
 
   template <typename T>
-  std::string combine_values(T t) {
+  fan::string combine_values(T t) {
     if constexpr (std::is_same<T, const char*>::value) {
       return t;
     }
@@ -413,9 +417,9 @@ namespace fan {
   }
 
   template <typename T2, typename ...T>
-  static std::string combine_values(T2 first, T... args) {
+  static fan::string combine_values(T2 first, T... args) {
     if constexpr (std::is_same<T2, const char*>::value ||
-      std::is_same<T2, std::string>::value) {
+      std::is_same<T2, fan::string>::value) {
       return first + f(args...);
     }
     else {
@@ -426,7 +430,7 @@ namespace fan {
   template<typename Callable>
   using return_type_of_t = typename decltype(std::function{std::declval<Callable>()})::result_type;
 
-  constexpr uint64_t get_hash(const std::string& str) {
+  constexpr uint64_t get_hash(const fan::string& str) {
     uint64_t result = 0xcbf29ce484222325; // FNV offset basis
 
     uint32_t i = 0;

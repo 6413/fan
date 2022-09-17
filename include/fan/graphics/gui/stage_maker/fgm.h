@@ -101,7 +101,7 @@ struct fgm_t {
 
 	#include "fgm_resize_cb.h"
 
-	void open_from_stage_maker(const std::string& stage_name) {
+	void open_from_stage_maker(const fan::string& stage_name) {
 
 		line_t::properties_t lp;
 		lp.get_viewport() = &viewport[viewport_area::global];
@@ -213,14 +213,14 @@ struct fgm_t {
 		menu.clear();
 	}
 
-	std::string get_fgm_full_path(const std::string& stage_name) {
-		return std::string(stage_maker_t::stage_folder_name) + "/" + stage_name + ".fgm";
+	fan::string get_fgm_full_path(const fan::string& stage_name) {
+		return fan::string(stage_maker_t::stage_folder_name) + "/" + stage_name + ".fgm";
 	}
 
-	void load_from_file(const std::string& stage_name) {
+	void load_from_file(const fan::string& stage_name) {
 		auto loco = get_loco();
-		std::string path = get_fgm_full_path(stage_name);
-		std::string f;
+		fan::string path = get_fgm_full_path(stage_name);
+		fan::string f;
 		if (!fan::io::file::exists(path)) {
 			return;
 		}
@@ -231,7 +231,7 @@ struct fgm_t {
 			auto p = fan::io::file::read_data<fan::vec3>(f, off);
 			auto s = fan::io::file::read_data<fan::vec2>(f, off);
 			auto fs = fan::io::file::read_data<f32_t>(f, off);
-			auto text = fan::io::file::read_data<std::string>(f, off);
+			auto text = fan::io::file::read_data<fan::string>(f, off);
 			fan::io::file::read_data<fan_2d::graphics::gui::theme_t>(f, off);
 			//theme.open(loco->get_context());
 			builder_button_t::properties_t bp;
@@ -245,13 +245,13 @@ struct fgm_t {
 			builder_button.push_back(bp);
 		}
 	}
-	void write_to_file(const std::string& stage_name) {
+	void write_to_file(const fan::string& stage_name) {
 		auto loco = get_loco();
 
-		std::string f;
+		fan::string f;
 		f.resize(f.size() + sizeof(uint32_t));
 		uint32_t instances_count = builder_button.instance.size();
-		memcpy(&f[0] , &instances_count, sizeof(uint32_t));
+		memcpy(&f[0], &instances_count, sizeof(uint32_t));
 		for (auto it : builder_button.instance) {
 			auto p = loco->button.get(&it->cid, &loco_t::button_t::instance_t::position);
 			auto s = loco->button.get(&it->cid, &loco_t::button_t::instance_t::size);
@@ -263,7 +263,7 @@ struct fgm_t {
 			
 			static auto add_to_f = [&f, &it]<typename T>(const T& o) {
 				std::size_t off = f.size();
-				if constexpr (std::is_same<std::string, T>::value) {
+				if constexpr (std::is_same<fan::string, T>::value) {
 					uint64_t len = o.size();
 					f.resize(off + sizeof(uint64_t));
 					memcpy(&f[off], &len, sizeof(uint64_t));

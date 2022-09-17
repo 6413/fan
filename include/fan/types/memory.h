@@ -201,7 +201,7 @@ namespace fan {
           type_t* rptr = (type_t*)realloc(ptr, size);
         #if fan_debug >= fan_debug_low
           if (rptr == 0) {
-            fan::throw_error("realloc failed - ptr:" + std::to_string((uintptr_t)ptr) + " size:" + std::to_string(size));
+            fan::throw_error("realloc failed - ptr:" + fan::to_string((uintptr_t)ptr) + " size:" + fan::to_string(size));
           }
         #endif
           return rptr;
@@ -216,7 +216,7 @@ namespace fan {
           type_t* rptr = (type_t*)malloc(size);
         #if fan_debug >= fan_debug_low
           if (rptr == 0) {
-            fan::throw_error("malloc failed - ptr:" + std::to_string((uintptr_t)ptr) + " size:" + std::to_string(size));
+            fan::throw_error("malloc failed - ptr:" + fan::to_string((uintptr_t)ptr) + " size:" + fan::to_string(size));
           }
         #endif
           return rptr;

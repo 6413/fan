@@ -1,5 +1,3 @@
-#include <fan/types/types.h>
-
 #define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 
 #ifndef FAN_INCLUDE_PATH
@@ -8,46 +6,32 @@
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
 #include _FAN_PATH(time/time.h)
+#include _FAN_PATH(math/random.h)
 
-//struct a_t {
-//	fan::function_t<int(int)> f;
+#define BLL_set_StoreFormat 1
+#define BLL_set_BaseLibrary 1
+#define BLL_set_prefix instance
+#define BLL_set_type_node uint16_t
+#define BLL_set_node_data fan::string str;
+#define BLL_set_Link 1
+#define BLL_set_AreWeInsideStruct 0
+#define BLL_set_CPP_Node_ConstructDestruct
+#define BLL_set_BaseLibrary 1
+#include _FAN_PATH(BLL/BLL.h)
+
+#include <fan/types/fstring.h>
+
+//#pragma pack(push, 1)
+// struct a_t {
+//	//uint8_t begin_pad[13];
+//	std::string str;
 //};
+//#pragma pack(pop)
+//#include <Windows.h>
 //
-//struct b_t {
-//	a_t a{ .f = [](int x) -> int {  return x; } };
-//};
-
-struct a_t {
-	virtual int f(int number) {
-		return number * rand();
-	}
-};
-
-struct b_t : a_t {
-
-};
-
-static struct ga_t {
-	static inline struct c_t {
-		void f() {
-
-		}
-	}c;
-};
-
 int main(int arg) {
-	ga_t::c.f();
-	fan::time::clock c;
-
-	uint32_t v = 0;
-	std::vector<b_t> bs(1e+8);
-	//std::vector<b_t> bs2(1e+8);
-	c.start();
-	for (uint32_t i = 0; i < 1e+8; i++) {
-		bs[i] = b_t();
-		v += bs[i].f(arg);
-	}
-
-	fan::print(c.elapsed());
-	return v;
+	fan::string str;
+	fan::string str2 = "test";
+	str.insert(str.begin(), "str2");
+	return str == "";
 }
