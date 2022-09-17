@@ -4,10 +4,10 @@ GPP = clang++
 #GPP = clang-cl /MT -fsanitize=address  /std:c++latest
 
 
-CFLAGS =  -w -g -std=c++2a -I include #-O3 -march=native -mtune=native \
+CFLAGS = -I . -w -g -std=c++2a -I include #-O3 -march=native -mtune=native \
   #-fsanitize=address -fno-omit-frame-pointer
 
-MAIN = examples/stage_maker.cpp
+MAIN = examples/stage_loader.cpp
 
 TARGET = a.out
 

@@ -440,6 +440,19 @@ namespace fan {
     return result;
   }
 
+  constexpr const char* file_name(const char* path) {
+    const char* file = path;
+    while (*path) {
+#if defined(fan_platform_windows)
+      if (*path++ == '\\') {
+#elif defined(fan_platform_unix)
+      if (*path++ == '/') {
+#endif
+          file = path;
+      }
+    }
+    return file;
+  }
 
   namespace debug {
 

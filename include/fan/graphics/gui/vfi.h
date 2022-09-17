@@ -91,14 +91,15 @@ struct vfi_t {
     fan::key_state key_state;
   };
 
-  using mouse_move_cb_t = fan::function_t<void(const mouse_move_data_t&)>;
-  using mouse_button_cb_t = fan::function_t<void(const mouse_button_data_t&)>;
-  using keyboard_cb_t = fan::function_t<void(const keyboard_data_t&)>;
+  using mouse_move_cb_t = fan::function_t<int(const mouse_move_data_t&)>;
+  using mouse_button_cb_t = fan::function_t<int(const mouse_button_data_t&)>;
+  using keyboard_cb_t = fan::function_t<int(const keyboard_data_t&)>;
 
   struct common_shape_data_t {
-    fan::function_t<void(const mouse_move_data_t&)> mouse_move_cb;
-    fan::function_t<void(const mouse_button_data_t&)> mouse_button_cb;
-    fan::function_t<void(const keyboard_data_t&)> keyboard_cb;
+
+    mouse_button_cb_t mouse_button_cb = [](const mouse_button_data_t&) -> int { return 0; };
+    mouse_move_cb_t mouse_move_cb = [](const mouse_move_data_t&) -> int { return 0; };
+    keyboard_cb_t keyboard_cb = [](const keyboard_data_t&) -> int { return 0; };
     f32_t depth;
     union{
       shape_data_always_t always; 
@@ -108,9 +109,9 @@ struct vfi_t {
 
   struct common_shape_properties_t {
     shape_type_t shape_type;
-    fan::function_t<void(const mouse_move_data_t&)> mouse_move_cb;
-    fan::function_t<void(const mouse_button_data_t&)> mouse_button_cb;
-    fan::function_t<void(const keyboard_data_t&)> keyboard_cb;
+    mouse_button_cb_t mouse_button_cb = [](const mouse_button_data_t&) -> int { return 0; };
+    mouse_move_cb_t mouse_move_cb = [](const mouse_move_data_t&) -> int { return 0; };
+    keyboard_cb_t keyboard_cb = [](const keyboard_data_t&) -> int { return 0; };
     union {
       shape_properties_always_t always; 
       shape_properties_rectangle_t rectangle; 
@@ -163,6 +164,14 @@ struct vfi_t {
         instance.shape_data.shape.rectangle = p.shape.rectangle;
         break;
       }
+    }
+    
+    auto loco = get_loco();
+
+    fan::vec2 mouse_position = loco->get_mouse_position();
+    fan::vec2 tp = transform(mouse_position, p.shape_type, &instance.shape_data);
+    if (inside(loco, p.shape_type, &instance.shape_data, tp) == mouse_stage_e::inside) {
+      feed_mouse_move(mouse_position);
     }
     return nr;
   }

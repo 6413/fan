@@ -66,11 +66,19 @@ static int mouse_button_cb0(const loco_t::mouse_button_data_t& mb){
 
 	using sl = pile_t::stage_loader_t;
 
-	sl::stage_common_t::open_properties_t op;
-	op.matrices = &pile->matrices;
-	op.viewport = &pile->viewport;
-	op.theme = &pile->theme;
-	pile->stage_loader.push_and_open_stage<sl::stage::stage1_t>(op);
+	pile->stage_loader.erase_stage(1);
 
+  return 0;
+}
+
+static int mouse_button_cb1(const loco_t::mouse_button_data_t& mb){
+  return 0;
+}
+
+static int mouse_button_cb2(const loco_t::mouse_button_data_t& mb){
+  return 0;
+}
+
+static int mouse_button_cb3(const loco_t::mouse_button_data_t& mb){
   return 0;
 }

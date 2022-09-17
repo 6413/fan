@@ -47,9 +47,9 @@ struct button_t {
 
     bool disable_highlight = false;
 
-    loco_t::mouse_button_cb_t mouse_button_cb;
-    loco_t::mouse_move_cb_t mouse_move_cb;
-    loco_t::keyboard_cb_t keyboard_cb;
+    loco_t::mouse_button_cb_t mouse_button_cb = [](const loco_t::mouse_button_data_t&) -> int { return 0; };
+    loco_t::mouse_move_cb_t mouse_move_cb = [](const loco_t::mouse_move_data_t&) -> int { return 0; };
+    loco_t::keyboard_cb_t keyboard_cb = [](const loco_t::keyboard_data_t&) -> int { return 0; };
   };
 
   void push_back(fan::opengl::cid_t* cid, properties_t& p) {
@@ -76,7 +76,7 @@ struct button_t {
     vfip.shape.rectangle.size = p.size;
     vfip.flags = p.vfi_flags;
     if (!p.disable_highlight) {
-      vfip.mouse_move_cb = [&, cb = p.mouse_move_cb, udata = p.udata, cid_ = cid](const loco_t::vfi_t::mouse_move_data_t& mm_d) -> void {
+      vfip.mouse_move_cb = [cb = p.mouse_move_cb, udata = p.udata, cid_ = cid](const loco_t::vfi_t::mouse_move_data_t& mm_d) -> int {
         loco_t* loco = OFFSETLESS(mm_d.vfi, loco_t, vfi_var_name);
         loco_t::mouse_move_data_t mmd = mm_d;
         auto block = loco->button.sb_get_block(cid_);
@@ -90,8 +90,9 @@ struct button_t {
         }
         mmd.cid = cid_;
         cb(mmd);
+        return 0;
       };
-      vfip.mouse_button_cb = [cb = p.mouse_button_cb, udata = p.udata, cid_ = cid](const loco_t::vfi_t::mouse_button_data_t& ii_d) -> void {
+      vfip.mouse_button_cb = [cb = p.mouse_button_cb, udata = p.udata, cid_ = cid](const loco_t::vfi_t::mouse_button_data_t& ii_d) -> int {
         loco_t* loco = OFFSETLESS(ii_d.vfi, loco_t, vfi_var_name);
         auto block = loco->button.sb_get_block(cid_);
         if (ii_d.flag->ignore_move_focus_check == false && !block->p[cid_->instance_id].selected) {
@@ -116,13 +117,16 @@ struct button_t {
         loco_t::mouse_button_data_t mid = ii_d;
         mid.cid = cid_;
         cb(mid);
+
+        return 0;
       };
-      vfip.keyboard_cb = [cb = p.keyboard_cb, udata = p.udata, cid_ = cid](const loco_t::vfi_t::keyboard_data_t& kd) -> void {
+      vfip.keyboard_cb = [cb = p.keyboard_cb, udata = p.udata, cid_ = cid](const loco_t::vfi_t::keyboard_data_t& kd) -> int {
         loco_t* loco = OFFSETLESS(kd.vfi, loco_t, vfi_var_name);
         loco_t::keyboard_data_t kd_ = kd;
         auto block = loco->button.sb_get_block(cid_);
         kd_.cid = cid_;
         cb(kd_);
+        return 0;
       };
     }
 
@@ -135,6 +139,10 @@ struct button_t {
     loco->text.erase(p->text_id);
     loco->vfi.erase(block->p[cid->instance_id].vfi_id);
     sb_erase(cid);
+  }
+
+  instance_properties_t* get_instance_properties(fan::opengl::cid_t* cid) {
+    return &sb_get_block(cid)->p[cid->instance_id];
   }
 
   void draw() {
