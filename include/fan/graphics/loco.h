@@ -447,7 +447,7 @@ struct loco_t {
     m_write_queue.close();
   }
 
-  vfi_t::shape_id_t push_back_input_hitbox(uint32_t depth, const vfi_t::properties_t& p) {
+  vfi_t::shape_id_t push_back_input_hitbox(const vfi_t::properties_t& p) {
     return vfi.push_shape(p);
   }
  /* uint32_t push_back_keyboard_event(uint32_t depth, const fan_2d::graphics::gui::ke_t::properties_t& p) {

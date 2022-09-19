@@ -12,7 +12,7 @@
 namespace fan {
   namespace io {
 		static bool directory_exists(const fan::string& directory) {
-			return std::filesystem::exists(directory);
+			return std::filesystem::exists(directory.c_str());
 		}
 
 		struct iterate_sort_t {
@@ -23,7 +23,7 @@ namespace fan {
 		};
 
 		static void iterate_directory_by_image_size_(
-			const fan::string& path,
+			const std::string& path,
 			std::vector<iterate_sort_t>* sorted,
 			const std::function<void(const fan::string& path)>& function
 		) {
@@ -47,7 +47,7 @@ namespace fan {
 		}
 
 		static void iterate_directory_by_image_size(
-			const fan::string& path,
+			const std::string& path,
 			const std::function<void(const fan::string& path)>& function
 		) {
 			std::vector<iterate_sort_t> sorted;
@@ -59,11 +59,11 @@ namespace fan {
 		}
 
 		static void iterate_directory(
-			const fan::string& path,
+			const std::string& path,
 			const std::function<void(const fan::string& path)>& function
 		) {
 
-			if (!directory_exists(path)) {
+			if (!directory_exists(path.c_str())) {
 				fan::throw_error("directory does not exist");
 			}
 

@@ -176,14 +176,18 @@ struct vfi_t {
     return nr;
   }
   void erase(shape_id_t id) {
+    bool redo_mouse = false;
     if (focus.mouse == id) {
       focus.mouse.invalidate();
+      redo_mouse = true;
     }
     if (focus.keyboard == id) {
       focus.keyboard.invalidate();
     }
     shape_list.Unlink(id);
     shape_list.Recycle(id);
+
+    feed_mouse_move(get_loco()->get_mouse_position());
   }
   template <typename T>
   void set_always(shape_id_t id, auto T::*member, auto value) {

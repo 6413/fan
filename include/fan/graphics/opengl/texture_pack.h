@@ -33,7 +33,7 @@ namespace fan {
         return pixel_data_list[pack_id];
       }
 
-      void open(fan::opengl::context_t* context, const char* filename) {
+      void open_compiled(fan::opengl::context_t* context, const char* filename) {
         texture_list.open();
         pixel_data_list.open();
 

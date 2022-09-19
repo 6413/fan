@@ -22,9 +22,9 @@ namespace fan {
       fan::vec2i size;
     };
 
-    static bool get_image_size(const std::string_view file, fan::vec2ui* size) {
+    static bool get_image_size(const fan::string& file, fan::vec2ui* size) {
       fan::string data;
-      fan::io::file::read(fan::string(file), &data);
+      fan::io::file::read(file, &data);
       return WebPGetInfo((uint8_t*)data.data(), data.size(), (int*)&size->x, (int*)&size->y) != 1;
     }
 
@@ -33,10 +33,10 @@ namespace fan {
       return image_info->data == 0;
     }
 
-    static bool load(const std::string_view file, image_info_t* image_info) {
+    static bool load(const fan::string& file, image_info_t* image_info) {
     
       fan::string data;
-      fan::io::file::read(fan::string(file), &data);
+      fan::io::file::read(file, &data);
 
       bool failed = decode((const uint8_t*)data.data(), data.size(), image_info);
       if (failed) {

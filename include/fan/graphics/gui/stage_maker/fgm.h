@@ -2,6 +2,7 @@ struct fgm_t {
 	struct shapes {
 		static constexpr uint16_t line = 0;
 		static constexpr uint16_t button = 1;
+		static constexpr uint16_t sprite = 2;
 	};
 
 	struct viewport_area {
@@ -103,6 +104,8 @@ struct fgm_t {
 
 	void open_from_stage_maker(const fan::string& stage_name) {
 
+		properties_nr.NRI = -1;
+
 		line_t::properties_t lp;
 		lp.get_viewport() = &viewport[viewport_area::global];
 		lp.get_matrices() = &matrices[viewport_area::global];
@@ -120,14 +123,111 @@ struct fgm_t {
 
 		resize_cb();
 
-		editor_button_t::properties_t ebp;
-		ebp.get_matrices() = &matrices[viewport_area::types];
-		ebp.get_viewport() = &viewport[viewport_area::types];
-		ebp.position = fan::vec2(0, matrices[viewport_area::types].coordinates.top * 0.9);
-		ebp.size = button_size;
-		ebp.theme = &theme;
-		ebp.text = "button";
-		editor_button.push_back(ebp);
+		menu_t::open_properties_t op;
+		op.matrices = &matrices[viewport_area::types];
+		op.viewport = &viewport[viewport_area::types];
+		op.theme = &theme;
+		op.position = fan::vec2(0, -0.9);
+		op.gui_size = 0.08;
+		auto nr = menu.push_menu(op);
+
+		menu_t::properties_t mp;
+		mp.text = "button";
+		mp.mouse_button_cb = [nr](const loco_t::mouse_button_data_t& ii_d) -> int {
+			pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi), pile_t, loco);
+			if (ii_d.button != fan::mouse_left) {
+				return 0;
+			}
+			if (ii_d.mouse_stage != loco_t::vfi_t::mouse_stage_e::inside) {
+				return 0;
+			}
+			pile->stage_maker.fgm.action_flag |= action::move;
+			builder_button_t::properties_t bbp;
+			bbp.get_matrices() = &pile->stage_maker.fgm.matrices[viewport_area::editor];
+			bbp.get_viewport() = &pile->stage_maker.fgm.viewport[viewport_area::editor];
+			bbp.position = pile->loco.get_mouse_position(
+				pile->stage_maker.fgm.viewport[viewport_area::editor].get_position(),
+				pile->stage_maker.fgm.viewport[viewport_area::editor].get_size()
+			);
+			
+			bbp.size = button_size;
+			//bbp.size = button_size;
+			bbp.theme = &pile->stage_maker.fgm.theme;
+			bbp.text = "button";
+			bbp.font_size = scale_object_with_viewport(fan::vec2(0.2), &pile->stage_maker.fgm.viewport[viewport_area::types], &pile->stage_maker.fgm.viewport[viewport_area::editor]).x;
+			
+			auto& instance = pile->loco.menu_maker.instances[nr].base.instances[pile->loco.menu_maker.instances[nr].base.instances.GetNodeFirst()];
+			pile->stage_maker.fgm.builder_button.push_back(bbp);
+			pile->loco.button.set_theme(&instance.cid, loco_t::button_t::inactive);
+			auto builder_cid = &pile->stage_maker.fgm.builder_button.instance[pile->stage_maker.fgm.builder_button.instance.size() - 1]->cid;
+			auto block = pile->loco.button.sb_get_block(builder_cid);
+			pile->loco.vfi.set_focus_mouse(block->p[builder_cid->instance_id].vfi_id);
+			pile->loco.vfi.feed_mouse_button(fan::mouse_left, fan::key_state::press);
+			pile->stage_maker.fgm.builder_button.open_properties(builder_cid);
+			
+			auto stage_name = pile->stage_maker.get_selected_name(
+				pile,
+				pile->stage_maker.instances[pile_t::stage_maker_t::stage_t::stage_instance].menu_id,
+				pile->loco.menu_maker.get_selected_id(pile->stage_maker.instances[pile_t::stage_maker_t::stage_t::stage_instance].menu_id)
+			);
+			auto file_name = pile->stage_maker.get_file_fullpath(stage_name);
+			
+			fan::string str;
+			fan::io::file::read(file_name, &str);
+			
+			std::size_t button_id = -1;
+			for (std::size_t j = 0; j < pile->stage_maker.fgm.builder_button.instance.size(); ++j) {
+				if (&pile->stage_maker.fgm.builder_button.instance[j]->cid == builder_cid) {
+					button_id = j;
+					break;
+				}
+			}
+			
+			if (button_id == -1) {
+				fan::throw_error("some corruption xd");
+			}
+			
+			if (str.find(fan::to_string(button_id) + "(") != fan::string::npos) {
+				return 0;
+			}
+			
+			str += "\n\nstatic int mouse_button_cb" + fan::to_string(button_id) + "(const loco_t::mouse_button_data_t& mb){\n  return 0;\n}";
+			
+			fan::io::file::write(file_name, str, std::ios_base::binary);
+			return 0;
+		};
+		menu.push_back(nr, mp);
+
+		mp.text = "sprite";
+		mp.mouse_button_cb = [nr](const loco_t::mouse_button_data_t& ii_d) -> int {
+			pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi), pile_t, loco);
+			if (ii_d.button != fan::mouse_left) {
+				return 0;
+			}
+			if (ii_d.mouse_stage != loco_t::vfi_t::mouse_stage_e::inside) {
+				return 0;
+			}
+			pile->stage_maker.fgm.action_flag |= action::move;
+			sprite_t::properties_t sp;
+			sp.get_matrices() = &pile->stage_maker.fgm.matrices[viewport_area::editor];
+			sp.get_viewport() = &pile->stage_maker.fgm.viewport[viewport_area::editor];
+			sp.position = pile->loco.get_mouse_position(
+				pile->stage_maker.fgm.viewport[viewport_area::editor].get_position(),
+				pile->stage_maker.fgm.viewport[viewport_area::editor].get_size()
+			);
+
+			sp.size = button_size;
+			sp.get_image() = &pile->stage_maker.fgm.default_texture;
+
+			pile->stage_maker.fgm.sprite.push_back(sp);
+			auto& instance = pile->stage_maker.fgm.sprite.instance[pile->stage_maker.fgm.sprite.instance.size() - 1];
+			pile->loco.vfi.set_focus_mouse(instance->vfi_id);
+			pile->loco.vfi.feed_mouse_button(fan::mouse_left, fan::key_state::press);
+			pile->stage_maker.fgm.sprite.open_properties(&instance->cid);
+
+			return 0;
+		};
+		menu.push_back(nr, mp);
 
 		global_button_t::properties_t gbp;
 		gbp.get_matrices() = &matrices[viewport_area::global];
@@ -169,6 +269,7 @@ struct fgm_t {
 		action_flag = 0;
 		theme = fan_2d::graphics::gui::themes::deep_red();
 		theme.open(loco.get_context());
+		default_texture.load(loco.get_context(), "images/test.webp");
 
 		//loco.get_window()->add_resize_callback([&](fan::window_t* window, const fan::vec2i& ws) {
 		//	resize_cb();
@@ -208,8 +309,8 @@ struct fgm_t {
 	void clear() {
 		line.clear();
 		global_button.clear();
-		editor_button.clear();
 		builder_button.clear();
+		sprite.clear();
 		menu.clear();
 	}
 
@@ -285,13 +386,40 @@ struct fgm_t {
 			add_to_f(*theme);
 		}
 
+		f.resize(f.size() + sizeof(uint32_t));
+		instances_count = sprite.instance.size();
+		memcpy(&f[0], &instances_count, sizeof(uint32_t));
+		for (auto it : sprite.instance) {
+			auto p = loco->sprite.get(&it->cid, &loco_t::sprite_t::instance_t::position);
+			auto s = loco->sprite.get(&it->cid, &loco_t::sprite_t::instance_t::size);
+			//auto t = ""
+
+			static auto add_to_f = [&f, &it]<typename T>(const T & o) {
+				std::size_t off = f.size();
+				if constexpr (std::is_same<fan::string, T>::value) {
+					uint64_t len = o.size();
+					f.resize(off + sizeof(uint64_t));
+					memcpy(&f[off], &len, sizeof(uint64_t));
+					off += sizeof(uint64_t);
+
+					f.resize(off + o.size());
+					memcpy(&f[off], o.data(), o.size());
+				}
+				else {
+					f.resize(off + sizeof(o));
+					memcpy(&f[off], &o, sizeof(o));
+				}
+			};
+
+			add_to_f(p);
+			add_to_f(s);
+		}
+
 		fan::io::file::write(
 			get_fgm_full_path(stage_name),
 			f,
 			std::ios_base::binary
 		);
-
-
 	}
 
 	#include "fgm_shape_types.h"
@@ -313,4 +441,6 @@ struct fgm_t {
 	fan::vec2 editor_position;
 	fan::vec2 editor_size;
 	fan::vec2 editor_ratio;
+
+	fan::opengl::image_t default_texture;
 }fgm;

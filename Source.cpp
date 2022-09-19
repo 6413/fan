@@ -30,8 +30,26 @@
 //#include <Windows.h>
 //
 int main(int arg) {
-	fan::string str;
-	fan::string str2 = "test";
-	str.insert(str.begin(), "str2");
-	return str == "";
+	fan::performance::measure([&] {
+		std::vector<std::string> str;
+		for (uint32_t i = 0; i < 50000; i++) {
+			auto s = fan::random::string(410);
+			str.push_back(s.c_str());
+			str[i].append(s);
+			if (i) {
+				str[i - 1] = str[i];
+			}
+		}
+	});
+	fan::performance::measure([&] {
+		std::vector<fan::string> str;
+		for (uint32_t i = 0; i < 50000; i++) {
+			auto s = fan::random::string(410);
+			str.push_back(s.c_str());
+			str[i].append(s);
+			if (i) {
+				str[i - 1] = str[i];
+			}
+		}
+	});
 }

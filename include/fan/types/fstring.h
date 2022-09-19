@@ -8,111 +8,114 @@
 
 namespace fan {
 	struct string {
-		
+
 		using value_type = std::vector<char>;
 
-		constexpr string() {
+		string() {
 			str.push_back(0);
 		}
-		constexpr string (char c) {
+		string(char c) {
 			str.push_back(c);
 			str.push_back(0);
 		}
-		constexpr string(const char* s) : str(s, s + strlen(s)) {
+		string(const char* s) : str(s, s + strlen(s)) {
 			str.push_back(0);
 		}
-		constexpr string(value_type::const_iterator beg, value_type::const_iterator end) : str(beg, end) {
+		string(value_type::const_iterator beg, value_type::const_iterator end) : str(beg, end) {
 			str.push_back(0);
 		}
-		constexpr string(std::string_view sv) : str(sv.begin(), sv.end()) {
+		string(std::string_view sv) : str(sv.begin(), sv.end()) {
 			str.push_back(0);
 		}
 
-		constexpr bool empty() const {
+		bool empty() const {
 			return !size();
 		}
 
-		constexpr std::size_t size() const {
+		std::size_t size() const {
 			if (str.size()) {
 				return str.size() - 1;
 			}
 			return std::size_t(0);
 		}
 
-		constexpr const char* c_str() const {
+		const char* c_str() const {
 			return str.data();
 		}
 
-		constexpr void clear() {
+		void clear() {
 			str.clear();
 		}
 
-		constexpr auto begin() const {
+		auto begin() const {
 			return str.begin();
 		}
-		constexpr auto end() const {
+		auto end() const {
 			if (str.size()) {
 				return str.end() - 1;
 			}
 			return str.end();
 		}
 
-		constexpr auto begin() {
+		auto begin() {
 			return str.begin();
 		}
-		constexpr auto end() {
+		auto end() {
 			if (str.size()) {
 				return str.end() - 1;
 			}
 			return str.end();
 		}
 
-		constexpr void insert(value_type::const_iterator where, value_type::const_iterator begin, value_type::const_iterator end) {
+		void insert(value_type::const_iterator where, value_type::const_iterator begin, value_type::const_iterator end) {
 			str.insert(where, begin, end);
 		}
-		constexpr void insert(value_type::const_iterator iter, const string& s) {
+		void insert(value_type::const_iterator iter, const string& s) {
 			str.insert(iter, s.begin(), s.end());
 		}
-		constexpr void insert(std::size_t where, const string& s) {
+		void insert(std::size_t where, const string& s) {
 			str.insert(begin() + where, s.begin(), s.end());
 		}
 
-		constexpr auto append(const string& s) {
+		auto append(const string& s) {
 			insert(end(), s);
 			return *this;
 		}
 
-		constexpr void erase(std::size_t beg, std::size_t count) {
+		void erase(std::size_t beg, std::size_t count) {
 			str.erase(str.begin() + beg, str.begin() + beg + count);
 		}
-		constexpr void erase(std::size_t where) {
+		void erase(std::size_t where) {
 			str.erase(str.begin() + where);
 		}
-		constexpr void erase(value_type::const_iterator where) {
+		void erase(value_type::const_iterator where) {
 			str.erase(where);
 		}
-		constexpr void erase(value_type::const_iterator begin, value_type::const_iterator end) {
+		void erase(value_type::const_iterator begin, value_type::const_iterator end) {
 			str.erase(begin, end);
 		}
+		void pop_back() {
+			str.erase(end());
+		}
 
-		constexpr string substr(std::size_t beg, std::size_t n) const {
+		string substr(std::size_t beg, std::size_t n) const {
 			if (beg > size() || beg + n > size()) {
 				return *this;
 			}
 			return string(begin() + beg, begin() + beg + n);
 		}
-		constexpr string substr(value_type::const_iterator beg, std::size_t n) const {
+		string substr(value_type::const_iterator beg, std::size_t n) const {
 			return string(beg, beg + n);
 		}
 
-		constexpr std::size_t find(const string& s) const {
+		std::size_t find(const string& s) const {
 			auto found = std::search(begin(), end(), s.begin(), s.end());
 			if (found == end()) {
 				return npos;
 			}
 			return std::distance(begin(), found);
 		}
-		constexpr std::size_t find(const string& s, std::size_t start) const {
+		std::size_t find(const string& s, std::size_t start) const {
 			auto found = std::search(begin() + start, end(), s.begin(), s.end());
 			if (found == end()) {
 				return npos;
@@ -133,7 +136,7 @@ namespace fan {
 			}
 		};
 
-		constexpr std::size_t find_first_of(const string& s, std::size_t start = 0) const {
+		std::size_t find_first_of(const string& s, std::size_t start = 0) const {
 			auto found = std::find_first_of(begin() + start, end(), s.begin(), s.end());
 			if (found == end()) {
 				return npos;
@@ -143,10 +146,10 @@ namespace fan {
 
 		std::size_t find_first_not_of(const string& s, std::size_t start = 0) const {
 			std::string ss = c_str();
-			return ss.find_first_not_of(s, start);
+			return ss.find_first_not_of(s.c_str(), start);
 		}
 
-		constexpr std::size_t find_last_of(const string& s, std::size_t start = 0) const {
+		std::size_t find_last_of(const string& s, std::size_t start = 0) const {
 			auto found = std::find_end(begin() + start, begin(), s.begin(), s.end());
 			if (found == end()) {
 				return npos;
@@ -154,7 +157,7 @@ namespace fan {
 			return std::distance(begin(), found);
 		}
 
-		constexpr bool equals(const string& s) const {
+		bool equals(const string& s) const {
 			if (size() != s.size()) {
 				return false;
 			}
@@ -167,7 +170,7 @@ namespace fan {
 			return std::equal(begin(), end() - 1, s.begin(), s.end() - 1);
 		}
 
-		constexpr bool operator==(const string& s) const {
+		bool operator==(const string& s) const {
 			return equals(s);
 		}
 
@@ -175,22 +178,22 @@ namespace fan {
 			return !equals(s);
 		}
 
-		constexpr string& operator+=(const string& s) {
+		string& operator+=(const string& s) {
+			append(s);
+			return *this;
+		}
+
+		string& operator+=(const char* s) {
 			insert(end(), s);
 			return *this;
 		}
 
-		constexpr string& operator+=(const char* s) {
-			insert(end(), s);
-			return *this;
-		}
-
-		constexpr string operator+(const string& s) const {
+		string operator+(const string& s) const {
 			string result = *this;
 			result.insert(result.end(), s);
 			return result;
 		}
-		constexpr string operator+(const char* c) const {
+		string operator+(const char* c) const {
 			string result = *this;
 			result.insert(result.end(), c);
 			return result;
@@ -203,7 +206,7 @@ namespace fan {
 			return str[i];
 		}
 
-		constexpr char* data() noexcept {
+		constexpr  char* data() noexcept {
 			return str.data();
 		}
 
@@ -225,8 +228,6 @@ namespace fan {
 			}
 		}
 
-		friend std::ostream& operator<<(std::ostream& os, const string& s);
-
 		static constexpr std::size_t npos = -1;
 		value_type str;
 	};
@@ -237,7 +238,7 @@ namespace fan {
 }
 
 static fan::string operator+(const char* left, const fan::string& s) {
-	fan::string str;
+	fan::string str = s;
 	str.insert(str.begin(), left);
 	return str;
 }
