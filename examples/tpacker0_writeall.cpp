@@ -24,28 +24,30 @@ int main() {
   texture_properties.visual_output = fan::opengl::GL_CLAMP_TO_EDGE;
   texture_properties.filter = fan::opengl::GL_NEAREST;
   texture_properties.group_id = 0;
-  fan::io::iterate_directory_by_image_size("../images_out", [&](std::string path) {
-    if (std::size_t found = path.find("block") == std::string::npos) {
-      return;
-    }
-    std::string p = path;
-    p = p.substr(strlen("../images_out/"), std::string::npos);
+  static constexpr auto full_path = "images/";
+
+  fan::io::iterate_directory_by_image_size(full_path, [&](fan::string path) {
+    //if (std::size_t found = path.find("block") == fan::string::npos) {
+    //  return;
+    //}
+    fan::string p = path;
+    p = p.substr(strlen(full_path), p.size());
     texture_properties.name = p;
     e.push_texture(path, texture_properties);
 
     });
   texture_properties = fan::tp::texture_packe0::texture_properties_t();
-  fan::io::iterate_directory_by_image_size("../images_out", [&] (std::string path) {
-    if (std::size_t found = path.find("block") != std::string::npos) {
-      return;
-    }
-    std::string p = path;
-    p = p.substr(strlen("../images_out/"), std::string::npos);
+  fan::io::iterate_directory_by_image_size("images/", [&] (fan::string path) {
+    //if (std::size_t found = path.find("block") != std::string::npos) {
+    //  return;
+    //}
+    fan::string p = path;
+    p = p.substr(strlen(full_path), p.size());
 
     texture_properties.name = p;
     e.push_texture(path, texture_properties);
     });
   e.process();
   fan::print_no_space("pack size:", e.size());
-  e.save("../../TexturePack");
+  e.save_compiled("TexturePackCompiled");
 }

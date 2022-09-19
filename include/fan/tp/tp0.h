@@ -226,7 +226,7 @@ namespace fan {
             for (uint32_t y = t->position.y; y < t->position.y + t->size.y; y++) {
               memcpy(
                 pack_list[i].pixel_data.data() + (y * pack_list[i].pack_size.x + t->position.x) * 4,
-                &gt->decoded_data[(y - t->position.y) * t->size.x * 4],
+                &gt->decoded_data[(gt->size.y - (y - t->position.y) - 1) * t->size.x * 4],
                 t->size.x * 4
               );
             }

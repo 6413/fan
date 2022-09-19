@@ -15,6 +15,7 @@
 
 #define loco_line
 #define loco_button
+#define loco_sprite
 #define loco_menu_maker
 #define loco_var_name loco
 #include _FAN_PATH(graphics/loco.h)
@@ -49,7 +50,7 @@ struct pile_t {
 int main() {
   pile_t* pile = new pile_t;
 
-  pile->open();
+  pile->open(); 
 
   pile->loco.set_vsync(false);
   //pile->loco.get_window()->set_max_fps(5);

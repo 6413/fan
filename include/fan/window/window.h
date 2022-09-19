@@ -282,7 +282,7 @@ namespace fan {
 			}
 			else if constexpr(static_cast<bool>(flag & fan::window_t::flags::mode)) {
 				if ((int)value > (int)fan::window_t::mode::full_screen) {
-					fan::throw_error("fan window error: failed to set window mode flag to: " + std::to_string((int)value));
+					fan::throw_error("fan window error: failed to set window mode flag to: " + fan::to_string((int)value));
 				}
 				flag_values::m_size_mode = (fan::window_t::mode)value;
 			}

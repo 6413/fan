@@ -25,11 +25,8 @@ struct stage_common_t {
 };
 
 struct stage {
-	struct _t {
+	struct stage0_t {
     #include "stages/stage0.h"
-  };
-  struct _t {
-    #include "stages/stage1.h"
   };
   inline static std::vector<stage_common_t*> stages;
 };

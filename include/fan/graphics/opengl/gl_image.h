@@ -83,7 +83,7 @@ namespace fan {
         return 0;
       }
 
-      bool load(fan::opengl::context_t* context, const std::string_view path, const load_properties_t& p = load_properties_t()) {
+      bool load(fan::opengl::context_t* context, const fan::string& path, const load_properties_t& p = load_properties_t()) {
 
         #if fan_assert_if_same_path_loaded_multiple_times
 

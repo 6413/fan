@@ -1,6 +1,5 @@
 #pragma once
 
-#include _FAN_PATH(types/types.h)
 #include _FAN_PATH(types/vector.h)
 
 #include <fstream>
@@ -88,7 +87,7 @@ namespace fan {
 				const std::vector<T>& vector,
 				decltype(std::ios_base::binary | std::ios_base::app) mode = std::ios_base::binary | std::ios_base::app
 			) {
-				std::ofstream ofile(path, mode);
+				std::ofstream ofile(path.c_str(), mode);
 				if (ofile.fail()) {
 					fan::throw_error("failed to write to:" + path);
 				}

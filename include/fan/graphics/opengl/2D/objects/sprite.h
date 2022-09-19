@@ -60,10 +60,24 @@ struct sb_sprite_name {
     sb_close();
   }
 
+  fan::opengl::matrices_t* get_matrices(fan::opengl::cid_t* cid) {
+    auto block = sb_get_block(cid);
+    loco_t* loco = get_loco();
+    return loco->get_context()->matrices_list[*block->p[cid->instance_id].key.get_value<
+      instance_properties_t::key_t::get_index_with_type<fan::opengl::matrices_list_NodeReference_t>()
+    >()].matrices_id;
+  }
   void set_matrices(fan::opengl::cid_t* cid, fan::opengl::matrices_list_NodeReference_t n) {
     sb_set_key<instance_properties_t::key_t::get_index_with_type<decltype(n)>()>(cid, n);
   }
 
+  fan::opengl::viewport_t* get_viewport(fan::opengl::cid_t* cid) {
+    loco_t* loco = get_loco();
+    auto block = sb_get_block(cid);
+    return loco->get_context()->viewport_list[*block->p[cid->instance_id].key.get_value<
+      instance_properties_t::key_t::get_index_with_type<fan::opengl::viewport_list_NodeReference_t>()
+    >()].viewport_id;
+  }
   void set_viewport(fan::opengl::cid_t* cid, fan::opengl::viewport_list_NodeReference_t n) {
     sb_set_key<instance_properties_t::key_t::get_index_with_type<decltype(n)>()>(cid, n);
   }

@@ -57,7 +57,6 @@ struct pile_t {
 };
 
 int main() {
-	std::string::c_str()
 	pile_t pile;
 	pile.open();
 

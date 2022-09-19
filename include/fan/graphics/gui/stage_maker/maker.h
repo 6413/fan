@@ -18,6 +18,9 @@ static void open_file_gui(const fan::string& path) {
 struct stage_maker_t {
 
 	#define use_key_lambda(key, state) \
+		if (mb.mouse_stage != loco_t::vfi_t::mouse_stage_e::inside) { \
+			return 0; \
+		} \
 		if (mb.button != key) { \
 			return 0; \
 					} \
