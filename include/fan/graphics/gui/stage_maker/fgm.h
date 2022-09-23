@@ -220,7 +220,7 @@ struct fgm_t {
 			sp.get_image() = &pile->stage_maker.fgm.default_texture;
 
 			pile->stage_maker.fgm.sprite.push_back(sp);
-			auto& instance = pile->stage_maker.fgm.sprite.instance[pile->stage_maker.fgm.sprite.instance.size() - 1];
+			auto& instance = pile->stage_maker.fgm.sprite.instances[pile->stage_maker.fgm.sprite.instances.size() - 1];
 			pile->loco.vfi.set_focus_mouse(instance->vfi_id);
 			pile->loco.vfi.feed_mouse_button(fan::mouse_left, fan::key_state::press);
 			pile->stage_maker.fgm.sprite.open_properties(&instance->cid);
@@ -345,7 +345,22 @@ struct fgm_t {
 			bp.get_viewport() = &viewport[viewport_area::editor];
 			builder_button.push_back(bp);
 		}
+		instance_count = fan::io::file::read_data<uint32_t>(f, off);
+		for (uint32_t i = 0; i < instance_count; i++) {
+			auto p = fan::io::file::read_data<fan::vec3>(f, off);
+			auto s = fan::io::file::read_data<fan::vec2>(f, off);
+			auto text_hash = fan::io::file::read_data<uint64_t>(f, off);
+			//theme.open(loco->get_context());
+			sprite_t::properties_t sp;
+			sp.position = p;
+			sp.size = s;
+			sp.get_image() = &default_texture;
+			sp.get_matrices() = &matrices[viewport_area::editor];
+			sp.get_viewport() = &viewport[viewport_area::editor];
+			sprite.push_back(sp);
+		}
 	}
+
 	void write_to_file(const fan::string& stage_name) {
 		auto loco = get_loco();
 
@@ -356,9 +371,9 @@ struct fgm_t {
 		for (auto it : builder_button.instance) {
 			auto p = loco->button.get(&it->cid, &loco_t::button_t::instance_t::position);
 			auto s = loco->button.get(&it->cid, &loco_t::button_t::instance_t::size);
-			auto fs = loco->text.get_font_size(
+			auto fs = loco->text.get_properties(
 				loco->button.get_instance_properties(&it->cid)->text_id
-			);
+			).font_size;
 			auto text = it->text;
 			auto theme = loco->button.get_theme(&it->cid);
 			
@@ -387,12 +402,12 @@ struct fgm_t {
 		}
 
 		f.resize(f.size() + sizeof(uint32_t));
-		instances_count = sprite.instance.size();
-		memcpy(&f[0], &instances_count, sizeof(uint32_t));
-		for (auto it : sprite.instance) {
+		instances_count = sprite.instances.size();
+		memcpy(&f[f.size() - sizeof(uint32_t)], &instances_count, sizeof(uint32_t));
+		for (auto it : sprite.instances) {
 			auto p = loco->sprite.get(&it->cid, &loco_t::sprite_t::instance_t::position);
 			auto s = loco->sprite.get(&it->cid, &loco_t::sprite_t::instance_t::size);
-			//auto t = ""
+			uint64_t text_hash = fan::get_hash("images/test.webp");
 
 			static auto add_to_f = [&f, &it]<typename T>(const T & o) {
 				std::size_t off = f.size();
@@ -413,6 +428,7 @@ struct fgm_t {
 
 			add_to_f(p);
 			add_to_f(s);
+			add_to_f(text_hash);
 		}
 
 		fan::io::file::write(

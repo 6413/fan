@@ -199,13 +199,13 @@ struct button_t {
   }
 
   template <typename T>
-  T get_text(fan::opengl::cid_t* cid, T loco_t::letter_t::instance_t::* member) {
+  T get_text_renderer(fan::opengl::cid_t* cid, T loco_t::letter_t::instance_t::* member) {
     loco_t* loco = get_loco();
     auto block = sb_get_block(cid);
     return loco->text.get(block->p[cid->instance_id].text_id, member);
   }
   template <typename T, typename T2>
-  void set_text(fan::opengl::cid_t* cid, T loco_t::letter_t::instance_t::*member, const T2& value) {
+  void set_text_renderer(fan::opengl::cid_t* cid, T loco_t::letter_t::instance_t::*member, const T2& value) {
     loco_t* loco = get_loco();
     auto block = sb_get_block(cid);
     loco->text.set(block->p[cid->instance_id].text_id, member, value);
@@ -214,7 +214,7 @@ struct button_t {
   void set_position(fan::opengl::cid_t* cid, const fan::vec3& position) {
     loco_t* loco = get_loco();
     auto block = sb_get_block(cid);
-    set_text(cid, &loco_t::letter_t::instance_t::position, position + fan::vec3(0, 0, 0.5));
+    loco->text.set_position(&block->p[cid->instance_id].text_id, position + fan::vec3(0, 0, 0.5));
     set_button(cid, &instance_t::position, position);
     loco->vfi.set_rectangle(
       block->p[cid->instance_id].vfi_id,
@@ -275,6 +275,17 @@ struct button_t {
     loco_t* loco = get_loco();
     auto block = sb_get_block(cid);
     block->p[cid->instance_id].selected = flag;
+  }
+
+  fan::string get_text(fan::opengl::cid_t* cid) {
+    loco_t* loco = get_loco();
+    auto block = sb_get_block(cid);
+    return loco->text.get_properties(block->p[cid->instance_id].text_id).text;
+  }
+  void set_text(fan::opengl::cid_t* cid, const fan::string& text) {
+    loco_t* loco = get_loco();
+    auto block = sb_get_block(cid);
+    loco->text.set_text(&block->p[cid->instance_id].text_id, text);
   }
 };
 

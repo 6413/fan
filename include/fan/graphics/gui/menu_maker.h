@@ -22,6 +22,8 @@ struct sb_menu_maker_type_name {
   instance_t instances;
 
   struct properties_t {
+    fan::vec3 offset = 0;
+
     fan::string text_value;
     fan::string text;
 
@@ -32,6 +34,11 @@ struct sb_menu_maker_type_name {
     loco_t::keyboard_cb_t keyboard_cb = [](const loco_t::keyboard_data_t&) -> int { return 0; };
   };
 
+  struct select_data_t {
+    loco_t::vfi_t* vfi;
+    bool selected;
+  };
+
   struct open_properties_t {
     fan::vec3 position;
     f32_t gui_size;
@@ -40,6 +47,8 @@ struct sb_menu_maker_type_name {
 
     fan::opengl::viewport_list_NodeReference_t viewport;
     fan::opengl::matrices_list_NodeReference_t matrices;
+
+    fan::function_t<int(const select_data_t&)> select_cb = [](const select_data_t&) -> int { return 0; };
   };
 
   fan::string get_selected_text(loco_t* loco) {
@@ -61,35 +70,45 @@ struct sb_menu_maker_type_name {
   }
 
   void open(loco_t* loco, const open_properties_t& op) {
-    instances.open();
+    instances.Open();
     global = op;
     global.offset = 0;
     selected = nullptr;
-    loco_t::vfi_t::properties_t vfip;
-    vfip.shape_type = loco_t::vfi_t::shape_t::always;
-    vfip.shape.always.z = op.position.z;
+    //loco_t::vfi_t::properties_t vfip;
+    //vfip.shape_type = loco_t::vfi_t::shape_t::always;
+    //vfip.shape.always.z = op.position.z;
 
-    vfip.mouse_move_cb = [](const loco_t::vfi_t::mouse_move_data_t& ii_d) -> int { return 0; };
-    vfip.mouse_button_cb = [&, loco](const loco_t::vfi_t::mouse_button_data_t& mb) -> int {
+    //vfip.mouse_move_cb = [](const loco_t::vfi_t::mouse_move_data_t& ii_d) -> int { return 0; };
+    //vfip.mouse_button_cb = [this, cb = op.select_cb](const loco_t::vfi_t::mouse_button_data_t& mb) -> int {
 
-      if (mb.button != fan::mouse_left) {
-        return 0;
-      }
+    //  if (selected == nullptr) {
+    //    return 0;
+    //  }
 
-      if (mb.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside) {
-        if (selected) {
-          //loco->button.set_theme(selected, loco->button.get_theme(selected), loco_t::button_t::inactive);
-        }
-        //selected = nullptr;
-      }
+    //  if (mb.button != fan::mouse_left) {
+    //    return 0;
+    //  }
 
-      return 0;
-    };
-    vfip.keyboard_cb = [](const loco_t::vfi_t::keyboard_data_t& kd) -> int {
-      return 0;
-    };
+    //  if (mb.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside) {
+    //    if (selected && mb.button_state != fan::key_state::press) {
+    //      select_data_t sd;
+    //      sd.vfi = mb.vfi;
+    //      sd.selected = false;
+    //      if (cb(sd)) {
+    //        return 1;
+    //      }
+    //      selected = nullptr;
+    //      //loco->button.set_theme(selected, loco->button.get_theme(selected), loco_t::button_t::inactive);
+    //    }
+    //  }
 
-    empty_click_id = loco->vfi.push_shape(vfip);
+    //  return 0;
+    //};
+    //vfip.keyboard_cb = [](const loco_t::vfi_t::keyboard_data_t& kd) -> int {
+    //  return 0;
+    //};
+
+    //empty_click_id = loco->vfi.push_shape(vfip);
   }
   void soft_close(loco_t* loco) {
 
@@ -110,10 +129,12 @@ struct sb_menu_maker_type_name {
       loco->button.erase(&instances[it].cid);
       it = instances.EndSafeNext();
     }
-    loco->vfi.erase(empty_click_id);
-    instances.close();
+    instances.Close();
   }
-  auto push_initialized(loco_t* loco, instance_NodeReference_t id) {
+  fan::vec2 get_button_measurements() const {
+    return fan::vec2(global.gui_size * 5, global.gui_size);
+  }
+  auto push_initialized(loco_t* loco, instance_NodeReference_t id, auto nr) {
     loco_t::button_t::properties_t bp;
     bp.position = instances[id].position;
     bp.theme = &instances[id].theme;
@@ -133,24 +154,37 @@ struct sb_menu_maker_type_name {
       }
       return 0;
     };
-    bp.mouse_button_cb = [loco, this, id](const loco_t::mouse_button_data_t& d) -> int {
+    bp.mouse_button_cb = [loco, this, id, nr](const loco_t::mouse_button_data_t& d) -> int {
 
       if (d.button != fan::mouse_left) {
         return 0;
       }
 
+      if (selected == &instances[id].cid && d.button_state == fan::key_state::release) {
+        goto g_mb_skip;
+      }
+
       if (d.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside && d.button_state == fan::key_state::release) {
-        if (selected) {
+        if (selected != nullptr) {
           loco->button.set_theme(selected, loco->button.get_theme(selected), loco_t::button_t::inactive);
         }
         selected = &instances[id].cid;
         selected_id = id;
       }
+    g_mb_skip:
       // if this deleted
       if (instances[id].mouse_button_cb(d)) {
         return 1;
       }
 
+      if (d.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside && d.button_state == fan::key_state::release) {
+        select_data_t sd;
+        sd.vfi = d.vfi;
+        sd.selected = true;
+        if (loco->menu_maker.instances[nr].select_cb(sd)) {
+          return 1;
+        }
+      }
       if (selected == d.cid && d.button_state == fan::key_state::release) {
         loco->button.set_theme(d.cid, loco->button.get_theme(d.cid), loco_t::button_t::press);
       }
@@ -171,10 +205,10 @@ struct sb_menu_maker_type_name {
     return id;
   }
 
-  auto push_back(loco_t* loco, const properties_t& p) {
-    auto nr = instances.NewNodeLast();
-    auto& instance = instances[nr];
-    instance.position = global.position;
+  auto push_back(loco_t* loco, const properties_t& p, auto nr) {
+    auto id = instances.NewNodeLast();
+    auto& instance = instances[id];
+    instance.position = global.position + p.offset;
     instance.position.y += global.offset.y;
     instance.position.z += 0.01;
     instance.text = p.text;
@@ -188,7 +222,7 @@ struct sb_menu_maker_type_name {
       instance.theme = *p.theme;
     }
 
-    auto ret = push_initialized(loco, nr);
+    auto ret = push_initialized(loco, id, nr);
     global.offset.y += global.gui_size * 2;
     return ret;
   }
@@ -219,17 +253,6 @@ struct sb_menu_maker_type_name {
 
   fan::opengl::cid_t* selected;
   instance_NodeReference_t selected_id;
-  loco_t::vfi_t::shape_id_t empty_click_id;
-
-  void set_empty_click_mouse_move_cb(loco_t* loco, loco_t::vfi_t::mouse_move_cb_t mouse_move_cb) {
-    loco->vfi.set_common_data(empty_click_id, &loco_t::vfi_t::common_shape_data_t::mouse_move_cb, mouse_move_cb);
-  }
-  void set_empty_click_mouse_button_cb(loco_t* loco, loco_t::vfi_t::mouse_button_cb_t mouse_button_cb) {
-    loco->vfi.set_common_data(empty_click_id, &loco_t::vfi_t::common_shape_data_t::mouse_button_cb, mouse_button_cb);
-  }
-  void set_empty_click_keyboard_cb(loco_t* loco, loco_t::vfi_t::keyboard_cb_t keyboard_cb) {
-    loco->vfi.set_common_data(empty_click_id, &loco_t::vfi_t::common_shape_data_t::keyboard_cb, keyboard_cb);
-  }
 };
 
 #undef use_key_lambda

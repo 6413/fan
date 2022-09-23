@@ -15,11 +15,7 @@
 
 #ifndef BLL_set_Language
   #if BLL_set_BaseLibrary == 0
-    #ifdef WL_CPP
-      #define BLL_set_Language 1
-    #else
-      #define BLL_set_Language 0
-    #endif
+    #define BLL_set_Language 0
   #elif BLL_set_BaseLibrary == 1
     #define BLL_set_Language 1
   #else
@@ -227,7 +223,10 @@
 #ifdef BLL_set_StoreFormat1_ElementPerBlock
   #undef BLL_set_StoreFormat1_ElementPerBlock
 #endif
-#ifndef BLL_set_CPP_Node_ConstructDestruct
+#ifdef BLL_set_CPP_ConstructDestruct
+  #undef BLL_set_CPP_ConstructDestruct
+#endif
+#ifdef BLL_set_CPP_Node_ConstructDestruct
   #undef BLL_set_CPP_Node_ConstructDestruct
 #endif
 #ifdef BLL_set_node_data

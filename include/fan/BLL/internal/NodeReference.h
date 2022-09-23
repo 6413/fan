@@ -2,8 +2,8 @@
   namespace BLL_set_namespace {
 #endif
 
-struct _P(t);
 #if BLL_set_Language == 1
+  struct _P(t);
   #if BLL_set_AreWeInsideStruct == 0
     struct _P(NodeReference_t);
     static _P(NodeReference_t) _P(_NodeReference_Next)(_P(NodeReference_t) *, _P(t) *);

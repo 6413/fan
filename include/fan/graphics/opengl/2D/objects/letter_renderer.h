@@ -60,14 +60,6 @@ struct letter_t {
     sb_draw();
   }
 
-  properties_t get_properties(fan::opengl::cid_t* cid) {
-    loco_t* loco = get_loco();
-    properties_t p;
-    p = *sb_get_block(cid)->uniform_buffer.get_instance(loco->get_context(), cid->instance_id);
-    *(instance_properties_t*)&p = sb_get_block(cid)->p[cid->instance_id];
-    return p;
-  }
-
   #define sb_shader_vertex_path _FAN_PATH(graphics/glsl/opengl/2D/objects/letter.vs)
   #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/objects/letter.fs)
   #include _FAN_PATH(graphics/opengl/2D/objects/shape_builder.h)

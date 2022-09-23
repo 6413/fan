@@ -484,10 +484,10 @@ namespace fan {
 }
 
 inline void fan::opengl::context_t::open() {
-  theme_list.open();
-  image_list.open();
-  viewport_list.open();
-  matrices_list.open();
+  theme_list.Open();
+  image_list.Open();
+  viewport_list.Open();
+  matrices_list.Open();
 
   opengl.open();
 
@@ -495,10 +495,10 @@ inline void fan::opengl::context_t::open() {
   current_program = fan::uninitialized;
 }
 inline void fan::opengl::context_t::close() {
-  theme_list.close();
-  image_list.close();
-  viewport_list.close();
-  matrices_list.close();
+  theme_list.Close();
+  image_list.Close();
+  viewport_list.Close();
+  matrices_list.Close();
 }
 
 inline void fan::opengl::context_t::bind_to_window(fan::window_t* window, const properties_t& p) {
