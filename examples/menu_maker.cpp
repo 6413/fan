@@ -50,7 +50,7 @@ int main() {
   pile_t* pile = new pile_t;
   pile->open();
 
-  loco_t::menu_maker_t::id_t ids[2];
+  loco_t::menu_maker_t::nr_t ids[2];
 
   loco_t::menu_maker_t::open_properties_t op;
   op.matrices = &pile->matrices;
@@ -66,23 +66,23 @@ int main() {
   ids[1] = pile->loco.menu_maker.push_menu(op);
   loco_t::menu_maker_t::properties_t p;
   p.text = "Create New Stage";
-  p.mouse_button_cb = [&](const loco_t::mouse_button_data_t& mb) {
+  p.mouse_button_cb = [&](const loco_t::mouse_button_data_t& mb) -> int {
     if (mb.button != fan::mouse_left) {
-      return;
+      return 0;
     }
     if (mb.button_state != fan::key_state::release) {
-      return;
+      return 0;
     }
     pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco);
     loco_t::menu_maker_t::properties_t p;
     static int x = 0;
-    p.text = std::string("Stage") + fan::to_string(x++);
-    p.mouse_button_cb = [](const loco_t::mouse_button_data_t& mb) {
+    p.text = fan::string("Stage") + fan::to_string(x++);
+    p.mouse_button_cb = [](const loco_t::mouse_button_data_t& mb) -> int {
       if (mb.button != fan::mouse_left) {
-        return;
+        return 0;
       }
       if (mb.button_state != fan::key_state::release) {
-        return;
+        return 0;
       }
       pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco);
       fan::opengl::cid_t* cid = mb.cid;
@@ -92,8 +92,11 @@ int main() {
       else {
         pile->loco.button.set_theme(cid, pile->loco.button.get_theme(cid), loco_t::button_t::inactive);
       }
+      return 0;
     };
     pile->loco.menu_maker.push_back(ids[1], p);
+
+    return 0;
   };
   
   pile->loco.menu_maker.push_back(ids[0], p);

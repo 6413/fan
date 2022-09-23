@@ -67,6 +67,7 @@ int main() {
     pile->ids[i] = pile->loco.text.push_back(p);
   }
 
+  pile->loco.text.set_text(&pile->ids[0], "test");
   pile->loco.set_vsync(false);
 
   pile->loco.loop([&] {

@@ -407,7 +407,7 @@ namespace fan {
 	template<typename Callable>
 	using return_type_of_t = typename decltype(std::function{ std::declval<Callable>() })::result_type;
 
-	constexpr uint64_t get_hash(const fan::string& str) {
+	inline uint64_t get_hash(const fan::string& str) {
 		uint64_t result = 0xcbf29ce484222325; // FNV offset basis
 
 		uint32_t i = 0;

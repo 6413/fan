@@ -9,6 +9,15 @@
 namespace fan {
 	struct string {
 
+		constexpr std::size_t stringlen(const char* s) {
+			std::size_t l = 0;
+			while (*s != 0) {
+				++l;
+				++s;
+			}
+			return l;
+		}
+
 		using value_type = std::vector<char>;
 
 		string() {
@@ -18,7 +27,7 @@ namespace fan {
 			str.push_back(c);
 			str.push_back(0);
 		}
-		string(const char* s) : str(s, s + strlen(s)) {
+		string(const char* s) : str(s, s + stringlen(s)) {
 			str.push_back(0);
 		}
 		string(value_type::const_iterator beg, value_type::const_iterator end) : str(beg, end) {

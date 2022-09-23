@@ -204,10 +204,10 @@ _BLL_POFTWBIT(_GetNodeByReference)
   #endif
 }
 
-/* get node reference th of node */
+/* get node reference th of node reference */
 _BLL_SOFTWBIT
 _P(NodeReference_t) *
-_BLL_POFTWBIT(_GetNRTHOfNode)
+_BLL_POFTWBIT(_GetNRTHOfNR)
 (
   _BLL_DBLLTFFC
   _P(NodeReference_t) NodeReference,
@@ -238,7 +238,7 @@ _BLL_POFTWBIT(_GetNRTHOfNode)
     _P(NodeReference_t) NodeReference
   ){
     _P(Node_t) *Node = _BLL_POFTWBIT(_GetNodeByReference)(_BLL_PBLLTFFC NodeReference);
-    return _P(IsNodeUnlinked)(_BLL_PBLLTFFC Node);
+    return _BLL_POFTWBIT(IsNodeUnlinked)(_BLL_PBLLTFFC Node);
   }
 #endif
 
@@ -267,7 +267,7 @@ _BLL_POFTWBIT(GetNodeByReference)
           break;
         }
       #endif
-      if(_P(IsNodeUnlinked)(_BLL_PBLLTFFC Node)){
+      if(_BLL_POFTWBIT(IsNodeUnlinked)(_BLL_PBLLTFFC Node)){
         PR_abort();
       }
     }while(0);
@@ -342,7 +342,7 @@ _BLL_POFTWBIT(_NewNode_empty_NoConstruct)
   _BLL_DBLLTFF
 ){
   _P(NodeReference_t) NodeReference = _BLL_GetList->e.c;
-  _BLL_GetList->e.c = *_BLL_POFTWBIT(_GetNRTHOfNode)(_BLL_PBLLTFFC NodeReference, 0);
+  _BLL_GetList->e.c = *_BLL_POFTWBIT(_GetNRTHOfNR)(_BLL_PBLLTFFC NodeReference, 0);
   _BLL_GetList->e.p--;
   return NodeReference;
 }
@@ -422,7 +422,7 @@ _BLL_POFTWBIT(NewNode)
   (
     _BLL_DBLLTFF
   ){
-    _P(NodeReference_t) NodeReference = _BLL_POFTWBIT(NewNode_empty)(_BLL_PBLLTFF);
+    _P(NodeReference_t) NodeReference = _BLL_POFTWBIT(_NewNode_empty_NoConstruct)(_BLL_PBLLTFF);
     _P(NodeReference_t) srcNodeReference = _BLL_GetList->src;
     _BLL_POFTWBIT(_GetNodeByReference)(_BLL_PBLLTFFC NodeReference)->NextNodeReference = srcNodeReference;
     _BLL_POFTWBIT(_GetNodeByReference)(_BLL_PBLLTFFC srcNodeReference)->PrevNodeReference = NodeReference;
@@ -436,7 +436,7 @@ _BLL_POFTWBIT(NewNode)
   (
     _BLL_DBLLTFF
   ){
-    _P(NodeReference_t) NodeReference = _BLL_POFTWBIT(NewNode_alloc)(_BLL_PBLLTFF);
+    _P(NodeReference_t) NodeReference = _BLL_POFTWBIT(_NewNode_alloc_NoConstruct)(_BLL_PBLLTFF);
     _P(NodeReference_t) srcNodeReference = _BLL_GetList->src;
     _BLL_POFTWBIT(_GetNodeByReference)(_BLL_PBLLTFFC NodeReference)->NextNodeReference = srcNodeReference;
     _BLL_POFTWBIT(_GetNodeByReference)(_BLL_PBLLTFFC srcNodeReference)->PrevNodeReference = NodeReference;
@@ -463,7 +463,7 @@ _BLL_POFTWBIT(NewNode)
   (
     _BLL_DBLLTFF
   ){
-    _P(NodeReference_t) NodeReference = _BLL_POFTWBIT(NewNode_empty)(_BLL_PBLLTFF);
+    _P(NodeReference_t) NodeReference = _BLL_POFTWBIT(_NewNode_empty_NoConstruct)(_BLL_PBLLTFF);
     _P(NodeReference_t) dstNodeReference = _BLL_GetList->dst;
     _BLL_POFTWBIT(_GetNodeByReference)(_BLL_PBLLTFFC NodeReference)->PrevNodeReference = dstNodeReference;
     _BLL_POFTWBIT(_GetNodeByReference)(_BLL_PBLLTFFC dstNodeReference)->NextNodeReference = NodeReference;
@@ -480,7 +480,7 @@ _BLL_POFTWBIT(NewNode)
   (
     _BLL_DBLLTFF
   ){
-    _P(NodeReference_t) NodeReference = _BLL_POFTWBIT(NewNode_alloc)(_BLL_PBLLTFF);
+    _P(NodeReference_t) NodeReference = _BLL_POFTWBIT(_NewNode_alloc_NoConstruct)(_BLL_PBLLTFF);
     _P(NodeReference_t) dstNodeReference = _BLL_GetList->dst;
     _BLL_POFTWBIT(_GetNodeByReference)(_BLL_PBLLTFFC NodeReference)->PrevNodeReference = dstNodeReference;
     _BLL_POFTWBIT(_GetNodeByReference)(_BLL_PBLLTFFC dstNodeReference)->NextNodeReference = NodeReference;
@@ -549,9 +549,12 @@ _BLL_POFTWBIT(_AfterInitNodes)
   #endif
 }
 
+#ifdef BLL_set_CPP_ConstructDestruct
+  private:
+#endif
 _BLL_SOFTWBIT
 void
-_BLL_POFTWBIT(open)
+_BLL_POFTWBIT(Open)
 (
   _BLL_DBLLTFF
   #ifndef BLL_set_node_data
@@ -559,7 +562,6 @@ _BLL_POFTWBIT(open)
   #endif
 ){
   BLL_set_NodeSizeType NodeSize = sizeof(_P(Node_t));
-  NodeSize;
   #ifndef BLL_set_node_data
     NodeSize += NodeDataSize;
     #if BLL_set_Link == 0
@@ -590,7 +592,7 @@ _BLL_POFTWBIT(open)
 }
 _BLL_SOFTWBIT
 void
-_BLL_POFTWBIT(close)
+_BLL_POFTWBIT(Close)
 (
   _BLL_DBLLTFF
 ){
@@ -601,6 +603,10 @@ _BLL_POFTWBIT(close)
     _P(_BlockList_Close)(&_BLL_GetList->BlockList);
   #endif
 }
+#ifdef BLL_set_CPP_ConstructDestruct
+  public:
+#endif
+
 _BLL_SOFTWBIT
 void
 _BLL_POFTWBIT(Clear) /* TODO those 2 numbers in this function needs to be flexible */
@@ -680,7 +686,7 @@ _BLL_POFTWBIT(Clear) /* TODO those 2 numbers in this function needs to be flexib
     #endif
     _P(Node_t) *Node = _BLL_POFTWBIT(GetNodeByReference)(_BLL_PBLLTFFC NodeReference);
     #if BLL_set_debug_InvalidAction >= 1
-      if(_P(IsNodeUnlinked)(_BLL_PBLLTFFC Node)){
+      if(_BLL_POFTWBIT(IsNodeUnlinked)(_BLL_PBLLTFFC Node)){
         PR_abort();
       }
     #endif
@@ -744,11 +750,11 @@ _BLL_POFTWBIT(Recycle)
   _P(NodeReference_t) NodeReference
 ){
   _BLL_POFTWBIT(_Node_Destruct)(_BLL_PBLLTFFC NodeReference);
-  _P(NodeReference_t) *NextRecycled = _BLL_POFTWBIT(_GetNRTHOfNode)(_BLL_PBLLTFFC NodeReference, 0);
+  _P(NodeReference_t) *NextRecycled = _BLL_POFTWBIT(_GetNRTHOfNR)(_BLL_PBLLTFFC NodeReference, 0);
 
   *NextRecycled = _BLL_GetList->e.c;
   #if BLL_set_IsNodeUnlinked == 1
-    *_P(GetNRTHOfNode)(_BLL_PBLLTFFC NodeReference, 1).NRI = (BLL_set_type_node)-1;
+    _BLL_POFTWBIT(_GetNRTHOfNR)(_BLL_PBLLTFFC NodeReference, 1)->NRI = (BLL_set_type_node)-1;
   #endif
   _BLL_GetList->e.c = NodeReference;
   _BLL_GetList->e.p++;
@@ -847,10 +853,29 @@ _BLL_POFTWBIT(GetNodeReferenceData)
   #endif
 }
 
+
 #if BLL_set_Language == 1
   _P(NodeData_t) &operator[](_P(NodeReference_t) NR){
     return _BLL_POFTWBIT(_GetNodeByReference)(NR)->data;
   }
+
+  #ifdef BLL_set_CPP_ConstructDestruct
+    _P(t)(
+      #ifndef BLL_set_node_data
+        BLL_set_NodeSizeType NodeDataSize
+      #endif
+    ){
+      Open(
+      #ifndef BLL_set_node_data
+        NodeDataSize
+      #endif
+      );
+    }
+    ~_P(t)(
+    ){
+      Close();
+    }
+  #endif
 
   BLL_StructEnd(_P(t))
 

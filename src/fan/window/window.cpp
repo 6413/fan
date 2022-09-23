@@ -648,7 +648,7 @@ uintptr_t fan::window_t::get_fps(bool window_name, bool print)
           fan::string(" frame time: ") +
           fan::to_string(1.0 / m_fps * 1000) +
           fan::string(" ms")
-      ).c_str();
+      );
     }
     if (window_name) {
       this->set_name(fps_info.c_str());
@@ -784,16 +784,16 @@ void fan::window_t::destroy_window()
 
   #endif
 
-  m_buttons_callback.close();
-  m_keys_callback.close();
-	m_key_callback.close();
-	m_key_combo_callback.close();
+  m_buttons_callback.Close();
+  m_keys_callback.Close();
+	m_key_callback.Close();
+	m_key_combo_callback.Close();
 
-	m_text_callback.close();
-	m_move_callback.close();
-	m_resize_callback.close();
-	m_close_callback.close();
-	m_mouse_position_callback.close();
+	m_text_callback.Close();
+  m_move_callback.Close();
+  m_resize_callback.Close();
+  m_close_callback.Close();
+  m_mouse_position_callback.Close();
 }
 
 uint16_t fan::window_t::get_current_key() const
@@ -1174,16 +1174,15 @@ static bool isExtensionSupported(const char* extList, const char* extension) {
 
 void fan::window_t::initialize_window(const fan::string& name, const fan::vec2i& window_size, uint64_t flags)
 {
-  m_buttons_callback.open();
-  m_keys_callback.open();
-	m_key_callback.open();
-	m_key_combo_callback.open();
-
-	m_text_callback.open();
-	m_move_callback.open();
-	m_resize_callback.open();
-	m_close_callback.open();
-	m_mouse_position_callback.open();
+  m_buttons_callback.Open();
+  m_keys_callback.Open();
+	m_key_callback.Open();
+	m_key_combo_callback.Open();
+	m_text_callback.Open();
+	m_move_callback.Open();
+	m_resize_callback.Open();
+	m_close_callback.Open();
+	m_mouse_position_callback.Open();
 
   window_id_storage.open();
 

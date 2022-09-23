@@ -15,8 +15,8 @@ sb_get_loco
 void sb_open() {
   loco_t* loco = get_loco();
   root = loco_bdbt_NewNode(&loco->bdbt);
-  blocks.open();
-  bm_list.open();
+  blocks.Open();
+  bm_list.Open();
   
   m_shader.open(loco->get_context());
   m_shader.set_vertex(
@@ -32,8 +32,8 @@ void sb_open() {
 void sb_close() {
   loco_t* loco = get_loco();
 
-  blocks.close();
-  bm_list.close();
+  blocks.Close();
+  bm_list.Close();
 
   assert(0);
   //loco_bdbt_close(&loco->bdbt);

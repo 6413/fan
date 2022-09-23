@@ -11,10 +11,10 @@ struct vfi_t {
   void open() {
     focus.mouse.invalidate();
     focus.keyboard.invalidate();
-    shape_list.open();
+    shape_list.Open();
   }
   void close() {
-    shape_list.close();
+    shape_list.Close();
   }
 
   typedef uint16_t shape_type_t;

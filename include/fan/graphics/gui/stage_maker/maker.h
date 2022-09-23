@@ -466,7 +466,7 @@ struct stage {
 	}
 
 	struct instance_t {
-		loco_t::menu_maker_t::id_t menu_id;
+		loco_t::menu_maker_t::nr_t menu_id;
 	};
 	std::vector<instance_t> instances;
 

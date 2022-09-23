@@ -443,24 +443,27 @@ struct sprite_t {
 	void push_back(properties_t& p) {
 		p.position.z = 1;
 		pile_t* pile = get_pile();
-		instance.resize(instance.size() + 1);
-		uint32_t i = instance.size() - 1;
-		instance[i] = new instance_t;
-		instance[i]->shape = shapes::sprite;
-		instance[i]->z = 0;
+		instances.resize(instances.size() + 1);
+		uint32_t i = instances.size() - 1;
+		instances[i] = new instance_t;
+		instances[i]->shape = shapes::sprite;
+		instances[i]->z = 0;
 		loco_t::vfi_t::properties_t vfip;
-		vfip.mouse_button_cb = [instance = instance[i]](const loco_t::mouse_button_data_t& ii_d) -> int {
-			if (ii_d.button == fan::mouse_left && ii_d.button_state == fan::key_state::press) {
-				ii_d.flag->ignore_move_focus_check = true;
-				ii_d.vfi->set_focus_keyboard(ii_d.vfi->get_focus_mouse());
-			}
-			if (ii_d.button == fan::mouse_left && ii_d.button_state == fan::key_state::release) {
-				ii_d.flag->ignore_move_focus_check = false;
-			}
-			pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi_var_name), pile_t, loco_var_name);
+		vfip.mouse_button_cb = [i](const loco_t::mouse_button_data_t& ii_d) -> int {
 			if (ii_d.button != fan::mouse_left) {
 				return 0;
 			}
+			if (ii_d.button_state == fan::key_state::press) {
+				ii_d.flag->ignore_move_focus_check = true;
+				ii_d.vfi->set_focus_keyboard(ii_d.vfi->get_focus_mouse());
+			}
+			if (ii_d.button_state == fan::key_state::release) {
+				ii_d.flag->ignore_move_focus_check = false;
+			}
+			pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi_var_name), pile_t, loco_var_name);
+
+			auto& instance = pile->stage_maker.fgm.sprite.instances[i];
+
 			if (ii_d.button_state == fan::key_state::release) {
 				pile->stage_maker.fgm.sprite.release();
 				// TODO FIX, erases in near bottom
@@ -489,7 +492,7 @@ struct sprite_t {
 			}
 
 			pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi_var_name), pile_t, loco_var_name);
-			instance_t* instance = pile->stage_maker.fgm.sprite.instance[i];
+			instance_t* instance = pile->stage_maker.fgm.sprite.instances[i];
 			if (instance->holding_special_key) {
 				fan::vec3 ps = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::instance_t::position);
 				fan::vec3 rs = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::instance_t::size);
@@ -555,7 +558,7 @@ struct sprite_t {
 				case fan::key_delete: {
 				switch (kd.key_state) {
 					case fan::key_state::press: {
-						pile->stage_maker.fgm.sprite.erase(&pile->stage_maker.fgm.sprite.instance[i]->cid);
+						pile->stage_maker.fgm.sprite.erase(&pile->stage_maker.fgm.sprite.instances[i]->cid);
 						pile->stage_maker.fgm.invalidate_focus();
 						break;
 					}
@@ -563,7 +566,7 @@ struct sprite_t {
 				break;
 			}
 			case fan::key_c: {
-				pile->stage_maker.fgm.sprite.instance[i]->holding_special_key = kd.key_state == fan::key_state::release ? 0 : 1;
+				pile->stage_maker.fgm.sprite.instances[i]->holding_special_key = kd.key_state == fan::key_state::release ? 0 : 1;
 				break;
 			}
 			}
@@ -574,8 +577,8 @@ struct sprite_t {
 		vfip.shape.rectangle.size = p.size;
 		vfip.shape.rectangle.matrices = p.get_matrices();
 		vfip.shape.rectangle.viewport = p.get_viewport();
-		instance[i]->vfi_id = pile->loco.push_back_input_hitbox(vfip);
-		pile->loco.sprite.push_back(&instance[i]->cid, p);
+		instances[i]->vfi_id = pile->loco.push_back_input_hitbox(vfip);
+		pile->loco.sprite.push_back(&instances[i]->cid, p);
 		//auto builder_cid = &instance[i]->cid;
 		//auto block = pile->loco.sprite.sb_get_block(builder_cid);
 		//pile->loco.vfi.set_focus_mouse(block->p[builder_cid->instance_id].vfi_id);
@@ -583,9 +586,9 @@ struct sprite_t {
 	void erase(fan::opengl::cid_t* cid) {
 		loco_t& loco = *get_loco();
 		loco.button.erase(cid);
-		for (uint32_t i = 0; i < instance.size(); i++) {
-			if (&instance[i]->cid == cid) {
-				instance.erase(instance.begin() + i);
+		for (uint32_t i = 0; i < instances.size(); i++) {
+			if (&instances[i]->cid == cid) {
+				instances.erase(instances.begin() + i);
 				break;
 			}
 		}
@@ -593,22 +596,23 @@ struct sprite_t {
 	}
 	void clear() {
 		loco_t& loco = *get_loco();
-		for (auto& it : instance) {
-			loco.button.erase(&it->cid);
+		for (auto& it : instances) {
+			loco.sprite.erase(&it->cid);
+			loco.vfi.erase(it->vfi_id);
 			delete it;
 		}
-		instance.clear();
+		instances.clear();
 	}
 
 	void set_position(uint32_t i, const fan::vec3& position) {
 		auto pile = get_pile();
-		pile->loco.sprite.set(&instance[i]->cid, &loco_t::sprite_t::instance_t::position, position);
-		pile->loco.vfi.set_rectangle(instance[i]->vfi_id, &loco_t::vfi_t::shape_data_rectangle_t::position, position);
+		pile->loco.sprite.set(&instances[i]->cid, &loco_t::sprite_t::instance_t::position, position);
+		pile->loco.vfi.set_rectangle(instances[i]->vfi_id, &loco_t::vfi_t::shape_data_rectangle_t::position, position);
 	}
 	void set_size(uint32_t i, const fan::vec2& size) {
 		auto pile = get_pile();
-		pile->loco.sprite.set(&instance[i]->cid, &loco_t::sprite_t::instance_t::size, size);
-		pile->loco.vfi.set_rectangle(instance[i]->vfi_id, &loco_t::vfi_t::shape_data_rectangle_t::size, size);
+		pile->loco.sprite.set(&instances[i]->cid, &loco_t::sprite_t::instance_t::size, size);
+		pile->loco.vfi.set_rectangle(instances[i]->vfi_id, &loco_t::vfi_t::shape_data_rectangle_t::size, size);
 	}
 
 	struct instance_t {
@@ -619,7 +623,7 @@ struct sprite_t {
 		f32_t z;
 	};
 
-	std::vector<instance_t*> instance;
+	std::vector<instance_t*> instances;
 }sprite;
 
 struct menu_t {
@@ -648,12 +652,18 @@ struct menu_t {
 	}
 	loco_t::menu_maker_base_t::instance_NodeReference_t push_back(loco_t::menu_maker_t::instance_NodeReference_t id, const properties_t& properties) {
 		auto pile = get_pile();
-		return pile->loco.menu_maker.instances[id].base.push_back(&pile->loco, properties);
+		return pile->loco.menu_maker.instances[id].base.push_back(&pile->loco, properties, id);
 	}
 
 	void erase(loco_t::menu_maker_t::instance_NodeReference_t id) {
 		auto pile = get_pile();
 		pile->loco.menu_maker.erase_menu(id);
+		for (uint32_t i = 0; i < instance.size(); i++) {
+			if (id == instance[i].nr) {
+				instance.erase(instance.begin() + i);
+				break;
+			}
+		}
 	}
 
 	void clear() {
