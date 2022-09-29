@@ -19,10 +19,14 @@
 
 namespace fan {
 
-	enum class key_state {
+	enum class keyboard_state {
 		release,
 		press,
 		repeat
+	};
+	enum class mouse_state {
+		release,
+		press
 	};
 
 	enum input {

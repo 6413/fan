@@ -96,14 +96,14 @@ struct button_t {
         loco_t* loco = OFFSETLESS(ii_d.vfi, loco_t, vfi_var_name);
         auto block = loco->button.sb_get_block(cid_);
         if (ii_d.flag->ignore_move_focus_check == false && !block->p[cid_->instance_id].selected) {
-          if (ii_d.button == fan::mouse_left && ii_d.button_state == fan::key_state::press) {
+          if (ii_d.button == fan::mouse_left && ii_d.button_state == fan::mouse_state::press) {
             loco->button.set_theme(cid_, loco->button.get_theme(cid_), press);
             ii_d.flag->ignore_move_focus_check = true;
             loco->vfi.set_focus_keyboard(loco->vfi.get_focus_mouse());
           }
         }
         else if (!block->p[cid_->instance_id].selected) {
-          if (ii_d.button == fan::mouse_left && ii_d.button_state == fan::key_state::release) {
+          if (ii_d.button == fan::mouse_left && ii_d.button_state == fan::mouse_state::release) {
             if (ii_d.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside) {
               loco->button.set_theme(cid_, loco->button.get_theme(cid_), hover);
             }

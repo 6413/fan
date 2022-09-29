@@ -73,11 +73,11 @@ namespace fan {
         SetCursorPos(position.x, position.y);
       }
 
-      static void send_mouse_event(uint16_t key, fan::key_state state) {
+      static void send_mouse_event(uint16_t key, fan::mouse_state state) {
 
-        constexpr auto get_key = [](uint16_t key, fan::key_state state) {
+        constexpr auto get_key = [](uint16_t key, fan::mouse_state state) {
 
-          auto press = state == fan::key_state::press;
+          auto press = state == fan::mouse_state::press;
 
           switch (key) {
             case fan::mouse_left: {
@@ -115,7 +115,7 @@ namespace fan {
         assert(SendInput(1, &input, sizeof(input)) == 1);
       }
 
-      inline static void send_keyboard_event(uint16_t key, fan::key_state state) {
+      inline static void send_keyboard_event(uint16_t key, fan::keyboard_state state) {
         INPUT input;
 
         input.type = INPUT_KEYBOARD;
@@ -125,7 +125,7 @@ namespace fan {
 
         input.ki.wVk = fan::window_input::convert_fan_to_keys(key);
 
-        input.ki.dwFlags = (state == fan::key_state::press ? 0 : KEYEVENTF_KEYUP);
+        input.ki.dwFlags = (state == fan::keyboard_state::press ? 0 : KEYEVENTF_KEYUP);
 
         assert(SendInput(1, &input, sizeof(input)) == 1);
       }
@@ -138,72 +138,72 @@ namespace fan {
           // dont peek im lazy xd
           switch (str[i]) {
             case '1': {
-              fan::sys::input::send_keyboard_event(fan::key_1, fan::key_state::press);
+              fan::sys::input::send_keyboard_event(fan::key_1, fan::keyboard_state::press);
               Sleep(delay_between);
-              fan::sys::input::send_keyboard_event(fan::key_1, fan::key_state::release);
+              fan::sys::input::send_keyboard_event(fan::key_1, fan::keyboard_state::release);
               c = true;
               break;
             }
             case '2': {
-              fan::sys::input::send_keyboard_event(fan::key_2, fan::key_state::press);
+              fan::sys::input::send_keyboard_event(fan::key_2, fan::keyboard_state::press);
               Sleep(delay_between);
-              fan::sys::input::send_keyboard_event(fan::key_2, fan::key_state::release);
+              fan::sys::input::send_keyboard_event(fan::key_2, fan::keyboard_state::release);
               c = true;
               break;
             }
             case '3': {
-              fan::sys::input::send_keyboard_event(fan::key_3, fan::key_state::press);
+              fan::sys::input::send_keyboard_event(fan::key_3, fan::keyboard_state::press);
               Sleep(delay_between);
-              fan::sys::input::send_keyboard_event(fan::key_3, fan::key_state::release);
+              fan::sys::input::send_keyboard_event(fan::key_3, fan::keyboard_state::release);
               c = true;
               break;
             }
             case '4': {
-              fan::sys::input::send_keyboard_event(fan::key_4, fan::key_state::press);
+              fan::sys::input::send_keyboard_event(fan::key_4, fan::keyboard_state::press);
               Sleep(delay_between);
-              fan::sys::input::send_keyboard_event(fan::key_4, fan::key_state::release);
+              fan::sys::input::send_keyboard_event(fan::key_4, fan::keyboard_state::release);
               c = true;
               break;
             }
             case '5': {
-              fan::sys::input::send_keyboard_event(fan::key_5, fan::key_state::press);
+              fan::sys::input::send_keyboard_event(fan::key_5, fan::keyboard_state::press);
               Sleep(delay_between);
-              fan::sys::input::send_keyboard_event(fan::key_5, fan::key_state::release);
+              fan::sys::input::send_keyboard_event(fan::key_5, fan::keyboard_state::release);
               c = true;
               break;
             }
             case '6': {
-              fan::sys::input::send_keyboard_event(fan::key_6, fan::key_state::press);
+              fan::sys::input::send_keyboard_event(fan::key_6, fan::keyboard_state::press);
               Sleep(delay_between);
-              fan::sys::input::send_keyboard_event(fan::key_6, fan::key_state::release);
+              fan::sys::input::send_keyboard_event(fan::key_6, fan::keyboard_state::release);
               c = true;
               break;
             }
             case '7': {
-              fan::sys::input::send_keyboard_event(fan::key_7, fan::key_state::press);
+              fan::sys::input::send_keyboard_event(fan::key_7, fan::keyboard_state::press);
               Sleep(delay_between);
-              fan::sys::input::send_keyboard_event(fan::key_7, fan::key_state::release);
+              fan::sys::input::send_keyboard_event(fan::key_7, fan::keyboard_state::release);
               c = true;
               break;
             }
             case '8': {
-              fan::sys::input::send_keyboard_event(fan::key_8, fan::key_state::press);
+              fan::sys::input::send_keyboard_event(fan::key_8, fan::keyboard_state::press);
               Sleep(delay_between);
-              fan::sys::input::send_keyboard_event(fan::key_8, fan::key_state::release);
+              fan::sys::input::send_keyboard_event(fan::key_8, fan::keyboard_state::release);
               c = true;
               break;
             }
             case '9': {
-              fan::sys::input::send_keyboard_event(fan::key_9, fan::key_state::press);
+              fan::sys::input::send_keyboard_event(fan::key_9, fan::keyboard_state::press);
               Sleep(delay_between);
-              fan::sys::input::send_keyboard_event(fan::key_9, fan::key_state::release);
+              fan::sys::input::send_keyboard_event(fan::key_9, fan::keyboard_state::release);
               c = true;
               break;
             }
             case '0': {
-              fan::sys::input::send_keyboard_event(fan::key_0, fan::key_state::press);
+              fan::sys::input::send_keyboard_event(fan::key_0, fan::keyboard_state::press);
               Sleep(delay_between);
-              fan::sys::input::send_keyboard_event(fan::key_0, fan::key_state::release);
+              fan::sys::input::send_keyboard_event(fan::key_0, fan::keyboard_state::release);
               c = true;
               break;
             }
@@ -221,13 +221,13 @@ namespace fan {
 
 
           if (str[i] >= 65 && str[i] <= 90) {
-            fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::key_state::press);
+            fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::keyboard_state::press);
           }
 
           auto send_press = [](uint32_t key, uint32_t delay) {
-            fan::sys::input::send_keyboard_event(key, fan::key_state::press);
+            fan::sys::input::send_keyboard_event(key, fan::keyboard_state::press);
             Sleep(delay);
-            fan::sys::input::send_keyboard_event(key, fan::key_state::release);
+            fan::sys::input::send_keyboard_event(key, fan::keyboard_state::release);
           };
 
           switch (str[i] + offset) {
@@ -248,15 +248,15 @@ namespace fan {
               break;
             }
             case '?': {
-              fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::key_state::press);
+              fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::keyboard_state::press);
               send_press(fan::key_plus, delay_between);
-              fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::key_state::release);
+              fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::keyboard_state::release);
               break;
             }
             case '!': {
-              fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::key_state::press);
+              fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::keyboard_state::press);
               send_press(fan::key_1, delay_between);
-              fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::key_state::release);
+              fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::keyboard_state::release);
               break;
             }
             case '-': {
@@ -264,21 +264,21 @@ namespace fan {
               break;
             }
             case '_': {
-              fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::key_state::press);
+              fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::keyboard_state::press);
               send_press(fan::key_minus, delay_between);
-              fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::key_state::release);
+              fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::keyboard_state::release);
               break;
             }
            /* case '*': {
-              fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::key_state::press);
+              fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::keyboard_state::press);
               send_press(fan::key_apostrophe, delay_between);
-              fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::key_state::release);
+              fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::keyboard_state::release);
               break;
             }*/
             /*case ';': {
-              fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::key_state::press);
+              fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::keyboard_state::press);
               send_press(fan::key_comma, delay_between);
-              fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::key_state::release);
+              fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::keyboard_state::release);
               break;
             }*/
             default: {
@@ -287,13 +287,13 @@ namespace fan {
           }
 
           if (str[i] >= 65 && str[i] <= 90) {
-            fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::key_state::release);
+            fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::keyboard_state::release);
           }
         }
       }
 
       // creates another thread, non blocking
-      static void listen(std::function<void(uint16_t key, fan::key_state key_state, bool action, std::any data)> input_callback_) {
+      static void listen(std::function<void(uint16_t key, fan::keyboard_state keyboard_state, bool action, std::any data)> input_callback_) {
 
         input_callback = input_callback_;
 
@@ -352,15 +352,15 @@ namespace fan {
 
         auto key = fan::window_input::convert_keys_to_fan(hooked_key.vkCode);
 
-        auto state = (fan::key_state)((nCode == HC_ACTION) && ((wParam == WM_SYSKEYDOWN) || (wParam == WM_KEYDOWN)));
+        auto state = (fan::keyboard_state)((nCode == HC_ACTION) && ((wParam == WM_SYSKEYDOWN) || (wParam == WM_KEYDOWN)));
 
-        if (state == fan::key_state::press && !reset_keys[key]) {
+        if (state == fan::keyboard_state::press && !reset_keys[key]) {
           key_down[key] = true;
         }
 
         input_callback(key, state, key_down[key], 0);
 
-        if (state == fan::key_state::release) {
+        if (state == fan::keyboard_state::release) {
           reset_keys[key] = false;
         }
         else {
@@ -419,7 +419,7 @@ namespace fan {
             }
 
             if (input_callback) {
-              input_callback(key, fan::key_state::press, key_down[key], fan::vec2i(hooked_key.pt.x, hooked_key.pt.y));
+              input_callback(key, fan::keyboard_state::press, key_down[key], fan::vec2i(hooked_key.pt.x, hooked_key.pt.y));
             }
 
             key_down[key] = false;
@@ -432,7 +432,7 @@ namespace fan {
           case WM_RBUTTONUP:
           {
             if (input_callback) {
-              input_callback(key, fan::key_state::release, key_down[key], fan::vec2i(hooked_key.pt.x, hooked_key.pt.y));
+              input_callback(key, fan::keyboard_state::release, key_down[key], fan::vec2i(hooked_key.pt.x, hooked_key.pt.y));
             }
 
             reset_keys[key] = false;
@@ -447,7 +447,7 @@ namespace fan {
       static inline HHOOK keyboard_hook;
       static inline HHOOK mouse_hook;
 
-      static inline std::function<void(uint16_t, fan::key_state, bool action, std::any)> input_callback;
+      static inline std::function<void(uint16_t, fan::keyboard_state, bool action, std::any)> input_callback;
       static inline std::function<void(const fan::vec2i& position)> mouse_move_callback;
 
     };

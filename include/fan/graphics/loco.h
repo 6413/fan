@@ -62,6 +62,17 @@ struct loco_t {
     fan::opengl::cid_t* cid;
   };
 
+  #ifdef loco_window
+    using mouse_buttons_cb_data_t = fan::window_t::mouse_buttons_cb_data_t;
+    using keyboard_keys_cb_data_t = fan::window_t::keyboard_keys_cb_data_t;
+    using keyboard_key_cb_data_t = fan::window_t::keyboard_key_cb_data_t;
+    using text_cb_data_t = fan::window_t::text_cb_data_t;
+    using mouse_move_cb_data_t = fan::window_t::mouse_move_cb_data_t;
+    using close_cb_data_t = fan::window_t::close_cb_data_t;
+    using resize_cb_data_t = fan::window_t::resize_cb_data_t;
+    using move_cb_data_t = fan::window_t::move_cb_data_t;
+  #endif
+
   // return type if deleted
   using mouse_move_cb_t = fan::function_t<int(const mouse_move_data_t&)>;
   using mouse_button_cb_t = fan::function_t<int(const mouse_button_data_t&)>;
@@ -248,16 +259,16 @@ struct loco_t {
 
     loco_bdbt_open(&bdbt);
 
-    get_window()->add_buttons_callback([&](fan::window_t* window, uint16_t key, fan::key_state key_state) {
-      fan::vec2 window_size = window->get_size();
-      feed_mouse_button(key, key_state, get_mouse_position());
+    get_window()->add_buttons_callback([this](const mouse_buttons_cb_data_t& d) {
+      fan::vec2 window_size = get_window()->get_size();
+      feed_mouse_button(d.button, d.state, get_mouse_position());
     });
 
-    get_window()->add_keys_callback([&](fan::window_t* window, uint16_t key, fan::key_state key_state) {
-      feed_keyboard(key, key_state);
+    get_window()->add_keys_callback([&](const keyboard_keys_cb_data_t& d) {
+      feed_keyboard(d.key, d.state);
     });
 
-    get_window()->add_mouse_move_callback([&](fan::window_t* window, const fan::vec2i& mouse_position) {
+    get_window()->add_mouse_move_callback([&](const mouse_move_cb_data_t& d) {
       feed_mouse_move(get_mouse_position());
     });
 
@@ -358,12 +369,12 @@ struct loco_t {
     vfi.feed_mouse_move(mouse_position);
   }
 
-  void feed_mouse_button(uint16_t button, fan::key_state key_state, const fan::vec2& mouse_position) {
-    vfi.feed_mouse_button(button, key_state);
+  void feed_mouse_button(uint16_t button, fan::mouse_state mouse_state, const fan::vec2& mouse_position) {
+    vfi.feed_mouse_button(button, mouse_state);
   }
 
-  void feed_keyboard(uint16_t key, fan::key_state key_state) {
-    vfi.feed_keyboard(key, key_state);
+  void feed_keyboard(uint16_t key, fan::keyboard_state keyboard_state) {
+    vfi.feed_keyboard(key, keyboard_state);
   }
 
   void process_frame() {

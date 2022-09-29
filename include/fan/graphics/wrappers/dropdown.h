@@ -89,7 +89,7 @@ struct dropdown_t {
 	  if (mb.button != fan::mouse_left) {
 		return 0;
 	  }
-	  if (mb.button_state != fan::key_state::release) {
+	  if (mb.button_state != fan::mouse_state::release) {
 		return 0;
 	  }
 	  if (mb.mouse_stage != vfi_t::mouse_stage_e::inside) {
@@ -108,7 +108,7 @@ struct dropdown_t {
 		if (mb.button != fan::mouse_left) {
 		  return 0;
 		}
-		if (mb.button_state != fan::key_state::release) {
+		if (mb.button_state != fan::mouse_state::release) {
 		  return 0;
 		}
 		if (mb.mouse_stage != vfi_t::mouse_stage_e::inside) {
@@ -141,7 +141,7 @@ struct dropdown_t {
 		if (mb.button != fan::mouse_left) {
 		  return 0;
 		}
-		if (mb.button_state != fan::key_state::release) {
+		if (mb.button_state != fan::mouse_state::release) {
 		  return 0;
 		}
 		if (mb.mouse_stage != vfi_t::mouse_stage_e::inside) {
