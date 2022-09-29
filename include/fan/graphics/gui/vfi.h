@@ -80,7 +80,7 @@ struct vfi_t {
     vfi_t* vfi;
     fan::vec2 position;
     uint16_t button;
-    fan::key_state button_state;
+    fan::mouse_state button_state;
     mouse_stage_e mouse_stage;
     focus_method_mouse_flag* flag;
   };
@@ -88,7 +88,7 @@ struct vfi_t {
   struct keyboard_data_t {
     vfi_t* vfi;
     uint16_t key;
-    fan::key_state key_state;
+    fan::keyboard_state keyboard_state;
   };
 
   using mouse_move_cb_t = fan::function_t<int(const mouse_move_data_t&)>;
@@ -334,7 +334,7 @@ struct vfi_t {
     return;
   }
 
-  void feed_mouse_button(uint16_t button, fan::key_state state) {
+  void feed_mouse_button(uint16_t button, fan::mouse_state state) {
     loco_t* loco = get_loco();
     mouse_button_data_t mouse_button_data;
     mouse_button_data.vfi = this;
@@ -370,7 +370,7 @@ struct vfi_t {
       }
     }
   }
-   void feed_keyboard(uint16_t key, fan::key_state key_state) {
+   void feed_keyboard(uint16_t key, fan::keyboard_state keyboard_state) {
     loco_t* loco = get_loco();
     keyboard_data_t keyboard_data;
     keyboard_data.vfi = this;
@@ -379,7 +379,7 @@ struct vfi_t {
     }
 
     keyboard_data.key = key;
-    keyboard_data.key_state = key_state;
+    keyboard_data.keyboard_state = keyboard_state;
 
     shape_id_t bcbfk = focus.keyboard;
 

@@ -167,29 +167,59 @@ namespace fan {
 			constexpr static fan::vec2i r_1920x1080 = fan::vec2i(1920, 1080);
 		};
 
-		using buttons_callback_cb_t = fan::function_t<void(fan::window_t*, uint16_t, key_state)>;
-		using keys_callback_cb_t = fan::function_t<void(fan::window_t*, uint16_t, key_state)>;
-		using key_callback_cb_t = fan::function_t<void(fan::window_t*, uint16_t key)>;
-		using keys_combo_callback_cb_t = fan::function_t<void(fan::window_t*)>;
-		using key_combo_callback_store_t = struct{
-			uint16_t last_key;
-			fan::hector_t<uint16_t> key_combo;
-
-			keys_combo_callback_cb_t function;
+		struct mouse_buttons_cb_data_t {
+			fan::window_t* window;
+			uint16_t button;
+			fan::mouse_state state;
 		};
+		using mouse_buttons_cb_t = fan::function_t<void(const mouse_buttons_cb_data_t&)>;
 
-		using text_callback_cb_t = fan::function_t<void(fan::window_t*, uint32_t key)>;
-		using mouse_position_callback_cb_t = fan::function_t<void(fan::window_t* window, const fan::vec2i& position)>;
-		using close_callback_cb_t = fan::function_t<void(fan::window_t*)>;
-		using resize_callback_cb_t = fan::function_t<void(fan::window_t*, const fan::vec2i& window_size)>;
-		using move_callback_cb_t = fan::function_t<void(fan::window_t*)>;
-
-		using key_callback_store_t = struct{
-
+		struct keyboard_keys_cb_data_t {
+			fan::window_t* window;
 			uint16_t key;
-			key_state state;
+			fan::keyboard_state state;
+		};
+		using keyboard_keys_cb_t = fan::function_t<void(const keyboard_keys_cb_data_t&)>;
 
-			key_callback_cb_t function;
+		struct keyboard_key_cb_data_t {
+			fan::window_t* window;
+			uint16_t key;
+		};
+		using keyboard_key_cb_t = fan::function_t<void(const keyboard_key_cb_data_t&)>;
+
+		struct text_cb_data_t {
+			fan::window_t* window;
+			uint32_t character;
+		};
+		using text_cb_t = fan::function_t<void(const text_cb_data_t&)>;
+
+		struct mouse_move_cb_data_t {
+			fan::window_t* window;
+			fan::vec2i position;
+		};
+		using mouse_move_cb_t = fan::function_t<void(const mouse_move_cb_data_t&)>;
+
+		struct close_cb_data_t {
+			fan::window_t* window;
+		};
+		using close_cb_t = fan::function_t<void(const close_cb_data_t&)>;
+
+		struct resize_cb_data_t {
+			fan::window_t* window;
+			fan::vec2i size;
+		};
+		using resize_cb_t = fan::function_t<void(const resize_cb_data_t&)>;
+
+		struct move_cb_data_t {
+			fan::window_t* window;
+		};
+		using move_cb_t = fan::function_t<void(const move_cb_data_t&)>;
+
+		struct keyboard_cb_store_t {
+			uint16_t key;
+			keyboard_state state;
+
+			keyboard_key_cb_t function;
 		};
 
 		struct flags {
@@ -312,85 +342,76 @@ namespace fan {
 		}
 
 		#define BLL_set_prefix buttons_callback
-		#define BLL_set_node_data buttons_callback_cb_t data;
+		#define BLL_set_node_data mouse_buttons_cb_t data;
 		#include "cb_list_builder_settings.h"
 		#include _FAN_PATH(BLL/BLL.h)
 		buttons_callback_t m_buttons_callback;
 
 		#define BLL_set_prefix keys_callback
-		#define BLL_set_node_data keys_callback_cb_t data;
+		#define BLL_set_node_data keyboard_keys_cb_t data;
 		#include "cb_list_builder_settings.h"
 		#include _FAN_PATH(BLL/BLL.h)
 		keys_callback_t m_keys_callback;
 
 		#define BLL_set_prefix key_callback
-		#define BLL_set_node_data key_callback_store_t data;
+		#define BLL_set_node_data keyboard_cb_store_t data;
 		#include "cb_list_builder_settings.h"
 		#include _FAN_PATH(BLL/BLL.h)
 		key_callback_t m_key_callback;
 
-		#define BLL_set_prefix key_combo_callback
-		#define BLL_set_node_data key_combo_callback_store_t data;
-		#include "cb_list_builder_settings.h"
-		#include _FAN_PATH(BLL/BLL.h)
-		key_combo_callback_t m_key_combo_callback;
-
 		#define BLL_set_prefix text_callback
-		#define BLL_set_node_data text_callback_cb_t data;
+		#define BLL_set_node_data text_cb_t data;
 		#include "cb_list_builder_settings.h"
 		#include _FAN_PATH(BLL/BLL.h)
 		text_callback_t m_text_callback;
 
 		#define BLL_set_prefix move_callback
-		#define BLL_set_node_data move_callback_cb_t data;
+		#define BLL_set_node_data move_cb_t data;
 		#include "cb_list_builder_settings.h"
 		#include _FAN_PATH(BLL/BLL.h)
 		move_callback_t m_move_callback;
 
 		#define BLL_set_prefix resize_callback
-		#define BLL_set_node_data resize_callback_cb_t data;
+		#define BLL_set_node_data resize_cb_t data;
 		#include "cb_list_builder_settings.h"
 		#include _FAN_PATH(BLL/BLL.h)
 		resize_callback_t m_resize_callback;
 
 		#define BLL_set_prefix close_callback
-		#define BLL_set_node_data close_callback_cb_t data;
+		#define BLL_set_node_data close_cb_t data;
 		#include "cb_list_builder_settings.h"
 		#include _FAN_PATH(BLL/BLL.h)
 		close_callback_t m_close_callback;
 
 		#define BLL_set_prefix mouse_position_callback
-		#define BLL_set_node_data mouse_position_callback_cb_t data;
+		#define BLL_set_node_data mouse_move_cb_t data;
 		#include "cb_list_builder_settings.h"
 		#include _FAN_PATH(BLL/BLL.h)
 		mouse_position_callback_t m_mouse_position_callback;
 
-		buttons_callback_NodeReference_t add_buttons_callback(buttons_callback_cb_t function);
+		buttons_callback_NodeReference_t add_buttons_callback(mouse_buttons_cb_t function);
 		void remove_buttons_callback(buttons_callback_NodeReference_t id);
 
-		keys_callback_NodeReference_t add_keys_callback(keys_callback_cb_t function);
+		keys_callback_NodeReference_t add_keys_callback(keyboard_keys_cb_t function);
 		void remove_keys_callback(keys_callback_NodeReference_t id);
 
-		key_callback_NodeReference_t add_key_callback(uint16_t key, key_state state, key_callback_cb_t function);
-		void edit_key_callback(key_callback_NodeReference_t id, uint16_t key, key_state state);
+		key_callback_NodeReference_t add_key_callback(uint16_t key, keyboard_state state, keyboard_key_cb_t function);
+		void edit_key_callback(key_callback_NodeReference_t id, uint16_t key, keyboard_state state);
 		void remove_key_callback(key_callback_NodeReference_t id);
 
-		// the last key entered is the triggering key
-		key_combo_callback_NodeReference_t add_key_combo_callback(uint16_t* keys, uint32_t n, keys_combo_callback_cb_t function);
-
-		text_callback_NodeReference_t add_text_callback(text_callback_cb_t function);
+		text_callback_NodeReference_t add_text_callback(text_cb_t function);
 		void remove_text_callback(text_callback_NodeReference_t id);
 
-		close_callback_NodeReference_t add_close_callback(close_callback_cb_t function);
+		close_callback_NodeReference_t add_close_callback(close_cb_t function);
 		void remove_close_callback(close_callback_NodeReference_t id);
 
-		mouse_position_callback_NodeReference_t add_mouse_move_callback(mouse_position_callback_cb_t function);
+		mouse_position_callback_NodeReference_t add_mouse_move_callback(mouse_move_cb_t function);
 		void remove_mouse_move_callback(mouse_position_callback_NodeReference_t id);
 
-		resize_callback_NodeReference_t add_resize_callback(resize_callback_cb_t function);
+		resize_callback_NodeReference_t add_resize_callback(resize_cb_t function);
 		void remove_resize_callback(resize_callback_NodeReference_t id);
 
-		move_callback_NodeReference_t add_move_callback(move_callback_cb_t function);
+		move_callback_NodeReference_t add_move_callback(move_cb_t function);
 		void remove_move_callback(move_callback_NodeReference_t idt);
 
 		void set_background_color(const fan::color& color);

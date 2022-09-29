@@ -162,7 +162,7 @@ struct fgm_t {
 			auto builder_cid = &pile->stage_maker.fgm.builder_button.instance[pile->stage_maker.fgm.builder_button.instance.size() - 1]->cid;
 			auto block = pile->loco.button.sb_get_block(builder_cid);
 			pile->loco.vfi.set_focus_mouse(block->p[builder_cid->instance_id].vfi_id);
-			pile->loco.vfi.feed_mouse_button(fan::mouse_left, fan::key_state::press);
+			pile->loco.vfi.feed_mouse_button(fan::mouse_left, fan::mouse_state::press);
 			pile->stage_maker.fgm.builder_button.open_properties(builder_cid);
 			
 			auto stage_name = pile->stage_maker.get_selected_name(
@@ -217,7 +217,7 @@ struct fgm_t {
 			);
 
 			sp.size = button_size;
-			auto& pd = texturepack.get_pixel_data(default_texture.pack_id);
+			auto pd = texturepack.get_pixel_data(default_texture.pack_id);
 			sp.get_image() = &pd.image;
 			sp.tc_position = default_texture.position / pd.size;
 			sp.tc_size = default_texture.size / pd.size;
@@ -225,7 +225,7 @@ struct fgm_t {
 			pile->stage_maker.fgm.sprite.push_back(sp);
 			auto& instance = pile->stage_maker.fgm.sprite.instances[pile->stage_maker.fgm.sprite.instances.size() - 1];
 			pile->loco.vfi.set_focus_mouse(instance->vfi_id);
-			pile->loco.vfi.feed_mouse_button(fan::mouse_left, fan::key_state::press);
+			pile->loco.vfi.feed_mouse_button(fan::mouse_left, fan::mouse_state::press);
 			pile->stage_maker.fgm.sprite.open_properties(&instance->cid);
 
 			return 0;
@@ -240,7 +240,7 @@ struct fgm_t {
 		gbp.theme = &theme;
 		gbp.text = "<-";
 		gbp.mouse_button_cb = [this](const loco_t::mouse_button_data_t& mb) -> int {
-			use_key_lambda(fan::mouse_left, fan::key_state::release);
+			use_key_lambda(fan::mouse_left, fan::mouse_state::release);
 
 			stage_maker_t* stage_maker = OFFSETLESS(this, stage_maker_t, fgm);
 			stage_maker->reopen_from_fgm();
@@ -364,7 +364,7 @@ struct fgm_t {
 			sprite_t::properties_t sp;
 			sp.position = p;
 			sp.size = s;
-			auto& pd = texturepack.get_pixel_data(default_texture.pack_id);
+			auto pd = texturepack.get_pixel_data(default_texture.pack_id);
 			sp.get_image() = &pd.image;
 			sp.tc_position = default_texture.position / pd.size;
 			sp.tc_size = default_texture.size / pd.size;

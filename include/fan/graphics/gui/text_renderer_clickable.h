@@ -34,7 +34,7 @@
 //          }
 //        }
 //
-//        void lib_add_on_input(fan::window_t* window, fan::opengl::context_t* context, uint32_t i, uint16_t key, fan::key_state state, fan_2d::graphics::gui::mouse_stage stage, void* user_ptr) {
+//        void lib_add_on_input(fan::window_t* window, fan::opengl::context_t* context, uint32_t i, uint16_t key, fan::keyboard_state state, fan_2d::graphics::gui::mouse_stage stage, void* user_ptr) {
 //
 //          if (key != fan::mouse_left) {
 //            return;
@@ -43,7 +43,7 @@
 //          switch (stage) {
 //            case mouse_stage::inside: {
 //              switch (state) {
-//                case fan::key_state::press: {
+//                case fan::keyboard_state::press: {
 //
 //                  if (m_store[i].previous_states == 2) {
 //                    text_renderer_t::set_text_color(context, i, text_renderer_t::get_text_color(context, i) + (click_strength - hover_strength));
@@ -64,7 +64,7 @@
 //                  // click
 //                  break;
 //                }
-//                case fan::key_state::release: {
+//                case fan::keyboard_state::release: {
 //
 //                  text_renderer_t::set_text_color(context, i, text_renderer_t::get_text_color(context, i) - (click_strength - hover_strength));
 //                  fan::color c;
@@ -82,7 +82,7 @@
 //            case mouse_stage::outside: {
 //
 //              switch (state) {
-//                case fan::key_state::release: {
+//                case fan::keyboard_state::release: {
 //
 //                  text_renderer_t::set_text_color(context, i, text_renderer_t::get_text_color(context, i) - click_strength);
 //                  fan::color c;
