@@ -60,14 +60,14 @@ int main() {
   p.get_matrices() = &pile->matrices;
 
   p.font_size = 0.3;
-  p.text = "Welcome back";
+  p.text = "hello world";
   for (uint32_t i = 0; i < count; i++) {
     p.position = fan::random::vec2(0, 0);
     //p.text = fan::random::string(5);
     pile->ids[i] = pile->loco.text.push_back(p);
   }
 
-  pile->loco.text.set_text(&pile->ids[0], "test");
+  pile->loco.text.set_text(&pile->ids[0], "hello world");
   pile->loco.set_vsync(false);
 
   pile->loco.loop([&] {

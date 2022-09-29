@@ -1,4 +1,4 @@
-// Creates window, opengl context and renders a rectangle
+// Creates window, opengl context
 
 #define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 
@@ -51,9 +51,10 @@ struct pile_t {
 int main() {
   pile_t* pile = new pile_t;
   pile->open();
+  pile->loco.get_context()->set_vsync(pile->loco.get_window(), 0);
 
   pile->loco.loop([&] {
-
+    pile->loco.get_window()->get_fps();
   });
 
   return 0;

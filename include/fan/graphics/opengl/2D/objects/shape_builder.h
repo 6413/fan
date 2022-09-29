@@ -47,6 +47,7 @@ void sb_close() {
 
 struct block_t;
 
+// STRUCT MANUAL PADDING IS REQUIRED (32 BIT)
 block_t* sb_push_back(fan::opengl::cid_t* cid, properties_t& p) {
   loco_t* loco = get_loco();
  
@@ -66,7 +67,6 @@ block_t* sb_push_back(fan::opengl::cid_t* cid, properties_t& p) {
   }
 
   instance_t it = p;
-
   shape_bm_Node_t* bmn = bm_list.GetNodeByReference(*(shape_bm_NodeReference_t*)&nr);
   block_t* last_block = &blocks[bmn->data.last_block].block;
 
@@ -77,9 +77,7 @@ block_t* sb_push_back(fan::opengl::cid_t* cid, properties_t& p) {
     last_block = &blocks[bmn->data.last_block].block;
     last_block->open(loco, this);
   }
-
   block_t* block = last_block;
-
   block->uniform_buffer.push_ram_instance(loco->get_context(), it);
 
   const uint32_t instance_id = block->uniform_buffer.size() - 1;

@@ -91,8 +91,9 @@ namespace fan {
 			return *this;
 		}
 
-		void erase(std::size_t beg, std::size_t count) {
+		auto erase(std::size_t beg, std::size_t count) {
 			str.erase(str.begin() + beg, str.begin() + beg + count);
+			return *this;
 		}
 		void erase(std::size_t where) {
 			str.erase(str.begin() + where);
@@ -159,7 +160,7 @@ namespace fan {
 		}
 
 		std::size_t find_last_of(const string& s, std::size_t start = 0) const {
-			auto found = std::find_end(begin() + start, begin(), s.begin(), s.end());
+			auto found = std::find_end(begin() + start, end(), s.begin(), s.end());
 			if (found == end()) {
 				return npos;
 			}
@@ -226,6 +227,23 @@ namespace fan {
 		void resize(std::size_t c) {
 			str.resize(c + 1);
 		}
+
+		// dont use xd
+		void replace(std::size_t beg, std::size_t count, const fan::string& replace) {
+			if (count < replace.size()) {
+				std::size_t to_replace = replace.size() - count;
+				resize(size() + to_replace);
+				//memcpy(&str[beg + to_replace], &str[beg + count], count);
+				memcpy(&str[beg], replace.data(), replace.size());
+				return;
+			}
+
+			int64_t to_replace = replace.size() - count;
+			memcpy(&str[beg + to_replace], &str[beg + count], to_replace);
+			memcpy(&str[beg], replace.data(), replace.size());
+			erase(end() - to_replace, end());
+		}
+
 		void replace_all(const fan::string& search, const fan::string& replace) {
 			for (size_t pos = 0; ; pos += replace.size()) {
 				// Locate the substring to replace

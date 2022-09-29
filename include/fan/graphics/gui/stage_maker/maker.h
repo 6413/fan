@@ -383,7 +383,7 @@ static void lib_close(stage_common_t* sc) {
 		loco->menu_maker.push_back(instances[stage_t::stage_options].menu_id, p);
 	}
 
-	void open() {
+	void open(const char* texturepack_name) {
 		
 		stage_h_str = R"(struct stage_common_t {
 
@@ -418,7 +418,7 @@ struct stage {
 
 		auto loco = get_loco();
 
-		fgm.open();
+		fgm.open(texturepack_name);
 		instances.resize(3);
 
 		current_stage = fan::uninitialized;

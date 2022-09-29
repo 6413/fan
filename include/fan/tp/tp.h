@@ -10,8 +10,8 @@ namespace fan {
   namespace tp {
     struct ti_t {
       uint32_t pack_id;
-      fan::vec2i position;
-      fan::vec2i size;
+      fan::vec2 position;
+      fan::vec2 size;
     };
 
   }
@@ -224,7 +224,7 @@ namespace fan {
             for (uint32_t y = t->position.y; y < t->position.y + t->size.y; y++) {
               memcpy(
                 pack_list[i].pixel_data.data() + (y * pack_list[i].pack_size.x + t->position.x) * 4,
-                &((uint8_t*)image_info.data)[(image_info.size.y - (y - t->position.y) - 1) * t->size.x * 4],
+                &((uint8_t*)image_info.data)[(y - t->position.y) * t->size.x * 4],
                 t->size.x * 4
               );
             }

@@ -24,6 +24,18 @@ struct loco_t;
 
 #include _FAN_PATH(graphics/opengl/uniform_block.h)
 
+#if defined(loco_sprite)
+  #include _FAN_PATH(graphics/opengl/texture_pack.h)
+#endif
+
+#if defined(loco_model_3d)
+  extern "C" {
+    #define FAST_OBJ_IMPLEMENTATION
+    #include _FAN_PATH(graphics/fast_obj/fast_obj.h)
+  }
+  #include _FAN_PATH(graphics/transform_interpolator.h)
+#endif
+
 struct loco_t {
   #define vfi_var_name vfi
   #include _FAN_PATH(graphics/gui/vfi.h)
@@ -163,6 +175,7 @@ struct loco_t {
     #undef sb_shape_var_name
   #endif
   #if defined(loco_sprite)
+
     #define sb_shape_var_name sprite
     #define sb_sprite_name sprite_t
     #include _FAN_PATH(graphics/opengl/2D/objects/sprite.h)
@@ -192,329 +205,16 @@ struct loco_t {
     #undef sb_shape_var_name
   #endif
   #if defined(loco_menu_maker)
-    #define sb_menu_maker_var_name menu_maker
-    #define sb_menu_maker_type_name menu_maker_base_t
-    #include _FAN_PATH(graphics/gui/menu_maker.h)
-    struct menu_maker_t {
-      using properties_t = menu_maker_base_t::properties_t;
-      using open_properties_t = menu_maker_base_t::open_properties_t;
-
-      using select_data_t = menu_maker_base_t::select_data_t;
-      using select_cb_t = fan::function_t<int(const menu_maker_base_t::select_data_t&)>;
-
-      #define BLL_set_AreWeInsideStruct 1
-      #define BLL_set_CPP_Node_ConstructDestruct
-      #define BLL_set_BaseLibrary 1
-      #define BLL_set_prefix instance
-      #define BLL_set_type_node uint16_t
-      #define BLL_set_node_data \
-      menu_maker_base_t base; \
-      select_cb_t select_cb;
-      #define BLL_set_Link 1
-      #define BLL_set_StoreFormat 1
-      #include _FAN_PATH(BLL/BLL.h)
-
-      using nr_t = instance_NodeReference_t;
-      using id_t = menu_maker_base_t::instance_NodeReference_t;
-      
-      loco_t* get_loco() {
-		    loco_t* loco = OFFSETLESS(this, loco_t, sb_menu_maker_var_name);
-		    return loco;
-	    }
-
-      void open() {
-        instances.Open();
-      }
-      void close() {
-        instances.Close();
-      }
-
-      id_t get_instance_id(nr_t id, fan::opengl::cid_t* cid) {
-        auto it = instances[id].base.instances.GetNodeFirst();
-        while (it != instances[id].base.instances.dst) {
-          if (&instances[id].base.instances[it].cid == cid) {
-            return it;
-          }
-        }
-        fan::throw_error("failed to find instance id (corruption (gl))");
-        return{};
-      }
-
-      instance_NodeReference_t push_menu(const open_properties_t& op) {
-        auto nr = instances.NewNodeLast();
-        instances[nr].select_cb = op.select_cb;
-        instances[nr].base.open(get_loco(), op);
-        return nr;
-      }
-
-      void erase_button_soft(instance_NodeReference_t nr, menu_maker_base_t::instance_NodeReference_t id) {
-        if (id == instances[nr].base.selected_id) {
-          set_selected(nr, nullptr);
-        }
-        instances[nr].base.erase_soft(get_loco(), id);
-      }
-      void erase_button(instance_NodeReference_t nr, menu_maker_base_t::instance_NodeReference_t id) {
-        if (id == instances[nr].base.selected_id) {
-          set_selected(nr, nullptr);
-        }
-        instances[nr].base.erase(get_loco(), id);
-      }
-      void erase_menu_soft(nr_t nr) {
-        instances[nr].base.soft_close(get_loco());
-        //instances.Unlink(id);
-        //instances.Recycle(id);
-      }
-      void erase_menu(nr_t nr) {
-        instances[nr].base.close(get_loco());
-        instances.Unlink(nr);
-        instances.Recycle(nr);
-      }
-      auto push_initialized(nr_t nr, menu_maker_base_t::instance_NodeReference_t id) {
-        return instances[nr].base.push_initialized(get_loco(), id, nr);
-      }
-      auto push_back(nr_t nr, const properties_t& properties) {
-        return instances[nr].base.push_back(get_loco(), properties, nr);
-      }
-      void set_selected(nr_t nr, fan::opengl::cid_t* cid) {
-        instances[nr].base.set_selected(get_loco(), cid);
-      }
-      void set_selected(nr_t nr, menu_maker_base_t::instance_NodeReference_t id) {
-        instances[nr].base.set_selected(get_loco(), id);
-      }
-      fan::string get_selected_text(nr_t nr) {
-        return instances[nr].base.get_selected_text(get_loco());
-      }
-      fan::opengl::cid_t* get_selected(nr_t nr) {
-        return instances[nr].base.selected;
-      }
-      menu_maker_base_t::instance_NodeReference_t get_selected_id(nr_t nr) {
-        return instances[nr].base.selected_id;
-      }
-      fan::vec2& get_offset(nr_t nr) {
-        return instances[nr].base.global.offset;
-      }
-      auto size(nr_t nr) {
-        return instances[nr].base.instances.usage();
-      }
-      bool is_visually_valid(nr_t nr, menu_maker_base_t::instance_NodeReference_t id) {
-        return instances[nr].base.is_visually_valid(id);
-      }
-      void erase_and_update(nr_t nr, menu_maker_base_t::instance_NodeReference_t id) {
-        auto loco = get_loco();
-        fan::vec2 previous_button_size = loco->button.get_button(
-          &loco->menu_maker.instances[nr].base.instances[id].cid, 
-          &loco_t::button_t::instance_t::size
-        );
-        auto it = id;
-        it = it.Next(&instances[nr].base.instances);
-        erase_button(nr, id);
-        instances[nr].base.global.offset.y -= previous_button_size.y * 2;
-
-        while (it != instances[nr].base.instances.dst) {
-          auto b_position = loco->button.get_button(
-            &instances[nr].base.instances[it].cid,
-            &loco_t::button_t::instance_t::position
-          );
-          auto b_size = loco->button.get_button(
-            &instances[nr].base.instances[it].cid,
-            &loco_t::button_t::instance_t::size
-          );
-          b_position.y -= b_size.y * 2;
-          loco->button.set_position(
-            &instances[nr].base.instances[it].cid,
-            b_position
-          );
-          instances[nr].base.instances[it].position = b_position;
-          it = it.Next(&instances[nr].base.instances);
-        }
-      }
-
-      fan::vec2 get_button_measurements(nr_t nr) {
-        return instances[nr].base.get_button_measurements();
-      }
-
-      instance_t instances;
-
-    }sb_menu_maker_var_name;
-    #undef sb_menu_maker_var_name
-    #undef sb_menu_maker_type_name
+    #include "wrappers/menu_maker.h"
   #endif
   #if defined(loco_menu_maker)
-    struct dropdown_t {
-
-      struct open_properties_t : menu_maker_t::open_properties_t {
-
-      };
-      struct properties_t : menu_maker_t::properties_t{
-        std::vector<fan::string> items;
-      };
-
-      using nr_t = menu_maker_t::nr_t;
-      using id_t = menu_maker_t::id_t;
-
-      loco_t* get_loco() {
-        loco_t* loco = OFFSETLESS(this, loco_t, dropdown);
-        return loco;
-      }
-
-      void open() {
-       
-      }
-      void close() {
-
-      }
-
-      void push_always(f32_t depth, mouse_button_cb_t cb) {
-        auto loco = get_loco();
-
-        loco_t::vfi_t::properties_t vfip;
-        vfip.shape_type = loco_t::vfi_t::shape_t::always;
-        vfip.shape.always.z = depth;
-
-        vfip.mouse_button_cb = cb;
-
-        vfi_id = loco->vfi.push_shape(vfip);
-      }
-      void erase_always() {
-        auto loco = get_loco();
-        loco->vfi.erase(vfi_id);
-        //vfi_id.NRI = -1;
-      }
-
-      void erase_dropdown_menu(auto loco, auto nr, auto id) {
-
-        instances[id].m_open = false;
-
-        auto& mn_instances = loco->menu_maker.instances[nr].base.instances;
-        auto it = mn_instances.GetNodeFirst();
-        if (it == mn_instances.dst) {
-          return;
-        }
-        // iterate to second one to not remove first element
-        it = it.Next(&mn_instances);
-
-        while (it != mn_instances.dst) {
-          mn_instances.StartSafeNext(it);
-          auto node = mn_instances.GetNodeByReference(it);
-          loco->menu_maker.erase_button(nr, it);
-          auto& b = loco->menu_maker.instances[nr].base;
-          b.global.offset.y -= b.get_button_measurements().y * 2;
-          it = mn_instances.EndSafeNext();
-        }
-
-        erase_always();
-      };
-
-      nr_t push_menu(menu_maker_t::open_properties_t& op) {
-        auto loco = get_loco();
-        auto nr = loco->menu_maker.push_menu(op);
-        instance_t in;
-        in.nr = nr;
-        in.m_open = false;
-        instances.push_back(in);
-        return nr;
-      }
-      uint32_t get_i(nr_t nr) {
-        for (uint32_t i = 0; i < instances.size(); i++) {
-          if (nr == instances[i].nr) {
-            return i;
-            break;
-          }
-        }
-        return -1;
-      }
-
-      id_t push_back(nr_t nr, properties_t& p) {
-        auto loco = get_loco();
-        instances[get_i(nr)].items = p.items;
-        p.mouse_button_cb = [this, nr](const mouse_button_data_t& mb) -> int{
-          if (mb.button != fan::mouse_left) {
-            return 0;
-          }
-          if (mb.button_state != fan::key_state::release) {
-            return 0;
-          }
-          if (mb.mouse_stage != vfi_t::mouse_stage_e::inside) {
-            return 0;
-          }
-
-          auto loco = get_loco(); 
-          auto click_position = loco->button.get_button(mb.cid, &loco_t::button_t::instance_t::position);
-
-          uint32_t id = get_i(nr);
-
-          instances[id].menu_nr = nr;
-          loco_t::menu_maker_t::properties_t mp;
-          mp.mouse_button_cb = [this, nr, id](const mouse_button_data_t& mb) {
-            
-            if (mb.button != fan::mouse_left) {
-              return 0;
-            }
-            if (mb.button_state != fan::key_state::release) {
-              return 0;
-            }
-            if (mb.mouse_stage != vfi_t::mouse_stage_e::inside) {
-              return 0;
-            }
-
-            auto loco = get_loco();
-            auto top_menu = loco->menu_maker.instances[nr].base.instances[loco->menu_maker.instances[nr].base.instances.GetNodeFirst()].cid;
-            auto text = loco->button.get_text(mb.cid);
-            loco->button.set_text(
-              &top_menu,
-              text
-            );
-
-            loco->menu_maker.set_selected(nr, nullptr);
-
-            erase_dropdown_menu(loco, nr, id);
-
-            return 1;
-          };
-
-          if (instances[id].m_open) {
-            erase_dropdown_menu(loco, nr, id);
-            return 0;
-          }
-
-          instances[id].m_open = true;
-
-          push_always(click_position.z + 1, [this, loco, nr, id](const mouse_button_data_t& mb) {
-            if (mb.button != fan::mouse_left) {
-              return 0;
-            }
-            if (mb.button_state != fan::key_state::release) {
-              return 0;
-            }
-            if (mb.mouse_stage != vfi_t::mouse_stage_e::inside) {
-              return 0;
-            }
-            erase_dropdown_menu(loco, nr, id);
-          });
-
-          for (uint32_t i = 0; i < instances[id].items.size(); i++) {
-            mp.text = instances[id].items[i];
-            mp.offset.z = click_position.z + 1;
-            loco->menu_maker.push_back(instances[id].menu_nr, mp);
-          }
-
-          return 0;
-        };
-        return loco->menu_maker.push_back(nr, p);
-      }
-
-      struct instance_t {
-        nr_t nr;
-        nr_t menu_nr;
-        std::vector<fan::string> items;
-        bool m_open;
-      };
-
-      std::vector<instance_t> instances;
-      vfi_t::shape_id_t vfi_id;
-     // fan::opengl::cid_t menu_cid;
-
-    }dropdown;
+    #include "wrappers/dropdown.h"
+  #endif
+  #if defined(loco_model_3d)
+    #define sb_shape_var_name model
+    #include _FAN_PATH(graphics/opengl/3D/objects/model.h)
+    model_t sb_shape_var_name;
+    #undef sb_shape_var_name
   #endif
   #if defined(loco_post_process)
     #define sb_shader_vertex_path _FAN_PATH(graphics/glsl/opengl/2D/effects/post_process.vs)
@@ -593,6 +293,9 @@ struct loco_t {
       menu_maker.open();
       dropdown.open();
     #endif
+    #if defined(loco_model_3d)
+      model.open();
+    #endif
     #if defined(loco_post_process)
       fan::opengl::core::renderbuffer_t::properties_t rp;
       rp.size = get_window()->get_size();
@@ -633,6 +336,9 @@ struct loco_t {
     #if defined(loco_menu_maker)
       dropdown.close();
       menu_maker.close();
+    #endif
+    #if defined(loco_model_3d)
+      model.close();
     #endif
     #if defined(loco_post_process)
       post_process.close();
@@ -691,6 +397,9 @@ struct loco_t {
     #endif
     #if defined(loco_button)
       button.draw();
+    #endif
+    #if defined(loco_model_3d)
+      model.draw();
     #endif
     #if defined(loco_post_process)
       post_process.draw();

@@ -1,30 +1,15 @@
-#include <string.h>
+#include <fan/types/types.h>
 
 struct a_t {
-  int x;
+	int x;
+	int y;
 };
 
-struct b_t {
-  int x;
-  b_t(a_t a) {
-    x = a.x;
-  }
-  b_t(a_t* a) {
-    //(b_t*)(a_t*)(this) = 
-    //this = a;
-  }
-  b_t* operator=(a_t* a) {
-    return (b_t*)a;
-  }
+struct b_t : a_t{
+	int z;
 };
-
-void func(a_t* a) {
-  b_t* bptr = *bptr = a;
-  bptr->x = 5;
-}
 
 int main() {
-  a_t a;
-  func(&a);
-  return a.x;
+	a_t* a = new b_t;
+	b_t* promoted = (b_t*)a;
 }

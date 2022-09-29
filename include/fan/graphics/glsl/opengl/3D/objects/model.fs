@@ -12,7 +12,7 @@ in vec3 tanget_fragment_position;
 in vec3 tanget_view_position;
 in vec3 tanget_light_position;
 
-uniform sampler2D texture_diffuse;
+uniform sampler2D _t00; // diffuse
 uniform sampler2D texture_depth;
 uniform samplerCube skybox;
 
@@ -27,7 +27,7 @@ void main() {
 
   vec3 ambient = 0.8 * light_color;
 
-  vec4 diffuse_map = texture(texture_diffuse, vec2(texture_coordinate.x, 1.0 - texture_coordinate.y));
+  vec4 diffuse_map = texture(_t00, vec2(texture_coordinate.x, 1.0 - texture_coordinate.y));
 
   vec3 texture_normal = texture(texture_depth, texture_coordinate).xyz;
   texture_normal = normalize(texture_normal * 2 - 1.0); 
@@ -42,14 +42,14 @@ void main() {
 
   vec3 specular = vec3(0.5) * spec;
 
-  if (true) {
-    color = vec4(ambient + diffuse + specular, 1);
-  }
-  else {
-    vec3 i = normalize(fragment_position - view_position);
-    vec3 r = reflect(i, normalize(normal));
-    color = vec4(texture(skybox, r).rgb * vec3(1, 0.3, 0.3), diffuse_map.w);
-  }
+  //if (true) {
+  //  color = vec4(ambient + diffuse + specular, 1);
+  //}
+  //else {
+  //  vec3 i = normalize(fragment_position - view_position);
+  //  vec3 r = reflect(i, normalize(normal));
+  //  color = vec4(texture(skybox, r).rgb * vec3(1, 0.3, 0.3), diffuse_map.w);
+  //}
 
    color = diffuse_map;
 }
