@@ -54,19 +54,16 @@ int main() {
   auto image = texturepack.get_pixel_data(0).image;
   p.get_image() = &image;
   fan::tp::ti_t ti;
-  /*if (texturepack.qti("drill.webp", &ti)) {
+  if (texturepack.qti("test.webp", &ti)) {
     return 1;
-  }*/
- // p.tc_position = ti.position;
- // p.tc_size = ti.size;
+  }
+  p.tc_position = ti.position / fan::vec2(1024, 1024);
+  p.tc_size = ti.size / fan::vec2(1024, 1024);
   p.size = 0.5;
-  p.position = p.size;
+  p.position = 0;
   fan::opengl::cid_t cid;
   pile.loco.sprite.push_back(&cid, p);
   
-
-  pile.matrices.set_ortho(fan::vec2(-1, 1), fan::vec2(1, -1));
-
   pile.loco.loop([&] {
 
     });

@@ -26,16 +26,14 @@ struct pile_t {
     fan::graphics::open_matrices(
       loco.get_context(),
       &matrices,
-      loco.get_window()->get_size(),
       ortho_x,
       ortho_y
     );
-    loco.get_window()->add_resize_callback(this, [](fan::window_t*, const fan::vec2i& size, void* userptr) {
-      pile_t* pile = (pile_t*)userptr;
-
-      pile->viewport.set_viewport(pile->loco.get_context(), 0, size);
-      });
-    viewport.open(loco.get_context(), 0, loco.get_window()->get_size());
+    loco.get_window()->add_resize_callback([&](fan::window_t*, const fan::vec2i& size) {
+      viewport.set(loco.get_context(), 0, size, size);
+    });
+    viewport.open(loco.get_context());
+    viewport.set(loco.get_context(), 0, loco.get_window()->get_size(), loco.get_window()->get_size());
   }
 
   loco_t loco;
@@ -53,8 +51,8 @@ int main() {
 
   p.size = fan::vec2(1, 1);
   //p.block_properties.
-  p.matrices = &pile->matrices;
-  p.viewport = &pile->viewport;
+  p.get_matrices() = &pile->matrices;
+  p.get_viewport() = &pile->viewport;
 
   fan::sys::MD_SCR_t md;
   fan::sys::MD_SCR_open(&md);
@@ -69,32 +67,25 @@ int main() {
   fan::opengl::image_t image;
   fan::opengl::image_t::load_properties_t lp;
   lp.format = fan::opengl::GL_BGRA;
-  lp.internal_format = fan::opengl::GL_BGRA;
+  lp.internal_format = fan::opengl::GL_RGBA;
   image.load(pile->loco.get_context(), ii, lp);
-  p.image = &image;
+  p.get_image() = &image;
   p.position = fan::vec2(0, 0);
   p.position.z = 0;
+  //p.color = 10;
   // p.color = fan::color((f32_t)i / count, (f32_t)i / count + 00.1, (f32_t)i / count);
   pile->loco.sprite.push_back(&pile->cids[0], p);
 
   pile->loco.set_vsync(false);
   uint32_t x = 0;
-  while(pile->loco.window_open(pile->loco.process_frame([]{}))) {
-    /* if(x < count) {
-    pile->loco.rectangle.erase(&pile->loco, &pile->cids[x]);
-    x++;
-    }*/
-
-
+  pile->loco.loop([&] {
     ptr = fan::sys::MD_SCR_read(&md);
+    ii.data = ptr;
+    image.unload(pile->loco.get_context());
+    image.load(pile->loco.get_context(), ii, lp);
+    pile->loco.sprite.set_image(&pile->cids[0], &image);
     pile->loco.get_fps();
-    //if (ptr == 0) {
-    //  continue;
-    //}
-   /* ii.data = ptr;
-    image.reload_pixels(pile->loco.get_context(), ii);*/
-
-  }
+  });
 
   return 0;
 }

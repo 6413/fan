@@ -199,7 +199,7 @@ struct fgm_t {
 		menu.push_back(nr, mp);
 
 		mp.text = "sprite";
-		mp.mouse_button_cb = [nr](const loco_t::mouse_button_data_t& ii_d) -> int {
+		mp.mouse_button_cb = [this, nr](const loco_t::mouse_button_data_t& ii_d) -> int {
 			pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi), pile_t, loco);
 			if (ii_d.button != fan::mouse_left) {
 				return 0;
@@ -217,7 +217,10 @@ struct fgm_t {
 			);
 
 			sp.size = button_size;
-			sp.get_image() = &pile->stage_maker.fgm.default_texture;
+			auto& pd = texturepack.get_pixel_data(default_texture.pack_id);
+			sp.get_image() = &pd.image;
+			sp.tc_position = default_texture.position / pd.size;
+			sp.tc_size = default_texture.size / pd.size;
 
 			pile->stage_maker.fgm.sprite.push_back(sp);
 			auto& instance = pile->stage_maker.fgm.sprite.instances[pile->stage_maker.fgm.sprite.instances.size() - 1];
@@ -259,7 +262,7 @@ struct fgm_t {
 		load_from_file(stage_name);
 	}
 
-	void open() {
+	void open(const char* texturepack_name) {
 		loco_t& loco = *get_loco();
 
 		line_y_offset_between_types_and_properties = 0.0;
@@ -269,7 +272,14 @@ struct fgm_t {
 		action_flag = 0;
 		theme = fan_2d::graphics::gui::themes::deep_red();
 		theme.open(loco.get_context());
-		default_texture.load(loco.get_context(), "images/test.webp");
+
+		texturepack.open_compiled(loco.get_context(), texturepack_name);
+
+		fan::tp::ti_t ti;
+		if (texturepack.qti("test.webp", &ti)) {
+			fan::throw_error("failed to load default texture");
+		}
+		default_texture = ti;
 
 		//loco.get_window()->add_resize_callback([&](fan::window_t* window, const fan::vec2i& ws) {
 		//	resize_cb();
@@ -354,7 +364,10 @@ struct fgm_t {
 			sprite_t::properties_t sp;
 			sp.position = p;
 			sp.size = s;
-			sp.get_image() = &default_texture;
+			auto& pd = texturepack.get_pixel_data(default_texture.pack_id);
+			sp.get_image() = &pd.image;
+			sp.tc_position = default_texture.position / pd.size;
+			sp.tc_size = default_texture.size / pd.size;
 			sp.get_matrices() = &matrices[viewport_area::editor];
 			sp.get_viewport() = &viewport[viewport_area::editor];
 			sprite.push_back(sp);
@@ -458,5 +471,7 @@ struct fgm_t {
 	fan::vec2 editor_size;
 	fan::vec2 editor_ratio;
 
-	fan::opengl::image_t default_texture;
+	fan::tp::ti_t default_texture;
+
+	fan::opengl::texturepack texturepack;
 }fgm;

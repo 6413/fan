@@ -14,7 +14,7 @@
 #define loco_line
 #include _FAN_PATH(graphics/loco.h)
 
-constexpr uint32_t count = 1e+4;
+constexpr uint32_t count = 1e+7;
 
 struct pile_t {
 
@@ -27,7 +27,7 @@ struct pile_t {
       fan::vec2(0, window_size.x),
       fan::vec2(0, window_size.y)
     );
-    loco.get_window()->add_resize_callback(this, [](fan::window_t* window, const fan::vec2i& size, void* userptr) {
+   /* loco.get_window()->add_resize_callback(this, [](fan::window_t* window, const fan::vec2i& size, void* userptr) {
       fan::vec2 window_size = window->get_size();
       fan::vec2 ratio = window_size / window_size.max();
       pile_t* pile = (pile_t*)userptr;
@@ -36,7 +36,7 @@ struct pile_t {
         fan::vec2(0, window_size.y) * ratio.y
       );
       pile->viewport.set(pile->loco.get_context(), 0, size, size);
-    });
+    });*/
     viewport.open(loco.get_context());
     viewport.set(loco.get_context(), 0, window_size, window_size);
   }
@@ -72,9 +72,9 @@ int main() {
   pile->loco.set_vsync(false);
 
   pile->loco.loop([&] {
-    for (uint32_t i = 0; i < count; i++) {
+   /* for (uint32_t i = 0; i < count; i++) {
       pile->loco.line.set(&pile->cids[i], &loco_t::line_t::instance_t::dst, pile->loco.get_mouse_position());
-    }
+    }*/
     pile->loco.get_fps();
   });
 

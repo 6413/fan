@@ -108,11 +108,6 @@ namespace fan {
 		}
 
 		template <typename _Type>
-		constexpr bool operator<(const _vec2<_Type>& vector) const {
-			 return (x == vector.x) ? (y < vector.y) : (x < vector.x); // AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-		}
-
-		template <typename _Type>
 		constexpr bool operator<=(const _vec2<_Type>& vector) const {
 			return this->x <= vector.x && this->y <= vector.y;
 		}
@@ -599,6 +594,14 @@ namespace fan {
 			this->x /= v.x;
 			this->y /= v.y;
 			return *this;
+		}
+
+		constexpr bool operator<(const auto& vector) const {
+			return x < vector.x && y < vector.y && z < vector.z;
+		}
+
+		constexpr bool operator<=(const auto& vector) const {
+			return x <= vector.x && y <= vector.y && z <= vector.z;
 		}
 
 		constexpr vec_t floor() const { return vec_t(std::floor(x), std::floor(y), std::floor(z)); }

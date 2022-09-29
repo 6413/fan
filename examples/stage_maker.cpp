@@ -22,9 +22,9 @@
 
 struct pile_t {
 
-  void open() {
+  void open(const char* texturepack_name) {
     loco.open(loco_t::properties_t());
-    stage_maker.open();
+    stage_maker.open(texturepack_name);
     /*loco.get_window()->add_resize_callback(this, [](fan::window_t* window, const fan::vec2i& size, void* userptr) {
       fan::vec2 window_size = window->get_size();
       fan::vec2 ratio = window_size / window_size.max();
@@ -47,10 +47,15 @@ struct pile_t {
   stage_maker_t stage_maker_var_name;
 };
 
-int main() {
+int main(int argc, char** argv) {
+
+  if (argc < 2) {
+    fan::throw_error("usage: TexturePackCompiled");
+  }
+
   pile_t* pile = new pile_t;
 
-  pile->open(); 
+  pile->open(argv[1]);
 
   pile->loco.set_vsync(false);
   //pile->loco.get_window()->set_max_fps(5);

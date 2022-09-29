@@ -2,8 +2,20 @@ R"(
 
 #version 140
 
-in vec4 input0;
-in float input1;
+#define get_instance() instance[gl_VertexID / 3]
+
+struct block_instance_t{
+  vec3 p0;
+  vec3 p1;
+  vec3 p2;
+  vec2 tc0;
+  vec2 tc1;
+  vec2 tc2;
+};
+
+layout (std140) uniform instance_t {
+	block_instance_t instance[256];
+};
 
 uniform mat4 projection;
 uniform mat4 view;
@@ -83,23 +95,20 @@ mat4 rotate(mat4 m, float angle, vec3 v) {
 
 out vec3 fragment_position;
 out vec2 texture_coordinate;
-out vec3 normal;
-out float is_light;
-out vec3 view_position;
-out vec3 tanget_fragment_position;
-out vec3 tanget_view_position;
-out vec3 tanget_light_position;
+
+//out vec3 normal;
+//out vec3 view_position;
+//out vec3 tanget_fragment_position;
+//out vec3 tanget_view_position;
+//out vec3 tanget_light_position;
 
 uniform vec3 p;
 
 uniform mat4 model_input[2];
 
+
 void main() {
 
-  vec3 layout_vertex = vec3(input0[0], input0[1], input0[2]);
-  vec2 layout_texture_coordinate = vec2(input0[3], input1);
-  //vec3 layout_normal = vec3(input1[1], input1[2], input1[3]);
-  //vec3 layout_tanget = vec3(input2[0], input2[1], input2[2]);
   vec3 layout_position = model_input[0][0].xyz;
   vec3 layout_size = vec3(model_input[0][0].a, model_input[0][1].xy);
   float layout_angle = model_input[0][1].z;
@@ -113,14 +122,14 @@ void main() {
 
   if (!isnan(layout_angle) && !isinf(layout_angle)) {
     vec3 rotation_vector;
-
+  
     if (layout_rotation_vector.x == 0 && layout_rotation_vector.y == 0 && layout_rotation_vector.z == 0) {
       rotation_vector = vec3(0, 0, 1);
     }
     else {
       rotation_vector = layout_rotation_vector;
     }
-
+  
     m = rotate(m, layout_angle, rotation_vector);
   }
 
@@ -128,25 +137,16 @@ void main() {
 
   m = scale(m, layout_size);
 
- // mat3 normal_matrix = transpose(inverse(mat3(m)));
- // vec3 T = normalize(normal_matrix * layout_tanget);
- // vec3 N = normalize(normal_matrix * layout_normal);
- // T = normalize(T - dot(T, N) * N);
- // vec3 B = cross(N, T);
- //   
- // mat3 tbn = transpose(mat3(T, B, N));
- //
-  fragment_position = vec3(m * vec4(layout_vertex, 1));
-  texture_coordinate = layout_texture_coordinate;
- // normal = mat3(transpose(inverse(m))) * layout_normal;
- // is_light = layout_is_light;
- // view_position = layout_view_position;
- // vec3 light_position = p;
- // tanget_fragment_position = tbn * fragment_position;
- // tanget_view_position = tbn * view_position;
- // tanget_light_position = tbn * light_position;
+  vec3 arr[] = vec3[](get_instance().p0, get_instance().p1, get_instance().p2);
+  vec2 arr2[] = vec2[](get_instance().tc0, get_instance().tc1, get_instance().tc2);
 
-  gl_Position = projection * view * vec4(fragment_position, 1);
+  fragment_position = arr[gl_VertexID % 3];
+  texture_coordinate = arr2[gl_VertexID % 3];
+
+  gl_Position = projection * view * m * vec4(
+    fragment_position,
+    1
+  );
 }
 
 )"
