@@ -211,7 +211,7 @@ struct loco_t {
   #endif
   #if defined(loco_button)
     #define sb_shape_var_name button
-    #include _FAN_PATH(graphics/gui/rectangle_text_button.h)
+    #include _FAN_PATH(graphics/gui/button.h)
     button_t sb_shape_var_name;
     #undef sb_shape_var_name
   #endif

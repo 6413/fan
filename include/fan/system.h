@@ -327,7 +327,7 @@ namespace fan {
 
         int x = 0;
 
-        while (x = GetMessage(&message, NULL, 0, 0))
+        while ((x = GetMessage(&message, NULL, 0, 0)))
         {
           if (x == -1)
           {

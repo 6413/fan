@@ -262,8 +262,6 @@ namespace fan {
 
 			f32_t lowest = 0, highest = 0;
 
-			char previous_c = '0';
-
 			std::size_t iline = 0;
 
 			font_t font;
@@ -298,7 +296,6 @@ namespace fan {
 
 				font.characters[line.utf].mapping = line.font_info.mapping;
 
-				previous_c = lines[iline][0];
 				iline++;
 			}
 
@@ -314,7 +311,6 @@ namespace fan {
 
 				font.characters[line.utf].metrics = line.font_info.metrics;
 
-				previous_c = lines[iline][0];
 				iline++;
 			}
 
@@ -341,7 +337,6 @@ namespace fan {
 
 				font.characters[line.utf].glyph = line.font_info.glyph;
 
-				previous_c = lines[iline][0];
 				iline++;
 			}
 		}
