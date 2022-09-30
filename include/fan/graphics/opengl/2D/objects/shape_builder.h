@@ -169,7 +169,6 @@ void sb_erase(fan::opengl::cid_t* cid) {
 }
 
 block_t* sb_get_block(fan::opengl::cid_t* cid) {
-  loco_t* loco = get_loco();
   auto& block_node = blocks[*(bll_block_NodeReference_t*)&cid->block_id];
   return &block_node.block;
 }

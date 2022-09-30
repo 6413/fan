@@ -329,7 +329,6 @@ struct fgm_t {
 	}
 
 	void load_from_file(const fan::string& stage_name) {
-		auto loco = get_loco();
 		fan::string path = get_fgm_full_path(stage_name);
 		fan::string f;
 		if (!fan::io::file::exists(path)) {

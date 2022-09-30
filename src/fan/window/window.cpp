@@ -205,17 +205,17 @@ void fan::erase_window_id(fan::window_handle_t wid)
 
 fan::string fan::window_t::get_name() const
 {
-  return *m_name;
+  return m_name;
 }
 
 void fan::window_t::set_name(const fan::string& name)
 {
 
-  *m_name = name;
+  m_name = name;
 
   #ifdef fan_platform_windows
 
-  SetWindowTextA(m_window_handle, m_name->c_str());
+  SetWindowTextA(m_window_handle, m_name.c_str());
 
   #elif defined(fan_platform_unix)
 
@@ -644,7 +644,7 @@ void fan::window_t::open(const fan::vec2i& window_size, const fan::string& name,
   m_last_frame = fan::time::clock::now();
   m_current_frame = fan::time::clock::now();
   m_delta_time = 0;
-  m_name = new fan::string(name);
+  m_name = name;
   m_flags = flags;
   m_current_key = 0;
   m_reserved_flags = 0;
@@ -681,8 +681,6 @@ void fan::window_t::open(const fan::vec2i& window_size, const fan::string& name,
 
 void fan::window_t::close()
 {
-  delete m_name;
-
   #if fan_renderer == fan_renderer_vulkan
 
   if (m_vulkan) {

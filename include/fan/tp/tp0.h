@@ -321,6 +321,8 @@ namespace fan {
           fan::throw_error(fan::string("failed to open file:") + filename);
         }
 
+        assert(0);
+        // where do we use this?
         uint32_t pack_amount = pack_list.size();
 
         fan::io::file::write(f, &visual_output, sizeof(uint32_t), 1);

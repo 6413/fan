@@ -156,7 +156,6 @@ static void lib_close(stage_common_t* sc) {
 	}
 
 	void reopen_main() {
-		auto loco = get_loco();
 		reopen_stage(stage_t::stage_options);
 		reopen_stage(stage_t::stage_instance);
 	}

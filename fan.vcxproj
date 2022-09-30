@@ -311,7 +311,7 @@
     <ClInclude Include="include\fan\graphics\fast_obj\fast_obj.h" />
     <ClInclude Include="include\fan\graphics\graphics.h" />
     <ClInclude Include="include\fan\graphics\gui\menu_maker.h" />
-    <ClInclude Include="include\fan\graphics\gui\rectangle_text_button.h" />
+    <ClInclude Include="include\fan\graphics\gui\button.h" />
     <ClInclude Include="include\fan\graphics\gui\select_box.h" />
     <ClInclude Include="include\fan\graphics\gui\stage_maker\fgm.h" />
     <ClInclude Include="include\fan\graphics\gui\stage_maker\fgm_resize_cb.h" />

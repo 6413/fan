@@ -345,49 +345,41 @@ namespace fan {
 		#define BLL_set_node_data mouse_buttons_cb_t data;
 		#include "cb_list_builder_settings.h"
 		#include _FAN_PATH(BLL/BLL.h)
-		buttons_callback_t m_buttons_callback;
 
 		#define BLL_set_prefix keys_callback
 		#define BLL_set_node_data keyboard_keys_cb_t data;
 		#include "cb_list_builder_settings.h"
 		#include _FAN_PATH(BLL/BLL.h)
-		keys_callback_t m_keys_callback;
 
 		#define BLL_set_prefix key_callback
 		#define BLL_set_node_data keyboard_cb_store_t data;
 		#include "cb_list_builder_settings.h"
 		#include _FAN_PATH(BLL/BLL.h)
-		key_callback_t m_key_callback;
 
 		#define BLL_set_prefix text_callback
 		#define BLL_set_node_data text_cb_t data;
 		#include "cb_list_builder_settings.h"
 		#include _FAN_PATH(BLL/BLL.h)
-		text_callback_t m_text_callback;
 
 		#define BLL_set_prefix move_callback
 		#define BLL_set_node_data move_cb_t data;
 		#include "cb_list_builder_settings.h"
 		#include _FAN_PATH(BLL/BLL.h)
-		move_callback_t m_move_callback;
 
 		#define BLL_set_prefix resize_callback
 		#define BLL_set_node_data resize_cb_t data;
 		#include "cb_list_builder_settings.h"
 		#include _FAN_PATH(BLL/BLL.h)
-		resize_callback_t m_resize_callback;
 
 		#define BLL_set_prefix close_callback
 		#define BLL_set_node_data close_cb_t data;
 		#include "cb_list_builder_settings.h"
 		#include _FAN_PATH(BLL/BLL.h)
-		close_callback_t m_close_callback;
 
 		#define BLL_set_prefix mouse_position_callback
 		#define BLL_set_node_data mouse_move_cb_t data;
 		#include "cb_list_builder_settings.h"
 		#include _FAN_PATH(BLL/BLL.h)
-		mouse_position_callback_t m_mouse_position_callback;
 
 		buttons_callback_NodeReference_t add_buttons_callback(mouse_buttons_cb_t function);
 		void remove_buttons_callback(buttons_callback_NodeReference_t id);
@@ -492,43 +484,47 @@ namespace fan {
 		// crossplatform variables
 
 		window_handle_t m_window_handle;
+		uintptr_t m_max_fps;
+		f64_t m_fps_next_tick;
+		uintptr_t m_fps;
+
+		f64_t m_last_frame;
+		f64_t m_current_frame;
+		f64_t m_delta_time;
+		fan::string m_name;
+
+		uintptr_t m_flags;
+		uint64_t m_event_flags;
+		uint64_t m_reserved_flags;
+
+		fan::time::clock m_fps_timer;
+		buttons_callback_t m_buttons_callback;
+		keys_callback_t m_keys_callback;
+		key_callback_t m_key_callback;
+		text_callback_t m_text_callback;
+		move_callback_t m_move_callback;
+		resize_callback_t m_resize_callback;
+		close_callback_t m_close_callback;
+		mouse_position_callback_t m_mouse_position_callback;
 
 		fan::vec2i m_size;
 		fan::vec2i m_previous_size;
 
 		fan::vec2i m_position;
-
-		bool call_mouse_move_cb = false;
 		fan::vec2i m_mouse_position;
-
-		uintptr_t m_max_fps;
-
-		f64_t m_fps_next_tick;
-		bool m_received_fps;
-		uintptr_t m_fps;
-		fan::time::clock m_fps_timer;
-
-		f64_t m_last_frame;
-		f64_t m_current_frame;
-		f64_t m_delta_time;
-
-		bool m_close;
-
-		fan::string* m_name;
-
-		uintptr_t m_flags;
-		uint64_t m_event_flags;
-
-		uint16_t m_current_key;
-		uint64_t m_reserved_flags;
-
 		fan::vec2i m_raw_mouse_offset;
-
-		bool m_focused;
+		fan::vec2i m_previous_mouse_position;
 
 		fan::color m_background_color;
 
-		fan::vec2i m_previous_mouse_position;
+		uint16_t m_current_key;
+
+		bool call_mouse_move_cb = false;
+
+		bool m_received_fps;
+		
+		bool m_close;
+		bool m_focused;
 
 		struct flag_values {
 

@@ -49,10 +49,10 @@ namespace fan {
       IMAGEHLP_LINE64 Line;
       Line.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
       if (SymGetLineFromAddr64(process, (DWORD64)(stack[i]), &Displacement, &Line)) {
-        printf("%i: %s:%u\n", frames - i - 1, symbol->Name, Line.LineNumber);
+        printf("%i: %s:%lu\n", frames - i - 1, symbol->Name, Line.LineNumber);
       }
       else {
-        printf("%i: %s:0x%x\n", frames - i - 1, symbol->Name, symbol->Address);
+        printf("%i: %s:0x%llx\n", frames - i - 1, symbol->Name, symbol->Address);
       }
     }
 

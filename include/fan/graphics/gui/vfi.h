@@ -176,10 +176,8 @@ struct vfi_t {
     return nr;
   }
   void erase(shape_id_t id) {
-    bool redo_mouse = false;
     if (focus.mouse == id) {
       focus.mouse.invalidate();
-      redo_mouse = true;
     }
     if (focus.keyboard == id) {
       focus.keyboard.invalidate();
@@ -233,6 +231,10 @@ struct vfi_t {
         );
         return in ? mouse_stage_e::inside : mouse_stage_e::outside;
       }
+      default: {
+        fan::throw_error("invalid shape_type");
+        return mouse_stage_e::outside;
+      }
     }
   };
 
@@ -249,6 +251,10 @@ struct vfi_t {
           loco->get_context()->matrices_list[shape_data->shape.rectangle.matrices].matrices_id
         );
         break;
+      }
+      default: {
+        fan::throw_error("invalid shape type");
+        return {};
       }
     }
   }
@@ -371,7 +377,6 @@ struct vfi_t {
     }
   }
    void feed_keyboard(uint16_t key, fan::keyboard_state keyboard_state) {
-    loco_t* loco = get_loco();
     keyboard_data_t keyboard_data;
     keyboard_data.vfi = this;
     if (focus.keyboard.is_invalid()) {

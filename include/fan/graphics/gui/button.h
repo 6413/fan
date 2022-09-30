@@ -155,10 +155,8 @@ struct button_t {
 
   void open() {
     sb_open();
-    loco_t* loco = get_loco();
   }
   void close() {
-    loco_t* loco = get_loco();
     // check erase, need to somehow iterate block
     assert(0);
     sb_close();
@@ -169,7 +167,6 @@ struct button_t {
     return loco->get_context()->theme_list[nr].theme_id;
   }
   fan_2d::graphics::gui::theme_t* get_theme(fan::opengl::cid_t* cid) {
-    loco_t* loco = get_loco();
     return get_theme(blocks[*(bll_block_NodeReference_t*)&cid->block_id].block.p[cid->instance_id].theme);
   }
   void set_theme(fan::opengl::cid_t* cid, fan_2d::graphics::gui::theme_t* theme, f32_t intensity) {
@@ -272,7 +269,6 @@ struct button_t {
   }*/
 
   void set_selected(fan::opengl::cid_t* cid, bool flag) {
-    loco_t* loco = get_loco();
     auto block = sb_get_block(cid);
     block->p[cid->instance_id].selected = flag;
   }
