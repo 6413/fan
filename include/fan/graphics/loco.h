@@ -1,4 +1,5 @@
 #include _FAN_PATH(graphics/graphics.h)
+#include _FAN_PATH(time/timer.h)
 
 struct loco_t;
 
@@ -26,6 +27,12 @@ struct loco_t;
 
 #if defined(loco_sprite)
   #include _FAN_PATH(graphics/opengl/texture_pack.h)
+#endif
+
+#if defined(loco_text_box)
+  #define ETC_WED_set_BaseLibrary 1
+  #define ETC_WED_set_Prefix wed
+  #include _FAN_PATH(ETC/WED/WED.h)
 #endif
 
 #if defined(loco_model_3d)
@@ -130,40 +137,25 @@ struct loco_t {
 
   loco_bdbt_t bdbt;
 
+  fan::ev_timer_t ev_timer;
+
   // automatically gets necessary macros for shapes
 
   #if defined(loco_text_box)
-    #if !defined(loco_letter)
+      #define loco_rectangle
       #define loco_letter
-    #endif
-    #if !defined(loco_text)
       #define loco_text
-    #endif
   #endif
   #if defined(loco_button)
-    #if !defined(loco_letter)
-      #define loco_letter
-    #endif
-    #if !defined(loco_text)
-      #define loco_text
-    #endif
-    #if !defined(loco_text_box)
-      #define loco_text_box
-    #endif
+    #define loco_letter
+    #define loco_text
+    #define loco_text_box
   #endif
   #if defined(loco_menu_maker)
-   #if !defined(loco_letter)
-      #define loco_letter
-    #endif
-    #if !defined(loco_text)
-      #define loco_text
-    #endif
-    #if !defined(loco_text_box)
-      #define loco_text_box
-    #endif
-    #if !defined(loco_button)
-      #define loco_button
-    #endif
+    #define loco_letter
+    #define loco_text
+    #define loco_text_box
+    #define loco_button
   #endif
 
   #if defined(loco_line)
@@ -213,6 +205,13 @@ struct loco_t {
     #define sb_shape_var_name button
     #include _FAN_PATH(graphics/gui/button.h)
     button_t sb_shape_var_name;
+    #undef sb_shape_var_name
+  #endif
+  #if defined(loco_text_box)
+    #include _FAN_PATH(graphics/gui/fed.h)
+    #define sb_shape_var_name text_box
+    #include _FAN_PATH(graphics/gui/text_box.h)
+    text_box_t sb_shape_var_name;
     #undef sb_shape_var_name
   #endif
   #if defined(loco_menu_maker)
@@ -300,6 +299,9 @@ struct loco_t {
     #if defined(loco_button)
       button.open();
     #endif
+    #if defined(loco_text_box)
+      text_box.open();
+    #endif
     #if defined(loco_menu_maker)
       menu_maker.open();
       dropdown.open();
@@ -340,6 +342,9 @@ struct loco_t {
     #endif
     #if defined(loco_text)
       text.close();
+    #endif
+    #if defined(loco_text_box)
+      text_box.close();
     #endif
     #if defined(loco_button)
       button.close();
@@ -406,6 +411,9 @@ struct loco_t {
       // loco_t::text gets drawn here as well as it uses letter
       letter.draw();
     #endif
+    #if defined(loco_text_box)
+      text_box.draw();
+    #endif
     #if defined(loco_button)
       button.draw();
     #endif
@@ -461,6 +469,7 @@ struct loco_t {
 
       lambda();
 
+      ev_timer.process();
       process_frame();
     }
   }

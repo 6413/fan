@@ -1513,7 +1513,6 @@ uint32_t fan::window_t::handle_events() {
 
   while (PeekMessageW(&msg, 0, 0, 0, PM_REMOVE))
   {
-   // fan::print(msg.message);
     switch (msg.message) {
       case WM_SYSKEYDOWN:
       case WM_KEYDOWN:
@@ -1554,7 +1553,7 @@ uint32_t fan::window_t::handle_events() {
       case WM_CHAR:
       {
 
-      /*  auto window = fan::get_window_by_id(msg.hwnd);
+        auto window = fan::get_window_by_id(msg.hwnd);
 
         if (!window) {
           break;
@@ -1585,21 +1584,24 @@ uint32_t fan::window_t::handle_events() {
 
               auto src = msg.wParam + (window->m_reserved_flags << 8);
 
-              auto utf8_str = fan::utf16_to_utf8((wchar_t*)&src);
+             // auto utf8_str = fan::utf16_to_utf8((wchar_t*)&src);
 
-              uint32_t value = 0;
+             /* uint32_t value = 0;
 
               for (int i = 0, j = 0; i < utf8_str.size(); i++, j += 0x08) {
                 value |= (uint8_t)utf8_str[i] << j;
-              }
+              }*/
 
-              auto it = window->m_text_callback.begin();
+              auto it = window->m_text_callback.GetNodeFirst();
 
-              while (it != window->m_text_callback.end()) {
+              while (it != window->m_text_callback.dst) {
 
-                window->m_text_callback[it].first(window, value, window->m_text_callback[it].second);
+                fan::window_t::text_cb_data_t d;
+                d.character = src;
+                d.window = window;
+                window->m_text_callback[it].data(d);
 
-                it = window->m_text_callback.next(it);
+                it = it.Next(&window->m_text_callback);
               }
             }
 
@@ -1608,7 +1610,6 @@ uint32_t fan::window_t::handle_events() {
 
         }
 
-        break;*/
         break;
       }
       case WM_LBUTTONDOWN:
@@ -1715,7 +1716,7 @@ uint32_t fan::window_t::handle_events() {
           keyboard_keys_cb_data_t cbd;
           cbd.window = window;
           cbd.key = key;
-          cbd.state = fan::keyboard_state::press;
+          cbd.state = fan::keyboard_state::release;
           window->m_keys_callback[it].data(cbd);
 
           it = window->m_keys_callback.EndSafeNext();

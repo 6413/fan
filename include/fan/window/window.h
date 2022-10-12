@@ -189,7 +189,7 @@ namespace fan {
 
 		struct text_cb_data_t {
 			fan::window_t* window;
-			uint32_t character;
+			wchar_t character;
 		};
 		using text_cb_t = fan::function_t<void(const text_cb_data_t&)>;
 

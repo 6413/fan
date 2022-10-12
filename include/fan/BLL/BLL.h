@@ -6,6 +6,9 @@
 #ifdef BLL_set_declare_basic_types
   #error outdated setting. now it shipped with BLL_set_declare_rest
 #endif
+#ifdef BLL_set_ConstantInvalidNodeReference_Listless
+  #error outdated setting.
+#endif
 
 /* --- outdated --- */
 
@@ -90,9 +93,6 @@
 #ifndef BLL_set_SyntaxStyle
   #define BLL_set_SyntaxStyle 0
 #endif
-#ifndef BLL_set_ConstantInvalidNodeReference_Listless
-  #define BLL_set_ConstantInvalidNodeReference_Listless 1
-#endif
 
 #if BLL_set_Link == 0
   #if BLL_set_SafeNext != 0
@@ -169,9 +169,6 @@
 
 #if BLL_set_declare_NodeReference == 1
   #include "internal/NodeReference.h"
-  #ifdef BLL_set_NodeReference_Overload_Declare
-    #undef BLL_set_NodeReference_Overload_Declare
-  #endif
 #endif
 #if BLL_set_declare_rest == 1
   /* _BLL_POFTWBIT; prefix of function that would be inside type */
@@ -220,6 +217,10 @@
 
 #undef _BLL_INCLUDE
 
+#ifdef BLL_set_NodeReference_Overload_Declare
+  #undef BLL_set_NodeReference_Overload_Declare
+#endif
+
 #ifdef BLL_set_StoreFormat1_ElementPerBlock
   #undef BLL_set_StoreFormat1_ElementPerBlock
 #endif
@@ -234,7 +235,6 @@
 #endif
 #undef BLL_set_debug_InvalidAction_dstAccess
 #undef BLL_set_debug_InvalidAction_srcAccess
-#undef BLL_set_ConstantInvalidNodeReference_Listless
 #undef BLL_set_NodeSizeType
 #undef BLL_set_type_node
 #undef BLL_set_StoreFormat

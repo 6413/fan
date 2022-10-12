@@ -36,7 +36,7 @@ struct letter_t {
 
   void push_back(fan::opengl::cid_t* cid, properties_t& p) {
     loco_t* loco = get_loco();
-    fan::font::single_info_t si = loco->font.info.get_letter_info(p.letter_id, p.font_size);
+    fan::font::character_info_t si = loco->font.info.get_letter_info(p.letter_id, p.font_size);
 
     p.tc_position = si.glyph.position / loco->font.image.size;
     p.tc_size.x = si.glyph.size.x / loco->font.image.size.x;
