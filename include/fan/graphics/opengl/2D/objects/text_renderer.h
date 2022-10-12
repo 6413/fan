@@ -7,7 +7,7 @@ struct text_renderer_t {
     fan::color color = fan::colors::white;
     fan::color outline_color = fan::colors::black;
     f32_t outline_size = 0.5;
-    fan::string text;
+    fan::wstring text;
   };
 
   loco_t* get_loco() {
@@ -38,7 +38,7 @@ struct text_renderer_t {
     return font_size / loco->font.info.size;
   }
 
-  fan::vec2 get_text_size(const fan::string& text, f32_t font_size) {
+  fan::vec2 get_text_size(const fan::wstring& text, f32_t font_size) {
     loco_t* loco = get_loco();
     fan::vec2 text_size = 0;
 
@@ -241,7 +241,7 @@ struct text_renderer_t {
   properties_t get_properties(uint32_t id) {
     return letter_ids[id].p;
   }
-  void set_text(uint32_t* id, const fan::string& text) {
+  void set_text(uint32_t* id, const fan::wstring& text) {
     properties_t p = letter_ids[*id].p;
     erase(*id);
     p.text = text;
@@ -257,10 +257,8 @@ struct text_renderer_t {
 
   struct{
     uint16_t id0;
-
     uint32_t amount;
   }e;
-
 
   #define BLL_set_AreWeInsideStruct 1
   #define BLL_set_BaseLibrary 1

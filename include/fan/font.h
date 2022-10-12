@@ -28,13 +28,13 @@ namespace fan {
 			f32_t border;
 		};
 
-		struct single_info_t {
+		struct character_info_t {
 			mapping_t mapping;
 			metrics_info_t metrics;
 			glyph_info_t glyph;
 		};
 
-		using characters_t = std::unordered_map<uint32_t, single_info_t>;
+		using characters_t = std::unordered_map<wchar_t, character_info_t>;
 
 		struct font_t {
 
@@ -42,7 +42,6 @@ namespace fan {
 			characters_t characters;
 			f32_t line_height;
 
-			
 			auto get_character(wchar_t c) {
 				auto found = characters.find(c);
 				#if fan_debug >= fan_debug_low
@@ -53,7 +52,7 @@ namespace fan {
 				return found->second;
 			}
 
-			uint16_t get_font_index(uint8_t character) const {
+			uint16_t get_font_index(wchar_t character) const {
 				auto found = characters.find(character);
 			#if fan_debug >= fan_debug_low
 				if (found == characters.end()) {
@@ -70,7 +69,7 @@ namespace fan {
 			f32_t convert_font_size(f32_t font_size) const {
 				return font_size / this->size;
 			}
-			/*fan::font::single_info_t get_letter_info(uint16_t font_index, f32_t font_size) const {
+			/*fan::font::character_info_t get_letter_info(uint16_t font_index, f32_t font_size) const {
 
 				auto found = get_font_instance(font_index);
 
@@ -82,7 +81,7 @@ namespace fan {
 
 				f32_t converted_size = convert_font_size(font_size);
 
-				fan::font::single_info_t font_info;
+				fan::font::character_info_t font_info;
 				font_info.metrics.size = found->second.metrics.size * converted_size;
 				font_info.metrics.offset = found->second.metrics.offset * converted_size;
 				font_info.metrics.advance = (found->second.metrics.advance * converted_size);
@@ -93,20 +92,20 @@ namespace fan {
 				return font_info;
 			}*/
 
-			fan::font::single_info_t get_letter_info(uint32_t c, f32_t font_size) const {
+			fan::font::character_info_t get_letter_info(wchar_t c, f32_t font_size) const {
 
+				auto found = characters.begin();
 				#if fan_debug >= fan_debug_low
-					if (c >= characters.size()) {
-						throw std::runtime_error("failed to find character: " + std::to_string((int)c));
+					if (found == characters.end()) {
+						throw std::runtime_error("failed to find character: " + std::to_string(c));
 					}
 				#endif
 
-				auto found = characters.begin();
 				std::advance(found, c);
 
 				f32_t converted_size = convert_font_size(font_size);
 
-				fan::font::single_info_t font_info;
+				fan::font::character_info_t font_info;
 				font_info.metrics.size = found->second.metrics.size * converted_size;
 				font_info.metrics.offset = found->second.metrics.offset * converted_size;
 				font_info.metrics.advance = (found->second.metrics.advance * converted_size);
@@ -165,7 +164,7 @@ namespace fan {
 
 		struct line_t {
 			uint32_t utf;
-			single_info_t font_info;
+			character_info_t font_info;
 		};
 
 		static line_t parse_line(std::unordered_multimap<uint32_t, uint32_t>* reverse_mapping, const fan::string& line, parse_stage_e stage) {
@@ -341,5 +340,4 @@ namespace fan {
 			}
 		}
 	}
-
 }

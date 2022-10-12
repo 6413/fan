@@ -497,3 +497,7 @@ namespace fan {
 #ifdef fan_platform_windows
 #pragma comment(lib, "Onecore.lib")
 #endif
+
+static void PR_abort() {
+	fan::throw_error("");
+}

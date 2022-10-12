@@ -19,7 +19,7 @@ namespace fan_2d {
         image.unload(context);
       }
 
-      uint32_t decode_letter(uint8_t c) const {
+      uint32_t decode_letter(wchar_t c) const {
         return info.get_font_index(c);
       }
 

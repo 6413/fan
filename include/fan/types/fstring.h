@@ -7,9 +7,13 @@
 #include <string>
 
 namespace fan {
-	struct string {
 
-		constexpr std::size_t stringlen(const char* s) {
+	template <typename type_t>
+	struct basic_string {
+
+		using char_type = type_t;
+
+		constexpr std::size_t stringlen(const char_type* s) {
 			std::size_t l = 0;
 			while (*s != 0) {
 				++l;
@@ -18,22 +22,22 @@ namespace fan {
 			return l;
 		}
 
-		using value_type = std::vector<char>;
+		using value_type = std::vector<char_type>;
 
-		string() {
+		basic_string() {
 			str.push_back(0);
 		}
-		string(char c) {
+		basic_string(char_type c) {
 			str.push_back(c);
 			str.push_back(0);
 		}
-		string(const char* s) : str(s, s + stringlen(s)) {
+		basic_string(const char_type* s) : str(s, s + stringlen(s)) {
 			str.push_back(0);
 		}
-		string(value_type::const_iterator beg, value_type::const_iterator end) : str(beg, end) {
+		basic_string(value_type::const_iterator beg, value_type::const_iterator end) : str(beg, end) {
 			str.push_back(0);
 		}
-		string(std::string_view sv) : str(sv.begin(), sv.end()) {
+		basic_string(std::string_view sv) : str(sv.begin(), sv.end()) {
 			str.push_back(0);
 		}
 
@@ -48,7 +52,7 @@ namespace fan {
 			return std::size_t(0);
 		}
 
-		const char* c_str() const {
+		const char_type* c_str() const {
 			return str.data();
 		}
 
@@ -79,14 +83,14 @@ namespace fan {
 		void insert(value_type::const_iterator where, value_type::const_iterator begin, value_type::const_iterator end) {
 			str.insert(where, begin, end);
 		}
-		void insert(value_type::const_iterator iter, const string& s) {
+		void insert(value_type::const_iterator iter, const basic_string& s) {
 			str.insert(iter, s.begin(), s.end());
 		}
-		void insert(std::size_t where, const string& s) {
+		void insert(std::size_t where, const basic_string& s) {
 			str.insert(begin() + where, s.begin(), s.end());
 		}
 
-		auto append(const string& s) {
+		auto append(const basic_string& s) {
 			insert(end(), s);
 			return *this;
 		}
@@ -108,24 +112,24 @@ namespace fan {
 			str.erase(end());
 		}
 
-		string substr(std::size_t beg, std::size_t n) const {
+		basic_string substr(std::size_t beg, std::size_t n) const {
 			if (beg > size() || beg + n > size()) {
 				return *this;
 			}
-			return string(begin() + beg, begin() + beg + n);
+			return basic_string(begin() + beg, begin() + beg + n);
 		}
-		string substr(value_type::const_iterator beg, std::size_t n) const {
-			return string(beg, beg + n);
+		basic_string substr(value_type::const_iterator beg, std::size_t n) const {
+			return basic_string(beg, beg + n);
 		}
 
-		std::size_t find(const string& s) const {
+		std::size_t find(const basic_string& s) const {
 			auto found = std::search(begin(), end(), s.begin(), s.end());
 			if (found == end()) {
 				return npos;
 			}
 			return std::distance(begin(), found);
 		}
-		std::size_t find(const string& s, std::size_t start) const {
+		std::size_t find(const basic_string& s, std::size_t start) const {
 			auto found = std::search(begin() + start, end(), s.begin(), s.end());
 			if (found == end()) {
 				return npos;
@@ -146,7 +150,7 @@ namespace fan {
 			}
 		};
 
-		std::size_t find_first_of(const string& s, std::size_t start = 0) const {
+		std::size_t find_first_of(const basic_string& s, std::size_t start = 0) const {
 			auto found = std::find_first_of(begin() + start, end(), s.begin(), s.end());
 			if (found == end()) {
 				return npos;
@@ -154,12 +158,12 @@ namespace fan {
 			return std::distance(begin(), found);
 		}
 
-		std::size_t find_first_not_of(const string& s, std::size_t start = 0) const {
+		std::size_t find_first_not_of(const basic_string& s, std::size_t start = 0) const {
 			std::string ss = c_str();
 			return ss.find_first_not_of(s.c_str(), start);
 		}
 
-		std::size_t find_last_of(const string& s, std::size_t start = 0) const {
+		std::size_t find_last_of(const basic_string& s, std::size_t start = 0) const {
 			auto found = std::find_end(begin() + start, end(), s.begin(), s.end());
 			if (found == end()) {
 				return npos;
@@ -180,47 +184,47 @@ namespace fan {
 			return std::equal(begin(), end() - 1, s.begin(), s.end() - 1);
 		}
 
-		bool operator==(const string& s) const {
+		bool operator==(const basic_string& s) const {
 			return equals(s);
 		}
 
-		bool operator!=(const string& s) const {
+		bool operator!=(const basic_string& s) const {
 			return !equals(s);
 		}
 
-		string& operator+=(const string& s) {
+		basic_string& operator+=(const basic_string& s) {
 			append(s);
 			return *this;
 		}
 
-		string& operator+=(const char* s) {
+		basic_string& operator+=(const char_type* s) {
 			insert(end(), s);
 			return *this;
 		}
 
-		string operator+(const string& s) const {
-			string result = *this;
+		basic_string operator+(const basic_string& s) const {
+			basic_string result = *this;
 			result.insert(result.end(), s);
 			return result;
 		}
-		string operator+(const char* c) const {
-			string result = *this;
+		basic_string operator+(const char_type* c) const {
+			basic_string result = *this;
 			result.insert(result.end(), c);
 			return result;
 		}
 
-		constexpr char& operator[](std::size_t i) {
+		constexpr char_type& operator[](std::size_t i) {
 			return str[i];
 		}
-		constexpr char operator[](std::size_t i) const {
+		constexpr char_type operator[](std::size_t i) const {
 			return str[i];
 		}
 
-		constexpr  char* data() noexcept {
+		constexpr char_type* data() noexcept {
 			return str.data();
 		}
 
-		constexpr const char* data() const noexcept {
+		constexpr const char_type* data() const noexcept {
 			return str.data();
 		}
 
@@ -258,14 +262,32 @@ namespace fan {
 		static constexpr std::size_t npos = -1;
 		value_type str;
 	};
-
-	static std::ostream& operator<<(std::ostream& os, const fan::string& s) {
+	
+	template <typename T>
+	static std::ostream& operator<<(std::ostream& os, const fan::basic_string<T>& s) {
 		return os << s.c_str();
 	}
 }
 
-static fan::string operator+(const char* left, const fan::string& s) {
-	fan::string str = s;
+template <typename T>
+static fan::basic_string<T> operator+(const T* left, const fan::basic_string<T>& s) {
+	fan::basic_string<T> str = s;
 	str.insert(str.begin(), left);
 	return str;
+}
+
+namespace fan {
+	struct string : fan::basic_string<char>{
+		string(const basic_string& b) : basic_string(b) {
+
+		}
+
+		using basic_string::basic_string;
+	};
+	struct wstring: fan::basic_string<wchar_t> {
+		wstring(const basic_string& b) : basic_string(b) {
+
+		}
+		using basic_string::basic_string;
+	};
 }
