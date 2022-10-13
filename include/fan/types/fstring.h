@@ -252,7 +252,7 @@ namespace fan {
 			for (size_t pos = 0; ; pos += replace.size()) {
 				// Locate the substring to replace
 				pos = find(search, pos);
-				if (pos == fan::string::npos) break;
+				if (pos == basic_string::npos) break;
 				// Replace by erasing and inserting
 				erase(pos, search.size());
 				insert(pos, replace);
