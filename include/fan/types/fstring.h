@@ -34,7 +34,7 @@ namespace fan {
 		basic_string(const char_type* s) : str(s, s + stringlen(s)) {
 			str.push_back(0);
 		}
-		basic_string(value_type::const_iterator beg, value_type::const_iterator end) : str(beg, end) {
+		basic_string(typename value_type::const_iterator beg, typename value_type::const_iterator end) : str(beg, end) {
 			str.push_back(0);
 		}
 		basic_string(std::string_view sv) : str(sv.begin(), sv.end()) {
@@ -80,10 +80,10 @@ namespace fan {
 			return str.end();
 		}
 
-		void insert(value_type::const_iterator where, value_type::const_iterator begin, value_type::const_iterator end) {
+		void insert(typename value_type::const_iterator where, typename value_type::const_iterator begin, value_type::const_iterator end) {
 			str.insert(where, begin, end);
 		}
-		void insert(value_type::const_iterator iter, const basic_string& s) {
+		void insert(typename value_type::const_iterator iter, const basic_string& s) {
 			str.insert(iter, s.begin(), s.end());
 		}
 		void insert(std::size_t where, const basic_string& s) {
@@ -102,10 +102,10 @@ namespace fan {
 		void erase(std::size_t where) {
 			str.erase(str.begin() + where);
 		}
-		void erase(value_type::const_iterator where) {
+		void erase(typename value_type::const_iterator where) {
 			str.erase(where);
 		}
-		void erase(value_type::const_iterator begin, value_type::const_iterator end) {
+		void erase(typename value_type::const_iterator begin, typename value_type::const_iterator end) {
 			str.erase(begin, end);
 		}
 		void pop_back() {
@@ -118,7 +118,7 @@ namespace fan {
 			}
 			return basic_string(begin() + beg, begin() + beg + n);
 		}
-		basic_string substr(value_type::const_iterator beg, std::size_t n) const {
+		basic_string substr(typename value_type::const_iterator beg, std::size_t n) const {
 			return basic_string(beg, beg + n);
 		}
 
@@ -171,7 +171,7 @@ namespace fan {
 			return std::distance(begin(), found);
 		}
 
-		bool equals(const string& s) const {
+		bool equals(const basic_string& s) const {
 			if (size() != s.size()) {
 				return false;
 			}
