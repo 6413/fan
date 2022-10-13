@@ -80,7 +80,7 @@ namespace fan {
 			return str.end();
 		}
 
-		void insert(typename value_type::const_iterator where, typename value_type::const_iterator begin, value_type::const_iterator end) {
+		void insert(typename value_type::const_iterator where, typename value_type::const_iterator begin, typename value_type::const_iterator end) {
 			str.insert(where, begin, end);
 		}
 		void insert(typename value_type::const_iterator iter, const basic_string& s) {
@@ -233,7 +233,7 @@ namespace fan {
 		}
 
 		// dont use xd
-		void replace(std::size_t beg, std::size_t count, const fan::string& replace) {
+		void replace(std::size_t beg, std::size_t count, const basic_string& replace) {
 			if (count < replace.size()) {
 				std::size_t to_replace = replace.size() - count;
 				resize(size() + to_replace);
@@ -248,7 +248,7 @@ namespace fan {
 			erase(end() - to_replace, end());
 		}
 
-		void replace_all(const fan::string& search, const fan::string& replace) {
+		void replace_all(const basic_string& search, const basic_string& replace) {
 			for (size_t pos = 0; ; pos += replace.size()) {
 				// Locate the substring to replace
 				pos = find(search, pos);
