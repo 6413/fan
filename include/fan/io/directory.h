@@ -33,7 +33,7 @@ namespace fan {
 					iterate_directory_by_image_size_(entry.path().string(), sorted, function);
 					continue;
 				}
-				fan::string str = entry.path().string();
+				fan::string str = entry.path().string().data();
 				std::replace(str.begin(), str.end(), '\\', '/');
 				fan::vec2ui image_size;
 				if (fan::webp::get_image_size(str, &image_size)) {
@@ -72,7 +72,7 @@ namespace fan {
 					iterate_directory(entry.path().string(), function);
 					continue;
 				}
-				fan::string str = entry.path().string();
+				fan::string str = entry.path().string().data();
 				std::replace(str.begin(), str.end(), '\\', '/');
 				function(str);
 			}
