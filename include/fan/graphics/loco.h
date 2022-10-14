@@ -69,6 +69,14 @@ struct loco_t {
     fan::opengl::cid_t* cid;
   };
 
+  struct text_data_t : vfi_t::text_data_t {
+    text_data_t(const vfi_t::text_data_t& mm) : vfi_t::text_data_t(mm) {
+
+    }
+
+    fan::opengl::cid_t* cid;
+  };
+
   #ifdef loco_window
     using mouse_buttons_cb_data_t = fan::window_t::mouse_buttons_cb_data_t;
     using keyboard_keys_cb_data_t = fan::window_t::keyboard_keys_cb_data_t;
@@ -84,6 +92,7 @@ struct loco_t {
   using mouse_move_cb_t = fan::function_t<int(const mouse_move_data_t&)>;
   using mouse_button_cb_t = fan::function_t<int(const mouse_button_data_t&)>;
   using keyboard_cb_t = fan::function_t<int(const keyboard_data_t&)>;
+  using text_cb_t = fan::function_t<int(const text_data_t&)>;
 
   vfi_t vfi_var_name;
 
@@ -271,6 +280,10 @@ struct loco_t {
       feed_mouse_move(get_mouse_position());
     });
 
+    get_window()->add_text_callback([&](const fan::window_t::text_cb_data_t& d) {
+      feed_text(d.character);
+    });
+
     context.open();
     context.bind_to_window(&window);
 
@@ -380,6 +393,10 @@ struct loco_t {
 
   void feed_keyboard(uint16_t key, fan::keyboard_state keyboard_state) {
     vfi.feed_keyboard(key, keyboard_state);
+  }
+
+  void feed_text(wchar_t key) {
+    vfi.feed_text(key);
   }
 
   void process_frame() {

@@ -11,6 +11,7 @@ struct vfi_t {
   void open() {
     focus.mouse.invalidate();
     focus.keyboard.invalidate();
+    focus.text.invalidate();
     shape_list.Open();
   }
   void close() {
@@ -91,15 +92,22 @@ struct vfi_t {
     fan::keyboard_state keyboard_state;
   };
 
+  struct text_data_t {
+    vfi_t* vfi;
+    wchar_t key;
+  };
+
   using mouse_move_cb_t = fan::function_t<int(const mouse_move_data_t&)>;
   using mouse_button_cb_t = fan::function_t<int(const mouse_button_data_t&)>;
   using keyboard_cb_t = fan::function_t<int(const keyboard_data_t&)>;
+  using text_cb_t = fan::function_t<int(const text_data_t&)>;
 
   struct common_shape_data_t {
 
     mouse_button_cb_t mouse_button_cb = [](const mouse_button_data_t&) -> int { return 0; };
     mouse_move_cb_t mouse_move_cb = [](const mouse_move_data_t&) -> int { return 0; };
     keyboard_cb_t keyboard_cb = [](const keyboard_data_t&) -> int { return 0; };
+    text_cb_t text_cb = [](const text_data_t&) -> int { return 0; };
     f32_t depth;
     union{
       shape_data_always_t always; 
@@ -112,6 +120,7 @@ struct vfi_t {
     mouse_button_cb_t mouse_button_cb = [](const mouse_button_data_t&) -> int { return 0; };
     mouse_move_cb_t mouse_move_cb = [](const mouse_move_data_t&) -> int { return 0; };
     keyboard_cb_t keyboard_cb = [](const keyboard_data_t&) -> int { return 0; };
+    text_cb_t text_cb = [](const text_data_t&) -> int { return 0; };
     union {
       shape_properties_always_t always; 
       shape_properties_rectangle_t rectangle; 
@@ -130,6 +139,7 @@ struct vfi_t {
   struct {
     shape_id_t mouse;
     shape_id_t keyboard;
+    shape_id_t text;
 
     struct {
       struct {
@@ -139,6 +149,9 @@ struct vfi_t {
       struct {
 
       }keyboard;
+      struct {
+
+      }text;
     }method;
   }focus;
 
@@ -154,6 +167,7 @@ struct vfi_t {
     instance.shape_data.mouse_move_cb = p.mouse_move_cb;
     instance.shape_data.mouse_button_cb = p.mouse_button_cb;
     instance.shape_data.keyboard_cb = p.keyboard_cb;
+    instance.shape_data.text_cb = p.text_cb;
     switch(p.shape_type) {
       case shape_t::always:{
         instance.shape_data.depth = p.shape.always.z;
@@ -181,6 +195,9 @@ struct vfi_t {
     }
     if (focus.keyboard == id) {
       focus.keyboard.invalidate();
+    }
+    if (focus.text == id) {
+      focus.text.invalidate();
     }
     shape_list.Unlink(id);
     shape_list.Recycle(id);
@@ -276,6 +293,12 @@ struct vfi_t {
   void set_focus_keyboard(shape_id_t id) {
     focus.keyboard = id;
   }
+  shape_id_t get_focus_text() {
+    return focus.text;
+  }
+  void set_focus_text(shape_id_t id) {
+    focus.text = id;
+  }
 
   void invalidate_focus_mouse() {
     focus.mouse.invalidate();
@@ -283,6 +306,9 @@ struct vfi_t {
   }
   void invalidate_focus_keyboard() {
     focus.keyboard.invalidate();
+  }
+  void invalidate_focus_text() {
+    focus.text.invalidate();
   }
 
   void feed_mouse_move(const fan::vec2& position) {
@@ -389,5 +415,18 @@ struct vfi_t {
     shape_id_t bcbfk = focus.keyboard;
 
     shape_list[focus.keyboard].shape_data.keyboard_cb(keyboard_data);
+  }
+  void feed_text(wchar_t key) {
+    text_data_t text_data;
+    text_data.vfi = this;
+    if (focus.text.is_invalid()) {
+      return;
+    }
+
+    text_data.key = key;
+
+    shape_id_t bcbfk = focus.text;
+
+    shape_list[focus.text].shape_data.text_cb(text_data);
   }
 };
