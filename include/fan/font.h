@@ -52,11 +52,12 @@ namespace fan {
 				return found->second;
 			}
 
-			uint16_t get_font_index(wchar_t character) const {
+			uint32_t get_font_index(wchar_t character) const {
 				auto found = characters.find(character);
 			#if fan_debug >= fan_debug_low
 				if (found == characters.end()) {
-					fan::throw_error("failed to find character from font");
+					fan::print_warning("failed to find character from font");
+					return -1;
 				}
 			#endif
 				return std::distance(characters.begin(), found);

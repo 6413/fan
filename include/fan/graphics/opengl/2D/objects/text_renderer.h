@@ -29,7 +29,7 @@ struct text_renderer_t {
   }
   void close() {
     for (uint32_t i = 0; i < letter_ids.size(); i++) {
-      letter_ids[i].cid.Close();
+      letter_ids[i].cid_list.Close();
     }
   }
 
@@ -106,7 +106,7 @@ struct text_renderer_t {
       letter_ids.resize(letter_ids.size() + 1);
       id = letter_ids.size() - 1;
     }
-    letter_ids[id].cid.Open();
+    letter_ids[id].cid_list.Open();
     letter_ids[id].p = properties;
 
     fan::vec2 text_size = get_text_size(properties.text, properties.font_size);
@@ -119,8 +119,8 @@ struct text_renderer_t {
       p.position = fan::vec2(left - letter_info.metrics.offset.x, properties.position.y) + (fan::vec2(letter_info.metrics.size.x, properties.font_size - letter_info.metrics.size.y) / 2 + fan::vec2(letter_info.metrics.offset.x, -letter_info.metrics.offset.y));
       p.position.z = properties.position.z;
 
-      auto nr = letter_ids[id].cid.NewNodeLast();
-      auto n = letter_ids[id].cid.GetNodeByReference(nr);
+      auto nr = letter_ids[id].cid_list.NewNodeLast();
+      auto n = letter_ids[id].cid_list.GetNodeByReference(nr);
       loco->letter.push_back(&n->data.cid, p);
       left += letter_info.metrics.advance;
     }
@@ -130,15 +130,15 @@ struct text_renderer_t {
   void erase(uint32_t id) {
     loco_t* loco = get_loco();
 
-    auto it = letter_ids[id].cid.GetNodeFirst();
+    auto it = letter_ids[id].cid_list.GetNodeFirst();
 
-    while (it != letter_ids[id].cid.dst) {
-      auto node = letter_ids[id].cid.GetNodeByReference(it);
+    while (it != letter_ids[id].cid_list.dst) {
+      auto node = letter_ids[id].cid_list.GetNodeByReference(it);
       loco->letter.erase(&node->data.cid);
 
       it = node->NextNodeReference;
     }
-    letter_ids[id].cid.Close();
+    letter_ids[id].cid_list.Close();
     *(uint32_t*)&letter_ids[id] = e.id0;
     e.id0 = id;
     e.amount++;
@@ -185,10 +185,10 @@ struct text_renderer_t {
   // do not use with set_position
   void set(uint32_t id, auto member, auto value) {
     loco_t* loco = get_loco();
-    auto it = letter_ids[id].cid.GetNodeFirst();
+    auto it = letter_ids[id].cid_list.GetNodeFirst();
 
-    while (it != letter_ids[id].cid.dst) {
-      auto node = letter_ids[id].cid.GetNodeByReference(it);
+    while (it != letter_ids[id].cid_list.dst) {
+      auto node = letter_ids[id].cid_list.GetNodeByReference(it);
       loco->letter.set(&node->data.cid, member, value);
       it = node->NextNodeReference;
     }
@@ -197,10 +197,10 @@ struct text_renderer_t {
   void set_matrices(uint32_t id, fan::opengl::matrices_list_NodeReference_t n) {
     loco_t* loco = get_loco();
 
-    auto it = letter_ids[id].cid.GetNodeFirst();
+    auto it = letter_ids[id].cid_list.GetNodeFirst();
 
-    while (it != letter_ids[id].cid.dst) {
-      auto node = letter_ids[id].cid.GetNodeByReference(it);
+    while (it != letter_ids[id].cid_list.dst) {
+      auto node = letter_ids[id].cid_list.GetNodeByReference(it);
       loco->letter.set_matrices(&node->data.cid, n);
       it = node->NextNodeReference;
     }
@@ -209,10 +209,10 @@ struct text_renderer_t {
   void set_viewport(uint32_t id, fan::opengl::viewport_list_NodeReference_t n) {
     loco_t* loco = get_loco();
 
-    auto it = letter_ids[id].cid.GetNodeFirst();
+    auto it = letter_ids[id].cid_list.GetNodeFirst();
 
-    while (it != letter_ids[id].cid.dst) {
-      auto node = letter_ids[id].cid.GetNodeByReference(it);
+    while (it != letter_ids[id].cid_list.dst) {
+      auto node = letter_ids[id].cid_list.GetNodeByReference(it);
       loco->letter.set_viewport(&node->data.cid, n);
       it = node->NextNodeReference;
     }
@@ -262,7 +262,7 @@ struct text_renderer_t {
 
   #define BLL_set_AreWeInsideStruct 1
   #define BLL_set_BaseLibrary 1
-  #define BLL_set_prefix cid
+  #define BLL_set_prefix cid_list
   #define BLL_set_type_node uint16_t
   #define BLL_set_node_data fan::opengl::cid_t cid;
   #define BLL_set_Link 1
@@ -270,7 +270,7 @@ struct text_renderer_t {
   #include _FAN_PATH(BLL/BLL.h)
 
   struct instance_t {
-    cid_t cid;
+    cid_list_t cid_list;
     properties_t p;
   };
 

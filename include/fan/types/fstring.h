@@ -41,6 +41,10 @@ namespace fan {
 			str.push_back(0);
 		}
 
+		void push_back(char_type c) {
+			str.insert(str.end() - 1, c);
+		}
+
 		bool empty() const {
 			return !size();
 		}

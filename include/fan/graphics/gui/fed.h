@@ -35,15 +35,31 @@ struct fed_t {
 	void add_character(wed_t::CharacterData_t character) {
 		auto found = loco->font.decode_letter(character);
 
+		if (found == -1) {
+			return;
+		}
+
 		auto letter = loco->font.info.get_letter_info(character, m_font_size);
 
 		m_wed.AddCharacterToCursor(m_cr, character, letter.metrics.advance * character_width_multiplier);
 	}
 
-	void move_freestyle_left() {
+	void freestyle_erase_character() {
+		m_wed.DeleteCharacterFromCursor(m_cr);
+	}
+	void freestyle_erase_character_right() {
+		m_wed.DeleteCharacterFromCursorRight(m_cr);
+	}
+	void freestyle_move_line_begin() {
+		m_wed.MoveCursorFreeStyleToBeginOfLine(m_cr);
+	}
+	void freestyle_move_line_end() {
+		m_wed.MoveCursorFreeStyleToEndOfLine(m_cr);
+	}
+	void freestyle_move_left() {
 		m_wed.MoveCursorFreeStyleToLeft(m_cr);
 	}
-	void move_freestyle_right() {
+	void freestyle_move_right() {
 		m_wed.MoveCursorFreeStyleToRight(m_cr);
 	}
 
@@ -53,7 +69,7 @@ struct fed_t {
 		wed_t::CharacterReference_t cr;
 		fan::wstring text;
 		while (m_wed.ExportLine(&el, &cr)) {
-			text.append(m_wed.GetDataOfCharacter(line_id, cr));
+			text.push_back(*m_wed.GetDataOfCharacter(line_id, cr));
 		}
 		return text;
 	}

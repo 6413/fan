@@ -60,7 +60,7 @@ int main() {
   tp.get_matrices() = &pile.matrices;
   tp.get_viewport() = &pile.viewport;
   // tp.position = 400;
-  tp.position = 0;
+  tp.position = fan::vec2(-0.2);
   //tp.position.y = 0;
  // tp.position.z = 50;
   tp.size = fan::vec2(0.3, 0.1)
@@ -86,9 +86,16 @@ int main() {
   constexpr auto count = 10;
   fan::opengl::cid_t cids[count];
   pile.loco.text_box.push_back(&cids[0], tp);
+  tp.position = fan::vec2(0.2);
+  tp.text = L"test";
+  pile.loco.text_box.push_back(&cids[1], tp);
 
   //pile.loco.button.set_theme(&cids[0], &gray_theme, 0.1);
+
+  pile.loco.set_vsync(false);
+
   pile.loco.loop([&] {
+    pile.loco.get_fps();
     //pile.loco.button.set(&cids[0], &loco_t::button_t::instance_t::position, fan::vec2(-0.5, .5));
   });
 
