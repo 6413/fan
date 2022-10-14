@@ -17,28 +17,24 @@ LIBS =
 
 BASE_PATH = 
 
+FAN_LIB =
+
 ifeq ($(OS),Windows_NT)
   BASE_PATH += lib/fan/
     #                        magic - replace / with \ thanks to windows
   FAN_OBJECT_FOLDER = $(subst /,\,$(BASE_PATH))
-
-  CFLAGS += $(FAN_OBJECT_FOLDER)fan_windows_clang.a
+	FAN_LIB += fan_windows_clang
   CFLAGS += -I C:/libs/fan/src/libwebp -I C:/libs/fan/src/libwebp/src C:/libs/fan/lib/libwebp/libwebp.a C:/libs/fan/lib/opus/libopus.a
 else
   BASE_PATH += lib/fan/
   FAN_OBJECT_FOLDER += $(BASE_PATH)
-  CFLAGS += -I /usr/local/include -lX11 -lXrandr -L /usr/local/lib -lopus -lGL -lwebp -ldl $(FAN_OBJECT_FOLDER)fan.a
+  CFLAGS += -I /usr/local/include -lX11 -lXrandr -L /usr/local/lib -lopus -lGL -lwebp -ldl
   CFLAGS += -DFAN_INCLUDE_PATH=/mnt/c/libs/fan/include
+	FAN_LIB += fan
 endif
 
-
-default : $(TARGET)
-
-$(TARGET): fan_main.o
-	$(GPP) $(CFLAGS) $(MAINFLAGS) $(FAN_OBJECT_FOLDER)fan_main.o
-	
-fan_main.o:	$(MAIN)
-	$(GPP) $(CFLAGS) -c $(MAIN) -o $(FAN_OBJECT_FOLDER)fan_main.o
+_:
+	$(GPP) $(CFLAGS) $(MAIN) $(FAN_OBJECT_FOLDER)$(FAN_LIB).a
 
 clean:
-	rm -f $(FAN_OBJECT_FOLDER)fan_main.o
+	rm -f a.out

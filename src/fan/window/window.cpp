@@ -1552,7 +1552,6 @@ uint32_t fan::window_t::handle_events() {
       }
       case WM_CHAR:
       {
-
         auto window = fan::get_window_by_id(msg.hwnd);
 
         if (!window) {
@@ -1584,6 +1583,7 @@ uint32_t fan::window_t::handle_events() {
 
               auto src = msg.wParam + (window->m_reserved_flags << 8);
 
+             // UTF-8
              // auto utf8_str = fan::utf16_to_utf8((wchar_t*)&src);
 
              /* uint32_t value = 0;
@@ -2067,7 +2067,7 @@ uint32_t fan::window_t::handle_events() {
 
               text_cb_data_t cdb;
               cdb.window = window;
-              cdb.character = key;
+              cdb.character = str[0];
               window->m_text_callback[it].data(cdb);
 
               it = window->m_text_callback.EndSafeNext();
@@ -2076,15 +2076,18 @@ uint32_t fan::window_t::handle_events() {
           else {
 
             //auto utf8_str = fan::utf16_to_utf8((wchar_t*)str.data());
+            //?
+            auto it = window->m_text_callback.GetNodeFirst();
 
-            //auto it = window->m_text_callback.begin();
+            while (it != window->m_text_callback.dst) {
 
-            //while (it != window->m_text_callback.end()) {
+              fan::window_t::text_cb_data_t d;
+              d.window = window;
+              d.character = str[0];
+              window->m_text_callback[it].data(d);
 
-            //  window->m_text_callback[it].first(window, utf8_str.get_character(0), window->m_text_callback[it].second);
-
-            //  it = window->m_text_callback.next(it);
-            //}
+              it = it.Next(&window->m_text_callback);
+            }
           }
         }
 

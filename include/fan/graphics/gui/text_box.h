@@ -58,6 +58,7 @@ struct text_box_t {
     loco_t::mouse_button_cb_t mouse_button_cb = [](const loco_t::mouse_button_data_t&) -> int { return 0; };
     loco_t::mouse_move_cb_t mouse_move_cb = [](const loco_t::mouse_move_data_t&) -> int { return 0; };
     loco_t::keyboard_cb_t keyboard_cb = [](const loco_t::keyboard_data_t&) -> int { return 0; };
+    loco_t::text_cb_t text_cb = [](const loco_t::text_data_t&) -> int { return 0; };
   };
 
   void push_back(fan::opengl::cid_t* cid, properties_t& p) {
@@ -115,6 +116,7 @@ struct text_box_t {
             loco->text_box.set_theme(cid_, loco->text_box.get_theme(cid_), press);
             ii_d.flag->ignore_move_focus_check = true;
             loco->vfi.set_focus_keyboard(loco->vfi.get_focus_mouse());
+            loco->vfi.set_focus_text(loco->vfi.get_focus_mouse());
           }
         }
         else if (!block->p[cid_->instance_id].selected) {
@@ -155,25 +157,6 @@ struct text_box_t {
               update_cursor(cid_);
               break;
             }
-            default: {
-              pr.fed.add_character(kd.key);
-              fan::print(kd.key);
-              wed_t::CursorInformation_t ci;
-              auto& fed = sb_get_block(cid_)->p[cid_->instance_id].fed;
-              fed.m_wed.GetCursorInformation(fed.m_cr, &ci);
-              switch (ci.type) {
-                case wed_t::CursorType::FreeStyle: {
-                  loco->text_box.set_text(cid_, pr.fed.get_text(ci.FreeStyle.LineReference));
-                  break;
-                }
-                case wed_t::CursorType::Selection: {
-                  assert(0);
-                  break;
-                }
-              }
-              update_cursor(cid_);
-              break;
-            }
           }
         }
 
@@ -181,6 +164,37 @@ struct text_box_t {
         auto block = loco->text_box.sb_get_block(cid_);
         kd_.cid = cid_;
         cb(kd_);
+        return 0;
+      };
+      vfip.text_cb = [this, &pr, cb = p.text_cb, udata = p.udata, cid_ = cid](const loco_t::vfi_t::text_data_t& td) -> int {
+        loco_t* loco = OFFSETLESS(td.vfi, loco_t, vfi_var_name);
+
+        switch (td.key) {
+          default: {
+            pr.fed.add_character(td.key);
+            fan::wprint(td.key);
+            wed_t::CursorInformation_t ci;
+            auto& fed = sb_get_block(cid_)->p[cid_->instance_id].fed;
+            fed.m_wed.GetCursorInformation(fed.m_cr, &ci);
+            switch (ci.type) {
+              case wed_t::CursorType::FreeStyle: {
+                loco->text_box.set_text(cid_, pr.fed.get_text(ci.FreeStyle.LineReference));
+                break;
+              }
+              case wed_t::CursorType::Selection: {
+                assert(0);
+                break;
+              }
+            }
+            update_cursor(cid_);
+            break;
+          }
+        }
+
+        loco_t::text_data_t td_ = td;
+        auto block = loco->text_box.sb_get_block(cid_);
+        td_.cid = cid_;
+        cb(td_);
         return 0;
       };
     }
@@ -412,7 +426,7 @@ struct text_box_t {
     return p;
   }
 
-  fan::ev_timer_t::timer_t timer = [this](const fan::ev_timer_t::cb_data_t& c) {
+  fan::ev_timer_t::timer_t timer = fan::function_t<void(const fan::ev_timer_t::cb_data_t&)>([this](const fan::ev_timer_t::cb_data_t& c) {
     if (!render_cursor) {
       get_loco()->rectangle.set(&cursor_id, &loco_t::rectangle_t::instance_t::color, fan::colors::transparent);
     }
@@ -421,7 +435,7 @@ struct text_box_t {
     }
     render_cursor = !render_cursor;
     c.ev_timer->start(c.timer, cursor_properties::speed);
-  };
+  });
   fan::opengl::cid_t cursor_id;
   bool render_cursor = true;
 };
