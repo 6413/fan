@@ -117,6 +117,7 @@ struct text_box_t {
             ii_d.flag->ignore_move_focus_check = true;
             loco->vfi.set_focus_keyboard(loco->vfi.get_focus_mouse());
             loco->vfi.set_focus_text(loco->vfi.get_focus_mouse());
+            update_cursor(cid_);
           }
         }
         else if (!block->p[cid_->instance_id].selected) {
@@ -145,20 +146,37 @@ struct text_box_t {
       vfip.keyboard_cb = [this, &pr, cb = p.keyboard_cb, udata = p.udata, cid_ = cid](const loco_t::vfi_t::keyboard_data_t& kd) -> int {
         loco_t* loco = OFFSETLESS(kd.vfi, loco_t, vfi_var_name);
 
-        if (kd.keyboard_state != fan::keyboard_state::release) {
-          switch (kd.key) {
-            case fan::key_left: {
-              pr.fed.move_freestyle_left();
-              update_cursor(cid_);
+        auto update_text = [loco, &pr, this, cid_] {
+          wed_t::CursorInformation_t ci;
+          auto& fed = sb_get_block(cid_)->p[cid_->instance_id].fed;
+          fed.m_wed.GetCursorInformation(fed.m_cr, &ci);
+          switch (ci.type) {
+            case wed_t::CursorType::FreeStyle: {
+              loco->text_box.set_text(cid_, pr.fed.get_text(ci.FreeStyle.LineReference));
               break;
             }
-            case fan::key_right: {
-              pr.fed.move_freestyle_right();
-              update_cursor(cid_);
+            case wed_t::CursorType::Selection: {
+              assert(0);
               break;
             }
           }
+        };
+
+        if (kd.keyboard_state != fan::keyboard_state::release) {
+          switch (kd.key) {
+            case fan::key_backspace: { pr.fed.freestyle_erase_character(); update_text();  break; }
+            case fan::key_delete: { pr.fed.freestyle_erase_character_right(); update_text(); break; }
+            case fan::key_home:  { pr.fed.freestyle_move_line_begin(); break; }
+            case fan::key_end: { pr.fed.freestyle_move_line_end(); break; }
+            case fan::key_left: { pr.fed.freestyle_move_left(); break; }
+            case fan::key_right: { pr.fed.freestyle_move_right(); break; }
+            default: {
+              return 0;
+            }
+          }
         }
+
+        update_cursor(cid_);
 
         loco_t::keyboard_data_t kd_ = kd;
         auto block = loco->text_box.sb_get_block(cid_);
@@ -172,7 +190,6 @@ struct text_box_t {
         switch (td.key) {
           default: {
             pr.fed.add_character(td.key);
-            fan::wprint(td.key);
             wed_t::CursorInformation_t ci;
             auto& fed = sb_get_block(cid_)->p[cid_->instance_id].fed;
             fed.m_wed.GetCursorInformation(fed.m_cr, &ci);
@@ -394,35 +411,33 @@ struct text_box_t {
     loco->text.set_text(&block->p[cid->instance_id].text_id, text);
   }
 
-  fan::vec2 get_character_position(fan::opengl::cid_t* cid, uint32_t line, uint32_t width) {
+  fan::vec3 get_character_position(fan::opengl::cid_t* cid, uint32_t line, uint32_t width) {
+
     auto loco = get_loco();
-    uint32_t id = sb_get_block(cid)->p->text_id;
+    uint32_t id = sb_get_block(cid)->p[cid->instance_id].text_id;
+    fan::vec3 center = get_button(cid, &text_box_t::instance_t::position);
     if (width == 0) {
       if (loco->text.get_properties(id).text.empty()) {
-        return get_button(cid, &text_box_t::instance_t::position);
+        return center;
       }
     }
+    f32_t text_length = loco->text.get_text_size(id).x;
+    fan::vec3 p;
+    auto it = loco->text.letter_ids[id].cid_list.GetNodeFirst();
+    fan::vec3 pfirst = loco->letter.get(
+      &loco->text.letter_ids[id].cid_list.GetNodeByReference(it)->data.cid,
+      &loco_t::letter_t::instance_t::position
+    );
+    p.x = center.x - text_length * 0.5;
 
-    bool zero = width == 0;
-    uint32_t actual_width = zero ? 0 : width - 1;
-
-    uint64_t idx = 0;
-    auto it = loco->text.letter_ids[id].cid.GetNodeFirst();
-    fan::opengl::cid_t* dst;
-    while (it != loco->text.letter_ids[id].cid.dst) {
-      auto node = loco->text.letter_ids[id].cid.GetNodeByReference(it);
-      if (idx == actual_width) {
-        dst = &node->data.cid;
-        break;
-      }
-      ++idx;
-      it = node->NextNodeReference;
-    }
-    fan::vec2 p = loco->letter.get(dst, &loco_t::letter_t::instance_t::position);
-    wchar_t c = loco->text.letter_ids[id].p.text[actual_width];
+    const fan::wstring& text = loco->text.get_properties(id).text;
     f32_t font_size = loco->text.letter_ids[id].p.font_size;
-    auto letter = loco->font.info.get_letter_info(loco->font.decode_letter(c), font_size);
-    p.x -= letter.metrics.size.x * 0.5 - letter.metrics.advance * !zero;
+    for (uint32_t i = 0; i < width; ++i) {
+      auto letter = loco->font.info.get_letter_info(loco->font.decode_letter(text[i]), font_size);
+      p.x += letter.metrics.advance;
+    }
+    p.y = get_button(cid, &text_box_t::instance_t::position).y;
+    p.z = pfirst.z;
     return p;
   }
 
