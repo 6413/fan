@@ -15,8 +15,9 @@
 #ifndef FAN_INCLUDE_PATH
 	#define _FAN_PATH(p0) <fan/p0>
 #else
+	#define FAN_INCLUDE_PATH_END fan/
 	#define _FAN_PATH(p0) <FAN_INCLUDE_PATH/fan/p0>
-	#define _FAN_PATH_QUOTE(p0) STRINGIFY_DEFINE(CONCAT(FAN_INCLUDE_PATH, /fan/p0))
+#define _FAN_PATH_QUOTE(p0) STRINGIFY_DEFINE(FAN_INCLUDE_PATH) "/fan/" STRINGIFY(p0)
 
 #endif
 

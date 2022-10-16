@@ -394,13 +394,13 @@ namespace fan {
         #endif
       }
 
-      void createSurface(void* handle) {
+      void createSurface(auto handle) {
 
         #ifdef fan_platform_windows
 
         VkWin32SurfaceCreateInfoKHR create_info{};
         create_info.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-        create_info.hwnd = (HWND)handle;
+        create_info.hwnd = handle;
 
         create_info.hinstance = GetModuleHandle(nullptr);
 
@@ -412,7 +412,7 @@ namespace fan {
 
         VkXlibSurfaceCreateInfoKHR create_info{};
         create_info.sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR;
-        create_info.window = (Window)handle;
+        create_info.window = handle;
         create_info.dpy = fan::sys::get_display();
 
         int x = 0;
