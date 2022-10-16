@@ -70,7 +70,7 @@ int main() {
 	fan::opengl::image_t image;
 	fan::opengl::image_t::load_properties_t lp;
 	lp.filter = fan::opengl::GL_LINEAR;
-	image.load(pile->loco.get_context(), "images/b.webp");
+	image.load(pile->loco.get_context(), "images/test.webp");
 	p.get_image() = &image;
 	p.size = fan::cast<f32_t>(image.size) / pile->loco.get_window()->get_size();
 	p.position = 0;
@@ -81,15 +81,13 @@ int main() {
 
 	pile->loco.set_vsync(false);
 
-	pile->loco.get_window()->add_buttons_callback(pile, 
-		[](fan::window_t* w, uint16_t key, fan::key_state ks, void* userptr) {
-		pile_t* pile = (pile_t*)userptr;
+	pile->loco.get_window()->add_buttons_callback([&](const fan::window_t::mouse_buttons_cb_data_t& d) {
 
-		if (ks != fan::key_state::press) {
+		if (d.state != fan::mouse_state::press) {
 			return;
 		}
 
-		switch (key) {
+		switch (d.button) {
 		case fan::mouse_scroll_up: {
 			pile->loco.post_process.bloomamount += 0.01;
 			break;

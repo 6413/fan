@@ -1,810 +1,678 @@
 #pragma once
 
+#include _FAN_PATH(types/types.h)
+#include _FAN_PATH(types/masterpiece.h)
+
 #include _FAN_PATH(graphics/renderer.h)
 
-#if fan_renderer == fan_renderer_vulkan
+#include _FAN_PATH(types/color.h)
+#include _FAN_PATH(graphics/camera.h)
+#include _FAN_PATH(window/window.h)
+#include _FAN_PATH(types/memory.h)
 
-#include _FAN_PATH(types/types.h)
+#include _FAN_PATH(graphics/opengl/gl_init.h)
+#include _FAN_PATH(graphics/light.h)
+#include _FAN_PATH(physics/collision/rectangle.h)
 
-#include <vulkan/vulkan.h)
-
-#include <vulkan/vulkan_core.h)
-
-#include _FAN_PATH(time/time.h)
+#ifdef fan_platform_windows
+#include <dbghelp.h>
+#endif
 
 namespace fan {
 
-	namespace gpu_memory {
-
-		inline std::vector<VkSubmitInfo> submit_queue;
-
-		enum class buffer_type {
-			buffer,
-			index,
-			staging,
-			last
-		};
-
-		static uint32_t find_memory_type(VkPhysicalDevice physical_device, uint32_t type_filter, VkMemoryPropertyFlags properties) {
-			VkPhysicalDeviceMemoryProperties memory_properties;
-			vkGetPhysicalDeviceMemoryProperties(physical_device, &memory_properties);
-
-			for (uint32_t i = 0; i < memory_properties.memoryTypeCount; i++) {
-				if ((type_filter & (1 << i)) && (memory_properties.memoryTypes[i].propertyFlags & properties) == properties) {
-					return i;
-				}
-			}
-
-			throw std::runtime_error("failed to find suitable memory type.");
-		}
-
-		static VkCommandBuffer begin_command_buffer(VkDevice device, VkCommandPool pool) {
-			VkCommandBufferAllocateInfo alloc_info{};
-			alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-			alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-			alloc_info.commandPool = pool;
-			alloc_info.commandBufferCount = 1;
-
-			VkCommandBuffer command_buffer;
-			vkAllocateCommandBuffers(device, &alloc_info, &command_buffer);
-
-			VkCommandBufferBeginInfo begin_info{};
-			begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-			begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-			vkBeginCommandBuffer(command_buffer, &begin_info);
-
-			return command_buffer;
-		}
-
-		static void end_command_buffer(VkCommandBuffer command_buffer, VkDevice device, VkCommandPool pool, VkQueue graphics_queue) {
-			vkEndCommandBuffer(command_buffer);
-
-			VkSubmitInfo submit_info{};
-			submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-			submit_info.commandBufferCount = 1;
-			submit_info.pCommandBuffers = &command_buffer;
-
-			vkQueueSubmit(graphics_queue, 1, &submit_info, VK_NULL_HANDLE);
-			vkQueueWaitIdle(graphics_queue);
-
-			vkFreeCommandBuffers(device, pool, 1, &command_buffer);
-		}
-
-		static void create_buffer(VkDevice device, VkPhysicalDevice physical_device, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& buffer_memory) {
-
-			VkBufferCreateInfo bufferInfo{};
-			bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-
-			bufferInfo.size = size;
-
-			bufferInfo.usage = usage;
-			bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-			if (vkCreateBuffer(device, &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
-				throw std::runtime_error("failed to create buffer!");
-			}
-
-			VkMemoryRequirements memory_requirements;
-			vkGetBufferMemoryRequirements(device, buffer, &memory_requirements);
-
-			VkMemoryAllocateInfo alloc_info{};
-			alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-			alloc_info.allocationSize = memory_requirements.size;
-			alloc_info.memoryTypeIndex = find_memory_type(physical_device, memory_requirements.memoryTypeBits, properties);
-
-			if (vkAllocateMemory(device, &alloc_info, nullptr, &buffer_memory) != VK_SUCCESS) {
-				throw std::runtime_error("failed to allocate buffer memory!");
-			}
-
-			vkBindBufferMemory(device, buffer, buffer_memory, 0);
-		}
-
-		static void copy_buffer(VkDevice device, VkCommandPool command_pool, VkQueue queue, VkBuffer src, VkBuffer dst, VkDeviceSize size, VkDeviceSize src_offset = 0, VkDeviceSize dst_offset = 0) {
-			assert(0);
-			VkCommandBufferAllocateInfo alloc_info{};
-			alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-			alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-			alloc_info.commandPool = command_pool;
-			alloc_info.commandBufferCount = 1;
-
-			VkCommandBuffer command_buffer;
-
-			vkAllocateCommandBuffers(device, &alloc_info, &command_buffer);
-
-			VkSubmitInfo submit_info{};
-
-			VkCommandBufferBeginInfo begin_info{};
-
-			begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-			begin_info.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-
-			vkBeginCommandBuffer(command_buffer, &begin_info);
-
-			VkBufferCopy copy_region{};
-			copy_region.size = size;
-			copy_region.srcOffset = src_offset;
-			copy_region.dstOffset = dst_offset;
-
-			vkCmdCopyBuffer(command_buffer, src, dst, 1, &copy_region);
-
-			vkEndCommandBuffer(command_buffer);
-
-			submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-			submit_info.commandBufferCount = 1;
-			submit_info.pCommandBuffers = &command_buffer;
-			
-			vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE);
-			vkQueueWaitIdle(queue);
-			vkFreeCommandBuffers(device, command_pool, 1, &command_buffer);
-		}
-
-		template <
-			buffer_type T_buffer_type
-		>
-			class glsl_location_handler {
-			public:
-
-			int usage =
-				fan::conditional_value_t < T_buffer_type == buffer_type::buffer, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-				fan::conditional_value_t < T_buffer_type == buffer_type::index, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-				fan::conditional_value_t < T_buffer_type == buffer_type::staging, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, (uintptr_t)-1>::value>::value>::value;
-
-			int properties =
-				fan::conditional_value_t < T_buffer_type == buffer_type::buffer, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-				fan::conditional_value_t < T_buffer_type == buffer_type::index, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-				fan::conditional_value_t < T_buffer_type == buffer_type::staging, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT, (uintptr_t)-1>::value>::value>::value;
-
-			VkDevice* m_device;
-			VkPhysicalDevice* m_physical_device;
-
-			VkBuffer m_buffer_object;
-			VkDeviceMemory m_device_memory;
-
-			VkDeviceSize buffer_size = 0;
-
-			glsl_location_handler(VkDevice* device, VkPhysicalDevice* physical_device) :
-				m_device(device),
-				m_physical_device(physical_device),
-				m_buffer_object(nullptr),
-				m_device_memory(nullptr)
-			{
-
-			}
-
-			~glsl_location_handler() {
-				this->free();
-			}
-
-			// creates new buffer with given size
-			void allocate(VkDeviceSize size) {
-
-				buffer_size = size;
-				fan::gpu_memory::create_buffer(*m_device, *m_physical_device, size, usage, properties, m_buffer_object, m_device_memory);
-
-			}
-
-			void copy(VkCommandPool command_pool, VkQueue queue, VkBuffer src, VkDeviceSize size) {
-				fan::gpu_memory::copy_buffer(*m_device, command_pool, queue, src, m_buffer_object, size);
-			}
-
-			void free() {
-
-				buffer_size = 0;
-
-				if (m_buffer_object) {
-					vkDestroyBuffer(*m_device, m_buffer_object, nullptr);
-					m_buffer_object = nullptr;
-				}
-
-				if (m_device_memory) {
-					vkFreeMemory(*m_device, m_device_memory, nullptr);
-					m_device_memory = nullptr;
-				}
-
-			}
-
-			protected:
-
-		};
-
-		class uniform_handler {
-		public:
-
-			void* user_data = nullptr;
-			VkDeviceSize user_data_size = 0;
-
-			VkDevice* m_device;
-			VkPhysicalDevice* m_physical_device;
-
-			struct buffer_t {
-				VkBuffer buffer;
-				VkDeviceMemory memory;
-			};
-
-			std::vector<buffer_t> m_buffer_object;
-
-			static constexpr int usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-
-			static constexpr int properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-
-			uniform_handler(VkDevice* device, VkPhysicalDevice* physical_device, VkDeviceSize swap_chain_size, void* user_data, VkDeviceSize user_data_size) :
-				m_device(device),
-				m_physical_device(physical_device),
-				user_data(user_data),
-				user_data_size(user_data_size)
-			{
-				m_buffer_object.resize(swap_chain_size);
-
-				for (int i = 0; i < swap_chain_size; i++) {
-
-					fan::gpu_memory::create_buffer(
-						*m_device,
-						*m_physical_device,
-						user_data_size,
-						usage,
-						properties,
-						m_buffer_object[i].buffer,
-						m_buffer_object[i].memory
-					);
-
-				}
-			}
-			
-			~uniform_handler() {
-				this->free();
-			}
-
-			void recreate(VkDeviceSize swap_chain_size) {
-
-				this->free();
-
-				m_buffer_object.resize(swap_chain_size);
-
-				for (int i = 0; i < swap_chain_size; i++) {
-
-					fan::gpu_memory::create_buffer(
-						*m_device,
-						*m_physical_device,
-						user_data_size,
-						usage,
-						properties,
-						m_buffer_object[i].buffer,
-						m_buffer_object[i].memory
-					);
-					
-				}
-			}
-
-			void free() {
-				for (int i = 0; i < m_buffer_object.size(); i++) {
-
-					if (m_buffer_object[i].buffer) {
-						vkDestroyBuffer(*m_device, m_buffer_object[i].buffer, nullptr);
-					}
-					if (m_buffer_object[i].memory) {
-						vkFreeMemory(*m_device, m_buffer_object[i].memory, nullptr);
-					}
-				}
-
-				m_buffer_object.clear();
-			}
-
-			void upload(uint32_t image) {
-
-				void* data;
-
-				vkMapMemory(*m_device, m_buffer_object[image].memory, 0, user_data_size, 0, &data);
-
-				memcpy(data, user_data, user_data_size);
-
-				vkUnmapMemory(*m_device, m_buffer_object[image].memory);
-			}
-
-		};
-
-		struct texture_handler {
-
-			texture_handler(VkDevice* device, VkPhysicalDevice* physical_device, VkCommandPool* pool, VkQueue* graphics_queue)
-				:
-				m_device(device),
-				m_physical_device(physical_device),
-				m_pool(pool),
-				m_graphics_queue(graphics_queue),
-				descriptor_handler(new fan::vk::graphics::descriptor_set(device))
-			{
-				VkPhysicalDeviceProperties properties{};
-				vkGetPhysicalDeviceProperties(*physical_device, &properties);
-
-				VkSamplerCreateInfo samplerInfo{};
-				samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-				samplerInfo.magFilter = VK_FILTER_LINEAR;
-				samplerInfo.minFilter = VK_FILTER_LINEAR;
-				samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-				samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-				samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-				samplerInfo.anisotropyEnable = VK_TRUE;
-				samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
-				samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-				samplerInfo.unnormalizedCoordinates = VK_FALSE;
-				samplerInfo.compareEnable = VK_FALSE;
-				samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-				samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-				//samplerInfo.minLod = 10;
-				//samplerInfo.maxLod = 0;
-
-				if (vkCreateSampler(*device, &samplerInfo, nullptr, &texture_sampler) != VK_SUCCESS) {
-					throw std::runtime_error("failed to create texture sampler!");
-				}
-			}
-
-			~texture_handler() {
-				this->free();
-			}
-
-			void allocate(VkImage image) {
-				VkMemoryRequirements memory_requirements;
-				vkGetImageMemoryRequirements(*m_device, image, &memory_requirements);
-
-				VkMemoryAllocateInfo alloc_info{};
-				alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-				alloc_info.allocationSize = memory_requirements.size;
-				alloc_info.memoryTypeIndex = fan::gpu_memory::find_memory_type(*m_physical_device, memory_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-				m_image_memory.resize(m_image_memory.size() + 1);
-
-				if (vkAllocateMemory(*m_device, &alloc_info, nullptr, &m_image_memory[m_image_memory.size() - 1]) != VK_SUCCESS) {
-					throw std::runtime_error("failed to allocate image memory!");
-				}
-
-				vkBindImageMemory(*m_device, image, m_image_memory[m_image_memory.size() - 1], 0);
-			}
-
-			void free_image_memory(uint32_t i) {
-				vkFreeMemory(*m_device, m_image_memory[i], nullptr);
-				m_image_memory.erase(m_image_memory.begin() + i);
-				vkDestroyImageView(*m_device, image_views[i], nullptr);
-			}
-
-			void free_image_memory() {
-				for (int i = 0; i < m_image_memory.size(); i++) {
-
-					vkFreeMemory(*m_device, m_image_memory[i], nullptr);
-				}
-
-				m_image_memory.clear();
-			}
-
-			void free() {
-				for (int i = 0; i < m_image_memory.size(); i++) {
-
-					vkFreeMemory(*m_device, m_image_memory[i], nullptr);
-				}
-
-				m_image_memory.clear();
-
-				vkDestroySampler(*m_device, texture_sampler, nullptr);
-				texture_sampler = nullptr;
-
-				delete descriptor_handler;
-				descriptor_handler = nullptr;
-				
-				for (int i = 0; i < image_views.size(); i++) {
-					vkDestroyImageView(*m_device, image_views[i], nullptr);
-					image_views[i] = nullptr;
-				}
-
-			}
-
-			void copy_buffer_to_image(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) {
-
-				VkCommandBuffer command_buffer = begin_command_buffer(*m_device, *m_pool);
-
-				VkBufferImageCopy region{};
-				region.bufferOffset = 0;
-				region.bufferRowLength = 0;
-				region.bufferImageHeight = 0;
-
-				region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-				region.imageSubresource.mipLevel = 0;
-				region.imageSubresource.baseArrayLayer = 0;
-				region.imageSubresource.layerCount = 1;
-
-				region.imageOffset = { 0, 0, 0 };
-				region.imageExtent = {
-					width,
-					height,
-					1
-				};
-
-				vkCmdCopyBufferToImage(
-					command_buffer,
-					buffer,
-					image,
-					VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-					1,
-					&region
-				);
-
-				end_command_buffer(command_buffer, *m_device, *m_pool, *m_graphics_queue);
-			}
-
-			void transition_image_layout(VkImage image, VkFormat format, VkImageLayout old_layout, VkImageLayout new_layout, uint32_t mip_levels) {
-
-				VkCommandBuffer command_buffer = begin_command_buffer(*m_device, *m_pool);
-
-				VkImageMemoryBarrier barrier{};
-				barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-				barrier.oldLayout = old_layout;
-				barrier.newLayout = new_layout;
-				barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-				barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-				barrier.image = image;
-				barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-				barrier.subresourceRange.baseMipLevel = 0;
-				barrier.subresourceRange.levelCount = mip_levels;
-				barrier.subresourceRange.baseArrayLayer = 0;
-				barrier.subresourceRange.layerCount = 1;
-
-				VkPipelineStageFlags source_stage;
-				VkPipelineStageFlags destination_stage;
-
-				if (old_layout == VK_IMAGE_LAYOUT_UNDEFINED && new_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
-					barrier.srcAccessMask = 0;
-					barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-
-					source_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-					destination_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-				}
-				else if (old_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && new_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
-					barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-					barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-					source_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-					destination_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-				}
-				else {
-					throw std::invalid_argument("unsupported layout transition.");
-				}
-
-				vkCmdPipelineBarrier(
-					command_buffer,
-					source_stage, destination_stage,
-					0,
-					0, nullptr,
-					0, nullptr,
-					1, &barrier
-				);
-
-				end_command_buffer(command_buffer, *m_device, *m_pool, *m_graphics_queue);
-			}
-
-			VkImageView create_image_view(VkImage image, VkFormat format, uint32_t mip_levels) {
-
-				VkImageViewCreateInfo view_info{};
-				view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-				view_info.image = image;
-				view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-				view_info.format = format;
-				view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-				view_info.subresourceRange.baseMipLevel = 0;
-				view_info.subresourceRange.levelCount = mip_levels;
-				view_info.subresourceRange.baseArrayLayer = 0;
-				view_info.subresourceRange.layerCount = 1;
-
-				VkImageView image_view;
-
-				if (vkCreateImageView(*m_device, &view_info, nullptr, &image_view) != VK_SUCCESS) {
-					throw std::runtime_error("failed to create texture image view!");
-				}
-				
-				return image_view;
-			}
-
-			template <typename T>
-			uint64_t push_back(
-				VkImage texture_id, 
-				T* uniform_buffers,
-				VkDeviceSize swap_chain_image_size,
-				uint32_t mipmap_level
-				) {
-
-				image_views.emplace_back(create_image_view(texture_id, VK_FORMAT_R8G8B8A8_UNORM, mipmap_level));
-
-				descriptor_handler->push_back(
-					*m_device, 
-					uniform_buffers,
-					descriptor_handler->descriptor_set_layout,
-					descriptor_handler->descriptor_pool,
-					image_views[image_views.size() - 1],
-					texture_sampler,
-					swap_chain_image_size
-				);
-				
-				return descriptor_handler->descriptor_sets.size() / swap_chain_image_size - 1;
-			}
-
-			void erase(uint32_t i, uint32_t descriptor_offset, uint32_t swap_chain_size) {
-				descriptor_handler->erase(descriptor_offset, swap_chain_size);
-				vkDestroyImageView(*m_device, image_views[i], nullptr);
-				image_views.erase(image_views.begin() + i);
-				vkFreeMemory(*m_device, m_image_memory[i], nullptr);
-				m_image_memory.erase(m_image_memory.begin() + i);
-			}
-
-			std::vector<VkDeviceMemory> m_image_memory;
-
-			VkDevice* m_device = nullptr;
-			VkPhysicalDevice* m_physical_device = nullptr;
-
-			VkCommandPool* m_pool = nullptr;
-			VkQueue* m_graphics_queue = nullptr;
-
-			std::vector<VkImageView> image_views;
-
-			fan::vk::graphics::descriptor_set* descriptor_handler = nullptr;
-
-			VkSampler texture_sampler = nullptr;
-
-		};
-
-		struct memory_update_queue_t {
-			VkBuffer* staging_buffer = nullptr; // staging->m_buffer_object
-			VkBuffer* buffer_buffer = nullptr; // buffer->m_buffer_object
-			VkBufferCopy copy_region{};
-		};
-
-		struct memory_update_queue_vector_t {
-			uint64_t key;
-			memory_update_queue_t queue;
-		};
-
-		inline std::vector<memory_update_queue_vector_t> memory_update_map;
-
-		static void register_memory_update(uint64_t key, const memory_update_queue_t& memory_update_queue) {
-			memory_update_map.emplace_back(memory_update_queue_vector_t{ key, memory_update_queue });
-		}
-
-		inline VkCommandBuffer memory_command_buffer = nullptr;
-
-		static void update_memory_buffer() {
-
-			VkCommandBufferBeginInfo begin_info{};
-
-			begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-			begin_info.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-
-			vkBeginCommandBuffer(memory_command_buffer, &begin_info);
-			
-			for (int i = 0; i < memory_update_map.size(); i++) {
-				if (memory_update_map[i].queue.copy_region.size) {
-					vkCmdCopyBuffer(memory_command_buffer, *memory_update_map[i].queue.staging_buffer, *memory_update_map[i].queue.buffer_buffer, 1, &memory_update_map[i].queue.copy_region);
-				}
-			}
-
-			vkEndCommandBuffer(memory_command_buffer);
-
-			memory_update_map.clear();
-		}
-
-		template <typename object_type, buffer_type T_buffer_type>
-		struct buffer_object {
-				
-			using buffer_t = glsl_location_handler<T_buffer_type>;
-			
-			using staging_buffer_t = fan::gpu_memory::glsl_location_handler<fan::gpu_memory::buffer_type::staging>;
-
-			staging_buffer_t* staging_buffer = nullptr;
-
-			static constexpr auto mb = 1000000;
-
-			static constexpr auto gpu_stack = 10 * mb; // mb
-
-			buffer_object(VkDevice* device, VkPhysicalDevice* physical_device, VkCommandPool* pool, VkQueue* graphics_queue, std::function<void()> vulkan_command_buffer_recreation_)
-				:
-				buffer(new buffer_t(device, physical_device)),
-				graphics_queue(graphics_queue),
-				pool(pool),
-				vulkan_command_buffer_recreation(vulkan_command_buffer_recreation_)
-			{
-
-				staging_buffer = new staging_buffer_t(device, physical_device);
-				staging_buffer->allocate(gpu_stack);
-
-			}
-
-			~buffer_object() {
-
-				if (staging_buffer) {
-					delete staging_buffer;
-					staging_buffer = nullptr;
-				}
-
-				if (buffer) {
-					delete buffer;
-					buffer = nullptr;
-				}
-			}
-
-			constexpr void push_back(const object_type& value) {
-				m_instance.emplace_back(value);
-			}
-
-			constexpr object_type& get_value(uint32_t i) {
-				return m_instance[i];
-			}
-
-			constexpr object_type get_value(uint32_t i) const {
-				return m_instance[i];
-			}
-
-			constexpr void set_value(uint32_t i, const object_type& value) {
-				m_instance[i] = value;
-			}
-
-			void map_data(VkDeviceSize size, VkDeviceSize offset = 0) {
-				
-				
-				void* data = nullptr;
-
-				if (staging_buffer->buffer_size < size) {
-					staging_buffer->free();
-					staging_buffer->allocate(size);
-				}
-
-				vkMapMemory(
-					*buffer->m_device,
-					staging_buffer->m_device_memory,
-					sizeof(object_type) * offset,
-					size,
-					0,
-					&data
-				);
-
-				std::memcpy(data, m_instance.data() + offset, size);
-
-				vkUnmapMemory(*buffer->m_device, staging_buffer->m_device_memory);
-			}
-				
-			void write_data() {
-
-				VkDeviceSize buffer_size = sizeof(object_type) * m_instance.size();
-
-				if (!buffer_size) {
-					return;
-				}
-
-				auto found = std::find_if(memory_update_map.begin(), memory_update_map.end(), [&](const memory_update_queue_vector_t& a) { return a.key == (uint64_t)(this + buffer_size); }) != memory_update_map.end();
-
-				if (found) {
-					return;
-				}
-				
-				auto previous_size = buffer->buffer_size;
-
-				if (previous_size < buffer_size) {
-
-					buffer->free();
-
-					buffer->allocate(buffer_size);
-				}
-				
-				map_data(buffer_size);
-
-				memory_update_queue_t queue;
-				queue.staging_buffer = &staging_buffer->m_buffer_object;
-				queue.buffer_buffer = &buffer->m_buffer_object;
-
-				VkBufferCopy copy{ 0 };
-
-				copy.size = buffer_size;
-				queue.copy_region = copy;
-
-				register_memory_update((uint64_t)(this + buffer_size), queue);
-
-			}
-
-			void edit_data(uint32_t i) {
-
-				VkDeviceSize buffer_size = sizeof(object_type);
-
-				if (!buffer_size) {
-					return;
-				}
-
-				auto found = std::find_if(memory_update_map.begin(), memory_update_map.end(), [&](const memory_update_queue_vector_t& a) { return a.key == (uint64_t)(this + buffer_size); }) != memory_update_map.end();
-
-				if (found) {
-					return;
-				}
-
-				auto previous_size = buffer->buffer_size;
-
-				if (previous_size < buffer_size) {
-
-					buffer->free();
-
-					buffer->allocate(buffer_size);
-				}
-
-				map_data(buffer_size, i);
-
-				memory_update_queue_t queue;
-				queue.staging_buffer = &staging_buffer->m_buffer_object;
-				queue.buffer_buffer = &buffer->m_buffer_object;
-
-				VkBufferCopy copy{ 0 };
-
-				copy.size = buffer_size;
-				copy.srcOffset = sizeof(object_type) * i;
-				copy.dstOffset = sizeof(object_type) * i;
-
-				queue.copy_region = copy;
-
-				register_memory_update((uint64_t)(this + buffer_size), queue);
-			
-			}
-
-			void edit_data(uint32_t begin, uint32_t end) {
-
-				VkDeviceSize buffer_size = sizeof(object_type) * (end - begin); // + 1 ?
-
-				if (!buffer_size) {
-					return;
-				}
-
-				auto found = std::find_if(memory_update_map.begin(), memory_update_map.end(), [&](const memory_update_queue_vector_t& a) { return a.key == (uint64_t)(this + buffer_size); }) != memory_update_map.end();
-
-				if (found) {
-					return;
-				}
-
-				auto previous_size = buffer->buffer_size;
-
-				if (previous_size < buffer_size) {
-
-					buffer->free();
-
-					buffer->allocate(buffer_size);
-				}
-
-				map_data(buffer_size, begin);
-
-				memory_update_queue_t queue;
-				queue.staging_buffer = &staging_buffer->m_buffer_object;
-				queue.buffer_buffer = &buffer->m_buffer_object;
-
-				VkBufferCopy copy{ 0 };
-
-				copy.size = buffer_size;
-				copy.srcOffset = sizeof(object_type) * begin;
-				copy.dstOffset = sizeof(object_type) * begin;
-
-				queue.copy_region = copy;
-
-				register_memory_update((uint64_t)(this + buffer_size), queue);
-			}
-
-			std::size_t size() const {
-				return m_instance.size();
-			}
-
-			std::vector<object_type> m_instance;
-
-			buffer_t* buffer = nullptr;
-
-			VkQueue* graphics_queue = nullptr;
-
-			VkCommandPool* pool = nullptr;
-
-			VkDeviceSize current_buffer_size = 0;
-
-			std::function<void()> vulkan_command_buffer_recreation;
-
-		};
-
-	}
-
+  static void print_callstack() {
+
+    #ifdef fan_platform_windows
+    uint16_t i;
+    uint16_t frames;
+    void* stack[0xff];
+    SYMBOL_INFO* symbol;
+    HANDLE process;
+
+    SymSetOptions(SYMOPT_LOAD_LINES | SYMOPT_DEFERRED_LOADS | SYMOPT_INCLUDE_32BIT_MODULES);
+
+    process = GetCurrentProcess();
+
+    if (!SymInitialize(process, NULL, TRUE)) {
+      int err = GetLastError();
+      printf("[_PR_DumpTrace] SymInitialize failed %d", err);
+    }
+
+    frames = CaptureStackBackTrace(0, 0xff, stack, NULL);
+    symbol = (SYMBOL_INFO*)calloc(sizeof(SYMBOL_INFO) + 1024 * sizeof(uint8_t), 1);
+    symbol->MaxNameLen = 1023;
+    symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+
+    for (i = 0; i < frames; i++) {
+      SymFromAddr(process, (DWORD64)(stack[i]), 0, symbol);
+      DWORD Displacement;
+      IMAGEHLP_LINE64 Line;
+      Line.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
+      if (SymGetLineFromAddr64(process, (DWORD64)(stack[i]), &Displacement, &Line)) {
+        printf("%i: %s:%lu\n", frames - i - 1, symbol->Name, Line.LineNumber);
+      }
+      else {
+        printf("%i: %s:0x%llx\n", frames - i - 1, symbol->Name, symbol->Address);
+      }
+    }
+
+    free(symbol);
+    #endif
+
+  }
+
+
+  namespace opengl {
+
+    struct context_t;
+    struct viewport_t;
+    struct matrices_t;
+    struct image_t;
+
+    struct cid_t {
+      uint16_t bm_id;
+      uint16_t block_id;
+      uint8_t instance_id;
+    };
+
+  }
 }
 
-#endif
+#include "image_list_builder_settings.h"
+#include _FAN_PATH(BLL/BLL.h)
+
+namespace fan {
+  namespace opengl {
+    template <uint8_t n_>
+    struct textureid_t : image_list_NodeReference_t{
+      static constexpr std::array<const char*, 32> texture_names = {
+        "_t00", "_t01", "_t02", "_t03",
+        "_t04", "_t05", "_t06", "_t07",
+        "_t08", "_t09", "_t10", "_t11",
+        "_t12", "_t13", "_t14", "_t15",
+        "_t16", "_t17", "_t18", "_t19", 
+        "_t20", "_t21", "_t22", "_t23",
+        "_t24", "_t25", "_t26", "_t27",
+        "_t28", "_t29", "_t30", "_t31"
+      };
+      static constexpr uint8_t n = n_;
+      static constexpr auto name = texture_names[n];
+
+      textureid_t() = default;
+      textureid_t(fan::opengl::image_t* image) : fan::opengl::image_list_NodeReference_t::image_list_NodeReference_t(image) {
+      }
+    };
+  }
+}
+
+namespace fan_2d {
+  namespace graphics {
+    namespace gui {
+      struct theme_t;
+    }
+  }
+}
+
+#include "themes_list_builder_settings.h"
+#define BLL_set_declare_NodeReference 1
+#define BLL_set_declare_rest 0
+#include _FAN_PATH(BLL/BLL.h)
+
+#include _FAN_PATH(graphics/gui/themes.h)
+
+#include "themes_list_builder_settings.h"
+#define BLL_set_declare_NodeReference 0
+#define BLL_set_declare_rest 1
+#include _FAN_PATH(BLL/BLL.h)
+
+fan::opengl::theme_list_NodeReference_t::theme_list_NodeReference_t(fan_2d::graphics::gui::theme_t* theme) {
+  NRI = theme->theme_reference.NRI;
+}
+
+#include "viewport_list_builder_settings.h"
+#define BLL_set_declare_NodeReference 1
+#define BLL_set_declare_rest 0
+#include _FAN_PATH(BLL/BLL.h)
+
+namespace fan {
+  namespace opengl {
+
+    namespace core {
+      struct uniform_block_common_t;
+    }
+
+    struct viewport_t {
+
+      void open(fan::opengl::context_t* context);
+      void close(fan::opengl::context_t* context);
+
+      fan::vec2 get_position() const
+      {
+        return viewport_position;
+      }
+
+      fan::vec2 get_size() const
+      {
+        return viewport_size;
+      }
+
+      void set(fan::opengl::context_t* context, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size);
+
+      bool inside(const fan::vec2& position) const {
+        return fan_2d::collision::rectangle::point_inside_no_rotation(position, viewport_position - viewport_size / 2, viewport_size * 2);
+      }
+
+      fan::vec2 viewport_position;
+      fan::vec2 viewport_size;
+
+      fan::opengl::viewport_list_NodeReference_t viewport_reference;
+    };
+
+  }
+}
+
+#include "viewport_list_builder_settings.h"
+#define BLL_set_declare_NodeReference 0
+#define BLL_set_declare_rest 1
+#include _FAN_PATH(BLL/BLL.h)
+
+fan::opengl::viewport_list_NodeReference_t::viewport_list_NodeReference_t(fan::opengl::viewport_t* viewport) {
+  NRI = viewport->viewport_reference.NRI;
+}
+
+#include "matrices_list_builder_settings.h"
+#define BLL_set_declare_NodeReference 1
+#define BLL_set_declare_rest 0
+#include _FAN_PATH(BLL/BLL.h)
+
+namespace fan{
+  namespace opengl {
+    struct matrices_t {
+
+      void open(fan::opengl::context_t* context);
+      void close(fan::opengl::context_t* context);
+
+      fan::vec3 get_camera_position() const {
+        return camera_position;
+      }
+      void set_camera_position(const fan::vec3& cp) {
+        camera_position = cp;
+
+        m_view[3][0] = 0;
+        m_view[3][1] = 0;
+        m_view[3][2] = 0;
+        m_view = m_view.translate(camera_position);
+        fan::vec3 position = m_view.get_translation();
+        constexpr fan::vec3 front(0, 0, 1);
+
+        m_view = fan::math::look_at_left<fan::mat4>(position, position + front, fan::camera::world_up);
+      }
+
+      void set_ortho(const fan::vec2& x, const fan::vec2& y) {
+        m_projection = fan::math::ortho<fan::mat4>(
+          x.x,
+          x.y,
+          y.y,
+          y.x,
+          -1,
+          0x10000
+        );
+        coordinates.left = x.x;
+        coordinates.right = x.y;
+        coordinates.bottom = y.y;
+        coordinates.top = y.x;
+
+        m_view[3][0] = 0;
+        m_view[3][1] = 0;
+        m_view[3][2] = 0;
+        m_view = m_view.translate(camera_position);
+        fan::vec3 position = m_view.get_translation();
+        constexpr fan::vec3 front(0, 0, 1);
+
+        m_view = fan::math::look_at_left<fan::mat4>(position, position + front, fan::camera::world_up);
+      }
+
+      fan::mat4 m_projection;
+      // temporary
+      fan::mat4 m_view;
+
+      fan::vec3 camera_position;
+
+      union {
+        struct {
+          f32_t left;
+          f32_t right;
+          f32_t top;
+          f32_t bottom;
+        };
+        fan::vec4 v;
+      }coordinates;
+
+      matrices_list_NodeReference_t matrices_reference;
+    };
+
+    static void open_matrices(fan::opengl::context_t* context, matrices_t* matrices, const fan::vec2& x, const fan::vec2& y);
+  }
+}
+
+#include "matrices_list_builder_settings.h"
+#define BLL_set_declare_NodeReference 0
+#define BLL_set_declare_rest 1
+#include _FAN_PATH(BLL/BLL.h)
+
+fan::opengl::matrices_list_NodeReference_t::matrices_list_NodeReference_t(fan::opengl::matrices_t* matrices) {
+  NRI = matrices->matrices_reference.NRI;
+}
+
+namespace fan {
+  namespace opengl {
+
+    struct context_t {
+
+      struct properties_t {
+        properties_t() {
+          samples = 1;
+          major = 3;
+          minor = 2;
+
+        }
+
+        uint16_t samples;
+        uint8_t major;
+        uint8_t minor;
+      };
+
+      fan::opengl::GLuint current_program;
+      fan::opengl::theme_list_t theme_list;
+      fan::opengl::image_list_t image_list;
+      fan::opengl::viewport_list_t viewport_list;
+      fan::opengl::matrices_list_t matrices_list;
+      fan::camera camera;
+      fan::opengl::opengl_t opengl;
+
+      void open();
+      void close();
+
+      void bind_to_window(fan::window_t* window, const properties_t& p = properties_t());
+
+      void render(fan::window_t* window);
+
+      void set_depth_test(bool flag);
+
+      void set_vsync(fan::window_t* window, bool flag);
+
+      static void message_callback(GLenum source,
+        GLenum type,
+        GLuint id,
+        GLenum severity,
+        GLsizei length,
+        const GLchar* message,
+        const void* userParam)
+      {
+        //if (type == 33361 || type == 33360) { // gl_static_draw
+        //  return;
+        //}
+        fan::print_no_space(type == GL_DEBUG_TYPE_ERROR ? "opengl error:" : "", type, ", severity:", severity, ", message:", message);
+      }
+
+      void set_error_callback() {
+        opengl.call(opengl.glEnable, GL_DEBUG_OUTPUT);
+        opengl.call(opengl.glDebugMessageCallback, message_callback, (void*)0);
+      }
+
+      uint32_t m_flags;
+    };
+  }
+}
+
+//static void open_matrices(fan::opengl::context_t* context, matrices_t* matrices, fan::vec2 window_size, const fan::vec2& x, const fan::vec2& y) {
+//  matrices->open(context);
+//  fan::vec2 ratio = window_size / window_size.max();
+//  std::swap(ratio.x, ratio.y);
+//  matrices->set_ortho(fan::vec2(x.x, x.y), fan::vec2(y.x, y.y));
+//}
+
+namespace fan {
+  namespace opengl {
+    namespace core {
+
+      static int get_buffer_size(fan::opengl::context_t* context, uint32_t target_buffer, uint32_t buffer_object) {
+        int size = 0;
+
+        context->opengl.call(context->opengl.glBindBuffer, target_buffer, buffer_object);
+        context->opengl.call(context->opengl.glGetBufferParameteriv, target_buffer, fan::opengl::GL_BUFFER_SIZE, &size);
+
+        return size;
+      }
+
+      static void write_glbuffer(fan::opengl::context_t* context, unsigned int buffer, const void* data, uintptr_t size, uint32_t usage, uintptr_t target)
+      {
+        context->opengl.call(context->opengl.glBindBuffer, target, buffer);
+
+        context->opengl.call(context->opengl.glBufferData, target, size, data, usage);
+        /*if (target == GL_SHADER_STORAGE_BUFFER) {
+        glBindBufferBase(target, location, buffer);
+        }*/
+      }
+      static void get_glbuffer(fan::opengl::context_t* context, void* data, uint32_t buffer_id, uintptr_t size, uintptr_t offset, uintptr_t target) {
+        context->opengl.call(context->opengl.glBindBuffer, target, buffer_id);
+        context->opengl.call(context->opengl.glGetBufferSubData, target, offset, size, data);
+      }
+
+      static void edit_glbuffer(fan::opengl::context_t* context, unsigned int buffer, const void* data, uintptr_t offset, uintptr_t size, uintptr_t target)
+      {
+        context->opengl.call(context->opengl.glBindBuffer, target, buffer);
+
+        #if fan_debug >= fan_debug_high
+
+        int buffer_size = get_buffer_size(context, target, buffer);
+
+        if (buffer_size < size || (offset + size) > buffer_size) {
+          fan::throw_error("tried to write more than allocated");
+        }
+
+        #endif
+
+        context->opengl.call(context->opengl.glBufferSubData, target, offset, size, data);
+        /* if (target == GL_SHADER_STORAGE_BUFFER) {
+        glBindBufferBase(target, location, buffer);
+        }*/
+      }
+
+      // not tested
+      static int get_bound_buffer(fan::opengl::context_t* context) {
+        int buffer_id;
+        context->opengl.call(context->opengl.glGetIntegerv, fan::opengl::GL_VERTEX_BINDING_BUFFER, &buffer_id);
+        return buffer_id;
+      }
+      #pragma pack(push, 1)
+      struct vao_t {
+
+        vao_t() = default;
+
+        void open(fan::opengl::context_t* context) {
+          context->opengl.call(context->opengl.glGenVertexArrays, 1, &m_vao);
+        }
+
+        void close(fan::opengl::context_t* context) {
+          context->opengl.call(context->opengl.glDeleteVertexArrays, 1, &m_vao);
+        }
+
+        void bind(fan::opengl::context_t* context) const {
+          context->opengl.call(context->opengl.glBindVertexArray, m_vao);
+        }
+        void unbind(fan::opengl::context_t* context) const {
+          context->opengl.call(context->opengl.glBindVertexArray, 0);
+        }
+
+        uint32_t m_vao;
+
+      };
+
+      #pragma pack(pop)
+
+      struct framebuffer_t {
+
+        struct properties_t {
+          properties_t() {}
+          fan::opengl::GLenum internalformat = fan::opengl::GL_DEPTH_STENCIL_ATTACHMENT;
+        };
+
+        void open(fan::opengl::context_t* context) {
+          context->opengl.call(context->opengl.glGenFramebuffers, 1, &framebuffer);
+        }
+        void close(fan::opengl::context_t* context) {
+          context->opengl.call(context->opengl.glDeleteFramebuffers, 1, &framebuffer);
+        }
+
+        void bind(fan::opengl::context_t* context) const {
+          context->opengl.call(context->opengl.glBindFramebuffer, fan::opengl::GL_FRAMEBUFFER, framebuffer);
+        }
+        void unbind(fan::opengl::context_t* context) const {
+          context->opengl.call(context->opengl.glBindFramebuffer, fan::opengl::GL_FRAMEBUFFER, 0);
+        }
+
+        bool ready(fan::opengl::context_t* context) const {
+          return context->opengl.call(context->opengl.glCheckFramebufferStatus, fan::opengl::GL_FRAMEBUFFER) == 
+            fan::opengl::GL_FRAMEBUFFER_COMPLETE;
+        }
+
+        void bind_to_renderbuffer(fan::opengl::context_t* context, fan::opengl::GLenum renderbuffer, const properties_t& p = properties_t()) {
+          bind(context);
+          context->opengl.call(context->opengl.glFramebufferRenderbuffer, GL_FRAMEBUFFER, p.internalformat, GL_RENDERBUFFER, renderbuffer);
+        }
+
+        // texture must be binded with texture.bind();
+        static void bind_to_texture(fan::opengl::context_t* context, fan::opengl::GLuint texture, fan::opengl::GLenum attatchment) {
+          context->opengl.call(context->opengl.glFramebufferTexture2D, GL_FRAMEBUFFER, attatchment, GL_TEXTURE_2D, texture, 0);
+        }
+
+        fan::opengl::GLuint framebuffer;
+      };
+
+      struct renderbuffer_t {
+
+        struct properties_t {
+          properties_t() {}
+          GLenum internalformat = fan::opengl::GL_DEPTH24_STENCIL8;
+          fan::vec2ui size;
+        };
+
+        void open(fan::opengl::context_t* context) {
+          context->opengl.call(context->opengl.glGenRenderbuffers, 1, &renderbuffer);
+          //set_storage(context, p);
+        }
+        void close(fan::opengl::context_t* context) {
+          context->opengl.call(context->opengl.glDeleteRenderbuffers, 1, &renderbuffer);
+        }
+        void bind(fan::opengl::context_t* context) const {
+          context->opengl.call(context->opengl.glBindRenderbuffer, fan::opengl::GL_RENDERBUFFER, renderbuffer);
+        }
+        void set_storage(fan::opengl::context_t* context, const properties_t& p) const {
+          bind(context);
+          context->opengl.call(context->opengl.glRenderbufferStorage, fan::opengl::GL_RENDERBUFFER, p.internalformat, p.size.x, p.size.y);
+        }
+        void bind_to_renderbuffer(fan::opengl::context_t* context, const properties_t& p = properties_t()) {
+          bind(context);
+          context->opengl.call(context->opengl.glFramebufferRenderbuffer, GL_FRAMEBUFFER, p.internalformat, GL_RENDERBUFFER, renderbuffer);
+        }
+
+        fan::opengl::GLuint renderbuffer;
+      };
+    }
+  }
+}
+
+inline void fan::opengl::context_t::open() {
+  theme_list.Open();
+  image_list.Open();
+  viewport_list.Open();
+  matrices_list.Open();
+
+  opengl.open();
+
+  m_flags = 0;
+  current_program = fan::uninitialized;
+}
+inline void fan::opengl::context_t::close() {
+  theme_list.Close();
+  image_list.Close();
+  viewport_list.Close();
+  matrices_list.Close();
+}
+
+inline void fan::opengl::context_t::bind_to_window(fan::window_t* window, const properties_t& p) {
+
+  #if defined(fan_platform_windows)
+
+  window->m_hdc = GetDC(window->m_window_handle);
+
+  int pixel_format_attribs[19] = {
+    WGL_DRAW_TO_WINDOW_ARB, fan::opengl::GL_TRUE,
+    WGL_SUPPORT_OPENGL_ARB, fan::opengl::GL_TRUE,
+    WGL_DOUBLE_BUFFER_ARB, fan::opengl::GL_TRUE,
+    WGL_PIXEL_TYPE_ARB, WGL_TYPE_RGBA_ARB,
+    WGL_COLOR_BITS_ARB, 32,
+    WGL_DEPTH_BITS_ARB, 24,
+    WGL_STENCIL_BITS_ARB, 8,
+    WGL_SAMPLE_BUFFERS_ARB, true, // Number of buffers (must be 1 at time of writing)
+    WGL_SAMPLES_ARB, p.samples,        // Number of samples
+    0
+  };
+  if (!p.samples) {
+    // set back to zero to disable antialising
+    for (int i = 0; i < 4; i++) {
+      pixel_format_attribs[14 + i] = 0;
+    }
+  }
+  int pixel_format;
+  UINT num_formats;
+
+  opengl.call(opengl.internal.wglChoosePixelFormatARB, window->m_hdc, pixel_format_attribs, (float*)0, 1, &pixel_format, &num_formats);
+
+  if (!num_formats) {
+    fan::throw_error("failed to choose pixel format:" + fan::to_string(GetLastError()));
+  }
+
+  PIXELFORMATDESCRIPTOR pfd;
+  memset(&pfd, 0, sizeof(pfd));
+  if (!DescribePixelFormat(window->m_hdc, pixel_format, sizeof(pfd), &pfd)) {
+    fan::throw_error("failed to describe pixel format:" + fan::to_string(GetLastError()));
+  }
+  if (!SetPixelFormat(window->m_hdc, pixel_format, &pfd)) {
+    fan::throw_error("failed to set pixel format:" + fan::to_string(GetLastError()));
+  }
+
+  const int gl_attributes[] = {
+    WGL_CONTEXT_MINOR_VERSION_ARB, p.minor,
+    WGL_CONTEXT_MAJOR_VERSION_ARB, p.major,
+    WGL_CONTEXT_PROFILE_MASK_ARB,  WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
+    0,
+  };
+
+  if (!window->m_context) {
+
+    if (p.major < 3) {
+      window->m_context = wglCreateContext(window->m_hdc);
+    }
+    else {
+      window->m_context = opengl.call(opengl.internal.wglCreateContextAttribsARB, window->m_hdc, (HGLRC)0, gl_attributes);
+    }
+
+    if (!window->m_context) {
+      fan::print("failed to create context");
+      exit(1);
+    }
+  }
+
+  if (!wglMakeCurrent(window->m_hdc, window->m_context)) {
+    fan::print("failed to make current");
+    exit(1);
+  }
+
+  if (wglGetCurrentContext() != window->m_context) {
+    wglMakeCurrent(window->m_hdc, window->m_context);
+  }
+
+  #elif defined(fan_platform_unix)
+
+  if (opengl.internal.glXGetCurrentContext() != window->m_context) {
+    opengl.internal.glXMakeCurrent(fan::sys::m_display, window->m_window_handle, window->m_context);
+  }
+
+  #endif
+
+  //opengl.call(opengl.glEnable, GL_BLEND);
+  //opengl.call(opengl.glBlendFunc, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+  set_depth_test(true);
+  //opengl.call(opengl.glDepthFunc, GL_ALWAYS);
+  // opengl.call(opengl.glFrontFace, GL_CCW);
+
+  #if fan_debug >= fan_debug_high
+  context_t::set_error_callback();
+  #endif
+}
+
+inline void fan::opengl::context_t::render(fan::window_t* window) {
+  #ifdef fan_platform_windows
+  SwapBuffers(window->m_hdc);
+  #elif defined(fan_platform_unix)
+  opengl.internal.glXSwapBuffers(fan::sys::m_display, window->m_window_handle);
+  #endif
+}
+
+inline void fan::opengl::context_t::set_depth_test(bool flag) {
+  if (flag) {
+    opengl.call(opengl.glEnable, fan::opengl::GL_DEPTH_TEST);
+  }
+  else {
+    opengl.call(opengl.glDisable, fan::opengl::GL_DEPTH_TEST);
+  }
+}
+
+inline void fan::opengl::context_t::set_vsync(fan::window_t* window, bool flag)
+{
+  #if defined(fan_platform_windows)
+
+  wglMakeCurrent(window->m_hdc, window->m_context);
+
+  #elif defined(fan_platform_unix)
+
+  opengl.internal.glXMakeCurrent(fan::sys::m_display, window->m_window_handle, window->m_context);
+
+  #endif
+
+  #ifdef fan_platform_windows
+
+  opengl.call(opengl.internal.wglSwapIntervalEXT, flag);
+
+  #elif defined(fan_platform_unix)
+  opengl.internal.glXSwapIntervalEXT(fan::sys::m_display, opengl.internal.glXGetCurrentDrawable(), flag);
+  #endif
+}
+
+void fan_2d::graphics::gui::theme_t::open(fan::opengl::context_t* context){
+  theme_reference = context->theme_list.NewNode();
+  context->theme_list[theme_reference].theme_id = this;
+}
+
+void fan_2d::graphics::gui::theme_t::close(fan::opengl::context_t* context){
+  context->theme_list.Recycle(theme_reference);
+}
+
+inline void fan::opengl::viewport_t::open(fan::opengl::context_t * context) {
+  viewport_reference = context->viewport_list.NewNode();
+  context->viewport_list[viewport_reference].viewport_id = this;
+}
+
+inline void fan::opengl::viewport_t::close(fan::opengl::context_t * context) {
+  context->viewport_list.Recycle(viewport_reference);
+}
+
+void fan::opengl::viewport_t::set(fan::opengl::context_t* context, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size)  {
+  viewport_position = viewport_position_;
+  viewport_size = viewport_size_;
+
+  context->opengl.call(
+    context->opengl.glViewport, 
+    viewport_position.x,
+    window_size.y - viewport_size_.y - viewport_position.y,
+    viewport_size.x, viewport_size.y
+  );
+}
+
+void fan::opengl::matrices_t::open(fan::opengl::context_t* context) {
+  m_view = fan::mat4(1);
+  camera_position = 0;
+  matrices_reference = context->matrices_list.NewNode();
+  context->matrices_list[matrices_reference].matrices_id = this;
+}
+void fan::opengl::matrices_t::close(fan::opengl::context_t* context) {
+  context->matrices_list.Recycle(matrices_reference);
+}
+
+void fan::opengl::open_matrices(fan::opengl::context_t* context, fan::opengl::matrices_t* matrices, const fan::vec2& x, const fan::vec2& y) {
+  matrices->open(context);
+  matrices->set_ortho(fan::vec2(x.x, x.y), fan::vec2(y.x, y.y));
+}

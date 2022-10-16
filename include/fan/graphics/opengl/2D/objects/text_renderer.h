@@ -256,14 +256,14 @@ struct text_renderer_t {
   }
 
   struct{
-    uint16_t id0;
+    uint32_t id0;
     uint32_t amount;
   }e;
 
   #define BLL_set_AreWeInsideStruct 1
   #define BLL_set_BaseLibrary 1
   #define BLL_set_prefix cid_list
-  #define BLL_set_type_node uint16_t
+  #define BLL_set_type_node uint32_t
   #define BLL_set_node_data fan::opengl::cid_t cid;
   #define BLL_set_Link 1
   #define BLL_set_StoreFormat 1

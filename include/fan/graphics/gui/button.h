@@ -40,7 +40,7 @@ struct button_t {
       selected = 0;
     }
 
-    fan::string text;
+    fan::wstring text;
     f32_t font_size = 0.1;
 
     loco_t::vfi_t::iflags_t vfi_flags;
@@ -273,12 +273,12 @@ struct button_t {
     block->p[cid->instance_id].selected = flag;
   }
 
-  fan::string get_text(fan::opengl::cid_t* cid) {
+  fan::wstring get_text(fan::opengl::cid_t* cid) {
     loco_t* loco = get_loco();
     auto block = sb_get_block(cid);
     return loco->text.get_properties(block->p[cid->instance_id].text_id).text;
   }
-  void set_text(fan::opengl::cid_t* cid, const fan::string& text) {
+  void set_text(fan::opengl::cid_t* cid, const fan::wstring& text) {
     loco_t* loco = get_loco();
     auto block = sb_get_block(cid);
     loco->text.set_text(&block->p[cid->instance_id].text_id, text);

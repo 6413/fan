@@ -7,7 +7,7 @@ GPP = clang++
 CFLAGS = -I . -w -g -std=c++2a -I include #-O3 -march=native -mtune=native \
   #-fsanitize=address -fno-omit-frame-pointer
 
-MAIN = examples/text_box.cpp
+MAIN = examples/button.cpp
 
 TARGET = a.out
 

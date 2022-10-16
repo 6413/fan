@@ -63,6 +63,15 @@ struct fed_t {
 		m_wed.MoveCursorFreeStyleToRight(m_cr);
 	}
 
+	void set_mouse_position(const fan::vec2& src, const fan::vec2& dst) {
+		wed_t::LineReference_t FirstLineReference = m_wed.GetFirstLineID();
+		wed_t::LineReference_t LineReference0, LineReference1;
+		wed_t::CharacterReference_t CharacterReference0, CharacterReference1;
+		m_wed.GetLineAndCharacter(FirstLineReference, src.y, src.x * character_width_multiplier, &LineReference0, &CharacterReference0);
+		m_wed.GetLineAndCharacter(FirstLineReference, dst.y, dst.x * character_width_multiplier, &LineReference1, &CharacterReference1);
+		m_wed.ConvertCursorToSelection(m_cr, LineReference0, CharacterReference0, LineReference1, CharacterReference1);
+	}
+
 	fan::wstring get_text(wed_t::LineReference_t line_id) {
 		wed_t::ExportLine_t el;
 		m_wed.ExportLine_init(&el, line_id);
