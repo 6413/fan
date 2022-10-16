@@ -6,8 +6,6 @@
 #define fan_debug 0
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
-#include _FAN_PATH(graphics/graphics.h)
-
 #define loco_window
 #define loco_context
 
@@ -29,11 +27,11 @@ struct pile_t {
       ortho_x,
       ortho_y
     );
-    loco.get_window()->add_resize_callback(this, [](fan::window_t* w, const fan::vec2i& size, void* userptr) {
+   /* loco.get_window()->add_resize_callback(this, [](fan::window_t* w, const fan::vec2i& size, void* userptr) {
       pile_t* pile = (pile_t*)userptr;
 
       pile->viewport.set(pile->loco.get_context(), 0, size, w->get_size());
-    });
+    });*/
     viewport.open(loco.get_context());
     viewport.set(loco.get_context(), 0, loco.get_window()->get_size(), loco.get_window()->get_size());
   }
@@ -58,7 +56,7 @@ int main() {
 
   constexpr fan::vec2ui image_size = fan::vec2ui(1920, 1050);
 
-  std::string str;
+  fan::string str;
   fan::io::file::read("output.yuv", &str);
 
   p.load_yuv(&pile->loco, (uint8_t*)str.data(), image_size);

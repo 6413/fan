@@ -23,6 +23,7 @@ namespace fan {
 			using fan::opengl::open_matrices;
 			using fan::opengl::cid_t;
 			using fan::opengl::shader_t;
+			using fan::opengl::textureid_t;
 		#elif defined(loco_vulkan)
 			using fan::vulkan::context_t;
 			using fan::vulkan::matrices_t;
