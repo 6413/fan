@@ -1094,10 +1094,10 @@ void fan::vulkan::descriptor_sets_t::open(fan::vulkan::context_t* context) {
 
   VkDescriptorPoolCreateInfo poolInfo{};
   poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-  poolInfo.poolSizeCount = 1;
+  poolInfo.poolSizeCount = 4;
   poolInfo.pPoolSizes = &poolSize;
   // ? * 2 buffer, projectionview
-  poolInfo.maxSets = fan::vulkan::MAX_FRAMES_IN_FLIGHT * 24;
+  poolInfo.maxSets = fan::vulkan::MAX_FRAMES_IN_FLIGHT * 64;
 
   if (vkCreateDescriptorPool(context->device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
     throw std::runtime_error("failed to create descriptor pool!");
@@ -1128,13 +1128,15 @@ fan::vulkan::descriptor_sets_t::nr_t fan::vulkan::descriptor_sets_t::push(
   auto ret = vkAllocateDescriptorSets(context->device, &allocInfo, node.descriptor_set);
 
   if (ret != VK_SUCCESS) {
-    throw std::runtime_error("failed to allocate descriptor sets!");
+    fan::print("ret", ret);
+    throw std::runtime_error("failed to allocate descriptor sets");
   }
 
   ret = vkAllocateDescriptorSets(context->device, &allocInfo, node.projection_view_ds);
 
   if (ret != VK_SUCCESS) {
-    throw std::runtime_error("failed to allocate descriptor sets!");
+    fan::print("ret", ret);
+    throw std::runtime_error("failed to allocate descriptor sets");
   }
 
   for (size_t i = 0; i < fan::vulkan::MAX_FRAMES_IN_FLIGHT; i++) {
