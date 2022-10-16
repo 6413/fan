@@ -632,7 +632,7 @@ namespace fan {
 			}
 
 			if (prop_ret) {
-				copied_text = converter.from_bytes((char*)prop_ret);
+				copied_text = converter.from_bytes((char*)prop_ret).data();
 				XFree(prop_ret);
 			}
 			else {
