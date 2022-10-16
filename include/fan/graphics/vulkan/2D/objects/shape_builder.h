@@ -40,7 +40,6 @@ void sb_open() {
     throw std::runtime_error("failed to create descriptor set layout!");
   }
 
-
   m_shader.open(loco->get_context(), descriptorSetLayout);
   m_shader.set_vertex(
     loco->get_context(),

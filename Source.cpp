@@ -1,7 +1,8 @@
+#define FAN_INCLUDE_PATH C:/libs/fan/include
+
 #include <fan/types/types.h>
 
 int main() {
-	fan::string str(
-	CONCAT("", #include <fan/types/types.h>
-	)
+	const char* x = _FAN_PATH_QUOTE(graphics);
+	fan::print(x);
 }
