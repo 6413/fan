@@ -487,7 +487,7 @@ namespace fan {
 #define __ca__ ,
 
 #ifndef fan_debug
-#define fan_debug fan_debug_low
+	#define fan_debug fan_debug_low
 #endif
 
 #ifndef fan_use_uninitialized
@@ -501,3 +501,46 @@ namespace fan {
 static void PR_abort() {
 	fan::throw_error("");
 }
+
+#ifndef __clz
+#define __clz __clz
+static uint8_t __clz32(uint32_t p0) {
+	#if defined(__GNUC__)
+	return __builtin_clzl(p0);
+	#elif defined(_MSC_VER)
+	DWORD trailing_zero = 0;
+	if (_BitScanReverse(&trailing_zero, p0)) {
+		return 31 - trailing_zero;
+	}
+	else {
+		return 0;
+	}
+	#else
+	#error ?
+	#endif
+}
+static uint8_t __clz64(uint64_t p0) {
+	#if defined(__GNUC__)
+	return __builtin_clzll(p0);
+	#elif defined(_MSC_VER)
+	DWORD trailing_zero = 0;
+	if (_BitScanReverse64(&trailing_zero, p0)) {
+		return 63 - trailing_zero;
+	}
+	else {
+		return 0;
+	}
+	#else
+	#error ?
+	#endif
+}
+static uint8_t __clz(uintptr_t p0) {
+	#if defined(_WIN32)
+		return __clz32(p0);
+	#elif defined(_WIN64)
+		return __clz64(p0);
+	#else
+	#error ?
+	#endif
+}
+#endif

@@ -539,9 +539,9 @@ namespace fan {
 
 	namespace io {
 
-		static std::wstring get_clipboard_text(fan::window_handle_t window) {
+		static fan::wstring get_clipboard_text(fan::window_handle_t window) {
 
-			std::wstring copied_text;
+			fan::wstring copied_text;
 
 			#ifdef fan_platform_windows
 
@@ -569,7 +569,7 @@ namespace fan {
 			#elif defined(fan_platform_unix)
 
 			typedef std::codecvt_utf8<wchar_t> convert_type;
-			std::wstring_convert<convert_type, wchar_t> converter;
+			fan::wstring_convert<convert_type, wchar_t> converter;
 
 			Display *display = XOpenDisplay(NULL);
 

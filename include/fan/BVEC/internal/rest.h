@@ -10,7 +10,9 @@ typedef struct{
   _BVEC_P(Node_t) *ptr;
   #ifndef BVEC_set_NodeData
     BVEC_set_NodeSizeType NodeSize;
-    BVEC_set_NodeType BufferAmount;
+    #if BVEC_set_BufferingFormat == 0
+      BVEC_set_NodeType BufferAmount;
+    #endif
   #endif
 }_BVEC_P(t);
 
@@ -41,18 +43,20 @@ _BVEC_P(GetNode)
   #endif
 }
 
-static
-BVEC_set_NodeType
-_BVEC_P(GetBufferAmount)
-(
-  _BVEC_P(t) *List
-){
-  #ifdef BVEC_set_NodeData
-    return BVEC_BufferAmount;
-  #else
-    return List->BufferAmount;
-  #endif
-}
+#if BVEC_set_BufferingFormat == 0
+  static
+  BVEC_set_NodeType
+  _BVEC_P(GetBufferAmount)
+  (
+    _BVEC_P(t) *List
+  ){
+    #ifdef BVEC_set_NodeData
+      return BVEC_BufferAmount;
+    #else
+      return List->BufferAmount;
+    #endif
+  }
+#endif
 
 static
 void
@@ -76,10 +80,12 @@ _BVEC_P(Open)
   List->ptr = 0;
   #ifndef BVEC_set_NodeData
     List->NodeSize = NodeSize;
-    List->BufferAmount = BVEC_set_WantedBufferByteAmount / List->NodeSize;
-    if(List->BufferAmount == 0){
-      List->BufferAmount = 1;
-    }
+    #if BVEC_set_BufferingFormat == 0
+      List->BufferAmount = BVEC_set_WantedBufferByteAmount / List->NodeSize;
+      if(List->BufferAmount == 0){
+        List->BufferAmount = 1;
+      }
+    #endif
   #endif
 }
 static
@@ -99,7 +105,23 @@ _BVEC_P(ClearWithBuffer)
   BVEC_set_alloc_close(List->ptr);
   List->Current = 0;
   List->Possible = 0;
-  List->ptr = 0;
+  List->ptr = NULL;
+}
+
+static
+void
+_BVEC_P(_Resize)(
+  _BVEC_P(t) *List
+){
+  for(uint32_t i = 0; i < BVEC_set_alloc_RetryAmount; i++){
+    void *np = BVEC_set_alloc_resize(List->ptr, List->Possible * _BVEC_P(GetNodeSize)(List));
+    if(np == NULL){
+      continue;
+    }
+    List->ptr = (_BVEC_P(Node_t) *)np;
+    return;
+  }
+  BVEC_set_abort
 }
 
 static
@@ -110,7 +132,7 @@ _BVEC_P(Reserve)
   BVEC_set_NodeType Amount
 ){
   List->Possible = Amount;
-  List->ptr = (_BVEC_P(Node_t) *)BVEC_set_alloc_resize(List->ptr, List->Possible * _BVEC_P(GetNodeSize)(List));
+  _BVEC_P(_Resize)(List);
 }
 
 static
@@ -119,8 +141,12 @@ _BVEC_P(_AllocateBuffer)
 (
   _BVEC_P(t) *List
 ){
-	List->Possible += _BVEC_P(GetBufferAmount)(List);
-	List->ptr = (_BVEC_P(Node_t) *)BVEC_set_alloc_resize(List->ptr, List->Possible * _BVEC_P(GetNodeSize)(List));
+  #if BVEC_set_BufferingFormat == 0
+  	List->Possible += _BVEC_P(GetBufferAmount)(List);
+  #elif BVEC_set_BufferingFormat == 1
+    List->Possible = List->Possible ? List->Possible * 2 : 1;
+  #endif
+	_BVEC_P(_Resize)(List);
 }
 static
 void
@@ -128,8 +154,12 @@ _BVEC_P(_AllocateBufferFromCurrent)
 (
   _BVEC_P(t) *List
 ){
-	List->Possible = List->Current + _BVEC_P(GetBufferAmount)(List);
-	List->ptr = (_BVEC_P(Node_t) *)BVEC_set_alloc_resize(List->ptr, List->Possible * _BVEC_P(GetNodeSize)(List));
+  #if BVEC_set_BufferingFormat == 0
+	  List->Possible = List->Current + _BVEC_P(GetBufferAmount)(List);
+  #elif BVEC_set_BufferingFormat == 1
+    List->Possible = 1 << sizeof(uintptr_t) * 8 - __clz(List->Current);
+  #endif
+	_BVEC_P(_Resize)(List);
 }
 
 static

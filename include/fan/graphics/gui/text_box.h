@@ -92,7 +92,7 @@ struct text_box_t {
     pr.fed.open(fp);
     pr.fed.push_text(p.text);
     if (!p.disable_highlight) {
-      vfip.mouse_move_cb = [cb = p.mouse_move_cb, udata = p.udata, cid_ = cid](const loco_t::vfi_t::mouse_move_data_t& mm_d) -> int {
+      vfip.mouse_move_cb = [this, &pr, cb = p.mouse_move_cb, udata = p.udata, cid_ = cid](const loco_t::vfi_t::mouse_move_data_t& mm_d) -> int {
         loco_t* loco = OFFSETLESS(mm_d.vfi, loco_t, vfi_var_name);
         loco_t::mouse_move_data_t mmd = mm_d;
         auto block = loco->text_box.sb_get_block(cid_);
@@ -104,11 +104,24 @@ struct text_box_t {
             loco->text_box.set_theme(cid_, loco->text_box.get_theme(cid_), inactive);
           }
         }
+
+        //if (loco->get_window()->key_pressed(fan::mouse_left) && loco->vfi.get_focus_keyboard()) {
+        //  fan::print("a");
+        //  // src press
+        //  fan::vec2 src = fan::vec2(mm_d.position) - fan::vec2(get_text_left_position(cid_));
+        //  // dst release
+        //  src.x = fan::clamp(src.x, (f32_t)0, src.x);
+        //  fan::vec2 dst = src;
+
+        //  pr.fed.set_mouse_position(src, dst);
+        //  update_cursor(cid_);
+        //}
+
         mmd.cid = cid_;
         cb(mmd);
         return 0;
       };
-      vfip.mouse_button_cb = [this, cb = p.mouse_button_cb, udata = p.udata, cid_ = cid](const loco_t::vfi_t::mouse_button_data_t& ii_d) -> int {
+      vfip.mouse_button_cb = [this, &pr, cb = p.mouse_button_cb, udata = p.udata, cid_ = cid](const loco_t::vfi_t::mouse_button_data_t& ii_d) -> int {
         loco_t* loco = OFFSETLESS(ii_d.vfi, loco_t, vfi_var_name);
         auto block = loco->text_box.sb_get_block(cid_);
         if (ii_d.flag->ignore_move_focus_check == false && !block->p[cid_->instance_id].selected) {
@@ -117,6 +130,13 @@ struct text_box_t {
             ii_d.flag->ignore_move_focus_check = true;
             loco->vfi.set_focus_keyboard(loco->vfi.get_focus_mouse());
             loco->vfi.set_focus_text(loco->vfi.get_focus_mouse());
+
+            fan::vec2 src = fan::vec2(ii_d.position) - fan::vec2(get_text_left_position(cid_));
+            // dst release
+            src.x = fan::clamp(src.x, (f32_t)0, src.x);
+            fan::vec2 dst = src;
+
+            pr.fed.set_mouse_position(src, dst);
             update_cursor(cid_);
           }
         }
@@ -170,6 +190,15 @@ struct text_box_t {
             case fan::key_end: { pr.fed.freestyle_move_line_end(); break; }
             case fan::key_left: { pr.fed.freestyle_move_left(); break; }
             case fan::key_right: { pr.fed.freestyle_move_right(); break; }
+            case fan::key_v: {
+              if (loco->get_window()->key_pressed(fan::key_control)) {
+                auto pasted_text = fan::io::get_clipboard_text(loco->get_window()->get_handle());
+
+                pr.fed.push_text(pasted_text);
+
+                update_text();
+              }
+            }
             default: {
               return 0;
             }
@@ -411,6 +440,15 @@ struct text_box_t {
     loco->text.set_text(&block->p[cid->instance_id].text_id, text);
   }
 
+  fan::vec3 get_text_left_position(fan::opengl::cid_t* cid) {
+    auto loco = get_loco();
+    uint32_t id = sb_get_block(cid)->p[cid->instance_id].text_id;
+    f32_t text_length = loco->text.get_text_size(id).x;
+    fan::vec3 center = get_button(cid, &text_box_t::instance_t::position);
+    center.x -= text_length * 0.5;
+    return center;
+  }
+
   fan::vec3 get_character_position(fan::opengl::cid_t* cid, uint32_t line, uint32_t width) {
 
     auto loco = get_loco();
@@ -421,15 +459,8 @@ struct text_box_t {
         return center;
       }
     }
-    f32_t text_length = loco->text.get_text_size(id).x;
-    fan::vec3 p;
-    auto it = loco->text.letter_ids[id].cid_list.GetNodeFirst();
-    fan::vec3 pfirst = loco->letter.get(
-      &loco->text.letter_ids[id].cid_list.GetNodeByReference(it)->data.cid,
-      &loco_t::letter_t::instance_t::position
-    );
-    p.x = center.x - text_length * 0.5;
 
+    fan::vec3 p = get_text_left_position(cid);
     const fan::wstring& text = loco->text.get_properties(id).text;
     f32_t font_size = loco->text.letter_ids[id].p.font_size;
     for (uint32_t i = 0; i < width; ++i) {
@@ -437,7 +468,6 @@ struct text_box_t {
       p.x += letter.metrics.advance;
     }
     p.y = get_button(cid, &text_box_t::instance_t::position).y;
-    p.z = pfirst.z;
     return p;
   }
 

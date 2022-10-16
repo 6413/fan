@@ -22,8 +22,8 @@ float get_outline_edge(float outline_size) {
 
 void main() {
   float distance = texture(_t00, texture_coordinate).r;
-  float smoothing = 1.0 / (render_size * 100);
-  float width = 0.4;
+  float smoothing = 1.0 / (render_size * 40);
+  float width = 0.2;
   float alpha = smoothstep(width, width + smoothing, distance);
 
   float border_width = get_outline_width(0);
@@ -33,13 +33,15 @@ void main() {
 
  // vec3 final_color = mix(vec3(0, 0, 0), text_color.rgb, outline_alpha);
 
-  if (alpha < 0.5) {
+  if (alpha < 0.9) {
+    //color = vec4(vec3(0.3, 0, 0), alpha);
     discard;
   }
-  color = vec4(text_color.rgb, alpha);
+  else {
+    
+    color = vec4(text_color.rgb, alpha);
+  }
 
-  //if (outline_alpha < 0.5) {
-  //  color.rgb = vec3(0, 0, 0);
-  //}
+//  color = vec4(0.5, 0, 0, 1);
 }
 )"

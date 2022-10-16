@@ -582,10 +582,11 @@ inline void fan::opengl::context_t::bind_to_window(fan::window_t* window, const 
 
   #endif
 
-  opengl.call(opengl.glEnable, GL_BLEND);
-  opengl.call(opengl.glBlendFunc, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  //opengl.call(opengl.glEnable, GL_BLEND);
+  //opengl.call(opengl.glBlendFunc, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
   set_depth_test(true);
+  //opengl.call(opengl.glDepthFunc, GL_ALWAYS);
   // opengl.call(opengl.glFrontFace, GL_CCW);
 
   #if fan_debug >= fan_debug_high

@@ -158,7 +158,6 @@ struct loco_t {
   #if defined(loco_button)
     #define loco_letter
     #define loco_text
-    #define loco_text_box
   #endif
   #if defined(loco_menu_maker)
     #define loco_letter
@@ -236,10 +235,7 @@ struct loco_t {
     #undef sb_shape_var_name
   #endif
   #if defined(loco_post_process)
-    #define sb_shader_vertex_path _FAN_PATH(graphics/glsl/opengl/2D/effects/post_process.vs)
-    #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/effects/post_process.fs)
     #define sb_post_process_var_name post_process
-    #define sb_sprite_name post_sprite_t
     #include _FAN_PATH(graphics/opengl/2D/effects/post_process.h)
     post_process_t sb_post_process_var_name;
     #undef sb_post_process_var_name
@@ -401,7 +397,7 @@ struct loco_t {
 
   void process_frame() {
     #if fan_renderer == fan_renderer_opengl
-    // get_context()->opengl.call(get_context()->opengl.glClearColor, 1, 0, 0, 0);
+     get_context()->opengl.call(get_context()->opengl.glClearColor, 1, 1, 1, 1);
     get_context()->opengl.call(get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
     #endif
 

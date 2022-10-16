@@ -1165,3 +1165,16 @@ GetDataOfCharacter(
   _Line_t *Line = &this->LineList[LineReference];
   return &Line->CharacterList[CharacterReference].data;
 }
+
+LineReference_t
+GetFirstLineID
+(
+){
+  return this->LineList.GetNodeFirst();
+}
+LineReference_t
+GetLastLineID
+(
+){
+  return this->LineList.GetNodeLast();
+}
