@@ -1090,11 +1090,11 @@ void fan::vulkan::open_matrices(fan::vulkan::context_t* context, fan::vulkan::ma
 void fan::vulkan::descriptor_sets_t::open(fan::vulkan::context_t* context) {
   VkDescriptorPoolSize poolSize{};
   poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-  poolSize.descriptorCount = fan::vulkan::MAX_FRAMES_IN_FLIGHT;
+  poolSize.descriptorCount = fan::vulkan::MAX_FRAMES_IN_FLIGHT * 10;
 
   VkDescriptorPoolCreateInfo poolInfo{};
   poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-  poolInfo.poolSizeCount = 4;
+  poolInfo.poolSizeCount = 40;
   poolInfo.pPoolSizes = &poolSize;
   // ? * 2 buffer, projectionview
   poolInfo.maxSets = fan::vulkan::MAX_FRAMES_IN_FLIGHT * 64;
