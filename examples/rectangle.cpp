@@ -6,7 +6,7 @@
 #define fan_debug 3
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
-#define loco_vulkan
+//#define loco_vulkan
 
 #define loco_window
 #define loco_context
