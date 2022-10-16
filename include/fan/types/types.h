@@ -498,10 +498,6 @@ namespace fan {
 #pragma comment(lib, "Onecore.lib")
 #endif
 
-static void PR_abort() {
-	fan::throw_error("");
-}
-
 #ifndef __clz
 #define __clz __clz
 static uint8_t __clz32(uint32_t p0) {
