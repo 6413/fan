@@ -132,7 +132,7 @@ struct loco_t {
   }
 
   void process_block_properties_element(auto* shape, fan::graphics::matrices_list_NodeReference_t matrices_id) {
-    shape->m_shader.set_matrices(get_context(), get_context()->matrices_list[matrices_id].matrices_id);
+    shape->m_shader.set_matrices(get_context(), get_context()->matrices_list[matrices_id].matrices_id, &m_write_queue);
   }
 
   void process_block_properties_element(auto* shape, fan::graphics::viewport_list_NodeReference_t viewport_id) {
@@ -413,6 +413,21 @@ struct loco_t {
 
     #ifdef loco_post_process
       post_process.start_capture();
+    #endif
+
+    #if defined(loco_vulkan)
+      auto context = get_context();
+      vkWaitForFences(context->device, 1, &context->inFlightFences[context->currentFrame], VK_TRUE, UINT64_MAX);
+
+      VkResult result = vkAcquireNextImageKHR(context->device, context->swapChain, UINT64_MAX, context->imageAvailableSemaphores[context->currentFrame], VK_NULL_HANDLE, &context->imageIndex);
+
+      if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+        context->recreateSwapChain(get_window()->get_size());
+        return;
+      }
+      else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+        throw std::runtime_error("failed to acquire swap chain image!");
+      }
     #endif
 
     m_write_queue.process(get_context());

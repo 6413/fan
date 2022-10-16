@@ -18,7 +18,30 @@ void sb_open() {
   blocks.Open();
   bm_list.Open();
 
-  m_shader.open(loco->get_context(), loco->get_context()->projectionview_desc_layout_set);
+  VkDescriptorSetLayoutBinding uboLayoutBinding[2]{};
+  uboLayoutBinding[0].binding = 0;
+  uboLayoutBinding[0].descriptorCount = 1;
+  uboLayoutBinding[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+  uboLayoutBinding[0].pImmutableSamplers = nullptr;
+  uboLayoutBinding[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+  uboLayoutBinding[1].binding = 1;
+  uboLayoutBinding[1].descriptorCount = 1;
+  uboLayoutBinding[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+  uboLayoutBinding[1].pImmutableSamplers = nullptr;
+  uboLayoutBinding[1].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+  VkDescriptorSetLayoutCreateInfo layoutInfo{};
+  layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+  layoutInfo.bindingCount = std::size(uboLayoutBinding);
+  layoutInfo.pBindings = uboLayoutBinding;
+
+  if (vkCreateDescriptorSetLayout(loco->get_context()->device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
+    throw std::runtime_error("failed to create descriptor set layout!");
+  }
+
+
+  m_shader.open(loco->get_context(), descriptorSetLayout);
   m_shader.set_vertex(
     loco->get_context(),
     sb_shader_vertex_path
@@ -28,25 +51,9 @@ void sb_open() {
     sb_shader_fragment_path
   );
 
-  VkDescriptorSetLayoutBinding uboLayoutBinding{};
-  uboLayoutBinding.binding = 0;
-  uboLayoutBinding.descriptorCount = 1;
-  uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-  uboLayoutBinding.pImmutableSamplers = nullptr;
-  uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-  VkDescriptorSetLayoutCreateInfo layoutInfo{};
-  layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-  layoutInfo.bindingCount = 1;
-  layoutInfo.pBindings = &uboLayoutBinding;
-
-  if (vkCreateDescriptorSetLayout(loco->get_context()->device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
-    throw std::runtime_error("failed to create descriptor set layout!");
-  }
-
   fan::vulkan::pipelines_t::properties_t p;
   p.shader = &m_shader;
-  p.descriptor_set_layout = descriptorSetLayout;
+  p.descriptor_set_layout = &descriptorSetLayout;
 
   pipeline_nr = loco->get_context()->pipelines.push(loco->get_context(), p);
 }
@@ -233,17 +240,6 @@ void traverse_draw(auto nr) {
 
     while(1) {
       auto node = blocks.GetNodeByReference(bnr);
-     /* node->data.block.uniform_buffer.bind_buffer_range(
-        loco->get_context(), 
-        node->data.block.uniform_buffer.size()
-      );
-      */
-      /*node->data.block.uniform_buffer.draw(
-        loco->get_context(),
-        0 * sb_vertex_count,
-        node->data.block.uniform_buffer.size() * sb_vertex_count,
-        draw_mode
-      );*/
 
       loco->get_context()->draw(
         sb_vertex_count,
@@ -254,6 +250,17 @@ void traverse_draw(auto nr) {
         loco->get_context()->imageIndex,
         &loco->get_context()->descriptor_sets.descriptor_list[node->data.block.uniform_buffer.descriptor_nr].descriptor_set[loco->get_context()->currentFrame]
       );
+      fan::print("drawing");
+      if (vkEndCommandBuffer(loco->get_context()->commandBuffers[loco->get_context()->currentFrame]) != VK_SUCCESS) {
+        throw std::runtime_error("failed to record command buffer");
+      }
+
+      VkCommandBufferBeginInfo beginInfo{};
+      beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+      if (vkBeginCommandBuffer(loco->get_context()->commandBuffers[loco->get_context()->currentFrame], &beginInfo) != VK_SUCCESS) {
+        throw std::runtime_error("failed to begin recording command buffer");
+      }
 
       if (bnr == bmn->data.last_block) {
         break;
@@ -278,7 +285,18 @@ void traverse_draw(auto nr) {
 
 void sb_draw(uint32_t draw_mode = 0) {
   loco_t* loco = get_loco();
+  VkCommandBufferBeginInfo beginInfo{};
+  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+  fan::print("start");
+  if (vkBeginCommandBuffer(loco->get_context()->commandBuffers[loco->get_context()->currentFrame], &beginInfo) != VK_SUCCESS) {
+    throw std::runtime_error("failed to begin recording command buffer!");
+  }
+
   traverse_draw(root);
+
+  if (vkEndCommandBuffer(loco->get_context()->commandBuffers[loco->get_context()->currentFrame]) != VK_SUCCESS) {
+    throw std::runtime_error("failed to record command buffer!");
+  }
 }
 
 template <uint32_t i>
@@ -299,7 +317,7 @@ fan::vulkan::pipelines_t::nr_t pipeline_nr;
 
 struct block_t {
   void open(loco_t* loco, auto* shape) {
-    uniform_buffer.open(loco->get_context(), shape->descriptorSetLayout);
+    uniform_buffer.open(loco->get_context(), &shape->m_shader, shape->descriptorSetLayout);
   }
   void close(loco_t* loco) {
     uniform_buffer.close(loco->get_context(), &loco->m_write_queue);

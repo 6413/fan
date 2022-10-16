@@ -6,7 +6,7 @@ namespace fan {
 		struct shader_t {
 
       void open(fan::vulkan::context_t* context, VkDescriptorSetLayout descriptor_set_layout) {
-        uniform_buffer.open(context, descriptor_set_layout);
+        uniform_buffer.open(context, this, descriptor_set_layout);
       }
 
       void close(fan::vulkan::context_t* context, fan::vulkan::core::uniform_write_queue_t* write_queue) {
@@ -58,9 +58,10 @@ namespace fan {
         return shaderModule;
       }
 
-      void set_matrices(fan::vulkan::context_t* context, fan::vulkan::matrices_t* matrices) {
+      void set_matrices(fan::vulkan::context_t* context, fan::vulkan::matrices_t* matrices, core::uniform_write_queue_t* write_queue) {
         uniform_buffer.edit_instance(context, 0, &viewprojection_t::projection, matrices->m_projection);
         uniform_buffer.edit_instance(context, 0, &viewprojection_t::view, matrices->m_view);
+        uniform_buffer.common.edit(context, write_queue, 0, sizeof(viewprojection_t));
       }
 
       struct viewprojection_t {
