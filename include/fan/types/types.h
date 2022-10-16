@@ -530,13 +530,24 @@ static uint8_t __clz64(uint64_t p0) {
 	#error ?
 	#endif
 }
+
+#if defined(__x86_64__) || defined(_M_AMD64)
+	#define SYSTEM_BIT 64
+	#define SYSTEM_BYTE 8
+#elif defined(__i386__)
+	#define SYSTEM_BIT 32
+	#define SYSTEM_BYTE 4
+#else
+	#error failed to find platform
+#endif
+
 static uint8_t __clz(uintptr_t p0) {
-	#if defined(_WIN32)
+	#if SYSTEM_BIT == 32
 		return __clz32(p0);
-	#elif defined(_WIN64)
+	#elif SYSTEM_BIT == 64
 		return __clz64(p0);
 	#else
-	#error ?
+		#error ?
 	#endif
 }
 #endif
