@@ -35,7 +35,6 @@ namespace fan {
       struct uniform_block_common_t {
         uint32_t m_vbo;
         fan::opengl::core::vao_t m_vao;
-        uint32_t buffer_bytes_size;
         uint32_t m_size;
 
         void open(fan::opengl::context_t* context) {
@@ -108,7 +107,6 @@ namespace fan {
           context->opengl.call(context->opengl.glGenBuffers, 1, &common.m_vbo);
           op = op_;
           common.open(context);
-          common.buffer_bytes_size = sizeof(type_t);
           fan::opengl::core::write_glbuffer(context, common.m_vbo, 0, sizeof(type_t) * element_size, op.usage, op.target);
         }
 
@@ -135,7 +133,7 @@ namespace fan {
         }
 
         void push_ram_instance(fan::opengl::context_t* context, const type_t& data) {
-          std::memmove(&buffer[common.m_size], (void*)&data, common.buffer_bytes_size);
+          std::memmove(&buffer[common.m_size], (void*)&data, sizeof(type_t));
           common.m_size += sizeof(type_t);
         }
 

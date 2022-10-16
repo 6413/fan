@@ -1,3 +1,7 @@
+#ifndef loco_vulkan
+  #define loco_opengl
+#endif
+
 #include _FAN_PATH(graphics/graphics.h)
 #include _FAN_PATH(time/timer.h)
 
@@ -420,7 +424,7 @@ struct loco_t {
         get_context()->render(get_window());
       #elif defined(loco_vulkan)
         get_context()->render(get_window(),
-          [] {
+          [this] {
             #include "draw_shapes.h"
           }
         );

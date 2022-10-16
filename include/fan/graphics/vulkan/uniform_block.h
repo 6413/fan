@@ -30,16 +30,17 @@ namespace fan {
 				bll_t<fan::vulkan::core::uniform_block_common_t*> write_queue;
 			};
 
-			struct uniform_block_common_t {
-				static constexpr auto buffer_count = fan::vulkan::context_t::MAX_FRAMES_IN_FLIGHT;
+			struct memory_t {
+				VkBuffer uniform_buffer;
+				VkDeviceMemory device_memory;
+			};
 
-				uint32_t buffer_bytes_size;
+			struct uniform_block_common_t {
+				static constexpr auto buffer_count = fan::vulkan::MAX_FRAMES_IN_FLIGHT;
+
 				uint32_t m_size;
 
-				struct memory_t {
-					VkBuffer uniform_buffer;
-					VkDeviceMemory device_memory;
-				}memory[buffer_count];
+				memory_t memory[buffer_count];
 
 				void open(fan::vulkan::context_t* context) {
 
@@ -94,7 +95,7 @@ namespace fan {
 			template <uint32_t binding, typename type_t, uint32_t element_size>
 			struct uniform_block_t {
 
-				static constexpr auto buffer_count = fan::vulkan::context_t::MAX_FRAMES_IN_FLIGHT;
+				static constexpr auto buffer_count = fan::vulkan::MAX_FRAMES_IN_FLIGHT;
 
 				struct open_properties_t {
 					open_properties_t() {}
@@ -103,45 +104,37 @@ namespace fan {
 					//uint32_t usage = fan::opengl::GL_DYNAMIC_DRAW;
 				}op;
 
-				void open(fan::vulkan::context_t* context, open_properties_t op_ = open_properties_t()) {
+				void open(fan::vulkan::context_t* context, VkDescriptorSetLayout descriptor_set_layout, open_properties_t op_ = open_properties_t()) {
 					common.open(context);
 
 					op = op_;
-					VkDescriptorSetLayoutBinding uboLayoutBinding{};
-					uboLayoutBinding.binding = binding;
-					uboLayoutBinding.descriptorCount = 1;
-					uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-					uboLayoutBinding.pImmutableSamplers = nullptr;
-					uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
-					VkDescriptorSetLayoutCreateInfo layoutInfo{};
-					layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-					layoutInfo.bindingCount = 1;
-					layoutInfo.pBindings = &uboLayoutBinding;
-
-					if (vkCreateDescriptorSetLayout(context->device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
-						throw std::runtime_error("failed to create descriptor set layout!");
-					}
-
-					VkDeviceSize bufferSize = element_size;
+					VkDeviceSize bufferSize = sizeof(type_t);
 
 					for (size_t i = 0; i < buffer_count; i++) {
 						createBuffer(
+							context,
 							bufferSize, 
 							VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, 
 							VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
-							memory[i].uniform_buffer,
-							memory[i].device_memory
+							common.memory[i].uniform_buffer,
+							common.memory[i].device_memory
 						);
 					}
-				}
-				void close(fan::vulkan::context_t* context) {
-					common.close(context);
 
-					for (size_t i = 0; i < element_size; i++) {
-						vkDestroyBuffer(device, memory[i].uniform_buffer, nullptr);
-						vkFreeMemory(device, memory[i].device_memory, nullptr);
+					descriptor_nr = context->descriptor_sets.push(context, common.memory, descriptor_set_layout, sizeof(type_t), binding);
+				}
+				void close(fan::vulkan::context_t* context, uniform_write_queue_t* queue) {
+					common.close(context, queue);
+
+					for (size_t i = 0; i < buffer_count; i++) {
+						vkDestroyBuffer(context->device, common.memory[i].uniform_buffer, nullptr);
+						vkFreeMemory(context->device, common.memory[i].device_memory, nullptr);
 					}
+				}
+
+				uint32_t size() const {
+					return common.m_size / sizeof(type_t);
 				}
 
 				void createBuffer(fan::vulkan::context_t* context, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
@@ -161,7 +154,7 @@ namespace fan {
 					VkMemoryAllocateInfo allocInfo{};
 					allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 					allocInfo.allocationSize = memRequirements.size;
-					allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
+					allocInfo.memoryTypeIndex = findMemoryType(context, memRequirements.memoryTypeBits, properties);
 
 					if (vkAllocateMemory(context->device, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
 						throw std::runtime_error("failed to allocate buffer memory!");
@@ -170,9 +163,9 @@ namespace fan {
 					vkBindBufferMemory(context->device, buffer, bufferMemory, 0);
 				}
 
-				uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
+				uint32_t findMemoryType(fan::vulkan::context_t* context, uint32_t typeFilter, VkMemoryPropertyFlags properties) {
 					VkPhysicalDeviceMemoryProperties memProperties;
-					vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
+					vkGetPhysicalDeviceMemoryProperties(context->physicalDevice, &memProperties);
 
 					for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
 						if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
@@ -184,7 +177,7 @@ namespace fan {
 				}
 
 				void push_ram_instance(fan::vulkan::context_t* context, const type_t& data) {
-					std::memmove(&buffer[common.m_size], (void*)&data, common.buffer_bytes_size);
+					std::memmove(&buffer[common.m_size], (void*)&data, sizeof(type_t));
 					common.m_size += sizeof(type_t);
 				}
 
@@ -213,7 +206,7 @@ namespace fan {
 				uniform_block_common_t common;
 				uint8_t buffer[element_size * sizeof(type_t)];
 
-				VkDescriptorSetLayout descriptorSetLayout;
+				descriptor_sets_t::nr_t descriptor_nr;
 			};
 
 
@@ -231,12 +224,12 @@ namespace fan {
 					auto device_memory = write_queue[it]->memory[context->currentFrame].device_memory;
 					uint8_t* buffer = (uint8_t*)&write_queue[it][1];
 
-					buffer += src;
+					//buffer += src;
 
 					// UPDATE BUFFER HERE
 
 					void* data;
-					vkMapMemory(context->device, device_memory, 0, src, 0, &data);
+					vkMapMemory(context->device, device_memory, src, dst - src, 0, &data);
 					//data += src; ??
 					memcpy(data, buffer, dst -src);
 					// unnecessary?

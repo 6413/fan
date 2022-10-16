@@ -15,12 +15,13 @@ namespace fan {
       #include "pipeline_bll_settings.h"
     protected:
       #include _FAN_PATH(BLL/BLL.h)
-    public:
+    public: 
 
       using nr_t = pipeline_list_NodeReference_t;
 
       struct properties_t {
         fan::vulkan::shader_t* shader;
+        VkDescriptorSetLayout descriptor_set_layout;
       };
       nr_t push(fan::vulkan::context_t* context, const properties_t& p);
 

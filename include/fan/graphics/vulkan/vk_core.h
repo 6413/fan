@@ -12,10 +12,15 @@
 #include <vector>
 #include <set>
 
-#include "vk_pipeline.h"
-
 namespace fan {
   namespace vulkan {
+
+    namespace core {
+      struct uniform_block_common_t;
+      struct memory_t;
+    }
+
+    static constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
 
     struct context_t;
     struct viewport_t;
@@ -31,6 +36,9 @@ namespace fan {
   }
 }
 
+#include "vk_descriptor.h"
+#include "vk_pipeline.h"
+
 #include "viewport_list_builder_settings.h"
 #define BLL_set_declare_NodeReference 1
 #define BLL_set_declare_rest 0
@@ -39,10 +47,6 @@ namespace fan {
 namespace fan {
 
   namespace vulkan {
-
-    namespace core {
-      struct uniform_block_common_t;
-    }
 
     struct viewport_t {
 
@@ -172,8 +176,6 @@ namespace fan {
 
 		struct context_t {
 
-      static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
-
       static constexpr const char* validationLayers[] = {
         "VK_LAYER_KHRONOS_validation"
       };
@@ -202,6 +204,9 @@ namespace fan {
 
         vkDestroyCommandPool(device, commandPool, nullptr);
 
+        descriptor_sets.close(this);
+        pipelines.close(this);
+
         vkDestroyDevice(device, nullptr);
 
         #if fan_debug >= fan_debug_high
@@ -223,8 +228,29 @@ namespace fan {
 
         createFramebuffers();
         createCommandPool();
+
+        pipelines.open();
+        descriptor_sets.open(this);
+
         createCommandBuffer();
         createSyncObjects();
+
+        VkDescriptorSetLayoutBinding uboLayoutBinding{};
+        // projection view uniform bound to 1
+        uboLayoutBinding.binding = 1;
+        uboLayoutBinding.descriptorCount = 1;
+        uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        uboLayoutBinding.pImmutableSamplers = nullptr;
+        uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+        VkDescriptorSetLayoutCreateInfo layoutInfo{};
+        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layoutInfo.bindingCount = 1;
+        layoutInfo.pBindings = &uboLayoutBinding;
+
+        if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &projectionview_desc_layout_set) != VK_SUCCESS) {
+          throw std::runtime_error("failed to create descriptor set layout!");
+        }
 
         window->add_resize_callback([this, window](const fan::window_t::resize_cb_data_t& d) {
           recreateSwapChain(window->get_size());
@@ -764,7 +790,7 @@ namespace fan {
         }
       }
 
-      void recordCommandBuffer(const VkPipeline& pipeline, VkCommandBuffer commandBuffer, uint32_t imageIndex) {
+      void draw(uint32_t vertex_count, uint32_t instance_count, uint32_t first_instance, const VkPipeline& pipeline, VkCommandBuffer commandBuffer, uint32_t imageIndex, VkDescriptorSet* descset) {
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
@@ -801,7 +827,9 @@ namespace fan {
         scissor.extent = swapChainExtent;
         vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-        vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, descset, 0, nullptr);
+
+        vkCmdDraw(commandBuffer, vertex_count, instance_count, 0, first_instance);
 
         vkCmdEndRenderPass(commandBuffer);
 
@@ -834,7 +862,6 @@ namespace fan {
       void render(fan::window_t* window, const fan::function_t<void()>& l) {
         vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
-        uint32_t imageIndex;
         VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR) {
@@ -849,10 +876,8 @@ namespace fan {
 
         vkResetCommandBuffer(commandBuffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
 
-        l();
         // DRAW SHAPE HERE WITH CORRECT PIPELINE
-
-        //recordCommandBuffer(commandBuffers[currentFrame], imageIndex);
+        l();
 
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -960,12 +985,18 @@ namespace fan {
 
       fan::vulkan::viewport_list_t viewport_list;
       fan::vulkan::matrices_list_t matrices_list;
+
+      uint32_t imageIndex;
+
+      VkDescriptorSetLayout projectionview_desc_layout_set;
+
+      descriptor_sets_t descriptor_sets;
 		};
 	}
 }
 
-#include "vk_shader.h"
 #include "uniform_block.h"
+#include "vk_shader.h"
 
 void fan::vulkan::pipelines_t::close(fan::vulkan::context_t* context) {
   auto it = pipeline_list.GetNodeFirst();
@@ -978,7 +1009,7 @@ void fan::vulkan::pipelines_t::close(fan::vulkan::context_t* context) {
 
 fan::vulkan::pipelines_t::nr_t fan::vulkan::pipelines_t::push(fan::vulkan::context_t* context, const fan::vulkan::pipelines_t::properties_t& p) {
 	auto nr = pipeline_list.NewNode();
-	auto node = pipeline_list[nr];
+	auto& node = pipeline_list[nr];
 
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
 	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -1035,15 +1066,17 @@ fan::vulkan::pipelines_t::nr_t fan::vulkan::pipelines_t::push(fan::vulkan::conte
 	dynamicState.pDynamicStates = dynamicStates.data();
 
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	pipelineLayoutInfo.setLayoutCount = 0;
-	pipelineLayoutInfo.pushConstantRangeCount = 0;
+  pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+  // data, projectionview
+  VkDescriptorSetLayout layouts[] = { p.descriptor_set_layout, context->projectionview_desc_layout_set };
+  pipelineLayoutInfo.setLayoutCount = std::size(layouts);
+  pipelineLayoutInfo.pSetLayouts = layouts;
 
 	if (vkCreatePipelineLayout(context->device, &pipelineLayoutInfo, nullptr, &context->pipelineLayout) != VK_SUCCESS) {
 		fan::throw_error("failed to create pipeline layout!");
 	}
 
-	VkGraphicsPipelineCreateInfo pipeline_infos;
+	VkGraphicsPipelineCreateInfo pipeline_infos{};
 
 	pipeline_infos.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 	pipeline_infos.stageCount = 2;
@@ -1110,4 +1143,69 @@ void fan::vulkan::matrices_t::close(fan::vulkan::context_t* context) {
 void fan::vulkan::open_matrices(fan::vulkan::context_t* context, fan::vulkan::matrices_t* matrices, const fan::vec2& x, const fan::vec2& y) {
   matrices->open(context);
   matrices->set_ortho(fan::vec2(x.x, x.y), fan::vec2(y.x, y.y));
+}
+
+void fan::vulkan::descriptor_sets_t::open(fan::vulkan::context_t* context) {
+  VkDescriptorPoolSize poolSize{};
+  poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+  poolSize.descriptorCount = fan::vulkan::MAX_FRAMES_IN_FLIGHT;
+
+  VkDescriptorPoolCreateInfo poolInfo{};
+  poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+  poolInfo.poolSizeCount = 1;
+  poolInfo.pPoolSizes = &poolSize;
+  // ? * 2 buffer, projectionview
+  poolInfo.maxSets = fan::vulkan::MAX_FRAMES_IN_FLIGHT * 2;
+
+  if (vkCreateDescriptorPool(context->device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
+    throw std::runtime_error("failed to create descriptor pool!");
+  }
+}
+
+void fan::vulkan::descriptor_sets_t::close(fan::vulkan::context_t* context) {
+  vkDestroyDescriptorPool(context->device, descriptorPool, nullptr);
+}
+
+fan::vulkan::descriptor_sets_t::nr_t fan::vulkan::descriptor_sets_t::push(
+  fan::vulkan::context_t* context,
+  fan::vulkan::core::memory_t* memory,
+  VkDescriptorSetLayout descriptor_set_layout,
+  uint64_t buffer_size,
+  uint32_t binding
+) {
+  auto nr = descriptor_list.NewNode();
+  auto& node = descriptor_list[nr];
+
+  std::vector<VkDescriptorSetLayout> layouts(fan::vulkan::MAX_FRAMES_IN_FLIGHT, descriptor_set_layout);
+  VkDescriptorSetAllocateInfo allocInfo{};
+  allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+  allocInfo.descriptorPool = descriptorPool;
+  allocInfo.descriptorSetCount = fan::vulkan::MAX_FRAMES_IN_FLIGHT;
+  allocInfo.pSetLayouts = layouts.data();
+
+  auto ret = vkAllocateDescriptorSets(context->device, &allocInfo, node.descriptor_set);
+
+  if (ret != VK_SUCCESS) {
+    throw std::runtime_error("failed to allocate descriptor sets!");
+  }
+
+  for (size_t i = 0; i < fan::vulkan::MAX_FRAMES_IN_FLIGHT; i++) {
+    VkDescriptorBufferInfo bufferInfo{};
+    bufferInfo.buffer = memory[i].uniform_buffer;
+    bufferInfo.offset = 0;
+    bufferInfo.range = buffer_size;
+
+    VkWriteDescriptorSet descriptorWrite{};
+    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrite.dstSet = node.descriptor_set[i];
+    descriptorWrite.dstBinding = binding;
+    descriptorWrite.dstArrayElement = 0;
+    descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    // 2?
+    descriptorWrite.descriptorCount = 1;
+    descriptorWrite.pBufferInfo = &bufferInfo;
+
+    vkUpdateDescriptorSets(context->device, 1, &descriptorWrite, 0, nullptr);
+  }
+  return nr;
 }

@@ -17,17 +17,38 @@ void sb_open() {
   root = loco_bdbt_NewNode(&loco->bdbt);
   blocks.Open();
   bm_list.Open();
-  
-  m_shader.open(loco->get_context());
+
+  m_shader.open(loco->get_context(), loco->get_context()->projectionview_desc_layout_set);
   m_shader.set_vertex(
     loco->get_context(),
-    #include sb_shader_vertex_path
+    sb_shader_vertex_path
   );
   m_shader.set_fragment(
     loco->get_context(),
-    #include sb_shader_fragment_path
+    sb_shader_fragment_path
   );
-  m_shader.compile(loco->get_context());
+
+  VkDescriptorSetLayoutBinding uboLayoutBinding{};
+  uboLayoutBinding.binding = 0;
+  uboLayoutBinding.descriptorCount = 1;
+  uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+  uboLayoutBinding.pImmutableSamplers = nullptr;
+  uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+  VkDescriptorSetLayoutCreateInfo layoutInfo{};
+  layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+  layoutInfo.bindingCount = 1;
+  layoutInfo.pBindings = &uboLayoutBinding;
+
+  if (vkCreateDescriptorSetLayout(loco->get_context()->device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
+    throw std::runtime_error("failed to create descriptor set layout!");
+  }
+
+  fan::vulkan::pipelines_t::properties_t p;
+  p.shader = &m_shader;
+  p.descriptor_set_layout = descriptorSetLayout;
+
+  pipeline_nr = loco->get_context()->pipelines.push(loco->get_context(), p);
 }
 void sb_close() {
   loco_t* loco = get_loco();
@@ -38,7 +59,9 @@ void sb_close() {
   assert(0);
   //loco_bdbt_close(&loco->bdbt);
 
-  m_shader.close(loco->get_context());
+  m_shader.close(loco->get_context(), &loco->m_write_queue);
+
+  vkDestroyDescriptorSetLayout(loco->get_context()->device, descriptorSetLayout, nullptr);
 
   //for (uint32_t i = 0; i < blocks.size(); i++) {
   //  blocks[i].uniform_buffer.close(loco->get_context());
@@ -48,7 +71,7 @@ void sb_close() {
 struct block_t;
 
 // STRUCT MANUAL PADDING IS REQUIRED (32 BIT)
-block_t* sb_push_back(fan::opengl::cid_t* cid, properties_t& p) {
+block_t* sb_push_back(fan::graphics::cid_t* cid, properties_t& p) {
   loco_t* loco = get_loco();
  
   loco_bdbt_NodeReference_t nr = root;
@@ -98,7 +121,7 @@ block_t* sb_push_back(fan::opengl::cid_t* cid, properties_t& p) {
   block->p[instance_id] = *(instance_properties_t*)&p;
   return block;
 }
-void sb_erase(fan::opengl::cid_t* cid) {
+void sb_erase(fan::graphics::cid_t* cid) {
   loco_t* loco = get_loco();
   auto bm_id = *(shape_bm_NodeReference_t*)&cid->bm_id;
   auto bm_node = bm_list.GetNodeByReference(bm_id);
@@ -168,19 +191,19 @@ void sb_erase(fan::opengl::cid_t* cid) {
   );
 }
 
-block_t* sb_get_block(fan::opengl::cid_t* cid) {
+block_t* sb_get_block(fan::graphics::cid_t* cid) {
   auto& block_node = blocks[*(bll_block_NodeReference_t*)&cid->block_id];
   return &block_node.block;
 }
 
 template <typename T>
-T get(fan::opengl::cid_t *cid, T instance_t::*member) {
+T get(fan::graphics::cid_t *cid, T instance_t::*member) {
   loco_t* loco = get_loco();
   auto block = sb_get_block(cid);
   return block->uniform_buffer.get_instance(loco->get_context(), cid->instance_id)->*member;
 }
 template <typename T, typename T2>
-void set(fan::opengl::cid_t *cid, T instance_t::*member, const T2& value) {
+void set(fan::graphics::cid_t *cid, T instance_t::*member, const T2& value) {
   loco_t* loco = get_loco();
   auto block = sb_get_block(cid);
   block->uniform_buffer.edit_instance(loco->get_context(), cid->instance_id, member, value);
@@ -200,13 +223,9 @@ void set_fragment(const fan::string& str) {
   loco_t* loco = get_loco();
   m_shader.set_fragment(loco->get_context(), str);
 }
-void compile() {
-  loco_t* loco = get_loco();
-  m_shader.compile(loco->get_context());
-}
 
 template <uint32_t depth = 0>
-void traverse_draw(auto nr, uint32_t draw_mode) {
+void traverse_draw(auto nr) {
   loco_t* loco = get_loco();
   if constexpr(depth == instance_properties_t::key_t::count + 1) {
     auto bmn = bm_list.GetNodeByReference(*(shape_bm_NodeReference_t*)&nr);
@@ -214,17 +233,28 @@ void traverse_draw(auto nr, uint32_t draw_mode) {
 
     while(1) {
       auto node = blocks.GetNodeByReference(bnr);
-      node->data.block.uniform_buffer.bind_buffer_range(
+     /* node->data.block.uniform_buffer.bind_buffer_range(
         loco->get_context(), 
         node->data.block.uniform_buffer.size()
       );
-
-      node->data.block.uniform_buffer.draw(
+      */
+      /*node->data.block.uniform_buffer.draw(
         loco->get_context(),
         0 * sb_vertex_count,
         node->data.block.uniform_buffer.size() * sb_vertex_count,
         draw_mode
+      );*/
+
+      loco->get_context()->draw(
+        sb_vertex_count,
+        node->data.block.uniform_buffer.size(),
+        0,
+        loco->get_context()->pipelines.pipeline_list[pipeline_nr].pipeline,
+        loco->get_context()->commandBuffers[loco->get_context()->currentFrame], 
+        loco->get_context()->imageIndex,
+        &loco->get_context()->descriptor_sets.descriptor_list[node->data.block.uniform_buffer.descriptor_nr].descriptor_set[loco->get_context()->currentFrame]
       );
+
       if (bnr == bmn->data.last_block) {
         break;
       }
@@ -241,19 +271,18 @@ void traverse_draw(auto nr, uint32_t draw_mode) {
 #endif
     while(kt.Traverse(&loco->bdbt, &o)) {
       loco->process_block_properties_element(this, o);
-      traverse_draw<depth + 1>(kt.Output, draw_mode);
+      traverse_draw<depth + 1>(kt.Output);
     }
   }
 }
 
-void sb_draw(uint32_t draw_mode = fan::opengl::GL_TRIANGLES) {
+void sb_draw(uint32_t draw_mode = 0) {
   loco_t* loco = get_loco();
-  m_shader.use(loco->get_context());
-  traverse_draw(root, draw_mode);
+  traverse_draw(root);
 }
 
 template <uint32_t i>
-void sb_set_key(fan::opengl::cid_t* cid, auto value) {
+void sb_set_key(fan::graphics::cid_t* cid, auto value) {
   loco_t* loco = get_loco();
   auto block = sb_get_block(cid);
   properties_t p;
@@ -264,19 +293,20 @@ void sb_set_key(fan::opengl::cid_t* cid, auto value) {
   sb_push_back(cid, p);
 }
 
-fan::opengl::shader_t m_shader;
+fan::graphics::shader_t m_shader;
+VkDescriptorSetLayout descriptorSetLayout;
+fan::vulkan::pipelines_t::nr_t pipeline_nr;
 
 struct block_t {
   void open(loco_t* loco, auto* shape) {
-    uniform_buffer.open(loco->get_context());
-    uniform_buffer.init_uniform_block(loco->get_context(), shape->m_shader.id, "instance_t");
+    uniform_buffer.open(loco->get_context(), shape->descriptorSetLayout);
   }
   void close(loco_t* loco) {
     uniform_buffer.close(loco->get_context(), &loco->m_write_queue);
   }
 
-  fan::opengl::core::uniform_block_t<instance_t, max_instance_size> uniform_buffer;
-  fan::opengl::cid_t* cid[max_instance_size];
+  fan::graphics::core::uniform_block_t<0, instance_t, max_instance_size> uniform_buffer;
+  fan::graphics::cid_t* cid[max_instance_size];
   instance_properties_t p[max_instance_size];
 };
 
