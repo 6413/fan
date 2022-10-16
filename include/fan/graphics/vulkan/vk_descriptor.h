@@ -3,6 +3,8 @@
 namespace fan {
 	namespace vulkan {
 
+		struct shader_t;
+
 		struct descriptor_sets_t {
 
 			#include "descriptor_bll_settings.h"
@@ -20,7 +22,7 @@ namespace fan {
 				fan::vulkan::core::memory_t* memory,
 				VkDescriptorSetLayout descriptor_set_layout,
 				uint64_t buffer_size,
-				uint32_t binding
+				fan::vulkan::shader_t* shader
 			);
 
 			descriptor_list_t descriptor_list;

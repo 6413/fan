@@ -104,7 +104,7 @@ namespace fan {
 					//uint32_t usage = fan::opengl::GL_DYNAMIC_DRAW;
 				}op;
 
-				void open(fan::vulkan::context_t* context, VkDescriptorSetLayout descriptor_set_layout, open_properties_t op_ = open_properties_t()) {
+				void open(fan::vulkan::context_t* context, fan::vulkan::shader_t* shader, VkDescriptorSetLayout descriptor_set_layout, open_properties_t op_ = open_properties_t()) {
 					common.open(context);
 
 					op = op_;
@@ -122,7 +122,7 @@ namespace fan {
 						);
 					}
 
-					descriptor_nr = context->descriptor_sets.push(context, common.memory, descriptor_set_layout, sizeof(type_t), binding);
+					descriptor_nr = context->descriptor_sets.push(context, common.memory, descriptor_set_layout, sizeof(type_t), shader);
 				}
 				void close(fan::vulkan::context_t* context, uniform_write_queue_t* queue) {
 					common.close(context, queue);
