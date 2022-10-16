@@ -57,8 +57,8 @@
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
-    <EnableASAN>false</EnableASAN>
-    <EnableFuzzer>false</EnableFuzzer>
+    <EnableASAN>true</EnableASAN>
+    <EnableFuzzer>true</EnableFuzzer>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -209,20 +209,20 @@
     <ClCompile>
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <IntrinsicFunctions>false</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>set_durums_pc</PreprocessorDefinitions>
       <ConformanceMode>false</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <Optimization>MaxSpeed</Optimization>
-      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
-      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <OmitFramePointers>true</OmitFramePointers>
-      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
+      <Optimization>Disabled</Optimization>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
+      <OmitFramePointers>false</OmitFramePointers>
+      <EnableFiberSafeOptimizations>false</EnableFiberSafeOptimizations>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)src\box2d;$(SolutionDir);$(SolutionDir)include\opus;$(SolutionDir)src\libwebp;$(SolutionDir)src\libwebp\src;$(SolutionDIr)include\dav1d;$(SolutionDir)include\vpx</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <EnableParallelCodeGeneration>false</EnableParallelCodeGeneration>
@@ -246,7 +246,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="examples\helloworld.cpp" />
+    <ClCompile Include="examples\rectangle.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
     <ClCompile Include="src\fan\window\window_input.cpp" />
   </ItemGroup>
@@ -358,17 +358,23 @@
     <ClInclude Include="include\fan\graphics\opengl\themes_list_builder_settings.h" />
     <ClInclude Include="include\fan\graphics\opengl\uniform_block.h" />
     <ClInclude Include="include\fan\graphics\opengl\viewport_list_builder_settings.h" />
+    <ClInclude Include="include\fan\graphics\shape_builder.h" />
     <ClInclude Include="include\fan\graphics\transform_interpolator.h" />
     <ClInclude Include="include\fan\graphics\video_decoder.h" />
     <ClInclude Include="include\fan\graphics\vpx\tools_common.h" />
     <ClInclude Include="include\fan\graphics\vpx\video_common.h" />
     <ClInclude Include="include\fan\graphics\vpx\video_reader.h" />
     <ClInclude Include="include\fan\graphics\vpx\y4minput.h" />
+    <ClInclude Include="include\fan\graphics\vulkan\2D\objects\shape_builder.h" />
+    <ClInclude Include="include\fan\graphics\vulkan\descriptor_bll_settings.h" />
     <ClInclude Include="include\fan\graphics\vulkan\pipeline_bll_settings.h" />
     <ClInclude Include="include\fan\graphics\vulkan\uniform_block.h" />
+    <ClInclude Include="include\fan\graphics\vulkan\viewport_list_builder_settings.h" />
     <ClInclude Include="include\fan\graphics\vulkan\vk_core.h" />
+    <ClInclude Include="include\fan\graphics\vulkan\vk_descriptor.h" />
     <ClInclude Include="include\fan\graphics\vulkan\vk_graphics.h" />
     <ClInclude Include="include\fan\graphics\vulkan\vk_pipeline.h" />
+    <ClInclude Include="include\fan\graphics\vulkan\vk_shader.h" />
     <ClInclude Include="include\fan\graphics\webp.h" />
     <ClInclude Include="include\fan\io\directory.h" />
     <ClInclude Include="include\fan\io\file.h" />

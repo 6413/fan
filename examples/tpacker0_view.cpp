@@ -57,6 +57,7 @@ int main() {
   if (texturepack.qti("test.webp", &ti)) {
     return 1;
   }
+  
   p.tc_position = ti.position / fan::vec2(1024, 1024);
   p.tc_size = ti.size / fan::vec2(1024, 1024);
   p.size = 0.5;

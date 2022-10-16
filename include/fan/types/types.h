@@ -3,10 +3,21 @@
 #define STRINGIFY(p0) #p0
 #define STRINGIFY_DEFINE(a) STRINGIFY(a)
 
+#define _CONCAT(_0_m, _1_m) _0_m ## _1_m
+#define CONCAT(_0_m, _1_m) _CONCAT(_0_m, _1_m)
+#define _CONCAT2(_0_m, _1_m) _0_m ## _1_m
+#define CONCAT2(_0_m, _1_m) _CONCAT(_0_m, _1_m)
+#define _CONCAT3(_0_m, _1_m, _2_m) _0_m ## _1_m ## _2_m
+#define CONCAT3(_0_m, _1_m, _2_m) _CONCAT3(_0_m, _1_m, _2_m)
+#define _CONCAT4(_0_m, _1_m, _2_m, _3_m) _0_m ## _1_m ## _2_m ## _3_m
+#define CONCAT4(_0_m, _1_m, _2_m, _3_m) _CONCAT4(_0_m, _1_m, _2_m, _3_m)
+
 #ifndef FAN_INCLUDE_PATH
-#define _FAN_PATH(p0) <fan/p0>
+	#define _FAN_PATH(p0) <fan/p0>
 #else
-#define _FAN_PATH(p0) <FAN_INCLUDE_PATH/fan/p0>
+	#define _FAN_PATH(p0) <FAN_INCLUDE_PATH/fan/p0>
+	#define _FAN_PATH_QUOTE(p0) STRINGIFY_DEFINE(CONCAT(FAN_INCLUDE_PATH, /fan/p0))
+
 #endif
 
 #include <iostream>
@@ -466,15 +477,6 @@ namespace fan {
 
 //template <platform_t T_platform>
 //concept platform_linux = T_platform == platform_t::linux;
-
-#define _CONCAT(_0_m, _1_m) _0_m ## _1_m
-#define CONCAT(_0_m, _1_m) _CONCAT(_0_m, _1_m)
-#define _CONCAT2(_0_m, _1_m) _0_m ## _1_m
-#define CONCAT2(_0_m, _1_m) _CONCAT(_0_m, _1_m)
-#define _CONCAT3(_0_m, _1_m, _2_m) _0_m ## _1_m ## _2_m
-#define CONCAT3(_0_m, _1_m, _2_m) _CONCAT3(_0_m, _1_m, _2_m)
-#define _CONCAT4(_0_m, _1_m, _2_m, _3_m) _0_m ## _1_m ## _2_m ## _3_m
-#define CONCAT4(_0_m, _1_m, _2_m, _3_m) _CONCAT4(_0_m, _1_m, _2_m, _3_m)
 
 #define OFFSETLESS(ptr_m, t_m, d_m) \
 	(t_m *)((uint8_t *)(ptr_m) - offsetof(t_m, d_m))

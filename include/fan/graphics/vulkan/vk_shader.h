@@ -2,15 +2,17 @@
 
 namespace fan {
 	namespace vulkan {
+
 		struct shader_t {
 
-      void open(fan::vulkan::context_t* context) {
-
+      void open(fan::vulkan::context_t* context, VkDescriptorSetLayout descriptor_set_layout) {
+        uniform_buffer.open(context, descriptor_set_layout);
       }
 
-      void close(fan::vulkan::context_t* context) {
+      void close(fan::vulkan::context_t* context, fan::vulkan::core::uniform_write_queue_t* write_queue) {
         vkDestroyShaderModule(context->device, shaderStages[0].module, nullptr);
         vkDestroyShaderModule(context->device, shaderStages[1].module, nullptr);
+        uniform_buffer.close(context, write_queue);
       }
 
       void set_vertex(fan::vulkan::context_t* context, const fan::string& path) {
@@ -56,7 +58,19 @@ namespace fan {
         return shaderModule;
       }
 
+      void set_matrices(fan::vulkan::context_t* context, fan::vulkan::matrices_t* matrices) {
+        uniform_buffer.edit_instance(context, 0, &viewprojection_t::projection, matrices->m_projection);
+        uniform_buffer.edit_instance(context, 0, &viewprojection_t::view, matrices->m_view);
+      }
+
+      struct viewprojection_t {
+        fan::mat4 projection;
+        fan::mat4 view;
+      };
+
       VkPipelineShaderStageCreateInfo shaderStages[2];
+      // projection, view
+      fan::vulkan::core::uniform_block_t<1, viewprojection_t, 1> uniform_buffer;
 		};
 	}
 }

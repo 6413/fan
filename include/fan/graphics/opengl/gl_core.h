@@ -1,7 +1,5 @@
 #pragma once
 
-#include _FAN_PATH(types/masterpiece.h)
-
 #include _FAN_PATH(types/color.h)
 #include _FAN_PATH(types/memory.h)
 
