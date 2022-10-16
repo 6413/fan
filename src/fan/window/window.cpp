@@ -671,24 +671,10 @@ void fan::window_t::open(const fan::vec2i& window_size, const fan::string& name,
   initialize_window(name, window_size, flags);
 
   this->calculate_delta_time();
-
-  #if fan_renderer == fan_renderer_vulkan
-
-  m_vulkan = new fan::vulkan(&m_size, (void*)this->get_handle());
-
-  #endif
 }
 
 void fan::window_t::close()
 {
-  #if fan_renderer == fan_renderer_vulkan
-
-  if (m_vulkan) {
-    delete m_vulkan;
-  }
-
-  #endif
-
   this->destroy_window();
 }
 

@@ -1,23 +1,11 @@
-#include <iostream>
-#include <intrin.h>
-using namespace std;
+#include <fan/types/types.h>
 
-#pragma intrinsic(_BitScanReverse)
-
-int main()
-{
-  unsigned long mask = 4;
-  unsigned long index;
-  unsigned char isNonzero;
-
-  cout << "Enter a positive integer as the mask: " << flush;
-  isNonzero = _BitScanReverse(&index, mask);
-  if (isNonzero)
-  {
-    cout << "Mask: " << mask << " Index: " << 31 - index << endl;
-  }
-  else
-  {
-    cout << "No set bits found.  Mask is zero." << endl;
-  }
+int main() {
+	fan::string str("durum/likes/salsa");
+	auto found = str.find_last_of("/") + 1;
+	if (found == fan::string::npos) {
+		// not found
+	}
+	str = str.substr(found, str.size() - found);
+	fan::print(str);
 }

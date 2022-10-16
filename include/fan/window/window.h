@@ -12,8 +12,6 @@
 
 #include _FAN_PATH(graphics/opengl/gl_defines.h)
 
-#include _FAN_PATH(graphics/renderer.h)
-
 #include _FAN_PATH(math/random.h)
 
 #include _FAN_PATH(types/vector.h)
@@ -68,12 +66,6 @@
 #endif
 
 namespace fan {
-
-#if fan_renderer == fan_renderer_vulkan
-
-	class vulkan;
-
-#endif
 
 	static void set_console_visibility(bool visible) {
 		#ifdef fan_platform_windows
@@ -424,13 +416,6 @@ namespace fan {
 		uint32_t handle_events();
 
 		bool key_pressed(uint16_t key) const;
-
-#if fan_renderer == fan_renderer_vulkan
-
-
-		fan::vulkan* m_vulkan = nullptr;
-
-#endif
 
 		static constexpr fan::input banned_keys[]{
 			fan::key_enter,

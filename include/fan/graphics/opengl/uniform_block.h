@@ -139,16 +139,6 @@ namespace fan {
           common.m_size += sizeof(type_t);
         }
 
-        // uniform block preallocates
-        /*void write_vram_all(fan::opengl::context_t* context) {
-
-        common.m_vao.bind(context);
-
-        this->bind(context);
-
-        fan::opengl::core::write_glbuffer(context, common.m_vbo, (void*)buffer, common.m_size, op.usage, op.target);
-        }*/
-
         type_t* get_instance(fan::opengl::context_t* context, uint32_t i) {
           return (type_t*)&buffer[i * sizeof(type_t)];
         }

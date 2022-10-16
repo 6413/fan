@@ -23,7 +23,7 @@ struct loco_t;
 #define BDBT_set_BaseLibrary 1
 #include _FAN_PATH(BDBT/BDBT.h)
 
-#include _FAN_PATH(graphics/opengl/uniform_block.h)
+#define loco_vfi
 
 #if defined(loco_sprite)
   #include _FAN_PATH(graphics/opengl/texture_pack.h)
@@ -44,6 +44,9 @@ struct loco_t;
 #endif
 
 struct loco_t {
+
+#if defined(loco_vfi)
+
   #define vfi_var_name vfi
   #include _FAN_PATH(graphics/gui/vfi.h)
 
@@ -52,21 +55,21 @@ struct loco_t {
 
     }
 
-    fan::opengl::cid_t* cid;
+    fan::graphics::cid_t* cid;
   };
   struct mouse_button_data_t : vfi_t::mouse_button_data_t{
     mouse_button_data_t(const vfi_t::mouse_button_data_t& mm) : vfi_t::mouse_button_data_t(mm) {
 
     }
 
-    fan::opengl::cid_t* cid;
+    fan::graphics::cid_t* cid;
   };
   struct keyboard_data_t : vfi_t::keyboard_data_t {
     keyboard_data_t(const vfi_t::keyboard_data_t& mm) : vfi_t::keyboard_data_t(mm) {
 
     }
 
-    fan::opengl::cid_t* cid;
+    fan::graphics::cid_t* cid;
   };
 
   struct text_data_t : vfi_t::text_data_t {
@@ -74,8 +77,17 @@ struct loco_t {
 
     }
 
-    fan::opengl::cid_t* cid;
+    fan::graphics::cid_t* cid;
   };
+
+  using mouse_move_cb_t = fan::function_t<int(const mouse_move_data_t&)>;
+  using mouse_button_cb_t = fan::function_t<int(const mouse_button_data_t&)>;
+  using keyboard_cb_t = fan::function_t<int(const keyboard_data_t&)>;
+  using text_cb_t = fan::function_t<int(const text_data_t&)>;
+
+  vfi_t vfi_var_name;
+
+#endif
 
   #ifdef loco_window
     using mouse_buttons_cb_data_t = fan::window_t::mouse_buttons_cb_data_t;
@@ -87,14 +99,6 @@ struct loco_t {
     using resize_cb_data_t = fan::window_t::resize_cb_data_t;
     using move_cb_data_t = fan::window_t::move_cb_data_t;
   #endif
-
-  // return type if deleted
-  using mouse_move_cb_t = fan::function_t<int(const mouse_move_data_t&)>;
-  using mouse_button_cb_t = fan::function_t<int(const mouse_button_data_t&)>;
-  using keyboard_cb_t = fan::function_t<int(const keyboard_data_t&)>;
-  using text_cb_t = fan::function_t<int(const text_data_t&)>;
-
-  vfi_t vfi_var_name;
 
   struct properties_t {
   #ifndef loco_window
@@ -115,7 +119,7 @@ struct loco_t {
   #endif
   }
 
-  fan::opengl::context_t* get_context() {
+  fan::graphics::context_t* get_context() {
   #ifdef loco_context
     return &context;
   #else
@@ -123,11 +127,11 @@ struct loco_t {
   #endif
   }
 
-  void process_block_properties_element(auto* shape, fan::opengl::matrices_list_NodeReference_t matrices_id) {
+  void process_block_properties_element(auto* shape, fan::graphics::matrices_list_NodeReference_t matrices_id) {
     shape->m_shader.set_matrices(get_context(), get_context()->matrices_list[matrices_id].matrices_id);
   }
 
-  void process_block_properties_element(auto* shape, fan::opengl::viewport_list_NodeReference_t viewport_id) {
+  void process_block_properties_element(auto* shape, fan::graphics::viewport_list_NodeReference_t viewport_id) {
     auto data = &get_context()->viewport_list[viewport_id];
     data->viewport_id->set(
       get_context(),
@@ -137,12 +141,12 @@ struct loco_t {
     );
   }
 
-  template <uint8_t n>
-  void process_block_properties_element(auto* shape, fan::opengl::textureid_t<n> tid) {
+ /* template <uint8_t n>
+  void process_block_properties_element(auto* shape, fan::graphics::textureid_t<n> tid) {
     shape->m_shader.set_int(get_context(), tid.name, n);
     get_context()->opengl.call(get_context()->opengl.glActiveTexture, fan::opengl::GL_TEXTURE0 + n);
     get_context()->opengl.call(get_context()->opengl.glBindTexture, fan::opengl::GL_TEXTURE_2D, get_context()->image_list[tid].texture_id);
-  }
+  }*/
 
   loco_bdbt_t bdbt;
 
@@ -369,7 +373,9 @@ struct loco_t {
       post_process.close();
     #endif
 
+    #ifndef loco_vulkan
     m_write_queue.close();
+    #endif
   }
 
   vfi_t::shape_id_t push_back_input_hitbox(const vfi_t::properties_t& p) {
@@ -396,9 +402,9 @@ struct loco_t {
   }
 
   void process_frame() {
-    #if fan_renderer == fan_renderer_opengl
-     get_context()->opengl.call(get_context()->opengl.glClearColor, 1, 1, 1, 1);
-    get_context()->opengl.call(get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
+    #if defined(loco_opengl)
+     //get_context()->opengl.call(get_context()->opengl.glClearColor, 1, 1, 1, 1);
+      get_context()->opengl.call(get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
     #endif
 
     #ifdef loco_post_process
@@ -407,37 +413,18 @@ struct loco_t {
 
     m_write_queue.process(get_context());
 
-    #if defined(loco_line)
-      line.draw();
-    #endif
-    #if defined(loco_rectangle)
-      rectangle.draw();
-    #endif
-    #if defined(loco_yuv420p)
-      yuv420p.draw();
-    #endif
-    #if defined(loco_sprite)
-      // can be moved
-      sprite.draw();
-    #endif
-    #if defined(loco_letter)
-      // loco_t::text gets drawn here as well as it uses letter
-      letter.draw();
-    #endif
-    #if defined(loco_text_box)
-      text_box.draw();
-    #endif
-    #if defined(loco_button)
-      button.draw();
-    #endif
-    #if defined(loco_model_3d)
-      model.draw();
-    #endif
-    #if defined(loco_post_process)
-      post_process.draw();
-    #endif
+
     #ifdef loco_window
-      get_context()->render(get_window());
+      #if defined(loco_opengl)
+        #include "draw_shapes.h"
+        get_context()->render(get_window());
+      #elif defined(loco_vulkan)
+        get_context()->render(get_window(),
+          [] {
+            #include "draw_shapes.h"
+          }
+        );
+      #endif
     #endif
   }
 
@@ -470,7 +457,7 @@ struct loco_t {
     return x;
   }
 
-  fan::opengl::core::uniform_write_queue_t m_write_queue;
+  fan::graphics::core::uniform_write_queue_t m_write_queue;
 
   void loop(const auto& lambda) {
     while (1) {
@@ -500,8 +487,8 @@ protected:
   #endif
 
   #ifdef loco_context
-    fan::opengl::context_t context;
+    fan::graphics::context_t context;
   #else
-    fan::opengl::context_t* context;
+    fan::graphics::context_t* context;
   #endif
 };
