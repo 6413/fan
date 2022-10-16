@@ -1,18 +1,12 @@
 #pragma once
 
-#include _FAN_PATH(types/types.h)
 #include _FAN_PATH(types/masterpiece.h)
 
-#include _FAN_PATH(graphics/renderer.h)
-
 #include _FAN_PATH(types/color.h)
-#include _FAN_PATH(graphics/camera.h)
-#include _FAN_PATH(window/window.h)
 #include _FAN_PATH(types/memory.h)
 
 #include _FAN_PATH(graphics/opengl/gl_init.h)
 #include _FAN_PATH(graphics/light.h)
-#include _FAN_PATH(physics/collision/rectangle.h)
 
 #ifdef fan_platform_windows
 #include <dbghelp.h>
@@ -676,3 +670,5 @@ void fan::opengl::open_matrices(fan::opengl::context_t* context, fan::opengl::ma
   matrices->open(context);
   matrices->set_ortho(fan::vec2(x.x, x.y), fan::vec2(y.x, y.y));
 }
+
+#include _FAN_PATH(graphics/opengl/uniform_block.h)

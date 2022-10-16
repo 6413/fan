@@ -33,14 +33,14 @@ struct vfi_t {
   struct shape_properties_rectangle_t {
     fan::vec3 position;
     fan::vec2 size;
-    fan::opengl::viewport_list_NodeReference_t viewport;
-    fan::opengl::matrices_list_NodeReference_t matrices;
+    fan::graphics::viewport_list_NodeReference_t viewport;
+    fan::graphics::matrices_list_NodeReference_t matrices;
   };
   struct shape_data_rectangle_t {
     fan::vec2 position;
     fan::vec2 size;
-    fan::opengl::viewport_list_NodeReference_t viewport;
-    fan::opengl::matrices_list_NodeReference_t matrices;
+    fan::graphics::viewport_list_NodeReference_t viewport;
+    fan::graphics::matrices_list_NodeReference_t matrices;
     shape_data_rectangle_t& operator=(const shape_properties_rectangle_t& p) {
       position = p.position;
       size = p.size;
@@ -217,7 +217,7 @@ struct vfi_t {
     shape_list[id].shape_data.*member = value;
   }
 
-  static fan::vec2 transform_position(const fan::vec2& p, fan::opengl::viewport_t* viewport, fan::opengl::matrices_t* matrices) {
+  static fan::vec2 transform_position(const fan::vec2& p, fan::graphics::viewport_t* viewport, fan::graphics::matrices_t* matrices) {
       
     fan::vec2 viewport_position = viewport->get_position(); 
     fan::vec2 viewport_size = viewport->get_size();

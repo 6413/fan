@@ -2,10 +2,6 @@
 
 #include _FAN_PATH(types/types.h)
 
-#include _FAN_PATH(graphics/renderer.h)
-
-#if fan_renderer == fan_renderer_opengl
-
 #include _FAN_PATH(types/types.h)
 #include _FAN_PATH(io/file.h)
 #include _FAN_PATH(types/matrix.h)
@@ -375,6 +371,3 @@ namespace fan {
     };
   }
 }
-
-
-#endif

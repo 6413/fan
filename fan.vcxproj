@@ -246,7 +246,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="examples\rectangle.cpp" />
+    <ClCompile Include="examples\helloworld.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
     <ClCompile Include="src\fan\window\window_input.cpp" />
   </ItemGroup>
@@ -309,6 +309,7 @@
     <ClInclude Include="include\fan\fed\WED.h" />
     <ClInclude Include="include\fan\font.h" />
     <ClInclude Include="include\fan\graphics\camera.h" />
+    <ClInclude Include="include\fan\graphics\draw_shapes.h" />
     <ClInclude Include="include\fan\graphics\fast_obj\fast_obj.h" />
     <ClInclude Include="include\fan\graphics\graphics.h" />
     <ClInclude Include="include\fan\graphics\gui\fed.h" />
@@ -357,19 +358,17 @@
     <ClInclude Include="include\fan\graphics\opengl\themes_list_builder_settings.h" />
     <ClInclude Include="include\fan\graphics\opengl\uniform_block.h" />
     <ClInclude Include="include\fan\graphics\opengl\viewport_list_builder_settings.h" />
-    <ClInclude Include="include\fan\graphics\renderer.h" />
     <ClInclude Include="include\fan\graphics\transform_interpolator.h" />
     <ClInclude Include="include\fan\graphics\video_decoder.h" />
     <ClInclude Include="include\fan\graphics\vpx\tools_common.h" />
     <ClInclude Include="include\fan\graphics\vpx\video_common.h" />
     <ClInclude Include="include\fan\graphics\vpx\video_reader.h" />
     <ClInclude Include="include\fan\graphics\vpx\y4minput.h" />
+    <ClInclude Include="include\fan\graphics\vulkan\pipeline_bll_settings.h" />
+    <ClInclude Include="include\fan\graphics\vulkan\uniform_block.h" />
     <ClInclude Include="include\fan\graphics\vulkan\vk_core.h" />
-    <ClInclude Include="include\fan\graphics\vulkan\vk_descriptor.h" />
     <ClInclude Include="include\fan\graphics\vulkan\vk_graphics.h" />
-    <ClInclude Include="include\fan\graphics\vulkan\vk_gui.h" />
     <ClInclude Include="include\fan\graphics\vulkan\vk_pipeline.h" />
-    <ClInclude Include="include\fan\graphics\vulkan\vk_shader.h" />
     <ClInclude Include="include\fan\graphics\webp.h" />
     <ClInclude Include="include\fan\io\directory.h" />
     <ClInclude Include="include\fan\io\file.h" />
@@ -399,7 +398,6 @@
     <ClInclude Include="include\fan\types\types.h" />
     <ClInclude Include="include\fan\types\utf_string.h" />
     <ClInclude Include="include\fan\types\vector.h" />
-    <ClInclude Include="include\fan\vulkan.h" />
     <ClInclude Include="include\fan\window\cb_list_builder_settings.h" />
     <ClInclude Include="include\fan\window\window.h" />
     <ClInclude Include="include\fan\window\window_input.h" />
