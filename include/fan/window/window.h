@@ -569,7 +569,7 @@ namespace fan {
 			#elif defined(fan_platform_unix)
 
 			typedef std::codecvt_utf8<wchar_t> convert_type;
-			fan::wstring_convert<convert_type, wchar_t> converter;
+			std::wstring_convert<convert_type, wchar_t> converter;
 
 			Display *display = XOpenDisplay(NULL);
 
