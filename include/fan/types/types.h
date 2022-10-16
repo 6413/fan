@@ -502,7 +502,7 @@ namespace fan {
 #define __clz __clz
 static uint8_t __clz32(uint32_t p0) {
 	#if defined(__GNUC__)
-	return __builtin_clzl(p0);
+	return __builtin_clz(p0);
 	#elif defined(_MSC_VER)
 	DWORD trailing_zero = 0;
 	if (_BitScanReverse(&trailing_zero, p0)) {
