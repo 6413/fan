@@ -41,9 +41,9 @@ namespace fan {
       VkShaderModule createShaderModule(fan::vulkan::context_t* context, const fan::string& code);
 
       void set_matrices(fan::vulkan::context_t* context, fan::vulkan::matrices_t* matrices, core::uniform_write_queue_t* write_queue) {
-        //uniform_buffer.edit_instance(context, 0, &viewprojection_t::projection, matrices->m_projection);
-        //uniform_buffer.edit_instance(context, 0, &viewprojection_t::view, matrices->m_view);
-        //uniform_buffer.common.edit(context, write_queue, 0, sizeof(viewprojection_t));
+        projection_view_block.edit_instance(context, 0, &viewprojection_t::projection, matrices->m_projection);
+        projection_view_block.edit_instance(context, 0, &viewprojection_t::view, matrices->m_view);
+        projection_view_block.common.edit(context, write_queue, 0, sizeof(viewprojection_t));
       }
 
       struct viewprojection_t {
@@ -52,7 +52,7 @@ namespace fan {
       };
 
       VkPipelineShaderStageCreateInfo shaderStages[2];
-      //fan::vulkan::core::memory_t memory;
+      fan::vulkan::core::uniform_block_t<viewprojection_t, 1> projection_view_block;
 		};
 	}
 }

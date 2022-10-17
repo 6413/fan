@@ -256,7 +256,19 @@ namespace fan {
 
 		struct context_t {
 
+
+      static constexpr fan::vec2 ortho_x = fan::vec2(-1, 1);
+      static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
+
+
+      matrices_t matrices;
       void open() {
+        open_matrices(
+          this,
+          &matrices,
+          ortho_x,
+          ortho_y
+        );
         createInstance();
         setupDebugMessenger();
       }
@@ -279,30 +291,7 @@ namespace fan {
         createSyncObjects();
 
         pipelines.open();
-        uniform_block.open(this);
         descriptor_sets.open(this);
-
-        shader.open(this);
-        shader.set_vertex(this, "shaders/vert.spv");
-        shader.set_fragment(this, "shaders/frag.spv");
-        
-        fan::vulkan::descriptor_set_layout_t<2> layout;
-        layout.write_descriptor_sets[0].binding = 0;
-        layout.write_descriptor_sets[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        layout.write_descriptor_sets[0].flags = VK_SHADER_STAGE_VERTEX_BIT;
-        layout.write_descriptor_sets[0].block_common = &uniform_block.common;
-
-        layout.write_descriptor_sets[1].binding = 1;
-        layout.write_descriptor_sets[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        layout.write_descriptor_sets[1].flags = VK_SHADER_STAGE_VERTEX_BIT;
-        layout.write_descriptor_sets[1].block_common = &uniform_block.common;
-
-        nr = descriptor_sets.push(this, layout);
-
-        fan::vulkan::pipelines_t::properties_t p;
-        p.descriptor_set_layout = &descriptor_sets.get(nr).layout;
-        p.shader = &shader;
-        rectangle_pipeline_nr = pipelines.push(this, p);
       }
 
       void cleanupSwapChain() {
@@ -610,8 +599,6 @@ namespace fan {
           throw std::runtime_error("failed to create render pass!");
         }
       }
-
-      fan::vulkan::shader_t shader;
 
       void createFramebuffers() {
         swapChainFramebuffers.resize(swapChainImageViews.size());
@@ -999,18 +986,25 @@ namespace fan {
         }
       }
 
-      void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
+      void draw(
+        uint32_t vertex_count, 
+        uint32_t instance_count, 
+        uint32_t first_instance, 
+        pipelines_t::nr_t pipeline_nr,
+        VkDescriptorSet* descriptor_set
+      ) {
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-        if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
-          throw std::runtime_error("failed to begin recording command buffer!");
+        if (vkBeginCommandBuffer(commandBuffers[currentFrame], &beginInfo) != VK_SUCCESS) {
+          fan::throw_error("failed to begin recording command buffer!");
         }
+
 
         VkRenderPassBeginInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
         renderPassInfo.renderPass = renderPass;
-        renderPassInfo.framebuffer = swapChainFramebuffers[imageIndex];
+        renderPassInfo.framebuffer = swapChainFramebuffers[image_index];
         renderPassInfo.renderArea.offset = { 0, 0 };
         renderPassInfo.renderArea.extent = swapChainExtent;
 
@@ -1021,9 +1015,9 @@ namespace fan {
         renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
         renderPassInfo.pClearValues = clearValues.data();
 
-        vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBeginRenderPass(commandBuffers[currentFrame], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.pipeline_list[rectangle_pipeline_nr].pipeline);
+        vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.pipeline_list[pipeline_nr].pipeline);
 
         VkViewport viewport{};
         viewport.x = 0.0f;
@@ -1032,30 +1026,30 @@ namespace fan {
         viewport.height = (float)swapChainExtent.height;
         viewport.minDepth = 0.0f;
         viewport.maxDepth = 1.0f;
-        vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+        vkCmdSetViewport(commandBuffers[currentFrame], 0, 1, &viewport);
 
         VkRect2D scissor{};
         scissor.offset = { 0, 0 };
         scissor.extent = swapChainExtent;
-        vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+        vkCmdSetScissor(commandBuffers[currentFrame], 0, 1, &scissor);
 
         vkCmdBindDescriptorSets(
-          commandBuffer, 
+          commandBuffers[currentFrame],
           VK_PIPELINE_BIND_POINT_GRAPHICS,
-          pipelines.pipeline_list[rectangle_pipeline_nr].pipeline_layout, 
+          pipelines.pipeline_list[pipeline_nr].pipeline_layout, 
           0, 
-          1, 
-          &descriptor_sets.descriptor_list[nr].descriptor_set[currentFrame], 
+          1,
+          descriptor_set,
           0,
           nullptr
         );
 
-        vkCmdDraw(commandBuffer, 6, 1, 0, 0);
+        vkCmdDraw(commandBuffers[currentFrame], vertex_count, instance_count, 0, first_instance);
 
-        vkCmdEndRenderPass(commandBuffer);
+        vkCmdEndRenderPass(commandBuffers[currentFrame]);
 
-        if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
-          throw std::runtime_error("failed to record command buffer!");
+        if (vkEndCommandBuffer(commandBuffers[currentFrame]) != VK_SUCCESS) {
+          fan::throw_error("failed to record command buffer!");
         }
       }
 
@@ -1080,40 +1074,47 @@ namespace fan {
         }
       }
 
-      void updateUniformBuffer(uint32_t currentImage) {
-        static auto startTime = std::chrono::high_resolution_clock::now();
+      //void updateUniformBuffer(uint32_t currentImage) {
+      //  static auto startTime = std::chrono::high_resolution_clock::now();
 
-        auto currentTime = std::chrono::high_resolution_clock::now();
-        float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+      //  auto currentTime = std::chrono::high_resolution_clock::now();
+      //  float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
-        fan::camera camera;
-        //camera.get
-        static constexpr fan::vec2 ortho_x = fan::vec2(-1, 1);
-        static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
-        UniformBufferObject ubo{};
-        ubo.model = fan::mat4(1);
-        ubo.view = fan::mat4(1);
-        ubo.proj = fan::math::ortho<fan::mat4>(
-          ortho_x.x,
-          ortho_x.y,
-          ortho_y.y,
-          ortho_y.x,
-          -1,
-          0x10000
-        );
-        //ubo.proj[1][1] *= -1;
+      //  fan::camera camera;
+      //  //camera.get
+      //  static constexpr fan::vec2 ortho_x = fan::vec2(-1, 1);
+      //  static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
+      //  UniformBufferObject ubo{};
+      //  ubo.model = fan::mat4(1);
+      //  ubo.view = fan::mat4(1);
+      //  ubo.proj = fan::math::ortho<fan::mat4>(
+      //    ortho_x.x,
+      //    ortho_x.y,
+      //    ortho_y.y,
+      //    ortho_y.x,
+      //    -1,
+      //    0x10000
+      //  );
+      //  //ubo.proj[1][1] *= -1;
 
-        void* data;
-        vkMapMemory(device, uniform_block.common.memory[currentImage].device_memory, 0, sizeof(ubo), 0, &data);
-        memcpy(data, &ubo, sizeof(ubo));
-        vkUnmapMemory(device, uniform_block.common.memory[currentImage].device_memory);
-      }
+      //  void* data;
+      //  vkMapMemory(device, uniform_block.common.memory[currentImage].device_memory, 0, sizeof(ubo), 0, &data);
+      //  memcpy(data, &ubo, sizeof(ubo));
+      //  vkUnmapMemory(device, uniform_block.common.memory[currentImage].device_memory);
+      //}
 
-      void drawFrame(fan::window_t* window) {
+      void render(fan::window_t* window, fan::function_t<void()> draw_lambda) {
+
         vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
-        uint32_t imageIndex;
-        VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+        VkResult result = vkAcquireNextImageKHR(
+          device,
+          swapChain,
+          UINT64_MAX,
+          imageAvailableSemaphores[currentFrame],
+          VK_NULL_HANDLE,
+          &image_index
+        );
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR) {
           recreateSwapChain(window->get_size());
@@ -1123,12 +1124,11 @@ namespace fan {
           throw std::runtime_error("failed to acquire swap chain image!");
         }
 
-        updateUniformBuffer(currentFrame);
-
         vkResetFences(device, 1, &inFlightFences[currentFrame]);
 
         vkResetCommandBuffer(commandBuffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
-        recordCommandBuffer(commandBuffers[currentFrame], imageIndex);
+
+        draw(6, 1, 0, (pipelines_t::nr_t)2, &descriptor_sets.descriptor_list[(descriptor_sets_t::nr_t)2].descriptor_set[currentFrame]);
 
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -1160,7 +1160,7 @@ namespace fan {
         presentInfo.swapchainCount = 1;
         presentInfo.pSwapchains = swapChains;
 
-        presentInfo.pImageIndices = &imageIndex;
+        presentInfo.pImageIndices = &image_index;
 
         result = vkQueuePresentKHR(presentQueue, &presentInfo);
 
@@ -1199,13 +1199,16 @@ namespace fan {
       }
 
       VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) {
-        for (const auto& availablePresentMode : availablePresentModes) {
-          if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
-            return availablePresentMode;
+        for (const auto& available_present_mode : availablePresentModes) {
+          if (available_present_mode == VK_PRESENT_MODE_IMMEDIATE_KHR && !vsync) {
+            return VK_PRESENT_MODE_IMMEDIATE_KHR;
+          }
+          else if (available_present_mode == VK_PRESENT_MODE_FIFO_KHR && vsync) {
+            return VK_PRESENT_MODE_FIFO_KHR;
           }
         }
 
-        return VK_PRESENT_MODE_FIFO_KHR;
+        return availablePresentModes[0];
       }
 
       VkExtent2D chooseSwapExtent(const fan::vec2ui& framebuffer_size, const VkSurfaceCapabilitiesKHR& capabilities) {
@@ -1394,6 +1397,11 @@ namespace fan {
         return VK_FALSE;
       }
 
+      void set_vsync(fan::window_t* window, bool flag) {
+        vsync = flag;
+        recreateSwapChain(window->get_size());
+      }
+
       VkInstance instance;
       VkDebugUtilsMessengerEXT debugMessenger;
       VkSurfaceKHR surface;
@@ -1435,11 +1443,11 @@ namespace fan {
       fan::vulkan::matrices_list_t matrices_list;
 
       pipelines_t pipelines;
-      pipelines_t::nr_t rectangle_pipeline_nr;
 
       descriptor_sets_t descriptor_sets;
-      descriptor_sets_t::nr_t nr;
-      fan::vulkan::core::uniform_block_t<0, UniformBufferObject, sizeof(UniformBufferObject)> uniform_block;
+
+      bool vsync = true;
+      uint32_t image_index;
 		};
 	}
 }
@@ -1610,15 +1618,14 @@ void fan::vulkan::descriptor_sets_t::close(fan::vulkan::context_t* context) {
   vkDestroyDescriptorPool(context->device, descriptorPool, nullptr);
 }
 
-template<uint16_t count>
-inline fan::vulkan::descriptor_sets_t::nr_t 
-fan::vulkan::descriptor_sets_t::push(
-  fan::vulkan::context_t* context, 
+template <uint16_t count>
+fan::vulkan::descriptor_sets_t::layout_nr_t 
+fan::vulkan::descriptor_sets_t::push_layout(
+  fan::vulkan::context_t* context,
   fan::vulkan::descriptor_set_layout_t<count> properties
 ) {
-
-  auto nr = descriptor_list.NewNode();
-  auto& node = descriptor_list[nr];
+  auto nr = descriptor_layout_list.NewNode();
+  auto& node = descriptor_layout_list[nr];
 
   VkDescriptorSetLayoutBinding uboLayoutBinding[count]{};
   for (uint16_t i = 0; i < count; ++i) {
@@ -1646,7 +1653,20 @@ fan::vulkan::descriptor_sets_t::push(
     throw std::runtime_error("failed to create descriptor set layout!");
   }
 
-  std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, node.layout);
+  return nr;
+}
+
+template<uint16_t count>
+inline fan::vulkan::descriptor_sets_t::nr_t
+fan::vulkan::descriptor_sets_t::push(
+  fan::vulkan::context_t* context,
+  fan::vulkan::descriptor_sets_t::layout_nr_t layout_nr,
+  fan::vulkan::descriptor_set_layout_t<count> properties
+) {
+  auto nr = descriptor_list.NewNode();
+  auto& node = descriptor_list[nr];
+
+  std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, descriptor_layout_list[layout_nr].layout);
   VkDescriptorSetAllocateInfo allocInfo{};
   allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
   allocInfo.descriptorPool = descriptorPool;
@@ -1729,12 +1749,14 @@ void fan::vulkan::core::uniform_write_queue_t::process(fan::vulkan::context_t* c
 }
 
 void fan::vulkan::shader_t::open(fan::vulkan::context_t* context) {
-
+  projection_view_block.open(context);
+  projection_view_block.push_ram_instance(context, {});
 }
 
 void fan::vulkan::shader_t::close(fan::vulkan::context_t* context, fan::vulkan::core::uniform_write_queue_t* write_queue) {
   vkDestroyShaderModule(context->device, shaderStages[0].module, nullptr);
   vkDestroyShaderModule(context->device, shaderStages[1].module, nullptr);
+  projection_view_block.close(context, write_queue);
 }
 
 VkShaderModule fan::vulkan::shader_t::createShaderModule(fan::vulkan::context_t* context, const fan::string& code) {
