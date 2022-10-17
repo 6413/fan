@@ -22,7 +22,9 @@ namespace fan {
 				fan::vulkan::core::memory_t* memory,
 				VkDescriptorSetLayout descriptor_set_layout,
 				uint64_t buffer_size,
-				fan::vulkan::shader_t* shader
+				fan::vulkan::shader_t* shader,
+				VkImageView textureImageView,
+				VkSampler
 			);
 
 			descriptor_list_t descriptor_list;

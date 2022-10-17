@@ -104,7 +104,7 @@ namespace fan {
 					//uint32_t usage = fan::opengl::GL_DYNAMIC_DRAW;
 				}op;
 
-				void open(fan::vulkan::context_t* context, fan::vulkan::shader_t* shader, VkDescriptorSetLayout descriptor_set_layout, open_properties_t op_ = open_properties_t()) {
+				void open(fan::vulkan::context_t* context, open_properties_t op_ = open_properties_t()) {
 					common.open(context);
 
 					op = op_;
@@ -121,8 +121,6 @@ namespace fan {
 							common.memory[i].device_memory
 						);
 					}
-
-					descriptor_nr = context->descriptor_sets.push(context, common.memory, descriptor_set_layout, sizeof(type_t), shader);
 				}
 				void close(fan::vulkan::context_t* context, uniform_write_queue_t* queue) {
 					common.close(context, queue);
@@ -160,7 +158,7 @@ namespace fan {
 						throw std::runtime_error("failed to allocate buffer memory!");
 					}
 
-					vkBindBufferMemory(context->device, buffer, bufferMemory, 0);
+					validate(vkBindBufferMemory(context->device, buffer, bufferMemory, 0));
 				}
 
 				uint32_t findMemoryType(fan::vulkan::context_t* context, uint32_t typeFilter, VkMemoryPropertyFlags properties) {
@@ -212,36 +210,6 @@ namespace fan {
 
 			uint32_t uniform_write_queue_t::push_back(uniform_block_common_t* block) {
 				return write_queue.push_back(block);
-			}
-			void uniform_write_queue_t::process(fan::vulkan::context_t* context) {
-				uint32_t it = write_queue.begin();
-
-				while (it != write_queue.end()) {
-
-					uint64_t src = write_queue[it]->m_min_edit;
-					uint64_t dst = write_queue[it]->m_max_edit;
-
-					auto device_memory = write_queue[it]->memory[context->currentFrame].device_memory;
-					uint8_t* buffer = (uint8_t*)&write_queue[it][1];
-
-					//buffer += src;
-
-					// UPDATE BUFFER HERE
-
-					void* data;
-					vkMapMemory(context->device, device_memory, src, dst - src, 0, &data);
-					//data += src; ??
-					memcpy(data, buffer, dst -src);
-					// unnecessary?
-					vkUnmapMemory(context->device, device_memory);
-					//fan::vulkan::core::edit_glbuffer(context, write_queue[it]->m_vbo, buffer, src, dst - src, fan::opengl::GL_UNIFORM_BUFFER);
-
-					write_queue[it]->on_edit(context);
-
-					it = write_queue.next(it);
-				}
-
-				write_queue.clear();
 			}
 		}
 	}
