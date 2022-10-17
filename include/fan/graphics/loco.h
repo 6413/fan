@@ -419,21 +419,41 @@ struct loco_t {
 
     #if defined(loco_vulkan)
       auto context = get_context();
+      vkWaitForFences(context->device, 1, &context->inFlightFences[context->currentFrame], VK_TRUE, UINT64_MAX);
 
+      VkResult result = vkAcquireNextImageKHR(
+        context->device,
+        context->swapChain,
+        UINT64_MAX,
+        context->imageAvailableSemaphores[context->currentFrame],
+        VK_NULL_HANDLE,
+        &context->image_index
+      );
+
+      if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+        context->recreateSwapChain(get_window()->get_size());
+        return;
+      }
+      else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+        throw std::runtime_error("failed to acquire swap chain image!");
+      }
     #endif
 
-      rectangle.m_shader.set_matrices(get_context(), &get_context()->matrices, &m_write_queue);
+      //rectangle.m_shader.set_matrices(get_context(), &get_context()->matrices, &m_write_queue);
     m_write_queue.process(get_context());
-
 
     #ifdef loco_window
       #if defined(loco_opengl)
         #include "draw_shapes.h"
         get_context()->render(get_window());
       #elif defined(loco_vulkan)
-        get_context()->render(get_window(),
+    context->render(get_window(),
           []{ }
         );
+
+        //data += src; ??
+        //memcpy(data, buffer, dst - src);
+
       #endif
     #endif
   }

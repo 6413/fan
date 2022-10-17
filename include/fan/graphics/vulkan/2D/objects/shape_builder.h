@@ -303,7 +303,6 @@ struct block_t {
   void open(loco_t* loco, auto* shape) {
     uniform_buffer.open(loco->get_context());
     shape->dsl_properties.write_descriptor_sets[0].block_common = &uniform_buffer.common;
-    // put shader block here
     shape->dsl_properties.write_descriptor_sets[1].block_common = &shape->m_shader.projection_view_block.common;
     descriptor_set_nr = loco->get_context()->descriptor_sets.push(
       loco->get_context(),

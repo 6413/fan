@@ -124,6 +124,7 @@ namespace fan {
 							common.memory[i].uniform_buffer,
 							common.memory[i].device_memory
 						);
+						fan::print("a", common.memory[i].device_memory);
 					}
 				}
 				void close(fan::vulkan::context_t* context, uniform_write_queue_t* queue) {

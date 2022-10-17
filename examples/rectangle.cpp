@@ -64,7 +64,7 @@ int main() {
   p.get_matrices() = &pile->loco.get_context()->matrices;
   p.get_viewport() = &pile->viewport;
   
-  p.position = fan::vec2(-0.2, 0);
+  p.position = fan::vec3(1, 1, 0);
   p.color = fan::color(1, 0, 0, 0.5);
   pile->loco.rectangle.push_back(&pile->cids[0], p);
 
@@ -75,6 +75,7 @@ int main() {
   pile->loco.set_vsync(false);
 
   pile->loco.loop([&] {
+    pile->loco.rectangle.set(&pile->cids[0], &loco_t::rectangle_t::instance_t::position, fan::random::vec3(1, 10));
     pile->loco.get_fps();
   });
   return 0;

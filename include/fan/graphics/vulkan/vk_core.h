@@ -97,7 +97,7 @@ namespace fan {
       }write_descriptor_sets[count];
     };
 
-    static constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
+    static constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 1;
 
     struct context_t;
     struct viewport_t;
@@ -1000,7 +1000,6 @@ namespace fan {
           fan::throw_error("failed to begin recording command buffer!");
         }
 
-
         VkRenderPassBeginInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
         renderPassInfo.renderPass = renderPass;
@@ -1105,25 +1104,6 @@ namespace fan {
 
       void render(fan::window_t* window, fan::function_t<void()> draw_lambda) {
 
-        vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
-
-        VkResult result = vkAcquireNextImageKHR(
-          device,
-          swapChain,
-          UINT64_MAX,
-          imageAvailableSemaphores[currentFrame],
-          VK_NULL_HANDLE,
-          &image_index
-        );
-
-        if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-          recreateSwapChain(window->get_size());
-          return;
-        }
-        else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
-          throw std::runtime_error("failed to acquire swap chain image!");
-        }
-
         vkResetFences(device, 1, &inFlightFences[currentFrame]);
 
         vkResetCommandBuffer(commandBuffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
@@ -1162,7 +1142,7 @@ namespace fan {
 
         presentInfo.pImageIndices = &image_index;
 
-        result = vkQueuePresentKHR(presentQueue, &presentInfo);
+        auto result = vkQueuePresentKHR(presentQueue, &presentInfo);
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
           recreateSwapChain(window->get_size());
@@ -1600,8 +1580,11 @@ void fan::vulkan::descriptor_sets_t::open(fan::vulkan::context_t* context) {
   std::array<VkDescriptorPoolSize, 2> poolSizes{};
   poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
   poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
-  poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+  poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
   poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+
+  //poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+  //poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
 
   VkDescriptorPoolCreateInfo poolInfo{};
   poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -1670,11 +1653,11 @@ fan::vulkan::descriptor_sets_t::push(
   VkDescriptorSetAllocateInfo allocInfo{};
   allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
   allocInfo.descriptorPool = descriptorPool;
-  allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+  allocInfo.descriptorSetCount = MAX_FRAMES_IN_FLIGHT;
   allocInfo.pSetLayouts = layouts.data();
 
   if (vkAllocateDescriptorSets(context->device, &allocInfo, node.descriptor_set) != VK_SUCCESS) {
-    throw std::runtime_error("failed to allocate descriptor sets!");
+    fan::throw_error("failed to allocate descriptor sets!");
   }
 
   for (size_t frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++) {
@@ -1725,20 +1708,22 @@ void fan::vulkan::core::uniform_write_queue_t::process(fan::vulkan::context_t* c
     uint64_t src = write_queue[it]->m_min_edit;
     uint64_t dst = write_queue[it]->m_max_edit;
 
-    auto device_memory = write_queue[it]->memory[context->currentFrame].device_memory;
-    uint8_t* buffer = (uint8_t*)&write_queue[it][1];
+    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+      auto device_memory = write_queue[it]->memory[i].device_memory;
+      uint8_t* buffer = (uint8_t*)&write_queue[it][1];
 
-    //buffer += src;
+      //buffer += src;
 
-    // UPDATE BUFFER HERE
+      // UPDATE BUFFER HERE
 
-    void* data;
-    vkMapMemory(context->device, device_memory, src, dst - src, 0, &data);
-    //data += src; ??
-    memcpy(data, buffer, dst - src);
-    // unnecessary?
-    vkUnmapMemory(context->device, device_memory);
-    //fan::vulkan::core::edit_glbuffer(context, write_queue[it]->m_vbo, buffer, src, dst - src, fan::opengl::GL_UNIFORM_BUFFER);
+      void* data;
+      vkMapMemory(context->device, device_memory, 0, dst - src, 0, &data);
+      //data += src; ??
+      memcpy(data, buffer, dst - src);
+      // unnecessary?
+      vkUnmapMemory(context->device, device_memory);
+      //fan::vulkan::core::edit_glbuffer(context, write_queue[it]->m_vbo, buffer, src, dst - src, fan::opengl::GL_UNIFORM_BUFFER);
+    }
 
     write_queue[it]->on_edit(context);
 
