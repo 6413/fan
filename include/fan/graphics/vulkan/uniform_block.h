@@ -96,7 +96,7 @@ namespace fan {
 			};
 
 
-			template <uint16_t descriptor_count, typename type_t, uint32_t element_size>
+			template <typename type_t, uint32_t element_size>
 			struct uniform_block_t {
 
 				static constexpr auto buffer_count = fan::vulkan::MAX_FRAMES_IN_FLIGHT;
@@ -104,17 +104,16 @@ namespace fan {
 				struct open_properties_t {
 					open_properties_t() {}
 
-
 					//uint32_t target = fan::opengl::GL_UNIFORM_BUFFER;
 					//uint32_t usage = fan::opengl::GL_DYNAMIC_DRAW;
 				}op;
 
 				void open(fan::vulkan::context_t* context, open_properties_t op_ = open_properties_t()) {
-					common.open(context, sizeof(type_t));
+					common.open(context, sizeof(type_t) * element_size);
 
 					op = op_;
 
-					VkDeviceSize bufferSize = sizeof(type_t);
+					VkDeviceSize bufferSize = sizeof(type_t) * element_size;
 
 					for (size_t i = 0; i < buffer_count; i++) {
 						createBuffer(

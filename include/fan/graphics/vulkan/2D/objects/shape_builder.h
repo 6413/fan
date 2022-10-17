@@ -14,10 +14,29 @@ sb_get_loco
 
 void sb_open() {
   loco_t* loco = get_loco();
+  auto context = loco->get_context();
   root = loco_bdbt_NewNode(&loco->bdbt);
   blocks.Open();
   bm_list.Open();
 
+  m_shader.open(context);
+  m_shader.set_vertex(context, sb_shader_vertex_path);
+  m_shader.set_fragment(context, sb_shader_fragment_path);
+
+  dsl_properties.write_descriptor_sets[0].binding = 0;
+  dsl_properties.write_descriptor_sets[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+  dsl_properties.write_descriptor_sets[0].flags = VK_SHADER_STAGE_VERTEX_BIT;
+
+  dsl_properties.write_descriptor_sets[1].binding = 1;
+  dsl_properties.write_descriptor_sets[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+  dsl_properties.write_descriptor_sets[1].flags = VK_SHADER_STAGE_VERTEX_BIT;
+
+  descriptor_layout_nr = context->descriptor_sets.push_layout(context, dsl_properties);
+
+  fan::vulkan::pipelines_t::properties_t p;
+  p.descriptor_set_layout = &context->descriptor_sets.get(descriptor_layout_nr).layout;
+  p.shader = &m_shader;
+  pipeline_nr = context->pipelines.push(context, p);
 }
 void sb_close() {
   loco_t* loco = get_loco();
@@ -30,7 +49,8 @@ void sb_close() {
 
   m_shader.close(loco->get_context(), &loco->m_write_queue);
 
-  vkDestroyDescriptorSetLayout(loco->get_context()->device, descriptorSetLayout, nullptr);
+  assert(0);
+  //vkDestroyDescriptorSetLayout(loco->get_context()->device, descriptorSetLayout, nullptr);
 
   //for (uint32_t i = 0; i < blocks.size(); i++) {
   //  blocks[i].uniform_buffer.close(loco->get_context());
@@ -52,6 +72,7 @@ block_t* sb_push_back(fan::graphics::cid_t* cid, properties_t& p) {
     auto ln = &bm_list[lnr];
     ln->first_block = blocks.NewNodeLast();
     blocks[ln->first_block].block.open(loco, this);
+    // HERE
     ln->last_block = ln->first_block;
     ln->instance_properties = *(instance_properties_t*)&p;
     k.InFrom(&loco->bdbt, &p.key, ki, nr, lnr.NRI);
@@ -104,10 +125,13 @@ void sb_erase(fan::graphics::cid_t* cid) {
   block_t* last_block = &last_block_node->data.block;
   uint32_t last_instance_id = last_block->uniform_buffer.size() - 1;
 
+  // erase descriptorset from block
+  assert(0);
   if (block_id == last_block_id && cid->instance_id == block->uniform_buffer.size() - 1) {
     block->uniform_buffer.common.m_size -= sizeof(instance_t);
     if (block->uniform_buffer.size() == 0) {
       auto lpnr = block_node->PrevNodeReference;
+
       block->close(loco);
       blocks.Unlink(block_id);
       blocks.Recycle(block_id);
@@ -207,10 +231,8 @@ void traverse_draw(auto nr) {
         sb_vertex_count,
         node->data.block.uniform_buffer.size(),
         0,
-        loco->get_context()->pipelines.pipeline_list[pipeline_nr].pipeline,
-        loco->get_context()->commandBuffers[loco->get_context()->currentFrame], 
-        loco->get_context()->imageIndex,
-        &loco->get_context()->descriptor_sets.descriptor_list[node->data.block.uniform_buffer.descriptor_nr].descriptor_set[loco->get_context()->currentFrame]
+        pipeline_nr,
+        &loco->get_context()->descriptor_sets.descriptor_list[node->data.block.descriptor_set_nr].descriptor_set[loco->get_context()->currentFrame]
       );
 
       if (vkEndCommandBuffer(loco->get_context()->commandBuffers[loco->get_context()->currentFrame]) != VK_SUCCESS) {
@@ -274,23 +296,34 @@ void sb_set_key(fan::graphics::cid_t* cid, auto value) {
 }
 
 fan::graphics::shader_t m_shader;
-VkDescriptorSetLayout descriptorSetLayout;
 fan::vulkan::pipelines_t::nr_t pipeline_nr;
+fan::vulkan::descriptor_sets_t::layout_nr_t descriptor_layout_nr;
 
 struct block_t {
   void open(loco_t* loco, auto* shape) {
-    uniform_buffer.open(loco->get_context(), &shape->m_shader, shape->descriptorSetLayout);
+    uniform_buffer.open(loco->get_context());
+    shape->dsl_properties.write_descriptor_sets[0].block_common = &uniform_buffer.common;
+    // put shader block here
+    shape->dsl_properties.write_descriptor_sets[1].block_common = &shape->m_shader.projection_view_block.common;
+    descriptor_set_nr = loco->get_context()->descriptor_sets.push(
+      loco->get_context(),
+      shape->descriptor_layout_nr,
+      shape->dsl_properties
+    );
   }
   void close(loco_t* loco) {
     uniform_buffer.close(loco->get_context(), &loco->m_write_queue);
   }
 
-  fan::graphics::core::uniform_block_t<0, instance_t, max_instance_size> uniform_buffer;
+  fan::graphics::core::uniform_block_t<instance_t, max_instance_size> uniform_buffer;
   fan::graphics::cid_t* cid[max_instance_size];
   instance_properties_t p[max_instance_size];
+  fan::vulkan::descriptor_sets_t::nr_t descriptor_set_nr;
 };
 
 protected:
+
+fan::vulkan::descriptor_set_layout_t<2> dsl_properties;
 
 loco_bdbt_NodeReference_t root;
 
