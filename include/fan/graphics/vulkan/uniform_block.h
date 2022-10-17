@@ -92,13 +92,15 @@ namespace fan {
 				uint32_t m_max_edit;
 			};
 
-			template <uint32_t binding, typename type_t, uint32_t element_size>
+
+			template <uint16_t descriptor_count, typename type_t, uint32_t element_size>
 			struct uniform_block_t {
 
 				static constexpr auto buffer_count = fan::vulkan::MAX_FRAMES_IN_FLIGHT;
 
 				struct open_properties_t {
 					open_properties_t() {}
+
 
 					//uint32_t target = fan::opengl::GL_UNIFORM_BUFFER;
 					//uint32_t usage = fan::opengl::GL_DYNAMIC_DRAW;
