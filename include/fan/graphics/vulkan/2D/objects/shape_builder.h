@@ -18,43 +18,6 @@ void sb_open() {
   blocks.Open();
   bm_list.Open();
 
-  VkDescriptorSetLayoutBinding uboLayoutBinding[2]{};
-  uboLayoutBinding[0].binding = 0;
-  uboLayoutBinding[0].descriptorCount = 1;
-  uboLayoutBinding[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-  uboLayoutBinding[0].pImmutableSamplers = nullptr;
-  uboLayoutBinding[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-  uboLayoutBinding[1].binding = 1;
-  uboLayoutBinding[1].descriptorCount = 1;
-  uboLayoutBinding[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-  uboLayoutBinding[1].pImmutableSamplers = nullptr;
-  uboLayoutBinding[1].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-  VkDescriptorSetLayoutCreateInfo layoutInfo{};
-  layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-  layoutInfo.bindingCount = std::size(uboLayoutBinding);
-  layoutInfo.pBindings = uboLayoutBinding;
-
-  if (vkCreateDescriptorSetLayout(loco->get_context()->device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
-    throw std::runtime_error("failed to create descriptor set layout!");
-  }
-
-  m_shader.open(loco->get_context(), descriptorSetLayout);
-  m_shader.set_vertex(
-    loco->get_context(),
-    sb_shader_vertex_path
-  );
-  m_shader.set_fragment(
-    loco->get_context(),
-    sb_shader_fragment_path
-  );
-
-  fan::vulkan::pipelines_t::properties_t p;
-  p.shader = &m_shader;
-  p.descriptor_set_layout = &descriptorSetLayout;
-
-  pipeline_nr = loco->get_context()->pipelines.push(loco->get_context(), p);
 }
 void sb_close() {
   loco_t* loco = get_loco();
