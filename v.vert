@@ -13,15 +13,19 @@ layout(binding = 1) uniform UniformBufferObject2 {
 } ubo2;
 
 
-layout(location = 0) in vec3 inPosition;
-layout(location = 1) in vec3 inColor;
-layout(location = 2) in vec2 inTexCoord;
+flat layout(location = 2) out uint id;
 
-layout(location = 0) out vec3 fragColor;
-layout(location = 1) out vec2 fragTexCoord;
+vec2 rectangle_vertices[] = vec2[](
+	vec2(-1.0, -1.0),
+	vec2(1.0, -1.0),
+	vec2(1.0, 1.0),
+
+	vec2(1.0, 1.0),
+	vec2(-1.0, 1.0),
+	vec2(-1.0, -1.0)
+);
 
 void main() {
-    gl_Position = ubo.proj * ubo.view * ubo.model * vec4(inPosition, 1.0);
-    fragColor = inColor;
-    fragTexCoord = inTexCoord;
+    gl_Position = ubo.proj * ubo.view * ubo.model * vec4(rectangle_vertices[gl_VertexIndex] * 0.3, 0, 1.0);
+		id = gl_InstanceIndex;
 }
