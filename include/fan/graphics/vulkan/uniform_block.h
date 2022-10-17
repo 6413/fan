@@ -42,7 +42,7 @@ namespace fan {
 
 				memory_t memory[buffer_count];
 
-				void open(fan::vulkan::context_t* context) {
+				void open(fan::vulkan::context_t* context, uint64_t buffer_size) {
 
 					m_edit_index = fan::uninitialized;
 
@@ -51,6 +51,7 @@ namespace fan {
 					m_max_edit = 0x00000000;
 
 					m_size = 0;
+					m_buffer_size = buffer_size;
 				}
 				void close(fan::vulkan::context_t* context, uniform_write_queue_t* queue) {
 					if (is_queued()) {
@@ -90,6 +91,8 @@ namespace fan {
 
 				uint32_t m_min_edit;
 				uint32_t m_max_edit;
+
+				uint64_t m_buffer_size;
 			};
 
 
@@ -107,7 +110,7 @@ namespace fan {
 				}op;
 
 				void open(fan::vulkan::context_t* context, open_properties_t op_ = open_properties_t()) {
-					common.open(context);
+					common.open(context, sizeof(type_t));
 
 					op = op_;
 
@@ -205,8 +208,6 @@ namespace fan {
 
 				uniform_block_common_t common;
 				uint8_t buffer[element_size * sizeof(type_t)];
-
-				descriptor_sets_t::nr_t descriptor_nr;
 			};
 
 
