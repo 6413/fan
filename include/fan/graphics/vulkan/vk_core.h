@@ -74,6 +74,29 @@ namespace fan {
       struct memory_t;
     }
 
+    template <uint16_t count>
+    struct descriptor_set_layout_t {
+      struct write_descriptor_set_t {
+        // glsl layout binding
+        uint32_t binding;
+
+        // VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
+        // VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+        VkDescriptorType type;
+
+        // VK_SHADER_STAGE_VERTEX_BIT
+        // VK_SHADER_STAGE_FRAGMENT_BIT
+        VkShaderStageFlags flags;
+
+        fan::vulkan::core::uniform_block_common_t* block_common;
+
+        // hardcode descriptor count to 1 in both layoutset and descriptor
+        // init dstarrayelement with 0
+        // init layoutbinding to 0
+
+      }write_descriptor_sets[count];
+    };
+
     static constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
 
     struct context_t;
@@ -255,22 +278,31 @@ namespace fan {
         createCommandBuffers();
         createSyncObjects();
 
-        createDescriptorSetLayout();
-
         pipelines.open();
-                       
-        fan::vulkan::pipelines_t::properties_t p;
-        p.descriptor_set_layout = &descriptorSetLayout;
+        uniform_block.open(this);
+        descriptor_sets.open(this);
+
         shader.open(this);
         shader.set_vertex(this, "shaders/vert.spv");
         shader.set_fragment(this, "shaders/frag.spv");
+        
+        fan::vulkan::descriptor_set_layout_t<2> layout;
+        layout.write_descriptor_sets[0].binding = 0;
+        layout.write_descriptor_sets[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        layout.write_descriptor_sets[0].flags = VK_SHADER_STAGE_VERTEX_BIT;
+        layout.write_descriptor_sets[0].block_common = &uniform_block.common;
 
+        layout.write_descriptor_sets[1].binding = 1;
+        layout.write_descriptor_sets[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        layout.write_descriptor_sets[1].flags = VK_SHADER_STAGE_VERTEX_BIT;
+        layout.write_descriptor_sets[1].block_common = &uniform_block.common;
+
+        nr = descriptor_sets.push(this, layout);
+
+        fan::vulkan::pipelines_t::properties_t p;
+        p.descriptor_set_layout = &descriptor_sets.get(nr).layout;
         p.shader = &shader;
         rectangle_pipeline_nr = pipelines.push(this, p);
-
-        uniform_block.open(this);
-        descriptor_sets.open(this);
-        nr = descriptor_sets.push(this, uniform_block.common.memory, descriptorSetLayout, sizeof(UniformBufferObject), &shader, textureImageView, textureSampler);
       }
 
       void cleanupSwapChain() {
@@ -576,57 +608,6 @@ namespace fan {
 
         if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS) {
           throw std::runtime_error("failed to create render pass!");
-        }
-      }
-
-      template <uint16_t count>
-      struct descriptor_set_layout_t {
-        VkDescriptorSet descriptor_set[MAX_FRAMES_IN_FLIGHT];
-
-        struct write_descriptor_set_t {
-          // glsl layout binding
-          uint32_t binding;
-
-          // VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
-          // VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-          VkDescriptorType type;
-
-          // VK_SHADER_STAGE_VERTEX_BIT
-          // VK_SHADER_STAGE_FRAGMENT_BIT
-          VkShaderStageFlags flags;
-        }write_descriptor_sets[count];
-      };
-
-      void createDescriptorSetLayout() {
-        VkDescriptorSetLayoutBinding uboLayoutBinding[2];
-        uboLayoutBinding[0].binding = 0;
-        uboLayoutBinding[0].descriptorCount = 1;
-        uboLayoutBinding[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        uboLayoutBinding[0].pImmutableSamplers = nullptr;
-        uboLayoutBinding[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-        uboLayoutBinding[1].binding = 1;
-        uboLayoutBinding[1].descriptorCount = 1;
-        uboLayoutBinding[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        uboLayoutBinding[1].pImmutableSamplers = nullptr;
-        uboLayoutBinding[1].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-        //VkDescriptorSetLayoutBinding samplerLayoutBinding{};
-        //samplerLayoutBinding.binding = 2;
-        //samplerLayoutBinding.descriptorCount = 1;
-        //samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        //samplerLayoutBinding.pImmutableSamplers = nullptr;
-        //samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-        //std::array<VkDescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, samplerLayoutBinding };
-        //std::array<VkDescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, samplerLayoutBinding };
-        VkDescriptorSetLayoutCreateInfo layoutInfo{};
-        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layoutInfo.bindingCount = std::size(uboLayoutBinding);
-        layoutInfo.pBindings = uboLayoutBinding;
-
-        if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
-          throw std::runtime_error("failed to create descriptor set layout!");
         }
       }
 
@@ -1058,7 +1039,16 @@ namespace fan {
         scissor.extent = swapChainExtent;
         vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.pipeline_list[rectangle_pipeline_nr].pipeline_layout, 0, 1, &descriptor_sets.descriptor_list[nr].descriptor_set[currentFrame], 0, nullptr);
+        vkCmdBindDescriptorSets(
+          commandBuffer, 
+          VK_PIPELINE_BIND_POINT_GRAPHICS,
+          pipelines.pipeline_list[rectangle_pipeline_nr].pipeline_layout, 
+          0, 
+          1, 
+          &descriptor_sets.descriptor_list[nr].descriptor_set[currentFrame], 
+          0,
+          nullptr
+        );
 
         vkCmdDraw(commandBuffer, 6, 1, 0, 0);
 
@@ -1422,7 +1412,6 @@ namespace fan {
       std::vector<VkFramebuffer> swapChainFramebuffers;
 
       VkRenderPass renderPass;
-      VkDescriptorSetLayout descriptorSetLayout;
 
       VkCommandPool commandPool;
 
@@ -1623,19 +1612,43 @@ void fan::vulkan::descriptor_sets_t::close(fan::vulkan::context_t* context) {
   vkDestroyDescriptorPool(context->device, descriptorPool, nullptr);
 }
 
-fan::vulkan::descriptor_sets_t::nr_t fan::vulkan::descriptor_sets_t::push(
-  fan::vulkan::context_t* context,
-  fan::vulkan::core::memory_t* memory,
-  VkDescriptorSetLayout descriptor_set_layout,
-  uint64_t buffer_size,
-  fan::vulkan::shader_t* shader,
-  VkImageView textureImageView,
-  VkSampler vksampler
+template<uint16_t count>
+inline fan::vulkan::descriptor_sets_t::nr_t 
+fan::vulkan::descriptor_sets_t::push(
+  fan::vulkan::context_t* context, 
+  fan::vulkan::descriptor_set_layout_t<count> properties
 ) {
+
   auto nr = descriptor_list.NewNode();
   auto& node = descriptor_list[nr];
 
-  std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, descriptor_set_layout);
+  VkDescriptorSetLayoutBinding uboLayoutBinding[count]{};
+  for (uint16_t i = 0; i < count; ++i) {
+    uboLayoutBinding[i].binding = properties.write_descriptor_sets[i].binding;
+    uboLayoutBinding[i].descriptorCount = 1;
+    uboLayoutBinding[i].descriptorType = properties.write_descriptor_sets[i].type;
+    uboLayoutBinding[i].stageFlags = properties.write_descriptor_sets[i].flags;
+  }
+
+  //VkDescriptorSetLayoutBinding samplerLayoutBinding{};
+  //samplerLayoutBinding.binding = 2;
+  //samplerLayoutBinding.descriptorCount = 1;
+  //samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+  //samplerLayoutBinding.pImmutableSamplers = nullptr;
+  //samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+  //std::array<VkDescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, samplerLayoutBinding };
+
+  VkDescriptorSetLayoutCreateInfo layoutInfo{};
+  layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+  layoutInfo.bindingCount = std::size(uboLayoutBinding);
+  layoutInfo.pBindings = uboLayoutBinding;
+
+  if (vkCreateDescriptorSetLayout(context->device, &layoutInfo, nullptr, &node.layout) != VK_SUCCESS) {
+    throw std::runtime_error("failed to create descriptor set layout!");
+  }
+
+  std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, node.layout);
   VkDescriptorSetAllocateInfo allocInfo{};
   allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
   allocInfo.descriptorPool = descriptorPool;
@@ -1646,43 +1659,41 @@ fan::vulkan::descriptor_sets_t::nr_t fan::vulkan::descriptor_sets_t::push(
     throw std::runtime_error("failed to allocate descriptor sets!");
   }
 
-  for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-    VkDescriptorBufferInfo bufferInfo{};
-    bufferInfo.buffer = memory[i].uniform_buffer;
-    bufferInfo.offset = 0;
-    bufferInfo.range = sizeof(UniformBufferObject);
+  for (size_t frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++) {
 
-    VkDescriptorImageInfo imageInfo{};
-    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfo.imageView = textureImageView;
-    imageInfo.sampler = vksampler;
+    std::array<VkWriteDescriptorSet, count> descriptorWrites{};
 
-    std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+    for (uint32_t j = 0; j < count; ++j) {
 
-    descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[0].dstSet = node.descriptor_set[i];
-    descriptorWrites[0].dstBinding = 0;
-    descriptorWrites[0].dstArrayElement = 0;
-    descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    descriptorWrites[0].descriptorCount = 1;
-    descriptorWrites[0].pBufferInfo = &bufferInfo;
+      VkDescriptorBufferInfo bufferInfo{};
+      bufferInfo.buffer = properties.write_descriptor_sets[j].block_common->memory[frame].uniform_buffer;
+      bufferInfo.offset = 0;
+      bufferInfo.range = properties.write_descriptor_sets[j].block_common->m_buffer_size;
 
-    descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[1].dstSet = node.descriptor_set[i];
-    descriptorWrites[1].dstBinding = 1;
-    descriptorWrites[1].dstArrayElement = 0;
-    descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    descriptorWrites[1].descriptorCount = 1;
-    descriptorWrites[1].pBufferInfo = &bufferInfo;
+      descriptorWrites[j].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+      descriptorWrites[j].dstSet = node.descriptor_set[frame];
+      descriptorWrites[j].dstBinding = properties.write_descriptor_sets[j].binding;
+      descriptorWrites[j].descriptorType = properties.write_descriptor_sets[j].type;
+      descriptorWrites[j].descriptorCount = 1;
+      descriptorWrites[j].pBufferInfo = &bufferInfo;
 
-    //descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    //descriptorWrites[2].dstSet = node.descriptor_set[i];
-    //descriptorWrites[2].dstBinding = 2;
-    //descriptorWrites[2].dstArrayElement = 0;
-    //descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    //descriptorWrites[2].descriptorCount = 1;
-    //descriptorWrites[2].pImageInfo = &imageInfo;
+      // ADD IMAGEVIEW AND SAMPLER TO PER BLOCK
 
+      /*VkDescriptorImageInfo imageInfo{};
+      *
+      imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+      imageInfo.imageView = textureImageView;
+      imageInfo.sampler = vksampler;*/
+
+      //descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+      //descriptorWrites[2].dstSet = node.descriptor_set[i];
+      //descriptorWrites[2].dstBinding = 2;
+      //descriptorWrites[2].dstArrayElement = 0;
+      //descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+      //descriptorWrites[2].descriptorCount = 1;
+      //descriptorWrites[2].pImageInfo = &imageInfo;
+
+    }
     vkUpdateDescriptorSets(context->device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
   }
   return nr;

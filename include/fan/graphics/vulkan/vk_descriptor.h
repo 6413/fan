@@ -16,20 +16,19 @@ namespace fan {
 
       void open(fan::vulkan::context_t* context);
 			void close(fan::vulkan::context_t* context);
+			
+			descriptor_list_NodeData_t& get(nr_t nr) {
+				return descriptor_list[nr];
+			}
 
+			template <uint16_t count>
 			nr_t push(
 				fan::vulkan::context_t* context,
-				fan::vulkan::core::memory_t* memory,
-				VkDescriptorSetLayout descriptor_set_layout,
-				uint64_t buffer_size,
-				fan::vulkan::shader_t* shader,
-				VkImageView textureImageView,
-				VkSampler
+				fan::vulkan::descriptor_set_layout_t<count> layout
 			);
 
 			descriptor_list_t descriptor_list;
       VkDescriptorPool descriptorPool;
 		};
-
 	}
 }
