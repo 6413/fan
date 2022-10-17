@@ -71,7 +71,7 @@ int main() {
   //p.color = fan::color(0, 0, 0.5, 0.5);
   //pile->loco.rectangle.push_back(&pile->cids[1], p);
 
-  //pile->loco.set_vsync(false);
+  pile->loco.set_vsync(false);
 
   pile->loco.loop([&] {
     pile->loco.get_fps();

@@ -249,7 +249,7 @@ void traverse_draw(auto nr) {
         loco->get_context()->imageIndex,
         &loco->get_context()->descriptor_sets.descriptor_list[node->data.block.uniform_buffer.descriptor_nr].descriptor_set[loco->get_context()->currentFrame]
       );
-      fan::print("drawing");
+
       if (vkEndCommandBuffer(loco->get_context()->commandBuffers[loco->get_context()->currentFrame]) != VK_SUCCESS) {
         throw std::runtime_error("failed to record command buffer");
       }
@@ -286,7 +286,7 @@ void sb_draw(uint32_t draw_mode = 0) {
   loco_t* loco = get_loco();
   VkCommandBufferBeginInfo beginInfo{};
   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-  fan::print("start");
+
   if (vkBeginCommandBuffer(loco->get_context()->commandBuffers[loco->get_context()->currentFrame], &beginInfo) != VK_SUCCESS) {
     throw std::runtime_error("failed to begin recording command buffer!");
   }

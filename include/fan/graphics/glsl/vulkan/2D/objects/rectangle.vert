@@ -42,14 +42,14 @@ void main() {
 	float c = 0;
 	float s = 0;
 
-	float x = rp.x * c - rp.y * s;
-	float y = rp.x * s + rp.y * c;
+	//float x = rp.x * c - rp.y * s;
+	//float y = rp.x * s + rp.y * c;
 
   //mat4 m = view;
 	//m[3][0] = 0;
 	//m[3][1] = 0;
 
-  gl_Position = vec4(vec2(x, y), 0, 1);
+  gl_Position = vec4(rp, 0, 1);
 
-	instance_color = get_instance().color;
+	//instance_color = get_instance().color;
 }

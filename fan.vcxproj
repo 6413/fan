@@ -98,16 +98,16 @@
       <ConformanceMode>false</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <OmitFramePointers>true</OmitFramePointers>
-      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <IntrinsicFunctions>false</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
+      <OmitFramePointers>false</OmitFramePointers>
+      <EnableFiberSafeOptimizations>false</EnableFiberSafeOptimizations>
       <WholeProgramOptimization>false</WholeProgramOptimization>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)src\box2d;$(SolutionDir);$(SolutionDir)include\opus;$(SolutionDir)src\libwebp;$(SolutionDir)src\libwebp\src;$(SolutionDIr)include\dav1d;$(SolutionDir)include\vpx</AdditionalIncludeDirectories>
-      <Optimization>MaxSpeed</Optimization>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)src\box2d;$(SolutionDir);$(SolutionDir)include\opus;$(SolutionDir)src\libwebp;$(SolutionDir)src\libwebp\src;$(SolutionDIr)include\dav1d;$(SolutionDir)include\vpx;C:\Users\123\source\repos\glfw\glfw-3.3.7.bin.WIN64\include</AdditionalIncludeDirectories>
+      <Optimization>Disabled</Optimization>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <EnableParallelCodeGeneration>false</EnableParallelCodeGeneration>
       <TreatSpecificWarningsAsErrors>
@@ -132,20 +132,20 @@
     <ClCompile>
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <IntrinsicFunctions>false</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>set_durums_pc</PreprocessorDefinitions>
       <ConformanceMode>false</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <Optimization>MaxSpeed</Optimization>
-      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
-      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <OmitFramePointers>true</OmitFramePointers>
-      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)src\box2d;$(SolutionDir);$(SolutionDir)include\opus;$(SolutionDir)src\libwebp;$(SolutionDir)src\libwebp\src;$(SolutionDIr)include\dav1d;$(SolutionDir)include\vpx</AdditionalIncludeDirectories>
+      <Optimization>Disabled</Optimization>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
+      <OmitFramePointers>false</OmitFramePointers>
+      <EnableFiberSafeOptimizations>false</EnableFiberSafeOptimizations>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)src\box2d;$(SolutionDir);$(SolutionDir)include\opus;$(SolutionDir)src\libwebp;$(SolutionDir)src\libwebp\src;$(SolutionDIr)include\dav1d;$(SolutionDir)include\vpx;C:\Users\123\source\repos\glfw\glfw-3.3.7.bin.WIN64\include</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <EnableParallelCodeGeneration>false</EnableParallelCodeGeneration>
@@ -175,16 +175,16 @@
       <ConformanceMode>false</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <OmitFramePointers>true</OmitFramePointers>
-      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <IntrinsicFunctions>false</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
+      <OmitFramePointers>false</OmitFramePointers>
+      <EnableFiberSafeOptimizations>false</EnableFiberSafeOptimizations>
       <WholeProgramOptimization>false</WholeProgramOptimization>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)src\box2d;$(SolutionDir);$(SolutionDir)include\opus;$(SolutionDir)src\libwebp;$(SolutionDir)src\libwebp\src;$(SolutionDIr)include\dav1d;$(SolutionDir)include\vpx</AdditionalIncludeDirectories>
-      <Optimization>MaxSpeed</Optimization>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)src\box2d;$(SolutionDir);$(SolutionDir)include\opus;$(SolutionDir)src\libwebp;$(SolutionDir)src\libwebp\src;$(SolutionDIr)include\dav1d;$(SolutionDir)include\vpx;C:\Users\123\source\repos\glfw\glfw-3.3.7.bin.WIN64\include</AdditionalIncludeDirectories>
+      <Optimization>Disabled</Optimization>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <EnableParallelCodeGeneration>false</EnableParallelCodeGeneration>
       <TreatSpecificWarningsAsErrors>
@@ -219,10 +219,10 @@
       <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
       <OmitFramePointers>false</OmitFramePointers>
       <EnableFiberSafeOptimizations>false</EnableFiberSafeOptimizations>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)src\box2d;$(SolutionDir);$(SolutionDir)include\opus;$(SolutionDir)src\libwebp;$(SolutionDir)src\libwebp\src;$(SolutionDIr)include\dav1d;$(SolutionDir)include\vpx</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)src\box2d;$(SolutionDir);$(SolutionDir)include\opus;$(SolutionDir)src\libwebp;$(SolutionDir)src\libwebp\src;$(SolutionDIr)include\dav1d;$(SolutionDir)include\vpx;C:\Users\123\source\repos\glfw\glfw-3.3.7.bin.WIN64\include</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <EnableParallelCodeGeneration>false</EnableParallelCodeGeneration>
@@ -246,7 +246,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="examples\rectangle.cpp" />
+    <ClCompile Include="examples\vk_helloworld.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
     <ClCompile Include="src\fan\window\window_input.cpp" />
   </ItemGroup>
