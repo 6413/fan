@@ -37,10 +37,10 @@ namespace fan {
 
 		namespace core {
 			#if defined(loco_opengl)
-				using fan::opengl::core::uniform_write_queue_t;
+				using fan::opengl::core::memory_write_queue_t;
 				using fan::opengl::core::uniform_block_t;
 			#elif defined(loco_vulkan)
-				using fan::vulkan::core::uniform_write_queue_t;
+				using fan::vulkan::core::memory_write_queue_t;
 				using fan::vulkan::core::uniform_block_t;
 			#endif
 		}

@@ -129,10 +129,6 @@ fan::opengl::theme_list_NodeReference_t::theme_list_NodeReference_t(fan_2d::grap
 namespace fan {
   namespace opengl {
 
-    namespace core {
-      struct uniform_block_common_t;
-    }
-
     struct viewport_t {
 
       void open(fan::opengl::context_t* context);

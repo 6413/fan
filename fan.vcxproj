@@ -246,7 +246,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="examples\rectangle.cpp" />
+    <ClCompile Include="examples\vk_ssbo_test.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
     <ClCompile Include="src\fan\window\window_input.cpp" />
   </ItemGroup>
@@ -368,7 +368,10 @@
     <ClInclude Include="include\fan\graphics\vulkan\2D\objects\shape_builder.h" />
     <ClInclude Include="include\fan\graphics\vulkan\descriptor_bll_settings.h" />
     <ClInclude Include="include\fan\graphics\vulkan\descriptor_layout_bll_settings.h" />
+    <ClInclude Include="include\fan\graphics\vulkan\memory.h" />
+    <ClInclude Include="include\fan\graphics\vulkan\memory_bll_settings.h" />
     <ClInclude Include="include\fan\graphics\vulkan\pipeline_bll_settings.h" />
+    <ClInclude Include="include\fan\graphics\vulkan\ssbo.h" />
     <ClInclude Include="include\fan\graphics\vulkan\uniform_block.h" />
     <ClInclude Include="include\fan\graphics\vulkan\viewport_list_builder_settings.h" />
     <ClInclude Include="include\fan\graphics\vulkan\vk_core.h" />

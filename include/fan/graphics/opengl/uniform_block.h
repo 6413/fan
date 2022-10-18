@@ -6,60 +6,80 @@ namespace fan {
   namespace opengl {
     namespace core {
 
-      struct uniform_block_common_t;
+      struct memory_write_queue_t {
 
-      struct uniform_write_queue_t{
-        void open() {
-          write_queue.open();
+        memory_write_queue_t() = default;
+
+        using memory_edit_cb_t = fan::function_t<void()>;
+
+
+        #include "memory_bll_settings.h"
+      protected:
+        #include _FAN_PATH(BLL/BLL.h)
+        write_queue_t write_queue;
+      public:
+
+        using nr_t = write_queue_NodeReference_t;
+
+        nr_t push_back(const memory_edit_cb_t& cb) {
+          auto nr = write_queue.NewNodeLast();
+          write_queue[nr].cb = cb;
+          return nr;
         }
-        void close() {
-          write_queue.close();
+
+        void process(fan::opengl::context_t* context) {
+          auto it = write_queue.GetNodeFirst();
+          while (it != write_queue.dst) {
+            write_queue.StartSafeNext(it);
+            write_queue[it].cb();
+
+            it = write_queue.EndSafeNext();
+          }
+
+          write_queue.Clear();
         }
 
-        uint32_t push_back(fan::opengl::core::uniform_block_common_t* block);
-
-        void process(fan::opengl::context_t* context);
-
-        void erase(uint32_t node_reference) {
-          write_queue.erase(node_reference);
+        void erase(nr_t node_reference) {
+          write_queue.unlrec(node_reference);
         }
 
         void clear() {
-          write_queue.clear();
+          write_queue.Clear();
         }
-
-      protected:
-        bll_t<fan::opengl::core::uniform_block_common_t*> write_queue;
       };
 
-      struct uniform_block_common_t {
+      struct memory_common_t {
+
         uint32_t m_vbo;
         fan::opengl::core::vao_t m_vao;
-        uint32_t m_size;
 
-        void open(fan::opengl::context_t* context) {
+        memory_write_queue_t::memory_edit_cb_t write_cb;
 
-          m_edit_index = fan::uninitialized;
+        void open(fan::opengl::context_t* context, const memory_write_queue_t::memory_edit_cb_t& cb) {
 
-          m_min_edit = 0xffffffff;
-          //context <- uniform_block <-> uniform_write_queue <- loco
-          m_max_edit = 0x00000000;
-
-          m_size = 0;
           m_vao.open(context);
+
+          write_cb = cb;
+
+          queued = false;
+
+          m_min_edit = 0xFFFFFFFFFFFFFFFF;
+          
+          m_max_edit = 0x00000000;
         }
-        void close(fan::opengl::context_t* context, uniform_write_queue_t* queue) {
+        void close(fan::opengl::context_t* context, memory_write_queue_t* queue) {
           if (is_queued()) {
             queue->erase(m_edit_index);
           }
+
           m_vao.close(context);
         }
 
         bool is_queued() const {
-          return m_edit_index != fan::uninitialized;
+          return queued;
         }
 
-        void edit(fan::opengl::context_t* context, uniform_write_queue_t* queue, uint32_t begin, uint32_t end) {
+        void edit(fan::opengl::context_t* context, memory_write_queue_t* queue, uint32_t begin, uint32_t end) {
 
           m_min_edit = fan::min(m_min_edit, begin);
           m_max_edit = fan::max(m_max_edit, end);
@@ -67,7 +87,8 @@ namespace fan {
           if (is_queued()) {
             return;
           }
-          m_edit_index = queue->push_back(this);
+          queued = true;
+          m_edit_index = queue->push_back(write_cb);
 
           // context->process();
         }
@@ -77,16 +98,18 @@ namespace fan {
         }
 
         void reset_edit() {
-          m_min_edit = 0xffffffff;
+          m_min_edit = 0xFFFFFFFFFFFFFFFF;
           m_max_edit = 0x00000000;
 
-          m_edit_index = fan::uninitialized;
+          queued = false;
         }
 
-        uint32_t m_edit_index;
+        memory_write_queue_t::nr_t m_edit_index;
 
-        uint32_t m_min_edit;
-        uint32_t m_max_edit;
+        uint64_t m_min_edit;
+        uint64_t m_max_edit;
+
+        bool queued;
       };
 
       template <typename type_t, uint32_t element_size>
@@ -106,11 +129,23 @@ namespace fan {
         void open(fan::opengl::context_t* context, open_properties_t op_ = open_properties_t()) {
           context->opengl.call(context->opengl.glGenBuffers, 1, &common.m_vbo);
           op = op_;
-          common.open(context);
+          m_size = 0;
+          common.open(context, [context, this] {
+            uint64_t src = common.m_min_edit;
+            uint64_t dst = common.m_max_edit;
+
+            auto cp_buffer = buffer;
+
+            cp_buffer += src;
+
+            fan::opengl::core::edit_glbuffer(context, common.m_vbo, cp_buffer, src, dst - src, fan::opengl::GL_UNIFORM_BUFFER);
+
+            common.on_edit(context);
+          });
           fan::opengl::core::write_glbuffer(context, common.m_vbo, 0, sizeof(type_t) * element_size, op.usage, op.target);
         }
 
-        void close(fan::opengl::context_t* context, uniform_write_queue_t* write_queue) {
+        void close(fan::opengl::context_t* context, memory_write_queue_t* write_queue) {
           #if fan_debug >= fan_debug_low
           if (common.m_vbo == -1) {
             fan::throw_error("tried to remove non existent vbo");
@@ -133,8 +168,8 @@ namespace fan {
         }
 
         void push_ram_instance(fan::opengl::context_t* context, const type_t& data) {
-          std::memmove(&buffer[common.m_size], (void*)&data, sizeof(type_t));
-          common.m_size += sizeof(type_t);
+          std::memmove(&buffer[m_size], (void*)&data, sizeof(type_t));
+          m_size += sizeof(type_t);
         }
 
         type_t* get_instance(fan::opengl::context_t* context, uint32_t i) {
@@ -154,7 +189,7 @@ namespace fan {
         // for copying whole thing
         void copy_instance(fan::opengl::context_t* context, uint32_t i, type_t* instance) {
           #if fan_debug >= fan_debug_low
-          if (i * sizeof(type_t) >= common.m_size) {
+          if (i * sizeof(type_t) >= m_size) {
             fan::throw_error("uninitialized access");
           }
           #endif
@@ -182,37 +217,13 @@ namespace fan {
         }
 
         uint32_t size() const {
-          return common.m_size / sizeof(type_t);
+          return m_size / sizeof(type_t);
         }
 
-        uniform_block_common_t common;
+        memory_common_t common;
         uint8_t buffer[element_size * sizeof(type_t)];
+        uint32_t m_size;
       };
-
-      uint32_t uniform_write_queue_t::push_back(fan::opengl::core::uniform_block_common_t* block){
-        return write_queue.push_back(block);
-      }
-      void uniform_write_queue_t::process(fan::opengl::context_t* context){
-        uint32_t it = write_queue.begin();
-
-        while (it != write_queue.end()) {
-
-          uint64_t src = write_queue[it]->m_min_edit;
-          uint64_t dst = write_queue[it]->m_max_edit;
-
-          uint8_t* buffer = (uint8_t*)&write_queue[it][1];
-
-          buffer += src;
-
-          fan::opengl::core::edit_glbuffer(context, write_queue[it]->m_vbo, buffer, src, dst - src, fan::opengl::GL_UNIFORM_BUFFER);
-
-          write_queue[it]->on_edit(context);
-
-          it = write_queue.next(it);
-        }
-
-        write_queue.clear();
-      }
     }
   }
 }

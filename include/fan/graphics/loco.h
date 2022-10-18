@@ -263,6 +263,12 @@ struct loco_t {
 
   void open(const properties_t& p) {
 
+    #if defined(loco_opengl)
+      fan::print("RENDERER BACKEND: OPENGL");
+    #elif defined(loco_vulkan)
+      fan::print("RENDERER BACKEND: VULKAN");
+    #endif
+
     vfi_var_name.open();
 
     #ifdef loco_window
@@ -335,8 +341,6 @@ struct loco_t {
         fan::throw_error("failed to initialize frame buffer");
       }
     #endif
-
-    m_write_queue.open();
   }
   void close() {
 
@@ -377,10 +381,6 @@ struct loco_t {
     #endif
     #if defined(loco_post_process)
       post_process.close();
-    #endif
-
-    #ifndef loco_vulkan
-    m_write_queue.close();
     #endif
   }
 
@@ -446,16 +446,10 @@ struct loco_t {
         #include "draw_shapes.h"
         get_context()->render(get_window());
       #elif defined(loco_vulkan)
-        context->render(
-          get_window(),
-          [this]{
-            #include "draw_shapes.h"
-          }
-        );
-
-        //data += src; ??
-        //memcpy(data, buffer, dst - src);
-
+        get_context()->begin_render(get_window());
+        draw_queue();
+        #include "draw_shapes.h"
+        get_context()->end_render(get_window());
       #endif
     #endif
   }
@@ -492,11 +486,11 @@ struct loco_t {
   fan::vec2 get_mouse_position(const fan::graphics::viewport_t& viewport) {
     fan::vec2 x;
     x.x = (get_mouse_position().x - viewport.viewport_position.x - viewport.viewport_size.x / 2) / (viewport.viewport_size.x / 2);
-    x.y = ((viewport.viewport_size.y - get_mouse_position().y - viewport.viewport_position.y - viewport.viewport_size.y / 2) / (viewport.viewport_size.y / 2) + (viewport.viewport_position.y / viewport.viewport_size.y) * 2);
+    x.y = ((get_mouse_position().y - viewport.viewport_position.y - viewport.viewport_size.y / 2) / (viewport.viewport_size.y / 2) + (viewport.viewport_position.y / viewport.viewport_size.y) * 2);
     return x;
   }
 
-  fan::graphics::core::uniform_write_queue_t m_write_queue;
+  fan::graphics::core::memory_write_queue_t m_write_queue;
 
   void loop(const auto& lambda) {
     while (1) {
@@ -517,8 +511,10 @@ struct loco_t {
     return OFFSETLESS(window, loco_t, window);
   }
 
-protected:
+  fan::function_t<void()> draw_queue = []{};
 
+protected:
+  
   #ifdef loco_window
     fan::window_t window;
   #else
@@ -530,4 +526,5 @@ protected:
   #else
     fan::graphics::context_t* context;
   #endif
+
 };

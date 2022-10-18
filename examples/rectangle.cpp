@@ -3,7 +3,7 @@
 #define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 
 #define FAN_INCLUDE_PATH C:/libs/fan/include
-#define fan_debug 3
+#define fan_debug 0
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
 #define loco_vulkan
@@ -16,7 +16,7 @@
 #define loco_rectangle
 #include _FAN_PATH(graphics/loco.h)
 
-constexpr uint32_t count = 2e+1;
+constexpr uint32_t count = 1.0e+1;
 
 struct pile_t {
 
@@ -63,30 +63,30 @@ int main() {
   //p.block_properties.
   p.get_matrices() = &pile->matrices;
   p.get_viewport() = &pile->viewport;
-  
-  p.position = fan::vec3(0.2, 0.2, 0);
-  p.color = fan::color(1, 1, 1, 1);
-  pile->loco.rectangle.push_back(&pile->cids[0], p);
 
-  for (uint32_t i = 0; i < count; i++) {
-    p.position = fan::random::vec2(-1, 1);
-    p.color = fan::random::color();
-    pile->loco.rectangle.push_back(&pile->cids[1], p);
+
+  p.size = fan::vec2(1.0 / 1920, 1.0 / 1920);
+  for (f32_t j = 0; j < 10; j++) {
+    for (f32_t i = 0; i < 1920; i++) {
+      p.position = fan::vec2(-1.0 + i / 1920 * 2, -1.0 + p.size.y * 2 * j);
+      p.color = fan::random::color();
+      pile->loco.rectangle.push_back(&pile->cids[1], p);
+    }
   }
 
-  p.position = fan::vec3(-0.2, -0.2, 1);
-  p.color = fan::colors::blue;
-  pile->loco.rectangle.push_back(&pile->cids[1], p);
+  //p.position = fan::vec2(-1.0, -1.0);
+  //p.color = fan::random::color();
+  //pile->loco.rectangle.push_back(&pile->cids[0], p);
 
   pile->loco.set_vsync(false);
 
-  VkPhysicalDeviceProperties pdp;
-  vkGetPhysicalDeviceProperties(pile->loco.get_context()->physicalDevice, &pdp);
-  fan::print(pdp.limits.maxUniformBufferRange);
+  //VkPhysicalDeviceProperties pdp;
+  //vkGetPhysicalDeviceProperties(pile->loco.get_context()->physicalDevice, &pdp);
+  //fan::print(pdp.limits.maxMemoryAllocationCount);
 
   pile->loco.loop([&] {
     //pile->loco.rectangle.set(&pile->cids[0], &loco_t::rectangle_t::instance_t::position, pile->loco.get_mouse_position(pile->viewport));
-
+    
     pile->loco.get_fps();
   });
   return 0;
