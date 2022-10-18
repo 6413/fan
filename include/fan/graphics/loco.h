@@ -439,7 +439,6 @@ struct loco_t {
       }
     #endif
 
-      //rectangle.m_shader.set_matrices(get_context(), &get_context()->matrices, &m_write_queue);
     m_write_queue.process(get_context());
 
     #ifdef loco_window
@@ -447,8 +446,11 @@ struct loco_t {
         #include "draw_shapes.h"
         get_context()->render(get_window());
       #elif defined(loco_vulkan)
-    context->render(get_window(),
-          []{ }
+        context->render(
+          get_window(),
+          [this]{
+            #include "draw_shapes.h"
+          }
         );
 
         //data += src; ??
@@ -484,6 +486,13 @@ struct loco_t {
     fan::vec2 x;
     x.x = (get_mouse_position().x - viewport_position.x - viewport_size.x / 2) / (viewport_size.x / 2);
     x.y = (get_mouse_position().y - viewport_position.y - viewport_size.y / 2) / (viewport_size.y / 2) + (viewport_position.y / viewport_size.y) * 2;
+    return x;
+  }
+
+  fan::vec2 get_mouse_position(const fan::graphics::viewport_t& viewport) {
+    fan::vec2 x;
+    x.x = (get_mouse_position().x - viewport.viewport_position.x - viewport.viewport_size.x / 2) / (viewport.viewport_size.x / 2);
+    x.y = ((viewport.viewport_size.y - get_mouse_position().y - viewport.viewport_position.y - viewport.viewport_size.y / 2) / (viewport.viewport_size.y / 2) + (viewport.viewport_position.y / viewport.viewport_size.y) * 2);
     return x;
   }
 

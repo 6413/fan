@@ -235,17 +235,6 @@ void traverse_draw(auto nr) {
         &loco->get_context()->descriptor_sets.descriptor_list[node->data.block.descriptor_set_nr].descriptor_set[loco->get_context()->currentFrame]
       );
 
-      if (vkEndCommandBuffer(loco->get_context()->commandBuffers[loco->get_context()->currentFrame]) != VK_SUCCESS) {
-        throw std::runtime_error("failed to record command buffer");
-      }
-
-      VkCommandBufferBeginInfo beginInfo{};
-      beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-
-      if (vkBeginCommandBuffer(loco->get_context()->commandBuffers[loco->get_context()->currentFrame], &beginInfo) != VK_SUCCESS) {
-        throw std::runtime_error("failed to begin recording command buffer");
-      }
-
       if (bnr == bmn->data.last_block) {
         break;
       }
@@ -273,14 +262,18 @@ void sb_draw(uint32_t draw_mode = 0) {
   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
   if (vkBeginCommandBuffer(loco->get_context()->commandBuffers[loco->get_context()->currentFrame], &beginInfo) != VK_SUCCESS) {
-    throw std::runtime_error("failed to begin recording command buffer!");
+    fan::throw_error("failed to begin recording command buffer!");
   }
+
+  loco->get_context()->command_buffer_in_use = true;
 
   traverse_draw(root);
 
   if (vkEndCommandBuffer(loco->get_context()->commandBuffers[loco->get_context()->currentFrame]) != VK_SUCCESS) {
-    throw std::runtime_error("failed to record command buffer!");
+    fan::throw_error("failed to record command buffer!");
   }
+
+  loco->get_context()->command_buffer_in_use = false;
 }
 
 template <uint32_t i>
