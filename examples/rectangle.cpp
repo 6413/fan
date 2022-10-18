@@ -16,7 +16,7 @@
 #define loco_rectangle
 #include _FAN_PATH(graphics/loco.h)
 
-constexpr uint32_t count = 300;
+constexpr uint32_t count = 3;
 
 
 struct pile_t {
@@ -79,13 +79,10 @@ int main() {
   p.color = fan::colors::blue;
   pile->loco.rectangle.push_back(&pile->cids[1], p);
 
-  static constexpr fan::vec2 ortho_x = fan::vec2(-2, 2);
-  static constexpr fan::vec2 ortho_y = fan::vec2(-2, 2);
-
   pile->loco.set_vsync(false);
 
   pile->loco.loop([&] {
-    pile->loco.rectangle.set(&pile->cids[0], &loco_t::rectangle_t::instance_t::position, pile->loco.get_mouse_position(pile->viewport));
+    //pile->loco.rectangle.set(&pile->cids[0], &loco_t::rectangle_t::instance_t::position, pile->loco.get_mouse_position(pile->viewport));
 
     pile->loco.get_fps();
   });

@@ -97,7 +97,7 @@ namespace fan {
       }write_descriptor_sets[count];
     };
 
-    static constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 1;
+    static constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
 
     struct context_t;
     struct viewport_t;
@@ -247,9 +247,6 @@ namespace fan {
 fan::vulkan::matrices_list_NodeReference_t::matrices_list_NodeReference_t(fan::vulkan::matrices_t* matrices) {
   NRI = matrices->matrices_reference.NRI;
 }
-
-#include "uniform_block.h"
-#include "vk_shader.h"
 
 namespace fan {
 	namespace vulkan {
@@ -1423,6 +1420,9 @@ namespace fan {
 	}
 }
 
+#include "uniform_block.h"
+#include "vk_shader.h"
+
 void fan::vulkan::pipelines_t::close(fan::vulkan::context_t* context) {
   auto it = pipeline_list.GetNodeFirst();
   while (it != pipeline_list.dst) {
@@ -1599,7 +1599,7 @@ void fan::vulkan::descriptor_sets_t::open(fan::vulkan::context_t* context) {
   poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
   poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
   poolInfo.pPoolSizes = poolSizes.data();
-  poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+  poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * std::numeric_limits<uint16_t>::max();
 
   if (vkCreateDescriptorPool(context->device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
     throw std::runtime_error("failed to create descriptor pool!");
