@@ -1,8 +1,8 @@
 #version 450
 
-#define get_instance() instance[gl_VertexIndex / 6]
+#define get_instance() instance[gl_InstanceIndex]
 
-//layout(location = 0) out vec4 instance_color;
+layout(location = 0) out vec4 instance_color;
 
 struct block_instance_t{
 	vec3 position;
@@ -13,18 +13,13 @@ struct block_instance_t{
 	float angle;
 };
 
-//layout(binding = 0) uniform uniform_block_instance_t {
-//	block_instance_t instance[1];
-//};
+layout(binding = 0) uniform uniform_block_instance_t {
+	block_instance_t instance[256];
+};
 
-//layout(binding = 1) uniform vp_t {
-//  mat4 view;
-//  mat4 projection;
-//};
-
-layout(binding = 3) uniform vp_t {
+layout(binding = 1) uniform vp_t {
+	mat4 projection;
   mat4 view;
-  mat4 projection;
 };
 
 vec2 rectangle_vertices[] = vec2[](
@@ -40,26 +35,21 @@ vec2 rectangle_vertices[] = vec2[](
 void main() {
 	uint id = uint(gl_VertexIndex % 6);
 
-	//vec2 ratio_size = get_instance().size;
-	//
+	vec2 ratio_size = get_instance().size;
+
 	vec2 rp = rectangle_vertices[id];
-	//
-	//float c = cos(-get_instance().angle);
-	//float s = sin(-get_instance().angle);
-	//
-	//float x = rp.x * c - rp.y * s;
-	//float y = rp.x * s + rp.y * c;
-	//
-  //mat4 m = mat4(1);
+	
+	float c = cos(-get_instance().angle);
+	float s = sin(-get_instance().angle);
 
-	mat4 p = mat4(
-		1, 0, 0, 0,
-		0, -1, 0, 0,
-		0, 0, 0, 0,
-		0, 0, 0, 1
-	);
+	float x = rp.x * c - rp.y * s;
+	float y = rp.x * s + rp.y * c;
 
-  gl_Position = p * vec4(rp * 0.3, 0, 1);
+  mat4 m = view;
+	m[3][0] = 0;
+	m[3][1] = 0;
 
-	//instance_color = get_instance().color;
+  gl_Position = projection * m * vec4(vec2(x, y) * get_instance().size + get_instance().position.xy + vec2(view[3][0], view[3][1]), get_instance().position.z, 1);
+
+	instance_color = get_instance().color;
 }

@@ -260,15 +260,8 @@ namespace fan {
       static constexpr fan::vec2 ortho_x = fan::vec2(-1, 1);
       static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
 
-
-      matrices_t matrices;
       void open() {
-        open_matrices(
-          this,
-          &matrices,
-          ortho_x,
-          ortho_y
-        );
+
         createInstance();
         setupDebugMessenger();
       }
@@ -993,13 +986,6 @@ namespace fan {
         pipelines_t::nr_t pipeline_nr,
         VkDescriptorSet* descriptor_set
       ) {
-        VkCommandBufferBeginInfo beginInfo{};
-        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-
-        if (vkBeginCommandBuffer(commandBuffers[currentFrame], &beginInfo) != VK_SUCCESS) {
-          fan::throw_error("failed to begin recording command buffer!");
-        }
-
         VkRenderPassBeginInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
         renderPassInfo.renderPass = renderPass;
@@ -1008,7 +994,7 @@ namespace fan {
         renderPassInfo.renderArea.extent = swapChainExtent;
 
         std::array<VkClearValue, 2> clearValues{};
-        clearValues[0].color = { {1.0f, 0.0f, 0.0f, 1.0f} };
+        clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 1.0f} };
         clearValues[1].depthStencil = { 1.0f, 0 };
 
         renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
@@ -1046,10 +1032,6 @@ namespace fan {
         vkCmdDraw(commandBuffers[currentFrame], vertex_count, instance_count, 0, first_instance);
 
         vkCmdEndRenderPass(commandBuffers[currentFrame]);
-
-        if (vkEndCommandBuffer(commandBuffers[currentFrame]) != VK_SUCCESS) {
-          fan::throw_error("failed to record command buffer!");
-        }
       }
 
       void createSyncObjects() {
@@ -1108,7 +1090,9 @@ namespace fan {
 
         vkResetCommandBuffer(commandBuffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
 
-        draw(6, 1, 0, (pipelines_t::nr_t)2, &descriptor_sets.descriptor_list[(descriptor_sets_t::nr_t)2].descriptor_set[currentFrame]);
+        draw_lambda();
+
+        //draw(6, 1, 0, (pipelines_t::nr_t)2, &descriptor_sets.descriptor_list[(descriptor_sets_t::nr_t)2].descriptor_set[currentFrame]);
 
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -1428,6 +1412,8 @@ namespace fan {
 
       bool vsync = true;
       uint32_t image_index;
+
+      bool command_buffer_in_use = false;
 		};
 	}
 }
@@ -1558,7 +1544,25 @@ void fan::vulkan::viewport_t::set(fan::vulkan::context_t* context, const fan::ve
   viewport.height = viewport_size.y;
   viewport.minDepth = 0.0f;
   viewport.maxDepth = 1.0f;
+
+  VkCommandBufferBeginInfo beginInfo{};
+  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+  if (!context->command_buffer_in_use) {
+    if (vkBeginCommandBuffer(context->commandBuffers[context->currentFrame], &beginInfo) != VK_SUCCESS) {
+      fan::throw_error("failed to begin recording command buffer!");
+    }
+    context->command_buffer_in_use = true;
+  }
+
   vkCmdSetViewport(context->commandBuffers[context->currentFrame], 0, 1, &viewport);
+
+  if (!context->command_buffer_in_use) {
+    if (vkEndCommandBuffer(context->commandBuffers[context->currentFrame]) != VK_SUCCESS) {
+      fan::throw_error("failed to record command buffer!");
+    }
+    context->command_buffer_in_use = false;
+  }
 }
 
 void fan::vulkan::matrices_t::open(fan::vulkan::context_t* context) {
@@ -1660,23 +1664,27 @@ fan::vulkan::descriptor_sets_t::push(
     fan::throw_error("failed to allocate descriptor sets!");
   }
 
+  VkDescriptorBufferInfo bufferInfo[count * MAX_FRAMES_IN_FLIGHT]{};
+
+  for (size_t frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++) {
+    for (uint32_t j = 0; j < count; ++j) {
+      bufferInfo[frame * count + j].buffer = properties.write_descriptor_sets[j].block_common->memory[frame].uniform_buffer;
+      bufferInfo[frame * count + j].offset = 0;
+      bufferInfo[frame * count + j].range = properties.write_descriptor_sets[j].block_common->m_buffer_size;
+    }
+  }
+
   for (size_t frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++) {
 
     std::array<VkWriteDescriptorSet, count> descriptorWrites{};
 
     for (uint32_t j = 0; j < count; ++j) {
 
-      VkDescriptorBufferInfo bufferInfo{};
-      bufferInfo.buffer = properties.write_descriptor_sets[j].block_common->memory[frame].uniform_buffer;
-      bufferInfo.offset = 0;
-      bufferInfo.range = properties.write_descriptor_sets[j].block_common->m_buffer_size;
-
       descriptorWrites[j].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
       descriptorWrites[j].dstSet = node.descriptor_set[frame];
-      descriptorWrites[j].dstBinding = properties.write_descriptor_sets[j].binding;
       descriptorWrites[j].descriptorType = properties.write_descriptor_sets[j].type;
-      descriptorWrites[j].descriptorCount = 1;
-      descriptorWrites[j].pBufferInfo = &bufferInfo;
+      descriptorWrites[j].descriptorCount = count;
+      descriptorWrites[j].pBufferInfo = bufferInfo;
 
       // ADD IMAGEVIEW AND SAMPLER TO PER BLOCK
 
@@ -1717,7 +1725,7 @@ void fan::vulkan::core::uniform_write_queue_t::process(fan::vulkan::context_t* c
       // UPDATE BUFFER HERE
 
       void* data;
-      vkMapMemory(context->device, device_memory, 0, dst - src, 0, &data);
+      validate(vkMapMemory(context->device, device_memory, 0, dst - src, 0, &data));
       //data += src; ??
       memcpy(data, buffer, dst - src);
       // unnecessary?

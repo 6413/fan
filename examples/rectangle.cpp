@@ -16,7 +16,7 @@
 #define loco_rectangle
 #include _FAN_PATH(graphics/loco.h)
 
-constexpr uint32_t count = 2;
+constexpr uint32_t count = 300;
 
 
 struct pile_t {
@@ -26,12 +26,12 @@ struct pile_t {
 
   void open() {
     loco.open(loco_t::properties_t());
-  /*  fan::graphics::open_matrices(
+    fan::graphics::open_matrices(
       loco.get_context(),
       &matrices,
       ortho_x,
       ortho_y
-    );*/
+    );
     //loco.get_window()->add_resize_callback(this, [](fan::window_t* window, const fan::vec2i& size, void* userptr) {
     //  fan::vec2 window_size = window->get_size();
     //  fan::vec2 ratio = window_size / window_size.max();
@@ -43,11 +43,12 @@ struct pile_t {
     //    ratio
     //  );
     //  });
-    //viewport.open(loco.get_context());
-    //viewport.set(loco.get_context(), 0, loco.get_window()->get_size(), loco.get_window()->get_size());
+    viewport.open(loco.get_context());
+    viewport.set(loco.get_context(), 0, loco.get_window()->get_size(), loco.get_window()->get_size());
   }
 
   loco_t loco;
+  fan::graphics::matrices_t matrices;
   fan::graphics::viewport_t viewport;
   fan::graphics::cid_t cids[count];
 };
@@ -59,23 +60,29 @@ int main() {
 
   loco_t::rectangle_t::properties_t p;
   
-  p.size = fan::vec2(0.2, 0.2);
+  p.size = fan::vec2(0.05, 0.05);
   //p.block_properties.
-  p.get_matrices() = &pile->loco.get_context()->matrices;
+  p.get_matrices() = &pile->matrices;
   p.get_viewport() = &pile->viewport;
   
-  p.position = fan::vec3(1, 1, 0);
-  p.color = fan::color(1, 0, 0, 0.5);
+  p.position = fan::vec3(0.2, 0.2, 0);
+  p.color = fan::color(1, 1, 1, 1);
   pile->loco.rectangle.push_back(&pile->cids[0], p);
 
-  //p.position = fan::vec2(0.1, 0);
-  //p.color = fan::color(0, 0, 0.5, 0.5);
-  //pile->loco.rectangle.push_back(&pile->cids[1], p);
+  //for (uint32_t i = 0; i < count; i++) {
+  //  p.position = fan::random::vec2(-1, 1);
+  //  p.color = fan::random::color();
+  //  pile->loco.rectangle.push_back(&pile->cids[1], p);
+  //}
+
+  static constexpr fan::vec2 ortho_x = fan::vec2(-2, 2);
+  static constexpr fan::vec2 ortho_y = fan::vec2(-2, 2);
 
   pile->loco.set_vsync(false);
 
   pile->loco.loop([&] {
-    pile->loco.rectangle.set(&pile->cids[0], &loco_t::rectangle_t::instance_t::position, fan::random::vec3(1, 10));
+    pile->loco.rectangle.set(&pile->cids[0], &loco_t::rectangle_t::instance_t::position, pile->loco.get_mouse_position(pile->viewport));
+
     pile->loco.get_fps();
   });
   return 0;
