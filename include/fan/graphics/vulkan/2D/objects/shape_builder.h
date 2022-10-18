@@ -257,42 +257,7 @@ void traverse_draw(auto nr) {
 }
 
 void sb_draw(uint32_t draw_mode = 0) {
-  loco_t* loco = get_loco();
-  auto context = loco->get_context();
-  VkCommandBufferBeginInfo beginInfo{};
-  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-
-  if (vkBeginCommandBuffer(loco->get_context()->commandBuffers[loco->get_context()->currentFrame], &beginInfo) != VK_SUCCESS) {
-    fan::throw_error("failed to begin recording command buffer!");
-  }
-
-  loco->get_context()->command_buffer_in_use = true;
-
-  VkRenderPassBeginInfo renderPassInfo{};
-  renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-  renderPassInfo.renderPass = context->renderPass;
-  renderPassInfo.framebuffer = context->swapChainFramebuffers[context->image_index];
-  renderPassInfo.renderArea.offset = { 0, 0 };
-  renderPassInfo.renderArea.extent = context->swapChainExtent;
-
-  std::array<VkClearValue, 2> clearValues{};
-  clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 1.0f} };
-  clearValues[1].depthStencil = { 1.0f, 0 };
-
-  renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-  renderPassInfo.pClearValues = clearValues.data();
-
-  vkCmdBeginRenderPass(context->commandBuffers[context->currentFrame], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
   traverse_draw(root);
-
-  vkCmdEndRenderPass(context->commandBuffers[context->currentFrame]);
-
-  if (vkEndCommandBuffer(loco->get_context()->commandBuffers[loco->get_context()->currentFrame]) != VK_SUCCESS) {
-    fan::throw_error("failed to record command buffer!");
-  }
-
-  loco->get_context()->command_buffer_in_use = false;
 }
 
 template <uint32_t i>
@@ -315,7 +280,9 @@ struct block_t {
   void open(loco_t* loco, auto* shape) {
     uniform_buffer.open(loco->get_context());
     shape->dsl_properties.write_descriptor_sets[0].block_common = &uniform_buffer.common;
+    shape->dsl_properties.write_descriptor_sets[0].range = sizeof(instance_t) * max_instance_size;
     shape->dsl_properties.write_descriptor_sets[1].block_common = &shape->m_shader.projection_view_block.common;
+    shape->dsl_properties.write_descriptor_sets[1].range = sizeof(fan::mat4) * 2;
     descriptor_set_nr = loco->get_context()->descriptor_sets.push(
       loco->get_context(),
       shape->descriptor_layout_nr,

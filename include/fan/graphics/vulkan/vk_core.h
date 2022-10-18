@@ -12,8 +12,6 @@
 #include <vector>
 #include <set>
 
-const int MAX_FRAMES_IN_FLIGHT = 2;
-
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
 };
@@ -70,7 +68,7 @@ namespace fan {
     }
 
     namespace core {
-      struct uniform_block_common_t;
+      struct memory_common_t;
       struct memory_t;
     }
 
@@ -88,7 +86,9 @@ namespace fan {
         // VK_SHADER_STAGE_FRAGMENT_BIT
         VkShaderStageFlags flags;
 
-        fan::vulkan::core::uniform_block_common_t* block_common;
+        fan::vulkan::core::memory_common_t* block_common;
+
+        uint64_t range;
 
         // hardcode descriptor count to 1 in both layoutset and descriptor
         // init dstarrayelement with 0
@@ -97,7 +97,7 @@ namespace fan {
       }write_descriptor_sets[count];
     };
 
-    static constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
+    static constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 1;
 
     struct context_t;
     struct viewport_t;
@@ -196,11 +196,11 @@ namespace fan {
         m_projection = fan::math::ortho<fan::mat4>(
           x.x,
           x.y,
-          y.y,
           y.x,
+          y.y,
           -1,
           0x10000
-          );
+        );
         coordinates.left = x.x;
         coordinates.right = x.y;
         coordinates.bottom = y.y;
@@ -448,6 +448,8 @@ namespace fan {
 
         VkPhysicalDeviceFeatures deviceFeatures{};
         deviceFeatures.samplerAnisotropy = VK_TRUE;
+
+        //deviceFeatures.vertexPipelineStoresAndAtomics = VK_TRUE;
 
         VkDeviceCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -970,15 +972,6 @@ namespace fan {
       ) {
         vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.pipeline_list[pipeline_nr].pipeline);
 
-        VkViewport viewport{};
-        viewport.x = 0.0f;
-        viewport.y = 0.0f;
-        viewport.width = (float)swapChainExtent.width;
-        viewport.height = (float)swapChainExtent.height;
-        viewport.minDepth = 0.0f;
-        viewport.maxDepth = 1.0f;
-        vkCmdSetViewport(commandBuffers[currentFrame], 0, 1, &viewport);
-
         VkRect2D scissor{};
         scissor.offset = { 0, 0 };
         scissor.extent = swapChainExtent;
@@ -1048,15 +1041,45 @@ namespace fan {
       //  vkUnmapMemory(device, uniform_block.common.memory[currentImage].device_memory);
       //}
 
-      void render(fan::window_t* window, fan::function_t<void()> draw_lambda) {
-
+      void begin_render(fan::window_t* window) {
         vkResetFences(device, 1, &inFlightFences[currentFrame]);
 
         vkResetCommandBuffer(commandBuffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
 
-        draw_lambda();
+        VkCommandBufferBeginInfo beginInfo{};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-        //draw(6, 1, 0, (pipelines_t::nr_t)2, &descriptor_sets.descriptor_list[(descriptor_sets_t::nr_t)2].descriptor_set[currentFrame]);
+        if (vkBeginCommandBuffer(commandBuffers[currentFrame], &beginInfo) != VK_SUCCESS) {
+          fan::throw_error("failed to begin recording command buffer!");
+        }
+
+        command_buffer_in_use = true;
+
+        VkRenderPassBeginInfo renderPassInfo{};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        renderPassInfo.renderPass = renderPass;
+        renderPassInfo.framebuffer = swapChainFramebuffers[image_index];
+        renderPassInfo.renderArea.offset = { 0, 0 };
+        renderPassInfo.renderArea.extent = swapChainExtent;
+
+        std::array<VkClearValue, 2> clearValues{};
+        clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 1.0f} };
+        clearValues[1].depthStencil = { 1.0f, 0 };
+
+        renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+        renderPassInfo.pClearValues = clearValues.data();
+
+        vkCmdBeginRenderPass(commandBuffers[currentFrame], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+      }
+
+      void end_render(fan::window_t* window) {
+        vkCmdEndRenderPass(commandBuffers[currentFrame]);
+
+        if (vkEndCommandBuffer(commandBuffers[currentFrame]) != VK_SUCCESS) {
+          fan::throw_error("failed to record command buffer!");
+        }
+
+        command_buffer_in_use = false;
 
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -1387,7 +1410,9 @@ namespace fan {
 	}
 }
 
+#include "memory.h"
 #include "uniform_block.h"
+#include "ssbo.h"
 #include "vk_shader.h"
 
 void fan::vulkan::pipelines_t::close(fan::vulkan::context_t* context) {
@@ -1423,7 +1448,7 @@ fan::vulkan::pipelines_t::nr_t fan::vulkan::pipelines_t::push(fan::vulkan::conte
   rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
   rasterizer.lineWidth = 1.0f;
   rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-  rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+  rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
   rasterizer.depthBiasEnable = VK_FALSE;
 
   VkPipelineMultisampleStateCreateInfo multisampling{};
@@ -1566,7 +1591,7 @@ void fan::vulkan::descriptor_sets_t::open(fan::vulkan::context_t* context) {
   poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
   poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
   poolInfo.pPoolSizes = poolSizes.data();
-  poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * std::numeric_limits<uint16_t>::max();
+  poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
 
   if (vkCreateDescriptorPool(context->device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
     throw std::runtime_error("failed to create descriptor pool!");
@@ -1583,7 +1608,7 @@ fan::vulkan::descriptor_sets_t::push_layout(
   fan::vulkan::context_t* context,
   fan::vulkan::descriptor_set_layout_t<count> properties
 ) {
-  auto nr = descriptor_layout_list.NewNode();
+  auto nr = descriptor_layout_list.NewNodeLast();
   auto& node = descriptor_layout_list[nr];
 
   VkDescriptorSetLayoutBinding uboLayoutBinding[count]{};
@@ -1622,7 +1647,7 @@ fan::vulkan::descriptor_sets_t::push(
   fan::vulkan::descriptor_sets_t::layout_nr_t layout_nr,
   fan::vulkan::descriptor_set_layout_t<count> properties
 ) {
-  auto nr = descriptor_list.NewNode();
+  auto nr = descriptor_list.NewNodeLast();
   auto& node = descriptor_list[nr];
 
   std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, descriptor_layout_list[layout_nr].layout);
@@ -1640,9 +1665,9 @@ fan::vulkan::descriptor_sets_t::push(
 
   for (size_t frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++) {
     for (uint32_t j = 0; j < count; ++j) {
-      bufferInfo[frame * count + j].buffer = properties.write_descriptor_sets[j].block_common->memory[frame].uniform_buffer;
+      bufferInfo[frame * count + j].buffer = properties.write_descriptor_sets[j].block_common->memory[frame].buffer;
       bufferInfo[frame * count + j].offset = 0;
-      bufferInfo[frame * count + j].range = properties.write_descriptor_sets[j].block_common->m_buffer_size;
+      bufferInfo[frame * count + j].range = properties.write_descriptor_sets[j].range;
     }
   }
 
@@ -1680,45 +1705,12 @@ fan::vulkan::descriptor_sets_t::push(
   return nr;
 }
 
-void fan::vulkan::core::uniform_write_queue_t::process(fan::vulkan::context_t* context) {
-  uint32_t it = write_queue.begin();
-
-  while (it != write_queue.end()) {
-
-    uint64_t src = write_queue[it]->m_min_edit;
-    uint64_t dst = write_queue[it]->m_max_edit;
-
-    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-      auto device_memory = write_queue[it]->memory[i].device_memory;
-      uint8_t* buffer = (uint8_t*)&write_queue[it][1];
-
-      //buffer += src;
-
-      // UPDATE BUFFER HERE
-
-      void* data;
-      validate(vkMapMemory(context->device, device_memory, 0, dst - src, 0, &data));
-      //data += src; ??
-      memcpy(data, buffer, dst - src);
-      // unnecessary?
-      vkUnmapMemory(context->device, device_memory);
-      //fan::vulkan::core::edit_glbuffer(context, write_queue[it]->m_vbo, buffer, src, dst - src, fan::opengl::GL_UNIFORM_BUFFER);
-    }
-
-    write_queue[it]->on_edit(context);
-
-    it = write_queue.next(it);
-  }
-
-  write_queue.clear();
-}
-
 void fan::vulkan::shader_t::open(fan::vulkan::context_t* context) {
   projection_view_block.open(context);
   projection_view_block.push_ram_instance(context, {});
 }
 
-void fan::vulkan::shader_t::close(fan::vulkan::context_t* context, fan::vulkan::core::uniform_write_queue_t* write_queue) {
+void fan::vulkan::shader_t::close(fan::vulkan::context_t* context, fan::vulkan::core::memory_write_queue_t* write_queue) {
   vkDestroyShaderModule(context->device, shaderStages[0].module, nullptr);
   vkDestroyShaderModule(context->device, shaderStages[1].module, nullptr);
   projection_view_block.close(context, write_queue);

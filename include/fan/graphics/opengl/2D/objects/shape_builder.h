@@ -113,7 +113,7 @@ void sb_erase(fan::opengl::cid_t* cid) {
   uint32_t last_instance_id = last_block->uniform_buffer.size() - 1;
 
   if (block_id == last_block_id && cid->instance_id == block->uniform_buffer.size() - 1) {
-    block->uniform_buffer.common.m_size -= sizeof(instance_t);
+    block->uniform_buffer.m_size -= sizeof(instance_t);
     if (block->uniform_buffer.size() == 0) {
       auto lpnr = block_node->PrevNodeReference;
       block->close(loco);
@@ -142,7 +142,7 @@ void sb_erase(fan::opengl::cid_t* cid) {
     last_instance_data
   );
 
-  last_block->uniform_buffer.common.m_size -= sizeof(instance_t);
+  last_block->uniform_buffer.m_size -= sizeof(instance_t);
 
   block->p[cid->instance_id] = last_block->p[last_instance_id];
 
