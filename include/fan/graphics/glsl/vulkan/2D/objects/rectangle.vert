@@ -1,6 +1,6 @@
 #version 450
 
-#define get_instance() instance[gl_InstanceIndex]
+#define get_instance() instances[gl_InstanceIndex]
 
 layout(location = 0) out vec4 instance_color;
 
@@ -13,8 +13,8 @@ struct block_instance_t{
 	float angle;
 };
 
-layout(binding = 0) uniform uniform_block_instance_t {
-	block_instance_t instance[256];
+layout(std140, binding = 0) readonly buffer instances_t{
+	block_instance_t instances[];
 };
 
 layout(binding = 1) uniform vp_t {

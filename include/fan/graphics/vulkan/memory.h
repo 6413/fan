@@ -131,9 +131,7 @@ namespace fan {
 				bufferInfo.usage = usage;
 				bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-				if (vkCreateBuffer(context->device, &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
-					fan::throw_error("failed to create buffer!");
-				}
+				validate(vkCreateBuffer(context->device, &bufferInfo, nullptr, &buffer));
 
 				VkMemoryRequirements memRequirements;
 				vkGetBufferMemoryRequirements(context->device, buffer, &memRequirements);
@@ -143,9 +141,7 @@ namespace fan {
 				allocInfo.allocationSize = memRequirements.size;
 				allocInfo.memoryTypeIndex = findMemoryType(context, memRequirements.memoryTypeBits, properties);
 
-				if (vkAllocateMemory(context->device, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
-					fan::throw_error("failed to allocate buffer memory!");
-				}
+				validate(vkAllocateMemory(context->device, &allocInfo, nullptr, &bufferMemory));
 
 				validate(vkBindBufferMemory(context->device, buffer, bufferMemory, 0));
 			}

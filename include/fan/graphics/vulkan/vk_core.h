@@ -77,6 +77,7 @@ namespace fan {
       struct write_descriptor_set_t {
         // glsl layout binding
         uint32_t binding;
+        uint32_t dst_binding = 0;
 
         // VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
         // VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
@@ -968,7 +969,8 @@ namespace fan {
         uint32_t instance_count, 
         uint32_t first_instance, 
         pipelines_t::nr_t pipeline_nr,
-        VkDescriptorSet* descriptor_set
+        uint32_t descriptor_count,
+        VkDescriptorSet* descriptor_sets
       ) {
         vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.pipeline_list[pipeline_nr].pipeline);
 
@@ -980,14 +982,13 @@ namespace fan {
         vkCmdBindDescriptorSets(
           commandBuffers[currentFrame],
           VK_PIPELINE_BIND_POINT_GRAPHICS,
-          pipelines.pipeline_list[pipeline_nr].pipeline_layout, 
-          0, 
-          1,
-          descriptor_set,
+          pipelines.pipeline_list[pipeline_nr].pipeline_layout,
+          0,
+          descriptor_count,
+          descriptor_sets,
           0,
           nullptr
         );
-
         vkCmdDraw(commandBuffers[currentFrame], vertex_count, instance_count, 0, first_instance);
       }
 
@@ -1490,7 +1491,7 @@ fan::vulkan::pipelines_t::nr_t fan::vulkan::pipelines_t::push(fan::vulkan::conte
 
   VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
   pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-  pipelineLayoutInfo.setLayoutCount = 1;
+  pipelineLayoutInfo.setLayoutCount = p.layout_count;
   pipelineLayoutInfo.pSetLayouts = p.descriptor_set_layout;
 
   if (vkCreatePipelineLayout(context->device, &pipelineLayoutInfo, nullptr, &node.pipeline_layout) != VK_SUCCESS) {
@@ -1579,7 +1580,7 @@ void fan::vulkan::open_matrices(fan::vulkan::context_t* context, fan::vulkan::ma
 
 void fan::vulkan::descriptor_sets_t::open(fan::vulkan::context_t* context) {
   std::array<VkDescriptorPoolSize, 2> poolSizes{};
-  poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+  poolSizes[0].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
   poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
   poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
   poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
@@ -1591,7 +1592,7 @@ void fan::vulkan::descriptor_sets_t::open(fan::vulkan::context_t* context) {
   poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
   poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
   poolInfo.pPoolSizes = poolSizes.data();
-  poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+  poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * 2;
 
   if (vkCreateDescriptorPool(context->device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
     throw std::runtime_error("failed to create descriptor pool!");
@@ -1657,9 +1658,7 @@ fan::vulkan::descriptor_sets_t::push(
   allocInfo.descriptorSetCount = MAX_FRAMES_IN_FLIGHT;
   allocInfo.pSetLayouts = layouts.data();
 
-  if (vkAllocateDescriptorSets(context->device, &allocInfo, node.descriptor_set) != VK_SUCCESS) {
-    fan::throw_error("failed to allocate descriptor sets!");
-  }
+  validate(vkAllocateDescriptorSets(context->device, &allocInfo, node.descriptor_set));
 
   VkDescriptorBufferInfo bufferInfo[count * MAX_FRAMES_IN_FLIGHT]{};
 
@@ -1680,8 +1679,9 @@ fan::vulkan::descriptor_sets_t::push(
       descriptorWrites[j].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
       descriptorWrites[j].dstSet = node.descriptor_set[frame];
       descriptorWrites[j].descriptorType = properties.write_descriptor_sets[j].type;
-      descriptorWrites[j].descriptorCount = count;
-      descriptorWrites[j].pBufferInfo = bufferInfo;
+      descriptorWrites[j].descriptorCount = 1;
+      descriptorWrites[j].pBufferInfo = &bufferInfo[frame * count + j];
+      descriptorWrites[j].dstBinding = properties.write_descriptor_sets[j].dst_binding;
 
       // ADD IMAGEVIEW AND SAMPLER TO PER BLOCK
 
@@ -1700,7 +1700,7 @@ fan::vulkan::descriptor_sets_t::push(
       //descriptorWrites[2].pImageInfo = &imageInfo;
 
     }
-    vkUpdateDescriptorSets(context->device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+    vkUpdateDescriptorSets(context->device, descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
   }
   return nr;
 }

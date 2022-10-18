@@ -1,46 +1,65 @@
-struct st0_t {
+#include <iostream>
+#include <fan/types/types.h>
 
+template<typename Callable>
+using _return_type_of_t = typename decltype(std::function{ std::declval<Callable>() })::result_type;
+template <typename type = long double>
+struct ProtocolC_t {
+	/*
+	using m_type = _return_type_of_t<decltype([] {
+		type v;
+		return v;
+	})>;
+	*/
+	struct m_type : _return_type_of_t<decltype([] {
+		type v;
+		return v;
+	}) > {};
+		/* data struct size */
+		uint32_t m_DSS = fan::conditional_value_t<std::is_same<type, long double>::value, 0, sizeof(m_type)>::value;
 };
-
-struct st1_t {
-
-};
-
-
-struct empty {
-
-};
-
-template <typename T>
-struct protc_t_ {
-
-	using type = T;
-
-	protc_t_() = default;
-	protc_t_(int y) :x(y) {}
-	int x;
-};
-
-using protc_t = protc_t_<empty>;
-
-template <typename in>
-struct common {
-
-};
-
-struct protc2s_t : common<protc2s_t>{
-	protc_t_<st1_t> a;
-	protc_t b = 1;
-	protc_t_<st0_t> c;
-};
-
-template <typename T>
-void f(protc_t_<T> p, T x) {
-
-}
-
+#define _ProtocolC_t(p0) \
+  ProtocolC_t<_return_type_of_t<decltype([] { \
+    p0 v; \
+    return v;\
+  })>>
 int main() {
-	protc2s_t x;
-	f(x.c, st0_t());
-	f(x.a, st0_t());
+	_ProtocolC_t(struct {
+		uint64_t ClientIdentify;
+		uint64_t ServerIdentify;
+	}) InformInvalidIdentify;
+	InformInvalidIdentify.m_DSS = 5;
+	//ProtocolC_t < > p;
+
+	//using type = decltype(p)::type;
+
+	//struct s_t : fan::return_type_of_t<decltype([] { \
+	//	type v;
+	//return v;
+	//	}) > {
+
+	//};
+
+	//decltype(p)::type x;
+	//
+	//return x.a;
+
+	//make_prot(struct {
+	//	uint64_t a;
+	//	uint64_t b;
+	//})x;
+
+	//make_prot(struct {
+	//	uint64_t a;
+	//	uint64_t b;
+	//})y;
+
+	//auto x = make_protocol((struct a{};) {
+	//	uint64_t a;
+	//	uint64_t b;
+	//});
+
+
+	//protc2s_t x;
+
 }

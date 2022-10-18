@@ -89,6 +89,13 @@ namespace fan {
 					}
 					#endif
 					std::memmove(buffer + i * sizeof(type_t), instance, sizeof(type_t));
+					common.edit(
+						loco->get_context(),
+						&loco->m_write_queue,
+						i * sizeof(instance_t),
+						i * sizeof(instance_t) + sizeof(instance_t)
+					);
+
 				}
 
 				memory_common_t common;

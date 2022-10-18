@@ -21,6 +21,7 @@ namespace fan {
 
       struct properties_t {
         fan::vulkan::shader_t* shader;
+        uint32_t layout_count;
         VkDescriptorSetLayout* descriptor_set_layout;
       };
       nr_t push(fan::vulkan::context_t* context, const properties_t& p);
