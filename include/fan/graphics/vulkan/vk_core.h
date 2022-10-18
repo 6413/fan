@@ -369,10 +369,12 @@ namespace fan {
 
       void setupDebugMessenger() {
         #if fan_debug < fan_debug_high
+          return;
+        #endif
+
         if (!supports_validation_layers) {
           return;
         }
-        #endif
 
         VkDebugUtilsMessengerCreateInfoEXT createInfo;
         populateDebugMessengerCreateInfo(createInfo);
@@ -984,22 +986,6 @@ namespace fan {
         pipelines_t::nr_t pipeline_nr,
         VkDescriptorSet* descriptor_set
       ) {
-        VkRenderPassBeginInfo renderPassInfo{};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass = renderPass;
-        renderPassInfo.framebuffer = swapChainFramebuffers[image_index];
-        renderPassInfo.renderArea.offset = { 0, 0 };
-        renderPassInfo.renderArea.extent = swapChainExtent;
-
-        std::array<VkClearValue, 2> clearValues{};
-        clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 1.0f} };
-        clearValues[1].depthStencil = { 1.0f, 0 };
-
-        renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-        renderPassInfo.pClearValues = clearValues.data();
-
-        vkCmdBeginRenderPass(commandBuffers[currentFrame], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
         vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.pipeline_list[pipeline_nr].pipeline);
 
         VkViewport viewport{};
@@ -1028,8 +1014,6 @@ namespace fan {
         );
 
         vkCmdDraw(commandBuffers[currentFrame], vertex_count, instance_count, 0, first_instance);
-
-        vkCmdEndRenderPass(commandBuffers[currentFrame]);
       }
 
       void createSyncObjects() {

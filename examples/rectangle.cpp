@@ -3,7 +3,7 @@
 #define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 
 #define FAN_INCLUDE_PATH C:/libs/fan/include
-#define fan_debug 3
+#define fan_debug 0
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
 #define loco_vulkan
@@ -16,8 +16,7 @@
 #define loco_rectangle
 #include _FAN_PATH(graphics/loco.h)
 
-constexpr uint32_t count = 3;
-
+constexpr uint32_t count = 1e+6;
 
 struct pile_t {
 
@@ -69,11 +68,11 @@ int main() {
   p.color = fan::color(1, 1, 1, 1);
   pile->loco.rectangle.push_back(&pile->cids[0], p);
 
-  //for (uint32_t i = 0; i < count; i++) {
-  //  p.position = fan::random::vec2(-1, 1);
-  //  p.color = fan::random::color();
-  //  pile->loco.rectangle.push_back(&pile->cids[1], p);
-  //}
+  for (uint32_t i = 0; i < count; i++) {
+    p.position = fan::random::vec2(-1, 1);
+    p.color = fan::random::color();
+    pile->loco.rectangle.push_back(&pile->cids[1], p);
+  }
 
   p.position = fan::vec3(-0.2, -0.2, 1);
   p.color = fan::colors::blue;
