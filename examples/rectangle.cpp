@@ -75,6 +75,10 @@ int main() {
   //  pile->loco.rectangle.push_back(&pile->cids[1], p);
   //}
 
+  p.position = fan::vec3(-0.2, -0.2, 1);
+  p.color = fan::colors::blue;
+  pile->loco.rectangle.push_back(&pile->cids[1], p);
+
   static constexpr fan::vec2 ortho_x = fan::vec2(-2, 2);
   static constexpr fan::vec2 ortho_y = fan::vec2(-2, 2);
 

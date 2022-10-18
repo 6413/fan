@@ -318,7 +318,8 @@ namespace fan {
       void createInstance() {
         #if fan_debug >= fan_debug_high
         if (!checkValidationLayerSupport()) {
-          throw std::runtime_error("validation layers requested, but not available!");
+          fan::print_warning("validation layers not supported");
+          supports_validation_layers = false;
         }
         #endif
 
@@ -345,15 +346,13 @@ namespace fan {
 
         VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
         #if fan_debug >= fan_debug_high
-          createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-          createInfo.ppEnabledLayerNames = validationLayers.data();
+          if (supports_validation_layers) {
+            createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+            createInfo.ppEnabledLayerNames = validationLayers.data();
 
-          populateDebugMessengerCreateInfo(debugCreateInfo);
-          createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
-        #else
-          createInfo.enabledLayerCount = 0;
-
-          createInfo.pNext = nullptr;
+            populateDebugMessengerCreateInfo(debugCreateInfo);
+            createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
+          }
         #endif
 
         if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
@@ -373,7 +372,9 @@ namespace fan {
 
       void setupDebugMessenger() {
         #if fan_debug < fan_debug_high
+        if (!supports_validation_layers) {
           return;
+        }
         #endif
 
         VkDebugUtilsMessengerCreateInfoEXT createInfo;
@@ -461,10 +462,10 @@ namespace fan {
         createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
         #if fan_debug >= fan_debug_high
-          createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-          createInfo.ppEnabledLayerNames = validationLayers.data();
-        #else
-          createInfo.enabledLayerCount = 0;
+          if (supports_validation_layers) {
+            createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+            createInfo.ppEnabledLayerNames = validationLayers.data();
+          }
         #endif
 
         if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS) {
@@ -1306,7 +1307,9 @@ namespace fan {
         }
 
         #if fan_debug >= fan_debug_high
-        extension_str.push_back((char*)VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+          if (supports_validation_layers) {
+            extension_str.push_back((char*)VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+          }
         #endif
 
         return extension_str;
@@ -1414,6 +1417,8 @@ namespace fan {
       uint32_t image_index;
 
       bool command_buffer_in_use = false;
+
+      bool supports_validation_layers = true;
 		};
 	}
 }
