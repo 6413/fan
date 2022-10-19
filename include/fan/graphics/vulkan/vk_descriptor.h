@@ -40,6 +40,13 @@ namespace fan {
 				fan::vulkan::descriptor_set_layout_t<count> properties
 			);
 
+			template <uint16_t count>
+			void update(
+				fan::vulkan::context_t* context,
+				nr_t descriptor_nr,
+				fan::vulkan::descriptor_set_layout_t<count> properties
+			);
+
 			descriptor_layout_list_t descriptor_layout_list;
 			descriptor_list_t descriptor_list;
       VkDescriptorPool descriptorPool;
