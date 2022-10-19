@@ -20,8 +20,8 @@ constexpr uint32_t count = 1.0e+1;
 
 struct pile_t {
 
-  static constexpr fan::vec2 ortho_x = fan::vec2(-1, 1);
-  static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
+  static constexpr fan::vec2 ortho_x = fan::vec2(0, 800);
+  static constexpr fan::vec2 ortho_y = fan::vec2(0, 800);
 
   void open() {
     loco.open(loco_t::properties_t());
@@ -58,14 +58,18 @@ int main() {
 
   fan::time::clock c;
   c.start();
-  p.size = fan::vec2(1.0 / 1920, 1.0 / 1920);
-  for (f32_t j = 0; j < 1920; j++) {
-    for (f32_t i = 0; i < 1920; i++) {
-      p.position = fan::vec2(-1.0 + i / 1920 * 2, -1.0 + p.size.y * 2 * j);
+
+  for (uint32_t i = 0; i < 300; i++) {
+    for (uint32_t j = 0; j < 300; j++) {
+      p.size = fan::vec2(128, 128);
+      p.position = fan::random::vec2(0, 800);
+
       p.color = fan::random::color();
       pile->loco.rectangle.push_back(&pile->cids[1], p);
     }
   }
+
+
   fan::print("elapsed", c.elapsed());
 
   //p.position = fan::vec2(0.5, 0);
@@ -83,5 +87,6 @@ int main() {
     
     pile->loco.get_fps();
   });
+
   return 0;
 }
