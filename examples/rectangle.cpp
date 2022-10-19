@@ -31,17 +31,10 @@ struct pile_t {
       ortho_x,
       ortho_y
     );
-    //loco.get_window()->add_resize_callback(this, [](fan::window_t* window, const fan::vec2i& size, void* userptr) {
-    //  fan::vec2 window_size = window->get_size();
-    //  fan::vec2 ratio = window_size / window_size.max();
-    //  std::swap(ratio.x, ratio.y);
-    //  pile_t* pile = (pile_t*)userptr;
-    //  pile->matrices.set_ortho(
-    //    ortho_x,
-    //    ortho_y,
-    //    ratio
-    //  );
-    //  });
+    loco.get_window()->add_resize_callback([&](const fan::window_t::resize_cb_data_t& d) {
+      //fan::vec2 window_size = window->get_size();
+      viewport.set(loco.get_context(), 0, d.size, d.size);
+     });
     viewport.open(loco.get_context());
     viewport.set(loco.get_context(), 0, loco.get_window()->get_size(), loco.get_window()->get_size());
   }
