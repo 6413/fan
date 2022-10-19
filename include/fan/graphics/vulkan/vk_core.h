@@ -72,30 +72,32 @@ namespace fan {
       struct memory_t;
     }
 
+    struct write_descriptor_set_t {
+      // glsl layout binding
+      uint32_t binding;
+      uint32_t dst_binding = 0;
+
+      // VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
+      // VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+      VkDescriptorType type;
+
+      // VK_SHADER_STAGE_VERTEX_BIT
+      // VK_SHADER_STAGE_FRAGMENT_BIT
+      VkShaderStageFlags flags;
+
+      fan::vulkan::core::memory_common_t* common;
+
+      uint64_t range;
+
+      // hardcode descriptor count to 1 in both layoutset and descriptor
+      // init dstarrayelement with 0
+      // init layoutbinding to 0
+
+    };
+
     template <uint16_t count>
     struct descriptor_set_layout_t {
-      struct write_descriptor_set_t {
-        // glsl layout binding
-        uint32_t binding;
-        uint32_t dst_binding = 0;
-
-        // VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
-        // VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-        VkDescriptorType type;
-
-        // VK_SHADER_STAGE_VERTEX_BIT
-        // VK_SHADER_STAGE_FRAGMENT_BIT
-        VkShaderStageFlags flags;
-
-        fan::vulkan::core::memory_common_t* block_common;
-
-        uint64_t range;
-
-        // hardcode descriptor count to 1 in both layoutset and descriptor
-        // init dstarrayelement with 0
-        // init layoutbinding to 0
-
-      }write_descriptor_sets[count];
+      write_descriptor_set_t write_descriptor_sets[count];
     };
 
     static constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 1;
@@ -1660,11 +1662,25 @@ fan::vulkan::descriptor_sets_t::push(
 
   validate(vkAllocateDescriptorSets(context->device, &allocInfo, node.descriptor_set));
 
+  update(context, nr, properties);
+
+  return nr;
+}
+
+template<uint16_t count>
+inline void
+fan::vulkan::descriptor_sets_t::update(
+  fan::vulkan::context_t* context,
+  nr_t descriptor_nr,
+  fan::vulkan::descriptor_set_layout_t<count> properties
+) {
+  auto& node = descriptor_list[descriptor_nr];
+
   VkDescriptorBufferInfo bufferInfo[count * MAX_FRAMES_IN_FLIGHT]{};
 
   for (size_t frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++) {
     for (uint32_t j = 0; j < count; ++j) {
-      bufferInfo[frame * count + j].buffer = properties.write_descriptor_sets[j].block_common->memory[frame].buffer;
+      bufferInfo[frame * count + j].buffer = properties.write_descriptor_sets[j].common->memory[frame].buffer;
       bufferInfo[frame * count + j].offset = 0;
       bufferInfo[frame * count + j].range = properties.write_descriptor_sets[j].range;
     }
@@ -1702,7 +1718,6 @@ fan::vulkan::descriptor_sets_t::push(
     }
     vkUpdateDescriptorSets(context->device, descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
   }
-  return nr;
 }
 
 void fan::vulkan::shader_t::open(fan::vulkan::context_t* context) {

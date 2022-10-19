@@ -25,7 +25,9 @@ namespace fan {
 						context,
 						size,
 						VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-						VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, // ?
+						VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+						//VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, // ?
+						// faster ^?
 						common.memory[frame].buffer,
 						common.memory[frame].device_memory
 					);
@@ -80,16 +82,18 @@ namespace fan {
 					return buffer.size();
 				}
 
-				uint32_t add(fan::vulkan::context_t* context, uint32_t how_many) {
+				uint32_t add(fan::vulkan::context_t* context, uint32_t how_many, bool* vram_buffer_resized) {
 					uint32_t old_size = buffer.size();
 					buffer.resize(buffer.size() + how_many);
-					fan::print(buffer.capacity() * sizeof(type_t));
+					
+					*vram_buffer_resized = false;
 					if (vram_capacity < buffer.capacity() * sizeof(type_t)) {
 						vram_capacity = buffer.capacity() * sizeof(type_t);
 						for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
 							allocate(context, vram_capacity, i);
 							common.m_min_edit = 0;
 							common.m_max_edit = old_size * sizeof(type_t);
+							*vram_buffer_resized = true;
 						}
 					}
 					return buffer.size() - how_many;

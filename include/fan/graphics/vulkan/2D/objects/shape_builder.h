@@ -25,18 +25,17 @@ void sb_open() {
   m_shader.set_vertex(context, sb_shader_vertex_path);
   m_shader.set_fragment(context, sb_shader_fragment_path);
 
-  fan::vulkan::descriptor_set_layout_t<2> dsl_properties;
   dsl_properties.write_descriptor_sets[0].binding = 0;
   dsl_properties.write_descriptor_sets[0].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
   dsl_properties.write_descriptor_sets[0].flags = VK_SHADER_STAGE_VERTEX_BIT;
   dsl_properties.write_descriptor_sets[0].range = VK_WHOLE_SIZE;
-  dsl_properties.write_descriptor_sets[0].block_common = &m_ssbo.common;
+  dsl_properties.write_descriptor_sets[0].common = &m_ssbo.common;
   dsl_properties.write_descriptor_sets[0].dst_binding = 0;
 
   dsl_properties.write_descriptor_sets[1].binding = 1;
   dsl_properties.write_descriptor_sets[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
   dsl_properties.write_descriptor_sets[1].flags = VK_SHADER_STAGE_VERTEX_BIT;
-  dsl_properties.write_descriptor_sets[1].block_common = &m_shader.projection_view_block.common;
+  dsl_properties.write_descriptor_sets[1].common = &m_shader.projection_view_block.common;
   dsl_properties.write_descriptor_sets[1].range = sizeof(fan::mat4) * 2;
   dsl_properties.write_descriptor_sets[1].dst_binding = 1;
 
@@ -114,8 +113,8 @@ block_t* sb_push_back(fan::graphics::cid_t* cid, properties_t& p) {
 
   block_t* block = last_block;
 
-  const uint32_t instance_id = bm_list[bmID].total_instances;
-  m_ssbo.copy_instance(loco->get_context(), &loco->m_write_queue, block->ssbo_index + instance_id % max_instance_size, &it);
+  const uint32_t instance_id = bm_list[bmID].total_instances % max_instance_size;
+  m_ssbo.copy_instance(loco->get_context(), &loco->m_write_queue, block->ssbo_index + instance_id, &it);
 
   block->cid[instance_id] = cid;
 
@@ -297,7 +296,12 @@ fan::vulkan::descriptor_sets_t::layout_nr_t descriptor_layout_nr;
 
 struct block_t {
   void open(loco_t* loco, auto* shape) {
-    ssbo_index = shape->m_ssbo.add(loco->get_context(), max_instance_size);
+    bool vram_buffer_resized;
+    ssbo_index = shape->m_ssbo.add(loco->get_context(), max_instance_size, &vram_buffer_resized);
+    if (vram_buffer_resized) {
+      shape->dsl_properties.write_descriptor_sets[0].common = &shape->m_ssbo.common;
+      loco->get_context()->descriptor_sets.update(loco->get_context(), shape->descriptor_set_nr, shape->dsl_properties);
+    }
   }
   void close(loco_t* loco) {
 
@@ -310,6 +314,7 @@ struct block_t {
 
 protected:
 
+  fan::vulkan::descriptor_set_layout_t<2> dsl_properties;
   fan::vulkan::descriptor_sets_t::nr_t descriptor_set_nr;
   fan::vulkan::core::ssbo_t<instance_t> m_ssbo;
 

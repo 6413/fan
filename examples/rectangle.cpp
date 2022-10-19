@@ -3,7 +3,7 @@
 #define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 
 #define FAN_INCLUDE_PATH C:/libs/fan/include
-#define fan_debug 3
+#define fan_debug 0
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
 #define loco_vulkan
@@ -59,24 +59,25 @@ int main() {
 
   loco_t::rectangle_t::properties_t p;
   
-  p.size = fan::vec2(0.5, 0.5);
   //p.block_properties.
   p.get_matrices() = &pile->matrices;
   p.get_viewport() = &pile->viewport;
 
-
-  /*p.size = fan::vec2(1.0 / 1920, 1.0 / 1920);
-  for (f32_t j = 0; j < 10; j++) {
+  fan::time::clock c;
+  c.start();
+  p.size = fan::vec2(1.0 / 1920, 1.0 / 1920);
+  for (f32_t j = 0; j < 1920; j++) {
     for (f32_t i = 0; i < 1920; i++) {
       p.position = fan::vec2(-1.0 + i / 1920 * 2, -1.0 + p.size.y * 2 * j);
       p.color = fan::random::color();
       pile->loco.rectangle.push_back(&pile->cids[1], p);
     }
-  }*/
+  }
+  fan::print("elapsed", c.elapsed());
 
-  p.position = fan::vec2(0.5, 0);
-  p.color = fan::random::color();
-  pile->loco.rectangle.push_back(&pile->cids[0], p);
+  //p.position = fan::vec2(0.5, 0);
+  //p.color = fan::random::color();
+  //pile->loco.rectangle.push_back(&pile->cids[0], p);
 
   pile->loco.set_vsync(false);
 
