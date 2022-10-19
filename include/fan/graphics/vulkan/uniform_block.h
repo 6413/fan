@@ -61,7 +61,7 @@ namespace fan {
 				}
 
 				uint32_t size() const {
-					return common.m_size / sizeof(type_t);
+					return m_size / sizeof(type_t);
 				}
 
 				void push_ram_instance(fan::vulkan::context_t* context, const type_t& data) {
@@ -69,9 +69,9 @@ namespace fan {
 					m_size += sizeof(type_t);
 				}
 
-				type_t* get_instance(fan::vulkan::context_t* context, uint32_t i) {
-					return (type_t*)&buffer[i * sizeof(type_t)];
-				}
+				//type_t* get_instance(fan::vulkan::context_t* context, uint32_t i) {
+				//	return (type_t*)&buffer[i * sizeof(type_t)];
+				//}
 
 				void edit_instance(fan::vulkan::context_t* context, uint32_t i, auto member, auto value) {
 					#if fan_debug >= fan_debug_low
@@ -81,22 +81,22 @@ namespace fan {
 					#endif
 					((type_t*)buffer)[i].*member = value;
 				}
-				// for copying whole thing
-				void copy_instance(fan::vulkan::context_t* context, uint32_t i, type_t* instance) {
-					#if fan_debug >= fan_debug_low
-					if (i * sizeof(type_t) >= common.m_size) {
-						fan::throw_error("uninitialized access");
-					}
-					#endif
-					std::memmove(buffer + i * sizeof(type_t), instance, sizeof(type_t));
-					common.edit(
-						loco->get_context(),
-						&loco->m_write_queue,
-						i * sizeof(instance_t),
-						i * sizeof(instance_t) + sizeof(instance_t)
-					);
+				//// for copying whole thing
+				//void copy_instance(fan::vulkan::context_t* context, uint32_t i, type_t* instance) {
+				//	#if fan_debug >= fan_debug_low
+				//	if (i * sizeof(type_t) >= common.m_size) {
+				//		fan::throw_error("uninitialized access");
+				//	}
+				//	#endif
+				//	std::memmove(buffer + i * sizeof(type_t), instance, sizeof(type_t));
+				//	common.edit(
+				//		loco->get_context(),
+				//		&loco->m_write_queue,
+				//		i * sizeof(instance_t),
+				//		i * sizeof(instance_t) + sizeof(instance_t)
+				//	);
 
-				}
+				//}
 
 				memory_common_t common;
 				uint8_t buffer[element_size * sizeof(type_t)];
