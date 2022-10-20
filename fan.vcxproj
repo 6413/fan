@@ -98,7 +98,7 @@
       <ConformanceMode>false</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
@@ -106,7 +106,7 @@
       <WholeProgramOptimization>false</WholeProgramOptimization>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)src\box2d;$(SolutionDir);$(SolutionDir)include\opus;$(SolutionDir)src\libwebp;$(SolutionDir)src\libwebp\src;$(SolutionDIr)include\dav1d;$(SolutionDir)include\vpx;C:\Users\123\source\repos\glfw\glfw-3.3.7.bin.WIN64\include</AdditionalIncludeDirectories>
-      <Optimization>MaxSpeed</Optimization>
+      <Optimization>Disabled</Optimization>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <EnableParallelCodeGeneration>false</EnableParallelCodeGeneration>
@@ -137,8 +137,8 @@
       <PreprocessorDefinitions>set_durums_pc</PreprocessorDefinitions>
       <ConformanceMode>false</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <Optimization>MaxSpeed</Optimization>
-      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <Optimization>Disabled</Optimization>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
@@ -175,7 +175,7 @@
       <ConformanceMode>false</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
@@ -183,7 +183,7 @@
       <WholeProgramOptimization>false</WholeProgramOptimization>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)src\box2d;$(SolutionDir);$(SolutionDir)include\opus;$(SolutionDir)src\libwebp;$(SolutionDir)src\libwebp\src;$(SolutionDIr)include\dav1d;$(SolutionDir)include\vpx;C:\Users\123\source\repos\glfw\glfw-3.3.7.bin.WIN64\include</AdditionalIncludeDirectories>
-      <Optimization>MaxSpeed</Optimization>
+      <Optimization>Disabled</Optimization>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <EnableParallelCodeGeneration>false</EnableParallelCodeGeneration>
@@ -214,8 +214,8 @@
       <PreprocessorDefinitions>set_durums_pc</PreprocessorDefinitions>
       <ConformanceMode>false</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <Optimization>MaxSpeed</Optimization>
-      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <Optimization>Disabled</Optimization>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
@@ -366,18 +366,13 @@
     <ClInclude Include="include\fan\graphics\vpx\video_reader.h" />
     <ClInclude Include="include\fan\graphics\vpx\y4minput.h" />
     <ClInclude Include="include\fan\graphics\vulkan\2D\objects\shape_builder.h" />
-    <ClInclude Include="include\fan\graphics\vulkan\descriptor_bll_settings.h" />
-    <ClInclude Include="include\fan\graphics\vulkan\descriptor_layout_bll_settings.h" />
     <ClInclude Include="include\fan\graphics\vulkan\memory.h" />
     <ClInclude Include="include\fan\graphics\vulkan\memory_bll_settings.h" />
-    <ClInclude Include="include\fan\graphics\vulkan\pipeline_bll_settings.h" />
     <ClInclude Include="include\fan\graphics\vulkan\ssbo.h" />
     <ClInclude Include="include\fan\graphics\vulkan\uniform_block.h" />
     <ClInclude Include="include\fan\graphics\vulkan\viewport_list_builder_settings.h" />
     <ClInclude Include="include\fan\graphics\vulkan\vk_core.h" />
-    <ClInclude Include="include\fan\graphics\vulkan\vk_descriptor.h" />
     <ClInclude Include="include\fan\graphics\vulkan\vk_graphics.h" />
-    <ClInclude Include="include\fan\graphics\vulkan\vk_pipeline.h" />
     <ClInclude Include="include\fan\graphics\vulkan\vk_shader.h" />
     <ClInclude Include="include\fan\graphics\webp.h" />
     <ClInclude Include="include\fan\io\directory.h" />

@@ -7,6 +7,28 @@
 
 struct loco_t;
 
+#ifdef loco_vulkan
+  #ifdef loco_rectangle 
+    #ifndef loco_vulkan_descriptor_ssbo
+      #define loco_vulkan_descriptor_ssbo
+    #endif
+    #ifndef loco_vulkan_descriptor_uniform_block
+      #define loco_vulkan_descriptor_uniform_block
+    #endif
+  #endif
+  #ifdef loco_sprite
+    #ifndef loco_vulkan_descriptor_ssbo
+      #define loco_vulkan_descriptor_ssbo
+    #endif
+    #ifndef loco_vulkan_descriptor_uniform_block
+      #define loco_vulkan_descriptor_uniform_block
+    #endif
+    #ifndef loco_vulkan_descriptor_image_sampler
+      #define loco_vulkan_descriptor_image_sampler
+    #endif
+  #endif
+#endif
+
 #define BDBT_set_prefix loco_bdbt
 #define BDBT_set_type_node uint16_t
 #define BDBT_set_BitPerNode 2
@@ -48,6 +70,47 @@ struct loco_t;
 #endif
 
 struct loco_t {
+
+#ifdef loco_vulkan
+  struct descriptor_pool_t {
+    void open(fan::vulkan::context_t* context) {
+      uint32_t total = 0;
+      VkDescriptorPoolSize pool_sizes[] = {
+        #ifdef loco_vulkan_descriptor_ssbo
+        {
+          VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+          fan::vulkan::MAX_FRAMES_IN_FLIGHT
+        },
+        #endif
+        #ifdef loco_vulkan_descriptor_uniform_block
+        {
+          VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+          fan::vulkan::MAX_FRAMES_IN_FLIGHT
+        },
+        #endif
+        #ifdef loco_vulkan_descriptor_image_sampler
+        {
+          VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+          fan::vulkan::MAX_FRAMES_IN_FLIGHT
+        },
+        #endif
+      };
+
+      VkDescriptorPoolCreateInfo pool_info{};
+      pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+      pool_info.poolSizeCount = std::size(pool_sizes);
+      pool_info.pPoolSizes = pool_sizes;
+      pool_info.maxSets = fan::vulkan::MAX_FRAMES_IN_FLIGHT;
+
+      fan::vulkan::validate(vkCreateDescriptorPool(context->device, &pool_info, nullptr, &m_descriptor_pool));
+    }
+    void close(fan::vulkan::context_t* context) {
+      vkDestroyDescriptorPool(context->device, m_descriptor_pool, nullptr);
+    }
+
+    VkDescriptorPool m_descriptor_pool;
+  }descriptor_pool;
+#endif
 
 #if defined(loco_vfi)
 
@@ -262,13 +325,6 @@ struct loco_t {
   };
 
   void open(const properties_t& p) {
-
-    #if defined(loco_opengl)
-      fan::print("RENDERER BACKEND: OPENGL");
-    #elif defined(loco_vulkan)
-      fan::print("RENDERER BACKEND: VULKAN");
-    #endif
-
     vfi_var_name.open();
 
     #ifdef loco_window
@@ -298,6 +354,13 @@ struct loco_t {
 
     context.open();
     context.bind_to_window(&window);
+
+    #if defined(loco_opengl)
+      fan::print("RENDERER BACKEND: OPENGL");
+    #elif defined(loco_vulkan)
+      fan::print("RENDERER BACKEND: VULKAN");
+      descriptor_pool.open(get_context());
+    #endif
 
     #if defined(loco_letter)
       font.open(get_context(), loco_font);
@@ -382,6 +445,12 @@ struct loco_t {
     #if defined(loco_post_process)
       post_process.close();
     #endif
+
+    #ifdef loco_vulkan
+      descriptor_pool.close(get_context());
+    #endif
+
+    get_context()->close();
   }
 
   vfi_t::shape_id_t push_back_input_hitbox(const vfi_t::properties_t& p) {
@@ -415,28 +484,6 @@ struct loco_t {
 
     #ifdef loco_post_process
       post_process.start_capture();
-    #endif
-
-    #if defined(loco_vulkan)
-      auto context = get_context();
-      vkWaitForFences(context->device, 1, &context->inFlightFences[context->currentFrame], VK_TRUE, UINT64_MAX);
-
-      VkResult result = vkAcquireNextImageKHR(
-        context->device,
-        context->swapChain,
-        UINT64_MAX,
-        context->imageAvailableSemaphores[context->currentFrame],
-        VK_NULL_HANDLE,
-        &context->image_index
-      );
-
-      if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-        context->recreateSwapChain(get_window()->get_size());
-        return;
-      }
-      else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
-        throw std::runtime_error("failed to acquire swap chain image!");
-      }
     #endif
 
     m_write_queue.process(get_context());
