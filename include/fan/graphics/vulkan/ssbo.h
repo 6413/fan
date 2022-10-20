@@ -35,16 +35,11 @@ namespace fan {
 
 				void write(fan::vulkan::context_t* context, uint64_t src, uint64_t dst, uint32_t frame) {
 
-					void* data;
-					validate(vkMapMemory(context->device, common.memory[frame].device_memory, 0, dst - src, 0, &data));
-					//data += src; ??
+					uint8_t* data;
+					validate(vkMapMemory(context->device, common.memory[frame].device_memory, 0, dst - src, 0, (void**)&data));
+					data += src;
 					memcpy(data, (uint8_t*)buffer.data(), dst - src);
-					// unnecessary?
-					vkUnmapMemory(context->device, common.memory[frame].device_memory);
-
-					validate(vkMapMemory(context->device, common.memory[frame].device_memory, 0, dst - src, 0, &data));
-					//data += src; ??
-					// unnecessary?
+					// unnecessary? is necessary
 					vkUnmapMemory(context->device, common.memory[frame].device_memory);
 
 					common.on_edit(context);
@@ -71,11 +66,6 @@ namespace fan {
 				}
 				void close(fan::vulkan::context_t* context, memory_write_queue_t* queue) {
 					common.close(context, queue);
-
-					for (size_t i = 0; i < buffer_count; i++) {
-						vkDestroyBuffer(context->device, common.memory[i].buffer, nullptr);
-						vkFreeMemory(context->device, common.memory[i].device_memory, nullptr);
-					}
 				}
 
 				uint32_t size() const {

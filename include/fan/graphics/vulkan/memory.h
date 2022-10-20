@@ -72,6 +72,11 @@ namespace fan {
 					if (is_queued()) {
 						queue->erase(m_edit_index);
 					}
+
+					for (uint32_t i = 0; i < fan::vulkan::MAX_FRAMES_IN_FLIGHT; ++i) {
+						vkDestroyBuffer(context->device, memory[i].buffer, nullptr);
+						vkFreeMemory(context->device, memory[i].device_memory, nullptr);
+					}
 				}
 
 				bool is_queued() const {

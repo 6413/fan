@@ -53,11 +53,6 @@ namespace fan {
 				}
 				void close(fan::vulkan::context_t* context, memory_write_queue_t* queue) {
 					common.close(context, queue);
-
-					for (size_t i = 0; i < buffer_count; i++) {
-						vkDestroyBuffer(context->device, common.memory[i].buffer, nullptr);
-						vkFreeMemory(context->device, common.memory[i].device_memory, nullptr);
-					}
 				}
 
 				uint32_t size() const {

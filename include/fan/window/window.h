@@ -403,7 +403,8 @@ namespace fan {
 		fan::window_handle_t get_handle() const;
 
 		// when finished getting fps returns fps otherwise 0
-		uintptr_t get_fps(bool window_title = true, bool print = true);
+		// ms
+		uintptr_t get_fps(uint32_t frame_update = 2, bool window_title = true, bool print = true);
 
 		bool focused() const;
 
@@ -471,7 +472,7 @@ namespace fan {
 		window_handle_t m_window_handle;
 		uintptr_t m_max_fps;
 		f64_t m_fps_next_tick;
-		uintptr_t m_fps;
+		uintptr_t m_fps_counter;
 
 		f64_t m_last_frame;
 		f64_t m_current_frame;
@@ -482,7 +483,6 @@ namespace fan {
 		uint64_t m_event_flags;
 		uint64_t m_reserved_flags;
 
-		fan::time::clock m_fps_timer;
 		buttons_callback_t m_buttons_callback;
 		keys_callback_t m_keys_callback;
 		key_callback_t m_key_callback;
@@ -506,8 +506,6 @@ namespace fan {
 
 		bool call_mouse_move_cb = false;
 
-		bool m_received_fps;
-		
 		bool m_close;
 		bool m_focused;
 

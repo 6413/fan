@@ -12,7 +12,7 @@ sb_get_loco
 #define sb_vertex_count 6
 #endif
 
-void sb_open() {
+void sb_open(const std::array<fan::vulkan::write_descriptor_set_t, vulkan_buffer_count>& ds_properties) {
   loco_t* loco = get_loco();
   auto context = loco->get_context();
   root = loco_bdbt_NewNode(&loco->bdbt);
@@ -25,33 +25,13 @@ void sb_open() {
   m_shader.set_vertex(context, sb_shader_vertex_path);
   m_shader.set_fragment(context, sb_shader_fragment_path);
 
-  dsl_properties.write_descriptor_sets[0].binding = 0;
-  dsl_properties.write_descriptor_sets[0].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-  dsl_properties.write_descriptor_sets[0].flags = VK_SHADER_STAGE_VERTEX_BIT;
-  dsl_properties.write_descriptor_sets[0].range = VK_WHOLE_SIZE;
-  dsl_properties.write_descriptor_sets[0].common = &m_ssbo.common;
-  dsl_properties.write_descriptor_sets[0].dst_binding = 0;
+  m_descriptor.open(context, loco->descriptor_pool.m_descriptor_pool, ds_properties);
 
-  dsl_properties.write_descriptor_sets[1].binding = 1;
-  dsl_properties.write_descriptor_sets[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-  dsl_properties.write_descriptor_sets[1].flags = VK_SHADER_STAGE_VERTEX_BIT;
-  dsl_properties.write_descriptor_sets[1].common = &m_shader.projection_view_block.common;
-  dsl_properties.write_descriptor_sets[1].range = sizeof(fan::mat4) * 2;
-  dsl_properties.write_descriptor_sets[1].dst_binding = 1;
-
-  descriptor_layout_nr = context->descriptor_sets.push_layout(context, dsl_properties);
-
-  fan::vulkan::pipelines_t::properties_t p;
-  p.layout_count = 1;
-  p.descriptor_set_layout = &context->descriptor_sets.get(descriptor_layout_nr).layout;
+  fan::vulkan::pipeline_t::properties_t p;
+  p.descriptor_layout_count = 1;
+  p.descriptor_layout = &m_descriptor.m_layout;
   p.shader = &m_shader;
-  pipeline_nr = context->pipelines.push(context, p);
-
-  descriptor_set_nr = loco->get_context()->descriptor_sets.push(
-    loco->get_context(),
-    descriptor_layout_nr,
-    dsl_properties
-  );
+  m_pipeline.open(context, p);
 }
 void sb_close() {
   loco_t* loco = get_loco();
@@ -237,6 +217,7 @@ void set_fragment(const fan::string& str) {
 template <uint32_t depth = 0>
 void traverse_draw(auto nr) {
   loco_t* loco = get_loco();
+  auto context = loco->get_context();
   if constexpr (depth == instance_properties_t::key_t::count + 1) {
     auto bmn = bm_list.GetNodeByReference(*(shape_bm_NodeReference_t*)&nr);
     auto bnr = bmn->data.first_block;
@@ -244,13 +225,13 @@ void traverse_draw(auto nr) {
     while (1) {
       auto node = blocks.GetNodeByReference(bnr);
 
-      loco->get_context()->draw(
+      context->draw(
         sb_vertex_count,
         bnr == bmn->data.last_block ? bmn->data.total_instances % max_instance_size : max_instance_size,
         node->data.block.ssbo_index,
-        pipeline_nr,
+        m_pipeline,
         1,
-        &loco->get_context()->descriptor_sets.descriptor_list[descriptor_set_nr].descriptor_set[loco->get_context()->currentFrame]
+        &m_descriptor.m_descriptor_set[context->currentFrame]
       );
 
       if (bnr == bmn->data.last_block) {
@@ -290,17 +271,13 @@ void sb_set_key(fan::graphics::cid_t* cid, auto value) {
   sb_push_back(cid, p);
 }
 
-fan::graphics::shader_t m_shader;
-fan::vulkan::pipelines_t::nr_t pipeline_nr;
-fan::vulkan::descriptor_sets_t::layout_nr_t descriptor_layout_nr;
-
 struct block_t {
   void open(loco_t* loco, auto* shape) {
     bool vram_buffer_resized;
     ssbo_index = shape->m_ssbo.add(loco->get_context(), max_instance_size, &vram_buffer_resized);
     if (vram_buffer_resized) {
-      shape->dsl_properties.write_descriptor_sets[0].common = &shape->m_ssbo.common;
-      loco->get_context()->descriptor_sets.update(loco->get_context(), shape->descriptor_set_nr, shape->dsl_properties);
+      shape->m_descriptor.m_properties[0].common = &shape->m_ssbo.common;
+      shape->m_descriptor.update(loco->get_context());
     }
   }
   void close(loco_t* loco) {
@@ -312,11 +289,13 @@ struct block_t {
   instance_properties_t p[max_instance_size];
 };
 
-protected:
+fan::vulkan::core::ssbo_t<instance_t> m_ssbo;
+fan::graphics::shader_t m_shader;
 
-  fan::vulkan::descriptor_set_layout_t<2> dsl_properties;
-  fan::vulkan::descriptor_sets_t::nr_t descriptor_set_nr;
-  fan::vulkan::core::ssbo_t<instance_t> m_ssbo;
+fan::vulkan::pipeline_t m_pipeline;
+fan::vulkan::descriptor_t<vulkan_buffer_count> m_descriptor;
+
+protected:
 
   loco_bdbt_NodeReference_t root;
 
@@ -352,6 +331,6 @@ protected:
 
 public:
 
-  #undef sb_shader_vertex_path
-  #undef sb_shader_fragment_path
-  #undef sb_vertex_count
+#undef sb_shader_vertex_path
+#undef sb_shader_fragment_path
+#undef sb_vertex_count

@@ -3,7 +3,7 @@
 #define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 
 #define FAN_INCLUDE_PATH C:/libs/fan/include
-#define fan_debug 0
+#define fan_debug 3
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
 #define loco_vulkan
@@ -34,7 +34,7 @@ struct pile_t {
     loco.get_window()->add_resize_callback([&](const fan::window_t::resize_cb_data_t& d) {
       //fan::vec2 window_size = window->get_size();
       viewport.set(loco.get_context(), 0, d.size, d.size);
-     });
+    });
     viewport.open(loco.get_context());
     viewport.set(loco.get_context(), 0, loco.get_window()->get_size(), loco.get_window()->get_size());
   }
@@ -59,14 +59,12 @@ int main() {
   fan::time::clock c;
   c.start();
 
-  for (uint32_t i = 0; i < 300; i++) {
-    for (uint32_t j = 0; j < 300; j++) {
-      p.size = fan::vec2(128, 128);
-      p.position = fan::random::vec2(0, 800);
+  for (uint32_t i = 0; i < 100; i++) {
+    p.size = fan::vec2(1, 1);
+    p.position = fan::random::vec2(0, 800);
 
-      p.color = fan::random::color();
-      pile->loco.rectangle.push_back(&pile->cids[1], p);
-    }
+    p.color = fan::random::color();
+    pile->loco.rectangle.push_back(&pile->cids[1], p);
   }
 
 
@@ -83,6 +81,9 @@ int main() {
   //fan::print(pdp.limits.maxMemoryAllocationCount);
 
   pile->loco.loop([&] {
+
+
+
     //pile->loco.rectangle.set(&pile->cids[0], &loco_t::rectangle_t::instance_t::position, pile->loco.get_mouse_position(pile->viewport));
     
     pile->loco.get_fps();

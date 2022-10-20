@@ -45,13 +45,34 @@ struct rectangle_t {
     #define sb_shader_vertex_path _FAN_PATH(graphics/glsl/opengl/2D/objects/rectangle.vs)
     #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/objects/rectangle.fs)
   #elif defined(loco_vulkan)
+    #define vulkan_buffer_count 2
     #define sb_shader_vertex_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/rectangle.vert.spv)
     #define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/rectangle.frag.spv)
   #endif
   #include _FAN_PATH(graphics/shape_builder.h)
 
   void open() {
-    sb_open();
+    #if defined(loco_opengl)
+      sb_open();
+    #elif defined(loco_vulkan)
+      std::array<fan::vulkan::write_descriptor_set_t, vulkan_buffer_count> ds_properties;
+
+      ds_properties[0].binding = 0;
+      ds_properties[0].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+      ds_properties[0].flags = VK_SHADER_STAGE_VERTEX_BIT;
+      ds_properties[0].range = VK_WHOLE_SIZE;
+      ds_properties[0].common = &m_ssbo.common;
+      ds_properties[0].dst_binding = 0;
+
+      ds_properties[1].binding = 1;
+      ds_properties[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+      ds_properties[1].flags = VK_SHADER_STAGE_VERTEX_BIT;
+      ds_properties[1].common = &m_shader.projection_view_block.common;
+      ds_properties[1].range = sizeof(fan::mat4) * 2;
+      ds_properties[1].dst_binding = 1;
+
+      sb_open(ds_properties);
+    #endif
   }
   void close() {
     sb_close();
@@ -67,3 +88,4 @@ struct rectangle_t {
 };
 
 #include _FAN_PATH(graphics/opengl/2D/objects/hardcode_close.h)
+#undef vulkan_buffer_count

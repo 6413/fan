@@ -226,11 +226,9 @@ void fan::window_t::set_name(const fan::string& name)
 
 }
 
-void fan::window_t::calculate_delta_time()
-{
+void fan::window_t::calculate_delta_time() {
+  m_delta_time = (f64_t)fan::time::clock::elapsed(m_current_frame) / 1000000000;
   m_current_frame = fan::time::clock::now();
-  m_delta_time = (f64_t)fan::time::clock::elapsed(m_last_frame) / 1000000000;
-  m_last_frame = m_current_frame;
 }
 
 f64_t fan::window_t::get_delta_time() const
@@ -596,27 +594,24 @@ fan::window_handle_t fan::window_t::get_handle() const
   return m_window_handle;
 }
 
-uintptr_t fan::window_t::get_fps(bool window_name, bool print)
-{
-  if (!m_fps_timer.count()) {
-    m_fps_timer.start(fan::time::milliseconds(1000));
-  }
-
-  if (m_received_fps) {
-    m_fps = 0;
-    m_received_fps = false;
-  }
-
-  if (m_fps_timer.finished()) {
+// ms
+uintptr_t fan::window_t::get_fps(uint32_t frame_update, bool window_name, bool print) {
+  auto time_diff = (m_current_frame - m_last_frame) / 1e+9;
+  if (time_diff >= 1.0 / frame_update) {
     fan::string fps_info;
     if (window_name || print) {
+      f64_t fps, frame_time;
+      fps = (1.0 / time_diff) * m_fps_counter;
+      frame_time = time_diff / m_fps_counter;
       fps_info.append(
-          fan::string("FPS: ") +
-          fan::to_string(m_fps) +
+          fan::string("fps: ") +
+          fan::to_string(fps) +
           fan::string(" frame time: ") +
-          fan::to_string(1.0 / m_fps * 1000) +
+          fan::to_string(frame_time) +
           fan::string(" ms")
       );
+      m_last_frame = m_current_frame;
+      m_fps_counter = 0;
     }
     if (window_name) {
       this->set_name(fps_info.c_str());
@@ -624,13 +619,10 @@ uintptr_t fan::window_t::get_fps(bool window_name, bool print)
     if (print) {
       fan::print(fps_info);
     }
-
-    m_fps_timer.restart();
-    m_received_fps = true;
-    return m_fps;
+    return m_fps_counter;
   }
 
-  m_fps++;
+  m_fps_counter++;
   return 0;
 }
 
@@ -639,8 +631,7 @@ void fan::window_t::open(const fan::vec2i& window_size, const fan::string& name,
   m_size = window_size;
   m_mouse_position = 0;
   m_max_fps = 0;
-  m_received_fps = 0;
-  m_fps = 0;
+  m_fps_counter = 0;
   m_last_frame = fan::time::clock::now();
   m_current_frame = fan::time::clock::now();
   m_delta_time = 0;
@@ -649,7 +640,6 @@ void fan::window_t::open(const fan::vec2i& window_size, const fan::string& name,
   m_current_key = 0;
   m_reserved_flags = 0;
   m_focused = true;
-  m_fps_timer.m_time = 0;
   m_event_flags = 0;
 
   if (flag_values::m_size_mode == fan::window_t::mode::not_set) {
