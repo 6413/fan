@@ -4,6 +4,7 @@
 #include _FAN_PATH(physics/collision/rectangle.h)
 #include _FAN_PATH(graphics/camera.h)
 #include _FAN_PATH(types/masterpiece.h)
+#include _FAN_PATH(graphics/webp.h)
 
 #if defined(loco_opengl)
 	#include _FAN_PATH(graphics/opengl/gl_graphics.h)
@@ -24,6 +25,8 @@ namespace fan {
 			using fan::opengl::cid_t;
 			using fan::opengl::shader_t;
 			using fan::opengl::textureid_t;
+			using fan::opengl::image_t;
+			using fan::opengl::textureid_t;
 		#elif defined(loco_vulkan)
 			using fan::vulkan::context_t;
 			using fan::vulkan::matrices_t;
@@ -33,6 +36,8 @@ namespace fan {
 			using fan::vulkan::open_matrices;
 			using fan::vulkan::cid_t;
 			using fan::vulkan::shader_t;
+			using fan::vulkan::image_t;
+			using fan::vulkan::textureid_t;
 		#endif
 
 		namespace core {

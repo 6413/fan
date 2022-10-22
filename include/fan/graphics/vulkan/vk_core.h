@@ -93,6 +93,8 @@ namespace fan {
       // for only VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
       // imageLayout can be VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
       VkDescriptorImageInfo image_info{};
+
+
     };
 
     static constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 1;
@@ -137,6 +139,33 @@ namespace fan {
       std::array<fan::vulkan::write_descriptor_set_t, count> m_properties;
       VkDescriptorSetLayout m_layout;
       VkDescriptorSet m_descriptor_set[fan::vulkan::MAX_FRAMES_IN_FLIGHT];
+    };
+  }
+}
+
+#include "image_list_builder_settings.h"
+#include _FAN_PATH(BLL/BLL.h)
+
+namespace fan {
+  namespace vulkan {
+    template <uint8_t n_>
+    struct textureid_t : image_list_NodeReference_t {
+      static constexpr std::array<const char*, 32> texture_names = {
+        "_t00", "_t01", "_t02", "_t03",
+        "_t04", "_t05", "_t06", "_t07",
+        "_t08", "_t09", "_t10", "_t11",
+        "_t12", "_t13", "_t14", "_t15",
+        "_t16", "_t17", "_t18", "_t19",
+        "_t20", "_t21", "_t22", "_t23",
+        "_t24", "_t25", "_t26", "_t27",
+        "_t28", "_t29", "_t30", "_t31"
+      };
+      static constexpr uint8_t n = n_;
+      static constexpr auto name = texture_names[n];
+
+      textureid_t() = default;
+      textureid_t(fan::vulkan::image_t* image) : fan::vulkan::image_list_NodeReference_t::image_list_NodeReference_t(image) {
+      }
     };
   }
 }
@@ -1458,6 +1487,7 @@ namespace fan {
       std::vector<VkFence> inFlightFences;
       uint32_t currentFrame = 0;
 
+      fan::vulkan::image_list_t image_list;
       fan::vulkan::viewport_list_t viewport_list;
       fan::vulkan::matrices_list_t matrices_list;
 
@@ -1475,6 +1505,7 @@ namespace fan {
 #include "uniform_block.h"
 #include "ssbo.h"
 #include "vk_shader.h"
+#include "vk_image.h"
 
 namespace fan {
   namespace vulkan {
@@ -1619,9 +1650,11 @@ namespace fan {
 
       for (size_t frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++) {
         for (uint32_t j = 0; j < count; ++j) {
-          bufferInfo[frame * count + j].buffer = m_properties[j].common->memory[frame].buffer;
-          bufferInfo[frame * count + j].offset = 0;
-          bufferInfo[frame * count + j].range = m_properties[j].range;
+          if (m_properties[j].common) {
+            bufferInfo[frame * count + j].buffer = m_properties[j].common->memory[frame].buffer;
+            bufferInfo[frame * count + j].offset = 0;
+            bufferInfo[frame * count + j].range = m_properties[j].range;
+          }
         }
       }
 
@@ -1637,6 +1670,11 @@ namespace fan {
           descriptorWrites[j].descriptorCount = 1;
           descriptorWrites[j].pBufferInfo = &bufferInfo[frame * count + j];
           descriptorWrites[j].dstBinding = m_properties[j].dst_binding;
+
+          // FIX
+          if (m_properties[j].image_info.imageLayout != 0) {
+            descriptorWrites[j].pImageInfo = &m_properties[j].image_info;
+          }
         }
         vkUpdateDescriptorSets(context->device, descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
       }

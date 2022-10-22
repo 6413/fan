@@ -14,11 +14,11 @@ struct sb_sprite_name {
     fan::vec2 tc_size = 1;
   };
 
-  #define hardcode0_t fan::opengl::textureid_t<0>
+  #define hardcode0_t fan::graphics::textureid_t<0>
   #define hardcode0_n image
-  #define hardcode1_t fan::opengl::matrices_list_NodeReference_t
+  #define hardcode1_t fan::graphics::matrices_list_NodeReference_t
   #define hardcode1_n matrices
-  #define hardcode2_t fan::opengl::viewport_list_NodeReference_t
+  #define hardcode2_t fan::graphics::viewport_list_NodeReference_t
   #define hardcode2_n viewport
   #include _FAN_PATH(graphics/opengl/2D/objects/hardcode_open.h)
 
@@ -33,10 +33,48 @@ struct sb_sprite_name {
     properties_t(const instance_properties_t& p) : instance_properties_t(p) {}
   };
 
-  void push_back(fan::opengl::cid_t* cid, properties_t& p) {
+  void push_back(fan::graphics::cid_t* cid, properties_t& p) {
+    auto loco = get_loco();
+
+    VkDescriptorImageInfo imageInfo{};
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    auto& img = loco->get_context()->image_list[p.get_image()] = loco->get_context()->image_list[p.get_image()];
+    imageInfo.imageView = img.image_view;
+
+    VkPhysicalDeviceProperties properties{};
+    vkGetPhysicalDeviceProperties(loco->get_context()->physicalDevice, &properties);
+
+    VkSamplerCreateInfo samplerInfo{};
+    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    samplerInfo.magFilter = VK_FILTER_LINEAR;
+    samplerInfo.minFilter = VK_FILTER_LINEAR;
+    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.anisotropyEnable = VK_TRUE;
+    samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+    samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+    samplerInfo.unnormalizedCoordinates = VK_FALSE;
+    samplerInfo.compareEnable = VK_FALSE;
+    samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+
+    if (vkCreateSampler(loco->get_context()->device, &samplerInfo, nullptr, &img.sampler) != VK_SUCCESS) {
+      throw std::runtime_error("failed to create texture sampler!");
+    }
+
+    imageInfo.sampler = img.sampler;
+
+    m_descriptor.m_properties[2].binding = 5;
+    m_descriptor.m_properties[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    m_descriptor.m_properties[2].flags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    m_descriptor.m_properties[2].image_info = imageInfo;
+    m_descriptor.m_properties[2].range = VK_WHOLE_SIZE;
+    m_descriptor.m_properties[2].dst_binding = 5; // ?
+
     sb_push_back(cid, p);
   }
-  void erase(fan::opengl::cid_t* cid) {
+  void erase(fan::graphics::cid_t* cid) {
     sb_erase(cid);
   }
 
@@ -45,40 +83,102 @@ struct sb_sprite_name {
   }
 
   static constexpr uint32_t max_instance_size = fan::min(256, 4096 / (sizeof(instance_t) / 4));
-  #ifndef sb_shader_vertex_path
-    #define sb_shader_vertex_path _FAN_PATH(graphics/glsl/opengl/2D/objects/sprite.vs)
+  #if defined(loco_opengl)
+    #ifndef sb_shader_vertex_path
+      #define sb_shader_vertex_path _FAN_PATH(graphics/glsl/opengl/2D/objects/sprite.vs)
+    #endif
+    #ifndef sb_shader_fragment_path
+      #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/objects/sprite.fs)
+    #endif
+    #include _FAN_PATH(graphics/opengl/2D/objects/shape_builder.h)
+  #elif defined(loco_vulkan)
+    #define vulkan_buffer_count 3
+    #define sb_shader_vertex_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/sprite.vert.spv)
+    #define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/sprite.frag.spv)
+    #include _FAN_PATH(graphics/vulkan/2D/objects/shape_builder.h)
   #endif
-  #ifndef sb_shader_fragment_path
-    #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/objects/sprite.fs)
-  #endif
-  #include _FAN_PATH(graphics/opengl/2D/objects/shape_builder.h)
+  
 
   void open() {
-    sb_open();
+    std::array<fan::vulkan::write_descriptor_set_t, vulkan_buffer_count> ds_properties{};
+
+    ds_properties[0].binding = 0;
+    ds_properties[0].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    ds_properties[0].flags = VK_SHADER_STAGE_VERTEX_BIT;
+    ds_properties[0].range = VK_WHOLE_SIZE;
+    ds_properties[0].common = &m_ssbo.common;
+    ds_properties[0].dst_binding = 0;
+
+    ds_properties[1].binding = 1;
+    ds_properties[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    ds_properties[1].flags = VK_SHADER_STAGE_VERTEX_BIT;
+    ds_properties[1].common = &m_shader.projection_view_block.common;
+    ds_properties[1].range = sizeof(fan::mat4) * 2;
+    ds_properties[1].dst_binding = 1;
+
+    VkDescriptorImageInfo imageInfo{};
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    imageInfo.imageView = 0;
+    imageInfo.sampler = 0;
+
+    ds_properties[2].binding = 5;
+    ds_properties[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    ds_properties[2].flags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    ds_properties[2].image_info = imageInfo;
+    ds_properties[2].range = VK_WHOLE_SIZE;
+    ds_properties[2].dst_binding = 5; // ?
+
+    /*
+    
+       VkPhysicalDeviceProperties properties{};
+        vkGetPhysicalDeviceProperties(physicalDevice, &properties);
+
+        VkSamplerCreateInfo samplerInfo{};
+        samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+        samplerInfo.magFilter = VK_FILTER_LINEAR;
+        samplerInfo.minFilter = VK_FILTER_LINEAR;
+        samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        samplerInfo.anisotropyEnable = VK_TRUE;
+        samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+        samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+        samplerInfo.unnormalizedCoordinates = VK_FALSE;
+        samplerInfo.compareEnable = VK_FALSE;
+        samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+        samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+
+        if (vkCreateSampler(device, &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create texture sampler!");
+        }
+
+    */
+
+    sb_open(ds_properties);
   }
   void close() {
     sb_close();
   }
 
-  fan::opengl::matrices_t* get_matrices(fan::opengl::cid_t* cid) {
+  fan::graphics::matrices_t* get_matrices(fan::graphics::cid_t* cid) {
     auto block = sb_get_block(cid);
     loco_t* loco = get_loco();
     return loco->get_context()->matrices_list[*block->p[cid->instance_id].key.get_value<
-      instance_properties_t::key_t::get_index_with_type<fan::opengl::matrices_list_NodeReference_t>()
+      instance_properties_t::key_t::get_index_with_type<fan::graphics::matrices_list_NodeReference_t>()
     >()].matrices_id;
   }
-  void set_matrices(fan::opengl::cid_t* cid, fan::opengl::matrices_list_NodeReference_t n) {
+  void set_matrices(fan::graphics::cid_t* cid, fan::graphics::matrices_list_NodeReference_t n) {
     sb_set_key<instance_properties_t::key_t::get_index_with_type<decltype(n)>()>(cid, n);
   }
 
-  fan::opengl::viewport_t* get_viewport(fan::opengl::cid_t* cid) {
+  fan::graphics::viewport_t* get_viewport(fan::graphics::cid_t* cid) {
     loco_t* loco = get_loco();
     auto block = sb_get_block(cid);
     return loco->get_context()->viewport_list[*block->p[cid->instance_id].key.get_value<
-      instance_properties_t::key_t::get_index_with_type<fan::opengl::viewport_list_NodeReference_t>()
+      instance_properties_t::key_t::get_index_with_type<fan::graphics::viewport_list_NodeReference_t>()
     >()].viewport_id;
   }
-  void set_viewport(fan::opengl::cid_t* cid, fan::opengl::viewport_list_NodeReference_t n) {
+  void set_viewport(fan::graphics::cid_t* cid, fan::graphics::viewport_list_NodeReference_t n) {
     sb_set_key<instance_properties_t::key_t::get_index_with_type<decltype(n)>()>(cid, n);
   }
 
@@ -89,10 +189,10 @@ struct sb_sprite_name {
     *block->p[cid->instance_id].key.get_value<1>() = n;
   }*/
 
-  void set_image(fan::opengl::cid_t* cid, fan::opengl::image_t* n) {
-    sb_set_key<instance_properties_t::key_t::get_index_with_type<fan::opengl::textureid_t<0>>()>(cid, n);
+  void set_image(fan::graphics::cid_t* cid, fan::graphics::image_t* n) {
+    sb_set_key<instance_properties_t::key_t::get_index_with_type<fan::graphics::textureid_t<0>>()>(cid, n);
   }
-  void set_viewport_value(fan::opengl::cid_t* cid, fan::vec2 p, fan::vec2 s) {
+  void set_viewport_value(fan::graphics::cid_t* cid, fan::vec2 p, fan::vec2 s) {
     loco_t* loco = get_loco();
     auto block = sb_get_block(cid);
     loco->get_context()->viewport_list[*block->p[cid->instance_id].key.get_value<2>()].viewport_id->set(loco->get_context(), p, s, loco->get_window()->get_size());

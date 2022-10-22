@@ -1,13 +1,9 @@
-R"(
-#version 140
+#version 450
 
-#define get_instance() instance[gl_VertexID / 6]
+#define get_instance() instances[gl_InstanceIndex]
 
-out vec4 instance_color;
-out vec2 texture_coordinate;
-
-uniform mat4 view;
-uniform mat4 projection;
+layout(location = 0) out vec4 instance_color;
+layout(location = 1) out vec2 texture_coordinate;
 
 struct block_instance_t{
 	vec3 position;
@@ -20,8 +16,13 @@ struct block_instance_t{
 	vec2 tc_size;
 };
 
-layout (std140) uniform instance_t {
-	block_instance_t instance[204];
+layout(std140, binding = 0) readonly buffer instances_t{
+	block_instance_t instances[];
+};
+
+layout(binding = 1) uniform vp_t {
+	mat4 projection;
+  mat4 view;
 };
 
 vec2 rectangle_vertices[] = vec2[](
@@ -44,7 +45,7 @@ vec2 tc[] = vec2[](
 );
 
 void main() {
-	uint id = uint(gl_VertexID % 6);
+	uint id = uint(gl_VertexIndex);
 
 	vec2 rp = rectangle_vertices[id];
 	
@@ -62,4 +63,3 @@ void main() {
 	instance_color = get_instance().color;
 	texture_coordinate = tc[id] * get_instance().tc_size + get_instance().tc_position;
 }
-)"

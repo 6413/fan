@@ -208,14 +208,14 @@ struct loco_t {
     );
   }
 
-  #if defined(loco_opengl)
-    template <uint8_t n>
-    void process_block_properties_element(auto* shape, fan::graphics::textureid_t<n> tid) {
-      shape->m_shader.set_int(get_context(), tid.name, n);
-      get_context()->opengl.call(get_context()->opengl.glActiveTexture, fan::opengl::GL_TEXTURE0 + n);
-      get_context()->opengl.call(get_context()->opengl.glBindTexture, fan::opengl::GL_TEXTURE_2D, get_context()->image_list[tid].texture_id);
-    }
-  #endif
+  template <uint8_t n>
+  void process_block_properties_element(auto* shape, fan::graphics::textureid_t<n> tid) {
+    #if defined(loco_opengl)
+    shape->m_shader.set_int(get_context(), tid.name, n);
+    get_context()->opengl.call(get_context()->opengl.glActiveTexture, fan::opengl::GL_TEXTURE0 + n);
+    get_context()->opengl.call(get_context()->opengl.glBindTexture, fan::opengl::GL_TEXTURE_2D, get_context()->image_list[tid].texture_id);
+    #endif
+  }
 
   loco_bdbt_t bdbt;
 
