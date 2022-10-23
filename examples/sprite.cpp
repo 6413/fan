@@ -71,10 +71,10 @@ int main() {
   // p.color = fan::color((f32_t)i / count, (f32_t)i / count + 00.1, (f32_t)i / count);
   p.position = fan::random::vec2(0, 0);
   pile->loco.sprite.push_back(&pile->cid, p);
-  //p.position = fan::vec2(-0.1, -0.1);
-  //p.get_image() = &image2;
-  //p.position.z = 1;
-  //pile->loco.sprite.push_back(&pile->cid, p);
+  p.position = fan::vec2(-0.1, -0.1);
+  p.get_image() = &image2;
+  p.position.z = 1;
+  pile->loco.sprite.push_back(&pile->cid, p);
 
   pile->loco.set_vsync(false);
 
