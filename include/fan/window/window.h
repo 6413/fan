@@ -404,7 +404,7 @@ namespace fan {
 
 		// when finished getting fps returns fps otherwise 0
 		// ms
-		uintptr_t get_fps(uint32_t frame_update = 2, bool window_title = true, bool print = true);
+		uintptr_t get_fps(uint32_t frame_update = 1, bool window_title = true, bool print = true);
 
 		bool focused() const;
 

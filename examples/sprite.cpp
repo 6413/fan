@@ -63,14 +63,25 @@ int main() {
 
   fan::graphics::image_t image;
   image.load(pile->loco.get_context(), "images/test.webp");
+  fan::graphics::image_t image2;
+  image2.load(pile->loco.get_context(), "images/planet.webp");
   p.get_image() = &image;
   p.position = fan::vec2(0, 0);
   p.position.z = 0;
   // p.color = fan::color((f32_t)i / count, (f32_t)i / count + 00.1, (f32_t)i / count);
+  p.position = fan::random::vec2(0, 0);
   pile->loco.sprite.push_back(&pile->cid, p);
+  //p.position = fan::vec2(-0.1, -0.1);
+  //p.get_image() = &image2;
+  //p.position.z = 1;
+  //pile->loco.sprite.push_back(&pile->cid, p);
 
   pile->loco.set_vsync(false);
-  uint32_t x = 0;
+
+
+  VkPhysicalDeviceProperties v;
+  vkGetPhysicalDeviceProperties(pile->loco.get_context()->physicalDevice, &v);
+  fan::print(v.limits.maxPerStageDescriptorSampledImages);
   pile->loco.loop([&] {
     pile->loco.get_fps();
   });

@@ -35,8 +35,6 @@ vec2 rectangle_vertices[] = vec2[](
 void main() {
 	uint id = uint(gl_VertexIndex % 6);
 
-	vec2 ratio_size = get_instance().size;
-
 	vec2 rp = rectangle_vertices[id];
 	
 	float c = cos(-get_instance().angle);
