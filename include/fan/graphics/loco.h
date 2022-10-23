@@ -211,9 +211,17 @@ struct loco_t {
   template <uint8_t n>
   void process_block_properties_element(auto* shape, fan::graphics::textureid_t<n> tid) {
     #if defined(loco_opengl)
-    shape->m_shader.set_int(get_context(), tid.name, n);
-    get_context()->opengl.call(get_context()->opengl.glActiveTexture, fan::opengl::GL_TEXTURE0 + n);
-    get_context()->opengl.call(get_context()->opengl.glBindTexture, fan::opengl::GL_TEXTURE_2D, get_context()->image_list[tid].texture_id);
+      shape->m_shader.set_int(get_context(), tid.name, n);
+      get_context()->opengl.call(get_context()->opengl.glActiveTexture, fan::opengl::GL_TEXTURE0 + n);
+      get_context()->opengl.call(get_context()->opengl.glBindTexture, fan::opengl::GL_TEXTURE_2D, get_context()->image_list[tid].texture_id);
+    #elif defined(loco_vulkan)
+      VkDescriptorImageInfo imageInfo{};
+      imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+      auto& img = get_context()->image_list[tid];
+      imageInfo.imageView = img.image_view;
+      imageInfo.sampler = img.sampler;
+      shape->m_descriptor.m_properties[2].image_info = imageInfo;
+      shape->m_descriptor.update(get_context());
     #endif
   }
 
@@ -376,6 +384,21 @@ struct loco_t {
       yuv420p.open();
     #endif
     #if defined(loco_sprite)
+
+      #if defined(loco_vulkan)
+        fan::webp::image_info_t ii;
+        static constexpr uint8_t pixel_data[] = {
+          1, 0, 0, 1,
+          1, 0, 0, 1
+        };
+        ii.data = (void*)pixel_data;
+        ii.size = 1;
+        unloaded_image.load(
+          get_context(),
+          ii
+        );
+      #endif
+
       sprite.open();
     #endif
     #if defined(loco_letter)
@@ -558,6 +581,8 @@ struct loco_t {
     return OFFSETLESS(window, loco_t, window);
   }
 
+  fan::graphics::image_t unloaded_image;
+
   fan::function_t<void()> draw_queue = []{};
 
 protected:
@@ -573,5 +598,4 @@ protected:
   #else
     fan::graphics::context_t* context;
   #endif
-
 };

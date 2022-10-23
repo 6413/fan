@@ -6,7 +6,7 @@
 #define fan_debug 3
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
-//#define loco_vulkan
+#define loco_vulkan
 
 #define loco_window
 #define loco_context
@@ -20,8 +20,8 @@ constexpr uint32_t count = 1.0e+1;
 
 struct pile_t {
 
-  static constexpr fan::vec2 ortho_x = fan::vec2(0, 800);
-  static constexpr fan::vec2 ortho_y = fan::vec2(0, 800);
+  static constexpr fan::vec2 ortho_x = fan::vec2(-1, 1);
+  static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
 
   void open() {
     loco.open(loco_t::properties_t());
@@ -59,13 +59,18 @@ int main() {
   fan::time::clock c;
   c.start();
 
-  for (uint32_t i = 0; i < 100; i++) {
-    p.size = fan::vec2(1, 1);
-    p.position = fan::random::vec2(0, 800);
+  p.size = fan::vec2(1, 1);
+  p.position = 0;
+  p.color = fan::color::hex(0x7f7f7fff);
+  pile->loco.rectangle.push_back(&pile->cids[0], p);
 
-    p.color = fan::random::color();
-    pile->loco.rectangle.push_back(&pile->cids[1], p);
-  }
+  //for (uint32_t i = 0; i < 100; i++) {
+  //  p.size = fan::vec2(1, 1);
+  //  p.position = fan::random::vec2(0, 800);
+
+  //  p.color = fan::random::color();
+  //  pile->loco.rectangle.push_back(&pile->cids[1], p);
+  //}
 
 
   fan::print("elapsed", c.elapsed());

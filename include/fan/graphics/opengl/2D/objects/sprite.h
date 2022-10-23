@@ -34,44 +34,16 @@ struct sb_sprite_name {
   };
 
   void push_back(fan::graphics::cid_t* cid, properties_t& p) {
-    auto loco = get_loco();
-
-    VkDescriptorImageInfo imageInfo{};
-    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    auto& img = loco->get_context()->image_list[p.get_image()] = loco->get_context()->image_list[p.get_image()];
-    imageInfo.imageView = img.image_view;
-
-    VkPhysicalDeviceProperties properties{};
-    vkGetPhysicalDeviceProperties(loco->get_context()->physicalDevice, &properties);
-
-    VkSamplerCreateInfo samplerInfo{};
-    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    samplerInfo.magFilter = VK_FILTER_LINEAR;
-    samplerInfo.minFilter = VK_FILTER_LINEAR;
-    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    samplerInfo.anisotropyEnable = VK_TRUE;
-    samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
-    samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-    samplerInfo.unnormalizedCoordinates = VK_FALSE;
-    samplerInfo.compareEnable = VK_FALSE;
-    samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-
-    if (vkCreateSampler(loco->get_context()->device, &samplerInfo, nullptr, &img.sampler) != VK_SUCCESS) {
-      throw std::runtime_error("failed to create texture sampler!");
-    }
-
-    imageInfo.sampler = img.sampler;
-
-    m_descriptor.m_properties[2].binding = 5;
-    m_descriptor.m_properties[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    m_descriptor.m_properties[2].flags = VK_SHADER_STAGE_FRAGMENT_BIT;
-    m_descriptor.m_properties[2].image_info = imageInfo;
-    m_descriptor.m_properties[2].range = VK_WHOLE_SIZE;
-    m_descriptor.m_properties[2].dst_binding = 5; // ?
-
+    #if defined(loco_vulkan)
+      auto loco = get_loco();
+      VkDescriptorImageInfo imageInfo{};
+      imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+      auto& img = loco->get_context()->image_list[p.get_image()] = loco->get_context()->image_list[p.get_image()];
+      imageInfo.imageView = img.image_view;
+      imageInfo.sampler = img.sampler;
+      m_descriptor.m_properties[2].image_info = imageInfo;
+      m_descriptor.update(loco->get_context());
+    #endif
     sb_push_back(cid, p);
   }
   void erase(fan::graphics::cid_t* cid) {
@@ -82,6 +54,7 @@ struct sb_sprite_name {
     sb_draw();
   }
 
+  // can be bigger with vulkan
   static constexpr uint32_t max_instance_size = fan::min(256, 4096 / (sizeof(instance_t) / 4));
   #if defined(loco_opengl)
     #ifndef sb_shader_vertex_path
@@ -98,8 +71,12 @@ struct sb_sprite_name {
     #include _FAN_PATH(graphics/vulkan/2D/objects/shape_builder.h)
   #endif
   
-
   void open() {
+    #if defined(loco_vulkan)
+
+    auto loco = get_loco();
+    auto context = loco->get_context();
+
     std::array<fan::vulkan::write_descriptor_set_t, vulkan_buffer_count> ds_properties{};
 
     ds_properties[0].binding = 0;
@@ -117,44 +94,21 @@ struct sb_sprite_name {
     ds_properties[1].dst_binding = 1;
 
     VkDescriptorImageInfo imageInfo{};
-    imageInfo.imageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    imageInfo.imageView = 0;
-    imageInfo.sampler = 0;
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    imageInfo.imageView = loco->unloaded_image.get(context).image_view;
+    imageInfo.sampler = loco->unloaded_image.get(context).sampler;
 
     ds_properties[2].binding = 5;
     ds_properties[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     ds_properties[2].flags = VK_SHADER_STAGE_FRAGMENT_BIT;
     ds_properties[2].image_info = imageInfo;
-    ds_properties[2].range = VK_WHOLE_SIZE;
     ds_properties[2].dst_binding = 5; // ?
-
-    /*
-    
-       VkPhysicalDeviceProperties properties{};
-        vkGetPhysicalDeviceProperties(physicalDevice, &properties);
-
-        VkSamplerCreateInfo samplerInfo{};
-        samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-        samplerInfo.magFilter = VK_FILTER_LINEAR;
-        samplerInfo.minFilter = VK_FILTER_LINEAR;
-        samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        samplerInfo.anisotropyEnable = VK_TRUE;
-        samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
-        samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-        samplerInfo.unnormalizedCoordinates = VK_FALSE;
-        samplerInfo.compareEnable = VK_FALSE;
-        samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-        samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-
-        if (vkCreateSampler(device, &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create texture sampler!");
-        }
-
-    */
-
-    sb_open(ds_properties);
+    #endif
+    sb_open(
+      #if defined(loco_vulkan)
+        ds_properties
+      #endif
+    );
   }
   void close() {
     sb_close();

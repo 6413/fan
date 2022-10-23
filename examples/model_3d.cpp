@@ -26,9 +26,9 @@ struct pile_t {
       ortho_x,
       ortho_y
     );
-    loco.get_window()->add_resize_callback([&](fan::window_t*, const fan::vec2i& size) {
+    /*loco.get_window()->add_resize_callback([&](fan::window_t*, const fan::vec2i& size) {
       viewport.set(loco.get_context(), 0, size, size);
-    });
+    });*/
     viewport.open(loco.get_context());
     viewport.set(loco.get_context(), 0, loco.get_window()->get_size(), loco.get_window()->get_size());
   }
@@ -80,43 +80,43 @@ int main() {
 
   bool done = true;
 
-  window.add_keys_callback([&](fan::window_t*, uint16_t key, fan::key_state key_state) {
-    if (key_state != fan::key_state::press) {
-      return;
-    }
+  //window.add_keys_callback([&](fan::window_t*, uint16_t key, fan::key_state key_state) {
+  //  if (key_state != fan::key_state::press) {
+  //    return;
+  //  }
 
-    switch (key) {
-      case fan::key_left: {
-        //dst.position = fan::vec3(0, 15, 0);
-        dst.angle = -fan::math::pi;
-        dst.size = 0.3;
-        //dst.size = 1.5;
-        p.src = pile.loco.model.get_keyframe();
-        p.dst = dst;
-        dst.position = p.src.position;
-        striver.set(p);
-        fan::print("left");
-        left = true;
-        done = false;
-        break;
-      }
-      case fan::key_right: {
-        //dst.position = fan::vec3(0, -15, 0);
-        //dst.size = 0.5;
-        dst.size = 0.3;
-        dst.angle = 0;
-        p.src = pile.loco.model.get_keyframe();
-        dst.position = p.src.position;
-        p.dst = dst;
-        striver.set(p);
-        fan::print("right");
-        left = false;
-        done = false;
-        break;
-      }
-    }
-    
-  });
+  //  switch (key) {
+  //    case fan::key_left: {
+  //      //dst.position = fan::vec3(0, 15, 0);
+  //      dst.angle = -fan::math::pi;
+  //      dst.size = 0.3;
+  //      //dst.size = 1.5;
+  //      p.src = pile.loco.model.get_keyframe();
+  //      p.dst = dst;
+  //      dst.position = p.src.position;
+  //      striver.set(p);
+  //      fan::print("left");
+  //      left = true;
+  //      done = false;
+  //      break;
+  //    }
+  //    case fan::key_right: {
+  //      //dst.position = fan::vec3(0, -15, 0);
+  //      //dst.size = 0.5;
+  //      dst.size = 0.3;
+  //      dst.angle = 0;
+  //      p.src = pile.loco.model.get_keyframe();
+  //      dst.position = p.src.position;
+  //      p.dst = dst;
+  //      striver.set(p);
+  //      fan::print("right");
+  //      left = false;
+  //      done = false;
+  //      break;
+  //    }
+  //  }
+  //  
+  //});
 
   pile.loco.loop([&] {
     if (!(done)) {
