@@ -278,10 +278,12 @@ namespace fan {
       fan::camera camera;
       fan::opengl::opengl_t opengl;
 
+      context_t();
+      context_t(fan::window_t* window, const properties_t& p = properties_t());
+      ~context_t();
+
       void open();
       void close();
-
-      void bind_to_window(fan::window_t* window, const properties_t& p = properties_t());
 
       void render(fan::window_t* window);
 
@@ -471,7 +473,7 @@ namespace fan {
   }
 }
 
-inline void fan::opengl::context_t::open() {
+inline fan::opengl::context_t::context_t() {
   theme_list.Open();
   image_list.Open();
   viewport_list.Open();
@@ -482,14 +484,8 @@ inline void fan::opengl::context_t::open() {
   m_flags = 0;
   current_program = fan::uninitialized;
 }
-inline void fan::opengl::context_t::close() {
-  theme_list.Close();
-  image_list.Close();
-  viewport_list.Close();
-  matrices_list.Close();
-}
 
-inline void fan::opengl::context_t::bind_to_window(fan::window_t* window, const properties_t& p) {
+inline fan::opengl::context_t::context_t(fan::window_t* window, const properties_t& p) : context_t() {
 
   #if defined(fan_platform_windows)
 
@@ -516,6 +512,7 @@ inline void fan::opengl::context_t::bind_to_window(fan::window_t* window, const 
   int pixel_format;
   UINT num_formats;
 
+  // enable maybe /LTCG to fix with sanitizer on
   opengl.call(opengl.internal.wglChoosePixelFormatARB, window->m_hdc, pixel_format_attribs, (float*)0, 1, &pixel_format, &num_formats);
 
   if (!num_formats) {
@@ -580,6 +577,13 @@ inline void fan::opengl::context_t::bind_to_window(fan::window_t* window, const 
   #if fan_debug >= fan_debug_high
   context_t::set_error_callback();
   #endif
+}
+
+inline fan::opengl::context_t::~context_t() {
+  theme_list.Close();
+  image_list.Close();
+  viewport_list.Close();
+  matrices_list.Close();
 }
 
 inline void fan::opengl::context_t::render(fan::window_t* window) {

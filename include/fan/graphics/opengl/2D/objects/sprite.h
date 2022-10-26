@@ -71,7 +71,7 @@ struct sb_sprite_name {
     #include _FAN_PATH(graphics/vulkan/2D/objects/shape_builder.h)
   #endif
   
-  void open() {
+  sb_sprite_name() {
     #if defined(loco_vulkan)
 
     auto loco = get_loco();
@@ -110,7 +110,7 @@ struct sb_sprite_name {
       #endif
     );
   }
-  void close() {
+  ~sb_sprite_name() {
     sb_close();
   }
 
@@ -156,6 +156,6 @@ struct sb_sprite_name {
 
 #undef sb_shader_vertex_path
 #undef sb_shader_fragment_path
-#undef sb_sprite_name
+#undef ~sb_sprite_name
 
 #include _FAN_PATH(graphics/opengl/2D/objects/hardcode_close.h)

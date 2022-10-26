@@ -6,7 +6,7 @@
 #define fan_debug 3
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
-#define loco_vulkan
+//#define loco_vulkan
 
 #define loco_window
 #define loco_context
@@ -19,8 +19,7 @@ struct pile_t {
   static constexpr fan::vec2 ortho_x = fan::vec2(-1, 1);
   static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
 
-  void open() {
-    loco.open(loco_t::properties_t());
+  pile_t() {
     fan::vec2 window_size = loco.get_window()->get_size();
     fan::graphics::open_matrices(
       loco.get_context(),
@@ -52,7 +51,6 @@ struct pile_t {
 int main() {
 
   pile_t* pile = new pile_t;
-  pile->open();
 
   loco_t::sprite_t::properties_t p;
 
@@ -79,9 +77,9 @@ int main() {
   pile->loco.set_vsync(false);
 
 
-  VkPhysicalDeviceProperties v;
-  vkGetPhysicalDeviceProperties(pile->loco.get_context()->physicalDevice, &v);
-  fan::print(v.limits.maxPerStageDescriptorSampledImages);
+  //VkPhysicalDeviceProperties v;
+  //vkGetPhysicalDeviceProperties(pile->loco.get_context()->physicalDevice, &v);
+  //fan::print(v.limits.maxPerStageDescriptorSampledImages);
   pile->loco.loop([&] {
     pile->loco.get_fps();
   });

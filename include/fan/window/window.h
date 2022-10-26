@@ -229,15 +229,13 @@ namespace fan {
 		// for static value storing
 		static constexpr int reserved_storage = -1;
 
+		window_t(const fan::vec2i& window_size = fan::window_t::default_window_size, const fan::string& name = default_window_name, uint64_t flags = 0);
+		~window_t();
 
-		window_t() = default;
 		window_t(window_t&&) = delete;
 		window_t(const window_t&) = delete;
 		window_t& operator=(const window_t&) = delete;
 		window_t& operator=(window_t&&) = delete;
-
-		void open(const fan::vec2i& window_size = fan::window_t::default_window_size, const fan::string& name = default_window_name, uint64_t flags = 0);
-		void close();
 
 		void destroy() {
 			#ifdef fan_platform_windows

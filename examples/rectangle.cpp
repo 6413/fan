@@ -20,11 +20,10 @@ constexpr uint32_t count = 1.0e+1;
 
 struct pile_t {
 
-  static constexpr fan::vec2 ortho_x = fan::vec2(-1, 1);
-  static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
+  static constexpr fan::vec2 ortho_x = fan::vec2(0, 800);
+  static constexpr fan::vec2 ortho_y = fan::vec2(0, 800);
 
-  void open() {
-    loco.open(loco_t::properties_t());
+  pile_t() {
     fan::graphics::open_matrices(
       loco.get_context(),
       &matrices,
@@ -48,7 +47,6 @@ struct pile_t {
 int main() {
 
   pile_t* pile = new pile_t;
-  pile->open();
 
   loco_t::rectangle_t::properties_t p;
   
@@ -56,42 +54,38 @@ int main() {
   p.get_matrices() = &pile->matrices;
   p.get_viewport() = &pile->viewport;
 
-  fan::time::clock c;
-  c.start();
-
-  p.size = fan::vec2(1, 1);
-  p.position = 0;
-  p.color = fan::color::hex(0x7f7f7fff);
+  p.size = fan::vec2(50, 50);
+  p.position = fan::vec2(400, 400);
+  p.color = fan::colors::blue;
   pile->loco.rectangle.push_back(&pile->cids[0], p);
 
-  //for (uint32_t i = 0; i < 100; i++) {
-  //  p.size = fan::vec2(1, 1);
-  //  p.position = fan::random::vec2(0, 800);
-
-  //  p.color = fan::random::color();
-  //  pile->loco.rectangle.push_back(&pile->cids[1], p);
-  //}
-
-
-  fan::print("elapsed", c.elapsed());
-
-  //p.position = fan::vec2(0.5, 0);
-  //p.color = fan::random::color();
-  //pile->loco.rectangle.push_back(&pile->cids[0], p);
 
   pile->loco.set_vsync(false);
 
-  //VkPhysicalDeviceProperties pdp;
-  //vkGetPhysicalDeviceProperties(pile->loco.get_context()->physicalDevice, &pdp);
-  //fan::print(pdp.limits.maxMemoryAllocationCount);
+  fan::vec2 suunta = fan::random::vec2(-1500, 1500);
 
+  auto& rectangle = pile->loco.rectangle;
+
+  auto& window = *pile->loco.get_window();
+  
   pile->loco.loop([&] {
-
-
-
-    //pile->loco.rectangle.set(&pile->cids[0], &loco_t::rectangle_t::instance_t::position, pile->loco.get_mouse_position(pile->viewport));
-    
     pile->loco.get_fps();
+    //rectangle.
+   /* fan::vec2 sijainti = rectangle.get(&pile->cids[0], &loco_t::rectangle_t::instance_t::position);
+
+    if (sijainti.x >= 750 || sijainti.x <= 50) {
+      suunta.x *= -1;
+    }
+    if (sijainti.y >= 750 || sijainti.y <= 50) {
+      suunta.y *= -1;
+    }
+
+    rectangle.set(
+      &pile->cids[0],
+      &loco_t::rectangle_t::instance_t::position,
+      sijainti + suunta * window.get_delta_time()
+    );*/
+
   });
 
   return 0;

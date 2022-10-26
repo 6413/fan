@@ -626,7 +626,7 @@ uintptr_t fan::window_t::get_fps(uint32_t frame_update, bool window_name, bool p
   return 0;
 }
 
-void fan::window_t::open(const fan::vec2i& window_size, const fan::string& name, uint64_t flags)
+fan::window_t::window_t(const fan::vec2i& window_size, const fan::string& name, uint64_t flags)
 {
   m_size = window_size;
   m_mouse_position = 0;
@@ -663,7 +663,7 @@ void fan::window_t::open(const fan::vec2i& window_size, const fan::string& name,
   this->calculate_delta_time();
 }
 
-void fan::window_t::close()
+fan::window_t::~window_t()
 {
   this->destroy_window();
 }

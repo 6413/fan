@@ -8,13 +8,13 @@ struct vfi_t {
     return OFFSETLESS(this, loco_t, vfi_var_name);
   }
 
-  void open() {
+  vfi_t() {
     focus.mouse.invalidate();
     focus.keyboard.invalidate();
     focus.text.invalidate();
     shape_list.Open();
   }
-  void close() {
+  ~vfi_t() {
     shape_list.Close();
   }
 

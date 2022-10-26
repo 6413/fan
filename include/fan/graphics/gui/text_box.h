@@ -309,10 +309,10 @@ struct text_box_t {
   #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/objects/rectangle_box.fs)
   #include _FAN_PATH(graphics/opengl/2D/objects/shape_builder.h)
 
-  void open() {
+  text_box_t() {
     sb_open();
   }
-  void close() {
+  ~text_box_t() {
     // check erase, need to somehow iterate block
     assert(0);
     sb_close();

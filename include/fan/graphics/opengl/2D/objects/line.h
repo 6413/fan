@@ -47,10 +47,10 @@ struct line_t {
   #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/objects/line.fs)
   #include _FAN_PATH(graphics/opengl/2D/objects/shape_builder.h)
 
-  void open() {
+  line_t() {
     sb_open();
   }
-  void close() {
+  ~line_t() {
     sb_close();
   }
 

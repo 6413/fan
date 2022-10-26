@@ -18,8 +18,7 @@
 
 struct pile_t {
 
-  void open() {
-    loco.open(loco_t::properties_t());
+  pile_t() {
     fan::vec2 window_size = loco.get_window()->get_size();
     fan::vec2 ratio = window_size / window_size.max();
     fan::graphics::open_matrices(
@@ -57,7 +56,6 @@ struct pile_t {
 int main() {
 
   pile_t pile;
-  pile.open();
 
   loco_t::text_box_t::properties_t tp;
   tp.get_matrices() = &pile.matrices;
