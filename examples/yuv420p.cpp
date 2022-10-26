@@ -19,8 +19,7 @@ struct pile_t {
   static constexpr fan::vec2 ortho_x = fan::vec2(-1, 1);
   static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
 
-  void open() {
-    loco.open(loco_t::properties_t());
+  pile_t() {
     fan::graphics::open_matrices(
       loco.get_context(),
       &matrices,
@@ -45,7 +44,6 @@ struct pile_t {
 int main() {
 
   pile_t* pile = new pile_t;
-  pile->open();
 
   loco_t::yuv420p_t::properties_t p;
 

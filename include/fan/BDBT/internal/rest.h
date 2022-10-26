@@ -2,6 +2,55 @@
   namespace BDBT_set_namespace {
 #endif
 
+typedef BDBT_set_type_node _BDBT_P(NodeReference_t);
+
+#if _BDBT_set_ElementPerNode <= 0xff
+  typedef uint8_t _BDBT_P(NodeEIT_t);
+#elif _BDBT_set_ElementPerNode < 0xffff
+  typedef uint16_t _BDBT_P(NodeEIT_t);
+#else
+  #error no
+#endif
+
+#if BDBT_set_PadNode == 0
+  #pragma pack(push, 1)
+#endif
+BDBT_StructBegin(_BDBT_P(Node_t))
+  _BDBT_P(NodeReference_t) n[_BDBT_set_ElementPerNode];
+BDBT_StructEnd(_BDBT_P(Node_t))
+#if BDBT_set_PadNode == 0
+  #pragma pack(pop)
+#endif
+
+#ifdef BDBT_set_CPP_ConstructDestruct
+  struct _BDBT_P(t);
+  static void _BDBT_P(Open)(_BDBT_P(t) *list);
+  static void _BDBT_P(Close)(_BDBT_P(t) *list);
+#endif
+
+BDBT_StructBegin(_BDBT_P(t))
+  #if BDBT_set_StoreFormat == 0
+    #if BDBT_set_BaseLibrary == 0
+      VEC_t nodes;
+    #elif BDBT_set_BaseLibrary == 1
+      fan::hector_t<_BDBT_P(Node_t)> nodes;
+    #endif
+  #endif
+  struct{
+    _BDBT_P(NodeReference_t) c;
+    _BDBT_P(NodeReference_t) p;
+  }e;
+
+  #ifdef BDBT_set_CPP_ConstructDestruct
+    _BDBT_P(t)(){
+      _BDBT_P(Open)(this);
+    }
+    ~_BDBT_P(t)(){
+      _BDBT_P(Close)(this);
+    }
+  #endif
+BDBT_StructEnd(_BDBT_P(t))
+
 static
 bool
 _BDBT_P(IsNodeReferenceInvalid)
@@ -159,7 +208,7 @@ _BDBT_P(_AfterInitNodes)
 
 static
 void
-_BDBT_P(open)
+_BDBT_P(Open)
 (
   _BDBT_P(t) *list
 ){
@@ -176,7 +225,7 @@ _BDBT_P(open)
 }
 static
 void
-_BDBT_P(close)
+_BDBT_P(Close)
 (
   _BDBT_P(t) *list
 ){

@@ -24,10 +24,10 @@ struct text_renderer_t {
     uint32_t instance;
   };*/
 
-  void open() {
+  text_renderer_t() {
     e.amount = 0;
   }
-  void close() {
+  ~text_renderer_t() {
     for (uint32_t i = 0; i < letter_ids.size(); i++) {
       letter_ids[i].cid_list.Close();
     }

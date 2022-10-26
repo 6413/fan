@@ -1,17 +1,40 @@
+/* +++ outdated +++ */
+
+#ifdef BDBT_set_declare_basic_types
+  #error outdated setting. now it shipped with BDBT_set_declare_rest
+#endif
+
+/* --- outdated --- */
+
 #ifndef BDBT_set_BaseLibrary
   #define BDBT_set_BaseLibrary 0
 #endif
-#if BDBT_set_BaseLibrary == 0
-  #define _BDBT_INCLUDE _WITCH_PATH
-#elif BDBT_set_BaseLibrary == 1
-  #define _BDBT_INCLUDE _FAN_PATH
+
+#ifndef BDBT_set_Language
+  #if BDBT_set_BaseLibrary == 0
+    #define BDBT_set_Language 0
+  #elif BDBT_set_BaseLibrary == 1
+    #define BDBT_set_Language 1
+  #else
+    #error ?
+  #endif
+#endif
+
+#ifndef BDBT_set_AreWeInsideStruct
+  #define BDBT_set_AreWeInsideStruct 0
 #endif
 
 #ifndef BDBT_set_prefix
   #error ifndef BDBT_set_prefix
 #endif
-#ifndef BDBT_set_declare_basic_types
-  #define BDBT_set_declare_basic_types 1
+#ifndef BDBT_set_StructFormat
+  #if BDBT_set_Language == 0
+    #define BDBT_set_StructFormat 0
+  #elif BDBT_set_Language == 1
+    #define BDBT_set_StructFormat 1
+  #else
+    #error ?
+  #endif
 #endif
 #ifndef BDBT_set_declare_rest
   #define BDBT_set_declare_rest 1
@@ -62,6 +85,12 @@
 #endif
 
 #if BDBT_set_BaseLibrary == 0
+  #define _BDBT_INCLUDE _WITCH_PATH
+#elif BDBT_set_BaseLibrary == 1
+  #define _BDBT_INCLUDE _FAN_PATH
+#endif
+
+#if BDBT_set_BaseLibrary == 0
   #include _BDBT_INCLUDE(VEC/VEC.h)
 #elif BDBT_set_BaseLibrary == 1
   #include _BDBT_INCLUDE(types/memory.h)
@@ -74,9 +103,14 @@
 #endif
 #define _BDBT_P(p0) CONCAT3(BDBT_set_prefix, _, p0)
 
-#if BDBT_set_declare_basic_types == 1
-  #include _BDBT_INCLUDE(BDBT/internal/basic_types.h)
+#if BDBT_set_StructFormat == 0
+  #define BDBT_StructBegin(n) typedef struct{
+  #define BDBT_StructEnd(n) }n;
+#elif BDBT_set_StructFormat == 1
+  #define BDBT_StructBegin(n) struct n{
+  #define BDBT_StructEnd(n) };
 #endif
+
 #if BDBT_set_declare_rest == 1
   #include _BDBT_INCLUDE(BDBT/internal/rest.h)
 #endif
@@ -84,14 +118,21 @@
   #include _BDBT_INCLUDE(BDBT/internal/Key/Key.h)
 #endif
 
+#undef BDBT_StructBegin
+#undef BDBT_StructEnd
+
 #undef _BDBT_P
 #undef _BDBT_BP
 
+#undef _BDBT_INCLUDE
+
 #undef _BDBT_set_ElementPerNode
 #undef BDBT_set_BitPerNode
+#ifndef BDBT_set_CPP_ConstructDestruct
+  #undef BDBT_set_CPP_ConstructDestruct
+#endif
 #undef BDBT_set_prefix
 #undef BDBT_set_declare_Key
-#undef BDBT_set_declare_basic_types
 #undef BDBT_set_declare_rest
 #undef BDBT_set_type_node
 #undef BDBT_set_PadNode
@@ -106,5 +147,4 @@
   #undef BDBT_set_namespace
 #endif
 
-#undef _BDBT_INCLUDE
 #undef BDBT_set_BaseLibrary

@@ -51,7 +51,7 @@ struct rectangle_t {
   #endif
   #include _FAN_PATH(graphics/shape_builder.h)
 
-  void open() {
+  rectangle_t() {
     #if defined(loco_opengl)
       sb_open();
     #elif defined(loco_vulkan)
@@ -74,7 +74,7 @@ struct rectangle_t {
       sb_open(ds_properties);
     #endif
   }
-  void close() {
+  ~rectangle_t() {
     sb_close();
   }
 

@@ -311,13 +311,11 @@ namespace fan {
       static constexpr fan::vec2 ortho_x = fan::vec2(-1, 1);
       static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
 
-      void open() {
+      context_t() {
         createInstance();
         setupDebugMessenger();
       }
-
-      void bind_to_window(fan::window_t* window) {
-
+      context_t(fan::window_t* window) : context_t() {
         window->add_resize_callback([&](const fan::window_t::resize_cb_data_t& d) {
           recreateSwapChain(d.size);
         });
@@ -335,7 +333,7 @@ namespace fan {
         createSyncObjects();
       }
 
-      void close() {
+      ~context_t() {
         cleanupSwapChain();
 
         vkDestroyRenderPass(device, renderPass, nullptr);

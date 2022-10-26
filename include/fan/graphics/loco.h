@@ -32,21 +32,21 @@ struct loco_t;
 #define BDBT_set_prefix loco_bdbt
 #define BDBT_set_type_node uint16_t
 #define BDBT_set_BitPerNode 2
-#define BDBT_set_declare_basic_types 1
 #define BDBT_set_declare_rest 1
 #define BDBT_set_declare_Key 0
 #define BDBT_set_BaseLibrary 1
+#define BDBT_set_CPP_ConstructDestruct
 #include _FAN_PATH(BDBT/BDBT.h)
 
 #define BDBT_set_prefix loco_bdbt
 #define BDBT_set_type_node uint16_t
 #define BDBT_set_KeySize 0
 #define BDBT_set_BitPerNode 2
-#define BDBT_set_declare_basic_types 0
 #define BDBT_set_declare_rest 0
 #define BDBT_set_declare_Key 1
 #define BDBT_set_base_prefix loco_bdbt
 #define BDBT_set_BaseLibrary 1
+#define BDBT_set_CPP_ConstructDestruct
 #include _FAN_PATH(BDBT/BDBT.h)
 
 #define loco_vfi
@@ -71,9 +71,29 @@ struct loco_t;
 
 struct loco_t {
 
+protected:
+  
+  #ifdef loco_window
+    fan::window_t window;
+  #else
+    fan::window_t* window;
+  #endif
+
+  #ifdef loco_context
+    fan::graphics::context_t context;
+  #else
+    fan::graphics::context_t* context;
+  #endif
+public:
+
 #ifdef loco_vulkan
   struct descriptor_pool_t {
-    void open(fan::vulkan::context_t* context) {
+
+    fan::graphics::context_t* get_context() {
+      return ((loco_t*)OFFSETLESS(this, loco_t, descriptor_pool))->get_context();
+    }
+
+    descriptor_pool_t() {
       uint32_t total = 0;
       VkDescriptorPoolSize pool_sizes[] = {
         #ifdef loco_vulkan_descriptor_ssbo
@@ -102,10 +122,10 @@ struct loco_t {
       pool_info.pPoolSizes = pool_sizes;
       pool_info.maxSets = fan::vulkan::MAX_FRAMES_IN_FLIGHT;
 
-      fan::vulkan::validate(vkCreateDescriptorPool(context->device, &pool_info, nullptr, &m_descriptor_pool));
+      fan::vulkan::validate(vkCreateDescriptorPool(get_context()->device, &pool_info, nullptr, &m_descriptor_pool));
     }
-    void close(fan::vulkan::context_t* context) {
-      vkDestroyDescriptorPool(context->device, m_descriptor_pool, nullptr);
+    ~descriptor_pool_t() {
+      vkDestroyDescriptorPool(get_context()->device, m_descriptor_pool, nullptr);
     }
 
     VkDescriptorPool m_descriptor_pool;
@@ -279,13 +299,13 @@ struct loco_t {
       #define loco_font "fonts/bitter"
     #endif
     #define sb_shape_var_name letter
-    #include _FAN_PATH(graphics/opengl/2D/objects/letter_renderer.h)
+    #include _FAN_PATH(graphics/opengl/2D/objects/letter.h)
     letter_t sb_shape_var_name;
     #undef sb_shape_var_name
   #endif
   #if defined(loco_text)
     #define sb_shape_var_name text
-    #include _FAN_PATH(graphics/opengl/2D/objects/text_renderer.h)
+    #include _FAN_PATH(graphics/opengl/2D/objects/text.h)
     using text_t = text_renderer_t;
     text_t sb_shape_var_name;
     #undef sb_shape_var_name
@@ -332,17 +352,14 @@ struct loco_t {
     #endif
   };
 
-  void open(const properties_t& p) {
-    vfi_var_name.open();
-
+  loco_t(const properties_t& p = properties_t()) :
     #ifdef loco_window
-      window.open(fan::vec2(800, 800));
+      window(fan::vec2(800, 800)),
     #else
-      window = p.window;
+      window(p.window),
     #endif
-
-    loco_bdbt_open(&bdbt);
-
+    context(get_window())
+  {
     get_window()->add_buttons_callback([this](const mouse_buttons_cb_data_t& d) {
       fan::vec2 window_size = get_window()->get_size();
       feed_mouse_button(d.button, d.state, get_mouse_position());
@@ -360,31 +377,17 @@ struct loco_t {
       feed_text(d.character);
     });
 
-    context.open();
-    context.bind_to_window(&window);
-
     #if defined(loco_opengl)
       fan::print("RENDERER BACKEND: OPENGL");
     #elif defined(loco_vulkan)
       fan::print("RENDERER BACKEND: VULKAN");
-      descriptor_pool.open(get_context());
     #endif
 
     #if defined(loco_letter)
       font.open(get_context(), loco_font);
     #endif
 
-    #if defined(loco_line)
-      line.open();
-    #endif
-    #if defined(loco_rectangle)
-      rectangle.open();
-    #endif
-   #if defined(loco_yuv420p)
-      yuv420p.open();
-    #endif
     #if defined(loco_sprite)
-
       #if defined(loco_vulkan)
         fan::webp::image_info_t ii;
         static constexpr uint8_t pixel_data[] = {
@@ -398,27 +401,6 @@ struct loco_t {
           ii
         );
       #endif
-
-      sprite.open();
-    #endif
-    #if defined(loco_letter)
-      letter.open();
-    #endif
-    #if defined(loco_text)
-      text.open();
-    #endif
-    #if defined(loco_button)
-      button.open();
-    #endif
-    #if defined(loco_text_box)
-      text_box.open();
-    #endif
-    #if defined(loco_menu_maker)
-      menu_maker.open();
-      dropdown.open();
-    #endif
-    #if defined(loco_model_3d)
-      model.open();
     #endif
     #if defined(loco_post_process)
       fan::opengl::core::renderbuffer_t::properties_t rp;
@@ -427,53 +409,6 @@ struct loco_t {
         fan::throw_error("failed to initialize frame buffer");
       }
     #endif
-  }
-  void close() {
-
-    vfi.close();
-
-    loco_bdbt_close(&bdbt);
-
-    #if defined(loco_line)
-      line.close();
-    #endif
-    #if defined(loco_rectangle)
-      rectangle.close();
-    #endif
-    #if defined(loco_yuv420p)
-      yuv420p.close();
-    #endif
-    #if defined(loco_sprite)
-      sprite.close();
-    #endif
-    #if defined(loco_letter)
-      letter.close();
-    #endif
-    #if defined(loco_text)
-      text.close();
-    #endif
-    #if defined(loco_text_box)
-      text_box.close();
-    #endif
-    #if defined(loco_button)
-      button.close();
-    #endif
-    #if defined(loco_menu_maker)
-      dropdown.close();
-      menu_maker.close();
-    #endif
-    #if defined(loco_model_3d)
-      model.close();
-    #endif
-    #if defined(loco_post_process)
-      post_process.close();
-    #endif
-
-    #ifdef loco_vulkan
-      descriptor_pool.close(get_context());
-    #endif
-
-    get_context()->close();
   }
 
   vfi_t::shape_id_t push_back_input_hitbox(const vfi_t::properties_t& p) {
@@ -566,7 +501,7 @@ struct loco_t {
     while (1) {
       uint32_t window_event = get_window()->handle_events();
       if(window_event & fan::window_t::events::close){
-        get_window()->close();
+        get_window()->destroy_window();
         break;
       }
 
@@ -584,18 +519,4 @@ struct loco_t {
   fan::graphics::image_t unloaded_image;
 
   fan::function_t<void()> draw_queue = []{};
-
-protected:
-  
-  #ifdef loco_window
-    fan::window_t window;
-  #else
-    fan::window_t* window;
-  #endif
-
-  #ifdef loco_context
-    fan::graphics::context_t context;
-  #else
-    fan::graphics::context_t* context;
-  #endif
 };

@@ -102,10 +102,10 @@ struct sb_sprite_name {
   #undef sb_shader_vertex_path
   #undef sb_shader_fragment_path
 
-  void open() {
+  sb_sprite_name() {
     sb_open();
   }
-  void close() {
+  ~sb_sprite_name() {
     sb_close();
   }
 

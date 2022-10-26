@@ -35,17 +35,15 @@
 //constexpr platform_t platform = platform_t::windows;
 #define fan_platform_windows
 
-#ifdef _MSC_VER
-#define fan_compiler_visual_studio
-#elif defined(__clang__)
-#define fan_compiler_clang
+#if defined(__clang__)
+	#define fan_compiler_clang
+#elif defined(_MSC_VER)
+	#define fan_compiler_visual_studio
 #elif defined(__GNUC__)
-#define fan_compiler_gcc
+	#define fan_compiler_gcc
 #endif
 #elif defined(__ANDROID__ )
-
-#define fan_platform_android
-
+	#define fan_platform_android
 #elif defined(__linux__)
 
 // constexpr platform_t platform = platform_t::windows;
@@ -64,13 +62,12 @@
 #endif
 
 // TBD
-#if __cplusplus >= 199711L && defined(fan_compiler_visual_studio)
-#define fan_std23
+#if __cplusplus >= 202011L && defined(fan_compiler_visual_studio) && !defined(fan_compiler_clang)
+	#define fan_std23
 #endif
-#undef fan_std23
 
 #if defined(fan_std23)
-#include <stacktrace>
+	#include <stacktrace>
 #endif
 
 typedef intptr_t si_t;

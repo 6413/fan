@@ -64,10 +64,10 @@ struct letter_t {
   #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/objects/letter.fs)
   #include _FAN_PATH(graphics/opengl/2D/objects/shape_builder.h)
 
-  void open() {
+  letter_t() {
     sb_open();
   }
-  void close() {
+  ~letter_t() {
     sb_close();
   }
 
