@@ -156,6 +156,6 @@ struct sb_sprite_name {
 
 #undef sb_shader_vertex_path
 #undef sb_shader_fragment_path
-#undef ~sb_sprite_name
+#undef sb_sprite_name
 
 #include _FAN_PATH(graphics/opengl/2D/objects/hardcode_close.h)
