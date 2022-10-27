@@ -86,6 +86,8 @@ protected:
   #endif
 public:
 
+  fan::graphics::image_t unloaded_image;
+
 #ifdef loco_vulkan
   struct descriptor_pool_t {
 
@@ -120,7 +122,7 @@ public:
       pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
       pool_info.poolSizeCount = std::size(pool_sizes);
       pool_info.pPoolSizes = pool_sizes;
-      pool_info.maxSets = fan::vulkan::MAX_FRAMES_IN_FLIGHT;
+      pool_info.maxSets = fan::vulkan::MAX_FRAMES_IN_FLIGHT * 10;
 
       fan::vulkan::validate(vkCreateDescriptorPool(get_context()->device, &pool_info, nullptr, &m_descriptor_pool));
     }
@@ -249,6 +251,13 @@ public:
 
   fan::ev_timer_t ev_timer;
 
+  #if defined(loco_vulkan)
+    struct x_t {
+      uint32_t x;
+    };
+    fan::vulkan::core::uniform_block_t<x_t, 1> u;
+  #endif
+
   // automatically gets necessary macros for shapes
 
   #if defined(loco_text_box)
@@ -266,7 +275,7 @@ public:
     #define loco_text_box
     #define loco_button
   #endif
-
+  
   #if defined(loco_line)
     #define sb_shape_var_name line
     #include _FAN_PATH(graphics/opengl/2D/objects/line.h)
@@ -352,14 +361,26 @@ public:
     #endif
   };
 
+  static constexpr uint8_t pixel_data[] = {
+    1, 0, 0, 1,
+    1, 0, 0, 1
+  };
+
   loco_t(const properties_t& p = properties_t()) :
     #ifdef loco_window
       window(fan::vec2(800, 800)),
     #else
       window(p.window),
     #endif
-    context(get_window())
+    context(get_window()),
+    unloaded_image(get_context(), fan::webp::image_info_t{(void*)pixel_data, 1})
+    #if defined(loco_vulkan)
+      ,u(get_context())
+    #endif
   {
+    #if defined(loco_vulkan)
+      u.push_ram_instance(get_context(), x_t{ 0 });
+    #endif
     get_window()->add_buttons_callback([this](const mouse_buttons_cb_data_t& d) {
       fan::vec2 window_size = get_window()->get_size();
       feed_mouse_button(d.button, d.state, get_mouse_position());
@@ -387,21 +408,6 @@ public:
       font.open(get_context(), loco_font);
     #endif
 
-    #if defined(loco_sprite)
-      #if defined(loco_vulkan)
-        fan::webp::image_info_t ii;
-        static constexpr uint8_t pixel_data[] = {
-          1, 0, 0, 1,
-          1, 0, 0, 1
-        };
-        ii.data = (void*)pixel_data;
-        ii.size = 1;
-        unloaded_image.load(
-          get_context(),
-          ii
-        );
-      #endif
-    #endif
     #if defined(loco_post_process)
       fan::opengl::core::renderbuffer_t::properties_t rp;
       rp.size = get_window()->get_size();
@@ -455,6 +461,7 @@ public:
         draw_queue();
         #include "draw_shapes.h"
         get_context()->end_render(get_window());
+
       #endif
     #endif
   }
@@ -515,8 +522,6 @@ public:
   static loco_t* get_loco(fan::window_t* window) {
     return OFFSETLESS(window, loco_t, window);
   }
-
-  fan::graphics::image_t unloaded_image;
 
   fan::function_t<void()> draw_queue = []{};
 };

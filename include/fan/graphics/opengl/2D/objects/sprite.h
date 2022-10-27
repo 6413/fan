@@ -41,7 +41,7 @@ struct sb_sprite_name {
       auto& img = loco->get_context()->image_list[p.get_image()] = loco->get_context()->image_list[p.get_image()];
       imageInfo.imageView = img.image_view;
       imageInfo.sampler = img.sampler;
-      m_descriptor.m_properties[2].image_info = imageInfo;
+      m_descriptor.m_properties[image_location].image_info = imageInfo;
       m_descriptor.update(loco->get_context());
     #endif
     sb_push_back(cid, p);
@@ -65,7 +65,8 @@ struct sb_sprite_name {
     #endif
     #include _FAN_PATH(graphics/opengl/2D/objects/shape_builder.h)
   #elif defined(loco_vulkan)
-    #define vulkan_buffer_count 3
+    #define vulkan_buffer_count 4
+    static constexpr uint32_t image_location = vulkan_buffer_count - 1;
     #define sb_shader_vertex_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/sprite.vert.spv)
     #define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/sprite.frag.spv)
     #include _FAN_PATH(graphics/vulkan/2D/objects/shape_builder.h)
@@ -93,16 +94,23 @@ struct sb_sprite_name {
     ds_properties[1].range = sizeof(fan::mat4) * 2;
     ds_properties[1].dst_binding = 1;
 
+    ds_properties[2].binding = 2;
+    ds_properties[2].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    ds_properties[2].flags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    ds_properties[2].common = &loco->u.common;
+    ds_properties[2].range = sizeof(uint32_t);
+    ds_properties[2].dst_binding = 2;
+
     VkDescriptorImageInfo imageInfo{};
     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     imageInfo.imageView = loco->unloaded_image.get(context).image_view;
     imageInfo.sampler = loco->unloaded_image.get(context).sampler;
 
-    ds_properties[2].binding = 5;
-    ds_properties[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    ds_properties[2].flags = VK_SHADER_STAGE_FRAGMENT_BIT;
-    ds_properties[2].image_info = imageInfo;
-    ds_properties[2].dst_binding = 5; // ?
+    ds_properties[image_location].binding = 5;
+    ds_properties[image_location].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    ds_properties[image_location].flags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    ds_properties[image_location].image_info = imageInfo;
+    ds_properties[image_location].dst_binding = 5; // ?
     #endif
     sb_open(
       #if defined(loco_vulkan)
@@ -154,6 +162,7 @@ struct sb_sprite_name {
   }
 };
 
+#undef vulkan_buffer_count
 #undef sb_shader_vertex_path
 #undef sb_shader_fragment_path
 #undef sb_sprite_name

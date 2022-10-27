@@ -46,6 +46,12 @@ namespace fan {
       }
       */
 
+      image_t() = default;
+
+      image_t(fan::opengl::context_t* context, const fan::webp::image_info_t image_info, load_properties_t p = load_properties_t()) {
+        load(context, image_info, p);
+      }
+
       void create_texture(fan::opengl::context_t* context) {
         texture_reference = context->image_list.NewNode();
         context->opengl.call(context->opengl.glGenTextures, 1, get_texture(context));
