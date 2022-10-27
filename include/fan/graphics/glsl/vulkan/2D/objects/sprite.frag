@@ -7,8 +7,12 @@ layout(location = 1) in vec2 texture_coordinate;
 
 layout(binding = 5) uniform sampler2D _t00;
 
+layout(binding = 2) uniform fragdata_t {
+	uint x;
+};
+
 void main() {
-  o_color = texture(_t00, texture_coordinate) * instance_color;
+  o_color = texture(_t00, texture_coordinate) * instance_color + vec4(x, 0, 0, 0);
   //if (o_color.a < 0.9) {
   //  discard;
   //}

@@ -3,7 +3,7 @@
 #define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 
 #define FAN_INCLUDE_PATH C:/libs/fan/include
-#define fan_debug 3
+#define fan_debug 0
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
 #define loco_vulkan
@@ -57,6 +57,7 @@ int main() {
   p.size = fan::vec2(50, 50);
   p.position = fan::vec2(400, 400);
   p.color = fan::colors::blue;
+  for (uint32_t i = 0; i < 100000; i++)
   pile->loco.rectangle.push_back(&pile->cids[0], p);
 
 

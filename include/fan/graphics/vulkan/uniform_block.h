@@ -13,6 +13,12 @@ namespace fan {
 					open_properties_t() {}
 				}op;
 
+				uniform_block_t() = default;
+
+				uniform_block_t(fan::vulkan::context_t* context, open_properties_t op_ = open_properties_t()) {
+					open(context, op);
+				}
+
 				void open(fan::vulkan::context_t* context, open_properties_t op_ = open_properties_t()) {
 					common.open(context, [context, this] () {
 						for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {

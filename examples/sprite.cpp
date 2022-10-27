@@ -6,11 +6,12 @@
 #define fan_debug 3
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
-//#define loco_vulkan
+#define loco_vulkan
 
 #define loco_window
 #define loco_context
 
+#define loco_rectangle
 #define loco_sprite
 #include _FAN_PATH(graphics/loco.h)
 
@@ -54,27 +55,45 @@ int main() {
 
   loco_t::sprite_t::properties_t p;
 
-  p.size = fan::vec2(1, 1);
+  p.size = fan::vec2(0.2, 0.2);
   //p.block_properties.
   p.get_matrices() = &pile->matrices;
   p.get_viewport() = &pile->viewport;
 
   fan::graphics::image_t image;
   image.load(pile->loco.get_context(), "images/test.webp");
-  fan::graphics::image_t image2;
-  image2.load(pile->loco.get_context(), "images/planet.webp");
   p.get_image() = &image;
   p.position = fan::vec2(0, 0);
   p.position.z = 0;
   // p.color = fan::color((f32_t)i / count, (f32_t)i / count + 00.1, (f32_t)i / count);
-  p.position = fan::random::vec2(0, 0);
+  //p.position = fan::random::vec2(0, 0);
   pile->loco.sprite.push_back(&pile->cid, p);
-  p.position = fan::vec2(-0.1, -0.1);
-  p.get_image() = &image2;
-  p.position.z = 1;
-  pile->loco.sprite.push_back(&pile->cid, p);
+  /*for (uint32_t i = 0; i < 10000; i++) {
+    pile->loco.sprite.push_back(&pile->cid, p);
+  }*/
 
   pile->loco.set_vsync(false);
+
+  loco_t::rectangle_t::properties_t rp;
+
+  //p.block_properties.
+  rp.get_matrices() = &pile->matrices;
+  rp.get_viewport() = &pile->viewport;
+
+  rp.size = fan::vec2(0.2, 0.2);
+  rp.position = fan::vec2(0.3, 0.3);
+  rp.color = fan::colors::blue;
+  //for (uint32_t i = 0; i < 100000; i++)
+    pile->loco.rectangle.push_back(&pile->cid, rp);
+
+
+  pile->loco.set_vsync(false);
+
+  fan::vec2 suunta = fan::random::vec2(-1500, 1500);
+
+  auto& rectangle = pile->loco.rectangle;
+
+  auto& window = *pile->loco.get_window();
 
 
   //VkPhysicalDeviceProperties v;

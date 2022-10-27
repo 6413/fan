@@ -225,6 +225,17 @@ void traverse_draw(auto nr) {
     while (1) {
       auto node = blocks.GetNodeByReference(bnr);
 
+      //        projection_view_block.edit_instance(context, 0, &viewprojection_t::view, matrices->m_view);
+      //projection_view_block.common.edit(context, write_queue, 0, sizeof(viewprojection_t));
+
+      loco->u.edit_instance(loco->get_context(), 0, &loco_t::x_t::x, rand() % 2);
+      loco->u.common.edit(loco->get_context(), &loco->m_write_queue, 0, sizeof(loco_t::x_t));
+
+      //fan::graphics::matrices_t* m = (fan::graphics::matrices_t * )((uint8_t*)loco + sizeof(loco_t));
+      //m->set_ortho(fan::vec2(0, 800 + rand() % 400), fan::vec2(0, 800 + rand() % 400));
+      //m_shader.set_matrices(context, m, &loco->m_write_queue);
+      loco->m_write_queue.process(loco->get_context());
+
       context->draw(
         sb_vertex_count,
         bnr == bmn->data.last_block ? bmn->data.total_instances % max_instance_size : max_instance_size,

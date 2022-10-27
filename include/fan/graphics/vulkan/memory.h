@@ -30,7 +30,6 @@ namespace fan {
 					while (it != write_queue.dst) {
 						write_queue.StartSafeNext(it);
 						write_queue[it].cb();
-
 						it = write_queue.EndSafeNext();
 					}
 

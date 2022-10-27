@@ -14,6 +14,12 @@ namespace fan {
 
       };
 
+      image_t() = default;
+
+      image_t(fan::vulkan::context_t* context, const fan::webp::image_info_t image_info, load_properties_t p = load_properties_t()) {
+        load(context, image_info, p);
+      }
+
       static void transitionImageLayout(fan::vulkan::context_t* context, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) {
         VkCommandBuffer commandBuffer = context->beginSingleTimeCommands(context);
 
