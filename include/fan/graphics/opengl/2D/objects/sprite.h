@@ -65,7 +65,7 @@ struct sb_sprite_name {
     #endif
     #include _FAN_PATH(graphics/opengl/2D/objects/shape_builder.h)
   #elif defined(loco_vulkan)
-    #define vulkan_buffer_count 4
+    #define vulkan_buffer_count 3
     static constexpr uint32_t image_location = vulkan_buffer_count - 1;
     #define sb_shader_vertex_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/sprite.vert.spv)
     #define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/sprite.frag.spv)
@@ -93,13 +93,6 @@ struct sb_sprite_name {
     ds_properties[1].common = &m_shader.projection_view_block.common;
     ds_properties[1].range = sizeof(fan::mat4) * 2;
     ds_properties[1].dst_binding = 1;
-
-    ds_properties[2].binding = 2;
-    ds_properties[2].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    ds_properties[2].flags = VK_SHADER_STAGE_FRAGMENT_BIT;
-    ds_properties[2].common = &loco->u.common;
-    ds_properties[2].range = sizeof(uint32_t);
-    ds_properties[2].dst_binding = 2;
 
     VkDescriptorImageInfo imageInfo{};
     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;

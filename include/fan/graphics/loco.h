@@ -251,13 +251,6 @@ public:
 
   fan::ev_timer_t ev_timer;
 
-  #if defined(loco_vulkan)
-    struct x_t {
-      uint32_t x;
-    };
-    fan::vulkan::core::uniform_block_t<x_t, 1> u;
-  #endif
-
   // automatically gets necessary macros for shapes
 
   #if defined(loco_text_box)
@@ -374,13 +367,7 @@ public:
     #endif
     context(get_window()),
     unloaded_image(get_context(), fan::webp::image_info_t{(void*)pixel_data, 1})
-    #if defined(loco_vulkan)
-      ,u(get_context())
-    #endif
   {
-    #if defined(loco_vulkan)
-      u.push_ram_instance(get_context(), x_t{ 0 });
-    #endif
     get_window()->add_buttons_callback([this](const mouse_buttons_cb_data_t& d) {
       fan::vec2 window_size = get_window()->get_size();
       feed_mouse_button(d.button, d.state, get_mouse_position());
