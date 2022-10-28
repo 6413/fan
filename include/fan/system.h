@@ -40,6 +40,37 @@ namespace fan {
 
 #ifdef fan_platform_unix
 
+    static void open_lib_handle(const char* lib, void** handle) {
+      *handle = dlopen(lib, RTLD_LAZY | RTLD_NODELETE);
+      #if fan_debug >= fan_debug_low
+      if (*handle == nullptr) {
+        fan::throw_error(dlerror());
+      }
+      #endif
+    }
+    static void close_lib_handle(void** handle) {
+      #if fan_debug >= fan_debug_low
+      auto error =
+        #endif
+        dlclose(*handle);
+      #if fan_debug >= fan_debug_low
+      if (error != 0) {
+        fan::throw_error(dlerror());
+      }
+      #endif
+    }
+
+    static void* get_lib_proc(void** handle, const char* name) {
+      dlerror();
+      void* result = dlsym(*handle, name);
+      #if fan_debug >= fan_debug_low
+      if ((error = dlerror()) != NULL) {
+        fan::throw_error(error);
+      }
+      #endif
+      return result;
+    }
+
     inline Display* m_display;
     static int m_screen;
 

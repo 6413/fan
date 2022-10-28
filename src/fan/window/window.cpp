@@ -53,41 +53,6 @@ static constexpr const char* shared_library = "opengl32.dll";
 #elif defined(fan_platform_unix) || defined(fan_platform_android)
 static constexpr const char* shared_library = "libGL.so.1";
 
-static void open_lib_handle(void** handle) {
-  *handle = dlopen(shared_library, RTLD_LAZY | RTLD_NODELETE);
-  #if fan_debug >= fan_debug_low
-  if (*handle == nullptr) {
-    fan::throw_error(dlerror());
-  }
-  #endif
-}
-static void close_lib_handle(void** handle) {
-  #if fan_debug >= fan_debug_low
-  auto error =
-    #endif
-    dlclose(*handle);
-  #if fan_debug >= fan_debug_low
-  if (error != 0) {
-    fan::throw_error(dlerror());
-  }
-  #endif
-}
-
-static void* get_lib_proc(void** handle, const char* name) {
-  void* result = dlsym(*handle, name);
-  #if fan_debug >= fan_debug_low
-  if (result == nullptr) {
-    dlerror();
-    dlsym(*handle, name);
-    auto error = dlerror();
-    if (error != nullptr) {
-      fan::throw_error(error);
-    }
-  }
-  #endif
-  return result;
-}
-
 #endif
 
 fan::vec2i fan::get_screen_resolution() {
@@ -1231,12 +1196,12 @@ void fan::window_t::initialize_window(const fan::string& name, const fan::vec2i&
   }
 
   void* lib_handle;
-  open_lib_handle(&lib_handle);
+  fan::sys::open_lib_handle(shared_library, &lib_handle);
   fan::opengl::glx::PFNGLXGETPROCADDRESSPROC glXGetProcAddress = (decltype(glXGetProcAddress))get_lib_proc(&lib_handle, "glXGetProcAddress");
   if (glXGetProcAddress == nullptr) {
     fan::throw_error("failed to initialize glxGetprocAddress");
   }
-  close_lib_handle(&lib_handle);
+  fan::sys::close_lib_handle(&lib_handle);
   static fan::opengl::glx::PFNGLXMAKECURRENTPROC glXMakeCurrent = (decltype(glXMakeCurrent))glXGetProcAddress((const fan::opengl::GLubyte*)"glXMakeCurrent");
   static fan::opengl::glx::PFNGLXGETCURRENTDRAWABLEPROC glXGetCurrentDrawable = (decltype(glXGetCurrentDrawable))glXGetProcAddress((const fan::opengl::GLubyte*)"glXGetCurrentDrawable");
   static fan::opengl::glx::PFNGLXSWAPINTERVALEXTPROC glXSwapIntervalEXT = (decltype(glXSwapIntervalEXT))glXGetProcAddress((const fan::opengl::GLubyte*)"glXSwapIntervalEXT");
