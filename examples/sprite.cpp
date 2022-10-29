@@ -11,6 +11,8 @@
 #define loco_window
 #define loco_context
 
+uint32_t texture_idx = 0;
+
 #define loco_rectangle
 #define loco_sprite
 #include _FAN_PATH(graphics/loco.h)
@@ -68,6 +70,14 @@ int main() {
   // p.color = fan::color((f32_t)i / count, (f32_t)i / count + 00.1, (f32_t)i / count);
   //p.position = fan::random::vec2(0, 0);
   pile->loco.sprite.push_back(&pile->cid, p);
+  fan::graphics::image_t image2;
+  image2.load(pile->loco.get_context(), "images/asteroid.webp");
+  p.get_image() = &image2;
+  p.position.x -= 0.3;
+  //for (uint32_t i = 0; i < 10000; i++) {
+    pile->loco.sprite.push_back(&pile->cid, p);
+    //pile->loco.sprite.push_back(&pile->cid, p);
+  //}
   /*for (uint32_t i = 0; i < 10000; i++) {
     pile->loco.sprite.push_back(&pile->cid, p);
   }*/
@@ -84,7 +94,7 @@ int main() {
   rp.position = fan::vec2(0.3, 0.3);
   rp.color = fan::colors::blue;
   //for (uint32_t i = 0; i < 100000; i++)
-    pile->loco.rectangle.push_back(&pile->cid, rp);
+   // pile->loco.rectangle.push_back(&pile->cid, rp);
 
 
   pile->loco.set_vsync(false);

@@ -138,6 +138,7 @@ namespace fan {
           node.image_memory
         );
         node.image_view = createImageView(context, node.image, VK_FORMAT_R8G8B8A8_UNORM);
+        node.shape_texture_id = -1;
         createTextureSampler(context, node.sampler, lp);
 
         return node;

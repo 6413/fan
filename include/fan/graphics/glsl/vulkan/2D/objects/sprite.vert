@@ -4,6 +4,7 @@
 
 layout(location = 0) out vec4 instance_color;
 layout(location = 1) out vec2 texture_coordinate;
+layout(location = 2) out float instance_id;
 
 struct block_instance_t{
 	vec3 position;
@@ -62,4 +63,6 @@ void main() {
   gl_Position = projection * m * vec4(vec2(x, y) * get_instance().size + get_instance().position.xy + vec2(view[3][0], view[3][1]), get_instance().position.z, 1);
 	instance_color = get_instance().color;
 	texture_coordinate = tc[id] * get_instance().tc_size + get_instance().tc_position;
+	instance_id = gl_InstanceIndex / 204 + gl_InstanceIndex % 204;
+	//texture_id = uint(tm[gl_InstanceIndex / 204 + gl_InstanceIndex % 204][0].x);
 }

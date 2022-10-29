@@ -28,9 +28,9 @@ namespace fan {
 
 							// UPDATE BUFFER HERE
 
-							void* data;
-							validate(vkMapMemory(context->device, common.memory[i].device_memory, 0, dst - src, 0, &data));
-							//data += src; ??
+							uint8_t* data;
+							validate(vkMapMemory(context->device, common.memory[i].device_memory, 0, dst - src, 0, (void**)&data));
+							//data += src;
 							memcpy(data, buffer, dst - src);
 							// unnecessary?
 							vkUnmapMemory(context->device, common.memory[i].device_memory);
@@ -74,7 +74,7 @@ namespace fan {
 				//	return (type_t*)&buffer[i * sizeof(type_t)];
 				//}
 
-				void edit_instance(fan::vulkan::context_t* context, uint32_t i, auto member, auto value) {
+				void edit_instance(fan::vulkan::context_t* context, uint32_t i, auto type_t::*member, auto value) {
 					#if fan_debug >= fan_debug_low
 					/* if (i * sizeof(type_t) >= common.m_size) {
 						 fan::throw_error("uninitialized access");
@@ -82,6 +82,17 @@ namespace fan {
 					#endif
 					((type_t*)buffer)[i].*member = value;
 				}
+
+				void edit_instance(fan::vulkan::context_t* context, uint32_t i, uint64_t byte_offset, auto value) {
+					#if fan_debug >= fan_debug_low
+					/* if (i * sizeof(type_t) >= common.m_size) {
+						 fan::throw_error("uninitialized access");
+					 }*/
+					#endif
+					// maybe xd
+					*(decltype(value)*)(((uint8_t*)((type_t*)buffer)[i]) + byte_offset) = value;
+				}
+
 				//// for copying whole thing
 				//void copy_instance(fan::vulkan::context_t* context, uint32_t i, type_t* instance) {
 				//	#if fan_debug >= fan_debug_low
