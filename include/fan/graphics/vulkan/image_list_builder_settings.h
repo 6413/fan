@@ -6,7 +6,8 @@
   VkImage image; \
   VkImageView image_view; \
   VkDeviceMemory image_memory; \
-  VkSampler sampler;
+  VkSampler sampler; \
+  uint32_t shape_texture_id;
 #define BLL_set_Link 0
 #define BLL_set_AreWeInsideStruct 0
 #define BLL_set_CPP_Node_ConstructDestruct

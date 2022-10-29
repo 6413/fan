@@ -72,6 +72,8 @@ namespace fan {
       struct memory_t;
     }
 
+    static constexpr uint16_t max_textures = 2;
+
     struct write_descriptor_set_t {
       // glsl layout binding
       uint32_t binding;
@@ -92,9 +94,8 @@ namespace fan {
 
       // for only VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
       // imageLayout can be VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-      VkDescriptorImageInfo image_info{};
-
-
+      bool use_image = false;
+      VkDescriptorImageInfo image_infos[max_textures];
     };
 
     static constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 1;
@@ -1442,6 +1443,9 @@ namespace fan {
       for (uint16_t i = 0; i < count; ++i) {
         uboLayoutBinding[i].binding = properties[i].binding;
         uboLayoutBinding[i].descriptorCount = 1;
+        if (m_properties[i].use_image) {
+          uboLayoutBinding[i].descriptorCount = max_textures;
+        }
         uboLayoutBinding[i].descriptorType = properties[i].type;
         uboLayoutBinding[i].stageFlags = properties[i].flags;
       }
@@ -1501,8 +1505,9 @@ namespace fan {
           descriptorWrites[j].dstBinding = m_properties[j].dst_binding;
 
           // FIX
-          if (m_properties[j].image_info.imageLayout != 0) {
-            descriptorWrites[j].pImageInfo = &m_properties[j].image_info;
+          if (m_properties[j].use_image) {
+            descriptorWrites[j].pImageInfo = m_properties[j].image_infos;
+            descriptorWrites[j].descriptorCount = max_textures;
           }
         }
         vkUpdateDescriptorSets(context->device, descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);

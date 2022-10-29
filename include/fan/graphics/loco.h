@@ -237,13 +237,40 @@ public:
       get_context()->opengl.call(get_context()->opengl.glActiveTexture, fan::opengl::GL_TEXTURE0 + n);
       get_context()->opengl.call(get_context()->opengl.glBindTexture, fan::opengl::GL_TEXTURE_2D, get_context()->image_list[tid].texture_id);
     #elif defined(loco_vulkan)
-      VkDescriptorImageInfo imageInfo{};
-      imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
       auto& img = get_context()->image_list[tid];
-      imageInfo.imageView = img.image_view;
-      imageInfo.sampler = img.sampler;
-      shape->m_descriptor.m_properties[2].image_info = imageInfo;
-      shape->m_descriptor.update(get_context());
+      auto context = get_context();
+
+      // PUSH
+      // 
+      //fan::print(texture_idx, img.shape_texture_id);
+      /*for (uint32_t i = texture_idx; i < fan::vulkan::max_textures; ++i) {
+        
+      }*/
+
+      static int x = 0;
+
+      /*if (x % 2 == 0) {
+        shape->texture_ub.edit_instance(context, 0, &std::remove_pointer<decltype(shape)>::type::texture_id_t::texture_id, 0);
+        shape->texture_ub.common.edit(context, &m_write_queue, 0, sizeof(std::remove_pointer<decltype(shape)>::type::texture_id_t) * fan::vulkan::max_textures);
+      }
+      else if (x % 2 == 1) {
+        shape->texture_ub.edit_instance(context, 1, &std::remove_pointer<decltype(shape)>::type::texture_id_t::texture_id, 1);
+      shape->texture_ub.common.edit(context, &m_write_queue, 0, sizeof(std::remove_pointer<decltype(shape)>::type::texture_id_t) * fan::vulkan::max_textures);
+      }*/
+      
+      shape->texture_ub.edit_instance(context, texture_idx, &std::remove_pointer<decltype(shape)>::type::texture_id_t::texture_id, img.shape_texture_id);
+      shape->texture_ub.common.edit(context, &m_write_queue, 0, sizeof(std::remove_pointer<decltype(shape)>::type::texture_id_t) * fan::vulkan::max_textures);
+
+      x++;
+      texture_idx = (texture_idx + 1) % fan::vulkan::max_textures;
+        
+      //VkDescriptorImageInfo imageInfo{};
+      //imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+      //
+      //imageInfo.imageView = img.image_view;
+      //imageInfo.sampler = img.sampler;
+      //shape->m_descriptor.m_properties[2].image_info = imageInfo;
+      //shape->m_descriptor.update(get_context());
     #endif
   }
 

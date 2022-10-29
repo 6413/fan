@@ -41,7 +41,15 @@ struct sb_sprite_name {
       auto& img = loco->get_context()->image_list[p.get_image()] = loco->get_context()->image_list[p.get_image()];
       imageInfo.imageView = img.image_view;
       imageInfo.sampler = img.sampler;
-      m_descriptor.m_properties[image_location].image_info = imageInfo;
+      if (img.shape_texture_id == -1) {
+        img.shape_texture_id = m_texture_index++;
+        if (m_texture_index > fan::vulkan::max_textures) {
+          fan::throw_error("too many textures max:" + fan::vulkan::max_textures);
+        }
+        m_descriptor.m_properties[2].image_infos[img.shape_texture_id] = imageInfo;
+
+        texture_ub.common.edit(loco->get_context(), &loco->m_write_queue, 0, sizeof(fan::mat4) * fan::vulkan::max_textures);
+      }
       m_descriptor.update(loco->get_context());
     #endif
     sb_push_back(cid, p);
@@ -65,8 +73,7 @@ struct sb_sprite_name {
     #endif
     #include _FAN_PATH(graphics/opengl/2D/objects/shape_builder.h)
   #elif defined(loco_vulkan)
-    #define vulkan_buffer_count 3
-    static constexpr uint32_t image_location = vulkan_buffer_count - 1;
+    #define vulkan_buffer_count 4
     #define sb_shader_vertex_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/sprite.vert.spv)
     #define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/sprite.frag.spv)
     #include _FAN_PATH(graphics/vulkan/2D/objects/shape_builder.h)
@@ -75,8 +82,12 @@ struct sb_sprite_name {
   sb_sprite_name() {
     #if defined(loco_vulkan)
 
+    m_texture_index = 0;
+
     auto loco = get_loco();
     auto context = loco->get_context();
+
+    texture_ub.open(context);
 
     std::array<fan::vulkan::write_descriptor_set_t, vulkan_buffer_count> ds_properties{};
 
@@ -99,11 +110,23 @@ struct sb_sprite_name {
     imageInfo.imageView = loco->unloaded_image.get(context).image_view;
     imageInfo.sampler = loco->unloaded_image.get(context).sampler;
 
-    ds_properties[image_location].binding = 5;
-    ds_properties[image_location].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    ds_properties[image_location].flags = VK_SHADER_STAGE_FRAGMENT_BIT;
-    ds_properties[image_location].image_info = imageInfo;
-    ds_properties[image_location].dst_binding = 5; // ?
+    ds_properties[2].use_image = 1;
+    ds_properties[2].binding = 2;
+    ds_properties[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    ds_properties[2].flags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    for (uint32_t i = 0; i < fan::vulkan::max_textures; ++i) {
+      ds_properties[2].image_infos[i] = imageInfo;
+      texture_ub.push_ram_instance(context, {0});
+    }
+    ds_properties[2].dst_binding = 2; // ?
+
+    ds_properties[3].binding = 3;
+    ds_properties[3].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    ds_properties[3].flags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    ds_properties[3].common = &texture_ub.common;
+    ds_properties[3].range = sizeof(texture_id_t) * fan::vulkan::max_textures;
+    ds_properties[3].dst_binding = 3;
+
     #endif
     sb_open(
       #if defined(loco_vulkan)
@@ -153,6 +176,17 @@ struct sb_sprite_name {
     loco->get_context()->viewport_list[*block->p[cid->instance_id].key.get_value<2>()].viewport_id->set(loco->get_context(), p, s, loco->get_window()->get_size());
     //sb_set_key(cid, &properties_t::image, n);
   }
+
+  #if defined(loco_vulkan)
+    uint32_t m_texture_index;
+
+    struct texture_id_t {
+      uint32_t texture_id;
+      uint8_t pad[12];
+    };
+
+    fan::vulkan::core::uniform_block_t<texture_id_t, 8> texture_ub;
+  #endif
 };
 
 #undef vulkan_buffer_count
