@@ -12,9 +12,14 @@ layout(binding = 3) uniform texture_id_t {
 	uint tm[8];
 };
 
+layout( push_constant ) uniform constants
+{
+	uint id;
+} PushConstants;
+
 void main() {
-  o_color = texture(_t[tm[uint(instance_id)]], texture_coordinate) * instance_color;
-  if (o_color.a < 0.9) {
-    discard;
-  }
+  o_color = texture(_t[uint(PushConstants.id)], texture_coordinate) * instance_color;
+  //if (o_color.a < 0.9) {
+  //  discard;
+  //}
 }

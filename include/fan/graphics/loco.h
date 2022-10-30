@@ -249,14 +249,17 @@ public:
 
       static int x = 0;
 
-      if (x % 2 == 0) {
+      uint32_t r = rand() % 2;
+      vkCmdPushConstants(context->commandBuffers[context->currentFrame], shape->m_pipeline.m_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(uint32_t), &img.shape_texture_id);
+
+      /*if (x % 2 == 0) {
         shape->texture_ub.edit_instance(context, 0, &std::remove_pointer<decltype(shape)>::type::texture_id_t::texture_id, 0);
         shape->texture_ub.common.edit(context, &m_write_queue, 0, sizeof(std::remove_pointer<decltype(shape)>::type::texture_id_t) * fan::vulkan::max_textures);
       }
       else if (x % 2 == 1) {
         shape->texture_ub.edit_instance(context, 1, &std::remove_pointer<decltype(shape)>::type::texture_id_t::texture_id, 1);
       shape->texture_ub.common.edit(context, &m_write_queue, 0, sizeof(std::remove_pointer<decltype(shape)>::type::texture_id_t) * fan::vulkan::max_textures);
-      }
+      }*/
       
       /*shape->texture_ub.edit_instance(context, texture_idx, &std::remove_pointer<decltype(shape)>::type::texture_id_t::texture_id, img.shape_texture_id);
       shape->texture_ub.common.edit(context, &m_write_queue, 0, sizeof(std::remove_pointer<decltype(shape)>::type::texture_id_t) * fan::vulkan::max_textures);*/
