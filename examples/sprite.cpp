@@ -108,9 +108,9 @@ int main() {
   auto& window = *pile->loco.get_window();
 
 
-  //VkPhysicalDeviceProperties v;
-  //vkGetPhysicalDeviceProperties(pile->loco.get_context()->physicalDevice, &v);
-  //fan::print(v.limits.maxPerStageDescriptorSampledImages);
+  VkPhysicalDeviceProperties v;
+  vkGetPhysicalDeviceProperties(pile->loco.get_context()->physicalDevice, &v);
+  fan::print(v.limits.maxPerStageDescriptorSampledImages);
   pile->loco.loop([&] {
     pile->loco.get_fps();
   });

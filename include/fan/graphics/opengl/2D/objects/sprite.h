@@ -47,8 +47,6 @@ struct sb_sprite_name {
           fan::throw_error("too many textures max:" + fan::vulkan::max_textures);
         }
         m_descriptor.m_properties[2].image_infos[img.shape_texture_id] = imageInfo;
-
-        texture_ub.common.edit(loco->get_context(), &loco->m_write_queue, 0, sizeof(fan::mat4) * fan::vulkan::max_textures);
       }
       m_descriptor.update(loco->get_context());
     #endif
@@ -73,7 +71,7 @@ struct sb_sprite_name {
     #endif
     #include _FAN_PATH(graphics/opengl/2D/objects/shape_builder.h)
   #elif defined(loco_vulkan)
-    #define vulkan_buffer_count 4
+    #define vulkan_buffer_count 3
     #define sb_shader_vertex_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/sprite.vert.spv)
     #define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/sprite.frag.spv)
     #include _FAN_PATH(graphics/vulkan/2D/objects/shape_builder.h)
@@ -86,8 +84,6 @@ struct sb_sprite_name {
 
     auto loco = get_loco();
     auto context = loco->get_context();
-
-    texture_ub.open(context);
 
     std::array<fan::vulkan::write_descriptor_set_t, vulkan_buffer_count> ds_properties{};
 
@@ -116,16 +112,8 @@ struct sb_sprite_name {
     ds_properties[2].flags = VK_SHADER_STAGE_FRAGMENT_BIT;
     for (uint32_t i = 0; i < fan::vulkan::max_textures; ++i) {
       ds_properties[2].image_infos[i] = imageInfo;
-      texture_ub.push_ram_instance(context, {0});
     }
     ds_properties[2].dst_binding = 2; // ?
-
-    ds_properties[3].binding = 3;
-    ds_properties[3].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    ds_properties[3].flags = VK_SHADER_STAGE_FRAGMENT_BIT;
-    ds_properties[3].common = &texture_ub.common;
-    ds_properties[3].range = sizeof(texture_id_t) * fan::vulkan::max_textures;
-    ds_properties[3].dst_binding = 3;
 
     #endif
     sb_open(
@@ -185,7 +173,6 @@ struct sb_sprite_name {
       uint8_t pad[12];
     };
 
-    fan::vulkan::core::uniform_block_t<texture_id_t, 8> texture_ub;
   #endif
 };
 
