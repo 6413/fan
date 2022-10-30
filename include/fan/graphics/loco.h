@@ -249,17 +249,17 @@ public:
 
       static int x = 0;
 
-      /*if (x % 2 == 0) {
+      if (x % 2 == 0) {
         shape->texture_ub.edit_instance(context, 0, &std::remove_pointer<decltype(shape)>::type::texture_id_t::texture_id, 0);
         shape->texture_ub.common.edit(context, &m_write_queue, 0, sizeof(std::remove_pointer<decltype(shape)>::type::texture_id_t) * fan::vulkan::max_textures);
       }
       else if (x % 2 == 1) {
         shape->texture_ub.edit_instance(context, 1, &std::remove_pointer<decltype(shape)>::type::texture_id_t::texture_id, 1);
       shape->texture_ub.common.edit(context, &m_write_queue, 0, sizeof(std::remove_pointer<decltype(shape)>::type::texture_id_t) * fan::vulkan::max_textures);
-      }*/
+      }
       
-      shape->texture_ub.edit_instance(context, texture_idx, &std::remove_pointer<decltype(shape)>::type::texture_id_t::texture_id, img.shape_texture_id);
-      shape->texture_ub.common.edit(context, &m_write_queue, 0, sizeof(std::remove_pointer<decltype(shape)>::type::texture_id_t) * fan::vulkan::max_textures);
+      /*shape->texture_ub.edit_instance(context, texture_idx, &std::remove_pointer<decltype(shape)>::type::texture_id_t::texture_id, img.shape_texture_id);
+      shape->texture_ub.common.edit(context, &m_write_queue, 0, sizeof(std::remove_pointer<decltype(shape)>::type::texture_id_t) * fan::vulkan::max_textures);*/
 
       x++;
       texture_idx = (texture_idx + 1) % fan::vulkan::max_textures;
