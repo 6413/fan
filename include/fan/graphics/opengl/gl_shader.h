@@ -354,12 +354,12 @@ namespace fan {
 
         if (!success)
         {
-
+          int test;
 #define get_info_log(is_program, program, str_buffer, size) \
                 if (is_program) \
                 context->opengl.call(context->opengl.glGetProgramInfoLog, program, size, nullptr, buffer.data()); \
                 else \
-                context->opengl.call(context->opengl.glGetShaderInfoLog, program, size, nullptr, buffer.data());
+                context->opengl.call(context->opengl.glGetShaderInfoLog, program, size, &test, buffer.data());
 
           get_info_log(program, shader, buffer, buffer_size);
           

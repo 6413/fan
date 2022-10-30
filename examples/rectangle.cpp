@@ -31,7 +31,6 @@ struct pile_t {
       ortho_y
     );
     loco.get_window()->add_resize_callback([&](const fan::window_t::resize_cb_data_t& d) {
-      //fan::vec2 window_size = window->get_size();
       viewport.set(loco.get_context(), 0, d.size, d.size);
     });
     viewport.open(loco.get_context());
@@ -49,43 +48,17 @@ int main() {
   pile_t* pile = new pile_t;
 
   loco_t::rectangle_t::properties_t p;
-  
-  //p.block_properties.
   p.get_matrices() = &pile->matrices;
   p.get_viewport() = &pile->viewport;
 
   p.size = fan::vec2(50, 50);
   p.position = fan::vec2(400, 400);
   p.color = fan::colors::blue;
-  for (uint32_t i = 0; i < 100000; i++)
   pile->loco.rectangle.push_back(&pile->cids[0], p);
 
-
   pile->loco.set_vsync(false);
-
-  fan::vec2 suunta = fan::random::vec2(-1500, 1500);
-
-  auto& rectangle = pile->loco.rectangle;
-
-  auto& window = *pile->loco.get_window();
   
   pile->loco.loop([&] {
-    pile->loco.get_fps();
-    //rectangle.
-   /* fan::vec2 sijainti = rectangle.get(&pile->cids[0], &loco_t::rectangle_t::instance_t::position);
-
-    if (sijainti.x >= 750 || sijainti.x <= 50) {
-      suunta.x *= -1;
-    }
-    if (sijainti.y >= 750 || sijainti.y <= 50) {
-      suunta.y *= -1;
-    }
-
-    rectangle.set(
-      &pile->cids[0],
-      &loco_t::rectangle_t::instance_t::position,
-      sijainti + suunta * window.get_delta_time()
-    );*/
 
   });
 

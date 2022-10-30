@@ -11,8 +11,8 @@ uniform sampler2D _t00;
 
 void main() {
   o_color = texture(_t00, texture_coordinate) * instance_color;
-  if (o_color.a < 0.9) {
-    discard;
-  }
+  //if (o_color.a < 0.9) {
+  //  discard;
+  //}
 }
 )"

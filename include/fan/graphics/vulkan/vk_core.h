@@ -1405,6 +1405,16 @@ namespace fan {
       pipelineLayoutInfo.setLayoutCount = p.descriptor_layout_count;
       pipelineLayoutInfo.pSetLayouts = p.descriptor_layout;
 
+      VkPushConstantRange push_constant;
+	    push_constant.offset = 0;
+
+	    push_constant.size = sizeof(uint32_t);
+
+	    push_constant.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+	    pipelineLayoutInfo.pPushConstantRanges = &push_constant;
+	    pipelineLayoutInfo.pushConstantRangeCount = 1;
+
       if (vkCreatePipelineLayout(context->device, &pipelineLayoutInfo, nullptr, &m_layout) != VK_SUCCESS) {
         fan::throw_error("failed to create pipeline layout!");
       }

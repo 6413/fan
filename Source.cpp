@@ -1,19 +1,10 @@
+#include <string>
+#include <fan/types/types.h>
 
-#ifdef __cplusplus
-#endif
-
-
-#pragma push_macro("__cplusplus")
-#undef __cplusplus
-#ifdef __cplusplus
-  #error tes
-#endif
-#pragma pop_macro("__cplusplus")
-
-#ifndef __cplusplus
-#error abc
-#endif
+#include <stddef.h>
 
 int main() {
-  
+  std::stringstream ss[2];
+  std::string test = "test";
+  ss[0] << test << '\n';
 }
