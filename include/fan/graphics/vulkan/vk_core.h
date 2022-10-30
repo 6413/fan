@@ -72,7 +72,7 @@ namespace fan {
       struct memory_t;
     }
 
-    static constexpr uint16_t max_textures = 2;
+    static constexpr uint16_t max_textures = 16;
 
     struct write_descriptor_set_t {
       // glsl layout binding
