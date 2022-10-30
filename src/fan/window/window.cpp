@@ -1197,7 +1197,7 @@ void fan::window_t::initialize_window(const fan::string& name, const fan::vec2i&
 
   void* lib_handle;
   fan::sys::open_lib_handle(shared_library, &lib_handle);
-  fan::opengl::glx::PFNGLXGETPROCADDRESSPROC glXGetProcAddress = (decltype(glXGetProcAddress))get_lib_proc(&lib_handle, "glXGetProcAddress");
+  fan::opengl::glx::PFNGLXGETPROCADDRESSPROC glXGetProcAddress = (decltype(glXGetProcAddress))fan::sys::get_lib_proc(&lib_handle, "glXGetProcAddress");
   if (glXGetProcAddress == nullptr) {
     fan::throw_error("failed to initialize glxGetprocAddress");
   }
