@@ -246,7 +246,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="examples\dropdown.cpp" />
+    <ClCompile Include="examples\wboit.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
     <ClCompile Include="src\fan\window\window_input.cpp" />
   </ItemGroup>
@@ -359,6 +359,7 @@
     <ClInclude Include="include\fan\graphics\opengl\uniform_block.h" />
     <ClInclude Include="include\fan\graphics\opengl\viewport_list_builder_settings.h" />
     <ClInclude Include="include\fan\graphics\shape_builder.h" />
+    <ClInclude Include="include\fan\graphics\shape_open_settings.h" />
     <ClInclude Include="include\fan\graphics\transform_interpolator.h" />
     <ClInclude Include="include\fan\graphics\video_decoder.h" />
     <ClInclude Include="include\fan\graphics\vpx\tools_common.h" />

@@ -5,7 +5,7 @@
 #ifndef FAN_INCLUDE_PATH
   #define FAN_INCLUDE_PATH C:/libs/fan/include
 #endif
-#define fan_debug 3
+#define fan_debug 1
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
 #define loco_vulkan
@@ -62,7 +62,7 @@ int main() {
   tp.get_matrices() = &pile.matrices;
   tp.get_viewport() = &pile.viewport;
  // tp.position = 400;
-  tp.position = 0;
+  tp.position = fan::vec2(-0.5, 0);
   //tp.position.y = 0;
  // tp.position.z = 50;
   tp.font_size = 0.1;
@@ -87,8 +87,9 @@ int main() {
   tp.theme = &gray_theme;
   constexpr auto count = 10;
   fan::graphics::cid_t cids[count];
-  fan::print(loco_bdbt_usage(&pile.loco.bdbt));
   pile.loco.button.push_back(&cids[0], tp);
+  tp.position = fan::vec2(0.5, 0);
+  pile.loco.button.push_back(&cids[1], tp);
   //pile.loco.get_context()->opengl.glPolygonMode(fan::opengl::GL_FRONT_AND_BACK, fan::opengl::GL_LINE);
   //pile.loco.get_window()->set_background_color(fan::colors::red);
   //pile.loco.button.set_theme(&cids[0], &gray_theme, 0.1);

@@ -33,7 +33,7 @@ struct menu_maker_t {
 
   }
 
-  id_t get_instance_id(nr_t id, fan::opengl::cid_t* cid) {
+  id_t get_instance_id(nr_t id, fan::graphics::cid_t* cid) {
 	auto it = instances[id].base.instances.GetNodeFirst();
 	while (it != instances[id].base.instances.dst) {
 	  if (&instances[id].base.instances[it].cid == cid) {
@@ -79,7 +79,7 @@ struct menu_maker_t {
   auto push_back(nr_t nr, const properties_t& properties) {
 	return instances[nr].base.push_back(get_loco(), properties, nr);
   }
-  void set_selected(nr_t nr, fan::opengl::cid_t* cid) {
+  void set_selected(nr_t nr, fan::graphics::cid_t* cid) {
 	instances[nr].base.set_selected(get_loco(), cid);
   }
   void set_selected(nr_t nr, menu_maker_base_t::instance_NodeReference_t id) {
@@ -88,7 +88,7 @@ struct menu_maker_t {
   auto get_selected_text(nr_t nr) {
 	return instances[nr].base.get_selected_text(get_loco());
   }
-  fan::opengl::cid_t* get_selected(nr_t nr) {
+  fan::graphics::cid_t* get_selected(nr_t nr) {
 	return instances[nr].base.selected;
   }
   menu_maker_base_t::instance_NodeReference_t get_selected_id(nr_t nr) {
