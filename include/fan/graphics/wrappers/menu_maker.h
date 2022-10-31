@@ -9,6 +9,7 @@ struct menu_maker_t {
   using select_cb_t = fan::function_t<int(const menu_maker_base_t::select_data_t&)>;
 
   #define BLL_set_AreWeInsideStruct 1
+	#define BLL_set_CPP_ConstructDestruct
   #define BLL_set_CPP_Node_ConstructDestruct
   #define BLL_set_BaseLibrary 1
   #define BLL_set_prefix instance
@@ -28,11 +29,8 @@ struct menu_maker_t {
 		return loco;
 	}
 
-  void open() {
-	instances.Open();
-  }
-  void close() {
-	instances.Close();
+  menu_maker_t() {
+
   }
 
   id_t get_instance_id(nr_t id, fan::opengl::cid_t* cid) {
@@ -87,7 +85,7 @@ struct menu_maker_t {
   void set_selected(nr_t nr, menu_maker_base_t::instance_NodeReference_t id) {
 	instances[nr].base.set_selected(get_loco(), id);
   }
-  fan::string get_selected_text(nr_t nr) {
+  auto get_selected_text(nr_t nr) {
 	return instances[nr].base.get_selected_text(get_loco());
   }
   fan::opengl::cid_t* get_selected(nr_t nr) {
@@ -100,7 +98,7 @@ struct menu_maker_t {
 	return instances[nr].base.global.offset;
   }
   auto size(nr_t nr) {
-	return instances[nr].base.instances.usage();
+	return instances[nr].base.instances.Usage();
   }
   bool is_visually_valid(nr_t nr, menu_maker_base_t::instance_NodeReference_t id) {
 	return instances[nr].base.is_visually_valid(id);

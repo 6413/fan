@@ -37,7 +37,7 @@ namespace fan {
 		basic_string(typename value_type::const_iterator beg, typename value_type::const_iterator end) : str(beg, end) {
 			str.push_back(0);
 		}
-		basic_string(std::string_view sv) : str(sv.begin(), sv.end()) {
+		basic_string(std::basic_string_view<char_type> sv) : str(sv.begin(), sv.end()) {
 			str.push_back(0);
 		}
 

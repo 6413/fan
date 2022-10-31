@@ -54,6 +54,15 @@ struct button_t {
 
   void push_back(fan::graphics::cid_t* cid, properties_t& p) {
     loco_t* loco = get_loco();
+
+    #if defined(loco_vulkan)
+      auto& matrices = loco->matrices_list[p.get_matrices()];
+      if (matrices.matrices_index.button == (decltype(matrices.matrices_index.button))-1) {
+        matrices.matrices_index.button = m_matrices_index++;
+        m_shader.set_matrices(loco, matrices.matrices_id, &loco->m_write_queue, matrices.matrices_index.button);
+      }
+    #endif
+
     auto theme = loco->button.get_theme(p.theme);
     loco_t::text_t::properties_t tp;
     tp.color = theme->button.text_color;
@@ -149,20 +158,45 @@ struct button_t {
     sb_draw();
   }
 
-  #define sb_shader_vertex_path _FAN_PATH(graphics/glsl/opengl/2D/objects/rectangle_box.vs)
-  #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/objects/rectangle_box.fs)
-  #include _FAN_PATH(graphics/opengl/2D/objects/shape_builder.h)
+  #if defined(loco_opengl)
+    #define sb_shader_vertex_path _FAN_PATH(graphics/glsl/opengl/2D/objects/button.vs)
+  #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/objects/button.fs)
+  #elif defined(loco_vulkan)
+    #define vulkan_buffer_count 2
+    #define sb_shader_vertex_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/button.vert.spv)
+    #define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/button.frag.spv)
+  #endif
+
+  #include _FAN_PATH(graphics/shape_builder.h)
 
   button_t() {
-    sb_open();
+     #if defined(loco_opengl)
+      sb_open();
+    #elif defined(loco_vulkan)
+      std::array<fan::vulkan::write_descriptor_set_t, vulkan_buffer_count> ds_properties;
+
+      ds_properties[0].binding = 0;
+      ds_properties[0].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+      ds_properties[0].flags = VK_SHADER_STAGE_VERTEX_BIT;
+      ds_properties[0].range = VK_WHOLE_SIZE;
+      ds_properties[0].common = &m_ssbo.common;
+      ds_properties[0].dst_binding = 0;
+
+      ds_properties[1].binding = 1;
+      ds_properties[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+      ds_properties[1].flags = VK_SHADER_STAGE_VERTEX_BIT;
+      ds_properties[1].common = &m_shader.projection_view_block.common;
+      ds_properties[1].range = sizeof(fan::mat4) * 2;
+      ds_properties[1].dst_binding = 1;
+
+      sb_open(ds_properties);
+    #endif
   }
   ~button_t() {
-    // check erase, need to somehow iterate block
-    assert(0);
     sb_close();
   }
 
-  fan_2d::graphics::gui::theme_t* get_theme(fan::opengl::theme_list_NodeReference_t nr) {
+  fan_2d::graphics::gui::theme_t* get_theme(fan::graphics::theme_list_NodeReference_t nr) {
     loco_t* loco = get_loco();
     return loco->get_context()->theme_list[nr].theme_id;
   }
@@ -254,7 +288,7 @@ struct button_t {
     loco->text.set_viewport(block->p[cid->instance_id].text_id, n);
   }
 
-  void set_theme(fan::opengl::cid_t* cid, f32_t state) {
+  void set_theme(fan::graphics::cid_t* cid, f32_t state) {
     loco_t* loco = get_loco();
     loco->button.set_theme(cid, loco->button.get_theme(cid), state);
   }
@@ -283,6 +317,10 @@ struct button_t {
     auto block = sb_get_block(cid);
     loco->text.set_text(&block->p[cid->instance_id].text_id, text);
   }
+
+  #if defined(loco_vulkan)
+  uint32_t m_matrices_index = 0;
+  #endif
 };
 
 #include _FAN_PATH(graphics/opengl/2D/objects/hardcode_close.h)

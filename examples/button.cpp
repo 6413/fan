@@ -5,7 +5,7 @@
 #ifndef FAN_INCLUDE_PATH
   #define FAN_INCLUDE_PATH C:/libs/fan/include
 #endif
-#define fan_debug 0
+#define fan_debug 3
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
 #define loco_vulkan
@@ -50,7 +50,7 @@ struct pile_t {
 
   loco_t loco;
   loco_t::matrices_t matrices;
-  fan::opengl::viewport_t viewport;
+  fan::graphics::viewport_t viewport;
 };
 
 int main() {
@@ -65,10 +65,8 @@ int main() {
   tp.position = 0;
   //tp.position.y = 0;
  // tp.position.z = 50;
-  tp.font_size = 0.4;
-  tp.size = fan::vec2(0.3, 0.1) 
-    //* 300
-    ;
+  tp.font_size = 0.1;
+  tp.size = fan::vec2(0.3, 0.1);
   tp.text = L"Testiteksti";
   //tp.font_size = 32;
   tp.mouse_move_cb = [] (const loco_t::mouse_move_data_t& mm_d) -> int {
@@ -88,7 +86,7 @@ int main() {
   gray_theme.open(pile.loco.get_context());
   tp.theme = &gray_theme;
   constexpr auto count = 10;
-  fan::opengl::cid_t cids[count];
+  fan::graphics::cid_t cids[count];
   fan::print(loco_bdbt_usage(&pile.loco.bdbt));
   pile.loco.button.push_back(&cids[0], tp);
   //pile.loco.get_context()->opengl.glPolygonMode(fan::opengl::GL_FRONT_AND_BACK, fan::opengl::GL_LINE);

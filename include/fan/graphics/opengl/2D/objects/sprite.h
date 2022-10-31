@@ -80,8 +80,9 @@ struct sb_sprite_name {
     #define vulkan_buffer_count 3
     #define sb_shader_vertex_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/sprite.vert.spv)
     #define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/sprite.frag.spv)
-    #include _FAN_PATH(graphics/vulkan/2D/objects/shape_builder.h)
   #endif
+
+  #include _FAN_PATH(graphics/shape_builder.h)
   
   sb_sprite_name() {
     #if defined(loco_vulkan)

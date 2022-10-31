@@ -19,8 +19,14 @@ namespace fan_2d {
 				#endif
 
 				theme_t() = default;
-				void open(context_t* context);
-				void close(context_t* context);
+				void open(auto* context){
+					theme_reference = context->theme_list.NewNode();
+					context->theme_list[theme_reference].theme_id = this;
+				}
+
+				void close(auto* context){
+					context->theme_list.Recycle(theme_reference);
+				}
 
 				//template <typename T>
 				//theme operator+(T value) const {

@@ -506,15 +506,6 @@ inline void fan::opengl::context_t::set_vsync(fan::window_t* window, bool flag)
   #endif
 }
 
-void fan_2d::graphics::gui::theme_t::open(fan::opengl::context_t* context){
-  theme_reference = context->theme_list.NewNode();
-  context->theme_list[theme_reference].theme_id = this;
-}
-
-void fan_2d::graphics::gui::theme_t::close(fan::opengl::context_t* context){
-  context->theme_list.Recycle(theme_reference);
-}
-
 inline void fan::opengl::viewport_t::open(fan::opengl::context_t * context) {
   viewport_reference = context->viewport_list.NewNode();
   context->viewport_list[viewport_reference].viewport_id = this;
