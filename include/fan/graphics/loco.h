@@ -4,6 +4,7 @@
 
 #include _FAN_PATH(graphics/graphics.h)
 #include _FAN_PATH(time/timer.h)
+#include _FAN_PATH(font.h)
 
 struct loco_t;
 
@@ -17,6 +18,17 @@ struct loco_t;
     #endif
   #endif
   #ifdef loco_sprite
+    #ifndef loco_vulkan_descriptor_ssbo
+      #define loco_vulkan_descriptor_ssbo
+    #endif
+    #ifndef loco_vulkan_descriptor_uniform_block
+      #define loco_vulkan_descriptor_uniform_block
+    #endif
+    #ifndef loco_vulkan_descriptor_image_sampler
+      #define loco_vulkan_descriptor_image_sampler
+    #endif
+  #endif
+ #ifdef loco_letter
     #ifndef loco_vulkan_descriptor_ssbo
       #define loco_vulkan_descriptor_ssbo
     #endif
@@ -385,14 +397,11 @@ public:
       #if defined(loco_sprite)
         if constexpr(std::is_same<std::remove_pointer<decltype(shape)>::type, sprite_t>::value) {
           idx = matrices.matrices_index.sprite;
-          vkCmdPushConstants(
-            context->commandBuffers[context->currentFrame], 
-            shape->m_pipeline.m_layout, 
-            VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 
-            offsetof(push_constants_t, matrices_id), 
-            sizeof(uint32_t), 
-            &idx
-          );
+        }
+      #endif
+      #if defined(loco_letter)
+        if constexpr(std::is_same<std::remove_pointer<decltype(shape)>::type, letter_t>::value) {
+          idx = matrices.matrices_index.letter;
         }
       #endif
       vkCmdPushConstants(
@@ -426,19 +435,27 @@ public:
       auto& img = image_list[tid];
       auto context = get_context();
 
+      uint32_t idx;
+
       #if defined(loco_sprite)
         if constexpr(std::is_same<std::remove_pointer<decltype(shape)>::type, sprite_t>::value) {
-          uint32_t idx = img.texture_index.sprite;
-          vkCmdPushConstants(
-            context->commandBuffers[context->currentFrame], 
-            shape->m_pipeline.m_layout, 
-            VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 
-            offsetof(push_constants_t, texture_id), 
-            sizeof(uint32_t), 
-            &idx
-          );
+          idx = img.texture_index.sprite;
         }
       #endif
+      #if defined(loco_letter)
+        if constexpr(std::is_same<std::remove_pointer<decltype(shape)>::type, letter_t>::value) {
+          idx = img.texture_index.letter;
+        }
+      #endif
+
+      vkCmdPushConstants(
+        context->commandBuffers[context->currentFrame], 
+        shape->m_pipeline.m_layout, 
+        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 
+        offsetof(push_constants_t, texture_id), 
+        sizeof(uint32_t), 
+        &idx
+      );
     #endif
   }
 
@@ -540,7 +557,8 @@ public:
   #endif
 
   #if defined(loco_letter)
-    fan_2d::graphics::font_t font;
+    #include _FAN_PATH(graphics/font.h)
+    font_t font;
   #endif
 
   enum class shape_type_e{
@@ -587,7 +605,7 @@ public:
     #endif
 
     #if defined(loco_letter)
-      font.open(get_context(), loco_font);
+      font.open(this, loco_font);
     #endif
 
     #if defined(loco_post_process)

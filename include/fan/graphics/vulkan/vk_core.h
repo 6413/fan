@@ -192,6 +192,30 @@ fan::vulkan::viewport_list_NodeReference_t::viewport_list_NodeReference_t(fan::v
   NRI = viewport->viewport_reference.NRI;
 }
 
+namespace fan_2d {
+  namespace graphics {
+    namespace gui {
+      struct theme_t;
+    }
+  }
+}
+
+#include "themes_list_builder_settings.h"
+#define BLL_set_declare_NodeReference 1
+#define BLL_set_declare_rest 0
+#include _FAN_PATH(BLL/BLL.h)
+
+#include _FAN_PATH(graphics/gui/themes.h)
+
+#include "themes_list_builder_settings.h"
+#define BLL_set_declare_NodeReference 0
+#define BLL_set_declare_rest 1
+#include _FAN_PATH(BLL/BLL.h)
+
+fan::vulkan::theme_list_NodeReference_t::theme_list_NodeReference_t(fan_2d::graphics::gui::theme_t* theme) {
+  NRI = theme->theme_reference.NRI;
+}
+
 namespace fan {
 	namespace vulkan {
 
@@ -1188,6 +1212,7 @@ namespace fan {
       uint32_t currentFrame = 0;
 
       fan::vulkan::viewport_list_t viewport_list;
+      fan::vulkan::theme_list_t theme_list;
 
       bool vsync = true;
       uint32_t image_index;

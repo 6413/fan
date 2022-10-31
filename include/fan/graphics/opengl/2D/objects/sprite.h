@@ -86,8 +86,6 @@ struct sb_sprite_name {
   sb_sprite_name() {
     #if defined(loco_vulkan)
 
-    m_texture_index = 0;
-
     auto loco = get_loco();
     auto context = loco->get_context();
 

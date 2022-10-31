@@ -43,24 +43,17 @@ vec2 tc[] = vec2[](
 	vec2(0, 0) // top left
 );
 
-vec2 swap(vec2 i) {
-	return vec2(i.y, i.x);
-}
-
 void main() {
 	uint id = uint(gl_VertexID % 6);
-
-	vec2 swapped = vec2(1, 1);
-	vec2 ratio_size = get_instance().size * swapped;
 
 	mat4 m = view;
 	m[3][0] = 0;
 	m[3][1] = 0;
 
-  gl_Position = m * projection * vec4(rectangle_vertices[id] * ratio_size + get_instance().position.xy + vec2(view[3][0], view[3][1]), get_instance().position.z, 1);
+  gl_Position = m * projection * vec4(rectangle_vertices[id] * get_instance().size + get_instance().position.xy + vec2(view[3][0], view[3][1]), get_instance().position.z, 1);
 
 	text_color = get_instance().color;
 	texture_coordinate = tc[id] * get_instance().tc_size + get_instance().tc_position;
-	render_size = dot(get_instance().size, swapped);
+	render_size = dot(get_instance().size, vec2(1, 1));
 }
 )"

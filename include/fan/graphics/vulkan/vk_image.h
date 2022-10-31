@@ -9,6 +9,10 @@
       load(loco, image_info, p);
     }
 
+    auto* get_texture_data(loco_t* loco) {
+      return &loco->image_list[texture_reference];
+    }
+
     static void transitionImageLayout(loco_t* loco, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) {
       auto context = loco->get_context();
       VkCommandBuffer commandBuffer = context->beginSingleTimeCommands(context);
@@ -137,14 +141,18 @@
       return node;
     }
     void erase_texture(loco_t* loco) {
-      assert(0);
-      //context->opengl.glDeleteTextures(1, get_texture(context));
-      //vkDestroyImage(context->device, )
-      //context->image_list.Recycle(texture_reference);
+      auto* context = loco->get_context();
+      auto texture_data = get_texture_data(loco);
+      vkDestroyImage(context->device, texture_data->image, 0);
+      vkDestroyImageView(context->device, texture_data->image_view, 0);
+      vkFreeMemory(context->device, texture_data->image_memory, nullptr);
+
+      loco->image_list.Recycle(texture_reference);
     }
 
-
     bool load(loco_t* loco, const fan::webp::image_info_t image_info, load_properties_t p = load_properties_t()) {
+      size = image_info.size;
+
       auto context = loco->get_context();
       VkBuffer stagingBuffer;
       VkDeviceMemory stagingBufferMemory;
@@ -200,6 +208,10 @@
       fan::webp::free_image(image_info.data);
 
       return ret;
+    }
+
+    void unload(loco_t* loco) {
+      erase_texture(loco);
     }
 
     static void createImage(loco_t* loco, const fan::vec2ui& image_size, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) {
@@ -259,5 +271,6 @@
       return imageView;
     }
 
+    fan::vec2ui size;
     image_list_NodeReference_t texture_reference;
   };

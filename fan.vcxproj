@@ -98,7 +98,7 @@
       <ConformanceMode>false</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
@@ -106,7 +106,7 @@
       <WholeProgramOptimization>false</WholeProgramOptimization>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)include\opus;$(SolutionDIr)include\dav1d;$(SolutionDir)include\vpx;$(SolutionDir)src\libwebp\src</AdditionalIncludeDirectories>
-      <Optimization>Disabled</Optimization>
+      <Optimization>MaxSpeed</Optimization>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <EnableParallelCodeGeneration>false</EnableParallelCodeGeneration>
@@ -137,8 +137,8 @@
       <PreprocessorDefinitions>set_durums_pc</PreprocessorDefinitions>
       <ConformanceMode>false</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <Optimization>Disabled</Optimization>
-      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <Optimization>MaxSpeed</Optimization>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
@@ -175,7 +175,7 @@
       <ConformanceMode>false</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
@@ -183,7 +183,7 @@
       <WholeProgramOptimization>false</WholeProgramOptimization>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)include\opus;$(SolutionDIr)include\dav1d;$(SolutionDir)include\vpx;$(SolutionDir)src\libwebp\src</AdditionalIncludeDirectories>
-      <Optimization>Disabled</Optimization>
+      <Optimization>MaxSpeed</Optimization>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <EnableParallelCodeGeneration>false</EnableParallelCodeGeneration>
@@ -214,8 +214,8 @@
       <PreprocessorDefinitions>set_durums_pc</PreprocessorDefinitions>
       <ConformanceMode>false</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <Optimization>Disabled</Optimization>
-      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <Optimization>MaxSpeed</Optimization>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
@@ -246,7 +246,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="examples\sprite.cpp" />
+    <ClCompile Include="examples\button.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
     <ClCompile Include="src\fan\window\window_input.cpp" />
   </ItemGroup>
@@ -311,6 +311,7 @@
     <ClInclude Include="include\fan\graphics\camera.h" />
     <ClInclude Include="include\fan\graphics\draw_shapes.h" />
     <ClInclude Include="include\fan\graphics\fast_obj\fast_obj.h" />
+    <ClInclude Include="include\fan\graphics\font.h" />
     <ClInclude Include="include\fan\graphics\graphics.h" />
     <ClInclude Include="include\fan\graphics\gui\fed.h" />
     <ClInclude Include="include\fan\graphics\gui\menu_maker.h" />
@@ -345,7 +346,6 @@
     <ClInclude Include="include\fan\graphics\opengl\2D\objects\yuv420p.h" />
     <ClInclude Include="include\fan\graphics\opengl\3D\objects\model.h" />
     <ClInclude Include="include\fan\graphics\opengl\3D\objects\skybox.h" />
-    <ClInclude Include="include\fan\graphics\opengl\font.h" />
     <ClInclude Include="include\fan\graphics\opengl\gl_core.h" />
     <ClInclude Include="include\fan\graphics\opengl\gl_defines.h" />
     <ClInclude Include="include\fan\graphics\opengl\gl_graphics.h" />
@@ -371,6 +371,7 @@
     <ClInclude Include="include\fan\graphics\vulkan\memory.h" />
     <ClInclude Include="include\fan\graphics\vulkan\memory_bll_settings.h" />
     <ClInclude Include="include\fan\graphics\vulkan\ssbo.h" />
+    <ClInclude Include="include\fan\graphics\vulkan\themes_list_builder_settings.h" />
     <ClInclude Include="include\fan\graphics\vulkan\uniform_block.h" />
     <ClInclude Include="include\fan\graphics\vulkan\viewport_list_builder_settings.h" />
     <ClInclude Include="include\fan\graphics\vulkan\vk_core.h" />

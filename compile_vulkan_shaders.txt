@@ -3,3 +3,6 @@ glslc.exe include/fan/graphics/glsl/vulkan/2D/objects/rectangle.vert -o include/
 
 glslc.exe include/fan/graphics/glsl/vulkan/2D/objects/sprite.frag -o include/fan/graphics/glsl/vulkan/2D/objects/sprite.frag.spv
 glslc.exe include/fan/graphics/glsl/vulkan/2D/objects/sprite.vert -o include/fan/graphics/glsl/vulkan/2D/objects/sprite.vert.spv
+
+glslc.exe include/fan/graphics/glsl/vulkan/2D/objects/letter.frag -o include/fan/graphics/glsl/vulkan/2D/objects/letter.frag.spv
+glslc.exe include/fan/graphics/glsl/vulkan/2D/objects/letter.vert -o include/fan/graphics/glsl/vulkan/2D/objects/letter.vert.spv

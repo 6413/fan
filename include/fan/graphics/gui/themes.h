@@ -10,9 +10,17 @@ namespace fan_2d {
 
 			struct theme_t {
 
+				#if defined(loco_opengl)
+					using context_t = fan::opengl::context_t;
+					#define ns fan::opengl
+				#elif defined(loco_vulkan)
+					using context_t = fan::vulkan::context_t;
+					#define ns fan::vulkan
+				#endif
+
 				theme_t() = default;
-				void open(fan::opengl::context_t* context);
-				void close(fan::opengl::context_t* context);
+				void open(context_t* context);
+				void close(context_t* context);
 
 				//template <typename T>
 				//theme operator+(T value) const {
@@ -77,7 +85,7 @@ namespace fan_2d {
 
 				}button;
 
-				fan::opengl::theme_list_NodeReference_t theme_reference;
+				ns::theme_list_NodeReference_t theme_reference;
 			};
 
 			using theme_ptr_t = fan::ptr_maker_t<theme_t>;
@@ -196,3 +204,5 @@ namespace fan_2d {
 		}
 	}
 }
+
+#undef ns

@@ -194,7 +194,7 @@ struct text_renderer_t {
     }
   }
 
-  void set_matrices(uint32_t id, fan::opengl::matrices_list_NodeReference_t n) {
+  void set_matrices(uint32_t id, loco_t::matrices_list_NodeReference_t n) {
     loco_t* loco = get_loco();
 
     auto it = letter_ids[id].cid_list.GetNodeFirst();
@@ -206,7 +206,7 @@ struct text_renderer_t {
     }
   }
 
-  void set_viewport(uint32_t id, fan::opengl::viewport_list_NodeReference_t n) {
+  void set_viewport(uint32_t id, fan::graphics::viewport_list_NodeReference_t n) {
     loco_t* loco = get_loco();
 
     auto it = letter_ids[id].cid_list.GetNodeFirst();
@@ -264,7 +264,7 @@ struct text_renderer_t {
   #define BLL_set_BaseLibrary 1
   #define BLL_set_prefix cid_list
   #define BLL_set_type_node uint32_t
-  #define BLL_set_node_data fan::opengl::cid_t cid;
+  #define BLL_set_node_data fan::graphics::cid_t cid;
   #define BLL_set_Link 1
   #define BLL_set_StoreFormat 1
   #include _FAN_PATH(BLL/BLL.h)
