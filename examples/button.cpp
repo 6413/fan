@@ -5,26 +5,24 @@
 #ifndef FAN_INCLUDE_PATH
   #define FAN_INCLUDE_PATH C:/libs/fan/include
 #endif
-
 #define fan_debug 0
-
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
+
+#define loco_vulkan
 
 #define loco_window
 #define loco_context
 
-#define loco_post_process
+//#define loco_post_process
 #define loco_button
 #include _FAN_PATH(graphics/loco.h)
 
 struct pile_t {
 
   void open() {
-    loco.open(loco_t::properties_t());
     fan::vec2 window_size = loco.get_window()->get_size();
     fan::vec2 ratio = window_size / window_size.max();
-    fan::graphics::open_matrices(
-      loco.get_context(),
+    loco.open_matrices(
       &matrices,
       fan::vec2(-1, 1) * ratio.x,
       fan::vec2(-1, 1) * ratio.y
@@ -51,7 +49,7 @@ struct pile_t {
   }
 
   loco_t loco;
-  fan::opengl::matrices_t matrices;
+  loco_t::matrices_t matrices;
   fan::opengl::viewport_t viewport;
 };
 

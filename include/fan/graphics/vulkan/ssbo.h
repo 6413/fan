@@ -104,9 +104,15 @@ namespace fan {
 					return &buffer[i];
 				}
 
-				/*void edit_instance(fan::vulkan::context_t* context, uint32_t i, auto member, auto value) {
+				void edit_instance(fan::vulkan::context_t* context, memory_write_queue_t* write_queue, uint32_t i, auto member, auto value) {
 					buffer[i].*member = value;
-				}*/
+					common.edit(
+						context,
+						write_queue,
+						i * sizeof(type_t),
+						i * sizeof(type_t) + sizeof(type_t)
+					);
+				}
 				// for copying whole thing
 				void copy_instance(fan::vulkan::context_t* context, memory_write_queue_t* write_queue, uint32_t i, type_t* instance) {
 					buffer[i] = *instance;

@@ -187,24 +187,17 @@ block_t* sb_get_block(fan::graphics::cid_t* cid) {
   return &block_node.block;
 }
 
-//template <typename T>
-//T get(fan::graphics::cid_t* cid, T instance_t::* member) {
-//  loco_t* loco = get_loco();
-//  auto block = sb_get_block(cid);
-//  return block->uniform_buffer.get_instance(loco->get_context(), cid->instance_id)->*member;
-//}
-//template <typename T, typename T2>
-//void set(fan::graphics::cid_t* cid, T instance_t::* member, const T2& value) {
-//  loco_t* loco = get_loco();
-//  auto block = sb_get_block(cid);
-//  block->uniform_buffer.edit_instance(loco->get_context(), cid->instance_id, member, value);
-//  block->uniform_buffer.common.edit(
-//    loco->get_context(),
-//    &loco->m_write_queue,
-//    cid->instance_id * sizeof(instance_t) + fan::ofof(member),
-//    cid->instance_id * sizeof(instance_t) + fan::ofof(member) + sizeof(T)
-//  );
-//}
+auto get(fan::graphics::cid_t *cid, auto instance_t::*member) {
+  loco_t* loco = get_loco();
+  auto block = sb_get_block(cid);
+  return m_ssbo.get_instance(loco->get_context(), block->ssbo_index + cid->instance_id)->*member;
+}
+template <typename T, typename T2>
+void set(fan::graphics::cid_t *cid, T instance_t::*member, const T2& value) {
+  loco_t* loco = get_loco();
+  auto block = sb_get_block(cid);
+  m_ssbo.edit_instance(loco->get_context(), &loco->m_write_queue, block->ssbo_index + cid->instance_id, member, value);
+}
 
 void set_vertex(const fan::string& str) {
   loco_t* loco = get_loco();
