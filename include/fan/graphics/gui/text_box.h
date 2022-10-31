@@ -25,7 +25,7 @@ struct text_box_t {
 
   #define hardcode0_t loco_t::matrices_list_NodeReference_t
   #define hardcode0_n matrices
-  #define hardcode1_t fan::opengl::viewport_list_NodeReference_t
+  #define hardcode1_t fan::graphics::viewport_list_NodeReference_t
   #define hardcode1_n viewport
   #include _FAN_PATH(graphics/opengl/2D/objects/hardcode_open.h)
 
@@ -35,7 +35,7 @@ struct text_box_t {
     expand_get_functions
 
     uint8_t selected;
-    fan::opengl::theme_list_NodeReference_t theme;
+    fan::graphics::theme_list_NodeReference_t theme;
     loco_t::vfi_t::shape_id_t vfi_id;
     uint64_t udata;
 
@@ -61,7 +61,7 @@ struct text_box_t {
     loco_t::text_cb_t text_cb = [](const loco_t::text_data_t&) -> int { return 0; };
   };
 
-  void push_back(fan::opengl::cid_t* cid, properties_t& p) {
+  void push_back(fan::graphics::cid_t* cid, properties_t& p) {
     loco_t* loco = get_loco();
     auto theme = loco->text_box.get_theme(p.theme);
     loco_t::text_t::properties_t tp;
@@ -256,7 +256,7 @@ struct text_box_t {
     rp.color = fan::colors::transparent;
     loco->rectangle.push_back(&cursor_id, rp);
   }
-  void erase(fan::opengl::cid_t* cid) {
+  void erase(fan::graphics::cid_t* cid) {
     loco_t* loco = get_loco();
     auto block = sb_get_block(cid);
     instance_properties_t* p = &block->p[cid->instance_id];
@@ -265,7 +265,7 @@ struct text_box_t {
     sb_erase(cid);
   }
 
-  void update_cursor(fan::opengl::cid_t* cid) {
+  void update_cursor(fan::graphics::cid_t* cid) {
     loco_t* loco = get_loco();
     auto block = sb_get_block(cid);
     wed_t::CursorInformation_t ci;
@@ -297,7 +297,7 @@ struct text_box_t {
     timer.cb(d);
   }
 
-  instance_properties_t* get_instance_properties(fan::opengl::cid_t* cid) {
+  instance_properties_t* get_instance_properties(fan::graphics::cid_t* cid) {
     return &sb_get_block(cid)->p[cid->instance_id];
   }
 
@@ -317,7 +317,9 @@ struct text_box_t {
   #include _FAN_PATH(graphics/shape_builder.h)
 
   text_box_t() {
-    sb_open();
+    #define vk_sb_ssbo
+    #define vk_sb_vp
+    #include _FAN_PATH(graphics/shape_open_settings.h)
   }
   ~text_box_t() {
     // check erase, need to somehow iterate block
@@ -325,14 +327,14 @@ struct text_box_t {
     sb_close();
   }
 
-  fan_2d::graphics::gui::theme_t* get_theme(fan::opengl::theme_list_NodeReference_t nr) {
+  fan_2d::graphics::gui::theme_t* get_theme(fan::graphics::theme_list_NodeReference_t nr) {
     loco_t* loco = get_loco();
     return loco->get_context()->theme_list[nr].theme_id;
   }
-  fan_2d::graphics::gui::theme_t* get_theme(fan::opengl::cid_t* cid) {
+  fan_2d::graphics::gui::theme_t* get_theme(fan::graphics::cid_t* cid) {
     return get_theme(blocks[*(bll_block_NodeReference_t*)&cid->block_id].block.p[cid->instance_id].theme);
   }
-  void set_theme(fan::opengl::cid_t* cid, fan_2d::graphics::gui::theme_t* theme, f32_t intensity) {
+  void set_theme(fan::graphics::cid_t* cid, fan_2d::graphics::gui::theme_t* theme, f32_t intensity) {
     loco_t* loco = get_loco();
     fan_2d::graphics::gui::theme_t t = *theme;
     t = t * intensity;
@@ -348,30 +350,30 @@ struct text_box_t {
   }
 
   template <typename T>
-  T get_button(fan::opengl::cid_t* cid, T instance_t::* member) {
+  T get_button(fan::graphics::cid_t* cid, T instance_t::* member) {
     loco_t* loco = get_loco();
     return loco->text_box.get(cid, member);
   }
   template <typename T, typename T2>
-  void set_button(fan::opengl::cid_t* cid, T instance_t::* member, const T2& value) {
+  void set_button(fan::graphics::cid_t* cid, T instance_t::* member, const T2& value) {
     loco_t* loco = get_loco();
     loco->text_box.set(cid, member, value);
   }
 
   template <typename T>
-  T get_text_renderer(fan::opengl::cid_t* cid, T loco_t::letter_t::instance_t::* member) {
+  T get_text_renderer(fan::graphics::cid_t* cid, T loco_t::letter_t::instance_t::* member) {
     loco_t* loco = get_loco();
     auto block = sb_get_block(cid);
     return loco->text.get(block->p[cid->instance_id].text_id, member);
   }
   template <typename T, typename T2>
-  void set_text_renderer(fan::opengl::cid_t* cid, T loco_t::letter_t::instance_t::* member, const T2& value) {
+  void set_text_renderer(fan::graphics::cid_t* cid, T loco_t::letter_t::instance_t::* member, const T2& value) {
     loco_t* loco = get_loco();
     auto block = sb_get_block(cid);
     loco->text.set(block->p[cid->instance_id].text_id, member, value);
   }
 
-  void set_position(fan::opengl::cid_t* cid, const fan::vec3& position) {
+  void set_position(fan::graphics::cid_t* cid, const fan::vec3& position) {
     loco_t* loco = get_loco();
     auto block = sb_get_block(cid);
     loco->text.set_position(&block->p[cid->instance_id].text_id, position + fan::vec3(0, 0, 0.5));
@@ -382,7 +384,7 @@ struct text_box_t {
       position
     );
   }
-  void set_size(fan::opengl::cid_t* cid, const fan::vec3& size) {
+  void set_size(fan::graphics::cid_t* cid, const fan::vec3& size) {
     loco_t* loco = get_loco();
     auto block = sb_get_block(cid);
     set_button(cid, &instance_t::size, size);
@@ -393,31 +395,31 @@ struct text_box_t {
     );
   }
 
-  loco_t::matrices_t* get_matrices(fan::opengl::cid_t* cid) {
+  loco_t::matrices_t* get_matrices(fan::graphics::cid_t* cid) {
     auto block = sb_get_block(cid);
     loco_t* loco = get_loco();
     return loco->matrices_list[*block->p[cid->instance_id].key.get_value<0>()].matrices_id;
   }
-  void set_matrices(fan::opengl::cid_t* cid, loco_t::matrices_list_NodeReference_t n) {
+  void set_matrices(fan::graphics::cid_t* cid, loco_t::matrices_list_NodeReference_t n) {
     sb_set_key<instance_properties_t::key_t::get_index_with_type<decltype(n)>()>(cid, n);
     loco_t* loco = get_loco();
     auto block = sb_get_block(cid);
     loco->text.set_matrices(block->p[cid->instance_id].text_id, n);
   }
 
-  fan::opengl::viewport_t* get_viewport(fan::opengl::cid_t* cid) {
+  fan::graphics::viewport_t* get_viewport(fan::graphics::cid_t* cid) {
     loco_t* loco = get_loco();
     auto block = sb_get_block(cid);
     return loco->get_context()->viewport_list[*block->p[cid->instance_id].key.get_value<1>()].viewport_id;
   }
-  void set_viewport(fan::opengl::cid_t* cid, fan::opengl::viewport_list_NodeReference_t n) {
+  void set_viewport(fan::graphics::cid_t* cid, fan::graphics::viewport_list_NodeReference_t n) {
     loco_t* loco = get_loco();
     sb_set_key<instance_properties_t::key_t::get_index_with_type<decltype(n)>()>(cid, n);
     auto block = sb_get_block(cid);
     loco->text.set_viewport(block->p[cid->instance_id].text_id, n);
   }
 
-  void set_theme(fan::opengl::cid_t* cid, f32_t state) {
+  void set_theme(fan::graphics::cid_t* cid, f32_t state) {
     loco_t* loco = get_loco();
     loco->text_box.set_theme(cid, loco->text_box.get_theme(cid), state);
   }
@@ -431,23 +433,23 @@ struct text_box_t {
   return block->p[cid->instance_id].udata;
 }*/
 
-  void set_selected(fan::opengl::cid_t* cid, bool flag) {
+  void set_selected(fan::graphics::cid_t* cid, bool flag) {
     auto block = sb_get_block(cid);
     block->p[cid->instance_id].selected = flag;
   }
 
-  fan::wstring get_text(fan::opengl::cid_t* cid) {
+  fan::wstring get_text(fan::graphics::cid_t* cid) {
     loco_t* loco = get_loco();
     auto block = sb_get_block(cid);
     return loco->text.get_properties(block->p[cid->instance_id].text_id).text;
   }
-  void set_text(fan::opengl::cid_t* cid, const fan::wstring& text) {
+  void set_text(fan::graphics::cid_t* cid, const fan::wstring& text) {
     loco_t* loco = get_loco();
     auto block = sb_get_block(cid);
     loco->text.set_text(&block->p[cid->instance_id].text_id, text);
   }
 
-  fan::vec3 get_text_left_position(fan::opengl::cid_t* cid) {
+  fan::vec3 get_text_left_position(fan::graphics::cid_t* cid) {
     auto loco = get_loco();
     uint32_t id = sb_get_block(cid)->p[cid->instance_id].text_id;
     f32_t text_length = loco->text.get_text_size(id).x;
@@ -456,7 +458,7 @@ struct text_box_t {
     return center;
   }
 
-  fan::vec3 get_character_position(fan::opengl::cid_t* cid, uint32_t line, uint32_t width) {
+  fan::vec3 get_character_position(fan::graphics::cid_t* cid, uint32_t line, uint32_t width) {
 
     auto loco = get_loco();
     uint32_t id = sb_get_block(cid)->p[cid->instance_id].text_id;
@@ -488,7 +490,7 @@ struct text_box_t {
     render_cursor = !render_cursor;
     c.ev_timer->start(c.timer, cursor_properties::speed);
   });
-  fan::opengl::cid_t cursor_id;
+  fan::graphics::cid_t cursor_id;
   bool render_cursor = true;
 };
 

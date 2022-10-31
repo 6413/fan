@@ -7,6 +7,8 @@
 #endif
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
+#define loco_vulkan
+
 #define loco_window
 #define loco_context
 
@@ -40,7 +42,7 @@ struct pile_t {
 
   loco_t loco;
   loco_t::matrices_t matrices;
-  fan::opengl::viewport_t viewport;
+  fan::graphics::viewport_t viewport;
 };
 
 int main() {

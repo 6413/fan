@@ -8,7 +8,7 @@ struct sb_menu_maker_type_name {
   #define BLL_set_prefix instance
   #define BLL_set_type_node uint16_t
   #define BLL_set_node_data \
-        fan::opengl::cid_t cid; \
+        fan::graphics::cid_t cid; \
         uint32_t text_id; \
         fan::wstring text; \
         fan::vec3 position; \
@@ -43,9 +43,9 @@ struct sb_menu_maker_type_name {
     fan::vec3 position;
     f32_t gui_size;
 
-    fan::opengl::theme_list_NodeReference_t theme;
+    fan::graphics::theme_list_NodeReference_t theme;
 
-    fan::opengl::viewport_list_NodeReference_t viewport;
+    fan::graphics::viewport_list_NodeReference_t viewport;
     loco_t::matrices_list_NodeReference_t matrices;
 
     fan::function_t<int(const select_data_t&)> select_cb = [](const select_data_t&) -> int { return 0; };
@@ -55,7 +55,7 @@ struct sb_menu_maker_type_name {
     return instances[selected_id].text;
   }
 
-  void set_selected(loco_t* loco, fan::opengl::cid_t* cid) {
+  void set_selected(loco_t* loco, fan::graphics::cid_t* cid) {
     selected = cid;
     if (selected == nullptr) {
       selected_id.NRI = fan::uninitialized;
@@ -251,7 +251,7 @@ struct sb_menu_maker_type_name {
     fan::vec2 offset;
   }global;
 
-  fan::opengl::cid_t* selected;
+  fan::graphics::cid_t* selected;
   instance_NodeReference_t selected_id;
 };
 
