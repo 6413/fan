@@ -31,6 +31,7 @@ void sb_open(const std::array<fan::vulkan::write_descriptor_set_t, vulkan_buffer
   p.descriptor_layout_count = 1;
   p.descriptor_layout = &m_descriptor.m_layout;
   p.shader = &m_shader;
+  p.push_constants_size = sizeof(loco_t::push_constants_t);
   m_pipeline.open(context, p);
 }
 void sb_close() {

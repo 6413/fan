@@ -12,7 +12,7 @@ struct rectangle_t {
     f32_t angle = 0;
   };
 
-  #define hardcode0_t fan::graphics::matrices_list_NodeReference_t
+  #define hardcode0_t loco_t::matrices_list_NodeReference_t
   #define hardcode0_n matrices
   #define hardcode1_t fan::graphics::viewport_list_NodeReference_t
   #define hardcode1_n viewport
@@ -30,6 +30,15 @@ struct rectangle_t {
   };
   
   void push_back(fan::graphics::cid_t* cid, properties_t& p) {
+    #if defined(loco_vulkan)
+      auto loco = get_loco();
+      auto& matrices = loco->matrices_list[p.get_matrices()];
+      if (matrices.matrices_index.rectangle == (decltype(matrices.matrices_index.rectangle))-1) {
+        matrices.matrices_index.rectangle = m_matrices_index++;
+        m_shader.set_matrices(loco, matrices.matrices_id, &loco->m_write_queue, matrices.matrices_index.rectangle);
+      }
+    #endif
+
     sb_push_back(cid, p);
   }
   void erase(fan::graphics::cid_t* cid) {
@@ -78,13 +87,18 @@ struct rectangle_t {
     sb_close();
   }
 
-  void set_matrices(fan::graphics::cid_t* cid, fan::graphics::matrices_list_NodeReference_t n) {
+  void set_matrices(fan::graphics::cid_t* cid, loco_t::matrices_list_NodeReference_t n) {
     sb_set_key<instance_properties_t::key_t::get_index_with_type<decltype(n)>()>(cid, n);
   }
 
   void set_viewport(fan::graphics::cid_t* cid, fan::graphics::viewport_list_NodeReference_t n) {
     sb_set_key<instance_properties_t::key_t::get_index_with_type<decltype(n)>()>(cid, n);
   }
+  
+  #if defined(loco_vulkan)
+    uint32_t m_matrices_index = 0;
+  #endif
+
 };
 
 #include _FAN_PATH(graphics/opengl/2D/objects/hardcode_close.h)

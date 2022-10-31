@@ -9,7 +9,6 @@
 #include _FAN_PATH(window/window.h)
 #include _FAN_PATH(math/random.h)
 #include _FAN_PATH(types/utf_string.h)
-#include _FAN_PATH(font.h)
 
 #if fan_renderer == fan_renderer_opengl
 //#include <fan/graphics/opengl/gl_init.h>

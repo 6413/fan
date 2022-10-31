@@ -1,10 +1,12 @@
-#include <string>
 #include <fan/types/types.h>
 
-#include <stddef.h>
+void assert(bool x, auto message) {
+	if (!x) {
+		fan::print(message);
+		fan::debug::print_stacktrace();
+	}
+}
 
 int main() {
-  std::stringstream ss[2];
-  std::string test = "test";
-  ss[0] << test << '\n';
+	assert(!5, "error");
 }
