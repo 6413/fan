@@ -72,6 +72,7 @@ namespace fan {
       struct memory_t;
     }
 
+    static constexpr uint16_t max_matrices = 16;
     static constexpr uint16_t max_textures = 16;
 
     struct write_descriptor_set_t {
@@ -102,8 +103,6 @@ namespace fan {
 
     struct context_t;
     struct viewport_t;
-    struct matrices_t;
-    struct image_t;
     struct shader_t;
 
     struct cid_t {
@@ -119,6 +118,7 @@ namespace fan {
         uint32_t descriptor_layout_count;
         VkDescriptorSetLayout* descriptor_layout;
         fan::vulkan::shader_t* shader;
+        uint32_t push_constants_size = 0;
       };
 
       void open(fan::vulkan::context_t* context, const properties_t& p);
@@ -140,33 +140,6 @@ namespace fan {
       std::array<fan::vulkan::write_descriptor_set_t, count> m_properties;
       VkDescriptorSetLayout m_layout;
       VkDescriptorSet m_descriptor_set[fan::vulkan::MAX_FRAMES_IN_FLIGHT];
-    };
-  }
-}
-
-#include "image_list_builder_settings.h"
-#include _FAN_PATH(BLL/BLL.h)
-
-namespace fan {
-  namespace vulkan {
-    template <uint8_t n_>
-    struct textureid_t : image_list_NodeReference_t {
-      static constexpr std::array<const char*, 32> texture_names = {
-        "_t00", "_t01", "_t02", "_t03",
-        "_t04", "_t05", "_t06", "_t07",
-        "_t08", "_t09", "_t10", "_t11",
-        "_t12", "_t13", "_t14", "_t15",
-        "_t16", "_t17", "_t18", "_t19",
-        "_t20", "_t21", "_t22", "_t23",
-        "_t24", "_t25", "_t26", "_t27",
-        "_t28", "_t29", "_t30", "_t31"
-      };
-      static constexpr uint8_t n = n_;
-      static constexpr auto name = texture_names[n];
-
-      textureid_t() = default;
-      textureid_t(fan::vulkan::image_t* image) : fan::vulkan::image_list_NodeReference_t::image_list_NodeReference_t(image) {
-      }
     };
   }
 }
@@ -217,90 +190,6 @@ namespace fan {
 
 fan::vulkan::viewport_list_NodeReference_t::viewport_list_NodeReference_t(fan::vulkan::viewport_t* viewport) {
   NRI = viewport->viewport_reference.NRI;
-}
-
-#include "matrices_list_builder_settings.h"
-#define BLL_set_declare_NodeReference 1
-#define BLL_set_declare_rest 0
-#include _FAN_PATH(BLL/BLL.h)
-
-namespace fan {
-  namespace vulkan {
-    struct matrices_t {
-
-      void open(fan::vulkan::context_t* context);
-      void close(fan::vulkan::context_t* context);
-
-      fan::vec3 get_camera_position() const {
-        return camera_position;
-      }
-      void set_camera_position(const fan::vec3& cp) {
-        camera_position = cp;
-
-        m_view[3][0] = 0;
-        m_view[3][1] = 0;
-        m_view[3][2] = 0;
-        m_view = m_view.translate(camera_position);
-        fan::vec3 position = m_view.get_translation();
-        constexpr fan::vec3 front(0, 0, 1);
-
-        m_view = fan::math::look_at_left<fan::mat4>(position, position + front, fan::camera::world_up);
-      }
-
-      void set_ortho(const fan::vec2& x, const fan::vec2& y) {
-        m_projection = fan::math::ortho<fan::mat4>(
-          x.x,
-          x.y,
-          y.x,
-          y.y,
-          -1,
-          0x10000
-        );
-        coordinates.left = x.x;
-        coordinates.right = x.y;
-        coordinates.bottom = y.y;
-        coordinates.top = y.x;
-
-        m_view[3][0] = 0;
-        m_view[3][1] = 0;
-        m_view[3][2] = 0;
-        m_view = m_view.translate(camera_position);
-        fan::vec3 position = m_view.get_translation();
-        constexpr fan::vec3 front(0, 0, 1);
-
-        m_view = fan::math::look_at_left<fan::mat4>(position, position + front, fan::camera::world_up);
-      }
-
-      fan::mat4 m_projection;
-      // temporary
-      fan::mat4 m_view;
-
-      fan::vec3 camera_position;
-
-      union {
-        struct {
-          f32_t left;
-          f32_t right;
-          f32_t top;
-          f32_t bottom;
-        };
-        fan::vec4 v;
-      }coordinates;
-
-      matrices_list_NodeReference_t matrices_reference;
-    };
-
-    static void open_matrices(fan::vulkan::context_t* context, matrices_t* matrices, const fan::vec2& x, const fan::vec2& y);
-  }
-}
-
-#include "matrices_list_builder_settings.h"
-#define BLL_set_declare_NodeReference 0
-#define BLL_set_declare_rest 1
-#include _FAN_PATH(BLL/BLL.h)
-
-fan::vulkan::matrices_list_NodeReference_t::matrices_list_NodeReference_t(fan::vulkan::matrices_t* matrices) {
-  NRI = matrices->matrices_reference.NRI;
 }
 
 namespace fan {
@@ -1298,9 +1187,7 @@ namespace fan {
       std::vector<VkFence> inFlightFences;
       uint32_t currentFrame = 0;
 
-      fan::vulkan::image_list_t image_list;
       fan::vulkan::viewport_list_t viewport_list;
-      fan::vulkan::matrices_list_t matrices_list;
 
       bool vsync = true;
       uint32_t image_index;
@@ -1316,15 +1203,49 @@ namespace fan {
 #include "uniform_block.h"
 #include "ssbo.h"
 #include "vk_shader.h"
-#include "vk_image.h"
 
 namespace fan {
   namespace vulkan {
 
+     static void createImage(fan::vulkan::context_t* context, const fan::vec2ui& image_size, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) {
+      VkImageCreateInfo imageInfo{};
+      imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+      imageInfo.imageType = VK_IMAGE_TYPE_2D;
+      imageInfo.extent.width = image_size.x;
+      imageInfo.extent.height = image_size.y;
+      imageInfo.extent.depth = 1;
+      imageInfo.mipLevels = 1;
+      imageInfo.arrayLayers = 1;
+      imageInfo.format = format;
+      imageInfo.tiling = tiling;
+      imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+      imageInfo.usage = usage;
+      imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+      imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+      if (vkCreateImage(context->device, &imageInfo, nullptr, &image) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create image!");
+      }
+
+      VkMemoryRequirements memRequirements;
+      vkGetImageMemoryRequirements(context->device, image, &memRequirements);
+
+      VkMemoryAllocateInfo allocInfo{};
+      allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+      allocInfo.allocationSize = memRequirements.size;
+      allocInfo.memoryTypeIndex = fan::vulkan::core::findMemoryType(context, memRequirements.memoryTypeBits, properties);
+
+      if (vkAllocateMemory(context->device, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS) {
+        throw std::runtime_error("failed to allocate image memory!");
+      }
+
+      vkBindImageMemory(context->device, image, imageMemory, 0);
+    }
+
     void context_t::createDepthResources() {
       VkFormat depthFormat = findDepthFormat();
 
-      fan::vulkan::image_t::createImage(this, fan::vec2(swapChainExtent.width, swapChainExtent.height), depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, depthImage, depthImageMemory);
+      createImage(this, fan::vec2(swapChainExtent.width, swapChainExtent.height), depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, depthImage, depthImageMemory);
       depthImageView = createImageView(depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
     }
 
@@ -1407,10 +1328,8 @@ namespace fan {
 
       VkPushConstantRange push_constant;
 	    push_constant.offset = 0;
-
-	    push_constant.size = sizeof(uint32_t);
-
-	    push_constant.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	    push_constant.size = p.push_constants_size;
+	    push_constant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
 	    pipelineLayoutInfo.pPushConstantRanges = &push_constant;
 	    pipelineLayoutInfo.pushConstantRangeCount = 1;
@@ -1568,24 +1487,11 @@ void fan::vulkan::viewport_t::set(fan::vulkan::context_t* context, const fan::ve
   }
 }
 
-void fan::vulkan::matrices_t::open(fan::vulkan::context_t* context) {
-  m_view = fan::mat4(1);
-  camera_position = 0;
-  matrices_reference = context->matrices_list.NewNode();
-  context->matrices_list[matrices_reference].matrices_id = this;
-}
-void fan::vulkan::matrices_t::close(fan::vulkan::context_t* context) {
-  context->matrices_list.Recycle(matrices_reference);
-}
-
-void fan::vulkan::open_matrices(fan::vulkan::context_t* context, fan::vulkan::matrices_t* matrices, const fan::vec2& x, const fan::vec2& y) {
-  matrices->open(context);
-  matrices->set_ortho(fan::vec2(x.x, x.y), fan::vec2(y.x, y.y));
-}
-
 void fan::vulkan::shader_t::open(fan::vulkan::context_t* context) {
   projection_view_block.open(context);
-  projection_view_block.push_ram_instance(context, {});
+  for (uint32_t i = 0; i < fan::vulkan::max_matrices; ++i) {
+    projection_view_block.push_ram_instance(context, {});
+  }
 }
 
 void fan::vulkan::shader_t::close(fan::vulkan::context_t* context, fan::vulkan::core::memory_write_queue_t* write_queue) {

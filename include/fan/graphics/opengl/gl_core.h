@@ -59,7 +59,6 @@ namespace fan {
     struct context_t;
     struct viewport_t;
     struct matrices_t;
-    struct image_t;
 
     struct cid_t {
       uint16_t bm_id;
@@ -67,33 +66,6 @@ namespace fan {
       uint8_t instance_id;
     };
 
-  }
-}
-
-#include "image_list_builder_settings.h"
-#include _FAN_PATH(BLL/BLL.h)
-
-namespace fan {
-  namespace opengl {
-    template <uint8_t n_>
-    struct textureid_t : image_list_NodeReference_t{
-      static constexpr std::array<const char*, 32> texture_names = {
-        "_t00", "_t01", "_t02", "_t03",
-        "_t04", "_t05", "_t06", "_t07",
-        "_t08", "_t09", "_t10", "_t11",
-        "_t12", "_t13", "_t14", "_t15",
-        "_t16", "_t17", "_t18", "_t19", 
-        "_t20", "_t21", "_t22", "_t23",
-        "_t24", "_t25", "_t26", "_t27",
-        "_t28", "_t29", "_t30", "_t31"
-      };
-      static constexpr uint8_t n = n_;
-      static constexpr auto name = texture_names[n];
-
-      textureid_t() = default;
-      textureid_t(fan::opengl::image_t* image) : fan::opengl::image_list_NodeReference_t::image_list_NodeReference_t(image) {
-      }
-    };
   }
 }
 
@@ -168,90 +140,6 @@ fan::opengl::viewport_list_NodeReference_t::viewport_list_NodeReference_t(fan::o
   NRI = viewport->viewport_reference.NRI;
 }
 
-#include "matrices_list_builder_settings.h"
-#define BLL_set_declare_NodeReference 1
-#define BLL_set_declare_rest 0
-#include _FAN_PATH(BLL/BLL.h)
-
-namespace fan{
-  namespace opengl {
-    struct matrices_t {
-
-      void open(fan::opengl::context_t* context);
-      void close(fan::opengl::context_t* context);
-
-      fan::vec3 get_camera_position() const {
-        return camera_position;
-      }
-      void set_camera_position(const fan::vec3& cp) {
-        camera_position = cp;
-
-        m_view[3][0] = 0;
-        m_view[3][1] = 0;
-        m_view[3][2] = 0;
-        m_view = m_view.translate(camera_position);
-        fan::vec3 position = m_view.get_translation();
-        constexpr fan::vec3 front(0, 0, 1);
-
-        m_view = fan::math::look_at_left<fan::mat4>(position, position + front, fan::camera::world_up);
-      }
-
-      void set_ortho(const fan::vec2& x, const fan::vec2& y) {
-        m_projection = fan::math::ortho<fan::mat4>(
-          x.x,
-          x.y,
-          y.y,
-          y.x,
-          -1,
-          0x10000
-        );
-        coordinates.left = x.x;
-        coordinates.right = x.y;
-        coordinates.bottom = y.y;
-        coordinates.top = y.x;
-
-        m_view[3][0] = 0;
-        m_view[3][1] = 0;
-        m_view[3][2] = 0;
-        m_view = m_view.translate(camera_position);
-        fan::vec3 position = m_view.get_translation();
-        constexpr fan::vec3 front(0, 0, 1);
-
-        m_view = fan::math::look_at_left<fan::mat4>(position, position + front, fan::camera::world_up);
-      }
-
-      fan::mat4 m_projection;
-      // temporary
-      fan::mat4 m_view;
-
-      fan::vec3 camera_position;
-
-      union {
-        struct {
-          f32_t left;
-          f32_t right;
-          f32_t top;
-          f32_t bottom;
-        };
-        fan::vec4 v;
-      }coordinates;
-
-      matrices_list_NodeReference_t matrices_reference;
-    };
-
-    static void open_matrices(fan::opengl::context_t* context, matrices_t* matrices, const fan::vec2& x, const fan::vec2& y);
-  }
-}
-
-#include "matrices_list_builder_settings.h"
-#define BLL_set_declare_NodeReference 0
-#define BLL_set_declare_rest 1
-#include _FAN_PATH(BLL/BLL.h)
-
-fan::opengl::matrices_list_NodeReference_t::matrices_list_NodeReference_t(fan::opengl::matrices_t* matrices) {
-  NRI = matrices->matrices_reference.NRI;
-}
-
 namespace fan {
   namespace opengl {
 
@@ -272,9 +160,7 @@ namespace fan {
 
       fan::opengl::GLuint current_program;
       fan::opengl::theme_list_t theme_list;
-      fan::opengl::image_list_t image_list;
       fan::opengl::viewport_list_t viewport_list;
-      fan::opengl::matrices_list_t matrices_list;
       fan::camera camera;
       fan::opengl::opengl_t opengl;
 
@@ -475,9 +361,7 @@ namespace fan {
 
 inline fan::opengl::context_t::context_t() {
   theme_list.Open();
-  image_list.Open();
   viewport_list.Open();
-  matrices_list.Open();
 
   opengl.open();
 
@@ -567,8 +451,8 @@ inline fan::opengl::context_t::context_t(fan::window_t* window, const properties
 
   #endif
 
-  //opengl.call(opengl.glEnable, GL_BLEND);
-  //opengl.call(opengl.glBlendFunc, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  opengl.call(opengl.glEnable, GL_BLEND);
+  opengl.call(opengl.glBlendFunc, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
   set_depth_test(true);
   //opengl.call(opengl.glDepthFunc, GL_ALWAYS);
@@ -581,9 +465,7 @@ inline fan::opengl::context_t::context_t(fan::window_t* window, const properties
 
 inline fan::opengl::context_t::~context_t() {
   theme_list.Close();
-  image_list.Close();
   viewport_list.Close();
-  matrices_list.Close();
 }
 
 inline void fan::opengl::context_t::render(fan::window_t* window) {
@@ -652,21 +534,6 @@ void fan::opengl::viewport_t::set(fan::opengl::context_t* context, const fan::ve
     window_size.y - viewport_size_.y - viewport_position.y,
     viewport_size.x, viewport_size.y
   );
-}
-
-void fan::opengl::matrices_t::open(fan::opengl::context_t* context) {
-  m_view = fan::mat4(1);
-  camera_position = 0;
-  matrices_reference = context->matrices_list.NewNode();
-  context->matrices_list[matrices_reference].matrices_id = this;
-}
-void fan::opengl::matrices_t::close(fan::opengl::context_t* context) {
-  context->matrices_list.Recycle(matrices_reference);
-}
-
-void fan::opengl::open_matrices(fan::opengl::context_t* context, fan::opengl::matrices_t* matrices, const fan::vec2& x, const fan::vec2& y) {
-  matrices->open(context);
-  matrices->set_ortho(fan::vec2(x.x, x.y), fan::vec2(y.x, y.y));
 }
 
 #include _FAN_PATH(graphics/opengl/uniform_block.h)

@@ -51,10 +51,6 @@ struct loco_t;
 
 #define loco_vfi
 
-#if defined(loco_sprite)
-  #include _FAN_PATH(graphics/opengl/texture_pack.h)
-#endif
-
 #if defined(loco_text_box)
   #define ETC_WED_set_BaseLibrary 1
   #define ETC_WED_set_Prefix wed
@@ -85,8 +81,159 @@ protected:
     fan::graphics::context_t* context;
   #endif
 public:
+  struct image_t;
 
-  fan::graphics::image_t unloaded_image;
+  #if defined(loco_opengl)
+    #include _FAN_PATH(graphics/opengl/image_list_builder_settings.h)
+  #elif defined(loco_vulkan)
+    #include _FAN_PATH(graphics/vulkan/image_list_builder_settings.h)
+  #endif
+	#include _FAN_PATH(BLL/BLL.h)
+
+  image_list_t image_list;
+
+	template <uint8_t n_>
+	struct textureid_t : image_list_NodeReference_t {
+		static constexpr std::array<const char*, 32> texture_names = {
+			"_t00", "_t01", "_t02", "_t03",
+			"_t04", "_t05", "_t06", "_t07",
+			"_t08", "_t09", "_t10", "_t11",
+			"_t12", "_t13", "_t14", "_t15",
+			"_t16", "_t17", "_t18", "_t19",
+			"_t20", "_t21", "_t22", "_t23",
+			"_t24", "_t25", "_t26", "_t27",
+			"_t28", "_t29", "_t30", "_t31"
+		};
+		static constexpr uint8_t n = n_;
+		static constexpr auto name = texture_names[n];
+
+		textureid_t() = default;
+		textureid_t(image_t* image) : image_list_NodeReference_t::image_list_NodeReference_t(image) {
+		}
+	};
+
+  #if defined(loco_opengl)
+    #include _FAN_PATH(graphics/opengl/gl_image.h)
+  #elif defined(loco_vulkan)
+    #include _FAN_PATH(graphics/vulkan/vk_image.h)
+  #endif
+
+  struct matrices_t;
+
+  #define BLL_set_declare_NodeReference 1
+  #define BLL_set_declare_rest 0
+  #if defined(loco_opengl)
+    #include _FAN_PATH(graphics/opengl/matrices_list_builder_settings.h)
+  #elif defined(loco_vulkan)
+    #include _FAN_PATH(graphics/vulkan/matrices_list_builder_settings.h)
+  #endif
+  #include _FAN_PATH(BLL/BLL.h)
+
+  struct matrices_t {
+    void open(loco_t* loco) {
+      auto* context = loco->get_context();
+      m_view = fan::mat4(1);
+      camera_position = 0;
+      matrices_reference = loco->matrices_list.NewNode();
+      loco->matrices_list[matrices_reference].matrices_id = this;
+    }
+    void close(loco_t* loco) {
+      loco->matrices_list.Recycle(matrices_reference);
+    }
+
+    void open_matrices(loco_t* loco, loco_t::matrices_t* matrices, const fan::vec2& x, const fan::vec2& y) {
+      matrices->open(loco);
+      matrices->set_ortho(fan::vec2(x.x, x.y), fan::vec2(y.x, y.y));
+    }
+
+    fan::vec3 get_camera_position() const {
+      return camera_position;
+    }
+    void set_camera_position(const fan::vec3& cp) {
+      camera_position = cp;
+
+      m_view[3][0] = 0;
+      m_view[3][1] = 0;
+      m_view[3][2] = 0;
+      m_view = m_view.translate(camera_position);
+      fan::vec3 position = m_view.get_translation();
+      constexpr fan::vec3 front(0, 0, 1);
+
+      m_view = fan::math::look_at_left<fan::mat4>(position, position + front, fan::camera::world_up);
+    }
+
+    void set_ortho(const fan::vec2& x, const fan::vec2& y) {
+      m_projection = fan::math::ortho<fan::mat4>(
+        x.x,
+        x.y,
+      #if defined (loco_opengl)
+        y.y,
+        y.x,
+      #elif defined(loco_vulkan)
+        y.x,
+        y.y,
+      #endif
+        -1,
+        0x10000
+      );
+      coordinates.left = x.x;
+      coordinates.right = x.y;
+    #if defined (loco_opengl)
+      coordinates.bottom = y.y;
+      coordinates.top = y.x;
+    #elif defined(loco_vulkan)
+      coordinates.bottom = y.x;
+      coordinates.top = y.y;
+    #endif
+
+      m_view[3][0] = 0;
+      m_view[3][1] = 0;
+      m_view[3][2] = 0;
+      m_view = m_view.translate(camera_position);
+      fan::vec3 position = m_view.get_translation();
+      constexpr fan::vec3 front(0, 0, 1);
+
+      m_view = fan::math::look_at_left<fan::mat4>(position, position + front, fan::camera::world_up);
+    }
+
+    fan::mat4 m_projection;
+    // temporary
+    fan::mat4 m_view;
+
+    fan::vec3 camera_position;
+
+    union {
+      struct {
+        f32_t left;
+        f32_t right;
+        f32_t top;
+        f32_t bottom;
+      };
+      fan::vec4 v;
+    }coordinates;
+
+    matrices_list_NodeReference_t matrices_reference;
+  };
+
+  void open_matrices(matrices_t* matrices, const fan::vec2& x, const fan::vec2& y) {
+    matrices->open(this);
+    matrices->set_ortho(fan::vec2(x.x, x.y), fan::vec2(y.x, y.y));
+  }
+
+  #define BLL_set_declare_NodeReference 0
+  #define BLL_set_declare_rest 1
+  #if defined(loco_opengl)
+    #include _FAN_PATH(graphics/opengl/matrices_list_builder_settings.h)
+  #elif defined(loco_vulkan)
+    #include _FAN_PATH(graphics/vulkan/matrices_list_builder_settings.h)
+  #endif
+  #include _FAN_PATH(BLL/BLL.h)
+
+  matrices_list_t matrices_list;
+
+  uint32_t matrices_index = 0;
+
+  image_t unloaded_image;
 
 #ifdef loco_vulkan
   struct descriptor_pool_t {
@@ -216,8 +363,47 @@ public:
   #endif
   }
 
-  void process_block_properties_element(auto* shape, fan::graphics::matrices_list_NodeReference_t matrices_id) {
-    shape->m_shader.set_matrices(get_context(), get_context()->matrices_list[matrices_id].matrices_id, &m_write_queue);
+  struct push_constants_t {
+    uint32_t texture_id;
+    uint32_t matrices_id;
+  };
+
+  void process_block_properties_element(auto* shape, loco_t::matrices_list_NodeReference_t matrices_id) {
+    #if defined(loco_opengl)
+      shape->m_shader.set_matrices(get_context(), matrices_list[matrices_id].matrices_id, &m_write_queue);
+    #elif defined(loco_vulkan)
+      auto& matrices = matrices_list[matrices_id];
+      auto context = get_context();
+
+      uint32_t idx;
+
+      #if defined(loco_rectangle)
+        if constexpr(std::is_same<std::remove_pointer<decltype(shape)>::type, rectangle_t>::value) {
+          idx = matrices.matrices_index.rectangle;
+        }
+      #endif
+      #if defined(loco_sprite)
+        if constexpr(std::is_same<std::remove_pointer<decltype(shape)>::type, sprite_t>::value) {
+          idx = matrices.matrices_index.sprite;
+          vkCmdPushConstants(
+            context->commandBuffers[context->currentFrame], 
+            shape->m_pipeline.m_layout, 
+            VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 
+            offsetof(push_constants_t, matrices_id), 
+            sizeof(uint32_t), 
+            &idx
+          );
+        }
+      #endif
+      vkCmdPushConstants(
+        context->commandBuffers[context->currentFrame], 
+        shape->m_pipeline.m_layout, 
+        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 
+        offsetof(push_constants_t, matrices_id), 
+        sizeof(uint32_t), 
+        &idx
+      );
+    #endif
   }
 
   void process_block_properties_element(auto* shape, fan::graphics::viewport_list_NodeReference_t viewport_id) {
@@ -231,49 +417,28 @@ public:
   }
 
   template <uint8_t n>
-  void process_block_properties_element(auto* shape, fan::graphics::textureid_t<n> tid) {
+  void process_block_properties_element(auto* shape, textureid_t<n> tid) {
     #if defined(loco_opengl)
       shape->m_shader.set_int(get_context(), tid.name, n);
       get_context()->opengl.call(get_context()->opengl.glActiveTexture, fan::opengl::GL_TEXTURE0 + n);
-      get_context()->opengl.call(get_context()->opengl.glBindTexture, fan::opengl::GL_TEXTURE_2D, get_context()->image_list[tid].texture_id);
+      get_context()->opengl.call(get_context()->opengl.glBindTexture, fan::opengl::GL_TEXTURE_2D, image_list[tid].texture_id);
     #elif defined(loco_vulkan)
-      auto& img = get_context()->image_list[tid];
+      auto& img = image_list[tid];
       auto context = get_context();
 
-      // PUSH
-      // 
-      //fan::print(texture_idx, img.shape_texture_id);
-      /*for (uint32_t i = texture_idx; i < fan::vulkan::max_textures; ++i) {
-        
-      }*/
-
-      static int x = 0;
-
-      uint32_t r = rand() % 2;
-      vkCmdPushConstants(context->commandBuffers[context->currentFrame], shape->m_pipeline.m_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(uint32_t), &img.shape_texture_id);
-
-      /*if (x % 2 == 0) {
-        shape->texture_ub.edit_instance(context, 0, &std::remove_pointer<decltype(shape)>::type::texture_id_t::texture_id, 0);
-        shape->texture_ub.common.edit(context, &m_write_queue, 0, sizeof(std::remove_pointer<decltype(shape)>::type::texture_id_t) * fan::vulkan::max_textures);
-      }
-      else if (x % 2 == 1) {
-        shape->texture_ub.edit_instance(context, 1, &std::remove_pointer<decltype(shape)>::type::texture_id_t::texture_id, 1);
-      shape->texture_ub.common.edit(context, &m_write_queue, 0, sizeof(std::remove_pointer<decltype(shape)>::type::texture_id_t) * fan::vulkan::max_textures);
-      }*/
-      
-      /*shape->texture_ub.edit_instance(context, texture_idx, &std::remove_pointer<decltype(shape)>::type::texture_id_t::texture_id, img.shape_texture_id);
-      shape->texture_ub.common.edit(context, &m_write_queue, 0, sizeof(std::remove_pointer<decltype(shape)>::type::texture_id_t) * fan::vulkan::max_textures);*/
-
-      x++;
-      texture_idx = (texture_idx + 1) % fan::vulkan::max_textures;
-        
-      //VkDescriptorImageInfo imageInfo{};
-      //imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-      //
-      //imageInfo.imageView = img.image_view;
-      //imageInfo.sampler = img.sampler;
-      //shape->m_descriptor.m_properties[2].image_info = imageInfo;
-      //shape->m_descriptor.update(get_context());
+      #if defined(loco_sprite)
+        if constexpr(std::is_same<std::remove_pointer<decltype(shape)>::type, sprite_t>::value) {
+          uint32_t idx = img.texture_index.sprite;
+          vkCmdPushConstants(
+            context->commandBuffers[context->currentFrame], 
+            shape->m_pipeline.m_layout, 
+            VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 
+            offsetof(push_constants_t, texture_id), 
+            sizeof(uint32_t), 
+            &idx
+          );
+        }
+      #endif
     #endif
   }
 
@@ -396,7 +561,7 @@ public:
       window(p.window),
     #endif
     context(get_window()),
-    unloaded_image(get_context(), fan::webp::image_info_t{(void*)pixel_data, 1})
+    unloaded_image(this, fan::webp::image_info_t{(void*)pixel_data, 1})
   {
     get_window()->add_buttons_callback([this](const mouse_buttons_cb_data_t& d) {
       fan::vec2 window_size = get_window()->get_size();
@@ -542,3 +707,17 @@ public:
 
   fan::function_t<void()> draw_queue = []{};
 };
+
+loco_t::image_list_NodeReference_t::image_list_NodeReference_t(loco_t::image_t* image) {
+  NRI = image->texture_reference.NRI;
+}
+
+loco_t::matrices_list_NodeReference_t::matrices_list_NodeReference_t(loco_t::matrices_t* matrices) {
+  NRI = matrices->matrices_reference.NRI;
+}
+
+#if defined(loco_sprite)
+  #if defined(loco_opengl)
+    #include _FAN_PATH(graphics/opengl/texture_pack.h)
+  #endif
+#endif

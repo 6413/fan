@@ -62,7 +62,7 @@
 #endif
 
 // TBD
-#if __cplusplus >= 202011L && defined(fan_compiler_visual_studio) && !defined(fan_compiler_clang)
+#if __cplusplus >= 199711L && defined(fan_compiler_visual_studio) && !defined(fan_compiler_clang)
 	#define fan_std23
 #endif
 

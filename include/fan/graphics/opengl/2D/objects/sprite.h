@@ -14,9 +14,9 @@ struct sb_sprite_name {
     fan::vec2 tc_size = 1;
   };
 
-  #define hardcode0_t fan::graphics::textureid_t<0>
+  #define hardcode0_t loco_t::textureid_t<0>
   #define hardcode0_n image
-  #define hardcode1_t fan::graphics::matrices_list_NodeReference_t
+  #define hardcode1_t loco_t::matrices_list_NodeReference_t
   #define hardcode1_n matrices
   #define hardcode2_t fan::graphics::viewport_list_NodeReference_t
   #define hardcode2_n viewport
@@ -26,7 +26,7 @@ struct sb_sprite_name {
     struct key_t : parsed_masterpiece_t {}key;
     expand_get_functions
   };
-
+  
   struct properties_t : instance_t, instance_properties_t {
     properties_t() = default;
     properties_t(const instance_t& i) : instance_t(i) {}
@@ -38,17 +38,23 @@ struct sb_sprite_name {
       auto loco = get_loco();
       VkDescriptorImageInfo imageInfo{};
       imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-      auto& img = loco->get_context()->image_list[p.get_image()] = loco->get_context()->image_list[p.get_image()];
+      auto& img = loco->image_list[p.get_image()];
       imageInfo.imageView = img.image_view;
       imageInfo.sampler = img.sampler;
-      if (img.shape_texture_id == -1) {
-        img.shape_texture_id = m_texture_index++;
+      if (img.texture_index.sprite == (decltype(img.texture_index.sprite))-1) {
+        img.texture_index.sprite = m_texture_index++;
         if (m_texture_index > fan::vulkan::max_textures) {
           fan::throw_error("too many textures max:" + fan::vulkan::max_textures);
         }
-        m_descriptor.m_properties[2].image_infos[img.shape_texture_id] = imageInfo;
+        m_descriptor.m_properties[2].image_infos[img.texture_index.sprite] = imageInfo;
       }
       m_descriptor.update(loco->get_context());
+
+      auto& matrices = loco->matrices_list[p.get_matrices()];
+      if (matrices.matrices_index.sprite == (decltype(matrices.matrices_index.sprite))-1) {
+        matrices.matrices_index.sprite = m_matrices_index++;
+        m_shader.set_matrices(loco, matrices.matrices_id, &loco->m_write_queue, matrices.matrices_index.sprite);
+      }
     #endif
     sb_push_back(cid, p);
   }
@@ -103,8 +109,8 @@ struct sb_sprite_name {
 
     VkDescriptorImageInfo imageInfo{};
     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfo.imageView = loco->unloaded_image.get(context).image_view;
-    imageInfo.sampler = loco->unloaded_image.get(context).sampler;
+    imageInfo.imageView = loco->unloaded_image.get(loco).image_view;
+    imageInfo.sampler = loco->unloaded_image.get(loco).sampler;
 
     ds_properties[2].use_image = 1;
     ds_properties[2].binding = 2;
@@ -126,14 +132,14 @@ struct sb_sprite_name {
     sb_close();
   }
 
-  fan::graphics::matrices_t* get_matrices(fan::graphics::cid_t* cid) {
+  loco_t::matrices_t* get_matrices(fan::graphics::cid_t* cid) {
     auto block = sb_get_block(cid);
     loco_t* loco = get_loco();
-    return loco->get_context()->matrices_list[*block->p[cid->instance_id].key.get_value<
-      instance_properties_t::key_t::get_index_with_type<fan::graphics::matrices_list_NodeReference_t>()
+    return loco->matrices_list[*block->p[cid->instance_id].key.get_value<
+      instance_properties_t::key_t::get_index_with_type<loco_t::matrices_list_NodeReference_t>()
     >()].matrices_id;
   }
-  void set_matrices(fan::graphics::cid_t* cid, fan::graphics::matrices_list_NodeReference_t n) {
+  void set_matrices(fan::graphics::cid_t* cid, loco_t::matrices_list_NodeReference_t n) {
     sb_set_key<instance_properties_t::key_t::get_index_with_type<decltype(n)>()>(cid, n);
   }
 
@@ -155,8 +161,8 @@ struct sb_sprite_name {
     *block->p[cid->instance_id].key.get_value<1>() = n;
   }*/
 
-  void set_image(fan::graphics::cid_t* cid, fan::graphics::image_t* n) {
-    sb_set_key<instance_properties_t::key_t::get_index_with_type<fan::graphics::textureid_t<0>>()>(cid, n);
+  void set_image(fan::graphics::cid_t* cid, loco_t::image_t* n) {
+    sb_set_key<instance_properties_t::key_t::get_index_with_type<loco_t::textureid_t<0>>()>(cid, n);
   }
   void set_viewport_value(fan::graphics::cid_t* cid, fan::vec2 p, fan::vec2 s) {
     loco_t* loco = get_loco();
@@ -166,13 +172,8 @@ struct sb_sprite_name {
   }
 
   #if defined(loco_vulkan)
-    uint32_t m_texture_index;
-
-    struct texture_id_t {
-      uint32_t texture_id;
-      uint8_t pad[12];
-    };
-
+    uint32_t m_texture_index = 0;
+    uint32_t m_matrices_index = 0;
   #endif
 };
 

@@ -283,7 +283,7 @@ namespace fan {
         }
       }
 
-      void set_matrices(fan::opengl::context_t* context, fan::opengl::matrices_t* matrices, auto write_queue) {
+      void set_matrices(fan::opengl::context_t* context, auto* matrices, auto write_queue, uint32_t flags = 0) {
         context->opengl.call(context->opengl.glUniformMatrix4fv, projection_view[0], 1, fan::opengl::GL_FALSE, &matrices->m_projection[0][0]);
         context->opengl.call(context->opengl.glUniformMatrix4fv, projection_view[1], 1, fan::opengl::GL_FALSE, &matrices->m_view[0][0]);
       }

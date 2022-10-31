@@ -1,6 +1,5 @@
 #pragma once
 
-#include _FAN_PATH(graphics/opengl/gl_image.h)
 #include _FAN_PATH(tp/tp.h)
 
 namespace fan {
@@ -23,7 +22,7 @@ namespace fan {
       };
 
       struct pixel_data_t {
-        fan::opengl::image_t image;
+        loco_t::image_t image;
         fan::vec2 size;
       };
       uint32_t pack_amount;
@@ -34,7 +33,9 @@ namespace fan {
         return pixel_data_list[pack_id];
       }
 
-      void open_compiled(fan::opengl::context_t* context, const char* filename) {
+      void open_compiled(loco_t* loco, const char* filename) {
+        auto* context = loco->get_context();
+
         texture_list.open();
         pixel_data_list.open();
 
@@ -74,10 +75,10 @@ namespace fan {
           data_index += sizeof(uint32_t);
           uint32_t filter = *(uint32_t*)&data[data_index];
           data_index += sizeof(uint32_t);
-          fan::opengl::image_t::load_properties_t lp;
+          loco_t::image_t::load_properties_t lp;
           lp.visual_output = visual_output;
           lp.filter = filter;
-          pixel_data_list[i].image.load(context, image_info, lp);
+          pixel_data_list[i].image.load(loco, image_info, lp);
           pixel_data_list[i].size = image_info.size;
           WebPFree(image_info.data);
         }

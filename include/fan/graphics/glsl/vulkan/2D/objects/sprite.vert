@@ -4,7 +4,6 @@
 
 layout(location = 0) out vec4 instance_color;
 layout(location = 1) out vec2 texture_coordinate;
-layout(location = 2) out float instance_id;
 
 struct block_instance_t{
 	vec3 position;
@@ -21,9 +20,18 @@ layout(std140, binding = 0) readonly buffer instances_t{
 	block_instance_t instances[];
 };
 
-layout(binding = 1) uniform vp_t {
+layout(push_constant) uniform constants_t {
+	uint texture_id;
+	uint matrices_id;
+}constants;
+
+struct pv_t {
 	mat4 projection;
-  mat4 view;
+	mat4 view;
+};
+
+layout(binding = 1) uniform upv_t {
+	pv_t pv[16];
 };
 
 vec2 rectangle_vertices[] = vec2[](
@@ -56,13 +64,12 @@ void main() {
 	float x = rp.x * c - rp.y * s;
 	float y = rp.x * s + rp.y * c;
 
+	mat4 view = pv[constants.matrices_id].view;
 	mat4 m = view;
 	m[3][0] = 0;
 	m[3][1] = 0;
 
-  gl_Position = projection * m * vec4(vec2(x, y) * get_instance().size + get_instance().position.xy + vec2(view[3][0], view[3][1]), get_instance().position.z, 1);
+  gl_Position = pv[constants.matrices_id].projection * m * vec4(vec2(x, y) * get_instance().size + get_instance().position.xy + vec2(view[3][0], view[3][1]), get_instance().position.z, 1);
 	instance_color = get_instance().color;
 	texture_coordinate = tc[id] * get_instance().tc_size + get_instance().tc_position;
-	instance_id = gl_InstanceIndex / 204 + gl_InstanceIndex % 204;
-	//texture_id = uint(tm[gl_InstanceIndex / 204 + gl_InstanceIndex % 204][0].x);
 }

@@ -4,7 +4,6 @@
 
 #include _FAN_PATH(graphics/webp.h)
 #include _FAN_PATH(types/memory.h)
-#include _FAN_PATH(graphics/opengl/gl_image.h)
 
 namespace fan {
   namespace tp {
@@ -40,8 +39,8 @@ namespace fan {
         open_properties_t() {}
 
         fan::vec2ui preferred_pack_size = 1024;
-        uint32_t visual_output = fan::opengl::image_t::load_properties_defaults::visual_output;
-        uint32_t filter = fan::opengl::image_t::load_properties_defaults::filter;
+        uint32_t visual_output = loco_t::image_t::load_properties_defaults::visual_output;
+        uint32_t filter = loco_t::image_t::load_properties_defaults::filter;
       };
 
       struct pack_properties_t {
