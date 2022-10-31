@@ -66,8 +66,8 @@ namespace fan {
       dlerror();
       void* result = dlsym(*handle, name);
       #if fan_debug >= fan_debug_low
-      if ((auto 
-        error = dlerror()) != NULL) {
+      char* error;
+      if ((error = dlerror()) != NULL) {
         fan::throw_error(error);
       }
       #endif
