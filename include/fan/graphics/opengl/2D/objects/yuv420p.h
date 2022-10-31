@@ -14,14 +14,14 @@ struct sb_sprite_name {
     fan::vec2 tc_size = 1;
   };
 
-  #define hardcode0_t fan::opengl::textureid_t<0>
+  #define hardcode0_t loco_t::textureid_t<0>
   #define hardcode0_n y
-  #define hardcode1_t fan::opengl::textureid_t<1>
+  #define hardcode1_t loco_t::textureid_t<1>
   #define hardcode1_n u
-  #define hardcode2_t fan::opengl::textureid_t<2>
+  #define hardcode2_t loco_t::textureid_t<2>
   #define hardcode2_n v
 
-  #define hardcode3_t fan::opengl::matrices_list_NodeReference_t
+  #define hardcode3_t loco_t::matrices_list_NodeReference_t
   #define hardcode3_n matrices
   #define hardcode4_t fan::opengl::viewport_list_NodeReference_t
   #define hardcode4_n viewport
@@ -38,8 +38,7 @@ struct sb_sprite_name {
     properties_t(const instance_properties_t& p) : instance_properties_t(p) {}
 
       #define _load_yuv(_f) \
-      fan::opengl::context_t* context = loco->get_context(); \
-      fan::opengl::image_t::load_properties_t lp; \
+      loco_t::image_t::load_properties_t lp; \
       lp.format = fan::opengl::GL_RED; \
       lp.internal_format = fan::opengl::GL_RED; \
                                  \
@@ -47,14 +46,14 @@ struct sb_sprite_name {
                                 \
       ii.data = data[0]; \
       ii.size = image_size; \
-      loco->sb_shape_var_name.image[0]._f(context, ii, lp); \
+      loco->sb_shape_var_name.image[0]._f(loco, ii, lp); \
                                 \
       ii.data = data[1]; \
       ii.size = image_size / 2; \
-      loco->sb_shape_var_name.image[1]._f(context, ii, lp); \
+      loco->sb_shape_var_name.image[1]._f(loco, ii, lp); \
                                 \
       ii.data = data[2]; \
-      loco->sb_shape_var_name.image[2]._f(context, ii, lp); 
+      loco->sb_shape_var_name.image[2]._f(loco, ii, lp); 
 
     void load_yuv(loco_t* loco, void* data, const fan::vec2& image_size) {
       void* datas[3];
@@ -110,16 +109,16 @@ struct sb_sprite_name {
   }
 
   void set_image_data(fan::opengl::cid_t* cid, 
-    fan::opengl::textureid_t<0> y,
-    fan::opengl::textureid_t<1> u,
-    fan::opengl::textureid_t<2> v
+    loco_t::textureid_t<0> y,
+    loco_t::textureid_t<1> u,
+    loco_t::textureid_t<2> v
   ) {
     sb_set_key<instance_properties_t::key_t::get_index_with_type<decltype(y)>()>(cid, y);
     sb_set_key<instance_properties_t::key_t::get_index_with_type<decltype(u)>()>(cid, u);
     sb_set_key<instance_properties_t::key_t::get_index_with_type<decltype(v)>()>(cid, v);
   }
 
-  fan::opengl::image_t image[3];
+  loco_t::image_t image[3];
 
   /*void set_matrices(loco_t* loco, fan::opengl::cid_t* cid, fan::opengl::matrices_list_NodeReference_t n) {
   auto block = sb_get_block(loco, cid);
