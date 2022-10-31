@@ -10,7 +10,7 @@ struct sb_menu_maker_type_name {
   #define BLL_set_node_data \
         fan::opengl::cid_t cid; \
         uint32_t text_id; \
-        fan::string text; \
+        fan::wstring text; \
         fan::vec3 position; \
         fan_2d::graphics::gui::theme_t theme; \
         loco_t::mouse_button_cb_t mouse_button_cb; \
@@ -24,8 +24,8 @@ struct sb_menu_maker_type_name {
   struct properties_t {
     fan::vec3 offset = 0;
 
-    fan::string text_value;
-    fan::string text;
+    fan::wstring text_value;
+    fan::wstring text;
 
     fan_2d::graphics::gui::theme_t* theme = 0;
 
@@ -46,12 +46,12 @@ struct sb_menu_maker_type_name {
     fan::opengl::theme_list_NodeReference_t theme;
 
     fan::opengl::viewport_list_NodeReference_t viewport;
-    fan::opengl::matrices_list_NodeReference_t matrices;
+    loco_t::matrices_list_NodeReference_t matrices;
 
     fan::function_t<int(const select_data_t&)> select_cb = [](const select_data_t&) -> int { return 0; };
   };
 
-  fan::string get_selected_text(loco_t* loco) {
+  auto get_selected_text(loco_t* loco) {
     return instances[selected_id].text;
   }
 

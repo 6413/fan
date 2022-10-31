@@ -8,6 +8,25 @@
 
 struct loco_t;
 
+  // automatically gets necessary macros for shapes
+
+  #if defined(loco_text_box)
+      #define loco_rectangle
+      #define loco_letter
+      #define loco_text
+  #endif
+  #if defined(loco_button)
+    #define loco_letter
+    #define loco_text
+  #endif
+  #if defined(loco_menu_maker)
+    #define loco_rectangle
+    #define loco_letter
+    #define loco_text
+    #define loco_text_box
+    #define loco_button
+  #endif
+
 #ifdef loco_vulkan
   #ifdef loco_rectangle 
     #ifndef loco_vulkan_descriptor_ssbo
@@ -404,6 +423,12 @@ public:
           idx = matrices.matrices_index.letter;
         }
       #endif
+      #if defined(loco_button)
+        if constexpr(std::is_same<std::remove_pointer<decltype(shape)>::type, button_t>::value) {
+          idx = matrices.matrices_index.button;
+        }
+      #endif
+
       vkCmdPushConstants(
         context->commandBuffers[context->currentFrame], 
         shape->m_pipeline.m_layout, 
@@ -462,24 +487,6 @@ public:
   loco_bdbt_t bdbt;
 
   fan::ev_timer_t ev_timer;
-
-  // automatically gets necessary macros for shapes
-
-  #if defined(loco_text_box)
-      #define loco_rectangle
-      #define loco_letter
-      #define loco_text
-  #endif
-  #if defined(loco_button)
-    #define loco_letter
-    #define loco_text
-  #endif
-  #if defined(loco_menu_maker)
-    #define loco_letter
-    #define loco_text
-    #define loco_text_box
-    #define loco_button
-  #endif
   
   #if defined(loco_line)
     #define sb_shape_var_name line

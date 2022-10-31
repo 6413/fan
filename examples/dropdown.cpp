@@ -16,24 +16,22 @@
 struct pile_t {
 
   void open() {
-    loco.open(loco_t::properties_t());
     fan::vec2 window_size = loco.get_window()->get_size();
     fan::vec2 ratio = window_size / window_size.max();
-    fan::graphics::open_matrices(
-      loco.get_context(),
+    loco.open_matrices(
       &matrices,
       fan::vec2(-1, 1) * ratio.x,
       fan::vec2(-1, 1) * ratio.y
     );
-    loco.get_window()->add_resize_callback([&](fan::window_t* window, const fan::vec2i& size) {
-      fan::vec2 window_size = size;
+    loco.get_window()->add_resize_callback([&](const fan::window_t::resize_cb_data_t& d) {
+      fan::vec2 window_size = d.size;
       fan::vec2 ratio = window_size / window_size.max();
       //std::swap(ratio.x, ratio.y);
       matrices.set_ortho(
         fan::vec2(-1, 1) * ratio.x,
         fan::vec2(-1, 1) * ratio.y
       );
-      viewport.set(loco.get_context(), 0, size, size);
+      viewport.set(loco.get_context(), 0, d.size, d.size);
       });
 
     viewport.open(loco.get_context());
@@ -41,7 +39,7 @@ struct pile_t {
   }
 
   loco_t loco;
-  fan::opengl::matrices_t matrices;
+  loco_t::matrices_t matrices;
   fan::opengl::viewport_t viewport;
 };
 
@@ -67,27 +65,27 @@ int main() {
   op.position = fan::vec2(op.gui_size * (5.0 / 3), -1.0 + op.gui_size);
   ids[1] = pile->loco.dropdown.push_menu(op);
   loco_t::dropdown_t::properties_t p;
-  p.text = "dropdown";
+  p.text = L"dropdown";
   p.mouse_button_cb = [&](const loco_t::mouse_button_data_t& mb) -> int {
     if (mb.button != fan::mouse_left) {
       return 0;
     }
-    if (mb.button_state != fan::key_state::release) {
+    if (mb.button_state != fan::mouse_state::release) {
       return 0;
     }
     return 0;
   };
 
-  p.items = {
-    "apples",
-    "grapes"
-  };
-  pile->loco.dropdown.push_back(ids[0], p);
+  p.items.push_back(L"apples");
+  p.items.push_back(L"grapes");
 
-  p.items = {
-  "test",
-  "button"
-  };
+  pile->loco.dropdown.push_back(ids[0], p);
+  //fan::wstring x = std::move("test");
+
+  p.items.clear();
+
+  p.items.push_back(L"test");
+  p.items.push_back(L"button");
 
   pile->loco.dropdown.push_back(ids[1], p);
 

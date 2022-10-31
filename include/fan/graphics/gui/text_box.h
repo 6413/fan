@@ -23,7 +23,7 @@ struct text_box_t {
 
   static constexpr uint32_t max_instance_size = fan::min(256, 4096 / (sizeof(instance_t) / 4));
 
-  #define hardcode0_t fan::opengl::matrices_list_NodeReference_t
+  #define hardcode0_t loco_t::matrices_list_NodeReference_t
   #define hardcode0_n matrices
   #define hardcode1_t fan::opengl::viewport_list_NodeReference_t
   #define hardcode1_n viewport
@@ -305,9 +305,16 @@ struct text_box_t {
     sb_draw();
   }
 
-  #define sb_shader_vertex_path _FAN_PATH(graphics/glsl/opengl/2D/objects/rectangle_box.vs)
-  #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/objects/rectangle_box.fs)
-  #include _FAN_PATH(graphics/opengl/2D/objects/shape_builder.h)
+  #if defined(loco_opengl)
+    #define sb_shader_vertex_path _FAN_PATH(graphics/glsl/opengl/2D/objects/button.vs)
+  #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/objects/button.fs)
+  #elif defined(loco_vulkan)
+    #define vulkan_buffer_count 2
+    #define sb_shader_vertex_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/button.vert.spv)
+    #define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/button.frag.spv)
+  #endif
+
+  #include _FAN_PATH(graphics/shape_builder.h)
 
   text_box_t() {
     sb_open();
@@ -386,12 +393,12 @@ struct text_box_t {
     );
   }
 
-  fan::opengl::matrices_t* get_matrices(fan::opengl::cid_t* cid) {
+  loco_t::matrices_t* get_matrices(fan::opengl::cid_t* cid) {
     auto block = sb_get_block(cid);
     loco_t* loco = get_loco();
-    return loco->get_context()->matrices_list[*block->p[cid->instance_id].key.get_value<0>()].matrices_id;
+    return loco->matrices_list[*block->p[cid->instance_id].key.get_value<0>()].matrices_id;
   }
-  void set_matrices(fan::opengl::cid_t* cid, fan::opengl::matrices_list_NodeReference_t n) {
+  void set_matrices(fan::opengl::cid_t* cid, loco_t::matrices_list_NodeReference_t n) {
     sb_set_key<instance_properties_t::key_t::get_index_with_type<decltype(n)>()>(cid, n);
     loco_t* loco = get_loco();
     auto block = sb_get_block(cid);
