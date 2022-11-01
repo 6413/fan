@@ -5,7 +5,7 @@
 #ifndef FAN_INCLUDE_PATH
   #define FAN_INCLUDE_PATH C:/libs/fan/include
 #endif
-#define fan_debug 0
+#define fan_debug 3
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
 #define loco_vulkan
