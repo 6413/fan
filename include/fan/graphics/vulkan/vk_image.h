@@ -88,7 +88,7 @@
     }
 
 
-    static void createTextureSampler(loco_t* loco, VkSampler& sampler, const load_properties_t& lp) {
+    static void createTextureSampler(loco_t* loco, VkSampler& sampler, const load_properties_t& lp = load_properties_t()) {
       auto context = loco->get_context();
       VkPhysicalDeviceProperties properties{};
       vkGetPhysicalDeviceProperties(context->physicalDevice, &properties);

@@ -54,7 +54,7 @@ struct rectangle_t {
     #define sb_shader_vertex_path _FAN_PATH(graphics/glsl/opengl/2D/objects/rectangle.vs)
     #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/objects/rectangle.fs)
   #elif defined(loco_vulkan)
-    #define vulkan_buffer_count 2
+    #define vulkan_buffer_count 3
     #define sb_shader_vertex_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/rectangle.vert.spv)
     #define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/rectangle.frag.spv)
   #endif
@@ -71,8 +71,8 @@ struct rectangle_t {
     auto context = get_loco()->get_context();
 
     render_fullscreen_shader.open(context);
-    render_fullscreen_shader.set_vertex(context, _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/fullscreen.vert.spv));
-    render_fullscreen_shader.set_fragment(context, _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/rectangle.frag.spv));
+    render_fullscreen_shader.set_vertex(context, _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/rectangle.vert.spv));
+    render_fullscreen_shader.set_fragment(context, _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/fullscreen.frag.spv));
     p.descriptor_layout_count = 1;
     p.descriptor_layout = &m_descriptor.m_layout;
     p.shader = &render_fullscreen_shader;
