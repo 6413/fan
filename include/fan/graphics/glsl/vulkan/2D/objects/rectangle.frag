@@ -13,17 +13,9 @@ layout(location = 0) in travel_data_t data;
 
 void main() {
   vec4 color = data.color;
-	color.rgb *= color.a;
-	const float depthZ = -data.depth * 10.0f;
-
-  const float distWeight = clamp(0.03 / (1e-5 + pow(depthZ / 200, 4.0)), 1e-2, 3e3);
-
-  float alphaWeight = min(1.0, max(max(color.r, color.g), max(color.b, color.a)) * 40.0 + 0.01);
-  alphaWeight *= alphaWeight;
-
-  const float weight = alphaWeight * distWeight;
-	
+	float weight = clamp(pow(min(1.0, color.a * 10.0) + 0.01, 3.0) * 1e8 * 
+											 pow(1.0 - gl_FragCoord.z * 0.9, 3.0), 1e-2, 3e3);
 	reveal = color.a;
 	//out_color = color;
-	ocolor = color;
+	ocolor = vec4(color.rgb * color.a, color.a) * weight;
 }

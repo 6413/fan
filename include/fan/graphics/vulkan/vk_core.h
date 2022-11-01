@@ -746,7 +746,7 @@ namespace fan {
 				subpass[0].pDepthStencilAttachment = &depthAttachmentRef;
 
 				VkAttachmentReference subpass1ColorAttachment{};
-				subpass1ColorAttachment.attachment = 2;  // i.e. m_colorImage
+				subpass1ColorAttachment.attachment = 2;
 				subpass1ColorAttachment.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 				std::array<VkAttachmentReference, 2> subpass1InputAttachments{};
@@ -1121,7 +1121,7 @@ namespace fan {
 				{
 					vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, render_fullscreen_pl.m_pipeline);
 					// Draw a full-screen triangle
-					vkCmdDraw(commandBuffers[currentFrame], 3, 1, 0, 0);
+					vkCmdDraw(commandBuffers[currentFrame], 6, 1, 0, 0);
 				}
 
 				vkCmdEndRenderPass(commandBuffers[currentFrame]);
@@ -1503,7 +1503,7 @@ namespace fan {
 			 vai_t::properties_t p;
 			 p.format = VK_FORMAT_R16G16B16A16_SFLOAT;
 			 p.swap_chain_size = swap_chain_size;
-			 p.usage_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
+			 p.usage_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 			 p.aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT;
 			 vai_wboit_color.open(this, p);
 			 vai_wboit_color.transition_image_layout(this, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);

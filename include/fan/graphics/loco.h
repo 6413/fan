@@ -27,6 +27,8 @@ struct loco_t;
     #define loco_button
   #endif
 
+#define loco_vulkan_descriptor_image_sampler
+
 #ifdef loco_vulkan
   #ifdef loco_rectangle 
     #ifndef loco_vulkan_descriptor_ssbo
@@ -585,8 +587,8 @@ public:
     #else
       window(p.window),
     #endif
-    context(get_window()),
-    unloaded_image(this, fan::webp::image_info_t{(void*)pixel_data, 1})
+    context(get_window())
+    //unloaded_image(this, fan::webp::image_info_t{(void*)pixel_data, 1})
   {
     get_window()->add_buttons_callback([this](const mouse_buttons_cb_data_t& d) {
       fan::vec2 window_size = get_window()->get_size();
