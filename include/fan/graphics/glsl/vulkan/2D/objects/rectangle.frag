@@ -12,8 +12,6 @@ struct travel_data_t {
 layout(location = 0) in travel_data_t data;
 
 void main() {
-	ocolor = vec4(0, 0, 1, 1);
-	return;
   vec4 color = data.color;
 	color.rgb *= color.a;
 	const float depthZ = -data.depth * 10.0f;
@@ -27,5 +25,5 @@ void main() {
 	
 	reveal = color.a;
 	//out_color = color;
-	ocolor = vec4(0, 0, 1, 1);
+	ocolor = color;
 }

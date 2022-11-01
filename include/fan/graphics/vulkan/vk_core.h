@@ -1099,7 +1099,7 @@ namespace fan {
 				// TODO
 
 				VkClearValue clearValues[4]{};
-				clearValues[2].color = { { 0.0f, 1.0f, 0.0f, 1.0f} };
+				clearValues[2].color = { { 0.0f, 0.0f, 0.0f, 0.0f} };
 				clearValues[3].depthStencil = { 1.0f, 0 };
 
 				clearValues[0].color.float32[0] = 0.0f;
@@ -1568,11 +1568,11 @@ namespace fan {
 				VK_COLOR_COMPONENT_A_BIT
 				;
 			colorBlendAttachment[0].blendEnable = VK_FALSE;
-			colorBlendAttachment[0].srcColorBlendFactor = VK_BLEND_FACTOR_ZERO;
-			colorBlendAttachment[0].dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
+			colorBlendAttachment[0].srcColorBlendFactor = VK_BLEND_FACTOR_ONE ;
+			colorBlendAttachment[0].dstColorBlendFactor = VK_BLEND_FACTOR_ONE ;
 			colorBlendAttachment[0].colorBlendOp = VK_BLEND_OP_ADD;
-			colorBlendAttachment[0].srcAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-			colorBlendAttachment[0].dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+			colorBlendAttachment[0].srcAlphaBlendFactor = VK_BLEND_FACTOR_ZERO ;
+			colorBlendAttachment[0].dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA ;
 			colorBlendAttachment[0].alphaBlendOp = VK_BLEND_OP_ADD;
 			colorBlendAttachment[1] = colorBlendAttachment[0];
 
