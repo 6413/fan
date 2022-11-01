@@ -64,6 +64,21 @@ struct rectangle_t {
     #define vk_sb_ssbo
     #define vk_sb_vp
     #include _FAN_PATH(graphics/shape_open_settings.h)
+
+    fan::vulkan::pipeline_t::properties_t p;
+
+
+    auto context = get_loco()->get_context();
+
+    render_fullscreen_shader.open(context);
+    render_fullscreen_shader.set_vertex(context, _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/fullscreen.vert.spv));
+    render_fullscreen_shader.set_fragment(context, _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/rectangle.frag.spv));
+    p.descriptor_layout_count = 1;
+    p.descriptor_layout = &m_descriptor.m_layout;
+    p.shader = &render_fullscreen_shader;
+    p.push_constants_size = p.push_constants_size = sizeof(loco_t::push_constants_t);
+    p.subpass = 1;
+    context->render_fullscreen_pl.open(context, p);
   }
   ~rectangle_t() {
     sb_close();
