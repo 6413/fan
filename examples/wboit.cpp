@@ -5,7 +5,7 @@
 #ifndef FAN_INCLUDE_PATH
   #define FAN_INCLUDE_PATH C:/libs/fan/include
 #endif
-#define fan_debug 3
+#define fan_debug 1
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
 #define loco_vulkan
@@ -53,26 +53,26 @@ int main() {
   p.get_viewport() = &pile->viewport;
 
   p.size = fan::vec2(0.2);
-  p.position = fan::vec2(-0.05, 0);
-  p.color = fan::colors::blue;
-  p.color.a = 0.4;
+  p.position = fan::vec2(-0.1, 0);
+  p.position.z = 0.3;
+  p.color = fan::color(1, 0, 0, 0.2);
   pile->loco.rectangle.push_back(&pile->cids[1], p);
-  p.color = fan::colors::red;
-  p.color.a = 0.4;
-  p.position = fan::vec2(0.1, 0);
-  p.position.z = 1;
+
+  p.color = fan::color(0, 1, 0, 0.2);
+  p.position = fan::vec2(0, -0.1);
+  p.position.z = 0.2;
   pile->loco.rectangle.push_back(&pile->cids[2], p);
 
-    p.size = fan::vec2(0.2);
-  p.position = fan::vec2(0.4, 0);
-  p.color = fan::colors::green;
-  p.color.a = 0.8;
+  p.size = fan::vec2(0.2);
+  p.position = fan::vec2(0.08, 0.1);
+  p.color = fan::color(0, 0, 1, 0.2);
+  p.position.z = 0.1;
   pile->loco.rectangle.push_back(&pile->cids[0], p);
 
   pile->loco.set_vsync(false);
   
   pile->loco.loop([&] {
-
+    pile->loco.get_fps();
   });
 
   return 0;

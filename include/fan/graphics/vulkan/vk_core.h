@@ -120,6 +120,9 @@ namespace fan {
 				fan::vulkan::shader_t* shader;
 				uint32_t push_constants_size = 0;
 				uint32_t subpass = 0;
+
+				uint32_t color_blend_attachment_count = 0;
+				VkPipelineColorBlendAttachmentState* color_blend_attachment = 0;
 			};
 
 			void open(fan::vulkan::context_t* context, const properties_t& p);
@@ -1556,32 +1559,16 @@ namespace fan {
 			depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
 			depthStencil.depthTestEnable = VK_TRUE;
 			depthStencil.depthWriteEnable = VK_TRUE;
-			depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
+			depthStencil.depthCompareOp = VK_COMPARE_OP_ALWAYS;
 			depthStencil.depthBoundsTestEnable = VK_FALSE;
 			depthStencil.stencilTestEnable = VK_FALSE;
-
-			VkPipelineColorBlendAttachmentState colorBlendAttachment[2]{};
-			colorBlendAttachment[0].colorWriteMask =
-				VK_COLOR_COMPONENT_R_BIT |
-				VK_COLOR_COMPONENT_G_BIT |
-				VK_COLOR_COMPONENT_B_BIT |
-				VK_COLOR_COMPONENT_A_BIT
-				;
-			colorBlendAttachment[0].blendEnable = VK_FALSE;
-			colorBlendAttachment[0].srcColorBlendFactor = VK_BLEND_FACTOR_ONE ;
-			colorBlendAttachment[0].dstColorBlendFactor = VK_BLEND_FACTOR_ONE ;
-			colorBlendAttachment[0].colorBlendOp = VK_BLEND_OP_ADD;
-			colorBlendAttachment[0].srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-			colorBlendAttachment[0].dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA ;
-			colorBlendAttachment[0].alphaBlendOp = VK_BLEND_OP_ADD;
-			colorBlendAttachment[1] = colorBlendAttachment[0];
-
+			
 			VkPipelineColorBlendStateCreateInfo colorBlending{};
 			colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
 			colorBlending.logicOpEnable = VK_FALSE;
 			colorBlending.logicOp = VK_LOGIC_OP_NO_OP;
-			colorBlending.attachmentCount = 2;
-			colorBlending.pAttachments = colorBlendAttachment;
+			colorBlending.attachmentCount = p.color_blend_attachment_count;
+			colorBlending.pAttachments = p.color_blend_attachment;
 			colorBlending.blendConstants[0] = 1.0f;
 			colorBlending.blendConstants[1] = 1.0f;
 			colorBlending.blendConstants[2] = 1.0f;
