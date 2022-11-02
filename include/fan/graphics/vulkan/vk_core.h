@@ -1121,7 +1121,7 @@ namespace fan {
 				{
 					vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, render_fullscreen_pl.m_pipeline);
 					// Draw a full-screen triangle
-					vkCmdDraw(commandBuffers[currentFrame], 6, 1, 0, 0);
+					vkCmdDraw(commandBuffers[currentFrame], 6, 1, 0, 3);
 				}
 
 				vkCmdEndRenderPass(commandBuffers[currentFrame]);
@@ -1571,7 +1571,7 @@ namespace fan {
 			colorBlendAttachment[0].srcColorBlendFactor = VK_BLEND_FACTOR_ONE ;
 			colorBlendAttachment[0].dstColorBlendFactor = VK_BLEND_FACTOR_ONE ;
 			colorBlendAttachment[0].colorBlendOp = VK_BLEND_OP_ADD;
-			colorBlendAttachment[0].srcAlphaBlendFactor = VK_BLEND_FACTOR_ZERO ;
+			colorBlendAttachment[0].srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
 			colorBlendAttachment[0].dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA ;
 			colorBlendAttachment[0].alphaBlendOp = VK_BLEND_OP_ADD;
 			colorBlendAttachment[1] = colorBlendAttachment[0];
@@ -1582,10 +1582,10 @@ namespace fan {
 			colorBlending.logicOp = VK_LOGIC_OP_NO_OP;
 			colorBlending.attachmentCount = 2;
 			colorBlending.pAttachments = colorBlendAttachment;
-			colorBlending.blendConstants[0] = 0.0f;
-			colorBlending.blendConstants[1] = 0.0f;
-			colorBlending.blendConstants[2] = 0.0f;
-			colorBlending.blendConstants[3] = 0.0f;
+			colorBlending.blendConstants[0] = 1.0f;
+			colorBlending.blendConstants[1] = 1.0f;
+			colorBlending.blendConstants[2] = 1.0f;
+			colorBlending.blendConstants[3] = 1.0f;
 
 			std::vector<VkDynamicState> dynamicStates = {
 					VK_DYNAMIC_STATE_VIEWPORT,
