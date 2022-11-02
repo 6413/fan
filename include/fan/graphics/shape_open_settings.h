@@ -31,12 +31,21 @@
 
     ds_properties[2].use_image = 1;
     ds_properties[2].binding = 4;
-    ds_properties[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ;
+    ds_properties[2].dst_binding = 4;
+    ds_properties[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     ds_properties[2].flags = VK_SHADER_STAGE_FRAGMENT_BIT;
     for (uint32_t i = 0; i < fan::vulkan::max_textures; ++i) {
       ds_properties[2].image_infos[i] = imageInfo;
     }
-    ds_properties[2].dst_binding = 4;
+
+    imageInfo.imageView = loco->get_context()->vai_wboit_reveal.image_view;
+
+    ds_properties[3] = ds_properties[2];
+    ds_properties[3].binding = 5;
+    ds_properties[3].dst_binding = 5;
+    for (uint32_t i = 0; i < fan::vulkan::max_textures; ++i) {
+      ds_properties[3].image_infos[i] = imageInfo;
+    }
 
   #endif
 

@@ -61,8 +61,13 @@ void main() {
   mat4 m = view;
 	m[3][0] = 0;
 	m[3][1] = 0;
-
-	vec4 view_position = m * vec4(vec2(x, y) * get_instance().size + get_instance().position.xy + vec2(view[3][0], view[3][1]), get_instance().position.z, 1);
+	vec4 view_position;
+	if (gl_InstanceIndex == 3) {
+		view_position = m * vec4(rp + vec2(view[3][0], view[3][1]), 1, 1);
+	}
+	else {
+		view_position = m * vec4(vec2(x, y) * get_instance().size + get_instance().position.xy + vec2(view[3][0], view[3][1]), get_instance().position.z, 1);
+	}
 
   gl_Position = pv[constants.matrices_id].projection * view_position;
 

@@ -54,7 +54,7 @@ struct rectangle_t {
     #define sb_shader_vertex_path _FAN_PATH(graphics/glsl/opengl/2D/objects/rectangle.vs)
     #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/objects/rectangle.fs)
   #elif defined(loco_vulkan)
-    #define vulkan_buffer_count 3
+    #define vulkan_buffer_count 4
     #define sb_shader_vertex_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/rectangle.vert.spv)
     #define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/rectangle.frag.spv)
   #endif
