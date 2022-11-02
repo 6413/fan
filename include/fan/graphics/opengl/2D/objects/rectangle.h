@@ -78,6 +78,22 @@ struct rectangle_t {
     p.shader = &render_fullscreen_shader;
     p.push_constants_size = p.push_constants_size = sizeof(loco_t::push_constants_t);
     p.subpass = 1;
+    VkPipelineColorBlendAttachmentState color_blend_attachment{};
+		color_blend_attachment.colorWriteMask =
+			VK_COLOR_COMPONENT_R_BIT |
+			VK_COLOR_COMPONENT_G_BIT |
+			VK_COLOR_COMPONENT_B_BIT |
+			VK_COLOR_COMPONENT_A_BIT
+		;
+		color_blend_attachment.blendEnable = VK_TRUE;
+		color_blend_attachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+		color_blend_attachment.dstColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+		color_blend_attachment.colorBlendOp = VK_BLEND_OP_ADD;
+		color_blend_attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+		color_blend_attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+		color_blend_attachment.alphaBlendOp = VK_BLEND_OP_ADD;
+    p.color_blend_attachment_count = 1;
+    p.color_blend_attachment = &color_blend_attachment;
     context->render_fullscreen_pl.open(context, p);
   }
   ~rectangle_t() {

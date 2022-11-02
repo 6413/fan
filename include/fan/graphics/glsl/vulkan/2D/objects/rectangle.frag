@@ -12,10 +12,28 @@ struct travel_data_t {
 layout(location = 0) in travel_data_t data;
 
 void main() {
-  vec4 color = data.color;
-	float weight = clamp(pow(min(1.0, color.a * 10.0) + 0.01, 3.0) * 1e8 * 
-											 pow(1.0 - gl_FragCoord.z * 0.9, 3.0), 1e-2, 3e3);
-	reveal = color.a;
-	//out_color = color;
-	ocolor = vec4(color.rgb * color.a, color.a) * weight;
+	vec4 color = data.color;
+	color.rgb *= color.a;  // Premultiply it
+
+  // Insert your favorite weighting function here. The color-based factor
+  // avoids color pollution from the edges of wispy clouds. The z-based
+  // factor gives precedence to nearer surfaces.
+
+  // The depth functions in the paper want a camera-space depth of 0.1 < z < 500,
+  // but the scene at the moment uses a range of about 0.01 to 50, so multiply
+  // by 10 to get an adjusted depth:
+  const float depthZ = -data.depth * 10.0f;
+
+  const float distWeight = clamp(0.03 / (1e-5 + pow(depthZ / 200, 4.0)), 1e-2, 3e3);
+
+  float alphaWeight = min(1.0, max(max(color.r, color.g), max(color.b, color.a)) * 40.0 + 0.01);
+  alphaWeight *= alphaWeight;
+
+  const float weight = alphaWeight * distWeight;
+
+  // GL Blend function: GL_ONE, GL_ONE
+  ocolor = color * weight;
+
+  // GL blend function: GL_ZERO, GL_ONE_MINUS_SRC_ALPHA
+  reveal = color.a;
 }

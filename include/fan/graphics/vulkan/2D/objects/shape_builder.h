@@ -27,11 +27,40 @@ void sb_open(const std::array<fan::vulkan::write_descriptor_set_t, vulkan_buffer
 
   m_descriptor.open(context, loco->descriptor_pool.m_descriptor_pool, ds_properties);
 
+  VkPipelineColorBlendAttachmentState color_blend_attachment[2]{};
+	color_blend_attachment[0].colorWriteMask =
+		VK_COLOR_COMPONENT_R_BIT |
+		VK_COLOR_COMPONENT_G_BIT |
+		VK_COLOR_COMPONENT_B_BIT |
+		VK_COLOR_COMPONENT_A_BIT
+	;
+	color_blend_attachment[0].blendEnable = VK_TRUE;
+	color_blend_attachment[0].srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
+	color_blend_attachment[0].dstColorBlendFactor = VK_BLEND_FACTOR_ONE;
+	color_blend_attachment[0].colorBlendOp = VK_BLEND_OP_ADD;
+	color_blend_attachment[0].srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+	color_blend_attachment[0].dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+	color_blend_attachment[0].alphaBlendOp = VK_BLEND_OP_ADD;
+
+	color_blend_attachment[1].colorWriteMask =
+		VK_COLOR_COMPONENT_R_BIT
+	;
+
+	color_blend_attachment[1].blendEnable = VK_TRUE;
+	color_blend_attachment[1].srcColorBlendFactor = VK_BLEND_FACTOR_ZERO;
+	color_blend_attachment[1].dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
+	color_blend_attachment[1].colorBlendOp = VK_BLEND_OP_ADD;
+	color_blend_attachment[1].srcAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+	color_blend_attachment[1].dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
+	color_blend_attachment[1].alphaBlendOp = VK_BLEND_OP_ADD;
+
   fan::vulkan::pipeline_t::properties_t p;
   p.descriptor_layout_count = 1;
   p.descriptor_layout = &m_descriptor.m_layout;
   p.shader = &m_shader;
   p.push_constants_size = sizeof(loco_t::push_constants_t);
+  p.color_blend_attachment_count = std::size(color_blend_attachment);
+  p.color_blend_attachment = color_blend_attachment;
   m_pipeline.open(context, p);
 }
 void sb_close() {
