@@ -94,6 +94,7 @@ struct rectangle_t {
 		color_blend_attachment.alphaBlendOp = VK_BLEND_OP_ADD;
     p.color_blend_attachment_count = 1;
     p.color_blend_attachment = &color_blend_attachment;
+    p.enable_depth_test = false;
     context->render_fullscreen_pl.open(context, p);
   }
   ~rectangle_t() {

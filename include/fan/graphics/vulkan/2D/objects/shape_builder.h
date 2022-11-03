@@ -61,6 +61,7 @@ void sb_open(const std::array<fan::vulkan::write_descriptor_set_t, vulkan_buffer
   p.push_constants_size = sizeof(loco_t::push_constants_t);
   p.color_blend_attachment_count = std::size(color_blend_attachment);
   p.color_blend_attachment = color_blend_attachment;
+  p.depth_test_compare_op = VK_COMPARE_OP_ALWAYS;
   m_pipeline.open(context, p);
 }
 void sb_close() {
