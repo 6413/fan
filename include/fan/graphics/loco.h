@@ -206,8 +206,9 @@ public:
         y.x,
         y.y,
       #endif
-        -1,
-        0x10000
+        // znear & zfar is actually flipped (idk why)
+        -0xfffff,
+        0
       );
       coordinates.left = x.x;
       coordinates.right = x.y;

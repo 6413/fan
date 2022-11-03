@@ -123,6 +123,9 @@ namespace fan {
 
 				uint32_t color_blend_attachment_count = 0;
 				VkPipelineColorBlendAttachmentState* color_blend_attachment = 0;
+
+				bool enable_depth_test = true;
+				VkCompareOp depth_test_compare_op = VK_COMPARE_OP_LESS;
 			};
 
 			void open(fan::vulkan::context_t* context, const properties_t& p);
@@ -1557,9 +1560,9 @@ namespace fan {
 
 			VkPipelineDepthStencilStateCreateInfo depthStencil{};
 			depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-			depthStencil.depthTestEnable = VK_TRUE;
+			depthStencil.depthTestEnable = p.enable_depth_test;
 			depthStencil.depthWriteEnable = VK_TRUE;
-			depthStencil.depthCompareOp = VK_COMPARE_OP_ALWAYS;
+			depthStencil.depthCompareOp = p.depth_test_compare_op;
 			depthStencil.depthBoundsTestEnable = VK_FALSE;
 			depthStencil.stencilTestEnable = VK_FALSE;
 			

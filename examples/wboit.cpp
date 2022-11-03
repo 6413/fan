@@ -54,18 +54,18 @@ int main() {
 
   p.size = fan::vec2(0.2);
   p.position = fan::vec2(-0.1, 0);
-  p.position.z = 0.3;
-  p.color = fan::color(1, 0, 0, 0.2);
+  p.position.z = 5000;
+  p.color = fan::color(1, 0, 0, 0.9);
   pile->loco.rectangle.push_back(&pile->cids[1], p);
 
-  p.color = fan::color(0, 1, 0, 0.2);
+  p.color = fan::color(0, 1, 0, 0.9);
   p.position = fan::vec2(0, -0.1);
-  p.position.z = 0.2;
+  p.position.z = 0.1;
   pile->loco.rectangle.push_back(&pile->cids[2], p);
 
   p.size = fan::vec2(0.2);
   p.position = fan::vec2(0.08, 0.1);
-  p.color = fan::color(0, 0, 1, 0.2);
+  p.color = fan::color(0, 0, 1, 0.9);
   p.position.z = 0.1;
   pile->loco.rectangle.push_back(&pile->cids[0], p);
 

@@ -13,7 +13,7 @@ layout(location = 0) in travel_data_t data;
 
 void main() {
 	vec4 color = data.color;
-	color.rgb *= color.a;  // Premultiply it
+	color.rgb *= color.a;
 
   // Insert your favorite weighting function here. The color-based factor
   // avoids color pollution from the edges of wispy clouds. The z-based
@@ -31,9 +31,7 @@ void main() {
 
   const float weight = alphaWeight * distWeight;
 
-  // GL Blend function: GL_ONE, GL_ONE
   ocolor = color * weight;
 
-  // GL blend function: GL_ZERO, GL_ONE_MINUS_SRC_ALPHA
   reveal = color.a;
 }
