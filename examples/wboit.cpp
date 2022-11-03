@@ -60,7 +60,7 @@ int main() {
 
   p.color = fan::color(0, 1, 0, 0.9);
   p.position = fan::vec2(0, -0.1);
-  p.position.z = 0.1;
+  p.position.z = 0;
   pile->loco.rectangle.push_back(&pile->cids[2], p);
 
   p.size = fan::vec2(0.2);
