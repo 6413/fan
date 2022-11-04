@@ -258,7 +258,7 @@ void traverse_draw(auto nr) {
 
       context->draw(
         sb_vertex_count,
-        bnr == bmn->data.last_block ? bmn->data.total_instances % max_instance_size : max_instance_size,
+        bnr == bmn->data.last_block ? bmn->data.total_instances % (max_instance_size + 1) : max_instance_size,
         node->data.block.ssbo_index,
         /*1,
         1,*/

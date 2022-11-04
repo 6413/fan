@@ -202,13 +202,17 @@ public:
       #if defined (loco_opengl)
         y.y,
         y.x,
+        -1,
+        0xffffff
       #elif defined(loco_vulkan)
+        // znear & zfar is actually flipped for vulkan (camera somehow flipped)
         y.x,
         y.y,
-      #endif
-        // znear & zfar is actually flipped (idk why)
-        -0xfffff,
+        -0xffffff,
         0
+      #endif
+
+
       );
       coordinates.left = x.x;
       coordinates.right = x.y;

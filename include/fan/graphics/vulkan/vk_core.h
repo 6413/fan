@@ -718,6 +718,7 @@ namespace fan {
 				depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 				VkAttachmentDescription wboit_color_attachment{};
+
 				wboit_color_attachment.format = VK_FORMAT_R16G16B16A16_SFLOAT;
 				wboit_color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
 				wboit_color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -1127,7 +1128,7 @@ namespace fan {
 				{
 					vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, render_fullscreen_pl.m_pipeline);
 					// Draw a full-screen triangle
-					vkCmdDraw(commandBuffers[currentFrame], 6, 1, 0, 3);
+					vkCmdDraw(commandBuffers[currentFrame], 6, 1, 0, 0);
 				}
 
 				vkCmdEndRenderPass(commandBuffers[currentFrame]);
