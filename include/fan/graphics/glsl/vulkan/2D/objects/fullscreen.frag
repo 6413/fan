@@ -1,4 +1,4 @@
-#version 450
+#version 420
 
 layout(input_attachment_index=0, binding=4) uniform subpassInput attachment0;
 layout(input_attachment_index=1, binding=5) uniform subpassInput attachment1;

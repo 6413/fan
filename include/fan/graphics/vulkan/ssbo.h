@@ -36,9 +36,9 @@ namespace fan {
 				void write(fan::vulkan::context_t* context, uint64_t src, uint64_t dst, uint32_t frame) {
 
 					uint8_t* data;
-					validate(vkMapMemory(context->device, common.memory[frame].device_memory, 0, dst - src, 0, (void**)&data));
-					data += src;
-					memcpy(data, (uint8_t*)buffer.data(), dst - src);
+					validate(vkMapMemory(context->device, common.memory[frame].device_memory, src, dst - src, 0, (void**)&data));
+					
+					memcpy(data, ((uint8_t*)buffer.data()) + src, dst - src);
 					// unnecessary? is necessary
 					vkUnmapMemory(context->device, common.memory[frame].device_memory);
 

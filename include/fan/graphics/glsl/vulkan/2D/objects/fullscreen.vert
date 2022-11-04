@@ -5,18 +5,19 @@
 // such as during the resolve step.
 // We could also do this using a compute shader instead.
 
-void main()
-{
-  // 0---^-----------2
-  // |   |   |     /
-  // <---.---|---/---> x+
-  // |   |   | /
-  // |-------/
-  // |   | /
-  // |   /
-  // | / |
-  // 1   V
-  //     y+
-  vec4 pos = vec4((float((gl_VertexIndex >> 1U) & 1U)) * 4.0 - 1.0, (float(gl_VertexIndex & 1U)) * 4.0 - 1.0, 0, 1.0);
-  gl_Position = pos;
+vec2 rectangle_vertices[] = vec2[](
+	vec2(1.0, -1.0),
+	
+	vec2(1.0, 1.0),
+	vec2(-1.0, -1.0),
+	
+	vec2(-1.0, -1.0),
+	vec2(1.0, 1.0),
+	vec2(-1.0, 1.0)
+	
+);
+
+void main() {
+
+  gl_Position = vec4(rectangle_vertices[gl_VertexIndex], 0, 1);
 }

@@ -18,7 +18,7 @@
 #define loco_rectangle
 #include _FAN_PATH(graphics/loco.h)
 
-constexpr uint32_t count = 1.0e+1;
+constexpr uint32_t count = 10000;
 
 struct pile_t {
 
@@ -52,22 +52,36 @@ int main() {
   p.get_matrices() = &pile->matrices;
   p.get_viewport() = &pile->viewport;
 
-  p.size = fan::vec2(0.2);
-  p.position = fan::vec2(-0.1, 0);
-  p.position.z = 5000;
-  p.color = fan::color(1, 0, 0, 0.9);
+  
+  p.size = fan::vec2(0.5);
+  p.color = fan::color(1, 0, 0, 0.5);
+  p.position = fan::vec2(-0.25, 0);
+  p.position.z = 1;
+  pile->loco.rectangle.push_back(&pile->cids[0], p);
+  p.color = fan::color(0, 0, 1, 0.5);
+  p.position = fan::vec2(0.25, 0);
+  f32_t dd = 0;
+  p.position.z = dd;
   pile->loco.rectangle.push_back(&pile->cids[1], p);
 
-  p.color = fan::color(0, 1, 0, 0.9);
-  p.position = fan::vec2(0, -0.1);
-  p.position.z = 0;
-  pile->loco.rectangle.push_back(&pile->cids[2], p);
-
-  p.size = fan::vec2(0.2);
-  p.position = fan::vec2(0.08, 0.1);
-  p.color = fan::color(0, 0, 1, 0.9);
-  p.position.z = 0.1;
-  pile->loco.rectangle.push_back(&pile->cids[0], p);
+  auto& window = *pile->loco.get_window();
+  window.add_buttons_callback([&](const fan::window_t::mouse_buttons_cb_data_t& d) {
+    if (d.state != fan::mouse_state::press) {
+      return;
+    }
+    if (d.button == fan::mouse_left)
+    pile->loco.rectangle.set(
+      &pile->cids[0],
+      &loco_t::rectangle_t::instance_t::position,
+      fan::vec3(pile->loco.get_mouse_position(pile->viewport), 1)
+    );
+    if (d.button == fan::mouse_right)
+    pile->loco.rectangle.set(
+      &pile->cids[1],
+      &loco_t::rectangle_t::instance_t::position,
+      fan::vec3(pile->loco.get_mouse_position(pile->viewport), dd)
+    );
+  });
 
   pile->loco.set_vsync(false);
   
