@@ -1,5 +1,7 @@
 #version 430
 
+//#define wboit
+
 #if !defined(wboit)
 	layout(location = 0) out vec4 ocolor;
 #else

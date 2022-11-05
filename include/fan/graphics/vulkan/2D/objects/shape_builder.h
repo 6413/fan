@@ -30,6 +30,11 @@ void sb_open() {
   m_ssbo.m_descriptor.m_properties[1] = ds_properties[1];
   m_ssbo.m_descriptor.update(context, 1, 1, 0, 0);
 
+  // only for rectangle
+  #if defined(loco_wboit) && defined(vk_shape_wboit)
+    m_ssbo.m_descriptor.update(context, 2, 2);
+  #endif
+
   fan::vulkan::pipeline_t::properties_t p;
 
 #if defined (loco_wboit)
@@ -299,10 +304,9 @@ void sb_draw(uint32_t draw_mode = 0) {
 template <uint32_t i>
 void sb_set_key(fan::graphics::cid_t* cid, auto value) {
   loco_t* loco = get_loco();
-  auto block = sb_get_block(cid);
   properties_t p;
-  *(instance_t*)&p = *m_ssbo.get_instance(loco->get_context(), block->ssbo_index + cid->instance_id % max_instance_size);
-  *(bm_propeties_t*)&p = block->p[cid->instance_id];
+  *(vi_t*)&p = m_ssbo.instance_list.get_vi(ssbo_t::nr_t{cid->block_id}, cid->instance_id);
+  *(ri_t*)&p = m_ssbo.instance_list.get_ri(ssbo_t::nr_t{cid->block_id}, cid->instance_id);
   *p.key.get_value<i>() = value;
   sb_erase(cid);
   sb_push_back(cid, p);

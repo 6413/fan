@@ -1,7 +1,25 @@
 struct text_renderer_t {
 
-  struct properties_t : loco_t::letter_t::instance_properties_t {
-    using type_t = text_renderer_t;
+  #define make_key_value(type, name) \
+    type& name = *key.get_value<decltype(key)::get_index_with_type<type>()>();
+
+  struct properties_t : loco_t::letter_t::ri_t, loco_t::letter_t::bm_properties_t {
+
+    properties_t() = default;
+    properties_t& operator=(const properties_t& p) {
+      *(loco_t::letter_t::ri_t*)this = *(loco_t::letter_t::ri_t*)&p;
+      *(loco_t::letter_t::bm_properties_t*)this = *(loco_t::letter_t::bm_properties_t*)&p;
+      matrices = p.matrices;
+      viewport = p.viewport;
+      color = p.color;
+      outline_color = p.outline_color;
+      outline_size = p.outline_size;
+      text = p.text;
+      return *this;
+    }
+
+    make_key_value(loco_t::matrices_list_NodeReference_t, matrices);
+    make_key_value(fan::graphics::viewport_list_NodeReference_t, viewport);
 
     fan::vec3 position = 0;
     fan::color color = fan::colors::white;
@@ -9,6 +27,8 @@ struct text_renderer_t {
     f32_t outline_size = 0.5;
     fan::wstring text;
   };
+
+  #undef make_key_value
 
   loco_t* get_loco() {
     loco_t* loco = OFFSETLESS(this, loco_t, sb_shape_var_name);
@@ -92,8 +112,8 @@ struct text_renderer_t {
     typename loco_t::letter_t::properties_t p;
     p.color = properties.color;
     p.font_size = properties.font_size;
-    p.get_viewport() = properties.get_viewport();
-    p.get_matrices() = properties.get_matrices();
+    p.viewport = properties.viewport;
+    p.matrices = properties.matrices;
     p.outline_color = properties.outline_color;
     p.outline_size = properties.outline_size;
     uint32_t id;
@@ -145,7 +165,7 @@ struct text_renderer_t {
   }
 
   template <typename T>
-  T get(uint32_t id, T loco_t::letter_t::instance_t::*member) {
+  T get(uint32_t id, T loco_t::letter_t::vi_t::*member) {
     loco_t* loco = get_loco();
     return loco->letter.get(id, member); // ?
   }

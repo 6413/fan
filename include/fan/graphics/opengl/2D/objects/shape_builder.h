@@ -258,7 +258,7 @@ void sb_set_key(fan::opengl::cid_t* cid, auto value) {
   auto block = sb_get_block(cid);
   properties_t p;
   *(vi_t*)&p = *block->uniform_buffer.get_instance(loco->get_context(), cid->instance_id);
-  *(instance_properties_t*)&p = block->p[cid->instance_id];
+  *(bm_properties_t*)&p = block->p[cid->instance_id];
   *p.key.get_value<i>() = value;
   sb_erase(cid);
   sb_push_back(cid, p);

@@ -53,8 +53,8 @@ int main() {
 
   loco_t::text_t::properties_t p;
 
-  p.get_viewport() = &pile->viewport;
-  p.get_matrices() = &pile->matrices;
+  p.matrices = &pile->matrices;
+  p.viewport = &pile->viewport;
 
   p.font_size = 0.3;
   p.text = L"hello world";
