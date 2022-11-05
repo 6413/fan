@@ -8,7 +8,7 @@
 #define fan_debug 0
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
-//#define loco_vulkan
+#define loco_vulkan
 
 #define loco_window
 #define loco_context
@@ -55,8 +55,8 @@ int main() {
 
   loco_t::letter_t::properties_t p;
 
-  p.get_viewport() = &pile->viewport;
-  p.get_matrices() = &pile->matrices;
+  p.matrices = &pile->matrices;
+  p.viewport = &pile->viewport;
 
   for (uint32_t i = 0; i < count; i++) {
     p.position = fan::vec2(fan::random::value_f32(-1, 1), fan::random::value_f32(-1, 1));

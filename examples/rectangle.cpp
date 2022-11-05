@@ -10,6 +10,8 @@
 
 #define loco_vulkan
 
+//#define loco_wboit
+
 #define loco_window
 #define loco_context
 
@@ -45,16 +47,22 @@ struct pile_t {
 };
 
 int main() {
-
   pile_t* pile = new pile_t;
 
   loco_t::rectangle_t::properties_t p;
-  p.get_matrices() = &pile->matrices;
-  p.get_viewport() = &pile->viewport;
+  p.matrices = &pile->matrices;
+  p.viewport = &pile->viewport;
 
-  p.size = fan::vec2(50, 50);
-  p.position = fan::vec2(400, 400);
+  p.size = fan::vec2(200, 200);
+
+  p.position = fan::vec3(300, 300, 0);
+  p.color = fan::colors::red;
+  p.color.a = 0.5;
+  pile->loco.rectangle.push_back(&pile->cids[1], p);
+
+    p.position = fan::vec3(400, 400, 1);
   p.color = fan::colors::blue;
+  p.color.a = 0.5;
   pile->loco.rectangle.push_back(&pile->cids[0], p);
 
   pile->loco.set_vsync(false);

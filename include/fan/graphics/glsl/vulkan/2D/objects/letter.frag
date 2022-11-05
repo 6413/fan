@@ -26,4 +26,7 @@ void main() {
   float outline_alpha = smoothstep(border_width, border_width + border_edge, distance);
 
   o_color = vec4(instance_color.rgb, alpha);
+	if (o_color.a < 0.5) {
+		discard;
+	}
 }
