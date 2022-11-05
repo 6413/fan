@@ -54,7 +54,11 @@ struct rectangle_t {
     #define sb_shader_vertex_path _FAN_PATH(graphics/glsl/opengl/2D/objects/rectangle.vs)
     #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/objects/rectangle.fs)
   #elif defined(loco_vulkan)
-    #define vulkan_buffer_count 4
+    #if defined(loco_wboit)
+      #define vulkan_buffer_count 4
+    #else
+      #define vulkan_buffer_count 2
+    #endif
     #define sb_shader_vertex_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/rectangle.vert.spv)
     #define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/rectangle.frag.spv)
   #endif
@@ -64,43 +68,6 @@ struct rectangle_t {
     #define vk_sb_ssbo
     #define vk_sb_vp
     #include _FAN_PATH(graphics/shape_open_settings.h)
-
-    #if defined(loco_vulkan)
-
-    fan::vulkan::pipeline_t::properties_t p;
-
-
-    auto context = get_loco()->get_context();
-
-    render_fullscreen_shader.open(context);
-    render_fullscreen_shader.set_vertex(context, _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/fullscreen.vert.spv));
-    render_fullscreen_shader.set_fragment(context, _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/fullscreen.frag.spv));
-    p.descriptor_layout_count = 1;
-    p.descriptor_layout = &m_descriptor.m_layout;
-    p.shader = &render_fullscreen_shader;
-    p.push_constants_size = p.push_constants_size = sizeof(loco_t::push_constants_t);
-    p.subpass = 1;
-    VkPipelineColorBlendAttachmentState color_blend_attachment{};
-		color_blend_attachment.colorWriteMask =
-			VK_COLOR_COMPONENT_R_BIT |
-			VK_COLOR_COMPONENT_G_BIT |
-			VK_COLOR_COMPONENT_B_BIT |
-			VK_COLOR_COMPONENT_A_BIT
-		;
-		color_blend_attachment.blendEnable = VK_TRUE;
-		color_blend_attachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-		color_blend_attachment.dstColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-		color_blend_attachment.colorBlendOp = VK_BLEND_OP_ADD;
-		color_blend_attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-		color_blend_attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-		color_blend_attachment.alphaBlendOp = VK_BLEND_OP_ADD;
-    p.color_blend_attachment_count = 1;
-    p.color_blend_attachment = &color_blend_attachment;
-    p.enable_depth_test = false;
-    context->render_fullscreen_pl.open(context, p);
-
-    #endif
-
   }
   ~rectangle_t() {
     sb_close();
@@ -115,6 +82,10 @@ struct rectangle_t {
   }
   
   #if defined(loco_vulkan)
+    #if defined (vk_shape_wboit)
+      fan::vulkan::shader_t render_fullscreen_shader;
+    #endif
+    
     uint32_t m_matrices_index = 0;
   #endif
 

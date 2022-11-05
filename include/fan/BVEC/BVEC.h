@@ -78,6 +78,15 @@
 #endif
 #undef BVEC_set_NodeSizeType
 #undef BVEC_set_NodeType
+#ifdef BVEC_set_MultipleType
+  #ifdef BVEC_set_MultipleType_Sizes
+    #undef BVEC_set_MultipleType_Sizes
+  #endif
+  #ifdef BVEC_set_MultipleType_SizeArray
+    #undef BVEC_set_MultipleType_SizeArray
+  #endif
+  #undef BVEC_set_MultipleType
+#endif
 #undef BVEC_set_prefix
 
 #undef BVEC_set_BaseLibrary

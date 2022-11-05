@@ -27,7 +27,9 @@ struct loco_t;
     #define loco_button
   #endif
 
-#define loco_vulkan_descriptor_image_sampler
+#if defined(loco_wboit)
+  #define loco_vulkan_descriptor_image_sampler
+#endif
 
 #ifdef loco_vulkan
   #ifdef loco_rectangle 
@@ -206,10 +208,11 @@ public:
         0xffffff
       #elif defined(loco_vulkan)
         // znear & zfar is actually flipped for vulkan (camera somehow flipped)
+        // znear & zfar needs to be same maybe xd
         y.x,
         y.y,
         -0xffffff,
-        0
+        0xffffff
       #endif
 
 
@@ -255,7 +258,7 @@ public:
 
   void open_matrices(matrices_t* matrices, const fan::vec2& x, const fan::vec2& y) {
     matrices->open(this);
-    matrices->set_ortho(fan::vec2(x.x, x.y), fan::vec2(y.x, y.y));
+    matrices->set_ortho(x, y);
   }
 
   #define BLL_set_declare_NodeReference 0
@@ -494,6 +497,8 @@ public:
   loco_bdbt_t bdbt;
 
   fan::ev_timer_t ev_timer;
+
+  fan::graphics::core::memory_write_queue_t m_write_queue;
   
   #if defined(loco_line)
     #define sb_shape_var_name line
@@ -502,6 +507,7 @@ public:
     #undef sb_shape_var_name
   #endif
   #if defined(loco_rectangle)
+    #define vk_shape_wboit
     #define sb_shape_var_name rectangle
     #include _FAN_PATH(graphics/opengl/2D/objects/rectangle.h)
     rectangle_t sb_shape_var_name;
@@ -592,8 +598,8 @@ public:
     #else
       window(p.window),
     #endif
-    context(get_window())
-    //unloaded_image(this, fan::webp::image_info_t{(void*)pixel_data, 1})
+    context(get_window()),
+    unloaded_image(this, fan::webp::image_info_t{(void*)pixel_data, 1})
   {
     get_window()->add_buttons_callback([this](const mouse_buttons_cb_data_t& d) {
       fan::vec2 window_size = get_window()->get_size();
@@ -716,8 +722,6 @@ public:
     return x;
   }
 
-  fan::graphics::core::memory_write_queue_t m_write_queue;
-
   void loop(const auto& lambda) {
     while (1) {
       uint32_t window_event = get_window()->handle_events();
@@ -753,3 +757,10 @@ loco_t::matrices_list_NodeReference_t::matrices_list_NodeReference_t(loco_t::mat
     #include _FAN_PATH(graphics/opengl/texture_pack.h)
   #endif
 #endif
+
+#undef loco_rectangle
+#undef loco_letter
+#undef loco_text
+#undef loco_text_box
+#undef loco_button
+#undef loco_wboit
