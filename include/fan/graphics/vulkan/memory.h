@@ -6,7 +6,9 @@ namespace fan {
 
 			struct memory_write_queue_t {
 
-				memory_write_queue_t() = default;
+				memory_write_queue_t() : write_queue() {
+					
+				}
 
 				using memory_edit_cb_t = fan::function_t<void()>;
 
@@ -46,21 +48,25 @@ namespace fan {
 			};
 
 			struct memory_t {
-				VkBuffer buffer;
-				VkDeviceMemory device_memory;
+				VkBuffer buffer = nullptr;
+				VkDeviceMemory device_memory = nullptr;
 			};
 
+			template <typename nr_t, typename instance_id_t>
 			struct memory_common_t {
 				static constexpr auto buffer_count = fan::vulkan::MAX_FRAMES_IN_FLIGHT;
+
+				struct index_t {
+					nr_t nr;
+					instance_id_t i;
+				};
 
 				memory_t memory[buffer_count];
 
 				memory_write_queue_t::memory_edit_cb_t write_cb;
 
 				void open(fan::vulkan::context_t* context, const memory_write_queue_t::memory_edit_cb_t& cb) {
-
 					write_cb = cb;
-
 					queued = false;
 
 					m_min_edit = 0xFFFFFFFFFFFFFFFF;
@@ -82,8 +88,17 @@ namespace fan {
 					return queued;
 				}
 
-				void edit(fan::vulkan::context_t* context, memory_write_queue_t* queue, uint32_t begin, uint32_t end) {
+				void edit(fan::vulkan::context_t* context, memory_write_queue_t* queue, const index_t& idx) {
+					indices.push_back(idx);
 
+					if (is_queued()) {
+						return;
+					}
+					queued = true;
+					m_edit_index = queue->push_back(write_cb);
+				}
+
+				void edit(fan::vulkan::context_t* context, memory_write_queue_t* queue, uint32_t begin, uint32_t end) {
 					m_min_edit = fan::min(m_min_edit, begin);
 					m_max_edit = fan::max(m_max_edit, end);
 
@@ -92,8 +107,6 @@ namespace fan {
 					}
 					queued = true;
 					m_edit_index = queue->push_back(write_cb);
-
-					// context->process();
 				}
 
 				void on_edit(fan::vulkan::context_t* context) {
@@ -101,12 +114,14 @@ namespace fan {
 				}
 
 				void reset_edit() {
+					queued = false;
+					indices.clear();
+
 					m_min_edit = 0xFFFFFFFFFFFFFFFF;
 					m_max_edit = 0x00000000;
-
-					queued = false;
 				}
 
+				std::vector<index_t> indices;
 				memory_write_queue_t::nr_t m_edit_index;
 
 				uint64_t m_min_edit;

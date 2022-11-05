@@ -467,7 +467,7 @@ namespace fan {
 		}
 	}
 
-	}
+}
 
 
 //template <platform_t T_platform>

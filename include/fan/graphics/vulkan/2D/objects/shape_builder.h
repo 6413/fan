@@ -12,21 +12,27 @@ sb_get_loco
 #define sb_vertex_count 6
 #endif
 
-void sb_open(const std::array<fan::vulkan::write_descriptor_set_t, vulkan_buffer_count>& ds_properties) {
+void sb_open() {
   loco_t* loco = get_loco();
   auto context = loco->get_context();
   root = loco_bdbt_NewNode(&loco->bdbt);
-  blocks.Open();
-  bm_list.Open();
 
-  m_ssbo.open(context);
-
-  m_shader.open(context);
+  m_shader.open(context, &loco->m_write_queue);
   m_shader.set_vertex(context, sb_shader_vertex_path);
   m_shader.set_fragment(context, sb_shader_fragment_path);
 
-  m_descriptor.open(context, loco->descriptor_pool.m_descriptor_pool, ds_properties);
+  m_ssbo.open(context);
 
+  #include _FAN_PATH(graphics/shape_open_settings.h)
+
+  m_ssbo.open_descriptors(context, loco->descriptor_pool.m_descriptor_pool, ds_properties);
+  ds_properties[1].buffer = m_shader.projection_view_block.common.memory[context->currentFrame].buffer;
+  m_ssbo.m_descriptor.m_properties[1] = ds_properties[1];
+  m_ssbo.m_descriptor.update(context, 1, 1, 0, 0);
+
+  fan::vulkan::pipeline_t::properties_t p;
+
+#if defined (loco_wboit)
   VkPipelineColorBlendAttachmentState color_blend_attachment[2]{};
 	color_blend_attachment[0].colorWriteMask =
 		VK_COLOR_COMPONENT_R_BIT |
@@ -53,23 +59,38 @@ void sb_open(const std::array<fan::vulkan::write_descriptor_set_t, vulkan_buffer
 	color_blend_attachment[1].srcAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
 	color_blend_attachment[1].dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
 	color_blend_attachment[1].alphaBlendOp = VK_BLEND_OP_ADD;
+  p.depth_test_compare_op = VK_COMPARE_OP_ALWAYS;
+#else
 
-  fan::vulkan::pipeline_t::properties_t p;
-  p.descriptor_layout_count = 1;
-  p.descriptor_layout = &m_descriptor.m_layout;
-  p.shader = &m_shader;
-  p.push_constants_size = sizeof(loco_t::push_constants_t);
+  VkPipelineColorBlendAttachmentState color_blend_attachment[1]{};
+  color_blend_attachment[0].colorWriteMask =
+    VK_COLOR_COMPONENT_R_BIT | 
+    VK_COLOR_COMPONENT_G_BIT | 
+    VK_COLOR_COMPONENT_B_BIT | 
+    VK_COLOR_COMPONENT_A_BIT
+    ;
+  color_blend_attachment[0].blendEnable = VK_TRUE;
+  color_blend_attachment[0].srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+  color_blend_attachment[0].dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+  color_blend_attachment[0].colorBlendOp = VK_BLEND_OP_ADD;
+  color_blend_attachment[0].srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+  color_blend_attachment[0].dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+  color_blend_attachment[0].alphaBlendOp = VK_BLEND_OP_ADD;
+
+#endif
+
   p.color_blend_attachment_count = std::size(color_blend_attachment);
   p.color_blend_attachment = color_blend_attachment;
-  p.depth_test_compare_op = VK_COMPARE_OP_ALWAYS;
+
+  p.descriptor_layout_count = 1;
+  p.descriptor_layout = &m_ssbo.m_descriptor.m_layout;
+  p.shader = &m_shader;
+  p.push_constants_size = sizeof(loco_t::push_constants_t);
   m_pipeline.open(context, p);
 }
 void sb_close() {
   loco_t* loco = get_loco();
   auto context = loco->get_context();
-
-  blocks.Close();
-  bm_list.Close();
 
   assert(0);
   //loco_bdbt_close(&loco->bdbt);
@@ -88,59 +109,57 @@ void sb_close() {
 
 struct block_t;
 
-// STRUCT MANUAL PADDING IS REQUIRED (32 BIT)
-block_t* sb_push_back(fan::graphics::cid_t* cid, properties_t& p) {
+// STRUCT MANUAL PADDING IS REQUIRED (4 byte)
+void sb_push_back(fan::graphics::cid_t* cid, properties_t& p) {
   loco_t* loco = get_loco();
-
-  shape_bm_Node_t* bmn;
 
   loco_bdbt_NodeReference_t nr = root;
   shape_bm_NodeReference_t& bmID = *(shape_bm_NodeReference_t*)&nr;
-  loco_bdbt_Key_t<sizeof(instance_properties_t::key_t) * 8> k;
+  loco_bdbt_Key_t<sizeof(bm_properties_t::key_t) * 8> k;
   typename decltype(k)::KeySize_t ki;
   k.Query(&loco->bdbt, &p.key, &ki, &nr);
-  if (ki != sizeof(instance_properties_t::key_t) * 8) {
+  
+  if (ki != sizeof(bm_properties_t::key_t) * 8) {
     auto lnr = bm_list.NewNode();
     auto ln = &bm_list[lnr];
-    ln->first_block = blocks.NewNodeLast();
-    blocks[ln->first_block].block.open(loco, this);
-
-    ln->last_block = ln->first_block;
-    ln->instance_properties = *(instance_properties_t*)&p;
+    ln->first_ssbo_nr = m_ssbo.add(loco->get_context(), &loco->m_write_queue);
+    m_ssbo.instance_list.LinkAsLast(ln->first_ssbo_nr);
+    ln->last_ssbo_nr = ln->first_ssbo_nr;
+    ln->bm_properties = *(bm_properties_t*)&p;
     ln->total_instances = 0;
     k.InFrom(&loco->bdbt, &p.key, ki, nr, lnr.NRI);
 
     nr = lnr.NRI;
   }
   else if (bm_list[bmID].total_instances % max_instance_size == 0) {
-    auto NewBlock = blocks.NewNode();
-    blocks.linkNext(bm_list[bmID].last_block, NewBlock);
-    bm_list[bmID].last_block = NewBlock;
-    blocks[NewBlock].block.open(loco, this);
+    auto new_ssbo_nr = m_ssbo.add(loco->get_context(), &loco->m_write_queue);
+    m_ssbo.instance_list.linkNext(bm_list[bmID].last_ssbo_nr, new_ssbo_nr);
+    bm_list[bmID].last_ssbo_nr = new_ssbo_nr;
   }
 
-  instance_t it = p;
-  block_t* last_block = &blocks[bm_list[bmID].last_block].block;
+  auto bm = &bm_list[bmID];
 
-  block_t* block = last_block;
+  auto ssbo_nr = bm->last_ssbo_nr;
 
-  const uint32_t instance_id = bm_list[bmID].total_instances % max_instance_size;
-  m_ssbo.copy_instance(loco->get_context(), &loco->m_write_queue, block->ssbo_index + instance_id, &it);
+  const auto instance_id = bm->total_instances % max_instance_size;
 
-  block->cid[instance_id] = cid;
+  ri_t& ri = m_ssbo.instance_list.get_ri(ssbo_nr, instance_id);
+  m_ssbo.copy_instance(loco->get_context(), &loco->m_write_queue, ssbo_nr, instance_id, (vi_t*)&p);
+
+  ri.cid = cid;
 
   cid->bm_id = ((shape_bm_NodeReference_t*)&nr)->NRI;
-  cid->block_id = bm_list[bmID].last_block.NRI;
+  cid->block_id = bm_list[bmID].last_ssbo_nr.NRI;
   cid->instance_id = instance_id;
 
-  block->p[instance_id] = *(instance_properties_t*)&p;
+  // do we need it
+  //block->p[instance_id] = *(instance_properties_t*)&p;
 
   bm_list[bmID].total_instances++;
-
-  return block;
 }
 void sb_erase(fan::graphics::cid_t* cid) {
   //loco_t* loco = get_loco();
+
   //auto bm_id = *(shape_bm_NodeReference_t*)&cid->bm_id;
   //auto bm_node = bm_list.GetNodeByReference(bm_id);
 
@@ -151,13 +170,13 @@ void sb_erase(fan::graphics::cid_t* cid) {
   //auto& last_block_id = bm_node->data.last_block;
   //auto* last_block_node = blocks.GetNodeByReference(last_block_id);
   //block_t* last_block = &last_block_node->data.block;
-  //uint32_t last_instance_id = last_block->uniform_buffer.size() - 1;
+  //uint32_t last_instance_id = (bm_node->data.total_instances - 1) % max_instance_size;
 
-  //// erase descriptorset from block
-  //assert(0);
-  //if (block_id == last_block_id && cid->instance_id == block->uniform_buffer.size() - 1) {
-  //  block->uniform_buffer.common.m_size -= sizeof(instance_t);
-  //  if (block->uniform_buffer.size() == 0) {
+  ////// erase descriptorset from block
+  ////assert(0);
+  //if (block_id == last_block_id && cid->instance_id == max_instance_size - 1) {
+  //  block->ssbo_index -= 1;
+  //  if (block->ssbo_index == 0) {
   //    auto lpnr = block_node->PrevNodeReference;
 
   //    block->close(loco);
@@ -170,31 +189,30 @@ void sb_erase(fan::graphics::cid_t* cid) {
   //      bm_list.Recycle(bm_id);
   //    }
   //    else {
-  //      //fan::print("here");
   //      last_block_id = lpnr;
   //    }
   //  }
-  ////  fan::print(shape_bm_usage(&bm_list));
   //  return;
   //}
+  //instance_t* last_instance_data = m_ssbo.get_instance(loco->get_context(), last_instance_id);
+  //const uint32_t instance_id = (bm_list[bm_id].total_instances - 1) % max_instance_size;
 
-  //instance_t* last_instance_data = last_block->uniform_buffer.get_instance(loco->get_context(), last_instance_id);
-
-  //block->uniform_buffer.copy_instance(
+  //m_ssbo.copy_instance(
   //  loco->get_context(),
-  //  cid->instance_id,
+  //  &loco->m_write_queue,
+  //  instance_id + cid->instance_id,
   //  last_instance_data
   //);
 
-  //last_block->uniform_buffer.common.m_size -= sizeof(instance_t);
+  //last_block->ssbo_index -= 1;
 
-  //block->p[cid->instance_id] = last_block->p[last_instance_id];
+  //block->p[instance_id] = last_block->p[last_instance_id];
 
-  //block->cid[cid->instance_id] = last_block->cid[last_instance_id];
-  //block->cid[cid->instance_id]->block_id = block_id.NRI;
-  //block->cid[cid->instance_id]->instance_id = cid->instance_id;
+  //block->cid[instance_id] = last_block->cid[last_instance_id];
+  //block->cid[instance_id]->block_id = block_id.NRI;
+  //block->cid[instance_id]->instance_id = instance_id;
 
-  //if (last_block->uniform_buffer.size() == 0) {
+  //if (last_block->ssbo_index == 0) {
   //  auto lpnr = last_block_node->PrevNodeReference;
 
   //  last_block->close(loco);
@@ -203,31 +221,24 @@ void sb_erase(fan::graphics::cid_t* cid) {
 
   //  bm_node->data.last_block = lpnr;
   //}
-
-  //block->uniform_buffer.common.edit(
-  //  loco->get_context(),
-  //  &loco->m_write_queue,
-  //  cid->instance_id * sizeof(instance_t),
-  //  cid->instance_id * sizeof(instance_t) + sizeof(instance_t)
-  //);
 }
 
-block_t* sb_get_block(fan::graphics::cid_t* cid) {
-  auto& block_node = blocks[*(bll_block_NodeReference_t*)&cid->block_id];
-  return &block_node.block;
-}
+//block_t* sb_get_block(fan::graphics::cid_t* cid) {
+//  auto& block_node = blocks[*(bll_block_NodeReference_t*)&cid->block_id];
+//  return &block_node.block;
+//}
 
-auto get(fan::graphics::cid_t *cid, auto instance_t::*member) {
-  loco_t* loco = get_loco();
-  auto block = sb_get_block(cid);
-  return m_ssbo.get_instance(loco->get_context(), block->ssbo_index + cid->instance_id)->*member;
-}
-template <typename T, typename T2>
-void set(fan::graphics::cid_t *cid, T instance_t::*member, const T2& value) {
-  loco_t* loco = get_loco();
-  auto block = sb_get_block(cid);
-  m_ssbo.edit_instance(loco->get_context(), &loco->m_write_queue, block->ssbo_index + cid->instance_id, member, value);
-}
+//auto get(fan::graphics::cid_t *cid, auto instance_t::*member) {
+//  loco_t* loco = get_loco();
+//  auto block = sb_get_block(cid);
+//  return m_ssbo.get_instance(loco->get_context(), block->ssbo_index + cid->instance_id)->*member;
+//}
+//template <typename T, typename T2>
+//void set(fan::graphics::cid_t *cid, T instance_t::*member, const T2& value) {
+//  loco_t* loco = get_loco();
+//  auto block = sb_get_block(cid);
+//  m_ssbo.edit_instance(loco->get_context(), &loco->m_write_queue, block->ssbo_index + cid->instance_id, member, value);
+//}
 
 void set_vertex(const fan::string& str) {
   loco_t* loco = get_loco();
@@ -242,32 +253,25 @@ template <uint32_t depth = 0>
 void traverse_draw(auto nr) {
   loco_t* loco = get_loco();
   auto context = loco->get_context();
-  if constexpr (depth == instance_properties_t::key_t::count + 1) {
+  if constexpr (depth == bm_properties_t::key_t::count + 1) {
     auto bmn = bm_list.GetNodeByReference(*(shape_bm_NodeReference_t*)&nr);
-    auto bnr = bmn->data.first_block;
+    auto bnr = bmn->data.first_ssbo_nr;
 
     while (1) {
-      auto node = blocks.GetNodeByReference(bnr);
+      auto node = m_ssbo.instance_list.GetNodeByReference(bnr, 1);
 
       loco->m_write_queue.process(context);
 
-      /*
-              bnr == bmn->data.last_block ? bmn->data.total_instances % max_instance_size : max_instance_size,
-        node->data.block.ssbo_index / max_instance_size,
-      */
-
       context->draw(
         sb_vertex_count,
-        bnr == bmn->data.last_block ? bmn->data.total_instances % (max_instance_size + 1) : max_instance_size,
-        node->data.block.ssbo_index,
-        /*1,
-        1,*/
+        bnr == bmn->data.last_ssbo_nr ? bmn->data.total_instances % (max_instance_size + 1) : max_instance_size,
+        (uint32_t)bnr.NRI * max_instance_size,
         m_pipeline,
         1,
-        &m_descriptor.m_descriptor_set[context->currentFrame]
+        &m_ssbo.m_descriptor.m_descriptor_set[context->currentFrame]
       );
 
-      if (bnr == bmn->data.last_block) {
+      if (bnr == bmn->data.last_ssbo_nr) {
         break;
       }
       bnr = node->NextNodeReference;
@@ -275,9 +279,9 @@ void traverse_draw(auto nr) {
   }
   else {
     //loco_bdbt_Key_t<sizeof(typename instance_properties_t::key_t::get_type<depth>::type) * 8> k;
-    typename loco_bdbt_Key_t<sizeof(typename instance_properties_t::key_t::get_type<depth>::type) * 8>::Traverse_t kt;
+    typename loco_bdbt_Key_t<sizeof(typename bm_properties_t::key_t::get_type<depth>::type) * 8>::Traverse_t kt;
     kt.init(nr);
-    typename instance_properties_t::key_t::get_type<depth>::type o;
+    typename bm_properties_t::key_t::get_type<depth>::type o;
     #if fan_use_uninitialized == 0
     memset(&o, 0, sizeof(o));
     #endif
@@ -298,55 +302,24 @@ void sb_set_key(fan::graphics::cid_t* cid, auto value) {
   auto block = sb_get_block(cid);
   properties_t p;
   *(instance_t*)&p = *m_ssbo.get_instance(loco->get_context(), block->ssbo_index + cid->instance_id % max_instance_size);
-  *(instance_properties_t*)&p = block->p[cid->instance_id];
+  *(bm_propeties_t*)&p = block->p[cid->instance_id];
   *p.key.get_value<i>() = value;
   sb_erase(cid);
   sb_push_back(cid, p);
 }
 
-struct block_t {
-  void open(loco_t* loco, auto* shape) {
-    bool vram_buffer_resized;
-    ssbo_index = shape->m_ssbo.add(loco->get_context(), max_instance_size, &vram_buffer_resized);
-    if (vram_buffer_resized) {
-      shape->m_descriptor.m_properties[0].common = &shape->m_ssbo.common;
-      shape->m_descriptor.update(loco->get_context());
-    }
-  }
-  void close(loco_t* loco) {
+using ssbo_t = fan::vulkan::core::ssbo_t<vi_t, ri_t, max_instance_size, vulkan_buffer_count>;
 
-  }
-
-  uint32_t ssbo_index;
-  fan::graphics::cid_t* cid[max_instance_size];
-  instance_properties_t p[max_instance_size];
-};
-
-fan::vulkan::core::ssbo_t<instance_t> m_ssbo;
+ssbo_t m_ssbo;
 fan::graphics::shader_t m_shader;
 
 fan::vulkan::pipeline_t m_pipeline;
-fan::vulkan::descriptor_t<vulkan_buffer_count> m_descriptor;
 
 protected:
 
   loco_bdbt_NodeReference_t root;
 
-  #define BLL_set_CPP_Node_ConstructDestruct
-  #define BLL_set_AreWeInsideStruct 1
-  #define BLL_set_prefix bll_block
-  #define BLL_set_BaseLibrary 1
-  #define BLL_set_Link 1
-  #define BLL_set_StoreFormat 1
-  //#define BLL_set_StoreFormat1_alloc_open malloc
-  //#define BLL_set_StoreFormat1_alloc_close free
-  #define BLL_set_type_node uint16_t
-  #define BLL_set_node_data \
-    block_t block;
-  #include _FAN_PATH(BLL/BLL.h)
-
-  bll_block_t blocks;
-
+  #define BLL_set_CPP_ConstructDestruct
   #define BLL_set_CPP_Node_ConstructDestruct
   #define BLL_set_AreWeInsideStruct 1
   #define BLL_set_prefix shape_bm
@@ -354,9 +327,9 @@ protected:
   #define BLL_set_Link 0
   #define BLL_set_type_node uint16_t
   #define BLL_set_node_data \
-    bll_block_NodeReference_t first_block; \
-    bll_block_NodeReference_t last_block; \
-    instance_properties_t instance_properties; \
+    ssbo_t::nr_t first_ssbo_nr; \
+    ssbo_t::nr_t last_ssbo_nr; \
+    bm_properties_t bm_properties; \
     uint32_t total_instances;
   #include _FAN_PATH(BLL/BLL.h)
 

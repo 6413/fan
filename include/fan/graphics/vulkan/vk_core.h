@@ -68,7 +68,6 @@ namespace fan {
 		}
 
 		namespace core {
-			struct memory_common_t;
 			struct memory_t;
 		}
 
@@ -89,7 +88,7 @@ namespace fan {
 			// Note: for VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER use VK_SHADER_STAGE_FRAGMENT_BIT
 			VkShaderStageFlags flags;
 
-			fan::vulkan::core::memory_common_t* common;
+			VkBuffer buffer = nullptr;
 
 			uint64_t range;
 
@@ -124,7 +123,7 @@ namespace fan {
 				uint32_t color_blend_attachment_count = 0;
 				VkPipelineColorBlendAttachmentState* color_blend_attachment = 0;
 
-				bool enable_depth_test = true;
+				bool enable_depth_test = VK_TRUE;
 				VkCompareOp depth_test_compare_op = VK_COMPARE_OP_LESS;
 			};
 
@@ -142,7 +141,13 @@ namespace fan {
 			void close(fan::vulkan::context_t* context);
 
 			// for buffer update, need to manually call .m_properties.common
-			void update(fan::vulkan::context_t* context);
+			void update(
+				fan::vulkan::context_t* context, 
+				uint32_t n = count, 
+				uint32_t begin = 0,
+				uint32_t texture_n = max_textures,
+				uint32_t texture_begin = 0
+			);
 
 			std::array<fan::vulkan::write_descriptor_set_t, count> m_properties;
 			VkDescriptorSetLayout m_layout;
@@ -393,7 +398,9 @@ namespace fan {
 				createImageViews();
 				createRenderPass();
 				createCommandPool();
-				create_wboit_views();
+				#if defined(loco_wboit)
+					create_wboit_views();
+				#endif
 				createDepthResources();
 				createFramebuffers();
 				createCommandBuffers();
@@ -462,10 +469,10 @@ namespace fan {
 				VkApplicationInfo appInfo{};
 				appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 				appInfo.pApplicationName = "application";
-				appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+				appInfo.applicationVersion = VK_MAKE_VERSION(1, 1, 0);
 				appInfo.pEngineName = "fan";
-				appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-				appInfo.apiVersion = VK_API_VERSION_1_0;
+				appInfo.engineVersion = VK_MAKE_VERSION(1, 1, 0);
+				appInfo.apiVersion = VK_API_VERSION_1_1;
 
 				VkInstanceCreateInfo createInfo{};
 				createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -717,6 +724,20 @@ namespace fan {
 				depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 				depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
+				VkAttachmentReference colorAttachmentRef{};
+				colorAttachmentRef.attachment = 0;
+				colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+				VkAttachmentReference depthAttachmentRef{};
+				#if defined(loco_wboit)
+					depthAttachmentRef.attachment = 3;
+				#else
+					depthAttachmentRef.attachment = 1;
+				#endif
+				depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+			#if defined(loco_wboit)
+
 				VkAttachmentDescription wboit_color_attachment{};
 
 				wboit_color_attachment.format = VK_FORMAT_R16G16B16A16_SFLOAT;
@@ -731,14 +752,6 @@ namespace fan {
 				VkAttachmentDescription wboit_reveal_attachment = wboit_color_attachment;
 				wboit_reveal_attachment.format = VK_FORMAT_R16_SFLOAT;
 
-				VkAttachmentReference colorAttachmentRef{};
-				colorAttachmentRef.attachment = 0;
-				colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-				VkAttachmentReference depthAttachmentRef{};
-				depthAttachmentRef.attachment = 3;
-				depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
 				// weight
 				std::array<VkAttachmentReference, 2> subpass0ColorAttachments{};
 				subpass0ColorAttachments[0].attachment = 0;
@@ -751,6 +764,7 @@ namespace fan {
 				subpass[0].colorAttachmentCount = subpass0ColorAttachments.size();
 				subpass[0].pColorAttachments = subpass0ColorAttachments.data();
 				subpass[0].pDepthStencilAttachment = &depthAttachmentRef;
+
 
 				VkAttachmentReference subpass1ColorAttachment{};
 				subpass1ColorAttachment.attachment = 2;
@@ -767,8 +781,17 @@ namespace fan {
 				subpass[1].pColorAttachments = &subpass1ColorAttachment;
 				subpass[1].inputAttachmentCount = subpass1InputAttachments.size();
 				subpass[1].pInputAttachments = subpass1InputAttachments.data();
+			#else
 
+				VkSubpassDescription subpass[1]{};
+        subpass[0].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        subpass[0].colorAttachmentCount = 1;
+        subpass[0].pColorAttachments = &colorAttachmentRef;
+        subpass[0].pDepthStencilAttachment = &depthAttachmentRef;
 
+			#endif
+
+			#if defined(loco_wboit)
 				// Dependencies
 				std::array<VkSubpassDependency, 3> subpassDependencies{};
 				subpassDependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -791,24 +814,29 @@ namespace fan {
 				subpassDependencies[2].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 				subpassDependencies[2].srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
 				subpassDependencies[2].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			#else
+				std::array<VkSubpassDependency, 1> subpassDependencies{};
+        subpassDependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+        subpassDependencies[0].dstSubpass = 0;
+        subpassDependencies[0].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+        subpassDependencies[0].srcAccessMask = 0;
+        subpassDependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+        subpassDependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+			#endif
 
-				VkSubpassDependency dependency{};
-        dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-        dependency.dstSubpass = 0;
-        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-        dependency.srcAccessMask = 0;
-        dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-
-
-				VkAttachmentDescription attachments[] = {  wboit_color_attachment, wboit_reveal_attachment, colorAttachment, depthAttachment };
+				VkAttachmentDescription attachments[] = {  
+				#if defined(loco_wboit)
+					wboit_color_attachment, wboit_reveal_attachment, 
+				#endif
+					colorAttachment, depthAttachment 
+				};
 				VkRenderPassCreateInfo renderPassInfo{};
 				renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 				renderPassInfo.attachmentCount = std::size(attachments);
 				renderPassInfo.pAttachments = attachments;
 				renderPassInfo.subpassCount = std::size(subpass);
 				renderPassInfo.pSubpasses = subpass;
-				renderPassInfo.dependencyCount = subpassDependencies.size();
+				renderPassInfo.dependencyCount = std::size(subpassDependencies);
 				renderPassInfo.pDependencies = subpassDependencies.data();
 
 				if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS) {
@@ -821,8 +849,10 @@ namespace fan {
 
 				for (size_t i = 0; i < swapChainImageViews.size(); i++) {
 					VkImageView attachments[] = {
-						vai_wboit_color.image_view,
-						vai_wboit_reveal.image_view,
+						#if defined(loco_wboit)
+							vai_wboit_color.image_view,
+							vai_wboit_reveal.image_view,
+						#endif
 					
 						swapChainImageViews[i],
 						vai_depth.image_view,
@@ -1105,15 +1135,22 @@ namespace fan {
 
 				// TODO
 
-				VkClearValue clearValues[4]{};
-				clearValues[2].color = { { 0.0f, 0.0f, 0.0f, 0.0f} };
-				clearValues[3].depthStencil = { 1.0f, 0 };
+				#if defined(loco_wboit)
+					VkClearValue clearValues[4]{};
+					clearValues[2].color = { { 0.0f, 0.0f, 0.0f, 0.0f} };
+					clearValues[3].depthStencil = { 1.0f, 0 };
 
-				clearValues[0].color.float32[0] = 0.0f;
-				clearValues[0].color.float32[1] = 0.0f;
-				clearValues[0].color.float32[2] = 0.0f;	
-				clearValues[0].color.float32[3] = 0.0f;
-				clearValues[1].color.float32[0] = 1.f;  // Initially, all pixels show through all the way (reveal = 100%)
+					clearValues[0].color.float32[0] = 0.0f;
+					clearValues[0].color.float32[1] = 0.0f;
+					clearValues[0].color.float32[2] = 0.0f;	
+					clearValues[0].color.float32[3] = 0.0f;
+					clearValues[1].color.float32[0] = 1.f;  // Initially, all pixels show through all the way (reveal = 100%)
+
+				#else
+					VkClearValue clearValues[2]{};
+					clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f} };
+					clearValues[1].depthStencil = { 1.0f, 0 };
+				#endif
 
 				renderPassInfo.clearValueCount = std::size(clearValues);
 				renderPassInfo.pClearValues = clearValues;
@@ -1122,15 +1159,11 @@ namespace fan {
 			}
 
 			void end_render(fan::window_t* window) {
-				 vkCmdNextSubpass(commandBuffers[currentFrame], VK_SUBPASS_CONTENTS_INLINE);
-				// COMPOSITE PASS
-				// Averages out the summed colors (in some sense) to get the final transparent color.
-				{
-					vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, render_fullscreen_pl.m_pipeline);
-					// Draw a full-screen triangle
-					vkCmdDraw(commandBuffers[currentFrame], 6, 1, 0, 0);
-				}
-
+			#if defined(loco_wboit)
+				vkCmdNextSubpass(commandBuffers[currentFrame], VK_SUBPASS_CONTENTS_INLINE);
+				vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, render_fullscreen_pl.m_pipeline);	
+				vkCmdDraw(commandBuffers[currentFrame], 6, 1, 0, 0);
+			#endif
 				vkCmdEndRenderPass(commandBuffers[currentFrame]);
 
 				if (vkEndCommandBuffer(commandBuffers[currentFrame]) != VK_SUCCESS) {
@@ -1437,9 +1470,10 @@ namespace fan {
 			VkCommandPool commandPool;
 
 			vai_t vai_depth;
-
+		#if defined(loco_wboit)
 			vai_t vai_wboit_color;
 			vai_t vai_wboit_reveal;
+		#endif
 
 			std::vector<VkCommandBuffer> commandBuffers;
 
@@ -1506,6 +1540,7 @@ namespace fan {
 			vkBindImageMemory(context->device, image, imageMemory, 0);
 		}
 
+	#if defined(loco_wboit)
 		void context_t::create_wboit_views() {
 			 vai_t::properties_t p;
 			 p.format = VK_FORMAT_R16G16B16A16_SFLOAT;
@@ -1519,9 +1554,9 @@ namespace fan {
 			 vai_wboit_reveal.open(this, p);
 			 vai_wboit_reveal.transition_image_layout(this, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 		}
+	#endif
 
 		void context_t::createDepthResources() {
-
 			vai_t::properties_t p;
 			p.swap_chain_size = swap_chain_size;
 			p.format = findDepthFormat();
@@ -1663,8 +1698,6 @@ namespace fan {
 			allocInfo.pSetLayouts = layouts.data();
 
 			validate(vkAllocateDescriptorSets(context->device, &allocInfo, m_descriptor_set));
-
-			update(context);
 		}
 
 		template <uint32_t count>
@@ -1673,24 +1706,26 @@ namespace fan {
 		}
 
 		template <uint32_t count>
-		inline void descriptor_t<count>::update(fan::vulkan::context_t* context) {
+		inline void descriptor_t<count>::update(
+			fan::vulkan::context_t* context, 
+			uint32_t n, 
+			uint32_t begin,
+			uint32_t texture_n,
+			uint32_t texture_begin
+		) {
 			VkDescriptorBufferInfo bufferInfo[count * MAX_FRAMES_IN_FLIGHT]{};
-
-			for (size_t frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++) {
-				for (uint32_t j = 0; j < count; ++j) {
-					if (m_properties[j].common) {
-						bufferInfo[frame * count + j].buffer = m_properties[j].common->memory[frame].buffer;
-						bufferInfo[frame * count + j].offset = 0;
-						bufferInfo[frame * count + j].range = m_properties[j].range;
-					}
-				}
-			}
 
 			for (size_t frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++) {
 
 				std::array<VkWriteDescriptorSet, count> descriptorWrites{};
 
-				for (uint32_t j = 0; j < count; ++j) {
+				for (uint32_t j = begin; j < begin + n; ++j) {
+
+				if (m_properties[j].buffer) {
+						bufferInfo[frame * count + j].buffer = m_properties[j].buffer;
+						bufferInfo[frame * count + j].offset = 0;
+						bufferInfo[frame * count + j].range = m_properties[j].range;
+					}
 
 					descriptorWrites[j].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 					descriptorWrites[j].dstSet = m_descriptor_set[frame];
@@ -1701,11 +1736,11 @@ namespace fan {
 
 					// FIX
 					if (m_properties[j].use_image) {
-						descriptorWrites[j].pImageInfo = m_properties[j].image_infos;
-						descriptorWrites[j].descriptorCount = max_textures;
+						descriptorWrites[j].pImageInfo = &m_properties[j].image_infos[texture_begin];
+						descriptorWrites[j].descriptorCount = texture_n;
 					}
 				}
-				vkUpdateDescriptorSets(context->device, descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
+				vkUpdateDescriptorSets(context->device, n, descriptorWrites.data() + begin, 0, nullptr);
 			}
 		}
 	}
@@ -1753,10 +1788,10 @@ void fan::vulkan::viewport_t::set(fan::vulkan::context_t* context, const fan::ve
 	}
 }
 
-void fan::vulkan::shader_t::open(fan::vulkan::context_t* context) {
+void fan::vulkan::shader_t::open(fan::vulkan::context_t* context, fan::vulkan::core::memory_write_queue_t* wq) {
 	projection_view_block.open(context);
 	for (uint32_t i = 0; i < fan::vulkan::max_matrices; ++i) {
-		projection_view_block.push_ram_instance(context, {});
+		projection_view_block.push_ram_instance(context, wq, {});
 	}
 }
 
@@ -1779,5 +1814,3 @@ VkShaderModule fan::vulkan::shader_t::createShaderModule(fan::vulkan::context_t*
 
 	return shaderModule;
 }
-
-fan::vulkan::shader_t render_fullscreen_shader;

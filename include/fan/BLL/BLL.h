@@ -150,7 +150,6 @@
   #endif
 #endif
 
-
 #if BLL_set_BaseLibrary == 0
   #define _BLL_INCLUDE _WITCH_PATH
 #elif BLL_set_BaseLibrary == 1
@@ -220,6 +219,9 @@
 #ifdef BLL_set_NodeReference_Overload_Declare
   #undef BLL_set_NodeReference_Overload_Declare
 #endif
+#ifdef BLL_set_Overload_Declare
+  #undef BLL_set_Overload_Declare
+#endif
 
 #ifdef BLL_set_StoreFormat1_ElementPerBlock
   #undef BLL_set_StoreFormat1_ElementPerBlock
@@ -232,6 +234,12 @@
 #endif
 #ifdef BLL_set_node_data
   #undef BLL_set_node_data
+#endif
+#ifdef BLL_set_MultipleType_LinkIndex
+  #undef BLL_set_MultipleType_LinkIndex
+#endif
+#ifdef BLL_set_MultipleType_Sizes
+  #undef BLL_set_MultipleType_Sizes
 #endif
 #undef BLL_set_debug_InvalidAction_dstAccess
 #undef BLL_set_debug_InvalidAction_srcAccess

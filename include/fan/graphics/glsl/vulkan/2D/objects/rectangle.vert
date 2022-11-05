@@ -1,4 +1,4 @@
-#version 450
+#version 430
 
 #define get_instance() instances[gl_InstanceIndex]
 

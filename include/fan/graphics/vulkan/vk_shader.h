@@ -5,7 +5,7 @@ namespace fan {
 
 		struct shader_t {
 
-      void open(fan::vulkan::context_t* context);
+      void open(fan::vulkan::context_t* context, fan::vulkan::core::memory_write_queue_t* wq);
 
       void close(fan::vulkan::context_t* context, fan::vulkan::core::memory_write_queue_t* write_queue);
 
@@ -42,9 +42,8 @@ namespace fan {
 
       void set_matrices(auto* loco, auto* matrices, core::memory_write_queue_t* write_queue, uint32_t flags) {
         auto& m = loco->matrices_list[matrices->matrices_reference];
-        projection_view_block.edit_instance(loco->get_context(), flags, &viewprojection_t::projection, matrices->m_projection);
-        projection_view_block.edit_instance(loco->get_context(), flags, &viewprojection_t::view, matrices->m_view);
-        projection_view_block.common.edit(loco->get_context(), write_queue, 0, sizeof(viewprojection_t) * fan::vulkan::max_matrices);
+        projection_view_block.edit_instance(loco->get_context(), write_queue, flags, &viewprojection_t::projection, matrices->m_projection);
+        projection_view_block.edit_instance(loco->get_context(), write_queue, flags, &viewprojection_t::view, matrices->m_view);
       }
 
       struct viewprojection_t {

@@ -5,7 +5,7 @@
 #ifndef FAN_INCLUDE_PATH
   #define FAN_INCLUDE_PATH C:/libs/fan/include
 #endif
-#define fan_debug 1
+#define fan_debug 3
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
 #define loco_vulkan
@@ -15,6 +15,7 @@
 
 //#define loco_post_process
 
+//#define loco_wboit
 #define loco_rectangle
 #include _FAN_PATH(graphics/loco.h)
 
@@ -52,7 +53,6 @@ int main() {
   p.get_matrices() = &pile->matrices;
   p.get_viewport() = &pile->viewport;
 
-  
   p.size = fan::vec2(0.5);
   p.color = fan::color(1, 0, 0, 0.5);
   p.position = fan::vec2(-0.25, 0);
