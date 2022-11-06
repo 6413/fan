@@ -137,5 +137,4 @@ struct rectangle_t {
 
 };
 
-#include _FAN_PATH(graphics/opengl/2D/objects/hardcode_close.h)
 #undef vulkan_buffer_count

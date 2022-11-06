@@ -4,7 +4,7 @@ struct button_t {
   static constexpr f32_t hover = 1.2;
   static constexpr f32_t press = 1.4;
 
-  struct instance_t {
+  struct vi_t {
     fan::vec3 position = 0;
     f32_t angle = 0;
     fan::vec2 size = 0;
@@ -15,30 +15,33 @@ struct button_t {
     f32_t outline_size;
   };
 
-  static constexpr uint32_t max_instance_size = fan::min(256, 4096 / (sizeof(instance_t) / 4));
+  static constexpr uint32_t max_instance_size = fan::min(256, 4096 / (sizeof(vi_t) / 4));
 
-  #define hardcode0_t loco_t::matrices_list_NodeReference_t
-  #define hardcode0_n matrices
-  #define hardcode1_t fan::graphics::viewport_list_NodeReference_t
-  #define hardcode1_n viewport
-  #include _FAN_PATH(graphics/opengl/2D/objects/hardcode_open.h)
+  struct bm_properties_t {
+    using parsed_masterpiece_t = fan::masterpiece_t<
+      loco_t::matrices_list_NodeReference_t,
+      fan::graphics::viewport_list_NodeReference_t
+    >;
 
-  struct instance_properties_t {
     struct key_t : parsed_masterpiece_t {}key;
+  };
 
-    expand_get_functions
-
-    uint8_t selected;
+  struct ri_t {
+    fan::graphics::cid_t* cid;
+    uint8_t selected = 0;
     fan::graphics::theme_list_NodeReference_t theme;
     uint32_t text_id;
     loco_t::vfi_t::shape_id_t vfi_id;
     uint64_t udata;
   };
 
-  struct properties_t : instance_t, instance_properties_t {
-    properties_t() {
-      selected = 0;
-    }
+  #define make_key_value(type, name) \
+    type& name = *key.get_value<decltype(key)::get_index_with_type<type>()>();
+
+  struct properties_t : vi_t, ri_t, bm_properties_t {
+
+    make_key_value(loco_t::matrices_list_NodeReference_t, matrices);
+    make_key_value(fan::graphics::viewport_list_NodeReference_t, viewport);
 
     fan::wstring text;
     f32_t font_size = 0.1;
@@ -50,13 +53,19 @@ struct button_t {
     loco_t::mouse_button_cb_t mouse_button_cb = [](const loco_t::mouse_button_data_t&) -> int { return 0; };
     loco_t::mouse_move_cb_t mouse_move_cb = [](const loco_t::mouse_move_data_t&) -> int { return 0; };
     loco_t::keyboard_cb_t keyboard_cb = [](const loco_t::keyboard_data_t&) -> int { return 0; };
+
+    properties_t() = default;
+    properties_t(const vi_t& i) : vi_t(i) {}
+    properties_t(const bm_properties_t& p) : bm_properties_t(p) {}
   };
+
+  #undef make_key_value
 
   void push_back(fan::graphics::cid_t* cid, properties_t& p) {
     loco_t* loco = get_loco();
 
     #if defined(loco_vulkan)
-      auto& matrices = loco->matrices_list[p.get_matrices()];
+      auto& matrices = loco->matrices_list[p.matrices];
       if (matrices.matrices_index.button == (decltype(matrices.matrices_index.button))-1) {
         matrices.matrices_index.button = m_matrices_index++;
         m_shader.set_matrices(loco, matrices.matrices_id, &loco->m_write_queue, matrices.matrices_index.button);
@@ -70,17 +79,17 @@ struct button_t {
     tp.position = p.position;
     tp.text = p.text;
     tp.position.z += p.position.z + 0.5;
-    tp.get_viewport() = p.get_viewport();
-    tp.get_matrices() = p.get_matrices();
-    auto block = sb_push_back(cid, p);
-    block->p[cid->instance_id].text_id = loco->text.push_back(tp);
+    tp.viewport = p.viewport;
+    tp.matrices = p.matrices;
+    sb_push_back(cid, p);
+    sb_get_ri(cid).text_id = loco->text.push_back(tp);
 
     set_theme(cid, theme, inactive);
 
     loco_t::vfi_t::properties_t vfip;
     vfip.shape_type = loco_t::vfi_t::shape_t::rectangle;
-    vfip.shape.rectangle.matrices = p.get_matrices();
-    vfip.shape.rectangle.viewport = p.get_viewport();
+    vfip.shape.rectangle.matrices = p.matrices;
+    vfip.shape.rectangle.viewport = p.viewport;
     vfip.shape.rectangle.position = p.position;
     vfip.shape.rectangle.size = p.size;
     vfip.flags = p.vfi_flags;
@@ -88,8 +97,7 @@ struct button_t {
       vfip.mouse_move_cb = [cb = p.mouse_move_cb, udata = p.udata, cid_ = cid](const loco_t::vfi_t::mouse_move_data_t& mm_d) -> int {
         loco_t* loco = OFFSETLESS(mm_d.vfi, loco_t, vfi_var_name);
         loco_t::mouse_move_data_t mmd = mm_d;
-        auto block = loco->button.sb_get_block(cid_);
-        if (mm_d.flag->ignore_move_focus_check == false && !block->p[cid_->instance_id].selected) {
+        if (mm_d.flag->ignore_move_focus_check == false && !loco->button.sb_get_ri(cid_).selected) {
           if (mm_d.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside) {
             loco->button.set_theme(cid_, loco->button.get_theme(cid_), hover);
           }
@@ -103,15 +111,14 @@ struct button_t {
       };
       vfip.mouse_button_cb = [cb = p.mouse_button_cb, udata = p.udata, cid_ = cid](const loco_t::vfi_t::mouse_button_data_t& ii_d) -> int {
         loco_t* loco = OFFSETLESS(ii_d.vfi, loco_t, vfi_var_name);
-        auto block = loco->button.sb_get_block(cid_);
-        if (ii_d.flag->ignore_move_focus_check == false && !block->p[cid_->instance_id].selected) {
+        if (ii_d.flag->ignore_move_focus_check == false && !loco->button.sb_get_ri(cid_).selected) {
           if (ii_d.button == fan::mouse_left && ii_d.button_state == fan::mouse_state::press) {
             loco->button.set_theme(cid_, loco->button.get_theme(cid_), press);
             ii_d.flag->ignore_move_focus_check = true;
             loco->vfi.set_focus_keyboard(loco->vfi.get_focus_mouse());
           }
         }
-        else if (!block->p[cid_->instance_id].selected) {
+        else if (!loco->button.sb_get_ri(cid_).selected) {
           if (ii_d.button == fan::mouse_left && ii_d.button_state == fan::mouse_state::release) {
             if (ii_d.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside) {
               loco->button.set_theme(cid_, loco->button.get_theme(cid_), hover);
@@ -132,26 +139,24 @@ struct button_t {
       vfip.keyboard_cb = [cb = p.keyboard_cb, udata = p.udata, cid_ = cid](const loco_t::vfi_t::keyboard_data_t& kd) -> int {
         loco_t* loco = OFFSETLESS(kd.vfi, loco_t, vfi_var_name);
         loco_t::keyboard_data_t kd_ = kd;
-        auto block = loco->button.sb_get_block(cid_);
         kd_.cid = cid_;
         cb(kd_);
         return 0;
       };
     }
 
-    block->p[cid->instance_id].vfi_id = loco->vfi.push_shape(vfip);
+    sb_get_ri(cid).vfi_id = loco->vfi.push_shape(vfip);
   }
   void erase(fan::graphics::cid_t* cid) {
     loco_t* loco = get_loco();
-    auto block = sb_get_block(cid);
-    instance_properties_t* p = &block->p[cid->instance_id];
-    loco->text.erase(p->text_id);
-    loco->vfi.erase(block->p[cid->instance_id].vfi_id);
+    auto& ri = sb_get_ri(cid);
+    loco->text.erase(ri.text_id);
+    loco->vfi.erase(ri.vfi_id);
     sb_erase(cid);
   }
 
-  instance_properties_t* get_instance_properties(fan::graphics::cid_t* cid) {
-    return &sb_get_block(cid)->p[cid->instance_id];
+  auto& get_ri(fan::graphics::cid_t* cid) {
+    return sb_get_ri(cid);
   }
 
   void draw() {
@@ -167,12 +172,12 @@ struct button_t {
     #define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/button.frag.spv)
   #endif
 
+      #define vk_sb_ssbo
+    #define vk_sb_vp
   #include _FAN_PATH(graphics/shape_builder.h)
 
   button_t() {
-    #define vk_sb_ssbo
-    #define vk_sb_vp
-    #include _FAN_PATH(graphics/shape_open_settings.h)
+    sb_open();
   }
   ~button_t() {
     sb_close();
@@ -183,42 +188,44 @@ struct button_t {
     return loco->get_context()->theme_list[nr].theme_id;
   }
   fan_2d::graphics::gui::theme_t* get_theme(fan::graphics::cid_t* cid) {
-    return get_theme(blocks[*(bll_block_NodeReference_t*)&cid->block_id].block.p[cid->instance_id].theme);
+    return get_theme(get_ri(cid).theme);
   }
   void set_theme(fan::graphics::cid_t* cid, fan_2d::graphics::gui::theme_t* theme, f32_t intensity) {
     loco_t* loco = get_loco();
     fan_2d::graphics::gui::theme_t t = *theme;
     t = t * intensity;
-    set(cid, &instance_t::color, t.button.color);
-    set(cid, &instance_t::outline_color, t.button.outline_color);
-    set(cid, &instance_t::outline_size, t.button.outline_size);
-    auto block = sb_get_block(cid);
-    block->p[cid->instance_id].theme = theme;
-    loco->text.set(block->p[cid->instance_id].text_id, 
-      &loco_t::letter_t::instance_t::outline_color, t.button.text_outline_color);
-    loco->text.set(block->p[cid->instance_id].text_id, 
-      &loco_t::letter_t::instance_t::outline_size, t.button.text_outline_size);
+    
+    set(cid, &vi_t::color, t.button.color);
+    set(cid, &vi_t::outline_color, t.button.outline_color);
+    set(cid, &vi_t::outline_size, t.button.outline_size);
+    auto& ri = get_ri(cid);
+    ri.theme = theme;
+    loco->text.set(ri.text_id, 
+      &loco_t::letter_t::vi_t::outline_color, t.button.text_outline_color);
+    loco->text.set(ri.text_id, 
+      &loco_t::letter_t::vi_t::outline_size, t.button.text_outline_size);
   }
 
   template <typename T>
-  T get_button(fan::graphics::cid_t* cid, T instance_t::* member) {
+  T get_button(fan::graphics::cid_t* cid, auto T::* member) {
     loco_t* loco = get_loco();
     return loco->button.get(cid, member);
   }
   template <typename T, typename T2>
-  void set_button(fan::graphics::cid_t* cid, T instance_t::*member, const T2& value) {
+  void set_button(fan::graphics::cid_t* cid, auto T::*member, const T2& value) {
     loco_t* loco = get_loco();
-    loco->button.set(cid, member, value);
+    assert(0);
+    //loco->button.set(cid, member, value);
   }
 
   template <typename T>
-  T get_text_renderer(fan::graphics::cid_t* cid, T loco_t::letter_t::instance_t::* member) {
+  T get_text_renderer(fan::graphics::cid_t* cid, auto T::* member) {
     loco_t* loco = get_loco();
     auto block = sb_get_block(cid);
     return loco->text.get(block->p[cid->instance_id].text_id, member);
   }
   template <typename T, typename T2>
-  void set_text_renderer(fan::graphics::cid_t* cid, T loco_t::letter_t::instance_t::*member, const T2& value) {
+  void set_text_renderer(fan::graphics::cid_t* cid, auto T::*member, const T2& value) {
     loco_t* loco = get_loco();
     auto block = sb_get_block(cid);
     loco->text.set(block->p[cid->instance_id].text_id, member, value);
@@ -226,33 +233,33 @@ struct button_t {
 
   void set_position(fan::graphics::cid_t* cid, const fan::vec3& position) {
     loco_t* loco = get_loco();
-    auto block = sb_get_block(cid);
-    loco->text.set_position(&block->p[cid->instance_id].text_id, position + fan::vec3(0, 0, 0.5));
-    set_button(cid, &instance_t::position, position);
+    auto& ri = get_ri(cid);
+    loco->text.set_position(&ri.text_id, position + fan::vec3(0, 0, 0.5));
+    set_button(cid, &vi_t::position, position);
     loco->vfi.set_rectangle(
-      block->p[cid->instance_id].vfi_id,
+      ri.vfi_id,
       &loco_t::vfi_t::set_rectangle_t::position,
       position
     );
   }
   void set_size(fan::graphics::cid_t* cid, const fan::vec3& size) {
     loco_t* loco = get_loco();
-    auto block = sb_get_block(cid);
-    set_button(cid, &instance_t::size, size);
+    auto& ri = get_ri(cid);
+    set_button(cid, &vi_t::size, size);
     loco->vfi.set_rectangle(
-      block->p[cid->instance_id].vfi_id,
+      ri.vfi_id,
       &loco_t::vfi_t::set_rectangle_t::size,
       size
     );
   }
 
-  loco_t::matrices_t* get_matrices(fan::graphics::cid_t* cid) {
-    auto block = sb_get_block(cid);
+ /* loco_t::matrices_t* get_matrices(fan::graphics::cid_t* cid) {
+    auto ri = get_ri(cid);
     loco_t* loco = get_loco();
     return loco->matrices_list[*block->p[cid->instance_id].key.get_value<0>()].matrices_id;
   }
   void set_matrices(fan::graphics::cid_t* cid, loco_t::matrices_list_NodeReference_t n) {
-    sb_set_key<instance_properties_t::key_t::get_index_with_type<decltype(n)>()>(cid, n);
+    sb_set_key<bm_properties_t::key_t::get_index_with_type<decltype(n)>()>(cid, n);
     loco_t* loco = get_loco();
     auto block = sb_get_block(cid);
     loco->text.set_matrices(block->p[cid->instance_id].text_id, n);
@@ -268,7 +275,7 @@ struct button_t {
     sb_set_key<instance_properties_t::key_t::get_index_with_type<decltype(n)>()>(cid, n);
     auto block = sb_get_block(cid);
     loco->text.set_viewport(block->p[cid->instance_id].text_id, n);
-  }
+  }*/
 
   void set_theme(fan::graphics::cid_t* cid, f32_t state) {
     loco_t* loco = get_loco();
@@ -285,24 +292,22 @@ struct button_t {
   }*/
 
   void set_selected(fan::graphics::cid_t* cid, bool flag) {
-    auto block = sb_get_block(cid);
-    block->p[cid->instance_id].selected = flag;
+    auto& ri = get_ri(cid);
+    ri.selected = flag;
   }
 
   fan::wstring get_text(fan::graphics::cid_t* cid) {
     loco_t* loco = get_loco();
-    auto block = sb_get_block(cid);
-    return loco->text.get_properties(block->p[cid->instance_id].text_id).text;
+    auto& ri = get_ri(cid);
+    return loco->text.get_properties(ri.text_id).text;
   }
   void set_text(fan::graphics::cid_t* cid, const fan::wstring& text) {
     loco_t* loco = get_loco();
-    auto block = sb_get_block(cid);
-    loco->text.set_text(&block->p[cid->instance_id].text_id, text);
+    auto& ri = get_ri(cid);
+    loco->text.set_text(&ri.text_id, text);
   }
 
   #if defined(loco_vulkan)
   uint32_t m_matrices_index = 0;
   #endif
 };
-
-#include _FAN_PATH(graphics/opengl/2D/objects/hardcode_close.h)

@@ -119,5 +119,3 @@ struct letter_t {
     uint32_t m_matrices_index = 0;
   #endif
 };
-
-#include _FAN_PATH(graphics/opengl/2D/objects/hardcode_close.h)

@@ -173,6 +173,10 @@ block_t* sb_get_block(fan::opengl::cid_t* cid) {
   return &block_node.block;
 }
 
+//ri_t& sb_get_ri() {
+//  return 
+//}
+
 template <typename T>
 T get(fan::opengl::cid_t *cid, T vi_t::*member) {
   loco_t* loco = get_loco();
