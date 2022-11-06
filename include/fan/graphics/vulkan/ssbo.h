@@ -135,7 +135,7 @@ namespace fan {
 					return nr;
 				}
 
-				void copy_instance(fan::vulkan::context_t* context, memory_write_queue_t* write_queue, nr_t nr, uint32_t i, auto member, auto value) {
+				void copy_instance(fan::vulkan::context_t* context, memory_write_queue_t* write_queue, nr_t nr, instance_id_t i, auto member, auto value) {
 					instance_list.get_vi(nr, i).*member = value;
 					common.edit(
 						context,
