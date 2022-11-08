@@ -109,7 +109,7 @@ namespace fan {
 				fan::font::character_info_t font_info;
 				font_info.metrics.size = found->second.metrics.size * converted_size;
 				font_info.metrics.offset = found->second.metrics.offset * converted_size;
-				font_info.metrics.advance = (found->second.metrics.advance * converted_size);
+				font_info.metrics.advance = font_info.metrics.size.x;
 
 				font_info.glyph = found->second.glyph;
 				font_info.mapping = found->second.mapping;

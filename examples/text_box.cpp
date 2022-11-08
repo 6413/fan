@@ -10,6 +10,8 @@
 
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
+#define loco_vulkan
+
 #define loco_window
 #define loco_context
 
@@ -21,8 +23,7 @@ struct pile_t {
   pile_t() {
     fan::vec2 window_size = loco.get_window()->get_size();
     fan::vec2 ratio = window_size / window_size.max();
-    fan::graphics::open_matrices(
-      loco.get_context(),
+    loco.open_matrices(
       &matrices,
       fan::vec2(-1, 1) * ratio.x,
       fan::vec2(-1, 1) * ratio.y
@@ -49,8 +50,8 @@ struct pile_t {
   }
 
   loco_t loco;
-  fan::opengl::matrices_t matrices;
-  fan::opengl::viewport_t viewport;
+  loco_t::matrices_t matrices;
+  fan::graphics::viewport_t viewport;
 };
 
 int main() {
@@ -58,8 +59,8 @@ int main() {
   pile_t pile;
 
   loco_t::text_box_t::properties_t tp;
-  tp.get_matrices() = &pile.matrices;
-  tp.get_viewport() = &pile.viewport;
+  tp.matrices = &pile.matrices;
+  tp.viewport = &pile.viewport;
   // tp.position = 400;
   tp.position = fan::vec2(-0.2);
   //tp.position.y = 0;
@@ -85,7 +86,7 @@ int main() {
   gray_theme.open(pile.loco.get_context());
   tp.theme = &gray_theme;
   constexpr auto count = 10;
-  fan::opengl::cid_t cids[count];
+  fan::graphics::cid_t cids[count];
   pile.loco.text_box.push_back(&cids[0], tp);
   tp.position = fan::vec2(0.2);
   tp.text = L"test";

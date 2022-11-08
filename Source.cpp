@@ -1,27 +1,18 @@
-#include <fan/types/types.h>
+#include <iostream>
+#include <algorithm>
+#include <vector>
+#define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 
-struct a_t {
-	int x;
-	void f() {
-		fan::print("this");
-	}
-};
+#ifndef FAN_INCLUDE_PATH
+  #define FAN_INCLUDE_PATH C:/libs/fan/include
+#endif
+#define fan_debug 1
+#include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
-struct s_t {
-	int y;
-	void f() {
-		fan::print("st is called");
-	}
-};
+#include <fan/types/vector.h>
+#include <fan/math/math.h>
 
-struct c_t : a_t, s_t {
-	int c;
-	void f() {
-		fan::print(this);
-	}
-};
 
 int main() {
-	c_t c;
-	((a_t*)&c)->f();
+  fan::print(fan::vec2(-6.12, 3.39).length());
 }

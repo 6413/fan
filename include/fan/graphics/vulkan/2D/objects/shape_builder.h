@@ -91,6 +91,9 @@ void sb_open() {
   p.descriptor_layout = &m_ssbo.m_descriptor.m_layout;
   p.shader = &m_shader;
   p.push_constants_size = sizeof(loco_t::push_constants_t);
+#if defined(sb_vertex_count) && sb_vertex_count == 2
+  p.shape_type = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+#endif
   m_pipeline.open(context, p);
 }
 void sb_close() {
