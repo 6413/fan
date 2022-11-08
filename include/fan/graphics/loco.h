@@ -32,6 +32,14 @@ struct loco_t;
 #endif
 
 #ifdef loco_vulkan
+  #ifdef loco_line 
+    #ifndef loco_vulkan_descriptor_ssbo
+      #define loco_vulkan_descriptor_ssbo
+    #endif
+    #ifndef loco_vulkan_descriptor_uniform_block
+      #define loco_vulkan_descriptor_uniform_block
+    #endif
+  #endif
   #ifdef loco_rectangle 
     #ifndef loco_vulkan_descriptor_ssbo
       #define loco_vulkan_descriptor_ssbo
@@ -404,6 +412,10 @@ public:
   #endif
   }
 
+  f32_t get_delta_time() {
+    return get_window()->get_delta_time();
+  }
+
   struct push_constants_t {
     uint32_t texture_id;
     uint32_t matrices_id;
@@ -418,6 +430,12 @@ public:
 
       uint32_t idx;
 
+
+      #if defined(loco_line)
+        if constexpr(std::is_same<std::remove_pointer<decltype(shape)>::type, line_t>::value) {
+          idx = matrices.matrices_index.line;
+        }
+      #endif
       #if defined(loco_rectangle)
         if constexpr(std::is_same<std::remove_pointer<decltype(shape)>::type, rectangle_t>::value) {
           idx = matrices.matrices_index.rectangle;

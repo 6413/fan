@@ -56,7 +56,7 @@ int main() {
   p.matrices = &pile->matrices;
   p.viewport = &pile->viewport;
 
-  p.font_size = 0.3;
+  p.font_size = 0.2;
   p.text = L"hello world";
   for (uint32_t i = 0; i < count; i++) {
     p.position = fan::random::vec2(0, 0);

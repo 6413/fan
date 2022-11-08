@@ -6,7 +6,7 @@
 #define fan_debug 0
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
-#include _FAN_PATH(graphics/graphics.h)
+#define loco_vulkan
 
 #define loco_window
 #define loco_context
@@ -14,15 +14,13 @@
 #define loco_line
 #include _FAN_PATH(graphics/loco.h)
 
-constexpr uint32_t count = 1e+7;
+constexpr uint32_t count = 1e+3;
 
 struct pile_t {
 
   void open() {
-    loco.open(loco_t::properties_t());
     auto window_size = loco.get_window()->get_size();
-    fan::graphics::open_matrices(
-      loco.get_context(),
+    loco.open_matrices(
       &matrices,
       fan::vec2(0, window_size.x),
       fan::vec2(0, window_size.y)
@@ -42,9 +40,9 @@ struct pile_t {
   }
 
   loco_t loco;
-  fan::opengl::matrices_t matrices;
-  fan::opengl::viewport_t viewport;
-  fan::opengl::cid_t cids[count];
+  loco_t::matrices_t matrices;
+  fan::graphics::viewport_t viewport;
+  fan::graphics::cid_t cids[count];
 };
 
 int main() {
@@ -55,26 +53,45 @@ int main() {
   loco_t::line_t::properties_t p;
 
   //p.block_properties.
-  p.get_matrices() = &pile->matrices;
-  p.get_viewport() = &pile->viewport;
+  p.matrices = &pile->matrices;
+  p.viewport = &pile->viewport;
 
-  fan::time::clock c; 
-  c.start();
-  for (uint32_t i = 0; i < count; i++) {
-    p.src = fan::random::vec2(0, 800);
-    p.dst = fan::random::vec2(0, 800);
-    p.color = fan::random::color();
-    pile->loco.line.push_back(&pile->cids[i], p);
-  }
+  p.src = fan::vec2(400, 400);
+  p.dst = fan::vec2(400 + 9 * 20, 400 - 5 * 20);
+  p.color = fan::colors::white;
+  pile->loco.line.push_back(&pile->cids[0], p);
 
-  fan::print((f32_t)c.elapsed() / 1e+9);
+  fan::vec3 taso = p.dst - p.src;
 
-  pile->loco.set_vsync(false);
+  p.src = fan::vec2(400 + 9 * 20 / 2, 400 - 5 * 20 / 2);
+  f32_t x = taso.x;
+  f32_t y = taso.y;
+  f32_t cs = cos(-fan::math::pi / 2);
+  f32_t sn = sin(-fan::math::pi / 2);
+  taso.x = x * cs - y * sn; 
+  taso.y = x * sn + y * cs;
+  p.dst = p.src + taso;
+  p.color = fan::colors::red;
+  pile->loco.line.push_back(&pile->cids[0], p);
+  f32_t d = 0;
+
+  pile->loco.set_vsync(0);
 
   pile->loco.loop([&] {
-   /* for (uint32_t i = 0; i < count; i++) {
-      pile->loco.line.set(&pile->cids[i], &loco_t::line_t::instance_t::dst, pile->loco.get_mouse_position());
-    }*/
+      f32_t x = taso.x;
+  f32_t y = taso.y;
+    f32_t cs = cos(d + -fan::math::pi / 2);
+    f32_t sn = sin(d + -fan::math::pi / 2);
+    //taso.x = ; 
+    //taso.y = ;
+    p.dst = p.src + 
+      fan::vec2(
+        x * cs - y * sn,
+        x * sn + y * cs
+      )
+      ;
+    pile->loco.line.set(&pile->cids[0], &loco_t::line_t::vi_t::dst, p.dst);
+    d += pile->loco.get_delta_time();
     pile->loco.get_fps();
   });
 

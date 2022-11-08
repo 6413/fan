@@ -5,6 +5,9 @@
 
 #if BLL_set_declare_rest != 0
 struct matrices_index_t {
+  #if defined(loco_line)
+    uint8_t line = -1;
+  #endif
   #if defined(loco_rectangle)
     uint8_t rectangle = -1;
   #endif

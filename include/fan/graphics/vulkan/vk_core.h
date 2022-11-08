@@ -125,6 +125,7 @@ namespace fan {
 
 				bool enable_depth_test = VK_TRUE;
 				VkCompareOp depth_test_compare_op = VK_COMPARE_OP_LESS;
+				VkPrimitiveTopology shape_type = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 			};
 
 			void open(fan::vulkan::context_t* context, const properties_t& p);
@@ -1571,7 +1572,7 @@ namespace fan {
 
 			VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
 			inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-			inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+			inputAssembly.topology = p.shape_type;
 			inputAssembly.primitiveRestartEnable = VK_FALSE;
 
 			VkPipelineViewportStateCreateInfo viewportState{};

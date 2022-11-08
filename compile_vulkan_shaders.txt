@@ -9,3 +9,6 @@ glslc.exe include/fan/graphics/glsl/vulkan/2D/objects/letter.vert -o include/fan
 
 glslc.exe include/fan/graphics/glsl/vulkan/2D/objects/button.frag -o include/fan/graphics/glsl/vulkan/2D/objects/button.frag.spv
 glslc.exe include/fan/graphics/glsl/vulkan/2D/objects/button.vert -o include/fan/graphics/glsl/vulkan/2D/objects/button.vert.spv
+
+glslc.exe include/fan/graphics/glsl/vulkan/2D/objects/line.frag -o include/fan/graphics/glsl/vulkan/2D/objects/line.frag.spv
+glslc.exe include/fan/graphics/glsl/vulkan/2D/objects/line.vert -o include/fan/graphics/glsl/vulkan/2D/objects/line.vert.spv
