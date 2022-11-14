@@ -48,10 +48,10 @@ int main() {
 
   p.size = fan::vec2(1, 1);
   //p.block_properties.
-  p.get_matrices() = &pile->matrices;
-  p.get_viewport() = &pile->viewport;
+  p.matrices = &pile->matrices;
+  p.viewport = &pile->viewport;
 
-  constexpr fan::vec2ui image_size = fan::vec2ui(1920, 1050);
+  constexpr fan::vec2ui image_size = fan::vec2ui(3840, 1080);
 
   fan::string str;
   fan::io::file::read("output.yuv", &str);

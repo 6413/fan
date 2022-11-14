@@ -196,6 +196,8 @@ namespace fan {
         opengl.call(opengl.glDebugMessageCallback, message_callback, (void*)0);
       }
 
+      void set_current(fan::window_t* window);
+
       uint32_t m_flags;
     };
   }
@@ -503,6 +505,16 @@ inline void fan::opengl::context_t::set_vsync(fan::window_t* window, bool flag)
 
   #elif defined(fan_platform_unix)
   opengl.internal.glXSwapIntervalEXT(fan::sys::m_display, opengl.internal.glXGetCurrentDrawable(), flag);
+  #endif
+}
+
+inline void fan::opengl::context_t::set_current(fan::window_t* window)
+{
+  #ifdef fan_platform_windows
+    SwapBuffers(window->m_hdc);
+    wglMakeCurrent(window->m_hdc, window->m_context);
+  #elif defined(fan_platform_unix)
+    opengl.internal.glXMakeCurrent(fan::sys::m_display, window->m_window_handle, window->m_context);
   #endif
 }
 

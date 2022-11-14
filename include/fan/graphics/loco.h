@@ -539,7 +539,6 @@ public:
     #undef sb_shape_var_name
   #endif
   #if defined(loco_sprite)
-
     #define sb_shape_var_name sprite
     #define sb_sprite_name sprite_t
     #include _FAN_PATH(graphics/opengl/2D/objects/sprite.h)
