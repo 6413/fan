@@ -398,7 +398,7 @@ inline fan::opengl::context_t::context_t(fan::window_t* window, const properties
   int pixel_format;
   UINT num_formats;
 
-  // enable maybe /LTCG to fix with sanitizer on
+  // /mtd or enable maybe /LTCG to fix with sanitizer on
   opengl.call(opengl.internal.wglChoosePixelFormatARB, window->m_hdc, pixel_format_attribs, (float*)0, 1, &pixel_format, &num_formats);
 
   if (!num_formats) {

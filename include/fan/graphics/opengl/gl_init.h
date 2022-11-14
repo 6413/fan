@@ -135,6 +135,7 @@ namespace fan {
             0, 0, 0
           };
 
+          // /mtd or enable maybe /LTCG to fix with sanitizer on
           int pixel_format = ChoosePixelFormat(p->hdc, &pfd);
           if (!pixel_format) {
             fan::throw_error("failed to choose pixel format");

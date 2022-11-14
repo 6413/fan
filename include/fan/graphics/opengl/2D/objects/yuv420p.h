@@ -25,14 +25,14 @@ struct sb_sprite_name {
     struct key_t : parsed_masterpiece_t {}key;
   };
 
-  struct ri_t {
+  struct ri_t : bm_properties_t {
     fan::graphics::cid_t* cid;
   };
 
   #define make_key_value(type, name) \
     type& name = *key.get_value<decltype(key)::get_index_with_type<type>()>();
 
-  struct properties_t : vi_t, ri_t, bm_properties_t {
+  struct properties_t : vi_t, ri_t {
 
     make_key_value(loco_t::textureid_t<0>, y);
     make_key_value(loco_t::textureid_t<1>, u);
@@ -42,7 +42,7 @@ struct sb_sprite_name {
 
     properties_t() = default;
     properties_t(const vi_t& i) : vi_t(i) {}
-    properties_t(const bm_properties_t& p) : bm_properties_t(p) {}
+    properties_t(const ri_t& i) : ri_t(i) {}
 
   private:
     void _load_yuv(loco_t* loco, void** data, const fan::vec2& image_size, uint32_t stride[3]) {
@@ -50,8 +50,8 @@ struct sb_sprite_name {
       lp.format = fan::opengl::GL_RED; 
       lp.internal_format = fan::opengl::GL_RED; 
                                  
-      fan::webp::image_info_t ii; 
-                               
+      fan::webp::image_info_t ii;
+
       ii.data = data[0];
       ii.size = image_size; 
       loco->sb_shape_var_name.image[0].load(loco, ii, lp); 
