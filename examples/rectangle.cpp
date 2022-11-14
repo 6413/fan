@@ -18,6 +18,7 @@
 //#define loco_post_process
 
 #define loco_rectangle
+//#define loco_sprite
 #include _FAN_PATH(graphics/loco.h)
 
 constexpr uint32_t count = 1.0e+1;
@@ -47,6 +48,7 @@ struct pile_t {
 };
 
 int main() {
+  //sizeof(loco_t)
   pile_t* pile = new pile_t;
 
   loco_t::rectangle_t::properties_t p;
@@ -59,8 +61,8 @@ int main() {
   p.color = fan::colors::red;
   p.color.a = 0.5;
   pile->loco.rectangle.push_back(&pile->cids[1], p);
-
-    p.position = fan::vec3(400, 400, 1);
+  p.position = 0;
+  p.position = fan::vec3(400, 400, 1);
   p.color = fan::colors::blue;
   p.color.a = 0.5;
   pile->loco.rectangle.push_back(&pile->cids[0], p);
