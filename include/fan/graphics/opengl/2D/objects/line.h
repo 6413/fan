@@ -20,21 +20,21 @@ struct line_t {
     }key;
   };
 
-  struct ri_t {
-    fan::graphics::cid_t* cid;
-  };
+	struct ri_t : bm_properties_t {
+		fan::graphics::cid_t* cid;
+	};
 
    #define make_key_value(type, name) \
     type& name = *key.get_value<decltype(key)::get_index_with_type<type>()>();
 
-  struct properties_t : vi_t, ri_t, bm_properties_t {
+  struct properties_t : vi_t, ri_t {
 
     make_key_value(loco_t::matrices_list_NodeReference_t, matrices);
     make_key_value(fan::graphics::viewport_list_NodeReference_t, viewport);
 
     properties_t() = default;
     properties_t(const vi_t& i) : vi_t(i) {}
-    properties_t(const bm_properties_t& p) : bm_properties_t(p) {}
+    properties_t(const ri_t& p) : ri_t(p) {}
   };
 
   #undef make_key_value

@@ -3,7 +3,7 @@ struct text_renderer_t {
   #define make_key_value(type, name) \
     type& name = *key.get_value<decltype(key)::get_index_with_type<type>()>();
 
-  struct properties_t : loco_t::letter_t::ri_t, loco_t::letter_t::bm_properties_t {
+  struct properties_t : loco_t::letter_t::ri_t {
 
     properties_t() = default;
     properties_t& operator=(const properties_t& p) {
