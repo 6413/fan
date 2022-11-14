@@ -316,7 +316,7 @@ public:
 
       VkDescriptorPoolCreateInfo pool_info{};
       pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-      pool_info.poolSizeCount = std::size(pool_sizes);
+      pool_info.poolSizeCount = std::size(pool_sizes) * 10;
       pool_info.pPoolSizes = pool_sizes;
       pool_info.maxSets = fan::vulkan::MAX_FRAMES_IN_FLIGHT * 10;
 

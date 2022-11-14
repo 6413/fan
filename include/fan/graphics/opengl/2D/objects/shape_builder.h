@@ -95,7 +95,7 @@ block_t* sb_push_back(fan::opengl::cid_t* cid, properties_t& p) {
   cid->block_id = bmn->data.last_block.NRI;
   cid->instance_id = instance_id;
 
-  block->p[instance_id] = *(bm_properties_t*)&p;
+  block->p[instance_id] = *(ri_t*)&p;
   return block;
 }
 void sb_erase(fan::opengl::cid_t* cid) {
@@ -138,6 +138,7 @@ void sb_erase(fan::opengl::cid_t* cid) {
 
   block->uniform_buffer.copy_instance(
     loco->get_context(),
+    &loco->m_write_queue,
     cid->instance_id,
     last_instance_data
   );
@@ -159,13 +160,6 @@ void sb_erase(fan::opengl::cid_t* cid) {
 
     bm_node->data.last_block = lpnr;
   }
-
-  block->uniform_buffer.common.edit(
-    loco->get_context(),
-    &loco->m_write_queue,
-    cid->instance_id * sizeof(vi_t),
-    cid->instance_id * sizeof(vi_t) + sizeof(vi_t)
-  );
 }
 
 block_t* sb_get_block(fan::opengl::cid_t* cid) {
@@ -187,7 +181,7 @@ template <typename T, typename T2>
 void set(fan::opengl::cid_t *cid, T vi_t::*member, const T2& value) {
   loco_t* loco = get_loco();
   auto block = sb_get_block(cid);
-  block->uniform_buffer.edit_instance(loco->get_context(), cid->instance_id, member, value);
+  block->uniform_buffer.edit_instance(loco->get_context(), &loco->m_write_queue, cid->instance_id, member, value);
   block->uniform_buffer.common.edit(
     loco->get_context(),
     &loco->m_write_queue,
@@ -262,13 +256,35 @@ void sb_set_key(fan::opengl::cid_t* cid, auto value) {
   auto block = sb_get_block(cid);
   properties_t p;
   *(vi_t*)&p = *block->uniform_buffer.get_instance(loco->get_context(), cid->instance_id);
-  *(bm_properties_t*)&p = block->p[cid->instance_id];
+  *(ri_t*)&p = block->p[cid->instance_id];
   *p.key.get_value<i>() = value;
   sb_erase(cid);
   sb_push_back(cid, p);
 }
 
 fan::opengl::shader_t m_shader;
+
+vi_t& sb_get_vi(fan::graphics::cid_t* cid) {
+  auto loco = get_loco();
+  return *sb_get_block(cid)->uniform_buffer.get_instance(loco->get_context(), cid->instance_id);
+}
+template <typename T>
+void sb_set_vi(fan::graphics::cid_t* cid, auto T::* member, auto value) {
+  auto loco = get_loco();
+  auto& instance = sb_get_vi(cid);
+  instance.*member = value;
+  sb_get_block(cid)->uniform_buffer.edit_instance(loco->get_context(), &loco->m_write_queue, cid->instance_id, member, value);
+  //sb_get_block(cid)->uniform_buffer.copy_instance(loco->get_context(), &instance);
+}
+
+ri_t& sb_get_ri(fan::graphics::cid_t* cid) {
+  auto loco = get_loco();
+  return sb_get_block(cid)->p[cid->instance_id];
+}
+template <typename T>
+void sb_set_ri(fan::graphics::cid_t* cid, auto T::* member, auto value) {
+  sb_get_ri(cid).*member = value;
+}
 
 struct block_t {
   void open(loco_t* loco, auto* shape) {
@@ -281,7 +297,7 @@ struct block_t {
 
   fan::opengl::core::uniform_block_t<vi_t, max_instance_size> uniform_buffer;
   fan::opengl::cid_t* cid[max_instance_size];
-  bm_properties_t p[max_instance_size];
+  ri_t p[max_instance_size];
 };
 
 protected:
