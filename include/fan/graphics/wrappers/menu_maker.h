@@ -107,7 +107,7 @@ struct menu_maker_t {
 	auto loco = get_loco();
 	fan::vec2 previous_button_size = loco->button.get_button(
 	  &loco->menu_maker.instances[nr].base.instances[id].cid, 
-	  &loco_t::button_t::instance_t::size
+	  &loco_t::button_t::vi_t::size
 	);
 	auto it = id;
 	it = it.Next(&instances[nr].base.instances);
@@ -117,11 +117,11 @@ struct menu_maker_t {
 	while (it != instances[nr].base.instances.dst) {
 	  auto b_position = loco->button.get_button(
 		&instances[nr].base.instances[it].cid,
-		&loco_t::button_t::instance_t::position
+		&loco_t::button_t::vi_t::position
 	  );
 	  auto b_size = loco->button.get_button(
 		&instances[nr].base.instances[it].cid,
-		&loco_t::button_t::instance_t::size
+		&loco_t::button_t::vi_t::size
 	  );
 	  b_position.y -= b_size.y * 2;
 	  loco->button.set_position(

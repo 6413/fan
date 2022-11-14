@@ -139,8 +139,8 @@ struct sb_menu_maker_type_name {
     bp.position = instances[id].position;
     bp.theme = &instances[id].theme;
     bp.size = fan::vec2(global.gui_size * 5, global.gui_size);
-    bp.get_viewport() = global.viewport;
-    bp.get_matrices() = global.matrices;
+    bp.viewport = global.viewport;
+    bp.matrices = global.matrices;
     bp.font_size = global.gui_size;
     bp.text.resize(sizeof(instances[id].text));
     bp.text = instances[id].text;

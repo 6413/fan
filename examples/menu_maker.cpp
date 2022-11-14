@@ -7,33 +7,33 @@
 #endif
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
+#define loco_vulkan
+
 #define loco_window
 #define loco_context
 
-#define loco_menu_maker
+#define loco_menu_maker 
 #include _FAN_PATH(graphics/loco.h)
 
 struct pile_t {
 
   void open() {
-    loco.open(loco_t::properties_t());
     fan::vec2 window_size = loco.get_window()->get_size();
     fan::vec2 ratio = window_size / window_size.max();
-    fan::graphics::open_matrices(
-      loco.get_context(),
+    loco.open_matrices(
       &matrices,
       fan::vec2(-1, 1) * ratio.x,
       fan::vec2(-1, 1) * ratio.y
     );
-    loco.get_window()->add_resize_callback([&](fan::window_t* window, const fan::vec2i& size) {
-      fan::vec2 window_size = size;
+    loco.get_window()->add_resize_callback([&](const fan::window_t::resize_cb_data_t& d) {
+      fan::vec2 window_size = d.size;
       fan::vec2 ratio = window_size / window_size.max();
       //std::swap(ratio.x, ratio.y);
       matrices.set_ortho(
         fan::vec2(-1, 1) * ratio.x,
         fan::vec2(-1, 1) * ratio.y
       );
-      viewport.set(loco.get_context(), 0, size, size);
+      viewport.set(loco.get_context(), 0, d.size, d.size);
      });
 
     viewport.open(loco.get_context());
@@ -41,8 +41,8 @@ struct pile_t {
   }
 
   loco_t loco;
-  fan::opengl::matrices_t matrices;
-  fan::opengl::viewport_t viewport;
+  loco_t::matrices_t matrices;
+  fan::graphics::viewport_t viewport;
 };
 
 int main() {
@@ -65,27 +65,27 @@ int main() {
   op.position = fan::vec2(op.gui_size * (5.0 / 3), -1.0 + op.gui_size);
   ids[1] = pile->loco.menu_maker.push_menu(op);
   loco_t::menu_maker_t::properties_t p;
-  p.text = "Create New Stage";
+  p.text = L"Create New Stage";
   p.mouse_button_cb = [&](const loco_t::mouse_button_data_t& mb) -> int {
     if (mb.button != fan::mouse_left) {
       return 0;
     }
-    if (mb.button_state != fan::key_state::release) {
+    if (mb.button_state != fan::mouse_state::release) {
       return 0;
     }
     pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco);
     loco_t::menu_maker_t::properties_t p;
     static int x = 0;
-    p.text = fan::string("Stage") + fan::to_string(x++);
+    p.text = fan::wstring(L"Stage") + fan::to_wstring(x++);
     p.mouse_button_cb = [](const loco_t::mouse_button_data_t& mb) -> int {
       if (mb.button != fan::mouse_left) {
         return 0;
       }
-      if (mb.button_state != fan::key_state::release) {
+      if (mb.button_state != fan::mouse_state::release) {
         return 0;
       }
       pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco);
-      fan::opengl::cid_t* cid = mb.cid;
+      fan::graphics::cid_t* cid = mb.cid;
       if (mb.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside) {
         pile->loco.button.set_theme(cid, pile->loco.button.get_theme(cid), loco_t::button_t::press);
       }
@@ -100,10 +100,13 @@ int main() {
   };
   
   pile->loco.menu_maker.push_back(ids[0], p);
-  p.text = "Gui stage";
+  /*p.text = L"Gui stage";
+  p.mouse_button_cb = [](const loco_t::mouse_button_data_t& mb) -> int {
+    return 0;
+  };
   pile->loco.menu_maker.push_back(ids[0], p);
-  p.text = "Function stage";
-  pile->loco.menu_maker.push_back(ids[0], p);
+  p.text = L"Function stage";
+  pile->loco.menu_maker.push_back(ids[0], p);*/
 
   pile->loco.get_context()->set_vsync(pile->loco.get_window(), 0);
 

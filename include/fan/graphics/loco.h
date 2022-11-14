@@ -227,13 +227,8 @@ public:
       );
       coordinates.left = x.x;
       coordinates.right = x.y;
-    #if defined (loco_opengl)
       coordinates.bottom = y.y;
       coordinates.top = y.x;
-    #elif defined(loco_vulkan)
-      coordinates.bottom = y.x;
-      coordinates.top = y.y;
-    #endif
 
       m_view[3][0] = 0;
       m_view[3][1] = 0;
