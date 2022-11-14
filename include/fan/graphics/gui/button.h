@@ -207,7 +207,7 @@ struct button_t {
   }
 
   template <typename T>
-  T get_button(fan::graphics::cid_t* cid, auto T::* member) {
+  auto get_button(fan::graphics::cid_t* cid, auto T::* member) {
     loco_t* loco = get_loco();
     return loco->button.get(cid, member);
   }

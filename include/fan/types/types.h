@@ -198,7 +198,7 @@ namespace fan {
 		return out.str().c_str();
 	}
 	template <typename T>
-	std::wstring to_wstring(const T a_value, const int n = 2)
+	fan::wstring to_wstring(const T a_value, const int n = 2)
 	{
 		std::wostringstream out;
 		out.precision(n);

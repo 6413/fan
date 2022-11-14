@@ -5,7 +5,7 @@
 #ifndef FAN_INCLUDE_PATH
   #define FAN_INCLUDE_PATH C:/libs/fan/include
 #endif
-#define fan_debug 0
+#define fan_debug 3
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
 #define loco_vulkan
@@ -25,8 +25,8 @@ constexpr uint32_t count = 1.0e+1;
 
 struct pile_t {
 
-  static constexpr fan::vec2 ortho_x = fan::vec2(0, 800);
-  static constexpr fan::vec2 ortho_y = fan::vec2(0, 800);
+  static constexpr fan::vec2 ortho_x = fan::vec2(-1, 1);
+  static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
 
   pile_t() {
     loco.open_matrices(
@@ -55,14 +55,14 @@ int main() {
   p.matrices = &pile->matrices;
   p.viewport = &pile->viewport;
 
-  p.size = fan::vec2(200, 200);
+  p.size = fan::vec2(0.1, 0.1);
 
-  p.position = fan::vec3(300, 300, 0);
+  p.position = fan::vec3(-0.5, -0.5, 0);
   p.color = fan::colors::red;
   p.color.a = 0.5;
   pile->loco.rectangle.push_back(&pile->cids[1], p);
   p.position = 0;
-  p.position = fan::vec3(400, 400, 1);
+  p.position = fan::vec3(0, 0, 1);
   p.color = fan::colors::blue;
   p.color.a = 0.5;
   pile->loco.rectangle.push_back(&pile->cids[0], p);

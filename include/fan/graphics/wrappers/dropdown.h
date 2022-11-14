@@ -97,7 +97,7 @@ struct dropdown_t {
 			}
 
 			auto loco = get_loco();
-			auto click_position = loco->button.get_button(mb.cid, &loco_t::button_t::instance_t::position);
+			auto click_position = loco->button.get_button(mb.cid, &loco_t::button_t::vi_t::position);
 
 			uint32_t id = get_i(nr);
 
