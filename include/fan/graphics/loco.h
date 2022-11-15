@@ -10,6 +10,10 @@ struct loco_t;
 
   // automatically gets necessary macros for shapes
 
+#if defined(loco_sprite)
+  #define loco_texture_pack
+#endif
+
   #if defined(loco_text_box)
       #define loco_rectangle
       #define loco_letter
@@ -279,9 +283,13 @@ public:
 
   image_t unloaded_image;
 
-  #if defined(loco_sprite)
+  #if defined(loco_texture_pack)
+    #include _FAN_PATH(graphics/opengl/texture_pack.h)
+  #endif
+
+  #if defined(loco_tp)
     #if defined(loco_opengl)
-      #include _FAN_PATH(graphics/opengl/texture_pack.h)
+      #include _FAN_PATH(tp/tp.h)
     #endif
   #endif
 
@@ -391,7 +399,7 @@ public:
     fan::window_t* window;
   #endif
   #ifndef loco_context
-    fan::context_t* context;
+    fan::graphics::context_t* context;
   #endif
   };
 
@@ -616,9 +624,12 @@ public:
     #else
       window(p.window),
     #endif
+    #if defined(loco_context)
     context(get_window()),
+    #endif
     unloaded_image(this, fan::webp::image_info_t{(void*)pixel_data, 1})
   {
+    #if defined(loco_window)
     get_window()->add_buttons_callback([this](const mouse_buttons_cb_data_t& d) {
       fan::vec2 window_size = get_window()->get_size();
       feed_mouse_button(d.button, d.state, get_mouse_position());
@@ -635,7 +646,7 @@ public:
     get_window()->add_text_callback([&](const fan::window_t::text_cb_data_t& d) {
       feed_text(d.character);
     });
-
+    #endif
     #if defined(loco_opengl)
       fan::print("RENDERER BACKEND: OPENGL");
     #elif defined(loco_vulkan)
@@ -712,7 +723,7 @@ public:
 
       wglMakeCurrent(get_window()->m_hdc, get_window()->m_context);
     #elif defined(fan_platform_unix)
-      opengl.internal.glXMakeCurrent(fan::sys::m_display, get_window()->m_window_handle, get_window()->m_context);
+      get_context()->opengl.internal.glXMakeCurrent(fan::sys::m_display, get_window()->m_window_handle, get_window()->m_context);
     #endif
   }
 
