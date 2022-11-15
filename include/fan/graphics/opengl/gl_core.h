@@ -511,7 +511,6 @@ inline void fan::opengl::context_t::set_vsync(fan::window_t* window, bool flag)
 inline void fan::opengl::context_t::set_current(fan::window_t* window)
 {
   #ifdef fan_platform_windows
-    SwapBuffers(window->m_hdc);
     wglMakeCurrent(window->m_hdc, window->m_context);
   #elif defined(fan_platform_unix)
     opengl.internal.glXMakeCurrent(fan::sys::m_display, window->m_window_handle, window->m_context);

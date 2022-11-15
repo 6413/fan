@@ -15,7 +15,6 @@
 constexpr uint32_t count = 1;
 
 struct pile_t {
-
   static constexpr fan::vec2 ortho_x = fan::vec2(-1, 1);
   static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
 
@@ -43,7 +42,7 @@ struct pile_t {
 int main() {
 
   pile_t* pile = new pile_t;
-
+  pile->loco.get_context()->set_current(pile->loco.get_window());
   loco_t::yuv420p_t::properties_t p;
 
   p.size = fan::vec2(1, 1);
@@ -64,6 +63,7 @@ int main() {
 
   //fan::print(y);
   pile->loco.set_vsync(false);
+
 
   pile->loco.loop([&] {
     pile->loco.get_fps();

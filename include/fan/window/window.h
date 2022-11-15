@@ -406,6 +406,7 @@ namespace fan {
 
 		bool focused() const;
 
+		void destroy_window_internal();
 		void destroy_window();
 
 		uint16_t get_current_key() const;

@@ -6,7 +6,6 @@
 #include _FAN_PATH(types/vector.h)
 #include _FAN_PATH(types/memory.h)
 
-#include <assert.h>
 #include <any>
 
 #if defined(fan_platform_windows)
@@ -146,7 +145,9 @@ namespace fan {
         input.type = INPUT_MOUSE;
         input.mi.dwFlags = get_key(key, state);
 
-        assert(SendInput(1, &input, sizeof(input)) == 1);
+        if (SendInput(1, &input, sizeof(input)) != 1) {
+          fan::throw_error("");
+        }
       }
 
       inline static void send_keyboard_event(uint16_t key, fan::keyboard_state state) {
@@ -161,7 +162,9 @@ namespace fan {
 
         input.ki.dwFlags = (state == fan::keyboard_state::press ? 0 : KEYEVENTF_KEYUP);
 
-        assert(SendInput(1, &input, sizeof(input)) == 1);
+        if (SendInput(1, &input, sizeof(input)) != 1) {
+          fan::throw_error("");
+        }
       }
 
       static void send_string(const std::string& str, uint32_t delay_between) {

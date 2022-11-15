@@ -622,6 +622,17 @@ fan::window_t::window_t(const fan::vec2i& window_size, const fan::string& name, 
     fan::window_t::flag_values::m_size_mode = fan::window_t::mode::full_screen;
   }
 
+  m_buttons_callback.Open();
+  m_keys_callback.Open();
+	m_key_callback.Open();
+	m_text_callback.Open();
+	m_move_callback.Open();
+	m_resize_callback.Open();
+	m_close_callback.Open();
+	m_mouse_position_callback.Open();
+
+  window_id_storage.open();
+
   initialize_window(name, window_size, flags);
 
   this->calculate_delta_time();
@@ -642,8 +653,7 @@ bool fan::window_t::focused() const
 
 }
 
-void fan::window_t::destroy_window()
-{
+void fan::window_t::destroy_window_internal(){
   fan::erase_window_id(this->m_window_handle);
 
   #if defined(fan_platform_windows)
@@ -659,16 +669,11 @@ void fan::window_t::destroy_window()
   PostQuitMessage(0);
 
   #if fan_renderer == fan_renderer_opengl
-  wglMakeCurrent(m_hdc, 0);
+    wglMakeCurrent(m_hdc, 0);
   #endif
 
   ReleaseDC(m_window_handle, m_hdc);
   DestroyWindow(m_window_handle);
-
-  #if fan_debug >= fan_debug_low
-  m_hdc = 0;
-  m_window_handle = 0;
-  #endif
 
   #elif defined(fan_platform_unix)
 
@@ -689,6 +694,11 @@ void fan::window_t::destroy_window()
   #endif
 
   #endif
+}
+
+void fan::window_t::destroy_window()
+{
+  destroy_window_internal();
 
   m_buttons_callback.Close();
   m_keys_callback.Close();
@@ -1101,17 +1111,6 @@ static bool isExtensionSupported(const char* extList, const char* extension) {
 
 void fan::window_t::initialize_window(const fan::string& name, const fan::vec2i& window_size, uint64_t flags)
 {
-  m_buttons_callback.Open();
-  m_keys_callback.Open();
-	m_key_callback.Open();
-	m_text_callback.Open();
-	m_move_callback.Open();
-	m_resize_callback.Open();
-	m_close_callback.Open();
-	m_mouse_position_callback.Open();
-
-  window_id_storage.open();
-
   #ifdef fan_platform_windows
 
   auto instance = GetModuleHandle(NULL);
@@ -1451,7 +1450,7 @@ uint32_t fan::window_t::handle_events() {
 
   MSG msg{};
 
-  while (PeekMessageW(&msg, 0, 0, 0, PM_REMOVE))
+  while (PeekMessageW(&msg, m_window_handle, 0, 0, PM_REMOVE))
   {
     switch (msg.message) {
       case WM_SYSKEYDOWN:
