@@ -12,7 +12,14 @@
 #include <fan/types/vector.h>
 #include <fan/math/math.h>
 
+struct b_t {
+
+};
+
+struct a_t {
+  a_t(b_t ){}
+};
 
 int main() {
-  fan::print(fan::vec2(-6.12, 3.39).length());
+  a_t x{0};
 }

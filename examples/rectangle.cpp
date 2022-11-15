@@ -5,7 +5,7 @@
 #ifndef FAN_INCLUDE_PATH
   #define FAN_INCLUDE_PATH C:/libs/fan/include
 #endif
-#define fan_debug 3
+#define fan_debug 0
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
 #define loco_vulkan
@@ -21,12 +21,12 @@
 //#define loco_sprite
 #include _FAN_PATH(graphics/loco.h)
 
-constexpr uint32_t count = 1.0e+1;
+constexpr uint32_t count = 50000;
 
 struct pile_t {
 
-  static constexpr fan::vec2 ortho_x = fan::vec2(-1, 1);
-  static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
+  static constexpr fan::vec2 ortho_x = fan::vec2(0, 1920);
+  static constexpr fan::vec2 ortho_y = fan::vec2(0, 1080);
 
   pile_t() {
     loco.open_matrices(
@@ -55,22 +55,26 @@ int main() {
   p.matrices = &pile->matrices;
   p.viewport = &pile->viewport;
 
-  p.size = fan::vec2(0.1, 0.1);
+  p.size = fan::vec2(1, 1);
 
-  p.position = fan::vec3(-0.5, -0.5, 0);
+  //p.position = fan::vec3(-0.5, -0.5, 0);
   p.color = fan::colors::red;
   p.color.a = 0.5;
-  pile->loco.rectangle.push_back(&pile->cids[1], p);
-  p.position = 0;
-  p.position = fan::vec3(0, 0, 1);
-  p.color = fan::colors::blue;
-  p.color.a = 0.5;
-  pile->loco.rectangle.push_back(&pile->cids[0], p);
+  for (uint32_t i = 0; i < count; i++) {
+    p.position = fan::random::vec2(0, 1920);
+    pile->loco.rectangle.push_back(&pile->cids[i], p);
+  }
 
   pile->loco.set_vsync(false);
   
   pile->loco.loop([&] {
-
+    pile->loco.get_fps();
+    for (uint32_t i = 0; i < count; i++) {
+//      p.col = fan::vec2(i % 1920, (f32_t)i / 1080);
+      pile->loco.rectangle.set(&pile->cids[i], &loco_t::rectangle_t::vi_t::color, fan::random::color());
+      pile->loco.rectangle.set(&pile->cids[i], &loco_t::rectangle_t::vi_t::position, fan::random::vec2(0, 1920));
+  //    pile->loco.rectangle.push_back(&pile->cids[i], p);
+    }
   });
 
   return 0;

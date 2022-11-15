@@ -2,11 +2,11 @@
   #define loco_opengl
 #endif
 
+struct loco_t;
+
 #include _FAN_PATH(graphics/graphics.h)
 #include _FAN_PATH(time/timer.h)
 #include _FAN_PATH(font.h)
-
-struct loco_t;
 
   // automatically gets necessary macros for shapes
 
@@ -278,6 +278,12 @@ public:
   uint32_t matrices_index = 0;
 
   image_t unloaded_image;
+
+  #if defined(loco_sprite)
+    #if defined(loco_opengl)
+      #include _FAN_PATH(graphics/opengl/texture_pack.h)
+    #endif
+  #endif
 
 #ifdef loco_vulkan
   struct descriptor_pool_t {
@@ -606,7 +612,7 @@ public:
 
   loco_t(const properties_t& p = properties_t()) :
     #ifdef loco_window
-      window(fan::vec2(800, 800)),
+      window(fan::vec2(1920, 1080)),
     #else
       window(p.window),
     #endif
@@ -698,6 +704,18 @@ public:
     #endif
   }
 
+  void prepare_thread() {
+    #ifdef fan_platform_windows
+      get_window()->destroy_window_internal();
+      get_window()->initialize_window("", 800, 0);
+
+
+      wglMakeCurrent(get_window()->m_hdc, get_window()->m_context);
+    #elif defined(fan_platform_unix)
+      opengl.internal.glXMakeCurrent(fan::sys::m_display, get_window()->m_window_handle, get_window()->m_context);
+    #endif
+  }
+
   bool window_open(uint32_t event) {
     return event != fan::window_t::events::close;
   }
@@ -763,12 +781,6 @@ loco_t::image_list_NodeReference_t::image_list_NodeReference_t(loco_t::image_t* 
 loco_t::matrices_list_NodeReference_t::matrices_list_NodeReference_t(loco_t::matrices_t* matrices) {
   NRI = matrices->matrices_reference.NRI;
 }
-
-#if defined(loco_sprite)
-  #if defined(loco_opengl)
-    #include _FAN_PATH(graphics/opengl/texture_pack.h)
-  #endif
-#endif
 
 #undef loco_rectangle
 #undef loco_letter
