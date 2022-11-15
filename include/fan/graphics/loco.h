@@ -216,7 +216,7 @@ public:
       #if defined (loco_opengl)
         y.y,
         y.x,
-        -1,
+        -0xffffff,
         0xffffff
       #elif defined(loco_vulkan)
         // znear & zfar is actually flipped for vulkan (camera somehow flipped)
@@ -620,7 +620,7 @@ public:
 
   loco_t(const properties_t& p = properties_t()) :
     #ifdef loco_window
-      window(fan::vec2(1920, 1080)),
+      window(fan::vec2(800, 800)),
     #else
       window(p.window),
     #endif
