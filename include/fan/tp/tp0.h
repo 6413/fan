@@ -421,7 +421,7 @@ struct texture_packe0 {
     return image_info;
   }
 
-  bool qti(const fan::string& name, loco_t::ti_t* ti) {
+  bool qti(const fan::string& name, ti_t* ti) {
     //std::find_if(texture_list[0].begin(), texture_list[texture_list.size()].end(),
     //  [](const texture_t& a, const texture_t& b) {
     //  return a.hash == b.hash;
