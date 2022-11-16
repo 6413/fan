@@ -68,13 +68,17 @@ struct texturepack {
 				&image_info.size.y
 			);
 			data_index += size;
+			//#if defined(loco_vulkan)
+			//	fan::throw_error("only implemented for opengl, bcause of visual output type");
+			//#endif
 			uint32_t visual_output = *(uint32_t*)&data[data_index];
 			data_index += sizeof(uint32_t);
 			uint32_t filter = *(uint32_t*)&data[data_index];
 			data_index += sizeof(uint32_t);
 			loco_t::image_t::load_properties_t lp;
-			lp.visual_output = visual_output;
-			lp.filter = filter;
+			// can be undefined behaviour with vulkan
+			lp.visual_output = (decltype(lp.visual_output))visual_output;
+			lp.filter = (decltype(lp.filter))filter;
 			pixel_data_list[i].image.load(loco, image_info, lp);
 			pixel_data_list[i].size = image_info.size;
 			WebPFree(image_info.data);

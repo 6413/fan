@@ -1,6 +1,22 @@
   struct image_t {
-    struct load_properties_t {
 
+    struct load_properties_defaults {
+      static constexpr VkSamplerAddressMode visual_output = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+      //static constexpr uint32_t internal_format = fan::opengl::GL_RGBA;
+      //static constexpr uint32_t format = fan::opengl::GL_RGBA;
+      //static constexpr uint32_t type = fan::opengl::GL_UNSIGNED_BYTE;
+      static constexpr VkFilter filter = VK_FILTER_NEAREST;
+    };
+
+    struct load_properties_t {
+      constexpr load_properties_t() noexcept {}
+      //constexpr load_properties_t(auto a, auto b, auto c, auto d, auto e)
+        //: visual_output(a), internal_format(b), format(c), type(d), filter(e) {}
+      VkSamplerAddressMode visual_output = load_properties_defaults::visual_output;
+      //uintptr_t           internal_format = load_properties_defaults::internal_format;
+      //uintptr_t           format = load_properties_defaults::format;
+      //uintptr_t           type = load_properties_defaults::type;
+      VkFilter           filter = load_properties_defaults::filter;
     };
 
     image_t() = default;
@@ -95,11 +111,11 @@
 
       VkSamplerCreateInfo samplerInfo{};
       samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-      samplerInfo.magFilter = VK_FILTER_LINEAR;
-      samplerInfo.minFilter = VK_FILTER_LINEAR;
-      samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-      samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-      samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+      samplerInfo.magFilter = lp.filter;
+      samplerInfo.minFilter = lp.filter;
+      samplerInfo.addressModeU = lp.visual_output;
+      samplerInfo.addressModeV = lp.visual_output;
+      samplerInfo.addressModeW = lp.visual_output;
       samplerInfo.anisotropyEnable = VK_TRUE;
       samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
       samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
@@ -163,6 +179,7 @@
         context, 
         imageSize, 
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
+        // VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT 
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
         stagingBuffer, 
         stagingBufferMemory

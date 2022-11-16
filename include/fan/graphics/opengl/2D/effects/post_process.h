@@ -10,7 +10,7 @@ struct post_process_t {
 		struct mip_t {
 			fan::vec2 size;
 			fan::vec2i int_size;
-			fan::opengl::image_t image;
+			loco_t::image_t image;
 		};
 
 		post_process_t* get_post_process() {
@@ -115,7 +115,7 @@ void renderQuad()
 				mip.size = mip_size;
 				mip.int_size = mip_int_size;
 
-				fan::opengl::image_t::load_properties_t lp;
+				loco_t::image_t::load_properties_t lp;
 				lp.internal_format = fan::opengl::GL_R11F_G11F_B10F;
 				lp.format = fan::opengl::GL_RGB;
 				lp.type = fan::opengl::GL_FLOAT;
@@ -124,15 +124,15 @@ void renderQuad()
 				fan::webp::image_info_t ii;
 				ii.data = nullptr;
 				ii.size = mip_size;
-				mip.image.load(loco->get_context(), ii, lp);
+				mip.image.load(loco, ii, lp);
 				mips.push_back(mip);
 			}
 
 			loco->get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
-			mips[0].image.bind_texture(loco->get_context());
+			mips[0].image.bind_texture(loco);
 			framebuffer.bind_to_texture(
 				loco->get_context(), 
-				*mips[0].image.get_texture(loco->get_context()),
+				*mips[0].image.get_texture(loco),
 				fan::opengl::GL_COLOR_ATTACHMENT0
 			);
 
@@ -146,7 +146,7 @@ void renderQuad()
 			framebuffer.unbind(loco->get_context());
 		}
 
-		void draw_downsamples(fan::opengl::image_t* image) {
+		void draw_downsamples(loco_t::image_t* image) {
 			auto loco = get_loco();
 			loco->get_context()->set_depth_test(false);
 
@@ -158,20 +158,20 @@ void renderQuad()
 			shader_downsample.set_vec2(loco->get_context(), "resolution", window_size);
 			
 			loco->get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
-			image->bind_texture(loco->get_context());
+			image->bind_texture(loco);
 
 			for (uint32_t i = 0; i < mips.size(); i++) {
 				mip_t mip = mips[i];
 				loco->get_context()->opengl.glViewport(0, 0, mip.size.x, mip.size.y);
 				framebuffer.bind_to_texture(
 					loco->get_context(), 
-					*mip.image.get_texture(loco->get_context()), 
+					*mip.image.get_texture(loco), 
 					fan::opengl::GL_COLOR_ATTACHMENT0
 				);
 
 				renderQuad();
 
-				mip.image.bind_texture(loco->get_context());
+				mip.image.bind_texture(loco);
 			}
 		}
 		void draw_upsamples(f32_t filter_radius) {
@@ -194,14 +194,14 @@ void renderQuad()
 
 				// Bind viewport and texture from where to read
 				loco->get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
-				mip.image.bind_texture(loco->get_context());
+				mip.image.bind_texture(loco);
 
 				// Set framebuffer render target (we write to this texture)
 				loco->get_context()->opengl.glViewport(0, 0, next_mip.size.x, next_mip.size.y);
 
 				fan::opengl::core::framebuffer_t::bind_to_texture(
 					loco->get_context(),
-					*next_mip.image.get_texture(loco->get_context()),
+					*next_mip.image.get_texture(loco),
 					fan::opengl::GL_COLOR_ATTACHMENT0
 				);
 				// Render screen-filled quad of resolution of current mip
@@ -211,7 +211,7 @@ void renderQuad()
 			loco->get_context()->opengl.call(loco->get_context()->opengl.glDisable, fan::opengl::GL_BLEND);
 		}
 
-		void draw(fan::opengl::image_t* color_texture, f32_t filter_radius) {
+		void draw(loco_t::image_t* color_texture, f32_t filter_radius) {
 			auto loco = get_loco();
 
 			framebuffer.bind(loco->get_context());
@@ -238,7 +238,7 @@ void renderQuad()
 	bool open(const fan::opengl::core::renderbuffer_t::properties_t& p) {
 		auto loco = get_loco();
 
-		fan::opengl::image_t::load_properties_t lp;
+		loco_t::image_t::load_properties_t lp;
 		lp.internal_format = fan::opengl::GL_RGBA16F;
 		lp.format = fan::opengl::GL_RGBA;
 		lp.type = fan::opengl::GL_FLOAT;
@@ -252,21 +252,21 @@ void renderQuad()
 		ii.data = nullptr;
 		ii.size = loco->get_window()->get_size();
 
-		color_buffers[0].load(loco->get_context(), ii, lp);
+		color_buffers[0].load(loco, ii, lp);
 
-		color_buffers[0].bind_texture(loco->get_context());
+		color_buffers[0].bind_texture(loco);
 		fan::opengl::core::framebuffer_t::bind_to_texture(
 			loco->get_context(),
-			*color_buffers[0].get_texture(loco->get_context()),
+			*color_buffers[0].get_texture(loco),
 			fan::opengl::GL_COLOR_ATTACHMENT0
 		);
 
-		color_buffers[1].load(loco->get_context(), ii, lp);
+		color_buffers[1].load(loco, ii, lp);
 
-		color_buffers[1].bind_texture(loco->get_context());
+		color_buffers[1].bind_texture(loco);
 		fan::opengl::core::framebuffer_t::bind_to_texture(
 			loco->get_context(),
-			*color_buffers[1].get_texture(loco->get_context()),
+			*color_buffers[1].get_texture(loco),
 			fan::opengl::GL_COLOR_ATTACHMENT1
 		);
 
@@ -346,10 +346,10 @@ void renderQuad()
 		bloom.shader_bloom.set_float(loco->get_context(), "bloom", bloomamount);
 
 		loco->get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
-		color_buffers[0].bind_texture(loco->get_context());
+		color_buffers[0].bind_texture(loco);
 
 		loco->get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
-		bloom.mips[0].image.bind_texture(loco->get_context());
+		bloom.mips[0].image.bind_texture(loco);
 
 		bloom.renderQuad();
 
@@ -361,7 +361,7 @@ void renderQuad()
 	fan::opengl::core::framebuffer_t hdr_fbo;
 	fan::opengl::core::renderbuffer_t rbo;
 
-	fan::opengl::image_t color_buffers[2];
+	loco_t::image_t color_buffers[2];
 
 	uint32_t draw_nodereference;
 
