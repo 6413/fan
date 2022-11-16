@@ -6,8 +6,6 @@
 #define fan_debug 0
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
-#include _FAN_PATH(graphics/graphics.h)
-
 #define loco_window
 #define loco_context
 
@@ -23,9 +21,7 @@ struct pile_t {
 	static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
 
 	void open() {
-		loco.open(loco_t::properties_t());
-		fan::graphics::open_matrices(
-			loco.get_context(),
+		loco.open_matrices(
 			&matrices,
 			ortho_x,
 			ortho_y
@@ -51,9 +47,9 @@ struct pile_t {
 	}
 
 	loco_t loco;
-	fan::opengl::matrices_t matrices;
-	fan::opengl::viewport_t viewport;
-	fan::opengl::cid_t cids[count];
+	loco_t::matrices_t matrices;
+	fan::graphics::viewport_t viewport;
+	fan::graphics::cid_t cids[count];
 };
 
 int main() {
@@ -64,20 +60,20 @@ int main() {
 	loco_t::sprite_t::properties_t p;
 
 	//p.block_properties.
-	p.get_matrices() = &pile->matrices;
-	p.get_viewport() = &pile->viewport;
+	p.matrices = &pile->matrices;
+	p.viewport = &pile->viewport;
 
-	fan::opengl::image_t image;
-	fan::opengl::image_t::load_properties_t lp;
+	loco_t::image_t image;
+	loco_t::image_t::load_properties_t lp;
 	lp.filter = fan::opengl::GL_LINEAR;
-	image.load(pile->loco.get_context(), "images/test.webp");
-	p.get_image() = &image;
+	image.load(&pile->loco, "images/planet.webp");
+	p.image = &image;
 	p.size = fan::cast<f32_t>(image.size) / pile->loco.get_window()->get_size();
 	p.position = 0;
 	p.position.z = 0;
 	pile->loco.sprite.push_back(&pile->cids[0], p);
 
-	pile->loco.post_process.push(&pile->viewport, &pile->matrices);
+	//pile->loco.post_process.push(&pile->viewport, &pile->matrices);
 
 	pile->loco.set_vsync(false);
 
