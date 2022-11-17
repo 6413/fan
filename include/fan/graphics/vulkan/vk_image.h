@@ -170,8 +170,6 @@
       size = image_info.size;
 
       auto context = loco->get_context();
-      VkBuffer stagingBuffer;
-      VkDeviceMemory stagingBufferMemory;
 
       VkDeviceSize imageSize = image_info.size.multiply() * 4;
 
@@ -195,9 +193,6 @@
       transitionImageLayout(loco, node.image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
       copyBufferToImage(loco, stagingBuffer, node.image, image_info.size);
       transitionImageLayout(loco, node.image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-      vkDestroyBuffer(context->device, stagingBuffer, nullptr);
-      vkFreeMemory(context->device, stagingBufferMemory, nullptr);
 
       return 0;
     }
@@ -227,8 +222,64 @@
       return ret;
     }
 
+    void reload_pixels(loco_t* loco, const fan::webp::image_info_t& image_info) {
+      auto context = loco->get_context();
+      void* data;
+      vkMapMemory(context->device, stagingBufferMemory, 0, size.multiply() * 4, 0, &data);
+      memcpy(data, image_info.data, size.multiply() * 4);
+      vkUnmapMemory(context->device, stagingBufferMemory);
+      auto& node = loco->image_list[texture_reference];
+      transitionImageLayout(loco, node.image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+      copyBufferToImage(loco, stagingBuffer, node.image, image_info.size);
+      transitionImageLayout(loco, node.image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    }
+
+    //void reload(loco_t* loco, const fan::string& path, const load_properties_t& p = load_properties_t()) {
+    //  fan::webp::image_info_t image_info;
+    //  if (fan::webp::load(path, &image_info)) {
+    //    return true;
+    //  }
+
+    //  size = image_info.size;
+
+    //  auto context = loco->get_context();
+    //  VkBuffer stagingBuffer;
+    //  VkDeviceMemory stagingBufferMemory;
+
+    //  VkDeviceSize imageSize = image_info.size.multiply() * 4;
+
+    //  fan::vulkan::core::createBuffer(
+    //    context, 
+    //    imageSize, 
+    //    VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
+    //    // VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT 
+    //    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
+    //    stagingBuffer, 
+    //    stagingBufferMemory
+    //  );
+
+    //  void* data;
+    //  vkMapMemory(context->device, stagingBufferMemory, 0, imageSize, 0, &data);
+    //  memcpy(data, image_info.data, imageSize);
+    //  vkUnmapMemory(context->device, stagingBufferMemory);
+
+    //  auto node = create_texture(loco, image_info.size, p);
+
+    //  transitionImageLayout(loco, node.image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    //  copyBufferToImage(loco, stagingBuffer, node.image, image_info.size);
+    //  transitionImageLayout(loco, node.image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+    //  vkDestroyBuffer(context->device, stagingBuffer, nullptr);
+    //  vkFreeMemory(context->device, stagingBufferMemory, nullptr);
+
+    //  fan::webp::free_image(image_info.data);
+    //}
+
     void unload(loco_t* loco) {
       erase_texture(loco);
+      auto context = loco->get_context();
+      vkDestroyBuffer(context->device, stagingBuffer, nullptr);
+      vkFreeMemory(context->device, stagingBufferMemory, nullptr);
     }
 
     static void createImage(loco_t* loco, const fan::vec2ui& image_size, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) {
@@ -290,4 +341,6 @@
 
     fan::vec2ui size;
     image_list_NodeReference_t texture_reference;
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
   };

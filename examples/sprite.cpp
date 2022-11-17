@@ -5,7 +5,7 @@
 #ifndef FAN_INCLUDE_PATH
   #define FAN_INCLUDE_PATH C:/libs/fan/include
 #endif
-#define fan_debug 0
+#define fan_debug 3
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
 #define loco_vulkan
@@ -72,7 +72,7 @@ int main() {
   image2.load(&pile->loco, "images/asteroid.webp");
   //p.image = &image2;
   for (uint32_t i = 0; i < 2; i++) {
-    p.image = fan::random::value_i64(0, 1) & 1 ? &image2 : &image;
+    p.image = &image;
     fan::print((uint32_t)p.image.NRI);
     p.position = fan::vec3(fan::random::vec2(-1, 1), i);
     pile->loco.sprite.push_back(&pile->cid[i], p);
@@ -97,10 +97,15 @@ int main() {
   //  pile->loco.sprite.erase(&pile->cid[i]);
   //}
   pile->loco.set_vsync(false);
-
+  uint8_t* ptr = new uint8_t[640 * 640 * 4];
   pile->loco.loop([&] {
-
-    pile->loco.get_fps();
+    //image2.unload(&pile->loco);
+    //image2.load(&pile->loco, "images/asteroid.webp");
+    fan::webp::image_info_t ii;
+    ii.data = ptr;
+    ii.size = fan::vec2(640, 640);
+    image2.reload_pixels(&pile->loco, ii);
+    pile->loco.get_fps(); 
   });
 
   return 0;
