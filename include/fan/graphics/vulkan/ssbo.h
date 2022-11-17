@@ -4,7 +4,7 @@ namespace fan {
 	namespace vulkan {
 		namespace core {
 
-			// ram instance vram instance
+			// vram instance ram instance
 			template <typename vi_t, typename ri_t, uint32_t max_instance_size, uint32_t descriptor_count>
 			struct ssbo_t	 {
 
@@ -23,6 +23,7 @@ namespace fan {
 				#define BLL_set_type_node uint16_t
 				#define BLL_set_Link 1
 				#define BLL_set_MultipleType_LinkIndex 1
+				static constexpr auto multiple_type_link_index = BLL_set_MultipleType_LinkIndex;
 				#define BLL_set_AreWeInsideStruct 1
 				#define BLL_set_Overload_Declare \
 					vi_t &get_vi(instance_list_NodeReference_t nr, uint32_t i) { \
@@ -135,7 +136,27 @@ namespace fan {
 					return nr;
 				}
 
-				void copy_instance(fan::vulkan::context_t* context, memory_write_queue_t* write_queue, nr_t nr, instance_id_t i, auto member, auto value) {
+				void copy_instance(
+					fan::vulkan::context_t* context, 
+					memory_write_queue_t* write_queue, 
+					nr_t src_block_nr, 
+					instance_id_t src_instance_id, 
+					nr_t dst_block_nr, 
+					instance_id_t dst_instance_id
+				) {
+					instance_list.get_vi(dst_block_nr, dst_instance_id) = 
+						instance_list.get_vi(src_block_nr, src_instance_id);
+
+					instance_list.get_ri(dst_block_nr, dst_instance_id) = 
+						instance_list.get_ri(src_block_nr, src_instance_id);
+					common.edit(
+						context,
+						write_queue,
+						{ dst_block_nr, dst_instance_id }
+					);
+				}
+				
+				void copy_instance(fan::vulkan::context_t* context, memory_write_queue_t* write_queue, nr_t nr, instance_id_t i, auto vi_t::*member, auto value) {
 					instance_list.get_vi(nr, i).*member = value;
 					common.edit(
 						context,

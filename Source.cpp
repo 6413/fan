@@ -12,14 +12,56 @@
 #include <fan/types/vector.h>
 #include <fan/math/math.h>
 
-struct b_t {
-
-};
+//struct st_t{
+//  int m_x;
+//  void f(int x){
+//    m_x = x;
+//    if(m_x != x){
+//      fan::throw_error("a");
+//    }
+//  }
+//};
+//
+//std::atomic<st_t> st;
+//
+//void t0(){
+//  while(1){
+//    st.load().f(5);
+//  }
+//}
+//void t1(){
+//  while(1){
+//    st.load().f(6);
+//  }
+//}
+//#include <thread>
+//int main(){
+//  std::thread tt0(t0);
+//  std::thread tt1(t1);
+//  tt0.detach();
+//  tt1.join();
+//
+//  return 0;
+//}
 
 struct a_t {
-  a_t(b_t ){}
+  void f() {
+
+  }
+};
+struct b_t {
+  void f() {
+
+  }
+};
+struct c_t : a_t, b_t {
+  void f() {
+    a_t::f();
+    b_t::f();
+  }
 };
 
 int main() {
-  a_t x{0};
+  c_t c;
+  c.f();
 }

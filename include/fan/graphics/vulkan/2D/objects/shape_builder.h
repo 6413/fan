@@ -166,69 +166,67 @@ void sb_push_back(fan::graphics::cid_t* cid, properties_t& p) {
   bm_list[bmID].total_instances++;
 }
 void sb_erase(fan::graphics::cid_t* cid) {
-  //loco_t* loco = get_loco();
+  loco_t* loco = get_loco();
 
-  //auto bm_id = *(shape_bm_NodeReference_t*)&cid->bm_id;
-  //auto bm_node = bm_list.GetNodeByReference(bm_id);
+  auto bm_id = *(shape_bm_NodeReference_t*)&cid->bm_id;
+  auto bm = &bm_list[bm_id];
 
-  //auto block_id = *(bll_block_NodeReference_t*)&cid->block_id;
+  auto block_id = *(ssbo_t::nr_t*)&cid->block_id;
   //auto block_node = blocks.GetNodeByReference(*(bll_block_NodeReference_t*)&cid->block_id);
   //auto block = &block_node->data.block;
 
-  //auto& last_block_id = bm_node->data.last_block;
+  auto& last_block_id = bm->last_ssbo_nr;
   //auto* last_block_node = blocks.GetNodeByReference(last_block_id);
   //block_t* last_block = &last_block_node->data.block;
-  //uint32_t last_instance_id = (bm_node->data.total_instances - 1) % max_instance_size;
+  uint32_t last_instance_id = (bm->total_instances - 1) % max_instance_size;
 
-  ////// erase descriptorset from block
-  ////assert(0);
-  //if (block_id == last_block_id && cid->instance_id == max_instance_size - 1) {
-  //  block->ssbo_index -= 1;
-  //  if (block->ssbo_index == 0) {
-  //    auto lpnr = block_node->PrevNodeReference;
+  // erase descriptorset from block maybe not
+  assert(0);
+  if (block_id == last_block_id && cid->instance_id == last_instance_id) {
+    bm->total_instances--;
+    if (bm->total_instances % max_instance_size == max_instance_size - 1) {
+			auto prev_block_id = m_ssbo.instance_list.GetNodeByReference(
+				block_id,
+				m_ssbo.multiple_type_link_index
+			)->PrevNodeReference;
+      m_ssbo.instance_list.unlrec(block_id);
+      if (bm->first_ssbo_nr == bm->last_ssbo_nr) {
+				loco_bdbt_Key_t<sizeof(bm_properties_t::key_t) * 8> k;
+				typename decltype(k)::KeySize_t ki;
+				k.Remove(&loco->bdbt, &bm->bm_properties.key, root);
+				bm_list.Recycle(bm_id);
+      }
+      else {
+        bm->last_ssbo_nr = prev_block_id;
+      }
+    }
+    return;
+  }
 
-  //    block->close(loco);
-  //    blocks.Unlink(block_id);
-  //    blocks.Recycle(block_id);
-  //    if (last_block_id == bm_node->data.first_block) {
-  //      loco_bdbt_Key_t<sizeof(instance_properties_t::key_t) * 8> k;
-  //      typename decltype(k)::KeySize_t ki;
-  //      k.Remove(&loco->bdbt, &bm_node->data.instance_properties.key, root);
-  //      bm_list.Recycle(bm_id);
-  //    }
-  //    else {
-  //      last_block_id = lpnr;
-  //    }
-  //  }
-  //  return;
-  //}
-  //instance_t* last_instance_data = m_ssbo.get_instance(loco->get_context(), last_instance_id);
-  //const uint32_t instance_id = (bm_list[bm_id].total_instances - 1) % max_instance_size;
+  m_ssbo.copy_instance(
+    loco->get_context(),
+    &loco->m_write_queue,
+    last_block_id,
+    last_instance_id,
+    (ssbo_t::nr_t)cid->block_id,
+    cid->instance_id
+  );
 
-  //m_ssbo.copy_instance(
-  //  loco->get_context(),
-  //  &loco->m_write_queue,
-  //  instance_id + cid->instance_id,
-  //  last_instance_data
-  //);
+  bm->total_instances--;
 
-  //last_block->ssbo_index -= 1;
+  auto& ri = m_ssbo.instance_list.get_ri((ssbo_t::nr_t)cid->block_id, cid->instance_id);
+  ri.cid->block_id = block_id.NRI;
+  ri.cid->instance_id = cid->instance_id;
 
-  //block->p[instance_id] = last_block->p[last_instance_id];
+  if (bm->total_instances % max_instance_size == max_instance_size - 1) {
+    auto prev_block_id = m_ssbo.instance_list.GetNodeByReference(
+			last_block_id,
+			m_ssbo.multiple_type_link_index
+		)->PrevNodeReference;
+    m_ssbo.instance_list.unlrec(last_block_id);
 
-  //block->cid[instance_id] = last_block->cid[last_instance_id];
-  //block->cid[instance_id]->block_id = block_id.NRI;
-  //block->cid[instance_id]->instance_id = instance_id;
-
-  //if (last_block->ssbo_index == 0) {
-  //  auto lpnr = last_block_node->PrevNodeReference;
-
-  //  last_block->close(loco);
-  //  blocks.Unlink(last_block_id);
-  //  blocks.Recycle(last_block_id);
-
-  //  bm_node->data.last_block = lpnr;
-  //}
+    bm->last_ssbo_nr = prev_block_id;
+  }
 }
 
 vi_t& sb_get_vi(fan::graphics::cid_t* cid) {
