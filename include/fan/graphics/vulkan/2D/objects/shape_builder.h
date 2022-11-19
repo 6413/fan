@@ -12,6 +12,42 @@ sb_get_loco
 #define sb_vertex_count 6
 #endif
 
+
+protected:
+
+using ssbo_t = fan::vulkan::core::ssbo_t<vi_t, ri_t, max_instance_size, vulkan_buffer_count>;
+
+loco_bdbt_NodeReference_t root;
+
+#define BLL_set_CPP_ConstructDestruct
+#define BLL_set_CPP_Node_ConstructDestruct
+#define BLL_set_AreWeInsideStruct 1
+#define BLL_set_prefix shape_bm
+#define BLL_set_BaseLibrary 1
+#define BLL_set_Link 0
+#define BLL_set_type_node uint16_t
+#define BLL_set_node_data \
+  ssbo_t::nr_t first_ssbo_nr; \
+  ssbo_t::nr_t last_ssbo_nr; \
+  bm_properties_t bm_properties; \
+  uint32_t total_instances;
+#include _FAN_PATH(BLL/BLL.h)
+
+shape_bm_t bm_list;
+
+public:
+
+struct cid_t {
+  union {
+    struct {
+			shape_bm_NodeReference_t bm_id;
+			ssbo_t::nr_t block_id;
+			uint8_t instance_id;
+    };
+    uint64_t filler;
+  };
+};
+
 void sb_open() {
   loco_t* loco = get_loco();
   auto context = loco->get_context();
@@ -118,8 +154,10 @@ void sb_close() {
 struct block_t;
 
 // STRUCT MANUAL PADDING IS REQUIRED (4 byte)
-void sb_push_back(fan::graphics::cid_t* cid, properties_t& p) {
+void sb_push_back(fan::vulkan::cid_t* fcid, properties_t p) {
+  auto cid = (cid_t*)fcid;
   loco_t* loco = get_loco();
+  p.position.z -= loco_t::matrices_t::znearfar - 1;
 
   loco_bdbt_NodeReference_t nr = root;
   shape_bm_NodeReference_t& bmID = *(shape_bm_NodeReference_t*)&nr;
@@ -155,9 +193,8 @@ void sb_push_back(fan::graphics::cid_t* cid, properties_t& p) {
   m_ssbo.copy_instance(loco->get_context(), &loco->m_write_queue, ssbo_nr, instance_id, (vi_t*)&p);
 
   ri.cid = cid;
-
-  cid->bm_id = ((shape_bm_NodeReference_t*)&nr)->NRI;
-  cid->block_id = bm_list[bmID].last_ssbo_nr.NRI;
+  cid->bm_id = *((shape_bm_NodeReference_t*)&nr);
+  cid->block_id = bm_list[bmID].last_ssbo_nr;
   cid->instance_id = instance_id;
 
   // do we need it
@@ -165,7 +202,8 @@ void sb_push_back(fan::graphics::cid_t* cid, properties_t& p) {
 
   bm_list[bmID].total_instances++;
 }
-void sb_erase(fan::graphics::cid_t* cid) {
+void sb_erase(fan::graphics::cid_t* fcid) {
+  auto cid = (cid_t*)fcid;
   loco_t* loco = get_loco();
 
   auto bm_id = *(shape_bm_NodeReference_t*)&cid->bm_id;
@@ -180,8 +218,6 @@ void sb_erase(fan::graphics::cid_t* cid) {
   //block_t* last_block = &last_block_node->data.block;
   uint32_t last_instance_id = (bm->total_instances - 1) % max_instance_size;
 
-  // erase descriptorset from block maybe not
-  assert(0);
   if (block_id == last_block_id && cid->instance_id == last_instance_id) {
     bm->total_instances--;
     if (bm->total_instances % max_instance_size == max_instance_size - 1) {
@@ -208,17 +244,11 @@ void sb_erase(fan::graphics::cid_t* cid) {
     &loco->m_write_queue,
     last_block_id,
     last_instance_id,
-    (ssbo_t::nr_t)cid->block_id,
+    cid->block_id,
     cid->instance_id
   );
 
-  bm->total_instances--;
-
-  auto& ri = m_ssbo.instance_list.get_ri((ssbo_t::nr_t)cid->block_id, cid->instance_id);
-  ri.cid->block_id = block_id.NRI;
-  ri.cid->instance_id = cid->instance_id;
-
-  if (bm->total_instances % max_instance_size == max_instance_size - 1) {
+  if (bm->total_instances % max_instance_size == 1) {
     auto prev_block_id = m_ssbo.instance_list.GetNodeByReference(
 			last_block_id,
 			m_ssbo.multiple_type_link_index
@@ -227,9 +257,16 @@ void sb_erase(fan::graphics::cid_t* cid) {
 
     bm->last_ssbo_nr = prev_block_id;
   }
+
+  bm->total_instances--;
+
+  auto& ri = m_ssbo.instance_list.get_ri(cid->block_id, cid->instance_id);
+  ri.cid->block_id = block_id;
+  ri.cid->instance_id = cid->instance_id;
 }
 
-vi_t& sb_get_vi(fan::graphics::cid_t* cid) {
+vi_t& sb_get_vi(fan::graphics::cid_t* fcid) {
+  auto cid = (cid_t*)fcid;
   return m_ssbo.instance_list.get_vi(ssbo_t::nr_t{cid->block_id}, cid->instance_id);
 }
 template <typename T>
@@ -237,11 +274,13 @@ void sb_set_vi(fan::graphics::cid_t* cid, auto T::* member, auto value) {
   sb_get_vi(cid).*member = value;
 }
 
-ri_t& sb_get_ri(fan::graphics::cid_t* cid) {
+ri_t& sb_get_ri(fan::graphics::cid_t* fcid) {
+  auto cid = (cid_t*)fcid;
   return m_ssbo.instance_list.get_ri(ssbo_t::nr_t{cid->block_id}, cid->instance_id);
 }
 template <typename T>
-void sb_set_ri(fan::graphics::cid_t* cid, auto T::* member, auto value) {
+void sb_set_ri(fan::graphics::cid_t* fcid, auto T::* member, auto value) {
+  auto cid = (cid_t*)fcid;
   sb_get_ri(cid).*member = value;
 }
 
@@ -318,44 +357,21 @@ void sb_draw(uint32_t draw_mode = 0) {
 }
 
 template <uint32_t i>
-void sb_set_key(fan::graphics::cid_t* cid, auto value) {
+void sb_set_key(fan::graphics::cid_t* fcid, auto value) {
+  auto cid = (cid_t*)fcid;
   loco_t* loco = get_loco();
   properties_t p;
   *(vi_t*)&p = m_ssbo.instance_list.get_vi(ssbo_t::nr_t{cid->block_id}, cid->instance_id);
   *(ri_t*)&p = m_ssbo.instance_list.get_ri(ssbo_t::nr_t{cid->block_id}, cid->instance_id);
   *p.key.get_value<i>() = value;
-  sb_erase(cid);
-  sb_push_back(cid, p);
+  sb_erase(fcid);
+  sb_push_back(fcid, p);
 }
-
-using ssbo_t = fan::vulkan::core::ssbo_t<vi_t, ri_t, max_instance_size, vulkan_buffer_count>;
 
 ssbo_t m_ssbo;
 fan::graphics::shader_t m_shader;
 
 fan::vulkan::pipeline_t m_pipeline;
-
-protected:
-
-  loco_bdbt_NodeReference_t root;
-
-  #define BLL_set_CPP_ConstructDestruct
-  #define BLL_set_CPP_Node_ConstructDestruct
-  #define BLL_set_AreWeInsideStruct 1
-  #define BLL_set_prefix shape_bm
-  #define BLL_set_BaseLibrary 1
-  #define BLL_set_Link 0
-  #define BLL_set_type_node uint16_t
-  #define BLL_set_node_data \
-    ssbo_t::nr_t first_ssbo_nr; \
-    ssbo_t::nr_t last_ssbo_nr; \
-    bm_properties_t bm_properties; \
-    uint32_t total_instances;
-  #include _FAN_PATH(BLL/BLL.h)
-
-  shape_bm_t bm_list;
-
-public:
 
 #undef sb_shader_vertex_path
 #undef sb_shader_fragment_path

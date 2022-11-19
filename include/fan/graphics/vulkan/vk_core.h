@@ -105,10 +105,8 @@ namespace fan {
 		struct shader_t;
 
 		struct cid_t {
-			uint16_t bm_id;
-			uint16_t block_id;
-			// can overflow with big ssbo block
-			uint8_t instance_id;
+		private:
+			uint64_t filler;
 		};
 
 		struct pipeline_t {

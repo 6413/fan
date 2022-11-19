@@ -21,7 +21,7 @@ layout (std140) uniform instance_t {
 void main() {
 	uint id = uint(gl_VertexID);
 
-  gl_Position = view * projection * vec4(((id & 1u) == 0u) ? get_instance().src.xy : get_instance().dst.xy, get_instance().src.z, 1);
+  gl_Position = projection * view * vec4(((id & 1u) == 0u) ? get_instance().src.xy : get_instance().dst.xy, get_instance().src.z, 1);
 	instance_color = get_instance().color;
 }
 )"

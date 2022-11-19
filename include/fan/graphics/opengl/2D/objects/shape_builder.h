@@ -48,13 +48,16 @@ void sb_close() {
 struct block_t;
 
 // STRUCT MANUAL PADDING IS REQUIRED (32 BIT)
-block_t* sb_push_back(fan::opengl::cid_t* cid, properties_t& p) {
+block_t* sb_push_back(fan::opengl::cid_t* cid, properties_t p) {
   loco_t* loco = get_loco();
  
   loco_bdbt_NodeReference_t nr = root;
   loco_bdbt_Key_t<sizeof(bm_properties_t::key_t) * 8> k;
   typename decltype(k)::KeySize_t ki;
   k.Query(&loco->bdbt, &p.key, &ki, &nr);
+
+  p.position.z -= loco_t::matrices_t::znearfar / 2 - 1;
+
   if (ki != sizeof(bm_properties_t::key_t) * 8) {
     auto lnr = bm_list.NewNode();
     auto ln = &bm_list[lnr];

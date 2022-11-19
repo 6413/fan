@@ -520,6 +520,7 @@ namespace fan {
       PFNGLALPHAFUNCPROC glAlphaFunc;
       PFNGLTEXPARAMETERFPROC glTexParameterf;
       PFNGLDRAWBUFFERSPROC glDrawBuffers;
+      
     };
 
   }

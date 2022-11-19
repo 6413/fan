@@ -44,24 +44,42 @@
 //  return 0;
 //}
 
-struct a_t {
-  void f() {
-
-  }
-};
 struct b_t {
-  void f() {
+  int y;
+};
 
+struct st_t {
+  int x;
+};
+
+struct type_t {
+  b_t& b;
+  type_t(st_t* bc) : b(*(b_t*)bc) {
+    
+  }
+  b_t* operator->() {
+    return &b;
   }
 };
-struct c_t : a_t, b_t {
-  void f() {
-    a_t::f();
-    b_t::f();
-  }
+
+void f(type_t b) {
+  fan::print(&b->y);
+}
+
+
+struct a_t {
+  cx_t t;
+  //void f() {
+  //  t.y = x;
+  //}
+  struct cx_t {
+
+  };
 };
 
 int main() {
-  c_t c;
-  c.f();
+  st_t t;
+  t.x = 5;
+  fan::print(&t.x);
+  f(&t);
 }
