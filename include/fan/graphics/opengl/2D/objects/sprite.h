@@ -11,8 +11,10 @@ struct sb_sprite_name {
     f32_t angle = 0;
     fan::vec2 tc_position = 0;
     fan::vec2 tc_size = 1;
+    //fan::vec2 pad2;
+    //fan::vec2 pad3;
   };
-  
+
   struct bm_properties_t {
     using parsed_masterpiece_t = fan::masterpiece_t<
       loco_t::textureid_t<0>,
@@ -22,8 +24,10 @@ struct sb_sprite_name {
     struct key_t : parsed_masterpiece_t {}key;
   };
   
+  struct cid_t;
+
   struct ri_t : bm_properties_t {
-    fan::graphics::cid_t* cid;
+    cid_t* cid;
   };
 
   #define make_key_value(type, name) \
@@ -92,7 +96,7 @@ struct sb_sprite_name {
       #define sb_shader_vertex_path _FAN_PATH(graphics/glsl/opengl/2D/objects/sprite.vs)
     #endif
     #ifndef sb_shader_fragment_path
-      #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/objects/sprite.fs)
+      #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/objects/rectangle.fs)
     #endif
   #elif defined(loco_vulkan)
     #define vulkan_buffer_count 3

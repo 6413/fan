@@ -5,10 +5,10 @@
 #ifndef FAN_INCLUDE_PATH
   #define FAN_INCLUDE_PATH C:/libs/fan/include
 #endif
-#define fan_debug 3
+#define fan_debug 0
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
-#define loco_vulkan
+//#define loco_vulkan
 
 #define loco_window
 #define loco_context
@@ -58,7 +58,7 @@ int main() {
 
   loco_t::sprite_t::properties_t p;
 
-  p.size = fan::vec2(0.2, 0.2);
+  p.size = fan::vec2(2);
   p.matrices = &pile->matrices;
   p.viewport = &pile->viewport;
 
@@ -71,13 +71,16 @@ int main() {
   loco_t::image_t image2;
   image2.load(&pile->loco, "images/asteroid.webp");
   //p.image = &image2;
-  for (uint32_t i = 0; i < 2; i++) {
+  auto count = 200 - 1;
+  p.image = &image;
+  for (uint32_t i = 0; i < count; i++) {
     p.image = &image;
-    fan::print((uint32_t)p.image.NRI);
     p.position = fan::vec3(fan::random::vec2(-1, 1), i);
     pile->loco.sprite.push_back(&pile->cid[i], p);
   }
-
+  //p.image = &image;
+  //p.position = fan::vec3(fan::random::vec2(-1, 1), 0);
+  //pile->loco.sprite.push_back(&pile->cid[0], p);
   //p.position = fan::vec3(-0.1, -0.1, 0);
 
   ////pile->loco.sprite.push_back(&pile->cid[1], p);
@@ -93,18 +96,26 @@ int main() {
   //p.position = fan::vec2(0.3, 0.3);
   //pile->loco.sprite.push_back(&pile->cid[2], p);
 
-  //for (uint32_t i = 0; i < 100000; i++) {
-  //  pile->loco.sprite.erase(&pile->cid[i]);
-  //}
+  /*for (uint32_t i = 0; i < 1; i++) {
+    
+  }*/
   pile->loco.set_vsync(false);
-  uint8_t* ptr = new uint8_t[640 * 640 * 4];
+  //uint8_t* ptr = new uint8_t[640 * 640 * 4];
+  uint32_t x = 0;
+
+  fan::time::clock cc;
   pile->loco.loop([&] {
+    //fan::print(cc.elapsed());
+    //cc.start();
+    //pile->loco.get_context()->set_depth_test(true);
+   // if (x < count) 
+    //pile->loco.sprite.erase(&pile->cid[x++]);
     //image2.unload(&pile->loco);
     //image2.load(&pile->loco, "images/asteroid.webp");
-    fan::webp::image_info_t ii;
-    ii.data = ptr;
-    ii.size = fan::vec2(640, 640);
-    image2.reload_pixels(&pile->loco, ii);
+    //fan::webp::image_info_t ii;
+    //ii.data = ptr;
+    //ii.size = fan::vec2(640, 640);
+    //image2.reload_pixels(&pile->loco, ii);
     pile->loco.get_fps(); 
   });
 

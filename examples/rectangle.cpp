@@ -8,7 +8,7 @@
 #define fan_debug 0
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
-#define loco_vulkan
+//#define loco_vulkan
 
 //#define loco_wboit
 
@@ -21,7 +21,7 @@
 //#define loco_sprite
 #include _FAN_PATH(graphics/loco.h)
 
-constexpr uint32_t count = 50000;
+constexpr uint32_t count = 10000;
 
 struct pile_t {
 
@@ -55,16 +55,17 @@ int main() {
   p.matrices = &pile->matrices;
   p.viewport = &pile->viewport;
 
-  p.size = fan::vec2(0.2);
+  p.size = fan::vec2(2);
 
   //p.position = fan::vec3(-0.5, -0.5, 0);
   p.color = fan::colors::red;
-  p.color.a = 0.5;
-  p.position = fan::vec3(0, 0, 1);
-  pile->loco.rectangle.push_back(&pile->cids[0], p);
-  p.color = fan::colors::blue;
-  p.position = fan::vec3(-0.1, -0.1, 0);
-  pile->loco.rectangle.push_back(&pile->cids[1], p);
+  //p.color.a = 0.5;
+
+  for (uint32_t i = 0; i < count; i++) {
+    p.position = fan::vec3(fan::random::vec2(-1, 1), i);
+    pile->loco.rectangle.push_back(&pile->cids[i], p);
+  }
+
   //for (uint32_t i = 0; i < count; i++) {
   //  p.position = fan::random::vec2(0, 1920);
   //  pile->loco.rectangle.push_back(&pile->cids[i], p);

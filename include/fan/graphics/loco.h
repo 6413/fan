@@ -177,6 +177,8 @@ public:
   #include _FAN_PATH(BLL/BLL.h)
 
   struct matrices_t {
+    static constexpr f32_t znearfar = 0xffff;
+
     void open(loco_t* loco) {
       auto* context = loco->get_context();
       m_view = fan::mat4(1);
@@ -216,15 +218,15 @@ public:
       #if defined (loco_opengl)
         y.y,
         y.x,
-        -0xffffff,
-        0xffffff
+        0.1,
+        znearfar / 2
       #elif defined(loco_vulkan)
         // znear & zfar is actually flipped for vulkan (camera somehow flipped)
         // znear & zfar needs to be same maybe xd
         y.x,
         y.y,
-        -0xffffff,
-        0xffffff
+        znearfar,
+        0.1
       #endif
 
 
@@ -325,7 +327,7 @@ public:
 
       VkDescriptorPoolCreateInfo pool_info{};
       pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-      pool_info.poolSizeCount = std::size(pool_sizes) * 10;
+      pool_info.poolSizeCount = std::size(pool_sizes);
       pool_info.pPoolSizes = pool_sizes;
       pool_info.maxSets = fan::vulkan::MAX_FRAMES_IN_FLIGHT * 10;
 
