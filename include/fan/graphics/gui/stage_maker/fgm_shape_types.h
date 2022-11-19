@@ -180,7 +180,7 @@ struct builder_button_t {
 	void open_properties(fan::opengl::cid_t* instance) {
 		auto pile = get_pile();
 
-		if (!pile->loco.menu_maker.instances.IsNodeReferenceInvalid(pile->stage_maker.fgm.properties_nr)) {
+		if (!pile->loco.menu_maker.instances.inri(pile->stage_maker.fgm.properties_nr)) {
 			pile->stage_maker.fgm.menu.erase(pile->stage_maker.fgm.properties_nr);
 		}
 
@@ -193,8 +193,8 @@ struct builder_button_t {
 		auto nr = pile->stage_maker.fgm.menu.push_menu(menup);
 		pile->stage_maker.fgm.properties_nr = nr;
 		menu_t::properties_t p;
-		p.text = "";
-		p.text_value = "add cbs";
+		p.text = L"";
+		p.text_value = L"add cbs";
 		p.mouse_button_cb = [this, instance](const loco_t::mouse_button_data_t& mb) -> int {
 			return 0;
 		};
@@ -291,7 +291,7 @@ struct builder_button_t {
 					ps += (ii_d.position - pile->stage_maker.fgm.resize_offset) / 2;
 				}
 				if (rs.x == minimum_rectangle_size && rs.y == minimum_rectangle_size) {
-					ps = pile->loco.button.get_button(&instance->cid, &loco_t::button_t::instance_t::position);
+					ps = pile->loco.button.get_button(&instance->cid, &loco_t::button_t::vi_t::position);
 				}
 
 				pile->loco.button.set_size(&instance->cid, rs);
@@ -380,7 +380,7 @@ struct builder_button_t {
 		uint16_t shape;
 		uint8_t holding_special_key = 0;
 		f32_t z;
-		fan::string text;
+		fan::wstring text;
 		fan_2d::graphics::gui::theme_t theme;
 	};
 
@@ -401,7 +401,7 @@ struct sprite_t {
 	void open_properties(fan::opengl::cid_t* instance) {
 		auto pile = get_pile();
 
-		if (!pile->loco.menu_maker.instances.IsNodeReferenceInvalid(pile->stage_maker.fgm.properties_nr)) {
+		if (!pile->loco.menu_maker.instances.inri(pile->stage_maker.fgm.properties_nr)) {
 			pile->stage_maker.fgm.menu.erase(pile->stage_maker.fgm.properties_nr);
 		}
 
@@ -414,8 +414,8 @@ struct sprite_t {
 		auto nr = pile->stage_maker.fgm.menu.push_menu(menup);
 		pile->stage_maker.fgm.properties_nr = nr;
 		menu_t::properties_t p;
-		p.text = "";
-		p.text_value = "add cbs";
+		p.text = L"";
+		p.text_value = L"add cbs";
 		p.mouse_button_cb = [this, instance](const loco_t::mouse_button_data_t& mb) -> int {
 			use_key_lambda(fan::mouse_left, fan::mouse_state::release);
 
@@ -478,10 +478,10 @@ struct sprite_t {
 			pile->stage_maker.fgm.action_flag |= action::move;
 			auto viewport = pile->loco.sprite.get_viewport(&instance->cid);
 			pile->stage_maker.fgm.click_position = ii_d.position;
-			pile->stage_maker.fgm.move_offset = fan::vec2(pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::instance_t::position)) - pile->stage_maker.fgm.click_position;
+			pile->stage_maker.fgm.move_offset = fan::vec2(pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::position)) - pile->stage_maker.fgm.click_position;
 			pile->stage_maker.fgm.resize_offset = pile->stage_maker.fgm.click_position;
-			fan::vec3 rp = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::instance_t::position);
-			fan::vec3 rs = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::instance_t::size);
+			fan::vec3 rp = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::position);
+			fan::vec3 rs = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::size);
 			pile->stage_maker.fgm.resize_side = fan_2d::collision::rectangle::get_side_collision(ii_d.position, rp, rs);
 			pile->stage_maker.fgm.sprite.open_properties(&instance->cid);
 			return 0;
@@ -494,8 +494,8 @@ struct sprite_t {
 			pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi_var_name), pile_t, loco_var_name);
 			instance_t* instance = pile->stage_maker.fgm.sprite.instances[i];
 			if (instance->holding_special_key) {
-				fan::vec3 ps = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::instance_t::position);
-				fan::vec3 rs = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::instance_t::size);
+				fan::vec3 ps = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::position);
+				fan::vec3 rs = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::size);
 
 				static constexpr f32_t minimum_rectangle_size = 0.03;
 				static constexpr fan::vec2i multiplier[] = { {-1, -1}, {1, -1}, {1, 1}, {-1, 1} };
@@ -528,7 +528,7 @@ struct sprite_t {
 					ps += (ii_d.position - pile->stage_maker.fgm.resize_offset) / 2;
 				}
 				if (rs.x == minimum_rectangle_size && rs.y == minimum_rectangle_size) {
-					ps = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::instance_t::position);
+					ps = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::position);
 				}
 
 				pile->stage_maker.fgm.sprite.set_size(i, rs);
@@ -575,8 +575,8 @@ struct sprite_t {
 		vfip.shape_type = loco_t::vfi_t::shape_t::rectangle;
 		vfip.shape.rectangle.position = p.position;
 		vfip.shape.rectangle.size = p.size;
-		vfip.shape.rectangle.matrices = p.get_matrices();
-		vfip.shape.rectangle.viewport = p.get_viewport();
+		vfip.shape.rectangle.matrices = p.matrices;
+		vfip.shape.rectangle.viewport = p.viewport;
 		instances[i]->vfi_id = pile->loco.push_back_input_hitbox(vfip);
 		pile->loco.sprite.push_back(&instances[i]->cid, p);
 		//auto builder_cid = &instance[i]->cid;
@@ -606,12 +606,12 @@ struct sprite_t {
 
 	void set_position(uint32_t i, const fan::vec3& position) {
 		auto pile = get_pile();
-		pile->loco.sprite.set(&instances[i]->cid, &loco_t::sprite_t::instance_t::position, position);
+		pile->loco.sprite.set(&instances[i]->cid, &loco_t::sprite_t::vi_t::position, position);
 		pile->loco.vfi.set_rectangle(instances[i]->vfi_id, &loco_t::vfi_t::shape_data_rectangle_t::position, position);
 	}
 	void set_size(uint32_t i, const fan::vec2& size) {
 		auto pile = get_pile();
-		pile->loco.sprite.set(&instances[i]->cid, &loco_t::sprite_t::instance_t::size, size);
+		pile->loco.sprite.set(&instances[i]->cid, &loco_t::sprite_t::vi_t::size, size);
 		pile->loco.vfi.set_rectangle(instances[i]->vfi_id, &loco_t::vfi_t::shape_data_rectangle_t::size, size);
 	}
 
