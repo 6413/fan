@@ -255,24 +255,24 @@ struct button_t {
     );
   }
 
- /* loco_t::matrices_t* get_matrices(fan::graphics::cid_t* cid) {
-    auto ri = get_ri(cid);
-    loco_t* loco = get_loco();
-    return loco->matrices_list[*block->p[cid->instance_id].key.get_value<0>()].matrices_id;
-  }
-  void set_matrices(fan::graphics::cid_t* cid, loco_t::matrices_list_NodeReference_t n) {
-    sb_set_key<bm_properties_t::key_t::get_index_with_type<decltype(n)>()>(cid, n);
-    loco_t* loco = get_loco();
-    auto block = sb_get_block(cid);
-    loco->text.set_matrices(block->p[cid->instance_id].text_id, n);
-  }
+  //loco_t::matrices_t* get_matrices(fan::graphics::cid_t* cid) {
+  //  auto ri = get_ri(cid);
+  //  loco_t* loco = get_loco();
+  //  return loco->matrices_list[*block->p[cid->instance_id].key.get_value<0>()].matrices_id;
+  //}
+  //void set_matrices(fan::graphics::cid_t* cid, loco_t::matrices_list_NodeReference_t n) {
+  //  sb_set_key<bm_properties_t::key_t::get_index_with_type<decltype(n)>()>(cid, n);
+  //  loco_t* loco = get_loco();
+  //  auto block = sb_get_block(cid);
+  //  loco->text.set_matrices(block->p[cid->instance_id].text_id, n);
+  //}
 
-  fan::graphics::viewport_t* get_viewport(fan::graphics::cid_t* cid) {
-    loco_t* loco = get_loco();
-    auto block = sb_get_block(cid);
-    return loco->get_context()->viewport_list[*block->p[cid->instance_id].key.get_value<1>()].viewport_id;
-  }
-  void set_viewport(fan::graphics::cid_t* cid, fan::graphics::viewport_list_NodeReference_t n) {
+  //fan::graphics::viewport_t* get_viewport(fan::graphics::cid_t* cid) {
+  //  loco_t* loco = get_loco();
+  //  auto block = sb_get_block(cid);
+  //  return loco->get_context()->viewport_list[*block->p[cid->instance_id].key.get_value<1>()].viewport_id;
+  //}
+  /*void set_viewport(fan::graphics::cid_t* cid, fan::graphics::viewport_list_NodeReference_t n) {
     loco_t* loco = get_loco();
     sb_set_key<instance_properties_t::key_t::get_index_with_type<decltype(n)>()>(cid, n);
     auto block = sb_get_block(cid);

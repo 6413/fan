@@ -345,7 +345,7 @@ static void lib_close(stage_common_t* sc) {
 		};
 
 		loco->menu_maker.push_back(instances[stage_t::stage_options].menu_id, p);
-		p.text = "Gui stage";
+		p.text = L"Gui stage";
 		p.mouse_button_cb = [](const loco_t::mouse_button_data_t& mb) {
 
 			use_key_lambda(fan::mouse_left, fan::mouse_state::release);
@@ -364,7 +364,7 @@ static void lib_close(stage_common_t* sc) {
 			return 1;
 		};
 		loco->menu_maker.push_back(instances[stage_t::stage_options].menu_id, p);
-		p.text = "Function stage";
+		p.text = L"Function stage";
 
 		p.mouse_button_cb = [](const loco_t::mouse_button_data_t& mb) -> int {
 
@@ -430,8 +430,7 @@ struct stage {
 
 		fan::vec2 window_size = loco->get_window()->get_size();
 		fan::vec2 ratio = window_size / window_size.max();
-		fan::graphics::open_matrices(
-			loco->get_context(),
+		loco->open_matrices(
 			&matrices,
 			fan::vec2(-1, 1) * ratio.x,
 			fan::vec2(-1, 1) * ratio.y
