@@ -26,8 +26,10 @@ struct button_t {
     struct key_t : parsed_masterpiece_t {}key;
   };
 
+  struct cid_t;
+
   struct ri_t : bm_properties_t {
-    fan::graphics::cid_t* cid;
+    cid_t* cid;
     uint8_t selected = 0;
     fan::graphics::theme_list_NodeReference_t theme;
     uint32_t text_id;

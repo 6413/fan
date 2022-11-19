@@ -22,8 +22,10 @@ struct letter_t {
     struct key_t : parsed_masterpiece_t {}key;
   };
 
+  struct cid_t;
+
   struct ri_t : bm_properties_t {
-    fan::graphics::cid_t* cid;
+    cid_t* cid;
     f32_t font_size;
     uint16_t letter_id;
   };

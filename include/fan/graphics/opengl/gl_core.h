@@ -457,11 +457,10 @@ inline fan::opengl::context_t::context_t(fan::window_t* window, const properties
   //opengl.call(opengl.glBlendFunc, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
   set_depth_test(true);
-  //opengl.glDepthMask(GL_TRUE);
 
   // opengl.call(opengl.glFrontFace, GL_CCW);
-  opengl.glEnable(GL_CULL_FACE);;
-  opengl.glCullFace(GL_FRONT);
+  //opengl.glEnable(GL_CULL_FACE);;
+  //opengl.glCullFace(GL_FRONT);
   #if fan_debug >= fan_debug_high
   context_t::set_error_callback();
   #endif

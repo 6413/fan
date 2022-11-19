@@ -116,7 +116,7 @@ struct sb_menu_maker_type_name {
     while (it != instances.dst) {
       instances.StartSafeNext(it);
       loco->button.erase(&instances[it].cid);
-      instances[it].cid.block_id = fan::uninitialized;
+      ((loco_t::button_t::cid_t*)&instances[it].cid)->block_id.NRI = fan::uninitialized;
       it = instances.EndSafeNext();
     }
     //loco->vfi.erase(empty_click_id);
@@ -229,7 +229,7 @@ struct sb_menu_maker_type_name {
 
   void erase_soft(loco_t* loco, instance_NodeReference_t id) {
     loco->button.erase(&instances[id].cid);
-    instances[id].cid.block_id = fan::uninitialized;
+    ((loco_t::button_t::cid_t*)&instances[id].cid)->block_id.NRI = fan::uninitialized;
   }
   void erase(loco_t* loco, instance_NodeReference_t id) {
     loco->button.erase(&instances[id].cid);
@@ -238,7 +238,7 @@ struct sb_menu_maker_type_name {
   }
 
   bool is_visually_valid(instance_NodeReference_t id) {
-    return instances[id].cid.block_id != (decltype(instances[id].cid.block_id))fan::uninitialized;
+    return ((loco_t::button_t::cid_t*)&instances[id].cid)->block_id != (decltype(((loco_t::button_t::cid_t*)&instances[id].cid)->block_id))fan::uninitialized;
   }
 
   struct global_t : open_properties_t{

@@ -242,10 +242,10 @@ struct builder_button_t {
 			pile->stage_maker.fgm.action_flag |= action::move;
 			auto viewport = pile->loco.button.get_viewport(&instance->cid);
 			pile->stage_maker.fgm.click_position = ii_d.position;
-			pile->stage_maker.fgm.move_offset = fan::vec2(pile->loco.button.get_button(&instance->cid, &loco_t::button_t::instance_t::position)) - pile->stage_maker.fgm.click_position;
+			pile->stage_maker.fgm.move_offset = fan::vec2(pile->loco.button.get_button(&instance->cid, &loco_t::button_t::vi_t::position)) - pile->stage_maker.fgm.click_position;
 			pile->stage_maker.fgm.resize_offset = pile->stage_maker.fgm.click_position;
-			fan::vec3 rp = pile->loco.button.get_button(&instance->cid, &loco_t::button_t::instance_t::position);
-			fan::vec3 rs = pile->loco.button.get_button(&instance->cid, &loco_t::button_t::instance_t::size);
+			fan::vec3 rp = pile->loco.button.get_button(&instance->cid, &loco_t::button_t::vi_t::position);
+			fan::vec3 rs = pile->loco.button.get_button(&instance->cid, &loco_t::button_t::vi_t::size);
 			pile->stage_maker.fgm.resize_side = fan_2d::collision::rectangle::get_side_collision(ii_d.position, rp, rs);
 			pile->stage_maker.fgm.builder_button.open_properties(&instance->cid);
 			return 0;
@@ -257,8 +257,8 @@ struct builder_button_t {
 			pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi_var_name), pile_t, loco_var_name);
 
 			if (instance->holding_special_key) {
-				fan::vec3 ps = pile->loco.button.get_button(&instance->cid, &loco_t::button_t::instance_t::position);
-				fan::vec3 rs = pile->loco.button.get_button(&instance->cid, &loco_t::button_t::instance_t::size);
+				fan::vec3 ps = pile->loco.button.get_button(&instance->cid, &loco_t::button_t::vi_t::position);
+				fan::vec3 rs = pile->loco.button.get_button(&instance->cid, &loco_t::button_t::vi_t::size);
 
 				static constexpr f32_t minimum_rectangle_size = 0.03;
 				static constexpr fan::vec2i multiplier[] = { {-1, -1}, {1, -1}, {1, 1}, {-1, 1} };

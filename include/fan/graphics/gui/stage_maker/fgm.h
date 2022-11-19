@@ -102,13 +102,13 @@ struct fgm_t {
 
 	#include "fgm_resize_cb.h"
 
-	void open_from_stage_maker(const fan::string& stage_name) {
+	void open_from_stage_maker(const fan::wstring& stage_name) {
 
 		properties_nr.NRI = -1;
 
 		line_t::properties_t lp;
-		lp.get_viewport() = &viewport[viewport_area::global];
-		lp.get_matrices() = &matrices[viewport_area::global];
+		lp.viewport = &viewport[viewport_area::global];
+		lp.matrices = &matrices[viewport_area::global];
 		lp.color = fan::colors::white;
 
 		// editor window
@@ -132,7 +132,7 @@ struct fgm_t {
 		auto nr = menu.push_menu(op);
 
 		menu_t::properties_t mp;
-		mp.text = "button";
+		mp.text = L"button";
 		mp.mouse_button_cb = [nr](const loco_t::mouse_button_data_t& ii_d) -> int {
 			pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi), pile_t, loco);
 			if (ii_d.button != fan::mouse_left) {
@@ -143,8 +143,8 @@ struct fgm_t {
 			}
 			pile->stage_maker.fgm.action_flag |= action::move;
 			builder_button_t::properties_t bbp;
-			bbp.get_matrices() = &pile->stage_maker.fgm.matrices[viewport_area::editor];
-			bbp.get_viewport() = &pile->stage_maker.fgm.viewport[viewport_area::editor];
+			bbp.matrices = &pile->stage_maker.fgm.matrices[viewport_area::editor];
+			bbp.viewport = &pile->stage_maker.fgm.viewport[viewport_area::editor];
 			bbp.position = pile->loco.get_mouse_position(
 				pile->stage_maker.fgm.viewport[viewport_area::editor].get_position(),
 				pile->stage_maker.fgm.viewport[viewport_area::editor].get_size()
@@ -153,7 +153,7 @@ struct fgm_t {
 			bbp.size = button_size;
 			//bbp.size = button_size;
 			bbp.theme = &pile->stage_maker.fgm.theme;
-			bbp.text = "button";
+			bbp.text = L"button";
 			bbp.font_size = scale_object_with_viewport(fan::vec2(0.2), &pile->stage_maker.fgm.viewport[viewport_area::types], &pile->stage_maker.fgm.viewport[viewport_area::editor]).x;
 			
 			auto& instance = pile->loco.menu_maker.instances[nr].base.instances[pile->loco.menu_maker.instances[nr].base.instances.GetNodeFirst()];
@@ -198,7 +198,7 @@ struct fgm_t {
 		};
 		menu.push_back(nr, mp);
 
-		mp.text = "sprite";
+		mp.text = L"sprite";
 		mp.mouse_button_cb = [this, nr](const loco_t::mouse_button_data_t& ii_d) -> int {
 			pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi), pile_t, loco);
 			if (ii_d.button != fan::mouse_left) {
@@ -209,8 +209,8 @@ struct fgm_t {
 			}
 			pile->stage_maker.fgm.action_flag |= action::move;
 			sprite_t::properties_t sp;
-			sp.get_matrices() = &pile->stage_maker.fgm.matrices[viewport_area::editor];
-			sp.get_viewport() = &pile->stage_maker.fgm.viewport[viewport_area::editor];
+			sp.matrices = &pile->stage_maker.fgm.matrices[viewport_area::editor];
+			sp.viewport = &pile->stage_maker.fgm.viewport[viewport_area::editor];
 			sp.position = pile->loco.get_mouse_position(
 				pile->stage_maker.fgm.viewport[viewport_area::editor].get_position(),
 				pile->stage_maker.fgm.viewport[viewport_area::editor].get_size()
@@ -218,7 +218,7 @@ struct fgm_t {
 
 			sp.size = button_size;
 			auto pd = texturepack.get_pixel_data(default_texture.pack_id);
-			sp.get_image() = &pd.image;
+			sp.image = &pd.image;
 			sp.tc_position = default_texture.position / pd.size;
 			sp.tc_size = default_texture.size / pd.size;
 
@@ -233,12 +233,12 @@ struct fgm_t {
 		menu.push_back(nr, mp);
 
 		global_button_t::properties_t gbp;
-		gbp.get_matrices() = &matrices[viewport_area::global];
-		gbp.get_viewport() = &viewport[viewport_area::global];
+		gbp.matrices = &matrices[viewport_area::global];
+		gbp.viewport = &viewport[viewport_area::global];
 		gbp.position = fan::vec2(-0.8, matrices[viewport_area::types].coordinates.top * 0.9);
 		gbp.size = button_size / fan::vec2(4, 2);
 		gbp.theme = &theme;
-		gbp.text = "<-";
+		gbp.text = L"<-";
 		gbp.mouse_button_cb = [this](const loco_t::mouse_button_data_t& mb) -> int {
 			use_key_lambda(fan::mouse_left, fan::mouse_state::release);
 
@@ -273,9 +273,9 @@ struct fgm_t {
 		theme = fan_2d::graphics::gui::themes::deep_red();
 		theme.open(loco.get_context());
 
-		texturepack.open_compiled(loco.get_context(), texturepack_name);
+		texturepack.open_compiled(&loco, texturepack_name);
 
-		fan::tp::ti_t ti;
+		loco_t::texturepack::ti_t ti;
 		if (texturepack.qti("test.webp", &ti)) {
 			fan::throw_error("failed to load default texture");
 		}
@@ -290,10 +290,10 @@ struct fgm_t {
 		editor_position = fan::vec2(-properties_line_position.x / 2, 0);
 		editor_size = editor_position.x + 0.9;
 
-		matrices[viewport_area::global].open(loco.get_context());
-		matrices[viewport_area::editor].open(loco.get_context());
-		matrices[viewport_area::types].open(loco.get_context());
-		matrices[viewport_area::properties].open(loco.get_context());
+		matrices[viewport_area::global].open(&loco);
+		matrices[viewport_area::editor].open(&loco);
+		matrices[viewport_area::types].open(&loco);
+		matrices[viewport_area::properties].open(&loco);
 
 		viewport[viewport_area::global].open(loco.get_context());
 		viewport[viewport_area::editor].open(loco.get_context());
@@ -341,7 +341,7 @@ struct fgm_t {
 			auto p = fan::io::file::read_data<fan::vec3>(f, off);
 			auto s = fan::io::file::read_data<fan::vec2>(f, off);
 			auto fs = fan::io::file::read_data<f32_t>(f, off);
-			auto text = fan::io::file::read_data<fan::string>(f, off);
+			auto text = fan::io::file::read_data<fan::wstring>(f, off);
 			fan::io::file::read_data<fan_2d::graphics::gui::theme_t>(f, off);
 			//theme.open(loco->get_context());
 			builder_button_t::properties_t bp;
@@ -350,8 +350,8 @@ struct fgm_t {
 			bp.font_size = fs;
 			bp.text = text;
 			bp.theme = &theme;
-			bp.get_matrices() = &matrices[viewport_area::editor];
-			bp.get_viewport() = &viewport[viewport_area::editor];
+			bp.matrices = &matrices[viewport_area::editor];
+			bp.viewport = &viewport[viewport_area::editor];
 			builder_button.push_back(bp);
 		}
 		instance_count = fan::io::file::read_data<uint32_t>(f, off);
@@ -364,11 +364,11 @@ struct fgm_t {
 			sp.position = p;
 			sp.size = s;
 			auto pd = texturepack.get_pixel_data(default_texture.pack_id);
-			sp.get_image() = &pd.image;
+			sp.image = &pd.image;
 			sp.tc_position = default_texture.position / pd.size;
 			sp.tc_size = default_texture.size / pd.size;
-			sp.get_matrices() = &matrices[viewport_area::editor];
-			sp.get_viewport() = &viewport[viewport_area::editor];
+			sp.matrices = &matrices[viewport_area::editor];
+			sp.viewport = &viewport[viewport_area::editor];
 			sprite.push_back(sp);
 		}
 	}
@@ -381,10 +381,10 @@ struct fgm_t {
 		uint32_t instances_count = builder_button.instance.size();
 		memcpy(&f[0], &instances_count, sizeof(uint32_t));
 		for (auto it : builder_button.instance) {
-			auto p = loco->button.get(&it->cid, &loco_t::button_t::instance_t::position);
-			auto s = loco->button.get(&it->cid, &loco_t::button_t::instance_t::size);
+			auto p = loco->button.get(&it->cid, &loco_t::button_t::vi_t::position);
+			auto s = loco->button.get(&it->cid, &loco_t::button_t::vi_t::size);
 			auto fs = loco->text.get_properties(
-				loco->button.get_instance_properties(&it->cid)->text_id
+				loco->button.get_ri(&it->cid).text_id
 			).font_size;
 			auto text = it->text;
 			auto theme = loco->button.get_theme(&it->cid);
@@ -417,8 +417,8 @@ struct fgm_t {
 		instances_count = sprite.instances.size();
 		memcpy(&f[f.size() - sizeof(uint32_t)], &instances_count, sizeof(uint32_t));
 		for (auto it : sprite.instances) {
-			auto p = loco->sprite.get(&it->cid, &loco_t::sprite_t::instance_t::position);
-			auto s = loco->sprite.get(&it->cid, &loco_t::sprite_t::instance_t::size);
+			auto p = loco->sprite.get(&it->cid, &loco_t::sprite_t::vi_t::position);
+			auto s = loco->sprite.get(&it->cid, &loco_t::sprite_t::vi_t::size);
 			uint64_t text_hash = fan::get_hash("images/test.webp");
 
 			static auto add_to_f = [&f, &it]<typename T>(const T & o) {
@@ -452,7 +452,7 @@ struct fgm_t {
 
 	#include "fgm_shape_types.h"
 
-	fan::opengl::matrices_t matrices[4];
+	loco_t::matrices_t matrices[4];
 	fan::opengl::viewport_t viewport[4];
 
 	fan_2d::graphics::gui::theme_t theme;
@@ -470,7 +470,7 @@ struct fgm_t {
 	fan::vec2 editor_size;
 	fan::vec2 editor_ratio;
 
-	fan::tp::ti_t default_texture;
+	loco_t::texturepack::ti_t default_texture;
 
-	fan::opengl::texturepack texturepack;
+	loco_t::texturepack texturepack;
 }fgm;

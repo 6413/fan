@@ -8,8 +8,6 @@
 
 #define fan_windows_subsystem fan_windows_subsystem_windows
 
-#include _FAN_PATH(graphics/graphics.h)
-
 #define loco_window
 #define loco_context
 
@@ -22,8 +20,7 @@
 
 struct pile_t {
 
-  void open(const char* texturepack_name) {
-    loco.open(loco_t::properties_t());
+  pile_t(const char* texturepack_name) {
     stage_maker.open(texturepack_name);
     /*loco.get_window()->add_resize_callback(this, [](fan::window_t* window, const fan::vec2i& size, void* userptr) {
       fan::vec2 window_size = window->get_size();
@@ -36,8 +33,7 @@ struct pile_t {
       );
     });*/
   }
-  void close() {
-    loco.close();
+  ~pile_t() {
     stage_maker.close();
   }
 
@@ -53,9 +49,7 @@ int main(int argc, char** argv) {
     fan::throw_error("usage: TexturePackCompiled");
   }
 
-  pile_t* pile = new pile_t;
-
-  pile->open(argv[1]);
+  pile_t* pile = new pile_t(argv[1]);
 
   pile->loco.set_vsync(false);
   //pile->loco.get_window()->set_max_fps(5);

@@ -154,10 +154,22 @@ void sb_close() {
 struct block_t;
 
 // STRUCT MANUAL PADDING IS REQUIRED (4 byte)
+template <typename T = void>
 void sb_push_back(fan::vulkan::cid_t* fcid, properties_t p) {
   auto cid = (cid_t*)fcid;
   loco_t* loco = get_loco();
-  p.position.z -= loco_t::matrices_t::znearfar - 1;
+
+  #if defined (loco_line)
+  if constexpr (std::is_same<decltype(p), loco_t::line_t::properties_t>::value) {
+    p.src.z -= loco_t::matrices_t::znearfar - 1;
+    p.dst.z -= loco_t::matrices_t::znearfar - 1;
+  }
+  else {
+    p.position.z -= loco_t::matrices_t::znearfar - 1;
+  }
+  #else
+    p.position.z -= loco_t::matrices_t::znearfar - 1;
+  #endif
 
   loco_bdbt_NodeReference_t nr = root;
   shape_bm_NodeReference_t& bmID = *(shape_bm_NodeReference_t*)&nr;
@@ -289,15 +301,47 @@ void sb_set_ri(fan::graphics::cid_t* fcid, auto T::* member, auto value) {
 //}
 
 template <typename T>
-auto get(fan::graphics::cid_t *cid, auto T::*member) {
+auto get(fan::graphics::cid_t *cid, T vi_t::*member) {
   loco_t* loco = get_loco();
+  if constexpr(std::is_same<T, fan::vec3>::value) {
+    if constexpr (std::is_same<vi_t, loco_t::line_t::vi_t>::value) {
+      if (fan::ofof(member) == fan::ofof(&vi_t::src)) {
+        return sb_get_vi(cid).*member + fan::vec3(0, 0, loco_t::matrices_t::znearfar + 1);
+      }
+      if (fan::ofof(member) == fan::ofof(&vi_t::dst)) {
+        return sb_get_vi(cid).*member + fan::vec3(0, 0, loco_t::matrices_t::znearfar + 1);
+      }
+    }
+    else {
+      if (fan::ofof(member) == fan::ofof(&vi_t::position)) {
+        return sb_get_vi(cid).*member + fan::vec3(0, 0, loco_t::matrices_t::znearfar + 1);
+      }
+    }
+  }
   return sb_get_vi(cid).*member;
 }
 template <typename T, typename T2>
-void set(fan::graphics::cid_t *fcid, auto T::*member, const T2& value) {
+void set(fan::graphics::cid_t *fcid, T vi_t::*member, const T2& value) {
   loco_t* loco = get_loco();
   auto cid = (cid_t*)fcid;
-  m_ssbo.copy_instance(loco->get_context(), &loco->m_write_queue, cid->block_id, cid->instance_id, member, value);
+  if constexpr(std::is_same<T, fan::vec3>::value) {
+    if constexpr (std::is_same<vi_t, loco_t::line_t::vi_t>::value) {
+      if (fan::ofof(member) == fan::ofof(&vi_t::src)) {
+        m_ssbo.copy_instance(loco->get_context(), &loco->m_write_queue, cid->block_id, cid->instance_id, member, value - fan::vec3(0, 0, loco_t::matrices_t::znearfar - 1));
+      }
+      if (fan::ofof(member) == fan::ofof(&vi_t::dst)) {
+        m_ssbo.copy_instance(loco->get_context(), &loco->m_write_queue, cid->block_id, cid->instance_id, member, value - fan::vec3(0, 0, loco_t::matrices_t::znearfar - 1));
+      }
+    }
+    else {
+      if (fan::ofof(member) == fan::ofof(&vi_t::position)) {
+        m_ssbo.copy_instance(loco->get_context(), &loco->m_write_queue, cid->block_id, cid->instance_id, member, value - fan::vec3(0, 0, loco_t::matrices_t::znearfar - 1));
+      }
+    }
+  }
+  else {
+    m_ssbo.copy_instance(loco->get_context(), &loco->m_write_queue, cid->block_id, cid->instance_id, member, value);
+  }
 }
 
 void set_vertex(const fan::string& str) {
