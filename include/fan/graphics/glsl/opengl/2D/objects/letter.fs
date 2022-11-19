@@ -1,7 +1,7 @@
 R"(
 #version 140
 
-out vec4 color;
+out vec4 o_color;
 
 in vec4 text_color;
 in vec2 texture_coordinate;
@@ -22,8 +22,10 @@ void main() {
 
  // vec3 final_color = mix(vec3(0, 0, 0), text_color.rgb, outline_alpha);
 
-  color = vec4(text_color.rgb, alpha);
-
-//  color = vec4(0.5, 0, 0, 1);
+  o_color = vec4(text_color.rgb, alpha);
+  if (o_color.a < 0.1) {
+		discard;
+	}
+//  o_color = vec4(0.5, 0, 0, 1);
 }
 )"

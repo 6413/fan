@@ -20,8 +20,10 @@ struct line_t {
     }key;
   };
 
+  struct cid_t;
+
 	struct ri_t : bm_properties_t {
-		fan::graphics::cid_t* cid;
+		cid_t* cid;
 	};
 
    #define make_key_value(type, name) \

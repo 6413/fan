@@ -233,7 +233,7 @@ static void lib_close(stage_common_t* sc) {
 		//stage_h_str.insert(struct_vector_end, append_vector);
 	};
 
-	fan::string get_selected_name(
+	fan::wstring get_selected_name(
 		pile_t* pile, 
 		loco_t::menu_maker_t::instance_NodeReference_t nr,
 		loco_t::menu_maker_base_t::instance_NodeReference_t id
@@ -244,7 +244,7 @@ static void lib_close(stage_common_t* sc) {
 		return t;
 	}
 
-	fan::string get_selected_name_last(pile_t* pile) {
+	fan::wstring get_selected_name_last(pile_t* pile) {
 		auto nr = pile->loco.menu_maker.instances.GetNodeLast();
 		return get_selected_name(
 			pile,
@@ -264,7 +264,7 @@ static void lib_close(stage_common_t* sc) {
 
 	void open_erase_button(pile_t* pile) {
 		loco_t::menu_maker_t::properties_t p;
-		p.text = "Erase";
+		p.text = L"Erase";
 		p.theme = &erase_theme;
 		p.mouse_button_cb = [this](const loco_t::mouse_button_data_t& mb) -> int {
 
@@ -302,7 +302,7 @@ static void lib_close(stage_common_t* sc) {
 		instances[0].menu_id = loco->menu_maker.push_menu(op);
 
 		loco_t::menu_maker_t::properties_t p;
-		p.text = "Create New Stage";
+		p.text = L"Create New Stage";
 		p.mouse_button_cb = [this, loco](const loco_t::mouse_button_data_t& mb) -> int {
 
 			use_key_lambda(fan::mouse_left, fan::mouse_state::release);
@@ -314,7 +314,7 @@ static void lib_close(stage_common_t* sc) {
 			static auto create_stage = [this, loco]() {
 				loco_t::menu_maker_t::properties_t p;
 				static uint32_t x = 0;
-				p.text = fan::string("stage") + fan::to_string(x++);
+				p.text = fan::wstring(L"stage") + fan::to_wstring(x++);
 				p.mouse_button_cb = [this](const loco_t::mouse_button_data_t& mb) -> int {
 
 					use_key_lambda(fan::mouse_left, fan::mouse_state::release);
@@ -471,7 +471,7 @@ struct stage {
 
 	uint8_t current_stage;
 
-	fan::opengl::matrices_t matrices;
+	loco_t::matrices_t matrices;
 	fan::opengl::viewport_t viewport;
 	fan_2d::graphics::gui::theme_t theme;
 	fan_2d::graphics::gui::theme_t erase_theme;

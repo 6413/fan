@@ -21,7 +21,7 @@
 //#define loco_sprite
 #include _FAN_PATH(graphics/loco.h)
 
-constexpr uint32_t count = 10000;
+constexpr uint32_t count = 51200;
 
 struct pile_t {
 

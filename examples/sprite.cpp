@@ -63,7 +63,7 @@ int main() {
   p.viewport = &pile->viewport;
 
   loco_t::image_t image;
-  image.load(&pile->loco, "images/test.webp");
+  image.load(&pile->loco, "images/t.webp");
   p.image = &image;
   p.position = fan::vec2(0, 0);
   p.position.z = 0;
@@ -71,11 +71,11 @@ int main() {
   loco_t::image_t image2;
   image2.load(&pile->loco, "images/asteroid.webp");
   //p.image = &image2;
-  auto count = 200 - 1;
+  auto count = 256;
   p.image = &image;
-  for (uint32_t i = 0; i < count; i++) {
+  for (uint32_t i = count; i--;) {
     p.image = &image;
-    p.position = fan::vec3(fan::random::vec2(-1, 1), i);
+    p.position = fan::vec3(fan::vec2(0), i);
     pile->loco.sprite.push_back(&pile->cid[i], p);
   }
   //p.image = &image;

@@ -96,7 +96,7 @@ struct sb_sprite_name {
       #define sb_shader_vertex_path _FAN_PATH(graphics/glsl/opengl/2D/objects/sprite.vs)
     #endif
     #ifndef sb_shader_fragment_path
-      #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/objects/rectangle.fs)
+      #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/objects/sprite.fs)
     #endif
   #elif defined(loco_vulkan)
     #define vulkan_buffer_count 3

@@ -12,6 +12,66 @@ sb_get_loco
   #define sb_vertex_count 6
 #endif
 
+struct block_t {
+  void open(loco_t* loco, auto* shape) {
+    uniform_buffer.open(loco->get_context());
+    uniform_buffer.init_uniform_block(loco->get_context(), shape->m_shader.id, "instance_t");
+  }
+  void close(loco_t* loco) {
+    uniform_buffer.close(loco->get_context(), &loco->m_write_queue);
+  }
+
+  fan::opengl::core::uniform_block_t<vi_t, max_instance_size> uniform_buffer;
+  fan::opengl::cid_t* cid[max_instance_size];
+  ri_t p[max_instance_size];
+};
+
+protected:
+
+loco_bdbt_NodeReference_t root;
+
+#define BLL_set_CPP_Node_ConstructDestruct
+#define BLL_set_AreWeInsideStruct 1
+#define BLL_set_prefix bll_block
+#define BLL_set_BaseLibrary 1
+#define BLL_set_Link 1
+#define BLL_set_StoreFormat 1
+//#define BLL_set_StoreFormat1_alloc_open malloc
+//#define BLL_set_StoreFormat1_alloc_close free
+#define BLL_set_type_node uint16_t
+#define BLL_set_node_data \
+    block_t block;
+#include _FAN_PATH(BLL/BLL.h)
+
+bll_block_t blocks;
+
+#define BLL_set_CPP_Node_ConstructDestruct
+#define BLL_set_AreWeInsideStruct 1
+#define BLL_set_prefix shape_bm
+#define BLL_set_BaseLibrary 1
+#define BLL_set_Link 0
+#define BLL_set_type_node uint16_t
+#define BLL_set_node_data \
+    bll_block_NodeReference_t first_block; \
+    bll_block_NodeReference_t last_block; \
+    bm_properties_t instance_properties;
+#include _FAN_PATH(BLL/BLL.h)
+
+shape_bm_t bm_list;
+
+public:
+
+struct cid_t {
+  union {
+    struct {
+			shape_bm_NodeReference_t bm_id;
+			bll_block_NodeReference_t block_id;
+			uint8_t instance_id;
+    };
+    uint64_t filler;
+  };
+};
+
 void sb_open() {
   loco_t* loco = get_loco();
   root = loco_bdbt_NewNode(&loco->bdbt);
@@ -48,6 +108,7 @@ void sb_close() {
 struct block_t;
 
 // STRUCT MANUAL PADDING IS REQUIRED (32 BIT)
+template <typename T = void>
 block_t* sb_push_back(fan::opengl::cid_t* cid, properties_t p) {
   loco_t* loco = get_loco();
  
@@ -56,7 +117,17 @@ block_t* sb_push_back(fan::opengl::cid_t* cid, properties_t p) {
   typename decltype(k)::KeySize_t ki;
   k.Query(&loco->bdbt, &p.key, &ki, &nr);
 
-  p.position.z -= loco_t::matrices_t::znearfar / 2 - 1;
+  #if defined (loco_line)
+  if constexpr (std::is_same<decltype(p), loco_t::line_t::properties_t>::value) {
+    p.src.z -= loco_t::matrices_t::znearfar / 2 - 1;
+    p.dst.z -= loco_t::matrices_t::znearfar / 2 - 1;
+  }
+  else {
+    p.position.z -= loco_t::matrices_t::znearfar / 2 - 1;
+  }
+  #else
+    p.position.z -= loco_t::matrices_t::znearfar / 2 - 1;
+  #endif
 
   if (ki != sizeof(bm_properties_t::key_t) * 8) {
     auto lnr = bm_list.NewNode();
@@ -178,13 +249,45 @@ template <typename T>
 T get(fan::opengl::cid_t *cid, T vi_t::*member) {
   loco_t* loco = get_loco();
   auto block = sb_get_block(cid);
+  if constexpr(std::is_same<T, fan::vec3>::value) {
+     if constexpr (std::is_same<vi_t, loco_t::line_t::vi_t>::value) {
+      if (fan::ofof(member) == fan::ofof(&vi_t::src)) {
+        return block->uniform_buffer.get_instance(loco->get_context(), cid->instance_id)->*member + fan::vec3(0, 0, loco_t::matrices_t::znearfar / 2 + 1);
+      }
+      if (fan::ofof(member) == fan::ofof(&vi_t::dst)) {
+        return block->uniform_buffer.get_instance(loco->get_context(), cid->instance_id)->*member + fan::vec3(0, 0, loco_t::matrices_t::znearfar / 2 + 1);
+      }
+    }
+    else {
+      if (fan::ofof(member) == fan::ofof(&vi_t::position)) {
+        return block->uniform_buffer.get_instance(loco->get_context(), cid->instance_id)->*member + fan::vec3(0, 0, loco_t::matrices_t::znearfar / 2 + 1);
+      }
+    }
+  }
   return block->uniform_buffer.get_instance(loco->get_context(), cid->instance_id)->*member;
 }
 template <typename T, typename T2>
 void set(fan::opengl::cid_t *cid, T vi_t::*member, const T2& value) {
   loco_t* loco = get_loco();
   auto block = sb_get_block(cid);
-  block->uniform_buffer.edit_instance(loco->get_context(), &loco->m_write_queue, cid->instance_id, member, value);
+  if constexpr(std::is_same<T, fan::vec3>::value) {
+    if constexpr (std::is_same<vi_t, loco_t::line_t::vi_t>::value) {
+      if (fan::ofof(member) == fan::ofof(&vi_t::src)) {
+        block->uniform_buffer.edit_instance(loco->get_context(), &loco->m_write_queue, cid->instance_id, member, value - fan::vec3(0, 0, loco_t::matrices_t::znearfar / 2 - 1));
+      }
+      if (fan::ofof(member) == fan::ofof(&vi_t::dst)) {
+        block->uniform_buffer.edit_instance(loco->get_context(), &loco->m_write_queue, cid->instance_id, member, value - fan::vec3(0, 0, loco_t::matrices_t::znearfar / 2 - 1));
+      }
+    }
+    else {
+      if (fan::ofof(member) == fan::ofof(&vi_t::position)) {
+        block->uniform_buffer.edit_instance(loco->get_context(), &loco->m_write_queue, cid->instance_id, member, value - fan::vec3(0, 0, loco_t::matrices_t::znearfar / 2 - 1));
+      }
+    }
+  }
+  else {
+    block->uniform_buffer.edit_instance(loco->get_context(), &loco->m_write_queue, cid->instance_id, member, value);
+  }
   block->uniform_buffer.common.edit(
     loco->get_context(),
     &loco->m_write_queue,
@@ -288,55 +391,6 @@ template <typename T>
 void sb_set_ri(fan::graphics::cid_t* cid, auto T::* member, auto value) {
   sb_get_ri(cid).*member = value;
 }
-
-struct block_t {
-  void open(loco_t* loco, auto* shape) {
-    uniform_buffer.open(loco->get_context());
-    uniform_buffer.init_uniform_block(loco->get_context(), shape->m_shader.id, "instance_t");
-  }
-  void close(loco_t* loco) {
-    uniform_buffer.close(loco->get_context(), &loco->m_write_queue);
-  }
-
-  fan::opengl::core::uniform_block_t<vi_t, max_instance_size> uniform_buffer;
-  fan::opengl::cid_t* cid[max_instance_size];
-  ri_t p[max_instance_size];
-};
-
-protected:
-
-loco_bdbt_NodeReference_t root;
-
-#define BLL_set_CPP_Node_ConstructDestruct
-#define BLL_set_AreWeInsideStruct 1
-#define BLL_set_prefix bll_block
-#define BLL_set_BaseLibrary 1
-#define BLL_set_Link 1
-#define BLL_set_StoreFormat 1
-//#define BLL_set_StoreFormat1_alloc_open malloc
-//#define BLL_set_StoreFormat1_alloc_close free
-#define BLL_set_type_node uint16_t
-#define BLL_set_node_data \
-    block_t block;
-#include _FAN_PATH(BLL/BLL.h)
-
-bll_block_t blocks;
-
-#define BLL_set_CPP_Node_ConstructDestruct
-#define BLL_set_AreWeInsideStruct 1
-#define BLL_set_prefix shape_bm
-#define BLL_set_BaseLibrary 1
-#define BLL_set_Link 0
-#define BLL_set_type_node uint16_t
-#define BLL_set_node_data \
-    bll_block_NodeReference_t first_block; \
-    bll_block_NodeReference_t last_block; \
-    bm_properties_t instance_properties;
-#include _FAN_PATH(BLL/BLL.h)
-
-shape_bm_t bm_list;
-
-public:
 
 #undef sb_shader_vertex_path
 #undef sb_shader_fragment_path
