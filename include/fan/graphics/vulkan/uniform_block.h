@@ -79,11 +79,11 @@ namespace fan {
 					common.edit(context, wq, {0, (unsigned char)i});
 				}
 
-				void edit_instance(fan::vulkan::context_t* context, memory_write_queue_t* wq, uint32_t i, uint64_t byte_offset, auto value) {
-					// maybe xd
-					*(decltype(value)*)(((uint8_t*)((type_t*)buffer)[i]) + byte_offset) = value;
-					common.edit(context, {wq, (unsigned char)i});
-				}
+				//void edit_instance(fan::vulkan::context_t* context, memory_write_queue_t* wq, uint32_t i, uint64_t byte_offset, auto value) {
+				//	// maybe xd
+				//	*(decltype(value)*)(((uint8_t*)((type_t*)buffer)[i]) + byte_offset) = value;
+				//	common.edit(context, {wq, (unsigned char)i});
+				//}
 
 				// nr_t is useless here
 				memory_common_t<nr_t, instance_id_t> common;
