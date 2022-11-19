@@ -443,27 +443,27 @@ public:
 
 
       #if defined(loco_line)
-        if constexpr(std::is_same<std::remove_pointer<decltype(shape)>::type, line_t>::value) {
+        if constexpr(std::is_same<typename std::remove_pointer<decltype(shape)>::type, line_t>::value) {
           idx = matrices.matrices_index.line;
         }
       #endif
       #if defined(loco_rectangle)
-        if constexpr(std::is_same<std::remove_pointer<decltype(shape)>::type, rectangle_t>::value) {
+        if constexpr(std::is_same<typename std::remove_pointer<decltype(shape)>::type, rectangle_t>::value) {
           idx = matrices.matrices_index.rectangle;
         }
       #endif
       #if defined(loco_sprite)
-        if constexpr(std::is_same<std::remove_pointer<decltype(shape)>::type, sprite_t>::value) {
+        if constexpr(std::is_same<typename std::remove_pointer<decltype(shape)>::type, sprite_t>::value) {
           idx = matrices.matrices_index.sprite;
         }
       #endif
       #if defined(loco_letter)
-        if constexpr(std::is_same<std::remove_pointer<decltype(shape)>::type, letter_t>::value) {
+        if constexpr(std::is_same<typename std::remove_pointer<decltype(shape)>::type, letter_t>::value) {
           idx = matrices.matrices_index.letter;
         }
       #endif
       #if defined(loco_button)
-        if constexpr(std::is_same<std::remove_pointer<decltype(shape)>::type, button_t>::value) {
+        if constexpr(std::is_same<typename std::remove_pointer<decltype(shape)>::type, button_t>::value) {
           idx = matrices.matrices_index.button;
         }
       #endif
@@ -714,18 +714,6 @@ public:
         get_context()->end_render(get_window());
 
       #endif
-    #endif
-  }
-
-  void prepare_thread() {
-    #ifdef fan_platform_windows
-      get_window()->destroy_window_internal();
-      get_window()->initialize_window("", 800, 0);
-
-
-      wglMakeCurrent(get_window()->m_hdc, get_window()->m_context);
-    #elif defined(fan_platform_unix)
-      get_context()->opengl.internal.glXMakeCurrent(fan::sys::m_display, get_window()->m_window_handle, get_window()->m_context);
     #endif
   }
 

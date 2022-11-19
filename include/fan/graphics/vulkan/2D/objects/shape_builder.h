@@ -280,8 +280,7 @@ ri_t& sb_get_ri(fan::graphics::cid_t* fcid) {
 }
 template <typename T>
 void sb_set_ri(fan::graphics::cid_t* fcid, auto T::* member, auto value) {
-  auto cid = (cid_t*)fcid;
-  sb_get_ri(cid).*member = value;
+  sb_get_ri(fcid).*member = value;
 }
 
 //auto sb_get_block(fan::graphics::cid_t* cid) {
@@ -295,9 +294,10 @@ auto get(fan::graphics::cid_t *cid, auto T::*member) {
   return sb_get_vi(cid).*member;
 }
 template <typename T, typename T2>
-void set(fan::graphics::cid_t *cid, auto T::*member, const T2& value) {
+void set(fan::graphics::cid_t *fcid, auto T::*member, const T2& value) {
   loco_t* loco = get_loco();
-  m_ssbo.copy_instance(loco->get_context(), &loco->m_write_queue, ssbo_t::nr_t{cid->block_id}, cid->instance_id, member, value);
+  auto cid = (cid_t*)fcid;
+  m_ssbo.copy_instance(loco->get_context(), &loco->m_write_queue, cid->block_id, cid->instance_id, member, value);
 }
 
 void set_vertex(const fan::string& str) {
