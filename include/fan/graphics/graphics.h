@@ -13,6 +13,20 @@
 #endif
 
 namespace fan {
+	template <typename T, typename = int>
+	struct _has_matrices_t : std::false_type { };
+	template <typename T>
+	struct _has_matrices_t <T, decltype((void) T::matrices, 0)> : std::true_type { };
+	template <typename T>
+	concept has_matrices_t = _has_matrices_t<T>::value;
+
+	template <typename T, typename = int>
+	struct _has_viewport_t : std::false_type { };
+	template <typename T>
+	struct _has_viewport_t <T, decltype((void) T::viewport, 0)> : std::true_type { };
+	template <typename T>
+	concept has_viewport_t = _has_viewport_t<T>::value;
+
 	namespace graphics {
 
 		#if defined(loco_opengl)

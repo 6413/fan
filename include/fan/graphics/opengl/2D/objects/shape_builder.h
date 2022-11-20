@@ -250,6 +250,7 @@ T get(fan::opengl::cid_t *cid, T vi_t::*member) {
   loco_t* loco = get_loco();
   auto block = sb_get_block(cid);
   if constexpr(std::is_same<T, fan::vec3>::value) {
+    #if defined (loco_line)
      if constexpr (std::is_same<vi_t, loco_t::line_t::vi_t>::value) {
       if (fan::ofof(member) == fan::ofof(&vi_t::src)) {
         return block->uniform_buffer.get_instance(loco->get_context(), cid->instance_id)->*member + fan::vec3(0, 0, loco_t::matrices_t::znearfar / 2 + 1);
@@ -263,6 +264,11 @@ T get(fan::opengl::cid_t *cid, T vi_t::*member) {
         return block->uniform_buffer.get_instance(loco->get_context(), cid->instance_id)->*member + fan::vec3(0, 0, loco_t::matrices_t::znearfar / 2 + 1);
       }
     }
+    #else
+      if (fan::ofof(member) == fan::ofof(&vi_t::position)) {
+        return block->uniform_buffer.get_instance(loco->get_context(), cid->instance_id)->*member + fan::vec3(0, 0, loco_t::matrices_t::znearfar / 2 + 1);
+      }
+    #endif
   }
   return block->uniform_buffer.get_instance(loco->get_context(), cid->instance_id)->*member;
 }
@@ -271,6 +277,7 @@ void set(fan::opengl::cid_t *cid, T vi_t::*member, const T2& value) {
   loco_t* loco = get_loco();
   auto block = sb_get_block(cid);
   if constexpr(std::is_same<T, fan::vec3>::value) {
+    #if defined (loco_line)
     if constexpr (std::is_same<vi_t, loco_t::line_t::vi_t>::value) {
       if (fan::ofof(member) == fan::ofof(&vi_t::src)) {
         block->uniform_buffer.edit_instance(loco->get_context(), &loco->m_write_queue, cid->instance_id, member, value - fan::vec3(0, 0, loco_t::matrices_t::znearfar / 2 - 1));
@@ -284,6 +291,11 @@ void set(fan::opengl::cid_t *cid, T vi_t::*member, const T2& value) {
         block->uniform_buffer.edit_instance(loco->get_context(), &loco->m_write_queue, cid->instance_id, member, value - fan::vec3(0, 0, loco_t::matrices_t::znearfar / 2 - 1));
       }
     }
+    #else
+      if (fan::ofof(member) == fan::ofof(&vi_t::position)) {
+        block->uniform_buffer.edit_instance(loco->get_context(), &loco->m_write_queue, cid->instance_id, member, value - fan::vec3(0, 0, loco_t::matrices_t::znearfar / 2 - 1));
+      }
+    #endif
   }
   else {
     block->uniform_buffer.edit_instance(loco->get_context(), &loco->m_write_queue, cid->instance_id, member, value);
@@ -294,6 +306,24 @@ void set(fan::opengl::cid_t *cid, T vi_t::*member, const T2& value) {
     cid->instance_id * sizeof(vi_t) + fan::ofof(member),
     cid->instance_id * sizeof(vi_t) + fan::ofof(member) + sizeof(T)
   );
+}
+
+template <typename T = void>
+loco_t::matrices_t* get_matrices(fan::graphics::cid_t* cid) requires fan::has_matrices_t<properties_t> {
+  auto ri = sb_get_ri(cid);
+  loco_t* loco = get_loco();
+  return loco->matrices_list[*ri.key.get_value<
+    bm_properties_t::key_t::get_index_with_type<loco_t::matrices_list_NodeReference_t>()
+  >()].matrices_id;
+}
+
+template <typename T = void>
+fan::graphics::viewport_t* get_viewport(fan::graphics::cid_t* cid) requires fan::has_viewport_t<properties_t> {
+  auto ri = sb_get_ri(cid);
+  loco_t* loco = get_loco();
+  return loco->get_context()->viewport_list[*ri.key.get_value<
+    bm_properties_t::key_t::get_index_with_type<fan::graphics::viewport_list_NodeReference_t>()
+  >()].viewport_id;
 }
 
 void set_vertex(const fan::string& str) {

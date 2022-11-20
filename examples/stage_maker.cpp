@@ -3,14 +3,15 @@
 #ifndef FAN_INCLUDE_PATH
   #define FAN_INCLUDE_PATH C:/libs/fan/include
 #endif
-#define fan_debug 1
+#define fan_debug 3
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
 #define fan_windows_subsystem fan_windows_subsystem_windows
 
+#define loco_vulkan
+
 #define loco_window
 #define loco_context
-
 #define loco_line
 #define loco_button
 #define loco_sprite

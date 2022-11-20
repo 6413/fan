@@ -26,7 +26,7 @@ struct line_t {
 	}
 
 	struct instance_t {
-		fan::opengl::cid_t cid;
+		fan::graphics::cid_t cid;
 		uint16_t shape;
 	};
 
@@ -63,7 +63,7 @@ struct global_button_t {
 	}
 
 	struct instance_t {
-		fan::opengl::cid_t cid;
+		fan::graphics::cid_t cid;
 		uint16_t shape;
 	};
 	std::vector<instance_t*> instance;
@@ -161,7 +161,7 @@ struct global_button_t {
 //		instance.clear();
 //	}
 //	struct instance_t {
-//		fan::opengl::cid_t cid;
+//		fan::graphics::cid_t cid;
 //		uint16_t shape;
 //	};
 //	std::vector<instance_t*> instance;
@@ -177,7 +177,7 @@ struct builder_button_t {
 		return OFFSETLESS(get_loco(), pile_t, loco_var_name);
 	}
 
-	void open_properties(fan::opengl::cid_t* instance) {
+	void open_properties(fan::graphics::cid_t* instance) {
 		auto pile = get_pile();
 
 		if (!pile->loco.menu_maker.instances.inri(pile->stage_maker.fgm.properties_nr)) {
@@ -338,10 +338,10 @@ struct builder_button_t {
 		pile->loco.button.push_back(&instance[i]->cid, p);
 		pile->loco.button.set_theme(&instance[i]->cid, loco_t::button_t::inactive);
 		auto builder_cid = &instance[i]->cid;
-		auto block = pile->loco.button.sb_get_block(builder_cid);
-		pile->loco.vfi.set_focus_mouse(block->p[builder_cid->instance_id].vfi_id);
+		auto ri = pile->loco.button.get_ri(builder_cid);
+		pile->loco.vfi.set_focus_mouse(ri.vfi_id);
 	}
-	void erase(fan::opengl::cid_t* cid) {
+	void erase(fan::graphics::cid_t* cid) {
 		pile_t* pile = OFFSETLESS(get_loco(), pile_t, loco_var_name);
 		pile->loco.button.erase(cid);
 		for (uint32_t i = 0; i < instance.size(); i++) {
@@ -376,7 +376,7 @@ struct builder_button_t {
 	}
 
 	struct instance_t {
-		fan::opengl::cid_t cid;
+		fan::graphics::cid_t cid;
 		uint16_t shape;
 		uint8_t holding_special_key = 0;
 		f32_t z;
@@ -398,7 +398,7 @@ struct sprite_t {
 		return OFFSETLESS(get_loco(), pile_t, loco_var_name);
 	}
 
-	void open_properties(fan::opengl::cid_t* instance) {
+	void open_properties(fan::graphics::cid_t* instance) {
 		auto pile = get_pile();
 
 		if (!pile->loco.menu_maker.instances.inri(pile->stage_maker.fgm.properties_nr)) {
@@ -583,7 +583,7 @@ struct sprite_t {
 		//auto block = pile->loco.sprite.sb_get_block(builder_cid);
 		//pile->loco.vfi.set_focus_mouse(block->p[builder_cid->instance_id].vfi_id);
 	}
-	void erase(fan::opengl::cid_t* cid) {
+	void erase(fan::graphics::cid_t* cid) {
 		loco_t& loco = *get_loco();
 		loco.button.erase(cid);
 		for (uint32_t i = 0; i < instances.size(); i++) {
@@ -616,7 +616,7 @@ struct sprite_t {
 	}
 
 	struct instance_t {
-		fan::opengl::cid_t cid;
+		fan::graphics::cid_t cid;
 		loco_t::vfi_t::shape_id_t vfi_id;
 		uint16_t shape;
 		uint8_t holding_special_key = 0;

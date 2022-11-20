@@ -10,6 +10,7 @@ auto resize_cb() {
 	);
 	fan::vec2 ratio = viewport_size / viewport_size.max();
 	pile->stage_maker.fgm.matrices[viewport_area::global].set_ortho(
+		&pile->loco,
 		fan::vec2(-1, 1) * ratio.x,
 		fan::vec2(-1, 1) * ratio.y
 	);
@@ -24,6 +25,7 @@ auto resize_cb() {
 	);
 	ratio = viewport_size / viewport_size.max();
 	pile->stage_maker.fgm.matrices[viewport_area::editor].set_ortho(
+		&pile->loco,
 		fan::vec2(-1, 1) * ratio.x,
 		fan::vec2(-1, 1) * ratio.y
 	);
@@ -39,6 +41,7 @@ auto resize_cb() {
 
 	ratio = viewport_size / viewport_size.max();
 	pile->stage_maker.fgm.matrices[viewport_area::types].set_ortho(
+		&pile->loco,
 		fan::vec2(-1, 1) * ratio.x,
 		fan::vec2(-1, 1) * ratio.y
 	);
@@ -53,6 +56,7 @@ auto resize_cb() {
 
 	ratio = viewport_size / viewport_size.max();
 	pile->stage_maker.fgm.matrices[viewport_area::properties].set_ortho(
+		&pile->loco,
 		fan::vec2(-1, 1) * ratio.x,
 		fan::vec2(-1, 1) * ratio.y
 	);

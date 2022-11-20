@@ -45,12 +45,12 @@ struct fgm_t {
 		ret -= 2.0 / 2;
 		return fan::vec2(0.5, ret.y);
 	}
-	static fan::vec2 scale_object_with_viewport(const fan::vec2& size, fan::opengl::viewport_t* from, fan::opengl::viewport_t* to) {
+	static fan::vec2 scale_object_with_viewport(const fan::vec2& size, fan::graphics::viewport_t* from, fan::graphics::viewport_t* to) {
 		fan::vec2 f = from->get_size();
 		fan::vec2 t = to->get_size();
 		return size / (t / f);
 	}
-	fan::vec2 scale_object_with_viewport(const fan::vec2& size, fan::opengl::viewport_t* from) {
+	fan::vec2 scale_object_with_viewport(const fan::vec2& size, fan::graphics::viewport_t* from) {
 		fan::vec2 f = from->get_size();
 		fan::vec2 t = get_loco()->get_window()->get_size();
 		return size / (f / t);
@@ -58,7 +58,7 @@ struct fgm_t {
 	fan::vec2 translate_to_global(const fan::vec2& position) const {
 		return position / viewport[viewport_area::global].get_size() * 2 - 1;
 	}
-	fan::vec2 get_viewport_dst(fan::opengl::viewport_t* from, fan::opengl::viewport_t* to) {
+	fan::vec2 get_viewport_dst(fan::graphics::viewport_t* from, fan::graphics::viewport_t* to) {
 		return (from->get_size() + from->get_position()) / (to->get_size() / 2) - 1;
 	}
 
@@ -160,8 +160,8 @@ struct fgm_t {
 			pile->stage_maker.fgm.builder_button.push_back(bbp);
 			pile->loco.button.set_theme(&instance.cid, loco_t::button_t::inactive);
 			auto builder_cid = &pile->stage_maker.fgm.builder_button.instance[pile->stage_maker.fgm.builder_button.instance.size() - 1]->cid;
-			auto block = pile->loco.button.sb_get_block(builder_cid);
-			pile->loco.vfi.set_focus_mouse(block->p[builder_cid->instance_id].vfi_id);
+			auto ri = pile->loco.button.get_ri(builder_cid);
+			pile->loco.vfi.set_focus_mouse(ri.vfi_id);
 			pile->loco.vfi.feed_mouse_button(fan::mouse_left, fan::mouse_state::press);
 			pile->stage_maker.fgm.builder_button.open_properties(builder_cid);
 			
@@ -453,7 +453,7 @@ struct fgm_t {
 	#include "fgm_shape_types.h"
 
 	loco_t::matrices_t matrices[4];
-	fan::opengl::viewport_t viewport[4];
+	fan::graphics::viewport_t viewport[4];
 
 	fan_2d::graphics::gui::theme_t theme;
 

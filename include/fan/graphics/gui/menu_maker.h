@@ -210,7 +210,7 @@ struct sb_menu_maker_type_name {
     auto& instance = instances[id];
     instance.position = global.position + p.offset;
     instance.position.y += global.offset.y;
-    instance.position.z += 0.01;
+    instance.position.z += 1;
     instance.text = p.text;
     instance.mouse_move_cb = p.mouse_move_cb;
     instance.mouse_button_cb = p.mouse_button_cb;

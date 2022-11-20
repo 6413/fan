@@ -66,10 +66,14 @@ int main() {
     pile->loco.rectangle.push_back(&pile->cids[i], p);
   }
 
+  //pile->matrices.set_ortho();
+  //pile->loco.rectangle.m_shader.
+
   //for (uint32_t i = 0; i < count; i++) {
   //  p.position = fan::random::vec2(0, 1920);
   //  pile->loco.rectangle.push_back(&pile->cids[i], p);
   //}
+
 
   pile->loco.set_vsync(false);
   

@@ -76,7 +76,7 @@ struct sb_sprite_name {
       auto& matrices = loco->matrices_list[p.matrices];
       if (matrices.matrices_index.sprite == (decltype(matrices.matrices_index.sprite))-1) {
         matrices.matrices_index.sprite = m_matrices_index++;
-        m_shader.set_matrices(loco, matrices.matrices_id, &loco->m_write_queue, matrices.matrices_index.sprite);
+        m_shader.set_matrices(loco, matrices.matrices_id, matrices.matrices_index.sprite);
       }
     #endif
     sb_push_back(cid, p);

@@ -28,7 +28,7 @@ namespace fan {
 
 							uint8_t* data;
 							validate(vkMapMemory(context->device, common.memory[frame].device_memory, 0, element_size * sizeof(type_t), 0, (void**)&data));
-					
+							
 							for (auto j : common.indices) {
 								((type_t*)data)[j.i] = ((type_t*)buffer)[j.i];
 							}

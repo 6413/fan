@@ -911,11 +911,6 @@ LRESULT fan::window_t::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lp
 
       const fan::vec2i position(get_cursor_position());
 
-      const auto cursor_in_range = [](const fan::vec2i& position, const fan::vec2& window_size) {
-        return position.x >= 0 && position.x < window_size.x&&
-          position.y >= 0 && position.y < window_size.y;
-      };
-
       window->m_mouse_position = position;
 
       window->call_mouse_move_cb = true;
@@ -1508,7 +1503,7 @@ uint32_t fan::window_t::handle_events() {
 
             uint16_t fan_key = fan::window_input::convert_utfkeys_to_fan(msg.wParam);
 
-            bool found = false;
+            found = false;
 
             for (auto i : banned_keys) {
               if (fan_key == i) {
@@ -1665,7 +1660,6 @@ uint32_t fan::window_t::handle_events() {
       }
       case WM_MOUSEWHEEL:
       {
-        auto fwKeys = GET_KEYSTATE_WPARAM(msg.wParam);
         auto zDelta = GET_WHEEL_DELTA_WPARAM(msg.wParam);
 
         auto window = fan::get_window_by_id(msg.hwnd);

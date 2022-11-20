@@ -70,7 +70,7 @@ struct button_t {
       auto& matrices = loco->matrices_list[p.matrices];
       if (matrices.matrices_index.button == (decltype(matrices.matrices_index.button))-1) {
         matrices.matrices_index.button = m_matrices_index++;
-        m_shader.set_matrices(loco, matrices.matrices_id, &loco->m_write_queue, matrices.matrices_index.button);
+        m_shader.set_matrices(loco, matrices.matrices_id, matrices.matrices_index.button);
       }
     #endif
 
@@ -80,7 +80,7 @@ struct button_t {
     tp.font_size = p.font_size;
     tp.position = p.position;
     tp.text = p.text;
-    tp.position.z += p.position.z + 0.5;
+    tp.position.z += p.position.z + 1;
     tp.viewport = p.viewport;
     tp.matrices = p.matrices;
     sb_push_back(cid, p);
@@ -216,8 +216,7 @@ struct button_t {
   template <typename T, typename T2>
   void set_button(fan::graphics::cid_t* cid, auto T::*member, const T2& value) {
     loco_t* loco = get_loco();
-    assert(0);
-    //loco->button.set(cid, member, value);
+    loco->button.set(cid, member, value);
   }
 
   template <typename T>
@@ -255,11 +254,6 @@ struct button_t {
     );
   }
 
-  //loco_t::matrices_t* get_matrices(fan::graphics::cid_t* cid) {
-  //  auto ri = get_ri(cid);
-  //  loco_t* loco = get_loco();
-  //  return loco->matrices_list[*block->p[cid->instance_id].key.get_value<0>()].matrices_id;
-  //}
   //void set_matrices(fan::graphics::cid_t* cid, loco_t::matrices_list_NodeReference_t n) {
   //  sb_set_key<bm_properties_t::key_t::get_index_with_type<decltype(n)>()>(cid, n);
   //  loco_t* loco = get_loco();

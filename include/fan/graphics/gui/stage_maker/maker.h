@@ -320,7 +320,7 @@ static void lib_close(stage_common_t* sc) {
 					use_key_lambda(fan::mouse_left, fan::mouse_state::release);
 
 					pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco_var_name);
-					fan::opengl::cid_t* cid = mb.cid;
+					fan::graphics::cid_t* cid = mb.cid;
 					if (mb.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside) {
 						if (pile->loco.menu_maker.is_visually_valid(
 							instances[stage_t::stage_options].menu_id,
@@ -353,7 +353,7 @@ static void lib_close(stage_common_t* sc) {
 			pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco_var_name);
 			auto nr = pile->stage_maker.instances[stage_t::stage_instance].menu_id;
 			auto id = pile->loco.menu_maker.get_selected_id(nr);
-			if (pile->loco.menu_maker.instances[nr].base.instances.IsNodeReferenceInvalid(id)) {
+			if (pile->loco.menu_maker.instances[nr].base.instances.inri(id)) {
 				return 0;
 			}
 
@@ -392,16 +392,16 @@ static void lib_close(stage_common_t* sc) {
 	#define BLL_set_prefix instance
 	#define BLL_set_type_node uint16_t
 	#define BLL_set_node_data \
-			fan::opengl::cid_t cid;
+			fan::graphics::cid_t cid;
 	#define BLL_set_Link 1
 	#include _FAN_PATH(BLL/BLL.h)
 
 	instance_t instances;
 
 	struct open_properties_t {
-		fan::opengl::matrices_list_NodeReference_t matrices;
-		fan::opengl::viewport_list_NodeReference_t viewport;
-		fan::opengl::theme_list_NodeReference_t theme;
+		fan::graphics::matrices_list_NodeReference_t matrices;
+		fan::graphics::viewport_list_NodeReference_t viewport;
+		fan::graphics::theme_list_NodeReference_t theme;
 	};
 
 	fan::function_t<void()> open;
@@ -471,7 +471,7 @@ struct stage {
 	uint8_t current_stage;
 
 	loco_t::matrices_t matrices;
-	fan::opengl::viewport_t viewport;
+	fan::graphics::viewport_t viewport;
 	fan_2d::graphics::gui::theme_t theme;
 	fan_2d::graphics::gui::theme_t erase_theme;
 	fan::string stage_h_str;

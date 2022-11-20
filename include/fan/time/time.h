@@ -31,7 +31,7 @@ static void delay_w(float us)
 	}
 
 	LARGE_INTEGER interval;
-	interval.QuadPart = -10 * us;
+	interval.QuadPart = (LONGLONG)(10.f * us);
 	NtDelayExecution(false, &interval);
 }
 
@@ -151,7 +151,7 @@ namespace fan {
 				LARGE_INTEGER time;
 				QueryPerformanceCounter(&time);
 
-				return time.QuadPart * nanoseconds_per_count;
+				return (uint64_t)((double)time.QuadPart * nanoseconds_per_count);
 
 #elif defined(fan_platform_unix)
 
@@ -209,10 +209,10 @@ namespace fan {
 		template <typename new_t, typename old_t>
 		constexpr uint64_t convert(old_t old, new_t x = new_t()) {
 			int goal = (int)x.time_unit_value - (int)old.time_unit_value;
-			f32_t divisionFactor = std::pow(10, 3 * goal);
+			f32_t divisionFactor = (f32_t)std::pow(10, 3 * goal);
 			if (goal >= 4) divisionFactor *= 60;
 			if (goal >= 5) divisionFactor *= 60;
-			if (goal < 3) divisionFactor = std::pow(10, 3 * goal);
+			if (goal < 3) divisionFactor = (f32_t)std::pow(10, 3 * goal);
 			if (goal > 0) return old.m_time / divisionFactor;
 			else if (goal < 0) return old.m_time * (uint64_t)divisionFactor;
 			else return old.m_time;
@@ -222,7 +222,7 @@ namespace fan {
 	static void delay(fan::time::nanoseconds time) {
 #ifdef fan_platform_windows
 
-		delay_w(time.m_time / 1000);
+		delay_w((float)(time.m_time / 1000));
 
 #elif defined(fan_platform_unix)
 
