@@ -15,7 +15,7 @@
     ds_properties[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     ds_properties[1].flags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
     ds_properties[1].buffer = m_shader.projection_view_block.common.memory[loco->get_context()->currentFrame].buffer;
-    ds_properties[1].range = sizeof(fan::mat4) * 2;
+    ds_properties[1].range = m_shader.projection_view_block.m_size;
     ds_properties[1].dst_binding = 1;
   #endif
 

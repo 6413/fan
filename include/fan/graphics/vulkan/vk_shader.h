@@ -40,10 +40,10 @@ namespace fan {
 
       VkShaderModule createShaderModule(fan::vulkan::context_t* context, const fan::string& code);
 
-      void set_matrices(auto* loco, auto* matrices, core::memory_write_queue_t* write_queue, uint32_t flags) {
+      void set_matrices(auto* loco, auto* matrices, uint32_t flags) {
         auto& m = loco->matrices_list[matrices->matrices_reference];
-        projection_view_block.edit_instance(loco->get_context(), write_queue, flags, &viewprojection_t::projection, matrices->m_projection);
-        projection_view_block.edit_instance(loco->get_context(), write_queue, flags, &viewprojection_t::view, matrices->m_view);
+        projection_view_block.edit_instance(loco->get_context(), &loco->m_write_queue, flags, &viewprojection_t::projection, matrices->m_projection);
+        projection_view_block.edit_instance(loco->get_context(), &loco->m_write_queue, flags, &viewprojection_t::view, matrices->m_view);
       }
 
       struct viewprojection_t {

@@ -304,6 +304,7 @@ template <typename T>
 auto get(fan::graphics::cid_t *cid, T vi_t::*member) {
   loco_t* loco = get_loco();
   if constexpr(std::is_same<T, fan::vec3>::value) {
+    #if defined (loco_line)
     if constexpr (std::is_same<vi_t, loco_t::line_t::vi_t>::value) {
       if (fan::ofof(member) == fan::ofof(&vi_t::src)) {
         return sb_get_vi(cid).*member + fan::vec3(0, 0, loco_t::matrices_t::znearfar + 1);
@@ -317,6 +318,11 @@ auto get(fan::graphics::cid_t *cid, T vi_t::*member) {
         return sb_get_vi(cid).*member + fan::vec3(0, 0, loco_t::matrices_t::znearfar + 1);
       }
     }
+    #else
+      if (fan::ofof(member) == fan::ofof(&vi_t::position)) {
+        return sb_get_vi(cid).*member + fan::vec3(0, 0, loco_t::matrices_t::znearfar + 1);
+      }
+    #endif
   }
   return sb_get_vi(cid).*member;
 }
@@ -324,7 +330,9 @@ template <typename T, typename T2>
 void set(fan::graphics::cid_t *fcid, T vi_t::*member, const T2& value) {
   loco_t* loco = get_loco();
   auto cid = (cid_t*)fcid;
+  
   if constexpr(std::is_same<T, fan::vec3>::value) {
+    #if defined (loco_line)
     if constexpr (std::is_same<vi_t, loco_t::line_t::vi_t>::value) {
       if (fan::ofof(member) == fan::ofof(&vi_t::src)) {
         m_ssbo.copy_instance(loco->get_context(), &loco->m_write_queue, cid->block_id, cid->instance_id, member, value - fan::vec3(0, 0, loco_t::matrices_t::znearfar - 1));
@@ -338,10 +346,32 @@ void set(fan::graphics::cid_t *fcid, T vi_t::*member, const T2& value) {
         m_ssbo.copy_instance(loco->get_context(), &loco->m_write_queue, cid->block_id, cid->instance_id, member, value - fan::vec3(0, 0, loco_t::matrices_t::znearfar - 1));
       }
     }
+    #else
+      if (fan::ofof(member) == fan::ofof(&vi_t::position)) {
+        m_ssbo.copy_instance(loco->get_context(), &loco->m_write_queue, cid->block_id, cid->instance_id, member, value - fan::vec3(0, 0, loco_t::matrices_t::znearfar - 1));
+      }
+    #endif
   }
   else {
     m_ssbo.copy_instance(loco->get_context(), &loco->m_write_queue, cid->block_id, cid->instance_id, member, value);
   }
+}
+
+template <typename T = void>
+loco_t::matrices_t* get_matrices(fan::graphics::cid_t* cid) requires fan::has_matrices_t<properties_t> {
+  auto ri = sb_get_ri(cid);
+  loco_t* loco = get_loco();
+  return loco->matrices_list[*ri.key.get_value<
+    bm_properties_t::key_t::get_index_with_type<loco_t::matrices_list_NodeReference_t>()
+  >()].matrices_id;
+}
+template <typename T = void>
+fan::graphics::viewport_t* get_viewport(fan::graphics::cid_t* cid) requires fan::has_viewport_t<properties_t> {
+  auto ri = sb_get_ri(cid);
+  loco_t* loco = get_loco();
+  return loco->get_context()->viewport_list[*ri.key.get_value<
+    bm_properties_t::key_t::get_index_with_type<fan::graphics::viewport_list_NodeReference_t>()
+  >()].viewport_id;
 }
 
 void set_vertex(const fan::string& str) {

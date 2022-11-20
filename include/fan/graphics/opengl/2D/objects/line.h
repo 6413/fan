@@ -48,7 +48,7 @@ struct line_t {
       auto& matrices = loco->matrices_list[p.matrices];
       if (matrices.matrices_index.line == (decltype(matrices.matrices_index.line))-1) {
         matrices.matrices_index.line = m_matrices_index++;
-        m_shader.set_matrices(loco, matrices.matrices_id, &loco->m_write_queue, matrices.matrices_index.line);
+        m_shader.set_matrices(loco, matrices.matrices_id, matrices.matrices_index.line);
       }
     #endif
 

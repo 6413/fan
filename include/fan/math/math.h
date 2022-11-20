@@ -118,7 +118,7 @@ namespace fan {
 		constexpr f_t infinite = inf;
 		constexpr f_t infinity = infinite;
 
-		static f32_t fast_trunc(f32_t d) {
+		static double fast_trunc(f32_t d) {
       unsigned constexpr MANTISSA_BITS = 52,
         HI_MANTISSA_BITS = 20,
         EXP_BIAS = 0x3FF,
@@ -172,7 +172,7 @@ namespace fan {
 
 		inline f32_t fast_fmod(f32_t v, f32_t m)
     {
-        return v - fast_trunc(v / m ) * m ;
+        return v - (f32_t)fast_trunc(v / m ) * m ;
     }
 
 		static int solve_quadratic(f32_t a, f32_t b, f32_t c, f32_t& root1, f32_t& root2) {
@@ -357,14 +357,14 @@ namespace fan {
 			{
 				res+=pow/fact;
 				pow*=-1*x*x;
-				fact*=(2*(i+1))*(2*(i+1)+1);
+				fact *= float((2 * (i + 1)) * (2 * (i + 1) + 1));
 			}
 
 			return res;
 		}
 
 		inline f32_t cos(f32_t x) {
-			double t, s ;
+			f32_t t, s ;
 			int p;
 			p = 0;
 			s = 1.0;
@@ -372,7 +372,7 @@ namespace fan {
 			while(fabs(t/s) > .0001f)
 			{
 				p++;
-				t = (-t * x * x) / ((2 * p - 1) * (2 * p));
+				t = f32_t((f32_t)(-t * x * x) / (f32_t)((2 * p - 1) * (2 * p)));
 				s += t;
 			}
 			return s;

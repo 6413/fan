@@ -79,9 +79,18 @@ struct text_box_t {
     tp.font_size = p.font_size;
     tp.position = p.position;
     tp.text = p.text;
-    tp.position.z += p.position.z + 0.5;
+    tp.position.z += p.position.z + 1;
     tp.matrices = p.matrices;
     tp.viewport = p.viewport;
+
+    #if defined(loco_vulkan)
+      auto& matrices = loco->matrices_list[p.matrices];
+      if (matrices.matrices_index.text_box == (decltype(matrices.matrices_index.text_box))-1) {
+        matrices.matrices_index.text_box = m_matrices_index++;
+        m_shader.set_matrices(loco, matrices.matrices_id, matrices.matrices_index.text_box);
+      }
+    #endif
+
     sb_push_back(cid, p);
     auto& ri = sb_get_ri(cid);
 
@@ -273,8 +282,6 @@ struct text_box_t {
     sb_erase(cid);
   }
 
-
-
   void update_cursor(fan::graphics::cid_t* cid) {
     loco_t* loco = get_loco();
     auto& ri = sb_get_ri(cid);
@@ -326,7 +333,6 @@ struct text_box_t {
 
   #define vk_sb_ssbo
   #define vk_sb_vp
-  #define vk_sb_image
   #include _FAN_PATH(graphics/shape_builder.h)
 
   text_box_t() {
@@ -497,6 +503,10 @@ struct text_box_t {
   });
   fan::graphics::cid_t cursor_id;
   bool render_cursor = true;
+
+  #if defined(loco_vulkan)
+    uint32_t m_matrices_index = 0;
+  #endif
 };
 
 #include _FAN_PATH(graphics/opengl/2D/objects/hardcode_close.h)

@@ -6,17 +6,16 @@ struct text_renderer_t {
   struct properties_t : loco_t::letter_t::ri_t{
 
     properties_t() = default;
-    properties_t& operator=(const properties_t& p) {
-      position = p.position;
+    properties_t(const properties_t& p) : properties_t() {
       *(loco_t::letter_t::ri_t*)this = *(loco_t::letter_t::ri_t*)&p;
-      *(loco_t::letter_t::bm_properties_t*)this = *(loco_t::letter_t::bm_properties_t*)&p;
-      matrices = p.matrices;
-      viewport = p.viewport;
+      position = p.position;
       color = p.color;
       outline_color = p.outline_color;
       outline_size = p.outline_size;
       text = p.text;
-      return *this;
+    }
+    properties_t& operator=(const properties_t& p) {
+      return properties_t(p);
     }
 
     make_key_value(loco_t::matrices_list_NodeReference_t, matrices);

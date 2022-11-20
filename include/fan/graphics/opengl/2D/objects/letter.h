@@ -73,7 +73,7 @@ struct letter_t {
       auto& matrices = loco->matrices_list[p.matrices];
       if (matrices.matrices_index.letter == (decltype(matrices.matrices_index.letter))-1) {
         matrices.matrices_index.letter = m_matrices_index++;
-        m_shader.set_matrices(loco, matrices.matrices_id, &loco->m_write_queue, matrices.matrices_index.letter);
+        m_shader.set_matrices(loco, matrices.matrices_id, matrices.matrices_index.letter);
       }
     #endif
 
@@ -84,6 +84,8 @@ struct letter_t {
   }
 
   void draw() {
+    auto loco = get_loco();
+    loco->process_block_properties_element<0>(this, &loco->font.image);
     sb_draw();
   }
 

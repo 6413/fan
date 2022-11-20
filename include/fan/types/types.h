@@ -422,13 +422,28 @@ namespace fan {
 		uint32_t i = 0;
 
 		while (str[i] != 0) {
-			result ^= str[i];
+			result ^= (uint64_t)str[i];
 			result *= 1099511628211; // FNV prime
 			i++;
 		}
 
 		return result;
-}
+	}
+
+	template <class T>
+	class has_member_type {
+		struct One { char a[1]; };
+		struct Two { char a[2]; };
+
+		template <class U>
+		static One foo(typename U::type*);
+
+		template <class U>
+		static Two foo(...);
+
+	public:
+		static const bool value = sizeof(foo<T>(nullptr)) == sizeof(One);
+	};
 
 	constexpr const char* file_name(const char* path) {
 		const char* file = path;
@@ -506,7 +521,7 @@ static uint8_t __clz32(uint32_t p0) {
 	#elif defined(_MSC_VER)
 	DWORD trailing_zero = 0;
 	if (_BitScanReverse(&trailing_zero, p0)) {
-		return 31 - trailing_zero;
+		return uint8_t((DWORD)31 - trailing_zero);
 	}
 	else {
 		return 0;
@@ -521,7 +536,7 @@ static uint8_t __clz64(uint64_t p0) {
 	#elif defined(_MSC_VER)
 	DWORD trailing_zero = 0;
 	if (_BitScanReverse64(&trailing_zero, p0)) {
-		return 63 - trailing_zero;
+		return uint8_t((DWORD)63 - trailing_zero);
 	}
 	else {
 		return 0;

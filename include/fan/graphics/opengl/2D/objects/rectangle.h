@@ -47,7 +47,7 @@ struct rectangle_t {
       auto& matrices = loco->matrices_list[p.matrices];
       if (matrices.matrices_index.rectangle == (decltype(matrices.matrices_index.rectangle))-1) {
         matrices.matrices_index.rectangle = m_matrices_index++;
-        m_shader.set_matrices(loco, matrices.matrices_id, &loco->m_write_queue, matrices.matrices_index.rectangle);
+        m_shader.set_matrices(loco, matrices.matrices_id, matrices.matrices_index.rectangle);
       }
     #endif
 

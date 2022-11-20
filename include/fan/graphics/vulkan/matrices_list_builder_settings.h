@@ -20,6 +20,9 @@ struct matrices_index_t {
   #if defined(loco_button)
     uint8_t button = -1;
   #endif
+  #if defined(loco_text_box)
+    uint8_t text_box = -1;
+  #endif
 };
 #endif
 

@@ -192,7 +192,7 @@ public:
 
     void open_matrices(loco_t* loco, loco_t::matrices_t* matrices, const fan::vec2& x, const fan::vec2& y) {
       matrices->open(loco);
-      matrices->set_ortho(fan::vec2(x.x, x.y), fan::vec2(y.x, y.y));
+      matrices->set_ortho(loco, fan::vec2(x.x, x.y), fan::vec2(y.x, y.y));
     }
 
     fan::vec3 get_camera_position() const {
@@ -211,7 +211,7 @@ public:
       m_view = fan::math::look_at_left<fan::mat4>(position, position + front, fan::camera::world_up);
     }
 
-    void set_ortho(const fan::vec2& x, const fan::vec2& y) {
+    void set_ortho(loco_t* loco, const fan::vec2& x, const fan::vec2& y) {
       m_projection = fan::math::ortho<fan::mat4>(
         x.x,
         x.y,
@@ -244,6 +244,56 @@ public:
       constexpr fan::vec3 front(0, 0, 1);
 
       m_view = fan::math::look_at_left<fan::mat4>(position, position + front, fan::camera::world_up);
+      #if defined (loco_vulkan)
+        #if defined(loco_line)
+          {
+            auto idx = loco->matrices_list[matrices_reference].matrices_index.line;
+            if (idx != (uint8_t)-1) {
+              loco->line.m_shader.set_matrices(loco, this, idx);
+            }
+          }
+        #endif
+        #if defined(loco_rectangle)
+          {
+            auto idx = loco->matrices_list[matrices_reference].matrices_index.rectangle;
+            if (idx != (uint8_t)-1) {
+              loco->rectangle.m_shader.set_matrices(loco, this, idx);
+            }
+          }
+        #endif
+        #if defined(loco_sprite)
+          {
+            auto idx = loco->matrices_list[matrices_reference].matrices_index.sprite;
+            if (idx != (uint8_t)-1) {
+              loco->sprite.m_shader.set_matrices(loco, this, idx);
+            }
+          }
+        #endif
+        #if defined(loco_letter)
+          {
+            auto idx = loco->matrices_list[matrices_reference].matrices_index.letter;
+            if (idx != (uint8_t)-1) {
+              loco->letter.m_shader.set_matrices(loco, this, idx);
+            }
+          }
+        #endif
+        #if defined(loco_button)
+          {
+            auto idx = loco->matrices_list[matrices_reference].matrices_index.button;
+            if (idx != (uint8_t)-1) {
+              loco->button.m_shader.set_matrices(loco, this, idx);
+            }
+          }
+        #endif
+        #if defined(loco_text_box)
+          {
+            auto idx = loco->matrices_list[matrices_reference].matrices_index.text_box;
+            if (idx != (uint8_t)-1) {
+              loco->text_box.m_shader.set_matrices(loco, this, idx);
+            }
+          }
+        #endif
+      #endif
     }
 
     fan::mat4 m_projection;
@@ -267,7 +317,7 @@ public:
 
   void open_matrices(matrices_t* matrices, const fan::vec2& x, const fan::vec2& y) {
     matrices->open(this);
-    matrices->set_ortho(x, y);
+    matrices->set_ortho(this, x, y);
   }
 
   #define BLL_set_declare_NodeReference 0

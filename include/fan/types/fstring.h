@@ -8,6 +8,9 @@
 
 namespace fan {
 
+	template <typename T>
+	concept is_char_t = std::is_same<T, char>::value;
+
 	template <typename type_t>
 	struct basic_string {
 
@@ -40,6 +43,11 @@ namespace fan {
 		basic_string(std::basic_string_view<char_type> sv) : str(sv.begin(), sv.end()) {
 			str.push_back(0);
 		}
+		basic_string(const basic_string<wchar_t>& str) requires is_char_t<char_type>
+												// cheats
+			: basic_string(std::string(str.data(), str.data() + str.size()).c_str()) {}
+
+		basic_string(const basic_string&) = default;
 
 		void push_back(char_type c) {
 			str.insert(str.end() - 1, c);
@@ -263,7 +271,7 @@ namespace fan {
 			}
 		}
 
-		static constexpr std::size_t npos = -1;
+		static constexpr std::size_t npos = (std::size_t)-1;
 		value_type str;
 	};
 	
@@ -282,7 +290,7 @@ static fan::basic_string<T> operator+(const T* left, const fan::basic_string<T>&
 
 namespace fan {
 	struct string : fan::basic_string<char>{
-		string(const basic_string& b) : basic_string(b) {
+		string(const fan::basic_string<char>& b) : fan::basic_string<char>(b) {
 
 		}
 

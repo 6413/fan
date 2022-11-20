@@ -1760,7 +1760,7 @@ void fan::vulkan::viewport_t::set(fan::vulkan::context_t* context, const fan::ve
 
 	VkViewport viewport{};
 	viewport.x = viewport_position.x;
-	viewport.y = window_size.y - viewport_size_.y - viewport_position.y;
+	viewport.y = viewport_position.y;
  	viewport.width = viewport_size.x;
 	viewport.height = viewport_size.y;
 	viewport.minDepth = 0.0f;
