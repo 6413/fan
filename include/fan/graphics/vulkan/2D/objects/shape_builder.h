@@ -132,18 +132,27 @@ void sb_open() {
 #endif
   m_pipeline.open(context, p);
 }
+template <typename T = void>
 void sb_close() {
   loco_t* loco = get_loco();
   auto context = loco->get_context();
-
-  assert(0);
-  //loco_bdbt_close(&loco->bdbt);
 
   m_shader.close(context, &loco->m_write_queue);
 
   m_ssbo.close(context, &loco->m_write_queue);
 
-  assert(0);
+  if constexpr(fan::_has_matrices_id_t<decltype(*this)>::value) {
+    m_matrices_index = 0;
+  }
+  if constexpr(fan::_has_texture_id_t<decltype(*this)>::value) {
+    m_texture_index = 0;
+  }
+
+  uint32_t index = fan::ofof<loco_t>() - offsetof(loco_t, )
+  for (uint8_t i = 0; i < loco->matrices_list.Usage(); ++i) {
+    ((uint8_t *)&loco->matrices_list[*(loco_t::matrices_list_NodeReference_t*)&i].matrices_index)[index]
+  }
+
   //vkDestroyDescriptorSetLayout(loco->get_context()->device, descriptorSetLayout, nullptr);
 
   //for (uint32_t i = 0; i < blocks.size(); i++) {
@@ -307,20 +316,20 @@ auto get(fan::graphics::cid_t *cid, T vi_t::*member) {
     #if defined (loco_line)
     if constexpr (std::is_same<vi_t, loco_t::line_t::vi_t>::value) {
       if (fan::ofof(member) == fan::ofof(&vi_t::src)) {
-        return sb_get_vi(cid).*member + fan::vec3(0, 0, loco_t::matrices_t::znearfar + 1);
+        return sb_get_vi(cid).*member + fan::vec3(0, 0, loco_t::matrices_t::znearfar - 1);
       }
       if (fan::ofof(member) == fan::ofof(&vi_t::dst)) {
-        return sb_get_vi(cid).*member + fan::vec3(0, 0, loco_t::matrices_t::znearfar + 1);
+        return sb_get_vi(cid).*member + fan::vec3(0, 0, loco_t::matrices_t::znearfar - 1);
       }
     }
     else {
       if (fan::ofof(member) == fan::ofof(&vi_t::position)) {
-        return sb_get_vi(cid).*member + fan::vec3(0, 0, loco_t::matrices_t::znearfar + 1);
+        return sb_get_vi(cid).*member + fan::vec3(0, 0, loco_t::matrices_t::znearfar - 1);
       }
     }
     #else
       if (fan::ofof(member) == fan::ofof(&vi_t::position)) {
-        return sb_get_vi(cid).*member + fan::vec3(0, 0, loco_t::matrices_t::znearfar + 1);
+        return sb_get_vi(cid).*member + fan::vec3(0, 0, loco_t::matrices_t::znearfar - 1);
       }
     #endif
   }
@@ -438,6 +447,14 @@ void sb_set_key(fan::graphics::cid_t* fcid, auto value) {
   *(vi_t*)&p = m_ssbo.instance_list.get_vi(ssbo_t::nr_t{cid->block_id}, cid->instance_id);
   *(ri_t*)&p = m_ssbo.instance_list.get_ri(ssbo_t::nr_t{cid->block_id}, cid->instance_id);
   *p.key.get_value<i>() = value;
+  #if defined (loco_line)
+  if constexpr (std::is_same<vi_t, loco_t::line_t::vi_t>::value) {
+    p.src.z += loco_t::matrices_t::znearfar - 1;
+    p.dst.z += loco_t::matrices_t::znearfar - 1;
+  }
+  #else
+    p.position.z += loco_t::matrices_t::znearfar - 1;
+  #endif
   sb_erase(fcid);
   sb_push_back(fcid, p);
 }

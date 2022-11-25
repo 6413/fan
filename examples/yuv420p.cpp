@@ -58,20 +58,20 @@ int main() {
 
   p.load_yuv(&pile->loco, (uint8_t*)str.data(), image_size);
 
-  p.position = fan::vec2(0, 0);
+  p.position = fan::vec3(0, 0, 0);
   p.position.z = 0;
   p.size = 0.2;
   pile->loco.yuv420p.push_back(&pile->cids[0], p);
 
-  loco_t::sprite_t::properties_t sp;
-  sp.position = fan::vec3(0, 0, 1);
+  /*loco_t::sprite_t::properties_t sp;
+  sp.position = fan::vec3(0, 0, 0);
   loco_t::image_t image;
   image.load(&pile->loco, "images/test.webp");
   sp.image = &image;
   sp.size = 0.1;
   sp.viewport = &pile->viewport;
   sp.matrices = &pile->matrices;
-  pile->loco.sprite.push_back(&pile->cids[0], sp);
+  pile->loco.sprite.push_back(&pile->cids[0], sp);*/
 
   //fan::print(y);
   pile->loco.set_vsync(false);

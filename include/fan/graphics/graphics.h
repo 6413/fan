@@ -27,6 +27,16 @@ namespace fan {
 	template <typename T>
 	concept has_viewport_t = _has_viewport_t<T>::value;
 
+	template <typename T, typename = int>
+	struct _has_matrices_id_t : std::false_type { };
+	template <typename T>
+	struct _has_matrices_id_t <T, decltype((void) T::m_matrices_index, 0)> : std::true_type { };
+
+	template <typename T, typename = int>
+	struct _has_texture_id_t : std::false_type { };
+	template <typename T>
+	struct _has_texture_id_t <T, decltype((void) T::m_texture_index, 0)> : std::true_type { };
+
 	namespace graphics {
 
 		#if defined(loco_opengl)

@@ -253,20 +253,20 @@ T get(fan::opengl::cid_t *cid, T vi_t::*member) {
     #if defined (loco_line)
      if constexpr (std::is_same<vi_t, loco_t::line_t::vi_t>::value) {
       if (fan::ofof(member) == fan::ofof(&vi_t::src)) {
-        return block->uniform_buffer.get_instance(loco->get_context(), cid->instance_id)->*member + fan::vec3(0, 0, loco_t::matrices_t::znearfar / 2 + 1);
+        return block->uniform_buffer.get_instance(loco->get_context(), cid->instance_id)->*member + fan::vec3(0, 0, loco_t::matrices_t::znearfar / 2 - 1);
       }
       if (fan::ofof(member) == fan::ofof(&vi_t::dst)) {
-        return block->uniform_buffer.get_instance(loco->get_context(), cid->instance_id)->*member + fan::vec3(0, 0, loco_t::matrices_t::znearfar / 2 + 1);
+        return block->uniform_buffer.get_instance(loco->get_context(), cid->instance_id)->*member + fan::vec3(0, 0, loco_t::matrices_t::znearfar / 2 - 1);
       }
     }
     else {
       if (fan::ofof(member) == fan::ofof(&vi_t::position)) {
-        return block->uniform_buffer.get_instance(loco->get_context(), cid->instance_id)->*member + fan::vec3(0, 0, loco_t::matrices_t::znearfar / 2 + 1);
+        return block->uniform_buffer.get_instance(loco->get_context(), cid->instance_id)->*member + fan::vec3(0, 0, loco_t::matrices_t::znearfar / 2 - 1);
       }
     }
     #else
       if (fan::ofof(member) == fan::ofof(&vi_t::position)) {
-        return block->uniform_buffer.get_instance(loco->get_context(), cid->instance_id)->*member + fan::vec3(0, 0, loco_t::matrices_t::znearfar / 2 + 1);
+        return block->uniform_buffer.get_instance(loco->get_context(), cid->instance_id)->*member + fan::vec3(0, 0, loco_t::matrices_t::znearfar / 2 - 1);
       }
     #endif
   }
@@ -394,6 +394,14 @@ void sb_set_key(fan::opengl::cid_t* cid, auto value) {
   *(vi_t*)&p = *block->uniform_buffer.get_instance(loco->get_context(), cid->instance_id);
   *(ri_t*)&p = block->p[cid->instance_id];
   *p.key.get_value<i>() = value;
+  #if defined (loco_line)
+    if constexpr (std::is_same<vi_t, loco_t::line_t::vi_t>::value) {
+      p.src.z += loco_t::matrices_t::znearfar / 2 - 1;
+      p.dst.z += loco_t::matrices_t::znearfar / 2 - 1;
+    }
+  #else
+    p.position.z += loco_t::matrices_t::znearfar / 2 - 1;
+  #endif
   sb_erase(cid);
   sb_push_back(cid, p);
 }
