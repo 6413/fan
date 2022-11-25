@@ -130,8 +130,6 @@ struct sb_sprite_name {
                                 
     ii.data = data[2]; 
     loco->sb_shape_var_name.image[2].reload_pixels(loco, ii, lp); 
-
-    set_image_data(cid, &image[0], &image[1], &image[2]);
   }
 
   static constexpr uint32_t max_instance_size = fan::min(256, 4096 / (sizeof(vi_t) / 4));
@@ -160,16 +158,6 @@ struct sb_sprite_name {
   }
   ~sb_sprite_name() {
     sb_close();
-  }
-
-  void set_image_data(fan::opengl::cid_t* cid, 
-    loco_t::textureid_t<0> y,
-    loco_t::textureid_t<1> u,
-    loco_t::textureid_t<2> v
-  ) {
-    sb_set_key<bm_properties_t::key_t::get_index_with_type<decltype(y)>()>(cid, y);
-    sb_set_key<bm_properties_t::key_t::get_index_with_type<decltype(u)>()>(cid, u);
-    sb_set_key<bm_properties_t::key_t::get_index_with_type<decltype(v)>()>(cid, v);
   }
 
   loco_t::image_t image[3];
