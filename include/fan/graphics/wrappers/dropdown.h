@@ -149,7 +149,7 @@ struct dropdown_t {
 				return 0;
 			}
 			erase_dropdown_menu(loco, nr, id);
-				});
+			});
 
 			for (uint32_t i = 0; i < instances[id].items.size(); i++) {
 				mp.text = instances[id].items[i];

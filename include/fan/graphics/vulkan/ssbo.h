@@ -10,12 +10,6 @@ namespace fan {
 
 				static constexpr auto buffer_count = fan::vulkan::MAX_FRAMES_IN_FLIGHT;
 
-				struct open_properties_t {
-					open_properties_t() {}
-					// cant be 0
-					uint64_t preallocate = 1;
-				};
-
 				#define BLL_set_MultipleType_Sizes sizeof(vi_t) * max_instance_size, sizeof(ri_t) * max_instance_size
 				#define BLL_set_BaseLibrary 1
 				#define BLL_set_CPP_ConstructDestruct
@@ -23,6 +17,8 @@ namespace fan {
 				#define BLL_set_type_node uint16_t
 				#define BLL_set_Link 1
 				#define BLL_set_MultipleType_LinkIndex 1
+				//#define BVEC_set_BufferingFormat 0
+				//#define BVEC_set_BufferingFormat0_WantedBufferByteAmount 0xfffff
 				static constexpr auto multiple_type_link_index = BLL_set_MultipleType_LinkIndex;
 				#define BLL_set_AreWeInsideStruct 1
 				#define BLL_set_Overload_Declare \
@@ -43,7 +39,9 @@ namespace fan {
 
 					if (instance_list.Usage() != 0) {
 						if (common.memory[frame].buffer != nullptr) {
+							vkDeviceWaitIdle(context->device);
 							vkDestroyBuffer(context->device, common.memory[frame].buffer, 0);
+							vkUnmapMemory(context->device, common.memory[frame].device_memory);
 						}
 					}
 
@@ -57,18 +55,20 @@ namespace fan {
 						common.memory[frame].buffer,
 						common.memory[frame].device_memory
 					);
+					validate(vkMapMemory(context->device, common.memory[frame].device_memory, 0, vram_capacity, 0, (void**)&data));
 				}
 
 				void write(fan::vulkan::context_t* context, uint32_t frame) {
-
-					uint8_t* data;
-					validate(vkMapMemory(context->device, common.memory[frame].device_memory, 0, vram_capacity, 0, (void**)&data));
 					
-					for (auto i : common.indices) {
-						((vi_t*)data)[(uint32_t)i.nr.NRI * max_instance_size + i.i] = instance_list.get_vi(i.nr, i.i);
+					if (common.m_min_edit != (uint64_t)-1) {
+						fan::print(instance_list.Usage());
+						memcpy(data, &instance_list.get_vi((nr_t)0, 0), instance_list.NodeList.Current * max_instance_size * sizeof(vi_t));
 					}
-					// unnecessary? is necessary
-					vkUnmapMemory(context->device, common.memory[frame].device_memory);
+					else {
+						for (auto i : common.indices) {
+							((vi_t*)data)[(uint32_t)i.nr.NRI * max_instance_size + i.i] = instance_list.get_vi(i.nr, i.i);
+						}
+					}
 
 					common.on_edit(context);
 				}
@@ -87,23 +87,15 @@ namespace fan {
 				//	common.on_edit(context);
 				//}
 
-				void open(
-					fan::vulkan::context_t* context,
-					open_properties_t op = open_properties_t()
-				) {
+				void open(fan::vulkan::context_t* context) {
 					common.open(context, [context, this] {
 						for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
 							write(context, i);
 						}
 					});
-
-					#if fan_debug >= fan_debug_medium
-						if (op.preallocate == 0) {
-							fan::throw_error("preallocate must be bigger than 0");
-						}
-					#endif
 				}
 				void close(fan::vulkan::context_t* context, memory_write_queue_t* queue) {
+					vkUnmapMemory(context->device, common.memory[context->currentFrame].device_memory);
 					common.close(context, queue);
 				}
 
@@ -128,7 +120,9 @@ namespace fan {
 						vram_capacity = instance_list.GetAmountOfAllocated() * sizeof(vi_t) * max_instance_size;
 						for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
 							allocate(context, vram_capacity, i);
-							common.edit(context, wq, 0, old_size);
+							if (old_size) {
+								common.edit(context, wq, 0, old_size);
+							}
 							m_descriptor.m_properties[0].buffer = common.memory[i].buffer;
 							m_descriptor.update(context, 1);
 						}
@@ -178,6 +172,7 @@ namespace fan {
 				instance_list_t instance_list;
 				uint64_t vram_capacity = 0;
 				fan::vulkan::descriptor_t<descriptor_count> m_descriptor;
+				uint8_t* data;
 			};
 		}
 	}

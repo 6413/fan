@@ -21,7 +21,7 @@
 //#define loco_sprite
 #include _FAN_PATH(graphics/loco.h)
 
-constexpr uint32_t count = 51200;
+constexpr uint32_t count = 5000;
 
 struct pile_t {
 
@@ -55,7 +55,7 @@ int main() {
   p.matrices = &pile->matrices;
   p.viewport = &pile->viewport;
 
-  p.size = fan::vec2(2);
+  p.size = fan::vec2(0.05);
 
   //p.position = fan::vec3(-0.5, -0.5, 0);
   p.color = fan::colors::red;
@@ -65,6 +65,11 @@ int main() {
     p.position = fan::vec3(fan::random::vec2(-1, 1), i);
     pile->loco.rectangle.push_back(&pile->cids[i], p);
   }
+
+  
+  //p.position = fan::vec2(0, 0);
+  //p.color = fan::colors::white;
+  //pile->loco.rectangle.push_back(&pile->cids[2], p);
 
   //pile->matrices.set_ortho();
   //pile->loco.rectangle.m_shader.
@@ -77,7 +82,12 @@ int main() {
 
   pile->loco.set_vsync(false);
   
+  int x = count;
+
   pile->loco.loop([&] {
+    if (x-- >= 0) {
+      pile->loco.rectangle.erase(&pile->cids[x]);
+    }
     pile->loco.get_fps();
 
   });

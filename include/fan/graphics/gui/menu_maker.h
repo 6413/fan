@@ -197,8 +197,8 @@ struct sb_menu_maker_type_name {
 
     loco->button.push_back(&instances[id].cid, bp);
 
-    loco_t::text_t::properties_t textp;
-    textp.position = bp.position;
+    //loco_t::text_t::properties_t textp;
+    //textp.position = bp.position;
     //textp.text = bp.
     //instances[id].text_id = loco->text.push_back()
 

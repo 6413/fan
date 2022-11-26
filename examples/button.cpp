@@ -104,6 +104,9 @@ int main() {
     fan::vec2(-1, 1),
     fan::vec2(-1, 1)
   );
+
+  pile.loco.button.set_text(&cids[1], L"testi");
+
   //pile.loco.get_context()->opengl.glPolygonMode(fan::opengl::GL_FRONT_AND_BACK, fan::opengl::GL_LINE);
   //pile.loco.get_window()->set_background_color(fan::colors::red);
   //pile.loco.button.set_theme(&cids[0], &gray_theme, 0.1);
