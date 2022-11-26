@@ -5,6 +5,9 @@
 #ifndef FAN_INCLUDE_PATH
 #define FAN_INCLUDE_PATH C:/libs/fan/include
 #endif
+
+#define fan_debug 3
+
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
 #define loco_vulkan
@@ -30,6 +33,7 @@ struct pile_t {
       fan::vec2 ratio = window_size / window_size.max();
       //std::swap(ratio.x, ratio.y);
       matrices.set_ortho(
+        &loco,
         fan::vec2(-1, 1) * ratio.x,
         fan::vec2(-1, 1) * ratio.y
       );

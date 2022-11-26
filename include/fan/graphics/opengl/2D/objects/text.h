@@ -15,7 +15,9 @@ struct text_renderer_t {
       text = p.text;
     }
     properties_t& operator=(const properties_t& p) {
-      return properties_t(p);
+      this->~properties_t();
+      new (this) properties_t(p);
+      return *this;
     }
 
     make_key_value(loco_t::matrices_list_NodeReference_t, matrices);

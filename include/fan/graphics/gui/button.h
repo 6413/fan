@@ -83,7 +83,9 @@ struct button_t {
     tp.position.z += p.position.z + 1;
     tp.viewport = p.viewport;
     tp.matrices = p.matrices;
+
     sb_push_back(cid, p);
+
     sb_get_ri(cid).text_id = loco->text.push_back(tp);
 
     set_theme(cid, theme, inactive);

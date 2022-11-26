@@ -32,6 +32,7 @@ struct pile_t {
       fan::vec2 window_size = d.size;
       fan::vec2 ratio = window_size / window_size.max();
       matrices.set_ortho(
+        &loco,
         ortho_x * ratio.x, 
         ortho_y * ratio.y
       );
@@ -56,15 +57,23 @@ int main() {
   p.matrices = &pile->matrices;
   p.viewport = &pile->viewport;
 
-  p.font_size = 0.2;
-  p.text = L"hello world";
+  p.font_size = 0.05;
+  p.text = L"01234";
   for (uint32_t i = 0; i < count; i++) {
-    p.position = fan::random::vec2(0, 0);
+    if (!i) {
+      p.color = fan::colors::red;
+    }
+    else {
+      p.color = fan::colors::white;
+    }
+    p.position = fan::random::vec2(-1, 1);
     //p.text = fan::random::string(5);
     pile->ids[i] = pile->loco.text.push_back(p);
   }
-
-  pile->loco.text.set_text(&pile->ids[0], L"hello world");
+  pile->loco.text.erase(pile->ids[0]);
+  p.text = L"56789";
+  pile->loco.text.push_back(p);
+  pile->loco.text.set_text(&pile->ids[0], L"56789");
   pile->loco.set_vsync(false);
 
   pile->loco.loop([&] {

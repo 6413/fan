@@ -148,10 +148,10 @@ void sb_close() {
     m_texture_index = 0;
   }
 
-  uint32_t index = fan::ofof<loco_t>() - offsetof(loco_t, )
-  for (uint8_t i = 0; i < loco->matrices_list.Usage(); ++i) {
-    ((uint8_t *)&loco->matrices_list[*(loco_t::matrices_list_NodeReference_t*)&i].matrices_index)[index]
-  }
+  //uint32_t index = fan::ofof<loco_t>() - offsetof(loco_t, )
+  //for (uint8_t i = 0; i < loco->matrices_list.Usage(); ++i) {
+  //  ((uint8_t *)&loco->matrices_list[*(loco_t::matrices_list_NodeReference_t*)&i].matrices_index)[index]
+  //}
 
   //vkDestroyDescriptorSetLayout(loco->get_context()->device, descriptorSetLayout, nullptr);
 
@@ -227,10 +227,10 @@ void sb_erase(fan::graphics::cid_t* fcid) {
   auto cid = (cid_t*)fcid;
   loco_t* loco = get_loco();
 
-  auto bm_id = *(shape_bm_NodeReference_t*)&cid->bm_id;
+  auto bm_id = cid->bm_id;
   auto bm = &bm_list[bm_id];
 
-  auto block_id = *(ssbo_t::nr_t*)&cid->block_id;
+  auto block_id = cid->block_id;
   //auto block_node = blocks.GetNodeByReference(*(bll_block_NodeReference_t*)&cid->block_id);
   //auto block = &block_node->data.block;
 
@@ -238,10 +238,10 @@ void sb_erase(fan::graphics::cid_t* fcid) {
   //auto* last_block_node = blocks.GetNodeByReference(last_block_id);
   //block_t* last_block = &last_block_node->data.block;
   uint32_t last_instance_id = (bm->total_instances - 1) % max_instance_size;
-
+  static int x = 0;
   if (block_id == last_block_id && cid->instance_id == last_instance_id) {
     bm->total_instances--;
-    if (bm->total_instances % max_instance_size == max_instance_size - 1) {
+    if (bm->total_instances % max_instance_size == 0) {
 			auto prev_block_id = m_ssbo.instance_list.GetNodeByReference(
 				block_id,
 				m_ssbo.multiple_type_link_index
@@ -405,9 +405,14 @@ void traverse_draw(auto nr) {
 
       loco->m_write_queue.process(context);
 
+      uint32_t count = max_instance_size;
+      if (bnr == bmn->data.last_ssbo_nr) {
+        count = (bmn->data.total_instances - 1) % max_instance_size + 1;
+      }
+
       context->draw(
         sb_vertex_count,
-        bnr == bmn->data.last_ssbo_nr ? bmn->data.total_instances % (max_instance_size + 1) : max_instance_size,
+        count,
         (uint32_t)bnr.NRI * max_instance_size,
         m_pipeline,
         1,

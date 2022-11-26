@@ -12,7 +12,7 @@ struct letter_t {
     f32_t pad[2];
   };
 
-  static constexpr uint32_t max_instance_size = fan::min(256ull, 4096 / (sizeof(vi_t) / 4));
+  static constexpr uint32_t max_instance_size = 2;// fan::min(256ull, 4096 / (sizeof(vi_t) / 4));
 
   struct bm_properties_t {
     using parsed_masterpiece_t = fan::masterpiece_t<
