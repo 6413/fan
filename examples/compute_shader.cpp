@@ -68,21 +68,6 @@ int main() {
 
 	compute_shader.execute(&pile->loco, fan::vec3(5, 1, 1));
 
-	VkBufferMemoryBarrier barrier{};
-	barrier.buffer = memory.buffer;
-	barrier.size = VK_WHOLE_SIZE;
-	barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-	barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-	vkCmdPipelineBarrier(
-		context->commandBuffers[context->currentFrame], 
-		VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 
-		VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, 
-		0, 0, nullptr, 1, &barrier, 0, nullptr
-	);
-
 	context->end_compute_shader();
 
 	compute_shader.wait_finish(&pile->loco);
