@@ -62,8 +62,8 @@ int main() {
 
   vkDeviceWaitIdle(pile->loco.get_context()->device);
 
-  for (uint32_t i = 1; i; ++i) {
-    if (((uint32_t*)data)[i] == 0) {
+  for (uint32_t i = 0; i < 5*1*1*128*1*1; ++i) {
+    if (i && ((uint32_t*)data)[i] == 0) {
       break;
     }
     fan::print(i, ((uint32_t*)data)[i]);
