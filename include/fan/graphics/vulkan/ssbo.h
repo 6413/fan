@@ -45,7 +45,7 @@ namespace fan {
 						}
 					}
 
-					createBuffer(
+					create_buffer(
 						context,
 						size,
 						VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+
 #if defined(fan_platform_windows)
 #define VK_USE_PLATFORM_WIN32_KHR
 #elif defined(fan_platform_unix)
@@ -554,6 +556,7 @@ namespace fan {
 				}
 			}
 
+		#if defined(loco_window)
 			void createSurface(auto handle) {
 				#ifdef fan_platform_windows
 
@@ -576,6 +579,7 @@ namespace fan {
 
 				#endif
 			}
+		#endif
 
 			void pickPhysicalDevice() {
 				uint32_t deviceCount = 0;

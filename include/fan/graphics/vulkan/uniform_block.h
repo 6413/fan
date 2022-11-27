@@ -46,7 +46,7 @@ namespace fan {
 					VkDeviceSize bufferSize = sizeof(type_t) * element_size;
 
 					for (size_t i = 0; i < buffer_count; i++) {
-						createBuffer(
+						create_buffer(
 							context,
 							bufferSize, 
 							VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, 
