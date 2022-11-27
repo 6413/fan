@@ -1,0 +1,84 @@
+#version 450
+
+layout( binding = 0, rgba8 ) uniform readonly image2D rgb;
+layout( binding = 1, rgba8 ) uniform writeonly image2D result;
+
+// Note that rec.709 and sRGB have the same primaries.
+const mat3 mat_rgb709_to_ycbcr = mat3(
+     0.2215,  0.7154,  0.0721,
+    -0.1145, -0.3855,  0.5000,
+     0.5016, -0.4556, -0.0459
+);
+
+float rgb709_unlinear(float s) {
+    return mix(4.5*s, 1.099*pow(s, 1.0/2.2) - 0.099, step(0.018, s));
+}
+
+vec3 unlinearize_rgb709_from_rgb(vec3 color) {
+    return vec3(
+        rgb709_unlinear(color.r),
+        rgb709_unlinear(color.g),
+        rgb709_unlinear(color.b));
+}
+
+vec3 ycbcr_from_rgbp(vec3 color) {
+    vec3 yuv = transpose(mat_rgb709_to_ycbcr)*color;
+    vec3 quantized = vec3(
+        (219.0*yuv.x + 16.0)/256.0,
+        (224.0*yuv.y + 128.0)/256.0,
+        (224.0*yuv.z + 128.0)/256.0);
+    return quantized;
+}
+
+vec3 sRGB_to_yuv(vec3 color) {
+    return ycbcr_from_rgbp(unlinearize_rgb709_from_rgb(color));
+}
+
+void main() {
+    uint result_w = imageSize(rgb).x/4;
+
+    uvec2 self_id = gl_GlobalInvocationID.xy;
+    ivec2 coords = ivec2(self_id.x*8, self_id.y*2);
+
+    vec3 yuv [16];
+
+    int index_x, index_y;
+
+    for(index_y = 0; index_y < 2; index_y += 1) {
+    for(index_x = 0; index_x < 8; index_x += 1) {
+        vec4 orig_color = imageLoad(rgb, coords + ivec2(index_x, index_y));
+        vec3 yuv_color = sRGB_to_yuv(orig_color.rgb);
+        yuv[index_y*8 + index_x] = yuv_color;
+    } }
+
+    // Store back the y values.
+    for(index_y = 0; index_y < 2; index_y += 1) {
+    for(index_x = 0; index_x < 2; index_x += 1) {
+        int i = index_y*8 + index_x*4;
+        vec4 yyyy = vec4(yuv[i].x, yuv[i+1].x, yuv[i+2].x, yuv[i+3].x) + 1.0/16.0;
+    imageStore(result, ivec2(2*self_id.x + index_x, 2*self_id.y + index_y), yyyy);
+    } }
+
+    ivec2 top_right_u = ivec2(0, imageSize(rgb).y);
+    ivec2 top_right_v = ivec2(0, imageSize(rgb).y + imageSize(rgb).y/4);
+
+    float us[4];
+    float vs[4];
+    for(index_x = 0; index_x < 4; index_x += 1) {
+        int i = index_x*2;
+        vec4 uuuu = vec4(yuv[i].y, yuv[i+1].y, yuv[i+8].y, yuv[i+9].y);
+        vec4 vvvv = vec4(yuv[i].z, yuv[i+1].z, yuv[i+8].z, yuv[i+9].z);
+    us[index_x] = dot(uuuu, vec4(1.0))/4.0;
+    vs[index_x] = dot(vvvv, vec4(1.0))/4.0;
+    }
+
+    // Group u and v output
+    vec4 ucode = vec4(us[0], us[1], us[2], us[3]);
+    vec4 vcode = vec4(vs[0], vs[1], vs[2], vs[3]);
+
+    uint uv_sample_count = self_id.x + self_id.y*(imageSize(rgb).x/8);
+    ivec2 relative = ivec2(uv_sample_count%result_w, uv_sample_count/result_w);
+
+    imageStore(result, top_right_u + relative, ucode);
+    imageStore(result, top_right_v + relative, vcode);
+}

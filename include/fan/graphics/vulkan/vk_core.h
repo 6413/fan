@@ -1154,7 +1154,7 @@ namespace fan {
 				renderPassInfo.clearValueCount = std::size(clearValues);
 				renderPassInfo.pClearValues = clearValues;
 
-				vkCmdBeginRenderPass(commandBuffers[currentFrame], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+			//	vkCmdBeginRenderPass(commandBuffers[currentFrame], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 			}
 
 			void end_render(fan::window_t* window) {
@@ -1163,7 +1163,7 @@ namespace fan {
 				vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, render_fullscreen_pl.m_pipeline);	
 				vkCmdDraw(commandBuffers[currentFrame], 6, 1, 0, 0);
 			#endif
-				vkCmdEndRenderPass(commandBuffers[currentFrame]);
+			//	vkCmdEndRenderPass(commandBuffers[currentFrame]);
 
 				if (vkEndCommandBuffer(commandBuffers[currentFrame]) != VK_SUCCESS) {
 					fan::throw_error("failed to record command buffer!");
@@ -1190,6 +1190,7 @@ namespace fan {
 				if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS) {
 					throw std::runtime_error("failed to submit draw command buffer!");
 				}
+				return;
 
 				VkPresentInfoKHR presentInfo{};
 				presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -1202,7 +1203,6 @@ namespace fan {
 				presentInfo.pSwapchains = swapChains;
 
 				presentInfo.pImageIndices = &image_index;
-
 				auto result = vkQueuePresentKHR(presentQueue, &presentInfo);
 
 				if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
@@ -1800,7 +1800,7 @@ void fan::vulkan::shader_t::close(fan::vulkan::context_t* context, fan::vulkan::
 	projection_view_block.close(context, write_queue);
 }
 
-VkShaderModule fan::vulkan::shader_t::createShaderModule(fan::vulkan::context_t* context, const fan::string& code) {
+inline VkShaderModule fan::vulkan::shader_t::createShaderModule(fan::vulkan::context_t* context, const fan::string& code) {
 	VkShaderModuleCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 	createInfo.codeSize = code.size();

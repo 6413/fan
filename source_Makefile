@@ -8,7 +8,7 @@ GPP = clang++
 CFLAGS = -w -I . -g -std=c++2a -I include #-O3 -march=native -mtune=native \
   #-fsanitize=address -fno-omit-frame-pointer
 
-MAIN = examples/line.cpp
+MAIN = examples/compute_shader.cpp
 
 TARGET = a.out
 

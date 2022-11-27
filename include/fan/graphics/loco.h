@@ -74,6 +74,11 @@ struct loco_t;
       #define loco_vulkan_descriptor_image_sampler
     #endif
   #endif
+  #ifdef loco_compute_shader
+    #ifndef loco_vulkan_descriptor_ssbo
+      #define loco_vulkan_descriptor_ssbo
+    #endif
+  #endif
 #endif
 
 #define BDBT_set_prefix loco_bdbt
@@ -659,6 +664,13 @@ public:
     font_t font;
   #endif
 
+  #if defined(loco_compute_shader) && defined(loco_vulkan)
+    #define sb_shape_var_name compute_shader
+    #include _FAN_PATH(graphics/vulkan/compute_shader.h)
+    compute_shader_t sb_shape_var_name;
+    #undef sb_shape_var_name
+  #endif
+
   enum class shape_type_e{
     #if defined(loco_rectangle_text_button)
       rectangle_text_button
@@ -716,6 +728,7 @@ public:
         fan::throw_error("failed to initialize frame buffer");
       }
     #endif
+
   }
 
   vfi_t::shape_id_t push_back_input_hitbox(const vfi_t::properties_t& p) {
@@ -815,6 +828,7 @@ public:
 
       ev_timer.process();
       process_frame();
+      break;
     }
   }
 
