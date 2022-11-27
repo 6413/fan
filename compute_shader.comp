@@ -1,12 +1,13 @@
 #version 450
 
-layout(local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
+layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 
 layout(set = 0, binding = 0) buffer Data {
-    uint data[];
+    uvec4 data[];
 } buf;
 
 void main() {
     uint idx = gl_GlobalInvocationID.x;
-    buf.data[idx] = idx;
+		uint idy = gl_GlobalInvocationID.y;
+    buf.data[idy * 512 + idx] = uvec4(5);
 }
