@@ -67,10 +67,10 @@ int main() {
 	fan::time::clock c;
 	c.start();
 	uint32_t i = 0;
-	for (; i < 1000; i++) {
+	for (; i < 10000; i++) {
 		context->begin_compute_shader();
 
-		compute_shader.execute(&pile->loco, fan::vec3(16, 64, 1));
+		compute_shader.execute(&pile->loco, fan::vec3(1, 1024, 1));
 
 		context->end_compute_shader();
 
