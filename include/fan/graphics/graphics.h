@@ -71,8 +71,3 @@ namespace fan {
 
 	}
 }
-
-// requires fan::graphics::
-#if defined(loco_vulkan)
-	#include _FAN_PATH(graphics/vulkan/vk_buffer.h)
-#endif

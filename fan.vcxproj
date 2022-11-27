@@ -367,7 +367,6 @@
     <ClInclude Include="include\fan\graphics\vpx\video_reader.h" />
     <ClInclude Include="include\fan\graphics\vpx\y4minput.h" />
     <ClInclude Include="include\fan\graphics\vulkan\2D\objects\shape_builder.h" />
-    <ClInclude Include="include\fan\graphics\vulkan\vk_buffer.h" />
     <ClInclude Include="include\fan\graphics\vulkan\compute_shader.h" />
     <ClInclude Include="include\fan\graphics\vulkan\image_list_builder_settings.h" />
     <ClInclude Include="include\fan\graphics\vulkan\matrices_list_builder_settings.h" />

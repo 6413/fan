@@ -35,7 +35,7 @@ else
 endif
 
 _:
-	$(GPP) $(CFLAGS) $(MAIN) $(FAN_OBJECT_FOLDER)$(FAN_LIB).a
-
+	$(GPP) $(CFLAGS) $(MAIN) 
+	#	$(FAN_OBJECT_FOLDER)$(FAN_LIB).a
 clean:
 	rm -f a.out
