@@ -67,7 +67,8 @@ struct compute_shader_t {
 	}
 
 	void wait_finish(loco_t* loco) {
-		vkDeviceWaitIdle(loco->get_context()->device);
+		auto context = loco->get_context();
+		vkWaitForFences(context->device, 1, &context->inFlightFences[context->currentFrame], VK_TRUE, UINT64_MAX);
 	}
 
 	VkShaderModule m_shader_module;
