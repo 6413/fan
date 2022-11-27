@@ -246,7 +246,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="examples\stage_maker.cpp" />
+    <ClCompile Include="examples\compute_shader.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
     <ClCompile Include="src\fan\window\window_input.cpp" />
   </ItemGroup>
@@ -367,6 +367,7 @@
     <ClInclude Include="include\fan\graphics\vpx\video_reader.h" />
     <ClInclude Include="include\fan\graphics\vpx\y4minput.h" />
     <ClInclude Include="include\fan\graphics\vulkan\2D\objects\shape_builder.h" />
+    <ClInclude Include="include\fan\graphics\vulkan\compute_shader.h" />
     <ClInclude Include="include\fan\graphics\vulkan\image_list_builder_settings.h" />
     <ClInclude Include="include\fan\graphics\vulkan\matrices_list_builder_settings.h" />
     <ClInclude Include="include\fan\graphics\vulkan\memory.h" />

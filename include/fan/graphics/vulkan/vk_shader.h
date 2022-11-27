@@ -38,7 +38,7 @@ namespace fan {
         shaderStages[1] = frag;
       }
 
-      VkShaderModule createShaderModule(fan::vulkan::context_t* context, const fan::string& code);
+      static VkShaderModule createShaderModule(fan::vulkan::context_t* context, const fan::string& code);
 
       void set_matrices(auto* loco, auto* matrices, uint32_t flags) {
         auto& m = loco->matrices_list[matrices->matrices_reference];
