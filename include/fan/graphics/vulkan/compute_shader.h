@@ -18,16 +18,6 @@ struct compute_shader_t {
 			str
 		);
 
-		VkComputePipelineCreateInfo info = { VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO };
-		info.stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		info.stage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
-		info.stage.module = m_shader_module;
-		info.stage.pName = "main";
-
-		VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-
-
 		std::array<fan::vulkan::write_descriptor_set_t, 1> ds_properties{ 0 };
 
 		uint32_t buffer_size = 10000;
@@ -51,8 +41,17 @@ struct compute_shader_t {
 		ds_properties[0].dst_binding = 0;
 
 		m_descriptor.open(loco->get_context(), loco->descriptor_pool.m_descriptor_pool, ds_properties);
-
 		m_descriptor.update(loco->get_context());
+
+		VkComputePipelineCreateInfo info = { VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO };
+		info.stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		info.stage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+		info.stage.module = m_shader_module;
+		info.stage.pName = "main";
+
+		VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+
 
 		pipelineLayoutInfo.setLayoutCount = 1;
 		pipelineLayoutInfo.pSetLayouts = &m_descriptor.m_layout;

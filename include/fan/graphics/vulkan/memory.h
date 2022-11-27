@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cassert>
+
 namespace fan {
 	namespace vulkan {
 		namespace core {

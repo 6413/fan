@@ -1,3 +1,3 @@
 #pragma once
 
-#include <fan/graphics/vulkan/vk_core.h>
+#include _FAN_PATH(graphics/vulkan/vk_core.h)

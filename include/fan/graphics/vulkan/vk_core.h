@@ -223,7 +223,9 @@ namespace fan {
 				}
 			}
 
-			assert(pipes != 0);
+			if (pipes == 0) {
+				fan::throw_error("vulkan - invalid pipes");
+			}
 
 			return pipes;
 		}
@@ -306,6 +308,8 @@ namespace fan {
 	}
 }
 
+#if defined(loco_window)
+
 #include "viewport_list_builder_settings.h"
 #define BLL_set_declare_NodeReference 1
 #define BLL_set_declare_rest 0
@@ -377,6 +381,8 @@ namespace fan_2d {
 fan::vulkan::theme_list_NodeReference_t::theme_list_NodeReference_t(fan_2d::graphics::gui::theme_t* theme) {
 	NRI = theme->theme_reference.NRI;
 }
+
+#endif
 
 namespace fan {
 	namespace vulkan {
@@ -1558,8 +1564,10 @@ namespace fan {
 			std::vector<VkFence> inFlightFences;
 			uint32_t currentFrame = 0;
 
+			#if defined(loco_window)
 			fan::vulkan::viewport_list_t viewport_list;
 			fan::vulkan::theme_list_t theme_list;
+			#endif
 
 			bool vsync = true;
 			uint32_t image_index;
@@ -1822,6 +1830,8 @@ namespace fan {
 	}
 }
 
+#if defined(loco_window)
+
 inline void fan::vulkan::viewport_t::open(fan::vulkan::context_t* context) {
 	viewport_reference = context->viewport_list.NewNode();
 	context->viewport_list[viewport_reference].viewport_id = this;
@@ -1863,6 +1873,7 @@ void fan::vulkan::viewport_t::set(fan::vulkan::context_t* context, const fan::ve
 		context->command_buffer_in_use = false;
 	}
 }
+#endif
 
 void fan::vulkan::shader_t::open(fan::vulkan::context_t* context, fan::vulkan::core::memory_write_queue_t* wq) {
 	projection_view_block.open(context);
