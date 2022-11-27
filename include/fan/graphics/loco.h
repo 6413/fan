@@ -123,8 +123,6 @@ protected:
   
   #ifdef loco_window
     fan::window_t window;
-  #else
-    fan::window_t* window;
   #endif
 
   #ifdef loco_context
@@ -134,6 +132,8 @@ protected:
   #endif
 public:
   struct image_t;
+
+#if defined(loco_window)
 
   #if defined(loco_opengl)
     #include _FAN_PATH(graphics/opengl/image_list_builder_settings.h)
@@ -350,6 +350,8 @@ public:
     #endif
   #endif
 
+#endif
+
 #ifdef loco_vulkan
   struct descriptor_pool_t {
 
@@ -484,6 +486,7 @@ public:
     uint32_t matrices_id;
   };
 
+#if defined(loco_window)
   void process_block_properties_element(auto* shape, loco_t::matrices_list_NodeReference_t matrices_id) {
     #if defined(loco_opengl)
       shape->m_shader.set_matrices(get_context(), matrices_list[matrices_id].matrices_id, &m_write_queue);
@@ -529,7 +532,6 @@ public:
       );
     #endif
   }
-
   void process_block_properties_element(auto* shape, fan::graphics::viewport_list_NodeReference_t viewport_id) {
     auto data = &get_context()->viewport_list[viewport_id];
     data->viewport_id->set(
@@ -573,6 +575,7 @@ public:
       );
     #endif
   }
+#endif
 
   loco_bdbt_t bdbt;
 
@@ -684,9 +687,11 @@ public:
       #if defined(loco_window)
         get_window()
       #endif
-    ),
+    )
     #endif
-    unloaded_image(this, fan::webp::image_info_t{(void*)pixel_data, 1})
+    #if defined(loco_window)
+    ,unloaded_image(this, fan::webp::image_info_t{(void*)pixel_data, 1})
+    #endif
   {
     #if defined(loco_window)
     get_window()->add_buttons_callback([this](const mouse_buttons_cb_data_t& d) {
@@ -838,6 +843,7 @@ public:
   fan::function_t<void()> draw_queue = []{};
 };
 
+#if defined(loco_window)
 loco_t::image_list_NodeReference_t::image_list_NodeReference_t(loco_t::image_t* image) {
   NRI = image->texture_reference.NRI;
 }
@@ -845,7 +851,7 @@ loco_t::image_list_NodeReference_t::image_list_NodeReference_t(loco_t::image_t* 
 loco_t::matrices_list_NodeReference_t::matrices_list_NodeReference_t(loco_t::matrices_t* matrices) {
   NRI = matrices->matrices_reference.NRI;
 }
-
+#endif
 #undef loco_rectangle
 #undef loco_letter
 #undef loco_text

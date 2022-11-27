@@ -1,6 +1,8 @@
 #pragma once
 
-#include _FAN_PATH(window/window.h)
+#if defined(loco_window)
+	#include _FAN_PATH(window/window.h)
+#endif
 #include _FAN_PATH(physics/collision/rectangle.h)
 #include _FAN_PATH(graphics/camera.h)
 #include _FAN_PATH(types/masterpiece.h)
@@ -49,8 +51,10 @@ namespace fan {
 		#elif defined(loco_vulkan)
 			using fan::vulkan::context_t;
 			using fan::vulkan::viewport_t;
+		#if defined(loco_window)
 			using fan::vulkan::viewport_list_NodeReference_t;
 			using fan::vulkan::theme_list_NodeReference_t;
+		#endif
 			using fan::vulkan::cid_t;
 			using fan::vulkan::shader_t;
 		#endif
@@ -67,3 +71,8 @@ namespace fan {
 
 	}
 }
+
+// requires fan::graphics::
+#if defined(loco_vulkan)
+	#include _FAN_PATH(graphics/vulkan/vk_buffer.h)
+#endif
