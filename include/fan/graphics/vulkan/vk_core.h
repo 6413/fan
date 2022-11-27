@@ -39,10 +39,16 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT
 
 struct QueueFamilyIndices {
 	std::optional<uint32_t> graphicsFamily;
+#if defined(loco_window)
 	std::optional<uint32_t> presentFamily;
+#endif
 
 	bool isComplete() {
-		return graphicsFamily.has_value() && presentFamily.has_value();
+		return graphicsFamily.has_value() 
+		#if defined(loco_window)
+			 && presentFamily.has_value()
+		#endif
+		;
 	}
 };
 
@@ -384,12 +390,22 @@ namespace fan {
 			context_t() {
 				createInstance();
 				setupDebugMessenger();
+				createInstance();
+				setupDebugMessenger();
+				pickPhysicalDevice();
+				createLogicalDevice();
+				createCommandPool();
+				createCommandBuffers();
+				createSyncObjects();
 			}
-			context_t(fan::window_t* window) : context_t() {
+		#if defined(loco_window)
+			context_t(fan::window_t* window) {
 				window->add_resize_callback([&](const fan::window_t::resize_cb_data_t& d) {
 					recreateSwapChain(d.size);
-					});
+				});
 
+				createInstance();
+				setupDebugMessenger();
 				createSurface(window->get_handle());
 				pickPhysicalDevice();
 				createLogicalDevice();
@@ -405,6 +421,7 @@ namespace fan {
 				createCommandBuffers();
 				createSyncObjects();
 			}
+		#endif
 
 			~context_t() {
 				cleanupSwapChain();
@@ -445,6 +462,7 @@ namespace fan {
 				vkDestroySwapchainKHR(device, swapChain, nullptr);
 			}
 
+		#if defined(loco_window)
 			void recreateSwapChain(const fan::vec2i& window_size) {
 
 				vkDeviceWaitIdle(device);
@@ -456,6 +474,7 @@ namespace fan {
 				createDepthResources();
 				createFramebuffers();
 			}
+		#endif
 
 			void createInstance() {
 				#if fan_debug >= fan_debug_high
@@ -579,7 +598,12 @@ namespace fan {
 				QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
 
 				std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-				std::set<uint32_t> uniqueQueueFamilies = { indices.graphicsFamily.value(), indices.presentFamily.value() };
+				std::set<uint32_t> uniqueQueueFamilies = { 
+					indices.graphicsFamily.value(), 
+				#if defined(loco_window)
+					indices.presentFamily.value() 
+				#endif
+				};
 
 				float queuePriority = 1.0f;
 				for (uint32_t queueFamily : uniqueQueueFamilies) {
@@ -619,9 +643,12 @@ namespace fan {
 				}
 
 				vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
+			#if defined(loco_window)
 				vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
+			#endif
 			}
 
+		#if defined(loco_window)
 			void createSwapChain(const fan::vec2ui& framebuffer_size) {
 				SwapChainSupportDetails swapChainSupport = querySwapChainSupport(physicalDevice);
 
@@ -673,6 +700,7 @@ namespace fan {
 				swapChainImageFormat = surfaceFormat.format;
 				swap_chain_size = fan::vec2(extent.width, extent.height);
 			}
+		#endif
 
 			VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) {
 				VkImageViewCreateInfo viewInfo{};
@@ -1090,7 +1118,7 @@ namespace fan {
 			//  memcpy(data, &ubo, sizeof(ubo));
 			//  vkUnmapMemory(device, uniform_block.common.memory[currentImage].device_memory);
 			//}
-
+		#if defined(loco_window)
 			void begin_render(fan::window_t* window) {
 				vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
@@ -1154,7 +1182,7 @@ namespace fan {
 				renderPassInfo.clearValueCount = std::size(clearValues);
 				renderPassInfo.pClearValues = clearValues;
 
-			//	vkCmdBeginRenderPass(commandBuffers[currentFrame], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+				vkCmdBeginRenderPass(commandBuffers[currentFrame], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 			}
 
 			void end_render(fan::window_t* window) {
@@ -1163,7 +1191,7 @@ namespace fan {
 				vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, render_fullscreen_pl.m_pipeline);	
 				vkCmdDraw(commandBuffers[currentFrame], 6, 1, 0, 0);
 			#endif
-			//	vkCmdEndRenderPass(commandBuffers[currentFrame]);
+				vkCmdEndRenderPass(commandBuffers[currentFrame]);
 
 				if (vkEndCommandBuffer(commandBuffers[currentFrame]) != VK_SUCCESS) {
 					fan::throw_error("failed to record command buffer!");
@@ -1213,6 +1241,43 @@ namespace fan {
 				}
 
 				currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+			}
+		#endif
+
+			void begin_compute_shader() {
+				//?
+				//vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
+
+				vkResetFences(device, 1, &inFlightFences[currentFrame]);
+
+				vkResetCommandBuffer(commandBuffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
+
+				VkCommandBufferBeginInfo beginInfo{};
+				beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+				if (vkBeginCommandBuffer(commandBuffers[currentFrame], &beginInfo) != VK_SUCCESS) {
+					fan::throw_error("failed to begin recording command buffer!");
+				}
+
+				command_buffer_in_use = true;
+			}
+
+			void end_compute_shader() {
+				if (vkEndCommandBuffer(commandBuffers[currentFrame]) != VK_SUCCESS) {
+					fan::throw_error("failed to record command buffer!");
+				}
+
+				command_buffer_in_use = false;
+
+				VkSubmitInfo submitInfo{};
+				submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+				submitInfo.commandBufferCount = 1;
+				submitInfo.pCommandBuffers = &commandBuffers[currentFrame];
+
+				if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS) {
+					throw std::runtime_error("failed to submit draw command buffer!");
+				}
 			}
 
 			VkShaderModule createShaderModule(const std::vector<char>& code) {
@@ -1300,11 +1365,16 @@ namespace fan {
 
 				bool extensionsSupported = checkDeviceExtensionSupport(device);
 
-				bool swapChainAdequate = false;
+				bool swapChainAdequate
+					#if defined(loco_window)
+					= false;
 				if (extensionsSupported) {
 					SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device);
 					swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
 				}
+				#else
+					= true;
+				#endif
 
 				VkPhysicalDeviceFeatures supportedFeatures;
 				vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
@@ -1344,11 +1414,14 @@ namespace fan {
 					}
 
 					VkBool32 presentSupport = false;
+					
+				#if defined(loco_window)
 					vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
 
 					if (presentSupport) {
 						indices.presentFamily = i;
 					}
+				#endif
 
 					if (indices.isComplete()) {
 						break;
@@ -1442,10 +1515,12 @@ namespace fan {
 				return VK_FALSE;
 			}
 
+		#if defined(loco_window)
 			void set_vsync(fan::window_t* window, bool flag) {
 				vsync = flag;
 				recreateSwapChain(window->get_size());
 			}
+		#endif
 
 			VkInstance instance;
 			VkDebugUtilsMessengerEXT debugMessenger;
@@ -1455,7 +1530,9 @@ namespace fan {
 			VkDevice device;
 
 			VkQueue graphicsQueue;
-			VkQueue presentQueue;
+			#if defined(loco_window)
+				VkQueue presentQueue;
+			#endif
 
 			VkSwapchainKHR swapChain;
 			std::vector<VkImage> swapChainImages;

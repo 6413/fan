@@ -74,10 +74,8 @@ struct loco_t;
       #define loco_vulkan_descriptor_image_sampler
     #endif
   #endif
-  #ifdef loco_compute_shader
-    #ifndef loco_vulkan_descriptor_ssbo
-      #define loco_vulkan_descriptor_ssbo
-    #endif
+  #if defined loco_compute_shader
+    #define loco_vulkan_descriptor_ssbo
   #endif
 #endif
 
@@ -101,7 +99,9 @@ struct loco_t;
 #define BDBT_set_CPP_ConstructDestruct
 #include _FAN_PATH(BDBT/BDBT.h)
 
-#define loco_vfi
+#if defined(loco_window)
+  #define loco_vfi
+#endif
 
 #if defined(loco_text_box)
   #define ETC_WED_set_BaseLibrary 1
@@ -452,9 +452,6 @@ public:
   #endif
 
   struct properties_t {
-  #ifndef loco_window
-    fan::window_t* window;
-  #endif
   #ifndef loco_context
     fan::graphics::context_t* context;
   #endif
@@ -462,13 +459,11 @@ public:
 
   static constexpr uint32_t max_depths = 2;
 
-  fan::window_t* get_window() {
   #ifdef loco_window
+  fan::window_t* get_window() {
     return &window;
-  #else
-    return window;
-  #endif
   }
+  #endif
 
   fan::graphics::context_t* get_context() {
   #ifdef loco_context
@@ -478,9 +473,11 @@ public:
   #endif
   }
 
+#if defined(loco_window)
   f32_t get_delta_time() {
     return get_window()->get_delta_time();
   }
+#endif
 
   struct push_constants_t {
     uint32_t texture_id;
@@ -495,7 +492,6 @@ public:
       auto context = get_context();
 
       uint32_t idx;
-
 
       #if defined(loco_line)
         if constexpr(std::is_same<typename std::remove_pointer<decltype(shape)>::type, line_t>::value) {
@@ -584,6 +580,10 @@ public:
 
   fan::graphics::core::memory_write_queue_t m_write_queue;
   
+  #if defined(loco_compute_shader)
+    #include _FAN_PATH(graphics/vulkan/compute_shader.h)
+  #endif
+
   #if defined(loco_line)
     #define sb_shape_var_name line
     #include _FAN_PATH(graphics/opengl/2D/objects/line.h)
@@ -664,13 +664,6 @@ public:
     font_t font;
   #endif
 
-  #if defined(loco_compute_shader) && defined(loco_vulkan)
-    #define sb_shape_var_name compute_shader
-    #include _FAN_PATH(graphics/vulkan/compute_shader.h)
-    compute_shader_t sb_shape_var_name;
-    #undef sb_shape_var_name
-  #endif
-
   enum class shape_type_e{
     #if defined(loco_rectangle_text_button)
       rectangle_text_button
@@ -685,11 +678,13 @@ public:
   loco_t(const properties_t& p = properties_t()) :
     #ifdef loco_window
       window(fan::vec2(800, 800)),
-    #else
-      window(p.window),
     #endif
     #if defined(loco_context)
-    context(get_window()),
+    context(
+      #if defined(loco_window)
+        get_window()
+      #endif
+    ),
     #endif
     unloaded_image(this, fan::webp::image_info_t{(void*)pixel_data, 1})
   {
@@ -731,13 +726,16 @@ public:
 
   }
 
+#if defined(loco_vfi)
   vfi_t::shape_id_t push_back_input_hitbox(const vfi_t::properties_t& p) {
     return vfi.push_shape(p);
   }
+#endif
  /* uint32_t push_back_keyboard_event(uint32_t depth, const fan_2d::graphics::gui::ke_t::properties_t& p) {
     return element_depth[depth].keyboard_event.push_back(p);
   }*/
 
+#if defined(loco_vfi)
   void feed_mouse_move(const fan::vec2& mouse_position) {
     vfi.feed_mouse_move(mouse_position);
   }
@@ -753,6 +751,7 @@ public:
   void feed_text(wchar_t key) {
     vfi.feed_text(key);
   }
+#endif
 
   void process_frame() {
     #if defined(loco_opengl)
@@ -779,7 +778,7 @@ public:
       #endif
     #endif
   }
-
+#if defined(loco_window)
   bool window_open(uint32_t event) {
     return event != fan::window_t::events::close;
   }
@@ -835,7 +834,7 @@ public:
   static loco_t* get_loco(fan::window_t* window) {
     return OFFSETLESS(window, loco_t, window);
   }
-
+#endif
   fan::function_t<void()> draw_queue = []{};
 };
 

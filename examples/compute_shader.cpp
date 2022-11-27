@@ -8,7 +8,7 @@
 
 #define loco_vulkan
 
-#define loco_window
+//#define loco_window
 #define loco_context
 
 //#define loco_line
@@ -16,58 +16,75 @@
 #include _FAN_PATH(graphics/loco.h)
 
 struct pile_t {
-  loco_t loco;
+	loco_t loco;
 };
 
 int main() {
 
-  pile_t* pile = new pile_t;
+	pile_t* pile = new pile_t;
 
-  void* data;
+	loco_t::compute_shader_t::properties_t p;
+	p.shader.path = "compute_shader.spv";
 
-  pile->loco.draw_queue = [&] {
-    auto context = pile->loco.get_context();
-    auto cmd = context->commandBuffers[context->currentFrame];
-    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pile->loco.compute_shader.m_pipeline);
+	loco_t::compute_shader_t compute_shader(&pile->loco, p);
 
-    vkCmdBindDescriptorSets(
-			cmd,
-			VK_PIPELINE_BIND_POINT_COMPUTE,
-			pile->loco.compute_shader.m_pipeline_layout,
-			0,
-			1,
-			pile->loco.compute_shader.m_descriptor.m_descriptor_set,
-			0,
-			nullptr
-		);
+	void* data;
+	fan::vulkan::validate(vkMapMemory(pile->loco.get_context()->device, compute_shader.device_memory, 0, 10000, 0, (void**)&data));
 
-    vkCmdDispatch(cmd, 5, 1, 1);
+	auto context = pile->loco.get_context();
 
-    VkBufferMemoryBarrier barrier{};
-    barrier.buffer = pile->loco.compute_shader.buffer;
-    barrier.size = VK_WHOLE_SIZE;
-		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-		barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-    vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, 0, 0, nullptr, 1, &barrier, 0, nullptr);
+	context->begin_compute_shader();
+	compute_shader.execute(&pile->loco, fan::vec3(5, 1, 1));
 
-    fan::vulkan::validate(vkMapMemory(context->device, pile->loco.compute_shader.device_memory, 0, 10000, 0, (void**)&data));
-  };
 
-  pile->loco.loop([&] {
+	VkBufferMemoryBarrier barrier{};
+	barrier.buffer = compute_shader.buffer;
+	barrier.size = VK_WHOLE_SIZE;
+	barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+	barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+	vkCmdPipelineBarrier(
+		context->commandBuffers[context->currentFrame], 
+		VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 
+		VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, 
+		0, 0, nullptr, 1, &barrier, 0, nullptr
+	);
 
-  });
+	context->end_compute_shader();
 
-  vkDeviceWaitIdle(pile->loco.get_context()->device);
+	compute_shader.wait_finish(&pile->loco);
 
-  for (uint32_t i = 0; i < 5*1*1*128*1*1; ++i) {
-    if (i && ((uint32_t*)data)[i] == 0) {
-      break;
-    }
-    fan::print(i, ((uint32_t*)data)[i]);
-  }
+	for (uint32_t i = 0; i < 5 * 1 * 1 * 128 * 1 * 1; ++i) {
+		if (i && ((uint32_t*)data)[i] == 0) {
+			break;
+		}
+		fan::print(i, ((uint32_t*)data)[i]);
+	}
 
-  return 0;
+
+	context->begin_compute_shader();
+	compute_shader.execute(&pile->loco, fan::vec3(5, 1, 1));
+
+	vkCmdPipelineBarrier(
+		context->commandBuffers[context->currentFrame], 
+		VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 
+		VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, 
+		0, 0, nullptr, 1, &barrier, 0, nullptr
+	);
+
+	context->end_compute_shader();
+
+	compute_shader.wait_finish(&pile->loco);
+
+	for (uint32_t i = 0; i < 5 * 1 * 1 * 128 * 1 * 1; ++i) {
+		if (i && ((uint32_t*)data)[i] == 0) {
+			break;
+		}
+		fan::print(i, ((uint32_t*)data)[i]);
+	}
+
+
+	return 0;
 }
