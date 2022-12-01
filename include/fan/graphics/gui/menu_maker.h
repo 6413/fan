@@ -238,7 +238,7 @@ struct sb_menu_maker_type_name {
   }
 
   bool is_visually_valid(instance_NodeReference_t id) {
-    return ((loco_t::button_t::cid_t*)&instances[id].cid)->block_id != (decltype(((loco_t::button_t::cid_t*)&instances[id].cid)->block_id))fan::uninitialized;
+    return ((loco_t::button_t::cid_t*)&instances[id].cid)->block_id != decltype(((loco_t::button_t::cid_t*)&instances[id].cid)->block_id){(uint16_t)fan::uninitialized};
   }
 
   struct global_t : open_properties_t{

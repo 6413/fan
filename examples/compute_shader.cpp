@@ -67,7 +67,7 @@ int main() {
 	fan::time::clock c;
 	c.start();
 	uint32_t i = 0;
-	for (; i < 10000; i++) {
+	for (; i < 100000; i++) {
 		context->begin_compute_shader();
 
 		compute_shader.execute(&pile->loco, fan::vec3(1, 1024, 1));
@@ -79,12 +79,12 @@ int main() {
 
 	fan::print(c.elapsed() / i);
 
-	for (i = 0; i < buffer_size / 4; ++i) {
-		if (((uint32_t*)data)[i] != 5) {
-			fan::print(i, ((uint32_t*)data)[i]);
-			break;
-		}
-	}
+	//for (i = 0; i < buffer_size / 4; ++i) {
+	//	if (((uint32_t*)data)[i] != 5) {
+	//		fan::print(i, ((uint32_t*)data)[i]);
+	//		break;
+	//	}
+	//}
 
 	return 0;
 }

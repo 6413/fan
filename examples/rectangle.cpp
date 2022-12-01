@@ -61,12 +61,14 @@ int main() {
   p.color = fan::colors::red;
   //p.color.a = 0.5;
 
-  for (uint32_t i = 0; i < count; i++) {
-    p.position = fan::vec3(fan::random::vec2(-1, 1), i);
-    pile->loco.rectangle.push_back(&pile->cids[i], p);
-  }
+  //for (uint32_t i = 0; i < count; i++) {
+  //  p.position = fan::vec3(fan::random::vec2(-1, 1), i);
+  //  pile->loco.rectangle.push_back(&pile->cids[i], p);
+  //}
 
-  
+      p.position = fan::vec3(fan::random::vec2(-1, 1), 0);
+    pile->loco.rectangle.push_back(&pile->cids[0], p);
+
   //p.position = fan::vec2(0, 0);
   //p.color = fan::colors::white;
   //pile->loco.rectangle.push_back(&pile->cids[2], p);
@@ -82,12 +84,9 @@ int main() {
 
   pile->loco.set_vsync(false);
   
-  int x = count;
 
   pile->loco.loop([&] {
-    if (x-- >= 0) {
-      pile->loco.rectangle.erase(&pile->cids[x]);
-    }
+
     pile->loco.get_fps();
 
   });

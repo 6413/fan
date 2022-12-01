@@ -1228,7 +1228,6 @@ namespace fan {
 				if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS) {
 					throw std::runtime_error("failed to submit draw command buffer!");
 				}
-				return;
 
 				VkPresentInfoKHR presentInfo{};
 				presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;

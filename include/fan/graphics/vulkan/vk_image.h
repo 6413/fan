@@ -173,7 +173,7 @@
 
       VkDeviceSize imageSize = image_info.size.multiply() * 4;
 
-      fan::vulkan::core::createBuffer(
+      fan::vulkan::core::create_buffer(
         context, 
         imageSize, 
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 

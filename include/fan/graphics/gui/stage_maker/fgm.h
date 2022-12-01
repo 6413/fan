@@ -391,14 +391,16 @@ struct fgm_t {
 			
 			static auto add_to_f = [&f, &it]<typename T>(const T& o) {
 				std::size_t off = f.size();
-				if constexpr (std::is_same<fan::string, T>::value) {
-					uint64_t len = o.size();
+				if constexpr (std::is_same<fan::string, T>::value || 
+						std::is_same<fan::wstring, T>::value
+					) {
+					uint64_t len = o.size()  * sizeof(std::remove_reference_t<decltype(o)>::char_type);
 					f.resize(off + sizeof(uint64_t));
 					memcpy(&f[off], &len, sizeof(uint64_t));
 					off += sizeof(uint64_t);
 
-					f.resize(off + o.size());
-					memcpy(&f[off], o.data(), o.size());
+					f.resize(off + len);
+					memcpy(&f[off], o.data(), len);
 				}
 				else {
 					f.resize(off + sizeof(o));

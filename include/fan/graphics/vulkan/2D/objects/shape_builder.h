@@ -132,7 +132,17 @@ void sb_open() {
 #endif
   m_pipeline.open(context, p);
 }
-template <typename T = void>
+
+template <typename T>
+void reset_matrices(T x) {
+  T::m_matrices_index = 0
+}
+
+template <typename T>
+void reset_texture(T x) {
+  T::m_texture_index = 0
+}
+
 void sb_close() {
   loco_t* loco = get_loco();
   auto context = loco->get_context();
@@ -142,10 +152,10 @@ void sb_close() {
   m_ssbo.close(context, &loco->m_write_queue);
 
   if constexpr(fan::_has_matrices_id_t<decltype(*this)>::value) {
-    m_matrices_index = 0;
+    reset_matrices(this);
   }
   if constexpr(fan::_has_texture_id_t<decltype(*this)>::value) {
-    m_texture_index = 0;
+    reset_texture(this);
   }
 
   //uint32_t index = fan::ofof<loco_t>() - offsetof(loco_t, )
@@ -163,8 +173,7 @@ void sb_close() {
 struct block_t;
 
 // STRUCT MANUAL PADDING IS REQUIRED (4 byte)
-template <typename T = void>
-void sb_push_back(fan::vulkan::cid_t* fcid, properties_t p) {
+void sb_push_back(fan::vulkan::cid_t* fcid, auto p) {
   auto cid = (cid_t*)fcid;
   loco_t* loco = get_loco();
 
@@ -309,61 +318,60 @@ void sb_set_ri(fan::graphics::cid_t* fcid, auto T::* member, auto value) {
 //  return &block_node.block;
 //}
 
-template <typename T>
-auto get(fan::graphics::cid_t *cid, T vi_t::*member) {
+template <typename T, typename T2>
+auto get(fan::graphics::cid_t *cid, T T2::*member) {
   loco_t* loco = get_loco();
-  if constexpr(std::is_same<T, fan::vec3>::value) {
-    #if defined (loco_line)
-    if constexpr (std::is_same<vi_t, loco_t::line_t::vi_t>::value) {
-      if (fan::ofof(member) == fan::ofof(&vi_t::src)) {
-        return sb_get_vi(cid).*member + fan::vec3(0, 0, loco_t::matrices_t::znearfar - 1);
-      }
-      if (fan::ofof(member) == fan::ofof(&vi_t::dst)) {
-        return sb_get_vi(cid).*member + fan::vec3(0, 0, loco_t::matrices_t::znearfar - 1);
-      }
+
+  if constexpr (std::is_same_v<T2, loco_t::line_t::vi_t>) {
+    if constexpr (std::is_same_v<decltype(member), decltype(&T2::src)> ||
+                  std::is_same_v<decltype(member), decltype(&T2::dst)>) {
+      return sb_get_vi(cid).*member + fan::vec3(0, 0, loco_t::matrices_t::znearfar - 1);
     }
-    else {
-      if (fan::ofof(member) == fan::ofof(&vi_t::position)) {
-        return sb_get_vi(cid).*member + fan::vec3(0, 0, loco_t::matrices_t::znearfar - 1);
-      }
+  }
+  else {
+    if constexpr (std::is_same_v<decltype(member), decltype(&T2::position)>) {
+      return sb_get_vi(cid).*member + fan::vec3(0, 0, loco_t::matrices_t::znearfar - 1);
     }
-    #else
-      if (fan::ofof(member) == fan::ofof(&vi_t::position)) {
-        return sb_get_vi(cid).*member + fan::vec3(0, 0, loco_t::matrices_t::znearfar - 1);
-      }
-    #endif
   }
   return sb_get_vi(cid).*member;
 }
 template <typename T, typename T2>
-void set(fan::graphics::cid_t *fcid, T vi_t::*member, const T2& value) {
+void set(fan::graphics::cid_t *fcid, T T2::*member, const auto& value) {
   loco_t* loco = get_loco();
   auto cid = (cid_t*)fcid;
   
-  if constexpr(std::is_same<T, fan::vec3>::value) {
-    #if defined (loco_line)
-    if constexpr (std::is_same<vi_t, loco_t::line_t::vi_t>::value) {
-      if (fan::ofof(member) == fan::ofof(&vi_t::src)) {
-        m_ssbo.copy_instance(loco->get_context(), &loco->m_write_queue, cid->block_id, cid->instance_id, member, value - fan::vec3(0, 0, loco_t::matrices_t::znearfar - 1));
-      }
-      if (fan::ofof(member) == fan::ofof(&vi_t::dst)) {
-        m_ssbo.copy_instance(loco->get_context(), &loco->m_write_queue, cid->block_id, cid->instance_id, member, value - fan::vec3(0, 0, loco_t::matrices_t::znearfar - 1));
-      }
+  #define one_line \
+    m_ssbo.copy_instance( \
+      loco->get_context(), \
+      &loco->m_write_queue, \
+      cid->block_id, \
+      cid->instance_id, \
+      member, \
+      value - fan::vec3(0, 0, loco_t::matrices_t::znearfar - 1) \
+    );
+
+  #if defined(loco_line)
+  if constexpr (std::is_same_v<T2, loco_t::line_t::vi_t>) {
+    if constexpr (std::is_same_v<decltype(member), decltype(&T2::src)> ||
+                  std::is_same_v<decltype(member), decltype(&T2::dst)>) {
+      one_line
     }
     else {
-      if (fan::ofof(member) == fan::ofof(&vi_t::position)) {
-        m_ssbo.copy_instance(loco->get_context(), &loco->m_write_queue, cid->block_id, cid->instance_id, member, value - fan::vec3(0, 0, loco_t::matrices_t::znearfar - 1));
-      }
+      m_ssbo.copy_instance(loco->get_context(), &loco->m_write_queue, cid->block_id, cid->instance_id, member, value);
     }
-    #else
-      if (fan::ofof(member) == fan::ofof(&vi_t::position)) {
-        m_ssbo.copy_instance(loco->get_context(), &loco->m_write_queue, cid->block_id, cid->instance_id, member, value - fan::vec3(0, 0, loco_t::matrices_t::znearfar - 1));
-      }
-    #endif
   }
-  else {
-    m_ssbo.copy_instance(loco->get_context(), &loco->m_write_queue, cid->block_id, cid->instance_id, member, value);
+  if constexpr (!std::is_same_v<T2, loco_t::line_t::vi_t>) {
+  #endif
+    if constexpr (std::is_same_v<decltype(member), decltype(&T2::position)>) {
+      one_line
+    }
+    else {
+      m_ssbo.copy_instance(loco->get_context(), &loco->m_write_queue, cid->block_id, cid->instance_id, member, value);
+    }
+#if defined(loco_line)
   }
+#endif
+  #undef one_line
 }
 
 template <typename T = void>
@@ -444,6 +452,17 @@ void sb_draw(uint32_t draw_mode = 0) {
   traverse_draw(root);
 }
 
+template <typename T>
+static void line_move_z(T& x) {
+  x.src.z += loco_t::matrices_t::znearfar - 1;
+  x.dst.z += loco_t::matrices_t::znearfar - 1;
+}
+
+template <typename T>
+static void else_move_z(T& x) {
+  x.position.z += loco_t::matrices_t::znearfar - 1;
+}
+
 template <uint32_t i>
 void sb_set_key(fan::graphics::cid_t* fcid, auto value) {
   auto cid = (cid_t*)fcid;
@@ -453,12 +472,14 @@ void sb_set_key(fan::graphics::cid_t* fcid, auto value) {
   *(ri_t*)&p = m_ssbo.instance_list.get_ri(ssbo_t::nr_t{cid->block_id}, cid->instance_id);
   *p.key.get_value<i>() = value;
   #if defined (loco_line)
-  if constexpr (std::is_same<vi_t, loco_t::line_t::vi_t>::value) {
-    p.src.z += loco_t::matrices_t::znearfar - 1;
-    p.dst.z += loco_t::matrices_t::znearfar - 1;
+  if constexpr (std::is_same_v<decltype(p), loco_t::line_t::properties_t>) {
+    line_move_z(p);
+  }
+  else {
+    else_move_z(p);
   }
   #else
-    p.position.z += loco_t::matrices_t::znearfar - 1;
+    else_move_z(p);
   #endif
   sb_erase(fcid);
   sb_push_back(fcid, p);

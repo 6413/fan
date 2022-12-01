@@ -3,7 +3,7 @@
 #ifndef FAN_INCLUDE_PATH
   #define FAN_INCLUDE_PATH C:/libs/fan/include
 #endif
-#define fan_debug 3
+#define fan_debug 0
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
 #define fan_windows_subsystem fan_windows_subsystem_windows
@@ -54,7 +54,6 @@ int main(int argc, char** argv) {
 
   pile->loco.set_vsync(false);
   //pile->loco.get_window()->set_max_fps(5);
-
   pile->loco.loop([&] {
     pile->loco.get_fps();
     //fan::print(pile->loco.menu_maker.get_selected(pile->stage_maker.instances[pile_t::stage_maker_t::stage_t::state_instance].menu_id));

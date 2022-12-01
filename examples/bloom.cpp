@@ -9,6 +9,9 @@
 #define loco_window
 #define loco_context
 
+#define loco_vulkan
+
+
 #define loco_sprite
 #define loco_post_process
 #include _FAN_PATH(graphics/loco.h)
