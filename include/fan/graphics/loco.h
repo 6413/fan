@@ -832,7 +832,6 @@ public:
 
       ev_timer.process();
       process_frame();
-      break;
     }
   }
 

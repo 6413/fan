@@ -62,7 +62,7 @@ namespace fan {
 					
 					if (common.m_min_edit != (uint64_t)-1) {
 						fan::print(instance_list.Usage());
-						memcpy(data, &instance_list.get_vi((nr_t)0, 0), instance_list.NodeList.Current * max_instance_size * sizeof(vi_t));
+						memcpy(data, &instance_list.get_vi(nr_t{}, 0), instance_list.NodeList.Current * max_instance_size * sizeof(vi_t));
 					}
 					else {
 						for (auto i : common.indices) {

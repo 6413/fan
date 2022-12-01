@@ -39,7 +39,6 @@ struct stage_loader_t {
 			loco->button.erase(&node.cid);
 			it = it.Next(&stages[id]->instances);
 		}
-		stages[id]->instances.close();
 		delete stages[id];
 		stages.erase(stages.begin() + id);
 	}

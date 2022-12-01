@@ -51,7 +51,7 @@ struct stage_maker_t {
 
 static void lib_open(loco_t* loco, stage_common_t* sc, const stage_common_t::open_properties_t& op) {
 
-	sc->instances.open();
+	sc->instances.Open();
 
 	fan::string fgm_name = fan::file_name(__FILE__);
 	fgm_name.pop_back(); // remove
@@ -68,7 +68,7 @@ static void lib_open(loco_t* loco, stage_common_t* sc, const stage_common_t::ope
 		auto p = fan::io::file::read_data<fan::vec3>(f, off);
 		auto s = fan::io::file::read_data<fan::vec2>(f, off);
 		auto fs = fan::io::file::read_data<f32_t>(f, off);
-		auto text = fan::io::file::read_data<fan::string>(f, off);
+		auto text = fan::io::file::read_data<fan::wstring>(f, off);
 		fan::io::file::read_data<fan_2d::graphics::gui::theme_t>(f, off);
 		typename loco_t::button_t::properties_t bp;
 		bp.position = p;
@@ -76,8 +76,8 @@ static void lib_open(loco_t* loco, stage_common_t* sc, const stage_common_t::ope
 		bp.font_size = fs;
 		bp.text = text;
 		bp.theme = op.theme;
-		bp.get_matrices() = op.matrices;
-		bp.get_viewport() = op.viewport;
+		bp.matrices = op.matrices;
+		bp.viewport = op.viewport;
 		bp.mouse_button_cb = mouse_button_cb0;
 		auto nr = sc->instances.NewNodeLast();
 
@@ -86,7 +86,7 @@ static void lib_open(loco_t* loco, stage_common_t* sc, const stage_common_t::ope
 }
 
 static void lib_close(stage_common_t* sc) {
-	sc->instances.close();
+	sc->instances.Close();
 })";
 
 	static constexpr f32_t gui_size = 0.05;
@@ -399,7 +399,7 @@ static void lib_close(stage_common_t* sc) {
 	instance_t instances;
 
 	struct open_properties_t {
-		fan::graphics::matrices_list_NodeReference_t matrices;
+		loco_t::matrices_list_NodeReference_t matrices;
 		fan::graphics::viewport_list_NodeReference_t viewport;
 		fan::graphics::theme_list_NodeReference_t theme;
 	};

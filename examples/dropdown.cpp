@@ -21,6 +21,7 @@
 struct pile_t {
 
   void open() {
+    int x = offsetof(pile_t, loco);
     fan::vec2 window_size = loco.get_window()->get_size();
     fan::vec2 ratio = window_size / window_size.max();
     loco.open_matrices(

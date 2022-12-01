@@ -13,7 +13,7 @@ struct stage_common_t {
 	instance_t instances;
 
 	struct open_properties_t {
-		fan::graphics::matrices_list_NodeReference_t matrices;
+		loco_t::matrices_list_NodeReference_t matrices;
 		fan::graphics::viewport_list_NodeReference_t viewport;
 		fan::graphics::theme_list_NodeReference_t theme;
 	};
@@ -27,12 +27,6 @@ struct stage_common_t {
 struct stage {
 	struct stage0_t {
     #include "stages/stage0.h"
-  };
-  struct stage1_t {
-    #include "stages/stage1.h"
-  };
-  struct stage2_t {
-    #include "stages/stage2.h"
   };
   inline static std::vector<stage_common_t*> stages;
 };

@@ -222,6 +222,14 @@ namespace fan {
 					off += len;
 					return str;
 				}
+				else if constexpr (std::is_same<fan::wstring, T>::value) {
+					uint64_t len = read_data<uint64_t>(f, off);
+					fan::wstring str;
+					str.resize(len);
+					memcpy(str.data(), &f[off], len);
+					off += len;
+					return str;
+				}
 				else {
 					auto obj = &f[off];
 					off += sizeof(T);
