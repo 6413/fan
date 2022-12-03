@@ -16,7 +16,7 @@ layout( push_constant ) uniform constants_t {
 void main() {
   float distance = texture(_t[constants.texture_id], texture_coordinate).r;
 
-  float smoothing = 1.0 / (render_size * 40);
+  float smoothing = 1.0 / (log(render_size * 100) * 2);
   float width = 0.2;
   float alpha = smoothstep(width, width + smoothing, distance);
 

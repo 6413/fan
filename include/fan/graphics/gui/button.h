@@ -98,7 +98,7 @@ struct button_t {
     vfip.shape.rectangle.size = p.size;
     vfip.flags = p.vfi_flags;
     if (!p.disable_highlight) {
-      vfip.mouse_move_cb = [cb = p.mouse_move_cb, udata = p.udata, cid_ = cid](const loco_t::vfi_t::mouse_move_data_t& mm_d) -> int {
+      vfip.mouse_move_cb = [this, cb = p.mouse_move_cb, udata = p.udata, cid_ = cid](const loco_t::vfi_t::mouse_move_data_t& mm_d) -> int {
         loco_t* loco = OFFSETLESS(mm_d.vfi, loco_t, vfi_var_name);
         loco_t::mouse_move_data_t mmd = mm_d;
         if (mm_d.flag->ignore_move_focus_check == false && !loco->button.sb_get_ri(cid_).selected) {
@@ -113,7 +113,7 @@ struct button_t {
         cb(mmd);
         return 0;
       };
-      vfip.mouse_button_cb = [cb = p.mouse_button_cb, udata = p.udata, cid_ = cid](const loco_t::vfi_t::mouse_button_data_t& ii_d) -> int {
+      vfip.mouse_button_cb = [this, cb = p.mouse_button_cb, udata = p.udata, cid_ = cid](const loco_t::vfi_t::mouse_button_data_t& ii_d) -> int {
         loco_t* loco = OFFSETLESS(ii_d.vfi, loco_t, vfi_var_name);
         if (ii_d.flag->ignore_move_focus_check == false && !loco->button.sb_get_ri(cid_).selected) {
           if (ii_d.button == fan::mouse_left && ii_d.button_state == fan::mouse_state::press) {

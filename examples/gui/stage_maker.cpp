@@ -8,7 +8,7 @@
 
 #define fan_windows_subsystem fan_windows_subsystem_windows
 
-#define loco_vulkan
+//#define loco_vulkan
 
 #define loco_window
 #define loco_context
