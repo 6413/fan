@@ -248,6 +248,7 @@ template <typename T, typename T2>
 T get(fan::opengl::cid_t *cid, T T2::*member) {
   loco_t* loco = get_loco();
   auto block = sb_get_block(cid);
+#if defined(loco_line)
   if constexpr (std::is_same_v<T2, loco_t::line_t::vi_t>) {
     if constexpr (std::is_same_v<decltype(member), decltype(&T2::src)> ||
                 std::is_same_v<decltype(member), decltype(&T2::dst)>) {
@@ -255,10 +256,13 @@ T get(fan::opengl::cid_t *cid, T T2::*member) {
     }
   }
   else {
+#endif
     if constexpr (std::is_same_v<decltype(member), decltype(&T2::position)>) {
       return block->uniform_buffer.get_instance(loco->get_context(), cid->instance_id)->*member + fan::vec3(0, 0, loco_t::matrices_t::znearfar / 2 - 1);
     }
+#if defined(loco_line)
   }
+#endif
   return block->uniform_buffer.get_instance(loco->get_context(), cid->instance_id)->*member;
 }
 template <typename T, typename T2>

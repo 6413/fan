@@ -322,6 +322,7 @@ template <typename T, typename T2>
 auto get(fan::graphics::cid_t *cid, T T2::*member) {
   loco_t* loco = get_loco();
 
+#if defined(loco_line)
   if constexpr (std::is_same_v<T2, loco_t::line_t::vi_t>) {
     if constexpr (std::is_same_v<decltype(member), decltype(&T2::src)> ||
                   std::is_same_v<decltype(member), decltype(&T2::dst)>) {
@@ -329,10 +330,13 @@ auto get(fan::graphics::cid_t *cid, T T2::*member) {
     }
   }
   else {
+#endif
     if constexpr (std::is_same_v<decltype(member), decltype(&T2::position)>) {
       return sb_get_vi(cid).*member + fan::vec3(0, 0, loco_t::matrices_t::znearfar - 1);
     }
+#if defined(loco_line)
   }
+#endif
   return sb_get_vi(cid).*member;
 }
 template <typename T, typename T2>
