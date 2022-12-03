@@ -23,12 +23,13 @@ struct pile_t {
 
   pile_t(const char* texturepack_name) {
     stage_maker.open(texturepack_name);
-    /*loco.get_window()->add_resize_callback(this, [](fan::window_t* window, const fan::vec2i& size, void* userptr) {
+   /* loco.get_window()->add_resize_callback(this, [](fan::window_t* window, const fan::vec2i& size, void* userptr) {
       fan::vec2 window_size = window->get_size();
       fan::vec2 ratio = window_size / window_size.max();
       std::swap(ratio.x, ratio.y);
       pile_t* pile = (pile_t*)userptr;
       pile->matrices.set_ortho(
+        &loco,
         ortho_x * ratio.x, 
         ortho_y * ratio.y
       );

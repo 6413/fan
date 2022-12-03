@@ -17,10 +17,7 @@ struct pile_t {
   static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
 
   void open() {
-
-    loco.open(loco_t::properties_t());
-    fan::graphics::open_matrices(
-      loco.get_context(),
+    loco.open_matrices(
       &matrices,
       ortho_x,
       ortho_y
@@ -40,7 +37,7 @@ struct pile_t {
   }
 
   loco_t loco;
-  fan::graphics::matrices_t matrices;
+  loco_t::matrices_t matrices;
   fan::graphics::viewport_t viewport;
 };
 

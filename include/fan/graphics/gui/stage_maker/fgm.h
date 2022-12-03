@@ -281,9 +281,9 @@ struct fgm_t {
 		}
 		default_texture = ti;
 
-		//loco.get_window()->add_resize_callback([&](fan::window_t* window, const fan::vec2i& ws) {
-		//	resize_cb();
-		//});
+		loco.get_window()->add_resize_callback([this](const fan::window_t::resize_cb_data_t& d) {
+			resize_cb();
+		});
 
 		// half size
 		properties_line_position = fan::vec2(0.5, 0);

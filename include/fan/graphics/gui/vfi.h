@@ -332,9 +332,6 @@ struct vfi_t {
       if (focus.method.mouse.flags.ignore_move_focus_check == true) {
         return;
       }
-      if (data.shape_type != shape_t::always && mouse_move_data.mouse_stage == mouse_stage_e::inside) {
-        return;
-      }
     }
 
     f32_t closest_z = -1;
@@ -354,12 +351,13 @@ struct vfi_t {
       it = it.Next(&shape_list);
     }
     if (closest_z != -1) {
-      auto& data = shape_list[closest_z_nr];
-      fan::vec2 tp = transform(position, data.shape_type, &data.shape_data);
+      auto* data = &shape_list[closest_z_nr];
+      fan::vec2 tp = transform(position, data->shape_type, &data->shape_data);
       mouse_move_data.position = tp;
-      mouse_move_data.mouse_stage = inside(loco, data.shape_type, &data.shape_data, tp);
+      mouse_move_data.mouse_stage = inside(loco, data->shape_type, &data->shape_data, tp);
+      shape_id_t bcbfm = focus.mouse;
       set_focus_mouse(closest_z_nr);
-      data.shape_data.mouse_move_cb(mouse_move_data);
+      data->shape_data.mouse_move_cb(mouse_move_data);
       return;
     }
     focus.mouse.invalidate();
@@ -402,7 +400,7 @@ struct vfi_t {
       }
     }
   }
-   void feed_keyboard(uint16_t key, fan::keyboard_state keyboard_state) {
+  void feed_keyboard(uint16_t key, fan::keyboard_state keyboard_state) {
     keyboard_data_t keyboard_data;
     keyboard_data.vfi = this;
     if (focus.keyboard.is_invalid()) {

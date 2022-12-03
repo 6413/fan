@@ -131,8 +131,11 @@ struct sb_menu_maker_type_name {
     }
     instances.Close();
   }
+  static fan::vec2 get_button_measurements(f32_t gui_size) {
+    return fan::vec2(gui_size * 5, gui_size);
+  }
   fan::vec2 get_button_measurements() const {
-    return fan::vec2(global.gui_size * 5, global.gui_size);
+    return get_button_measurements(global.gui_size);
   }
   auto push_initialized(loco_t* loco, instance_NodeReference_t id, auto nr) {
     loco_t::button_t::properties_t bp;

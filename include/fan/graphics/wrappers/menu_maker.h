@@ -45,10 +45,10 @@ struct menu_maker_t {
   }
 
   instance_NodeReference_t push_menu(const open_properties_t& op) {
-	auto nr = instances.NewNodeLast();
-	instances[nr].select_cb = op.select_cb;
-	instances[nr].base.open(get_loco(), op);
-	return nr;
+		auto nr = instances.NewNodeLast();
+		instances[nr].select_cb = op.select_cb;
+		instances[nr].base.open(get_loco(), op);
+		return nr;
   }
 
   void erase_button_soft(instance_NodeReference_t nr, menu_maker_base_t::instance_NodeReference_t id) {
@@ -134,7 +134,10 @@ struct menu_maker_t {
   }
 
   fan::vec2 get_button_measurements(nr_t nr) {
-	return instances[nr].base.get_button_measurements();
+		return instances[nr].base.get_button_measurements();
+  }
+	static fan::vec2 get_button_measurements(f32_t gui_size) {
+    return menu_maker_base_t::get_button_measurements(gui_size);
   }
 
   instance_t instances;
