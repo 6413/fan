@@ -1,6 +1,10 @@
 auto resize_cb() {
-	fan::vec2 window_size = get_loco()->get_window()->get_size();
 	pile_t* pile = OFFSETLESS(OFFSETLESS(this, stage_maker_t, fgm), pile_t, stage_maker);
+
+  if (pile->stage_maker.fgm.line.instance.empty()) {
+    return;
+  }
+  fan::vec2 window_size = get_loco()->get_window()->get_size();
 	fan::vec2 viewport_size = pile->stage_maker.fgm.translate_viewport_position(fan::vec2(1, 1));
 	pile->stage_maker.fgm.viewport[viewport_area::global].set(
 		pile->loco.get_context(),
@@ -67,7 +71,7 @@ auto resize_cb() {
 	dst.x = pile->stage_maker.fgm.editor_position.x + pile->stage_maker.fgm.editor_size.x;
 	dst.y = src.y;
 
-	src.z = dst.z = 10;
+	src.z = dst.z = line_z_depth;
 	pile->loco.line.set_line(
 		&pile->stage_maker.fgm.line.instance[0]->cid,
 		src,
@@ -77,7 +81,7 @@ auto resize_cb() {
 	src = dst;
 	dst.y = pile->stage_maker.fgm.editor_position.y + pile->stage_maker.fgm.editor_size.y;
 
-	src.z = dst.z = 10;
+	src.z = dst.z = line_z_depth;
 	pile->loco.line.set_line(
 		&pile->stage_maker.fgm.line.instance[1]->cid,
 		src,
@@ -87,7 +91,7 @@ auto resize_cb() {
 	src = dst;
 	dst.x = pile->stage_maker.fgm.editor_position.x - pile->stage_maker.fgm.editor_size.x;
 
-	src.z = dst.z = 10;
+	src.z = dst.z = line_z_depth;
 	pile->loco.line.set_line(
 		&pile->stage_maker.fgm.line.instance[2]->cid,
 		src,
@@ -97,7 +101,7 @@ auto resize_cb() {
 	src = dst;
 	dst.y = pile->stage_maker.fgm.editor_position.y - pile->stage_maker.fgm.editor_size.y;
 
-	src.z = dst.z = 10;
+	src.z = dst.z = line_z_depth;
 	pile->loco.line.set_line(
 		&pile->stage_maker.fgm.line.instance[3]->cid,
 		src,
@@ -109,7 +113,7 @@ auto resize_cb() {
 	);
 	dst.x = src.x;
 	dst.y = pile->stage_maker.fgm.matrices[viewport_area::global].coordinates.bottom;
-	src.z = dst.z = 10;
+	src.z = dst.z = line_z_depth;
 	pile->loco.line.set_line(
 		&pile->stage_maker.fgm.line.instance[4]->cid,
 		src,
@@ -123,7 +127,7 @@ auto resize_cb() {
 		pile->stage_maker.fgm.viewport[viewport_area::types].get_position() +
 		pile->stage_maker.fgm.viewport[viewport_area::types].get_size()
 	);
-	src.z = dst.z = 10;
+	src.z = dst.z = line_z_depth;
 	pile->loco.line.set_line(
 		&pile->stage_maker.fgm.line.instance[5]->cid,
 		src,

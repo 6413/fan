@@ -23,6 +23,8 @@ struct fgm_t {
 	};
 
 	static constexpr fan::vec2 button_size = fan::vec2(0.3, 0.08);
+  static constexpr f32_t line_z_depth = 10;
+  static constexpr f32_t right_click_z_depth = 11;
 
 	f32_t line_y_offset_between_types_and_properties;
 
@@ -37,13 +39,12 @@ struct fgm_t {
 		fan::vec2 window_size = loco.get_window()->get_size();
 		return (value + 1) / 2 * window_size;
 	}
-	fan::vec2 position_to_coordinates(const fan::vec2& value) {
+	fan::vec2 translate_viewport_position_to_coordinate(fan::graphics::viewport_t* to) {
 		loco_t& loco = *get_loco();
 		fan::vec2 window_size = loco.get_window()->get_size();
+    fan::vec2 p = to->get_position() + to->get_size() / 2;
 
-		fan::vec2 ret = value / window_size;
-		ret -= 2.0 / 2;
-		return fan::vec2(0.5, ret.y);
+		return p / window_size * 2 - 1;
 	}
 	static fan::vec2 scale_object_with_viewport(const fan::vec2& size, fan::graphics::viewport_t* from, fan::graphics::viewport_t* to) {
 		fan::vec2 f = from->get_size();
@@ -62,11 +63,21 @@ struct fgm_t {
 		return (from->get_size() + from->get_position()) / (to->get_size() / 2) - 1;
 	}
 
+  void invalidate_right_click_menu() {
+    loco_t& loco = *get_loco();
+    if (loco.menu_maker.instances.inric(right_click_menu_nr)) {
+      return;
+    }
+    auto v = loco.menu_maker.instances.gnric();
+    loco.menu_maker.erase_menu(right_click_menu_nr);
+    right_click_menu_nr = v;
+  }
 
 	void invalidate_focus() {
 		loco_t& loco = *get_loco();
 		loco.vfi.invalidate_focus_mouse();
 		loco.vfi.invalidate_focus_keyboard();
+    invalidate_right_click_menu();
 	}
 
 	corners_t get_corners(const fan::vec2& position, const fan::vec2& size) {
@@ -232,75 +243,66 @@ struct fgm_t {
 		//};
 		//menu.push_back(nr, mp);
 
-		auto& loco = *get_loco();
+		auto loco = get_loco();
 
-		right_click_menu_nr = loco.menu_maker.instances.gnric();
-		auto invalidate_nr = [&] {
-			if (loco.menu_maker.instances.inric(right_click_menu_nr)) {
-				return;
-			}
-			loco.menu_maker.erase_menu(right_click_menu_nr);
-			right_click_menu_nr = loco.menu_maker.instances.gnric();
-		};
-		auto push_menu = [&](auto mb, const fan::wstring& element_name) {
+		right_click_menu_nr = loco->menu_maker.instances.gnric();
+		static auto push_menu = [this, loco](auto mb, const fan::wstring& element_name) {
 			pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco);
 			loco_t::menu_maker_t::properties_t p;
 			p.text = element_name;
-			p.mouse_button_cb = [&](const loco_t::mouse_button_data_t& mb) -> int {
+			p.mouse_button_cb = [this, loco](const loco_t::mouse_button_data_t& mb) -> int {
 				if (mb.button != fan::mouse_left) {
-					invalidate_nr();
+					invalidate_right_click_menu();
 					return 0;
 				}
 				if (mb.button_state != fan::mouse_state::release) {
-					invalidate_nr();
+					invalidate_right_click_menu();
 					return 0;
 				}
-				invalidate_nr();
-				pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco);
+				//invalidate_right_click_menu();
 				fan::graphics::cid_t* cid = mb.cid;
 				if (mb.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside) {
-					pile->loco.button.set_theme(cid, pile->loco.button.get_theme(cid), loco_t::button_t::press);
+					loco->button.set_theme(cid, loco->button.get_theme(cid), loco_t::button_t::press);
 				}
 				else {
-					pile->loco.button.set_theme(cid, pile->loco.button.get_theme(cid), loco_t::button_t::inactive);
+					loco->button.set_theme(cid, loco->button.get_theme(cid), loco_t::button_t::inactive);
 				}
 				return 0;
 			};
-			pile->loco.menu_maker.push_back(right_click_menu_nr, p);
+			loco->menu_maker.push_back(right_click_menu_nr, p);
 		};
 
-		// right click menu open
-		loco_t::menu_maker_t::open_properties_t rcm_op;
-		rcm_op.matrices = &matrices[viewport_area::types];
-		rcm_op.viewport = &viewport[viewport_area::types];
-		rcm_op.theme = &theme;
-		rcm_op.gui_size = 0.1;
 
 		loco_t::vfi_t::properties_t vfip;
 		vfip.shape_type = loco_t::vfi_t::shape_t::rectangle;
-		vfip.shape.rectangle.position = position_to_coordinates(viewport[viewport_area::types].get_position());
-		vfip.shape.rectangle.position.z = 10;
-		vfip.shape.rectangle.matrices = rcm_op.matrices;
-		vfip.shape.rectangle.viewport = rcm_op.viewport;
-		vfip.shape.rectangle.size = viewport[viewport_area::types].get_size() / loco.get_window()->get_size();
+		vfip.shape.rectangle.position = translate_viewport_position_to_coordinate(&viewport[viewport_area::types]);
+		vfip.shape.rectangle.position.z = right_click_z_depth;
+		vfip.shape.rectangle.matrices = &matrices[viewport_area::global];
+		vfip.shape.rectangle.viewport = &viewport[viewport_area::global];
+		vfip.shape.rectangle.size = viewport[viewport_area::types].get_size() / loco->get_window()->get_size();
 
-		vfip.mouse_button_cb = [&](const loco_t::vfi_t::mouse_button_data_t& mb) -> int {
+		vfip.mouse_button_cb = [this, loco](const loco_t::vfi_t::mouse_button_data_t& mb) -> int {
+      loco_t::menu_maker_t::open_properties_t rcm_op;
+		  rcm_op.matrices = &matrices[viewport_area::global];
+		  rcm_op.viewport = &viewport[viewport_area::global];
+		  rcm_op.theme = &theme;
+		  rcm_op.gui_size = 0.04;
 			if (mb.button != fan::mouse_right) {
-				invalidate_nr();
+				invalidate_right_click_menu();
 				return 0;
 			}
 			if (mb.mouse_stage != loco_t::vfi_t::mouse_stage_e::inside) {
-				invalidate_nr();
+				invalidate_right_click_menu();
 				return 0;
 			}
 			if (mb.button_state != fan::mouse_state::release) {
-				invalidate_nr();
+				invalidate_right_click_menu();
 				return 0;
 			}
-			if (loco.menu_maker.instances.inric(right_click_menu_nr)) {
-				rcm_op.position = mb.position + loco.menu_maker.get_button_measurements(op.gui_size);
-				rcm_op.position.z = 1;
-				right_click_menu_nr = loco.menu_maker.push_menu(op);
+			if (loco->menu_maker.instances.inric(right_click_menu_nr)) {
+				rcm_op.position = mb.position + loco->menu_maker.get_button_measurements(rcm_op.gui_size);
+				rcm_op.position.z = right_click_z_depth;
+				right_click_menu_nr = loco->menu_maker.push_menu(rcm_op);
 				push_menu(mb, L"button");
 				push_menu(mb, L"text");
 				push_menu(mb, L"sprite");
@@ -308,7 +310,7 @@ struct fgm_t {
 
 			return 0;
 		};
-		auto shape_id = loco.push_back_input_hitbox(vfip);
+		auto shape_id = loco->push_back_input_hitbox(vfip);
 
 		global_button_t::properties_t gbp;
 		gbp.matrices = &matrices[viewport_area::global];

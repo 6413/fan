@@ -7,7 +7,7 @@
 #endif
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
-//#define loco_vulkan
+#define loco_vulkan
 
 #define loco_window
 #define loco_context
@@ -97,7 +97,7 @@ int main() {
 
   loco_t::vfi_t::properties_t vfip;
   vfip.shape_type = loco_t::vfi_t::shape_t::rectangle;
-  vfip.shape.rectangle.position = fan::vec3(0, 0, 0);
+  vfip.shape.rectangle.position = fan::vec3(0, 0, 1);
   vfip.shape.rectangle.matrices = op.matrices;
   vfip.shape.rectangle.viewport = op.viewport;
   vfip.shape.rectangle.size = fan::vec2(1, 1);
@@ -117,7 +117,7 @@ int main() {
     }
     if (pile->loco.menu_maker.instances.inric(ids[0])) {
       op.position = mb.position + pile->loco.menu_maker.get_button_measurements(op.gui_size);
-      op.position.z = 1;
+      op.position.z = 2;
       ids[0] = pile->loco.menu_maker.push_menu(op);
       push_menu(mb, L"button");
       push_menu(mb, L"text");
@@ -127,6 +127,12 @@ int main() {
     return 0;
   };
   auto shape_id = pile->loco.push_back_input_hitbox(vfip);
+
+  vfip = {};
+  vfip.shape_type = loco_t::vfi_t::shape_t::always;
+  vfip.shape.always.z = 0;
+
+  shape_id = pile->loco.push_back_input_hitbox(vfip);
 
   pile->loco.get_context()->set_vsync(pile->loco.get_window(), 0);
 
