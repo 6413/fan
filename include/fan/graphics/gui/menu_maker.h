@@ -74,6 +74,7 @@ struct sb_menu_maker_type_name {
     global = op;
     global.offset = 0;
     selected = nullptr;
+    selected_id = instances.gnric();
     //loco_t::vfi_t::properties_t vfip;
     //vfip.shape_type = loco_t::vfi_t::shape_t::always;
     //vfip.shape.always.z = op.position.z;

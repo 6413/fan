@@ -474,7 +474,7 @@ struct fgm_t {
 				if constexpr (std::is_same<fan::string, T>::value || 
 						std::is_same<fan::wstring, T>::value
 					) {
-					uint64_t len = o.size()  * sizeof(std::remove_reference_t<decltype(o)>::char_type);
+					uint64_t len = o.size()  * sizeof(typename std::remove_reference_t<decltype(o)>::char_type);
 					f.resize(off + sizeof(uint64_t));
 					memcpy(&f[off], &len, sizeof(uint64_t));
 					off += sizeof(uint64_t);
