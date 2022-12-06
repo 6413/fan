@@ -25,7 +25,6 @@ typedef uint16_t _CacheID_Size_t;
 #define BLL_set_prefix _DecoderList
 #define BLL_set_type_node _DecoderID_Size_t
 #define BLL_set_declare_NodeReference 1
-#define BLL_set_declare_basic_types 0
 #define BLL_set_declare_rest 0
 #include _WITCH_PATH(BLL/BLL.h)
 
@@ -33,7 +32,6 @@ typedef uint16_t _CacheID_Size_t;
 #define BLL_set_prefix _CacheList
 #define BLL_set_type_node _CacheID_Size_t
 #define BLL_set_declare_NodeReference 1
-#define BLL_set_declare_basic_types 0
 #define BLL_set_declare_rest 0
 #include _WITCH_PATH(BLL/BLL.h)
 
@@ -46,7 +44,6 @@ typedef uint32_t _SegmentID_t;
 #define BLL_set_prefix _DecoderList
 #define BLL_set_type_node _DecoderID_Size_t
 #define BLL_set_declare_NodeReference 0
-#define BLL_set_declare_basic_types 1
 #define BLL_set_declare_rest 1
 #include _WITCH_PATH(BLL/BLL.h)
 
@@ -59,7 +56,6 @@ typedef uint32_t _SegmentID_t;
   piece_t *piece; \
   _SegmentID_t SegmentID;
 #define BLL_set_declare_NodeReference 0
-#define BLL_set_declare_basic_types 1
 #define BLL_set_declare_rest 1
 #include _WITCH_PATH(BLL/BLL.h)
 
