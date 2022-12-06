@@ -31,16 +31,13 @@ else
   FAN_OBJECT_FOLDER = $(BASE_PATH)
 endif
 
-all: fan_window.o fan_window_input.o run
+all: fan_window.o run
 
-LIBS = $(FAN_OBJECT_FOLDER)fan_window.o $(FAN_OBJECT_FOLDER)fan_window_input.o
+LIBS = $(FAN_OBJECT_FOLDER)fan_window.o
 
 fan_window.o:  src/fan/window/window.cpp
 	$(GPP) $(CFLAGS) -c src/fan/window/window.cpp -o $(FAN_OBJECT_FOLDER)fan_window.o
 	
-fan_window_input.o:	src/fan/window/window_input.cpp
-	$(GPP) $(CFLAGS) -c src/fan/window/window_input.cpp -o $(FAN_OBJECT_FOLDER)fan_window_input.o
-
 clean:
 	$(RM) $(FAN_OBJECT_FOLDER)fan_*.o
 
