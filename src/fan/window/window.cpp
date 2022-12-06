@@ -1230,7 +1230,7 @@ void fan::window_t::initialize_window(const fan::string& name, const fan::vec2i&
     ColormapChangeMask;
 
 
-  const fan::vec2i position = fan::get_screen_resolution() / 2 - window_size / 2;
+  const fan::vec2i position = fan::sys::get_screen_resolution() / 2 - window_size / 2;
 
   m_window_handle = XCreateWindow(
       fan::sys::m_display,
