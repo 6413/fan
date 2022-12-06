@@ -37,7 +37,6 @@ LIBS = $(FAN_OBJECT_FOLDER)fan_window.o
 
 fan_window.o:  src/fan/window/window.cpp
 	$(GPP) $(CFLAGS) -c src/fan/window/window.cpp -o $(FAN_OBJECT_FOLDER)fan_window.o
-	
 clean:
 	$(RM) $(FAN_OBJECT_FOLDER)fan_*.o
 
