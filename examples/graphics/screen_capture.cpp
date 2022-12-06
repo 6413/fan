@@ -12,6 +12,8 @@
 #define loco_sprite
 #include _FAN_PATH(graphics/loco.h)
 
+#include _FAN_PATH(system.h)
+
 constexpr uint32_t count = 1;
 
 struct pile_t {
@@ -40,6 +42,17 @@ struct pile_t {
 
 int main() {
 
+  fan::sys::MD_SCR_t md;
+  
+  int i = 0;
+  while (i < 1) {
+      fan::sys::MD_SCR_open(&md);
+        fan::sys::MD_SCR_close(&md);
+        i++;
+        fan::print(i);
+  }
+  return 0;
+
   pile_t* pile = new pile_t;
   pile->open();
 
@@ -50,14 +63,14 @@ int main() {
   p.matrices = &pile->matrices;
   p.viewport = &pile->viewport;
 
-  fan::sys::MD_SCR_t md;
+  
   fan::sys::MD_SCR_open(&md);
   uint8_t* ptr = fan::sys::MD_SCR_read(&md);
   if (ptr == nullptr) {
     return 1;
   }
   fan::webp::image_info_t ii;
-  ii.size = fan::vec2ui(1920, 1080);
+  ii.size = fan::sys::get_screen_resolution();
   ii.data = ptr;
 
   loco_t::image_t image;
@@ -68,17 +81,23 @@ int main() {
   p.image = &image;
   p.position = fan::vec2(0, 0);
   p.position.z = 0;
+  //p.tc_size = fan::vec2(4, 1);
   //p.color = 10;
   // p.color = fan::color((f32_t)i / count, (f32_t)i / count + 00.1, (f32_t)i / count);
   pile->loco.sprite.push_back(&pile->cids[0], p);
+
 
   pile->loco.set_vsync(false);
   uint32_t x = 0;
   pile->loco.loop([&] {
     ptr = fan::sys::MD_SCR_read(&md);
-    ii.data = ptr;
-    image.unload(&pile->loco);
-    image.load(&pile->loco, ii, lp);
+    if (ptr) {
+      //ii.size = fan::vec2(1792, 992);
+      ii.data = ptr;
+      image.unload(&pile->loco);
+      image.load(&pile->loco, ii, lp);
+    }
+
     //pile->loco.sprite.set(&pile->cids[0], &image);
     pile->loco.get_fps();
   });

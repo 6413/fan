@@ -28,7 +28,7 @@ namespace fan {
 		release,
 		press
 	};
-
+  
 	enum input {
 		first = 0x2A,
 		key_space,
@@ -173,7 +173,7 @@ namespace fan {
 		last
 
 	};
-
+  
 	namespace special_lparam {
 		static constexpr auto lshift_lparam_down = 0x2a0001;
 		static constexpr auto rshift_lparam_down = 0x360001;
@@ -186,13 +186,18 @@ namespace fan {
 		static constexpr auto rctrl_lparam_up = 0xC11D0001;
 	}
 
+
 	namespace window_input {
 
-		uint16_t convert_keys_to_fan(uint16_t key);
-		uint16_t convert_fan_to_keys(uint16_t key);
-		uint16_t convert_utfkeys_to_fan(uint16_t key);
+    #include _FAN_PATH(window/window_input_common.h)
+    
 
-		void get_keys(std::unordered_map<uint16_t, bool>& keys, uint16_t key, bool state);
+    //#include <window_input.cpp>
+
+		 //uint16_t convert_keys_to_fan(uint16_t key);
+		 //uint16_t convert_fan_to_keys(uint16_t key);
+		 //uint16_t convert_utfkeys_to_fan(uint16_t key);
+
 	}
 
 
