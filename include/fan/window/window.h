@@ -107,18 +107,10 @@ namespace fan {
 
 	void* get_proc_address(const char* name);
 
-	fan::vec2i get_screen_resolution();
-
 	template <typename T>
 	constexpr auto initialized(T value) {
 		return value != (T)uninitialized;
 	}
-
-	void set_screen_resolution(const fan::vec2i& size);
-	void reset_screen_resolution();
-
-	uintptr_t get_screen_refresh_rate();
-
 	struct window_id_storage_t {
 		fan::window_handle_t window_handle;
 		fan::window_t* window_ptr;
@@ -182,6 +174,7 @@ namespace fan {
 		struct text_cb_data_t {
 			fan::window_t* window;
 			wchar_t character;
+      fan::keyboard_state state;
 		};
 		using text_cb_t = fan::function_t<void(const text_cb_data_t&)>;
 
@@ -467,6 +460,11 @@ namespace fan {
 		void initialize_window(const fan::string& name, const fan::vec2i& window_size, uint64_t flags);
 
 		// crossplatform variables
+
+    // for WM_CHAR
+    uint16_t m_keymap[fan::last]{};
+    uint32_t m_prev_text_flag = 0;
+    wchar_t m_prev_text = 0;
 
 		window_handle_t m_window_handle;
 		uintptr_t m_max_fps;

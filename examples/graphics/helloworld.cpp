@@ -34,6 +34,30 @@ struct pile_t {
     //});*/
     viewport.open(loco.get_context());
     viewport.set(loco.get_context(), 0, loco.get_window()->get_size(), loco.get_window()->get_size());
+    loco.get_window()->add_keys_callback([](const auto& c) {
+      switch (c.key) {
+        case fan::key_shift: {
+          fan::print("shift", (int)c.state);
+          break;
+        }
+        case fan::key_control: {
+          fan::print("control", (int)c.state);
+          break;
+        }
+        case fan::key_alt: {
+          fan::print("alt", (int)c.state);
+          break;
+        }
+      }
+      auto vk = VkKeyScan(fan::window_input::convert_fan_to_keys(c.key));
+      fan::print(c.key, (int)c.state);
+    //   printf("keys %u\n", c.key);
+     });
+    loco.get_window()->add_text_callback([](const auto& c) {
+      fan::wprint(c.character, (int)c.state);
+    //printf("text %u %u\n", c.character, c.state);
+
+      });
   }
 
   loco_t loco;
@@ -47,8 +71,8 @@ int main() {
   pile->loco.get_context()->set_vsync(pile->loco.get_window(), 0);
 
   pile->loco.loop([&] {
-    pile->loco.get_window()->get_fps();
-  });
+    //   pile->loco.get_window()->get_fps();
+    });
 
   return 0;
 }

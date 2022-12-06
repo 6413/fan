@@ -250,11 +250,14 @@ struct builder_button_t {
 			pile->stage_maker.fgm.builder_button.open_properties(&instance->cid);
 			return 0;
 		};
-		p.mouse_move_cb = [instance = instance[i]](const loco_t::mouse_move_data_t& ii_d) -> int {
+		p.mouse_move_cb = [this, instance = instance[i]](const loco_t::mouse_move_data_t& ii_d) -> int {
 			if (ii_d.flag->ignore_move_focus_check == false) {
 				return 0;
 			}
 			pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi_var_name), pile_t, loco_var_name);
+      if (!(pile->stage_maker.fgm.action_flag & action::move)) {
+        return 0;
+      }
 
 			if (instance->holding_special_key) {
 				fan::vec3 ps = pile->loco.button.get_button(&instance->cid, &loco_t::button_t::vi_t::position);
@@ -311,6 +314,8 @@ struct builder_button_t {
 			p.y = ii_d.position.y + pile->stage_maker.fgm.move_offset.y;
 			p.z = instance->z;
 			pile->loco.button.set_position(&instance->cid, p);
+
+
 
 			return 0;
 		};

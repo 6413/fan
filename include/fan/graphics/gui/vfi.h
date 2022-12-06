@@ -199,8 +199,7 @@ struct vfi_t {
     if (focus.text == id) {
       focus.text.invalidate();
     }
-    shape_list.Unlink(id);
-    shape_list.Recycle(id);
+    shape_list.unlrec(id);
 
     feed_mouse_move(get_loco()->get_mouse_position());
   }

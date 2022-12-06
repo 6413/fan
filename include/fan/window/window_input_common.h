@@ -1,14 +1,4 @@
-#ifndef FAN_INCLUDE_PATH
-  #define FAN_INCLUDE_PATH C:/libs/fan/include
-#endif
-
-#define _INCLUDE_TOKEN(p0, p1) <p0/p1>
-
-#include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
-
-#include _FAN_PATH(window/window_input.h)
-
-uint16_t fan::window_input::convert_keys_to_fan(uint16_t key) {
+static uint16_t convert_keys_to_fan(uint16_t key) {
 	switch (key) {
 		//shifts and ctrls require lparam check for which side the button is pressed this is usually checked before converting
 		#ifdef fan_platform_windows
@@ -261,129 +251,129 @@ uint16_t fan::window_input::convert_keys_to_fan(uint16_t key) {
 	}
 }
 
-uint16_t fan::window_input::convert_fan_to_keys(uint16_t key) {
+static uint16_t convert_fan_to_keys(uint16_t key) {
 	switch (key) {
 		//shifts and ctrls require lparam check for which side the button is pressed this is usually checked before converting
 #ifdef fan_platform_windows
-	case fan::input::mouse_left: { return 0x01; }
-	case fan::input::mouse_right: { return 0x02; }
-	case fan::input::mouse_middle: { return 0x04; }
+	case mouse_left: { return 0x01; }
+	case mouse_right: { return 0x02; }
+	case mouse_middle: { return 0x04; }
 
-	case fan::input::key_backspace: { return 0x08; }
-	case fan::input::key_tab: { return 0x09; }
-	case fan::input::key_enter: { return 0x0D; }
-	case fan::input::key_shift: { return 0x10; }
-	case fan::input::key_control: { return 0x11; }
-	case fan::input::key_menu: { return 0x12; }
-	case fan::input::key_pause: { return 0x13; }
-	case fan::input::key_caps_lock: { return 0x14; }
-	case fan::input::key_escape: { return 0x1B; }
-	case fan::input::key_space: { return 0x20; }
-	case fan::input::key_page_up: { return 0x21; }
-	case fan::input::key_page_down: { return 0x22; }
-	case fan::input::key_end: { return 0x23; }
-	case fan::input::key_home: { return 0x24; }
-	case fan::input::key_left: { return 0x25; }
-	case fan::input::key_up: { return 0x26; }
-	case fan::input::key_right: { return 0x27; }
-	case fan::input::key_down: { return 0x28; }
-	case fan::input::key_print_screen: { return 0x2C; }
-	case fan::input::key_insert: { return 0x2D; }
-	case fan::input::key_delete: { return 0x2E; }
+	case key_backspace: { return 0x08; }
+	case key_tab: { return 0x09; }
+	case key_enter: { return 0x0D; }
+	case key_shift: { return 0x10; }
+	case key_control: { return 0x11; }
+	case key_menu: { return 0x12; }
+	case key_pause: { return 0x13; }
+	case key_caps_lock: { return 0x14; }
+	case key_escape: { return 0x1B; }
+	case key_space: { return 0x20; }
+	case key_page_up: { return 0x21; }
+	case key_page_down: { return 0x22; }
+	case key_end: { return 0x23; }
+	case key_home: { return 0x24; }
+	case key_left: { return 0x25; }
+	case key_up: { return 0x26; }
+	case key_right: { return 0x27; }
+	case key_down: { return 0x28; }
+	case key_print_screen: { return 0x2C; }
+	case key_insert: { return 0x2D; }
+	case key_delete: { return 0x2E; }
 
-	case fan::input::key_0: { return 0x30; }
-	case fan::input::key_1: { return 0x31; }
-	case fan::input::key_2: { return 0x32; }
-	case fan::input::key_3: { return 0x33; }
-	case fan::input::key_4: { return 0x34; }
-	case fan::input::key_5: { return 0x35; }
-	case fan::input::key_6: { return 0x36; }
-	case fan::input::key_7: { return 0x37; }
-	case fan::input::key_8: { return 0x38; }
-	case fan::input::key_9: { return 0x39; }
+	case key_0: { return 0x30; }
+	case key_1: { return 0x31; }
+	case key_2: { return 0x32; }
+	case key_3: { return 0x33; }
+	case key_4: { return 0x34; }
+	case key_5: { return 0x35; }
+	case key_6: { return 0x36; }
+	case key_7: { return 0x37; }
+	case key_8: { return 0x38; }
+	case key_9: { return 0x39; }
 
-	case fan::input::key_a: { return 0x41; }
-	case fan::input::key_b: { return 0x42; }
-	case fan::input::key_c: { return 0x43; }
-	case fan::input::key_d: { return 0x44; }
-	case fan::input::key_e: { return 0x45; }
-	case fan::input::key_f: { return 0x46; }
-	case fan::input::key_g: { return 0x47; }
-	case fan::input::key_h: { return 0x48; }
-	case fan::input::key_i: { return 0x49; }
-	case fan::input::key_j: { return 0x4A; }
-	case fan::input::key_k: { return 0x4B; }
-	case fan::input::key_l: { return 0x4C; }
-	case fan::input::key_m: { return 0x4D; }
-	case fan::input::key_n: { return 0x4E; }
-	case fan::input::key_o: { return 0x4F; }
-	case fan::input::key_p: { return 0x50; }
-	case fan::input::key_q: { return 0x51; }
-	case fan::input::key_r: { return 0x52; }
-	case fan::input::key_s: { return 0x53; }
-	case fan::input::key_t: { return 0x54; }
-	case fan::input::key_u: { return 0x55; }
-	case fan::input::key_v: { return 0x56; }
-	case fan::input::key_w: { return 0x57; }
-	case fan::input::key_x: { return 0x58; }
-	case fan::input::key_y: { return 0x59; }
-	case fan::input::key_z: { return 0x5A; }
+	case key_a: { return 0x41; }
+	case key_b: { return 0x42; }
+	case key_c: { return 0x43; }
+	case key_d: { return 0x44; }
+	case key_e: { return 0x45; }
+	case key_f: { return 0x46; }
+	case key_g: { return 0x47; }
+	case key_h: { return 0x48; }
+	case key_i: { return 0x49; }
+	case key_j: { return 0x4A; }
+	case key_k: { return 0x4B; }
+	case key_l: { return 0x4C; }
+	case key_m: { return 0x4D; }
+	case key_n: { return 0x4E; }
+	case key_o: { return 0x4F; }
+	case key_p: { return 0x50; }
+	case key_q: { return 0x51; }
+	case key_r: { return 0x52; }
+	case key_s: { return 0x53; }
+	case key_t: { return 0x54; }
+	case key_u: { return 0x55; }
+	case key_v: { return 0x56; }
+	case key_w: { return 0x57; }
+	case key_x: { return 0x58; }
+	case key_y: { return 0x59; }
+	case key_z: { return 0x5A; }
 
-	case fan::input::key_numpad_0: { return 0x60; }
-	case fan::input::key_numpad_1: { return 0x61; }
-	case fan::input::key_numpad_2: { return 0x62; }
-	case fan::input::key_numpad_3: { return 0x63; }
-	case fan::input::key_numpad_4: { return 0x64; }
-	case fan::input::key_numpad_5: { return 0x65; }
-	case fan::input::key_numpad_6: { return 0x66; }
-	case fan::input::key_numpad_7: { return 0x67; }
-	case fan::input::key_numpad_8: { return 0x68; }
-	case fan::input::key_numpad_9: { return 0x69; }
+	case key_numpad_0: { return 0x60; }
+	case key_numpad_1: { return 0x61; }
+	case key_numpad_2: { return 0x62; }
+	case key_numpad_3: { return 0x63; }
+	case key_numpad_4: { return 0x64; }
+	case key_numpad_5: { return 0x65; }
+	case key_numpad_6: { return 0x66; }
+	case key_numpad_7: { return 0x67; }
+	case key_numpad_8: { return 0x68; }
+	case key_numpad_9: { return 0x69; }
 
-	case fan::input::key_numpad_multiply: { return 0x6A; }
-	case fan::input::key_numpad_add: { return 0x6B; }
-	case fan::input::key_numpad_separator: { return 0x6C; }
-	case fan::input::key_numpad_substract: { return 0x6D; }
-	case fan::input::key_numpad_decimal: { return 0x6E; }
-	case fan::input::key_numpad_divide: { return 0x6F; }
+	case key_numpad_multiply: { return 0x6A; }
+	case key_numpad_add: { return 0x6B; }
+	case key_numpad_separator: { return 0x6C; }
+	case key_numpad_substract: { return 0x6D; }
+	case key_numpad_decimal: { return 0x6E; }
+	case key_numpad_divide: { return 0x6F; }
 
-	case fan::input::key_f1: { return 0x70; }
-	case fan::input::key_f2: { return 0x71; }
-	case fan::input::key_f3: { return 0x72; }
-	case fan::input::key_f4: { return 0x73; }
-	case fan::input::key_f5: { return 0x74; }
-	case fan::input::key_f6: { return 0x75; }
-	case fan::input::key_f7: { return 0x76; }
-	case fan::input::key_f8: { return 0x77; }
-	case fan::input::key_f9: { return 0x78; }
-	case fan::input::key_f10: { return 0x79; }
-	case fan::input::key_f11: { return 0x7A; }
-	case fan::input::key_f12: { return 0x7B; }
-	case fan::input::key_f13: { return 0x7C; }
-	case fan::input::key_f14: { return 0x7D; }
-	case fan::input::key_f15: { return 0x7E; } // possibly tilde
-	case fan::input::key_f16: { return 0x7F; }
-	case fan::input::key_f17: { return 0x80; }
-	case fan::input::key_f18: { return 0x81; }
-	case fan::input::key_f19: { return 0x82; }
-	case fan::input::key_f20: { return 0x83; }
-	case fan::input::key_f21: { return 0x84; }
-	case fan::input::key_f22: { return 0x85; }
-	case fan::input::key_f23: { return 0x86; }
-	case fan::input::key_f24: { return 0x87; }
+	case key_f1: { return 0x70; }
+	case key_f2: { return 0x71; }
+	case key_f3: { return 0x72; }
+	case key_f4: { return 0x73; }
+	case key_f5: { return 0x74; }
+	case key_f6: { return 0x75; }
+	case key_f7: { return 0x76; }
+	case key_f8: { return 0x77; }
+	case key_f9: { return 0x78; }
+	case key_f10: { return 0x79; }
+	case key_f11: { return 0x7A; }
+	case key_f12: { return 0x7B; }
+	case key_f13: { return 0x7C; }
+	case key_f14: { return 0x7D; }
+	case key_f15: { return 0x7E; } // possibly tilde
+	case key_f16: { return 0x7F; }
+	case key_f17: { return 0x80; }
+	case key_f18: { return 0x81; }
+	case key_f19: { return 0x82; }
+	case key_f20: { return 0x83; }
+	case key_f21: { return 0x84; }
+	case key_f22: { return 0x85; }
+	case key_f23: { return 0x86; }
+	case key_f24: { return 0x87; }
 
-	case fan::input::key_num_lock: { return 0x90; }
-	case fan::input::key_scroll_lock: { return 0x91; }
-	case fan::input::key_left_shift: { return 0xA0; }
-	case fan::input::key_right_shift: { return 0xA1; }
-	case fan::input::key_left_control: { return 0xA2; }
-	case fan::input::key_right_control: { return 0xA3; }
+	case key_num_lock: { return 0x90; }
+	case key_scroll_lock: { return 0x91; }
+	case key_left_shift: { return 0xA0; }
+	case key_right_shift: { return 0xA1; }
+	case key_left_control: { return 0xA2; }
+	case key_right_control: { return 0xA3; }
 
-	case fan::input::key_plus: { return 0xBB; }
-	case fan::input::key_comma: { return 0xBC; }
-	case fan::input::key_minus: { return 0xBD; }
-	case fan::input::key_period: { return 0xBE; }
-	case fan::input::key_apostrophe: { return 0xBF; }
+	case key_plus: { return 0xBB; }
+	case key_comma: { return 0xBC; }
+	case key_minus: { return 0xBD; }
+	case key_period: { return 0xBE; }
+	case key_apostrophe: { return 0xBF; }
 
 #elif defined(fan_platform_unix) // todo
 
@@ -398,32 +388,8 @@ uint16_t fan::window_input::convert_fan_to_keys(uint16_t key) {
 	}
 }
 
-void fan::window_input::get_keys(std::unordered_map<uint16_t, bool>& keys, uint16_t key, bool state) {
-	switch (key) {
-		case fan::input::key_left_shift:
-		case fan::input::key_right_shift:
-		{
-			keys[fan::input::key_shift] = state;
-			break;
-		}
-		case fan::input::key_left_control:
-		case fan::input::key_right_control:
-		{
-			keys[fan::input::key_control] = state;
-			break;
-		}
-		case fan::input::key_left_alt:
-		case fan::input::key_right_alt:
-		{
-			keys[fan::input::key_alt] = state;
-			break;
-		}
-	}
-	keys[key] = state;
-}
-
 // with utf using winapi at least delete and '.' is colliding
-uint16_t fan::window_input::convert_utfkeys_to_fan(uint16_t key) {
+static uint16_t convert_utfkeys_to_fan(uint16_t key) {
 	switch (key) {
 		//shifts and ctrls require lparam check for which side the button is pressed this is usually checked before converting
 #ifdef fan_platform_windows

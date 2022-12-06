@@ -53,14 +53,6 @@ static void lib_close(stage_common_t* sc) {
 	sc->instances.Close();
 }
 
-static int mouse_button_cb1(const loco_t::mouse_button_data_t& mb){
-  return 0;
-}
-
-static int mouse_button_cb2(const loco_t::mouse_button_data_t& mb){
-  return 0;
-}
-
-static int mouse_button_cb3(const loco_t::mouse_button_data_t& mb){
+static int mouse_button_cb0(const loco_t::mouse_button_data_t& mb){
   return 0;
 }

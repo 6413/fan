@@ -54,90 +54,6 @@ static constexpr const char* shared_library = "libGL.so.1";
 
 #endif
 
-fan::vec2i fan::get_screen_resolution() {
-  #ifdef fan_platform_windows
-
-  return fan::vec2i(GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN));
-
-  #elif defined(fan_platform_unix) // close
-
-  Display* display = XOpenDisplay(0);
-
-  if (!display) {
-    fan::print("failed to open display");
-  }
-
-  int screen = DefaultScreen(display);
-  fan::vec2i resolution(DisplayWidth(display, screen), DisplayHeight(display, screen));
-
-  XCloseDisplay(display);
-
-  return resolution;
-
-  #endif
-}
-
-void fan::set_screen_resolution(const fan::vec2i& size)
-{
-  #ifdef fan_platform_windows
-  DEVMODE screen_settings;
-  memset(&screen_settings, 0, sizeof(screen_settings));
-  screen_settings.dmSize = sizeof(screen_settings);
-  screen_settings.dmPelsWidth = size.x;
-  screen_settings.dmPelsHeight = size.y;
-  screen_settings.dmBitsPerPel = 32;
-  screen_settings.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
-  ChangeDisplaySettings(&screen_settings, CDS_FULLSCREEN);
-
-  #elif defined(fan_platform_unix)
-
-  #endif
-
-}
-
-void fan::reset_screen_resolution() {
-
-  #ifdef fan_platform_windows
-
-  ChangeDisplaySettings(nullptr, CDS_RESET);
-
-  #elif defined(fan_platform_unix)
-
-
-
-  #endif
-
-}
-
-uintptr_t fan::get_screen_refresh_rate()
-{
-
-  #ifdef fan_platform_windows
-
-  DEVMODE dmode = { 0 };
-
-  EnumDisplaySettings(nullptr, ENUM_CURRENT_SETTINGS, &dmode);
-
-  return dmode.dmDisplayFrequency;
-
-  #elif defined(fan_platform_unix)
-
-  Display* display = XOpenDisplay(NULL);
-
-  Window root = RootWindow(display, 0);
-
-  XRRScreenConfiguration* conf = XRRGetScreenInfo(display, root);
-
-  short refresh_rate = XRRConfigCurrentRate(conf);
-
-  XCloseDisplay(display);
-
-  return refresh_rate;
-
-  #endif
-
-}
-
 fan::window_t* fan::get_window_by_id(fan::window_handle_t wid) {
 
   uint32_t it = window_id_storage.begin();
@@ -293,7 +209,7 @@ void fan::window_t::set_full_screen(const fan::vec2i& size)
   fan::vec2i new_size;
 
   if (size == uninitialized) {
-    new_size = fan::get_screen_resolution();
+    new_size = fan::sys::get_screen_resolution();
   }
   else {
     new_size = size;
@@ -321,7 +237,7 @@ void fan::window_t::set_windowed_full_screen(const fan::vec2i& size)
   fan::vec2i new_size;
 
   if (size == uninitialized) {
-    new_size = fan::get_screen_resolution();
+    new_size = fan::sys::get_screen_resolution();
   }
   else {
     new_size = size;
@@ -396,7 +312,7 @@ void fan::window_t::set_windowed(const fan::vec2i& size)
 
   this->set_resolution(0, fan::window_t::get_size_mode());
 
-  const fan::vec2i position = fan::get_screen_resolution() / 2 - new_size / 2;
+  const fan::vec2i position = fan::sys::get_screen_resolution() / 2 - new_size / 2;
 
   ShowWindow(m_window_handle, SW_SHOW);
 
@@ -422,10 +338,10 @@ void fan::window_t::set_windowed(const fan::vec2i& size)
 void fan::window_t::set_resolution(const fan::vec2i& size, const mode& mode) const
 {
   if (mode == mode::full_screen) {
-    fan::set_screen_resolution(size);
+    fan::sys::set_screen_resolution(size);
   }
   else {
-    fan::reset_screen_resolution();
+    fan::sys::reset_screen_resolution();
   }
 }
 
@@ -834,59 +750,60 @@ void fan::window_t::window_input_action_reset(fan::window_handle_t window, uint1
 #ifdef fan_platform_windows
 
 static void handle_special(WPARAM wparam, LPARAM lparam, uint16_t& key, bool down) {
-  if (wparam == 0x10 || wparam == 0x11) {
-    if (down) {
-      switch (lparam) {
-        case fan::special_lparam::lshift_lparam_down:
-        {
-          key = fan::input::key_left_shift;
-          break;
-        }
-        case fan::special_lparam::rshift_lparam_down:
-        {
-          key = fan::input::key_right_shift;
-          break;
-        }
-        case fan::special_lparam::lctrl_lparam_down:
-        {
-          key = fan::input::key_left_control;
-          break;
-        }
-        case fan::special_lparam::rctrl_lparam_down:
-        {
-          key = fan::input::key_right_control;
-          break;
-        }
-      }
-    }
-    else {
-      switch (lparam) {
-        case fan::special_lparam::lshift_lparam_up: // ?
-        {
-          key = fan::input::key_left_shift;
-          break;
-        }
-        case fan::special_lparam::rshift_lparam_up:
-        {
-          key = fan::input::key_right_shift;
-          break;
-        }
-        case fan::special_lparam::lctrl_lparam_up:
-        {
-          key = fan::input::key_left_control;
-          break;
-        }
-        case fan::special_lparam::rctrl_lparam_up: // ? 
-        {
-          key = fan::input::key_right_control;
-          break;
-        }
-      }
-    }
-  }
-  else {
+ // if (wparam == 0x10 || wparam == 0x11) {
+  //  if (down) {
+  //    switch (lparam) {
+  //      case fan::special_lparam::lshift_lparam_down:
+  //      {
+  //        key = fan::input::key_left_shift;
+  //        break;
+  //      }
+  //      case fan::special_lparam::rshift_lparam_down:
+  //      {
+  //        key = fan::input::key_right_shift;
+  //        break;
+  //      }
+  //      case fan::special_lparam::lctrl_lparam_down:
+  //      {
+  //        key = fan::input::key_left_control;
+  //        break;
+  //      }
+  //      case fan::special_lparam::rctrl_lparam_down:
+  //      {
+  //        key = fan::input::key_right_control;
+  //        break;
+  //      }
+  //    }
+  //  }
+  //  else {
+  //    switch (lparam) {
+  //      case fan::special_lparam::lshift_lparam_up: // ?
+  //      {
+  //        key = fan::input::key_left_shift;
+  //        break;
+  //      }z
+  //      case fan::special_lparam::rshift_lparam_up:
+  //      {
+  //        key = fan::input::key_right_shift;
+  //        break;
+  //      }
+  //      case fan::special_lparam::lctrl_lparam_up:
+  //      {
+  //        key = fan::input::key_left_control;
+  //        break;
+  //      }
+  //      case fan::special_lparam::rctrl_lparam_up: // ? 
+  //      {
+  //        key = fan::input::key_right_control;
+  //        break;
+  //      }
+  //    }
+  //  }
+  //}
+  //else {
+    //fan::print(key, (int)wparam);
     key = fan::window_input::convert_keys_to_fan(wparam);
-  }
+ // }
 
 }
 
@@ -1130,7 +1047,7 @@ void fan::window_t::initialize_window(const fan::string& name, const fan::vec2i&
   RECT rect = { 0, 0, window_size.x, window_size.y };
   AdjustWindowRect(&rect, full_screen || borderless ? WS_POPUP : WS_OVERLAPPEDWINDOW, FALSE);
 
-  const fan::vec2i position = fan::get_screen_resolution() / 2 - window_size / 2;
+  const fan::vec2i position = fan::sys::get_screen_resolution() / 2 - window_size / 2;
 
   if (full_screen) {
     this->set_resolution(window_size, fan::window_t::mode::full_screen);
@@ -1516,7 +1433,38 @@ uint32_t fan::window_t::handle_events() {
             if (!found) {
 
               auto src = msg.wParam + (window->m_reserved_flags << 8);
+              
+              UINT u = VkKeyScan(src);
+              UINT high_byte = HIBYTE(u);
+              UINT low_byte = LOBYTE(u);
+              if (m_prev_text_flag == u) {
+                auto it = window->m_text_callback.GetNodeFirst();
 
+                while (it != window->m_text_callback.dst) {
+
+                  fan::window_t::text_cb_data_t d;
+                  d.character = src;
+                  d.window = window;
+                  d.state = fan::keyboard_state::repeat;
+                  window->m_text_callback[it].data(d);
+
+                  it = it.Next(&window->m_text_callback);
+                }
+                break;
+              }
+              if (m_prev_text_flag) {
+                window->m_keymap[fan::key_shift] = 0;
+                window->m_keymap[fan::key_control] = 0;
+                window->m_keymap[fan::key_alt] = 0;
+                window->m_keymap[LOBYTE(m_prev_text_flag)] = false;
+              }
+              m_prev_text_flag = u;
+              window->m_keymap[fan::key_shift] = high_byte & 0x1;
+              window->m_keymap[fan::key_control] = high_byte & 0x2;
+              window->m_keymap[fan::key_alt] = high_byte & 0x4;
+              window->m_keymap[fan::window_input::convert_keys_to_fan(low_byte)] = true;
+              m_prev_text = src;
+              
              // UTF-8
              // auto utf8_str = fan::utf16_to_utf8((wchar_t*)&src);
 
@@ -1533,6 +1481,7 @@ uint32_t fan::window_t::handle_events() {
                 fan::window_t::text_cb_data_t d;
                 d.character = src;
                 d.window = window;
+                d.state = fan::keyboard_state::press;
                 window->m_text_callback[it].data(d);
 
                 it = it.Next(&window->m_text_callback);
@@ -1639,6 +1588,26 @@ uint32_t fan::window_t::handle_events() {
         uint16_t key = 0;
 
         handle_special(msg.wParam, msg.lParam, key, false);
+
+        do {
+            if (key == fan::key_control || key == fan::key_alt || key == fan::key_shift) {
+              break;
+            }
+            auto it = window->m_text_callback.GetNodeFirst();
+
+            while (it != window->m_text_callback.dst) {
+
+              fan::window_t::text_cb_data_t d;
+              d.character = m_prev_text;
+              d.window = window;
+              d.state = fan::keyboard_state::release;
+              // reset flag
+              m_prev_text_flag = 0;
+              window->m_text_callback[it].data(d);
+
+              it = it.Next(&window->m_text_callback);
+            }
+          } while (0);
 
         window_input_up(window->m_window_handle, key);
 

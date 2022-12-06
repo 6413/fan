@@ -246,29 +246,11 @@ struct fgm_t {
 		auto loco = get_loco();
 
 		right_click_menu_nr = loco->menu_maker.instances.gnric();
-		static auto push_menu = [this, loco](auto mb, const fan::wstring& element_name) {
+		static auto push_menu = [this, loco](
+      auto mb,
+      loco_t::menu_maker_t::properties_t p
+      ) {
 			pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco);
-			loco_t::menu_maker_t::properties_t p;
-			p.text = element_name;
-			p.mouse_button_cb = [this, loco](const loco_t::mouse_button_data_t& mb) -> int {
-				if (mb.button != fan::mouse_left) {
-					invalidate_right_click_menu();
-					return 0;
-				}
-				if (mb.button_state != fan::mouse_state::release) {
-					invalidate_right_click_menu();
-					return 0;
-				}
-				//invalidate_right_click_menu();
-				fan::graphics::cid_t* cid = mb.cid;
-				if (mb.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside) {
-					loco->button.set_theme(cid, loco->button.get_theme(cid), loco_t::button_t::press);
-				}
-				else {
-					loco->button.set_theme(cid, loco->button.get_theme(cid), loco_t::button_t::inactive);
-				}
-				return 0;
-			};
 			loco->menu_maker.push_back(right_click_menu_nr, p);
 		};
 
@@ -281,21 +263,24 @@ struct fgm_t {
 		vfip.shape.rectangle.viewport = &viewport[viewport_area::global];
 		vfip.shape.rectangle.size = viewport[viewport_area::types].get_size() / loco->get_window()->get_size();
 
-		vfip.mouse_button_cb = [this, loco](const loco_t::vfi_t::mouse_button_data_t& mb) -> int {
+    vfip.mouse_button_cb = [this, loco, vfi_id = (loco_t::vfi_t::shape_id_t)0](const loco_t::vfi_t::mouse_button_data_t& mb) mutable -> int {
       loco_t::menu_maker_t::open_properties_t rcm_op;
 		  rcm_op.matrices = &matrices[viewport_area::global];
 		  rcm_op.viewport = &viewport[viewport_area::global];
 		  rcm_op.theme = &theme;
 		  rcm_op.gui_size = 0.04;
 			if (mb.button != fan::mouse_right) {
+        fan::print("0");
 				invalidate_right_click_menu();
 				return 0;
 			}
 			if (mb.mouse_stage != loco_t::vfi_t::mouse_stage_e::inside) {
+        fan::print("1");
 				invalidate_right_click_menu();
 				return 0;
 			}
 			if (mb.button_state != fan::mouse_state::release) {
+        fan::print("2");
 				invalidate_right_click_menu();
 				return 0;
 			}
@@ -303,9 +288,91 @@ struct fgm_t {
 				rcm_op.position = mb.position + loco->menu_maker.get_button_measurements(rcm_op.gui_size);
 				rcm_op.position.z = right_click_z_depth;
 				right_click_menu_nr = loco->menu_maker.push_menu(rcm_op);
-				push_menu(mb, L"button");
-				push_menu(mb, L"text");
-				push_menu(mb, L"sprite");
+        push_menu(mb, {
+          .text = L"button",
+          .mouse_button_cb = [this](const loco_t::mouse_button_data_t& ii_d) -> int {
+			      pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi), pile_t, loco);
+			      if (ii_d.button != fan::mouse_left) {
+				      return 0;
+			      }
+            if (ii_d.button_state != fan::mouse_state::release) {
+              return 0;
+            }
+			      if (ii_d.mouse_stage != loco_t::vfi_t::mouse_stage_e::inside) {
+				      return 0;
+			      }
+			      builder_button_t::properties_t bbp;
+			      bbp.matrices = &pile->stage_maker.fgm.matrices[viewport_area::editor];
+			      bbp.viewport = &pile->stage_maker.fgm.viewport[viewport_area::editor];
+			      bbp.position = fan::vec3(0, 0, 0);
+			
+			      bbp.size = button_size;
+			      //bbp.size = button_size;
+			      bbp.theme = &pile->stage_maker.fgm.theme;
+			      bbp.text = L"button";
+			      bbp.font_size = scale_object_with_viewport(fan::vec2(0.2), &pile->stage_maker.fgm.viewport[viewport_area::types], &pile->stage_maker.fgm.viewport[viewport_area::editor]).x;
+			      pile->stage_maker.fgm.builder_button.push_back(bbp);
+			
+			      auto builder_cid = &pile->stage_maker.fgm.builder_button.instance[pile->stage_maker.fgm.builder_button.instance.size() - 1]->cid;
+			      auto ri = pile->loco.button.get_ri(builder_cid);
+			      //pile->loco.vfi.set_focus_mouse(ri.vfi_id);
+			      //pile->loco.vfi.feed_mouse_button(fan::mouse_left, fan::mouse_state::press);
+			      pile->stage_maker.fgm.builder_button.open_properties(builder_cid);
+			
+			      auto stage_name = pile->stage_maker.get_selected_name(
+				      pile,
+				      pile->stage_maker.instances[pile_t::stage_maker_t::stage_t::stage_instance].menu_id,
+				      pile->loco.menu_maker.get_selected_id(pile->stage_maker.instances[pile_t::stage_maker_t::stage_t::stage_instance].menu_id)
+			      );
+			      auto file_name = pile->stage_maker.get_file_fullpath(stage_name);
+			
+			      fan::string str;
+			      fan::io::file::read(file_name, &str);
+			
+			      std::size_t button_id = -1;
+			      for (std::size_t j = 0; j < pile->stage_maker.fgm.builder_button.instance.size(); ++j) {
+				      if (&pile->stage_maker.fgm.builder_button.instance[j]->cid == builder_cid) {
+					      button_id = j;
+					      break;
+				      }
+			      }
+			
+			      if (button_id == -1) {
+				      fan::throw_error("some corruption xd");
+			      }
+			
+			      if (str.find(fan::to_string(button_id) + "(") != fan::string::npos) {
+				      return 0;
+			      }
+			
+			      str += "\n\nstatic int mouse_button_cb" + fan::to_string(button_id) + "(const loco_t::mouse_button_data_t& mb){\n  return 0;\n}";
+			
+			      fan::io::file::write(file_name, str, std::ios_base::binary);
+
+            invalidate_right_click_menu();
+
+			      return 1;
+		      }
+        });
+        push_menu(mb, {
+          .text = L"text"
+        });
+        push_menu(mb, {
+          .text = L"sprite"
+        });
+
+        loco_t::vfi_t::properties_t p;
+		    p.shape_type = loco_t::vfi_t::shape_t::always;
+		    p.shape.always.z = rcm_op.position.z;
+		    p.mouse_button_cb = [this, &vfi_id, loco](const loco_t::vfi_t::mouse_button_data_t& mb) -> int {
+			    pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco);
+          invalidate_right_click_menu();
+          fan::print("debug0", loco->vfi.focus.mouse.NRI, loco->vfi.focus.keyboard.NRI, loco->vfi.focus.text.NRI);
+          loco->vfi.erase(vfi_id);
+			    return 1;
+          fan::print("debug1", loco->vfi.focus.mouse.NRI, loco->vfi.focus.keyboard.NRI, loco->vfi.focus.text.NRI);
+		    };
+		    vfi_id = loco->vfi.push_shape(p);
 			}
 
 			return 0;
@@ -345,6 +412,8 @@ struct fgm_t {
 	void open(const char* texturepack_name) {
 		loco_t& loco = *get_loco();
 
+    right_click_menu_nr = loco.menu_maker.instances.gnric();
+
 		line_y_offset_between_types_and_properties = 0.0;
 
 		editor_ratio = fan::vec2(1, 1);
@@ -380,16 +449,14 @@ struct fgm_t {
 		viewport[viewport_area::types].open(loco.get_context());
 		viewport[viewport_area::properties].open(loco.get_context());
 
-		loco_t::vfi_t::properties_t p;
-		p.shape_type = loco_t::vfi_t::shape_t::always;
-		p.shape.always.z = 0;
-		p.mouse_button_cb = [](const loco_t::vfi_t::mouse_button_data_t& mb) -> int {
-			pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco);
-			pile->stage_maker.fgm.invalidate_focus();
-			pile->stage_maker.fgm.open_editor_properties();
-			return 0;
-		};
-		loco.vfi.push_shape(p);
+		//loco_t::vfi_t::properties_t p;
+		//p.shape_type = loco_t::vfi_t::shape_t::always;
+		//p.shape.always.z = 0;
+		//p.mouse_button_cb = [](const loco_t::vfi_t::mouse_button_data_t& mb) -> int {
+		//	pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco);
+		//	return 0;
+		//};
+		//loco.vfi.push_shape(p);
 
 		//menu.open(fan::vec2(1.05, button_size.y * 1.5));
 	}
