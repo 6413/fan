@@ -212,13 +212,12 @@ _BLL_POFTWBIT(GetNodeSize)
   }
 #endif
 
-/* get node reference invalid constant */
 _BLL_SOFTWBIT
 _P(NodeReference_t)
 _BLL_POFTWBIT(gnric)
 (
 ){
-  return _P(NR_gic)();
+  return _P(gnric)();
 }
 
 /* is node reference invalid */
@@ -236,18 +235,13 @@ _BLL_POFTWBIT(inri)
   #endif
 }
 
-/* is node reference invalid constant */
-/* basically same with _BLL_POFTWBIT(inri) */
-/* only difference this function made for compare with _BLL_POFTWBIT(gnric) */
-/* so it can be faster in some cases */
 _BLL_SOFTWBIT
 bool
 _BLL_POFTWBIT(inric)
 (
-  _P(NodeReference_t) NodeReference
+  _P(NodeReference_t) NR
 ){
-  _P(NodeReference_t) inr = _BLL_POFTWBIT(gnric)();
-  return inr.NRI == NodeReference.NRI;
+  return _P(inric)(NR);
 }
 
 _BLL_SOFTWBIT
@@ -1030,9 +1024,13 @@ _BLL_POFTWBIT(GetNodeReferenceData)
 #if BLL_set_Language == 1
   #if defined(BLL_set_MultipleType_Sizes)
     /* what syntax you would like */
-  #else
+  #elif defined(BLL_set_node_data)
     _P(NodeData_t) &operator[](_P(NodeReference_t) NR){
-      return _BLL_POFTWBIT(_GetNodeByReference)(NR)->data;
+      return *_BLL_POFTWBIT(GetNodeReferenceData)(NR);
+    }
+  #else
+    _P(NodeData_t) *operator[](_P(NodeReference_t) NR){
+      return _BLL_POFTWBIT(GetNodeReferenceData)(NR);
     }
   #endif
 

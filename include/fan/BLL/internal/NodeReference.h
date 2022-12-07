@@ -45,15 +45,25 @@ BLL_StructBegin(_P(NodeReference_t))
   #endif
 BLL_StructEnd(_P(NodeReference_t))
 
-/* node reference get invalid constant */
+/* get node reference invalid constant */
 static
 _P(NodeReference_t)
-_P(NR_gic)
+_P(gnric)
 (
 ){
   _P(NodeReference_t) nr;
   nr.NRI = (BLL_set_type_node)-1;
   return nr;
+}
+/* is node reference invalid constant */
+static
+bool
+_P(inric)
+(
+  _P(NodeReference_t) NodeReference
+){
+  _P(NodeReference_t) nric = _P(gnric)();
+  return nric.NRI == NodeReference.NRI;
 }
 
 #ifdef BLL_set_namespace
