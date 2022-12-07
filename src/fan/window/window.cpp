@@ -1064,13 +1064,18 @@ void fan::window_t::initialize_window(const fan::string& name, const fan::vec2i&
     fan::throw_error("failed to initialize window:" + fan::to_string(GetLastError()));
   }
 
-  RAWINPUTDEVICE r_id;
-  r_id.usUsagePage = HID_USAGE_PAGE_GENERIC;
-  r_id.usUsage = HID_USAGE_GENERIC_MOUSE;
-  r_id.dwFlags = RIDEV_INPUTSINK;
-  r_id.hwndTarget = m_window_handle;
+  RAWINPUTDEVICE r_id[2];
+  r_id[0].usUsagePage = HID_USAGE_PAGE_GENERIC;
+  r_id[0].usUsage = HID_USAGE_GENERIC_MOUSE;
+  r_id[0].dwFlags = RIDEV_INPUTSINK;
+  r_id[0].hwndTarget = m_window_handle;
 
-  BOOL result = RegisterRawInputDevices(&r_id, 1, sizeof(RAWINPUTDEVICE));
+  r_id[1].usUsagePage = HID_USAGE_PAGE_GENERIC;
+	r_id[1].usUsage = HID_USAGE_GENERIC_KEYBOARD;
+	r_id[1].dwFlags = RIDEV_INPUTSINK;
+	r_id[1].hwndTarget = m_window_handle;
+
+  BOOL result = RegisterRawInputDevices(r_id, 2, sizeof(RAWINPUTDEVICE));
 
   if (!result) {
     fan::throw_error("failed to register raw input:" + fan::to_string(result));
@@ -1374,8 +1379,10 @@ uint32_t fan::window_t::handle_events() {
           break;
         }
 
-        uint16_t key;
+        fan::print((msg.lParam >> 16) & 0x1ff);
 
+        uint16_t key;
+        //fan::print((int)msg.wParam);
         handle_special(msg.wParam, msg.lParam, key, true);
 
         bool repeat = msg.lParam & (1 << 30);
@@ -1913,6 +1920,8 @@ uint32_t fan::window_t::handle_events() {
         if (!window) {
           break;
         }
+
+        fan::print((int)event.xkey.keycode);
 
         uint16_t key = fan::window_input::convert_keys_to_fan(event.xkey.keycode);
         fan::print(key, event.xkey.type);
