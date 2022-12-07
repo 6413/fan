@@ -95,6 +95,7 @@ struct PropertiesSoundStop_t {
   f32_t FadeOutTo = 0;
 };
 
+#define BLL_set_BaseLibrary 1
 #define BLL_set_prefix _PlayInfoList
 #define BLL_set_type_node uint32_t
 #define BLL_set_node_data \
