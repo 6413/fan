@@ -1924,7 +1924,7 @@ uint32_t fan::window_t::handle_events() {
         fan::print((int)event.xkey.keycode);
 
         uint16_t key = fan::window_input::convert_keys_to_fan(event.xkey.keycode);
-        fan::print(key, event.xkey.type);
+        
         fan::window_t::window_input_action(window->m_window_handle, key);
 
         bool repeat = 0;
