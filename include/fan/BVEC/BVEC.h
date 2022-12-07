@@ -37,7 +37,7 @@
   #include _WITCH_PATH(PR/PR.h)
   #define BVEC_set_abort PR_abort();
 #elif BVEC_set_BaseLibrary == 1
-  #define BVEC_set_abort fan::throw_error();
+  #define BVEC_set_abort fan::throw_error("abort");
 #endif
 
 #if BVEC_set_BufferingFormat == 0
