@@ -8,7 +8,7 @@
   #if BLL_set_AreWeInsideStruct == 0
     static _P(NodeReference_t) _P(_NodeReference_Next)(_P(NodeReference_t) *, _P(t) *);
     static _P(NodeReference_t) _P(_NodeReference_Prev)(_P(NodeReference_t) *, _P(t) *);
-    static _P(NodeReference_t) _P(NR_gic)();
+    static _P(NodeReference_t) _P(gnric)();
   #endif
 #endif
 
@@ -26,12 +26,12 @@ BLL_StructBegin(_P(NodeReference_t))
 
     /* set invalid constant */
     void sic(){
-      *this = _P(NR_gic)();
+      *this = _P(gnric)();
     }
     /* is invalid constant */
     /* check _BLL_POFTWBIT(inric) at rest.h for more info */
     bool iic(){
-      return *this == _P(NR_gic)();
+      return *this == _P(gnric)();
     }
 
     #if BLL_set_Link == 1
