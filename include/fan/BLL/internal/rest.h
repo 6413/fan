@@ -212,13 +212,23 @@ _BLL_POFTWBIT(GetNodeSize)
   }
 #endif
 
-_BLL_SOFTWBIT
-_P(NodeReference_t)
-_BLL_POFTWBIT(gnric)
-(
-){
-  return _P(gnric)();
-}
+#if BLL_set_Language == 1
+  _BLL_SOFTWBIT
+  _P(NodeReference_t)
+  _BLL_POFTWBIT(gnric)
+  (
+  ){
+    return _P(gnric)();
+  }
+  _BLL_SOFTWBIT
+  bool
+  _BLL_POFTWBIT(inric)
+  (
+    _P(NodeReference_t) NR
+  ){
+    return _P(inric)(NR);
+  }
+#endif
 
 /* is node reference invalid */
 _BLL_SOFTWBIT
@@ -233,15 +243,6 @@ _BLL_POFTWBIT(inri)
   #elif BLL_set_StoreFormat == 1
     return NodeReference.NRI >= _BLL_GetList->NodeCurrent;
   #endif
-}
-
-_BLL_SOFTWBIT
-bool
-_BLL_POFTWBIT(inric)
-(
-  _P(NodeReference_t) NR
-){
-  return _P(inric)(NR);
 }
 
 _BLL_SOFTWBIT
