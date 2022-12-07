@@ -12,6 +12,11 @@
 
 /* --- outdated --- */
 
+/* can be used for debug internal code inside bll with checking preprocessor */
+#ifndef BLL_set_Mark
+  #define BLL_set_Mark 0
+#endif
+
 #ifndef BLL_set_BaseLibrary
   #define BLL_set_BaseLibrary 0
 #endif
@@ -89,9 +94,6 @@
 #endif
 #ifndef BLL_set_NodeSizeType
   #define BLL_set_NodeSizeType uint32_t
-#endif
-#ifndef BLL_set_SyntaxStyle
-  #define BLL_set_SyntaxStyle 0
 #endif
 
 #if BLL_set_Link == 0
@@ -263,3 +265,4 @@
 #endif
 #undef BLL_set_Language
 #undef BLL_set_BaseLibrary
+#undef BLL_set_Mark
