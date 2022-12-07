@@ -8,7 +8,7 @@
   #if BLL_set_AreWeInsideStruct == 0
     static _P(NodeReference_t) _P(_NodeReference_Next)(_P(NodeReference_t) *, _P(t) *);
     static _P(NodeReference_t) _P(_NodeReference_Prev)(_P(NodeReference_t) *, _P(t) *);
-    static _P(NodeReference_t) _P(NR_gic)();
+    static _P(NodeReference_t) _P(gnric)();
   #endif
 #endif
 
@@ -26,12 +26,12 @@ BLL_StructBegin(_P(NodeReference_t))
 
     /* set invalid constant */
     void sic(){
-      *this = _P(NR_gic)();
+      *this = _P(gnric)();
     }
     /* is invalid constant */
     /* check _BLL_POFTWBIT(inric) at rest.h for more info */
     bool iic(){
-      return *this == _P(NR_gic)();
+      return *this == _P(gnric)();
     }
 
     #if BLL_set_Link == 1
@@ -45,15 +45,25 @@ BLL_StructBegin(_P(NodeReference_t))
   #endif
 BLL_StructEnd(_P(NodeReference_t))
 
-/* node reference get invalid constant */
+/* get node reference invalid constant */
 static
 _P(NodeReference_t)
-_P(NR_gic)
+_P(gnric)
 (
 ){
   _P(NodeReference_t) nr;
   nr.NRI = (BLL_set_type_node)-1;
   return nr;
+}
+/* is node reference invalid constant */
+static
+bool
+_P(inric)
+(
+  _P(NodeReference_t) NodeReference
+){
+  _P(NodeReference_t) nric = _P(gnric)();
+  return nric.NRI == NodeReference.NRI;
 }
 
 #ifdef BLL_set_namespace
