@@ -77,7 +77,7 @@ int main() {
 		compute_shader.wait_finish(&pile->loco);
 	}
 
-	fan::print(c.elapsed() / i);
+	fan::print(c.elapsed(), c.elapsed() / i);
 
 	//for (i = 0; i < buffer_size / 4; ++i) {
 	//	if (((uint32_t*)data)[i] != 5) {

@@ -1,5 +1,5 @@
 #ifndef loco_vulkan
-  #define loco_opengl
+#define loco_opengl
 #endif
 
 struct loco_t;
@@ -8,75 +8,75 @@ struct loco_t;
 #include _FAN_PATH(time/timer.h)
 #include _FAN_PATH(font.h)
 
-  // automatically gets necessary macros for shapes
+// automatically gets necessary macros for shapes
 
 #if defined(loco_sprite)
-  #define loco_texture_pack
+#define loco_texture_pack
 #endif
 
-  #if defined(loco_text_box)
-      #define loco_rectangle
-      #define loco_letter
-      #define loco_text
-  #endif
-  #if defined(loco_button)
-    #define loco_letter
-    #define loco_text
-  #endif
-  #if defined(loco_menu_maker)
-    #define loco_rectangle
-    #define loco_letter
-    #define loco_text
-    #define loco_text_box
-    #define loco_button
-  #endif
+#if defined(loco_text_box)
+#define loco_rectangle
+#define loco_letter
+#define loco_text
+#endif
+#if defined(loco_button)
+#define loco_letter
+#define loco_text
+#endif
+#if defined(loco_menu_maker)
+#define loco_rectangle
+#define loco_letter
+#define loco_text
+#define loco_text_box
+#define loco_button
+#endif
 
 #if defined(loco_wboit)
-  #define loco_vulkan_descriptor_image_sampler
+#define loco_vulkan_descriptor_image_sampler
 #endif
 
 #ifdef loco_vulkan
-  #ifdef loco_line 
-    #ifndef loco_vulkan_descriptor_ssbo
-      #define loco_vulkan_descriptor_ssbo
-    #endif
-    #ifndef loco_vulkan_descriptor_uniform_block
-      #define loco_vulkan_descriptor_uniform_block
-    #endif
-  #endif
-  #ifdef loco_rectangle 
-    #ifndef loco_vulkan_descriptor_ssbo
-      #define loco_vulkan_descriptor_ssbo
-    #endif
-    #ifndef loco_vulkan_descriptor_uniform_block
-      #define loco_vulkan_descriptor_uniform_block
-    #endif
-  #endif
-  #ifdef loco_sprite
-    #ifndef loco_vulkan_descriptor_ssbo
-      #define loco_vulkan_descriptor_ssbo
-    #endif
-    #ifndef loco_vulkan_descriptor_uniform_block
-      #define loco_vulkan_descriptor_uniform_block
-    #endif
-    #ifndef loco_vulkan_descriptor_image_sampler
-      #define loco_vulkan_descriptor_image_sampler
-    #endif
-  #endif
- #ifdef loco_letter
-    #ifndef loco_vulkan_descriptor_ssbo
-      #define loco_vulkan_descriptor_ssbo
-    #endif
-    #ifndef loco_vulkan_descriptor_uniform_block
-      #define loco_vulkan_descriptor_uniform_block
-    #endif
-    #ifndef loco_vulkan_descriptor_image_sampler
-      #define loco_vulkan_descriptor_image_sampler
-    #endif
-  #endif
-  #if defined loco_compute_shader
-    #define loco_vulkan_descriptor_ssbo
-  #endif
+#ifdef loco_line 
+#ifndef loco_vulkan_descriptor_ssbo
+#define loco_vulkan_descriptor_ssbo
+#endif
+#ifndef loco_vulkan_descriptor_uniform_block
+#define loco_vulkan_descriptor_uniform_block
+#endif
+#endif
+#ifdef loco_rectangle 
+#ifndef loco_vulkan_descriptor_ssbo
+#define loco_vulkan_descriptor_ssbo
+#endif
+#ifndef loco_vulkan_descriptor_uniform_block
+#define loco_vulkan_descriptor_uniform_block
+#endif
+#endif
+#ifdef loco_sprite
+#ifndef loco_vulkan_descriptor_ssbo
+#define loco_vulkan_descriptor_ssbo
+#endif
+#ifndef loco_vulkan_descriptor_uniform_block
+#define loco_vulkan_descriptor_uniform_block
+#endif
+#ifndef loco_vulkan_descriptor_image_sampler
+#define loco_vulkan_descriptor_image_sampler
+#endif
+#endif
+#ifdef loco_letter
+#ifndef loco_vulkan_descriptor_ssbo
+#define loco_vulkan_descriptor_ssbo
+#endif
+#ifndef loco_vulkan_descriptor_uniform_block
+#define loco_vulkan_descriptor_uniform_block
+#endif
+#ifndef loco_vulkan_descriptor_image_sampler
+#define loco_vulkan_descriptor_image_sampler
+#endif
+#endif
+#if defined loco_compute_shader
+#define loco_vulkan_descriptor_ssbo
+#endif
 #endif
 
 #define BDBT_set_prefix loco_bdbt
@@ -100,74 +100,108 @@ struct loco_t;
 #include _FAN_PATH(BDBT/BDBT.h)
 
 #if defined(loco_window)
-  #define loco_vfi
+#define loco_vfi
 #endif
 
 #if defined(loco_text_box)
-  #define ETC_WED_set_BaseLibrary 1
-  #define ETC_WED_set_Prefix wed
-  #include _FAN_PATH(ETC/WED/WED.h)
+#define ETC_WED_set_BaseLibrary 1
+#define ETC_WED_set_Prefix wed
+#include _FAN_PATH(ETC/WED/WED.h)
 #endif
 
 #if defined(loco_model_3d)
-  extern "C" {
-    #define FAST_OBJ_IMPLEMENTATION
-    #include _FAN_PATH(graphics/fast_obj/fast_obj.h)
-  }
-  #include _FAN_PATH(graphics/transform_interpolator.h)
+extern "C" {
+  #define FAST_OBJ_IMPLEMENTATION
+  #include _FAN_PATH(graphics/fast_obj/fast_obj.h)
+}
+#include _FAN_PATH(graphics/transform_interpolator.h)
 #endif
 
 struct loco_t {
 
 protected:
-  
+
   #ifdef loco_window
-    fan::window_t window;
+  fan::window_t window;
   #endif
 
   #ifdef loco_context
-    fan::graphics::context_t context;
+  fan::graphics::context_t context;
   #else
-    fan::graphics::context_t* context;
+  fan::graphics::context_t* context;
   #endif
+
+#if defined(fan_opengl)
+
+  unsigned int quadVAO = 0;
+  unsigned int quadVBO;
+  void renderQuad()
+  {
+    if (quadVAO == 0)
+    {
+      float quadVertices[] = {
+        // positions        // texture Coords
+        -1.0f,  1.0f, 0, 0.0f, 1.0f,
+        -1.0f, -1.0f, 0, 0.0f, 0.0f,
+         1.0f,  1.0f, 0, 1.0f, 1.0f,
+         1.0f, -1.0f, 0, 1.0f, 0.0f,
+      };
+      // setup plane VAO
+      get_context()->opengl.glGenVertexArrays(1, &quadVAO);
+      get_context()->opengl.glGenBuffers(1, &quadVBO);
+      get_context()->opengl.glBindVertexArray(quadVAO);
+      get_context()->opengl.glBindBuffer(fan::opengl::GL_ARRAY_BUFFER, quadVBO);
+      get_context()->opengl.glBufferData(fan::opengl::GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, fan::opengl::GL_STATIC_DRAW);
+      get_context()->opengl.glEnableVertexAttribArray(0);
+      get_context()->opengl.glVertexAttribPointer(0, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, 5 * sizeof(float), (void*)0);
+      get_context()->opengl.glEnableVertexAttribArray(1);
+      get_context()->opengl.glVertexAttribPointer(1, 2, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    }
+    get_context()->opengl.glBindVertexArray(quadVAO);
+    get_context()->opengl.glDrawArrays(fan::opengl::GL_TRIANGLE_STRIP, 0, 4);
+    get_context()->opengl.glBindVertexArray(0);
+  }
+
+#endif
+
 public:
   struct image_t;
 
-#if defined(loco_window)
+  #if defined(loco_window)
 
   #if defined(loco_opengl)
-    #include _FAN_PATH(graphics/opengl/image_list_builder_settings.h)
+  #include _FAN_PATH(graphics/opengl/image_list_builder_settings.h)
   #elif defined(loco_vulkan)
-    #include _FAN_PATH(graphics/vulkan/image_list_builder_settings.h)
+  #include _FAN_PATH(graphics/vulkan/image_list_builder_settings.h)
   #endif
-	#include _FAN_PATH(BLL/BLL.h)
+  #include _FAN_PATH(BLL/BLL.h)
 
   image_list_t image_list;
 
-	template <uint8_t n_>
-	struct textureid_t : image_list_NodeReference_t {
-		static constexpr std::array<const char*, 32> texture_names = {
-			"_t00", "_t01", "_t02", "_t03",
-			"_t04", "_t05", "_t06", "_t07",
-			"_t08", "_t09", "_t10", "_t11",
-			"_t12", "_t13", "_t14", "_t15",
-			"_t16", "_t17", "_t18", "_t19",
-			"_t20", "_t21", "_t22", "_t23",
-			"_t24", "_t25", "_t26", "_t27",
-			"_t28", "_t29", "_t30", "_t31"
-		};
-		static constexpr uint8_t n = n_;
-		static constexpr auto name = texture_names[n];
+  template <uint8_t n_>
+  struct textureid_t : image_list_NodeReference_t {
+    static constexpr std::array<const char*, 32> texture_names = {
+      "_t00", "_t01", "_t02", "_t03",
+      "_t04", "_t05", "_t06", "_t07",
+      "_t08", "_t09", "_t10", "_t11",
+      "_t12", "_t13", "_t14", "_t15",
+      "_t16", "_t17", "_t18", "_t19",
+      "_t20", "_t21", "_t22", "_t23",
+      "_t24", "_t25", "_t26", "_t27",
+      "_t28", "_t29", "_t30", "_t31"
+    };
+    static constexpr uint8_t n = n_;
+    static constexpr auto name = texture_names[n];
 
-		textureid_t() = default;
-		textureid_t(image_t* image) : image_list_NodeReference_t::image_list_NodeReference_t(image) {
-		}
-	};
+    textureid_t() = default;
+    textureid_t(image_t* image) : image_list_NodeReference_t::image_list_NodeReference_t(image) {
+    }
+  };
 
   #if defined(loco_opengl)
-    #include _FAN_PATH(graphics/opengl/gl_image.h)
+  #include _FAN_PATH(graphics/opengl/gl_image.h)
   #elif defined(loco_vulkan)
-    #include _FAN_PATH(graphics/vulkan/vk_image.h)
+  #include _FAN_PATH(graphics/vulkan/vk_image.h)
   #endif
 
   struct matrices_t;
@@ -175,9 +209,9 @@ public:
   #define BLL_set_declare_NodeReference 1
   #define BLL_set_declare_rest 0
   #if defined(loco_opengl)
-    #include _FAN_PATH(graphics/opengl/matrices_list_builder_settings.h)
+  #include _FAN_PATH(graphics/opengl/matrices_list_builder_settings.h)
   #elif defined(loco_vulkan)
-    #include _FAN_PATH(graphics/vulkan/matrices_list_builder_settings.h)
+  #include _FAN_PATH(graphics/vulkan/matrices_list_builder_settings.h)
   #endif
   #include _FAN_PATH(BLL/BLL.h)
 
@@ -220,22 +254,22 @@ public:
       m_projection = fan::math::ortho<fan::mat4>(
         x.x,
         x.y,
-      #if defined (loco_opengl)
+        #if defined (loco_opengl)
         y.y,
         y.x,
         0.1,
         znearfar / 2
-      #elif defined(loco_vulkan)
+        #elif defined(loco_vulkan)
         // znear & zfar is actually flipped for vulkan (camera somehow flipped)
         // znear & zfar needs to be same maybe xd
         y.x,
         y.y,
         0.1,
         znearfar
-      #endif
+        #endif
 
 
-      );
+        );
       coordinates.left = x.x;
       coordinates.right = x.y;
       coordinates.bottom = y.y;
@@ -250,54 +284,54 @@ public:
 
       m_view = fan::math::look_at_left<fan::mat4>(position, position + front, fan::camera::world_up);
       #if defined (loco_vulkan)
-        #if defined(loco_line)
-          {
-            auto idx = loco->matrices_list[matrices_reference].matrices_index.line;
-            if (idx != (uint8_t)-1) {
-              loco->line.m_shader.set_matrices(loco, this, idx);
-            }
-          }
-        #endif
-        #if defined(loco_rectangle)
-          {
-            auto idx = loco->matrices_list[matrices_reference].matrices_index.rectangle;
-            if (idx != (uint8_t)-1) {
-              loco->rectangle.m_shader.set_matrices(loco, this, idx);
-            }
-          }
-        #endif
-        #if defined(loco_sprite)
-          {
-            auto idx = loco->matrices_list[matrices_reference].matrices_index.sprite;
-            if (idx != (uint8_t)-1) {
-              loco->sprite.m_shader.set_matrices(loco, this, idx);
-            }
-          }
-        #endif
-        #if defined(loco_letter)
-          {
-            auto idx = loco->matrices_list[matrices_reference].matrices_index.letter;
-            if (idx != (uint8_t)-1) {
-              loco->letter.m_shader.set_matrices(loco, this, idx);
-            }
-          }
-        #endif
-        #if defined(loco_button)
-          {
-            auto idx = loco->matrices_list[matrices_reference].matrices_index.button;
-            if (idx != (uint8_t)-1) {
-              loco->button.m_shader.set_matrices(loco, this, idx);
-            }
-          }
-        #endif
-        #if defined(loco_text_box)
-          {
-            auto idx = loco->matrices_list[matrices_reference].matrices_index.text_box;
-            if (idx != (uint8_t)-1) {
-              loco->text_box.m_shader.set_matrices(loco, this, idx);
-            }
-          }
-        #endif
+      #if defined(loco_line)
+      {
+        auto idx = loco->matrices_list[matrices_reference].matrices_index.line;
+        if (idx != (uint8_t)-1) {
+          loco->line.m_shader.set_matrices(loco, this, idx);
+        }
+      }
+      #endif
+      #if defined(loco_rectangle)
+      {
+        auto idx = loco->matrices_list[matrices_reference].matrices_index.rectangle;
+        if (idx != (uint8_t)-1) {
+          loco->rectangle.m_shader.set_matrices(loco, this, idx);
+        }
+      }
+      #endif
+      #if defined(loco_sprite)
+      {
+        auto idx = loco->matrices_list[matrices_reference].matrices_index.sprite;
+        if (idx != (uint8_t)-1) {
+          loco->sprite.m_shader.set_matrices(loco, this, idx);
+        }
+      }
+      #endif
+      #if defined(loco_letter)
+      {
+        auto idx = loco->matrices_list[matrices_reference].matrices_index.letter;
+        if (idx != (uint8_t)-1) {
+          loco->letter.m_shader.set_matrices(loco, this, idx);
+        }
+      }
+      #endif
+      #if defined(loco_button)
+      {
+        auto idx = loco->matrices_list[matrices_reference].matrices_index.button;
+        if (idx != (uint8_t)-1) {
+          loco->button.m_shader.set_matrices(loco, this, idx);
+        }
+      }
+      #endif
+      #if defined(loco_text_box)
+      {
+        auto idx = loco->matrices_list[matrices_reference].matrices_index.text_box;
+        if (idx != (uint8_t)-1) {
+          loco->text_box.m_shader.set_matrices(loco, this, idx);
+        }
+      }
+      #endif
       #endif
     }
 
@@ -328,9 +362,9 @@ public:
   #define BLL_set_declare_NodeReference 0
   #define BLL_set_declare_rest 1
   #if defined(loco_opengl)
-    #include _FAN_PATH(graphics/opengl/matrices_list_builder_settings.h)
+  #include _FAN_PATH(graphics/opengl/matrices_list_builder_settings.h)
   #elif defined(loco_vulkan)
-    #include _FAN_PATH(graphics/vulkan/matrices_list_builder_settings.h)
+  #include _FAN_PATH(graphics/vulkan/matrices_list_builder_settings.h)
   #endif
   #include _FAN_PATH(BLL/BLL.h)
 
@@ -341,18 +375,18 @@ public:
   image_t unloaded_image;
 
   #if defined(loco_texture_pack)
-    #include _FAN_PATH(graphics/opengl/texture_pack.h)
+  #include _FAN_PATH(graphics/opengl/texture_pack.h)
   #endif
 
   #if defined(loco_tp)
-    #if defined(loco_opengl)
-      #include _FAN_PATH(tp/tp.h)
-    #endif
+  #if defined(loco_opengl)
+  #include _FAN_PATH(tp/tp.h)
+  #endif
   #endif
 
-#endif
+  #endif
 
-#ifdef loco_vulkan
+  #ifdef loco_vulkan
   struct descriptor_pool_t {
 
     fan::graphics::context_t* get_context() {
@@ -396,9 +430,9 @@ public:
 
     VkDescriptorPool m_descriptor_pool;
   }descriptor_pool;
-#endif
+  #endif
 
-#if defined(loco_vfi)
+  #if defined(loco_vfi)
 
   #define vfi_var_name vfi
   #include _FAN_PATH(graphics/gui/vfi.h)
@@ -410,7 +444,7 @@ public:
 
     fan::graphics::cid_t* cid;
   };
-  struct mouse_button_data_t : vfi_t::mouse_button_data_t{
+  struct mouse_button_data_t : vfi_t::mouse_button_data_t {
     mouse_button_data_t(const vfi_t::mouse_button_data_t& mm) : vfi_t::mouse_button_data_t(mm) {
 
     }
@@ -440,23 +474,23 @@ public:
 
   vfi_t vfi_var_name;
 
-#endif
+  #endif
 
   #ifdef loco_window
-    using mouse_buttons_cb_data_t = fan::window_t::mouse_buttons_cb_data_t;
-    using keyboard_keys_cb_data_t = fan::window_t::keyboard_keys_cb_data_t;
-    using keyboard_key_cb_data_t = fan::window_t::keyboard_key_cb_data_t;
-    using text_cb_data_t = fan::window_t::text_cb_data_t;
-    using mouse_move_cb_data_t = fan::window_t::mouse_move_cb_data_t;
-    using close_cb_data_t = fan::window_t::close_cb_data_t;
-    using resize_cb_data_t = fan::window_t::resize_cb_data_t;
-    using move_cb_data_t = fan::window_t::move_cb_data_t;
+  using mouse_buttons_cb_data_t = fan::window_t::mouse_buttons_cb_data_t;
+  using keyboard_keys_cb_data_t = fan::window_t::keyboard_keys_cb_data_t;
+  using keyboard_key_cb_data_t = fan::window_t::keyboard_key_cb_data_t;
+  using text_cb_data_t = fan::window_t::text_cb_data_t;
+  using mouse_move_cb_data_t = fan::window_t::mouse_move_cb_data_t;
+  using close_cb_data_t = fan::window_t::close_cb_data_t;
+  using resize_cb_data_t = fan::window_t::resize_cb_data_t;
+  using move_cb_data_t = fan::window_t::move_cb_data_t;
   #endif
 
   struct properties_t {
-  #ifndef loco_context
+    #ifndef loco_context
     fan::graphics::context_t* context;
-  #endif
+    #endif
   };
 
   static constexpr uint32_t max_depths = 2;
@@ -468,68 +502,68 @@ public:
   #endif
 
   fan::graphics::context_t* get_context() {
-  #ifdef loco_context
+    #ifdef loco_context
     return &context;
-  #else
+    #else
     return context;
-  #endif
+    #endif
   }
 
-#if defined(loco_window)
+  #if defined(loco_window)
   f32_t get_delta_time() {
     return get_window()->get_delta_time();
   }
-#endif
+  #endif
 
   struct push_constants_t {
     uint32_t texture_id;
     uint32_t matrices_id;
   };
 
-#if defined(loco_window)
+  #if defined(loco_window)
   void process_block_properties_element(auto* shape, loco_t::matrices_list_NodeReference_t matrices_id) {
     #if defined(loco_opengl)
-      shape->m_shader.set_matrices(get_context(), matrices_list[matrices_id].matrices_id, &m_write_queue);
+    shape->m_shader.set_matrices(get_context(), matrices_list[matrices_id].matrices_id, &m_write_queue);
     #elif defined(loco_vulkan)
-      auto& matrices = matrices_list[matrices_id];
-      auto context = get_context();
+    auto& matrices = matrices_list[matrices_id];
+    auto context = get_context();
 
-      uint32_t idx;
+    uint32_t idx;
 
-      #if defined(loco_line)
-        if constexpr(std::is_same<typename std::remove_pointer<decltype(shape)>::type, line_t>::value) {
-          idx = matrices.matrices_index.line;
-        }
-      #endif
-      #if defined(loco_rectangle)
-        if constexpr(std::is_same<typename std::remove_pointer<decltype(shape)>::type, rectangle_t>::value) {
-          idx = matrices.matrices_index.rectangle;
-        }
-      #endif
-      #if defined(loco_sprite)
-        if constexpr(std::is_same<typename std::remove_pointer<decltype(shape)>::type, sprite_t>::value) {
-          idx = matrices.matrices_index.sprite;
-        }
-      #endif
-      #if defined(loco_letter)
-        if constexpr(std::is_same<typename std::remove_pointer<decltype(shape)>::type, letter_t>::value) {
-          idx = matrices.matrices_index.letter;
-        }
-      #endif
-      #if defined(loco_button)
-        if constexpr(std::is_same<typename std::remove_pointer<decltype(shape)>::type, button_t>::value) {
-          idx = matrices.matrices_index.button;
-        }
-      #endif
+    #if defined(loco_line)
+    if constexpr (std::is_same<typename std::remove_pointer<decltype(shape)>::type, line_t>::value) {
+      idx = matrices.matrices_index.line;
+    }
+    #endif
+    #if defined(loco_rectangle)
+    if constexpr (std::is_same<typename std::remove_pointer<decltype(shape)>::type, rectangle_t>::value) {
+      idx = matrices.matrices_index.rectangle;
+    }
+    #endif
+    #if defined(loco_sprite)
+    if constexpr (std::is_same<typename std::remove_pointer<decltype(shape)>::type, sprite_t>::value) {
+      idx = matrices.matrices_index.sprite;
+    }
+    #endif
+    #if defined(loco_letter)
+    if constexpr (std::is_same<typename std::remove_pointer<decltype(shape)>::type, letter_t>::value) {
+      idx = matrices.matrices_index.letter;
+    }
+    #endif
+    #if defined(loco_button)
+    if constexpr (std::is_same<typename std::remove_pointer<decltype(shape)>::type, button_t>::value) {
+      idx = matrices.matrices_index.button;
+    }
+    #endif
 
-      vkCmdPushConstants(
-        context->commandBuffers[context->currentFrame], 
-        shape->m_pipeline.m_layout, 
-        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 
-        offsetof(push_constants_t, matrices_id), 
-        sizeof(uint32_t), 
-        &idx
-      );
+    vkCmdPushConstants(
+      context->commandBuffers[context->currentFrame],
+      shape->m_pipeline.m_layout,
+      VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+      offsetof(push_constants_t, matrices_id),
+      sizeof(uint32_t),
+      &idx
+    );
     #endif
   }
   void process_block_properties_element(auto* shape, fan::graphics::viewport_list_NodeReference_t viewport_id) {
@@ -545,131 +579,131 @@ public:
   template <uint8_t n>
   void process_block_properties_element(auto* shape, textureid_t<n> tid) {
     #if defined(loco_opengl)
-      shape->m_shader.set_int(get_context(), tid.name, n);
-      get_context()->opengl.call(get_context()->opengl.glActiveTexture, fan::opengl::GL_TEXTURE0 + n);
-      get_context()->opengl.call(get_context()->opengl.glBindTexture, fan::opengl::GL_TEXTURE_2D, image_list[tid].texture_id);
+    shape->m_shader.set_int(get_context(), tid.name, n);
+    get_context()->opengl.call(get_context()->opengl.glActiveTexture, fan::opengl::GL_TEXTURE0 + n);
+    get_context()->opengl.call(get_context()->opengl.glBindTexture, fan::opengl::GL_TEXTURE_2D, image_list[tid].texture_id);
     #elif defined(loco_vulkan)
-      auto& img = image_list[tid];
-      auto context = get_context();
+    auto& img = image_list[tid];
+    auto context = get_context();
 
-      uint32_t idx;
+    uint32_t idx;
 
-      #if defined(loco_sprite)
-        if constexpr(std::is_same<std::remove_pointer<decltype(shape)>::type, sprite_t>::value) {
-          idx = img.texture_index.sprite;
-        }
-      #endif
-      #if defined(loco_letter)
-        if constexpr(std::is_same<std::remove_pointer<decltype(shape)>::type, letter_t>::value) {
-          idx = img.texture_index.letter;
-        }
-      #endif
+    #if defined(loco_sprite)
+    if constexpr (std::is_same<std::remove_pointer<decltype(shape)>::type, sprite_t>::value) {
+      idx = img.texture_index.sprite;
+    }
+    #endif
+    #if defined(loco_letter)
+    if constexpr (std::is_same<std::remove_pointer<decltype(shape)>::type, letter_t>::value) {
+      idx = img.texture_index.letter;
+    }
+    #endif
 
-      vkCmdPushConstants(
-        context->commandBuffers[context->currentFrame], 
-        shape->m_pipeline.m_layout, 
-        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 
-        offsetof(push_constants_t, texture_id), 
-        sizeof(uint32_t), 
-        &idx
-      );
+    vkCmdPushConstants(
+      context->commandBuffers[context->currentFrame],
+      shape->m_pipeline.m_layout,
+      VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+      offsetof(push_constants_t, texture_id),
+      sizeof(uint32_t),
+      &idx
+    );
     #endif
   }
-#endif
+  #endif
 
   loco_bdbt_t bdbt;
 
   fan::ev_timer_t ev_timer;
 
   fan::graphics::core::memory_write_queue_t m_write_queue;
-  
+
   #if defined(loco_compute_shader)
-    #include _FAN_PATH(graphics/vulkan/compute_shader.h)
+  #include _FAN_PATH(graphics/vulkan/compute_shader.h)
   #endif
 
   #if defined(loco_line)
-    #define sb_shape_var_name line
-    #include _FAN_PATH(graphics/opengl/2D/objects/line.h)
-    line_t sb_shape_var_name;
-    #undef sb_shape_var_name
+  #define sb_shape_var_name line
+  #include _FAN_PATH(graphics/opengl/2D/objects/line.h)
+  line_t sb_shape_var_name;
+  #undef sb_shape_var_name
   #endif
   #if defined(loco_rectangle)
-    #define vk_shape_wboit
-    #define sb_shape_var_name rectangle
-    #include _FAN_PATH(graphics/opengl/2D/objects/rectangle.h)
-    rectangle_t sb_shape_var_name;
-    #undef sb_shape_var_name
+  #define vk_shape_wboit
+  #define sb_shape_var_name rectangle
+  #include _FAN_PATH(graphics/opengl/2D/objects/rectangle.h)
+  rectangle_t sb_shape_var_name;
+  #undef sb_shape_var_name
   #endif
   #if defined(loco_yuv420p)
-    #define sb_shape_var_name yuv420p
-    #define sb_sprite_name yuv420p_t
-    #include _FAN_PATH(graphics/opengl/2D/objects/yuv420p.h)
-    yuv420p_t sb_shape_var_name;
-    #undef sb_shape_var_name
+  #define sb_shape_var_name yuv420p
+  #define sb_sprite_name yuv420p_t
+  #include _FAN_PATH(graphics/opengl/2D/objects/yuv420p.h)
+  yuv420p_t sb_shape_var_name;
+  #undef sb_shape_var_name
   #endif
   #if defined(loco_sprite)
-    #define sb_shape_var_name sprite
-    #define sb_sprite_name sprite_t
-    #include _FAN_PATH(graphics/opengl/2D/objects/sprite.h)
-    sprite_t sb_shape_var_name;
-    #undef sb_shape_var_name
+  #define sb_shape_var_name sprite
+  #define sb_sprite_name sprite_t
+  #include _FAN_PATH(graphics/opengl/2D/objects/sprite.h)
+  sprite_t sb_shape_var_name;
+  #undef sb_shape_var_name
   #endif
   #if defined(loco_letter)
-    #if !defined(loco_font)
-      #define loco_font "fonts/bitter"
-    #endif
-    #define sb_shape_var_name letter
-    #include _FAN_PATH(graphics/opengl/2D/objects/letter.h)
-    letter_t sb_shape_var_name;
-    #undef sb_shape_var_name
+  #if !defined(loco_font)
+  #define loco_font "fonts/bitter"
+  #endif
+  #define sb_shape_var_name letter
+  #include _FAN_PATH(graphics/opengl/2D/objects/letter.h)
+  letter_t sb_shape_var_name;
+  #undef sb_shape_var_name
   #endif
   #if defined(loco_text)
-    #define sb_shape_var_name text
-    #include _FAN_PATH(graphics/opengl/2D/objects/text.h)
-    using text_t = text_renderer_t;
-    text_t sb_shape_var_name;
-    #undef sb_shape_var_name
+  #define sb_shape_var_name text
+  #include _FAN_PATH(graphics/opengl/2D/objects/text.h)
+  using text_t = text_renderer_t;
+  text_t sb_shape_var_name;
+  #undef sb_shape_var_name
   #endif
   #if defined(loco_button)
-    #define sb_shape_var_name button
-    #include _FAN_PATH(graphics/gui/button.h)
-    button_t sb_shape_var_name;
-    #undef sb_shape_var_name
+  #define sb_shape_var_name button
+  #include _FAN_PATH(graphics/gui/button.h)
+  button_t sb_shape_var_name;
+  #undef sb_shape_var_name
   #endif
   #if defined(loco_text_box)
-    #include _FAN_PATH(graphics/gui/fed.h)
-    #define sb_shape_var_name text_box
-    #include _FAN_PATH(graphics/gui/text_box.h)
-    text_box_t sb_shape_var_name;
-    #undef sb_shape_var_name
+  #include _FAN_PATH(graphics/gui/fed.h)
+  #define sb_shape_var_name text_box
+  #include _FAN_PATH(graphics/gui/text_box.h)
+  text_box_t sb_shape_var_name;
+  #undef sb_shape_var_name
   #endif
   #if defined(loco_menu_maker)
-    #include "wrappers/menu_maker.h"
+  #include "wrappers/menu_maker.h"
   #endif
   #if defined(loco_menu_maker)
-    #include "wrappers/dropdown.h"
+  #include "wrappers/dropdown.h"
   #endif
   #if defined(loco_model_3d)
-    #define sb_shape_var_name model
-    #include _FAN_PATH(graphics/opengl/3D/objects/model.h)
-    model_t sb_shape_var_name;
-    #undef sb_shape_var_name
+  #define sb_shape_var_name model
+  #include _FAN_PATH(graphics/opengl/3D/objects/model.h)
+  model_t sb_shape_var_name;
+  #undef sb_shape_var_name
   #endif
   #if defined(loco_post_process)
-    #define sb_post_process_var_name post_process
-    #include _FAN_PATH(graphics/opengl/2D/effects/post_process.h)
-    post_process_t sb_post_process_var_name;
-    #undef sb_post_process_var_name
+  #define sb_post_process_var_name post_process
+  #include _FAN_PATH(graphics/opengl/2D/effects/post_process.h)
+  post_process_t sb_post_process_var_name;
+  #undef sb_post_process_var_name
   #endif
 
   #if defined(loco_letter)
-    #include _FAN_PATH(graphics/font.h)
-    font_t font;
+  #include _FAN_PATH(graphics/font.h)
+  font_t font;
   #endif
 
-  enum class shape_type_e{
+  enum class shape_type_e {
     #if defined(loco_rectangle_text_button)
-      rectangle_text_button
+    rectangle_text_button
     #endif
   };
 
@@ -680,67 +714,154 @@ public:
 
   loco_t(const properties_t& p = properties_t()) :
     #ifdef loco_window
-      window(fan::vec2(800, 800)),
+    window(fan::vec2(800, 800)),
     #endif
     #if defined(loco_context)
     context(
       #if defined(loco_window)
-        get_window()
+      get_window()
       #endif
     )
     #endif
     #if defined(loco_window)
-    ,unloaded_image(this, fan::webp::image_info_t{(void*)pixel_data, 1})
+    , unloaded_image(this, fan::webp::image_info_t{ (void*)pixel_data, 1 })
     #endif
   {
     #if defined(loco_window)
     get_window()->add_buttons_callback([this](const mouse_buttons_cb_data_t& d) {
       fan::vec2 window_size = get_window()->get_size();
-      feed_mouse_button(d.button, d.state, get_mouse_position());
-    });
+    feed_mouse_button(d.button, d.state, get_mouse_position());
+      });
 
     get_window()->add_keys_callback([&](const keyboard_keys_cb_data_t& d) {
       feed_keyboard(d.key, d.state);
-    });
+      });
 
     get_window()->add_mouse_move_callback([&](const mouse_move_cb_data_t& d) {
       feed_mouse_move(get_mouse_position());
-    });
+      });
 
     get_window()->add_text_callback([&](const fan::window_t::text_cb_data_t& d) {
       feed_text(d.character);
-    });
+      });
     #endif
     #if defined(loco_opengl)
-      fan::print("RENDERER BACKEND: OPENGL");
+    fan::print("RENDERER BACKEND: OPENGL");
     #elif defined(loco_vulkan)
-      fan::print("RENDERER BACKEND: VULKAN");
+    fan::print("RENDERER BACKEND: VULKAN");
     #endif
 
     #if defined(loco_letter)
-      font.open(this, loco_font);
+    font.open(this, loco_font);
     #endif
 
     #if defined(loco_post_process)
-      fan::opengl::core::renderbuffer_t::properties_t rp;
-      rp.size = get_window()->get_size();
-      if (post_process.open(rp)) {
-        fan::throw_error("failed to initialize frame buffer");
-      }
+    fan::opengl::core::renderbuffer_t::properties_t rp;
+    rp.size = get_window()->get_size();
+    if (post_process.open(rp)) {
+      fan::throw_error("failed to initialize frame buffer");
+    }
     #endif
+
+  #if defined(fan_opengl)
+    loco_t::image_t::load_properties_t lp;
+    lp.internal_format = fan::opengl::GL_RGBA16F;
+    lp.format = fan::opengl::GL_RGBA;
+    lp.type = fan::opengl::GL_FLOAT;
+    lp.filter = fan::opengl::GL_LINEAR;
+    lp.visual_output = fan::opengl::GL_CLAMP_TO_EDGE;
+
+    m_framebuffer.open(get_context());
+    m_framebuffer.bind(get_context());
+  #endif
+
+  #if defined(fan_opengl)
+
+		fan::webp::image_info_t ii;
+		ii.data = nullptr;
+    ii.size = get_window()->get_size();
+
+    color_buffers[0].load(this, ii, lp);
+
+    color_buffers[0].bind_texture(this);
+    fan::opengl::core::framebuffer_t::bind_to_texture(
+      get_context(),
+      *color_buffers[0].get_texture(this),
+      fan::opengl::GL_COLOR_ATTACHMENT0
+    );
+
+    lp.internal_format = fan::opengl::GL_R8;
+    lp.format = fan::opengl::GL_RED;
+    lp.type = fan::opengl::GL_UNSIGNED_BYTE;
+
+    color_buffers[1].load(this, ii, lp);
+
+    color_buffers[1].bind_texture(this);
+    fan::opengl::core::framebuffer_t::bind_to_texture(
+      get_context(),
+      *color_buffers[1].get_texture(this),
+      fan::opengl::GL_COLOR_ATTACHMENT1
+    );
+
+    m_framebuffer.bind(get_context());
+    fan::opengl::core::renderbuffer_t::properties_t rp;
+    rp.size = ii.size;
+    rp.internalformat = fan::opengl::GL_DEPTH_COMPONENT;
+    m_rbo.open(get_context());
+    m_rbo.set_storage(get_context(), rp);
+    rp.internalformat = fan::opengl::GL_DEPTH_ATTACHMENT;
+    m_rbo.bind_to_renderbuffer(get_context(), rp);
+
+    // tell OpenGL which color attachments we'll use (of this framebuffer) for rendering
+    unsigned int attachments[2] = {
+      fan::opengl::GL_COLOR_ATTACHMENT0,
+      fan::opengl::GL_COLOR_ATTACHMENT1
+    };
+
+    get_context()->opengl.call(get_context()->opengl.glDrawBuffers, 2, attachments);
+    // finally check if framebuffer is complete
+    if (!m_framebuffer.ready(get_context())) {
+      fan::throw_error("framebuffer not ready");
+    }
+
+    m_framebuffer.unbind(get_context());
+
+    m_fbo_final_shader.open(get_context());
+    m_fbo_final_shader.set_vertex(
+      get_context(),
+      #include _FAN_PATH(graphics/glsl/opengl/2D/effects/loco_fbo.vs)
+    );
+    m_fbo_final_shader.set_fragment(
+      get_context(),
+      #include _FAN_PATH(graphics/glsl/opengl/2D/effects/loco_fbo.fs)
+    );
+    m_fbo_final_shader.compile(get_context());
+
+  #endif
+
+    //color_buffers[2].load(this, ii, lp);
+
+    //color_buffers[2].bind_texture(this);
+    //m_flag_map_fbo.open(get_context());
+    //m_flag_map_fbo.bind(get_context());
+    //m_flag_map_fbo.bind_to_texture(
+    //  get_context(),
+    //  *color_buffers[2].get_texture(this),
+    //  fan::opengl::GL_COLOR_ATTACHMENT1
+    //);
 
   }
 
-#if defined(loco_vfi)
+  #if defined(loco_vfi)
   vfi_t::shape_id_t push_back_input_hitbox(const vfi_t::properties_t& p) {
     return vfi.push_shape(p);
   }
-#endif
- /* uint32_t push_back_keyboard_event(uint32_t depth, const fan_2d::graphics::gui::ke_t::properties_t& p) {
-    return element_depth[depth].keyboard_event.push_back(p);
-  }*/
+  #endif
+  /* uint32_t push_back_keyboard_event(uint32_t depth, const fan_2d::graphics::gui::ke_t::properties_t& p) {
+     return element_depth[depth].keyboard_event.push_back(p);
+   }*/
 
-#if defined(loco_vfi)
+  #if defined(loco_vfi)
   void feed_mouse_move(const fan::vec2& mouse_position) {
     vfi.feed_mouse_move(mouse_position);
   }
@@ -756,34 +877,67 @@ public:
   void feed_text(wchar_t key) {
     vfi.feed_text(key);
   }
-#endif
+  #endif
 
   void process_frame() {
     #if defined(loco_opengl)
-     //get_context()->opengl.call(get_context()->opengl.glClearColor, 1, 1, 1, 1);
-      get_context()->opengl.call(get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
+      //m_framebuffer.bind(get_context());
+    //get_context()->opengl.call(get_context()->opengl.glClearColor, 1, 1, 1, 1);
+    get_context()->opengl.call(get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
     #endif
 
     #ifdef loco_post_process
-      post_process.start_capture();
+    post_process.start_capture();
     #endif
+
 
     m_write_queue.process(get_context());
 
     #ifdef loco_window
       #if defined(loco_opengl)
-        #include "draw_shapes.h"
-        get_context()->render(get_window());
+
+    //            fan::opengl::core::framebuffer_t::bind_to_texture(
+    //  get_context(),
+    //  *color_buffers[0].get_texture(this),
+    //  fan::opengl::GL_COLOR_ATTACHMENT0
+    //);
+    //      get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
+	   // color_buffers[1].bind_texture(this);
+    //        fan::opengl::core::framebuffer_t::bind_to_texture(
+    //  get_context(),
+    //  *color_buffers[1].get_texture(this),
+    //  fan::opengl::GL_COLOR_ATTACHMENT1
+    //);
+
+      #include "draw_shapes.h"
+      //  m_flag_map_fbo.unbind(get_context());
+
+     // get_context()->set_depth_test(false);
+      //m_framebuffer.unbind(get_context());
+     // get_context()->opengl.call(get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
+
+      //m_fbo_final_shader.use(get_context());
+      //m_fbo_final_shader.set_int(get_context(), "_t00", 0);
+      //m_fbo_final_shader.set_int(get_context(), "_t01", 1);
+
+     // get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
+     // color_buffers[0].bind_texture(this);
+     //
+     // get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
+	   // color_buffers[1].bind_texture(this);
+     // renderQuad();
+
+      get_context()->render(get_window());
       #elif defined(loco_vulkan)
-        get_context()->begin_render(get_window());
-        draw_queue();
-        #include "draw_shapes.h"
-        get_context()->end_render(get_window());
+      get_context()->begin_render(get_window());
+      draw_queue();
+      #include "draw_shapes.h"
+      get_context()->end_render(get_window());
 
       #endif
     #endif
   }
-#if defined(loco_window)
+  #if defined(loco_window)
   bool window_open(uint32_t event) {
     return event != fan::window_t::events::close;
   }
@@ -820,10 +974,18 @@ public:
     return x;
   }
 
+  //fan::opengl::core::framebuffer_t m_flag_map_fbo;
+  //
+  //fan::opengl::core::framebuffer_t m_framebuffer;
+  //fan::opengl::core::renderbuffer_t m_rbo;
+  loco_t::image_t color_buffers[3];
+  //fan::opengl::shader_t m_fbo_final_shader;
+
   void loop(const auto& lambda) {
     while (1) {
+
       uint32_t window_event = get_window()->handle_events();
-      if(window_event & fan::window_t::events::close){
+      if (window_event & fan::window_t::events::close) {
         get_window()->destroy_window();
         break;
       }
@@ -838,8 +1000,8 @@ public:
   static loco_t* get_loco(fan::window_t* window) {
     return OFFSETLESS(window, loco_t, window);
   }
-#endif
-  fan::function_t<void()> draw_queue = []{};
+  #endif
+  fan::function_t<void()> draw_queue = [] {};
 };
 
 #if defined(loco_window)

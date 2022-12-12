@@ -69,7 +69,7 @@ struct image_t {
 
     create_texture(loco);
     bind_texture(loco);
-
+    
     context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_S, p.visual_output);
     context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_T, p.visual_output);
     context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MIN_FILTER, p.filter);
@@ -79,7 +79,7 @@ struct image_t {
 
     context->opengl.call(context->opengl.glTexImage2D, fan::opengl::GL_TEXTURE_2D, 0, p.internal_format, size.x, size.y, 0, p.format, p.type, image_info.data);
 
-    //context->opengl.call(context->opengl.glGenerateMipmap, GL_TEXTURE_2D);
+    //context->opengl.call(context->opengl.glGenerateMipmap, fan::opengl::GL_TEXTURE_2D);
         
     return 0;
   }
@@ -87,7 +87,7 @@ struct image_t {
   bool load(loco_t* loco, const fan::string& path, const load_properties_t& p = load_properties_t()) {
 
     #if fan_assert_if_same_path_loaded_multiple_times
-
+    
     static std::unordered_map<fan::string, bool> existing_images;
 
     if (existing_images.find(path) != existing_images.end()) {
