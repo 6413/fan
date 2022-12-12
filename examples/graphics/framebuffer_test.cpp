@@ -46,7 +46,7 @@ struct pile_t {
   loco_t loco;
   loco_t::matrices_t matrices;
   fan::graphics::viewport_t viewport;
-  fan::graphics::cid_t cid[(unsigned long long)1e+7];
+  fan::graphics::cid_t cid[2];
 };
 
 int main() {
@@ -66,45 +66,13 @@ int main() {
   image.load(&pile->loco, "images/test.webp");
   p.image = &image;
   p.position = fan::vec2(0, 0);
+  p.position.z = 0;
   pile->loco.sprite.push_back(&pile->cid[0], p);
-  //p.image = &image;
-  //p.position = fan::vec3(fan::random::vec2(-1, 1), 0);
-  //pile->loco.sprite.push_back(&pile->cid[0], p);
-  //p.position = fan::vec3(-0.1, -0.1, 0);
 
-  ////pile->loco.sprite.push_back(&pile->cid[1], p);
-  //// 
-  ////p.position = fan.;
-  //
-  //pile->loco.sprite.push_back(&pile->cid[0], p);
-  //p.image = &image2;
-  //p.position = fan::vec3(-0.2, -0.2, 3);
-  //pile->loco.sprite.push_back(&pile->cid[1], p);
-
-  //p.image = &image2;
-  //p.position = fan::vec2(0.3, 0.3);
-  //pile->loco.sprite.push_back(&pile->cid[2], p);
-
-  /*for (uint32_t i = 0; i < 1; i++) {
-    
-  }*/
   pile->loco.set_vsync(false);
-  //uint8_t* ptr = new uint8_t[640 * 640 * 4];
-  uint32_t x = 0;
 
   fan::time::clock cc;
   pile->loco.loop([&] {
-    //fan::print(cc.elapsed());
-    //cc.start();
-    //pile->loco.get_context()->set_depth_test(true);
-   // if (x < count) 
-    //pile->loco.sprite.erase(&pile->cid[x++]);
-    //image2.unload(&pile->loco);
-    //image2.load(&pile->loco, "images/asteroid.webp");
-    //fan::webp::image_info_t ii;
-    //ii.data = ptr;
-    //ii.size = fan::vec2(640, 640);
-    //image2.reload_pixels(&pile->loco, ii);
     pile->loco.get_fps(); 
   });
 

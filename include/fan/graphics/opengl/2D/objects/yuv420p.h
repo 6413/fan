@@ -49,6 +49,8 @@ struct sb_sprite_name {
       loco_t::image_t::load_properties_t lp;
       lp.format = fan::opengl::GL_RED; 
       lp.internal_format = fan::opengl::GL_RED; 
+      // can be buggy
+      lp.filter = fan::opengl::GL_LINEAR;
                                  
       fan::webp::image_info_t ii;
 
@@ -115,8 +117,9 @@ struct sb_sprite_name {
     auto loco = get_loco();
     
     loco_t::image_t::load_properties_t lp;
-    lp.format = fan::opengl::GL_RED; 
-    lp.internal_format = fan::opengl::GL_RED; 
+    lp.format = fan::opengl::GL_RED;
+    lp.internal_format = fan::opengl::GL_RED;
+    lp.filter = fan::opengl::GL_LINEAR;
                                  
     fan::webp::image_info_t ii; 
                                

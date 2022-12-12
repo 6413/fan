@@ -98,15 +98,15 @@
       <ConformanceMode>false</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
-      <IntrinsicFunctions>false</IntrinsicFunctions>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
-      <EnableFiberSafeOptimizations>false</EnableFiberSafeOptimizations>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <WholeProgramOptimization>false</WholeProgramOptimization>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)include\opus;$(SolutionDIr)include\dav1d;$(SolutionDir)include\vpx;$(SolutionDir)src\libwebp\src;C:\libs</AdditionalIncludeDirectories>
-      <Optimization>Disabled</Optimization>
+      <Optimization>MaxSpeed</Optimization>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
@@ -134,16 +134,16 @@
     <ClCompile>
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>false</IntrinsicFunctions>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>set_durums_pc;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>false</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <Optimization>Disabled</Optimization>
-      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <Optimization>MaxSpeed</Optimization>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
-      <EnableFiberSafeOptimizations>false</EnableFiberSafeOptimizations>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)include\opus;$(SolutionDIr)include\dav1d;$(SolutionDir)include\vpx;$(SolutionDir)src\libwebp\src;C:\libs</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <WholeProgramOptimization>false</WholeProgramOptimization>
@@ -179,15 +179,15 @@
       <ConformanceMode>false</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
-      <IntrinsicFunctions>false</IntrinsicFunctions>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
-      <EnableFiberSafeOptimizations>false</EnableFiberSafeOptimizations>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <WholeProgramOptimization>false</WholeProgramOptimization>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)include\opus;$(SolutionDIr)include\dav1d;$(SolutionDir)include\vpx;$(SolutionDir)src\libwebp\src;C:\libs</AdditionalIncludeDirectories>
-      <Optimization>Disabled</Optimization>
+      <Optimization>MaxSpeed</Optimization>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
@@ -215,16 +215,16 @@
     <ClCompile>
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>false</IntrinsicFunctions>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>set_durums_pc;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>false</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <Optimization>Disabled</Optimization>
-      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <Optimization>MaxSpeed</Optimization>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
-      <EnableFiberSafeOptimizations>false</EnableFiberSafeOptimizations>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)include\opus;$(SolutionDIr)include\dav1d;$(SolutionDir)include\vpx;$(SolutionDir)src\libwebp\src;C:\libs</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <WholeProgramOptimization>false</WholeProgramOptimization>
@@ -254,12 +254,14 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="examples\graphics\screen_capture.cpp" />
+    <ClCompile Include="examples\graphics\sprite.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />
     <None Include="include\fan\graphics\glsl\opengl\2D\effects\frame_capture.fs" />
+    <None Include="include\fan\graphics\glsl\opengl\2D\effects\loco_fbo.fs" />
+    <None Include="include\fan\graphics\glsl\opengl\2D\effects\loco_fbo.vs" />
     <None Include="src\dav1d\ext\x86\x86inc.asm" />
     <None Include="src\dav1d\x86\cdef16_avx2.asm" />
     <None Include="src\dav1d\x86\cdef16_sse.asm" />

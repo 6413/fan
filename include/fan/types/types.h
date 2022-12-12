@@ -445,6 +445,24 @@ namespace fan {
 		static const bool value = sizeof(foo<T>(nullptr)) == sizeof(One);
 	};
 
+  template <typename From>
+  class auto_cast {
+  public:
+    explicit constexpr auto_cast(From const& t) noexcept
+      : val{ t }
+    {
+    }
+
+    template <typename To>
+    constexpr operator To() const noexcept(noexcept(static_cast<To>(std::declval<From>())))
+    {
+      return static_cast<To>(val);
+    }
+
+  private:
+    From const& val;
+  };
+
 	constexpr const char* file_name(const char* path) {
 		const char* file = path;
 		while (*path) {

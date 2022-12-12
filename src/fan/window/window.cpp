@@ -1379,7 +1379,7 @@ uint32_t fan::window_t::handle_events() {
           break;
         }
 
-        fan::print((msg.lParam >> 16) & 0x1ff);
+        fan::print((msg.lParam >> 16) & 0xff);
 
         uint16_t key;
         //fan::print((int)msg.wParam);
@@ -1921,6 +1921,7 @@ uint32_t fan::window_t::handle_events() {
           break;
         }
 
+        XGetDeviceKeyMapping(fan::sys::m_display, )
         fan::print((int)event.xkey.keycode);
 
         uint16_t key = fan::window_input::convert_keys_to_fan(event.xkey.keycode);

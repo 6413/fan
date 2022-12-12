@@ -22,36 +22,36 @@ struct post_process_t {
 		}
 
 		// renderQuad() renders a 1x1 XY quad in NDC
-// -----------------------------------------
-unsigned int quadVAO = 0;
-unsigned int quadVBO;
-void renderQuad()
-{
-				auto loco = get_loco();
-    if (quadVAO == 0)
+    // -----------------------------------------
+    unsigned int quadVAO = 0;
+    unsigned int quadVBO;
+    static void renderQuad()
     {
-        float quadVertices[] = {
-            // positions        // texture Coords
-            -1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
-            -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
-             1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
-             1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
-        };
-        // setup plane VAO
-        loco->get_context()->opengl.glGenVertexArrays(1, &quadVAO);
-        loco->get_context()->opengl.glGenBuffers(1, &quadVBO);
+    				auto loco = get_loco();
+        if (quadVAO == 0)
+        {
+            float quadVertices[] = {
+                // positions        // texture Coords
+                -1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
+                -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+                 1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
+                 1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+            };
+            // setup plane VAO
+            loco->get_context()->opengl.glGenVertexArrays(1, &quadVAO);
+            loco->get_context()->opengl.glGenBuffers(1, &quadVBO);
+            loco->get_context()->opengl.glBindVertexArray(quadVAO);
+            loco->get_context()->opengl.glBindBuffer(fan::opengl::GL_ARRAY_BUFFER, quadVBO);
+            loco->get_context()->opengl.glBufferData(fan::opengl::GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, fan::opengl::GL_STATIC_DRAW);
+            loco->get_context()->opengl.glEnableVertexAttribArray(0);
+            loco->get_context()->opengl.glVertexAttribPointer(0, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, 5 * sizeof(float), (void*)0);
+            loco->get_context()->opengl.glEnableVertexAttribArray(1);
+            loco->get_context()->opengl.glVertexAttribPointer(1, 2, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+        }
         loco->get_context()->opengl.glBindVertexArray(quadVAO);
-        loco->get_context()->opengl.glBindBuffer(fan::opengl::GL_ARRAY_BUFFER, quadVBO);
-        loco->get_context()->opengl.glBufferData(fan::opengl::GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, fan::opengl::GL_STATIC_DRAW);
-        loco->get_context()->opengl.glEnableVertexAttribArray(0);
-        loco->get_context()->opengl.glVertexAttribPointer(0, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, 5 * sizeof(float), (void*)0);
-        loco->get_context()->opengl.glEnableVertexAttribArray(1);
-        loco->get_context()->opengl.glVertexAttribPointer(1, 2, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+        loco->get_context()->opengl.glDrawArrays(fan::opengl::GL_TRIANGLE_STRIP, 0, 4);
+        loco->get_context()->opengl.glBindVertexArray(0);
     }
-    loco->get_context()->opengl.glBindVertexArray(quadVAO);
-    loco->get_context()->opengl.glDrawArrays(fan::opengl::GL_TRIANGLE_STRIP, 0, 4);
-    loco->get_context()->opengl.glBindVertexArray(0);
-}
 
 		void open(const fan::vec2& resolution, uint32_t mip_count) {
 
