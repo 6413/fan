@@ -2008,6 +2008,8 @@ uint32_t fan::window_t::handle_events() {
           cdb.scancode = keycode_to_scancode_table[event.xkey.keycode];
         }
 
+          XkbDescPtr KbDesc = XkbGetMap(fan::sys::m_display, 0, XkbUseCoreKbd);
+          XkbGetNames(fan::sys::m_display, XkbKeyNamesMask, KbDesc);
         char name[XkbKeyNameLength + 1];
         memcpy(name, KbDesc->names->keys[event.xkey.keycode].name, XkbKeyNameLength);
         name[XkbKeyNameLength] = '\0';
