@@ -456,8 +456,8 @@ namespace fan {
 		XIM m_xim;
 		XIC m_xic;
 
-    fan::string xcb_get_scancode_name(XkbDescPtr KbDesc, uint16_t keycode);
-    fan::string xcb_get_scancode_name(uint16_t keycode);
+    static fan::string xcb_get_scancode_name(XkbDescPtr KbDesc, uint16_t keycode);
+    static fan::string xcb_get_scancode_name(uint16_t keycode);
     void generate_keycode_to_scancode_table();
 
     static constexpr uint16_t max_keycode = 1024;

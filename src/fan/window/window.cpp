@@ -1026,14 +1026,14 @@ static bool isExtensionSupported(const char* extList, const char* extension) {
 
 // https://www.win.tue.nl/~aeb/linux/kbd/scancodes-1.html
 
-fan::string xcb_get_scancode_name(uint16_t keycode) {
+inline fan::string fan::window_t::xcb_get_scancode_name(uint16_t keycode) {
   XkbDescPtr KbDesc = XkbGetMap(fan::sys::m_display, 0, XkbUseCoreKbd);
   XkbGetNames(fan::sys::m_display, XkbKeyNamesMask, KbDesc);
   fan::string str(KbDesc->names->keys[keycode].name);
   return str;
 }
 
-fan::string xcb_get_scancode_name(XkbDescPtr KbDesc, uint16_t keycode) {
+inline fan::string fan::window_t::xcb_get_scancode_name(XkbDescPtr KbDesc, uint16_t keycode) {
   fan::string str(KbDesc->names->keys[keycode].name);
   return str;
 }
