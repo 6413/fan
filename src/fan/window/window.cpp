@@ -1685,15 +1685,17 @@ uint32_t fan::window_t::handle_events() {
 
         window_input_up(window->m_window_handle, key);
 
+        keyboard_keys_cb_data_t cbd;
+        cbd.window = window;
+        cbd.key = key;
+        cbd.state = fan::keyboard_state::release;
+        cbd.scancode = (msg.lParam >> 16) & 0x1ff;
+
         auto it = window->m_keys_callback.GetNodeFirst();
 
         while (it != window->m_keys_callback.dst) {
           window->m_keys_callback.StartSafeNext(it);
 
-          keyboard_keys_cb_data_t cbd;
-          cbd.window = window;
-          cbd.key = key;
-          cbd.state = fan::keyboard_state::release;
           window->m_keys_callback[it].data(cbd);
 
           it = window->m_keys_callback.EndSafeNext();
@@ -2098,16 +2100,18 @@ uint32_t fan::window_t::handle_events() {
 
         window->window_input_up(window->m_window_handle, key);
 
-
+        keyboard_keys_cb_data_t cdb{};
+        cdb.window = window;
+        cdb.key = key;
+        cdb.state = fan::keyboard_state::release;
+        if (cdb.key < max_keycode) {
+          cdb.scancode = keycode_to_scancode_table[cdb.key];
+        }
         auto it = window->m_keys_callback.GetNodeFirst();
 
         while (it != window->m_keys_callback.dst) {
           window->m_keys_callback.StartSafeNext(it);
 
-          keyboard_keys_cb_data_t cdb;
-          cdb.window = window;
-          cdb.key = key;
-          cdb.state = fan::keyboard_state::release;
           window->m_keys_callback[it].data(cdb);
 
           it = window->m_keys_callback.EndSafeNext();
