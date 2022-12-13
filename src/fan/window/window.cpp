@@ -1033,6 +1033,11 @@ fan::string xcb_get_scancode_name(uint16_t keycode) {
   return str;
 }
 
+fan::string xcb_get_scancode_name(XkbDescPtr KbDesc, uint16_t keycode) {
+  fan::string str(KbDesc->names->keys[keycode].name);
+  return str;
+}
+
 void fan::window_t::generate_keycode_to_scancode_table() {
   XkbDescPtr KbDesc = XkbGetMap(fan::sys::m_display, 0, XkbUseCoreKbd);
   XkbGetNames(fan::sys::m_display, XkbKeyNamesMask, KbDesc);
@@ -1056,7 +1061,7 @@ void fan::window_t::generate_keycode_to_scancode_table() {
     };
 
     for (const auto instance : table) {
-      if (xcb_get_scancode_name(i) == instance.first) {
+      if (xcb_get_scancode_name(KbDesc, i) == instance.first) {
         keycode_to_scancode_table[i] = instance.second;
       }
     }
@@ -1984,12 +1989,7 @@ uint32_t fan::window_t::handle_events() {
           cdb.scancode = keycode_to_scancode_table[event.xkey.keycode];
         }
 
-          XkbDescPtr KbDesc = XkbGetMap(fan::sys::m_display, 0, XkbUseCoreKbd);
-          XkbGetNames(fan::sys::m_display, XkbKeyNamesMask, KbDesc);
-        char name[XkbKeyNameLength + 1];
-        memcpy(name, KbDesc->names->keys[event.xkey.keycode].name, XkbKeyNameLength);
-        name[XkbKeyNameLength] = '\0';
-        fan::print(name);
+        fan::print(xcb_get_scancode_name(event.xkey.keycode));
 
         window->m_current_key = key;
 
