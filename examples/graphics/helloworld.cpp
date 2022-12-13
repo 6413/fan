@@ -40,9 +40,6 @@ struct pile_t {
     loco.get_window()->add_keys_callback([](const auto& c) {
       fan::print(c.scancode);
      });
-    loco.get_window()->add_text_callback([](const auto& c) {
-
-    });
   }
 
   loco_t loco;
