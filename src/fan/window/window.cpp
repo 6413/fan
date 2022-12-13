@@ -1080,6 +1080,7 @@ void fan::window_t::generate_keycode_to_scancode_table() {
     else if (!strcmp(name, "AB10")) keycode_to_scancode_table[i] = 0x35;
                                                                       // on 102-key keyboard
     else if (!strcmp(name, "BKSL")) keycode_to_scancode_table[i] = 0x2b;
+    else if (!strcmp(name, "ESC")) keycode_to_scancode_table[i] = 0x01;
     //else if (!strcmp(name, "LSGT")) keycode_to_scancode_tablekey[i] = GLFW_KEY_WORLD_1;
     //else key = GLFW_KEY_UNKNOWN;
 
@@ -2006,6 +2007,11 @@ uint32_t fan::window_t::handle_events() {
         if (event.xkey.keycode < max_keycode) {
           cdb.scancode = keycode_to_scancode_table[event.xkey.keycode];
         }
+
+        char name[XkbKeyNameLength + 1];
+        memcpy(name, KbDesc->names->keys[event.xkey.keycode].name, XkbKeyNameLength);
+        name[XkbKeyNameLength] = '\0';
+        fan::print(name);
 
         window->m_current_key = key;
 
