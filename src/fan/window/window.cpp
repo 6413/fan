@@ -1026,13 +1026,17 @@ static bool isExtensionSupported(const char* extList, const char* extension) {
 
 // https://www.win.tue.nl/~aeb/linux/kbd/scancodes-1.html
 
+fan::string xcb_get_scancode_name(uint16_t keycode) {
+  XkbDescPtr KbDesc = XkbGetMap(fan::sys::m_display, 0, XkbUseCoreKbd);
+  XkbGetNames(fan::sys::m_display, XkbKeyNamesMask, KbDesc);
+  fan::string str(KbDesc->names->keys[keycode].name);
+  return str;
+}
+
 void fan::window_t::generate_keycode_to_scancode_table() {
   XkbDescPtr KbDesc = XkbGetMap(fan::sys::m_display, 0, XkbUseCoreKbd);
   XkbGetNames(fan::sys::m_display, XkbKeyNamesMask, KbDesc);
   for (uint16_t i = KbDesc->min_key_code; i < fan::min(KbDesc->max_key_code, max_keycode); ++i) {
-    char name[XkbKeyNameLength + 1];
-    memcpy(name, KbDesc->names->keys[i].name, XkbKeyNameLength);
-    name[XkbKeyNameLength] = '\0';
 
     static constexpr std::pair<const char*, uint16_t> table[] = {
       {"TLDE", 0x29}, {"AE01", 0x02}, {"AE02", 0x03}, {"AE03", 0x04}, {"AE04", 0x05}, {"AE05", 0x06}, {"AE06", 0x07},
@@ -1048,11 +1052,11 @@ void fan::window_t::generate_keycode_to_scancode_table() {
       {"FK09", 0x43}, {"FK10", 0x44}, {"LEFT", 0xe04b}, {"RIGHT", 0xe04d}, {"UP", 0xe048}, {"DOWN", 0xe050}, {"PGUP", 0x49}, 
       {"PGDN", 0x51}, {"HOME", 0x47}, {"END", 0x4f}, {"INS", 0x52}, {"DELE", 0x53}, {"SCLK", 0x46}, {"KP0", 0x52}, {"KP1", 0x4f}, 
       {"KP2", 0x50}, {"KP3", 0x51}, {"KP4", 0x4b}, {"KP5", 0x4c}, {"KP6", 0x4d}, {"KP7", 0x47}, {"KP8", 0x48}, {"KP9", 0x49}, 
-      {"KPEN", 0xe01c},
+      {"KPEN", 0xe01c}, {"BKSP", 0xe0}, {"RCTRL", 0xe01d},
     };
 
     for (const auto instance : table) {
-      if (!strcmp(name, instance.first)) {
+      if (xcb_get_scancode_name(i) == instance.first) {
         keycode_to_scancode_table[i] = instance.second;
       }
     }
