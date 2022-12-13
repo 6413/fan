@@ -162,6 +162,7 @@ namespace fan {
 			fan::window_t* window;
 			uint16_t key;
 			fan::keyboard_state state;
+      uint16_t scancode;
 		};
 		using keyboard_keys_cb_t = fan::function_t<void(const keyboard_keys_cb_data_t&)>;
 
@@ -454,6 +455,11 @@ namespace fan {
 
 		XIM m_xim;
 		XIC m_xic;
+
+    void generate_keycode_to_scancode_table();
+
+    static constexpr uint16_t max_keycode = 1024;
+    uint16_t keycode_to_scancode_table[max_keycode]{};
 
 		#endif
 

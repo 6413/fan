@@ -1021,6 +1021,72 @@ static bool isExtensionSupported(const char* extList, const char* extension) {
 }
 #endif
 
+// should be X11
+#if defined(fan_platform_unix)
+
+void fan::window_t::generate_keycode_to_scancode_table() {
+  XkbDescPtr KbDesc = XkbGetMap(fan::sys::m_display, 0, XkbUseCoreKbd);
+  XkbGetNames(fan::sys::m_display, XkbKeyNamesMask, KbDesc);
+  for (uint16_t i = KbDesc->min_key_code; i < fan::min(KbDesc->max_key_code, max_keycode); ++i) {
+    char name[XkbKeyNameLength + 1];
+    memcpy(name, KbDesc->names->keys[i].name, XkbKeyNameLength);
+    name[XkbKeyNameLength] = '\0';
+
+    if (!strcmp(name, "TLDE")) keycode_to_scancode_table[i] = 0x29;
+    else if (!strcmp(name, "AE01")) keycode_to_scancode_table[i] = 0x02;
+    else if (!strcmp(name, "AE02")) keycode_to_scancode_table[i] = 0x03;
+    else if (!strcmp(name, "AE03")) keycode_to_scancode_table[i] = 0x04;
+    else if (!strcmp(name, "AE04")) keycode_to_scancode_table[i] = 0x05;
+    else if (!strcmp(name, "AE05")) keycode_to_scancode_table[i] = 0x06;
+    else if (!strcmp(name, "AE06")) keycode_to_scancode_table[i] = 0x07;
+    else if (!strcmp(name, "AE07")) keycode_to_scancode_table[i] = 0x08;
+    else if (!strcmp(name, "AE08")) keycode_to_scancode_table[i] = 0x09;
+    else if (!strcmp(name, "AE09")) keycode_to_scancode_table[i] = 0x0a;
+    else if (!strcmp(name, "AE10")) keycode_to_scancode_table[i] = 0x0b;
+    else if (!strcmp(name, "AE11")) keycode_to_scancode_table[i] = 0x0c;
+    else if (!strcmp(name, "AE12")) keycode_to_scancode_table[i] = 0x0d;
+    else if (!strcmp(name, "AD01")) keycode_to_scancode_table[i] = 0x10;
+    else if (!strcmp(name, "AD02")) keycode_to_scancode_table[i] = 0x11;
+    else if (!strcmp(name, "AD03")) keycode_to_scancode_table[i] = 0x12;
+    else if (!strcmp(name, "AD04")) keycode_to_scancode_table[i] = 0x13;
+    else if (!strcmp(name, "AD05")) keycode_to_scancode_table[i] = 0x14;
+    else if (!strcmp(name, "AD06")) keycode_to_scancode_table[i] = 0x15;
+    else if (!strcmp(name, "AD07")) keycode_to_scancode_table[i] = 0x16;
+    else if (!strcmp(name, "AD08")) keycode_to_scancode_table[i] = 0x17;
+    else if (!strcmp(name, "AD09")) keycode_to_scancode_table[i] = 0x18;
+    else if (!strcmp(name, "AD10")) keycode_to_scancode_table[i] = 0x19;
+    else if (!strcmp(name, "AD11")) keycode_to_scancode_table[i] = 0x1a;
+    else if (!strcmp(name, "AD12")) keycode_to_scancode_table[i] = 0x1b;
+    else if (!strcmp(name, "AC01")) keycode_to_scancode_table[i] = 0x1e;
+    else if (!strcmp(name, "AC02")) keycode_to_scancode_table[i] = 0x1f;
+    else if (!strcmp(name, "AC03")) keycode_to_scancode_table[i] = 0x20;
+    else if (!strcmp(name, "AC04")) keycode_to_scancode_table[i] = 0x21;
+    else if (!strcmp(name, "AC05")) keycode_to_scancode_table[i] = 0x22;
+    else if (!strcmp(name, "AC06")) keycode_to_scancode_table[i] = 0x23;
+    else if (!strcmp(name, "AC07")) keycode_to_scancode_table[i] = 0x24;
+    else if (!strcmp(name, "AC08")) keycode_to_scancode_table[i] = 0x25;
+    else if (!strcmp(name, "AC09")) keycode_to_scancode_table[i] = 0x26;
+    else if (!strcmp(name, "AC10")) keycode_to_scancode_table[i] = 0x27;
+    else if (!strcmp(name, "AC11")) keycode_to_scancode_table[i] = 0x28;
+    else if (!strcmp(name, "AB01")) keycode_to_scancode_table[i] = 0x2c;
+    else if (!strcmp(name, "AB02")) keycode_to_scancode_table[i] = 0x2d;
+    else if (!strcmp(name, "AB03")) keycode_to_scancode_table[i] = 0x2e;
+    else if (!strcmp(name, "AB04")) keycode_to_scancode_table[i] = 0x2f;
+    else if (!strcmp(name, "AB05")) keycode_to_scancode_table[i] = 0x30;
+    else if (!strcmp(name, "AB06")) keycode_to_scancode_table[i] = 0x31;
+    else if (!strcmp(name, "AB07")) keycode_to_scancode_table[i] = 0x32;
+    else if (!strcmp(name, "AB08")) keycode_to_scancode_table[i] = 0x33;
+    else if (!strcmp(name, "AB09")) keycode_to_scancode_table[i] = 0x34;
+    else if (!strcmp(name, "AB10")) keycode_to_scancode_table[i] = 0x35;
+                                                                      // on 102-key keyboard
+    else if (!strcmp(name, "BKSL")) keycode_to_scancode_table[i] = 0x2b;
+    //else if (!strcmp(name, "LSGT")) keycode_to_scancode_tablekey[i] = GLFW_KEY_WORLD_1;
+    //else key = GLFW_KEY_UNKNOWN;
+
+  }
+}
+#endif
+
 void fan::window_t::initialize_window(const fan::string& name, const fan::vec2i& window_size, uint64_t flags)
 {
   #ifdef fan_platform_windows
@@ -1316,6 +1382,8 @@ void fan::window_t::initialize_window(const fan::string& name, const fan::vec2i&
 
   XSetICFocus(m_xic);
 
+  generate_keycode_to_scancode_table();
+
   #endif
 
   m_position = position;
@@ -1379,13 +1447,16 @@ uint32_t fan::window_t::handle_events() {
           break;
         }
 
-        fan::print((msg.lParam >> 16) & 0xff);
-
         uint16_t key;
-        //fan::print((int)msg.wParam);
         handle_special(msg.wParam, msg.lParam, key, true);
 
         bool repeat = msg.lParam & (1 << 30);
+
+        keyboard_keys_cb_data_t cdb;
+        cdb.window = window;
+        cdb.key = key;
+        cdb.state = repeat ? fan::keyboard_state::repeat : fan::keyboard_state::press;
+        cdb.scancode = (msg.lParam >> 16) & 0x1ff;
 
         fan::window_t::window_input_action(window->m_window_handle, key);
 
@@ -1397,10 +1468,6 @@ uint32_t fan::window_t::handle_events() {
 
           window->m_keys_callback.StartSafeNext(it);
 
-          keyboard_keys_cb_data_t cdb;
-          cdb.window = window;
-          cdb.key = key;
-          cdb.state = repeat ? fan::keyboard_state::repeat : fan::keyboard_state::press;
           window->m_keys_callback[it].data(cdb);
 
           it = window->m_keys_callback.EndSafeNext();
@@ -1921,14 +1988,22 @@ uint32_t fan::window_t::handle_events() {
           break;
         }
 
-        XGetDeviceKeyMapping(fan::sys::m_display, )
-        fan::print((int)event.xkey.keycode);
+        //XGetDeviceKeyMapping(fan::sys::m_display, )
+        //fan::print((int)event.xkey.keycode);
 
         uint16_t key = fan::window_input::convert_keys_to_fan(event.xkey.keycode);
         
         fan::window_t::window_input_action(window->m_window_handle, key);
 
         bool repeat = 0;
+
+        keyboard_keys_cb_data_t cdb{};
+        cdb.window = window;
+        cdb.key = key;
+        cdb.state = repeat ? fan::keyboard_state::repeat : fan::keyboard_state::press;
+        if (cdb.key < max_keycode) {
+          cdb.scancode = keycode_to_scancode_table[cdb.key];
+        }
 
         window->m_current_key = key;
 
@@ -1937,11 +2012,6 @@ uint32_t fan::window_t::handle_events() {
         while (it != window->m_keys_callback.dst) {
 
           window->m_keys_callback.StartSafeNext(it);
-
-          keyboard_keys_cb_data_t cdb;
-          cdb.window = window;
-          cdb.key = key;
-          cdb.state = repeat ? fan::keyboard_state::repeat : fan::keyboard_state::press;
           window->m_keys_callback[it].data(cdb);
 
           it = window->m_keys_callback.EndSafeNext();
