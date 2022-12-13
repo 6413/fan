@@ -2003,8 +2003,8 @@ uint32_t fan::window_t::handle_events() {
         cdb.window = window;
         cdb.key = key;
         cdb.state = repeat ? fan::keyboard_state::repeat : fan::keyboard_state::press;
-        if (cdb.key < max_keycode) {
-          cdb.scancode = keycode_to_scancode_table[cdb.key];
+        if (event.xkey.keycode < max_keycode) {
+          cdb.scancode = keycode_to_scancode_table[event.xkey.keycode];
         }
 
         window->m_current_key = key;
@@ -2104,8 +2104,8 @@ uint32_t fan::window_t::handle_events() {
         cdb.window = window;
         cdb.key = key;
         cdb.state = fan::keyboard_state::release;
-        if (cdb.key < max_keycode) {
-          cdb.scancode = keycode_to_scancode_table[cdb.key];
+        if (event.xkey.keycode < max_keycode) {
+          cdb.scancode = keycode_to_scancode_table[event.xkey.keycode];
         }
         auto it = window->m_keys_callback.GetNodeFirst();
 
