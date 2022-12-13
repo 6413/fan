@@ -1024,6 +1024,8 @@ static bool isExtensionSupported(const char* extList, const char* extension) {
 // should be X11
 #if defined(fan_platform_unix)
 
+// https://www.win.tue.nl/~aeb/linux/kbd/scancodes-1.html
+
 void fan::window_t::generate_keycode_to_scancode_table() {
   XkbDescPtr KbDesc = XkbGetMap(fan::sys::m_display, 0, XkbUseCoreKbd);
   XkbGetNames(fan::sys::m_display, XkbKeyNamesMask, KbDesc);
@@ -1032,58 +1034,28 @@ void fan::window_t::generate_keycode_to_scancode_table() {
     memcpy(name, KbDesc->names->keys[i].name, XkbKeyNameLength);
     name[XkbKeyNameLength] = '\0';
 
-    if (!strcmp(name, "TLDE")) keycode_to_scancode_table[i] = 0x29;
-    else if (!strcmp(name, "AE01")) keycode_to_scancode_table[i] = 0x02;
-    else if (!strcmp(name, "AE02")) keycode_to_scancode_table[i] = 0x03;
-    else if (!strcmp(name, "AE03")) keycode_to_scancode_table[i] = 0x04;
-    else if (!strcmp(name, "AE04")) keycode_to_scancode_table[i] = 0x05;
-    else if (!strcmp(name, "AE05")) keycode_to_scancode_table[i] = 0x06;
-    else if (!strcmp(name, "AE06")) keycode_to_scancode_table[i] = 0x07;
-    else if (!strcmp(name, "AE07")) keycode_to_scancode_table[i] = 0x08;
-    else if (!strcmp(name, "AE08")) keycode_to_scancode_table[i] = 0x09;
-    else if (!strcmp(name, "AE09")) keycode_to_scancode_table[i] = 0x0a;
-    else if (!strcmp(name, "AE10")) keycode_to_scancode_table[i] = 0x0b;
-    else if (!strcmp(name, "AE11")) keycode_to_scancode_table[i] = 0x0c;
-    else if (!strcmp(name, "AE12")) keycode_to_scancode_table[i] = 0x0d;
-    else if (!strcmp(name, "AD01")) keycode_to_scancode_table[i] = 0x10;
-    else if (!strcmp(name, "AD02")) keycode_to_scancode_table[i] = 0x11;
-    else if (!strcmp(name, "AD03")) keycode_to_scancode_table[i] = 0x12;
-    else if (!strcmp(name, "AD04")) keycode_to_scancode_table[i] = 0x13;
-    else if (!strcmp(name, "AD05")) keycode_to_scancode_table[i] = 0x14;
-    else if (!strcmp(name, "AD06")) keycode_to_scancode_table[i] = 0x15;
-    else if (!strcmp(name, "AD07")) keycode_to_scancode_table[i] = 0x16;
-    else if (!strcmp(name, "AD08")) keycode_to_scancode_table[i] = 0x17;
-    else if (!strcmp(name, "AD09")) keycode_to_scancode_table[i] = 0x18;
-    else if (!strcmp(name, "AD10")) keycode_to_scancode_table[i] = 0x19;
-    else if (!strcmp(name, "AD11")) keycode_to_scancode_table[i] = 0x1a;
-    else if (!strcmp(name, "AD12")) keycode_to_scancode_table[i] = 0x1b;
-    else if (!strcmp(name, "AC01")) keycode_to_scancode_table[i] = 0x1e;
-    else if (!strcmp(name, "AC02")) keycode_to_scancode_table[i] = 0x1f;
-    else if (!strcmp(name, "AC03")) keycode_to_scancode_table[i] = 0x20;
-    else if (!strcmp(name, "AC04")) keycode_to_scancode_table[i] = 0x21;
-    else if (!strcmp(name, "AC05")) keycode_to_scancode_table[i] = 0x22;
-    else if (!strcmp(name, "AC06")) keycode_to_scancode_table[i] = 0x23;
-    else if (!strcmp(name, "AC07")) keycode_to_scancode_table[i] = 0x24;
-    else if (!strcmp(name, "AC08")) keycode_to_scancode_table[i] = 0x25;
-    else if (!strcmp(name, "AC09")) keycode_to_scancode_table[i] = 0x26;
-    else if (!strcmp(name, "AC10")) keycode_to_scancode_table[i] = 0x27;
-    else if (!strcmp(name, "AC11")) keycode_to_scancode_table[i] = 0x28;
-    else if (!strcmp(name, "AB01")) keycode_to_scancode_table[i] = 0x2c;
-    else if (!strcmp(name, "AB02")) keycode_to_scancode_table[i] = 0x2d;
-    else if (!strcmp(name, "AB03")) keycode_to_scancode_table[i] = 0x2e;
-    else if (!strcmp(name, "AB04")) keycode_to_scancode_table[i] = 0x2f;
-    else if (!strcmp(name, "AB05")) keycode_to_scancode_table[i] = 0x30;
-    else if (!strcmp(name, "AB06")) keycode_to_scancode_table[i] = 0x31;
-    else if (!strcmp(name, "AB07")) keycode_to_scancode_table[i] = 0x32;
-    else if (!strcmp(name, "AB08")) keycode_to_scancode_table[i] = 0x33;
-    else if (!strcmp(name, "AB09")) keycode_to_scancode_table[i] = 0x34;
-    else if (!strcmp(name, "AB10")) keycode_to_scancode_table[i] = 0x35;
-                                                                      // on 102-key keyboard
-    else if (!strcmp(name, "BKSL")) keycode_to_scancode_table[i] = 0x2b;
-    else if (!strcmp(name, "ESC")) keycode_to_scancode_table[i] = 0x01;
-    //else if (!strcmp(name, "LSGT")) keycode_to_scancode_tablekey[i] = GLFW_KEY_WORLD_1;
-    //else key = GLFW_KEY_UNKNOWN;
+    static constexpr std::pair<const char*, uint16_t> table[] = {
+      {"TLDE", 0x29}, {"AE01", 0x02}, {"AE02", 0x03}, {"AE03", 0x04}, {"AE04", 0x05}, {"AE05", 0x06}, {"AE06", 0x07},
+      {"AE07", 0x08}, {"AE08", 0x09}, {"AE09", 0x0a}, {"AE10", 0x0b}, {"AE11", 0x0c}, {"AE12", 0x0d}, {"AD01", 0x10},
+      {"AD02", 0x11}, {"AD03", 0x12}, {"AD04", 0x13}, {"AD05", 0x14}, {"AD06", 0x15}, {"AD07", 0x16}, {"AD08", 0x17},
+      {"AD09", 0x18}, {"AD10", 0x19}, {"AD11", 0x1a}, {"AD12", 0x1b}, {"AC01", 0x1e}, {"AC02", 0x1f}, {"AC03", 0x20},
+      {"AC04", 0x21}, {"AC05", 0x22}, {"AC06", 0x23}, {"AC07", 0x24}, {"AC08", 0x25}, {"AC09", 0x26}, {"AC10", 0x27},
+      {"AC11", 0x28}, {"AB01", 0x2c}, {"AB02", 0x2d}, {"AB03", 0x2e}, {"AB04", 0x2f}, {"AB05", 0x30}, {"AB06", 0x31},
+      {"AB07", 0x32}, {"AB08", 0x33}, {"AB09", 0x34}, {"AB10", 0x35}, {"BKSL", 0x2b}, {"ESC", 0x01}, {"TAB", 0x0f},
+      {"CAPS", 0x3a}, {"LFSH", 0x2a}, {"RTSH", 0x36}, {"LCTRL", 0x1d}, {"LALT", 0x38}, {"RALT", 0xe033}, {"LWIN", 0xe05b},
+      {"RWIN", 0xe05c}, {"LSGT", 0x33}, {"RSGT", 0x34}, {"COMP", 0xe05d}, {"SPCE", 0x39}, {"RTRN", 0x1c }, {"FK01", 0x3b},
+      {"FK02", 0x3c}, {"FK03", 0x3d}, {"FK04", 0x3e}, {"FK05", 0x3f}, {"FK06", 0x40}, {"FK07", 0x41}, {"FK08", 0x42},
+      {"FK09", 0x43}, {"FK10", 0x44}, {"LEFT", 0xe04b}, {"RIGHT", 0xe04d}, {"UP", 0xe048}, {"DOWN", 0xe050}, {"PGUP", 0x49}, 
+      {"PGDN", 0x51}, {"HOME", 0x47}, {"END", 0x4f}, {"INS", 0x52}, {"DELE", 0x53}, {"SCLK", 0x46}, {"KP0", 0x52}, {"KP1", 0x4f}, 
+      {"KP2", 0x50}, {"KP3", 0x51}, {"KP4", 0x4b}, {"KP5", 0x4c}, {"KP6", 0x4d}, {"KP7", 0x47}, {"KP8", 0x48}, {"KP9", 0x49}, 
+      {"KPEN", 0xe01c},
+    };
 
+    for (const auto instance : table) {
+      if (!strcmp(name, instance.first)) {
+        keycode_to_scancode_table[i] = instance.second;
+      }
+    }
   }
 }
 #endif
