@@ -1030,11 +1030,13 @@ inline fan::string fan::window_t::xcb_get_scancode_name(uint16_t keycode) {
   XkbDescPtr KbDesc = XkbGetMap(fan::sys::m_display, 0, XkbUseCoreKbd);
   XkbGetNames(fan::sys::m_display, XkbKeyNamesMask, KbDesc);
   fan::string str(KbDesc->names->keys[keycode].name);
+  str.push_back(0);
   return str;
 }
 
 inline fan::string fan::window_t::xcb_get_scancode_name(XkbDescPtr KbDesc, uint16_t keycode) {
   fan::string str(KbDesc->names->keys[keycode].name);
+  str.push_back(0);
   return str;
 }
 
