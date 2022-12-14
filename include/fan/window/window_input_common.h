@@ -2,9 +2,9 @@ static uint16_t convert_keys_to_fan(uint16_t key) {
 	switch (key) {
 		//shifts and ctrls require lparam check for which side the button is pressed this is usually checked before converting
 		#ifdef fan_platform_windows
-		case 0x01: { return fan::input::mouse_left; }
-		case 0x02: { return fan::input::mouse_right; }
-		case 0x04: { return fan::input::mouse_middle; }
+		case 0x01: { return fan::input::button_left; }
+		case 0x02: { return fan::input::button_right; }
+		case 0x04: { return fan::input::button_middle; }
 
 		case 0x08: { return fan::input::key_backspace; }
 		case 0x09: { return fan::input::key_tab; }
@@ -125,9 +125,9 @@ static uint16_t convert_keys_to_fan(uint16_t key) {
 
 		#elif defined(fan_platform_unix)
 
-		case 0x01: { return fan::input::mouse_left; }
-		case 0x02: { return fan::input::mouse_middle; }
-		case 0x03: { return fan::input::mouse_right; }
+		case 0x01: { return fan::input::button_left; }
+		case 0x02: { return fan::input::button_middle; }
+		case 0x03: { return fan::input::button_right; }
 		case 0x04: { return fan::input::mouse_scroll_up; }
 		case 0x05: { return fan::input::mouse_scroll_down; }
 
@@ -255,9 +255,9 @@ static uint16_t convert_fan_to_keys(uint16_t key) {
 	switch (key) {
 		//shifts and ctrls require lparam check for which side the button is pressed this is usually checked before converting
 #ifdef fan_platform_windows
-	case mouse_left: { return 0x01; }
-	case mouse_right: { return 0x02; }
-	case mouse_middle: { return 0x04; }
+	case button_left: { return 0x01; }
+	case button_right: { return 0x02; }
+	case button_middle: { return 0x04; }
 
 	case key_backspace: { return 0x08; }
 	case key_tab: { return 0x09; }
@@ -393,9 +393,9 @@ static uint16_t convert_utfkeys_to_fan(uint16_t key) {
 	switch (key) {
 		//shifts and ctrls require lparam check for which side the button is pressed this is usually checked before converting
 #ifdef fan_platform_windows
-		case 0x01: { return fan::input::mouse_left; }
-		case 0x02: { return fan::input::mouse_right; }
-		case 0x04: { return fan::input::mouse_middle; }
+		case 0x01: { return fan::input::button_left; }
+		case 0x02: { return fan::input::button_right; }
+		case 0x04: { return fan::input::button_middle; }
 
 		case 0x08: { return fan::input::key_backspace; }
 		case 0x09: { return fan::input::key_tab; }
@@ -512,9 +512,9 @@ static uint16_t convert_utfkeys_to_fan(uint16_t key) {
 
 #elif defined(fan_platform_unix)
 
-		case 0x01: { return fan::input::mouse_left; }
-		case 0x02: { return fan::input::mouse_middle; }
-		case 0x03: { return fan::input::mouse_right; }
+		case 0x01: { return fan::input::button_left; }
+		case 0x02: { return fan::input::button_middle; }
+		case 0x03: { return fan::input::button_right; }
 		case 0x04: { return fan::input::mouse_scroll_up; }
 		case 0x05: { return fan::input::mouse_scroll_down; }
 

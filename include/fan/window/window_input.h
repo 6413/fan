@@ -24,7 +24,7 @@ namespace fan {
 		press,
 		repeat
 	};
-	enum class mouse_state {
+	enum class button_state {
 		release,
 		press
 	};
@@ -161,9 +161,9 @@ namespace fan {
 		key_right_super,
 		key_menu,
 
-		mouse_left,
-		mouse_right,
-		mouse_middle,
+		button_left,
+		button_right,
+		button_middle,
 
 		mouse_scroll_up,
 		mouse_scroll_down,

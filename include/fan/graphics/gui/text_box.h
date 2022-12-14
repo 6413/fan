@@ -124,7 +124,7 @@ struct text_box_t {
           }
         }
 
-        //if (loco->get_window()->key_pressed(fan::mouse_left) && loco->vfi.get_focus_keyboard()) {
+        //if (loco->get_window()->key_pressed(fan::button_left) && loco->vfi.get_focus_keyboard()) {
         //  fan::print("a");
         //  // src press
         //  fan::vec2 src = fan::vec2(mm_d.position) - fan::vec2(get_text_left_position(cid_));
@@ -144,7 +144,7 @@ struct text_box_t {
         loco_t* loco = OFFSETLESS(ii_d.vfi, loco_t, vfi_var_name);
         auto& ri = loco->text_box.sb_get_ri(cid_);
         if (ii_d.flag->ignore_move_focus_check == false && !ri.selected) {
-          if (ii_d.button == fan::mouse_left && ii_d.button_state == fan::mouse_state::press) {
+          if (ii_d.button == fan::button_left && ii_d.button_state == fan::button_state::press) {
             loco->text_box.set_theme(cid_, loco->text_box.get_theme(cid_), press);
             ii_d.flag->ignore_move_focus_check = true;
             loco->vfi.set_focus_keyboard(loco->vfi.get_focus_mouse());
@@ -165,7 +165,7 @@ struct text_box_t {
             update_cursor(cid_);
           }
 
-          if (ii_d.button == fan::mouse_left && ii_d.button_state == fan::mouse_state::release) {
+          if (ii_d.button == fan::button_left && ii_d.button_state == fan::button_state::release) {
             if (ii_d.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside) {
               loco->text_box.set_theme(cid_, loco->text_box.get_theme(cid_), hover);
             }

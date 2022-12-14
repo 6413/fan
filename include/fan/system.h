@@ -192,14 +192,14 @@ namespace fan {
           SetCursorPos(position.x, position.y);
         }
 
-        static void send_mouse_event(uint16_t key, fan::mouse_state state) {
+        static void send_mouse_event(uint16_t key, fan::button_state state) {
 
-          constexpr auto get_key = [](uint16_t key, fan::mouse_state state) {
+          constexpr auto get_key = [](uint16_t key, fan::button_state state) {
 
-            auto press = state == fan::mouse_state::press;
+            auto press = state == fan::button_state::press;
 
             switch (key) {
-              case fan::mouse_left: {
+              case fan::button_left: {
                 if (press) {
                   return MOUSEEVENTF_LEFTDOWN;
                 }
@@ -207,7 +207,7 @@ namespace fan {
                 return MOUSEEVENTF_LEFTUP;
               }
 
-              case fan::mouse_middle: {
+              case fan::button_middle: {
                 if (press) {
                   return MOUSEEVENTF_MIDDLEDOWN;
                 }
@@ -215,7 +215,7 @@ namespace fan {
                 return MOUSEEVENTF_MIDDLEUP;
               }
 
-              case fan::mouse_right: {
+              case fan::button_right: {
                 if (press) {
                   return MOUSEEVENTF_RIGHTDOWN;
                 }
@@ -505,13 +505,13 @@ namespace fan {
           constexpr auto get_mouse_key = [](uint16_t key) {
             switch (key) {
 
-              case WM_LBUTTONDOWN: { return fan::input::mouse_left; }
-              case WM_MBUTTONDOWN: { return fan::input::mouse_middle; }
-              case WM_RBUTTONDOWN: { return fan::input::mouse_right; }
+              case WM_LBUTTONDOWN: { return fan::input::button_left; }
+              case WM_MBUTTONDOWN: { return fan::input::button_middle; }
+              case WM_RBUTTONDOWN: { return fan::input::button_right; }
 
-              case WM_LBUTTONUP: { return fan::input::mouse_left; }
-              case WM_MBUTTONUP: { return fan::input::mouse_middle; }
-              case WM_RBUTTONUP: { return fan::input::mouse_right; }
+              case WM_LBUTTONUP: { return fan::input::button_left; }
+              case WM_MBUTTONUP: { return fan::input::button_middle; }
+              case WM_RBUTTONUP: { return fan::input::button_right; }
 
               case WM_MOUSEWHEEL: { return fan::input::mouse_scroll_up; } // ?
               case WM_MOUSEHWHEEL: { return fan::input::mouse_scroll_down; } // ?

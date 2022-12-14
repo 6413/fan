@@ -268,7 +268,7 @@ static void lib_close(stage_common_t* sc) {
 		p.theme = &erase_theme;
 		p.mouse_button_cb = [this](const loco_t::mouse_button_data_t& mb) -> int {
 
-			use_key_lambda(fan::mouse_left, fan::mouse_state::release);
+			use_key_lambda(fan::button_left, fan::button_state::release);
 			
 			pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco_var_name);
 
@@ -305,7 +305,7 @@ static void lib_close(stage_common_t* sc) {
 		p.text = L"Create New Stage";
 		p.mouse_button_cb = [this, loco](const loco_t::mouse_button_data_t& mb) -> int {
 
-			use_key_lambda(fan::mouse_left, fan::mouse_state::release);
+			use_key_lambda(fan::button_left, fan::button_state::release);
 
 			pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco_var_name);
 			pile->stage_maker.open_stage(stage_maker_t::stage_t::stage_e::main);
@@ -317,7 +317,7 @@ static void lib_close(stage_common_t* sc) {
 				p.text = fan::wstring(L"stage") + fan::to_wstring(x++);
 				p.mouse_button_cb = [this](const loco_t::mouse_button_data_t& mb) -> int {
 
-					use_key_lambda(fan::mouse_left, fan::mouse_state::release);
+					use_key_lambda(fan::button_left, fan::button_state::release);
 
 					pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco_var_name);
 					fan::graphics::cid_t* cid = mb.cid;
@@ -348,7 +348,7 @@ static void lib_close(stage_common_t* sc) {
 		p.text = L"Gui stage";
 		p.mouse_button_cb = [](const loco_t::mouse_button_data_t& mb) {
 
-			use_key_lambda(fan::mouse_left, fan::mouse_state::release);
+			use_key_lambda(fan::button_left, fan::button_state::release);
 
 			pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco_var_name);
 			auto nr = pile->stage_maker.instances[stage_t::stage_instance].menu_id;
@@ -368,7 +368,7 @@ static void lib_close(stage_common_t* sc) {
 
 		p.mouse_button_cb = [](const loco_t::mouse_button_data_t& mb) -> int {
 
-			use_key_lambda(fan::mouse_left, fan::mouse_state::release);
+			use_key_lambda(fan::button_left, fan::button_state::release);
 
 			pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco_var_name);
 

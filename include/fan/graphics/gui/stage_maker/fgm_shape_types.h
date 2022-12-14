@@ -88,7 +88,7 @@ struct global_button_t {
 //		instance[i]->shape = shapes::button;
 //		p.mouse_button_cb = [i](const loco_t::mouse_button_data_t& ii_d) -> int {
 //			pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi), pile_t, loco);
-//			if (ii_d.button != fan::mouse_left) {
+//			if (ii_d.button != fan::button_left) {
 //				return 0;
 //			}
 //			if (ii_d.mouse_stage != loco_t::vfi_t::mouse_stage_e::inside) {
@@ -115,7 +115,7 @@ struct global_button_t {
 //			auto builder_cid = &pile->stage_maker.fgm.builder_button.instance[pile->stage_maker.fgm.builder_button.instance.size() - 1]->cid;
 //			auto block = pile->loco.button.sb_get_block(builder_cid);
 //			pile->loco.vfi.set_focus_mouse(block->p[builder_cid->instance_id].vfi_id);
-//			pile->loco.vfi.feed_mouse_button(fan::mouse_left, fan::keyboard_state::press);
+//			pile->loco.vfi.feed_mouse_button(fan::button_left, fan::keyboard_state::press);
 //			pile->stage_maker.fgm.builder_button.open_properties(builder_cid);
 //
 //			auto stage_name = pile->stage_maker.get_selected_name(
@@ -225,10 +225,10 @@ struct builder_button_t {
 		instance[i]->theme = *pile->loco.get_context()->theme_list[p.theme].theme_id;
 		p.mouse_button_cb = [instance = instance[i]](const loco_t::mouse_button_data_t& ii_d) -> int {
 			pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi_var_name), pile_t, loco_var_name);
-			if (ii_d.button != fan::mouse_left) {
+			if (ii_d.button != fan::button_left) {
 				return 0;
 			}
-			if (ii_d.button_state == fan::mouse_state::release) {
+			if (ii_d.button_state == fan::button_state::release) {
 				pile->stage_maker.fgm.builder_button.release();
 				// TODO FIX, erases in near bottom
 				if (!pile->stage_maker.fgm.viewport[viewport_area::editor].inside(pile->loco.get_mouse_position())) {
@@ -422,7 +422,7 @@ struct sprite_t {
 		p.text = L"";
 		p.text_value = L"add cbs";
 		p.mouse_button_cb = [this, instance](const loco_t::mouse_button_data_t& mb) -> int {
-			use_key_lambda(fan::mouse_left, fan::mouse_state::release);
+			use_key_lambda(fan::button_left, fan::button_state::release);
 
 			auto pile = get_pile();
 
@@ -455,21 +455,21 @@ struct sprite_t {
 		instances[i]->z = 0;
 		loco_t::vfi_t::properties_t vfip;
 		vfip.mouse_button_cb = [i](const loco_t::mouse_button_data_t& ii_d) -> int {
-			if (ii_d.button != fan::mouse_left) {
+			if (ii_d.button != fan::button_left) {
 				return 0;
 			}
-			if (ii_d.button_state == fan::mouse_state::press) {
+			if (ii_d.button_state == fan::button_state::press) {
 				ii_d.flag->ignore_move_focus_check = true;
 				ii_d.vfi->set_focus_keyboard(ii_d.vfi->get_focus_mouse());
 			}
-			if (ii_d.button_state == fan::mouse_state::release) {
+			if (ii_d.button_state == fan::button_state::release) {
 				ii_d.flag->ignore_move_focus_check = false;
 			}
 			pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi_var_name), pile_t, loco_var_name);
 
 			auto& instance = pile->stage_maker.fgm.sprite.instances[i];
 
-			if (ii_d.button_state == fan::mouse_state::release) {
+			if (ii_d.button_state == fan::button_state::release) {
 				pile->stage_maker.fgm.sprite.release();
 				// TODO FIX, erases in near bottom
 				if (!pile->stage_maker.fgm.viewport[viewport_area::editor].inside(pile->loco.get_mouse_position())) {

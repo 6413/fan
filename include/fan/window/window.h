@@ -154,7 +154,7 @@ namespace fan {
 		struct mouse_buttons_cb_data_t {
 			fan::window_t* window;
 			uint16_t button;
-			fan::mouse_state state;
+			fan::button_state state;
 		};
 		using mouse_buttons_cb_t = fan::function_t<void(const mouse_buttons_cb_data_t&)>;
 
