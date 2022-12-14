@@ -1069,7 +1069,7 @@ void fan::window_t::generate_keycode_to_scancode_table() {
       }
     }
     if (!found) {
-      fan::print_warning("scancode not found for (dec) keycode:" + std::to_string(i));
+      fan::print_warning((std::string("scancode not found for (dec) keycode:") + std::to_string(i)).c_str());
     }
   }
 }
