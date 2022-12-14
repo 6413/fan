@@ -44,7 +44,6 @@
 #endif
 
 #include <string>
-#include <format>
 
 #define stringify(name) #name
 
@@ -1070,7 +1069,7 @@ void fan::window_t::generate_keycode_to_scancode_table() {
       }
     }
     if (!found) {
-      fan::print_warning("scancode not found for keycode:" + std::format("{:x}", i));
+      fan::print_warning("scancode not found for (dec) keycode:" + std::to_string(i));
     }
   }
 }
