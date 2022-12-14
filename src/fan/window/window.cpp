@@ -1026,51 +1026,135 @@ static bool isExtensionSupported(const char* extList, const char* extension) {
 
 // https://www.win.tue.nl/~aeb/linux/kbd/scancodes-1.html
 
-inline std::string fan::window_t::xcb_get_scancode_name(uint16_t keycode) {
-  XkbDescPtr KbDesc = XkbGetMap(fan::sys::m_display, 0, XkbUseCoreKbd);
-  XkbGetNames(fan::sys::m_display, XkbKeyNamesMask, KbDesc);
-  std::string str(KbDesc->names->keys[keycode].name, KbDesc->names->keys[keycode].name + XkbKeyNameLength - 1);
-  return str;
-}
-
-inline std::string fan::window_t::xcb_get_scancode_name(XkbDescPtr KbDesc, uint16_t keycode) {
-  std::string str(KbDesc->names->keys[keycode].name, KbDesc->names->keys[keycode].name + XkbKeyNameLength - 1);
-  return str;
-}
-
 void fan::window_t::generate_keycode_to_scancode_table() {
   XkbDescPtr KbDesc = XkbGetMap(fan::sys::m_display, 0, XkbUseCoreKbd);
   XkbGetNames(fan::sys::m_display, XkbKeyNamesMask, KbDesc);
   for (uint16_t i = KbDesc->min_key_code; i < fan::min(KbDesc->max_key_code, max_keycode); ++i) {
+    char name[XkbKeyNameLength + 1];
+    memcpy(name, KbDesc->names->keys[i].name, XkbKeyNameLength);
+    name[XkbKeyNameLength] = '\0';
 
-    static constexpr std::pair<const char*, uint16_t> table[] = {
-      {"TLDE", 0x29}, {"AE01", 0x02}, {"AE02", 0x03}, {"AE03", 0x04}, {"AE04", 0x05}, {"AE05", 0x06}, {"AE06", 0x07},
-      {"AE07", 0x08}, {"AE08", 0x09}, {"AE09", 0x0a}, {"AE10", 0x0b}, {"AE11", 0x0c}, {"AE12", 0x0d}, {"AD01", 0x10},
-      {"AD02", 0x11}, {"AD03", 0x12}, {"AD04", 0x13}, {"AD05", 0x14}, {"AD06", 0x15}, {"AD07", 0x16}, {"AD08", 0x17},
-      {"AD09", 0x18}, {"AD10", 0x19}, {"AD11", 0x1a}, {"AD12", 0x1b}, {"AC01", 0x1e}, {"AC02", 0x1f}, {"AC03", 0x20},
-      {"AC04", 0x21}, {"AC05", 0x22}, {"AC06", 0x23}, {"AC07", 0x24}, {"AC08", 0x25}, {"AC09", 0x26}, {"AC10", 0x27},
-      {"AC11", 0x28}, {"AB01", 0x2c}, {"AB02", 0x2d}, {"AB03", 0x2e}, {"AB04", 0x2f}, {"AB05", 0x30}, {"AB06", 0x31},
-      {"AB07", 0x32}, {"AB08", 0x33}, {"AB09", 0x34}, {"AB10", 0x35}, {"BKSL", 0x2b}, {"ESC", 0x01}, {"TAB", 0x0f},
-      {"CAPS", 0x3a}, {"LFSH", 0x2a}, {"RTSH", 0x36}, {"LCTRL", 0x1d}, {"LALT", 0x38}, {"RALT", 0xe033}, {"LWIN", 0xe05b},
-      {"RWIN", 0xe05c}, {"LSGT", 0x33}, {"RSGT", 0x34}, {"COMP", 0xe05d}, {"SPCE", 0x39}, {"RTRN", 0x1c }, {"FK01", 0x3b},
-      {"FK02", 0x3c}, {"FK03", 0x3d}, {"FK04", 0x3e}, {"FK05", 0x3f}, {"FK06", 0x40}, {"FK07", 0x41}, {"FK08", 0x42},
-      {"FK09", 0x43}, {"FK10", 0x44}, {"LEFT", 0xe04b}, {"RIGHT", 0xe04d}, {"UP", 0xe048}, {"DOWN", 0xe050}, {"PGUP", 0x49}, 
-      {"PGDN", 0x51}, {"HOME", 0x47}, {"END", 0x4f}, {"INS", 0x52}, {"DELE", 0x53}, {"SCLK", 0x46}, {"KP0", 0x52}, {"KP1", 0x4f}, 
-      {"KP2", 0x50}, {"KP3", 0x51}, {"KP4", 0x4b}, {"KP5", 0x4c}, {"KP6", 0x4d}, {"KP7", 0x47}, {"KP8", 0x48}, {"KP9", 0x49}, 
-      {"KPEN", 0xe01c}, {"BKSP", 0xe0}, {"RCTRL", 0xe01d},
-    };
+    auto& kcsc = keycode_to_scancode_table[i];
 
-    bool found = false;
-    for (const auto instance : table) {
-      if (xcb_get_scancode_name(KbDesc, i) == instance.first) {
-        keycode_to_scancode_table[i] = instance.second;
-        found = true;
-        break;
-      }
-    }
-    if (!found) {
-      fan::print_warning((std::string("scancode not found for (dec) keycode:") + std::to_string(i)).c_str());
-    }
+    if (!strcmp(name,      "TLDE")) kcsc = 0x29;
+    else if (!strcmp(name, "AE01")) kcsc = 0x02;
+    else if (!strcmp(name, "AE02")) kcsc = 0x03;
+    else if (!strcmp(name, "AE03")) kcsc = 0x04;
+    else if (!strcmp(name, "AE04")) kcsc = 0x05;
+    else if (!strcmp(name, "AE05")) kcsc = 0x06;
+    else if (!strcmp(name, "AE06")) kcsc = 0x07;
+    else if (!strcmp(name, "AE07")) kcsc = 0x08;
+    else if (!strcmp(name, "AE08")) kcsc = 0x09;
+    else if (!strcmp(name, "AE09")) kcsc = 0x0a;
+    else if (!strcmp(name, "AE10")) kcsc = 0x0b;
+    else if (!strcmp(name, "AE11")) kcsc = 0x0c;
+    else if (!strcmp(name, "AE12")) kcsc = 0x0d;
+    else if (!strcmp(name, "AD01")) kcsc = 0x10;
+    else if (!strcmp(name, "AD02")) kcsc = 0x11;
+    else if (!strcmp(name, "AD03")) kcsc = 0x12;
+    else if (!strcmp(name, "AD04")) kcsc = 0x13;
+    else if (!strcmp(name, "AD05")) kcsc = 0x14;
+    else if (!strcmp(name, "AD06")) kcsc = 0x15;
+    else if (!strcmp(name, "AD07")) kcsc = 0x16;
+    else if (!strcmp(name, "AD08")) kcsc = 0x17;
+    else if (!strcmp(name, "AD09")) kcsc = 0x18;
+    else if (!strcmp(name, "AD10")) kcsc = 0x19;
+    else if (!strcmp(name, "AD11")) kcsc = 0x1a;
+    else if (!strcmp(name, "AD12")) kcsc = 0x1b;
+    else if (!strcmp(name, "AC01")) kcsc = 0x1e;
+    else if (!strcmp(name, "AC02")) kcsc = 0x1f;
+    else if (!strcmp(name, "AC03")) kcsc = 0x20;
+    else if (!strcmp(name, "AC04")) kcsc = 0x21;
+    else if (!strcmp(name, "AC05")) kcsc = 0x22;
+    else if (!strcmp(name, "AC06")) kcsc = 0x23;
+    else if (!strcmp(name, "AC07")) kcsc = 0x24;
+    else if (!strcmp(name, "AC08")) kcsc = 0x25;
+    else if (!strcmp(name, "AC09")) kcsc = 0x26;
+    else if (!strcmp(name, "AC10")) kcsc = 0x27;
+    else if (!strcmp(name, "AC11")) kcsc = 0x28;
+    else if (!strcmp(name, "AB01")) kcsc = 0x2c;
+    else if (!strcmp(name, "AB02")) kcsc = 0x2d;
+    else if (!strcmp(name, "AB03")) kcsc = 0x2e;
+    else if (!strcmp(name, "AB04")) kcsc = 0x2f;
+    else if (!strcmp(name, "AB05")) kcsc = 0x30;
+    else if (!strcmp(name, "AB06")) kcsc = 0x31;
+    else if (!strcmp(name, "AB07")) kcsc = 0x32;
+    else if (!strcmp(name, "AB08")) kcsc = 0x33;
+    else if (!strcmp(name, "AB09")) kcsc = 0x34;
+    else if (!strcmp(name, "AB10")) kcsc = 0x35;
+                                                                      // on 102-key keyboard
+    else if (!strcmp(name, "BKSL"))  kcsc = 0x2b;
+    else if (!strcmp(name, "ESC"))   kcsc = 0x01;
+    else if (!strcmp(name, "TAB"))   kcsc = 0x0f;
+    else if (!strcmp(name, "CAPS"))  kcsc = 0x3a;
+    else if (!strcmp(name, "LFSH"))  kcsc = 0x2a;
+    else if (!strcmp(name, "RTSH"))  kcsc = 0x36;
+    else if (!strcmp(name, "LCTRL")) kcsc = 0x1d;
+    else if (!strcmp(name, "LALT"))  kcsc = 0x38;
+    else if (!strcmp(name, "RALT"))  kcsc = 0xe033;
+
+    else if (!strcmp(name, "LWIN")) kcsc = 0xe05b;
+    else if (!strcmp(name, "RWIN")) kcsc = 0xe05c;
+
+    else if (!strcmp(name, "LSGT")) kcsc = 0x33;
+                                                                  // ?
+    else if (!strcmp(name, "RSGT")) kcsc = 0x34;
+                                                                    // ?
+    else if (!strcmp(name, "COMP")) kcsc = 0xe05d;
+
+    else if (!strcmp(name, "SPCE")) kcsc = 0x39;
+    else if (!strcmp(name, "RTRN")) kcsc = 0x1c;
+
+    else if (!strcmp(name, "FK01")) kcsc = 0x3b;
+    else if (!strcmp(name, "FK02")) kcsc = 0x3c;
+    else if (!strcmp(name, "FK03")) kcsc = 0x3d;
+    else if (!strcmp(name, "FK04")) kcsc = 0x3e;
+    else if (!strcmp(name, "FK05")) kcsc = 0x3f;
+    else if (!strcmp(name, "FK06")) kcsc = 0x40;
+    else if (!strcmp(name, "FK07")) kcsc = 0x41;
+    else if (!strcmp(name, "FK08")) kcsc = 0x42;
+    else if (!strcmp(name, "FK09")) kcsc = 0x43;
+    else if (!strcmp(name, "FK10")) kcsc = 0x44;
+
+    else if (!strcmp(name, "LEFT"))  kcsc = 0xe04b;
+    else if (!strcmp(name, "RIGHT")) kcsc = 0xe04d;
+    else if (!strcmp(name, "UP"))    kcsc = 0xe048;
+    else if (!strcmp(name, "DOWN"))  kcsc = 0xe050;
+
+    else if (!strcmp(name, "PGUP")) kcsc = 0x49;
+    else if (!strcmp(name, "PGDN")) kcsc = 0x51;
+    else if (!strcmp(name, "HOME")) kcsc = 0x47;
+    else if (!strcmp(name, "END"))  kcsc = 0x4f;
+    else if (!strcmp(name, "INS"))  kcsc = 0x52;
+    else if (!strcmp(name, "DELE")) kcsc = 0x53;
+    else if (!strcmp(name, "SCLK")) kcsc = 0x46;
+
+    else if (!strcmp(name, "KP0")) kcsc = 0x52;
+    else if (!strcmp(name, "KP1")) kcsc = 0x4f;
+    else if (!strcmp(name, "KP2")) kcsc = 0x50;
+    else if (!strcmp(name, "KP3")) kcsc = 0x51;
+    else if (!strcmp(name, "KP4")) kcsc = 0x4b;
+    else if (!strcmp(name, "KP5")) kcsc = 0x4c;
+    else if (!strcmp(name, "KP6")) kcsc = 0x4d;
+    else if (!strcmp(name, "KP7")) kcsc = 0x47;
+    else if (!strcmp(name, "KP8")) kcsc = 0x48;
+    else if (!strcmp(name, "KP9")) kcsc = 0x49;
+
+    else if (!strcmp(name, "KPEN")) kcsc = 0xe01c;
+
+    //else if (!strcmp(name, "PAUS")) keycode_to_scancode_table[i] = 0x;
+
+    //else if (!strcmp(name, "NMLK")) kcsc = 0x0;
+    //else if (!strcmp(name, "KPDV")) kcsc = 0x0;
+    //else if (!strcmp(name, "KPMU")) kcsc = 0x0;
+    //else if (!strcmp(name, "KPSU")) kcsc = 0x0;
+    //else if (!strcmp(name, "KPAD")) kcsc = 0x0;
+
+
+
+    //else if (!strcmp(name, "LSGT")) keycode_to_scancode_tablekey[i] = GLFW_KEY_WORLD_1;
+    //else key = GLFW_KEY_UNKNOWN;
+
   }
 }
 #endif
@@ -1995,7 +2079,12 @@ uint32_t fan::window_t::handle_events() {
           cdb.scancode = keycode_to_scancode_table[event.xkey.keycode];
         }
 
-        fan::print(xcb_get_scancode_name(event.xkey.keycode));
+          XkbDescPtr KbDesc = XkbGetMap(fan::sys::m_display, 0, XkbUseCoreKbd);
+          XkbGetNames(fan::sys::m_display, XkbKeyNamesMask, KbDesc);
+        char name[XkbKeyNameLength + 1];
+        memcpy(name, KbDesc->names->keys[event.xkey.keycode].name, XkbKeyNameLength);
+        name[XkbKeyNameLength] = '\0';
+        fan::print(name);
 
         window->m_current_key = key;
 
