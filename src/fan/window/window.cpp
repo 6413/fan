@@ -1062,10 +1062,16 @@ void fan::window_t::generate_keycode_to_scancode_table() {
       {"KPEN", 0xe01c}, {"BKSP", 0xe0}, {"RCTRL", 0xe01d},
     };
 
+    bool found = false;
     for (const auto instance : table) {
       if (xcb_get_scancode_name(KbDesc, i) == instance.first) {
         keycode_to_scancode_table[i] = instance.second;
+        found = true;
+        break;
       }
+    }
+    if (!found) {
+      fan::print_warning(std::hex, "scancode not found for keycode:" + i);
     }
   }
 }
