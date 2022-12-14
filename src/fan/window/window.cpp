@@ -44,6 +44,7 @@
 #endif
 
 #include <string>
+#include <format>
 
 #define stringify(name) #name
 
