@@ -1029,12 +1029,14 @@ static bool isExtensionSupported(const char* extList, const char* extension) {
 inline std::string fan::window_t::xcb_get_scancode_name(uint16_t keycode) {
   XkbDescPtr KbDesc = XkbGetMap(fan::sys::m_display, 0, XkbUseCoreKbd);
   XkbGetNames(fan::sys::m_display, XkbKeyNamesMask, KbDesc);
-  std::string str(KbDesc->names->keys[keycode].name);
+  std::string str(KbDesc->names->keys[keycode].name, KbDesc->names->keys[keycode].name + XkbKeyNameLength);
+  str.push_back(0);
   return str;
 }
 
 inline std::string fan::window_t::xcb_get_scancode_name(XkbDescPtr KbDesc, uint16_t keycode) {
-  std::string str(KbDesc->names->keys[keycode].name);
+  std::string str(KbDesc->names->keys[keycode].name, KbDesc->names->keys[keycode].name + XkbKeyNameLength);
+  str.push_back(0);
   return str;
 }
 
