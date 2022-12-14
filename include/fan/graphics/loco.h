@@ -866,8 +866,8 @@ public:
     vfi.feed_mouse_move(mouse_position);
   }
 
-  void feed_mouse_button(uint16_t button, fan::mouse_state mouse_state, const fan::vec2& mouse_position) {
-    vfi.feed_mouse_button(button, mouse_state);
+  void feed_mouse_button(uint16_t button, fan::button_state button_state, const fan::vec2& mouse_position) {
+    vfi.feed_mouse_button(button, button_state);
   }
 
   void feed_keyboard(uint16_t key, fan::keyboard_state keyboard_state) {

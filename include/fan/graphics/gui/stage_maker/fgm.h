@@ -146,7 +146,7 @@ struct fgm_t {
 		//mp.text = L"button";
 		//mp.mouse_button_cb = [nr](const loco_t::mouse_button_data_t& ii_d) -> int {
 		//	pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi), pile_t, loco);
-		//	if (ii_d.button != fan::mouse_left) {
+		//	if (ii_d.button != fan::button_left) {
 		//		return 0;
 		//	}
 		//	if (ii_d.mouse_stage != loco_t::vfi_t::mouse_stage_e::inside) {
@@ -173,7 +173,7 @@ struct fgm_t {
 		//	auto builder_cid = &pile->stage_maker.fgm.builder_button.instance[pile->stage_maker.fgm.builder_button.instance.size() - 1]->cid;
 		//	auto ri = pile->loco.button.get_ri(builder_cid);
 		//	pile->loco.vfi.set_focus_mouse(ri.vfi_id);
-		//	pile->loco.vfi.feed_mouse_button(fan::mouse_left, fan::mouse_state::press);
+		//	pile->loco.vfi.feed_mouse_button(fan::button_left, fan::button_state::press);
 		//	pile->stage_maker.fgm.builder_button.open_properties(builder_cid);
 		//	
 		//	auto stage_name = pile->stage_maker.get_selected_name(
@@ -212,7 +212,7 @@ struct fgm_t {
 		//mp.text = L"sprite";
 		//mp.mouse_button_cb = [this, nr](const loco_t::mouse_button_data_t& ii_d) -> int {
 		//	pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi), pile_t, loco);
-		//	if (ii_d.button != fan::mouse_left) {
+		//	if (ii_d.button != fan::button_left) {
 		//		return 0;
 		//	}
 		//	if (ii_d.mouse_stage != loco_t::vfi_t::mouse_stage_e::inside) {
@@ -236,7 +236,7 @@ struct fgm_t {
 		//	pile->stage_maker.fgm.sprite.push_back(sp);
 		//	auto& instance = pile->stage_maker.fgm.sprite.instances[pile->stage_maker.fgm.sprite.instances.size() - 1];
 		//	pile->loco.vfi.set_focus_mouse(instance->vfi_id);
-		//	pile->loco.vfi.feed_mouse_button(fan::mouse_left, fan::mouse_state::press);
+		//	pile->loco.vfi.feed_mouse_button(fan::button_left, fan::button_state::press);
 		//	pile->stage_maker.fgm.sprite.open_properties(&instance->cid);
 
 		//	return 0;
@@ -269,7 +269,7 @@ struct fgm_t {
 		  rcm_op.viewport = &viewport[viewport_area::global];
 		  rcm_op.theme = &theme;
 		  rcm_op.gui_size = 0.04;
-			if (mb.button != fan::mouse_right) {
+			if (mb.button != fan::button_right) {
         fan::print("0");
 				invalidate_right_click_menu();
 				return 0;
@@ -279,7 +279,7 @@ struct fgm_t {
 				invalidate_right_click_menu();
 				return 0;
 			}
-			if (mb.button_state != fan::mouse_state::release) {
+			if (mb.button_state != fan::button_state::release) {
         fan::print("2");
 				invalidate_right_click_menu();
 				return 0;
@@ -292,10 +292,10 @@ struct fgm_t {
           .text = L"button",
           .mouse_button_cb = [this](const loco_t::mouse_button_data_t& ii_d) -> int {
 			      pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi), pile_t, loco);
-			      if (ii_d.button != fan::mouse_left) {
+			      if (ii_d.button != fan::button_left) {
 				      return 0;
 			      }
-            if (ii_d.button_state != fan::mouse_state::release) {
+            if (ii_d.button_state != fan::button_state::release) {
               return 0;
             }
 			      if (ii_d.mouse_stage != loco_t::vfi_t::mouse_stage_e::inside) {
@@ -316,7 +316,7 @@ struct fgm_t {
 			      auto builder_cid = &pile->stage_maker.fgm.builder_button.instance[pile->stage_maker.fgm.builder_button.instance.size() - 1]->cid;
 			      auto ri = pile->loco.button.get_ri(builder_cid);
 			      //pile->loco.vfi.set_focus_mouse(ri.vfi_id);
-			      //pile->loco.vfi.feed_mouse_button(fan::mouse_left, fan::mouse_state::press);
+			      //pile->loco.vfi.feed_mouse_button(fan::button_left, fan::button_state::press);
 			      pile->stage_maker.fgm.builder_button.open_properties(builder_cid);
 			
 			      auto stage_name = pile->stage_maker.get_selected_name(
@@ -387,7 +387,7 @@ struct fgm_t {
 		gbp.theme = &theme;
 		gbp.text = L"<-";
 		gbp.mouse_button_cb = [this](const loco_t::mouse_button_data_t& mb) -> int {
-			use_key_lambda(fan::mouse_left, fan::mouse_state::release);
+			use_key_lambda(fan::button_left, fan::button_state::release);
 
 			stage_maker_t* stage_maker = OFFSETLESS(this, stage_maker_t, fgm);
 			stage_maker->reopen_from_fgm();

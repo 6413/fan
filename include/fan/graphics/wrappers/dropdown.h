@@ -86,10 +86,10 @@ struct dropdown_t {
 		auto loco = get_loco();
 		instances[get_i(nr)].items = p.items;
 		p.mouse_button_cb = [this, nr](const mouse_button_data_t& mb) -> int {
-			if (mb.button != fan::mouse_left) {
+			if (mb.button != fan::button_left) {
 				return 0;
 			}
-			if (mb.button_state != fan::mouse_state::release) {
+			if (mb.button_state != fan::button_state::release) {
 				return 0;
 			}
 			if (mb.mouse_stage != vfi_t::mouse_stage_e::inside) {
@@ -105,10 +105,10 @@ struct dropdown_t {
 			loco_t::menu_maker_t::properties_t mp;
 			mp.mouse_button_cb = [this, nr, id](const mouse_button_data_t& mb) {
 
-				if (mb.button != fan::mouse_left) {
+				if (mb.button != fan::button_left) {
 					return 0;
 				}
-				if (mb.button_state != fan::mouse_state::release) {
+				if (mb.button_state != fan::button_state::release) {
 					return 0;
 				}
 				if (mb.mouse_stage != vfi_t::mouse_stage_e::inside) {
@@ -139,10 +139,10 @@ struct dropdown_t {
 
 
 		push_always(click_position.z + 1, [this, loco, nr, id](const mouse_button_data_t& mb) {
-			if (mb.button != fan::mouse_left) {
+			if (mb.button != fan::button_left) {
 				return 0;
 			}
-			if (mb.button_state != fan::mouse_state::release) {
+			if (mb.button_state != fan::button_state::release) {
 				return 0;
 			}
 			if (mb.mouse_stage != vfi_t::mouse_stage_e::inside) {

@@ -522,6 +522,8 @@ fan::window_t::window_t(const fan::vec2i& window_size, const fan::string& name, 
   m_focused = true;
   m_event_flags = 0;
 
+  set_flags<fan::window_t::flags::no_resize>();
+
   if (flag_values::m_size_mode == fan::window_t::mode::not_set) {
     flag_values::m_size_mode = fan::window_t::default_size_mode;
   }
@@ -908,7 +910,7 @@ LRESULT fan::window_t::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lp
 
       for (uint16_t i = fan::first; i != fan::last; i++) {
         if (GetAsyncKeyState(fan::window_input::convert_fan_to_keys(i))) {
-          if (i >= fan::mouse_left) {
+          if (i >= fan::button_left) {
             auto it = fwindow->m_buttons_callback.GetNodeFirst();
             while (it != fwindow->m_buttons_callback.dst) {
               fwindow->m_buttons_callback.StartSafeNext(it);
@@ -916,7 +918,7 @@ LRESULT fan::window_t::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lp
               mouse_buttons_cb_data_t cbd;
               cbd.window = fwindow;
               cbd.button = i;
-              cbd.state = fan::mouse_state::release;
+              cbd.state = fan::button_state::release;
               fwindow->m_buttons_callback[it].data(cbd);
 
               it = fwindow->m_buttons_callback.EndSafeNext();
@@ -1649,7 +1651,7 @@ uint32_t fan::window_t::handle_events() {
           break;
         }
 
-        const uint16_t button = fan::input::mouse_left;
+        const uint16_t button = fan::input::button_left;
 
         fan::window_t::window_input_mouse_action(window->m_window_handle, button);
 
@@ -1660,7 +1662,7 @@ uint32_t fan::window_t::handle_events() {
           mouse_buttons_cb_data_t cbd;
           cbd.window = window;
           cbd.button = button;
-          cbd.state = fan::mouse_state::press;
+          cbd.state = fan::button_state::press;
           window->m_buttons_callback[it].data(cbd);
 
           it = it.Next(&window->m_buttons_callback);
@@ -1676,7 +1678,7 @@ uint32_t fan::window_t::handle_events() {
           break;
         }
 
-        const uint16_t button = fan::input::mouse_right;
+        const uint16_t button = fan::input::button_right;
 
         fan::window_t::window_input_mouse_action(window->m_window_handle, button);
 
@@ -1687,7 +1689,7 @@ uint32_t fan::window_t::handle_events() {
           mouse_buttons_cb_data_t cbd;
           cbd.window = window;
           cbd.button = button;
-          cbd.state = fan::mouse_state::press;
+          cbd.state = fan::button_state::press;
           window->m_buttons_callback[it].data(cbd);
 
           it = it.Next(&window->m_buttons_callback);
@@ -1703,7 +1705,7 @@ uint32_t fan::window_t::handle_events() {
           break;
         }
 
-        const uint16_t button = fan::input::mouse_middle;
+        const uint16_t button = fan::input::button_middle;
 
         fan::window_t::window_input_mouse_action(window->m_window_handle, button);
 
@@ -1714,7 +1716,7 @@ uint32_t fan::window_t::handle_events() {
           mouse_buttons_cb_data_t cbd;
           cbd.window = window;
           cbd.button = button;
-          cbd.state = fan::mouse_state::press;
+          cbd.state = fan::button_state::press;
           window->m_buttons_callback[it].data(cbd);
 
           it = it.Next(&window->m_buttons_callback);
@@ -1790,7 +1792,7 @@ uint32_t fan::window_t::handle_events() {
           mouse_buttons_cb_data_t cbd;
           cbd.window = window;
           cbd.button = zDelta < 0 ? fan::input::mouse_scroll_down : fan::input::mouse_scroll_up;
-          cbd.state = fan::mouse_state::press;
+          cbd.state = fan::button_state::press;
           window->m_buttons_callback[it].data(cbd);
 
           it = it.Next(&window->m_buttons_callback);
@@ -1885,14 +1887,14 @@ uint32_t fan::window_t::handle_events() {
 
               mouse_buttons_cb_data_t cbd;
               cbd.window = window;
-              cbd.button = fan::input::mouse_left;
-              cbd.state = fan::mouse_state::release;
+              cbd.button = fan::input::button_left;
+              cbd.state = fan::button_state::release;
               window->m_buttons_callback[it].data(cbd);
 
               it = it.Next(&window->m_buttons_callback);
             }
 
-            window_input_up(window->m_window_handle, fan::input::mouse_left); allow_outside = false;
+            window_input_up(window->m_window_handle, fan::input::button_left); allow_outside = false;
           }
 
           else if (fan::is_flag(raw->data.mouse.usButtonFlags, RI_MOUSE_MIDDLE_BUTTON_UP)) {
@@ -1903,14 +1905,14 @@ uint32_t fan::window_t::handle_events() {
 
               mouse_buttons_cb_data_t cbd;
               cbd.window = window;
-              cbd.button = fan::input::mouse_middle;
-              cbd.state = fan::mouse_state::release;
+              cbd.button = fan::input::button_middle;
+              cbd.state = fan::button_state::release;
               window->m_buttons_callback[it].data(cbd);
 
               it = it.Next(&window->m_buttons_callback);
             }
 
-            window_input_up(window->m_window_handle, fan::input::mouse_middle); allow_outside = false;
+            window_input_up(window->m_window_handle, fan::input::button_middle); allow_outside = false;
           }
 
           else if (fan::is_flag(raw->data.mouse.usButtonFlags, RI_MOUSE_RIGHT_BUTTON_UP)) {
@@ -1921,14 +1923,14 @@ uint32_t fan::window_t::handle_events() {
 
               mouse_buttons_cb_data_t cbd;
               cbd.window = window;
-              cbd.button = fan::input::mouse_right;
-              cbd.state = fan::mouse_state::release;
+              cbd.button = fan::input::button_right;
+              cbd.state = fan::button_state::release;
               window->m_buttons_callback[it].data(cbd);
 
               it = it.Next(&window->m_buttons_callback);
             }
 
-            window_input_up(window->m_window_handle, fan::input::mouse_right); allow_outside = false;
+            window_input_up(window->m_window_handle, fan::input::button_right); allow_outside = false;
           }
 
           else if ((raw->data.mouse.usFlags & MOUSE_MOVE_RELATIVE) == MOUSE_MOVE_RELATIVE) {
@@ -2084,7 +2086,6 @@ uint32_t fan::window_t::handle_events() {
         char name[XkbKeyNameLength + 1];
         memcpy(name, KbDesc->names->keys[event.xkey.keycode].name, XkbKeyNameLength);
         name[XkbKeyNameLength] = '\0';
-        fan::print(name);
 
         window->m_current_key = key;
 
@@ -2250,7 +2251,7 @@ uint32_t fan::window_t::handle_events() {
           mouse_buttons_cb_data_t cbd;
           cbd.window = window;
           cbd.button = button;
-          cbd.state = fan::mouse_state::press;
+          cbd.state = fan::button_state::press;
           window->m_buttons_callback[it].data(cbd);
 
           it = it.Next(&window->m_buttons_callback);
@@ -2287,7 +2288,7 @@ uint32_t fan::window_t::handle_events() {
           mouse_buttons_cb_data_t cbd;
           cbd.window = window;
           cbd.button = button;
-          cbd.state = fan::mouse_state::release;
+          cbd.state = fan::button_state::release;
           window->m_buttons_callback[it].data(cbd);
 
           it = it.Next(&window->m_buttons_callback);

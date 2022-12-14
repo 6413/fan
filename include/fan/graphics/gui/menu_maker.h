@@ -86,7 +86,7 @@ struct sb_menu_maker_type_name {
     //    return 0;
     //  }
 
-    //  if (mb.button != fan::mouse_left) {
+    //  if (mb.button != fan::button_left) {
     //    return 0;
     //  }
 
@@ -160,15 +160,15 @@ struct sb_menu_maker_type_name {
     };
     bp.mouse_button_cb = [loco, this, id, nr](const loco_t::mouse_button_data_t& d) -> int {
 
-      if (d.button != fan::mouse_left) {
+      if (d.button != fan::button_left) {
         return 0;
       }
 
-      if (selected == &instances[id].cid && d.button_state == fan::mouse_state::release) {
+      if (selected == &instances[id].cid && d.button_state == fan::button_state::release) {
         goto g_mb_skip;
       }
 
-      if (d.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside && d.button_state == fan::mouse_state::release) {
+      if (d.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside && d.button_state == fan::button_state::release) {
         if (selected != nullptr) {
           loco->button.set_theme(selected, loco->button.get_theme(selected), loco_t::button_t::inactive);
         }
@@ -181,7 +181,7 @@ struct sb_menu_maker_type_name {
         return 1;
       }
 
-      if (d.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside && d.button_state == fan::mouse_state::release) {
+      if (d.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside && d.button_state == fan::button_state::release) {
         select_data_t sd;
         sd.vfi = d.vfi;
         sd.selected = true;
@@ -189,7 +189,7 @@ struct sb_menu_maker_type_name {
           return 1;
         }
       }
-      if (selected == d.cid && d.button_state == fan::mouse_state::release) {
+      if (selected == d.cid && d.button_state == fan::button_state::release) {
         loco->button.set_theme(d.cid, loco->button.get_theme(d.cid), loco_t::button_t::press);
       }
 
