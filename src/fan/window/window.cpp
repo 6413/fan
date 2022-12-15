@@ -1889,7 +1889,7 @@ uint32_t fan::window_t::handle_events() {
   #elif defined(fan_platform_unix)
 
   if (invisibleCursor != None) {
-    invisibleCursor = XcursorLibraryLoadCursor(fan::sys::m_display, "blank")
+    invisibleCursor = XcursorLibraryLoadCursor(fan::sys::m_display, "blank");
   }
 
   XEvent event;
