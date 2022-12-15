@@ -1046,7 +1046,7 @@ inline std::string fan::window_t::xcb_get_scancode_name(XkbDescPtr KbDesc, uint1
   return str;
 }
 
-inline auto fan::window_t::xcb_get_scancode_name(uint16_t keycode) {
+inline std::string fan::window_t::xcb_get_scancode_name(uint16_t keycode) {
   XkbDescPtr KbDesc = XkbGetMap(fan::sys::m_display, 0, XkbUseCoreKbd);
   XkbGetNames(fan::sys::m_display, XkbKeyNamesMask, KbDesc);
   return xcb_get_scancode_name(KbDesc, keycode);
