@@ -908,7 +908,7 @@ LRESULT fan::window_t::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lp
 
       for (uint16_t i = fan::first; i != fan::last; i++) {
         if (GetAsyncKeyState(fan::window_input::convert_fan_to_keys(i))) {
-          if (i >= fan::mouse_left) {
+          if (i >= fan::button_left) {
             auto it = fwindow->m_buttons_callback.GetNodeFirst();
             while (it != fwindow->m_buttons_callback.dst) {
               fwindow->m_buttons_callback.StartSafeNext(it);
@@ -1581,7 +1581,7 @@ uint32_t fan::window_t::handle_events() {
           break;
         }
 
-        const uint16_t button = fan::input::mouse_left;
+        const uint16_t button = fan::input::button_left;
 
         fan::window_t::window_input_mouse_action(window->m_window_handle, button);
 
@@ -1608,7 +1608,7 @@ uint32_t fan::window_t::handle_events() {
           break;
         }
 
-        const uint16_t button = fan::input::mouse_right;
+        const uint16_t button = fan::input::button_right;
 
         fan::window_t::window_input_mouse_action(window->m_window_handle, button);
 
@@ -1635,7 +1635,7 @@ uint32_t fan::window_t::handle_events() {
           break;
         }
 
-        const uint16_t button = fan::input::mouse_middle;
+        const uint16_t button = fan::input::button_right;
 
         fan::window_t::window_input_mouse_action(window->m_window_handle, button);
 
@@ -1817,14 +1817,14 @@ uint32_t fan::window_t::handle_events() {
 
               mouse_buttons_cb_data_t cbd;
               cbd.window = window;
-              cbd.button = fan::input::mouse_left;
+              cbd.button = fan::input::button_left;
               cbd.state = fan::button_state::release;
               window->m_buttons_callback[it].data(cbd);
 
               it = it.Next(&window->m_buttons_callback);
             }
 
-            window_input_up(window->m_window_handle, fan::input::mouse_left); allow_outside = false;
+            window_input_up(window->m_window_handle, fan::input::button_left); allow_outside = false;
           }
 
           else if (fan::is_flag(raw->data.mouse.usButtonFlags, RI_MOUSE_MIDDLE_BUTTON_UP)) {
@@ -1835,14 +1835,14 @@ uint32_t fan::window_t::handle_events() {
 
               mouse_buttons_cb_data_t cbd;
               cbd.window = window;
-              cbd.button = fan::input::mouse_middle;
+              cbd.button = fan::input::button_right;
               cbd.state = fan::button_state::release;
               window->m_buttons_callback[it].data(cbd);
 
               it = it.Next(&window->m_buttons_callback);
             }
 
-            window_input_up(window->m_window_handle, fan::input::mouse_middle); allow_outside = false;
+            window_input_up(window->m_window_handle, fan::input::button_right); allow_outside = false;
           }
 
           else if (fan::is_flag(raw->data.mouse.usButtonFlags, RI_MOUSE_RIGHT_BUTTON_UP)) {
@@ -1853,14 +1853,14 @@ uint32_t fan::window_t::handle_events() {
 
               mouse_buttons_cb_data_t cbd;
               cbd.window = window;
-              cbd.button = fan::input::mouse_right;
+              cbd.button = fan::input::button_right;
               cbd.state = fan::button_state::release;
               window->m_buttons_callback[it].data(cbd);
 
               it = it.Next(&window->m_buttons_callback);
             }
 
-            window_input_up(window->m_window_handle, fan::input::mouse_right); allow_outside = false;
+            window_input_up(window->m_window_handle, fan::input::button_right); allow_outside = false;
           }
 
           else if ((raw->data.mouse.usFlags & MOUSE_MOVE_RELATIVE) == MOUSE_MOVE_RELATIVE) {
