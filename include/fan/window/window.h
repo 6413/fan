@@ -508,7 +508,7 @@ namespace fan {
     static constexpr uint16_t max_keycode = 1024;
     uint16_t keycode_to_scancode_table[max_keycode]{};
 
-    static Cursor invisibleCursor = None;
+    inline static Cursor invisibleCursor = None;
 
 		#endif
 
