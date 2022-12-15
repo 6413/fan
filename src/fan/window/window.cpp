@@ -1082,7 +1082,8 @@ void fan::window_t::generate_keycode_to_scancode_table() {
       {"FK09", 0x43}, {"FK10", 0x44}, {"LEFT", 0xe04b}, {"RIGHT", 0xe04d}, {"UP", 0xe048}, {"DOWN", 0xe050}, {"PGUP", 0x49}, 
       {"PGDN", 0x51}, {"HOME", 0x47}, {"END", 0x4f}, {"INS", 0x52}, {"DELE", 0x53}, {"SCLK", 0x46}, {"KP0", 0x52}, {"KP1", 0x4f}, 
       {"KP2", 0x50}, {"KP3", 0x51}, {"KP4", 0x4b}, {"KP5", 0x4c}, {"KP6", 0x4d}, {"KP7", 0x47}, {"KP8", 0x48}, {"KP9", 0x49}, 
-      {"KPEN", 0xe01c}, {"BKSP", 0xe0}, {"RCTL", 0xe01d}, {"BKSP", 0x0e}
+      {"KPEN", 0xe01c}, {"BKSP", 0xe0}, {"RCTL", 0xe01d}, {"BKSP", 0x0e}, {"NMLK", 0x45 }, {"KPDL", 0x53}, {"KPAD", 0x4e},
+      {"KPDV", 0xe035}, {"KPMU", 0x37}, {"KPSU", 0x4a}, {"KPAD", 0x4e}
     };
 
     bool found = false;
@@ -1792,34 +1793,10 @@ uint32_t fan::window_t::handle_events() {
               allow_outside = true;
             }
 
-            if (fan::window_t::flag_values::m_no_mouse) {
-              RECT rect;
-              GetClientRect(window->m_window_handle, &rect);
-
-              POINT ul;
-              ul.x = rect.left;
-              ul.y = rect.top;
-
-              POINT lr;
-              lr.x = rect.right;
-              lr.y = rect.bottom;
-
-              MapWindowPoints(window->m_window_handle, nullptr, &ul, 1);
-              MapWindowPoints(window->m_window_handle, nullptr, &lr, 1);
-
-              rect.left = ul.x;
-              rect.top = ul.y;
-
-              rect.right = lr.x;
-              rect.bottom = lr.y;
-
-              ClipCursor(&rect);
-            }
-            else {
+            if (!fan::window_t::flag_values::m_no_mouse) {
               window->m_previous_mouse_position = window->m_mouse_position;
               window->m_mouse_position = position;
             }
-
           }
 
           else if (fan::is_flag(raw->data.mouse.usButtonFlags, RI_MOUSE_LEFT_BUTTON_UP)) {
@@ -1901,7 +1878,7 @@ uint32_t fan::window_t::handle_events() {
   #elif defined(fan_platform_unix)
 
   if (invisibleCursor == None) {
-    invisibleCursor = XCreateFontCursor(fan::sys::m_display, XC_heart);
+    invisibleCursor = XCreateFontCursor(fan::sys::m_display, XC_boat);
   }
 
   XEvent event;
