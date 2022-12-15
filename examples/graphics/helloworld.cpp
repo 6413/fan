@@ -56,6 +56,7 @@ int main() {
     if (d.state != fan::keyboard_state::press) {
       return;
     }
+    fan::print("a");
     static int x = 0;
     pile->loco.get_window()->set_flag_value<fan::window_t::flags::no_mouse>(x % 2);
     x++;
