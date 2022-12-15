@@ -17,9 +17,10 @@
 
 
 int main() {
-
-  std::string str("test");
+  const char* x;
+  fan::string test(x, x + 1);
+  //std::string str = std::string(x, x + 1);
   //str.push_back(0);
 
-  return str == "test";
+  //return str == "test";
 }
