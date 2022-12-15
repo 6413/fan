@@ -1027,7 +1027,7 @@ static bool isExtensionSupported(const char* extList, const char* extension) {
 // https://www.win.tue.nl/~aeb/linux/kbd/scancodes-1.html
 
 inline fan::string fan::window_t::xcb_get_scancode_name(XkbDescPtr KbDesc, uint16_t keycode) {
-  std::string str(KbDesc->names->keys[keycode].name, KbDesc->names->keys[keycode].name + XkbKeyNameLength);
+  fan::string str(KbDesc->names->keys[keycode].name, KbDesc->names->keys[keycode].name + XkbKeyNameLength);
   return str;
 }
 
