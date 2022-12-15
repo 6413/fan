@@ -200,7 +200,7 @@ namespace fan {
 		}
 
     bool operator==(const char_type* c) const {
-      return std::equal(begin(), end() - 1, c);
+      return std::equal(begin(), end(), c);
 		}
 
 		bool operator==(const basic_string& s) const {
