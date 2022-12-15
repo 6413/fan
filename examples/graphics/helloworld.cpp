@@ -52,9 +52,18 @@ int main() {
   pile->open();
   pile->loco.get_context()->set_vsync(pile->loco.get_window(), 0);
 
+  pile->loco.get_window()->add_keys_callback([&](const auto& d) {
+    if (d.state != fan::keyboard_state::press) {
+      return;
+    }
+    static int x = 0;
+    pile->loco.get_window()->set_flag_value<fan::window_t::flags::no_mouse>(x % 2);
+    x++;
+  });
+
   pile->loco.loop([&] {
-    //   pile->loco.get_window()->get_fps();
-    });
+    
+  });
 
   return 0;
 }

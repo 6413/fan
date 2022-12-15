@@ -1151,10 +1151,11 @@ void fan::window_t::initialize_window(const fan::string& name, const fan::vec2i&
     fan::throw_error("failed to register raw input:" + fan::to_string(result));
   }
 
-  ShowCursor(!flag_values::m_no_mouse);
+  //ShowCursor(!flag_values::m_no_mouse);
   if (flag_values::m_no_mouse) {
-    auto middle = this->get_position() + this->get_size() / 2;
-    SetCursorPos(middle.x, middle.y);
+    ShowCursor(false);
+    //auto middle = this->get_position() + this->get_size() / 2;
+    //SetCursorPos(middle.x, middle.y);
   }
 
   #elif defined(fan_platform_unix)
@@ -1871,30 +1872,6 @@ uint32_t fan::window_t::handle_events() {
 
             if ((!cursor_in_range(position, window->get_size()) && !allow_outside)) {
               break;
-            }
-
-            if (fan::window_t::flag_values::m_no_mouse) {
-              RECT rect;
-              GetClientRect(window->m_window_handle, &rect);
-
-              POINT ul;
-              ul.x = rect.left;
-              ul.y = rect.top;
-
-              POINT lr;
-              lr.x = rect.right;
-              lr.y = rect.bottom;
-
-              MapWindowPoints(window->m_window_handle, nullptr, &ul, 1);
-              MapWindowPoints(window->m_window_handle, nullptr, &lr, 1);
-
-              rect.left = ul.x;
-              rect.top = ul.y;
-
-              rect.right = lr.x;
-              rect.bottom = lr.y;
-
-              ClipCursor(&rect);
             }
           }
 
