@@ -1889,7 +1889,7 @@ uint32_t fan::window_t::handle_events() {
   #elif defined(fan_platform_unix)
 
   if (invisibleCursor != None) {
-    invisibleCursor = XcursorLibraryLoadCursor(fan::sys::m_display, XC_left_ptr);
+    invisibleCursor = XCreateFontCursor(fan::sys::m_display, XC_ll_angle);
   }
 
   XEvent event;

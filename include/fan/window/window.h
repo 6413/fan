@@ -53,6 +53,7 @@
 	#include <X11/XKBlib.h>
   #include <X11/Xcursor/Xcursor.h>
   #include <X11/cursorfont.h>
+  #include <X11/Xutil.h>
 
 	#undef index // xos.h
 
