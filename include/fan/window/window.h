@@ -296,7 +296,7 @@ namespace fan {
     // Do something else here, such as handle window events or process input.
 
     // Release the grab and restore normal pointer behavior.
-          fan::print("switch0", XDefineCursor(fan::sys::m_display, m_window_handle, XCreateFontCursor(fan::sys::m_display, XC_arrow)));
+          fan::print("switch", XDefineCursor(fan::sys::m_display, m_window_handle, invisibleCursor));
           //;
         #endif
         }
