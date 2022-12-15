@@ -199,6 +199,10 @@ namespace fan {
 			return std::equal(begin(), end() - 1, s.begin(), s.end() - 1);
 		}
 
+    bool operator==(const char_type* c) const {
+      return std::equal(begin(), end() - 1, c);
+		}
+
 		bool operator==(const basic_string& s) const {
 			return equals(s);
 		}
