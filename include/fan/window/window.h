@@ -272,6 +272,49 @@ namespace fan {
 		uintptr_t get_max_fps() const;
 		void set_max_fps(uintptr_t fps);
 
+    void lock_cursor_and_set_invisible(bool flag) {
+        if (flag == 0) {
+       #if defined(fan_platform_windows)
+          SetCursor(LoadCursor(NULL, IDC_ARROW));
+          ReleaseCapture();
+
+          // unlock the cursor from the client area
+          ClipCursor(NULL);
+        #elif defined(fan_platform_unix)
+          XDefineCursor(fan::sys::m_display, m_window_handle, XCreateFontCursor(fan::sys::m_display, XC_arrow));
+        #endif
+        }
+        else {
+        #if defined(fan_platform_windows)
+          SetCapture(m_window_handle);
+          RECT rect;
+          GetClientRect(m_window_handle, &rect);
+
+          POINT ul;
+          ul.x = rect.left;
+          ul.y = rect.top;
+
+          POINT lr;
+          lr.x = rect.right;
+          lr.y = rect.bottom;
+
+          MapWindowPoints(m_window_handle, nullptr, &ul, 1);
+          MapWindowPoints(m_window_handle, nullptr, &lr, 1);
+
+          rect.left = ul.x;
+          rect.top = ul.y;
+
+          rect.right = lr.x;
+          rect.bottom = lr.y;
+
+          ClipCursor(&rect);
+          SetCursor(NULL);
+        #elif defined(fan_platform_unix)
+          XDefineCursor(fan::sys::m_display, m_window_handle, invisibleCursor);
+        #endif
+        }
+    }
+
 		// use fan::window_t::resolutions for window sizes
 		void set_full_screen(const fan::vec2i& size = uninitialized);
 		void set_windowed_full_screen(const fan::vec2i& size = uninitialized);
@@ -287,9 +330,10 @@ namespace fan {
 			typename std::conditional<flag & fan::window_t::flags::no_resize, bool,
 			typename std::conditional<flag & fan::window_t::flags::mode, fan::window_t::mode, int
 			>>>::type>
-			static constexpr void set_flag_value(T value) {
+			constexpr void set_flag_value(T value) {
 			if constexpr(static_cast<bool>(flag & fan::window_t::flags::no_mouse)) {
-				flag_values::m_no_mouse = value;
+        flag_values::m_no_mouse = value;
+        lock_cursor_and_set_invisible(!value);
 			}
 			else if constexpr(static_cast<bool>(flag & fan::window_t::flags::no_resize)) {
 				flag_values::m_no_resize = value;
@@ -462,6 +506,8 @@ namespace fan {
 
     static constexpr uint16_t max_keycode = 1024;
     uint16_t keycode_to_scancode_table[max_keycode]{};
+
+    static const Cursor invisibleCursor = XcursorLibraryLoadCursor(fan::sys::m_display, "blank");
 
 		#endif
 

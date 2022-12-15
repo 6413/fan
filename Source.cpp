@@ -19,7 +19,7 @@
 int main() {
   //const char* x;
   //fan::string test(x, x + 1);
-  constexpr const char* t = "test0";
+  constexpr const char* t = "test";
   std::string st = "test";
  // st == "a";
   fan::string str = fan::string(t, t + strlen(t));
