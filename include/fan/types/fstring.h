@@ -37,7 +37,7 @@ namespace fan {
 		basic_string(const char_type* s) : str(s, s + stringlen(s)) {
 			str.push_back(0);
 		}
-    basic_string(const char_type* src, const char_type* dst) : str(src, dst + 1) {
+    basic_string(const char_type* src, const char_type* dst) : str(src, dst) {
 			str.push_back(0);
 		}
 		basic_string(typename value_type::const_iterator beg, typename value_type::const_iterator end) : str(beg, end) {

@@ -1021,13 +1021,28 @@ static bool isExtensionSupported(const char* extList, const char* extension) {
 }
 #endif
 
+std::string string_to_hex(const std::string& input)
+{
+    static const char hex_digits[] = "0123456789ABCDEF";
+
+    std::string output;
+    output.reserve(input.length() * 2);
+    for (unsigned char c : input)
+    {
+        output.push_back(hex_digits[c >> 4]);
+        output.push_back(hex_digits[c & 15]);
+    }
+    return output;
+}
+
+
 // should be X11
 #if defined(fan_platform_unix)
 
 // https://www.win.tue.nl/~aeb/linux/kbd/scancodes-1.html
 
 inline fan::string fan::window_t::xcb_get_scancode_name(XkbDescPtr KbDesc, uint16_t keycode) {
-  fan::string str(KbDesc->names->keys[keycode].name, KbDesc->names->keys[keycode].name + XkbKeyNameLength );
+  fan::string str(KbDesc->names->keys[keycode].name, KbDesc->names->keys[keycode].name + XkbKeyNameLength);
   return str;
 }
 
@@ -1062,6 +1077,7 @@ void fan::window_t::generate_keycode_to_scancode_table() {
     bool found = false;
     for (const auto instance : table) {
       auto str = xcb_get_scancode_name(KbDesc, i);
+      fan::print(string_to_hex(str.c_str()), string_to_hex(instance.first), str.size(), strlen(instance.first));
       if (str == instance.first) {
         keycode_to_scancode_table[i] = instance.second;
         found = true;
