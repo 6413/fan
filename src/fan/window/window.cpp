@@ -597,6 +597,10 @@ void fan::window_t::destroy_window_internal(){
     return;
   }
 
+  cleanupHandler();
+
+  XSetIOErrorHandler(NULL);
+
   XFree(m_visual);
   XFreeColormap(fan::sys::m_display, m_window_attribs.colormap);
   XDestroyWindow(fan::sys::m_display, m_window_handle);
@@ -1091,6 +1095,13 @@ void fan::window_t::generate_keycode_to_scancode_table() {
 }
 #endif
 
+#if defined(fan_platform_unix)
+int cleanupHandler(Display* display) {
+    XUngrabPointer(display, CurrentTime);
+    return 0;
+}
+#endif
+
 void fan::window_t::initialize_window(const fan::string& name, const fan::vec2i& window_size, uint64_t flags)
 {
   #ifdef fan_platform_windows
@@ -1388,6 +1399,8 @@ void fan::window_t::initialize_window(const fan::string& name, const fan::vec2i&
   XSetICFocus(m_xic);
 
   generate_keycode_to_scancode_table();
+
+  XSetIOErrorHandler(cleanupHandler);
 
   #endif
 
