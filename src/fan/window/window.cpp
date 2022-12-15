@@ -1594,7 +1594,6 @@ uint32_t fan::window_t::handle_events() {
         if (!window) {
           break;
         }
-
         const uint16_t button = fan::input::button_left;
 
         fan::window_t::window_input_mouse_action(window->m_window_handle, button);
@@ -1901,8 +1900,8 @@ uint32_t fan::window_t::handle_events() {
 
   #elif defined(fan_platform_unix)
 
-  if (invisibleCursor != None) {
-    invisibleCursor = XCreateFontCursor(fan::sys::m_display, XC_ll_angle);
+  if (invisibleCursor == None) {
+    invisibleCursor = XCreateFontCursor(fan::sys::m_display, XC_heart);
   }
 
   XEvent event;

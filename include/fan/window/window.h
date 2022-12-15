@@ -281,6 +281,7 @@ namespace fan {
        #if defined(fan_platform_windows)
           SetCursor(LoadCursor(NULL, IDC_ARROW));
           ReleaseCapture();
+          SetCapture(NULL);
 
           // unlock the cursor from the client area
           ClipCursor(NULL);
@@ -323,8 +324,8 @@ namespace fan {
           rect.right = lr.x;
           rect.bottom = lr.y;
 
-          ClipCursor(&rect);
           SetCursor(NULL);
+          ClipCursor(&rect);
         #elif defined(fan_platform_unix)
           XUngrabPointer(fan::sys::m_display, CurrentTime);
           fan::print("switch", XDefineCursor(fan::sys::m_display, m_window_handle, invisibleCursor));
