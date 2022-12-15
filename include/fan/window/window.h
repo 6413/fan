@@ -276,6 +276,7 @@ namespace fan {
 		void set_max_fps(uintptr_t fps);
 
     void lock_cursor_and_set_invisible(bool flag) {
+
         if (flag == 0) {
        #if defined(fan_platform_windows)
           SetCursor(LoadCursor(NULL, IDC_ARROW));
@@ -284,6 +285,7 @@ namespace fan {
           // unlock the cursor from the client area
           ClipCursor(NULL);
         #elif defined(fan_platform_unix)
+          fan::print("switch0");
           XDefineCursor(fan::sys::m_display, m_window_handle, XCreateFontCursor(fan::sys::m_display, XC_arrow));
         #endif
         }
@@ -314,6 +316,7 @@ namespace fan {
           SetCursor(NULL);
         #elif defined(fan_platform_unix)
           XDefineCursor(fan::sys::m_display, m_window_handle, invisibleCursor);
+          fan::print("switch");
         #endif
         }
     }
