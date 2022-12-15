@@ -1031,7 +1031,7 @@ inline std::string fan::window_t::xcb_get_scancode_name(uint16_t keycode) {
   XkbGetNames(fan::sys::m_display, XkbKeyNamesMask, KbDesc);
   std::string str;
   str.resize(XkbKeyNameLength + 1);
-  memcpy(str.data(), KbDesc->names->keys[i].name, XkbKeyNameLength);
+  memcpy(str.data(), KbDesc->names->keys[keycode].name, XkbKeyNameLength);
   str[XkbKeyNameLength] = 0;
   //(KbDesc->names->keys[keycode].name, KbDesc->names->keys[keycode].name + XkbKeyNameLength - 1);
   return str;
@@ -1040,7 +1040,7 @@ inline std::string fan::window_t::xcb_get_scancode_name(uint16_t keycode) {
 inline std::string fan::window_t::xcb_get_scancode_name(XkbDescPtr KbDesc, uint16_t keycode) {
   std::string str;
   str.resize(XkbKeyNameLength + 1);
-  memcpy(str.data(), KbDesc->names->keys[i].name, XkbKeyNameLength);
+  memcpy(str.data(), KbDesc->names->keys[keycode].name, XkbKeyNameLength);
   str[XkbKeyNameLength] = 0;
   return str;
 }
