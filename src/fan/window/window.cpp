@@ -1033,6 +1033,7 @@ inline std::string fan::window_t::xcb_get_scancode_name(uint16_t keycode) {
   str.resize(XkbKeyNameLength + 1);
   memcpy(str.data(), KbDesc->names->keys[keycode].name, XkbKeyNameLength);
   str[XkbKeyNameLength] = 0;
+  str.erase(str.end() - 1);
   //(KbDesc->names->keys[keycode].name, KbDesc->names->keys[keycode].name + XkbKeyNameLength - 1);
   return str;
 }
@@ -1042,6 +1043,7 @@ inline std::string fan::window_t::xcb_get_scancode_name(XkbDescPtr KbDesc, uint1
   str.resize(XkbKeyNameLength + 1);
   memcpy(str.data(), KbDesc->names->keys[keycode].name, XkbKeyNameLength);
   str[XkbKeyNameLength] = 0;
+  str.erase(str.end() - 1);
   return str;
 }
 
