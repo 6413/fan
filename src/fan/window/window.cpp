@@ -569,6 +569,13 @@ bool fan::window_t::focused() const
 
 }
 
+#if defined(fan_platform_unix)
+int cleanupHandler(Display* display) {
+    XUngrabPointer(display, CurrentTime);
+    return 0;
+}
+#endif
+
 void fan::window_t::destroy_window_internal(){
   fan::erase_window_id(this->m_window_handle);
 
@@ -1092,13 +1099,6 @@ void fan::window_t::generate_keycode_to_scancode_table() {
       fan::print_warning((std::string("scancode not found for (dec) keycode:") + std::to_string(i)).c_str());
     }
   }
-}
-#endif
-
-#if defined(fan_platform_unix)
-int cleanupHandler(Display* display) {
-    XUngrabPointer(display, CurrentTime);
-    return 0;
 }
 #endif
 
