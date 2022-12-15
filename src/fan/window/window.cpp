@@ -1091,7 +1091,8 @@ void fan::window_t::generate_keycode_to_scancode_table() {
     else if (!strcmp(name, "CAPS"))  kcsc = 0x3a;
     else if (!strcmp(name, "LFSH"))  kcsc = 0x2a;
     else if (!strcmp(name, "RTSH"))  kcsc = 0x36;
-    else if (!strcmp(name, "Control_L")) kcsc = 0x1d;
+    else if (!strcmp(name, "LCTL")) kcsc = 0x1d;
+    else if (!strcmp(name, "RCTL")) kcsc = 0xe01d;
     else if (!strcmp(name, "LALT"))  kcsc = 0x38;
     else if (!strcmp(name, "RALT"))  kcsc = 0xe033;
 
