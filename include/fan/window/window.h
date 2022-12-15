@@ -51,6 +51,7 @@
 	#include <X11/Xatom.h>
 	#include <X11/keysym.h>
 	#include <X11/XKBlib.h>
+  #include <X11/Xcursor/Xcursor.h>
 
 	#undef index // xos.h
 
