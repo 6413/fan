@@ -604,7 +604,7 @@ void fan::window_t::destroy_window_internal(){
     return;
   }
 
-  cleanupHandler();
+  cleanupHandler(fan::sys::m_display);
 
   XSetIOErrorHandler(NULL);
 
