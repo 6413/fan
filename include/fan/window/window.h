@@ -285,8 +285,8 @@ namespace fan {
           // unlock the cursor from the client area
           ClipCursor(NULL);
         #elif defined(fan_platform_unix)
-          fan::print("switch0");
-          XDefineCursor(fan::sys::m_display, m_window_handle, XCreateFontCursor(fan::sys::m_display, XC_arrow));
+          fan::print("switch0", XDefineCursor(fan::sys::m_display, m_window_handle, XCreateFontCursor(fan::sys::m_display, XC_arrow)));
+          //;
         #endif
         }
         else {
@@ -315,8 +315,8 @@ namespace fan {
           ClipCursor(&rect);
           SetCursor(NULL);
         #elif defined(fan_platform_unix)
-          XDefineCursor(fan::sys::m_display, m_window_handle, invisibleCursor);
-          fan::print("switch");
+          ;
+          fan::print("switch", XDefineCursor(fan::sys::m_display, m_window_handle, invisibleCursor));
         #endif
         }
     }
