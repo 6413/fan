@@ -1144,6 +1144,7 @@ void fan::window_t::generate_keycode_to_scancode_table() {
     else if (!strcmp(name, "KP9")) kcsc = 0x49;
 
     else if (!strcmp(name, "KPEN")) kcsc = 0xe01c;
+    else if (!strcmp(name, "BKSP")) kcsc = 0xe0;
 
     //else if (!strcmp(name, "PAUS")) keycode_to_scancode_table[i] = 0x;
 
