@@ -37,9 +37,6 @@ struct pile_t {
 
     viewport.open(loco.get_context());
     viewport.set(loco.get_context(), 0, loco.get_window()->get_size(), loco.get_window()->get_size());
-    loco.get_window()->add_keys_callback([](const auto& c) {
-      fan::print(std::hex, c.scancode);
-     });
   }
 
   loco_t loco;
@@ -48,12 +45,18 @@ struct pile_t {
 };
 
 int main() {
+
   pile_t* pile = new pile_t;
+//  fan::button_state::
+  pile->loco.get_window()->add_mouse_motion([](const auto& x) {
+    fan::print(x.motion);
+  });
   pile->loco.get_context()->set_vsync(pile->loco.get_window(), 0);
   pile->loco.get_window()->set_max_fps(10);
-
   pile->loco.loop([&] {
     pile->loco.get_fps();
+    Sleep(1000);
   });
+
   return 0;
 }

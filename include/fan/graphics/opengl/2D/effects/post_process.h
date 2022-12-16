@@ -25,7 +25,7 @@ struct post_process_t {
     // -----------------------------------------
     unsigned int quadVAO = 0;
     unsigned int quadVBO;
-    static void renderQuad()
+    void renderQuad()
     {
     				auto loco = get_loco();
         if (quadVAO == 0)

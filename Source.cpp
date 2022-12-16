@@ -6,24 +6,14 @@
 #define fan_debug 1
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
-#define loco_vulkan
+struct a_t {
 
-#define loco_window
-#define loco_context
+};
 
-//#define loco_rectangle
-#define loco_sprite
-#include _FAN_PATH(graphics/loco.h)
+struct : a_t {
 
+}x;
 
 int main() {
-  //const char* x;
-  //fan::string test(x, x + 1);
-  constexpr const char* t = "test";
-  std::string st = "test";
- // st == "a";
-  fan::string str = fan::string(t, t + strlen(t));
-  //str.push_back(0);
-
-  return str == "test";
+  fan::print(typeid(decltype(x)).name());
 }

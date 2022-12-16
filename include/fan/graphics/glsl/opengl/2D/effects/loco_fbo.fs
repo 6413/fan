@@ -9,9 +9,8 @@ R"(
 	uniform usampler2D _t01;
 
 	void main() {
-    vec3 result = vec3(0.0);
 		vec3 actual_image = texture(_t00, texture_coordinate).rgb;
-		uint bit_map = texture(_t01, texture_coordinate).r;
-		o_color = vec4(bit_map, 0, 0, 1);
+		uvec4 bit_map = texture(_t01, texture_coordinate);
+		o_color = vec4(float(bit_map.r) / 255, 0, 0, 1);
 	}
 )"
