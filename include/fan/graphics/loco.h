@@ -771,87 +771,75 @@ public:
     lp.filter = fan::opengl::GL_LINEAR;
     lp.visual_output = fan::opengl::GL_CLAMP_TO_EDGE;
 
-    m_framebuffer.open(get_context());
-    m_framebuffer.bind(get_context());
+   /* m_framebuffer.open(get_context());
+    m_framebuffer.bind(get_context());*/
   #endif
 
   #if defined(loco_opengl)
 
-	  fan::webp::image_info_t ii;
-	  ii.data = nullptr;
-    ii.size = get_window()->get_size();
+	  //fan::webp::image_info_t ii;
+	  //ii.data = nullptr;
+   // ii.size = get_window()->get_size();
 
-    color_buffers[0].load(this, ii, lp);
+   // color_buffers[0].load(this, ii, lp);
 
-    color_buffers[0].bind_texture(this);
-    fan::opengl::core::framebuffer_t::bind_to_texture(
-      get_context(),
-      *color_buffers[0].get_texture(this),
-      fan::opengl::GL_COLOR_ATTACHMENT0
-    );
+   // color_buffers[0].bind_texture(this);
+   // fan::opengl::core::framebuffer_t::bind_to_texture(
+   //   get_context(),
+   //   *color_buffers[0].get_texture(this),
+   //   fan::opengl::GL_COLOR_ATTACHMENT0
+   // );
 
-    lp.internal_format = fan::opengl::GL_RGBA8UI;
-    lp.format = fan::opengl::GL_RGB_INTEGER;
-    lp.filter = fan::opengl::GL_NEAREST;
-    lp.type = fan::opengl::GL_UNSIGNED_BYTE;
+   // lp.internal_format = fan::opengl::GL_RGBA8UI;
+   // lp.format = fan::opengl::GL_RGB_INTEGER;
+   // lp.filter = fan::opengl::GL_NEAREST;
+   // lp.type = fan::opengl::GL_UNSIGNED_BYTE;
 
-    color_buffers[1].load(this, ii, lp);
+   // color_buffers[1].load(this, ii, lp);
 
-    color_buffers[1].bind_texture(this);
-    fan::opengl::core::framebuffer_t::bind_to_texture(
-      get_context(),
-      *color_buffers[1].get_texture(this),
-      fan::opengl::GL_COLOR_ATTACHMENT1
-    );
+   // color_buffers[1].bind_texture(this);
+   // fan::opengl::core::framebuffer_t::bind_to_texture(
+   //   get_context(),
+   //   *color_buffers[1].get_texture(this),
+   //   fan::opengl::GL_COLOR_ATTACHMENT1
+   // );
 
-    fan::opengl::core::renderbuffer_t::properties_t rp;
-    m_framebuffer.bind(get_context());
-    rp.size = ii.size;
-    rp.internalformat = fan::opengl::GL_DEPTH_COMPONENT;
-    m_rbo.open(get_context());
-    m_rbo.set_storage(get_context(), rp);
-    rp.internalformat = fan::opengl::GL_DEPTH_ATTACHMENT;
-    m_rbo.bind_to_renderbuffer(get_context(), rp);
+   // fan::opengl::core::renderbuffer_t::properties_t rp;
+   // m_framebuffer.bind(get_context());
+   // rp.size = ii.size;
+   // rp.internalformat = fan::opengl::GL_DEPTH_COMPONENT;
+   // m_rbo.open(get_context());
+   // m_rbo.set_storage(get_context(), rp);
+   // rp.internalformat = fan::opengl::GL_DEPTH_ATTACHMENT;
+   // m_rbo.bind_to_renderbuffer(get_context(), rp);
 
-    // tell OpenGL which color attachments we'll use (of this framebuffer) for rendering
-    unsigned int attachments[] = {
-      //fan::opengl::GL_COLOR_ATTACHMENT0,
-      fan::opengl::GL_COLOR_ATTACHMENT0,
-      fan::opengl::GL_COLOR_ATTACHMENT1
-    };
+   // // tell OpenGL which color attachments we'll use (of this framebuffer) for rendering
+   // unsigned int attachments[] = {
+   //   //fan::opengl::GL_COLOR_ATTACHMENT0,
+   //   fan::opengl::GL_COLOR_ATTACHMENT0,
+   //   fan::opengl::GL_COLOR_ATTACHMENT1
+   // };
 
-    get_context()->opengl.call(get_context()->opengl.glDrawBuffers, std::size(attachments), attachments);
-    // finally check if framebuffer is complete
-    if (!m_framebuffer.ready(get_context())) {
-      fan::throw_error("framebuffer not ready");
-    }
+   // get_context()->opengl.call(get_context()->opengl.glDrawBuffers, std::size(attachments), attachments);
+   // // finally check if framebuffer is complete
+   // if (!m_framebuffer.ready(get_context())) {
+   //   fan::throw_error("framebuffer not ready");
+   // }
 
-    m_framebuffer.unbind(get_context());
+   // m_framebuffer.unbind(get_context());
 
-    m_fbo_final_shader.open(get_context());
-    m_fbo_final_shader.set_vertex(
-      get_context(),
-      #include _FAN_PATH(graphics/glsl/opengl/2D/effects/loco_fbo.vs)
-    );
-    m_fbo_final_shader.set_fragment(
-      get_context(),
-      #include _FAN_PATH(graphics/glsl/opengl/2D/effects/loco_fbo.fs)
-    );
-    m_fbo_final_shader.compile(get_context());
+   // m_fbo_final_shader.open(get_context());
+   // m_fbo_final_shader.set_vertex(
+   //   get_context(),
+   //   #include _FAN_PATH(graphics/glsl/opengl/2D/effects/loco_fbo.vs)
+   // );
+   // m_fbo_final_shader.set_fragment(
+   //   get_context(),
+   //   #include _FAN_PATH(graphics/glsl/opengl/2D/effects/loco_fbo.fs)
+   // );
+   // m_fbo_final_shader.compile(get_context());
 
   #endif
-
-    //color_buffers[2].load(this, ii, lp);
-
-    //color_buffers[2].bind_texture(this);
-    //m_flag_map_fbo.open(get_context());
-    //m_flag_map_fbo.bind(get_context());
-    //m_flag_map_fbo.bind_to_texture(
-    //  get_context(),
-    //  *color_buffers[2].get_texture(this),
-    //  fan::opengl::GL_COLOR_ATTACHMENT1
-    //);
-
   }
 
   #if defined(loco_vfi)
@@ -885,7 +873,7 @@ public:
     #if defined(loco_opengl)
     get_context()->opengl.call(get_context()->opengl.glClearColor, 0, 0, 0, 1);
     get_context()->opengl.call(get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
-    m_framebuffer.bind(get_context());
+   // m_framebuffer.bind(get_context());
     #endif
 
     #ifdef loco_post_process
@@ -898,7 +886,7 @@ public:
     #ifdef loco_window
       #if defined(loco_opengl)
 
-      get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
+     /* get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
       color_buffers[0].bind_texture(this);
       fan::opengl::core::framebuffer_t::bind_to_texture(
         get_context(),
@@ -911,10 +899,10 @@ public:
         get_context(),
         *color_buffers[1].get_texture(this),
         fan::opengl::GL_COLOR_ATTACHMENT1
-      );
+      );*/
 
       #include "draw_shapes.h"
-    
+    /*
       m_flag_map_fbo.unbind(get_context());
 
       get_context()->set_depth_test(false);
@@ -930,7 +918,7 @@ public:
      
       get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
 	    color_buffers[1].bind_texture(this);
-      renderQuad();
+      renderQuad();*/
       
       get_context()->render(get_window());
       #elif defined(loco_vulkan)
@@ -979,12 +967,12 @@ public:
     return x;
   }
 
-  fan::opengl::core::framebuffer_t m_flag_map_fbo;
-  
-  fan::opengl::core::framebuffer_t m_framebuffer;
-  fan::opengl::core::renderbuffer_t m_rbo;
-  loco_t::image_t color_buffers[3];
-  fan::opengl::shader_t m_fbo_final_shader;
+  //fan::opengl::core::framebuffer_t m_flag_map_fbo;
+  //
+  //fan::opengl::core::framebuffer_t m_framebuffer;
+  //fan::opengl::core::renderbuffer_t m_rbo;
+  //loco_t::image_t color_buffers[3];
+  //fan::opengl::shader_t m_fbo_final_shader;
 
   void loop(const auto& lambda) {
     while (1) {
