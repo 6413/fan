@@ -49,22 +49,11 @@ struct pile_t {
 
 int main() {
   pile_t* pile = new pile_t;
-  pile->open();
   pile->loco.get_context()->set_vsync(pile->loco.get_window(), 0);
-
-  pile->loco.get_window()->add_keys_callback([&](const auto& d) {
-    if (d.state != fan::keyboard_state::press) {
-      return;
-    }
-    fan::print("a");
-    static int x = 0;
-    pile->loco.get_window()->set_flag_value<fan::window_t::flags::no_mouse>(x % 2);
-    x++;
-  });
+  pile->loco.get_window()->set_max_fps(10);
 
   pile->loco.loop([&] {
-    
+    pile->loco.get_fps();
   });
-
   return 0;
 }

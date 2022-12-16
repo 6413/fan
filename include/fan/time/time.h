@@ -31,7 +31,7 @@ static void delay_w(float us)
 	}
 
 	LARGE_INTEGER interval;
-	interval.QuadPart = (LONGLONG)(10.f * us);
+	interval.QuadPart = (LONGLONG)(-10.f * us);
 	NtDelayExecution(false, &interval);
 }
 

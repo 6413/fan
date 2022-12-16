@@ -9,7 +9,7 @@
 #define loco_window
 #define loco_context
 
-#define loco_vulkan
+//#define loco_vulkan
 
 
 #define loco_sprite
@@ -69,7 +69,7 @@ int main() {
 	loco_t::image_t image;
 	loco_t::image_t::load_properties_t lp;
 	lp.filter = fan::opengl::GL_LINEAR;
-	image.load(&pile->loco, "images/planet.webp");
+	image.load(&pile->loco, "images/test.webp");
 	p.image = &image;
 	p.size = fan::cast<f32_t>(image.size) / pile->loco.get_window()->get_size();
 	p.position = 0;
@@ -82,7 +82,7 @@ int main() {
 
 	pile->loco.get_window()->add_buttons_callback([&](const fan::window_t::mouse_buttons_cb_data_t& d) {
 
-		if (d.state != fan::mouse_state::press) {
+		if (d.state != fan::button_state::press) {
 			return;
 		}
 

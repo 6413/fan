@@ -1,23 +1,18 @@
 R"(
 #version 330
 
-layout (location = 0) out vec3 o_fbo_out;
-layout (location = 1) out uint o_bit_flag;
+layout (location = 0) out vec4 o_attachment0;
+layout (location = 1) out uvec4 o_attachment1;
 
 in vec2 texture_coordinate;
-
-in vec4 instance_color;
-
-out vec4 o_color;
 
 uniform sampler2D _t00;
 
 void main() {
-  o_color = texture(_t00, texture_coordinate);
-  //o_fbo_out.r *= 1.000001;
-  o_bit_flag = 255u;
-  //if (o_color.a < 0.9) {
-  //  discard;
-  //}
+  o_attachment0 = texture(_t00, texture_coordinate);
+  o_attachment1.r = uint(texture(_t00, texture_coordinate).r * 255.0f);
+  //o_attachment1.g = 0;
+  //o_attachment1.b = 0;
+  o_attachment1.a = 255u;a
 }
 )"

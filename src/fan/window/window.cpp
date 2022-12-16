@@ -44,6 +44,7 @@
 #endif
 
 #include <string>
+#include _FAN_PATH(window/window.h)
 
 #define stringify(name) #name
 
@@ -440,6 +441,19 @@ void fan::window_t::remove_mouse_move_callback(fan::window_t::mouse_position_cal
   m_mouse_position_callback.Recycle(id);
 }
 
+fan::window_t::mouse_motion_callback_NodeReference_t fan::window_t::add_mouse_motion(mouse_motion_cb_t function)
+{
+  auto nr = m_mouse_motion_callback.NewNodeLast();
+  m_mouse_motion_callback[nr].data = function;
+  return nr;
+}
+
+void fan::window_t::erase_mouse_motion_callback(mouse_motion_callback_NodeReference_t id)
+{
+  m_mouse_motion_callback.Unlink(id);
+  m_mouse_motion_callback.Recycle(id);
+}
+
 fan::window_t::resize_callback_NodeReference_t fan::window_t::add_resize_callback(resize_cb_t function) {
   auto nr = m_resize_callback.NewNodeLast();
   m_resize_callback[nr].data = function;
@@ -538,15 +552,6 @@ fan::window_t::window_t(const fan::vec2i& window_size, const fan::string& name, 
     fan::window_t::flag_values::m_size_mode = fan::window_t::mode::full_screen;
   }
 
-  m_buttons_callback.Open();
-  m_keys_callback.Open();
-	m_key_callback.Open();
-	m_text_callback.Open();
-	m_move_callback.Open();
-	m_resize_callback.Open();
-	m_close_callback.Open();
-	m_mouse_position_callback.Open();
-
   window_id_storage.open();
 
   initialize_window(name, window_size, flags);
@@ -626,16 +631,6 @@ void fan::window_t::destroy_window_internal(){
 void fan::window_t::destroy_window()
 {
   destroy_window_internal();
-
-  m_buttons_callback.Close();
-  m_keys_callback.Close();
-	m_key_callback.Close();
-
-	m_text_callback.Close();
-  m_move_callback.Close();
-  m_resize_callback.Close();
-  m_close_callback.Close();
-  m_mouse_position_callback.Close();
 }
 
 uint16_t fan::window_t::get_current_key() const
@@ -1428,7 +1423,6 @@ uint32_t fan::window_t::handle_events() {
     fan::delay(fan::time::nanoseconds(std::max((int64_t)0, frame_time)));
 
     m_fps_next_tick = fan::time::clock::now();
-
   }
 
   if (call_mouse_move_cb) {
@@ -1449,6 +1443,22 @@ uint32_t fan::window_t::handle_events() {
 
   m_previous_mouse_position = m_mouse_position;
   call_mouse_move_cb = false;
+
+  if (call_mouse_motion_cb) {
+    auto it = m_mouse_motion_callback.GetNodeFirst();
+
+    while (it != m_mouse_motion_callback.dst) {
+
+      mouse_motion_cb_data_t cbd;
+      cbd.window = this;
+      cbd.motion = m_average_motion;
+      m_mouse_motion_callback[it].data(cbd);
+
+      it = it.Next(&m_mouse_motion_callback);
+    }
+  }
+  m_average_motion = 0;
+  call_mouse_motion_cb = false;
 
   #ifdef fan_platform_windows
 
@@ -1682,24 +1692,24 @@ uint32_t fan::window_t::handle_events() {
         handle_special(msg.wParam, msg.lParam, key, false);
 
         do {
-            if (key == fan::key_control || key == fan::key_alt || key == fan::key_shift) {
-              break;
-            }
-            auto it = window->m_text_callback.GetNodeFirst();
+          if (key == fan::key_control || key == fan::key_alt || key == fan::key_shift) {
+            break;
+          }
+          auto it = window->m_text_callback.GetNodeFirst();
 
-            while (it != window->m_text_callback.dst) {
+          while (it != window->m_text_callback.dst) {
 
-              fan::window_t::text_cb_data_t d;
-              d.character = m_prev_text;
-              d.window = window;
-              d.state = fan::keyboard_state::release;
-              // reset flag
-              m_prev_text_flag = 0;
-              window->m_text_callback[it].data(d);
+            fan::window_t::text_cb_data_t d;
+            d.character = m_prev_text;
+            d.window = window;
+            d.state = fan::keyboard_state::release;
+            // reset flag
+            m_prev_text_flag = 0;
+            window->m_text_callback[it].data(d);
 
-              it = it.Next(&window->m_text_callback);
-            }
-          } while (0);
+            it = it.Next(&window->m_text_callback);
+          }
+        } while (0);
 
         window_input_up(window->m_window_handle, key);
 
@@ -1781,6 +1791,12 @@ uint32_t fan::window_t::handle_events() {
 
             return fan::vec2i(p.x, p.y);
           };
+
+          if (raw->header.dwType == RIM_TYPEMOUSE) {
+            // get the average sum of motion for one frame
+            window->m_average_motion += fan::vec2i(raw->data.mouse.lLastX, raw->data.mouse.lLastY);
+            window->call_mouse_motion_cb = true;
+          }
 
           if (fan::is_flag(raw->data.mouse.usButtonFlags, RI_MOUSE_LEFT_BUTTON_DOWN) ||
               fan::is_flag(raw->data.mouse.usButtonFlags, RI_MOUSE_MIDDLE_BUTTON_DOWN) ||
@@ -2105,25 +2121,13 @@ uint32_t fan::window_t::handle_events() {
 
         const fan::vec2i position(event.xmotion.x, event.xmotion.y);
 
-        auto mouse_move_position_callback = window->m_mouse_position_callback;
-
-        auto it = mouse_move_position_callback.GetNodeFirst();
-
-        while (it != mouse_move_position_callback.dst) {
-
-          mouse_move_position_callback.StartSafeNext(it);
-
-          mouse_move_cb_data_t cdb;
-          cdb.window = window;
-          cdb.position = position;
-          mouse_move_position_callback[it].data(cdb);
-
-          it = mouse_move_position_callback.EndSafeNext();
-        }
+        call_mouse_move_cb = true;
 
         window->m_previous_mouse_position = window->m_mouse_position;
 
         window->m_mouse_position = position;
+
+        //m_average_motion
 
         break;
       }

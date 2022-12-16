@@ -188,6 +188,12 @@ namespace fan {
 		};
 		using mouse_move_cb_t = fan::function_t<void(const mouse_move_cb_data_t&)>;
 
+    struct mouse_motion_cb_data_t {
+			fan::window_t* window;
+      fan::vec2i motion;
+		};
+		using mouse_motion_cb_t = fan::function_t<void(const mouse_motion_cb_data_t&)>;
+
 		struct close_cb_data_t {
 			fan::window_t* window;
 		};
@@ -427,6 +433,11 @@ namespace fan {
 		#include "cb_list_builder_settings.h"
 		#include _FAN_PATH(BLL/BLL.h)
 
+    #define BLL_set_prefix mouse_motion_callback
+		#define BLL_set_node_data mouse_motion_cb_t data;
+		#include "cb_list_builder_settings.h"
+		#include _FAN_PATH(BLL/BLL.h)
+
 		buttons_callback_NodeReference_t add_buttons_callback(mouse_buttons_cb_t function);
 		void remove_buttons_callback(buttons_callback_NodeReference_t id);
 
@@ -445,6 +456,9 @@ namespace fan {
 
 		mouse_position_callback_NodeReference_t add_mouse_move_callback(mouse_move_cb_t function);
 		void remove_mouse_move_callback(mouse_position_callback_NodeReference_t id);
+
+    mouse_motion_callback_NodeReference_t add_mouse_motion(mouse_motion_cb_t function);
+		void erase_mouse_motion_callback(mouse_motion_callback_NodeReference_t id);
 
 		resize_callback_NodeReference_t add_resize_callback(resize_cb_t function);
 		void remove_resize_callback(resize_callback_NodeReference_t id);
@@ -560,6 +574,7 @@ namespace fan {
 		resize_callback_t m_resize_callback;
 		close_callback_t m_close_callback;
 		mouse_position_callback_t m_mouse_position_callback;
+    mouse_motion_callback_t m_mouse_motion_callback;
 
 		fan::vec2i m_size;
 		fan::vec2i m_previous_size;
@@ -573,6 +588,8 @@ namespace fan {
 
 		uint16_t m_current_key;
 
+    bool call_mouse_motion_cb = false;
+    fan::vec2i m_average_motion = 0;
 		bool call_mouse_move_cb = false;
 
 		bool m_close;

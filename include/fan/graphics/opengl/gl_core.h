@@ -501,8 +501,9 @@ inline void fan::opengl::context_t::set_vsync(fan::window_t* window, bool flag)
   #endif
 
   #ifdef fan_platform_windows
-
-  opengl.call(opengl.internal.wglSwapIntervalEXT, flag);
+  if (opengl.internal.wglSwapIntervalEXT) {
+    opengl.call(opengl.internal.wglSwapIntervalEXT, flag);
+  }
 
   #elif defined(fan_platform_unix)
   opengl.internal.glXSwapIntervalEXT(fan::sys::m_display, opengl.internal.glXGetCurrentDrawable(), flag);
