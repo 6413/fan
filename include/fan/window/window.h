@@ -357,7 +357,7 @@ namespace fan {
 			constexpr void set_flag_value(T value) {
 			if constexpr(static_cast<bool>(flag & fan::window_t::flags::no_mouse)) {
         flag_values::m_no_mouse = value;
-        lock_cursor_and_set_invisible(!value);
+        lock_cursor_and_set_invisible(value);
 			}
 			else if constexpr(static_cast<bool>(flag & fan::window_t::flags::no_resize)) {
 				flag_values::m_no_resize = value;

@@ -48,6 +48,7 @@ int main() {
 
   pile_t* pile = new pile_t;
 //  fan::button_state::
+  pile->loco.get_window()->set_flag_value<fan::window_t::flags::no_mouse>(true);
   pile->loco.get_window()->add_mouse_motion([](const auto& x) {
     fan::print(x.motion);
   });
