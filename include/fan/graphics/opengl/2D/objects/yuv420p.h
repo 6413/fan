@@ -49,6 +49,7 @@ struct sb_sprite_name {
       loco_t::image_t::load_properties_t lp;
       lp.format = fan::opengl::GL_RED; 
       lp.internal_format = fan::opengl::GL_RED; 
+      lp.visual_output = GL_CLAMP_TO_EDGE;
       // can be buggy
       lp.filter = fan::opengl::GL_LINEAR;
                                  
