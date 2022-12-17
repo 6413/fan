@@ -55,7 +55,6 @@ int main() {
   pile->loco.get_window()->set_max_fps(10);
   pile->loco.loop([&] {
     pile->loco.get_fps();
-    Sleep(1000);
   });
 
   return 0;

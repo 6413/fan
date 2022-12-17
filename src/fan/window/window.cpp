@@ -2127,7 +2127,8 @@ uint32_t fan::window_t::handle_events() {
 
         window->m_mouse_position = position;
 
-        //m_average_motion
+        m_average_motion += fan::vec2i(event.xmotion.x_root, event.xmotion.y_root);
+        call_mouse_motion_cb = true;
 
         break;
       }
