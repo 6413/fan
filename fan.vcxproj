@@ -256,7 +256,6 @@
   <ItemGroup>
     <ClCompile Include="examples\graphics\mouse_motion.cpp" />
     <ClCompile Include="include\fan\physics\AStar.cpp" />
-    <ClCompile Include="Source.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
   </ItemGroup>
   <ItemGroup>
