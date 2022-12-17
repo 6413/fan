@@ -1048,7 +1048,7 @@ std::string string_to_hex(const std::string& input)
 // https://www.win.tue.nl/~aeb/linux/kbd/scancodes-1.html
 
 inline fan::string fan::window_t::xcb_get_scancode_name(XkbDescPtr KbDesc, uint16_t keycode) {
-  fan::string str(KbDesc->names->keys[keycode].name, KbDesc->names->keys[keycode].name + std::min(strlen(KbDesc->names->keys[keycode].name), XkbKeyNameLength));
+  fan::string str(KbDesc->names->keys[keycode].name, KbDesc->names->keys[keycode].name + std::min((uint32_t)strlen(KbDesc->names->keys[keycode].name), (uint32_t)XkbKeyNameLength));
   return str;
 }
 
