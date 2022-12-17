@@ -303,7 +303,7 @@ namespace fan {
     // Do something else here, such as handle window events or process input.
 
     // Release the grab and restore normal pointer behavior.
-          fan::print("switch", XDefineCursor(fan::sys::m_display, m_window_handle, invisibleCursor));
+          fan::print("switch0", XDefineCursor(fan::sys::m_display, m_window_handle, invisibleCursor));
           //;
         #endif
         }
@@ -334,7 +334,7 @@ namespace fan {
           ClipCursor(&rect);
         #elif defined(fan_platform_unix)
           XUngrabPointer(fan::sys::m_display, CurrentTime);
-          fan::print("switch", XDefineCursor(fan::sys::m_display, m_window_handle, invisibleCursor));
+          fan::print("switch1", XDefineCursor(fan::sys::m_display, m_window_handle, invisibleCursor));
         #endif
         }
     }
