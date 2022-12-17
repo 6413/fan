@@ -121,6 +121,7 @@ struct sb_sprite_name {
     lp.format = fan::opengl::GL_RED;
     lp.internal_format = fan::opengl::GL_RED;
     lp.filter = fan::opengl::GL_LINEAR;
+    lp.visual_output = GL_CLAMP_TO_EDGE;
                                  
     fan::webp::image_info_t ii; 
                                
