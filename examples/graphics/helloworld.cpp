@@ -18,7 +18,7 @@ struct pile_t {
   static constexpr fan::vec2 ortho_x = fan::vec2(-1, 1);
   static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
 
-  void open() {
+  pile_t() {
     loco.open_matrices(
       &matrices,
       ortho_x,
@@ -49,8 +49,8 @@ struct pile_t {
 
 int main() {
   pile_t* pile = new pile_t;
-  pile->loco.get_context()->set_vsync(pile->loco.get_window(), 0);
-  pile->loco.get_window()->set_max_fps(10);
+  //pile->loco.get_context()->set_vsync(pile->loco.get_window(), 0);
+  //pile->loco.get_window()->set_max_fps(10);
 
   pile->loco.loop([&] {
     pile->loco.get_fps();
