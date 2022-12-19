@@ -1084,7 +1084,7 @@ void fan::window_t::generate_keycode_to_scancode_table() {
     bool found = false;
     for (const auto instance : table) {
       auto str = xcb_get_scancode_name(KbDesc, i);
-      fan::print(string_to_hex(str.c_str()), string_to_hex(instance.first), str.size(), strlen(instance.first), str);
+      //fan::print(string_to_hex(str.c_str()), string_to_hex(instance.first), str.size(), strlen(instance.first), str);
       if (str == instance.first) {
         keycode_to_scancode_table[i] = instance.second;
         found = true;
@@ -1997,7 +1997,7 @@ uint32_t fan::window_t::handle_events() {
           cdb.scancode = keycode_to_scancode_table[event.xkey.keycode];
         }
 
-        fan::print(xcb_get_scancode_name(event.xkey.keycode));
+        //fan::print(xcb_get_scancode_name(event.xkey.keycode));
 
         window->m_current_key = key;
 
@@ -2199,15 +2199,17 @@ uint32_t fan::window_t::handle_events() {
       }
       case FocusOut:
       {
-        auto fwindow = fan::get_window_by_id(event.xbutton.window);
+        fan::print("focus out came");
+        auto fwindow = fan::get_window_by_id(event.xfocus.window);
         if (!fwindow) {
           break;
         }
 
         char keys[32];
         XQueryKeymap(fan::sys::m_display, keys);
-
+        fan::print("window found");
         for (uint16_t i = fan::first; i != fan::last; i++) {
+
           auto keycode = fan::window_input::convert_fan_to_keys(i);
           if (keys[keycode / 8] & (1 << (keycode % 8))) {
             if (i >= fan::button_left) {
@@ -2225,6 +2227,7 @@ uint32_t fan::window_t::handle_events() {
               }
             }
             else {
+              fan::print("release came for", i);
               auto it = fwindow->m_keys_callback.GetNodeFirst();
               while (it != fwindow->m_keys_callback.dst) {
                 fwindow->m_keys_callback.StartSafeNext(it);
