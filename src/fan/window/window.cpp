@@ -2237,7 +2237,7 @@ uint32_t fan::window_t::handle_events() {
                 cbd.key = i;
                 cbd.state = fan::keyboard_state::release;
                 if (i < max_keycode) {
-                  cdb.scancode = keycode_to_scancode_table[i];
+                  cbd.scancode = keycode_to_scancode_table[i];
                 }
                 fwindow->m_keys_callback[it].data(cbd);
 
