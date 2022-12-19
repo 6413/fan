@@ -1999,7 +1999,7 @@ uint32_t fan::window_t::handle_events() {
         if (event.xkey.keycode < max_keycode) {
           cdb.scancode = keycode_to_scancode_table[event.xkey.keycode];
         }
-        window->m_keycode_action_map[event.key.keycode] = true;
+        window->m_keycode_action_map[event.xkey.keycode] = true;
 
         //fan::print(xcb_get_scancode_name(event.xkey.keycode));
 
