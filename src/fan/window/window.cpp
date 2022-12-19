@@ -913,7 +913,8 @@ LRESULT fan::window_t::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lp
       }
 
       for (uint16_t i = fan::first; i != fan::last; i++) {
-        if (!fwindow->m_keycode_action_map[fan::window_input::convert_fan_to_keycodes(i)]) {
+        auto kd = fan::window_input::convert_fan_to_keycodes(i);
+        if (fwindow->m_keycode_action_map[kd] == false) {
           continue;
         }
         if (i >= fan::button_left) {
@@ -940,6 +941,7 @@ LRESULT fan::window_t::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lp
             cbd.key = i;
             cbd.state = fan::keyboard_state::release;
             cbd.scancode = MapVirtualKeyA(i, MAPVK_VK_TO_VSC);
+            fwindow->m_keycode_action_map[kd] = false;
             fwindow->m_keys_callback[it].data(cbd);
 
             it = fwindow->m_keys_callback.EndSafeNext();
@@ -1989,7 +1991,7 @@ uint32_t fan::window_t::handle_events() {
         uint16_t key = fan::window_input::convert_keycodes_to_fan(event.xkey.keycode);
         
         fan::window_t::window_input_action(window->m_window_handle, key);
-
+        
         bool repeat = window->m_keycode_action_map[event.xkey.keycode];
 
         keyboard_keys_cb_data_t cdb{};
@@ -2241,6 +2243,7 @@ uint32_t fan::window_t::handle_events() {
               if (i < max_keycode) {
                 cbd.scancode = keycode_to_scancode_table[i];
               }
+              fwindow->m_keycode_action_map[i] = false;
               fwindow->m_keys_callback[it].data(cbd);
 
               it = fwindow->m_keys_callback.EndSafeNext();
