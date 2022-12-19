@@ -937,6 +937,7 @@ LRESULT fan::window_t::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lp
               cbd.window = fwindow;
               cbd.key = i;
               cbd.state = fan::keyboard_state::release;
+              cbd.scancode = MapVirtualKeyA(i, MAPVK_VK_TO_VSC);
               fwindow->m_keys_callback[it].data(cbd);
 
               it = fwindow->m_keys_callback.EndSafeNext();
@@ -2207,7 +2208,7 @@ uint32_t fan::window_t::handle_events() {
         char keys[32];
         XQueryKeymap(fan::sys::m_display, keys);
         fan::print("window found");
-        for (uint16_t i = fan::first; i != fan::last; i++) {
+        for (uint16_t i = 0; i < 255; ++i) {
 
           auto keycode = fan::window_input::convert_fan_to_keys(i);
           if (keys[keycode / 8] & (1 << (keycode % 8))) {
@@ -2231,10 +2232,13 @@ uint32_t fan::window_t::handle_events() {
               while (it != fwindow->m_keys_callback.dst) {
                 fwindow->m_keys_callback.StartSafeNext(it);
 
-                keyboard_keys_cb_data_t cbd;
+                keyboard_keys_cb_data_t cbd{};
                 cbd.window = fwindow;
                 cbd.key = i;
                 cbd.state = fan::keyboard_state::release;
+                if (i < max_keycode) {
+                  cdb.scancode = keycode_to_scancode_table[i];
+                }
                 fwindow->m_keys_callback[it].data(cbd);
 
                 it = fwindow->m_keys_callback.EndSafeNext();
