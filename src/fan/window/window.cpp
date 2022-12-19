@@ -1990,7 +1990,7 @@ uint32_t fan::window_t::handle_events() {
         
         fan::window_t::window_input_action(window->m_window_handle, key);
 
-        bool repeat = window->m_keycode_action_map[event.key.keycode];
+        bool repeat = window->m_keycode_action_map[event.xkey.keycode];
 
         keyboard_keys_cb_data_t cdb{};
         cdb.window = window;
@@ -2103,7 +2103,7 @@ uint32_t fan::window_t::handle_events() {
         if (event.xkey.keycode < max_keycode) {
           cdb.scancode = keycode_to_scancode_table[event.xkey.keycode];
         }
-        window->m_keycode_action_map[event.key.keycode] = false;
+        window->m_keycode_action_map[event.xkey.keycode] = false;
 
         auto it = window->m_keys_callback.GetNodeFirst();
 
@@ -2211,7 +2211,7 @@ uint32_t fan::window_t::handle_events() {
 
         for (uint16_t i = 0; i < 255; ++i) {
           auto fkey = fan::window_input::convert_keycodes_to_fan(i);
-          if (window->m_keycode_action_map[i] == false) {
+          if (fwindow->m_keycode_action_map[i] == false) {
             continue;
           }
           if (fkey >= fan::button_left) {
