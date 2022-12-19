@@ -65,6 +65,7 @@ static uint16_t convert_keys_to_fan(uint16_t key) {
 		case 0x58: { return fan::input::key_x; }
 		case 0x59: { return fan::input::key_y; }
 		case 0x5A: { return fan::input::key_z; }
+    case 0x5B: { return fan::input::key_left_super; }
 		case 0x5D: { return fan::input::key_menu; }
 
 		case 0x60: { return fan::input::key_numpad_0; }
@@ -318,6 +319,7 @@ static uint16_t convert_fan_to_keys(uint16_t key) {
 	case key_x: { return 0x58; }
 	case key_y: { return 0x59; }
 	case key_z: { return 0x5A; }
+  case fan::input::key_left_super: { return 0x5B; }
 
 	case key_numpad_0: { return 0x60; }
 	case key_numpad_1: { return 0x61; }

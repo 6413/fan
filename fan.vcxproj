@@ -254,7 +254,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="examples\graphics\mouse_motion.cpp" />
+    <ClCompile Include="examples\graphics\helloworld.cpp" />
     <ClCompile Include="include\fan\physics\AStar.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
   </ItemGroup>
@@ -423,6 +423,7 @@
     <ClInclude Include="include\fan\window\cb_list_builder_settings.h" />
     <ClInclude Include="include\fan\window\window.h" />
     <ClInclude Include="include\fan\window\window_input.h" />
+    <ClInclude Include="include\fan\window\window_input_common.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

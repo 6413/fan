@@ -37,9 +37,9 @@ struct pile_t {
 
     viewport.open(loco.get_context());
     viewport.set(loco.get_context(), 0, loco.get_window()->get_size(), loco.get_window()->get_size());
-    //loco.get_window()->add_keys_callback([](const auto& c) {
-    //  fan::print(std::hex, c.scancode);
-    // });
+    loco.get_window()->add_keys_callback([](const auto& c) {
+      fan::print(std::hex, c.scancode, c.key);
+     });
   }
 
   loco_t loco;
