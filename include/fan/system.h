@@ -185,7 +185,7 @@ namespace fan {
         }
 
         static auto get_key_state(uint16_t key) {
-          return GetAsyncKeyState(fan::window_input::convert_fan_to_keys(key));
+          return GetAsyncKeyState(fan::window_input::convert_fan_to_keycodes(key));
         }
 
         static void set_mouse_position(const fan::vec2i& position) {
@@ -244,7 +244,7 @@ namespace fan {
           input.ki.time = 0;
           input.ki.dwExtraInfo = 0;
 
-          input.ki.wVk = fan::window_input::convert_fan_to_keys(key);
+          input.ki.wVk = fan::window_input::convert_fan_to_keycodes(key);
 
           input.ki.dwFlags = (state == fan::keyboard_state::press ? 0 : KEYEVENTF_KEYUP);
 
@@ -473,7 +473,7 @@ namespace fan {
         {
           KBDLLHOOKSTRUCT hooked_key = *((KBDLLHOOKSTRUCT*)lParam);
 
-          auto key = fan::window_input::convert_keys_to_fan(hooked_key.vkCode);
+          auto key = fan::window_input::convert_keycodes_to_fan(hooked_key.vkCode);
 
           auto state = (fan::keyboard_state)((nCode == HC_ACTION) && ((wParam == WM_SYSKEYDOWN) || (wParam == WM_KEYDOWN)));
 
