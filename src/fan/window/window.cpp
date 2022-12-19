@@ -1310,7 +1310,7 @@ void fan::window_t::initialize_window(const fan::string& name, const fan::vec2i&
     StructureNotifyMask | ButtonReleaseMask |
     KeyReleaseMask | EnterWindowMask | LeaveWindowMask |
     PointerMotionMask | Button1MotionMask | VisibilityChangeMask |
-    ColormapChangeMask;
+    ColormapChangeMask | FocusChangeMask;
 
 
   const fan::vec2i position = fan::sys::get_screen_resolution() / 2 - window_size / 2;
