@@ -1,4 +1,4 @@
-static uint16_t convert_keys_to_fan(uint16_t key) {
+static uint16_t convert_keycodes_to_fan(uint16_t key) {
 	switch (key) {
 		//shifts and ctrls require lparam check for which side the button is pressed this is usually checked before converting
 		#ifdef fan_platform_windows
@@ -252,7 +252,7 @@ static uint16_t convert_keys_to_fan(uint16_t key) {
 	}
 }
 
-static uint16_t convert_fan_to_keys(uint16_t key) {
+static uint16_t convert_fan_to_keycodes(uint16_t key) {
 	switch (key) {
 		//shifts and ctrls require lparam check for which side the button is pressed this is usually checked before converting
 #ifdef fan_platform_windows

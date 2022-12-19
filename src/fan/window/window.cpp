@@ -808,7 +808,7 @@ static void handle_special(WPARAM wparam, LPARAM lparam, uint16_t& key, bool dow
   //}
   //else {
     //fan::print(key, (int)wparam);
-    key = fan::window_input::convert_keys_to_fan(wparam);
+    key = fan::window_input::convert_keycodes_to_fan(wparam);
  // }
 
 }
@@ -913,35 +913,36 @@ LRESULT fan::window_t::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lp
       }
 
       for (uint16_t i = fan::first; i != fan::last; i++) {
-        if (GetAsyncKeyState(fan::window_input::convert_fan_to_keys(i))) {
-          if (i >= fan::button_left) {
-            auto it = fwindow->m_buttons_callback.GetNodeFirst();
-            while (it != fwindow->m_buttons_callback.dst) {
-              fwindow->m_buttons_callback.StartSafeNext(it);
+        if (!fwindow->m_keycode_action_map[fan::window_input::convert_fan_to_keycodes(i)]) {
+          continue;
+        }
+        if (i >= fan::button_left) {
+          auto it = fwindow->m_buttons_callback.GetNodeFirst();
+          while (it != fwindow->m_buttons_callback.dst) {
+            fwindow->m_buttons_callback.StartSafeNext(it);
 
-              mouse_buttons_cb_data_t cbd;
-              cbd.window = fwindow;
-              cbd.button = i;
-              cbd.state = fan::button_state::release;
-              fwindow->m_buttons_callback[it].data(cbd);
+            mouse_buttons_cb_data_t cbd;
+            cbd.window = fwindow;
+            cbd.button = i;
+            cbd.state = fan::button_state::release;
+            fwindow->m_buttons_callback[it].data(cbd);
 
-              it = fwindow->m_buttons_callback.EndSafeNext();
-            }
+            it = fwindow->m_buttons_callback.EndSafeNext();
           }
-          else {
-            auto it = fwindow->m_keys_callback.GetNodeFirst();
-            while (it != fwindow->m_keys_callback.dst) {
-              fwindow->m_keys_callback.StartSafeNext(it);
+        }
+        else {
+          auto it = fwindow->m_keys_callback.GetNodeFirst();
+          while (it != fwindow->m_keys_callback.dst) {
+            fwindow->m_keys_callback.StartSafeNext(it);
 
-              keyboard_keys_cb_data_t cbd;
-              cbd.window = fwindow;
-              cbd.key = i;
-              cbd.state = fan::keyboard_state::release;
-              cbd.scancode = MapVirtualKeyA(i, MAPVK_VK_TO_VSC);
-              fwindow->m_keys_callback[it].data(cbd);
+            keyboard_keys_cb_data_t cbd;
+            cbd.window = fwindow;
+            cbd.key = i;
+            cbd.state = fan::keyboard_state::release;
+            cbd.scancode = MapVirtualKeyA(i, MAPVK_VK_TO_VSC);
+            fwindow->m_keys_callback[it].data(cbd);
 
-              it = fwindow->m_keys_callback.EndSafeNext();
-            }
+            it = fwindow->m_keys_callback.EndSafeNext();
           }
         }
       }
@@ -1492,6 +1493,8 @@ uint32_t fan::window_t::handle_events() {
 
         window->m_current_key = key;
 
+        m_keycode_action_map[msg.wParam] = true;
+
         auto it = window->m_keys_callback.GetNodeFirst();
 
         while (it != window->m_keys_callback.dst) {
@@ -1566,7 +1569,7 @@ uint32_t fan::window_t::handle_events() {
               window->m_keymap[fan::key_shift] = high_byte & 0x1;
               window->m_keymap[fan::key_control] = high_byte & 0x2;
               window->m_keymap[fan::key_alt] = high_byte & 0x4;
-              window->m_keymap[fan::window_input::convert_keys_to_fan(low_byte)] = true;
+              window->m_keymap[fan::window_input::convert_keycodes_to_fan(low_byte)] = true;
               m_prev_text = src;
               
              // UTF-8
@@ -1719,6 +1722,8 @@ uint32_t fan::window_t::handle_events() {
         cbd.key = key;
         cbd.state = fan::keyboard_state::release;
         cbd.scancode = (msg.lParam >> 16) & 0x1ff;
+
+        m_keycode_action_map[msg.wParam] = false;
 
         auto it = window->m_keys_callback.GetNodeFirst();
 
@@ -1981,14 +1986,11 @@ uint32_t fan::window_t::handle_events() {
           break;
         }
 
-        //XGetDeviceKeyMapping(fan::sys::m_display, )
-        //fan::print((int)event.xkey.keycode);
-
-        uint16_t key = fan::window_input::convert_keys_to_fan(event.xkey.keycode);
+        uint16_t key = fan::window_input::convert_keycodes_to_fan(event.xkey.keycode);
         
         fan::window_t::window_input_action(window->m_window_handle, key);
 
-        bool repeat = 0;
+        bool repeat = window->m_keycode_action_map[event.key.keycode];
 
         keyboard_keys_cb_data_t cdb{};
         cdb.window = window;
@@ -1997,6 +1999,7 @@ uint32_t fan::window_t::handle_events() {
         if (event.xkey.keycode < max_keycode) {
           cdb.scancode = keycode_to_scancode_table[event.xkey.keycode];
         }
+        window->m_keycode_action_map[event.key.keycode] = true;
 
         //fan::print(xcb_get_scancode_name(event.xkey.keycode));
 
@@ -2089,7 +2092,7 @@ uint32_t fan::window_t::handle_events() {
           }
         }
 
-        const uint16_t key = fan::window_input::convert_keys_to_fan(event.xkey.keycode);
+        const uint16_t key = fan::window_input::convert_keycodes_to_fan(event.xkey.keycode);
 
         window->window_input_up(window->m_window_handle, key);
 
@@ -2100,6 +2103,8 @@ uint32_t fan::window_t::handle_events() {
         if (event.xkey.keycode < max_keycode) {
           cdb.scancode = keycode_to_scancode_table[event.xkey.keycode];
         }
+        window->m_keycode_action_map[event.key.keycode] = false;
+
         auto it = window->m_keys_callback.GetNodeFirst();
 
         while (it != window->m_keys_callback.dst) {
@@ -2141,7 +2146,7 @@ uint32_t fan::window_t::handle_events() {
           break;
         }
 
-        uint16_t button = fan::window_input::convert_keys_to_fan(event.xbutton.button);
+        uint16_t button = fan::window_input::convert_keycodes_to_fan(event.xbutton.button);
 
         window->window_input_mouse_action(window->m_window_handle, button);
 
@@ -2179,7 +2184,7 @@ uint32_t fan::window_t::handle_events() {
           }
         }
 
-        auto button = fan::window_input::convert_keys_to_fan(event.xbutton.button);
+        auto button = fan::window_input::convert_keycodes_to_fan(event.xbutton.button);
         window->window_input_up(window->m_window_handle, button);
 
         auto it = window->m_buttons_callback.GetNodeFirst();
@@ -2199,51 +2204,46 @@ uint32_t fan::window_t::handle_events() {
       }
       case FocusOut:
       {
-        fan::print("focus out came");
         auto fwindow = fan::get_window_by_id(event.xfocus.window);
         if (!fwindow) {
           break;
         }
 
-        char keys[32];
-        XQueryKeymap(fan::sys::m_display, keys);
-        fan::print("window found");
         for (uint16_t i = 0; i < 255; ++i) {
+          auto fkey = fan::window_input::convert_keycodes_to_fan(i);
+          if (window->m_keycode_action_map[i] == false) {
+            continue;
+          }
+          if (fkey >= fan::button_left) {
+            auto it = fwindow->m_buttons_callback.GetNodeFirst();
+            while (it != fwindow->m_buttons_callback.dst) {
+              fwindow->m_buttons_callback.StartSafeNext(it);
 
-          auto keycode = i;
-          auto fkey = fan::window_input::convert_keys_to_fan(i);
-          if (keys[keycode / 8] & (1 << (keycode % 8))) {
-            if (fkey >= fan::button_left) {
-              auto it = fwindow->m_buttons_callback.GetNodeFirst();
-              while (it != fwindow->m_buttons_callback.dst) {
-                fwindow->m_buttons_callback.StartSafeNext(it);
+              mouse_buttons_cb_data_t cbd;
+              cbd.window = fwindow;
+              cbd.button = fkey;
+              cbd.state = fan::button_state::release;
+              fwindow->m_buttons_callback[it].data(cbd);
 
-                mouse_buttons_cb_data_t cbd;
-                cbd.window = fwindow;
-                cbd.button = fkey;
-                cbd.state = fan::button_state::release;
-                fwindow->m_buttons_callback[it].data(cbd);
-
-                it = fwindow->m_buttons_callback.EndSafeNext();
-              }
+              it = fwindow->m_buttons_callback.EndSafeNext();
             }
-            else {
-              fan::print("release came for", i);
-              auto it = fwindow->m_keys_callback.GetNodeFirst();
-              while (it != fwindow->m_keys_callback.dst) {
-                fwindow->m_keys_callback.StartSafeNext(it);
+          }
+          else {
+            fan::print("release came for", i);
+            auto it = fwindow->m_keys_callback.GetNodeFirst();
+            while (it != fwindow->m_keys_callback.dst) {
+              fwindow->m_keys_callback.StartSafeNext(it);
 
-                keyboard_keys_cb_data_t cbd{};
-                cbd.window = fwindow;
-                cbd.key = fkey;
-                cbd.state = fan::keyboard_state::release;
-                if (i < max_keycode) {
-                  cbd.scancode = keycode_to_scancode_table[i];
-                }
-                fwindow->m_keys_callback[it].data(cbd);
-
-                it = fwindow->m_keys_callback.EndSafeNext();
+              keyboard_keys_cb_data_t cbd{};
+              cbd.window = fwindow;
+              cbd.key = fkey;
+              cbd.state = fan::keyboard_state::release;
+              if (i < max_keycode) {
+                cbd.scancode = keycode_to_scancode_table[i];
               }
+              fwindow->m_keys_callback[it].data(cbd);
+
+              it = fwindow->m_keys_callback.EndSafeNext();
             }
           }
         }
@@ -2261,14 +2261,7 @@ uint32_t fan::window_t::handle_events() {
 
 bool fan::window_t::key_pressed(uint16_t key) const
 {
-  #if defined(fan_platform_windows)
-
-    return GetKeyState(fan::window_input::convert_fan_to_keys(key)) & 0x8000;
-  #elif defined(fan_platform_unix)
-
-  return 1;
-
-  #endif
+  return m_keycode_action_map[fan::window_input::convert_fan_to_keycodes(key)];
 }
 
 #ifdef fan_platform_windows

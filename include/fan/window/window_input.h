@@ -190,15 +190,6 @@ namespace fan {
 	namespace window_input {
 
     #include _FAN_PATH(window/window_input_common.h)
-    
-
-    //#include <window_input.cpp>
-
-		 //uint16_t convert_keys_to_fan(uint16_t key);
-		 //uint16_t convert_fan_to_keys(uint16_t key);
-		 //uint16_t convert_utfkeys_to_fan(uint16_t key);
 
 	}
-
-
 }
