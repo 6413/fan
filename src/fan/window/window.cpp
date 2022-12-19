@@ -2210,16 +2210,17 @@ uint32_t fan::window_t::handle_events() {
         fan::print("window found");
         for (uint16_t i = 0; i < 255; ++i) {
 
-          auto keycode = fan::window_input::convert_fan_to_keys(i);
+          auto keycode = i;
+          auto fkey = fan::window_input::convert_keys_to_fan(i)
           if (keys[keycode / 8] & (1 << (keycode % 8))) {
-            if (i >= fan::button_left) {
+            if (fkey >= fan::button_left) {
               auto it = fwindow->m_buttons_callback.GetNodeFirst();
               while (it != fwindow->m_buttons_callback.dst) {
                 fwindow->m_buttons_callback.StartSafeNext(it);
 
                 mouse_buttons_cb_data_t cbd;
                 cbd.window = fwindow;
-                cbd.button = i;
+                cbd.button = fkey;
                 cbd.state = fan::button_state::release;
                 fwindow->m_buttons_callback[it].data(cbd);
 
@@ -2234,7 +2235,7 @@ uint32_t fan::window_t::handle_events() {
 
                 keyboard_keys_cb_data_t cbd{};
                 cbd.window = fwindow;
-                cbd.key = i;
+                cbd.key = fkey;
                 cbd.state = fan::keyboard_state::release;
                 if (i < max_keycode) {
                   cbd.scancode = keycode_to_scancode_table[i];
