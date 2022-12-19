@@ -2199,13 +2199,49 @@ uint32_t fan::window_t::handle_events() {
       }
       case FocusOut:
       {
-        fan::window_t* window = fan::get_window_by_id(event.xfocus.window);
-
-        if (!window) {
+        auto fwindow = fan::get_window_by_id(event.xbutton.window);
+        if (!fwindow) {
           break;
         }
 
-        window->m_focused = false;
+        char keys[32];
+        XQueryKeymap(fan::sys::m_display, keys);
+
+        for (uint16_t i = fan::first; i != fan::last; i++) {
+          auto keycode = fan::window_input::convert_fan_to_keys(i);
+          if (keys[keycode / 8] & (1 << (keycode % 8))) {
+            if (i >= fan::button_left) {
+              auto it = fwindow->m_buttons_callback.GetNodeFirst();
+              while (it != fwindow->m_buttons_callback.dst) {
+                fwindow->m_buttons_callback.StartSafeNext(it);
+
+                mouse_buttons_cb_data_t cbd;
+                cbd.window = fwindow;
+                cbd.button = i;
+                cbd.state = fan::button_state::release;
+                fwindow->m_buttons_callback[it].data(cbd);
+
+                it = fwindow->m_buttons_callback.EndSafeNext();
+              }
+            }
+            else {
+              auto it = fwindow->m_keys_callback.GetNodeFirst();
+              while (it != fwindow->m_keys_callback.dst) {
+                fwindow->m_keys_callback.StartSafeNext(it);
+
+                keyboard_keys_cb_data_t cbd;
+                cbd.window = fwindow;
+                cbd.key = i;
+                cbd.state = fan::keyboard_state::release;
+                fwindow->m_keys_callback[it].data(cbd);
+
+                it = fwindow->m_keys_callback.EndSafeNext();
+              }
+            }
+          }
+        }
+
+        fwindow->m_focused = false;
         break;
       }
     }
