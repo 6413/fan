@@ -2211,7 +2211,7 @@ uint32_t fan::window_t::handle_events() {
         for (uint16_t i = 0; i < 255; ++i) {
 
           auto keycode = i;
-          auto fkey = fan::window_input::convert_keys_to_fan(i)
+          auto fkey = fan::window_input::convert_keys_to_fan(i);
           if (keys[keycode / 8] & (1 << (keycode % 8))) {
             if (fkey >= fan::button_left) {
               auto it = fwindow->m_buttons_callback.GetNodeFirst();
