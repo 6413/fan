@@ -216,7 +216,8 @@ static uint16_t convert_keys_to_fan(uint16_t key) {
 		case 0x40: { return fan::input::key_left_alt; }
 		case 0x41: { return fan::input::key_space; }
 		case 0x6C: { return fan::input::key_right_alt; }
-		case 0x86: { return fan::input::key_right_super; }
+    case 0x60: { return fan::input::key_left_super; }
+		case 0xA7: { return fan::input::key_right_super; }
 		case 0x69: { return fan::input::key_right_control; }
 
 		case 0x71: { return fan::input::key_left; }
@@ -460,7 +461,8 @@ static uint16_t convert_fan_to_keys(uint16_t key) {
 		case fan::input::key_left_alt: { return 0x40; }
 		case fan::input::key_space: { return 0x41; }
 		case fan::input::key_right_alt: { return 0x6C; }
-		case fan::input::key_right_super: { return 0x86; }
+		case fan::input::key_left_super: { return 0x60; }
+		case fan::input::key_right_super: { return 0xA7; }
 		case fan::input::key_right_control: { return 0x69; }
 		case fan::input::key_left: { return 0x71; }
 		case fan::input::key_up: { return 0x6F; }
