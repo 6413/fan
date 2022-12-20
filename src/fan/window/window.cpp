@@ -1905,7 +1905,12 @@ uint32_t fan::window_t::handle_events() {
   #elif defined(fan_platform_unix)
 
   if (invisibleCursor == None) {
-    invisibleCursor = XCreateFontCursor(fan::sys::m_display, XC_boat);
+    Window root = DefaultRootWindow(fan::sys::m_display);
+    Pixmap cursor_pixmap = XCreatePixmap(fan::sys::m_display, root, 1, 1, 1);
+    XColor black;
+    black.red = black.green = black.blue = 0;
+    invisibleCursor = XCreatePixmapCursor(fan::sys::m_display, cursor_pixmap, cursor_pixmap, &black, &black, 0, 0);
+    //invisibleCursor = XCreateFontCursor(fan::sys::m_display, "XC_boat");
   }
 
   XEvent event;
