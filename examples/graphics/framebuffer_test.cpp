@@ -59,7 +59,7 @@ int main() {
 
   loco_t::sprite_t::properties_t p;
 
-  p.size = fan::vec2(1);
+  p.size = fan::vec2(.3);
   p.matrices = &pile->matrices;
   p.viewport = &pile->viewport;
 

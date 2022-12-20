@@ -9,6 +9,7 @@ layout(location = 0) out vec4 r_color;
 
 void main() {
 	r_color = vec4(1, 0, 0, 1);
+  //o_color = r_color;
 	//vec4 accum = subpassLoad(attachment0);
 	//float reveal = subpassLoad(attachment1).r;
 	//
