@@ -289,22 +289,12 @@ namespace fan {
           ReleaseCapture();
           SetCapture(NULL);
 
-          // unlock the cursor from the client area
           ClipCursor(NULL);
         #elif defined(fan_platform_unix)
-          XGrabPointer(
-              fan::sys::m_display, m_window_handle,
-              True,
-              ButtonPressMask | ButtonReleaseMask | PointerMotionMask,
-              GrabModeAsync, GrabModeAsync,
-              None, None, CurrentTime
-          );
+          XUngrabPointer(fan::sys::m_display, CurrentTime);
 
-    // Do something else here, such as handle window events or process input.
-
-    // Release the grab and restore normal pointer behavior.
-          fan::print("switch0", XDefineCursor(fan::sys::m_display, m_window_handle, invisibleCursor));
-          //;
+          XDefineCursor(fan::sys::m_display, m_window_handle, XC_arrow)
+          
         #endif
         }
         else {
@@ -333,8 +323,16 @@ namespace fan {
           SetCursor(NULL);
           ClipCursor(&rect);
         #elif defined(fan_platform_unix)
-          XUngrabPointer(fan::sys::m_display, CurrentTime);
-          fan::print("switch1", XDefineCursor(fan::sys::m_display, m_window_handle, invisibleCursor));
+
+           XGrabPointer(
+              fan::sys::m_display, m_window_handle,
+              True,
+              ButtonPressMask | ButtonReleaseMask | PointerMotionMask,
+              GrabModeAsync, GrabModeAsync,
+              None, None, CurrentTime
+          );
+
+          XDefineCursor(fan::sys::m_display, m_window_handle, invisibleCursor)
         #endif
         }
     }
