@@ -424,6 +424,9 @@ namespace fan {
 				#if defined(loco_wboit)
 					create_wboit_views();
 				#endif
+        #if defined(loco_framebuffer)
+          create_loco_framebuffer();
+        #endif
 				createDepthResources();
 				createFramebuffers();
 				createCommandBuffers();
@@ -820,11 +823,39 @@ namespace fan {
 				subpass[1].pInputAttachments = subpass1InputAttachments.data();
 			#else
 
-				VkSubpassDescription subpass[1]{};
-        subpass[0].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        subpass[0].colorAttachmentCount = 1;
-        subpass[0].pColorAttachments = &colorAttachmentRef;
-        subpass[0].pDepthStencilAttachment = &depthAttachmentRef;
+      #if defined(loco_framebuffer)
+        VkAttachmentDescription wboit_color_attachment{};
+
+				wboit_color_attachment.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+				wboit_color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+				wboit_color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+				wboit_color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+				wboit_color_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+				wboit_color_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+				wboit_color_attachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+				wboit_color_attachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        VkAttachmentReference subpasscolor_locofbo_attachment;
+				subpasscolor_locofbo_attachment.attachment = 2;
+				subpasscolor_locofbo_attachment.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+      #endif
+
+				VkSubpassDescription subpass[]{
+          {
+            .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
+            .colorAttachmentCount = 1,
+            .pColorAttachments = &colorAttachmentRef,
+            .pDepthStencilAttachment = &depthAttachmentRef
+          },
+          #if defined(loco_framebuffer)
+          {
+            .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
+            .colorAttachmentCount = 1,
+            .pColorAttachments = &subpasscolor_locofbo_attachment,
+            .pDepthStencilAttachment = &depthAttachmentRef,
+          }
+          #endif
+        };
 
 			#endif
 
@@ -865,7 +896,11 @@ namespace fan {
 				#if defined(loco_wboit)
 					wboit_color_attachment, wboit_reveal_attachment, 
 				#endif
-					colorAttachment, depthAttachment 
+					colorAttachment, 
+          depthAttachment,
+        #if defined(loco_framebuffer)
+          wboit_color_attachment,
+        #endif
 				};
 				VkRenderPassCreateInfo renderPassInfo{};
 				renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -893,6 +928,9 @@ namespace fan {
 					
 						swapChainImageViews[i],
 						vai_depth.image_view,
+          #if defined(loco_framebuffer)
+            vai_bitmap.image_view
+          #endif
 					};
 
 					VkFramebufferCreateInfo framebufferInfo{};
@@ -922,7 +960,10 @@ namespace fan {
 					throw std::runtime_error("failed to create graphics command pool!");
 				}
 			}
-
+    
+    #if defined(loco_framebuffer)
+      void create_loco_framebuffer();
+    #endif
 			void create_wboit_views();
 			void createDepthResources();
 
@@ -1201,6 +1242,11 @@ namespace fan {
 				vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, render_fullscreen_pl.m_pipeline);	
 				vkCmdDraw(commandBuffers[currentFrame], 6, 1, 0, 0);
 			#endif
+
+        vkCmdNextSubpass(commandBuffers[currentFrame], VK_SUBPASS_CONTENTS_INLINE);
+				vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, render_fullscreen_pl.m_pipeline);	
+				vkCmdDraw(commandBuffers[currentFrame], 6, 1, 0, 0);
+
 				vkCmdEndRenderPass(commandBuffers[currentFrame]);
 
 				if (vkEndCommandBuffer(commandBuffers[currentFrame]) != VK_SUCCESS) {
@@ -1555,6 +1601,9 @@ namespace fan {
 			VkCommandPool commandPool;
 
 			vai_t vai_depth;
+    #if defined(loco_framebuffer)
+      vai_t vai_bitmap;
+    #endif
 		#if defined(loco_wboit)
 			vai_t vai_wboit_color;
 			vai_t vai_wboit_reveal;
@@ -1626,6 +1675,18 @@ namespace fan {
 
 			vkBindImageMemory(context->device, image, imageMemory, 0);
 		}
+
+  #if defined(loco_framebuffer)
+    void context_t::create_loco_framebuffer() {
+			vai_t::properties_t p;
+			p.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+			p.swap_chain_size = swap_chain_size;
+			p.usage_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+			p.aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT;
+			vai_bitmap.open(this, p);
+			vai_bitmap.transition_image_layout(this, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+		}
+  #endif
 
 	#if defined(loco_wboit)
 		void context_t::create_wboit_views() {

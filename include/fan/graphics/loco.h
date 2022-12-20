@@ -770,76 +770,118 @@ public:
     lp.type = fan::opengl::GL_FLOAT;
     lp.filter = fan::opengl::GL_LINEAR;
     lp.visual_output = fan::opengl::GL_CLAMP_TO_EDGE;
-
-   /* m_framebuffer.open(get_context());
-    m_framebuffer.bind(get_context());*/
+  #if defined(loco_framebuffer)
+    m_framebuffer.open(get_context());
+    m_framebuffer.bind(get_context());
+  #endif
   #endif
 
   #if defined(loco_opengl)
 
-	  //fan::webp::image_info_t ii;
-	  //ii.data = nullptr;
-   // ii.size = get_window()->get_size();
+  #if defined(loco_framebuffer)
 
-   // color_buffers[0].load(this, ii, lp);
+	  fan::webp::image_info_t ii;
+	  ii.data = nullptr;
+    ii.size = get_window()->get_size();
 
-   // color_buffers[0].bind_texture(this);
-   // fan::opengl::core::framebuffer_t::bind_to_texture(
-   //   get_context(),
-   //   *color_buffers[0].get_texture(this),
-   //   fan::opengl::GL_COLOR_ATTACHMENT0
-   // );
+    color_buffers[0].load(this, ii, lp);
 
-   // lp.internal_format = fan::opengl::GL_RGBA8UI;
-   // lp.format = fan::opengl::GL_RGB_INTEGER;
-   // lp.filter = fan::opengl::GL_NEAREST;
-   // lp.type = fan::opengl::GL_UNSIGNED_BYTE;
+    color_buffers[0].bind_texture(this);
+    fan::opengl::core::framebuffer_t::bind_to_texture(
+      get_context(),
+      *color_buffers[0].get_texture(this),
+      fan::opengl::GL_COLOR_ATTACHMENT0
+    );
 
-   // color_buffers[1].load(this, ii, lp);
+    lp.internal_format = fan::opengl::GL_R8UI;
+    lp.format = fan::opengl::GL_RED_INTEGER; // GL_RGB_INTEGER for vec3
+    lp.filter = fan::opengl::GL_NEAREST;
+    lp.type = fan::opengl::GL_UNSIGNED_BYTE;
 
-   // color_buffers[1].bind_texture(this);
-   // fan::opengl::core::framebuffer_t::bind_to_texture(
-   //   get_context(),
-   //   *color_buffers[1].get_texture(this),
-   //   fan::opengl::GL_COLOR_ATTACHMENT1
-   // );
+    color_buffers[1].load(this, ii, lp);
 
-   // fan::opengl::core::renderbuffer_t::properties_t rp;
-   // m_framebuffer.bind(get_context());
-   // rp.size = ii.size;
-   // rp.internalformat = fan::opengl::GL_DEPTH_COMPONENT;
-   // m_rbo.open(get_context());
-   // m_rbo.set_storage(get_context(), rp);
-   // rp.internalformat = fan::opengl::GL_DEPTH_ATTACHMENT;
-   // m_rbo.bind_to_renderbuffer(get_context(), rp);
+    color_buffers[1].bind_texture(this);
+    fan::opengl::core::framebuffer_t::bind_to_texture(
+      get_context(),
+      *color_buffers[1].get_texture(this),
+      fan::opengl::GL_COLOR_ATTACHMENT1
+    );
 
-   // // tell OpenGL which color attachments we'll use (of this framebuffer) for rendering
-   // unsigned int attachments[] = {
-   //   //fan::opengl::GL_COLOR_ATTACHMENT0,
-   //   fan::opengl::GL_COLOR_ATTACHMENT0,
-   //   fan::opengl::GL_COLOR_ATTACHMENT1
-   // };
+    fan::opengl::core::renderbuffer_t::properties_t rp;
+    m_framebuffer.bind(get_context());
+    rp.size = ii.size;
+    rp.internalformat = fan::opengl::GL_DEPTH_COMPONENT;
+    m_rbo.open(get_context());
+    m_rbo.set_storage(get_context(), rp);
+    rp.internalformat = fan::opengl::GL_DEPTH_ATTACHMENT;
+    m_rbo.bind_to_renderbuffer(get_context(), rp);
 
-   // get_context()->opengl.call(get_context()->opengl.glDrawBuffers, std::size(attachments), attachments);
-   // // finally check if framebuffer is complete
-   // if (!m_framebuffer.ready(get_context())) {
-   //   fan::throw_error("framebuffer not ready");
-   // }
+    // tell OpenGL which color attachments we'll use (of this framebuffer) for rendering
+    unsigned int attachments[] = {
+      //fan::opengl::GL_COLOR_ATTACHMENT0,
+      fan::opengl::GL_COLOR_ATTACHMENT0,
+      fan::opengl::GL_COLOR_ATTACHMENT1
+    };
 
-   // m_framebuffer.unbind(get_context());
+    get_context()->opengl.call(get_context()->opengl.glDrawBuffers, std::size(attachments), attachments);
+    // finally check if framebuffer is complete
+    if (!m_framebuffer.ready(get_context())) {
+      fan::throw_error("framebuffer not ready");
+    }
 
-   // m_fbo_final_shader.open(get_context());
-   // m_fbo_final_shader.set_vertex(
-   //   get_context(),
-   //   #include _FAN_PATH(graphics/glsl/opengl/2D/effects/loco_fbo.vs)
-   // );
-   // m_fbo_final_shader.set_fragment(
-   //   get_context(),
-   //   #include _FAN_PATH(graphics/glsl/opengl/2D/effects/loco_fbo.fs)
-   // );
-   // m_fbo_final_shader.compile(get_context());
+    m_framebuffer.unbind(get_context());
+
+    m_fbo_final_shader.open(get_context());
+    m_fbo_final_shader.set_vertex(
+      get_context(),
+      #include _FAN_PATH(graphics/glsl/opengl/2D/effects/loco_fbo.vs)
+    );
+    m_fbo_final_shader.set_fragment(
+      get_context(),
+      #include _FAN_PATH(graphics/glsl/opengl/2D/effects/loco_fbo.fs)
+    );
+    m_fbo_final_shader.compile(get_context());
+  #endif
 
   #endif
+
+  #if defined(loco_vulkan) && defined(loco_framebuffer)
+
+
+    fan::vulkan::pipeline_t::properties_t pipeline_p;
+
+    auto context = get_context();
+    m_ssbo.open(context);
+
+    render_fullscreen_shader.open(context, &m_write_queue);
+    render_fullscreen_shader.set_vertex(context, _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/fullscreen.vert.spv));
+    render_fullscreen_shader.set_fragment(context, _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/fullscreen.frag.spv));
+    pipeline_p.descriptor_layout_count = 0;
+    pipeline_p.descriptor_layout = &m_ssbo.m_descriptor.m_layout;
+    pipeline_p.shader = &render_fullscreen_shader;
+    pipeline_p.push_constants_size = pipeline_p.push_constants_size = sizeof(loco_t::push_constants_t);
+    pipeline_p.subpass = 1;
+    VkPipelineColorBlendAttachmentState color_blend_attachment{};
+		color_blend_attachment.colorWriteMask =
+			VK_COLOR_COMPONENT_R_BIT |
+			VK_COLOR_COMPONENT_G_BIT |
+			VK_COLOR_COMPONENT_B_BIT |
+			VK_COLOR_COMPONENT_A_BIT
+		;
+		color_blend_attachment.blendEnable = VK_TRUE;
+		color_blend_attachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+		color_blend_attachment.dstColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+		color_blend_attachment.colorBlendOp = VK_BLEND_OP_ADD;
+		color_blend_attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+		color_blend_attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+		color_blend_attachment.alphaBlendOp = VK_BLEND_OP_ADD;
+    pipeline_p.color_blend_attachment_count = 1;
+    pipeline_p.color_blend_attachment = &color_blend_attachment;
+    pipeline_p.enable_depth_test = false;
+    context->render_fullscreen_pl.open(context, pipeline_p);
+
+  #endif
+
   }
 
   #if defined(loco_vfi)
@@ -873,7 +915,9 @@ public:
     #if defined(loco_opengl)
     get_context()->opengl.call(get_context()->opengl.glClearColor, 0, 0, 0, 1);
     get_context()->opengl.call(get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
-   // m_framebuffer.bind(get_context());
+    #if defined(loco_framebuffer)
+    m_framebuffer.bind(get_context());
+    #endif
     #endif
 
     #ifdef loco_post_process
@@ -886,23 +930,9 @@ public:
     #ifdef loco_window
       #if defined(loco_opengl)
 
-     /* get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
-      color_buffers[0].bind_texture(this);
-      fan::opengl::core::framebuffer_t::bind_to_texture(
-        get_context(),
-        *color_buffers[0].get_texture(this),
-        fan::opengl::GL_COLOR_ATTACHMENT0
-      );
-      get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
-	    color_buffers[1].bind_texture(this);
-      fan::opengl::core::framebuffer_t::bind_to_texture(
-        get_context(),
-        *color_buffers[1].get_texture(this),
-        fan::opengl::GL_COLOR_ATTACHMENT1
-      );*/
-
       #include "draw_shapes.h"
-    /*
+    
+    #if defined(loco_framebuffer)
       m_flag_map_fbo.unbind(get_context());
 
       get_context()->set_depth_test(false);
@@ -918,7 +948,8 @@ public:
      
       get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
 	    color_buffers[1].bind_texture(this);
-      renderQuad();*/
+      renderQuad();
+      #endif
       
       get_context()->render(get_window());
       #elif defined(loco_vulkan)
@@ -967,12 +998,28 @@ public:
     return x;
   }
 
-  //fan::opengl::core::framebuffer_t m_flag_map_fbo;
-  //
-  //fan::opengl::core::framebuffer_t m_framebuffer;
-  //fan::opengl::core::renderbuffer_t m_rbo;
-  //loco_t::image_t color_buffers[3];
-  //fan::opengl::shader_t m_fbo_final_shader;
+#if defined(loco_framebuffer)
+
+#if defined(loco_opengl)
+  fan::opengl::core::framebuffer_t m_flag_map_fbo;
+  
+  fan::opengl::core::framebuffer_t m_framebuffer;
+  fan::opengl::core::renderbuffer_t m_rbo;
+  loco_t::image_t color_buffers[3];
+  fan::opengl::shader_t m_fbo_final_shader;
+
+#elif defined(loco_vulkan)
+
+  struct filler_t {
+
+  };
+
+  fan::vulkan::shader_t render_fullscreen_shader;
+  fan::vulkan::core::ssbo_t<filler_t, filler_t, 1, 1> m_ssbo;
+
+#endif
+
+#endif
 
   void loop(const auto& lambda) {
     while (1) {
