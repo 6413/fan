@@ -254,7 +254,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="examples\graphics\mouse_motion.cpp" />
+    <ClCompile Include="examples\graphics\framebuffer_test.cpp" />
     <ClCompile Include="include\fan\physics\AStar.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
   </ItemGroup>

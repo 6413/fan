@@ -824,16 +824,16 @@ namespace fan {
 			#else
 
       #if defined(loco_framebuffer)
-        VkAttachmentDescription wboit_color_attachment{};
+        VkAttachmentDescription fbo_color_attachment{};
 
-				wboit_color_attachment.format = VK_FORMAT_R16G16B16A16_SFLOAT;
-				wboit_color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
-				wboit_color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-				wboit_color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-				wboit_color_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-				wboit_color_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-				wboit_color_attachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-				wboit_color_attachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+				fbo_color_attachment.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+				fbo_color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+				fbo_color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+				fbo_color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+				fbo_color_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+				fbo_color_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+				fbo_color_attachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+				fbo_color_attachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
         VkAttachmentReference subpasscolor_locofbo_attachment;
 				subpasscolor_locofbo_attachment.attachment = 2;
@@ -883,13 +883,20 @@ namespace fan {
 				subpassDependencies[2].srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
 				subpassDependencies[2].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 			#else
-				std::array<VkSubpassDependency, 1> subpassDependencies{};
+				std::array<VkSubpassDependency, 2> subpassDependencies{};
         subpassDependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
-        subpassDependencies[0].dstSubpass = 0;
+        subpassDependencies[0].dstSubpass = 1;
         subpassDependencies[0].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
         subpassDependencies[0].srcAccessMask = 0;
         subpassDependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
         subpassDependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+        subpassDependencies[1].srcSubpass = 1;
+        subpassDependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+        subpassDependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        subpassDependencies[1].srcAccessMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        subpassDependencies[1].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        subpassDependencies[1].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 			#endif
 
 				VkAttachmentDescription attachments[] = {  
@@ -899,7 +906,7 @@ namespace fan {
 					colorAttachment, 
           depthAttachment,
         #if defined(loco_framebuffer)
-          wboit_color_attachment,
+          fbo_color_attachment,
         #endif
 				};
 				VkRenderPassCreateInfo renderPassInfo{};
@@ -1225,9 +1232,17 @@ namespace fan {
 					clearValues[1].color.float32[0] = 1.f;  // Initially, all pixels show through all the way (reveal = 100%)
 
 				#else
-					VkClearValue clearValues[2]{};
+					VkClearValue clearValues[
+            2
+            #if defined(loco_framebuffer)
+            +1
+            #endif
+          ]{};
 					clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f} };
 					clearValues[1].depthStencil = { 1.0f, 0 };
+        #if defined(loco_framebuffer)
+          clearValues[2].color = { {0.f, 1.f, 0.f, 0.f} };
+        #endif
 				#endif
 
 				renderPassInfo.clearValueCount = std::size(clearValues);
