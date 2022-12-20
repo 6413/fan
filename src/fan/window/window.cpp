@@ -535,6 +535,7 @@ fan::window_t::window_t(const fan::vec2i& window_size, const fan::string& name, 
   m_reserved_flags = 0;
   m_focused = true;
   m_event_flags = 0;
+  m_mouse_motion = 0;
 
   if (flag_values::m_size_mode == fan::window_t::mode::not_set) {
     flag_values::m_size_mode = fan::window_t::default_size_mode;
@@ -834,7 +835,9 @@ LRESULT fan::window_t::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lp
 
       const fan::vec2i position(get_cursor_position());
 
+      window->m_previous_mouse_position = window->m_mouse_position;
       window->m_mouse_position = position;
+      window->m_mouse_motion = window->m_mouse_position - window->m_previous_mouse_position;
 
       window->call_mouse_move_cb = true;
 
@@ -1460,9 +1463,10 @@ uint32_t fan::window_t::handle_events() {
 
       it = it.Next(&m_mouse_motion_callback);
     }
+    m_mouse_motion = 0;
+    m_average_motion = 0;
+    call_mouse_motion_cb = false;
   }
-  m_average_motion = 0;
-  call_mouse_motion_cb = false;
 
   #ifdef fan_platform_windows
 
@@ -1818,7 +1822,6 @@ uint32_t fan::window_t::handle_events() {
             }
 
             if (!fan::window_t::flag_values::m_no_mouse) {
-              window->m_previous_mouse_position = window->m_mouse_position;
               window->m_mouse_position = position;
             }
           }
@@ -2134,7 +2137,8 @@ uint32_t fan::window_t::handle_events() {
         window->m_previous_mouse_position = window->m_mouse_position;
 
         window->m_mouse_position = position;
-        m_average_motion += fan::vec2i(event.xmotion.x_root, event.xmotion.y_root);
+        m_mouse_motion = m_mouse_position - m_previous_mouse_position;
+        m_average_motion += m_mouse_motion;
         call_mouse_motion_cb = true;
 
         break;

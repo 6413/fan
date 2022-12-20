@@ -51,7 +51,7 @@ int main() {
   pile_t* pile = new pile_t;
   //pile->loco.get_context()->set_vsync(pile->loco.get_window(), 0);
   //pile->loco.get_window()->set_max_fps(10);
-
+//  pile->loco.get_context()->set_vsync(&pile->loco.get_window(), 0);
   pile->loco.loop([&] {
     pile->loco.get_fps();
   });

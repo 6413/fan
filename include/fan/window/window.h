@@ -586,6 +586,8 @@ namespace fan {
 		fan::vec2i m_raw_mouse_offset;
 		fan::vec2i m_previous_mouse_position;
 
+    fan::vec2i m_mouse_motion;
+
 		fan::color m_background_color;
 
 		uint16_t m_current_key;
