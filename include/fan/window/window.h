@@ -293,7 +293,7 @@ namespace fan {
         #elif defined(fan_platform_unix)
           XUngrabPointer(fan::sys::m_display, CurrentTime);
 
-          XDefineCursor(fan::sys::m_display, m_window_handle, XC_arrow)
+          XDefineCursor(fan::sys::m_display, m_window_handle, XC_arrow);
           
         #endif
         }
@@ -332,7 +332,7 @@ namespace fan {
               None, None, CurrentTime
           );
 
-          XDefineCursor(fan::sys::m_display, m_window_handle, invisibleCursor)
+          XDefineCursor(fan::sys::m_display, m_window_handle, invisibleCursor);
         #endif
         }
     }
