@@ -47,9 +47,9 @@ struct pile_t {
 int main() {
 
   pile_t* pile = new pile_t;
-//  fan::button_state::
+  pile->loco.get_window()->set_flag_value<fan::window_t::flags::no_mouse>(true);
+
   pile->loco.get_window()->add_mouse_motion([&](const auto& x) {
-    pile->loco.get_window()->set_flag_value<fan::window_t::flags::no_mouse>(true);
     fan::print(x.motion);
   });
   pile->loco.get_context()->set_vsync(pile->loco.get_window(), 0);
