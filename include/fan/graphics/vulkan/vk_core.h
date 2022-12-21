@@ -766,39 +766,49 @@ namespace fan {
 				depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 				depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-				VkAttachmentReference colorAttachmentRef{};
-				colorAttachmentRef.attachment = 0;
-				colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+				VkAttachmentReference colorAttachmentRef[2]{};
+				colorAttachmentRef[0].attachment = 0;
+        colorAttachmentRef[0].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        colorAttachmentRef[1].attachment = 1;
+				colorAttachmentRef[1].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 
 				VkAttachmentReference depthAttachmentRef{};
-        depthAttachmentRef.attachment = 3;
+        depthAttachmentRef.attachment = 4;
 				depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
         
-        VkAttachmentDescription fbo_color_attachment{};
+        VkAttachmentDescription fbo_color_attachment[2]{};
 
-				fbo_color_attachment.format = swapChainImageFormat;
-				fbo_color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
-				fbo_color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-				fbo_color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-				fbo_color_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-				fbo_color_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-				fbo_color_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-				fbo_color_attachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+				fbo_color_attachment[0].format = swapChainImageFormat;
+				fbo_color_attachment[0].samples = VK_SAMPLE_COUNT_1_BIT;
+				fbo_color_attachment[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+				fbo_color_attachment[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+				fbo_color_attachment[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+				fbo_color_attachment[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+				fbo_color_attachment[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+				fbo_color_attachment[0].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
+        fbo_color_attachment[1].format = swapChainImageFormat;
+        fbo_color_attachment[1].samples = VK_SAMPLE_COUNT_1_BIT;
+        fbo_color_attachment[1].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        fbo_color_attachment[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        fbo_color_attachment[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        fbo_color_attachment[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        fbo_color_attachment[1].initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        fbo_color_attachment[1].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
         VkAttachmentReference subpasscolor_locofbo_attachments[2];
-				subpasscolor_locofbo_attachments[0].attachment = 1;
+				subpasscolor_locofbo_attachments[0].attachment = 2;
 				subpasscolor_locofbo_attachments[0].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-        subpasscolor_locofbo_attachments[1].attachment = 2;
+        subpasscolor_locofbo_attachments[1].attachment = 3;
 				subpasscolor_locofbo_attachments[1].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 				VkSubpassDescription subpass[]{
           {
             .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
-            .colorAttachmentCount = 1,
-            .pColorAttachments = &colorAttachmentRef,
+            .colorAttachmentCount = std::size(colorAttachmentRef),
+            .pColorAttachments = colorAttachmentRef,
             .pDepthStencilAttachment = &depthAttachmentRef
           },
           {
@@ -809,32 +819,40 @@ namespace fan {
           }
         };
 
-	      VkSubpassDependency subpassDependencies[3]{};
+	      VkSubpassDependency subpassDependencies[4]{};
 				subpassDependencies[0].srcSubpass = 0;
-				subpassDependencies[0].dstSubpass = 1;
+				subpassDependencies[0].dstSubpass = VK_SUBPASS_EXTERNAL;
 				subpassDependencies[0].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 				subpassDependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 				subpassDependencies[0].srcAccessMask = 0;
 				subpassDependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
         subpassDependencies[1].srcSubpass = 0;
-				subpassDependencies[1].dstSubpass = 1;
-				subpassDependencies[1].srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+				subpassDependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+				subpassDependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 				subpassDependencies[1].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-				subpassDependencies[1].srcAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+				subpassDependencies[1].srcAccessMask = 0;
 				subpassDependencies[1].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
-				subpassDependencies[2].srcSubpass = 1;
-				subpassDependencies[2].dstSubpass = VK_SUBPASS_EXTERNAL;
+        subpassDependencies[2].srcSubpass = 0;
+				subpassDependencies[2].dstSubpass = 1;
 				subpassDependencies[2].srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
 				subpassDependencies[2].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 				subpassDependencies[2].srcAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
 				subpassDependencies[2].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
+				subpassDependencies[3].srcSubpass = 0;
+				subpassDependencies[3].dstSubpass = 1;
+				subpassDependencies[3].srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+				subpassDependencies[3].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+				subpassDependencies[3].srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+				subpassDependencies[3].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
 				VkAttachmentDescription attachments[] = {  
-          fbo_color_attachment,
-          fbo_color_attachment,
+          fbo_color_attachment[0],
+          fbo_color_attachment[0],
 					colorAttachment, 
+          fbo_color_attachment[1],
           depthAttachment,
 				};
 				VkRenderPassCreateInfo renderPassInfo{};
@@ -866,6 +884,7 @@ namespace fan {
             vai_bitmap[1].image_view,
           #endif
 						swapChainImageViews[i],
+            vai_bitmap[1].image_view,
 						vai_depth.image_view,
 					};
 
@@ -1162,17 +1181,18 @@ namespace fan {
 
 				#else
 					VkClearValue clearValues[
-            2
+            3
             #if defined(loco_framebuffer)
             + 2
             #endif
           ]{};
 					clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f} };
         #if defined(loco_framebuffer)
-          clearValues[1].color = { {0.f, 1.f, 0.f, 1.f} };
-          clearValues[2].color = { {0.f, 1.f, 1.f, 1.f} };
+          clearValues[1].color = { {0.f, 0.f, 0.f, 0.f} };
+          clearValues[2].color = { {0.f, 0.f, 0.f, 0.f} };
+          clearValues[3].color = { {0.f, 0.f, 0.f, 0.f} };
         #endif
-					clearValues[3].depthStencil = { 1.0f, 0 };
+					clearValues[4].depthStencil = { 1.0f, 0 };
 				#endif
 
 				renderPassInfo.clearValueCount = std::size(clearValues);
