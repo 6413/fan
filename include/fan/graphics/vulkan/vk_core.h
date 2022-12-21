@@ -772,7 +772,7 @@ namespace fan {
 
 
 				VkAttachmentReference depthAttachmentRef{};
-        depthAttachmentRef.attachment = 2;
+        depthAttachmentRef.attachment = 3;
 				depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
         
         VkAttachmentDescription fbo_color_attachment{};
@@ -787,9 +787,12 @@ namespace fan {
 				fbo_color_attachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 
-        VkAttachmentReference subpasscolor_locofbo_attachment;
-				subpasscolor_locofbo_attachment.attachment = 1;
-				subpasscolor_locofbo_attachment.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        VkAttachmentReference subpasscolor_locofbo_attachments[2];
+				subpasscolor_locofbo_attachments[0].attachment = 1;
+				subpasscolor_locofbo_attachments[0].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        subpasscolor_locofbo_attachments[1].attachment = 2;
+				subpasscolor_locofbo_attachments[1].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 				VkSubpassDescription subpass[]{
           {
@@ -800,13 +803,13 @@ namespace fan {
           },
           {
             .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
-            .colorAttachmentCount = 1,
-            .pColorAttachments = &subpasscolor_locofbo_attachment,
+            .colorAttachmentCount = std::size(subpasscolor_locofbo_attachments),
+            .pColorAttachments = subpasscolor_locofbo_attachments,
             .pDepthStencilAttachment = &depthAttachmentRef,
           }
         };
 
-	      VkSubpassDependency subpassDependencies[2]{};
+	      VkSubpassDependency subpassDependencies[3]{};
 				subpassDependencies[0].srcSubpass = 0;
 				subpassDependencies[0].dstSubpass = 1;
 				subpassDependencies[0].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -814,14 +817,22 @@ namespace fan {
 				subpassDependencies[0].srcAccessMask = 0;
 				subpassDependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
-				subpassDependencies[1].srcSubpass = 1;
-				subpassDependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+        subpassDependencies[1].srcSubpass = 0;
+				subpassDependencies[1].dstSubpass = 1;
 				subpassDependencies[1].srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
 				subpassDependencies[1].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-				subpassDependencies[1].srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+				subpassDependencies[1].srcAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
 				subpassDependencies[1].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
+				subpassDependencies[2].srcSubpass = 1;
+				subpassDependencies[2].dstSubpass = VK_SUBPASS_EXTERNAL;
+				subpassDependencies[2].srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+				subpassDependencies[2].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+				subpassDependencies[2].srcAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+				subpassDependencies[2].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
 				VkAttachmentDescription attachments[] = {  
+          fbo_color_attachment,
           fbo_color_attachment,
 					colorAttachment, 
           depthAttachment,
@@ -852,6 +863,7 @@ namespace fan {
 					
           #if defined(loco_framebuffer)
             vai_bitmap[0].image_view,
+            vai_bitmap[1].image_view,
           #endif
 						swapChainImageViews[i],
 						vai_depth.image_view,
@@ -1152,14 +1164,15 @@ namespace fan {
 					VkClearValue clearValues[
             2
             #if defined(loco_framebuffer)
-            +1
+            + 2
             #endif
           ]{};
 					clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f} };
         #if defined(loco_framebuffer)
           clearValues[1].color = { {0.f, 1.f, 0.f, 1.f} };
+          clearValues[2].color = { {0.f, 1.f, 1.f, 1.f} };
         #endif
-					clearValues[2].depthStencil = { 1.0f, 0 };
+					clearValues[3].depthStencil = { 1.0f, 0 };
 				#endif
 
 				renderPassInfo.clearValueCount = std::size(clearValues);

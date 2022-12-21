@@ -99,7 +99,7 @@ struct sb_sprite_name {
       #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/objects/sprite.fs)
     #endif
   #elif defined(loco_vulkan)
-    #define vulkan_buffer_count 4
+    #define vulkan_buffer_count 5
     #define sb_shader_vertex_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/sprite.vert.spv)
     #define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/sprite.frag.spv)
   #endif
@@ -125,25 +125,26 @@ struct sb_sprite_name {
     p.shader = &render_fullscreen_shader;
     p.push_constants_size = p.push_constants_size = sizeof(loco_t::push_constants_t);
     p.subpass = 1;
-    VkPipelineColorBlendAttachmentState color_blend_attachment{};
-		color_blend_attachment.colorWriteMask =
+    VkPipelineColorBlendAttachmentState color_blend_attachment[2]{};
+    color_blend_attachment[0].colorWriteMask =
 			VK_COLOR_COMPONENT_R_BIT |
 			VK_COLOR_COMPONENT_G_BIT |
 			VK_COLOR_COMPONENT_B_BIT |
 			VK_COLOR_COMPONENT_A_BIT
 		;
-		color_blend_attachment.blendEnable = VK_TRUE;
-		color_blend_attachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-		color_blend_attachment.dstColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-		color_blend_attachment.colorBlendOp = VK_BLEND_OP_ADD;
-		color_blend_attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-		color_blend_attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-		color_blend_attachment.alphaBlendOp = VK_BLEND_OP_ADD;
-    p.color_blend_attachment_count = 1;
-    p.color_blend_attachment = &color_blend_attachment;
+		color_blend_attachment[0].blendEnable = VK_TRUE;
+		color_blend_attachment[0].srcColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+		color_blend_attachment[0].dstColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+		color_blend_attachment[0].colorBlendOp = VK_BLEND_OP_ADD;
+		color_blend_attachment[0].srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+		color_blend_attachment[0].dstAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+		color_blend_attachment[0].alphaBlendOp = VK_BLEND_OP_ADD;
+    color_blend_attachment[1] = color_blend_attachment[0];
+    p.color_blend_attachment_count = std::size(color_blend_attachment);
+    p.color_blend_attachment = color_blend_attachment;
     p.enable_depth_test = false;
     context->render_fullscreen_pl.open(context, p);
-    m_ssbo.m_descriptor.update(context, 1, 3);
+    m_ssbo.m_descriptor.update(context, 2, 3);
     #endif
   }
   ~sb_sprite_name() {
