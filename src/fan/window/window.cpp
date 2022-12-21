@@ -1938,7 +1938,7 @@ uint32_t fan::window_t::handle_events() {
           break;
         }
 
-        uint16_t key = fan::window_input::convert_keycodes_to_fan(event.xkey.keycode);
+        uint16_t key = fan::window_input::convert_scancode_to_fan(event.xkey.keycode);
         
         fan::window_t::window_input_action(window->m_window_handle, key);
         
@@ -2044,7 +2044,7 @@ uint32_t fan::window_t::handle_events() {
           }
         }
 
-        const uint16_t key = fan::window_input::convert_keycodes_to_fan(event.xkey.keycode);
+        const uint16_t key = fan::window_input::convert_scancode_to_fan(event.xkey.keycode);
 
         window->window_input_up(window->m_window_handle, key);
 
@@ -2099,7 +2099,7 @@ uint32_t fan::window_t::handle_events() {
           break;
         }
 
-        uint16_t button = fan::window_input::convert_keycodes_to_fan(event.xbutton.button);
+        uint16_t button = fan::window_input::convert_scancode_to_fan(event.xbutton.button);
 
         window->window_input_mouse_action(window->m_window_handle, button);
 
@@ -2137,7 +2137,7 @@ uint32_t fan::window_t::handle_events() {
           }
         }
 
-        auto button = fan::window_input::convert_keycodes_to_fan(event.xbutton.button);
+        auto button = fan::window_input::convert_scancode_to_fan(event.xbutton.button);
         window->window_input_up(window->m_window_handle, button);
 
         auto it = window->m_buttons_callback.GetNodeFirst();
@@ -2163,7 +2163,7 @@ uint32_t fan::window_t::handle_events() {
         }
 
         for (uint16_t i = 0; i < 255; ++i) {
-          auto fkey = fan::window_input::convert_keycodes_to_fan(i);
+          auto fkey = fan::window_input::convert_scancode_to_fan(i);
           if (fwindow->m_keycode_action_map[i] == false) {
             continue;
           }
