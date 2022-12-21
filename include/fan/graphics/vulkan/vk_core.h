@@ -783,13 +783,13 @@ namespace fan {
 				fbo_color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 				fbo_color_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 				fbo_color_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-				fbo_color_attachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+				fbo_color_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 				fbo_color_attachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 
         VkAttachmentReference subpasscolor_locofbo_attachment;
 				subpasscolor_locofbo_attachment.attachment = 1;
-				subpasscolor_locofbo_attachment.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+				subpasscolor_locofbo_attachment.layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 				VkSubpassDescription subpass[]{
           {
@@ -811,14 +811,14 @@ namespace fan {
 				subpassDependencies[0].dstSubpass = 1;
 				subpassDependencies[0].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 				subpassDependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-				subpassDependencies[0].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+				subpassDependencies[0].srcAccessMask = 0;
 				subpassDependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
 				subpassDependencies[1].srcSubpass = 1;
 				subpassDependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
-				subpassDependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+				subpassDependencies[1].srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
 				subpassDependencies[1].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-				subpassDependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+				subpassDependencies[1].srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
 				subpassDependencies[1].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
 				VkAttachmentDescription attachments[] = {  
@@ -1616,7 +1616,7 @@ namespace fan {
 			p.usage_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 			p.aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT;
 			vai_bitmap[0].open(this, p);
-			vai_bitmap[0].transition_image_layout(this, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+			vai_bitmap[0].transition_image_layout(this, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
       vai_bitmap[1].open(this, p);
       vai_bitmap[1].transition_image_layout(this, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		}
