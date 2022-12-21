@@ -324,7 +324,17 @@ namespace fan {
           ClipCursor(&rect);
         #elif defined(fan_platform_unix)
 
-           XGrabPointer(
+          int screen_num;
+          int screen_width, screen_height;
+
+          screen_num = DefaultScreen(fan::sys::m_display);
+          root_window = RootWindow(fan::sys::m_display, screen_num);
+          screen_width = DisplayWidth(fan::sys::m_display, screen_num);
+          screen_height = DisplayHeight(fan::sys::m_display, screen_num);
+
+          XWarpPointer(fan::sys::m_display, None, root_window, 0, 0, 0, 0, screen_width / 2, screen_height / 2);
+
+          XGrabPointer(
               fan::sys::m_display, m_window_handle,
               True,
               ButtonPressMask | ButtonReleaseMask | PointerMotionMask,
@@ -333,6 +343,7 @@ namespace fan {
           );
 
           XDefineCursor(fan::sys::m_display, m_window_handle, invisibleCursor);
+          XFlush(fan::sys::m_display);
         #endif
         }
     }
@@ -597,14 +608,14 @@ namespace fan {
 		bool m_close;
 		bool m_focused;
 
-		struct flag_values {
+		struct flag_values_t {
 
-			static inline bool m_no_mouse = false;
-			static inline bool m_no_resize = false;
+			bool m_no_mouse = false;
+			bool m_no_resize = false;
 
-			static inline mode m_size_mode;
+			mode m_size_mode;
 
-		};
+		}flag_values;
 
 	};
 

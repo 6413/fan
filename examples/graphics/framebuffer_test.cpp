@@ -62,9 +62,9 @@ int main() {
   p.size = fan::vec2(.3);
   p.matrices = &pile->matrices;
   p.viewport = &pile->viewport;
-
+      
   loco_t::image_t image;
-  image.load(&pile->loco, "images/test.webp");
+  image.load(&pile->loco, "images/brick.webp");
   p.image = &image;
   p.position = fan::vec2(0, 0);
   p.position.z = 0;

@@ -844,72 +844,6 @@ public:
   #endif
 
   #endif
-
-  #if defined(loco_vulkan) && defined(loco_framebuffer)
-
-
-    fan::vulkan::pipeline_t::properties_t pipeline_p;
-
-    auto context = get_context();
-    m_ssbo.open(context);
-
-
-    VkSampler sampler;
-    loco_t::image_t::createTextureSampler(this, sampler);
-
-    VkDescriptorImageInfo imageInfo{};
-    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfo.imageView = get_context()->vai_bitmap.image_view;
-    imageInfo.sampler = sampler;
-
-    std::array<fan::vulkan::write_descriptor_set_t, 1> ds_properties{0};
-
-
-    //assert(0);
-    // these things for only rectangle, check that ds_properties index is right, and other settings below in pipeline
-    ds_properties[0].use_image = 1;
-    ds_properties[0].binding = 2;
-    ds_properties[0].dst_binding = 2;
-    ds_properties[0].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    ds_properties[0].flags = VK_SHADER_STAGE_FRAGMENT_BIT;
-    for (uint32_t i = 0; i < fan::vulkan::max_textures; ++i) {
-      ds_properties[0].image_infos[i] = imageInfo;
-    }
-
-     render_fullscreen_shader.open(context, &m_write_queue);
-    m_ssbo.open_descriptors(context, descriptor_pool.m_descriptor_pool, ds_properties);
-    ds_properties[0].buffer = render_fullscreen_shader.projection_view_block.common.memory[context->currentFrame].buffer;
-    //m_ssbo.m_descriptor.m_properties[1] = ds_properties[1];
-    m_ssbo.m_descriptor.update(context);
-
-    render_fullscreen_shader.set_vertex(context, _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/loco_fbo.vert.spv));
-    render_fullscreen_shader.set_fragment(context, _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/loco_fbo.frag.spv));
-    pipeline_p.descriptor_layout_count = 1;
-    pipeline_p.descriptor_layout = &m_ssbo.m_descriptor.m_layout;
-    pipeline_p.shader = &render_fullscreen_shader;
-    pipeline_p.push_constants_size = pipeline_p.push_constants_size = sizeof(loco_t::push_constants_t);
-    pipeline_p.subpass = 1;
-    VkPipelineColorBlendAttachmentState color_blend_attachment{};
-		color_blend_attachment.colorWriteMask =
-			VK_COLOR_COMPONENT_R_BIT |
-			VK_COLOR_COMPONENT_G_BIT |
-			VK_COLOR_COMPONENT_B_BIT |
-			VK_COLOR_COMPONENT_A_BIT
-		;
-		color_blend_attachment.blendEnable = VK_FALSE;
-		color_blend_attachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-		color_blend_attachment.dstColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-		color_blend_attachment.colorBlendOp = VK_BLEND_OP_ADD;
-		color_blend_attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-		color_blend_attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-		color_blend_attachment.alphaBlendOp = VK_BLEND_OP_ADD;
-    pipeline_p.color_blend_attachment_count = 1;
-    pipeline_p.color_blend_attachment = &color_blend_attachment;
-    pipeline_p.enable_depth_test = false;
-    context->render_fullscreen_pl.open(context, pipeline_p);
-
-  #endif
-
   }
 
   #if defined(loco_vfi)
@@ -1037,13 +971,6 @@ public:
   fan::opengl::shader_t m_fbo_final_shader;
 
 #elif defined(loco_vulkan)
-
-  struct filler_t {
-
-  };
-
-  fan::vulkan::shader_t render_fullscreen_shader;
-  fan::vulkan::core::ssbo_t<filler_t, filler_t, 1, 1> m_ssbo;
 
 #endif
 
