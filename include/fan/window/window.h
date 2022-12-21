@@ -334,16 +334,6 @@ namespace fan {
               None, None, CurrentTime
           );
 
-          int screen_num;
-          int screen_width, screen_height;
-
-          screen_num = DefaultScreen(fan::sys::m_display);
-          auto root_window = RootWindow(fan::sys::m_display, screen_num);
-          screen_width = DisplayWidth(fan::sys::m_display, screen_num);
-          screen_height = DisplayHeight(fan::sys::m_display, screen_num);
-
-          XWarpPointer(fan::sys::m_display, None, root_window, 0, 0, 0, 0, screen_width / 2, screen_height / 2);
-
           //XDefineCursor(fan::sys::m_display, m_window_handle, invisibleCursor);
           XFixesHideCursor(fan::sys::m_display, DefaultRootWindow(fan::sys::m_display));
           XFlush(fan::sys::m_display);
