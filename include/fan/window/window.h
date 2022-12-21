@@ -324,16 +324,6 @@ namespace fan {
           ClipCursor(&rect);
         #elif defined(fan_platform_unix)
 
-          int screen_num;
-          int screen_width, screen_height;
-
-          screen_num = DefaultScreen(fan::sys::m_display);
-          auto root_window = RootWindow(fan::sys::m_display, screen_num);
-          screen_width = DisplayWidth(fan::sys::m_display, screen_num);
-          screen_height = DisplayHeight(fan::sys::m_display, screen_num);
-
-          XWarpPointer(fan::sys::m_display, None, root_window, 0, 0, 0, 0, screen_width / 2, screen_height / 2);
-
           XGrabPointer(
               fan::sys::m_display, m_window_handle,
               True,

@@ -1509,8 +1509,16 @@ namespace fan {
 				return buffer;
 			}
 
-			static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) {
-				std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
+			static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
+        VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, 
+        VkDebugUtilsMessageTypeFlagsEXT messageType, 
+        const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, 
+        void* pUserData
+      ) {
+        if (!strcmp(pCallbackData->pMessageIdName, "Loader Message")) {
+          return VK_FALSE;
+        }
+        fan::print("validation layer:", pCallbackData->pMessage);
 
 				return VK_FALSE;
 			}
