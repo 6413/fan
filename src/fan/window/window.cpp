@@ -2208,7 +2208,7 @@ uint32_t fan::window_t::handle_events() {
     }
   }
 
-  if (flag_values.flag_values.m_no_mouse == true) {
+  if (flag_values.m_no_mouse == true) {
     int screen_num;
     int screen_width, screen_height;
 
