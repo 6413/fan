@@ -43,8 +43,6 @@
     imageInfo.imageView = loco->get_context()->vai_bitmap[0].image_view;
     imageInfo.sampler = sampler;
 
-    //assert(0);
-    // these things for only rectangle, check that ds_properties index is right, and other settings below in pipeline
     ds_properties[3].use_image = 1;
     ds_properties[3].binding = 3;
     ds_properties[3].dst_binding = 3;
@@ -58,8 +56,7 @@
     imageInfo.imageView = loco->get_context()->vai_bitmap[1].image_view;
     imageInfo.sampler = sampler;
 
-    //assert(0);
-    // these things for only rectangle, check that ds_properties index is right, and other settings below in pipeline
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     ds_properties[4].use_image = 1;
     ds_properties[4].binding = 4;
     ds_properties[4].dst_binding = 4;
