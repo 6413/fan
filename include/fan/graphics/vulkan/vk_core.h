@@ -683,7 +683,7 @@ namespace fan {
 				createInfo.imageColorSpace = surfaceFormat.colorSpace;
 				createInfo.imageExtent = extent;
 				createInfo.imageArrayLayers = 1;
-				createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+				createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
 
 				QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
 				uint32_t queueFamilyIndices[] = { indices.graphicsFamily.value(), indices.presentFamily.value() };
@@ -701,6 +701,7 @@ namespace fan {
 				createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 				createInfo.presentMode = presentMode;
 				createInfo.clipped = VK_TRUE;
+        //createInfo.imageUsage = ;
 
 				if (vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapChain) != VK_SUCCESS) {
 					throw std::runtime_error("failed to create swap chain!");
@@ -726,6 +727,7 @@ namespace fan {
 				viewInfo.subresourceRange.levelCount = 1;
 				viewInfo.subresourceRange.baseArrayLayer = 0;
 				viewInfo.subresourceRange.layerCount = 1;
+        
 
 				VkImageView imageView;
 				if (vkCreateImageView(device, &viewInfo, nullptr, &imageView) != VK_SUCCESS) {
@@ -768,65 +770,14 @@ namespace fan {
 				colorAttachmentRef.attachment = 0;
 				colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
+
 				VkAttachmentReference depthAttachmentRef{};
-				#if defined(loco_wboit)
-					depthAttachmentRef.attachment = 3;
-				#else
-					depthAttachmentRef.attachment = 1;
-				#endif
+        depthAttachmentRef.attachment = 2;
 				depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-			#if defined(loco_wboit)
-
-				VkAttachmentDescription wboit_color_attachment{};
-
-				wboit_color_attachment.format = VK_FORMAT_R16G16B16A16_SFLOAT;
-				wboit_color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
-				wboit_color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-				wboit_color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-				wboit_color_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-				wboit_color_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-				wboit_color_attachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-				wboit_color_attachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-				VkAttachmentDescription wboit_reveal_attachment = wboit_color_attachment;
-				wboit_reveal_attachment.format = VK_FORMAT_R16_SFLOAT;
-
-				// weight
-				std::array<VkAttachmentReference, 2> subpass0ColorAttachments{};
-				subpass0ColorAttachments[0].attachment = 0;
-				subpass0ColorAttachments[0].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-				subpass0ColorAttachments[1].attachment = 1;
-				subpass0ColorAttachments[1].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-				VkSubpassDescription subpass[2]{};
-				subpass[0].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-				subpass[0].colorAttachmentCount = subpass0ColorAttachments.size();
-				subpass[0].pColorAttachments = subpass0ColorAttachments.data();
-				subpass[0].pDepthStencilAttachment = &depthAttachmentRef;
-
-
-				VkAttachmentReference subpass1ColorAttachment{};
-				subpass1ColorAttachment.attachment = 2;
-				subpass1ColorAttachment.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-				std::array<VkAttachmentReference, 2> subpass1InputAttachments{};
-				subpass1InputAttachments[0].attachment = 0;
-				subpass1InputAttachments[0].layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-				subpass1InputAttachments[1].attachment = 1;
-				subpass1InputAttachments[1].layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-				subpass[1].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-				subpass[1].colorAttachmentCount = 1;
-				subpass[1].pColorAttachments = &subpass1ColorAttachment;
-				subpass[1].inputAttachmentCount = subpass1InputAttachments.size();
-				subpass[1].pInputAttachments = subpass1InputAttachments.data();
-			#else
-
-      #if defined(loco_framebuffer)
+        
         VkAttachmentDescription fbo_color_attachment{};
 
-				fbo_color_attachment.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+				fbo_color_attachment.format = swapChainImageFormat;
 				fbo_color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
 				fbo_color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 				fbo_color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -835,10 +786,10 @@ namespace fan {
 				fbo_color_attachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 				fbo_color_attachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
+
         VkAttachmentReference subpasscolor_locofbo_attachment;
-				subpasscolor_locofbo_attachment.attachment = 2;
+				subpasscolor_locofbo_attachment.attachment = 1;
 				subpasscolor_locofbo_attachment.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-      #endif
 
 				VkSubpassDescription subpass[]{
           {
@@ -847,67 +798,33 @@ namespace fan {
             .pColorAttachments = &colorAttachmentRef,
             .pDepthStencilAttachment = &depthAttachmentRef
           },
-          #if defined(loco_framebuffer)
           {
             .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
             .colorAttachmentCount = 1,
             .pColorAttachments = &subpasscolor_locofbo_attachment,
             .pDepthStencilAttachment = &depthAttachmentRef,
           }
-          #endif
         };
 
-			#endif
-
-			#if defined(loco_wboit)
-				// Dependencies
-				std::array<VkSubpassDependency, 3> subpassDependencies{};
-				subpassDependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
-				subpassDependencies[0].dstSubpass = 0;
+	      VkSubpassDependency subpassDependencies[2]{};
+				subpassDependencies[0].srcSubpass = 0;
+				subpassDependencies[0].dstSubpass = 1;
 				subpassDependencies[0].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 				subpassDependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-				subpassDependencies[0].srcAccessMask = 0;
+				subpassDependencies[0].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 				subpassDependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-				//
-				subpassDependencies[1].srcSubpass = 0;
-				subpassDependencies[1].dstSubpass = 1;
-				subpassDependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-				subpassDependencies[1].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-				subpassDependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-				subpassDependencies[1].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-				// Finally, we have a dependency at the end to allow the images to transition back to VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-				subpassDependencies[2].srcSubpass = 1;
-				subpassDependencies[2].dstSubpass = VK_SUBPASS_EXTERNAL;
-				subpassDependencies[2].srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-				subpassDependencies[2].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-				subpassDependencies[2].srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
-				subpassDependencies[2].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-			#else
-				std::array<VkSubpassDependency, 2> subpassDependencies{};
-        subpassDependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
-        subpassDependencies[0].dstSubpass = 0;
-        subpassDependencies[0].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        subpassDependencies[0].srcAccessMask = 0;
-        subpassDependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        subpassDependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
-        subpassDependencies[1].srcSubpass = 0;
-        subpassDependencies[1].dstSubpass = 1;
-        subpassDependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-        subpassDependencies[1].srcAccessMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-        subpassDependencies[1].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT  | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-        subpassDependencies[1].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-			#endif
+				subpassDependencies[1].srcSubpass = 1;
+				subpassDependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+				subpassDependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+				subpassDependencies[1].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+				subpassDependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+				subpassDependencies[1].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
 				VkAttachmentDescription attachments[] = {  
-				#if defined(loco_wboit)
-					wboit_color_attachment, wboit_reveal_attachment, 
-				#endif
+          fbo_color_attachment,
 					colorAttachment, 
           depthAttachment,
-        #if defined(loco_framebuffer)
-          fbo_color_attachment,
-        #endif
 				};
 				VkRenderPassCreateInfo renderPassInfo{};
 				renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -916,10 +833,10 @@ namespace fan {
 				renderPassInfo.subpassCount = std::size(subpass);
 				renderPassInfo.pSubpasses = subpass;
 				renderPassInfo.dependencyCount = std::size(subpassDependencies);
-				renderPassInfo.pDependencies = subpassDependencies.data();
+				renderPassInfo.pDependencies = subpassDependencies;
 
 				if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS) {
-					throw std::runtime_error("failed to create render pass!");
+					throw std::runtime_error("failed to create renderpass");
 				}
 			}
 
@@ -933,11 +850,11 @@ namespace fan {
 							vai_wboit_reveal.image_view,
 						#endif
 					
+          #if defined(loco_framebuffer)
+            vai_bitmap[0].image_view,
+          #endif
 						swapChainImageViews[i],
 						vai_depth.image_view,
-          #if defined(loco_framebuffer)
-            vai_bitmap.image_view
-          #endif
 					};
 
 					VkFramebufferCreateInfo framebufferInfo{};
@@ -1239,10 +1156,10 @@ namespace fan {
             #endif
           ]{};
 					clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f} };
-					clearValues[1].depthStencil = { 1.0f, 0 };
         #if defined(loco_framebuffer)
-          clearValues[2].color = { {0.f, 1.f, 0.f, 0.f} };
+          clearValues[1].color = { {0.f, 1.f, 0.f, 1.f} };
         #endif
+					clearValues[2].depthStencil = { 1.0f, 0 };
 				#endif
 
 				renderPassInfo.clearValueCount = std::size(clearValues);
@@ -1617,7 +1534,7 @@ namespace fan {
 
 			vai_t vai_depth;
     #if defined(loco_framebuffer)
-      vai_t vai_bitmap;
+      vai_t vai_bitmap[2];
     #endif
 		#if defined(loco_wboit)
 			vai_t vai_wboit_color;
@@ -1694,12 +1611,14 @@ namespace fan {
   #if defined(loco_framebuffer)
     void context_t::create_loco_framebuffer() {
 			vai_t::properties_t p;
-			p.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+			p.format = swapChainImageFormat;
 			p.swap_chain_size = swap_chain_size;
 			p.usage_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 			p.aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT;
-			vai_bitmap.open(this, p);
-			vai_bitmap.transition_image_layout(this, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+			vai_bitmap[0].open(this, p);
+			vai_bitmap[0].transition_image_layout(this, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+      vai_bitmap[1].open(this, p);
+      vai_bitmap[1].transition_image_layout(this, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		}
   #endif
 

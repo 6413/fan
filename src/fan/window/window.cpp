@@ -348,12 +348,12 @@ void fan::window_t::set_resolution(const fan::vec2i& size, const mode& mode) con
 
 fan::window_t::mode fan::window_t::get_size_mode() const
 {
-  return flag_values::m_size_mode;
+  return flag_values.m_size_mode;
 }
 
 void fan::window_t::set_size_mode(const mode& mode)
 {
-  flag_values::m_size_mode = mode;
+  flag_values.m_size_mode = mode;
 }
 
 fan::window_t::buttons_callback_NodeReference_t fan::window_t::add_buttons_callback(mouse_buttons_cb_t function)
@@ -537,20 +537,20 @@ fan::window_t::window_t(const fan::vec2i& window_size, const fan::string& name, 
   m_event_flags = 0;
   m_mouse_motion = 0;
 
-  if (flag_values::m_size_mode == fan::window_t::mode::not_set) {
-    flag_values::m_size_mode = fan::window_t::default_size_mode;
+  if (flag_values.m_size_mode == fan::window_t::mode::not_set) {
+    flag_values.m_size_mode = fan::window_t::default_size_mode;
   }
   if (static_cast<bool>(flags & fan::window_t::flags::no_mouse)) {
-    fan::window_t::flag_values::m_no_mouse = true;
+    fan::window_t::flag_values.m_no_mouse = true;
   }
   if (static_cast<bool>(flags & fan::window_t::flags::no_resize)) {
-    fan::window_t::flag_values::m_no_resize = true;
+    fan::window_t::flag_values.m_no_resize = true;
   }
   if (static_cast<bool>(flags & fan::window_t::flags::borderless)) {
-    fan::window_t::flag_values::m_size_mode = fan::window_t::mode::borderless;
+    fan::window_t::flag_values.m_size_mode = fan::window_t::mode::borderless;
   }
   if (static_cast<bool>(flags & fan::window_t::flags::full_screen)) {
-    fan::window_t::flag_values::m_size_mode = fan::window_t::mode::full_screen;
+    fan::window_t::flag_values.m_size_mode = fan::window_t::mode::full_screen;
   }
 
   window_id_storage.open();
@@ -756,64 +756,6 @@ void fan::window_t::window_input_action_reset(fan::window_handle_t window, uint1
 
 #ifdef fan_platform_windows
 
-static void handle_special(WPARAM wparam, LPARAM lparam, uint16_t& key, bool down) {
- // if (wparam == 0x10 || wparam == 0x11) {
-  //  if (down) {
-  //    switch (lparam) {
-  //      case fan::special_lparam::lshift_lparam_down:
-  //      {
-  //        key = fan::input::key_left_shift;
-  //        break;
-  //      }
-  //      case fan::special_lparam::rshift_lparam_down:
-  //      {
-  //        key = fan::input::key_right_shift;
-  //        break;
-  //      }
-  //      case fan::special_lparam::lctrl_lparam_down:
-  //      {
-  //        key = fan::input::key_left_control;
-  //        break;
-  //      }
-  //      case fan::special_lparam::rctrl_lparam_down:
-  //      {
-  //        key = fan::input::key_right_control;
-  //        break;
-  //      }
-  //    }
-  //  }
-  //  else {
-  //    switch (lparam) {
-  //      case fan::special_lparam::lshift_lparam_up: // ?
-  //      {
-  //        key = fan::input::key_left_shift;
-  //        break;
-  //      }z
-  //      case fan::special_lparam::rshift_lparam_up:
-  //      {
-  //        key = fan::input::key_right_shift;
-  //        break;
-  //      }
-  //      case fan::special_lparam::lctrl_lparam_up:
-  //      {
-  //        key = fan::input::key_left_control;
-  //        break;
-  //      }
-  //      case fan::special_lparam::rctrl_lparam_up: // ? 
-  //      {
-  //        key = fan::input::key_right_control;
-  //        break;
-  //      }
-  //    }
-  //  }
-  //}
-  //else {
-    //fan::print(key, (int)wparam);
-    key = fan::window_input::convert_keycodes_to_fan(wparam);
- // }
-
-}
-
 LRESULT fan::window_t::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
   switch (msg) {
@@ -916,7 +858,7 @@ LRESULT fan::window_t::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lp
       }
 
       for (uint16_t i = fan::first; i != fan::last; i++) {
-        auto kd = fan::window_input::convert_fan_to_keycodes(i);
+        auto kd = fan::window_input::convert_fan_to_scancode(i);
         if (fwindow->m_keycode_action_map[kd] == false) {
           continue;
         }
@@ -1125,8 +1067,8 @@ void fan::window_t::initialize_window(const fan::string& name, const fan::vec2i&
 
   RegisterClass(&wc);
 
-  const bool full_screen = flag_values::m_size_mode == fan::window_t::mode::full_screen;
-  const bool borderless = flag_values::m_size_mode == fan::window_t::mode::borderless;
+  const bool full_screen = flag_values.m_size_mode == fan::window_t::mode::full_screen;
+  const bool borderless = flag_values.m_size_mode == fan::window_t::mode::borderless;
 
   RECT rect = { 0, 0, window_size.x, window_size.y };
   AdjustWindowRect(&rect, full_screen || borderless ? WS_POPUP : WS_OVERLAPPEDWINDOW, FALSE);
@@ -1138,7 +1080,7 @@ void fan::window_t::initialize_window(const fan::string& name, const fan::vec2i&
   }
 
   m_window_handle = CreateWindow(str.c_str(), name.c_str(),
-      (flag_values::m_no_resize ? ((full_screen || borderless ? WS_POPUP : (WS_OVERLAPPED | WS_MINIMIZEBOX | WS_SYSMENU)) | WS_SYSMENU) :
+      (flag_values.m_no_resize ? ((full_screen || borderless ? WS_POPUP : (WS_OVERLAPPED | WS_MINIMIZEBOX | WS_SYSMENU)) | WS_SYSMENU) :
     (full_screen || borderless ? WS_POPUP : WS_OVERLAPPEDWINDOW)) | WS_VISIBLE,
       position.x, position.y,
       rect.right - rect.left, rect.bottom - rect.top,
@@ -1166,7 +1108,7 @@ void fan::window_t::initialize_window(const fan::string& name, const fan::vec2i&
   }
 
   //ShowCursor(!flag_values::m_no_mouse);
-  if (flag_values::m_no_mouse) {
+  if (flag_values.m_no_mouse) {
     ShowCursor(false);
     //auto middle = this->get_position() + this->get_size() / 2;
     //SetCursorPos(middle.x, middle.y);
@@ -1485,7 +1427,7 @@ uint32_t fan::window_t::handle_events() {
         }
 
         uint16_t key;
-        handle_special(msg.wParam, msg.lParam, key, true);
+        key = fan::window_input::convert_scancode_to_fan((msg.lParam >> 16) & 0x1ff);
 
         bool repeat = msg.lParam & (1 << 30);
 
@@ -1531,7 +1473,7 @@ uint32_t fan::window_t::handle_events() {
 
           if (!found) {
 
-            uint16_t fan_key = fan::window_input::convert_utfkeys_to_fan(msg.wParam);
+            uint16_t fan_key = fan::window_input::convert_scancode_to_fan((msg.lParam >> 16) & 0x1ff);
 
             found = false;
 
@@ -1575,7 +1517,7 @@ uint32_t fan::window_t::handle_events() {
               window->m_keymap[fan::key_shift] = high_byte & 0x1;
               window->m_keymap[fan::key_control] = high_byte & 0x2;
               window->m_keymap[fan::key_alt] = high_byte & 0x4;
-              window->m_keymap[fan::window_input::convert_keycodes_to_fan(low_byte)] = true;
+              window->m_keymap[fan::window_input::convert_scancode_to_fan(low_byte)] = true;
               m_prev_text = src;
               
              // UTF-8
@@ -1699,7 +1641,7 @@ uint32_t fan::window_t::handle_events() {
 
         uint16_t key = 0;
 
-        handle_special(msg.wParam, msg.lParam, key, false);
+        key = fan::window_input::convert_scancode_to_fan(key);
 
         do {
           if (key == fan::key_control || key == fan::key_alt || key == fan::key_shift) {
@@ -1821,7 +1763,7 @@ uint32_t fan::window_t::handle_events() {
               allow_outside = true;
             }
 
-            if (!fan::window_t::flag_values::m_no_mouse) {
+            if (!fan::window_t::flag_values.m_no_mouse) {
               window->m_mouse_position = position;
             }
           }
@@ -2273,7 +2215,7 @@ uint32_t fan::window_t::handle_events() {
 
 bool fan::window_t::key_pressed(uint16_t key) const
 {
-  return m_keycode_action_map[fan::window_input::convert_fan_to_keycodes(key)];
+  return m_keycode_action_map[fan::window_input::convert_fan_to_scancode(key)];
 }
 
 #ifdef fan_platform_windows

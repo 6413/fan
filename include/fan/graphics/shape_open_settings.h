@@ -36,6 +36,41 @@
 
   #endif
 
+    VkSampler sampler;
+    loco_t::image_t::createTextureSampler(loco, sampler);
+
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    imageInfo.imageView = loco->get_context()->vai_bitmap[1].image_view;
+    imageInfo.sampler = sampler;
+
+    //assert(0);
+    // these things for only rectangle, check that ds_properties index is right, and other settings below in pipeline
+    ds_properties[3].use_image = 1;
+    ds_properties[3].binding = 3;
+    ds_properties[3].dst_binding = 3;
+    ds_properties[3].type = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+    ds_properties[3].flags = VK_SHADER_STAGE_FRAGMENT_BIT ;
+    for (uint32_t i = 0; i < fan::vulkan::max_textures; ++i) {
+      ds_properties[3].image_infos[i] = imageInfo;
+    }
+
+  //VkSampler sampler;
+  //loco_t::image_t::createTextureSampler(loco, sampler);
+
+  //imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  //imageInfo.imageView = loco->get_context()->vai_bitmap.image_view;
+  //imageInfo.sampler = sampler;
+
+  //
+  //ds_properties[3].use_image = 1;
+  //ds_properties[3].binding = 4;
+  //ds_properties[3].dst_binding = 4;
+  //ds_properties[3].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+  //ds_properties[3].flags = VK_SHADER_STAGE_FRAGMENT_BIT;
+  //for (uint32_t i = 0; i < fan::vulkan::max_textures; ++i) {
+  //  ds_properties[3].image_infos[i] = imageInfo;
+  //}
+
   #if defined(loco_wboit) && defined(vk_shape_wboit)
     VkSampler sampler;
     loco_t::image_t::createTextureSampler(loco, sampler);
