@@ -39,7 +39,7 @@
     VkSampler sampler;
     loco_t::image_t::createTextureSampler(loco, sampler);
 
-    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     imageInfo.imageView = loco->get_context()->vai_bitmap[0].image_view;
     imageInfo.sampler = sampler;
 

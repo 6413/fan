@@ -789,7 +789,7 @@ namespace fan {
 
         VkAttachmentReference subpasscolor_locofbo_attachment;
 				subpasscolor_locofbo_attachment.attachment = 1;
-				subpasscolor_locofbo_attachment.layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				subpasscolor_locofbo_attachment.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 				VkSubpassDescription subpass[]{
           {
