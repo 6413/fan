@@ -328,7 +328,7 @@ namespace fan {
           int screen_width, screen_height;
 
           screen_num = DefaultScreen(fan::sys::m_display);
-          root_window = RootWindow(fan::sys::m_display, screen_num);
+          auto root_window = RootWindow(fan::sys::m_display, screen_num);
           screen_width = DisplayWidth(fan::sys::m_display, screen_num);
           screen_height = DisplayHeight(fan::sys::m_display, screen_num);
 
@@ -365,40 +365,40 @@ namespace fan {
 			>>>::type>
 			constexpr void set_flag_value(T value) {
 			if constexpr(static_cast<bool>(flag & fan::window_t::flags::no_mouse)) {
-        flag_values::m_no_mouse = value;
+        flag_values.m_no_mouse = value;
         lock_cursor_and_set_invisible(value);
 			}
 			else if constexpr(static_cast<bool>(flag & fan::window_t::flags::no_resize)) {
-				flag_values::m_no_resize = value;
+				flag_values.m_no_resize = value;
 			}
 			else if constexpr(static_cast<bool>(flag & fan::window_t::flags::mode)) {
 				if ((int)value > (int)fan::window_t::mode::full_screen) {
 					fan::throw_error("fan window error: failed to set window mode flag to: " + fan::to_string((int)value));
 				}
-				flag_values::m_size_mode = (fan::window_t::mode)value;
+				flag_values.m_size_mode = (fan::window_t::mode)value;
 			}
 			else if constexpr (static_cast<bool>(flag & fan::window_t::flags::borderless)) {
-				flag_values::m_size_mode = value ? fan::window_t::mode::borderless : flag_values::m_size_mode;
+				flag_values.m_size_mode = value ? fan::window_t::mode::borderless : flag_values.m_size_mode;
 			}
 			else if constexpr (static_cast<bool>(flag & fan::window_t::flags::full_screen)) {
-				flag_values::m_size_mode = value ? fan::window_t::mode::full_screen : flag_values::m_size_mode;
+				flag_values.m_size_mode = value ? fan::window_t::mode::full_screen : flag_values.m_size_mode;
 			}
 		}
 
 		template <uint64_t flags>
-		static constexpr void set_flags() {
+		constexpr void set_flags() {
 			// clang requires manual casting (c++11-narrowing)
 			if constexpr(static_cast<bool>(flags & fan::window_t::flags::no_mouse)) {
-				fan::window_t::flag_values::m_no_mouse = true;
+				fan::window_t::flag_values.m_no_mouse = true;
 			}
 			if constexpr (static_cast<bool>(flags & fan::window_t::flags::no_resize)) {
-				fan::window_t::flag_values::m_no_resize = true;
+				fan::window_t::flag_values.m_no_resize = true;
 			}
 			if constexpr (static_cast<bool>(flags & fan::window_t::flags::borderless)) {
-				fan::window_t::flag_values::m_size_mode = fan::window_t::mode::borderless;
+				fan::window_t::flag_values.m_size_mode = fan::window_t::mode::borderless;
 			}
 			if constexpr (static_cast<bool>(flags & fan::window_t::flags::full_screen)) {
-				fan::window_t::flag_values::m_size_mode = fan::window_t::mode::full_screen;
+				fan::window_t::flag_values.m_size_mode = fan::window_t::mode::full_screen;
 			}
 		}
 
