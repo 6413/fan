@@ -13,5 +13,8 @@ glslc.exe include/fan/graphics/glsl/vulkan/2D/objects/button.vert -o include/fan
 glslc.exe include/fan/graphics/glsl/vulkan/2D/objects/line.frag -o include/fan/graphics/glsl/vulkan/2D/objects/line.frag.spv
 glslc.exe include/fan/graphics/glsl/vulkan/2D/objects/line.vert -o include/fan/graphics/glsl/vulkan/2D/objects/line.vert.spv
 
+glslc.exe include/fan/graphics/glsl/vulkan/2D/objects/yuv420p.frag -o include/fan/graphics/glsl/vulkan/2D/objects/yuv420p.frag.spv
+// uses sprite.vert
+
 glslc.exe include/fan/graphics/glsl/vulkan/2D/objects/loco_fbo.frag -o include/fan/graphics/glsl/vulkan/2D/objects/loco_fbo.frag.spv
 glslc.exe include/fan/graphics/glsl/vulkan/2D/objects/loco_fbo.vert -o include/fan/graphics/glsl/vulkan/2D/objects/loco_fbo.vert.spv

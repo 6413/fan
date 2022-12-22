@@ -5,7 +5,7 @@
 #ifndef FAN_INCLUDE_PATH
   #define FAN_INCLUDE_PATH C:/libs/fan/include
 #endif
-#define fan_debug 0
+#define fan_debug 3
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
 #define loco_vulkan
@@ -18,7 +18,7 @@
 //#define loco_post_process
 
 #define loco_rectangle
-//#define loco_sprite
+#define loco_sprite
 #include _FAN_PATH(graphics/loco.h)
 
 constexpr uint32_t count = 5000;
@@ -67,6 +67,9 @@ int main() {
   //}
 
       p.position = fan::vec3(fan::random::vec2(-1, 1), 0);
+    pile->loco.rectangle.push_back(&pile->cids[0], p);
+
+    p.position = fan::vec3(fan::random::vec2(-1, 1), 0);
     pile->loco.rectangle.push_back(&pile->cids[0], p);
 
   //p.position = fan::vec2(0, 0);

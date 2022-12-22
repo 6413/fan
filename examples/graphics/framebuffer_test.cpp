@@ -5,7 +5,7 @@
 #ifndef FAN_INCLUDE_PATH
   #define FAN_INCLUDE_PATH C:/libs/fan/include
 #endif
-#define fan_debug 0
+#define fan_debug 3
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
 #define loco_vulkan
@@ -49,33 +49,45 @@ struct pile_t {
   fan::graphics::viewport_t viewport;
   fan::graphics::cid_t cid[2];
 };
+#include <winsock2.h>
 
-int main() {
+int main()
+{
+  SOCKET s;
+  struct sockaddr_in server, si_other;
+  int slen, recv_len;
+  WSADATA wsa;
 
-  fan::time::clock c;
-  c.start();
+  slen = sizeof(si_other);
 
-  pile_t* pile = new pile_t;
+  //Initialise winsock
+  printf("\nInitialising Winsock...");
+  if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
+  {
+    printf("Failed. Error Code : %d", WSAGetLastError());
+    exit(EXIT_FAILURE);
+  }
 
-  loco_t::sprite_t::properties_t p;
+  // Create a UDP socket
+  SOCKET sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+  if (sock == INVALID_SOCKET)
+  {
+    return -1;
+  }
 
-  p.size = fan::vec2(.3);
-  p.matrices = &pile->matrices;
-  p.viewport = &pile->viewport;
-      
-  loco_t::image_t image;
-  image.load(&pile->loco, "images/brick.webp");
-  p.image = &image;
-  p.position = fan::vec2(0, 0);
-  p.position.z = 0;
-  pile->loco.sprite.push_back(&pile->cid[0], p);
+  // Get the maximum receive buffer size for the socket
+  int max_buf_size = 0;
+  int size = sizeof(max_buf_size);
+  int ret = getsockopt(sock, SOL_SOCKET, SO_RCVBUF, (char*)&max_buf_size, &size);
+  if (ret == SOCKET_ERROR)
+  {
+    return -1;
+  }
+  fan::print(max_buf_size);
+  // The maximum receive buffer size is stored in the max_buf_size variable
 
-  pile->loco.set_vsync(false);
-
-  fan::time::clock cc;
-  pile->loco.loop([&] {
-    pile->loco.get_fps(); 
-  });
+  // Close the socket
+  closesocket(sock);
 
   return 0;
 }

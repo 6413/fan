@@ -69,7 +69,7 @@ struct rectangle_t {
     #if defined(loco_wboit)
       #define vulkan_buffer_count 4
     #else
-      #define vulkan_buffer_count 2
+      #define vulkan_buffer_count 4
     #endif
     #define sb_shader_vertex_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/rectangle.vert.spv)
     #define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/rectangle.frag.spv)
