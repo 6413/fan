@@ -243,7 +243,7 @@
       );
 
       vkMapMemory(context->device, stagingBufferMemory, 0, imageSize, 0, &data);
-      memcpy(data, image_info.data, imageSize / 4);
+      memcpy(data, image_info.data, imageSize); // TODO  / 4 in yuv420p
 
       auto node = create_texture(loco, image_info.size, p);
 
@@ -273,6 +273,7 @@
         return true;
       }
 
+      //image_info.size *= 4;
       bool ret = load(loco, image_info, p);
       fan::webp::free_image(image_info.data);
 
