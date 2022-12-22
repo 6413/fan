@@ -1,11 +1,29 @@
   struct image_t {
 
+    struct format {
+      static constexpr auto b8g8r8a8_unorm = VK_FORMAT_B8G8R8A8_UNORM;
+      static constexpr auto r8_unorm = VK_FORMAT_R8_UNORM;
+    };
+
+    struct sampler_address_mode {
+      static constexpr auto repeat = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+      static constexpr auto mirrored_repeat = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+      static constexpr auto clamp_to_edge = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+      static constexpr auto clamp_to_border = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+      static constexpr auto mirrored_clamp_to_edge = VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE;
+    };
+
+    struct filter {
+      static constexpr auto nearest = VK_FILTER_NEAREST;
+      static constexpr auto linear = VK_FILTER_LINEAR;
+    };
+
     struct load_properties_defaults {
-      static constexpr VkSamplerAddressMode visual_output = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+      static constexpr VkSamplerAddressMode visual_output = sampler_address_mode::clamp_to_border;
       //static constexpr uint32_t internal_format = fan::opengl::GL_RGBA;
-      //static constexpr uint32_t format = fan::opengl::GL_RGBA;
+      static constexpr VkFormat format = format::b8g8r8a8_unorm;
       //static constexpr uint32_t type = fan::opengl::GL_UNSIGNED_BYTE;
-      static constexpr VkFilter filter = VK_FILTER_NEAREST;
+      static constexpr VkFilter filter = filter::nearest;
     };
 
     struct load_properties_t {
@@ -16,7 +34,10 @@
       //uintptr_t           internal_format = load_properties_defaults::internal_format;
       //uintptr_t           format = load_properties_defaults::format;
       //uintptr_t           type = load_properties_defaults::type;
+      VkFormat format = load_properties_defaults::format;
       VkFilter           filter = load_properties_defaults::filter;
+      // unused opengl filler
+      uint8_t internal_format = 0;
     };
 
     image_t() = default;
@@ -79,11 +100,20 @@
       fan::vulkan::context_t::endSingleTimeCommands(context, commandBuffer);
     }
 
-    static void copyBufferToImage(loco_t* loco, VkBuffer buffer, VkImage image, const fan::vec2ui& size) {
+    static void copyBufferToImage(loco_t* loco, VkBuffer buffer, VkImage image, VkFormat format, const fan::vec2ui& size, const fan::vec2ui& stride = 1) {
       auto context = loco->get_context();
       VkCommandBuffer commandBuffer = fan::vulkan::context_t::beginSingleTimeCommands(context);
 
-      VkBufferImageCopy region{};
+      uint32_t block_width = get_image_multiplier(format);
+      uint32_t block_x = (block_width - 1) / block_width;
+      uint32_t block_y = (block_width - 1) / block_width;
+      uint32_t block_h = std::max(1u, (size.y + block_width - 1) / block_width);
+      // Flush CPU and GPU caches if not coherent mapping.
+      VkDeviceSize buffer_flush_offset = block_y * stride.x;
+      VkDeviceSize buffer_flush_size = block_h * stride.x;
+
+      /*
+            VkBufferImageCopy region{};
       region.bufferOffset = 0;
       region.bufferRowLength = 0;
       region.bufferImageHeight = 0;
@@ -97,6 +127,19 @@
           size.y,
           1
       };
+      */
+
+      VkBufferImageCopy region = {
+          block_y * stride.x + block_x,// VkDeviceSize             bufferOffset
+          size.x,                                        // uint32_t                 bufferRowLength
+          0,                                              // uint32_t                 bufferImageHeight
+          {0, 0, 0, 1},                  // VkImageSubresourceLayers imageSubresource
+          {0, 0, 0},  // VkOffset3D               imageOffset
+          {size.x, size.y, 1}                              // VkExtent3D               imageExtent
+      };
+
+      region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+      region.imageSubresource.layerCount = 1;
 
       vkCmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
@@ -144,14 +187,14 @@
       createImage(
         loco, 
         image_size, 
-        VK_FORMAT_R8G8B8A8_UNORM,
+        lp.format,
         VK_IMAGE_TILING_OPTIMAL, 
         VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, 
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
         node.image,
         node.image_memory
       );
-      node.image_view = createImageView(loco, node.image, VK_FORMAT_R8G8B8A8_UNORM);
+      node.image_view = createImageView(loco, node.image, lp.format);
       createTextureSampler(loco, node.sampler, lp);
 
       return node;
@@ -166,33 +209,47 @@
       loco->image_list.Recycle(texture_reference);
     }
 
+    constexpr static uint32_t get_image_multiplier(VkFormat format) {
+      switch (format) {
+        case format::b8g8r8a8_unorm: {
+          return 4;
+        }
+        case format::r8_unorm: {
+          return 4;
+        }
+        default: {
+          fan::throw_error("failed to find format for image multiplier");
+        }
+      }
+    }
+
     bool load(loco_t* loco, const fan::webp::image_info_t image_info, load_properties_t p = load_properties_t()) {
       size = image_info.size;
 
       auto context = loco->get_context();
 
-      VkDeviceSize imageSize = image_info.size.multiply() * 4;
+      auto image_multiplier = get_image_multiplier(p.format);
+
+      VkDeviceSize imageSize = image_info.size.multiply() * image_multiplier;
 
       fan::vulkan::core::create_buffer(
         context, 
         imageSize, 
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
-        // VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT 
+         //VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT ,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
         stagingBuffer, 
         stagingBufferMemory
       );
 
-      void* data;
       vkMapMemory(context->device, stagingBufferMemory, 0, imageSize, 0, &data);
-      memcpy(data, image_info.data, imageSize);
-      vkUnmapMemory(context->device, stagingBufferMemory);
+      memcpy(data, image_info.data, imageSize / 4);
 
       auto node = create_texture(loco, image_info.size, p);
 
-      transitionImageLayout(loco, node.image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-      copyBufferToImage(loco, stagingBuffer, node.image, image_info.size);
-      transitionImageLayout(loco, node.image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+      transitionImageLayout(loco, node.image, p.format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+      copyBufferToImage(loco, stagingBuffer, node.image, p.format, image_info.size);
+      transitionImageLayout(loco, node.image, p.format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
       return 0;
     }
@@ -222,16 +279,19 @@
       return ret;
     }
 
-    void reload_pixels(loco_t* loco, const fan::webp::image_info_t& image_info) {
+    void reload_pixels(loco_t* loco, const fan::webp::image_info_t& image_info, load_properties_t p = load_properties_t()) {
       auto context = loco->get_context();
-      void* data;
-      vkMapMemory(context->device, stagingBufferMemory, 0, size.multiply() * 4, 0, &data);
-      memcpy(data, image_info.data, size.multiply() * 4);
-      vkUnmapMemory(context->device, stagingBufferMemory);
+      auto image_multiplier = get_image_multiplier(p.format);
+
+      VkDeviceSize imageSize = image_info.size.multiply() * image_multiplier;
+
+      memcpy(data, image_info.data, imageSize / 4);
+
       auto& node = loco->image_list[texture_reference];
-      transitionImageLayout(loco, node.image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-      copyBufferToImage(loco, stagingBuffer, node.image, image_info.size);
-      transitionImageLayout(loco, node.image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+      transitionImageLayout(loco, node.image, p.format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+      copyBufferToImage(loco, stagingBuffer, node.image, p.format, image_info.size);
+      transitionImageLayout(loco, node.image, p.format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     }
 
     //void reload(loco_t* loco, const fan::string& path, const load_properties_t& p = load_properties_t()) {
@@ -343,4 +403,5 @@
     image_list_NodeReference_t texture_reference;
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
+    void* data;
   };

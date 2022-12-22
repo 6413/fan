@@ -25,8 +25,10 @@ struct sb_sprite_name {
     struct key_t : parsed_masterpiece_t {}key;
   };
 
+  struct cid_t;
+
   struct ri_t : bm_properties_t {
-    fan::graphics::cid_t* cid;
+    cid_t* cid;
   };
 
   #define make_key_value(type, name) \
@@ -47,11 +49,10 @@ struct sb_sprite_name {
   private:
     void _load_yuv(loco_t* loco, void** data, const fan::vec2& image_size, uint32_t stride[3]) {
       loco_t::image_t::load_properties_t lp;
-      lp.format = fan::opengl::GL_RED; 
-      lp.internal_format = fan::opengl::GL_RED; 
-      lp.visual_output = fan::opengl::GL_CLAMP_TO_EDGE;
-      // can be buggy
-      lp.filter = fan::opengl::GL_LINEAR;
+      lp.format = loco_t::image_t::format::r8_unorm;
+      lp.internal_format = loco_t::image_t::format::r8_unorm; 
+      lp.visual_output = loco_t::image_t::sampler_address_mode::clamp_to_edge;
+      lp.filter = loco_t::image_t::filter::linear;
                                  
       fan::webp::image_info_t ii;
 
@@ -98,15 +99,47 @@ struct sb_sprite_name {
       y = &loco->sb_shape_var_name.image[0];
       u = &loco->sb_shape_var_name.image[1];
       v = &loco->sb_shape_var_name.image[2];
+
+    #if defined(loco_vulkan)
+
+      VkDescriptorImageInfo imageInfo{};
+      imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+      for (uint32_t i = 0; i < 3; ++i) {
+        auto& img = * loco->sb_shape_var_name.image[i].get_texture_data(loco);
+        imageInfo.imageView = img.image_view;
+        imageInfo.sampler = img.sampler;
+        img.texture_index.yuv420p = i;
+        loco->sb_shape_var_name.m_ssbo.m_descriptor.m_properties[2].image_infos[img.texture_index.yuv420p] = imageInfo;
+      }
+
+
+      for (uint32_t i = 0; i < 3; ++i) {
+        loco->sb_shape_var_name.m_ssbo.m_descriptor.m_properties[2].image_infos[i].imageView = loco->sb_shape_var_name.image[i].get_texture_data(loco)->image_view;
+        loco->sb_shape_var_name.m_ssbo.m_descriptor.m_properties[2].image_infos[i].sampler = loco->sb_shape_var_name.image[i].get_texture_data(loco)->sampler;
+      }
+      loco->sb_shape_var_name.m_ssbo.m_descriptor.update(loco->get_context(), 1, 2);
+    #endif
     }
   };
 
   #undef make_key_value
 
-  void push_back(fan::opengl::cid_t* cid, properties_t& p) {
+  void push_back(fan::graphics::cid_t* cid, properties_t& p) {
     sb_push_back(cid, p);
+
+  #if defined(loco_vulkan)
+    auto loco = get_loco();
+    auto& matrices = loco->matrices_list[p.matrices];
+    if (matrices.matrices_index.yuv420p == (decltype(matrices.matrices_index.yuv420p))-1) {
+      matrices.matrices_index.yuv420p = m_matrices_index++;
+      m_shader.set_matrices(loco, matrices.matrices_id, matrices.matrices_index.yuv420p);  
+    }
+
+  #endif
+
   }
-  void erase(fan::opengl::cid_t* cid) {
+  void erase(fan::graphics::cid_t* cid) {
     sb_erase(cid);
   }
 
@@ -114,14 +147,14 @@ struct sb_sprite_name {
     sb_draw();
   }
 
-  void reload_yuv(fan::opengl::cid_t* cid, void** data, const fan::vec2& image_size) {
+  void reload_yuv(fan::graphics::cid_t* cid, void** data, const fan::vec2& image_size) {
     auto loco = get_loco();
     
     loco_t::image_t::load_properties_t lp;
-    lp.format = fan::opengl::GL_RED;
-    lp.internal_format = fan::opengl::GL_RED;
-    lp.filter = fan::opengl::GL_LINEAR;
-    lp.visual_output = fan::opengl::GL_CLAMP_TO_EDGE;
+    lp.format = loco_t::image_t::format::r8_unorm;
+    lp.internal_format = loco_t::image_t::format::r8_unorm; 
+    lp.visual_output = loco_t::image_t::sampler_address_mode::clamp_to_edge;
+    lp.filter = loco_t::image_t::filter::linear;
                                  
     fan::webp::image_info_t ii; 
                                
@@ -148,7 +181,7 @@ struct sb_sprite_name {
       #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/objects/yuv420p.fs)
     #endif
   #elif defined(loco_vulkan)
-    #define vulkan_buffer_count 3
+    #define vulkan_buffer_count 5
     #define sb_shader_vertex_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/sprite.vert.spv)
     #define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/yuv420p.frag.spv)
   #endif
@@ -176,6 +209,11 @@ struct sb_sprite_name {
   auto block = sb_get_block(loco, cid);
   *block->p[cid->instance_id].key.get_value<1>() = n;
   }*/
+
+  #if defined(loco_vulkan)
+    //uint32_t m_texture_index = 0;
+    uint32_t m_matrices_index = 0;
+  #endif
 };
 
 #undef sb_sprite_name

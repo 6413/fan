@@ -62,6 +62,7 @@ void sb_open() {
   #include _FAN_PATH(graphics/shape_open_settings.h)
 
   m_ssbo.open_descriptors(context, loco->descriptor_pool.m_descriptor_pool, ds_properties);
+  m_ssbo.m_descriptor.update(context, 2, ds_offset);
   ds_properties[1].buffer = m_shader.projection_view_block.common.memory[context->currentFrame].buffer;
   m_ssbo.m_descriptor.m_properties[1] = ds_properties[1];
   m_ssbo.m_descriptor.update(context, 1, 1, 0, 0);

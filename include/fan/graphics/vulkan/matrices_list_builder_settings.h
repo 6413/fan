@@ -23,6 +23,9 @@ struct matrices_index_t {
   #if defined(loco_text_box)
     uint8_t text_box = -1;
   #endif
+  #if defined(loco_yuv420p)
+    uint8_t yuv420p = -1;
+  #endif
 };
 #endif
 

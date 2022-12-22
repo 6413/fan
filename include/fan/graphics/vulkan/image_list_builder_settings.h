@@ -9,6 +9,9 @@ struct image_list_texture_index_t {
   #if defined(loco_letter)
     uint8_t letter = -1;
   #endif
+  #if defined(loco_yuv420p)
+    uint8_t yuv420p = -1;
+  #endif
 };
 
 #define BLL_set_node_data \

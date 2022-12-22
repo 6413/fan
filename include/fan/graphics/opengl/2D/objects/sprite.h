@@ -111,41 +111,6 @@ struct sb_sprite_name {
   
   sb_sprite_name() {
     sb_open();
-    #if defined(loco_vulkan)
-     fan::vulkan::pipeline_t::properties_t p;
-
-    auto loco = get_loco();
-    auto context = loco->get_context();
-
-    render_fullscreen_shader.open(context, &loco->m_write_queue);
-    render_fullscreen_shader.set_vertex(context, _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/loco_fbo.vert.spv));
-    render_fullscreen_shader.set_fragment(context, _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/loco_fbo.frag.spv));
-    p.descriptor_layout_count = 1;
-    p.descriptor_layout = &m_ssbo.m_descriptor.m_layout;
-    p.shader = &render_fullscreen_shader;
-    p.push_constants_size = p.push_constants_size = sizeof(loco_t::push_constants_t);
-    p.subpass = 1;
-    VkPipelineColorBlendAttachmentState color_blend_attachment[2]{};
-    color_blend_attachment[0].colorWriteMask =
-			VK_COLOR_COMPONENT_R_BIT |
-			VK_COLOR_COMPONENT_G_BIT |
-			VK_COLOR_COMPONENT_B_BIT |
-			VK_COLOR_COMPONENT_A_BIT
-		;
-    color_blend_attachment[0].blendEnable = VK_TRUE;
-    color_blend_attachment[0].srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-    color_blend_attachment[0].dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-    color_blend_attachment[0].colorBlendOp = VK_BLEND_OP_ADD;
-    color_blend_attachment[0].srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-    color_blend_attachment[0].dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-    color_blend_attachment[0].alphaBlendOp = VK_BLEND_OP_ADD;
-    color_blend_attachment[1] = color_blend_attachment[0];
-    p.color_blend_attachment_count = std::size(color_blend_attachment);
-    p.color_blend_attachment = color_blend_attachment;
-    p.enable_depth_test = false;
-    context->render_fullscreen_pl.open(context, p);
-    m_ssbo.m_descriptor.update(context, 2, 3);
-    #endif
   }
   ~sb_sprite_name() {
     sb_close();
@@ -202,10 +167,6 @@ struct sb_sprite_name {
   #if defined(loco_vulkan)
     uint32_t m_texture_index = 0;
     uint32_t m_matrices_index = 0;
-  #endif
-
-  #if defined(loco_vulkan)
-  fan::vulkan::shader_t render_fullscreen_shader;
   #endif
 };
 

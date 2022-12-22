@@ -63,6 +63,17 @@ struct loco_t;
 #define loco_vulkan_descriptor_image_sampler
 #endif
 #endif
+#ifdef loco_yuv420p
+#ifndef loco_vulkan_descriptor_ssbo
+#define loco_vulkan_descriptor_ssbo
+#endif
+#ifndef loco_vulkan_descriptor_uniform_block
+#define loco_vulkan_descriptor_uniform_block
+#endif
+#ifndef loco_vulkan_descriptor_image_sampler
+#define loco_vulkan_descriptor_image_sampler
+#endif
+#endif
 #ifdef loco_letter
 #ifndef loco_vulkan_descriptor_ssbo
 #define loco_vulkan_descriptor_ssbo
@@ -556,6 +567,12 @@ public:
     }
     #endif
 
+    #if defined(loco_yuv420p)
+    if constexpr (std::is_same<typename std::remove_pointer<decltype(shape)>::type, yuv420p_t>::value) {
+      idx = matrices.matrices_index.yuv420p;
+    }
+    #endif
+
     vkCmdPushConstants(
       context->commandBuffers[context->currentFrame],
       shape->m_pipeline.m_layout,
@@ -596,6 +613,12 @@ public:
     #if defined(loco_letter)
     if constexpr (std::is_same<std::remove_pointer<decltype(shape)>::type, letter_t>::value) {
       idx = img.texture_index.letter;
+    }
+    #endif
+
+    #if defined(loco_yuv420p)
+    if constexpr (std::is_same<std::remove_pointer<decltype(shape)>::type, yuv420p_t>::value) {
+      idx = img.texture_index.yuv420p;
     }
     #endif
 
@@ -844,6 +867,51 @@ public:
   #endif
 
   #endif
+
+  #if defined(loco_vulkan)
+    fan::vulkan::pipeline_t::properties_t pipeline_p;
+
+    auto context = get_context();
+
+    render_fullscreen_shader.open(context, &m_write_queue);
+    render_fullscreen_shader.set_vertex(context, _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/loco_fbo.vert.spv));
+    render_fullscreen_shader.set_fragment(context, _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/loco_fbo.frag.spv));
+    VkDescriptorSetLayout layouts[] = {
+    #if defined(loco_rectangle)
+      rectangle.m_ssbo.m_descriptor.m_layout,
+    #endif
+    #if defined(loco_sprite)
+      sprite.m_ssbo.m_descriptor.m_layout,
+    #endif
+    #if defined(loco_yuv420p)
+      yuv420p.m_ssbo.m_descriptor.m_layout,
+    #endif
+    };
+    pipeline_p.descriptor_layout_count = std::size(layouts);
+    pipeline_p.descriptor_layout = layouts;
+    pipeline_p.shader = &render_fullscreen_shader;
+    pipeline_p.push_constants_size = sizeof(loco_t::push_constants_t);
+    pipeline_p.subpass = 1;
+    VkPipelineColorBlendAttachmentState color_blend_attachment[2]{};
+    color_blend_attachment[0].colorWriteMask =
+			VK_COLOR_COMPONENT_R_BIT |
+			VK_COLOR_COMPONENT_G_BIT |
+			VK_COLOR_COMPONENT_B_BIT |
+			VK_COLOR_COMPONENT_A_BIT
+		;
+    color_blend_attachment[0].blendEnable = VK_TRUE;
+    color_blend_attachment[0].srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+    color_blend_attachment[0].dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    color_blend_attachment[0].colorBlendOp = VK_BLEND_OP_ADD;
+    color_blend_attachment[0].srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+    color_blend_attachment[0].dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    color_blend_attachment[0].alphaBlendOp = VK_BLEND_OP_ADD;
+    color_blend_attachment[1] = color_blend_attachment[0];
+    pipeline_p.color_blend_attachment_count = std::size(color_blend_attachment);
+    pipeline_p.color_blend_attachment = color_blend_attachment;
+    pipeline_p.enable_depth_test = false;
+    context->render_fullscreen_pl.open(context, pipeline_p);
+  #endif
   }
 
   #if defined(loco_vfi)
@@ -959,6 +1027,10 @@ public:
     x.y = ((get_mouse_position().y - viewport.viewport_position.y - viewport.viewport_size.y / 2) / (viewport.viewport_size.y / 2) + (viewport.viewport_position.y / viewport.viewport_size.y) * 2);
     return x;
   }
+
+#if defined(loco_vulkan)
+  fan::vulkan::shader_t render_fullscreen_shader;
+#endif
 
 #if defined(loco_framebuffer)
 

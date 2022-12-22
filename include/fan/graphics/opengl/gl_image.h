@@ -7,6 +7,24 @@ static constexpr fan::_vec4<fan::vec2> default_texture_coordinates = {
 
 struct image_t {
 
+  struct format {
+    static constexpr auto b8g8r8a8_unorm = fan::opengl::GL_BGRA;
+    static constexpr auto r8_unorm = fan::opengl::GL_RED;
+  };
+
+  struct sampler_address_mode {
+    static constexpr auto repeat = fan::opengl::GL_REPEAT;
+    static constexpr auto mirrored_repeat = fan::opengl::GL_MIRRORED_REPEAT;
+    static constexpr auto clamp_to_edge = fan::opengl::GL_CLAMP_TO_EDGE;
+    static constexpr auto clamp_to_border = fan::opengl::GL_CLAMP_TO_BORDER;
+    static constexpr auto mirrored_clamp_to_edge = fan::opengl::GL_MIRROR_CLAMP_TO_EDGE;
+  };
+
+  struct filter {
+    static constexpr auto nearest = fan::opengl::GL_NEAREST;
+    static constexpr auto linear = fan::opengl::GL_LINEAR;
+  };
+
   struct load_properties_defaults {
     static constexpr uint32_t visual_output = fan::opengl::GL_CLAMP_TO_BORDER;
     static constexpr uint32_t internal_format = fan::opengl::GL_RGBA;

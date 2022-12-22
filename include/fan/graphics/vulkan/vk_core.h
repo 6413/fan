@@ -424,9 +424,7 @@ namespace fan {
 				#if defined(loco_wboit)
 					create_wboit_views();
 				#endif
-        #if defined(loco_framebuffer)
-          create_loco_framebuffer();
-        #endif
+        create_loco_framebuffer();
 				createDepthResources();
 				createFramebuffers();
 				createCommandBuffers();
@@ -796,6 +794,7 @@ namespace fan {
         fbo_color_attachment[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
         fbo_color_attachment[1].initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         fbo_color_attachment[1].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        
 
         VkAttachmentReference subpasscolor_locofbo_attachments[2];
 				subpasscolor_locofbo_attachments[0].attachment = 2;
@@ -803,6 +802,13 @@ namespace fan {
 
         subpasscolor_locofbo_attachments[1].attachment = 3;
 				subpasscolor_locofbo_attachments[1].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        VkAttachmentReference subpasscolor_locofbo_input_attachments[2];
+        subpasscolor_locofbo_input_attachments[0].attachment = 2;
+        subpasscolor_locofbo_input_attachments[0].layout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL;
+
+        subpasscolor_locofbo_input_attachments[1].attachment = 3;
+        subpasscolor_locofbo_input_attachments[1].layout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL;
 
 				VkSubpassDescription subpass[]{
           {
@@ -819,16 +825,19 @@ namespace fan {
           }
         };
 
+        subpass[1].inputAttachmentCount = std::size(subpasscolor_locofbo_input_attachments);
+        subpass[1].pInputAttachments = subpasscolor_locofbo_input_attachments;
+
 	      VkSubpassDependency subpassDependencies[4]{};
 				subpassDependencies[0].srcSubpass = 0;
-				subpassDependencies[0].dstSubpass = VK_SUBPASS_EXTERNAL;
+				subpassDependencies[0].dstSubpass = 1;
 				subpassDependencies[0].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 				subpassDependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 				subpassDependencies[0].srcAccessMask = 0;
 				subpassDependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
         subpassDependencies[1].srcSubpass = 0;
-				subpassDependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+				subpassDependencies[1].dstSubpass = 1;
 				subpassDependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 				subpassDependencies[1].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 				subpassDependencies[1].srcAccessMask = 0;
@@ -844,7 +853,7 @@ namespace fan {
 				subpassDependencies[3].srcSubpass = 0;
 				subpassDependencies[3].dstSubpass = 1;
 				subpassDependencies[3].srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-				subpassDependencies[3].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+				subpassDependencies[3].dstStageMask = 0;
 				subpassDependencies[3].srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
 				subpassDependencies[3].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
@@ -879,10 +888,8 @@ namespace fan {
 							vai_wboit_reveal.image_view,
 						#endif
 					
-          #if defined(loco_framebuffer)
             vai_bitmap[0].image_view,
             vai_bitmap[1].image_view,
-          #endif
 						swapChainImageViews[i],
             vai_bitmap[1].image_view,
 						vai_depth.image_view,
@@ -916,9 +923,7 @@ namespace fan {
 				}
 			}
     
-    #if defined(loco_framebuffer)
       void create_loco_framebuffer();
-    #endif
 			void create_wboit_views();
 			void createDepthResources();
 
@@ -1180,18 +1185,11 @@ namespace fan {
 					clearValues[1].color.float32[0] = 1.f;  // Initially, all pixels show through all the way (reveal = 100%)
 
 				#else
-					VkClearValue clearValues[
-            3
-            #if defined(loco_framebuffer)
-            + 2
-            #endif
-          ]{};
+					VkClearValue clearValues[5]{};
 					clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f} };
-        #if defined(loco_framebuffer)
           clearValues[1].color = { {0.f, 0.f, 0.f, 0.f} };
           clearValues[2].color = { {0.f, 0.f, 0.f, 0.f} };
           clearValues[3].color = { {0.f, 0.f, 0.f, 0.f} };
-        #endif
 					clearValues[4].depthStencil = { 1.0f, 0 };
 				#endif
 
@@ -1574,9 +1572,7 @@ namespace fan {
 			VkCommandPool commandPool;
 
 			vai_t vai_depth;
-    #if defined(loco_framebuffer)
       vai_t vai_bitmap[2];
-    #endif
 		#if defined(loco_wboit)
 			vai_t vai_wboit_color;
 			vai_t vai_wboit_reveal;
@@ -1649,7 +1645,6 @@ namespace fan {
 			vkBindImageMemory(context->device, image, imageMemory, 0);
 		}
 
-  #if defined(loco_framebuffer)
     void context_t::create_loco_framebuffer() {
 			vai_t::properties_t p;
 			p.format = swapChainImageFormat;
@@ -1657,11 +1652,10 @@ namespace fan {
 			p.usage_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 			p.aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT;
 			vai_bitmap[0].open(this, p);
-			vai_bitmap[0].transition_image_layout(this, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+			vai_bitmap[0].transition_image_layout(this, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
       vai_bitmap[1].open(this, p);
-      vai_bitmap[1].transition_image_layout(this, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+      vai_bitmap[1].transition_image_layout(this, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 		}
-  #endif
 
 	#if defined(loco_wboit)
 		void context_t::create_wboit_views() {
@@ -1755,8 +1749,10 @@ namespace fan {
 			push_constant.size = p.push_constants_size;
 			push_constant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
-			pipelineLayoutInfo.pPushConstantRanges = &push_constant;
-			pipelineLayoutInfo.pushConstantRangeCount = 1;
+      if (p.push_constants_size) {
+			  pipelineLayoutInfo.pPushConstantRanges = &push_constant;
+			  pipelineLayoutInfo.pushConstantRangeCount = 1;
+      }
 
 			if (vkCreatePipelineLayout(context->device, &pipelineLayoutInfo, nullptr, &m_layout) != VK_SUCCESS) {
 				fan::throw_error("failed to create pipeline layout!");
