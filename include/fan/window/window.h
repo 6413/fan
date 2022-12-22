@@ -606,7 +606,7 @@ namespace fan {
 			bool m_no_mouse = false;
 			bool m_no_resize = false;
 
-			mode m_size_mode;
+			mode m_size_mode = mode::windowed;
 
 		}flag_values;
 
