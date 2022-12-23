@@ -2099,7 +2099,26 @@ uint32_t fan::window_t::handle_events() {
           break;
         }
 
-        uint16_t button = fan::window_input::convert_scancode_to_fan(event.xbutton.button);
+        /* TODO temp fix said by dürüm */
+        uint16_t button;
+        if(event.xbutton.button == Button1){
+          button = button_left;
+        }
+        else if(event.xbutton.button == Button2){
+          button = button_right;
+        }
+        else if(event.xbutton.button == Button3){
+          button = button_middle;
+        }
+        else if(event.xbutton.button == Button4){
+          button = mouse_scroll_up;
+        }
+        else if(event.xbutton.button == Button5){
+          button = mouse_scroll_down;
+        }
+        else{
+          break;
+        }
 
         window->window_input_mouse_action(window->m_window_handle, button);
 
@@ -2137,7 +2156,27 @@ uint32_t fan::window_t::handle_events() {
           }
         }
 
-        auto button = fan::window_input::convert_scancode_to_fan(event.xbutton.button);
+        /* TODO temp fix said by dürüm */
+        uint16_t button;
+        if(event.xbutton.button == Button1){
+          button = button_left;
+        }
+        else if(event.xbutton.button == Button2){
+          button = button_right;
+        }
+        else if(event.xbutton.button == Button3){
+          button = button_middle;
+        }
+        else if(event.xbutton.button == Button4){
+          button = mouse_scroll_up;
+        }
+        else if(event.xbutton.button == Button5){
+          button = mouse_scroll_down;
+        }
+        else{
+          break;
+        }
+
         window->window_input_up(window->m_window_handle, button);
 
         auto it = window->m_buttons_callback.GetNodeFirst();
