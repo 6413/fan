@@ -535,7 +535,8 @@ fan::window_t::window_t(const fan::vec2i& window_size, const fan::string& name, 
   m_reserved_flags = 0;
   m_focused = true;
   m_event_flags = 0;
-  m_mouse_motion = 0;
+  const fan::vec2i center = fan::sys::get_screen_resolution() / 2;
+  m_mouse_motion = center;
 
   if (flag_values.m_size_mode == fan::window_t::mode::not_set) {
     flag_values.m_size_mode = fan::window_t::default_size_mode;
@@ -1386,7 +1387,8 @@ uint32_t fan::window_t::handle_events() {
 
       it = it.Next(&m_mouse_motion_callback);
     }
-    m_mouse_motion = 0;
+    const fan::vec2i center = fan::sys::get_screen_resolution() / 2;
+    m_mouse_motion = center;
     m_average_motion = 0;
     call_mouse_motion_cb = false;
   }
