@@ -1026,7 +1026,7 @@ void fan::window_t::generate_keycode_to_scancode_table() {
       {"RWIN", 0xe05c}, {"LSGT", 0x33}, {"RSGT", 0x34}, {"COMP", 0xe05d}, {"SPCE", 0x39}, {"RTRN", 0x1c }, {"FK01", 0x3b},
       {"FK02", 0x3c}, {"FK03", 0x3d}, {"FK04", 0x3e}, {"FK05", 0x3f}, {"FK06", 0x40}, {"FK07", 0x41}, {"FK08", 0x42},
       {"FK09", 0x43}, {"FK10", 0x44}, {"LEFT", 0xe04b}, {"RGHT", 0xe04d}, {"UP", 0xe048}, {"DOWN", 0xe050}, {"PGUP", 0xe049}, 
-      {"PGDN", 0xe051}, {"HOME", 0xe047}, {"END", 0xe04f}, {"INS", 0x52}, {"DELE", 0x53}, {"SCLK", 0x46}, {"KP0", 0x52}, {"KP1", 0x4f}, 
+      {"PGDN", 0xe051}, {"HOME", 0xe047}, {"END", 0xe04f}, {"INS", 0x52}, {"DELE", 0xe053}, {"SCLK", 0x46}, {"KP0", 0x52}, {"KP1", 0x4f}, 
       {"KP2", 0x50}, {"KP3", 0x51}, {"KP4", 0x4b}, {"KP5", 0x4c}, {"KP6", 0x4d}, {"KP7", 0x47}, {"KP8", 0x48}, {"KP9", 0x49}, 
       {"KPEN", 0xe01c}, {"RCTL", 0xe01d}, {"BKSP", 0x0e}, {"NMLK", 0x45 }, {"KPDL", 0x53}, {"KPAD", 0x4e},
       {"KPDV", 0xe035}, {"KPMU", 0x37}, {"KPSU", 0x4a}, {"KPAD", 0x4e}
@@ -2110,10 +2110,10 @@ uint32_t fan::window_t::handle_events() {
           button = button_left;
         }
         else if(event.xbutton.button == Button2){
-          button = button_right;
+          button = button_middle;
         }
         else if(event.xbutton.button == Button3){
-          button = button_middle;
+          button = button_right;
         }
         else if(event.xbutton.button == Button4){
           button = mouse_scroll_up;
@@ -2167,10 +2167,10 @@ uint32_t fan::window_t::handle_events() {
           button = button_left;
         }
         else if(event.xbutton.button == Button2){
-          button = button_right;
+          button = button_middle;
         }
         else if(event.xbutton.button == Button3){
-          button = button_middle;
+          button = button_right;
         }
         else if(event.xbutton.button == Button4){
           button = mouse_scroll_up;
