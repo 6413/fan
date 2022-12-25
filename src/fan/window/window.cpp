@@ -2088,8 +2088,8 @@ uint32_t fan::window_t::handle_events() {
         window->m_previous_mouse_position = window->m_mouse_position;
 
         window->m_mouse_position = position;
-        m_mouse_motion = window->m_mouse_position - m_may_center;
-        m_may_center = window->m_mouse_position;
+        m_mouse_motion = fan::vec2i(event.xmotion.x_root, event.xmotion.y_root) - m_may_center;
+        m_may_center = fan::vec2i(event.xmotion.x_root, event.xmotion.y_root);
         m_average_motion += m_mouse_motion;
         call_mouse_motion_cb = true;
 
