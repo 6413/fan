@@ -31,7 +31,7 @@ void audio_open(audio_t *audio, uint32_t GroupAmount) {
 
   ma_result r;
   if ((r = ma_context_init(NULL, 0, NULL, &audio->context)) != MA_SUCCESS) {
-    fan::throw_error("error" + ::std::to_string(r));
+    fan::throw_error("error" + ::fan::to_string(r));
   }
 
   ma_device_config config = ma_device_config_init(ma_device_type_playback);
@@ -43,7 +43,7 @@ void audio_open(audio_t *audio, uint32_t GroupAmount) {
   config.periodSizeInFrames = _constants::CallFrameCount;
 
   if ((r = ma_device_init(&audio->context, &config, &audio->device)) != MA_SUCCESS) {
-    fan::throw_error("ma_device_init" + ::std::to_string(r));
+    fan::throw_error("ma_device_init" + ::fan::to_string(r));
   }
 }
 
