@@ -536,7 +536,6 @@ fan::window_t::window_t(const fan::vec2i& window_size, const fan::string& name, 
   m_focused = true;
   m_event_flags = 0;
   m_mouse_motion = 0;
-  m_may_center = fan::sys::get_screen_resolution() / 2;
 
   if (flag_values.m_size_mode == fan::window_t::mode::not_set) {
     flag_values.m_size_mode = fan::window_t::default_size_mode;
@@ -559,6 +558,8 @@ fan::window_t::window_t(const fan::vec2i& window_size, const fan::string& name, 
   initialize_window(name, window_size, flags);
 
   this->calculate_delta_time();
+
+  m_may_center = fan::sys::get_screen_resolution() / 2;
 }
 
 fan::window_t::~window_t()
