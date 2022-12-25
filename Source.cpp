@@ -1,44 +1,26 @@
-#include <winsock2.h>
-#include <Windows.h>
+#define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 
-int main()
-{
-    // Initialize Winsock
-    WSADATA wsaData;
-    int result = WSAStartup(MAKEWORD(2, 2), &wsaData);
-    if (result != 0)
-    {
-        // Error initializing Winsock
-        return -1;
-    }
+#ifndef FAN_INCLUDE_PATH
+#define FAN_INCLUDE_PATH C:/libs/fan/include
+#endif
+#define fan_debug 0
+#include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
-    // Create the DCCP socket
-    SOCKET sock = socket(AF_INET6, SOCK_DCCP, IPPROTO_DCCP);
-    if (sock == INVALID_SOCKET)
-    {
-        // Error creating socket
-        return -1;
-    }
+#define d \
+  int x; \
 
-    // Bind the socket to a local address and port
-    sockaddr_in6 addr;
-    memset(&addr, 0, sizeof(addr));
-    addr.sin6_family = AF_INET6;
-    addr.sin6_port = htons(12345);
-    result = bind(sock, (sockaddr*)&addr, sizeof(addr));
-    if (result == SOCKET_ERROR)
-    {
-        // Error binding socket
-        return -1;
-    }
+struct t_t {
+  int y;
+};
 
-    // Send and receive data using the socket...
+struct s_t : std::conditional_t<d{
+  d;
+  struct {
+    int x;
+  };
+};
 
-    // Close the socket
-    closesocket(sock);
-
-    // Clean up Winsock
-    WSACleanup();
-
-    return 0;
+int main() {
+  s_t s;
+  s.x = 5;
 }

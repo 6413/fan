@@ -25,18 +25,20 @@
 
 #include <opus/opus.h>
 
+#if fan_audio_set_backend == 0
+#include "backend/uni/miniaudio/a.h"
+#elif fan_audio_set_backend == 1
+#include "backend/unix/linux/alsa/a.h"
+#else
+#error ?
+#endif
+
 namespace fan {
   namespace audio {
     #include "CommonTypes.h"
 
     #include "CommonDefine.h"
 
-    #if fan_audio_set_backend == 0
-      #include "backend/uni/miniaudio/a.h"
-    #elif fan_audio_set_backend == 1
-      #include "backend/unix/linux/alsa/a.h"
-    #else
-      #error ?
-    #endif
+
   }
 }
