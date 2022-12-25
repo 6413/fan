@@ -40,29 +40,6 @@ namespace fan {
 
   namespace sys {
 
-    static fan::vec2i get_screen_resolution() {
-      #ifdef fan_platform_windows
-
-      return fan::vec2i(GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN));
-
-      #elif defined(fan_platform_unix) // close
-
-      Display* display = XOpenDisplay(0);
-
-      if (!display) {
-        fan::print("failed to open display");
-      }
-
-      int screen = DefaultScreen(display);
-      fan::vec2i resolution(DisplayWidth(display, screen), DisplayHeight(display, screen));
-
-      XCloseDisplay(display);
-
-      return resolution;
-
-      #endif
-    }
-
     static void set_screen_resolution(const fan::vec2i& size)
     {
       #ifdef fan_platform_windows
@@ -160,7 +137,7 @@ namespace fan {
       }
 
       inline Display* m_display;
-      static int m_screen;
+      inline int m_screen;
 
       static Display* get_display()
       {
@@ -168,6 +145,20 @@ namespace fan {
       }
 
       #endif
+
+      static fan::vec2i get_screen_resolution() {
+        #ifdef fan_platform_windows
+
+        return fan::vec2i(GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN));
+
+        #elif defined(fan_platform_unix) // close
+
+        fan::vec2i resolution(DisplayWidth(fan::sys::m_display, m_screen), DisplayHeight(fan::sys::m_display, m_screen));
+
+        return resolution;
+
+        #endif
+      }
 
       #if defined(fan_platform_windows)
 

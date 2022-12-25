@@ -2078,7 +2078,7 @@ uint32_t fan::window_t::handle_events() {
         }
 
         const fan::vec2i position(event.xmotion.x, event.xmotion.y);
-        const fan::vec2i center = window->get_size() / 2;
+        const fan::vec2i center = fan::sys::get_screen_resolution() / 2;
 
         call_mouse_move_cb = true;
 
