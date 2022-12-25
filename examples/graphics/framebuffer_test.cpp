@@ -56,7 +56,7 @@ int main() {
   c.start();
 
   pile_t* pile = new pile_t;
-
+  fan::print(pile->loco.get_window()->get_position());
   loco_t::sprite_t::properties_t p;
 
   p.size = fan::vec2(.3);

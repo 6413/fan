@@ -1374,6 +1374,23 @@ uint32_t fan::window_t::handle_events() {
     m_fps_next_tick = fan::time::clock::now();
   }
 
+  if (call_mouse_motion_cb) {
+    auto it = m_mouse_motion_callback.GetNodeFirst();
+
+    while (it != m_mouse_motion_callback.dst) {
+
+      mouse_motion_cb_data_t cbd;
+      cbd.window = this;
+      cbd.motion = m_average_motion;
+      m_mouse_motion_callback[it].data(cbd);
+
+      it = it.Next(&m_mouse_motion_callback);
+    }
+    m_mouse_motion = 0;
+    m_average_motion = 0;
+    call_mouse_motion_cb = false;
+  }
+
   if (call_mouse_move_cb) {
 
     auto it = m_mouse_position_callback.GetNodeFirst();
@@ -1392,23 +1409,6 @@ uint32_t fan::window_t::handle_events() {
 
   m_previous_mouse_position = m_mouse_position;
   call_mouse_move_cb = false;
-
-  if (call_mouse_motion_cb) {
-    auto it = m_mouse_motion_callback.GetNodeFirst();
-
-    while (it != m_mouse_motion_callback.dst) {
-
-      mouse_motion_cb_data_t cbd;
-      cbd.window = this;
-      cbd.motion = m_average_motion;
-      m_mouse_motion_callback[it].data(cbd);
-
-      it = it.Next(&m_mouse_motion_callback);
-    }
-    m_mouse_motion = 0;
-    m_average_motion = 0;
-    call_mouse_motion_cb = false;
-  }
 
   #ifdef fan_platform_windows
 
@@ -2078,13 +2078,14 @@ uint32_t fan::window_t::handle_events() {
         }
 
         const fan::vec2i position(event.xmotion.x, event.xmotion.y);
+        const fan::vec2i center = window->get_size() / 2;
 
         call_mouse_move_cb = true;
 
         window->m_previous_mouse_position = window->m_mouse_position;
 
         window->m_mouse_position = position;
-        m_mouse_motion = m_mouse_position - m_previous_mouse_position;
+        m_mouse_motion = m_mouse_position - center;
         m_average_motion += m_mouse_motion;
         call_mouse_motion_cb = true;
 
