@@ -536,6 +536,7 @@ fan::window_t::window_t(const fan::vec2i& window_size, const fan::string& name, 
   m_focused = true;
   m_event_flags = 0;
   m_mouse_motion = 0;
+  m_may_center = fan::sys::get_screen_resolution() / 2;
 
   if (flag_values.m_size_mode == fan::window_t::mode::not_set) {
     flag_values.m_size_mode = fan::window_t::default_size_mode;
@@ -2080,15 +2081,14 @@ uint32_t fan::window_t::handle_events() {
         }
 
         const fan::vec2i position(event.xmotion.x, event.xmotion.y);
-        const fan::vec2i center = fan::sys::get_screen_resolution() / 2;
 
         call_mouse_move_cb = true;
 
         window->m_previous_mouse_position = window->m_mouse_position;
 
         window->m_mouse_position = position;
-        m_mouse_motion = (initial_motion) - center;
-        initial_motion = fan::vec2i(event.xmotion.x_root, event.xmotion.y_root);
+        m_mouse_motion = window->m_mouse_position - m_may_center;
+        m_may_center = window->m_mouse_position;
         m_average_motion += m_mouse_motion;
         call_mouse_motion_cb = true;
 
