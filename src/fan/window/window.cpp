@@ -1388,7 +1388,7 @@ uint32_t fan::window_t::handle_events() {
       it = it.Next(&m_mouse_motion_callback);
     }
     const fan::vec2i center = fan::sys::get_screen_resolution() / 2;
-    initial_motion = center;
+    m_may_center = center;
     m_mouse_motion = 0;
     m_average_motion = 0;
     call_mouse_motion_cb = false;
