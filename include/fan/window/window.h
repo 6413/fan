@@ -589,6 +589,7 @@ namespace fan {
 		fan::vec2i m_previous_mouse_position;
 
     fan::vec2i m_mouse_motion;
+    fan::vec2i initial_motion = 0;
 
 		fan::color m_background_color;
 
