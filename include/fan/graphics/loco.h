@@ -455,8 +455,8 @@ public:
 
     fan::graphics::cid_t* cid;
   };
-  struct mouse_button_data_t : vfi_t::mouse_button_data_t {
-    mouse_button_data_t(const vfi_t::mouse_button_data_t& mm) : vfi_t::mouse_button_data_t(mm) {
+  struct mouse_data_t : vfi_t::mouse_data_t {
+    mouse_data_t(const vfi_t::mouse_data_t& mm) : vfi_t::mouse_data_t(mm) {
 
     }
 
@@ -479,7 +479,7 @@ public:
   };
 
   using mouse_move_cb_t = fan::function_t<int(const mouse_move_data_t&)>;
-  using mouse_button_cb_t = fan::function_t<int(const mouse_button_data_t&)>;
+  using mouse_button_cb_t = fan::function_t<int(const mouse_data_t&)>;
   using keyboard_cb_t = fan::function_t<int(const keyboard_data_t&)>;
   using text_cb_t = fan::function_t<int(const text_data_t&)>;
 
@@ -566,6 +566,13 @@ public:
       idx = matrices.matrices_index.button;
     }
     #endif
+
+    #if defined(loco_text_box)
+    if constexpr (std::is_same<typename std::remove_pointer<decltype(shape)>::type, text_box_t>::value) {
+      idx = matrices.matrices_index.text_box;
+    }
+    #endif
+
 
     #if defined(loco_yuv420p)
     if constexpr (std::is_same<typename std::remove_pointer<decltype(shape)>::type, yuv420p_t>::value) {
@@ -868,7 +875,7 @@ public:
 
   #endif
 
-  #if defined(loco_vulkan)
+  #if defined(loco_vulkan) && defined(loco_window)
     fan::vulkan::pipeline_t::properties_t pipeline_p;
 
     auto context = get_context();
@@ -885,17 +892,23 @@ public:
       #include _FAN_PATH(graphics/glsl/vulkan/2D/objects/loco_fbo.frag))
     );
     VkDescriptorSetLayout layouts[] = {
+    #if defined(loco_line)
+      line.m_ssbo.m_descriptor.m_layout,
+    #endif
     #if defined(loco_rectangle)
       rectangle.m_ssbo.m_descriptor.m_layout,
     #endif
     #if defined(loco_sprite)
       sprite.m_ssbo.m_descriptor.m_layout,
     #endif
-    #if defined(loco_letter)
+    #if !defined(loco_button) && !defined(loco_text_box) && defined(loco_letter)
       letter.m_ssbo.m_descriptor.m_layout,
     #endif
     #if defined(loco_button)
       button.m_ssbo.m_descriptor.m_layout,
+    #endif
+    #if defined(loco_text_box)
+      text_box.m_ssbo.m_descriptor.m_layout,
     #endif
     #if defined(loco_yuv420p)
       yuv420p.m_ssbo.m_descriptor.m_layout,
@@ -942,8 +955,8 @@ public:
     vfi.feed_mouse_move(mouse_position);
   }
 
-  void feed_mouse_button(uint16_t button, fan::button_state button_state, const fan::vec2& mouse_position) {
-    vfi.feed_mouse_button(button, button_state);
+  void feed_mouse_button(uint16_t button, fan::mouse_state mouse_state, const fan::vec2& mouse_position) {
+    vfi.feed_mouse_button(button, mouse_state);
   }
 
   void feed_keyboard(uint16_t key, fan::keyboard_state keyboard_state) {

@@ -21,8 +21,16 @@ struct compute_shader_t {
 		if (fan::io::file::read(p.shader.path, &str)) {
 			fan::throw_error("file doesnt exist:" + p.shader.path);
 		}
+
+    auto spirv =
+      fan::vulkan::shader_t::compile_file(
+        "compute_shader.comp", 
+        shaderc_compute_shader,
+        #include "compute_shader.comp"
+      );
+
 		m_shader_module = fan::vulkan::shader_t::createShaderModule(loco->get_context(),
-			str
+      spirv
 		);
 
 		VkComputePipelineCreateInfo info = { VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO };

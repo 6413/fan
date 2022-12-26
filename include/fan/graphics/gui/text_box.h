@@ -59,7 +59,7 @@ struct text_box_t {
 
     bool disable_highlight = false;
 
-    loco_t::mouse_button_cb_t mouse_button_cb = [](const loco_t::mouse_button_data_t&) -> int { return 0; };
+    loco_t::mouse_button_cb_t mouse_button_cb = [](const loco_t::mouse_data_t&) -> int { return 0; };
     loco_t::mouse_move_cb_t mouse_move_cb = [](const loco_t::mouse_move_data_t&) -> int { return 0; };
     loco_t::keyboard_cb_t keyboard_cb = [](const loco_t::keyboard_data_t&) -> int { return 0; };
     loco_t::text_cb_t text_cb = [](const loco_t::text_data_t&) -> int { return 0; };
@@ -124,7 +124,7 @@ struct text_box_t {
           }
         }
 
-        //if (loco->get_window()->key_pressed(fan::button_left) && loco->vfi.get_focus_keyboard()) {
+        //if (loco->get_window()->key_pressed(fan::mouse_left) && loco->vfi.get_focus_keyboard()) {
         //  fan::print("a");
         //  // src press
         //  fan::vec2 src = fan::vec2(mm_d.position) - fan::vec2(get_text_left_position(cid_));
@@ -140,11 +140,11 @@ struct text_box_t {
         cb(mmd);
         return 0;
       };
-      vfip.mouse_button_cb = [this, cb = p.mouse_button_cb, udata = p.udata, cid_ = cid](const loco_t::vfi_t::mouse_button_data_t& ii_d) -> int {
+      vfip.mouse_button_cb = [this, cb = p.mouse_button_cb, udata = p.udata, cid_ = cid](const loco_t::vfi_t::mouse_data_t& ii_d) -> int {
         loco_t* loco = OFFSETLESS(ii_d.vfi, loco_t, vfi_var_name);
         auto& ri = loco->text_box.sb_get_ri(cid_);
         if (ii_d.flag->ignore_move_focus_check == false && !ri.selected) {
-          if (ii_d.button == fan::button_left && ii_d.button_state == fan::button_state::press) {
+          if (ii_d.button == fan::mouse_left && ii_d.mouse_state == fan::mouse_state::press) {
             loco->text_box.set_theme(cid_, loco->text_box.get_theme(cid_), press);
             ii_d.flag->ignore_move_focus_check = true;
             loco->vfi.set_focus_keyboard(loco->vfi.get_focus_mouse());
@@ -165,7 +165,7 @@ struct text_box_t {
             update_cursor(cid_);
           }
 
-          if (ii_d.button == fan::button_left && ii_d.button_state == fan::button_state::release) {
+          if (ii_d.button == fan::mouse_left && ii_d.mouse_state == fan::mouse_state::release) {
             if (ii_d.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside) {
               loco->text_box.set_theme(cid_, loco->text_box.get_theme(cid_), hover);
             }
@@ -176,7 +176,7 @@ struct text_box_t {
           }
         }
 
-        loco_t::mouse_button_data_t mid = ii_d;
+        loco_t::mouse_data_t mid = ii_d;
         mid.cid = cid_;
         cb(mid);
 
@@ -265,14 +265,14 @@ struct text_box_t {
 
     ri.vfi_id = loco->vfi.push_shape(vfip);
 
-    loco_t::rectangle_t::properties_t rp;
-    rp.position.z = tp.position.z;
-    rp.size = cursor_properties::size;
-    rp.size.y = p.font_size;
-    rp.matrices = p.matrices;
-    rp.viewport = p.viewport;
-    rp.color = fan::colors::transparent;
-    loco->rectangle.push_back(&cursor_id, rp);
+    //loco_t::rectangle_t::properties_t rp;
+    //rp.position.z = tp.position.z;
+    //rp.size = cursor_properties::size;
+    //rp.size.y = p.font_size;
+    //rp.matrices = p.matrices;
+    //rp.viewport = p.viewport;
+    //rp.color = fan::colors::transparent;
+    //loco->rectangle.push_back(&cursor_id, rp);
   }
   void erase(fan::graphics::cid_t* cid) {
     loco_t* loco = get_loco();
@@ -326,9 +326,9 @@ struct text_box_t {
     #define sb_shader_vertex_path _FAN_PATH(graphics/glsl/opengl/2D/objects/button.vs)
   #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/objects/button.fs)
   #elif defined(loco_vulkan)
-    #define vulkan_buffer_count 2
-    #define sb_shader_vertex_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/button.vert.spv)
-    #define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/button.frag.spv)
+    #define vulkan_buffer_count 4
+    #define sb_shader_vertex_path graphics/glsl/vulkan/2D/objects/button.vert
+    #define sb_shader_fragment_path graphics/glsl/vulkan/2D/objects/button.frag
   #endif
 
   #define vk_sb_ssbo
