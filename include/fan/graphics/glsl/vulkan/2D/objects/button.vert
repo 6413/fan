@@ -1,3 +1,4 @@
+R"(
 #version 450
 
 #define get_instance() instances[gl_InstanceIndex]
@@ -86,3 +87,4 @@ void main() {
 	out_data.outline_size = get_instance().outline_size;
 	out_data.aspect_ratio = ratio_size.y / ratio_size.x;
 }
+)"

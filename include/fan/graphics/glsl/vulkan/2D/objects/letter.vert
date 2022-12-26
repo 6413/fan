@@ -1,3 +1,4 @@
+R"(
 #version 450
 
 #define get_instance() instances[gl_InstanceIndex]
@@ -68,3 +69,4 @@ void main() {
 	texture_coordinate = tc[id] * get_instance().tc_size + get_instance().tc_position;
 	render_size = dot(get_instance().size, vec2(1, 1));
 }
+)"
