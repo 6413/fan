@@ -50,7 +50,7 @@ typedef uint32_t _SegmentID_t;
 #define BLL_set_BaseLibrary 1
 #define BLL_set_prefix _CacheList
 #define BLL_set_type_node _CacheID_Size_t
-#define BLL_set_node_data \
+#define BLL_set_NodeData \
   f32_t Samples[_constants::FrameCacheAmount * _constants::ChannelAmount]; \
   _DecoderID_t DecoderID; \
   piece_t *piece; \
@@ -98,7 +98,7 @@ struct PropertiesSoundStop_t {
 #define BLL_set_BaseLibrary 1
 #define BLL_set_prefix _PlayInfoList
 #define BLL_set_type_node uint32_t
-#define BLL_set_node_data \
+#define BLL_set_NodeData \
   piece_t *piece; \
   uint32_t GroupID; \
   uint32_t PlayID; \
