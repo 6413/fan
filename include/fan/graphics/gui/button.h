@@ -52,7 +52,7 @@ struct button_t {
 
     bool disable_highlight = false;
 
-    loco_t::mouse_button_cb_t mouse_button_cb = [](const loco_t::mouse_data_t&) -> int { return 0; };
+    loco_t::mouse_button_cb_t mouse_button_cb = [](const loco_t::mouse_button_data_t&) -> int { return 0; };
     loco_t::mouse_move_cb_t mouse_move_cb = [](const loco_t::mouse_move_data_t&) -> int { return 0; };
     loco_t::keyboard_cb_t keyboard_cb = [](const loco_t::keyboard_data_t&) -> int { return 0; };
 
@@ -113,17 +113,17 @@ struct button_t {
         cb(mmd);
         return 0;
       };
-      vfip.mouse_button_cb = [this, cb = p.mouse_button_cb, udata = p.udata, cid_ = cid](const loco_t::vfi_t::mouse_data_t& ii_d) -> int {
+      vfip.mouse_button_cb = [this, cb = p.mouse_button_cb, udata = p.udata, cid_ = cid](const loco_t::vfi_t::mouse_button_data_t& ii_d) -> int {
         loco_t* loco = OFFSETLESS(ii_d.vfi, loco_t, vfi_var_name);
         if (ii_d.flag->ignore_move_focus_check == false && !loco->button.sb_get_ri(cid_).selected) {
-          if (ii_d.button == fan::mouse_left && ii_d.mouse_state == fan::mouse_state::press) {
+          if (ii_d.button == fan::mouse_left && ii_d.button_state == fan::mouse_state::press) {
             loco->button.set_theme(cid_, loco->button.get_theme(cid_), press);
             ii_d.flag->ignore_move_focus_check = true;
             loco->vfi.set_focus_keyboard(loco->vfi.get_focus_mouse());
           }
         }
         else if (!loco->button.sb_get_ri(cid_).selected) {
-          if (ii_d.button == fan::mouse_left && ii_d.mouse_state == fan::mouse_state::release) {
+          if (ii_d.button == fan::mouse_left && ii_d.button_state == fan::mouse_state::release) {
             if (ii_d.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside) {
               loco->button.set_theme(cid_, loco->button.get_theme(cid_), hover);
             }
@@ -134,7 +134,7 @@ struct button_t {
           }
         }
 
-        loco_t::mouse_data_t mid = ii_d;
+        loco_t::mouse_button_data_t mid = ii_d;
         mid.cid = cid_;
         cb(mid);
 

@@ -77,11 +77,11 @@ struct vfi_t {
     focus_method_mouse_flag* flag;
   };
 
-  struct mouse_data_t {
+  struct mouse_button_data_t {
     vfi_t* vfi;
     fan::vec2 position;
     uint16_t button;
-    fan::mouse_state mouse_state;
+    fan::mouse_state button_state;
     mouse_stage_e mouse_stage;
     focus_method_mouse_flag* flag;
   };
@@ -98,13 +98,13 @@ struct vfi_t {
   };
 
   using mouse_move_cb_t = fan::function_t<int(const mouse_move_data_t&)>;
-  using mouse_button_cb_t = fan::function_t<int(const mouse_data_t&)>;
+  using mouse_button_cb_t = fan::function_t<int(const mouse_button_data_t&)>;
   using keyboard_cb_t = fan::function_t<int(const keyboard_data_t&)>;
   using text_cb_t = fan::function_t<int(const text_data_t&)>;
 
   struct common_shape_data_t {
 
-    mouse_button_cb_t mouse_button_cb = [](const mouse_data_t&) -> int { return 0; };
+    mouse_button_cb_t mouse_button_cb = [](const mouse_button_data_t&) -> int { return 0; };
     mouse_move_cb_t mouse_move_cb = [](const mouse_move_data_t&) -> int { return 0; };
     keyboard_cb_t keyboard_cb = [](const keyboard_data_t&) -> int { return 0; };
     text_cb_t text_cb = [](const text_data_t&) -> int { return 0; };
@@ -117,7 +117,7 @@ struct vfi_t {
 
   struct common_shape_properties_t {
     shape_type_t shape_type;
-    mouse_button_cb_t mouse_button_cb = [](const mouse_data_t&) -> int { return 0; };
+    mouse_button_cb_t mouse_button_cb = [](const mouse_button_data_t&) -> int { return 0; };
     mouse_move_cb_t mouse_move_cb = [](const mouse_move_data_t&) -> int { return 0; };
     keyboard_cb_t keyboard_cb = [](const keyboard_data_t&) -> int { return 0; };
     text_cb_t text_cb = [](const text_data_t&) -> int { return 0; };
@@ -364,14 +364,14 @@ struct vfi_t {
 
   void feed_mouse_button(uint16_t button, fan::mouse_state state) {
     loco_t* loco = get_loco();
-    mouse_data_t mouse_button_data;
+    mouse_button_data_t mouse_button_data;
     mouse_button_data.vfi = this;
     if (focus.mouse.is_invalid()) {
       return;
     }
 
     mouse_button_data.button = button;
-    mouse_button_data.mouse_state = state;
+    mouse_button_data.button_state = state;
 
     auto* data = &shape_list[focus.mouse];
 

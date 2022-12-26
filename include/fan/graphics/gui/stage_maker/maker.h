@@ -24,7 +24,7 @@ struct stage_maker_t {
 		if (mb.button != key) { \
 			return 0; \
 					} \
-		if (mb.mouse_state != state) { \
+		if (mb.button_state != state) { \
 			return 0; \
 		}
 
@@ -266,7 +266,7 @@ static void lib_close(stage_common_t* sc) {
 		loco_t::menu_maker_t::properties_t p;
 		p.text = L"Erase";
 		p.theme = &erase_theme;
-		p.mouse_button_cb = [this](const loco_t::mouse_data_t& mb) -> int {
+		p.mouse_button_cb = [this](const loco_t::mouse_button_data_t& mb) -> int {
 
 			use_key_lambda(fan::mouse_left, fan::mouse_state::release);
 			
@@ -303,7 +303,7 @@ static void lib_close(stage_common_t* sc) {
 
 		loco_t::menu_maker_t::properties_t p;
 		p.text = L"Create New Stage";
-		p.mouse_button_cb = [this, loco](const loco_t::mouse_data_t& mb) -> int {
+		p.mouse_button_cb = [this, loco](const loco_t::mouse_button_data_t& mb) -> int {
 
 			use_key_lambda(fan::mouse_left, fan::mouse_state::release);
 
@@ -315,7 +315,7 @@ static void lib_close(stage_common_t* sc) {
 				loco_t::menu_maker_t::properties_t p;
 				static uint32_t x = 0;
 				p.text = fan::wstring(L"stage") + fan::to_wstring(x++);
-				p.mouse_button_cb = [this](const loco_t::mouse_data_t& mb) -> int {
+				p.mouse_button_cb = [this](const loco_t::mouse_button_data_t& mb) -> int {
 
 					use_key_lambda(fan::mouse_left, fan::mouse_state::release);
 
@@ -346,7 +346,7 @@ static void lib_close(stage_common_t* sc) {
 
 		loco->menu_maker.push_back(instances[stage_t::stage_options].menu_id, p);
 		p.text = L"Gui stage";
-		p.mouse_button_cb = [](const loco_t::mouse_data_t& mb) {
+		p.mouse_button_cb = [](const loco_t::mouse_button_data_t& mb) {
 
 			use_key_lambda(fan::mouse_left, fan::mouse_state::release);
 
@@ -366,7 +366,7 @@ static void lib_close(stage_common_t* sc) {
 		loco->menu_maker.push_back(instances[stage_t::stage_options].menu_id, p);
 		p.text = L"Function stage";
 
-		p.mouse_button_cb = [](const loco_t::mouse_data_t& mb) -> int {
+		p.mouse_button_cb = [](const loco_t::mouse_button_data_t& mb) -> int {
 
 			use_key_lambda(fan::mouse_left, fan::mouse_state::release);
 

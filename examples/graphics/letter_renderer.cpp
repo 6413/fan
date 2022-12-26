@@ -33,6 +33,7 @@ struct pile_t {
       fan::vec2 window_size = d.size;
       fan::vec2 ratio = window_size / window_size.max();
       matrices.set_ortho(
+        &loco,
         ortho_x * ratio.x, 
         ortho_y * ratio.y
       );
