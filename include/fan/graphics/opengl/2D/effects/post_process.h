@@ -97,7 +97,7 @@ struct post_process_t {
 			shader_bloom.compile(loco->get_context());
 
 			shader_bloom.use(loco->get_context());
-			//shader_bloom.set_int(loco->get_context(), "_t00", 0);
+			shader_bloom.set_int(loco->get_context(), "_t00", 0);
 
 			mips.open();
 
@@ -151,8 +151,6 @@ struct post_process_t {
       // I think not necessary
 //			loco->get_context()->set_depth_test(false); 
 
-			auto pp = get_post_process();
-		
 			fan::vec2 window_size = loco->get_window()->get_size();
 			
 			shader_downsample.use(loco->get_context());
@@ -177,8 +175,6 @@ struct post_process_t {
 		}
 		void draw_upsamples(f32_t filter_radius) {
 			auto loco = get_loco();
-
-			auto pp = get_post_process();
 
 			shader_upsample.use(loco->get_context());
 			shader_upsample.set_float(loco->get_context(), "filter_radius", filter_radius);
@@ -303,18 +299,18 @@ struct post_process_t {
 
 	}
 
-	void push(fan::opengl::viewport_t* viewport, fan::opengl::matrices_t* matrices) {
+	//void push(fan::opengl::viewport_t* viewport, fan::opengl::matrices_t* matrices) {
 
-		//for (uint32_t i = 0; i < 1; i++) {
-		//	post_sprite_t::properties_t sp;
-		//	sp.viewport = viewport;
-		//	sp.matrices = matrices;
-		//	sp.image = &bloom.mips[0].image;
-		//	sp.position =  get_loco()->get_window()->get_size() / 2;
-		//	sp.size = get_loco()->get_window()->get_size() / 2;
-		//	sprite.push_back(&cid, sp);
-		//}
-	}
+	//	//for (uint32_t i = 0; i < 1; i++) {
+	//	//	post_sprite_t::properties_t sp;
+	//	//	sp.viewport = viewport;
+	//	//	sp.matrices = matrices;
+	//	//	sp.image = &bloom.mips[0].image;
+	//	//	sp.position =  get_loco()->get_window()->get_size() / 2;
+	//	//	sp.size = get_loco()->get_window()->get_size() / 2;
+	//	//	sprite.push_back(&cid, sp);
+	//	//}
+	//}
 
 	//void update_renderbuffer( const fan::opengl::core::renderbuffer_t::properties_t& p) {
 	//  auto loco = get_loco();

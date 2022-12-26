@@ -455,8 +455,8 @@ public:
 
     fan::graphics::cid_t* cid;
   };
-  struct mouse_data_t : vfi_t::mouse_data_t {
-    mouse_data_t(const vfi_t::mouse_data_t& mm) : vfi_t::mouse_data_t(mm) {
+  struct mouse_button_data_t : vfi_t::mouse_button_data_t {
+    mouse_button_data_t(const vfi_t::mouse_button_data_t& mm) : vfi_t::mouse_button_data_t(mm) {
 
     }
 
@@ -479,7 +479,7 @@ public:
   };
 
   using mouse_move_cb_t = fan::function_t<int(const mouse_move_data_t&)>;
-  using mouse_button_cb_t = fan::function_t<int(const mouse_data_t&)>;
+  using mouse_button_cb_t = fan::function_t<int(const mouse_button_data_t&)>;
   using keyboard_cb_t = fan::function_t<int(const keyboard_data_t&)>;
   using text_cb_t = fan::function_t<int(const text_data_t&)>;
 
@@ -955,8 +955,8 @@ public:
     vfi.feed_mouse_move(mouse_position);
   }
 
-  void feed_mouse_button(uint16_t button, fan::mouse_state mouse_state, const fan::vec2& mouse_position) {
-    vfi.feed_mouse_button(button, mouse_state);
+  void feed_mouse_button(uint16_t button, fan::mouse_state button_state, const fan::vec2& mouse_position) {
+    vfi.feed_mouse_button(button, button_state);
   }
 
   void feed_keyboard(uint16_t key, fan::keyboard_state keyboard_state) {

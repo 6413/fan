@@ -11,6 +11,8 @@
 
 //#define loco_vulkan
 
+// set out vec4 o_attachment0; from sprite.fs
+
 
 #define loco_sprite
 #define loco_post_process
@@ -82,7 +84,7 @@ int main() {
 
 	pile->loco.get_window()->add_buttons_callback([&](const fan::window_t::mouse_buttons_cb_data_t& d) {
 
-		if (d.state != fan::button_state::press) {
+		if (d.state != fan::mouse_state::press) {
 			return;
 		}
 

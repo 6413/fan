@@ -86,7 +86,7 @@ struct global_button_t {
 //		uint32_t i = instance.size() - 1;
 //		instance[i] = new instance_t;
 //		instance[i]->shape = shapes::button;
-//		p.mouse_button_cb = [i](const loco_t::mouse_data_t& ii_d) -> int {
+//		p.mouse_button_cb = [i](const loco_t::mouse_button_data_t& ii_d) -> int {
 //			pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi), pile_t, loco);
 //			if (ii_d.button != fan::mouse_left) {
 //				return 0;
@@ -144,7 +144,7 @@ struct global_button_t {
 //				return 0;
 //			}
 //
-//			str += "\n\nstatic int mouse_button_cb" + fan::to_string(button_id) + "(const loco_t::mouse_data_t& mb){\n  return 0;\n}";
+//			str += "\n\nstatic int mouse_button_cb" + fan::to_string(button_id) + "(const loco_t::mouse_button_data_t& mb){\n  return 0;\n}";
 //
 //			fan::io::file::write(file_name, str, std::ios_base::binary);
 //			return 0;
@@ -195,7 +195,7 @@ struct builder_button_t {
 		menu_t::properties_t p;
 		p.text = L"";
 		p.text_value = L"add cbs";
-		p.mouse_button_cb = [this, instance](const loco_t::mouse_data_t& mb) -> int {
+		p.mouse_button_cb = [this, instance](const loco_t::mouse_button_data_t& mb) -> int {
 			return 0;
 		};
 		pile->stage_maker.fgm.menu.push_back(nr, p);
@@ -223,12 +223,12 @@ struct builder_button_t {
 		instance[i]->z = 0;
 		instance[i]->text = p.text;
 		instance[i]->theme = *pile->loco.get_context()->theme_list[p.theme].theme_id;
-		p.mouse_button_cb = [instance = instance[i]](const loco_t::mouse_data_t& ii_d) -> int {
+		p.mouse_button_cb = [instance = instance[i]](const loco_t::mouse_button_data_t& ii_d) -> int {
 			pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi_var_name), pile_t, loco_var_name);
 			if (ii_d.button != fan::mouse_left) {
 				return 0;
 			}
-			if (ii_d.mouse_state == fan::mouse_state::release) {
+			if (ii_d.button_state == fan::mouse_state::release) {
 				pile->stage_maker.fgm.builder_button.release();
 				// TODO FIX, erases in near bottom
 				if (!pile->stage_maker.fgm.viewport[viewport_area::editor].inside(pile->loco.get_mouse_position())) {
@@ -421,7 +421,7 @@ struct sprite_t {
 		menu_t::properties_t p;
 		p.text = L"";
 		p.text_value = L"add cbs";
-		p.mouse_button_cb = [this, instance](const loco_t::mouse_data_t& mb) -> int {
+		p.mouse_button_cb = [this, instance](const loco_t::mouse_button_data_t& mb) -> int {
 			use_key_lambda(fan::mouse_left, fan::mouse_state::release);
 
 			auto pile = get_pile();
@@ -454,22 +454,22 @@ struct sprite_t {
 		instances[i]->shape = shapes::sprite;
 		instances[i]->z = 0;
 		loco_t::vfi_t::properties_t vfip;
-		vfip.mouse_button_cb = [i](const loco_t::mouse_data_t& ii_d) -> int {
+		vfip.mouse_button_cb = [i](const loco_t::mouse_button_data_t& ii_d) -> int {
 			if (ii_d.button != fan::mouse_left) {
 				return 0;
 			}
-			if (ii_d.mouse_state == fan::mouse_state::press) {
+			if (ii_d.button_state == fan::mouse_state::press) {
 				ii_d.flag->ignore_move_focus_check = true;
 				ii_d.vfi->set_focus_keyboard(ii_d.vfi->get_focus_mouse());
 			}
-			if (ii_d.mouse_state == fan::mouse_state::release) {
+			if (ii_d.button_state == fan::mouse_state::release) {
 				ii_d.flag->ignore_move_focus_check = false;
 			}
 			pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi_var_name), pile_t, loco_var_name);
 
 			auto& instance = pile->stage_maker.fgm.sprite.instances[i];
 
-			if (ii_d.mouse_state == fan::mouse_state::release) {
+			if (ii_d.button_state == fan::mouse_state::release) {
 				pile->stage_maker.fgm.sprite.release();
 				// TODO FIX, erases in near bottom
 				if (!pile->stage_maker.fgm.viewport[viewport_area::editor].inside(pile->loco.get_mouse_position())) {
