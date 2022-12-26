@@ -883,6 +883,12 @@ public:
     #if defined(loco_sprite)
       sprite.m_ssbo.m_descriptor.m_layout,
     #endif
+    #if defined(loco_letter)
+      letter.m_ssbo.m_descriptor.m_layout,
+    #endif
+    #if defined(loco_button)
+      button.m_ssbo.m_descriptor.m_layout,
+    #endif
     #if defined(loco_yuv420p)
       yuv420p.m_ssbo.m_descriptor.m_layout,
     #endif
@@ -943,11 +949,11 @@ public:
 
   void process_frame() {
     #if defined(loco_opengl)
-    get_context()->opengl.call(get_context()->opengl.glClearColor, 0, 0, 0, 1);
-    get_context()->opengl.call(get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
     #if defined(loco_framebuffer)
     m_framebuffer.bind(get_context());
     #endif
+    get_context()->opengl.call(get_context()->opengl.glClearColor, 0, 0, 0, 1);
+    get_context()->opengl.call(get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
     #endif
 
     #ifdef loco_post_process
@@ -963,9 +969,8 @@ public:
       #include "draw_shapes.h"
     
     #if defined(loco_framebuffer)
-      m_flag_map_fbo.unbind(get_context());
+      //m_flag_map_fbo.unbind(get_context());
 
-      get_context()->set_depth_test(false);
       m_framebuffer.unbind(get_context());
       get_context()->opengl.call(get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
 
@@ -980,7 +985,6 @@ public:
 	    color_buffers[1].bind_texture(this);
       renderQuad();
       #endif
-      
       get_context()->render(get_window());
       #elif defined(loco_vulkan)
         get_context()->begin_render(get_window());
@@ -1039,7 +1043,7 @@ public:
   
   fan::opengl::core::framebuffer_t m_framebuffer;
   fan::opengl::core::renderbuffer_t m_rbo;
-  loco_t::image_t color_buffers[3];
+  loco_t::image_t color_buffers[2];
   fan::opengl::shader_t m_fbo_final_shader;
 
 #elif defined(loco_vulkan)

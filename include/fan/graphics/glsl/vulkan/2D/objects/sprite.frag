@@ -15,7 +15,7 @@ layout( push_constant ) uniform constants_t {
 
 void main() {
   o_color = texture(_t[constants.texture_id], texture_coordinate) * instance_color;
-  o2_color.r = 1;
+  o2_color.r = 1.0f;
   o2_color.a = 1.0f;
   if (o_color.a < 0.9) {
     discard;

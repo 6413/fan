@@ -5,7 +5,7 @@
 #ifndef FAN_INCLUDE_PATH
   #define FAN_INCLUDE_PATH C:/libs/fan/include
 #endif
-#define fan_debug 3
+#define fan_debug 0
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
 #define loco_vulkan
@@ -16,6 +16,8 @@
 #define loco_context
 
 //#define loco_post_process
+
+#define loco_framebuffer
 
 #define loco_rectangle
 #define loco_sprite
@@ -66,12 +68,12 @@ int main() {
   //  pile->loco.rectangle.push_back(&pile->cids[i], p);
   //}
 
-      p.position = fan::vec3(fan::random::vec2(-1, 1), 0);
+      p.position = fan::vec3(fan::random::vec2(-1, 1), 2);
     pile->loco.rectangle.push_back(&pile->cids[0], p);
 
     p.position = fan::vec3(fan::random::vec2(-1, 1), 0);
     pile->loco.rectangle.push_back(&pile->cids[0], p);
-
+    //pile->loco.
   //p.position = fan::vec2(0, 0);
   //p.color = fan::colors::white;
   //pile->loco.rectangle.push_back(&pile->cids[2], p);
@@ -83,6 +85,21 @@ int main() {
   //  p.position = fan::random::vec2(0, 1920);
   //  pile->loco.rectangle.push_back(&pile->cids[i], p);
   //}
+
+    {
+
+      loco_t::sprite_t::properties_t p;
+
+      p.size = fan::vec2(1);
+      p.matrices = &pile->matrices;
+      p.viewport = &pile->viewport;
+
+      loco_t::image_t image;
+      image.load(&pile->loco, "images/test.webp");
+      p.image = &image;
+      p.position = fan::vec3(0, 0, 1);
+      pile->loco.sprite.push_back(&pile->cids[0], p);
+    }
 
 
   pile->loco.set_vsync(false);

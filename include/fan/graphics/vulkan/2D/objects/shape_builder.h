@@ -497,6 +497,10 @@ fan::graphics::shader_t m_shader;
 
 fan::vulkan::pipeline_t m_pipeline;
 
+#undef vk_sb_ssbo
+#undef vk_sb_vp
+#undef vk_sb_image
+
 #undef sb_shader_vertex_path
 #undef sb_shader_fragment_path
 #undef sb_vertex_count

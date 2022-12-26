@@ -424,9 +424,7 @@ namespace fan {
 #if defined(loco_wboit)
         create_wboit_views();
 #endif
-#if defined(loco_framebuffer)
         create_loco_framebuffer();
-#endif
         createDepthResources();
         createFramebuffers();
         createCommandBuffers();
@@ -879,10 +877,8 @@ namespace fan {
               vai_wboit_reveal.image_view,
             #endif
 
-          #if defined(loco_framebuffer)
             vai_bitmap[0].image_view,
             vai_bitmap[1].image_view,
-          #endif
             swapChainImageViews[i],
             vai_bitmap[1].image_view,
             vai_depth.image_view,
@@ -916,9 +912,8 @@ namespace fan {
         }
       }
 
-#if defined(loco_framebuffer)
       void create_loco_framebuffer();
-#endif
+
       void create_wboit_views();
       void createDepthResources();
 
@@ -1181,17 +1176,12 @@ namespace fan {
 
 #else
         VkClearValue clearValues[
-          3
-#if defined(loco_framebuffer)
-            +2
-#endif
+          5
         ]{};
           clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f} };
-#if defined(loco_framebuffer)
           clearValues[1].color = { {0.f, 0.f, 0.f, 0.f} };
           clearValues[2].color = { {0.f, 0.f, 0.f, 0.f} };
           clearValues[3].color = { {0.f, 0.f, 0.f, 0.f} };
-#endif
           clearValues[4].depthStencil = { 1.0f, 0 };
 #endif
 
@@ -1574,9 +1564,7 @@ namespace fan {
       VkCommandPool commandPool;
 
       vai_t vai_depth;
-#if defined(loco_framebuffer)
       vai_t vai_bitmap[2];
-#endif
 #if defined(loco_wboit)
       vai_t vai_wboit_color;
       vai_t vai_wboit_reveal;
@@ -1649,7 +1637,6 @@ namespace fan {
       vkBindImageMemory(context->device, image, imageMemory, 0);
     }
 
-#if defined(loco_framebuffer)
     void context_t::create_loco_framebuffer() {
       vai_t::properties_t p;
       p.format = swapChainImageFormat;
@@ -1661,7 +1648,6 @@ namespace fan {
       vai_bitmap[1].open(this, p);
       vai_bitmap[1].transition_image_layout(this, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     }
-#endif
 
 #if defined(loco_wboit)
     void context_t::create_wboit_views() {

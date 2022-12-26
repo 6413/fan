@@ -1645,7 +1645,7 @@ uint32_t fan::window_t::handle_events() {
 
         uint16_t key = 0;
 
-        key = fan::window_input::convert_scancode_to_fan(key);
+        key = fan::window_input::convert_scancode_to_fan((msg.lParam >> 16) & 0x1ff);
 
         do {
           if (key == fan::key_control || key == fan::key_alt || key == fan::key_shift) {
@@ -2226,7 +2226,6 @@ uint32_t fan::window_t::handle_events() {
             }
           }
           else {
-            fan::print("release came for", i);
             auto it = fwindow->m_keys_callback.GetNodeFirst();
             while (it != fwindow->m_keys_callback.dst) {
               fwindow->m_keys_callback.StartSafeNext(it);

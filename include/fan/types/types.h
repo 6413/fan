@@ -132,7 +132,7 @@ namespace fan {
 	constexpr void wprint_no_endline(const Args&... args);
 
 	template <typename ...Args>
-	constexpr void print(const Args&... args);
+	void print(const Args&... args);
 
 	template <typename ...Args>
 	constexpr void wprint(const Args&... args);
@@ -163,7 +163,7 @@ namespace fan {
 	}
 
 	template <typename ...Args>
-	constexpr void print(const Args&... args) {
+	void print(const Args&... args) {
 		((std::cout << args << ' '), ...) << '\n';
 	}
 

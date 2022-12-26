@@ -148,7 +148,8 @@ struct post_process_t {
 
 		void draw_downsamples(loco_t::image_t* image) {
 			auto loco = get_loco();
-			loco->get_context()->set_depth_test(false);
+      // I think not necessary
+//			loco->get_context()->set_depth_test(false); 
 
 			auto pp = get_post_process();
 		
@@ -322,8 +323,8 @@ struct post_process_t {
 
 	void start_capture() {
 		auto loco = get_loco();
-		loco->get_context()->opengl.call(loco->get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
 		hdr_fbo.bind(loco->get_context());
+		loco->get_context()->opengl.call(loco->get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
 	}
 	void end_capture() {
 		auto loco = get_loco();
