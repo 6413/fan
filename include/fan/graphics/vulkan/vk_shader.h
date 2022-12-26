@@ -26,7 +26,7 @@ namespace fan {
         return { result.cbegin(), result.cend() };
       }
 
-      std::vector<uint32_t> compile_file(const fan::string& source_name,
+      static std::vector<uint32_t> compile_file(const fan::string& source_name,
         shaderc_shader_kind kind,
         const fan::string& source) {
         shaderc::Compiler compiler;
@@ -57,7 +57,7 @@ namespace fan {
       void set_vertex(fan::vulkan::context_t* context, const fan::string& shader_name, const fan::string& shader_code) {
        // fan::print(
        //   "processed vertex shader:", path, "resulted in:",
-        preprocess_shader(shader_name.c_str(), shaderc_glsl_vertex_shader, shader_code);
+       // preprocess_shader(shader_name.c_str(), shaderc_glsl_vertex_shader, shader_code);
        // );
 
         auto spirv =

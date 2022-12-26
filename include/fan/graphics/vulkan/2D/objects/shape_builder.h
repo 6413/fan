@@ -399,9 +399,10 @@ template <typename T = void>
 fan::graphics::viewport_t* get_viewport(fan::graphics::cid_t* cid) requires fan::has_viewport_t<properties_t> {
   auto ri = sb_get_ri(cid);
   loco_t* loco = get_loco();
-  return loco->get_context()->viewport_list[*ri.key.get_value<
+  auto idx = *ri.key.get_value<
     bm_properties_t::key_t::get_index_with_type<fan::graphics::viewport_list_NodeReference_t>()
-  >()].viewport_id;
+  >();
+  return loco->get_context()->viewport_list[idx].viewport_id;
 }
 
 //void set_vertex(const fan::string& str) {

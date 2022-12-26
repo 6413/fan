@@ -1,3 +1,4 @@
+R"(
 #version 430
 
 layout(location = 0) out vec4 ocolor;
@@ -11,3 +12,4 @@ layout(location = 0) in travel_data_t data;
 void main() {
 	ocolor = data.color;
 }
+)"

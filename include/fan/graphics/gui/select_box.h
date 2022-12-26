@@ -44,7 +44,7 @@ namespace fan_2d {
           m_menu_open = 0;
 
           m_select_box.m_button_event.set_on_input(this, [](fan::window_t* window, fan::opengl::context_t* context, uint32_t i, uint16_t key, fan::key_state key_state, fan_2d::graphics::gui::mouse_stage mouse_stage, void* user_ptr) {
-            if (key != fan::button_left) {
+            if (key != fan::mouse_left) {
               return;
             }
             if (key_state != fan::key_state::release) {

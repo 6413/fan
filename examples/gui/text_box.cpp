@@ -34,6 +34,7 @@ struct pile_t {
       //std::swap(ratio.x, ratio.y);
       //pile_t* pile = (pile_t*)userptr;
       matrices.set_ortho(
+        &loco,
         fan::vec2(-1, 1) * ratio.x,
         fan::vec2(-1, 1) * ratio.y
       );

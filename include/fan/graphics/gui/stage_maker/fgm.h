@@ -144,7 +144,7 @@ struct fgm_t {
 
 		//menu_t::properties_t mp;
 		//mp.text = L"button";
-		//mp.mouse_button_cb = [nr](const loco_t::mouse_button_data_t& ii_d) -> int {
+		//mp.mouse_button_cb = [nr](const loco_t::mouse_data_t& ii_d) -> int {
 		//	pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi), pile_t, loco);
 		//	if (ii_d.button != fan::button_left) {
 		//		return 0;
@@ -173,7 +173,7 @@ struct fgm_t {
 		//	auto builder_cid = &pile->stage_maker.fgm.builder_button.instance[pile->stage_maker.fgm.builder_button.instance.size() - 1]->cid;
 		//	auto ri = pile->loco.button.get_ri(builder_cid);
 		//	pile->loco.vfi.set_focus_mouse(ri.vfi_id);
-		//	pile->loco.vfi.feed_mouse_button(fan::button_left, fan::button_state::press);
+		//	pile->loco.vfi.feed_mouse_button(fan::button_left, fan::mouse_state::press);
 		//	pile->stage_maker.fgm.builder_button.open_properties(builder_cid);
 		//	
 		//	auto stage_name = pile->stage_maker.get_selected_name(
@@ -202,7 +202,7 @@ struct fgm_t {
 		//		return 0;
 		//	}
 		//	
-		//	str += "\n\nstatic int mouse_button_cb" + fan::to_string(button_id) + "(const loco_t::mouse_button_data_t& mb){\n  return 0;\n}";
+		//	str += "\n\nstatic int mouse_button_cb" + fan::to_string(button_id) + "(const loco_t::mouse_data_t& mb){\n  return 0;\n}";
 		//	
 		//	fan::io::file::write(file_name, str, std::ios_base::binary);
 		//	return 0;
@@ -210,7 +210,7 @@ struct fgm_t {
 		//menu.push_back(nr, mp);
 
 		//mp.text = L"sprite";
-		//mp.mouse_button_cb = [this, nr](const loco_t::mouse_button_data_t& ii_d) -> int {
+		//mp.mouse_button_cb = [this, nr](const loco_t::mouse_data_t& ii_d) -> int {
 		//	pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi), pile_t, loco);
 		//	if (ii_d.button != fan::button_left) {
 		//		return 0;
@@ -236,7 +236,7 @@ struct fgm_t {
 		//	pile->stage_maker.fgm.sprite.push_back(sp);
 		//	auto& instance = pile->stage_maker.fgm.sprite.instances[pile->stage_maker.fgm.sprite.instances.size() - 1];
 		//	pile->loco.vfi.set_focus_mouse(instance->vfi_id);
-		//	pile->loco.vfi.feed_mouse_button(fan::button_left, fan::button_state::press);
+		//	pile->loco.vfi.feed_mouse_button(fan::button_left, fan::mouse_state::press);
 		//	pile->stage_maker.fgm.sprite.open_properties(&instance->cid);
 
 		//	return 0;
@@ -263,13 +263,13 @@ struct fgm_t {
 		vfip.shape.rectangle.viewport = &viewport[viewport_area::global];
 		vfip.shape.rectangle.size = viewport[viewport_area::types].get_size() / loco->get_window()->get_size();
 
-    vfip.mouse_button_cb = [this, loco, vfi_id = (loco_t::vfi_t::shape_id_t)0](const loco_t::vfi_t::mouse_button_data_t& mb) mutable -> int {
+    vfip.mouse_button_cb = [this, loco, vfi_id = (loco_t::vfi_t::shape_id_t)0](const loco_t::vfi_t::mouse_data_t& mb) mutable -> int {
       loco_t::menu_maker_t::open_properties_t rcm_op;
 		  rcm_op.matrices = &matrices[viewport_area::global];
 		  rcm_op.viewport = &viewport[viewport_area::global];
 		  rcm_op.theme = &theme;
 		  rcm_op.gui_size = 0.04;
-			if (mb.button != fan::button_right) {
+			if (mb.button != fan::mouse_right) {
 				invalidate_right_click_menu();
 				return 0;
 			}
@@ -277,7 +277,7 @@ struct fgm_t {
 				invalidate_right_click_menu();
 				return 0;
 			}
-			if (mb.button_state != fan::button_state::release) {
+			if (mb.mouse_state != fan::mouse_state::release) {
 				invalidate_right_click_menu();
 				return 0;
 			}
@@ -287,12 +287,12 @@ struct fgm_t {
 				right_click_menu_nr = loco->menu_maker.push_menu(rcm_op);
         push_menu(mb, {
           .text = L"button",
-          .mouse_button_cb = [this](const loco_t::mouse_button_data_t& ii_d) -> int {
+          .mouse_button_cb = [this](const loco_t::mouse_data_t& ii_d) -> int {
 			      pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi), pile_t, loco);
-			      if (ii_d.button != fan::button_left) {
+			      if (ii_d.button != fan::mouse_left) {
 				      return 0;
 			      }
-            if (ii_d.button_state != fan::button_state::release) {
+            if (ii_d.mouse_state != fan::mouse_state::release) {
               return 0;
             }
 			      if (ii_d.mouse_stage != loco_t::vfi_t::mouse_stage_e::inside) {
@@ -313,7 +313,7 @@ struct fgm_t {
 			      auto builder_cid = &pile->stage_maker.fgm.builder_button.instance[pile->stage_maker.fgm.builder_button.instance.size() - 1]->cid;
 			      auto ri = pile->loco.button.get_ri(builder_cid);
 			      //pile->loco.vfi.set_focus_mouse(ri.vfi_id);
-			      //pile->loco.vfi.feed_mouse_button(fan::button_left, fan::button_state::press);
+			      //pile->loco.vfi.feed_mouse_button(fan::button_left, fan::mouse_state::press);
 			      pile->stage_maker.fgm.builder_button.open_properties(builder_cid);
 			
 			      auto stage_name = pile->stage_maker.get_selected_name(
@@ -361,7 +361,7 @@ struct fgm_t {
         loco_t::vfi_t::properties_t p;
 		    p.shape_type = loco_t::vfi_t::shape_t::always;
 		    p.shape.always.z = rcm_op.position.z;
-		    p.mouse_button_cb = [this, &vfi_id, loco](const loco_t::vfi_t::mouse_button_data_t& mb) -> int {
+		    p.mouse_button_cb = [this, &vfi_id, loco](const loco_t::vfi_t::mouse_data_t& mb) -> int {
 			    pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco);
           invalidate_right_click_menu();
           fan::print("debug0", loco->vfi.focus.mouse.NRI, loco->vfi.focus.keyboard.NRI, loco->vfi.focus.text.NRI);
@@ -383,8 +383,8 @@ struct fgm_t {
 		gbp.size = button_size / fan::vec2(4, 2);
 		gbp.theme = &theme;
 		gbp.text = L"<-";
-		gbp.mouse_button_cb = [this](const loco_t::mouse_button_data_t& mb) -> int {
-			use_key_lambda(fan::button_left, fan::button_state::release);
+		gbp.mouse_button_cb = [this](const loco_t::mouse_data_t& mb) -> int {
+			use_key_lambda(fan::mouse_left, fan::mouse_state::release);
 
 			stage_maker_t* stage_maker = OFFSETLESS(this, stage_maker_t, fgm);
 			stage_maker->reopen_from_fgm();
@@ -449,7 +449,7 @@ struct fgm_t {
 		//loco_t::vfi_t::properties_t p;
 		//p.shape_type = loco_t::vfi_t::shape_t::always;
 		//p.shape.always.z = 0;
-		//p.mouse_button_cb = [](const loco_t::vfi_t::mouse_button_data_t& mb) -> int {
+		//p.mouse_button_cb = [](const loco_t::vfi_t::mouse_data_t& mb) -> int {
 		//	pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco);
 		//	return 0;
 		//};
