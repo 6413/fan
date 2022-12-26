@@ -172,8 +172,8 @@ struct button_t {
   #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/objects/button.fs)
   #elif defined(loco_vulkan)
     #define vulkan_buffer_count 4
-    #define sb_shader_vertex_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/button.vert.spv)
-    #define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/button.frag.spv)
+    #define sb_shader_vertex_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/button.vert)
+    #define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/button.frag)
   #endif
   #define vk_sb_ssbo
   #define vk_sb_vp

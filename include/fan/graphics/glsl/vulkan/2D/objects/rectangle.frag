@@ -1,3 +1,4 @@
+R"(
 #version 430
 
 //#define wboit
@@ -49,3 +50,4 @@ void main() {
 		reveal = color.a;
 	#endif
 }
+)"

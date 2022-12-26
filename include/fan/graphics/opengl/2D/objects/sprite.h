@@ -100,8 +100,8 @@ struct sb_sprite_name {
     #endif
   #elif defined(loco_vulkan)
     #define vulkan_buffer_count 5
-    #define sb_shader_vertex_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/sprite.vert.spv)
-    #define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/sprite.frag.spv)
+    #define sb_shader_vertex_path graphics/glsl/vulkan/2D/objects/sprite.vert
+    #define sb_shader_fragment_path graphics/glsl/vulkan/2D/objects/sprite.frag
   #endif
 
   #define vk_sb_ssbo

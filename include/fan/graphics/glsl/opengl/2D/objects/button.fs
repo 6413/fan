@@ -1,7 +1,8 @@
 R"(
-  #version 150
+  #version 330
 
-  out vec4 color;
+  layout (location = 0) out vec4 o_attachment0;
+  layout (location = 1) out uint o_attachment1;
 
   uniform mat4 view;
   uniform mat4 projection;
@@ -13,16 +14,16 @@ R"(
   in float aspect_ratio;
 
   void main() {
-    color = instance_color;
+    o_attachment0 = instance_color;
     
     vec2 p = abs(tcs);
     vec2 border_size = vec2(1.0) - outline_size * vec2(aspect_ratio, 1);
 
     if (p.x > border_size.x) {
-      color = outline_color;
+      o_attachment0 = outline_color;
     }
     if (p.y > border_size.y) {
-      color = outline_color;
+      o_attachment0 = outline_color;
     }
   }
 )"

@@ -1,3 +1,4 @@
+R"(
 #version 420
 
 layout(input_attachment_index=0, binding = 3) uniform subpassInput attachment0;
@@ -14,3 +15,4 @@ void main() {
   vec4 c = o_color;
 
 }
+)"

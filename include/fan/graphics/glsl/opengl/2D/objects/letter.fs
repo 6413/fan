@@ -1,7 +1,8 @@
 R"(
-#version 140
+#version 330
 
-out vec4 o_color;
+layout (location = 0) out vec4 o_attachment0;
+layout (location = 1) out uint o_attachment1;
 
 in vec4 text_color;
 in vec2 texture_coordinate;
@@ -22,10 +23,10 @@ void main() {
 
  // vec3 final_color = mix(vec3(0, 0, 0), text_color.rgb, outline_alpha);
 
-  o_color = vec4(text_color.rgb, alpha);
-  if (o_color.a < 0.1) {
+  o_attachment0 = vec4(text_color.rgb, alpha);
+  if (o_attachment0.a < 0.1) {
 		discard;
 	}
-//  o_color = vec4(0.5, 0, 0, 1);
+//  o_attachment0 = vec4(0.5, 0, 0, 1);
 }
 )"
