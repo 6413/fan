@@ -54,9 +54,9 @@ int main(int argc, char** argv) {
   pile_t* pile = new pile_t(argv[1]);
 
   pile->loco.set_vsync(false);
-  //pile->loco.get_window()->set_max_fps(5);
+  //pile->loco.get_window()->set_max_fps(5);w
   pile->loco.loop([&] {
-    pile->loco.get_fps();
+    //pile->loco.get_fps();
     //fan::print(pile->loco.menu_maker.get_selected(pile->stage_maker.instances[pile_t::stage_maker_t::stage_t::state_instance].menu_id));
   });
 

@@ -11,7 +11,6 @@ void main() {
 	//o_color = subpassLoad(attachment0) + subpassLoad(attachment1);
   //o_color.a = 0;
   o_color = subpassLoad(attachment0) + subpassLoad(attachment1);
-  //o_color.a = 1.f;
-  //r_color = o_color;
+  vec4 c = o_color;
 
 }

@@ -2,7 +2,9 @@
 
     struct format {
       static constexpr auto b8g8r8a8_unorm = VK_FORMAT_B8G8R8A8_UNORM;
+      static constexpr auto r8b8g8a8_unorm = VK_FORMAT_R8G8B8A8_UNORM;
       static constexpr auto r8_unorm = VK_FORMAT_R8_UNORM;
+      static constexpr auto r8g8b8a8_srgb = VK_FORMAT_R8G8B8A8_SRGB;
     };
 
     struct sampler_address_mode {
@@ -21,7 +23,7 @@
     struct load_properties_defaults {
       static constexpr VkSamplerAddressMode visual_output = sampler_address_mode::clamp_to_border;
       //static constexpr uint32_t internal_format = fan::opengl::GL_RGBA;
-      static constexpr VkFormat format = format::b8g8r8a8_unorm;
+      static constexpr VkFormat format = format::r8b8g8a8_unorm;
       //static constexpr uint32_t type = fan::opengl::GL_UNSIGNED_BYTE;
       static constexpr VkFilter filter = filter::nearest;
     };
@@ -215,6 +217,12 @@
           return 4;
         }
         case format::r8_unorm: {
+          return 4;
+        }
+        case format::r8g8b8a8_srgb: {
+          return 4;
+        }
+        case format::r8b8g8a8_unorm: {
           return 4;
         }
         default: {

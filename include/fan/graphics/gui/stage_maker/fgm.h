@@ -270,17 +270,14 @@ struct fgm_t {
 		  rcm_op.theme = &theme;
 		  rcm_op.gui_size = 0.04;
 			if (mb.button != fan::button_right) {
-        fan::print("0");
 				invalidate_right_click_menu();
 				return 0;
 			}
 			if (mb.mouse_stage != loco_t::vfi_t::mouse_stage_e::inside) {
-        fan::print("1");
 				invalidate_right_click_menu();
 				return 0;
 			}
 			if (mb.button_state != fan::button_state::release) {
-        fan::print("2");
 				invalidate_right_click_menu();
 				return 0;
 			}

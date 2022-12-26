@@ -73,7 +73,7 @@ struct text_renderer_t {
       auto letter = loco->font.info.characters[text[i]];
 
       if (i == text.size() - 1) {
-        width += letter.glyph.size.x;
+        width += letter.metrics.advance;
       }
       else {
         width += letter.metrics.advance;
