@@ -54,8 +54,14 @@ void sb_open() {
   root = loco_bdbt_NewNode(&loco->bdbt);
 
   m_shader.open(context, &loco->m_write_queue);
-  m_shader.set_vertex(context, sb_shader_vertex_path);
-  m_shader.set_fragment(context, sb_shader_fragment_path);
+  m_shader.set_vertex(context,
+    STRINGIFY(sb_shader_vertex_path),
+    #include _FAN_PATH(sb_shader_vertex_path)
+  );
+  m_shader.set_fragment(context, 
+    STRINGIFY(sb_shader_vertex_path),
+    #include _FAN_PATH(sb_shader_fragment_path)
+  );
 
   m_ssbo.open(context);
 
@@ -398,14 +404,14 @@ fan::graphics::viewport_t* get_viewport(fan::graphics::cid_t* cid) requires fan:
   >()].viewport_id;
 }
 
-void set_vertex(const fan::string& str) {
-  loco_t* loco = get_loco();
-  m_shader.set_vertex(loco->get_context(), str);
-}
-void set_fragment(const fan::string& str) {
-  loco_t* loco = get_loco();
-  m_shader.set_fragment(loco->get_context(), str);
-}
+//void set_vertex(const fan::string& str) {
+//  loco_t* loco = get_loco();
+//  m_shader.set_vertex(loco->get_context(), str);
+//}
+//void set_fragment(const fan::string& str) {
+//  loco_t* loco = get_loco();
+//  m_shader.set_fragment(loco->get_context(), str);
+//}
 
 template <uint32_t depth = 0>
 void traverse_draw(auto nr) {

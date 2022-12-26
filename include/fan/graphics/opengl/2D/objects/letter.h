@@ -94,8 +94,8 @@ struct letter_t {
     #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/objects/letter.fs)
   #elif defined(loco_vulkan)
     #define vulkan_buffer_count 5
-    #define sb_shader_vertex_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/letter.vert.spv)
-    #define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/letter.frag.spv)
+    #define sb_shader_vertex_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/letter.vert)
+    #define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/letter.frag)
   #endif
 
   #define vk_sb_ssbo

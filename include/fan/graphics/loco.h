@@ -874,8 +874,16 @@ public:
     auto context = get_context();
 
     render_fullscreen_shader.open(context, &m_write_queue);
-    render_fullscreen_shader.set_vertex(context, _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/loco_fbo.vert.spv));
-    render_fullscreen_shader.set_fragment(context, _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/loco_fbo.frag.spv));
+    render_fullscreen_shader.set_vertex(
+      context, 
+      "graphics/glsl/vulkan/2D/objects/loco_fbo.vert", 
+      #include _FAN_PATH(graphics/glsl/vulkan/2D/objects/loco_fbo.vert))
+    );
+    render_fullscreen_shader.set_fragment(
+      context, 
+      "graphics/glsl/vulkan/2D/objects/loco_fbo.frag", 
+      #include _FAN_PATH(graphics/glsl/vulkan/2D/objects/loco_fbo.frag))
+    );
     VkDescriptorSetLayout layouts[] = {
     #if defined(loco_rectangle)
       rectangle.m_ssbo.m_descriptor.m_layout,

@@ -1913,11 +1913,11 @@ void fan::vulkan::shader_t::close(fan::vulkan::context_t* context, fan::vulkan::
   projection_view_block.close(context, write_queue);
 }
 
-inline VkShaderModule fan::vulkan::shader_t::createShaderModule(fan::vulkan::context_t* context, const fan::string& code) {
+inline VkShaderModule fan::vulkan::shader_t::createShaderModule(fan::vulkan::context_t* context, const std::vector<uint32_t>& code) {
   VkShaderModuleCreateInfo createInfo{};
   createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-  createInfo.codeSize = code.size();
-  createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+  createInfo.codeSize = code.size() * sizeof(typename std::remove_reference_t<decltype(code)>::value_type);
+  createInfo.pCode = code.data();
 
   VkShaderModule shaderModule;
   if (vkCreateShaderModule(context->device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {

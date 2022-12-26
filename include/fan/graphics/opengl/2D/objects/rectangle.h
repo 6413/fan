@@ -71,8 +71,9 @@ struct rectangle_t {
     #else
       #define vulkan_buffer_count 4
     #endif
-    #define sb_shader_vertex_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/rectangle.vert.spv)
-    #define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/rectangle.frag.spv)
+  
+    #define sb_shader_vertex_path graphics/glsl/vulkan/2D/objects/rectangle.vert
+    #define sb_shader_fragment_path graphics/glsl/vulkan/2D/objects/rectangle.frag
   #endif
 
   #define vk_sb_ssbo

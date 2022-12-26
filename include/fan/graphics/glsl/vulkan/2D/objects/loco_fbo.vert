@@ -1,3 +1,4 @@
+R"(
 #version 450
 
 vec2 rectangle_vertices[] = vec2[](
@@ -16,3 +17,4 @@ void main() {
 
   gl_Position = vec4(rectangle_vertices[gl_VertexIndex], 0, 1);
 }
+)"
