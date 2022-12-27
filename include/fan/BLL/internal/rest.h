@@ -21,10 +21,16 @@
 #if BLL_set_PadNode == 0
   #pragma pack(push, 1)
 #endif
-#if defined(BLL_set_node_data)
-  BLL_StructBegin(_P(NodeData_t))
-  BLL_set_node_data
-  BLL_StructEnd(_P(NodeData_t))
+#if defined(_BLL_HaveConstantNodeData)
+  #if defined(BLL_set_NodeData)
+    BLL_StructBegin(_P(NodeData_t))
+      BLL_set_NodeData
+    BLL_StructEnd(_P(NodeData_t))
+  #elif defined(BLL_set_NodeDataType)
+    typedef BLL_set_NodeDataType _P(NodeData_t);
+  #else
+    #error not possible
+  #endif
 #else
   typedef void _P(NodeData_t);
 #endif
@@ -38,7 +44,7 @@ BLL_StructBegin(_P(Node_t))
       _P(NodeReference_t) NextNodeReference;
     #endif
   #endif
-  #ifdef BLL_set_node_data
+  #ifdef _BLL_HaveConstantNodeData
     #ifdef BLL_set_CPP_Node_ConstructDestruct
       _P(NodeData_t) data;
       #if BLL_set_Link == 0
@@ -99,7 +105,7 @@ BLL_StructEnd(_P(Node_t))
   #if defined(BLL_set_MultipleType_Sizes)
     #define BVEC_set_MultipleType
     #define BVEC_set_MultipleType_SizeArray _P(_MultipleType_Sizes)
-  #elif defined(BLL_set_node_data)
+  #elif defined(_BLL_HaveConstantNodeData)
     #define BVEC_set_NodeData _P(Node_t)
   #endif
   #define BVEC_set_alloc_open BLL_set_StoreFormat0_alloc_open
@@ -108,7 +114,7 @@ BLL_StructEnd(_P(Node_t))
   #include _BLL_INCLUDE(BVEC/BVEC.h)
 #elif BLL_set_StoreFormat == 1
   #define BVEC_set_BaseLibrary BLL_set_BaseLibrary
-  #ifndef BLL_set_node_data
+  #ifndef _BLL_HaveConstantNodeData
     #error not yet
   #endif
   #if defined(BLL_set_MultipleType_Sizes)
@@ -152,7 +158,7 @@ BLL_StructBegin(_P(t))
   #if BLL_set_StoreFormat == 1
     BLL_set_type_node NodeCurrent;
   #endif
-  #ifndef BLL_set_node_data
+  #ifndef _BLL_HaveConstantNodeData
     uint32_t NodeSize;
   #endif
   #if BLL_set_Link == 1
@@ -195,7 +201,7 @@ _BLL_POFTWBIT(GetNodeSize)
 
   #if defined(BLL_set_MultipleType_Sizes)
     return _P(_NodeList_GetNodeSize)(&_BLL_GetList->NodeList, PointerIndex);
-  #elif defined(BLL_set_node_data)
+  #elif defined(_BLL_HaveConstantNodeData)
     return sizeof(_P(Node_t));
   #else
     return _P(_NodeList_GetNodeSize)(&_BLL_GetList->NodeList);
@@ -262,7 +268,7 @@ _BLL_POFTWBIT(_GetNodeByReference)
       return (_P(Node_t) *)_P(_NodeList_GetNode)(&_BLL_GetList->NodeList, NodeReference.NRI);
     #endif
   #elif BLL_set_StoreFormat == 1
-    #if defined(BLL_set_node_data)
+    #if defined(_BLL_HaveConstantNodeData)
       _P(BlockIndex_t) bi = NodeReference.NRI / BLL_set_StoreFormat1_ElementPerBlock;
       _P(BlockModulo_t) bm = NodeReference.NRI % BLL_set_StoreFormat1_ElementPerBlock;
       /* TODO this looks like mess check it */
@@ -836,12 +842,12 @@ void
 _BLL_POFTWBIT(Open)
 (
   _BLL_DBLLTFF
-  #if !defined(BLL_set_node_data) && !defined(BLL_set_MultipleType_Sizes)
+  #if !defined(_BLL_HaveConstantNodeData) && !defined(BLL_set_MultipleType_Sizes)
     _BLL_OCIBLLTFFE BLL_set_NodeSizeType NodeDataSize
   #endif
 ){
   BLL_set_NodeSizeType NodeSize = sizeof(_P(Node_t));
-  #if !defined(BLL_set_node_data) && !defined(BLL_set_MultipleType_Sizes)
+  #if !defined(_BLL_HaveConstantNodeData) && !defined(BLL_set_MultipleType_Sizes)
     NodeSize += NodeDataSize;
     #if BLL_set_Link == 0
       /* for NextRecycled */
@@ -854,7 +860,7 @@ _BLL_POFTWBIT(Open)
   #endif
 
   #if BLL_set_StoreFormat == 0
-    #if defined(BLL_set_node_data) || defined(BLL_set_MultipleType_Sizes)
+    #if defined(_BLL_HaveConstantNodeData) || defined(BLL_set_MultipleType_Sizes)
       _P(_NodeList_Open)(&_BLL_GetList->NodeList);
     #else
       _P(_NodeList_Open)(&_BLL_GetList->NodeList, NodeSize);
@@ -1015,7 +1021,7 @@ _BLL_POFTWBIT(GetNodeReferenceData)
     #else
       return (_P(NodeData_t) *)Node;
     #endif
-  #elif defined(BLL_set_node_data)
+  #elif defined(_BLL_HaveConstantNodeData)
     return (_P(NodeData_t) *)&Node->data;
   #else
     return (_P(NodeData_t) *)((uint8_t *)Node + sizeof(_P(Node_t)));
@@ -1025,7 +1031,7 @@ _BLL_POFTWBIT(GetNodeReferenceData)
 #if BLL_set_Language == 1
   #if defined(BLL_set_MultipleType_Sizes)
     /* what syntax you would like */
-  #elif defined(BLL_set_node_data)
+  #elif defined(_BLL_HaveConstantNodeData)
     _P(NodeData_t) &operator[](_P(NodeReference_t) NR){
       return *_BLL_POFTWBIT(GetNodeReferenceData)(NR);
     }
@@ -1037,12 +1043,12 @@ _BLL_POFTWBIT(GetNodeReferenceData)
 
   #ifdef BLL_set_CPP_ConstructDestruct
     _P(t)(
-      #if !defined(BLL_set_node_data) && !defined(BLL_set_MultipleType_Sizes)
+      #if !defined(_BLL_HaveConstantNodeData) && !defined(BLL_set_MultipleType_Sizes)
         BLL_set_NodeSizeType NodeDataSize
       #endif
     ){
       Open(
-      #if !defined(BLL_set_node_data) && !defined(BLL_set_MultipleType_Sizes)
+      #if !defined(_BLL_HaveConstantNodeData) && !defined(BLL_set_MultipleType_Sizes)
         NodeDataSize
       #endif
       );

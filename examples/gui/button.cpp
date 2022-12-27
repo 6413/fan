@@ -5,7 +5,7 @@
 #ifndef FAN_INCLUDE_PATH
   #define FAN_INCLUDE_PATH C:/libs/fan/include
 #endif
-#define fan_debug 1
+#define fan_debug 3
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
 #define loco_vulkan
@@ -106,12 +106,26 @@ int main() {
   );
 
   pile.loco.button.set_text(&cids[1], L"testi");
+  pile.loco.button.erase(&cids[0]);
+
+  tp.matrices = &pile.matrices2;
+
+  tp.viewport = &pile.viewport;
+  // tp.position = 400;
+  tp.position = fan::vec2(-0.5, .5);
+  //tp.position.y = 0;
+ // tp.position.z = 50;
+  tp.font_size = 0.1;
+  tp.size = fan::vec2(0.3, 0.1);
+  tp.text = L"Testiteksti";
+  pile.loco.button.push_back(&cids[0], tp);
 
   //pile.loco.get_context()->opengl.glPolygonMode(fan::opengl::GL_FRONT_AND_BACK, fan::opengl::GL_LINE);
   //pile.loco.get_window()->set_background_color(fan::colors::red);
   //pile.loco.button.set_theme(&cids[0], &gray_theme, 0.1);
   pile.loco.loop([&] {
-    //pile.loco.button.set(&cids[0], &loco_t::button_t::instance_t::position, fan::vec2(-0.5, .5));
+    pile.loco.button.set_position(&cids[0], pile.loco.get_mouse_position(pile.viewport));
+  pile.loco.button.set_position(&cids[1], pile.loco.get_mouse_position(pile.viewport));
   });
 
   return 0;

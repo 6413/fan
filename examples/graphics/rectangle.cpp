@@ -20,7 +20,7 @@
 #define loco_framebuffer
 
 #define loco_rectangle
-#define loco_sprite
+//#define loco_sprite
 #include _FAN_PATH(graphics/loco.h)
 
 constexpr uint32_t count = 5000;
@@ -37,15 +37,17 @@ struct pile_t {
       ortho_y
     );
     loco.get_window()->add_resize_callback([&](const fan::window_t::resize_cb_data_t& d) {
-      viewport.set(loco.get_context(), 0, d.size, d.size);
+      //viewport.set(loco.get_context(), 0, d.size, d.size);
     });
-    viewport.open(loco.get_context());
-    viewport.set(loco.get_context(), 0, loco.get_window()->get_size(), loco.get_window()->get_size());
+    viewport[0].open(loco.get_context());
+    viewport[0].set(loco.get_context(), 0, loco.get_window()->get_size(), loco.get_window()->get_size());
+    viewport[1].open(loco.get_context());
+    viewport[1].set(loco.get_context(), 0, loco.get_window()->get_size() / 2, loco.get_window()->get_size());
   }
 
   loco_t loco;
   loco_t::matrices_t matrices;
-  fan::graphics::viewport_t viewport;
+  fan::graphics::viewport_t viewport[2];
   fan::graphics::cid_t cids[count];
 };
 
@@ -55,7 +57,7 @@ int main() {
 
   loco_t::rectangle_t::properties_t p;
   p.matrices = &pile->matrices;
-  p.viewport = &pile->viewport;
+  p.viewport = &pile->viewport[0];
 
   p.size = fan::vec2(0.05);
 
@@ -68,10 +70,10 @@ int main() {
   //  pile->loco.rectangle.push_back(&pile->cids[i], p);
   //}
 
-      p.position = fan::vec3(fan::random::vec2(-1, 1), 2);
+      p.position = fan::vec3(0, 0, 2);
     pile->loco.rectangle.push_back(&pile->cids[0], p);
-
-    p.position = fan::vec3(fan::random::vec2(-1, 1), 0);
+    p.viewport = &pile->viewport[1];
+    p.position = fan::vec3(0, 0, 0);
     pile->loco.rectangle.push_back(&pile->cids[0], p);
     //pile->loco.
   //p.position = fan::vec2(0, 0);
@@ -86,20 +88,20 @@ int main() {
   //  pile->loco.rectangle.push_back(&pile->cids[i], p);
   //}
 
-    {
+    //{
 
-      loco_t::sprite_t::properties_t p;
+    //  loco_t::sprite_t::properties_t p;
 
-      p.size = fan::vec2(1);
-      p.matrices = &pile->matrices;
-      p.viewport = &pile->viewport;
+    //  p.size = fan::vec2(1);
+    //  p.matrices = &pile->matrices;
+    //  p.viewport = &pile->viewport;
 
-      loco_t::image_t image;
-      image.load(&pile->loco, "images/test.webp");
-      p.image = &image;
-      p.position = fan::vec3(0, 0, 1);
-      pile->loco.sprite.push_back(&pile->cids[0], p);
-    }
+    //  loco_t::image_t image;
+    //  image.load(&pile->loco, "images/test.webp");
+    //  p.image = &image;
+    //  p.position = fan::vec3(0, 0, 1);
+    //  pile->loco.sprite.push_back(&pile->cids[0], p);
+    //}
 
 
   pile->loco.set_vsync(false);

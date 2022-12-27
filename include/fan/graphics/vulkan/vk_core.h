@@ -795,12 +795,26 @@ namespace fan {
         fbo_color_attachment[1].initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         fbo_color_attachment[1].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-        VkAttachmentReference subpasscolor_locofbo_attachments[2];
-        subpasscolor_locofbo_attachments[0].attachment = 2;
-        subpasscolor_locofbo_attachments[0].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        VkAttachmentReference inputAttachmentRef[] = {
+          {
+            .attachment = 0,
+            .layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+          },
+          //{
+          //  .attachment = 1,
+          //  .layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+          //}
+        };
 
-        subpasscolor_locofbo_attachments[1].attachment = 3;
-        subpasscolor_locofbo_attachments[1].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        VkAttachmentReference subpasscolor_locofbo_attachments[]{
+          {
+            .attachment = 2,
+            .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+          },
+        };
+
+        //subpasscolor_locofbo_attachments[1].attachment = 3;
+        //subpasscolor_locofbo_attachments[1].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
         VkSubpassDescription subpass[]{
           {
@@ -811,6 +825,8 @@ namespace fan {
           },
           {
             .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
+            .inputAttachmentCount = std::size(inputAttachmentRef),
+            .pInputAttachments = inputAttachmentRef,
             .colorAttachmentCount = std::size(subpasscolor_locofbo_attachments),
             .pColorAttachments = subpasscolor_locofbo_attachments,
             .pDepthStencilAttachment = &depthAttachmentRef,
@@ -1202,6 +1218,7 @@ namespace fan {
         vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, render_fullscreen_pl.m_pipeline);
         vkCmdDraw(commandBuffers[currentFrame], 6, 1, 0, 0);
 
+
         vkCmdEndRenderPass(commandBuffers[currentFrame]);
 
         if (vkEndCommandBuffer(commandBuffers[currentFrame]) != VK_SUCCESS) {
@@ -1525,10 +1542,12 @@ namespace fan {
         const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
         void* pUserData
       ) {
-        if (!strcmp(pCallbackData->pMessageIdName, "Loader Message")) {
+        if (pCallbackData->pMessageIdName && fan::string(pCallbackData->pMessageIdName) == "Loader Message") {
           return VK_FALSE;
         }
         fan::print("validation layer:", pCallbackData->pMessage);
+       // system("pause");
+      //  exit(0);
 
         return VK_FALSE;
       }
@@ -1882,13 +1901,15 @@ void fan::vulkan::viewport_t::set(fan::vulkan::context_t* context, const fan::ve
   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
   if (!context->command_buffer_in_use) {
+    VkResult result = vkGetFenceStatus(context->device, context->inFlightFences[context->currentFrame]);
+    if (result == VK_NOT_READY) {
+      vkDeviceWaitIdle(context->device);
+    }
 
     if (vkBeginCommandBuffer(context->commandBuffers[context->currentFrame], &beginInfo) != VK_SUCCESS) {
       fan::throw_error("failed to begin recording command buffer!");
     }
-    context->command_buffer_in_use = true;
   }
-
   vkCmdSetViewport(context->commandBuffers[context->currentFrame], 0, 1, &viewport);
 
   if (!context->command_buffer_in_use) {

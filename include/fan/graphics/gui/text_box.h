@@ -265,14 +265,14 @@ struct text_box_t {
 
     ri.vfi_id = loco->vfi.push_shape(vfip);
 
-    //loco_t::rectangle_t::properties_t rp;
-    //rp.position.z = tp.position.z;
-    //rp.size = cursor_properties::size;
-    //rp.size.y = p.font_size;
-    //rp.matrices = p.matrices;
-    //rp.viewport = p.viewport;
-    //rp.color = fan::colors::transparent;
-    //loco->rectangle.push_back(&cursor_id, rp);
+    loco_t::rectangle_t::properties_t rp;
+    rp.position.z = tp.position.z;
+    rp.size = cursor_properties::size;
+    rp.size.y = p.font_size;
+    rp.matrices = p.matrices;
+    rp.viewport = p.viewport;
+    rp.color = fan::colors::transparent;
+    loco->rectangle.push_back(&cursor_id, rp);
   }
   void erase(fan::graphics::cid_t* cid) {
     loco_t* loco = get_loco();

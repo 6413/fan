@@ -26,7 +26,7 @@ loco_bdbt_NodeReference_t root;
 #define BLL_set_BaseLibrary 1
 #define BLL_set_Link 0
 #define BLL_set_type_node uint16_t
-#define BLL_set_node_data \
+#define BLL_set_NodeData \
   ssbo_t::nr_t first_ssbo_nr; \
   ssbo_t::nr_t last_ssbo_nr; \
   bm_properties_t bm_properties; \
@@ -360,7 +360,7 @@ void set(fan::graphics::cid_t *fcid, T T2::*member, const auto& value) {
       cid->block_id, \
       cid->instance_id, \
       member, \
-      value - fan::vec3(0, 0, loco_t::matrices_t::znearfar - 1) \
+      fan::vec3(value) - fan::vec3(0, 0, loco_t::matrices_t::znearfar - 1) \
     );
 
   #if defined(loco_line)

@@ -8,7 +8,7 @@ GPP = clang++
 CFLAGS = -ferror-limit=1000 -w -I . -g -std=c++2a -I include #-O3 -march=native -mtune=native \
   #-fsanitize=address -fno-omit-frame-pointer
 
-MAIN = examples/vulkan/compute_shader.cpp
+MAIN = examples/gui/button.cpp
 
 TARGET = a.out
 

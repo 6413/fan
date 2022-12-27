@@ -4,7 +4,7 @@
 #define BLL_set_BaseLibrary 1
 #define BLL_set_prefix shape_list
 #define BLL_set_type_node shape_id_integer_t
-#define BLL_set_node_data \
+#define BLL_set_NodeData \
     shape_type_t shape_type; \
     common_shape_data_t shape_data; \
     iflags_t flags;

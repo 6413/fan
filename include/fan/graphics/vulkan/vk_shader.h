@@ -77,7 +77,7 @@ namespace fan {
 
         //fan::print(
          // "processed vertex shader:", path, "resulted in:",
-        preprocess_shader(shader_name.c_str(), shaderc_glsl_fragment_shader, shader_code);
+        //preprocess_shader(shader_name.c_str(), shaderc_glsl_fragment_shader, shader_code);
         //);
 
         auto spirv =

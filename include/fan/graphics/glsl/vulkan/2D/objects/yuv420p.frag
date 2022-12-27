@@ -1,6 +1,7 @@
 #version 420
 
 layout(location = 0) out vec4 o_color;
+layout(location = 1) out vec4 rcolor;
 
 layout(binding = 2) uniform sampler2D _t[16];
 
@@ -8,7 +9,7 @@ layout(location = 0) in vec4 instance_color;
 layout(location = 1) in vec2 texture_coordinate;
 
 void main() {
-
+  rcolor = vec4(0);
 	vec3 yuv;
 
 	yuv.x = texture(_t[0], vec2(texture_coordinate.x, texture_coordinate.y)).r;

@@ -396,47 +396,47 @@ namespace fan {
 		}
 
 		#define BLL_set_prefix buttons_callback
-		#define BLL_set_node_data mouse_buttons_cb_t data;
+		#define BLL_set_NodeData mouse_buttons_cb_t data;
 		#include "cb_list_builder_settings.h"
 		#include _FAN_PATH(BLL/BLL.h)
 
 		#define BLL_set_prefix keys_callback
-		#define BLL_set_node_data keyboard_keys_cb_t data;
+		#define BLL_set_NodeData keyboard_keys_cb_t data;
 		#include "cb_list_builder_settings.h"
 		#include _FAN_PATH(BLL/BLL.h)
 
 		#define BLL_set_prefix key_callback
-		#define BLL_set_node_data keyboard_cb_store_t data;
+		#define BLL_set_NodeData keyboard_cb_store_t data;
 		#include "cb_list_builder_settings.h"
 		#include _FAN_PATH(BLL/BLL.h)
 
 		#define BLL_set_prefix text_callback
-		#define BLL_set_node_data text_cb_t data;
+		#define BLL_set_NodeData text_cb_t data;
 		#include "cb_list_builder_settings.h"
 		#include _FAN_PATH(BLL/BLL.h)
 
 		#define BLL_set_prefix move_callback
-		#define BLL_set_node_data move_cb_t data;
+		#define BLL_set_NodeData move_cb_t data;
 		#include "cb_list_builder_settings.h"
 		#include _FAN_PATH(BLL/BLL.h)
 
 		#define BLL_set_prefix resize_callback
-		#define BLL_set_node_data resize_cb_t data;
+		#define BLL_set_NodeData resize_cb_t data;
 		#include "cb_list_builder_settings.h"
 		#include _FAN_PATH(BLL/BLL.h)
 
 		#define BLL_set_prefix close_callback
-		#define BLL_set_node_data close_cb_t data;
+		#define BLL_set_NodeData close_cb_t data;
 		#include "cb_list_builder_settings.h"
 		#include _FAN_PATH(BLL/BLL.h)
 
 		#define BLL_set_prefix mouse_position_callback
-		#define BLL_set_node_data mouse_move_cb_t data;
+		#define BLL_set_NodeData mouse_move_cb_t data;
 		#include "cb_list_builder_settings.h"
 		#include _FAN_PATH(BLL/BLL.h)
 
     #define BLL_set_prefix mouse_motion_callback
-		#define BLL_set_node_data mouse_motion_cb_t data;
+		#define BLL_set_NodeData mouse_motion_cb_t data;
 		#include "cb_list_builder_settings.h"
 		#include _FAN_PATH(BLL/BLL.h)
 

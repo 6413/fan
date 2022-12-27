@@ -39,7 +39,7 @@ loco_bdbt_NodeReference_t root;
 //#define BLL_set_StoreFormat1_alloc_open malloc
 //#define BLL_set_StoreFormat1_alloc_close free
 #define BLL_set_type_node uint16_t
-#define BLL_set_node_data \
+#define BLL_set_NodeData \
     block_t block;
 #include _FAN_PATH(BLL/BLL.h)
 
@@ -51,7 +51,7 @@ bll_block_t blocks;
 #define BLL_set_BaseLibrary 1
 #define BLL_set_Link 0
 #define BLL_set_type_node uint16_t
-#define BLL_set_node_data \
+#define BLL_set_NodeData \
     bll_block_NodeReference_t first_block; \
     bll_block_NodeReference_t last_block; \
     bm_properties_t instance_properties;
@@ -276,7 +276,7 @@ void set(fan::opengl::cid_t *cid, T T2::*member, const auto& value) {
       &loco->m_write_queue,  \
       cid->instance_id,  \
       member,  \
-      value - fan::vec3(0, 0, loco_t::matrices_t::znearfar / 2 - 1) \
+      fan::vec3(value) - fan::vec3(0, 0, loco_t::matrices_t::znearfar / 2 - 1) \
     );
   #if defined(loco_line)
   if constexpr (std::is_same_v<T2, loco_t::line_t::vi_t>) {

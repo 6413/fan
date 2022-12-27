@@ -14,7 +14,7 @@ struct image_list_texture_index_t {
   #endif
 };
 
-#define BLL_set_node_data \
+#define BLL_set_NodeData \
   image_list_texture_index_t texture_index; \
   VkImage image; \
   VkImageView image_view; \
@@ -25,5 +25,4 @@ struct image_list_texture_index_t {
 #define BLL_set_CPP_Node_ConstructDestruct
 #define BLL_set_CPP_ConstructDestruct
 #define BLL_set_NodeReference_Overload_Declare \
-  image_list_NodeReference_t() = default; \
   image_list_NodeReference_t(loco_t::image_t* image);

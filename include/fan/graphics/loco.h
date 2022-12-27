@@ -901,7 +901,7 @@ public:
     #if defined(loco_sprite)
       sprite.m_ssbo.m_descriptor.m_layout,
     #endif
-    #if !defined(loco_button) && !defined(loco_text_box) && defined(loco_letter)
+    #if defined(loco_letter)
       letter.m_ssbo.m_descriptor.m_layout,
     #endif
     #if defined(loco_button)
@@ -914,12 +914,14 @@ public:
       yuv420p.m_ssbo.m_descriptor.m_layout,
     #endif
     };
-    pipeline_p.descriptor_layout_count = std::size(layouts);
+    pipeline_p.descriptor_layout_count = 1;
     pipeline_p.descriptor_layout = layouts;
     pipeline_p.shader = &render_fullscreen_shader;
     pipeline_p.push_constants_size = sizeof(loco_t::push_constants_t);
     pipeline_p.subpass = 1;
-    VkPipelineColorBlendAttachmentState color_blend_attachment[2]{};
+    VkDescriptorImageInfo imageInfo{};
+
+    VkPipelineColorBlendAttachmentState color_blend_attachment[1]{};
     color_blend_attachment[0].colorWriteMask =
 			VK_COLOR_COMPONENT_R_BIT |
 			VK_COLOR_COMPONENT_G_BIT |
@@ -933,7 +935,6 @@ public:
     color_blend_attachment[0].srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
     color_blend_attachment[0].dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
     color_blend_attachment[0].alphaBlendOp = VK_BLEND_OP_ADD;
-    color_blend_attachment[1] = color_blend_attachment[0];
     pipeline_p.color_blend_attachment_count = std::size(color_blend_attachment);
     pipeline_p.color_blend_attachment = color_blend_attachment;
     pipeline_p.enable_depth_test = false;
