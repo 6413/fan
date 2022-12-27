@@ -5,6 +5,7 @@ R"(
 
 #if !defined(wboit)
 	layout(location = 0) out vec4 ocolor;
+  layout(location = 1) out vec4 rcolor;
 #else
 	layout(location = 0) out vec4 ocolor;
 	layout(location = 1) out float reveal;
@@ -18,8 +19,11 @@ struct travel_data_t {
 layout(location = 0) in travel_data_t data;
 
 void main() {
+  rcolor = vec4(0);
 	#if !defined(wboit)
 		ocolor = data.color;
+    rcolor = vec4(1) - ocolor;
+    rcolor.a = 1;
 	#else
 		vec4 color = data.color;
 		if (distance(gl_FragCoord.xyz, vec3(400, 400, 0)) < 100) {

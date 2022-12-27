@@ -9,6 +9,9 @@
 #ifdef BLL_set_ConstantInvalidNodeReference_Listless
   #error outdated setting.
 #endif
+#ifdef BLL_set_node_data
+  #error outdated setting. use BLL_set_NodeData
+#endif
 
 /* --- outdated --- */
 
@@ -152,71 +155,7 @@
   #endif
 #endif
 
-#if BLL_set_BaseLibrary == 0
-  #define _BLL_INCLUDE _WITCH_PATH
-#elif BLL_set_BaseLibrary == 1
-  #define _BLL_INCLUDE _FAN_PATH
-#endif
-
-#define _P(p0) CONCAT3(BLL_set_prefix, _, p0)
-
-#if BLL_set_StructFormat == 0
-  #define BLL_StructBegin(n) typedef struct{
-  #define BLL_StructEnd(n) }n;
-#elif BLL_set_StructFormat == 1
-  #define BLL_StructBegin(n) struct n{
-  #define BLL_StructEnd(n) };
-#endif
-
-#if BLL_set_declare_NodeReference == 1
-  #include "internal/NodeReference.h"
-#endif
-#if BLL_set_declare_rest == 1
-  /* _BLL_POFTWBIT; prefix of function that would be inside type */
-  /* _BLL_SOFTWBIT; settings of function that would be inside type */
-  /* _BLL_PBLLTFF; pass bll type for functon */
-  /* _BLL_PBLLTFFC; _BLL_PBLLTFF but with comma */
-  /* _BLL_DBLLTFF; declare bll type for functon */
-  /* _BLL_DBLLTFFC; _BLL_DBLLTFF but with comma */
-  /* _BLL_OCIBLLTFFE; only comma if bll type for function exists */
-  #if BLL_set_Language == 0
-    #define _BLL_POFTWBIT(p0) _P(p0)
-    #define _BLL_SOFTWBIT static
-    #define _BLL_PBLLTFF _pList
-    #define _BLL_PBLLTFFC _BLL_PBLLTFF,
-    #define _BLL_DBLLTFF _P(t) *_BLL_PBLLTFF
-    #define _BLL_DBLLTFFC _BLL_DBLLTFF,
-    #define _BLL_GetList _BLL_PBLLTFF
-    #define _BLL_OCIBLLTFFE ,
-  #elif BLL_set_Language == 1
-    #define _BLL_POFTWBIT(p0) p0
-    #define _BLL_SOFTWBIT
-    #define _BLL_PBLLTFF
-    #define _BLL_PBLLTFFC
-    #define _BLL_DBLLTFF
-    #define _BLL_DBLLTFFC
-    #define _BLL_GetList this
-    #define _BLL_OCIBLLTFFE
-  #endif
-
-  #include "internal/rest.h"
-
-  #undef _BLL_POFTWBIT
-  #undef _BLL_SOFTWBIT
-  #undef _BLL_PBLLTFF
-  #undef _BLL_PBLLTFFC
-  #undef _BLL_DBLLTFF
-  #undef _BLL_DBLLTFFC
-  #undef _BLL_GetList
-  #undef _BLL_OCIBLLTFFE
-#endif
-
-#undef BLL_StructBegin
-#undef BLL_StructEnd
-
-#undef _P
-
-#undef _BLL_INCLUDE
+#include "internal/PrepareAndInclude.h"
 
 #ifdef BLL_set_NodeReference_Overload_Declare
   #undef BLL_set_NodeReference_Overload_Declare
@@ -234,9 +173,14 @@
 #ifdef BLL_set_CPP_Node_ConstructDestruct
   #undef BLL_set_CPP_Node_ConstructDestruct
 #endif
-#ifdef BLL_set_node_data
-  #undef BLL_set_node_data
+
+#ifdef BLL_set_NodeData
+  #undef BLL_set_NodeData
 #endif
+#ifdef BLL_set_NodeDataType
+  #undef BLL_set_NodeDataType
+#endif
+
 #ifdef BLL_set_MultipleType_LinkIndex
   #undef BLL_set_MultipleType_LinkIndex
 #endif

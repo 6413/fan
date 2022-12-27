@@ -14,7 +14,7 @@ struct menu_maker_t {
 	#define BLL_set_BaseLibrary 1
 	#define BLL_set_prefix instance
 	#define BLL_set_type_node uint16_t
-	#define BLL_set_node_data \
+	#define BLL_set_NodeData \
   menu_maker_base_t base; \
   select_cb_t select_cb;
 	#define BLL_set_Link 1

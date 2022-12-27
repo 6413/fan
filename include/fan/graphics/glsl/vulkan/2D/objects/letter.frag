@@ -2,6 +2,7 @@ R"(
 #version 450
 
 layout(location = 0) out vec4 o_color;
+layout(location = 1) out vec4 rcolor;
 
 layout(location = 0) in vec4 instance_color;
 layout(location = 1) in vec2 texture_coordinate;
@@ -15,6 +16,7 @@ layout( push_constant ) uniform constants_t {
 }constants;
 
 void main() {
+  rcolor = vec4(0);
   float distance = texture(_t[constants.texture_id], texture_coordinate).r;
 
   float smoothing = 1.0 / (log(render_size * 100) * 2);

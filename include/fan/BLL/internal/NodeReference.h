@@ -41,6 +41,7 @@ BLL_StructBegin(_P(NodeReference_t))
   #endif
 
   #ifdef BLL_set_NodeReference_Overload_Declare
+    _P(NodeReference_t)() = default;
     BLL_set_NodeReference_Overload_Declare
   #endif
 BLL_StructEnd(_P(NodeReference_t))

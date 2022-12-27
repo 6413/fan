@@ -39,7 +39,7 @@ struct _ETC_WED_P(t){
   #define BLL_set_prefix _CharacterList
   #define BLL_set_declare_NodeReference 0
   #define BLL_set_declare_rest 1
-  #define BLL_set_node_data \
+  #define BLL_set_NodeData \
     uint16_t width; \
     CharacterData_t data; \
     CursorReference_t CursorReference;
@@ -53,7 +53,7 @@ struct _ETC_WED_P(t){
   #define BLL_set_prefix _LineList
   #define BLL_set_declare_NodeReference 0
   #define BLL_set_declare_rest 1
-  #define BLL_set_node_data \
+  #define BLL_set_NodeData \
     uint32_t TotalWidth; \
     bool IsEndLine; \
     _CharacterList_t CharacterList;
@@ -68,7 +68,7 @@ struct _ETC_WED_P(t){
   #define BLL_set_prefix _CursorList
   #define BLL_set_declare_NodeReference 0
   #define BLL_set_declare_rest 1
-  #define BLL_set_node_data \
+  #define BLL_set_NodeData \
     CursorType type; \
     union{ \
       struct{ \

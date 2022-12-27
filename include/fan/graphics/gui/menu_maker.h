@@ -7,7 +7,7 @@ struct sb_menu_maker_type_name {
   #define BLL_set_BaseLibrary 1
   #define BLL_set_prefix instance
   #define BLL_set_type_node uint16_t
-  #define BLL_set_node_data \
+  #define BLL_set_NodeData \
         fan::graphics::cid_t cid; \
         uint32_t text_id; \
         fan::wstring text; \

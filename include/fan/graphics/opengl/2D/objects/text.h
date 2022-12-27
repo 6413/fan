@@ -287,7 +287,7 @@ struct text_renderer_t {
   #define BLL_set_BaseLibrary 1
   #define BLL_set_prefix cid_list
   #define BLL_set_type_node uint32_t
-  #define BLL_set_node_data fan::graphics::cid_t cid;
+  #define BLL_set_NodeData fan::graphics::cid_t cid;
   #define BLL_set_Link 1
   #define BLL_set_StoreFormat 1
   #include _FAN_PATH(BLL/BLL.h)

@@ -85,7 +85,7 @@ struct letter_t {
 
   void draw() {
     auto loco = get_loco();
-    loco->process_block_properties_element<0>(this, &loco->font.image);
+    //loco->process_block_properties_element<0>(this, &loco->font.image);
     sb_draw();
   }
 

@@ -77,8 +77,8 @@ struct texturepack {
 			data_index += sizeof(uint32_t);
 			loco_t::image_t::load_properties_t lp;
 			// can be undefined behaviour with vulkan
-			lp.visual_output = (decltype(lp.visual_output))visual_output;
-			lp.filter = (decltype(lp.filter))filter;
+      lp.visual_output = loco_t::image_t::sampler_address_mode::clamp_to_border;//(decltype(lp.visual_output))visual_output;
+      lp.filter = loco_t::image_t::filter::linear;//(decltype(lp.filter))filter;
 			pixel_data_list[i].image.load(loco, image_info, lp);
 			pixel_data_list[i].size = image_info.size;
 			WebPFree(image_info.data);

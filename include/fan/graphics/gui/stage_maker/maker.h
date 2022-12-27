@@ -391,7 +391,7 @@ static void lib_close(stage_common_t* sc) {
 	#define BLL_set_AreWeInsideStruct 1
 	#define BLL_set_prefix instance
 	#define BLL_set_type_node uint16_t
-	#define BLL_set_node_data \
+	#define BLL_set_NodeData \
 			fan::graphics::cid_t cid;
 	#define BLL_set_Link 1
 	#include _FAN_PATH(BLL/BLL.h)
