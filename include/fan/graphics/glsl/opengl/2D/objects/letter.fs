@@ -11,6 +11,7 @@ in float render_size;
 uniform sampler2D _t00;
 
 void main() {
+  o_attachment1 = 0u;
   float distance = texture(_t00, texture_coordinate).r;
   float smoothing = 1.0 / (log(render_size * 100) * 2);
   float width = 0.2;

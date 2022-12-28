@@ -407,22 +407,23 @@ namespace fan {
         }
 
         // creates another thread, non blocking
-        static void listen(std::function<void(uint16_t key, fan::keyboard_state keyboard_state, bool action, std::any data)> input_callback_) {
+        static void listen_keyboard(fan::function_t<void(uint16_t key, fan::keyboard_state keyboard_state, bool action)> input_callback_) {
 
           input_callback = input_callback_;
 
-          thread_loop();
+          //thread_loop();
 
         }
 
-        static void listen(std::function<void(const fan::vec2i& position)> mouse_move_callback_) {
+        // BLOCKS
+        static void listen_mouse(fan::function_t<void(const fan::vec2i& position)> mouse_move_callback_) {
 
           mouse_move_callback = mouse_move_callback_;
 
-          thread_loop();
+         // thread_loop();
         }
 
-      private:
+      //private:
 
         static DWORD WINAPI thread_loop() {
 
@@ -464,7 +465,7 @@ namespace fan {
         {
           KBDLLHOOKSTRUCT hooked_key = *((KBDLLHOOKSTRUCT*)lParam);
 
-          auto key = fan::window_input::convert_scancode_to_fan(hooked_key.vkCode);
+          auto key = fan::window_input::convert_scancode_to_fan(hooked_key.scanCode);
 
           auto state = (fan::keyboard_state)((nCode == HC_ACTION) && ((wParam == WM_SYSKEYDOWN) || (wParam == WM_KEYDOWN)));
 
@@ -472,7 +473,7 @@ namespace fan {
             key_down[key] = true;
           }
 
-          input_callback(key, state, key_down[key], 0);
+          input_callback(key, state, key_down[key]);
 
           if (state == fan::keyboard_state::release) {
             reset_keys[key] = false;
@@ -515,10 +516,7 @@ namespace fan {
           switch (wParam) {
             case WM_MOUSEMOVE: {
 
-              if (mouse_move_callback) {
-
-                mouse_move_callback(fan::vec2i(hooked_key.pt.x, hooked_key.pt.y));
-              }
+              mouse_move_callback(fan::vec2i(hooked_key.pt.x, hooked_key.pt.y));
 
               break;
             }
@@ -533,7 +531,7 @@ namespace fan {
               }
 
               if (input_callback) {
-                input_callback(key, fan::keyboard_state::press, key_down[key], fan::vec2i(hooked_key.pt.x, hooked_key.pt.y));
+                input_callback(key, fan::keyboard_state::press, key_down[key]);
               }
 
               key_down[key] = false;
@@ -546,7 +544,7 @@ namespace fan {
             case WM_RBUTTONUP:
             {
               if (input_callback) {
-                input_callback(key, fan::keyboard_state::release, key_down[key], fan::vec2i(hooked_key.pt.x, hooked_key.pt.y));
+                input_callback(key, fan::keyboard_state::release, key_down[key]);
               }
 
               reset_keys[key] = false;
@@ -561,8 +559,8 @@ namespace fan {
         static inline HHOOK keyboard_hook;
         static inline HHOOK mouse_hook;
 
-        static inline std::function<void(uint16_t, fan::keyboard_state, bool action, std::any)> input_callback;
-        static inline std::function<void(const fan::vec2i& position)> mouse_move_callback;
+        static inline fan::function_t<void(uint16_t, fan::keyboard_state, bool action)> input_callback = [](uint16_t, fan::keyboard_state, bool action) {};
+        static inline fan::function_t<void(const fan::vec2i& position)> mouse_move_callback = [](const fan::vec2i& position) {};
 
       };
 

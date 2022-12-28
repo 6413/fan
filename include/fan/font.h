@@ -70,7 +70,7 @@ namespace fan {
 			f32_t convert_font_size(f32_t font_size) const {
 				return font_size / this->size;
 			}
-			/*fan::font::character_info_t get_letter_info(uint16_t font_index, f32_t font_size) const {
+			fan::font::character_info_t get_letter_info(uint16_t font_index, f32_t font_size) const {
 
 				auto found = get_font_instance(font_index);
 
@@ -91,19 +91,16 @@ namespace fan {
 				font_info.mapping = found->second.mapping;
 
 				return font_info;
-			}*/
+			}
 
 			fan::font::character_info_t get_letter_info(wchar_t c, f32_t font_size) const {
 
-				auto found = characters.begin();
+        auto found = characters.find(c);
 				#if fan_debug >= fan_debug_low
 					if (found == characters.end()) {
 						throw std::runtime_error("failed to find character: " + std::to_string(c));
 					}
 				#endif
-
-				std::advance(found, c);
-
 				f32_t converted_size = convert_font_size(font_size);
 
 				fan::font::character_info_t font_info;
@@ -229,7 +226,6 @@ namespace fan {
 					auto r2 = fan::io::file::get_string_valuevec2i_n(line, r.end);
 
 					l.font_info.glyph.position = r2.value;
-
 					r2 = fan::io::file::get_string_valuevec2i_n(line, r2.end);
 
 					l.font_info.glyph.size = r2.value;

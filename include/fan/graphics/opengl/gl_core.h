@@ -117,6 +117,7 @@ namespace fan {
       }
 
       void set(fan::opengl::context_t* context, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size);
+      static void set_viewport(fan::opengl::context_t* context, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size);
 
       bool inside(const fan::vec2& position) const {
         return fan_2d::collision::rectangle::point_inside_no_rotation(position, viewport_position - viewport_size / 2, viewport_size * 2);
@@ -537,6 +538,15 @@ void fan::opengl::viewport_t::set(fan::opengl::context_t* context, const fan::ve
     viewport_position.x,
     window_size.y - viewport_size_.y - viewport_position.y,
     viewport_size.x, viewport_size.y
+  );
+}
+
+inline void fan::opengl::viewport_t::set_viewport(fan::opengl::context_t* context, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size) {
+  context->opengl.call(
+    context->opengl.glViewport,
+    viewport_position_.x,
+    window_size.y - viewport_size_.y - viewport_position_.y,
+    viewport_size_.x, viewport_size_.y
   );
 }
 

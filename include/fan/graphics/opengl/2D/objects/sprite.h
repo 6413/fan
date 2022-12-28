@@ -1,9 +1,7 @@
 struct sb_sprite_name {
   struct vi_t {
     fan::vec3 position = 0;
-  private:
-    f32_t pad;
-  public:
+    uint32_t flag = 0;
     fan::vec2 size = 0;
     fan::vec2 rotation_point = 0;
     fan::color color = fan::colors::white;

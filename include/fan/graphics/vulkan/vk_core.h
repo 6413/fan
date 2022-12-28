@@ -337,6 +337,7 @@ namespace fan {
       }
 
       void set(fan::vulkan::context_t* context, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size);
+      static void set_viewport(fan::vulkan::context_t* context, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size);
 
       bool inside(const fan::vec2& position) const {
         return fan_2d::collision::rectangle::point_inside_no_rotation(position, viewport_position - viewport_size / 2, viewport_size * 2);
@@ -1214,6 +1215,8 @@ namespace fan {
         vkCmdDraw(commandBuffers[currentFrame], 6, 1, 0, 0);
 #endif
 
+        fan::vulkan::viewport_t::set_viewport(this, 0, swap_chain_size, swap_chain_size);
+
         vkCmdNextSubpass(commandBuffers[currentFrame], VK_SUBPASS_CONTENTS_INLINE);
         vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, render_fullscreen_pl.m_pipeline);
         vkCmdDraw(commandBuffers[currentFrame], 6, 1, 0, 0);
@@ -1894,6 +1897,38 @@ void fan::vulkan::viewport_t::set(fan::vulkan::context_t* context, const fan::ve
   viewport.y = viewport_position.y;
   viewport.width = viewport_size.x;
   viewport.height = viewport_size.y;
+  viewport.minDepth = 0.0f;
+  viewport.maxDepth = 1.0f;
+
+  VkCommandBufferBeginInfo beginInfo{};
+  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+  if (!context->command_buffer_in_use) {
+    VkResult result = vkGetFenceStatus(context->device, context->inFlightFences[context->currentFrame]);
+    if (result == VK_NOT_READY) {
+      vkDeviceWaitIdle(context->device);
+    }
+
+    if (vkBeginCommandBuffer(context->commandBuffers[context->currentFrame], &beginInfo) != VK_SUCCESS) {
+      fan::throw_error("failed to begin recording command buffer!");
+    }
+  }
+  vkCmdSetViewport(context->commandBuffers[context->currentFrame], 0, 1, &viewport);
+
+  if (!context->command_buffer_in_use) {
+    if (vkEndCommandBuffer(context->commandBuffers[context->currentFrame]) != VK_SUCCESS) {
+      fan::throw_error("failed to record command buffer!");
+    }
+    context->command_buffer_in_use = false;
+  }
+}
+
+inline void fan::vulkan::viewport_t::set_viewport(fan::vulkan::context_t* context, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size) {
+  VkViewport viewport{};
+  viewport.x = viewport_position_.x;
+  viewport.y = viewport_position_.y;
+  viewport.width = viewport_size_.x;
+  viewport.height = viewport_size_.y;
   viewport.minDepth = 0.0f;
   viewport.maxDepth = 1.0f;
 

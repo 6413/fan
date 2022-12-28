@@ -82,13 +82,13 @@
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <LinkIncremental>false</LinkIncremental>
+    <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LinkIncremental>false</LinkIncremental>
+    <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -107,7 +107,7 @@
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)include\opus;$(SolutionDIr)include\dav1d;$(SolutionDir)include\vpx;$(SolutionDir)src\libwebp\src;C:\libs;$(SolutionDir)include\shaderc</AdditionalIncludeDirectories>
       <Optimization>Disabled</Optimization>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
       <TreatSpecificWarningsAsErrors>
@@ -133,24 +133,24 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
+      <FunctionLevelLinking>false</FunctionLevelLinking>
+      <IntrinsicFunctions>false</IntrinsicFunctions>
+      <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>set_durums_pc;_CRT_SECURE_NO_WARNINGS;_DISABLE_VECTOR_ANNOTATION</PreprocessorDefinitions>
       <ConformanceMode>false</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <Optimization>Disabled</Optimization>
       <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
-      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <OmitFramePointers>true</OmitFramePointers>
-      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
+      <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
+      <OmitFramePointers>false</OmitFramePointers>
+      <EnableFiberSafeOptimizations>false</EnableFiberSafeOptimizations>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)include\opus;$(SolutionDIr)include\dav1d;$(SolutionDir)include\vpx;$(SolutionDir)src\libwebp\src;C:\libs;$(SolutionDir)include\shaderc</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
-      <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
+      <EnableParallelCodeGeneration>false</EnableParallelCodeGeneration>
       <TreatSpecificWarningsAsErrors>
       </TreatSpecificWarningsAsErrors>
       <BufferSecurityCheck>false</BufferSecurityCheck>
@@ -188,7 +188,7 @@
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)include\opus;$(SolutionDIr)include\dav1d;$(SolutionDir)include\vpx;$(SolutionDir)src\libwebp\src;C:\libs;$(SolutionDir)include\shaderc</AdditionalIncludeDirectories>
       <Optimization>Disabled</Optimization>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
       <TreatSpecificWarningsAsErrors>
@@ -214,24 +214,24 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
+      <FunctionLevelLinking>false</FunctionLevelLinking>
+      <IntrinsicFunctions>false</IntrinsicFunctions>
+      <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>set_durums_pc;_CRT_SECURE_NO_WARNINGS;_DISABLE_VECTOR_ANNOTATION</PreprocessorDefinitions>
       <ConformanceMode>false</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <Optimization>Disabled</Optimization>
       <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
-      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <OmitFramePointers>true</OmitFramePointers>
-      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
+      <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
+      <OmitFramePointers>false</OmitFramePointers>
+      <EnableFiberSafeOptimizations>false</EnableFiberSafeOptimizations>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)include\opus;$(SolutionDIr)include\dav1d;$(SolutionDir)include\vpx;$(SolutionDir)src\libwebp\src;C:\libs;$(SolutionDir)include\shaderc</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
-      <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
+      <EnableParallelCodeGeneration>false</EnableParallelCodeGeneration>
       <TreatSpecificWarningsAsErrors>
       </TreatSpecificWarningsAsErrors>
       <BufferSecurityCheck>false</BufferSecurityCheck>
@@ -242,7 +242,7 @@
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>false</EnableCOMDATFolding>
-      <OptimizeReferences>false</OptimizeReferences>
+      <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>C:\libs\fan\lib\opus;C:\libs\fan\lib\ogg;C:\libs\fan\lib\libwebp;C:\libs\fan\lib\shaderc</AdditionalLibraryDirectories>
       <AdditionalDependencies>libwebp.lib;libwebp.a;libogg.lib;opus.lib;opusfile.lib;shaderc_combined_mt.lib</AdditionalDependencies>
@@ -254,8 +254,8 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="examples\graphics\sprite.cpp" />
     <ClCompile Include="include\fan\physics\AStar.cpp" />
-    <ClCompile Include="Source.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
   </ItemGroup>
   <ItemGroup>

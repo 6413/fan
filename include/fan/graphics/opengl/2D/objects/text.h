@@ -66,23 +66,20 @@ struct text_renderer_t {
 
     text_size.y = loco->font.info.line_height;
 
-    f32_t width = 0;
 
     for (int i = 0; i < text.size(); i++) {
 
-      auto letter = loco->font.info.characters[text[i]];
+      auto letter = loco->font.info.get_letter_info(text[i], font_size);
 
-      if (i == text.size() - 1) {
-        width += letter.metrics.advance;
-      }
-      else {
-        width += letter.metrics.advance;
+      //auto p = letter_info.metrics.offset.x + letter_info.metrics.size.x / 2 + letter_info.metrics.offset.x;
+
+      text_size.x += letter.metrics.size.x + letter.metrics.offset.x;
+      if (i + 1 != text.size()) {
+        text_size.x += letter.metrics.offset.x;
       }
     }
 
-    text_size.x = std::max(width, text_size.x);
-
-    return text_size * convert_font_size(font_size);
+    return text_size;
   }
   fan::vec2 get_text_size(uint32_t id) {
     loco_t* loco = get_loco();
@@ -90,21 +87,22 @@ struct text_renderer_t {
 
     text_size.y = loco->font.info.line_height;
 
-    f32_t width = 0;
     f32_t font_size = 0;
 
     for (uint32_t i = 0; i < letter_ids[id].p.text.size(); i++) {
       font_size = letter_ids[id].p.font_size;
       auto letter = loco->font.info.get_letter_info(loco->font.decode_letter(letter_ids[id].p.text[i]), font_size);
-      if (i == letter_ids[id].p.text.size() - 1) {
-        width += letter.glyph.size.x;
+
+      if (i == 0) {
+        text_size.x += letter.metrics.size.x * 2;
+      }
+      else if (i == letter_ids[id].p.text.size() - 1) {
+        text_size.x += letter.glyph.size.x * 2;
       }
       else {
-        width += letter.metrics.advance / convert_font_size(font_size);
+        text_size.x += letter.metrics.advance / convert_font_size(font_size);
       }
     }
-
-    text_size.x = std::max(width, text_size.x);
 
     return text_size * convert_font_size(font_size);
   }
@@ -138,13 +136,23 @@ struct text_renderer_t {
       p.letter_id = loco->font.decode_letter(properties.text[i]);
       auto letter_info = loco->font.info.get_letter_info(p.letter_id, properties.font_size);
 
-      p.position = fan::vec2(left - letter_info.metrics.offset.x, properties.position.y) + (fan::vec2(letter_info.metrics.size.x, properties.font_size - letter_info.metrics.size.y) / 2 + fan::vec2(letter_info.metrics.offset.x, -letter_info.metrics.offset.y));
+      uint8_t t = properties.text[i];
+      properties.text[i] = 0;
+      p.position = fan::vec2(
+        left + get_text_size(&properties.text[0], properties.font_size).x + letter_info.metrics.size.x / 2,
+        properties.position.y + (properties.font_size - letter_info.metrics.size.y) / 2 - letter_info.metrics.offset.y
+      );
+      fan::print(letter_info.metrics.size.x, letter_info.metrics.offset.x, left, get_text_size(&properties.text[0], properties.font_size).x, p.position.x);
+      properties.text[i] = t;
       p.position.z = properties.position.z;
 
+      /*if (i == 0) {
+        p.position.x -= letter_info.metrics.size.x;
+      }*/
       auto nr = letter_ids[id].cid_list.NewNodeLast();
       auto n = letter_ids[id].cid_list.GetNodeByReference(nr);
       loco->letter.push_back(&n->data.cid, p);
-      left += letter_info.metrics.advance;
+      //left += letter_info.metrics.advance;
     }
     return id;
   }
