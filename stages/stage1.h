@@ -52,3 +52,7 @@ static void lib_open(loco_t* loco, stage_common_t* sc, const stage_common_t::ope
 static void lib_close(stage_common_t* sc) {
 	sc->instances.Close();
 }
+
+static int mouse_button_cb0(const loco_t::mouse_button_data_t& mb){
+  return 0;
+}

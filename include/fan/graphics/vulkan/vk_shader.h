@@ -31,7 +31,7 @@ namespace fan {
         const fan::string& source) {
         shaderc::Compiler compiler;
         shaderc::CompileOptions options;
-
+        
         // Like -DMY_DEFINE=1
         //options.AddMacroDefinition("MY_DEFINE", "1");
         #if fan_debug > 1

@@ -85,6 +85,8 @@ static uint16_t convert_scancode_to_fan(uint16_t key) {
 		case 0x51: { return fan::input::key_numpad_3; }
 		case 0x52: { return fan::input::key_numpad_0; }
 		case 0x53: { return fan::input::key_numpad_substract; }
+    case 0x56: { return fan::input::key_less_than; }
+    case 0x156: { return fan::input::key_greater_than; }
 
     case 0x11c: { return fan::input::key_numpad_enter; }
     case 0x11d: { return fan::input::key_right_control; }
@@ -194,6 +196,8 @@ static uint16_t convert_scancode_to_fan(uint16_t key) {
 		case 0x51: { return fan::input::key_numpad_3; }
 		case 0x52: { return fan::input::key_numpad_0; }
 		case 0x53: { return fan::input::key_numpad_substract; }
+    case 0x56: { return fan::input::key_less_than; }
+    case 0xe056: { return fan::input::key_greater_than; }
 
     case 0xe01c: { return fan::input::key_numpad_enter; }
     case 0xe01d: { return fan::input::key_right_control; }
@@ -229,6 +233,15 @@ static uint16_t convert_scancode_to_fan(uint16_t key) {
 }
 
 static uint16_t convert_fan_to_scancode(uint16_t key) {
+  // non us less/greater than sign
+ /* if (key == fan::input::key_less_than) {
+    return 0x56;
+  }
+  else if (key == fan::input::key_greater_than) {
+
+  }
+  case 0x156: { return; }*/
+
 	switch (key) {
 		//shifts and ctrls require lparam check for which side the button is pressed this is usually checked before converting
 #ifdef fan_platform_windows

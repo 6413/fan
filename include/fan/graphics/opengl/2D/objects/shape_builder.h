@@ -95,7 +95,7 @@ void sb_close() {
   blocks.Close();
   bm_list.Close();
 
-  assert(0);
+  //assert(0);
   //loco_bdbt_close(&loco->bdbt);
 
   m_shader.close(loco->get_context());
