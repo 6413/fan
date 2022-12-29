@@ -4,7 +4,7 @@
 
 struct loco_t;
 
-#define loco_framebuffer
+//#define loco_framebuffer
 
 #include _FAN_PATH(graphics/graphics.h)
 #include _FAN_PATH(time/timer.h)
@@ -995,10 +995,11 @@ public:
     #if defined(loco_framebuffer)
       //m_flag_map_fbo.unbind(get_context());
 
+      m_framebuffer.unbind(get_context());
+
       fan::vec2 window_size = get_window()->get_size();
       fan::opengl::viewport_t::set_viewport(get_context(), 0, window_size, window_size);
 
-      m_framebuffer.unbind(get_context());
       get_context()->opengl.call(get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
 
       m_fbo_final_shader.use(get_context());
