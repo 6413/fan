@@ -1615,7 +1615,7 @@ uint32_t fan::window_t::handle_events() {
           break;
         }
 
-        const uint16_t button = fan::input::mouse_right;
+        const uint16_t button = fan::input::mouse_middle;
 
         fan::window_t::window_input_mouse_action(window->m_window_handle, button);
 
