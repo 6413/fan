@@ -5,7 +5,8 @@ R"(
 
 	in vec4 instance_color;
 
-	out vec4 o_color;
+  layout (location = 0) out vec4 o_attachment0;
+  layout (location = 1) out uint o_attachment1;
 
 	uniform sampler2D _t00;
 	uniform sampler2D _t01;
@@ -33,6 +34,6 @@ R"(
 		//// also gamma correct while we're at it
 		//const float gamma = 2.2;
     //result = pow(result, vec3(1.0 / gamma));
-		o_color = vec4(result, 1);
+		o_attachment0 = vec4(result, 1);
 	}
 )"
