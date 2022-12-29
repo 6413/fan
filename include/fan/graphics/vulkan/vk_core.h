@@ -1667,6 +1667,7 @@ namespace fan {
       p.aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT;
       vai_bitmap[0].open(this, p);
       vai_bitmap[0].transition_image_layout(this, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+      p.format = VK_FORMAT_R8_UINT;
       vai_bitmap[1].open(this, p);
       vai_bitmap[1].transition_image_layout(this, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     }

@@ -68,6 +68,7 @@ int main() {
   p.image = &image;
   p.position = fan::vec2(0, 0);
   p.position.z = 0;
+  p.flag = 1;
   pile->loco.sprite.push_back(&pile->cid[0], p);
 
   pile->loco.set_vsync(false);

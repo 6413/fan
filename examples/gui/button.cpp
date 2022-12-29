@@ -69,7 +69,7 @@ int main() {
  // tp.position.z = 50;
   tp.font_size = 64;
   tp.size = fan::vec2(200, 75);
-  tp.text = L"Wj";
+  tp.text = L"hello";
   //tp.font_size = 32;
   tp.mouse_move_cb = [] (const loco_t::mouse_move_data_t& mm_d) -> int {
     //fan::print(mm_d.position, (int)mm_d.mouse_stage);
@@ -90,6 +90,7 @@ int main() {
   constexpr auto count = 10;
   fan::graphics::cid_t cids[count];
   pile.loco.button.push_back(&cids[0], tp);
+  //pile.loco.get_context()->opengl.glPolygonMode(fan::opengl::GL_FRONT_AND_BACK, fan::opengl::GL_LINE);
   pile.loco.loop([&] {
   });
 
