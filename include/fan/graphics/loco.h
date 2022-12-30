@@ -997,10 +997,10 @@ public:
 
       m_framebuffer.unbind(get_context());
 
+      get_context()->opengl.call(get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
+
       fan::vec2 window_size = get_window()->get_size();
       fan::opengl::viewport_t::set_viewport(get_context(), 0, window_size, window_size);
-
-      get_context()->opengl.call(get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
 
       m_fbo_final_shader.use(get_context());
       m_fbo_final_shader.set_int(get_context(), "_t00", 0);
