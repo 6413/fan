@@ -12,84 +12,87 @@ struct loco_t;
 
 // automatically gets necessary macros for shapes
 
+#if defined(loco_sprite_sheet)
+  #define loco_sprite
+#endif
 #if defined(loco_sprite)
-#define loco_texture_pack
+  #define loco_texture_pack
 #endif
 
 #if defined(loco_text_box)
-#define loco_rectangle
-#define loco_letter
-#define loco_text
+  #define loco_rectangle
+  #define loco_letter
+  #define loco_text
 #endif
 #if defined(loco_button)
-#define loco_letter
-#define loco_text
+  #define loco_letter
+  #define loco_text
 #endif
 #if defined(loco_menu_maker)
-#define loco_rectangle
-#define loco_letter
-#define loco_text
-#define loco_text_box
-#define loco_button
+  #define loco_rectangle
+  #define loco_letter
+  #define loco_text
+  #define loco_text_box
+  #define loco_button
 #endif
 
 #if defined(loco_wboit)
-#define loco_vulkan_descriptor_image_sampler
+  #define loco_vulkan_descriptor_image_sampler
 #endif
 
 #ifdef loco_vulkan
-#ifdef loco_line 
-#ifndef loco_vulkan_descriptor_ssbo
-#define loco_vulkan_descriptor_ssbo
-#endif
-#ifndef loco_vulkan_descriptor_uniform_block
-#define loco_vulkan_descriptor_uniform_block
-#endif
-#endif
-#ifdef loco_rectangle 
-#ifndef loco_vulkan_descriptor_ssbo
-#define loco_vulkan_descriptor_ssbo
-#endif
-#ifndef loco_vulkan_descriptor_uniform_block
-#define loco_vulkan_descriptor_uniform_block
-#endif
-#endif
-#ifdef loco_sprite
-#ifndef loco_vulkan_descriptor_ssbo
-#define loco_vulkan_descriptor_ssbo
-#endif
-#ifndef loco_vulkan_descriptor_uniform_block
-#define loco_vulkan_descriptor_uniform_block
-#endif
-#ifndef loco_vulkan_descriptor_image_sampler
-#define loco_vulkan_descriptor_image_sampler
-#endif
-#endif
-#ifdef loco_yuv420p
-#ifndef loco_vulkan_descriptor_ssbo
-#define loco_vulkan_descriptor_ssbo
-#endif
-#ifndef loco_vulkan_descriptor_uniform_block
-#define loco_vulkan_descriptor_uniform_block
-#endif
-#ifndef loco_vulkan_descriptor_image_sampler
-#define loco_vulkan_descriptor_image_sampler
-#endif
-#endif
-#ifdef loco_letter
-#ifndef loco_vulkan_descriptor_ssbo
-#define loco_vulkan_descriptor_ssbo
-#endif
-#ifndef loco_vulkan_descriptor_uniform_block
-#define loco_vulkan_descriptor_uniform_block
-#endif
-#ifndef loco_vulkan_descriptor_image_sampler
-#define loco_vulkan_descriptor_image_sampler
-#endif
-#endif
-#if defined loco_compute_shader
-#define loco_vulkan_descriptor_ssbo
-#endif
+  #ifdef loco_line 
+    #ifndef loco_vulkan_descriptor_ssbo
+      #define loco_vulkan_descriptor_ssbo
+    #endif
+    #ifndef loco_vulkan_descriptor_uniform_block
+      #define loco_vulkan_descriptor_uniform_block
+    #endif
+  #endif
+  #ifdef loco_rectangle 
+    #ifndef loco_vulkan_descriptor_ssbo
+      #define loco_vulkan_descriptor_ssbo
+    #endif
+    #ifndef loco_vulkan_descriptor_uniform_block
+      #define loco_vulkan_descriptor_uniform_block
+    #endif
+  #endif
+  #ifdef loco_sprite
+    #ifndef loco_vulkan_descriptor_ssbo
+      #define loco_vulkan_descriptor_ssbo
+    #endif
+    #ifndef loco_vulkan_descriptor_uniform_block
+      #define loco_vulkan_descriptor_uniform_block
+    #endif
+    #ifndef loco_vulkan_descriptor_image_sampler
+      #define loco_vulkan_descriptor_image_sampler
+    #endif
+  #endif
+  #ifdef loco_yuv420p
+    #ifndef loco_vulkan_descriptor_ssbo
+      #define loco_vulkan_descriptor_ssbo
+    #endif
+    #ifndef loco_vulkan_descriptor_uniform_block
+      #define loco_vulkan_descriptor_uniform_block
+    #endif
+    #ifndef loco_vulkan_descriptor_image_sampler
+      #define loco_vulkan_descriptor_image_sampler
+    #endif
+  #endif
+  #ifdef loco_letter
+    #ifndef loco_vulkan_descriptor_ssbo
+      #define loco_vulkan_descriptor_ssbo
+    #endif
+    #ifndef loco_vulkan_descriptor_uniform_block
+      #define loco_vulkan_descriptor_uniform_block
+    #endif
+    #ifndef loco_vulkan_descriptor_image_sampler
+      #define loco_vulkan_descriptor_image_sampler
+    #endif
+  #endif
+  #if defined loco_compute_shader
+    #define loco_vulkan_descriptor_ssbo
+  #endif
 #endif
 
 #define BDBT_set_prefix loco_bdbt
@@ -117,9 +120,9 @@ struct loco_t;
 #endif
 
 #if defined(loco_text_box)
-#define ETC_WED_set_BaseLibrary 1
-#define ETC_WED_set_Prefix wed
-#include _FAN_PATH(ETC/WED/WED.h)
+  #define ETC_WED_set_BaseLibrary 1
+  #define ETC_WED_set_Prefix wed
+  #include _FAN_PATH(ETC/WED/WED.h)
 #endif
 
 #if defined(loco_model_3d)
@@ -127,7 +130,7 @@ extern "C" {
   #define FAST_OBJ_IMPLEMENTATION
   #include _FAN_PATH(graphics/fast_obj/fast_obj.h)
 }
-#include _FAN_PATH(graphics/transform_interpolator.h)
+  #include _FAN_PATH(graphics/transform_interpolator.h)
 #endif
 
 struct loco_t {
@@ -183,9 +186,9 @@ public:
   #if defined(loco_window)
 
   #if defined(loco_opengl)
-  #include _FAN_PATH(graphics/opengl/image_list_builder_settings.h)
+    #include _FAN_PATH(graphics/opengl/image_list_builder_settings.h)
   #elif defined(loco_vulkan)
-  #include _FAN_PATH(graphics/vulkan/image_list_builder_settings.h)
+    #include _FAN_PATH(graphics/vulkan/image_list_builder_settings.h)
   #endif
   #include _FAN_PATH(BLL/BLL.h)
 
@@ -374,11 +377,11 @@ public:
 
   #define BLL_set_declare_NodeReference 0
   #define BLL_set_declare_rest 1
-  #if defined(loco_opengl)
-  #include _FAN_PATH(graphics/opengl/matrices_list_builder_settings.h)
-  #elif defined(loco_vulkan)
-  #include _FAN_PATH(graphics/vulkan/matrices_list_builder_settings.h)
-  #endif
+    #if defined(loco_opengl)
+      #include _FAN_PATH(graphics/opengl/matrices_list_builder_settings.h)
+    #elif defined(loco_vulkan)
+      #include _FAN_PATH(graphics/vulkan/matrices_list_builder_settings.h)
+    #endif
   #include _FAN_PATH(BLL/BLL.h)
 
   matrices_list_t matrices_list;
@@ -388,13 +391,13 @@ public:
   image_t unloaded_image;
 
   #if defined(loco_texture_pack)
-  #include _FAN_PATH(graphics/opengl/texture_pack.h)
+    #include _FAN_PATH(graphics/opengl/texture_pack.h)
   #endif
 
   #if defined(loco_tp)
-  #if defined(loco_opengl)
-  #include _FAN_PATH(tp/tp.h)
-  #endif
+    #if defined(loco_opengl)
+      #include _FAN_PATH(tp/tp.h)
+    #endif
   #endif
 
   #endif
@@ -650,76 +653,82 @@ public:
   fan::graphics::core::memory_write_queue_t m_write_queue;
 
   #if defined(loco_compute_shader)
-  #include _FAN_PATH(graphics/vulkan/compute_shader.h)
+    #include _FAN_PATH(graphics/vulkan/compute_shader.h)
   #endif
 
   #if defined(loco_line)
-  #define sb_shape_var_name line
-  #include _FAN_PATH(graphics/opengl/2D/objects/line.h)
-  line_t sb_shape_var_name;
-  #undef sb_shape_var_name
+    #define sb_shape_var_name line
+    #include _FAN_PATH(graphics/opengl/2D/objects/line.h)
+    line_t sb_shape_var_name;
+    #undef sb_shape_var_name
   #endif
   #if defined(loco_rectangle)
-  #define vk_shape_wboit
-  #define sb_shape_var_name rectangle
-  #include _FAN_PATH(graphics/opengl/2D/objects/rectangle.h)
-  rectangle_t sb_shape_var_name;
-  #undef sb_shape_var_name
+    #define vk_shape_wboit
+    #define sb_shape_var_name rectangle
+    #include _FAN_PATH(graphics/opengl/2D/objects/rectangle.h)
+    rectangle_t sb_shape_var_name;
+    #undef sb_shape_var_name
   #endif
   #if defined(loco_yuv420p)
-  #define sb_shape_var_name yuv420p
-  #define sb_sprite_name yuv420p_t
-  #include _FAN_PATH(graphics/opengl/2D/objects/yuv420p.h)
-  yuv420p_t sb_shape_var_name;
-  #undef sb_shape_var_name
+    #define sb_shape_var_name yuv420p
+    #define sb_sprite_name yuv420p_t
+    #include _FAN_PATH(graphics/opengl/2D/objects/yuv420p.h)
+    yuv420p_t sb_shape_var_name;
+    #undef sb_shape_var_name
   #endif
   #if defined(loco_sprite)
-  #define sb_shape_var_name sprite
-  #define sb_sprite_name sprite_t
-  #include _FAN_PATH(graphics/opengl/2D/objects/sprite.h)
-  sprite_t sb_shape_var_name;
-  #undef sb_shape_var_name
+    #define sb_shape_var_name sprite
+    #define sb_sprite_name sprite_t
+    #include _FAN_PATH(graphics/opengl/2D/objects/sprite.h)
+    sprite_t sb_shape_var_name;
+    #undef sb_shape_var_name
+  #endif
+  #if defined(loco_sprite_sheet)
+    #define sb_shape_var_name sprite_sheet;
+    #define sb_sprite_sheet_name sprite_sheet_t
+    #include _FAN_PATH(graphics/sprite_sheet.h)
+    sb_sprite_sheet_name sb_shape_var_name;
   #endif
   #if defined(loco_letter)
-  #if !defined(loco_font)
-  #define loco_font "fonts/bitter"
-  #endif
-  #define sb_shape_var_name letter
-  #include _FAN_PATH(graphics/opengl/2D/objects/letter.h)
-  letter_t sb_shape_var_name;
-  #undef sb_shape_var_name
+    #if !defined(loco_font)
+    #define loco_font "fonts/bitter"
+    #endif
+    #define sb_shape_var_name letter
+    #include _FAN_PATH(graphics/opengl/2D/objects/letter.h)
+    letter_t sb_shape_var_name;
+    #undef sb_shape_var_name
   #endif
   #if defined(loco_text)
-  #define sb_shape_var_name text
-  #include _FAN_PATH(graphics/opengl/2D/objects/text.h)
-  using text_t = text_renderer_t;
-  text_t sb_shape_var_name;
-  #undef sb_shape_var_name
+    #define sb_shape_var_name text
+    #include _FAN_PATH(graphics/opengl/2D/objects/text.h)
+    using text_t = text_renderer_t;
+    text_t sb_shape_var_name;
+    #undef sb_shape_var_name
   #endif
   #if defined(loco_button)
-  #define sb_shape_var_name button
-  #include _FAN_PATH(graphics/gui/button.h)
-  button_t sb_shape_var_name;
-  #undef sb_shape_var_name
+    #define sb_shape_var_name button
+    #include _FAN_PATH(graphics/gui/button.h)
+    button_t sb_shape_var_name;
+    #undef sb_shape_var_name
   #endif
   #if defined(loco_text_box)
-  #include _FAN_PATH(graphics/gui/fed.h)
-  #define sb_shape_var_name text_box
-  #include _FAN_PATH(graphics/gui/text_box.h)
-  text_box_t sb_shape_var_name;
-  #undef sb_shape_var_name
+    #include _FAN_PATH(graphics/gui/fed.h)
+    #define sb_shape_var_name text_box
+    #include _FAN_PATH(graphics/gui/text_box.h)
+    text_box_t sb_shape_var_name;
+    #undef sb_shape_var_name
   #endif
   #if defined(loco_menu_maker)
-  #include "wrappers/menu_maker.h"
+    #include "wrappers/menu_maker.h"
   #endif
   #if defined(loco_menu_maker)
-  #include "wrappers/dropdown.h"
+    #include "wrappers/dropdown.h"
   #endif
   #if defined(loco_model_3d)
-  #define sb_shape_var_name model
-  #include _FAN_PATH(graphics/opengl/3D/objects/model.h)
-  model_t sb_shape_var_name;
-  #undef sb_shape_var_name
+    #define sb_shape_var_name model
+    #include _FAN_PATH(graphics/opengl/3D/objects/model.h)
+    model_t sb_shape_var_name;
+    #undef sb_shape_var_name
   #endif
   #if defined(loco_post_process)
   #define sb_post_process_var_name post_process
