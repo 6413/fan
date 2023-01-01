@@ -143,18 +143,18 @@ struct sb_sprite_name {
     *block->p[cid->instance_id].key.get_value<1>() = n;
   }*/
 
-  //void set_image(fan::graphics::cid_t* cid, loco_t::image_t* n) {
-  ////#if defined(loco_opengl)
-  //  sb_set_key<instance_properties_t::key_t::get_index_with_type<loco_t::textureid_t<0>>()>(cid, n);
-  ////#else
-  ////  auto loco = get_loco();
-  ////  auto& img = loco->image_list[n];
-  ////  // maybe samplers etc need to update too
-  ////  m_descriptor.m_properties[2].image_infos[img.texture_index.sprite].imageView = img.image_view;
-  ////  m_descriptor.update(loco->get_context(), 1, 2, 1, img.texture_index.sprite);
+  void set_image(fan::graphics::cid_t* cid, loco_t::textureid_t<0> n) {
+  #if defined(loco_opengl)
+    sb_set_key<bm_properties_t::key_t::get_index_with_type<loco_t::textureid_t<0>>()>(cid, n);
+  #else
+    auto loco = get_loco();
+    auto& img = loco->image_list[n];
+    // maybe samplers etc need to update too
+    m_ssbo.m_descriptor.m_properties[2].image_infos[img.texture_index.sprite].imageView = img.image_view;
+    m_ssbo.m_descriptor.update(loco->get_context(), 1, 2, 1, img.texture_index.sprite);
 
-  ////#endif
-  //}
+  #endif
+  }
   //void set_viewport_value(fan::graphics::cid_t* cid, fan::vec2 p, fan::vec2 s) {
   //  loco_t* loco = get_loco();
   //  auto block = sb_get_block(cid);

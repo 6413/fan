@@ -18,6 +18,8 @@ namespace fan {
 		};
 
 		struct timer_t {
+      // CB SHOULD BE INITALIZED
+      timer_t() = default;
 			bool operator<(const timer_t& r) const {
 				return time_left < r.time_left;
 			}
@@ -26,7 +28,7 @@ namespace fan {
 				cb = c;
 			}
 			uint64_t time_left;
-			fan::function_t<void(const cb_data_t&)> cb;
+      fan::function_t<void(const cb_data_t&)> cb = [] (const cb_data_t&) {};
 		};
 
 		void start(timer_t* timer, uint64_t time_left) {

@@ -4,6 +4,7 @@
       static constexpr auto b8g8r8a8_unorm = VK_FORMAT_B8G8R8A8_UNORM;
       static constexpr auto r8b8g8a8_unorm = VK_FORMAT_R8G8B8A8_UNORM;
       static constexpr auto r8_unorm = VK_FORMAT_R8_UNORM;
+      static constexpr auto r8_uint = VK_FORMAT_R8_UINT;
       static constexpr auto r8g8b8a8_srgb = VK_FORMAT_R8G8B8A8_SRGB;
     };
 
