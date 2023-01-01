@@ -5,7 +5,7 @@ R"(
 
 out vec4 instance_color;
 out vec2 texture_coordinate;
-out uint flat flag;
+flat out uint flag;
 
 uniform mat4 view;
 uniform mat4 projection;
