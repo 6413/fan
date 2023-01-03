@@ -257,7 +257,6 @@
     <ClCompile Include="examples\gui\stage_maker.cpp" />
     <ClCompile Include="include\fan\physics\AStar.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
-    <ClCompile Include="src\fmt\format.cc" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />
