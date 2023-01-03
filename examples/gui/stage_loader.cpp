@@ -9,21 +9,20 @@
 #define loco_window
 #define loco_context
 
+
+#define loco_sprite
 #define loco_button
+#define loco_stage_loader
+#define stage_loader_path ../../
 #include _FAN_PATH(graphics/loco.h)
 
 struct pile_t {
-
-	#define stage_loader_path ../../
-	#include _FAN_PATH(graphics/gui/stage_maker/loader.h)
-
-	stage_loader_t stage_loader;
 	loco_t loco;
 
 	static constexpr fan::vec2 ortho_x = fan::vec2(-1, 1);
 	static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
 
-	void open() {
+	pile_t(const char* compiled_texturepack_name) {
 		fan::vec2 window_size = loco.get_window()->get_size();
 		loco.open_matrices(
 			&matrices,
@@ -44,11 +43,13 @@ struct pile_t {
 		viewport.set(loco.get_context(), 0, window_size, window_size);
 		theme = fan_2d::graphics::gui::themes::deep_red();
 		theme.open(loco.get_context());
-		stage_loader.open();
+
+    // requires manual open with compiled texture pack name
+    loco.stage_loader.open(compiled_texturepack_name);
 	}
 
 	void close() {
-		stage_loader.close();
+    loco.stage_loader.close();
 	}
 
 	fan_2d::graphics::gui::theme_t theme;
@@ -56,17 +57,21 @@ struct pile_t {
 	fan::graphics::viewport_t viewport;
 };
 
-int main() {
-	pile_t pile;
-	pile.open();
+int main(int argc, char** argv) {
 
-	using sl = pile_t::stage_loader_t;
+  if (argc < 2) {
+    fan::throw_error("usage: TexturePackCompiled");
+  }
+
+  pile_t pile(argv[1]);
+
+	using sl = loco_t::stage_loader_t;
 
 	sl::stage_common_t::open_properties_t op;
 	op.matrices = &pile.matrices;
 	op.viewport = &pile.viewport;
 	op.theme = &pile.theme;
-	pile.stage_loader.push_and_open_stage<sl::stage::stage0_t>(op);
+	pile.loco.stage_loader.push_and_open_stage<sl::stage::stage0_t>(op);
 
 	pile.loco.loop([&] {
 

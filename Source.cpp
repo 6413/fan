@@ -1,16 +1,21 @@
 #include <iostream>
+#include <format>
 
-struct a_t {
-  struct b_t {
-    void f() {
-      // how to get a_t here without passing to parameter?
-      a_t& a = *(a_t*)((unsigned char*)this - offsetof(a_t, b));
-      a.b.f();
-    }
-  }b;
+#define _INCLUDE_TOKEN(p0, p1) <p0/p1>
+
+#ifndef FAN_INCLUDE_PATH
+#define FAN_INCLUDE_PATH C:/libs/fan/include
+#endif
+#define fan_debug 0
+#include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
+
+
+struct s_t {
+  int x[0];
 };
 
 int main() {
-  a_t a;
-  a.b.f();
+  fan::string str("hello");
+  str.replace(2, 2, "ddd");
+  fan::print(str);
 }

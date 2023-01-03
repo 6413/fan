@@ -22,6 +22,9 @@ struct fgm_t {
 		fan::vec2 corners[count];
 	};
 
+
+  #include "common.h"
+
 	static constexpr fan::vec2 button_size = fan::vec2(0.3, 0.08);
   static constexpr f32_t line_z_depth = 10;
   static constexpr f32_t right_click_z_depth = 11;
@@ -325,6 +328,19 @@ struct fgm_t {
 			
 			      fan::string str;
 			      fan::io::file::read(file_name, &str);
+
+            str.insert(0, std::format(R"(
+static inline fan::graphics::cid_t cid_button[{}];
+static inline fan::graphics::cid_t cid_sprite[{}];
+
+static inline fan::graphics::cid_t* cid_table[] = {{
+  cid_button,
+  cid_sprite
+}};
+            )",
+              builder_button.instance.size(),
+              sprite.instances.size()
+            ).c_str());
 			
 			      std::size_t button_id = -1;
 			      for (std::size_t j = 0; j < pile->stage_maker.fgm.builder_button.instance.size(); ++j) {
@@ -342,7 +358,14 @@ struct fgm_t {
 				      return 0;
 			      }
 			
-			      str += "\n\nstatic int mouse_button_cb" + fan::to_string(button_id) + "(const loco_t::mouse_button_data_t& mb){\n  return 0;\n}";
+auto mouse_button_cb = std::format(R"(
+            
+static int mouse_button_cb{}(const loco_t::mouse_button_data_t& mb){{
+  return 0;
+}}
+)", fan::to_string(button_id).c_str());
+
+			      str += mouse_button_cb.c_str();
 			
 			      fan::io::file::write(file_name, str, std::ios_base::binary);
 
@@ -352,10 +375,38 @@ struct fgm_t {
 		      }
         });
         push_menu(mb, {
-          .text = L"text"
+          .text = L"sprite",
+          .mouse_button_cb = [this](const loco_t::mouse_button_data_t& ii_d) -> int {
+            pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi), pile_t, loco);
+            if (ii_d.button != fan::mouse_left) {
+              return 0;
+            }
+            if (ii_d.button_state != fan::mouse_state::release) {
+              return 0;
+            }
+            if (ii_d.mouse_stage != loco_t::vfi_t::mouse_stage_e::inside) {
+              return 0;
+            }
+          	sprite_t::properties_t sp;
+          	sp.matrices = &pile->stage_maker.fgm.matrices[viewport_area::editor];
+          	sp.viewport = &pile->stage_maker.fgm.viewport[viewport_area::editor];
+          	sp.position = fan::vec2(0, 0);
+
+          	sp.size = fan::vec2(0.1, 0.1);
+          	auto pd = texturepack.get_pixel_data(default_texture.pack_id);
+          	sp.image = &pd.image;
+          	sp.tc_position = default_texture.position / pd.size;
+          	sp.tc_size = default_texture.size / pd.size;
+
+          	pile->stage_maker.fgm.sprite.push_back(sp);
+          	auto& instance = pile->stage_maker.fgm.sprite.instances[pile->stage_maker.fgm.sprite.instances.size() - 1];
+          	pile->stage_maker.fgm.sprite.open_properties(&instance->cid);
+
+          	return 0;
+          }
         });
         push_menu(mb, {
-          .text = L"sprite"
+          .text = L"text"
         });
 
         loco_t::vfi_t::properties_t p;
@@ -364,10 +415,10 @@ struct fgm_t {
 		    p.mouse_button_cb = [this, &vfi_id, loco](const loco_t::vfi_t::mouse_button_data_t& mb) -> int {
 			    pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco);
           invalidate_right_click_menu();
-          fan::print("debug0", loco->vfi.focus.mouse.NRI, loco->vfi.focus.keyboard.NRI, loco->vfi.focus.text.NRI);
+          //fan::print("debug0", loco->vfi.focus.mouse.NRI, loco->vfi.focus.keyboard.NRI, loco->vfi.focus.text.NRI);
           loco->vfi.erase(vfi_id);
 			    return 1;
-          fan::print("debug1", loco->vfi.focus.mouse.NRI, loco->vfi.focus.keyboard.NRI, loco->vfi.focus.text.NRI);
+          //fan::print("debug1", loco->vfi.focus.mouse.NRI, loco->vfi.focus.keyboard.NRI, loco->vfi.focus.text.NRI);
 		    };
 		    vfi_id = loco->vfi.push_shape(p);
 			}
@@ -480,120 +531,117 @@ struct fgm_t {
 		}
 		fan::io::file::read(path, &f);
 		uint64_t off = 0;
-		uint32_t instance_count = fan::io::file::read_data<uint32_t>(f, off);
-		for (uint32_t i = 0; i < instance_count; i++) {
-			auto p = fan::io::file::read_data<fan::vec3>(f, off);
-			auto s = fan::io::file::read_data<fan::vec2>(f, off);
-			auto fs = fan::io::file::read_data<f32_t>(f, off);
-			auto text = fan::io::file::read_data<fan::wstring>(f, off);
-			fan::io::file::read_data<fan_2d::graphics::gui::theme_t>(f, off);
-			//theme.open(loco->get_context());
-			builder_button_t::properties_t bp;
-			bp.position = p;
-			bp.size = s;
-			bp.font_size = fs;
-			bp.text = text;
-			bp.theme = &theme;
-			bp.matrices = &matrices[viewport_area::editor];
-			bp.viewport = &viewport[viewport_area::editor];
-			builder_button.push_back(bp);
-		}
-		instance_count = fan::io::file::read_data<uint32_t>(f, off);
-		for (uint32_t i = 0; i < instance_count; i++) {
-			auto p = fan::io::file::read_data<fan::vec3>(f, off);
-			auto s = fan::io::file::read_data<fan::vec2>(f, off);
-			auto text_hash = fan::io::file::read_data<uint64_t>(f, off);
-			//theme.open(loco->get_context());
-			sprite_t::properties_t sp;
-			sp.position = p;
-			sp.size = s;
-			auto pd = texturepack.get_pixel_data(default_texture.pack_id);
-			sp.image = &pd.image;
-			sp.tc_position = default_texture.position / pd.size;
-			sp.tc_size = default_texture.size / pd.size;
-			sp.matrices = &matrices[viewport_area::editor];
-			sp.viewport = &viewport[viewport_area::editor];
-			sprite.push_back(sp);
-		}
+
+    while (off < f.size()) {
+      format::shape_type_t::_t shape_type = fan::io::file::read_data<format::shape_type_t::_t>(f, off);
+      uint32_t instance_count = fan::io::file::read_data<uint32_t>(f, off);
+
+      for (uint32_t i = 0; i < instance_count; ++i) {
+        switch (shape_type) {
+        case format::shape_type_t::button: {
+          auto data = fan::io::file::read_data<format::shape_button_t>(f, off);
+          auto text = fan::io::file::read_data<fan::wstring>(f, off);
+          builder_button_t::properties_t bp;
+          bp.position = data.position;
+          bp.size = data.size;
+          bp.font_size = data.font_size;
+          bp.text = text;
+          bp.theme = &theme;
+          bp.matrices = &matrices[viewport_area::editor];
+          bp.viewport = &viewport[viewport_area::editor];
+          builder_button.push_back(bp);
+          break;
+        }
+        case format::shape_type_t::sprite: {
+          auto data = fan::io::file::read_data<format::shape_sprite_t>(f, off);
+          sprite_t::properties_t sp;
+          sp.position = data.position;
+          sp.size = data.size;
+          // how to do this help
+          //data.hash_path
+          auto pd = texturepack.get_pixel_data(default_texture.pack_id);
+          sp.image = &pd.image;
+          sp.tc_position = default_texture.position / pd.size;
+          sp.tc_size = default_texture.size / pd.size;
+          sp.matrices = &matrices[viewport_area::editor];
+          sp.viewport = &viewport[viewport_area::editor];
+          sprite.push_back(sp);
+          break;
+        }
+        default: {
+          fan::throw_error("i cant find what you talk about - fgm");
+          break;
+        }
+        }
+      }
+    }
 	}
 
 	void write_to_file(const fan::string& stage_name) {
 		auto loco = get_loco();
 
+
 		fan::string f;
-		f.resize(f.size() + sizeof(uint32_t));
+    static auto add_to_f = [&f]<typename T>(const T& o) {
+      std::size_t off = f.size();
+      if constexpr (std::is_same<fan::string, T>::value ||
+        std::is_same<fan::wstring, T>::value
+        ) {
+        uint64_t len = o.size() * sizeof(typename std::remove_reference_t<decltype(o)>::char_type);
+        f.resize(off + sizeof(uint64_t));
+        memcpy(&f[off], &len, sizeof(uint64_t));
+        off += sizeof(uint64_t);
+
+        f.resize(off + len);
+        memcpy(&f[off], o.data(), len);
+      }
+      else {
+        f.resize(off + sizeof(o));
+        memcpy(&f[off], &o, sizeof(o));
+      }
+    };
 		uint32_t instances_count = builder_button.instance.size();
-		memcpy(&f[0], &instances_count, sizeof(uint32_t));
+    add_to_f(format::shape_type_t::button);
+    add_to_f(instances_count);
 		for (auto it : builder_button.instance) {
-			auto p = loco->button.get(&it->cid, &loco_t::button_t::vi_t::position);
-			auto s = loco->button.get(&it->cid, &loco_t::button_t::vi_t::size);
-			auto fs = loco->text.get_properties(
+      format::shape_button_t data;
+			data.position = loco->button.get(&it->cid, &loco_t::button_t::vi_t::position);
+			data.size = loco->button.get(&it->cid, &loco_t::button_t::vi_t::size);
+			data.font_size = loco->text.get_properties(
 				loco->button.get_ri(&it->cid).text_id
 			).font_size;
-			auto text = it->text;
-			auto theme = loco->button.get_theme(&it->cid);
-			
-			static auto add_to_f = [&f, &it]<typename T>(const T& o) {
-				std::size_t off = f.size();
-				if constexpr (std::is_same<fan::string, T>::value || 
-						std::is_same<fan::wstring, T>::value
-					) {
-					uint64_t len = o.size()  * sizeof(typename std::remove_reference_t<decltype(o)>::char_type);
-					f.resize(off + sizeof(uint64_t));
-					memcpy(&f[off], &len, sizeof(uint64_t));
-					off += sizeof(uint64_t);
-
-					f.resize(off + len);
-					memcpy(&f[off], o.data(), len);
-				}
-				else {
-					f.resize(off + sizeof(o));
-					memcpy(&f[off], &o, sizeof(o));
-				}
-			};
-
-			add_to_f(p);
-			add_to_f(s);
-			add_to_f(fs);
-			add_to_f(text);
-			add_to_f(*theme);
+      //data.theme = *loco->button.get_theme(&it->cid);
+      add_to_f(data);
+      add_to_f(it->text);
 		}
 
-		f.resize(f.size() + sizeof(uint32_t));
-		instances_count = sprite.instances.size();
-		memcpy(&f[f.size() - sizeof(uint32_t)], &instances_count, sizeof(uint32_t));
-		for (auto it : sprite.instances) {
-			auto p = loco->sprite.get(&it->cid, &loco_t::sprite_t::vi_t::position);
-			auto s = loco->sprite.get(&it->cid, &loco_t::sprite_t::vi_t::size);
-			uint64_t text_hash = fan::get_hash("images/test.webp");
+    instances_count = sprite.instances.size();
 
-			static auto add_to_f = [&f, &it]<typename T>(const T & o) {
-				std::size_t off = f.size();
-				if constexpr (std::is_same<fan::string, T>::value) {
-					uint64_t len = o.size();
-					f.resize(off + sizeof(uint64_t));
-					memcpy(&f[off], &len, sizeof(uint64_t));
-					off += sizeof(uint64_t);
-
-					f.resize(off + o.size());
-					memcpy(&f[off], o.data(), o.size());
-				}
-				else {
-					f.resize(off + sizeof(o));
-					memcpy(&f[off], &o, sizeof(o));
-				}
-			};
-
-			add_to_f(p);
-			add_to_f(s);
-			add_to_f(text_hash);
-		}
+    add_to_f(format::shape_type_t::sprite);
+    add_to_f(instances_count);
+    for (auto it : sprite.instances) {
+      format::shape_sprite_t data;
+      data.position = loco->sprite.get(&it->cid, &loco_t::sprite_t::vi_t::position);
+      data.size = loco->sprite.get(&it->cid, &loco_t::sprite_t::vi_t::size);
+      data.hash_path = fan::get_hash("images/test.webp");
+      add_to_f(data);
+    }
 
 		fan::io::file::write(
 			get_fgm_full_path(stage_name),
 			f,
 			std::ios_base::binary
 		);
+
+    //vauto sta
+    pile_t* pile = OFFSETLESS(loco, pile_t, loco_var_name);
+    auto offset = pile->stage_maker.stage_h_str.find(stage_name);
+
+
+
+    if (offset == fan::string::npos) {
+      fan::throw_error("corrupted stage.h");
+    }
 	}
 
 	#include "fgm_shape_types.h"

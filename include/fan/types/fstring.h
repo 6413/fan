@@ -251,20 +251,9 @@ namespace fan {
 			str.resize(c + 1);
 		}
 
-		// dont use xd
-		void replace(std::size_t beg, std::size_t count, const basic_string& replace) {
-			if (count < replace.size()) {
-				std::size_t to_replace = replace.size() - count;
-				resize(size() + to_replace);
-				//memcpy(&str[beg + to_replace], &str[beg + count], count);
-				memcpy(&str[beg], replace.data(), replace.size());
-				return;
-			}
-
-			int64_t to_replace = replace.size() - count;
-			memcpy(&str[beg + to_replace], &str[beg + count], to_replace);
-			memcpy(&str[beg], replace.data(), replace.size());
-			erase(end() - to_replace, end());
+		void replace(std::size_t beg, std::size_t count, const basic_string& replace_str) {
+      erase(beg, count);
+      insert(beg, replace_str);
 		}
 
 		void replace_all(const basic_string& search, const basic_string& replace) {

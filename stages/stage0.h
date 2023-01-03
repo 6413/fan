@@ -1,3 +1,12 @@
+
+static inline fan::graphics::cid_t cid_button[1];
+static inline fan::graphics::cid_t cid_sprite[1];
+
+static inline fan::graphics::cid_t* cid_table[] = {
+  cid_button,
+  cid_sprite
+};
+            
 stage_common_t stage_common = {
 	.open = [this] () {
 		
@@ -15,8 +24,6 @@ stage_common_t stage_common = {
 
 static void lib_open(loco_t* loco, stage_common_t* sc, const stage_common_t::open_properties_t& op) {
 
-	sc->instances.Open();
-
 	fan::string fgm_name = fan::file_name(__FILE__);
 	fgm_name.pop_back(); // remove
 	fgm_name.pop_back(); // .h
@@ -25,38 +32,60 @@ static void lib_open(loco_t* loco, stage_common_t* sc, const stage_common_t::ope
 	if (!fan::io::file::exists(full_path)) {
 		return;
 	}
-	fan::io::file::read(full_path, &f);
-	uint64_t off = 0;
-	uint32_t instance_count = fan::io::file::read_data<uint32_t>(f, off);
-	for (uint32_t i = 0; i < instance_count; i++) {
-		auto p = fan::io::file::read_data<fan::vec3>(f, off);
-		auto s = fan::io::file::read_data<fan::vec2>(f, off);
-		auto fs = fan::io::file::read_data<f32_t>(f, off);
-		auto text = fan::io::file::read_data<fan::wstring>(f, off);
-		fan::io::file::read_data<fan_2d::graphics::gui::theme_t>(f, off);
-		typename loco_t::button_t::properties_t bp;
-		bp.position = p;
-		bp.size = s;
-		bp.font_size = fs;
-		bp.text = text;
-		bp.theme = op.theme;
-		bp.matrices = op.matrices;
-		bp.viewport = op.viewport;
-		bp.mouse_button_cb = mouse_button_cb0;
-		auto nr = sc->instances.NewNodeLast();
+  fan::io::file::read(full_path, &f);
+  uint64_t off = 0;
 
-		loco->button.push_back(&sc->instances[nr].cid, bp);
+  while (off < f.size()) {
+    format::shape_type_t::_t shape_type = fan::io::file::read_data<format::shape_type_t::_t>(f, off);
+    uint32_t instance_count = fan::io::file::read_data<uint32_t>(f, off);
+
+    for (uint32_t i = 0; i < instance_count; ++i) {
+      switch (shape_type) {
+      case format::shape_type_t::button: {
+        auto data = fan::io::file::read_data<format::shape_button_t>(f, off);
+        auto text = fan::io::file::read_data<fan::wstring>(f, off);
+        loco_t::button_t::properties_t bp;
+        bp.position = data.position;
+        bp.size = data.size;
+        bp.font_size = data.font_size;
+        bp.text = text;
+        bp.theme = &data.theme;
+        bp.matrices = op.matrices;
+        bp.viewport = op.viewport;
+        loco->button.push_back(&cid_table[shape_type][i], bp);
+        break;
+      }
+      case format::shape_type_t::sprite: {
+        auto data = fan::io::file::read_data<format::shape_sprite_t>(f, off);
+        loco_t::sprite_t::properties_t sp;
+        sp.position = data.position;
+        sp.size = data.size;
+        loco_t::texturepack::ti_t ti;
+        if (loco->stage_loader.texturepack.qti("test.webp", &ti)) {
+          fan::throw_error("failed to load texture from texturepack");
+        }
+        auto& pd = loco->stage_loader.texturepack.get_pixel_data(ti.pack_id);
+        sp.image = &pd.image;
+        sp.tc_position = ti.position / pd.size;
+        sp.tc_size = ti.size / pd.size;
+        sp.matrices = op.matrices;
+        sp.viewport = op.viewport;
+        loco->sprite.push_back(&cid_table[shape_type][i], sp);
+        break;
+      }
+      default: {
+        fan::throw_error("i cant find what you talk about - fgm");
+        break;
+      }
+      }
+    }
 	}
 }
 
 static void lib_close(stage_common_t* sc) {
-	sc->instances.Close();
-}
 
-static int mouse_button_cb1(const loco_t::mouse_button_data_t& mb){
-  return 0;
 }
-
-static int mouse_button_cb2(const loco_t::mouse_button_data_t& mb){
+            
+static int mouse_button_cb0(const loco_t::mouse_button_data_t& mb){
   return 0;
 }
