@@ -329,7 +329,7 @@ struct fgm_t {
 			      fan::string str;
 			      fan::io::file::read(file_name, &str);
 
-            str.insert(0, std::format(R"(
+            str.insert(0, fmt::format(R"(
 static inline fan::graphics::cid_t cid_button[{}];
 static inline fan::graphics::cid_t cid_sprite[{}];
 
@@ -358,7 +358,7 @@ static inline fan::graphics::cid_t* cid_table[] = {{
 				      return 0;
 			      }
 			
-auto mouse_button_cb = std::format(R"(
+auto mouse_button_cb = fmt::format(R"(
             
 static int mouse_button_cb{}(const loco_t::mouse_button_data_t& mb){{
   return 0;

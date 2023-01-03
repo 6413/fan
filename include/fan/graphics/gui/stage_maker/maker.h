@@ -242,7 +242,7 @@ static void lib_close(stage_common_t* sc) {
 			fan::throw_error("corrupted stage.h");
 		}
 
-    auto append_struct = std::format(R"(  struct {}_t {{
+    auto append_struct = fmt::format(R"(  struct {}_t {{
     #include "{}"
   }};
   )", stage_name.c_str(), get_file_fullpath(stage_name).c_str());

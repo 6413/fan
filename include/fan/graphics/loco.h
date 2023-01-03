@@ -10,7 +10,7 @@ struct loco_t;
 #include _FAN_PATH(time/timer.h)
 #include _FAN_PATH(font.h)
 
-#include <format>
+#include <fmt/format.h>
 
 // automatically gets necessary macros for shapes
 

@@ -9,6 +9,7 @@
 #define fan_debug 0
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
+#include <fmt/format.h>
 
 struct s_t {
   int x[0];
