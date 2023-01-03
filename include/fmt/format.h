@@ -4321,8 +4321,9 @@ FMT_END_NAMESPACE
 // All rights reserved.
 //
 // For the license information refer to format.h.
-
+#pragma once
 #include "fmt/format-inl.h"
+
 
 FMT_BEGIN_NAMESPACE
 namespace detail {
