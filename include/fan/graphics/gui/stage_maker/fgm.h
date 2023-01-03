@@ -266,7 +266,7 @@ struct fgm_t {
 		vfip.shape.rectangle.viewport = &viewport[viewport_area::global];
 		vfip.shape.rectangle.size = viewport[viewport_area::types].get_size() / loco->get_window()->get_size();
 
-    vfip.mouse_button_cb = [this, loco, vfi_id = (loco_t::vfi_t::shape_id_t)()](const loco_t::vfi_t::mouse_button_data_t& mb) mutable -> int {
+    vfip.mouse_button_cb = [this, loco, vfi_id = loco_t::vfi_t::shape_id_t{}](const loco_t::vfi_t::mouse_button_data_t& mb) mutable -> int {
       loco_t::menu_maker_t::open_properties_t rcm_op;
 		  rcm_op.matrices = &matrices[viewport_area::global];
 		  rcm_op.viewport = &viewport[viewport_area::global];
