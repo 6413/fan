@@ -95,12 +95,9 @@ struct texturepack {
   }
 
   bool qti(const fan::string& name, ti_t* ti) {
-    uint64_t hash = fan::get_hash(name);
-
-    //std::find_if(texture_list[0].begin(), texture_list[texture_list.size()].end(),
-    //  [](const texture_t& a, const texture_t& b) {
-    //  return a.hash == b.hash;
-    //});
+    return qti(fan::get_hash(name), ti);
+  }
+  bool qti(uint64_t hash, ti_t* ti) {
 
     for (uint32_t i = 0; i < texture_list.size(); i++) {
       for (uint32_t j = 0; j < texture_list[i].size(); j++) {
