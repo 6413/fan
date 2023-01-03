@@ -217,6 +217,19 @@ struct text_box_t {
 
                 update_text();
               }
+              break;
+            }
+            case fan::key_enter: {
+              loco->vfi.invalidate_focus_keyboard();
+              loco->vfi.invalidate_focus_mouse();
+              loco->vfi.invalidate_focus_text();
+              render_cursor = false;
+              fan::ev_timer_t::cb_data_t data;
+              data.ev_timer = &loco->ev_timer;
+              data.timer = &timer;
+              timer.cb(data);
+              data.ev_timer->stop(&timer);
+              return 0;
             }
             default: {
               return 0;

@@ -180,32 +180,32 @@ struct builder_button_t {
 	void open_properties(fan::graphics::cid_t* instance) {
 		auto pile = get_pile();
 
-		if (!pile->loco.menu_maker.instances.inri(pile->stage_maker.fgm.properties_nr)) {
-			pile->stage_maker.fgm.menu.erase(pile->stage_maker.fgm.properties_nr);
+		if (!pile->loco.menu_maker_text_box.instances.inri(pile->stage_maker.fgm.properties_nr)) {
+			pile->stage_maker.fgm.text_box_menu.erase(pile->stage_maker.fgm.properties_nr);
 		}
 
-		menu_t::open_properties_t menup;
+    text_box_menu_t::open_properties_t menup;
 		menup.matrices = &pile->stage_maker.fgm.matrices[pile_t::stage_maker_t::fgm_t::viewport_area::properties];
 		menup.viewport = &pile->stage_maker.fgm.viewport[pile_t::stage_maker_t::fgm_t::viewport_area::properties];
 		menup.theme = &pile->stage_maker.fgm.theme;
 		menup.position = fan::vec2(0, -0.8);
 		menup.gui_size = 0.08;
-		auto nr = pile->stage_maker.fgm.menu.push_menu(menup);
+		auto nr = pile->stage_maker.fgm.text_box_menu.push_menu(menup);
 		pile->stage_maker.fgm.properties_nr = nr;
-		menu_t::properties_t p;
-		p.text = L"";
+    text_box_menu_t::properties_t p;
+		p.text = L"test";
 		p.text_value = L"add cbs";
 		p.mouse_button_cb = [this, instance](const loco_t::mouse_button_data_t& mb) -> int {
 			return 0;
 		};
-		pile->stage_maker.fgm.menu.push_back(nr, p);
+		pile->stage_maker.fgm.text_box_menu.push_back(nr, p);
 		//
-		//pile->stage_maker.fgm.menu.clear();
+		//pile->stage_maker.fgm.button_menu.clear();
 		//
 		//properties_menu_t::properties_t menup;
 		//menup.text = "position";
 		//menup.text_value = pile->loco.button.get_button(instance, &loco_t::button_t::instance_t::position).to_string();
-		//pile->stage_maker.fgm.menu.push_back(menup);
+		//pile->stage_maker.fgm.button_menu.push_back(menup);
 	}
 
 	void release() {
@@ -354,7 +354,7 @@ struct builder_button_t {
 				auto stage_name = pile->stage_maker.get_selected_name(
 					pile,
 					pile->stage_maker.instances[pile_t::stage_maker_t::stage_t::stage_instance].menu_id,
-					pile->loco.menu_maker.get_selected_id(pile->stage_maker.instances[pile_t::stage_maker_t::stage_t::stage_instance].menu_id)
+					pile->loco.menu_maker_button.get_selected_id(pile->stage_maker.instances[pile_t::stage_maker_t::stage_t::stage_instance].menu_id)
 				);
 				auto file_name = pile->stage_maker.get_file_fullpath(stage_name);
 
@@ -406,19 +406,19 @@ struct sprite_t {
 	void open_properties(fan::graphics::cid_t* instance) {
 		auto pile = get_pile();
 
-		if (!pile->loco.menu_maker.instances.inri(pile->stage_maker.fgm.properties_nr)) {
-			pile->stage_maker.fgm.menu.erase(pile->stage_maker.fgm.properties_nr);
+		if (!pile->loco.menu_maker_text_box.instances.inri(pile->stage_maker.fgm.properties_nr)) {
+			pile->stage_maker.fgm.text_box_menu.erase(pile->stage_maker.fgm.properties_nr);
 		}
 
-		menu_t::open_properties_t menup;
+		text_box_menu_t::open_properties_t menup;
 		menup.matrices = &pile->stage_maker.fgm.matrices[pile_t::stage_maker_t::fgm_t::viewport_area::properties];
 		menup.viewport = &pile->stage_maker.fgm.viewport[pile_t::stage_maker_t::fgm_t::viewport_area::properties];
 		menup.theme = &pile->stage_maker.fgm.theme;
 		menup.position = fan::vec2(0, -0.8);
 		menup.gui_size = 0.08;
-		auto nr = pile->stage_maker.fgm.menu.push_menu(menup);
+		auto nr = pile->stage_maker.fgm.text_box_menu.push_menu(menup);
 		pile->stage_maker.fgm.properties_nr = nr;
-		menu_t::properties_t p;
+		text_box_menu_t::properties_t p;
 		p.text = L"";
 		p.text_value = L"add cbs";
 		p.mouse_button_cb = [this, instance](const loco_t::mouse_button_data_t& mb) -> int {
@@ -430,14 +430,14 @@ struct sprite_t {
 
 			return 0;
 		};
-		pile->stage_maker.fgm.menu.push_back(nr, p);
+		pile->stage_maker.fgm.text_box_menu.push_back(nr, p);
 		//
-		//pile->stage_maker.fgm.menu.clear();
+		//pile->stage_maker.fgm.button_menu.clear();
 		//
 		//properties_menu_t::properties_t menup;
 		//menup.text = "position";
 		//menup.text_value = pile->loco.button.get_button(instance, &loco_t::button_t::instance_t::position).to_string();
-		//pile->stage_maker.fgm.menu.push_back(menup);
+		//pile->stage_maker.fgm.button_menu.push_back(menup);
 	}
 
 	void release() {
@@ -631,38 +631,38 @@ struct sprite_t {
 	std::vector<instance_t*> instances;
 }sprite;
 
-struct menu_t {
+struct button_menu_t {
 	
 	loco_t* get_loco() {
-		return ((stage_maker_t*)OFFSETLESS(OFFSETLESS(this, fgm_t, menu), stage_maker_t, fgm))->get_loco();
+		return ((stage_maker_t*)OFFSETLESS(OFFSETLESS(this, fgm_t, button_menu), stage_maker_t, fgm))->get_loco();
 	}
 	pile_t* get_pile() {
 		return OFFSETLESS(get_loco(), pile_t, loco_var_name);
 	}
 
-	using properties_t = loco_t::menu_maker_t::properties_t;
-	using open_properties_t = loco_t::menu_maker_t::open_properties_t;
+	using properties_t = loco_t::menu_maker_button_t::properties_t;
+	using open_properties_t = loco_t::menu_maker_button_t::open_properties_t;
 
 	struct instance_t {
-		loco_t::menu_maker_t::instance_NodeReference_t nr;
-		std::vector<loco_t::menu_maker_base_t::instance_t> ids;
+		loco_t::menu_maker_button_t::instance_NodeReference_t nr;
+		std::vector<loco_t::menu_maker_button_t::base_type_t::instance_t> ids;
 	};
 
-	loco_t::menu_maker_t::instance_NodeReference_t push_menu(const open_properties_t& op) {
+	loco_t::menu_maker_button_t::instance_NodeReference_t push_menu(const open_properties_t& op) {
 		auto pile = get_pile();
 		instance_t in;
-		in.nr = pile->loco.menu_maker.push_menu(op);
+		in.nr = pile->loco.menu_maker_button.push_menu(op);
 		instance.push_back(in);
 		return in.nr;
 	}
-	loco_t::menu_maker_base_t::instance_NodeReference_t push_back(loco_t::menu_maker_t::instance_NodeReference_t id, const properties_t& properties) {
+	loco_t::menu_maker_button_t::base_type_t::instance_NodeReference_t push_back(loco_t::menu_maker_button_t::instance_NodeReference_t id, const properties_t& properties) {
 		auto pile = get_pile();
-		return pile->loco.menu_maker.instances[id].base.push_back(&pile->loco, properties, id);
+		return pile->loco.menu_maker_button.instances[id].base.push_back(&pile->loco, properties, id);
 	}
 
-	void erase(loco_t::menu_maker_t::instance_NodeReference_t id) {
+	void erase(loco_t::menu_maker_button_t::instance_NodeReference_t id) {
 		auto pile = get_pile();
-		pile->loco.menu_maker.erase_menu(id);
+		pile->loco.menu_maker_button.erase_menu(id);
 		for (uint32_t i = 0; i < instance.size(); i++) {
 			if (id == instance[i].nr) {
 				instance.erase(instance.begin() + i);
@@ -674,12 +674,65 @@ struct menu_t {
 	void clear() {
 		auto pile = get_pile();
 		for (auto& it : instance) {
-			pile->loco.menu_maker.erase_menu(it.nr);
+			pile->loco.menu_maker_button.erase_menu(it.nr);
 		}
 		instance.clear();
 	}
 
 	std::vector<instance_t> instance;
-}menu;
+}button_menu;
 
-loco_t::menu_maker_t::instance_NodeReference_t properties_nr;
+struct text_box_menu_t {
+
+  loco_t* get_loco() {
+    return ((stage_maker_t*)OFFSETLESS(OFFSETLESS(this, fgm_t, text_box_menu), stage_maker_t, fgm))->get_loco();
+  }
+  pile_t* get_pile() {
+    return OFFSETLESS(get_loco(), pile_t, loco_var_name);
+  }
+
+  using type_t = loco_t::menu_maker_text_box_t;
+
+  using properties_t = type_t::properties_t;
+  using open_properties_t = type_t::open_properties_t;
+
+  struct instance_t {
+    type_t::instance_NodeReference_t nr;
+    std::vector<type_t::base_type_t::instance_t> ids;
+  };
+
+  type_t::instance_NodeReference_t push_menu(const open_properties_t& op) {
+    auto pile = get_pile();
+    instance_t in;
+    in.nr = pile->loco.menu_maker_text_box.push_menu(op);
+    instance.push_back(in);
+    return in.nr;
+  }
+  type_t::base_type_t::instance_NodeReference_t push_back(type_t::instance_NodeReference_t id, const properties_t& properties) {
+    auto pile = get_pile();
+    return pile->loco.menu_maker_text_box.instances[id].base.push_back(&pile->loco, properties, id);
+  }
+
+  void erase(type_t::instance_NodeReference_t id) {
+    auto pile = get_pile();
+    pile->loco.menu_maker_text_box.erase_menu(id);
+    for (uint32_t i = 0; i < instance.size(); i++) {
+      if (id == instance[i].nr) {
+        instance.erase(instance.begin() + i);
+        break;
+      }
+    }
+  }
+
+  void clear() {
+    auto pile = get_pile();
+    for (auto& it : instance) {
+      pile->loco.menu_maker_text_box.erase_menu(it.nr);
+    }
+    instance.clear();
+  }
+
+  std::vector<instance_t> instance;
+}text_box_menu;
+
+loco_t::menu_maker_text_box_t::instance_NodeReference_t properties_nr;

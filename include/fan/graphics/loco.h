@@ -31,11 +31,22 @@ struct loco_t;
   #define loco_text
 #endif
 #if defined(loco_menu_maker)
+  #error
+#endif
+
+#if defined(loco_menu_maker_button)
   #define loco_rectangle
   #define loco_letter
   #define loco_text
-  #define loco_text_box
   #define loco_button
+#endif
+
+#if defined(loco_menu_maker_text_box)
+  #define loco_rectangle
+  #define loco_letter
+  #define loco_text
+  #define loco_button
+  #define loco_text_box
 #endif
 
 #if defined(loco_wboit)
@@ -720,7 +731,18 @@ public:
     text_box_t sb_shape_var_name;
     #undef sb_shape_var_name
   #endif
-  #if defined(loco_menu_maker)
+  #if defined (loco_menu_maker_button)
+    #define sb_menu_maker_shape button
+    #define sb_menu_maker_var_name menu_maker_button
+    #define sb_menu_maker_type_name menu_maker_button_base_t
+    #define sb_menu_maker_name menu_maker_button_t
+    #include "wrappers/menu_maker.h"
+  #endif
+  #if defined (loco_menu_maker_text_box)
+    #define sb_menu_maker_shape text_box
+    #define sb_menu_maker_var_name menu_maker_text_box
+    #define sb_menu_maker_type_name menu_maker_text_box_base_t
+    #define sb_menu_maker_name menu_maker_text_box_t
     #include "wrappers/menu_maker.h"
   #endif
   #if defined(loco_menu_maker)
