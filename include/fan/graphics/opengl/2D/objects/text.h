@@ -142,7 +142,7 @@ struct text_renderer_t {
         left + get_text_size(&properties.text[0], properties.font_size).x + letter_info.metrics.size.x / 2,
         properties.position.y + (properties.font_size - letter_info.metrics.size.y) / 2 - letter_info.metrics.offset.y
       );
-      fan::print(letter_info.metrics.size.x, letter_info.metrics.offset.x, left, get_text_size(&properties.text[0], properties.font_size).x, p.position.x);
+      //fan::print(letter_info.metrics.size.x, letter_info.metrics.offset.x, left, get_text_size(&properties.text[0], properties.font_size).x, p.position.x);
       properties.text[i] = t;
       p.position.z = properties.position.z;
 

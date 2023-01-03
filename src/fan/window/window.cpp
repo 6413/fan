@@ -1647,26 +1647,6 @@ uint32_t fan::window_t::handle_events() {
 
         key = fan::window_input::convert_scancode_to_fan((msg.lParam >> 16) & 0x1ff);
 
-        do {
-          if (key == fan::key_control || key == fan::key_alt || key == fan::key_shift) {
-            break;
-          }
-          auto it = window->m_text_callback.GetNodeFirst();
-
-          while (it != window->m_text_callback.dst) {
-
-            fan::window_t::text_cb_data_t d;
-            d.character = m_prev_text;
-            d.window = window;
-            d.state = fan::keyboard_state::release;
-            // reset flag
-            m_prev_text_flag = 0;
-            window->m_text_callback[it].data(d);
-
-            it = it.Next(&window->m_text_callback);
-          }
-        } while (0);
-
         window_input_up(window->m_window_handle, key);
 
         keyboard_keys_cb_data_t cbd;
