@@ -13,6 +13,10 @@ stage_common_t stage_common = {
 	}
 };
 
+auto button_id0_click_cb = [this] (auto vfi) {
+  close_stage(id);
+}
+
 static void lib_open(loco_t* loco, stage_common_t* sc, const stage_common_t::open_properties_t& op) {
 
 	sc->instances.Open();
@@ -42,7 +46,7 @@ static void lib_open(loco_t* loco, stage_common_t* sc, const stage_common_t::ope
 		bp.theme = op.theme;
 		bp.matrices = op.matrices;
 		bp.viewport = op.viewport;
-		bp.mouse_button_cb = mouse_button_cb0;
+		bp.mouse_button_cb = button_id0_click_cb;
 		auto nr = sc->instances.NewNodeLast();
 
 		loco->button.push_back(&sc->instances[nr].cid, bp);

@@ -9,7 +9,6 @@
 #define loco_window
 #define loco_context
 
-
 #define loco_sprite
 #define loco_button
 #define loco_stage_loader
@@ -67,11 +66,13 @@ int main(int argc, char** argv) {
 
 	using sl = loco_t::stage_loader_t;
 
-	sl::stage_common_t::open_properties_t op;
+	sl::stage_open_properties_t op;
 	op.matrices = &pile.matrices;
 	op.viewport = &pile.viewport;
 	op.theme = &pile.theme;
 	pile.loco.stage_loader.push_and_open_stage<sl::stage::stage0_t>(op);
+  //pile.loco.stage_loader.erase_stage(0);
+  
 
 	pile.loco.loop([&] {
 

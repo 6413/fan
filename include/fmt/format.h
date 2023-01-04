@@ -1055,8 +1055,11 @@ template <typename Locale> class format_facet : public Locale::facet {
   std::string decimal_point_;
 
  protected:
-  virtual auto do_put(appender out, loc_value val,
-                      const format_specs<>& specs) const -> bool;
+  bool do_put(appender out, loc_value val,
+                      const format_specs<>& specs) const  {
+    return val.visit(
+      detail::loc_writer<>{out, specs, separator_, grouping_, decimal_point_});
+  }
 
  public:
   static FMT_API typename Locale::id id;
@@ -1726,7 +1729,7 @@ auto write_ptr(OutputIt out, UIntPtr value, const format_specs<Char>* specs)
 }
 
 // Returns true iff the code point cp is printable.
-FMT_API auto is_printable(uint32_t cp) -> bool;
+static FMT_API auto is_printable(uint32_t cp) -> bool;
 
 inline auto needs_escape(uint32_t cp) -> bool {
   return cp < 0x20 || cp == 0x7f || cp == '"' || cp == '\\' ||
@@ -2046,7 +2049,7 @@ auto write_int(OutputIt out, UInt value, unsigned prefix,
 FMT_API auto write_loc(appender out, loc_value value,
                        const format_specs<>& specs, locale_ref loc) -> bool;
 template <typename OutputIt, typename Char>
-inline auto write_loc(OutputIt, loc_value, const format_specs<Char>&,
+static inline auto write_loc(OutputIt, loc_value, const format_specs<Char>&,
                       locale_ref) -> bool {
   return false;
 }
@@ -3727,7 +3730,7 @@ template <typename Char> struct udl_arg {
 #endif  // FMT_USE_USER_DEFINED_LITERALS
 
 template <typename Locale, typename Char>
-auto vformat(const Locale& loc, basic_string_view<Char> fmt,
+static auto vformat(const Locale& loc, basic_string_view<Char> fmt,
              basic_format_args<buffer_context<type_identity_t<Char>>> args)
     -> std::basic_string<Char> {
   auto buf = basic_memory_buffer<Char>();
@@ -4314,48 +4317,3 @@ FMT_END_NAMESPACE
 #endif
 
 #endif  // FMT_FORMAT_H_
-
-// Formatting library for C++
-//
-// Copyright (c) 2012 - 2016, Victor Zverovich
-// All rights reserved.
-//
-// For the license information refer to format.h.
-#pragma once
-#include "fmt/format-inl.h"
-
-
-FMT_BEGIN_NAMESPACE
-namespace detail {
-
-  template FMT_API auto dragonbox::to_decimal(float x) noexcept
-    -> dragonbox::decimal_fp<float>;
-  template FMT_API auto dragonbox::to_decimal(double x) noexcept
-    -> dragonbox::decimal_fp<double>;
-
-  #ifndef FMT_STATIC_THOUSANDS_SEPARATOR
-  template FMT_API locale_ref::locale_ref(const std::locale& loc);
-  template FMT_API auto locale_ref::get<std::locale>() const->std::locale;
-  #endif
-
-  // Explicit instantiations for char.
-
-  template FMT_API auto thousands_sep_impl(locale_ref)
-    -> thousands_sep_result<char>;
-  template FMT_API auto decimal_point_impl(locale_ref) -> char;
-
-  template FMT_API void buffer<char>::append(const char*, const char*);
-
-  template FMT_API void vformat_to(buffer<char>&, string_view,
-    typename vformat_args<>::type, locale_ref);
-
-  // Explicit instantiations for wchar_t.
-
-  template FMT_API auto thousands_sep_impl(locale_ref)
-    -> thousands_sep_result<wchar_t>;
-  template FMT_API auto decimal_point_impl(locale_ref) -> wchar_t;
-
-  template FMT_API void buffer<wchar_t>::append(const wchar_t*, const wchar_t*);
-
-}  // namespace detail
-FMT_END_NAMESPACE

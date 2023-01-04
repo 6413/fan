@@ -662,6 +662,9 @@ namespace fan {
 		fan::string to_string(int precision = 2) const {
 			return fan::string(fan::to_string(this->x, precision) + ' '+ fan::to_string(this->y, precision) + ' '+ fan::to_string(this->z, precision));
 		}
+    fan::wstring to_wstring(int precision = 2) const {
+      return fan::wstring(fan::to_wstring(this->x, precision) + ' ' + fan::to_wstring(this->y, precision) + ' ' + fan::to_wstring(this->z, precision));
+    }
 	};
 
 	template <typename _Ty = f32_t>

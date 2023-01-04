@@ -193,7 +193,8 @@ struct builder_button_t {
 		auto nr = pile->stage_maker.fgm.text_box_menu.push_menu(menup);
 		pile->stage_maker.fgm.properties_nr = nr;
     text_box_menu_t::properties_t p;
-		p.text = L"test";
+    auto position = pile->loco.button.get_button(instance, &loco_t::button_t::vi_t::position);
+		p.text = fan::format(L"{:.2f}, {:.2f}, {:.2f}", position.x, position.y, position.z);
 		p.text_value = L"add cbs";
 		p.mouse_button_cb = [this, instance](const loco_t::mouse_button_data_t& mb) -> int {
 			return 0;
