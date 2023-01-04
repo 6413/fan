@@ -55,6 +55,15 @@ using stage_common_t = stage_common_t_t<>;
 struct stage {
   inline static stage_list_t stage_list;
   struct stage0_t : stage_common_t_t<stage0_t> {
+
+    using stage_common_t_t::stage_common_t_t;
+
+    static constexpr auto stage_name = "stage0";
+
+    typedef int(stage0_t::* cb_table_t)(const loco_t::mouse_button_data_t& v);
+
+    cb_table_t button_click_cb_table[1] = {&stage0_t::button0_click_cb,};
+
     #include "stages/stage0.h"
   };
   

@@ -57,7 +57,7 @@ struct stage_loader_t {
           sp.position = data.position;
           sp.size = data.size;
           loco_t::texturepack::ti_t ti;
-          if (loco->stage_loader.texturepack.qti("test.webp", &ti)) {
+          if (loco->stage_loader.texturepack.qti(data.hash_path, &ti)) {
             fan::throw_error("failed to load texture from texturepack");
           }
           auto pd = loco->stage_loader.texturepack.get_pixel_data(ti.pack_id);
