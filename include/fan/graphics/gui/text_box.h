@@ -191,7 +191,9 @@ struct text_box_t {
           ri.fed.m_wed.GetCursorInformation(ri.fed.m_cr, &ci);
           switch (ci.type) {
             case wed_t::CursorType::FreeStyle: {
-              loco->text_box.set_text(cid_, ri.fed.get_text(ci.FreeStyle.LineReference));
+              auto text = ri.fed.get_text(ci.FreeStyle.LineReference);
+              loco->text_box.set_text(cid_, text);
+
               break;
             }
             case wed_t::CursorType::Selection: {
@@ -220,8 +222,8 @@ struct text_box_t {
               break;
             }
             case fan::key_enter: {
-              loco->vfi.invalidate_focus_keyboard();
               loco->vfi.invalidate_focus_mouse();
+              loco->vfi.invalidate_focus_keyboard();
               loco->vfi.invalidate_focus_text();
               render_cursor = false;
               fan::ev_timer_t::cb_data_t data;
@@ -229,6 +231,9 @@ struct text_box_t {
               data.timer = &timer;
               timer.cb(data);
               data.ev_timer->stop(&timer);
+              loco_t::keyboard_data_t kd_ = kd;
+              kd_.cid = cid_;
+              cb(kd_);
               return 0;
             }
             default: {

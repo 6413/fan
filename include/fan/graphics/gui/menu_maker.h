@@ -9,7 +9,6 @@ struct sb_menu_maker_type_name {
   #define BLL_set_type_node uint16_t
   #define BLL_set_NodeData \
         fan::graphics::cid_t cid; \
-        uint32_t text_id; \
         fan::wstring text; \
         fan::vec3 position; \
         fan_2d::graphics::gui::theme_t theme; \
@@ -200,11 +199,6 @@ struct sb_menu_maker_type_name {
     };
 
     loco->sb_menu_maker_shape.push_back(&instances[id].cid, bp);
-
-    //loco_t::text_t::properties_t textp;
-    //textp.position = bp.position;
-    //textp.text = bp.
-    //instances[id].text_id = loco->text.push_back()
 
     return id;
   }

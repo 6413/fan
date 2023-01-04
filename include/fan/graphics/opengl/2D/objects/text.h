@@ -75,7 +75,7 @@ struct text_renderer_t {
 
       text_size.x += letter.metrics.size.x + letter.metrics.offset.x;
       if (i + 1 != text.size()) {
-        text_size.x += letter.metrics.advance;
+        text_size.x += letter.metrics.offset.x;
       }
     }
 
