@@ -191,6 +191,12 @@ namespace fan {
 		//exit(1);
 	}
 
+  static void assert_test(bool test) {
+    if (!test) {
+      fan::throw_error("assert failed");
+    }
+  }
+
 	template <typename T>
 	constexpr uintptr_t vector_byte_size(const typename std::vector<T>& vector)
 	{

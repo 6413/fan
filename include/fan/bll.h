@@ -3,8 +3,6 @@
 #include _FAN_PATH(types/memory.h)
 #include _FAN_PATH(io/file.h)
 
-#include <assert.h>
-
 #define BLL_set_debug_InvalidAction 1
 
 #ifndef BLL_set_SafeNext
@@ -169,8 +167,8 @@ struct bll_t {
 
 	constexpr void unlink(node_type_t node_reference) {
 		#if BLL_set_debug_InvalidAction == 1
-				assert(node_reference != src);
-				assert(node_reference != dst);
+				fan::assert_test(node_reference != src);
+				fan::assert_test(node_reference != dst);
 		#endif
 
 		node_t *node = get_node_by_reference(node_reference);
@@ -255,21 +253,21 @@ struct bll_t {
 #if BLL_set_debug_InvalidAction == 1
 
 		//if (reference == src) {
-		//	assert(0);
+		//	fan::assert_test(0);
 		//}
 
 		//if (reference == dst) {
-		//	assert(0);
+		//	fan::assert_test(0);
 		//}
 
 		if (reference >= nodes.size()) {
-			assert(0);
+			fan::assert_test(0);
 		}
 
 	//	auto x = this->get_node_by_reference(reference)->next;
 
 		/*if (x == src) {
-			assert(0);
+			fan::assert_test(0);
 		}*/
 
 #endif
@@ -282,17 +280,17 @@ struct bll_t {
 		#if BLL_set_debug_InvalidAction == 1
 
 			if (reference == dst) {
-				assert(0);
+				fan::assert_test(0);
 			}
 
 			if (reference >= nodes.size()) {
-				assert(0);
+				fan::assert_test(0);
 			}
 
 			auto x = this->get_node_by_reference(reference)->next;
 
 			if (x == src) {
-				assert(0);
+				fan::assert_test(0);
 			}
 
 		#endif
@@ -322,7 +320,7 @@ struct bll_t {
 
 	#if BLL_set_debug_InvalidAction == 1
 		if (node_reference >= nodes.size()) {
-			assert(0);
+			fan::assert_test(0);
 		}
 	#endif
 
@@ -347,7 +345,7 @@ struct bll_t {
 	void start_safe_next(node_type_t NodeReference){
 #if BLL_set_debug_InvalidAction == 1
 		if(this->SafeNext != (node_type_t)-1) {
-			assert(0);
+			fan::assert_test(0);
 		}
 #endif
 		this->SafeNext = NodeReference;
@@ -356,7 +354,7 @@ struct bll_t {
 		#if BLL_set_debug_InvalidAction == 1
 
 			if(this->SafeNext == (node_type_t)-1) {
-				assert(0);
+				fan::assert_test(0);
 			}
 
 		#endif
