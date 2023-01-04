@@ -29,6 +29,7 @@
 #include <type_traits>
 #include <cstdint>
 #include <regex>
+#include <charconv>
 
 #ifndef __empty_struct
   #define __empty_struct __empty_struct

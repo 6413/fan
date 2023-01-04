@@ -1,3 +1,4 @@
+#include <fmt/core.h>
 struct line_t {
 	using properties_t = loco_t::line_t::properties_t;
 
@@ -199,7 +200,27 @@ struct builder_button_t {
 		p.mouse_button_cb = [this, instance](const loco_t::mouse_button_data_t& mb) -> int {
 			return 0;
 		};
-		pile->stage_maker.fgm.text_box_menu.push_back(nr, p);
+    p.keyboard_cb = [pile, this, instance, nr](const loco_t::keyboard_data_t& d) -> int {
+      if (d.key != fan::key_enter) {
+        return 0;
+      }
+      if (d.keyboard_state != fan::keyboard_state::press) {
+        return 0;
+      }
+
+      auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[nrs[0]];
+      auto text = pile->loco.text_box.get_text(&it.cid);
+      fan::vec3 position;
+      std::istringstream iss(fan::string(text).c_str());
+      std::size_t i = 0;
+      while (iss >> position[i++]) { iss.ignore(); }
+
+      pile->loco.button.set_position(instance, position);
+      
+
+      return 0;
+    };
+    nrs.push_back(pile->stage_maker.fgm.text_box_menu.push_back(nr, p));
 		//
 		//pile->stage_maker.fgm.button_menu.clear();
 		//
@@ -221,7 +242,7 @@ struct builder_button_t {
 		uint32_t i = instance.size() - 1;
 		instance[i] = new instance_t;
 		instance[i]->shape = shapes::button;
-		instance[i]->z = 0;
+		instance[i]->z = p.position.z;
 		instance[i]->text = p.text;
 		instance[i]->theme = *pile->loco.get_context()->theme_list[p.theme].theme_id;
 		p.mouse_button_cb = [instance = instance[i]](const loco_t::mouse_button_data_t& ii_d) -> int {
@@ -306,14 +327,15 @@ struct builder_button_t {
 				}
 
 				pile->stage_maker.fgm.resize_offset = ii_d.position;
-				pile->stage_maker.fgm.move_offset = fan::vec2(ps) - ii_d.position;
+				pile->stage_maker.fgm.move_offset = ps - fan::vec3(ii_d.position, 0);
 				return 0;
 			}
 
+      fan::vec3 ps = pile->loco.button.get_button(&instance->cid, &loco_t::button_t::vi_t::position);
 			fan::vec3 p;
 			p.x = ii_d.position.x + pile->stage_maker.fgm.move_offset.x;
 			p.y = ii_d.position.y + pile->stage_maker.fgm.move_offset.y;
-			p.z = instance->z;
+			p.z = ps.z;
 			pile->loco.button.set_position(&instance->cid, p);
 
 
@@ -391,6 +413,7 @@ struct builder_button_t {
 	};
 
 	std::vector<instance_t*> instance;
+  std::vector<loco_t::menu_maker_text_box_base_t::instance_NodeReference_t> nrs;
 }builder_button;
 
 

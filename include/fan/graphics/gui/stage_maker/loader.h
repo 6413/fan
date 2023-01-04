@@ -44,10 +44,9 @@ struct stage_loader_t {
           bp.theme = op.theme;
           bp.matrices = op.matrices;
 					bp.viewport = op.viewport;
-				  bp.mouse_button_cb = [stage, i](const loco_t::mouse_button_data_t&d) { 
+				  bp.mouse_button_cb = [stage, i](const loco_t::mouse_button_data_t&d) {
 					  return (stage->*(stage->button_click_cb_table[i]))(d); 
 				  };
-				  
 				  
           loco->button.push_back(&stage->cid_list[nr], bp);
           break;
