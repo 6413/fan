@@ -342,7 +342,7 @@ template <typename T> constexpr FMT_INLINE auto const_check(T value) -> T {
   return value;
 }
 
-static FMT_NORETURN FMT_API void assert_fail(const char* file, int line,
+static FMT_API void assert_fail(const char* file, int line,
                                       const char* message);
 
 #ifndef FMT_ASSERT
@@ -643,7 +643,7 @@ enum {
   pointer_set = set(type::pointer_type)
 };
 
-static FMT_NORETURN FMT_API void throw_format_error(const char* message);
+static FMT_API void throw_format_error(const char* message);
 
 struct error_handler {
   constexpr error_handler() = default;

@@ -19,7 +19,7 @@
 #endif
 
 #ifndef ETC_WED_set_Abort
-  #define ETC_WED_set_Abort() assert(0)
+  #define ETC_WED_set_Abort() fan::assert_test(0)
 #endif
 
 #ifndef ETC_WED_set_DataType

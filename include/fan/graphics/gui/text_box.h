@@ -197,7 +197,7 @@ struct text_box_t {
               break;
             }
             case wed_t::CursorType::Selection: {
-              assert(0);
+              fan::assert_test(0);
               break;
             }
           }
@@ -265,7 +265,7 @@ struct text_box_t {
                 break;
               }
               case wed_t::CursorType::Selection: {
-                assert(0);
+                fan::assert_test(0);
                 break;
               }
             }
@@ -318,7 +318,7 @@ struct text_box_t {
         break;
       }
       case wed_t::CursorType::Selection: {
-        assert(0);
+        fan::assert_test(0);
         //m_wed.GetLineIndexByLineReference(ci.Selection.LineReference);
         break;
       }
@@ -358,7 +358,7 @@ struct text_box_t {
   }
   ~text_box_t() {
     // check erase, need to somehow iterate block
-    assert(0);
+    fan::assert_test(0);
     sb_close();
   }
 

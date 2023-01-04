@@ -26,7 +26,7 @@ struct texturepack {
   fan::hector_t<fan::hector_t<texture_t>> texture_list;
   fan::hector_t<pixel_data_t> pixel_data_list;
 
-  pixel_data_t get_pixel_data(uint32_t pack_id) {
+  pixel_data_t& get_pixel_data(uint32_t pack_id) {
     return pixel_data_list[pack_id];
   }
 

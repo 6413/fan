@@ -1045,7 +1045,7 @@ class loc_value {
     return visit_format_arg(vis, value_);
   }
 };
-
+#include <cassert>
 // A locale facet that formats values in UTF-8.
 // It is parameterized on the locale to avoid the heavy <locale> include.
 template <typename Locale> class format_facet : public Locale::facet {
@@ -1057,8 +1057,12 @@ template <typename Locale> class format_facet : public Locale::facet {
  protected:
   bool do_put(appender out, loc_value val,
                       const format_specs<>& specs) const  {
-    return val.visit(
-      detail::loc_writer<>{out, specs, separator_, grouping_, decimal_point_});
+    
+    
+    assert(0);
+    return 0;/*val.visit(
+      detail::loc_writer<char>{out, specs, separator_, grouping_, decimal_point_}
+    )*/;
   }
 
  public:
@@ -2046,7 +2050,7 @@ auto write_int(OutputIt out, UInt value, unsigned prefix,
 }
 
 // Writes a localized value.
-FMT_API auto write_loc(appender out, loc_value value,
+static FMT_API auto write_loc(appender out, loc_value value,
                        const format_specs<>& specs, locale_ref loc) -> bool;
 template <typename OutputIt, typename Char>
 static inline auto write_loc(OutputIt, loc_value, const format_specs<Char>&,
@@ -2080,7 +2084,7 @@ FMT_CONSTEXPR auto make_write_int_arg(T value, sign_t sign)
   return {abs_value, prefix};
 }
 
-template <typename Char = char> struct loc_writer {
+template <typename Char> struct loc_writer {
   buffer_appender<Char> out;
   const format_specs<Char>& specs;
   std::basic_string<Char> sep;
