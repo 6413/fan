@@ -397,11 +397,7 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
 
 		texturepack.open_compiled(&loco, texturepack_name);
 
-		loco_t::texturepack::ti_t ti;
-		if (texturepack.qti("test.webp", &ti)) {
-			fan::throw_error("failed to load default texture");
-		}
-		default_texture = ti;
+    default_texture.create_missing_texture(&loco);
 
 		loco.get_window()->add_resize_callback([this](const fan::window_t::resize_cb_data_t& d) {
 			resize_cb();
@@ -484,6 +480,7 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
           sp.size = data.size;
           // how to do this help
           //data.hash_path
+
           auto pd = texturepack.get_pixel_data(default_texture.pack_id);
           sp.image = &pd.image;
           sp.tc_position = default_texture.position / pd.size;
@@ -589,7 +586,7 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
 	fan::vec2 editor_size;
 	fan::vec2 editor_ratio;
 
-	loco_t::texturepack::ti_t default_texture;
+	loco_t::image_t default_texture;
 
 	loco_t::texturepack texturepack;
 

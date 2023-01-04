@@ -178,13 +178,21 @@ struct builder_button_t {
 		return OFFSETLESS(get_loco(), pile_t, loco_var_name);
 	}
 
+  void close_properties() {
+    auto pile = get_pile();
+    if (pile->stage_maker.fgm.properties_open) {
+      pile->stage_maker.fgm.properties_open = false;
+      pile->stage_maker.fgm.properties_nrs.clear();
+      pile->stage_maker.fgm.text_box_menu.erase(pile->stage_maker.fgm.properties_nr);
+    }
+  }
+
 	void open_properties(fan::graphics::cid_t* instance) {
 		auto pile = get_pile();
 
-		if (!pile->loco.menu_maker_text_box.instances.inri(pile->stage_maker.fgm.properties_nr)) {
-			pile->stage_maker.fgm.text_box_menu.erase(pile->stage_maker.fgm.properties_nr);
-		}
+    close_properties();
 
+    pile->stage_maker.fgm.properties_open = true;
     text_box_menu_t::open_properties_t menup;
 		menup.matrices = &pile->stage_maker.fgm.matrices[pile_t::stage_maker_t::fgm_t::viewport_area::properties];
 		menup.viewport = &pile->stage_maker.fgm.viewport[pile_t::stage_maker_t::fgm_t::viewport_area::properties];
@@ -208,7 +216,7 @@ struct builder_button_t {
         return 0;
       }
 
-      auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[nrs[0]];
+      auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[pile->stage_maker.fgm.properties_nrs[0]];
       auto text = pile->loco.text_box.get_text(&it.cid);
       fan::vec3 position;
       std::istringstream iss(fan::string(text).c_str());
@@ -217,10 +225,9 @@ struct builder_button_t {
 
       pile->loco.button.set_position(instance, position);
       
-
       return 0;
     };
-    nrs.push_back(pile->stage_maker.fgm.text_box_menu.push_back(nr, p));
+    pile->stage_maker.fgm.properties_nrs.push_back(pile->stage_maker.fgm.text_box_menu.push_back(nr, p));
 		//
 		//pile->stage_maker.fgm.button_menu.clear();
 		//
@@ -242,7 +249,6 @@ struct builder_button_t {
 		uint32_t i = instance.size() - 1;
 		instance[i] = new instance_t;
 		instance[i]->shape = shapes::button;
-		instance[i]->z = p.position.z;
 		instance[i]->text = p.text;
 		instance[i]->theme = *pile->loco.get_context()->theme_list[p.theme].theme_id;
 		p.mouse_button_cb = [instance = instance[i]](const loco_t::mouse_button_data_t& ii_d) -> int {
@@ -328,6 +334,7 @@ struct builder_button_t {
 
 				pile->stage_maker.fgm.resize_offset = ii_d.position;
 				pile->stage_maker.fgm.move_offset = ps - fan::vec3(ii_d.position, 0);
+        pile->stage_maker.fgm.builder_button.open_properties(&instance->cid);
 				return 0;
 			}
 
@@ -338,7 +345,7 @@ struct builder_button_t {
 			p.z = ps.z;
 			pile->loco.button.set_position(&instance->cid, p);
 
-
+      pile->stage_maker.fgm.builder_button.open_properties(&instance->cid);
 
 			return 0;
 		};
@@ -395,6 +402,7 @@ struct builder_button_t {
 		release();
 	}
 	void clear() {
+    close_properties();
 		loco_t& loco = *get_loco();
 		for (auto& it : instance) {
 			loco.button.erase(&it->cid);
@@ -407,13 +415,11 @@ struct builder_button_t {
 		fan::graphics::cid_t cid;
 		uint16_t shape;
 		uint8_t holding_special_key = 0;
-		f32_t z;
 		fan::wstring text;
 		fan_2d::graphics::gui::theme_t theme;
 	};
 
 	std::vector<instance_t*> instance;
-  std::vector<loco_t::menu_maker_text_box_base_t::instance_NodeReference_t> nrs;
 }builder_button;
 
 
@@ -427,12 +433,20 @@ struct sprite_t {
 		return OFFSETLESS(get_loco(), pile_t, loco_var_name);
 	}
 
+  void close_properties() {
+    auto pile = get_pile();
+    if (pile->stage_maker.fgm.properties_open) {
+      pile->stage_maker.fgm.properties_open = false;
+      pile->stage_maker.fgm.properties_nrs.clear();
+      pile->stage_maker.fgm.text_box_menu.erase(pile->stage_maker.fgm.properties_nr);
+    }
+  }
+
 	void open_properties(fan::graphics::cid_t* instance) {
 		auto pile = get_pile();
 
-		if (!pile->loco.menu_maker_text_box.instances.inri(pile->stage_maker.fgm.properties_nr)) {
-			pile->stage_maker.fgm.text_box_menu.erase(pile->stage_maker.fgm.properties_nr);
-		}
+    close_properties();
+    pile->stage_maker.fgm.properties_open = true;
 
 		text_box_menu_t::open_properties_t menup;
 		menup.matrices = &pile->stage_maker.fgm.matrices[pile_t::stage_maker_t::fgm_t::viewport_area::properties];
@@ -442,9 +456,10 @@ struct sprite_t {
 		menup.gui_size = 0.08;
 		auto nr = pile->stage_maker.fgm.text_box_menu.push_menu(menup);
 		pile->stage_maker.fgm.properties_nr = nr;
-		text_box_menu_t::properties_t p;
-		p.text = L"";
-		p.text_value = L"add cbs";
+    text_box_menu_t::properties_t p;
+    auto position = pile->loco.sprite.get(instance, &loco_t::sprite_t::vi_t::position);
+    p.text = fan::format(L"{:.2f}, {:.2f}, {:.2f}", position.x, position.y, position.z);
+    p.text_value = L"add cbs";
 		p.mouse_button_cb = [this, instance](const loco_t::mouse_button_data_t& mb) -> int {
 			use_key_lambda(fan::mouse_left, fan::mouse_state::release);
 
@@ -454,7 +469,53 @@ struct sprite_t {
 
 			return 0;
 		};
-		pile->stage_maker.fgm.text_box_menu.push_back(nr, p);
+    p.keyboard_cb = [pile, this, instance, nr](const loco_t::keyboard_data_t& d) -> int {
+      if (d.key != fan::key_enter) {
+        return 0;
+      }
+      if (d.keyboard_state != fan::keyboard_state::press) {
+        return 0;
+      }
+
+      auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[pile->stage_maker.fgm.properties_nrs[0]];
+      auto text = pile->loco.text_box.get_text(&it.cid);
+      
+      fan::vec3 position;
+      std::istringstream iss(fan::string(text).c_str());
+      std::size_t i = 0;
+      while (iss >> position[i++]) { iss.ignore(); }
+
+      pile->loco.sprite.set(instance, &loco_t::sprite_t::vi_t::position, position);
+
+
+      return 0;
+    };
+    pile->stage_maker.fgm.properties_nrs.push_back(pile->stage_maker.fgm.text_box_menu.push_back(nr, p));
+
+    p.text = L"";
+    p.keyboard_cb = [pile, this, instance, nr](const loco_t::keyboard_data_t& d) -> int {
+      if (d.key != fan::key_enter) {
+        return 0;
+      }
+      if (d.keyboard_state != fan::keyboard_state::press) {
+        return 0;
+      }
+
+      auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[pile->stage_maker.fgm.properties_nrs[1]];
+      auto text = pile->loco.text_box.get_text(&it.cid);
+      
+      loco_t::texturepack::ti_t ti;
+      if (pile->stage_maker.fgm.texturepack.qti(text, &ti)) {
+        fan::print_no_space("failed to load texture:", fan::string(text).c_str());
+        return 0;
+      }
+      auto& data = pile->stage_maker.fgm.texturepack.get_pixel_data(ti.pack_id);
+      pile->loco.sprite.set_image(instance, &data.image);
+
+
+      return 0;
+    };
+    pile->stage_maker.fgm.properties_nrs.push_back(pile->stage_maker.fgm.text_box_menu.push_back(nr, p));
 		//
 		//pile->stage_maker.fgm.button_menu.clear();
 		//
@@ -476,7 +537,6 @@ struct sprite_t {
 		uint32_t i = instances.size() - 1;
 		instances[i] = new instance_t;
 		instances[i]->shape = shapes::sprite;
-		instances[i]->z = 0;
 		loco_t::vfi_t::properties_t vfip;
 		vfip.mouse_button_cb = [i](const loco_t::mouse_button_data_t& ii_d) -> int {
 			if (ii_d.button != fan::mouse_left) {
@@ -572,11 +632,13 @@ struct sprite_t {
 				return 0;
 			}
 
+      fan::vec3 ps = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::position);
 			fan::vec3 p;
 			p.x = ii_d.position.x + pile->stage_maker.fgm.move_offset.x;
 			p.y = ii_d.position.y + pile->stage_maker.fgm.move_offset.y;
-			p.z = instance->z;
+			p.z = ps.z;
 			pile->stage_maker.fgm.sprite.set_position(i, p);
+      pile->stage_maker.fgm.sprite.open_properties(&instance->cid);
 
 			return 0;
 		};
@@ -624,6 +686,7 @@ struct sprite_t {
 		release();
 	}
 	void clear() {
+    close_properties();
 		loco_t& loco = *get_loco();
 		for (auto& it : instances) {
 			loco.sprite.erase(&it->cid);
@@ -649,7 +712,6 @@ struct sprite_t {
 		loco_t::vfi_t::shape_id_t vfi_id;
 		uint16_t shape;
 		uint8_t holding_special_key = 0;
-		f32_t z;
 	};
 
 	std::vector<instance_t*> instances;
@@ -759,4 +821,7 @@ struct text_box_menu_t {
   std::vector<instance_t> instance;
 }text_box_menu;
 
-loco_t::menu_maker_text_box_t::instance_NodeReference_t properties_nr;
+std::vector<loco_t::menu_maker_text_box_base_t::instance_NodeReference_t> properties_nrs;
+bool properties_open = false;
+
+loco_t::menu_maker_text_box_t::instance_NodeReference_t properties_nr{(uint16_t) - 1};
