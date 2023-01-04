@@ -8,7 +8,7 @@
 #define fan_debug 0
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
-#define loco_vulkan
+//#define loco_vulkan
 
 #define loco_window
 #define loco_context
@@ -64,9 +64,12 @@ int main() {
 
   loco_t::image_t image;
   image.load(&pile->loco, "images/test.webp");
+  loco_t::image_t image2;
+  image2.load(&pile->loco, "images/wall.webp");
   p.image = &image;
   p.position = fan::vec2(0, 0);
   pile->loco.sprite.push_back(&pile->cid[0], p);
+  //pile->loco.sprite.set_image(&pile->cid[0], &image2);
   //p.image = &image;
   //p.position = fan::vec3(fan::random::vec2(-1, 1), 0);
   //pile->loco.sprite.push_back(&pile->cid[0], p);

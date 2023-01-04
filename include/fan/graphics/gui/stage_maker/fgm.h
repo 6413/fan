@@ -210,11 +210,12 @@ struct fgm_t {
 			      bbp.font_size = scale_object_with_viewport(fan::vec2(0.2), &pile->stage_maker.fgm.viewport[viewport_area::types], &pile->stage_maker.fgm.viewport[viewport_area::editor]).x;
 			      pile->stage_maker.fgm.builder_button.push_back(bbp);
 			
-			      auto builder_cid = &pile->stage_maker.fgm.builder_button.instance[pile->stage_maker.fgm.builder_button.instance.size() - 1]->cid;
+            auto it = pile->stage_maker.fgm.builder_button.instance[pile->stage_maker.fgm.builder_button.instance.size() - 1];
+			      auto builder_cid = &it->cid;
 			      auto ri = pile->loco.button.get_ri(builder_cid);
 			      //pile->loco.vfi.set_focus_mouse(ri.vfi_id);
 			      //pile->loco.vfi.feed_mouse_button(fan::button_left, fan::button_state::press);
-			      pile->stage_maker.fgm.builder_button.open_properties(builder_cid);
+			      pile->stage_maker.fgm.builder_button.open_properties(it);
 			
 			      auto stage_name = pile->stage_maker.get_selected_name(
 				      pile,
@@ -318,14 +319,10 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
           	sp.position = fan::vec2(0, 0);
 
           	sp.size = fan::vec2(0.1, 0.1);
-          	auto pd = texturepack.get_pixel_data(default_texture.pack_id);
-          	sp.image = &pd.image;
-          	sp.tc_position = default_texture.position / pd.size;
-          	sp.tc_size = default_texture.size / pd.size;
-
+          	sp.image = &default_texture;
           	pile->stage_maker.fgm.sprite.push_back(sp);
           	auto& instance = pile->stage_maker.fgm.sprite.instances[pile->stage_maker.fgm.sprite.instances.size() - 1];
-          	pile->stage_maker.fgm.sprite.open_properties(&instance->cid);
+          	pile->stage_maker.fgm.sprite.open_properties(instance);
 
           	return 0;
           }
@@ -481,10 +478,7 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
           // how to do this help
           //data.hash_path
 
-          auto pd = texturepack.get_pixel_data(default_texture.pack_id);
-          sp.image = &pd.image;
-          sp.tc_position = default_texture.position / pd.size;
-          sp.tc_size = default_texture.size / pd.size;
+          sp.image = &default_texture;
           sp.matrices = &matrices[viewport_area::editor];
           sp.viewport = &viewport[viewport_area::editor];
           sprite.push_back(sp);

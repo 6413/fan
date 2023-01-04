@@ -171,6 +171,14 @@ struct global_button_t {
 struct builder_button_t {
 	using properties_t = loco_t::button_t::properties_t;
 
+  struct instance_t {
+    fan::graphics::cid_t cid;
+    uint16_t shape;
+    uint8_t holding_special_key = 0;
+    fan::wstring text;
+    fan_2d::graphics::gui::theme_t theme;
+  };
+
 	loco_t* get_loco() {
 		return ((stage_maker_t*)OFFSETLESS(OFFSETLESS(this, fgm_t, builder_button), stage_maker_t, fgm))->get_loco();
 	}
@@ -187,7 +195,7 @@ struct builder_button_t {
     }
   }
 
-	void open_properties(fan::graphics::cid_t* instance) {
+	void open_properties(builder_button_t::instance_t* instance) {
 		auto pile = get_pile();
 
     close_properties();
@@ -202,7 +210,7 @@ struct builder_button_t {
 		auto nr = pile->stage_maker.fgm.text_box_menu.push_menu(menup);
 		pile->stage_maker.fgm.properties_nr = nr;
     text_box_menu_t::properties_t p;
-    auto position = pile->loco.button.get_button(instance, &loco_t::button_t::vi_t::position);
+    auto position = pile->loco.button.get_button(&instance->cid, &loco_t::button_t::vi_t::position);
 		p.text = fan::format(L"{:.2f}, {:.2f}, {:.2f}", position.x, position.y, position.z);
 		p.text_value = L"add cbs";
 		p.mouse_button_cb = [this, instance](const loco_t::mouse_button_data_t& mb) -> int {
@@ -223,7 +231,7 @@ struct builder_button_t {
       std::size_t i = 0;
       while (iss >> position[i++]) { iss.ignore(); }
 
-      pile->loco.button.set_position(instance, position);
+      pile->loco.button.set_position(&instance->cid, position);
       
       return 0;
     };
@@ -275,7 +283,7 @@ struct builder_button_t {
 			fan::vec3 rp = pile->loco.button.get_button(&instance->cid, &loco_t::button_t::vi_t::position);
 			fan::vec3 rs = pile->loco.button.get_button(&instance->cid, &loco_t::button_t::vi_t::size);
 			pile->stage_maker.fgm.resize_side = fan_2d::collision::rectangle::get_side_collision(ii_d.position, rp, rs);
-			pile->stage_maker.fgm.builder_button.open_properties(&instance->cid);
+			pile->stage_maker.fgm.builder_button.open_properties(instance);
 			return 0;
 		};
 		p.mouse_move_cb = [this, instance = instance[i]](const loco_t::mouse_move_data_t& ii_d) -> int {
@@ -334,7 +342,7 @@ struct builder_button_t {
 
 				pile->stage_maker.fgm.resize_offset = ii_d.position;
 				pile->stage_maker.fgm.move_offset = ps - fan::vec3(ii_d.position, 0);
-        pile->stage_maker.fgm.builder_button.open_properties(&instance->cid);
+        pile->stage_maker.fgm.builder_button.open_properties(instance);
 				return 0;
 			}
 
@@ -345,7 +353,7 @@ struct builder_button_t {
 			p.z = ps.z;
 			pile->loco.button.set_position(&instance->cid, p);
 
-      pile->stage_maker.fgm.builder_button.open_properties(&instance->cid);
+      pile->stage_maker.fgm.builder_button.open_properties(instance);
 
 			return 0;
 		};
@@ -411,20 +419,19 @@ struct builder_button_t {
 		instance.clear();
 	}
 
-	struct instance_t {
-		fan::graphics::cid_t cid;
-		uint16_t shape;
-		uint8_t holding_special_key = 0;
-		fan::wstring text;
-		fan_2d::graphics::gui::theme_t theme;
-	};
-
 	std::vector<instance_t*> instance;
 }builder_button;
 
 
 struct sprite_t {
 	using properties_t = loco_t::sprite_t::properties_t;
+
+  struct instance_t {
+    fan::graphics::cid_t cid;
+    loco_t::vfi_t::shape_id_t vfi_id;
+    uint16_t shape;
+    uint8_t holding_special_key = 0;
+  };
 
 	loco_t* get_loco() {
 		return ((stage_maker_t*)OFFSETLESS(OFFSETLESS(this, fgm_t, sprite), stage_maker_t, fgm))->get_loco();
@@ -442,7 +449,7 @@ struct sprite_t {
     }
   }
 
-	void open_properties(fan::graphics::cid_t* instance) {
+	void open_properties(sprite_t::instance_t* instance) {
 		auto pile = get_pile();
 
     close_properties();
@@ -457,7 +464,7 @@ struct sprite_t {
 		auto nr = pile->stage_maker.fgm.text_box_menu.push_menu(menup);
 		pile->stage_maker.fgm.properties_nr = nr;
     text_box_menu_t::properties_t p;
-    auto position = pile->loco.sprite.get(instance, &loco_t::sprite_t::vi_t::position);
+    auto position = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::position);
     p.text = fan::format(L"{:.2f}, {:.2f}, {:.2f}", position.x, position.y, position.z);
     p.text_value = L"add cbs";
 		p.mouse_button_cb = [this, instance](const loco_t::mouse_button_data_t& mb) -> int {
@@ -485,7 +492,7 @@ struct sprite_t {
       std::size_t i = 0;
       while (iss >> position[i++]) { iss.ignore(); }
 
-      pile->loco.sprite.set(instance, &loco_t::sprite_t::vi_t::position, position);
+      pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::position, position);
 
 
       return 0;
@@ -510,7 +517,10 @@ struct sprite_t {
         return 0;
       }
       auto& data = pile->stage_maker.fgm.texturepack.get_pixel_data(ti.pack_id);
-      pile->loco.sprite.set_image(instance, &data.image);
+      pile->loco.sprite.set_image(&instance->cid, &data.image);
+      pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::tc_position, ti.position / data.size);
+      pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::tc_size, ti.size / data.size);
+
 
 
       return 0;
@@ -572,7 +582,7 @@ struct sprite_t {
 			fan::vec3 rp = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::position);
 			fan::vec3 rs = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::size);
 			pile->stage_maker.fgm.resize_side = fan_2d::collision::rectangle::get_side_collision(ii_d.position, rp, rs);
-			pile->stage_maker.fgm.sprite.open_properties(&instance->cid);
+			pile->stage_maker.fgm.sprite.open_properties(instance);
 			return 0;
 		};
 		vfip.mouse_move_cb = [i](const loco_t::mouse_move_data_t& ii_d) -> int {
@@ -638,7 +648,7 @@ struct sprite_t {
 			p.y = ii_d.position.y + pile->stage_maker.fgm.move_offset.y;
 			p.z = ps.z;
 			pile->stage_maker.fgm.sprite.set_position(i, p);
-      pile->stage_maker.fgm.sprite.open_properties(&instance->cid);
+      pile->stage_maker.fgm.sprite.open_properties(instance);
 
 			return 0;
 		};
@@ -706,13 +716,6 @@ struct sprite_t {
 		pile->loco.sprite.set(&instances[i]->cid, &loco_t::sprite_t::vi_t::size, size);
 		pile->loco.vfi.set_rectangle(instances[i]->vfi_id, &loco_t::vfi_t::shape_data_rectangle_t::size, size);
 	}
-
-	struct instance_t {
-		fan::graphics::cid_t cid;
-		loco_t::vfi_t::shape_id_t vfi_id;
-		uint16_t shape;
-		uint8_t holding_special_key = 0;
-	};
 
 	std::vector<instance_t*> instances;
 }sprite;
