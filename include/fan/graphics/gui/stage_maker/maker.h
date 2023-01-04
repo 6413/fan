@@ -34,85 +34,22 @@ struct stage_maker_t {
 			stage_name + ".h";
 	};
 
-	static constexpr const char* stage_instance_tempalte_str = R"(
-stage_common_t stage_common = {
-	.open = [this] () {
-		
-	},
-	.close = [this] {
-		
-	},
-	.window_resize_callback = [this] {
-		
-	},
-	.update = [this] {
-		
-	}
-};
-
-static void lib_open(loco_t* loco, stage_common_t* sc, const stage_common_t::open_properties_t& op) {
-
-	fan::string fgm_name = fan::file_name(__FILE__);
-	fgm_name.pop_back(); // remove
-	fgm_name.pop_back(); // .h
-	fan::string full_path = fan::string("stages/") + fgm_name + ".fgm";
-	fan::string f;
-	if (!fan::io::file::exists(full_path)) {
-		return;
-	}
-  fan::io::file::read(full_path, &f);
-  uint64_t off = 0;
-
-  while (off < f.size()) {
-    format::shape_type_t::_t shape_type = fan::io::file::read_data<format::shape_type_t::_t>(f, off);
-    uint32_t instance_count = fan::io::file::read_data<uint32_t>(f, off);
-
-    for (uint32_t i = 0; i < instance_count; ++i) {
-      switch (shape_type) {
-      case format::shape_type_t::button: {
-        auto data = fan::io::file::read_data<format::shape_button_t>(f, off);
-        auto text = fan::io::file::read_data<fan::wstring>(f, off);
-        loco_t::button_t::properties_t bp;
-        bp.position = data.position;
-        bp.size = data.size;
-        bp.font_size = data.font_size;
-        bp.text = text;
-        bp.theme = &data.theme;
-        bp.matrices = op.matrices;
-        bp.viewport = op.viewport;
-        loco->button.push_back(&cid_table[shape_type][i], bp);
-        break;
-      }
-      case format::shape_type_t::sprite: {
-        auto data = fan::io::file::read_data<format::shape_sprite_t>(f, off);
-        loco_t::sprite_t::properties_t sp;
-        sp.position = data.position;
-        sp.size = data.size;
-        loco_t::texturepack::ti_t ti;
-        if (loco->stage_loader.texturepack.qti(data.hash_path, &ti)) {
-          fan::throw_error("failed to load texture from texturepack");
-        }
-        auto pd = loco->stage_loader.texturepack.get_pixel_data(ti.pack_id);
-        sp.image = &pd.image;
-        sp.tc_position = ti.position / pd.size;
-        sp.tc_size = ti.size / pd.size;
-        sp.matrices = op.matrices;
-        sp.viewport = op.viewport;
-        loco->sprite.push_back(&cid_table[shape_type][i], sp);
-        break;
-      }
-      default: {
-        fan::throw_error("i cant find what you talk about - fgm");
-        break;
-      }
-      }
-    }
-	}
+	static constexpr const char* stage_instance_tempalte_str = R"(void open(auto* loco) {
+  
 }
 
-static void lib_close(stage_common_t* sc) {
+void close(auto* loco){
+		
+}
 
-})";
+void window_resize_callback(auto* loco){
+		
+}
+
+void update(auto* loco){
+	
+}
+)";
 
 	static constexpr f32_t gui_size = 0.05;
 
@@ -235,17 +172,21 @@ static void lib_close(stage_common_t* sc) {
 			return;
 		}
 
-		static constexpr const char* find_end_str("inline static std::");
-		auto struct_stage_end = stage_h_str.find(find_end_str);
+		static constexpr const char* find_end_str("\n};");
+		auto struct_stage_end = stage_h_str.find_last_of(find_end_str);
 
 		if (struct_stage_end == fan::string::npos) {
 			fan::throw_error("corrupted stage.h");
 		}
 
-    auto append_struct = fmt::format(R"(  struct {}_t {{
+    auto append_struct = fmt::format(R"(
+  struct {}_t : stage_common_t_t<{}_t> {{
     #include "{}"
   }};
-  )", stage_name.c_str(), get_file_fullpath(stage_name).c_str());
+  )", 
+    stage_name.c_str(), 
+    stage_name.c_str(),
+    get_file_fullpath(stage_name).c_str());
 		stage_h_str.insert(struct_stage_end, append_struct.c_str());
 
 		//static constexpr fan::string_view find_vector("};\n};");
@@ -410,23 +351,64 @@ static void lib_close(stage_common_t* sc) {
 
 	void open(const char* texturepack_name) {
 		
-  stage_h_str = R"(struct stage_common_t {
+  stage_h_str = R"(protected:
+  #define BLL_set_CPP_ConstructDestruct
+  #define BLL_set_CPP_Node_ConstructDestruct
+  #define BLL_set_BaseLibrary 1
+  #define BLL_set_prefix stage_list
+  #define BLL_set_type_node uint16_t
+  #define BLL_set_NodeDataType void *
+  #define BLL_set_Link 1
+  #define BLL_set_AreWeInsideStruct 1
+  #include _FAN_PATH(BLL/BLL.h)
+public:
 
-	struct open_properties_t {
-		loco_t::matrices_list_NodeReference_t matrices;
-		fan::graphics::viewport_list_NodeReference_t viewport;
-		fan::graphics::theme_list_NodeReference_t theme;
-	};
+using nr_t = stage_list_NodeReference_t;
 
-	fan::function_t<void()> open;
-	fan::function_t<void()> close;
-	fan::function_t<void()> window_resize_callback;
-	fan::function_t<void()> update;
+struct stage_open_properties_t {
+	loco_t::matrices_list_NodeReference_t matrices;
+	fan::graphics::viewport_list_NodeReference_t viewport;
+	fan::graphics::theme_list_NodeReference_t theme;
 };
+
+template <typename T = __empty_struct>
+struct stage_common_t_t {
+
+  stage_common_t_t(auto* loco, const stage_open_properties_t& properties) {
+    T* stage = (T*)this;
+    loco->stage_loader.load_fgm((T*)this, properties, stage->stage_name);
+    stage->open(loco);
+  }
+  void close(auto* loco) {
+    T* stage = (T*)this;
+    stage->close(loco);
+  }
+
+  nr_t stage_id;
+
+protected:
+  #define BLL_set_CPP_ConstructDestruct
+  #define BLL_set_CPP_Node_ConstructDestruct
+  #define BLL_set_BaseLibrary 1
+  #define BLL_set_prefix cid_list
+  #define BLL_set_type_node uint16_t
+  #define BLL_set_NodeDataType fan::graphics::cid_t
+  #define BLL_set_Link 1
+  #define BLL_set_StoreFormat 1
+  #define BLL_set_AreWeInsideStruct 1
+  #define BLL_set_StoreFormat1_ElementPerBlock 0x100
+  #include _FAN_PATH(BLL/BLL.h)
+public:
+
+  cid_list_t cid_list;
+};
+
+using stage_common_t = stage_common_t_t<>;
 
 struct stage {
-	inline static std::vector<stage_common_t*> stages;
+  inline static stage_list_t stage_list;
 };
+
 )";
 
 		auto loco = get_loco();

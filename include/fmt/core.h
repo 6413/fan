@@ -342,7 +342,7 @@ template <typename T> constexpr FMT_INLINE auto const_check(T value) -> T {
   return value;
 }
 
-FMT_NORETURN FMT_API void assert_fail(const char* file, int line,
+static FMT_NORETURN FMT_API void assert_fail(const char* file, int line,
                                       const char* message);
 
 #ifndef FMT_ASSERT
@@ -643,7 +643,7 @@ enum {
   pointer_set = set(type::pointer_type)
 };
 
-FMT_NORETURN FMT_API void throw_format_error(const char* message);
+static FMT_NORETURN FMT_API void throw_format_error(const char* message);
 
 struct error_handler {
   constexpr error_handler() = default;
@@ -1438,25 +1438,6 @@ template <typename Context> struct arg_mapper {
   FMT_CONSTEXPR FMT_INLINE auto map(const T&) -> unformattable_char {
     return {};
   }
-  template <typename T,
-            FMT_ENABLE_IF(
-                std::is_convertible<T, basic_string_view<char_type>>::value &&
-                !is_string<T>::value && !has_formatter<T, Context>::value &&
-                !has_fallback_formatter<T, char_type>::value)>
-  FMT_CONSTEXPR FMT_INLINE auto map(const T& val)
-      -> basic_string_view<char_type> {
-    return basic_string_view<char_type>(val);
-  }
-  template <typename T,
-            FMT_ENABLE_IF(
-                std::is_convertible<T, std_string_view<char_type>>::value &&
-                !std::is_convertible<T, basic_string_view<char_type>>::value &&
-                !is_string<T>::value && !has_formatter<T, Context>::value &&
-                !has_fallback_formatter<T, char_type>::value)>
-  FMT_CONSTEXPR FMT_INLINE auto map(const T& val)
-      -> basic_string_view<char_type> {
-    return std_string_view<char_type>(val);
-  }
 
   FMT_CONSTEXPR FMT_INLINE auto map(void* val) -> const void* { return val; }
   FMT_CONSTEXPR FMT_INLINE auto map(const void* val) -> const void* {
@@ -1466,8 +1447,8 @@ template <typename Context> struct arg_mapper {
     return val;
   }
 
-  // We use SFINAE instead of a const T* parameter to avoid conflicting with
-  // the C array overload.
+  // Use SFINAE instead of a const T* parameter to avoid a conflict with the
+  // array overload.
   template <
       typename T,
       FMT_ENABLE_IF(
@@ -1486,6 +1467,7 @@ template <typename Context> struct arg_mapper {
     return values;
   }
 
+#ifdef FMT_DEPRECATED_IMPLICIT_ENUMS
   template <typename T,
             FMT_ENABLE_IF(
                 std::is_enum<T>::value&& std::is_convertible<T, int>::value &&
@@ -1496,6 +1478,7 @@ template <typename Context> struct arg_mapper {
           static_cast<underlying_t<T>>(val))) {
     return map(static_cast<underlying_t<T>>(val));
   }
+#endif
 
   template <typename T, FMT_ENABLE_IF(has_format_as<T>::value &&
                                       !has_formatter<T, Context>::value)>
@@ -2894,7 +2877,7 @@ using format_string = basic_format_string<char, type_identity_t<Args>...>;
 inline auto runtime(string_view s) -> runtime_format_string<> { return {{s}}; }
 #endif
 
-FMT_API auto vformat(string_view fmt, format_args args) -> std::string;
+static FMT_API auto vformat(string_view fmt, format_args args) -> std::string;
 
 /**
   \rst

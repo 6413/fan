@@ -254,7 +254,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="examples\gui\text_box.cpp" />
+    <ClCompile Include="examples\gui\stage_loader.cpp" />
     <ClCompile Include="include\fan\physics\AStar.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
   </ItemGroup>

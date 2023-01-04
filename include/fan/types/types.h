@@ -30,6 +30,13 @@
 #include <cstdint>
 #include <regex>
 
+#ifndef __empty_struct
+  #define __empty_struct __empty_struct
+  struct __empty_struct {
+
+  };
+#endif
+
 #if defined(_WIN32) || defined(_WIN64)
 
 //constexpr platform_t platform = platform_t::windows;
@@ -262,9 +269,9 @@ namespace fan {
 
 	};
 
-	static std::wstring str_to_wstr(const fan::string& s)
+	static fan::wstring str_to_wstr(const fan::string& s)
 	{
-		std::wstring ret(s.begin(), s.end());
+		fan::wstring ret((const wchar_t*)s.data(), (const wchar_t*)(s.data() + s.size()));
 		return ret;
 	}
 

@@ -75,14 +75,15 @@ struct text_renderer_t {
 
       text_size.x += letter.metrics.size.x + letter.metrics.offset.x;
       if (i + 1 != text.size()) {
-        text_size.x += letter.metrics.offset.x;
+        text_size.x += letter.metrics.advance;
       }
     }
 
     return text_size;
   }
   fan::vec2 get_text_size(uint32_t id) {
-    loco_t* loco = get_loco();
+    return get_text_size(letter_ids[id].p.text, letter_ids[id].p.font_size);
+   /* loco_t* loco = get_loco();
     fan::vec2 text_size = 0;
 
     text_size.y = loco->font.info.line_height;
@@ -93,18 +94,13 @@ struct text_renderer_t {
       font_size = letter_ids[id].p.font_size;
       auto letter = loco->font.info.get_letter_info(loco->font.decode_letter(letter_ids[id].p.text[i]), font_size);
 
-      if (i == 0) {
-        text_size.x += letter.metrics.size.x * 2;
-      }
-      else if (i == letter_ids[id].p.text.size() - 1) {
-        text_size.x += letter.glyph.size.x * 2;
-      }
-      else {
-        text_size.x += letter.metrics.advance / convert_font_size(font_size);
+      text_size.x += letter.metrics.size.x + letter.metrics.offset.x;
+      if (i + 1 != letter_ids[id].p.text.size()) {
+        text_size.x += letter.metrics.offset.x;
       }
     }
 
-    return text_size * convert_font_size(font_size);
+    return text_size;*/
   }
 
   uint32_t push_back(properties_t properties) {

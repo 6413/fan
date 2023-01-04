@@ -22,7 +22,6 @@ struct fgm_t {
 		fan::vec2 corners[count];
 	};
 
-
   #include "common.h"
 
 	static constexpr fan::vec2 button_size = fan::vec2(0.3, 0.08);
@@ -223,23 +222,11 @@ struct fgm_t {
 				      pile->loco.menu_maker_button.get_selected_id(pile->stage_maker.instances[pile_t::stage_maker_t::stage_t::stage_instance].menu_id)
 			      );
 			      auto file_name = pile->stage_maker.get_file_fullpath(stage_name);
+            fan::string str_stage_name = stage_name;
 			
 			      fan::string str;
 			      fan::io::file::read(file_name, &str);
 
-            str.insert(0, fmt::format(R"(
-static inline fan::graphics::cid_t cid_button[{}];
-static inline fan::graphics::cid_t cid_sprite[{}];
-
-static inline fan::graphics::cid_t* cid_table[] = {{
-  cid_button,
-  cid_sprite
-}};
-            )",
-              builder_button.instance.size(),
-              sprite.instances.size()
-            ).c_str());
-			
 			      std::size_t button_id = -1;
 			      for (std::size_t j = 0; j < pile->stage_maker.fgm.builder_button.instance.size(); ++j) {
 				      if (&pile->stage_maker.fgm.builder_button.instance[j]->cid == builder_cid) {
@@ -256,16 +243,56 @@ static inline fan::graphics::cid_t* cid_table[] = {{
 				      return 0;
 			      }
 			
-auto mouse_button_cb = fmt::format(R"(
-            
-static int mouse_button_cb{}(const loco_t::mouse_button_data_t& mb){{
+auto button_click_cb = fmt::format(R"(
+int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
   return 0;
 }}
 )", fan::to_string(button_id).c_str());
 
-			      str += mouse_button_cb.c_str();
+			      str += button_click_cb.c_str();
 			
 			      fan::io::file::write(file_name, str, std::ios_base::binary);
+
+            auto src_str = fan::format("struct {}_t : stage_common_t_t<{}_t> {{",
+              str_stage_name.c_str(),
+              str_stage_name.c_str()
+            );
+
+            auto src = pile->stage_maker.stage_h_str.find(
+              src_str
+            );
+            src += src_str.size();
+            auto dst = pile->stage_maker.stage_h_str.find(
+              fan::format("#include \"stages/{}.h\"",
+                str_stage_name.c_str()
+              )
+            );
+
+            pile->stage_maker.stage_h_str.erase(src, dst - src);
+
+            auto format = fan::format(R"(
+
+    using stage_common_t_t::stage_common_t_t;
+
+    static constexpr auto stage_name = "{}";
+
+    typedef int({}_t::* cb_table_t)(const loco_t::mouse_button_data_t& v);
+
+    cb_table_t button_click_cb_table[{}] = {{)",
+              str_stage_name.c_str(),
+              str_stage_name.c_str(),
+              builder_button.instance.size()
+            );
+
+            for (std::size_t j = 0; j < pile->stage_maker.fgm.builder_button.instance.size(); ++j) {
+              format += fan::format("&{}_t::button{}_click_cb,", str_stage_name.c_str(), j);
+            }
+
+            format += "};\n\n    ";
+
+            pile->stage_maker.stage_h_str.insert(src, format);
+
+            pile->stage_maker.write_stage(pile);
 
             invalidate_right_click_menu();
 
@@ -431,13 +458,13 @@ static int mouse_button_cb{}(const loco_t::mouse_button_data_t& mb){{
 		uint64_t off = 0;
 
     while (off < f.size()) {
-      format::shape_type_t::_t shape_type = fan::io::file::read_data<format::shape_type_t::_t>(f, off);
+      stage_maker_shape_format::shape_type_t::_t shape_type = fan::io::file::read_data<stage_maker_shape_format::shape_type_t::_t>(f, off);
       uint32_t instance_count = fan::io::file::read_data<uint32_t>(f, off);
 
       for (uint32_t i = 0; i < instance_count; ++i) {
         switch (shape_type) {
-        case format::shape_type_t::button: {
-          auto data = fan::io::file::read_data<format::shape_button_t>(f, off);
+        case stage_maker_shape_format::shape_type_t::button: {
+          auto data = fan::io::file::read_data<stage_maker_shape_format::shape_button_t>(f, off);
           auto text = fan::io::file::read_data<fan::wstring>(f, off);
           builder_button_t::properties_t bp;
           bp.position = data.position;
@@ -450,8 +477,8 @@ static int mouse_button_cb{}(const loco_t::mouse_button_data_t& mb){{
           builder_button.push_back(bp);
           break;
         }
-        case format::shape_type_t::sprite: {
-          auto data = fan::io::file::read_data<format::shape_sprite_t>(f, off);
+        case stage_maker_shape_format::shape_type_t::sprite: {
+          auto data = fan::io::file::read_data<stage_maker_shape_format::shape_sprite_t>(f, off);
           sprite_t::properties_t sp;
           sp.position = data.position;
           sp.size = data.size;
@@ -499,10 +526,10 @@ static int mouse_button_cb{}(const loco_t::mouse_button_data_t& mb){{
       }
     };
 		uint32_t instances_count = builder_button.instance.size();
-    add_to_f(format::shape_type_t::button);
+    add_to_f(stage_maker_shape_format::shape_type_t::button);
     add_to_f(instances_count);
 		for (auto it : builder_button.instance) {
-      format::shape_button_t data;
+      stage_maker_shape_format::shape_button_t data;
 			data.position = loco->button.get(&it->cid, &loco_t::button_t::vi_t::position);
 			data.size = loco->button.get(&it->cid, &loco_t::button_t::vi_t::size);
 			data.font_size = loco->text.get_properties(
@@ -515,10 +542,10 @@ static int mouse_button_cb{}(const loco_t::mouse_button_data_t& mb){{
 
     instances_count = sprite.instances.size();
 
-    add_to_f(format::shape_type_t::sprite);
+    add_to_f(stage_maker_shape_format::shape_type_t::sprite);
     add_to_f(instances_count);
     for (auto it : sprite.instances) {
-      format::shape_sprite_t data;
+      stage_maker_shape_format::shape_sprite_t data;
       data.position = loco->sprite.get(&it->cid, &loco_t::sprite_t::vi_t::position);
       data.size = loco->sprite.get(&it->cid, &loco_t::sprite_t::vi_t::size);
       data.hash_path = fan::get_hash("images/test.webp");

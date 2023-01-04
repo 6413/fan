@@ -1,6 +1,4 @@
-#pragma once
-
-struct format {
+struct stage_maker_shape_format {
 
   struct shape_type_t {
     using _t = uint16_t;

@@ -529,7 +529,7 @@ void print(const text_style& ts, const S& format_str, const Args&... args) {
 }
 
 template <typename S, typename Char = char_t<S>>
-inline std::basic_string<Char> vformat(
+static inline std::basic_string<Char> vformat(
     const text_style& ts, const S& format_str,
     basic_format_args<buffer_context<type_identity_t<Char>>> args) {
   basic_memory_buffer<Char> buf;

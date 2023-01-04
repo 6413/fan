@@ -6,6 +6,11 @@
 #include <algorithm>
 #include <string>
 
+#define FMT_HEADER_ONLY
+#include <fmt/format.h>
+#include <fmt/xchar.h>
+
+
 namespace fan {
 
 	template <typename T>
@@ -298,4 +303,17 @@ namespace fan {
 		}
 		using basic_string::basic_string;
 	};
+
+  template <typename... T>
+  static FMT_INLINE auto format(fmt::format_string<T...> fmt, T&&... args)
+    -> fan::string {
+    return fmt::vformat(fmt, fmt::make_format_args(args...)).c_str();
+  }
+
+  template <typename... T>
+  static FMT_INLINE auto format(fmt::wformat_string<T...> fmt, T&&... args)
+    -> fan::wstring {
+    return fmt::vformat(fmt::wstring_view(fmt), fmt::make_wformat_args(args...)).c_str();
+  }
+
 }

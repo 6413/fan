@@ -116,7 +116,7 @@ template <typename Char> FMT_FUNC Char decimal_point_impl(locale_ref) {
 }
 #endif
 
-FMT_FUNC auto write_loc(appender out, loc_value value,
+static FMT_FUNC auto write_loc(appender out, loc_value value,
                         const format_specs<>& specs, locale_ref loc) -> bool {
 #ifndef FMT_STATIC_THOUSANDS_SEPARATOR
   auto locale = loc.get<std::locale>();
@@ -140,12 +140,6 @@ template <typename Locale> format_facet<Locale>::format_facet(Locale& loc) {
   if (!grouping_.empty()) separator_ = std::string(1, numpunct.thousands_sep());
 }
 
-template <>
-FMT_API FMT_FUNC auto format_facet<std::locale>::do_put(
-    appender out, loc_value val, const format_specs<>& specs) const -> bool {
-  return val.visit(
-      detail::loc_writer<>{out, specs, separator_, grouping_, decimal_point_});
-}
 #endif
 
 #if !FMT_MSC_VERSION
@@ -1554,7 +1548,7 @@ struct singleton {
   unsigned char lower_count;
 };
 
-inline auto is_printable(uint16_t x, const singleton* singletons,
+static inline auto is_printable(uint16_t x, const singleton* singletons,
                          size_t singletons_size,
                          const unsigned char* singleton_lowers,
                          const unsigned char* normal, size_t normal_size)
