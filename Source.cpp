@@ -10,5 +10,8 @@
 
 
 int main() {
-  fan::print(R"~(R"~salsa~")~");
+  int i;
+  int j = 10;
+  i = (j++, j + 100, 999 + j);
+  fan::print(i);
 }

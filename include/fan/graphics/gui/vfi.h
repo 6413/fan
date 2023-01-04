@@ -201,7 +201,7 @@ struct vfi_t {
     }
     shape_list.unlrec(id);
 
-    feed_mouse_move(get_loco()->get_mouse_position());
+    //feed_mouse_move(get_loco()->get_mouse_position());
   }
   template <typename T>
   void set_always(shape_id_t id, auto T::*member, auto value) {
