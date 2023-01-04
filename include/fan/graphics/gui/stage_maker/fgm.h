@@ -475,10 +475,14 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
           sprite_t::properties_t sp;
           sp.position = data.position;
           sp.size = data.size;
-          // how to do this help
-          //data.hash_path
-
-          sp.image = &default_texture;
+          loco_t::texturepack::ti_t ti;
+          if (texturepack.qti(data.hash_path, &ti)) {
+            fan::throw_error("failed to load texture from texturepack");
+          }
+          auto pd = texturepack.get_pixel_data(ti.pack_id);
+          sp.image = &pd.image;
+          sp.tc_position = ti.position / pd.size;
+          sp.tc_size = ti.size / pd.size;
           sp.matrices = &matrices[viewport_area::editor];
           sp.viewport = &viewport[viewport_area::editor];
           sprite.push_back(sp);
@@ -539,7 +543,7 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
       stage_maker_shape_format::shape_sprite_t data;
       data.position = loco->sprite.get(&it->cid, &loco_t::sprite_t::vi_t::position);
       data.size = loco->sprite.get(&it->cid, &loco_t::sprite_t::vi_t::size);
-      data.hash_path = fan::get_hash("images/test.webp");
+      data.hash_path = fan::get_hash(it->texturepack_name);
       add_to_f(data);
     }
 

@@ -261,9 +261,33 @@ struct builder_button_t {
 		instance[i]->theme = *pile->loco.get_context()->theme_list[p.theme].theme_id;
 		p.mouse_button_cb = [instance = instance[i]](const loco_t::mouse_button_data_t& ii_d) -> int {
 			pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi_var_name), pile_t, loco_var_name);
-			if (ii_d.button != fan::mouse_left) {
-				return 0;
-			}
+      switch (ii_d.button) {
+        case fan::mouse_scroll_up: {
+          if (pile->stage_maker.fgm.action_flag & action::move) {
+            fan::vec3 ps = pile->loco.button.get_button(&instance->cid, &loco_t::button_t::vi_t::position);
+            ps.z += 0.5;
+            pile->loco.button.set_position(&instance->cid, ps);
+            pile->stage_maker.fgm.builder_button.open_properties(instance);
+          }
+          return 0;
+        }
+        case fan::mouse_scroll_down: {
+          if (pile->stage_maker.fgm.action_flag & action::move) {
+            fan::vec3 ps = pile->loco.button.get_button(&instance->cid, &loco_t::button_t::vi_t::position);
+            ps.z -= 0.5;
+            ps.z = fan::clamp((f32_t)ps.z, (f32_t)0.f, (f32_t)ps.z);
+            pile->loco.button.set_position(&instance->cid, ps);
+            pile->stage_maker.fgm.builder_button.open_properties(instance);
+          }
+          return 0;
+        }
+        case fan::mouse_left:{
+          break;
+        }
+        default: {
+          return 0;
+        }
+      }
 			if (ii_d.button_state == fan::mouse_state::release) {
 				pile->stage_maker.fgm.builder_button.release();
 				// TODO FIX, erases in near bottom
@@ -431,6 +455,7 @@ struct sprite_t {
     loco_t::vfi_t::shape_id_t vfi_id;
     uint16_t shape;
     uint8_t holding_special_key = 0;
+    fan::wstring texturepack_name;
   };
 
 	loco_t* get_loco() {
@@ -499,7 +524,7 @@ struct sprite_t {
     };
     pile->stage_maker.fgm.properties_nrs.push_back(pile->stage_maker.fgm.text_box_menu.push_back(nr, p));
 
-    p.text = L"";
+    p.text = instance->texturepack_name;
     p.keyboard_cb = [pile, this, instance, nr](const loco_t::keyboard_data_t& d) -> int {
       if (d.key != fan::key_enter) {
         return 0;
@@ -520,9 +545,7 @@ struct sprite_t {
       pile->loco.sprite.set_image(&instance->cid, &data.image);
       pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::tc_position, ti.position / data.size);
       pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::tc_size, ti.size / data.size);
-
-
-
+      instance->texturepack_name = text;
       return 0;
     };
     pile->stage_maker.fgm.properties_nrs.push_back(pile->stage_maker.fgm.text_box_menu.push_back(nr, p));
@@ -548,10 +571,34 @@ struct sprite_t {
 		instances[i] = new instance_t;
 		instances[i]->shape = shapes::sprite;
 		loco_t::vfi_t::properties_t vfip;
-		vfip.mouse_button_cb = [i](const loco_t::mouse_button_data_t& ii_d) -> int {
-			if (ii_d.button != fan::mouse_left) {
-				return 0;
-			}
+		vfip.mouse_button_cb = [pile, this, instance = instances[i]](const loco_t::mouse_button_data_t& ii_d) -> int {
+      switch (ii_d.button) {
+        case fan::mouse_scroll_up: {
+          if (pile->stage_maker.fgm.action_flag & action::move) {
+            fan::vec3 ps = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::position);
+            ps.z += 0.5;
+            pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::position, ps);
+            open_properties(instance);
+          }
+          return 0;
+        }
+        case fan::mouse_scroll_down: {
+          if (pile->stage_maker.fgm.action_flag & action::move) {
+            fan::vec3 ps = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::position);
+            ps.z -= 0.5;
+            ps.z = fan::clamp((f32_t)ps.z, (f32_t)0.f, (f32_t)ps.z);
+            pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::position, ps);
+            pile->stage_maker.fgm.sprite.open_properties(instance);
+          }
+          return 0;
+        }
+        case fan::mouse_left: {
+          break;
+        }
+        default: {
+          return 0;
+        }
+      }
 			if (ii_d.button_state == fan::mouse_state::press) {
 				ii_d.flag->ignore_move_focus_check = true;
 				ii_d.vfi->set_focus_keyboard(ii_d.vfi->get_focus_mouse());
@@ -560,8 +607,6 @@ struct sprite_t {
 				ii_d.flag->ignore_move_focus_check = false;
 			}
 			pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi_var_name), pile_t, loco_var_name);
-
-			auto& instance = pile->stage_maker.fgm.sprite.instances[i];
 
 			if (ii_d.button_state == fan::mouse_state::release) {
 				pile->stage_maker.fgm.sprite.release();
