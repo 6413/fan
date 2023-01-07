@@ -680,6 +680,12 @@ public:
     rectangle_t sb_shape_var_name;
     #undef sb_shape_var_name
   #endif
+  #if defined(loco_circle)
+    #define sb_shape_var_name circle
+    #include _FAN_PATH(graphics/opengl/2D/objects/circle.h)
+    circle_t sb_shape_var_name;
+    #undef sb_shape_var_name
+  #endif
   #if defined(loco_yuv420p)
     #define sb_shape_var_name yuv420p
     #define sb_sprite_name yuv420p_t
