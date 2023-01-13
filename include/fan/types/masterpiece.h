@@ -4,7 +4,7 @@
 #include <type_traits>
 
 namespace fan {
-
+  #pragma pack(push, 1)
   // reversing masterpiece
   template<typename>
   struct templated_base_case;
@@ -137,4 +137,5 @@ namespace fan {
 
   template <typename... args>
   using masterpiece_t = typename reverse_impl<masterpiece_reversed_t<args...>>::type;
+  #pragma pack(pop)
 }

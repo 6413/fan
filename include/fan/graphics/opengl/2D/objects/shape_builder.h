@@ -108,25 +108,24 @@ void sb_close() {
 struct block_t;
 
 // STRUCT MANUAL PADDING IS REQUIRED (32 BIT)
-block_t* sb_push_back(fan::opengl::cid_t* cid, auto p) {
+block_t* sb_push_back(fan::opengl::cid_t* cid, auto& p) {
+
+  #if defined (loco_line)
+  if constexpr (std::is_same<std::remove_reference_t<decltype(p)>, loco_t::line_t::properties_t>::value) {
+    p.depth = p.src.z;
+  }
+  else {
+    p.depth = p.position.z;
+  }
+  #else
+    p.depth = p.position.z;
+  #endif
   loco_t* loco = get_loco();
- 
   loco_bdbt_NodeReference_t nr = root;
   loco_bdbt_Key_t<sizeof(bm_properties_t::key_t) * 8> k;
   typename decltype(k)::KeySize_t ki;
+  //printf("%08x\n", *(uint32_t*)&p.key);
   k.Query(&loco->bdbt, &p.key, &ki, &nr);
-
-  #if defined (loco_line)
-  if constexpr (std::is_same<decltype(p), loco_t::line_t::properties_t>::value) {
-    p.src.z -= loco_t::matrices_t::znearfar / 2 - 1;
-    p.dst.z -= loco_t::matrices_t::znearfar / 2 - 1;
-  }
-  else {
-    p.position.z -= loco_t::matrices_t::znearfar / 2 - 1;
-  }
-  #else
-    p.position.z -= loco_t::matrices_t::znearfar / 2 - 1;
-  #endif
 
   if (ki != sizeof(bm_properties_t::key_t) * 8) {
     auto lnr = bm_list.NewNode();

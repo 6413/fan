@@ -15,6 +15,7 @@ struct sb_sprite_name {
 
   struct bm_properties_t {
     using parsed_masterpiece_t = fan::masterpiece_t<
+      uint16_t,
       loco_t::textureid_t<0>,
       loco_t::matrices_list_NodeReference_t,
       fan::graphics::viewport_list_NodeReference_t
@@ -33,6 +34,7 @@ struct sb_sprite_name {
 
   struct properties_t : vi_t, ri_t {
 
+    make_key_value(uint16_t, depth);
     make_key_value(loco_t::textureid_t<0>, image);
     make_key_value(loco_t::matrices_list_NodeReference_t, matrices);
     make_key_value(fan::graphics::viewport_list_NodeReference_t, viewport);
