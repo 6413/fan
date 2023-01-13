@@ -655,6 +655,11 @@ public:
     );
     #endif
   }
+
+  void process_block_properties_element(auto* shape, uint16_t depth) {
+
+  }
+
   #endif
 
   loco_bdbt_t bdbt;

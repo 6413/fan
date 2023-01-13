@@ -198,6 +198,8 @@ void sb_push_back(fan::vulkan::cid_t* fcid, auto p) {
     p.position.z -= loco_t::matrices_t::znearfar - 1;
   #endif
 
+  p.depth = p.position.z;
+
   loco_bdbt_NodeReference_t nr = root;
   shape_bm_NodeReference_t& bmID = *(shape_bm_NodeReference_t*)&nr;
   loco_bdbt_Key_t<sizeof(bm_properties_t::key_t) * 8> k;

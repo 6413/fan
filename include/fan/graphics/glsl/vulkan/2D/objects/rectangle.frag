@@ -22,9 +22,9 @@ void main() {
   rcolor = vec4(0);
 	#if !defined(wboit)
 		ocolor = data.color;
-    if (ocolor.a < 0.9) {
-      discard;
-    }
+    //if (ocolor.a < 0.9) {
+    //  discard;
+    //}
     rcolor = vec4(1) - ocolor;
     rcolor.a = 1;
 	#else

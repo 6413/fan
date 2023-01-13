@@ -1728,7 +1728,7 @@ namespace fan {
 
       VkPipelineDepthStencilStateCreateInfo depthStencil{};
       depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-      depthStencil.depthTestEnable = p.enable_depth_test;
+      depthStencil.depthTestEnable = VK_FALSE;//p.enable_depth_test;
       depthStencil.depthWriteEnable = VK_TRUE;
       depthStencil.depthCompareOp = p.depth_test_compare_op;
       depthStencil.depthBoundsTestEnable = VK_FALSE;
