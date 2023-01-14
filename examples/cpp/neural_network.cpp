@@ -46,7 +46,7 @@ int main() {
 
 
   // learning faster or slower
-  const double learning_rate = 1;
+  const double learning_rate = 0.1;
 
   double hidden_layer[n_hidden_nodes];
   double output_layer[n_outputs];

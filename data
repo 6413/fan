@@ -1,800 +1,800 @@
 input:0 + 0
-output:86.03017712896408
+output:86.57739020568201
 expected output:0
 
-input:79 + 10
-output:90.26676585816985
-expected output:89
-
-input:2 + 4
-output:7.4098647999436205
-expected output:6
-
-input:87 + 1
-output:89.11529614687602
+input:79 + 9
+output:88.28574895429573
 expected output:88
 
-input:28.999999999999996 + 10
-output:39.81109498275688
-expected output:39
-
-input:21 + 0
-output:19.96777550087084
-expected output:21
-
-input:75 + 3
-output:77.75035620370066
-expected output:78
-
-input:10 + 7.000000000000001
-output:15.902690551994267
-expected output:17
-
-input:40 + 2
-output:42.77963589628603
-expected output:42.00000000000001
-
-input:96 + 9
-output:99.39236093141159
-expected output:105
-
-input:86 + 6
-output:92.94959333400246
-expected output:92
-
-input:38 + 10
-output:49.16294266429108
-expected output:48
-
-input:87 + 1
-output:88.91626389004068
-expected output:88
-
-input:75 + 3
-output:77.72638361578105
-expected output:78
-
-input:38 + 10
-output:49.081002493274795
-expected output:48
-
-input:3 + 0
-output:5.799609570009711
-expected output:3
-
-input:51 + 5
-output:55.749480649524166
-expected output:56.00000000000001
-
-input:5 + 1
-output:7.600717156571034
-expected output:6.000000000000001
-
-input:6 + 3
-output:9.421182860360492
-expected output:9
-
-input:36 + 9
-output:46.02024946592701
-expected output:44.99999999999999
-
-input:51 + 5
-output:56.02607020657528
-expected output:56.00000000000001
-
-input:69 + 6
-output:74.26329395945217
-expected output:75
-
-input:28.000000000000004 + 4
-output:32.26264671638716
-expected output:32
-
-input:47 + 8
-output:55.383009354653154
-expected output:54.99999999999999
-
-input:39 + 4
-output:44.22559472702739
-expected output:43
-
-input:97 + 7.000000000000001
-output:99.26863571511058
-expected output:104
-
-input:94 + 10
-output:99.29737829548083
-expected output:104
-
-input:21 + 0
-output:19.701500148871837
-expected output:21
-
-input:46 + 5
-output:51.72346263721826
-expected output:51
-
-input:28.000000000000004 + 4
-output:31.794243365118557
-expected output:32
-
-input:81 + 7.000000000000001
-output:89.02299709877018
-expected output:88.00000000000001
-
-input:87 + 1
-output:88.94905872702148
-expected output:88
-
-input:94 + 10
-output:99.29057347775937
-expected output:104
-
-input:40 + 2
-output:42.57537143546965
-expected output:42.00000000000001
-
-input:94 + 10
-output:99.28566125908523
-expected output:104
-
-input:26 + 6
-output:31.847365218353257
-expected output:32
-
-input:92 + 5
-output:96.74217943507648
-expected output:97.00000000000001
-
-input:15 + 9
-output:22.909506955464447
-expected output:24
-
-input:26 + 6
-output:32.612430368529324
-expected output:32
-
-input:27 + 10
-output:37.38371081484554
-expected output:37
-
-input:25 + 3
-output:27.440190907607313
-expected output:28.000000000000004
-
-input:68 + 10
-output:77.64301742831543
-expected output:78
-
-input:22 + 6
-output:27.579401540752453
-expected output:28.000000000000004
-
-input:30 + 2
-output:31.948668778308885
-expected output:32
-
-input:14.000000000000002 + 3
-output:16.20842663182503
-expected output:17
-
-input:28.999999999999996 + 10
-output:39.64563149526229
-expected output:39
-
-input:4 + 3
-output:7.994425102372042
+input:2 + 5
+output:8.58683675268093
 expected output:7.000000000000001
 
-input:56.00000000000001 + 4
-output:59.84528743079215
-expected output:60.00000000000001
+input:87 + 5
+output:92.27946653441514
+expected output:92
 
-input:12 + 2
-output:13.38118104334881
-expected output:13.999999999999998
+input:28.999999999999996 + 2
+output:31.29004187753849
+expected output:31
 
-input:70 + 0
-output:69.10383701137519
-expected output:70
-
-input:64 + 0
-output:63.39985472311716
-expected output:64
-
-input:28.999999999999996 + 10
-output:39.932033207297394
-expected output:39
-
-input:22 + 6
-output:27.598384408743982
-expected output:28.000000000000004
-
-input:68 + 10
-output:77.87903032631134
-expected output:78
-
-input:66 + 0
-output:65.19059084323072
-expected output:66
-
-input:59 + 9
-output:67.26670720904696
-expected output:68
-
-input:27 + 10
-output:37.88075651095254
-expected output:37
-
-input:51 + 5
-output:56.48669916862373
-expected output:56.00000000000001
-
-input:45 + 10
-output:55.39905306611046
-expected output:55.00000000000001
-
-input:18 + 6
-output:23.019154021390303
+input:21 + 3
+output:23.323462486052186
 expected output:24
 
-input:67 + 3
-output:69.22596625155091
-expected output:70
-
-input:67 + 3
-output:69.23929470245835
-expected output:70
-
-input:39 + 4
-output:43.84161173333674
-expected output:43
-
-input:23 + 10
-output:33.29668181711755
-expected output:33
-
-input:89 + 0
-output:89.84405108000425
-expected output:89
-
-input:74 + 6
-output:80.00185847118004
-expected output:80
-
-input:83 + 0
-output:83.02107251838594
-expected output:83
-
-input:76 + 2
-output:77.45661977793488
-expected output:78
-
-input:31 + 7.000000000000001
-output:38.74292809848295
-expected output:38
-
-input:41 + 8
-output:49.814213603319956
-expected output:49
-
-input:9 + 7.000000000000001
-output:14.987335464926014
-expected output:16
-
-input:43 + 4
-output:47.7806866618095
-expected output:47
-
-input:3 + 0
-output:5.838517509025641
-expected output:3
-
-input:61 + 1
-output:61.34907480417665
-expected output:62
-
-input:56.00000000000001 + 4
-output:59.80851001867076
-expected output:60.00000000000001
-
-input:49 + 10
-output:59.15375323171197
-expected output:59
-
-input:0 + 0
-output:4.3314356177537805
-expected output:0
-
-input:45 + 10
-output:55.28010028919038
-expected output:55.00000000000001
-
-input:49 + 10
-output:59.16600086908402
-expected output:59
-
-input:39 + 4
-output:43.95755870958683
-expected output:43
-
-input:20 + 8
-output:27.251355783412727
-expected output:28.000000000000004
-
-input:45 + 10
-output:55.20790588584112
-expected output:55.00000000000001
-
-input:20 + 8
-output:27.56638243473004
-expected output:28.000000000000004
-
-input:25 + 3
-output:27.88242474155166
-expected output:28.000000000000004
-
-input:38 + 10
-output:48.45404428346035
-expected output:48
-
-input:74 + 6
-output:79.98462586315837
-expected output:80
-
-input:72 + 8
-output:79.85002441153057
-expected output:80
-
-input:87 + 1
-output:88.85576114507471
-expected output:88
-
-input:65 + 0
-output:64.15431456004437
-expected output:65
-
-input:32 + 2
-output:34.10390580791772
-expected output:34
-
-input:67 + 3
-output:69.30695194028372
-expected output:70
-
-input:7.000000000000001 + 9
-output:15.0153706443724
-expected output:16
-
-input:14.000000000000002 + 3
-output:16.113017119817147
-expected output:17
-
-input:3 + 0
-output:5.579422052636514
-expected output:3
-
-input:42 + 0
-output:42.782179080194446
-expected output:42
-
-input:11 + 5
-output:15.131793891569362
-expected output:16
-
-input:6 + 3
-output:9.102756871484146
-expected output:9
-
-input:33 + 10
-output:43.86834395330274
-expected output:43.00000000000001
-
-input:2 + 4
-output:7.251178270326508
-expected output:6
-
-input:84 + 3
-output:87.71961801198614
-expected output:87
-
-input:28.000000000000004 + 4
-output:31.578410744115253
-expected output:32
-
-input:78 + 7.000000000000001
-output:85.47713116700083
-expected output:85.00000000000001
-
-input:9 + 7.000000000000001
-output:14.809932314814217
-expected output:16
-
-input:16 + 4
-output:18.816918626049294
-expected output:20
-
-input:72 + 8
-output:79.84059263143514
-expected output:80
-
-input:55.00000000000001 + 4
-output:58.97153790864426
-expected output:59.00000000000001
-
-input:3 + 0
-output:5.69554999970979
-expected output:3
-
-input:62 + 7.000000000000001
-output:68.10608965843088
-expected output:69
-
-input:34 + 8
-output:42.835190239643715
-expected output:42.00000000000001
-
-input:38 + 10
-output:48.65057047972415
-expected output:48
-
-input:44 + 10
-output:54.15836273104176
-expected output:54
-
-input:13 + 6
-output:17.65051976464748
-expected output:19
-
-input:96 + 9
-output:99.48839766428054
-expected output:105
-
-input:77 + 6
-output:83.24849491683491
-expected output:83
-
-input:11 + 5
-output:14.970808488537166
-expected output:16
-
-input:46 + 5
-output:51.663044304819294
-expected output:51
-
-input:71 + 0
-output:70.01986519656076
-expected output:71
-
-input:76 + 2
-output:77.56246512955882
-expected output:78
-
-input:83 + 0
-output:83.27398654425501
-expected output:83
-
-input:56.00000000000001 + 4
-output:59.890932249277526
-expected output:60.00000000000001
-
-input:30 + 2
-output:32.08674673560956
-expected output:32
-
-input:98 + 3
-output:98.5545028049536
-expected output:101
-
-input:87 + 1
-output:88.9465284936771
-expected output:88
-
-input:85 + 3
-output:88.91976001285062
-expected output:88
-
-input:89 + 0
-output:89.90653384508009
-expected output:89
-
-input:27 + 10
-output:37.49854199768657
-expected output:37
-
-input:75 + 3
-output:77.39485833828935
-expected output:78
-
-input:43 + 4
-output:47.68137163683335
-expected output:47
-
-input:0 + 0
-output:4.215574525581787
-expected output:0
-
-input:80 + 10
-output:90.9337461182979
-expected output:90
-
-input:51 + 5
-output:55.70848675950537
-expected output:56.00000000000001
-
-input:95 + 5
-output:98.14582593157888
-expected output:100
-
-input:36 + 9
-output:45.377881386314996
-expected output:44.99999999999999
-
-input:50 + 4
-output:53.865225563194706
-expected output:54
-
-input:20 + 8
-output:27.03414995894325
-expected output:28.000000000000004
-
-input:5 + 1
-output:7.162443881553321
-expected output:6.000000000000001
-
-input:99 + 5
-output:99.30726022953594
-expected output:104
-
-input:92 + 5
-output:96.68815526403404
-expected output:97.00000000000001
-
-input:42 + 0
-output:42.30434066357449
-expected output:42
-
-input:18 + 6
-output:22.691064952198317
-expected output:24
-
-input:73 + 8
-output:80.90770495822403
-expected output:81
-
-input:25 + 3
-output:27.307958018538773
-expected output:28.000000000000004
-
-input:79 + 10
-output:90.03332373179273
-expected output:89
-
-input:68 + 10
-output:77.53446924801408
-expected output:78
-
-input:60 + 4
-output:63.39974120423313
-expected output:64
-
-input:10 + 7.000000000000001
-output:16.023846728766237
-expected output:17
-
-input:94 + 10
-output:99.33236215298554
-expected output:104
-
-input:22 + 6
-output:27.779255067335505
-expected output:28.000000000000004
-
-input:24 + 1
-output:24.457201039425467
-expected output:25
-
-input:84 + 3
-output:87.93254613240653
-expected output:87
-
-input:1 + 5
-output:7.494497387943164
-expected output:6.000000000000001
-
-input:7.000000000000001 + 9
-output:15.210575704974024
-expected output:16
-
-input:67 + 3
-output:69.32810485536378
-expected output:70
-
-input:32 + 2
-output:34.61408552187592
-expected output:34
-
-input:88 + 6
-output:94.69221063365771
+input:75 + 10
+output:85.9560703413439
+expected output:85
+
+input:10 + 4
+output:13.202208883192288
+expected output:14.000000000000002
+
+input:40 + 1
+output:41.64766201360487
+expected output:41
+
+input:96 + 7.000000000000001
+output:98.40423677003449
+expected output:103
+
+input:86 + 8
+output:94.2655511613982
 expected output:94
 
-input:54 + 9
-output:62.76731909672066
-expected output:63
+input:38 + 6
+output:44.93604427514745
+expected output:44
 
-input:26 + 6
-output:32.305048371949454
-expected output:32
+input:87 + 5
+output:92.91615906905776
+expected output:92
 
-input:61 + 1
-output:61.77070746439433
-expected output:62
+input:75 + 10
+output:85.876939210935
+expected output:85
 
-input:82 + 6
-output:88.99689647916948
-expected output:87.99999999999999
+input:38 + 6
+output:44.92472508066901
+expected output:44
 
-input:14.000000000000002 + 3
-output:16.117525264659754
-expected output:17
-
-input:49 + 10
-output:59.2388569323746
-expected output:59
-
-input:59 + 9
-output:67.42893406618086
-expected output:68
-
-input:41 + 8
-output:50.124016517193645
-expected output:49
-
-input:19 + 3
-output:21.14055342249613
-expected output:22
-
-input:6 + 3
-output:9.485871284514555
+input:3 + 6
+output:9.572036896907548
 expected output:9
 
-input:91 + 5
-output:96.09479810773875
-expected output:96.00000000000001
+input:51 + 8
+output:58.66662877450561
+expected output:59
 
-input:37 + 1
-output:38.80875352669568
+input:5 + 8
+output:12.747613082358622
+expected output:13
+
+input:6 + 7.000000000000001
+output:12.693332130780801
+expected output:13
+
+input:36 + 2
+output:38.591579255015304
 expected output:38
 
-input:28.999999999999996 + 10
-output:39.76899153618679
-expected output:39
+input:51 + 8
+output:58.7253569187183
+expected output:59
 
-input:74 + 6
-output:79.72943938412492
-expected output:80
+input:69 + 7.000000000000001
+output:75.61523681892662
+expected output:76
 
-input:52 + 7.000000000000001
-output:58.855544119245415
-expected output:59.00000000000001
+input:28.000000000000004 + 2
+output:29.795778795610534
+expected output:30.000000000000004
 
-input:86 + 6
-output:92.90878896921276
-expected output:92
+input:47 + 5
+output:52.42253511199125
+expected output:52
 
-input:23 + 10
-output:33.08411977225153
-expected output:33
+input:39 + 9
+output:48.88236205574114
+expected output:48
 
-input:64 + 0
-output:63.29629208073592
-expected output:64
+input:97 + 5
+output:98.47713058423639
+expected output:102
 
-input:8 + 3
-output:10.791014927583449
-expected output:11
+input:94 + 5
+output:97.42558809867134
+expected output:99
 
-input:40 + 2
-output:42.79646688916735
-expected output:42.00000000000001
+input:21 + 3
+output:23.18557749705329
+expected output:24
 
-input:69 + 6
-output:74.16925130549485
-expected output:75
-
-input:97 + 7.000000000000001
-output:99.31788751830247
-expected output:104
-
-input:63 + 9
-output:71.19295157751677
-expected output:72
-
-input:33 + 10
-output:43.96380411420064
-expected output:43.00000000000001
-
-input:93 + 5
-output:97.27697492446087
-expected output:98.00000000000001
-
-input:21 + 0
-output:19.8166483456933
-expected output:21
-
-input:57.99999999999999 + 9
-output:66.39556758588675
-expected output:67
-
-input:35 + 1
-output:36.60224999138937
-expected output:36
-
-input:65 + 0
-output:64.41991706315126
-expected output:65
-
-input:81 + 7.000000000000001
-output:89.03815960562132
-expected output:88.00000000000001
-
-input:17 + 6
-output:22.184201095563424
-expected output:23
-
-input:31 + 7.000000000000001
-output:38.889134474574995
-expected output:38
-
-input:56.99999999999999 + 5
-output:61.69685149786039
-expected output:62
-
-input:53 + 9
-output:61.7805557793524
-expected output:62
-
-input:90 + 2
-output:92.95358515507466
-expected output:92
-
-input:47 + 8
-output:55.44675227955367
-expected output:54.99999999999999
-
-input:66 + 0
-output:65.29025473138427
-expected output:66
-
-input:2 + 4
-output:7.396705243935112
-expected output:6
-
-input:39 + 4
-output:43.82344968802987
-expected output:43
-
-input:45 + 10
-output:55.210960545363655
+input:46 + 9
+output:55.25682636572423
 expected output:55.00000000000001
 
-input:48 + 9
-output:56.98222945375624
+input:28.000000000000004 + 2
+output:29.749699596955903
+expected output:30.000000000000004
+
+input:81 + 7.000000000000001
+output:89.13913404757258
+expected output:88.00000000000001
+
+input:87 + 5
+output:92.99186788852018
+expected output:92
+
+input:94 + 5
+output:97.47145162901751
+expected output:99
+
+input:40 + 1
+output:41.64819457856277
+expected output:41
+
+input:94 + 5
+output:97.48108047976739
+expected output:99
+
+input:26 + 1
+output:26.35281076776933
+expected output:27
+
+input:92 + 1
+output:93.91700765652146
+expected output:93
+
+input:15 + 2
+output:16.00005083311986
+expected output:17
+
+input:26 + 1
+output:26.342799280503986
+expected output:27
+
+input:27 + 6
+output:33.314778298967894
+expected output:33
+
+input:25 + 1
+output:25.238307792170705
+expected output:26
+
+input:68 + 9
+output:76.61478595585123
+expected output:77
+
+input:22 + 8
+output:30.08734637081699
+expected output:30
+
+input:30 + 4
+output:34.29087432837288
+expected output:34
+
+input:14.000000000000002 + 7.000000000000001
+output:20.24150585764865
+expected output:21.000000000000004
+
+input:28.999999999999996 + 2
+output:30.851007038436823
+expected output:31
+
+input:4 + 5
+output:9.602034515695152
+expected output:9
+
+input:56.00000000000001 + 2
+output:57.844648324227954
+expected output:58.00000000000001
+
+input:12 + 6
+output:17.20078241284147
+expected output:18
+
+input:70 + 9
+output:78.86439484074451
+expected output:78.99999999999999
+
+input:64 + 4
+output:67.17742590077121
+expected output:68
+
+input:28.999999999999996 + 2
+output:30.85539270597578
+expected output:31
+
+input:22 + 8
+output:30.08477055668647
+expected output:30
+
+input:68 + 9
+output:76.58773149537105
+expected output:77
+
+input:66 + 7.000000000000001
+output:72.26777885391732
+expected output:73
+
+input:59 + 2
+output:60.574578985394346
+expected output:61
+
+input:27 + 6
+output:33.30392442407006
+expected output:33
+
+input:51 + 8
+output:58.876132764114544
+expected output:59
+
+input:45 + 4
+output:49.67370253674284
+expected output:49
+
+input:18 + 6
+output:23.37271815524265
+expected output:24
+
+input:67 + 9
+output:75.4652827203288
+expected output:76
+
+input:67 + 9
+output:75.47148479186164
+expected output:76
+
+input:39 + 9
+output:48.906259010285005
+expected output:48
+
+input:23 + 1
+output:23.092387903904847
+expected output:24.000000000000004
+
+input:89 + 6
+output:95.31830046016341
+expected output:95
+
+input:74 + 2
+output:75.56775922325126
+expected output:76
+
+input:83 + 1
+output:84.78253572000732
+expected output:84
+
+input:76 + 0
+output:75.58760994979583
+expected output:76
+
+input:31 + 2
+output:33.08614314454602
+expected output:33
+
+input:41 + 6
+output:47.86044445597673
+expected output:47
+
+input:9 + 8
+output:16.347204569650252
+expected output:17
+
+input:43 + 8
+output:51.68037733508722
+expected output:51
+
+input:3 + 6
+output:9.633421396494205
+expected output:9
+
+input:61 + 0
+output:60.552140289710024
+expected output:61
+
+input:56.00000000000001 + 2
+output:57.85138210608171
+expected output:58.00000000000001
+
+input:49 + 8
+output:57.10443591711866
 expected output:56.99999999999999
 
-input:4 + 3
-output:7.836256687838467
+input:0 + 0
+output:4.535597548486185
+expected output:0
+
+input:45 + 4
+output:49.668123388132386
+expected output:49
+
+input:49 + 8
+output:57.107952691965124
+expected output:56.99999999999999
+
+input:39 + 9
+output:48.89841589764174
+expected output:48
+
+input:20 + 0
+output:18.86974848702127
+expected output:20
+
+input:45 + 4
+output:49.66214169603719
+expected output:49
+
+input:20 + 0
+output:18.878408809768803
+expected output:20
+
+input:25 + 1
+output:25.268540215141023
+expected output:26
+
+input:38 + 6
+output:44.86921297751602
+expected output:44
+
+input:74 + 2
+output:75.55544123025598
+expected output:76
+
+input:72 + 8
+output:79.99970396577817
+expected output:80
+
+input:87 + 5
+output:93.00146895201755
+expected output:92
+
+input:65 + 2
+output:66.20725600954536
+expected output:67
+
+input:32 + 9
+output:41.980901239637674
+expected output:41
+
+input:67 + 9
+output:75.48114058135053
+expected output:76
+
+input:7.000000000000001 + 10
+output:16.440802759143498
+expected output:17
+
+input:14.000000000000002 + 7.000000000000001
+output:20.271850653115305
+expected output:21.000000000000004
+
+input:3 + 6
+output:9.611021429460605
+expected output:9
+
+input:42 + 2
+output:44.70774952762142
+expected output:44
+
+input:11 + 5
+output:15.277976122453563
+expected output:16
+
+input:6 + 7.000000000000001
+output:12.715270767206144
+expected output:13
+
+input:33 + 1
+output:34.11410719220357
+expected output:34
+
+input:2 + 5
+output:8.250133076879445
 expected output:7.000000000000001
 
-input:70 + 0
-output:68.92861056479367
+input:84 + 6
+output:91.12488034237664
+expected output:89.99999999999999
+
+input:28.000000000000004 + 2
+output:29.71782371910521
+expected output:30.000000000000004
+
+input:78 + 8
+output:86.86189688255818
+expected output:86
+
+input:9 + 8
+output:16.329023786040224
+expected output:17
+
+input:16 + 9
+output:24.607035102946835
+expected output:25
+
+input:72 + 8
+output:79.98447126164868
+expected output:80
+
+input:55.00000000000001 + 0
+output:55.091318067977326
+expected output:55.00000000000001
+
+input:3 + 6
+output:9.61646404714521
+expected output:9
+
+input:62 + 5
+output:66.22379917818265
+expected output:67
+
+input:34 + 3
+output:37.47266955220578
+expected output:37
+
+input:38 + 6
+output:44.86926108043051
+expected output:44
+
+input:44 + 8
+output:52.563972488115155
+expected output:52
+
+input:13 + 10
+output:22.489584967165378
+expected output:23
+
+input:96 + 7.000000000000001
+output:98.92064869170089
+expected output:103
+
+input:77 + 4
+output:81.20386388667342
+expected output:81
+
+input:11 + 5
+output:15.250236852464273
+expected output:16
+
+input:46 + 9
+output:55.32322068666558
+expected output:55.00000000000001
+
+input:71 + 8
+output:78.83569675328707
+expected output:78.99999999999999
+
+input:76 + 0
+output:75.55063598843368
+expected output:76
+
+input:83 + 1
+output:84.74306976438318
+expected output:84
+
+input:56.00000000000001 + 2
+output:57.85681127650737
+expected output:58.00000000000001
+
+input:30 + 4
+output:34.251092120741994
+expected output:34
+
+input:98 + 0
+output:97.19776624502555
+expected output:98
+
+input:87 + 5
+output:92.99675315391282
+expected output:92
+
+input:85 + 9
+output:94.55390780026472
+expected output:94
+
+input:89 + 6
+output:95.33110891522438
+expected output:95
+
+input:27 + 6
+output:33.252118592490326
+expected output:33
+
+input:75 + 10
+output:85.68690370973708
+expected output:85
+
+input:43 + 8
+output:51.63534715479147
+expected output:51
+
+input:0 + 0
+output:4.49461091094475
+expected output:0
+
+input:80 + 2
+output:82.3819942752481
+expected output:82
+
+input:51 + 8
+output:58.849779419570766
+expected output:59
+
+input:95 + 8
+output:98.91250420961966
+expected output:103
+
+input:36 + 2
+output:38.43602285273285
+expected output:38
+
+input:50 + 9
+output:58.86830888384061
+expected output:59
+
+input:20 + 0
+output:18.81905812100462
+expected output:20
+
+input:5 + 8
+output:12.742216510399249
+expected output:13
+
+input:99 + 5
+output:99.14692204788248
+expected output:104
+
+input:92 + 1
+output:93.91294416365298
+expected output:93
+
+input:42 + 2
+output:44.66222053971311
+expected output:44
+
+input:18 + 6
+output:23.318412696803275
+expected output:24
+
+input:73 + 4
+output:76.60843493415823
+expected output:77
+
+input:25 + 1
+output:25.22388637795413
+expected output:26
+
+input:79 + 9
+output:89.00943505015537
+expected output:88
+
+input:68 + 9
+output:76.55313936216146
+expected output:77
+
+input:60 + 10
+output:69.15951684094081
 expected output:70
 
-input:12 + 2
-output:13.10165771072521
-expected output:13.999999999999998
+input:10 + 4
+output:13.429398773795636
+expected output:14.000000000000002
 
-input:15 + 9
-output:23.17057911404049
+input:94 + 5
+output:97.60536791685472
+expected output:99
+
+input:22 + 8
+output:30.050647469618198
+expected output:30
+
+input:24 + 10
+output:34.567635608450026
+expected output:34
+
+input:84 + 6
+output:91.11838353333282
+expected output:89.99999999999999
+
+input:1 + 4
+output:7.006861269594736
+expected output:5
+
+input:7.000000000000001 + 10
+output:16.406551415576963
+expected output:17
+
+input:67 + 9
+output:75.44815044573764
+expected output:76
+
+input:32 + 9
+output:41.94414128441553
+expected output:41
+
+input:88 + 10
+output:97.07138965423424
+expected output:98
+
+input:54 + 4
+output:57.878990723350896
+expected output:58.00000000000001
+
+input:26 + 1
+output:26.318614230412486
+expected output:27
+
+input:61 + 0
+output:60.538272266008605
+expected output:61
+
+input:82 + 6
+output:89.07834841253528
+expected output:87.99999999999999
+
+input:14.000000000000002 + 7.000000000000001
+output:20.230730217336696
+expected output:21.000000000000004
+
+input:49 + 8
+output:57.086879354790064
+expected output:56.99999999999999
+
+input:59 + 2
+output:60.5785619696819
+expected output:61
+
+input:41 + 6
+output:47.801629937900266
+expected output:47
+
+input:19 + 9
+output:27.879438661746224
+expected output:28.000000000000004
+
+input:6 + 7.000000000000001
+output:12.71343284432819
+expected output:13
+
+input:91 + 2
+output:93.89383969872384
+expected output:93
+
+input:37 + 2
+output:39.530576405631216
+expected output:39
+
+input:28.999999999999996 + 2
+output:30.811482850475873
+expected output:31
+
+input:74 + 2
+output:75.51704409124494
+expected output:76
+
+input:52 + 8
+output:59.77340172942096
+expected output:60
+
+input:86 + 8
+output:94.56909995698284
+expected output:94
+
+input:23 + 1
+output:23.073470375489958
+expected output:24.000000000000004
+
+input:64 + 4
+output:67.18179816162169
+expected output:68
+
+input:8 + 0
+output:8.724931988332504
+expected output:8
+
+input:40 + 1
+output:41.592555280387856
+expected output:41
+
+input:69 + 7.000000000000001
+output:75.47482165615924
+expected output:76
+
+input:97 + 5
+output:98.67558874945786
+expected output:102
+
+input:63 + 3
+output:65.25059193675136
+expected output:66
+
+input:33 + 1
+output:34.09963250224042
+expected output:34
+
+input:93 + 2
+output:95.40135149733821
+expected output:95
+
+input:21 + 3
+output:23.197172932667783
 expected output:24
+
+input:57.99999999999999 + 0
+output:57.82940653019699
+expected output:57.99999999999999
+
+input:35 + 1
+output:36.29660390867821
+expected output:36
+
+input:65 + 2
+output:66.21288117034018
+expected output:67
+
+input:81 + 7.000000000000001
+output:89.06671649781205
+expected output:88.00000000000001
+
+input:17 + 10
+output:26.863487198140888
+expected output:27
+
+input:31 + 2
+output:33.06553638830275
+expected output:33
+
+input:56.99999999999999 + 8
+output:64.365421172148
+expected output:64.99999999999999
+
+input:53 + 9
+output:61.62773611401653
+expected output:62
+
+input:90 + 7.000000000000001
+output:96.57965042093052
+expected output:97
+
+input:47 + 5
+output:52.504569214423746
+expected output:52
+
+input:66 + 7.000000000000001
+output:72.26320079455088
+expected output:73
+
+input:2 + 5
+output:8.254679065524652
+expected output:7.000000000000001
+
+input:39 + 9
+output:48.89565917510699
+expected output:48
+
+input:45 + 4
+output:49.64983133304084
+expected output:49
+
+input:48 + 10
+output:58.0346470308878
+expected output:57.99999999999999
+
+input:4 + 5
+output:9.571357178081515
+expected output:9
+
+input:70 + 9
+output:78.82289555521606
+expected output:78.99999999999999
+
+input:12 + 6
+output:17.18347003378383
+expected output:18
+
+input:15 + 2
+output:16.042436767207317
+expected output:17
 
