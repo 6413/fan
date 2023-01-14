@@ -111,7 +111,7 @@ namespace fan {
 		}
 
 		auto append(const basic_string& s) {
-      insert(s.end(), s);
+      insert(end(), s);
 			return *this;
 		}
 
