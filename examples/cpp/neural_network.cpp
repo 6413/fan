@@ -61,17 +61,17 @@ int main() {
   double output_weights[n_hidden_nodes][n_outputs];
 
   double training_inputs[n_training_sets][n_inputs] = {
-    {0.0, 0.0},
-    {1.0, 0.0},
-    {0.0, 1.0},
-    {1.0, 1.0}
+    {10.0, 5.0},
+    {7.0, 3.0},
+    {5.0, 3.0},
+    {9.0, 2.0}
   };
 
   double training_outputs[n_training_sets][n_outputs] = {
-    {0.0},
-    {0.0},
-    {0.0},
-    {1.0}
+    {15.0},
+    {10.0},
+    {8.0},
+    {11.0}
   };
 
 
@@ -100,7 +100,6 @@ int main() {
   uint32_t number_of_epochs = 10000;
 
   fan::string str;
-  str.str.reserve(1000000);
 
   // training
   for (uint32_t epoch = 0; epoch < number_of_epochs; ++epoch) {
@@ -136,7 +135,7 @@ int main() {
 
       for (uint32_t j = 0; j < n_outputs; ++j) {
         double error = (training_outputs[i][j] - output_layer[j]);
-        delta_output[j] = error * deriative_sigmoid(output_layer[j]);
+        delta_output[j] = error * derivative_sigmoid(output_layer[j]);
       }
 
       double delta_hidden[n_hidden_nodes];
@@ -145,7 +144,7 @@ int main() {
         for (uint32_t k = 0; k < n_outputs; ++k) {
           error += delta_output[k] * output_weights[j][k];
         }
-        delta_hidden[j] = error * deriative_sigmoid(hidden_layer[j]);
+        delta_hidden[j] = error * derivative_sigmoid(hidden_layer[j]);
       }
 
       // apply change in output weights
