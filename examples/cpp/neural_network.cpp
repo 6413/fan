@@ -12,7 +12,7 @@ double sigmoid(double x) {
   return 1.0 / (1 + exp(-x));
 }
 
-double deriative_sigmoid(double x) {
+double derivative_sigmoid(double x) {
   return x * (1 - x);
 }
 
