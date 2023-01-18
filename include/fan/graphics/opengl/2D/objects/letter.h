@@ -88,7 +88,10 @@ struct letter_t {
   void draw() {
     auto loco = get_loco();
     #if defined(loco_opengl)
-      loco->process_block_properties_element<0>(this, &loco->font.image);
+      draw_queue_helper.push_back([this, loco]() {
+        m_shader.use(loco->get_context());
+        loco->process_block_properties_element<0>(this, &loco->font.image);
+      });
     #endif
     sb_draw();
   }

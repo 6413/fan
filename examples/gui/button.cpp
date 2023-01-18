@@ -5,10 +5,12 @@
 #ifndef FAN_INCLUDE_PATH
   #define FAN_INCLUDE_PATH C:/libs/fan/include
 #endif
-#define fan_debug 0
+#define fan_debug 3
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
 //#define loco_vulkan
+
+#define loco_framebuffer
 
 #define loco_window
 #define loco_context
@@ -64,7 +66,7 @@ int main() {
 
   tp.viewport = &pile.viewport;
  // tp.position = 400;
-  tp.position = fan::vec2(400, 400);
+  tp.position = fan::vec3(400, 400, 0);
   //tp.position.y = 0;
  // tp.position.z = 50;
   tp.font_size = 64;
@@ -84,9 +86,9 @@ int main() {
     }*/
     return 0;
   };
-  fan_2d::graphics::gui::theme_t gray_theme = fan_2d::graphics::gui::themes::deep_red();
-  gray_theme.open(pile.loco.get_context());
-  tp.theme = &gray_theme;
+  fan_2d::graphics::gui::theme_t theme = fan_2d::graphics::gui::themes::transparent(0.1);
+  theme.open(pile.loco.get_context());
+  tp.theme = &theme;
   constexpr auto count = 10;
   fan::graphics::cid_t cids[count];
   pile.loco.button.push_back(&cids[0], tp);

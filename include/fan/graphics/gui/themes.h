@@ -176,6 +176,7 @@ namespace fan_2d {
 						button.text_color = fan::colors::white;
 						button.text_outline_color = fan::colors::black;
 						button.text_outline_size = fan_2d::graphics::gui::defaults::text_renderer_outline_size;
+            button.outline_size = 0.1;
 					}
 				};
 
