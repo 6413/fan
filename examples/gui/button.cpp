@@ -5,7 +5,7 @@
 #ifndef FAN_INCLUDE_PATH
   #define FAN_INCLUDE_PATH C:/libs/fan/include
 #endif
-#define fan_debug 3
+#define fan_debug 0
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
 //#define loco_vulkan
@@ -86,7 +86,7 @@ int main() {
     }*/
     return 0;
   };
-  fan_2d::graphics::gui::theme_t theme = fan_2d::graphics::gui::themes::transparent(0.1);
+  fan_2d::graphics::gui::theme_t theme = fan_2d::graphics::gui::themes::gray(0.1);
   theme.open(pile.loco.get_context());
   tp.theme = &theme;
   constexpr auto count = 10;

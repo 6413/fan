@@ -15,7 +15,6 @@ void update(auto* loco){
 }
 
 int button0_click_cb(const loco_t::mouse_button_data_t& mb){
-
   if (mb.button != fan::mouse_left) {
     return 0;
   }
