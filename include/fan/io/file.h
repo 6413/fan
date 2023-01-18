@@ -225,7 +225,7 @@ namespace fan {
 				else if constexpr (std::is_same<fan::wstring, T>::value) {
 					uint64_t len = read_data<uint64_t>(f, off);
 					fan::wstring str;
-					str.resize(len / 4);
+					str.resize(len / 2);
 					memcpy(str.data(), &f[off], len);
 					off += len;
 					return str;
