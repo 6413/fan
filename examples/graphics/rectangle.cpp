@@ -71,7 +71,7 @@ int main() {
     
   p.position = fan::vec3(0, 0, 0);
   pile->loco.rectangle.push_back(&pile->cids[0], p);
-  p.position = fan::vec3(0.01, 0, 1);
+  p.position = fan::vec3(0.01, 0, 0);
   p.color = fan::colors::blue;
   p.color.a = 1;
   //p.viewport = &pile->viewport[1];

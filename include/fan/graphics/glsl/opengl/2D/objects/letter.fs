@@ -25,9 +25,6 @@ void main() {
  // vec3 final_color = mix(vec3(0, 0, 0), text_color.rgb, outline_alpha);
 
   o_attachment0 = vec4(text_color.rgb, alpha);
-  if (o_attachment0.a < 0.1) {
-		discard;
-	}
 //  o_attachment0 = vec4(0.5, 0, 0, 1);
 }
 )"

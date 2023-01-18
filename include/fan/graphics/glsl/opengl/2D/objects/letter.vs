@@ -20,6 +20,7 @@ struct block_instance_t{
 	vec2 tc_size;
 };
 
+
 layout (std140) uniform instance_t {
 	block_instance_t instance[204];
 };
@@ -50,7 +51,7 @@ void main() {
 	m[3][0] = 0;
 	m[3][1] = 0;
 
-  gl_Position = projection * m * vec4(rectangle_vertices[id] * get_instance().size + get_instance().position.xy + vec2(view[3][0], view[3][1]), 0, 1);
+  gl_Position = projection * m * vec4(rectangle_vertices[id] * get_instance().size + get_instance().position.xy + vec2(view[3][0], view[3][1]), get_instance().position.z, 1);
 
 	text_color = get_instance().color;
 	texture_coordinate = tc[id] * get_instance().tc_size + get_instance().tc_position;

@@ -82,7 +82,7 @@ struct button_t {
     tp.font_size = p.font_size;
     tp.position = p.position;
     tp.text = p.text;
-    tp.position.z += p.position.z + 1;
+    tp.position.z = p.position.z + 1;
     tp.viewport = p.viewport;
     tp.matrices = p.matrices;
 

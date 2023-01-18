@@ -85,9 +85,9 @@ int main() {
   p.image = images + 1;
   pile->loco.sprite.push_back(&pile->cid[0], p);
 
-  p.position = fan::vec3(0.05, 0.1, 0);
+  /*p.position = fan::vec3(0.05, 0.1, 0);
   p.image = images + 1;
-  pile->loco.sprite.push_back(&pile->cid[0], p);
+  pile->loco.sprite.push_back(&pile->cid[0], p);*/
 
   pile->loco.set_vsync(false);
 

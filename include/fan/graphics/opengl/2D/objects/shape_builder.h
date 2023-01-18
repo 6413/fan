@@ -400,9 +400,10 @@ void traverse_draw(auto nr, uint32_t draw_mode) {
 }
 
 void sb_draw(uint32_t draw_mode = fan::opengl::GL_TRIANGLES) {
-  draw_queue_helper.clear();
   loco_t* loco = get_loco();
-  m_shader.use(loco->get_context());
+  draw_queue_helper.push_back([this, loco]() {
+    m_shader.use(loco->get_context());
+  });
   traverse_draw(root, draw_mode);
 }
 
