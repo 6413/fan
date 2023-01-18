@@ -92,6 +92,9 @@ int main() {
   constexpr auto count = 10;
   fan::graphics::cid_t cids[count];
   pile.loco.button.push_back(&cids[0], tp);
+  tp.position.x += 40;
+  tp.position.z += 2;
+  pile.loco.button.push_back(&cids[0], tp);
   //pile.loco.get_context()->opengl.glPolygonMode(fan::opengl::GL_FRONT_AND_BACK, fan::opengl::GL_LINE);
   pile.loco.loop([&] {
   });

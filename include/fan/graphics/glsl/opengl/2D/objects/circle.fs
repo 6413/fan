@@ -9,11 +9,11 @@ in float instance_radius;
 out vec4 color;
 
 void main() {
-  float distance = distance(gl_FragCoord.xy, instance_position);
+  float distance = distance(instance_position, gl_FragCoord.xy);
   if (distance < instance_radius) {
     const float smoothness = 2;
     float a = smoothstep(0, 1, (instance_radius - distance) / smoothness);
-    color = vec4(instance_color.rgb, a * instance_color.w);
+    color = instance_color;
   }
 }
 )"
