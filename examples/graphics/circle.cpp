@@ -19,8 +19,8 @@
 
 struct pile_t {
 
-  static constexpr fan::vec2 ortho_x = fan::vec2(-1, 1);
-  static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
+  static constexpr fan::vec2 ortho_x = fan::vec2(0, 800);
+  static constexpr fan::vec2 ortho_y = fan::vec2(0, 800);
 
   pile_t() {
     fan::vec2 window_size = loco.get_window()->get_size();
@@ -58,12 +58,12 @@ int main() {
 
   loco_t::circle_t::properties_t p;
 
-  p.radius = 1;
+  p.radius = 200;
   p.matrices = &pile->matrices;
   p.viewport = &pile->viewport;
   p.color = fan::colors::white;
 
-  p.position = fan::vec2(0, 0);
+  p.position = fan::vec2(400, 400);
   pile->loco.circle.push_back(&pile->cid[0], p);
 
   pile->loco.set_vsync(false);
