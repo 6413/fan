@@ -22,7 +22,7 @@
 #include _FAN_PATH(graphics/loco.h)
 
 struct pile_t {
-
+  static constexpr auto x = (int)'n' - (int)'a';
   pile_t(const char* texturepack_name) {
     stage_maker.open(texturepack_name);
    /* loco.get_window()->add_resize_callback(this, [](fan::window_t* window, const fan::vec2i& size, void* userptr) {

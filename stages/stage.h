@@ -21,9 +21,9 @@ struct stage_open_properties_t {
 template <typename T = __empty_struct>
 struct stage_common_t_t {
 
-  stage_common_t_t(auto* loco, const stage_open_properties_t& properties) {
+  stage_common_t_t(auto* loader, auto* loco, const stage_open_properties_t& properties) {
     T* stage = (T*)this;
-    loco->stage_loader.load_fgm((T*)this, properties, stage->stage_name);
+    loader->load_fgm(loco, (T*)this, properties, stage->stage_name);
     stage->open(loco);
   }
   void close(auto* loco) {
@@ -55,7 +55,29 @@ using stage_common_t = stage_common_t_t<>;
 struct stage {
   inline static stage_list_t stage_list;
   struct stage0_t : stage_common_t_t<stage0_t> {
+
+    using stage_common_t_t::stage_common_t_t;
+
+    static constexpr auto stage_name = "stage0";
+
+    typedef int(stage0_t::* cb_table_t)(const loco_t::mouse_button_data_t& v);
+
+    cb_table_t button_click_cb_table[1] = {&stage0_t::button0_click_cb,};
+
     #include "stages/stage0.h"
+  };
+  
+  struct stage1_t : stage_common_t_t<stage1_t> {
+
+    using stage_common_t_t::stage_common_t_t;
+
+    static constexpr auto stage_name = "stage1";
+
+    typedef int(stage1_t::* cb_table_t)(const loco_t::mouse_button_data_t& v);
+
+    cb_table_t button_click_cb_table[1] = {&stage1_t::button0_click_cb,};
+
+    #include "stages/stage1.h"
   };
   
 };

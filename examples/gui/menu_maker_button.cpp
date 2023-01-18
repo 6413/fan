@@ -46,6 +46,21 @@ struct pile_t {
   fan::graphics::viewport_t viewport;
 };
 
+{
+
+  pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco);
+
+  using sl = loco_t::stage_loader_t;
+
+  sl::stage_open_properties_t op;
+  op.matrices = &pile->matrices;
+  op.viewport = &pile->viewport;
+  op.theme = &pile->theme;
+  pile->loco.stage_loader.push_and_open_stage<sl::stage::stage1_t>(op);
+
+  return 0;
+}
+
 int main() {
 
   pile_t* pile = new pile_t;

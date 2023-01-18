@@ -358,7 +358,7 @@ void traverse_draw(auto nr, uint32_t draw_mode) {
           if constexpr (std::is_same<std::remove_pointer_t<decltype(this)>, loco_t::letter_t>::value) {
             draw_queue_helper.push_back([this, loco]() {
               m_shader.use(loco->get_context());
-            loco->process_block_properties_element<0>(this, &loco->font.image);
+              loco->process_block_properties_element<0>(this, &loco->font.image);
               });
           }
         #endif
