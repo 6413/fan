@@ -772,10 +772,6 @@ public:
   #if defined(loco_menu_maker)
     #include "wrappers/dropdown.h"
   #endif
-	#if defined(loco_stage_loader)
-		  #include _FAN_PATH(graphics/gui/stage_maker/loader.h)
-		  stage_loader_t stage_loader;
-	#endif
   #if defined(loco_model_3d)
     #define sb_shape_var_name model
     #include _FAN_PATH(graphics/opengl/3D/objects/model.h)
@@ -1179,4 +1175,3 @@ loco_t::matrices_list_NodeReference_t::matrices_list_NodeReference_t(loco_t::mat
 #undef loco_text_box
 #undef loco_button
 #undef loco_wboit
-#undef loco_stage_loader
