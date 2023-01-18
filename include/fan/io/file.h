@@ -223,12 +223,10 @@ namespace fan {
 					return str;
 				}
 				else if constexpr (std::is_same<fan::wstring, T>::value) {
-          fan::print(off);
 					uint64_t len = read_data<uint64_t>(f, off);
 					fan::wstring str;
-					str.resize(len / 2);
-					memcpy((uint16_t*)str.data(), &f[off], len);
-          fan::wprint(str.data());
+					str.resize(len);
+					memcpy(str.data(), &f[off], len);
 					off += len;
 					return str;
 				}
