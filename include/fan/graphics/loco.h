@@ -2,6 +2,8 @@
 #define loco_opengl
 #endif
 
+#include <set>
+
 struct loco_t;
 
 //#define loco_framebuffer
@@ -146,7 +148,20 @@ extern "C" {
 
 struct loco_t {
 
+  struct draw_t {
+    uint64_t id;
+    //uint16_t magic_nri;
+    std::vector<fan::function_t<void()>> f;
+    bool operator<(const draw_t& b) const
+    {
+      return id < b.id;
+    }
+  };
+
+  // maybe can be set
+  std::multiset<draw_t> m_draw_queue;
 protected:
+
 
   #ifdef loco_window
   fan::window_t window;
