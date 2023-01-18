@@ -58,7 +58,7 @@ int main() {
 
   loco_t::circle_t::properties_t p;
 
-  p.radius = 200;
+  p.radius = 300;
   p.matrices = &pile->matrices;
   p.viewport = &pile->viewport;
   p.color = fan::colors::white;
@@ -72,6 +72,7 @@ int main() {
 
   fan::time::clock cc;
   pile->loco.loop([&] {
+    pile->loco.circle.set(&pile->cid[0], &loco_t::circle_t::vi_t::radius, pile->loco.get_mouse_position().x);
     //fan::print(cc.elapsed());
     //cc.start();
     //pile->loco.get_context()->set_depth_test(true);

@@ -352,6 +352,7 @@ void traverse_draw(auto nr, uint32_t draw_mode) {
 
     draw_queue_helper.push_back([this, loco, draw_mode, bmn, bnr]() mutable {
         while (1) {
+          m_shader.use(loco->get_context());
           auto node = blocks.GetNodeByReference(bnr);
           node->data.block.uniform_buffer.bind_buffer_range(
             loco->get_context(),
@@ -392,6 +393,7 @@ void traverse_draw(auto nr, uint32_t draw_mode) {
         zdepth = o;
       }
       draw_queue_helper.push_back([this, loco, o, kt, draw_mode]() {
+        m_shader.use(loco->get_context());
         loco->process_block_properties_element(this, o);
       });
       traverse_draw<depth + 1>(kt.Output, draw_mode);
@@ -401,9 +403,6 @@ void traverse_draw(auto nr, uint32_t draw_mode) {
 
 void sb_draw(uint32_t draw_mode = fan::opengl::GL_TRIANGLES) {
   loco_t* loco = get_loco();
-  draw_queue_helper.push_back([this, loco]() {
-    m_shader.use(loco->get_context());
-  });
   traverse_draw(root, draw_mode);
 }
 
