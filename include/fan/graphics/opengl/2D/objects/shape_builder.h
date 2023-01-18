@@ -247,21 +247,6 @@ template <typename T, typename T2>
 T get(fan::opengl::cid_t *cid, T T2::*member) {
   loco_t* loco = get_loco();
   auto block = sb_get_block(cid);
-#if defined(loco_line)
-  if constexpr (std::is_same_v<T2, loco_t::line_t::vi_t>) {
-    if constexpr (std::is_same_v<decltype(member), decltype(&T2::src)> ||
-                std::is_same_v<decltype(member), decltype(&T2::dst)>) {
-      return block->uniform_buffer.get_instance(loco->get_context(), cid->instance_id)->*member + fan::vec3(0, 0, loco_t::matrices_t::znearfar / 2 - 1);
-    }
-  }
-  else {
-#endif
-    if constexpr (std::is_same_v<decltype(member), decltype(&T2::position)>) {
-      return block->uniform_buffer.get_instance(loco->get_context(), cid->instance_id)->*member + fan::vec3(0, 0, loco_t::matrices_t::znearfar / 2 - 1);
-    }
-#if defined(loco_line)
-  }
-#endif
   return block->uniform_buffer.get_instance(loco->get_context(), cid->instance_id)->*member;
 }
 template <typename T, typename T2>
@@ -269,44 +254,13 @@ void set(fan::opengl::cid_t *cid, T T2::*member, const auto& value) {
   loco_t* loco = get_loco();
   auto block = sb_get_block(cid);
 
-  #define one_line \
-    block->uniform_buffer.edit_instance( \
-      loco->get_context(),  \
-      &loco->m_write_queue,  \
-      cid->instance_id,  \
-      member,  \
-      fan::vec3(value) - fan::vec3(0, 0, loco_t::matrices_t::znearfar / 2 - 1) \
-    );
-#if defined(loco_line)
-if constexpr (std::is_same_v<T2, loco_t::line_t::vi_t>) {
-  if constexpr (std::is_same_v<decltype(member), decltype(&T2::src)> ||
-    std::is_same_v<decltype(member), decltype(&T2::dst)>) {
-    one_line
-  }
-  else {
-    block->uniform_buffer.edit_instance(loco->get_context(), &loco->m_write_queue, cid->instance_id, member, value);
-  }
-}
-if constexpr (!std::is_same_v<T2, loco_t::line_t::vi_t>) {
-  #endif
-  if constexpr (std::is_same_v<decltype(member), decltype(&T2::position)>) {
-    one_line
-  }
-  else {
-    block->uniform_buffer.edit_instance(loco->get_context(), &loco->m_write_queue, cid->instance_id, member, value);
-  }
-  #if defined(loco_line)
-}
-#endif
-
-#undef one_line
-
-block->uniform_buffer.common.edit(
-  loco->get_context(),
-  &loco->m_write_queue,
-  cid->instance_id * sizeof(vi_t) + fan::ofof(member),
-  cid->instance_id * sizeof(vi_t) + fan::ofof(member) + sizeof(T)
-);
+  block->uniform_buffer.edit_instance(loco->get_context(), &loco->m_write_queue, cid->instance_id, member, value);
+  block->uniform_buffer.common.edit(
+    loco->get_context(),
+    &loco->m_write_queue,
+    cid->instance_id * sizeof(vi_t) + fan::ofof(member),
+    cid->instance_id * sizeof(vi_t) + fan::ofof(member) + sizeof(T)
+  );
 }
 
 template <typename T = void>
@@ -418,17 +372,6 @@ void sb_draw(uint32_t draw_mode = fan::opengl::GL_TRIANGLES) {
   traverse_draw(root, draw_mode);
 }
 
-template <typename T>
-static void line_move_z(T& x) {
-  x.src.z += loco_t::matrices_t::znearfar / 2 - 1;
-  x.dst.z += loco_t::matrices_t::znearfar / 2 - 1;
-}
-
-template <typename T>
-static void else_move_z(T& x) {
-  x.position.z += loco_t::matrices_t::znearfar / 2 - 1;
-}
-
 template <uint32_t i>
 void sb_set_key(fan::opengl::cid_t* cid, auto value) {
   loco_t* loco = get_loco();
@@ -437,16 +380,6 @@ void sb_set_key(fan::opengl::cid_t* cid, auto value) {
   *(vi_t*)&p = *block->uniform_buffer.get_instance(loco->get_context(), cid->instance_id);
   *(ri_t*)&p = block->p[cid->instance_id];
   *p.key.get_value<i>() = value;
-  #if defined(loco_line)
-  if constexpr (std::is_same_v<decltype(p), loco_t::line_t::properties_t>) {
-    line_move_z(p);
-  }
-  else {
-  #endif
-    else_move_z(p);
-#if defined(loco_line)
-  }
-#endif
   sb_erase(cid);
   sb_push_back(cid, p);
 }

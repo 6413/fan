@@ -374,9 +374,9 @@ struct stage_open_properties_t {
 template <typename T = __empty_struct>
 struct stage_common_t_t {
 
-  stage_common_t_t(auto* loco, const stage_open_properties_t& properties) {
+  stage_common_t_t(auto* loader, auto* loco, const stage_open_properties_t& properties) {
     T* stage = (T*)this;
-    loco->stage_loader.load_fgm((T*)this, properties, stage->stage_name);
+    loader->load_fgm(loco, (T*)this, properties, stage->stage_name);
     stage->open(loco);
   }
   void close(auto* loco) {
