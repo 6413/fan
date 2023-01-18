@@ -228,7 +228,7 @@ namespace fan {
 					fan::wstring str;
 					str.resize(len / 2);
 					memcpy(str.data(), &f[off], len);
-          fan::print("AAAAAAAAAA", str);
+          fan::wprint(str.data());
 					off += len;
 					return str;
 				}
