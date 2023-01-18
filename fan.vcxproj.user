@@ -11,7 +11,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LocalDebuggerEnvironment>PATH=%PATH%;$(SolutionDir)lib\al;$(SolutionDir)lib\assimp;$(SolutionDir)lib\glew;$(SolutionDir)lib\av;$(SolutionDir)lib\box2d;$(SolutionDir)lib\WITCH\uv</LocalDebuggerEnvironment>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerCommandArguments>TexturePackCompiled</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>TexturePack entity_ship</LocalDebuggerCommandArguments>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LocalDebuggerEnvironment>PATH=%PATH%;$(SolutionDir)lib\al;$(SolutionDir)lib\assimp;$(SolutionDir)lib\glew;$(SolutionDir)lib\av;$(SolutionDir)lib\box2d;$(SolutionDir)lib\WITCH\uv</LocalDebuggerEnvironment>
@@ -21,6 +21,6 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LocalDebuggerEnvironment>PATH=%PATH%;$(SolutionDir)lib\al;$(SolutionDir)lib\assimp;$(SolutionDir)lib\glew;$(SolutionDir)lib\av;$(SolutionDir)lib\box2d;$(SolutionDir)lib\WITCH\uv</LocalDebuggerEnvironment>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerCommandArguments>TexturePackCompiled</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>TexturePack entity_ship</LocalDebuggerCommandArguments>
   </PropertyGroup>
 </Project>

@@ -1,5 +1,5 @@
 #release
-GPP = clang++
+GPP = clang++ -I C:\libs
 #debug for address sanitizer
 #GPP = clang-cl /MT -fsanitize=address  /std:c++latest
 
@@ -8,7 +8,7 @@ GPP = clang++
 CFLAGS = -ferror-limit=1000 -w -I . -g -std=c++2a -I include #-O3 -march=native -mtune=native \
   #-fsanitize=address -fno-omit-frame-pointer
 
-MAIN = examples/gui/stage_maker.cpp
+MAIN = hitbox_maker.cpp
 
 TARGET = a.out
 
