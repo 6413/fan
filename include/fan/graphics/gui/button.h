@@ -238,7 +238,7 @@ struct button_t {
   void set_position(fan::graphics::cid_t* cid, const fan::vec3& position) {
     loco_t* loco = get_loco();
     auto& ri = get_ri(cid);
-    loco->text.set_position(&ri.text_id, position + fan::vec3(0, 0, 0.5));
+    loco->text.set_position(&ri.text_id, position + fan::vec3(0, 0, 1));
     set_button(cid, &vi_t::position, position);
     loco->vfi.set_rectangle(
       ri.vfi_id,
