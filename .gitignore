@@ -24,3 +24,4 @@
 *.exe
 .suo
 .vs/fan/v17/.suo
+.vs/slnx.sqlite
