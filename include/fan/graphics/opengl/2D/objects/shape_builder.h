@@ -277,36 +277,36 @@ void set(fan::opengl::cid_t *cid, T T2::*member, const auto& value) {
       member,  \
       fan::vec3(value) - fan::vec3(0, 0, loco_t::matrices_t::znearfar / 2 - 1) \
     );
-  #if defined(loco_line)
-  if constexpr (std::is_same_v<T2, loco_t::line_t::vi_t>) {
-    if constexpr (std::is_same_v<decltype(member), decltype(&T2::src)> ||
-                  std::is_same_v<decltype(member), decltype(&T2::dst)>) {
-      one_line
-    }
-    else {
-      block->uniform_buffer.edit_instance(loco->get_context(), &loco->m_write_queue, cid->instance_id, member, value);
-    }
+#if defined(loco_line)
+if constexpr (std::is_same_v<T2, loco_t::line_t::vi_t>) {
+  if constexpr (std::is_same_v<decltype(member), decltype(&T2::src)> ||
+    std::is_same_v<decltype(member), decltype(&T2::dst)>) {
+    one_line
   }
-  if constexpr (!std::is_same_v<T2, loco_t::line_t::vi_t>) {
-  #endif
-    if constexpr (std::is_same_v<decltype(member), decltype(&T2::position)>) {
-      one_line
-    }
-    else {
-      block->uniform_buffer.edit_instance(loco->get_context(), &loco->m_write_queue, cid->instance_id, member, value);
-    }
-  #if defined(loco_line)
+  else {
+    block->uniform_buffer.edit_instance(loco->get_context(), &loco->m_write_queue, cid->instance_id, member, value);
   }
+}
+if constexpr (!std::is_same_v<T2, loco_t::line_t::vi_t>) {
   #endif
+  if constexpr (std::is_same_v<decltype(member), decltype(&T2::position)>) {
+    one_line
+  }
+  else {
+    block->uniform_buffer.edit_instance(loco->get_context(), &loco->m_write_queue, cid->instance_id, member, value);
+  }
+  #if defined(loco_line)
+}
+#endif
 
-  #undef one_line
+#undef one_line
 
-  block->uniform_buffer.common.edit(
-    loco->get_context(),
-    &loco->m_write_queue,
-    cid->instance_id * sizeof(vi_t) + fan::ofof(member),
-    cid->instance_id * sizeof(vi_t) + fan::ofof(member) + sizeof(T)
-  );
+block->uniform_buffer.common.edit(
+  loco->get_context(),
+  &loco->m_write_queue,
+  cid->instance_id * sizeof(vi_t) + fan::ofof(member),
+  cid->instance_id * sizeof(vi_t) + fan::ofof(member) + sizeof(T)
+);
 }
 
 template <typename T = void>
@@ -340,48 +340,67 @@ void compile() {
   m_shader.compile(loco->get_context());
 }
 
+static inline std::vector<fan::function_t<void()>> draw_queue_helper;
+static inline uint16_t zdepth = 0;
+
 template <uint32_t depth = 0>
 void traverse_draw(auto nr, uint32_t draw_mode) {
   loco_t* loco = get_loco();
-  if constexpr(depth == bm_properties_t::key_t::count + 1) {
+  if constexpr (depth == bm_properties_t::key_t::count + 1) {
     auto bmn = bm_list.GetNodeByReference(*(shape_bm_NodeReference_t*)&nr);
     auto bnr = bmn->data.first_block;
 
-    while(1) {
-      auto node = blocks.GetNodeByReference(bnr);
-      node->data.block.uniform_buffer.bind_buffer_range(
-        loco->get_context(), 
-        node->data.block.uniform_buffer.size()
-      );
+    draw_queue_helper.push_back([this, loco, draw_mode, bmn, bnr]() mutable {
+        while (1) {
+          auto node = blocks.GetNodeByReference(bnr);
+          node->data.block.uniform_buffer.bind_buffer_range(
+            loco->get_context(),
+            node->data.block.uniform_buffer.size()
+          );
 
-      node->data.block.uniform_buffer.draw(
-        loco->get_context(),
-        0 * sb_vertex_count,
-        node->data.block.uniform_buffer.size() * sb_vertex_count,
-        draw_mode
-      );
-      if (bnr == bmn->data.last_block) {
-        break;
-      }
-      bnr = node->NextNodeReference;
-    }
+          node->data.block.uniform_buffer.draw(
+            loco->get_context(),
+            0 * sb_vertex_count,
+            node->data.block.uniform_buffer.size() * sb_vertex_count,
+            draw_mode
+          );
+          if (bnr == bmn->data.last_block) {
+            break;
+          }
+          bnr = node->NextNodeReference;
+        }
+      });
+
+    loco->m_draw_queue.insert(loco_t::draw_t{
+      // * 5 to dont collide with zdepth
+      (uint64_t)zdepth,
+      std::vector<fan::function_t<void()>>(draw_queue_helper.begin(), draw_queue_helper.end())
+    });
+    draw_queue_helper.clear();
   }
   else {
     //loco_bdbt_Key_t<sizeof(typename instance_properties_t::key_t::get_type<depth>::type) * 8> k;
     typename loco_bdbt_Key_t<sizeof(typename bm_properties_t::key_t::get_type<depth>::type) * 8>::Traverse_t kt;
     kt.init(nr);
     typename bm_properties_t::key_t::get_type<depth>::type o;
-#if fan_use_uninitialized == 0
+    #if fan_use_uninitialized == 0
     memset(&o, 0, sizeof(o));
-#endif
-    while(kt.Traverse(&loco->bdbt, &o)) {
-      loco->process_block_properties_element(this, o);
+    #endif
+    while (kt.Traverse(&loco->bdbt, &o)) {
+      // update zdepth here if changes
+      if constexpr (std::is_same_v<decltype(o), uint16_t>) {
+        zdepth = o;
+      }
+      draw_queue_helper.push_back([this, loco, o, kt, draw_mode]() {
+        loco->process_block_properties_element(this, o);
+      });
       traverse_draw<depth + 1>(kt.Output, draw_mode);
     }
   }
 }
 
 void sb_draw(uint32_t draw_mode = fan::opengl::GL_TRIANGLES) {
+  draw_queue_helper.clear();
   loco_t* loco = get_loco();
   m_shader.use(loco->get_context());
   traverse_draw(root, draw_mode);

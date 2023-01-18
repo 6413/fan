@@ -30,3 +30,11 @@
 #if defined(loco_post_process)
   post_process.draw();
 #endif
+
+for (const auto& it : m_draw_queue) {
+  for (const auto& f : it.f) {
+    f();
+  }
+}
+
+m_draw_queue.clear();

@@ -38,15 +38,15 @@ void shuffle(int* arr, uint32_t size) {
 static constexpr int n_inputs = 2;
 static constexpr int n_hidden_nodes = 2;
 static constexpr int n_outputs = 1;
-static constexpr double multiplier = 100;
+static constexpr double multiplier = 20;
 
 int main() {
   static constexpr uint32_t number_of_epochs = 1000000;
-  static constexpr auto num_of_samples = 100;
+  static constexpr auto num_of_samples = 10;
 
 
   // learning faster or slower
-  const double learning_rate = 0.1;
+  const double learning_rate = 0.5;
 
   double hidden_layer[n_hidden_nodes];
   double output_layer[n_outputs];
@@ -69,11 +69,11 @@ int main() {
 
   std::vector<int> training_set_order;
 
-  for (uint32_t i = 0; i < 100; ++i) {
+  for (uint32_t i = 0; i < 10; ++i) {
     training_inputs.push_back(
       fan::vec2d(
         i / multiplier,
-        fan::random::value_i64(0, 10) / multiplier
+        i / multiplier
       )
     );
     training_outputs.push_back(training_inputs[i][0] + training_inputs[i][1]);
@@ -175,8 +175,8 @@ int main() {
 
   //uint32_t i = 0;
 
-  double a = 58;
-  double b = 32;
+  double a = 7;
+  double b = 7;
 
   a /= multiplier;
   b /= multiplier;
@@ -200,7 +200,7 @@ int main() {
     output_layer[j] = sigmoid(activation);
   }
 
-  fan::print(fan::format("input:{} {}\noutput:{}\nexpected output:{}\n\n",
+  fan::print(fan::format("input:{}+{}\noutput:{}\nexpected output:{}\n\n",
     a * multiplier, b * multiplier, output_layer[0] * multiplier, a * multiplier + b * multiplier));
   fan::io::file::write("data", str.data(), std::ios_base::binary);
 }

@@ -61,7 +61,6 @@ int main() {
 
   p.size = fan::vec2(0.05);
 
-  //p.position = fan::vec3(-0.5, -0.5, 0);
   p.color = fan::colors::red;
   p.color.a = 1;
 
@@ -75,12 +74,11 @@ int main() {
   p.position = fan::vec3(0.01, 0, 1);
   p.color = fan::colors::blue;
   p.color.a = 1;
+  //p.viewport = &pile->viewport[1];
   pile->loco.rectangle.push_back(&pile->cids[0], p);
 
   pile->loco.set_vsync(false);
   
-
-  //MapVirtualKey()
 
   pile->loco.loop([&] {
 
