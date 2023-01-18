@@ -227,7 +227,7 @@ namespace fan {
 					uint64_t len = read_data<uint64_t>(f, off);
 					fan::wstring str;
 					str.resize(len / 2);
-					memcpy(str.data(), &f[off], len);
+					memcpy((uint16_t*)str.data(), &f[off], len);
           fan::wprint(str.data());
 					off += len;
 					return str;
