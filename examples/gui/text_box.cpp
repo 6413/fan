@@ -69,7 +69,7 @@ int main() {
   tp.size = fan::vec2(0.3, 0.1)
     //* 300
     ;
-  tp.text = L"W||||W";
+  tp.text = "W||||W";
   //tp.font_size = 32;
   tp.mouse_move_cb = [](const loco_t::mouse_move_data_t& mm_d) -> int {
     return 0;
@@ -90,7 +90,7 @@ int main() {
   fan::graphics::cid_t cids[count];
   pile.loco.text_box.push_back(&cids[0], tp);
   tp.position = fan::vec2(0.2);
-  tp.text = L"test";
+  tp.text = "test";
   pile.loco.text_box.push_back(&cids[1], tp);
 
   //pile.loco.button.set_theme(&cids[0], &gray_theme, 0.1);

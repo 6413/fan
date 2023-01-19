@@ -31,7 +31,7 @@ struct stage_loader_t {
         switch (shape_type) {
 				  case stage_maker_shape_format::shape_type_t::button: {
           auto data = fan::io::file::read_data<stage_maker_shape_format::shape_button_t>(f, off);
-          auto text = fan::io::file::read_data<fan::wstring>(f, off);
+          auto text = fan::io::file::read_data<fan::string>(f, off);
           loco_t::button_t::properties_t bp;
           bp.position = data.position;
           bp.size = data.size;

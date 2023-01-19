@@ -54,7 +54,7 @@ struct text_box_t {
     make_key_value(loco_t::matrices_list_NodeReference_t, matrices);
     make_key_value(fan::graphics::viewport_list_NodeReference_t, viewport);
 
-    fan::wstring text;
+    fan::string text;
     f32_t font_size = 0.1;
 
     loco_t::vfi_t::iflags_t vfi_flags;
@@ -471,11 +471,11 @@ struct text_box_t {
     sb_get_ri(cid).selected = flag;
   }
 
-  fan::wstring get_text(fan::graphics::cid_t* cid) {
+  fan::string get_text(fan::graphics::cid_t* cid) {
     loco_t* loco = get_loco();
     return loco->text.get_properties(sb_get_ri(cid).text_id).text;
   }
-  void set_text(fan::graphics::cid_t* cid, const fan::wstring& text) {
+  void set_text(fan::graphics::cid_t* cid, const fan::string& text) {
     loco_t* loco = get_loco();
     loco->text.set_text(&sb_get_ri(cid).text_id, text);
   }
@@ -501,10 +501,10 @@ struct text_box_t {
     }
 
     fan::vec3 p = get_text_left_position(cid);
-    const fan::wstring& text = loco->text.get_properties(id).text;
+    const fan::string& text = loco->text.get_properties(id).text;
     f32_t font_size = loco->text.letter_ids[id].p.font_size;
     for (uint32_t i = 0; i < width; ++i) {
-      auto letter = loco->font.info.get_letter_info(loco->font.decode_letter(text[i]), font_size);
+      auto letter = loco->font.info.get_letter_info(text.get_utf8(i), font_size);
       p.x += letter.metrics.advance;
     }
     p.y = get_button(cid, &text_box_t::vi_t::position).y;

@@ -137,7 +137,7 @@ namespace fan {
 
 			struct str_int_t {
 				std::size_t begin, end;
-				int value;
+				int64_t value;
 			};
 
 			struct str_vec2i_t {
@@ -217,14 +217,6 @@ namespace fan {
 				if constexpr (std::is_same<fan::string, T>::value) {
 					uint64_t len = read_data<uint64_t>(f, off);
 					fan::string str;
-					str.resize(len);
-					memcpy(str.data(), &f[off], len);
-					off += len;
-					return str;
-				}
-				else if constexpr (std::is_same<fan::wstring, T>::value) {
-					uint64_t len = read_data<uint64_t>(f, off);
-					fan::wstring str;
 					str.resize(len);
 					memcpy(str.data(), &f[off], len);
 					off += len;

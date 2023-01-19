@@ -47,7 +47,7 @@ struct button_t {
     make_key_value(loco_t::matrices_list_NodeReference_t, matrices);
     make_key_value(fan::graphics::viewport_list_NodeReference_t, viewport);
 
-    fan::wstring text;
+    fan::string text;
     f32_t font_size = 0.1;
 
     loco_t::vfi_t::iflags_t vfi_flags;
@@ -295,12 +295,12 @@ struct button_t {
     ri.selected = flag;
   }
 
-  fan::wstring get_text(fan::graphics::cid_t* cid) {
+  fan::string get_text(fan::graphics::cid_t* cid) {
     loco_t* loco = get_loco();
     auto& ri = get_ri(cid);
     return loco->text.get_properties(ri.text_id).text;
   }
-  void set_text(fan::graphics::cid_t* cid, const fan::wstring& text) {
+  void set_text(fan::graphics::cid_t* cid, const fan::string& text) {
     loco_t* loco = get_loco();
     auto& ri = get_ri(cid);
     loco->text.set_text(&ri.text_id, text);

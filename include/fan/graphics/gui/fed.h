@@ -26,18 +26,17 @@ struct fed_t {
 		m_wed.close();
 	}
 
-	void push_text(const fan::wstring& str) {
+	void push_text(const fan::string& str) {
 		for (const auto& i : str) {
 			add_character(i);
 		}
 	}
 
 	void add_character(wed_t::CharacterData_t character) {
-		auto found = loco->font.decode_letter(character);
-
-		if (found == -1) {
-			return;
-		}
+    auto found = loco->font.info.characters.find(character);
+    if (found == loco->font.info.characters.end()) {
+      return;
+    }
 
 		auto letter = loco->font.info.get_letter_info(character, m_font_size);
 
@@ -72,13 +71,21 @@ struct fed_t {
 		m_wed.ConvertCursorToSelection(m_cr, LineReference0, CharacterReference0, LineReference1, CharacterReference1);
 	}
 
-	fan::wstring get_text(wed_t::LineReference_t line_id) {
+	fan::string get_text(wed_t::LineReference_t line_id) {
 		wed_t::ExportLine_t el;
 		m_wed.ExportLine_init(&el, line_id);
 		wed_t::CharacterReference_t cr;
-		fan::wstring text;
+		fan::string text;
 		while (m_wed.ExportLine(&el, &cr)) {
-			text.push_back(*m_wed.GetDataOfCharacter(line_id, cr));
+      uint32_t c = *m_wed.GetDataOfCharacter(line_id, cr);
+
+      if (c > 0xffff) {
+        text.push_back((c & 0xff0000) >> 16);
+      }
+      if (c > 0xff) {
+        text.push_back((c & 0xff00) >> 8);
+      }
+      text.push_back(c & 0xff);
 		}
 		return text;
 	}

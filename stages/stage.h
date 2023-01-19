@@ -54,6 +54,7 @@ using stage_common_t = stage_common_t_t<>;
 
 struct stage {
   inline static stage_list_t stage_list;
+
   struct stage0_t : stage_common_t_t<stage0_t> {
 
     using stage_common_t_t::stage_common_t_t;
@@ -66,7 +67,7 @@ struct stage {
 
     #include "stages/stage0.h"
   };
-  
+
   struct stage1_t : stage_common_t_t<stage1_t> {
 
     using stage_common_t_t::stage_common_t_t;
@@ -79,6 +80,5 @@ struct stage {
 
     #include "stages/stage1.h"
   };
-  
 };
 

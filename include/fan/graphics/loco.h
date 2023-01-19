@@ -1023,7 +1023,7 @@ public:
     vfi.feed_keyboard(key, keyboard_state);
   }
 
-  void feed_text(wchar_t key) {
+  void feed_text(uint32_t key) {
     vfi.feed_text(key);
   }
   #endif

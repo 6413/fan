@@ -173,7 +173,7 @@ void update(auto* loco){
 		}
 
 		static constexpr const char* find_end_str("\n};");
-		auto struct_stage_end = stage_h_str.find_last_of(find_end_str);
+    auto struct_stage_end = stage_h_str.find_last_of(find_end_str) - strlen(find_end_str);
 
 		if (struct_stage_end == fan::string::npos) {
 			fan::throw_error("corrupted stage.h");
@@ -183,7 +183,7 @@ void update(auto* loco){
   struct {}_t : stage_common_t_t<{}_t> {{
     #include "{}"
   }};
-  )", 
+)", 
     stage_name.c_str(), 
     stage_name.c_str(),
     get_file_fullpath(stage_name).c_str());
@@ -200,7 +200,7 @@ void update(auto* loco){
 		//stage_h_str.insert(struct_vector_end, append_vector);
 	};
 
-	fan::wstring get_selected_name(
+	fan::string get_selected_name(
 		pile_t* pile, 
 		loco_t::menu_maker_button_t::instance_NodeReference_t nr,
 		loco_t::menu_maker_button_t::base_type_t::instance_NodeReference_t id
@@ -211,7 +211,7 @@ void update(auto* loco){
 		return t;
 	}
 
-	fan::wstring get_selected_name_last(pile_t* pile) {
+	fan::string get_selected_name_last(pile_t* pile) {
 		auto nr = pile->loco.menu_maker_button.instances.GetNodeLast();
 		return get_selected_name(
 			pile,
@@ -231,7 +231,7 @@ void update(auto* loco){
 
 	void open_erase_button(pile_t* pile) {
 		loco_t::menu_maker_button_t::properties_t p;
-		p.text = L"Erase";
+		p.text = "Erase";
 		p.theme = &erase_theme;
 		p.mouse_button_cb = [this](const loco_t::mouse_button_data_t& mb) -> int {
 
@@ -269,7 +269,7 @@ void update(auto* loco){
 		instances[0].menu_id = loco->menu_maker_button.push_menu(op);
 
 		loco_t::menu_maker_button_t::properties_t p;
-		p.text = L"Create New Stage";
+		p.text = "Create New Stage";
 		p.mouse_button_cb = [this, loco](const loco_t::mouse_button_data_t& mb) -> int {
 
 			use_key_lambda(fan::mouse_left, fan::mouse_state::release);
@@ -281,7 +281,7 @@ void update(auto* loco){
 			static auto create_stage = [this, loco]() {
 				loco_t::menu_maker_button_t::properties_t p;
 				static uint32_t x = 0;
-				p.text = fan::wstring(L"stage") + fan::to_wstring(x++);
+				p.text = fan::string("stage") + fan::to_string(x++);
 				p.mouse_button_cb = [this](const loco_t::mouse_button_data_t& mb) -> int {
 
 					use_key_lambda(fan::mouse_left, fan::mouse_state::release);
@@ -312,7 +312,7 @@ void update(auto* loco){
 		};
 
 		loco->menu_maker_button.push_back(instances[stage_t::stage_options].menu_id, p);
-		p.text = L"Gui stage";
+		p.text = "Gui stage";
 		p.mouse_button_cb = [](const loco_t::mouse_button_data_t& mb) {
 
 			use_key_lambda(fan::mouse_left, fan::mouse_state::release);
@@ -331,7 +331,7 @@ void update(auto* loco){
 			return 1;
 		};
 		loco->menu_maker_button.push_back(instances[stage_t::stage_options].menu_id, p);
-		p.text = L"Function stage";
+		p.text = "Function stage";
 
 		p.mouse_button_cb = [](const loco_t::mouse_button_data_t& mb) -> int {
 

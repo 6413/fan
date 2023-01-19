@@ -92,7 +92,7 @@ int main() {
     pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco);
     loco_t::menu_maker_button_t::properties_t p;
     static int x = 0;
-     p.text = fan::wstring(L"Stage") + fan::to_wstring(x++);
+     p.text = fan::string(L"Stage") + fan::to_string(x++);
      p.mouse_button_cb = [](const loco_t::mouse_button_data_t& mb) -> int {
        if (mb.button != fan::mouse_left) {
          return 0;

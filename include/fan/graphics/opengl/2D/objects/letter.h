@@ -28,7 +28,7 @@ struct letter_t {
   struct ri_t : bm_properties_t {
     cid_t* cid;
     f32_t font_size;
-    uint16_t letter_id;
+    uint32_t letter_id;
   };
 
   #define make_key_value(type, name) \

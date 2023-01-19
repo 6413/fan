@@ -424,7 +424,6 @@
     <ClInclude Include="include\fan\types\quaternion.h" />
     <ClInclude Include="include\fan\types\fstring.h" />
     <ClInclude Include="include\fan\types\types.h" />
-    <ClInclude Include="include\fan\types\utf_string.h" />
     <ClInclude Include="include\fan\types\vector.h" />
     <ClInclude Include="include\fan\window\cb_list_builder_settings.h" />
     <ClInclude Include="include\fan\window\window.h" />

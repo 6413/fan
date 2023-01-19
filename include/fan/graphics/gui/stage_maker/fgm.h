@@ -115,7 +115,7 @@ struct fgm_t {
 
 	#include "fgm_resize_cb.h"
 
-	void open_from_stage_maker(const fan::wstring& stage_name) {
+	void open_from_stage_maker(const fan::string& stage_name) {
 
 		properties_nr.NRI = -1;
 
@@ -186,7 +186,7 @@ struct fgm_t {
 				rcm_op.position.z = right_click_z_depth;
 				right_click_menu_nr = loco->menu_maker_button.push_menu(rcm_op);
         push_menu(mb, {
-          .text = L"button",
+          .text = "button",
           .mouse_button_cb = [this](const loco_t::mouse_button_data_t& ii_d) -> int {
 			      pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi), pile_t, loco);
 			      if (ii_d.button != fan::mouse_left) {
@@ -206,7 +206,7 @@ struct fgm_t {
 			      bbp.size = button_size;
 			      //bbp.size = button_size;
 			      bbp.theme = &pile->stage_maker.fgm.theme;
-			      bbp.text = L"button";
+			      bbp.text = "button";
 			      bbp.font_size = scale_object_with_viewport(fan::vec2(0.2), &pile->stage_maker.fgm.viewport[viewport_area::types], &pile->stage_maker.fgm.viewport[viewport_area::editor]).x;
 			      pile->stage_maker.fgm.builder_button.push_back(bbp);
 			
@@ -301,7 +301,7 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
 		      }
         });
         push_menu(mb, {
-          .text = L"sprite",
+          .text = "sprite",
           .mouse_button_cb = [this](const loco_t::mouse_button_data_t& ii_d) -> int {
             pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi), pile_t, loco);
             if (ii_d.button != fan::mouse_left) {
@@ -328,7 +328,7 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
           }
         });
         push_menu(mb, {
-          .text = L"text"
+          .text = "text"
         });
 
         loco_t::vfi_t::properties_t p;
@@ -355,7 +355,7 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
 		gbp.position = fan::vec2(-0.8, matrices[viewport_area::types].coordinates.top * 0.9);
 		gbp.size = button_size / fan::vec2(4, 2);
 		gbp.theme = &theme;
-		gbp.text = L"<-";
+		gbp.text = "<-";
 		gbp.mouse_button_cb = [this](const loco_t::mouse_button_data_t& mb) -> int {
 			use_key_lambda(fan::mouse_left, fan::mouse_state::release);
 
@@ -458,7 +458,7 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
         switch (shape_type) {
         case stage_maker_shape_format::shape_type_t::button: {
           auto data = fan::io::file::read_data<stage_maker_shape_format::shape_button_t>(f, off);
-          auto text = fan::io::file::read_data<fan::wstring>(f, off);
+          auto text = fan::io::file::read_data<fan::string>(f, off);
           builder_button_t::properties_t bp;
           bp.position = data.position;
           bp.size = data.size;
@@ -504,9 +504,7 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
 		fan::string f;
     static auto add_to_f = [&f]<typename T>(const T& o) {
       std::size_t off = f.size();
-      if constexpr (std::is_same<fan::string, T>::value ||
-        std::is_same<fan::wstring, T>::value
-        ) {
+      if constexpr (std::is_same<fan::string, T>::value) {
         uint64_t len = o.size() * sizeof(typename std::remove_reference_t<decltype(o)>::char_type);
         f.resize(off + sizeof(uint64_t));
         memcpy(&f[off], &len, sizeof(uint64_t));

@@ -14,9 +14,9 @@ struct font_t {
     image.unload(loco);
   }
 
-  uint16_t decode_letter(uint16_t c) const {
-    return info.get_font_index(c);
-  }
+  //uint16_t decode_letter(uint16_t c) const {
+  //  return info.get_font_index(c);
+  //}
 
   fan::font::font_t info;
   loco_t::image_t image;

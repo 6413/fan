@@ -2,7 +2,6 @@
 
 #include _FAN_PATH(types/vector.h)
 #include _FAN_PATH(types/color.h)
-#include _FAN_PATH(types/utf_string.h)
 
 #include <random>
 
