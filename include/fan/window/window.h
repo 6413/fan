@@ -700,7 +700,7 @@ namespace fan {
 			if (type == incr)
 			{
 				printf("INCR not implemented\n");
-				return L"";
+				return "";
 			}
 
 			if (XGetWindowProperty(display, target_window, p, 0, size, False, AnyPropertyType,
@@ -709,7 +709,7 @@ namespace fan {
 			}
 
 			if (prop_ret) {
-				copied_text = converter.from_bytes((char*)prop_ret).data();
+				copied_text = (const char*)prop_ret;
 				XFree(prop_ret);
 			}
 			else {
