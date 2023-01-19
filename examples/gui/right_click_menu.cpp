@@ -60,7 +60,7 @@ int main() {
     pile->loco.menu_maker.erase_menu(ids[0]);
     ids[0] = pile->loco.menu_maker.instances.gnric();
   };
-  auto push_menu = [&] (auto mb, const fan::wstring& element_name) {
+  auto push_menu = [&] (auto mb, const fan::string& element_name) {
     pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco);
     loco_t::menu_maker_t::properties_t p;
     p.text = element_name;

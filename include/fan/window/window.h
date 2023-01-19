@@ -178,7 +178,7 @@ namespace fan {
 
 		struct text_cb_data_t {
 			fan::window_t* window;
-			wchar_t character;
+			uint32_t character;
       fan::keyboard_state state;
 		};
 		using text_cb_t = fan::function_t<void(const text_cb_data_t&)>;
@@ -554,7 +554,7 @@ namespace fan {
     // for WM_CHAR
     uint16_t m_keymap[fan::last]{};
     uint32_t m_prev_text_flag = 0;
-    wchar_t m_prev_text = 0;
+    uint32_t m_prev_text = 0;
 
 		window_handle_t m_window_handle;
 		uintptr_t m_max_fps;
@@ -615,9 +615,9 @@ namespace fan {
 
 	namespace io {
 
-		static fan::wstring get_clipboard_text(fan::window_handle_t window) {
+		static fan::string get_clipboard_text(fan::window_handle_t window) {
 
-			fan::wstring copied_text;
+			fan::string copied_text;
 
 			#ifdef fan_platform_windows
 
@@ -628,7 +628,7 @@ namespace fan {
 			HANDLE data = GetClipboardData(CF_UNICODETEXT);
 
 			if (data == nullptr) {
-				return L"";
+				return "";
 			}
 
 			wchar_t* text = static_cast<wchar_t*>(GlobalLock(data));
@@ -636,7 +636,8 @@ namespace fan {
 				fan::throw_error("copyboard text was nullptr");
 			}
 
-			copied_text = text;
+      std::wstring str = text;
+      copied_text = fan::string(str.begin(), str.end());
 
 			GlobalUnlock(data);
 

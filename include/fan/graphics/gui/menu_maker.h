@@ -9,7 +9,7 @@ struct sb_menu_maker_type_name {
   #define BLL_set_type_node uint16_t
   #define BLL_set_NodeData \
         fan::graphics::cid_t cid; \
-        fan::wstring text; \
+        fan::string text; \
         fan::vec3 position; \
         fan_2d::graphics::gui::theme_t theme; \
         loco_t::mouse_button_cb_t mouse_button_cb; \
@@ -23,8 +23,8 @@ struct sb_menu_maker_type_name {
   struct properties_t {
     fan::vec3 offset = 0;
 
-    fan::wstring text_value;
-    fan::wstring text;
+    fan::string text_value;
+    fan::string text;
 
     fan_2d::graphics::gui::theme_t* theme = 0;
 

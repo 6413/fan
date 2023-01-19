@@ -34,7 +34,7 @@ namespace fan {
 			glyph_info_t glyph;
 		};
 
-		using characters_t = std::unordered_map<wchar_t, character_info_t>;
+		using characters_t = std::unordered_map<uint32_t, character_info_t>;
 
 		struct font_t {
 
@@ -42,7 +42,7 @@ namespace fan {
 			characters_t characters;
 			f32_t line_height;
 
-			auto get_character(wchar_t c) {
+			auto get_character(uint32_t c) {
 				auto found = characters.find(c);
 				#if fan_debug >= fan_debug_low
 					if (found == characters.end()) {
@@ -52,7 +52,7 @@ namespace fan {
 				return found->second;
 			}
 
-			uint32_t get_font_index(wchar_t character) const {
+			uint32_t get_font_index(uint32_t character) const {
 				auto found = characters.find(character);
 			#if fan_debug >= fan_debug_low
 				if (found == characters.end()) {
@@ -62,43 +62,15 @@ namespace fan {
 			#endif
 				return std::distance(characters.begin(), found);
 			}
-			characters_t::const_iterator get_font_instance(uint16_t font_index) const {
-				fan::font::characters_t::const_iterator found = characters.begin();
-				std::advance(found, font_index);
-				return found;
-			}
 			f32_t convert_font_size(f32_t font_size) const {
 				return font_size / this->size;
 			}
-			fan::font::character_info_t get_letter_info(uint16_t font_index, f32_t font_size) const {
-
-				auto found = get_font_instance(font_index);
-
-			#if fan_debug >= fan_debug_low
-				if (found == characters.end()) {
-					throw std::runtime_error("failed to find character with font index: " + std::to_string(font_index));
-				}
-			#endif
-
-				f32_t converted_size = convert_font_size(font_size);
-
-				fan::font::character_info_t font_info;
-				font_info.metrics.size = found->second.metrics.size * converted_size;
-				font_info.metrics.offset = found->second.metrics.offset * converted_size;
-				font_info.metrics.advance = (found->second.metrics.advance * converted_size);
-
-				font_info.glyph = found->second.glyph;
-				font_info.mapping = found->second.mapping;
-
-				return font_info;
-			}
-
-			fan::font::character_info_t get_letter_info(wchar_t c, f32_t font_size) const {
+			fan::font::character_info_t get_letter_info(uint32_t c, f32_t font_size) const {
 
         auto found = characters.find(c);
 				#if fan_debug >= fan_debug_low
 					if (found == characters.end()) {
-						throw std::runtime_error("failed to find character: " + std::to_string(c));
+						throw std::runtime_error(fan::format("failed to find character:{:x}", c));
 					}
 				#endif
 				f32_t converted_size = convert_font_size(font_size);
@@ -148,10 +120,6 @@ namespace fan {
 
 				return text_size * convert_font_size(font_size);
 			}
-
-			f32_t advance(uint16_t font_index, f32_t font_size) const {
-				return get_font_instance(font_index)->second.metrics.advance * convert_font_size(font_size);
-			}
 		};
 
 		enum class parse_stage_e {
@@ -161,7 +129,7 @@ namespace fan {
 		};
 
 		struct line_t {
-			uint32_t utf;
+			uint32_t utf8;
 			character_info_t font_info;
 		};
 
@@ -173,13 +141,15 @@ namespace fan {
 
 					auto r = fan::io::file::get_string_valuei_n(line);
 
-					l.utf = r.value;
+          fan::string str;
+          fan::utf16_to_utf8((wchar_t*)&r.value, &str);
 
+					l.utf8 = str.get_utf8(0);
 					r = fan::io::file::get_string_valuei_n(line, r.end);
 
 					l.font_info.mapping.parse_index = r.value;
 
-					reverse_mapping->insert(std::pair(r.value, l.utf));
+					reverse_mapping->insert(std::pair(r.value, l.utf8));
 
 					return l;
 				}
@@ -188,13 +158,13 @@ namespace fan {
 
 					auto r = fan::io::file::get_string_valuei_n(line);
 
-					auto utf = reverse_mapping->find(r.value);
+					auto utf8 = reverse_mapping->find(r.value);
 
-					if (utf == reverse_mapping->end()) {
+					if (utf8 == reverse_mapping->end()) {
 						fan::throw_error("utf was not found from map index");
 					}
 
-					l.utf = utf->second;
+					l.utf8 = utf8->second;
 
 					auto r2 = fan::io::file::get_string_valuevec2i_n(line, r.end);
 
@@ -215,13 +185,13 @@ namespace fan {
 
 					auto r = fan::io::file::get_string_valuei_n(line);
 
-					auto utf = reverse_mapping->find(r.value);
+					auto utf8 = reverse_mapping->find(r.value);
 
-					if (utf == reverse_mapping->end()) {
+					if (utf8 == reverse_mapping->end()) {
 						fan::throw_error("utf was not found from map index");
 					}
 
-					l.utf = utf->second;
+					l.utf8 = utf8->second;
 
 					auto r2 = fan::io::file::get_string_valuevec2i_n(line, r.end);
 
@@ -289,8 +259,7 @@ namespace fan {
 				}
 
 				auto line = parse_line(&reverse_mapping, lines[iline], stage);
-
-				font.characters[line.utf].mapping = line.font_info.mapping;
+				font.characters[line.utf8].mapping = line.font_info.mapping;
 
 				iline++;
 			}
@@ -305,7 +274,7 @@ namespace fan {
 
 				auto line = parse_line(&reverse_mapping, lines[iline], stage);
 
-				font.characters[line.utf].metrics = line.font_info.metrics;
+				font.characters[line.utf8].metrics = line.font_info.metrics;
 
 				iline++;
 			}
@@ -331,7 +300,7 @@ namespace fan {
 
 				auto line = parse_line(&reverse_mapping, lines[iline], stage);
 
-				font.characters[line.utf].glyph = line.font_info.glyph;
+				font.characters[line.utf8].glyph = line.font_info.glyph;
 
 				iline++;
 			}

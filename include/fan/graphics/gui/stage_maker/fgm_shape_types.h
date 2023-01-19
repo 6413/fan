@@ -175,7 +175,7 @@ struct builder_button_t {
     fan::graphics::cid_t cid;
     uint16_t shape;
     uint8_t holding_special_key = 0;
-    fan::wstring text;
+    fan::string text;
     fan_2d::graphics::gui::theme_t theme;
   };
 
@@ -211,8 +211,8 @@ struct builder_button_t {
 		pile->stage_maker.fgm.properties_nr = nr;
     text_box_menu_t::properties_t p;
     auto position = pile->loco.button.get_button(&instance->cid, &loco_t::button_t::vi_t::position);
-		p.text = fan::format(L"{:.2f}, {:.2f}, {:.2f}", position.x, position.y, position.z);
-		p.text_value = L"add cbs";
+		p.text = fan::format("{:.2f}, {:.2f}, {:.2f}", position.x, position.y, position.z);
+		p.text_value = "add cbs";
 		p.mouse_button_cb = [this, instance](const loco_t::mouse_button_data_t& mb) -> int {
 			return 0;
 		};
@@ -455,7 +455,7 @@ struct sprite_t {
     loco_t::vfi_t::shape_id_t vfi_id;
     uint16_t shape;
     uint8_t holding_special_key = 0;
-    fan::wstring texturepack_name;
+    fan::string texturepack_name;
   };
 
 	loco_t* get_loco() {
@@ -490,8 +490,8 @@ struct sprite_t {
 		pile->stage_maker.fgm.properties_nr = nr;
     text_box_menu_t::properties_t p;
     auto position = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::position);
-    p.text = fan::format(L"{:.2f}, {:.2f}, {:.2f}", position.x, position.y, position.z);
-    p.text_value = L"add cbs";
+    p.text = fan::format("{:.2f}, {:.2f}, {:.2f}", position.x, position.y, position.z);
+    p.text_value = "add cbs";
 		p.mouse_button_cb = [this, instance](const loco_t::mouse_button_data_t& mb) -> int {
 			use_key_lambda(fan::mouse_left, fan::mouse_state::release);
 

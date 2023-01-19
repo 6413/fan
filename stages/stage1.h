@@ -15,7 +15,7 @@ void update(auto* loco){
 }
 
 int button0_click_cb(const loco_t::mouse_button_data_t& mb){
-	if (mb.button != fan::mouse_left) {
+  if (mb.button != fan::mouse_left) {
     return 0;
   }
 
@@ -33,4 +33,5 @@ int button0_click_cb(const loco_t::mouse_button_data_t& mb){
   op.theme = &pile->theme;
   pile->nrs[0] = pile->stage_loader.push_and_open_stage<sl::stage::stage0_t>(&pile->loco, op);
   pile->stage_loader.erase_stage<sl::stage::stage1_t>(&pile->loco, pile->nrs[1]);
+  return 1;
 }

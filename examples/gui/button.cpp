@@ -5,7 +5,7 @@
 #ifndef FAN_INCLUDE_PATH
   #define FAN_INCLUDE_PATH C:/libs/fan/include
 #endif
-#define fan_debug 0
+#define fan_debug 1
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
 //#define loco_vulkan
@@ -71,7 +71,7 @@ int main() {
  // tp.position.z = 50;
   tp.font_size = 64;
   tp.size = fan::vec2(200, 75);
-  tp.text = L"hello";
+  tp.text = "$€ fan";
   //tp.font_size = 32;
   tp.mouse_move_cb = [] (const loco_t::mouse_move_data_t& mm_d) -> int {
     //fan::print(mm_d.position, (int)mm_d.mouse_stage);
@@ -86,7 +86,7 @@ int main() {
     }*/
     return 0;
   };
-  fan_2d::graphics::gui::theme_t theme = fan_2d::graphics::gui::themes::gray(0.1);
+  fan_2d::graphics::gui::theme_t theme = fan_2d::graphics::gui::themes::gray(0.5);
   theme.open(pile.loco.get_context());
   tp.theme = &theme;
   constexpr auto count = 10;

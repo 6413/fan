@@ -290,30 +290,201 @@ static fan::basic_string<T> operator+(const T* left, const fan::basic_string<T>&
 }
 
 namespace fan {
-	struct string : fan::basic_string<char>{
-		string(const fan::basic_string<char>& b) : fan::basic_string<char>(b) {
+  struct string : public std::string {
 
-		}
+    using type_t = std::string;
+    using type_t::basic_string;
 
-		using basic_string::basic_string;
-	};
-	struct wstring: fan::basic_string<wchar_t> {
-		wstring(const basic_string& b) : basic_string(b) {
+    string(const std::string str) : type_t(str) {}
 
-		}
-		using basic_string::basic_string;
-	};
+    using char_type = std::string::value_type;
+
+    constexpr uint32_t get_utf8(std::size_t i) const {
+      std::u8string_view sv = (char8_t*)c_str();
+      uint32_t code = 0;
+      uint32_t offset = 0;
+      for (uint32_t k = 0; k <= i; k++) {
+        code = 0;
+        int len = 1;
+        if ((sv[offset] & 0xF8) == 0xF0) { len = 4; }
+        else if ((sv[offset] & 0xF0) == 0xE0) { len = 3; }
+        else if ((sv[offset] & 0xE0) == 0xC0) { len = 2; }
+        for (int j = 0; j < len; j++) {
+          code <<= 8;
+          code |= sv[offset];
+          offset++;
+        }
+      }
+      return code;
+    }
+    constexpr auto utf8_size() const {
+      int count = 0;
+      for (auto i = begin(); i != end(); i++)
+      {
+        if ((*i & 0xC0) != 0x80) {
+          count++;
+        }
+      }
+      return count;
+    }
+
+    void replace_all(const basic_string& search, const basic_string& replace) {
+      for (size_t pos = 0; ; pos += replace.size()) {
+        // Locate the substring to replace
+        pos = find(search, pos);
+        if (pos == basic_string::npos) break;
+        // Replace by erasing and inserting
+        erase(pos, search.size());
+        insert(pos, replace);
+      }
+    }
+
+  };
+
+  static bool utf8_to_utf16(const uint8_t* utf8, std::wstring* out)
+  {
+    bool error = false;
+    std::vector<unsigned long> unicode;
+    size_t i = 0;
+    while (*(utf8 + i))
+    {
+      unsigned long uni;
+      size_t todo = 0;
+      unsigned char ch = utf8[i++];
+      if (ch <= 0x7F)
+      {
+        uni = ch;
+        todo = 0;
+      }
+      else if (ch <= 0xBF)
+      {
+        error = true;
+      }
+      else if (ch <= 0xDF)
+      {
+        uni = ch & 0x1F;
+        todo = 1;
+      }
+      else if (ch <= 0xEF)
+      {
+        uni = ch & 0x0F;
+        todo = 2;
+      }
+      else if (ch <= 0xF7)
+      {
+        uni = ch & 0x07;
+        todo = 3;
+      }
+      else
+      {
+        error = true;
+      }
+      for (size_t j = 0; j < todo; ++j)
+      {
+        unsigned char ch = utf8[i++];
+        if (ch < 0x80 || ch > 0xBF)
+          error = true;
+        uni <<= 6;
+        uni += ch & 0x3F;
+      }
+      if (uni >= 0xD800 && uni <= 0xDFFF)
+        error = true;
+      if (uni > 0x10FFFF)
+        error = true;
+      unicode.push_back(uni);
+    }
+    for (size_t i = 0; i < unicode.size(); ++i)
+    {
+      unsigned long uni = unicode[i];
+      if (uni <= 0xFFFF)
+      {
+        *out += (wchar_t)uni;
+      }
+      else
+      {
+        uni -= 0x10000;
+        *out += (wchar_t)((uni >> 10) + 0xD800);
+        *out += (wchar_t)((uni & 0x3FF) + 0xDC00);
+      }
+    }
+
+    return error;
+  }
+
+  static bool utf16_to_utf8(const wchar_t* utf16, fan::string* out) {
+    unsigned int codepoint = 0;
+
+    for (; *utf16 != 0; ++utf16)
+    {
+      if (*utf16 >= 0xd800 && *utf16 <= 0xdbff)
+        codepoint = ((*utf16 - 0xd800) << 10) + 0x10000;
+      else
+      {
+        if (*utf16 >= 0xdc00 && *utf16 <= 0xdfff)
+          codepoint |= *utf16 - 0xdc00;
+        else
+          codepoint = *utf16;
+
+        if (codepoint <= 0x7f)
+          out->append(1, static_cast<char>(codepoint));
+        else if (codepoint <= 0x7ff)
+        {
+          out->append(1, static_cast<char>(0xc0 | ((codepoint >> 6) & 0x1f)));
+          out->append(1, static_cast<char>(0x80 | (codepoint & 0x3f)));
+        }
+        else if (codepoint <= 0xffff)
+        {
+          out->append(1, static_cast<char>(0xe0 | ((codepoint >> 12) & 0x0f)));
+          out->append(1, static_cast<char>(0x80 | ((codepoint >> 6) & 0x3f)));
+          out->append(1, static_cast<char>(0x80 | (codepoint & 0x3f)));
+        }
+        else
+        {
+          out->append(1, static_cast<char>(0xf0 | ((codepoint >> 18) & 0x07)));
+          out->append(1, static_cast<char>(0x80 | ((codepoint >> 12) & 0x3f)));
+          out->append(1, static_cast<char>(0x80 | ((codepoint >> 6) & 0x3f)));
+          out->append(1, static_cast<char>(0x80 | (codepoint & 0x3f)));
+        }
+        codepoint = 0;
+      }
+    }
+    return 0;
+  }
+
+	//struct string : fan::basic_string<char>{
+	//	string(const fan::basic_string<char>& b) : fan::basic_string<char>(b) {
+
+	//	}
+
+	//	using basic_string::basic_string;
+	//};
+	//struct wstring: fan::basic_string<uint32_t> {
+	//	wstring(const basic_string& b) : basic_string(b) {
+
+	//	}
+ //   wstring(const char8_t* data) /*: basic_string((wstring::char_type*)c, (wstring::char_type*)c + std::u8string(c).size())*/ {
+ //     //for (auto it = data; it != ) {
+ //     //
+ //     //}
+ //     auto str = std::u8string(data);
+ //     auto x = strlen((const char*)data);
+ //     for (uint32_t i = 0; i < x; ++i) {
+ //      // push_back(*(uint32_t*)&c[i]);
+ //     }
+ //   }
+	//	using basic_string::basic_string;
+	//};
 
   template <typename... T>
   static FMT_INLINE auto format(fmt::format_string<T...> fmt, T&&... args)
     -> fan::string {
-    return fmt::vformat(fmt, fmt::make_format_args(args...)).c_str();
+    return fmt::vformat(fmt, fmt::make_format_args(args...));
   }
 
-  template <typename... T>
-  static FMT_INLINE auto format(fmt::wformat_string<T...> fmt, T&&... args)
-    -> fan::wstring {
-    return fmt::vformat(fmt::wstring_view(fmt), fmt::make_wformat_args(args...)).c_str();
-  }
+  //template <typename... T>
+  //static FMT_INLINE auto format(fmt::wformat_string<T...> fmt, T&&... args)
+  //  -> fan::wstring {
+  //  return fmt::vformat(fmt::wstring_view(fmt), fmt::make_wformat_args(args...)).c_str();
+  //}
 
 }

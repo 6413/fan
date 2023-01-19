@@ -38,6 +38,9 @@
   };
 #endif
 
+// override to utf-8 - if file already utf8 it breaks somehow, probably msvc bug
+#pragma execution_character_set("utf-8")
+
 #if defined(_WIN32) || defined(_WIN64)
 
 //constexpr platform_t platform = platform_t::windows;
@@ -177,6 +180,11 @@ namespace fan {
 		((std::cout << args << ' '), ...) << '\n';
 	}
 
+  template <typename... T>
+  static FMT_INLINE auto print_format(fmt::format_string<T...> fmt, T&&... args) {
+    fan::print(fmt::vformat(fmt, fmt::make_format_args(args...)));
+  }
+
 	template <typename ...Args>
 	constexpr void wprint(const Args&... args) {
 		((std::wcout << args << " "), ...) << '\n';
@@ -213,14 +221,14 @@ namespace fan {
 		out << std::fixed << a_value;
 		return out.str().c_str();
 	}
-	template <typename T>
-	fan::wstring to_wstring(const T a_value, const int n = 2)
-	{
-		std::wostringstream out;
-		out.precision(n);
-		out << std::fixed << a_value;
-		return out.str().c_str();
-	}
+	//template <typename T>
+	//fan::wstring to_wstring(const T a_value, const int n = 2)
+	//{
+	//	std::wostringstream out;
+	//	out.precision(n);
+	//	out << std::fixed << a_value;
+	//	return out.str().c_str();
+	//}
 
 	template <typename T, typename T2>
 	constexpr bool is_flag(T value, T2 flag) {
@@ -277,12 +285,6 @@ namespace fan {
 		using T::T;
 
 	};
-
-	static fan::wstring str_to_wstr(const fan::string& s)
-	{
-		fan::wstring ret((const wchar_t*)s.data(), (const wchar_t*)(s.data() + s.size()));
-		return ret;
-	}
 
 	static void print_warning(const fan::string& message) {
 #ifndef fan_disable_warnings

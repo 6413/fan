@@ -94,7 +94,7 @@ struct vfi_t {
 
   struct text_data_t {
     vfi_t* vfi;
-    wchar_t key;
+    uint32_t key;
   };
 
   using mouse_move_cb_t = fan::function_t<int(const mouse_move_data_t&)>;
@@ -412,7 +412,7 @@ struct vfi_t {
 
     shape_list[focus.keyboard].shape_data.keyboard_cb(keyboard_data);
   }
-  void feed_text(wchar_t key) {
+  void feed_text(uint32_t key) {
     text_data_t text_data;
     text_data.vfi = this;
     if (focus.text.is_invalid()) {

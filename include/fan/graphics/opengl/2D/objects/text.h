@@ -27,7 +27,7 @@ struct text_renderer_t {
     fan::color color = fan::colors::white;
     fan::color outline_color = fan::colors::black;
     f32_t outline_size = 0.5;
-    fan::wstring text;
+    fan::string text;
   };
 
   #undef make_key_value
@@ -60,16 +60,15 @@ struct text_renderer_t {
     return font_size / loco->font.info.size;
   }
 
-  fan::vec2 get_text_size(const fan::wstring& text, f32_t font_size) {
+  fan::vec2 get_text_size(const fan::string& text, f32_t font_size) {
     loco_t* loco = get_loco();
     fan::vec2 text_size = 0;
 
     text_size.y = loco->font.info.line_height;
 
 
-    for (int i = 0; i < text.size(); i++) {
-
-      auto letter = loco->font.info.get_letter_info(text[i], font_size);
+    for (int i = 0; i < text.utf8_size(); i++) {
+      auto letter = loco->font.info.get_letter_info(text.get_utf8(i), font_size);
 
       //auto p = letter_info.metrics.offset.x + letter_info.metrics.size.x / 2 + letter_info.metrics.offset.x;
 
@@ -127,19 +126,19 @@ struct text_renderer_t {
 
     fan::vec2 text_size = get_text_size(properties.text, properties.font_size);
     f32_t left = properties.position.x - text_size.x / 2;
-
-    for (uint32_t i = 0; i < properties.text.size(); i++) {
-      p.letter_id = loco->font.decode_letter(properties.text[i]);
+    f32_t advance = 0;
+    for (uint32_t i = 0; i < properties.text.utf8_size(); i++) {
+      p.letter_id = properties.text.get_utf8(i);
       auto letter_info = loco->font.info.get_letter_info(p.letter_id, properties.font_size);
 
-      uint8_t t = properties.text[i];
-      properties.text[i] = 0;
+      //uint8_t t = properties.text[i];
+      //properties.text[i] = 0;
       p.position = fan::vec2(
-        left + get_text_size(&properties.text[0], properties.font_size).x + letter_info.metrics.size.x / 2,
+        left + advance + letter_info.metrics.size.x / 2,
         properties.position.y + (properties.font_size - letter_info.metrics.size.y) / 2 - letter_info.metrics.offset.y
       );
       //fan::print(letter_info.metrics.size.x, letter_info.metrics.offset.x, left, get_text_size(&properties.text[0], properties.font_size).x, p.position.x);
-      properties.text[i] = t;
+      //properties.text[i] = t;
       p.position.z = properties.position.z;
 
       /*if (i == 0) {
@@ -148,6 +147,7 @@ struct text_renderer_t {
       auto nr = letter_ids[id].cid_list.NewNodeLast();
       auto n = letter_ids[id].cid_list.GetNodeByReference(nr);
       loco->letter.push_back(&n->data.cid, p);
+      advance += letter_info.metrics.advance;
       //left += letter_info.metrics.advance;
     }
     return id;
@@ -267,7 +267,7 @@ struct text_renderer_t {
   properties_t get_properties(uint32_t id) {
     return letter_ids[id].p;
   }
-  void set_text(uint32_t* id, const fan::wstring& text) {
+  void set_text(uint32_t* id, const fan::string& text) {
     properties_t p = letter_ids[*id].p;
     erase(*id);
     p.text = text;

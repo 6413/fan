@@ -40,6 +40,13 @@ namespace fan {
 
   namespace sys {
 
+    static void set_utf8_cout() {
+      #ifdef fan_platform_windows
+        SetConsoleOutputCP(CP_UTF8);
+        setvbuf(stdout, nullptr, _IOFBF, 1000);
+      #endif
+    }
+
     static void set_screen_resolution(const fan::vec2i& size)
     {
       #ifdef fan_platform_windows

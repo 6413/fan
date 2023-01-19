@@ -8,7 +8,6 @@
 
 #include _FAN_PATH(window/window.h)
 #include _FAN_PATH(math/random.h)
-#include _FAN_PATH(types/utf_string.h)
 
 #if fan_renderer == fan_renderer_opengl
 //#include <fan/graphics/opengl/gl_init.h>
@@ -1496,6 +1495,9 @@ uint32_t fan::window_t::handle_events() {
               UINT u = VkKeyScan(src);
               UINT high_byte = HIBYTE(u);
               UINT low_byte = LOBYTE(u);
+              fan::string str;
+              fan::utf16_to_utf8((wchar_t*)&src, &str);
+              src = str.get_utf8(0);
               if (m_prev_text_flag == u) {
                 auto it = window->m_text_callback.GetNodeFirst();
 

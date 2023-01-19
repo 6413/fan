@@ -4,7 +4,7 @@ struct dropdown_t {
 
 	};
 	struct properties_t : menu_maker_t::properties_t {
-		std::vector<fan::wstring> items;
+		std::vector<fan::string> items;
 	};
 
 	using nr_t = menu_maker_t::nr_t;
@@ -165,7 +165,7 @@ struct dropdown_t {
 	struct instance_t {
 		nr_t nr;
 		nr_t menu_nr;
-		std::vector<fan::wstring> items;
+		std::vector<fan::string> items;
 		bool m_open;
 	};
 
