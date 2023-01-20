@@ -181,7 +181,7 @@ void update(auto* loco){
 
     auto append_struct = fmt::format(R"(
   struct {}_t : stage_common_t_t<{}_t> {{
-    #include "{}"
+    #include _PATH_QUOTE(stage_loader_path/{})
   }};
 )", 
     stage_name.c_str(), 
