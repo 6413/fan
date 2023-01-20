@@ -21,6 +21,8 @@
 
 #endif
 
+#define _PATH_QUOTE(p0) STRINGIFY(p0)
+
 #include <iostream>
 #include <array>
 #include <vector>

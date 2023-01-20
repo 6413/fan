@@ -56,7 +56,7 @@ struct pile_t {
   loco_t::matrices_t matrices;
   fan::graphics::viewport_t viewport;
 
-  #define stage_loader_path ../../
+  #define stage_loader_path .
   #include _FAN_PATH(graphics/gui/stage_maker/loader.h)
   stage_loader_t stage_loader;
 
