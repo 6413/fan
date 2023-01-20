@@ -64,7 +64,6 @@ struct pile_t {
 };
 
 int main(int argc, char** argv) {
-
   if (argc < 2) {
     fan::throw_error("usage: TexturePackCompiled");
   }
