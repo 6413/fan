@@ -7,6 +7,7 @@
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
 #include _FAN_PATH(math/random.h)
+#include _FAN_PATH(io/file.h)
 
 double sigmoid(double x) {
   return 1.0 / (1 + exp(-x));
