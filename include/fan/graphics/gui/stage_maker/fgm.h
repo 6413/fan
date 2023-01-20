@@ -327,7 +327,7 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
 
             invalidate_right_click_menu();
 
-          	return 0;
+          	return 1;
           }
         });
         push_menu(mb, {

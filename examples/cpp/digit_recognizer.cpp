@@ -8,6 +8,7 @@
 
 #include _FAN_PATH(math/random.h)
 #include _FAN_PATH(io/file.h)
+#include _FAN_PATH(graphics/webp.h)
 
 double sigmoid(double x) {
   return 1.0 / (1 + exp(-x));
@@ -36,7 +37,7 @@ void shuffle(int* arr, uint32_t size) {
   }
 }
 
-static constexpr int n_inputs = 2;
+static constexpr int n_inputs = 256*256;
 static constexpr int n_hidden_nodes = 2;
 static constexpr int n_outputs = 1;
 static constexpr double multiplier = 20;
@@ -55,20 +56,24 @@ int main() {
   double hidden_layer_bias[n_hidden_nodes];
   double output_layer_bias[n_outputs];
 
-  /*
-  2
-  O->O
-   X
-  O->O
-  */
-
-  double hidden_weights[n_inputs][n_hidden_nodes];
+  std::vector<std::vector<double>> hidden_weights(n_inputs, std::vector<double>(1, n_hidden_nodes));
   double output_weights[n_hidden_nodes][n_outputs];
 
   std::vector<fan::vec2d> training_inputs;
   std::vector<double> training_outputs;
 
   std::vector<int> training_set_order;
+
+  fan::webp::image_info_t im;
+  fan::webp::load("images/0.webp", &im);
+
+  std::vector<uint8_t> grayscale;
+
+  for (uint32_t i = 0; i < im.size.x * im.size.y; i += 4) {
+    grayscale.push_back(
+      0.2126 * ((uint8_t*)im.data)[i + 0] + 0.7152 * ((uint8_t*)im.data)[i + 1] + 0.0722 * ((uint8_t*)im.data)[i + 2]
+    );
+  }
 
   for (uint32_t i = 0; i < 10; ++i) {
     training_inputs.push_back(
@@ -131,7 +136,7 @@ int main() {
       }
 
       if ((!once && !(epoch % (number_of_epochs / num_of_samples)) || epoch + 1 == number_of_epochs)) {
-        str.append(fan::format("input:{} + {}\noutput:{}\nexpected output:{}\n\n", 
+        str.append(fan::format("input:{} + {}\noutput:{}\nexpected output:{}\n\n",
           training_inputs[i][0] * multiplier, training_inputs[i][1] * multiplier, output_layer[0] * multiplier, training_outputs[i] * multiplier).data());
         once = true;
       }
