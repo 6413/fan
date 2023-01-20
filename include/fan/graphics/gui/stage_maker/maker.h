@@ -256,6 +256,45 @@ void update(auto* loco){
 		current_y = old_y;
 	}
 
+  void create_stage(loco_t* loco, const fan::string& stage_name){
+    loco_t::menu_maker_button_t::properties_t p;
+    p.text = stage_name;
+    p.mouse_button_cb = [this](const loco_t::mouse_button_data_t& mb) -> int {
+
+      use_key_lambda(fan::mouse_left, fan::mouse_state::release);
+
+      pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco_var_name);
+      fan::graphics::cid_t* cid = mb.cid;
+      if (mb.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside) {
+        if (pile->loco.menu_maker_button.is_visually_valid(
+          instances[stage_t::stage_options].menu_id,
+          pile->stage_maker.erase_button_id
+        )) {
+          return 0;
+        }
+        pile->loco.menu_maker_button.push_initialized(
+          instances[stage_t::stage_options].menu_id,
+          pile->stage_maker.erase_button_id
+        );
+      }
+      return 0;
+    };
+    pile_t* pile = OFFSETLESS(loco, pile_t, loco_var_name);
+    pile->stage_maker.push_stage_main(p);
+  };
+
+  bool does_stage_exist(loco_t* loco, const fan::string& stage_name) {
+    auto& instances = loco->menu_maker_button.instances[stage.get_stage_maker()->instances[stage_t::stage_instance].menu_id].base.instances;
+    auto it = instances.GetNodeFirst();
+    while (it != instances.dst) {
+      if (instances[it].text == stage_name) {
+        return true;
+      }
+      it = it.Next(&instances);
+    }
+    return false;
+  }
+
 	void open_without_init() {
 		auto* loco = get_loco();
 
@@ -278,35 +317,10 @@ void update(auto* loco){
 			pile->stage_maker.open_stage(stage_maker_t::stage_t::stage_e::main);
 			instance_t* instance = &pile->stage_maker.instances[stage_maker_t::stage_t::stage_instance];
 
-			static auto create_stage = [this, loco]() {
-				loco_t::menu_maker_button_t::properties_t p;
-				static uint32_t x = 0;
-				p.text = fan::string("stage") + fan::to_string(x++);
-				p.mouse_button_cb = [this](const loco_t::mouse_button_data_t& mb) -> int {
+      static uint32_t x = 0;
+      while (does_stage_exist(loco, fan::string("stage") + fan::to_string(x))) { ++x; }
 
-					use_key_lambda(fan::mouse_left, fan::mouse_state::release);
-
-					pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco_var_name);
-					fan::graphics::cid_t* cid = mb.cid;
-					if (mb.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside) {
-						if (pile->loco.menu_maker_button.is_visually_valid(
-							instances[stage_t::stage_options].menu_id,
-							pile->stage_maker.erase_button_id
-						)) {
-							return 0;
-						}
-						pile->loco.menu_maker_button.push_initialized(
-							instances[stage_t::stage_options].menu_id,
-							pile->stage_maker.erase_button_id
-						);
-					}
-					return 0;
-				};
-				pile_t* pile = OFFSETLESS(loco, pile_t, loco_var_name);
-				pile->stage_maker.push_stage_main(p);
-			};
-
-			create_stage();
+			create_stage(loco, fan::string("stage") + fan::to_string(x));
 			write_stage_instance(pile);
 			return 0;
 		};
@@ -351,7 +365,8 @@ void update(auto* loco){
 
 	void open(const char* texturepack_name) {
 		
-  stage_h_str = R"(protected:
+  if (!fan::io::file::exists(fan::string(stage_folder_name) + "/stage.h")) {
+    stage_h_str = R"(protected:
   #define BLL_set_CPP_ConstructDestruct
   #define BLL_set_CPP_Node_ConstructDestruct
   #define BLL_set_BaseLibrary 1
@@ -369,6 +384,8 @@ struct stage_open_properties_t {
 	loco_t::matrices_list_NodeReference_t matrices;
 	fan::graphics::viewport_list_NodeReference_t viewport;
 	fan::graphics::theme_list_NodeReference_t theme;
+
+  stage_loader_t::nr_t parent_id;
 };
 
 template <typename T = __empty_struct>
@@ -401,6 +418,8 @@ protected:
 public:
 
   cid_list_t cid_list;
+
+  stage_loader_t::nr_t parent_id;
 };
 
 using stage_common_t = stage_common_t_t<>;
@@ -410,7 +429,10 @@ struct stage {
 };
 
 )";
-
+  }
+  else {
+    fan::io::file::read(fan::string(stage_folder_name) + "/stage.h", &stage_h_str);
+  }
 		auto loco = get_loco();
 
 		fgm.open(texturepack_name);
@@ -441,6 +463,24 @@ struct stage {
 		open_stage(stage_t::stage_e::main);
 		open_erase_button(pile);
 		pile->loco.menu_maker_button.erase_button_soft(instances[stage_t::stage_options].menu_id, erase_button_id);
+
+    fan::io::iterate_directory(stage_folder_name, [loco, this](const fan::string& path) {
+
+      fan::string p = path;
+      auto len = strlen(fan::string(fan::string(stage_folder_name) + "/").c_str());
+      p = p.substr(len, p.size() - len);
+
+      if (p.find(".h") == fan::string::npos) {
+        return;
+      }
+      if (p == "stage.h") {
+        return;
+      }
+      p.pop_back();
+      p.pop_back();
+      create_stage(loco, p);
+    });
+   // create_stage(loco, "jokustage");
 	}
 	void close() {
 		auto& loco = *get_loco();

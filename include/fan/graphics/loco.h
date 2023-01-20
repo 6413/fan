@@ -11,6 +11,8 @@ struct loco_t;
 #include _FAN_PATH(graphics/graphics.h)
 #include _FAN_PATH(time/timer.h)
 #include _FAN_PATH(font.h)
+#include _FAN_PATH(physics/collision/circle.h)
+#include _FAN_PATH(io/directory.h)
 
 // automatically gets necessary macros for shapes
 

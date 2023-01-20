@@ -384,6 +384,10 @@ void sb_set_key(fan::opengl::cid_t* cid, auto value) {
   sb_push_back(cid, p);
 }
 
+void set_depth(fan::opengl::cid_t* cid, f32_t depth) {
+  sb_set_key<bm_properties_t::key_t::get_index_with_type<uint16_t>()>(cid, depth);
+}
+
 fan::opengl::shader_t m_shader;
 
 vi_t& sb_get_vi(fan::graphics::cid_t* cid) {

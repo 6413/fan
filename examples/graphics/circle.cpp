@@ -19,8 +19,8 @@
 
 struct pile_t {
 
-  static constexpr fan::vec2 ortho_x = fan::vec2(0, 800);
-  static constexpr fan::vec2 ortho_y = fan::vec2(0, 800);
+  static constexpr fan::vec2 ortho_x = fan::vec2(-1, 1);
+  static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
 
   pile_t() {
     fan::vec2 window_size = loco.get_window()->get_size();
@@ -46,7 +46,7 @@ struct pile_t {
   loco_t loco;
   loco_t::matrices_t matrices;
   fan::graphics::viewport_t viewport;
-  fan::graphics::cid_t cid[(unsigned long long)1e+7];
+  fan::graphics::cid_t cid[5];
 };
 
 int main() {
@@ -58,12 +58,12 @@ int main() {
 
   loco_t::circle_t::properties_t p;
 
-  p.radius = 300;
+  p.radius = 0.5;
   p.matrices = &pile->matrices;
   p.viewport = &pile->viewport;
   p.color = fan::colors::white;
 
-  p.position = fan::vec2(400, 400);
+  p.position = fan::vec2(0, 0);
   pile->loco.circle.push_back(&pile->cid[0], p);
 
   pile->loco.set_vsync(false);
@@ -72,7 +72,7 @@ int main() {
 
   fan::time::clock cc;
   pile->loco.loop([&] {
-    pile->loco.circle.set(&pile->cid[0], &loco_t::circle_t::vi_t::radius, pile->loco.get_mouse_position().x);
+    //pile->loco.circle.set(&pile->cid[0], &loco_t::circle_t::vi_t::radius, pile->loco.get_mouse_position(pile->viewport).x);
     //fan::print(cc.elapsed());
     //cc.start();
     //pile->loco.get_context()->set_depth_test(true);

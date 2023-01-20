@@ -68,22 +68,18 @@ int main(int argc, char** argv) {
   if (argc < 2) {
     fan::throw_error("usage: TexturePackCompiled");
   }
-
+  
   pile_t pile(argv[1]);
 
 	using sl = pile_t::stage_loader_t;
-
+  
 	sl::stage_open_properties_t op;
 	op.matrices = &pile.matrices;
 	op.viewport = &pile.viewport;
 	op.theme = &pile.theme;
-	pile.nrs[0] = pile.stage_loader.push_and_open_stage<sl::stage::stage0_t>(&pile.loco, op);
-  //pile.loco.stage_loader.erase_stage(0);
+	pile.stage_loader.push_and_open_stage<sl::stage::stage0_t>(&pile.loco, op);
   
-
 	pile.loco.loop([&] {
-
-		//stage0ptr->update();
 
 	});
 	
