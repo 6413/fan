@@ -6,7 +6,7 @@
 
 struct stage_loader_t {
 
-	#include _FAN_PATH(stage_loader_path/stages/stage.h)
+	#include _PATH_QUOTE(stage_loader_path/stages/stage.h)
 
 	void open(loco_t* loco, const char* compiled_tp_path) {
     texturepack.open_compiled(loco, compiled_tp_path);
