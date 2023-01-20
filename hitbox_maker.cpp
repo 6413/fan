@@ -209,10 +209,14 @@ bool is_point_inside_shape(fan::vec2 position, uint32_t shape, fan::graphics::ci
     return 0;
   }
   case 1: {
-    // return pile->loco.rectangle.inside(cid, position); TODO
+    fan::vec2 rp = pile->loco.rectangle.get(cid, &loco_t::rectangle_t::vi_t::position);
+    fan::vec2 sp = pile->loco.rectangle.get(cid, &loco_t::rectangle_t::vi_t::size);
+    return fan_2d::collision::rectangle::point_inside_no_rotation(position, rp, sp);
   }
   case 2: {
-    // return pile->loco.circle.inside(cid, position); TODO
+    fan::vec2 cp = pile->loco.circle.get(cid, &loco_t::circle_t::vi_t::position);
+    f32_t cr = pile->loco.circle.get(cid, &loco_t::circle_t::vi_t::radius);
+    return fan_2d::collision::circle::point_inside(position, cp, cr);
   }
   }
   return 0;

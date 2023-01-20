@@ -242,8 +242,8 @@ struct vfi_t {
         fan::vec2 size = data->shape.rectangle.size;
         bool in = fan_2d::collision::rectangle::point_inside_no_rotation(
           p,
-          data->shape.rectangle.position - size,
-          data->shape.rectangle.position + size
+          data->shape.rectangle.position,
+          size
         );
         return in ? mouse_stage_e::inside : mouse_stage_e::outside;
       }

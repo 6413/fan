@@ -318,9 +318,8 @@ namespace fan {
       return code;
     }
     constexpr auto utf8_size() const {
-      int count = 0;
-      for (auto i = begin(); i != end(); i++)
-      {
+      std::size_t count = 0;
+      for (auto i = begin(); i != end(); i++){
         if ((*i & 0xC0) != 0x80) {
           count++;
         }

@@ -236,6 +236,51 @@ struct builder_button_t {
       return 0;
     };
     pile->stage_maker.fgm.properties_nrs.push_back(pile->stage_maker.fgm.text_box_menu.push_back(nr, p));
+
+    auto size = pile->loco.button.get_button(&instance->cid, &loco_t::button_t::vi_t::size);
+    p.text = fan::format("{:.2f}, {:.2f}", size.x, size.y);
+    p.text_value = "add cbs";
+    p.keyboard_cb = [pile, this, instance, nr](const loco_t::keyboard_data_t& d) -> int {
+      if (d.key != fan::key_enter) {
+        return 0;
+      }
+      if (d.keyboard_state != fan::keyboard_state::press) {
+        return 0;
+      }
+
+      auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[pile->stage_maker.fgm.properties_nrs[1]];
+      auto text = pile->loco.text_box.get_text(&it.cid);
+      fan::vec2 size;
+      std::istringstream iss(fan::string(text).c_str());
+      std::size_t i = 0;
+      while (iss >> size[i++]) { iss.ignore(); }
+
+      pile->loco.button.set(&instance->cid, &loco_t::button_t::vi_t::size, size);
+
+      return 0;
+    };
+    pile->stage_maker.fgm.properties_nrs.push_back(pile->stage_maker.fgm.text_box_menu.push_back(nr, p));
+
+    const auto& text = pile->loco.button.get_text(&instance->cid);
+    p.text = text;
+    p.text_value = "text";
+    p.keyboard_cb = [pile, this, instance, nr](const loco_t::keyboard_data_t& d) -> int {
+      if (d.key != fan::key_enter) {
+        return 0;
+      }
+      if (d.keyboard_state != fan::keyboard_state::press) {
+        return 0;
+      }
+
+      auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[pile->stage_maker.fgm.properties_nrs[2]];
+      auto text = pile->loco.text_box.get_text(&it.cid);
+      pile->loco.button.set_text(&instance->cid, text);
+
+      return 0;
+    };
+    pile->stage_maker.fgm.properties_nrs.push_back(pile->stage_maker.fgm.text_box_menu.push_back(nr, p));
+
+
 		//
 		//pile->stage_maker.fgm.button_menu.clear();
 		//
@@ -267,6 +312,7 @@ struct builder_button_t {
             fan::vec3 ps = pile->loco.button.get_button(&instance->cid, &loco_t::button_t::vi_t::position);
             ps.z += 0.5;
             pile->loco.button.set_position(&instance->cid, ps);
+            pile->loco.button.set_depth(&instance->cid, ps.z);
             pile->stage_maker.fgm.builder_button.open_properties(instance);
           }
           return 0;
@@ -277,6 +323,7 @@ struct builder_button_t {
             ps.z -= 0.5;
             ps.z = fan::clamp((f32_t)ps.z, (f32_t)0.f, (f32_t)ps.z);
             pile->loco.button.set_position(&instance->cid, ps);
+            pile->loco.button.set_depth(&instance->cid, ps.z);
             pile->stage_maker.fgm.builder_button.open_properties(instance);
           }
           return 0;
@@ -524,7 +571,9 @@ struct sprite_t {
     };
     pile->stage_maker.fgm.properties_nrs.push_back(pile->stage_maker.fgm.text_box_menu.push_back(nr, p));
 
-    p.text = instance->texturepack_name;
+    auto size = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::size);
+    p.text = fan::format("{:.2f}, {:.2f}", size.x, size.y);
+    p.text_value = "";
     p.keyboard_cb = [pile, this, instance, nr](const loco_t::keyboard_data_t& d) -> int {
       if (d.key != fan::key_enter) {
         return 0;
@@ -534,6 +583,30 @@ struct sprite_t {
       }
 
       auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[pile->stage_maker.fgm.properties_nrs[1]];
+      auto text = pile->loco.text_box.get_text(&it.cid);
+
+      fan::vec2 size;
+      std::istringstream iss(fan::string(text).c_str());
+      std::size_t i = 0;
+      while (iss >> size[i++]) { iss.ignore(); }
+
+      pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::size, size);
+
+
+      return 0;
+    };
+    pile->stage_maker.fgm.properties_nrs.push_back(pile->stage_maker.fgm.text_box_menu.push_back(nr, p));
+
+    p.text = instance->texturepack_name;
+    p.keyboard_cb = [pile, this, instance, nr](const loco_t::keyboard_data_t& d) -> int {
+      if (d.key != fan::key_enter) {
+        return 0;
+      }
+      if (d.keyboard_state != fan::keyboard_state::press) {
+        return 0;
+      }
+
+      auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[pile->stage_maker.fgm.properties_nrs[2]];
       auto text = pile->loco.text_box.get_text(&it.cid);
       
       loco_t::texturepack::ti_t ti;
@@ -578,6 +651,7 @@ struct sprite_t {
             fan::vec3 ps = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::position);
             ps.z += 0.5;
             pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::position, ps);
+            pile->loco.sprite.set_depth(&instance->cid, ps.z);
             open_properties(instance);
           }
           return 0;
@@ -588,6 +662,7 @@ struct sprite_t {
             ps.z -= 0.5;
             ps.z = fan::clamp((f32_t)ps.z, (f32_t)0.f, (f32_t)ps.z);
             pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::position, ps);
+            pile->loco.sprite.set_depth(&instance->cid, ps.z);
             pile->stage_maker.fgm.sprite.open_properties(instance);
           }
           return 0;
@@ -677,6 +752,7 @@ struct sprite_t {
 
 				pile->stage_maker.fgm.sprite.set_size(i, rs);
 				pile->stage_maker.fgm.sprite.set_position(i, ps);
+        pile->stage_maker.fgm.sprite.open_properties(instance);
 
 				if (ret) {
 					return 0;

@@ -82,12 +82,11 @@ struct stage_loader_t {
 		stage_list[stage->stage_id] = stage;
 		return stage->stage_id;
 	}
-  template <typename stage_t>
 	void erase_stage(auto* loco, nr_t id) {
 		//auto loco = get_loco();
   //  //fan::throw_error("todo");
     auto& stage_list = stage_loader_t::stage::stage_list;
-    auto* stage = (stage_t*)stage_list[id];
+    auto* stage = (stage_common_t*)stage_list[id];
 		auto it = stage->cid_list.GetNodeFirst();
 		while (it != stage->cid_list.dst) {
 			auto& node = stage->cid_list[it];

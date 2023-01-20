@@ -12,9 +12,13 @@ namespace fan_2d {
 				return fan_2d::collision::triangle::point_inside(p1, p2, p4, point) || fan_2d::collision::triangle::point_inside(p1, p3, p4, point);
 			}
 
-			constexpr bool point_inside_no_rotation(const fan::vec2& point, const fan::vec2& src, const fan::vec2& dst) {
-				return point.x >= src.x && point.x <= dst.x &&
-					   point.y >= src.y && point.y <= dst.y;
+      // size is half
+			constexpr bool point_inside_no_rotation(const fan::vec2& point, const fan::vec2& position, const fan::vec2& size) {
+        return
+          point.x >= position.x - size.x &&
+          point.x <= position.x + size.x &&
+          point.y >= position.y - size.y &&
+          point.y <= position.y + size.y;
 			}
 
 

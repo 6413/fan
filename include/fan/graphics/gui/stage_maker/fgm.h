@@ -73,6 +73,7 @@ struct fgm_t {
     auto v = loco.menu_maker_button.instances.gnric();
     loco.menu_maker_button.erase_menu(right_click_menu_nr);
     right_click_menu_nr = v;
+    loco.vfi.erase(vfi_id);
   }
 
 	void invalidate_focus() {
@@ -163,7 +164,7 @@ struct fgm_t {
 		vfip.shape.rectangle.viewport = &viewport[viewport_area::global];
 		vfip.shape.rectangle.size = viewport[viewport_area::types].get_size() / loco->get_window()->get_size();
 
-    vfip.mouse_button_cb = [this, loco, vfi_id = loco_t::vfi_t::shape_id_t{}](const loco_t::vfi_t::mouse_button_data_t& mb) mutable -> int {
+    vfip.mouse_button_cb = [this, loco](const loco_t::vfi_t::mouse_button_data_t& mb) mutable -> int {
       loco_t::menu_maker_button_t::open_properties_t rcm_op;
 		  rcm_op.matrices = &matrices[viewport_area::global];
 		  rcm_op.viewport = &viewport[viewport_area::global];
@@ -324,6 +325,8 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
           	auto& instance = pile->stage_maker.fgm.sprite.instances[pile->stage_maker.fgm.sprite.instances.size() - 1];
           	pile->stage_maker.fgm.sprite.open_properties(instance);
 
+            invalidate_right_click_menu();
+
           	return 0;
           }
         });
@@ -334,13 +337,10 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
         loco_t::vfi_t::properties_t p;
 		    p.shape_type = loco_t::vfi_t::shape_t::always;
 		    p.shape.always.z = rcm_op.position.z;
-		    p.mouse_button_cb = [this, &vfi_id, loco](const loco_t::vfi_t::mouse_button_data_t& mb) -> int {
+		    p.mouse_button_cb = [this, loco](const loco_t::vfi_t::mouse_button_data_t& mb) -> int {
 			    pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco);
           invalidate_right_click_menu();
-          //fan::print("debug0", loco->vfi.focus.mouse.NRI, loco->vfi.focus.keyboard.NRI, loco->vfi.focus.text.NRI);
-          loco->vfi.erase(vfi_id);
 			    return 1;
-          //fan::print("debug1", loco->vfi.focus.mouse.NRI, loco->vfi.focus.keyboard.NRI, loco->vfi.focus.text.NRI);
 		    };
 		    vfi_id = loco->vfi.push_shape(p);
 			}
@@ -587,4 +587,5 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
 	loco_t::texturepack texturepack;
 
 	loco_t::menu_maker_button_t::nr_t right_click_menu_nr;
+  loco_t::vfi_t::shape_id_t vfi_id;
 }fgm;

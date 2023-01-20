@@ -16,6 +16,8 @@ struct stage_open_properties_t {
 	loco_t::matrices_list_NodeReference_t matrices;
 	fan::graphics::viewport_list_NodeReference_t viewport;
 	fan::graphics::theme_list_NodeReference_t theme;
+
+  stage_loader_t::nr_t parent_id;
 };
 
 template <typename T = __empty_struct>
@@ -48,6 +50,8 @@ protected:
 public:
 
   cid_list_t cid_list;
+
+  stage_loader_t::nr_t parent_id;
 };
 
 using stage_common_t = stage_common_t_t<>;
@@ -66,19 +70,6 @@ struct stage {
     cb_table_t button_click_cb_table[1] = {&stage0_t::button0_click_cb,};
 
     #include "stages/stage0.h"
-  };
-
-  struct stage1_t : stage_common_t_t<stage1_t> {
-
-    using stage_common_t_t::stage_common_t_t;
-
-    static constexpr auto stage_name = "stage1";
-
-    typedef int(stage1_t::* cb_table_t)(const loco_t::mouse_button_data_t& v);
-
-    cb_table_t button_click_cb_table[1] = {&stage1_t::button0_click_cb,};
-
-    #include "stages/stage1.h"
   };
 };
 
