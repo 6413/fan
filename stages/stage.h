@@ -75,5 +75,9 @@ struct stage {
   struct stage1_t : stage_common_t_t<stage1_t> {
     #include _PATH_QUOTE(stage_loader_path/stages/stage1.h)
   };
+
+  struct stage2_t : stage_common_t_t<stage2_t> {
+    #include _PATH_QUOTE(stage_loader_path/stages/stage2.h)
+  };
 };
 
