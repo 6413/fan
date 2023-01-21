@@ -568,7 +568,7 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
 			data.position = loco->button.get(&it->cid, &loco_t::button_t::vi_t::position);
 			data.size = loco->button.get(&it->cid, &loco_t::button_t::vi_t::size);
 			data.font_size = loco->text.get_instance(
-				loco->button.get_ri(&it->cid).text_id
+				&loco->button.get_ri(&it->cid).text_id
 			).font_size;
       //data.theme = *loco->button.get_theme(&it->cid);
       add_to_f(data);
@@ -593,10 +593,10 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
     add_to_f(instances_count);
     for (auto it : text.instances) {
       stage_maker_shape_format::shape_text_t data;
-      data.position = loco->text.get_instance(it->cid).position;
-      data.size = loco->text.get_instance(it->cid).font_size;
+      data.position = loco->text.get_instance(&it->cid).position;
+      data.size = loco->text.get_instance(&it->cid).font_size;
       add_to_f(data);
-      add_to_f(loco->text.get_instance(it->cid).text);
+      add_to_f(loco->text.get_instance(&it->cid).text);
     }
 
 		fan::io::file::write(

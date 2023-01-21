@@ -84,8 +84,8 @@ struct text_renderer_t {
 
     return text_size;
   }
-  fan::vec2 get_text_size(uint32_t id) {
-    return get_text_size(letter_ids[id].p.text, letter_ids[id].p.font_size);
+  fan::vec2 get_text_size(fan::graphics::cid_t* id) {
+    return get_text_size(letter_ids[*(uint32_t*)id].p.text, letter_ids[*(uint32_t*)id].p.font_size);
    /* loco_t* loco = get_loco();
     fan::vec2 text_size = 0;
 
@@ -106,7 +106,7 @@ struct text_renderer_t {
     return text_size;*/
   }
 
-  uint32_t push_back(properties_t properties) {
+  void push_back(properties_t properties, fan::graphics::cid_t* cid) {
     loco_t* loco = get_loco();
     typename loco_t::letter_t::properties_t p;
     p.color = properties.color;
@@ -154,107 +154,74 @@ struct text_renderer_t {
       advance += letter_info.metrics.advance;
       //left += letter_info.metrics.advance;
     }
-    return id;
+    *cid = (fan::opengl::cid_t)id;
   }
 
-  void erase(uint32_t id) {
+  void erase(fan::graphics::cid_t* cid) {
     loco_t* loco = get_loco();
 
-    auto it = letter_ids[id].cid_list.GetNodeFirst();
+    auto it = letter_ids[*(uint32_t*)cid].cid_list.GetNodeFirst();
 
-    while (it != letter_ids[id].cid_list.dst) {
-      auto node = letter_ids[id].cid_list.GetNodeByReference(it);
+    while (it != letter_ids[*(uint32_t*)cid].cid_list.dst) {
+      auto node = letter_ids[*(uint32_t*)cid].cid_list.GetNodeByReference(it);
       loco->letter.erase(&node->data.cid);
 
       it = node->NextNodeReference;
     }
-    letter_ids[id].cid_list.Close();
-    *(uint32_t*)&letter_ids[id] = e.id0;
-    e.id0 = id;
+    letter_ids[*(uint32_t*)cid].cid_list.Close();
+    *(uint32_t*)&letter_ids[*(uint32_t*)cid] = e.id0;
+    e.id0 = *(uint32_t*)cid;
     e.amount++;
   }
 
-  template <typename T>
-  T get(uint32_t id, T loco_t::letter_t::vi_t::*member) {
-    loco_t* loco = get_loco();
-    return loco->letter.get(id, member); // ?
-  }
- /* template <typename T, typename T2>
-  void set(uint32_t id, T loco_t::letter_t::instance_t::*member, const T2& value) {
-    loco_t* loco = get_loco();
-    fan::vec2 text_size;
-    f32_t left;
-    if constexpr (std::is_same<T, fan::vec3>::value) {
-      text_size = get_text_size(id);
-      left = ((f32_t*)&value)[0] - text_size.x / 2;
-    }
-      
-    auto it = letter_ids[id].cid.GetNodeFirst();
-    while (it != letter_ids[id].cid.dst) {
-      auto node = letter_ids[id].cid.GetNodeByReference(it);
-
-      auto p = get_instance(id);
-      loco->letter.erase(&node->data.cid);
-      ;
-      if constexpr(std::is_same<T, fan::vec3>::value)
-      if (fan::ofof(member) == fan::ofof(&loco_t::letter_t::instance_t::position)) {
-        auto letter_info = loco->font.info.get_letter_info(p.letter_id, p.font_size);
-        p.position = fan::vec2(left - letter_info.metrics.offset.x, ((f32_t*)&value)[1]) + (fan::vec2(letter_info.metrics.size.x, p.font_size - letter_info.metrics.size.y) / 2 + fan::vec2(letter_info.metrics.offset.x, -letter_info.metrics.offset.y));
-        p.position.z = value.z;
-        loco->letter.push_back(&node->data.cid, p);
-        left += letter_info.metrics.advance;
-      }
-      if (fan::ofof(member) != fan::ofof(&loco_t::letter_t::instance_t::position)) {
-        p.*member = value;
-        loco->letter.push_back(&node->data.cid, p);
-      }
-      it = node->NextNodeReference;
-    }
-  }*/
-
+  //template <typename T>
+  //T get(fan::graphics::cid_t* cid, T loco_t::letter_t::vi_t::*member) {
+  //  loco_t* loco = get_loco();
+  //  return loco->letter.get(*(uint32_t*)cid, member); // ?
+  //}
   // do not use with set_position
-  void set(uint32_t id, auto member, auto value) {
+  void set(fan::graphics::cid_t* cid, auto member, auto value) {
     loco_t* loco = get_loco();
-    auto it = letter_ids[id].cid_list.GetNodeFirst();
+    auto it = letter_ids[*(uint32_t*)cid].cid_list.GetNodeFirst();
 
-    while (it != letter_ids[id].cid_list.dst) {
-      auto node = letter_ids[id].cid_list.GetNodeByReference(it);
+    while (it != letter_ids[*(uint32_t*)cid].cid_list.dst) {
+      auto node = letter_ids[*(uint32_t*)cid].cid_list.GetNodeByReference(it);
       loco->letter.set(&node->data.cid, member, value);
       it = node->NextNodeReference;
     }
   }
 
-  void set_matrices(uint32_t id, loco_t::matrices_list_NodeReference_t n) {
+  void set_matrices(fan::graphics::cid_t* cid, loco_t::matrices_list_NodeReference_t n) {
     loco_t* loco = get_loco();
 
-    auto it = letter_ids[id].cid_list.GetNodeFirst();
+    auto it = letter_ids[*(uint32_t*)cid].cid_list.GetNodeFirst();
 
-    while (it != letter_ids[id].cid_list.dst) {
-      auto node = letter_ids[id].cid_list.GetNodeByReference(it);
+    while (it != letter_ids[*(uint32_t*)cid].cid_list.dst) {
+      auto node = letter_ids[*(uint32_t*)cid].cid_list.GetNodeByReference(it);
       loco->letter.set_matrices(&node->data.cid, n);
       it = node->NextNodeReference;
     }
   }
 
-  void set_viewport(uint32_t id, fan::graphics::viewport_list_NodeReference_t n) {
+  void set_viewport(fan::graphics::cid_t* cid, fan::graphics::viewport_list_NodeReference_t n) {
     loco_t* loco = get_loco();
 
-    auto it = letter_ids[id].cid_list.GetNodeFirst();
+    auto it = letter_ids[*(uint32_t*)cid].cid_list.GetNodeFirst();
 
-    while (it != letter_ids[id].cid_list.dst) {
-      auto node = letter_ids[id].cid_list.GetNodeByReference(it);
+    while (it != letter_ids[*(uint32_t*)cid].cid_list.dst) {
+      auto node = letter_ids[*(uint32_t*)cid].cid_list.GetNodeByReference(it);
       loco->letter.set_viewport(&node->data.cid, n);
       it = node->NextNodeReference;
     }
   }
 
-  void set_depth(uint32_t id, f32_t depth) {
+  void set_depth(fan::graphics::cid_t* cid, f32_t depth) {
     loco_t* loco = get_loco();
 
-    auto it = letter_ids[id].cid_list.GetNodeFirst();
+    auto it = letter_ids[*(uint32_t*)cid].cid_list.GetNodeFirst();
 
-    while (it != letter_ids[id].cid_list.dst) {
-      auto node = letter_ids[id].cid_list.GetNodeByReference(it);
+    while (it != letter_ids[*(uint32_t*)cid].cid_list.dst) {
+      auto node = letter_ids[*(uint32_t*)cid].cid_list.GetNodeByReference(it);
       loco->letter.set_depth(&node->data.cid, depth);
       it = node->NextNodeReference;
     }
@@ -273,43 +240,43 @@ struct text_renderer_t {
   //  }
   //}
 
-  f32_t get_font_size(uint32_t id) {
+  f32_t get_font_size(fan::graphics::cid_t* cid) {
     auto loco = get_loco();
-    auto it = letter_ids[id].cid_list.GetNodeFirst();
-    auto node = letter_ids[id].cid_list.GetNodeByReference(it);
+    auto it = letter_ids[*(uint32_t*)cid].cid_list.GetNodeFirst();
+    auto node = letter_ids[*(uint32_t*)cid].cid_list.GetNodeByReference(it);
     return loco->letter.sb_get_ri(&node->data.cid).font_size;
   }
 
-  auto get_matrices(uint32_t id) {
+  auto get_matrices(fan::graphics::cid_t* cid) {
     auto loco = get_loco();
-    auto it = letter_ids[id].cid_list.GetNodeFirst();
-    auto node = letter_ids[id].cid_list.GetNodeByReference(it);
+    auto it = letter_ids[*(uint32_t*)cid].cid_list.GetNodeFirst();
+    auto node = letter_ids[*(uint32_t*)cid].cid_list.GetNodeByReference(it);
     return loco->letter.get_matrices(&node->data.cid);
   }
 
-  properties_t get_instance(uint32_t id) {
-    return letter_ids[id].p;
+  properties_t get_instance(fan::graphics::cid_t* cid) {
+    return letter_ids[*(uint32_t*)cid].p;
   }
-  void set_text(uint32_t* id, const fan::string& text) {
-    properties_t p = letter_ids[*id].p;
-    erase(*id);
+  void set_text(fan::graphics::cid_t* cid, const fan::string& text) {
+    properties_t p = letter_ids[*(uint32_t*)cid].p;
+    erase(cid);
     p.text = text;
 
-    *id = push_back(p);
+    push_back(p, cid);
   }
 
-  void set_position(uint32_t* id, const fan::vec3& position) {
-    properties_t p = letter_ids[*id].p;
-    erase(*id);
+  void set_position(fan::graphics::cid_t* cid, const fan::vec3& position) {
+    properties_t p = letter_ids[*(uint32_t*)cid].p;
+    erase(cid);
     p.position = position;
-    *id = push_back(p);
+    push_back(p, cid);
   }
 
-  void set_font_size(uint32_t* id, f32_t font_size) {
-    properties_t p = letter_ids[*id].p;
-    erase(*id);
+  void set_font_size(fan::graphics::cid_t* cid, f32_t font_size) {
+    properties_t p = letter_ids[*(uint32_t*)cid].p;
+    erase(cid);
     p.font_size = font_size;
-    *id = push_back(p);
+    push_back(p, cid);
   }
 
   struct{
