@@ -41,7 +41,7 @@ struct text_box_t {
     loco_t::vfi_t::shape_id_t vfi_id;
     uint64_t udata;
 
-    uint32_t text_id;
+    fan::graphics::cid_t text_id;
     fed_t fed;
   };
 
@@ -96,7 +96,7 @@ struct text_box_t {
     sb_push_back(cid, p);
     auto& ri = sb_get_ri(cid);
 
-    ri.text_id = loco->text.push_back(tp);
+    loco->text.push_back(tp, &ri.text_id);
 
     set_theme(cid, theme, inactive);
 
@@ -297,7 +297,7 @@ struct text_box_t {
   void erase(fan::graphics::cid_t* cid) {
     loco_t* loco = get_loco();
     auto& ri = sb_get_ri(cid);
-    loco->text.erase(ri.text_id);
+    loco->text.erase(&ri.text_id);
     loco->vfi.erase(ri.vfi_id);
     sb_erase(cid);
   }
@@ -380,9 +380,9 @@ struct text_box_t {
     set(cid, &vi_t::outline_size, t.button.outline_size);
     auto& ri = sb_get_ri(cid);
     ri.theme = theme;
-    loco->text.set(ri.text_id,
+    loco->text.set(&ri.text_id,
       &loco_t::letter_t::vi_t::outline_color, t.button.text_outline_color);
-    loco->text.set(ri.text_id,
+    loco->text.set(&ri.text_id,
       &loco_t::letter_t::vi_t::outline_size, t.button.text_outline_size);
   }
 
@@ -473,7 +473,7 @@ struct text_box_t {
 
   fan::string get_text(fan::graphics::cid_t* cid) {
     loco_t* loco = get_loco();
-    return loco->text.get_instance(sb_get_ri(cid).text_id).text;
+    return loco->text.get_instance(&sb_get_ri(cid).text_id).text;
   }
   void set_text(fan::graphics::cid_t* cid, const fan::string& text) {
     loco_t* loco = get_loco();
@@ -482,8 +482,8 @@ struct text_box_t {
 
   fan::vec3 get_text_left_position(fan::graphics::cid_t* cid) {
     auto loco = get_loco();
-    uint32_t id = sb_get_ri(cid).text_id;
-    f32_t text_length = loco->text.get_text_size(id).x;
+    uint32_t* id = (uint32_t*)&sb_get_ri(cid).text_id;
+    f32_t text_length = loco->text.get_text_size((fan::graphics::cid_t*)id).x;
     fan::vec3 center = get_button(cid, &text_box_t::vi_t::position);
     center.x -= text_length * 0.5;
     return center;
@@ -492,7 +492,7 @@ struct text_box_t {
   fan::vec3 get_character_position(fan::graphics::cid_t* cid, uint32_t line, uint32_t width) {
 
     auto loco = get_loco();
-    uint32_t id = sb_get_ri(cid).text_id;
+    fan::graphics::cid_t* id = &sb_get_ri(cid).text_id;
     fan::vec3 center = get_button(cid, &text_box_t::vi_t::position);
     if (width == 0) {
       if (loco->text.get_instance(id).text.empty()) {
@@ -502,7 +502,7 @@ struct text_box_t {
 
     fan::vec3 p = get_text_left_position(cid);
     const fan::string& text = loco->text.get_instance(id).text;
-    f32_t font_size = loco->text.letter_ids[id].p.font_size;
+    f32_t font_size = loco->text.letter_ids[*(uint32_t*)id].p.font_size;
     for (uint32_t i = 0; i < width; ++i) {
       auto letter = loco->font.info.get_letter_info(text.get_utf8(i), font_size);
       p.x += letter.metrics.advance;

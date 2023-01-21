@@ -45,7 +45,7 @@ struct pile_t {
   loco_t loco;
   loco_t::matrices_t matrices;
   fan::graphics::viewport_t viewport;
-  uint32_t ids[count];
+  fan::graphics::cid_t cid[count];
 };
 
 int main() {
@@ -58,7 +58,7 @@ int main() {
   p.viewport = &pile->viewport;
 
   p.font_size = 0.05;
-  p.text = L"01234";
+  p.text = "01234";
   for (uint32_t i = 0; i < count; i++) {
     if (!i) {
       p.color = fan::colors::red;
@@ -68,12 +68,12 @@ int main() {
     }
     p.position = fan::random::vec2(-1, 1);
     //p.text = fan::random::string(5);
-    pile->ids[i] = pile->loco.text.push_back(p);
+    pile->loco.text.push_back(p, &pile->cid[i]);
   }
-  pile->loco.text.erase(pile->ids[0]);
-  p.text = L"56789";
-  pile->loco.text.push_back(p);
-  pile->loco.text.set_text(&pile->ids[0], L"56789");
+  pile->loco.text.erase(&pile->cid[0]);
+  p.text = "56789";
+  pile->loco.text.push_back(p, &pile->cid[0]);
+  pile->loco.text.set_text(&pile->cid[0], "56789");
   pile->loco.set_vsync(false);
 
   pile->loco.loop([&] {

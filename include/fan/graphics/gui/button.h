@@ -33,7 +33,7 @@ struct button_t {
     cid_t* cid;
     uint8_t selected = 0;
     fan::graphics::theme_list_NodeReference_t theme;
-    uint32_t text_id;
+    fan::graphics::cid_t text_id;
     loco_t::vfi_t::shape_id_t vfi_id;
     uint64_t udata;
   };
@@ -88,7 +88,7 @@ struct button_t {
 
     sb_push_back(cid, p);
 
-    sb_get_ri(cid).text_id = loco->text.push_back(tp);
+    loco->text.push_back(tp, &sb_get_ri(cid).text_id);
 
     set_theme(cid, theme, inactive);
 
@@ -156,7 +156,7 @@ struct button_t {
   void erase(fan::graphics::cid_t* cid) {
     loco_t* loco = get_loco();
     auto& ri = sb_get_ri(cid);
-    loco->text.erase(ri.text_id);
+    loco->text.erase(&ri.text_id);
     loco->vfi.erase(ri.vfi_id);
     sb_erase(cid);
   }
@@ -205,9 +205,9 @@ struct button_t {
     set(cid, &vi_t::outline_size, t.button.outline_size);
     auto& ri = get_ri(cid);
     ri.theme = theme;
-    loco->text.set(ri.text_id, 
+    loco->text.set(&ri.text_id, 
       &loco_t::letter_t::vi_t::outline_color, t.button.text_outline_color);
-    loco->text.set(ri.text_id, 
+    loco->text.set(&ri.text_id, 
       &loco_t::letter_t::vi_t::outline_size, t.button.text_outline_size);
   }
 
@@ -298,7 +298,7 @@ struct button_t {
   fan::string get_text(fan::graphics::cid_t* cid) {
     loco_t* loco = get_loco();
     auto& ri = get_ri(cid);
-    return loco->text.get_instance(ri.text_id).text;
+    return loco->text.get_instance(&ri.text_id).text;
   }
   void set_text(fan::graphics::cid_t* cid, const fan::string& text) {
     loco_t* loco = get_loco();

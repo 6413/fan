@@ -70,103 +70,21 @@ struct global_button_t {
 	std::vector<instance_t*> instance;
 }global_button;
 
-//struct editor_button_t {
-//	using properties_t = loco_t::button_t::properties_t;
-//
-//	loco_t* get_loco() {
-//		return ((stage_maker_t*)OFFSETLESS(OFFSETLESS(this, fgm_t, editor_button), stage_maker_t, fgm))->get_loco();
-//	}
-//	pile_t* get_pile() {
-//		return OFFSETLESS(get_loco(), pile_t, loco_var_name);
-//	}
-//
-//	void push_back(properties_t& p) {
-//		p.position.z = 1;
-//		loco_t& loco = *get_loco();
-//		instance.resize(instance.size() + 1);
-//		uint32_t i = instance.size() - 1;
-//		instance[i] = new instance_t;
-//		instance[i]->shape = shapes::button;
-//		p.mouse_button_cb = [i](const loco_t::mouse_button_data_t& ii_d) -> int {
-//			pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi), pile_t, loco);
-//			if (ii_d.button != fan::mouse_left) {
-//				return 0;
-//			}
-//			if (ii_d.mouse_stage != loco_t::vfi_t::mouse_stage_e::inside) {
-//				return 0;
-//			}
-//			pile->stage_maker.fgm.action_flag |= action::move;
-//			builder_button_t::properties_t bbp;
-//			bbp.get_matrices() = &pile->stage_maker.fgm.matrices[viewport_area::editor];
-//			bbp.get_viewport() = &pile->stage_maker.fgm.viewport[viewport_area::editor];
-//			bbp.position = pile->loco.get_mouse_position(
-//				pile->stage_maker.fgm.viewport[viewport_area::editor].get_position(),
-//				pile->stage_maker.fgm.viewport[viewport_area::editor].get_size()
-//			);
-//
-//			bbp.size = button_size;
-//			//bbp.size = button_size;
-//			bbp.theme = &pile->stage_maker.fgm.theme;
-//			bbp.text = "button";
-//			bbp.font_size = scale_object_with_viewport(fan::vec2(0.2), &pile->stage_maker.fgm.viewport[viewport_area::types], &pile->stage_maker.fgm.viewport[viewport_area::editor]).x;
-//			//bbp.font_size = 0.2;
-//			auto& instance = pile->stage_maker.fgm.editor_button.instance[i];
-//			pile->stage_maker.fgm.builder_button.push_back(bbp);
-//			pile->loco.button.set_theme(&instance->cid, loco_t::button_t::inactive);
-//			auto builder_cid = &pile->stage_maker.fgm.builder_button.instance[pile->stage_maker.fgm.builder_button.instance.size() - 1]->cid;
-//			auto block = pile->loco.button.sb_get_block(builder_cid);
-//			pile->loco.vfi.set_focus_mouse(block->p[builder_cid->instance_id].vfi_id);
-//			pile->loco.vfi.feed_mouse_button(fan::mouse_left, fan::keyboard_state::press);
-//			pile->stage_maker.fgm.builder_button.open_properties(builder_cid);
-//
-//			auto stage_name = pile->stage_maker.get_selected_name(
-//				pile,
-//				pile->stage_maker.instances[pile_t::stage_maker_t::stage_t::stage_instance].menu_id,
-//				pile->loco.menu_maker.get_selected_id(pile->stage_maker.instances[pile_t::stage_maker_t::stage_t::stage_instance].menu_id)
-//			);
-//			auto file_name = pile->stage_maker.get_file_fullpath(stage_name);
-//
-//			fan::string str;
-//			fan::io::file::read(file_name, &str);
-//
-//			std::size_t button_id = -1;
-//			for (std::size_t j = 0; j < pile->stage_maker.fgm.builder_button.instance.size(); ++j) {
-//				if (&pile->stage_maker.fgm.builder_button.instance[j]->cid == builder_cid) {
-//					button_id = j;
-//					break;
-//				}
-//			}
-//
-//			if (button_id == -1) {
-//				fan::throw_error("some corruption xd");
-//			}
-//
-//			if (str.find(fan::to_string(button_id) + "(") != fan::string::npos) {
-//				return 0;
-//			}
-//
-//			str += "\n\nstatic int mouse_button_cb" + fan::to_string(button_id) + "(const loco_t::mouse_button_data_t& mb){\n  return 0;\n}";
-//
-//			fan::io::file::write(file_name, str, std::ios_base::binary);
-//			return 0;
-//		};
-//		loco.button.push_back(&instance[i]->cid, p);
-//	}
-//
-//	void clear() {
-//		loco_t& loco = *get_loco();
-//		for (auto& it : instance) {
-//			loco.button.erase(&it->cid);
-//			delete it;
-//		}
-//		instance.clear();
-//	}
-//	struct instance_t {
-//		fan::graphics::cid_t cid;
-//		uint16_t shape;
-//	};
-//	std::vector<instance_t*> instance;
-//}editor_button;
+fan::vec3 get_position(auto* shape, auto* instance) {
+  return shape->get_position(instance);
+}
+void set_position(auto* shape, auto* instance, const fan::vec3& p) {
+  shape->set_position(instance, p);
+}
+
+void move_shape(auto* shape, auto* instance, const fan::vec2& offset) {
+  fan::vec3 p = get_position(shape, instance);
+  p += fan::vec3(fan::vec2(
+      matrices->coordinates.right - matrices->coordinates.left,
+      matrices->coordinates.down - matrices->coordinates.up
+    ) / get_loco()->get_window()->get_size() * offset, 0);
+  set_position(shape, instance, p);
+}
 
 struct button_t {
 	using properties_t = loco_t::button_t::properties_t;
@@ -447,23 +365,21 @@ struct button_t {
 					holding_special_key = kd.keyboard_state == fan::keyboard_state::release ? 0 : 1;
 					break;
 				}
-        #define something_long(_operator, src, dst, d) \
-          case CONCAT(fan::key_, dst): { \
-          if (kd.keyboard_state == fan::keyboard_state::release) { \
-            return 0; \
-          } \
-          fan::vec3 ps = pile->loco.button.get_button(&instance->cid, &loco_t::button_t::vi_t::position); \
-            CONCAT(ps., d) CONCAT(_operator, =) abs((CONCAT(pile->loco.button.get_matrices(&instance->cid)->coordinates., src) - \
-              CONCAT(pile->loco.button.get_matrices(&instance->cid)->coordinates., dst)) / CONCAT(pile->loco.get_window()->get_size()., d)) ; \
-            pile->loco.button.set_position(&instance->cid, ps); \
-            open_properties(instance); \
-            break; \
+        case fan::key_left:
+        case fan::key_right:
+        case fan::key_up:
+        case fan::key_down:
+        {
+          if (kd.keyboard_state == fan::keyboard_state::release) {
+            return 0;
           }
-        something_long(-, right, left, x)
-        something_long(+, left, right, x)
-        something_long(-, down, up, y)
-        something_long(+, up, down, y)
-        #undef something_long
+          if (kd.key == fan::key_left) pile->stage_maker.fgm.move_shape(this, instance, fan::vec2(-1, 0));
+          if (kd.key == fan::key_right) pile->stage_maker.fgm.move_shape(this, instance, fan::vec2(1, 0));
+          if (kd.key == fan::key_up) pile->stage_maker.fgm.move_shape(this, instance, fan::vec2(0, -1));
+          if (kd.key == fan::key_down) pile->stage_maker.fgm.move_shape(this, instance, fan::vec2(0, 1));
+          open_properties(instance);
+          break;
+        }
 			}
 			return 0;
 		};
@@ -507,6 +423,13 @@ struct button_t {
 		}
 		instance.clear();
 	}
+
+  fan::vec3 get_position(instance_t* instance) {
+    return get_loco()->button.get(&instance->cid, &loco_t::button_t::vi_t::position);
+  }
+  void set_position(instance_t* instance, const fan::vec3& position) {
+    get_loco()->button.set_position(&instance->cid, position);
+  }
 
 	std::vector<instance_t*> instance;
 }builder_button;
@@ -771,8 +694,8 @@ struct sprite_t {
 					ps = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::position);
 				}
 
-				pile->stage_maker.fgm.sprite.set_size(i, rs);
-				pile->stage_maker.fgm.sprite.set_position(i, ps);
+				pile->stage_maker.fgm.sprite.set_size(instance, rs);
+				pile->stage_maker.fgm.sprite.set_position(instance, ps);
         pile->stage_maker.fgm.sprite.open_properties(instance);
 
 				if (ret) {
@@ -789,7 +712,7 @@ struct sprite_t {
 			p.x = ii_d.position.x + pile->stage_maker.fgm.move_offset.x;
 			p.y = ii_d.position.y + pile->stage_maker.fgm.move_offset.y;
 			p.z = ps.z;
-			pile->stage_maker.fgm.sprite.set_position(i, p);
+			pile->stage_maker.fgm.sprite.set_position(instance, p);
       pile->stage_maker.fgm.sprite.open_properties(instance);
 
 			return 0;
@@ -815,23 +738,21 @@ struct sprite_t {
 				pile->stage_maker.fgm.sprite.holding_special_key = kd.keyboard_state == fan::keyboard_state::release ? 0 : 1;
 				break;
 			}
-      #define something_long(_operator, src, dst, d) \
-        case CONCAT(fan::key_, dst): { \
-        if (kd.keyboard_state == fan::keyboard_state::release) { \
-               return 0; \
-        } \
-        fan::vec3 ps = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::position); \
-          CONCAT(ps., d) CONCAT(_operator, =) abs((CONCAT(pile->loco.sprite.get_matrices(&instance->cid)->coordinates., src) - \
-            CONCAT(pile->loco.sprite.get_matrices(&instance->cid)->coordinates., dst)) / CONCAT(pile->loco.get_window()->get_size()., d)) ; \
-          pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::position, ps); \
-          open_properties(instance); \
-          break; \
+      case fan::key_left:
+      case fan::key_right:
+      case fan::key_up:
+      case fan::key_down:
+      {
+        if (kd.keyboard_state == fan::keyboard_state::release) {
+          return 0;
         }
-      something_long(-, right, left, x)
-      something_long(+, left, right, x)
-      something_long(-, down, up, y)
-      something_long(+, up, down, y)
-      #undef something_long
+        if (kd.key == fan::key_left) pile->stage_maker.fgm.move_shape(this, instance, fan::vec2(-1, 0));
+        if (kd.key == fan::key_right) pile->stage_maker.fgm.move_shape(this, instance, fan::vec2(1, 0));
+        if (kd.key == fan::key_up) pile->stage_maker.fgm.move_shape(this, instance, fan::vec2(0, -1));
+        if (kd.key == fan::key_down) pile->stage_maker.fgm.move_shape(this, instance, fan::vec2(0, 1));
+        open_properties(instance);
+        break;
+      }
 			}
 			return 0;
 		};
@@ -868,15 +789,19 @@ struct sprite_t {
 		instances.clear();
 	}
 
-	void set_position(uint32_t i, const fan::vec3& position) {
+  fan::vec3 get_position(instance_t* instance) {
+    auto pile = get_pile();
+    return pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::position);
+  }
+	void set_position(instance_t* instance, const fan::vec3& position) {
 		auto pile = get_pile();
-		pile->loco.sprite.set(&instances[i]->cid, &loco_t::sprite_t::vi_t::position, position);
-		pile->loco.vfi.set_rectangle(instances[i]->vfi_id, &loco_t::vfi_t::shape_data_rectangle_t::position, position);
+		pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::position, position);
+		pile->loco.vfi.set_rectangle(instance->vfi_id, &loco_t::vfi_t::shape_data_rectangle_t::position, position);
 	}
-	void set_size(uint32_t i, const fan::vec2& size) {
+	void set_size(instance_t* instance, const fan::vec2& size) {
 		auto pile = get_pile();
-		pile->loco.sprite.set(&instances[i]->cid, &loco_t::sprite_t::vi_t::size, size);
-		pile->loco.vfi.set_rectangle(instances[i]->vfi_id, &loco_t::vfi_t::shape_data_rectangle_t::size, size);
+		pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::size, size);
+		pile->loco.vfi.set_rectangle(instance->vfi_id, &loco_t::vfi_t::shape_data_rectangle_t::size, size);
 	}
 
 	std::vector<instance_t*> instances;
@@ -887,7 +812,7 @@ struct text_t {
   uint8_t holding_special_key = 0;
 
   struct instance_t {
-    uint32_t cid;
+    fan::graphics::cid_t cid;
     loco_t::vfi_t::shape_id_t vfi_id;
     uint16_t shape;
     fan::string texturepack_name;
@@ -924,7 +849,7 @@ struct text_t {
     auto nr = pile->stage_maker.fgm.text_box_menu.push_menu(menup);
     pile->stage_maker.fgm.properties_nr = nr;
     text_box_menu_t::properties_t p;
-    auto position = pile->loco.text.get_instance(instance->cid).position;
+    auto position = pile->loco.text.get_instance(&instance->cid).position;
     p.text = fan::format("{:.2f}, {:.2f}, {:.2f}", position.x, position.y, position.z);
     p.text_value = "add cbs";
     p.mouse_button_cb = [this, instance](const loco_t::mouse_button_data_t& mb) -> int {
@@ -959,7 +884,7 @@ struct text_t {
     };
     pile->stage_maker.fgm.properties_nrs.push_back(pile->stage_maker.fgm.text_box_menu.push_back(nr, p));
 
-    f32_t size = pile->loco.text.get_font_size(instance->cid);
+    f32_t size = pile->loco.text.get_font_size(&instance->cid);
     p.text = fan::format("{:.2f}", size);
     p.text_value = "";
     p.keyboard_cb = [pile, this, instance, nr](const loco_t::keyboard_data_t& d) -> int {
@@ -984,7 +909,7 @@ struct text_t {
     };
     pile->stage_maker.fgm.properties_nrs.push_back(pile->stage_maker.fgm.text_box_menu.push_back(nr, p));
 
-    p.text = pile->loco.text.get_instance(instance->cid).text;
+    p.text = pile->loco.text.get_instance(&instance->cid).text;
     p.text_value = "";
     p.keyboard_cb = [pile, this, instance, nr](const loco_t::keyboard_data_t& d) -> int {
       if (d.key != fan::key_enter) {
@@ -1029,21 +954,21 @@ struct text_t {
       switch (ii_d.button) {
       case fan::mouse_scroll_up: {
         if (pile->stage_maker.fgm.action_flag & action::move) {
-          fan::vec3 ps = pile->loco.text.get_instance(instance->cid).position;
+          fan::vec3 ps = pile->loco.text.get_instance(&instance->cid).position;
           ps.z += 0.5;
           pile->loco.text.set_position(&instance->cid, ps);
-          pile->loco.text.set_depth(instance->cid, ps.z);
+          pile->loco.text.set_depth(&instance->cid, ps.z);
           open_properties(instance);
         }
         return 0;
       }
       case fan::mouse_scroll_down: {
         if (pile->stage_maker.fgm.action_flag & action::move) {
-          fan::vec3 ps = pile->loco.text.get_instance(instance->cid).position;
+          fan::vec3 ps = pile->loco.text.get_instance(&instance->cid).position;
           ps.z -= 0.5;
           ps.z = fan::clamp((f32_t)ps.z, (f32_t)0.f, (f32_t)ps.z);
           pile->loco.text.set_position(&instance->cid, ps);
-          pile->loco.text.set_depth(instance->cid, ps.z);
+          pile->loco.text.set_depth(&instance->cid, ps.z);
           pile->stage_maker.fgm.text.open_properties(instance);
         }
         return 0;
@@ -1077,10 +1002,10 @@ struct text_t {
       }
       pile->stage_maker.fgm.action_flag |= action::move;
       pile->stage_maker.fgm.click_position = ii_d.position;
-      pile->stage_maker.fgm.move_offset = fan::vec2(pile->loco.text.get_instance(instance->cid).position) - pile->stage_maker.fgm.click_position;
+      pile->stage_maker.fgm.move_offset = fan::vec2(pile->loco.text.get_instance(&instance->cid).position) - pile->stage_maker.fgm.click_position;
       pile->stage_maker.fgm.resize_offset = pile->stage_maker.fgm.click_position;
-      fan::vec3 rp = pile->loco.text.get_instance(instance->cid).position;
-      f32_t rs = pile->loco.text.get_font_size(instance->cid);
+      fan::vec3 rp = pile->loco.text.get_instance(&instance->cid).position;
+      f32_t rs = pile->loco.text.get_font_size(&instance->cid);
       pile->stage_maker.fgm.resize_side = fan_2d::collision::rectangle::get_side_collision(ii_d.position, rp, rs);
       pile->stage_maker.fgm.text.open_properties(instance);
       return 0;
@@ -1093,8 +1018,8 @@ struct text_t {
       pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi_var_name), pile_t, loco_var_name);
       instance_t* instance = pile->stage_maker.fgm.text.instances[i];
       if (holding_special_key) {
-        fan::vec3 ps = pile->loco.text.get_instance(instance->cid).position;
-        f32_t rs = pile->loco.text.get_font_size(instance->cid);
+        fan::vec3 ps = pile->loco.text.get_instance(&instance->cid).position;
+        f32_t rs = pile->loco.text.get_font_size(&instance->cid);
 
         static constexpr f32_t minimum_rectangle_size = 0.03;
         static constexpr fan::vec2i multiplier[] = { {-1, -1}, {1, -1}, {1, 1}, {-1, 1} };
@@ -1119,11 +1044,11 @@ struct text_t {
           ps += (ii_d.position - pile->stage_maker.fgm.resize_offset) / 2;
         }
         if (rs == minimum_rectangle_size) {
-          ps = pile->loco.text.get_instance(instance->cid).position;
+          ps = pile->loco.text.get_instance(&instance->cid).position;
         }
 
-        pile->stage_maker.fgm.text.set_font_size(i, rs);
-        pile->stage_maker.fgm.text.set_position(i, ps);
+        pile->stage_maker.fgm.text.set_font_size(instance, rs);
+        pile->stage_maker.fgm.text.set_position(instance, ps);
         pile->stage_maker.fgm.text.open_properties(instance);
 
         if (ret) {
@@ -1135,12 +1060,12 @@ struct text_t {
         return 0;
       }
 
-      fan::vec3 ps = pile->loco.text.get_instance(instance->cid).position;
+      fan::vec3 ps = pile->loco.text.get_instance(&instance->cid).position;
       fan::vec3 p;
       p.x = ii_d.position.x + pile->stage_maker.fgm.move_offset.x;
       p.y = ii_d.position.y + pile->stage_maker.fgm.move_offset.y;
       p.z = ps.z;
-      pile->stage_maker.fgm.text.set_position(i, p);
+      pile->stage_maker.fgm.text.set_position(instance, p);
       pile->stage_maker.fgm.text.open_properties(instance);
 
       return 0;
@@ -1166,37 +1091,36 @@ struct text_t {
         pile->stage_maker.fgm.text.holding_special_key = kd.keyboard_state == fan::keyboard_state::release ? 0 : 1;
         break;
       }
-      #define something_long(_operator, src, dst, d) \
-        case CONCAT(fan::key_, dst): { \
-        if (kd.keyboard_state == fan::keyboard_state::release) { \
-          return 0; \
-        } \
-        fan::vec3 ps = pile->loco.text.get_instance(instance->cid).position; \
-          CONCAT(ps., d) CONCAT(_operator, =) abs((CONCAT(pile->loco.text.get_matrices(instance->cid)->coordinates., src) - \
-            CONCAT(pile->loco.text.get_matrices(instance->cid)->coordinates., dst)) / CONCAT(pile->loco.get_window()->get_size()., d)) ; \
-          pile->loco.text.set_position(&instance->cid, ps); \
-          open_properties(instance); \
-          break; \
+      case fan::key_left:
+      case fan::key_right:
+      case fan::key_up:
+      case fan::key_down:
+      {
+        if (kd.keyboard_state == fan::keyboard_state::release) {
+          return 0;
         }
-      something_long(-, right, left, x)
-      something_long(+, left, right, x)
-      something_long(-, down, up, y)
-      something_long(+, up, down, y)
+        if (kd.key == fan::key_left) pile->stage_maker.fgm.move_shape(this, instance, fan::vec2(-1, 0));
+        if (kd.key == fan::key_right) pile->stage_maker.fgm.move_shape(this, instance, fan::vec2(1, 0));
+        if (kd.key == fan::key_up) pile->stage_maker.fgm.move_shape(this, instance, fan::vec2(0, -1));
+        if (kd.key == fan::key_down) pile->stage_maker.fgm.move_shape(this, instance, fan::vec2(0, 1));
+        open_properties(instance);
+        break;
+      }
       #undef something_long
       }
       return 0;
     };
-    instances[i]->cid = pile->loco.text.push_back(p);
+    pile->loco.text.push_back(p, &instances[i]->cid);
     vfip.shape_type = loco_t::vfi_t::shape_t::rectangle;
     vfip.shape.rectangle.position = p.position;
-    vfip.shape.rectangle.size = pile->loco.text.get_text_size(instances[i]->cid);
+    vfip.shape.rectangle.size = pile->loco.text.get_text_size(&instances[i]->cid);
     vfip.shape.rectangle.matrices = p.matrices;
     vfip.shape.rectangle.viewport = p.viewport;
     instances[i]->vfi_id = pile->loco.push_back_input_hitbox(vfip);
   }
-  void erase(uint32_t* cid) {
+  void erase(fan::graphics::cid_t* cid) {
     loco_t& loco = *get_loco();
-    loco.text.erase(*cid);
+    loco.text.erase(cid);
     for (uint32_t i = 0; i < instances.size(); i++) {
       if (&instances[i]->cid == cid) {
         instances.erase(instances.begin() + i);
@@ -1209,22 +1133,27 @@ struct text_t {
     close_properties();
     loco_t& loco = *get_loco();
     for (auto& it : instances) {
-      loco.text.erase(it->cid);
+      loco.text.erase(&it->cid);
       loco.vfi.erase(it->vfi_id);
       delete it;
     }
     instances.clear();
   }
-
-  void set_position(uint32_t i, const fan::vec3& position) {
+  
+  fan::vec3 get_position(instance_t* instance) {
     auto pile = get_pile();
-    pile->loco.text.set_position(&instances[i]->cid, position);
-    pile->loco.vfi.set_rectangle(instances[i]->vfi_id, &loco_t::vfi_t::shape_data_rectangle_t::position, position);
+    return pile->loco.text.get_instance(&instance->cid).position;
   }
-  void set_font_size(uint32_t i, f32_t font_size) {
+
+  void set_position(instance_t* instance, const fan::vec3& position) {
     auto pile = get_pile();
-    pile->loco.text.set_font_size(&instances[i]->cid, font_size);
-    pile->loco.vfi.set_rectangle(instances[i]->vfi_id, &loco_t::vfi_t::shape_data_rectangle_t::size, pile->loco.text.get_text_size(instances[i]->cid));
+    pile->loco.text.set_position(&instance->cid, position);
+    pile->loco.vfi.set_rectangle(instance->vfi_id, &loco_t::vfi_t::shape_data_rectangle_t::position, position);
+  }
+  void set_font_size(instance_t* instance, f32_t font_size) {
+    auto pile = get_pile();
+    pile->loco.text.set_font_size(&instance->cid, font_size);
+    pile->loco.vfi.set_rectangle(instance->vfi_id, &loco_t::vfi_t::shape_data_rectangle_t::size, pile->loco.text.get_text_size(&instance->cid));
   }
 
   std::vector<instance_t*> instances;
