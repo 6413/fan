@@ -8,12 +8,12 @@ struct stage_loader_t {
 
 	#include _PATH_QUOTE(stage_loader_path/stages/stage.h)
 
-	void open(loco_t* loco, const char* compiled_tp_path) {
-    texturepack.open_compiled(loco, compiled_tp_path);
+	void open(loco_t* loco, loco_t::texturepack_t* tp) {
+    texturepack = tp;
 	}
-	void close() {
-    texturepack.close();
-	}
+  void close(loco_t* loco) {
+
+  }
 
   void load_fgm(loco_t* loco, auto* stage, const stage_open_properties_t& op, const char* stage_name) {
 
@@ -53,11 +53,11 @@ struct stage_loader_t {
           loco_t::sprite_t::properties_t sp;
           sp.position = data.position;
           sp.size = data.size;
-          loco_t::texturepack::ti_t ti;
-          if (texturepack.qti(t, &ti)) {
+          loco_t::texturepack_t::ti_t ti;
+          if (texturepack->qti(t, &ti)) {
             fan::throw_error("failed to load texture from texturepack");
           }
-          auto pd = texturepack.get_pixel_data(ti.pack_id);
+          auto pd = texturepack->get_pixel_data(ti.pack_id);
           sp.image = &pd.image;
           sp.tc_position = ti.position / pd.size;
           sp.tc_size = ti.size / pd.size;
@@ -76,7 +76,7 @@ struct stage_loader_t {
           p.position = data.position;
           p.font_size = data.size;
           p.text = t;
-          stage->cid_list[nr] = (fan::graphics::cid_t)loco->text.push_back(p);
+          loco->text.push_back(p, &stage->cid_list[nr]);
           break;
         }
         default: {
@@ -110,7 +110,7 @@ struct stage_loader_t {
     stage_list.unlrec(id);
 	}
 
-  loco_t::texturepack texturepack;
+  loco_t::texturepack_t* texturepack;
 };
 
 #undef stage_loader_path

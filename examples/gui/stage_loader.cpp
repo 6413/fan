@@ -22,7 +22,7 @@ struct pile_t {
   static constexpr fan::vec2 ortho_x = fan::vec2(-1, 1);
   static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
 
-  pile_t(const char* compiled_texturepack_name) {
+  pile_t() {
     fan::vec2 window_size = loco.get_window()->get_size();
     loco.open_matrices(
       &matrices,
@@ -46,11 +46,10 @@ struct pile_t {
     theme.open(loco.get_context());
 
     // requires manual open with compiled texture pack name
-    stage_loader.open(&loco, compiled_texturepack_name);
   }
 
   ~pile_t() {
-    stage_loader.close();
+    stage_loader.close(&loco);
   }
 
   fan_2d::graphics::gui::theme_t theme;
@@ -68,8 +67,11 @@ int main(int argc, char** argv) {
   if (argc < 2) {
     fan::throw_error("usage: TexturePackCompiled");
   }
-  
-  pile_t pile(argv[1]);
+
+  pile_t pile;
+  loco_t::texturepack_t tp;
+  tp.open_compiled(&pile.loco, argv[1]);
+  pile.stage_loader.open(&pile.loco, &tp);
 
 	using sl = pile_t::stage_loader_t;
   
