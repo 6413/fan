@@ -4,6 +4,7 @@ struct stage_maker_shape_format {
     using _t = uint16_t;
     static constexpr _t button = 0;
     static constexpr _t sprite = 1;
+    static constexpr _t text = 2;
   };
 
   struct shape_button_t {
@@ -15,6 +16,9 @@ struct stage_maker_shape_format {
   struct shape_sprite_t {
     fan::vec3 position;
     fan::vec2 size;
-    uint64_t hash_path;
+  };
+  struct shape_text_t {
+    fan::vec3 position;
+    f32_t size;
   };
 };

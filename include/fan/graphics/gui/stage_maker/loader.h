@@ -49,11 +49,12 @@ struct stage_loader_t {
         }
         case stage_maker_shape_format::shape_type_t::sprite: {
           auto data = fan::io::file::read_data<stage_maker_shape_format::shape_sprite_t>(f, off);
+          auto t = fan::io::file::read_data<fan::string>(f, off);
           loco_t::sprite_t::properties_t sp;
           sp.position = data.position;
           sp.size = data.size;
           loco_t::texturepack::ti_t ti;
-          if (texturepack.qti(data.hash_path, &ti)) {
+          if (texturepack.qti(t, &ti)) {
             fan::throw_error("failed to load texture from texturepack");
           }
           auto pd = texturepack.get_pixel_data(ti.pack_id);
@@ -63,6 +64,19 @@ struct stage_loader_t {
           sp.matrices = op.matrices;
           sp.viewport = op.viewport;
           loco->sprite.push_back(&stage->cid_list[nr], sp);
+          break;
+        }
+        case stage_maker_shape_format::shape_type_t::text: {
+          auto data = fan::io::file::read_data<stage_maker_shape_format::shape_text_t>(f, off);
+          auto t = fan::io::file::read_data<fan::string>(f, off);
+          loco_t::text_t::properties_t p;
+          p.matrices = op.matrices;
+          p.viewport = op.viewport;
+
+          p.position = data.position;
+          p.font_size = data.size;
+          p.text = t;
+          stage->cid_list[nr] = (fan::graphics::cid_t)loco->text.push_back(p);
           break;
         }
         default: {

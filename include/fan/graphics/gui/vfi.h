@@ -223,8 +223,8 @@ struct vfi_t {
 
     f32_t l = matrices->coordinates.left;
     f32_t r = matrices->coordinates.right;
-    f32_t t = matrices->coordinates.top;
-    f32_t b = matrices->coordinates.bottom;
+    f32_t t = matrices->coordinates.up;
+    f32_t b = matrices->coordinates.down;
 
     fan::vec2 tp = p - viewport_position;
     fan::vec2 d = viewport_size;

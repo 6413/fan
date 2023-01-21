@@ -3,6 +3,7 @@ struct fgm_t {
 		static constexpr uint16_t line = 0;
 		static constexpr uint16_t button = 1;
 		static constexpr uint16_t sprite = 2;
+    static constexpr uint16_t text = 3;
 	};
 
 	struct viewport_area {
@@ -199,7 +200,7 @@ struct fgm_t {
 			      if (ii_d.mouse_stage != loco_t::vfi_t::mouse_stage_e::inside) {
 				      return 0;
 			      }
-			      builder_button_t::properties_t bbp;
+			      button_t::properties_t bbp;
 			      bbp.matrices = &pile->stage_maker.fgm.matrices[viewport_area::editor];
 			      bbp.viewport = &pile->stage_maker.fgm.viewport[viewport_area::editor];
 			      bbp.position = fan::vec3(0, 0, 0);
@@ -320,7 +321,7 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
           	sp.position = fan::vec2(0, 0);
 
           	sp.size = fan::vec2(0.1, 0.1);
-          	sp.image = &default_texture;
+          	sp.image = &pile->loco.default_texture;
           	pile->stage_maker.fgm.sprite.push_back(sp);
           	auto& instance = pile->stage_maker.fgm.sprite.instances[pile->stage_maker.fgm.sprite.instances.size() - 1];
           	pile->stage_maker.fgm.sprite.open_properties(instance);
@@ -331,7 +332,33 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
           }
         });
         push_menu(mb, {
-          .text = "text"
+           .text = "text",
+          .mouse_button_cb = [this](const loco_t::mouse_button_data_t& ii_d) -> int {
+            pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi), pile_t, loco);
+            if (ii_d.button != fan::mouse_left) {
+              return 0;
+            }
+            if (ii_d.button_state != fan::mouse_state::release) {
+              return 0;
+            }
+            if (ii_d.mouse_stage != loco_t::vfi_t::mouse_stage_e::inside) {
+              return 0;
+            }
+            text_t::properties_t sp;
+            sp.matrices = &pile->stage_maker.fgm.matrices[viewport_area::editor];
+            sp.viewport = &pile->stage_maker.fgm.viewport[viewport_area::editor];
+            sp.position = fan::vec2(0, 0);
+
+            sp.font_size = 0.1;
+            sp.text = "text";
+            pile->stage_maker.fgm.text.push_back(sp);
+            auto& instance = pile->stage_maker.fgm.text.instances[pile->stage_maker.fgm.text.instances.size() - 1];
+            pile->stage_maker.fgm.text.open_properties(instance);
+
+            invalidate_right_click_menu();
+
+            return 1;
+          }
         });
 
         loco_t::vfi_t::properties_t p;
@@ -352,7 +379,7 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
 		global_button_t::properties_t gbp;
 		gbp.matrices = &matrices[viewport_area::global];
 		gbp.viewport = &viewport[viewport_area::global];
-		gbp.position = fan::vec2(-0.8, matrices[viewport_area::types].coordinates.top * 0.9);
+		gbp.position = fan::vec2(-0.8, matrices[viewport_area::types].coordinates.up * 0.9);
 		gbp.size = button_size / fan::vec2(4, 2);
 		gbp.theme = &theme;
 		gbp.text = "<-";
@@ -394,8 +421,6 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
 
 		texturepack.open_compiled(&loco, texturepack_name);
 
-    default_texture.create_missing_texture(&loco);
-
 		loco.get_window()->add_resize_callback([this](const fan::window_t::resize_cb_data_t& d) {
 			resize_cb();
 		});
@@ -434,6 +459,7 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
 		global_button.clear();
 		builder_button.clear();
 		sprite.clear();
+    text.clear();
 		button_menu.clear();
 	}
 
@@ -459,7 +485,7 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
         case stage_maker_shape_format::shape_type_t::button: {
           auto data = fan::io::file::read_data<stage_maker_shape_format::shape_button_t>(f, off);
           auto text = fan::io::file::read_data<fan::string>(f, off);
-          builder_button_t::properties_t bp;
+          button_t::properties_t bp;
           bp.position = data.position;
           bp.size = data.size;
           bp.font_size = data.font_size;
@@ -472,20 +498,36 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
         }
         case stage_maker_shape_format::shape_type_t::sprite: {
           auto data = fan::io::file::read_data<stage_maker_shape_format::shape_sprite_t>(f, off);
+          auto t = fan::io::file::read_data<fan::string>(f, off);
           sprite_t::properties_t sp;
           sp.position = data.position;
           sp.size = data.size;
           loco_t::texturepack::ti_t ti;
-          if (texturepack.qti(data.hash_path, &ti)) {
-            fan::throw_error("failed to load texture from texturepack");
+          if (texturepack.qti(t, &ti)) {
+            sp.image = &get_loco()->default_texture;
           }
-          auto pd = texturepack.get_pixel_data(ti.pack_id);
-          sp.image = &pd.image;
-          sp.tc_position = ti.position / pd.size;
-          sp.tc_size = ti.size / pd.size;
+          else {
+            auto pd = texturepack.get_pixel_data(ti.pack_id);
+            sp.image = &pd.image;
+            sp.tc_position = ti.position / pd.size;
+            sp.tc_size = ti.size / pd.size;
+          }
           sp.matrices = &matrices[viewport_area::editor];
           sp.viewport = &viewport[viewport_area::editor];
+          sp.texturepack_name = t;
           sprite.push_back(sp);
+          break;
+        }
+        case stage_maker_shape_format::shape_type_t::text: {
+          auto data = fan::io::file::read_data<stage_maker_shape_format::shape_text_t>(f, off);
+          auto t = fan::io::file::read_data<fan::string>(f, off);
+          text_t::properties_t p;
+          p.position = data.position;
+          p.font_size = data.size;
+          p.matrices = &matrices[viewport_area::editor];
+          p.viewport = &viewport[viewport_area::editor];
+          p.text = t;
+          text.push_back(p);
           break;
         }
         default: {
@@ -525,12 +567,12 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
       stage_maker_shape_format::shape_button_t data;
 			data.position = loco->button.get(&it->cid, &loco_t::button_t::vi_t::position);
 			data.size = loco->button.get(&it->cid, &loco_t::button_t::vi_t::size);
-			data.font_size = loco->text.get_properties(
+			data.font_size = loco->text.get_instance(
 				loco->button.get_ri(&it->cid).text_id
 			).font_size;
       //data.theme = *loco->button.get_theme(&it->cid);
       add_to_f(data);
-      add_to_f(it->text);
+      add_to_f(loco->button.get_text(&it->cid));
 		}
 
     instances_count = sprite.instances.size();
@@ -541,8 +583,20 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
       stage_maker_shape_format::shape_sprite_t data;
       data.position = loco->sprite.get(&it->cid, &loco_t::sprite_t::vi_t::position);
       data.size = loco->sprite.get(&it->cid, &loco_t::sprite_t::vi_t::size);
-      data.hash_path = fan::get_hash(it->texturepack_name);
       add_to_f(data);
+      add_to_f(it->texturepack_name);
+    }
+
+    instances_count = text.instances.size();
+
+    add_to_f(stage_maker_shape_format::shape_type_t::text);
+    add_to_f(instances_count);
+    for (auto it : text.instances) {
+      stage_maker_shape_format::shape_text_t data;
+      data.position = loco->text.get_instance(it->cid).position;
+      data.size = loco->text.get_instance(it->cid).font_size;
+      add_to_f(data);
+      add_to_f(loco->text.get_instance(it->cid).text);
     }
 
 		fan::io::file::write(
@@ -581,8 +635,6 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
 	fan::vec2 editor_position;
 	fan::vec2 editor_size;
 	fan::vec2 editor_ratio;
-
-	loco_t::image_t default_texture;
 
 	loco_t::texturepack texturepack;
 

@@ -316,8 +316,8 @@ public:
         );
       coordinates.left = x.x;
       coordinates.right = x.y;
-      coordinates.bottom = y.y;
-      coordinates.top = y.x;
+      coordinates.down = y.y;
+      coordinates.up = y.x;
 
       m_view[3][0] = 0;
       m_view[3][1] = 0;
@@ -389,8 +389,8 @@ public:
       struct {
         f32_t left;
         f32_t right;
-        f32_t top;
-        f32_t bottom;
+        f32_t up;
+        f32_t down;
       };
       fan::vec4 v;
     }coordinates;
@@ -1001,6 +1001,8 @@ public:
     pipeline_p.enable_depth_test = false;
     context->render_fullscreen_pl.open(context, pipeline_p);
   #endif
+
+    default_texture.create_missing_texture(this);
   }
 
   #if defined(loco_vfi)
@@ -1160,6 +1162,7 @@ public:
   }
   #endif
   fan::function_t<void()> draw_queue = [] {};
+  image_t default_texture;
 };
 
 #if defined(loco_window)
