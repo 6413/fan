@@ -552,7 +552,7 @@ struct sprite_t {
       auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[pile->stage_maker.fgm.properties_nrs[2]];
       auto text = pile->loco.text_box.get_text(&it.cid);
       
-      loco_t::texturepack::ti_t ti;
+      loco_t::texturepack_t::ti_t ti;
       if (pile->stage_maker.fgm.texturepack.qti(text, &ti)) {
         fan::print_no_space("failed to load texture:", fan::string(text).c_str());
         return 0;

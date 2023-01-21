@@ -502,7 +502,7 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
           sprite_t::properties_t sp;
           sp.position = data.position;
           sp.size = data.size;
-          loco_t::texturepack::ti_t ti;
+          loco_t::texturepack_t::ti_t ti;
           if (texturepack.qti(t, &ti)) {
             sp.image = &get_loco()->default_texture;
           }
@@ -636,7 +636,7 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
 	fan::vec2 editor_size;
 	fan::vec2 editor_ratio;
 
-	loco_t::texturepack texturepack;
+	loco_t::texturepack_t texturepack;
 
 	loco_t::menu_maker_button_t::nr_t right_click_menu_nr;
   loco_t::vfi_t::shape_id_t vfi_id;
