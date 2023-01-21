@@ -154,7 +154,7 @@ struct text_renderer_t {
       advance += letter_info.metrics.advance;
       //left += letter_info.metrics.advance;
     }
-    *cid = (fan::opengl::cid_t)id;
+    *cid = *(fan::opengl::cid_t*)&id;
   }
 
   void erase(fan::graphics::cid_t* cid) {

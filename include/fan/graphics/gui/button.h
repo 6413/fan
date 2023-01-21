@@ -222,12 +222,12 @@ struct button_t {
     loco->button.set(cid, member, value);
   }
 
-  template <typename T>
-  T get_text_renderer(fan::graphics::cid_t* cid, auto T::* member) {
-    loco_t* loco = get_loco();
-    auto block = sb_get_block(cid);
-    return loco->text.get(block->p[cid->instance_id].text_id, member);
-  }
+  //template <typename T>
+  //T get_text_renderer(fan::graphics::cid_t* cid, auto T::* member) {
+  //  loco_t* loco = get_loco();
+  //  auto block = sb_get_block(cid);
+  //  return loco->text.get(block->p[cid->instance_id].text_id, member);
+  //}
   template <typename T, typename T2>
   void set_text_renderer(fan::graphics::cid_t* cid, auto T::*member, const T2& value) {
     loco_t* loco = get_loco();
