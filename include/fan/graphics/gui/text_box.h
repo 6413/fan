@@ -397,11 +397,11 @@ struct text_box_t {
     loco->text_box.set(cid, member, value);
   }
 
-  template <typename T>
-  T get_text_renderer(fan::graphics::cid_t* cid, T loco_t::letter_t::vi_t::* member) {
-    loco_t* loco = get_loco();
-    return loco->text.get(sb_get_ri(cid).text_id, member);
-  }
+  //template <typename T>
+  //T get_text_renderer(fan::graphics::cid_t* cid, T loco_t::letter_t::vi_t::* member) {
+  //  loco_t* loco = get_loco();
+  //  return loco->text.get(sb_get_ri(cid).text_id, member);
+  //}
   template <typename T, typename T2>
   void set_text_renderer(fan::graphics::cid_t* cid, T loco_t::letter_t::vi_t::* member, const T2& value) {
     loco_t* loco = get_loco();
