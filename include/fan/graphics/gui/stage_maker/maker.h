@@ -173,11 +173,12 @@ void update(auto* loco){
 		}
 
 		static constexpr const char* find_end_str("\n};");
-    auto struct_stage_end = stage_h_str.find_last_of(find_end_str) - strlen(find_end_str);
+    auto struct_stage_end = stage_h_str.find_last_of(find_end_str);
 
 		if (struct_stage_end == fan::string::npos) {
 			fan::throw_error("corrupted stage.h");
 		}
+    struct_stage_end -= 1;
 
     auto append_struct = fmt::format(R"(
   struct {}_t : stage_common_t_t<{}_t> {{
@@ -377,69 +378,9 @@ void update(auto* loco){
 	void open(const char* texturepack_name) {
 		
   if (!fan::io::file::exists(fan::string(stage_folder_name) + "/stage.h")) {
-    stage_h_str = R"(protected:
-  #define BLL_set_CPP_ConstructDestruct
-  #define BLL_set_CPP_Node_ConstructDestruct
-  #define BLL_set_BaseLibrary 1
-  #define BLL_set_prefix stage_list
-  #define BLL_set_type_node uint16_t
-  #define BLL_set_NodeDataType void *
-  #define BLL_set_Link 1
-  #define BLL_set_AreWeInsideStruct 1
-  #include _FAN_PATH(BLL/BLL.h)
-public:
-
-using nr_t = stage_list_NodeReference_t;
-
-struct stage_open_properties_t {
-	loco_t::matrices_list_NodeReference_t matrices;
-	fan::graphics::viewport_list_NodeReference_t viewport;
-	fan::graphics::theme_list_NodeReference_t theme;
-
-  stage_loader_t::nr_t parent_id;
-};
-
-template <typename T = __empty_struct>
-struct stage_common_t_t {
-
-  stage_common_t_t(auto* loader, auto* loco, const stage_open_properties_t& properties) {
-    T* stage = (T*)this;
-    loader->load_fgm(loco, (T*)this, properties, stage->stage_name);
-    stage->open(loco);
-  }
-  void close(auto* loco) {
-    T* stage = (T*)this;
-    stage->close(loco);
-  }
-
-  nr_t stage_id;
-
-protected:
-  #define BLL_set_CPP_ConstructDestruct
-  #define BLL_set_CPP_Node_ConstructDestruct
-  #define BLL_set_BaseLibrary 1
-  #define BLL_set_prefix cid_list
-  #define BLL_set_type_node uint16_t
-  #define BLL_set_NodeDataType fan::graphics::cid_t
-  #define BLL_set_Link 1
-  #define BLL_set_StoreFormat 1
-  #define BLL_set_AreWeInsideStruct 1
-  #define BLL_set_StoreFormat1_ElementPerBlock 0x100
-  #include _FAN_PATH(BLL/BLL.h)
-public:
-
-  cid_list_t cid_list;
-
-  stage_loader_t::nr_t parent_id;
-};
-
-using stage_common_t = stage_common_t_t<>;
-
-struct stage {
+    stage_h_str = R"(struct stage {
   inline static stage_list_t stage_list;
-};
-
-)";
+};)";
   }
   else {
     fan::io::file::read(fan::string(stage_folder_name) + "/stage.h", &stage_h_str);

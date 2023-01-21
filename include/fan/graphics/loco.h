@@ -6,7 +6,7 @@
 
 struct loco_t;
 
-//#define loco_framebuffer
+#define loco_framebuffer
 
 #include _FAN_PATH(graphics/graphics.h)
 #include _FAN_PATH(time/timer.h)
