@@ -298,7 +298,7 @@ struct button_t {
   fan::string get_text(fan::graphics::cid_t* cid) {
     loco_t* loco = get_loco();
     auto& ri = get_ri(cid);
-    return loco->text.get_properties(ri.text_id).text;
+    return loco->text.get_instance(ri.text_id).text;
   }
   void set_text(fan::graphics::cid_t* cid, const fan::string& text) {
     loco_t* loco = get_loco();

@@ -3,6 +3,10 @@ struct text_renderer_t {
   #define make_key_value(type, name) \
     type& name = *key.get_value<decltype(key)::get_index_with_type<type>()>();
 
+  //using ri_t = loco_t::letter_t::ri_t;
+  using vi_t = loco_t::letter_t::vi_t;
+  using ri_t = loco_t::letter_t::ri_t;
+
   struct properties_t : loco_t::letter_t::ri_t{
 
     properties_t() = default;
@@ -64,7 +68,7 @@ struct text_renderer_t {
     loco_t* loco = get_loco();
     fan::vec2 text_size = 0;
 
-    text_size.y = loco->font.info.line_height;
+    text_size.y = loco->font.info.get_line_height(font_size);
 
 
     for (int i = 0; i < text.utf8_size(); i++) {
@@ -189,7 +193,7 @@ struct text_renderer_t {
     while (it != letter_ids[id].cid.dst) {
       auto node = letter_ids[id].cid.GetNodeByReference(it);
 
-      auto p = get_properties(id);
+      auto p = get_instance(id);
       loco->letter.erase(&node->data.cid);
       ;
       if constexpr(std::is_same<T, fan::vec3>::value)
@@ -244,9 +248,21 @@ struct text_renderer_t {
     }
   }
 
+  void set_depth(uint32_t id, f32_t depth) {
+    loco_t* loco = get_loco();
+
+    auto it = letter_ids[id].cid_list.GetNodeFirst();
+
+    while (it != letter_ids[id].cid_list.dst) {
+      auto node = letter_ids[id].cid_list.GetNodeByReference(it);
+      loco->letter.set_depth(&node->data.cid, depth);
+      it = node->NextNodeReference;
+    }
+  }
+
   //void set_position(loco_t* loco, uint32_t id, const fan::vec2& position) {
   //  for (uint32_t i = 0; i < letter_ids[id].size(); i++) {
-  //    auto p = loco->letter.get_properties(loco, &letter_ids[id][i]);
+  //    auto p = loco->letter.get_instance(loco, &letter_ids[id][i]);
   //    loco->letter.erase(loco, &letter_ids[id][i]);
   //    auto letter_info = loco->font.info.get_letter_info(p.letter_id, p.font_size);
 
@@ -257,14 +273,21 @@ struct text_renderer_t {
   //  }
   //}
 
-  //f32_t get_font_size(uint32_t id) {
-  //  auto loco = get_loco();
-  //  auto it = letter_ids[id].GetNodeFirst();
-  //  auto node = letter_ids[id].GetNodeByReference(it);
-  //  return loco->letter.get_properties(&node->data.cid).font_size;
-  //}
+  f32_t get_font_size(uint32_t id) {
+    auto loco = get_loco();
+    auto it = letter_ids[id].cid_list.GetNodeFirst();
+    auto node = letter_ids[id].cid_list.GetNodeByReference(it);
+    return loco->letter.sb_get_ri(&node->data.cid).font_size;
+  }
 
-  properties_t get_properties(uint32_t id) {
+  auto get_matrices(uint32_t id) {
+    auto loco = get_loco();
+    auto it = letter_ids[id].cid_list.GetNodeFirst();
+    auto node = letter_ids[id].cid_list.GetNodeByReference(it);
+    return loco->letter.get_matrices(&node->data.cid);
+  }
+
+  properties_t get_instance(uint32_t id) {
     return letter_ids[id].p;
   }
   void set_text(uint32_t* id, const fan::string& text) {
@@ -279,6 +302,13 @@ struct text_renderer_t {
     properties_t p = letter_ids[*id].p;
     erase(*id);
     p.position = position;
+    *id = push_back(p);
+  }
+
+  void set_font_size(uint32_t* id, f32_t font_size) {
+    properties_t p = letter_ids[*id].p;
+    erase(*id);
+    p.font_size = font_size;
     *id = push_back(p);
   }
 

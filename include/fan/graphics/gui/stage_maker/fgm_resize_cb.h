@@ -112,7 +112,7 @@ auto resize_cb() {
 		pile->stage_maker.fgm.viewport[viewport_area::types].get_position()
 	);
 	dst.x = src.x;
-	dst.y = pile->stage_maker.fgm.matrices[viewport_area::global].coordinates.bottom;
+	dst.y = pile->stage_maker.fgm.matrices[viewport_area::global].coordinates.down;
 	src.z = dst.z = line_z_depth;
 	pile->loco.line.set_line(
 		&pile->stage_maker.fgm.line.instance[4]->cid,
