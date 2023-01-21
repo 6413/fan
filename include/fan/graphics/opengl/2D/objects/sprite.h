@@ -43,7 +43,7 @@ struct sb_sprite_name {
     properties_t(const vi_t& i) : vi_t(i) {}
     properties_t(const ri_t& p) : ri_t(p) {}
 
-    bool load_tp(loco_t::texturepack* tp, loco_t::texturepack::ti_t* ti) {
+    bool load_tp(loco_t::texturepack_t* tp, loco_t::texturepack_t::ti_t* ti) {
       auto im = tp->get_pixel_data(ti->pack_id).image;
       image = &im;
   

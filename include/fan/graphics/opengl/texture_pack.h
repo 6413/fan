@@ -1,4 +1,4 @@
-struct texturepack {
+struct texturepack_t {
 
   #include _FAN_PATH(tp/tp.h)
 
@@ -48,7 +48,7 @@ struct texturepack {
 			data_index += sizeof(pack_amount);
 			texture_list[i].open();
 			for (uint32_t j = 0; j < texture_amount; j++) {
-				texturepack::texture_t texture;
+				texturepack_t::texture_t texture;
 				texture.hash = *(uint64_t*)&data[data_index];
 				data_index += sizeof(uint64_t);
 				texture.position = *(fan::vec2i*)&data[data_index];
