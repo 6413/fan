@@ -41,6 +41,7 @@ public:
       else {
         stage->it = 0;
       }
+      stage->parent_id = properties.parent_id;
       loader->load_fgm(loco, (T*)this, properties, stage->stage_name);
       stage->open(loco);
     }
