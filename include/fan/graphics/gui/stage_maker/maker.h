@@ -181,10 +181,21 @@ void update(auto* loco){
 
     auto append_struct = fmt::format(R"(
   struct {}_t : stage_common_t_t<{}_t> {{
+
+    using stage_common_t_t::stage_common_t_t;
+
+    static constexpr auto stage_name = "{}";
+
+    typedef int({}_t::* cb_table_t)(const loco_t::mouse_button_data_t& v);
+
+    cb_table_t button_click_cb_table[1] = {{ }};    
+
     #include _PATH_QUOTE(stage_loader_path/{})
   }};
 )", 
     stage_name.c_str(), 
+    stage_name.c_str(),
+    stage_name.c_str(),
     stage_name.c_str(),
     get_file_fullpath(stage_name).c_str());
 		stage_h_str.insert(struct_stage_end, append_struct.c_str());

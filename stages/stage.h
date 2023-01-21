@@ -67,7 +67,7 @@ struct stage {
 
     typedef int(stage0_t::* cb_table_t)(const loco_t::mouse_button_data_t& v);
 
-    cb_table_t button_click_cb_table[1] = {&stage0_t::button0_click_cb,};
+    cb_table_t button_click_cb_table[1] = { };    
 
     #include _PATH_QUOTE(stage_loader_path/stages/stage0.h)
   };
