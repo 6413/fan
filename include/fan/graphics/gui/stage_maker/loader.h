@@ -19,6 +19,7 @@ protected:
 public:
 
   using nr_t = stage_list_NodeReference_t;
+  stage_list_t stage_list;
 
   struct stage_open_properties_t {
     loco_t::matrices_list_NodeReference_t matrices;
@@ -34,6 +35,12 @@ public:
 
     stage_common_t_t(auto* loader, auto* loco, const stage_open_properties_t& properties) {
       T* stage = (T*)this;
+      if (stage->stage_id.Prev(&loader->stage_list) != loader->stage_list.src) {
+        stage->it = ((stage_common_t*)loader->stage_list[stage->stage_id.Prev(&loader->stage_list)])->it + 1;
+      }
+      else {
+        stage->it = 0;
+      }
       loader->load_fgm(loco, (T*)this, properties, stage->stage_name);
       stage->open(loco);
     }
@@ -156,16 +163,7 @@ public:
 	template <typename stage_t>
 	stage_loader_t::nr_t push_and_open_stage(auto* loco, const stage_open_properties_t& op) {
 		auto* stage = new stage_t(this, loco, op);
-		auto& stage_list = stage_loader_t::stage::stage_list;
     stage->stage_id = stage_list.NewNodeLast();
-
-    if (stage->stage_id.Prev(&stage_list) != stage_list.src) {
-      stage->it = ((stage_common_t*)stage_list[stage->stage_id.Prev(&stage_list)])->it + 1;
-    }
-    else {
-      stage->it = 0;
-    }
-
 		stage_list[stage->stage_id] = stage;
 		return stage->stage_id;
 	}

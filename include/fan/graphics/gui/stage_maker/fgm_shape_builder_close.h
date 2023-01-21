@@ -1,0 +1,3 @@
+#undef fgm_shape_name
+#undef fgm_shape_loco_name
+#undef fgm_shape_instance_data
