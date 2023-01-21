@@ -210,14 +210,14 @@ struct fgm_t {
 			      bbp.theme = &pile->stage_maker.fgm.theme;
 			      bbp.text = "button";
 			      bbp.font_size = scale_object_with_viewport(fan::vec2(0.2), &pile->stage_maker.fgm.viewport[viewport_area::types], &pile->stage_maker.fgm.viewport[viewport_area::editor]).x;
-			      pile->stage_maker.fgm.builder_button.push_back(bbp);
+			      pile->stage_maker.fgm.button.push_back(bbp);
 			
-            auto it = pile->stage_maker.fgm.builder_button.instance[pile->stage_maker.fgm.builder_button.instance.size() - 1];
+            auto it = pile->stage_maker.fgm.button.instance[pile->stage_maker.fgm.button.instance.size() - 1];
 			      auto builder_cid = &it->cid;
 			      auto ri = pile->loco.button.get_ri(builder_cid);
 			      //pile->loco.vfi.set_focus_mouse(ri.vfi_id);
 			      //pile->loco.vfi.feed_mouse_button(fan::button_left, fan::button_state::press);
-			      pile->stage_maker.fgm.builder_button.open_properties(it);
+			      pile->stage_maker.fgm.button.open_properties(it);
 			
 			      auto stage_name = pile->stage_maker.get_selected_name(
 				      pile,
@@ -231,8 +231,8 @@ struct fgm_t {
 			      fan::io::file::read(file_name, &str);
 
 			      std::size_t button_id = -1;
-			      for (std::size_t j = 0; j < pile->stage_maker.fgm.builder_button.instance.size(); ++j) {
-				      if (&pile->stage_maker.fgm.builder_button.instance[j]->cid == builder_cid) {
+			      for (std::size_t j = 0; j < pile->stage_maker.fgm.button.instance.size(); ++j) {
+				      if (&pile->stage_maker.fgm.button.instance[j]->cid == builder_cid) {
 					      button_id = j;
 					      break;
 				      }
@@ -284,10 +284,10 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
     cb_table_t button_click_cb_table[{}] = {{)",
               str_stage_name.c_str(),
               str_stage_name.c_str(),
-              builder_button.instance.size()
+              button.instance.size()
             );
 
-            for (std::size_t j = 0; j < pile->stage_maker.fgm.builder_button.instance.size(); ++j) {
+            for (std::size_t j = 0; j < pile->stage_maker.fgm.button.instance.size(); ++j) {
               format += fan::format("&{}_t::button{}_click_cb,", str_stage_name.c_str(), j);
             }
 
@@ -457,7 +457,7 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
 	void clear() {
 		line.clear();
 		global_button.clear();
-		builder_button.clear();
+		button.clear();
 		sprite.clear();
     text.clear();
 		button_menu.clear();
@@ -493,7 +493,7 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
           bp.theme = &theme;
           bp.matrices = &matrices[viewport_area::editor];
           bp.viewport = &viewport[viewport_area::editor];
-          builder_button.push_back(bp);
+          button.push_back(bp);
           break;
         }
         case stage_maker_shape_format::shape_type_t::sprite: {
@@ -560,10 +560,10 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
         memcpy(&f[off], &o, sizeof(o));
       }
     };
-		uint32_t instances_count = builder_button.instance.size();
+		uint32_t instances_count = button.instance.size();
     add_to_f(stage_maker_shape_format::shape_type_t::button);
     add_to_f(instances_count);
-		for (auto it : builder_button.instance) {
+		for (auto it : button.instance) {
       stage_maker_shape_format::shape_button_t data;
 			data.position = loco->button.get(&it->cid, &loco_t::button_t::vi_t::position);
 			data.size = loco->button.get(&it->cid, &loco_t::button_t::vi_t::size);

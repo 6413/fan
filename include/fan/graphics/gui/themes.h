@@ -7,7 +7,7 @@
 namespace fan_2d {
 	namespace graphics {
 		namespace gui {
-
+        
 			struct theme_t {
 
 				#if defined(loco_opengl)

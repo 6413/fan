@@ -256,7 +256,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="examples\gui\stage_maker.cpp" />
+    <ClCompile Include="examples\gui\stage_loader.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -328,12 +328,14 @@
     <ClInclude Include="include\fan\graphics\font.h" />
     <ClInclude Include="include\fan\graphics\graphics.h" />
     <ClInclude Include="include\fan\graphics\gui\fed.h" />
+    <ClInclude Include="include\fan\graphics\gui\stage_maker\fgm_shape_builder_close.h" />
     <ClInclude Include="include\fan\graphics\gui\menu_maker.h" />
     <ClInclude Include="include\fan\graphics\gui\button.h" />
     <ClInclude Include="include\fan\graphics\gui\select_box.h" />
     <ClInclude Include="include\fan\graphics\gui\stage_maker\common.h" />
     <ClInclude Include="include\fan\graphics\gui\stage_maker\fgm.h" />
     <ClInclude Include="include\fan\graphics\gui\stage_maker\fgm_resize_cb.h" />
+    <ClInclude Include="include\fan\graphics\gui\stage_maker\fgm_shape_builder.h" />
     <ClInclude Include="include\fan\graphics\gui\stage_maker\fgm_shape_types.h" />
     <ClInclude Include="include\fan\graphics\gui\stage_maker\loader.h" />
     <ClInclude Include="include\fan\graphics\gui\stage_maker\maker.h" />

@@ -22,6 +22,7 @@
 #include _FAN_PATH(graphics/loco.h)
 
 struct pile_t {
+  
   pile_t(const char* texturepack_name) {
     stage_maker.open(texturepack_name);
    /* loco.get_window()->add_resize_callback(this, [](fan::window_t* window, const fan::vec2i& size, void* userptr) {
@@ -47,7 +48,6 @@ struct pile_t {
 };
 
 int main(int argc, char** argv) {
-
   if (argc < 2) {
     fan::throw_error("usage: TexturePackCompiled");
   }

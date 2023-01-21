@@ -1,20 +1,16 @@
 #include <fmt/core.h>
-struct line_t {
-	using properties_t = loco_t::line_t::properties_t;
 
-	loco_t* get_loco() {
-		return ((stage_maker_t*)OFFSETLESS(OFFSETLESS(this, fgm_t, line), stage_maker_t, fgm))->get_loco();
-	}
-	pile_t* get_pile() {
-		return OFFSETLESS(get_loco(), pile_t, loco_var_name);
-	}
+struct line_t {
+
+  #define fgm_shape_name line
+  #define fgm_shape_instance_data \
+    fan::graphics::cid_t cid; \
+    uint16_t shape;
+  #include "fgm_shape_builder.h"
 
 	void push_back(properties_t& p) {
 		loco_t& loco = *get_loco();
-		instance.resize(instance.size() + 1);
-		uint32_t i = instance.size() - 1;
-		instance[i] = new instance_t;
-		instance[i]->shape = shapes::line;
+    shape_builder_push_back
 		loco.line.push_back(&instance[i]->cid, p);
 	}
 	void clear() {
@@ -26,23 +22,17 @@ struct line_t {
 		instance.clear();
 	}
 
-	struct instance_t {
-		fan::graphics::cid_t cid;
-		uint16_t shape;
-	};
-
-	std::vector<instance_t*> instance;
+  #include "fgm_shape_builder_close.h"
 }line;
 
 struct global_button_t {
-	using properties_t = loco_t::button_t::properties_t;
 
-	loco_t* get_loco() {
-		return ((stage_maker_t*)OFFSETLESS(OFFSETLESS(this, fgm_t, global_button), stage_maker_t, fgm))->get_loco();
-	}
-	pile_t* get_pile() {
-		return OFFSETLESS(get_loco(), pile_t, loco_var_name);
-	}
+  #define fgm_shape_name global_button
+  #define fgm_shape_loco_name button
+  #define fgm_shape_instance_data \
+    fan::graphics::cid_t cid; \
+    uint16_t shape;
+  #include "fgm_shape_builder.h"
 
 	void push_back(properties_t& p) {
 		p.position.z = 1;
@@ -63,11 +53,7 @@ struct global_button_t {
 		instance.clear();
 	}
 
-	struct instance_t {
-		fan::graphics::cid_t cid;
-		uint16_t shape;
-	};
-	std::vector<instance_t*> instance;
+  #include "fgm_shape_builder_close.h"
 }global_button;
 
 fan::vec3 get_position(auto* shape, auto* instance) {
@@ -87,21 +73,15 @@ void move_shape(auto* shape, auto* instance, const fan::vec2& offset) {
 }
 
 struct button_t {
-	using properties_t = loco_t::button_t::properties_t;
   uint8_t holding_special_key = 0;
+	using properties_t = loco_t::button_t::properties_t;
 
-  struct instance_t {
-    fan::graphics::cid_t cid;
-    uint16_t shape;
-    fan_2d::graphics::gui::theme_t theme;
-  };
-
-	loco_t* get_loco() {
-		return ((stage_maker_t*)OFFSETLESS(OFFSETLESS(this, fgm_t, builder_button), stage_maker_t, fgm))->get_loco();
-	}
-	pile_t* get_pile() {
-		return OFFSETLESS(get_loco(), pile_t, loco_var_name);
-	}
+  #define fgm_shape_name button
+  #define fgm_shape_instance_data \
+    fan::graphics::cid_t cid; \
+    uint16_t shape; \
+  fan_2d::graphics::gui::theme_t theme;
+  #include "fgm_shape_builder.h"
 
   void close_properties() {
     auto pile = get_pile();
@@ -196,15 +176,6 @@ struct button_t {
       return 0;
     };
     pile->stage_maker.fgm.properties_nrs.push_back(pile->stage_maker.fgm.text_box_menu.push_back(nr, p));
-
-
-		//
-		//pile->stage_maker.fgm.button_menu.clear();
-		//
-		//properties_menu_t::properties_t menup;
-		//menup.text = "position";
-		//menup.text_value = pile->loco.button.get_button(instance, &loco_t::button_t::instance_t::position).to_string();
-		//pile->stage_maker.fgm.button_menu.push_back(menup);
 	}
 
 	void release() {
@@ -229,7 +200,7 @@ struct button_t {
             ps.z += 0.5;
             pile->loco.button.set_position(&instance->cid, ps);
             pile->loco.button.set_depth(&instance->cid, ps.z);
-            pile->stage_maker.fgm.builder_button.open_properties(instance);
+            pile->stage_maker.fgm.button.open_properties(instance);
           }
           return 0;
         }
@@ -240,7 +211,7 @@ struct button_t {
             ps.z = fan::clamp((f32_t)ps.z, (f32_t)0.f, (f32_t)ps.z);
             pile->loco.button.set_position(&instance->cid, ps);
             pile->loco.button.set_depth(&instance->cid, ps.z);
-            pile->stage_maker.fgm.builder_button.open_properties(instance);
+            pile->stage_maker.fgm.button.open_properties(instance);
           }
           return 0;
         }
@@ -252,10 +223,10 @@ struct button_t {
         }
       }
 			if (ii_d.button_state == fan::mouse_state::release) {
-				pile->stage_maker.fgm.builder_button.release();
+				pile->stage_maker.fgm.button.release();
 				// TODO FIX, erases in near bottom
 				if (!pile->stage_maker.fgm.viewport[viewport_area::editor].inside(pile->loco.get_mouse_position()) && !holding_special_key) {
-					pile->stage_maker.fgm.builder_button.erase(&instance->cid);
+					pile->stage_maker.fgm.button.erase(&instance->cid);
 				}
 				return 0;
 			}
@@ -270,7 +241,7 @@ struct button_t {
 			fan::vec3 rp = pile->loco.button.get_button(&instance->cid, &loco_t::button_t::vi_t::position);
 			fan::vec3 rs = pile->loco.button.get_button(&instance->cid, &loco_t::button_t::vi_t::size);
 			pile->stage_maker.fgm.resize_side = fan_2d::collision::rectangle::get_side_collision(ii_d.position, rp, rs);
-			pile->stage_maker.fgm.builder_button.open_properties(instance);
+			pile->stage_maker.fgm.button.open_properties(instance);
 			return 0;
 		};
 		p.mouse_move_cb = [this, instance = instance[i]](const loco_t::mouse_move_data_t& ii_d) -> int {
@@ -329,7 +300,7 @@ struct button_t {
 
 				pile->stage_maker.fgm.resize_offset = ii_d.position;
 				pile->stage_maker.fgm.move_offset = ps - fan::vec3(ii_d.position, 0);
-        pile->stage_maker.fgm.builder_button.open_properties(instance);
+        pile->stage_maker.fgm.button.open_properties(instance);
 				return 0;
 			}
 
@@ -340,7 +311,7 @@ struct button_t {
 			p.z = ps.z;
 			pile->loco.button.set_position(&instance->cid, p);
 
-      pile->stage_maker.fgm.builder_button.open_properties(instance);
+      pile->stage_maker.fgm.button.open_properties(instance);
 
 			return 0;
 		};
@@ -354,7 +325,7 @@ struct button_t {
           }
 					switch (kd.keyboard_state) {
 						case fan::keyboard_state::press: {
-							pile->stage_maker.fgm.builder_button.erase(&instance->cid);
+							pile->stage_maker.fgm.button.erase(&instance->cid);
 							pile->stage_maker.fgm.invalidate_focus();
 							break;
 						}
@@ -431,9 +402,8 @@ struct button_t {
     get_loco()->button.set_position(&instance->cid, position);
   }
 
-	std::vector<instance_t*> instance;
-}builder_button;
-
+  #include "fgm_shape_builder_close.h"
+}button;
 
 struct sprite_t {
   struct properties_t : loco_t::sprite_t::properties_t {
@@ -565,13 +535,6 @@ struct sprite_t {
       return 0;
     };
     pile->stage_maker.fgm.properties_nrs.push_back(pile->stage_maker.fgm.text_box_menu.push_back(nr, p));
-		//
-		//pile->stage_maker.fgm.button_menu.clear();
-		//
-		//properties_menu_t::properties_t menup;
-		//menup.text = "position";
-		//menup.text_value = pile->loco.button.get_button(instance, &loco_t::button_t::instance_t::position).to_string();
-		//pile->stage_maker.fgm.button_menu.push_back(menup);
 	}
 
 	void release() {

@@ -379,7 +379,6 @@ void update(auto* loco){
 		
   if (!fan::io::file::exists(fan::string(stage_folder_name) + "/stage.h")) {
     stage_h_str = R"(struct stage {
-  inline static stage_list_t stage_list;
 };)";
   }
   else {
