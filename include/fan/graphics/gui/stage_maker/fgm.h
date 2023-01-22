@@ -422,9 +422,9 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
             format += "\n\n";
 
             for (uint32_t k = 0; k < std::size(cb_names); ++k) {
-              format += fan::format(R"(    hitbox_{0}_cb_table_t hitbox_{1}_cb_table[{2}] = {{)", cb_names[k], cb_names[k], pile->stage_maker.fgm.button.instances.size());
+              format += fan::format(R"(    hitbox_{0}_cb_table_t hitbox_{1}_cb_table[{2}] = {{)", cb_names[k], cb_names[k], pile->stage_maker.fgm.hitbox.instances.size());
 
-              for (std::size_t j = 0; j < pile->stage_maker.fgm.button.instances.size(); ++j) {
+              for (std::size_t j = 0; j < pile->stage_maker.fgm.hitbox.instances.size(); ++j) {
                 format += fan::format("&{}_t::hitbox{}_{}_cb,", str_stage_name.c_str(), pile->stage_maker.fgm.hitbox.instances[j]->hitbox_id, cb_names[k]);
 
                 str += fan::format(R"(

@@ -1024,7 +1024,6 @@ struct hitbox_t {
 
       pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::position, position);
 
-
       return 0;
     };
     pile->stage_maker.fgm.properties_nrs.push_back(pile->stage_maker.fgm.text_box_menu.push_back(nr, p));
@@ -1050,6 +1049,29 @@ struct hitbox_t {
 
       pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::size, size);
 
+
+      return 0;
+    };
+    pile->stage_maker.fgm.properties_nrs.push_back(pile->stage_maker.fgm.text_box_menu.push_back(nr, p));
+
+    p.text = fan::to_string(instance->shape_type);
+    p.text_value = "";
+    p.keyboard_cb = [pile, this, instance, nr](const loco_t::keyboard_data_t& d) -> int {
+      if (d.key != fan::key_enter) {
+        return 0;
+      }
+      if (d.keyboard_state != fan::keyboard_state::press) {
+        return 0;
+      }
+
+      auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[pile->stage_maker.fgm.properties_nrs[2]];
+      auto text = pile->loco.text_box.get_text(&it.cid);
+
+      uint32_t shape_type;
+      std::istringstream iss(fan::string(text).c_str());
+      while (iss >> shape_type) { iss.ignore(); }
+
+      instance->shape_type = shape_type;
 
       return 0;
     };
