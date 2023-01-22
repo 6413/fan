@@ -270,7 +270,7 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
             }
             src += src_str.size();
             auto dst = pile->stage_maker.stage_h_str.find(
-              fan::format("    typedef int(stage0_t::* hitbox_mouse_button_cb_table_t)(const loco_t::mouse_button_data_t& d);",
+              fan::format("    typedef int({}_t::* hitbox_mouse_button_cb_table_t)(const loco_t::mouse_button_data_t& d);",
                 str_stage_name.c_str()
               )
             );
@@ -393,8 +393,9 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
             );
             auto file_name = pile->stage_maker.get_file_fullpath(stage_name);
             fan::string str_stage_name = stage_name;
+            fan::print(str_stage_name);
 
-            auto src_str = fan::format("typedef int(stage0_t::* hitbox_text_cb_table_t)(const loco_t::text_data_t& d);",
+            auto src_str = fan::format("typedef int({}_t::* hitbox_text_cb_table_t)(const loco_t::text_data_t& d);",
               str_stage_name.c_str()
             );
 
@@ -406,10 +407,14 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
             }
             src += src_str.size();
             auto dst = pile->stage_maker.stage_h_str.find(
-              fan::format("    #include _PATH_QUOTE(stage_loader_path/stages/stage0.h)",
+              fan::format("    #include _PATH_QUOTE(stage_loader_path/stages/{}.h)",
                 str_stage_name.c_str()
               )
             );
+
+            if (dst == fan::string::npos) {
+              fan::throw_error("corrupted fgm");
+            }
 
             pile->stage_maker.stage_h_str.erase(src, dst - src);
 
