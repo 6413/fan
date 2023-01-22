@@ -15,6 +15,10 @@ namespace fan {
 			return std::filesystem::exists(directory.c_str());
 		}
 
+    static void create_directory(const std::string& folders) {
+      std::filesystem::create_directories(folders);
+    }
+
 		struct iterate_sort_t {
 			fan::string path;
 			uint64_t area;
