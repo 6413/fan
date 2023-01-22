@@ -2,7 +2,9 @@
 
 struct pile_t;
 
-#define FAN_INCLUDE_PATH C:/libs/fan/include
+#ifndef FAN_INCLUDE_PATH
+  #define FAN_INCLUDE_PATH C:/libs/fan/include
+#endif
 #define fan_debug 1
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
@@ -15,6 +17,8 @@ struct pile_t;
 #define loco_button
 #include _FAN_PATH(graphics/loco.h)
 
+// in stagex.h getting pile from mouse cb
+// pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco);
 
 struct pile_t {
   loco_t loco;
@@ -80,7 +84,7 @@ int main(int argc, char** argv) {
 	op.viewport = &pile.viewport;
 	op.theme = &pile.theme;
 	pile.stage_loader.push_and_open_stage<sl::stage::stage0_t>(&pile.loco, op);
-  pile.stage_loader.push_and_open_stage<sl::stage::stage1_t>(&pile.loco, op);
+  //pile.stage_loader.push_and_open_stage<sl::stage::stage1_t>(&pile.loco, op);
   
 	pile.loco.loop([&] {
 

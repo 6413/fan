@@ -181,22 +181,29 @@ void update(auto* loco){
     struct_stage_end -= 1;
 
     auto append_struct = fmt::format(R"(
-  struct {}_t : stage_common_t_t<{}_t> {{
+  struct {0}_t : stage_common_t_t<{0}_t> {{
 
     using stage_common_t_t::stage_common_t_t;
 
-    static constexpr auto stage_name = "{}";
+    static constexpr auto stage_name = "{0}";
 
-    typedef int({}_t::* cb_table_t)(const loco_t::mouse_button_data_t& v);
+    typedef int({0}_t::* button_mouse_button_cb_table_t)(const loco_t::mouse_button_data_t& v);
 
-    cb_table_t button_click_cb_table[1] = {{ }};    
+    button_mouse_button_cb_table_t button_mouse_button_cb_table[1] = {{ }};
 
-    #include _PATH_QUOTE(stage_loader_path/{})
+    typedef int({0}_t::* hitbox_mouse_button_cb_table_t)(const loco_t::mouse_button_data_t& d);
+    typedef int({0}_t::* hitbox_mouse_move_cb_table_t)(const loco_t::mouse_move_data_t& d);
+    typedef int({0}_t::* hitbox_keyboard_cb_table_t)(const loco_t::keyboard_data_t& d);
+    typedef int({0}_t::* hitbox_text_cb_table_t)(const loco_t::text_data_t& d);
+
+    hitbox_mouse_button_cb_table_t hitbox_mouse_button_cb_table[1] = {{ }};
+    hitbox_mouse_move_cb_table_t hitbox_mouse_move_cb_table[1] = {{ }};
+    hitbox_keyboard_cb_table_t hitbox_keyboard_cb_table[1] = {{ }};
+    hitbox_text_cb_table_t hitbox_text_cb_table[1] = {{ }};
+
+    #include _PATH_QUOTE(stage_loader_path/{1})
   }};
 )", 
-    stage_name.c_str(), 
-    stage_name.c_str(),
-    stage_name.c_str(),
     stage_name.c_str(),
     get_file_fullpath(stage_name).c_str());
 		stage_h_str.insert(struct_stage_end, append_struct.c_str());

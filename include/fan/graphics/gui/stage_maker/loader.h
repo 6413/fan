@@ -35,12 +35,12 @@ public:
 
     stage_common_t_t(auto* loader, auto* loco, const stage_open_properties_t& properties) {
       T* stage = (T*)this;
-      if (stage->stage_id.Prev(&loader->stage_list) != loader->stage_list.src) {
-        stage->it = ((stage_common_t*)loader->stage_list[stage->stage_id.Prev(&loader->stage_list)])->it + 1;
-      }
-      else {
+      //if (stage->stage_id.Prev(&loader->stage_list) != loader->stage_list.src) {
+      //  stage->it = ((stage_common_t*)loader->stage_list[stage->stage_id.Prev(&loader->stage_list)])->it + 1;
+      //}
+      //else {
         stage->it = 0;
-      }
+      //}
       stage->parent_id = properties.parent_id;
       loader->load_fgm(loco, (T*)this, properties, stage->stage_name);
       stage->open(loco);
@@ -110,7 +110,7 @@ public:
           bp.matrices = op.matrices;
 					bp.viewport = op.viewport;
 				  bp.mouse_button_cb = [stage, i](const loco_t::mouse_button_data_t&d) {
-					  return (stage->*(stage->button_click_cb_table[i]))(d); 
+					  return (stage->*(stage->button_mouse_button_cb_table[i]))(d);
 				  };
 				  
           loco->button.push_back(&stage->cid_list[nr], bp);
@@ -152,6 +152,41 @@ public:
           loco->text.push_back(p, &stage->cid_list[nr]);
           break;
         }
+        case stage_maker_shape_format::shape_type_t::hitbox: {
+          auto data = fan::io::file::read_data<stage_maker_shape_format::shape_hitbox_t>(f, off);
+          loco_t::vfi_t::properties_t vfip;
+          switch (data.shape_type) {
+            case loco_t::vfi_t::shape_t::always: {
+              vfip.shape_type = loco_t::vfi_t::shape_t::always;
+              vfip.shape.always.z = data.position.z;
+              break;
+            }
+            case loco_t::vfi_t::shape_t::rectangle: {
+              vfip.shape_type = loco_t::vfi_t::shape_t::rectangle;
+              vfip.shape.rectangle.position = data.position;
+              vfip.shape.rectangle.size = data.size;
+              vfip.shape.rectangle.matrices = op.matrices;
+              vfip.shape.rectangle.viewport = op.viewport;
+              break;
+            }
+          }
+          vfip.mouse_button_cb = [stage, i](const loco_t::mouse_button_data_t& d) {
+            return (stage->*(stage->hitbox_mouse_button_cb_table[i]))(d);
+          };
+          vfip.mouse_move_cb = [stage, i](const loco_t::mouse_move_data_t& d) {
+            return (stage->*(stage->hitbox_mouse_move_cb_table[i]))(d);
+          };
+          vfip.keyboard_cb = [stage, i](const loco_t::keyboard_data_t& d) {
+            return (stage->*(stage->hitbox_keyboard_cb_table[i]))(d);
+          };
+          vfip.text_cb = [stage, i](const loco_t::text_data_t& d) {
+            return (stage->*(stage->hitbox_text_cb_table[i]))(d);
+          };
+          vfip.ignore_init_move = true;
+          auto id = loco->push_back_input_hitbox(vfip);
+          stage->cid_list[nr] = *(fan::graphics::cid_t*)&id;
+          break;
+        }
         default: {
           fan::throw_error("i cant find what you talk about - fgm");
           break;
@@ -171,7 +206,6 @@ public:
 	void erase_stage(auto* loco, nr_t id) {
 		//auto loco = get_loco();
   //  //fan::throw_error("todo");
-    auto& stage_list = stage_loader_t::stage::stage_list;
     auto* stage = (stage_common_t*)stage_list[id];
 		auto it = stage->cid_list.GetNodeFirst();
 		while (it != stage->cid_list.dst) {

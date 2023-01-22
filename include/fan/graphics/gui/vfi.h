@@ -126,6 +126,7 @@ struct vfi_t {
       shape_properties_rectangle_t rectangle; 
     }shape;
     iflags_t flags;
+    bool ignore_init_move = false;
   }; 
 
   using set_shape_t = decltype(common_shape_data_t::shape);
@@ -184,7 +185,7 @@ struct vfi_t {
 
     fan::vec2 mouse_position = loco->get_mouse_position();
     fan::vec2 tp = transform(mouse_position, p.shape_type, &instance.shape_data);
-    if (inside(loco, p.shape_type, &instance.shape_data, tp) == mouse_stage_e::inside) {
+    if (!p.ignore_init_move && inside(loco, p.shape_type, &instance.shape_data, tp) == mouse_stage_e::inside) {
       feed_mouse_move(mouse_position);
     }
     return nr;
