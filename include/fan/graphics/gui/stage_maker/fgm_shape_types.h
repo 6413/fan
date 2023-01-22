@@ -121,6 +121,7 @@ struct button_t {
       while (iss >> position[i++]) { iss.ignore(); }
 
       pile->loco.button.set_position(&instance->cid, position);
+      pile->loco.button.set_depth(&instance->cid, position.z);
       
       return 0;
     };
@@ -393,7 +394,7 @@ struct sprite_t {
       while (iss >> position[i++]) { iss.ignore(); }
 
       pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::position, position);
-
+      pile->loco.sprite.set_depth(&instance->cid, position.z);
 
       return 0;
     };
@@ -673,7 +674,7 @@ struct text_t {
       while (iss >> position[i++]) { iss.ignore(); }
 
       pile->loco.text.set_position(&instance->cid, position);
-
+      pile->loco.text.set_depth(&instance->cid, position.z);
 
       return 0;
     };
@@ -1023,6 +1024,8 @@ struct hitbox_t {
       while (iss >> position[i++]) { iss.ignore(); }
 
       pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::position, position);
+      pile->loco.sprite.set_depth(&instance->cid, position.z);
+      pile->loco.vfi.shape_list[instance->vfi_id].shape_data.depth = position.z;
 
       return 0;
     };
