@@ -426,12 +426,6 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
 
               for (std::size_t j = 0; j < pile->stage_maker.fgm.hitbox.instances.size(); ++j) {
                 format += fan::format("&{}_t::hitbox{}_{}_cb,", str_stage_name.c_str(), pile->stage_maker.fgm.hitbox.instances[j]->hitbox_id, cb_names[k]);
-
-                str += fan::format(R"(
-int hitbox{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
-  return 0;
-}}
-)", fan::to_string(pile->stage_maker.fgm.hitbox.instances[j]->hitbox_id), cb_names[k]);
               }
 
               format += "};\n";
@@ -440,6 +434,20 @@ int hitbox{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
             format += "\n";
 
             pile->stage_maker.stage_h_str.insert(src, format);
+
+            for (std::size_t j = 0; j < pile->stage_maker.fgm.hitbox.instances.size(); ++j) {
+              for (uint32_t k = 0; k < std::size(cb_names); ++k) {
+                auto cbs_text = fan::format(R"(
+int hitbox{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
+  return 0;
+}}
+)", fan::to_string(pile->stage_maker.fgm.hitbox.instances[j]->hitbox_id), cb_names[k]);
+                if (str.find(cbs_text) != fan::string::npos) {
+                  continue;
+                }
+                str += cbs_text;
+              }
+            }
 
             fan::io::file::write(file_name, str, std::ios_base::binary);
 
