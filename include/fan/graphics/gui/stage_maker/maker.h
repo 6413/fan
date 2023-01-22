@@ -423,6 +423,9 @@ void update(auto* loco){
 		open_erase_button(pile);
 		pile->loco.menu_maker_button.erase_button_soft(instances[stage_t::stage_options].menu_id, erase_button_id);
 
+    fan::io::create_directory("stages_compile");
+    fan::io::create_directory("stages_runtime");
+
     fan::io::iterate_directory(stage_compile_folder_name, [loco, this](const fan::string& path) {
 
       fan::string p = path;
