@@ -28,9 +28,10 @@ struct stage_maker_t {
 			return 0; \
 		}
 
-	static constexpr const char* stage_folder_name = "stages";
+	static constexpr const char* stage_compile_folder_name = "stages_compile";
+  static constexpr const char* stage_runtime_folder_name = "stages_runtime";
 	static auto get_file_fullpath(const fan::string& stage_name) {
-		return fan::string(stage_folder_name) + "/" +
+		return fan::string(stage_compile_folder_name) + "/" +
 			stage_name + ".h";
 	};
 
@@ -384,12 +385,12 @@ void update(auto* loco){
 
 	void open(const char* texturepack_name) {
 		
-  if (!fan::io::file::exists(fan::string(stage_folder_name) + "/stage.h")) {
+  if (!fan::io::file::exists(fan::string(stage_runtime_folder_name) + "/stage.h")) {
     stage_h_str = R"(struct stage {
 };)";
   }
   else {
-    fan::io::file::read(fan::string(stage_folder_name) + "/stage.h", &stage_h_str);
+    fan::io::file::read(fan::string(stage_runtime_folder_name) + "/stage.h", &stage_h_str);
   }
 		auto loco = get_loco();
 
@@ -422,15 +423,12 @@ void update(auto* loco){
 		open_erase_button(pile);
 		pile->loco.menu_maker_button.erase_button_soft(instances[stage_t::stage_options].menu_id, erase_button_id);
 
-    fan::io::iterate_directory(stage_folder_name, [loco, this](const fan::string& path) {
+    fan::io::iterate_directory(stage_compile_folder_name, [loco, this](const fan::string& path) {
 
       fan::string p = path;
-      auto len = strlen(fan::string(fan::string(stage_folder_name) + "/").c_str());
+      auto len = strlen(fan::string(fan::string(stage_compile_folder_name) + "/").c_str());
       p = p.substr(len, p.size() - len);
 
-      if (p.find(".h") == fan::string::npos) {
-        return;
-      }
       if (p == "stage.h") {
         return;
       }

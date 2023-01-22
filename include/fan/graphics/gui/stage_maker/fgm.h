@@ -393,7 +393,6 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
             );
             auto file_name = pile->stage_maker.get_file_fullpath(stage_name);
             fan::string str_stage_name = stage_name;
-            fan::print(str_stage_name);
 
             auto src_str = fan::format("typedef int({}_t::* hitbox_text_cb_table_t)(const loco_t::text_data_t& d);",
               str_stage_name.c_str()
@@ -407,7 +406,7 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
             }
             src += src_str.size();
             auto dst = pile->stage_maker.stage_h_str.find(
-              fan::format("    #include _PATH_QUOTE(stage_loader_path/stages/{}.h)",
+              fan::format("    #include _PATH_QUOTE(stage_loader_path/stages_compile/{}.h)",
                 str_stage_name.c_str()
               )
             );
@@ -582,7 +581,7 @@ int hitbox{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
 	}
 
 	fan::string get_fgm_full_path(const fan::string& stage_name) {
-		return fan::string(stage_maker_t::stage_folder_name) + "/" + stage_name + ".fgm";
+		return fan::string(stage_maker_t::stage_runtime_folder_name) + "/" + stage_name + ".fgm";
 	}
 
 	void load_from_file(const fan::string& stage_name) {

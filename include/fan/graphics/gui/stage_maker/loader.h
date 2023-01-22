@@ -74,7 +74,7 @@ public:
 
   using stage_common_t = stage_common_t_t<>;
 
-	#include _PATH_QUOTE(stage_loader_path/stages/stage.h)
+	#include _PATH_QUOTE(stage_loader_path/stages_compile/stage.h)
 
 	void open(loco_t* loco, loco_t::texturepack_t* tp) {
     texturepack = tp;
@@ -85,7 +85,7 @@ public:
 
   void load_fgm(loco_t* loco, auto* stage, const stage_open_properties_t& op, const char* stage_name) {
 
-    fan::string full_path = fan::string("stages/") + stage_name + ".fgm";
+    fan::string full_path = fan::string("stages_runtime/") + stage_name + ".fgm";
     fan::string f;
     fan::io::file::read(full_path, &f);
     uint64_t off = 0;
