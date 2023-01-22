@@ -1,7 +1,7 @@
 auto resize_cb() {
 	pile_t* pile = OFFSETLESS(OFFSETLESS(this, stage_maker_t, fgm), pile_t, stage_maker);
 
-  if (pile->stage_maker.fgm.line.instance.empty()) {
+  if (pile->stage_maker.fgm.line.instances.empty()) {
     return;
   }
   fan::vec2 window_size = get_loco()->get_window()->get_size();
@@ -73,7 +73,7 @@ auto resize_cb() {
 
 	src.z = dst.z = line_z_depth;
 	pile->loco.line.set_line(
-		&pile->stage_maker.fgm.line.instance[0]->cid,
+		&pile->stage_maker.fgm.line.instances[0]->cid,
 		src,
 		dst
 	);
@@ -83,7 +83,7 @@ auto resize_cb() {
 
 	src.z = dst.z = line_z_depth;
 	pile->loco.line.set_line(
-		&pile->stage_maker.fgm.line.instance[1]->cid,
+		&pile->stage_maker.fgm.line.instances[1]->cid,
 		src,
 		dst
 	);
@@ -93,7 +93,7 @@ auto resize_cb() {
 
 	src.z = dst.z = line_z_depth;
 	pile->loco.line.set_line(
-		&pile->stage_maker.fgm.line.instance[2]->cid,
+		&pile->stage_maker.fgm.line.instances[2]->cid,
 		src,
 		dst
 	);
@@ -103,7 +103,7 @@ auto resize_cb() {
 
 	src.z = dst.z = line_z_depth;
 	pile->loco.line.set_line(
-		&pile->stage_maker.fgm.line.instance[3]->cid,
+		&pile->stage_maker.fgm.line.instances[3]->cid,
 		src,
 		dst
 	);
@@ -115,7 +115,7 @@ auto resize_cb() {
 	dst.y = pile->stage_maker.fgm.matrices[viewport_area::global].coordinates.down;
 	src.z = dst.z = line_z_depth;
 	pile->loco.line.set_line(
-		&pile->stage_maker.fgm.line.instance[4]->cid,
+		&pile->stage_maker.fgm.line.instances[4]->cid,
 		src,
 		dst
 	);
@@ -129,7 +129,7 @@ auto resize_cb() {
 	);
 	src.z = dst.z = line_z_depth;
 	pile->loco.line.set_line(
-		&pile->stage_maker.fgm.line.instance[5]->cid,
+		&pile->stage_maker.fgm.line.instances[5]->cid,
 		src,
 		dst
 	);

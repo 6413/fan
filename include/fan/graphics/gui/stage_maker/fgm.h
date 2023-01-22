@@ -4,6 +4,7 @@ struct fgm_t {
 		static constexpr uint16_t button = 1;
 		static constexpr uint16_t sprite = 2;
     static constexpr uint16_t text = 3;
+    static constexpr uint16_t hitbox = 4;
 	};
 
 	struct viewport_area {
@@ -212,7 +213,7 @@ struct fgm_t {
 			      bbp.font_size = scale_object_with_viewport(fan::vec2(0.2), &pile->stage_maker.fgm.viewport[viewport_area::types], &pile->stage_maker.fgm.viewport[viewport_area::editor]).x;
 			      pile->stage_maker.fgm.button.push_back(bbp);
 			
-            auto it = pile->stage_maker.fgm.button.instance[pile->stage_maker.fgm.button.instance.size() - 1];
+            auto it = pile->stage_maker.fgm.button.instances[pile->stage_maker.fgm.button.instances.size() - 1];
 			      auto builder_cid = &it->cid;
 			      auto ri = pile->loco.button.get_ri(builder_cid);
 			      //pile->loco.vfi.set_focus_mouse(ri.vfi_id);
@@ -231,8 +232,8 @@ struct fgm_t {
 			      fan::io::file::read(file_name, &str);
 
 			      std::size_t button_id = -1;
-			      for (std::size_t j = 0; j < pile->stage_maker.fgm.button.instance.size(); ++j) {
-				      if (&pile->stage_maker.fgm.button.instance[j]->cid == builder_cid) {
+			      for (std::size_t j = 0; j < pile->stage_maker.fgm.button.instances.size(); ++j) {
+				      if (&pile->stage_maker.fgm.button.instances[j]->cid == builder_cid) {
 					      button_id = j;
 					      break;
 				      }
@@ -256,42 +257,42 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
 			
 			      fan::io::file::write(file_name, str, std::ios_base::binary);
 
-            auto src_str = fan::format("struct {}_t : stage_common_t_t<{}_t> {{",
-              str_stage_name.c_str(),
+            auto src_str = fan::format(
+              "typedef int({0}_t::* button_mouse_button_cb_table_t)(const loco_t::mouse_button_data_t& v);",
               str_stage_name.c_str()
             );
 
             auto src = pile->stage_maker.stage_h_str.find(
               src_str
             );
+            if (src == fan::string::npos) {
+              fan::throw_error("corrupted fgm");
+            }
             src += src_str.size();
             auto dst = pile->stage_maker.stage_h_str.find(
-              fan::format("#include _PATH_QUOTE(stage_loader_path/stages/{}.h)",
+              fan::format("    typedef int(stage0_t::* hitbox_mouse_button_cb_table_t)(const loco_t::mouse_button_data_t& d);",
                 str_stage_name.c_str()
               )
             );
+
+            if (dst == fan::string::npos) {
+              fan::throw_error("corrupted fgm");
+            }
 
             pile->stage_maker.stage_h_str.erase(src, dst - src);
 
             auto format = fan::format(R"(
 
-    using stage_common_t_t::stage_common_t_t;
-
-    static constexpr auto stage_name = "{}";
-
-    typedef int({}_t::* cb_table_t)(const loco_t::mouse_button_data_t& v);
-
-    cb_table_t button_click_cb_table[{}] = {{)",
+    button_mouse_button_cb_table_t button_mouse_button_cb_table[{1}] = {{)",
               str_stage_name.c_str(),
-              str_stage_name.c_str(),
-              button.instance.size()
+              button.instances.size()
             );
 
-            for (std::size_t j = 0; j < pile->stage_maker.fgm.button.instance.size(); ++j) {
+            for (std::size_t j = 0; j < pile->stage_maker.fgm.button.instances.size(); ++j) {
               format += fan::format("&{}_t::button{}_click_cb,", str_stage_name.c_str(), j);
             }
 
-            format += "};\n\n    ";
+            format += "};\n\n";
 
             pile->stage_maker.stage_h_str.insert(src, format);
 
@@ -360,6 +361,95 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
             return 1;
           }
         });
+        push_menu(mb, {
+          .text = "hitbox",
+          .mouse_button_cb = [this](const loco_t::mouse_button_data_t& ii_d) -> int {
+            pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi), pile_t, loco);
+            if (ii_d.button != fan::mouse_left) {
+              return 0;
+            }
+            if (ii_d.button_state != fan::mouse_state::release) {
+              return 0;
+            }
+            if (ii_d.mouse_stage != loco_t::vfi_t::mouse_stage_e::inside) {
+              return 0;
+            }
+          	hitbox_t::properties_t sp;
+          	sp.matrices = &pile->stage_maker.fgm.matrices[viewport_area::editor];
+          	sp.viewport = &pile->stage_maker.fgm.viewport[viewport_area::editor];
+          	sp.position = fan::vec2(0, 0);
+            sp.shape_type = loco_t::vfi_t::shape_t::always;
+
+          	sp.size = fan::vec2(0.1, 0.1);
+          	sp.image = &hitbox_image;
+          	pile->stage_maker.fgm.hitbox.push_back(sp);
+          	auto& instance = pile->stage_maker.fgm.hitbox.instances[pile->stage_maker.fgm.hitbox.instances.size() - 1];
+          	pile->stage_maker.fgm.hitbox.open_properties(instance);
+
+            auto stage_name = pile->stage_maker.get_selected_name(
+              pile,
+              pile->stage_maker.instances[pile_t::stage_maker_t::stage_t::stage_instance].menu_id,
+              pile->loco.menu_maker_button.get_selected_id(pile->stage_maker.instances[pile_t::stage_maker_t::stage_t::stage_instance].menu_id)
+            );
+            auto file_name = pile->stage_maker.get_file_fullpath(stage_name);
+            fan::string str_stage_name = stage_name;
+
+            auto src_str = fan::format("typedef int(stage0_t::* hitbox_text_cb_table_t)(const loco_t::text_data_t& d);",
+              str_stage_name.c_str()
+            );
+
+            auto src = pile->stage_maker.stage_h_str.find(
+              src_str
+            );
+            if (src == fan::string::npos) {
+              fan::throw_error("corrupted fgm");
+            }
+            src += src_str.size();
+            auto dst = pile->stage_maker.stage_h_str.find(
+              fan::format("    #include _PATH_QUOTE(stage_loader_path/stages/stage0.h)",
+                str_stage_name.c_str()
+              )
+            );
+
+            pile->stage_maker.stage_h_str.erase(src, dst - src);
+
+            fan::string str;
+            fan::io::file::read(file_name, &str);
+
+            static constexpr const char* cb_names[] = { "mouse_button","mouse_move", "keyboard", "text" };
+
+            fan::string format;
+            format += "\n\n";
+
+            for (uint32_t k = 0; k < std::size(cb_names); ++k) {
+              format += fan::format(R"(    hitbox_{0}_cb_table_t hitbox_{1}_cb_table[{2}] = {{)", cb_names[k], cb_names[k], pile->stage_maker.fgm.button.instances.size());
+
+              for (std::size_t j = 0; j < pile->stage_maker.fgm.button.instances.size(); ++j) {
+                format += fan::format("&{}_t::hitbox{}_{}_cb,", str_stage_name.c_str(), pile->stage_maker.fgm.hitbox.instances[j]->hitbox_id, cb_names[k]);
+
+                str += fan::format(R"(
+int hitbox{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
+  return 0;
+}}
+)", fan::to_string(pile->stage_maker.fgm.hitbox.instances[j]->hitbox_id), cb_names[k]);
+              }
+
+              format += "};\n";
+            }
+
+            format += "\n";
+
+            pile->stage_maker.stage_h_str.insert(src, format);
+
+            fan::io::file::write(file_name, str, std::ios_base::binary);
+
+            pile->stage_maker.write_stage(pile);
+
+            invalidate_right_click_menu();
+
+          	return 1;
+          }
+        });
 
         loco_t::vfi_t::properties_t p;
 		    p.shape_type = loco_t::vfi_t::shape_t::always;
@@ -421,6 +511,20 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
 
 		texturepack.open_compiled(&loco, texturepack_name);
 
+    fan::color image[3 * 3] = {
+      fan::color(0, 1, 0, 0.3),
+      fan::color(0, 1, 0, 0.3),
+      fan::color(0, 1, 0, 0.3),
+      fan::color(0, 1, 0, 0.3),
+      fan::color(0, 0, 0, 0.3),
+      fan::color(0, 1, 0, 0.3),
+      fan::color(0, 1, 0, 0.3),
+      fan::color(0, 1, 0, 0.3),
+      fan::color(0, 1, 0, 0.3),
+    };
+
+    hitbox_image.load(&loco, image, 3);
+
 		loco.get_window()->add_resize_callback([this](const fan::window_t::resize_cb_data_t& d) {
 			resize_cb();
 		});
@@ -460,6 +564,7 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
 		button.clear();
 		sprite.clear();
     text.clear();
+    hitbox.clear();
 		button_menu.clear();
 	}
 
@@ -530,6 +635,18 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
           text.push_back(p);
           break;
         }
+        case stage_maker_shape_format::shape_type_t::hitbox: {
+          auto data = fan::io::file::read_data<stage_maker_shape_format::shape_hitbox_t>(f, off);
+          hitbox_t::properties_t sp;
+          sp.position = data.position;
+          sp.size = data.size;
+          sp.image = &hitbox_image;
+          sp.matrices = &matrices[viewport_area::editor];
+          sp.viewport = &viewport[viewport_area::editor];
+          sp.shape_type = data.shape_type;
+          hitbox.push_back(sp);
+          break;
+        }
         default: {
           fan::throw_error("i cant find what you talk about - fgm");
           break;
@@ -560,10 +677,10 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
         memcpy(&f[off], &o, sizeof(o));
       }
     };
-		uint32_t instances_count = button.instance.size();
+		uint32_t instances_count = button.instances.size();
     add_to_f(stage_maker_shape_format::shape_type_t::button);
     add_to_f(instances_count);
-		for (auto it : button.instance) {
+		for (auto it : button.instances) {
       stage_maker_shape_format::shape_button_t data;
 			data.position = loco->button.get(&it->cid, &loco_t::button_t::vi_t::position);
 			data.size = loco->button.get(&it->cid, &loco_t::button_t::vi_t::size);
@@ -597,6 +714,29 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
       data.size = loco->text.get_instance(&it->cid).font_size;
       add_to_f(data);
       add_to_f(loco->text.get_instance(&it->cid).text);
+    }
+
+    instances_count = hitbox.instances.size();
+
+    add_to_f(stage_maker_shape_format::shape_type_t::hitbox);
+    add_to_f(instances_count);
+    for (auto it : hitbox.instances) {
+      stage_maker_shape_format::shape_hitbox_t data;
+      auto& shape = loco->vfi.shape_list[it->vfi_id];
+      auto& shape_data = shape.shape_data;
+      switch (it->shape_type) {
+        case loco_t::vfi_t::shape_t::always: {
+          data.position = fan::vec3(fan::vec2(loco->sprite.get(&it->cid, &loco_t::sprite_t::vi_t::position)), shape_data.depth);
+          data.size = loco->sprite.get(&it->cid, &loco_t::sprite_t::vi_t::size);
+          break;
+        }
+        case loco_t::vfi_t::shape_t::rectangle: {
+          data.position = loco->sprite.get(&it->cid, &loco_t::sprite_t::vi_t::position);
+          data.size = loco->sprite.get(&it->cid, &loco_t::sprite_t::vi_t::size);
+        }
+      }
+      data.shape_type = it->shape_type;
+      add_to_f(data);
     }
 
 		fan::io::file::write(
@@ -640,4 +780,6 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
 
 	loco_t::menu_maker_button_t::nr_t right_click_menu_nr;
   loco_t::vfi_t::shape_id_t vfi_id;
+
+  loco_t::image_t hitbox_image;
 }fgm;
