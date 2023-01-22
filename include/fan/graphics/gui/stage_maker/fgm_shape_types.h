@@ -66,7 +66,6 @@ void move_shape(auto* shape, auto* instance, const fan::vec2& offset) {
 
 struct button_t {
   uint8_t holding_special_key = 0;
-	using properties_t = loco_t::button_t::properties_t;
 
   #define fgm_shape_name button
   #define fgm_shape_instance_data \
