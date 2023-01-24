@@ -76,6 +76,7 @@ namespace fan {
     {
       using type = T2;
     };
+
   public:
 
     template <int N>
@@ -137,5 +138,6 @@ namespace fan {
 
   template <typename... args>
   using masterpiece_t = typename reverse_impl<masterpiece_reversed_t<args...>>::type;
+
   #pragma pack(pop)
 }

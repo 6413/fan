@@ -385,12 +385,12 @@ void update(auto* loco){
 
 	void open(const char* texturepack_name) {
 		
-  if (!fan::io::file::exists(fan::string(stage_runtime_folder_name) + "/stage.h")) {
+  if (!fan::io::file::exists(fan::string(stage_compile_folder_name) + "/stage.h")) {
     stage_h_str = R"(struct stage {
 };)";
   }
   else {
-    fan::io::file::read(fan::string(stage_runtime_folder_name) + "/stage.h", &stage_h_str);
+    fan::io::file::read(fan::string(stage_compile_folder_name) + "/stage.h", &stage_h_str);
   }
 		auto loco = get_loco();
 
