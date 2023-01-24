@@ -120,7 +120,9 @@ block_t* sb_push_back(fan::opengl::cid_t* cid, auto& p) {
   #else
     p.depth = p.position.z;
   #endif
-  
+  if (p.matrices.NRI > 10) {
+    fan::throw_error("a");
+  }
   loco_t* loco = get_loco();
   loco_bdbt_NodeReference_t nr = root;
   loco_bdbt_Key_t<sizeof(bm_properties_t::key_t) * 8> k;
@@ -298,9 +300,6 @@ void compile() {
 static inline std::vector<fan::function_t<void()>> draw_queue_helper;
 static inline uint16_t zdepth = 0;
 
-static inline bool changed = false;
-static inline uint64_t v = 0;
-
 template <uint32_t depth = 0>
 void traverse_draw(auto nr, uint32_t draw_mode) {
   loco_t* loco = get_loco();
@@ -359,12 +358,7 @@ void traverse_draw(auto nr, uint32_t draw_mode) {
         zdepth = o;
       }
       draw_queue_helper.push_back([this, loco, o, kt, draw_mode]() {
-        m_shader.use(loco->get_context());
-        if (v && v != (uint64_t)this && !changed) {
-          fan::print("aa");
-        }
-        changed = false;
-        v = (uint64_t)this;
+        m_shader.use(loco->get_context()); 
         loco->process_block_properties_element(this, o);
       });
       traverse_draw<depth + 1>(kt.Output, draw_mode);
