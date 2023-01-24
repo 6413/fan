@@ -44,7 +44,6 @@ public:
       stage->stage_id = loader->stage_list.NewNodeLast();
       stage->parent_id = properties.parent_id;
       loader->load_fgm(loco, (T*)this, properties, stage->stage_name);
-      stage->open(loco);
     }
     void close(auto* loco) {
       T* stage = (T*)this;
@@ -204,6 +203,7 @@ public:
 	stage_loader_t::nr_t push_and_open_stage(auto* loco, const stage_open_properties_t& op) {
 		auto* stage = new stage_t(this, loco, op);
 		stage_list[stage->stage_id] = stage;
+    stage->open(loco);
 		return stage->stage_id;
 	}
 	void erase_stage(auto* loco, nr_t id) {
