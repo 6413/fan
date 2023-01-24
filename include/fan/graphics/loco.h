@@ -1048,6 +1048,9 @@ public:
     post_process.start_capture();
     #endif
 
+    for (const auto& i : m_user_draw_cbs) {
+      i(this);
+    }
 
     m_write_queue.process(get_context());
 
@@ -1164,7 +1167,7 @@ public:
     return OFFSETLESS(window, loco_t, window);
   }
   #endif
-  fan::function_t<void()> draw_queue = [] {};
+  std::vector<fan::function_t<void(loco_t*)>> m_user_draw_cbs;
   image_t default_texture;
 };
 
