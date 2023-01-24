@@ -41,6 +41,7 @@ public:
       //else {
         stage->it = 0;
       //}
+      stage->stage_id = loader->stage_list.NewNodeLast();
       stage->parent_id = properties.parent_id;
       loader->load_fgm(loco, (T*)this, properties, stage->stage_name);
       stage->open(loco);
@@ -59,7 +60,9 @@ public:
     #define BLL_set_BaseLibrary 1
     #define BLL_set_prefix cid_list
     #define BLL_set_type_node uint16_t
-    #define BLL_set_NodeDataType fan::graphics::cid_t
+    #define BLL_set_NodeData \
+    uint8_t type; \
+    fan::graphics::cid_t cid;
     #define BLL_set_Link 1
     #define BLL_set_StoreFormat 1
     #define BLL_set_AreWeInsideStruct 1
@@ -91,13 +94,13 @@ public:
     uint64_t off = 0;
 
     while (off < f.size()) {
-      auto shape_type = fan::io::file::read_data<stage_maker_shape_format::shape_type_t::_t>(f, off);
+      auto shape_type = fan::io::file::read_data<loco_t::shape_type_t::_t>(f, off);
       uint32_t instance_count = fan::io::file::read_data<uint32_t>(f, off);
 
       for (uint32_t i = 0; i < instance_count; ++i) {
         auto nr = stage->cid_list.NewNodeLast();
         switch (shape_type) {
-				  case stage_maker_shape_format::shape_type_t::button: {
+				  case loco_t::shape_type_t::button: {
           auto data = fan::io::file::read_data<stage_maker_shape_format::shape_button_t>(f, off);
           auto text = fan::io::file::read_data<fan::string>(f, off);
           loco_t::button_t::properties_t bp;
@@ -113,10 +116,10 @@ public:
 					  return (stage->*(stage->button_mouse_button_cb_table[i]))(d);
 				  };
 				  
-          loco->button.push_back(&stage->cid_list[nr], bp);
+          loco->button.push_back(&stage->cid_list[nr].cid, bp);
           break;
         }
-        case stage_maker_shape_format::shape_type_t::sprite: {
+        case loco_t::shape_type_t::sprite: {
           auto data = fan::io::file::read_data<stage_maker_shape_format::shape_sprite_t>(f, off);
           auto t = fan::io::file::read_data<fan::string>(f, off);
           loco_t::sprite_t::properties_t sp;
@@ -135,10 +138,10 @@ public:
           }
           sp.matrices = op.matrices;
           sp.viewport = op.viewport;
-          loco->sprite.push_back(&stage->cid_list[nr], sp);
+          loco->sprite.push_back(&stage->cid_list[nr].cid, sp);
           break;
         }
-        case stage_maker_shape_format::shape_type_t::text: {
+        case loco_t::shape_type_t::text: {
           auto data = fan::io::file::read_data<stage_maker_shape_format::shape_text_t>(f, off);
           auto t = fan::io::file::read_data<fan::string>(f, off);
           loco_t::text_t::properties_t p;
@@ -149,10 +152,10 @@ public:
           p.position.z += stage->it * op.itToDepthMultiplier;
           p.font_size = data.size;
           p.text = t;
-          loco->text.push_back(p, &stage->cid_list[nr]);
+          loco->text.push_back(p, &stage->cid_list[nr].cid);
           break;
         }
-        case stage_maker_shape_format::shape_type_t::hitbox: {
+        case loco_t::shape_type_t::hitbox: {
           auto data = fan::io::file::read_data<stage_maker_shape_format::shape_hitbox_t>(f, off);
           loco_t::vfi_t::properties_t vfip;
           switch (data.shape_type) {
@@ -184,7 +187,7 @@ public:
           };
           vfip.ignore_init_move = true;
           auto id = loco->push_back_input_hitbox(vfip);
-          stage->cid_list[nr] = *(fan::graphics::cid_t*)&id;
+          stage->cid_list[nr].cid = *(fan::graphics::cid_t*)&id;
           break;
         }
         default: {
@@ -192,6 +195,7 @@ public:
           break;
         }
         }
+        stage->cid_list[nr].type = shape_type;
       }
     }
   }
@@ -199,7 +203,6 @@ public:
 	template <typename stage_t>
 	stage_loader_t::nr_t push_and_open_stage(auto* loco, const stage_open_properties_t& op) {
 		auto* stage = new stage_t(this, loco, op);
-    stage->stage_id = stage_list.NewNodeLast();
 		stage_list[stage->stage_id] = stage;
 		return stage->stage_id;
 	}
@@ -210,7 +213,24 @@ public:
 		auto it = stage->cid_list.GetNodeFirst();
 		while (it != stage->cid_list.dst) {
 			auto& node = stage->cid_list[it];
-			loco->button.erase(&node);
+      switch (node.type) {
+        case loco_t::shape_type_t::button: {
+          loco->button.erase(&node.cid);
+          break;
+        }
+        case loco_t::shape_type_t::sprite: {
+          loco->sprite.erase(&node.cid);
+          break;
+        }
+        case loco_t::shape_type_t::text: {
+          loco->text.erase(&node.cid);
+          break;
+        }
+        case loco_t::shape_type_t::hitbox: {
+          loco->vfi.erase(*(loco_t::vfi_t::shape_id_t*)&node.cid);
+          break;
+        }
+      }
 			it = it.Next(&stage->cid_list);
 		}
     stage_list.unlrec(id);

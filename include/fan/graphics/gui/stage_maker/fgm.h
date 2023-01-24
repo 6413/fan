@@ -1,11 +1,4 @@
 struct fgm_t {
-	struct shapes {
-		static constexpr uint16_t line = 0;
-		static constexpr uint16_t button = 1;
-		static constexpr uint16_t sprite = 2;
-    static constexpr uint16_t text = 3;
-    static constexpr uint16_t hitbox = 4;
-	};
 
 	struct viewport_area {
 		static constexpr uint32_t global = 0;
@@ -602,12 +595,12 @@ int hitbox{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
 		uint64_t off = 0;
 
     while (off < f.size()) {
-      stage_maker_shape_format::shape_type_t::_t shape_type = fan::io::file::read_data<stage_maker_shape_format::shape_type_t::_t>(f, off);
+      loco_t::shape_type_t::_t shape_type = fan::io::file::read_data<loco_t::shape_type_t::_t>(f, off);
       uint32_t instance_count = fan::io::file::read_data<uint32_t>(f, off);
 
       for (uint32_t i = 0; i < instance_count; ++i) {
         switch (shape_type) {
-        case stage_maker_shape_format::shape_type_t::button: {
+        case loco_t::shape_type_t::button: {
           auto data = fan::io::file::read_data<stage_maker_shape_format::shape_button_t>(f, off);
           auto text = fan::io::file::read_data<fan::string>(f, off);
           button_t::properties_t bp;
@@ -621,7 +614,7 @@ int hitbox{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
           button.push_back(bp);
           break;
         }
-        case stage_maker_shape_format::shape_type_t::sprite: {
+        case loco_t::shape_type_t::sprite: {
           auto data = fan::io::file::read_data<stage_maker_shape_format::shape_sprite_t>(f, off);
           auto t = fan::io::file::read_data<fan::string>(f, off);
           sprite_t::properties_t sp;
@@ -643,7 +636,7 @@ int hitbox{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
           sprite.push_back(sp);
           break;
         }
-        case stage_maker_shape_format::shape_type_t::text: {
+        case loco_t::shape_type_t::text: {
           auto data = fan::io::file::read_data<stage_maker_shape_format::shape_text_t>(f, off);
           auto t = fan::io::file::read_data<fan::string>(f, off);
           text_t::properties_t p;
@@ -655,7 +648,7 @@ int hitbox{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
           text.push_back(p);
           break;
         }
-        case stage_maker_shape_format::shape_type_t::hitbox: {
+        case loco_t::shape_type_t::hitbox: {
           auto data = fan::io::file::read_data<stage_maker_shape_format::shape_hitbox_t>(f, off);
           hitbox_t::properties_t sp;
           sp.position = data.position;
@@ -698,7 +691,7 @@ int hitbox{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
       }
     };
 		uint32_t instances_count = button.instances.size();
-    add_to_f(stage_maker_shape_format::shape_type_t::button);
+    add_to_f(loco_t::shape_type_t::button);
     add_to_f(instances_count);
 		for (auto it : button.instances) {
       stage_maker_shape_format::shape_button_t data;
@@ -714,7 +707,7 @@ int hitbox{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
 
     instances_count = sprite.instances.size();
 
-    add_to_f(stage_maker_shape_format::shape_type_t::sprite);
+    add_to_f(loco_t::shape_type_t::sprite);
     add_to_f(instances_count);
     for (auto it : sprite.instances) {
       stage_maker_shape_format::shape_sprite_t data;
@@ -726,7 +719,7 @@ int hitbox{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
 
     instances_count = text.instances.size();
 
-    add_to_f(stage_maker_shape_format::shape_type_t::text);
+    add_to_f(loco_t::shape_type_t::text);
     add_to_f(instances_count);
     for (auto it : text.instances) {
       stage_maker_shape_format::shape_text_t data;
@@ -738,7 +731,7 @@ int hitbox{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
 
     instances_count = hitbox.instances.size();
 
-    add_to_f(stage_maker_shape_format::shape_type_t::hitbox);
+    add_to_f(loco_t::shape_type_t::hitbox);
     add_to_f(instances_count);
     for (auto it : hitbox.instances) {
       stage_maker_shape_format::shape_hitbox_t data;

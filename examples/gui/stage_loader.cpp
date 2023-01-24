@@ -83,9 +83,11 @@ int main(int argc, char** argv) {
 	op.matrices = &pile.matrices;
 	op.viewport = &pile.viewport;
 	op.theme = &pile.theme;
-	pile.stage_loader.push_and_open_stage<sl::stage::stage0_t>(&pile.loco, op);
+	auto nr = pile.stage_loader.push_and_open_stage<sl::stage::stage0_t>(&pile.loco, op);
   //pile.stage_loader.push_and_open_stage<sl::stage::stage1_t>(&pile.loco, op);
   
+  pile.stage_loader.erase_stage(&pile.loco, nr);
+
 	pile.loco.loop([&] {
 
 	});

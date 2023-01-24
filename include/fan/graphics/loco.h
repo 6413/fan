@@ -150,6 +150,15 @@ extern "C" {
 
 struct loco_t {
 
+  struct shape_type_t {
+    using _t = uint16_t;
+    static constexpr _t button = 0;
+    static constexpr _t sprite = 1;
+    static constexpr _t text = 2;
+    static constexpr _t hitbox = 3;
+    static constexpr _t line = 4;
+  };
+
   struct draw_t {
     uint64_t id;
     //uint16_t magic_nri;
@@ -791,12 +800,6 @@ public:
   #include _FAN_PATH(graphics/font.h)
   font_t font;
   #endif
-
-  enum class shape_type_e {
-    #if defined(loco_rectangle_text_button)
-    rectangle_text_button
-    #endif
-  };
 
   static constexpr uint8_t pixel_data[] = {
     1, 0, 0, 1,

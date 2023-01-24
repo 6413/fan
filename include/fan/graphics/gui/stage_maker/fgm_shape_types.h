@@ -38,7 +38,7 @@ struct global_button_t {
 		instances.resize(instances.size() + 1);
 		uint32_t i = instances.size() - 1;
 		instances[i] = new instance_t;
-		instances[i]->shape = shapes::button;
+		instances[i]->shape = loco_t::shape_type_t::button;
 		loco.button.push_back(&instances[i]->cid, p);
 	}
   fgm_make_clear_f(
@@ -738,7 +738,7 @@ struct text_t {
     instances.resize(instances.size() + 1);
     uint32_t i = instances.size() - 1;
     instances[i] = new instance_t;
-    instances[i]->shape = shapes::text;
+    instances[i]->shape = loco_t::shape_type_t::text;
     loco_t::vfi_t::properties_t vfip;
     vfip.mouse_button_cb = [pile, this, instance = instances[i]](const loco_t::mouse_button_data_t& ii_d) -> int {
       switch (ii_d.button) {

@@ -12,7 +12,7 @@
   #define BVEC_set_NodeSizeType uint32_t
 #endif
 #ifndef BVEC_set_MemoryCopy
-  #define BVEC_set_MemoryCopy __builtin_memcpy
+  #define BVEC_set_MemoryCopy __MemoryCopy
 #endif
 
 #ifndef BVEC_set_BufferingFormat

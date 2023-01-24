@@ -1,13 +1,5 @@
 struct stage_maker_shape_format {
 
-  struct shape_type_t {
-    using _t = uint16_t;
-    static constexpr _t button = 0;
-    static constexpr _t sprite = 1;
-    static constexpr _t text = 2;
-    static constexpr _t hitbox = 3;
-  };
-
   struct shape_button_t {
     fan::vec3 position;
     fan::vec2 size;
