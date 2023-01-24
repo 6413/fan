@@ -604,3 +604,7 @@ static uint8_t __clz(uintptr_t p0) {
 	#endif
 }
 #endif
+
+#ifndef __return_type_of
+  #define __return_type_of fan::fan::return_type_of_t
+#endif

@@ -22,7 +22,7 @@ struct instance_t {
     instances.resize(instances.size() + 1); \
     uint32_t i = instances.size() - 1; \
     instances[i] = new instance_t; \
-    instances[i]->shape = shapes::fgm_shape_loco_name;
+    instances[i]->shape = loco_t::shape_type_t::fgm_shape_loco_name;
 #else
   #define shape_builder_push_back \
       instances.resize(instances.size() + 1); \

@@ -246,7 +246,7 @@ _BVEC_P(_AllocateBufferFromCurrent)
     #ifdef BVEC_set_NodeData
       List->ptr[List->Current] = *Node;
     #else
-      BVEC_set_MemoryCopy(_BVEC_P(GetNode)(List, List->Current), Node, List->NodeSize);
+      BVEC_set_MemoryCopy(Node, _BVEC_P(GetNode)(List, List->Current), List->NodeSize);
     #endif
     ++List->Current;
   }
