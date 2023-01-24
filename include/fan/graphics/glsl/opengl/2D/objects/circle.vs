@@ -46,12 +46,8 @@ void main() {
 	float x = rp.x * c - rp.y * s;
 	float y = rp.x * s + rp.y * c;
 
-  mat4 m = view;
-	m[3][0] = 0;
-	m[3][1] = 0;
-
-  mvp = projection * m;
-  gl_Position = mvp * vec4(vec2(x, y) * vec2(get_instance().radius) + get_instance().position.xy + vec2(view[3][0], view[3][1]), get_instance().position.z, 1);
+  mvp = projection * view;
+  gl_Position = mvp * vec4(vec2(x, y) * vec2(get_instance().radius) + get_instance().position.xy, get_instance().position.z, 1);
 	instance_color = get_instance().color;
   instance_radius = get_instance().radius;
   instance_position = get_instance().position.xy;
