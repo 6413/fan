@@ -120,9 +120,6 @@ block_t* sb_push_back(fan::opengl::cid_t* cid, auto& p) {
   #else
     p.depth = p.position.z;
   #endif
-  if (p.matrices.NRI > 10) {
-    fan::throw_error("a");
-  }
   loco_t* loco = get_loco();
   loco_bdbt_NodeReference_t nr = root;
   loco_bdbt_Key_t<sizeof(bm_properties_t::key_t) * 8> k;
