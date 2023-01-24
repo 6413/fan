@@ -1,4 +1,4 @@
-// rectangle text button using loco
+#include <iostream>
 
 #define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 
@@ -8,27 +8,35 @@
 #define fan_debug 0
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
-//#define loco_vulkan
 
-#include _FAN_PATH(system.h)
+struct stages_t {
+  struct wrapper_t;
 
-#define loco_framebuffer
+  inline static constexpr stages_t* get(auto* ptr) {
+    return OFFSETLESS((wrapper_t*)ptr, stages_t, wrapper);
+  }
 
-#define loco_window
-#define loco_context
-
-#include <string_view>
-#include <clocale>
-#include <cuchar>
-
+  struct stage0_t {
+    stage0_t() {
+      fan::print(get(this));
+    }
+    uint8_t x[10];
+  };
+  struct stage1_t {
+    stage1_t() {
+      fan::print(get(this)->wrapper.x);
+    }
+    uint8_t y[15];
+  };
+  struct wrapper_t : stage0_t, stage1_t {
+  }wrapper;
+};
 
 int main() {
-  fan::sys::set_utf8_cout();
-  std::u32string utf32_string = U"hello ö";
-  std::string utf8_string;
 
-  auto [p, ec] = std::to_chars(std::back_inserter(utf8_string), utf32_string.data(), utf32_string.data() + utf32_string.size(), std::chars_format::utf8);
-  if (ec == std::errc()) {
-    std::cout << utf8_string;
-  }
+  stages_t st;
+  fan::print(&st);
+
+
+  return 0;
 }

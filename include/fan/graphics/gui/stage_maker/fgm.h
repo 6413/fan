@@ -266,7 +266,13 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
               src_str
             );
             if (src == fan::string::npos) {
-              fan::throw_error("corrupted fgm");
+              auto _find_str = fan::string("struct stage {");
+              src = pile->stage_maker.stage_h_str.find(_find_str);
+              if (src == fan::string::npos) {
+                fan::throw_error("stage corrupted");
+              }
+              src += _find_str.size() + 1;
+              goto g_fill;
             }
             src += src_str.size();
             auto dst = pile->stage_maker.stage_h_str.find(
@@ -280,6 +286,8 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
             }
 
             pile->stage_maker.stage_h_str.erase(src, dst - src);
+
+          g_fill:
 
             auto format = fan::format(R"(
 
