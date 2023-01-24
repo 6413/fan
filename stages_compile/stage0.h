@@ -11,7 +11,7 @@ void window_resize_callback(auto* loco){
 }
 
 void update(auto* loco){
-	
+  fan::print(loco);
 }
 
 int button1_click_cb(const loco_t::mouse_button_data_t& mb){

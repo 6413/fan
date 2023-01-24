@@ -1048,8 +1048,11 @@ public:
     post_process.start_capture();
     #endif
 
-    for (const auto& i : m_user_draw_cbs) {
-      i(this);
+    auto it = m_update_callback.GetNodeFirst();
+
+    while (it != m_update_callback.dst) {
+      m_update_callback[it](this);
+      it = it.Next(&m_update_callback);
     }
 
     m_write_queue.process(get_context());
@@ -1167,7 +1170,23 @@ public:
     return OFFSETLESS(window, loco_t, window);
   }
   #endif
-  std::vector<fan::function_t<void(loco_t*)>> m_user_draw_cbs;
+
+protected:
+  #define BLL_set_CPP_ConstructDestruct
+  #define BLL_set_CPP_Node_ConstructDestruct
+  #define BLL_set_AreWeInsideStruct 1
+  #define BLL_set_prefix update_callback
+  #define BLL_set_BaseLibrary 1
+  #define BLL_set_Link 1
+  #define BLL_set_type_node uint16_t
+  #define BLL_set_NodeDataType fan::function_t<void(loco_t*)>
+  #include _FAN_PATH(BLL/BLL.h)
+public:
+
+  using update_callback_nr_t = update_callback_NodeReference_t;
+
+  update_callback_t m_update_callback;
+
   image_t default_texture;
 };
 

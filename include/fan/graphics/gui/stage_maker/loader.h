@@ -12,7 +12,9 @@ protected:
   #define BLL_set_BaseLibrary 1
   #define BLL_set_prefix stage_list
   #define BLL_set_type_node uint16_t
-  #define BLL_set_NodeDataType void *
+  #define BLL_set_NodeData \
+  loco_t::update_callback_nr_t update_nr; \
+  void* stage;
   #define BLL_set_Link 1
   #define BLL_set_AreWeInsideStruct 1
   #include _FAN_PATH(BLL/BLL.h)
@@ -202,14 +204,18 @@ public:
 	template <typename stage_t>
 	stage_loader_t::nr_t push_and_open_stage(auto* loco, const stage_open_properties_t& op) {
 		auto* stage = new stage_t(this, loco, op);
-		stage_list[stage->stage_id] = stage;
+		stage_list[stage->stage_id].stage = stage;
+    stage_list[stage->stage_id].update_nr = loco->m_update_callback.NewNodeLast();
+    loco->m_update_callback[stage_list[stage->stage_id].update_nr] = [stage](loco_t* loco) {
+      stage->update(loco);
+    };
     stage->open(loco);
 		return stage->stage_id;
 	}
 	void erase_stage(auto* loco, nr_t id) {
 		//auto loco = get_loco();
   //  //fan::throw_error("todo");
-    auto* stage = (stage_common_t*)stage_list[id];
+    auto* stage = (stage_common_t*)stage_list[id].stage;
 		auto it = stage->cid_list.GetNodeFirst();
 		while (it != stage->cid_list.dst) {
 			auto& node = stage->cid_list[it];
@@ -233,6 +239,7 @@ public:
       }
 			it = it.Next(&stage->cid_list);
 		}
+    loco->m_update_callback.unlrec(stage_list[id].update_nr);
     stage_list.unlrec(id);
 	}
 
