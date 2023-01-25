@@ -731,6 +731,12 @@ public:
     sprite_t sb_shape_var_name;
     #undef sb_shape_var_name
   #endif
+  #if defined(loco_light)
+    #define sb_shape_var_name light
+    #include _FAN_PATH(graphics/opengl/2D/objects/light.h)
+    light_t sb_shape_var_name;
+    #undef sb_shape_var_name
+  #endif
   #if defined(loco_sprite_sheet)
     #define sb_shape_var_name sprite_sheet;
     #define sb_sprite_sheet_name sprite_sheet_t
@@ -859,10 +865,6 @@ public:
 
   #if defined(loco_opengl)
     loco_t::image_t::load_properties_t lp;
-    lp.internal_format = fan::opengl::GL_RGBA;
-    lp.format = fan::opengl::GL_RGBA;
-    lp.type = fan::opengl::GL_FLOAT;
-    lp.filter = fan::opengl::GL_LINEAR;
     lp.visual_output = fan::opengl::GL_CLAMP_TO_EDGE;
   #if defined(loco_framebuffer)
     m_framebuffer.open(get_context());
@@ -878,15 +880,6 @@ public:
 	  ii.data = nullptr;
     ii.size = get_window()->get_size();
 
-    color_buffers[0].load(this, ii, lp);
-
-    color_buffers[0].bind_texture(this);
-    fan::opengl::core::framebuffer_t::bind_to_texture(
-      get_context(),
-      *color_buffers[0].get_texture(this),
-      fan::opengl::GL_COLOR_ATTACHMENT0
-    );
-
     lp.internal_format = fan::opengl::GL_R8UI;
     lp.format = fan::opengl::GL_RED_INTEGER; // GL_RGB_INTEGER for vec3
     lp.filter = fan::opengl::GL_NEAREST;
@@ -900,6 +893,28 @@ public:
       *color_buffers[1].get_texture(this),
       fan::opengl::GL_COLOR_ATTACHMENT1
     );
+    lp.internal_format = fan::opengl::GL_RGBA;
+    lp.format = fan::opengl::GL_RGBA;
+    lp.type = fan::opengl::GL_FLOAT;
+    lp.filter = fan::opengl::GL_LINEAR;
+
+    color_buffers[0].load(this, ii, lp);
+
+    color_buffers[0].bind_texture(this);
+    fan::opengl::core::framebuffer_t::bind_to_texture(
+      get_context(),
+      *color_buffers[0].get_texture(this),
+      fan::opengl::GL_COLOR_ATTACHMENT0
+    );
+
+    color_buffers[2].load(this, ii, lp);
+
+    color_buffers[2].bind_texture(this);
+    fan::opengl::core::framebuffer_t::bind_to_texture(
+      get_context(),
+      *color_buffers[2].get_texture(this),
+      fan::opengl::GL_COLOR_ATTACHMENT2
+    );
 
     fan::opengl::core::renderbuffer_t::properties_t rp;
     m_framebuffer.bind(get_context());
@@ -911,11 +926,11 @@ public:
     m_rbo.bind_to_renderbuffer(get_context(), rp);
 
     // tell OpenGL which color attachments we'll use (of this framebuffer) for rendering
-    unsigned int attachments[] = {
-      //fan::opengl::GL_COLOR_ATTACHMENT0,
-      fan::opengl::GL_COLOR_ATTACHMENT0,
-      fan::opengl::GL_COLOR_ATTACHMENT1
-    };
+    unsigned int attachments[sizeof(color_buffers) / sizeof(color_buffers[0])];
+
+    for (uint8_t i = 0; i < std::size(color_buffers); ++i) {
+      attachments[i] = fan::opengl::GL_COLOR_ATTACHMENT0 + i;
+    }
 
     get_context()->opengl.call(get_context()->opengl.glDrawBuffers, std::size(attachments), attachments);
     // finally check if framebuffer is complete
@@ -1074,13 +1089,18 @@ public:
 
       m_fbo_final_shader.use(get_context());
       m_fbo_final_shader.set_int(get_context(), "_t00", 0);
-      //m_fbo_final_shader.set_int(get_context(), "_t01", 1);
+      m_fbo_final_shader.set_int(get_context(), "_t01", 1);
+      m_fbo_final_shader.set_int(get_context(), "_t02", 2);
 
       get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
       color_buffers[0].bind_texture(this);
      
       get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
 	    color_buffers[1].bind_texture(this);
+
+      get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE2);
+      color_buffers[2].bind_texture(this);
+
       renderQuad();
       #endif
       get_context()->render(get_window());
@@ -1141,7 +1161,7 @@ public:
   
   fan::opengl::core::framebuffer_t m_framebuffer;
   fan::opengl::core::renderbuffer_t m_rbo;
-  loco_t::image_t color_buffers[2];
+  loco_t::image_t color_buffers[3];
   fan::opengl::shader_t m_fbo_final_shader;
 
 #elif defined(loco_vulkan)
@@ -1188,6 +1208,11 @@ public:
   update_callback_t m_update_callback;
 
   image_t default_texture;
+
+  struct lighting_t {
+    static constexpr const char* ambient_name = "lighting_ambient";
+    fan::vec3 ambient = fan::vec3(1, 1, 1);
+  }lighting;
 };
 
 #if defined(loco_window)

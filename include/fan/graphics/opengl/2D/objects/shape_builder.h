@@ -315,6 +315,8 @@ void traverse_draw(auto nr, uint32_t draw_mode) {
         #endif
       #endif
 
+        m_shader.set_vec3(loco->get_context(), loco_t::lighting_t::ambient_name, loco->lighting.ambient);
+
         while (1) {
           auto node = blocks.GetNodeByReference(bnr);
           node->data.block.uniform_buffer.bind_buffer_range(

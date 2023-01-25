@@ -14,6 +14,10 @@
   // can be moved
   sprite.draw();
 #endif
+#if defined(loco_sprite)
+  // can be moved
+  light.draw();
+#endif
 #if defined(loco_letter)
   // loco_t::text gets drawn here as well as it uses letter
   letter.draw();

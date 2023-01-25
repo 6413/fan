@@ -51,9 +51,6 @@ struct pile_t {
 
 int main() {
 
-  fan::time::clock c;
-  c.start();
-
   pile_t* pile = new pile_t;
 
   loco_t::sprite_t::properties_t p;
