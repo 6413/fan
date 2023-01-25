@@ -9,9 +9,11 @@ flat in uint flag;
 in vec4 instance_color;
 
 uniform sampler2D _t00;
+uniform vec3 lighting_ambient;
 
 void main() {
   o_attachment0 = texture(_t00, texture_coordinate) * instance_color;
+  o_attachment0.rgb *= lighting_ambient;
   //o_attachment1 = uint(texture(_t00, texture_coordinate).r * 255.0f) * 5u;
   //o_attachment1.g = 0u;
   //o_attachment1.b = 0;
