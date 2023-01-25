@@ -368,6 +368,7 @@ namespace fan {
         get_proc_address(glAlphaFunc, &internal);
         get_proc_address(glTexParameterf, &internal);
         get_proc_address(glDrawBuffers, &internal);
+        get_proc_address(glClearBufferfv, &internal);
         
         internal.close(&p);
 
@@ -520,7 +521,7 @@ namespace fan {
       PFNGLALPHAFUNCPROC glAlphaFunc;
       PFNGLTEXPARAMETERFPROC glTexParameterf;
       PFNGLDRAWBUFFERSPROC glDrawBuffers;
-      
+      PFNGLCLEARBUFFERFVPROC glClearBufferfv;
     };
 
   }
