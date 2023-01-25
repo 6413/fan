@@ -925,7 +925,6 @@ public:
     rp.internalformat = fan::opengl::GL_DEPTH_ATTACHMENT;
     m_rbo.bind_to_renderbuffer(get_context(), rp);
 
-    // tell OpenGL which color attachments we'll use (of this framebuffer) for rendering
     unsigned int attachments[sizeof(color_buffers) / sizeof(color_buffers[0])];
 
     for (uint8_t i = 0; i < std::size(color_buffers); ++i) {
@@ -1051,9 +1050,28 @@ public:
   #endif
 
   void process_frame() {
+
+    //light.m_shader.use(get_context());
+    //light.m_shader.set_int(get_context(), "_t00", 0);
+    //light.m_shader.set_int(get_context(), "_t01", 1);
+    //light.m_shader.set_int(get_context(), "_t02", 2);
+
+
+    get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
+    color_buffers[0].bind_texture(this);
+
+    get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
+    color_buffers[1].bind_texture(this);
+
+    get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE2);
+    color_buffers[2].bind_texture(this);
+
+
     #if defined(loco_opengl)
     #if defined(loco_framebuffer)
     m_framebuffer.bind(get_context());
+    float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+    get_context()->opengl.glClearBufferfv(fan::opengl::GL_COLOR, 2, clearColor);
     #endif
     get_context()->opengl.call(get_context()->opengl.glClearColor, 0, 0, 0, 1);
     get_context()->opengl.call(get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
@@ -1101,6 +1119,13 @@ public:
       get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE2);
       color_buffers[2].bind_texture(this);
 
+      unsigned int attachments[sizeof(color_buffers) / sizeof(color_buffers[0])];
+
+      for (uint8_t i = 0; i < std::size(color_buffers); ++i) {
+        attachments[i] = fan::opengl::GL_COLOR_ATTACHMENT0 + i;
+      }
+
+      get_context()->opengl.call(get_context()->opengl.glDrawBuffers, std::size(attachments), attachments);
       renderQuad();
       #endif
       get_context()->render(get_window());

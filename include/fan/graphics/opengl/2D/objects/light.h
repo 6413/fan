@@ -56,13 +56,14 @@ struct light_t {
 
   static constexpr uint32_t max_instance_size = fan::min(256, 4096 / (sizeof(vi_t) / 4));
   #if defined(loco_opengl)
-  #define sb_shader_vertex_path _FAN_PATH(graphics/glsl/opengl/2D/objects/rectangle.vs)
+  #define sb_shader_vertex_path _FAN_PATH(graphics/glsl/opengl/2D/objects/light.vs)
   #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/objects/light.fs)
   #elif defined(loco_vulkan)
   #endif
 
   #define vk_sb_ssbo
   #define vk_sb_vp
+  #define sb_inline_draw
   #include _FAN_PATH(graphics/shape_builder.h)
 
   light_t() {

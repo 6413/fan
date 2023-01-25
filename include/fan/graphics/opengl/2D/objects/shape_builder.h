@@ -303,8 +303,9 @@ void traverse_draw(auto nr, uint32_t draw_mode) {
   if constexpr (depth == bm_properties_t::key_t::count + 1) {
     auto bmn = bm_list.GetNodeByReference(*(shape_bm_NodeReference_t*)&nr);
     auto bnr = bmn->data.first_block;
-    static auto test = bnr;
+    #ifndef sb_inline_draw
     draw_queue_helper.push_back([this, loco, draw_mode, bmn, bnr]() mutable {
+    #endif
         m_shader.use(loco->get_context());
 
       #if defined(loco_opengl)
@@ -316,6 +317,12 @@ void traverse_draw(auto nr, uint32_t draw_mode) {
       #endif
 
         m_shader.set_vec3(loco->get_context(), loco_t::lighting_t::ambient_name, loco->lighting.ambient);
+
+        #if defined(loco_light)
+        if constexpr (std::is_same<std::remove_pointer_t<decltype(this)>, loco_t::light_t>::value) {
+          loco->get_context()->opengl.call(loco->get_context()->opengl.glBlendFunc, fan::opengl::GL_ONE, fan::opengl::GL_ONE);
+        }
+        #endif
 
         while (1) {
           auto node = blocks.GetNodeByReference(bnr);
@@ -334,14 +341,23 @@ void traverse_draw(auto nr, uint32_t draw_mode) {
           }
           bnr = node->NextNodeReference;
         }
+        #if defined(loco_light)
+        if constexpr (std::is_same<std::remove_pointer_t<decltype(this)>, loco_t::light_t>::value) {
+          loco->get_context()->opengl.call(loco->get_context()->opengl.glBlendFunc, fan::opengl::GL_SRC_ALPHA, fan::opengl::GL_ONE_MINUS_SRC_ALPHA);
+        }
+        #endif
+        #ifndef sb_inline_draw
       });
+    #endif
 
+    #ifndef sb_inline_draw
     loco->m_draw_queue.insert(loco_t::draw_t{
-      // * 5 to dont collide with zdepth
       (uint64_t)zdepth,
       std::vector<fan::function_t<void()>>(draw_queue_helper.begin(), draw_queue_helper.end())
     });
+
     draw_queue_helper.clear();
+    #endif
   }
   else {
     //loco_bdbt_Key_t<sizeof(typename instance_properties_t::key_t::get_type<depth>::type) * 8> k;
@@ -356,10 +372,14 @@ void traverse_draw(auto nr, uint32_t draw_mode) {
       if constexpr (std::is_same_v<decltype(o), uint16_t>) {
         zdepth = o;
       }
+    #ifndef sb_inline_draw
       draw_queue_helper.push_back([this, loco, o, kt, draw_mode]() {
+    #endif
         m_shader.use(loco->get_context()); 
         loco->process_block_properties_element(this, o);
+    #ifndef sb_inline_draw
       });
+    #endif
       traverse_draw<depth + 1>(kt.Output, draw_mode);
     }
   }
@@ -367,6 +387,10 @@ void traverse_draw(auto nr, uint32_t draw_mode) {
 
 void sb_draw(uint32_t draw_mode = fan::opengl::GL_TRIANGLES) {
   loco_t* loco = get_loco();
+  m_shader.use(loco->get_context());
+  m_shader.set_int(loco->get_context(), "_t00", 0);
+  m_shader.set_int(loco->get_context(), "_t01", 1);
+  m_shader.set_int(loco->get_context(), "_t02", 2);
   traverse_draw(root, draw_mode);
 }
 
