@@ -16,6 +16,9 @@ struct loco_t;
 
 // automatically gets necessary macros for shapes
 
+#if defined(loco_text)
+  #define loco_letter
+#endif
 #if defined(loco_sprite_sheet)
   #define loco_sprite
 #endif
