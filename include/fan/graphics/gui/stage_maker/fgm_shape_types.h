@@ -1,5 +1,33 @@
 #include <fmt/core.h>
 
+static std::size_t get_ending_bracket_offset(const fan::string& stage_name, const fan::string& str, std::size_t src) {
+  std::size_t offset = src;
+  std::size_t brackets_count = 0;
+
+  do {
+    std::size_t temp = str.find_first_of("{", offset);
+
+    if (offset != fan::string::npos) {
+      offset = temp + 1;
+      brackets_count++;
+    }
+    else {
+      fan::throw_error(fan::format("error processing {} . error at char:{}", stage_name, temp));
+    }
+
+    std::size_t s = str.find_first_of("{", offset);
+    std::size_t d = str.find_first_of("}", offset);
+
+    if (s < d) {
+      continue;
+    }
+    offset = d + 1;
+    brackets_count--;
+  } while (brackets_count != 0);
+
+  return offset;
+}
+
 struct line_t {
 
   #define fgm_shape_name line
@@ -65,14 +93,30 @@ void move_shape(auto* shape, auto* instance, const fan::vec2& offset) {
 }
 
 struct button_t {
+
+  struct properties_t : loco_t::button_t::properties_t {
+    uint32_t id = -1;
+  };
+
   uint8_t holding_special_key = 0;
 
   #define fgm_shape_name button
+  #define fgm_shape_manual_properties
   #define fgm_shape_instance_data \
     fan::graphics::cid_t cid; \
     uint16_t shape; \
-  fan_2d::graphics::gui::theme_t theme;
+    fan_2d::graphics::gui::theme_t theme; \
+    uint32_t id;
   #include "fgm_shape_builder.h"
+
+  bool does_id_exist(uint32_t id) {
+    for (const auto& it : instances) {
+      if (it->id == id) {
+        return true;
+      }
+    }
+    return false;
+  }
 
   void close_properties() {
     auto pile = get_pile();
@@ -173,6 +217,16 @@ struct button_t {
 		p.position.z = 1;
 		pile_t* pile = get_pile();
     shape_builder_push_back
+
+    if (p.id == (uint32_t)-1) {
+      static uint32_t id = 0;
+      while (does_id_exist(id)) { ++id; }
+      instances[i]->id = id;
+    }
+    else {
+      instances[i]->id = p.id;
+    }
+
 		instances[i]->theme = *pile->loco.get_context()->theme_list[p.theme].theme_id;
 		p.mouse_button_cb = [this, instance = instances[i]](const loco_t::mouse_button_data_t& ii_d) -> int {
 			pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi_var_name), pile_t, loco_var_name);
@@ -209,7 +263,7 @@ struct button_t {
 				pile->stage_maker.fgm.button.release();
 				// TODO FIX, erases in near bottom
 				if (!pile->stage_maker.fgm.viewport[viewport_area::editor].inside(pile->loco.get_mouse_position()) && !holding_special_key) {
-					pile->stage_maker.fgm.button.erase(&instance->cid);
+					pile->stage_maker.fgm.button.erase(instance);
 				}
 				return 0;
 			}
@@ -243,7 +297,7 @@ struct button_t {
           }
 					switch (kd.keyboard_state) {
 						case fan::keyboard_state::press: {
-							pile->stage_maker.fgm.button.erase(&instance->cid);
+							pile->stage_maker.fgm.button.erase(instance);
 							pile->stage_maker.fgm.invalidate_focus();
 							break;
 						}
@@ -278,29 +332,34 @@ struct button_t {
 		auto ri = pile->loco.button.get_ri(builder_cid);
 		pile->loco.vfi.set_focus_mouse(ri.vfi_id);
 	}
-	void erase(fan::graphics::cid_t* cid) {
+	void erase(instance_t* it) {
 		pile_t* pile = OFFSETLESS(get_loco(), pile_t, loco_var_name);
-		pile->loco.button.erase(cid);
-		for (uint32_t i = 0; i < instances.size(); i++) {
-			if (&instances[i]->cid == cid) {
-				auto stage_name = pile->stage_maker.get_selected_name(
-					pile,
-					pile->stage_maker.instances[pile_t::stage_maker_t::stage_t::stage_instance].menu_id,
-					pile->loco.menu_maker_button.get_selected_id(pile->stage_maker.instances[pile_t::stage_maker_t::stage_t::stage_instance].menu_id)
-				);
-				auto file_name = pile->stage_maker.get_file_fullpath(stage_name);
 
-				fan::string str;
-				fan::io::file::read(file_name, &str);
-				auto find = fan::format("int button{}_click_cb", fan::to_string(i));
-				std::size_t begin = str.find(find) - 2;
-				std::size_t end = str.find("}", begin) + 1;
-				str.erase(begin, end - begin);
-				fan::io::file::write(file_name, str, std::ios_base::binary);
-				instances.erase(instances.begin() + i);
-				break;
-			}
-		}
+    close_properties();
+
+		pile->loco.button.erase(&it->cid);
+
+    auto stage_name = pile->stage_maker.get_selected_name(
+      pile,
+      pile->stage_maker.instances[pile_t::stage_maker_t::stage_t::stage_instance].menu_id,
+      pile->loco.menu_maker_button.get_selected_id(pile->stage_maker.instances[pile_t::stage_maker_t::stage_t::stage_instance].menu_id)
+    );
+    auto file_name = pile->stage_maker.get_file_fullpath(stage_name);
+
+    fan::string str;
+    fan::io::file::read(file_name, &str);
+    auto find = fan::format("int button{}_click_cb", it->id);
+    std::size_t begin = str.find(find) - 2;
+    std::size_t end = str.find("}", begin) + 1;
+    str.erase(begin, end - begin);
+    fan::io::file::write(file_name, str, std::ios_base::binary);
+
+    for (uint32_t i = 0; i < instances.size(); i++) {
+      if (&instances[i]->cid == &it->cid) {
+        instances.erase(instances.begin() + i);
+        break;
+      }
+    }
 		release();
 	}
 
@@ -571,6 +630,7 @@ struct sprite_t {
 	}
 	void erase(fan::graphics::cid_t* cid) {
 		loco_t& loco = *get_loco();
+    close_properties();
 		loco.sprite.erase(cid);
 		for (uint32_t i = 0; i < instances.size(); i++) {
 			if (&instances[i]->cid == cid) {
@@ -910,6 +970,7 @@ struct text_t {
   }
   void erase(fan::graphics::cid_t* cid) {
     loco_t& loco = *get_loco();
+    close_properties();
     loco.text.erase(cid);
     for (uint32_t i = 0; i < instances.size(); i++) {
       if (&instances[i]->cid == cid) {
@@ -945,8 +1006,12 @@ struct text_t {
 }text;
 
 struct hitbox_t {
+
+  static constexpr const char* cb_names[] = { "mouse_button","mouse_move", "keyboard", "text" };
+
   struct properties_t : loco_t::sprite_t::properties_t{
     loco_t::vfi_t::shape_type_t shape_type;
+    uint32_t id = -1;
   };
 
   uint8_t holding_special_key = 0;
@@ -1084,9 +1149,15 @@ struct hitbox_t {
     pile_t* pile = get_pile();
     shape_builder_push_back
     instances[i]->shape_type = p.shape_type;
-    static uint32_t id = 0;
-    while (does_id_exist(id)) { ++id; }
-    instances[i]->hitbox_id = id;
+    if (p.id == (uint32_t)-1) {
+      static uint32_t id = 0;
+      while (does_id_exist(id)) { ++id; }
+      instances[i]->hitbox_id = id;
+    }
+    else {
+      instances[i]->hitbox_id = p.id;
+    }
+
     loco_t::vfi_t::properties_t vfip;
     vfip.mouse_button_cb = [pile, this, instance = instances[i]](const loco_t::mouse_button_data_t& ii_d) -> int {
       switch (ii_d.button) {
@@ -1131,7 +1202,7 @@ struct hitbox_t {
         release();
         // TODO FIX, erases in near bottom
         if (!pile->stage_maker.fgm.viewport[viewport_area::editor].inside(pile->loco.get_mouse_position()) && !holding_special_key) {
-          erase(&instance->cid);
+          erase(instance);
         }
         return 0;
       }
@@ -1162,7 +1233,7 @@ struct hitbox_t {
         }
         switch (kd.keyboard_state) {
         case fan::keyboard_state::press: {
-          erase(&instance->cid);
+          erase(instance);
           pile->stage_maker.fgm.invalidate_focus();
           break;
         }
@@ -1199,11 +1270,45 @@ struct hitbox_t {
     instances[i]->vfi_id = pile->loco.push_back_input_hitbox(vfip);
     pile->loco.sprite.push_back(&instances[i]->cid, p);
   }
-  void erase(fan::graphics::cid_t* cid) {
-    loco_t& loco = *get_loco();
-    loco.sprite.erase(cid);
+  // erases even the code generated by fgm
+  void erase(instance_t* instance) {
+    auto& pile = *get_pile();
+
+    close_properties();
+
+    auto stage_name = pile.stage_maker.get_selected_name(
+      &pile,
+      pile.stage_maker.instances[pile_t::stage_maker_t::stage_t::stage_instance].menu_id,
+      pile.loco.menu_maker_button.get_selected_id(pile.stage_maker.instances[pile_t::stage_maker_t::stage_t::stage_instance].menu_id)
+    );
+    auto file_name = pile.stage_maker.get_file_fullpath(stage_name);
+
+    fan::string str;
+    fan::io::file::read(file_name, &str);
+
+    for (uint32_t j = 0; j < std::size(hitbox_t::cb_names); ++j) {
+      std::size_t src = str.find(
+        fan::format("int hitbox{0}_{1}_cb(const loco_t::{1}_data_t& mb)",
+          instance->hitbox_id, hitbox_t::cb_names[j])
+      );
+
+      if (src == fan::string::npos) {
+        fan::throw_error("failed to find function:" + fan::format("int hitbox{0}_{1}_cb(const loco_t::{1}_data_t& mb - from:{2})",
+          instance->hitbox_id, hitbox_t::cb_names[j], stage_name));
+      }
+
+      std::size_t dst = get_ending_bracket_offset(file_name, str, src);
+
+      // - to remove endlines
+      str.erase(src - 2, dst - src + 2);
+    }
+
+    fan::io::file::write(file_name, str, std::ios_base::binary);
+
+    pile.loco.sprite.erase(&instance->cid);
+
     for (uint32_t i = 0; i < instances.size(); i++) {
-      if (&instances[i]->cid == cid) {
+      if (&instances[i]->cid == &instance->cid) {
         instances.erase(instances.begin() + i);
         break;
       }
@@ -1213,7 +1318,7 @@ struct hitbox_t {
 
   fgm_make_clear_f(
     pile->loco.sprite.erase(&it->cid);
-  pile->loco.vfi.erase(it->vfi_id);
+    pile->loco.vfi.erase(it->vfi_id);
   );
 
   fan::vec3 get_position(instance_t* instance) {

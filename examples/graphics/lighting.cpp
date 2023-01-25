@@ -72,13 +72,12 @@ int main() {
   lp.matrices = &pile->matrices;
   lp.viewport = &pile->viewport;
   lp.position = fan::vec3(-0.5, 0, 0);
-  lp.size = fan::vec2(0.2);
+  lp.size = fan::vec2(0.1);
   lp.color = fan::color(0, 1, 0);
   pile->loco.light.push_back(&pile->cid[0], lp);
-
   lp.color = fan::color(0, 0, 1);
   lp.viewport = &pile->viewport;
-  for (uint32_t i = 0; i < 100; i++) {
+  for (uint32_t i = 0; i < 1000; i++) {
     lp.position = fan::random::vec2(-1, 1);
     lp.color = fan::random::color();
     lp.position.z = 0;

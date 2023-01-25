@@ -224,18 +224,8 @@ struct fgm_t {
 			      fan::string str;
 			      fan::io::file::read(file_name, &str);
 
-			      std::size_t button_id = -1;
-			      for (std::size_t j = 0; j < pile->stage_maker.fgm.button.instances.size(); ++j) {
-				      if (&pile->stage_maker.fgm.button.instances[j]->cid == builder_cid) {
-					      button_id = j;
-					      break;
-				      }
-			      }
-			
-			      if (button_id == -1) {
-				      fan::throw_error("some corruption xd");
-			      }
-			
+			      uint32_t button_id = it->id;
+
 			      if (str.find(fan::to_string(button_id) + "(") != fan::string::npos) {
 				      return 0;
 			      }
@@ -421,16 +411,14 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
             fan::string str;
             fan::io::file::read(file_name, &str);
 
-            static constexpr const char* cb_names[] = { "mouse_button","mouse_move", "keyboard", "text" };
-
             fan::string format;
             format += "\n\n";
 
-            for (uint32_t k = 0; k < std::size(cb_names); ++k) {
-              format += fan::format(R"(    hitbox_{0}_cb_table_t hitbox_{1}_cb_table[{2}] = {{)", cb_names[k], cb_names[k], pile->stage_maker.fgm.hitbox.instances.size());
+            for (uint32_t k = 0; k < std::size(hitbox_t::cb_names); ++k) {
+              format += fan::format(R"(    hitbox_{0}_cb_table_t hitbox_{1}_cb_table[{2}] = {{)", hitbox_t::cb_names[k], hitbox_t::cb_names[k], pile->stage_maker.fgm.hitbox.instances.size());
 
               for (std::size_t j = 0; j < pile->stage_maker.fgm.hitbox.instances.size(); ++j) {
-                format += fan::format("&{}_t::hitbox{}_{}_cb,", str_stage_name.c_str(), pile->stage_maker.fgm.hitbox.instances[j]->hitbox_id, cb_names[k]);
+                format += fan::format("&{}_t::hitbox{}_{}_cb,", str_stage_name.c_str(), pile->stage_maker.fgm.hitbox.instances[j]->hitbox_id, hitbox_t::cb_names[k]);
               }
 
               format += "};\n";
@@ -441,12 +429,12 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
             pile->stage_maker.stage_h_str.insert(src, format);
 
             for (std::size_t j = 0; j < pile->stage_maker.fgm.hitbox.instances.size(); ++j) {
-              for (uint32_t k = 0; k < std::size(cb_names); ++k) {
+              for (uint32_t k = 0; k < std::size(hitbox_t::cb_names); ++k) {
                 auto cbs_text = fan::format(R"(
 int hitbox{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
   return 0;
 }}
-)", fan::to_string(pile->stage_maker.fgm.hitbox.instances[j]->hitbox_id), cb_names[k]);
+)", fan::to_string(pile->stage_maker.fgm.hitbox.instances[j]->hitbox_id), hitbox_t::cb_names[k]);
                 if (str.find(cbs_text) != fan::string::npos) {
                   continue;
                 }
@@ -506,7 +494,7 @@ int hitbox{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
 
 		open_editor_properties();
 
-		load_from_file(stage_name);
+		read_from_file(stage_name);
 	}
 
 	void open(const char* texturepack_name) {
@@ -585,7 +573,7 @@ int hitbox{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
 		return fan::string(stage_maker_t::stage_runtime_folder_name) + "/" + stage_name + ".fgm";
 	}
 
-	void load_from_file(const fan::string& stage_name) {
+	void read_from_file(const fan::string& stage_name) {
 		fan::string path = get_fgm_full_path(stage_name);
 		fan::string f;
 		if (!fan::io::file::exists(path)) {
@@ -611,6 +599,7 @@ int hitbox{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
           bp.theme = &theme;
           bp.matrices = &matrices[viewport_area::editor];
           bp.viewport = &viewport[viewport_area::editor];
+          bp.id = data.id;
           button.push_back(bp);
           break;
         }
@@ -657,6 +646,7 @@ int hitbox{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
           sp.matrices = &matrices[viewport_area::editor];
           sp.viewport = &viewport[viewport_area::editor];
           sp.shape_type = data.shape_type;
+          sp.id = data.id;
           hitbox.push_back(sp);
           break;
         }
@@ -700,6 +690,7 @@ int hitbox{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
 			data.font_size = loco->text.get_instance(
 				&loco->button.get_ri(&it->cid).text_id
 			).font_size;
+      data.id = it->id;
       //data.theme = *loco->button.get_theme(&it->cid);
       add_to_f(data);
       add_to_f(loco->button.get_text(&it->cid));
@@ -748,6 +739,7 @@ int hitbox{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
           data.size = loco->sprite.get(&it->cid, &loco_t::sprite_t::vi_t::size);
         }
       }
+      data.id = it->hitbox_id;
       data.shape_type = it->shape_type;
       add_to_f(data);
     }
@@ -761,8 +753,6 @@ int hitbox{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
     //vauto sta
     pile_t* pile = OFFSETLESS(loco, pile_t, loco_var_name);
     auto offset = pile->stage_maker.stage_h_str.find(stage_name);
-
-
 
     if (offset == fan::string::npos) {
       fan::throw_error("corrupted stage.h");
