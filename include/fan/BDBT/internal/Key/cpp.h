@@ -16,7 +16,7 @@ struct _BDBT_P(Key_t){
   InFrom
   (
     _BDBT_BP(t) *list,
-    void *Key,
+    const void *Key,
     KeySize_t KeyIndex,
     _BDBT_BP(NodeReference_t) cnr,
     _BDBT_BP(NodeReference_t) Output
@@ -90,7 +90,7 @@ struct _BDBT_P(Key_t){
   Query
   (
     _BDBT_BP(t) *list,
-    void *Key,
+    const void *Key,
     KeySize_t *KeyIndex,
     _BDBT_BP(NodeReference_t) *cnr
   ){

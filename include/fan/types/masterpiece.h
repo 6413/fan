@@ -94,6 +94,20 @@ namespace fan {
         return get_value<i, typename _Ty::base, depth - 1>(a);
       }
     }
+
+    template <uint32_t i, typename _Ty = masterpiece_reversed_t<T, Rest...>, uint32_t depth = count>
+    constexpr auto get_value(_Ty* a = nullptr) const {
+      if constexpr (depth == count) {
+        a = this;
+      }
+      if constexpr (i == depth) {
+        return &a->x_;
+      }
+      if constexpr (depth > i) {
+        return get_value<i, typename _Ty::base, depth - 1>(a);
+      }
+    }
+
     template <typename get_type, typename _Ty = masterpiece_reversed_t<T, Rest...>, uint32_t depth = count>
     static constexpr uint32_t get_index_with_type() {
       if constexpr (std::is_same<get_type, typename _Ty::value_type>::value) {

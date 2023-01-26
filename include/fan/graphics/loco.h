@@ -126,7 +126,7 @@ struct loco_t;
 #define BDBT_set_type_node uint16_t
 #define BDBT_set_KeySize 0
 #define BDBT_set_BitPerNode 2
-#define BDBT_set_declare_rest 0
+#define BDBT_set_declare_rest 0 
 #define BDBT_set_declare_Key 1
 #define BDBT_set_base_prefix loco_bdbt
 #define BDBT_set_BaseLibrary 1
@@ -150,6 +150,8 @@ extern "C" {
 }
   #include _FAN_PATH(graphics/transform_interpolator.h)
 #endif
+
+#include "loco_types.h"
 
 struct loco_t {
 
@@ -1241,6 +1243,46 @@ public:
     static constexpr const char* ambient_name = "lighting_ambient";
     fan::vec3 ambient = fan::vec3(1, 1, 1);
   }lighting;
+
+  #define make_key_value(type, name) \
+      type& name = *key.get_value<decltype(key)::get_index_with_type<type>()>();
+
+  #define make_shape_id(name, properties) \
+    struct name ## _id_t { \
+ \
+ \
+      struct properties_t { \
+ \
+        loco_ ## name ## _vi_t \
+          loco_## name ## _bm_properties_t \
+          loco_ ## name ## _ri_t \
+ \
+          properties \
+      }; \
+ \
+ \
+      fan::graphics::cid_t cid; \
+ \
+      operator fan::graphics::cid_t* () { \
+        return &cid; \
+      } \
+ \
+      name ## _id_t(properties_t); \
+      ~name ## _id_t(); \
+    };
+
+    make_shape_id(rectangle, 
+      loco_t::matrices_t* matrices;
+      fan::graphics::viewport_t* viewport;
+    );
+
+    make_shape_id(sprite,
+      loco_t::image_t* image;
+      loco_t::matrices_t* matrices;
+      fan::graphics::viewport_t* viewport;
+    );
+
+    #undef make_key_value
 };
 
 #if defined(loco_window)
@@ -1252,9 +1294,15 @@ loco_t::matrices_list_NodeReference_t::matrices_list_NodeReference_t(loco_t::mat
   NRI = matrices->matrices_reference.NRI;
 }
 #endif
-#undef loco_rectangle
-#undef loco_letter
-#undef loco_text
-#undef loco_text_box
-#undef loco_button
-#undef loco_wboit
+
+#ifndef loco_no_inline
+  #undef loco_rectangle_vi_t
+
+  #undef loco_rectangle
+  #undef loco_sprite
+  #undef loco_letter
+  #undef loco_text
+  #undef loco_text_box
+  #undef loco_button
+  #undef loco_wboit
+#endif
