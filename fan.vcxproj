@@ -116,6 +116,7 @@
       <StructMemberAlignment>Default</StructMemberAlignment>
       <SmallerTypeCheck>false</SmallerTypeCheck>
       <ControlFlowGuard>false</ControlFlowGuard>
+      <AdditionalOptions>/Zc:__cplusplus /Zc:preprocessor %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -157,6 +158,7 @@
       <StructMemberAlignment>Default</StructMemberAlignment>
       <SmallerTypeCheck>false</SmallerTypeCheck>
       <ControlFlowGuard>false</ControlFlowGuard>
+      <AdditionalOptions>/Zc:__cplusplus /Zc:preprocessor %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -197,7 +199,7 @@
       <StructMemberAlignment>Default</StructMemberAlignment>
       <SmallerTypeCheck>false</SmallerTypeCheck>
       <ControlFlowGuard>false</ControlFlowGuard>
-      <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/Zc:__cplusplus /Zc:preprocessor %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -240,7 +242,7 @@
       <AssemblerOutput>NoListing</AssemblerOutput>
       <SmallerTypeCheck>false</SmallerTypeCheck>
       <ControlFlowGuard>false</ControlFlowGuard>
-      <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/Zc:__cplusplus /Zc:preprocessor %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>false</EnableCOMDATFolding>

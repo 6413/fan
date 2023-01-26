@@ -14,16 +14,8 @@ struct rectangle_t {
     loco_rectangle_ri_t
 	};
 
-  #define get_key_value(type) \
-    *p.key.get_value<decltype(p.key)::get_index_with_type<type>()>()
-
   struct properties_t : vi_t, ri_t {
-    loco_t::matrices_t* matrices;
-    fan::graphics::viewport_t* viewport;
-
-    properties_t() = default;
-    properties_t(const vi_t& i) : vi_t(i) {}
-    properties_t(const ri_t& p) : ri_t(p) {}
+    loco_rectangle_properties_t
   };
   
   void push_back(fan::graphics::cid_t* cid, properties_t p) {

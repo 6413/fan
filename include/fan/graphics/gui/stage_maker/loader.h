@@ -24,9 +24,9 @@ public:
   stage_list_t stage_list;
 
   struct stage_open_properties_t {
-    loco_t::matrices_list_NodeReference_t matrices;
-    fan::graphics::viewport_list_NodeReference_t viewport;
-    fan::graphics::theme_list_NodeReference_t theme;
+    loco_t::matrices_t* matrices;
+    fan::graphics::viewport_t* viewport;
+    fan_2d::graphics::gui::theme_t* theme;
 
     stage_loader_t::nr_t parent_id;
     uint32_t itToDepthMultiplier = 0x100;

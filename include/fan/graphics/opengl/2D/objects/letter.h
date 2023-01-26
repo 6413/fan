@@ -1,53 +1,31 @@
 struct letter_t {
 
   struct vi_t {
-    fan::vec3 position;
-    f32_t outline_size;
-    fan::vec2 size;
-    fan::vec2 tc_position;
-    fan::color color = fan::colors::white;
-    fan::color outline_color;
-    fan::vec2 tc_size;
-  private:
-    f32_t pad[2];
+    loco_letter_vi_t
   };
 
   static constexpr uint32_t max_instance_size = fan::min(256ull, 4096 / (sizeof(vi_t) / 4));
 
   struct bm_properties_t {
-    using parsed_masterpiece_t = fan::masterpiece_t<
-      uint16_t,
-      loco_t::matrices_list_NodeReference_t,
-      fan::graphics::viewport_list_NodeReference_t
-    >;
-    struct key_t : parsed_masterpiece_t {}key;
+    loco_letter_bm_properties_t
   };
 
   struct cid_t;
 
   struct ri_t : bm_properties_t {
-    cid_t* cid;
-    f32_t font_size;
-    uint32_t letter_id;
+    loco_letter_ri_t
   };
-
-  #define make_key_value(type, name) \
-    type& name = *key.get_value<decltype(key)::get_index_with_type<type>()>();
 
   struct properties_t : vi_t, ri_t {
-
-    make_key_value(uint16_t, depth);
-    make_key_value(loco_t::matrices_list_NodeReference_t, matrices);
-    make_key_value(fan::graphics::viewport_list_NodeReference_t, viewport);
-
-    properties_t() = default;
-    properties_t(const vi_t& i) : vi_t(i) {}
-    properties_t(const ri_t& p) : ri_t(p) {}
+    loco_letter_properties_t
   };
 
-  #undef make_key_value
-
   void push_back(fan::graphics::cid_t* cid, properties_t& p) {
+
+    get_key_value(uint16_t) = p.position.z;
+    get_key_value(loco_t::matrices_list_NodeReference_t) = p.matrices;
+    get_key_value(fan::graphics::viewport_list_NodeReference_t) = p.viewport;
+
     loco_t* loco = get_loco();
     fan::font::character_info_t si = loco->font.info.get_letter_info(p.letter_id, p.font_size);
 

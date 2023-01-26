@@ -13,30 +13,9 @@ struct sb_sprite_name {
     loco_sprite_ri_t
   };
 
-  #define make_key_value(type, name) \
-    type& name = *key.get_value<decltype(key)::get_index_with_type<type>()>();
-
   struct properties_t : vi_t, ri_t {
-    loco_t::image_t* image;
-    loco_t::matrices_t* matrices;
-    fan::graphics::viewport_t* viewport;
-
-    properties_t() = default;
-    properties_t(const vi_t& i) : vi_t(i) {}
-    properties_t(const ri_t& p) : ri_t(p) {}
-
-    bool load_tp(loco_t::texturepack_t* tp, loco_t::texturepack_t::ti_t* ti) {
-      auto im = tp->get_pixel_data(ti->pack_id).image;
-      image = &im;
-  
-      tc_position = ti->position / im.size;
-      tc_size = ti->size / im.size;
-
-      return 0;
-    }
+    loco_sprite_properties_t
   };
-
-  #undef make_key_value
 
   void push_back(fan::graphics::cid_t* cid, properties_t p) {
 
