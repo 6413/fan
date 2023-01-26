@@ -1,43 +1,25 @@
 struct sb_sprite_name {
   struct vi_t {
-    fan::vec3 position = 0;
-    uint32_t flag = 0;
-    fan::vec2 size = 0;
-    fan::vec2 rotation_point = 0;
-    fan::color color = fan::colors::white;
-    fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
-    f32_t angle = 0;
-    fan::vec2 tc_position = 0;
-    fan::vec2 tc_size = 1;
-    //fan::vec2 pad2;
-    //fan::vec2 pad3;
+    loco_sprite_vi_t
   };
 
   struct bm_properties_t {
-    using parsed_masterpiece_t = fan::masterpiece_t<
-      uint16_t,
-      loco_t::textureid_t<0>,
-      loco_t::matrices_list_NodeReference_t,
-      fan::graphics::viewport_list_NodeReference_t
-    >;
-    struct key_t : parsed_masterpiece_t {}key;
+    loco_sprite_bm_properties_t
   };
   
   struct cid_t;
 
   struct ri_t : bm_properties_t {
-    cid_t* cid;
+    loco_sprite_ri_t
   };
 
   #define make_key_value(type, name) \
     type& name = *key.get_value<decltype(key)::get_index_with_type<type>()>();
 
   struct properties_t : vi_t, ri_t {
-
-    make_key_value(uint16_t, depth);
-    make_key_value(loco_t::textureid_t<0>, image);
-    make_key_value(loco_t::matrices_list_NodeReference_t, matrices);
-    make_key_value(fan::graphics::viewport_list_NodeReference_t, viewport);
+    loco_t::image_t* image;
+    loco_t::matrices_t* matrices;
+    fan::graphics::viewport_t* viewport;
 
     properties_t() = default;
     properties_t(const vi_t& i) : vi_t(i) {}
@@ -56,7 +38,13 @@ struct sb_sprite_name {
 
   #undef make_key_value
 
-  void push_back(fan::graphics::cid_t* cid, properties_t& p) {
+  void push_back(fan::graphics::cid_t* cid, properties_t p) {
+
+    get_key_value(uint16_t) = p.position.z;
+    get_key_value(loco_t::textureid_t<0>) = p.image;
+    get_key_value(loco_t::matrices_list_NodeReference_t) = p.matrices;
+    get_key_value(fan::graphics::viewport_list_NodeReference_t) = p.viewport;
+
     #if defined(loco_vulkan)
       auto loco = get_loco();
       VkDescriptorImageInfo imageInfo{};

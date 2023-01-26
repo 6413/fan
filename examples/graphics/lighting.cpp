@@ -72,23 +72,35 @@ int main() {
   lp.matrices = &pile->matrices;
   lp.viewport = &pile->viewport;
   lp.position = fan::vec3(-0.5, 0, 0);
-  lp.size = fan::vec2(0.1);
+  lp.size = fan::vec2(0.5);
   lp.color = fan::color(0, 1, 0);
   pile->loco.light.push_back(&pile->cid[0], lp);
   lp.color = fan::color(0, 0, 1);
+  pile->loco.light.push_back(&pile->cid[0], lp);
   lp.viewport = &pile->viewport;
-  for (uint32_t i = 0; i < 1000; i++) {
-    lp.position = fan::random::vec2(-1, 1);
-    lp.color = fan::random::color();
-    lp.position.z = 0;
-    pile->loco.light.push_back(&pile->cid[0], lp);
-  }
+  //for (uint32_t i = 0; i < 1000; i++) {
+  //  lp.position = fan::random::vec2(-1, 1);
+  //  lp.color = fan::random::color();
+  //  lp.position.z = 0;
+  //  pile->loco.light.push_back(&pile->cid[0], lp);
+  //}
+
 
   pile->loco.set_vsync(false);
-
+  fan::time::clock c;
+  c.start(fan::time::nanoseconds(0.001e+9));
   pile->loco.loop([&] {
     pile->loco.get_fps();
-    //pile->loco.light.set(&pile->cid[0], &loco_t::light_t::vi_t::position, pile->loco.get_mouse_position(pile->viewport));
+  if (c.finished()) {
+    lp.color = fan::random::color();
+      lp.size = 0.2;
+      lp.position = pile->loco.get_mouse_position(pile->viewport);
+      pile->loco.light.push_back(&pile->cid[1], lp);
+      c.restart();
+  }
+
+
+    pile->loco.light.set(&pile->cid[0], &loco_t::light_t::vi_t::position, pile->loco.get_mouse_position(pile->viewport));
   });
 
   return 0;
