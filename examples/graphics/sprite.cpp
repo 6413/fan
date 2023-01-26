@@ -60,9 +60,9 @@ int main() {
   p.viewport = &pile->viewport;
 
   loco_t::image_t image;
-  image.load(&pile->loco, "images/test.webp");
+  image.load(&pile->loco, "images/brick.webp");
   loco_t::image_t image2;
-  image2.load(&pile->loco, "images/wall.webp");
+  image2.load(&pile->loco, "images/brick.webp");
   p.image = &image;
   p.position = fan::vec2(0, 0);
   pile->loco.sprite.push_back(&pile->cid[0], p);

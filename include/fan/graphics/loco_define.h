@@ -1,29 +1,36 @@
 #pragma once
 
+#define make_shape_id_define(name) \
+  loco_t::name ## _id_t::name ## _id_t(const properties_t& p) { \
+    (loco_access)->name.push_back(&cid, *(loco_t::name ## _t::properties_t*)&p); \
+  } \
+   \
+  loco_t::name ## _id_t::~name##_id_t() { \
+    (loco_access)->name.erase(&cid); \
+  }
+
 #if defined(loco_rectangle)
-
-loco_t::rectangle_id_t::rectangle_id_t(properties_t p) {
-  (loco_access)->rectangle.push_back(&cid, *(loco_t::rectangle_t::properties_t*)&p);
-}
-
-loco_t::rectangle_id_t::~rectangle_id_t() {
-  (loco_access)->rectangle.erase(&cid);
-}
-
+  make_shape_id_define(rectangle);
 #endif
 
 #if defined(loco_sprite)
-loco_t::sprite_id_t::sprite_id_t(properties_t p) {
-  sprite_t::properties_t p2;
-  memcpy(&p2, &p, sizeof(sprite_t::properties_t));
-  //*(sprite_t::properties_t*)&p2 = *(loco_t::sprite_t::properties_t*)&p;
-  p2.image = p.image;
-  (loco_access)->sprite.push_back(&cid, *(loco_t::sprite_t::properties_t*)&p);
-}
+  make_shape_id_define(sprite);
+#endif
 
-loco_t::sprite_id_t::~sprite_id_t() {
-  (loco_access)->sprite.erase(&cid);
-}
+#if defined(loco_button)
+  make_shape_id_define(button);
+#endif
+
+#if defined(loco_letter)
+  make_shape_id_define(letter);
+#endif
+
+#if defined(loco_text)
+  make_shape_id_define(text);
+#endif
+
+#if defined(loco_vfi)
+  make_shape_id_define(vfi);
 #endif
 
 #undef loco_access

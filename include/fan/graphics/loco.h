@@ -155,6 +155,9 @@ extern "C" {
 
 struct loco_t {
 
+  #define get_key_value(type) \
+    *p.key.get_value<decltype(p.key)::get_index_with_type<type>()>()
+
   struct shape_type_t {
     using _t = uint16_t;
     static constexpr _t button = 0;
@@ -166,7 +169,6 @@ struct loco_t {
 
   struct draw_t {
     uint64_t id;
-    //uint16_t magic_nri;
     std::vector<fan::function_t<void()>> f;
     bool operator<(const draw_t& b) const
     {
@@ -1247,17 +1249,15 @@ public:
   #define make_key_value(type, name) \
       type& name = *key.get_value<decltype(key)::get_index_with_type<type>()>();
 
-  #define make_shape_id(name, properties) \
+  #define make_shape_id(name) \
     struct name ## _id_t { \
  \
  \
       struct properties_t { \
- \
         loco_ ## name ## _vi_t \
-          loco_## name ## _bm_properties_t \
-          loco_ ## name ## _ri_t \
- \
-          properties \
+        loco_ ## name ## _bm_properties_t \
+        loco_ ## name ## _ri_t \
+        loco_ ## name ## _properties_t \
       }; \
  \
  \
@@ -1267,22 +1267,43 @@ public:
         return &cid; \
       } \
  \
-      name ## _id_t(properties_t); \
+      name ## _id_t(const properties_t&); \
       ~name ## _id_t(); \
     };
 
-    make_shape_id(rectangle, 
-      loco_t::matrices_t* matrices;
-      fan::graphics::viewport_t* viewport;
-    );
+    #if defined (loco_rectangle)
+      make_shape_id(rectangle);
+    #endif
 
-    make_shape_id(sprite,
-      loco_t::image_t* image;
-      loco_t::matrices_t* matrices;
-      fan::graphics::viewport_t* viewport;
-    );
+    #if defined(loco_sprite)
+      make_shape_id(sprite);
+    #endif
 
-    #undef make_key_value
+    #if defined(loco_letter)
+      make_shape_id(letter);
+    #endif
+
+    #if defined(loco_text)
+      make_shape_id(text);
+    #endif
+
+    #if defined(loco_button)
+      make_shape_id(button);
+    #endif
+    
+    struct vfi_id_t {
+      using properties_t = loco_t::vfi_t::properties_t;
+      operator loco_t::vfi_t::shape_id_t* () {
+        return &cid;
+      }
+      vfi_id_t(const properties_t&);
+      ~vfi_id_t();
+
+      loco_t::vfi_t::shape_id_t cid;
+    };
+
+//    #endif
+
 };
 
 #if defined(loco_window)

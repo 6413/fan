@@ -468,19 +468,19 @@ namespace fan {
   template <typename From>
   class auto_cast {
   public:
-    explicit constexpr auto_cast(From const& t) noexcept
+    explicit constexpr auto_cast(From & t) noexcept
       : val{ t }
     {
     }
 
     template <typename To>
-    constexpr operator To() const noexcept(noexcept(static_cast<To>(std::declval<From>())))
+    constexpr operator To() const noexcept(noexcept(reinterpret_cast<To*>(&std::declval<From>())))
     {
-      return static_cast<To>(val);
+      return *reinterpret_cast<To*>(&val);
     }
 
   private:
-    From const& val;
+    From & val;
   };
 
 	constexpr const char* file_name(const char* path) {
@@ -606,5 +606,48 @@ static uint8_t __clz(uintptr_t p0) {
 #endif
 
 #ifndef __return_type_of
-  #define __return_type_of fan::fan::return_type_of_t
+  #define __return_type_of fan::return_type_of_t
 #endif
+
+#define __FAN__INSERTVARNAME(x) var__ x
+
+#define __FAN__FOREACH_1(f, x) f(x)
+#define __FAN__FOREACH_2(f, x, ...)  f(x); __FAN__FOREACH_1(f, __VA_ARGS__)
+#define __FAN__FOREACH_3(f, x, ...)  f(x); __FAN__FOREACH_2(f, __VA_ARGS__)
+#define __FAN__FOREACH_4(f, x, ...)  f(x); __FAN__FOREACH_3(f, __VA_ARGS__)
+#define __FAN__FOREACH_5(f, x, ...)  f(x); __FAN__FOREACH_4(f, __VA_ARGS__)
+#define __FAN__FOREACH_6(f, x, ...)  f(x); __FAN__FOREACH_5(f, __VA_ARGS__)
+#define __FAN__FOREACH_7(f, x, ...)  f(x); __FAN__FOREACH_6(f, __VA_ARGS__)
+#define __FAN__FOREACH_8(f, x, ...)  f(x); __FAN__FOREACH_7(f, __VA_ARGS__)
+#define __FAN__FOREACH_9(f, x, ...)  f(x); __FAN__FOREACH_8(f, __VA_ARGS__)
+#define __FAN__FOREACH_10(f, x, ...)  f(x); __FAN__FOREACH_9(f, __VA_ARGS__)
+#define __FAN__FOREACH_11(f, x, ...)  f(x); __FAN__FOREACH_10(f, __VA_ARGS__)
+#define __FAN__FOREACH_12(f, x, ...)  f(x); __FAN__FOREACH_11(f, __VA_ARGS__)
+#define __FAN__FOREACH_13(f, x, ...)  f(x); __FAN__FOREACH_12(f, __VA_ARGS__)
+#define __FAN__FOREACH_14(f, x, ...)  f(x); __FAN__FOREACH_13(f, __VA_ARGS__)
+#define __FAN__FOREACH_15(f, x, ...)  f(x); __FAN__FOREACH_14(f, __VA_ARGS__)
+#define __FAN__FOREACH_16(f, x, ...)  f(x); __FAN__FOREACH_15(f, __VA_ARGS__)
+#define __FAN__FOREACH_17(f, x, ...)  f(x); __FAN__FOREACH_16(f, __VA_ARGS__)
+#define __FAN__FOREACH_18(f, x, ...)  f(x); __FAN__FOREACH_17(f, __VA_ARGS__)
+#define __FAN__FOREACH_19(f, x, ...)  f(x); __FAN__FOREACH_18(f, __VA_ARGS__)
+#define __FAN__FOREACH_20(f, x, ...)  f(x); __FAN__FOREACH_19(f, __VA_ARGS__)
+#define __FAN__FOREACH_21(f, x, ...)  f(x); __FAN__FOREACH_20(f, __VA_ARGS__)
+#define __FAN__FOREACH_22(f, x, ...)  f(x); __FAN__FOREACH_21(f, __VA_ARGS__)
+#define __FAN__FOREACH_23(f, x, ...)  f(x); __FAN__FOREACH_22(f, __VA_ARGS__)
+#define __FAN__FOREACH_24(f, x, ...)  f(x); __FAN__FOREACH_23(f, __VA_ARGS__)
+#define __FAN__FOREACH_25(f, x, ...)  f(x); __FAN__FOREACH_24(f, __VA_ARGS__)
+#define __FAN__FOREACH_26(f, x, ...)  f(x); __FAN__FOREACH_25(f, __VA_ARGS__)
+#define __FAN__FOREACH_27(f, x, ...)  f(x); __FAN__FOREACH_26(f, __VA_ARGS__)
+#define __FAN__FOREACH_28(f, x, ...)  f(x); __FAN__FOREACH_27(f, __VA_ARGS__)
+#define __FAN__FOREACH_29(f, x, ...)  f(x); __FAN__FOREACH_28(f, __VA_ARGS__)
+#define __FAN__FOREACH_30(f, x, ...)  f(x); __FAN__FOREACH_29(f, __VA_ARGS__)
+
+#define __FAN__FOREACH_N(n, ...) __FAN__FOREACH_##n
+#define __FAN__FOREACH_N(_30,_29,_28,_27,_26,_25,_24,_23,_22,_21,_20,_19,_18,_17,_16,_15,_14,_13,_12,_11,_10,_9,_8,_7,_6,_5,_4,_3,_2,_1,N,...) __FAN__FOREACH_##N
+#define __FAN__FOREACH(f, ...) __FAN__FOREACH_N(__VA_ARGS__,30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1)(f, __VA_ARGS__)
+
+#define init_struct(type, ...) [&] { \
+  type var__; \
+  __FAN__FOREACH(__FAN__INSERTVARNAME, __VA_ARGS__); \
+  return var__; \
+}()

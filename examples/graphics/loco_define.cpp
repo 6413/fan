@@ -24,6 +24,8 @@
 
 #define loco_rectangle
 #define loco_sprite
+#define loco_letter
+#define loco_button
 #include _FAN_PATH(graphics/loco.h)
 
 constexpr uint32_t count = 5000;
@@ -58,27 +60,68 @@ pile_t* pile = new pile_t;
 #include _FAN_PATH(graphics/loco_define.h)
 
 int main() {
+
   loco_t::rectangle_id_t rectangle(
-      loco_t::rectangle_id_t::properties_t{
+    init_struct(
+      loco_t::rectangle_id_t::properties_t,
       .position = fan::vec2(0, 0),
       .size = 0.1,
       .color = fan::colors::red,
       .matrices = &pile->matrices,
       .viewport = &pile->viewport
-    }
+    )
   );
 
   loco_t::image_t image;
   image.load(&pile->loco, "images/brick.webp");
 
   loco_t::sprite_id_t sprite(
-    loco_t::sprite_id_t::properties_t{
-    .position = fan::vec2(-0.5, 0.5),
-    .size = 0.2,
-    .image = &image,
-    .matrices = &pile->matrices,
-    .viewport = &pile->viewport
-    }
+    init_struct(
+      loco_t::sprite_id_t::properties_t,
+      .position = fan::vec2(-0.5, 0),
+      .size = 0.2,
+      .image = &image,
+      .matrices = &pile->matrices,
+      .viewport = &pile->viewport
+    )
+  );
+
+  loco_t::letter_id_t letter(
+    init_struct(
+      loco_t::letter_id_t::properties_t,
+      .matrices = &pile->matrices,
+      .viewport = &pile->viewport,
+      .position = fan::vec2(0.5, 0),
+      .letter_id = 65,
+      .font_size = 0.1
+    )
+  );
+
+  loco_t::text_id_t text(
+    init_struct(
+      loco_t::text_id_t::properties_t,
+      .matrices = &pile->matrices,
+      .viewport = &pile->viewport,
+      .position = fan::vec2(0.5, 0.5),
+      .text = "text",
+      .font_size = 0.1
+    )
+  );
+
+  fan_2d::graphics::gui::theme_t t;
+  fan_2d::graphics::gui::theme_t theme = fan_2d::graphics::gui::themes::gray(0.5);
+  theme.open(pile->loco.get_context());
+
+  loco_t::button_id_t button(
+    init_struct(
+      loco_t::button_id_t::properties_t,
+      .matrices = &pile->matrices,
+      .viewport = &pile->viewport,
+      .position = fan::vec2(-0.5, 0.5),
+      .size = fan::vec2(.3, .1),
+      .text = "button",
+      .theme = &theme,
+    )
   );
 
   pile->loco.set_vsync(false);

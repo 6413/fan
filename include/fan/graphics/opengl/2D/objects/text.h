@@ -1,40 +1,12 @@
 struct text_renderer_t {
 
-  #define make_key_value(type, name) \
-    type& name = *key.get_value<decltype(key)::get_index_with_type<type>()>();
-
   //using ri_t = loco_t::letter_t::ri_t;
   using vi_t = loco_t::letter_t::vi_t;
   using ri_t = loco_t::letter_t::ri_t;
 
-  struct properties_t : loco_t::letter_t::ri_t{
-
-    properties_t() = default;
-    properties_t(const properties_t& p) : properties_t() {
-      *(loco_t::letter_t::ri_t*)this = *(loco_t::letter_t::ri_t*)&p;
-      position = p.position;
-      color = p.color;
-      outline_color = p.outline_color;
-      outline_size = p.outline_size;
-      text = p.text;
-    }
-    properties_t& operator=(const properties_t& p) {
-      this->~properties_t();
-      new (this) properties_t(p);
-      return *this;
-    }
-
-    make_key_value(loco_t::matrices_list_NodeReference_t, matrices);
-    make_key_value(fan::graphics::viewport_list_NodeReference_t, viewport);
-
-    fan::vec3 position = 0;
-    fan::color color = fan::colors::white;
-    fan::color outline_color = fan::colors::black;
-    f32_t outline_size = 0.5;
-    fan::string text;
+  struct properties_t : vi_t, ri_t{
+    loco_text_properties_t
   };
-
-  #undef make_key_value
 
   loco_t* get_loco() {
     loco_t* loco = OFFSETLESS(this, loco_t, sb_shape_var_name);
@@ -106,7 +78,7 @@ struct text_renderer_t {
     return text_size;*/
   }
 
-  void push_back(properties_t properties, fan::graphics::cid_t* cid) {
+  void push_back(fan::graphics::cid_t* cid, properties_t properties) {
     loco_t* loco = get_loco();
     typename loco_t::letter_t::properties_t p;
     p.color = properties.color;
@@ -262,21 +234,21 @@ struct text_renderer_t {
     erase(cid);
     p.text = text;
 
-    push_back(p, cid);
+    push_back(cid, p);
   }
 
   void set_position(fan::graphics::cid_t* cid, const fan::vec3& position) {
     properties_t p = letter_ids[*(uint32_t*)cid].p;
     erase(cid);
     p.position = position;
-    push_back(p, cid);
+    push_back(cid, p);
   }
 
   void set_font_size(fan::graphics::cid_t* cid, f32_t font_size) {
     properties_t p = letter_ids[*(uint32_t*)cid].p;
     erase(cid);
     p.font_size = font_size;
-    push_back(p, cid);
+    push_back(cid, p);
   }
 
   struct{
