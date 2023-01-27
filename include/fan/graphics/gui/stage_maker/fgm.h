@@ -615,7 +615,7 @@ int hitbox{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
             sp.image = &get_loco()->default_texture;
           }
           else {
-            auto pd = texturepack.get_pixel_data(ti.pack_id);
+            auto& pd = texturepack.get_pixel_data(ti.pack_id);
             sp.image = &pd.image;
             sp.tc_position = ti.position / pd.size;
             sp.tc_size = ti.size / pd.size;
