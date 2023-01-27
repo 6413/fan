@@ -647,7 +647,7 @@ static uint8_t __clz(uintptr_t p0) {
 #define __FAN__FOREACH_N(_30,_29,_28,_27,_26,_25,_24,_23,_22,_21,_20,_19,_18,_17,_16,_15,_14,_13,_12,_11,_10,_9,_8,_7,_6,_5,_4,_3,_2,_1,N,...) __FAN__FOREACH_##N
 #define __FAN__FOREACH(f, ...) __FAN__FOREACH_N(__VA_ARGS__,30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1)(f, __VA_ARGS__)
 
-#define init_struct(type, ...) [&] { \
+#define fan_init_struct(type, ...) [&] { \
   type var__; \
   __FAN__FOREACH(__FAN__INSERTVARNAME, __VA_ARGS__); \
   return var__; \

@@ -1249,6 +1249,8 @@ public:
   #define make_key_value(type, name) \
       type& name = *key.get_value<decltype(key)::get_index_with_type<type>()>();
 
+  #if defined (loco_no_inline)
+
   #define make_shape_id(name) \
     struct name ## _id_t { \
  \
@@ -1306,7 +1308,7 @@ public:
       loco_t::vfi_t::shape_id_t cid;
     };
 
-//    #endif
+    #endif
 
 };
 
