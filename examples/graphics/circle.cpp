@@ -67,23 +67,8 @@ int main() {
   pile->loco.circle.push_back(&pile->cid[0], p);
 
   pile->loco.set_vsync(false);
-  //uint8_t* ptr = new uint8_t[640 * 640 * 4];
-  uint32_t x = 0;
 
-  fan::time::clock cc;
   pile->loco.loop([&] {
-    //pile->loco.circle.set(&pile->cid[0], &loco_t::circle_t::vi_t::radius, pile->loco.get_mouse_position(pile->viewport).x);
-    //fan::print(cc.elapsed());
-    //cc.start();
-    //pile->loco.get_context()->set_depth_test(true);
-   // if (x < count) 
-    //pile->loco.sprite.erase(&pile->cid[x++]);
-    //image2.unload(&pile->loco);
-    //image2.load(&pile->loco, "images/asteroid.webp");
-    //fan::webp::image_info_t ii;
-    //ii.data = ptr;
-    //ii.size = fan::vec2(640, 640);
-    //image2.reload_pixels(&pile->loco, ii);
     pile->loco.get_fps();
   });
 

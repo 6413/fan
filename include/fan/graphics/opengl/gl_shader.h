@@ -149,7 +149,7 @@ namespace fan {
       void set_int(fan::opengl::context_t* context, const fan::string& name, int value) const
       {
         auto location = context->opengl.call(context->opengl.glGetUniformLocation, id, name.c_str());
-#if fan_debug >= fan_debug_low
+#if fan_debug >= fan_debug_insanity
         fan_validate_value(location, validate_error_message(name));
 #endif
         context->opengl.call(context->opengl.glUniform1i, location, value);
@@ -157,7 +157,7 @@ namespace fan {
 
       void set_uint(fan::opengl::context_t* context, const fan::string& name, uint32_t value) const {
         auto location = context->opengl.call(context->opengl.glGetUniformLocation, id, name.c_str());
-#if fan_debug >= fan_debug_low
+#if fan_debug >= fan_debug_insanity
         fan_validate_value(location, validate_error_message(name));
 #endif
         context->opengl.call(context->opengl.glUniform1ui, location, value);
@@ -165,7 +165,7 @@ namespace fan {
 
       void set_int_array(fan::opengl::context_t* context, const fan::string& name, int* values, int size) const {
         auto location = context->opengl.call(context->opengl.glGetUniformLocation, id, name.c_str());
-#if fan_debug >= fan_debug_low
+#if fan_debug >= fan_debug_insanity
         fan_validate_value(location, validate_error_message(name));
 #endif
 
@@ -173,7 +173,7 @@ namespace fan {
       }
       void set_uint_array(fan::opengl::context_t* context, const fan::string& name, uint32_t* values, int size) const {
         auto location = context->opengl.call(context->opengl.glGetUniformLocation, id, name.c_str());
-#if fan_debug >= fan_debug_low
+#if fan_debug >= fan_debug_insanity
         fan_validate_value(location, validate_error_message(name));
 #endif
 
@@ -181,7 +181,7 @@ namespace fan {
       }
       void set_float_array(fan::opengl::context_t* context, const fan::string& name, f32_t* values, int size) const {
         auto location = context->opengl.call(context->opengl.glGetUniformLocation, id, name.c_str());
-#if fan_debug >= fan_debug_low
+#if fan_debug >= fan_debug_insanity
         fan_validate_value(location, validate_error_message(name));
 #endif
 
@@ -191,7 +191,7 @@ namespace fan {
       void set_float(fan::opengl::context_t* context, const fan::string& name, fan::vec2::value_type value) const
       {
         auto location = context->opengl.call(context->opengl.glGetUniformLocation, id, name.c_str());
-#if fan_debug >= fan_debug_low
+#if fan_debug >= fan_debug_insanity
         fan_validate_value(location, validate_error_message(name));
 #endif
 
@@ -207,7 +207,7 @@ namespace fan {
       {
         auto location = context->opengl.call(context->opengl.glGetUniformLocation, id, name.c_str());
 
-#if fan_debug >= fan_debug_low
+#if fan_debug >= fan_debug_insanity
         fan_validate_value(location, validate_error_message(name));
 #endif
 
@@ -223,7 +223,7 @@ namespace fan {
       {
         auto location = context->opengl.call(context->opengl.glGetUniformLocation, id, name.c_str());
 
-#if fan_debug >= fan_debug_low
+#if fan_debug >= fan_debug_insanity
         fan_validate_value(location, validate_error_message(name));
 #endif
 
@@ -239,7 +239,7 @@ namespace fan {
       {
         auto location = context->opengl.call(context->opengl.glGetUniformLocation, id, name.c_str());
 
-#if fan_debug >= fan_debug_low
+#if fan_debug >= fan_debug_insanity
         fan_validate_value(location, validate_error_message(name));
 #endif
 
@@ -255,7 +255,7 @@ namespace fan {
       {
         auto location = context->opengl.call(context->opengl.glGetUniformLocation, id, name.c_str());
 
-#if fan_debug >= fan_debug_low
+#if fan_debug >= fan_debug_insanity
         fan_validate_value(location, validate_error_message(name));
 #endif
 
@@ -271,7 +271,7 @@ namespace fan {
       {
         auto location = context->opengl.call(context->opengl.glGetUniformLocation, id, name.c_str());
 
-#if fan_debug >= fan_debug_low
+#if fan_debug >= fan_debug_insanity
         fan_validate_value(location, validate_error_message(name));
 #endif
 
@@ -292,7 +292,7 @@ namespace fan {
 
         auto location = context->opengl.call(context->opengl.glGetUniformLocation, id, name.c_str());
 
-#if fan_debug >= fan_debug_low
+#if fan_debug >= fan_debug_insanity
         fan_validate_value(location, validate_error_message(name));
 #endif
         if constexpr (std::is_same<fan::mat4::value_type::value_type, float>::value) {
