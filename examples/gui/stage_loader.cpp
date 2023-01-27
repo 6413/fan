@@ -13,6 +13,8 @@ struct pile_t;
 #define loco_window
 #define loco_context
 
+#define loco_no_inline
+
 #define loco_sprite
 #define loco_button
 #include _FAN_PATH(graphics/loco.h)
@@ -67,28 +69,32 @@ struct pile_t {
   stage_loader_t::nr_t nrs[2];
 };
 
+pile_t* pile = new pile_t;
+
+#define loco_access &pile->loco
+#include _FAN_PATH(graphics/loco_define.h)
+
 int main(int argc, char** argv) {
   if (argc < 2) {
     fan::throw_error("usage: TexturePackCompiled");
   }
 
-  pile_t pile;
   loco_t::texturepack_t tp;
-  tp.open_compiled(&pile.loco, argv[1]);
-  pile.stage_loader.open(&pile.loco, &tp);
+  tp.open_compiled(&pile->loco, argv[1]);
+  pile->stage_loader.open(&pile->loco, &tp);
 
 	using sl = pile_t::stage_loader_t;
   
 	sl::stage_open_properties_t op;
-	op.matrices = &pile.matrices;
-	op.viewport = &pile.viewport;
-	op.theme = &pile.theme;
-	auto nr = pile.stage_loader.push_and_open_stage<sl::stage::stage0_t>(&pile.loco, op);
+	op.matrices = &pile->matrices;
+	op.viewport = &pile->viewport;
+	op.theme = &pile->theme;
+	auto nr = pile->stage_loader.push_and_open_stage<sl::stage::stage0_t>(&pile->loco, op);
   //pile.stage_loader.push_and_open_stage<sl::stage::stage1_t>(&pile.loco, op);
   
   //pile.stage_loader.erase_stage(&pile.loco, nr);
 
-	pile.loco.loop([&] {
+	pile->loco.loop([&] {
 
 	});
 	

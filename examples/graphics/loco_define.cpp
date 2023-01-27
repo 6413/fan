@@ -60,10 +60,75 @@ pile_t* pile = new pile_t;
 #define loco_access &pile->loco
 #include _FAN_PATH(graphics/loco_define.h)
 
-int main() {
+struct a_t {
+  loco_t::vfi_id_t vfiBaseID = loco_t::vfi_id_t(
+    fan_init_struct(
+      loco_t::vfi_t::properties_t,
+      .mouse_button_cb = [Stage = this](const loco_t::vfi_t::mouse_button_data_t& data) {
+        if (
+          data.button == fan::input::mouse_scroll_up ||
+          data.button == fan::input::mouse_scroll_down
+          ) {
+          /*f32_t a;
+          if (data.button == fan::input::mouse_scroll_up) { a = -0.4; }
+          if (data.button == fan::input::mouse_scroll_down) { a = +0.4; }
+          Stage->WorldMatrixMultiplerVelocity += a;*/
+        }
+        else {
+         /* if (data.button_state == fan::mouse_state::press) {
+            data.flag->ignore_move_focus_check = true;
+            data.vfi->set_focus_keyboard(data.vfi->get_focus_mouse());
+          }
+          if (data.button_state == fan::mouse_state::release) {
+            data.flag->ignore_move_focus_check = false;
+          }*/
+        }
+        return 0;
+      },
+      .mouse_move_cb = [](const loco_t::vfi_t::mouse_move_data_t& data) {return 0; },
+        .keyboard_cb = [Stage = this](const loco_t::vfi_t::keyboard_data_t& data) {
+        switch (data.key) {
+        case fan::input::key_escape: {
+          /* TODO
+          if(data.state == fan::keyboard_state::press && !(game::pile->stage_data.sortie.ReservedFlags & 0x1)){
+            game::pile->stage = game::stage_group::sortie_menu;
+            // game::stage::sortie_menu::open(); TODO
+          }
+          else {
+            game::pile->stage_data.sortie.ReservedFlags &= ~0x1;
+          }
+          */
+          break;
+        }
+        case fan::input::key_left:
+        case fan::input::key_right:
+        case fan::input::key_up:
+        case fan::input::key_down:
+        case fan::input::key_a:
+        case fan::input::key_d:
+        case fan::input::key_w:
+        case fan::input::key_s:
+        {
+         /* if (data.keyboard_state == fan::keyboard_state::press) {
+            Stage->key_add(data.key);
+          }
+          else if (data.keyboard_state == fan::keyboard_state::release) {
+            Stage->key_remove(data.key);
+          }*/
+          break;
+        }
+        }
+        return 0;
+      }
 
+        )
+  );
+};
+
+int main() {
+  a_t a;
   loco_t::rectangle_id_t rectangle(
-    init_struct(
+    fan_init_struct(
       loco_t::rectangle_id_t::properties_t,
       .position = fan::vec2(0, 0),
       .size = 0.1,
@@ -78,7 +143,7 @@ int main() {
   image.load(&pile->loco, "images/brick.webp");
 
   loco_t::sprite_id_t sprite(
-    init_struct(
+    fan_init_struct(
       loco_t::sprite_id_t::properties_t,
       .position = fan::vec2(-0.5, 0),
       .size = 0.2,
@@ -89,7 +154,7 @@ int main() {
   );
 
   loco_t::letter_id_t letter(
-    init_struct(
+    fan_init_struct(
       loco_t::letter_id_t::properties_t,
       .matrices = &pile->matrices,
       .viewport = &pile->viewport,
@@ -100,7 +165,7 @@ int main() {
   );
 
   loco_t::text_id_t text(
-    init_struct(
+    fan_init_struct(
       loco_t::text_id_t::properties_t,
       .matrices = &pile->matrices,
       .viewport = &pile->viewport,
@@ -114,7 +179,7 @@ int main() {
   fan_2d::graphics::gui::theme_t theme = fan_2d::graphics::gui::themes::gray(0.5);
   theme.open(pile->loco.get_context());
   loco_t::button_id_t button(
-    init_struct(
+    fan_init_struct(
       loco_t::button_id_t::properties_t,
       .matrices = &pile->matrices,
       .viewport = &pile->viewport,
@@ -126,7 +191,7 @@ int main() {
   );
 
   loco_t::text_box_id_t text_box(
-    init_struct(
+    fan_init_struct(
       loco_t::text_box_id_t::properties_t,
       .matrices = &pile->matrices,
       .viewport = &pile->viewport,
@@ -138,7 +203,7 @@ int main() {
   );
 
   loco_t::vfi_id_t vfi(
-    init_struct(
+    fan_init_struct(
       loco_t::vfi_id_t::properties_t,
       .shape_type = loco_t::vfi_t::shape_t::rectangle,
       .shape.rectangle.position = fan::vec3(0.5, 0.5, 1),

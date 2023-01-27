@@ -1,5 +1,5 @@
 #release
-GPP = clang++ -I C:\libs
+GPP = clang++ -I C:\libs -Dstage_loader_path=.
 #debug for address sanitizer
 #GPP = clang-cl /MT -fsanitize=address  /std:c++latest
 

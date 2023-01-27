@@ -15,10 +15,10 @@ struct stage {
     typedef int(stage0_t::* hitbox_keyboard_cb_table_t)(const loco_t::keyboard_data_t& d);
     typedef int(stage0_t::* hitbox_text_cb_table_t)(const loco_t::text_data_t& d);
 
-    hitbox_mouse_button_cb_table_t hitbox_mouse_button_cb_table[1] = {&stage0_t::hitbox0_mouse_button_cb,};
-    hitbox_mouse_move_cb_table_t hitbox_mouse_move_cb_table[1] = {&stage0_t::hitbox0_mouse_move_cb,};
-    hitbox_keyboard_cb_table_t hitbox_keyboard_cb_table[1] = {&stage0_t::hitbox0_keyboard_cb,};
-    hitbox_text_cb_table_t hitbox_text_cb_table[1] = {&stage0_t::hitbox0_text_cb,};
+    hitbox_mouse_button_cb_table_t hitbox_mouse_button_cb_table[1] = { };
+    hitbox_mouse_move_cb_table_t hitbox_mouse_move_cb_table[1] = { };
+    hitbox_keyboard_cb_table_t hitbox_keyboard_cb_table[1] = { };
+    hitbox_text_cb_table_t hitbox_text_cb_table[1] = { };
 
     #include _PATH_QUOTE(stage_loader_path/stages_compile/stage0.h)
   };
