@@ -45,8 +45,8 @@ struct pile_t {
   fan::graphics::viewport_t viewport;
   loco_t::matrices_t matrices;
 
-  loco_t::texturepack TP;
-  loco_t::texturepack::ti_t TP_ti;
+  loco_t::texturepack_t TP;
+  loco_t::texturepack_t::ti_t TP_ti;
 
   fan::graphics::cid_t SpriteCID;
 

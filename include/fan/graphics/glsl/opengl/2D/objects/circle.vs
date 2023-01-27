@@ -1,13 +1,15 @@
 R"(
-#version 140
+#version 330
+
+layout (location = 1) in vec2 aTexCoord;
 
 #define get_instance() instance[gl_VertexID / 6]
 
 out vec4 instance_color;
-out vec2 instance_fragment_position;
-out vec2 instance_position;
+out vec3 instance_position;
 out float instance_radius;
-out mat4 mvp;
+out vec3 frag_position;
+out vec2 texture_coordinate;
 
 uniform mat4 view;
 uniform mat4 projection;
@@ -46,11 +48,13 @@ void main() {
 	float x = rp.x * c - rp.y * s;
 	float y = rp.x * s + rp.y * c;
 
-  mvp = projection * view;
-  gl_Position = mvp * vec4(vec2(x, y) * vec2(get_instance().radius) + get_instance().position.xy, get_instance().position.z, 1);
-	instance_color = get_instance().color;
+  texture_coordinate = aTexCoord;
+
+  instance_position = get_instance().position;
+  instance_color = get_instance().color;
   instance_radius = get_instance().radius;
-  instance_position = get_instance().position.xy;
-	instance_fragment_position = gl_Position.xy;
+	frag_position = vec4(vec2(x, y) * vec2(get_instance().radius) + get_instance().position.xy, get_instance().position.z, 1).xyz;
+
+  gl_Position = projection * view * vec4(vec2(x, y) * vec2(get_instance().radius) + get_instance().position.xy, get_instance().position.z, 1);
 }
 )"

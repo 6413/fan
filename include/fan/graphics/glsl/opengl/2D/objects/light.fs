@@ -16,7 +16,7 @@ in vec3 frag_position;
 in vec2 texture_coordinate;
 
 void main() {
-vec4 t2 = vec4(texture(_t00, texture_coordinate).rgb, 1);
+  vec4 t2 = vec4(texture(_t00, texture_coordinate).rgb, 1);
   vec4 t = vec4(texture(_t02, texture_coordinate).rgb, 1);
 
   o_attachment2 = instance_color;
