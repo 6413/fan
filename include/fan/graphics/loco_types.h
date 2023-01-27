@@ -55,7 +55,7 @@
     fan::graphics::viewport_t* viewport = 0; \
  \
     bool load_tp(loco_t::texturepack_t* tp, loco_t::texturepack_t::ti_t* ti) { \
-      auto im = tp->get_pixel_data(ti->pack_id).image; \
+      auto& im = tp->get_pixel_data(ti->pack_id).image; \
       image = &im; \
    \
       tc_position = ti->position / im.size; \
