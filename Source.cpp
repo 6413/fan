@@ -125,7 +125,29 @@ struct a_t {
   );
 };
 
+fan_init_id_t0(
+  loco_t::rectangle,
+  r3,
+  .position = fan::vec2(0, 0),
+  .size = 0.1,
+  .color = fan::colors::red,
+  .matrices = &pile->matrices,
+  .viewport = &pile->viewport
+);
+
+
+
 int main() {
+
+  auto x = fan_init_id_t1(
+    loco_t::rectangle,
+    .position = fan::vec2(0, 0),
+    .size = 0.1,
+    .color = fan::colors::red,
+    .matrices = &pile->matrices,
+    .viewport = &pile->viewport
+  );
+
   a_t a;
   loco_t::rectangle_id_t rectangle(
     fan_init_struct(
@@ -151,16 +173,7 @@ int main() {
   );
   r2;
 
-  fan_init_id_t0(
-    loco_t::rectangle,
-    r3,
-    .position = fan::vec2(0, 0),
-    .size = 0.1,
-    .color = fan::colors::red,
-    // compress this
-    .matrices = &pile->matrices,
-    .viewport = &pile->viewport
-  );
+
   r3;
 
   pile->loco.set_vsync(false);
