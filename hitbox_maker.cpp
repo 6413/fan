@@ -319,7 +319,9 @@ int main(int argc, char** argv) {
   open_pile();
 
   {
-    pile->TP.open_compiled(&pile->loco, argv[1]);
+    loco_t::image_t::load_properties_t lp;
+    lp.filter = loco_t::image_t::filter::nearest;
+    pile->TP.open_compiled(&pile->loco, argv[1], lp);
     auto r = pile->TP.qti(argv[2], &pile->TP_ti);
     if (r != 0) {
       fan::print("failed to find <qti name>");
