@@ -1269,6 +1269,7 @@ public:
         return &cid; \
       } \
  \
+      name ## _id_t() = default; \
       name ## _id_t(const properties_t&); \
       ~name ## _id_t(); \
     };
@@ -1302,6 +1303,7 @@ public:
       operator loco_t::vfi_t::shape_id_t* () {
         return &cid;
       }
+      vfi_id_t() = default;
       vfi_id_t(const properties_t&);
       ~vfi_id_t();
 
