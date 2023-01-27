@@ -648,8 +648,21 @@ static uint8_t __clz(uintptr_t p0) {
 #define __FAN__FOREACH(f, ...) __FAN__FOREACH_N(__VA_ARGS__,30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1)(f, __VA_ARGS__)
 
 // requires /Zc:preprocessor in msvc commandline properties
+
 #define fan_init_struct(type, ...) [&] { \
   type var__; \
   __FAN__FOREACH(__FAN__INSERTVARNAME, __VA_ARGS__); \
   return var__; \
 }()
+
+#define fan_init_struct0(type, name, ...) type name = type([&] { \
+  type var__; \
+  __FAN__FOREACH(__FAN__INSERTVARNAME, __VA_ARGS__); \
+  return var__; \
+}())
+
+#define fan_init_id_t0(type, name, ...) type ## _id_t name = type ## _id_t([&] { \
+  type ## _id_t ::properties_t var__; \
+  __FAN__FOREACH(__FAN__INSERTVARNAME, __VA_ARGS__); \
+  return var__; \
+}())
