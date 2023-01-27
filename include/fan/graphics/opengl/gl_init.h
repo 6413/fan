@@ -369,7 +369,8 @@ namespace fan {
         get_proc_address(glTexParameterf, &internal);
         get_proc_address(glDrawBuffers, &internal);
         get_proc_address(glClearBufferfv, &internal);
-        
+        get_proc_address(glLineWidth, &internal);
+
         internal.close(&p);
 
         opengl_initialized = true;
@@ -522,6 +523,7 @@ namespace fan {
       PFNGLTEXPARAMETERFPROC glTexParameterf;
       PFNGLDRAWBUFFERSPROC glDrawBuffers;
       PFNGLCLEARBUFFERFVPROC glClearBufferfv;
+      PFNGLLINEWIDTHPROC glLineWidth;
     };
 
   }
