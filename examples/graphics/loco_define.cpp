@@ -26,6 +26,7 @@
 #define loco_sprite
 #define loco_letter
 #define loco_button
+#define loco_text_box
 #include _FAN_PATH(graphics/loco.h)
 
 constexpr uint32_t count = 5000;
@@ -67,6 +68,7 @@ int main() {
       .position = fan::vec2(0, 0),
       .size = 0.1,
       .color = fan::colors::red,
+      // compress this
       .matrices = &pile->matrices,
       .viewport = &pile->viewport
     )
@@ -111,7 +113,6 @@ int main() {
   fan_2d::graphics::gui::theme_t t;
   fan_2d::graphics::gui::theme_t theme = fan_2d::graphics::gui::themes::gray(0.5);
   theme.open(pile->loco.get_context());
-
   loco_t::button_id_t button(
     init_struct(
       loco_t::button_id_t::properties_t,
@@ -121,6 +122,34 @@ int main() {
       .size = fan::vec2(.3, .1),
       .text = "button",
       .theme = &theme,
+    )
+  );
+
+  loco_t::text_box_id_t text_box(
+    init_struct(
+      loco_t::text_box_id_t::properties_t,
+      .matrices = &pile->matrices,
+      .viewport = &pile->viewport,
+      .position = fan::vec2(-0.5, -0.5),
+      .size = fan::vec2(.3, .1),
+      .text = "text box",
+      .theme = &theme,
+      )
+  );
+
+  loco_t::vfi_id_t vfi(
+    init_struct(
+      loco_t::vfi_id_t::properties_t,
+      .shape_type = loco_t::vfi_t::shape_t::rectangle,
+      .shape.rectangle.position = fan::vec3(0.5, 0.5, 1),
+      .shape.rectangle.size = pile->loco.text.get_text_size("text", 0.1),
+      .shape.rectangle.size.x /= 2, // hitbox takes half size
+      .shape.rectangle.matrices = &pile->matrices,
+      .shape.rectangle.viewport = &pile->viewport,
+      .mouse_button_cb = [](const loco_t::mouse_button_data_t& ii_d) -> int {
+        fan::print("click rectangle");
+        return 0;
+      }
     )
   );
 

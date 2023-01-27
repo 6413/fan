@@ -153,7 +153,7 @@ public:
           p.position.z += stage->it * op.itToDepthMultiplier;
           p.font_size = data.size;
           p.text = t;
-          loco->text.push_back(p, &stage->cid_list[nr].cid);
+          loco->text.push_back(&stage->cid_list[nr].cid, p);
           break;
         }
         case loco_t::shape_type_t::hitbox: {
@@ -187,8 +187,8 @@ public:
             return (stage->*(stage->hitbox_text_cb_table[i]))(d);
           };
           vfip.ignore_init_move = true;
-          auto id = loco->push_back_input_hitbox(vfip);
-          stage->cid_list[nr].cid = *(fan::graphics::cid_t*)&id;
+
+          loco->push_back_input_hitbox((loco_t::vfi_t::shape_id_t*)&stage->cid_list[nr].cid, vfip);
           break;
         }
         default: {
@@ -233,7 +233,7 @@ public:
           break;
         }
         case loco_t::shape_type_t::hitbox: {
-          loco->vfi.erase(*(loco_t::vfi_t::shape_id_t*)&node.cid);
+          loco->vfi.erase((loco_t::vfi_t::shape_id_t*)&node.cid);
           break;
         }
       }

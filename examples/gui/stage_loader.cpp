@@ -5,7 +5,7 @@ struct pile_t;
 #ifndef FAN_INCLUDE_PATH
   #define FAN_INCLUDE_PATH C:/libs/fan/include
 #endif
-#define fan_debug 1
+#define fan_debug 0
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
 #define loco_opengl
@@ -86,7 +86,7 @@ int main(int argc, char** argv) {
 	auto nr = pile.stage_loader.push_and_open_stage<sl::stage::stage0_t>(&pile.loco, op);
   //pile.stage_loader.push_and_open_stage<sl::stage::stage1_t>(&pile.loco, op);
   
-  pile.stage_loader.erase_stage(&pile.loco, nr);
+  //pile.stage_loader.erase_stage(&pile.loco, nr);
 
 	pile.loco.loop([&] {
 

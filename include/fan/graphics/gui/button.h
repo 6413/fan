@@ -119,13 +119,13 @@ struct button_t {
       };
     }
 
-    sb_get_ri(cid).vfi_id = loco->vfi.push_shape(vfip);
+    loco->vfi.push_back(&sb_get_ri(cid).vfi_id, vfip);
   }
   void erase(fan::graphics::cid_t* cid) {
     loco_t* loco = get_loco();
     auto& ri = sb_get_ri(cid);
     loco->text.erase(&ri.text_id);
-    loco->vfi.erase(ri.vfi_id);
+    loco->vfi.erase(&ri.vfi_id);
     sb_erase(cid);
   }
 
