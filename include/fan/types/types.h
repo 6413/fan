@@ -666,3 +666,9 @@ static uint8_t __clz(uintptr_t p0) {
   __FAN__FOREACH(__FAN__INSERTVARNAME, __VA_ARGS__); \
   return var__; \
 }())
+
+#define fan_init_id_t1(type, ...) [&] { \
+  type ## _id_t ::properties_t var__; \
+  __FAN__FOREACH(__FAN__INSERTVARNAME, __VA_ARGS__); \
+  return var__; \
+}()
