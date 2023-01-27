@@ -11,69 +11,36 @@ struct text_box_t {
   static constexpr f32_t press = 1.4;
 
   struct vi_t {
-    fan::vec3 position = 0;
-    f32_t angle = 0;
-    fan::vec2 size = 0;
-    fan::vec2 rotation_point = 0;
-    fan::color color = fan::colors::white;
-    fan::color outline_color;
-    fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
-    f32_t outline_size;
+    loco_text_box_vi_t
   };
 
   static constexpr uint32_t max_instance_size = fan::min(256, 4096 / (sizeof(vi_t) / 4));
 
   struct bm_properties_t {
-    using parsed_masterpiece_t = fan::masterpiece_t<
-      uint16_t,
-      loco_t::matrices_list_NodeReference_t,
-      fan::graphics::viewport_list_NodeReference_t
-    >;
-    struct key_t : parsed_masterpiece_t {}key;
+    loco_text_box_bm_properties_t
   };
 
   struct cid_t;
 
   struct ri_t : bm_properties_t {
-    cid_t* cid;
-    uint8_t selected = 0;
-    fan::graphics::theme_list_NodeReference_t theme;
-    loco_t::vfi_t::shape_id_t vfi_id;
-    uint64_t udata;
-
-    fan::graphics::cid_t text_id;
-    fed_t fed;
+    loco_text_box_ri_t
   };
 
   #define make_key_value(type, name) \
     type& name = *key.get_value<decltype(key)::get_index_with_type<type>()>();
 
   struct properties_t : vi_t, ri_t {
-
-    make_key_value(uint16_t, depth);
-    make_key_value(loco_t::matrices_list_NodeReference_t, matrices);
-    make_key_value(fan::graphics::viewport_list_NodeReference_t, viewport);
-
-    fan::string text;
-    f32_t font_size = 0.1;
-
-    loco_t::vfi_t::iflags_t vfi_flags;
-
-    bool disable_highlight = false;
-
-    loco_t::mouse_button_cb_t mouse_button_cb = [](const loco_t::mouse_button_data_t&) -> int { return 0; };
-    loco_t::mouse_move_cb_t mouse_move_cb = [](const loco_t::mouse_move_data_t&) -> int { return 0; };
-    loco_t::keyboard_cb_t keyboard_cb = [](const loco_t::keyboard_data_t&) -> int { return 0; };
-    loco_t::text_cb_t text_cb = [](const loco_t::text_data_t&) -> int { return 0; };
-
-    properties_t() = default;
-    properties_t(const vi_t& i) : vi_t(i) {}
-    properties_t(const ri_t& p) : ri_t(p) {}
+    loco_text_box_properties_t
   };
 
   #undef make_key_value
 
   void push_back(fan::graphics::cid_t* cid, properties_t& p) {
+
+    get_key_value(uint16_t) = p.position.z;
+    get_key_value(loco_t::matrices_list_NodeReference_t) = p.matrices;
+    get_key_value(fan::graphics::viewport_list_NodeReference_t) = p.viewport;
+
     loco_t* loco = get_loco();
     auto theme = loco->text_box.get_theme(p.theme);
     loco_t::text_t::properties_t tp;
@@ -96,7 +63,7 @@ struct text_box_t {
     sb_push_back(cid, p);
     auto& ri = sb_get_ri(cid);
 
-    loco->text.push_back(tp, &ri.text_id);
+    loco->text.push_back(&ri.text_id, tp);
 
     set_theme(cid, theme, inactive);
 
@@ -283,7 +250,7 @@ struct text_box_t {
       };
     }
 
-    ri.vfi_id = loco->vfi.push_shape(vfip);
+    loco->vfi.push_back(&ri.vfi_id, vfip);
 
     loco_t::rectangle_t::properties_t rp;
     rp.position.z = tp.position.z;
@@ -298,7 +265,7 @@ struct text_box_t {
     loco_t* loco = get_loco();
     auto& ri = sb_get_ri(cid);
     loco->text.erase(&ri.text_id);
-    loco->vfi.erase(ri.vfi_id);
+    loco->vfi.erase(&ri.vfi_id);
     sb_erase(cid);
   }
 

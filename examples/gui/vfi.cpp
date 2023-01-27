@@ -78,7 +78,7 @@ int main() {
 
   vfip.shape_type = loco_t::vfi_t::shape_t::always;
   vfip.shape.always.z = 0;
-  ids[0] = pile->loco.push_back_input_hitbox(vfip);
+  pile->loco.push_back_input_hitbox(&ids[0], vfip);
 
   vfip.shape_type = loco_t::vfi_t::shape_t::rectangle;
   vfip.shape.rectangle.position = fan::vec3(0, 0, 1);
@@ -92,7 +92,7 @@ int main() {
     return 0;
   };
 
-  ids[1] = pile->loco.push_back_input_hitbox(vfip);
+  pile->loco.push_back_input_hitbox(&ids[1], vfip);
 
   pile->loco.loop([&] {
     pile->loco.get_fps();

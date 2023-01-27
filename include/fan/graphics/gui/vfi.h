@@ -160,7 +160,7 @@ struct vfi_t {
 
   using properties_t = common_shape_properties_t;
 
-  shape_id_t push_shape(const properties_t& p) {
+  void push_back(shape_id_t* id, const properties_t& p) {
     auto nr = shape_list.NewNodeLast();
     auto& instance = shape_list[nr];
     instance.shape_type = p.shape_type;
@@ -188,19 +188,19 @@ struct vfi_t {
     if (!p.ignore_init_move && inside(loco, p.shape_type, &instance.shape_data, tp) == mouse_stage_e::inside) {
       feed_mouse_move(mouse_position);
     }
-    return nr;
+    *id = nr;
   }
-  void erase(shape_id_t id) {
-    if (focus.mouse == id) {
+  void erase(shape_id_t* id) {
+    if (focus.mouse == *id) {
       focus.mouse.invalidate();
     }
-    if (focus.keyboard == id) {
+    if (focus.keyboard == *id) {
       focus.keyboard.invalidate();
     }
-    if (focus.text == id) {
+    if (focus.text == *id) {
       focus.text.invalidate();
     }
-    shape_list.unlrec(id);
+    shape_list.unlrec(*id);
 
     //feed_mouse_move(get_loco()->get_mouse_position());
   }

@@ -42,10 +42,10 @@ struct sb_menu_maker_type_name {
     fan::vec3 position;
     f32_t gui_size;
 
-    fan::graphics::theme_list_NodeReference_t theme;
+    fan_2d::graphics::gui::theme_t* theme = 0;
 
-    fan::graphics::viewport_list_NodeReference_t viewport;
-    loco_t::matrices_list_NodeReference_t matrices;
+    fan::graphics::viewport_t* viewport = 0;
+    loco_t::matrices_t* matrices = 0;
 
     fan::function_t<int(const select_data_t&)> select_cb = [](const select_data_t&) -> int { return 0; };
   };

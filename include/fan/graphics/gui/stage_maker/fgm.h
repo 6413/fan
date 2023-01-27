@@ -68,7 +68,7 @@ struct fgm_t {
     auto v = loco.menu_maker_button.instances.gnric();
     loco.menu_maker_button.erase_menu(right_click_menu_nr);
     right_click_menu_nr = v;
-    loco.vfi.erase(vfi_id);
+    loco.vfi.erase(&vfi_id);
   }
 
 	void invalidate_focus() {
@@ -460,12 +460,13 @@ int hitbox{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
           invalidate_right_click_menu();
 			    return 1;
 		    };
-		    vfi_id = loco->vfi.push_shape(p);
+		    loco->vfi.push_back(&vfi_id, p);
 			}
 
 			return 0;
 		};
-		auto shape_id = loco->push_back_input_hitbox(vfip);
+    loco_t::vfi_t::shape_id_t shape_id;
+    loco->push_back_input_hitbox(&shape_id, vfip);
 
 		global_button_t::properties_t gbp;
 		gbp.matrices = &matrices[viewport_area::global];

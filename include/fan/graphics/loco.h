@@ -1030,8 +1030,8 @@ public:
   }
 
   #if defined(loco_vfi)
-  vfi_t::shape_id_t push_back_input_hitbox(const vfi_t::properties_t& p) {
-    return vfi.push_shape(p);
+  void push_back_input_hitbox(vfi_t::shape_id_t* id, const vfi_t::properties_t& p) {
+    vfi.push_back(id, p);
   }
   #endif
   /* uint32_t push_back_keyboard_event(uint32_t depth, const fan_2d::graphics::gui::ke_t::properties_t& p) {
@@ -1289,6 +1289,10 @@ public:
 
     #if defined(loco_button)
       make_shape_id(button);
+    #endif
+
+    #if defined(loco_text_box)
+      make_shape_id(text_box);
     #endif
     
     struct vfi_id_t {

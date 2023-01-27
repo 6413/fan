@@ -152,3 +152,49 @@
   fan::graphics::viewport_t* viewport = 0;
 
 #endif
+
+#if defined(loco_text_box)
+  #define loco_text_box_vi_t \
+    fan::vec3 position = 0; \
+    f32_t angle = 0; \
+    fan::vec2 size = 0; \
+    fan::vec2 rotation_point = 0; \
+    fan::color color = fan::colors::white; \
+    fan::color outline_color; \
+    fan::vec3 rotation_vector = fan::vec3(0, 0, 1); \
+    f32_t outline_size;
+
+  #define loco_text_box_bm_properties_t \
+    using parsed_masterpiece_t = fan::masterpiece_t< \
+      uint16_t, \
+      loco_t::matrices_list_NodeReference_t, \
+      fan::graphics::viewport_list_NodeReference_t \
+    >; \
+    struct key_t : parsed_masterpiece_t {}key;
+
+#define loco_text_box_ri_t \
+    loco_t::text_box_t::cid_t* cid; \
+    uint8_t selected = 0; \
+    fan::graphics::theme_list_NodeReference_t theme; \
+    loco_t::vfi_t::shape_id_t vfi_id; \
+    uint64_t udata; \
+ \
+    fan::graphics::cid_t text_id; \
+    fed_t fed;
+
+#define loco_text_box_properties_t \
+    loco_t::matrices_t* matrices = 0; \
+    fan::graphics::viewport_t* viewport = 0; \
+    fan::string text; \
+    f32_t font_size = 0.1; \
+ \
+    loco_t::vfi_t::iflags_t vfi_flags; \
+ \
+    bool disable_highlight = false; \
+ \
+    loco_t::mouse_button_cb_t mouse_button_cb = [](const loco_t::mouse_button_data_t&) -> int { return 0; }; \
+    loco_t::mouse_move_cb_t mouse_move_cb = [](const loco_t::mouse_move_data_t&) -> int { return 0; }; \
+    loco_t::keyboard_cb_t keyboard_cb = [](const loco_t::keyboard_data_t&) -> int { return 0; }; \
+    loco_t::text_cb_t text_cb = [](const loco_t::text_data_t&) -> int { return 0; };
+
+#endif
