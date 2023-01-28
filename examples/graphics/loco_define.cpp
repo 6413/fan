@@ -62,6 +62,7 @@ pile_t* pile = new pile_t;
 
 
 int main() {
+
   loco_t::rectangle_id_t rectangle(
     fan_init_struct(
       loco_t::rectangle_id_t::properties_t,
@@ -79,7 +80,7 @@ int main() {
 
   loco_t::sprite_id_t sprite;
 
-  sprite = loco_t::sprite_id_t(
+  sprite.open(
     fan_init_struct(
       loco_t::sprite_id_t::properties_t,
       .position = fan::vec2(-0.5, 0),

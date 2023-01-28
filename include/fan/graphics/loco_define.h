@@ -5,13 +5,13 @@
     (loco_access)->name.push_back(*this, *(loco_t::name ## _t::properties_t*)&p); \
   } \
    \
+  loco_t::name ## _id_t& loco_t::name ## _id_t::open(const properties_t& p) { \
+    (loco_access)->name.push_back(*this, *(loco_t::name ## _t::properties_t*)&p); \
+    return *this; \
+  } \
+   \
   loco_t::name ## _id_t::~name##_id_t() { \
-    if (init == false) { \
-      \
-        return; \
-    } \
     (loco_access)->name.erase(*this); \
-    init = false; \
   }
 
 #if defined(loco_rectangle)
