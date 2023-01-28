@@ -1271,14 +1271,9 @@ public:
         return &cid; \
       } \
  \
-      name ## _id_t& operator=(const name ## _id_t& id) { \
-        cid = id.cid; \
-        id.~name ## _id_t(); \
-        init = true; \
-        return *this; \
-      } \
       name ## _id_t() = default; \
       name ## _id_t(const properties_t&); \
+      name ## _id_t& open(const properties_t&); \
       ~name ## _id_t(); \
     };
 
@@ -1313,16 +1308,9 @@ public:
       }
       vfi_id_t() = default;
       vfi_id_t(const properties_t&);
+      vfi_id_t& open(const properties_t&);
       ~vfi_id_t();
 
-      vfi_id_t& operator=(const vfi_id_t& id) {
-          cid = id.cid;
-          id.~vfi_id_t();
-          init = true;
-          return *this;
-      }
-
-      bool init = false;
       loco_t::vfi_t::shape_id_t cid;
     };
 
