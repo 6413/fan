@@ -49,11 +49,11 @@ struct pile_t {
 int main() {
   pile_t* pile = new pile_t;
 
-  pile->loco.lighting.ambient = fan::vec3(0.3, 0.3, 0.3);
+  pile->loco.lighting.ambient = fan::vec3(1,1, 1);
 
   loco_t::sprite_t::properties_t p;
 
-  p.size = fan::vec2(0.3);
+  p.size = fan::vec2(1);
   p.matrices = &pile->matrices;
   p.viewport = &pile->viewport;
 
@@ -64,20 +64,13 @@ int main() {
   p.color.a = 0.5;
   pile->loco.sprite.push_back(&pile->cid[0], p);
 
-  p.position = fan::vec3(0.8, 0, 0);
-  p.color.a = 1;
-  pile->loco.sprite.push_back(&pile->cid[0], p);
-
   loco_t::light_t::properties_t lp;
   lp.matrices = &pile->matrices;
   lp.viewport = &pile->viewport;
   lp.position = fan::vec3(-0.5, 0, 0);
-  lp.size = fan::vec2(0.5);
-  lp.color = fan::color(0, 1, 0);
+  lp.size = fan::vec2(0.2);
+  lp.color = fan::colors::yellow - 0.5;
   pile->loco.light.push_back(&pile->cid[0], lp);
-  lp.color = fan::color(0, 0, 1);
-  pile->loco.light.push_back(&pile->cid[0], lp);
-  lp.viewport = &pile->viewport;
   //for (uint32_t i = 0; i < 1000; i++) {
   //  lp.position = fan::random::vec2(-1, 1);
   //  lp.color = fan::random::color();
@@ -91,13 +84,13 @@ int main() {
   c.start(fan::time::nanoseconds(0.001e+9));
   pile->loco.loop([&] {
     pile->loco.get_fps();
-  if (c.finished()) {
+  /*if (c.finished()) {
     lp.color = fan::random::color();
       lp.size = 0.2;
       lp.position = pile->loco.get_mouse_position(pile->viewport);
       pile->loco.light.push_back(&pile->cid[1], lp);
       c.restart();
-  }
+  }*/
 
 
     pile->loco.light.set(&pile->cid[0], &loco_t::light_t::vi_t::position, pile->loco.get_mouse_position(pile->viewport));

@@ -51,6 +51,9 @@ struct pile_t {
     theme = fan_2d::graphics::gui::themes::deep_red();
     theme.open(loco.get_context());
 
+    viewport2.open(loco.get_context());
+    viewport2.set(loco.get_context(), 0, window_size / 2, window_size);
+
     // requires manual open with compiled texture pack name
   }
 
@@ -61,6 +64,7 @@ struct pile_t {
   fan_2d::graphics::gui::theme_t theme;
   loco_t::matrices_t matrices;
   fan::graphics::viewport_t viewport;
+  fan::graphics::viewport_t viewport2;
 
   #define stage_loader_path .
   #include _FAN_PATH(graphics/gui/stage_maker/loader.h)
@@ -89,10 +93,10 @@ int main(int argc, char** argv) {
 	op.matrices = &pile->matrices;
 	op.viewport = &pile->viewport;
 	op.theme = &pile->theme;
-	auto nr = pile->stage_loader.push_and_open_stage<sl::stage::stage0_t>(&pile->loco, op);
-  //pile.stage_loader.push_and_open_stage<sl::stage::stage1_t>(&pile.loco, op);
-  
-  //pile.stage_loader.erase_stage(&pile.loco, nr);
+
+	//auto nr = pile->stage_loader.push_and_open_stage<sl::stage::stage0_t>(&pile->loco, op);
+
+  pile->stage_loader.push_and_open_stage<sl::stage::stage0_t>(&pile->loco, op);
 
 	pile->loco.loop([&] {
 

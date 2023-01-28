@@ -64,11 +64,6 @@ int main() {
   p.color = fan::colors::red;
   p.color.a = 1;
 
-  //for (uint32_t i = 0; i < count; i++) {
-  //  p.position = fan::vec3(fan::random::vec2(-1, 1), i);
-  //  pile->loco.rectangle.push_back(&pile->cids[i], p);
-  //}
-    
   p.position = fan::vec3(0, 0, 0);
   pile->loco.rectangle.push_back(&pile->cids[0], p);
   p.position = fan::vec3(0.01, 0, 0);
