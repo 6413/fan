@@ -6,7 +6,12 @@
   } \
    \
   loco_t::name ## _id_t::~name##_id_t() { \
+    if (init == false) { \
+      \
+        return; \
+    } \
     (loco_access)->name.erase(*this); \
+    init = false; \
   }
 
 #if defined(loco_rectangle)
