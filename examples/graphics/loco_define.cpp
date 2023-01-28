@@ -60,30 +60,8 @@ pile_t* pile = new pile_t;
 #define loco_access &pile->loco
 #include _FAN_PATH(graphics/loco_define.h)
 
-struct EntityData_t{
-
-  fan::graphics::cid_t SpriteCID;
-  loco_t::sprite_id_t id0;
-
-  EntityData_t(fan::vec2 p) :
-    id0(fan_init_id_t1(
-      loco_t::sprite,
-      .matrices = &pile->matrices,
-      .viewport = &pile->viewport,
-      .image = &pile->loco.default_texture,
-      .position = p
-    ))
-  {
-
-  }
-};
 
 int main() {
-
-  auto e = new EntityData_t(5);
-
-  fan::print(pile->loco.sprite.get(e->id0, &loco_t::sprite_t::vi_t::position));
-
   loco_t::rectangle_id_t rectangle(
     fan_init_struct(
       loco_t::rectangle_id_t::properties_t,
@@ -99,7 +77,9 @@ int main() {
   loco_t::image_t image;
   image.load(&pile->loco, "images/brick.webp");
 
-  loco_t::sprite_id_t sprite(
+  loco_t::sprite_id_t sprite;
+
+  sprite = loco_t::sprite_id_t(
     fan_init_struct(
       loco_t::sprite_id_t::properties_t,
       .position = fan::vec2(-0.5, 0),
@@ -174,6 +154,8 @@ int main() {
       }
     )
   );
+
+  sprite.~sprite_id_t();
 
   pile->loco.set_vsync(false);
 
