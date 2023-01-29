@@ -20,7 +20,6 @@ struct texturepack_t {
 
   struct pixel_data_t {
     loco_t::image_t image;
-    fan::vec2 size;
   };
   uint32_t pack_amount;
   fan::hector_t<fan::hector_t<texture_t>> texture_list;
@@ -80,7 +79,6 @@ struct texturepack_t {
       lp.visual_output = loco_t::image_t::sampler_address_mode::clamp_to_border;//(decltype(lp.visual_output))visual_output;
       lp.filter = loco_t::image_t::filter::linear;//(decltype(lp.filter))filter;
       pixel_data_list[i].image.load(loco, image_info, lp);
-      pixel_data_list[i].size = image_info.size;
       WebPFree(image_info.data);
     }
 
@@ -132,7 +130,6 @@ struct texturepack_t {
 			uint32_t filter = *(uint32_t*)&data[data_index];
 			data_index += sizeof(uint32_t);
 			pixel_data_list[i].image.load(loco, image_info, lp);
-			pixel_data_list[i].size = image_info.size;
 			WebPFree(image_info.data);
 		}
 	}
@@ -157,6 +154,7 @@ struct texturepack_t {
           ti->pack_id = i;
           ti->position = texture_list[i][j].position;
           ti->size = texture_list[i][j].size;
+          ti->image = &get_pixel_data(ti->pack_id).image;
           return 0;
         }
       }

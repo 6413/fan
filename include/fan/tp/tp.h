@@ -2,6 +2,7 @@ struct ti_t {
   uint32_t pack_id;
   fan::vec2 position;
   fan::vec2 size;
+  loco_t::image_t* image = 0;
 };
 
 #include _FAN_PATH(tp/tp0.h)

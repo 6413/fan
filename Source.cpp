@@ -19,41 +19,33 @@ struct HelloWorld {
 };
 
 struct b_t {
-  b_t();
+  int y;
+  int c;
 };
 
 struct a_t {
   b_t b;
 };
 
-b_t::b_t() {
-  a_t* a = OFFSETLESS(this, a_t, b);
-  fan::print("b", a);
-}
+struct c_t {
+  int x;
+  b_t v;
 
-struct c_t : a_t, b_t {
-
-};
-
-
-struct st_t {
-  st_t(auto x) {
-
+  c_t& operator=(c_t&& c) {
+    fan::print("a");
+    return c;
   }
-  
-
-  fan_init_id_t0(
-    loco_t::sprite,
-    id,
-    .position = pos
-  );
+  ~c_t() {
+    fan::print("d");
+  }
 };
 
 int main() {
-  fan::vec2 pos = 0;
-  auto st = new st_t(pos)
-}
-
-int main() {
-
+  b_t b;
+  b.c = 5;
+  c_t c;
+  c = {
+    .x = 0, 
+    .v = b
+  };
 }

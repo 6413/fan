@@ -80,7 +80,7 @@ int main() {
 
   loco_t::sprite_id_t sprite;
 
-  sprite.open(
+  sprite[(
     fan_init_struct(
       loco_t::sprite_id_t::properties_t,
       .position = fan::vec2(-0.5, 0),
@@ -89,7 +89,7 @@ int main() {
       .matrices = &pile->matrices,
       .viewport = &pile->viewport
     )
-  );
+  )];
 
   loco_t::letter_id_t letter(
     fan_init_struct(
@@ -155,8 +155,6 @@ int main() {
       }
     )
   );
-
-  sprite.~sprite_id_t();
 
   pile->loco.set_vsync(false);
 
