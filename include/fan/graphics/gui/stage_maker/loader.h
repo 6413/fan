@@ -134,8 +134,8 @@ public:
           else {
             auto& pd = texturepack->get_pixel_data(ti.pack_id);
             sp.image = &pd.image;
-            sp.tc_position = ti.position / pd.size;
-            sp.tc_size = ti.size / pd.size;
+            sp.tc_position = ti.position / pd.image.size;
+            sp.tc_size = ti.size / pd.image.size;
           }
           sp.matrices = op.matrices;
           sp.viewport = op.viewport;

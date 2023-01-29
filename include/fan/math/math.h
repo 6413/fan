@@ -10,9 +10,9 @@
 
 namespace fan { 
 	namespace math {
-		constexpr f_t pi = 3.14159265358979323846264338327950288419716939937510;
-		constexpr f_t half_pi = pi / 2;
-		constexpr f_t two_pi = pi * 2;
+		constexpr f32_t pi = 3.1415927;
+		constexpr f32_t half_pi = pi / 2;
+		constexpr f32_t two_pi = pi * 2;
 	}
 }
 

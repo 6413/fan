@@ -80,16 +80,13 @@ int main() {
 
   loco_t::sprite_id_t sprite;
 
-  sprite[(
-    fan_init_struct(
-      loco_t::sprite_id_t::properties_t,
+  sprite[{
       .position = fan::vec2(-0.5, 0),
       .size = 0.2,
       .image = &image,
       .matrices = &pile->matrices,
       .viewport = &pile->viewport
-    )
-  )];
+  }];
 
   loco_t::letter_id_t letter(
     fan_init_struct(
