@@ -6,7 +6,7 @@
 #define fan_debug 0
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
-#define loco_vulkan
+//#define loco_vulkan
 
 #define loco_window
 #define loco_context
@@ -27,11 +27,11 @@ struct pile_t {
       ortho_x,
       ortho_y
     );
-    /* loco.get_window()->add_resize_callback(this, [](fan::window_t* w, const fan::vec2i& size, void* userptr) {
-       pile_t* pile = (pile_t*)userptr;
+     loco.get_window()->add_resize_callback([&](const auto& data) {
+       //pile_t* pile = (pile_t*)userptr;
 
-       pile->viewport.set(pile->loco.get_context(), 0, size, w->get_size());
-     });*/
+       viewport.set(loco.get_context(), 0, data.size, data.size);
+     });
     viewport.open(loco.get_context());
     viewport.set(loco.get_context(), 0, loco.get_window()->get_size(), loco.get_window()->get_size());
   }
@@ -56,10 +56,10 @@ int main() {
   constexpr fan::vec2ui image_size = fan::vec2ui(1920, 1080);
 
   fan::string str;
-  fan::io::file::read("output1920_2.yuv", &str);
+  fan::io::file::read("output1920.yuv", &str);
 
-  fan::string str2;
-  fan::io::file::read("output1920.yuv", &str2);
+  //fan::string str2;
+  //fan::io::file::read("output1920.yuv", &str2);
 
   p.load_yuv(&pile->loco, (uint8_t*)str.data(), image_size);
 
@@ -82,7 +82,7 @@ int main() {
   pile->loco.set_vsync(false);
 
   auto data = str.data();
-  auto data2 = str2.data();
+  //auto data2 = str2.data();
 
 
 
@@ -90,15 +90,15 @@ int main() {
   pile->loco.loop([&] {
     pile->loco.get_fps();
 
-    void* d = data2;
+    //void* d = data2;
+    //
+    //void* datas[3];
+    //uint64_t offset = 0;
+    //datas[0] = d;
+    //datas[1] = (uint8_t*)d + (offset += image_size.multiply());
+    //datas[2] = (uint8_t*)d + (offset += image_size.multiply() / 4);
 
-    void* datas[3];
-    uint64_t offset = 0;
-    datas[0] = d;
-    datas[1] = (uint8_t*)d + (offset += image_size.multiply());
-    datas[2] = (uint8_t*)d + (offset += image_size.multiply() / 4);
-
-    pile->loco.yuv420p.reload_yuv(&pile->cids[0], datas, image_size);
+  //  pile->loco.yuv420p.reload_yuv(&pile->cids[0], datas, image_size);
 
   });
 
