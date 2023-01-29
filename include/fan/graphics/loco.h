@@ -6,7 +6,7 @@
 
 struct loco_t;
 
-#define loco_framebuffer
+//#define loco_framebuffer
 
 #include _FAN_PATH(graphics/graphics.h)
 #include _FAN_PATH(time/timer.h)
@@ -1064,6 +1064,8 @@ public:
     //light.m_shader.set_int(get_context(), "_t02", 2);
 
 
+    #if defined(loco_opengl)
+    #if defined(loco_framebuffer)
     get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
     color_buffers[0].bind_texture(this);
 
@@ -1073,6 +1075,9 @@ public:
     get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE2);
     color_buffers[2].bind_texture(this);
 
+
+    #endif
+    #endif
 
     #if defined(loco_opengl)
     #if defined(loco_framebuffer)

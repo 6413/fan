@@ -16,6 +16,7 @@ struct sb_sprite_name {
 
    struct bm_properties_t {
     using parsed_masterpiece_t = fan::masterpiece_t<
+      uint16_t,
       loco_t::textureid_t<0>,
       loco_t::textureid_t<1>,
       loco_t::textureid_t<2>,
@@ -36,11 +37,12 @@ struct sb_sprite_name {
 
   struct properties_t : vi_t, ri_t {
 
-    make_key_value(loco_t::textureid_t<0>, y);
-    make_key_value(loco_t::textureid_t<1>, u);
-    make_key_value(loco_t::textureid_t<2>, v);
-    make_key_value(loco_t::matrices_list_NodeReference_t, matrices);
-    make_key_value(fan::graphics::viewport_list_NodeReference_t, viewport);
+    loco_t::image_t* y = 0;
+    loco_t::image_t* u = 0;
+    loco_t::image_t* v = 0;
+
+    loco_t::matrices_t* matrices = 0;
+    fan::graphics::viewport_t* viewport = 0;
 
     properties_t() = default;
     properties_t(const vi_t& i) : vi_t(i) {}
@@ -126,6 +128,15 @@ struct sb_sprite_name {
   #undef make_key_value
 
   void push_back(fan::graphics::cid_t* cid, properties_t& p) {
+
+    get_key_value(uint16_t) = p.position.z;
+    get_key_value(loco_t::textureid_t<0>) = p.y;
+    get_key_value(loco_t::textureid_t<1>) = p.u;
+    get_key_value(loco_t::textureid_t<2>) = p.v;
+    get_key_value(loco_t::matrices_list_NodeReference_t) = p.matrices;
+    get_key_value(fan::graphics::viewport_list_NodeReference_t) = p.viewport;
+
+
     sb_push_back(cid, p);
 
   #if defined(loco_vulkan)
