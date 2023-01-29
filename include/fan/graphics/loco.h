@@ -1264,7 +1264,6 @@ public:
  \
  \
       fan::graphics::cid_t cid; \
-      bool init = false; \
  \
  \
       operator fan::graphics::cid_t* () { \
@@ -1273,7 +1272,7 @@ public:
  \
       name ## _id_t() = default; \
       name ## _id_t(const properties_t&); \
-      name ## _id_t& open(const properties_t&); \
+      name ## _id_t& operator[](const properties_t&); \
       ~name ## _id_t(); \
     };
 
@@ -1282,7 +1281,26 @@ public:
     #endif
 
     #if defined(loco_sprite)
-      make_shape_id(sprite);
+      struct sprite_id_t {
+
+        struct properties_t {
+          loco_sprite_vi_t
+          loco_sprite_bm_properties_t
+          loco_sprite_ri_t 
+          loco_sprite_properties_t
+
+          loco_t::texturepack_t::ti_t* ti = 0;
+        };
+        fan::graphics::cid_t cid;
+        operator fan::graphics::cid_t* () { 
+          return &cid;
+        }
+
+        sprite_id_t() = default;
+        sprite_id_t(const properties_t& p);
+        sprite_id_t& operator[](const properties_t&);
+        ~sprite_id_t();
+      };
     #endif
 
     #if defined(loco_letter)
@@ -1308,7 +1326,7 @@ public:
       }
       vfi_id_t() = default;
       vfi_id_t(const properties_t&);
-      vfi_id_t& open(const properties_t&);
+      vfi_id_t& operator[](const properties_t&);
       ~vfi_id_t();
 
       loco_t::vfi_t::shape_id_t cid;

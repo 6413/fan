@@ -5,7 +5,7 @@
     (loco_access)->name.push_back(*this, *(loco_t::name ## _t::properties_t*)&p); \
   } \
    \
-  loco_t::name ## _id_t& loco_t::name ## _id_t::open(const properties_t& p) { \
+  loco_t::name ## _id_t& loco_t::name ## _id_t::operator[](const properties_t& p) { \
     (loco_access)->name.push_back(*this, *(loco_t::name ## _t::properties_t*)&p); \
     return *this; \
   } \
@@ -19,7 +19,25 @@
 #endif
 
 #if defined(loco_sprite)
-  make_shape_id_define(sprite);
+  loco_t::sprite_id_t::sprite_id_t(const properties_t& p) {
+    auto& p2 = *(loco_t::sprite_t::properties_t*)&p;
+    if (p.ti) {
+      p2.load_tp(p.ti);
+    }
+    (loco_access)->sprite.push_back(*this, p2);
+  }
+  loco_t::sprite_id_t& loco_t::sprite_id_t::operator[](const properties_t& p) {
+    auto& p2 = *(loco_t::sprite_t::properties_t*)&p;
+    if (p.ti) {
+      p2.load_tp(p.ti);
+    }
+    (loco_access)->sprite.push_back(*this, p2);
+    return *this;
+  }
+  loco_t::sprite_id_t::~sprite_id_t() {
+    (loco_access)->sprite.erase(*this);
+  }
+
 #endif
 
 #if defined(loco_button)
