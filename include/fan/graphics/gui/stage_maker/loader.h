@@ -38,13 +38,13 @@ public:
 
     stage_common_t_t(auto* loader, auto* loco, const stage_open_properties_t& properties) {
       T* stage = (T*)this;
-      //if (stage->stage_id.Prev(&loader->stage_list) != loader->stage_list.src) {
-      //  stage->it = ((stage_common_t*)loader->stage_list[stage->stage_id.Prev(&loader->stage_list)])->it + 1;
-      //}
-      //else {
-        stage->it = 0;
-      //}
       stage->stage_id = loader->stage_list.NewNodeLast();
+      if (stage->stage_id.Prev(&loader->stage_list) != loader->stage_list.src) {
+        stage->it = ((stage_common_t*)&loader->stage_list[stage->stage_id.Prev(&loader->stage_list)])->it + 1;
+      }
+      else {
+        stage->it = 0;
+      }
       stage->parent_id = properties.parent_id;
       loader->load_fgm(loco, (T*)this, properties, stage->stage_name);
     }

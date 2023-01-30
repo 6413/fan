@@ -4,6 +4,11 @@
 
 #include <set>
 
+#include _FAN_PATH(types/types.h)
+
+#include _FAN_PATH(types/color.h)
+
+
 struct loco_t;
 
 //#define loco_framebuffer
@@ -13,6 +18,8 @@ struct loco_t;
 #include _FAN_PATH(font.h)
 #include _FAN_PATH(physics/collision/circle.h)
 #include _FAN_PATH(io/directory.h)
+
+#include _FAN_PATH(graphics/gui/types.h)
 
 // automatically gets necessary macros for shapes
 
@@ -153,7 +160,13 @@ extern "C" {
 
 #include "loco_types.h"
 
+namespace loco_t {
+  namespace themes = fan_2d::graphics::gui;
+}
+
 struct loco_t {
+
+  #include _FAN_PATH(graphics/gui/themes.h)
 
   #define get_key_value(type) \
     *p.key.get_value<decltype(p.key)::get_index_with_type<type>()>()
