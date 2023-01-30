@@ -244,7 +244,7 @@ public:
 			it = it.Next(&stage->cid_list);
 		}
     loco->m_update_callback.unlrec(stage_list[id].update_nr);
-    loco->get_window()->remove_resize_callback(stage->resize_nr);
+    loco->get_window()->remove_resize_callback(stage_list[id].resize_nr);
     stage_list.unlrec(id);
 	}
 
