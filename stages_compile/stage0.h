@@ -7,7 +7,7 @@ void close(auto* loco){
 }
 
 void window_resize_callback(auto* loco){
-		
+  fan::print("resize", loco);
 }
 
 void update(auto* loco){

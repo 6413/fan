@@ -14,6 +14,7 @@ protected:
   #define BLL_set_type_node uint16_t
   #define BLL_set_NodeData \
   loco_t::update_callback_nr_t update_nr; \
+  fan::window_t::resize_callback_NodeReference_t resize_nr; \
   void* stage;
   #define BLL_set_Link 1
   #define BLL_set_AreWeInsideStruct 1
@@ -209,6 +210,9 @@ public:
     loco->m_update_callback[stage_list[stage->stage_id].update_nr] = [stage](loco_t* loco) {
       stage->update(loco);
     };
+    stage_list[stage->stage_id].resize_nr = loco->get_window()->add_resize_callback([stage, loco](const auto&) {
+      stage->window_resize_callback(loco); 
+      });
     stage->open(loco);
 		return stage->stage_id;
 	}
@@ -240,6 +244,7 @@ public:
 			it = it.Next(&stage->cid_list);
 		}
     loco->m_update_callback.unlrec(stage_list[id].update_nr);
+    loco->get_window()->remove_resize_callback(stage->resize_nr);
     stage_list.unlrec(id);
 	}
 
