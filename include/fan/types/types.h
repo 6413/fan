@@ -529,8 +529,10 @@ namespace fan {
 //template <platform_t T_platform>
 //concept platform_linux = T_platform == platform_t::linux;
 
-#define OFFSETLESS(ptr_m, t_m, d_m) \
-	(t_m *)((uint8_t *)(ptr_m) - offsetof(t_m, d_m))
+#ifndef OFFSETLESS
+	#define OFFSETLESS(ptr_m, t_m, d_m) \
+		((t_m *)((uint8_t *)(ptr_m) - offsetof(t_m, d_m)))
+#endif
 
 #define fan_debug_none 0
 #define fan_debug_low 1
