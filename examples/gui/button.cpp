@@ -86,8 +86,8 @@ int main() {
     }*/
     return 0;
   };
-  fan_2d::graphics::gui::theme_t theme = fan_2d::graphics::gui::themes::gray(0.5);
-  theme.open(pile.loco.get_context());
+
+  fan_2d::graphics::gui::theme_t theme(get_context, fan_2d::graphics::gui::themes::gray(0.5));
   tp.theme = &theme;
   constexpr auto count = 10;
   fan::graphics::cid_t cids[count];
