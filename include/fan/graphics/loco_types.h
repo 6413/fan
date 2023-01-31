@@ -198,3 +198,30 @@
     loco_t::text_cb_t text_cb = [](const loco_t::text_data_t&) -> int { return 0; };
 
 #endif
+
+#if defined(loco_light)
+#define loco_light_vi_t \
+  fan::vec3 position = 0; \
+  f32_t pad[1]; \
+  fan::vec2 size = 0; \
+  fan::vec2 rotation_point = 0; \
+  fan::color color = fan::colors::white; \
+  fan::vec3 rotation_vector = fan::vec3(0, 0, 1); \
+  f32_t angle = 0;
+
+#define loco_light_bm_properties_t \
+  using parsed_masterpiece_t = fan::masterpiece_t< \
+    uint16_t, \
+    loco_t::matrices_list_NodeReference_t, \
+    fan::graphics::viewport_list_NodeReference_t \
+  >; \
+  struct key_t : parsed_masterpiece_t {}key;
+
+#define loco_light_ri_t \
+  loco_t::light_t::cid_t* cid;
+
+#define loco_light_properties_t \
+  loco_t::matrices_t* matrices = 0; \
+  fan::graphics::viewport_t* viewport = 0;
+
+#endif

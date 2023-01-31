@@ -1379,6 +1379,10 @@ public:
       make_shape_id(text_box);
     #endif
     
+    #if defined(loco_light)
+      make_shape_id(light);
+    #endif
+
     struct vfi_id_t {
       using properties_t = loco_t::vfi_t::properties_t;
       operator loco_t::vfi_t::shape_id_t* () {
