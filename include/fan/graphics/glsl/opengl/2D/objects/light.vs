@@ -53,15 +53,15 @@ void main() {
 
   mat4 m = view;
 	m[3][0] = 0;
-	m[3][1] = 0;
+	m[3][1] = view[3][1] - 10;
 
   texture_coordinate = aTexCoord;
 
   instance_position = get_instance().position;
   instance_size = get_instance().size;
-  frag_position = vec4(vec4(vec2(x, y) * get_instance().size + get_instance().position.xy + vec2(view[3][0], view[3][1]), get_instance().position.z, 1)).xyz;
+  frag_position = vec4(vec4(vec2(x, y) * get_instance().size + get_instance().position.xy , get_instance().position.z, 1)).xyz;
 
-  gl_Position = projection * m * vec4(vec2(x, y) * get_instance().size + get_instance().position.xy + vec2(view[3][0], view[3][1]), get_instance().position.z, 1);
+  gl_Position = projection * m * vec4(vec2(x, y) * get_instance().size + get_instance().position.xy, get_instance().position.z, 1);
 
 	instance_color = get_instance().color;
 }

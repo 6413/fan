@@ -7,13 +7,15 @@ in vec2 texture_coordinate;
 flat in uint flag;
 in vec4 instance_color;
 
+in vec2 offset;
+
 uniform sampler2D _t00;
 uniform sampler2D _t02;
 uniform vec3 lighting_ambient;
 
 void main() {
   o_attachment0 = texture(_t00, texture_coordinate) * instance_color;
-  vec4 t = vec4(texture(_t02, vec2(gl_FragCoord.x / 800, gl_FragCoord.y / 800)).rgb, 1);
+  vec4 t = vec4(texture(_t02, texture_coordinate).rgb, 1);
   o_attachment0.rgb *= lighting_ambient + t.rgb;
   //o_attachment1 = 1u;
   //o_attachment2 = vec4(0, 0, 0, o_attachment0.a);
