@@ -19,8 +19,6 @@ struct loco_t;
 #include _FAN_PATH(physics/collision/circle.h)
 #include _FAN_PATH(io/directory.h)
 
-#include _FAN_PATH(graphics/gui/types.h)
-
 // automatically gets necessary macros for shapes
 
 #if defined(loco_text)
@@ -160,13 +158,7 @@ extern "C" {
 
 #include "loco_types.h"
 
-namespace loco_t {
-  namespace themes = fan_2d::graphics::gui;
-}
-
 struct loco_t {
-
-  #include _FAN_PATH(graphics/gui/themes.h)
 
   #define get_key_value(type) \
     *p.key.get_value<decltype(p.key)::get_index_with_type<type>()>()
@@ -432,6 +424,15 @@ public:
     matrices->set_ortho(this, x, y);
   }
 
+  void open_viewport(fan::graphics::viewport_t* viewport, const fan::vec2& viewport_position, const fan::vec2& viewport_size) {
+    viewport->open(get_context());
+    viewport->set(get_context(), viewport_position, viewport_size, get_window()->get_size());
+  }
+
+  void set_viewport(fan::graphics::viewport_t* viewport, const fan::vec2& viewport_position, const fan::vec2& viewport_size) {
+    viewport->set(get_context(), viewport_position, viewport_size, get_window()->get_size());
+  }
+
   #define BLL_set_declare_NodeReference 0
   #define BLL_set_declare_rest 1
     #if defined(loco_opengl)
@@ -544,6 +545,8 @@ public:
   using mouse_button_cb_t = fan::function_t<int(const mouse_button_data_t&)>;
   using keyboard_cb_t = fan::function_t<int(const keyboard_data_t&)>;
   using text_cb_t = fan::function_t<int(const text_data_t&)>;
+
+  #include _FAN_PATH(graphics/gui/themes.h)
 
   vfi_t vfi_var_name;
 
@@ -1362,6 +1365,12 @@ loco_t::image_list_NodeReference_t::image_list_NodeReference_t(loco_t::image_t* 
 loco_t::matrices_list_NodeReference_t::matrices_list_NodeReference_t(loco_t::matrices_t* matrices) {
   NRI = matrices->matrices_reference.NRI;
 }
+
+fan::opengl::theme_list_NodeReference_t::theme_list_NodeReference_t(auto* theme) {
+  static_assert(std::is_same_v<decltype(theme), loco_t::theme_t*>, "invalid parameter passed to theme");
+  NRI = theme->theme_reference.NRI;
+}
+
 #endif
 
 #ifndef loco_no_inline

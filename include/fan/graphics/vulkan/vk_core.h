@@ -381,7 +381,7 @@ namespace fan_2d {
 #define BLL_set_declare_rest 1
 #include _FAN_PATH(BLL/BLL.h)
 
-fan::vulkan::theme_list_NodeReference_t::theme_list_NodeReference_t(fan_2d::graphics::gui::theme_t* theme) {
+fan::vulkan::theme_list_NodeReference_t::theme_list_NodeReference_t(loco_t::theme_t* theme) {
   NRI = theme->theme_reference.NRI;
 }
 

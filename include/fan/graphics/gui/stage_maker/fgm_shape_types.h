@@ -105,7 +105,7 @@ struct button_t {
   #define fgm_shape_instance_data \
     fan::graphics::cid_t cid; \
     uint16_t shape; \
-    fan_2d::graphics::gui::theme_t theme; \
+    loco_t::theme_t theme; \
     uint32_t id;
   #include "fgm_shape_builder.h"
 

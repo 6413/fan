@@ -11,7 +11,7 @@ struct sb_menu_maker_type_name {
         fan::graphics::cid_t cid; \
         fan::string text; \
         fan::vec3 position; \
-        fan_2d::graphics::gui::theme_t theme; \
+        loco_t::theme_t theme; \
         loco_t::mouse_button_cb_t mouse_button_cb; \
         loco_t::mouse_move_cb_t mouse_move_cb; \
         loco_t::keyboard_cb_t keyboard_cb;
@@ -26,7 +26,7 @@ struct sb_menu_maker_type_name {
     fan::string text_value;
     fan::string text;
 
-    fan_2d::graphics::gui::theme_t* theme = 0;
+    loco_t::theme_t* theme = 0;
 
     loco_t::mouse_button_cb_t mouse_button_cb = [](const loco_t::mouse_button_data_t&) -> int { return 0; };
     loco_t::mouse_move_cb_t mouse_move_cb = [](const loco_t::mouse_move_data_t&) -> int { return 0; };
@@ -42,7 +42,7 @@ struct sb_menu_maker_type_name {
     fan::vec3 position;
     f32_t gui_size;
 
-    fan_2d::graphics::gui::theme_t* theme = 0;
+    loco_t::theme_t* theme = 0;
 
     fan::graphics::viewport_t* viewport = 0;
     loco_t::matrices_t* matrices = 0;
