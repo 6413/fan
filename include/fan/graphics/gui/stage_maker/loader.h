@@ -36,17 +36,9 @@ public:
   template <typename T = __empty_struct>
   struct stage_common_t_t {
 
+    using value_type_t = stage_common_t_t<T>;
+
     stage_common_t_t(auto* loader, auto* loco, const stage_open_properties_t& properties) {
-      T* stage = (T*)this;
-      stage->stage_id = loader->stage_list.NewNodeLast();
-      if (stage->stage_id.Prev(&loader->stage_list) != loader->stage_list.src) {
-        stage->it = ((stage_common_t*)&loader->stage_list[stage->stage_id.Prev(&loader->stage_list)])->it + 1;
-      }
-      else {
-        stage->it = 0;
-      }
-      stage->parent_id = properties.parent_id;
-      loader->load_fgm(loco, (T*)this, properties, stage->stage_name);
     }
     void close(auto* loco) {
       T* stage = (T*)this;
@@ -232,7 +224,21 @@ public:
 
 	template <typename stage_t>
 	stage_loader_t::nr_t push_and_open_stage(auto* loco, const stage_open_properties_t& op) {
-		auto* stage = new stage_t(this, loco, op);
+    auto stage = (stage_t*)malloc(sizeof(stage_t));
+
+    stage->stage_id = stage_list.NewNodeLast();
+    if (stage->stage_id.Prev(&stage_list) != stage_list.src) {
+      stage->it = ((stage_common_t *)stage_list[stage->stage_id.Prev(&stage_list)].stage)->it + 1;
+    }
+    else {
+      stage->it = 0;
+    }
+    stage->parent_id = op.parent_id;
+
+    new (stage) stage_t(this, loco, op);
+
+    load_fgm(loco, stage, op, stage->stage_name);
+
 		stage_list[stage->stage_id].stage = stage;
     stage_list[stage->stage_id].update_nr = loco->m_update_callback.NewNodeLast();
     loco->m_update_callback[stage_list[stage->stage_id].update_nr] = [stage](loco_t* loco) {

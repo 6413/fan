@@ -97,8 +97,6 @@ int main(int argc, char** argv) {
 	//auto nr = pile->stage_loader.push_and_open_stage<sl::stage::stage0_t>(&pile->loco, op);
 
   pile->stage_loader.push_and_open_stage<sl::stage::stage0_t>(&pile->loco, op);
-  pile->stage_loader.push_and_open_stage<sl::stage::stage1_t>(&pile->loco, op);
-  pile->stage_loader.push_and_open_stage<sl::stage::stage2_t>(&pile->loco, op);
 
 	pile->loco.loop([&] {
 
