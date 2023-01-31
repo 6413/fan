@@ -1,17 +1,22 @@
-void open(auto* loco) {
-  
+fan::graphics::cid_t* button1_cid;
+
+void open(auto& loco) {
+  auto* pile = OFFSETLESS(&loco, pile_t, loco);
+  button1_cid = pile->stage_loader.get_cid(this, "button1");
+  fan::print(button1_cid);
+  fan::print(loco.button.get_text(button1_cid));
 }
 
-void close(auto* loco){
+void close(auto& loco){
 		
 }
 
-void window_resize_callback(auto* loco){
-		
+void window_resize_callback(auto& loco){
+
 }
 
-void update(auto* loco){
-	
+void update(auto& loco){
+
 }
 
 int button1_mouse_button_cb(const loco_t::mouse_button_data_t& mb){

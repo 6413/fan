@@ -92,7 +92,7 @@ int main() {
   fan::graphics::cid_t cids[count];
   pile.loco.button.push_back(&cids[0], tp);
   tp.position.x += 0.3;
-  tp.position.z += 2;
+  //tp.position.z += 2;
   tp.text = "$€ fan $€";
   pile.loco.button.push_back(&cids[1], tp);
   //pile.loco.get_context()->opengl.glPolygonMode(fan::opengl::GL_FRONT_AND_BACK, fan::opengl::GL_LINE);

@@ -35,19 +35,19 @@ struct stage_maker_t {
 			stage_name + ".h";
 	};
 
-	static constexpr const char* stage_instance_tempalte_str = R"(void open(auto* loco) {
+	static constexpr const char* stage_instance_tempalte_str = R"(void open(auto& loco) {
   
 }
 
-void close(auto* loco){
+void close(auto& loco){
 		
 }
 
-void window_resize_callback(auto* loco){
+void window_resize_callback(auto& loco){
 		
 }
 
-void update(auto* loco){
+void update(auto& loco){
 	
 }
 )";

@@ -50,7 +50,7 @@ public:
     }
     void close(auto* loco) {
       T* stage = (T*)this;
-      stage->close(loco);
+      stage->close(*loco);
     }
 
     nr_t stage_id;
@@ -80,6 +80,31 @@ public:
   using stage_common_t = stage_common_t_t<>;
 
 	#include _PATH_QUOTE(stage_loader_path/stages_compile/stage.h)
+
+  using key_t = std::pair<void*, fan::string>;
+
+  struct pair_hasher_t {
+    std::size_t operator()(const key_t& pair) const {
+      return std::hash<decltype(pair.first)>()(pair.first) ^ std::hash<std::string>()(pair.second);
+    }
+  };
+
+  struct pair_equal_t {
+    bool operator()(const key_t& lhs, const key_t& rhs) const {
+      return lhs.first == rhs.first && lhs.second == rhs.second;
+    }
+  };
+
+  using cid_map_t = std::unordered_map<key_t, fan::graphics::cid_t*, pair_hasher_t, pair_equal_t>;
+  cid_map_t cid_map;
+
+  fan::graphics::cid_t* get_cid(void* stage_ptr, const fan::string id) {
+    auto found = cid_map.find(std::make_pair(stage_ptr, id));
+    if (found == cid_map.end()) {
+      return nullptr;
+    }
+    return found->second;
+  }
 
 	void open(loco_t* loco, loco_t::texturepack_t* tp) {
     texturepack = tp;
@@ -117,8 +142,8 @@ public:
 				  bp.mouse_button_cb = [stage, i](const loco_t::mouse_button_data_t&d) {
 					  return (stage->*(stage->button_mouse_button_cb_table[i]))(d);
 				  };
-				  
           loco->button.push_back(&stage->cid_list[nr].cid, bp);
+          cid_map[std::make_pair(stage, "button" + std::to_string(data.id))] = &stage->cid_list[nr].cid;
           break;
         }
         case loco_t::shape_type_t::sprite: {
@@ -190,6 +215,9 @@ public:
           vfip.ignore_init_move = true;
 
           loco->push_back_input_hitbox((loco_t::vfi_t::shape_id_t*)&stage->cid_list[nr].cid, vfip);
+
+          cid_map[std::make_pair(stage, "hitbox" + std::to_string(data.id))] = &stage->cid_list[nr].cid;
+
           break;
         }
         default: {
@@ -208,18 +236,19 @@ public:
 		stage_list[stage->stage_id].stage = stage;
     stage_list[stage->stage_id].update_nr = loco->m_update_callback.NewNodeLast();
     loco->m_update_callback[stage_list[stage->stage_id].update_nr] = [stage](loco_t* loco) {
-      stage->update(loco);
+      stage->update(*loco);
     };
     stage_list[stage->stage_id].resize_nr = loco->get_window()->add_resize_callback([stage, loco](const auto&) {
-      stage->window_resize_callback(loco); 
+      stage->window_resize_callback(*loco); 
       });
-    stage->open(loco);
+    stage->open(*loco);
 		return stage->stage_id;
 	}
 	void erase_stage(auto* loco, nr_t id) {
 		//auto loco = get_loco();
   //  //fan::throw_error("todo");
     auto* stage = (stage_common_t*)stage_list[id].stage;
+    stage->close(*loco);
 		auto it = stage->cid_list.GetNodeFirst();
 		while (it != stage->cid_list.dst) {
 			auto& node = stage->cid_list[it];
