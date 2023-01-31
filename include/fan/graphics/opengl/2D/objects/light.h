@@ -31,10 +31,9 @@ struct light_t {
     type& name = *key.get_value<decltype(key)::get_index_with_type<type>()>();
 
   struct properties_t : vi_t, ri_t {
-
-    make_key_value(uint16_t, depth);
-    make_key_value(loco_t::matrices_list_NodeReference_t, matrices);
-    make_key_value(fan::graphics::viewport_list_NodeReference_t, viewport);
+    
+    loco_t::matrices_t* matrices = 0;
+    fan::graphics::viewport_t* viewport = 0;
 
     properties_t() = default;
     properties_t(const vi_t& i) : vi_t(i) {}
@@ -44,6 +43,11 @@ struct light_t {
   #undef make_key_value
 
   void push_back(fan::graphics::cid_t* cid, properties_t& p) {
+
+    get_key_value(uint16_t) = p.position.z;
+    get_key_value(loco_t::matrices_list_NodeReference_t) = p.matrices;
+    get_key_value(fan::graphics::viewport_list_NodeReference_t) = p.viewport;
+
     sb_push_back(cid, p);
   }
   void erase(fan::graphics::cid_t* cid) {
@@ -63,7 +67,7 @@ struct light_t {
 
   #define vk_sb_ssbo
   #define vk_sb_vp
-  #define sb_inline_draw
+  //#define sb_inline_draw
   #include _FAN_PATH(graphics/shape_builder.h)
 
   light_t() {

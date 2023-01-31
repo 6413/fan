@@ -19,6 +19,8 @@ void main() {
   vec4 t2 = vec4(texture(_t00, texture_coordinate).rgb, 1);
   vec4 t = vec4(texture(_t02, texture_coordinate).rgb, 1);
 
+  //o_attachment0 = vec4(0, 0, 0, 0);
+
   o_attachment2 = instance_color;
   //o_attachment2.r = 1;
   //o_attachment2 = mix(instance_color, t, 0.5);

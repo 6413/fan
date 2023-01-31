@@ -258,7 +258,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="examples\gui\stage_loader.cpp" />
+    <ClCompile Include="examples\graphics\lighting.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -346,7 +346,6 @@
     <ClInclude Include="include\fan\graphics\gui\themes.h" />
     <ClInclude Include="include\fan\graphics\gui\vfi.h" />
     <ClInclude Include="include\fan\graphics\gui\vfi_shape_list_settings.h" />
-    <ClInclude Include="include\fan\graphics\light.h" />
     <ClInclude Include="include\fan\graphics\loco.h" />
     <ClInclude Include="include\fan\graphics\loco_define.h" />
     <ClInclude Include="include\fan\graphics\loco_types.h" />

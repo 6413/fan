@@ -11,7 +11,7 @@
 
 struct loco_t;
 
-//#define loco_framebuffer
+#define loco_framebuffer
 
 #include _FAN_PATH(graphics/graphics.h)
 #include _FAN_PATH(time/timer.h)
@@ -939,6 +939,51 @@ public:
       fan::opengl::GL_COLOR_ATTACHMENT2
     );
 
+    get_window()->add_resize_callback([this](const auto& d) {
+      loco_t::image_t::load_properties_t lp;
+      lp.visual_output = fan::opengl::GL_CLAMP_TO_EDGE;
+
+      fan::webp::image_info_t ii;
+	    ii.data = nullptr;
+      ii.size = get_window()->get_size();
+
+      lp.internal_format = fan::opengl::GL_R8UI;
+      lp.format = fan::opengl::GL_RED_INTEGER; // GL_RGB_INTEGER for vec3
+      lp.filter = fan::opengl::GL_NEAREST;
+      lp.type = fan::opengl::GL_UNSIGNED_BYTE;
+
+      color_buffers[1].reload_pixels(this, ii, lp);
+
+      color_buffers[1].bind_texture(this);
+      fan::opengl::core::framebuffer_t::bind_to_texture(
+        get_context(),
+        *color_buffers[1].get_texture(this),
+        fan::opengl::GL_COLOR_ATTACHMENT1
+      );
+      lp.internal_format = fan::opengl::GL_RGBA;
+      lp.format = fan::opengl::GL_RGBA;
+      lp.type = fan::opengl::GL_FLOAT;
+      lp.filter = fan::opengl::GL_LINEAR;
+
+      color_buffers[0].reload_pixels(this, ii, lp);
+
+      color_buffers[0].bind_texture(this);
+      fan::opengl::core::framebuffer_t::bind_to_texture(
+        get_context(),
+        *color_buffers[0].get_texture(this),
+        fan::opengl::GL_COLOR_ATTACHMENT0
+      );
+
+      color_buffers[2].reload_pixels(this, ii, lp);
+
+      color_buffers[2].bind_texture(this);
+      fan::opengl::core::framebuffer_t::bind_to_texture(
+        get_context(),
+        *color_buffers[2].get_texture(this),
+        fan::opengl::GL_COLOR_ATTACHMENT2
+      );
+    });
+
     fan::opengl::core::renderbuffer_t::properties_t rp;
     m_framebuffer.bind(get_context());
     rp.size = ii.size;
@@ -1073,12 +1118,6 @@ public:
   #endif
 
   void process_frame() {
-
-    //light.m_shader.use(get_context());
-    //light.m_shader.set_int(get_context(), "_t00", 0);
-    //light.m_shader.set_int(get_context(), "_t01", 1);
-    //light.m_shader.set_int(get_context(), "_t02", 2);
-
 
     #if defined(loco_opengl)
     #if defined(loco_framebuffer)
