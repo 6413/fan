@@ -104,24 +104,35 @@ struct fgm_t {
   ) {
     fan::string str;
 
+    const fan::string advance_str = fan::format("struct {0}_t", stage_name);
+    auto advance_position = pile->stage_maker.stage_h_str.find(
+      advance_str
+    );
+
+    if (advance_position == fan::string::npos) {
+      fan::throw_error("corrupted stage.h:advance_position");
+    }
+
     auto src_str = fan::format("//{0}_src\n",
       shape_name      
     );
     auto src = pile->stage_maker.stage_h_str.find(
-      src_str
+      src_str,
+      advance_position
     );
     if (src == fan::string::npos) {
-      fan::throw_error("corrupted stage.h");
+      fan::throw_error("corrupted stage.h:src");
     }
     src += src_str.size();
     auto dst = pile->stage_maker.stage_h_str.find(
       fan::format("\n    //{0}_dst",
         shape_name
-      )
+      ),
+      advance_position
     );
 
     if (dst == fan::string::npos) {
-      fan::throw_error("corrupted stage.h");
+      fan::throw_error("corrupted stage.h:dst");
     }
 
     pile->stage_maker.stage_h_str.erase(src, dst - src);
