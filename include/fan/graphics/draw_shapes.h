@@ -10,6 +10,7 @@
 #if defined(loco_yuv420p)
   yuv420p.draw();
 #endif
+
 #if defined(loco_sprite)
   // can be moved
   sprite.draw();
@@ -31,6 +32,10 @@
   post_process.draw();
 #endif
 
+#if defined(loco_light)
+  light.draw();
+#endif
+
 for (const auto& it : m_draw_queue) {
   for (const auto& f : it.f) {
     f();
@@ -38,8 +43,3 @@ for (const auto& it : m_draw_queue) {
 }
 
 m_draw_queue.clear();
-
-#if defined(loco_light)
-// can be moved
-light.draw();
-#endif

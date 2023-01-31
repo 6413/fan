@@ -4,7 +4,6 @@
 #include _FAN_PATH(types/memory.h)
 
 #include _FAN_PATH(graphics/opengl/gl_init.h)
-#include _FAN_PATH(graphics/light.h)
 
 #ifdef fan_platform_windows
 #include <dbghelp.h>

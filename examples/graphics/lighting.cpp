@@ -53,7 +53,7 @@ int main() {
 
   loco_t::sprite_t::properties_t p;
 
-  p.size = fan::vec2(1);
+  p.size = fan::vec2(.3);
   p.matrices = &pile->matrices;
   p.viewport = &pile->viewport;
 
@@ -61,8 +61,11 @@ int main() {
   image.load(&pile->loco, "images/lighting.webp");
   p.image = &image;
   p.position = fan::vec3(0, 0, 0);
-  p.color.a = 0.5;
+  p.color.a = 1;
   pile->loco.sprite.push_back(&pile->cid[0], p);
+  p.position.x += 0.8;
+  p.position.z += 2;
+  pile->loco.sprite.push_back(&pile->cid[1], p);
 
   loco_t::light_t::properties_t lp;
   lp.matrices = &pile->matrices;
