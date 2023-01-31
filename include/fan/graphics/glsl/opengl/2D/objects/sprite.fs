@@ -17,7 +17,7 @@ void main() {
   o_attachment0 = texture(_t00, texture_coordinate) * instance_color;
   vec4 t = vec4(texture(_t02, vec2(texture_coordinate.x, 1.0 - texture_coordinate.y)).rgb, 1);
   o_attachment0.rgb *= lighting_ambient;
-  o_attachment2 = vec4(0, 0, 0, 1);
+  o_attachment2 = vec4(0, 0, 0, o_attachment0.a);
   //o_attachment2 = vec4(0, 0, 0, 0);
   //o_attachment1 = uint(texture(_t00, texture_coordinate).r * 255.0f) * 5u;
   //o_attachment1.g = 0u;

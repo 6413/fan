@@ -1,6 +1,4 @@
-#if defined(loco_line)
-  line.draw();
-#endif
+
 #if defined(loco_rectangle)
   rectangle.draw();
 #endif
@@ -15,6 +13,9 @@
   // can be moved
   sprite.draw();
 #endif
+  #if defined(loco_line)
+  line.draw();
+  #endif
 #if defined(loco_letter)
   // loco_t::text gets drawn here as well as it uses letter
   letter.draw();

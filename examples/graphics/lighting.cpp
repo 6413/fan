@@ -58,13 +58,14 @@ int main() {
   p.viewport = &pile->viewport;
 
   loco_t::image_t image;
-  image.load(&pile->loco, "images/lighting.webp");
+  image.load(&pile->loco, "images/brick.webp");
   p.image = &image;
   p.position = fan::vec3(0, 0, 0);
   p.color.a = 1;
   pile->loco.sprite.push_back(&pile->cid[0], p);
-  p.position.x += 0.8;
+  p.position.x += 0.2;
   p.position.z += 2;
+  p.color.a = .5;
   pile->loco.sprite.push_back(&pile->cid[1], p);
 
   loco_t::light_t::properties_t lp;
