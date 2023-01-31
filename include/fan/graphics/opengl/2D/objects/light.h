@@ -1,15 +1,7 @@
 struct light_t {
 
   struct vi_t {
-    fan::vec3 position = 0;
-  private:
-    f32_t pad[1];
-  public:
-    fan::vec2 size = 0;
-    fan::vec2 rotation_point = 0;
-    fan::color color = fan::colors::white;
-    fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
-    f32_t angle = 0;
+    loco_light_vi_t
   };
 
   struct bm_properties_t {
@@ -24,20 +16,14 @@ struct light_t {
   struct cid_t;
 
   struct ri_t : bm_properties_t {
-    cid_t* cid;
+    loco_light_ri_t
   };
 
   #define make_key_value(type, name) \
     type& name = *key.get_value<decltype(key)::get_index_with_type<type>()>();
 
   struct properties_t : vi_t, ri_t {
-    
-    loco_t::matrices_t* matrices = 0;
-    fan::graphics::viewport_t* viewport = 0;
-
-    properties_t() = default;
-    properties_t(const vi_t& i) : vi_t(i) {}
-    properties_t(const ri_t& p) : ri_t(p) {}
+    loco_light_properties_t
   };
 
   #undef make_key_value

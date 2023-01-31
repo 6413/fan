@@ -60,6 +60,10 @@
   make_shape_id_define(vfi);
 #endif
 
+#if defined(loco_light)
+  make_shape_id_define(light);
+#endif
+
 #undef loco_access
 
 #undef loco_rectangle_vi_t

@@ -27,6 +27,7 @@
 #define loco_letter
 #define loco_button
 #define loco_text_box
+#define loco_light
 #include _FAN_PATH(graphics/loco.h)
 
 constexpr uint32_t count = 5000;
@@ -150,6 +151,18 @@ int main() {
         fan::print("click rectangle");
         return 0;
       }
+    )
+  );
+
+  loco_t::light_id_t light(
+    fan_init_struct(
+      loco_t::light_id_t::properties_t,
+      .position = fan::vec2(0, 0),
+      .size = 0.1,
+      .color = fan::colors::green,
+      // compress this
+      .matrices = &pile->matrices,
+      .viewport = &pile->viewport
     )
   );
 
