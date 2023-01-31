@@ -82,7 +82,7 @@ struct button_t {
         mmd.cid = cid_;
 
         auto theme = get_theme(cid_);
-        loco_t::theme_t::mouse_move_data_t td = *(loco_t::theme_t::mouse_move_data_t*)&mmd;
+        loco_t::theme_t::mouse_move_data_t td = (loco_t::theme_t::mouse_move_data_t)mmd;
         td.theme = theme;
         theme->mouse_move_cb(td);
 
@@ -114,7 +114,7 @@ struct button_t {
         mid.cid = cid_;
 
         auto theme = get_theme(cid_);
-        loco_t::theme_t::mouse_button_data_t td = *(loco_t::theme_t::mouse_button_data_t*)&mid;
+        loco_t::theme_t::mouse_button_data_t td = (loco_t::theme_t::mouse_button_data_t)mid;
         td.theme = theme;
         theme->mouse_button_cb(td);
 
@@ -127,7 +127,7 @@ struct button_t {
         loco_t::keyboard_data_t kd_ = kd;
         kd_.cid = cid_;
         auto theme = get_theme(cid_);
-        loco_t::theme_t::keyboard_data_t td = *(loco_t::theme_t::keyboard_data_t*)&kd_;
+        loco_t::theme_t::keyboard_data_t td = (loco_t::theme_t::keyboard_data_t)kd_;
         td.theme = theme;
         theme->keyboard_cb(td);
         cb(kd_);
