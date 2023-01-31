@@ -1,4 +1,7 @@
 
+#if defined(loco_light)
+light.draw();
+#endif
 #if defined(loco_rectangle)
   rectangle.draw();
 #endif
@@ -33,9 +36,6 @@
   post_process.draw();
 #endif
 
-#if defined(loco_light)
-  light.draw();
-#endif
 
 for (const auto& it : m_draw_queue) {
   for (const auto& f : it.f) {

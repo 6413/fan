@@ -1137,8 +1137,15 @@ public:
     #if defined(loco_opengl)
     #if defined(loco_framebuffer)
     m_framebuffer.bind(get_context());
-    float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-    get_context()->opengl.glClearBufferfv(fan::opengl::GL_COLOR, 2, clearColor);
+    //float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+    //auto buffers = fan::opengl::GL_COLOR_ATTACHMENT0 + 2;
+    //get_context()->opengl.glClearBufferfv(fan::opengl::GL_COLOR, 0, clearColor);
+    //get_context()->opengl.glClearBufferfv(fan::opengl::GL_COLOR, 1, clearColor);
+    //get_context()->opengl.glClearBufferfv(fan::opengl::GL_COLOR, 2, clearColor);
+    get_context()->opengl.glDrawBuffer(fan::opengl::GL_COLOR_ATTACHMENT2);
+    get_context()->opengl.glClearColor(0, 0, 0, 1);
+    get_context()->opengl.glClear(fan::opengl::GL_COLOR_BUFFER_BIT);
+    get_context()->opengl.glDrawBuffer(fan::opengl::GL_COLOR_ATTACHMENT0);
     #endif
     get_context()->opengl.call(get_context()->opengl.glClearColor, 0, 0, 0, 1);
     get_context()->opengl.call(get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
@@ -1168,7 +1175,7 @@ public:
       m_framebuffer.unbind(get_context());
 
       get_context()->opengl.call(get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
-
+      //float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
       fan::vec2 window_size = get_window()->get_size();
       fan::opengl::viewport_t::set_viewport(get_context(), 0, window_size, window_size);
 
