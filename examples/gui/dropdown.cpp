@@ -60,7 +60,7 @@ int main() {
   loco_t::dropdown_t::open_properties_t op;
   op.matrices = &pile->matrices;
   op.viewport = &pile->viewport;
-  fan_2d::graphics::gui::theme_t theme = fan_2d::graphics::gui::themes::gray();
+  loco_t::theme_t theme = fan_2d::graphics::gui::themes::gray();
   theme.open(pile->loco.get_context());
   op.theme = &theme;
   op.gui_size = 0.05;

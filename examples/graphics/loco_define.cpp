@@ -110,8 +110,8 @@ int main() {
     )
   );
 
-  fan_2d::graphics::gui::theme_t t;
-  fan_2d::graphics::gui::theme_t theme = fan_2d::graphics::gui::themes::gray(0.5);
+  loco_t::theme_t t;
+  loco_t::theme_t theme = fan_2d::graphics::gui::themes::gray(0.5);
   theme.open(pile->loco.get_context());
   loco_t::button_id_t button(
     fan_init_struct(

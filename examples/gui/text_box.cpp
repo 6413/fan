@@ -83,7 +83,7 @@ int main() {
      }*/
     return 0;
   };
-  fan_2d::graphics::gui::theme_t gray_theme = fan_2d::graphics::gui::themes::deep_red();
+  loco_t::theme_t gray_theme = fan_2d::graphics::gui::themes::deep_red();
   gray_theme.open(pile.loco.get_context());
   tp.theme = &gray_theme;
   constexpr auto count = 10;

@@ -28,6 +28,46 @@ struct cursor_properties {
 
 struct theme_t {
 
+  struct mouse_move_data_t : loco_t::mouse_move_data_t {
+    mouse_move_data_t(const loco_t::mouse_move_data_t& mm) : loco_t::mouse_move_data_t(mm) {
+
+    }
+
+    loco_t::theme_t* theme;
+  };
+  struct mouse_button_data_t : loco_t::mouse_button_data_t {
+    mouse_button_data_t(const loco_t::mouse_button_data_t& mm) : loco_t::mouse_button_data_t(mm) {
+
+    }
+
+    loco_t::theme_t* theme;
+  };
+  struct keyboard_data_t : loco_t::keyboard_data_t {
+    keyboard_data_t(const loco_t::keyboard_data_t& mm) : loco_t::keyboard_data_t(mm) {
+
+    }
+
+    loco_t::theme_t* theme;
+  };
+
+  struct text_data_t : loco_t::text_data_t {
+    text_data_t(const loco_t::text_data_t& mm) : loco_t::text_data_t(mm) {
+
+    }
+
+    loco_t::theme_t* theme;
+  };
+
+  using mouse_move_cb_t = fan::function_t<int(const mouse_move_data_t&)>;
+  using mouse_button_cb_t = fan::function_t<int(const mouse_button_data_t&)>;
+  using keyboard_cb_t = fan::function_t<int(const keyboard_data_t&)>;
+  using text_cb_t = fan::function_t<int(const text_data_t&)>;
+
+  mouse_button_cb_t mouse_button_cb = [](const mouse_button_data_t&) -> int { return 0; };
+  mouse_move_cb_t mouse_move_cb = [](const mouse_move_data_t&) -> int { return 0; };
+  keyboard_cb_t keyboard_cb = [](const keyboard_data_t&) -> int { return 0; };
+  text_cb_t text_cb = [](const text_data_t&) -> int { return 0; };
+
 	#if defined(loco_opengl)
 		using context_t = fan::opengl::context_t;
 		#define ns fan::opengl
@@ -37,6 +77,10 @@ struct theme_t {
 	#endif
 
 	theme_t() = default;
+  theme_t(fan::graphics::context_t* context, const auto& theme) {
+    *this = theme;
+    open(context);
+  }
 	void open(auto* context){
 		theme_reference = context->theme_list.NewNode();
 		context->theme_list[theme_reference].theme_id = this;

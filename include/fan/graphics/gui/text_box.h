@@ -331,16 +331,16 @@ struct text_box_t {
     sb_close();
   }
 
-  fan_2d::graphics::gui::theme_t* get_theme(fan::graphics::theme_list_NodeReference_t nr) {
+  loco_t::theme_t* get_theme(fan::graphics::theme_list_NodeReference_t nr) {
     loco_t* loco = get_loco();
-    return loco->get_context()->theme_list[nr].theme_id;
+    return (loco_t::theme_t*)loco->get_context()->theme_list[nr].theme_id;
   }
-  fan_2d::graphics::gui::theme_t* get_theme(fan::graphics::cid_t* cid) {
+  loco_t::theme_t* get_theme(fan::graphics::cid_t* cid) {
     return get_theme(sb_get_ri(cid).theme);
   }
-  void set_theme(fan::graphics::cid_t* cid, fan_2d::graphics::gui::theme_t* theme, f32_t intensity) {
+  void set_theme(fan::graphics::cid_t* cid, loco_t::theme_t* theme, f32_t intensity) {
     loco_t* loco = get_loco();
-    fan_2d::graphics::gui::theme_t t = *theme;
+    loco_t::theme_t t = *theme;
     t = t * intensity;
     set(cid, &vi_t::color, t.button.color);
     set(cid, &vi_t::outline_color, t.button.outline_color);

@@ -131,7 +131,7 @@
 #define loco_button_ri_t \
   loco_t::button_t::cid_t* cid; \
   uint8_t selected = 0; \
-  fan_2d::graphics::gui::theme_t* theme = 0; \
+  loco_t::theme_t* theme = 0; \
   fan::graphics::cid_t text_id; \
   loco_t::vfi_t::shape_id_t vfi_id; \
   uint64_t udata;

@@ -80,6 +80,12 @@ struct button_t {
           }
         }
         mmd.cid = cid_;
+
+        auto theme = get_theme(cid_);
+        loco_t::theme_t::mouse_move_data_t td = *(loco_t::theme_t::mouse_move_data_t*)&mmd;
+        td.theme = theme;
+        theme->mouse_move_cb(td);
+
         cb(mmd);
         return 0;
       };
@@ -106,17 +112,40 @@ struct button_t {
 
         loco_t::mouse_button_data_t mid = ii_d;
         mid.cid = cid_;
+
+        auto theme = get_theme(cid_);
+        loco_t::theme_t::mouse_button_data_t td = *(loco_t::theme_t::mouse_button_data_t*)&mid;
+        td.theme = theme;
+        theme->mouse_button_cb(td);
+
         cb(mid);
 
         return 0;
       };
-      vfip.keyboard_cb = [cb = p.keyboard_cb, udata = p.udata, cid_ = cid](const loco_t::vfi_t::keyboard_data_t& kd) -> int {
+      vfip.keyboard_cb = [this, cb = p.keyboard_cb, udata = p.udata, cid_ = cid](const loco_t::vfi_t::keyboard_data_t& kd) -> int {
         loco_t* loco = OFFSETLESS(kd.vfi, loco_t, vfi_var_name);
         loco_t::keyboard_data_t kd_ = kd;
         kd_.cid = cid_;
+        auto theme = get_theme(cid_);
+        loco_t::theme_t::keyboard_data_t td = *(loco_t::theme_t::keyboard_data_t*)&kd_;
+        td.theme = theme;
+        theme->keyboard_cb(td);
         cb(kd_);
         return 0;
       };
+
+      // not defined in button
+      //vfip.text_cb = [this, cb = p.text_cb, udata = p.udata, cid_ = cid](const loco_t::vfi_t::text_data_t& kd) -> int {
+      //  loco_t* loco = OFFSETLESS(kd.vfi, loco_t, vfi_var_name);
+      //  loco_t::text_data_t kd_ = kd;
+      //  kd_.cid = cid_;
+      //  auto theme = get_theme(cid_);
+      //  loco_t::theme_t::text_data_t td = *(loco_t::theme_t::text_data_t*)&kd_;
+      //  td.theme = theme;
+      //  theme->text_cb(td);
+      //  cb(kd_);
+      //  return 0;
+      //};
     }
 
     loco->vfi.push_back(&sb_get_ri(cid).vfi_id, vfip);
@@ -156,16 +185,16 @@ struct button_t {
     sb_close();
   }
 
-  fan_2d::graphics::gui::theme_t* get_theme(fan::graphics::theme_list_NodeReference_t nr) {
+  loco_t::theme_t* get_theme(fan::graphics::theme_list_NodeReference_t nr) {
     loco_t* loco = get_loco();
-    return loco->get_context()->theme_list[nr].theme_id;
+    return (loco_t::theme_t*)loco->get_context()->theme_list[nr].theme_id;
   }
-  fan_2d::graphics::gui::theme_t* get_theme(fan::graphics::cid_t* cid) {
+  loco_t::theme_t* get_theme(fan::graphics::cid_t* cid) {
     return get_theme(get_ri(cid).theme);
   }
-  void set_theme(fan::graphics::cid_t* cid, fan_2d::graphics::gui::theme_t* theme, f32_t intensity) {
+  void set_theme(fan::graphics::cid_t* cid, loco_t::theme_t* theme, f32_t intensity) {
     loco_t* loco = get_loco();
-    fan_2d::graphics::gui::theme_t t = *theme;
+    loco_t::theme_t t = *theme;
     t = t * intensity;
     
     set(cid, &vi_t::color, t.button.color);

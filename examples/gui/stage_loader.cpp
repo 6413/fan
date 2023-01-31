@@ -61,7 +61,7 @@ struct pile_t {
     stage_loader.close(&loco);
   }
 
-  fan_2d::graphics::gui::theme_t theme;
+  loco_t::theme_t theme;
   loco_t::matrices_t matrices;
   fan::graphics::viewport_t viewport;
   fan::graphics::viewport_t viewport2;

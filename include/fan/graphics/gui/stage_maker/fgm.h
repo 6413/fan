@@ -765,7 +765,7 @@ int hitbox{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
 	loco_t::matrices_t matrices[4];
 	fan::graphics::viewport_t viewport[4];
 
-	fan_2d::graphics::gui::theme_t theme;
+	loco_t::theme_t theme;
 
 	uint32_t action_flag;
 

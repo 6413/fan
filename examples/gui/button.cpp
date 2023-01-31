@@ -26,8 +26,8 @@ struct pile_t {
     fan::vec2 ratio = window_size / window_size.max();
     loco.open_matrices(
       &matrices,
-      fan::vec2(0, 800) * ratio.x,
-      fan::vec2(0, 800) * ratio.y
+      fan::vec2(-1, 1),
+      fan::vec2(-1, 1)
     );
     loco.get_window()->add_resize_callback([&](const fan::window_t::resize_cb_data_t& d) {
       fan::vec2 window_size = d.window->get_size();
@@ -39,16 +39,9 @@ struct pile_t {
         fan::vec2(-1, 1) * ratio.x,
         fan::vec2(-1, 1) * ratio.y
       );
-      viewport.set(loco.get_context(), 0, loco.get_window()->get_size(), loco.get_window()->get_size());
-     });
 
-    fan::vec2 position = 0;
-    fan::vec2 size = fan::vec2(400, 400);
-    //position.y -= 200;
-    //position.y += size.y / 2;
-    //size.y /= 2;
-    viewport.open(loco.get_context());
-    viewport.set(loco.get_context(), position, fan::vec2(800, 800), loco.get_window()->get_size());
+     });
+    loco.open_viewport(&viewport, 0, loco.get_window()->get_size());
   }
 
   loco_t loco;
@@ -58,6 +51,8 @@ struct pile_t {
 
 int main() {
 
+  fan::sys::set_utf8_cout();
+
   pile_t pile;
   pile.open();
 
@@ -66,11 +61,11 @@ int main() {
 
   tp.viewport = &pile.viewport;
  // tp.position = 400;
-  tp.position = fan::vec3(400, 400, 0);
+  tp.position = fan::vec3(0, 0, 0);
   //tp.position.y = 0;
  // tp.position.z = 50;
-  tp.font_size = 64;
-  tp.size = fan::vec2(200, 75);
+  tp.font_size = 0.1;
+  tp.size = fan::vec2(0.3, 0.1);
   tp.text = "$€ fan";
   //tp.font_size = 32;
   tp.mouse_move_cb = [] (const loco_t::mouse_move_data_t& mm_d) -> int {
@@ -87,16 +82,22 @@ int main() {
     return 0;
   };
 
-  fan_2d::graphics::gui::theme_t theme(get_context, fan_2d::graphics::gui::themes::gray(0.5));
+  loco_t::theme_t theme(pile.loco.get_context(), loco_t::themes::gray(0.5));
+  theme.mouse_move_cb = [&](const auto& d) -> int {
+    fan::print(pile.loco.button.get_text(d.cid));
+    return 0;
+  };
   tp.theme = &theme;
   constexpr auto count = 10;
   fan::graphics::cid_t cids[count];
   pile.loco.button.push_back(&cids[0], tp);
-  tp.position.x += 40;
+  tp.position.x += 0.3;
   tp.position.z += 2;
-  pile.loco.button.push_back(&cids[0], tp);
+  tp.text = "$€ fan $€";
+  pile.loco.button.push_back(&cids[1], tp);
   //pile.loco.get_context()->opengl.glPolygonMode(fan::opengl::GL_FRONT_AND_BACK, fan::opengl::GL_LINE);
   pile.loco.loop([&] {
+
   });
 
   return 0;

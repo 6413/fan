@@ -66,7 +66,7 @@ void update(auto* loco){
 				fan::vec2 size;
 				fan::string text;
 				f32_t font_size;
-				fan_2d::graphics::gui::theme_t theme;
+				loco_t::theme_t theme;
 			};
 		}shape;
 	};
@@ -399,7 +399,7 @@ void update(auto* loco){
 
 		current_stage = fan::uninitialized;
 
-		theme = fan_2d::graphics::gui::themes::gray();
+		theme = loco_t::themes::gray();
 		theme.open(loco->get_context());
 
 		erase_theme = fan_2d::graphics::gui::themes::deep_red();
@@ -467,8 +467,8 @@ void update(auto* loco){
 
 	loco_t::matrices_t matrices;
 	fan::graphics::viewport_t viewport;
-	fan_2d::graphics::gui::theme_t theme;
-	fan_2d::graphics::gui::theme_t erase_theme;
+	loco_t::theme_t theme;
+	loco_t::theme_t erase_theme;
 	fan::string stage_h_str;
 
 	loco_t::menu_maker_button_t::base_type_t::instance_NodeReference_t in_gui_editor_id;

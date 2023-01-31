@@ -8,23 +8,25 @@
 #define fan_debug 0
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
-struct a_t {
-  a_t(auto* b) {
 
-  }
+// how to define loco_t::a_t here
+
+void f(a_t*) {
+
+}
+
+struct b_t {
+  loco_t::a_t* a;
 };
 
-struct b_t : a_t{
+struct loco_t {
+  struct a_t {
 
-  b_t() : a_t(this) {
-    x = new int(5);
-    fan::print(*x);
-  }
-
-  int* x = 0;
+  }a;
 };
 
 int main() {
-  b_t b;
+  loco_t l;
+  f(&l.a);
   return 0;
 }
