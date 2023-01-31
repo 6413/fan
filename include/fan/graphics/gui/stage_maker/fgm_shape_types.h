@@ -227,7 +227,7 @@ struct button_t {
       instances[i]->id = p.id;
     }
 
-		instances[i]->theme = *pile->loco.get_context()->theme_list[p.theme].theme_id;
+		instances[i]->theme = *(loco_t::theme_t*)pile->loco.get_context()->theme_list[p.theme].theme_id;
 		p.mouse_button_cb = [this, instance = instances[i]](const loco_t::mouse_button_data_t& ii_d) -> int {
 			pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi_var_name), pile_t, loco_var_name);
       switch (ii_d.button) {
@@ -503,8 +503,8 @@ struct sprite_t {
       }
       auto& data = pile->stage_maker.fgm.texturepack.get_pixel_data(ti.pack_id);
       pile->loco.sprite.set_image(&instance->cid, &data.image);
-      pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::tc_position, ti.position / data.size);
-      pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::tc_size, ti.size / data.size);
+      pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::tc_position, ti.position / data.image.size);
+      pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::tc_size, ti.size / data.image.size);
       instance->texturepack_name = text;
       return 0;
     };

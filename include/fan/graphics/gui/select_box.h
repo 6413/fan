@@ -24,7 +24,7 @@ namespace fan_2d {
           fan::vec2 position;
           f32_t max_text_length;
           f32_t gui_size;
-          loco_t::theme_t theme = fan_2d::graphics::gui::themes::deep_blue();
+          loco_t::theme_t theme = loco_t::themes::deep_blue();
         };
 
         void open(fan::window_t* window, fan::opengl::context_t* context, const open_properties_t& p) {

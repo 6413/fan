@@ -4,7 +4,6 @@ struct stage_maker_shape_format {
     fan::vec3 position;
     fan::vec2 size;
     f32_t font_size;
-    loco_t::theme_t theme;
     uint32_t id;
   };
   struct shape_sprite_t {

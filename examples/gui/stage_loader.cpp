@@ -48,7 +48,7 @@ struct pile_t {
     });
     viewport.open(loco.get_context());
     viewport.set(loco.get_context(), 0, window_size, window_size);
-    theme = fan_2d::graphics::gui::themes::deep_red();
+    theme = loco_t::themes::deep_red();
     theme.open(loco.get_context());
 
     viewport2.open(loco.get_context());
