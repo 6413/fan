@@ -508,7 +508,7 @@ int hitbox{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
 		editor_ratio = fan::vec2(1, 1);
 		move_offset = 0;
 		action_flag = 0;
-		theme = fan_2d::graphics::gui::themes::deep_red();
+		theme = loco_t::themes::deep_red();
 		theme.open(loco.get_context());
 
 		texturepack.open_compiled(&loco, texturepack_name);
@@ -617,8 +617,8 @@ int hitbox{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
           else {
             auto& pd = texturepack.get_pixel_data(ti.pack_id);
             sp.image = &pd.image;
-            sp.tc_position = ti.position / pd.size;
-            sp.tc_size = ti.size / pd.size;
+            sp.tc_position = ti.position / pd.image.size;
+            sp.tc_size = ti.size / pd.image.size;
           }
           sp.matrices = &matrices[viewport_area::editor];
           sp.viewport = &viewport[viewport_area::editor];

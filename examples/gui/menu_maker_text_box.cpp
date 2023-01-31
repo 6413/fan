@@ -56,7 +56,7 @@ int main() {
   loco_t::menu_maker_text_box_t::open_properties_t op;
   op.matrices = &pile->matrices;
   op.viewport = &pile->viewport;
-  loco_t::theme_t theme = fan_2d::graphics::gui::themes::deep_red();
+  loco_t::theme_t theme = loco_t::themes::deep_red();
   theme.open(pile->loco.get_context());
   op.theme = &theme;
   op.gui_size = 0.05;

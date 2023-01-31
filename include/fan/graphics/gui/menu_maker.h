@@ -214,7 +214,7 @@ struct sb_menu_maker_type_name {
     instance.mouse_button_cb = p.mouse_button_cb;
     instance.keyboard_cb = p.keyboard_cb;
     if (p.theme == nullptr) {
-      instance.theme = *loco->get_context()->theme_list[global.theme].theme_id;
+      instance.theme = *(loco_t::theme_t*)loco->get_context()->theme_list[global.theme].theme_id;
     }
     else {
       instance.theme = *p.theme;

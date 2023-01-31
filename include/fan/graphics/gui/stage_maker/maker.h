@@ -402,7 +402,7 @@ void update(auto* loco){
 		theme = loco_t::themes::gray();
 		theme.open(loco->get_context());
 
-		erase_theme = fan_2d::graphics::gui::themes::deep_red();
+		erase_theme = loco_t::themes::deep_red();
 		erase_theme.open(loco->get_context());
 
 		fan::vec2 window_size = loco->get_window()->get_size();

@@ -21,7 +21,7 @@
 //          fan::utf16_string text;
 //          fan::vec2 text_position = 0;
 //          fan::vec2 background_padding = 0;
-//          loco_t::theme_t theme = fan_2d::graphics::gui::themes::deep_blue();
+//          loco_t::theme_t theme = loco_t::themes::deep_blue();
 //          bool checked = false;
 //        };
 //
