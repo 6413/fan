@@ -1,5 +1,3 @@
-#include <fmt/core.h>
-
 static std::size_t get_ending_bracket_offset(const fan::string& stage_name, const fan::string& str, std::size_t src) {
   std::size_t offset = src;
   std::size_t brackets_count = 0;
@@ -26,6 +24,60 @@ static std::size_t get_ending_bracket_offset(const fan::string& stage_name, cons
   } while (brackets_count != 0);
 
   return offset;
+}
+
+template <std::size_t N>
+void erase_cbs(pile_t* pile, const fan::string& file_name, const fan::string& stage_name, const fan::string& shape_name, auto* instance, const char* const(&cb_names)[N]) {
+  fan::string str;
+  fan::io::file::read(file_name, &str);
+
+  for (uint32_t j = 0; j < std::size(cb_names); ++j) {
+    std::size_t src = str.find(
+      fan::format("int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb)",
+        instance->id, cb_names[j], shape_name)
+    );
+
+    if (src == fan::string::npos) {
+      fan::throw_error("failed to find function:" + fan::format("int {3}{0}_{1}_cb(const loco_t::{1}_data_t& mb - from:{2})",
+        instance->id, cb_names[j], stage_name, shape_name));
+    }
+
+    std::size_t dst = get_ending_bracket_offset(file_name, str, src);
+
+    // - to remove endlines
+    str.erase(src - 2, dst - src + 2);
+  }
+
+  fan::io::file::write(file_name, str, std::ios_base::binary);
+
+  for (uint32_t j = 0; j < std::size(cb_names); ++j) {
+
+    auto find_str = fan::format("{0}_{1}_cb_table_t {0}_{1}_cb_table[", shape_name, cb_names[j]);
+
+    auto src = pile->stage_maker.stage_h_str.find(find_str);
+    if (src == fan::string::npos) {
+      fan::throw_error("corrupted stage.h");
+    }
+    src += find_str.size();
+    auto dst = pile->stage_maker.stage_h_str.find("]", src);
+    if (dst == fan::string::npos) {
+      fan::throw_error("corrupted stage.h");
+    }
+    fan::string tt = pile->stage_maker.stage_h_str.substr(src, dst - src);
+    int val = std::stoi(tt);
+
+    // prevent 0 sized array
+    if (val != 1) {
+      val -= 1;
+    }
+    pile->stage_maker.stage_h_str.replace(src, dst - src, std::to_string(val));
+
+    find_str = fan::format("&{0}_t::{1}{2}_{3}_cb,", stage_name, shape_name, instance->id, cb_names[j]);
+
+    src = pile->stage_maker.stage_h_str.find(find_str);
+    pile->stage_maker.stage_h_str.erase(src, find_str.size());
+  }
+  pile->stage_maker.write_stage();
 }
 
 struct line_t {
@@ -93,6 +145,8 @@ void move_shape(auto* shape, auto* instance, const fan::vec2& offset) {
 }
 
 struct button_t {
+
+  static constexpr const char* cb_names[] = { "mouse_button","mouse_move", "keyboard", "text" };
 
   struct properties_t : loco_t::button_t::properties_t {
     uint32_t id = -1;
@@ -332,12 +386,12 @@ struct button_t {
 		auto ri = pile->loco.button.get_ri(builder_cid);
 		pile->loco.vfi.set_focus_mouse(ri.vfi_id);
 	}
-	void erase(instance_t* it) {
+	void erase(instance_t* instance) {
 		pile_t* pile = OFFSETLESS(get_loco(), pile_t, loco_var_name);
 
     close_properties();
 
-		pile->loco.button.erase(&it->cid);
+		pile->loco.button.erase(&instance->cid);
 
     auto stage_name = pile->stage_maker.get_selected_name(
       pile,
@@ -346,16 +400,10 @@ struct button_t {
     );
     auto file_name = pile->stage_maker.get_file_fullpath(stage_name);
 
-    fan::string str;
-    fan::io::file::read(file_name, &str);
-    auto find = fan::format("int button{}_click_cb", it->id);
-    std::size_t begin = str.find(find) - 2;
-    std::size_t end = str.find("}", begin) + 1;
-    str.erase(begin, end - begin);
-    fan::io::file::write(file_name, str, std::ios_base::binary);
+    pile->stage_maker.fgm.erase_cbs(pile, file_name, stage_name, "button", instance, cb_names);
 
     for (uint32_t i = 0; i < instances.size(); i++) {
-      if (&instances[i]->cid == &it->cid) {
+      if (&instances[i]->cid == &instance->cid) {
         instances.erase(instances.begin() + i);
         break;
       }
@@ -1022,13 +1070,13 @@ struct hitbox_t {
     fan::graphics::cid_t cid; \
     loco_t::vfi_t::shape_id_t vfi_id; \
     uint16_t shape; \
-    uint32_t hitbox_id; \
+    uint32_t id; \
     loco_t::vfi_t::shape_type_t shape_type;
   #include "fgm_shape_builder.h"
 
   bool does_id_exist(uint32_t id) {
     for (const auto& it : instances) {
-      if (it->hitbox_id == id) {
+      if (it->id == id) {
         return true;
       }
     }
@@ -1152,10 +1200,10 @@ struct hitbox_t {
     if (p.id == (uint32_t)-1) {
       static uint32_t id = 0;
       while (does_id_exist(id)) { ++id; }
-      instances[i]->hitbox_id = id;
+      instances[i]->id = id;
     }
     else {
-      instances[i]->hitbox_id = p.id;
+      instances[i]->id = p.id;
     }
 
     loco_t::vfi_t::properties_t vfip;
@@ -1283,27 +1331,7 @@ struct hitbox_t {
     );
     auto file_name = pile.stage_maker.get_file_fullpath(stage_name);
 
-    fan::string str;
-    fan::io::file::read(file_name, &str);
-
-    for (uint32_t j = 0; j < std::size(hitbox_t::cb_names); ++j) {
-      std::size_t src = str.find(
-        fan::format("int hitbox{0}_{1}_cb(const loco_t::{1}_data_t& mb)",
-          instance->hitbox_id, hitbox_t::cb_names[j])
-      );
-
-      if (src == fan::string::npos) {
-        fan::throw_error("failed to find function:" + fan::format("int hitbox{0}_{1}_cb(const loco_t::{1}_data_t& mb - from:{2})",
-          instance->hitbox_id, hitbox_t::cb_names[j], stage_name));
-      }
-
-      std::size_t dst = get_ending_bracket_offset(file_name, str, src);
-
-      // - to remove endlines
-      str.erase(src - 2, dst - src + 2);
-    }
-
-    fan::io::file::write(file_name, str, std::ios_base::binary);
+    pile.stage_maker.fgm.erase_cbs(&pile, file_name, stage_name, "hitbox", instance, cb_names);
 
     pile.loco.sprite.erase(&instance->cid);
 
