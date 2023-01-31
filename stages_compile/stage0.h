@@ -14,22 +14,130 @@ void update(auto* loco){
 	
 }
 
-int button0_click_cb(const loco_t::mouse_button_data_t& mb){
+int button1_mouse_button_cb(const loco_t::mouse_button_data_t& mb){
   return 0;
 }
 
-int hitbox0_mouse_button_cb(const loco_t::mouse_button_data_t& mb){
+int button1_mouse_move_cb(const loco_t::mouse_move_data_t& mb){
   return 0;
 }
 
-int hitbox0_mouse_move_cb(const loco_t::mouse_move_data_t& mb){
+int button1_keyboard_cb(const loco_t::keyboard_data_t& mb){
   return 0;
 }
 
-int hitbox0_keyboard_cb(const loco_t::keyboard_data_t& mb){
+int button1_text_cb(const loco_t::text_data_t& mb){
   return 0;
 }
 
-int hitbox0_text_cb(const loco_t::text_data_t& mb){
+int button0_mouse_button_cb(const loco_t::mouse_button_data_t& mb){
+  return 0;
+}
+
+int button0_mouse_move_cb(const loco_t::mouse_move_data_t& mb){
+  return 0;
+}
+
+int button0_keyboard_cb(const loco_t::keyboard_data_t& mb){
+  return 0;
+}
+
+int button0_text_cb(const loco_t::text_data_t& mb){
+  return 0;
+}
+
+int button2_mouse_button_cb(const loco_t::mouse_button_data_t& mb){
+  return 0;
+}
+
+int button2_mouse_move_cb(const loco_t::mouse_move_data_t& mb){
+  return 0;
+}
+
+int button2_keyboard_cb(const loco_t::keyboard_data_t& mb){
+  return 0;
+}
+
+int button2_text_cb(const loco_t::text_data_t& mb){
+  return 0;
+}
+
+int button3_mouse_button_cb(const loco_t::mouse_button_data_t& mb){
+  return 0;
+}
+
+int button3_mouse_move_cb(const loco_t::mouse_move_data_t& mb){
+  return 0;
+}
+
+int button3_keyboard_cb(const loco_t::keyboard_data_t& mb){
+  return 0;
+}
+
+int button3_text_cb(const loco_t::text_data_t& mb){
+  return 0;
+}
+
+int button4_mouse_button_cb(const loco_t::mouse_button_data_t& mb){
+  return 0;
+}
+
+int button4_mouse_move_cb(const loco_t::mouse_move_data_t& mb){
+  return 0;
+}
+
+int button4_keyboard_cb(const loco_t::keyboard_data_t& mb){
+  return 0;
+}
+
+int button4_text_cb(const loco_t::text_data_t& mb){
+  return 0;
+}
+
+int button5_mouse_button_cb(const loco_t::mouse_button_data_t& mb){
+  return 0;
+}
+
+int button5_mouse_move_cb(const loco_t::mouse_move_data_t& mb){
+  return 0;
+}
+
+int button5_keyboard_cb(const loco_t::keyboard_data_t& mb){
+  return 0;
+}
+
+int button5_text_cb(const loco_t::text_data_t& mb){
+  return 0;
+}
+
+int button6_mouse_button_cb(const loco_t::mouse_button_data_t& mb){
+  return 0;
+}
+
+int button6_mouse_move_cb(const loco_t::mouse_move_data_t& mb){
+  return 0;
+}
+
+int button6_keyboard_cb(const loco_t::keyboard_data_t& mb){
+  return 0;
+}
+
+int button6_text_cb(const loco_t::text_data_t& mb){
+  return 0;
+}
+
+int button7_mouse_button_cb(const loco_t::mouse_button_data_t& mb){
+  return 0;
+}
+
+int button7_mouse_move_cb(const loco_t::mouse_move_data_t& mb){
+  return 0;
+}
+
+int button7_keyboard_cb(const loco_t::keyboard_data_t& mb){
+  return 0;
+}
+
+int button7_text_cb(const loco_t::text_data_t& mb){
   return 0;
 }

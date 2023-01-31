@@ -94,6 +94,77 @@ struct fgm_t {
 		return corners;
 	}
 
+  static void write_stage_functions(
+    pile_t* pile,
+    auto* shape,
+    const fan::string& file_name, 
+    const fan::string& stage_name,
+    const fan::string& shape_name,
+    const auto& cb_names
+  ) {
+    fan::string str;
+
+    auto src_str = fan::format("//{0}_src\n",
+      shape_name      
+    );
+    auto src = pile->stage_maker.stage_h_str.find(
+      src_str
+    );
+    if (src == fan::string::npos) {
+      fan::throw_error("corrupted stage.h");
+    }
+    src += src_str.size();
+    auto dst = pile->stage_maker.stage_h_str.find(
+      fan::format("\n    //{0}_dst",
+        shape_name
+      )
+    );
+
+    if (dst == fan::string::npos) {
+      fan::throw_error("corrupted stage.h");
+    }
+
+    pile->stage_maker.stage_h_str.erase(src, dst - src);
+
+    fan::io::file::read(file_name, &str);
+
+    fan::string format;
+
+    for (uint32_t k = 0; k < std::size(cb_names); ++k) {
+      format += fan::format(R"(    {3}_{0}_cb_table_t {3}_{1}_cb_table[{2}] = {{)", cb_names[k], cb_names[k], shape->instances.size(), shape_name);
+
+      for (std::size_t j = 0; j < shape->instances.size(); ++j) {
+        format += fan::format("&{0}_t::{3}{1}_{2}_cb,", stage_name.c_str(), shape->instances[j]->id, cb_names[k], shape_name);
+      }
+
+      format += "};";
+      if (k + 1 != std::size(cb_names)) {
+        format += "\n";
+      }
+    }
+
+    pile->stage_maker.stage_h_str.insert(src, format);
+
+    for (std::size_t j = 0; j < shape->instances.size(); ++j) {
+      for (uint32_t k = 0; k < std::size(cb_names); ++k) {
+        auto cbs_text = fan::format(R"(
+int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
+  return 0;
+}}
+)", fan::to_string(shape->instances[j]->id), cb_names[k], shape_name);
+        if (str.find(cbs_text) != fan::string::npos) {
+          continue;
+        }
+        str += cbs_text;
+      }
+    }
+
+    fan::io::file::write(file_name, str, std::ios_base::binary);
+
+    pile->stage_maker.write_stage();
+
+  }
+
 	void open_editor_properties() {
 	/*	button_menu.clear();
 
@@ -219,75 +290,8 @@ struct fgm_t {
 				      pile->loco.menu_maker_button.get_selected_id(pile->stage_maker.instances[pile_t::stage_maker_t::stage_t::stage_instance].menu_id)
 			      );
 			      auto file_name = pile->stage_maker.get_file_fullpath(stage_name);
-            fan::string str_stage_name = stage_name;
-			
-			      fan::string str;
-			      fan::io::file::read(file_name, &str);
 
-			      uint32_t button_id = it->id;
-
-			      if (str.find(fan::to_string(button_id) + "(") != fan::string::npos) {
-				      return 0;
-			      }
-			
-auto button_click_cb = fmt::format(R"(
-int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
-  return 0;
-}}
-)", fan::to_string(button_id).c_str());
-
-			      str += button_click_cb.c_str();
-			
-			      fan::io::file::write(file_name, str, std::ios_base::binary);
-
-            auto src_str = fan::format(
-              "typedef int({0}_t::* button_mouse_button_cb_table_t)(const loco_t::mouse_button_data_t& v);",
-              str_stage_name.c_str()
-            );
-
-            auto src = pile->stage_maker.stage_h_str.find(
-              src_str
-            );
-            if (src == fan::string::npos) {
-              auto _find_str = fan::string("struct stage {");
-              src = pile->stage_maker.stage_h_str.find(_find_str);
-              if (src == fan::string::npos) {
-                fan::throw_error("stage corrupted");
-              }
-              src += _find_str.size() + 1;
-              goto g_fill;
-            }
-            src += src_str.size();
-            auto dst = pile->stage_maker.stage_h_str.find(
-              fan::format("    typedef int({}_t::* hitbox_mouse_button_cb_table_t)(const loco_t::mouse_button_data_t& d);",
-                str_stage_name.c_str()
-              )
-            );
-
-            if (dst == fan::string::npos) {
-              fan::throw_error("corrupted fgm");
-            }
-
-            pile->stage_maker.stage_h_str.erase(src, dst - src);
-
-          g_fill:
-
-            auto format = fan::format(R"(
-
-    button_mouse_button_cb_table_t button_mouse_button_cb_table[{1}] = {{)",
-              str_stage_name.c_str(),
-              button.instances.size()
-            );
-
-            for (std::size_t j = 0; j < pile->stage_maker.fgm.button.instances.size(); ++j) {
-              format += fan::format("&{}_t::button{}_click_cb,", str_stage_name.c_str(), j);
-            }
-
-            format += "};\n\n";
-
-            pile->stage_maker.stage_h_str.insert(src, format);
-
-            pile->stage_maker.write_stage(pile);
+            write_stage_functions(pile, &pile->stage_maker.fgm.button, file_name, stage_name, "button", button_t::cb_names);
 
             invalidate_right_click_menu();
 
@@ -383,68 +387,8 @@ int button{}_click_cb(const loco_t::mouse_button_data_t& mb){{
               pile->loco.menu_maker_button.get_selected_id(pile->stage_maker.instances[pile_t::stage_maker_t::stage_t::stage_instance].menu_id)
             );
             auto file_name = pile->stage_maker.get_file_fullpath(stage_name);
-            fan::string str_stage_name = stage_name;
 
-            auto src_str = fan::format("typedef int({}_t::* hitbox_text_cb_table_t)(const loco_t::text_data_t& d);",
-              str_stage_name.c_str()
-            );
-
-            auto src = pile->stage_maker.stage_h_str.find(
-              src_str
-            );
-            if (src == fan::string::npos) {
-              fan::throw_error("corrupted fgm");
-            }
-            src += src_str.size();
-            auto dst = pile->stage_maker.stage_h_str.find(
-              fan::format("    #include _PATH_QUOTE(stage_loader_path/stages_compile/{}.h)",
-                str_stage_name.c_str()
-              )
-            );
-
-            if (dst == fan::string::npos) {
-              fan::throw_error("corrupted fgm");
-            }
-
-            pile->stage_maker.stage_h_str.erase(src, dst - src);
-
-            fan::string str;
-            fan::io::file::read(file_name, &str);
-
-            fan::string format;
-            format += "\n\n";
-
-            for (uint32_t k = 0; k < std::size(hitbox_t::cb_names); ++k) {
-              format += fan::format(R"(    hitbox_{0}_cb_table_t hitbox_{1}_cb_table[{2}] = {{)", hitbox_t::cb_names[k], hitbox_t::cb_names[k], pile->stage_maker.fgm.hitbox.instances.size());
-
-              for (std::size_t j = 0; j < pile->stage_maker.fgm.hitbox.instances.size(); ++j) {
-                format += fan::format("&{}_t::hitbox{}_{}_cb,", str_stage_name.c_str(), pile->stage_maker.fgm.hitbox.instances[j]->hitbox_id, hitbox_t::cb_names[k]);
-              }
-
-              format += "};\n";
-            }
-
-            format += "\n";
-
-            pile->stage_maker.stage_h_str.insert(src, format);
-
-            for (std::size_t j = 0; j < pile->stage_maker.fgm.hitbox.instances.size(); ++j) {
-              for (uint32_t k = 0; k < std::size(hitbox_t::cb_names); ++k) {
-                auto cbs_text = fan::format(R"(
-int hitbox{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
-  return 0;
-}}
-)", fan::to_string(pile->stage_maker.fgm.hitbox.instances[j]->hitbox_id), hitbox_t::cb_names[k]);
-                if (str.find(cbs_text) != fan::string::npos) {
-                  continue;
-                }
-                str += cbs_text;
-              }
-            }
-
-            fan::io::file::write(file_name, str, std::ios_base::binary);
-
-            pile->stage_maker.write_stage(pile);
+            write_stage_functions(pile, &pile->stage_maker.fgm.hitbox, file_name, stage_name, "hitbox", hitbox_t::cb_names);
 
             invalidate_right_click_menu();
 
@@ -740,7 +684,7 @@ int hitbox{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
           data.size = loco->sprite.get(&it->cid, &loco_t::sprite_t::vi_t::size);
         }
       }
-      data.id = it->hitbox_id;
+      data.id = it->id;
       data.shape_type = it->shape_type;
       add_to_f(data);
     }

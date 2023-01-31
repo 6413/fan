@@ -159,13 +159,8 @@ void update(auto* loco){
 		}
 	}
 
-	auto write_stage(pile_t* pile) {
-		auto file_name = get_file_fullpath("stage");
-
-		fan::io::file::write(file_name,
-			stage_h_str,
-			std::ios_base::binary
-		);
+	auto write_stage() {
+    stage_h.write(&stage_h_str);
 	};
 
 	auto append_stage_to_file(pile_t* pile, const fan::string& stage_name) {
@@ -188,19 +183,29 @@ void update(auto* loco){
 
     static constexpr auto stage_name = "{0}";
 
-    typedef int({0}_t::* button_mouse_button_cb_table_t)(const loco_t::mouse_button_data_t& v);
+    typedef int({0}_t::* button_mouse_button_cb_table_t)(const loco_t::mouse_button_data_t& d);
+    typedef int({0}_t::* button_mouse_move_cb_table_t)(const loco_t::mouse_move_data_t& d);
+    typedef int({0}_t::* button_keyboard_cb_table_t)(const loco_t::keyboard_data_t& d);
+    typedef int({0}_t::* button_text_cb_table_t)(const loco_t::text_data_t& d);
 
+    //button_src
     button_mouse_button_cb_table_t button_mouse_button_cb_table[1] = {{ }};
-
+    button_mouse_move_cb_table_t button_mouse_move_cb_table[1] = {{ }};
+    button_keyboard_cb_table_t button_keyboard_cb_table[1] = {{ }};
+    button_text_cb_table_t button_text_cb_table[1] = {{ }};
+    //button_dst
+  
     typedef int({0}_t::* hitbox_mouse_button_cb_table_t)(const loco_t::mouse_button_data_t& d);
     typedef int({0}_t::* hitbox_mouse_move_cb_table_t)(const loco_t::mouse_move_data_t& d);
     typedef int({0}_t::* hitbox_keyboard_cb_table_t)(const loco_t::keyboard_data_t& d);
     typedef int({0}_t::* hitbox_text_cb_table_t)(const loco_t::text_data_t& d);
 
+    //hitbox_src
     hitbox_mouse_button_cb_table_t hitbox_mouse_button_cb_table[1] = {{ }};
     hitbox_mouse_move_cb_table_t hitbox_mouse_move_cb_table[1] = {{ }};
     hitbox_keyboard_cb_table_t hitbox_keyboard_cb_table[1] = {{ }};
     hitbox_text_cb_table_t hitbox_text_cb_table[1] = {{ }};
+    //hitbox_dst
 
     #include _PATH_QUOTE(stage_loader_path/{1})
   }};
@@ -246,7 +251,7 @@ void update(auto* loco){
 		fan::io::file::write(file_name, stage_instance_tempalte_str, std::ios_base::binary);
 
 		append_stage_to_file(pile, stage_name);
-		write_stage(pile);
+		write_stage();
 	};
 
 	void open_erase_button(pile_t* pile) {
@@ -385,12 +390,23 @@ void update(auto* loco){
 
 	void open(const char* texturepack_name) {
 		
-  if (!fan::io::file::exists(fan::string(stage_compile_folder_name) + "/stage.h")) {
+    fan::io::create_directory("stages_compile");
+    fan::io::create_directory("stages_runtime");
+
+
+    auto stage_path = fan::string(stage_compile_folder_name) + "/stage.h";
+    bool data_exists = fan::io::file::exists(stage_path);
+
+
+    stage_h.open(stage_path);
+
+  if (!data_exists) {
     stage_h_str = R"(struct stage {
 };)";
+    write_stage();
   }
   else {
-    fan::io::file::read(fan::string(stage_compile_folder_name) + "/stage.h", &stage_h_str);
+    stage_h.read(&stage_h_str);
   }
 		auto loco = get_loco();
 
@@ -422,9 +438,6 @@ void update(auto* loco){
 		open_stage(stage_t::stage_e::main);
 		open_erase_button(pile);
 		pile->loco.menu_maker_button.erase_button_soft(instances[stage_t::stage_options].menu_id, erase_button_id);
-
-    fan::io::create_directory("stages_compile");
-    fan::io::create_directory("stages_runtime");
 
     fan::io::iterate_directory(stage_compile_folder_name, [loco, this](const fan::string& path) {
 
@@ -473,6 +486,9 @@ void update(auto* loco){
 
 	loco_t::menu_maker_button_t::base_type_t::instance_NodeReference_t in_gui_editor_id;
 	loco_t::menu_maker_button_t::base_type_t::instance_NodeReference_t erase_button_id;
+
+  fan::io::file::fstream stage_h;
+  fan::io::file::fstream stage_x_h;
 
 	#include "fgm.h"
 };

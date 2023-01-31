@@ -11,6 +11,76 @@ namespace fan {
 	namespace io {
 		namespace file {
 
+      inline bool exists(const fan::string& name) {
+        std::ifstream file(name.c_str());
+        return file.good();
+      }
+
+      struct fstream {
+        fstream() = default;
+        fstream(const fan::string& path) {
+          file_name = path;
+          open(path);
+        }
+        fstream(const fan::string& path, fan::string* str) {
+          file_name = path;
+          open(path);
+          read(str);
+        }
+
+        bool open(const fan::string& path) {
+          file_name = path;
+          auto flags = std::ios::in | std::ios::out | std::ios::binary;
+
+          if (!exists(path)) {
+            flags |= std::ios::trunc;
+          }
+
+          file = std::fstream(path, flags);
+          return !file.good();
+        }
+
+        bool read(const fan::string& path, fan::string* str) {
+          file_name = path;
+          open(path);
+          return read(str);
+        }
+
+        bool read(fan::string* str) {
+          if (file.is_open()) {
+            file.seekg(0, std::ios::end);
+            str->resize(file.tellg());
+            file.seekg(0, std::ios::beg);
+            file.read(&(*str)[0], str->size());
+          }
+          else {
+            fan::print_warning("file is not opened:");
+            return 1;
+          }
+          return 0;
+        }
+
+        bool write(fan::string* str) {
+          auto flags = std::ios::in | std::ios::out | std::ios::binary | std::ios::trunc;
+
+          file = std::fstream(file_name, flags);
+          if (file.is_open()) {
+            file.write(&(*str)[0], str->size());
+            file.flush();
+          }
+          else {
+            fan::print_warning("file is not opened:");
+            return 1;
+          }
+          flags &= ~std::ios::trunc;
+          file = std::fstream(file_name, flags);
+          return 0;
+        }
+
+        std::fstream file;
+        fan::string file_name;
+      };
+
 			using file_t = FILE;
 			
 			struct properties_t {
@@ -64,21 +134,18 @@ namespace fan {
 				return f.tellg(); 
 			}
 
-			inline bool exists(const fan::string& name) {
-				std::ifstream file(name.c_str());
-				return file.good();
-			}
-
-			inline void write(
+			inline bool write(
 				fan::string path,
 				const fan::string& data,
 				decltype(std::ios_base::binary | std::ios_base::app) mode = std::ios_base::binary | std::ios_base::app
 			) {
 				std::ofstream ofile(path.c_str(), mode);
 				if (ofile.fail()) {
-					fan::throw_error("failed to write to:" + path);
+          fan::print_warning("failed to write to:" + path);
+          return 0;
 				}
 				ofile.write(data.c_str(), data.size());
+        return 1;
 			}
 
 			template <typename T>
