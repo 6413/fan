@@ -8,25 +8,89 @@
 #define fan_debug 0
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
+//#define loco_vulkan
 
-// how to define loco_t::a_t here
+#define loco_window
+#define loco_context
 
-void f(a_t*) {
+//#define loco_rectangle
+#define loco_sprite
+#include _FAN_PATH(graphics/loco.h)
 
-}
+struct pile_t {
 
-struct b_t {
-  loco_t::a_t* a;
-};
+  static constexpr fan::vec2 ortho_x = fan::vec2(-1, 1);
+  static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
 
-struct loco_t {
-  struct a_t {
+  pile_t() {
+    fan::vec2 window_size = loco.get_window()->get_size();
+    loco.open_matrices(
+      &matrices,
+      ortho_x,
+      ortho_y
+    );
+    loco.get_window()->add_resize_callback([&](const fan::window_t::resize_cb_data_t& d) {
+      fan::vec2 window_size = d.size;
+    //fan::vec2 ratio = window_size / window_size.max();
+    //std::swap(ratio.x, ratio.y);
+    //matrices.set_ortho(
+    //  ortho_x * ratio.x, 
+    //  ortho_y * ratio.y
+    //);
+    viewport.set(loco.get_context(), 0, d.size, d.size);
+      });
+    viewport.open(loco.get_context());
+    viewport.set(loco.get_context(), 0, window_size, window_size);
+  }
 
-  }a;
+  loco_t loco;
+  loco_t::matrices_t matrices;
+  fan::graphics::viewport_t viewport;
+  fan::graphics::cid_t cid[(unsigned long long)1e+7];
 };
 
 int main() {
-  loco_t l;
-  f(&l.a);
+
+  pile_t* pile = new pile_t;
+
+  loco_t::sprite_t::properties_t p;
+
+  p.size = fan::vec2(1);
+  p.matrices = &pile->matrices;
+  p.viewport = &pile->viewport;
+
+  loco_t::image_t::load_properties_t lp;
+  lp.filter = loco_t::image_t::filter::linear;
+
+  loco_t::image_t image;
+  image.load(&pile->loco, "images/left.webp", lp);
+  loco_t::image_t image2;
+  image2.load(&pile->loco, "images/right.webp", lp);
+  p.image = &image;
+
+  f32_t scale = (0.2 / image.size.x);
+
+  p.size = image.size * scale;
+  p.position = fan::vec2(0, 0);
+  pile->loco.sprite.push_back(&pile->cid[0], p);
+
+  pile->loco.set_vsync(false);
+
+  pile->loco.get_window()->add_keys_callback([&](const auto& d) {
+    if (d.state != fan::keyboard_state::press) {
+      return;
+    }
+    if (d.key == fan::key_d) {
+      pile->loco.sprite.set_image(&pile->cid[0], &image2);
+    }
+    if (d.key == fan::key_a) {
+      pile->loco.sprite.set_image(&pile->cid[0], &image);
+    }
+  });
+
+  pile->loco.loop([&] {
+    pile->loco.get_fps();
+  });
+
   return 0;
 }

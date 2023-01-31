@@ -248,7 +248,7 @@ public:
 		//auto loco = get_loco();
   //  //fan::throw_error("todo");
     auto* stage = (stage_common_t*)stage_list[id].stage;
-    stage->close(*loco);
+    //stage->close(*loco);
 		auto it = stage->cid_list.GetNodeFirst();
 		while (it != stage->cid_list.dst) {
 			auto& node = stage->cid_list[it];

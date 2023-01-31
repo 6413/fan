@@ -174,7 +174,7 @@ struct image_t {
       }
     }
 
-    pixels -= size.x * size.y * fan::color::size();
+    pixels -= (int)size.x * (int)size.y * fan::color::size();
 
     create_texture(loco);
     bind_texture(loco);
@@ -276,5 +276,5 @@ struct image_t {
 
   loco_t::image_list_NodeReference_t texture_reference;
 //public:
-  fan::vec2i size;
+  fan::vec2 size;
 };

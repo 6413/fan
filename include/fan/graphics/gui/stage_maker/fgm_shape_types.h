@@ -31,6 +31,15 @@ void erase_cbs(pile_t* pile, const fan::string& file_name, const fan::string& st
   fan::string str;
   fan::io::file::read(file_name, &str);
 
+  const fan::string advance_str = fan::format("struct {0}_t", stage_name);
+  auto advance_position = pile->stage_maker.stage_h_str.find(
+    advance_str
+  );
+
+  if (advance_position == fan::string::npos) {
+    fan::throw_error("corrupted stage.h:advance_position");
+  }
+
   for (uint32_t j = 0; j < std::size(cb_names); ++j) {
     std::size_t src = str.find(
       fan::format("int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb)",
@@ -54,7 +63,7 @@ void erase_cbs(pile_t* pile, const fan::string& file_name, const fan::string& st
 
     auto find_str = fan::format("{0}_{1}_cb_table_t {0}_{1}_cb_table[", shape_name, cb_names[j]);
 
-    auto src = pile->stage_maker.stage_h_str.find(find_str);
+    auto src = pile->stage_maker.stage_h_str.find(find_str, advance_position);
     if (src == fan::string::npos) {
       fan::throw_error("corrupted stage.h");
     }
@@ -74,7 +83,7 @@ void erase_cbs(pile_t* pile, const fan::string& file_name, const fan::string& st
 
     find_str = fan::format("&{0}_t::{1}{2}_{3}_cb,", stage_name, shape_name, instance->id, cb_names[j]);
 
-    src = pile->stage_maker.stage_h_str.find(find_str);
+    src = pile->stage_maker.stage_h_str.find(find_str, advance_position);
     pile->stage_maker.stage_h_str.erase(src, find_str.size());
   }
   pile->stage_maker.write_stage();
