@@ -58,7 +58,7 @@ int main() {
   p.viewport = &pile->viewport;
 
   loco_t::image_t image;
-  image.load(&pile->loco, "images/brick.webp");
+  image.load(&pile->loco, "images/lighting.webp");
   p.image = &image;
   p.position = fan::vec3(0, 0, 0);
   p.color.a = 1;
@@ -71,9 +71,9 @@ int main() {
   loco_t::light_t::properties_t lp;
   lp.matrices = &pile->matrices;
   lp.viewport = &pile->viewport;
-  lp.position = fan::vec3(-0.5, 0, 0);
+  lp.position = fan::vec3(-0.5, 0, 2);
   lp.size = fan::vec2(0.2);
-  lp.color = fan::colors::yellow - 0.5;
+  lp.color = fan::colors::yellow * 10;
   pile->loco.light.push_back(&pile->cid[0], lp);
   //for (uint32_t i = 0; i < 1000; i++) {
   //  lp.position = fan::random::vec2(-1, 1);

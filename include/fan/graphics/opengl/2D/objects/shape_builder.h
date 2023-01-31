@@ -311,6 +311,15 @@ void traverse_draw(auto nr, uint32_t draw_mode) {
         #if defined(loco_light)
         if constexpr (std::is_same<std::remove_pointer_t<decltype(this)>, loco_t::light_t>::value) {
           loco->get_context()->opengl.call(loco->get_context()->opengl.glBlendFunc, fan::opengl::GL_ONE, fan::opengl::GL_ONE);
+
+          unsigned int attachments[sizeof(loco->color_buffers) / sizeof(loco->color_buffers[0])];
+
+          for (uint8_t i = 0; i < std::size(loco->color_buffers); ++i) {
+            attachments[i] = fan::opengl::GL_COLOR_ATTACHMENT0 + i;
+          }
+
+          loco->get_context()->opengl.call(loco->get_context()->opengl.glDrawBuffers, std::size(attachments), attachments);
+
         }
         #endif
 
@@ -334,6 +343,13 @@ void traverse_draw(auto nr, uint32_t draw_mode) {
         #if defined(loco_light)
         if constexpr (std::is_same<std::remove_pointer_t<decltype(this)>, loco_t::light_t>::value) {
           loco->get_context()->opengl.call(loco->get_context()->opengl.glBlendFunc, fan::opengl::GL_SRC_ALPHA, fan::opengl::GL_ONE_MINUS_SRC_ALPHA);
+          unsigned int attachments[sizeof(loco->color_buffers) / sizeof(loco->color_buffers[0])];
+
+          for (uint8_t i = 0; i < std::size(loco->color_buffers); ++i) {
+            attachments[i] = fan::opengl::GL_COLOR_ATTACHMENT0 + i;
+          }
+
+          loco->get_context()->opengl.call(loco->get_context()->opengl.glDrawBuffers, 1, attachments);
         }
         #endif
         #ifndef sb_inline_draw
