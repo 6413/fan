@@ -46,19 +46,57 @@ vec2 tc[] = vec2[](
 	vec2(0, 0) // top left
 );
 
+mat4 rotate(mat4 m, float angle, vec3 v) {
+	float a = angle;
+	float c = cos(a);
+	float s = sin(a);
+	vec3 axis = vec3(normalize(v));
+	vec3 temp = vec3(axis * (1.0f - c));
+
+	mat4 rotation;
+	rotation[0][0] = c + temp[0] * axis[0];
+	rotation[0][1] = temp[0] * axis[1] + s * axis[2];
+	rotation[0][2] = temp[0] * axis[2] - s * axis[1];
+
+	rotation[1][0] = temp[1] * axis[0] - s * axis[2];
+	rotation[1][1] = c + temp[1] * axis[1];
+	rotation[1][2] = temp[1] * axis[2] + s * axis[0];
+
+	rotation[2][0] = temp[2] * axis[0] + s * axis[1];
+	rotation[2][1] = temp[2] * axis[1] - s * axis[0];
+	rotation[2][2] = c + temp[2] * axis[2];
+
+	mat4 matrix;
+	matrix[0][0] = (m[0][0] * rotation[0][0]) + (m[1][0] * rotation[0][1]) + (m[2][0] * rotation[0][2]);
+	matrix[1][0] = (m[0][1] * rotation[0][0]) + (m[1][1] * rotation[0][1]) + (m[2][1] * rotation[0][2]);
+	matrix[2][0] = (m[0][2] * rotation[0][0]) + (m[1][2] * rotation[0][1]) + (m[2][2] * rotation[0][2]);
+
+	matrix[0][1] = (m[0][0] * rotation[1][0]) + (m[1][0] * rotation[1][1]) + (m[2][0] * rotation[1][2]);
+	matrix[1][1] = (m[0][1] * rotation[1][0]) + (m[1][1] * rotation[1][1]) + (m[2][1] * rotation[1][2]);
+	matrix[2][1] = (m[0][2] * rotation[1][0]) + (m[1][2] * rotation[1][1]) + (m[2][2] * rotation[1][2]);
+
+	matrix[0][2] = (m[0][0] * rotation[2][0]) + (m[1][0] * rotation[2][1]) + (m[2][0] * rotation[2][2]);
+	matrix[1][2] = (m[0][1] * rotation[2][0]) + (m[1][1] * rotation[2][1]) + (m[2][1] * rotation[2][2]);
+	matrix[2][2] = (m[0][2] * rotation[2][0]) + (m[1][2] * rotation[2][1]) + (m[2][2] * rotation[2][2]);
+
+	matrix[3] = m[3];
+
+	return matrix;
+}
+
 void main() {
 	uint id = uint(gl_VertexID % 6);
 	//
-	vec2 rp = rectangle_vertices[id];
-	//
-	float c = cos(-get_instance().angle);
-	float s = sin(-get_instance().angle);
-	//
-	float x = rp.x * c - rp.y * s;
-	float y = rp.x * s + rp.y * c;
+  vec2 rp = rectangle_vertices[id];
+
+  vec3 rot = get_instance().rotation_vector;
+  float a = get_instance().angle;
+
+  mat4 m = mat4(1);
+  m = rotate(m, a, rot);
 
   mv = projection * view;
-  gl_Position = projection * view * vec4(vec2(x, y) * get_instance().size + get_instance().position.xy, get_instance().position.z, 1);
+  gl_Position = projection * view * m * vec4(rp * get_instance().size + get_instance().position.xy, get_instance().position.z, 1);
 	instance_color = get_instance().color;
 	texture_coordinate = tc[id] * get_instance().tc_size + get_instance().tc_position;
   flag = get_instance().flag;
