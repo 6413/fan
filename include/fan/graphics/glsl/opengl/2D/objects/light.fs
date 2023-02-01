@@ -19,10 +19,9 @@ void main() {
 
   o_attachment2 = instance_color;
 
-  vec3 lightDir = normalize(instance_position - frag_position);
   float distance = length(frag_position - instance_position);
   float radius = instance_size.x;
-  float smooth_edge = 0.1;
+  float smooth_edge = radius;
   float intensity = 1.0 - smoothstep(radius / 3 -smooth_edge, radius, distance);
   o_attachment2 *= intensity;
   //diffuse  *= intensity;

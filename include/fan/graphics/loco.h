@@ -982,6 +982,12 @@ public:
         *color_buffers[2].get_texture(this),
         fan::opengl::GL_COLOR_ATTACHMENT2
       );
+
+      fan::opengl::core::renderbuffer_t::properties_t rp;
+      m_framebuffer.bind(get_context());
+      rp.size = ii.size;
+      rp.internalformat = fan::opengl::GL_DEPTH_COMPONENT;
+      m_rbo.set_storage(get_context(), rp);
     });
 
     fan::opengl::core::renderbuffer_t::properties_t rp;

@@ -308,6 +308,7 @@ void traverse_draw(auto nr, uint32_t draw_mode) {
 
         m_shader.set_vec3(loco->get_context(), loco_t::lighting_t::ambient_name, loco->lighting.ambient);
 
+        #if defined(loco_framebuffer)
         #if defined(loco_light)
         if constexpr (std::is_same<std::remove_pointer_t<decltype(this)>, loco_t::light_t>::value) {
           loco->get_context()->opengl.call(loco->get_context()->opengl.glBlendFunc, fan::opengl::GL_ONE, fan::opengl::GL_ONE);
@@ -322,6 +323,9 @@ void traverse_draw(auto nr, uint32_t draw_mode) {
 
         }
         #endif
+        #endif
+
+        m_shader.set_vec2(loco->get_context(), "window_size", loco->get_window()->get_size());
 
         while (1) {
           auto node = blocks.GetNodeByReference(bnr);
@@ -340,6 +344,7 @@ void traverse_draw(auto nr, uint32_t draw_mode) {
           }
           bnr = node->NextNodeReference;
         }
+        #if defined(loco_framebuffer)
         #if defined(loco_light)
         if constexpr (std::is_same<std::remove_pointer_t<decltype(this)>, loco_t::light_t>::value) {
           loco->get_context()->opengl.call(loco->get_context()->opengl.glBlendFunc, fan::opengl::GL_SRC_ALPHA, fan::opengl::GL_ONE_MINUS_SRC_ALPHA);
@@ -351,6 +356,7 @@ void traverse_draw(auto nr, uint32_t draw_mode) {
 
           loco->get_context()->opengl.call(loco->get_context()->opengl.glDrawBuffers, 1, attachments);
         }
+        #endif
         #endif
         #ifndef sb_inline_draw
       });
