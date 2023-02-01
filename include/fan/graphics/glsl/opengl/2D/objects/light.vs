@@ -52,8 +52,8 @@ void main() {
 	float y = rp.x * s + rp.y * c;
 
   mat4 m = view;
-	m[3][0] = 0;
-	m[3][1] = view[3][1] - 10;
+	//m[3][0] = view;
+	//m[3][1] = view;
 
   texture_coordinate = aTexCoord;
 
