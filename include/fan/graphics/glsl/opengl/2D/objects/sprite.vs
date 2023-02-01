@@ -6,7 +6,6 @@ R"(
 out vec4 instance_color;
 out vec2 texture_coordinate;
 flat out uint flag;
-out vec2 offset;
 out mat4 mv;
 
 uniform mat4 view;
@@ -57,14 +56,8 @@ void main() {
 	//
 	float x = rp.x * c - rp.y * s;
 	float y = rp.x * s + rp.y * c;
-	//
-	//
-  mat4 model = mat4(1);
-  model[3].xy = get_instance().position.xy + vec2(x, y) * get_instance().size,
-  model[0][0] = get_instance().size.x;
-  model[1][1] = get_instance().size.y;
+
   mv = projection * view;
-  offset = view[3].xy;
   gl_Position = projection * view * vec4(vec2(x, y) * get_instance().size + get_instance().position.xy, get_instance().position.z, 1);
 	instance_color = get_instance().color;
 	texture_coordinate = tc[id] * get_instance().tc_size + get_instance().tc_position;

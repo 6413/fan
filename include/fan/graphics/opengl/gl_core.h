@@ -523,8 +523,7 @@ void fan::opengl::viewport_t::set(fan::opengl::context_t* context, const fan::ve
 
   context->opengl.call(
     context->opengl.glViewport, 
-    viewport_position.x,
-    window_size.y - viewport_size.y - viewport_position.y,
+    viewport_position.x, window_size.y - viewport_size.y - viewport_position.y,
     viewport_size.x, viewport_size.y
   );
 }

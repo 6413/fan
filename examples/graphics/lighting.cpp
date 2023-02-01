@@ -20,8 +20,8 @@
 
 struct pile_t {
 
-  static constexpr fan::vec2 ortho_x = fan::vec2(-2, 2);
-  static constexpr fan::vec2 ortho_y = fan::vec2(-2, 2);
+  static constexpr fan::vec2 ortho_x = fan::vec2(-1, 1);
+  static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
 
   pile_t() {
     fan::vec2 window_size = loco.get_window()->get_size();
@@ -31,11 +31,11 @@ struct pile_t {
       ortho_y
     );
     loco.get_window()->add_resize_callback([&](const fan::window_t::resize_cb_data_t& d) {
-      fan::vec2 window_size = d.size;
-    fan::vec2 ratio = window_size / window_size.max();
-    std::swap(ratio.x, ratio.y);
-    viewport.set(loco.get_context(), 0, d.size, d.size);
-      });
+        fan::vec2 window_size = d.size;
+      //fan::vec2 ratio = window_size / window_size.max();
+      //std::swap(ratio.x, ratio.y);
+      viewport.set(loco.get_context(), 0, d.size, d.size);
+    });
     viewport.open(loco.get_context());
     viewport.set(loco.get_context(), 0, window_size, window_size);
   }
@@ -67,7 +67,7 @@ int main() {
   p.color.a = 1;
   pile->loco.sprite.push_back(&pile->cid[0], p);
   p.position.x += 0.4;
-  p.size = 0.3;
+  p.size = 0.2;
   p.position.z += 2;
   p.color.a = 1;
   p.image = &image2;
@@ -77,7 +77,7 @@ int main() {
   lp.matrices = &pile->matrices;
   lp.viewport = &pile->viewport;
   lp.position = fan::vec3(0, 0, 2);
-  lp.size = 0.7;
+  lp.size = 0.4;
   lp.color = fan::colors::yellow * 10;
   pile->loco.light.push_back(&pile->cid[0], lp);
 
@@ -90,15 +90,13 @@ int main() {
 
   //offset = vec4(view * vec4(vec2(tc[id] * get_instance().tc_size + get_instance().tc_position), 0, 1)).xy * 2;
   pile->loco.set_vsync(false);
-  fan::time::clock c;
-  c.start(fan::time::nanoseconds(0.001e+9));
 
   fan::vec3 camerapos = 0;
 
 
   pile->loco.get_window()->add_keys_callback([&](const auto& d) {
     if (d.key == fan::key_left) {
-      camerapos.x -= 0.1;
+      camerapos.x -= 100;
       pile->matrices.set_camera_position(camerapos);
     }
   if (d.key == fan::key_right) {
@@ -119,7 +117,7 @@ int main() {
 
 
   pile->loco.light.set(&pile->cid[0], &loco_t::light_t::vi_t::position, pile->loco.get_mouse_position(pile->viewport));
-    });
+  });
 
   return 0;
 }
