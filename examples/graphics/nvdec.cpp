@@ -5,7 +5,7 @@
 #ifndef FAN_INCLUDE_PATH
 #define FAN_INCLUDE_PATH C:/libs/fan/include
 #endif
-#define fan_debug 0
+#define fan_debug 3
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
 //#define loco_vulkan
@@ -15,7 +15,7 @@
 #define loco_context
 
 //#define loco_rectangle
-#define loco_yuv420p
+#define loco_nv12
 #include _FAN_PATH(graphics/loco.h)
 
 #include <cuda.h>
@@ -24,6 +24,8 @@
 #define HGPUNV void*
 #include <cuda_runtime.h>
 #include <cuda_gl_interop.h>
+
+fan::vec2 res = fan::vec2(576, 360);
 
 struct pile_t {
 
@@ -71,7 +73,7 @@ CUdeviceptr d_cudaRGBA;
 cudaGraphicsResource_t cudaResource;
 
 pile_t* pile = new pile_t;
-loco_t::yuv420p_t::properties_t p;
+loco_t::nv12_t::properties_t p;
 
 static int parser_sequence_callback(void* user, CUVIDEOFORMAT* fmt) {
   printf("CUVIDEOFORMAT.Coded size: %d x %d\n", fmt->coded_width, fmt->coded_height);
@@ -111,6 +113,8 @@ static int parser_decode_picture_callback(void* user, CUVIDPICPARAMS* pic) {
 
 //fan::vec2 ress[] = {}
 
+bool init = false;
+
 static int parser_display_picture_callback(void* user, CUVIDPARSERDISPINFO* info) {
 
   //CUVIDPARSEDISPINFO stDispInfo;
@@ -136,17 +140,42 @@ static int parser_display_picture_callback(void* user, CUVIDPARSERDISPINFO* info
 
   printf("+ mapping: %u succeeded\n", info->picture_index);
 
-  fan::vec2 res = fan::vec2(1024, 540);
-  unsigned char* h_frame = new unsigned char[nPitch * res.y];
-  cudaMemcpy2D(h_frame, nPitch, (void*)cuDevPtr, nPitch, res.x, res.y, cudaMemcpyDeviceToHost);
   frameSize = res.x * res.y + res.x * res.y / 2;
-  fan::io::file::write("help", fan::string((uint8_t*)h_frame, (uint8_t*)h_frame + frameSize), std::ios_base::binary);
-  static int x = 1;
-  fan::print(x++);
-  rResult = cuvidUnmapVideoFrame(decoder, cuDevPtr);
-  if (x == 3) {
-    fan::print("a");
+  unsigned char* h_frame = new unsigned char[frameSize];
+  cudaMemcpy2D(h_frame, res.x, (void*)cuDevPtr, nPitch, res.x, res.y + res.y / 2, cudaMemcpyDeviceToHost);
+
+  unsigned char* h2_frame = new unsigned char[frameSize];
+  memcpy(h_frame, h2_frame, frameSize);
+
+  uint64_t offset = 0;
+  void* data[3];
+  data[0] = h2_frame;
+  data[1] = (uint8_t*)h2_frame + (offset += res.multiply());
+  data[2] = (uint8_t*)h2_frame + (offset += res.multiply() / 4);
+
+  if (!init) {
+
+    p.load_yuv(&pile->loco, data, fan::vec2(2, 2));
+
+    p.position = fan::vec2(0, 0);
+    //p
+    pile->loco.nv12.push_back(&pile->cid[0], p);
+    init = true;
   }
+  else {
+    pile->loco.nv12.reload_yuv(&pile->cid[0], data, res);
+  }
+
+  pile->loco.process_loop([] {});
+
+  //static int x = 1;
+  //fan::print(x++);
+  //if (x >= 200) {
+  //fan::io::file::write("help", fan::string((uint8_t*)h_frame, (uint8_t*)h_frame + frameSize), std::ios_base::binary);
+  //  fan::print("a");
+  //}
+  delete[] h_frame;
+  cuvidUnmapVideoFrame(decoder, cuDevPtr);
   return 1;
 }
 
@@ -209,8 +238,6 @@ int main() {
   p.viewport = &pile->viewport;
 
   pile->loco.set_vsync(false);
-
-  fan::vec2ui frame_size(576, 360);
 
   CUresult r = CUDA_SUCCESS;
   const char* err_str = nullptr;
@@ -283,8 +310,8 @@ int main() {
   create_info.ulIntraDecodeOnly = 0;                                 /* @todo this seems like an interesting flag. */
 
   /* Size is specific for the moonlight.264 file. */
-  create_info.ulWidth = frame_size.x;                                        /* Coded sequence width in pixels. */
-  create_info.ulHeight = frame_size.y;                                       /* Coded sequence height in pixels. */
+  create_info.ulWidth = res.x;                                        /* Coded sequence width in pixels. */
+  create_info.ulHeight = res.y;                                       /* Coded sequence height in pixels. */
   create_info.ulTargetWidth = create_info.ulWidth;                   /* Post-processed output width (should be aligned to 2). */
   create_info.ulTargetHeight = create_info.ulHeight;                 /* Post-processed output height (should be aligned to 2). */
 
@@ -339,13 +366,7 @@ int main() {
 
   }
 
-  //p.position = fan::vec2(0, 0);
-  //pile->loco.yuv420p.push_back(&pile->cid[0], p);
 
-
-  pile->loco.loop([&] {
-    pile->loco.get_fps();
-  });
 
   r = cuCtxDestroy(context);
   if (CUDA_SUCCESS != r) {

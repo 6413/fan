@@ -747,6 +747,13 @@ public:
     yuv420p_t sb_shape_var_name;
     #undef sb_shape_var_name
   #endif
+  #if defined(loco_nv12)
+    #define sb_shape_var_name nv12
+    #define sb_sprite_name nv12_t
+    #include _FAN_PATH(graphics/opengl/2D/objects/nv12.h)
+    nv12_t sb_shape_var_name;
+    #undef sb_shape_var_name
+  #endif
   #if defined(loco_sprite)
     #define sb_shape_var_name sprite
     #define sb_sprite_name sprite_t
@@ -1275,19 +1282,25 @@ public:
 
 #endif
 
+  bool process_loop(const auto& lambda) {
+    uint32_t window_event = get_window()->handle_events();
+    if (window_event & fan::window_t::events::close) {
+      get_window()->destroy_window();
+      return 1;
+    }
+
+    lambda();
+
+    ev_timer.process();
+    process_frame();
+    return 0;
+  }
+
   void loop(const auto& lambda) {
     while (1) {
-
-      uint32_t window_event = get_window()->handle_events();
-      if (window_event & fan::window_t::events::close) {
-        get_window()->destroy_window();
+      if (process_loop(lambda)) {
         break;
       }
-
-      lambda();
-
-      ev_timer.process();
-      process_frame();
     }
   }
 
