@@ -66,6 +66,9 @@ void check_error(auto result) {
 pile_t* pile = new pile_t;
 loco_t::nv12_t::properties_t p;
 
+fan::time::clock c;
+int count = 0;
+
 struct nv_decoder_t {
 
   CUcontext context = { 0 };
@@ -141,10 +144,9 @@ struct nv_decoder_t {
     CUVIDPARSERPARAMS parser_params;
     memset((void*)&parser_params, 0x00, sizeof(parser_params));
     parser_params.CodecType = cudaVideoCodec_H264;
-    parser_params.ulMaxNumDecodeSurfaces = 2;
-    parser_params.ulClockRate = 0;
+    parser_params.ulMaxNumDecodeSurfaces = 1;
     parser_params.ulErrorThreshold = 0;
-    parser_params.ulMaxDisplayDelay = 1;
+    parser_params.ulMaxDisplayDelay = 0;
     parser_params.pUserData = this;
     parser_params.pfnSequenceCallback = parser_sequence_callback;
     parser_params.pfnDecodePicture = parser_decode_picture_callback;
@@ -153,7 +155,7 @@ struct nv_decoder_t {
     r = cuvidCreateVideoParser(&parser, &parser_params);
 
     fan::string video_data;
-    fan::io::file::read("o.264", &video_data);
+    fan::io::file::read("o3.264", &video_data);
 
     CUVIDSOURCEDATAPACKET pkt;
     pkt.flags = 0;
@@ -162,6 +164,12 @@ struct nv_decoder_t {
     pkt.timestamp = 0;
 
     check_error(cuvidParseVideoData(parser, &pkt));
+  }
+
+  ~nv_decoder_t() {
+    if (h_frame) {
+      delete[] h_frame;
+    }
   }
 
   static unsigned long GetNumDecodeSurfaces(cudaVideoCodec eCodec, unsigned int nWidth, unsigned int nHeight) {
@@ -212,12 +220,12 @@ struct nv_decoder_t {
     create_info.OutputFormat = fmt->bit_depth_luma_minus8 ? cudaVideoSurfaceFormat_P016 : cudaVideoSurfaceFormat_NV12;
     create_info.bitDepthMinus8 = fmt->bit_depth_luma_minus8;
     create_info.DeinterlaceMode = cudaVideoDeinterlaceMode_Weave;
-    create_info.ulNumOutputSurfaces = 2;
+    create_info.ulNumOutputSurfaces = 1;
     // With PreferCUVID, JPEG is still decoded by CUDA while video is decoded by NVDEC hardware
     create_info.ulCreationFlags = cudaVideoCreate_PreferCUVID;
     int nDecodeSurface = GetNumDecodeSurfaces(fmt->codec, fmt->coded_width, fmt->coded_height);
     create_info.ulNumDecodeSurfaces = nDecodeSurface;
-    create_info.vidLock = decoder->lock;
+    //create_info.vidLock = decoder->lock;
     create_info.ulWidth = fmt->coded_width;
     create_info.ulHeight = fmt->coded_height;
     create_info.ulMaxWidth = fmt->coded_width;
@@ -232,7 +240,9 @@ struct nv_decoder_t {
 
     check_error(cuvidCreateDecoder(&decoder->decoder, &create_info));
 
-    return 0;
+    c.start();
+
+    return nDecodeSurface;
   }
 
   static int parser_decode_picture_callback(void* user, CUVIDPICPARAMS* pic) {
@@ -258,6 +268,8 @@ struct nv_decoder_t {
 
   bool init = false;
 
+  unsigned char* h_frame = 0;
+
   static int parser_display_picture_callback(void* user, CUVIDPARSERDISPINFO* info) {
 
     nv_decoder_t* decoder = (nv_decoder_t*)user;
@@ -281,15 +293,49 @@ struct nv_decoder_t {
       &nPitch, &videoProcessingParameters);
 
 
-    printf("+ mapping: %u succeeded\n", info->picture_index);
+    //printf("+ mapping: %u succeeded\n", info->picture_index);
+
+
+    CUVIDGETDECODESTATUS DecodeStatus;
+    memset(&DecodeStatus, 0, sizeof(DecodeStatus));
+    CUresult result = cuvidGetDecodeStatus(decoder->decoder, info->picture_index, &DecodeStatus);
+    if (result == CUDA_SUCCESS && (DecodeStatus.decodeStatus == cuvidDecodeStatus_Error || DecodeStatus.decodeStatus == cuvidDecodeStatus_Error_Concealed))
+    {
+      printf("Decode Error occurred for picture %d\n", info->picture_index);
+    }
 
     frameSize = decoder->frame_size.x * decoder->frame_size.y + decoder->frame_size.x * decoder->frame_size.y / 2;
-    unsigned char* h_frame = new unsigned char[frameSize];
-    cudaMemcpy2D(h_frame, decoder->frame_size.x, (void*)cuDevPtr, nPitch, decoder->frame_size.x, decoder->frame_size.y + decoder->frame_size.y / 2, cudaMemcpyDeviceToHost);
+    
+    if (decoder->h_frame == nullptr) {
+      decoder->h_frame = new unsigned char[frameSize];
+    }
+
+    cudaMemcpy2D(decoder->h_frame, decoder->frame_size.x, (void*)cuDevPtr, nPitch, decoder->frame_size.x, decoder->frame_size.y + decoder->frame_size.y / 2, cudaMemcpyDeviceToHost);
+    
+    //check_error(cuCtxPushCurrent(decoder->context));
+    //CUDA_MEMCPY2D m = { 0 };
+    //m.srcMemoryType = CU_MEMORYTYPE_DEVICE;
+    //m.srcDevice = cuDevPtr;
+    //m.srcPitch = nPitch;
+    //m.dstMemoryType =/* m_bUseDeviceFrame*/ false ? CU_MEMORYTYPE_DEVICE : CU_MEMORYTYPE_HOST;
+    //m.dstDevice = (CUdeviceptr)(m.dstHost = h_frame);
+    //m.dstPitch = decoder->frame_size.x;
+    //m.WidthInBytes = decoder->frame_size.x;
+    //m.Height = decoder->frame_size.y;
+    //check_error(cuMemcpy2DAsync(&m, m_cuvidStream));
+    //m.srcDevice = (CUdeviceptr)((uint8_t*)dpSrcFrame + m.srcPitch * m_nSurfaceHeight);
+    //m.dstDevice = (CUdeviceptr)(m.dstHost = pDecodedFrame + m.dstPitch * m_nHeight);
+    //m.Height = m_nHeight / 2;
+    //check_error(cuMemcpy2DAsync(&m, m_cuvidStream));
+    //check_error(cuStreamSynchronize(m_cuvidStream));
+    //check_error(cuCtxPopCurrent(NULL));
+
     uint64_t offset = 0;
     void* data[2];
-    data[0] = h_frame;
-    data[1] = (uint8_t*)h_frame + (uint64_t)decoder->frame_size.multiply();
+    data[0] = decoder->h_frame;
+    data[1] = (uint8_t*)decoder->h_frame + (uint64_t)decoder->frame_size.multiply();
+
+    //fan::io::file::write("help", fan::string((uint8_t*)h_frame, (uint8_t*)h_frame + frameSize), std::ios_base::binary);
 
     if (!decoder->init) {
 
@@ -304,14 +350,14 @@ struct nv_decoder_t {
       pile->loco.nv12.reload(&pile->cid[0], data, decoder->frame_size);
     }
 
-    pile->loco.process_loop([] {});
+    pile->loco.process_loop([&] {  });
 
-    fan::delay(fan::time::nanoseconds(.1e+9));
-    delete[] h_frame;
+    //fan::delay(fan::time::nanoseconds(.01e+9));
     check_error(cuvidUnmapVideoFrame(decoder->decoder, cuDevPtr));
+    
 
     check_error(cuvidCtxUnlock(decoder->lock, 0));
-
+    count++;
     return 1;
   }
 
@@ -376,7 +422,7 @@ int main() {
   pile->loco.set_vsync(false);
 
   nv_decoder_t nv;
-
+  fan::print(c.elapsed(), count, c.elapsed() / count);
 
 
   //r = cuCtxDestroy(context);
