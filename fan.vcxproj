@@ -358,6 +358,7 @@
     <ClInclude Include="include\fan\graphics\opengl\2D\objects\letter.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\objects\light.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\objects\line.h" />
+    <ClInclude Include="include\fan\graphics\opengl\2D\objects\nv12.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\objects\rectangle.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\objects\shape_builder.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\objects\sprite.h" />

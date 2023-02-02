@@ -81,7 +81,7 @@ struct image_t {
     return &loco->image_list[texture_reference].texture_id;
   }
 
-  bool load(loco_t* loco, const fan::webp::image_info_t image_info, load_properties_t p = load_properties_t()) {
+  bool load(loco_t* loco, fan::webp::image_info_t image_info, load_properties_t p = load_properties_t()) {
 
     auto* context = loco->get_context();
 

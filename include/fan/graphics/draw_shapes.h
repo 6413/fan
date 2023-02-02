@@ -11,7 +11,9 @@ light.draw();
 #if defined(loco_yuv420p)
   yuv420p.draw();
 #endif
-
+#if defined(loco_nv12)
+  nv12.draw();
+#endif
 #if defined(loco_sprite)
   // can be moved
   sprite.draw();

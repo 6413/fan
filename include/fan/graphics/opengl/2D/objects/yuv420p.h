@@ -44,7 +44,7 @@ struct sb_sprite_name {
     loco_t::matrices_t* matrices = 0;
     fan::graphics::viewport_t* viewport = 0;
 
-    properties_t() = default;
+    properties_t() = de fault;
     properties_t(const vi_t& i) : vi_t(i) {}
     properties_t(const ri_t& i) : ri_t(i) {}
 

@@ -338,7 +338,7 @@ namespace fan {
 		}
 
     auto hypotenuse() const {
-      return std::sqrt(this->x, this->y);
+      return std::sqrt(x * x +  y * y);
     }
 	};
 
@@ -997,5 +997,10 @@ namespace fan {
   }
   constexpr auto copysign(const auto& v, const auto v2) {
     return fan::math::copysign(v, v2);
+  }
+  auto reflect(const auto& Direction, const auto& Normal) -> decltype(Direction) {
+    auto k = fan::math::cross(fan::vec3{ Normal.x, Normal.y, 0 }, fan::vec3{ 0, 0, -1 });
+    f32_t Multipler = k.dot(fan::vec3{ Direction.x, Direction.y, 0 });
+    return fan::vec2{ k.x * Multipler, k.y * Multipler };
   }
 }
