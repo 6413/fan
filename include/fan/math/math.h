@@ -557,6 +557,31 @@ namespace fan {
 			return RAY_DID_NOT_HIT;
 		}
 
+    auto floor(auto v) {
+      return std::floor(v);
+    }
+    auto sin(auto v) {
+      return std::sin(v);
+    }
+    auto cos(auto v) {
+      return std::cos(v);
+    }
+    auto atan2(auto x, auto y) {
+      return std::atan2(x, y);
+    }
+    auto sqrt(auto x) {
+      return std::sqrt(x);
+    }
+    auto hypotenuse(const auto& vector) {
+      return std::sqrt((vector.x * vector.x) + (vector.y * vector.y));
+    }
+    auto copysign(auto mag, auto sgn) {
+      return std::copysign(mag, sgn);
+    }
+    auto reflect(const auto& Direction, const auto& Normal) -> decltype(Direction) {
+      auto k = fan::math::cross({ Normal.x, Normal.y, 0 }, { 0, 0, -1 });
+      float Multipler = k.dot({ Direction.x, Direction.y, 0 });
+      return { k.x * Multipler, k.y * Multipler };
+    }
 	}
-
 }
