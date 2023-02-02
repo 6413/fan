@@ -19,7 +19,6 @@ struct sb_sprite_name {
       uint16_t,
       loco_t::textureid_t<0>,
       loco_t::textureid_t<1>,
-      loco_t::textureid_t<2>,
       loco_t::matrices_list_NodeReference_t,
       fan::graphics::viewport_list_NodeReference_t
     >;
@@ -38,8 +37,7 @@ struct sb_sprite_name {
   struct properties_t : vi_t, ri_t {
 
     loco_t::image_t* y = 0;
-    loco_t::image_t* u = 0;
-    loco_t::image_t* v = 0;
+    loco_t::image_t* vu = 0;
 
     loco_t::matrices_t* matrices = 0;
     fan::graphics::viewport_t* viewport = 0;
@@ -49,7 +47,7 @@ struct sb_sprite_name {
     properties_t(const ri_t& i) : ri_t(i) {}
 
   private:
-    void _load_yuv(loco_t* loco, void** data, const fan::vec2& image_size, uint32_t stride[3]) {
+    void _load(loco_t* loco, void** data, const fan::vec2& image_size, uint32_t stride[3]) {
       loco_t::image_t::load_properties_t lp;
       lp.format = loco_t::image_t::format::r8_unorm;
       lp.internal_format = loco_t::image_t::format::r8_unorm; 
@@ -65,38 +63,35 @@ struct sb_sprite_name {
       ii.data = data[1]; 
       ii.size = image_size / 2; 
       loco->sb_shape_var_name.image[1].load(loco, ii, lp); 
-                                
-      ii.data = data[2]; 
-      loco->sb_shape_var_name.image[2].load(loco, ii, lp); 
     }
   public:
 
-    void load_yuv(loco_t* loco, void* data, const fan::vec2& image_size) {
+    void load(loco_t* loco, void* data, const fan::vec2& image_size) {
       uint32_t stride[3];
       stride[0] = image_size.x;
       stride[1] = image_size.x / 2;
       stride[2] = image_size.x / 2;
-      load_yuv(loco, data, image_size, stride);
+      load(loco, data, image_size, stride);
     }
-    void load_yuv(loco_t* loco, void* data, const fan::vec2& image_size, uint32_t stride[3]) {
+    void load(loco_t* loco, void* data, const fan::vec2& image_size, uint32_t stride[3]) {
       void* datas[3];
       uint64_t offset = 0;
       datas[0] = data;
       datas[1] = (uint8_t*)data + (offset += image_size.multiply());
       datas[2] = (uint8_t*)data + (offset += image_size.multiply() / 4);
-      load_yuv(loco, datas, image_size, stride);
+      load(loco, datas, image_size, stride);
     }
 
-    void load_yuv(loco_t* loco, void** data, const fan::vec2& image_size) {
+    void load(loco_t* loco, void** data, const fan::vec2& image_size) {
       uint32_t stride[3];
       stride[0] = image_size.x;
       stride[1] = image_size.x / 2;
       stride[2] = image_size.x / 2;
-      load_yuv(loco, data, image_size, stride);
+      load(loco, data, image_size, stride);
     }
-    void load_yuv(loco_t* loco, void** data, const fan::vec2& image_size, uint32_t stride[3]) {
+    void load(loco_t* loco, void** data, const fan::vec2& image_size, uint32_t stride[3]) {
 
-      _load_yuv(loco, data, image_size, stride);
+      _load(loco, data, image_size, stride);
 
       y = &loco->sb_shape_var_name.image[0];
       u = &loco->sb_shape_var_name.image[1];
@@ -158,7 +153,7 @@ struct sb_sprite_name {
     sb_draw();
   }
 
-  void reload_yuv(fan::graphics::cid_t* cid, void** data, const fan::vec2& image_size) {
+  void reload(fan::graphics::cid_t* cid, void** data, const fan::vec2& image_size) {
     auto loco = get_loco();
     
     loco_t::image_t::load_properties_t lp;

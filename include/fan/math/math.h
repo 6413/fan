@@ -578,10 +578,5 @@ namespace fan {
     auto copysign(auto mag, auto sgn) {
       return std::copysign(mag, sgn);
     }
-    auto reflect(const auto& Direction, const auto& Normal) -> decltype(Direction) {
-      auto k = fan::math::cross({ Normal.x, Normal.y, 0 }, { 0, 0, -1 });
-      float Multipler = k.dot({ Direction.x, Direction.y, 0 });
-      return { k.x * Multipler, k.y * Multipler };
-    }
 	}
 }

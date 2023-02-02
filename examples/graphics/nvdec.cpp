@@ -81,15 +81,15 @@ static int parser_sequence_callback(void* user, CUVIDEOFORMAT* fmt) {
   printf("CUVIDEOFORMAT.Bitrate: %u\n", fmt->bitrate);
 
 
-  check_error(cudaMalloc((void**)&d_cudaRGBA, fmt->coded_width * fmt->coded_height * 4));
+  //check_error(cudaMalloc((void**)&d_cudaRGBA, fmt->coded_width * fmt->coded_height * 4));
 
-  GLuint pbo;
-  pile->loco.get_context()->opengl.glGenBuffers(1, &pbo);
-  pile->loco.get_context()->opengl.glBindBuffer(fan::opengl::GL_PIXEL_UNPACK_BUFFER, pbo);
-  pile->loco.get_context()->opengl.glBufferData(fan::opengl::GL_PIXEL_UNPACK_BUFFER, fmt->coded_width * fmt->coded_height * 4, NULL, fan::opengl::GL_STREAM_DRAW);
+  //GLuint pbo;
+  //pile->loco.get_context()->opengl.glGenBuffers(1, &pbo);
+  //pile->loco.get_context()->opengl.glBindBuffer(fan::opengl::GL_PIXEL_UNPACK_BUFFER, pbo);
+  //pile->loco.get_context()->opengl.glBufferData(fan::opengl::GL_PIXEL_UNPACK_BUFFER, fmt->coded_width * fmt->coded_height * 4, NULL, fan::opengl::GL_STREAM_DRAW);
 
-  // Register CUDA buffer with OpenGL
-  check_error(cudaGraphicsGLRegisterBuffer(&cudaResource, pbo, CU_GRAPHICS_REGISTER_FLAGS_NONE));
+  //// Register CUDA buffer with OpenGL
+  //check_error(cudaGraphicsGLRegisterBuffer(&cudaResource, pbo, CU_GRAPHICS_REGISTER_FLAGS_NONE));
 
   return 0;
 }
@@ -144,18 +144,14 @@ static int parser_display_picture_callback(void* user, CUVIDPARSERDISPINFO* info
   unsigned char* h_frame = new unsigned char[frameSize];
   cudaMemcpy2D(h_frame, res.x, (void*)cuDevPtr, nPitch, res.x, res.y + res.y / 2, cudaMemcpyDeviceToHost);
 
-  unsigned char* h2_frame = new unsigned char[frameSize];
-  memcpy(h_frame, h2_frame, frameSize);
-
   uint64_t offset = 0;
-  void* data[3];
-  data[0] = h2_frame;
-  data[1] = (uint8_t*)h2_frame + (offset += res.multiply());
-  data[2] = (uint8_t*)h2_frame + (offset += res.multiply() / 4);
+  void* data[2];
+  data[0] = h_frame;
+  data[1] = (uint8_t*)h_frame + (offset += res.multiply());
 
   if (!init) {
 
-    p.load_yuv(&pile->loco, data, fan::vec2(2, 2));
+    p.load(&pile->loco, data, res);
 
     p.position = fan::vec2(0, 0);
     //p
@@ -163,7 +159,7 @@ static int parser_display_picture_callback(void* user, CUVIDPARSERDISPINFO* info
     init = true;
   }
   else {
-    pile->loco.nv12.reload_yuv(&pile->cid[0], data, res);
+    pile->loco.nv12.reload(&pile->cid[0], data, res);
   }
 
   pile->loco.process_loop([] {});
@@ -176,6 +172,7 @@ static int parser_display_picture_callback(void* user, CUVIDPARSERDISPINFO* info
   //}
   delete[] h_frame;
   cuvidUnmapVideoFrame(decoder, cuDevPtr);
+  fan::delay(fan::time::nanoseconds(.1e+9));
   return 1;
 }
 
@@ -368,32 +365,32 @@ int main() {
 
 
 
-  r = cuCtxDestroy(context);
-  if (CUDA_SUCCESS != r) {
-    cuGetErrorString(r, &err_str);
-    printf("Failed to cleanly destroy the cuda context: %s (exiting).\n", err_str);
-    exit(EXIT_FAILURE);
-  }
+  //r = cuCtxDestroy(context);
+  //if (CUDA_SUCCESS != r) {
+  //  cuGetErrorString(r, &err_str);
+  //  printf("Failed to cleanly destroy the cuda context: %s (exiting).\n", err_str);
+  //  exit(EXIT_FAILURE);
+  //}
 
-  r = cuvidDestroyDecoder(decoder);
-  if (CUDA_SUCCESS != r) {
-    cuGetErrorString(r, &err_str);
-    printf("Failed to cleanly destroy the decoder context: %s. (exiting).\n", err_str);
-    exit(EXIT_FAILURE);
-  }
+  //r = cuvidDestroyDecoder(decoder);
+  //if (CUDA_SUCCESS != r) {
+  //  cuGetErrorString(r, &err_str);
+  //  printf("Failed to cleanly destroy the decoder context: %s. (exiting).\n", err_str);
+  //  exit(EXIT_FAILURE);
+  //}
 
-  if (nullptr != parser) {
-    r = cuvidDestroyVideoParser(parser);
-    if (CUDA_SUCCESS != r) {
-      cuGetErrorString(r, &err_str);
-      printf("Failed to the video parser context: %s. (exiting).\n", err_str);
-      exit(EXIT_FAILURE);
-    }
-  }
+  //if (nullptr != parser) {
+  //  r = cuvidDestroyVideoParser(parser);
+  //  if (CUDA_SUCCESS != r) {
+  //    cuGetErrorString(r, &err_str);
+  //    printf("Failed to the video parser context: %s. (exiting).\n", err_str);
+  //    exit(EXIT_FAILURE);
+  //  }
+  //}
 
-  context = nullptr;
-  decoder = nullptr;
-  parser = nullptr;
+  //context = nullptr;
+  //decoder = nullptr;
+  //parser = nullptr;
 
   return 0;
 }
