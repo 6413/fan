@@ -90,13 +90,14 @@ void main() {
   vec2 rp = rectangle_vertices[id];
 
   vec3 rot = get_instance().rotation_vector;
-  float a = get_instance().angle;
 
   mat4 m = mat4(1);
-  m = rotate(m, a, rot);
+  m = rotate(m, get_instance().angle, rot);
+
+  vec2 rotated = vec4(m * vec4(rp * get_instance().size, 0, 1)).xy;
 
   mv = projection * view;
-  gl_Position = projection * view * m * vec4(rp * get_instance().size + get_instance().position.xy, get_instance().position.z, 1);
+  gl_Position = projection * view * vec4(rotated + get_instance().position.xy, get_instance().position.z, 1);
 	instance_color = get_instance().color;
 	texture_coordinate = tc[id] * get_instance().tc_size + get_instance().tc_position;
   flag = get_instance().flag;
