@@ -50,7 +50,7 @@ struct sb_sprite_name {
     void _load(loco_t* loco, void** data, const fan::vec2& image_size) {
       loco_t::image_t::load_properties_t lp;
       lp.format = loco_t::image_t::format::r8_unorm;
-      lp.internal_format = loco_t::image_t::format::r8_unorm; 
+      lp.internal_format = loco_t::image_t::format::r8_unorm;
       lp.visual_output = loco_t::image_t::sampler_address_mode::clamp_to_edge;
       lp.filter = loco_t::image_t::filter::linear;
                                  
@@ -59,9 +59,12 @@ struct sb_sprite_name {
       ii.data = data[0];
       ii.size = image_size; 
       loco->sb_shape_var_name.image[0].load(loco, ii, lp); 
-                                
+                    
+      lp.format = loco_t::image_t::format::rg8_unorm;
+      lp.internal_format = loco_t::image_t::format::rg8_unorm;
+
       ii.data = data[1]; 
-      ii.size = image_size / 2; 
+      ii.size = fan::vec2(image_size.x / 2, image_size.y / 2);
       loco->sb_shape_var_name.image[1].load(loco, ii, lp); 
     }
   public:
@@ -78,9 +81,6 @@ struct sb_sprite_name {
     //  load(loco, datas, image_size, stride);
     //}
 
-    void load(loco_t* loco, void** data, const fan::vec2& image_size) {
-      load(loco, data, image_size);
-    }
     void load(loco_t* loco, void** data, const fan::vec2& image_size) {
 
       _load(loco, data, image_size);
@@ -149,7 +149,7 @@ struct sb_sprite_name {
     
     loco_t::image_t::load_properties_t lp;
     lp.format = loco_t::image_t::format::r8_unorm;
-    lp.internal_format = loco_t::image_t::format::r8_unorm; 
+    lp.internal_format = loco_t::image_t::format::r8_unorm;
     lp.visual_output = loco_t::image_t::sampler_address_mode::clamp_to_edge;
     lp.filter = loco_t::image_t::filter::linear;
                                  
@@ -158,13 +158,13 @@ struct sb_sprite_name {
     ii.data = data[0];
     ii.size = image_size; 
     loco->sb_shape_var_name.image[0].reload_pixels(loco, ii,lp); 
-                                
+                  
+    lp.format = loco_t::image_t::format::rg8_unorm;
+    lp.internal_format = loco_t::image_t::format::rg8_unorm;
+
     ii.data = data[1]; 
-    ii.size = image_size / 2; 
+    ii.size = fan::vec2(image_size.x / 2, image_size.y / 2);
     loco->sb_shape_var_name.image[1].reload_pixels(loco, ii, lp); 
-                                
-    ii.data = data[2]; 
-    loco->sb_shape_var_name.image[2].reload_pixels(loco, ii, lp); 
   }
 
   static constexpr uint32_t max_instance_size = fan::min(256, 4096 / (sizeof(vi_t) / 4));
@@ -195,7 +195,7 @@ struct sb_sprite_name {
     sb_close();
   }
 
-  loco_t::image_t image[3];
+  loco_t::image_t image[2];
 
   /*void set_matrices(loco_t* loco, fan::opengl::cid_t* cid, fan::opengl::matrices_list_NodeReference_t n) {
   auto block = sb_get_block(loco, cid);

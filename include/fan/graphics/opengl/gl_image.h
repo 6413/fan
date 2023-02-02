@@ -10,6 +10,7 @@ struct image_t {
   struct format {
     static constexpr auto b8g8r8a8_unorm = fan::opengl::GL_BGRA;
     static constexpr auto r8_unorm = fan::opengl::GL_RED;
+    static constexpr auto rg8_unorm = fan::opengl::GL_RG;
   };
 
   struct sampler_address_mode {

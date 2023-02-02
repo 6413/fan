@@ -68,9 +68,9 @@ void check_error(auto result) {
 CUcontext context = { 0 };
 CUvideodecoder decoder = nullptr;
 CUdevice device = { 0 };
-
-CUdeviceptr d_cudaRGBA;
-cudaGraphicsResource_t cudaResource;
+//
+//CUdeviceptr d_cudaRGBA;
+//cudaGraphicsResource_t cudaResource;
 
 pile_t* pile = new pile_t;
 loco_t::nv12_t::properties_t p;
@@ -124,30 +124,27 @@ static int parser_display_picture_callback(void* user, CUVIDPARSERDISPINFO* info
   unsigned int nPitch, frameSize;
   unsigned char* pHostPtr = nullptr;
   memset(&stProcParams, 0, sizeof(CUVIDPROCPARAMS));
-  
-
 
   rResult = cuvidMapVideoFrame(decoder, info->picture_index, &cuDevPtr,
     &nPitch, &stProcParams);
 
-  CUVIDGETDECODESTATUS DecodeStatus;
+ /* CUVIDGETDECODESTATUS DecodeStatus;
   memset(&DecodeStatus, 0, sizeof(DecodeStatus));
   CUresult result = cuvidGetDecodeStatus(decoder, info->picture_index, &DecodeStatus);
   if (result == CUDA_SUCCESS && (DecodeStatus.decodeStatus == cuvidDecodeStatus_Error || DecodeStatus.decodeStatus == cuvidDecodeStatus_Error_Concealed))
   {
     printf("Decode Error occurred for picture %d\n", info->picture_index);
-  }
+  }*/
 
   printf("+ mapping: %u succeeded\n", info->picture_index);
 
   frameSize = res.x * res.y + res.x * res.y / 2;
   unsigned char* h_frame = new unsigned char[frameSize];
-  cudaMemcpy2D(h_frame, res.x, (void*)cuDevPtr, nPitch, res.x, res.y + res.y / 2, cudaMemcpyDeviceToHost);
-
+  cudaMemcpy2DAsync(h_frame, res.x, (void*)cuDevPtr, nPitch, res.x, res.y + res.y / 2, cudaMemcpyDeviceToHost);
   uint64_t offset = 0;
   void* data[2];
   data[0] = h_frame;
-  data[1] = (uint8_t*)h_frame + (offset += res.multiply());
+  data[1] = (uint8_t*)h_frame + (uint64_t)res.multiply();
 
   if (!init) {
 
@@ -164,15 +161,9 @@ static int parser_display_picture_callback(void* user, CUVIDPARSERDISPINFO* info
 
   pile->loco.process_loop([] {});
 
-  //static int x = 1;
-  //fan::print(x++);
-  //if (x >= 200) {
-  //fan::io::file::write("help", fan::string((uint8_t*)h_frame, (uint8_t*)h_frame + frameSize), std::ios_base::binary);
-  //  fan::print("a");
-  //}
+  fan::delay(fan::time::nanoseconds(.1e+9));
   delete[] h_frame;
   cuvidUnmapVideoFrame(decoder, cuDevPtr);
-  fan::delay(fan::time::nanoseconds(.1e+9));
   return 1;
 }
 
@@ -299,18 +290,22 @@ int main() {
   create_info.CodecType = decode_caps.eCodecType;                    /* cudaVideoCodex_XXX */
   create_info.ChromaFormat = decode_caps.eChromaFormat;              /* cudaVideoChromaFormat_XXX */
   create_info.OutputFormat = cudaVideoSurfaceFormat_NV12;            /* cudaVideoSurfaceFormat_XXX */
-  create_info.ulCreationFlags = cudaVideoCreate_PreferCUVID;         /* cudaVideoCreate_XXX */
+  create_info.ulCreationFlags = cudaVideoCreate_Default;         /* cudaVideoCreate_XXX */
   create_info.DeinterlaceMode = cudaVideoDeinterlaceMode_Weave;      /* cudaVideoDeinterlaceMode_XXX */
   create_info.bitDepthMinus8 = decode_caps.nBitDepthMinus8;;
-  create_info.ulNumOutputSurfaces = 1;                               /* Maximum number of internal decode surfaces. */
-  create_info.ulNumDecodeSurfaces = 1;                               /* @todo from NvDecoder.cpp, assuming worst case here ... Maximum number of internal decode surfaces. */
-  create_info.ulIntraDecodeOnly = 0;                                 /* @todo this seems like an interesting flag. */
+  create_info.ulNumOutputSurfaces = 2;                               /* Maximum number of internal decode surfaces. */
+  create_info.ulNumDecodeSurfaces = 4;                               /* @todo from NvDecoder.cpp, assuming worst case here ... Maximum number of internal decode surfaces. */
+  //create_info.ulIntraDecodeOnly = 0;                                 /* @todo this seems like an interesting flag. */
 
   /* Size is specific for the moonlight.264 file. */
   create_info.ulWidth = res.x;                                        /* Coded sequence width in pixels. */
   create_info.ulHeight = res.y;                                       /* Coded sequence height in pixels. */
   create_info.ulTargetWidth = create_info.ulWidth;                   /* Post-processed output width (should be aligned to 2). */
   create_info.ulTargetHeight = create_info.ulHeight;                 /* Post-processed output height (should be aligned to 2). */
+  create_info.target_rect.left = 0;
+  create_info.target_rect.top = 0;
+  create_info.target_rect.right = res.x;
+  create_info.target_rect.bottom = res.y;
 
 
   /* @todo do we need this? */
