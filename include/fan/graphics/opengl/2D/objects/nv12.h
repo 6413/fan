@@ -73,14 +73,14 @@ struct sb_sprite_name {
       stride[2] = image_size.x / 2;
       load(loco, data, image_size, stride);
     }
-    void load(loco_t* loco, void* data, const fan::vec2& image_size, uint32_t stride[3]) {
-      void* datas[3];
-      uint64_t offset = 0;
-      datas[0] = data;
-      datas[1] = (uint8_t*)data + (offset += image_size.multiply());
-      datas[2] = (uint8_t*)data + (offset += image_size.multiply() / 4);
-      load(loco, datas, image_size, stride);
-    }
+    //void load(loco_t* loco, void* data, const fan::vec2& image_size, uint32_t stride[3]) {
+    //  void* datas[3];
+    //  uint64_t offset = 0;
+    //  datas[0] = data;
+    //  datas[1] = (uint8_t*)data + (offset += image_size.multiply());
+    //  datas[2] = (uint8_t*)data + (offset += image_size.multiply() / 4);
+    //  load(loco, datas, image_size, stride);
+    //}
 
     void load(loco_t* loco, void** data, const fan::vec2& image_size) {
       uint32_t stride[3];
@@ -94,8 +94,8 @@ struct sb_sprite_name {
       _load(loco, data, image_size, stride);
 
       y = &loco->sb_shape_var_name.image[0];
-      u = &loco->sb_shape_var_name.image[1];
-      v = &loco->sb_shape_var_name.image[2];
+      vu = &loco->sb_shape_var_name.image[1];
+      //v = &loco->sb_shape_var_name.image[2];
 
     #if defined(loco_vulkan)
 
