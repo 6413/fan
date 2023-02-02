@@ -5,7 +5,7 @@
 #ifndef FAN_INCLUDE_PATH
 #define FAN_INCLUDE_PATH C:/libs/fan/include
 #endif
-#define fan_debug 3
+#define fan_debug 0
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
 //#define loco_vulkan
@@ -21,11 +21,9 @@
 #include <cuda.h>
 #include <nvcuvid.h>
 
-#define HGPUNV void*
+//#define HGPUNV void*
 #include <cuda_runtime.h>
-#include <cuda_gl_interop.h>
-
-fan::vec2 res = fan::vec2(576, 360);
+//#include <cuda_gl_interop.h>
 
 struct pile_t {
 
@@ -65,159 +63,309 @@ void check_error(auto result) {
   }
 }
 
-CUcontext context = { 0 };
-CUvideodecoder decoder = nullptr;
-CUdevice device = { 0 };
-//
-//CUdeviceptr d_cudaRGBA;
-//cudaGraphicsResource_t cudaResource;
-
 pile_t* pile = new pile_t;
 loco_t::nv12_t::properties_t p;
 
-static int parser_sequence_callback(void* user, CUVIDEOFORMAT* fmt) {
-  printf("CUVIDEOFORMAT.Coded size: %d x %d\n", fmt->coded_width, fmt->coded_height);
-  printf("CUVIDEOFORMAT.Display area: %d %d %d %d\n", fmt->display_area.left, fmt->display_area.top, fmt->display_area.right, fmt->display_area.bottom);
-  printf("CUVIDEOFORMAT.Bitrate: %u\n", fmt->bitrate);
+struct nv_decoder_t {
 
+  CUcontext context = { 0 };
+  CUvideodecoder decoder = nullptr;
+  CUdevice device = { 0 };
+  CUvideoctxlock lock;
+  CUvideoparser parser = nullptr;
+  fan::vec2ui frame_size;
+  //
+  //CUdeviceptr d_cudaRGBA;
+  //cudaGraphicsResource_t cudaResource;
 
-  //check_error(cudaMalloc((void**)&d_cudaRGBA, fmt->coded_width * fmt->coded_height * 4));
+  nv_decoder_t() {
+    CUresult r = CUDA_SUCCESS;
+    const char* err_str = nullptr;
 
-  //GLuint pbo;
-  //pile->loco.get_context()->opengl.glGenBuffers(1, &pbo);
-  //pile->loco.get_context()->opengl.glBindBuffer(fan::opengl::GL_PIXEL_UNPACK_BUFFER, pbo);
-  //pile->loco.get_context()->opengl.glBufferData(fan::opengl::GL_PIXEL_UNPACK_BUFFER, fmt->coded_width * fmt->coded_height * 4, NULL, fan::opengl::GL_STREAM_DRAW);
+    /* Initialize cuda, must be done before anything else. */
+    r = cuInit(0);
+    if (CUDA_SUCCESS != r) {
+      cuGetErrorString(r, &err_str);
+      printf("Failed to initialize cuda: %s. (exiting).\n", err_str);
+      exit(EXIT_FAILURE);
+    }
 
-  //// Register CUDA buffer with OpenGL
-  //check_error(cudaGraphicsGLRegisterBuffer(&cudaResource, pbo, CU_GRAPHICS_REGISTER_FLAGS_NONE));
+    int device_count = 0;
+    r = cuDeviceGetCount(&device_count);
+    if (CUDA_SUCCESS != r) {
+      cuGetErrorString(r, &err_str);
+      printf("Failed to get the cuda device count: %s. (exiting).\n", err_str);
+      exit(EXIT_FAILURE);
+    }
 
-  return 0;
-}
+    printf("We have %d cuda device(s).\n", device_count);
 
-static int parser_decode_picture_callback(void* user, CUVIDPICPARAMS* pic) {
+    r = cuDeviceGet(&device, 0);
+    if (CUDA_SUCCESS != r) {
+      cuGetErrorString(r, &err_str);
+      printf("Failed to get a handle to the cuda device: %s. (exiting).\n", err_str);
+      exit(EXIT_FAILURE);
+    }
 
-  CUresult r = CUDA_SUCCESS;
+    char name[80] = { 0 };
+    r = cuDeviceGetName(name, sizeof(name), device);
+    if (CUDA_SUCCESS != r) {
+      cuGetErrorString(r, &err_str);
+      printf("Failed to get the cuda device name: %s. (exiting).\n", err_str);
+      exit(EXIT_FAILURE);
+    }
 
-  if (nullptr == decoder) {
-    printf("decoder is nullptr. (exiting).");
-    exit(EXIT_FAILURE);
+    printf("Cuda device: %s.\n", name);
+
+    r = cuCtxCreate(&context, 0, device);
+    if (CUDA_SUCCESS != r) {
+      cuGetErrorString(r, &err_str);
+      printf("Failed to create a cuda context: %s. (exiting).\n", err_str);
+      exit(EXIT_FAILURE);
+    }
+
+    /* Query capabilities. */
+    CUVIDDECODECAPS decode_caps = {};
+    decode_caps.eCodecType = cudaVideoCodec_H264;
+    decode_caps.eChromaFormat = cudaVideoChromaFormat_420;
+    decode_caps.nBitDepthMinus8 = 0;
+
+    r = cuvidGetDecoderCaps(&decode_caps);
+    if (CUDA_SUCCESS != r) {
+      cuGetErrorString(r, &err_str);
+      printf("Failed to get decoder caps: %s (exiting).\n", err_str);
+      exit(EXIT_FAILURE);
+    }
+
+    /* Create a video parser that gives us the CUVIDPICPARAMS structures. */
+    CUVIDPARSERPARAMS parser_params;
+    memset((void*)&parser_params, 0x00, sizeof(parser_params));
+    parser_params.CodecType = cudaVideoCodec_H264;
+    parser_params.ulMaxNumDecodeSurfaces = 2;
+    parser_params.ulClockRate = 0;
+    parser_params.ulErrorThreshold = 0;
+    parser_params.ulMaxDisplayDelay = 1;
+    parser_params.pUserData = this;
+    parser_params.pfnSequenceCallback = parser_sequence_callback;
+    parser_params.pfnDecodePicture = parser_decode_picture_callback;
+    parser_params.pfnDisplayPicture = parser_display_picture_callback;
+
+    r = cuvidCreateVideoParser(&parser, &parser_params);
+
+    fan::string video_data;
+    fan::io::file::read("o.264", &video_data);
+
+    CUVIDSOURCEDATAPACKET pkt;
+    pkt.flags = 0;
+    pkt.payload_size = video_data.size();
+    pkt.payload = (uint8_t*)video_data.data();
+    pkt.timestamp = 0;
+
+    check_error(cuvidParseVideoData(parser, &pkt));
   }
 
-  r = cuvidDecodePicture(decoder, pic);
-  if (CUDA_SUCCESS != r) {
-    printf("Failed to decode the picture.");
+  static unsigned long GetNumDecodeSurfaces(cudaVideoCodec eCodec, unsigned int nWidth, unsigned int nHeight) {
+    if (eCodec == cudaVideoCodec_VP9) {
+      return 12;
+    }
+
+    if (eCodec == cudaVideoCodec_H264 || eCodec == cudaVideoCodec_H264_SVC || eCodec == cudaVideoCodec_H264_MVC) {
+      // assume worst-case of 20 decode surfaces for H264
+      return 20;
+    }
+
+    if (eCodec == cudaVideoCodec_HEVC) {
+      // ref HEVC spec: A.4.1 General tier and level limits
+      // currently assuming level 6.2, 8Kx4K
+      int MaxLumaPS = 35651584;
+      int MaxDpbPicBuf = 6;
+      int PicSizeInSamplesY = (int)(nWidth * nHeight);
+      int MaxDpbSize;
+      if (PicSizeInSamplesY <= (MaxLumaPS >> 2))
+        MaxDpbSize = MaxDpbPicBuf * 4;
+      else if (PicSizeInSamplesY <= (MaxLumaPS >> 1))
+        MaxDpbSize = MaxDpbPicBuf * 2;
+      else if (PicSizeInSamplesY <= ((3 * MaxLumaPS) >> 2))
+        MaxDpbSize = (MaxDpbPicBuf * 4) / 3;
+      else
+        MaxDpbSize = MaxDpbPicBuf;
+      return (std::min)(MaxDpbSize, 16) + 4;
+    }
+
+    return 8;
   }
 
-  return 1;
-}
 
-//fan::vec2 ress[] = {}
+  static int parser_sequence_callback(void* user, CUVIDEOFORMAT* fmt) {
 
-bool init = false;
+    nv_decoder_t* decoder = (nv_decoder_t*)user;
 
-static int parser_display_picture_callback(void* user, CUVIDPARSERDISPINFO* info) {
+    printf("CUVIDEOFORMAT.Coded size: %d x %d\n", fmt->coded_width, fmt->coded_height);
+    printf("CUVIDEOFORMAT.Display area: %d %d %d %d\n", fmt->display_area.left, fmt->display_area.top, fmt->display_area.right, fmt->display_area.bottom);
+    printf("CUVIDEOFORMAT.Bitrate: %u\n", fmt->bitrate);
 
-  //CUVIDPARSEDISPINFO stDispInfo;
-  CUVIDPROCPARAMS stProcParams;
-  CUresult rResult;
-  unsigned long long cuDevPtr = 0;
-  unsigned int nPitch, frameSize;
-  unsigned char* pHostPtr = nullptr;
-  memset(&stProcParams, 0, sizeof(CUVIDPROCPARAMS));
+    check_error(cuvidCtxLockCreate(&decoder->lock, decoder->context));
 
-  rResult = cuvidMapVideoFrame(decoder, info->picture_index, &cuDevPtr,
-    &nPitch, &stProcParams);
+    CUVIDDECODECREATEINFO create_info = { 0 };
+    create_info.CodecType = fmt->codec;
+    create_info.ChromaFormat = fmt->chroma_format;
+    create_info.OutputFormat = fmt->bit_depth_luma_minus8 ? cudaVideoSurfaceFormat_P016 : cudaVideoSurfaceFormat_NV12;
+    create_info.bitDepthMinus8 = fmt->bit_depth_luma_minus8;
+    create_info.DeinterlaceMode = cudaVideoDeinterlaceMode_Weave;
+    create_info.ulNumOutputSurfaces = 2;
+    // With PreferCUVID, JPEG is still decoded by CUDA while video is decoded by NVDEC hardware
+    create_info.ulCreationFlags = cudaVideoCreate_PreferCUVID;
+    int nDecodeSurface = GetNumDecodeSurfaces(fmt->codec, fmt->coded_width, fmt->coded_height);
+    create_info.ulNumDecodeSurfaces = nDecodeSurface;
+    create_info.vidLock = decoder->lock;
+    create_info.ulWidth = fmt->coded_width;
+    create_info.ulHeight = fmt->coded_height;
+    create_info.ulMaxWidth = fmt->coded_width;
+    create_info.ulMaxHeight = fmt->coded_height;
+    create_info.ulTargetWidth = create_info.ulWidth;                   /* Post-processed output width (should be aligned to 2). */
+    create_info.ulTargetHeight = create_info.ulHeight;
 
- /* CUVIDGETDECODESTATUS DecodeStatus;
-  memset(&DecodeStatus, 0, sizeof(DecodeStatus));
-  CUresult result = cuvidGetDecodeStatus(decoder, info->picture_index, &DecodeStatus);
-  if (result == CUDA_SUCCESS && (DecodeStatus.decodeStatus == cuvidDecodeStatus_Error || DecodeStatus.decodeStatus == cuvidDecodeStatus_Error_Concealed))
-  {
-    printf("Decode Error occurred for picture %d\n", info->picture_index);
-  }*/
+    decoder->frame_size = fan::vec2ui(fmt->coded_width, fmt->coded_height);
 
-  printf("+ mapping: %u succeeded\n", info->picture_index);
+    /* @todo do we need this? */
+    /* create_info.vidLock = ...*/
 
-  frameSize = res.x * res.y + res.x * res.y / 2;
-  unsigned char* h_frame = new unsigned char[frameSize];
-  cudaMemcpy2DAsync(h_frame, res.x, (void*)cuDevPtr, nPitch, res.x, res.y + res.y / 2, cudaMemcpyDeviceToHost);
-  uint64_t offset = 0;
-  void* data[2];
-  data[0] = h_frame;
-  data[1] = (uint8_t*)h_frame + (uint64_t)res.multiply();
+    check_error(cuvidCreateDecoder(&decoder->decoder, &create_info));
 
-  if (!init) {
-
-    p.load(&pile->loco, data, res);
-
-    p.position = fan::vec2(0, 0);
-    //p
-    pile->loco.nv12.push_back(&pile->cid[0], p);
-    init = true;
-  }
-  else {
-    pile->loco.nv12.reload(&pile->cid[0], data, res);
+    return 0;
   }
 
-  pile->loco.process_loop([] {});
+  static int parser_decode_picture_callback(void* user, CUVIDPICPARAMS* pic) {
 
-  fan::delay(fan::time::nanoseconds(.1e+9));
-  delete[] h_frame;
-  cuvidUnmapVideoFrame(decoder, cuDevPtr);
-  return 1;
-}
+    nv_decoder_t* decoder = (nv_decoder_t*)user;
 
-/* ------------------------------------------------ */
+    CUresult r = CUDA_SUCCESS;
 
-static void print_cuvid_decode_caps(CUVIDDECODECAPS* caps) {
+    if (nullptr == decoder->decoder) {
+      printf("decoder is nullptr. (exiting).");
+      exit(EXIT_FAILURE);
+    }
 
-  if (nullptr == caps) {
-    printf("Cannot print the cuvid decode caps as the given pointer is a nullptr.");
-    return;
+    r = cuvidDecodePicture(decoder->decoder, pic);
+    if (CUDA_SUCCESS != r) {
+      printf("Failed to decode the picture.");
+    }
+
+    return 1;
   }
 
-  printf("CUVIDDECODECAPS.nBitDepthMinus8: %u\n", caps->nBitDepthMinus8);
-  printf("CUVIDDECODECAPS.bIsSupported: %u\n", caps->bIsSupported);
-  printf("CUVIDDECODECAPS.nMaxWidth: %u\n", caps->nMaxWidth);
-  printf("CUVIDDECODECAPS.nMaxHeight: %u\n", caps->nMaxHeight);
-  printf("CUVIDDECODECAPS.nMaxMBCount: %u\n", caps->nMaxMBCount);
-  printf("CUVIDDECODECAPS.nMinWidth: %u\n", caps->nMinWidth);
-  printf("CUVIDDECODECAPS.nMinHeight: %u\n", caps->nMinHeight);
-}
+  //fan::vec2 ress[] = {}
 
-static void print_cuvid_parser_disp_info(CUVIDPARSERDISPINFO* info) {
+  bool init = false;
 
-  if (nullptr == info) {
-    printf("Cannot print the cuvid parser disp info, nullptr given.");
-    return;
+  static int parser_display_picture_callback(void* user, CUVIDPARSERDISPINFO* info) {
+
+    nv_decoder_t* decoder = (nv_decoder_t*)user;
+
+    CUresult rResult;
+    unsigned long long cuDevPtr = 0;
+    unsigned int nPitch, frameSize;
+    unsigned char* pHostPtr = nullptr;
+
+    CUVIDPROCPARAMS videoProcessingParameters = {};
+    videoProcessingParameters.progressive_frame = info->progressive_frame;
+    videoProcessingParameters.second_field = info->repeat_first_field + 1;
+    videoProcessingParameters.top_field_first = info->top_field_first;
+    videoProcessingParameters.unpaired_field = info->repeat_first_field < 0;
+    //videoProcessingParameters.output_stream = m_cuvidStream;
+
+
+    check_error(cuvidCtxLock(decoder->lock, 0));
+
+    rResult = cuvidMapVideoFrame(decoder->decoder, info->picture_index, &cuDevPtr,
+      &nPitch, &videoProcessingParameters);
+
+
+    printf("+ mapping: %u succeeded\n", info->picture_index);
+
+    frameSize = decoder->frame_size.x * decoder->frame_size.y + decoder->frame_size.x * decoder->frame_size.y / 2;
+    unsigned char* h_frame = new unsigned char[frameSize];
+    cudaMemcpy2D(h_frame, decoder->frame_size.x, (void*)cuDevPtr, nPitch, decoder->frame_size.x, decoder->frame_size.y + decoder->frame_size.y / 2, cudaMemcpyDeviceToHost);
+    uint64_t offset = 0;
+    void* data[2];
+    data[0] = h_frame;
+    data[1] = (uint8_t*)h_frame + (uint64_t)decoder->frame_size.multiply();
+
+    if (!decoder->init) {
+
+      p.load(&pile->loco, data, decoder->frame_size);
+
+      p.position = fan::vec2(0, 0);
+      //p
+      pile->loco.nv12.push_back(&pile->cid[0], p);
+      decoder->init = true;
+    }
+    else {
+      pile->loco.nv12.reload(&pile->cid[0], data, decoder->frame_size);
+    }
+
+    pile->loco.process_loop([] {});
+
+    fan::delay(fan::time::nanoseconds(.1e+9));
+    delete[] h_frame;
+    check_error(cuvidUnmapVideoFrame(decoder->decoder, cuDevPtr));
+
+    check_error(cuvidCtxUnlock(decoder->lock, 0));
+
+    return 1;
   }
 
-  printf("CUVIDPARSERDISPINFO.picture_index: %d\n", info->picture_index);
-  printf("CUVIDPARSERDISPINFO.progressive_frame: %d\n", info->progressive_frame);
-  printf("CUVIDPARSERDISPINFO.top_field_first: %d\n", info->top_field_first);
-  printf("CUVIDPARSERDISPINFO.repeat_first_field: %d\n", info->repeat_first_field);
-  printf("CUVIDPARSERDISPINFO.timestamp: %lld\n", info->timestamp);
-}
+  /* ------------------------------------------------ */
 
-static void print_cuvid_pic_params(CUVIDPICPARAMS* pic) {
+  static void print_cuvid_decode_caps(CUVIDDECODECAPS* caps) {
 
-  if (nullptr == pic) {
-    printf("Cannot print the cuvid pic params, nullptr given.");
-    return;
+    if (nullptr == caps) {
+      printf("Cannot print the cuvid decode caps as the given pointer is a nullptr.");
+      return;
+    }
+
+    printf("CUVIDDECODECAPS.nBitDepthMinus8: %u\n", caps->nBitDepthMinus8);
+    printf("CUVIDDECODECAPS.bIsSupported: %u\n", caps->bIsSupported);
+    printf("CUVIDDECODECAPS.nMaxWidth: %u\n", caps->nMaxWidth);
+    printf("CUVIDDECODECAPS.nMaxHeight: %u\n", caps->nMaxHeight);
+    printf("CUVIDDECODECAPS.nMaxMBCount: %u\n", caps->nMaxMBCount);
+    printf("CUVIDDECODECAPS.nMinWidth: %u\n", caps->nMinWidth);
+    printf("CUVIDDECODECAPS.nMinHeight: %u\n", caps->nMinHeight);
   }
 
-  printf("CUVIDPICPARAMS.PicWithInMbs: %d\n", pic->PicWidthInMbs);
-  printf("CUVIDPICPARAMS.FrameHeightInMbs: %d\n", pic->FrameHeightInMbs);
-  printf("CUVIDPICPARAMS.CurrPicIdx: %d\n", pic->CurrPicIdx);
-  printf("CUVIDPICPARAMS.field_pic_flag: %d\n", pic->field_pic_flag);
-  printf("CUVIDPICPARAMS.bottom_field_flag: %d\n", pic->bottom_field_flag);
-  printf("CUVIDPICPARAMS.second_field: %d\n", pic->second_field);
-  printf("CUVIDPICPARAMS.nBitstreamDataLen: %u\n", pic->nBitstreamDataLen);
-  printf("CUVIDPICPARAMS.nNumSlices: %u\n", pic->nNumSlices);
-  printf("CUVIDPICPARAMS.ref_pic_flag: %d\n", pic->ref_pic_flag);
-  printf("CUVIDPICPARAMS.intra_pic_flag: %d\n", pic->intra_pic_flag);
-}
+  static void print_cuvid_parser_disp_info(CUVIDPARSERDISPINFO* info) {
 
+    if (nullptr == info) {
+      printf("Cannot print the cuvid parser disp info, nullptr given.");
+      return;
+    }
+
+    printf("CUVIDPARSERDISPINFO.picture_index: %d\n", info->picture_index);
+    printf("CUVIDPARSERDISPINFO.progressive_frame: %d\n", info->progressive_frame);
+    printf("CUVIDPARSERDISPINFO.top_field_first: %d\n", info->top_field_first);
+    printf("CUVIDPARSERDISPINFO.repeat_first_field: %d\n", info->repeat_first_field);
+    printf("CUVIDPARSERDISPINFO.timestamp: %lld\n", info->timestamp);
+  }
+
+  static void print_cuvid_pic_params(CUVIDPICPARAMS* pic) {
+
+    if (nullptr == pic) {
+      printf("Cannot print the cuvid pic params, nullptr given.");
+      return;
+    }
+
+    printf("CUVIDPICPARAMS.PicWithInMbs: %d\n", pic->PicWidthInMbs);
+    printf("CUVIDPICPARAMS.FrameHeightInMbs: %d\n", pic->FrameHeightInMbs);
+    printf("CUVIDPICPARAMS.CurrPicIdx: %d\n", pic->CurrPicIdx);
+    printf("CUVIDPICPARAMS.field_pic_flag: %d\n", pic->field_pic_flag);
+    printf("CUVIDPICPARAMS.bottom_field_flag: %d\n", pic->bottom_field_flag);
+    printf("CUVIDPICPARAMS.second_field: %d\n", pic->second_field);
+    printf("CUVIDPICPARAMS.nBitstreamDataLen: %u\n", pic->nBitstreamDataLen);
+    printf("CUVIDPICPARAMS.nNumSlices: %u\n", pic->nNumSlices);
+    printf("CUVIDPICPARAMS.ref_pic_flag: %d\n", pic->ref_pic_flag);
+    printf("CUVIDPICPARAMS.intra_pic_flag: %d\n", pic->intra_pic_flag);
+  }
+};
 
 int main() {
 
@@ -227,136 +375,7 @@ int main() {
 
   pile->loco.set_vsync(false);
 
-  CUresult r = CUDA_SUCCESS;
-  const char* err_str = nullptr;
-
-  /* Initialize cuda, must be done before anything else. */
-  r = cuInit(0);
-  if (CUDA_SUCCESS != r) {
-    cuGetErrorString(r, &err_str);
-    printf("Failed to initialize cuda: %s. (exiting).\n", err_str);
-    exit(EXIT_FAILURE);
-  }
-
-  int device_count = 0;
-  r = cuDeviceGetCount(&device_count);
-  if (CUDA_SUCCESS != r) {
-    cuGetErrorString(r, &err_str);
-    printf("Failed to get the cuda device count: %s. (exiting).\n", err_str);
-    exit(EXIT_FAILURE);
-  }
-
-  printf("We have %d cuda device(s).\n", device_count);
-
-  r = cuDeviceGet(&device, 0);
-  if (CUDA_SUCCESS != r) {
-    cuGetErrorString(r, &err_str);
-    printf("Failed to get a handle to the cuda device: %s. (exiting).\n", err_str);
-    exit(EXIT_FAILURE);
-  }
-
-  char name[80] = { 0 };
-  r = cuDeviceGetName(name, sizeof(name), device);
-  if (CUDA_SUCCESS != r) {
-    cuGetErrorString(r, &err_str);
-    printf("Failed to get the cuda device name: %s. (exiting).\n", err_str);
-    exit(EXIT_FAILURE);
-  }
-
-  printf("Cuda device: %s.\n", name);
-
-  r = cuCtxCreate(&context, 0, device);
-  if (CUDA_SUCCESS != r) {
-    cuGetErrorString(r, &err_str);
-    printf("Failed to create a cuda context: %s. (exiting).\n", err_str);
-    exit(EXIT_FAILURE);
-  }
-
-  /* Query capabilities. */
-  CUVIDDECODECAPS decode_caps = {};
-  decode_caps.eCodecType = cudaVideoCodec_H264;
-  decode_caps.eChromaFormat = cudaVideoChromaFormat_420;
-  decode_caps.nBitDepthMinus8 = 0;
-
-  r = cuvidGetDecoderCaps(&decode_caps);
-  if (CUDA_SUCCESS != r) {
-    cuGetErrorString(r, &err_str);
-    printf("Failed to get decoder caps: %s (exiting).\n", err_str);
-    exit(EXIT_FAILURE);
-  }
-
-  /* Create decoder context. */
-  CUVIDDECODECREATEINFO create_info = { 0 };
-  create_info.CodecType = decode_caps.eCodecType;                    /* cudaVideoCodex_XXX */
-  create_info.ChromaFormat = decode_caps.eChromaFormat;              /* cudaVideoChromaFormat_XXX */
-  create_info.OutputFormat = cudaVideoSurfaceFormat_NV12;            /* cudaVideoSurfaceFormat_XXX */
-  create_info.ulCreationFlags = cudaVideoCreate_Default;         /* cudaVideoCreate_XXX */
-  create_info.DeinterlaceMode = cudaVideoDeinterlaceMode_Weave;      /* cudaVideoDeinterlaceMode_XXX */
-  create_info.bitDepthMinus8 = decode_caps.nBitDepthMinus8;;
-  create_info.ulNumOutputSurfaces = 2;                               /* Maximum number of internal decode surfaces. */
-  create_info.ulNumDecodeSurfaces = 4;                               /* @todo from NvDecoder.cpp, assuming worst case here ... Maximum number of internal decode surfaces. */
-  //create_info.ulIntraDecodeOnly = 0;                                 /* @todo this seems like an interesting flag. */
-
-  /* Size is specific for the moonlight.264 file. */
-  create_info.ulWidth = res.x;                                        /* Coded sequence width in pixels. */
-  create_info.ulHeight = res.y;                                       /* Coded sequence height in pixels. */
-  create_info.ulTargetWidth = create_info.ulWidth;                   /* Post-processed output width (should be aligned to 2). */
-  create_info.ulTargetHeight = create_info.ulHeight;                 /* Post-processed output height (should be aligned to 2). */
-  create_info.target_rect.left = 0;
-  create_info.target_rect.top = 0;
-  create_info.target_rect.right = res.x;
-  create_info.target_rect.bottom = res.y;
-
-
-  /* @todo do we need this? */
-  /* create_info.vidLock = ...*/
-
-  r = cuvidCreateDecoder(&decoder, &create_info);
-  if (CUDA_SUCCESS != r) {
-    cuGetErrorString(r, &err_str);
-    printf("Failed to create the decoder: %s. (exiting).\n", err_str);
-    exit(EXIT_FAILURE);
-  }
-
-  /* Create a video parser that gives us the CUVIDPICPARAMS structures. */
-  CUVIDPARSERPARAMS parser_params;
-  memset((void*)&parser_params, 0x00, sizeof(parser_params));
-  parser_params.CodecType = create_info.CodecType;
-  parser_params.ulMaxNumDecodeSurfaces = create_info.ulNumDecodeSurfaces;
-  parser_params.ulClockRate = 0;
-  parser_params.ulErrorThreshold = 0;
-  parser_params.ulMaxDisplayDelay = 1;
-  parser_params.pUserData = nullptr;
-  parser_params.pfnSequenceCallback = parser_sequence_callback;
-  parser_params.pfnDecodePicture = parser_decode_picture_callback;
-  parser_params.pfnDisplayPicture = parser_display_picture_callback;
-
-  CUvideoparser parser = nullptr;
-  r = cuvidCreateVideoParser(&parser, &parser_params);
-
-  if (CUDA_SUCCESS != r) {
-    cuGetErrorString(r, &err_str);
-    printf("Failed to create a video parser: %s (exiting).\n", err_str);
-    exit(EXIT_FAILURE);
-  }
-
-
-  fan::string video_data;
-  fan::io::file::read("o.264", &video_data);
-
-  CUVIDSOURCEDATAPACKET pkt;
-  pkt.flags = 0;
-  pkt.payload_size = video_data.size();
-  pkt.payload = (uint8_t*)video_data.data();
-  pkt.timestamp = 0;
-
-  r = cuvidParseVideoData(parser, &pkt);
-  if (CUDA_SUCCESS != r) {
-    cuGetErrorString(r, &err_str);
-    printf("Failed to parse h264 packet: %s (exiting).\n", err_str);
-    exit(EXIT_FAILURE);
-
-  }
+  nv_decoder_t nv;
 
 
 
