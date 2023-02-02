@@ -116,7 +116,6 @@ int main() {
     else {
       f -= pile->loco.get_delta_time() * 20;
     }
-    //pile->loco.light.set(&pile->cid[1], &loco_t::light_t::vi_t::position, pile->loco.get_mouse_position(pile->viewport));
     if (f > 0.9) {
       dir = true;
     }
