@@ -17,9 +17,9 @@ void main() {
   vec3 yuv2g = vec3(1.164, -0.391, -0.813);
   vec3 yuv2b = vec3(1.164, 2.018, 0.0);
 
-	yuv.x = texture2D(_t00, vec2(texture_coordinate.x, texture_coordinate.y)).r  - 0.0625;
-	yuv.y = texture2D(_t01, vec2(texture_coordinate.x, texture_coordinate.y)).g - 0.5;
-  yuv.z = texture2D(_t01, vec2(texture_coordinate.x, texture_coordinate.y)).r - 0.5;
+	yuv.x = texture2D(_t00, texture_coordinate).r  - 0.0625;
+	yuv.y = texture2D(_t01, texture_coordinate).r - 0.5;
+  yuv.z = texture2D(_t01, texture_coordinate).g - 0.5;
 
   vec3 rgb;
 
