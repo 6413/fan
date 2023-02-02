@@ -336,6 +336,10 @@ namespace fan {
 		fan::string to_string(int precision = 2) const {
 			return fan::string(fan::to_string(this->x, precision) + ' '+ fan::to_string(this->y, precision));
 		}
+
+    auto hypotenuse() const {
+      return std::sqrt(this->x, this->y);
+    }
 	};
 
 	template <typename _Ty = f32_t>
@@ -983,5 +987,15 @@ namespace fan {
 	constexpr uint64_t vector_size(const std::vector<T>& vector) {
 		return vector.size();
 	}
-
+  template <typename T, typename T2>
+  constexpr fan::_vec2<T> min(const fan::_vec2<T>& x, fan::_vec2<T2> y) {
+    return { x.x < y.x ? x.x : y.x, x.y < y.y ? x.y : y.y };
+  }
+  template <typename T, typename T2>
+  constexpr fan::_vec2<T> copysign(const fan::_vec2<T>& x, fan::_vec2<T2> y) {
+    return { fan::math::copysign(x.x, y.x), fan::math::copysign(x.y, y.y) };
+  }
+  constexpr auto copysign(const auto& v, const auto v2) {
+    return fan::math::copysign(v, v2);
+  }
 }
