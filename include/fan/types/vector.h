@@ -999,10 +999,10 @@ namespace fan {
     return fan::math::copysign(v, v2);
   }
   namespace math {
-    auto reflect(const auto& Direction, const auto& Normal) -> decltype(Direction) {
+    fan::vec2 reflect(const auto& Direction, const auto& Normal) {
       auto k = fan::math::cross(fan::vec3{ Normal.x, Normal.y, 0 }, fan::vec3{ 0, 0, -1 });
       f32_t Multipler = k.dot(fan::vec3{ Direction.x, Direction.y, 0 });
-      return fan::vec2{ k.x * Multipler, k.y * Multipler };
+      return fan::vec2( k.x * Multipler, k.y * Multipler);
     }
   }
 }
