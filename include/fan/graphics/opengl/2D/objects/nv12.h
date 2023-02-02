@@ -47,7 +47,7 @@ struct sb_sprite_name {
     properties_t(const ri_t& i) : ri_t(i) {}
 
   private:
-    void _load(loco_t* loco, void** data, const fan::vec2& image_size, uint32_t stride[3]) {
+    void _load(loco_t* loco, void** data, const fan::vec2& image_size) {
       loco_t::image_t::load_properties_t lp;
       lp.format = loco_t::image_t::format::r8_unorm;
       lp.internal_format = loco_t::image_t::format::r8_unorm; 
@@ -66,13 +66,9 @@ struct sb_sprite_name {
     }
   public:
 
-    void load(loco_t* loco, void* data, const fan::vec2& image_size) {
-      uint32_t stride[3];
-      stride[0] = image_size.x;
-      stride[1] = image_size.x / 2;
-      stride[2] = image_size.x / 2;
-      load(loco, data, image_size, stride);
-    }
+    //void load(loco_t* loco, void* data, const fan::vec2& image_size) {
+    //  load(loco, data, image_size);
+    //}
     //void load(loco_t* loco, void* data, const fan::vec2& image_size, uint32_t stride[3]) {
     //  void* datas[3];
     //  uint64_t offset = 0;
@@ -83,15 +79,11 @@ struct sb_sprite_name {
     //}
 
     void load(loco_t* loco, void** data, const fan::vec2& image_size) {
-      uint32_t stride[3];
-      stride[0] = image_size.x;
-      stride[1] = image_size.x / 2;
-      stride[2] = image_size.x / 2;
-      load(loco, data, image_size, stride);
+      load(loco, data, image_size);
     }
-    void load(loco_t* loco, void** data, const fan::vec2& image_size, uint32_t stride[3]) {
+    void load(loco_t* loco, void** data, const fan::vec2& image_size) {
 
-      _load(loco, data, image_size, stride);
+      _load(loco, data, image_size);
 
       y = &loco->sb_shape_var_name.image[0];
       vu = &loco->sb_shape_var_name.image[1];
@@ -126,8 +118,7 @@ struct sb_sprite_name {
 
     get_key_value(uint16_t) = p.position.z;
     get_key_value(loco_t::textureid_t<0>) = p.y;
-    get_key_value(loco_t::textureid_t<1>) = p.u;
-    get_key_value(loco_t::textureid_t<2>) = p.v;
+    get_key_value(loco_t::textureid_t<1>) = p.vu;
     get_key_value(loco_t::matrices_list_NodeReference_t) = p.matrices;
     get_key_value(fan::graphics::viewport_list_NodeReference_t) = p.viewport;
 
