@@ -4,10 +4,10 @@
 
 #include <nvcuvid.h>
 
-#include "device_launch_parameters.h"
+//#include "device_launch_parameters.h"
 
-#define HGPUNV void*
-#include <cuda_runtime.h>
+typedef void* HGPUNV;
+//#include <cuda_runtime.h>
 #include <cuda_gl_interop.h>
 
 #ifndef __GPU_IS_CUDA_INITED
@@ -40,13 +40,11 @@ namespace fan {
         fan::cuda::check_error(cudaGraphicsGLRegisterImage(&resource, image_id, GL_TEXTURE_2D, cudaGraphicsMapFlagsNone));
       }
 
-      void bind() {
+      void map(cudaArray_t* carray) {
         fan::cuda::check_error(cudaGraphicsMapResources(1, &resource, 0));
-      }
-      void bind(cudaArray_t* carray) {
         fan::cuda::check_error(cudaGraphicsSubResourceGetMappedArray(carray, resource, 0, 0));
       }
-      void unbind() {
+      void unmap() {
         fan::cuda::check_error(cudaGraphicsUnmapResources(1, &resource));
       }
       ~graphics_resource_t() {
@@ -59,7 +57,8 @@ namespace fan {
     };
 
     struct nv_decoder_t {
-      nv_decoder_t(const fan::string& nal_data) {
+
+      nv_decoder_t() {
 
         if (!__GPU_IS_CUDA_INITED) {
           fan::cuda::check_error(cuInit(0));
@@ -102,13 +101,20 @@ namespace fan {
 
         fan::cuda::check_error(cuvidCreateVideoParser(&parser, &parser_params));
 
-        CUVIDSOURCEDATAPACKET pkt;
-        pkt.flags = 0;
-        pkt.payload_size = nal_data.size();
-        pkt.payload = (uint8_t*)nal_data.data();
-        pkt.timestamp = 0;
-
-        fan::cuda::check_error(cuvidParseVideoData(parser, &pkt));
+        loco_t::image_t::load_properties_t lp;
+        // cudaGraphicsGLRegisterImage accepts only GL_RED
+        lp.internal_format = GL_RED;
+        lp.format = GL_RED;
+        lp.filter = loco_t::image_t::filter::linear;
+        lp.visual_output = loco_t::image_t::sampler_address_mode::clamp_to_edge;
+        fan::webp::image_info_t info;
+        info.data = 0;
+        info.size = 0;
+        image_y.load(&pile->loco, info, lp);
+        // cudaGraphicsGLRegisterImage accepts only GL_RG
+        lp.internal_format = fan::opengl::GL_RG;
+        lp.format = fan::opengl::GL_RG;
+        image_vu.load(&pile->loco, info, lp);
       }
 
       ~nv_decoder_t() {
@@ -116,6 +122,15 @@ namespace fan {
 
         fan::cuda::check_error(cuvidDestroyDecoder(decoder));
         fan::cuda::check_error(cuCtxDestroy(context));
+      }
+
+      void start_decoding(const fan::string& nal_data) {
+        CUVIDSOURCEDATAPACKET pkt;
+        pkt.flags = 0;
+        pkt.payload_size = nal_data.size();
+        pkt.payload = (uint8_t*)nal_data.data();
+        pkt.timestamp = 0;
+        fan::cuda::check_error(cuvidParseVideoData(parser, &pkt));
       }
 
       static unsigned long GetNumDecodeSurfaces(cudaVideoCodec eCodec, unsigned int nWidth, unsigned int nHeight) {
@@ -187,23 +202,16 @@ namespace fan {
         fan::webp::image_info_t info;
         info.data = 0;
         info.size = decoder->frame_size;
-        decoder->image_y.load(&pile->loco, info, lp);
+        decoder->image_y.reload_pixels(&pile->loco, info, lp);
         // cudaGraphicsGLRegisterImage accepts only GL_RG
         lp.internal_format = fan::opengl::GL_RG;
         lp.format = fan::opengl::GL_RG;
-        decoder->image_vu.load(&pile->loco, info, lp);
+        decoder->image_vu.reload_pixels(&pile->loco, info, lp);
 
         decoder->image_y_resource.open(pile->loco.image_list[decoder->image_y.texture_reference].texture_id);
         decoder->image_vu_resource.open(pile->loco.image_list[decoder->image_vu.texture_reference].texture_id);
 
         fan::cuda::check_error(cuvidCreateDecoder(&decoder->decoder, &create_info));
-
-        p.matrices = &pile->matrices;
-        p.viewport = &pile->viewport;
-        p.size = 1;
-        p.y = &decoder->image_y;
-        p.vu = &decoder->image_vu;
-        pile->loco.nv12.push_back(&pile->cid[1], p);
 
         decoder->timestamp.start();
 
@@ -240,18 +248,16 @@ namespace fan {
 
         cudaArray_t mappedArray;
 
-        decoder->image_y_resource.bind();
-        decoder->image_y_resource.bind(&mappedArray);
-
+        decoder->image_y_resource.map(&mappedArray);
         fan::cuda::check_error(cudaMemcpy2DToArray(mappedArray, 0, 0, (void*)cuDevPtr, nPitch, decoder->frame_size.x, decoder->frame_size.y, cudaMemcpyDeviceToDevice));
-        decoder->image_vu_resource.bind();
-        decoder->image_vu_resource.bind(&mappedArray);
+
+        decoder->image_vu_resource.map(&mappedArray);
         fan::cuda::check_error(cudaMemcpy2DToArray(mappedArray, 0, 0, (void*)(cuDevPtr + nPitch * decoder->frame_size.y), nPitch, decoder->frame_size.x, decoder->frame_size.y / 2, cudaMemcpyDeviceToDevice));
 
-        decoder->image_y_resource.unbind();
-        decoder->image_vu_resource.unbind();
+        decoder->image_y_resource.unmap();
+        decoder->image_vu_resource.unmap();
 
-        pile->loco.process_loop([&] {});
+        pile->loco.process_loop([]{});
 
         ////fan::delay(fan::time::nanoseconds(.05e+9));
         fan::cuda::check_error(cuvidUnmapVideoFrame(decoder->decoder, cuDevPtr));
