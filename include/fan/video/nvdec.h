@@ -192,8 +192,8 @@ namespace fan {
 
         create_info.ulWidth = fmt->coded_width;
         create_info.ulHeight = fmt->coded_height;
-        create_info.ulMaxWidth = 1920;
-        create_info.ulMaxHeight = 1080;
+        create_info.ulMaxWidth = 3840;
+        create_info.ulMaxHeight = 2160;
         create_info.ulTargetWidth = create_info.ulWidth;
         create_info.ulTargetHeight = create_info.ulHeight;
 
