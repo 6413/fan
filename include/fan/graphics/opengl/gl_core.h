@@ -186,6 +186,7 @@ namespace fan {
       }
 
       void set_current(fan::window_t* window);
+      void unset_current();
 
       uint32_t m_flags;
     };
@@ -505,6 +506,15 @@ inline void fan::opengl::context_t::set_current(fan::window_t* window)
     wglMakeCurrent(window->m_hdc, window->m_context);
   #elif defined(fan_platform_unix)
     opengl.internal.glXMakeCurrent(fan::sys::m_display, window->m_window_handle, window->m_context);
+  #endif
+}
+
+inline void fan::opengl::context_t::unset_current()
+{
+  #ifdef fan_platform_windows
+    wglMakeCurrent(0, 0);
+  #elif defined(fan_platform_unix)
+    opengl.internal.glXMakeCurrent(fan::sys::m_display, 0, 0);
   #endif
 }
 
