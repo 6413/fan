@@ -203,6 +203,8 @@ namespace fan {
         decoder->image_y_resource.open(pile->loco.image_list[decoder->image_y.texture_reference].texture_id);
         decoder->image_vu_resource.open(pile->loco.image_list[decoder->image_vu.texture_reference].texture_id);
 
+        int nDecodeSurface = GetNumDecodeSurfaces(fmt->codec, fmt->coded_width, fmt->coded_height);
+
         if (decoder->decoder) {
 
           CUVIDRECONFIGUREDECODERINFO reconfigParams = { 0 };
@@ -232,7 +234,6 @@ namespace fan {
           create_info.ulNumOutputSurfaces = 1;
 
           create_info.ulCreationFlags = cudaVideoCreate_PreferCUVID;
-          int nDecodeSurface = GetNumDecodeSurfaces(fmt->codec, fmt->coded_width, fmt->coded_height);
           create_info.ulNumDecodeSurfaces = nDecodeSurface;
 
           create_info.ulWidth = fmt->coded_width;
