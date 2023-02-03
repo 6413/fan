@@ -39,6 +39,13 @@ namespace fan {
       void open(GLuint image_id) {
         fan::cuda::check_error(cudaGraphicsGLRegisterImage(&resource, image_id, GL_TEXTURE_2D, cudaGraphicsMapFlagsNone));
       }
+      void close() {
+        if (resource == nullptr) {
+          return;
+        }
+        cudaGraphicsUnregisterResource(resource);
+        resource = nullptr;
+      }
 
       void map(cudaArray_t* carray) {
         fan::cuda::check_error(cudaGraphicsMapResources(1, &resource, 0));
@@ -48,10 +55,7 @@ namespace fan {
         fan::cuda::check_error(cudaGraphicsUnmapResources(1, &resource));
       }
       ~graphics_resource_t() {
-        if (resource == nullptr) {
-          return;
-        }
-        cudaGraphicsUnregisterResource(resource);
+        close();
       }
       cudaGraphicsResource* resource = nullptr;
     };
@@ -118,6 +122,8 @@ namespace fan {
       }
 
       ~nv_decoder_t() {
+        image_y_resource.~graphics_resource_t();
+        image_vu_resource.~graphics_resource_t();
         cuvidDestroyVideoParser(parser);
 
         fan::cuda::check_error(cuvidDestroyDecoder(decoder));
@@ -169,7 +175,7 @@ namespace fan {
         nv_decoder_t* decoder = (nv_decoder_t*)user;
 
         fan::print_format("coded size: {}x{}", fmt->coded_width, fmt->coded_height);
-        fan::print_format("display area: {}x{}", fmt->display_area.left, fmt->display_area.top, fmt->display_area.right, fmt->display_area.bottom);
+        fan::print_format("display area: {} {} {} {}", fmt->display_area.left, fmt->display_area.top, fmt->display_area.right, fmt->display_area.bottom);
         fan::print_format("birate {}", fmt->bitrate);
 
         CUVIDDECODECREATEINFO create_info = { 0 };
@@ -186,12 +192,16 @@ namespace fan {
 
         create_info.ulWidth = fmt->coded_width;
         create_info.ulHeight = fmt->coded_height;
-        create_info.ulMaxWidth = fmt->coded_width;
-        create_info.ulMaxHeight = fmt->coded_height;
+        create_info.ulMaxWidth = 1920;
+        create_info.ulMaxHeight = 1080;
         create_info.ulTargetWidth = create_info.ulWidth;
         create_info.ulTargetHeight = create_info.ulHeight;
 
         decoder->frame_size = fan::vec2ui(fmt->coded_width, fmt->coded_height);
+
+        decoder->image_y_resource.close();
+        decoder->image_vu_resource.close();
+
 
         loco_t::image_t::load_properties_t lp;
         // cudaGraphicsGLRegisterImage accepts only GL_RED
@@ -208,10 +218,40 @@ namespace fan {
         lp.format = fan::opengl::GL_RG;
         decoder->image_vu.reload_pixels(&pile->loco, info, lp);
 
+
         decoder->image_y_resource.open(pile->loco.image_list[decoder->image_y.texture_reference].texture_id);
         decoder->image_vu_resource.open(pile->loco.image_list[decoder->image_vu.texture_reference].texture_id);
 
-        fan::cuda::check_error(cuvidCreateDecoder(&decoder->decoder, &create_info));
+        if (decoder->decoder) {
+
+          CUVIDRECONFIGUREDECODERINFO reconfigParams = { 0 };
+
+          int nDecodeSurface = GetNumDecodeSurfaces(fmt->codec, fmt->coded_width, fmt->coded_height);
+
+          reconfigParams.ulWidth = fmt->coded_width;
+          reconfigParams.ulHeight = fmt->coded_height;
+          reconfigParams.ulTargetWidth = create_info.ulWidth;
+          reconfigParams.ulTargetHeight = create_info.ulHeight; 
+          reconfigParams.display_area.bottom = fmt->display_area.bottom;
+          reconfigParams.display_area.top = fmt->display_area.top;
+          reconfigParams.display_area.left = fmt->display_area.left;
+          reconfigParams.display_area.right = fmt->display_area.right;
+          reconfigParams.target_rect.top = reconfigParams.display_area.top;
+          reconfigParams.target_rect.bottom = reconfigParams.display_area.bottom;
+          reconfigParams.target_rect.left = reconfigParams.display_area.left;
+          reconfigParams.target_rect.right = reconfigParams.display_area.right;
+
+          reconfigParams.ulNumDecodeSurfaces = nDecodeSurface;
+
+          //cuCtxPushCurrent(decoder->context);
+          fan::cuda::check_error(cuvidReconfigureDecoder(decoder->decoder, &reconfigParams));
+
+          //cuCtxPopCurrent(NULL);
+        }
+        else {
+          fan::cuda::check_error(cuvidCreateDecoder(&decoder->decoder, &create_info));
+        }
+        //
 
         decoder->timestamp.start();
 
