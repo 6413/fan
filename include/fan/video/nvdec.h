@@ -231,15 +231,7 @@ namespace fan {
           reconfigParams.ulWidth = fmt->coded_width;
           reconfigParams.ulHeight = fmt->coded_height;
           reconfigParams.ulTargetWidth = create_info.ulWidth;
-          reconfigParams.ulTargetHeight = create_info.ulHeight; 
-          reconfigParams.display_area.bottom = fmt->display_area.bottom;
-          reconfigParams.display_area.top = fmt->display_area.top;
-          reconfigParams.display_area.left = fmt->display_area.left;
-          reconfigParams.display_area.right = fmt->display_area.right;
-          reconfigParams.target_rect.top = reconfigParams.display_area.top;
-          reconfigParams.target_rect.bottom = reconfigParams.display_area.bottom;
-          reconfigParams.target_rect.left = reconfigParams.display_area.left;
-          reconfigParams.target_rect.right = reconfigParams.display_area.right;
+          reconfigParams.ulTargetHeight = create_info.ulHeight;
 
           reconfigParams.ulNumDecodeSurfaces = nDecodeSurface;
 
