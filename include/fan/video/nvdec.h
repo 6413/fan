@@ -182,28 +182,6 @@ namespace fan {
 
         decoder->frame_size = fan::vec2ui(fmt->coded_width, fmt->coded_height);
 
-        decoder->image_y_resource.close();
-        decoder->image_vu_resource.close();
-
-        loco_t::image_t::load_properties_t lp;
-        // cudaGraphicsGLRegisterImage accepts only GL_RED
-        lp.internal_format = GL_RED;
-        lp.format = GL_RED;
-        lp.filter = loco_t::image_t::filter::linear;
-        lp.visual_output = loco_t::image_t::sampler_address_mode::clamp_to_edge;
-        fan::webp::image_info_t info;
-        info.data = 0;
-        info.size = decoder->frame_size;
-        decoder->image_y.reload_pixels(&pile->loco, info, lp);
-        // cudaGraphicsGLRegisterImage accepts only GL_RG
-        lp.internal_format = fan::opengl::GL_RG;
-        lp.format = fan::opengl::GL_RG;
-        decoder->image_vu.reload_pixels(&pile->loco, info, lp);
-
-
-        decoder->image_y_resource.open(pile->loco.image_list[decoder->image_y.texture_reference].texture_id);
-        decoder->image_vu_resource.open(pile->loco.image_list[decoder->image_vu.texture_reference].texture_id);
-
         int nDecodeSurface = GetNumDecodeSurfaces(fmt->codec, fmt->coded_width, fmt->coded_height);
 
         //cuvidDestroyVideoParser(decoder->parser);
@@ -237,6 +215,28 @@ namespace fan {
         }
         else {
         g_remake_decoder:
+
+          decoder->image_y_resource.close();
+          decoder->image_vu_resource.close();
+
+          loco_t::image_t::load_properties_t lp;
+          // cudaGraphicsGLRegisterImage accepts only GL_RED
+          lp.internal_format = GL_RED;
+          lp.format = GL_RED;
+          lp.filter = loco_t::image_t::filter::linear;
+          lp.visual_output = loco_t::image_t::sampler_address_mode::clamp_to_edge;
+          fan::webp::image_info_t info;
+          info.data = 0;
+          info.size = decoder->frame_size;
+          decoder->image_y.reload_pixels(&pile->loco, info, lp);
+          // cudaGraphicsGLRegisterImage accepts only GL_RG
+          lp.internal_format = fan::opengl::GL_RG;
+          lp.format = fan::opengl::GL_RG;
+          decoder->image_vu.reload_pixels(&pile->loco, info, lp);
+
+          decoder->image_y_resource.open(pile->loco.image_list[decoder->image_y.texture_reference].texture_id);
+          decoder->image_vu_resource.open(pile->loco.image_list[decoder->image_vu.texture_reference].texture_id);
+
           CUVIDDECODECREATEINFO create_info = { 0 };
           create_info.CodecType = fmt->codec;
           create_info.ChromaFormat = fmt->chroma_format;
