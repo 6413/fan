@@ -502,7 +502,7 @@ void NvEncoder::DoEncode(NV_ENC_INPUT_PTR inputBuffer, std::vector<std::vector<u
       //DBGMSG(dbgINFO, L"%s - nvEncEncodePicture returned NV_ENC_ERR_NEED_MORE_INPUT for frame number - %d", WFUNCTION, m_iToSend);
     }
     m_iToSend++;
-    GetEncodedPacket(m_vBitstreamOutputBuffer, vPacket, true, pLockBitstreamData);
+    GetEncodedPacket(m_vBitstreamOutputBuffer, vPacket, false, pLockBitstreamData);
   }
   else
   {

@@ -359,23 +359,40 @@ int main() {
 
   fan::cuda::check_error(cuCtxCreate(&context, 0, device));
 
-  fan::vec2 encode_size(1920, 1080);
+  fan::vec2 encode_size(2560, 1440);
+  NV_ENC_BUFFER_FORMAT fmt = NV_ENC_BUFFER_FORMAT_ARGB;
 
-  NvEncoderCuda enc(context, encode_size.x, encode_size.y, NV_ENC_BUFFER_FORMAT::NV_ENC_BUFFER_FORMAT_NV12);
+  NvEncoderCuda enc(context, encode_size.x, encode_size.y, fmt);
 
-  NV_ENC_INITIALIZE_PARAMS params{};
-  params.encodeGUID = NV_ENC_CODEC_H264_GUID;
-  params.encodeWidth = encode_size.x;
-  params.encodeHeight = encode_size.y;
-  NV_ENC_CONFIG env_config = {};
-  env_config.version = NV_ENC_CONFIG_VER;
-  env_config.profileGUID = NV_ENC_CODEC_H264_GUID;
-  params.encodeConfig = &env_config;
-  //env_config.profileGUID = NV_ENC_CODEC_PROFILE_AUTOSELECT_GUID;
-  //enc.m_nvenc.nvEncGetEncodePresetConfig(enc.m_hEncoder, NV_ENC_CODEC_H264_GUID, NV_ENC_CODEC_PROFILE_AUTOSELECT_GUID, &params);
-  enc.CreateEncoder(&params);
+  NV_ENC_INITIALIZE_PARAMS encInitParams = { 0 };
+  /// NVENCODEAPI video encoding configuration parameters
+  NV_ENC_CONFIG encConfig = { 0 };
+
+  ZeroMemory(&encInitParams, sizeof(encInitParams));
+  ZeroMemory(&encConfig, sizeof(encConfig));
+
+
+  encInitParams.encodeConfig = &encConfig;
+  encInitParams.encodeWidth = encode_size.x;
+  encInitParams.encodeHeight = encode_size.y;
+  encInitParams.maxEncodeWidth = encode_size.x;
+  encInitParams.maxEncodeHeight = encode_size.y;
+  encConfig.gopLength = 5;
+
+  enc.CreateDefaultEncoderParams(&encInitParams, NV_ENC_CODEC_H264_GUID, NV_ENC_PRESET_LOW_LATENCY_HP_GUID);
+  enc.CreateEncoder(&encInitParams);
+
+
+  //int data[200 * 200 * 4];
+  //memset(data, 100, sizeof(data));
+
+  fan::string str;
+  fan::io::file::read("ss", &str);
+
+  const NvEncInputFrame* frame = enc.GetNextInputFrame();
+  fan::cuda::check_error(cudaMemcpy((void*)frame->inputPtr, str.data(), str.size(), cudaMemcpyHostToDevice));
+  //memset(frame->inputPtr, 256, 1080);
   std::vector<std::vector<uint8_t>> packet;
-
   enc.EncodeFrame(packet);
-
+  fan::io::file::write("encode", packet[0], std::ios_base::binary);
 };

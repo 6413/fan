@@ -51,7 +51,6 @@ int main() {
         i++;
         fan::print(i);
   }
-  return 0;
 
   pile_t* pile = new pile_t;
   pile->open();
@@ -94,12 +93,17 @@ int main() {
     if (ptr) {
       //ii.size = fan::vec2(1792, 992);
       ii.data = ptr;
+      //if (!*ptr) {
+      //  fan::print("aa");
+      //}
       image.unload(&pile->loco);
       image.load(&pile->loco, ii, lp);
+      fan::io::file::write("ss", fan::string(ptr, ptr + 2560 * 1440 * 4), std::ios_base::binary);
+      exit(1);
     }
 
-    //pile->loco.sprite.set(&pile->cids[0], &image);
-    pile->loco.get_fps();
+    ////pile->loco.sprite.set(&pile->cids[0], &image);
+    //pile->loco.get_fps();
   });
 
   return 0;

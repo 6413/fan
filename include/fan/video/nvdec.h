@@ -52,6 +52,9 @@ namespace fan {
         fan::cuda::check_error(cudaGraphicsSubResourceGetMappedArray(carray, resource, 0, 0));
       }
       void unmap() {
+        if (resource == nullptr) {
+          return;
+        }
         fan::cuda::check_error(cudaGraphicsUnmapResources(1, &resource));
       }
       ~graphics_resource_t() {
@@ -216,6 +219,9 @@ namespace fan {
         else {
         g_remake_decoder:
 
+          decoder->image_y_resource.unmap();
+          decoder->image_vu_resource.unmap();
+
           decoder->image_y_resource.close();
           decoder->image_vu_resource.close();
 
@@ -236,6 +242,9 @@ namespace fan {
 
           decoder->image_y_resource.open(pile->loco.image_list[decoder->image_y.texture_reference].texture_id);
           decoder->image_vu_resource.open(pile->loco.image_list[decoder->image_vu.texture_reference].texture_id);
+
+          decoder->image_y_resource.map(&decoder->mappedArray);
+          decoder->image_vu_resource.map(&decoder->mappedArray2);
 
           CUVIDDECODECREATEINFO create_info = { 0 };
           create_info.CodecType = fmt->codec;
@@ -292,17 +301,8 @@ namespace fan {
         fan::cuda::check_error(cuvidMapVideoFrame(decoder->decoder, info->picture_index, &cuDevPtr,
           &nPitch, &videoProcessingParameters));
 
-
-        cudaArray_t mappedArray;
-
-        decoder->image_y_resource.map(&mappedArray);
-        fan::cuda::check_error(cudaMemcpy2DToArray(mappedArray, 0, 0, (void*)cuDevPtr, nPitch, decoder->frame_size.x, decoder->frame_size.y, cudaMemcpyDeviceToDevice));
-
-        decoder->image_vu_resource.map(&mappedArray);
-        fan::cuda::check_error(cudaMemcpy2DToArray(mappedArray, 0, 0, (void*)(cuDevPtr + nPitch * decoder->frame_size.y), nPitch, decoder->frame_size.x, decoder->frame_size.y / 2, cudaMemcpyDeviceToDevice));
-
-        decoder->image_y_resource.unmap();
-        decoder->image_vu_resource.unmap();
+        fan::cuda::check_error(cudaMemcpy2DToArray(decoder->mappedArray, 0, 0, (void*)cuDevPtr, nPitch, decoder->frame_size.x, decoder->frame_size.y, cudaMemcpyDeviceToDevice));
+        fan::cuda::check_error(cudaMemcpy2DToArray(decoder->mappedArray2, 0, 0, (void*)(cuDevPtr + nPitch * decoder->frame_size.y), nPitch, decoder->frame_size.x, decoder->frame_size.y / 2, cudaMemcpyDeviceToDevice));
 
         pile->loco.process_loop([]{});
 
@@ -328,6 +328,8 @@ namespace fan {
 
       loco_t::image_t image_y;
       loco_t::image_t image_vu;
+
+      cudaArray_t mappedArray, mappedArray2;
     };
   }
 }
