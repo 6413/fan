@@ -184,6 +184,13 @@ struct nv_decoder_t {
     if (h_frame) {
       delete[] h_frame;
     }
+
+    check_error(cuCtxDestroy(context));
+    check_error(cuvidDestroyDecoder(decoder));
+
+    if (parser != nullptr) {
+      check_error(cuvidDestroyVideoParser(parser));
+    }
   }
 
   static unsigned long GetNumDecodeSurfaces(cudaVideoCodec eCodec, unsigned int nWidth, unsigned int nHeight) {
@@ -226,7 +233,7 @@ struct nv_decoder_t {
     printf("CUVIDEOFORMAT.Display area: %d %d %d %d\n", fmt->display_area.left, fmt->display_area.top, fmt->display_area.right, fmt->display_area.bottom);
     printf("CUVIDEOFORMAT.Bitrate: %u\n", fmt->bitrate);
 
-    check_error(cuvidCtxLockCreate(&decoder->lock, decoder->context));
+//    check_error(cuvidCtxLockCreate(&decoder->lock, decoder->context));
 
     CUVIDDECODECREATEINFO create_info = { 0 };
     create_info.CodecType = fmt->codec;
@@ -255,16 +262,19 @@ struct nv_decoder_t {
     image_y.create_texture(&pile->loco);
     image_y.bind_texture(&pile->loco);
     loco_t::image_t::load_properties_t lp;
-    lp.internal_format = GL_R;
-    lp.format = GL_R;
+    // cudaGraphicsGLRegisterImage accepts only GL_RED
+    lp.internal_format = GL_RED;
+    lp.format = GL_RED;
     lp.filter = loco_t::image_t::filter::linear;
+    lp.visual_output = loco_t::image_t::sampler_address_mode::clamp_to_edge;
     fan::webp::image_info_t info;
     info.data = 0;
     info.size = decoder->frame_size;
-    image_y.load(&pile->loco, info);
+    image_y.load(&pile->loco, info, lp);
+    // cudaGraphicsGLRegisterImage accepts only GL_RG
     lp.internal_format = fan::opengl::GL_RG;
     lp.format = fan::opengl::GL_RG;
-    image_vu.load(&pile->loco, info);
+    image_vu.load(&pile->loco, info, lp);
 
     check_error(cudaGraphicsGLRegisterImage(&image_y_resource, pile->loco.image_list[image_y.texture_reference].texture_id, GL_TEXTURE_2D, cudaGraphicsMapFlagsNone));
     check_error(cudaGraphicsGLRegisterImage(&image_vu_resource, pile->loco.image_list[image_vu.texture_reference].texture_id, GL_TEXTURE_2D, cudaGraphicsMapFlagsNone));
@@ -319,7 +329,7 @@ struct nv_decoder_t {
     //videoProcessingParameters.output_stream = m_cuvidStream;
 
 
-    check_error(cuvidCtxLock(decoder->lock, 0));
+    //check_error(cuvidCtxLock(decoder->lock, 0));
 
     check_error(cuvidMapVideoFrame(decoder->decoder, info->picture_index, &cuDevPtr,
       &nPitch, &videoProcessingParameters));
@@ -327,6 +337,7 @@ struct nv_decoder_t {
 
     cudaArray_t mappedArray;
     cudaArray_t mappedArray2;
+    
     check_error(cudaGraphicsMapResources(1, &image_y_resource, 0));
     check_error(cudaGraphicsSubResourceGetMappedArray(&mappedArray, image_y_resource, 0, 0));
 
@@ -340,10 +351,11 @@ struct nv_decoder_t {
     check_error(cudaGraphicsUnmapResources(1, &image_y_resource));
     check_error(cudaGraphicsUnmapResources(1, &image_vu_resource));
 
-    //fan::io::file::write("help", fan::string((uint8_t*)h_frame, (uint8_t*)h_frame + frameSize), std::ios_base::binary);
+    ////fan::io::file::write("help", fan::string((uint8_t*)h_frame, (uint8_t*)h_frame + frameSize), std::ios_base::binary);
 
     if (!decoder->init) {
 
+      //p.size = fan::cast<f32_t>(decoder->frame_size) / pile->loco.get_window()->get_size();
 
       uint64_t offset = 0;
       void* data[2];
@@ -351,19 +363,20 @@ struct nv_decoder_t {
       data[1] = (uint8_t*)decoder->h_frame + (uint64_t)decoder->frame_size.multiply();
       p.y = &image_y;
       p.vu = &image_vu;
-      p.tc_size = fan::vec2(0.25, 1);
+      p.tc_size = fan::vec2(1, 1);
       //p.image = &image;
       pile->loco.nv12.push_back(&pile->cid[1], p);
+      
       decoder->init = true;
     }
 
     pile->loco.process_loop([&] {});
 
-    fan::delay(fan::time::nanoseconds(.016e+9));
+    ////fan::delay(fan::time::nanoseconds(.05e+9));
     check_error(cuvidUnmapVideoFrame(decoder->decoder, cuDevPtr));
 
 
-    check_error(cuvidCtxUnlock(decoder->lock, 0));
+    //check_error(cuvidCtxUnlock(decoder->lock, 0));
     count++;
     return 1;
   }
@@ -440,34 +453,6 @@ int main() {
   nv_decoder_t nv;
   fan::print(c.elapsed(), count, c.elapsed() / count);
 
-
-
-  //r = cuCtxDestroy(context);
-  //if (CUDA_SUCCESS != r) {
-  //  cuGetErrorString(r, &err_str);
-  //  printf("Failed to cleanly destroy the cuda context: %s (exiting).\n", err_str);
-  //  exit(EXIT_FAILURE);
-  //}
-
-  //r = cuvidDestroyDecoder(decoder);
-  //if (CUDA_SUCCESS != r) {
-  //  cuGetErrorString(r, &err_str);
-  //  printf("Failed to cleanly destroy the decoder context: %s. (exiting).\n", err_str);
-  //  exit(EXIT_FAILURE);
-  //}
-
-  //if (nullptr != parser) {
-  //  r = cuvidDestroyVideoParser(parser);
-  //  if (CUDA_SUCCESS != r) {
-  //    cuGetErrorString(r, &err_str);
-  //    printf("Failed to the video parser context: %s. (exiting).\n", err_str);
-  //    exit(EXIT_FAILURE);
-  //  }
-  //}
-
-  //context = nullptr;
-  //decoder = nullptr;
-  //parser = nullptr;
 
   return 0;
 }

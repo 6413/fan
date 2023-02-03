@@ -18,8 +18,8 @@ void main() {
   vec3 yuv2b = vec3(1.164, 2.018, 0.0);
 
 	yuv.x = texture2D(_t00, texture_coordinate).r  - 0.0625;
-	yuv.y = texture2D(_t01, vec2(texture_coordinate.x, texture_coordinate.y / 2)).r - 0.5;
-  yuv.z = texture2D(_t01, vec2(texture_coordinate.x, texture_coordinate.y / 2)).g - 0.5;
+	yuv.y = texture2D(_t01, texture_coordinate / 2.005).r - 0.5;
+  yuv.z = texture2D(_t01, texture_coordinate / 2.005).g - 0.5;
 
   vec3 rgb;
 
