@@ -280,6 +280,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="examples\graphics\nvdec.cpp" />
+    <ClCompile Include="examples\graphics\nvenc.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -337,6 +338,8 @@
     <ClInclude Include="..\WITCH\BLL\BLL.h" />
     <ClInclude Include="..\WITCH\BLL\internal\NodeReference.h" />
     <ClInclude Include="..\WITCH\BLL\internal\rest.h" />
+    <ClInclude Include="examples\graphics\cudaenc.h" />
+    <ClInclude Include="examples\graphics\nvenc.h" />
     <ClInclude Include="include\fan\bll.h" />
     <ClInclude Include="include\fan\engine\engine.h" />
     <ClInclude Include="include\fan\fed\FED.h" />
