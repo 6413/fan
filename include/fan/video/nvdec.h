@@ -178,25 +178,6 @@ namespace fan {
         fan::print_format("display area: {} {} {} {}", fmt->display_area.left, fmt->display_area.top, fmt->display_area.right, fmt->display_area.bottom);
         fan::print_format("birate {}", fmt->bitrate);
 
-        CUVIDDECODECREATEINFO create_info = { 0 };
-        create_info.CodecType = fmt->codec;
-        create_info.ChromaFormat = fmt->chroma_format;
-        create_info.OutputFormat = fmt->bit_depth_luma_minus8 ? cudaVideoSurfaceFormat_P016 : cudaVideoSurfaceFormat_NV12;
-        create_info.bitDepthMinus8 = fmt->bit_depth_luma_minus8;
-        create_info.DeinterlaceMode = cudaVideoDeinterlaceMode_Weave;
-        create_info.ulNumOutputSurfaces = 1;
-
-        create_info.ulCreationFlags = cudaVideoCreate_PreferCUVID;
-        int nDecodeSurface = GetNumDecodeSurfaces(fmt->codec, fmt->coded_width, fmt->coded_height);
-        create_info.ulNumDecodeSurfaces = nDecodeSurface;
-
-        create_info.ulWidth = fmt->coded_width;
-        create_info.ulHeight = fmt->coded_height;
-        create_info.ulMaxWidth = 3840;
-        create_info.ulMaxHeight = 2160;
-        create_info.ulTargetWidth = create_info.ulWidth;
-        create_info.ulTargetHeight = create_info.ulHeight;
-
         decoder->frame_size = fan::vec2ui(fmt->coded_width, fmt->coded_height);
 
         decoder->image_y_resource.close();
@@ -230,8 +211,8 @@ namespace fan {
 
           reconfigParams.ulWidth = fmt->coded_width;
           reconfigParams.ulHeight = fmt->coded_height;
-          reconfigParams.ulTargetWidth = create_info.ulWidth;
-          reconfigParams.ulTargetHeight = create_info.ulHeight;
+          reconfigParams.ulTargetWidth = reconfigParams.ulWidth;
+          reconfigParams.ulTargetHeight = reconfigParams.ulHeight;
 
           reconfigParams.ulNumDecodeSurfaces = nDecodeSurface;
 
@@ -241,6 +222,27 @@ namespace fan {
           //cuCtxPopCurrent(NULL);
         }
         else {
+
+          CUVIDDECODECREATEINFO create_info = { 0 };
+          create_info.CodecType = fmt->codec;
+          create_info.ChromaFormat = fmt->chroma_format;
+          create_info.OutputFormat = fmt->bit_depth_luma_minus8 ? cudaVideoSurfaceFormat_P016 : cudaVideoSurfaceFormat_NV12;
+          create_info.bitDepthMinus8 = fmt->bit_depth_luma_minus8;
+          create_info.DeinterlaceMode = cudaVideoDeinterlaceMode_Weave;
+          create_info.ulNumOutputSurfaces = 1;
+
+          create_info.ulCreationFlags = cudaVideoCreate_PreferCUVID;
+          int nDecodeSurface = GetNumDecodeSurfaces(fmt->codec, fmt->coded_width, fmt->coded_height);
+          create_info.ulNumDecodeSurfaces = nDecodeSurface;
+
+          create_info.ulWidth = fmt->coded_width;
+          create_info.ulHeight = fmt->coded_height;
+          create_info.ulMaxWidth = 3840;
+          create_info.ulMaxHeight = 2160;
+          create_info.ulTargetWidth = create_info.ulWidth;
+          create_info.ulTargetHeight = create_info.ulHeight;
+
+
           fan::cuda::check_error(cuvidCreateDecoder(&decoder->decoder, &create_info));
         }
         //
