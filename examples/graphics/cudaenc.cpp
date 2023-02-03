@@ -369,10 +369,11 @@ int main() {
   params.encodeHeight = encode_size.y;
   NV_ENC_CONFIG env_config = {};
   env_config.version = NV_ENC_CONFIG_VER;
+  env_config.profileGUID = NV_ENC_CODEC_H264_GUID;
   params.encodeConfig = &env_config;
-  env_config.profileGUID = NV_ENC_CODEC_PROFILE_AUTOSELECT_GUID;
+  //env_config.profileGUID = NV_ENC_CODEC_PROFILE_AUTOSELECT_GUID;
+  //enc.m_nvenc.nvEncGetEncodePresetConfig(enc.m_hEncoder, NV_ENC_CODEC_H264_GUID, NV_ENC_CODEC_PROFILE_AUTOSELECT_GUID, &params);
   enc.CreateEncoder(&params);
-  enc.m_nvenc.nvEncGetEncodePresetConfig(enc.m_hEncoder, NV_ENC_CODEC_H264_GUID, NV_ENC_CODEC_PROFILE_AUTOSELECT_GUID, &params);
   std::vector<std::vector<uint8_t>> packet;
 
   enc.EncodeFrame(packet);
