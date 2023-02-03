@@ -122,6 +122,8 @@ struct sb_sprite_name {
     get_key_value(loco_t::matrices_list_NodeReference_t) = p.matrices;
     get_key_value(fan::graphics::viewport_list_NodeReference_t) = p.viewport;
 
+    image[0] = *p.y;
+    image[1] = *p.vu;
 
     sb_push_back(cid, p);
 

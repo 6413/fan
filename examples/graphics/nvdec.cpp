@@ -16,7 +16,7 @@
 
 //#define loco_rectangle
 #define loco_nv12
-#define loco_sprite
+//#define loco_sprite
 #include _FAN_PATH(graphics/loco.h)
 #include <cuda.h>
 
@@ -72,14 +72,16 @@ void check_error(auto result) {
 
 pile_t* pile = new pile_t;
 loco_t::nv12_t::properties_t p;
-loco_t::sprite_t::properties_t sp;
+loco_t::nv12_t::properties_t sp;
 
 fan::time::clock c;
 int count = 0;
 
-cudaGraphicsResource* cudaResource;
+cudaGraphicsResource* image_y_resource;
+cudaGraphicsResource* image_vu_resource;
 
-loco_t::image_t image;
+loco_t::image_t image_y;
+loco_t::image_t image_vu;
 
 cudaArray_t d_array;
 
@@ -167,7 +169,7 @@ struct nv_decoder_t {
     r = cuvidCreateVideoParser(&parser, &parser_params);
 
     fan::string video_data;
-    fan::io::file::read("o.264", &video_data);
+    fan::io::file::read("o3.264", &video_data);
 
     CUVIDSOURCEDATAPACKET pkt;
     pkt.flags = 0;
@@ -250,17 +252,22 @@ struct nv_decoder_t {
     /* @todo do we need this? */
     /* create_info.vidLock = ...*/
 
-    image.create_texture(&pile->loco);
-    image.bind_texture(&pile->loco);
+    image_y.create_texture(&pile->loco);
+    image_y.bind_texture(&pile->loco);
     loco_t::image_t::load_properties_t lp;
-    lp.internal_format = GL_RGBA;
-    lp.format = GL_RGBA;
+    lp.internal_format = GL_R;
+    lp.format = GL_R;
+    lp.filter = loco_t::image_t::filter::linear;
     fan::webp::image_info_t info;
     info.data = 0;
     info.size = decoder->frame_size;
-    image.load(&pile->loco, info);
+    image_y.load(&pile->loco, info);
+    lp.internal_format = fan::opengl::GL_RG;
+    lp.format = fan::opengl::GL_RG;
+    image_vu.load(&pile->loco, info);
 
-    check_error(cudaGraphicsGLRegisterImage(&cudaResource, pile->loco.image_list[image.texture_reference].texture_id, GL_TEXTURE_2D, cudaGraphicsMapFlagsNone));
+    check_error(cudaGraphicsGLRegisterImage(&image_y_resource, pile->loco.image_list[image_y.texture_reference].texture_id, GL_TEXTURE_2D, cudaGraphicsMapFlagsNone));
+    check_error(cudaGraphicsGLRegisterImage(&image_vu_resource, pile->loco.image_list[image_vu.texture_reference].texture_id, GL_TEXTURE_2D, cudaGraphicsMapFlagsNone));
 
     check_error(cuvidCreateDecoder(&decoder->decoder, &create_info));
 
@@ -319,14 +326,21 @@ struct nv_decoder_t {
 
 
     cudaArray_t mappedArray;
-    check_error(cudaGraphicsMapResources(1, &cudaResource, 0));
-    check_error(cudaGraphicsSubResourceGetMappedArray(&mappedArray, cudaResource, 0, 0));
+    cudaArray_t mappedArray2;
+    check_error(cudaGraphicsMapResources(1, &image_y_resource, 0));
+    check_error(cudaGraphicsSubResourceGetMappedArray(&mappedArray, image_y_resource, 0, 0));
 
-    check_error(cudaMemcpyToArray(mappedArray, 0, 0, (void*)cuDevPtr, decoder->frame_size.x*decoder->frame_size.y, cudaMemcpyDeviceToDevice));
+    check_error(cudaGraphicsMapResources(1, &image_vu_resource, 0));
+    check_error(cudaGraphicsSubResourceGetMappedArray(&mappedArray2, image_vu_resource, 0, 0));
 
-    check_error(cudaGraphicsUnmapResources(1, &cudaResource));
 
-        //fan::io::file::write("help", fan::string((uint8_t*)h_frame, (uint8_t*)h_frame + frameSize), std::ios_base::binary);
+    check_error(cudaMemcpy2DToArray(mappedArray, 0, 0, (void*)cuDevPtr, nPitch, decoder->frame_size.x, decoder->frame_size.y, cudaMemcpyDeviceToDevice));
+    check_error(cudaMemcpy2DToArray(mappedArray2, 0, 0, (void*)(cuDevPtr + nPitch * decoder->frame_size.y), nPitch, decoder->frame_size.x, decoder->frame_size.y / 2, cudaMemcpyDeviceToDevice));
+
+    check_error(cudaGraphicsUnmapResources(1, &image_y_resource));
+    check_error(cudaGraphicsUnmapResources(1, &image_vu_resource));
+
+    //fan::io::file::write("help", fan::string((uint8_t*)h_frame, (uint8_t*)h_frame + frameSize), std::ios_base::binary);
 
     if (!decoder->init) {
 
@@ -335,22 +349,17 @@ struct nv_decoder_t {
       void* data[2];
       data[0] = decoder->h_frame;
       data[1] = (uint8_t*)decoder->h_frame + (uint64_t)decoder->frame_size.multiply();
-      sp.image = &image;
-      pile->loco.sprite.push_back(&pile->cid[1], sp);
-      //p.load(&pile->loco, data, decoder->frame_size);
-
-     // p.position = fan::vec2(0, 0);
-      //p
-     // pile->loco.nv12.push_back(&pile->cid[0], p);
+      p.y = &image_y;
+      p.vu = &image_vu;
+      p.tc_size = fan::vec2(0.25, 1);
+      //p.image = &image;
+      pile->loco.nv12.push_back(&pile->cid[1], p);
       decoder->init = true;
-    }
-    else {
-      //image.reload_pixels(data, decoder->frame_size);
     }
 
     pile->loco.process_loop([&] {});
 
-    fan::delay(fan::time::nanoseconds(.1e+9));
+    fan::delay(fan::time::nanoseconds(.016e+9));
     check_error(cuvidUnmapVideoFrame(decoder->decoder, cuDevPtr));
 
 
@@ -417,10 +426,10 @@ int main() {
   p.matrices = &pile->matrices;
   p.viewport = &pile->viewport;
 
-  sp.size = 1;
-  sp.matrices = &pile->matrices;
-  sp.viewport = &pile->viewport;
-  sp.position = 0;
+  //sp.size = 1;
+  //sp.matrices = &pile->matrices;
+  //sp.viewport = &pile->viewport;
+  //sp.position = 0;
 
   pile->loco.set_vsync(false);
   //pile->loco.get_window()->add_keys_callback([](const auto& d) {
