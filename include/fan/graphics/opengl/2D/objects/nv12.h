@@ -165,7 +165,7 @@ struct sb_sprite_name {
     lp.internal_format = loco_t::image_t::format::rg8_unorm;
 
     ii.data = data[1]; 
-    ii.size = fan::vec2(image_size.x / 2, image_size.y / 2);
+    ii.size = image_size;
     loco->sb_shape_var_name.image[1].reload_pixels(loco, ii, lp); 
   }
 
