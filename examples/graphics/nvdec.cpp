@@ -16,7 +16,6 @@
 
 //#define loco_rectangle
 #define loco_nv12
-#define loco_multithread
 //#define loco_sprite
 #include _FAN_PATH(graphics/loco.h)
 
