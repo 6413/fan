@@ -1,0 +1,75 @@
+C:\libs\fan\include\nvidia\builtin_types.h
+C:\libs\fan\include\nvidia\channel_descriptor.h
+C:\libs\fan\include\nvidia\crt\common_functions.h
+C:\libs\fan\include\nvidia\crt\cudacc_ext.h
+C:\libs\fan\include\nvidia\crt\device_double_functions.h
+C:\libs\fan\include\nvidia\crt\device_double_functions.hpp
+C:\libs\fan\include\nvidia\crt\device_functions.h
+C:\libs\fan\include\nvidia\crt\device_functions.hpp
+C:\libs\fan\include\nvidia\crt\host_config.h
+C:\libs\fan\include\nvidia\crt\host_defines.h
+C:\libs\fan\include\nvidia\crt\math_functions.h
+C:\libs\fan\include\nvidia\crt\math_functions.hpp
+C:\libs\fan\include\nvidia\crt\sm_70_rt.h
+C:\libs\fan\include\nvidia\crt\sm_80_rt.h
+C:\libs\fan\include\nvidia\crt\sm_90_rt.h
+C:\libs\fan\include\nvidia\cuda_device_runtime_api.h
+C:\libs\fan\include\nvidia\cuda_runtime.h
+C:\libs\fan\include\nvidia\cuda_runtime_api.h
+C:\libs\fan\include\nvidia\device_atomic_functions.h
+C:\libs\fan\include\nvidia\device_launch_parameters.h
+C:\libs\fan\include\nvidia\device_types.h
+C:\libs\fan\include\nvidia\driver_functions.h
+C:\libs\fan\include\nvidia\driver_types.h
+C:\libs\fan\include\nvidia\library_types.h
+C:\libs\fan\include\nvidia\sm_20_atomic_functions.h
+C:\libs\fan\include\nvidia\sm_20_intrinsics.h
+C:\libs\fan\include\nvidia\sm_30_intrinsics.h
+C:\libs\fan\include\nvidia\sm_32_atomic_functions.h
+C:\libs\fan\include\nvidia\sm_32_intrinsics.h
+C:\libs\fan\include\nvidia\sm_35_atomic_functions.h
+C:\libs\fan\include\nvidia\sm_35_intrinsics.h
+C:\libs\fan\include\nvidia\sm_60_atomic_functions.h
+C:\libs\fan\include\nvidia\sm_61_intrinsics.h
+C:\libs\fan\include\nvidia\surface_indirect_functions.h
+C:\libs\fan\include\nvidia\surface_types.h
+C:\libs\fan\include\nvidia\texture_indirect_functions.h
+C:\libs\fan\include\nvidia\texture_types.h
+C:\libs\fan\include\nvidia\vector_functions.h
+C:\libs\fan\include\nvidia\vector_functions.hpp
+C:\libs\fan\include\nvidia\vector_types.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\ucrt\corecrt.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\ucrt\corecrt_malloc.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\ucrt\corecrt_math.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\ucrt\corecrt_memcpy_s.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\ucrt\corecrt_memory.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\ucrt\corecrt_search.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\ucrt\corecrt_stdio_config.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\ucrt\corecrt_wstdio.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\ucrt\corecrt_wstdlib.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\ucrt\corecrt_wstring.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\ucrt\corecrt_wtime.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\ucrt\crtdbg.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\ucrt\errno.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\ucrt\math.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\ucrt\stddef.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\ucrt\stdio.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\ucrt\stdlib.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\ucrt\string.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\ucrt\time.h
+C:\Program Files\Microsoft Visual Studio\2022\Preview\VC\Tools\MSVC\14.34.31932\include\cmath
+C:\Program Files\Microsoft Visual Studio\2022\Preview\VC\Tools\MSVC\14.34.31932\include\concurrencysal.h
+C:\Program Files\Microsoft Visual Studio\2022\Preview\VC\Tools\MSVC\14.34.31932\include\crtdefs.h
+C:\Program Files\Microsoft Visual Studio\2022\Preview\VC\Tools\MSVC\14.34.31932\include\cstdlib
+C:\Program Files\Microsoft Visual Studio\2022\Preview\VC\Tools\MSVC\14.34.31932\include\limits.h
+C:\Program Files\Microsoft Visual Studio\2022\Preview\VC\Tools\MSVC\14.34.31932\include\sal.h
+C:\Program Files\Microsoft Visual Studio\2022\Preview\VC\Tools\MSVC\14.34.31932\include\use_ansi.h
+C:\Program Files\Microsoft Visual Studio\2022\Preview\VC\Tools\MSVC\14.34.31932\include\vadefs.h
+C:\Program Files\Microsoft Visual Studio\2022\Preview\VC\Tools\MSVC\14.34.31932\include\vcruntime.h
+C:\Program Files\Microsoft Visual Studio\2022\Preview\VC\Tools\MSVC\14.34.31932\include\vcruntime_new.h
+C:\Program Files\Microsoft Visual Studio\2022\Preview\VC\Tools\MSVC\14.34.31932\include\vcruntime_new_debug.h
+C:\Program Files\Microsoft Visual Studio\2022\Preview\VC\Tools\MSVC\14.34.31932\include\vcruntime_string.h
+C:\Program Files\Microsoft Visual Studio\2022\Preview\VC\Tools\MSVC\14.34.31932\include\xkeycheck.h
+C:\Program Files\Microsoft Visual Studio\2022\Preview\VC\Tools\MSVC\14.34.31932\include\xtr1common
+C:\Program Files\Microsoft Visual Studio\2022\Preview\VC\Tools\MSVC\14.34.31932\include\yvals.h
+C:\Program Files\Microsoft Visual Studio\2022\Preview\VC\Tools\MSVC\14.34.31932\include\yvals_core.h

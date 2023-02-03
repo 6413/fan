@@ -5,7 +5,7 @@
 #ifndef FAN_INCLUDE_PATH
 #define FAN_INCLUDE_PATH C:/libs/fan/include
 #endif
-#define fan_debug 0
+#define fan_debug 1
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
 //#define loco_vulkan
@@ -18,13 +18,18 @@
 #define loco_nv12
 #define loco_sprite
 #include _FAN_PATH(graphics/loco.h)
-
 #include <cuda.h>
+
 #include <nvcuvid.h>
+
+#include "device_launch_parameters.h"
 
 #define HGPUNV void*
 #include <cuda_runtime.h>
 #include <cuda_gl_interop.h>
+
+
+extern void call_kernel(cudaSurfaceObject_t surface, int, int);
 
 struct pile_t {
 
@@ -32,6 +37,7 @@ struct pile_t {
   static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
 
   pile_t() {
+    
     fan::vec2 window_size = loco.get_window()->get_size();
     loco.open_matrices(
       &matrices,
@@ -71,10 +77,11 @@ loco_t::sprite_t::properties_t sp;
 fan::time::clock c;
 int count = 0;
 
-CUdeviceptr d_cudaRGBA;
 cudaGraphicsResource* cudaResource;
 
 loco_t::image_t image;
+
+cudaArray_t d_array;
 
 struct nv_decoder_t {
 
@@ -160,7 +167,7 @@ struct nv_decoder_t {
     r = cuvidCreateVideoParser(&parser, &parser_params);
 
     fan::string video_data;
-    fan::io::file::read("o.264", &video_data);
+    fan::io::file::read("o3.264", &video_data);
 
     CUVIDSOURCEDATAPACKET pkt;
     pkt.flags = 0;
@@ -217,9 +224,6 @@ struct nv_decoder_t {
     printf("CUVIDEOFORMAT.Display area: %d %d %d %d\n", fmt->display_area.left, fmt->display_area.top, fmt->display_area.right, fmt->display_area.bottom);
     printf("CUVIDEOFORMAT.Bitrate: %u\n", fmt->bitrate);
 
-    check_error(cudaMalloc((void**)&d_cudaRGBA, fmt->coded_width * fmt->coded_height * 4));
-
-
     check_error(cuvidCtxLockCreate(&decoder->lock, decoder->context));
 
     CUVIDDECODECREATEINFO create_info = { 0 };
@@ -246,34 +250,21 @@ struct nv_decoder_t {
     /* @todo do we need this? */
     /* create_info.vidLock = ...*/
 
-    check_error(cuvidCreateDecoder(&decoder->decoder, &create_info));
-
-    c.start();
-
     image.create_texture(&pile->loco);
     image.bind_texture(&pile->loco);
+    loco_t::image_t::load_properties_t lp;
+    lp.internal_format = GL_RGBA;
+    lp.format = GL_RGBA;
     fan::webp::image_info_t info;
     info.data = 0;
     info.size = decoder->frame_size;
     image.load(&pile->loco, info);
-    //pile->loco.get_context()->opengl.glGenBuffers(1, &decoder->pbo);
-    //pile->loco.get_context()->opengl.glBindBuffer(fan::opengl::GL_PIXEL_UNPACK_BUFFER, decoder->pbo);
-    ////                                                                                  varmaav ääri
-    //pile->loco.get_context()->opengl.glBufferData(fan::opengl::GL_PIXEL_UNPACK_BUFFER, fmt->coded_width * fmt->coded_height * 4, NULL, fan::opengl::GL_STREAM_DRAW);
-    //image.create(&pile->loco, 2, 2);
-    // Register CUDA buffer with OpenGL
-
-    //GLuint zedTextureID_L, zedTextureID_R;
-    //// Generate OpenGL texture for left images of the ZED camera
-    //glGenTextures(1, &zedTextureID_L);
-    //glBindTexture(GL_TEXTURE_2D, zedTextureID_L);
-    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, fmt->coded_width, fmt->coded_height, 0, fan::opengl::GL_BGRA, GL_UNSIGNED_BYTE, NULL);
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, fan::opengl::GL_CLAMP_TO_EDGE);
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, fan::opengl::GL_CLAMP_TO_EDGE);
 
     check_error(cudaGraphicsGLRegisterImage(&cudaResource, pile->loco.image_list[image.texture_reference].texture_id, GL_TEXTURE_2D, cudaGraphicsMapFlagsNone));
+
+    check_error(cuvidCreateDecoder(&decoder->decoder, &create_info));
+
+    c.start();
 
 
     return nDecodeSurface;
@@ -306,9 +297,9 @@ struct nv_decoder_t {
 
   static int parser_display_picture_callback(void* user, CUVIDPARSERDISPINFO* info) {
 
+
     nv_decoder_t* decoder = (nv_decoder_t*)user;
 
-    CUresult rResult;
     unsigned long long cuDevPtr = 0;
     unsigned int nPitch, frameSize;
     unsigned char* pHostPtr = nullptr;
@@ -323,65 +314,22 @@ struct nv_decoder_t {
 
     check_error(cuvidCtxLock(decoder->lock, 0));
 
-    rResult = cuvidMapVideoFrame(decoder->decoder, info->picture_index, &cuDevPtr,
-      &nPitch, &videoProcessingParameters);
+    check_error(cuvidMapVideoFrame(decoder->decoder, info->picture_index, &cuDevPtr,
+      &nPitch, &videoProcessingParameters));
 
 
-    ////printf("+ mapping: %u succeeded\n", info->picture_index);
-
-
-    //CUVIDGETDECODESTATUS DecodeStatus;
-    //memset(&DecodeStatus, 0, sizeof(DecodeStatus));
-    //CUresult result = cuvidGetDecodeStatus(decoder->decoder, info->picture_index, &DecodeStatus);
-    //if (result == CUDA_SUCCESS && (DecodeStatus.decodeStatus == cuvidDecodeStatus_Error || DecodeStatus.decodeStatus == cuvidDecodeStatus_Error_Concealed))
-    //{
-    //  printf("Decode Error occurred for picture %d\n", info->picture_index);
-    //}
-
-    //frameSize = decoder->frame_size.x * decoder->frame_size.y + decoder->frame_size.x * decoder->frame_size.y / 2;
-    //
-    //if (decoder->h_frame == nullptr) {
-    //  decoder->h_frame = new unsigned char[frameSize];
-    //}
-    
-    cudaArray* cuArray;
-
+    cudaArray_t mappedArray;
     check_error(cudaGraphicsMapResources(1, &cudaResource, 0));
-    check_error(cudaGraphicsSubResourceGetMappedArray(&cuArray, cudaResource, 0, 0));
-    check_error(cudaMemcpy2DToArray(cuArray, 0, 0, image, nPitch, decoder->frame_size.x * 4, decoder->frame_size.y, cudaMemcpyDeviceToDevice));
-    check_error(cudaGraphicsUnmapResources(1, &cudaResource, 0));
+    check_error(cudaGraphicsSubResourceGetMappedArray(&mappedArray, cudaResource, 0, 0));
 
-//    cudaMemcpy2D(decoder->h_frame, decoder->frame_size.x, (void*)cuDevPtr, nPitch, decoder->frame_size.x, decoder->frame_size.y + decoder->frame_size.y / 2, cudaMemcpyDeviceToHost);
-    
-    //check_error(cuCtxPushCurrent(decoder->context));
-    //CUDA_MEMCPY2D m = { 0 };
-    //m.srcMemoryType = CU_MEMORYTYPE_DEVICE;
-    //m.srcDevice = cuDevPtr;
-    //m.srcPitch = nPitch;
-    //m.dstMemoryType =/* m_bUseDeviceFrame*/ false ? CU_MEMORYTYPE_DEVICE : CU_MEMORYTYPE_HOST;
-    //m.dstDevice = (CUdeviceptr)(m.dstHost = h_frame);
-    //m.dstPitch = decoder->frame_size.x;
-    //m.WidthInBytes = decoder->frame_size.x;
-    //m.Height = decoder->frame_size.y;
-    //check_error(cuMemcpy2DAsync(&m, m_cuvidStream));
-    //m.srcDevice = (CUdeviceptr)((uint8_t*)dpSrcFrame + m.srcPitch * m_nSurfaceHeight);
-    //m.dstDevice = (CUdeviceptr)(m.dstHost = pDecodedFrame + m.dstPitch * m_nHeight);
-    //m.Height = m_nHeight / 2;
-    //check_error(cuMemcpy2DAsync(&m, m_cuvidStream));
-    //check_error(cuStreamSynchronize(m_cuvidStream));
-    //check_error(cuCtxPopCurrent(NULL));
+    check_error(cudaMemcpyToArray(mappedArray, 0, 0, (void*)cuDevPtr, decoder->frame_size.x*decoder->frame_size.y, cudaMemcpyDeviceToDevice));
 
+    check_error(cudaGraphicsUnmapResources(1, &cudaResource));
 
-
-    //fan::io::file::write("help", fan::string((uint8_t*)h_frame, (uint8_t*)h_frame + frameSize), std::ios_base::binary);
+        //fan::io::file::write("help", fan::string((uint8_t*)h_frame, (uint8_t*)h_frame + frameSize), std::ios_base::binary);
 
     if (!decoder->init) {
 
-
-
-      pile->loco.get_context()->opengl.glBindBuffer(fan::opengl::GL_PIXEL_UNPACK_BUFFER, decoder->pbo);
-      pile->loco.get_context()->opengl.glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, decoder->frame_size.x, decoder->frame_size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-      pile->loco.get_context()->opengl.glBindBuffer(fan::opengl::GL_PIXEL_UNPACK_BUFFER, 0);
 
       uint64_t offset = 0;
       void* data[2];
@@ -394,17 +342,17 @@ struct nv_decoder_t {
      // p.position = fan::vec2(0, 0);
       //p
      // pile->loco.nv12.push_back(&pile->cid[0], p);
-     // decoder->init = true;
+      decoder->init = true;
     }
     else {
-      //pile->loco.nv12.reload(&pile->cid[0], data, decoder->frame_size);
+      //image.reload_pixels(data, decoder->frame_size);
     }
 
-    pile->loco.process_loop([&] {  });
+    pile->loco.process_loop([&] {});
 
-    //fan::delay(fan::time::nanoseconds(.01e+9));
+    //fan::delay(fan::time::nanoseconds(.1e+9));
     check_error(cuvidUnmapVideoFrame(decoder->decoder, cuDevPtr));
-    
+
 
     check_error(cuvidCtxUnlock(decoder->lock, 0));
     count++;
@@ -475,9 +423,14 @@ int main() {
   sp.position = 0;
 
   pile->loco.set_vsync(false);
-
+  //pile->loco.get_window()->add_keys_callback([](const auto& d) {
+  //  if (d.key == fan::key_up) {
+  //    fan::print("a");
+  //  }
+  //  });
   nv_decoder_t nv;
   fan::print(c.elapsed(), count, c.elapsed() / count);
+
 
 
   //r = cuCtxDestroy(context);
