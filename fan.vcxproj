@@ -279,7 +279,7 @@
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="examples\graphics\nvdec.cpp" />
+    <ClCompile Include="Source.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -451,13 +451,11 @@
     <ClInclude Include="include\fan\types\fstring.h" />
     <ClInclude Include="include\fan\types\types.h" />
     <ClInclude Include="include\fan\types\vector.h" />
+    <ClInclude Include="include\fan\video\nvdec.h" />
     <ClInclude Include="include\fan\window\cb_list_builder_settings.h" />
     <ClInclude Include="include\fan\window\window.h" />
     <ClInclude Include="include\fan\window\window_input.h" />
     <ClInclude Include="include\fan\window\window_input_common.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <CudaCompile Include="examples\graphics\test.cu" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
