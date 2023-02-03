@@ -167,7 +167,7 @@ struct nv_decoder_t {
     r = cuvidCreateVideoParser(&parser, &parser_params);
 
     fan::string video_data;
-    fan::io::file::read("o3.264", &video_data);
+    fan::io::file::read("o.264", &video_data);
 
     CUVIDSOURCEDATAPACKET pkt;
     pkt.flags = 0;
@@ -350,7 +350,7 @@ struct nv_decoder_t {
 
     pile->loco.process_loop([&] {});
 
-    //fan::delay(fan::time::nanoseconds(.1e+9));
+    fan::delay(fan::time::nanoseconds(.1e+9));
     check_error(cuvidUnmapVideoFrame(decoder->decoder, cuDevPtr));
 
 

@@ -999,6 +999,7 @@ std::string string_to_hex(const std::string& input)
 
 inline fan::string fan::window_t::xcb_get_scancode_name(XkbDescPtr KbDesc, uint16_t keycode) {
   fan::string str(KbDesc->names->keys[keycode].name, KbDesc->names->keys[keycode].name + XkbKeyNameLength);
+  str.erase(std::remove(str.begin(), str.end(), '\0'), str.end());
   return str;
 }
 
@@ -1042,7 +1043,7 @@ void fan::window_t::generate_keycode_to_scancode_table() {
       }
     }
     if (!found) {
-      fan::print_warning((std::string("scancode not found for (dec) keycode:") + std::to_string(i)).c_str());
+      //fan::print_warning((std::string("scancode not found for (dec) keycode:") + std::to_string(i)).c_str());
     }
   }
 }
