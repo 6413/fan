@@ -178,11 +178,12 @@ namespace fan {
         fan::print_format("display area: {} {} {} {}", fmt->display_area.left, fmt->display_area.top, fmt->display_area.right, fmt->display_area.bottom);
         fan::print_format("birate {}", fmt->bitrate);
 
+        bool resized = decoder->frame_size != fan::vec2ui(fmt->coded_width, fmt->coded_height);
+
         decoder->frame_size = fan::vec2ui(fmt->coded_width, fmt->coded_height);
 
         decoder->image_y_resource.close();
         decoder->image_vu_resource.close();
-
 
         loco_t::image_t::load_properties_t lp;
         // cudaGraphicsGLRegisterImage accepts only GL_RED
@@ -205,7 +206,18 @@ namespace fan {
 
         int nDecodeSurface = GetNumDecodeSurfaces(fmt->codec, fmt->coded_width, fmt->coded_height);
 
+        //cuvidDestroyVideoParser(decoder->parser);
+
+        /*fan::cuda::check_error(cuvidDestroyDecoder(decoder->decoder));
+        decoder->decoder = nullptr;*/
+
         if (decoder->decoder) {
+
+          if (resized) {
+            fan::cuda::check_error(cuvidDestroyDecoder(decoder->decoder));
+            decoder->decoder = nullptr;
+            goto g_remake_decoder;
+          }
 
           CUVIDRECONFIGUREDECODERINFO reconfigParams = { 0 };
 
@@ -224,7 +236,7 @@ namespace fan {
           //cuCtxPopCurrent(NULL);
         }
         else {
-
+        g_remake_decoder:
           CUVIDDECODECREATEINFO create_info = { 0 };
           create_info.CodecType = fmt->codec;
           create_info.ChromaFormat = fmt->chroma_format;
@@ -238,8 +250,8 @@ namespace fan {
 
           create_info.ulWidth = fmt->coded_width;
           create_info.ulHeight = fmt->coded_height;
-          create_info.ulMaxWidth = 3840;
-          create_info.ulMaxHeight = 2160;
+          create_info.ulMaxWidth = create_info.ulWidth;
+          create_info.ulMaxHeight = create_info.ulHeight;
           create_info.ulTargetWidth = create_info.ulWidth;
           create_info.ulTargetHeight = create_info.ulHeight;
 
