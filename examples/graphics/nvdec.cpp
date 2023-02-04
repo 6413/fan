@@ -71,11 +71,12 @@ int main() {
   pile->loco.nv12.push_back(&pile->cid[1], p);
 
   fan::string video_data;
-  fan::io::file::read("o4.264", &video_data);
+  fan::io::file::read("encode", &video_data);
 
   nv.start_decoding(video_data);
+  pile->loco.loop([] {});
 
-  fan::print(nv.timestamp.elapsed(), nv.current_frame, nv.timestamp.elapsed() / nv.current_frame);
+   //fan::print(nv.timestamp.elapsed(), nv.current_frame, nv.timestamp.elapsed() / nv.current_frame);
 
   return 0;
 }
