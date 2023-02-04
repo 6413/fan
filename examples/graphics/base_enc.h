@@ -1,29 +1,18 @@
 /*
-* Copyright (c) 2018, NVIDIA CORPORATION. All rights reserved.
+* Copyright 2017-2018 NVIDIA Corporation.  All rights reserved.
 *
-* Permission is hereby granted, free of charge, to any person obtaining a
-* copy of this software and associated documentation files (the "Software"),
-* to deal in the Software without restriction, including without limitation
-* the rights to use, copy, modify, merge, publish, distribute, sublicense,
-* and/or sell copies of the Software, and to permit persons to whom the
-* Software is furnished to do so, subject to the following conditions:
+* Please refer to the NVIDIA end user license agreement (EULA) associated
+* with this source code for terms and conditions that govern your use of
+* this software. Any use, reproduction, disclosure, or distribution of
+* this software and related documentation outside the terms of the EULA
+* is strictly prohibited.
 *
-* The above copyright notice and this permission notice shall be included in
-* all copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
-* THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-* DEALINGS IN THE SOFTWARE.
 */
 
 #pragma once
 
 #include <vector>
-#include "nvEncodeAPI.h"
+#include <nvEncodeAPI.h>
 #include <stdint.h>
 #include <mutex>
 #include <string>
@@ -101,7 +90,7 @@ public:
   *  Application must call this function to initialize the encoder, before
   *  starting to encode any frames.
   */
-  void CreateEncoder(const NV_ENC_INITIALIZE_PARAMS* pEncodeParams, bool bAllocateSurfaces = true);
+  void CreateEncoder(const NV_ENC_INITIALIZE_PARAMS* pEncodeParams);
 
   /**
   *  @brief  This function is used to destroy the encoder session.
@@ -134,7 +123,7 @@ public:
   *  data, which has been copied to an input buffer obtained from the
   *  GetNextInputFrame() function.
   */
-  bool EncodeFrame(std::vector<std::vector<uint8_t>>& vPacket, NV_ENC_PIC_PARAMS* pPicParams = nullptr, NV_ENC_LOCK_BITSTREAM* pLockBitstreamData = nullptr, bool bDrop = true);
+  void EncodeFrame(std::vector<std::vector<uint8_t>>& vPacket, NV_ENC_PIC_PARAMS* pPicParams = nullptr);
 
   /**
   *  @brief  This function to flush the encoder queue.
@@ -143,7 +132,7 @@ public:
   *  from the encoder. The application must call this function before destroying
   *  an encoder session.
   */
-  void EndEncode(std::vector<std::vector<uint8_t>>& vPacket, NV_ENC_LOCK_BITSTREAM* pLockBitstreamData = nullptr);
+  void EndEncode(std::vector<std::vector<uint8_t>>& vPacket);
 
   /**
   *  @brief  This function is used to query hardware encoder capabilities.
@@ -260,22 +249,6 @@ public:
   */
   static uint32_t GetWidthInBytes(const NV_ENC_BUFFER_FORMAT bufferFormat, const uint32_t width);
 
-  /**
-  *  @brief This function is used to register CUDA, D3D or OpenGL input buffers with NvEncodeAPI.
-  *  This is non public function and is called by derived class for allocating
-  *  and registering input buffers.
-  */
-  void RegisterResources(std::vector<void*> inputframes, NV_ENC_INPUT_RESOURCE_TYPE eResourceType,
-    int width, int height, int pitch, NV_ENC_BUFFER_FORMAT bufferFormat, bool bReferenceFrame = false);
-
-  /**
-  *  @brief This function is used to unregister resources which had been previously registered for encoding
-  *         using RegisterResources() function.
-  */
-  void UnregisterResources();
-
-  uint32_t GetOutputPreferredBuffers() const;
-
 protected:
 
   /**
@@ -290,7 +263,19 @@ protected:
   */
   bool IsHWEncoderInitialized() const { return m_hEncoder != NULL && m_bEncoderInitialized; }
 
+  /**
+  *  @brief This function is used to register CUDA, D3D or OpenGL input buffers with NvEncodeAPI.
+  *  This is non public function and is called by derived class for allocating
+  *  and registering input buffers.
+  */
+  void RegisterResources(std::vector<void*> inputframes, NV_ENC_INPUT_RESOURCE_TYPE eResourceType,
+    int width, int height, int pitch, NV_ENC_BUFFER_FORMAT bufferFormat, bool bReferenceFrame = false);
 
+  /**
+  *  @brief This function is used to unregister resources which had been previously registered for encoding
+  *         using RegisterResources() function.
+  */
+  void UnregisterResources();
   /**
   *  @brief This function returns maximum width used to open the encoder session.
   *  All encode input buffers are allocated using maximum dimensions.
@@ -331,7 +316,7 @@ private:
   *  @brief This is a private function which is used to submit the encode
   *         commands to the NVENC hardware.
   */
-  void DoEncode(NV_ENC_INPUT_PTR inputBuffer, std::vector<std::vector<uint8_t>>& vPacket, NV_ENC_PIC_PARAMS* pPicParams, NV_ENC_LOCK_BITSTREAM* pLockBitstreamData = nullptr);
+  void DoEncode(NV_ENC_INPUT_PTR inputBuffer, std::vector<std::vector<uint8_t>>& vPacket, NV_ENC_PIC_PARAMS* pPicParams);
 
   /**
   *  @brief This is a private function which is used to submit the encode
@@ -345,7 +330,19 @@ private:
   *  This is called by DoEncode() function. If there is buffering enabled,
   *  this may return without any output data.
   */
-  void GetEncodedPacket(std::vector<NV_ENC_OUTPUT_PTR>& vOutputBuffer, std::vector<std::vector<uint8_t>>& vPacket, bool bOutputDelay, NV_ENC_LOCK_BITSTREAM* pLockBitstreamData = nullptr);
+  void GetEncodedPacket(std::vector<NV_ENC_OUTPUT_PTR>& vOutputBuffer, std::vector<std::vector<uint8_t>>& vPacket, bool bOutputDelay);
+
+  /**
+  *  @brief This is a private function which is used to initialize the bitstream buffers.
+  *  This is only used in the encoding mode.
+  */
+  void InitializeBitstreamBuffer();
+
+  /**
+  *  @brief This is a private function which is used to destroy the bitstream buffers.
+  *  This is only used in the encoding mode.
+  */
+  void DestroyBitstreamBuffer();
 
   /**
   *  @brief This is a private function which is used to initialize MV output buffers.
@@ -377,9 +374,8 @@ private:
   */
   virtual void ReleaseInputBuffers() = 0;
 
-public:
+protected:
   bool m_bMotionEstimationOnly = false;
-  bool m_bOwnInputFrames = true;
   void* m_hEncoder = nullptr;
   NV_ENCODE_API_FUNCTION_LIST m_nvenc;
   std::vector<NvEncInputFrame> m_vInputFrames;

@@ -1,25 +1,3 @@
-/*
-* Copyright (c) 2018, NVIDIA CORPORATION. All rights reserved.
-*
-* Permission is hereby granted, free of charge, to any person obtaining a
-* copy of this software and associated documentation files (the "Software"),
-* to deal in the Software without restriction, including without limitation
-* the rights to use, copy, modify, merge, publish, distribute, sublicense,
-* and/or sell copies of the Software, and to permit persons to whom the
-* Software is furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in
-* all copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
-* THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-* DEALINGS IN THE SOFTWARE.
-*/
-
 #define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 
 #ifndef FAN_INCLUDE_PATH
@@ -28,701 +6,114 @@
 #define fan_debug 1
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
-#include "nvenc.h"
+//#define loco_vulkan
 
-NvEncoder::NvEncoder(NV_ENC_DEVICE_TYPE eDeviceType, void* pDevice, uint32_t nWidth, uint32_t nHeight, NV_ENC_BUFFER_FORMAT eBufferFormat,
-  uint32_t nExtraOutputDelay, bool bMotionEstimationOnly) :
-  m_pDevice(pDevice),
-  m_eDeviceType(eDeviceType),
-  m_nWidth(nWidth),
-  m_nHeight(nHeight),
-  m_nMaxEncodeWidth(nWidth),
-  m_nMaxEncodeHeight(nHeight),
-  m_eBufferFormat(eBufferFormat),
-  m_bMotionEstimationOnly(bMotionEstimationOnly),
-  m_nExtraOutputDelay(nExtraOutputDelay),
-  m_hEncoder(nullptr)
+
+#define loco_window
+#define loco_context
+
+//#define loco_rectangle
+#define loco_nv12
+//#define loco_sprite
+#include _FAN_PATH(graphics/loco.h)
+
+struct pile_t {
+
+  static constexpr fan::vec2 ortho_x = fan::vec2(-1, 1);
+  static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
+
+  pile_t() {
+
+    fan::vec2 window_size = loco.get_window()->get_size();
+    loco.open_matrices(
+      &matrices,
+      ortho_x,
+      ortho_y
+    );
+    loco.get_window()->add_resize_callback([&](const fan::window_t::resize_cb_data_t& d) {
+      fan::vec2 window_size = d.size;
+    //fan::vec2 ratio = window_size / window_size.max();
+    //std::swap(ratio.x, ratio.y);
+    //matrices.set_ortho(
+    //  ortho_x * ratio.x, 
+    //  ortho_y * ratio.y
+    //);
+    viewport.set(loco.get_context(), 0, d.size, d.size);
+      });
+    viewport.open(loco.get_context());
+    viewport.set(loco.get_context(), 0, window_size, window_size);
+  }
+
+  loco_t loco;
+  loco_t::matrices_t matrices;
+  fan::graphics::viewport_t viewport;
+  fan::graphics::cid_t cid[5];
+};
+
+pile_t* pile = new pile_t;
+loco_t::nv12_t::properties_t p;
+
+#include _FAN_PATH(video/nvdec.h)
+
+
+#include <nvEncodeAPI.h>
+
+#define CHECK_CUDA_ERROR(err) { if (err != cudaSuccess) { std::cout << "CUDA error: " << cudaGetErrorString(err) << std::endl; exit(1); } }
+#define CHECK_NVENC_ERROR(err) { if (err != NV_ENC_SUCCESS) { std::cout << "NVENC error: " << err << std::endl; exit(1); } }
+
+const int width = 1920;
+const int height = 1080;
+const int frame_size = width * height * 4;
+const int fps = 30;
+const int bitrate = 1000000;
+
+static constexpr auto hardcode_format = NV_ENC_BUFFER_FORMAT_ARGB;
+
+// Encoder session handle
+NV_ENCODE_API_FUNCTION_LIST func_list;
+
+void* hEncoder = NULL;
+
+// RGBA input image
+unsigned char* rgba = new unsigned char[frame_size];
+
+// H264 output stream
+std::ofstream output;
+
+CUcontext context = { 0 };
+CUdevice device = { 0 };
+
+size_t m_cudaPitch = 0;
+
+
+struct NvEncInputFrame
 {
-  LoadNvEncApi();
+  void* inputPtr = nullptr;
+  uint32_t chromaOffsets[2];
+  uint32_t numChromaPlanes;
+  uint32_t pitch;
+  uint32_t chromaPitch;
+  NV_ENC_BUFFER_FORMAT bufferFormat;
+  NV_ENC_INPUT_RESOURCE_TYPE resourceType;
+};
 
-  if (!m_nvenc.nvEncOpenEncodeSession)
-  {
-    m_nEncoderBuffer = 0;
-    NVENC_THROW_ERROR("EncodeAPI not found", NV_ENC_ERR_NO_ENCODE_DEVICE);
-  }
+std::vector<NvEncInputFrame> m_vInputFrames;
+std::vector<NV_ENC_REGISTERED_PTR> m_vRegisteredResources;
+std::vector<NvEncInputFrame> m_vReferenceFrames;
+std::vector<NV_ENC_REGISTERED_PTR> m_vRegisteredResourcesForReference;
 
-  NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS encodeSessionExParams = { NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS_VER };
-  encodeSessionExParams.device = m_pDevice;
-  encodeSessionExParams.deviceType = m_eDeviceType;
-  encodeSessionExParams.apiVersion = NVENCAPI_VERSION;
-  void* hEncoder = NULL;
-  NVENC_API_CALL(m_nvenc.nvEncOpenEncodeSessionEx(&encodeSessionExParams, &hEncoder));
-  m_hEncoder = hEncoder;
-}
 
-void NvEncoder::LoadNvEncApi()
-{
-  #if defined(_WIN32)
-  #if defined(_WIN64)
-  HMODULE hModule = LoadLibrary(TEXT("nvEncodeAPI64.dll"));
-  #else
-  HMODULE hModule = LoadLibrary(TEXT("nvEncodeAPI.dll"));
-  #endif
-  #else
-  void* hModule = dlopen("libnvidia-encode.so.1", RTLD_LAZY);
-  #endif
+std::vector<NV_ENC_INPUT_PTR> m_vMappedInputBuffers;
+std::vector<NV_ENC_INPUT_PTR> m_vMappedRefBuffers;
+std::vector<NV_ENC_OUTPUT_PTR> m_vBitstreamOutputBuffer;
+std::vector<NV_ENC_OUTPUT_PTR> m_vMVDataOutputBuffer;
 
-  if (hModule == NULL)
-  {
-    NVENC_THROW_ERROR("NVENC library file is not found. Please ensure NV driver is installed", NV_ENC_ERR_NO_ENCODE_DEVICE);
-  }
 
-  m_hModule = hModule;
+std::vector<void*> m_vpCompletionEvent;
 
-  typedef NVENCSTATUS(NVENCAPI* NvEncodeAPIGetMaxSupportedVersion_Type)(uint32_t*);
-  #if defined(_WIN32)
-  NvEncodeAPIGetMaxSupportedVersion_Type NvEncodeAPIGetMaxSupportedVersion = (NvEncodeAPIGetMaxSupportedVersion_Type)GetProcAddress(hModule, "NvEncodeAPIGetMaxSupportedVersion");
-  #else
-  NvEncodeAPIGetMaxSupportedVersion_Type NvEncodeAPIGetMaxSupportedVersion = (NvEncodeAPIGetMaxSupportedVersion_Type)dlsym(hModule, "NvEncodeAPIGetMaxSupportedVersion");
-  #endif
+// Enco
 
-  uint32_t version = 0;
-  uint32_t currentVersion = (NVENCAPI_MAJOR_VERSION << 4) | NVENCAPI_MINOR_VERSION;
-  NVENC_API_CALL(NvEncodeAPIGetMaxSupportedVersion(&version));
-  if (currentVersion > version)
-  {
-    NVENC_THROW_ERROR("Current Driver Version does not support this NvEncodeAPI version, please upgrade driver", NV_ENC_ERR_INVALID_VERSION);
-  }
-
-  typedef NVENCSTATUS(NVENCAPI* NvEncodeAPICreateInstance_Type)(NV_ENCODE_API_FUNCTION_LIST*);
-  #if defined(_WIN32)
-  NvEncodeAPICreateInstance_Type NvEncodeAPICreateInstance = (NvEncodeAPICreateInstance_Type)GetProcAddress(hModule, "NvEncodeAPICreateInstance");
-  #else
-  NvEncodeAPICreateInstance_Type NvEncodeAPICreateInstance = (NvEncodeAPICreateInstance_Type)dlsym(hModule, "NvEncodeAPICreateInstance");
-  #endif
-
-  if (!NvEncodeAPICreateInstance)
-  {
-    NVENC_THROW_ERROR("Cannot find NvEncodeAPICreateInstance() entry in NVENC library", NV_ENC_ERR_NO_ENCODE_DEVICE);
-  }
-
-  m_nvenc = { NV_ENCODE_API_FUNCTION_LIST_VER };
-  NVENC_API_CALL(NvEncodeAPICreateInstance(&m_nvenc));
-}
-
-NvEncoder::~NvEncoder()
-{
-  DestroyHWEncoder();
-
-  if (m_hModule)
-  {
-    #if defined(_WIN32)
-    FreeLibrary((HMODULE)m_hModule);
-    #else
-    dlclose(m_hModule);
-    #endif
-    m_hModule = nullptr;
-  }
-}
-
-void NvEncoder::CreateDefaultEncoderParams(NV_ENC_INITIALIZE_PARAMS* pIntializeParams, GUID codecGuid, GUID presetGuid)
-{
-  if (!m_hEncoder)
-  {
-    NVENC_THROW_ERROR("Encoder Initialization failed", NV_ENC_ERR_NO_ENCODE_DEVICE);
-    return;
-  }
-
-  if (pIntializeParams == nullptr || pIntializeParams->encodeConfig == nullptr)
-  {
-    NVENC_THROW_ERROR("pInitializeParams and pInitializeParams->encodeConfig can't be NULL", NV_ENC_ERR_INVALID_PTR);
-  }
-
-  memset(pIntializeParams->encodeConfig, 0, sizeof(NV_ENC_CONFIG));
-  auto pEncodeConfig = pIntializeParams->encodeConfig;
-  memset(pIntializeParams, 0, sizeof(NV_ENC_INITIALIZE_PARAMS));
-  pIntializeParams->encodeConfig = pEncodeConfig;
-
-
-  pIntializeParams->encodeConfig->version = NV_ENC_CONFIG_VER;
-  pIntializeParams->version = NV_ENC_INITIALIZE_PARAMS_VER;
-
-  pIntializeParams->encodeGUID = codecGuid;
-  pIntializeParams->presetGUID = presetGuid;
-  pIntializeParams->encodeWidth = m_nWidth;
-  pIntializeParams->encodeHeight = m_nHeight;
-  pIntializeParams->darWidth = m_nWidth;
-  pIntializeParams->darHeight = m_nHeight;
-  pIntializeParams->frameRateNum = 30;
-  pIntializeParams->frameRateDen = 1;
-  pIntializeParams->enablePTD = 1;
-  pIntializeParams->reportSliceOffsets = 0;
-  pIntializeParams->enableSubFrameWrite = 0;
-  pIntializeParams->maxEncodeWidth = m_nWidth;
-  pIntializeParams->maxEncodeHeight = m_nHeight;
-  pIntializeParams->enableMEOnlyMode = m_bMotionEstimationOnly;
-  #if defined(_WIN32)
-  pIntializeParams->enableEncodeAsync = true;
-  #endif
-
-  NV_ENC_PRESET_CONFIG presetConfig = { NV_ENC_PRESET_CONFIG_VER, { NV_ENC_CONFIG_VER } };
-  m_nvenc.nvEncGetEncodePresetConfig(m_hEncoder, codecGuid, presetGuid, &presetConfig);
-  memcpy(pIntializeParams->encodeConfig, &presetConfig.presetCfg, sizeof(NV_ENC_CONFIG));
-  pIntializeParams->encodeConfig->frameIntervalP = 1;
-  pIntializeParams->encodeConfig->gopLength = NVENC_INFINITE_GOPLENGTH;
-
-  pIntializeParams->encodeConfig->rcParams.rateControlMode = NV_ENC_PARAMS_RC_CONSTQP;
-
-  if (pIntializeParams->presetGUID != NV_ENC_PRESET_LOSSLESS_DEFAULT_GUID
-    && pIntializeParams->presetGUID != NV_ENC_PRESET_LOSSLESS_HP_GUID)
-  {
-    pIntializeParams->encodeConfig->rcParams.constQP = { 28, 31, 25 };
-  }
-
-  if (pIntializeParams->encodeGUID == NV_ENC_CODEC_H264_GUID)
-  {
-    if (m_eBufferFormat == NV_ENC_BUFFER_FORMAT_YUV444 || m_eBufferFormat == NV_ENC_BUFFER_FORMAT_YUV444_10BIT)
-    {
-      pIntializeParams->encodeConfig->encodeCodecConfig.h264Config.chromaFormatIDC = 3;
-    }
-    pIntializeParams->encodeConfig->encodeCodecConfig.h264Config.idrPeriod = pIntializeParams->encodeConfig->gopLength;
-  }
-  else if (pIntializeParams->encodeGUID == NV_ENC_CODEC_HEVC_GUID)
-  {
-    pIntializeParams->encodeConfig->encodeCodecConfig.hevcConfig.pixelBitDepthMinus8 =
-      (m_eBufferFormat == NV_ENC_BUFFER_FORMAT_YUV420_10BIT || m_eBufferFormat == NV_ENC_BUFFER_FORMAT_YUV444_10BIT) ? 2 : 0;
-    if (m_eBufferFormat == NV_ENC_BUFFER_FORMAT_YUV444 || m_eBufferFormat == NV_ENC_BUFFER_FORMAT_YUV444_10BIT)
-    {
-      pIntializeParams->encodeConfig->encodeCodecConfig.hevcConfig.chromaFormatIDC = 3;
-    }
-    pIntializeParams->encodeConfig->encodeCodecConfig.hevcConfig.idrPeriod = pIntializeParams->encodeConfig->gopLength;
-  }
-
-  return;
-}
-
-uint32_t NvEncoder::GetOutputPreferredBuffers() const
-{
-  return m_nEncoderBuffer;
-}
-
-void NvEncoder::CreateEncoder(const NV_ENC_INITIALIZE_PARAMS* pEncoderParams, bool bAllocateSurfaces)
-{
-  if (!m_hEncoder)
-  {
-    NVENC_THROW_ERROR("Encoder Initialization failed", NV_ENC_ERR_NO_ENCODE_DEVICE);
-  }
-
-  if (!pEncoderParams)
-  {
-    NVENC_THROW_ERROR("Invalid NV_ENC_INITIALIZE_PARAMS ptr", NV_ENC_ERR_INVALID_PTR);
-  }
-
-  if (pEncoderParams->encodeWidth == 0 || pEncoderParams->encodeHeight == 0)
-  {
-    NVENC_THROW_ERROR("Invalid encoder width and height", NV_ENC_ERR_INVALID_PARAM);
-  }
-
-  if (pEncoderParams->encodeGUID != NV_ENC_CODEC_H264_GUID && pEncoderParams->encodeGUID != NV_ENC_CODEC_HEVC_GUID)
-  {
-    NVENC_THROW_ERROR("Invalid codec guid", NV_ENC_ERR_INVALID_PARAM);
-  }
-
-  if (pEncoderParams->encodeGUID == NV_ENC_CODEC_H264_GUID)
-  {
-    if (m_eBufferFormat == NV_ENC_BUFFER_FORMAT_YUV420_10BIT || m_eBufferFormat == NV_ENC_BUFFER_FORMAT_YUV444_10BIT)
-    {
-      NVENC_THROW_ERROR("10-bit format isn't supported by H264 encoder", NV_ENC_ERR_INVALID_PARAM);
-    }
-  }
-
-  // set other necessary params if not set yet
-  if (pEncoderParams->encodeGUID == NV_ENC_CODEC_H264_GUID)
-  {
-    if ((m_eBufferFormat == NV_ENC_BUFFER_FORMAT_YUV444) &&
-      (pEncoderParams->encodeConfig->encodeCodecConfig.h264Config.chromaFormatIDC != 3))
-    {
-      NVENC_THROW_ERROR("Invalid ChromaFormatIDC", NV_ENC_ERR_INVALID_PARAM);
-    }
-    pEncoderParams->encodeConfig->encodeCodecConfig.h264Config.h264VUIParameters.colourMatrix = NV_ENC_VUI_MATRIX_COEFFS_BT709;
-  }
-
-  if (pEncoderParams->encodeGUID == NV_ENC_CODEC_HEVC_GUID)
-  {
-    bool yuv10BitFormat = (m_eBufferFormat == NV_ENC_BUFFER_FORMAT_YUV420_10BIT || m_eBufferFormat == NV_ENC_BUFFER_FORMAT_YUV444_10BIT) ? true : false;
-    if (yuv10BitFormat && pEncoderParams->encodeConfig->encodeCodecConfig.hevcConfig.pixelBitDepthMinus8 != 2)
-    {
-      NVENC_THROW_ERROR("Invalid PixelBitdepth", NV_ENC_ERR_INVALID_PARAM);
-    }
-
-    if ((m_eBufferFormat == NV_ENC_BUFFER_FORMAT_YUV444 || m_eBufferFormat == NV_ENC_BUFFER_FORMAT_YUV444_10BIT) &&
-      (pEncoderParams->encodeConfig->encodeCodecConfig.hevcConfig.chromaFormatIDC != 3))
-    {
-      NVENC_THROW_ERROR("Invalid ChromaFormatIDC", NV_ENC_ERR_INVALID_PARAM);
-    }
-  }
-
-  memcpy(&m_initializeParams, pEncoderParams, sizeof(m_initializeParams));
-  m_initializeParams.version = NV_ENC_INITIALIZE_PARAMS_VER;
-
-  if (pEncoderParams->encodeConfig)
-  {
-    memcpy(&m_encodeConfig, pEncoderParams->encodeConfig, sizeof(m_encodeConfig));
-    m_encodeConfig.version = NV_ENC_CONFIG_VER;
-  }
-  else
-  {
-    NV_ENC_PRESET_CONFIG presetConfig = { NV_ENC_PRESET_CONFIG_VER, { NV_ENC_CONFIG_VER } };
-    m_nvenc.nvEncGetEncodePresetConfig(m_hEncoder, pEncoderParams->encodeGUID, NV_ENC_PRESET_DEFAULT_GUID, &presetConfig);
-    memcpy(&m_encodeConfig, &presetConfig.presetCfg, sizeof(NV_ENC_CONFIG));
-    m_encodeConfig.version = NV_ENC_CONFIG_VER;
-    m_encodeConfig.rcParams.rateControlMode = NV_ENC_PARAMS_RC_CONSTQP;
-    m_encodeConfig.rcParams.constQP = { 28, 31, 25 };
-  }
-  m_initializeParams.encodeConfig = &m_encodeConfig;
-
-  NVENC_API_CALL(m_nvenc.nvEncInitializeEncoder(m_hEncoder, &m_initializeParams));
-
-  m_bEncoderInitialized = true;
-  m_nWidth = m_initializeParams.encodeWidth;
-  m_nHeight = m_initializeParams.encodeHeight;
-  m_nMaxEncodeWidth = m_initializeParams.maxEncodeWidth;
-  m_nMaxEncodeHeight = m_initializeParams.maxEncodeHeight;
-
-  m_nEncoderBuffer = m_encodeConfig.frameIntervalP + m_encodeConfig.rcParams.lookaheadDepth + m_nExtraOutputDelay;
-  //DBGMSG(dbgINFO, L"%s - Number of buffers specified - %d", WFUNCTION, m_nEncoderBuffer);
-  m_nOutputDelay = m_nEncoderBuffer - 1;
-  m_vMappedInputBuffers.resize(m_nEncoderBuffer, nullptr);
-  m_vBitstreamOutputBuffer.resize(m_nEncoderBuffer, nullptr);
-
-  for (int i = 0; i < m_nEncoderBuffer; i++)
-  {
-    NV_ENC_CREATE_BITSTREAM_BUFFER createBitstreamBuffer = { NV_ENC_CREATE_BITSTREAM_BUFFER_VER };
-    NVENC_API_CALL(m_nvenc.nvEncCreateBitstreamBuffer(m_hEncoder, &createBitstreamBuffer));
-    m_vBitstreamOutputBuffer[i] = createBitstreamBuffer.bitstreamBuffer;
-  }
-
-  m_vpCompletionEvent.resize(m_nEncoderBuffer, nullptr);
-  #if defined(_WIN32)
-  for (int i = 0; i < m_nEncoderBuffer; i++)
-  {
-    m_vpCompletionEvent[i] = CreateEvent(NULL, TRUE, TRUE, NULL);
-    NV_ENC_EVENT_PARAMS eventParams = { NV_ENC_EVENT_PARAMS_VER };
-    eventParams.completionEvent = m_vpCompletionEvent[i];
-    m_nvenc.nvEncRegisterAsyncEvent(m_hEncoder, &eventParams);
-  }
-  #endif
-
-  if (m_bMotionEstimationOnly)
-  {
-    m_vMappedRefBuffers.resize(m_nEncoderBuffer, nullptr);
-    InitializeMVOutputBuffer();
-  }
-
-  m_bOwnInputFrames = bAllocateSurfaces;
-  if (bAllocateSurfaces)
-  {
-    AllocateInputBuffers(m_nEncoderBuffer);
-  }
-}
-
-void NvEncoder::DestroyEncoder()
-{
-  if (!m_hEncoder)
-  {
-    return;
-  }
-
-  ReleaseInputBuffers();
-
-  DestroyHWEncoder();
-}
-
-void NvEncoder::DestroyHWEncoder()
-{
-  if (!m_hEncoder)
-  {
-    return;
-  }
-
-  for (uint32_t i = 0; i < m_vBitstreamOutputBuffer.size(); i++)
-  {
-    if (m_vBitstreamOutputBuffer[i])
-    {
-      m_nvenc.nvEncDestroyBitstreamBuffer(m_hEncoder, m_vBitstreamOutputBuffer[i]);
-    }
-  }
-  m_vBitstreamOutputBuffer.clear();
-
-  #if defined(_WIN32)
-  for (uint32_t i = 0; i < m_vpCompletionEvent.size(); i++)
-  {
-    if (m_vpCompletionEvent[i])
-    {
-      NV_ENC_EVENT_PARAMS eventParams = { NV_ENC_EVENT_PARAMS_VER };
-      eventParams.completionEvent = m_vpCompletionEvent[i];
-      m_nvenc.nvEncUnregisterAsyncEvent(m_hEncoder, &eventParams);
-      CloseHandle(m_vpCompletionEvent[i]);
-    }
-  }
-  m_vpCompletionEvent.clear();
-  #endif
-
-  if (m_bMotionEstimationOnly)
-  {
-    DestroyMVOutputBuffer();
-  }
-
-  m_nvenc.nvEncDestroyEncoder(m_hEncoder);
-
-  m_hEncoder = nullptr;
-
-  m_bEncoderInitialized = false;
-}
-
-const NvEncInputFrame* NvEncoder::GetNextInputFrame()
-{
-  int i = m_iToSend % m_nEncoderBuffer;
-  if (m_iToSend >= m_nOutputDelay)
-  {
-    unsigned int index = (m_iToSend - m_nOutputDelay) % m_nEncoderBuffer;
-    DWORD dwWait = WaitForSingleObject(m_vpCompletionEvent[index], 0);
-    if (dwWait != WAIT_OBJECT_0)
-    {
-      fan::print("frame dropped at index", m_iToSend);
-      //DBGMSG(dbgINFO, L"%s - Frame dropped at send index - %d", WFUNCTION, m_iToSend);
-      return nullptr;
-    }
-  }
-  return &m_vInputFrames[i];
-}
-
-const NvEncInputFrame* NvEncoder::GetNextReferenceFrame()
-{
-  int i = m_iToSend % m_nEncoderBuffer;
-  return &m_vReferenceFrames[i];
-}
-
-bool NvEncoder::EncodeFrame(std::vector<std::vector<uint8_t>>& vPacket, NV_ENC_PIC_PARAMS* pPicParams, NV_ENC_LOCK_BITSTREAM* pLockBitstreamData, bool bDrop)
-{
-  vPacket.clear();
-  if (!IsHWEncoderInitialized())
-  {
-    NVENC_THROW_ERROR("Encoder device not found", NV_ENC_ERR_NO_ENCODE_DEVICE);
-  }
-  int i = m_iToSend % m_nEncoderBuffer;
-
-  if (bDrop)
-  {
-    if (m_iToSend >= m_nOutputDelay)
-    {
-      unsigned int index = (m_iToSend - m_nOutputDelay) % m_nEncoderBuffer;
-      DWORD dwWait = WaitForSingleObject(m_vpCompletionEvent[index], 0);
-      if (dwWait != WAIT_OBJECT_0)
-      {
-        fan::print("frame dropped at send index -", m_iToSend);
-        //DBGMSG(dbgINFO, L"%s - Frame dropped at send index - %d", WFUNCTION, m_iToSend);
-        return false;
-      }
-    }
-  }
-
-  NV_ENC_MAP_INPUT_RESOURCE mapInputResource = { NV_ENC_MAP_INPUT_RESOURCE_VER };
-  mapInputResource.registeredResource = m_vRegisteredResources[i];
-  //mapInputResource.mappedBufferFmt
-  NVENC_API_CALL(m_nvenc.nvEncMapInputResource(m_hEncoder, &mapInputResource));
-  m_vMappedInputBuffers[i] = mapInputResource.mappedResource;
-  DoEncode(m_vMappedInputBuffers[i], vPacket, pPicParams, pLockBitstreamData);
-  return true;
-}
-
-
-void NvEncoder::RunMotionEstimation(std::vector<uint8_t>& mvData)
-{
-  if (!m_hEncoder)
-  {
-    NVENC_THROW_ERROR("Encoder Initialization failed", NV_ENC_ERR_NO_ENCODE_DEVICE);
-    return;
-  }
-
-  const uint32_t i = m_iToSend % m_nEncoderBuffer;
-
-  NV_ENC_MAP_INPUT_RESOURCE mapInputResource = { NV_ENC_MAP_INPUT_RESOURCE_VER };
-  mapInputResource.registeredResource = m_vRegisteredResources[i];
-  NVENC_API_CALL(m_nvenc.nvEncMapInputResource(m_hEncoder, &mapInputResource));
-  NV_ENC_INPUT_PTR pDeviceMemoryInputBuffer = mapInputResource.mappedResource;
-  m_vMappedInputBuffers[i] = mapInputResource.mappedResource;
-
-
-  mapInputResource.registeredResource = m_vRegisteredResourcesForReference[i];
-  NVENC_API_CALL(m_nvenc.nvEncMapInputResource(m_hEncoder, &mapInputResource));
-  NV_ENC_INPUT_PTR pDeviceMemoryInputBufferForReference = mapInputResource.mappedResource;
-  m_vMappedRefBuffers[i] = mapInputResource.mappedResource;
-
-  DoMotionEstimation(pDeviceMemoryInputBuffer, pDeviceMemoryInputBufferForReference, mvData);
-}
-
-
-void NvEncoder::GetSequenceParams(std::vector<uint8_t>& seqParams)
-{
-  uint8_t spsppsData[1024]; // Assume maximum spspps data is 1KB or less
-  memset(spsppsData, 0, sizeof(spsppsData));
-  NV_ENC_SEQUENCE_PARAM_PAYLOAD payload = { NV_ENC_SEQUENCE_PARAM_PAYLOAD_VER };
-  uint32_t spsppsSize = 0;
-
-  payload.spsppsBuffer = spsppsData;
-  payload.inBufferSize = sizeof(spsppsData);
-  payload.outSPSPPSPayloadSize = &spsppsSize;
-  NVENC_API_CALL(m_nvenc.nvEncGetSequenceParams(m_hEncoder, &payload));
-  seqParams.clear();
-  seqParams.insert(seqParams.end(), &spsppsData[0], &spsppsData[spsppsSize]);
-}
-
-void NvEncoder::DoEncode(NV_ENC_INPUT_PTR inputBuffer, std::vector<std::vector<uint8_t>>& vPacket, NV_ENC_PIC_PARAMS* pPicParams, NV_ENC_LOCK_BITSTREAM* pLockBitstreamData)
-{
-  NV_ENC_PIC_PARAMS picParams = {};
-  if (pPicParams)
-  {
-    picParams = *pPicParams;
-  }
-  picParams.version = NV_ENC_PIC_PARAMS_VER;
-  picParams.pictureStruct = NV_ENC_PIC_STRUCT_FRAME;
-  picParams.inputBuffer = inputBuffer;
-  picParams.bufferFmt = GetPixelFormat();
-  picParams.inputWidth = GetEncodeWidth();
-  picParams.inputHeight = GetEncodeHeight();
-  picParams.outputBitstream = m_vBitstreamOutputBuffer[m_iToSend % m_nEncoderBuffer];
-  picParams.completionEvent = m_vpCompletionEvent[m_iToSend % m_nEncoderBuffer];
-  ResetEvent(picParams.completionEvent);
-  NVENCSTATUS nvStatus = m_nvenc.nvEncEncodePicture(m_hEncoder, &picParams);
-  if (nvStatus == NV_ENC_SUCCESS || nvStatus == NV_ENC_ERR_NEED_MORE_INPUT)
-  {
-    if (nvStatus == NV_ENC_ERR_NEED_MORE_INPUT)
-    {
-      //DBGMSG(dbgINFO, L"%s - nvEncEncodePicture returned NV_ENC_ERR_NEED_MORE_INPUT for frame number - %d", WFUNCTION, m_iToSend);
-    }
-    m_iToSend++;
-    GetEncodedPacket(m_vBitstreamOutputBuffer, vPacket, false, pLockBitstreamData);
-  }
-  else
-  {
-    NVENC_THROW_ERROR("nvEncEncodePicture API failed", nvStatus);
-  }
-}
-
-void NvEncoder::EndEncode(std::vector<std::vector<uint8_t>>& vPacket, NV_ENC_LOCK_BITSTREAM* pLockBitstreamData)
-{
-  vPacket.clear();
-  if (!IsHWEncoderInitialized())
-  {
-    NVENC_THROW_ERROR("Encoder device not initialized", NV_ENC_ERR_ENCODER_NOT_INITIALIZED);
-  }
-
-  NV_ENC_PIC_PARAMS picParams = { NV_ENC_PIC_PARAMS_VER };
-  picParams.encodePicFlags = NV_ENC_PIC_FLAG_EOS;
-  picParams.completionEvent = m_vpCompletionEvent[m_iToSend % m_nEncoderBuffer];
-  NVENC_API_CALL(m_nvenc.nvEncEncodePicture(m_hEncoder, &picParams));
-  GetEncodedPacket(m_vBitstreamOutputBuffer, vPacket, false, pLockBitstreamData);
-}
-
-void NvEncoder::GetEncodedPacket(std::vector<NV_ENC_OUTPUT_PTR>& vOutputBuffer, std::vector<std::vector<uint8_t>>& vPacket, bool bOutputDelay, NV_ENC_LOCK_BITSTREAM* pLockBitstreamData)
-{
-  unsigned i = 0;
-  int iEnd = bOutputDelay ? m_iToSend - m_nOutputDelay : m_iToSend;
-  for (; m_iGot < iEnd; m_iGot++)
-  {
-    //WaitForCompletionEvent(m_iGot % m_nEncoderBuffer);
-    NV_ENC_LOCK_BITSTREAM lockBitstreamData = { NV_ENC_LOCK_BITSTREAM_VER };
-    lockBitstreamData.outputBitstream = vOutputBuffer[m_iGot % m_nEncoderBuffer];
-    lockBitstreamData.doNotWait = false;
-    NVENC_API_CALL(m_nvenc.nvEncLockBitstream(m_hEncoder, &lockBitstreamData));
-
-    uint8_t* pData = (uint8_t*)lockBitstreamData.bitstreamBufferPtr;
-    if (vPacket.size() < i + 1)
-    {
-      vPacket.push_back(std::vector<uint8_t>());
-    }
-    vPacket[i].clear();
-    vPacket[i].insert(vPacket[i].end(), &pData[0], &pData[lockBitstreamData.bitstreamSizeInBytes]);
-    i++;
-
-    if (pLockBitstreamData)
-    {
-      memcpy(pLockBitstreamData, &lockBitstreamData, sizeof(NV_ENC_LOCK_BITSTREAM));
-    }
-
-    NVENC_API_CALL(m_nvenc.nvEncUnlockBitstream(m_hEncoder, lockBitstreamData.outputBitstream));
-
-    if (m_vMappedInputBuffers[m_iGot % m_nEncoderBuffer])
-    {
-      NVENC_API_CALL(m_nvenc.nvEncUnmapInputResource(m_hEncoder, m_vMappedInputBuffers[m_iGot % m_nEncoderBuffer]));
-      m_vMappedInputBuffers[m_iGot % m_nEncoderBuffer] = nullptr;
-    }
-
-    if (m_bMotionEstimationOnly && m_vMappedRefBuffers[m_iGot % m_nEncoderBuffer])
-    {
-      NVENC_API_CALL(m_nvenc.nvEncUnmapInputResource(m_hEncoder, m_vMappedRefBuffers[m_iGot % m_nEncoderBuffer]));
-      m_vMappedRefBuffers[m_iGot % m_nEncoderBuffer] = nullptr;
-    }
-  }
-}
-
-bool NvEncoder::Reconfigure(const NV_ENC_RECONFIGURE_PARAMS* pReconfigureParams)
-{
-  NVENC_API_CALL(m_nvenc.nvEncReconfigureEncoder(m_hEncoder, const_cast<NV_ENC_RECONFIGURE_PARAMS*>(pReconfigureParams)));
-
-  memcpy(&m_initializeParams, &(pReconfigureParams->reInitEncodeParams), sizeof(m_initializeParams));
-  if (pReconfigureParams->reInitEncodeParams.encodeConfig)
-  {
-    memcpy(&m_encodeConfig, pReconfigureParams->reInitEncodeParams.encodeConfig, sizeof(m_encodeConfig));
-  }
-
-  m_nWidth = m_initializeParams.encodeWidth;
-  m_nHeight = m_initializeParams.encodeHeight;
-  m_nMaxEncodeWidth = m_initializeParams.maxEncodeWidth;
-  m_nMaxEncodeHeight = m_initializeParams.maxEncodeHeight;
-
-  return true;
-}
-
-void NvEncoder::RegisterResources(std::vector<void*> inputframes, NV_ENC_INPUT_RESOURCE_TYPE eResourceType,
-  int width, int height, int pitch, NV_ENC_BUFFER_FORMAT bufferFormat, bool bReferenceFrame)
-{
-  for (uint32_t i = 0; i < inputframes.size(); ++i)
-  {
-    NV_ENC_REGISTER_RESOURCE registerResource = { NV_ENC_REGISTER_RESOURCE_VER };
-    registerResource.resourceType = eResourceType;
-    registerResource.resourceToRegister = (void*)inputframes[i];
-    registerResource.width = width;
-    registerResource.height = height;
-    registerResource.pitch = pitch;
-    registerResource.bufferFormat = bufferFormat;
-    NVENC_API_CALL(m_nvenc.nvEncRegisterResource(m_hEncoder, &registerResource));
-
-    std::vector<uint32_t> _chromaOffsets;
-    NvEncoder::GetChromaSubPlaneOffsets(bufferFormat, pitch, height, _chromaOffsets);
-    NvEncInputFrame inputframe = {};
-    inputframe.inputPtr = (void*)inputframes[i];
-    inputframe.chromaOffsets[0] = 0;
-    inputframe.chromaOffsets[1] = 0;
-    for (uint32_t ch = 0; ch < _chromaOffsets.size(); ch++)
-    {
-      inputframe.chromaOffsets[ch] = _chromaOffsets[ch];
-    }
-    inputframe.numChromaPlanes = NvEncoder::GetNumChromaPlanes(bufferFormat);
-    inputframe.pitch = pitch;
-    inputframe.chromaPitch = NvEncoder::GetChromaPitch(bufferFormat, pitch);
-    inputframe.bufferFormat = bufferFormat;
-    inputframe.resourceType = eResourceType;
-
-    if (bReferenceFrame)
-    {
-      m_vRegisteredResourcesForReference.push_back(registerResource.registeredResource);
-      m_vReferenceFrames.push_back(inputframe);
-    }
-    else
-    {
-      m_vRegisteredResources.push_back(registerResource.registeredResource);
-      m_vInputFrames.push_back(inputframe);
-    }
-  }
-}
-
-void NvEncoder::UnregisterResources()
-{
-  // Incase of error it is possible for buffers still mapped to encoder.
-  // flush the encoder queue and then unmapped it if any surface is still mapped
-  try
-  {
-    std::vector<std::vector<uint8_t>> vPacket;
-    EndEncode(vPacket);
-  }
-  catch (...)
-  {
-
-  }
-  if (m_bMotionEstimationOnly)
-  {
-    for (uint32_t i = 0; i < m_vMappedRefBuffers.size(); ++i)
-    {
-      if (m_vMappedRefBuffers[i])
-      {
-        m_nvenc.nvEncUnmapInputResource(m_hEncoder, m_vMappedRefBuffers[i]);
-      }
-    }
-  }
-  m_vMappedRefBuffers.clear();
-
-  for (uint32_t i = 0; i < m_vMappedInputBuffers.size(); ++i)
-  {
-    if (m_vMappedInputBuffers[i])
-    {
-      m_nvenc.nvEncUnmapInputResource(m_hEncoder, m_vMappedInputBuffers[i]);
-    }
-  }
-  m_vMappedInputBuffers.clear();
-
-  for (uint32_t i = 0; i < m_vRegisteredResources.size(); ++i)
-  {
-    if (m_vRegisteredResources[i])
-    {
-      m_nvenc.nvEncUnregisterResource(m_hEncoder, m_vRegisteredResources[i]);
-    }
-  }
-  m_vRegisteredResources.clear();
-
-
-  for (uint32_t i = 0; i < m_vRegisteredResourcesForReference.size(); ++i)
-  {
-    if (m_vRegisteredResourcesForReference[i])
-    {
-      m_nvenc.nvEncUnregisterResource(m_hEncoder, m_vRegisteredResourcesForReference[i]);
-    }
-  }
-  m_vRegisteredResourcesForReference.clear();
-
-}
-
-
-void NvEncoder::WaitForCompletionEvent(int iEvent)
-{
-  #if defined(_WIN32)
-  #ifdef DEBUG
-  WaitForSingleObject(m_vpCompletionEvent[iEvent], INFINITE);
-  #else
-  // wait for 20s which is infinite on terms of gpu time
-  if (WaitForSingleObject(m_vpCompletionEvent[iEvent], 20000) == WAIT_FAILED)
-  {
-    NVENC_THROW_ERROR("Failed to encode frame", NV_ENC_ERR_GENERIC);
-  }
-  #endif
-  #endif
-}
-
-uint32_t NvEncoder::GetWidthInBytes(const NV_ENC_BUFFER_FORMAT bufferFormat, const uint32_t width)
-{
-  switch (bufferFormat) {
-  case NV_ENC_BUFFER_FORMAT_NV12:
-  case NV_ENC_BUFFER_FORMAT_YV12:
-  case NV_ENC_BUFFER_FORMAT_IYUV:
-  case NV_ENC_BUFFER_FORMAT_YUV444:
-    return width;
-  case NV_ENC_BUFFER_FORMAT_YUV420_10BIT:
-  case NV_ENC_BUFFER_FORMAT_YUV444_10BIT:
-    return width * 2;
-  case NV_ENC_BUFFER_FORMAT_ARGB:
-  case NV_ENC_BUFFER_FORMAT_ARGB10:
-  case NV_ENC_BUFFER_FORMAT_AYUV:
-  case NV_ENC_BUFFER_FORMAT_ABGR:
-  case NV_ENC_BUFFER_FORMAT_ABGR10:
-    return width * 4;
-  default:
-    NVENC_THROW_ERROR("Invalid Buffer format", NV_ENC_ERR_INVALID_PARAM);
-    return 0;
-  }
-}
-
-uint32_t NvEncoder::GetNumChromaPlanes(const NV_ENC_BUFFER_FORMAT bufferFormat)
+uint32_t GetNumChromaPlanes(const NV_ENC_BUFFER_FORMAT bufferFormat)
 {
   switch (bufferFormat)
   {
@@ -741,67 +132,12 @@ uint32_t NvEncoder::GetNumChromaPlanes(const NV_ENC_BUFFER_FORMAT bufferFormat)
   case NV_ENC_BUFFER_FORMAT_ABGR10:
     return 0;
   default:
-    NVENC_THROW_ERROR("Invalid Buffer format", NV_ENC_ERR_INVALID_PARAM);
+    fan::throw_error("invalid format");
     return -1;
   }
 }
 
-uint32_t NvEncoder::GetChromaPitch(const NV_ENC_BUFFER_FORMAT bufferFormat, const uint32_t lumaPitch)
-{
-  switch (bufferFormat)
-  {
-  case NV_ENC_BUFFER_FORMAT_NV12:
-  case NV_ENC_BUFFER_FORMAT_YUV420_10BIT:
-  case NV_ENC_BUFFER_FORMAT_YUV444:
-  case NV_ENC_BUFFER_FORMAT_YUV444_10BIT:
-    return lumaPitch;
-  case NV_ENC_BUFFER_FORMAT_YV12:
-  case NV_ENC_BUFFER_FORMAT_IYUV:
-    return (lumaPitch + 1) / 2;
-  case NV_ENC_BUFFER_FORMAT_ARGB:
-  case NV_ENC_BUFFER_FORMAT_ARGB10:
-  case NV_ENC_BUFFER_FORMAT_AYUV:
-  case NV_ENC_BUFFER_FORMAT_ABGR:
-  case NV_ENC_BUFFER_FORMAT_ABGR10:
-    return 0;
-  default:
-    NVENC_THROW_ERROR("Invalid Buffer format", NV_ENC_ERR_INVALID_PARAM);
-    return -1;
-  }
-}
-
-void NvEncoder::GetChromaSubPlaneOffsets(const NV_ENC_BUFFER_FORMAT bufferFormat, const uint32_t pitch, const uint32_t height, std::vector<uint32_t>& chromaOffsets)
-{
-  chromaOffsets.clear();
-  switch (bufferFormat)
-  {
-  case NV_ENC_BUFFER_FORMAT_NV12:
-  case NV_ENC_BUFFER_FORMAT_YUV420_10BIT:
-    chromaOffsets.push_back(pitch * height);
-    return;
-  case NV_ENC_BUFFER_FORMAT_YV12:
-  case NV_ENC_BUFFER_FORMAT_IYUV:
-    chromaOffsets.push_back(pitch * height);
-    chromaOffsets.push_back(chromaOffsets[0] + (NvEncoder::GetChromaPitch(bufferFormat, pitch) * GetChromaHeight(bufferFormat, height)));
-    return;
-  case NV_ENC_BUFFER_FORMAT_YUV444:
-  case NV_ENC_BUFFER_FORMAT_YUV444_10BIT:
-    chromaOffsets.push_back(pitch * height);
-    chromaOffsets.push_back(chromaOffsets[0] + (pitch * height));
-    return;
-  case NV_ENC_BUFFER_FORMAT_ARGB:
-  case NV_ENC_BUFFER_FORMAT_ARGB10:
-  case NV_ENC_BUFFER_FORMAT_AYUV:
-  case NV_ENC_BUFFER_FORMAT_ABGR:
-  case NV_ENC_BUFFER_FORMAT_ABGR10:
-    return;
-  default:
-    NVENC_THROW_ERROR("Invalid Buffer format", NV_ENC_ERR_INVALID_PARAM);
-    return;
-  }
-}
-
-uint32_t NvEncoder::GetChromaHeight(const NV_ENC_BUFFER_FORMAT bufferFormat, const uint32_t lumaHeight)
+uint32_t GetChromaHeight(const NV_ENC_BUFFER_FORMAT bufferFormat, const uint32_t lumaHeight)
 {
   switch (bufferFormat)
   {
@@ -820,26 +156,47 @@ uint32_t NvEncoder::GetChromaHeight(const NV_ENC_BUFFER_FORMAT bufferFormat, con
   case NV_ENC_BUFFER_FORMAT_ABGR10:
     return 0;
   default:
-    NVENC_THROW_ERROR("Invalid Buffer format", NV_ENC_ERR_INVALID_PARAM);
+    fan::throw_error("invalid format");
     return 0;
   }
 }
 
-uint32_t NvEncoder::GetChromaWidthInBytes(const NV_ENC_BUFFER_FORMAT bufferFormat, const uint32_t lumaWidth)
+uint32_t GetWidthInBytes(const NV_ENC_BUFFER_FORMAT bufferFormat, const uint32_t width)
+{
+  switch (bufferFormat) {
+  case NV_ENC_BUFFER_FORMAT_NV12:
+  case NV_ENC_BUFFER_FORMAT_YV12:
+  case NV_ENC_BUFFER_FORMAT_IYUV:
+  case NV_ENC_BUFFER_FORMAT_YUV444:
+    return width;
+  case NV_ENC_BUFFER_FORMAT_YUV420_10BIT:
+  case NV_ENC_BUFFER_FORMAT_YUV444_10BIT:
+    return width * 2;
+  case NV_ENC_BUFFER_FORMAT_ARGB:
+  case NV_ENC_BUFFER_FORMAT_ARGB10:
+  case NV_ENC_BUFFER_FORMAT_AYUV:
+  case NV_ENC_BUFFER_FORMAT_ABGR:
+  case NV_ENC_BUFFER_FORMAT_ABGR10:
+    return width * 4;
+  default:
+    fan::throw_error("invalid format");
+    return 0;
+  }
+}
+
+
+uint32_t GetChromaPitch(const NV_ENC_BUFFER_FORMAT bufferFormat, const uint32_t lumaPitch)
 {
   switch (bufferFormat)
   {
+  case NV_ENC_BUFFER_FORMAT_NV12:
+  case NV_ENC_BUFFER_FORMAT_YUV420_10BIT:
+  case NV_ENC_BUFFER_FORMAT_YUV444:
+  case NV_ENC_BUFFER_FORMAT_YUV444_10BIT:
+    return lumaPitch;
   case NV_ENC_BUFFER_FORMAT_YV12:
   case NV_ENC_BUFFER_FORMAT_IYUV:
-    return (lumaWidth + 1) / 2;
-  case NV_ENC_BUFFER_FORMAT_NV12:
-    return lumaWidth;
-  case NV_ENC_BUFFER_FORMAT_YUV420_10BIT:
-    return 2 * lumaWidth;
-  case NV_ENC_BUFFER_FORMAT_YUV444:
-    return lumaWidth;
-  case NV_ENC_BUFFER_FORMAT_YUV444_10BIT:
-    return 2 * lumaWidth;
+    return (lumaPitch + 1) / 2;
   case NV_ENC_BUFFER_FORMAT_ARGB:
   case NV_ENC_BUFFER_FORMAT_ARGB10:
   case NV_ENC_BUFFER_FORMAT_AYUV:
@@ -847,109 +204,420 @@ uint32_t NvEncoder::GetChromaWidthInBytes(const NV_ENC_BUFFER_FORMAT bufferForma
   case NV_ENC_BUFFER_FORMAT_ABGR10:
     return 0;
   default:
-    NVENC_THROW_ERROR("Invalid Buffer format", NV_ENC_ERR_INVALID_PARAM);
-    return 0;
+    fan::throw_error("invalid format");
+    return -1;
   }
 }
 
-
-int NvEncoder::GetCapabilityValue(GUID guidCodec, NV_ENC_CAPS capsToQuery)
+void GetChromaSubPlaneOffsets(const NV_ENC_BUFFER_FORMAT bufferFormat, const uint32_t pitch, const uint32_t height, std::vector<uint32_t>& chromaOffsets)
 {
-  if (!m_hEncoder)
+  chromaOffsets.clear();
+  switch (bufferFormat)
   {
-    return 0;
-  }
-  NV_ENC_CAPS_PARAM capsParam = { NV_ENC_CAPS_PARAM_VER };
-  capsParam.capsToQuery = capsToQuery;
-  int v;
-  m_nvenc.nvEncGetEncodeCaps(m_hEncoder, guidCodec, &capsParam, &v);
-  return v;
-}
-
-int NvEncoder::GetFrameSize() const
-{
-  switch (GetPixelFormat())
-  {
+  case NV_ENC_BUFFER_FORMAT_NV12:
+  case NV_ENC_BUFFER_FORMAT_YUV420_10BIT:
+    chromaOffsets.push_back(pitch * height);
+    return;
   case NV_ENC_BUFFER_FORMAT_YV12:
   case NV_ENC_BUFFER_FORMAT_IYUV:
-  case NV_ENC_BUFFER_FORMAT_NV12:
-    return GetEncodeWidth() * (GetEncodeHeight() + (GetEncodeHeight() + 1) / 2);
-  case NV_ENC_BUFFER_FORMAT_YUV420_10BIT:
-    return 2 * GetEncodeWidth() * (GetEncodeHeight() + (GetEncodeHeight() + 1) / 2);
+    chromaOffsets.push_back(pitch * height);
+    chromaOffsets.push_back(chromaOffsets[0] + (GetChromaPitch(bufferFormat, pitch) * GetChromaHeight(bufferFormat, height)));
+    return;
   case NV_ENC_BUFFER_FORMAT_YUV444:
-    return GetEncodeWidth() * GetEncodeHeight() * 3;
   case NV_ENC_BUFFER_FORMAT_YUV444_10BIT:
-    return 2 * GetEncodeWidth() * GetEncodeHeight() * 3;
+    chromaOffsets.push_back(pitch * height);
+    chromaOffsets.push_back(chromaOffsets[0] + (pitch * height));
+    return;
   case NV_ENC_BUFFER_FORMAT_ARGB:
   case NV_ENC_BUFFER_FORMAT_ARGB10:
   case NV_ENC_BUFFER_FORMAT_AYUV:
   case NV_ENC_BUFFER_FORMAT_ABGR:
   case NV_ENC_BUFFER_FORMAT_ABGR10:
-    return 4 * GetEncodeWidth() * GetEncodeHeight();
+    return;
   default:
-    NVENC_THROW_ERROR("Invalid Buffer format", NV_ENC_ERR_INVALID_PARAM);
-    return 0;
+    fan::throw_error("invalid format");
+    return;
   }
 }
 
-void NvEncoder::GetInitializeParams(NV_ENC_INITIALIZE_PARAMS* pInitializeParams)
+void RegisterResources(std::vector<void*> inputframes, NV_ENC_INPUT_RESOURCE_TYPE eResourceType,
+  int width, int height, int pitch, NV_ENC_BUFFER_FORMAT bufferFormat, bool bReferenceFrame)
 {
-  if (!pInitializeParams || !pInitializeParams->encodeConfig)
+  for (uint32_t i = 0; i < inputframes.size(); ++i)
   {
-    NVENC_THROW_ERROR("Both pInitializeParams and pInitializeParams->encodeConfig can't be NULL", NV_ENC_ERR_INVALID_PTR);
-  }
-  NV_ENC_CONFIG* pEncodeConfig = pInitializeParams->encodeConfig;
-  *pEncodeConfig = m_encodeConfig;
-  *pInitializeParams = m_initializeParams;
-  pInitializeParams->encodeConfig = pEncodeConfig;
-}
+    NV_ENC_REGISTER_RESOURCE registerResource = { NV_ENC_REGISTER_RESOURCE_VER };
+    registerResource.resourceType = eResourceType;
+    registerResource.resourceToRegister = (void*)inputframes[i];
+    registerResource.width = width;
+    registerResource.height = height;
+    registerResource.pitch = pitch;
+    registerResource.bufferFormat = bufferFormat;
+    fan::cuda::check_error(func_list.nvEncRegisterResource(hEncoder, &registerResource));
 
-void NvEncoder::InitializeMVOutputBuffer()
-{
-  for (int i = 0; i < m_nEncoderBuffer; i++)
-  {
-    NV_ENC_CREATE_MV_BUFFER createMVBuffer = { NV_ENC_CREATE_MV_BUFFER_VER };
-    NVENC_API_CALL(m_nvenc.nvEncCreateMVBuffer(m_hEncoder, &createMVBuffer));
-    m_vMVDataOutputBuffer.push_back(createMVBuffer.mvBuffer);
-  }
-}
-
-void NvEncoder::DestroyMVOutputBuffer()
-{
-  for (uint32_t i = 0; i < m_vMVDataOutputBuffer.size(); i++)
-  {
-    if (m_vMVDataOutputBuffer[i])
+    std::vector<uint32_t> _chromaOffsets;
+    GetChromaSubPlaneOffsets(bufferFormat, pitch, height, _chromaOffsets);
+    NvEncInputFrame inputframe = {};
+    inputframe.inputPtr = (void*)inputframes[i];
+    inputframe.chromaOffsets[0] = 0;
+    inputframe.chromaOffsets[1] = 0;
+    for (uint32_t ch = 0; ch < _chromaOffsets.size(); ch++)
     {
-      m_nvenc.nvEncDestroyMVBuffer(m_hEncoder, m_vMVDataOutputBuffer[i]);
+      inputframe.chromaOffsets[ch] = _chromaOffsets[ch];
+    }
+    inputframe.numChromaPlanes = GetNumChromaPlanes(bufferFormat);
+    inputframe.pitch = pitch;
+    inputframe.chromaPitch = GetChromaPitch(bufferFormat, pitch);
+    inputframe.bufferFormat = bufferFormat;
+    inputframe.resourceType = eResourceType;
+
+    if (bReferenceFrame)
+    {
+      m_vRegisteredResourcesForReference.push_back(registerResource.registeredResource);
+      m_vReferenceFrames.push_back(inputframe);
+    }
+    else
+    {
+      m_vRegisteredResources.push_back(registerResource.registeredResource);
+      m_vInputFrames.push_back(inputframe);
     }
   }
-
-  m_vMVDataOutputBuffer.clear();
 }
 
-void NvEncoder::DoMotionEstimation(NV_ENC_INPUT_PTR inputBuffer, NV_ENC_INPUT_PTR inputBufferForReference, std::vector<uint8_t>& mvData)
+void AllocateInputBuffers(int32_t numInputBuffers)
 {
-  NV_ENC_MEONLY_PARAMS meParams = { NV_ENC_MEONLY_PARAMS_VER };
-  meParams.inputBuffer = inputBuffer;
-  meParams.referenceFrame = inputBufferForReference;
-  meParams.inputWidth = GetEncodeWidth();
-  meParams.inputHeight = GetEncodeHeight();
-  meParams.mvBuffer = m_vMVDataOutputBuffer[m_iToSend % m_nEncoderBuffer];
-  meParams.completionEvent = m_vpCompletionEvent[m_iToSend % m_nEncoderBuffer];
-  NVENCSTATUS nvStatus = m_nvenc.nvEncRunMotionEstimationOnly(m_hEncoder, &meParams);
+
+  // for MEOnly mode we need to allocate seperate set of buffers for reference frame
+  int numCount = 1;
+
+  for (int count = 0; count < numCount; count++)
+  {
+    std::vector<void*> inputFrames;
+    for (int i = 0; i < numInputBuffers; i++)
+    {
+      CUdeviceptr pDeviceFrame;
+      uint32_t chromaHeight = GetNumChromaPlanes(hardcode_format) * GetChromaHeight(hardcode_format, height);
+      fan::cuda::check_error(cuMemAllocPitch((CUdeviceptr*)&pDeviceFrame,
+        &m_cudaPitch,
+        GetWidthInBytes(hardcode_format, width),
+        height + chromaHeight, 16));
+      inputFrames.push_back((void*)pDeviceFrame);
+    }
+
+    RegisterResources(inputFrames,
+      NV_ENC_INPUT_RESOURCE_TYPE_CUDADEVICEPTR,
+      width,
+      height,
+      (int)m_cudaPitch,
+      hardcode_format,
+      (count == 1) ? true : false);
+  }
+}
+
+void CreateDefaultEncoderParams(NV_ENC_INITIALIZE_PARAMS* pIntializeParams, GUID codecGuid, GUID presetGuid) {
+
+
+  memset(pIntializeParams->encodeConfig, 0, sizeof(NV_ENC_CONFIG));
+  auto pEncodeConfig = pIntializeParams->encodeConfig;
+  memset(pIntializeParams, 0, sizeof(NV_ENC_INITIALIZE_PARAMS));
+  pIntializeParams->encodeConfig = pEncodeConfig;
+
+
+  pIntializeParams->encodeConfig->version = NV_ENC_CONFIG_VER;
+  pIntializeParams->version = NV_ENC_INITIALIZE_PARAMS_VER;
+
+  pIntializeParams->encodeGUID = codecGuid;
+  pIntializeParams->presetGUID = presetGuid;
+  pIntializeParams->encodeWidth = width;
+  pIntializeParams->encodeHeight = height;
+  pIntializeParams->darWidth = width;
+  pIntializeParams->darHeight = height;
+  pIntializeParams->frameRateNum = 30;
+  pIntializeParams->frameRateDen = 1;
+  pIntializeParams->enablePTD = 1;
+  pIntializeParams->reportSliceOffsets = 0;
+  pIntializeParams->enableSubFrameWrite = 0;
+  pIntializeParams->maxEncodeWidth = width;
+  pIntializeParams->maxEncodeHeight = height;
+  //pIntializeParams->enableMEOnlyMode = m_bMotionEstimationOnly;
+
+  NV_ENC_PRESET_CONFIG presetConfig = { NV_ENC_PRESET_CONFIG_VER, { NV_ENC_CONFIG_VER } };
+  fan::cuda::check_error(func_list.nvEncGetEncodePresetConfig(hEncoder, codecGuid, presetGuid, &presetConfig));
+  memcpy(pIntializeParams->encodeConfig, &presetConfig.presetCfg, sizeof(NV_ENC_CONFIG));
+  pIntializeParams->encodeConfig->frameIntervalP = 1;
+  pIntializeParams->encodeConfig->gopLength = NVENC_INFINITE_GOPLENGTH;
+
+  pIntializeParams->encodeConfig->rcParams.rateControlMode = NV_ENC_PARAMS_RC_CONSTQP;
+
+  if (pIntializeParams->presetGUID != NV_ENC_PRESET_LOSSLESS_DEFAULT_GUID
+    && pIntializeParams->presetGUID != NV_ENC_PRESET_LOSSLESS_HP_GUID)
+  {
+    pIntializeParams->encodeConfig->rcParams.constQP = { 28, 31, 25 };
+  }
+
+  if (pIntializeParams->encodeGUID == NV_ENC_CODEC_H264_GUID)
+  {
+    pIntializeParams->encodeConfig->encodeCodecConfig.h264Config.idrPeriod = pIntializeParams->encodeConfig->gopLength;
+  }
+  else if (pIntializeParams->encodeGUID == NV_ENC_CODEC_HEVC_GUID)
+  {
+    pIntializeParams->encodeConfig->encodeCodecConfig.hevcConfig.pixelBitDepthMinus8 = 0;
+    pIntializeParams->encodeConfig->encodeCodecConfig.hevcConfig.idrPeriod = pIntializeParams->encodeConfig->gopLength;
+  }
+
+  return;
+}
+
+uint32_t m_iToSend = 0;
+int32_t m_iGot = 0;
+
+void GetEncodedPacket(std::vector<NV_ENC_OUTPUT_PTR>& vOutputBuffer, std::vector<std::vector<uint8_t>>& vPacket, bool bOutputDelay)
+{
+  unsigned i = 0;
+  int iEnd = m_iToSend;
+  for (; m_iGot < iEnd; m_iGot++)
+  {
+    NV_ENC_LOCK_BITSTREAM lockBitstreamData = { NV_ENC_LOCK_BITSTREAM_VER };
+    lockBitstreamData.outputBitstream = vOutputBuffer[m_iGot % 1];
+    lockBitstreamData.doNotWait = false;
+    fan::cuda::check_error(func_list.nvEncLockBitstream(hEncoder, &lockBitstreamData));
+
+    uint8_t* pData = (uint8_t*)lockBitstreamData.bitstreamBufferPtr;
+    if (vPacket.size() < i + 1)
+    {
+      vPacket.push_back(std::vector<uint8_t>());
+    }
+    vPacket[i].clear();
+    vPacket[i].insert(vPacket[i].end(), &pData[0], &pData[lockBitstreamData.bitstreamSizeInBytes]);
+    i++;
+
+    fan::cuda::check_error(func_list.nvEncUnlockBitstream(hEncoder, lockBitstreamData.outputBitstream));
+
+    if (m_vMappedInputBuffers[m_iGot % 1])
+    {
+      fan::cuda::check_error(func_list.nvEncUnmapInputResource(hEncoder, m_vMappedInputBuffers[m_iGot % 1]));
+      m_vMappedInputBuffers[m_iGot % 1] = nullptr;
+    }
+
+    //if (m_bMotionEstimationOnly && m_vMappedRefBuffers[m_iGot % 1])
+    //{
+    //  fan::cuda::check_error(func_list.nvEncUnmapInputResource(hEncoder, m_vMappedRefBuffers[m_iGot % 1]));
+    //  m_vMappedRefBuffers[m_iGot % 1] = nullptr;
+    //}
+  }
+}
+
+void DoEncode(NV_ENC_INPUT_PTR inputBuffer, std::vector<std::vector<uint8_t>>& vPacket, NV_ENC_PIC_PARAMS* pPicParams)
+{
+  NV_ENC_PIC_PARAMS picParams = {};
+  if (pPicParams)
+  {
+    picParams = *pPicParams;
+  }
+  picParams.version = NV_ENC_PIC_PARAMS_VER;
+  picParams.pictureStruct = NV_ENC_PIC_STRUCT_FRAME;
+  picParams.inputBuffer = inputBuffer;
+  picParams.bufferFmt = hardcode_format;
+  picParams.inputWidth = width;
+  picParams.inputHeight = height;
+  picParams.outputBitstream = m_vBitstreamOutputBuffer[m_iToSend % 1];
+  picParams.completionEvent = m_vpCompletionEvent[m_iToSend % 1];
+  NVENCSTATUS nvStatus = func_list.nvEncEncodePicture(hEncoder, &picParams);
   if (nvStatus == NV_ENC_SUCCESS || nvStatus == NV_ENC_ERR_NEED_MORE_INPUT)
   {
     m_iToSend++;
-    std::vector<std::vector<uint8_t>> vPacket;
-    GetEncodedPacket(m_vMVDataOutputBuffer, vPacket, true);
-    if (vPacket.size() != 1)
-    {
-      NVENC_THROW_ERROR("GetEncodedPacket() doesn't return one (and only one) MVData", NV_ENC_ERR_GENERIC);
-    }
-    mvData = vPacket[0];
+    GetEncodedPacket(m_vBitstreamOutputBuffer, vPacket, true);
   }
   else
   {
-    NVENC_THROW_ERROR("nvEncEncodePicture API failed", nvStatus);
+    fan::throw_error("");
+    //NVENC_THROW_ERROR("nvEncEncodePicture API failed", nvStatus);
   }
+}
+
+
+int main() {
+  // CUDA initialization
+  cuInit(0);
+  CHECK_CUDA_ERROR(cudaGetLastError());
+
+  func_list = { NV_ENCODE_API_FUNCTION_LIST_VER };
+
+  // NVENC initialization
+  fan::cuda::check_error(NvEncodeAPICreateInstance(&func_list));
+
+  int device_count = 0;
+  fan::cuda::check_error(cuDeviceGetCount(&device_count));
+
+  fan::print_format("{} cuda device(s) found", device_count);
+
+  fan::cuda::check_error(cuDeviceGet(&device, 0));
+
+  char name[80] = { 0 };
+  fan::cuda::check_error(cuDeviceGetName(name, sizeof(name), device));
+
+  fan::print_format("cuda device: {}", name);
+
+  fan::cuda::check_error(cuCtxCreate(&context, 0, device));
+
+
+  NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS encodeSessionExParams = { NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS_VER };
+  encodeSessionExParams.device = context;
+  encodeSessionExParams.deviceType = NV_ENC_DEVICE_TYPE_CUDA;
+  encodeSessionExParams.apiVersion = NVENCAPI_VERSION;
+
+  fan::cuda::check_error(func_list.nvEncOpenEncodeSessionEx(&encodeSessionExParams, &hEncoder));
+
+  NV_ENC_BUFFER_FORMAT fmt = NV_ENC_BUFFER_FORMAT_ARGB;
+
+  NV_ENC_INITIALIZE_PARAMS initializeParams = { 0 };
+  NV_ENC_CONFIG encConfig = { 0 };
+
+  ZeroMemory(&initializeParams, sizeof(initializeParams));
+  ZeroMemory(&initializeParams, sizeof(encConfig));
+  encConfig.gopLength = 5;
+
+  initializeParams.encodeConfig = &encConfig;
+
+
+  CreateDefaultEncoderParams(&initializeParams, NV_ENC_CODEC_H264_GUID, NV_ENC_PRESET_LOW_LATENCY_HP_GUID);
+  //encInitParams.enableOutputInVidmem;
+
+ /* initializeParams.encodeGUID = NV_ENC_CODEC_H264_GUID;
+  initializeParams.encodeWidth = width;
+  initializeParams.encodeHeight = height;
+  initializeParams.maxEncodeWidth = width;
+  initializeParams.maxEncodeHeight = height;
+  initializeParams.darHeight = height;
+  initializeParams.darWidth = width;
+  initializeParams.frameRateNum = fps;
+  initializeParams.frameRateDen = 1;
+  initializeParams.enableEncodeAsync = 0;
+  initializeParams.enablePTD = 1;
+  initializeParams.reportSliceOffsets = 0;
+  initializeParams.enableSubFrameWrite = 0;
+
+  NV_ENC_CONFIG encodeConfig = { NV_ENC_CONFIG_VER };
+  encodeConfig.profileGUID = NV_ENC_H264_PROFILE_HIGH_GUID;
+  encodeConfig.gopLength = fps;
+  encodeConfig.frameIntervalP = 1;
+  encodeConfig.monoChromeEncoding = 0;
+  encodeConfig.frameFieldMode = NV_ENC_PARAMS_FRAME_FIELD_MODE_FRAME;
+  encodeConfig.mvPrecision = NV_ENC_MV_PRECISION_DEFAULT;
+
+  encodeConfig.rcParams.version = NV_ENC_RC_PARAMS_VER;
+  encodeConfig.rcParams.rateControlMode = NV_ENC_PARAMS_RC_CONSTQP;
+  encodeConfig.rcParams.constQP.qpInterB = 28;
+  encodeConfig.rcParams.constQP.qpInterP = 26;
+  encodeConfig.rcParams.constQP.qpIntra = 25;
+  encodeConfig.rcParams.averageBitRate = bitrate;
+  encodeConfig.rcParams.maxBitRate = bitrate * 2;
+
+  initializeParams.encodeConfig = &encodeConfig;*/
+  // Initialize encode configuration
+
+  // Initialize preset configuration
+  //presetConfig.version = NV_ENC_PRESET_CONFIG_VER;
+  //presetConfig.presetCfg.version = NV_ENC_CONFIG_VER;
+  //presetConfig.presetCfg.profileGUID = NV_ENC_H264_PROFILE_HIGH_GUID;
+  //presetConfig.presetCfg.gopLength = fps;
+  //presetConfig.presetCfg.frameIntervalP = 1;
+  //presetConfig.presetCfg.monoChromeEncoding = 0;
+  //presetConfig.presetCfg.frameFieldMode = NV_ENC_PARAMS_FRAME_FIELD_MODE_FRAME;
+  //presetConfig.presetCfg.mvPrecision = NV_ENC_MV_PRECISION_QUARTER_PEL;
+  //presetConfig.presetCfg.rcParams.version = NV_ENC_RC_PARAMS_VER;
+  //presetConfig.presetCfg.rcParams.rateControlMode = NV_ENC_PARAMS_RC_CONSTQP;
+  //presetConfig.presetCfg.rcParams.constQP.qpInterB = 28;
+  //presetConfig.presetCfg.rcParams.constQP.qpInterP = 26;
+  //presetConfig.presetCfg.rcParams.constQP.qpIntra = 25;
+  //presetConfig.presetCfg.rcParams.averageBitRate = bitrate;
+  //presetConfig.presetCfg.rcParams.maxBitRate = bitrate * 2;
+
+  //// Open the output file
+  //output.open("output.h264", std::ios::out | std::ios::binary);
+  //if (!output.is_open()) {
+  //  std::cout << "Failed to open output file." << std::endl;
+  //  exit(1);
+  //}
+
+  auto m_nEncoderBuffer = initializeParams.encodeConfig->frameIntervalP + initializeParams.encodeConfig->rcParams.lookaheadDepth;
+
+  // Initialize the encoder
+  fan::cuda::check_error(func_list.nvEncInitializeEncoder(hEncoder, &initializeParams));
+
+  AllocateInputBuffers(m_nEncoderBuffer);
+
+  std::vector<std::vector<uint8_t>> vPacket;
+
+  m_vMappedInputBuffers.resize(m_nEncoderBuffer, nullptr);
+
+  m_vBitstreamOutputBuffer.resize(m_nEncoderBuffer, nullptr);
+
+  int i = m_iToSend % m_nEncoderBuffer;
+  NV_ENC_MAP_INPUT_RESOURCE mapInputResource = { NV_ENC_MAP_INPUT_RESOURCE_VER };
+  mapInputResource.registeredResource = m_vRegisteredResources[i];
+  fan::cuda::check_error(func_list.nvEncMapInputResource(hEncoder, &mapInputResource));
+  m_vMappedInputBuffers[i] = mapInputResource.mappedResource;
+  DoEncode(m_vMappedInputBuffers[i], vPacket, nullptr);
+
+  //DoEncode()
+
+  //// Allocate input and output buffers
+  //NV_ENC_INPUT_PTR inputBuffer = 0;
+  //NV_ENC_OUTPUT_PTR outputBuffer = 0;
+
+  //// Encode the RGBA frames
+  //for (int i = 0; i < 100; i++) {
+  //  // Fill the RGBA frame with random data
+  //  memset(rgba, i % 256, frame_size);
+
+  //  // Map the input buffer
+  //  NV_ENC_MAP_INPUT_RESOURCE mapInputResource = { NV_ENC_MAP_INPUT_RESOURCE_VER };
+  //  mapInputResource.inputResource = rgba;
+  //  //mapInputResource.mappedResource = &mappedResource;
+
+  //  func_list.nvEncMapInputResource(&hEncoder, &mapInputResource);
+  //  inputBuffer = mapInputResource.mappedResource;
+
+  //  // Get an output buffer
+  //  NV_ENC_LOCK_BITSTREAM lockBitstreamData = { 0 };
+  //  lockBitstreamData.version = NV_ENC_LOCK_BITSTREAM_VER;
+  //  lockBitstreamData.outputBitstream = outputBuffer;
+  //  lockBitstreamData.doNotWait = false;
+
+  //  // Encode the RGBA frame
+  //  NV_ENC_PIC_PARAMS encodePicParams = { 0 };
+  //  encodePicParams.version = NV_ENC_PIC_PARAMS_VER;
+  //  encodePicParams.inputBuffer = inputBuffer;
+  //  encodePicParams.bufferFmt = NV_ENC_BUFFER_FORMAT_ABGR;
+  //  encodePicParams.inputWidth = width;
+  //  encodePicParams.inputHeight = height;
+  //  encodePicParams.outputBitstream = &lockBitstreamData;
+  //  encodePicParams.completionEvent = 0;
+
+  //  fan::cuda::check_error(func_list.nvEncEncodePicture(&hEncoder, &encodePicParams));
+
+  //  // Unmap the input buffer
+  //  //NV_ENC_INPUT_PTR unmapInputResource = { 0 };
+  //  //unmapInputResource.version = NV_ENC_UNMAP_INPUT_RESOURCE_VER;
+  //  //unmapInputResource.mappedResource = inputBuffer;
+
+  //  //encoder.nvEncUnmapInputResource(&encoder, &unmapInputResource);
+
+  //  // Write the encoded frame to the output file
+  //  //output.write((char*)lockBitstreamData.bitstreamBuffer, lockBitstreamData.bitstreamSizeInBytes);
+
+  //  // Release the output buffer
+  //  fan::cuda::check_error(func_list.nvEncUnlockBitstream(&hEncoder, &lockBitstreamData));
+  //}
+
+  // Close the output file
+  output.close();
+
+  // Destroy the encoder
+  //CHECK_NVENC_ERROR(encoder->nvEncDestroyEncoder(encoder));
+
+  // Free the RGBA frame buffer
+  delete[] rgba;
+
+  return 0;
 }

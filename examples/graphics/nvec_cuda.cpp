@@ -1,20 +1,15 @@
-#define _INCLUDE_TOKEN(p0, p1) <p0/p1>
+/*
+* Copyright 2017-2018 NVIDIA Corporation.  All rights reserved.
+*
+* Please refer to the NVIDIA end user license agreement (EULA) associated
+* with this source code for terms and conditions that govern your use of
+* this software. Any use, reproduction, disclosure, or distribution of
+* this software and related documentation outside the terms of the EULA
+* is strictly prohibited.
+*
+*/
 
-#ifndef FAN_INCLUDE_PATH
-#define FAN_INCLUDE_PATH C:/libs/fan/include
-#endif
-#define fan_debug 1
-#include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
-
-#define loco_window
-#define loco_context
-
-//#define loco_rectangle
-#define loco_nv12
-//#define loco_sprite
-#include _FAN_PATH(graphics/loco.h)
-
-#include "cudaenc.h"
+#include "nvec_cuda.h"
 
 #define CUDA_DRVAPI_CALL( call )                                                                                                 \
     do                                                                                                                           \
@@ -301,6 +296,23 @@ void NvEncoderCuda::CopyToDeviceFrame(CUcontext device,
   CUDA_DRVAPI_CALL(cuCtxPopCurrent(NULL));
 }
 
+
+#define _INCLUDE_TOKEN(p0, p1) <p0/p1>
+
+#ifndef FAN_INCLUDE_PATH
+#define FAN_INCLUDE_PATH C:/libs/fan/include
+#endif
+#define fan_debug 1
+#include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
+
+#define loco_window
+#define loco_context
+
+//#define loco_rectangle
+#define loco_nv12
+//#define loco_sprite
+#include _FAN_PATH(graphics/loco.h)
+
 struct pile_t {
 
   static constexpr fan::vec2 ortho_x = fan::vec2(-1, 1);
@@ -338,61 +350,107 @@ pile_t* pile = new pile_t;
 
 #include _FAN_PATH(video/nvdec.h)
 
+void EncodeCuda(CUcontext cuContext, char* szInFilePath, int nWidth, int nHeight, NV_ENC_BUFFER_FORMAT eFormat,
+  char* szOutFilePath)
+{
+  std::ifstream fpIn(szInFilePath, std::ifstream::in | std::ifstream::binary);
+  if (!fpIn)
+  {
+    std::ostringstream err;
+    err << "Unable to open input file: " << szInFilePath << std::endl;
+    throw std::invalid_argument(err.str());
+  }
+
+  std::ofstream fpOut(szOutFilePath, std::ios::out | std::ios::binary);
+  if (!fpOut)
+  {
+    std::ostringstream err;
+    err << "Unable to open output file: " << szOutFilePath << std::endl;
+    throw std::invalid_argument(err.str());
+  }
+
+  NvEncoderCuda enc(cuContext, nWidth, nHeight, eFormat);
+
+  NV_ENC_INITIALIZE_PARAMS initializeParams = { NV_ENC_INITIALIZE_PARAMS_VER };
+  NV_ENC_CONFIG encodeConfig = { NV_ENC_CONFIG_VER };
+  initializeParams.encodeConfig = &encodeConfig;
+  enc.CreateDefaultEncoderParams(&initializeParams, NV_ENC_CODEC_H264_GUID, NV_ENC_PRESET_LOW_LATENCY_HP_GUID);
+
+  enc.CreateEncoder(&initializeParams);
+
+  int nFrameSize = enc.GetFrameSize();
+
+  std::unique_ptr<uint8_t[]> pHostFrame(new uint8_t[nFrameSize]);
+  int nFrame = 0;
+  while (true)
+  {
+    // Load the next frame from disk
+    std::streamsize nRead = fpIn.read(reinterpret_cast<char*>(pHostFrame.get()), nFrameSize).gcount();
+    // For receiving encoded packets
+    std::vector<std::vector<uint8_t>> vPacket;
+    if (nRead == nFrameSize)
+    {
+      const NvEncInputFrame* encoderInputFrame = enc.GetNextInputFrame();
+      NvEncoderCuda::CopyToDeviceFrame(cuContext, pHostFrame.get(), 0, (CUdeviceptr)encoderInputFrame->inputPtr,
+        (int)encoderInputFrame->pitch,
+        enc.GetEncodeWidth(),
+        enc.GetEncodeHeight(),
+        CU_MEMORYTYPE_HOST,
+        encoderInputFrame->bufferFormat,
+        encoderInputFrame->chromaOffsets,
+        encoderInputFrame->numChromaPlanes);
+
+      enc.EncodeFrame(vPacket);
+    }
+    else
+    {
+      enc.EndEncode(vPacket);
+    }
+    nFrame += (int)vPacket.size();
+    for (std::vector<uint8_t>& packet : vPacket)
+    {
+      // For each encoded packet
+      fpOut.write(reinterpret_cast<char*>(packet.data()), packet.size());
+    }
+
+    if (nRead != nFrameSize) break;
+  }
+
+  enc.DestroyEncoder();
+  fpOut.close();
+  fpIn.close();
+
+  std::cout << "Total frames encoded: " << nFrame << std::endl << "Saved in file " << szOutFilePath << std::endl;
+}
+
 int main() {
+  fan::vec2 encode_size(1280, 720);
 
-  CUdevice device = { 0 };
-  CUcontext context = { 0 };
+  NV_ENC_BUFFER_FORMAT eFormat = NV_ENC_BUFFER_FORMAT_ARGB;
+  int iGpu = 0;
+  try
+  {
+    fan::cuda::check_error(cuInit(0));
+    int nGpu = 0;
+    fan::cuda::check_error(cuDeviceGetCount(&nGpu));
+    if (iGpu < 0 || iGpu >= nGpu)
+    {
+      std::cout << "GPU ordinal out of range. Should be within [" << 0 << ", " << nGpu - 1 << "]" << std::endl;
+      return 1;
+    }
+    CUdevice cuDevice = 0;
+    fan::cuda::check_error(cuDeviceGet(&cuDevice, iGpu));
+    char szDeviceName[80];
+    fan::cuda::check_error(cuDeviceGetName(szDeviceName, sizeof(szDeviceName), cuDevice));
+    std::cout << "GPU in use: " << szDeviceName << std::endl;
+    CUcontext cuContext = NULL;
+    fan::cuda::check_error(cuCtxCreate(&cuContext, 0, cuDevice));
 
-  cuInit(0);
-
-  int device_count = 0;
-  fan::cuda::check_error(cuDeviceGetCount(&device_count));
-
-  fan::print_format("{} cuda device(s) found", device_count);
-
-  fan::cuda::check_error(cuDeviceGet(&device, 0));
-
-  char name[80] = { 0 };
-  fan::cuda::check_error(cuDeviceGetName(name, sizeof(name), device));
-
-  fan::print_format("cuda device: {}", name);
-
-  fan::cuda::check_error(cuCtxCreate(&context, 0, device));
-
-  fan::vec2 encode_size(2560, 1440);
-  NV_ENC_BUFFER_FORMAT fmt = NV_ENC_BUFFER_FORMAT_ARGB;
-
-  NvEncoderCuda enc(context, encode_size.x, encode_size.y, fmt);
-
-  NV_ENC_INITIALIZE_PARAMS encInitParams = { 0 };
-  /// NVENCODEAPI video encoding configuration parameters
-  NV_ENC_CONFIG encConfig = { 0 };
-
-  ZeroMemory(&encInitParams, sizeof(encInitParams));
-  ZeroMemory(&encConfig, sizeof(encConfig));
-
-
-  encInitParams.encodeConfig = &encConfig;
-  encInitParams.encodeWidth = encode_size.x;
-  encInitParams.encodeHeight = encode_size.y;
-  encInitParams.maxEncodeWidth = encode_size.x;
-  encInitParams.maxEncodeHeight = encode_size.y;
-  encConfig.gopLength = 5;
-
-  enc.CreateDefaultEncoderParams(&encInitParams, NV_ENC_CODEC_H264_GUID, NV_ENC_PRESET_LOW_LATENCY_HP_GUID);
-  enc.CreateEncoder(&encInitParams);
-
-
-  //int data[200 * 200 * 4];
-  //memset(data, 100, sizeof(data));
-
-  fan::string str;
-  fan::io::file::read("ss", &str);
-
-  const NvEncInputFrame* frame = enc.GetNextInputFrame();
-  fan::cuda::check_error(cudaMemcpy((void*)frame->inputPtr, str.data(), str.size(), cudaMemcpyHostToDevice));
-  //memset(frame->inputPtr, 256, 1080);
-  std::vector<std::vector<uint8_t>> packet;
-  enc.EncodeFrame(packet);
-  fan::io::file::write("encode", packet[0], std::ios_base::binary);
+    EncodeCuda(cuContext, "o.brgx", encode_size.x, encode_size.y, eFormat, "encode");
+  }
+  catch (const std::exception& ex)
+  {
+    std::cout << ex.what();
+    return 1;
+  }
 };

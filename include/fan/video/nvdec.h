@@ -202,8 +202,6 @@ namespace fan {
 
           CUVIDRECONFIGUREDECODERINFO reconfigParams = { 0 };
 
-          int nDecodeSurface = GetNumDecodeSurfaces(fmt->codec, fmt->coded_width, fmt->coded_height);
-
           reconfigParams.ulWidth = fmt->coded_width;
           reconfigParams.ulHeight = fmt->coded_height;
           reconfigParams.ulTargetWidth = reconfigParams.ulWidth;
@@ -285,7 +283,7 @@ namespace fan {
 
         return 1;
       }
-
+      
       static int parser_display_picture_callback(void* user, CUVIDPARSERDISPINFO* info) {
         nv_decoder_t* decoder = (nv_decoder_t*)user;
 
@@ -297,7 +295,7 @@ namespace fan {
         videoProcessingParameters.second_field = info->repeat_first_field + 1;
         videoProcessingParameters.top_field_first = info->top_field_first;
         videoProcessingParameters.unpaired_field = info->repeat_first_field < 0;
-
+        //fan::print(info->picture_index);
         fan::cuda::check_error(cuvidMapVideoFrame(decoder->decoder, info->picture_index, &cuDevPtr,
           &nPitch, &videoProcessingParameters));
 
@@ -306,7 +304,7 @@ namespace fan {
 
         pile->loco.process_loop([]{});
 
-        ////fan::delay(fan::time::nanoseconds(.05e+9));
+        fan::delay(fan::time::nanoseconds(.5e+9));
         fan::cuda::check_error(cuvidUnmapVideoFrame(decoder->decoder, cuDevPtr));
 
         decoder->current_frame++;
