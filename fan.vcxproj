@@ -279,7 +279,7 @@
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="examples\graphics\nvec_cuda.cpp" />
+    <ClCompile Include="examples\graphics\nvenc.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -337,8 +337,8 @@
     <ClInclude Include="..\WITCH\BLL\BLL.h" />
     <ClInclude Include="..\WITCH\BLL\internal\NodeReference.h" />
     <ClInclude Include="..\WITCH\BLL\internal\rest.h" />
-    <ClInclude Include="examples\graphics\base_enc.h" />
-    <ClInclude Include="examples\graphics\nvec_cuda.h" />
+    <ClInclude Include="include\fan\video\base_enc.h" />
+    <ClInclude Include="include\fan\video\nvec_cuda.h" />
     <ClInclude Include="include\fan\bll.h" />
     <ClInclude Include="include\fan\engine\engine.h" />
     <ClInclude Include="include\fan\fed\FED.h" />
