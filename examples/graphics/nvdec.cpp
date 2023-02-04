@@ -53,7 +53,6 @@ struct pile_t {
 };
 
 pile_t* pile = new pile_t;
-loco_t::nv12_t::properties_t p;
 
 #include _FAN_PATH(video/nvdec.h)
 
@@ -62,6 +61,8 @@ int main() {
   pile->loco.set_vsync(false);
 
   fan::cuda::nv_decoder_t nv;
+
+  loco_t::nv12_t::properties_t p;
 
   p.matrices = &pile->matrices;
   p.viewport = &pile->viewport;

@@ -279,7 +279,6 @@
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="examples\graphics\base_enc.cpp" />
     <ClCompile Include="examples\graphics\nvec_cuda.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
   </ItemGroup>

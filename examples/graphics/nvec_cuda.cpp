@@ -350,26 +350,9 @@ pile_t* pile = new pile_t;
 
 #include _FAN_PATH(video/nvdec.h)
 
-void EncodeCuda(CUcontext cuContext, char* szInFilePath, int nWidth, int nHeight, NV_ENC_BUFFER_FORMAT eFormat,
-  char* szOutFilePath)
-{
-  std::ifstream fpIn(szInFilePath, std::ifstream::in | std::ifstream::binary);
-  if (!fpIn)
-  {
-    std::ostringstream err;
-    err << "Unable to open input file: " << szInFilePath << std::endl;
-    throw std::invalid_argument(err.str());
-  }
+fan::string EncodeCuda(CUcontext cuContext, const fan::string& data, const fan::vec2ui& size, NV_ENC_BUFFER_FORMAT eFormat) {
 
-  std::ofstream fpOut(szOutFilePath, std::ios::out | std::ios::binary);
-  if (!fpOut)
-  {
-    std::ostringstream err;
-    err << "Unable to open output file: " << szOutFilePath << std::endl;
-    throw std::invalid_argument(err.str());
-  }
-
-  NvEncoderCuda enc(cuContext, nWidth, nHeight, eFormat);
+  NvEncoderCuda enc(cuContext, size.x, size.y, eFormat);
 
   NV_ENC_INITIALIZE_PARAMS initializeParams = { NV_ENC_INITIALIZE_PARAMS_VER };
   NV_ENC_CONFIG encodeConfig = { NV_ENC_CONFIG_VER };
@@ -380,18 +363,15 @@ void EncodeCuda(CUcontext cuContext, char* szInFilePath, int nWidth, int nHeight
 
   int nFrameSize = enc.GetFrameSize();
 
-  std::unique_ptr<uint8_t[]> pHostFrame(new uint8_t[nFrameSize]);
-  int nFrame = 0;
-  while (true)
-  {
-    // Load the next frame from disk
-    std::streamsize nRead = fpIn.read(reinterpret_cast<char*>(pHostFrame.get()), nFrameSize).gcount();
-    // For receiving encoded packets
+  fan::string bytes;
+  uint64_t offset = 0;
+
+  while (offset + nFrameSize < data.size()) {
+
     std::vector<std::vector<uint8_t>> vPacket;
-    if (nRead == nFrameSize)
-    {
+    if (!(offset % nFrameSize)) {
       const NvEncInputFrame* encoderInputFrame = enc.GetNextInputFrame();
-      NvEncoderCuda::CopyToDeviceFrame(cuContext, pHostFrame.get(), 0, (CUdeviceptr)encoderInputFrame->inputPtr,
+      NvEncoderCuda::CopyToDeviceFrame(cuContext, (void*)&data[offset], 0, (CUdeviceptr)encoderInputFrame->inputPtr,
         (int)encoderInputFrame->pitch,
         enc.GetEncodeWidth(),
         enc.GetEncodeHeight(),
@@ -402,25 +382,19 @@ void EncodeCuda(CUcontext cuContext, char* szInFilePath, int nWidth, int nHeight
 
       enc.EncodeFrame(vPacket);
     }
-    else
-    {
+
+    offset += nFrameSize;
+
+    if (offset + nFrameSize >= data.size()){
       enc.EndEncode(vPacket);
     }
-    nFrame += (int)vPacket.size();
-    for (std::vector<uint8_t>& packet : vPacket)
-    {
-      // For each encoded packet
-      fpOut.write(reinterpret_cast<char*>(packet.data()), packet.size());
+    for (const auto& packet : vPacket) {
+      bytes += fan::string(packet.data(), packet.data() + packet.size());
     }
-
-    if (nRead != nFrameSize) break;
   }
 
   enc.DestroyEncoder();
-  fpOut.close();
-  fpIn.close();
-
-  std::cout << "Total frames encoded: " << nFrame << std::endl << "Saved in file " << szOutFilePath << std::endl;
+  return bytes;
 }
 
 int main() {
@@ -428,6 +402,9 @@ int main() {
 
   NV_ENC_BUFFER_FORMAT eFormat = NV_ENC_BUFFER_FORMAT_ARGB;
   int iGpu = 0;
+
+  fan::string video_data;
+
   try
   {
     fan::cuda::check_error(cuInit(0));
@@ -446,11 +423,31 @@ int main() {
     CUcontext cuContext = NULL;
     fan::cuda::check_error(cuCtxCreate(&cuContext, 0, cuDevice));
 
-    EncodeCuda(cuContext, "o.brgx", encode_size.x, encode_size.y, eFormat, "encode");
+    fan::string data;
+    fan::io::file::read("o.brgx", &data);
+
+    video_data = EncodeCuda(cuContext, data, encode_size, eFormat);
   }
   catch (const std::exception& ex)
   {
     std::cout << ex.what();
     return 1;
   }
+
+  pile->loco.set_vsync(false);
+
+  fan::cuda::nv_decoder_t nv;
+
+  loco_t::nv12_t::properties_t p;
+
+  p.matrices = &pile->matrices;
+  p.viewport = &pile->viewport;
+  p.size = 1;
+  p.y = &nv.image_y;
+  p.vu = &nv.image_vu;
+  pile->loco.nv12.push_back(&pile->cid[1], p);
+
+  nv.start_decoding(video_data);
+  //pile->loco.loop([] {});
+
 };
