@@ -1,7 +1,6 @@
 #pragma once
 
 #include _FAN_PATH(graphics/opengl/gl_shader.h)
-#include _FAN_PATH(graphics/opengl/gl_core.h)
 #include _FAN_PATH(graphics/shared_graphics.h)
 #include _FAN_PATH(physics/collision/rectangle.h)
 

@@ -192,11 +192,9 @@ protected:
 
   #ifdef loco_context
   fan::graphics::context_t context;
-  #else
-  fan::graphics::context_t* context;
   #endif
 
-#if defined(loco_opengl)
+#if defined(loco_opengl) && defined(loco_context)
 
   unsigned int quadVAO = 0;
   unsigned int quadVBO;
@@ -448,16 +446,16 @@ public:
 
   image_t unloaded_image;
 
+  #endif
+
   #if defined(loco_texture_pack)
-    #include _FAN_PATH(graphics/opengl/texture_pack.h)
+  #include _FAN_PATH(graphics/opengl/texture_pack.h)
   #endif
 
   #if defined(loco_tp)
-    #if defined(loco_opengl)
-      #include _FAN_PATH(tp/tp.h)
-    #endif
+  #if defined(loco_opengl)
+  #include _FAN_PATH(tp/tp.h)
   #endif
-
   #endif
 
   #ifdef loco_vulkan
@@ -564,9 +562,7 @@ public:
   #endif
 
   struct properties_t {
-    #ifndef loco_context
-    fan::graphics::context_t* context;
-    #endif
+
   };
 
   static constexpr uint32_t max_depths = 2;
@@ -577,13 +573,11 @@ public:
   }
   #endif
 
+  #ifdef loco_context
   fan::graphics::context_t* get_context() {
-    #ifdef loco_context
     return &context;
-    #else
-    return context;
-    #endif
   }
+  #endif
 
   #if defined(loco_window)
   f32_t get_delta_time() {
@@ -715,7 +709,9 @@ public:
 
   fan::ev_timer_t ev_timer;
 
+  #if defined(loco_context)
   fan::graphics::core::memory_write_queue_t m_write_queue;
+  #endif
 
   #if defined(loco_compute_shader)
     #include _FAN_PATH(graphics/vulkan/compute_shader.h)
@@ -842,8 +838,9 @@ public:
     1, 0, 0, 1
   };
 
-  loco_t(const properties_t& p = properties_t()) :
+  loco_t(const properties_t& p = properties_t()) 
     #ifdef loco_window
+    :
     window(fan::vec2(800, 800)),
     #endif
     #if defined(loco_context)

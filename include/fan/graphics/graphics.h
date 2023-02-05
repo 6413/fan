@@ -41,7 +41,7 @@ namespace fan {
 
 	namespace graphics {
 
-		#if defined(loco_opengl)
+		#if defined(loco_opengl) && defined(loco_context)
 			using fan::opengl::context_t;
 			using fan::opengl::viewport_t;
 			using fan::opengl::viewport_list_NodeReference_t;
@@ -60,7 +60,7 @@ namespace fan {
 		#endif
 
 		namespace core {
-			#if defined(loco_opengl)
+			#if defined(loco_opengl) && defined(loco_context)
 				using fan::opengl::core::memory_write_queue_t;
 				using fan::opengl::core::uniform_block_t;
 			#elif defined(loco_vulkan)
