@@ -1,7 +1,5 @@
 #pragma once
 
-#include _FAN_PATH(graphics/opengl/gl_core.h)
-
 namespace fan {
   namespace opengl {
     namespace core {

@@ -202,7 +202,7 @@
 #if defined(loco_light)
 #define loco_light_vi_t \
   fan::vec3 position = 0; \
-  f32_t pad[1]; \
+  uint32_t type = 0; \
   fan::vec2 size = 0; \
   fan::vec2 rotation_point = 0; \
   fan::color color = fan::colors::white; \

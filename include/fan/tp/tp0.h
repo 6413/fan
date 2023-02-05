@@ -313,7 +313,7 @@ struct texture_packe0 {
       fan::throw_error(fan::string("failed to open file:") + filename);
     }
 
-    fan::throw_error("read comment xd");
+    //fan::throw_error("read comment xd");
     // where do we use this?
     uint32_t pack_amount = pack_list.size();
 
