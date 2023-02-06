@@ -337,6 +337,7 @@
     <ClInclude Include="..\WITCH\BLL\BLL.h" />
     <ClInclude Include="..\WITCH\BLL\internal\NodeReference.h" />
     <ClInclude Include="..\WITCH\BLL\internal\rest.h" />
+    <ClInclude Include="include\fan\graphics\opengl\2D\objects\pixel_format_renderer.h" />
     <ClInclude Include="include\fan\video\base_enc.h" />
     <ClInclude Include="include\fan\video\nvec_cuda.h" />
     <ClInclude Include="include\fan\bll.h" />

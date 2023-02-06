@@ -58,14 +58,14 @@ struct sb_sprite_name {
 
       ii.data = data[0];
       ii.size = image_size; 
-      loco->sb_shape_var_name.image[0].load(loco, ii, lp); 
+      loco->sb_pfr_var_name.sb_shape_var_name.image[0].load(loco, ii, lp);
                     
       lp.format = loco_t::image_t::format::rg8_unorm;
       lp.internal_format = loco_t::image_t::format::rg8_unorm;
 
       ii.data = data[1]; 
       ii.size = fan::vec2(image_size.x / 2, image_size.y / 2);
-      loco->sb_shape_var_name.image[1].load(loco, ii, lp); 
+      loco->sb_pfr_var_name.sb_shape_var_name.image[1].load(loco, ii, lp);
     }
   public:
 
@@ -85,8 +85,8 @@ struct sb_sprite_name {
 
       _load(loco, data, image_size);
 
-      y = &loco->sb_shape_var_name.image[0];
-      vu = &loco->sb_shape_var_name.image[1];
+      y = &loco->sb_pfr_var_name.sb_shape_var_name.image[0];
+      vu = &loco->sb_pfr_var_name.sb_shape_var_name.image[1];
       //v = &loco->sb_shape_var_name.image[2];
 
     #if defined(loco_vulkan)
@@ -159,14 +159,14 @@ struct sb_sprite_name {
                                
     ii.data = data[0];
     ii.size = image_size; 
-    loco->sb_shape_var_name.image[0].reload_pixels(loco, ii,lp); 
+    loco->sb_pfr_var_name.sb_shape_var_name.image[0].reload_pixels(loco, ii,lp);
                   
     lp.format = loco_t::image_t::format::rg8_unorm;
     lp.internal_format = loco_t::image_t::format::rg8_unorm;
 
     ii.data = data[1]; 
     ii.size = image_size;
-    loco->sb_shape_var_name.image[1].reload_pixels(loco, ii, lp); 
+    loco->sb_pfr_var_name.sb_shape_var_name.image[1].reload_pixels(loco, ii, lp);
   }
 
   static constexpr uint32_t max_instance_size = fan::min(256, 4096 / (sizeof(vi_t) / 4));
