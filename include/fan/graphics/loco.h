@@ -158,6 +158,18 @@ extern "C" {
 
 #include "loco_types.h"
 
+#if defined(loco_pixel_format_renderer)
+namespace fan {
+  struct pixel_format {
+    enum {
+      yuv420p,
+      nv12,
+      undefined
+    };
+  };
+}
+#endif
+
 struct loco_t {
 
   #define get_key_value(type) \
@@ -736,18 +748,11 @@ public:
     circle_t sb_shape_var_name;
     #undef sb_shape_var_name
   #endif
-  #if defined(loco_yuv420p)
-    #define sb_shape_var_name yuv420p
-    #define sb_sprite_name yuv420p_t
-    #include _FAN_PATH(graphics/opengl/2D/objects/yuv420p.h)
-    yuv420p_t sb_shape_var_name;
-    #undef sb_shape_var_name
-  #endif
-  #if defined(loco_nv12)
-    #define sb_shape_var_name nv12
-    #define sb_sprite_name nv12_t
-    #include _FAN_PATH(graphics/opengl/2D/objects/nv12.h)
-    nv12_t sb_shape_var_name;
+  #if defined(loco_pixel_format_renderer)
+    #define sb_pfr_var_name pixel_format_renderer
+    #define sb_pfr_name pixel_format_renderer_t
+    #include _FAN_PATH(graphics/opengl/2D/objects/pixel_format_renderer.h)
+    pixel_format_renderer_t sb_pfr_var_name;
     #undef sb_shape_var_name
   #endif
   #if defined(loco_sprite)

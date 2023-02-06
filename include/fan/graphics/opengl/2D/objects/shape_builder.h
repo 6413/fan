@@ -63,10 +63,16 @@ public:
 
 struct cid_t {
   union {
-    struct {
+    struct 
+      #ifdef sb_cid
+      : sb_cid
+      #endif
+    {
+      #ifndef sb_cid
 			shape_bm_NodeReference_t bm_id;
 			bll_block_NodeReference_t block_id;
-			uint8_t instance_id;
+      uint8_t instance_id;
+      #endif
     };
     uint64_t filler;
   };

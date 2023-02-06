@@ -14,10 +14,8 @@
 #define loco_window
 #define loco_context
 
-//#define loco_rectangle
 #define loco_nv12
-//#define loco_sprite
-//#define loco_yuv420p
+#define loco_pixel_format_renderer
 #include _FAN_PATH(graphics/loco.h)
 
 struct pile_t {
@@ -61,17 +59,17 @@ int main() {
 
   pile->loco.set_vsync(false);
 
-  fan::cuda::nv_decoder_t nv;
+  fan::cuda::nv_decoder_t nv(&pile->loco);
 
-  loco_t::nv12_t::properties_t p;
-
+  loco_t::pixel_format_renderer_t::properties_t p;
+  p.pixel_format = fan::pixel_format::nv12;
   p.matrices = &pile->matrices;
   p.viewport = &pile->viewport;
   p.size = 1;
-  p.y = &nv.image_y;
+  p.images[0] = &nv.image_y;
   //nv.image_vu.texture_reference.
-  p.vu = &nv.image_vu;
-  pile->loco.nv12.push_back(&pile->cid[1], p);
+  p.images[1] = &nv.image_vu;
+  pile->loco.pixel_format_renderer.push_back(&pile->cid[1], p);
 
   fan::string video_data;
   fan::io::file::read("o3.264", &video_data);

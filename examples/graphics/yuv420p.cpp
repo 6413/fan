@@ -11,8 +11,9 @@
 #define loco_window
 #define loco_context
 
+
 #define loco_yuv420p
-//#define loco_sprite
+#define loco_pixel_format_renderer
 #include _FAN_PATH(graphics/loco.h)
 
 constexpr uint32_t count = 1;
@@ -46,8 +47,9 @@ int main() {
 
   pile_t* pile = new pile_t;
 
-  loco_t::yuv420p_t::properties_t p;
+  loco_t::pixel_format_renderer_t::properties_t p;
 
+  p.pixel_format = fan::pixel_format::yuv420p;
   p.size = fan::vec2(1, 1);
   //p.block_properties.
   p.matrices = &pile->matrices;
@@ -66,7 +68,7 @@ int main() {
   p.position = fan::vec3(0, 0, 0);
   p.position.z = 0;
   p.size = 1;
-  pile->loco.yuv420p.push_back(&pile->cids[0], p);
+  pile->loco.pixel_format_renderer.push_back(&pile->cids[0], p);
 
   void* d = str.data();
 
@@ -108,7 +110,7 @@ int main() {
     datas[1] = (uint8_t*)d + (offset += image_size.multiply());
     datas[2] = (uint8_t*)d + (offset += image_size.multiply() / 4);
 
-    //pile->loco.yuv420p.reload_yuv(&pile->cids[0], datas, image_size);
+    pile->loco.pixel_format_renderer.reload(&pile->cids[0], datas, image_size);
 
   });
 

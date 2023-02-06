@@ -65,7 +65,7 @@ namespace fan {
 
     struct nv_decoder_t {
 
-      nv_decoder_t() {
+      nv_decoder_t(loco_t* loco) : image_y(loco), image_vu(loco){
 
         if (!__GPU_IS_CUDA_INITED) {
           fan::cuda::check_error(cuInit(0));

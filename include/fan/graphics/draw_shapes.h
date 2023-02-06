@@ -8,11 +8,8 @@ light.draw();
 #if defined(loco_circle)
   circle.draw();
 #endif
-#if defined(loco_yuv420p)
-  yuv420p.draw();
-#endif
-#if defined(loco_nv12)
-  nv12.draw();
+#if defined(loco_pixel_format_renderer)
+  pixel_format_renderer.draw();
 #endif
 #if defined(loco_sprite)
   // can be moved
