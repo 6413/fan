@@ -44,8 +44,6 @@ void main() {
         intensity += 1.0 - smoothstep(radius / 3 -smooth_edge, radius, distance) * 2;
       }
       o_attachment2 *= intensity;
-      //diffuse  *= intensity;
-      //specular *= intensity;
       break;
     }
     case 2u: {
