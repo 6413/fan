@@ -36,7 +36,7 @@ struct pile_t {
     viewport.set(loco.get_context(), 0, loco.get_window()->get_size(), loco.get_window()->get_size());
   }
 
-  loco_t loco;
+  loco_t loco{ loco_t::properties_t{.vsync = false } };
   loco_t::matrices_t matrices;
   fan::graphics::viewport_t viewport;
   fan::graphics::cid_t cids[count];
