@@ -3,7 +3,7 @@
 #define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 
 #define FAN_INCLUDE_PATH C:/libs/fan/include
-#define fan_debug 3
+#define fan_debug 1
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
 //#define loco_vulkan
@@ -61,12 +61,22 @@ int main() {
   //fan::string str2;
   //fan::io::file::read("output1920.yuv", &str2);
 
-  p.load_yuv(&pile->loco, (uint8_t*)str.data(), image_size);
+ // p.load_yuv(&pile->loco, (uint8_t*)str.data(), image_size);
 
   p.position = fan::vec3(0, 0, 0);
   p.position.z = 0;
   p.size = 1;
   pile->loco.yuv420p.push_back(&pile->cids[0], p);
+
+  void* d = str.data();
+
+  void* datas[3];
+  uint64_t offset = 0;
+  datas[0] = d;
+  datas[1] = (uint8_t*)d + (offset += image_size.multiply());
+  datas[2] = (uint8_t*)d + (offset += image_size.multiply() / 4);
+
+  //pile->loco.yuv420p.reload_yuv(&pile->cids[0], datas, image_size);
 
   /*loco_t::sprite_t::properties_t sp;
   sp.position = fan::vec3(0, 0, 0);
@@ -90,15 +100,15 @@ int main() {
   pile->loco.loop([&] {
     pile->loco.get_fps();
 
-    //void* d = data2;
-    //
-    //void* datas[3];
-    //uint64_t offset = 0;
-    //datas[0] = d;
-    //datas[1] = (uint8_t*)d + (offset += image_size.multiply());
-    //datas[2] = (uint8_t*)d + (offset += image_size.multiply() / 4);
+    void* d = str.data();
+    
+    void* datas[3];
+    uint64_t offset = 0;
+    datas[0] = d;
+    datas[1] = (uint8_t*)d + (offset += image_size.multiply());
+    datas[2] = (uint8_t*)d + (offset += image_size.multiply() / 4);
 
-  //  pile->loco.yuv420p.reload_yuv(&pile->cids[0], datas, image_size);
+    pile->loco.yuv420p.reload_yuv(&pile->cids[0], datas, image_size);
 
   });
 

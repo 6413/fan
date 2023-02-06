@@ -108,20 +108,20 @@ namespace fan {
 
         fan::cuda::check_error(cuvidCreateVideoParser(&parser, &parser_params));
 
-        loco_t::image_t::load_properties_t lp;
-        // cudaGraphicsGLRegisterImage accepts only GL_RED
-        lp.internal_format = GL_RED;
-        lp.format = GL_RED;
-        lp.filter = loco_t::image_t::filter::linear;
-        lp.visual_output = loco_t::image_t::sampler_address_mode::clamp_to_edge;
-        fan::webp::image_info_t info;
-        info.data = 0;
-        info.size = 0;
-        image_y.load(&pile->loco, info, lp);
-        // cudaGraphicsGLRegisterImage accepts only GL_RG
-        lp.internal_format = fan::opengl::GL_RG;
-        lp.format = fan::opengl::GL_RG;
-        image_vu.load(&pile->loco, info, lp);
+        //loco_t::image_t::load_properties_t lp;
+        //// cudaGraphicsGLRegisterImage accepts only GL_RED
+        //lp.internal_format = GL_RED;
+        //lp.format = GL_RED;
+        //lp.filter = loco_t::image_t::filter::linear;
+        //lp.visual_output = loco_t::image_t::sampler_address_mode::clamp_to_edge;
+        //fan::webp::image_info_t info;
+        //info.data = 0;
+        //info.size = 0;
+        //image_y.load(&pile->loco, info, lp);
+        //// cudaGraphicsGLRegisterImage accepts only GL_RG
+        //lp.internal_format = fan::opengl::GL_RG;
+        //lp.format = fan::opengl::GL_RG;
+        //image_vu.load(&pile->loco, info, lp);
       }
 
       ~nv_decoder_t() {
@@ -304,7 +304,7 @@ namespace fan {
 
         pile->loco.process_loop([]{});
 
-        fan::delay(fan::time::nanoseconds(.5e+9));
+       // fan::delay(fan::time::nanoseconds(.5e+9));
         fan::cuda::check_error(cuvidUnmapVideoFrame(decoder->decoder, cuDevPtr));
 
         decoder->current_frame++;

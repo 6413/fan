@@ -56,10 +56,23 @@ struct image_t {
   }
   */
 
-  image_t() = default;
+  image_t() {
+    texture_reference.NRI = -1;
+  }
+  image_t(loco_t* loco) {
+    fan::webp::image_info_t image_info;
+    image_info.data = 0;
+    image_info.size = 0;
+    load_properties_t p;
+    load(loco, image_info, p);
+  }
 
   image_t(loco_t* loco, const fan::webp::image_info_t image_info, load_properties_t p = load_properties_t()) {
     load(loco, image_info, p);
+  }
+
+  bool is_invalid() const {
+    return texture_reference.NRI == (decltype(texture_reference.NRI))-1;
   }
 
   void create_texture(loco_t* loco) {
@@ -71,6 +84,7 @@ struct image_t {
     auto* context = loco->get_context();
     context->opengl.glDeleteTextures(1, get_texture(loco));
     loco->image_list.Recycle(texture_reference);
+    texture_reference.NRI = -1;
   }
 
   void bind_texture(loco_t* loco) {
