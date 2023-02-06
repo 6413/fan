@@ -562,7 +562,7 @@ public:
   #endif
 
   struct properties_t {
-
+    bool vsync = true;
   };
 
   static constexpr uint32_t max_depths = 2;
@@ -855,6 +855,9 @@ public:
     #endif
   {
     #if defined(loco_window)
+
+   // set_vsync(p.vsync);
+
     get_window()->add_buttons_callback([this](const mouse_buttons_cb_data_t& d) {
       fan::vec2 window_size = get_window()->get_size();
     feed_mouse_button(d.button, d.state, get_mouse_position());
@@ -1028,7 +1031,6 @@ public:
     );
     m_fbo_final_shader.compile(get_context());
   #endif
-
   #endif
 
   #if defined(loco_vulkan) && defined(loco_window)

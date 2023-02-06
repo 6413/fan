@@ -108,7 +108,7 @@ int main() {
     datas[1] = (uint8_t*)d + (offset += image_size.multiply());
     datas[2] = (uint8_t*)d + (offset += image_size.multiply() / 4);
 
-    pile->loco.yuv420p.reload_yuv(&pile->cids[0], datas, image_size);
+    //pile->loco.yuv420p.reload_yuv(&pile->cids[0], datas, image_size);
 
   });
 

@@ -463,6 +463,8 @@ inline fan::opengl::context_t::~context_t() {
 
 inline void fan::opengl::context_t::render(fan::window_t* window) {
   #ifdef fan_platform_windows
+  //opengl.glFlush();
+  //opengl.glFinish();
   SwapBuffers(window->m_hdc);
   #elif defined(fan_platform_unix)
   opengl.internal.glXSwapBuffers(fan::sys::m_display, window->m_window_handle);
