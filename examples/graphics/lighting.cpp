@@ -15,6 +15,7 @@
 
 //#define loco_rectangle
 #define loco_light
+#define loco_light_sun
 #define loco_sprite
 #include _FAN_PATH(graphics/loco.h)
 
@@ -73,13 +74,13 @@ int main() {
   p.image = &image2;
   pile->loco.sprite.push_back(&pile->cid[1], p);
 
-  loco_t::light_t::properties_t lp;
+  loco_t::light_sun_t::properties_t lp;
   lp.matrices = &pile->matrices;
   lp.viewport = &pile->viewport;
   lp.position = fan::vec3(0, 0, 2);
   lp.size = 0.4;
   lp.color = fan::colors::yellow * 10;
-  pile->loco.light.push_back(&pile->cid[0], lp);
+  pile->loco.light_sun.push_back(&pile->cid[0], lp);
 
   //for (uint32_t i = 0; i < 1000; i++) {
   //  lp.position = fan::random::vec2(-1, 1);
@@ -115,8 +116,13 @@ int main() {
       c.restart();
   }*/
 
-
+  #if 1
+  pile->loco.light_sun.set(&pile->cid[0], &loco_t::light_sun_t::vi_t::position, pile->loco.get_mouse_position(pile->viewport));
+  #else
+  #endif
+  #if 0
   pile->loco.light.set(&pile->cid[0], &loco_t::light_t::vi_t::position, pile->loco.get_mouse_position(pile->viewport));
+  #endif
   });
 
   return 0;

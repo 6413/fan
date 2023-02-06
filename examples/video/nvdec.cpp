@@ -75,7 +75,7 @@ int main() {
   fan::io::file::read("o3.264", &video_data);
 
   nv.start_decoding(video_data);
-  pile->loco.loop([] {});
+  //pile->loco.loop([] {});
 
    //fan::print(nv.timestamp.elapsed(), nv.current_frame, nv.timestamp.elapsed() / nv.current_frame);
 

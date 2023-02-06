@@ -12,6 +12,7 @@
 #define loco_context
 
 
+#define loco_sprite
 #define loco_yuv420p
 #define loco_pixel_format_renderer
 #include _FAN_PATH(graphics/loco.h)

@@ -23,8 +23,9 @@ struct sb_pfr_name {
       }
 
     #include _FAN_PATH(graphics/opengl/2D/objects/yuv420p.h)
-    yuv420p_t sb_shape_var_name;
+    sb_sprite_name sb_shape_var_name;
     #undef sb_shape_var_name
+    #undef sb_sprite_name
   #endif
 
   #if defined(loco_nv12)
@@ -38,8 +39,9 @@ struct sb_pfr_name {
       }
 
     #include _FAN_PATH(graphics/opengl/2D/objects/nv12.h)
-    nv12_t sb_shape_var_name;
+    sb_sprite_name sb_shape_var_name;
     #undef sb_shape_var_name
+    #undef sb_sprite_name
   #endif
 
   struct properties_t {
@@ -125,6 +127,38 @@ struct sb_pfr_name {
     #if defined(loco_nv12)
       nv12.draw();
     #endif
+  }
+
+
+  template <typename T, typename T2>
+  T get(fan::graphics::cid_t* cid, T T2::* member) {
+    switch (((cid_t*)cid)->format) {
+        #if defined(loco_yuv420p)
+        case fan::pixel_format::yuv420p: {
+          return yuv420p.get(cid, member);
+        }
+      #endif
+      #if defined(loco_nv12)
+        case fan::pixel_format::nv12: {
+          return nv12.get(cid, member);
+        }
+      #endif
+    }
+  }
+  template <typename T, typename T2>
+  void set(fan::graphics::cid_t* cid, T T2::* member, const auto& value) {
+    switch (((cid_t*)cid)->format) {
+        #if defined(loco_yuv420p)
+        case fan::pixel_format::yuv420p: {
+          yuv420p.set(cid, member, value);
+        }
+      #endif
+      #if defined(loco_nv12)
+        case fan::pixel_format::nv12: {
+          nv12.set(cid, member, value);
+        }
+      #endif
+    }
   }
 
 };

@@ -1,7 +1,11 @@
-
 #if defined(loco_light)
 light.draw();
 #endif
+
+#if defined(loco_light_sun)
+light_sun.draw();
+#endif
+
 #if defined(loco_rectangle)
   rectangle.draw();
 #endif
