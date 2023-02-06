@@ -562,7 +562,10 @@ public:
   #endif
 
   struct properties_t {
-    bool vsync = true;
+    properties_t() {
+      vsync = false;
+    }
+    bool vsync;
   };
 
   static constexpr uint32_t max_depths = 2;
