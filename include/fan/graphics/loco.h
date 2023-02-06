@@ -562,10 +562,7 @@ public:
   #endif
 
   struct properties_t {
-    properties_t() {
-      vsync = false;
-    }
-    bool vsync;
+    bool vsync = false;
   };
 
   static constexpr uint32_t max_depths = 2;
@@ -841,7 +838,7 @@ public:
     1, 0, 0, 1
   };
 
-  loco_t(const properties_t& p = properties_t()) 
+  loco_t(properties_t p = properties_t{ true })
     #ifdef loco_window
     :
     window(fan::vec2(800, 800)),
