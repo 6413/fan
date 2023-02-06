@@ -76,9 +76,9 @@ int main() {
   loco_t::image_t::load_properties_t lp;
   lp.format = fan::opengl::GL_BGRA;
   lp.internal_format = fan::opengl::GL_RGBA;
-  image.load(&pile->loco, ii, lp);
-  p.image = &image;
-  p.position = fan::vec2(0, 0);
+  //image.load(&pile->loco, ii, lp);
+  //p.image = &image;
+  //p.position = fan::vec2(0, 0);
   p.position.z = 0;
   //p.tc_size = fan::vec2(4, 1);
   //p.color = 10;
@@ -98,8 +98,6 @@ int main() {
       //}
       image.unload(&pile->loco);
       image.load(&pile->loco, ii, lp);
-      fan::io::file::write("ss", fan::string(ptr, ptr + 2560 * 1440 * 4), std::ios_base::binary);
-      exit(1);
     }
 
     ////pile->loco.sprite.set(&pile->cids[0], &image);

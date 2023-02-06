@@ -17,6 +17,7 @@
 //#define loco_rectangle
 #define loco_nv12
 //#define loco_sprite
+//#define loco_yuv420p
 #include _FAN_PATH(graphics/loco.h)
 
 struct pile_t {
@@ -68,11 +69,12 @@ int main() {
   p.viewport = &pile->viewport;
   p.size = 1;
   p.y = &nv.image_y;
+  //nv.image_vu.texture_reference.
   p.vu = &nv.image_vu;
   pile->loco.nv12.push_back(&pile->cid[1], p);
 
   fan::string video_data;
-  fan::io::file::read("encode", &video_data);
+  fan::io::file::read("o3.264", &video_data);
 
   nv.start_decoding(video_data);
   pile->loco.loop([] {});
