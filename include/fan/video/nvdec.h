@@ -304,7 +304,7 @@ namespace fan {
 
         pile->loco.process_loop([]{});
 
-       // fan::delay(fan::time::nanoseconds(.5e+9));
+        fan::delay(fan::time::nanoseconds(.033e+9));
         fan::cuda::check_error(cuvidUnmapVideoFrame(decoder->decoder, cuDevPtr));
 
         decoder->current_frame++;

@@ -11,7 +11,8 @@
 
 //#define loco_rectangle
 #define loco_nv12
-//#define loco_sprite
+#define loco_yuv420p
+#define loco_pixel_format_renderer
 #include _FAN_PATH(graphics/loco.h)
 
 #include _FAN_PATH(video/nvec_cuda.h)
@@ -140,16 +141,17 @@ int main() {
 
   pile->loco.set_vsync(false);
 
-  fan::cuda::nv_decoder_t nv;
+  fan::cuda::nv_decoder_t nv(&pile->loco);
 
-  loco_t::nv12_t::properties_t p;
+  loco_t::pixel_format_renderer_t::properties_t p;
 
   p.matrices = &pile->matrices;
   p.viewport = &pile->viewport;
   p.size = 1;
-  p.y = &nv.image_y;
-  p.vu = &nv.image_vu;
-  pile->loco.nv12.push_back(&pile->cid[1], p);
+  p.images[0] = &nv.image_y;
+  p.images[1] = &nv.image_vu;
+  p.pixel_format = fan::pixel_format::nv12;
+  pile->loco.pixel_format_renderer.push_back(&pile->cid[1], p);
 
   nv.start_decoding(video_data);
   //pile->loco.loop([] {});

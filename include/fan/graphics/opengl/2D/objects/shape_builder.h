@@ -315,8 +315,8 @@ void traverse_draw(auto nr, uint32_t draw_mode) {
         m_shader.set_vec3(loco->get_context(), loco_t::lighting_t::ambient_name, loco->lighting.ambient);
 
         #if defined(loco_framebuffer)
-        #if defined(loco_light)
-        if constexpr (std::is_same<std::remove_pointer_t<decltype(this)>, loco_t::light_t>::value) {
+        #if defined(sb_is_light)
+        if constexpr (std::is_same<std::remove_pointer_t<decltype(this)>, loco_t::sb_shape_name>::value) {
           loco->get_context()->opengl.call(loco->get_context()->opengl.glBlendFunc, fan::opengl::GL_ONE, fan::opengl::GL_ONE);
 
           unsigned int attachments[sizeof(loco->color_buffers) / sizeof(loco->color_buffers[0])];
@@ -351,8 +351,8 @@ void traverse_draw(auto nr, uint32_t draw_mode) {
           bnr = node->NextNodeReference;
         }
         #if defined(loco_framebuffer)
-        #if defined(loco_light)
-        if constexpr (std::is_same<std::remove_pointer_t<decltype(this)>, loco_t::light_t>::value) {
+        #if defined(sb_is_light)
+        if constexpr (std::is_same<std::remove_pointer_t<decltype(this)>, loco_t::sb_shape_name>::value) {
           loco->get_context()->opengl.call(loco->get_context()->opengl.glBlendFunc, fan::opengl::GL_SRC_ALPHA, fan::opengl::GL_ONE_MINUS_SRC_ALPHA);
           unsigned int attachments[sizeof(loco->color_buffers) / sizeof(loco->color_buffers[0])];
 
@@ -455,3 +455,4 @@ void sb_set_ri(fan::graphics::cid_t* cid, auto T::* member, auto value) {
 #undef sb_shader_vertex_path
 #undef sb_shader_fragment_path
 #undef sb_vertex_count
+#undef sb_get_loco

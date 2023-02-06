@@ -242,6 +242,4 @@ struct sb_sprite_name {
   #endif
 };
 
-#undef sb_sprite_name
-
 #include _FAN_PATH(graphics/opengl/2D/objects/hardcode_close.h)

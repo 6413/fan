@@ -1,4 +1,4 @@
-struct light_t {
+struct sb_shape_name {
 
   struct vi_t {
     loco_light_vi_t
@@ -47,7 +47,7 @@ struct light_t {
   static constexpr uint32_t max_instance_size = fan::min(256, 4096 / (sizeof(vi_t) / 4));
   #if defined(loco_opengl)
   #define sb_shader_vertex_path _FAN_PATH(graphics/glsl/opengl/2D/objects/light.vs)
-  #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/objects/light.fs)
+  #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/objects/sb_fragment_shader)
   #elif defined(loco_vulkan)
   #endif
 
@@ -56,7 +56,7 @@ struct light_t {
   //#define sb_inline_draw
   #include _FAN_PATH(graphics/shape_builder.h)
 
-  light_t() {
+  sb_shape_name() {
     sb_open();
 
     #if defined(loco_wboit) && defined(vk_shape_wboit) && defined(loco_vulkan)
@@ -94,7 +94,7 @@ struct light_t {
 
     #endif
   }
-  ~light_t() {
+  ~sb_shape_name() {
     sb_close();
   }
 
