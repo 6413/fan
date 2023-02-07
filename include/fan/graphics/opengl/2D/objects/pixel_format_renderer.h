@@ -103,8 +103,25 @@ struct sb_pfr_name {
     ((cid_t*)cid)->format = p.pixel_format;
   }
 
-  void reload(fan::graphics::cid_t* cid, void** data, const fan::vec2& image_size) {
+  void erase(fan::graphics::cid_t* cid) {
     switch (((cid_t*)cid)->format) {
+      #if defined(loco_yuv420p)
+        case fan::pixel_format::yuv420p: {
+          yuv420p.erase(cid);
+          break;
+        }
+      #endif
+      #if defined(loco_nv12)
+        case fan::pixel_format::nv12: {
+          nv12.erase(cid);
+          break;
+        }
+      #endif
+    }
+  }
+
+  void reload(fan::graphics::cid_t* cid, void** data, const fan::vec2& image_size) {
+        switch (((cid_t*)cid)->format) {
       #if defined(loco_yuv420p)
         case fan::pixel_format::yuv420p: {
           yuv420p.reload(cid, data, image_size);
@@ -118,6 +135,49 @@ struct sb_pfr_name {
         }
       #endif
     }
+  }
+
+  void reload(fan::graphics::cid_t* cid, uint8_t format, void** data, const fan::vec2& image_size) {
+    if (((cid_t*)cid)->format != format) {
+
+      loco_t::pixel_format_renderer_t::properties_t p;
+
+       switch (((cid_t*)cid)->format) {
+      #if defined(loco_yuv420p)
+        case fan::pixel_format::yuv420p: {
+          yuv420p_t::properties_t temp_p = yuv420p.get_properties(cid);
+          p.matrices = yuv420p.get_matrices(cid);
+          p.viewport = yuv420p.get_viewport(cid);
+          p.position = temp_p.position;
+          p.size = temp_p.size;
+          p.tc_position = temp_p.tc_position;
+          p.tc_size = temp_p.tc_size;
+          break;
+        }
+      #endif
+      #if defined(loco_nv12)
+        case fan::pixel_format::nv12: {
+          nv12_t::properties_t temp_p = nv12.get_properties(cid);
+          p.matrices = temp_p.matrices;
+          p.matrices = nv12.get_matrices(cid);
+          p.viewport = nv12.get_viewport(cid);
+          p.size = temp_p.size;
+          p.tc_position = temp_p.tc_position;
+          p.tc_size = temp_p.tc_size;
+          break;
+        }
+      #endif
+        default: {
+          fan::throw_error("pixel format has not been defined for loco. #define loco_*");
+          break;
+        }
+    }
+      p.pixel_format = format;
+
+      erase(cid);
+      push_back(cid, p);
+    }
+    reload(cid, data, image_size);
   }
 
   void draw() {
@@ -145,17 +205,79 @@ struct sb_pfr_name {
       #endif
     }
   }
-  template <typename T, typename T2>
-  void set(fan::graphics::cid_t* cid, T T2::* member, const auto& value) {
+  /*void set(fan::graphics::cid_t* cid, auto member, const auto& value) {
     switch (((cid_t*)cid)->format) {
         #if defined(loco_yuv420p)
         case fan::pixel_format::yuv420p: {
+          
           yuv420p.set(cid, member, value);
         }
       #endif
       #if defined(loco_nv12)
         case fan::pixel_format::nv12: {
           nv12.set(cid, member, value);
+        }
+      #endif
+    }
+  }*/
+
+  fan::vec3 get_position(fan::graphics::cid_t* cid) {
+    switch (((cid_t*)cid)->format) {
+        #if defined(loco_yuv420p)
+        case fan::pixel_format::yuv420p: {
+          return yuv420p.get(cid, &yuv420p_t::vi_t::position);
+        }
+      #endif
+      #if defined(loco_nv12)
+        case fan::pixel_format::nv12: {
+          return nv12.get(cid, &nv12_t::vi_t::position);
+        }
+      #endif
+    }
+  }
+  void set_position(fan::graphics::cid_t* cid, const fan::vec3& position) {
+    switch (((cid_t*)cid)->format) {
+        #if defined(loco_yuv420p)
+        case fan::pixel_format::yuv420p: {
+          yuv420p.set(cid, &yuv420p_t::vi_t::position, position);
+          break;
+        }
+      #endif
+      #if defined(loco_nv12)
+        case fan::pixel_format::nv12: {
+          nv12.set(cid, &nv12_t::vi_t::position, position);
+          break;
+        }
+      #endif
+    }
+  }
+
+  fan::vec3 get_size(fan::graphics::cid_t* cid) {
+    switch (((cid_t*)cid)->format) {
+        #if defined(loco_yuv420p)
+        case fan::pixel_format::yuv420p: {
+          return yuv420p.get(cid, &yuv420p_t::vi_t::size);
+        }
+      #endif
+      #if defined(loco_nv12)
+        case fan::pixel_format::nv12: {
+          return nv12.get(cid, &nv12_t::vi_t::size);
+        }
+      #endif
+    }
+  }
+  void set_size(fan::graphics::cid_t* cid, const fan::vec2& size) {
+    switch (((cid_t*)cid)->format) {
+        #if defined(loco_yuv420p)
+        case fan::pixel_format::yuv420p: {
+          yuv420p.set(cid, &yuv420p_t::vi_t::size, size);
+          break;
+        }
+      #endif
+      #if defined(loco_nv12)
+        case fan::pixel_format::nv12: {
+          nv12.set(cid, &nv12_t::vi_t::size, size);
+          break;
         }
       #endif
     }

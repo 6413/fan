@@ -8,115 +8,85 @@
 #define fan_debug 0
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
-//#define loco_vulkan
 
-#define loco_window
-#define loco_context
+#include _FAN_PATH(io/file.h)
 
-//#define loco_rectangle
-#define loco_sprite
-#include _FAN_PATH(graphics/loco.h)
+#include <shaderc/shaderc.hpp>
 
-struct pile_t {
+struct shader_t {
 
-  static constexpr fan::vec2 ortho_x = fan::vec2(-1, 1);
-  static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
+  static std::string preprocess_shader(const std::string& source_name,
+    shaderc_shader_kind kind,
+    const fan::string& source) {
+    shaderc::Compiler compiler;
+    shaderc::CompileOptions options;
 
-  pile_t() {
-    fan::vec2 window_size = loco.get_window()->get_size();
-    loco.open_matrices(
-      &matrices,
-      ortho_x,
-      ortho_y
-    );
-    loco.get_window()->add_resize_callback([&](const fan::window_t::resize_cb_data_t& d) {
-      fan::vec2 window_size = d.size;
-    //fan::vec2 ratio = window_size / window_size.max();
-    //std::swap(ratio.x, ratio.y);
-    //matrices.set_ortho(
-    //  ortho_x * ratio.x, 
-    //  ortho_y * ratio.y
-    //);
-    viewport.set(loco.get_context(), 0, d.size, d.size);
-      });
-    viewport.open(loco.get_context());
-    viewport.set(loco.get_context(), 0, window_size, window_size);
+    // Like -DMY_DEFINE=1
+    //options.AddMacroDefinition("MY_DEFINE", "1");
+
+    shaderc::PreprocessedSourceCompilationResult result =
+      compiler.PreprocessGlsl(source.c_str(), kind, source_name.c_str(), options);
+
+    if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
+      fan::throw_error(result.GetErrorMessage().c_str());
+    }
+
+    return { result.cbegin(), result.cend() };
   }
 
-  loco_t loco;
-  loco_t::matrices_t matrices;
-  fan::graphics::viewport_t viewport;
-  fan::graphics::cid_t cid[(unsigned long long)1e+7];
-};
+  static std::vector<uint32_t> compile_file(const fan::string& source_name,
+    shaderc_shader_kind kind,
+    const fan::string& source) {
+    shaderc::Compiler compiler;
+    shaderc::CompileOptions options;
 
+    // Like -DMY_DEFINE=1
+    //options.AddMacroDefinition("MY_DEFINE", "1");
+    #if fan_debug > 1
+    options.SetOptimizationLevel(shaderc_optimization_level_zero);
+    #else
+    options.SetOptimizationLevel(shaderc_optimization_level_performance);
+    #endif
+
+    shaderc::SpvCompilationResult module =
+      compiler.CompileGlslToSpv(source.c_str(), kind, source_name.c_str(), options);
+
+    if (module.GetCompilationStatus() != shaderc_compilation_status_success) {
+      fan::throw_error(module.GetErrorMessage().c_str());
+    }
+
+    return { module.cbegin(), module.cend() };
+  }
+
+  void set_vertex(const fan::string& shader_name, const fan::string& shader_code) {
+    // fan::print(
+    //   "processed vertex shader:", path, "resulted in:",
+    // preprocess_shader(shader_name.c_str(), shaderc_glsl_vertex_shader, shader_code);
+    // );
+
+    auto spirv =
+      compile_file(shader_name.c_str(), shaderc_glsl_vertex_shader, shader_code);
+  }
+  void set_fragment(const fan::string& shader_name, const fan::string& shader_code) {
+
+    //fan::print(
+     // "processed vertex shader:", path, "resulted in:",
+    //preprocess_shader(shader_name.c_str(), shaderc_glsl_fragment_shader, shader_code);
+    //);
+
+    auto spirv =
+      compile_file(shader_name.c_str(), shaderc_glsl_fragment_shader, shader_code);
+  }
+};
 
 int main() {
 
-  pile_t* pile = new pile_t;
+  shader_t shader;
+  fan::string str;
+  fan::io::file::read("include/fan/graphics/glsl/opengl/2D/objects/light_sun.fs", &str);
+  
+  shader.set_fragment("light_sun.fs", str);
 
-  loco_t::sprite_t::properties_t p;
-
-  p.size = fan::vec2(1);
-  p.matrices = &pile->matrices;
-  p.viewport = &pile->viewport;
-
-  loco_t::image_t image[3];
-  image[0].load(&pile->loco, "images/hull.webp");
-  image[1].load(&pile->loco, "images/tire_left.webp");
-  image[2].load(&pile->loco, "images/tire_right.webp");
-  p.image = &image[0];
-  p.size = image[0].size / 2000;
-  p.position = fan::vec2(1 - p.size.x, 0);
-
-  pile->loco.sprite.push_back(&pile->cid[0], p);
-
-  p.image = &image[1];
-  p.size = image[1].size / 2000;
-  p.position += fan::vec3(-0.124, 0.115, 1);
-  pile->loco.sprite.push_back(&pile->cid[1], p);
-
-  p.size = image[2].size / 2000;
-  p.position = fan::vec2(1 - image[0].size.x / 2000, 0);
-  p.position += fan::vec3(0.108, 0.115, 2);
-  pile->loco.sprite.push_back(&pile->cid[2], p);
-
-  // pile->loco.set_vsync(false);
-
-  f32_t x = 0;
-
-  pile->loco.get_window()->add_keys_callback([&](const auto& d) {
-    if (d.key != fan::key_a) {
-      return;
-    }
-  if (d.state == fan::keyboard_state::release) {
-    return;
-  }
-
-  auto p = pile->loco.sprite.get(&pile->cid[0], &loco_t::sprite_t::vi_t::position);
-  p.x -= pile->loco.get_delta_time() * 1;
-  pile->loco.sprite.set(&pile->cid[0], &loco_t::sprite_t::vi_t::position, p);
-
-  p = pile->loco.sprite.get(&pile->cid[1], &loco_t::sprite_t::vi_t::position);
-  p.x -= pile->loco.get_delta_time() * 1;
-  pile->loco.sprite.set(&pile->cid[1], &loco_t::sprite_t::vi_t::position, p);
-
-  p = pile->loco.sprite.get(&pile->cid[2], &loco_t::sprite_t::vi_t::position);
-  p.x -= pile->loco.get_delta_time() * 1;
-  pile->loco.sprite.set(&pile->cid[2], &loco_t::sprite_t::vi_t::position, p);
-
-
-  pile->loco.sprite.set(&pile->cid[2], &loco_t::sprite_t::vi_t::angle, x);
-
-  pile->loco.sprite.set(&pile->cid[1], &loco_t::sprite_t::vi_t::angle, x);
-  x += pile->loco.get_delta_time() * 50;
-    });
-
-
-  pile->loco.loop([&] {
-    pile->loco.get_fps();
-
-
-    });
 
   return 0;
 }

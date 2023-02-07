@@ -14,6 +14,7 @@
 
 #define loco_sprite
 #define loco_yuv420p
+#define loco_nv12
 #define loco_pixel_format_renderer
 #include _FAN_PATH(graphics/loco.h)
 
@@ -111,8 +112,8 @@ int main() {
     datas[1] = (uint8_t*)d + (offset += image_size.multiply());
     datas[2] = (uint8_t*)d + (offset += image_size.multiply() / 4);
 
-    pile->loco.pixel_format_renderer.reload(&pile->cids[0], datas, image_size);
-
+    pile->loco.pixel_format_renderer.reload(&pile->cids[0], fan::pixel_format::yuv420p, datas, image_size);
+    pile->loco.pixel_format_renderer.set_position(&pile->cids[0], pile->loco.get_mouse_position(pile->viewport));
   });
 
   return 0;
