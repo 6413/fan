@@ -1781,7 +1781,7 @@ uint32_t fan::window_t::handle_events() {
 
               mouse_buttons_cb_data_t cbd;
               cbd.window = window;
-              cbd.button = fan::input::mouse_right;
+              cbd.button = fan::input::mouse_middle;
               cbd.state = fan::mouse_state::release;
               window->m_buttons_callback[it].data(cbd);
 
