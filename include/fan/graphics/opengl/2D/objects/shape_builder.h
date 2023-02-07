@@ -412,6 +412,15 @@ void sb_draw(uint32_t draw_mode = fan::opengl::GL_TRIANGLES) {
   traverse_draw(root, draw_mode);
 }
 
+properties_t get_properties(fan::opengl::cid_t* cid) {
+  loco_t* loco = get_loco();
+  auto block = sb_get_block(cid);
+  properties_t p;
+  *(vi_t*)&p = *block->uniform_buffer.get_instance(loco->get_context(), cid->instance_id);
+  *(ri_t*)&p = block->p[cid->instance_id];
+  return p;
+}
+
 template <uint32_t i>
 void sb_set_key(fan::opengl::cid_t* cid, auto value) {
   loco_t* loco = get_loco();

@@ -117,14 +117,19 @@ struct sb_sprite_name {
   void push_back(fan::graphics::cid_t* cid, properties_t& p) {
 
     get_key_value(uint16_t) = p.position.z;
-    get_key_value(loco_t::textureid_t<0>) = p.y;
-    get_key_value(loco_t::textureid_t<1>) = p.vu;
+
+    if (p.y == nullptr) {
+      get_key_value(loco_t::textureid_t<0>) = &image[0];
+      get_key_value(loco_t::textureid_t<1>) = &image[1];
+    }
+    else {
+      get_key_value(loco_t::textureid_t<0>) = p.y;
+      get_key_value(loco_t::textureid_t<1>) = p.vu;
+      image[0] = *p.y;
+      image[1] = *p.vu;
+    }
     get_key_value(loco_t::matrices_list_NodeReference_t) = p.matrices;
     get_key_value(fan::graphics::viewport_list_NodeReference_t) = p.viewport;
-
-    image[0] = *p.y;
-    image[1] = *p.vu;
-
     sb_push_back(cid, p);
 
   #if defined(loco_vulkan)
