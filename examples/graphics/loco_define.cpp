@@ -70,7 +70,6 @@ int main() {
       .position = fan::vec2(0, 0),
       .size = 0.1,
       .color = fan::colors::red,
-      // compress this
       .matrices = &pile->matrices,
       .viewport = &pile->viewport
     )

@@ -51,8 +51,28 @@ struct pile_t {
   fan::graphics::cid_t cids[count];
 };
 
+struct rectangle_t {
+  void move() {
+    fan::print("rectangle moved");
+  }
+};
+
+struct sprite_t {
+  void move() {
+    fan::print("sprite moved");
+  }
+};
+
 int main() {
-  //sizeof(loco_t)
+  fan::masterpiece_t<rectangle_t, sprite_t> engine;
+  //static constexpr int idx = x.get_index_with_type<int0_t>();
+  //x.get_value<idx>()->x = 5;
+  engine.iterate([](auto x, auto y) {
+    y->move();
+    //fan::print(x, *(int*)y);
+  });
+
+  ////sizeof(loco_t)
   pile_t* pile = new pile_t;
 
   loco_t::rectangle_t::properties_t p;
@@ -76,6 +96,8 @@ int main() {
   
 
   pile->loco.loop([&] {
+
+    pile->loco.rectangle.set(&pile->cids[0], &loco_t::rectangle_t::vi_t::size, fan::vec2(1, 0));
 
     pile->loco.get_fps();
 
