@@ -31,7 +31,7 @@ struct image_t {
     static constexpr uint32_t internal_format = fan::opengl::GL_RGBA;
     static constexpr uint32_t format = fan::opengl::GL_RGBA;
     static constexpr uint32_t type = fan::opengl::GL_UNSIGNED_BYTE;
-    static constexpr uint32_t filter = fan::opengl::GL_NEAREST;
+    static constexpr uint32_t filter = fan::opengl::GL_LINEAR;
   };
 
   struct load_properties_t {

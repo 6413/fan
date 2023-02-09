@@ -252,6 +252,23 @@ struct sb_pfr_name {
     }
   }
 
+  void set_tc_size(fan::graphics::cid_t* cid, const fan::vec2& size) {
+    switch (((cid_t*)cid)->format) {
+        #if defined(loco_yuv420p)
+        case fan::pixel_format::yuv420p: {
+          yuv420p.set(cid, &yuv420p_t::vi_t::tc_size, size);
+          break;
+        }
+      #endif
+      #if defined(loco_nv12)
+        case fan::pixel_format::nv12: {
+          nv12.set(cid, &nv12_t::vi_t::tc_size, size);
+          break;
+        }
+      #endif
+    }
+  }
+
   fan::vec3 get_size(fan::graphics::cid_t* cid) {
     switch (((cid_t*)cid)->format) {
         #if defined(loco_yuv420p)
