@@ -64,7 +64,11 @@ struct image_t {
     load(loco, image_info, p);
   }
 
-  image_t(loco_t* loco, const fan::webp::image_info_t image_info, load_properties_t p = load_properties_t()) {
+  image_t(loco_t* loco, const fan::webp::image_info_t image_info) {
+    load(loco, image_info, load_properties_t());
+  }
+
+  image_t(loco_t* loco, const fan::webp::image_info_t image_info, load_properties_t p) {
     load(loco, image_info, p);
   }
 
@@ -93,7 +97,11 @@ struct image_t {
     return &loco->image_list[texture_reference].texture_id;
   }
 
-  bool load(loco_t* loco, fan::webp::image_info_t image_info, load_properties_t p = load_properties_t()) {
+  bool load(loco_t* loco, fan::webp::image_info_t image_info) {
+    return load(loco, image_info, load_properties_t());
+  }
+
+  bool load(loco_t* loco, fan::webp::image_info_t image_info, load_properties_t p) {
 
     auto* context = loco->get_context();
 
@@ -114,7 +122,11 @@ struct image_t {
     return 0;
   }
 
-  bool load(loco_t* loco, const fan::string& path, const load_properties_t& p = load_properties_t()) {
+  bool load(loco_t* loco, const fan::string& path) {
+    return load(loco, path, load_properties_t());
+  }
+
+  bool load(loco_t* loco, const fan::string& path, const load_properties_t& p) {
 
     #if fan_assert_if_same_path_loaded_multiple_times
     
@@ -136,7 +148,12 @@ struct image_t {
     fan::webp::free_image(image_info.data);
     return ret;
   }
-  bool load(loco_t* loco, fan::color* colors, const fan::vec2ui& size_, load_properties_t p = load_properties_t()) {
+
+  bool load(loco_t* loco, fan::color* colors, const fan::vec2ui& size_) {
+    return load(loco, colors, size_, load_properties_t());
+  }
+
+  bool load(loco_t* loco, fan::color* colors, const fan::vec2ui& size_, load_properties_t p) {
 
     auto* context = loco->get_context();
 
@@ -155,7 +172,11 @@ struct image_t {
     return 0;
   }
 
-  void reload_pixels(loco_t* loco, const fan::webp::image_info_t& image_info, const load_properties_t& p = load_properties_t()) {
+  void reload_pixels(loco_t* loco, const fan::webp::image_info_t& image_info) {
+    reload_pixels(loco, image_info, load_properties_t());
+  }
+
+  void reload_pixels(loco_t* loco, const fan::webp::image_info_t& image_info, const load_properties_t& p) {
 
     auto* context = loco->get_context();
 
@@ -174,8 +195,12 @@ struct image_t {
     erase_texture(loco);
   }
 
+  void create(loco_t* loco, const fan::color& color, const fan::vec2& size_) {
+    create(loco, color, size_, load_properties_t());
+  }
+
   // creates single colored text size.x*size.y sized
-  void create(loco_t* loco, const fan::color& color, const fan::vec2& size_, load_properties_t p = load_properties_t()) {
+  void create(loco_t* loco, const fan::color& color, const fan::vec2& size_, load_properties_t p) {
     auto* context = loco->get_context();
 
 
@@ -208,7 +233,11 @@ struct image_t {
     context->opengl.call(context->opengl.glGenerateMipmap, fan::opengl::GL_TEXTURE_2D);
   }
 
-  void create_missing_texture(loco_t* loco, load_properties_t p = load_properties_t()) {
+  void create_missing_texture(loco_t* loco) {
+    create_missing_texture(loco, load_properties_t());
+  }
+
+  void create_missing_texture(loco_t* loco, load_properties_t p) {
     auto* context = loco->get_context();
 
     uint8_t* pixels = (uint8_t*)malloc(sizeof(uint8_t) * (2 * 2 * fan::color::size()));

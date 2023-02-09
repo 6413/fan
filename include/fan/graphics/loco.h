@@ -1589,6 +1589,7 @@ public:
 
 };
 
+#if defined(loco_pixel_format_renderer)
 template <typename T>
 constexpr std::array<T, 4> fan::pixel_format::get_image_properties(uint8_t format) {
   switch (format) {
@@ -1626,6 +1627,8 @@ constexpr std::array<T, 4> fan::pixel_format::get_image_properties(uint8_t forma
   }
   }
 }
+
+#endif
 
 #if defined(loco_window)
 loco_t::image_list_NodeReference_t::image_list_NodeReference_t(loco_t::image_t* image) {
