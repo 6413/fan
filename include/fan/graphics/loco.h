@@ -4,21 +4,13 @@
 
 #include <set>
 
-#include <cuda.h>
-
-#include <nvcuvid.h>
-
 #include _FAN_PATH(types/types.h)
 
 #include _FAN_PATH(types/color.h)
 
-
-//#include <cuda_gl_interop.h>
-#include "cuda_runtime_api.h"
-
 struct loco_t;
 
-#define loco_framebuffer
+//#define loco_framebuffer
 
 #include _FAN_PATH(graphics/graphics.h)
 #include _FAN_PATH(time/timer.h)
@@ -26,6 +18,10 @@ struct loco_t;
 #include _FAN_PATH(physics/collision/circle.h)
 #include _FAN_PATH(io/directory.h)
 
+#if defined(loco_cuda)
+#include "cuda_runtime_api.h"
+#include <cuda.h>
+#include <nvcuvid.h>
 
 namespace fan {
   namespace cuda {
@@ -47,6 +43,8 @@ namespace fan {
 extern "C" {
   extern __host__ cudaError_t CUDARTAPI cudaGraphicsGLRegisterImage(struct cudaGraphicsResource** resource, fan::opengl::GLuint image, fan::opengl::GLenum target, unsigned int flags);
 }
+
+#endif
 
 // automatically gets necessary macros for shapes
 
@@ -188,13 +186,48 @@ extern "C" {
 #include "loco_types.h"
 
 #if defined(loco_pixel_format_renderer)
+
 namespace fan {
   struct pixel_format {
     enum {
+      undefined,
       yuv420p,
       nv12,
-      undefined
     };
+
+    constexpr static uint8_t get_texture_amount(uint8_t format) {
+      switch (format) {
+        case undefined: {
+          return 0;
+        }
+        case yuv420p: {
+          return 3;
+        }
+        case nv12: {
+          return 2;
+        }
+        default: {
+          fan::throw_error("invalid format");
+          return undefined;
+        }
+      }
+    }
+    constexpr static std::array<fan::vec2ui, 4> get_image_sizes(uint8_t format, const fan::vec2ui& image_size) {
+      switch (format) {
+      case yuv420p: {
+        return std::array<fan::vec2ui, 4>{image_size, image_size / 2, image_size / 2};
+      }
+      case nv12: {
+        return std::array<fan::vec2ui, 4>{image_size, fan::vec2ui{ image_size.x, image_size.y / 2 }};
+      }
+      default: {
+        fan::throw_error("invalid format");
+        return std::array<fan::vec2ui, 4>{};
+      }
+      }
+    }
+    template <typename T>
+    constexpr static std::array<T, 4> get_image_properties(uint8_t format);
   };
 }
 #endif
@@ -703,6 +736,9 @@ public:
   template <uint8_t n>
   void process_block_properties_element(auto* shape, textureid_t<n> tid) {
     #if defined(loco_opengl)
+    if (tid.NRI == (decltype(tid.NRI))-1) {
+      return;
+    }
     shape->m_shader.set_int(get_context(), tid.name, n);
     get_context()->opengl.call(get_context()->opengl.glActiveTexture, fan::opengl::GL_TEXTURE0 + n);
     get_context()->opengl.call(get_context()->opengl.glBindTexture, fan::opengl::GL_TEXTURE_2D, image_list[tid].texture_id);
@@ -1361,80 +1397,80 @@ public:
   }
   #endif
 
+  #if defined(loco_cuda)
+
   struct cuda_textures_t {
-    cuda_textures_t() = default;
 
-    void resize(loco_t* loco, uint32_t amount, fan::graphics::cid_t** cids, fan::vec2ui* sizes, image_t::load_properties_t* ps) {
+    cuda_textures_t(){
+      inited = false;
+    }
+    ~cuda_textures_t() {
+    }
+    void close(loco_t* loco, fan::graphics::cid_t *cid) {
+      uint8_t image_amount = fan::pixel_format::get_texture_amount(loco->pixel_format_renderer.sb_get_ri(cid).format);
+      auto& ri = loco->pixel_format_renderer.sb_get_ri(cid);
+      for (uint32_t i = 0; i < image_amount; ++i) {
+        wresources[i].close();
+        ri.images[i].unload(loco);
+      }
+    }
 
-      for (uint32_t i = 0; i < amount; ++i) {
-        if (resources.size() < amount) {
-          resources.push_back(graphics_resource_t(loco, sizes[i], ps[i]));
-          loco->pixel_format_renderer.reload()
-          i++;
-          continue;
+    void resize(loco_t* loco, fan::graphics::cid_t* cid, uint8_t format, fan::vec2ui size, uint32_t filter = loco_t::image_t::filter::linear) {
+      auto& ri = loco->pixel_format_renderer.sb_get_ri(cid);
+      uint8_t image_amount = fan::pixel_format::get_texture_amount(ri.format);
+      if (inited == false) {
+        // purge cid's images here
+        // update cids images
+        loco->pixel_format_renderer.reload(cid, format, size, filter);
+        for (uint32_t i = 0; i < image_amount; ++i) {
+          wresources[i].open(loco->image_list[ri.images[i].texture_reference].texture_id);
         }
-        resources[i].reload(loco, sizes[i], ps[i]);
+        inited = true;
+      }
+      else {
+        // update cids images
+
+        loco->pixel_format_renderer.reload(cid, format, size, filter);
+
+        for (uint32_t i = 0; i < image_amount; ++i) {
+          wresources[i].reload(loco->image_list[ri.images[i].texture_reference].texture_id);
+        }
       }
     }
 
-    void close(loco_t* loco) {
-      for (uint32_t i = resources.size(); --i;) {
-        resources[i].close(loco);
-        resources.erase(resources.begin() + i);
-      }
-    }
-
-    cudaArray_t get_array(uint32_t index) const {
-      return resources[index].cuda_array;
+    cudaArray_t& get_array(uint32_t index) {
+      return wresources[index].cuda_array;
     }
 
     struct graphics_resource_t {
-      graphics_resource_t() = default;
-      graphics_resource_t(loco_t* loco, const fan::vec2ui& s, const image_t::load_properties_t& lp) {
-        open(loco, s, lp);
-      }
-      void open(loco_t* loco, const fan::vec2ui& s, const image_t::load_properties_t& lp) {
-        fan::webp::image_info_t image_info;
-        image_info.data = 0;
-        image_info.size = s;
-        image.load(loco, image_info, lp);
-        fan::cuda::check_error(cudaGraphicsGLRegisterImage(&resource, loco->image_list[image.texture_reference].texture_id, fan::opengl::GL_TEXTURE_2D, cudaGraphicsMapFlagsNone));
+      void open(int texture_id) {
+        fan::cuda::check_error(cudaGraphicsGLRegisterImage(&resource, texture_id, fan::opengl::GL_TEXTURE_2D, cudaGraphicsMapFlagsNone));
         map();
       }
-      void close(loco_t* loco) {
-        if (resource == nullptr) {
-          return;
-        }
+      void close() {
         unmap();
         cudaGraphicsUnregisterResource(resource);
-        image.unload(loco);
       }
-
       void map() {
         fan::cuda::check_error(cudaGraphicsMapResources(1, &resource, 0));
         fan::cuda::check_error(cudaGraphicsSubResourceGetMappedArray(&cuda_array, resource, 0, 0));
       }
       void unmap() {
-        if (resource == nullptr) {
-          return;
-        }
         fan::cuda::check_error(cudaGraphicsUnmapResources(1, &resource));
       }
-
-      void reload(loco_t* loco, const fan::vec2ui& s, const image_t::load_properties_t& lp) {
-        fan::webp::image_info_t ii;
-        ii.data = 0;
-        ii.size = s;
-        image.reload_pixels(loco, ii, lp);
+      void reload(int texture_id) {
+        close();
+        open(texture_id);
       }
-
-      cudaGraphicsResource* resource = nullptr;
+      cudaGraphicsResource_t resource;
       cudaArray_t cuda_array;
-      image_t image;
     };
 
-    std::vector<std::vector<graphics_resource_t>> resources;
+    bool inited = false;
+    graphics_resource_t wresources[4];
   };
+
+  #endif
 
 protected:
   #define BLL_set_CPP_ConstructDestruct
@@ -1552,6 +1588,44 @@ public:
     #endif
 
 };
+
+template <typename T>
+constexpr std::array<T, 4> fan::pixel_format::get_image_properties(uint8_t format) {
+  switch (format) {
+  case yuv420p: {
+    return std::array<loco_t::image_t::load_properties_t, 4>{
+      loco_t::image_t::load_properties_t{
+        .internal_format = loco_t::image_t::format::r8_unorm,
+        .format = loco_t::image_t::format::r8_unorm
+      },
+      loco_t::image_t::load_properties_t{
+        .internal_format = loco_t::image_t::format::r8_unorm,
+        .format = loco_t::image_t::format::r8_unorm
+      },
+      loco_t::image_t::load_properties_t{
+        .internal_format = loco_t::image_t::format::r8_unorm,
+        .format = loco_t::image_t::format::r8_unorm
+      }
+    };
+  }
+  case nv12: {
+    return std::array<loco_t::image_t::load_properties_t, 4>{
+      loco_t::image_t::load_properties_t{
+        .internal_format = loco_t::image_t::format::r8_unorm,
+        .format = loco_t::image_t::format::r8_unorm
+      },
+      loco_t::image_t::load_properties_t{
+        .internal_format = loco_t::image_t::format::rg8_unorm,
+        .format = loco_t::image_t::format::rg8_unorm
+      }
+    };
+  }
+  default: {
+    fan::throw_error("invalid format");
+    return std::array<loco_t::image_t::load_properties_t, 4>{};
+  }
+  }
+}
 
 #if defined(loco_window)
 loco_t::image_list_NodeReference_t::image_list_NodeReference_t(loco_t::image_t* image) {
