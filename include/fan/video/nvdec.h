@@ -5,7 +5,7 @@ bool __GPU_IS_CUDA_INITED = 0;
 #define __GPU_IS_CUDA_INITED __GPU_IS_CUDA_INITED
 #endif
 
-extern void call_kernel(cudaSurfaceObject_t surface, int, int);
+//extern void call_kernel(cudaSurfaceObject_t surface, int, int);
 
 namespace fan {
   namespace cuda {
@@ -149,8 +149,8 @@ namespace fan {
         else {
         g_remake_decoder:
 
-          decoder->image_y_resource.close(&pile->loco);
-          decoder->image_vu_resource.close(&pile->loco);
+          decoder->image_y_resource.close();
+          decoder->image_vu_resource.close();
 
           loco_t::image_t::load_properties_t lp;
           // cudaGraphicsGLRegisterImage accepts only GL_RED

@@ -14,6 +14,7 @@
 #define loco_window
 #define loco_context
 
+#define loco_cuda
 #define loco_nv12
 #define loco_pixel_format_renderer
 #include _FAN_PATH(graphics/loco.h)
@@ -67,7 +68,6 @@ int main() {
       pile->loco.pixel_format_renderer.erase(&pile->cid[1]);
     }
     loco_t::pixel_format_renderer_t::properties_t p;
-    p.pixel_format = fan::pixel_format::nv12;
     p.matrices = &pile->matrices;
     p.viewport = &pile->viewport;
     p.size = 1;
