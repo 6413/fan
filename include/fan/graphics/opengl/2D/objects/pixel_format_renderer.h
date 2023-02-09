@@ -1,303 +1,194 @@
 struct sb_pfr_name {
 
-  loco_t* get_loco() {
-    loco_t* loco = OFFSETLESS(this, loco_t, sb_pfr_var_name);
-    return loco;
+  #define sb_get_loco \
+  loco_t* get_loco() { \
+    loco_t* loco = OFFSETLESS(this, loco_t, sb_pfr_var_name); \
+    return loco; \
   }
 
-  struct cid_t {
-    uint8_t format;
-    uint16_t bm_id;
-    uint16_t block_id;
-    uint8_t instance_id;
-  };
-
-  #if defined(loco_yuv420p)
-    #define sb_shape_var_name yuv420p
-    #define sb_sprite_name yuv420p_t
-
-    #define sb_get_loco \
-      loco_t* get_loco() { \
-        loco_t* loco = OFFSETLESS(this, loco_t, sb_pfr_var_name . sb_shape_var_name); \
-        return loco; \
-      }
-
-    #include _FAN_PATH(graphics/opengl/2D/objects/yuv420p.h)
-    sb_sprite_name sb_shape_var_name;
-    #undef sb_shape_var_name
-    #undef sb_sprite_name
-  #endif
-
-  #if defined(loco_nv12)
-    #define sb_shape_var_name nv12
-    #define sb_sprite_name nv12_t
-
-    #define sb_get_loco \
-      loco_t* get_loco() { \
-        loco_t* loco = OFFSETLESS(this, loco_t, sb_pfr_var_name . sb_shape_var_name); \
-        return loco; \
-      }
-
-    #include _FAN_PATH(graphics/opengl/2D/objects/nv12.h)
-    sb_sprite_name sb_shape_var_name;
-    #undef sb_shape_var_name
-    #undef sb_sprite_name
-  #endif
-
-  struct properties_t {
-    loco_t::matrices_t* matrices = 0;
-    fan::graphics::viewport_t* viewport = 0;
-
-    uint8_t pixel_format = fan::pixel_format::undefined;
-    loco_t::image_t* images[4]{};
-
+  struct vi_t {
     fan::vec3 position = 0;
+  private:
+    f32_t pad;
+  public:
     fan::vec2 size = 0;
     fan::vec2 tc_position = 0;
     fan::vec2 tc_size = 1;
+  private:
+    f32_t pad2[2];
+  public:
   };
 
-  void push_back(fan::graphics::cid_t* cid, const properties_t& p) {
-    auto loco = get_loco();
-    switch (p.pixel_format) {
-    case fan::pixel_format::undefined: {
-      fan::throw_error("undefined pixel format in push_back properties");
-      break;
-    }
-      #if defined(loco_yuv420p)
+   struct bm_properties_t {
+    using parsed_masterpiece_t = fan::masterpiece_t<
+      uint16_t,
+      loco_t::textureid_t<0>,
+      loco_t::textureid_t<1>,
+      loco_t::textureid_t<2>,
+      loco_t::textureid_t<3>,
+      loco_t::matrices_list_NodeReference_t,
+      fan::graphics::viewport_list_NodeReference_t
+    >;
+    struct key_t : parsed_masterpiece_t {}key;
+  };
+
+  struct cid_t;
+
+  struct ri_t : bm_properties_t {
+    loco_t::image_t images[4];
+    uint8_t format = fan::pixel_format::undefined;
+    cid_t* cid;
+  };
+
+  struct properties_t : vi_t, ri_t {
+
+    loco_t::matrices_t* matrices = 0;
+    fan::graphics::viewport_t* viewport = 0;
+  };
+
+  static constexpr uint32_t max_instance_size = fan::min(256, 4096 / (sizeof(vi_t) / 4));
+
+  #if defined(loco_opengl)
+  #ifndef sb_shader_vertex_path
+  #define sb_shader_vertex_path _FAN_PATH(graphics/glsl/opengl/2D/objects/pixel_format_renderer.vs)
+  #endif
+  #ifndef sb_shader_fragment_path
+  #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/objects/nv12.fs)
+  #endif
+  #endif
+
+  #include _FAN_PATH(graphics/shape_builder.h)
+
+  
+  sb_pfr_name() {
+    sb_open();
+  }
+  ~sb_pfr_name() {
+    sb_close();
+  }
+
+  void set_fragment(uint8_t format) {
+    switch (format) {
       case fan::pixel_format::yuv420p: {
-        yuv420p_t::properties_t sp;
-        sp.matrices = p.matrices;
-        sp.viewport = p.viewport;
-        sp.position = p.position;
-        sp.size = p.size;
-        sp.tc_position = p.tc_position;
-        sp.tc_size = p.tc_size;
-        sp.y = p.images[0];
-        sp.u = p.images[1];
-        sp.v = p.images[2];
-        yuv420p.push_back(cid, sp);
+        m_shader.set_fragment(get_loco()->get_context(), 
+          #include _FAN_PATH(graphics/glsl/opengl/2D/objects/yuv420p.fs)
+        );
+        m_shader.compile(get_loco()->get_context());
         break;
       }
-      #endif
-      #if defined(loco_nv12)
       case fan::pixel_format::nv12: {
-        nv12_t::properties_t sp;
-        sp.matrices = p.matrices;
-        sp.viewport = p.viewport;
-        sp.position = p.position;
-        sp.size = p.size;
-        sp.tc_position = p.tc_position;
-        sp.tc_size = p.tc_size;
-        sp.y = p.images[0];
-        sp.vu = p.images[1];
-        nv12.push_back(cid, sp);
-        break;
-      }
-      #endif
-      default: {
-        fan::throw_error("pixel format has not been defined for loco. #define loco_*");
+        m_shader.set_fragment(get_loco()->get_context(), 
+          #include _FAN_PATH(graphics/glsl/opengl/2D/objects/nv12.fs)
+        );
+        m_shader.compile(get_loco()->get_context());
         break;
       }
     }
-    ((cid_t*)cid)->format = p.pixel_format;
+  }
+
+  void push_back(fan::graphics::cid_t* cid, properties_t p) {
+    auto loco = get_loco();
+    get_key_value(uint16_t) = p.position.z;
+    if (p.images[0].is_invalid()) {
+      loco_t::image_t image;
+      get_key_value(loco_t::textureid_t<0>) = &image;
+      get_key_value(loco_t::textureid_t<1>) = &image;
+      get_key_value(loco_t::textureid_t<2>) = &image;
+      get_key_value(loco_t::textureid_t<3>) = &image;
+    }
+    else {
+      get_key_value(loco_t::textureid_t<0>) = &p.images[0];
+      get_key_value(loco_t::textureid_t<1>) = &p.images[1];
+      get_key_value(loco_t::textureid_t<2>) = &p.images[2];
+      get_key_value(loco_t::textureid_t<3>) = &p.images[3];
+    }
+    
+    get_key_value(loco_t::matrices_list_NodeReference_t) = p.matrices;
+    get_key_value(fan::graphics::viewport_list_NodeReference_t) = p.viewport;
+    sb_push_back(cid, p);
+    auto* ri = &sb_get_ri(cid);
+    sb_set_key<bm_properties_t::key_t::get_index_with_type<loco_t::textureid_t<0>>()>(cid, &ri->images[0]);
+    ri = &sb_get_ri(cid);
+    sb_set_key<bm_properties_t::key_t::get_index_with_type<loco_t::textureid_t<1>>()>(cid, &ri->images[1]);
+    ri = &sb_get_ri(cid);
+    sb_set_key<bm_properties_t::key_t::get_index_with_type<loco_t::textureid_t<2>>()>(cid, &ri->images[2]);
+    ri = &sb_get_ri(cid);
+    sb_set_key<bm_properties_t::key_t::get_index_with_type<loco_t::textureid_t<3>>()>(cid, &ri->images[3]);
   }
 
   void erase(fan::graphics::cid_t* cid) {
-    switch (((cid_t*)cid)->format) {
-      #if defined(loco_yuv420p)
-        case fan::pixel_format::yuv420p: {
-          yuv420p.erase(cid);
-          break;
-        }
-      #endif
-      #if defined(loco_nv12)
-        case fan::pixel_format::nv12: {
-          nv12.erase(cid);
-          break;
-        }
-      #endif
+    auto& ri = sb_get_ri(cid);
+    uint32_t TextureAmount = fan::pixel_format::get_texture_amount(ri.format);
+    for (uint32_t i = 0; i < TextureAmount; ++i) {
+      ri.images[i].unload(get_loco());
     }
-  }
-
-  void reload(fan::graphics::cid_t* cid, void** data, const fan::vec2& image_size) {
-        switch (((cid_t*)cid)->format) {
-      #if defined(loco_yuv420p)
-        case fan::pixel_format::yuv420p: {
-          yuv420p.reload(cid, data, image_size);
-          break;
-        }
-      #endif
-      #if defined(loco_nv12)
-        case fan::pixel_format::nv12: {
-          nv12.reload(cid, data, image_size);
-          break;
-        }
-      #endif
-    }
-  }
-
-  void reload(fan::graphics::cid_t* cid, uint8_t format, void** data, const fan::vec2& image_size) {
-    if (((cid_t*)cid)->format != format) {
-
-      loco_t::pixel_format_renderer_t::properties_t p;
-
-       switch (((cid_t*)cid)->format) {
-      #if defined(loco_yuv420p)
-        case fan::pixel_format::yuv420p: {
-          yuv420p_t::properties_t temp_p = yuv420p.get_properties(cid);
-          p.matrices = yuv420p.get_matrices(cid);
-          p.viewport = yuv420p.get_viewport(cid);
-          p.position = temp_p.position;
-          p.size = temp_p.size;
-          p.tc_position = temp_p.tc_position;
-          p.tc_size = temp_p.tc_size;
-          break;
-        }
-      #endif
-      #if defined(loco_nv12)
-        case fan::pixel_format::nv12: {
-          nv12_t::properties_t temp_p = nv12.get_properties(cid);
-          p.matrices = temp_p.matrices;
-          p.matrices = nv12.get_matrices(cid);
-          p.viewport = nv12.get_viewport(cid);
-          p.size = temp_p.size;
-          p.tc_position = temp_p.tc_position;
-          p.tc_size = temp_p.tc_size;
-          break;
-        }
-      #endif
-        default: {
-          fan::throw_error("pixel format has not been defined for loco. #define loco_*");
-          break;
-        }
-    }
-      p.pixel_format = format;
-
-      erase(cid);
-      push_back(cid, p);
-    }
-    reload(cid, data, image_size);
+    sb_erase(cid);
   }
 
   void draw() {
-    #if defined(loco_yuv420p)
-      yuv420p.draw();
-    #endif
-    #if defined(loco_nv12)
-      nv12.draw();
-    #endif
+    sb_draw();
   }
 
-
-  template <typename T, typename T2>
-  T get(fan::graphics::cid_t* cid, T T2::* member) {
-    switch (((cid_t*)cid)->format) {
-        #if defined(loco_yuv420p)
-        case fan::pixel_format::yuv420p: {
-          return yuv420p.get(cid, member);
-        }
-      #endif
-      #if defined(loco_nv12)
-        case fan::pixel_format::nv12: {
-          return nv12.get(cid, member);
-        }
-      #endif
-    }
-  }
-  /*void set(fan::graphics::cid_t* cid, auto member, const auto& value) {
-    switch (((cid_t*)cid)->format) {
-        #if defined(loco_yuv420p)
-        case fan::pixel_format::yuv420p: {
-          
-          yuv420p.set(cid, member, value);
-        }
-      #endif
-      #if defined(loco_nv12)
-        case fan::pixel_format::nv12: {
-          nv12.set(cid, member, value);
-        }
-      #endif
-    }
-  }*/
-
-  fan::vec3 get_position(fan::graphics::cid_t* cid) {
-    switch (((cid_t*)cid)->format) {
-        #if defined(loco_yuv420p)
-        case fan::pixel_format::yuv420p: {
-          return yuv420p.get(cid, &yuv420p_t::vi_t::position);
-        }
-      #endif
-      #if defined(loco_nv12)
-        case fan::pixel_format::nv12: {
-          return nv12.get(cid, &nv12_t::vi_t::position);
-        }
-      #endif
-    }
-  }
-  void set_position(fan::graphics::cid_t* cid, const fan::vec3& position) {
-    switch (((cid_t*)cid)->format) {
-        #if defined(loco_yuv420p)
-        case fan::pixel_format::yuv420p: {
-          yuv420p.set(cid, &yuv420p_t::vi_t::position, position);
-          break;
-        }
-      #endif
-      #if defined(loco_nv12)
-        case fan::pixel_format::nv12: {
-          nv12.set(cid, &nv12_t::vi_t::position, position);
-          break;
-        }
-      #endif
-    }
+  void reload(fan::graphics::cid_t* cid, void** data, const fan::vec2& image_size, uint32_t filter = fan::opengl::GL_LINEAR) {
+    reload(cid, sb_get_ri(cid).format, data, image_size, filter);
   }
 
-  void set_tc_size(fan::graphics::cid_t* cid, const fan::vec2& size) {
-    switch (((cid_t*)cid)->format) {
-        #if defined(loco_yuv420p)
-        case fan::pixel_format::yuv420p: {
-          yuv420p.set(cid, &yuv420p_t::vi_t::tc_size, size);
-          break;
+  void reload(fan::graphics::cid_t* cid, uint8_t format, void** data, const fan::vec2& image_size, uint32_t filter = fan::opengl::GL_LINEAR) {
+    auto* ri = &sb_get_ri(cid);
+    auto image_count_new = fan::pixel_format::get_texture_amount(format);
+    if (format != ri->format) {
+      set_vertex(
+        #include _FAN_PATH(graphics/glsl/opengl/2D/objects/pixel_format_renderer.vs)
+      );
+      set_fragment(format);
+      m_shader.use(get_loco()->get_context());
+
+      auto image_count_old = fan::pixel_format::get_texture_amount(ri->format);
+      if (image_count_new < image_count_old) {
+        // deallocate some texture
+        for (uint32_t i = image_count_new; i < image_count_old; ++i) {
+          ri->images[i].unload(get_loco());
         }
-      #endif
-      #if defined(loco_nv12)
-        case fan::pixel_format::nv12: {
-          nv12.set(cid, &nv12_t::vi_t::tc_size, size);
-          break;
+      }
+      else if (image_count_new > image_count_old) {
+        // allocate more texture
+        for (uint32_t i = image_count_old; i < image_count_new; ++i) {
+          ri->images[i].create_texture(get_loco());
+          switch (i) {
+          case 0: {
+            sb_set_key<bm_properties_t::key_t::get_index_with_type<loco_t::textureid_t<0>>()>(cid, &ri->images[0]);
+            break;
+          }
+          case 1: {
+            sb_set_key<bm_properties_t::key_t::get_index_with_type<loco_t::textureid_t<1>>()>(cid, &ri->images[1]);
+            break;
+          }
+          case 2: {
+            sb_set_key<bm_properties_t::key_t::get_index_with_type<loco_t::textureid_t<2>>()>(cid, &ri->images[2]);
+            break;
+          }
+          case 3: {
+            sb_set_key<bm_properties_t::key_t::get_index_with_type<loco_t::textureid_t<3>>()>(cid, &ri->images[3]);
+            break;
+          }
+          }
+          ri = &sb_get_ri(cid);
         }
-      #endif
+      }
     }
+    for (uint32_t i = 0; i < image_count_new; i++) {
+      fan::webp::image_info_t image_info;
+      image_info.data = data[i];
+      image_info.size = fan::pixel_format::get_image_sizes(format, image_size)[i];
+      auto lp = fan::pixel_format::get_image_properties<loco_t::image_t::load_properties_t>(format)[i];
+      lp.filter = filter;
+      ri->images[i].reload_pixels(get_loco(), image_info, lp);
+    }
+    ri->format = format;
   }
 
-  fan::vec3 get_size(fan::graphics::cid_t* cid) {
-    switch (((cid_t*)cid)->format) {
-        #if defined(loco_yuv420p)
-        case fan::pixel_format::yuv420p: {
-          return yuv420p.get(cid, &yuv420p_t::vi_t::size);
-        }
-      #endif
-      #if defined(loco_nv12)
-        case fan::pixel_format::nv12: {
-          return nv12.get(cid, &nv12_t::vi_t::size);
-        }
-      #endif
-    }
+  void reload(fan::graphics::cid_t* cid, uint8_t format, const fan::vec2& image_size, uint32_t filter = fan::opengl::GL_LINEAR) {
+    void* data[4]{};
+    reload(cid, format, data, image_size, filter);
   }
-  void set_size(fan::graphics::cid_t* cid, const fan::vec2& size) {
-    switch (((cid_t*)cid)->format) {
-        #if defined(loco_yuv420p)
-        case fan::pixel_format::yuv420p: {
-          yuv420p.set(cid, &yuv420p_t::vi_t::size, size);
-          break;
-        }
-      #endif
-      #if defined(loco_nv12)
-        case fan::pixel_format::nv12: {
-          nv12.set(cid, &nv12_t::vi_t::size, size);
-          break;
-        }
-      #endif
-    }
-  }
-
 };

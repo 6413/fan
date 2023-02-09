@@ -6,7 +6,6 @@ out vec4 color;
 uniform sampler2D _t00;
 uniform sampler2D _t01;
 
-in vec4 instance_color;
 in vec2 texture_coordinate;
 
 void main() {
@@ -27,6 +26,6 @@ void main() {
   rgb.y = dot(yuv, yuv2g);
   rgb.z = dot(yuv, yuv2b);
 
-	color = vec4(rgb.x, rgb.y, rgb.z, 1) * instance_color;
+	color = vec4(rgb.x, rgb.y, rgb.z, 1);
 }
 )"

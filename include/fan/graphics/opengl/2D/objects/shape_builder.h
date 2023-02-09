@@ -294,16 +294,15 @@ static inline std::vector<fan::function_t<void()>> draw_queue_helper;
 static inline uint16_t zdepth = 0;
 
 template <uint32_t depth = 0>
-void traverse_draw(auto nr, uint32_t draw_mode) {
+void traverse_draw(auto nr, uint32_t draw_mode, auto lambda) {
   loco_t* loco = get_loco();
   if constexpr (depth == bm_properties_t::key_t::count + 1) {
     auto bmn = bm_list.GetNodeByReference(*(shape_bm_NodeReference_t*)&nr);
     auto bnr = bmn->data.first_block;
     #ifndef sb_inline_draw
-    draw_queue_helper.push_back([this, loco, draw_mode, bmn, bnr]() mutable {
+    draw_queue_helper.push_back([this, loco, draw_mode, bmn, bnr, lambda]() mutable {
     #endif
         m_shader.use(loco->get_context());
-
       #if defined(loco_opengl)
         #if defined (loco_letter)
           if constexpr (std::is_same<std::remove_pointer_t<decltype(this)>, loco_t::letter_t>::value) {
@@ -339,6 +338,7 @@ void traverse_draw(auto nr, uint32_t draw_mode) {
             loco->get_context(),
             node->data.block.uniform_buffer.size()
           );
+          
           node->data.block.uniform_buffer.draw(
             loco->get_context(),
             0 * sb_vertex_count,
@@ -398,18 +398,18 @@ void traverse_draw(auto nr, uint32_t draw_mode) {
     #ifndef sb_inline_draw
       });
     #endif
-      traverse_draw<depth + 1>(kt.Output, draw_mode);
+      traverse_draw<depth + 1>(kt.Output, draw_mode, lambda);
     }
   }
 }
 
-void sb_draw(uint32_t draw_mode = fan::opengl::GL_TRIANGLES) {
+void sb_draw(uint32_t draw_mode = fan::opengl::GL_TRIANGLES, fan::function_t<void(fan::graphics::cid_t** cids)> lambda = [] (fan::graphics::cid_t** cids) {}) {
   loco_t* loco = get_loco();
   m_shader.use(loco->get_context());
   m_shader.set_int(loco->get_context(), "_t00", 0);
   m_shader.set_int(loco->get_context(), "_t01", 1);
   m_shader.set_int(loco->get_context(), "_t02", 2);
-  traverse_draw(root, draw_mode);
+  traverse_draw(root, draw_mode, lambda);
 }
 
 properties_t get_properties(fan::opengl::cid_t* cid) {

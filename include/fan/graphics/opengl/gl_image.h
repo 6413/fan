@@ -35,10 +35,7 @@ struct image_t {
   };
 
   struct load_properties_t {
-    constexpr load_properties_t() noexcept {}
-    constexpr load_properties_t(auto a, auto b, auto c, auto d, auto e)
-      : visual_output(a), internal_format(b), format(c), type(d), filter(e) {}
-    uint32_t visual_output = load_properties_defaults::visual_output;
+    uint32_t            visual_output = load_properties_defaults::visual_output;
     uintptr_t           internal_format = load_properties_defaults::internal_format;
     uintptr_t           format = load_properties_defaults::format;
     uintptr_t           type = load_properties_defaults::type;
@@ -163,6 +160,11 @@ struct image_t {
     auto* context = loco->get_context();
 
     bind_texture(loco);
+
+    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_S, p.visual_output);
+    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_T, p.visual_output);
+    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MIN_FILTER, p.filter);
+    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MAG_FILTER, p.filter);
 
     size = image_info.size;
     context->opengl.call(context->opengl.glTexImage2D, fan::opengl::GL_TEXTURE_2D, 0, p.internal_format, size.x, size.y, 0, p.format, p.type, image_info.data);
