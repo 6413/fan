@@ -60,15 +60,23 @@ int main() {
 
   fan::cuda::nv_decoder_t nv(&pile->loco);
 
-  loco_t::pixel_format_renderer_t::properties_t p;
-  p.pixel_format = fan::pixel_format::nv12;
-  p.matrices = &pile->matrices;
-  p.viewport = &pile->viewport;
-  p.size = 1;
-  p.images[0] = &nv.image_y;
-  //nv.image_vu.texture_reference.
-  p.images[1] = &nv.image_vu;
-  pile->loco.pixel_format_renderer.push_back(&pile->cid[1], p);
+  bool pushed = false;
+
+  nv.sequence_cb = [&] {
+    if (!pushed) {
+      pile->loco.pixel_format_renderer.erase(&pile->cid[1]);
+    }
+    loco_t::pixel_format_renderer_t::properties_t p;
+    p.pixel_format = fan::pixel_format::nv12;
+    p.matrices = &pile->matrices;
+    p.viewport = &pile->viewport;
+    p.size = 1;
+    p.images[0] = &nv.image_y_resource.image;
+    //nv.image_vu.texture_reference.
+    p.images[1] = &nv.image_vu_resource.image;
+    pile->loco.pixel_format_renderer.push_back(&pile->cid[1], p);
+    pushed = true;
+  };
 
   fan::string video_data;
   fan::io::file::read("o4.264", &video_data);

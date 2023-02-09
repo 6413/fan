@@ -279,7 +279,7 @@
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Source.cpp" />
+    <ClCompile Include="examples\video\nvdec.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
   </ItemGroup>
   <ItemGroup>

@@ -1,15 +1,5 @@
 #pragma once
 
-#include <cuda.h>
-
-#include <nvcuvid.h>
-
-//#include "device_launch_parameters.h"
-
-typedef void* HGPUNV;
-//#include <cuda_runtime.h>
-#include <cuda_gl_interop.h>
-
 #ifndef __GPU_IS_CUDA_INITED
 bool __GPU_IS_CUDA_INITED = 0;
 #define __GPU_IS_CUDA_INITED __GPU_IS_CUDA_INITED
@@ -20,52 +10,9 @@ extern void call_kernel(cudaSurfaceObject_t surface, int, int);
 namespace fan {
   namespace cuda {
 
-    void check_error(auto result) {
-      if (result != CUDA_SUCCESS) {
-        if constexpr (std::is_same_v<decltype(result), CUresult>) {
-          const char* err_str = nullptr;
-          cuGetErrorString(result, &err_str);
-          fan::throw_error("function failed with:" + std::to_string(result) + ", " + err_str);
-        }
-        else {
-          fan::throw_error("function failed with:" + std::to_string(result) + ", ");
-        }
-      }
-    }
-
-    struct graphics_resource_t {
-      graphics_resource_t() = default;
-
-      void open(GLuint image_id) {
-        fan::cuda::check_error(cudaGraphicsGLRegisterImage(&resource, image_id, GL_TEXTURE_2D, cudaGraphicsMapFlagsNone));
-      }
-      void close() {
-        if (resource == nullptr) {
-          return;
-        }
-        cudaGraphicsUnregisterResource(resource);
-        resource = nullptr;
-      }
-
-      void map(cudaArray_t* carray) {
-        fan::cuda::check_error(cudaGraphicsMapResources(1, &resource, 0));
-        fan::cuda::check_error(cudaGraphicsSubResourceGetMappedArray(carray, resource, 0, 0));
-      }
-      void unmap() {
-        if (resource == nullptr) {
-          return;
-        }
-        fan::cuda::check_error(cudaGraphicsUnmapResources(1, &resource));
-      }
-      ~graphics_resource_t() {
-        close();
-      }
-      cudaGraphicsResource* resource = nullptr;
-    };
-
     struct nv_decoder_t {
 
-      nv_decoder_t(loco_t* loco) : image_y(loco), image_vu(loco){
+      nv_decoder_t(loco_t* loco) {
 
         if (!__GPU_IS_CUDA_INITED) {
           fan::cuda::check_error(cuInit(0));
@@ -107,21 +54,6 @@ namespace fan {
         parser_params.pfnDisplayPicture = parser_display_picture_callback;
 
         fan::cuda::check_error(cuvidCreateVideoParser(&parser, &parser_params));
-
-        //loco_t::image_t::load_properties_t lp;
-        //// cudaGraphicsGLRegisterImage accepts only GL_RED
-        //lp.internal_format = GL_RED;
-        //lp.format = GL_RED;
-        //lp.filter = loco_t::image_t::filter::linear;
-        //lp.visual_output = loco_t::image_t::sampler_address_mode::clamp_to_edge;
-        //fan::webp::image_info_t info;
-        //info.data = 0;
-        //info.size = 0;
-        //image_y.load(&pile->loco, info, lp);
-        //// cudaGraphicsGLRegisterImage accepts only GL_RG
-        //lp.internal_format = fan::opengl::GL_RG;
-        //lp.format = fan::opengl::GL_RG;
-        //image_vu.load(&pile->loco, info, lp);
       }
 
       ~nv_decoder_t() {
@@ -217,32 +149,22 @@ namespace fan {
         else {
         g_remake_decoder:
 
-          decoder->image_y_resource.unmap();
-          decoder->image_vu_resource.unmap();
-
-          decoder->image_y_resource.close();
-          decoder->image_vu_resource.close();
+          decoder->image_y_resource.close(&pile->loco);
+          decoder->image_vu_resource.close(&pile->loco);
 
           loco_t::image_t::load_properties_t lp;
           // cudaGraphicsGLRegisterImage accepts only GL_RED
-          lp.internal_format = GL_RED;
-          lp.format = GL_RED;
+          lp.internal_format = fan::opengl::GL_RED;
+          lp.format = fan::opengl::GL_RED;
           lp.filter = loco_t::image_t::filter::linear;
           lp.visual_output = loco_t::image_t::sampler_address_mode::clamp_to_edge;
-          fan::webp::image_info_t info;
-          info.data = 0;
-          info.size = decoder->frame_size;
-          decoder->image_y.reload_pixels(&pile->loco, info, lp);
-          // cudaGraphicsGLRegisterImage accepts only GL_RG
+          decoder->image_y_resource.open(&pile->loco, decoder->frame_size, lp);
+
           lp.internal_format = fan::opengl::GL_RG;
           lp.format = fan::opengl::GL_RG;
-          decoder->image_vu.reload_pixels(&pile->loco, info, lp);
+          decoder->image_vu_resource.open(&pile->loco, decoder->frame_size, lp);
 
-          decoder->image_y_resource.open(pile->loco.image_list[decoder->image_y.texture_reference].texture_id);
-          decoder->image_vu_resource.open(pile->loco.image_list[decoder->image_vu.texture_reference].texture_id);
-
-          decoder->image_y_resource.map(&decoder->mappedArray);
-          decoder->image_vu_resource.map(&decoder->mappedArray2);
+          decoder->sequence_cb();
 
           CUVIDDECODECREATEINFO create_info = { 0 };
           create_info.CodecType = fmt->codec;
@@ -299,8 +221,8 @@ namespace fan {
         fan::cuda::check_error(cuvidMapVideoFrame(decoder->decoder, info->picture_index, &cuDevPtr,
           &nPitch, &videoProcessingParameters));
 
-        fan::cuda::check_error(cudaMemcpy2DToArray(decoder->mappedArray, 0, 0, (void*)cuDevPtr, nPitch, decoder->frame_size.x, decoder->frame_size.y, cudaMemcpyDeviceToDevice));
-        fan::cuda::check_error(cudaMemcpy2DToArray(decoder->mappedArray2, 0, 0, (void*)(cuDevPtr + nPitch * decoder->frame_size.y), nPitch, decoder->frame_size.x, decoder->frame_size.y / 2, cudaMemcpyDeviceToDevice));
+        fan::cuda::check_error(cudaMemcpy2DToArray(decoder->image_y_resource.cuda_array, 0, 0, (void*)cuDevPtr, nPitch, decoder->frame_size.x, decoder->frame_size.y, cudaMemcpyDeviceToDevice));
+        fan::cuda::check_error(cudaMemcpy2DToArray(decoder->image_vu_resource.cuda_array, 0, 0, (void*)(cuDevPtr + nPitch * decoder->frame_size.y), nPitch, decoder->frame_size.x, decoder->frame_size.y / 2, cudaMemcpyDeviceToDevice));
 
         pile->loco.process_loop([]{});
 
@@ -321,13 +243,10 @@ namespace fan {
       fan::time::clock timestamp;
       uint32_t current_frame = 0;
 
-      fan::cuda::graphics_resource_t image_y_resource;
-      fan::cuda::graphics_resource_t image_vu_resource;
+      loco_t::cuda_textures_t::graphics_resource_t image_y_resource;
+      loco_t::cuda_textures_t::graphics_resource_t image_vu_resource;
 
-      loco_t::image_t image_y;
-      loco_t::image_t image_vu;
-
-      cudaArray_t mappedArray, mappedArray2;
+      fan::function_t<void()> sequence_cb = [] {};
     };
   }
 }
