@@ -56,7 +56,6 @@ pile_t* pile = new pile_t;
 #include _FAN_PATH(video/nvdec.h)
 
 int main() {
-
   pile->loco.set_vsync(false);
 
   fan::cuda::nv_decoder_t nv(&pile->loco);
@@ -72,7 +71,7 @@ int main() {
   pile->loco.pixel_format_renderer.push_back(&pile->cid[1], p);
 
   fan::string video_data;
-  fan::io::file::read("o3.264", &video_data);
+  fan::io::file::read("o4.264", &video_data);
 
   nv.start_decoding(video_data);
   //pile->loco.loop([] {});
