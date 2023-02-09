@@ -4,10 +4,17 @@
 
 #include <set>
 
+#include <cuda.h>
+
+#include <nvcuvid.h>
+
 #include _FAN_PATH(types/types.h)
 
 #include _FAN_PATH(types/color.h)
 
+
+//#include <cuda_gl_interop.h>
+#include "cuda_runtime_api.h"
 
 struct loco_t;
 
@@ -18,6 +25,28 @@ struct loco_t;
 #include _FAN_PATH(font.h)
 #include _FAN_PATH(physics/collision/circle.h)
 #include _FAN_PATH(io/directory.h)
+
+
+namespace fan {
+  namespace cuda {
+    void check_error(auto result) {
+      if (result != CUDA_SUCCESS) {
+        if constexpr (std::is_same_v<decltype(result), CUresult>) {
+          const char* err_str = nullptr;
+          cuGetErrorString(result, &err_str);
+          fan::throw_error("function failed with:" + std::to_string(result) + ", " + err_str);
+        }
+        else {
+          fan::throw_error("function failed with:" + std::to_string(result) + ", ");
+        }
+      }
+    }
+  }
+}
+
+extern "C" {
+  extern __host__ cudaError_t CUDARTAPI cudaGraphicsGLRegisterImage(struct cudaGraphicsResource** resource, fan::opengl::GLuint image, fan::opengl::GLenum target, unsigned int flags);
+}
 
 // automatically gets necessary macros for shapes
 
@@ -1331,6 +1360,81 @@ public:
     return OFFSETLESS(window, loco_t, window);
   }
   #endif
+
+  struct cuda_textures_t {
+    cuda_textures_t() = default;
+
+    void resize(loco_t* loco, uint32_t amount, fan::graphics::cid_t** cids, fan::vec2ui* sizes, image_t::load_properties_t* ps) {
+
+      for (uint32_t i = 0; i < amount; ++i) {
+        if (resources.size() < amount) {
+          resources.push_back(graphics_resource_t(loco, sizes[i], ps[i]));
+          loco->pixel_format_renderer.reload()
+          i++;
+          continue;
+        }
+        resources[i].reload(loco, sizes[i], ps[i]);
+      }
+    }
+
+    void close(loco_t* loco) {
+      for (uint32_t i = resources.size(); --i;) {
+        resources[i].close(loco);
+        resources.erase(resources.begin() + i);
+      }
+    }
+
+    cudaArray_t get_array(uint32_t index) const {
+      return resources[index].cuda_array;
+    }
+
+    struct graphics_resource_t {
+      graphics_resource_t() = default;
+      graphics_resource_t(loco_t* loco, const fan::vec2ui& s, const image_t::load_properties_t& lp) {
+        open(loco, s, lp);
+      }
+      void open(loco_t* loco, const fan::vec2ui& s, const image_t::load_properties_t& lp) {
+        fan::webp::image_info_t image_info;
+        image_info.data = 0;
+        image_info.size = s;
+        image.load(loco, image_info, lp);
+        fan::cuda::check_error(cudaGraphicsGLRegisterImage(&resource, loco->image_list[image.texture_reference].texture_id, fan::opengl::GL_TEXTURE_2D, cudaGraphicsMapFlagsNone));
+        map();
+      }
+      void close(loco_t* loco) {
+        if (resource == nullptr) {
+          return;
+        }
+        unmap();
+        cudaGraphicsUnregisterResource(resource);
+        image.unload(loco);
+      }
+
+      void map() {
+        fan::cuda::check_error(cudaGraphicsMapResources(1, &resource, 0));
+        fan::cuda::check_error(cudaGraphicsSubResourceGetMappedArray(&cuda_array, resource, 0, 0));
+      }
+      void unmap() {
+        if (resource == nullptr) {
+          return;
+        }
+        fan::cuda::check_error(cudaGraphicsUnmapResources(1, &resource));
+      }
+
+      void reload(loco_t* loco, const fan::vec2ui& s, const image_t::load_properties_t& lp) {
+        fan::webp::image_info_t ii;
+        ii.data = 0;
+        ii.size = s;
+        image.reload_pixels(loco, ii, lp);
+      }
+
+      cudaGraphicsResource* resource = nullptr;
+      cudaArray_t cuda_array;
+      image_t image;
+    };
+
+    std::vector<std::vector<graphics_resource_t>> resources;
+  };
 
 protected:
   #define BLL_set_CPP_ConstructDestruct
