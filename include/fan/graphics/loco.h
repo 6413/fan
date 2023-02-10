@@ -10,7 +10,7 @@
 
 struct loco_t;
 
-#define loco_framebuffer
+//#define loco_framebuffer
 
 #include _FAN_PATH(graphics/graphics.h)
 #include _FAN_PATH(time/timer.h)
@@ -19,7 +19,7 @@ struct loco_t;
 #include _FAN_PATH(io/directory.h)
 
 #if defined(loco_cuda)
-#include "cuda_runtime_api.h"
+#include "cuda_runtime.h"
 #include <cuda.h>
 #include <nvcuvid.h>
 
@@ -218,7 +218,7 @@ namespace fan {
         return std::array<fan::vec2ui, 4>{image_size, image_size / 2, image_size / 2};
       }
       case nv12: {
-        return std::array<fan::vec2ui, 4>{image_size, fan::vec2ui{ image_size.x, image_size.y / 2 }};
+        return std::array<fan::vec2ui, 4>{image_size, fan::vec2ui{ image_size.x, image_size.y }};
       }
       default: {
         fan::throw_error("invalid format");
@@ -1417,7 +1417,7 @@ public:
 
     void resize(loco_t* loco, fan::graphics::cid_t* cid, uint8_t format, fan::vec2ui size, uint32_t filter = loco_t::image_t::filter::linear) {
       auto& ri = loco->pixel_format_renderer.sb_get_ri(cid);
-      uint8_t image_amount = fan::pixel_format::get_texture_amount(ri.format);
+      uint8_t image_amount = fan::pixel_format::get_texture_amount(format);
       if (inited == false) {
         // purge cid's images here
         // update cids images
@@ -1428,12 +1428,20 @@ public:
         inited = true;
       }
       else {
+
+        if (ri.images[0].size == size) {
+          return;
+        }
+
         // update cids images
+        for (uint32_t i = 0; i < fan::pixel_format::get_texture_amount(ri.format); ++i) {
+          wresources[i].close();
+        }
 
         loco->pixel_format_renderer.reload(cid, format, size, filter);
 
         for (uint32_t i = 0; i < image_amount; ++i) {
-          wresources[i].reload(loco->image_list[ri.images[i].texture_reference].texture_id);
+          wresources[i].open(loco->image_list[ri.images[i].texture_reference].texture_id);
         }
       }
     }
@@ -1449,21 +1457,25 @@ public:
       }
       void close() {
         unmap();
-        cudaGraphicsUnregisterResource(resource);
+        fan::cuda::check_error(cudaGraphicsUnregisterResource(resource));
+        resource = nullptr;
       }
       void map() {
         fan::cuda::check_error(cudaGraphicsMapResources(1, &resource, 0));
         fan::cuda::check_error(cudaGraphicsSubResourceGetMappedArray(&cuda_array, resource, 0, 0));
+        fan::print("+", resource);
       }
       void unmap() {
+        fan::print("-", resource);
         fan::cuda::check_error(cudaGraphicsUnmapResources(1, &resource));
+        //fan::cuda::check_error(cudaGraphicsResourceSetMapFlags(resource, 0));
       }
-      void reload(int texture_id) {
-        close();
-        open(texture_id);
-      }
-      cudaGraphicsResource_t resource;
-      cudaArray_t cuda_array;
+      //void reload(int texture_id) {
+      //  close();
+      //  open(texture_id);
+      //}
+      cudaGraphicsResource_t resource = nullptr;
+      cudaArray_t cuda_array = nullptr;
     };
 
     bool inited = false;

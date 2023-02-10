@@ -93,6 +93,11 @@ struct image_t {
     context->opengl.call(context->opengl.glBindTexture, fan::opengl::GL_TEXTURE_2D, *get_texture(loco));
   }
 
+  void unbind_texture(loco_t* loco) {
+    auto* context = loco->get_context();
+    context->opengl.call(context->opengl.glBindTexture, fan::opengl::GL_TEXTURE_2D, 0);
+  }
+
   fan::opengl::GLuint* get_texture(loco_t* loco) {
     return &loco->image_list[texture_reference].texture_id;
   }
@@ -189,6 +194,7 @@ struct image_t {
 
     size = image_info.size;
     context->opengl.call(context->opengl.glTexImage2D, fan::opengl::GL_TEXTURE_2D, 0, p.internal_format, size.x, size.y, 0, p.format, p.type, image_info.data);
+    
   }
 
   void unload(loco_t* loco) {
