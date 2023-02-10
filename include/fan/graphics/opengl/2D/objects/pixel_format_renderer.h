@@ -89,31 +89,36 @@ struct sb_pfr_name {
   void push_back(fan::graphics::cid_t* cid, properties_t p) {
     auto loco = get_loco();
     get_key_value(uint16_t) = p.position.z;
-    if (p.images[0].is_invalid()) {
-      loco_t::image_t image;
-      get_key_value(loco_t::textureid_t<0>) = &image;
-      get_key_value(loco_t::textureid_t<1>) = &image;
-      get_key_value(loco_t::textureid_t<2>) = &image;
-      get_key_value(loco_t::textureid_t<3>) = &image;
+
+    get_key_value(loco_t::textureid_t<0>) = &loco->unloaded_image;
+    get_key_value(loco_t::textureid_t<1>) = &loco->unloaded_image;
+    get_key_value(loco_t::textureid_t<2>) = &loco->unloaded_image;
+    get_key_value(loco_t::textureid_t<3>) = &loco->unloaded_image;
+
+   /* if (p.images[0].is_invalid()) {
+      get_key_value(loco_t::textureid_t<0>) = &loco.;
+      get_key_value(loco_t::textureid_t<1>) = &loco.;
+      get_key_value(loco_t::textureid_t<2>) = &loco.;
+      get_key_value(loco_t::textureid_t<3>) = &loco.;
     }
     else {
       get_key_value(loco_t::textureid_t<0>) = &p.images[0];
       get_key_value(loco_t::textureid_t<1>) = &p.images[1];
       get_key_value(loco_t::textureid_t<2>) = &p.images[2];
       get_key_value(loco_t::textureid_t<3>) = &p.images[3];
-    }
+    }*/
     
     get_key_value(loco_t::matrices_list_NodeReference_t) = p.matrices;
     get_key_value(fan::graphics::viewport_list_NodeReference_t) = p.viewport;
     sb_push_back(cid, p);
-    auto* ri = &sb_get_ri(cid);
-    sb_set_key<bm_properties_t::key_t::get_index_with_type<loco_t::textureid_t<0>>()>(cid, &ri->images[0]);
-    ri = &sb_get_ri(cid);
-    sb_set_key<bm_properties_t::key_t::get_index_with_type<loco_t::textureid_t<1>>()>(cid, &ri->images[1]);
-    ri = &sb_get_ri(cid);
-    sb_set_key<bm_properties_t::key_t::get_index_with_type<loco_t::textureid_t<2>>()>(cid, &ri->images[2]);
-    ri = &sb_get_ri(cid);
-    sb_set_key<bm_properties_t::key_t::get_index_with_type<loco_t::textureid_t<3>>()>(cid, &ri->images[3]);
+    //auto* ri = &sb_get_ri(cid);
+    //sb_set_key<bm_properties_t::key_t::get_index_with_type<loco_t::textureid_t<0>>()>(cid, &ri->images[0]);
+    //ri = &sb_get_ri(cid);
+    //sb_set_key<bm_properties_t::key_t::get_index_with_type<loco_t::textureid_t<1>>()>(cid, &ri->images[1]);
+    //ri = &sb_get_ri(cid);
+    //sb_set_key<bm_properties_t::key_t::get_index_with_type<loco_t::textureid_t<2>>()>(cid, &ri->images[2]);
+    //ri = &sb_get_ri(cid);
+    //sb_set_key<bm_properties_t::key_t::get_index_with_type<loco_t::textureid_t<3>>()>(cid, &ri->images[3]);
   }
 
   void erase(fan::graphics::cid_t* cid) {
@@ -176,14 +181,18 @@ struct sb_pfr_name {
         }
       }
     }
-    for (uint32_t i = 0; i < image_count_new; i++) {
-      fan::webp::image_info_t image_info;
-      image_info.data = data[i];
-      image_info.size = fan::pixel_format::get_image_sizes(format, image_size)[i];
-      auto lp = fan::pixel_format::get_image_properties<loco_t::image_t::load_properties_t>(format)[i];
-      lp.filter = filter;
-      ri->images[i].reload_pixels(get_loco(), image_info, lp);
-    }
+
+      for (uint32_t i = 0; i < image_count_new; i++) {
+        fan::webp::image_info_t image_info;
+        image_info.data = data[i];
+        image_info.size = fan::pixel_format::get_image_sizes(format, image_size)[i];
+        auto lp = fan::pixel_format::get_image_properties<loco_t::image_t::load_properties_t>(format)[i];
+        lp.filter = filter;
+        if (1) {
+          ri->images[i].reload_pixels(get_loco(), image_info, lp);
+        }
+      }
+
     ri->format = format;
   }
 
