@@ -5,15 +5,16 @@ R"(
 
 out vec4 instance_color;
 out vec2 texture_coordinate;
-flat out uint flag;
 out mat4 mv;
 
 uniform mat4 view;
 uniform mat4 projection;
 
+uniform vec2 window_size;
+
 struct block_instance_t{
 	vec3 position;
-  uint flag;
+  float parallax_factor;
 	vec2 size;
 	vec2 rotation_point;
 	vec4 color;
@@ -97,9 +98,10 @@ void main() {
   vec2 rotated = vec4(m * vec4(rp * get_instance().size, 0, 1)).xy;
 
   mv = projection * view;
-  gl_Position = projection * view * vec4(rotated + get_instance().position.xy, get_instance().position.z, 1);
+  vec2 p = get_instance().position.xy;
+  p.x += ((get_instance().parallax_factor * -(view[3].xy + vec2(get_instance().size.x, -get_instance().size.y)))).x;
+  gl_Position = projection * view * vec4(rotated + p, get_instance().position.z, 1);
 	instance_color = get_instance().color;
 	texture_coordinate = tc[id] * get_instance().tc_size + get_instance().tc_position;
-  flag = get_instance().flag;
 }
 )"

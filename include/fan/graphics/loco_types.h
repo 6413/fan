@@ -28,7 +28,7 @@
 #if defined(loco_sprite)
 #define loco_sprite_vi_t \
     fan::vec3 position = 0; \
-    uint32_t flag = 0; \
+    f32_t parallax_factor = 0; \
     fan::vec2 size = 0; \
     fan::vec2 rotation_point = 0; \
     fan::color color = fan::colors::white; \
@@ -36,6 +36,7 @@
     f32_t angle = 0; \
     fan::vec2 tc_position = 0; \
     fan::vec2 tc_size = 1;
+      
 
 #define loco_sprite_bm_properties_t \
     using parsed_masterpiece_t = fan::masterpiece_t< \
