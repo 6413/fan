@@ -123,7 +123,7 @@ struct theme_t {
 
 		enum class states_e {
 			outside,
-			hover,
+			hovered,
 			click
 		};
 

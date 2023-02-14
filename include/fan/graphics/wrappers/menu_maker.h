@@ -135,12 +135,19 @@ struct sb_menu_maker_name {
 		}
 	}
 
+  void set_text(nr_t nr, id_t id, const fan::string& text) {
+    instances[nr].base.instances[id].text = text;
+    get_loco()->sb_menu_maker_shape.set_text(&instances[nr].base.instances[id].cid, text);
+  }
+
 	fan::vec2 get_button_measurements(nr_t nr) {
 		return instances[nr].base.get_button_measurements();
 	}
 	static fan::vec2 get_button_measurements(f32_t gui_size) {
 		return sb_menu_maker_type_name::get_button_measurements(gui_size);
 	}
+
+
 
 	instance_t instances;
 

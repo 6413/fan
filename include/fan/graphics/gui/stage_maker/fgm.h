@@ -296,9 +296,7 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
 			      pile->stage_maker.fgm.button.open_properties(it);
 			
 			      auto stage_name = pile->stage_maker.get_selected_name(
-				      pile,
-				      pile->stage_maker.instances[pile_t::stage_maker_t::stage_t::stage_instance].menu_id,
-				      pile->loco.menu_maker_button.get_selected_id(pile->stage_maker.instances[pile_t::stage_maker_t::stage_t::stage_instance].menu_id)
+				      pile->stage_maker.instances[pile_t::stage_maker_t::stage_t::stage_instance].menu_id
 			      );
 			      auto file_name = pile->stage_maker.get_file_fullpath(stage_name);
 
@@ -393,9 +391,7 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
           	pile->stage_maker.fgm.hitbox.open_properties(instance);
 
             auto stage_name = pile->stage_maker.get_selected_name(
-              pile,
-              pile->stage_maker.instances[pile_t::stage_maker_t::stage_t::stage_instance].menu_id,
-              pile->loco.menu_maker_button.get_selected_id(pile->stage_maker.instances[pile_t::stage_maker_t::stage_t::stage_instance].menu_id)
+              pile->stage_maker.instances[pile_t::stage_maker_t::stage_t::stage_instance].menu_id
             );
             auto file_name = pile->stage_maker.get_file_fullpath(stage_name);
 
@@ -437,9 +433,7 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
 			stage_maker->reopen_from_fgm();
 			pile_t* pile = OFFSETLESS(stage_maker->get_loco(), pile_t, loco_var_name);
 			write_to_file(stage_maker->get_selected_name(
-				pile,
-				pile->stage_maker.instances[pile_t::stage_maker_t::stage_t::stage_instance].menu_id,
-				stage_maker->in_gui_editor_id
+				pile->stage_maker.instances[pile_t::stage_maker_t::stage_t::stage_instance].menu_id
 			));
 
 			clear();
@@ -536,6 +530,11 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
       return;
     }
     fan::io::file::read(path, &f);
+
+    if (f.empty()) {
+      return;
+    }
+
     uint64_t off = 0;
 
     uint32_t file_version = fan::io::file::read_data<uint32_t>(f, off);

@@ -18,6 +18,8 @@ struct sb_menu_maker_type_name {
   #define BLL_set_Link 1
   #include _FAN_PATH(BLL/BLL.h)
 
+  using nr_t = instance_NodeReference_t;
+
   instance_t instances;
 
   struct properties_t {
@@ -60,7 +62,7 @@ struct sb_menu_maker_type_name {
       selected_id.NRI = fan::uninitialized;
       return;
     }
-    loco->sb_menu_maker_shape.set_theme(selected, loco->sb_menu_maker_shape.get_theme(selected), loco_t::button_t::press);
+    loco->sb_menu_maker_shape.set_theme(selected, loco->sb_menu_maker_shape.get_theme(selected), loco_t::button_t::pressed);
   }
   void set_selected(loco_t* loco, instance_NodeReference_t id) {
     selected = &instances[id].cid;
@@ -150,7 +152,7 @@ struct sb_menu_maker_type_name {
 
     bp.mouse_move_cb = [this, loco, id](const loco_t::mouse_move_data_t& d) -> int {
       if (selected == d.cid) {
-        loco->sb_menu_maker_shape.set_theme(d.cid, loco->sb_menu_maker_shape.get_theme(d.cid), loco_t::button_t::press);
+        loco->sb_menu_maker_shape.set_theme(d.cid, loco->sb_menu_maker_shape.get_theme(d.cid), loco_t::button_t::pressed);
       }
       else {
         return instances[id].mouse_move_cb(d);
@@ -169,7 +171,7 @@ struct sb_menu_maker_type_name {
 
       if (d.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside && d.button_state == fan::mouse_state::release) {
         if (selected != nullptr) {
-          loco->sb_menu_maker_shape.set_theme(selected, loco->sb_menu_maker_shape.get_theme(selected), loco_t::button_t::inactive);
+          loco->sb_menu_maker_shape.set_theme(selected, loco->sb_menu_maker_shape.get_theme(selected), loco_t::button_t::released);
         }
         selected = &instances[id].cid;
         selected_id = id;
@@ -189,7 +191,7 @@ struct sb_menu_maker_type_name {
         }
       }
       if (selected == d.cid && d.button_state == fan::mouse_state::release) {
-        loco->sb_menu_maker_shape.set_theme(d.cid, loco->sb_menu_maker_shape.get_theme(d.cid), loco_t::button_t::press);
+        loco->sb_menu_maker_shape.set_theme(d.cid, loco->sb_menu_maker_shape.get_theme(d.cid), loco_t::button_t::pressed);
       }
 
       return 0;
@@ -250,7 +252,7 @@ struct sb_menu_maker_type_name {
   }global;
 
   fan::graphics::cid_t* selected;
-  instance_NodeReference_t selected_id;
+  nr_t selected_id;
 };
 
 #undef use_key_lambda

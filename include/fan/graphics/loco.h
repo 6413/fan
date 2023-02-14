@@ -1295,12 +1295,12 @@ public:
       color_buffers[2].bind_texture(this);
 
       unsigned int attachments[sizeof(color_buffers) / sizeof(color_buffers[0])];
-
       for (uint8_t i = 0; i < std::size(color_buffers); ++i) {
         attachments[i] = fan::opengl::GL_COLOR_ATTACHMENT0 + i;
       }
 
-      get_context()->opengl.call(get_context()->opengl.glDrawBuffers, std::size(attachments), attachments);
+      //get_context()->opengl.call(get_context()->opengl.glDrawBuffers, std::size(attachments), attachments);
+
       renderQuad();
       #endif
       get_context()->render(get_window());

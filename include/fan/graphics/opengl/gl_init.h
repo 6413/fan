@@ -372,6 +372,7 @@ namespace fan {
         get_proc_address(glLineWidth, &internal);
         get_proc_address(glNamedFramebufferDrawBuffers, &internal);
         get_proc_address(glDrawBuffer, &internal);
+        get_proc_address(glGetError, &internal);
         
         internal.close(&p);
 
@@ -528,6 +529,7 @@ namespace fan {
       PFNGLLINEWIDTHPROC glLineWidth;
       PFNGLNAMEDFRAMEBUFFERDRAWBUFFERSPROC glNamedFramebufferDrawBuffers;
       PFNGLDRAWBUFFERPROC glDrawBuffer;
+      PFNGLGETERRORPROC glGetError;
 
     };
 

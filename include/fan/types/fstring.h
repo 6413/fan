@@ -5,6 +5,7 @@
 #include <memory>
 #include <algorithm>
 #include <string>
+#include <regex>
 
 #define FMT_HEADER_ONLY
 #include <fmt/format.h>

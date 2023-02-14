@@ -41,18 +41,22 @@ namespace fan {
 		}
 
 		void process() {
-			/*m_current_time = fan::time::clock::now();
+			m_current_time = fan::time::clock::now();
 			for (auto it = time_list.begin(); it != time_list.end(); ++it) {
 				if ((*it)->time_left > m_current_time) {
 					break;
 				}
 				timer_t* t = (*it);
+        cb_data_t cb_data;
+        cb_data.ev_timer = this;
+        cb_data.timer = t;
+        t->cb(cb_data);
+
 				it = time_list.erase(it);
-				cb_data_t cb_data;
-				cb_data.ev_timer = this;
-				cb_data.timer = t;
-				t->cb(cb_data);
-			}*/
+        if (it == time_list.end()) {
+          break;
+        }
+			}
 		}
 
 		uint64_t m_current_time;

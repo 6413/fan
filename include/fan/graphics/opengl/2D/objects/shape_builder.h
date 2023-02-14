@@ -198,7 +198,9 @@ void sb_erase(fan::opengl::cid_t* cid) {
         last_block_id = lpnr;
       }
     }
-  //  fan::print(shape_bm_usage(&bm_list));
+    cid->bm_id = 0;
+    cid->block_id = 0;
+    cid->instance_id = 0;
     return;
   }
 
@@ -228,9 +230,13 @@ void sb_erase(fan::opengl::cid_t* cid) {
 
     bm_node->data.last_block = lpnr;
   }
+  cid->bm_id = 0;
+  cid->block_id = 0;
+  cid->instance_id = 0;
 }
 
-block_t* sb_get_block(fan::opengl::cid_t* cid) {
+block_t* sb_get_block(fan::opengl::cid_t* fcid) {
+  cid_t* cid = (cid_t*)fcid;
   auto& block_node = blocks[*(bll_block_NodeReference_t*)&cid->block_id];
   return &block_node.block;
 }
