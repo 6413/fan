@@ -529,95 +529,30 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
 		return fan::string(stage_maker_t::stage_runtime_folder_name) + "/" + stage_name + ".fgm";
 	}
 
-	void read_from_file(const fan::string& stage_name) {
-		fan::string path = get_fgm_full_path(stage_name);
-		fan::string f;
-		if (!fan::io::file::exists(path)) {
-			return;
-		}
-		fan::io::file::read(path, &f);
-		uint64_t off = 0;
+  void read_from_file(const fan::string& stage_name) {
+    fan::string path = get_fgm_full_path(stage_name);
+    fan::string f;
+    if (!fan::io::file::exists(path)) {
+      return;
+    }
+    fan::io::file::read(path, &f);
+    uint64_t off = 0;
 
-    while (off < f.size()) {
-      loco_t::shape_type_t::_t shape_type = fan::io::file::read_data<loco_t::shape_type_t::_t>(f, off);
-      uint32_t instance_count = fan::io::file::read_data<uint32_t>(f, off);
+    uint32_t file_version = fan::io::file::read_data<uint32_t>(f, off);
 
-      for (uint32_t i = 0; i < instance_count; ++i) {
-        switch (shape_type) {
-        case loco_t::shape_type_t::button: {
-          auto data = fan::io::file::read_data<stage_maker_shape_format::shape_button_t>(f, off);
-          auto text = fan::io::file::read_data<fan::string>(f, off);
-          button_t::properties_t bp;
-          bp.position = data.position;
-          bp.size = data.size;
-          bp.font_size = data.font_size;
-          bp.text = text;
-          bp.theme = &theme;
-          bp.matrices = &matrices[viewport_area::editor];
-          bp.viewport = &viewport[viewport_area::editor];
-          bp.id = data.id;
-          button.push_back(bp);
-          break;
-        }
-        case loco_t::shape_type_t::sprite: {
-          auto data = fan::io::file::read_data<stage_maker_shape_format::shape_sprite_t>(f, off);
-          auto t = fan::io::file::read_data<fan::string>(f, off);
-          sprite_t::properties_t sp;
-          sp.position = data.position;
-          sp.size = data.size;
-          loco_t::texturepack_t::ti_t ti;
-          if (texturepack.qti(t, &ti)) {
-            sp.image = &get_loco()->default_texture;
-          }
-          else {
-            auto& pd = texturepack.get_pixel_data(ti.pack_id);
-            sp.image = &pd.image;
-            sp.tc_position = ti.position / pd.image.size;
-            sp.tc_size = ti.size / pd.image.size;
-          }
-          sp.matrices = &matrices[viewport_area::editor];
-          sp.viewport = &viewport[viewport_area::editor];
-          sp.texturepack_name = t;
-          sprite.push_back(sp);
-          break;
-        }
-        case loco_t::shape_type_t::text: {
-          auto data = fan::io::file::read_data<stage_maker_shape_format::shape_text_t>(f, off);
-          auto t = fan::io::file::read_data<fan::string>(f, off);
-          text_t::properties_t p;
-          p.position = data.position;
-          p.font_size = data.size;
-          p.matrices = &matrices[viewport_area::editor];
-          p.viewport = &viewport[viewport_area::editor];
-          p.text = t;
-          text.push_back(p);
-          break;
-        }
-        case loco_t::shape_type_t::hitbox: {
-          auto data = fan::io::file::read_data<stage_maker_shape_format::shape_hitbox_t>(f, off);
-          hitbox_t::properties_t sp;
-          sp.position = data.position;
-          sp.size = data.size;
-          sp.image = &hitbox_image;
-          sp.matrices = &matrices[viewport_area::editor];
-          sp.viewport = &viewport[viewport_area::editor];
-          sp.shape_type = data.shape_type;
-          sp.id = data.id;
-          hitbox.push_back(sp);
-          break;
-        }
-        default: {
-          fan::throw_error("i cant find what you talk about - fgm");
-          break;
-        }
-        }
+    switch (file_version) {
+      case version_010: {
+        #include "fgm_loader_version/010.h"
+        break;
+      }
+      default: {
+        fan::throw_error("invalid version fgm version number", file_version);
+        break;
       }
     }
-	}
-
+  }
 	void write_to_file(const fan::string& stage_name) {
 		auto loco = get_loco();
-
 
 		fan::string f;
     static auto add_to_f = [&f]<typename T>(const T& o) {
@@ -636,6 +571,9 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
         memcpy(&f[off], &o, sizeof(o));
       }
     };
+
+    add_to_f(stage_maker_format_version);
+
 		uint32_t instances_count = button.instances.size();
     add_to_f(loco_t::shape_type_t::button);
     add_to_f(instances_count);
@@ -660,6 +598,7 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
       stage_maker_shape_format::shape_sprite_t data;
       data.position = loco->sprite.get(&it->cid, &loco_t::sprite_t::vi_t::position);
       data.size = loco->sprite.get(&it->cid, &loco_t::sprite_t::vi_t::size);
+      data.parallax_factor = loco->sprite.get(&it->cid, &loco_t::sprite_t::vi_t::parallax_factor);
       add_to_f(data);
       add_to_f(it->texturepack_name);
     }

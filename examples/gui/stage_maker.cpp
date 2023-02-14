@@ -48,8 +48,6 @@ struct pile_t {
 };
 
 int main(int argc, char** argv) {
-  std::ifstream f;
-  
   if (argc < 2) {
     fan::throw_error("usage: TexturePackCompiled");
   }
@@ -58,7 +56,7 @@ int main(int argc, char** argv) {
 
   pile->loco.set_vsync(false);
   pile->loco.get_window()->set_max_fps(165);
-  //pile->loco.get_window()->set_max_fps(5);w
+  //pile->loco.get_window()->set_max_fps(5);
   pile->loco.loop([&] {
     //pile->loco.get_fps();
     //fan::print(pile->loco.menu_maker.get_selected(pile->stage_maker.instances[pile_t::stage_maker_t::stage_t::state_instance].menu_id));
