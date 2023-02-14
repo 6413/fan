@@ -257,7 +257,8 @@ void update(auto& loco){
 		auto stage_name = get_selected_name_last();
 		auto file_name = get_file_fullpath(stage_name);
 		fan::io::file::write(file_name, stage_instance_tempalte_str, std::ios_base::binary);
-    std::ofstream(get_file_fullpath_runtime(stage_name));
+    std::ofstream _fgm(get_file_fullpath_runtime(stage_name), std::ios_base::out | std::ios::binary);
+    _fgm.write((const char*)&fgm_t::stage_maker_format_version, sizeof(fgm_t::stage_maker_format_version));
 		append_stage_to_file(pile, stage_name);
 		write_stage();
 	};

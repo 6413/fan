@@ -151,6 +151,9 @@ namespace fan {
 
 	template <typename ...Args>
 	constexpr void wprint(const Args&... args);
+
+  template <typename ...Args>
+  static void throw_error(const Args&... args);
 }
 
 #include _FAN_PATH(types/function.h)
