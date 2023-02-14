@@ -279,6 +279,7 @@
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="examples\gui\stage_maker.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -338,6 +339,8 @@
     <ClInclude Include="..\WITCH\BLL\BLL.h" />
     <ClInclude Include="..\WITCH\BLL\internal\NodeReference.h" />
     <ClInclude Include="..\WITCH\BLL\internal\rest.h" />
+    <ClInclude Include="include\fan\graphics\gui\stage_maker\fgm_loader_version\010.h" />
+    <ClInclude Include="include\fan\graphics\gui\stage_maker\fgm_user_loader_version\010.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\objects\pixel_format_renderer.h" />
     <ClInclude Include="include\fan\video\base_enc.h" />
     <ClInclude Include="include\fan\video\nvec_cuda.h" />

@@ -151,9 +151,6 @@ namespace fan {
 
 	template <typename ...Args>
 	constexpr void wprint(const Args&... args);
-
-	static void throw_error(const fan::string& message);
-
 }
 
 #include _FAN_PATH(types/function.h)
@@ -192,16 +189,29 @@ namespace fan {
 		((std::wcout << args << " "), ...) << '\n';
 	}
 
-	static void throw_error(const fan::string& message) {
-		fan::print(message);
-#ifdef fan_compiler_visual_studio
-		system("pause");
-#endif
-#if __cpp_exceptions
-		throw std::runtime_error("");
-#endif
-		//exit(1);
-	}
+  template <typename... T>
+  static void throw_error_format(fmt::format_string<T...> fmt, T&&... args) {
+    fan::print_format(fmt, args...);
+    #ifdef fan_compiler_visual_studio
+    system("pause");
+    #endif
+    #if __cpp_exceptions
+    throw std::runtime_error("");
+    #endif
+    //exit(1);
+  }
+
+  template <typename ...Args>
+  static void throw_error(const Args&... args) {
+    fan::print(args...);
+    #ifdef fan_compiler_visual_studio
+    system("pause");
+    #endif
+    #if __cpp_exceptions
+    throw std::runtime_error("");
+    #endif
+    //exit(1);
+  }
 
   static void assert_test(bool test) {
     if (!test) {

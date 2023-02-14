@@ -256,28 +256,52 @@ void update(auto& loco){
 
 	void open_erase_button(pile_t* pile) {
 		loco_t::menu_maker_button_t::properties_t p;
-		p.text = "Erase";
 		p.theme = &erase_theme;
-		p.mouse_button_cb = [this](const loco_t::mouse_button_data_t& mb) -> int {
-
-			use_key_lambda(fan::mouse_left, fan::mouse_state::release);
-			
-			pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco_var_name);
-
-			pile->loco.menu_maker_button.erase_and_update(
-				instances[stage_t::stage_instance].menu_id,
-				pile->loco.menu_maker_button.get_selected_id(instances[stage_t::stage_instance].menu_id)
-			);
-			pile->loco.menu_maker_button.erase_button_soft(instances[stage_t::stage_options].menu_id, erase_button_id);
-			pile->loco.menu_maker_button.set_selected(instances[stage_t::stage_options].menu_id, nullptr);
-			pile->loco.menu_maker_button.set_selected(instances[stage_t::stage_instance].menu_id, nullptr);
-
-			return 1;
-		};
+		
 		auto& current_y = pile->loco.menu_maker_button.get_offset(instances[stage_t::stage_options].menu_id).y;
 		auto old_y = current_y;
-		current_y = 1.9;
-		erase_button_id = pile->loco.menu_maker_button.push_back(instances[stage_t::stage_options].menu_id, p);
+		current_y = 1.8;
+
+    p.text = "Rename";
+    p.mouse_button_cb = [this](const loco_t::mouse_button_data_t& mb) -> int {
+
+      use_key_lambda(fan::mouse_left, fan::mouse_state::release);
+
+      pile_t* pile = OFFSETLESS(get_loco(), pile_t, loco_var_name);
+
+      pile->loco.menu_maker_button.erase_and_update(
+        instances[stage_t::stage_instance].menu_id,
+        pile->loco.menu_maker_button.get_selected_id(instances[stage_t::stage_instance].menu_id)
+      );
+      pile->loco.menu_maker_button.erase_button_soft(instances[stage_t::stage_options].menu_id, erase_button_id);
+      pile->loco.menu_maker_button.set_selected(instances[stage_t::stage_options].menu_id, nullptr);
+      pile->loco.menu_maker_button.set_selected(instances[stage_t::stage_instance].menu_id, nullptr);
+
+      return 1;
+    };
+
+    options_ids.push_back(pile->loco.menu_maker_button.push_back(instances[stage_t::stage_options].menu_id, p));
+
+
+    p.text = "Erase";
+    p.mouse_button_cb = [this](const loco_t::mouse_button_data_t& mb) -> int {
+
+      use_key_lambda(fan::mouse_left, fan::mouse_state::release);
+
+      pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco_var_name);
+
+      pile->loco.menu_maker_button.erase_and_update(
+        instances[stage_t::stage_instance].menu_id,
+        pile->loco.menu_maker_button.get_selected_id(instances[stage_t::stage_instance].menu_id)
+      );
+      pile->loco.menu_maker_button.erase_button_soft(instances[stage_t::stage_options].menu_id, erase_button_id);
+      pile->loco.menu_maker_button.set_selected(instances[stage_t::stage_options].menu_id, nullptr);
+      pile->loco.menu_maker_button.set_selected(instances[stage_t::stage_instance].menu_id, nullptr);
+
+      return 1;
+    };
+
+    options_ids.push_back(pile->loco.menu_maker_button.push_back(instances[stage_t::stage_options].menu_id, p));
 		current_y = old_y;
 	}
 
@@ -437,6 +461,7 @@ void update(auto& loco){
 		open_without_init();
 		open_stage(stage_t::stage_e::main);
 		open_erase_button(pile);
+
 		pile->loco.menu_maker_button.erase_button_soft(instances[stage_t::stage_options].menu_id, erase_button_id);
 
     fan::io::iterate_directory(stage_compile_folder_name, [loco, this](const fan::string& path) {
@@ -485,7 +510,7 @@ void update(auto& loco){
 	fan::string stage_h_str;
 
 	loco_t::menu_maker_button_t::base_type_t::instance_NodeReference_t in_gui_editor_id;
-	loco_t::menu_maker_button_t::base_type_t::instance_NodeReference_t erase_button_id;
+	std::vector<loco_t::menu_maker_button_t::base_type_t::instance_NodeReference_t> options_ids;
 
   fan::io::file::fstream stage_h;
   fan::io::file::fstream stage_x_h;

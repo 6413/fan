@@ -566,6 +566,28 @@ struct sprite_t {
       return 0;
     };
     pile->stage_maker.fgm.properties_nrs.push_back(pile->stage_maker.fgm.text_box_menu.push_back(nr, p));
+
+    auto parallax_factor = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::parallax_factor);
+    p.text = fan::format("{:.2f}", parallax_factor);
+    p.keyboard_cb = [pile, this, instance, nr](const loco_t::keyboard_data_t& d) -> int {
+      if (d.key != fan::key_enter) {
+        return 0;
+      }
+      if (d.keyboard_state != fan::keyboard_state::press) {
+        return 0;
+      }
+
+      auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[pile->stage_maker.fgm.properties_nrs[3]];
+      auto text = pile->loco.text_box.get_text(&it.cid);
+
+      f32_t parallax;
+      std::istringstream iss(fan::string(text).c_str());
+      while (iss >> parallax) { iss.ignore(); }
+
+      pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::parallax_factor, parallax);
+      return 0;
+    };
+    pile->stage_maker.fgm.properties_nrs.push_back(pile->stage_maker.fgm.text_box_menu.push_back(nr, p));
 	}
 	void push_back(properties_t& p) {
 		p.position.z = 1;
