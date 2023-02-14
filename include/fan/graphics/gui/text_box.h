@@ -6,9 +6,9 @@ struct text_box_t {
     static constexpr fan::color color = fan::colors::white;
   };
 
-  static constexpr f32_t inactive = 1.0;
-  static constexpr f32_t hover = 1.2;
-  static constexpr f32_t press = 1.4;
+  static constexpr f32_t released = 1.0;
+  static constexpr f32_t hovered = 1.2;
+  static constexpr f32_t pressed = 1.4;
 
   struct vi_t {
     loco_text_box_vi_t
@@ -65,7 +65,7 @@ struct text_box_t {
 
     loco->text.push_back(&ri.text_id, tp);
 
-    set_theme(cid, theme, inactive);
+    set_theme(cid, theme, released);
 
     loco_t::vfi_t::properties_t vfip;
     vfip.shape_type = loco_t::vfi_t::shape_t::rectangle;
@@ -86,10 +86,10 @@ struct text_box_t {
         auto& ri = loco->text_box.sb_get_ri(cid_);
         if (mm_d.flag->ignore_move_focus_check == false && !ri.selected) {
           if (mm_d.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside) {
-            loco->text_box.set_theme(cid_, loco->text_box.get_theme(cid_), hover);
+            loco->text_box.set_theme(cid_, loco->text_box.get_theme(cid_), hovered);
           }
           else {
-            loco->text_box.set_theme(cid_, loco->text_box.get_theme(cid_), inactive);
+            loco->text_box.set_theme(cid_, loco->text_box.get_theme(cid_), released);
           }
         }
 
@@ -114,7 +114,7 @@ struct text_box_t {
         auto& ri = loco->text_box.sb_get_ri(cid_);
         if (ii_d.flag->ignore_move_focus_check == false && !ri.selected) {
           if (ii_d.button == fan::mouse_left && ii_d.button_state == fan::mouse_state::press) {
-            loco->text_box.set_theme(cid_, loco->text_box.get_theme(cid_), press);
+            loco->text_box.set_theme(cid_, loco->text_box.get_theme(cid_), pressed);
             ii_d.flag->ignore_move_focus_check = true;
             loco->vfi.set_focus_keyboard(loco->vfi.get_focus_mouse());
             loco->vfi.set_focus_text(loco->vfi.get_focus_mouse());
@@ -136,10 +136,10 @@ struct text_box_t {
 
           if (ii_d.button == fan::mouse_left && ii_d.button_state == fan::mouse_state::release) {
             if (ii_d.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside) {
-              loco->text_box.set_theme(cid_, loco->text_box.get_theme(cid_), hover);
+              loco->text_box.set_theme(cid_, loco->text_box.get_theme(cid_), hovered);
             }
             else {
-              loco->text_box.set_theme(cid_, loco->text_box.get_theme(cid_), inactive);
+              loco->text_box.set_theme(cid_, loco->text_box.get_theme(cid_), released);
             }
             ii_d.flag->ignore_move_focus_check = false;
           }
@@ -259,10 +259,14 @@ struct text_box_t {
     rp.matrices = p.matrices;
     rp.viewport = p.viewport;
     rp.color = fan::colors::transparent;
+    invalidate_cursor();
     loco->rectangle.push_back(&cursor_id, rp);
   }
   void erase(fan::graphics::cid_t* cid) {
     loco_t* loco = get_loco();
+    invalidate_focus(cid);
+    // what if you remove other thing whats not focused
+    invalidate_cursor();
     auto& ri = sb_get_ri(cid);
     loco->text.erase(&ri.text_id);
     loco->vfi.erase(&ri.vfi_id);
@@ -322,8 +326,21 @@ struct text_box_t {
   #define vk_sb_vp
   #include _FAN_PATH(graphics/shape_builder.h)
 
+  void invalidate_cursor() {
+    auto* cursor_cid = (loco_t::rectangle_t::cid_t*)&cursor_id;
+    if (!(cursor_cid->bm_id.NRI != 0 || cursor_cid->block_id.NRI != 0 || cursor_cid->instance_id != 0)) {
+      return;
+    }
+    get_loco()->rectangle.erase(&cursor_id);
+    get_loco()->ev_timer.stop(&timer);
+  }
+
   text_box_t() {
     sb_open();
+    auto* cursor_cid = (loco_t::rectangle_t::cid_t*)&cursor_id;
+    cursor_cid->bm_id.NRI = 0;
+    cursor_cid->block_id.NRI = 0;
+    cursor_cid->instance_id = 0;
   }
   ~text_box_t() {
     // check erase, need to somehow iterate block
@@ -490,6 +507,38 @@ struct text_box_t {
   });
   fan::graphics::cid_t cursor_id;
   bool render_cursor = true;
+
+  void set_focus_mouse(fan::graphics::cid_t* cid) {
+    get_loco()->vfi.set_focus_mouse(get_instance_properties(cid)->vfi_id);
+  }
+
+  void set_focus_keyboard(fan::graphics::cid_t* cid) {
+    get_loco()->vfi.set_focus_keyboard(get_instance_properties(cid)->vfi_id);
+  }
+
+  void set_focus_text(fan::graphics::cid_t* cid) {
+    get_loco()->vfi.set_focus_text(get_instance_properties(cid)->vfi_id);
+  }
+
+  void set_focus(fan::graphics::cid_t* cid) {
+    set_focus_mouse(cid);
+    set_focus_keyboard(cid);
+    set_focus_text(cid);
+    update_cursor(cid);
+  }
+
+  void invalidate_focus(fan::graphics::cid_t* cid) {
+    auto& ri = sb_get_ri(cid);
+    if (ri.vfi_id == get_loco()->vfi.get_focus_mouse()) {
+      get_loco()->vfi.invalidate_focus_mouse();
+    }
+    if (ri.vfi_id == get_loco()->vfi.get_focus_keyboard()) {
+      get_loco()->vfi.invalidate_focus_keyboard();
+    }
+    if (ri.vfi_id == get_loco()->vfi.get_focus_text()) {
+      get_loco()->vfi.invalidate_focus_text();
+    }
+  }
 
   #if defined(loco_vulkan)
     uint32_t m_matrices_index = 0;

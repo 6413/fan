@@ -226,7 +226,7 @@ struct text_renderer_t {
     return loco->letter.get_matrices(&node->data.cid);
   }
 
-  properties_t get_instance(fan::graphics::cid_t* cid) {
+  const properties_t &get_instance(fan::graphics::cid_t* cid) {
     return letter_ids[*(uint32_t*)cid].p;
   }
   void set_text(fan::graphics::cid_t* cid, const fan::string& text) {

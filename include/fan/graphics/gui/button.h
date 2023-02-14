@@ -1,8 +1,8 @@
 struct button_t {
 
-  static constexpr f32_t inactive = 1.0;
-  static constexpr f32_t hover = 1.2;
-  static constexpr f32_t press = 1.4;
+  static constexpr f32_t released = 1.0;
+  static constexpr f32_t hovered = 1.2;
+  static constexpr f32_t pressed = 1.4;
 
   struct vi_t {
     loco_button_vi_t
@@ -58,7 +58,7 @@ struct button_t {
 
     loco->text.push_back(&sb_get_ri(cid).text_id, tp);
 
-    set_theme(cid, theme, inactive);
+    set_theme(cid, theme, released);
 
     loco_t::vfi_t::properties_t vfip;
     vfip.shape_type = loco_t::vfi_t::shape_t::rectangle;
@@ -73,10 +73,10 @@ struct button_t {
         loco_t::mouse_move_data_t mmd = mm_d;
         if (mm_d.flag->ignore_move_focus_check == false && !loco->button.sb_get_ri(cid_).selected) {
           if (mm_d.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside) {
-            loco->button.set_theme(cid_, loco->button.get_theme(cid_), hover);
+            loco->button.set_theme(cid_, loco->button.get_theme(cid_), hovered);
           }
           else {
-            loco->button.set_theme(cid_, loco->button.get_theme(cid_), inactive);
+            loco->button.set_theme(cid_, loco->button.get_theme(cid_), released);
           }
         }
         mmd.cid = cid_;
@@ -93,7 +93,7 @@ struct button_t {
         loco_t* loco = OFFSETLESS(ii_d.vfi, loco_t, vfi_var_name);
         if (ii_d.flag->ignore_move_focus_check == false && !loco->button.sb_get_ri(cid_).selected) {
           if (ii_d.button == fan::mouse_left && ii_d.button_state == fan::mouse_state::press) {
-            loco->button.set_theme(cid_, loco->button.get_theme(cid_), press);
+            loco->button.set_theme(cid_, loco->button.get_theme(cid_), pressed);
             ii_d.flag->ignore_move_focus_check = true;
             loco->vfi.set_focus_keyboard(loco->vfi.get_focus_mouse());
           }
@@ -101,10 +101,10 @@ struct button_t {
         else if (!loco->button.sb_get_ri(cid_).selected) {
           if (ii_d.button == fan::mouse_left && ii_d.button_state == fan::mouse_state::release) {
             if (ii_d.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside) {
-              loco->button.set_theme(cid_, loco->button.get_theme(cid_), hover);
+              loco->button.set_theme(cid_, loco->button.get_theme(cid_), hovered);
             }
             else {
-              loco->button.set_theme(cid_, loco->button.get_theme(cid_), inactive);
+              loco->button.set_theme(cid_, loco->button.get_theme(cid_), released);
             }
             ii_d.flag->ignore_move_focus_check = false;
           }
@@ -292,6 +292,13 @@ struct button_t {
     ri.selected = flag;
   }
 
+  // dont edit values
+  const auto& get_text_instance(fan::graphics::cid_t* cid) {
+    loco_t* loco = get_loco();
+    auto& ri = get_ri(cid);
+    return loco->text.get_instance(&ri.text_id);
+  }
+
   fan::string get_text(fan::graphics::cid_t* cid) {
     loco_t* loco = get_loco();
     auto& ri = get_ri(cid);
@@ -301,6 +308,28 @@ struct button_t {
     loco_t* loco = get_loco();
     auto& ri = get_ri(cid);
     loco->text.set_text(&ri.text_id, text);
+  }
+
+  ri_t* get_instance_properties(fan::graphics::cid_t* cid) {
+    return &sb_get_ri(cid);
+  }
+
+  void set_focus_mouse(fan::graphics::cid_t* cid) {
+    get_loco()->vfi.set_focus_mouse(get_instance_properties(cid)->vfi_id);
+  }
+
+  void set_focus_keyboard(fan::graphics::cid_t* cid) {
+    get_loco()->vfi.set_focus_keyboard(get_instance_properties(cid)->vfi_id);
+  }
+
+  void set_focus_text(fan::graphics::cid_t* cid) {
+    get_loco()->vfi.set_focus_text(get_instance_properties(cid)->vfi_id);
+  }
+
+  void set_focus(fan::graphics::cid_t* cid) {
+    set_focus_mouse(cid);
+    set_focus_keyboard(cid);
+    set_focus_text(cid);
   }
 
   #if defined(loco_vulkan)

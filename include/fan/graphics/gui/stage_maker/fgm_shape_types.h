@@ -346,7 +346,73 @@ struct button_t {
 		};
 		p.mouse_move_cb = [this, instance = instances[i]](const loco_t::mouse_move_data_t& ii_d) -> int {
 
-      create_shape_move_resize
+      	if (ii_d.flag->ignore_move_focus_check == false) {
+    return 0;
+  }
+  pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi_var_name), pile_t, loco_var_name);
+  if (!(pile->stage_maker.fgm.action_flag & action::move)) {
+    return 0;
+  }
+
+  if (holding_special_key) {
+    fan::vec3 ps = get_position(instance);
+    fan::vec2 rs = get_size(instance);
+
+    static constexpr f32_t minimum_rectangle_size = 0.03;
+    static constexpr fan::vec2i multiplier[] = { {-1, -1}, {1, -1}, {1, 1}, {-1, 1} };
+
+    rs += (ii_d.position - pile->stage_maker.fgm.resize_offset) * multiplier[pile->stage_maker.fgm.resize_side] / 2;
+
+    if (rs.x == minimum_rectangle_size && rs.y == minimum_rectangle_size) {
+      pile->stage_maker.fgm.resize_offset = ii_d.position;
+    }
+
+    bool ret = 0;
+    if (rs.y < minimum_rectangle_size) {
+      rs.y = minimum_rectangle_size;
+      if (!(rs.x < minimum_rectangle_size)) {
+        ps.x += (ii_d.position.x - pile->stage_maker.fgm.resize_offset.x) / 2;
+        pile->stage_maker.fgm.resize_offset.x = ii_d.position.x;
+      }
+      ret = 1;
+    }
+    if (rs.x < minimum_rectangle_size) {
+      rs.x = minimum_rectangle_size;
+      if (!(rs.y < minimum_rectangle_size)) {
+        ps.y += (ii_d.position.y - pile->stage_maker.fgm.resize_offset.y) / 2;
+        pile->stage_maker.fgm.resize_offset.y = ii_d.position.y;
+      }
+      ret = 1;
+    }
+
+    if (rs != minimum_rectangle_size) {
+      ps += (ii_d.position - pile->stage_maker.fgm.resize_offset) / 2;
+    }
+    if (rs.x == minimum_rectangle_size && rs.y == minimum_rectangle_size) {
+      ps = get_position(instance);
+    }
+
+    set_size(instance, rs);
+    set_position(instance, ps);
+
+    if (ret) {
+      return 0;
+    }
+
+    pile->stage_maker.fgm.resize_offset = ii_d.position;
+    pile->stage_maker.fgm.move_offset = ps - fan::vec3(ii_d.position, 0);
+    pile->stage_maker.fgm.fgm_shape_name.open_properties(instance);
+    return 0;
+  }
+
+  fan::vec3 ps = get_position(instance);
+  fan::vec3 p;
+  p.x = ii_d.position.x + pile->stage_maker.fgm.move_offset.x;
+  p.y = ii_d.position.y + pile->stage_maker.fgm.move_offset.y;
+  p.z = ps.z;
+  set_position(instance, p);
+
+  pile->stage_maker.fgm.fgm_shape_name.open_properties(instance);
 
 			return 0;
 		};
@@ -390,7 +456,7 @@ struct button_t {
 			return 0;
 		};
 		pile->loco.button.push_back(&instances[i]->cid, p);
-		pile->loco.button.set_theme(&instances[i]->cid, loco_t::button_t::inactive);
+		pile->loco.button.set_theme(&instances[i]->cid, loco_t::button_t::released);
 		auto builder_cid = &instances[i]->cid;
 		auto ri = pile->loco.button.get_ri(builder_cid);
 		pile->loco.vfi.set_focus_mouse(ri.vfi_id);
@@ -403,9 +469,7 @@ struct button_t {
 		pile->loco.button.erase(&instance->cid);
 
     auto stage_name = pile->stage_maker.get_selected_name(
-      pile,
-      pile->stage_maker.instances[pile_t::stage_maker_t::stage_t::stage_instance].menu_id,
-      pile->loco.menu_maker_button.get_selected_id(pile->stage_maker.instances[pile_t::stage_maker_t::stage_t::stage_instance].menu_id)
+      pile->stage_maker.instances[pile_t::stage_maker_t::stage_t::stage_instance].menu_id
     );
     auto file_name = pile->stage_maker.get_file_fullpath(stage_name);
 
@@ -1356,9 +1420,7 @@ struct hitbox_t {
     close_properties();
 
     auto stage_name = pile.stage_maker.get_selected_name(
-      &pile,
-      pile.stage_maker.instances[pile_t::stage_maker_t::stage_t::stage_instance].menu_id,
-      pile.loco.menu_maker_button.get_selected_id(pile.stage_maker.instances[pile_t::stage_maker_t::stage_t::stage_instance].menu_id)
+      pile.stage_maker.instances[pile_t::stage_maker_t::stage_t::stage_instance].menu_id
     );
     auto file_name = pile.stage_maker.get_file_fullpath(stage_name);
 

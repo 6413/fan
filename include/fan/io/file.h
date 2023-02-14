@@ -16,6 +16,10 @@ namespace fan {
         return file.good();
       }
 
+      inline bool rename(const fan::string& from, const fan::string& to) {
+        return std::rename(from.c_str(), to.c_str());
+      }
+
       struct fstream {
         fstream() = default;
         fstream(const fan::string& path) {
