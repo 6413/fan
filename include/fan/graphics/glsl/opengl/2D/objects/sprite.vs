@@ -96,7 +96,7 @@ void main() {
   vec2 rotated = vec4(m * vec4(rp * get_instance().size, 0, 1)).xy;
 
   vec2 p = get_instance().position.xy;
-  p.x += ((get_instance().parallax_factor * -(view[3].xy + vec2(get_instance().size.x, -get_instance().size.y)))).x;
+  p += ((get_instance().parallax_factor * -(view[3].xy + vec2(get_instance().size.x, -get_instance().size.y))));
   gl_Position = projection * view * vec4(rotated + p, get_instance().position.z, 1);
 	instance_color = get_instance().color;
 	texture_coordinate = tc[id] * get_instance().tc_size + get_instance().tc_position;

@@ -65,6 +65,6 @@ R"(
 		float x = rp.x * c - rp.y * s;
 		float y = rp.x * s + rp.y * c;
 
-		gl_Position = projection * view * vec4(vec2(x, y) * ratio_size + get_instance().position.xy, 0, 1);
+		gl_Position = projection * view * vec4(vec2(x, y) * ratio_size + get_instance().position.xy, get_instance().position.z, 1);
   }
 )"
