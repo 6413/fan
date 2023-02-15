@@ -443,8 +443,8 @@ inline fan::opengl::context_t::context_t(fan::window_t* window, const properties
 
   #endif
 
-  opengl.call(opengl.glEnable, GL_BLEND);
-  opengl.call(opengl.glBlendFunc, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  //opengl.call(opengl.glEnable, GL_BLEND);
+  //opengl.call(opengl.glBlendFunc, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
   set_depth_test(false);
   
