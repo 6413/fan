@@ -16,9 +16,9 @@ void main() {
   float smooth_edge = radius;
   float intensity = 1.0 - smoothstep(radius / 3 -smooth_edge, radius, distance);
   //float intensity2 = intensity;
-  //float salsa = frag_position.y / 20;
-  //salsa = clamp(salsa, 1, salsa);
-  //intensity /= salsa;
+  float salsa = frag_position.y / 20;
+  salsa = max(salsa, 1);
+  intensity /= salsa;
   //intensity += 1.0 - smoothstep(radius / 3 -smooth_edge, radius, distance) * 2;
   o_attachment2 *= intensity;
 }
