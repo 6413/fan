@@ -53,7 +53,7 @@ struct sb_sprite_name {
   }
 
   void draw() {
-   // sb_draw();
+    sb_draw();
   }
 
   // can be bigger with vulkan
