@@ -5,7 +5,6 @@ R"(
 
 out vec4 instance_color;
 out vec2 texture_coordinate;
-out mat4 mv;
 
 uniform mat4 view;
 uniform mat4 projection;
@@ -87,7 +86,6 @@ mat4 rotate(mat4 m, float angle, vec3 v) {
 
 void main() {
 	uint id = uint(gl_VertexID % 6);
-	//
   vec2 rp = rectangle_vertices[id];
 
   vec3 rot = get_instance().rotation_vector;
@@ -97,7 +95,6 @@ void main() {
 
   vec2 rotated = vec4(m * vec4(rp * get_instance().size, 0, 1)).xy;
 
-  mv = projection * view;
   vec2 p = get_instance().position.xy;
   p.x += ((get_instance().parallax_factor * -(view[3].xy + vec2(get_instance().size.x, -get_instance().size.y)))).x;
   gl_Position = projection * view * vec4(rotated + p, get_instance().position.z, 1);
