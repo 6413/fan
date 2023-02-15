@@ -9,6 +9,9 @@
 #endif
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
+#define loco_context
+#define loco_window
+
 #define loco_tp
 #include _FAN_PATH(graphics/loco.h)
 
@@ -21,10 +24,10 @@ int main() {
   loco_t::texture_packe0 e;
   e.open(open_properties);
   loco_t::texture_packe0::texture_properties_t texture_properties;
-  texture_properties.visual_output = fan::opengl::GL_CLAMP_TO_EDGE;
-  texture_properties.filter = fan::opengl::GL_NEAREST;
+  texture_properties.visual_output = loco_t::image_t::sampler_address_mode::clamp_to_edge;
+  texture_properties.filter = loco_t::image_t::filter::nearest;
   texture_properties.group_id = 0;
-  static constexpr auto full_path = "images/";
+  static constexpr auto full_path = "tpacker/";
 
   fan::io::iterate_directory_by_image_size(full_path, [&](fan::string path) {
     //if (std::size_t found = path.find("block") == fan::string::npos) {
@@ -34,11 +37,12 @@ int main() {
     auto len = strlen(full_path);
     p = p.substr(len, p.size() - len);
     texture_properties.name = p;
+    texture_properties.name.replace_all(".webp", "");
     e.push_texture(path, texture_properties);
 
   });
   texture_properties = loco_t::texture_packe0::texture_properties_t();
-  fan::io::iterate_directory_by_image_size("images/", [&] (fan::string path) {
+  fan::io::iterate_directory_by_image_size(full_path, [&] (fan::string path) {
     //if (std::size_t found = path.find("block") != std::string::npos) {
     //  return;
     //}
@@ -47,6 +51,7 @@ int main() {
     p = p.substr(len, p.size() - len);
 
     texture_properties.name = p;
+    texture_properties.name.replace_all(".webp", "");
     e.push_texture(path, texture_properties);
    });
   e.process();

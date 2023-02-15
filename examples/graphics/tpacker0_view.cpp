@@ -36,16 +36,16 @@ int main() {
   pile_t pile;
   pile.open();
 
-  loco_t::texturepack texturepack;
+  loco_t::texturepack_t texturepack;
   texturepack.open_compiled(&pile.loco, "TexturePackCompiled");
 
   loco_t::sprite_t::properties_t p;
 
-  loco_t::texturepack::ti_t ti;
-  if (texturepack.qti("test.webp", &ti)) {
+  loco_t::texturepack_t::ti_t ti;
+  if (texturepack.qti("building0", &ti)) {
     return 1;
   }
-  p.load_tp(&texturepack, &ti);
+  p.load_tp(&ti);
 
   p.position = 0;
   p.matrices = &pile.matrices;
