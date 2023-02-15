@@ -9,8 +9,8 @@ RELEASEFLAGS = -s -fdata-sections -ffunction-sections -Wl -mmmx -msse -msse2 -ms
 
 #-Wall -Wextra -Wshadow -Wpedantic -Werror -Wno-nested-anon-types
 
-CFLAGS = -g -w -std=c++2a -I include #-Wl #-fPIE  \
-   #$(RELEASEFLAGS)
+CFLAGS = -w -std=c++2a -I include $(RELEASEFLAGS) #-Wl #-fPIE  
+   
 
 BASE_PATH =
 
