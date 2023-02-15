@@ -40,7 +40,7 @@ light_sun.draw();
 #endif
 
 
-for (auto it = m_draw_queue.rbegin(); it != m_draw_queue.rend(); ++it) {
+for (auto it = m_draw_queue.begin(); it != m_draw_queue.end(); ++it) {
   for (const auto& f : it->f) {
     f();
   }

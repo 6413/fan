@@ -446,7 +446,7 @@ inline fan::opengl::context_t::context_t(fan::window_t* window, const properties
   opengl.call(opengl.glEnable, fan::opengl::GL_BLEND);
   opengl.call(opengl.glBlendFunc, fan::opengl::GL_SRC_ALPHA, fan::opengl::GL_ONE_MINUS_SRC_ALPHA);
 
-  set_depth_test(true);
+  set_depth_test(false);
   
   // opengl.call(opengl.glFrontFace, GL_CCW);
   //opengl.glEnable(GL_CULL_FACE);;
