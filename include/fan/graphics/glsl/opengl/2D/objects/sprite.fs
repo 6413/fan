@@ -4,10 +4,7 @@ R"(
 layout (location = 0) out vec4 o_attachment0;
 
 in vec2 texture_coordinate;
-flat in uint flag;
 in vec4 instance_color;
-
-in mat4 mv;
 
 uniform sampler2D _t00;
 uniform sampler2D _t02;
