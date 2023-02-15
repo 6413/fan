@@ -322,7 +322,7 @@ void traverse_draw(auto nr, uint32_t draw_mode, auto lambda) {
         #if defined(loco_framebuffer)
         #if defined(sb_is_light)
         if constexpr (std::is_same<std::remove_pointer_t<decltype(this)>, loco_t::sb_shape_name>::value) {
-          //loco->get_context()->opengl.call(loco->get_context()->opengl.glBlendFunc, fan::opengl::GL_ONE, fan::opengl::GL_ONE);
+          loco->get_context()->opengl.call(loco->get_context()->opengl.glBlendFunc, fan::opengl::GL_ONE, fan::opengl::GL_ONE);
 
           unsigned int attachments[sizeof(loco->color_buffers) / sizeof(loco->color_buffers[0])];
 
@@ -359,7 +359,7 @@ void traverse_draw(auto nr, uint32_t draw_mode, auto lambda) {
         #if defined(loco_framebuffer)
         #if defined(sb_is_light)
         if constexpr (std::is_same<std::remove_pointer_t<decltype(this)>, loco_t::sb_shape_name>::value) {
-          //loco->get_context()->opengl.call(loco->get_context()->opengl.glBlendFunc, fan::opengl::GL_SRC_ALPHA, fan::opengl::GL_ONE_MINUS_SRC_ALPHA);
+          loco->get_context()->opengl.call(loco->get_context()->opengl.glBlendFunc, fan::opengl::GL_SRC_ALPHA, fan::opengl::GL_ONE_MINUS_SRC_ALPHA);
           unsigned int attachments[sizeof(loco->color_buffers) / sizeof(loco->color_buffers[0])];
 
           for (uint8_t i = 0; i < std::size(loco->color_buffers); ++i) {
