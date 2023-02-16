@@ -150,7 +150,7 @@ public:
     };
     stage_list[stage->stage_id].resize_nr = loco->get_window()->add_resize_callback([stage, loco](const auto&) {
       stage->window_resize_callback(*loco); 
-      });
+    });
     stage->open(*loco);
 		return stage->stage_id;
 	}
