@@ -401,7 +401,6 @@ SoundPlayID_t SoundPlay(audio_t *audio, piece_t *piece, uint32_t GroupID, const 
     }
   #endif
   TH_lock(&audio_common->PlayInfoListMutex);
-  /* TODO this NewNode may will kill pointers */
   _PlayInfoList_NodeReference_t PlayInfoReference = audio_common->PlayInfoList.NewNode();
   auto PlayInfo = &audio_common->PlayInfoList[PlayInfoReference];
   PlayInfo->piece = piece;
