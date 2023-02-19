@@ -266,7 +266,7 @@ struct vfi_t {
           v,
           loco->get_context()->viewport_list[shape_data->shape.rectangle.viewport].viewport_id,
           loco->matrices_list[shape_data->shape.rectangle.matrices].matrices_id
-        );
+        ) + fan::vec2(loco->matrices_list[shape_data->shape.rectangle.matrices].matrices_id->camera_position);
         break;
       }
       default: {

@@ -1518,7 +1518,7 @@ uint32_t fan::window_t::handle_events() {
                 window->m_keymap[fan::key_shift] = 0;
                 window->m_keymap[fan::key_control] = 0;
                 window->m_keymap[fan::key_alt] = 0;
-                window->m_keymap[LOBYTE(m_prev_text_flag)] = false;
+                window->m_keymap[fan::window_input::convert_scancode_to_fan(LOBYTE(m_prev_text_flag))] = false;
               }
               m_prev_text_flag = u;
               window->m_keymap[fan::key_shift] = high_byte & 0x1;

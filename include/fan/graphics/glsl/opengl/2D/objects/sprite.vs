@@ -91,7 +91,7 @@ void main() {
   vec3 rot = get_instance().rotation_vector;
 
   mat4 m = mat4(1);
-  m = rotate(m, get_instance().angle, rot);
+  m = rotate(m, get_instance().angle, rot); 
 
   vec2 rotated = vec4(m * vec4(rp * get_instance().size, 0, 1)).xy;
 
