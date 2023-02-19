@@ -96,6 +96,8 @@ struct PropertiesSoundStop_t {
 };
 
 #define BLL_set_BaseLibrary 1
+#define BLL_set_StoreFormat 1
+#define BLL_set_StoreFormat1_ElementPerBlock 0x100
 #define BLL_set_prefix _PlayInfoList
 #define BLL_set_type_node uint32_t
 #define BLL_set_NodeData \
