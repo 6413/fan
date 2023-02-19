@@ -31,6 +31,7 @@ while (off < f.size()) {
         sp.position = data.position;
         sp.position.z += stage->it * op.itToDepthMultiplier;
         sp.size = data.size;
+        sp.parallax_factor = data.parallax_factor;
         loco_t::texturepack_t::ti_t ti;
         if (texturepack->qti(t, &ti)) {
           sp.image = &loco->default_texture;

@@ -1343,11 +1343,15 @@ public:
     return x;
   }
 
-  fan::vec2 get_mouse_position(const fan::graphics::viewport_t& viewport) {
+  fan::vec2 transform_position(const fan::vec2& p, const fan::graphics::viewport_t& viewport) {
     fan::vec2 x;
-    x.x = (get_mouse_position().x - viewport.viewport_position.x - viewport.viewport_size.x / 2) / (viewport.viewport_size.x / 2);
-    x.y = ((get_mouse_position().y - viewport.viewport_position.y - viewport.viewport_size.y / 2) / (viewport.viewport_size.y / 2) + (viewport.viewport_position.y / viewport.viewport_size.y) * 2);
+    x.x = (p.x - viewport.viewport_position.x - viewport.viewport_size.x / 2) / (viewport.viewport_size.x / 2);
+    x.y = ((p.y - viewport.viewport_position.y - viewport.viewport_size.y / 2) / (viewport.viewport_size.y / 2) + (viewport.viewport_position.y / viewport.viewport_size.y) * 2);
     return x;
+  }
+
+  fan::vec2 get_mouse_position(const fan::graphics::viewport_t& viewport) {
+    return transform_position(get_mouse_position(), viewport);
   }
 
 #if defined(loco_vulkan)

@@ -20,7 +20,7 @@ struct fgm_t {
   #include "common.h"
 
 	static constexpr fan::vec2 button_size = fan::vec2(0.3, 0.08);
-  static constexpr f32_t line_z_depth = 10;
+  static constexpr f32_t line_z_depth = 50;
   static constexpr f32_t right_click_z_depth = 11;
 
 	f32_t line_y_offset_between_types_and_properties;
@@ -479,6 +479,38 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
 		loco.get_window()->add_resize_callback([this](const fan::window_t::resize_cb_data_t& d) {
 			resize_cb();
 		});
+    loco.get_window()->add_mouse_move_callback([this, loco = (loco_t*)&loco](const auto& d) {
+      if (view_action_flag & action::move) {
+        *(fan::vec2*)& camera_position -= loco->get_mouse_position(viewport[viewport_area::editor]) - loco->transform_position(loco->get_window()->get_previous_mouse_position(), viewport[viewport_area::editor]);
+        matrices[viewport_area::editor].set_camera_position(camera_position);
+      }
+    });
+    loco.get_window()->add_buttons_callback([this](const auto& d) {
+      switch (d.button) {
+        case fan::mouse_middle: {
+          if (d.state == fan::mouse_state::press) {
+            view_action_flag |= action::move;
+          }
+          else {
+            view_action_flag &= ~action::move;
+          }
+          break;
+        }
+      }
+    });
+
+    loco.get_window()->add_keys_callback([this](const auto& d) {
+      switch (d.key) {
+        case fan::key_f: {
+          if (d.state != fan::keyboard_state::press) {
+            return;
+          }
+          camera_position = 0;
+          matrices[viewport_area::editor].set_camera_position(camera_position);
+          break;
+        }
+      }
+    });
 
 		// half size
 		properties_line_position = fan::vec2(0.5, 0);
@@ -661,6 +693,9 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
 	loco_t::theme_t theme;
 
 	uint32_t action_flag;
+  uint32_t view_action_flag = 0;
+
+  fan::vec3 camera_position = 0;
 
 	fan::vec2 click_position;
 	fan::vec2 move_offset;

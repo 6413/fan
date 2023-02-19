@@ -27,24 +27,19 @@ struct line_t {
 		cid_t* cid;
 	};
 
-   #define make_key_value(type, name) \
-    type& name = *key.get_value<decltype(key)::get_index_with_type<type>()>();
-
   struct properties_t : vi_t, ri_t {
-
-    make_key_value(uint16_t, depth);
-    make_key_value(loco_t::matrices_list_NodeReference_t, matrices);
-    make_key_value(fan::graphics::viewport_list_NodeReference_t, viewport);
-
-    properties_t() = default;
-    properties_t(const vi_t& i) : vi_t(i) {}
-    properties_t(const ri_t& p) : ri_t(p) {}
+    loco_t::matrices_t* matrices = 0;
+    fan::graphics::viewport_t* viewport = 0;
   };
 
   #undef make_key_value
   
   void push_back(fan::graphics::cid_t* cid, properties_t& p) {
     
+    get_key_value(uint16_t) = p.src.z;
+    get_key_value(loco_t::matrices_list_NodeReference_t) = p.matrices;
+    get_key_value(fan::graphics::viewport_list_NodeReference_t) = p.viewport;
+
     #if defined(loco_vulkan)
       auto loco = get_loco();
       auto& matrices = loco->matrices_list[p.matrices];
@@ -97,6 +92,10 @@ struct line_t {
   }
 
   void set_line(fan::graphics::cid_t* cid, const fan::vec3& src, const fan::vec3& dst) {
+    auto v = sb_get_vi(cid);
+    if (v.src.z != src.z) {
+      set_depth(cid, src.z);
+    }
     set(cid, &vi_t::src, src);
     set(cid, &vi_t::dst, dst);
   }
