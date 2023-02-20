@@ -572,8 +572,9 @@ struct sprite_t {
       std::size_t i = 0;
       while (iss >> position[i++]) { iss.ignore(); }
 
+      get_loco()->vfi.shape_list[instance->vfi_id].shape_data.shape.rectangle.position = position;
       pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::position, position);
-      pile->loco.sprite.set_depth(&instance->cid, position.z);
+      pile->loco.sprite.sb_set_depth(&instance->cid, position.z);
 
       return 0;
     };
@@ -599,7 +600,7 @@ struct sprite_t {
       while (iss >> size[i++]) { iss.ignore(); }
 
       pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::size, size);
-
+      get_loco()->vfi.shape_list[instance->vfi_id].shape_data.shape.rectangle.size = size;
 
       return 0;
     };
@@ -666,7 +667,8 @@ struct sprite_t {
             fan::vec3 ps = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::position);
             ps.z += 0.5;
             pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::position, ps);
-            pile->loco.sprite.set_depth(&instance->cid, ps.z);
+            pile->loco.sprite.sb_set_depth(&instance->cid, ps.z);
+            get_loco()->vfi.shape_list[instance->vfi_id].shape_data.depth = ps.z;
             open_properties(instance);
           }
           return 0;
@@ -677,7 +679,8 @@ struct sprite_t {
             ps.z -= 0.5;
             ps.z = fan::clamp((f32_t)ps.z, (f32_t)0.f, (f32_t)ps.z);
             pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::position, ps);
-            pile->loco.sprite.set_depth(&instance->cid, ps.z);
+            pile->loco.sprite.sb_set_depth(&instance->cid, ps.z);
+            get_loco()->vfi.shape_list[instance->vfi_id].shape_data.depth = ps.z;
             open_properties(instance);
           }
           return 0;
@@ -1231,7 +1234,7 @@ struct hitbox_t {
       while (iss >> position[i++]) { iss.ignore(); }
 
       pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::position, position);
-      pile->loco.sprite.set_depth(&instance->cid, position.z);
+      pile->loco.sprite.sb_set_depth(&instance->cid, position.z);
       pile->loco.vfi.shape_list[instance->vfi_id].shape_data.depth = position.z;
 
       return 0;
@@ -1309,7 +1312,7 @@ struct hitbox_t {
           fan::vec3 ps = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::position);
           ps.z += 0.5;
           pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::position, ps);
-          pile->loco.sprite.set_depth(&instance->cid, ps.z);
+          pile->loco.sprite.sb_set_depth(&instance->cid, ps.z);
           open_properties(instance);
         }
         return 0;
@@ -1320,7 +1323,7 @@ struct hitbox_t {
           ps.z -= 0.5;
           ps.z = fan::clamp((f32_t)ps.z, (f32_t)0.f, (f32_t)ps.z);
           pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::position, ps);
-          pile->loco.sprite.set_depth(&instance->cid, ps.z);
+          pile->loco.sprite.sb_set_depth(&instance->cid, ps.z);
           open_properties(instance);
         }
         return 0;

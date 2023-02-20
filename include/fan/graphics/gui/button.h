@@ -332,6 +332,12 @@ struct button_t {
     set_focus_text(cid);
   }
 
+  void set_depth(fan::opengl::cid_t* cid, f32_t depth) {
+    auto& vfi_id = get_instance_properties(cid)->vfi_id;
+    get_loco()->vfi.shape_list[vfi_id].shape_data.depth = depth;
+    sb_set_depth(cid, depth);
+  }
+
   #if defined(loco_vulkan)
   uint32_t m_matrices_index = 0;
   #endif

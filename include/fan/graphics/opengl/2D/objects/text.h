@@ -131,7 +131,6 @@ struct text_renderer_t {
 
   void erase(fan::graphics::cid_t* cid) {
     loco_t* loco = get_loco();
-
     auto it = letter_ids[*(uint32_t*)cid].cid_list.GetNodeFirst();
 
     while (it != letter_ids[*(uint32_t*)cid].cid_list.dst) {
@@ -154,6 +153,9 @@ struct text_renderer_t {
   // do not use with set_position
   void set(fan::graphics::cid_t* cid, auto member, auto value) {
     loco_t* loco = get_loco();
+    
+    letter_ids[*(uint32_t*)cid].p.*member = value;
+
     auto it = letter_ids[*(uint32_t*)cid].cid_list.GetNodeFirst();
 
     while (it != letter_ids[*(uint32_t*)cid].cid_list.dst) {
@@ -194,7 +196,7 @@ struct text_renderer_t {
 
     while (it != letter_ids[*(uint32_t*)cid].cid_list.dst) {
       auto node = letter_ids[*(uint32_t*)cid].cid_list.GetNodeByReference(it);
-      loco->letter.set_depth(&node->data.cid, depth);
+      loco->letter.sb_set_depth(&node->data.cid, depth);
       it = node->NextNodeReference;
     }
   }

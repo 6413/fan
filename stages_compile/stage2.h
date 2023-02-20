@@ -150,8 +150,18 @@ struct{
   fan::vec2i i_size;
 }rendered_at;
 
+fan::vec2 GetWindowSizeToMultipler(fan::vec2 Size){
+  if(Size.x > 1280){
+    Size *= 1280 / Size.x;
+  }
+  if(Size.y > 720){
+    Size *= 720 / Size.y;
+  }
+  return Size / 640;
+}
+
 fan::vec2 GetWorldMatrixMultipler(fan::vec2 Size){
-  return Size / Size.max() *
+  return this->GetWindowSizeToMultipler(Size) *
     constants::stage::sortie::BlockSize *
     this->WorldMatrixMultipler;
 }
@@ -227,7 +237,7 @@ void SetWorldMatrixPosition(fan::vec2 Position){
 }
 
 void UpdateWorldMatrix(fan::vec2 Size){
-  fan::vec2 m = Size / Size.max() * constants::stage::sortie::BlockSize * this->WorldMatrixMultipler;
+  fan::vec2 m = this->GetWindowSizeToMultipler(Size) * constants::stage::sortie::BlockSize * this->WorldMatrixMultipler;
 
   this->world_matrices.set_ortho(&game::pile->loco,
     fan::vec2(-m.x, +m.x),
@@ -675,6 +685,12 @@ void open(auto& loco) {
 
   {
     parallax_background.resize(10);
+    stage_loader_t::stage_open_properties_t op;
+    op.matrices = &world_matrices;
+    op.viewport = &game::pile->viewport;
+    op.theme = &game::pile->gui_theme;
+    op.itToDepthMultiplier = 0;
+    game::pile->StageList._StageLoader.push_and_open_stage<game::pile_t::StageList_t::stage_loader_t::stage::stage_parallax_t>(&game::pile->loco, op);
     game::pile->texturepack.qti("background", &parallax_background[0].ti);
     game::pile->texturepack.qti("background1", &parallax_background[1].ti);
     game::pile->texturepack.qti("background2", &parallax_background[2].ti);
@@ -691,17 +707,17 @@ void open(auto& loco) {
     // put down
    // p.y += s.y / 2;
 
-    parallax_background[0].cid[{
+  /*  parallax_background[0].cid[{
       .position = {p, this->DepthList.Background },
       .parallax_factor = .9,
       .size = s,
       .matrices = &this->world_matrices,
       .viewport = &game::pile->viewport,
       .ti = &parallax_background[0].ti
-    }];
+    }];*/
 
-    p.x = game::constants::PlayGround_Size.x * game::constants::stage::sortie::BlockSize / 2;
-    p.y = -s.y;
+    //p.x = game::constants::PlayGround_Size.x * game::constants::stage::sortie::BlockSize / 2;
+    //p.y = -s.y;
     // put down
    // p.y += s.y / 2;
     //p.x = 400;
@@ -722,7 +738,7 @@ void open(auto& loco) {
         .viewport = &game::pile->viewport,
         .ti = &parallax_background[3].ti
     }];
-    parallax_background[2].cid[{
+    parallax_background[3].cid[{
       .position = { p, this->DepthList.Background + 3 },
         .parallax_factor = .2,
         .size = s,

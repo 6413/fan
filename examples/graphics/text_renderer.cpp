@@ -68,12 +68,14 @@ int main() {
     }
     p.position = fan::random::vec2(-1, 1);
     //p.text = fan::random::string(5);
-    pile->loco.text.push_back(p, &pile->cid[i]);
+    
+    pile->loco.text.push_back(&pile->cid[i], p);
   }
   pile->loco.text.erase(&pile->cid[0]);
   p.text = "56789";
-  pile->loco.text.push_back(p, &pile->cid[0]);
+  pile->loco.text.push_back(&pile->cid[0], p);
   pile->loco.text.set_text(&pile->cid[0], "56789");
+  pile->loco.text.set(&pile->cid[0], &loco_t::text_t::vi_t::color, fan::color(1, 0, 0, 0.3));
   pile->loco.set_vsync(false);
 
   pile->loco.loop([&] {
