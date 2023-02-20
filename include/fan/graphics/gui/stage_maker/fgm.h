@@ -232,7 +232,6 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
 			loco->menu_maker_button.push_back(right_click_menu_nr, p);
 		};
 
-
 		loco_t::vfi_t::properties_t vfip;
 		vfip.shape_type = loco_t::vfi_t::shape_t::rectangle;
 		vfip.shape.rectangle.position = translate_viewport_position_to_coordinate(&viewport[viewport_area::types]);
@@ -325,7 +324,12 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
           	sp.viewport = &pile->stage_maker.fgm.viewport[viewport_area::editor];
           	sp.position = fan::vec2(0, 0);
 
-          	sp.size = fan::vec2(0.1, 0.1);
+            fan::vec2 size = fan::vec2(
+              matrices[viewport_area::editor].coordinates.right,
+              matrices[viewport_area::editor].coordinates.down
+            );
+
+          	sp.size = size / 10;
           	sp.image = &pile->loco.default_texture;
           	pile->stage_maker.fgm.sprite.push_back(sp);
           	auto& instance = pile->stage_maker.fgm.sprite.instances[pile->stage_maker.fgm.sprite.instances.size() - 1];
@@ -445,6 +449,40 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
 		open_editor_properties();
 
 		read_from_file(stage_name);
+
+    loco_t::menu_maker_text_box_t::open_properties_t rcm_op;
+    rcm_op.viewport = &viewport[viewport_area::global];
+    rcm_op.matrices = &matrices[viewport_area::global];
+    rcm_op.theme = &theme;
+    rcm_op.gui_size = 0.08;
+
+    rcm_op.position = fan::vec2(-.9, .8) + loco->menu_maker_button.get_button_measurements(rcm_op.gui_size);
+    rcm_op.position.z = right_click_z_depth;
+    global_menu_nr = loco->menu_maker_text_box.push_menu(rcm_op);
+    global_menu_ids.push_back(loco->menu_maker_text_box.push_back(global_menu_nr, {
+      .text = "-1, 1, -1, 1",
+      .keyboard_cb = [this, loco](const loco_t::keyboard_data_t& d) -> int {
+        if (d.key != fan::key_enter) {
+          return 0;
+        }
+        if (d.keyboard_state != fan::keyboard_state::press) {
+          return 0;
+        }
+
+        auto& it = loco->menu_maker_text_box.instances[global_menu_nr].base.instances[global_menu_ids[0]];
+        auto text = loco->text_box.get_text(&it.cid);
+
+        fan::vec4 size;
+        std::istringstream iss(fan::string(text).c_str());
+        std::size_t i = 0;
+        while (iss >> size[i++]) { iss.ignore(); }
+        matrices[viewport_area::editor].set_ortho(
+          loco,
+          fan::vec2(size[0], size[1]),
+          fan::vec2(size[2], size[3])
+        );
+      }
+    }));
 	}
 
 	void open(const char* texturepack_name) {
@@ -481,7 +519,13 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
 		});
     loco.get_window()->add_mouse_move_callback([this, loco = (loco_t*)&loco](const auto& d) {
       if (view_action_flag & action::move) {
-        *(fan::vec2*)& camera_position -= loco->get_mouse_position(viewport[viewport_area::editor]) - loco->transform_position(loco->get_window()->get_previous_mouse_position(), viewport[viewport_area::editor]);
+        fan::vec2 size = fan::vec2(
+          matrices[viewport_area::editor].coordinates.right,
+          matrices[viewport_area::editor].coordinates.down
+        );
+        *(fan::vec2*)& camera_position -= 
+          ((loco->get_mouse_position() - loco->get_window()->get_previous_mouse_position()) * 
+          (size / loco->get_window()->get_size())) * 32;
         matrices[viewport_area::editor].set_camera_position(camera_position);
       }
     });
@@ -505,13 +549,15 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
           if (d.state != fan::keyboard_state::press) {
             return;
           }
-          camera_position = 0;
+          camera_position = fan::vec3(0, 0, 0);
           matrices[viewport_area::editor].set_camera_position(camera_position);
           break;
         }
       }
     });
 
+    //camera_position = fan::vec3(-512, 0, 0);
+    //matrices[viewport_area::editor].set_camera_position(camera_position);
 		// half size
 		properties_line_position = fan::vec2(0.5, 0);
 		editor_position = fan::vec2(-properties_line_position.x / 2, 0);
@@ -527,16 +573,7 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
 		viewport[viewport_area::types].open(loco.get_context());
 		viewport[viewport_area::properties].open(loco.get_context());
 
-		//loco_t::vfi_t::properties_t p;
-		//p.shape_type = loco_t::vfi_t::shape_t::always;
-		//p.shape.always.z = 0;
-		//p.mouse_button_cb = [](const loco_t::vfi_t::mouse_button_data_t& mb) -> int {
-		//	pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco);
-		//	return 0;
-		//};
-		//loco.vfi.push_shape(p);
 
-		//button_menu.open(fan::vec2(1.05, button_size.y * 1.5));
 	}
 	void close() {
 		clear();
@@ -711,6 +748,8 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
 	loco_t::texturepack_t texturepack;
 
 	loco_t::menu_maker_button_t::nr_t right_click_menu_nr;
+  loco_t::menu_maker_text_box_t::nr_t global_menu_nr;
+  std::vector< loco_t::menu_maker_text_box_t::id_t> global_menu_ids;
   loco_t::vfi_t::shape_id_t vfi_id;
 
   loco_t::image_t hitbox_image;

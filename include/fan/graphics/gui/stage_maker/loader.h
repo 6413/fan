@@ -139,7 +139,7 @@ public:
     }
     stage->parent_id = op.parent_id;
 
-    new (stage) stage_t(this, loco, op);
+    std::construct_at(stage, this, loco, op);
 
     load_fgm(loco, stage, op, stage->stage_name);
 

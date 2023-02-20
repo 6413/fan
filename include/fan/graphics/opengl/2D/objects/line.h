@@ -94,7 +94,7 @@ struct line_t {
   void set_line(fan::graphics::cid_t* cid, const fan::vec3& src, const fan::vec3& dst) {
     auto v = sb_get_vi(cid);
     if (v.src.z != src.z) {
-      set_depth(cid, src.z);
+      sb_set_depth(cid, src.z);
     }
     set(cid, &vi_t::src, src);
     set(cid, &vi_t::dst, dst);
