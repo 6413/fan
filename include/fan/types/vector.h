@@ -303,6 +303,10 @@ namespace fan {
 			return fan_2d::math::normalize(*this);
 		}
 
+    constexpr fan::_vec2<_Ty> square_normalize() const {
+      return *this / abs().max();
+    }
+
 		auto begin() const { return &x; }
 		auto end() const { return begin() + size(); }
 		auto data() const { return begin(); }
