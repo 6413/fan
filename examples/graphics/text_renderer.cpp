@@ -75,7 +75,9 @@ int main() {
   p.text = "56789";
   pile->loco.text.push_back(&pile->cid[0], p);
   pile->loco.text.set_text(&pile->cid[0], "56789");
+
   pile->loco.text.set(&pile->cid[0], &loco_t::text_t::vi_t::color, fan::color(1, 0, 0, 0.3));
+
   pile->loco.set_vsync(false);
 
   pile->loco.loop([&] {
