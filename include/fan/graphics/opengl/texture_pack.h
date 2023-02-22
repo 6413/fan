@@ -142,7 +142,7 @@ struct texturepack_t {
     pixel_data_list.close();
   }
 
-  // queue texturepack image
+  // query texturepack image
   bool qti(const fan::string& name, ti_t* ti) {
     return qti(fan::get_hash(name), ti);
   }
