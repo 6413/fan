@@ -9,6 +9,9 @@
 loco_t* get_loco() {
   return ((stage_maker_t*)OFFSETLESS(OFFSETLESS(this, fgm_t, fgm_shape_name), stage_maker_t, fgm))->get_loco();
 }
+loco_t* get_loco() const {
+  return ((stage_maker_t*)OFFSETLESS(OFFSETLESS(this, fgm_t, fgm_shape_name), stage_maker_t, fgm))->get_loco();
+}
 pile_t* get_pile() {
   return OFFSETLESS(get_loco(), pile_t, loco_var_name);
 }

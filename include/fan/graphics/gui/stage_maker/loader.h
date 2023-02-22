@@ -112,11 +112,11 @@ public:
     fan::io::file::read(full_path, &f);
     uint64_t off = 0;
 
-    uint32_t file_version = fan::io::file::read_data<uint32_t>(f, off);
+    uint32_t file_version = fan::read_data<uint32_t>(f, off);
 
     switch (file_version) {
-      case version_010: {
-        #include _FAN_PATH(graphics/gui/stage_maker/fgm_user_loader_version/010.h)
+      case stage_maker_format_version: {
+        #include _FAN_PATH(graphics/gui/stage_maker/fgm_user_loader_version/011.h)
         break;
       }
       default: {

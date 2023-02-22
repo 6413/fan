@@ -451,6 +451,35 @@ namespace fan {
     return 0;
   }
 
+  template <typename T>
+  T read_data(auto& f, auto& off) {
+    if constexpr (std::is_same<fan::string, T>::value) {
+      uint64_t len = read_data<uint64_t>(f, off);
+      fan::string str;
+      str.resize(len);
+      memcpy(str.data(), &f[off], len);
+      off += len;
+      return str;
+    }
+    else {
+      auto obj = &f[off];
+      off += sizeof(T);
+      return *(T*)obj;
+    }
+  }
+
+  template <typename T>
+  void write_to_string(auto& f, const T& o) {
+    if constexpr (std::is_same<fan::string, T>::value) {
+      uint64_t len = o.size();
+      f.append((char*)&len, sizeof(len));
+      f.append(o.data(), len);
+    }
+    else {
+      f.append((char*)&o, sizeof(o));
+    }
+  }
+
 	//struct string : fan::basic_string<char>{
 	//	string(const fan::basic_string<char>& b) : fan::basic_string<char>(b) {
 
