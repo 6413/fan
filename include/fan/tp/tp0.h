@@ -90,6 +90,13 @@ struct texture_packe0 {
       return 1;
     }
 
+    if(image_info.size.x % 2 != 0 || image_info.size.y % 2 != 0){
+      fan::webp::free_image(image_info.data);
+      fan::print_warning("failed to load, image size is not divideable by 2");
+      fan::print(texture_properties.name, image_info.size);
+      return 1;
+    }
+
     texture_t t;
     t.size = image_info.size;
     t.decoded_data.resize(t.size.multiply() * 4);
@@ -106,6 +113,8 @@ struct texture_packe0 {
 
   void process() {
     pack_list.clear();
+
+    const uint32_t PadPixel = 8;
 
     for (uint32_t ci = 0; ci < texture_list.size(); ci++) {
 
@@ -138,8 +147,11 @@ struct texture_packe0 {
             score++;
           }
         }
-        uint32_t needed_score = 0;
+        if(size.x < pack_list[i].pack_size.x && size.y < pack_list[i].pack_size.y){
+          score++;
+        }
 
+        uint32_t needed_score = 1;
         needed_score += texture_properties.visual_output != -1;
         needed_score += texture_properties.filter != -1;
         needed_score += texture_properties.group_id != -1;
@@ -150,6 +162,10 @@ struct texture_packe0 {
         }
       }
       if (selected_pack == -1) {
+        if(size.x > preferred_pack_size.x || size.y > preferred_pack_size.y){
+          fan::throw_error("texture size is bigger than preferred_pack_size");
+        }
+
         pack_properties_t p;
         p.pack_size = preferred_pack_size;
         if (texture_properties.visual_output != -1) {
@@ -168,32 +184,19 @@ struct texture_packe0 {
         selected_pack = push_pack(p);
       }
 
-      fan::vec2ui push_size = size;
-      if (size.x != pack_list[selected_pack].pack_size.x) {
-        push_size.x += 2;
-      }
-      if (size.y != pack_list[selected_pack].pack_size.y) {
-        push_size.y += 2;
-      }
+      fan::vec2ui push_size = size + PadPixel * 2;
+      push_size = fan::min(push_size, pack_list[selected_pack].pack_size);
+
       pack_t::internal_texture_t* it = push(&pack_list[selected_pack].root, push_size);
       if (it == nullptr) {
-        if (push_size.x > pack_list[selected_pack].pack_size.x ||
-          push_size.y > pack_list[selected_pack].pack_size.y) {
-          fan::throw_error("too big");
-        }
         pack_start = selected_pack + 1;
         selected_pack = -1;
         goto gt_pack_search;
       }
       pack_t::texture_t texture;
       texture.position = it->position;
+      texture.position += (push_size - size) / 2;
       texture.size = size;
-      if (texture.size.x != pack_list[selected_pack].pack_size.x) {
-        texture.position.x++;
-      }
-      if (texture.size.y != pack_list[selected_pack].pack_size.y) {
-        texture.position.y++;
-      }
       texture.name = texture_properties.name;
       pack_list[selected_pack].texture_list.push_back(texture);
     }
@@ -202,6 +205,12 @@ struct texture_packe0 {
       uint32_t count = pack_list[i].texture_list.size();
 
       pack_list[i].pixel_data.resize(pack_list[i].pack_size.x * pack_list[i].pack_size.y * 4);
+
+      memset(
+        pack_list[i].pixel_data.data(),
+        0,
+        pack_list[i].pack_size.x * pack_list[i].pack_size.y * 4
+      );
 
       for (uint32_t j = 0; j < count; j++) {
         pack_t::texture_t* t = &pack_list[i].texture_list[j];
@@ -223,83 +232,39 @@ struct texture_packe0 {
           );
         }
         {
-          fan::vec2ui pp = t->position;
-          if (pp.x != 0) {
-            pp.x--;
-          }
-          if (pp.y != 0) {
-            pp.y--;
-          }
-          fan::vec2ui ps = t->size + 2;
-          if (ps.x > pack_list[i].pack_size.x) {
-            continue;
-          }
-          if (ps.y > pack_list[i].pack_size.y) {
-            continue;
-          }
+          // find pad by size
+          fan::vec2ui Pad = t->size + PadPixel * 2;
+          Pad = fan::min(pack_list[i].pack_size, Pad) - t->size;
+
+          fan::vec2ui pp = t->position - Pad / 2;
+          fan::vec2ui ps = t->size + Pad;
+
+          fan::vec2ui center = t->position + t->size / 2;
 
           for (uint32_t y = pp.y; y != pp.y + ps.y; y++) {
             for (uint32_t x = pp.x; x != pp.x + ps.x; x++) {
+              if(
+                y >= t->position.y && y < t->position.y + t->size.y &&
+                x >= t->position.x && x < t->position.x + t->size.x
+              ){
+                continue;
+              }
 
-              static auto fill_pad = [](decltype(pack_list)* pack_list, uint32_t i, uint32_t x, uint32_t y, sint32_t px, sint32_t py) {
+              fan::vec2 size_ratio = fan::vec2(t->size).square_normalize();
+              fan::vec2 ray_angle = fan::vec2((fan::vec2si(x, y) - center) / size_ratio).square_normalize();
+              fan::vec2si offset_from_center = ray_angle * (t->size / 2);
+              if(offset_from_center.x > 0){
+                offset_from_center.x--;
+              }
+              if(offset_from_center.y > 0){
+                offset_from_center.y--;
+              }
+              fan::vec2ui from = center + offset_from_center;
 
-                switch (px) {
-                  case -1: {
-                    if (x == 0) {
-                      return;
-                    }
-                    break;
-                  }
-                  case 1: {
-                    if (x == (*pack_list)[i].pack_size.x) {
-                      return;
-                    }
-                  }
-                };
-                switch (py) {
-                  case -1: {
-                    if (y == 0) {
-                      return;
-                    }
-                    break;
-                  }
-                  case 1: {
-                    if (y == (*pack_list)[i].pack_size.y) {
-                      return;
-                    }
-                  }
-                };
-
-                (*pack_list)[i].pixel_data[(y * (*pack_list)[i].pack_size.x + x) * 4 + 0] = (*pack_list)[i].pixel_data[((y + py) * (*pack_list)[i].pack_size.x + x + px) * 4 + 0];
-                (*pack_list)[i].pixel_data[(y * (*pack_list)[i].pack_size.x + x) * 4 + 1] = (*pack_list)[i].pixel_data[((y + py) * (*pack_list)[i].pack_size.x + x + px) * 4 + 1];
-                (*pack_list)[i].pixel_data[(y * (*pack_list)[i].pack_size.x + x) * 4 + 2] = (*pack_list)[i].pixel_data[((y + py) * (*pack_list)[i].pack_size.x + x + px) * 4 + 2];
-                (*pack_list)[i].pixel_data[(y * (*pack_list)[i].pack_size.x + x) * 4 + 3] = (*pack_list)[i].pixel_data[((y + py) * (*pack_list)[i].pack_size.x + x + px) * 4 + 3];
-              };
-
-              if (x == pp.x && y == pp.y) {
-                fill_pad(&pack_list, i, x, y, 1, 1);
-              }
-              else if (x == pp.x + ps.x - 1 && y == pp.y) {
-                fill_pad(&pack_list, i, x, y, -1, 1);
-              }
-              else if (x == pp.x + ps.x - 1 && y == pp.y + ps.y - 1) {
-                fill_pad(&pack_list, i, x, y, -1, -1);
-              }
-              else if (x == pp.x && y == pp.y + ps.y - 1) {
-                fill_pad(&pack_list, i, x, y, 1, -1);
-              }
-              else if (x == pp.x) {
-                fill_pad(&pack_list, i, x, y, 1, 0);
-              }
-              else if (x == pp.x + ps.x - 1) {
-                fill_pad(&pack_list, i, x, y, -1, 0);
-              }
-              else if (y == pp.y) {
-                fill_pad(&pack_list, i, x, y, 0, 1);
-              }
-              else if (y == pp.y + ps.y - 1) {
-                fill_pad(&pack_list, i, x, y, 0, -1);
-              }
+              pack_list[i].pixel_data[(y * pack_list[i].pack_size.x + x) * 4 + 0] = pack_list[i].pixel_data[(from.y * pack_list[i].pack_size.x + from.x) * 4 + 0];
+              pack_list[i].pixel_data[(y * pack_list[i].pack_size.x + x) * 4 + 1] = pack_list[i].pixel_data[(from.y * pack_list[i].pack_size.x + from.x) * 4 + 1];
+              pack_list[i].pixel_data[(y * pack_list[i].pack_size.x + x) * 4 + 2] = pack_list[i].pixel_data[(from.y * pack_list[i].pack_size.x + from.x) * 4 + 2];
+              pack_list[i].pixel_data[(y * pack_list[i].pack_size.x + x) * 4 + 3] = pack_list[i].pixel_data[(from.y * pack_list[i].pack_size.x + from.x) * 4 + 3];
             }
           }
         }
