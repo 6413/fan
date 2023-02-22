@@ -386,7 +386,7 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
           	sp.matrices = &pile->stage_maker.fgm.matrices[viewport_area::editor];
           	sp.viewport = &pile->stage_maker.fgm.viewport[viewport_area::editor];
           	sp.position = fan::vec2(0, 0);
-            sp.shape_type = loco_t::vfi_t::shape_t::always;
+            sp.vfi_type = loco_t::vfi_t::shape_t::always;
 
           	sp.size = fan::vec2(0.1, 0.1);
           	sp.image = &hitbox_image;
@@ -586,6 +586,8 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
     text.clear();
     hitbox.clear();
 		button_menu.clear();
+
+    get_loco()->menu_maker_text_box.erase_menu(global_menu_nr);
 	}
 
 	fan::string get_fgm_full_path(const fan::string& stage_name) {
@@ -603,14 +605,18 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
     if (f.empty()) {
       return;
     }
-
     uint64_t off = 0;
 
-    uint32_t file_version = fan::io::file::read_data<uint32_t>(f, off);
+    uint32_t file_version = fan::read_data<uint32_t>(f, off);
 
     switch (file_version) {
-      case version_010: {
-        #include "fgm_loader_version/010.h"
+      // no need to put other versions than current because it would not compile
+      case stage_maker_format_version: {
+        while (off < f.size()) {
+          iterate_masterpiece([&f, &off](auto& o) {
+            off += o.from_string(f.substr(off));
+          });
+        }
         break;
       }
       default: {
@@ -623,97 +629,19 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
 		auto loco = get_loco();
 
 		fan::string f;
-    static auto add_to_f = [&f]<typename T>(const T& o) {
-      std::size_t off = f.size();
-      if constexpr (std::is_same<fan::string, T>::value) {
-        uint64_t len = o.size() * sizeof(typename std::remove_reference_t<decltype(o)>::char_type);
-        f.resize(off + sizeof(uint64_t));
-        memcpy(&f[off], &len, sizeof(uint64_t));
-        off += sizeof(uint64_t);
+    // header
+    fan::write_to_string(f, stage_maker_format_version);
 
-        f.resize(off + len);
-        memcpy(&f[off], o.data(), len);
-      }
-      else {
-        f.resize(off + sizeof(o));
-        memcpy(&f[off], &o, sizeof(o));
-      }
-    };
-
-    add_to_f(stage_maker_format_version);
-
-		uint32_t instances_count = button.instances.size();
-    add_to_f(loco_t::shape_type_t::button);
-    add_to_f(instances_count);
-		for (auto it : button.instances) {
-      stage_maker_shape_format::shape_button_t data;
-			data.position = loco->button.get(&it->cid, &loco_t::button_t::vi_t::position);
-			data.size = loco->button.get(&it->cid, &loco_t::button_t::vi_t::size);
-			data.font_size = loco->text.get_instance(
-				&loco->button.get_ri(&it->cid).text_id
-			).font_size;
-      data.id = it->id;
-      //data.theme = *loco->button.get_theme(&it->cid);
-      add_to_f(data);
-      add_to_f(loco->button.get_text(&it->cid));
-		}
-
-    instances_count = sprite.instances.size();
-
-    add_to_f(loco_t::shape_type_t::sprite);
-    add_to_f(instances_count);
-    for (auto it : sprite.instances) {
-      stage_maker_shape_format::shape_sprite_t data;
-      data.position = loco->sprite.get(&it->cid, &loco_t::sprite_t::vi_t::position);
-      data.size = loco->sprite.get(&it->cid, &loco_t::sprite_t::vi_t::size);
-      data.parallax_factor = loco->sprite.get(&it->cid, &loco_t::sprite_t::vi_t::parallax_factor);
-      add_to_f(data);
-      add_to_f(it->texturepack_name);
-    }
-
-    instances_count = text.instances.size();
-
-    add_to_f(loco_t::shape_type_t::text);
-    add_to_f(instances_count);
-    for (auto it : text.instances) {
-      stage_maker_shape_format::shape_text_t data;
-      data.position = loco->text.get_instance(&it->cid).position;
-      data.size = loco->text.get_instance(&it->cid).font_size;
-      add_to_f(data);
-      add_to_f(loco->text.get_instance(&it->cid).text);
-    }
-
-    instances_count = hitbox.instances.size();
-
-    add_to_f(loco_t::shape_type_t::hitbox);
-    add_to_f(instances_count);
-    for (auto it : hitbox.instances) {
-      stage_maker_shape_format::shape_hitbox_t data;
-      auto& shape = loco->vfi.shape_list[it->vfi_id];
-      auto& shape_data = shape.shape_data;
-      switch (it->shape_type) {
-        case loco_t::vfi_t::shape_t::always: {
-          data.position = fan::vec3(fan::vec2(loco->sprite.get(&it->cid, &loco_t::sprite_t::vi_t::position)), shape_data.depth);
-          data.size = loco->sprite.get(&it->cid, &loco_t::sprite_t::vi_t::size);
-          break;
-        }
-        case loco_t::vfi_t::shape_t::rectangle: {
-          data.position = loco->sprite.get(&it->cid, &loco_t::sprite_t::vi_t::position);
-          data.size = loco->sprite.get(&it->cid, &loco_t::sprite_t::vi_t::size);
-        }
-      }
-      data.id = it->id;
-      data.shape_type = it->shape_type;
-      add_to_f(data);
-    }
-
+    iterate_masterpiece([&f]<typename T>(T& shape) {
+      f += shape.to_string();
+    });
+   
 		fan::io::file::write(
 			get_fgm_full_path(stage_name),
 			f,
 			std::ios_base::binary
 		);
 
-    //vauto sta
     pile_t* pile = OFFSETLESS(loco, pile_t, loco_var_name);
     auto offset = pile->stage_maker.stage_h_str.find(stage_name);
 

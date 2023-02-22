@@ -153,12 +153,21 @@ void move_shape(auto* shape, auto* instance, const fan::vec2& offset) {
   set_position(shape, instance, p);
 }
 
+static bool does_id_exist(auto* shape, const fan::string& id) {
+  for (const auto& it : shape->instances) {
+    if (it->id == id) {
+      return true;
+    }
+  }
+  return false;
+}
+
 struct button_t {
 
   static constexpr const char* cb_names[] = { "mouse_button","mouse_move", "keyboard", "text" };
 
   struct properties_t : loco_t::button_t::properties_t {
-    uint32_t id = -1;
+    fan::string id;
   };
 
   uint8_t holding_special_key = 0;
@@ -169,17 +178,8 @@ struct button_t {
     fan::graphics::cid_t cid; \
     uint16_t shape; \
     loco_t::theme_t theme; \
-    uint32_t id;
+    fan::string id;
   #include "fgm_shape_builder.h"
-
-  bool does_id_exist(uint32_t id) {
-    for (const auto& it : instances) {
-      if (it->id == id) {
-        return true;
-      }
-    }
-    return false;
-  }
 
   void close_properties() {
     auto pile = get_pile();
@@ -281,10 +281,10 @@ struct button_t {
 		pile_t* pile = get_pile();
     shape_builder_push_back
 
-    if (p.id == (uint32_t)-1) {
+    if (p.id.empty()) {
       static uint32_t id = 0;
-      while (does_id_exist(id)) { ++id; }
-      instances[i]->id = id;
+      while (does_id_exist(this, std::to_string(id))) { ++id; }
+      instances[i]->id = std::to_string(id);
     }
     else {
       instances[i]->id = p.id;
@@ -502,11 +502,58 @@ struct button_t {
     get_loco()->button.set_position(&instance->cid, position);
   }
 
+  fan::string to_string() const {
+    auto* loco = get_loco();
+    fan::string f;
+    uint32_t instances_count = instances.size();
+    fan::write_to_string(f, loco_t::shape_type_t::button);
+    fan::write_to_string(f, instances_count);
+    for (auto it : instances) {
+      stage_maker_shape_format::shape_button_t data;
+      data.position = loco->button.get(&it->cid, &loco_t::button_t::vi_t::position);
+      data.size = loco->button.get(&it->cid, &loco_t::button_t::vi_t::size);
+      data.font_size = loco->text.get_instance(
+        &loco->button.get_ri(&it->cid).text_id
+      ).font_size;
+      data.text = loco->button.get_text(&it->cid);
+      data.id = it->id;
+      f += shape_to_string(data);
+    }
+    return f;
+  }
+  uint64_t from_string(const fan::string& f) {
+    auto* pile = get_pile();
+    uint64_t off = 0;
+    loco_t::shape_type_t::_t shape_type = fan::read_data<loco_t::shape_type_t::_t>(f, off);
+    if (shape_type != loco_t::shape_type_t::fgm_shape_loco_name) {
+      return 0;
+    }
+    uint32_t instance_count = fan::read_data<uint32_t>(f, off);
+    for (uint32_t i = 0; i < instance_count; ++i) {
+      stage_maker_shape_format::shape_button_t data;
+      data.iterate_masterpiece([&f, &off](auto& o) {
+        o = fan::read_data<std::remove_reference_t<decltype(o)>>(f, off);
+      });
+      button_t::properties_t bp;
+      bp.position = data.position;
+      bp.size = data.size;
+      bp.font_size = data.font_size;
+      bp.text = data.text;
+      bp.theme = &pile->stage_maker.fgm.theme;
+      bp.matrices = &pile->stage_maker.fgm.matrices[viewport_area::editor];
+      bp.viewport = &pile->stage_maker.fgm.viewport[viewport_area::editor];
+      bp.id = data.id;
+      push_back(bp);
+    }
+    return off;
+  }
+
   #include "fgm_shape_builder_close.h"
-}button;
+};
 
 struct sprite_t {
   struct properties_t : loco_t::sprite_t::properties_t {
+    fan::string id;
     fan::string texturepack_name;
   };
   uint8_t holding_special_key = 0;
@@ -517,7 +564,8 @@ struct sprite_t {
     fan::graphics::cid_t cid; \
     loco_t::vfi_t::shape_id_t vfi_id; \
     uint16_t shape; \
-    fan::string texturepack_name;
+    fan::string texturepack_name; \
+    fan::string id;
   #include "fgm_shape_builder.h"
 
   void close_properties() {
@@ -659,6 +707,16 @@ struct sprite_t {
 		pile_t* pile = get_pile();
     shape_builder_push_back
     instances[i]->texturepack_name = p.texturepack_name;
+
+    if (p.id.empty()) {
+      static uint32_t id = 0;
+      while (does_id_exist(this, std::to_string(id))) { ++id; }
+      instances[i]->id = std::to_string(id);
+    }
+    else {
+      instances[i]->id = p.id;
+    }
+
 		loco_t::vfi_t::properties_t vfip;
 		vfip.mouse_button_cb = [pile, this, instance = instances[i]](const loco_t::mouse_button_data_t& ii_d) -> int {
       switch (ii_d.button) {
@@ -812,18 +870,78 @@ struct sprite_t {
 		pile->loco.vfi.set_rectangle(instance->vfi_id, &loco_t::vfi_t::shape_data_rectangle_t::size, size);
 	}
 
+  fan::string to_string() const {
+    auto* loco = get_loco();
+    fan::string f;
+    uint32_t instances_count = instances.size();
+    fan::write_to_string(f, loco_t::shape_type_t::sprite);
+    fan::write_to_string(f, instances_count);
+    for (auto it : instances) {
+      stage_maker_shape_format::shape_sprite_t data;
+      data.position = loco->sprite.get(&it->cid, &loco_t::sprite_t::vi_t::position);
+      data.size = loco->sprite.get(&it->cid, &loco_t::sprite_t::vi_t::size);
+      data.parallax_factor = loco->sprite.get(&it->cid, &loco_t::sprite_t::vi_t::parallax_factor);
+      data.texturepack_name = it->texturepack_name;
+      data.id = it->id;
+      f += shape_to_string(data);
+    }
+    return f;
+  }
+
+  uint64_t from_string(const fan::string& f) {
+    auto* pile = get_pile();
+    uint64_t off = 0;
+    loco_t::shape_type_t::_t shape_type = fan::read_data<loco_t::shape_type_t::_t>(f, off);
+    if (shape_type != loco_t::shape_type_t::fgm_shape_loco_name) {
+      return 0;
+    }
+    uint32_t instance_count = fan::read_data<uint32_t>(f, off);
+    for (uint32_t i = 0; i < instance_count; ++i) {
+      stage_maker_shape_format::shape_sprite_t data;
+      data.iterate_masterpiece([&f, &off](auto& o) {
+        o = fan::read_data<std::remove_reference_t<decltype(o)>>(f, off);
+        });
+      sprite_t::properties_t sp;
+      sp.position = data.position;
+      sp.size = data.size;
+      sp.parallax_factor = data.parallax_factor;
+      loco_t::texturepack_t::ti_t ti;
+      if (pile->stage_maker.fgm.texturepack.qti(data.texturepack_name, &ti)) {
+        sp.image = &get_loco()->default_texture;
+      }
+      else {
+        auto& pd = pile->stage_maker.fgm.texturepack.get_pixel_data(ti.pack_id);
+        sp.image = &pd.image;
+        sp.tc_position = ti.position / pd.image.size;
+        sp.tc_size = ti.size / pd.image.size;
+      }
+      sp.matrices = &pile->stage_maker.fgm.matrices[viewport_area::editor];
+      sp.viewport = &pile->stage_maker.fgm.viewport[viewport_area::editor];
+      sp.texturepack_name = data.texturepack_name;
+      sp.id = data.id;
+      push_back(sp);
+    }
+    return off;
+  }
+
   #include "fgm_shape_builder_close.h"
-}sprite;
+};
 
 struct text_t {
   uint8_t holding_special_key = 0;
 
+  struct properties_t : loco_t::text_t::properties_t {
+    fan::string id;
+  };
+
   #define fgm_shape_name text
+  #define fgm_shape_manual_properties
   #define fgm_shape_instance_data \
     fan::graphics::cid_t cid; \
     loco_t::vfi_t::shape_id_t vfi_id; \
     uint16_t shape; \
-    fan::string texturepack_name;
+    fan::string texturepack_name; \
+    fan::string id;
   #include "fgm_shape_builder.h"
 
   void close_properties() {
@@ -945,6 +1063,16 @@ struct text_t {
     uint32_t i = instances.size() - 1;
     instances[i] = new instance_t;
     instances[i]->shape = loco_t::shape_type_t::text;
+
+    if (p.id.empty()) {
+      static uint32_t id = 0;
+      while (does_id_exist(this, std::to_string(id))) { ++id; }
+      instances[i]->id = std::to_string(id);
+    }
+    else {
+      instances[i]->id = p.id;
+    }
+
     loco_t::vfi_t::properties_t vfip;
     vfip.mouse_button_cb = [pile, this, instance = instances[i]](const loco_t::mouse_button_data_t& ii_d) -> int {
       switch (ii_d.button) {
@@ -1148,16 +1276,59 @@ struct text_t {
     pile->loco.vfi.set_rectangle(instance->vfi_id, &loco_t::vfi_t::shape_data_rectangle_t::size, pile->loco.text.get_text_size(&instance->cid));
   }
 
+  fan::string to_string() const {
+    auto* loco = get_loco();
+    fan::string f;
+    uint32_t instances_count = instances.size();
+    fan::write_to_string(f, loco_t::shape_type_t::text);
+    fan::write_to_string(f, instances_count);
+    for (auto it : instances) {
+
+      stage_maker_shape_format::shape_text_t data;
+      data.position = loco->text.get_instance(&it->cid).position;
+      data.size = loco->text.get_instance(&it->cid).font_size;
+      data.text = loco->text.get_instance(&it->cid).text;
+      data.id = it->id;
+      f += shape_to_string(data);
+    }
+    return f;
+  }
+
+  uint64_t from_string(const fan::string& f) {
+    auto* pile = get_pile();
+    uint64_t off = 0;
+    loco_t::shape_type_t::_t shape_type = fan::read_data<loco_t::shape_type_t::_t>(f, off);
+    if (shape_type != loco_t::shape_type_t::fgm_shape_loco_name) {
+      return 0;
+    }
+    uint32_t instance_count = fan::read_data<uint32_t>(f, off);
+    for (uint32_t i = 0; i < instance_count; ++i) {
+      stage_maker_shape_format::shape_text_t data;
+      data.iterate_masterpiece([&f, &off](auto& o) {
+        o = fan::read_data<std::remove_reference_t<decltype(o)>>(f, off);
+        });
+      text_t::properties_t p;
+      p.position = data.position;
+      p.font_size = data.size;
+      p.text = data.text;
+      p.matrices = &pile->stage_maker.fgm.matrices[viewport_area::editor];
+      p.viewport = &pile->stage_maker.fgm.viewport[viewport_area::editor];
+      p.id = data.id;
+      push_back(p);
+    }
+    return off;
+  }
+
   #include "fgm_shape_builder_close.h"
-}text;
+};
 
 struct hitbox_t {
 
   static constexpr const char* cb_names[] = { "mouse_button","mouse_move", "keyboard", "text" };
 
   struct properties_t : loco_t::sprite_t::properties_t{
-    loco_t::vfi_t::shape_type_t shape_type;
-    uint32_t id = -1;
+    loco_t::vfi_t::shape_type_t vfi_type;
+    fan::string id;
   };
 
   uint8_t holding_special_key = 0;
@@ -1168,18 +1339,9 @@ struct hitbox_t {
     fan::graphics::cid_t cid; \
     loco_t::vfi_t::shape_id_t vfi_id; \
     uint16_t shape; \
-    uint32_t id; \
+    fan::string id; \
     loco_t::vfi_t::shape_type_t shape_type;
   #include "fgm_shape_builder.h"
-
-  bool does_id_exist(uint32_t id) {
-    for (const auto& it : instances) {
-      if (it->id == id) {
-        return true;
-      }
-    }
-    return false;
-  }
 
   void close_properties() {
     auto pile = get_pile();
@@ -1294,11 +1456,12 @@ struct hitbox_t {
     p.position.z = 1;
     pile_t* pile = get_pile();
     shape_builder_push_back
-    instances[i]->shape_type = p.shape_type;
-    if (p.id == (uint32_t)-1) {
+    instances[i]->shape_type = p.vfi_type;
+
+    if (p.id.empty()) {
       static uint32_t id = 0;
-      while (does_id_exist(id)) { ++id; }
-      instances[i]->id = id;
+      while (does_id_exist(this, std::to_string(id))) { ++id; }
+      instances[i]->id = std::to_string(id);
     }
     else {
       instances[i]->id = p.id;
@@ -1465,8 +1628,69 @@ struct hitbox_t {
     pile->loco.vfi.set_rectangle(instance->vfi_id, &loco_t::vfi_t::shape_data_rectangle_t::size, size);
   }
 
+  fan::string to_string() const {
+    auto* loco = get_loco();
+    fan::string f;
+    uint32_t instances_count = instances.size();
+    fan::write_to_string(f, loco_t::shape_type_t::hitbox);
+    fan::write_to_string(f, instances_count);
+    for (auto it : instances) {
+      stage_maker_shape_format::shape_hitbox_t data;
+      auto& shape = loco->vfi.shape_list[it->vfi_id];
+      auto& shape_data = shape.shape_data;
+      switch (it->shape_type) {
+        case loco_t::vfi_t::shape_t::always: {
+          data.position = fan::vec3(fan::vec2(loco->sprite.get(&it->cid, &loco_t::sprite_t::vi_t::position)), shape_data.depth);
+          data.size = loco->sprite.get(&it->cid, &loco_t::sprite_t::vi_t::size);
+          break;
+        }
+        case loco_t::vfi_t::shape_t::rectangle: {
+          data.position = loco->sprite.get(&it->cid, &loco_t::sprite_t::vi_t::position);
+          data.size = loco->sprite.get(&it->cid, &loco_t::sprite_t::vi_t::size);
+        }
+      }
+      data.id = it->id;
+      data.vfi_type = it->shape_type;
+      f += shape_to_string(data);
+    }
+    return f;
+  }
+
+  uint64_t from_string(const fan::string& f) {
+    auto* pile = get_pile();
+    uint64_t off = 0;
+    loco_t::shape_type_t::_t shape_type = fan::read_data<loco_t::shape_type_t::_t>(f, off);
+    if (shape_type != loco_t::shape_type_t::fgm_shape_loco_name) {
+      return 0;
+    }
+    uint32_t instance_count = fan::read_data<uint32_t>(f, off);
+    for (uint32_t i = 0; i < instance_count; ++i) {
+      stage_maker_shape_format::shape_hitbox_t data;
+      data.iterate_masterpiece([&f, &off](auto& o) {
+        o = fan::read_data<std::remove_reference_t<decltype(o)>>(f, off);
+      });
+      hitbox_t::properties_t sp;
+      sp.position = data.position;
+      sp.size = data.size;
+      sp.image = &pile->stage_maker.fgm.hitbox_image;
+      sp.matrices = &pile->stage_maker.fgm.matrices[viewport_area::editor];
+      sp.viewport = &pile->stage_maker.fgm.viewport[viewport_area::editor];
+      sp.vfi_type = data.vfi_type;
+      sp.id = data.id;
+      push_back(sp);
+    }
+    return off;
+  }
+
   #include "fgm_shape_builder_close.h"
-}hitbox;
+};
+
+fan_masterpiece_make(
+  (button_t) button,
+  (sprite_t) sprite,
+  (text_t) text,
+  (hitbox_t) hitbox
+);
 
 struct button_menu_t {
 	

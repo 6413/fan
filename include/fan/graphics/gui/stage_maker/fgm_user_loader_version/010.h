@@ -21,7 +21,7 @@ while (off < f.size()) {
           return (stage->*(stage->button_mouse_button_cb_table[i]))(d);
         };
         loco->button.push_back(&stage->cid_list[nr].cid, bp);
-        cid_map[std::make_pair(stage, "button" + std::to_string(data.id))] = &stage->cid_list[nr].cid;
+        cid_map[std::make_pair(stage, "button" + data.id)] = &stage->cid_list[nr].cid;
         break;
       }
       case loco_t::shape_type_t::sprite: {
@@ -95,7 +95,7 @@ while (off < f.size()) {
 
         loco->push_back_input_hitbox((loco_t::vfi_t::shape_id_t*)&stage->cid_list[nr].cid, vfip);
 
-        cid_map[std::make_pair(stage, "hitbox" + std::to_string(data.id))] = &stage->cid_list[nr].cid;
+        cid_map[std::make_pair(stage, "hitbox" + data.id)] = &stage->cid_list[nr].cid;
 
         break;
       }

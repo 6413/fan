@@ -1,5 +1,5 @@
 void open(auto& loco) {
-  
+
 }
 
 void close(auto& loco){

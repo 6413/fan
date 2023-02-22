@@ -127,6 +127,7 @@ struct DepthList_t{
   uint16_t BlockDirtWrap = Base() + 0x7f + 1;
   uint16_t Ship = Base() + 0x7f + 2;
   uint16_t OverMining = Base() + 0x7f + 3;
+  uint16_t WorldGUI0 = Base() + 0x7f + 4;
 }DepthList;
 
 struct{
@@ -407,14 +408,13 @@ struct EntityScope_t{
   #define EntityStructEnd(name) \
     }name;
   /*
-  #include "stage2/entity/FloatingText/types.h"
   #include "stage2/entity/building_FuelStation/types.h"
   #include "stage2/entity/building_MineralProcess/types.h"
   #include "stage2/entity/building_JunkShop/types.h"
   #include "stage2/entity/building_EmendationStation/types.h"
   */
 
-  //#include "stage2/entity/FloatingText/FloatingText.h"
+  #include "stage2/entity/FloatingText/FloatingText.h"
   #include "stage2/entity/FloatingDirtPiece/FloatingDirtPiece.h"
   #include "stage2/entity/ship/ship.h"
   #include "stage2/entity/block/block.h"
@@ -730,7 +730,7 @@ void open(auto& loco) {
         .ti = &parallax_background[1].ti
     }];*/
 
-    parallax_background[2].cid[{
+  /*  parallax_background[2].cid[{
       .position = { p, this->DepthList.Background + 2 },
         .parallax_factor = .5,
         .size = s,
@@ -745,7 +745,7 @@ void open(auto& loco) {
         .matrices = &this->world_matrices,
         .viewport = &game::pile->viewport,
         .ti = &parallax_background[2].ti
-    }];
+    }];*/
   }
 
   // InitializeLighting(); TODO
