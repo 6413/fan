@@ -5,7 +5,7 @@ GPP = clang++ -I C:\libs -Dstage_loader_path=. -I include/nvidia
 
 #-Wall -Wextra -Wshadow -Wconversion -Wpedantic -Werror
 
-CFLAGS = -ferror-limit=1000 -w -I . -g -std=c++2a -I include #-O3 -march=native -mtune=native \
+CFLAGS = -ferror-limit=1000 -w -I .  -std=c++2a -I include #-O3 -march=native -mtune=native \
   #-fsanitize=address -fno-omit-frame-pointer
 
 MAIN = examples/gui/stage_maker.cpp
@@ -30,7 +30,7 @@ else
   BASE_PATH += lib/fan/
   FAN_OBJECT_FOLDER += $(BASE_PATH)
   CFLAGS += -I /usr/local/include -lX11 -lXrandr -L /usr/local/lib -lopus -lGL -lwebp -ldl
-  CFLAGS += -DFAN_INCLUDE_PATH=/mnt/c/libs/fan/include -lvulkan
+  CFLAGS += -DFAN_INCLUDE_PATH=/mnt/c/libs/fan/include
 	FAN_LIB += fan
 endif
 

@@ -265,11 +265,12 @@ namespace fan {
 #define fan_REFLECTION_METHOD2(x) lambda(x/*, fan_REFLECTION_FIELD_NAME(x), std::integral_constant<uint64_t, fan::get_hash(fan_REFLECTION_FIELD_NAME(x))>{}*/);
 #define fan_REFLECTION_METHOD(x) fan_REFLECTION_METHOD2(fan_REFLECTION_SECOND(x))
 
+// making iterate constexpr fails to link in clang
 #define fan_REFLECTION_VISTOR_METHOD(...) \
-  constexpr void iterate_masterpiece(const auto& lambda) { \
+  inline void iterate_masterpiece(const auto& lambda) { \
     fan_MAP(fan_REFLECTION_METHOD, __VA_ARGS__) \
   } \
-  constexpr void iterate_masterpiece(const auto& lambda) const { \
+  inline void iterate_masterpiece(const auto& lambda) const { \
     \
       fan_MAP(fan_REFLECTION_METHOD, __VA_ARGS__) \
   }
