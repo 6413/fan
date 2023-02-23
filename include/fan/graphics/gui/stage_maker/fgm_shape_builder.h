@@ -6,16 +6,6 @@
   using properties_t = loco_t:: CONCAT(fgm_shape_loco_name, _t) ::properties_t;
 #endif
 
-loco_t* get_loco() {
-  return ((stage_maker_t*)OFFSETLESS(OFFSETLESS(this, fgm_t, fgm_shape_name), stage_maker_t, fgm))->get_loco();
-}
-loco_t* get_loco() const {
-  return ((stage_maker_t*)OFFSETLESS(OFFSETLESS(this, fgm_t, fgm_shape_name), stage_maker_t, fgm))->get_loco();
-}
-pile_t* get_pile() {
-  return OFFSETLESS(get_loco(), pile_t, loco_var_name);
-}
-
 struct instance_t {
   fgm_shape_instance_data
 };
@@ -35,17 +25,19 @@ struct instance_t {
 
 std::vector<instance_t*> instances;
 
+fgm_t* get_fgm() {
+  return OFFSETLESS(this, fgm_t, fgm_shape_name);
+}
+
 void release() {
-  pile_t* pile = get_pile();
-  pile->stage_maker.fgm.move_offset = 0;
-  pile->stage_maker.fgm.action_flag &= ~action::move;
+  get_fgm()->move_offset = 0;
+  get_fgm()->action_flag &= ~action::move;
 }
 
 #ifndef fgm_no_gui_properties
   #define fgm_make_clear_f(user_f) \
     void clear() { \
       close_properties(); \
-      auto* pile = get_pile(); \
       for (auto& it : instances) { \
         user_f \
         delete it; \
@@ -55,7 +47,6 @@ void release() {
 #else
   #define fgm_make_clear_f(user_f) \
     void clear() { \
-      auto* pile = get_pile(); \
       for (auto& it : instances) { \
         user_f \
         delete it; \
@@ -68,8 +59,7 @@ void release() {
 	if (ii_d.flag->ignore_move_focus_check == false) {\
     return 0;\
   }\
-  pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi_var_name), pile_t, loco_var_name);\
-  if (!(pile->stage_maker.fgm.action_flag & action::move)) {\
+  if (!(get_fgm()->action_flag & action::move)) {\
     return 0;\
   }\
 \
@@ -80,32 +70,32 @@ void release() {
     static constexpr f32_t minimum_rectangle_size = 0.03;\
     static constexpr fan::vec2i multiplier[] = { {-1, -1}, {1, -1}, {1, 1}, {-1, 1} };\
 \
-    rs += (ii_d.position - pile->stage_maker.fgm.resize_offset) * multiplier[pile->stage_maker.fgm.resize_side] / 2;\
+    rs += (ii_d.position - get_fgm()->resize_offset) * multiplier[get_fgm()->resize_side] / 2;\
 \
     if (rs.x == minimum_rectangle_size && rs.y == minimum_rectangle_size) {\
-      pile->stage_maker.fgm.resize_offset = ii_d.position;\
+      get_fgm()->resize_offset = ii_d.position;\
     }\
 \
     bool ret = 0;\
     if (rs.y < minimum_rectangle_size) {\
       rs.y = minimum_rectangle_size;\
       if (!(rs.x < minimum_rectangle_size)) {\
-        ps.x += (ii_d.position.x - pile->stage_maker.fgm.resize_offset.x) / 2;\
-        pile->stage_maker.fgm.resize_offset.x = ii_d.position.x;\
+        ps.x += (ii_d.position.x - get_fgm()->resize_offset.x) / 2;\
+        get_fgm()->resize_offset.x = ii_d.position.x;\
       }\
       ret = 1;\
     }\
     if (rs.x < minimum_rectangle_size) {\
       rs.x = minimum_rectangle_size;\
       if (!(rs.y < minimum_rectangle_size)) {\
-        ps.y += (ii_d.position.y - pile->stage_maker.fgm.resize_offset.y) / 2;\
-        pile->stage_maker.fgm.resize_offset.y = ii_d.position.y;\
+        ps.y += (ii_d.position.y - get_fgm()->resize_offset.y) / 2;\
+        get_fgm()->resize_offset.y = ii_d.position.y;\
       }\
       ret = 1;\
     }\
 \
     if (rs != minimum_rectangle_size) {\
-      ps += (ii_d.position - pile->stage_maker.fgm.resize_offset) / 2;\
+      ps += (ii_d.position - get_fgm()->resize_offset) / 2;\
     }\
     if (rs.x == minimum_rectangle_size && rs.y == minimum_rectangle_size) {\
       ps = get_position(instance);\
@@ -118,17 +108,17 @@ void release() {
       return 0;\
     }\
 \
-    pile->stage_maker.fgm.resize_offset = ii_d.position;\
-    pile->stage_maker.fgm.move_offset = ps - fan::vec3(ii_d.position, 0);\
-    pile->stage_maker.fgm.fgm_shape_name.open_properties(instance);\
+    get_fgm()->resize_offset = ii_d.position;\
+    get_fgm()->move_offset = ps - fan::vec3(ii_d.position, 0);\
+    get_fgm()->fgm_shape_name.open_properties(instance);\
     return 0;\
   }\
 \
   fan::vec3 ps = get_position(instance);\
   fan::vec3 p;\
-  p.x = ii_d.position.x + pile->stage_maker.fgm.move_offset.x;\
-  p.y = ii_d.position.y + pile->stage_maker.fgm.move_offset.y;\
+  p.x = ii_d.position.x + get_fgm()->move_offset.x;\
+  p.y = ii_d.position.y + get_fgm()->move_offset.y;\
   p.z = ps.z;\
   set_position(instance, p);\
 \
-  pile->stage_maker.fgm.fgm_shape_name.open_properties(instance);
+  get_fgm()->fgm_shape_name.open_properties(instance);

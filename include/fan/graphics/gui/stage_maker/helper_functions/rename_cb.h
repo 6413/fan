@@ -29,7 +29,7 @@ tp.text = pile->loco.button.get_text(
 tp.font_size = pile->loco.button.get_text_instance(
   selected_id
 ).font_size;
-tp.keyboard_cb = [this, pile, selected_id](const loco_t::keyboard_data_t& d) -> int {
+tp.keyboard_cb = [this, selected_id](const loco_t::keyboard_data_t& d) -> int {
   if (d.keyboard_state != fan::keyboard_state::press) {
 
     return 0;
@@ -38,7 +38,7 @@ tp.keyboard_cb = [this, pile, selected_id](const loco_t::keyboard_data_t& d) -> 
 
     case fan::key_enter: {
       const auto& new_name = pile->loco.text_box.get_text(d.cid);
-      if (!does_stage_exist(&pile->loco, new_name)) {
+      if (!does_stage_exist(new_name)) {
         do {
           const auto& old_name = get_selected_name(instances[stage_t::stage_instance].menu_id);
 
