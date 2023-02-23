@@ -278,7 +278,7 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
 			      button_t::properties_t bbp;
 			      bbp.matrices = &pile->stage_maker.fgm.matrices[viewport_area::editor];
 			      bbp.viewport = &pile->stage_maker.fgm.viewport[viewport_area::editor];
-			      bbp.position = fan::vec3(0, 0, 0);
+			      bbp.position = fan::vec3(0, 0, 20);
 			
 			      bbp.size = button_size;
 			      //bbp.size = button_size;
@@ -322,7 +322,7 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
           	sprite_t::properties_t sp;
           	sp.matrices = &pile->stage_maker.fgm.matrices[viewport_area::editor];
           	sp.viewport = &pile->stage_maker.fgm.viewport[viewport_area::editor];
-          	sp.position = fan::vec2(0, 0);
+          	sp.position = fan::vec3(0, 0, 20);
 
             fan::vec2 size = fan::vec2(
               matrices[viewport_area::editor].coordinates.right,
@@ -356,7 +356,7 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
             text_t::properties_t sp;
             sp.matrices = &pile->stage_maker.fgm.matrices[viewport_area::editor];
             sp.viewport = &pile->stage_maker.fgm.viewport[viewport_area::editor];
-            sp.position = fan::vec2(0, 0);
+            sp.position = fan::vec3(0, 0, 20);
 
             sp.font_size = 0.1;
             sp.text = "text";
@@ -385,7 +385,7 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
           	hitbox_t::properties_t sp;
           	sp.matrices = &pile->stage_maker.fgm.matrices[viewport_area::editor];
           	sp.viewport = &pile->stage_maker.fgm.viewport[viewport_area::editor];
-          	sp.position = fan::vec2(0, 0);
+          	sp.position = fan::vec3(0, 0, 20);
             sp.vfi_type = loco_t::vfi_t::shape_t::always;
 
           	sp.size = fan::vec2(0.1, 0.1);
@@ -632,7 +632,7 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
     // header
     fan::write_to_string(f, stage_maker_format_version);
 
-    iterate_masterpiece([&f]<typename T>(T& shape) {
+    iterate_masterpiece([&f](const auto& shape) {
       f += shape.to_string();
     });
    

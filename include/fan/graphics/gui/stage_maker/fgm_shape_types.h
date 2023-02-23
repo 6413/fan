@@ -122,7 +122,6 @@ struct global_button_t {
   #include "fgm_shape_builder.h"
 
 	void push_back(properties_t& p) {
-		p.position.z = 1;
 		loco_t& loco = *get_loco();
 		instances.resize(instances.size() + 1);
 		uint32_t i = instances.size() - 1;
@@ -277,7 +276,6 @@ struct button_t {
     pile->stage_maker.fgm.properties_nrs.push_back(pile->stage_maker.fgm.text_box_menu.push_back(nr, p));
 	}
 	void push_back(properties_t& p) {
-		p.position.z = 1;
 		pile_t* pile = get_pile();
     shape_builder_push_back
 
@@ -703,7 +701,6 @@ struct sprite_t {
     pile->stage_maker.fgm.properties_nrs.push_back(pile->stage_maker.fgm.text_box_menu.push_back(nr, p));
 	}
 	void push_back(properties_t& p) {
-		p.position.z = 1;
 		pile_t* pile = get_pile();
     shape_builder_push_back
     instances[i]->texturepack_name = p.texturepack_name;
@@ -1057,7 +1054,6 @@ struct text_t {
   }
 
   void push_back(properties_t& p) {
-    p.position.z = 1;
     pile_t* pile = get_pile();
     instances.resize(instances.size() + 1);
     uint32_t i = instances.size() - 1;
@@ -1453,7 +1449,6 @@ struct hitbox_t {
     pile->stage_maker.fgm.properties_nrs.push_back(pile->stage_maker.fgm.text_box_menu.push_back(nr, p));
   }
   void push_back(properties_t& p) {
-    p.position.z = 1;
     pile_t* pile = get_pile();
     shape_builder_push_back
     instances[i]->shape_type = p.vfi_type;
