@@ -416,6 +416,10 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
           	return 1;
           }
         });
+        push_menu(mb, {
+          .text = "light",
+          }
+        );
 
         loco_t::vfi_t::properties_t p;
 		    p.shape_type = loco_t::vfi_t::shape_t::always;

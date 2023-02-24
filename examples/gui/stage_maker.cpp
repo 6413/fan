@@ -44,7 +44,7 @@ int main(int argc, char** argv) {
   stage_maker_var_name->open(argv[1]);
 
   pile->loco.set_vsync(false);
-  pile->loco.get_window()->set_max_fps(10);
+  pile->loco.get_window()->set_max_fps(165);
   //pile->loco.get_window()->set_max_fps(5);
   pile->loco.loop([&] {
     //pile->loco.get_fps();

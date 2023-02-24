@@ -48,6 +48,10 @@ pile_t* pile;
 
 #include _FAN_PATH(graphics/gui/stage_maker/fgm.h)
 
+//struct fork_t : fgm_t {
+//
+//};
+
 int main(int argc, char** argv) {
   if (argc < 2) {
     fan::throw_error("usage: TexturePackCompiled");
@@ -63,8 +67,7 @@ int main(int argc, char** argv) {
   pile->loco.get_window()->set_max_fps(165);
   //pile->loco.get_window()->set_max_fps(5);
   pile->loco.loop([&] {
-    //pile->loco.get_fps();
-    //fan::print(pile->loco.menu_maker.get_selected(pile->stage_maker.instances[pile_t::stage_maker_t::stage_t::state_instance].menu_id));
+
     });
 
 

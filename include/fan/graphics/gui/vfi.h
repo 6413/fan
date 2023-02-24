@@ -185,8 +185,10 @@ struct vfi_t {
 
     fan::vec2 mouse_position = loco->get_mouse_position();
     fan::vec2 tp = transform(mouse_position, p.shape_type, &instance.shape_data);
-    if (!p.ignore_init_move && inside(loco, p.shape_type, &instance.shape_data, tp) == mouse_stage_e::inside) {
-      feed_mouse_move(mouse_position);
+    if (focus.mouse.is_invalid()) {
+      if (!p.ignore_init_move && inside(loco, p.shape_type, &instance.shape_data, tp) == mouse_stage_e::inside) {
+        feed_mouse_move(mouse_position);
+      }
     }
     *id = nr;
   }
@@ -323,7 +325,6 @@ struct vfi_t {
       mouse_move_data.mouse_stage = inside(loco, data.shape_type, &data.shape_data, tp);
       mouse_move_data.position = tp;
       shape_id_t bcbfm = focus.mouse;
-      //fan::print(focus.mouse.NRI);
       data.shape_data.mouse_move_cb(mouse_move_data);
       if (bcbfm != focus.mouse) {
         data = shape_list[focus.mouse];
@@ -357,7 +358,6 @@ struct vfi_t {
       mouse_move_data.position = tp;
       mouse_move_data.mouse_stage = inside(loco, data->shape_type, &data->shape_data, tp);
       set_focus_mouse(closest_z_nr);
-      fan::print(focus.mouse.NRI);
       data->shape_data.mouse_move_cb(mouse_move_data);
       return;
     }
