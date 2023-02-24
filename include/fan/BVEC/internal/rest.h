@@ -211,11 +211,11 @@ _BVEC_P(_AllocateBuffer)
   _BVEC_P(t) *List
 ){
   #if BVEC_set_BufferingFormat == 0
-  	List->Possible += _BVEC_P(GetBufferAmount)(List);
+    List->Possible += _BVEC_P(GetBufferAmount)(List);
   #elif BVEC_set_BufferingFormat == 1
     List->Possible = ((uintptr_t)2 << sizeof(uintptr_t) * 8 - __clz(List->Possible | 1)) - 1;
   #endif
-	_BVEC_P(_Resize)(List);
+  _BVEC_P(_Resize)(List);
 }
 static
 void
@@ -224,11 +224,11 @@ _BVEC_P(_AllocateBufferFromCurrent)
   _BVEC_P(t) *List
 ){
   #if BVEC_set_BufferingFormat == 0
-	  List->Possible = List->Current + _BVEC_P(GetBufferAmount)(List);
+    List->Possible = List->Current + _BVEC_P(GetBufferAmount)(List);
   #elif BVEC_set_BufferingFormat == 1
     List->Possible = ((uintptr_t)2 << sizeof(uintptr_t) * 8 - __clz(List->Current | 1)) - 1;
   #endif
-	_BVEC_P(_Resize)(List);
+  _BVEC_P(_Resize)(List);
 }
 
 #if !defined(BVEC_set_MultipleType)

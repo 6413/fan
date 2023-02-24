@@ -323,6 +323,7 @@ struct vfi_t {
       mouse_move_data.mouse_stage = inside(loco, data.shape_type, &data.shape_data, tp);
       mouse_move_data.position = tp;
       shape_id_t bcbfm = focus.mouse;
+      //fan::print(focus.mouse.NRI);
       data.shape_data.mouse_move_cb(mouse_move_data);
       if (bcbfm != focus.mouse) {
         data = shape_list[focus.mouse];
@@ -356,6 +357,7 @@ struct vfi_t {
       mouse_move_data.position = tp;
       mouse_move_data.mouse_stage = inside(loco, data->shape_type, &data->shape_data, tp);
       set_focus_mouse(closest_z_nr);
+      fan::print(focus.mouse.NRI);
       data->shape_data.mouse_move_cb(mouse_move_data);
       return;
     }

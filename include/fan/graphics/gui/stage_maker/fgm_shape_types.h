@@ -285,7 +285,6 @@ struct button_t {
 
 		instances[i]->theme = *(loco_t::theme_t*)pile->loco.get_context()->theme_list[p.theme].theme_id;
 		p.mouse_button_cb = [this, instance = instances[i]](const loco_t::mouse_button_data_t& ii_d) -> int {
-			pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi_var_name), pile_t, loco_var_name);
       switch (ii_d.button) {
         case fan::mouse_scroll_up: {
           if (get_fgm()->action_flag & action::move) {
@@ -342,7 +341,6 @@ struct button_t {
       	if (ii_d.flag->ignore_move_focus_check == false) {
     return 0;
   }
-  pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi_var_name), pile_t, loco_var_name);
   if (!(get_fgm()->action_flag & action::move)) {
     return 0;
   }
@@ -410,7 +408,6 @@ struct button_t {
 			return 0;
 		};
 		p.keyboard_cb = [this, instance = instances[i]](const loco_t::keyboard_data_t& kd) -> int {
-			pile_t* pile = OFFSETLESS(OFFSETLESS(kd.vfi, loco_t, vfi_var_name), pile_t, loco_var_name);
 
 			switch (kd.key) {
 				case fan::key_delete: {
@@ -605,7 +602,9 @@ struct sprite_t {
       std::size_t i = 0;
       while (iss >> position[i++]) { iss.ignore(); }
 
-      pile->loco.vfi.shape_list[instance->vfi_id].shape_data.shape.rectangle.position = position;
+      //f32_t parallax_factor = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::parallax_factor);
+      // EDIT PARALAX HERE
+      pile->loco.vfi.shape_list[instance->vfi_id].shape_data.shape.rectangle.position = position /* (1 - parallax_factor)*/;
       pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::position, position);
       pile->loco.sprite.sb_set_depth(&instance->cid, position.z);
 
@@ -740,7 +739,6 @@ struct sprite_t {
 			if (ii_d.button_state == fan::mouse_state::release) {
 				ii_d.flag->ignore_move_focus_check = false;
 			}
-			pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi_var_name), pile_t, loco_var_name);
 
 			if (ii_d.button_state == fan::mouse_state::release) {
 				release();
@@ -769,7 +767,6 @@ struct sprite_t {
 			return 0;
 		};
 		vfip.keyboard_cb = [this, i](const loco_t::keyboard_data_t& kd) -> int {
-			pile_t* pile = OFFSETLESS(OFFSETLESS(kd.vfi, loco_t, vfi_var_name), pile_t, loco_var_name);
       auto* instance = instances[i];
 			switch (kd.key) {
 				case fan::key_delete: {
@@ -974,49 +971,49 @@ struct text_t {
     };
     get_fgm()->properties_nrs.push_back(get_fgm()->text_box_menu.push_back(nr, p));
 
-    f32_t size = pile->loco.text.get_font_size(&instance->cid);
-    p.text = fan::format("{:.2f}", size);
-    p.text_value = "";
-    p.keyboard_cb = [this, instance, nr](const loco_t::keyboard_data_t& d) -> int {
-      if (d.key != fan::key_enter) {
-        return 0;
-      }
-      if (d.keyboard_state != fan::keyboard_state::press) {
-        return 0;
-      }
+    //f32_t size = pile->loco.text.get_font_size(&instance->cid);
+    //p.text = fan::format("{:.2f}", size);
+    //p.text_value = "";
+    //p.keyboard_cb = [this, instance, nr](const loco_t::keyboard_data_t& d) -> int {
+    //  if (d.key != fan::key_enter) {
+    //    return 0;
+    //  }
+    //  if (d.keyboard_state != fan::keyboard_state::press) {
+    //    return 0;
+    //  }
 
-      auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[get_fgm()->properties_nrs[1]];
-      auto text = pile->loco.text_box.get_text(&it.cid);
+    //  auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[get_fgm()->properties_nrs[1]];
+    //  auto text = pile->loco.text_box.get_text(&it.cid);
 
-      f32_t size;
-      std::istringstream iss(fan::string(text).c_str());
-      std::size_t i = 0;
-      while (iss >> size) { iss.ignore(); }
+    //  f32_t size;
+    //  std::istringstream iss(fan::string(text).c_str());
+    //  std::size_t i = 0;
+    //  while (iss >> size) { iss.ignore(); }
 
-      pile->loco.text.set_font_size(&instance->cid, size);
+    //  pile->loco.text.set_font_size(&instance->cid, size);
 
-      return 0;
-    };
-    get_fgm()->properties_nrs.push_back(get_fgm()->text_box_menu.push_back(nr, p));
+    //  return 0;
+    //};
+    //get_fgm()->properties_nrs.push_back(get_fgm()->text_box_menu.push_back(nr, p));
 
-    p.text = pile->loco.text.get_instance(&instance->cid).text;
-    p.text_value = "";
-    p.keyboard_cb = [this, instance, nr](const loco_t::keyboard_data_t& d) -> int {
-      if (d.key != fan::key_enter) {
-        return 0;
-      }
-      if (d.keyboard_state != fan::keyboard_state::press) {
-        return 0;
-      }
+    //p.text = pile->loco.text.get_instance(&instance->cid).text;
+    //p.text_value = "";
+    //p.keyboard_cb = [this, instance, nr](const loco_t::keyboard_data_t& d) -> int {
+    //  if (d.key != fan::key_enter) {
+    //    return 0;
+    //  }
+    //  if (d.keyboard_state != fan::keyboard_state::press) {
+    //    return 0;
+    //  }
 
-      auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[get_fgm()->properties_nrs[2]];
-      auto text = pile->loco.text_box.get_text(&it.cid);
+    //  auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[get_fgm()->properties_nrs[2]];
+    //  auto text = pile->loco.text_box.get_text(&it.cid);
 
-      pile->loco.text.set_text(&instance->cid, text);
+    //  pile->loco.text.set_text(&instance->cid, text);
 
-      return 0;
-    };
-    get_fgm()->properties_nrs.push_back(get_fgm()->text_box_menu.push_back(nr, p));
+    //  return 0;
+    //};
+    //get_fgm()->properties_nrs.push_back(get_fgm()->text_box_menu.push_back(nr, p));
 
     //
     //get_fgm()->button_menu.clear();
@@ -1080,7 +1077,6 @@ struct text_t {
       if (ii_d.button_state == fan::mouse_state::release) {
         ii_d.flag->ignore_move_focus_check = false;
       }
-      pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi_var_name), pile_t, loco_var_name);
 
       if (ii_d.button_state == fan::mouse_state::release) {
         get_fgm()->text.release();
@@ -1108,7 +1104,6 @@ struct text_t {
         return 0;
       }
 
-      pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi_var_name), pile_t, loco_var_name);
       instance_t* instance = get_fgm()->text.instances[i];
       if (holding_special_key) {
         fan::vec3 ps = pile->loco.text.get_instance(&instance->cid).position;
@@ -1164,7 +1159,6 @@ struct text_t {
       return 0;
     };
     vfip.keyboard_cb = [this, i](const loco_t::keyboard_data_t& kd) -> int {
-      pile_t* pile = OFFSETLESS(OFFSETLESS(kd.vfi, loco_t, vfi_var_name), pile_t, loco_var_name);
       auto* instance = get_fgm()->text.instances[i];
       switch (kd.key) {
       case fan::key_delete: {
@@ -1461,7 +1455,6 @@ struct hitbox_t {
       if (ii_d.button_state == fan::mouse_state::release) {
         ii_d.flag->ignore_move_focus_check = false;
       }
-      pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi_var_name), pile_t, loco_var_name);
 
       if (ii_d.button_state == fan::mouse_state::release) {
         release();
@@ -1490,7 +1483,6 @@ struct hitbox_t {
         return 0;
     };
     vfip.keyboard_cb = [this, instance = instances[i]](const loco_t::keyboard_data_t& kd) -> int {
-      pile_t* pile = OFFSETLESS(OFFSETLESS(kd.vfi, loco_t, vfi_var_name), pile_t, loco_var_name);
       switch (kd.key) {
       case fan::key_delete: {
         if (kd.keyboard_state != fan::keyboard_state::press) {

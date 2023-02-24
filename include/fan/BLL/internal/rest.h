@@ -351,9 +351,11 @@ _BLL_POFTWBIT(GetNodeByReference)
   #endif
 ){
   #if BLL_set_debug_InvalidAction == 1
-    if(NodeReference >= _BLL_GetList->nodes.Current){
-      PR_abort();
-    }
+    #if BLL_set_StoreFormat == 0
+      if(NodeReference >= _BLL_GetList->NodeList.Current){
+        fan::throw_error("");
+      }
+    #endif
   #endif
   #if defined(BLL_set_MultipleType_Sizes)
     _P(Node_t) *Node = _BLL_POFTWBIT(_GetNodeByReference)(_BLL_PBLLTFFC NodeReference, PointerIndex);
@@ -373,7 +375,7 @@ _BLL_POFTWBIT(GetNodeByReference)
         }
       #endif
       if(_BLL_POFTWBIT(IsNodeUnlinked)(_BLL_PBLLTFFC Node)){
-        PR_abort();
+        fan::throw_error("");
       }
     }while(0);
   #endif
@@ -618,7 +620,7 @@ _BLL_POFTWBIT(NewNode)
     _BLL_POFTWBIT(_gln)(_BLL_PBLLTFFC NodeReference)->PrevNodeReference = dstNodeReference;
     _BLL_POFTWBIT(_gln)(_BLL_PBLLTFFC dstNodeReference)->NextNodeReference = NodeReference;
     #if BLL_set_debug_InvalidAction == 1
-      _BLL_POFTWBIT(_gln)(_BLL_PBLLTFFC dstNodeReference)->PrevNodeReference = 0;
+      //_BLL_POFTWBIT(_gln)(_BLL_PBLLTFFC dstNodeReference)->PrevNodeReference = 0;
     #endif
     _BLL_GetList->dst = NodeReference;
     _BLL_POFTWBIT(_Node_Construct)(_BLL_PBLLTFFC dstNodeReference);
@@ -635,7 +637,7 @@ _BLL_POFTWBIT(NewNode)
     _BLL_POFTWBIT(_gln)(_BLL_PBLLTFFC NodeReference)->PrevNodeReference = dstNodeReference;
     _BLL_POFTWBIT(_gln)(_BLL_PBLLTFFC dstNodeReference)->NextNodeReference = NodeReference;
     #if BLL_set_debug_InvalidAction == 1
-      _BLL_POFTWBIT(_gln)(_BLL_PBLLTFFC dstNodeReference)->PrevNodeReference = 0;
+      //_BLL_POFTWBIT(_gln)(_BLL_PBLLTFFC dstNodeReference)->PrevNodeReference = 0;
     #endif
     _BLL_GetList->dst = NodeReference;
     _BLL_POFTWBIT(_Node_Construct)(_BLL_PBLLTFFC dstNodeReference);
@@ -715,16 +717,16 @@ _BLL_POFTWBIT(NewNode)
   ){
     #if BLL_set_debug_InvalidAction >= 1
       if(NodeReference == _BLL_GetList->src){
-        PR_abort();
+        fan::throw_error("");
       }
       if(NodeReference == _BLL_GetList->dst){
-        PR_abort();
+        fan::throw_error("");
       }
     #endif
     _P(Node_t) *Node = _BLL_POFTWBIT(gln)(_BLL_PBLLTFFC NodeReference);
     #if BLL_set_debug_InvalidAction >= 1
       if(_BLL_POFTWBIT(IsNodeUnlinked)(_BLL_PBLLTFFC Node)){
-        PR_abort();
+        fan::throw_error("");
       }
     #endif
     #if BLL_set_SafeNext

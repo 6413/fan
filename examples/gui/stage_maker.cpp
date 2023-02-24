@@ -3,7 +3,7 @@
 #ifndef FAN_INCLUDE_PATH
   #define FAN_INCLUDE_PATH C:/libs/fan/include
 #endif
-#define fan_debug 0
+#define fan_debug 1
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
 #define fan_windows_subsystem fan_windows_subsystem_windows
@@ -30,7 +30,7 @@ pile_t* pile;
 #define stage_maker_var_name stage_maker
 #define fgm_build_stage_maker
 #include _FAN_PATH(graphics/gui/stage_maker/maker.h)
-stage_maker_t stage_maker_var_name;
+stage_maker_t* stage_maker_var_name;
 
 int main(int argc, char** argv) {
   if (argc < 2) {
@@ -39,10 +39,12 @@ int main(int argc, char** argv) {
 
   pile = new pile_t;
 
-  stage_maker.open(argv[1]);
+  stage_maker_var_name = new stage_maker_t;
+
+  stage_maker_var_name->open(argv[1]);
 
   pile->loco.set_vsync(false);
-  pile->loco.get_window()->set_max_fps(165);
+  pile->loco.get_window()->set_max_fps(10);
   //pile->loco.get_window()->set_max_fps(5);
   pile->loco.loop([&] {
     //pile->loco.get_fps();
