@@ -97,9 +97,9 @@ void main() {
 
   vec2 rotated = vec4(m * vec4(rp * get_instance().size, 0, 1)).xy;
 
-  view_mat[3].xy *= 1 - get_instance().parallax_factor;
+  //view_mat[3].xy *= 1 - get_instance().parallax_factor;
 
-  vec2 p = get_instance().position.xy;
+  vec2 p = get_instance().position.xy ;//* (1 - get_instance().parallax_factor);
   //p.x = (p.x - window_size.x / 2) * get_instance().parallax_factor;
   //p += ((get_instance().parallax_factor * -(view_mat[3].xy)));
   gl_Position = projection * view_mat * vec4(rotated + p, get_instance().position.z, 1);

@@ -264,7 +264,6 @@ struct text_box_t {
   }
   void erase(fan::graphics::cid_t* cid) {
     loco_t* loco = get_loco();
-    invalidate_focus(cid);
     // what if you remove other thing whats not focused
     invalidate_cursor();
     auto& ri = sb_get_ri(cid);
