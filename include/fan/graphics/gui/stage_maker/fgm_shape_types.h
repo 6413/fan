@@ -971,49 +971,49 @@ struct text_t {
     };
     get_fgm()->properties_nrs.push_back(get_fgm()->text_box_menu.push_back(nr, p));
 
-    //f32_t size = pile->loco.text.get_font_size(&instance->cid);
-    //p.text = fan::format("{:.2f}", size);
-    //p.text_value = "";
-    //p.keyboard_cb = [this, instance, nr](const loco_t::keyboard_data_t& d) -> int {
-    //  if (d.key != fan::key_enter) {
-    //    return 0;
-    //  }
-    //  if (d.keyboard_state != fan::keyboard_state::press) {
-    //    return 0;
-    //  }
+    f32_t size = pile->loco.text.get_font_size(&instance->cid);
+    p.text = fan::format("{:.2f}", size);
+    p.text_value = "";
+    p.keyboard_cb = [this, instance, nr](const loco_t::keyboard_data_t& d) -> int {
+      if (d.key != fan::key_enter) {
+        return 0;
+      }
+      if (d.keyboard_state != fan::keyboard_state::press) {
+        return 0;
+      }
 
-    //  auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[get_fgm()->properties_nrs[1]];
-    //  auto text = pile->loco.text_box.get_text(&it.cid);
+      auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[get_fgm()->properties_nrs[1]];
+      auto text = pile->loco.text_box.get_text(&it.cid);
 
-    //  f32_t size;
-    //  std::istringstream iss(fan::string(text).c_str());
-    //  std::size_t i = 0;
-    //  while (iss >> size) { iss.ignore(); }
+      f32_t size;
+      std::istringstream iss(fan::string(text).c_str());
+      std::size_t i = 0;
+      while (iss >> size) { iss.ignore(); }
 
-    //  pile->loco.text.set_font_size(&instance->cid, size);
+      pile->loco.text.set_font_size(&instance->cid, size);
 
-    //  return 0;
-    //};
-    //get_fgm()->properties_nrs.push_back(get_fgm()->text_box_menu.push_back(nr, p));
+      return 0;
+    };
+    get_fgm()->properties_nrs.push_back(get_fgm()->text_box_menu.push_back(nr, p));
 
-    //p.text = pile->loco.text.get_instance(&instance->cid).text;
-    //p.text_value = "";
-    //p.keyboard_cb = [this, instance, nr](const loco_t::keyboard_data_t& d) -> int {
-    //  if (d.key != fan::key_enter) {
-    //    return 0;
-    //  }
-    //  if (d.keyboard_state != fan::keyboard_state::press) {
-    //    return 0;
-    //  }
+    p.text = pile->loco.text.get_instance(&instance->cid).text;
+    p.text_value = "";
+    p.keyboard_cb = [this, instance, nr](const loco_t::keyboard_data_t& d) -> int {
+      if (d.key != fan::key_enter) {
+        return 0;
+      }
+      if (d.keyboard_state != fan::keyboard_state::press) {
+        return 0;
+      }
 
-    //  auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[get_fgm()->properties_nrs[2]];
-    //  auto text = pile->loco.text_box.get_text(&it.cid);
+      auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[get_fgm()->properties_nrs[2]];
+      auto text = pile->loco.text_box.get_text(&it.cid);
 
-    //  pile->loco.text.set_text(&instance->cid, text);
+      pile->loco.text.set_text(&instance->cid, text);
 
-    //  return 0;
-    //};
-    //get_fgm()->properties_nrs.push_back(get_fgm()->text_box_menu.push_back(nr, p));
+      return 0;
+    };
+    get_fgm()->properties_nrs.push_back(get_fgm()->text_box_menu.push_back(nr, p));
 
     //
     //get_fgm()->button_menu.clear();
