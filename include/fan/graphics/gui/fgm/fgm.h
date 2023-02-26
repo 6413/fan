@@ -29,11 +29,6 @@ struct fgm_t {
 		static constexpr uint32_t resize = 1 << 1;
 	};
 
-	struct corners_t {
-		static constexpr uint32_t count = 8;
-		fan::vec2 corners[count];
-	};
-
   #include "common.h"
 
 	static constexpr fan::vec2 button_size = fan::vec2(0.3, 0.08);
@@ -84,21 +79,6 @@ struct fgm_t {
     pile->loco.vfi.invalidate_focus_mouse();
     pile->loco.vfi.invalidate_focus_keyboard();
     invalidate_right_click_menu();
-	}
-
-	corners_t get_corners(const fan::vec2& position, const fan::vec2& size) {
-		fan::vec2 c = position;
-		fan::vec2 s = size;
-		corners_t corners;
-		corners.corners[0] = c - s;
-		corners.corners[1] = fan::vec2(c.x, c.y - s.y);
-		corners.corners[2] = fan::vec2(c.x + s.x, c.y - s.y);
-		corners.corners[3] = fan::vec2(c.x - s.x, c.y);
-		corners.corners[4] = fan::vec2(c.x + s.x, c.y);
-		corners.corners[5] = fan::vec2(c.x - s.x, c.y + s.y);
-		corners.corners[6] = fan::vec2(c.x, c.y + s.y);
-		corners.corners[7] = fan::vec2(c.x + s.x, c.y + s.y);
-		return corners;
 	}
 
 	#if defined(fgm_build_stage_maker)
@@ -494,10 +474,7 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
         auto& it = pile->loco.menu_maker_text_box.instances[global_menu_nr].base.instances[global_menu_ids[0]];
         auto text = pile->loco.text_box.get_text(&it.cid);
 
-        fan::vec4 size;
-        std::istringstream iss(fan::string(text).c_str());
-        std::size_t i = 0;
-        while (iss >> size[i++]) { iss.ignore(); }
+        fan::vec4 size = fan::string_to<fan::vec4>(text);
         matrices[viewport_area::editor].set_ortho(
           &pile->loco,
           fan::vec2(size[0], size[1]),

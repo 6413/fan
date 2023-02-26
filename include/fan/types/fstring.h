@@ -516,4 +516,18 @@ namespace fan {
   //  return fmt::vformat(fmt::wstring_view(fmt), fmt::make_wformat_args(args...)).c_str();
   //}
 
+  template <typename T>
+  T string_to(const fan::string& fstring) {
+    T out;
+    std::istringstream iss(fstring);
+    if constexpr (has_bracket_operator<T>::value) {
+      std::size_t i = 0;
+      while (iss >> out[i++]) { iss.ignore(); }
+    }
+    else {
+      while (iss >> out) { iss.ignore(); }
+    }
+    return out;
+  }
+
 }

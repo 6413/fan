@@ -203,16 +203,6 @@ void update(auto& loco){
     stage_name.c_str(),
     get_file_fullpath(stage_name).c_str());
 		stage_h_str.insert(struct_stage_end, append_struct.c_str());
-
-		//static constexpr fan::string_view find_vector("};\n};");
-		//auto struct_vector_end = stage_h_str.find(find_vector);
-		//if (struct_vector_end == fan::string::npos) {
-		//	fan::throw_error("corrupted stage.h");
-		//}
-
-		//// problem: adds ',' to end
-		//fan::string append_vector = fan::string("   &") + stage_name + ",\n  ";
-		//stage_h_str.insert(struct_vector_end, append_vector);
 	};
 
 	fan::string get_selected_name(
@@ -272,27 +262,6 @@ void update(auto& loco){
     };
 
     options_ids.push_back(pile->loco.menu_maker_button.push_back(instances[stage_t::stage_options].menu_id, p));
-
-    //p.theme = &erase_theme;
-    //p.text = "Erase";
-    //p.mouse_button_cb = [this, pile](const loco_t::mouse_button_data_t& mb) -> int {
-
-    //  use_key_lambda(fan::mouse_left, fan::mouse_state::release);
-
-    //  pile->loco.menu_maker_button.erase_and_update(
-    //    instances[stage_t::stage_instance].menu_id,
-    //    pile->loco.menu_maker_button.get_selected_id(instances[stage_t::stage_instance].menu_id)
-    //  );
-    //  pile->loco.menu_maker_button.erase_button_soft(instances[stage_t::stage_options].menu_id, *(options_ids.end() - 1));
-    //  pile->loco.menu_maker_button.set_selected(instances[stage_t::stage_options].menu_id, nullptr);
-    //  pile->loco.menu_maker_button.set_selected(instances[stage_t::stage_instance].menu_id, nullptr);
-
-    //  return 1;
-    //};
-
-    //// keep this push back at last since options.end() - 1 erase
-    //options_ids.push_back(pile->loco.menu_maker_button.push_back(instances[stage_t::stage_options].menu_id, p));
-		//current_y = old_y;
 	}
 
   void create_stage(const fan::string& stage_name){

@@ -55,10 +55,7 @@ struct button_t {
 
       auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[get_fgm()->properties_nrs[0]];
       auto text = pile->loco.text_box.get_text(&it.cid);
-      fan::vec3 position;
-      std::istringstream iss(fan::string(text).c_str());
-      std::size_t i = 0;
-      while (iss >> position[i++]) { iss.ignore(); }
+      fan::vec3 position = fan::string_to<fan::vec3>(text);
 
       pile->loco.button.set_position(&instance->cid, position);
       pile->loco.button.set_depth(&instance->cid, position.z);
@@ -80,10 +77,7 @@ struct button_t {
 
       auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[get_fgm()->properties_nrs[1]];
       auto text = pile->loco.text_box.get_text(&it.cid);
-      fan::vec2 size;
-      std::istringstream iss(fan::string(text).c_str());
-      std::size_t i = 0;
-      while (iss >> size[i++]) { iss.ignore(); }
+      fan::vec2 size = fan::string_to<fan::vec2>(text);
 
       pile->loco.button.set(&instance->cid, &loco_t::button_t::vi_t::size, size);
 
@@ -333,10 +327,7 @@ struct sprite_t {
       auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[get_fgm()->properties_nrs[0]];
       auto text = pile->loco.text_box.get_text(&it.cid);
 
-      fan::vec3 position;
-      std::istringstream iss(fan::string(text).c_str());
-      std::size_t i = 0;
-      while (iss >> position[i++]) { iss.ignore(); }
+      fan::vec3 position = fan::string_to<fan::vec3>(text);
 
       //f32_t parallax_factor = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::parallax_factor);
       // EDIT PARALAX HERE
@@ -362,10 +353,7 @@ struct sprite_t {
       auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[get_fgm()->properties_nrs[1]];
       auto text = pile->loco.text_box.get_text(&it.cid);
 
-      fan::vec2 size;
-      std::istringstream iss(fan::string(text).c_str());
-      std::size_t i = 0;
-      while (iss >> size[i++]) { iss.ignore(); }
+      fan::vec2 size = fan::string_to<fan::vec2>(text);
 
       pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::size, size);
       pile->loco.vfi.shape_list[instance->vfi_id].shape_data.shape.rectangle.size = size;
@@ -413,9 +401,7 @@ struct sprite_t {
       auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[get_fgm()->properties_nrs[3]];
       auto text = pile->loco.text_box.get_text(&it.cid);
 
-      f32_t parallax;
-      std::istringstream iss(fan::string(text).c_str());
-      while (iss >> parallax) { iss.ignore(); }
+      f32_t parallax = fan::string_to<f32_t>(text);
 
       pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::parallax_factor, parallax);
       return 0;
@@ -659,10 +645,7 @@ struct text_t {
       auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[get_fgm()->properties_nrs[0]];
       auto text = pile->loco.text_box.get_text(&it.cid);
 
-      fan::vec3 position;
-      std::istringstream iss(fan::string(text).c_str());
-      std::size_t i = 0;
-      while (iss >> position[i++]) { iss.ignore(); }
+      fan::vec3 position = fan::string_to<fan::vec3>(text);
 
       pile->loco.text.set_position(&instance->cid, position);
       pile->loco.text.set_depth(&instance->cid, position.z);
@@ -685,10 +668,7 @@ struct text_t {
       auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[get_fgm()->properties_nrs[1]];
       auto text = pile->loco.text_box.get_text(&it.cid);
 
-      f32_t size;
-      std::istringstream iss(fan::string(text).c_str());
-      std::size_t i = 0;
-      while (iss >> size) { iss.ignore(); }
+      f32_t size = fan::string_to<f32_t>(text);
 
       pile->loco.text.set_font_size(&instance->cid, size);
 
@@ -957,10 +937,7 @@ struct hitbox_t {
       auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[get_fgm()->properties_nrs[0]];
       auto text = pile->loco.text_box.get_text(&it.cid);
 
-      fan::vec3 position;
-      std::istringstream iss(fan::string(text).c_str());
-      std::size_t i = 0;
-      while (iss >> position[i++]) { iss.ignore(); }
+      fan::vec3 position = fan::string_to<fan::vec3>(text);
 
       pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::position, position);
       pile->loco.sprite.sb_set_depth(&instance->cid, position.z);
@@ -984,10 +961,7 @@ struct hitbox_t {
       auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[get_fgm()->properties_nrs[1]];
       auto text = pile->loco.text_box.get_text(&it.cid);
 
-      fan::vec2 size;
-      std::istringstream iss(fan::string(text).c_str());
-      std::size_t i = 0;
-      while (iss >> size[i++]) { iss.ignore(); }
+      fan::vec2 size = fan::string_to<fan::vec2>(text);
 
       pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::size, size);
 
@@ -1009,9 +983,7 @@ struct hitbox_t {
       auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[get_fgm()->properties_nrs[2]];
       auto text = pile->loco.text_box.get_text(&it.cid);
 
-      uint32_t shape_type;
-      std::istringstream iss(fan::string(text).c_str());
-      while (iss >> shape_type) { iss.ignore(); }
+      uint32_t shape_type = fan::string_to<uint32_t>(text);
 
       instance->shape_type = shape_type;
 

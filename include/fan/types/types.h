@@ -533,6 +533,25 @@ namespace fan {
 		}
 	}
 
+
+  template<typename T>
+  struct has_bracket_operator
+  {
+    template<typename U>
+    static constexpr decltype(std::declval<U>()[0], bool{}) test(int)
+    {
+      return true;
+    }
+
+    template<typename>
+    static constexpr bool test(...)
+    {
+      return false;
+    }
+
+    static constexpr bool value = test<T>(0);
+  };
+
 }
 
 
