@@ -1,5 +1,10 @@
 struct empty_t {
-
+  uint32_t from_string(const fan::string&) {
+    return 0;
+  }
+  fan::string to_string() const {
+    return "";
+  }
 };
 
 #if defined(fgm_button)
@@ -127,7 +132,7 @@ struct button_t {
         case fan::mouse_scroll_up: {
           if (get_fgm()->action_flag & action::move) {
             fan::vec3 ps = pile->loco.button.get_button(&instance->cid, &loco_t::button_t::vi_t::position);
-            ps.z += 0.5;
+            ps.z += 1;
             pile->loco.button.set_position(&instance->cid, ps);
             pile->loco.button.set_depth(&instance->cid, ps.z);
             get_fgm()->button.open_properties(instance);
@@ -137,7 +142,7 @@ struct button_t {
         case fan::mouse_scroll_down: {
           if (get_fgm()->action_flag & action::move) {
             fan::vec3 ps = pile->loco.button.get_button(&instance->cid, &loco_t::button_t::vi_t::position);
-            ps.z -= 0.5;
+            ps.z -= 1;
             ps.z = fan::clamp((f32_t)ps.z, (f32_t)0.f, (f32_t)ps.z);
             pile->loco.button.set_position(&instance->cid, ps);
             pile->loco.button.set_depth(&instance->cid, ps.z);
@@ -285,17 +290,31 @@ struct sprite_t {
   struct properties_t : loco_t::sprite_t::properties_t {
     fan::string id;
     fan::string texturepack_name;
+    #if defined(fgm_build_model_maker)
+    uint32_t group_id = 0;
+    #endif
   };
   uint8_t holding_special_key = 0;
 
   #define fgm_shape_name sprite
   #define fgm_shape_manual_properties
-  #define fgm_shape_instance_data \
-    fan::graphics::cid_t cid; \
-    loco_t::vfi_t::shape_id_t vfi_id; \
-    uint16_t shape; \
-    fan::string texturepack_name; \
-    fan::string id;
+  #if defined(fgm_build_model_maker)
+    #define fgm_shape_instance_data \
+      fan::graphics::cid_t cid; \
+      loco_t::vfi_t::shape_id_t vfi_id; \
+      uint16_t shape; \
+      fan::string texturepack_name; \
+      fan::string id; \
+      uint32_t group_id;
+  #else
+    #define fgm_shape_instance_data \
+      fan::graphics::cid_t cid; \
+      loco_t::vfi_t::shape_id_t vfi_id; \
+      uint16_t shape; \
+      fan::string texturepack_name; \
+      fan::string id;
+  #endif
+  
   #include "shape_builder.h"
 
   void close_properties() {
@@ -419,6 +438,46 @@ struct sprite_t {
       return 0;
     };
     get_fgm()->properties_nrs.push_back(get_fgm()->text_box_menu.push_back(nr, p));
+
+    p.text = instance->id;
+    p.keyboard_cb = [this, instance, nr](const loco_t::keyboard_data_t& d) -> int {
+      if (d.key != fan::key_enter) {
+        return 0;
+      }
+      if (d.keyboard_state != fan::keyboard_state::press) {
+        return 0;
+      }
+
+      auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[get_fgm()->properties_nrs[4]];
+      auto text = pile->loco.text_box.get_text(&it.cid);
+
+      if (does_id_exist(this, text)) {
+        fan::print("already existing id, skipping");
+        return 0;
+      }
+
+      instance->id = text;
+
+      return 0;
+    };
+    get_fgm()->properties_nrs.push_back(get_fgm()->text_box_menu.push_back(nr, p));
+
+    p.text = std::to_string(instance->group_id);
+    p.keyboard_cb = [this, instance, nr](const loco_t::keyboard_data_t& d) -> int {
+      if (d.key != fan::key_enter) {
+        return 0;
+      }
+      if (d.keyboard_state != fan::keyboard_state::press) {
+        return 0;
+      }
+
+      auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[get_fgm()->properties_nrs[5]];
+      auto text = pile->loco.text_box.get_text(&it.cid);
+
+      instance->group_id = fan::string_to<uint32_t>(text);
+      return 0;
+    };
+    get_fgm()->properties_nrs.push_back(get_fgm()->text_box_menu.push_back(nr, p));
   }
   void push_back(properties_t& p) {
     shape_builder_push_back();
@@ -434,13 +493,18 @@ struct sprite_t {
       instances[i]->id = p.id;
     }
 
+    #if defined(fgm_build_model_maker)
+      instances[i]->group_id = p.group_id;
+    #endif
+
+
     loco_t::vfi_t::properties_t vfip;
     vfip.mouse_button_cb = [this, instance = instances[i]](const loco_t::mouse_button_data_t& ii_d) -> int {
       switch (ii_d.button) {
         case fan::mouse_scroll_up: {
           if (get_fgm()->action_flag & action::move) {
             fan::vec3 ps = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::position);
-            ps.z += 0.5;
+            ps.z += 1;
             pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::position, ps);
             pile->loco.sprite.sb_set_depth(&instance->cid, ps.z);
             pile->loco.vfi.shape_list[instance->vfi_id].shape_data.depth = ps.z;
@@ -451,7 +515,7 @@ struct sprite_t {
         case fan::mouse_scroll_down: {
           if (get_fgm()->action_flag & action::move) {
             fan::vec3 ps = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::position);
-            ps.z -= 0.5;
+            ps.z -= 1;
             ps.z = fan::clamp((f32_t)ps.z, (f32_t)0.f, (f32_t)ps.z);
             pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::position, ps);
             pile->loco.sprite.sb_set_depth(&instance->cid, ps.z);
@@ -555,6 +619,9 @@ struct sprite_t {
       data.parallax_factor = pile->loco.sprite.get(&it->cid, &loco_t::sprite_t::vi_t::parallax_factor);
       data.texturepack_name = it->texturepack_name;
       data.id = it->id;
+      #if defined(fgm_build_model_maker)
+      data.group_id = it->group_id;
+      #endif
       f += shape_to_string(data);
     }
     return f;
@@ -571,7 +638,7 @@ struct sprite_t {
       stage_maker_shape_format::shape_sprite_t data;
       data.iterate_masterpiece([&f, &off](auto& o) {
         o = fan::read_data<std::remove_reference_t<decltype(o)>>(f, off);
-        });
+      });
       sprite_t::properties_t sp;
       sp.position = data.position;
       sp.size = data.size;
@@ -590,6 +657,9 @@ struct sprite_t {
       sp.viewport = &get_fgm()->viewport[viewport_area::editor];
       sp.texturepack_name = data.texturepack_name;
       sp.id = data.id;
+      #if defined(fgm_build_model_maker)
+      sp.group_id = data.group_id;
+      #endif
       push_back(sp);
     }
     return off;
@@ -743,9 +813,10 @@ struct text_t {
         case fan::mouse_scroll_up: {
           if (get_fgm()->action_flag & action::move) {
             fan::vec3 ps = pile->loco.text.get_instance(&instance->cid).position;
-            ps.z += 0.5;
+            ps.z += 1;
             pile->loco.text.set_position(&instance->cid, ps);
             pile->loco.text.set_depth(&instance->cid, ps.z);
+            pile->loco.vfi.shape_list[instance->vfi_id].shape_data.depth = ps.z;
             open_properties(instance);
           }
           return 0;
@@ -753,10 +824,11 @@ struct text_t {
         case fan::mouse_scroll_down: {
           if (get_fgm()->action_flag & action::move) {
             fan::vec3 ps = pile->loco.text.get_instance(&instance->cid).position;
-            ps.z -= 0.5;
+            ps.z -= 1;
             ps.z = fan::clamp((f32_t)ps.z, (f32_t)0.f, (f32_t)ps.z);
             pile->loco.text.set_position(&instance->cid, ps);
             pile->loco.text.set_depth(&instance->cid, ps.z);
+            pile->loco.vfi.shape_list[instance->vfi_id].shape_data.depth = ps.z;
             get_fgm()->text.open_properties(instance);
           }
           return 0;
@@ -1035,9 +1107,10 @@ struct hitbox_t {
         case fan::mouse_scroll_up: {
           if (get_fgm()->action_flag & action::move) {
             fan::vec3 ps = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::position);
-            ps.z += 0.5;
+            ps.z += 1;
             pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::position, ps);
             pile->loco.sprite.sb_set_depth(&instance->cid, ps.z);
+            pile->loco.vfi.shape_list[instance->vfi_id].shape_data.depth = ps.z;
             open_properties(instance);
           }
           return 0;
@@ -1045,10 +1118,11 @@ struct hitbox_t {
         case fan::mouse_scroll_down: {
           if (get_fgm()->action_flag & action::move) {
             fan::vec3 ps = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::position);
-            ps.z -= 0.5;
+            ps.z -= 1;
             ps.z = fan::clamp((f32_t)ps.z, (f32_t)0.f, (f32_t)ps.z);
             pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::position, ps);
             pile->loco.sprite.sb_set_depth(&instance->cid, ps.z);
+            pile->loco.vfi.shape_list[instance->vfi_id].shape_data.depth = ps.z;
             open_properties(instance);
           }
           return 0;
@@ -1217,18 +1291,32 @@ struct mark_t {
   struct properties_t : loco_t::sprite_t::properties_t {
     loco_t::vfi_t::shape_type_t vfi_type;
     fan::string id;
+    #if defined(fgm_build_model_maker)
+    uint32_t group_id = 0;
+    #endif
   };
 
   uint8_t holding_special_key = 0;
 
   #define fgm_shape_name mark
   #define fgm_shape_manual_properties
+  #if defined(fgm_build_model_maker)
+    #define fgm_shape_instance_data \
+        fan::graphics::cid_t cid; \
+        loco_t::vfi_t::shape_id_t vfi_id; \
+        uint16_t shape; \
+        fan::string id; \
+        loco_t::vfi_t::shape_type_t shape_type; \
+        uint32_t group_id;
+  #else
+  // make inherit sometime from shape exports
   #define fgm_shape_instance_data \
         fan::graphics::cid_t cid; \
         loco_t::vfi_t::shape_id_t vfi_id; \
         uint16_t shape; \
         fan::string id; \
         loco_t::vfi_t::shape_type_t shape_type;
+  #endif
   #include "shape_builder.h"
 
   void close_properties() {
@@ -1301,7 +1389,45 @@ struct mark_t {
 
       pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::size, size);
 
+      return 0;
+    };
+    get_fgm()->properties_nrs.push_back(get_fgm()->text_box_menu.push_back(nr, p));
 
+    p.text = instance->id;
+    p.keyboard_cb = [this, instance, nr](const loco_t::keyboard_data_t& d) -> int {
+      if (d.key != fan::key_enter) {
+        return 0;
+      }
+      if (d.keyboard_state != fan::keyboard_state::press) {
+        return 0;
+      }
+
+      auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[get_fgm()->properties_nrs[2]];
+      auto text = pile->loco.text_box.get_text(&it.cid);
+
+      if (does_id_exist(this, text)) {
+        fan::print("already existing id, skipping");
+        return 0;
+      }
+
+      instance->id = text;
+      return 0;
+    };
+    get_fgm()->properties_nrs.push_back(get_fgm()->text_box_menu.push_back(nr, p));
+
+    p.text = std::to_string(instance->group_id);
+    p.keyboard_cb = [this, instance, nr](const loco_t::keyboard_data_t& d) -> int {
+      if (d.key != fan::key_enter) {
+        return 0;
+      }
+      if (d.keyboard_state != fan::keyboard_state::press) {
+        return 0;
+      }
+
+      auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[get_fgm()->properties_nrs[3]];
+      auto text = pile->loco.text_box.get_text(&it.cid);
+
+      instance->group_id = fan::string_to<uint32_t>(text);
       return 0;
     };
     get_fgm()->properties_nrs.push_back(get_fgm()->text_box_menu.push_back(nr, p));
@@ -1320,15 +1446,20 @@ struct mark_t {
       instances[i]->id = p.id;
     }
 
+    #if defined(fgm_build_model_maker)
+    instances[i]->group_id = p.group_id;
+    #endif
+
     loco_t::vfi_t::properties_t vfip;
     vfip.mouse_button_cb = [this, instance = instances[i]](const loco_t::mouse_button_data_t& ii_d) -> int {
       switch (ii_d.button) {
         case fan::mouse_scroll_up: {
           if (get_fgm()->action_flag & action::move) {
             fan::vec3 ps = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::position);
-            ps.z += 0.5;
+            ps.z += 1;
             pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::position, ps);
             pile->loco.sprite.sb_set_depth(&instance->cid, ps.z);
+            pile->loco.vfi.shape_list[instance->vfi_id].shape_data.depth = ps.z;
             open_properties(instance);
           }
           return 0;
@@ -1336,10 +1467,11 @@ struct mark_t {
         case fan::mouse_scroll_down: {
           if (get_fgm()->action_flag & action::move) {
             fan::vec3 ps = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::position);
-            ps.z -= 0.5;
+            ps.z -= 1;
             ps.z = fan::clamp((f32_t)ps.z, (f32_t)0.f, (f32_t)ps.z);
             pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::position, ps);
             pile->loco.sprite.sb_set_depth(&instance->cid, ps.z);
+            pile->loco.vfi.shape_list[instance->vfi_id].shape_data.depth = ps.z;
             open_properties(instance);
           }
           return 0;
@@ -1439,6 +1571,9 @@ struct mark_t {
       stage_maker_shape_format::shape_mark_t data;
       data.position = pile->loco.sprite.get(&it->cid, &loco_t::sprite_t::vi_t::position);
       data.id = it->id;
+      #if defined(fgm_build_model_maker)
+      data.group_id = it->group_id;
+      #endif
       f += shape_to_string(data);
     }
     return f;
@@ -1458,10 +1593,14 @@ struct mark_t {
         });
       properties_t sp;
       sp.position = data.position;
+      sp.size = fan::vec2(0.1, 0.1);
       sp.image = &get_fgm()->mark_image;
       sp.matrices = &get_fgm()->matrices[viewport_area::editor];
       sp.viewport = &get_fgm()->viewport[viewport_area::editor];
       sp.id = data.id;
+      #if defined(fgm_build_model_maker)
+      sp.group_id = data.group_id;
+      #endif
       push_back(sp);
     }
     return off;

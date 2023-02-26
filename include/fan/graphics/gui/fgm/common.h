@@ -33,13 +33,24 @@ struct stage_maker_shape_format_0_1_1 {
     )
   };
   struct shape_sprite_t {
+    #if defined(fgm_build_model_maker)
     fan_masterpiece_make(
       (fan::vec3) position,
       (fan::vec2) size,
       (f32_t) parallax_factor,
       (fan::string) texturepack_name,
-      (fan::string) id
+      (fan::string) id,
+      (uint32_t) group_id
     )
+    #else
+    fan_masterpiece_make(
+      (fan::vec3)position,
+      (fan::vec2)size,
+      (f32_t)parallax_factor,
+      (fan::string)texturepack_name,
+      (fan::string)id
+    )
+    #endif
   };
   struct shape_text_t {
     fan_masterpiece_make(
@@ -58,10 +69,18 @@ struct stage_maker_shape_format_0_1_1 {
     )
   };
   struct shape_mark_t {
+    #if defined(fgm_build_model_maker)
+    fan_masterpiece_make(
+      (fan::vec3)position,
+      (fan::string)id,
+      (uint32_t) group_id
+    )
+    #else
     fan_masterpiece_make(
       (fan::vec3)position,
       (fan::string)id
     )
+    #endif
   };
 };
 
