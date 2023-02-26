@@ -244,6 +244,7 @@ struct loco_t {
     static constexpr _t text = 2;
     static constexpr _t hitbox = 3;
     static constexpr _t line = 4;
+    static constexpr _t mark = 5;
   };
 
   struct draw_t {
@@ -528,7 +529,7 @@ public:
 
   #if defined(loco_tp)
   #if defined(loco_opengl)
-  #include _FAN_PATH(tp/tp.h)
+  #include _FAN_PATH(tp/tp0.h)
   #endif
   #endif
 
@@ -1001,7 +1002,8 @@ public:
 
     lp.internal_format = fan::opengl::GL_R8UI;
     lp.format = fan::opengl::GL_RED_INTEGER; // GL_RGB_INTEGER for vec3
-    lp.filter = fan::opengl::GL_NEAREST;
+    lp.min_filter = fan::opengl::GL_NEAREST;
+    lp.mag_filter = fan::opengl::GL_NEAREST;
     lp.type = fan::opengl::GL_UNSIGNED_BYTE;
 
     color_buffers[1].load(this, ii, lp);
@@ -1015,7 +1017,8 @@ public:
     lp.internal_format = fan::opengl::GL_RGBA;
     lp.format = fan::opengl::GL_RGBA;
     lp.type = fan::opengl::GL_FLOAT;
-    lp.filter = fan::opengl::GL_LINEAR;
+    lp.min_filter = fan::opengl::GL_LINEAR;
+    lp.mag_filter = fan::opengl::GL_LINEAR;
 
     color_buffers[0].load(this, ii, lp);
 
@@ -1045,7 +1048,8 @@ public:
 
       lp.internal_format = fan::opengl::GL_R8UI;
       lp.format = fan::opengl::GL_RED_INTEGER; // GL_RGB_INTEGER for vec3
-      lp.filter = fan::opengl::GL_NEAREST;
+      lp.min_filter = fan::opengl::GL_NEAREST;
+      lp.mag_filter = fan::opengl::GL_NEAREST;
       lp.type = fan::opengl::GL_UNSIGNED_BYTE;
 
       color_buffers[1].reload_pixels(this, ii, lp);
@@ -1059,7 +1063,8 @@ public:
       lp.internal_format = fan::opengl::GL_RGBA;
       lp.format = fan::opengl::GL_RGBA;
       lp.type = fan::opengl::GL_FLOAT;
-      lp.filter = fan::opengl::GL_LINEAR;
+      lp.min_filter = fan::opengl::GL_LINEAR;
+      lp.mag_filter = fan::opengl::GL_LINEAR;
 
       color_buffers[0].reload_pixels(this, ii, lp);
 

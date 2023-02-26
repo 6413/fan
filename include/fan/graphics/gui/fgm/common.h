@@ -57,6 +57,12 @@ struct stage_maker_shape_format_0_1_1 {
       (fan::string) id
     )
   };
+  struct shape_mark_t {
+    fan_masterpiece_make(
+      (fan::vec3)position,
+      (fan::string)id
+    )
+  };
 };
 
 using stage_maker_shape_format = stage_maker_shape_format_0_1_1;

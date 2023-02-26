@@ -248,6 +248,7 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
 				rcm_op.position = mb.position + pile->loco.menu_maker_button.get_button_measurements(rcm_op.gui_size);
 				rcm_op.position.z = right_click_z_depth;
 				right_click_menu_nr = pile->loco.menu_maker_button.push_menu(rcm_op);
+        #if defined(fgm_button)
         push_menu(mb, {
           .text = "button",
           .mouse_button_cb = [this](const loco_t::mouse_button_data_t& ii_d) -> int {
@@ -294,6 +295,8 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
 			      return 1;
 		      }
         });
+        #endif
+        #if defined(fgm_sprite)
         push_menu(mb, {
           .text = "sprite",
           .mouse_button_cb = [this](const loco_t::mouse_button_data_t& ii_d) -> int {
@@ -328,6 +331,8 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
           	return 1;
           }
         });
+        #endif
+        #if defined(fgm_text)
         push_menu(mb, {
            .text = "text",
           .mouse_button_cb = [this](const loco_t::mouse_button_data_t& ii_d) -> int {
@@ -357,6 +362,8 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
             return 1;
           }
         });
+        #endif
+        #if defined(fgm_hitbox)
         push_menu(mb, {
           .text = "hitbox",
           .mouse_button_cb = [this](const loco_t::mouse_button_data_t& ii_d) -> int {
@@ -396,10 +403,49 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
           	return 1;
           }
         });
+        #endif
+
+        #if defined(fgm_mark)
         push_menu(mb, {
-          .text = "light",
+          .text = "mark",
+          .mouse_button_cb = [this](const loco_t::mouse_button_data_t& ii_d) -> int {
+            pile_t* pile = OFFSETLESS(OFFSETLESS(ii_d.vfi, loco_t, vfi), pile_t, loco);
+            if (ii_d.button != fan::mouse_left) {
+              return 0;
+            }
+            if (ii_d.button_state != fan::mouse_state::release) {
+              return 0;
+            }
+            if (ii_d.mouse_stage != loco_t::vfi_t::mouse_stage_e::inside) {
+              return 0;
+            }
+            mark_t::properties_t sp;
+            sp.matrices = &matrices[viewport_area::editor];
+            sp.viewport = &viewport[viewport_area::editor];
+            sp.position = fan::vec3(0, 0, 20);
+            sp.vfi_type = loco_t::vfi_t::shape_t::always;
+
+            sp.size = fan::vec2(0.1, 0.1);
+            sp.image = &mark_image;
+            mark.push_back(sp);
+            auto& instance = mark.instances[mark.instances.size() - 1];
+            mark.open_properties(instance);
+
+            #if defined(fgm_build_stage_maker)
+              auto stage_name = get_stage_maker()->get_selected_name(
+                get_stage_maker()->instances[stage_maker_t::stage_t::stage_instance].menu_id
+              );
+              auto file_name = get_stage_maker()->get_file_fullpath(stage_name);
+
+              write_stage_functions(this, &hitbox, file_name, stage_name, "hitbox", hitbox_t::cb_names);
+            #endif
+
+            invalidate_right_click_menu();
+
+            return 1;
           }
-        );
+          });
+        #endif
 
         loco_t::vfi_t::properties_t p;
 		    p.shape_type = loco_t::vfi_t::shape_t::always;
@@ -497,7 +543,7 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
 
 		texturepack.open_compiled(&pile->loco, texturepack_name);
 
-    fan::color image[3 * 3] = {
+    static constexpr fan::color image[3 * 3] = {
       fan::color(0, 1, 0, 0.3),
       fan::color(0, 1, 0, 0.3),
       fan::color(0, 1, 0, 0.3),
@@ -509,7 +555,13 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
       fan::color(0, 1, 0, 0.3),
     };
 
-    hitbox_image.load(&pile->loco, image, 3);
+    static constexpr fan::color mark_image_pixels[2] = {
+      fan::color(1, 1, 1, 1),
+      fan::color(1, 1, 1, 1)
+    };
+
+    hitbox_image.load(&pile->loco, (fan::color*)image, 3);
+    mark_image.load(&pile->loco, (fan::color*)mark_image_pixels, 1);
 
 		pile->loco.get_window()->add_resize_callback([this](const fan::window_t::resize_cb_data_t& d) {
 			resize_cb();
@@ -578,10 +630,18 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
 	void clear() {
 		line.clear();
 		global_button.clear();
+    #if defined(fgm_button)
 		button.clear();
+    #endif
+    #if defined(fgm_sprite)
 		sprite.clear();
+    #endif
+    #if defined(fgm_text)
     text.clear();
+    #endif
+    #if defined(fgm_hitbox)
     hitbox.clear();
+    #endif
 		button_menu.clear();
 
 		pile->loco.menu_maker_text_box.erase_menu(global_menu_nr);
@@ -683,6 +743,13 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
   loco_t::vfi_t::shape_id_t vfi_id;
 
   loco_t::image_t hitbox_image;
+  loco_t::image_t mark_image;
 };
 
 #undef use_key_lambda
+
+#undef fgm_button
+#undef fgm_sprite
+#undef fgm_text
+#undef fgm_hitbox
+#undef fgm_mark
