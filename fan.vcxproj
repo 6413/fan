@@ -279,6 +279,7 @@
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="examples\gui\model_maker.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -339,7 +340,8 @@
     <ClInclude Include="..\WITCH\BLL\internal\NodeReference.h" />
     <ClInclude Include="..\WITCH\BLL\internal\rest.h" />
     <ClInclude Include="include\fan\graphics\gui\fgm\shapes.h" />
-    <ClInclude Include="include\fan\graphics\gui\model_maker\model_maker.h" />
+    <ClInclude Include="include\fan\graphics\gui\model_maker\loader.h" />
+    <ClInclude Include="include\fan\graphics\gui\model_maker\maker.h" />
     <ClInclude Include="include\fan\graphics\gui\stage_maker\loader_versions\010.h" />
     <ClInclude Include="include\fan\graphics\gui\stage_maker\loader_versions\011.h" />
     <ClInclude Include="include\fan\graphics\gui\stage_maker\helper_functions\rename_cb.h" />

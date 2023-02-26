@@ -37,16 +37,13 @@ struct pile_t {
        );
      });*/
   }
-  ~pile_t() {
-
-  }
 
   loco_t loco_var_name;
 };
 
 pile_t* pile;
 
-#include _FAN_PATH(graphics/gui/model_maker/model_maker.h)
+#include _FAN_PATH(graphics/gui/model_maker/maker.h)
 
 //struct fork_t : fgm_t {
 //
@@ -61,7 +58,7 @@ int main(int argc, char** argv) {
 
   model_maker_t mm;
   mm.open(argv[1]);
-  mm.load();
+  mm.load("model.fmm");
   
   pile->loco.set_vsync(false);
   pile->loco.get_window()->set_max_fps(165);
