@@ -1,3 +1,17 @@
+struct ti_t {
+
+  ti_t() = default;
+
+  bool qti(auto* texture_pack, const fan::string& name) {
+    texture_pack->qti(name, this);
+  }
+
+  uint32_t pack_id;
+  fan::vec2 position;
+  fan::vec2 size;
+  loco_t::image_t* image = 0;
+};
+
 struct texture_packe0 {
 
   struct texture_t {
@@ -5,7 +19,8 @@ struct texture_packe0 {
     std::vector<uint8_t> decoded_data;
     fan::string name;
     uint32_t visual_output;
-    uint32_t filter;
+    uint32_t min_filter;
+    uint32_t mag_filter;
     uint32_t group_id;
   };
 
@@ -16,7 +31,8 @@ struct texture_packe0 {
 
     fan::vec2ui preferred_pack_size = 1024;
     uint32_t visual_output = loco_t::image_t::load_properties_defaults::visual_output;
-    uint32_t filter = loco_t::image_t::load_properties_defaults::filter;
+    uint32_t min_filter = fan::opengl::GL_LINEAR_MIPMAP_LINEAR;
+    uint32_t mag_filter = loco_t::image_t::load_properties_defaults::mag_filter;
   };
 
   struct pack_properties_t {
@@ -24,7 +40,8 @@ struct texture_packe0 {
 
     fan::vec2ui pack_size;
     uint32_t visual_output;
-    uint32_t filter;
+    uint32_t min_filter;
+    uint32_t mag_filter;
     uint32_t group_id;
   };
 
@@ -33,18 +50,22 @@ struct texture_packe0 {
 
     fan::string name;
     uint32_t visual_output = -1;
-    uint32_t filter = -1;
+    uint32_t min_filter = -1;
+    uint32_t mag_filter = -1;
     uint32_t group_id = -1;
   };
 
   fan::vec2ui preferred_pack_size;
   uint32_t visual_output;
-  uint32_t filter;
+
+  uint32_t min_filter;
+  uint32_t mag_filter;
 
   void open(const open_properties_t& op = open_properties_t()) {
     preferred_pack_size = op.preferred_pack_size;
     visual_output = op.visual_output;
-    filter = op.filter;
+    min_filter = op.min_filter;
+    mag_filter = op.mag_filter;
   }
   void close() {
   }
@@ -56,7 +77,8 @@ struct texture_packe0 {
     pack.root.position = 0;
     pack.root.size = p.pack_size;
     pack.visual_output = p.visual_output;
-    pack.filter = p.filter;
+    pack.min_filter = p.min_filter;
+    pack.mag_filter = p.mag_filter;
     pack.group_id = p.group_id;
     pack_list.push_back(pack);
     return pack_list.size() - 1;
@@ -65,7 +87,8 @@ struct texture_packe0 {
     pack_properties_t p;
     p.pack_size = preferred_pack_size;
     p.visual_output = visual_output;
-    p.filter = filter;
+    p.min_filter = min_filter;
+    p.mag_filter = mag_filter;
     p.group_id = -1;
     return push_pack(p);
   }
@@ -104,7 +127,8 @@ struct texture_packe0 {
     fan::webp::free_image(image_info.data);
     t.name = texture_properties.name;
     t.visual_output = texture_properties.visual_output;
-    t.filter = texture_properties.filter;
+    t.min_filter = texture_properties.min_filter;
+    t.mag_filter = texture_properties.mag_filter;
     t.group_id = texture_properties.group_id;
 
     texture_list.push_back(t);
@@ -123,7 +147,8 @@ struct texture_packe0 {
       texture_properties_t texture_properties;
       texture_properties.name = texture_list[ci].name;
       texture_properties.visual_output = texture_list[ci].visual_output;
-      texture_properties.filter = texture_list[ci].filter;
+      texture_properties.min_filter = texture_list[ci].min_filter;
+      texture_properties.mag_filter = texture_list[ci].mag_filter;
       texture_properties.group_id = texture_list[ci].group_id;
 
       uint32_t selected_pack = -1;
@@ -137,8 +162,13 @@ struct texture_packe0 {
             score++;
           }
         }
-        if (texture_properties.filter != -1) {
-          if (pack_list[i].filter == texture_properties.filter) {
+        if (texture_properties.min_filter != -1) {
+          if (pack_list[i].min_filter == texture_properties.min_filter) {
+            score++;
+          }
+        }
+        if (texture_properties.mag_filter != -1) {
+          if (pack_list[i].mag_filter == texture_properties.mag_filter) {
             score++;
           }
         }
@@ -153,7 +183,8 @@ struct texture_packe0 {
 
         uint32_t needed_score = 1;
         needed_score += texture_properties.visual_output != -1;
-        needed_score += texture_properties.filter != -1;
+        needed_score += texture_properties.min_filter != -1;
+        needed_score += texture_properties.mag_filter != -1;
         needed_score += texture_properties.group_id != -1;
 
         if (score >= needed_score) {
@@ -174,11 +205,17 @@ struct texture_packe0 {
         else {
           p.visual_output = visual_output;
         }
-        if (texture_properties.filter != -1) {
-          p.filter = texture_properties.filter;
+        if (texture_properties.min_filter != -1) {
+          p.min_filter = texture_properties.min_filter;
         }
         else {
-          p.filter = filter;
+          p.min_filter = min_filter;
+        }
+        if (texture_properties.mag_filter != -1) {
+          p.mag_filter = texture_properties.mag_filter;
+        }
+        else {
+          p.mag_filter = mag_filter;
         }
         p.group_id = texture_properties.group_id;
         selected_pack = push_pack(p);
@@ -283,7 +320,8 @@ struct texture_packe0 {
     uint32_t pack_amount = pack_list.size();
 
     fan::io::file::write(f, &visual_output, sizeof(uint32_t), 1);
-    fan::io::file::write(f, &filter, sizeof(uint32_t), 1);
+    fan::io::file::write(f, &min_filter, sizeof(uint32_t), 1);
+    fan::io::file::write(f, &mag_filter, sizeof(uint32_t), 1);
 
     uint32_t texture_list_size = texture_list.size();
     fan::io::file::write(f, &texture_list_size, sizeof(texture_list_size), 1);
@@ -294,7 +332,8 @@ struct texture_packe0 {
       fan::io::file::write(f, &name_s, sizeof(name_s), 1);
       fan::io::file::write(f, texture_list[i].name.data(), texture_list[i].name.size(), 1);
       fan::io::file::write(f, &texture_list[i].visual_output, sizeof(texture_list[i].visual_output), 1);
-      fan::io::file::write(f, &texture_list[i].filter, sizeof(texture_list[i].filter), 1);
+      fan::io::file::write(f, &texture_list[i].min_filter, sizeof(texture_list[i].min_filter), 1);
+      fan::io::file::write(f, &texture_list[i].mag_filter, sizeof(texture_list[i].mag_filter), 1);
       fan::io::file::write(f, &texture_list[i].group_id, sizeof(texture_list[i].group_id), 1);
     }
     fan::io::file::close(f);
@@ -328,7 +367,8 @@ struct texture_packe0 {
       fan::io::file::write(f, ptr, ptr_size, 1);
       fan::webp::free_image(ptr);
       fan::io::file::write(f, &pack_list[i].visual_output, sizeof(uint32_t), 1);
-      fan::io::file::write(f, &pack_list[i].filter, sizeof(uint32_t), 1);
+      fan::io::file::write(f, &pack_list[i].min_filter, sizeof(uint32_t), 1);
+      fan::io::file::write(f, &pack_list[i].mag_filter, sizeof(uint32_t), 1);
     }
     fan::io::file::close(f);
   }
@@ -344,8 +384,11 @@ struct texture_packe0 {
     visual_output = *(uint32_t*)&data[data_index];
     data_index += sizeof(visual_output);
 
-    filter = *(uint32_t*)&data[data_index];
-    data_index += sizeof(filter);
+    min_filter = *(uint32_t*)&data[data_index];
+    data_index += sizeof(min_filter);
+
+    mag_filter = *(uint32_t*)&data[data_index];
+    data_index += sizeof(mag_filter);
 
     uint32_t texture_amount = *(uint32_t*)&data[data_index];
     data_index += sizeof(texture_amount);
@@ -367,7 +410,9 @@ struct texture_packe0 {
       data_index += name_s;
       t.visual_output = *(uint32_t*)&data[data_index];
       data_index += sizeof(uint32_t);
-      t.filter = *(uint32_t*)&data[data_index];
+      t.min_filter = *(uint32_t*)&data[data_index];
+      data_index += sizeof(uint32_t);
+      t.mag_filter = *(uint32_t*)&data[data_index];
       data_index += sizeof(uint32_t);
       t.group_id = *(uint32_t*)&data[data_index];
       data_index += sizeof(uint32_t);
@@ -428,7 +473,8 @@ private:
     };
     std::vector<texture_t> texture_list;
     uint32_t visual_output;
-    uint32_t filter;
+    uint32_t min_filter;
+    uint32_t mag_filter;
     uint32_t group_id;
     std::vector<uint8_t> pixel_data;
   };

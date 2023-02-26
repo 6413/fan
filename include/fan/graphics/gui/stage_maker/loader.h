@@ -2,7 +2,7 @@
 #define stage_loader_path
 #endif
 
-#include "common.h"
+#include _FAN_PATH(graphics/gui/fgm/common.h)
 
 struct stage_loader_t {
 
@@ -116,7 +116,7 @@ public:
 
     switch (file_version) {
       case stage_maker_format_version: {
-        #include _FAN_PATH(graphics/gui/stage_maker/fgm_user_loader_version/011.h)
+        #include _FAN_PATH(graphics/gui/stage_maker/loader_versions/011.h)
         break;
       }
       default: {

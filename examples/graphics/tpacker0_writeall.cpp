@@ -25,7 +25,8 @@ int main() {
   e.open(open_properties);
   loco_t::texture_packe0::texture_properties_t texture_properties;
   texture_properties.visual_output = loco_t::image_t::sampler_address_mode::clamp_to_edge;
-  texture_properties.filter = loco_t::image_t::filter::nearest;
+  texture_properties.min_filter = loco_t::image_t::filter::nearest;
+  texture_properties.mag_filter = loco_t::image_t::filter::nearest;
   texture_properties.group_id = 0;
   static constexpr auto full_path = "tpacker/";
 

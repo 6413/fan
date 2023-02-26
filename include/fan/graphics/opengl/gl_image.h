@@ -31,7 +31,8 @@ struct image_t {
     static constexpr uint32_t internal_format = fan::opengl::GL_RGBA;
     static constexpr uint32_t format = fan::opengl::GL_RGBA;
     static constexpr uint32_t type = fan::opengl::GL_UNSIGNED_BYTE;
-    static constexpr uint32_t filter = fan::opengl::GL_LINEAR;
+    static constexpr uint32_t min_filter = fan::opengl::GL_LINEAR;
+    static constexpr uint32_t mag_filter = fan::opengl::GL_LINEAR;
   };
 
   struct load_properties_t {
@@ -39,7 +40,8 @@ struct image_t {
     uintptr_t           internal_format = load_properties_defaults::internal_format;
     uintptr_t           format = load_properties_defaults::format;
     uintptr_t           type = load_properties_defaults::type;
-    uintptr_t           filter = load_properties_defaults::filter;
+    uintptr_t           min_filter = load_properties_defaults::min_filter;
+    uintptr_t           mag_filter = load_properties_defaults::mag_filter;
   };
 
   /*
@@ -115,14 +117,22 @@ struct image_t {
     
     context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_S, p.visual_output);
     context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_T, p.visual_output);
-    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MIN_FILTER, fan::opengl::GL_LINEAR_MIPMAP_LINEAR);
-    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MAG_FILTER, fan::opengl::GL_LINEAR);
+    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MIN_FILTER, p.min_filter);
+    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MAG_FILTER, p.mag_filter);
 
     size = image_info.size;
 
     context->opengl.call(context->opengl.glTexImage2D, fan::opengl::GL_TEXTURE_2D, 0, p.internal_format, size.x, size.y, 0, p.format, p.type, image_info.data);
 
-    context->opengl.call(context->opengl.glGenerateMipmap, fan::opengl::GL_TEXTURE_2D);
+    switch (p.min_filter) {
+      case fan::opengl::GL_LINEAR_MIPMAP_LINEAR:
+      case fan::opengl::GL_NEAREST_MIPMAP_LINEAR:
+      case fan::opengl::GL_LINEAR_MIPMAP_NEAREST:
+      case fan::opengl::GL_NEAREST_MIPMAP_NEAREST: {
+        context->opengl.call(context->opengl.glGenerateMipmap, fan::opengl::GL_TEXTURE_2D);
+        break;
+      }
+    }
         
     return 0;
   }
@@ -167,8 +177,8 @@ struct image_t {
 
     context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_S, p.visual_output);
     context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_T, p.visual_output);
-    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MIN_FILTER, p.filter);
-    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MAG_FILTER, p.filter);
+    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MIN_FILTER, p.min_filter);
+    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MAG_FILTER, p.mag_filter);
 
     size = size_;
 
@@ -189,8 +199,8 @@ struct image_t {
 
     context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_S, p.visual_output);
     context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_T, p.visual_output);
-    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MIN_FILTER, p.filter);
-    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MAG_FILTER, p.filter);
+    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MIN_FILTER, p.min_filter);
+    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MAG_FILTER, p.mag_filter);
 
     size = image_info.size;
     context->opengl.call(context->opengl.glTexImage2D, fan::opengl::GL_TEXTURE_2D, 0, p.internal_format, size.x, size.y, 0, p.format, p.type, image_info.data);
@@ -229,8 +239,8 @@ struct image_t {
 
     context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_S, p.visual_output);
     context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_T, p.visual_output);
-    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MIN_FILTER, p.filter);
-    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MAG_FILTER, p.filter);
+    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MIN_FILTER, p.min_filter);
+    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MAG_FILTER, p.mag_filter);
 
     context->opengl.call(context->opengl.glTexImage2D, fan::opengl::GL_TEXTURE_2D, 0, p.internal_format, size.x, size.y, 0, p.format, p.type, pixels);
 
@@ -276,8 +286,8 @@ struct image_t {
 
     context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_S, p.visual_output);
     context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_T, p.visual_output);
-    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MIN_FILTER, p.filter);
-    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MAG_FILTER, p.filter);
+    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MIN_FILTER, p.min_filter);
+    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MAG_FILTER, p.mag_filter);
 
     size = fan::vec2i(2, 2);
 

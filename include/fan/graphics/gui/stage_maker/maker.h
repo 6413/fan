@@ -495,6 +495,10 @@ void update(auto& loco){
 
   fan::io::file::fstream stage_h;
 
+  #define fgm_button
+  #define fgm_sprite
+  #define fgm_text
+  #define fgm_hitbox
 	#include _FAN_PATH(graphics/gui/fgm/fgm.h)
   fgm_t fgm;
 };

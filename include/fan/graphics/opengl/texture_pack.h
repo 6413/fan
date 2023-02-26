@@ -1,6 +1,6 @@
 struct texturepack_t {
 
-  #include _FAN_PATH(tp/tp.h)
+  #include _FAN_PATH(tp/tp0.h)
 
   struct texture_t {
 
@@ -72,12 +72,17 @@ struct texturepack_t {
       //#endif
       uint32_t visual_output = *(uint32_t*)&data[data_index];
       data_index += sizeof(uint32_t);
-      uint32_t filter = *(uint32_t*)&data[data_index];
+      uint32_t min_filter = *(uint32_t*)&data[data_index];
       data_index += sizeof(uint32_t);
+
+      uint32_t mag_filter = *(uint32_t*)&data[data_index];
+      data_index += sizeof(uint32_t);
+
       loco_t::image_t::load_properties_t lp;
       // can be undefined behaviour with vulkan
       lp.visual_output = loco_t::image_t::sampler_address_mode::clamp_to_border;//(decltype(lp.visual_output))visual_output;
-      lp.filter = loco_t::image_t::filter::linear;//(decltype(lp.filter))filter;
+      lp.min_filter = (decltype(lp.min_filter))min_filter;
+      lp.mag_filter = (decltype(lp.mag_filter))mag_filter;
       pixel_data_list[i].image.load(loco, image_info, lp);
       WebPFree(image_info.data);
     }

@@ -3,7 +3,8 @@ struct font_t {
   void open(loco_t* loco, const fan::string& image_path) {
     loco_t::image_t::load_properties_t lp;
     #if defined(loco_opengl)
-      lp.filter = fan::opengl::GL_LINEAR;
+      lp.min_filter = fan::opengl::GL_LINEAR;
+      lp.mag_filter = fan::opengl::GL_LINEAR;
     #elif defined(loco_vulkan)
       // fill here
     #endif
