@@ -279,7 +279,6 @@
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\fatherload\dev\tpacker\main.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
   </ItemGroup>
   <ItemGroup>
