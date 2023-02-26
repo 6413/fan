@@ -5,3 +5,4 @@
 #undef fgm_dont_init_shape
 #undef fgm_make_clear_f
 #undef fgm_no_gui_properties
+#undef fgm_shape_non_moveable_or_resizeable

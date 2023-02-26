@@ -200,7 +200,7 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
 		button_menu.push_back(nr, p);*/
 	}
 
-	#include "fgm_resize_cb.h"
+	#include "resize_cb.h"
 
 	void load() {
 
@@ -674,7 +674,8 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
 	}
 	#endif
 
-	#include "fgm_shape_types.h"
+  #include "private.h"
+	#include "shapes.h"
 
 	loco_t::matrices_t matrices[4];
 	fan::graphics::viewport_t viewport[4];
