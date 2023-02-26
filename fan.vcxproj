@@ -279,7 +279,7 @@
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="examples\gui\fgm.cpp" />
+    <ClCompile Include="examples\gui\stage_maker.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -339,8 +339,9 @@
     <ClInclude Include="..\WITCH\BLL\BLL.h" />
     <ClInclude Include="..\WITCH\BLL\internal\NodeReference.h" />
     <ClInclude Include="..\WITCH\BLL\internal\rest.h" />
-    <ClInclude Include="include\fan\graphics\gui\stage_maker\fgm_user_loader_version\010.h" />
-    <ClInclude Include="include\fan\graphics\gui\stage_maker\fgm_user_loader_version\011.h" />
+    <ClInclude Include="include\fan\graphics\gui\fgm\shapes.h" />
+    <ClInclude Include="include\fan\graphics\gui\stage_maker\loader_versions\010.h" />
+    <ClInclude Include="include\fan\graphics\gui\stage_maker\loader_versions\011.h" />
     <ClInclude Include="include\fan\graphics\gui\stage_maker\helper_functions\rename_cb.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\objects\pixel_format_renderer.h" />
     <ClInclude Include="include\fan\video\base_enc.h" />
@@ -359,15 +360,15 @@
     <ClInclude Include="include\fan\graphics\font.h" />
     <ClInclude Include="include\fan\graphics\graphics.h" />
     <ClInclude Include="include\fan\graphics\gui\fed.h" />
-    <ClInclude Include="include\fan\graphics\gui\stage_maker\fgm_shape_builder_close.h" />
+    <ClInclude Include="include\fan\graphics\gui\fgm\shape_builder_close.h" />
     <ClInclude Include="include\fan\graphics\gui\menu_maker.h" />
     <ClInclude Include="include\fan\graphics\gui\button.h" />
     <ClInclude Include="include\fan\graphics\gui\select_box.h" />
-    <ClInclude Include="include\fan\graphics\gui\stage_maker\common.h" />
-    <ClInclude Include="include\fan\graphics\gui\stage_maker\fgm.h" />
-    <ClInclude Include="include\fan\graphics\gui\stage_maker\fgm_resize_cb.h" />
-    <ClInclude Include="include\fan\graphics\gui\stage_maker\fgm_shape_builder.h" />
-    <ClInclude Include="include\fan\graphics\gui\stage_maker\fgm_shape_types.h" />
+    <ClInclude Include="include\fan\graphics\gui\fgm\common.h" />
+    <ClInclude Include="include\fan\graphics\gui\fgm\fgm.h" />
+    <ClInclude Include="include\fan\graphics\gui\fgm\resize_cb.h" />
+    <ClInclude Include="include\fan\graphics\gui\fgm\shape_builder.h" />
+    <ClInclude Include="include\fan\graphics\gui\fgm\private.h" />
     <ClInclude Include="include\fan\graphics\gui\stage_maker\loader.h" />
     <ClInclude Include="include\fan\graphics\gui\stage_maker\maker.h" />
     <ClInclude Include="include\fan\graphics\gui\text_box.h" />

@@ -526,7 +526,7 @@ void update(auto& loco){
 
   fan::io::file::fstream stage_h;
 
-	#include "fgm.h"
+	#include _FAN_PATH(graphics/gui/fgm/fgm.h)
   fgm_t fgm;
 };
 

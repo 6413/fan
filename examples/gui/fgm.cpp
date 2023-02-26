@@ -46,7 +46,7 @@ struct pile_t {
 
 pile_t* pile;
 
-#include _FAN_PATH(graphics/gui/stage_maker/fgm.h)
+#include _FAN_PATH(graphics/gui/fgm/fgm.h)
 
 //struct fork_t : fgm_t {
 //
