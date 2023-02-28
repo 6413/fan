@@ -521,6 +521,7 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
         auto text = pile->loco.text_box.get_text(&it.cid);
 
         fan::vec4 size = fan::string_to<fan::vec4>(text);
+        editor_viewport = size;
         matrices[viewport_area::editor].set_ortho(
           &pile->loco,
           fan::vec2(size[0], size[1]),
@@ -623,7 +624,7 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
 		viewport[viewport_area::types].open(pile->loco.get_context());
 		viewport[viewport_area::properties].open(pile->loco.get_context());
 
-
+    editor_viewport = fan::vec4(-1, 1, -1, 1);
 	}
 	void close() {
 		clear();
@@ -745,6 +746,8 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
 
   loco_t::image_t hitbox_image;
   loco_t::image_t mark_image;
+
+  fan::vec4 editor_viewport;
 };
 
 #undef use_key_lambda
