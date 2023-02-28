@@ -64,6 +64,7 @@ pile_t* pile = new pile_t;
 
 #include _FAN_PATH(graphics/gui/model_maker/loader.h)
 
+
 int main(int argc, char** argv) {
 
   if (argc < 2) {
