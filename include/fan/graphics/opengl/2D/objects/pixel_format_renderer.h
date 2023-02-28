@@ -187,7 +187,8 @@ struct sb_pfr_name {
         image_info.data = data[i];
         image_info.size = fan::pixel_format::get_image_sizes(format, image_size)[i];
         auto lp = fan::pixel_format::get_image_properties<loco_t::image_t::load_properties_t>(format)[i];
-        lp.filter = filter;
+        lp.min_filter = filter;
+        lp.mag_filter = filter;
         if (1) {
           ri->images[i].reload_pixels(get_loco(), image_info, lp);
         }
