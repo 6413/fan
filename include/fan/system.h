@@ -514,7 +514,7 @@ namespace fan {
 
               case WM_MOUSEWHEEL: { return fan::input::mouse_scroll_up; } // ?
               case WM_MOUSEHWHEEL: { return fan::input::mouse_scroll_down; } // ?
-
+              default: fan::throw_error(""); return fan::input::mouse_scroll_down;
             }
           };
 
