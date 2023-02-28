@@ -462,6 +462,8 @@ struct sprite_t {
     };
     get_fgm()->properties_nrs.push_back(get_fgm()->text_box_menu.push_back(nr, p));
 
+    
+    #if defined(fgm_build_model_maker)
     p.text = std::to_string(instance->group_id);
     p.keyboard_cb = [this, instance, nr](const loco_t::keyboard_data_t& d) -> int {
       if (d.key != fan::key_enter) {
@@ -478,6 +480,7 @@ struct sprite_t {
       return 0;
     };
     get_fgm()->properties_nrs.push_back(get_fgm()->text_box_menu.push_back(nr, p));
+    #endif
   }
   void push_back(properties_t& p) {
     shape_builder_push_back();

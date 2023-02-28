@@ -8,20 +8,17 @@
 
 #include _FAN_PATH(types/masterpiece.h)
 
-#include <WITCH/WITCH.h>
-
 #include <iostream>
 #include <stdio.h>
 
-
-
-struct EmptyStruct {
-  static constexpr const char& zero() { return reinterpret_cast<const char&>(0); }
+struct a_t {
+  int x;
 };
 
+struct b_t : a_t {
+  int y;
+};
 
 int main() {
- // sizeof(empt);
-  //fan::print(EmptyStruct);
-  //printf("%lu\n", __sizeof(__sizeof0_struct));
+  b_t b = { {.x = 5} };
 }
