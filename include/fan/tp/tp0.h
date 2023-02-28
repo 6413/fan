@@ -3,7 +3,7 @@ struct ti_t {
   ti_t() = default;
 
   bool qti(auto* texture_pack, const fan::string& name) {
-    texture_pack->qti(name, this);
+    return texture_pack->qti(name, this);
   }
 
   uint32_t pack_id;
