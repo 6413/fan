@@ -59,30 +59,85 @@ struct pile_t {
 
 };
 
-
 pile_t* pile = new pile_t;
 
 #include _FAN_PATH(graphics/gui/model_maker/loader.h)
 
+#include <variant>
+
+struct cm_t {
+  std::vector<std::unordered_map<std::string, 
+    std::variant<
+      model_loader_t::mark_t,
+      model_loader_t::sprite_t
+    >
+  >> models;
+
+  void import_from(const char* path, loco_t::texturepack_t* tp) {
+    model_loader_t loader;
+    loco_t::texturepack_t::ti_t ti;
+    loader.load(tp, path, [&](const auto& data) {
+      models.resize(fan::max(models.size(), data.group_id + 1));
+      models[data.group_id][data.id] = data;
+    });
+  }
+};
+
+struct model_list_t {
+private:
+  #define BLL_set_CPP_ConstructDestruct
+  #define BLL_set_CPP_Node_ConstructDestruct
+  #define BLL_set_BaseLibrary 1
+  #define BLL_set_prefix model_list_internal
+  #define BLL_set_type_node uint8_t
+  #define BLL_set_NodeData cm_t* cms;
+  #define BLL_set_Link 1
+  #define BLL_set_AreWeInsideStruct 1
+  #include _FAN_PATH(BLL/BLL.h)
+public:
+
+  model_list_internal_t model_list;
+
+  using model_id_t = model_list_internal_NodeReference_t;
+
+  model_id_t push_model(cm_t* cms) {
+    auto it = model_list.GetNodeLast();
+    model_list[it].cms = cms;
+    return it;
+  }
+  constexpr void iterate(model_id_t model_id, uint32_t group_id, auto lambda) {
+    for (auto& i : model_list[model_id].cms->models[group_id]) {
+      std::visit([&](auto&& o) {
+        lambda(i.first, o);
+      }, i.second);
+    }
+  }
+};
 
 int main(int argc, char** argv) {
-
   if (argc < 2) {
     fan::throw_error("usage: TexturePackCompiled");
   }
   loco_t::texturepack_t tp;
   tp.open_compiled(&pile->loco, argv[1]);
+  model_list_t m;
 
-  model_loader_t loader;
-  fan::graphics::cid_t cid;
-  loader.load(&tp, "model.fmm", [&](const auto& data) {
-    using type_t = std::remove_const_t<std::remove_reference_t<decltype(data)>>;
+  cm_t cm;
+  cm.import_from("model.fmm", &tp);
+
+  auto it = m.push_model(&cm);
+  
+  uint32_t group_id = 0;
+
+  m.iterate(it, group_id, [](auto shape_id, const auto& properties) {
+    using type_t = std::remove_const_t<std::remove_reference_t<decltype(properties)>>;
     if constexpr (std::is_same_v<type_t, model_loader_t::mark_t>) {
+      fan::graphics::cid_t cid;
       loco_t::rectangle_t::properties_t rp;
       rp.matrices = &pile->matrices;
       rp.viewport = &pile->viewport;
-      rp.position = data.position;
-      rp.size = 0.3;
+      rp.position = properties.position;
+      rp.size = 0.01;
       rp.color = fan::colors::white;
       pile->loco.rectangle.push_back(&cid, rp);
     }
