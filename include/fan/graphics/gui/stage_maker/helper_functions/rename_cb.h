@@ -81,6 +81,7 @@ tp.keyboard_cb = [this, selected_id](const loco_t::keyboard_data_t& d) -> int {
       return 1;
     }
   }
+  return 0;
 };
 
 pile->loco.text_box.push_back(&rename_cid, tp);

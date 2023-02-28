@@ -107,6 +107,7 @@ struct EntityIdentify_t{
   enum{
     FloatingText,
     FloatingDirtPiece,
+    Spark,
     Smoke,
     ship,
     block,
@@ -216,13 +217,13 @@ void write_viewable_blocks() {
 
   for (uint32_t y = i_position.y; y < i_size.y; y++) {
     for (uint32_t x = i_position.x; x < i_size.x; x++) {
-      auto BlockType = (game::Blocks::MapEnum_t)this->BlockMap[y][x].BlockID;
-      if(BlockType == game::Blocks::MapEnum_t::empty){
+      auto BlockType = this->BlockMap[y][x].BlockID;
+      if(BlockType == game::BlockList.AN(&game::BlockList_t::Empty)){
         EntityScope.DirtWrap.add(fan::vec2i(x, y));
       }
       else{
         EntityScope.block.add(
-          game::Blocks::MapEnumToEnum(BlockType),
+          BlockType,
           fan::vec2i(x, y),
           this->BlockMap[y][x].Rotate);
       }
@@ -321,12 +322,12 @@ fan::color get_level_color_back(uint32_t level){
 }
 
 bool is_block_mineable(fan::vec2i Position){
-  auto BlockType = (game::Blocks::MapEnum_t)this->BlockMap[Position.y][Position.x].BlockID;
+  uint8_t BlockType = this->BlockMap[Position.y][Position.x].BlockID;
   switch(BlockType){
-    case Blocks::MapEnum_t::empty:{
+    case game::BlockList.AN(&game::BlockList_t::Empty):{
       return false;
     }
-    case Blocks::MapEnum_t::grass:{
+    case game::BlockList.AN(&game::BlockList_t::Grass):{
       if(
         Position.x >= BuildingInfo::FuelStation::Position.x &&
         Position.x < BuildingInfo::FuelStation::Position.x + 2
@@ -361,11 +362,11 @@ bool is_block_mineable(fan::vec2i Position){
   }
 }
 bool is_block_collectable(fan::vec2i Position){
-  auto BlockType = (game::Blocks::MapEnum_t)this->BlockMap[Position.y][Position.x].BlockID;
+  auto BlockType = this->BlockMap[Position.y][Position.x].BlockID;
   switch(BlockType){
-    case Blocks::MapEnum_t::empty:
-    case Blocks::MapEnum_t::grass:
-    case Blocks::MapEnum_t::dirt:
+    case game::BlockList.AN(&game::BlockList_t::Empty):
+    case game::BlockList.AN(&game::BlockList_t::Grass):
+    case game::BlockList.AN(&game::BlockList_t::Dirt):
     {
       return false;
     }
@@ -417,6 +418,7 @@ struct EntityScope_t{
 
   #include "stage2/entity/FloatingText/FloatingText.h"
   #include "stage2/entity/FloatingDirtPiece/FloatingDirtPiece.h"
+  #include "stage2/entity/Spark/Spark.h"
   #include "stage2/entity/Smoke/Smoke.h"
   #include "stage2/entity/ship/ship.h"
   #include "stage2/entity/block/block.h"
@@ -499,13 +501,33 @@ void InitializeBCOL() {
         bcol->Contact_Grid_DisableContact(Contact);
         return;
       }
-      // fan::print("pre solve", Grid); TODO
 
-      if(Stage->BlockMap[Grid.y][Grid.x].BlockID == (uint8_t)game::Blocks::MapEnum_t::empty) {
+      if(Stage->BlockMap[Grid.y][Grid.x].BlockID == game::BlockList.AN(&game::BlockList_t::Empty)) {
         bcol->Contact_Grid_DisableContact(Contact);
       }
       else {
-        bcol->Contact_Grid_EnableContact(Contact);
+        auto ObjectData = bcol->GetObjectExtraData(ObjectID);
+        auto Entity = Stage->EntityList.Get(ObjectData->EntityID);
+        if(Entity->Behaviour->IdentifyingAs == EntityIdentify_t::ship){
+          auto EntityShipData = (EntityScope_t::ship_t::EntityData_t *)Entity->UserPTR;
+
+          fan::vec2i ShipGrid = Stage->EntityScope.ship.get_grid_position();
+          fan::vec2i GridDiff = Grid - ShipGrid;
+          if(fan::math::abs(GridDiff.x) > 0 && GridDiff.y == 0){
+            if(SIGN(EntityShipData->UserWantedDirection.x) == SIGN(GridDiff.x)){
+              EntityShipData->StageData.Idle.WantedToDrillGrid = GridDiff;
+            }
+          }
+          else if(GridDiff.x == 0 && fan::math::abs(GridDiff.y) > 0){
+            if(SIGN(EntityShipData->UserWantedDirection.y) == SIGN(GridDiff.y)){
+              EntityShipData->StageData.Idle.WantedToDrillGrid = GridDiff;
+            }
+          }
+          bcol->Contact_Grid_EnableContact(Contact);
+        }
+        else{
+          bcol->Contact_Grid_EnableContact(Contact);
+        }
       }
     };
   OpenProperties.PostSolve_Grid_cb =
@@ -800,20 +822,4 @@ void update(auto& loco){
 
     StepEnd();
   }
-}
-
-int button0_mouse_button_cb(const loco_t::mouse_button_data_t& mb){
-  return 0;
-}
-
-int button0_mouse_move_cb(const loco_t::mouse_move_data_t& mb){
-  return 0;
-}
-
-int button0_keyboard_cb(const loco_t::keyboard_data_t& mb){
-  return 0;
-}
-
-int button0_text_cb(const loco_t::text_data_t& mb){
-  return 0;
 }

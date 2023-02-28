@@ -526,6 +526,7 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
           fan::vec2(size[0], size[1]),
           fan::vec2(size[2], size[3])
         );
+        return 0;
       }
     }));
 	}
