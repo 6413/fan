@@ -19,17 +19,17 @@ auto resize_cb() {
 
 	fan::vec2 viewport_position = translate_viewport_position(editor_position - editor_size);
 	viewport_size = translate_viewport_position(editor_size + fan::vec2(-properties_line_position.x / 2 - 0.1));
+	ratio = viewport_size / viewport_size.max();
 	viewport[viewport_area::editor].set(
 		pile->loco.get_context(),
 		viewport_position,
 		viewport_size,
 		pile->loco.get_window()->get_size()
 	);
-	ratio = viewport_size / viewport_size.max();
 	matrices[viewport_area::editor].set_ortho(
 		&pile->loco,
-		fan::vec2(-1, 1) * ratio.x,
-		fan::vec2(-1, 1) * ratio.y
+		fan::vec2(editor_viewport[0], editor_viewport[1]) * ratio.x,
+    fan::vec2(editor_viewport[2], editor_viewport[3]) * ratio.y
 	);
 
 	viewport_position = translate_viewport_position(fan::vec2(properties_line_position.x, -1));
