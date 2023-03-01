@@ -17,8 +17,8 @@ struct pile_t {
   static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
 
   void open() {
-    loco.open_matrices(
-      &matrices,
+    loco.open_camera(
+      &camera,
       ortho_x,
       ortho_y
     );
@@ -26,7 +26,7 @@ struct pile_t {
     viewport.set(loco.get_context(), 0, loco.get_window()->get_size(), loco.get_window()->get_size());
   }
 
-  loco_t::camera_t matrices;
+  loco_t::camera_t camera;
   fan::graphics::viewport_t viewport;
   loco_t loco;
 };
@@ -48,7 +48,7 @@ int main() {
   p.load_tp(&ti);
 
   p.position = 0;
-  p.matrices = &pile.matrices;
+  p.camera = &pile.camera;
   p.viewport = &pile.viewport;
   p.size = 0.5;
   p.position = 0;

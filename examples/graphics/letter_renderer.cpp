@@ -24,15 +24,15 @@ struct pile_t {
   static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
 
   void open() {
-    loco.open_matrices(
-      &matrices,
+    loco.open_camera(
+      &camera,
       ortho_x,
       ortho_y
     );
     loco.get_window()->add_resize_callback([&](const fan::window_t::resize_cb_data_t& d) {
       fan::vec2 window_size = d.size;
       fan::vec2 ratio = window_size / window_size.max();
-      matrices.set_ortho(
+      camera.set_ortho(
         &loco,
         ortho_x * ratio.x, 
         ortho_y * ratio.y
@@ -44,7 +44,7 @@ struct pile_t {
   }
 
   loco_t loco;
-  loco_t::camera_t matrices;
+  loco_t::camera_t camera;
   fan::graphics::viewport_t viewport;
   fan::graphics::cid_t cids[count];
 };
@@ -56,7 +56,7 @@ int main() {
 
   loco_t::letter_t::properties_t p;
 
-  p.matrices = &pile->matrices;
+  p.camera = &pile->camera;
   p.viewport = &pile->viewport;
 
   for (uint32_t i = 0; i < count; i++) {

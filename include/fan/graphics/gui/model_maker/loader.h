@@ -80,8 +80,22 @@ struct model_list_t {
 
 
   model_id_t push_model(cm_t* cms) {
-    model_list[(model_id_t)cms] = cms;
-    return (model_id_t)cms;
+    model_id_t model_id = (model_id_t)cms;
+    model_list[model_id] = cms;
+
+    iterate(model_id, group_id, [&]<typename T>(auto shape_id, const T & properties) {
+      if constexpr (std::is_same_v<T, model_loader_t::mark_t>) {
+        loco_t::rectangle_t::properties_t rp;
+        rp.camera = &pile->camera;
+        rp.viewport = &pile->viewport;
+        rp.position = properties.position;
+        rp.size = 0.01;
+        rp.color = fan::colors::white;
+        m.push_shape(model_id, group_id, rp);
+      }
+    });
+
+    return model_id;
   }
   void erase(model_id_t id, uint32_t group_id) {
     auto& cids = model_list[id]->groups[group_id].cids;
@@ -107,6 +121,13 @@ struct model_list_t {
     cids.emplace_back(std::make_shared<loco_t::cid_t>());
     loco_var.push_shape(cids.back().get(), properties);
     return cids.back().get();
+  }
+
+
+  void iterate(model_id_t model_id, auto lambda) {
+    for (auto& it : auto it = model_list[model_id]->groups) {
+      iterate(model_id, it->second,lambda);
+    }
   }
 
   void iterate(model_id_t model_id, uint32_t group_id, auto lambda) {

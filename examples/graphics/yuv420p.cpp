@@ -26,8 +26,8 @@ struct pile_t {
   static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
 
   pile_t() {
-    loco.open_matrices(
-      &matrices,
+    loco.open_camera(
+      &camera,
       ortho_x,
       ortho_y
     );
@@ -41,7 +41,7 @@ struct pile_t {
   }
 
   loco_t loco{ loco_t::properties_t{.vsync = false } };
-  loco_t::camera_t matrices;
+  loco_t::camera_t camera;
   fan::graphics::viewport_t viewport;
   fan::graphics::cid_t cids[count];
 };
@@ -55,7 +55,7 @@ int main() {
   //p.pixel_format = fan::pixel_format::yuv420p;
   p.size = fan::vec2(1, 1);
   //p.block_properties.
-  p.matrices = &pile->matrices;
+  p.camera = &pile->camera;
   p.viewport = &pile->viewport;
 
   constexpr fan::vec2ui image_size = fan::vec2ui(1920, 1080);
@@ -90,7 +90,7 @@ int main() {
   sp.image = &image;
   sp.size = 0.1;
   sp.viewport = &pile->viewport;
-  sp.matrices = &pile->matrices;
+  sp.camera = &pile->camera;
   pile->loco.sprite.push_back(&pile->cids[0], sp);*/
 
   //fan::print(y);
