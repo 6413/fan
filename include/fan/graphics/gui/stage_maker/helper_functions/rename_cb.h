@@ -11,7 +11,7 @@ if (!pile->loco.vfi.get_focus_text().is_invalid()) {
 auto selected_id = pile->loco.menu_maker_button.get_selected(instances[stage_t::stage_instance].menu_id);
 
 loco_t::text_box_t::properties_t tp;
-tp.matrices = &matrices;
+tp.camera = &camera;
 tp.viewport = &viewport;
 tp.theme = &theme;
 tp.position = pile->loco.button.get(

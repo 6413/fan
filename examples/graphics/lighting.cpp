@@ -42,7 +42,7 @@ struct pile_t {
   }
 
   loco_t loco;
-  loco_t::matrices_t matrices;
+  loco_t::camera_t matrices;
   fan::graphics::viewport_t viewport;
   fan::graphics::cid_t cid[10];
 };

@@ -19,7 +19,7 @@ struct sb_sprite_name {
       uint16_t,
       loco_t::textureid_t<0>,
       loco_t::textureid_t<1>,
-      loco_t::matrices_list_NodeReference_t,
+      loco_t::camera_list_NodeReference_t,
       fan::graphics::viewport_list_NodeReference_t
     >;
     struct key_t : parsed_masterpiece_t {}key;
@@ -39,7 +39,7 @@ struct sb_sprite_name {
     loco_t::image_t* y = 0;
     loco_t::image_t* vu = 0;
 
-    loco_t::matrices_t* matrices = 0;
+    loco_t::camera_t* camera = 0;
     fan::graphics::viewport_t* viewport = 0;
 
     properties_t() = default;
@@ -128,16 +128,16 @@ struct sb_sprite_name {
       image[0] = *p.y;
       image[1] = *p.vu;
     }
-    get_key_value(loco_t::matrices_list_NodeReference_t) = p.matrices;
+    get_key_value(loco_t::camera_list_NodeReference_t) = p.camera;
     get_key_value(fan::graphics::viewport_list_NodeReference_t) = p.viewport;
     sb_push_back(cid, p);
 
   #if defined(loco_vulkan)
     auto loco = get_loco();
-    auto& matrices = loco->matrices_list[p.matrices];
-    if (matrices.matrices_index.yuv420p == (decltype(matrices.matrices_index.yuv420p))-1) {
-      matrices.matrices_index.yuv420p = m_matrices_index++;
-      m_shader.set_matrices(loco, matrices.matrices_id, matrices.matrices_index.yuv420p);  
+    auto& camera = loco->camera_list[p.camera];
+    if (camera.camera_index.yuv420p == (decltype(camera.camera_index.yuv420p))-1) {
+      camera.camera_index.yuv420p = m_camera_index++;
+      m_shader.set_camera(loco, camera.camera_id, camera.camera_index.yuv420p);  
     }
 
   #endif
@@ -204,7 +204,7 @@ struct sb_sprite_name {
 
   loco_t::image_t image[2];
 
-  /*void set_matrices(loco_t* loco, fan::opengl::cid_t* cid, fan::opengl::matrices_list_NodeReference_t n) {
+  /*void set_camera(loco_t* loco, fan::opengl::cid_t* cid, fan::opengl::camera_list_NodeReference_t n) {
   auto block = sb_get_block(loco, cid);
   *block->p[cid->instance_id].key.get_value<0>() = n;
   }
@@ -216,7 +216,7 @@ struct sb_sprite_name {
 
   #if defined(loco_vulkan)
     //uint32_t m_texture_index = 0;
-    uint32_t m_matrices_index = 0;
+    uint32_t m_camera_index = 0;
   #endif
 };
 

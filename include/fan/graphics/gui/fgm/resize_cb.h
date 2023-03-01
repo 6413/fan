@@ -11,7 +11,7 @@ auto resize_cb() {
 		window_size
 	);
 	fan::vec2 ratio = viewport_size / viewport_size.max();
-	matrices[viewport_area::global].set_ortho(
+	camera[viewport_area::global].set_ortho(
 		&pile->loco,
 		fan::vec2(-1, 1) * ratio.x,
 		fan::vec2(-1, 1) * ratio.y
@@ -26,7 +26,7 @@ auto resize_cb() {
 		viewport_size,
 		pile->loco.get_window()->get_size()
 	);
-	matrices[viewport_area::editor].set_ortho(
+	camera[viewport_area::editor].set_ortho(
 		&pile->loco,
 		fan::vec2(editor_viewport[0], editor_viewport[1]) * ratio.x,
     fan::vec2(editor_viewport[2], editor_viewport[3]) * ratio.y
@@ -42,7 +42,7 @@ auto resize_cb() {
 	);
 
 	ratio = viewport_size / viewport_size.max();
-	matrices[viewport_area::types].set_ortho(
+	camera[viewport_area::types].set_ortho(
 		&pile->loco,
 		fan::vec2(-1, 1) * ratio.x,
 		fan::vec2(-1, 1) * ratio.y
@@ -57,7 +57,7 @@ auto resize_cb() {
 	);
 
 	ratio = viewport_size / viewport_size.max();
-	matrices[viewport_area::properties].set_ortho(
+	camera[viewport_area::properties].set_ortho(
 		&pile->loco,
 		fan::vec2(-1, 1) * ratio.x,
 		fan::vec2(-1, 1) * ratio.y
@@ -108,7 +108,7 @@ auto resize_cb() {
 		viewport[viewport_area::types].get_position()
 	), src.z);
 	dst.x = src.x;
-	dst.y = matrices[viewport_area::global].coordinates.down;
+	dst.y = camera[viewport_area::global].coordinates.down;
 
 	pile->loco.line.set_line(
 		&line.instances[4]->cid,

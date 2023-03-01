@@ -99,8 +99,8 @@ void set_position(auto* shape, auto* instance, const fan::vec3& p) {
 void move_shape(auto* shape, auto* instance, const fan::vec2& offset) {
   fan::vec3 p = get_position(shape, instance);
   p += fan::vec3(fan::vec2(
-    matrices->coordinates.right - matrices->coordinates.left,
-    matrices->coordinates.down - matrices->coordinates.up
+    camera->coordinates.right - camera->coordinates.left,
+    camera->coordinates.down - camera->coordinates.up
   ) / pile->loco.get_window()->get_size() * offset, 0);
   set_position(shape, instance, p);
 }

@@ -15,7 +15,7 @@ while (off < f.size()) {
         bp.font_size = data.font_size;
         bp.text = text;
         bp.theme = op.theme;
-        bp.matrices = op.matrices;
+        bp.camera = op.camera;
         bp.viewport = op.viewport;
         bp.mouse_button_cb = [stage, i](const loco_t::mouse_button_data_t& d) {
           return (stage->*(stage->button_mouse_button_cb_table[i]))(d);
@@ -42,7 +42,7 @@ while (off < f.size()) {
           sp.tc_position = ti.position / pd.image.size;
           sp.tc_size = ti.size / pd.image.size;
         }
-        sp.matrices = op.matrices;
+        sp.camera = op.camera;
         sp.viewport = op.viewport;
         loco->sprite.push_back(&stage->cid_list[nr].cid, sp);
         break;
@@ -51,7 +51,7 @@ while (off < f.size()) {
         auto data = fan::io::file::read_data<stage_maker_shape_format::shape_text_t>(f, off);
         auto t = fan::io::file::read_data<fan::string>(f, off);
         loco_t::text_t::properties_t p;
-        p.matrices = op.matrices;
+        p.camera = op.camera;
         p.viewport = op.viewport;
 
         p.position = data.position;
@@ -74,7 +74,7 @@ while (off < f.size()) {
             vfip.shape_type = loco_t::vfi_t::shape_t::rectangle;
             vfip.shape.rectangle.position = data.position;
             vfip.shape.rectangle.size = data.size;
-            vfip.shape.rectangle.matrices = op.matrices;
+            vfip.shape.rectangle.camera = op.camera;
             vfip.shape.rectangle.viewport = op.viewport;
             break;
           }

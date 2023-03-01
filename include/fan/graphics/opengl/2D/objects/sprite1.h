@@ -19,7 +19,7 @@ struct sprite1_t {
   typedef fan::masterpiece_t<
     fan::opengl::textureid_t<0>,
     fan::opengl::textureid_t<1>,
-    fan::opengl::matrices_list_NodeReference_t,
+    fan::opengl::camera_list_NodeReference_t,
     fan::opengl::viewport_list_NodeReference_t
   >instance_properties_t;
 
@@ -28,7 +28,7 @@ struct sprite1_t {
       struct {
         fan::opengl::textureid_t<0> image;
         fan::opengl::textureid_t<1> light_map;
-        fan::opengl::matrices_list_NodeReference_t matrices;
+        fan::opengl::camera_list_NodeReference_t camera;
         fan::opengl::viewport_list_NodeReference_t viewport;
       };
       instance_properties_t instance_properties;

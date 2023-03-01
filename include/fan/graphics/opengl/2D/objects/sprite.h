@@ -21,7 +21,7 @@ struct sb_sprite_name {
 
     get_key_value(uint16_t) = p.position.z;
     get_key_value(loco_t::textureid_t<0>) = p.image;
-    get_key_value(loco_t::matrices_list_NodeReference_t) = p.matrices;
+    get_key_value(loco_t::camera_list_NodeReference_t) = p.camera;
     get_key_value(fan::graphics::viewport_list_NodeReference_t) = p.viewport;
 
     #if defined(loco_vulkan)
@@ -40,10 +40,10 @@ struct sb_sprite_name {
         m_ssbo.m_descriptor.update(loco->get_context(), 1, 2);
       }
 
-      auto& matrices = loco->matrices_list[p.matrices];
-      if (matrices.matrices_index.sprite == (decltype(matrices.matrices_index.sprite))-1) {
-        matrices.matrices_index.sprite = m_matrices_index++;
-        m_shader.set_matrices(loco, matrices.matrices_id, matrices.matrices_index.sprite);
+      auto& camera = loco->camera_list[p.camera];
+      if (camera.camera_index.sprite == (decltype(camera.camera_index.sprite))-1) {
+        camera.camera_index.sprite = m_camera_index++;
+        m_shader.set_camera(loco, camera.camera_id, camera.camera_index.sprite);
       }
     #endif
     sb_push_back(cid, p);
@@ -83,14 +83,14 @@ struct sb_sprite_name {
     sb_close();
   }
 
-  /*loco_t::matrices_t* get_matrices(fan::graphics::cid_t* cid) {
+  /*loco_t::camera_t* get_camera(fan::graphics::cid_t* cid) {
     auto block = sb_get_block(cid);
     loco_t* loco = get_loco();
-    return loco->matrices_list[*block->p[cid->instance_id].key.get_value<
-      instance_properties_t::key_t::get_index_with_type<loco_t::matrices_list_NodeReference_t>()
-    >()].matrices_id;
+    return loco->camera_list[*block->p[cid->instance_id].key.get_value<
+      instance_properties_t::key_t::get_index_with_type<loco_t::camera_list_NodeReference_t>()
+    >()].camera_id;
   }
-  void set_matrices(fan::graphics::cid_t* cid, loco_t::matrices_list_NodeReference_t n) {
+  void set_camera(fan::graphics::cid_t* cid, loco_t::camera_list_NodeReference_t n) {
     sb_set_key<instance_properties_t::key_t::get_index_with_type<decltype(n)>()>(cid, n);
   }
 
@@ -133,7 +133,7 @@ struct sb_sprite_name {
 
   #if defined(loco_vulkan)
     uint32_t m_texture_index = 0;
-    uint32_t m_matrices_index = 0;
+    uint32_t m_camera_index = 0;
   #endif
 };
 

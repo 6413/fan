@@ -7,7 +7,7 @@ struct sb_shape_name {
   struct bm_properties_t {
     using parsed_masterpiece_t = fan::masterpiece_t<
       uint16_t,
-      loco_t::matrices_list_NodeReference_t,
+      loco_t::camera_list_NodeReference_t,
       fan::graphics::viewport_list_NodeReference_t
     >;
     struct key_t : parsed_masterpiece_t {}key;
@@ -31,7 +31,7 @@ struct sb_shape_name {
   void push_back(fan::graphics::cid_t* cid, properties_t& p) {
 
     get_key_value(uint16_t) = p.position.z;
-    get_key_value(loco_t::matrices_list_NodeReference_t) = p.matrices;
+    get_key_value(loco_t::camera_list_NodeReference_t) = p.camera;
     get_key_value(fan::graphics::viewport_list_NodeReference_t) = p.viewport;
 
     sb_push_back(cid, p);
@@ -98,7 +98,7 @@ struct sb_shape_name {
     sb_close();
   }
 
-  void set_matrices(fan::graphics::cid_t* cid, loco_t::matrices_list_NodeReference_t n) {
+  void set_camera(fan::graphics::cid_t* cid, loco_t::camera_list_NodeReference_t n) {
     sb_set_key<bm_properties_t::key_t::get_index_with_type<decltype(n)>()>(cid, n);
   }
 
@@ -111,7 +111,7 @@ struct sb_shape_name {
   fan::vulkan::shader_t render_fullscreen_shader;
   #endif
 
-  uint32_t m_matrices_index = 0;
+  uint32_t m_camera_index = 0;
   #endif
 
 };

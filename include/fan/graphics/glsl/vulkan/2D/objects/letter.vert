@@ -23,7 +23,7 @@ layout(std140, binding = 0) readonly buffer instances_t{
 
 layout(push_constant) uniform constants_t {
 	uint texture_id;
-	uint matrices_id;
+	uint camera_id;
 }constants;
 
 struct pv_t {
@@ -59,12 +59,12 @@ void main() {
 
 	vec2 rp = rectangle_vertices[id];
 	
-	mat4 view = pv[constants.matrices_id].view;
+	mat4 view = pv[constants.camera_id].view;
 	mat4 m = view;
 	m[3][0] = 0;
 	m[3][1] = 0;
 
-  gl_Position = pv[constants.matrices_id].projection * m * vec4(rectangle_vertices[id] * get_instance().size + get_instance().position.xy + vec2(view[3][0], view[3][1]), get_instance().position.z, 1);
+  gl_Position = pv[constants.camera_id].projection * m * vec4(rectangle_vertices[id] * get_instance().size + get_instance().position.xy + vec2(view[3][0], view[3][1]), get_instance().position.z, 1);
 	instance_color = get_instance().color;
 	texture_coordinate = tc[id] * get_instance().tc_size + get_instance().tc_position;
 	render_size = dot(get_instance().size, vec2(1, 1));

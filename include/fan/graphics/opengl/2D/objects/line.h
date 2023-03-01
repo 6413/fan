@@ -14,7 +14,7 @@ struct line_t {
   struct bm_properties_t {
      using parsed_masterpiece_t = fan::masterpiece_t<
       uint16_t,
-      loco_t::matrices_list_NodeReference_t,
+      loco_t::camera_list_NodeReference_t,
       fan::graphics::viewport_list_NodeReference_t
     >;
     struct key_t : parsed_masterpiece_t {
@@ -28,7 +28,7 @@ struct line_t {
 	};
 
   struct properties_t : vi_t, ri_t {
-    loco_t::matrices_t* matrices = 0;
+    loco_t::camera_t* camera = 0;
     fan::graphics::viewport_t* viewport = 0;
   };
 
@@ -37,15 +37,15 @@ struct line_t {
   void push_back(fan::graphics::cid_t* cid, properties_t& p) {
     
     get_key_value(uint16_t) = p.src.z;
-    get_key_value(loco_t::matrices_list_NodeReference_t) = p.matrices;
+    get_key_value(loco_t::camera_list_NodeReference_t) = p.camera;
     get_key_value(fan::graphics::viewport_list_NodeReference_t) = p.viewport;
 
     #if defined(loco_vulkan)
       auto loco = get_loco();
-      auto& matrices = loco->matrices_list[p.matrices];
-      if (matrices.matrices_index.line == (decltype(matrices.matrices_index.line))-1) {
-        matrices.matrices_index.line = m_matrices_index++;
-        m_shader.set_matrices(loco, matrices.matrices_id, matrices.matrices_index.line);
+      auto& camera = loco->camera_list[p.camera];
+      if (camera.camera_index.line == (decltype(camera.camera_index.line))-1) {
+        camera.camera_index.line = m_camera_index++;
+        m_shader.set_camera(loco, camera.camera_id, camera.camera_index.line);
       }
     #endif
 
@@ -101,6 +101,6 @@ struct line_t {
   }
 
   #if defined(loco_vulkan)
-    uint32_t m_matrices_index = 0;
+    uint32_t m_camera_index = 0;
   #endif
 };

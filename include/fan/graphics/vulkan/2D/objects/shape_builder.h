@@ -143,8 +143,8 @@ void sb_open() {
 }
 
 template <typename T>
-void reset_matrices(T x) {
-  T::m_matrices_index = 0
+void reset_camera(T x) {
+  T::m_camera_index = 0
 }
 
 template <typename T>
@@ -160,16 +160,16 @@ void sb_close() {
 
   m_ssbo.close(context, &loco->m_write_queue);
 
-  if constexpr(fan::_has_matrices_id_t<decltype(*this)>::value) {
-    reset_matrices(this);
+  if constexpr(fan::_has_camera_id_t<decltype(*this)>::value) {
+    reset_camera(this);
   }
   if constexpr(fan::_has_texture_id_t<decltype(*this)>::value) {
     reset_texture(this);
   }
 
   //uint32_t index = fan::ofof<loco_t>() - offsetof(loco_t, )
-  //for (uint8_t i = 0; i < loco->matrices_list.Usage(); ++i) {
-  //  ((uint8_t *)&loco->matrices_list[*(loco_t::matrices_list_NodeReference_t*)&i].matrices_index)[index]
+  //for (uint8_t i = 0; i < loco->camera_list.Usage(); ++i) {
+  //  ((uint8_t *)&loco->camera_list[*(loco_t::camera_list_NodeReference_t*)&i].camera_index)[index]
   //}
 
   //vkDestroyDescriptorSetLayout(loco->get_context()->device, descriptorSetLayout, nullptr);
@@ -188,14 +188,14 @@ void sb_push_back(fan::vulkan::cid_t* fcid, auto p) {
 
   #if defined (loco_line)
   if constexpr (std::is_same<decltype(p), loco_t::line_t::properties_t>::value) {
-    p.src.z -= loco_t::matrices_t::znearfar - 1;
-    p.dst.z -= loco_t::matrices_t::znearfar - 1;
+    p.src.z -= loco_t::camera_t::znearfar - 1;
+    p.dst.z -= loco_t::camera_t::znearfar - 1;
   }
   else {
-    p.position.z -= loco_t::matrices_t::znearfar - 1;
+    p.position.z -= loco_t::camera_t::znearfar - 1;
   }
   #else
-    p.position.z -= loco_t::matrices_t::znearfar - 1;
+    p.position.z -= loco_t::camera_t::znearfar - 1;
   #endif
 
   p.depth = p.position.z;
@@ -337,13 +337,13 @@ auto get(fan::graphics::cid_t *cid, T T2::*member) {
   if constexpr (std::is_same_v<T2, loco_t::line_t::vi_t>) {
     if constexpr (std::is_same_v<decltype(member), decltype(&T2::src)> ||
                   std::is_same_v<decltype(member), decltype(&T2::dst)>) {
-      return sb_get_vi(cid).*member + fan::vec3(0, 0, loco_t::matrices_t::znearfar - 1);
+      return sb_get_vi(cid).*member + fan::vec3(0, 0, loco_t::camera_t::znearfar - 1);
     }
   }
   else {
 #endif
     if constexpr (std::is_same_v<decltype(member), decltype(&T2::position)>) {
-      return sb_get_vi(cid).*member + fan::vec3(0, 0, loco_t::matrices_t::znearfar - 1);
+      return sb_get_vi(cid).*member + fan::vec3(0, 0, loco_t::camera_t::znearfar - 1);
     }
 #if defined(loco_line)
   }
@@ -362,7 +362,7 @@ void set(fan::graphics::cid_t *fcid, T T2::*member, const auto& value) {
       cid->block_id, \
       cid->instance_id, \
       member, \
-      fan::vec3(value) - fan::vec3(0, 0, loco_t::matrices_t::znearfar - 1) \
+      fan::vec3(value) - fan::vec3(0, 0, loco_t::camera_t::znearfar - 1) \
     );
 
   #if defined(loco_line)
@@ -390,12 +390,12 @@ void set(fan::graphics::cid_t *fcid, T T2::*member, const auto& value) {
 }
 
 template <typename T = void>
-loco_t::matrices_t* get_matrices(fan::graphics::cid_t* cid) requires fan::has_matrices_t<properties_t> {
+loco_t::camera_t* get_camera(fan::graphics::cid_t* cid) requires fan::has_camera_t<properties_t> {
   auto ri = sb_get_ri(cid);
   loco_t* loco = get_loco();
-  return loco->matrices_list[*ri.key.get_value<
-    bm_properties_t::key_t::get_index_with_type<loco_t::matrices_list_NodeReference_t>()
-  >()].matrices_id;
+  return loco->camera_list[*ri.key.get_value<
+    bm_properties_t::key_t::get_index_with_type<loco_t::camera_list_NodeReference_t>()
+  >()].camera_id;
 }
 template <typename T = void>
 fan::graphics::viewport_t* get_viewport(fan::graphics::cid_t* cid) requires fan::has_viewport_t<properties_t> {
@@ -470,13 +470,13 @@ void sb_draw(uint32_t draw_mode = 0) {
 
 template <typename T>
 static void line_move_z(T& x) {
-  x.src.z += loco_t::matrices_t::znearfar - 1;
-  x.dst.z += loco_t::matrices_t::znearfar - 1;
+  x.src.z += loco_t::camera_t::znearfar - 1;
+  x.dst.z += loco_t::camera_t::znearfar - 1;
 }
 
 template <typename T>
 static void else_move_z(T& x) {
-  x.position.z += loco_t::matrices_t::znearfar - 1;
+  x.position.z += loco_t::camera_t::znearfar - 1;
 }
 
 template <uint32_t i>

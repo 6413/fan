@@ -57,10 +57,10 @@ namespace fan {
 
     struct context_t;
     struct viewport_t;
-    struct matrices_t;
+    struct camera_t;
 
     struct cid_t {
-      uint8_t shape_type;
+      //uint8_t shape_type;
       uint16_t bm_id;
       uint16_t block_id;
       uint8_t instance_id;
@@ -194,11 +194,11 @@ namespace fan {
   }
 }
 
-//static void open_matrices(fan::opengl::context_t* context, matrices_t* matrices, fan::vec2 window_size, const fan::vec2& x, const fan::vec2& y) {
-//  matrices->open(context);
+//static void open_camera(fan::opengl::context_t* context, camera_t* camera, fan::vec2 window_size, const fan::vec2& x, const fan::vec2& y) {
+//  camera->open(context);
 //  fan::vec2 ratio = window_size / window_size.max();
 //  std::swap(ratio.x, ratio.y);
-//  matrices->set_ortho(fan::vec2(x.x, x.y), fan::vec2(y.x, y.y));
+//  camera->set_ortho(fan::vec2(x.x, x.y), fan::vec2(y.x, y.y));
 //}
 
 namespace fan {

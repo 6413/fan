@@ -247,12 +247,12 @@ struct frame_capture_t {
 
 	}
 
-	void push(fan::opengl::viewport_t* viewport, fan::opengl::matrices_t* matrices) {
+	void push(fan::opengl::viewport_t* viewport, fan::opengl::camera_t* camera) {
 
 		//for (uint32_t i = 0; i < 1; i++) {
 		//	post_sprite_t::properties_t sp;
 		//	sp.viewport = viewport;
-		//	sp.matrices = matrices;
+		//	sp.camera = camera;
 		//	sp.image = &capture.mips[0].image;
 		//	sp.position =  get_loco()->get_window()->get_size() / 2;
 		//	sp.size = get_loco()->get_window()->get_size() / 2;

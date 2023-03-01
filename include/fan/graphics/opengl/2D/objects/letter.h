@@ -23,7 +23,7 @@ struct letter_t {
   void push_back(fan::graphics::cid_t* cid, properties_t& p) {
 
     get_key_value(uint16_t) = p.position.z;
-    get_key_value(loco_t::matrices_list_NodeReference_t) = p.matrices;
+    get_key_value(loco_t::camera_list_NodeReference_t) = p.camera;
     get_key_value(fan::graphics::viewport_list_NodeReference_t) = p.viewport;
 
     loco_t* loco = get_loco();
@@ -50,10 +50,10 @@ struct letter_t {
         m_ssbo.m_descriptor.update(loco->get_context(), 1, 2);
       }
 
-      auto& matrices = loco->matrices_list[p.matrices];
-      if (matrices.matrices_index.letter == (decltype(matrices.matrices_index.letter))-1) {
-        matrices.matrices_index.letter = m_matrices_index++;
-        m_shader.set_matrices(loco, matrices.matrices_id, matrices.matrices_index.letter);
+      auto& camera = loco->camera_list[p.camera];
+      if (camera.camera_index.letter == (decltype(camera.camera_index.letter))-1) {
+        camera.camera_index.letter = m_camera_index++;
+        m_shader.set_camera(loco, camera.camera_id, camera.camera_index.letter);
       }
     #endif
 
@@ -88,7 +88,7 @@ struct letter_t {
     sb_close();
   }
 
-  void set_matrices(fan::graphics::cid_t* cid, loco_t::matrices_list_NodeReference_t n) {
+  void set_camera(fan::graphics::cid_t* cid, loco_t::camera_list_NodeReference_t n) {
     sb_set_key<bm_properties_t::key_t::get_index_with_type<decltype(n)>()>(cid, n);
   }
 
@@ -98,6 +98,6 @@ struct letter_t {
 
   #if defined(loco_vulkan)
     uint32_t m_texture_index = 0;
-    uint32_t m_matrices_index = 0;
+    uint32_t m_camera_index = 0;
   #endif
 };

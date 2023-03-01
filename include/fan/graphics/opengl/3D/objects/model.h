@@ -28,8 +28,8 @@ struct model_t {
 
 	#define hardcode0_t fan::opengl::textureid_t<0>
   #define hardcode0_n image
-  #define hardcode1_t fan::opengl::matrices_list_NodeReference_t
-  #define hardcode1_n matrices
+  #define hardcode1_t fan::opengl::camera_list_NodeReference_t
+  #define hardcode1_n camera
   #define hardcode2_t fan::opengl::viewport_list_NodeReference_t
   #define hardcode2_n viewport
   #include _FAN_PATH(graphics/opengl/2D/objects/hardcode_open.h)

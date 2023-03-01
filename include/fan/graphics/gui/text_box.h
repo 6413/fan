@@ -38,7 +38,7 @@ struct text_box_t {
   void push_back(fan::graphics::cid_t* cid, properties_t& p) {
 
     get_key_value(uint16_t) = p.position.z;
-    get_key_value(loco_t::matrices_list_NodeReference_t) = p.matrices;
+    get_key_value(loco_t::camera_list_NodeReference_t) = p.camera;
     get_key_value(fan::graphics::viewport_list_NodeReference_t) = p.viewport;
 
     loco_t* loco = get_loco();
@@ -49,14 +49,14 @@ struct text_box_t {
     tp.position = p.position;
     tp.text = p.text;
     tp.position.z += p.position.z + 1;
-    tp.matrices = p.matrices;
+    tp.camera = p.camera;
     tp.viewport = p.viewport;
 
     #if defined(loco_vulkan)
-      auto& matrices = loco->matrices_list[p.matrices];
-      if (matrices.matrices_index.text_box == (decltype(matrices.matrices_index.text_box))-1) {
-        matrices.matrices_index.text_box = m_matrices_index++;
-        m_shader.set_matrices(loco, matrices.matrices_id, matrices.matrices_index.text_box);
+      auto& camera = loco->camera_list[p.camera];
+      if (camera.camera_index.text_box == (decltype(camera.camera_index.text_box))-1) {
+        camera.camera_index.text_box = m_camera_index++;
+        m_shader.set_camera(loco, camera.camera_id, camera.camera_index.text_box);
       }
     #endif
 
@@ -69,7 +69,7 @@ struct text_box_t {
 
     loco_t::vfi_t::properties_t vfip;
     vfip.shape_type = loco_t::vfi_t::shape_t::rectangle;
-    vfip.shape.rectangle.matrices = p.matrices;
+    vfip.shape.rectangle.camera = p.camera;
     vfip.shape.rectangle.viewport = p.viewport;
     vfip.shape.rectangle.position = p.position;
     vfip.shape.rectangle.size = p.size;
@@ -256,7 +256,7 @@ struct text_box_t {
     rp.position.z = tp.position.z;
     rp.size = cursor_properties::size;
     rp.size.y = p.font_size;
-    rp.matrices = p.matrices;
+    rp.camera = p.camera;
     rp.viewport = p.viewport;
     rp.color = fan::colors::transparent;
     invalidate_cursor();
@@ -413,15 +413,15 @@ struct text_box_t {
     );
   }
 
- /* loco_t::matrices_t* get_matrices(fan::graphics::cid_t* cid) {
+ /* loco_t::camera_t* get_camera(fan::graphics::cid_t* cid) {
     loco_t* loco = get_loco();
-    return loco->matrices_list[*block->p[cid->instance_id].key.get_value<0>()].matrices_id;
+    return loco->camera_list[*block->p[cid->instance_id].key.get_value<0>()].camera_id;
   }
-  void set_matrices(fan::graphics::cid_t* cid, loco_t::matrices_list_NodeReference_t n) {
+  void set_camera(fan::graphics::cid_t* cid, loco_t::camera_list_NodeReference_t n) {
     sb_set_key<bm_properties_t::key_t::get_index_with_type<decltype(n)>()>(cid, n);
     loco_t* loco = get_loco();
     auto block = sb_get_block(cid);
-    loco->text.set_matrices(block->p[cid->instance_id].text_id, n);
+    loco->text.set_camera(block->p[cid->instance_id].text_id, n);
   }
 
   fan::graphics::viewport_t* get_viewport(fan::graphics::cid_t* cid) {
@@ -540,7 +540,7 @@ struct text_box_t {
   }
 
   #if defined(loco_vulkan)
-    uint32_t m_matrices_index = 0;
+    uint32_t m_camera_index = 0;
   #endif
 };
 

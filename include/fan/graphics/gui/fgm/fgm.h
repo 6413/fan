@@ -169,7 +169,7 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
 	/*	button_menu.clear();
 
 		button_menu_t::open_properties_t menup;
-		menup.matrices = &matrices[viewport_area::properties];
+		menup.camera = &camera[viewport_area::properties];
 		menup.viewport = &viewport[viewport_area::properties];
 		menup.theme = &theme;
 		menup.position = fan::vec2(0, -0.8);
@@ -188,7 +188,7 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
 
 		line_t::properties_t lp;
 		lp.viewport = &viewport[viewport_area::global];
-		lp.matrices = &matrices[viewport_area::global];
+		lp.camera = &camera[viewport_area::global];
 		lp.color = fan::colors::white;
 
 		// editor window
@@ -204,7 +204,7 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
 		resize_cb();
 
 		button_menu_t::open_properties_t op;
-		op.matrices = &matrices[viewport_area::types];
+		op.camera = &camera[viewport_area::types];
 		op.viewport = &viewport[viewport_area::types];
 		op.theme = &theme;
 		op.position = fan::vec2(0, -0.9);
@@ -222,13 +222,13 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
 		vfip.shape_type = loco_t::vfi_t::shape_t::rectangle;
 		vfip.shape.rectangle.position = translate_viewport_position_to_coordinate(&viewport[viewport_area::types]);
 		vfip.shape.rectangle.position.z = right_click_z_depth;
-		vfip.shape.rectangle.matrices = &matrices[viewport_area::global];
+		vfip.shape.rectangle.camera = &camera[viewport_area::global];
 		vfip.shape.rectangle.viewport = &viewport[viewport_area::global];
 		vfip.shape.rectangle.size = viewport[viewport_area::types].get_size() / pile->loco.get_window()->get_size();
 
     vfip.mouse_button_cb = [this](const loco_t::vfi_t::mouse_button_data_t& mb) mutable -> int {
       loco_t::menu_maker_button_t::open_properties_t rcm_op;
-		  rcm_op.matrices = &matrices[viewport_area::global];
+		  rcm_op.camera = &camera[viewport_area::global];
 		  rcm_op.viewport = &viewport[viewport_area::global];
 		  rcm_op.theme = &theme;
 		  rcm_op.gui_size = 0.04;
@@ -263,7 +263,7 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
 				      return 0;
 			      }
 			      button_t::properties_t bbp;
-			      bbp.matrices = &matrices[viewport_area::editor];
+			      bbp.camera = &camera[viewport_area::editor];
 			      bbp.viewport = &viewport[viewport_area::editor];
 			      bbp.position = fan::vec3(0, 0, 20);
 			
@@ -311,13 +311,13 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
               return 0;
             }
           	sprite_t::properties_t sp;
-          	sp.matrices = &matrices[viewport_area::editor];
+          	sp.camera = &camera[viewport_area::editor];
           	sp.viewport = &viewport[viewport_area::editor];
           	sp.position = fan::vec3(0, 0, 20);
 
             fan::vec2 size = fan::vec2(
-              matrices[viewport_area::editor].coordinates.right,
-              matrices[viewport_area::editor].coordinates.down
+              camera[viewport_area::editor].coordinates.right,
+              camera[viewport_area::editor].coordinates.down
             );
 
           	sp.size = size / 10;
@@ -347,7 +347,7 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
               return 0;
             }
             text_t::properties_t sp;
-            sp.matrices = &matrices[viewport_area::editor];
+            sp.camera = &camera[viewport_area::editor];
             sp.viewport = &viewport[viewport_area::editor];
             sp.position = fan::vec3(0, 0, 20);
 
@@ -378,7 +378,7 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
               return 0;
             }
           	hitbox_t::properties_t sp;
-          	sp.matrices = &matrices[viewport_area::editor];
+          	sp.camera = &camera[viewport_area::editor];
           	sp.viewport = &viewport[viewport_area::editor];
           	sp.position = fan::vec3(0, 0, 20);
             sp.vfi_type = loco_t::vfi_t::shape_t::always;
@@ -420,7 +420,7 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
               return 0;
             }
             mark_t::properties_t sp;
-            sp.matrices = &matrices[viewport_area::editor];
+            sp.camera = &camera[viewport_area::editor];
             sp.viewport = &viewport[viewport_area::editor];
             sp.position = fan::vec3(0, 0, 20);
             sp.vfi_type = loco_t::vfi_t::shape_t::always;
@@ -469,9 +469,9 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
 		);
 
 		global_button_t::properties_t gbp;
-		gbp.matrices = &matrices[viewport_area::global];
+		gbp.camera = &camera[viewport_area::global];
 		gbp.viewport = &viewport[viewport_area::global];
-		gbp.position = fan::vec2(-0.8, matrices[viewport_area::types].coordinates.up * 0.9);
+		gbp.position = fan::vec2(-0.8, camera[viewport_area::types].coordinates.up * 0.9);
 		gbp.size = button_size / fan::vec2(4, 2);
 		gbp.theme = &theme;
 		gbp.text = "<-";
@@ -500,7 +500,7 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
 
     loco_t::menu_maker_text_box_t::open_properties_t rcm_op;
     rcm_op.viewport = &viewport[viewport_area::global];
-    rcm_op.matrices = &matrices[viewport_area::global];
+    rcm_op.camera = &camera[viewport_area::global];
     rcm_op.theme = &theme;
     rcm_op.gui_size = 0.08;
 
@@ -522,7 +522,7 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
 
         fan::vec4 size = fan::string_to<fan::vec4>(text);
         editor_viewport = size;
-        matrices[viewport_area::editor].set_ortho(
+        camera[viewport_area::editor].set_ortho(
           &pile->loco,
           fan::vec2(size[0], size[1]),
           fan::vec2(size[2], size[3])
@@ -571,13 +571,13 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
 		pile->loco.get_window()->add_mouse_move_callback([this](const auto& d) {
       if (view_action_flag & action::move) {
         fan::vec2 size = fan::vec2(
-          matrices[viewport_area::editor].coordinates.right,
-          matrices[viewport_area::editor].coordinates.down
+          camera[viewport_area::editor].coordinates.right,
+          camera[viewport_area::editor].coordinates.down
         );
         *(fan::vec2*)& camera_position -= 
           ((pile->loco.get_mouse_position() - pile->loco.get_window()->get_previous_mouse_position()) * 
           (size / pile->loco.get_window()->get_size())) * 32;
-        matrices[viewport_area::editor].set_camera_position(camera_position);
+        camera[viewport_area::editor].set_camera_position(camera_position);
       }
     });
 		pile->loco.get_window()->add_buttons_callback([this](const auto& d) {
@@ -601,23 +601,23 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
             return;
           }
           camera_position = fan::vec3(0, 0, 0);
-          matrices[viewport_area::editor].set_camera_position(camera_position);
+          camera[viewport_area::editor].set_camera_position(camera_position);
           break;
         }
       }
     });
 
     //camera_position = fan::vec3(-512, 0, 0);
-    //matrices[viewport_area::editor].set_camera_position(camera_position);
+    //camera[viewport_area::editor].set_camera_position(camera_position);
 		// half size
 		properties_line_position = fan::vec2(0.5, 0);
 		editor_position = fan::vec2(-properties_line_position.x / 2, 0);
 		editor_size = editor_position.x + 0.9;
 
-		matrices[viewport_area::global].open(&pile->loco);
-		matrices[viewport_area::editor].open(&pile->loco);
-		matrices[viewport_area::types].open(&pile->loco);
-		matrices[viewport_area::properties].open(&pile->loco);
+		camera[viewport_area::global].open(&pile->loco);
+		camera[viewport_area::editor].open(&pile->loco);
+		camera[viewport_area::types].open(&pile->loco);
+		camera[viewport_area::properties].open(&pile->loco);
 
 		viewport[viewport_area::global].open(pile->loco.get_context());
 		viewport[viewport_area::editor].open(pile->loco.get_context());
@@ -716,7 +716,7 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
   #include "private.h"
 	#include "shapes.h"
 
-	loco_t::matrices_t matrices[4];
+	loco_t::camera_t camera[4];
 	fan::graphics::viewport_t viewport[4];
 
 	loco_t::theme_t theme;

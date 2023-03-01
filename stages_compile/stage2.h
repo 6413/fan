@@ -85,7 +85,7 @@ fan_init_id_t0(
 
 f32_t WorldMatrixMultipler;
 f32_t WorldMatrixMultiplerVelocity;
-loco_t::matrices_t world_matrices;
+loco_t::camera_t world_matrices;
 
 BCOL_t bcol;
 uint64_t BCOLStepNumber = 0;
