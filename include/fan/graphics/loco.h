@@ -234,6 +234,8 @@ namespace fan {
 
 struct loco_t {
 
+  using cid_t = fan::graphics::cid_t;
+
   #define get_key_value(type) \
     *p.key.get_value<decltype(p.key)::get_index_with_type<type>()>()
 
@@ -245,6 +247,7 @@ struct loco_t {
     static constexpr _t hitbox = 3;
     static constexpr _t line = 4;
     static constexpr _t mark = 5;
+    static constexpr _t rectangle = 6;
   };
 
   struct draw_t {
@@ -1608,6 +1611,71 @@ public:
 
     #endif
 
+  void push_shape(cid_t* cid, const auto& properties) {
+    using type_t = std::remove_const_t<std::remove_reference_t<decltype(properties)>>;
+    #if defined(loco_line)
+    #elif defined(loco_rectangle)
+    if constexpr (std::is_same_v<type_t, loco_t::rectangle_t::properties_t>) {
+      rectangle.push_back(cid, properties);
+    }
+    #elif defined(loco_sprite)
+    if constexpr (std::is_same_v<type_t, loco_t::sprite_t::properties_t>) {
+      sprite.push_back(cid, properties);
+    }
+    #elif defined(loco_letter)
+    if constexpr (std::is_same_v<type_t, loco_t::letter_t::properties_t>) {
+      letter.push_back(cid, properties);
+    }
+    #elif defined(loco_text)
+    if constexpr (std::is_same_v<type_t, loco_t::text_t::properties_t>) {
+      text.push_back(cid, properties);
+    }
+    #elif defined(loco_button)
+    if constexpr (std::is_same_v<type_t, loco_t::button_t::properties_t>) {
+      button.push_back(cid, properties);
+    }
+    #endif
+  }
+
+  void erase_shape(cid_t* cid) {
+
+    switch (cid->shape_type) {
+      case shape_type_t::line: {
+        #if defined(loco_line)
+          line.erase(cid);
+        #endif
+        break;
+      }
+      case shape_type_t::rectangle: {
+        #if defined(loco_rectangle)
+          rectangle.erase(cid);
+        #endif
+        break;
+      }
+      case shape_type_t::sprite: {
+        #if defined(loco_sprite)
+          sprite.erase(cid);
+        #endif
+        break;
+      }
+      case shape_type_t::button: {
+        #if defined(loco_button)
+          button.erase(cid);
+        #endif
+        break;
+      }
+      case shape_type_t::text: {
+        #if defined(loco_text)
+          text.erase(cid);
+        #endif
+        break;
+      }
+      default: {
+        fan::throw_error("invalid cid shape type - either not implemented or bug in code");
+        break;
+      }
+    }
+  }
 };
 
 #if defined(loco_pixel_format_renderer)

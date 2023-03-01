@@ -163,6 +163,30 @@ block_t* sb_push_back(fan::opengl::cid_t* cid, auto& p) {
   cid->block_id = bmn->data.last_block.NRI;
   cid->instance_id = instance_id;
 
+  cid->shape_type = -1;
+  #if defined(loco_line)
+  if constexpr (std::is_same<std::remove_pointer_t<decltype(this)>, loco_t::line_t>::value) {
+    cid->shape_type = loco_t::shape_type_t::line;
+  }
+  #elif defined(loco_rectangle)
+  if constexpr (std::is_same<std::remove_pointer_t<decltype(this)>, loco_t::rectangle_t>::value) {
+    cid->shape_type = loco_t::shape_type_t::rectangle;
+  }
+  #elif defined(loco_sprite)
+  if constexpr (std::is_same<std::remove_pointer_t<decltype(this)>, loco_t::sprite_t>::value) {
+    cid->shape_type = loco_t::shape_type_t::sprite;
+  }
+  #elif defined(loco_button)
+  if constexpr (std::is_same<std::remove_pointer_t<decltype(this)>, loco_t::button_t>::value) {
+    cid->shape_type = loco_t::shape_type_t::button;
+  }
+  #elif defined(loco_text)
+  if constexpr (std::is_same<std::remove_pointer_t<decltype(this)>, loco_t::text_t>::value) {
+    cid->shape_type = loco_t::shape_type_t::text;
+  }
+  #endif
+
+
   block->p[instance_id] = *(ri_t*)&p;
   return block;
 }

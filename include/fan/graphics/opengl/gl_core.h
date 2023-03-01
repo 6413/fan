@@ -60,6 +60,7 @@ namespace fan {
     struct matrices_t;
 
     struct cid_t {
+      uint8_t shape_type;
       uint16_t bm_id;
       uint16_t block_id;
       uint8_t instance_id;
