@@ -8,6 +8,13 @@ struct model_loader_t {
     #undef fgm_build_model_maker
   };
 
+  struct iterator_t {
+    fan_masterpiece_make(
+      (private_::stage_maker_shape_format::shape_sprite_t)sprite,
+      (private_::stage_maker_shape_format::shape_mark_t)mark
+    );
+  };
+
   using sprite_t = private_::stage_maker_shape_format::shape_sprite_t;
   using mark_t = private_::stage_maker_shape_format::shape_mark_t;
 
@@ -23,12 +30,7 @@ struct model_loader_t {
       return;
     }
 
-    struct iterator_t {
-      fan_masterpiece_make(
-        (private_::stage_maker_shape_format::shape_sprite_t)sprite,
-        (private_::stage_maker_shape_format::shape_mark_t)mark
-      );
-    }iterator;
+    iterator_t iterator;
 
     uint64_t offset = 0;
     // read header
@@ -48,50 +50,76 @@ struct model_loader_t {
 };
 
 struct cm_t {
-  std::vector<std::unordered_map<std::string,
+  struct instance_t {
     std::variant<
-    model_loader_t::mark_t,
-    model_loader_t::sprite_t
-    >
-    >> models;
+      model_loader_t::mark_t,
+      model_loader_t::sprite_t
+    > type;
+  };
+
+  struct model_t {
+    std::vector<std::shared_ptr<loco_t::cid_t>> cids;
+    std::unordered_map<std::string, instance_t> instances;
+  };
+
+  std::unordered_map<uint32_t, model_t> groups;
 
   void import_from(const char* path, loco_t::texturepack_t* tp) {
     model_loader_t loader;
     loco_t::texturepack_t::ti_t ti;
     loader.load(tp, path, [&](const auto& data) {
-      models.resize(fan::max(models.size(), data.group_id + 1));
-    models[data.group_id][data.id] = data;
-      });
+      groups[data.group_id].instances[data.id].type = data;
+    });
   }
-};
+}; 
 
 struct model_list_t {
-private:
-  #define BLL_set_CPP_ConstructDestruct
-  #define BLL_set_CPP_Node_ConstructDestruct
-  #define BLL_set_BaseLibrary 1
-  #define BLL_set_prefix model_list_internal
-  #define BLL_set_type_node uint8_t
-  #define BLL_set_NodeData cm_t* cms;
-  #define BLL_set_Link 1
-  #define BLL_set_AreWeInsideStruct 1
-  #include _FAN_PATH(BLL/BLL.h)
-public:
 
-  model_list_internal_t model_list;
+  using model_id_t = uint64_t;
+  std::unordered_map<model_id_t, cm_t*> model_list;
 
-  using model_id_t = model_list_internal_NodeReference_t;
 
   model_id_t push_model(cm_t* cms) {
-    auto it = model_list.GetNodeLast();
-    model_list[it].cms = cms;
-    return it;
+    model_list[(model_id_t)cms] = cms;
+    return (model_id_t)cms;
   }
-  constexpr void iterate(model_id_t model_id, uint32_t group_id, auto lambda) {
-    for (auto& i : model_list[model_id].cms->models[group_id]) {
+  void erase(model_id_t id, uint32_t group_id) {
+    auto& cids = model_list[id]->groups[group_id].cids;
+    for (auto& i : cids) {
+      loco_var.erase_shape(i.get());
+    }
+    model_list[id]->groups.erase(group_id);
+  }
+
+  void erase(model_id_t id) {
+    auto& groups = model_list[id]->groups;
+    for (auto it = groups.begin(); it != groups.end(); ) {
+      auto& cids = it->second.cids;
+      for (auto& i : cids) {
+        loco_var.erase_shape(i.get());
+      }
+      it = groups.erase(it);
+    }
+  }
+
+  loco_t::cid_t* push_shape(model_id_t model_id, uint32_t group_id, const auto& properties) {
+    auto& cids = model_list[model_id]->groups[group_id].cids;
+    cids.emplace_back(std::make_shared<loco_t::cid_t>());
+    loco_var.push_shape(cids.back().get(), properties);
+    return cids.back().get();
+  }
+
+  void iterate(model_id_t model_id, uint32_t group_id, auto lambda) {
+    auto it = model_list[model_id]->groups.find(group_id);
+    if (it == model_list[model_id]->groups.end()) {
+      fan::throw_error("model iterate - invalid group_id");
+    }
+    for (auto& i : it->second.instances) {
       std::visit([&](auto&& o) {
         lambda(i.first, o);
-        }, i.second);
+        }, i.second.type);
     }
   }
 };
+
+#undef loco_var

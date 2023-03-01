@@ -61,6 +61,7 @@ struct pile_t {
 
 pile_t* pile = new pile_t;
 
+#define loco_var pile->loco
 #include _FAN_PATH(graphics/gui/model_maker/loader.h)
 
 int main(int argc, char** argv) {
@@ -74,21 +75,19 @@ int main(int argc, char** argv) {
   cm_t cm;
   cm.import_from("model.fmm", &tp);
 
-  auto it = m.push_model(&cm);
+  auto model_id = m.push_model(&cm);
   
   uint32_t group_id = 0;
 
-  m.iterate(it, group_id, [](auto shape_id, const auto& properties) {
-    using type_t = std::remove_const_t<std::remove_reference_t<decltype(properties)>>;
-    if constexpr (std::is_same_v<type_t, model_loader_t::mark_t>) {
-      fan::graphics::cid_t cid;
+  m.iterate(model_id, group_id, [&]<typename T>(auto shape_id, const T& properties) {
+    if constexpr (std::is_same_v<T, model_loader_t::mark_t>) {
       loco_t::rectangle_t::properties_t rp;
       rp.matrices = &pile->matrices;
       rp.viewport = &pile->viewport;
       rp.position = properties.position;
       rp.size = 0.01;
       rp.color = fan::colors::white;
-      pile->loco.rectangle.push_back(&cid, rp);
+      m.push_shape(model_id, group_id, rp);
     }
   });
 

@@ -83,7 +83,7 @@ namespace fan {
     using get_type = get <N, masterpiece_reversed_t<T, Rest...>>;
 
     template <int N>
-    using get_type_t = get_type<N>::type;
+    using get_type_t = typename get_type<N>::type;
 
     template <uint32_t i, typename _Ty = masterpiece_reversed_t<T, Rest...>, uint32_t depth = count>
     constexpr auto get_value(_Ty* a = nullptr) {
