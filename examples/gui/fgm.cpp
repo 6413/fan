@@ -30,7 +30,7 @@ struct pile_t {
        fan::vec2 ratio = window_size / window_size.max();
        std::swap(ratio.x, ratio.y);
        pile_t* pile = (pile_t*)userptr;
-       pile->matrices.set_ortho(
+       pile->camera.set_ortho(
          &loco,
          ortho_x * ratio.x,
          ortho_y * ratio.y

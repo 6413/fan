@@ -20,9 +20,9 @@ struct pile_t {
 
   void open() {
     loco.open(loco_t::properties_t());
-    fan::graphics::open_matrices(
+    fan::graphics::open_camera(
       loco.get_context(),
-      &matrices,
+      &camera,
       ortho_x,
       ortho_y
     );
@@ -34,7 +34,7 @@ struct pile_t {
   }
 
   loco_t loco;
-  fan::opengl::camera_t matrices;
+  fan::opengl::camera_t camera;
   fan::opengl::viewport_t viewport;
   //fan::opengl::cid_t cids[count];
 };
@@ -45,7 +45,7 @@ int main() {
 
   pile.open();
   loco_t::model_t::properties_t mp;
-  mp.get_matrices() = &pile.matrices;
+  mp.get_camera() = &pile.camera;
   mp.get_viewport() = &pile.viewport;
   mp.loaded_model = pile.loco.model.load_model("models/test.obj");
   mp.position = fan::vec3(0, 0, 0);
@@ -60,7 +60,7 @@ int main() {
   fan::vec2ui window_size = pile.loco.get_window()->get_size();
 
   static constexpr f32_t zoom = 20;
-  pile.matrices.set_ortho(fan::vec2(-zoom, zoom), fan::vec2(zoom, -zoom));
+  pile.camera.set_ortho(fan::vec2(-zoom, zoom), fan::vec2(zoom, -zoom));
 
   auto& window = *pile.loco.get_window();
 

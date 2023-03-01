@@ -1,9 +1,14 @@
 #ifndef sb_get_loco
+#if defined(build_loco0)
   #define sb_get_loco \
   loco_t* get_loco() { \
+    return (loco_t*)global_loco; \
+  }
+#else
     loco_t* loco = OFFSETLESS(this, loco_t, sb_shape_var_name); \
     return loco; \
   }
+  #endif
 #endif
 
 sb_get_loco

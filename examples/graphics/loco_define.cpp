@@ -38,8 +38,8 @@ struct pile_t {
   static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
 
   pile_t() {
-    loco.open_matrices(
-      &matrices,
+    loco.open_camera(
+      &camera,
       ortho_x,
       ortho_y
     );
@@ -51,7 +51,7 @@ struct pile_t {
   }
 
   loco_t loco;
-  loco_t::camera_t matrices;
+  loco_t::camera_t camera;
   fan::graphics::viewport_t viewport;
   fan::graphics::cid_t cids[count];
 };
@@ -70,7 +70,7 @@ int main() {
       .position = fan::vec2(0, 0),
       .size = 0.1,
       .color = fan::colors::red,
-      .matrices = &pile->matrices,
+      .camera = &pile->camera,
       .viewport = &pile->viewport
     )
   );
@@ -84,14 +84,14 @@ int main() {
       .position = fan::vec2(-0.5, 0),
       .size = 0.2,
       .image = &image,
-      .matrices = &pile->matrices,
+      .camera = &pile->camera,
       .viewport = &pile->viewport
   }];
 
   loco_t::letter_id_t letter(
     fan_init_struct(
       loco_t::letter_id_t::properties_t,
-      .matrices = &pile->matrices,
+      .camera = &pile->camera,
       .viewport = &pile->viewport,
       .position = fan::vec2(0.5, 0),
       .letter_id = 65,
@@ -102,7 +102,7 @@ int main() {
   loco_t::text_id_t text(
     fan_init_struct(
       loco_t::text_id_t::properties_t,
-      .matrices = &pile->matrices,
+      .camera = &pile->camera,
       .viewport = &pile->viewport,
       .position = fan::vec2(0.5, 0.5),
       .text = "text",
@@ -116,7 +116,7 @@ int main() {
   loco_t::button_id_t button(
     fan_init_struct(
       loco_t::button_id_t::properties_t,
-      .matrices = &pile->matrices,
+      .camera = &pile->camera,
       .viewport = &pile->viewport,
       .position = fan::vec2(-0.5, 0.5),
       .size = fan::vec2(.3, .1),
@@ -128,7 +128,7 @@ int main() {
   loco_t::text_box_id_t text_box(
     fan_init_struct(
       loco_t::text_box_id_t::properties_t,
-      .matrices = &pile->matrices,
+      .camera = &pile->camera,
       .viewport = &pile->viewport,
       .position = fan::vec2(-0.5, -0.5),
       .size = fan::vec2(.3, .1),
@@ -144,7 +144,7 @@ int main() {
       .shape.rectangle.position = fan::vec3(0.5, 0.5, 1),
       .shape.rectangle.size = pile->loco.text.get_text_size("text", 0.1),
       .shape.rectangle.size.x /= 2, // hitbox takes half size
-      .shape.rectangle.matrices = &pile->matrices,
+      .shape.rectangle.camera = &pile->camera,
       .shape.rectangle.viewport = &pile->viewport,
       .mouse_button_cb = [](const loco_t::mouse_button_data_t& ii_d) -> int {
         fan::print("click rectangle");
@@ -160,7 +160,7 @@ int main() {
       .size = 0.1,
       .color = fan::colors::green,
       // compress this
-      .matrices = &pile->matrices,
+      .camera = &pile->camera,
       .viewport = &pile->viewport
     )
   );

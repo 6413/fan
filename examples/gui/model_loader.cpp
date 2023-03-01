@@ -31,8 +31,8 @@ struct pile_t {
 
   pile_t() {
     fan::vec2 window_size = loco.get_window()->get_size();
-    loco.open_matrices(
-      &matrices,
+    loco.open_camera(
+      &camera,
       ortho_x,
       ortho_y
     );
@@ -40,7 +40,7 @@ struct pile_t {
       fan::vec2 window_size = d.size;
     // keep aspect ratio
     fan::vec2 ratio = window_size / window_size.max();
-    matrices.set_ortho(
+    camera.set_ortho(
       &loco,
       ortho_x * ratio.x,
       ortho_y * ratio.y
@@ -54,7 +54,7 @@ struct pile_t {
   }
 
   loco_t::theme_t theme;
-  loco_t::camera_t matrices;
+  loco_t::camera_t camera;
   fan::graphics::viewport_t viewport;
 
 };
@@ -82,7 +82,7 @@ int main(int argc, char** argv) {
   m.iterate(model_id, group_id, [&]<typename T>(auto shape_id, const T& properties) {
     if constexpr (std::is_same_v<T, model_loader_t::mark_t>) {
       loco_t::rectangle_t::properties_t rp;
-      rp.matrices = &pile->matrices;
+      rp.camera = &pile->camera;
       rp.viewport = &pile->viewport;
       rp.position = properties.position;
       rp.size = 0.01;
