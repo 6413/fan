@@ -91,6 +91,8 @@ int main(int argc, char** argv) {
     }
   });
 
+  m.erase(model_id);
+
   pile->loco.loop([&] {
 
   });
