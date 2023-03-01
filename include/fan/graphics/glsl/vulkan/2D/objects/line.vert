@@ -21,7 +21,7 @@ layout(std140, binding = 0) readonly buffer instances_t{
 
 layout(push_constant) uniform constants_t {
 	uint texture_id;
-	uint matrices_id;
+	uint camera_id;
 }constants;
 
 struct pv_t {
@@ -36,14 +36,14 @@ layout(binding = 1) uniform upv_t {
 void main() {
 	uint id = uint(gl_VertexIndex % 6);
 
-	mat4 view = pv[constants.matrices_id].view;
+	mat4 view = pv[constants.camera_id].view;
   mat4 m = view;
 	m[3][0] = 0;
 	m[3][1] = 0;
 	
 	vec4 view_position = m * vec4(((id & 1u) == 0u) ? get_instance().src.xy : get_instance().dst.xy, get_instance().src.z, 1);
 
-  gl_Position = pv[constants.matrices_id].projection * view_position;
+  gl_Position = pv[constants.camera_id].projection * view_position;
 
 	data.color = get_instance().color;
 }

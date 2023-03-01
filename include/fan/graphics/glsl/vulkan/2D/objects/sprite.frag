@@ -12,7 +12,7 @@ layout(binding = 2) uniform sampler2D _t[16];
 
 layout( push_constant ) uniform constants_t {
 	uint texture_id;
-	uint matrices_id;
+	uint camera_id;
 }constants;
 
 void main() {

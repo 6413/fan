@@ -41,7 +41,7 @@ struct button_t {
 
     get_fgm()->properties_open = true;
     text_box_menu_t::open_properties_t menup;
-    menup.matrices = &get_fgm()->matrices[viewport_area::properties];
+    menup.camera = &get_fgm()->camera[viewport_area::properties];
     menup.viewport = &get_fgm()->viewport[viewport_area::properties];
     menup.theme = &get_fgm()->theme;
     menup.position = fan::vec2(0, -0.8);
@@ -268,7 +268,7 @@ struct button_t {
       bp.font_size = data.font_size;
       bp.text = data.text;
       bp.theme = &get_fgm()->theme;
-      bp.matrices = &get_fgm()->matrices[viewport_area::editor];
+      bp.camera = &get_fgm()->camera[viewport_area::editor];
       bp.viewport = &get_fgm()->viewport[viewport_area::editor];
       bp.id = data.id;
       push_back(bp);
@@ -330,7 +330,7 @@ struct sprite_t {
     get_fgm()->properties_open = true;
 
     text_box_menu_t::open_properties_t menup;
-    menup.matrices = &get_fgm()->matrices[viewport_area::properties];
+    menup.camera = &get_fgm()->camera[viewport_area::properties];
     menup.viewport = &get_fgm()->viewport[viewport_area::properties];
     menup.theme = &get_fgm()->theme;
     menup.position = fan::vec2(0, -0.8);
@@ -572,7 +572,7 @@ struct sprite_t {
     vfip.shape_type = loco_t::vfi_t::shape_t::rectangle;
     vfip.shape.rectangle.position = p.position;
     vfip.shape.rectangle.size = p.size;
-    vfip.shape.rectangle.matrices = p.matrices;
+    vfip.shape.rectangle.camera = p.camera;
     vfip.shape.rectangle.viewport = p.viewport;
     pile->loco.push_back_input_hitbox(&instances[i]->vfi_id, vfip);
     pile->loco.sprite.push_back(&instances[i]->cid, p);
@@ -656,7 +656,7 @@ struct sprite_t {
         sp.tc_position = ti.position / pd.image.size;
         sp.tc_size = ti.size / pd.image.size;
       }
-      sp.matrices = &get_fgm()->matrices[viewport_area::editor];
+      sp.camera = &get_fgm()->camera[viewport_area::editor];
       sp.viewport = &get_fgm()->viewport[viewport_area::editor];
       sp.texturepack_name = data.texturepack_name;
       sp.id = data.id;
@@ -707,7 +707,7 @@ struct text_t {
     get_fgm()->properties_open = true;
 
     text_box_menu_t::open_properties_t menup;
-    menup.matrices = &get_fgm()->matrices[viewport_area::properties];
+    menup.camera = &get_fgm()->camera[viewport_area::properties];
     menup.viewport = &get_fgm()->viewport[viewport_area::properties];
     menup.theme = &get_fgm()->theme;
     menup.position = fan::vec2(0, -0.8);
@@ -881,7 +881,7 @@ struct text_t {
     vfip.shape_type = loco_t::vfi_t::shape_t::rectangle;
     vfip.shape.rectangle.position = p.position;
     vfip.shape.rectangle.size = pile->loco.text.get_text_size(&instances[i]->cid);
-    vfip.shape.rectangle.matrices = p.matrices;
+    vfip.shape.rectangle.camera = p.camera;
     vfip.shape.rectangle.viewport = p.viewport;
     pile->loco.push_back_input_hitbox(&instances[i]->vfi_id, vfip);
   }
@@ -956,7 +956,7 @@ struct text_t {
       p.position = data.position;
       p.font_size = data.size;
       p.text = data.text;
-      p.matrices = &get_fgm()->matrices[viewport_area::editor];
+      p.camera = &get_fgm()->camera[viewport_area::editor];
       p.viewport = &get_fgm()->viewport[viewport_area::editor];
       p.id = data.id;
       push_back(p);
@@ -1007,7 +1007,7 @@ struct hitbox_t {
     get_fgm()->properties_open = true;
 
     text_box_menu_t::open_properties_t menup;
-    menup.matrices = &get_fgm()->matrices[viewport_area::properties];
+    menup.camera = &get_fgm()->camera[viewport_area::properties];
     menup.viewport = &get_fgm()->viewport[viewport_area::properties];
     menup.theme = &get_fgm()->theme;
     menup.position = fan::vec2(0, -0.8);
@@ -1175,7 +1175,7 @@ struct hitbox_t {
     vfip.shape_type = loco_t::vfi_t::shape_t::rectangle;
     vfip.shape.rectangle.position = p.position;
     vfip.shape.rectangle.size = p.size;
-    vfip.shape.rectangle.matrices = p.matrices;
+    vfip.shape.rectangle.camera = p.camera;
     vfip.shape.rectangle.viewport = p.viewport;
     pile->loco.push_back_input_hitbox(&instances[i]->vfi_id, vfip);
     pile->loco.sprite.push_back(&instances[i]->cid, p);
@@ -1268,7 +1268,7 @@ struct hitbox_t {
       sp.position = data.position;
       sp.size = data.size;
       sp.image = &get_fgm()->hitbox_image;
-      sp.matrices = &get_fgm()->matrices[viewport_area::editor];
+      sp.camera = &get_fgm()->camera[viewport_area::editor];
       sp.viewport = &get_fgm()->viewport[viewport_area::editor];
       sp.vfi_type = data.vfi_type;
       sp.id = data.id;
@@ -1335,7 +1335,7 @@ struct mark_t {
     get_fgm()->properties_open = true;
 
     text_box_menu_t::open_properties_t menup;
-    menup.matrices = &get_fgm()->matrices[viewport_area::properties];
+    menup.camera = &get_fgm()->camera[viewport_area::properties];
     menup.viewport = &get_fgm()->viewport[viewport_area::properties];
     menup.theme = &get_fgm()->theme;
     menup.position = fan::vec2(0, -0.8);
@@ -1524,7 +1524,7 @@ struct mark_t {
     vfip.shape_type = loco_t::vfi_t::shape_t::rectangle;
     vfip.shape.rectangle.position = p.position;
     vfip.shape.rectangle.size = p.size;
-    vfip.shape.rectangle.matrices = p.matrices;
+    vfip.shape.rectangle.camera = p.camera;
     vfip.shape.rectangle.viewport = p.viewport;
     pile->loco.push_back_input_hitbox(&instances[i]->vfi_id, vfip);
     pile->loco.sprite.push_back(&instances[i]->cid, p);
@@ -1598,7 +1598,7 @@ struct mark_t {
       sp.position = data.position;
       sp.size = fan::vec2(0.1, 0.1);
       sp.image = &get_fgm()->mark_image;
-      sp.matrices = &get_fgm()->matrices[viewport_area::editor];
+      sp.camera = &get_fgm()->camera[viewport_area::editor];
       sp.viewport = &get_fgm()->viewport[viewport_area::editor];
       sp.id = data.id;
       #if defined(fgm_build_model_maker)

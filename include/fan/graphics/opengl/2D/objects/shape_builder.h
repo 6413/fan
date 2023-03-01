@@ -163,8 +163,8 @@ block_t* sb_push_back(fan::opengl::cid_t* cid, auto& p) {
   cid->block_id = bmn->data.last_block.NRI;
   cid->instance_id = instance_id;
 
-  cid->shape_type = -1;
-  #if defined(loco_line)
+ // cid->shape_type = -1;
+ /* #if defined(loco_line)
   if constexpr (std::is_same<std::remove_pointer_t<decltype(this)>, loco_t::line_t>::value) {
     cid->shape_type = loco_t::shape_type_t::line;
   }
@@ -184,7 +184,7 @@ block_t* sb_push_back(fan::opengl::cid_t* cid, auto& p) {
   if constexpr (std::is_same<std::remove_pointer_t<decltype(this)>, loco_t::text_t>::value) {
     cid->shape_type = loco_t::shape_type_t::text;
   }
-  #endif
+  #endif*/
 
 
   block->p[instance_id] = *(ri_t*)&p;
@@ -290,12 +290,12 @@ void set(fan::opengl::cid_t *cid, T T2::*member, const auto& value) {
 }
 
 template <typename T = void>
-loco_t::matrices_t* get_matrices(fan::graphics::cid_t* cid) requires fan::has_matrices_t<properties_t> {
+loco_t::camera_t* get_camera(fan::graphics::cid_t* cid) requires fan::has_camera_t<properties_t> {
   auto ri = sb_get_ri(cid);
   loco_t* loco = get_loco();
-  return loco->matrices_list[*ri.key.get_value<
-    bm_properties_t::key_t::get_index_with_type<loco_t::matrices_list_NodeReference_t>()
-  >()].matrices_id;
+  return loco->camera_list[*ri.key.get_value<
+    bm_properties_t::key_t::get_index_with_type<loco_t::camera_list_NodeReference_t>()
+  >()].camera_id;
 }
 
 template <typename T = void>

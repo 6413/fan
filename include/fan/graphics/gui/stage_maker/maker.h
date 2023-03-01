@@ -131,7 +131,7 @@ void update(auto& loco){
 
 			loco_t::menu_maker_button_t::open_properties_t op;
 			op.theme = &theme;
-			op.matrices = &matrices;
+			op.camera = &camera;
 			op.viewport = &viewport;
 			op.gui_size = gui_size * 3;
 			op.position = fan::vec2(op.gui_size * (5.0 / 3), -1.0 + op.gui_size);
@@ -313,7 +313,7 @@ void update(auto& loco){
 	void open_without_init() {
 		loco_t::menu_maker_button_t::open_properties_t op;
 		op.theme = &theme;
-		op.matrices = &matrices;
+		op.camera = &camera;
 		op.viewport = &viewport;
 
 		op.gui_size = gui_size;
@@ -414,8 +414,8 @@ void update(auto& loco){
 
 		fan::vec2 window_size = pile->loco.get_window()->get_size();
 		fan::vec2 ratio = window_size / window_size.max();
-		pile->loco.open_matrices(
-			&matrices,
+		pile->loco.open_camera(
+			&camera,
 			fan::vec2(-1, 1) * ratio.x,
 			fan::vec2(-1, 1) * ratio.y
 		);
@@ -481,7 +481,7 @@ void update(auto& loco){
 
 	uint8_t current_stage;
 
-	loco_t::matrices_t matrices;
+	loco_t::camera_t camera;
 	fan::graphics::viewport_t viewport;
 	loco_t::theme_t theme;
 	loco_t::theme_t erase_theme;

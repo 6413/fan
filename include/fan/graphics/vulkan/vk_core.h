@@ -79,7 +79,7 @@ namespace fan {
       struct memory_t;
     }
 
-    static constexpr uint16_t max_matrices = 16;
+    static constexpr uint16_t max_camera = 16;
     static constexpr uint16_t max_textures = 16;
 
     struct write_descriptor_set_t {
@@ -1959,7 +1959,7 @@ inline void fan::vulkan::viewport_t::set_viewport(fan::vulkan::context_t* contex
 
 void fan::vulkan::shader_t::open(fan::vulkan::context_t* context, fan::vulkan::core::memory_write_queue_t* wq) {
   projection_view_block.open(context);
-  for (uint32_t i = 0; i < fan::vulkan::max_matrices; ++i) {
+  for (uint32_t i = 0; i < fan::vulkan::max_camera; ++i) {
     projection_view_block.push_ram_instance(context, wq, {});
   }
 }

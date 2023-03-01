@@ -25,7 +25,7 @@ public:
   stage_list_t stage_list;
 
   struct stage_open_properties_t {
-    loco_t::matrices_t* matrices;
+    loco_t::camera_t* camera;
     fan::graphics::viewport_t* viewport;
     loco_t::theme_t* theme;
 

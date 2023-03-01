@@ -26,7 +26,7 @@ struct sb_pfr_name {
       loco_t::textureid_t<1>,
       loco_t::textureid_t<2>,
       loco_t::textureid_t<3>,
-      loco_t::matrices_list_NodeReference_t,
+      loco_t::camera_list_NodeReference_t,
       fan::graphics::viewport_list_NodeReference_t
     >;
     struct key_t : parsed_masterpiece_t {}key;
@@ -42,7 +42,7 @@ struct sb_pfr_name {
 
   struct properties_t : vi_t, ri_t {
 
-    loco_t::matrices_t* matrices = 0;
+    loco_t::camera_t* camera = 0;
     fan::graphics::viewport_t* viewport = 0;
   };
 
@@ -108,7 +108,7 @@ struct sb_pfr_name {
       get_key_value(loco_t::textureid_t<3>) = &p.images[3];
     }*/
     
-    get_key_value(loco_t::matrices_list_NodeReference_t) = p.matrices;
+    get_key_value(loco_t::camera_list_NodeReference_t) = p.camera;
     get_key_value(fan::graphics::viewport_list_NodeReference_t) = p.viewport;
     sb_push_back(cid, p);
     //auto* ri = &sb_get_ri(cid);

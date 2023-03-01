@@ -16,11 +16,11 @@
 
 namespace fan {
 	template <typename T, typename = int>
-	struct _has_matrices_t : std::false_type { };
+	struct _has_camera_t : std::false_type { };
 	template <typename T>
-	struct _has_matrices_t <T, decltype((void) T::matrices, 0)> : std::true_type { };
+	struct _has_camera_t <T, decltype((void) T::camera, 0)> : std::true_type { };
 	template <typename T>
-	concept has_matrices_t = _has_matrices_t<T>::value;
+	concept has_camera_t = _has_camera_t<T>::value;
 
 	template <typename T, typename = int>
 	struct _has_viewport_t : std::false_type { };
@@ -30,9 +30,9 @@ namespace fan {
 	concept has_viewport_t = _has_viewport_t<T>::value;
 
 	template <typename T, typename = int>
-	struct _has_matrices_id_t : std::false_type { };
+	struct _has_camera_id_t : std::false_type { };
 	template <typename T>
-	struct _has_matrices_id_t <T, decltype((void) T::m_matrices_index, 0)> : std::true_type { };
+	struct _has_camera_id_t <T, decltype((void) T::m_camera_index, 0)> : std::true_type { };
 
 	template <typename T, typename = int>
 	struct _has_texture_id_t : std::false_type { };

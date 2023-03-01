@@ -84,7 +84,7 @@ struct text_renderer_t {
     p.color = properties.color;
     p.font_size = properties.font_size;
     p.viewport = properties.viewport;
-    p.matrices = properties.matrices;
+    p.camera = properties.camera;
     p.outline_color = properties.outline_color;
     p.outline_size = properties.outline_size;
     uint32_t id;
@@ -165,14 +165,14 @@ struct text_renderer_t {
     }
   }
 
-  void set_matrices(fan::graphics::cid_t* cid, loco_t::matrices_list_NodeReference_t n) {
+  void set_camera(fan::graphics::cid_t* cid, loco_t::camera_list_NodeReference_t n) {
     loco_t* loco = get_loco();
 
     auto it = letter_ids[*(uint32_t*)cid].cid_list.GetNodeFirst();
 
     while (it != letter_ids[*(uint32_t*)cid].cid_list.dst) {
       auto node = letter_ids[*(uint32_t*)cid].cid_list.GetNodeByReference(it);
-      loco->letter.set_matrices(&node->data.cid, n);
+      loco->letter.set_camera(&node->data.cid, n);
       it = node->NextNodeReference;
     }
   }
@@ -221,11 +221,11 @@ struct text_renderer_t {
     return loco->letter.sb_get_ri(&node->data.cid).font_size;
   }
 
-  auto get_matrices(fan::graphics::cid_t* cid) {
+  auto get_camera(fan::graphics::cid_t* cid) {
     auto loco = get_loco();
     auto it = letter_ids[*(uint32_t*)cid].cid_list.GetNodeFirst();
     auto node = letter_ids[*(uint32_t*)cid].cid_list.GetNodeByReference(it);
-    return loco->letter.get_matrices(&node->data.cid);
+    return loco->letter.get_camera(&node->data.cid);
   }
 
   const properties_t &get_instance(fan::graphics::cid_t* cid) {

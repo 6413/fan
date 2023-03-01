@@ -281,9 +281,9 @@ namespace fan {
         }
       }
 
-      void set_matrices(fan::opengl::context_t* context, auto* matrices, auto write_queue, uint32_t flags = 0) {
-        context->opengl.call(context->opengl.glUniformMatrix4fv, projection_view[0], 1, fan::opengl::GL_FALSE, &matrices->m_projection[0][0]);
-        context->opengl.call(context->opengl.glUniformMatrix4fv, projection_view[1], 1, fan::opengl::GL_FALSE, &matrices->m_view[0][0]);
+      void set_camera(fan::opengl::context_t* context, auto* camera, auto write_queue, uint32_t flags = 0) {
+        context->opengl.call(context->opengl.glUniformMatrix4fv, projection_view[0], 1, fan::opengl::GL_FALSE, &camera->m_projection[0][0]);
+        context->opengl.call(context->opengl.glUniformMatrix4fv, projection_view[1], 1, fan::opengl::GL_FALSE, &camera->m_view[0][0]);
       }
 
       void set_mat4(fan::opengl::context_t* context, const fan::string& name, fan::mat4 mat) const {

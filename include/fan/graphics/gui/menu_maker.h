@@ -47,7 +47,7 @@ struct sb_menu_maker_type_name {
     loco_t::theme_t* theme = 0;
 
     fan::graphics::viewport_t* viewport = 0;
-    loco_t::matrices_t* matrices = 0;
+    loco_t::camera_t* camera = 0;
 
     fan::function_t<int(const select_data_t&)> select_cb = [](const select_data_t&) -> int { return 0; };
   };
@@ -145,7 +145,7 @@ struct sb_menu_maker_type_name {
     bp.theme = &instances[id].theme;
     bp.size = fan::vec2(global.gui_size * 5, global.gui_size);
     bp.viewport = global.viewport;
-    bp.matrices = global.matrices;
+    bp.camera = global.camera;
     bp.font_size = global.gui_size;
     bp.text.resize(sizeof(instances[id].text));
     bp.text = instances[id].text;

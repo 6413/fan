@@ -43,7 +43,7 @@ struct pile_t {
   loco_t loco;
 
   fan::graphics::viewport_t viewport;
-  loco_t::matrices_t matrices;
+  loco_t::camera_t matrices;
 
   loco_t::texturepack_t TP;
   loco_t::texturepack_t::ti_t TP_ti;

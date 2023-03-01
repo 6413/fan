@@ -34,18 +34,18 @@ struct vfi_t {
     fan::vec3 position;
     fan::vec2 size;
     fan::graphics::viewport_list_NodeReference_t viewport;
-    loco_t::matrices_list_NodeReference_t matrices;
+    loco_t::camera_list_NodeReference_t camera;
   };
   struct shape_data_rectangle_t {
     fan::vec2 position;
     fan::vec2 size;
     fan::graphics::viewport_list_NodeReference_t viewport;
-    loco_t::matrices_list_NodeReference_t matrices;
+    loco_t::camera_list_NodeReference_t camera;
     shape_data_rectangle_t& operator=(const shape_properties_rectangle_t& p) {
       position = p.position;
       size = p.size;
       viewport = p.viewport;
-      matrices = p.matrices;
+      camera = p.camera;
       return *this;
     }
   };
@@ -219,15 +219,15 @@ struct vfi_t {
     shape_list[id].shape_data.*member = value;
   }
 
-  static fan::vec2 transform_position(const fan::vec2& p, fan::graphics::viewport_t* viewport, loco_t::matrices_t* matrices) {
+  static fan::vec2 transform_position(const fan::vec2& p, fan::graphics::viewport_t* viewport, loco_t::camera_t* camera) {
       
     fan::vec2 viewport_position = viewport->get_position(); 
     fan::vec2 viewport_size = viewport->get_size();
 
-    f32_t l = matrices->coordinates.left;
-    f32_t r = matrices->coordinates.right;
-    f32_t t = matrices->coordinates.up;
-    f32_t b = matrices->coordinates.down;
+    f32_t l = camera->coordinates.left;
+    f32_t r = camera->coordinates.right;
+    f32_t t = camera->coordinates.up;
+    f32_t b = camera->coordinates.down;
 
     fan::vec2 tp = p - viewport_position;
     fan::vec2 d = viewport_size;
@@ -267,8 +267,8 @@ struct vfi_t {
         return transform_position(
           v,
           loco->get_context()->viewport_list[shape_data->shape.rectangle.viewport].viewport_id,
-          loco->matrices_list[shape_data->shape.rectangle.matrices].matrices_id
-        ) + fan::vec2(loco->matrices_list[shape_data->shape.rectangle.matrices].matrices_id->camera_position);
+          loco->camera_list[shape_data->shape.rectangle.camera].camera_id
+        ) + fan::vec2(loco->camera_list[shape_data->shape.rectangle.camera].camera_id->camera_position);
         break;
       }
       default: {

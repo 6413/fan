@@ -54,7 +54,7 @@ struct pile_t {
   }
 
   loco_t::theme_t theme;
-  loco_t::matrices_t matrices;
+  loco_t::camera_t matrices;
   fan::graphics::viewport_t viewport;
 
 };

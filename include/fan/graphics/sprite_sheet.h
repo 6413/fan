@@ -30,7 +30,7 @@ struct sb_sprite_sheet_name {
     fan::vec2 position;
     fan::vec2 size;
 
-    make_key_value(loco_t::matrices_list_NodeReference_t, matrices);
+    make_key_value(loco_t::camera_list_NodeReference_t, camera);
     make_key_value(fan::graphics::viewport_list_NodeReference_t, viewport);
 
     sheet_t* sheet;
@@ -60,7 +60,7 @@ public:
     sp.position = p.position;
     sp.size = p.size;
 
-    sp.matrices = p.matrices;
+    sp.camera = p.camera;
     sp.viewport = p.viewport;
 
     sp.image = p.sheet->m_textures[0];

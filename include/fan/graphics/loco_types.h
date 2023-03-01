@@ -11,7 +11,7 @@
 #define loco_rectangle_bm_properties_t \
   using parsed_masterpiece_t = fan::masterpiece_t< \
     uint16_t, \
-    loco_t::matrices_list_NodeReference_t, \
+    loco_t::camera_list_NodeReference_t, \
     fan::graphics::viewport_list_NodeReference_t \
   >; \
   struct key_t : parsed_masterpiece_t {}key;
@@ -20,7 +20,7 @@
   loco_t::rectangle_t::cid_t* cid;
 
 #define loco_rectangle_properties_t \
-  loco_t::matrices_t* matrices = 0; \
+  loco_t::camera_t* camera = 0; \
   fan::graphics::viewport_t* viewport = 0;
 
 #endif
@@ -42,7 +42,7 @@
     using parsed_masterpiece_t = fan::masterpiece_t< \
       uint16_t, \
       loco_t::textureid_t<0>, \
-      loco_t::matrices_list_NodeReference_t, \
+      loco_t::camera_list_NodeReference_t, \
       fan::graphics::viewport_list_NodeReference_t \
     >; \
     struct key_t : parsed_masterpiece_t {}key;
@@ -52,7 +52,7 @@
 
 #define loco_sprite_properties_t \
     loco_t::image_t* image = 0; \
-    loco_t::matrices_t* matrices = 0; \
+    loco_t::camera_t* camera = 0; \
     fan::graphics::viewport_t* viewport = 0; \
  \
     bool load_tp(loco_t::texturepack_t::ti_t* ti) { \
@@ -81,7 +81,7 @@
   #define loco_letter_bm_properties_t \
       using parsed_masterpiece_t = fan::masterpiece_t< \
         uint16_t, \
-        loco_t::matrices_list_NodeReference_t, \
+        loco_t::camera_list_NodeReference_t, \
         fan::graphics::viewport_list_NodeReference_t \
       >; \
       struct key_t : parsed_masterpiece_t {}key;
@@ -92,7 +92,7 @@
     uint32_t letter_id; 
 
   #define loco_letter_properties_t \
-    loco_t::matrices_t* matrices = 0; \
+    loco_t::camera_t* camera = 0; \
     fan::graphics::viewport_t* viewport = 0;
 #endif
 
@@ -102,7 +102,7 @@
   #define loco_text_bm_properties_t loco_letter_bm_properties_t
 
   #define loco_text_properties_t \
-    loco_t::matrices_t* matrices = 0; \
+    loco_t::camera_t* camera = 0; \
     fan::graphics::viewport_t* viewport = 0; \
     \
     fan::string text;
@@ -123,7 +123,7 @@
 #define loco_button_bm_properties_t \
     using parsed_masterpiece_t = fan::masterpiece_t<\
       uint16_t,\
-      loco_t::matrices_list_NodeReference_t,\
+      loco_t::camera_list_NodeReference_t,\
       fan::graphics::viewport_list_NodeReference_t\
     >;\
 \
@@ -149,7 +149,7 @@
   loco_t::mouse_button_cb_t mouse_button_cb = [](const loco_t::mouse_button_data_t&) -> int { return 0; }; \
   loco_t::mouse_move_cb_t mouse_move_cb = [](const loco_t::mouse_move_data_t&) -> int { return 0; }; \
   loco_t::keyboard_cb_t keyboard_cb = [](const loco_t::keyboard_data_t&) -> int { return 0; }; \
-  loco_t::matrices_t* matrices = 0; \
+  loco_t::camera_t* camera = 0; \
   fan::graphics::viewport_t* viewport = 0;
 
 #endif
@@ -168,7 +168,7 @@
   #define loco_text_box_bm_properties_t \
     using parsed_masterpiece_t = fan::masterpiece_t< \
       uint16_t, \
-      loco_t::matrices_list_NodeReference_t, \
+      loco_t::camera_list_NodeReference_t, \
       fan::graphics::viewport_list_NodeReference_t \
     >; \
     struct key_t : parsed_masterpiece_t {}key;
@@ -184,7 +184,7 @@
     fed_t fed;
 
 #define loco_text_box_properties_t \
-    loco_t::matrices_t* matrices = 0; \
+    loco_t::camera_t* camera = 0; \
     fan::graphics::viewport_t* viewport = 0; \
     fan::string text; \
     f32_t font_size = 0.1; \
@@ -213,7 +213,7 @@
 #define loco_light_bm_properties_t \
   using parsed_masterpiece_t = fan::masterpiece_t< \
     uint16_t, \
-    loco_t::matrices_list_NodeReference_t, \
+    loco_t::camera_list_NodeReference_t, \
     fan::graphics::viewport_list_NodeReference_t \
   >; \
   struct key_t : parsed_masterpiece_t {}key;
@@ -222,7 +222,7 @@
   loco_t::light_t::cid_t* cid;
 
 #define loco_light_properties_t \
-  loco_t::matrices_t* matrices = 0; \
+  loco_t::camera_t* camera = 0; \
   fan::graphics::viewport_t* viewport = 0;
 
 #endif

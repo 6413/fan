@@ -96,10 +96,10 @@ namespace fan {
 
       static VkShaderModule createShaderModule(fan::vulkan::context_t* context, const std::vector<uint32_t>& code);
 
-      void set_matrices(auto* loco, auto* matrices, uint32_t flags) {
-        auto& m = loco->matrices_list[matrices->matrices_reference];
-        projection_view_block.edit_instance(loco->get_context(), &loco->m_write_queue, flags, &viewprojection_t::projection, matrices->m_projection);
-        projection_view_block.edit_instance(loco->get_context(), &loco->m_write_queue, flags, &viewprojection_t::view, matrices->m_view);
+      void set_camera(auto* loco, auto* camera, uint32_t flags) {
+        auto& m = loco->camera_list[camera->camera_reference];
+        projection_view_block.edit_instance(loco->get_context(), &loco->m_write_queue, flags, &viewprojection_t::projection, camera->m_projection);
+        projection_view_block.edit_instance(loco->get_context(), &loco->m_write_queue, flags, &viewprojection_t::view, camera->m_view);
       }
 
       struct viewprojection_t {
@@ -108,7 +108,7 @@ namespace fan {
       };
 
       VkPipelineShaderStageCreateInfo shaderStages[2];
-      fan::vulkan::core::uniform_block_t<viewprojection_t, fan::vulkan::max_matrices> projection_view_block;
+      fan::vulkan::core::uniform_block_t<viewprojection_t, fan::vulkan::max_camera> projection_view_block;
 		};
 	}
 }

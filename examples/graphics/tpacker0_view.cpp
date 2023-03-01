@@ -26,7 +26,7 @@ struct pile_t {
     viewport.set(loco.get_context(), 0, loco.get_window()->get_size(), loco.get_window()->get_size());
   }
 
-  loco_t::matrices_t matrices;
+  loco_t::camera_t matrices;
   fan::graphics::viewport_t viewport;
   loco_t loco;
 };

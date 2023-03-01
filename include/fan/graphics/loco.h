@@ -345,34 +345,34 @@ public:
   #include _FAN_PATH(graphics/vulkan/vk_image.h)
   #endif
 
-  struct matrices_t;
+  struct camera_t;
 
   #define BLL_set_declare_NodeReference 1
   #define BLL_set_declare_rest 0
   #if defined(loco_opengl)
-  #include _FAN_PATH(graphics/opengl/matrices_list_builder_settings.h)
+  #include _FAN_PATH(graphics/opengl/camera_list_builder_settings.h)
   #elif defined(loco_vulkan)
-  #include _FAN_PATH(graphics/vulkan/matrices_list_builder_settings.h)
+  #include _FAN_PATH(graphics/vulkan/camera_list_builder_settings.h)
   #endif
   #include _FAN_PATH(BLL/BLL.h)
 
-  struct matrices_t {
+  struct camera_t {
     static constexpr f32_t znearfar = 0xffff;
 
     void open(loco_t* loco) {
       auto* context = loco->get_context();
       m_view = fan::mat4(1);
       camera_position = 0;
-      matrices_reference = loco->matrices_list.NewNode();
-      loco->matrices_list[matrices_reference].matrices_id = this;
+      camera_reference = loco->camera_list.NewNode();
+      loco->camera_list[camera_reference].camera_id = this;
     }
     void close(loco_t* loco) {
-      loco->matrices_list.Recycle(matrices_reference);
+      loco->camera_list.Recycle(camera_reference);
     }
 
-    void open_matrices(loco_t* loco, loco_t::matrices_t* matrices, const fan::vec2& x, const fan::vec2& y) {
-      matrices->open(loco);
-      matrices->set_ortho(loco, fan::vec2(x.x, x.y), fan::vec2(y.x, y.y));
+    void open_camera(loco_t* loco, loco_t::camera_t* camera, const fan::vec2& x, const fan::vec2& y) {
+      camera->open(loco);
+      camera->set_ortho(loco, fan::vec2(x.x, x.y), fan::vec2(y.x, y.y));
     }
 
     fan::vec3 get_camera_position() const {
@@ -427,49 +427,49 @@ public:
       #if defined (loco_vulkan)
       #if defined(loco_line)
       {
-        auto idx = loco->matrices_list[matrices_reference].matrices_index.line;
+        auto idx = loco->camera_list[camera_reference].camera_index.line;
         if (idx != (uint8_t)-1) {
-          loco->line.m_shader.set_matrices(loco, this, idx);
+          loco->line.m_shader.set_camera(loco, this, idx);
         }
       }
       #endif
       #if defined(loco_rectangle)
       {
-        auto idx = loco->matrices_list[matrices_reference].matrices_index.rectangle;
+        auto idx = loco->camera_list[camera_reference].camera_index.rectangle;
         if (idx != (uint8_t)-1) {
-          loco->rectangle.m_shader.set_matrices(loco, this, idx);
+          loco->rectangle.m_shader.set_camera(loco, this, idx);
         }
       }
       #endif
       #if defined(loco_sprite)
       {
-        auto idx = loco->matrices_list[matrices_reference].matrices_index.sprite;
+        auto idx = loco->camera_list[camera_reference].camera_index.sprite;
         if (idx != (uint8_t)-1) {
-          loco->sprite.m_shader.set_matrices(loco, this, idx);
+          loco->sprite.m_shader.set_camera(loco, this, idx);
         }
       }
       #endif
       #if defined(loco_letter)
       {
-        auto idx = loco->matrices_list[matrices_reference].matrices_index.letter;
+        auto idx = loco->camera_list[camera_reference].camera_index.letter;
         if (idx != (uint8_t)-1) {
-          loco->letter.m_shader.set_matrices(loco, this, idx);
+          loco->letter.m_shader.set_camera(loco, this, idx);
         }
       }
       #endif
       #if defined(loco_button)
       {
-        auto idx = loco->matrices_list[matrices_reference].matrices_index.button;
+        auto idx = loco->camera_list[camera_reference].camera_index.button;
         if (idx != (uint8_t)-1) {
-          loco->button.m_shader.set_matrices(loco, this, idx);
+          loco->button.m_shader.set_camera(loco, this, idx);
         }
       }
       #endif
       #if defined(loco_text_box)
       {
-        auto idx = loco->matrices_list[matrices_reference].matrices_index.text_box;
+        auto idx = loco->camera_list[camera_reference].camera_index.text_box;
         if (idx != (uint8_t)-1) {
-          loco->text_box.m_shader.set_matrices(loco, this, idx);
+          loco->text_box.m_shader.set_camera(loco, this, idx);
         }
       }
       #endif
@@ -492,12 +492,12 @@ public:
       fan::vec4 v;
     }coordinates;
 
-    matrices_list_NodeReference_t matrices_reference;
+    camera_list_NodeReference_t camera_reference;
   };
 
-  void open_matrices(matrices_t* matrices, const fan::vec2& x, const fan::vec2& y) {
-    matrices->open(this);
-    matrices->set_ortho(this, x, y);
+  void open_camera(camera_t* camera, const fan::vec2& x, const fan::vec2& y) {
+    camera->open(this);
+    camera->set_ortho(this, x, y);
   }
 
   void open_viewport(fan::graphics::viewport_t* viewport, const fan::vec2& viewport_position, const fan::vec2& viewport_size) {
@@ -512,15 +512,15 @@ public:
   #define BLL_set_declare_NodeReference 0
   #define BLL_set_declare_rest 1
     #if defined(loco_opengl)
-      #include _FAN_PATH(graphics/opengl/matrices_list_builder_settings.h)
+      #include _FAN_PATH(graphics/opengl/camera_list_builder_settings.h)
     #elif defined(loco_vulkan)
-      #include _FAN_PATH(graphics/vulkan/matrices_list_builder_settings.h)
+      #include _FAN_PATH(graphics/vulkan/camera_list_builder_settings.h)
     #endif
   #include _FAN_PATH(BLL/BLL.h)
 
-  matrices_list_t matrices_list;
+  camera_list_t camera_list;
 
-  uint32_t matrices_index = 0;
+  uint32_t camera_index = 0;
 
   image_t unloaded_image;
 
@@ -665,55 +665,55 @@ public:
 
   struct push_constants_t {
     uint32_t texture_id;
-    uint32_t matrices_id;
+    uint32_t camera_id;
   };
 
   #if defined(loco_window)
-  void process_block_properties_element(auto* shape, loco_t::matrices_list_NodeReference_t matrices_id) {
+  void process_block_properties_element(auto* shape, loco_t::camera_list_NodeReference_t camera_id) {
     #if defined(loco_opengl)
-    shape->m_shader.set_matrices(get_context(), matrices_list[matrices_id].matrices_id, &m_write_queue);
+    shape->m_shader.set_camera(get_context(), camera_list[camera_id].camera_id, &m_write_queue);
     #elif defined(loco_vulkan)
-    auto& matrices = matrices_list[matrices_id];
+    auto& camera = camera_list[camera_id];
     auto context = get_context();
 
     uint32_t idx;
 
     #if defined(loco_line)
     if constexpr (std::is_same<typename std::remove_pointer<decltype(shape)>::type, line_t>::value) {
-      idx = matrices.matrices_index.line;
+      idx = camera.camera_index.line;
     }
     #endif
     #if defined(loco_rectangle)
     if constexpr (std::is_same<typename std::remove_pointer<decltype(shape)>::type, rectangle_t>::value) {
-      idx = matrices.matrices_index.rectangle;
+      idx = camera.camera_index.rectangle;
     }
     #endif
     #if defined(loco_sprite)
     if constexpr (std::is_same<typename std::remove_pointer<decltype(shape)>::type, sprite_t>::value) {
-      idx = matrices.matrices_index.sprite;
+      idx = camera.camera_index.sprite;
     }
     #endif
     #if defined(loco_letter)
     if constexpr (std::is_same<typename std::remove_pointer<decltype(shape)>::type, letter_t>::value) {
-      idx = matrices.matrices_index.letter;
+      idx = camera.camera_index.letter;
     }
     #endif
     #if defined(loco_button)
     if constexpr (std::is_same<typename std::remove_pointer<decltype(shape)>::type, button_t>::value) {
-      idx = matrices.matrices_index.button;
+      idx = camera.camera_index.button;
     }
     #endif
 
     #if defined(loco_text_box)
     if constexpr (std::is_same<typename std::remove_pointer<decltype(shape)>::type, text_box_t>::value) {
-      idx = matrices.matrices_index.text_box;
+      idx = camera.camera_index.text_box;
     }
     #endif
 
 
     #if defined(loco_yuv420p)
     if constexpr (std::is_same<typename std::remove_pointer<decltype(shape)>::type, yuv420p_t>::value) {
-      idx = matrices.matrices_index.yuv420p;
+      idx = camera.camera_index.yuv420p;
     }
     #endif
 
@@ -721,7 +721,7 @@ public:
       context->commandBuffers[context->currentFrame],
       shape->m_pipeline.m_layout,
       VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-      offsetof(push_constants_t, matrices_id),
+      offsetof(push_constants_t, camera_id),
       sizeof(uint32_t),
       &idx
     );
@@ -1642,7 +1642,7 @@ public:
 
   void erase_shape(cid_t* cid) {
 
-    switch (cid->shape_type) {
+  /*  switch (cid->shape_type) {
       case shape_type_t::line: {
         #if defined(loco_line)
           line.erase(cid);
@@ -1677,7 +1677,7 @@ public:
         fan::throw_error("invalid cid shape type - either not implemented or bug in code");
         break;
       }
-    }
+    }*/
   }
 };
 
@@ -1727,8 +1727,8 @@ loco_t::image_list_NodeReference_t::image_list_NodeReference_t(loco_t::image_t* 
   NRI = image->texture_reference.NRI;
 }
 
-loco_t::matrices_list_NodeReference_t::matrices_list_NodeReference_t(loco_t::matrices_t* matrices) {
-  NRI = matrices->matrices_reference.NRI;
+loco_t::camera_list_NodeReference_t::camera_list_NodeReference_t(loco_t::camera_t* camera) {
+  NRI = camera->camera_reference.NRI;
 }
 
 fan::opengl::theme_list_NodeReference_t::theme_list_NodeReference_t(auto* theme) {

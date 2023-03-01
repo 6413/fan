@@ -99,7 +99,7 @@
       <ConformanceMode>false</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
@@ -107,7 +107,7 @@
       <WholeProgramOptimization>false</WholeProgramOptimization>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)include\opus;$(SolutionDIr)include\dav1d;$(SolutionDir)include\vpx;$(SolutionDir)src\libwebp\src;C:\libs;$(SolutionDir)include\shaderc;$(SolutionDir)include\nvidia</AdditionalIncludeDirectories>
-      <Optimization>MaxSpeed</Optimization>
+      <Optimization>Disabled</Optimization>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
@@ -146,8 +146,8 @@
       <PreprocessorDefinitions>set_durums_pc;_CRT_SECURE_NO_WARNINGS;_DISABLE_VECTOR_ANNOTATION</PreprocessorDefinitions>
       <ConformanceMode>false</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <Optimization>MaxSpeed</Optimization>
-      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <Optimization>Disabled</Optimization>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
@@ -192,7 +192,7 @@
       <ConformanceMode>false</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
@@ -200,7 +200,7 @@
       <WholeProgramOptimization>false</WholeProgramOptimization>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)include\opus;$(SolutionDIr)include\dav1d;$(SolutionDir)include\vpx;$(SolutionDir)src\libwebp\src;C:\libs;$(SolutionDir)include\shaderc;$(SolutionDir)include\nvidia</AdditionalIncludeDirectories>
-      <Optimization>MaxSpeed</Optimization>
+      <Optimization>Disabled</Optimization>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
@@ -239,8 +239,8 @@
       <PreprocessorDefinitions>set_durums_pc;_CRT_SECURE_NO_WARNINGS;_DISABLE_VECTOR_ANNOTATION;BX_CONFIG_DEBUG=1</PreprocessorDefinitions>
       <ConformanceMode>false</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <Optimization>MaxSpeed</Optimization>
-      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <Optimization>Disabled</Optimization>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
@@ -279,7 +279,7 @@
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="examples\gui\model_loader.cpp" />
+    <ClCompile Include="examples\gui\stage_maker.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -345,6 +345,7 @@
     <ClInclude Include="include\fan\graphics\gui\stage_maker\loader_versions\010.h" />
     <ClInclude Include="include\fan\graphics\gui\stage_maker\loader_versions\011.h" />
     <ClInclude Include="include\fan\graphics\gui\stage_maker\helper_functions\rename_cb.h" />
+    <ClInclude Include="include\fan\graphics\loco0.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\objects\pixel_format_renderer.h" />
     <ClInclude Include="include\fan\video\base_enc.h" />
     <ClInclude Include="include\fan\video\nvec_cuda.h" />
@@ -406,7 +407,7 @@
     <ClInclude Include="include\fan\graphics\opengl\gl_init.h" />
     <ClInclude Include="include\fan\graphics\opengl\gl_shader.h" />
     <ClInclude Include="include\fan\graphics\opengl\image_list_builder_settings.h" />
-    <ClInclude Include="include\fan\graphics\opengl\matrices_list_builder_settings.h" />
+    <ClInclude Include="include\fan\graphics\opengl\camera_list_builder_settings.h" />
     <ClInclude Include="include\fan\graphics\opengl\texture_pack.h" />
     <ClInclude Include="include\fan\graphics\opengl\themes_list_builder_settings.h" />
     <ClInclude Include="include\fan\graphics\opengl\uniform_block.h" />
@@ -424,7 +425,7 @@
     <ClInclude Include="include\fan\graphics\vulkan\2D\objects\shape_builder.h" />
     <ClInclude Include="include\fan\graphics\vulkan\compute_shader.h" />
     <ClInclude Include="include\fan\graphics\vulkan\image_list_builder_settings.h" />
-    <ClInclude Include="include\fan\graphics\vulkan\matrices_list_builder_settings.h" />
+    <ClInclude Include="include\fan\graphics\vulkan\camera_list_builder_settings.h" />
     <ClInclude Include="include\fan\graphics\vulkan\memory.h" />
     <ClInclude Include="include\fan\graphics\vulkan\memory_bll_settings.h" />
     <ClInclude Include="include\fan\graphics\vulkan\ssbo.h" />

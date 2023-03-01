@@ -34,7 +34,7 @@ struct pile_t {
   }
 
   loco_t loco;
-  fan::opengl::matrices_t matrices;
+  fan::opengl::camera_t matrices;
   fan::opengl::viewport_t viewport;
   //fan::opengl::cid_t cids[count];
 };

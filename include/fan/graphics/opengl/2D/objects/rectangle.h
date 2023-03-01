@@ -20,15 +20,15 @@ struct rectangle_t {
   
   void push_back(fan::graphics::cid_t* cid, properties_t p) {
     get_key_value(uint16_t) = p.position.z;
-    get_key_value(loco_t::matrices_list_NodeReference_t) = p.matrices;
+    get_key_value(loco_t::camera_list_NodeReference_t) = p.camera;
     get_key_value(fan::graphics::viewport_list_NodeReference_t) = p.viewport;
 
     #if defined(loco_vulkan)
       auto loco = get_loco();
-      auto& matrices = loco->matrices_list[p.matrices];
-      if (matrices.matrices_index.rectangle == (decltype(matrices.matrices_index.rectangle))-1) {
-        matrices.matrices_index.rectangle = m_matrices_index++;
-        m_shader.set_matrices(loco, matrices.matrices_id, matrices.matrices_index.rectangle);
+      auto& camera = loco->camera_list[p.camera];
+      if (camera.camera_index.rectangle == (decltype(camera.camera_index.rectangle))-1) {
+        camera.camera_index.rectangle = m_camera_index++;
+        m_shader.set_camera(loco, camera.camera_id, camera.camera_index.rectangle);
       }
     #endif
 
@@ -103,7 +103,7 @@ struct rectangle_t {
     sb_close();
   }
 
-  void set_matrices(fan::graphics::cid_t* cid, loco_t::matrices_list_NodeReference_t n) {
+  void set_camera(fan::graphics::cid_t* cid, loco_t::camera_list_NodeReference_t n) {
     sb_set_key<bm_properties_t::key_t::get_index_with_type<decltype(n)>()>(cid, n);
   }
 
@@ -116,7 +116,7 @@ struct rectangle_t {
       fan::vulkan::shader_t render_fullscreen_shader;
     #endif
     
-    uint32_t m_matrices_index = 0;
+    uint32_t m_camera_index = 0;
   #endif
 
 };
