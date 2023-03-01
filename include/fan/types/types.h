@@ -154,7 +154,26 @@ namespace fan {
 
   template <typename ...Args>
   static void throw_error(const Args&... args);
+
+  template<typename T>
+  struct has_bracket_operator
+  {
+    template<typename U>
+    static constexpr decltype(std::declval<U>()[0], bool{}) test(int)
+    {
+      return true;
+    }
+
+    template<typename>
+    static constexpr bool test(...)
+    {
+      return false;
+    }
+
+    static constexpr bool value = test<T>(0);
+  };
 }
+
 
 #include _FAN_PATH(types/function.h)
 #include _FAN_PATH(types/fstring.h)
@@ -532,26 +551,6 @@ namespace fan {
 			fan::print(c.elapsed());
 		}
 	}
-
-
-  template<typename T>
-  struct has_bracket_operator
-  {
-    template<typename U>
-    static constexpr decltype(std::declval<U>()[0], bool{}) test(int)
-    {
-      return true;
-    }
-
-    template<typename>
-    static constexpr bool test(...)
-    {
-      return false;
-    }
-
-    static constexpr bool value = test<T>(0);
-  };
-
 }
 
 
