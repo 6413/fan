@@ -1614,6 +1614,9 @@ public:
   void push_shape(cid_t* cid, const auto& properties) {
     using type_t = std::remove_const_t<std::remove_reference_t<decltype(properties)>>;
     #if defined(loco_line)
+    if constexpr (std::is_same_v<type_t, loco_t::line_t::properties_t>) {
+      line.push_back(cid, properties);
+  }
     #elif defined(loco_rectangle)
     if constexpr (std::is_same_v<type_t, loco_t::rectangle_t::properties_t>) {
       rectangle.push_back(cid, properties);
