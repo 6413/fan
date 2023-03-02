@@ -35,8 +35,8 @@ static void *_thread_func(void *p) {
         }
       }
     }
-
   }
+
   return 0;
 }
 
@@ -98,6 +98,6 @@ void Resume() {
 void SetVolume(f32_t Volume) {
   this->Volume = Volume;
 }
-f32_t get_volume() {
+f32_t GetVolume() {
   return this->Volume;
 }
