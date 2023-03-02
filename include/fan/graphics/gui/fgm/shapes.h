@@ -1596,7 +1596,7 @@ struct mark_t {
         });
       properties_t sp;
       sp.position = data.position;
-      sp.size = fan::vec2(0.1, 0.1);
+      sp.size = fan::vec2(0.05, 0.05);
       sp.image = &get_fgm()->mark_image;
       sp.camera = &get_fgm()->camera[viewport_area::editor];
       sp.viewport = &get_fgm()->viewport[viewport_area::editor];

@@ -1,3 +1,7 @@
+#define make_address_wrapper(name) \
+    address_wrapper_t<CONCAT(name, _t)> CONCAT(name, _ptr); \
+    operator CONCAT(name, _t)() { return CONCAT(name, _ptr); }
+
 #if defined(loco_rectangle)
 #define loco_rectangle_vi_t \
   fan::vec3 position = 0; \

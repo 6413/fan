@@ -79,9 +79,27 @@ struct model_list_t {
   std::unordered_map<model_id_t, cm_t*> model_list;
 
 
-  model_id_t push_model(cm_t* cms) {
-    model_list[(model_id_t)cms] = cms;
-    return (model_id_t)cms;
+  model_id_t push_model(loco_t::texturepack_t* tp, cm_t* cms) {
+    model_id_t model_id = (model_id_t)cms;
+    model_list[model_id] = cms;
+
+    iterate(model_id, [&]<typename T>(auto group_id, auto shape_id, const T& properties) {
+      if constexpr (std::is_same_v<T, model_loader_t::sprite_t>) {
+        loco_t::sprite_t::properties_t p;
+        p.camera = &pile->camera;
+        p.viewport = &pile->viewport;
+        p.position = properties.position;
+        p.size = properties.size;
+        loco_t::texturepack_t::ti_t ti;
+        if (ti.qti(tp, properties.texturepack_name)) {
+          fan::throw_error("invalid textureapack name", properties.texturepack_name);
+        }
+        p.load_tp(&ti);
+        push_shape(model_id, group_id, p);
+      }
+    });
+
+    return model_id;
   }
   void erase(model_id_t id, uint32_t group_id) {
     auto& cids = model_list[id]->groups[group_id].cids;
@@ -109,6 +127,17 @@ struct model_list_t {
     return cids.back().get();
   }
 
+
+  void iterate(model_id_t model_id, auto lambda) {
+    for (auto& it2 : model_list[model_id]->groups) {
+      for (auto& i : it2.second.instances) {
+        std::visit([&](auto&& o) {
+          lambda(it2.first, i.first, o);
+          }, i.second.type);
+      }
+    }
+  }
+
   void iterate(model_id_t model_id, uint32_t group_id, auto lambda) {
     auto it = model_list[model_id]->groups.find(group_id);
     if (it == model_list[model_id]->groups.end()) {
@@ -118,6 +147,17 @@ struct model_list_t {
       std::visit([&](auto&& o) {
         lambda(i.first, o);
         }, i.second.type);
+    }
+  }
+
+  void set_position(model_id_t model_id) {
+    for (auto& it : model_list[model_id]->groups) {
+      for (auto j : it.second.cids) {
+        switch (j.get()->shape_type) {
+
+        }
+        j.get();
+      }
     }
   }
 };

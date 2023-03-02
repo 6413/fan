@@ -24,8 +24,8 @@ struct pile_t {
     int x = offsetof(pile_t, loco);
     fan::vec2 window_size = loco.get_window()->get_size();
     fan::vec2 ratio = window_size / window_size.max();
-    loco.open_matrices(
-      &matrices,
+    loco.open_camera(
+      &camera,
       fan::vec2(-1, 1) * ratio.x,
       fan::vec2(-1, 1) * ratio.y
     );
@@ -33,7 +33,7 @@ struct pile_t {
       fan::vec2 window_size = d.size;
       fan::vec2 ratio = window_size / window_size.max();
       //std::swap(ratio.x, ratio.y);
-      matrices.set_ortho(
+      camera.set_ortho(
         &loco,
         fan::vec2(-1, 1) * ratio.x,
         fan::vec2(-1, 1) * ratio.y
@@ -46,7 +46,7 @@ struct pile_t {
   }
 
   loco_t loco;
-  loco_t::camera_t matrices;
+  loco_t::camera_t camera;
   fan::graphics::viewport_t viewport;
 };
 
@@ -58,7 +58,7 @@ int main() {
   loco_t::dropdown_t::nr_t ids[2];
 
   loco_t::dropdown_t::open_properties_t op;
-  op.matrices = &pile->matrices;
+  op.camera = &pile->camera;
   op.viewport = &pile->viewport;
   loco_t::theme_t theme = loco_t::themes::gray();
   theme.open(pile->loco.get_context());

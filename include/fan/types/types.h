@@ -33,12 +33,23 @@
 #include <regex>
 #include <charconv>
 
+#pragma pack(push, 1)
+
 #ifndef __empty_struct
   #define __empty_struct __empty_struct
   struct __empty_struct {
 
   };
 #endif
+
+template <typename T>
+struct address_wrapper_t {
+  using value_type = T;
+  constexpr operator value_type() {
+    return *(value_type*)(((uint8_t*)this) + sizeof(*this));
+  }
+};
+#pragma pack(pop)
 
 // override to utf-8 - if file already utf8 it breaks somehow, probably msvc bug
 #pragma execution_character_set("utf-8")

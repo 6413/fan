@@ -85,6 +85,20 @@ namespace fan {
     template <int N>
     using get_type_t = typename get_type<N>::type;
 
+    template <typename _T2, typename _Ty = masterpiece_reversed_t<T, Rest...>, uint32_t depth = count>
+    constexpr auto get_value(_Ty* a = nullptr) {
+      constexpr uint32_t i = get_index_with_type<_T2>();
+      if constexpr (depth == count) {
+        a = this;
+      }
+      if constexpr (i == depth) {
+        return &a->x_;
+      }
+      if constexpr (depth > i) {
+        return get_value<i, typename _Ty::base, depth - 1>(a);
+      }
+    }
+
     template <uint32_t i, typename _Ty = masterpiece_reversed_t<T, Rest...>, uint32_t depth = count>
     constexpr auto get_value(_Ty* a = nullptr) {
       if constexpr (depth == count) {
@@ -99,7 +113,7 @@ namespace fan {
     }
 
     template <uint32_t i, typename _Ty = masterpiece_reversed_t<T, Rest...>, uint32_t depth = count>
-    constexpr auto get_value(_Ty* a = nullptr) const {
+    constexpr const auto get_value(_Ty* a = nullptr) const {
       if constexpr (depth == count) {
         a = this;
       }
