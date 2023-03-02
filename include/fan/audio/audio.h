@@ -30,20 +30,12 @@
   #define MA_NO_ENCODING
   #define MINIAUDIO_IMPLEMENTATION
   #include "backend/uni/miniaudio/lib.h"
+#elif fan_audio_set_backend == 1
+  #include <alsa/asoundlib.h>
 #endif
 
 namespace fan {
   namespace audio {
     #include "CommonTypes.h"
-
-    #include "CommonDefine.h"
-
-    #if fan_audio_set_backend == 0
-      #include "backend/uni/miniaudio/a.h"
-    #elif fan_audio_set_backend == 1
-      #include "backend/unix/linux/alsa/a.h"
-    #else
-      #error ?
-    #endif
   }
 }

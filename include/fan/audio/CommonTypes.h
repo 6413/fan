@@ -140,33 +140,7 @@ struct _Message_t {
   }Data;
 };
 
-struct _Group_t {
-  _PlayInfoList_NodeReference_t FirstReference;
-  _PlayInfoList_NodeReference_t LastReference;
-};
-struct _Play_t {
-  _PlayInfoList_NodeReference_t Reference;
-};
-
-struct _audio_common_t{
-  TH_mutex_t PlayInfoListMutex;
-  _PlayInfoList_t PlayInfoList;
-
-  uint32_t GroupAmount;
-  _Group_t* GroupList;
-
-  VEC_t PlayList;
-
-  TH_mutex_t MessageQueueListMutex;
-  VEC_t MessageQueueList;
-
-  _DecoderList_t DecoderList[_constants::Opus::SupportedChannels];
-
-  _CacheList_t CacheList;
-};
-
 struct piece_t {
-  _audio_common_t *audio_common;
   uint8_t ChannelAmount;
   uint16_t BeginCut;
   uint32_t TotalSegments;
@@ -177,6 +151,61 @@ struct piece_t {
     return FrameAmount - BeginCut;
   }
 };
+struct audio_t{
+  using piece_t = piece_t;
 
-/* will used for userspace functions. casted to _audio_common_t internally */
-struct audio_t;
+  struct Process_t{
+    #include "Process.h"
+  }Process;
+
+  struct Out_t{
+    #if fan_audio_set_backend == 0
+      #include "backend/uni/miniaudio/a.h"
+    #elif fan_audio_set_backend == 1
+      #include "backend/unix/linux/alsa/a.h"
+    #else
+      #error ?
+    #endif
+  }Out;
+
+  sint32_t Open(uint32_t GroupAmount){
+    sint32_t r;
+    r = Process.Open(GroupAmount);
+    if(r != 0){
+      return r;
+    }
+    return Out.Open();
+  }
+  void Close(){
+    Process.Close();
+  }
+
+  sint32_t piece_open(piece_t *piece, void *data, uintptr_t size) {
+    return Process.piece_open(piece, data, size);
+  }
+  sint32_t piece_open(piece_t *piece, const fan::string &path) {
+    return Process.piece_open(piece, path);
+  }
+
+  SoundPlayID_t SoundPlay(piece_t *piece, uint32_t GroupID, const PropertiesSoundPlay_t *Properties) {
+    return Process.SoundPlay(piece, GroupID, Properties);
+  }
+  void SoundStop(_PlayInfoList_NodeReference_t PlayInfoReference, const PropertiesSoundStop_t *Properties) {
+    Process.SoundStop(PlayInfoReference, Properties);
+  }
+
+  void PauseGroup(uint32_t GroupID) {
+    Process.PauseGroup(GroupID);
+  }
+  void ResumeGroup(uint32_t GroupID) {
+    Process.ResumeGroup(GroupID);
+  }
+
+  void StopGroup(uint32_t GroupID) {
+    Process.StopGroup(GroupID);
+  }
+
+  void SetVolume(f32_t Volume){
+    Out.SetVolume(Volume);
+  }
+};

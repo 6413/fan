@@ -1,29 +1,44 @@
-void _audio_common_close(_audio_common_t *audio_common) {
-  audio_common->PlayInfoList.Close();
-  A_resize(audio_common->GroupList, 0);
-  VEC_free(&audio_common->PlayList);
-  VEC_free(&audio_common->MessageQueueList);
-}
-void _audio_common_open(_audio_common_t *audio_common, uint32_t GroupAmount) {
-  TH_mutex_init(&audio_common->PlayInfoListMutex);
-  audio_common->PlayInfoList.Open();
+TH_mutex_t PlayInfoListMutex;
+_PlayInfoList_t PlayInfoList;
 
-  audio_common->GroupAmount = GroupAmount;
-  audio_common->GroupList = (_Group_t *)A_resize(0, sizeof(_Group_t) * audio_common->GroupAmount);
-  for (uint32_t i = 0; i < audio_common->GroupAmount; i++) {
-    audio_common->GroupList[i].FirstReference = audio_common->PlayInfoList.NewNodeLast_alloc();
-    audio_common->GroupList[i].LastReference = audio_common->PlayInfoList.NewNodeLast_alloc();
+uint32_t GroupAmount;
+struct _Group_t {
+  _PlayInfoList_NodeReference_t FirstReference;
+  _PlayInfoList_NodeReference_t LastReference;
+}*GroupList;
+
+struct _Play_t {
+  _PlayInfoList_NodeReference_t Reference;
+};
+VEC_t PlayList;
+
+TH_mutex_t MessageQueueListMutex;
+VEC_t MessageQueueList;
+
+_DecoderList_t DecoderList[_constants::Opus::SupportedChannels];
+
+_CacheList_t CacheList;
+
+sint32_t Open(uint32_t GroupAmount) {
+  TH_mutex_init(&this->PlayInfoListMutex);
+  this->PlayInfoList.Open();
+
+  this->GroupAmount = GroupAmount;
+  this->GroupList = (_Group_t *)A_resize(0, sizeof(_Group_t) * this->GroupAmount);
+  for (uint32_t i = 0; i < this->GroupAmount; i++) {
+    this->GroupList[i].FirstReference = this->PlayInfoList.NewNodeLast_alloc();
+    this->GroupList[i].LastReference = this->PlayInfoList.NewNodeLast_alloc();
   }
 
-  VEC_init(&audio_common->PlayList, sizeof(_Play_t), A_resize);
+  VEC_init(&this->PlayList, sizeof(_Play_t), A_resize);
 
-  TH_mutex_init(&audio_common->MessageQueueListMutex);
-  VEC_init(&audio_common->MessageQueueList, sizeof(_Message_t), A_resize);
+  TH_mutex_init(&this->MessageQueueListMutex);
+  VEC_init(&this->MessageQueueList, sizeof(_Message_t), A_resize);
 
   for(uint32_t Channel = 0; Channel < _constants::Opus::SupportedChannels; Channel++){
     uint32_t size = sizeof(_DecoderHead_t);
     size += opus_decoder_get_size(Channel + 1);
-    _DecoderList_t *dl = &audio_common->DecoderList[Channel];
+    _DecoderList_t *dl = &this->DecoderList[Channel];
     dl->Open(size);
     for(uint32_t i = 0; i < _constants::Opus::CacheDecoderPerChannel; i++){
       _DecoderList_NodeReference_t r = dl->NewNodeLast_alloc();
@@ -40,13 +55,21 @@ void _audio_common_open(_audio_common_t *audio_common, uint32_t GroupAmount) {
     }
   }
 
-  audio_common->CacheList.Open();
+  this->CacheList.Open();
   for(uint32_t i = 0; i < _constants::Opus::CacheSegmentAmount; i++){
-    _CacheList_NodeReference_t r = audio_common->CacheList.NewNodeLast_alloc();
-    auto Data = &audio_common->CacheList[r];
+    _CacheList_NodeReference_t r = this->CacheList.NewNodeLast_alloc();
+    auto Data = &this->CacheList[r];
     Data->SegmentID = (_SegmentID_t)-1;
     Data->DecoderID = _DecoderList_gnric();
   }
+
+  return 0;
+}
+void Close() {
+  this->PlayInfoList.Close();
+  A_resize(this->GroupList, 0);
+  VEC_free(&this->PlayList);
+  VEC_free(&this->MessageQueueList);
 }
 
 void _DecodeCopy(
@@ -73,14 +96,14 @@ void _DecodeCopy(
   }
 }
 
-_CacheID_t _GetCacheID(_audio_common_t *audio_common, piece_t *piece, _SegmentID_t SegmentID){
-  _CacheID_t clid = audio_common->CacheList.GetNodeLast();
-  auto Cache = &audio_common->CacheList[clid];
+_CacheID_t _GetCacheID(piece_t *piece, _SegmentID_t SegmentID){
+  _CacheID_t clid = this->CacheList.GetNodeLast();
+  auto Cache = &this->CacheList[clid];
   if(Cache->SegmentID != (_SegmentID_t)-1){
     ((_SACSegment_t *)Cache->piece->SACData)[Cache->SegmentID].CacheID = _CacheList_gnric();
     _DecoderID_t dlid = Cache->DecoderID;
     if(_DecoderList_inric(dlid) == false){
-      _DecoderList_t *dl = &audio_common->DecoderList[Cache->piece->ChannelAmount - 1];
+      _DecoderList_t *dl = &this->DecoderList[Cache->piece->ChannelAmount - 1];
       _DecoderHead_t *DecoderHead = (_DecoderHead_t *)(*dl)[dlid];
       DecoderHead->CacheID = _CacheList_gnric();
       dl->ReLinkAsLast(dlid);
@@ -92,7 +115,7 @@ _CacheID_t _GetCacheID(_audio_common_t *audio_common, piece_t *piece, _SegmentID
   return clid;
 }
 
-void _WarmUpDecoder(_audio_common_t *audio_common, piece_t *piece, _SegmentID_t SegmentID, OpusDecoder *od){
+void _WarmUpDecoder(piece_t *piece, _SegmentID_t SegmentID, OpusDecoder *od){
   opus_decoder_ctl(od, OPUS_RESET_STATE);
 
   _SegmentID_t fsid = SegmentID - _constants::Opus::DecoderWarmUpAmount;
@@ -121,13 +144,13 @@ void _WarmUpDecoder(_audio_common_t *audio_common, piece_t *piece, _SegmentID_t 
   }
 }
 
-_DecoderID_t _GetDecoderID(_audio_common_t *audio_common, piece_t *piece, _SegmentID_t SegmentID){
-  _DecoderList_t *DecoderList = &audio_common->DecoderList[piece->ChannelAmount - 1];
+_DecoderID_t _GetDecoderID(piece_t *piece, _SegmentID_t SegmentID){
+  _DecoderList_t *DecoderList = &this->DecoderList[piece->ChannelAmount - 1];
 
   if(SegmentID != 0){
     _CacheID_t pCacheID = ((_SACSegment_t *)piece->SACData)[SegmentID - 1].CacheID;
     if(_CacheList_inric(pCacheID) == false){
-      auto pCache = &audio_common->CacheList[pCacheID];
+      auto pCache = &this->CacheList[pCacheID];
       _DecoderID_t DecoderID = pCache->DecoderID;
       if(_DecoderList_inric(DecoderID) == false){
         pCache->DecoderID = _DecoderList_gnric();
@@ -142,39 +165,38 @@ _DecoderID_t _GetDecoderID(_audio_common_t *audio_common, piece_t *piece, _Segme
 
   _CacheID_t dclid = DecoderHead->CacheID;
   if(_CacheList_inric(dclid) == false){
-    auto dCache = &audio_common->CacheList[dclid];
+    auto dCache = &this->CacheList[dclid];
     dCache->DecoderID = _DecoderList_gnric();
   }
 
   OpusDecoder *od = (OpusDecoder *)&DecoderHead[1];
 
-  _WarmUpDecoder(audio_common, piece, SegmentID, od);
+  this->_WarmUpDecoder(piece, SegmentID, od);
 
   return DecoderID;
 }
 
 void
 _LinkDecoderCache(
-  _audio_common_t *audio_common,
   _DecoderList_t *DecoderList,
   _DecoderID_t DecoderID,
   _CacheID_t CacheID
 ){
   _DecoderHead_t *DecoderHead = (_DecoderHead_t *)(*DecoderList)[DecoderID];
   DecoderHead->CacheID = CacheID;
-  auto Cache = &audio_common->CacheList[CacheID];
+  auto Cache = &this->CacheList[CacheID];
   Cache->DecoderID = DecoderID;
 }
 
-void _DecodeSegment(_audio_common_t *audio_common, piece_t *piece, _SegmentID_t SegmentID){
-  _DecoderList_t *DecoderList = &audio_common->DecoderList[piece->ChannelAmount - 1];
+void _DecodeSegment(piece_t *piece, _SegmentID_t SegmentID){
+  _DecoderList_t *DecoderList = &this->DecoderList[piece->ChannelAmount - 1];
 
-  _DecoderID_t DecoderID = _GetDecoderID(audio_common, piece, SegmentID);
+  _DecoderID_t DecoderID = this->_GetDecoderID(piece, SegmentID);
   DecoderList->ReLinkAsFirst(DecoderID);
 
-  _CacheID_t CacheID = _GetCacheID(audio_common, piece, SegmentID);
+  _CacheID_t CacheID = this->_GetCacheID(piece, SegmentID);
 
-  _LinkDecoderCache(audio_common, DecoderList, DecoderID, CacheID);
+  this->_LinkDecoderCache(DecoderList, DecoderID, CacheID);
 
   OpusDecoder *od = (OpusDecoder *)&((_DecoderHead_t *)(*DecoderList)[DecoderID])[1];
 
@@ -194,30 +216,30 @@ void _DecodeSegment(_audio_common_t *audio_common, piece_t *piece, _SegmentID_t 
     fan::throw_error("a");
   }
 
-  auto Cache = &audio_common->CacheList[CacheID];
+  auto Cache = &this->CacheList[CacheID];
   _DecodeCopy(piece->ChannelAmount, F2_20, Cache->Samples);
 }
 
-void _GetFrames(_audio_common_t *audio_common, piece_t *piece, uint64_t Offset, f32_t **FramePointer, uint32_t *FrameAmount) {
+void _GetFrames(piece_t *piece, uint64_t Offset, f32_t **FramePointer, uint32_t *FrameAmount) {
   Offset += piece->BeginCut;
   _SegmentID_t SegmentID = Offset / _constants::FrameCacheAmount;
   uint32_t PieceCacheMod = Offset % _constants::FrameCacheAmount;
   _CacheID_t *CacheID = &((_SACSegment_t *)piece->SACData)[SegmentID].CacheID;
   if(_CacheList_inric(*CacheID) == true){
-    _DecodeSegment(audio_common, piece, SegmentID);
+    _DecodeSegment(piece, SegmentID);
   }
-  audio_common->CacheList.ReLinkAsFirst(*CacheID);
-  auto Cache = &audio_common->CacheList[*CacheID];
+  this->CacheList.ReLinkAsFirst(*CacheID);
+  auto Cache = &this->CacheList[*CacheID];
   *FramePointer = &Cache->Samples[PieceCacheMod * _constants::ChannelAmount];
   *FrameAmount = _constants::FrameCacheAmount - PieceCacheMod;
 }
 
-void _AddSoundToPlay(_audio_common_t *audio_common, _PlayInfoList_NodeReference_t PlayInfoReference) {
-  VEC_handle0(&audio_common->PlayList, 1);
-  uint32_t PlayID = audio_common->PlayList.Current - 1;
-  _Play_t *Play = &((_Play_t *)audio_common->PlayList.ptr)[PlayID];
+void _AddSoundToPlay(_PlayInfoList_NodeReference_t PlayInfoReference) {
+  VEC_handle0(&this->PlayList, 1);
+  uint32_t PlayID = this->PlayList.Current - 1;
+  _Play_t *Play = &((_Play_t *)this->PlayList.ptr)[PlayID];
   Play->Reference = PlayInfoReference;
-  auto PlayInfo = &audio_common->PlayInfoList[PlayInfoReference];
+  auto PlayInfo = &this->PlayInfoList[PlayInfoReference];
   #if fan_debug >= 0
     if (PlayInfo->PlayID != (uint32_t)-1) {
       /* trying play sound that already playing */
@@ -229,33 +251,31 @@ void _AddSoundToPlay(_audio_common_t *audio_common, _PlayInfoList_NodeReference_
 void
 _RemoveFromPlayList
 (
-  _audio_common_t *audio_common,
   uint32_t PlayID
 ){
   /* super fast remove */
-  ((_Play_t *)audio_common->PlayList.ptr)[PlayID] = ((_Play_t *)audio_common->PlayList.ptr)[--audio_common->PlayList.Current];
+  ((_Play_t *)this->PlayList.ptr)[PlayID] = ((_Play_t *)this->PlayList.ptr)[--this->PlayList.Current];
 
   /* moved one needs update */
-  _PlayInfoList_NodeReference_t PlayInfoReference = ((_Play_t *)audio_common->PlayList.ptr)[PlayID].Reference;
-  auto PlayInfo = &audio_common->PlayInfoList[PlayInfoReference];
+  _PlayInfoList_NodeReference_t PlayInfoReference = ((_Play_t *)this->PlayList.ptr)[PlayID].Reference;
+  auto PlayInfo = &this->PlayInfoList[PlayInfoReference];
   PlayInfo->PlayID = PlayID;
 }
 void
 _RemoveFromPlayInfoList
 (
-  _audio_common_t *audio_common,
   _PlayInfoList_NodeReference_t PlayInfoReference,
   const PropertiesSoundStop_t *Properties
 ){
-  auto PlayInfo = &audio_common->PlayInfoList[PlayInfoReference];
+  auto PlayInfo = &this->PlayInfoList[PlayInfoReference];
   if (PlayInfo->PlayID == (uint32_t)-1) {
     /* properties are ignored */
-    TH_lock(&audio_common->PlayInfoListMutex);
-    audio_common->PlayInfoList.unlrec(PlayInfoReference);
-    TH_unlock(&audio_common->PlayInfoListMutex);
+    TH_lock(&this->PlayInfoListMutex);
+    this->PlayInfoList.unlrec(PlayInfoReference);
+    TH_unlock(&this->PlayInfoListMutex);
   }
   else {
-    auto PlayInfo = &audio_common->PlayInfoList[PlayInfoReference];
+    auto PlayInfo = &this->PlayInfoList[PlayInfoReference];
     if (Properties->FadeOutTo != 0) {
       PropertiesSoundPlay_t* PropertiesPlay = &PlayInfo->properties;
       if (PropertiesPlay->Flags.FadeIn) {
@@ -272,17 +292,15 @@ _RemoveFromPlayInfoList
       }
     }
     else {
-      _RemoveFromPlayList(audio_common, PlayInfo->PlayID);
-      TH_lock(&audio_common->PlayInfoListMutex);
-      audio_common->PlayInfoList.unlrec(PlayInfoReference);
-      TH_unlock(&audio_common->PlayInfoListMutex);
+      this->_RemoveFromPlayList(PlayInfo->PlayID);
+      TH_lock(&this->PlayInfoListMutex);
+      this->PlayInfoList.unlrec(PlayInfoReference);
+      TH_unlock(&this->PlayInfoListMutex);
     }
   }
 }
 
-sint32_t piece_open(audio_t *audio, fan::audio::piece_t *piece, void *data, uintptr_t size) {
-  piece->audio_common = (_audio_common_t *)audio;
-
+sint32_t piece_open(piece_t *piece, void *data, uintptr_t size) {
   #define tbs(p0) \
     if(DataIndex + (p0) > size){ \
       return -1; \
@@ -357,7 +375,7 @@ sint32_t piece_open(audio_t *audio, fan::audio::piece_t *piece, void *data, uint
 
   return 0;
 }
-sint32_t piece_open(audio_t *audio, fan::audio::piece_t *piece, const fan::string &path) {
+sint32_t piece_open(piece_t *piece, const fan::string &path) {
   sint32_t err;
 
   fan::string sd;
@@ -366,7 +384,7 @@ sint32_t piece_open(audio_t *audio, fan::audio::piece_t *piece, const fan::strin
     return err;
   }
 
-  err = piece_open(audio, piece, sd.data(), sd.size());
+  err = piece_open(piece, sd.data(), sd.size());
   if(err != 0){
     return err;
   }
@@ -374,89 +392,89 @@ sint32_t piece_open(audio_t *audio, fan::audio::piece_t *piece, const fan::strin
   return 0;
 }
 
-void audio_pause_group(audio_t *audio, uint32_t GroupID) {
-  _audio_common_t *audio_common = (_audio_common_t *)audio;
-  TH_lock(&audio_common->MessageQueueListMutex);
-  VEC_handle0(&audio_common->MessageQueueList, 1);
-  _Message_t *Message = &((_Message_t *)audio_common->MessageQueueList.ptr)[audio_common->MessageQueueList.Current - 1];
+void PauseGroup(uint32_t GroupID) {
+  TH_lock(&this->MessageQueueListMutex);
+  VEC_handle0(&this->MessageQueueList, 1);
+  _Message_t *Message = &((_Message_t *)this->MessageQueueList.ptr)[this->MessageQueueList.Current - 1];
   Message->Type = _MessageType_t::PauseGroup;
   Message->Data.PauseGroup.GroupID = GroupID;
-  TH_unlock(&audio_common->MessageQueueListMutex);
+  TH_unlock(&this->MessageQueueListMutex);
 }
-void audio_resume_group(audio_t *audio, uint32_t GroupID) {
-  _audio_common_t *audio_common = (_audio_common_t *)audio;
-  TH_lock(&audio_common->MessageQueueListMutex);
-  VEC_handle0(&audio_common->MessageQueueList, 1);
-  _Message_t *Message = &((_Message_t*)audio_common->MessageQueueList.ptr)[audio_common->MessageQueueList.Current - 1];
+void ResumeGroup(uint32_t GroupID) {
+  TH_lock(&this->MessageQueueListMutex);
+  VEC_handle0(&this->MessageQueueList, 1);
+  _Message_t *Message = &((_Message_t*)this->MessageQueueList.ptr)[this->MessageQueueList.Current - 1];
   Message->Type = _MessageType_t::ResumeGroup;
   Message->Data.ResumeGroup.GroupID = GroupID;
-  TH_unlock(&audio_common->MessageQueueListMutex);
+  TH_unlock(&this->MessageQueueListMutex);
 }
 
-SoundPlayID_t SoundPlay(audio_t *audio, piece_t *piece, uint32_t GroupID, const PropertiesSoundPlay_t *Properties) {
-  _audio_common_t *audio_common = (_audio_common_t *)audio;
+void StopGroup(uint32_t GroupID) {
+
+}
+
+SoundPlayID_t SoundPlay(piece_t *piece, uint32_t GroupID, const PropertiesSoundPlay_t *Properties) {
   #if fan_debug >= 0
-    if (GroupID >= audio_common->GroupAmount) {
+    if (GroupID >= this->GroupAmount) {
       fan::throw_error("fan_debug");
     }
   #endif
-  TH_lock(&audio_common->PlayInfoListMutex);
-  _PlayInfoList_NodeReference_t PlayInfoReference = audio_common->PlayInfoList.NewNode();
-  auto PlayInfo = &audio_common->PlayInfoList[PlayInfoReference];
+  TH_lock(&this->PlayInfoListMutex);
+  _PlayInfoList_NodeReference_t PlayInfoReference = this->PlayInfoList.NewNode();
+  auto PlayInfo = &this->PlayInfoList[PlayInfoReference];
   PlayInfo->piece = piece;
   PlayInfo->GroupID = GroupID;
   PlayInfo->PlayID = (uint32_t)-1;
   PlayInfo->properties = *Properties;
   PlayInfo->offset = 0;
-  audio_common->PlayInfoList.linkPrev(audio_common->GroupList[GroupID].LastReference, PlayInfoReference);
-  TH_unlock(&audio_common->PlayInfoListMutex);
+  this->PlayInfoList.linkPrev(this->GroupList[GroupID].LastReference, PlayInfoReference);
+  TH_unlock(&this->PlayInfoListMutex);
 
-  TH_lock(&audio_common->MessageQueueListMutex);
-  VEC_handle0(&audio_common->MessageQueueList, 1);
-  _Message_t* Message = &((_Message_t*)audio_common->MessageQueueList.ptr)[audio_common->MessageQueueList.Current - 1];
+  TH_lock(&this->MessageQueueListMutex);
+  VEC_handle0(&this->MessageQueueList, 1);
+  _Message_t* Message = &((_Message_t *)this->MessageQueueList.ptr)[this->MessageQueueList.Current - 1];
   Message->Type = _MessageType_t::SoundPlay;
   Message->Data.SoundPlay.PlayInfoReference = PlayInfoReference;
-  TH_unlock(&audio_common->MessageQueueListMutex);
+  TH_unlock(&this->MessageQueueListMutex);
 
   return PlayInfoReference;
 }
 
-void SoundStop(audio_t *audio, _PlayInfoList_NodeReference_t PlayInfoReference, const PropertiesSoundStop_t *Properties) {
-  _audio_common_t *audio_common = (_audio_common_t *)audio;
-  TH_lock(&audio_common->MessageQueueListMutex);
-  VEC_handle0(&audio_common->MessageQueueList, 1);
-  _Message_t* Message = &((_Message_t*)audio_common->MessageQueueList.ptr)[audio_common->MessageQueueList.Current - 1];
+void SoundStop(_PlayInfoList_NodeReference_t PlayInfoReference, const PropertiesSoundStop_t *Properties) {
+  TH_lock(&this->MessageQueueListMutex);
+  VEC_handle0(&this->MessageQueueList, 1);
+  _Message_t* Message = &((_Message_t *)this->MessageQueueList.ptr)[this->MessageQueueList.Current - 1];
   Message->Type = _MessageType_t::SoundStop;
   Message->Data.SoundStop.PlayInfoReference = PlayInfoReference;
   Message->Data.SoundStop.Properties = *Properties;
-  TH_unlock(&audio_common->MessageQueueListMutex);
+  TH_unlock(&this->MessageQueueListMutex);
 }
 
-void _DataCallback(_audio_common_t *audio_common, f32_t *Output) {
-  if (audio_common->MessageQueueList.Current) {
-    TH_lock(&audio_common->MessageQueueListMutex);
-    for (uint32_t i = 0; i < audio_common->MessageQueueList.Current; i++) {
-      _Message_t* Message = &((_Message_t*)audio_common->MessageQueueList.ptr)[i];
+void _DataCallback(f32_t *Output) {
+  if (this->MessageQueueList.Current) {
+    TH_lock(&this->MessageQueueListMutex);
+    for (uint32_t i = 0; i < this->MessageQueueList.Current; i++) {
+      _Message_t* Message = &((_Message_t*)this->MessageQueueList.ptr)[i];
       switch (Message->Type) {
         case _MessageType_t::SoundPlay: {
-          _AddSoundToPlay(audio_common, Message->Data.SoundPlay.PlayInfoReference);
+          this->_AddSoundToPlay(Message->Data.SoundPlay.PlayInfoReference);
           break;
         }
         case _MessageType_t::SoundStop: {
-          _RemoveFromPlayInfoList(audio_common, Message->Data.SoundStop.PlayInfoReference, &Message->Data.SoundStop.Properties);
+          this->_RemoveFromPlayInfoList(Message->Data.SoundStop.PlayInfoReference, &Message->Data.SoundStop.Properties);
           break;
         }
         case _MessageType_t::PauseGroup: {
           uint32_t GroupID = Message->Data.PauseGroup.GroupID;
-          _PlayInfoList_NodeReference_t LastPlayInfoReference = audio_common->GroupList[GroupID].LastReference;
-          _PlayInfoList_NodeReference_t PlayInfoReference = audio_common->GroupList[GroupID].FirstReference;
-          TH_lock(&audio_common->PlayInfoListMutex);
-          PlayInfoReference = PlayInfoReference.Next(&audio_common->PlayInfoList);
-          TH_unlock(&audio_common->PlayInfoListMutex);
+          _PlayInfoList_NodeReference_t LastPlayInfoReference = this->GroupList[GroupID].LastReference;
+          _PlayInfoList_NodeReference_t PlayInfoReference = this->GroupList[GroupID].FirstReference;
+          TH_lock(&this->PlayInfoListMutex);
+          PlayInfoReference = PlayInfoReference.Next(&this->PlayInfoList);
+          TH_unlock(&this->PlayInfoListMutex);
           while (PlayInfoReference != LastPlayInfoReference) {
-            auto PlayInfoNode = audio_common->PlayInfoList.GetNodeByReference(PlayInfoReference);
+            auto PlayInfoNode = this->PlayInfoList.GetNodeByReference(PlayInfoReference);
             if (PlayInfoNode->data.PlayID != (uint32_t)-1) {
-              _RemoveFromPlayList(audio_common, PlayInfoNode->data.PlayID);
+              this->_RemoveFromPlayList(PlayInfoNode->data.PlayID);
               PlayInfoNode->data.PlayID = (uint32_t)-1;
             }
             PlayInfoReference = PlayInfoNode->NextNodeReference;
@@ -465,15 +483,15 @@ void _DataCallback(_audio_common_t *audio_common, f32_t *Output) {
         }
         case _MessageType_t::ResumeGroup: {
           uint32_t GroupID = Message->Data.PauseGroup.GroupID;
-          _PlayInfoList_NodeReference_t LastPlayInfoReference = audio_common->GroupList[GroupID].LastReference;
-          _PlayInfoList_NodeReference_t PlayInfoReference = audio_common->GroupList[GroupID].FirstReference;
-          TH_lock(&audio_common->PlayInfoListMutex);
-          PlayInfoReference = PlayInfoReference.Next(&audio_common->PlayInfoList);
-          TH_unlock(&audio_common->PlayInfoListMutex);
+          _PlayInfoList_NodeReference_t LastPlayInfoReference = this->GroupList[GroupID].LastReference;
+          _PlayInfoList_NodeReference_t PlayInfoReference = this->GroupList[GroupID].FirstReference;
+          TH_lock(&this->PlayInfoListMutex);
+          PlayInfoReference = PlayInfoReference.Next(&this->PlayInfoList);
+          TH_unlock(&this->PlayInfoListMutex);
           while (PlayInfoReference != LastPlayInfoReference) {
-            auto PlayInfoNode = audio_common->PlayInfoList.GetNodeByReference(PlayInfoReference);
+            auto PlayInfoNode = this->PlayInfoList.GetNodeByReference(PlayInfoReference);
             if (PlayInfoNode->data.PlayID == (uint32_t)-1) {
-              _AddSoundToPlay(audio_common, PlayInfoReference);
+              this->_AddSoundToPlay(PlayInfoReference);
             }
             PlayInfoReference = PlayInfoNode->NextNodeReference;
           }
@@ -481,27 +499,27 @@ void _DataCallback(_audio_common_t *audio_common, f32_t *Output) {
         }
         case _MessageType_t::StopGroup: {
           uint32_t GroupID = Message->Data.PauseGroup.GroupID;
-          _PlayInfoList_NodeReference_t LastPlayInfoReference = audio_common->GroupList[GroupID].LastReference;
-          _PlayInfoList_NodeReference_t PlayInfoReference = audio_common->GroupList[GroupID].FirstReference;
-          TH_lock(&audio_common->PlayInfoListMutex);
-          PlayInfoReference = PlayInfoReference.Next(&audio_common->PlayInfoList);
+          _PlayInfoList_NodeReference_t LastPlayInfoReference = this->GroupList[GroupID].LastReference;
+          _PlayInfoList_NodeReference_t PlayInfoReference = this->GroupList[GroupID].FirstReference;
+          TH_lock(&this->PlayInfoListMutex);
+          PlayInfoReference = PlayInfoReference.Next(&this->PlayInfoList);
           while (PlayInfoReference != LastPlayInfoReference) {
-            auto PlayInfoNode = audio_common->PlayInfoList.GetNodeByReference(PlayInfoReference);
+            auto PlayInfoNode = this->PlayInfoList.GetNodeByReference(PlayInfoReference);
             PropertiesSoundStop_t Properties;
-            _RemoveFromPlayInfoList(audio_common, PlayInfoReference, &Properties);
+            this->_RemoveFromPlayInfoList(PlayInfoReference, &Properties);
             PlayInfoReference = PlayInfoNode->NextNodeReference;
           }
-          TH_unlock(&audio_common->PlayInfoListMutex);
+          TH_unlock(&this->PlayInfoListMutex);
         }
       }
     }
-    audio_common->MessageQueueList.Current = 0;
-    TH_unlock(&audio_common->MessageQueueListMutex);
+    this->MessageQueueList.Current = 0;
+    TH_unlock(&this->MessageQueueListMutex);
   }
-  for (uint32_t PlayID = 0; PlayID < audio_common->PlayList.Current;) {
-    _Play_t *Play = &((_Play_t *)audio_common->PlayList.ptr)[PlayID];
+  for (uint32_t PlayID = 0; PlayID < this->PlayList.Current;) {
+    _Play_t *Play = &((_Play_t *)this->PlayList.ptr)[PlayID];
     _PlayInfoList_NodeReference_t PlayInfoReference = Play->Reference;
-    auto PlayInfo = &audio_common->PlayInfoList[PlayInfoReference];
+    auto PlayInfo = &this->PlayInfoList[PlayInfoReference];
     piece_t *piece = PlayInfo->piece;
     PropertiesSoundPlay_t *Properties = &PlayInfo->properties;
     uint32_t OutputIndex = 0;
@@ -525,7 +543,7 @@ void _DataCallback(_audio_common_t *audio_common, f32_t *Output) {
           }
           else if(Properties->Flags.FadeOut == true){
             PropertiesSoundStop_t PropertiesSoundStop;
-            _RemoveFromPlayInfoList(audio_common, PlayInfoReference, &PropertiesSoundStop);
+            this->_RemoveFromPlayInfoList(PlayInfoReference, &PropertiesSoundStop);
             continue;
           }
         }
@@ -535,8 +553,7 @@ void _DataCallback(_audio_common_t *audio_common, f32_t *Output) {
     while (CanBeReadFrameCount != 0) {
       f32_t* FrameCachePointer;
       uint32_t FrameCacheAmount;
-      _GetFrames(
-        audio_common,
+      this->_GetFrames(
         piece,
         PlayInfo->offset,
         &FrameCachePointer,
@@ -595,7 +612,7 @@ void _DataCallback(_audio_common_t *audio_common, f32_t *Output) {
     else if (Properties->Flags.FadeOut) {
       if (Properties->FadeFrom >= Properties->FadeTo) {
         PropertiesSoundStop_t PropertiesSoundStop;
-        _RemoveFromPlayInfoList(audio_common, PlayInfoReference, &PropertiesSoundStop);
+        this->_RemoveFromPlayInfoList(PlayInfoReference, &PropertiesSoundStop);
         continue;
       }
       JumpIfNeeded();
@@ -603,7 +620,7 @@ void _DataCallback(_audio_common_t *audio_common, f32_t *Output) {
     else{
       if (PlayInfo->offset == piece->GetFrameAmount()) {
         PropertiesSoundStop_t PropertiesSoundStop;
-        _RemoveFromPlayInfoList(audio_common, PlayInfoReference, &PropertiesSoundStop);
+        this->_RemoveFromPlayInfoList(PlayInfoReference, &PropertiesSoundStop);
         continue;
       }
       JumpIfNeeded();
