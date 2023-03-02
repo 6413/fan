@@ -149,6 +149,17 @@ struct model_list_t {
         }, i.second.type);
     }
   }
+
+  void set_position(model_id_t model_id) {
+    for (auto& it : model_list[model_id]->groups) {
+      for (auto j : it.second.cids) {
+        switch (j.get()->shape_type) {
+
+        }
+        j.get();
+      }
+    }
+  }
 };
 
 #undef loco_var

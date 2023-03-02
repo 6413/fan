@@ -1647,7 +1647,7 @@ public:
 
   void erase_shape(cid_t* cid) {
 
-  /*  switch (cid->shape_type) {
+    switch (cid->shape_type) {
       case shape_type_t::line: {
         #if defined(loco_line)
           line.erase(cid);
@@ -1682,7 +1682,46 @@ public:
         fan::throw_error("invalid cid shape type - either not implemented or bug in code");
         break;
       }
-    }*/
+    }
+  }
+
+  void set_position(fan::graphics::cid_t* cid, const fan::vec3& position) {
+    switch (cid->shape_type) {
+      case shape_type_t::line: {
+        #if defined(loco_line)
+        line.erase(cid);
+        #endif
+        break;
+      }
+      case shape_type_t::rectangle: {
+        #if defined(loco_rectangle)
+        rectangle.set(cid, &loco_t::rectangle_t);
+        #endif
+        break;
+      }
+      case shape_type_t::sprite: {
+        #if defined(loco_sprite)
+        sprite.erase(cid);
+        #endif
+        break;
+      }
+      case shape_type_t::button: {
+        #if defined(loco_button)
+        button.erase(cid);
+        #endif
+        break;
+      }
+      case shape_type_t::text: {
+        #if defined(loco_text)
+        text.erase(cid);
+        #endif
+        break;
+      }
+      default: {
+        fan::throw_error("invalid cid shape type - either not implemented or bug in code");
+        break;
+      }
+    }
   }
 };
 
