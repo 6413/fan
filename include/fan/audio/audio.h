@@ -35,7 +35,7 @@
 #endif
 
 namespace fan {
-  namespace audio {
+  struct audio_t {
     #include "CommonTypes.h"
-  }
+  };
 }
