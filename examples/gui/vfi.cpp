@@ -22,15 +22,15 @@ struct pile_t {
   static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
 
   pile_t() {
-    loco.open_matrices(
-      &matrices,
+    loco.open_camera(
+      &camera,
       ortho_x,
       ortho_y
     );
     loco.get_window()->add_resize_callback([&](const fan::window_t::resize_cb_data_t& d) {
       fan::vec2 window_size = d.size;
     fan::vec2 ratio = window_size / window_size.max();
-    matrices.set_ortho(
+    camera.set_ortho(
       &loco,
       ortho_x * ratio.x,
       ortho_y * ratio.y
@@ -42,7 +42,7 @@ struct pile_t {
   }
 
   loco_t loco;
-  loco_t::camera_t matrices;
+  loco_t::camera_t camera;
   fan::graphics::viewport_t viewport;
   fan::graphics::cid_t cid[count];
 };
@@ -53,7 +53,7 @@ int main() {
 
   loco_t::text_t::properties_t p;
 
-  p.matrices = &pile->matrices;
+  p.camera = &pile->camera;
   p.viewport = &pile->viewport;
 
   p.font_size = 0.05;
@@ -84,7 +84,7 @@ int main() {
   vfip.shape.rectangle.position = fan::vec3(0, 0, 1);
   vfip.shape.rectangle.size = pile->loco.text.get_text_size(p.text, p.font_size);
   vfip.shape.rectangle.size.x /= 2; // hitbox takes half size
-  vfip.shape.rectangle.matrices = p.matrices;
+  vfip.shape.rectangle.camera = p.camera;
   vfip.shape.rectangle.viewport = p.viewport;
 
   vfip.mouse_button_cb = [](const loco_t::mouse_button_data_t& ii_d) -> int {

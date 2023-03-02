@@ -6,19 +6,32 @@
 #define fan_debug 0
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
-#include _FAN_PATH(types/masterpiece.h)
+#define xy \
+  int x = 5; \
+  int y = 10;
 
-#include <iostream>
-#include <stdio.h>
+//struct audio_t;
 
-struct a_t {
-  int x;
+struct process_t {
+  int pads[15];
 };
 
-struct b_t : a_t {
-  int y;
+struct out_t {
+  void f();
 };
+
+struct audio_t : process_t, out_t {
+  
+  int pads[20];
+};
+
+
+void out_t::f() {
+  fan::print(((process_t*)this));
+}
 
 int main() {
-  b_t b = { {.x = 5} };
+  audio_t d;
+  fan::print("a", (out_t*)&d, (process_t*)&d, &d);
+  d.f();
 }

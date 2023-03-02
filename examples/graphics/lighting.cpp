@@ -26,8 +26,8 @@ struct pile_t {
 
   pile_t() {
     fan::vec2 window_size = loco.get_window()->get_size();
-    loco.open_matrices(
-      &matrices,
+    loco.open_camera(
+      &camera,
       ortho_x,
       ortho_y
     );
@@ -42,7 +42,7 @@ struct pile_t {
   }
 
   loco_t loco;
-  loco_t::camera_t matrices;
+  loco_t::camera_t camera;
   fan::graphics::viewport_t viewport;
   fan::graphics::cid_t cid[10];
 };
@@ -55,7 +55,7 @@ int main() {
   loco_t::sprite_t::properties_t p;
 
   p.size = fan::vec2(1);
-  p.matrices = &pile->matrices;
+  p.camera = &pile->camera;
   p.viewport = &pile->viewport;
 
   loco_t::image_t image;
@@ -75,7 +75,7 @@ int main() {
   pile->loco.sprite.push_back(&pile->cid[1], p);
 
   loco_t::light_sun_t::properties_t lp;
-  lp.matrices = &pile->matrices;
+  lp.camera = &pile->camera;
   lp.viewport = &pile->viewport;
   lp.position = fan::vec3(0, 0, 2);
   lp.size = 0.4;
@@ -98,11 +98,11 @@ int main() {
   pile->loco.get_window()->add_keys_callback([&](const auto& d) {
     if (d.key == fan::key_left) {
       camerapos.x -= 100;
-      pile->matrices.set_camera_position(camerapos);
+      pile->camera.set_camera_position(camerapos);
     }
   if (d.key == fan::key_right) {
     camerapos.x += 0.1;
-    pile->matrices.set_camera_position(camerapos);
+    pile->camera.set_camera_position(camerapos);
   }
     });
 
