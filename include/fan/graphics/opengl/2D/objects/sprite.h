@@ -14,6 +14,7 @@ struct sb_sprite_name {
   };
 
   struct properties_t : vi_t, ri_t {
+    using type_t = sb_sprite_name;
     loco_sprite_properties_t
   };
 

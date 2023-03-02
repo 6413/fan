@@ -15,6 +15,7 @@ struct rectangle_t {
   };
 
   struct properties_t : vi_t, ri_t {
+    using type_t = rectangle_t;
     loco_rectangle_properties_t
   };
 

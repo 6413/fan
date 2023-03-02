@@ -6,32 +6,28 @@
 #define fan_debug 0
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
-#define xy \
-  int x = 5; \
-  int y = 10;
+#include <unordered_map>
+#include <vector>
+#include <string>
+#include <algorithm>
+#include <iostream>
+#include <set>
 
-//struct audio_t;
+struct a_t {
+  struct b_t {
 
-struct process_t {
-  int pads[15];
+  };
+  struct c_t {
+
+  };
 };
 
-struct out_t {
-  void f();
-};
-
-struct audio_t : process_t, out_t {
-  
-  int pads[20];
-};
-
-
-void out_t::f() {
-  fan::print(((process_t*)this));
+template <typename T>
+void f() {
+  typename a_t::T var;
 }
 
 int main() {
-  audio_t d;
-  fan::print("a", (out_t*)&d, (process_t*)&d, &d);
-  d.f();
+  f<a_t::b_t>();
+  f<a_t::c_t>();
 }
