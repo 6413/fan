@@ -75,26 +75,48 @@ int main(int argc, char** argv) {
   cm_t cm;
   cm.import_from("model.fmm", &tp);
 
-  auto model_id = m.push_model(&cm);
+  auto model_id = m.push_model(&tp, &cm);
   
   uint32_t group_id = 0;
 
   m.iterate(model_id, group_id, [&]<typename T>(auto shape_id, const T& properties) {
     if constexpr (std::is_same_v<T, model_loader_t::mark_t>) {
-      loco_t::rectangle_t::properties_t rp;
-      rp.camera = &pile->camera;
-      rp.viewport = &pile->viewport;
-      rp.position = properties.position;
-      rp.size = 0.01;
-      rp.color = fan::colors::white;
-      m.push_shape(model_id, group_id, rp);
+
+      switch (fan::get_hash(properties.id)) {
+        case fan::get_hash("smoke_position"): {
+          loco_t::rectangle_t::properties_t rp;
+          rp.color = fan::colors::red;
+          rp.camera = &pile->camera;
+          rp.viewport = &pile->viewport;
+          rp.position = properties.position;
+          rp.size = 0.01;
+
+          m.push_shape(model_id, group_id, rp);
+          break;
+        }
+        default: {
+          loco_t::sprite_t::properties_t p;
+          p.camera = &pile->camera;
+          p.viewport = &pile->viewport;
+          p.position = properties.position;
+          p.size = 0.1;
+          loco_t::texturepack_t::ti_t ti;
+          if (ti.qti(&tp, "tire")) {
+            fan::throw_error("invalid textureapack name");
+          }
+          p.load_tp(&ti);
+
+          m.push_shape(model_id, group_id, p);
+          break;
+        }
+      }
     }
   });
 
-  m.erase(model_id);
+  //m.erase(model_id);
 
   pile->loco.loop([&] {
-
+    //m.set
   });
 
 }

@@ -79,19 +79,23 @@ struct model_list_t {
   std::unordered_map<model_id_t, cm_t*> model_list;
 
 
-  model_id_t push_model(cm_t* cms) {
+  model_id_t push_model(loco_t::texturepack_t* tp, cm_t* cms) {
     model_id_t model_id = (model_id_t)cms;
     model_list[model_id] = cms;
 
-    iterate(model_id, group_id, [&]<typename T>(auto shape_id, const T & properties) {
-      if constexpr (std::is_same_v<T, model_loader_t::mark_t>) {
-        loco_t::rectangle_t::properties_t rp;
-        rp.camera = &pile->camera;
-        rp.viewport = &pile->viewport;
-        rp.position = properties.position;
-        rp.size = 0.01;
-        rp.color = fan::colors::white;
-        m.push_shape(model_id, group_id, rp);
+    iterate(model_id, [&]<typename T>(auto group_id, auto shape_id, const T& properties) {
+      if constexpr (std::is_same_v<T, model_loader_t::sprite_t>) {
+        loco_t::sprite_t::properties_t p;
+        p.camera = &pile->camera;
+        p.viewport = &pile->viewport;
+        p.position = properties.position;
+        p.size = properties.size;
+        loco_t::texturepack_t::ti_t ti;
+        if (ti.qti(tp, properties.texturepack_name)) {
+          fan::throw_error("invalid textureapack name", properties.texturepack_name);
+        }
+        p.load_tp(&ti);
+        push_shape(model_id, group_id, p);
       }
     });
 
@@ -125,8 +129,12 @@ struct model_list_t {
 
 
   void iterate(model_id_t model_id, auto lambda) {
-    for (auto& it : auto it = model_list[model_id]->groups) {
-      iterate(model_id, it->second,lambda);
+    for (auto& it2 : model_list[model_id]->groups) {
+      for (auto& i : it2.second.instances) {
+        std::visit([&](auto&& o) {
+          lambda(it2.first, i.first, o);
+          }, i.second.type);
+      }
     }
   }
 
