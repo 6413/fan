@@ -1,31 +1,25 @@
-struct audio_t {
-  _audio_common_t common;
+audio_t *audio(){
+  return OFFSETLESS(this, audio_t, Out);
+}
 
-  ma_context context;
-  ma_device device;
-};
+ma_context context;
+ma_device device;
 
-void _miniaudio_DataCallback(ma_device *Device, void *Output, const void *Input, ma_uint32 FrameCount) {
+static void _miniaudio_DataCallback(ma_device *Device, void *Output, const void *Input, ma_uint32 FrameCount) {
+  audio_t *audio = (audio_t *)Device->pUserData;
+
   #if fan_debug >= 0
     if (FrameCount != _constants::CallFrameCount) {
       fan::throw_error("fan_debug");
     }
   #endif
-  audio_t *audio = (audio_t *)Device->pUserData;
-  _DataCallback(&audio->common, (f32_t *)Output);
+
+  audio->Process._DataCallback((f32_t *)Output);
 }
 
-void audio_close(audio_t* audio) {
-  ma_device_uninit(&audio->device);
-  ma_context_uninit(&audio->context);
-
-  _audio_common_close(&audio->common);
-}
-void audio_open(audio_t *audio, uint32_t GroupAmount) {
-  _audio_common_open(&audio->common, GroupAmount);
-
+sint32_t Open() {
   ma_result r;
-  if ((r = ma_context_init(NULL, 0, NULL, &audio->context)) != MA_SUCCESS) {
+  if ((r = ma_context_init(NULL, 0, NULL, &this->context)) != MA_SUCCESS) {
     fan::throw_error("error" + ::fan::to_string(r));
   }
 
@@ -34,38 +28,43 @@ void audio_open(audio_t *audio, uint32_t GroupAmount) {
   config.playback.channels = _constants::ChannelAmount;
   config.sampleRate = _constants::opus_decode_sample_rate;
   config.dataCallback = _miniaudio_DataCallback;
-  config.pUserData = audio;
+  config.pUserData = audio();
   config.periodSizeInFrames = _constants::CallFrameCount;
 
-  if ((r = ma_device_init(&audio->context, &config, &audio->device)) != MA_SUCCESS) {
+  if ((r = ma_device_init(&this->context, &config, &this->device)) != MA_SUCCESS) {
     fan::throw_error("ma_device_init" + ::fan::to_string(r));
   }
+
+  if (ma_device_start(&this->device) != MA_SUCCESS) {
+    fan::throw_error("ma_device_start");
+  }
+
+  return 0;
+}
+void Close() {
+  ma_device_uninit(&this->device);
+  ma_context_uninit(&this->context);
 }
 
-void audio_stop(audio_t* audio) {
-  if (ma_device_stop(&audio->device) != MA_SUCCESS) {
-    fan::throw_error("audio_stop");
+void Pause() {
+  fan::throw_error("TODO not yet");
+  if (ma_device_stop(&this->device) != MA_SUCCESS) {
+    fan::throw_error("ma_device_stop");
   }
 }
-void audio_start(audio_t* audio) {
-  if (ma_device_start(&audio->device) != MA_SUCCESS) {
-    fan::throw_error("audio_start");
+void Resume() {
+  fan::throw_error("TODO not yet");
+}
+
+void SetVolume(f32_t Volume) {
+  if (ma_device_set_master_volume(&this->device, Volume) != MA_SUCCESS) {
+    fan::throw_error("ma_device_set_master_volume");
   }
 }
-
-void audio_stop_group(audio_t* audio, uint32_t GroupID) {
-
-}
-
-void audio_set_volume(audio_t* audio, f32_t Volume) {
-  if (ma_device_set_master_volume(&audio->device, Volume) != MA_SUCCESS) {
-    fan::throw_error("audio_set_volume");
-  }
-}
-f32_t audio_get_volume(audio_t* audio) {
+f32_t GetVolume() {
   f32_t Volume;
-  if (ma_device_get_master_volume(&audio->device, &Volume) != MA_SUCCESS) {
-    fan::throw_error("audio_get_volume");
+  if (ma_device_get_master_volume(&this->device, &Volume) != MA_SUCCESS) {
+    fan::throw_error("ma_device_get_master_volume");
   }
   return Volume;
 }
