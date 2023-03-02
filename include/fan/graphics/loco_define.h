@@ -67,11 +67,11 @@
 #undef loco_access
 
 #undef loco_rectangle_vi_t
-
-#undef loco_rectangle
-#undef loco_sprite
-#undef loco_letter
-#undef loco_text
-#undef loco_text_box
-#undef loco_button
-#undef loco_wboit
+//
+//#undef loco_rectangle
+//#undef loco_sprite
+//#undef loco_letter
+//#undef loco_text
+//#undef loco_text_box
+//#undef loco_button
+//#undef loco_wboit

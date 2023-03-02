@@ -1686,42 +1686,61 @@ public:
   }
 
   void set_position(fan::graphics::cid_t* cid, const fan::vec3& position) {
-    switch (cid->shape_type) {
-      case shape_type_t::line: {
-        #if defined(loco_line)
-        line.erase(cid);
-        #endif
-        break;
-      }
-      case shape_type_t::rectangle: {
-        #if defined(loco_rectangle)
-        rectangle.set(cid, &loco_t::rectangle_t);
-        #endif
-        break;
-      }
-      case shape_type_t::sprite: {
-        #if defined(loco_sprite)
-        sprite.erase(cid);
-        #endif
-        break;
-      }
-      case shape_type_t::button: {
-        #if defined(loco_button)
-        button.erase(cid);
-        #endif
-        break;
-      }
-      case shape_type_t::text: {
-        #if defined(loco_text)
-        text.erase(cid);
-        #endif
-        break;
-      }
-      default: {
-        fan::throw_error("invalid cid shape type - either not implemented or bug in code");
-        break;
-      }
+    //switch (cid->shape_type) {
+    //  case shape_type_t::line: {
+    //    #if defined(loco_line)
+    //    line.erase(cid);
+    //    #endif
+    //    break;
+    //  }
+    //  case shape_type_t::rectangle: {
+    //    #if defined(loco_rectangle)
+    //    //rectangle.set(cid, &loco_t::rectangle_t);
+    //    #endif
+    //    break;
+    //  }
+    //  case shape_type_t::sprite: {
+    //    #if defined(loco_sprite)
+    //    sprite.erase(cid);
+    //    #endif
+    //    break;
+    //  }
+    //  case shape_type_t::button: {
+    //    #if defined(loco_button)
+    //    button.erase(cid);
+    //    #endif
+    //    break;
+    //  }
+    //  case shape_type_t::text: {
+    //    #if defined(loco_text)
+    //    text.erase(cid);
+    //    #endif
+    //    break;
+    //  }
+    //  default: {
+    //    fan::throw_error("invalid cid shape type - either not implemented or bug in code");
+    //    break;
+    //  }
+    //}
+  }
+
+  template <typename T>
+  auto get_shape() {
+    #if defined(loco_rectangle)
+    if constexpr (std::is_same_v<T, rectangle_t>) {
+      return &rectangle;
     }
+    #endif
+    #if defined(loco_sprite)
+    if constexpr (std::is_same_v<T, sprite_t>) {
+      return &sprite;
+    }
+    #endif
+    #if defined(loco_button)
+    if constexpr (std::is_same_v<T, button_t>) {
+      return &button;
+    }
+    #endif
   }
 };
 
@@ -1785,11 +1804,11 @@ fan::opengl::theme_list_NodeReference_t::theme_list_NodeReference_t(auto* theme)
 #ifndef loco_no_inline
   #undef loco_rectangle_vi_t
 
-  #undef loco_rectangle
+ /* #undef loco_rectangle
   #undef loco_sprite
   #undef loco_letter
   #undef loco_text
   #undef loco_text_box
   #undef loco_button
-  #undef loco_wboit
+  #undef loco_wboit*/
 #endif

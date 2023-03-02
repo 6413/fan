@@ -24,6 +24,7 @@ struct button_t {
     type& name = *key.get_value<decltype(key)::get_index_with_type<type>()>();
 
   struct properties_t : vi_t, ri_t {
+    using type_t = button_t;
     loco_button_properties_t
   };
 

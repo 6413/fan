@@ -28,6 +28,7 @@ struct line_t {
 	};
 
   struct properties_t : vi_t, ri_t {
+    using type_t = line_t;
     loco_t::camera_t* camera = 0;
     fan::graphics::viewport_t* viewport = 0;
   };

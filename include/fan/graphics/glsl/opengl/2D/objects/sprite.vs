@@ -46,6 +46,17 @@ vec2 tc[] = vec2[](
 	vec2(0, 0) // top left
 );
 
+mat4 translate(mat4 m, vec3 v) {
+	mat4 matrix = m;
+
+	matrix[3][0] = m[0][0] * v[0] + m[1][0] * v[1] + m[2][0] * v[2] + m[3][0];
+	matrix[3][1] = m[0][1] * v[0] + m[1][1] * v[1] + m[2][1] * v[2] + m[3][1];
+	matrix[3][2] = m[0][2] * v[0] + m[1][2] * v[1] + m[2][2] * v[2] + m[3][2];
+	matrix[3][3] = m[0][3] * v[0] + m[1][3] * v[1] + m[2][3] * v[2] + m[3][3];
+
+	return matrix;
+}
+
 mat4 rotate(mat4 m, float angle, vec3 v) {
 	float a = angle;
 	float c = cos(a);
@@ -88,12 +99,14 @@ void main() {
 	uint id = uint(gl_VertexID % 6);
   vec2 rp = rectangle_vertices[id];
 
-  vec3 rot = get_instance().rotation_vector;
 
   mat4 view_mat = view;
 
+  vec3 rot = get_instance().rotation_vector;
   mat4 m = mat4(1);
+  m = translate(m, -vec3(get_instance().rotation_point, 0));
   m = rotate(m, get_instance().angle, rot); 
+  m = translate(m, vec3(get_instance().rotation_point, 0));
 
   vec2 rotated = vec4(m * vec4(rp * get_instance().size, 0, 1)).xy;
 
