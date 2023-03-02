@@ -105,7 +105,6 @@ int main(int argc, char** argv) {
             fan::throw_error("invalid textureapack name");
           }
           p.load_tp(&ti);
-
           m.push_shape(model_id, group_id, p);
           break;
         }
@@ -113,10 +112,11 @@ int main(int argc, char** argv) {
     }
   });
 
-  //m.erase(model_id);
-
+  f32_t angle = 0;
   pile->loco.loop([&] {
-    //m.set
+    m.set_position(model_id, pile->loco.get_mouse_position(pile->viewport));
+    m.set_angle(model_id, angle);
+    angle += pile->loco.get_delta_time() * 2;
   });
 
 }
