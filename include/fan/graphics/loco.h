@@ -1616,24 +1616,29 @@ public:
     #if defined(loco_line)
     if constexpr (std::is_same_v<type_t, loco_t::line_t::properties_t>) {
       line.push_back(cid, properties);
-  }
-    #elif defined(loco_rectangle)
+    }
+    #endif
+    #if defined(loco_rectangle)
     if constexpr (std::is_same_v<type_t, loco_t::rectangle_t::properties_t>) {
       rectangle.push_back(cid, properties);
     }
-    #elif defined(loco_sprite)
+    #endif
+    #if defined(loco_sprite)
     if constexpr (std::is_same_v<type_t, loco_t::sprite_t::properties_t>) {
       sprite.push_back(cid, properties);
     }
-    #elif defined(loco_letter)
+    #endif
+    #if defined(loco_letter)
     if constexpr (std::is_same_v<type_t, loco_t::letter_t::properties_t>) {
       letter.push_back(cid, properties);
     }
-    #elif defined(loco_text)
+    #endif
+    #if defined(loco_text)
     if constexpr (std::is_same_v<type_t, loco_t::text_t::properties_t>) {
       text.push_back(cid, properties);
     }
-    #elif defined(loco_button)
+    #endif
+    #if defined(loco_button)
     if constexpr (std::is_same_v<type_t, loco_t::button_t::properties_t>) {
       button.push_back(cid, properties);
     }
