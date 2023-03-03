@@ -168,16 +168,11 @@ struct Out_t{
   #endif
 }Out;
 
-sint32_t Open(uint32_t GroupAmount){
-  sint32_t r;
-  r = Process.Open(GroupAmount);
-  if(r != 0){
-    return r;
-  }
-  return Out.Open();
+audio_t(uint32_t GroupAmount) : Process(GroupAmount){
+  
 }
-void Close(){
-  Process.Close();
+~audio_t(){
+
 }
 
 sint32_t piece_open(piece_t *piece, void *data, uintptr_t size) {
