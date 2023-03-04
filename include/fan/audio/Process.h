@@ -19,16 +19,12 @@ _DecoderList_t DecoderList[_constants::Opus::SupportedChannels];
 
 _CacheList_t CacheList;
 
-sint32_t Open(uint32_t GroupAmount) {
+sint32_t Open() {
   TH_mutex_init(&this->PlayInfoListMutex);
   this->PlayInfoList.Open();
 
-  this->GroupAmount = GroupAmount;
-  this->GroupList = (_Group_t *)A_resize(0, sizeof(_Group_t) * this->GroupAmount);
-  for (uint32_t i = 0; i < this->GroupAmount; i++) {
-    this->GroupList[i].FirstReference = this->PlayInfoList.NewNodeLast_alloc();
-    this->GroupList[i].LastReference = this->PlayInfoList.NewNodeLast_alloc();
-  }
+  this->GroupAmount = 0;
+  this->GroupList = 0;
 
   VEC_init(&this->PlayList, sizeof(_Play_t), A_resize);
 
@@ -300,156 +296,6 @@ _RemoveFromPlayInfoList
   }
 }
 
-sint32_t piece_open(piece_t *piece, void *data, uintptr_t size) {
-  #define tbs(p0) \
-    if(DataIndex + (p0) > size){ \
-      return -1; \
-    }
-
-  uint8_t *Data = (uint8_t *)data;
-  uintptr_t DataIndex = 0;
-
-  _SACHead_t *SACHead;
-  tbs(sizeof(_SACHead_t));
-  SACHead = (_SACHead_t *)&Data[DataIndex];
-  DataIndex += sizeof(_SACHead_t);
-
-  if(SACHead->Sign != 0xff){
-    return -1;
-  }
-
-  piece->ChannelAmount = SACHead->ChannelAmount;
-
-  piece->BeginCut = SACHead->BeginCut;
-
-  tbs(SACHead->TotalSegments);
-  uint8_t *SACSegmentSizes = &Data[DataIndex];
-
-  piece->TotalSegments = 0;
-  uint64_t TotalOfSACSegmentSizes = 0;
-  for(uint32_t i = 0; i < SACHead->TotalSegments; i++){
-    TotalOfSACSegmentSizes += SACSegmentSizes[i];
-    if(SACSegmentSizes[i] == 0xff){
-      continue;
-    }
-    piece->TotalSegments++;
-  }
-
-  uint64_t PieceSegmentSizes = piece->TotalSegments * sizeof(_SACSegment_t);
-  {
-    DataIndex += SACHead->TotalSegments;
-    uint64_t LeftSize = size - DataIndex;
-    if(TotalOfSACSegmentSizes != LeftSize){
-      fan::throw_error("corrupted sac?");
-    }
-    uintptr_t ssize = PieceSegmentSizes + LeftSize;
-    piece->SACData = A_resize(0, ssize);
-    MEM_copy(&Data[DataIndex], &piece->SACData[PieceSegmentSizes], LeftSize);
-  }
-
-  {
-    uint16_t BeforeSum = 0;
-    uint32_t psi = 0;
-    uint32_t DataOffset = PieceSegmentSizes;
-    for(uint32_t i = 0; i < SACHead->TotalSegments; i++){
-      BeforeSum += SACSegmentSizes[i];
-      if(SACSegmentSizes[i] == 0xff){
-        continue;
-      }
-      ((_SACSegment_t *)piece->SACData)[psi].Offset = DataOffset;
-      ((_SACSegment_t *)piece->SACData)[psi].Size = BeforeSum;
-      ((_SACSegment_t *)piece->SACData)[psi].CacheID = _CacheList_gnric();
-      DataOffset += BeforeSum;
-      BeforeSum = 0;
-      psi++;
-    }
-  }
-
-  #undef tbs
-
-  piece->FrameAmount = (uint64_t)piece->TotalSegments * _constants::Opus::SegmentFrameAmount20;
-  if(SACHead->EndCut >= piece->FrameAmount){
-    return -1;
-  }
-  piece->FrameAmount -= SACHead->EndCut;
-
-  return 0;
-}
-sint32_t piece_open(piece_t *piece, const fan::string &path) {
-  sint32_t err;
-
-  fan::string sd;
-  err = fan::io::file::read(path, &sd);
-  if(err != 0){
-    return err;
-  }
-
-  err = piece_open(piece, sd.data(), sd.size());
-  if(err != 0){
-    return err;
-  }
-
-  return 0;
-}
-
-void PauseGroup(uint32_t GroupID) {
-  TH_lock(&this->MessageQueueListMutex);
-  VEC_handle0(&this->MessageQueueList, 1);
-  _Message_t *Message = &((_Message_t *)this->MessageQueueList.ptr)[this->MessageQueueList.Current - 1];
-  Message->Type = _MessageType_t::PauseGroup;
-  Message->Data.PauseGroup.GroupID = GroupID;
-  TH_unlock(&this->MessageQueueListMutex);
-}
-void ResumeGroup(uint32_t GroupID) {
-  TH_lock(&this->MessageQueueListMutex);
-  VEC_handle0(&this->MessageQueueList, 1);
-  _Message_t *Message = &((_Message_t*)this->MessageQueueList.ptr)[this->MessageQueueList.Current - 1];
-  Message->Type = _MessageType_t::ResumeGroup;
-  Message->Data.ResumeGroup.GroupID = GroupID;
-  TH_unlock(&this->MessageQueueListMutex);
-}
-
-void StopGroup(uint32_t GroupID) {
-
-}
-
-SoundPlayID_t SoundPlay(piece_t *piece, uint32_t GroupID, const PropertiesSoundPlay_t *Properties) {
-  #if fan_debug >= 0
-    if (GroupID >= this->GroupAmount) {
-      fan::throw_error("fan_debug");
-    }
-  #endif
-  TH_lock(&this->PlayInfoListMutex);
-  _PlayInfoList_NodeReference_t PlayInfoReference = this->PlayInfoList.NewNode();
-  auto PlayInfo = &this->PlayInfoList[PlayInfoReference];
-  PlayInfo->piece = piece;
-  PlayInfo->GroupID = GroupID;
-  PlayInfo->PlayID = (uint32_t)-1;
-  PlayInfo->properties = *Properties;
-  PlayInfo->offset = 0;
-  this->PlayInfoList.linkPrev(this->GroupList[GroupID].LastReference, PlayInfoReference);
-  TH_unlock(&this->PlayInfoListMutex);
-
-  TH_lock(&this->MessageQueueListMutex);
-  VEC_handle0(&this->MessageQueueList, 1);
-  _Message_t* Message = &((_Message_t *)this->MessageQueueList.ptr)[this->MessageQueueList.Current - 1];
-  Message->Type = _MessageType_t::SoundPlay;
-  Message->Data.SoundPlay.PlayInfoReference = PlayInfoReference;
-  TH_unlock(&this->MessageQueueListMutex);
-
-  return PlayInfoReference;
-}
-
-void SoundStop(_PlayInfoList_NodeReference_t PlayInfoReference, const PropertiesSoundStop_t *Properties) {
-  TH_lock(&this->MessageQueueListMutex);
-  VEC_handle0(&this->MessageQueueList, 1);
-  _Message_t* Message = &((_Message_t *)this->MessageQueueList.ptr)[this->MessageQueueList.Current - 1];
-  Message->Type = _MessageType_t::SoundStop;
-  Message->Data.SoundStop.PlayInfoReference = PlayInfoReference;
-  Message->Data.SoundStop.Properties = *Properties;
-  TH_unlock(&this->MessageQueueListMutex);
-}
-
 void _DataCallback(f32_t *Output) {
   if (this->MessageQueueList.Current) {
     TH_lock(&this->MessageQueueListMutex);
@@ -466,9 +312,9 @@ void _DataCallback(f32_t *Output) {
         }
         case _MessageType_t::PauseGroup: {
           uint32_t GroupID = Message->Data.PauseGroup.GroupID;
+          TH_lock(&this->PlayInfoListMutex);
           _PlayInfoList_NodeReference_t LastPlayInfoReference = this->GroupList[GroupID].LastReference;
           _PlayInfoList_NodeReference_t PlayInfoReference = this->GroupList[GroupID].FirstReference;
-          TH_lock(&this->PlayInfoListMutex);
           PlayInfoReference = PlayInfoReference.Next(&this->PlayInfoList);
           TH_unlock(&this->PlayInfoListMutex);
           while (PlayInfoReference != LastPlayInfoReference) {
@@ -483,9 +329,9 @@ void _DataCallback(f32_t *Output) {
         }
         case _MessageType_t::ResumeGroup: {
           uint32_t GroupID = Message->Data.PauseGroup.GroupID;
+          TH_lock(&this->PlayInfoListMutex);
           _PlayInfoList_NodeReference_t LastPlayInfoReference = this->GroupList[GroupID].LastReference;
           _PlayInfoList_NodeReference_t PlayInfoReference = this->GroupList[GroupID].FirstReference;
-          TH_lock(&this->PlayInfoListMutex);
           PlayInfoReference = PlayInfoReference.Next(&this->PlayInfoList);
           TH_unlock(&this->PlayInfoListMutex);
           while (PlayInfoReference != LastPlayInfoReference) {
@@ -499,9 +345,9 @@ void _DataCallback(f32_t *Output) {
         }
         case _MessageType_t::StopGroup: {
           uint32_t GroupID = Message->Data.PauseGroup.GroupID;
+          TH_lock(&this->PlayInfoListMutex);
           _PlayInfoList_NodeReference_t LastPlayInfoReference = this->GroupList[GroupID].LastReference;
           _PlayInfoList_NodeReference_t PlayInfoReference = this->GroupList[GroupID].FirstReference;
-          TH_lock(&this->PlayInfoListMutex);
           PlayInfoReference = PlayInfoReference.Next(&this->PlayInfoList);
           while (PlayInfoReference != LastPlayInfoReference) {
             auto PlayInfoNode = this->PlayInfoList.GetNodeByReference(PlayInfoReference);

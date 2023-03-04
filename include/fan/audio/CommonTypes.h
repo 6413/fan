@@ -23,8 +23,6 @@ typedef uint16_t _CacheID_Size_t;
 #define BLL_set_AreWeInsideStruct 1
 #define BLL_set_prefix _DecoderList
 #define BLL_set_type_node _DecoderID_Size_t
-#define BLL_set_declare_NodeReference 1
-#define BLL_set_declare_rest 0
 #include _WITCH_PATH(BLL/BLL.h)
 
 #define BLL_set_BaseLibrary 1
@@ -39,14 +37,6 @@ typedef _DecoderList_NodeReference_t _DecoderID_t;
 typedef _CacheList_NodeReference_t _CacheID_t;
 
 typedef uint32_t _SegmentID_t;
-
-#define BLL_set_BaseLibrary 1
-#define BLL_set_AreWeInsideStruct 1
-#define BLL_set_prefix _DecoderList
-#define BLL_set_type_node _DecoderID_Size_t
-#define BLL_set_declare_NodeReference 0
-#define BLL_set_declare_rest 1
-#include _WITCH_PATH(BLL/BLL.h)
 
 struct piece_t {
   uint8_t ChannelAmount;
@@ -97,6 +87,7 @@ struct _SACSegment_t{
 #pragma pack(pop)
 
 struct PropertiesSoundPlay_t {
+  uint32_t GroupID;
   struct {
     uint32_t Loop : 1 = false;
     uint32_t FadeIn : 1 = false;
@@ -168,42 +159,24 @@ struct Out_t{
   #endif
 }Out;
 
-sint32_t Open(uint32_t GroupAmount){
+sint32_t Open(){
   sint32_t r;
-  r = Process.Open(GroupAmount);
+  r = Process.Open();
   if(r != 0){
     return r;
   }
-  return Out.Open();
+  r = Out.Open();
+  if(r != 0){
+    fan::throw_error("TODO");
+  }
+  return r;
 }
 void Close(){
+  Out.Close();
   Process.Close();
 }
 
-sint32_t piece_open(piece_t *piece, void *data, uintptr_t size) {
-  return Process.piece_open(piece, data, size);
-}
-sint32_t piece_open(piece_t *piece, const fan::string &path) {
-  return Process.piece_open(piece, path);
-}
-
-SoundPlayID_t SoundPlay(piece_t *piece, uint32_t GroupID, const PropertiesSoundPlay_t *Properties) {
-  return Process.SoundPlay(piece, GroupID, Properties);
-}
-void SoundStop(_PlayInfoList_NodeReference_t PlayInfoReference, const PropertiesSoundStop_t *Properties) {
-  Process.SoundStop(PlayInfoReference, Properties);
-}
-
-void PauseGroup(uint32_t GroupID) {
-  Process.PauseGroup(GroupID);
-}
-void ResumeGroup(uint32_t GroupID) {
-  Process.ResumeGroup(GroupID);
-}
-
-void StopGroup(uint32_t GroupID) {
-  Process.StopGroup(GroupID);
-}
+#include "ProcessPublic.h"
 
 void SetVolume(f32_t Volume){
   Out.SetVolume(Volume);
