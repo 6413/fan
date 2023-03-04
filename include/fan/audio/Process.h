@@ -19,7 +19,7 @@ _DecoderList_t DecoderList[_constants::Opus::SupportedChannels];
 
 _CacheList_t CacheList;
 
-Process_t(uint32_t GroupAmount) {
+sint32_t Open(uint32_t GroupAmount) {
   TH_mutex_init(&this->PlayInfoListMutex);
   this->PlayInfoList.Open();
 
@@ -62,8 +62,10 @@ Process_t(uint32_t GroupAmount) {
     Data->SegmentID = (_SegmentID_t)-1;
     Data->DecoderID = _DecoderList_gnric();
   }
+
+  return 0;
 }
-~Process_t() {
+void Close() {
   this->PlayInfoList.Close();
   A_resize(this->GroupList, 0);
   VEC_free(&this->PlayList);
