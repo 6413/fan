@@ -96,7 +96,7 @@ void Close(piece_t *piece){
 SoundPlayID_t SoundPlay(piece_t *piece, const PropertiesSoundPlay_t *Properties) {
   if (Properties->GroupID >= this->Process.GroupAmount) {
     TH_lock(&this->Process.PlayInfoListMutex);
-    this->Process.GroupList = (Process_t::_Group_t *)A_resize(this->Process.GroupList, sizeof(Process_t::_Group_t) * Properties->GroupID);
+    this->Process.GroupList = (Process_t::_Group_t *)A_resize(this->Process.GroupList, sizeof(Process_t::_Group_t) * (Properties->GroupID + 1));
     for(; this->Process.GroupAmount <= Properties->GroupID; ++this->Process.GroupAmount){
       this->Process.GroupList[this->Process.GroupAmount].FirstReference = this->Process.PlayInfoList.NewNodeLast_alloc();
       this->Process.GroupList[this->Process.GroupAmount].LastReference = this->Process.PlayInfoList.NewNodeLast_alloc();
