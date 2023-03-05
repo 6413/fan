@@ -75,14 +75,19 @@ int main(int argc, char** argv) {
   cm_t cm;
   cm.import_from("model.fmm", &tp);
 
-  auto model_id = m.push_model(&tp, &cm);
+  model_list_t::properties_t p;
+  p.camera = &pile->camera;
+  p.viewport = &pile->viewport;
+
+  auto model_id = m.push_model(&tp, &cm, p);
   
   uint32_t group_id = 0;
 
   m.iterate(model_id, group_id, [&]<typename T>(auto shape_id, const T& properties) {
     if constexpr (std::is_same_v<T, model_loader_t::mark_t>) {
-
+      properties.group_id;
       switch (fan::get_hash(properties.id)) {
+        
         case fan::get_hash("smoke_position"): {
           loco_t::rectangle_t::properties_t rp;
           rp.color = fan::colors::red;
