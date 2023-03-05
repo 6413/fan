@@ -99,7 +99,7 @@ struct model_list_t {
   };
 
   using model_id_t = uint64_t;
-  std::unordered_map<model_id_t, model_list_t::cm_t*> model_list;
+  std::unordered_map<model_id_t, model_list_t::cm_t*> m_model_list;
 
   struct properties_t {
     loco_t::camera_t* camera = 0;
@@ -108,7 +108,7 @@ struct model_list_t {
 
   model_id_t push_model(loco_t::texturepack_t* tp, cm_t* cms, const properties_t& mp) {
     model_id_t model_id = (model_id_t)cms;
-    model_list[model_id] = cms;
+    m_model_list[model_id] = cms;
 
     iterate(model_id, [&]<typename T>(auto group_id, auto shape_id, const T& properties) {
       if constexpr (std::is_same_v<T, model_loader_t::sprite_t>) {
@@ -122,7 +122,7 @@ struct model_list_t {
           fan::throw_error("invalid textureapack name", properties.texturepack_name);
         }
         p.load_tp(&ti);
-        model_list[model_id]->position = p.position;
+        m_model_list[model_id]->position = p.position;
         push_shape(model_id, group_id, p);
       }
     });
@@ -130,15 +130,15 @@ struct model_list_t {
     return model_id;
   }
   void erase(model_id_t id, uint32_t group_id) {
-    auto& cids = model_list[id]->groups[group_id].cids;
+    auto& cids = m_model_list[id]->groups[group_id].cids;
     for (auto& i : cids) {
       loco_var.erase_shape(i.cid.get());
     }
-    model_list[id]->groups.erase(group_id);
+    m_model_list[id]->groups.erase(group_id);
   }
 
   void erase(model_id_t id) {
-    auto& groups = model_list[id]->groups;
+    auto& groups = m_model_list[id]->groups;
     for (auto it = groups.begin(); it != groups.end(); ) {
       auto& cids = it->second.cids;
       for (auto& i : cids) {
@@ -150,7 +150,7 @@ struct model_list_t {
 
   template <typename T>
   loco_t::cid_t* push_shape(model_id_t model_id, uint32_t group_id, const T& properties) {
-    auto& cids = model_list[model_id]->groups[group_id].cids;
+    auto& cids = m_model_list[model_id]->groups[group_id].cids;
     typename std::remove_reference_t<decltype(cids)>::value_type p;
     p.internal_ = (typename T::type_t*)0;
     p.cid = std::make_shared<loco_t::cid_t>();
@@ -160,7 +160,7 @@ struct model_list_t {
   }
 
   void iterate(model_id_t model_id, auto lambda) {
-    for (auto& it2 : model_list[model_id]->groups) {
+    for (auto& it2 : m_model_list[model_id]->groups) {
       for (auto& i : it2.second.instances) {
         std::visit([&](auto&& o) {
           lambda(it2.first, i.first, o);
@@ -170,8 +170,8 @@ struct model_list_t {
   }
 
   void iterate(model_id_t model_id, uint32_t group_id, auto lambda) {
-    auto it = model_list[model_id]->groups.find(group_id);
-    if (it == model_list[model_id]->groups.end()) {
+    auto it = m_model_list[model_id]->groups.find(group_id);
+    if (it == m_model_list[model_id]->groups.end()) {
       fan::throw_error("model iterate - invalid group_id");
     }
     for (auto& i : it->second.instances) {
@@ -182,14 +182,14 @@ struct model_list_t {
   }
 
   void iterate_cids(model_id_t model_id, auto lambda, fan::function_t<void(cm_t::model_t&)> group_lambda = [](cm_t::model_t&){}) {
-    for (auto& it : model_list[model_id]->groups) {
+    for (auto& it : m_model_list[model_id]->groups) {
       iterate_cids(model_id, it.first, lambda, group_lambda);
     }
   }
 
   void iterate_cids(model_id_t model_id, uint32_t group_id, auto lambda, fan::function_t<void(cm_t::model_t&)> group_lambda = [](cm_t::model_t&) {}) {
-    auto& group = model_list[model_id]->groups[group_id];
-    for (auto j : model_list[model_id]->groups[group_id].cids) {
+    auto& group = m_model_list[model_id]->groups[group_id];
+    for (auto j : m_model_list[model_id]->groups[group_id].cids) {
       std::visit([&](auto&& o) {
         using shape_t = std::remove_pointer_t<std::remove_reference_t<decltype(o)>>;
         lambda.template operator() < shape_t > (loco_var.get_shape<shape_t>(), j, group);
@@ -200,12 +200,12 @@ struct model_list_t {
 
   void set_position(model_id_t model_id, const fan::vec3& position) {
     iterate_cids(model_id, [&]<typename shape_t>(auto* shape, auto& object, auto& model_info) {
-      auto offset = position - model_list[model_id]->position;
+      auto offset = position - m_model_list[model_id]->position;
       auto current = shape->get(object.cid.get(), &shape_t::vi_t::position);
       shape->set(object.cid.get(), &shape_t::vi_t::position, current + offset);
       shape->set(object.cid.get(), &shape_t::vi_t::rotation_point, current - position);
     });
-    model_list[model_id]->position = position;
+    m_model_list[model_id]->position = position;
   }
 
   void set_angle(model_id_t model_id, f32_t angle) {
@@ -239,7 +239,7 @@ struct model_list_t {
   }
 
   //void set_angle(model_id_t model_id, f32_t angle) {
-  //  for (auto& it : model_list[model_id]->groups) {
+  //  for (auto& it : m_model_list[model_id]->groups) {
   //    for (auto j : it.second.cids) {
   //      std::visit([&](auto&& o) {
   //        using shape_t = std::remove_pointer_t<std::remove_reference_t<decltype(o)>>;
