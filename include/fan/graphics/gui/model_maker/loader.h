@@ -100,16 +100,20 @@ struct model_list_t {
   using model_id_t = uint64_t;
   std::unordered_map<model_id_t, cm_t*> model_list;
 
+  struct properties_t {
+    loco_t::camera_t* camera = 0;
+    fan::graphics::viewport_t* viewport = 0;
+  };
 
-  model_id_t push_model(loco_t::texturepack_t* tp, cm_t* cms) {
+  model_id_t push_model(loco_t::texturepack_t* tp, cm_t* cms, const properties_t& mp) {
     model_id_t model_id = (model_id_t)cms;
     model_list[model_id] = cms;
 
     iterate(model_id, [&]<typename T>(auto group_id, auto shape_id, const T& properties) {
       if constexpr (std::is_same_v<T, model_loader_t::sprite_t>) {
         loco_t::sprite_t::properties_t p;
-        p.camera = &pile->camera;
-        p.viewport = &pile->viewport;
+        p.camera = mp.camera;
+        p.viewport = mp.viewport;
         p.position = properties.position;
         p.size = properties.size;
         loco_t::texturepack_t::ti_t ti;
@@ -186,7 +190,7 @@ struct model_list_t {
     for (auto j : model_list[model_id]->groups[group_id].cids) {
       std::visit([&](auto&& o) {
         using shape_t = std::remove_pointer_t<std::remove_reference_t<decltype(o)>>;
-        lambda.template operator() < shape_t > (pile->loco.get_shape<shape_t>(), j, group);
+        lambda.template operator() < shape_t > (loco_var.get_shape<shape_t>(), j, group);
       }, j.internal_);
     }
     group_lambda(group);
