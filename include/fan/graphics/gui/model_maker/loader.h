@@ -86,7 +86,7 @@ struct model_list_t {
 
     std::unordered_map<uint32_t, model_t> groups;
 
-    void import_from(const char* path, loco_t::texturepack_t* tp) {
+    void import_from(const fan::string& path, loco_t::texturepack_t* tp) {
       model_loader_t loader;
       loco_t::texturepack_t::ti_t ti;
       loader.load(tp, path, [&](const auto& data) {
