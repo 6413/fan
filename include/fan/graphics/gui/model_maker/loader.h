@@ -207,6 +207,9 @@ struct model_list_t {
     });
     m_model_list[model_id]->position = position;
   }
+  fan::vec2 get_position(model_id_t model_id) {
+    return m_model_list[model_id]->position;
+  }
 
   void set_angle(model_id_t model_id, f32_t angle) {
     iterate_cids(model_id, 
