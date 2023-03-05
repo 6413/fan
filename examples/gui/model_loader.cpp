@@ -72,7 +72,7 @@ int main(int argc, char** argv) {
   tp.open_compiled(&pile->loco, argv[1]);
   model_list_t m;
 
-  cm_t cm;
+  model_list_t::cm_t cm;
   cm.import_from("model.fmm", &tp);
 
   model_list_t::properties_t p;
