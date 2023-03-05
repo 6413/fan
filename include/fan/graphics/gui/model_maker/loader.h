@@ -147,10 +147,11 @@ struct model_list_t {
     }
   }
 
-  loco_t::cid_t* push_shape(model_id_t model_id, uint32_t group_id, const auto& properties) {
+  template <typename T>
+  loco_t::cid_t* push_shape(model_id_t model_id, uint32_t group_id, const T& properties) {
     auto& cids = model_list[model_id]->groups[group_id].cids;
     typename std::remove_reference_t<decltype(cids)>::value_type p;
-    p.internal_ = (std::remove_const_t<std::remove_reference_t<decltype(properties)>>::type_t*)0;
+    p.internal_ = (typename T::type_t*)0;
     p.cid = std::make_shared<loco_t::cid_t>();
     cids.emplace_back(p);
     loco_var.push_shape(cids.back().cid.get(), properties);

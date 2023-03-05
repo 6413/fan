@@ -296,7 +296,7 @@ namespace fan {
     using type_t = std::string;
     using type_t::basic_string;
 
-    string(const std::string str) : type_t(str) {}
+    string(const std::string& str) : type_t(str) {}
 
     using char_type = std::string::value_type;
 

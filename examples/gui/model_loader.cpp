@@ -85,10 +85,10 @@ int main(int argc, char** argv) {
 
   m.iterate(model_id, group_id, [&]<typename T>(auto shape_id, const T& properties) {
     if constexpr (std::is_same_v<T, model_loader_t::mark_t>) {
-      properties.group_id;
+      //static constexpr fan::string str("smoke_position");
       switch (fan::get_hash(properties.id)) {
         
-        case fan::get_hash("smoke_position"): {
+     /*   case fan::get_hash(std::string_view("hi")): {
           loco_t::rectangle_t::properties_t rp;
           rp.color = fan::colors::red;
           rp.camera = &pile->camera;
@@ -99,7 +99,7 @@ int main(int argc, char** argv) {
           m.push_shape(model_id, group_id, rp);
           break;
         }
-        default: {
+        default: {*/
           loco_t::sprite_t::properties_t p;
           p.camera = &pile->camera;
           p.viewport = &pile->viewport;
@@ -112,7 +112,7 @@ int main(int argc, char** argv) {
           p.load_tp(&ti);
           m.push_shape(model_id, group_id, p);
           break;
-        }
+        //}
       }
     }
   });
