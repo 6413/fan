@@ -49,56 +49,57 @@ struct model_loader_t {
   }
 };
 
-struct cm_t {
-  struct instance_t {
-    std::variant<
-      model_loader_t::mark_t,
-      model_loader_t::sprite_t
-    > type;
-  };
+struct model_list_t {
 
-  template <typename T>
-  struct id_t {
-    using type_t = T;
-    type_t internal_;
-    std::shared_ptr<loco_t::cid_t> cid;
-  };
-
-  struct model_t {
-    std::vector<id_t<
+  // compiled model
+  struct cm_t {
+    struct instance_t {
       std::variant<
-      loco_t::sprite_t*
-      #if defined(loco_rectangle)
-      ,loco_t::rectangle_t*
-      #endif
-      #if defined(loco_button)
-      , loco_t::button_t*
-      #endif
-      >
-    >> cids;
-    std::unordered_map<std::string, instance_t> instances;
+        model_loader_t::mark_t,
+        model_loader_t::sprite_t
+      > type;
+    };
 
+    template <typename T>
+    struct id_t {
+      using type_t = T;
+      type_t internal_;
+      std::shared_ptr<loco_t::cid_t> cid;
+    };
+
+    struct model_t {
+      std::vector<id_t<
+        std::variant<
+        loco_t::sprite_t*
+        #if defined(loco_rectangle)
+        , loco_t::rectangle_t*
+        #endif
+        #if defined(loco_button)
+        , loco_t::button_t*
+        #endif
+        >
+        >> cids;
+      std::unordered_map<std::string, instance_t> instances;
+
+      f32_t angle = 0;
+    };
+
+    std::unordered_map<uint32_t, model_t> groups;
+
+    void import_from(const char* path, loco_t::texturepack_t* tp) {
+      model_loader_t loader;
+      loco_t::texturepack_t::ti_t ti;
+      loader.load(tp, path, [&](const auto& data) {
+        groups[data.group_id].instances[data.id].type = data;
+        });
+    }
+
+    fan::vec3 position = 0;
     f32_t angle = 0;
   };
 
-  std::unordered_map<uint32_t, model_t> groups;
-
-  void import_from(const char* path, loco_t::texturepack_t* tp) {
-    model_loader_t loader;
-    loco_t::texturepack_t::ti_t ti;
-    loader.load(tp, path, [&](const auto& data) {
-      groups[data.group_id].instances[data.id].type = data;
-    });
-  }
-
-  fan::vec3 position = 0;
-  f32_t angle = 0;
-}; 
-
-struct model_list_t {
-
   using model_id_t = uint64_t;
-  std::unordered_map<model_id_t, cm_t*> model_list;
+  std::unordered_map<model_id_t, model_list_t::cm_t*> model_list;
 
   struct properties_t {
     loco_t::camera_t* camera = 0;
