@@ -261,25 +261,29 @@ public:
   }
 
   void set_position(model_id_t model_id, const fan::vec3& position) {
-    iterate_cids(model_id, [&]<typename shape_t>(auto* shape, auto& object, auto& model_info) {
+    iterate_cids(model_id, [&]<typename shape_t>(auto* shape, auto& object, auto& group_info) {
       shape->set(object.cid.get(), &shape_t::vi_t::position, position + object.position);
       shape->set(object.cid.get(), &shape_t::vi_t::rotation_point, object.position);
     });
     m_model_list[model_id].position = position;
   }
   void set_position(model_id_t model_id, const fan::vec2& position) {
-    iterate_cids(model_id, [&]<typename shape_t>(auto* shape, auto& object, auto& model_info) {
-      shape->set(object.cid.get(), &shape_t::vi_t::position, fan::vec3(position, object.position.z) + object.position);
+    iterate_cids(model_id, [&]<typename shape_t>(auto* shape, auto& object, auto& group_info) {
+      if (object.position.z != m_model_list[model_id].position.z) {
+        shape->sb_set_depth(object.cid.get(), m_model_list[model_id].position.z);
+      }
+      shape->set(object.cid.get(), &shape_t::vi_t::position, fan::vec3(position, m_model_list[model_id].position.z) + object.position);
       shape->set(object.cid.get(), &shape_t::vi_t::rotation_point, object.position);
     });
-    m_model_list[model_id].position = position;
+    m_model_list[model_id].position.x = position.x;
+    m_model_list[model_id].position.y = position.y;
   }
   fan::vec3 get_position(model_id_t model_id) {
     return m_model_list[model_id].position;
   }
 
   void set_size(model_id_t model_id, const fan::vec2& size) {
-    iterate_cids(model_id, [&]<typename shape_t>(auto * shape, auto & object, auto & model_info) {
+    iterate_cids(model_id, [&]<typename shape_t>(auto * shape, auto & object, auto & group_info) {
       object.position *= size;
       shape->set(object.cid.get(), &shape_t::vi_t::position, object.position);
       shape->set(object.cid.get(), &shape_t::vi_t::size, size * object.size);
@@ -290,7 +294,7 @@ public:
   void set_angle(model_id_t model_id, f32_t angle) {
     iterate_cids(model_id, 
       // iterate per object in group x
-      [&]<typename shape_t>(auto* shape, auto& object, auto& model_info) {
+      [&]<typename shape_t>(auto* shape, auto& object, auto& group_info) {
       shape->set(object.cid.get(), &shape_t::vi_t::angle, object.angle + angle);
     },
     // iterate group
@@ -303,7 +307,7 @@ public:
     iterate_cids(model_id,
       group_id,
       // iterate per object in group x
-      [&]<typename shape_t>(auto * shape, auto & object, auto & model_info) {
+      [&]<typename shape_t>(auto * shape, auto & object, auto & group_info) {
       shape->set(object.cid.get(), &shape_t::vi_t::angle, object.angle + angle);
     },
       // iterate group
