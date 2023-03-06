@@ -188,16 +188,16 @@ public:
 
     return nr;
   }
- /* void erase(model_id_t id, uint32_t group_id) {
-    auto& cids = m_model_list[id]->groups[group_id].cids;
+  void erase(model_id_t id, uint32_t group_id) {
+    auto& cids = m_model_list[id].groups[group_id].cids;
     for (auto& i : cids) {
       loco_var.erase_shape(i.cid.get());
     }
-    m_model_list[id]->groups.erase(group_id);
+    m_model_list[id].groups.erase(group_id);
   }
 
   void erase(model_id_t id) {
-    auto& groups = m_model_list[id]->groups;
+    auto& groups = m_model_list[id].groups;
     for (auto it = groups.begin(); it != groups.end(); ) {
       auto& cids = it->second.cids;
       for (auto& i : cids) {
@@ -205,7 +205,7 @@ public:
       }
       it = groups.erase(it);
     }
-  }*/
+  }
 
   template <typename T>
   loco_t::cid_t* push_shape(model_id_t model_id, uint32_t group_id, const T& properties, const auto& internal_properties) {
@@ -248,7 +248,7 @@ public:
 
   void iterate_cids(model_id_t model_id, uint32_t group_id, auto lambda, fan::function_t<void(model_id_data_t::model_t&)> group_lambda = [](model_id_data_t::model_t&) {}) {
     auto& group = m_model_list[model_id].groups[group_id];
-    for (auto j : m_model_list[model_id].groups[group_id].cids) {
+    for (auto& j : m_model_list[model_id].groups[group_id].cids) {
       std::visit([&](auto&& o) {
         using shape_t = std::remove_pointer_t<std::remove_reference_t<decltype(o)>>;
         lambda.template operator() < shape_t > (loco_var.get_shape<shape_t>(), j, group);
@@ -268,20 +268,20 @@ public:
     return m_model_list[model_id].position;
   }
 
-  //void set_size(model_id_t model_id, const fan::vec3& size) {
-  //  iterate_cids(model_id, [&]<typename shape_t>(auto * shape, auto & object, auto & model_info) {
-  //    auto offset = size - m_model_list[model_id]->size;
-  //    auto current = shape->get(object.cid.get(), &shape_t::vi_t::size);
-  //    shape->set(object.cid.get(), &shape_t::vi_t::size, current + offset);
-  //  });
-  //  m_model_list[model_id]->size = size;
-  //}
+  void set_size(model_id_t model_id, const fan::vec2& size) {
+    iterate_cids(model_id, [&]<typename shape_t>(auto * shape, auto & object, auto & model_info) {
+      object.position *= size;
+      shape->set(object.cid.get(), &shape_t::vi_t::position, object.position);
+      shape->set(object.cid.get(), &shape_t::vi_t::size, size * object.size);
+    });
+    m_model_list[model_id].size = size;
+  }
 
   void set_angle(model_id_t model_id, f32_t angle) {
     iterate_cids(model_id, 
       // iterate per object in group x
       [&]<typename shape_t>(auto* shape, auto& object, auto& model_info) {
-      shape->set(object.cid.get(), &shape_t::vi_t::angle, angle);
+      shape->set(object.cid.get(), &shape_t::vi_t::angle, object.angle + angle);
     },
     // iterate group
     [&](auto& model_info) {
@@ -294,7 +294,7 @@ public:
       group_id,
       // iterate per object in group x
       [&]<typename shape_t>(auto * shape, auto & object, auto & model_info) {
-      shape->set(object.cid.get(), &shape_t::vi_t::angle, object.angle);
+      shape->set(object.cid.get(), &shape_t::vi_t::angle, object.angle + angle);
     },
       // iterate group
       [&](auto& model_info) {
