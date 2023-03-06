@@ -58,7 +58,12 @@ int main(int argc, char** argv) {
 
   model_maker_t mm;
   mm.open(argv[1]);
-  mm.load("model.fmm");
+  if(argc == 3){
+    mm.load(argv[2]);
+  }
+  else{
+    mm.load("model.fmm");
+  }
   
   pile->loco.set_vsync(false);
   pile->loco.get_window()->set_max_fps(165);
