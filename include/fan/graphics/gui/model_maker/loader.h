@@ -156,6 +156,7 @@ public:
   struct properties_t {
     loco_t::camera_t* camera = 0;
     fan::graphics::viewport_t* viewport = 0;
+    fan::vec3 position = 0;
   };
 
   model_id_t push_model(loco_t::texturepack_t* tp, cm_t* cms, const properties_t& mp) {
@@ -167,6 +168,8 @@ public:
     /*m_model_list[node].
     model_id_t model_id = (model_id_t)cms;
     m_model_list[model_id] = cms;*/
+
+    node.position = mp.position;
 
     for (auto& i : cms->instances) {
       std::visit([&](auto&& o) {
@@ -260,6 +263,13 @@ public:
   void set_position(model_id_t model_id, const fan::vec3& position) {
     iterate_cids(model_id, [&]<typename shape_t>(auto* shape, auto& object, auto& model_info) {
       shape->set(object.cid.get(), &shape_t::vi_t::position, position + object.position);
+      shape->set(object.cid.get(), &shape_t::vi_t::rotation_point, object.position);
+    });
+    m_model_list[model_id].position = position;
+  }
+  void set_position(model_id_t model_id, const fan::vec2& position) {
+    iterate_cids(model_id, [&]<typename shape_t>(auto* shape, auto& object, auto& model_info) {
+      shape->set(object.cid.get(), &shape_t::vi_t::position, fan::vec3(position, object.position.z) + object.position);
       shape->set(object.cid.get(), &shape_t::vi_t::rotation_point, object.position);
     });
     m_model_list[model_id].position = position;
