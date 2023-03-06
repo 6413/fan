@@ -1,3 +1,4 @@
+#if defined(fgm_build_stage_maker)
 static std::size_t get_ending_bracket_offset(const fan::string& stage_name, const fan::string& str, std::size_t src) {
   std::size_t offset = src;
   std::size_t brackets_count = 0;
@@ -88,6 +89,8 @@ void erase_cbs(const fan::string& file_name, const fan::string& stage_name, cons
   }
   get_stage_maker()->write_stage();
 }
+
+#endif
 
 fan::vec3 get_position(auto* shape, auto* instance) {
   return shape->get_position(instance);
