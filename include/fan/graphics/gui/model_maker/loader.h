@@ -238,9 +238,25 @@ public:
   void iterate(model_id_t model_id, uint32_t group_id, auto lambda) {
     for (auto& i : m_model_list[model_id].cm.instances) {
       std::visit([&](auto&& o) {
+        if (o.group_id != group_id) {
+          return;
+        }
         lambda.template operator()<std::remove_reference_t<decltype(o)>>(i.first, o);
         }, i.second.type);
     }
+  }
+
+  void iterate_marks(model_id_t model_id, uint32_t group_id, auto lambda) {
+    for (auto& i : m_model_list[model_id].cm.instances) {
+      std::visit([&]<typename T>(T && o) {
+        if constexpr (std::is_same_v<T, model_loader_t::mark_t>) {
+          if (o.group_id != group_id) {
+            return;
+          }
+          lambda.template operator() < std::remove_reference_t<decltype(o)> > (i.first, o);
+        }
+      }, i.second.type);
+      }
   }
 
   void iterate_cids(model_id_t model_id, auto lambda, fan::function_t<void(model_id_data_t::model_t&)> group_lambda = [](model_id_data_t::model_t&){}) {
@@ -316,6 +332,20 @@ public:
     }
     );
   }
+
+  //void rotate_sprite(model_id_t model_id, uint32_t group_id, f32_t angle) {
+  //  iterate_cids(model_id,
+  //    group_id,
+  //    // iterate per object in group x
+  //    [&]<typename shape_t>(auto * shape, auto & object, auto & group_info) {
+  //    shape->set(object.cid.get(), &shape_t::vi_t::angle, object.angle + angle);
+  //  },
+  //    // iterate group
+  //    [&](auto& model_info) {
+  //    model_info.angle = angle;
+  //  }
+  //  );
+  //}
 
   //void set_angle(model_id_t model_id, f32_t angle) {
   //  for (auto& it : m_model_list[model_id]->groups) {
