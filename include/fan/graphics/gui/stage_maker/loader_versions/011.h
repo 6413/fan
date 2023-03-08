@@ -22,7 +22,7 @@ while (off < f.size()) {
         bp.mouse_button_cb = [stage, i](const loco_t::mouse_button_data_t& d) {
           return (stage->*(stage->button_mouse_button_cb_table[i]))(d);
         };
-        loco->button.push_back(&stage->cid_list[nr].cid, bp);
+        (loco_access)->button.push_back(&stage->cid_list[nr].cid, bp);
         cid_map[std::make_pair(stage, "button_" + data.id)] = &stage->cid_list[nr].cid;
         break;
       }
@@ -38,7 +38,7 @@ while (off < f.size()) {
         sp.parallax_factor = data.parallax_factor;
         loco_t::texturepack_t::ti_t ti;
         if (texturepack->qti(data.texturepack_name, &ti)) {
-          sp.image = &loco->default_texture;
+          sp.image = &(loco_access)->default_texture;
         }
         else {
           auto& pd = texturepack->get_pixel_data(ti.pack_id);
@@ -48,7 +48,7 @@ while (off < f.size()) {
         }
         sp.camera = op.camera;
         sp.viewport = op.viewport;
-        loco->sprite.push_back(&stage->cid_list[nr].cid, sp);
+        (loco_access)->sprite.push_back(&stage->cid_list[nr].cid, sp);
         cid_map[std::make_pair(stage, "sprite_" + data.id)] = &stage->cid_list[nr].cid;
         break;
       }
@@ -65,7 +65,7 @@ while (off < f.size()) {
         p.position.z += stage->it * op.itToDepthMultiplier;
         p.font_size = data.size;
         p.text = data.text;
-        loco->text.push_back(&stage->cid_list[nr].cid, p);
+        (loco_access)->text.push_back(&stage->cid_list[nr].cid, p);
 
         cid_map[std::make_pair(stage, "text_" + data.id)] = &stage->cid_list[nr].cid;
         break;
@@ -105,7 +105,7 @@ while (off < f.size()) {
         };
         vfip.ignore_init_move = true;
 
-        loco->push_back_input_hitbox((loco_t::vfi_t::shape_id_t*)&stage->cid_list[nr].cid, vfip);
+        (loco_access)->push_back_input_hitbox((loco_t::vfi_t::shape_id_t*)&stage->cid_list[nr].cid, vfip);
 
         cid_map[std::make_pair(stage, "hitbox_" + data.id)] = &stage->cid_list[nr].cid;
 
