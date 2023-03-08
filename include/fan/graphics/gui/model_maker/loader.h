@@ -279,7 +279,6 @@ public:
   void set_position(model_id_t model_id, const fan::vec3& position) {
     iterate_cids(model_id, [&]<typename shape_t>(auto* shape, auto& object, auto& group_info) {
       shape->set(object.cid.get(), &shape_t::vi_t::position, position + object.position);
-      shape->set(object.cid.get(), &shape_t::vi_t::rotation_point, object.position);
     });
     m_model_list[model_id].position = position;
   }
@@ -289,7 +288,6 @@ public:
         shape->sb_set_depth(object.cid.get(), m_model_list[model_id].position.z);
       }
       shape->set(object.cid.get(), &shape_t::vi_t::position, fan::vec3(position, m_model_list[model_id].position.z) + object.position);
-      shape->set(object.cid.get(), &shape_t::vi_t::rotation_point, object.position);
     });
     m_model_list[model_id].position.x = position.x;
     m_model_list[model_id].position.y = position.y;
@@ -308,10 +306,21 @@ public:
   }
 
   void set_angle(model_id_t model_id, f32_t angle) {
+    
     iterate_cids(model_id, 
       // iterate per object in group x
-      [&]<typename shape_t>(auto* shape, auto& object, auto& group_info) {
+    [&]<typename shape_t>(auto* shape, auto& object, auto& group_info) {
       shape->set(object.cid.get(), &shape_t::vi_t::angle, object.angle + angle);
+      shape->set(object.cid.get(), &shape_t::vi_t::rotation_point, object.position);
+      /*fan::vec3 center = m_model_list[model_id].position;
+       if (object.position == center + object.position) {
+        return;
+      }
+      double r = center.x;
+
+      double x_tire = center.x + r * cos(-angle);
+      double y_tire = center.y + r * sin(-angle);
+      shape->set(object.cid.get(), &shape_t::vi_t::position, object.position + fan::vec2(x_tire, y_tire));*/
     },
     // iterate group
     [&](auto& model_info) {
@@ -325,6 +334,7 @@ public:
       // iterate per object in group x
       [&]<typename shape_t>(auto * shape, auto & object, auto & group_info) {
       shape->set(object.cid.get(), &shape_t::vi_t::angle, object.angle + angle);
+      shape->set(object.cid.get(), &shape_t::vi_t::rotation_point, 0);
     },
       // iterate group
       [&](auto& model_info) {
@@ -333,19 +343,23 @@ public:
     );
   }
 
-  //void rotate_sprite(model_id_t model_id, uint32_t group_id, f32_t angle) {
-  //  iterate_cids(model_id,
-  //    group_id,
-  //    // iterate per object in group x
-  //    [&]<typename shape_t>(auto * shape, auto & object, auto & group_info) {
-  //    shape->set(object.cid.get(), &shape_t::vi_t::angle, object.angle + angle);
-  //  },
-  //    // iterate group
-  //    [&](auto& model_info) {
-  //    model_info.angle = angle;
-  //  }
-  //  );
-  //}
+  void rotate_sprite(model_id_t model_id, uint32_t group_id, f32_t angle) {
+    iterate_cids(model_id,
+      group_id,
+      // iterate per object in group x
+      [&]<typename shape_t>(auto * shape, auto & object, auto & group_info) {
+      fan::print(typeid(object).name());
+      if constexpr (std::is_same_v<std::remove_reference_t<decltype(object)>, loco_t::sprite_t*>) {
+        shape->set(object.cid.get(), &shape_t::vi_t::rotation_point, 0);
+        shape->set(object.cid.get(), &shape_t::vi_t::angle, object.angle + angle);
+      }
+    },
+      // iterate group
+      [&](auto& model_info) {
+      model_info.angle = angle;
+    }
+    );
+  }
 
   //void set_angle(model_id_t model_id, f32_t angle) {
   //  for (auto& it : m_model_list[model_id]->groups) {

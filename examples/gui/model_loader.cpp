@@ -121,11 +121,11 @@ int main(int argc, char** argv) {
 
   f32_t angle = 0;
 
-  m.set_size(model_id, 1.5);
+  m.set_size(model_id, 0.3);
 
   pile->loco.loop([&] {
     m.set_position(model_id, pile->loco.get_mouse_position(pile->viewport));
-    //m.set_angle(model_id, angle);
+    m.set_angle(model_id, angle);
     angle += pile->loco.get_delta_time() * 2;
   });
 

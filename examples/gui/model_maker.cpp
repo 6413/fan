@@ -62,7 +62,7 @@ int main(int argc, char** argv) {
     mm.load(argv[2]);
   }
   else{
-    mm.load("entity_ship.fmm");
+    mm.load("model.fmm");
   }
   
   pile->loco.set_vsync(false);
