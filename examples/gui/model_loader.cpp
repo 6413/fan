@@ -91,7 +91,7 @@ int main(int argc, char** argv) {
       switch (fan::get_hash(properties.id)) {
         
         case fan::get_hash("smoke_position"): {
-          loco_t::rectangle_t::properties_t rp;
+          typename loco_t::rectangle_t::properties_t rp;
           rp.color = fan::colors::red;
           rp.camera = &pile->camera;
           rp.viewport = &pile->viewport;
@@ -102,7 +102,7 @@ int main(int argc, char** argv) {
           break;
         }
         default: {
-          loco_t::sprite_t::properties_t p;
+          typename loco_t::sprite_t::properties_t p;
           p.camera = &pile->camera;
           p.viewport = &pile->viewport;
           p.position = properties.position;
