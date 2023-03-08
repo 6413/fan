@@ -7,44 +7,80 @@
 #define fan_debug 0
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
-#include <iostream>
-#include <array>
+#include <variant>
+#include <tuple>
 
-struct element_t {
-  int x;
+template <typename T = __empty_struct>
+struct type_t {
+  using t = T;
+  void open() {
+    fan::print("open", typeid(T).name());
+  }
+  void close() {
+    fan::print("close", typeid(T).name());
+  }
+  ~type_t() {
+    close();
+  }
 };
 
-template <typename T>
-struct get_type {
-  using type_t = T;
+struct a_t {
+  void f() {
+    fan::print("a_t");
+  }
+  int pad[30];
 };
 
 struct b_t {
-  struct g_t : fan::return_type_of_t<decltype([] {
-      struct {
-        auto f() {
-          return get_type<decltype(*this)>();
-        }
-      }v;
-      return get_type<decltype(v)>();
-    }) > {
+  void f() {
+    //fan::print("b_t");
+  }
+  int pad[60];
+};
+
+struct c_t {
+  int pad[15];
+};
+
+// a_t, b_t
+
+struct main_t {
+  struct a_t {
+
+  };
+  struct b_t {
+
   };
 };
 
-using type_t = b_t::g_t::type_t;
-
-struct a_t {
-  std::array<element_t, 5> x = [&] {
-    fan::print(&x[0]);
-    x[0].x = 5;
-    return x;
-  }();
-
-};
+#define instance(...) \
+fan::return_type_of_t<decltype([]{ \
+    class { \
+    public: \
+      __VA_ARGS__ \
+    }v; \
+    return v; \
+  })> 
 
 int main() {
-  a_t a;
-  fan::print(&a.x[0]);;
-  //b_t::get_type<>::type_t;
-  //b_t::
+  std::vector<
+    std::variant<
+    type_t<a_t>*,
+    type_t<b_t>*
+    >
+  > ptr;
+
+  ////x;
+
+  ////List<> list;
+
+
+  //ptr.push_back(new type_t < a_t>);
+  //ptr.push_back(new type_t < b_t>);
+  //std::visit([](auto o) {
+  //  o->open();
+  //}, ptr[0]);
+  //std::visit([](auto o) {
+  //  delete o;
+  //  }, ptr[0]);
 }

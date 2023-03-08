@@ -51,32 +51,27 @@ struct pile_t {
     theme = loco_t::themes::deep_red();
     theme.open(loco.get_context());
 
-    viewport2.open(loco.get_context());
-    viewport2.set(loco.get_context(), 0, window_size / 2, window_size);
-
     // requires manual open with compiled texture pack name
   }
 
   ~pile_t() {
-    stage_loader.close(&loco);
+
   }
 
   loco_t::theme_t theme;
   loco_t::camera_t camera;
   fan::graphics::viewport_t viewport;
-  fan::graphics::viewport_t viewport2;
-
-  #define stage_loader_path .
-  #include _FAN_PATH(graphics/gui/stage_maker/loader.h)
-  stage_loader_t stage_loader;
-
-  stage_loader_t::nr_t nrs[2];
 };
 
 pile_t* pile = new pile_t;
 
 #define loco_access &pile->loco
 #include _FAN_PATH(graphics/loco_define.h)
+
+#define loco_access &pile->loco
+#define stage_loader_path .
+#include _FAN_PATH(graphics/gui/stage_maker/loader.h)
+stage_loader_t stage_loader;
 
 int main(int argc, char** argv) {
   if (argc < 2) {
@@ -85,9 +80,9 @@ int main(int argc, char** argv) {
 
   loco_t::texturepack_t tp;
   tp.open_compiled(&pile->loco, argv[1]);
-  pile->stage_loader.open(&pile->loco, &tp);
+  stage_loader.open(&tp);
 
-	using sl = pile_t::stage_loader_t;
+	using sl = stage_loader_t;
   
 	sl::stage_open_properties_t op;
 	op.camera = &pile->camera;
@@ -96,7 +91,8 @@ int main(int argc, char** argv) {
 
 	//auto nr = pile->stage_loader.push_and_open_stage<sl::stage::stage0_t>(&pile->loco, op);
 
-  pile->stage_loader.push_and_open_stage<sl::stage::stage0_t>(&pile->loco, op);
+  auto it = stage_loader.push_and_open_stage<sl::stage::stage0_t>(op);
+  stage_loader.erase_stage(it);
   
 	pile->loco.loop([&] {
 

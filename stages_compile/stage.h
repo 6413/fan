@@ -32,4 +32,6 @@ struct stage {
 
     #include _PATH_QUOTE(stage_loader_path/stages_compile/stage0.h)
   };
+	
+	using variant_t = std::variant<stage0_t*>;
 };
