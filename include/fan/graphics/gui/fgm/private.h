@@ -87,6 +87,22 @@ void erase_cbs(const fan::string& file_name, const fan::string& stage_name, cons
     src = get_stage_maker()->stage_h_str.find(find_str, advance_position);
     get_stage_maker()->stage_h_str.erase(src, find_str.size());
   }
+
+  auto found = get_stage_maker()->stage_h_str.find("std::variant<");
+  if (found == fan::string::npos) {
+    fan::throw_error("corrupted stage.h");
+  }
+  found = get_stage_maker()->stage_h_str.find(stage_name);
+  if (found == fan::string::npos) {
+    fan::throw_error("corrupted stage.h");
+  }
+  if (get_stage_maker()->stage_h_str[found - 1] == ',') {
+    get_stage_maker()->stage_h_str.erase(found - 1, stage_name.size() + 1);
+  }
+  else {
+    get_stage_maker()->stage_h_str.erase(found, stage_name.size());
+  }
+
   get_stage_maker()->write_stage();
 }
 
