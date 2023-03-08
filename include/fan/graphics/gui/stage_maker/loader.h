@@ -26,7 +26,7 @@ public:
     uint32_t itToDepthMultiplier = 0x100;
   };
 
-  template <typename T = __empty_struct>
+  template <typename T>
   struct stage_common_t_t {
 
     using value_type_t = stage_common_t_t<T>;
@@ -61,8 +61,6 @@ public:
 
     stage_loader_t::nr_t parent_id;
   };
-
-  using stage_common_t = stage_common_t_t<>;
 
   #include _PATH_QUOTE(stage_loader_path/stages_compile/stage.h)
 
