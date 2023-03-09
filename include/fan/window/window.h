@@ -550,6 +550,7 @@ namespace fan {
 		// crossplatform variables
 
     bool m_keycode_action_map[0x100]{};
+    bool m_scancode_action_map[0x200]{};
 
     // for WM_CHAR
     uint16_t m_keymap[fan::last]{};
