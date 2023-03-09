@@ -63,10 +63,24 @@ struct model_list_t {
       model_loader_t loader;
       loco_t::texturepack_t::ti_t ti;
       loader.load(tp, path, [&](const auto& data) {
-        instances[data.id].type = data;
-        });
+        instances[std::make_pair(data.group_id, data.id)].type = data;
+      });
     }
-    std::unordered_map<std::string, instance_t> instances;
+
+    using key_t = std::pair<uint32_t, std::string>;
+
+    struct hash_fn {
+      std::size_t operator() (const key_t& key) const {
+        std::size_t h1 = std::hash<uint32_t>()(key.first);
+        std::size_t h2 = std::hash<std::string>()(key.second);
+
+        return h1 ^ h2;
+      }
+    };
+
+
+    // group_id id
+    std::unordered_map<key_t, instance_t, hash_fn> instances;
   };
 
   // compiled model
@@ -292,8 +306,24 @@ public:
     m_model_list[model_id].position.x = position.x;
     m_model_list[model_id].position.y = position.y;
   }
-  fan::vec3 get_position(model_id_t model_id) {
-    return m_model_list[model_id].position;
+
+  fan::vec3 get_offset(model_id_t model_id, uint32_t group_id, const fan::string& id) {
+    auto& instances = m_model_list[model_id].cm.instances;
+    auto found = instances.find(std::make_pair(group_id, id));
+    if (found == instances.end()) {
+      fan::throw_error("invalid group_id or id", group_id, id);
+    }
+
+    fan::vec3 offset;
+    std::visit([&](auto&& o) {
+      offset = o.position;
+    }, found->second.type);
+
+    return offset;
+  }
+
+  auto get_instance(model_id_t model_id) {
+    return m_model_list[model_id];
   }
 
   void set_size(model_id_t model_id, const fan::vec2& size) {

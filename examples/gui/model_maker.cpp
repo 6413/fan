@@ -55,7 +55,7 @@ int main(int argc, char** argv) {
   }
 
   pile = new pile_t;
-
+  
   model_maker_t mm;
   mm.open(argv[1]);
   if(argc == 3){
@@ -64,6 +64,8 @@ int main(int argc, char** argv) {
   else{
     mm.load("model.fmm");
   }
+  loco_t::sprite_t::properties_t p;
+
   
   pile->loco.set_vsync(false);
   pile->loco.get_window()->set_max_fps(165);
