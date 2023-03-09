@@ -20,6 +20,7 @@ void main() {
   salsa = max(salsa, 1);
   intensity /= salsa;
   intensity += 1.0 - smoothstep(radius / 3 -smooth_edge, radius, distance) * 2;
-  o_attachment2 *= intensity;
+  o_attachment2.rgb *= intensity;
+  o_attachment2.a = 1;
 }
 )"
