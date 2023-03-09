@@ -4,6 +4,7 @@ R"(
 #define get_instance() instance[gl_VertexID / 6]
 
 out vec4 text_color;
+out vec4 outline_color;
 out vec2 texture_coordinate;
 out float render_size;
 
@@ -50,7 +51,8 @@ void main() {
   gl_Position = projection * view * vec4(rectangle_vertices[id] * get_instance().size + get_instance().position.xy, get_instance().position.z, 1);
 
 	text_color = get_instance().color;
+  outline_color = get_instance().outline_color;
 	texture_coordinate = tc[id] * get_instance().tc_size + get_instance().tc_position;
-	render_size = dot(get_instance().size, vec2(1, 1));
+	render_size = get_instance().size.y;
 }
 )"

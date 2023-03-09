@@ -126,7 +126,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>Windows</SubSystem>
     </Link>
     <PostBuildEvent>
       <Command>xcopy /y "$(TargetPath)" "$(SolutionDir)/test"</Command>
@@ -173,7 +173,7 @@
       <AdditionalLibraryDirectories>C:\libs\fan\lib\opus;C:\libs\fan\lib\ogg;C:\libs\fan\lib\libwebp;C:\libs\fan\lib\shaderc;C:\libs\fan\lib\nvidia</AdditionalLibraryDirectories>
       <AdditionalDependencies>libwebp.lib;libwebp.a;libogg.lib;opus.lib;opusfile.lib;shaderc_combined_mt.lib;cuda.lib;cudart.lib;nvencodeapi.lib;nvcuvid.lib;</AdditionalDependencies>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>Windows</SubSystem>
     </Link>
     <PostBuildEvent>
       <Command>xcopy /y "$(TargetPath)" "$(SolutionDir)/test"</Command>
@@ -219,7 +219,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>Windows</SubSystem>
     </Link>
     <PostBuildEvent>
       <Command>xcopy /y "$(TargetPath)" "$(SolutionDir)/test"</Command>
@@ -267,7 +267,7 @@
       <AdditionalLibraryDirectories>C:\libs\fan\lib\opus;C:\libs\fan\lib\ogg;C:\libs\fan\lib\libwebp;C:\libs\fan\lib\shaderc;C:\libs\fan\lib\nvidia</AdditionalLibraryDirectories>
       <AdditionalDependencies>libwebp.lib;libwebp.a;libogg.lib;opus.lib;opusfile.lib;shaderc_combined_mt.lib;cuda.lib;cudart.lib;nvencodeapi.lib;nvcuvid.lib;</AdditionalDependencies>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>Windows</SubSystem>
     </Link>
     <PostBuildEvent>
       <Command>xcopy /y "$(TargetPath)" "$(SolutionDir)/test"</Command>
@@ -279,7 +279,7 @@
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="examples\gui\model_loader.cpp" />
+    <ClCompile Include="Source.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
   </ItemGroup>
   <ItemGroup>
