@@ -285,7 +285,7 @@ public:
   void set_position(model_id_t model_id, const fan::vec2& position) {
     iterate_cids(model_id, [&]<typename shape_t>(auto* shape, auto& object, auto& group_info) {
       if (object.position.z != m_model_list[model_id].position.z) {
-        shape->sb_set_depth(object.cid.get(), m_model_list[model_id].position.z);
+        shape->sb_set_depth(object.cid.get(), m_model_list[model_id].position.z + object.position.z);
       }
       shape->set(object.cid.get(), &shape_t::vi_t::position, fan::vec3(position, m_model_list[model_id].position.z) + object.position);
     });
