@@ -35,7 +35,10 @@
 #endif
 
 namespace fan {
-  struct audio_t {
-    #include "CommonTypes.h"
+  struct system_audio_t {
+    #include "SystemAudio/CommonTypes.h"
+  };
+  struct audio_t{
+    #include "audio/audio.h"
   };
 }

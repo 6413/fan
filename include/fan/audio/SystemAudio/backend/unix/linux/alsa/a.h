@@ -1,5 +1,5 @@
-audio_t *audio(){
-  return OFFSETLESS(this, audio_t, Out);
+system_audio_t *system_audio(){
+  return OFFSETLESS(this, system_audio_t, Out);
 }
 
 f32_t Volume;
@@ -8,13 +8,13 @@ TH_id_t thid;
 snd_pcm_t *snd_pcm;
 
 static void *_thread_func(void *p) {
-  auto audio = (audio_t *)p;
-  auto This = &audio->Out;
+  auto system_audio = (system_audio_t *)p;
+  auto This = &system_audio->Out;
 
   while(1){
     f32_t frames[_constants::CallFrameCount * _constants::ChannelAmount] = {0};
 
-    audio->Process._DataCallback(frames);
+    system_audio->Process._DataCallback(frames);
 
     for(uint32_t i = 0; i < _constants::CallFrameCount * _constants::ChannelAmount; i++){
       frames[i] *= This->Volume;
@@ -80,7 +80,7 @@ sint32_t Open(){
     fan::throw_error("a");
   }
 
-  this->thid = TH_open((void *)_thread_func, audio());
+  this->thid = TH_open((void *)_thread_func, system_audio());
 
   return 0;
 }
@@ -96,8 +96,10 @@ void Resume() {
 }
 
 void SetVolume(f32_t Volume) {
-  this->Volume = Volume;
+  __atomic_store(&this->Volume, &Volume, __ATOMIC_RELAXED);
 }
 f32_t GetVolume() {
-  return this->Volume;
+  f32_t r;
+  __atomic_store(&r, &this->Volume, __ATOMIC_RELAXED);
+  return r;
 }
