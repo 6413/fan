@@ -1034,6 +1034,9 @@ public:
       fan::opengl::GL_COLOR_ATTACHMENT0
     );
 
+    lp.internal_format = fan::opengl::GL_RGBA16F;
+    lp.format = fan::opengl::GL_RGBA;
+
     color_buffers[2].load(this, ii, lp);
 
     color_buffers[2].bind_texture(this);

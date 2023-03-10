@@ -204,7 +204,7 @@ void fan::window_t::set_max_fps(uintptr_t fps) {
 
 void fan::window_t::set_full_screen(const fan::vec2i& size)
 {
-  fan::window_t::set_size_mode(fan::window_t::mode::full_screen);
+  flag_values.m_size_mode = fan::window_t::mode::full_screen;
 
   fan::vec2i new_size;
 
@@ -231,8 +231,7 @@ void fan::window_t::set_full_screen(const fan::vec2i& size)
 
 void fan::window_t::set_windowed_full_screen(const fan::vec2i& size)
 {
-
-  fan::window_t::set_size_mode(fan::window_t::mode::borderless);
+  flag_values.m_size_mode = fan::window_t::mode::borderless;
 
   fan::vec2i new_size;
 
@@ -298,7 +297,7 @@ void fan::window_t::set_windowed_full_screen(const fan::vec2i& size)
 
 void fan::window_t::set_windowed(const fan::vec2i& size)
 {
-  fan::window_t::set_size_mode(fan::window_t::mode::windowed);
+  flag_values.m_size_mode = mode::windowed;
 
   fan::vec2i new_size;
   if (size == uninitialized) {
@@ -352,6 +351,24 @@ fan::window_t::mode fan::window_t::get_size_mode() const
 
 void fan::window_t::set_size_mode(const mode& mode)
 {
+  if (flag_values.m_size_mode == mode) {
+    return;
+  }
+
+  switch (mode) {
+    case mode::windowed: {
+      set_windowed();
+      break;
+    }
+    case mode::full_screen: {
+      set_full_screen();
+      break;
+    }
+    case mode::borderless: {
+      set_windowed_full_screen();
+      break;
+    }
+  }
   flag_values.m_size_mode = mode;
 }
 
@@ -857,6 +874,8 @@ LRESULT fan::window_t::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lp
       if (!fwindow) {
         break;
       }
+
+      std::memset(fwindow->m_scancode_action_map, 0, sizeof(fwindow->m_scancode_action_map));
 
       for (uint16_t i = fan::first; i != fan::last; i++) {
         auto kd = fan::window_input::convert_fan_to_scancode(i);
@@ -1446,6 +1465,7 @@ uint32_t fan::window_t::handle_events() {
         window->m_current_key = key;
 
         m_keycode_action_map[msg.wParam] = true;
+        m_scancode_action_map[cdb.scancode] = true;
 
         auto it = window->m_keys_callback.GetNodeFirst();
 
@@ -1659,6 +1679,7 @@ uint32_t fan::window_t::handle_events() {
         cbd.scancode = (msg.lParam >> 16) & 0x1ff;
 
         m_keycode_action_map[msg.wParam] = false;
+        m_scancode_action_map[cbd.scancode] = false;
 
         auto it = window->m_keys_callback.GetNodeFirst();
 
@@ -1939,6 +1960,7 @@ uint32_t fan::window_t::handle_events() {
           cdb.scancode = keycode_to_scancode_table[event.xkey.keycode];
         }
         window->m_keycode_action_map[event.xkey.keycode] = true;
+        window->m_scancode_action_map[cdb.scancode] = true;
 
         //fan::print(xcb_get_scancode_name(event.xkey.keycode));
 
@@ -2043,6 +2065,7 @@ uint32_t fan::window_t::handle_events() {
           cdb.scancode = keycode_to_scancode_table[event.xkey.keycode];
         }
         window->m_keycode_action_map[event.xkey.keycode] = false;
+        window->m_scancode_action_map[cdb.scancode] = false;
 
         auto it = window->m_keys_callback.GetNodeFirst();
 
@@ -2189,6 +2212,8 @@ uint32_t fan::window_t::handle_events() {
           break;
         }
 
+        std::memset(fwindow->m_scancode_action_map,  0, sizeof(fwindow->m_scancode_action_map));
+
         for (uint16_t i = 0; i < 255; ++i) {
           auto fkey = fan::window_input::convert_scancode_to_fan(keycode_to_scancode_table[i]);
           if (fwindow->m_keycode_action_map[i] == false) {
@@ -2252,7 +2277,7 @@ uint32_t fan::window_t::handle_events() {
 
 bool fan::window_t::key_pressed(uint16_t key) const
 {
-  return m_keycode_action_map[fan::window_input::convert_fan_to_scancode(key)];
+  return m_scancode_action_map[fan::window_input::convert_fan_to_scancode(key)];
 }
 
 #ifdef fan_platform_windows

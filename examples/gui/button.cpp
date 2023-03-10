@@ -51,8 +51,6 @@ struct pile_t {
 
 int main() {
 
-  fan::sys::set_utf8_cout();
-
   pile_t pile;
   pile.open();
 
@@ -82,19 +80,11 @@ int main() {
     return 0;
   };
 
-  loco_t::theme_t theme(pile.loco.get_context(), loco_t::themes::gray(0.5));
-  theme.mouse_move_cb = [&](const auto& d) -> int {
-    fan::print(pile.loco.button.get_text(d.cid));
-    return 0;
-  };
+  loco_t::theme_t theme(pile.loco.get_context(), loco_t::themes::deep_red());
   tp.theme = &theme;
   constexpr auto count = 10;
   fan::graphics::cid_t cids[count];
   pile.loco.button.push_back(&cids[0], tp);
-  tp.position.x += 0.3;
-  //tp.position.z += 2;
-  tp.text = "$€ fan $€";
-  pile.loco.button.push_back(&cids[1], tp);
   //pile.loco.get_context()->opengl.glPolygonMode(fan::opengl::GL_FRONT_AND_BACK, fan::opengl::GL_LINE);
   pile.loco.loop([&] {
 
