@@ -1,11 +1,12 @@
 TH_mutex_t PlayInfoListMutex;
 _PlayInfoList_t PlayInfoList;
+SoundPlayUnique_t PlayInfoListUnique = 0;
 
-uint32_t GroupAmount;
+uint32_t GroupAmount = 0;
 struct _Group_t {
   _PlayInfoList_NodeReference_t FirstReference;
   _PlayInfoList_NodeReference_t LastReference;
-}*GroupList;
+}*GroupList = nullptr;
 
 struct _Play_t {
   _PlayInfoList_NodeReference_t Reference;
@@ -22,9 +23,6 @@ _CacheList_t CacheList;
 sint32_t Open() {
   TH_mutex_init(&this->PlayInfoListMutex);
   this->PlayInfoList.Open();
-
-  this->GroupAmount = 0;
-  this->GroupList = 0;
 
   VEC_init(&this->PlayList, sizeof(_Play_t), A_resize);
 
@@ -307,7 +305,19 @@ void _DataCallback(f32_t *Output) {
           break;
         }
         case _MessageType_t::SoundStop: {
-          this->_RemoveFromPlayInfoList(Message->Data.SoundStop.PlayInfoReference, &Message->Data.SoundStop.Properties);
+          auto &SoundPlayID = Message->Data.SoundStop.SoundPlayID;
+          auto &nr = SoundPlayID.nr;
+          if(PlayInfoList.inri(nr) == true){
+            break;
+          }
+          if(PlayInfoList.IsNRSentienel(nr) == true){
+            break;
+          }
+          auto &node = PlayInfoList[nr];
+          if(node.unique != SoundPlayID.unique){
+            break;
+          }
+          this->_RemoveFromPlayInfoList(nr, &Message->Data.SoundStop.Properties);
           break;
         }
         case _MessageType_t::PauseGroup: {
