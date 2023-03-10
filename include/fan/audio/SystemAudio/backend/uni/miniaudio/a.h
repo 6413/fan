@@ -1,12 +1,12 @@
-audio_t *audio(){
-  return OFFSETLESS(this, audio_t, Out);
+system_audio_t *system_audio(){
+  return OFFSETLESS(this, system_audio_t, Out);
 }
 
 ma_context context;
 ma_device device;
 
 static void _miniaudio_DataCallback(ma_device *Device, void *Output, const void *Input, ma_uint32 FrameCount) {
-  audio_t *audio = (audio_t *)Device->pUserData;
+  auto system_audio = (system_audio_t *)Device->pUserData;
 
   #if fan_debug >= 0
     if (FrameCount != _constants::CallFrameCount) {
@@ -14,7 +14,7 @@ static void _miniaudio_DataCallback(ma_device *Device, void *Output, const void 
     }
   #endif
 
-  audio->Process._DataCallback((f32_t *)Output);
+  system_audio->Process._DataCallback((f32_t *)Output);
 }
 
 sint32_t Open() {
@@ -28,7 +28,7 @@ sint32_t Open() {
   config.playback.channels = _constants::ChannelAmount;
   config.sampleRate = _constants::opus_decode_sample_rate;
   config.dataCallback = _miniaudio_DataCallback;
-  config.pUserData = audio();
+  config.pUserData = system_audio();
   config.periodSizeInFrames = _constants::CallFrameCount;
 
   if ((r = ma_device_init(&this->context, &config, &this->device)) != MA_SUCCESS) {

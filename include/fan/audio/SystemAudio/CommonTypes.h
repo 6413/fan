@@ -175,9 +175,3 @@ void Close(){
   Out.Close();
   Process.Close();
 }
-
-#include "ProcessPublic.h"
-
-void SetVolume(f32_t Volume){
-  Out.SetVolume(Volume);
-}
