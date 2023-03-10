@@ -123,31 +123,32 @@ SoundPlayID_t SoundPlay(piece_t *piece, const PropertiesSoundPlay_t *Properties)
   else{
     TH_lock(&system_audio->Process.PlayInfoListMutex);
   }
-  SoundPlayID_t PlayInfoReference = system_audio->Process.PlayInfoList.NewNode();
-  auto PlayInfo = &system_audio->Process.PlayInfoList[PlayInfoReference];
+  auto pnr = system_audio->Process.PlayInfoList.NewNode();
+  auto PlayInfo = &system_audio->Process.PlayInfoList[pnr];
   PlayInfo->piece = piece;
   PlayInfo->GroupID = Properties->GroupID;
   PlayInfo->PlayID = (uint32_t)-1;
   PlayInfo->properties = *Properties;
   PlayInfo->offset = 0;
-  system_audio->Process.PlayInfoList.linkPrev(system_audio->Process.GroupList[Properties->GroupID].LastReference, PlayInfoReference);
+  PlayInfo->unique = system_audio->Process.PlayInfoListUnique++;
+  system_audio->Process.PlayInfoList.linkPrev(system_audio->Process.GroupList[Properties->GroupID].LastReference, pnr);
   TH_unlock(&system_audio->Process.PlayInfoListMutex);
 
   TH_lock(&system_audio->Process.MessageQueueListMutex);
   VEC_handle0(&system_audio->Process.MessageQueueList, 1);
   _Message_t* Message = &((_Message_t *)system_audio->Process.MessageQueueList.ptr)[system_audio->Process.MessageQueueList.Current - 1];
   Message->Type = _MessageType_t::SoundPlay;
-  Message->Data.SoundPlay.PlayInfoReference = PlayInfoReference;
+  Message->Data.SoundPlay.PlayInfoReference = pnr;
   TH_unlock(&system_audio->Process.MessageQueueListMutex);
 
-  return PlayInfoReference;
+  return {.nr = pnr, .unique = PlayInfo->unique};
 }
 void SoundStop(SoundPlayID_t &SoundPlayID, const PropertiesSoundStop_t *Properties) {
   TH_lock(&system_audio->Process.MessageQueueListMutex);
   VEC_handle0(&system_audio->Process.MessageQueueList, 1);
   _Message_t* Message = &((_Message_t *)system_audio->Process.MessageQueueList.ptr)[system_audio->Process.MessageQueueList.Current - 1];
   Message->Type = _MessageType_t::SoundStop;
-  Message->Data.SoundStop.PlayInfoReference = SoundPlayID;
+  Message->Data.SoundStop.SoundPlayID = SoundPlayID;
   Message->Data.SoundStop.Properties = *Properties;
   TH_unlock(&system_audio->Process.MessageQueueListMutex);
 }

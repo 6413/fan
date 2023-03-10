@@ -2,7 +2,7 @@ system_audio_t *system_audio(){
   return OFFSETLESS(this, system_audio_t, Out);
 }
 
-f32_t Volume;
+f32_t Volume = 1;
 
 TH_id_t thid;
 snd_pcm_t *snd_pcm;
@@ -41,8 +41,6 @@ static void *_thread_func(void *p) {
 }
 
 sint32_t Open(){
-  this->Volume = 1;
-
   int ierr = snd_pcm_open(&this->snd_pcm, "default", SND_PCM_STREAM_PLAYBACK, 0);
   if(ierr < 0){
     fan::throw_error("a");

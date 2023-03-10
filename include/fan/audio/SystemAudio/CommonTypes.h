@@ -100,9 +100,12 @@ struct PropertiesSoundStop_t {
   f32_t FadeOutTo = 0;
 };
 
+typedef uint32_t SoundPlayUnique_t;
+
 #define BLL_set_BaseLibrary 1
 #define BLL_set_AreWeInsideStruct 1
 #define BLL_set_StoreFormat 1
+#define BLL_set_IsNodeUnlinked 1
 #define BLL_set_StoreFormat1_ElementPerBlock 0x100
 #define BLL_set_prefix _PlayInfoList
 #define BLL_set_type_node uint32_t
@@ -111,10 +114,14 @@ struct PropertiesSoundStop_t {
   uint32_t GroupID; \
   uint32_t PlayID; \
   PropertiesSoundPlay_t properties; \
-  uint64_t offset;
+  uint64_t offset; \
+  SoundPlayUnique_t unique;
 #define BLL_set_ResizeListAfterClear 1
 #include _WITCH_PATH(BLL/BLL.h)
-typedef _PlayInfoList_NodeReference_t SoundPlayID_t;
+struct SoundPlayID_t{
+  _PlayInfoList_NodeReference_t nr;
+  SoundPlayUnique_t unique;
+};
 
 enum class _MessageType_t {
   SoundPlay,
@@ -130,7 +137,7 @@ struct _Message_t {
       _PlayInfoList_NodeReference_t PlayInfoReference;
     }SoundPlay;
     struct {
-      _PlayInfoList_NodeReference_t PlayInfoReference;
+      SoundPlayID_t SoundPlayID;
       PropertiesSoundStop_t Properties;
     }SoundStop;
     struct {
