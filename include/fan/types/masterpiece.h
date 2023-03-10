@@ -113,7 +113,7 @@ namespace fan {
     }
 
     template <uint32_t i, typename _Ty = masterpiece_reversed_t<T, Rest...>, uint32_t depth = count>
-    constexpr const auto get_value(_Ty* a = nullptr) const {
+    constexpr auto get_value(_Ty* a = nullptr) const {
       if constexpr (depth == count) {
         a = this;
       }
@@ -295,8 +295,8 @@ namespace fan {
 
 #define fan_masterpiece_make(...) \
   fan_MAP(fan_REFLECTION_FIELD, __VA_ARGS__) \
-  fan_REFLECTION_VISTOR_METHOD(__VA_ARGS__) //\
-  _PP_REFLECTION_VISTOR_METHOD(const, __VA_ARGS__)
+  fan_REFLECTION_VISTOR_METHOD(__VA_ARGS__)
+  //_PP_REFLECTION_VISTOR_METHOD(const, __VA_ARGS__)
 
 
 //#define OBJECT_NAME_METHOD(obj) \
