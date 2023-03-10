@@ -1960,7 +1960,8 @@ uint32_t fan::window_t::handle_events() {
           cdb.scancode = keycode_to_scancode_table[event.xkey.keycode];
         }
         window->m_keycode_action_map[event.xkey.keycode] = true;
-        window->m_scancode_action_map[cdb.scancode] = true;
+        
+        window->m_scancode_action_map[(cdb.scancode << 1) | ((!!(cdb.scancode >> 8)) << 8)] = true;
 
         //fan::print(xcb_get_scancode_name(event.xkey.keycode));
 
@@ -2065,7 +2066,7 @@ uint32_t fan::window_t::handle_events() {
           cdb.scancode = keycode_to_scancode_table[event.xkey.keycode];
         }
         window->m_keycode_action_map[event.xkey.keycode] = false;
-        window->m_scancode_action_map[cdb.scancode] = false;
+        window->m_scancode_action_map[(cdb.scancode << 1) | ((!!(cdb.scancode >> 8)) << 8)] = false;
 
         auto it = window->m_keys_callback.GetNodeFirst();
 
