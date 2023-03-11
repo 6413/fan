@@ -814,10 +814,11 @@ public:
 
   struct cid_nr_t : cid_list_NodeReference_t {
 
-    cid_nr_t();
+    cid_nr_t() { *(cid_list_NodeReference_t*)this = cid_list_gnric(); }
     ~cid_nr_t();
     using base_t = cid_list_NodeReference_t;
 
+    void init();
     bool is_invalid();
     void invalidate();
   };
@@ -830,7 +831,7 @@ public:
   struct id_t {
     loco_t::cid_nr_t cid;
     operator cid_t* ();
-    id_t() { cid.invalidate(); };
+    id_t() { };
     id_t(const id_t&);
     id_t(id_t&&);
     ~id_t();
@@ -1678,6 +1679,18 @@ public:
     const auto& data \
   );
 
+  #define fan_build_set_prefix(rt, name, prefix) \
+  make_global_function(set_##name,\
+    if constexpr (has_set_##name##_v<shape_t, loco_t::cid_t*, const rt&>) { \
+      (*shape)->prefix##name(cid, data); \
+    } \
+    else if constexpr (has_set_v<shape_t, loco_t::cid_t*, decltype(&comma_dummy_t::member_pointer), void*>) { \
+      (*shape)->prefix(cid, &shape_t::vi_t::name, data); \
+    }, \
+    cid_t* cid, \
+    const auto& data \
+  );
+
   fan_build_get(fan::vec3, position);
   fan_build_set(fan::vec3, position);
   fan_build_get(fan::vec2, size);
@@ -1685,6 +1698,18 @@ public:
   fan_build_get(fan::color, color);
   fan_build_set(fan::color, color);
 
+  fan_has_function_concept(sb_set_depth);
+
+  make_global_function(set_depth,
+    if constexpr (has_set_depth_v<shape_t, loco_t::cid_t*, f32_t>) { 
+      (*shape)->set_depth(cid, data); 
+    } 
+    else if constexpr (has_sb_set_depth_v<shape_t, loco_t::cid_t*, f32_t>) { 
+      (*shape)->sb_set_depth(cid, data); 
+    }, 
+    cid_t* cid, 
+    const auto& data 
+  );
 
   make_global_function(get_properties,
     if constexpr (has_get_properties_v<shape_t, loco_t::cid_t*>) {

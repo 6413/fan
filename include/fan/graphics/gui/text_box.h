@@ -252,8 +252,7 @@ struct text_box_t {
 
     loco->vfi.push_back(&ri.vfi_id, vfip);
 
-    cursor =
-      fan_init_struct(
+    cursor = fan_init_struct(
       loco_t::rectangle_t::properties_t,
       .position.z = tp.position.z,
       .size = cursor_properties::size,

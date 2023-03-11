@@ -1,13 +1,15 @@
 #pragma once
 
-loco_t::cid_nr_t::cid_nr_t() {
-  *(base_t*)this = (loco_access)->cid_list.NewNodeLast();
-}
 loco_t::cid_nr_t::~cid_nr_t() {
   invalidate();
 }
+
+void loco_t::cid_nr_t::init() {
+  *(base_t*)this = (loco_access)->cid_list.NewNodeLast();
+}
+
 bool loco_t::cid_nr_t::is_invalid() {
-  return (loco_access)->cid_list.inric(*this);
+  return cid_list_inric(*this);
 }
 
 void loco_t::cid_nr_t::invalidate() {
@@ -19,11 +21,13 @@ void loco_t::cid_nr_t::invalidate() {
 }
 
 loco_t::id_t::id_t(const auto& properties) {
+  cid.init();
   (loco_access)->push_shape(*this, properties);
 }
 
 inline loco_t::id_t::id_t(const id_t& id) {
   (loco_access)->shape_get_properties(*(id_t*)&id, [&](const auto& properties) {
+    cid.init();
     (loco_access)->sb_push_back(*this, properties);
   });
 }
@@ -42,6 +46,7 @@ loco_t::id_t::~id_t() {
 loco_t::id_t& loco_t::id_t::operator=(const id_t& id) {
   if (this != &id) {
     (loco_access)->shape_get_properties(*(id_t*)&id, [&](const auto& properties) {
+      cid.init();
       (loco_access)->sb_push_back(*this, properties);
     });
   }
@@ -73,6 +78,9 @@ fan_create_id_definition(fan::vec3, get_position) {
   return (loco_access)->shape_get_position(*this);
 }
 fan_create_id_definition(void, set_position, const fan::vec3& position) {
+  if (get_position().z != position.z) {
+    (loco_access)->shape_set_depth(*this, position.z);
+  }
   (loco_access)->shape_set_position(*this, position);
 }
 fan_create_id_definition(void, set_size, const fan::vec2& size) {

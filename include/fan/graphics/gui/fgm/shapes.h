@@ -113,6 +113,23 @@ struct button_t {
       return 0;
     };
     get_fgm()->properties_nrs.push_back(get_fgm()->text_box_menu.push_back(nr, p));
+    {
+      p.text = instance->id;
+      p.keyboard_cb = [this, instance, nr](const loco_t::keyboard_data_t& d) -> int {
+        if (d.key != fan::key_enter) {
+          return 0;
+        }
+        if (d.keyboard_state != fan::keyboard_state::press) {
+          return 0;
+        }
+
+        auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[get_fgm()->properties_nrs[3]];
+        instance->id = pile->loco.text_box.get_text(&it.cid);
+
+        return 0;
+      };
+      get_fgm()->properties_nrs.push_back(get_fgm()->text_box_menu.push_back(nr, p));
+    }
   }
   void push_back(properties_t& p) {
     shape_builder_push_back();

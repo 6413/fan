@@ -12,10 +12,10 @@ struct stage {
     typedef int(stage0_t::* button_text_cb_table_t)(const loco_t::text_data_t& d);
 
     //button_src
-    button_mouse_button_cb_table_t button_mouse_button_cb_table[1] = {&stage0_t::button0_mouse_button_cb,};
-    button_mouse_move_cb_table_t button_mouse_move_cb_table[1] = {&stage0_t::button0_mouse_move_cb,};
-    button_keyboard_cb_table_t button_keyboard_cb_table[1] = {&stage0_t::button0_keyboard_cb,};
-    button_text_cb_table_t button_text_cb_table[1] = {&stage0_t::button0_text_cb,};
+    button_mouse_button_cb_table_t button_mouse_button_cb_table[2] = {&stage0_t::buttonhealth_mouse_button_cb,&stage0_t::button0_mouse_button_cb,};
+    button_mouse_move_cb_table_t button_mouse_move_cb_table[2] = {&stage0_t::buttonhealth_mouse_move_cb,&stage0_t::button0_mouse_move_cb,};
+    button_keyboard_cb_table_t button_keyboard_cb_table[2] = {&stage0_t::buttonhealth_keyboard_cb,&stage0_t::button0_keyboard_cb,};
+    button_text_cb_table_t button_text_cb_table[2] = {&stage0_t::buttonhealth_text_cb,&stage0_t::button0_text_cb,};
     //button_dst
   
     typedef int(stage0_t::* hitbox_mouse_button_cb_table_t)(const loco_t::mouse_button_data_t& d);
