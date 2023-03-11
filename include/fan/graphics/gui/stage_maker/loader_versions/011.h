@@ -2,9 +2,10 @@ while (off < f.size()) {
   auto shape_type = read_data<loco_t::shape_type_t::_t>(f, off);
   uint32_t instance_count = read_data<uint32_t>(f, off);
 
-  stage->cid_list.resize(instance_count);
+  uint32_t src = stage->cid_list.size();
+  stage->cid_list.resize(src + instance_count);
 
-  for (uint32_t i = 0; i < instance_count; ++i) {
+  for (uint32_t i = src; i < src + instance_count; ++i) {
     switch (shape_type) {
       case loco_t::shape_type_t::button: {
         stage_maker_shape_format::shape_button_t data;

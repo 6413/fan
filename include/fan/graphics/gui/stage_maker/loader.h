@@ -141,10 +141,10 @@ public:
 
 		stage_list[stage->stage_id].stage = (stage_t*)stage;
     stage_list[stage->stage_id].update_nr = (loco_access)->m_update_callback.NewNodeLast();
-    (loco_access)->m_update_callback[stage_list[stage->stage_id].update_nr] = [stage](loco_t* loco) {
+    (loco_access)->m_update_callback[stage_list[stage->stage_id].update_nr] = [&, stage](loco_t* loco) {
       stage->update(*(loco_access));
     };
-    stage_list[stage->stage_id].resize_nr = (loco_access)->get_window()->add_resize_callback([stage](const auto&) {
+    stage_list[stage->stage_id].resize_nr = (loco_access)->get_window()->add_resize_callback([&, stage](const auto&) {
       stage->window_resize_callback(*(loco_access));
     });
     stage->open(*(loco_access));
@@ -162,7 +162,7 @@ public:
     }, stage_list[id].stage);
 	}
 
-  loco_t::texturepack_t* texturepack;
+  loco_t::texturepack_t* texturepack = 0;
 };
 
 #undef stage_loader_path
