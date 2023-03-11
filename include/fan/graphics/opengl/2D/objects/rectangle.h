@@ -1,6 +1,6 @@
 struct rectangle_t {
 
-  static constexpr typename loco_t::shape_type_t::_t shape_type = 6;
+  static constexpr typename loco_t::shape_type_t::_t shape_type = loco_t::shape_type_t::rectangle;
 
   struct vi_t {
     loco_rectangle_vi_t

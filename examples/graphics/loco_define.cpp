@@ -17,8 +17,6 @@
 
 //#define loco_post_process
 
-#define loco_framebuffer
-
 
 #define loco_no_inline
 

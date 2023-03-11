@@ -252,15 +252,16 @@ struct text_box_t {
 
     loco->vfi.push_back(&ri.vfi_id, vfip);
 
-    loco_t::rectangle_t::properties_t rp;
-    rp.position.z = tp.position.z;
-    rp.size = cursor_properties::size;
-    rp.size.y = p.font_size;
-    rp.camera = p.camera;
-    rp.viewport = p.viewport;
-    rp.color = fan::colors::transparent;
-    invalidate_cursor();
-    loco->rectangle.push_back(&cursor_id, rp);
+    cursor =
+      fan_init_struct(
+      loco_t::rectangle_t::properties_t,
+      .position.z = tp.position.z,
+      .size = cursor_properties::size,
+      .size.y = p.font_size,
+      .camera = p.camera,
+      .viewport = p.viewport,
+      .color = fan::colors::transparent
+    );
   }
   void erase(fan::graphics::cid_t* cid) {
     loco_t* loco = get_loco();
@@ -278,7 +279,7 @@ struct text_box_t {
     wed_t::CursorInformation_t ci;
     auto& fed = ri.fed;
     fed.m_wed.GetCursorInformation(fed.m_cr, &ci);
-    fan::vec3 p = loco->rectangle.get(&cursor_id, &loco_t::rectangle_t::vi_t::position);
+    fan::vec3 p = cursor.get_position();
     switch (ci.type) {
       case wed_t::CursorType::FreeStyle: {
         uint32_t line_index = fed.m_wed.GetLineIndexByLineReference(ci.FreeStyle.LineReference);
@@ -295,7 +296,7 @@ struct text_box_t {
         break;
       }
     }
-    loco->rectangle.set(&cursor_id, &loco_t::rectangle_t::vi_t::position, p);
+    cursor.set_position(p);
     loco->ev_timer.stop(&timer);
     render_cursor = true;
     fan::ev_timer_t::cb_data_t d;
@@ -326,20 +327,12 @@ struct text_box_t {
   #include _FAN_PATH(graphics/shape_builder.h)
 
   void invalidate_cursor() {
-    auto* cursor_cid = (loco_t::rectangle_t::cid_t*)&cursor_id;
-    if (!(cursor_cid->bm_id.NRI != 0 || cursor_cid->block_id.NRI != 0 || cursor_cid->instance_id != 0)) {
-      return;
-    }
-    get_loco()->rectangle.erase(&cursor_id);
+    cursor.~id_t();
     get_loco()->ev_timer.stop(&timer);
   }
 
   text_box_t() {
     sb_open();
-    auto* cursor_cid = (loco_t::rectangle_t::cid_t*)&cursor_id;
-    cursor_cid->bm_id.NRI = 0;
-    cursor_cid->block_id.NRI = 0;
-    cursor_cid->instance_id = 0;
   }
   ~text_box_t() {
     // check erase, need to somehow iterate block
@@ -496,15 +489,15 @@ struct text_box_t {
 
   fan::ev_timer_t::timer_t timer = fan::function_t<void(const fan::ev_timer_t::cb_data_t&)>([this](const fan::ev_timer_t::cb_data_t& c) {
     if (!render_cursor) {
-      get_loco()->rectangle.set(&cursor_id, &loco_t::rectangle_t::vi_t::color, fan::colors::transparent);
+      cursor.set_color(fan::colors::transparent);
     }
     else {
-      get_loco()->rectangle.set(&cursor_id, &loco_t::rectangle_t::vi_t::color, cursor_properties::color);
+      cursor.set_color(cursor_properties::color);
     }
     render_cursor = !render_cursor;
     c.ev_timer->start(c.timer, cursor_properties::speed);
   });
-  fan::graphics::cid_t cursor_id;
+  loco_t::id_t cursor;
   bool render_cursor = true;
 
   void set_focus_mouse(fan::graphics::cid_t* cid) {
