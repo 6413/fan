@@ -63,7 +63,14 @@ namespace fan {
       uint16_t bm_id;
       uint16_t block_id;
       uint8_t instance_id;
-      uint8_t shape_type;
+      uint8_t shape_type = -1;
+
+      bool is_invalid() const {
+        return shape_type == (decltype(shape_type))-1;
+      }
+      void invalidate() {
+        shape_type = -1;
+      }
     };
 
   }

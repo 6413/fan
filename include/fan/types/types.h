@@ -562,6 +562,24 @@ namespace fan {
 			fan::print(c.elapsed());
 		}
 	}
+
+  // unstable
+  template <typename, typename, typename = void>
+  struct has_function : std::false_type {};
+  
+  // unstable
+  template <typename C, typename Ret, typename... Args>
+  struct has_function<C, Ret(Args...), std::void_t<decltype(std::declval<C>().operator()(std::declval<Args>()...))>> : std::is_convertible<decltype(std::declval<C>().operator()(std::declval<Args>()...)), Ret>::type {};
+
+  #define fan_has_function_concept(func_name) \
+   template<typename U, typename... Args> \
+    struct CONCAT(has_,func_name) { \
+      static constexpr bool value = requires(U u, Args... args) { \
+        u.func_name(args...); \
+      }; \
+    }; \
+    template <typename U, typename... Args> \
+    static constexpr bool CONCAT(CONCAT(has_,func_name), _v) = CONCAT(has_, func_name)<U, Args...>::value;
 }
 
 

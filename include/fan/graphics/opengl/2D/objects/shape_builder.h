@@ -162,30 +162,14 @@ public:
     cid->bm_id = ((shape_bm_NodeReference_t*)&nr)->NRI;
     cid->block_id = bmn->data.last_block.NRI;
     cid->instance_id = instance_id;
+    cid->shape_type = -1;
 
-    // cid->shape_type = -1;
-    /* #if defined(loco_line)
-     if constexpr (std::is_same<std::remove_pointer_t<decltype(this)>, loco_t::line_t>::value) {
-       cid->shape_type = loco_t::shape_type_t::line;
-     }
-     #elif defined(loco_rectangle)
-     if constexpr (std::is_same<std::remove_pointer_t<decltype(this)>, loco_t::rectangle_t>::value) {
-       cid->shape_type = loco_t::shape_type_t::rectangle;
-     }
-     #elif defined(loco_sprite)
-     if constexpr (std::is_same<std::remove_pointer_t<decltype(this)>, loco_t::sprite_t>::value) {
-       cid->shape_type = loco_t::shape_type_t::sprite;
-     }
-     #elif defined(loco_button)
-     if constexpr (std::is_same<std::remove_pointer_t<decltype(this)>, loco_t::button_t>::value) {
-       cid->shape_type = loco_t::shape_type_t::button;
-     }
-     #elif defined(loco_text)
-     if constexpr (std::is_same<std::remove_pointer_t<decltype(this)>, loco_t::text_t>::value) {
-       cid->shape_type = loco_t::shape_type_t::text;
-     }
-     #endif*/
-
+    loco->types.iterate([&]<typename T>(auto shape_index, T shape) {
+      using shape_t = std::remove_pointer_t<std::remove_pointer_t<T>>;
+      if constexpr (std::is_same_v<shape_t, std::remove_reference_t<decltype(*this)>>) {
+        cid->shape_type = shape_t::shape_type;
+      }
+    });
 
     block->p[instance_id] = *(ri_t*)&p;
     return block;
@@ -225,6 +209,7 @@ public:
       cid->bm_id = 0;
       cid->block_id = 0;
       cid->instance_id = 0;
+      cid->instance_id = -1;
       return;
     }
 
@@ -446,6 +431,8 @@ public:
     loco_t* loco = get_loco();
     auto block = sb_get_block(cid);
     properties_t p;
+    auto& something = bm_list[*(shape_bm_NodeReference_t*)&cid->bm_id];
+    *(bm_properties_t*)&p = something.instance_properties;
     *(vi_t*)&p = *block->uniform_buffer.get_instance(loco->get_context(), cid->instance_id);
     *(ri_t*)&p = block->p[cid->instance_id];
     return p;

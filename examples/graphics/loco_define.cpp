@@ -167,8 +167,56 @@ int main() {
 
   pile->loco.set_vsync(false);
 
-  pile->loco.loop([&] {
+  pile->loco.get_shape<loco_t::rectangle_t>();
 
+  //pile->loco.push_shape(0, loco_t::rectangle_t::properties_t{});
+  //pile->loco.erase_shape(rectangle);
+  pile->loco.shape_set_position(rectangle, 0.5);
+  //pile->loco.set_position(button, 0.5);
+
+ /* loco_t::cid_t cc;
+  pile->loco.rectangle.push_back(&cc, fan_init_struct(
+    loco_t::rectangle_t::properties_t,
+    .position = fan::vec2(0, 0),
+    .size = 0.1,
+    .color = fan::colors::red,
+    .camera = &pile->camera,
+    .viewport = &pile->viewport
+  ));
+
+  pile->loco.rectangle.erase(&cc);*/
+
+
+  loco_t::id_t r2(
+    fan_init_struct(
+      loco_t::rectangle_t::properties_t,
+      .position = fan::vec2(0, 0),
+      .size = 0.1,
+      .color = fan::colors::red,
+      .camera = &pile->camera,
+      .viewport = &pile->viewport
+    )
+  );
+
+  r2 = fan_init_struct(
+    loco_t::sprite_t::properties_t,
+    .position = fan::vec2(0, 0),
+    .size = 0.2,
+    .image = &image,
+    .camera = &pile->camera,
+    .viewport = &pile->viewport
+  );
+
+
+  loco_t::id_t r3 = r2;
+  
+  //r3.set_position(0);
+
+  r2.erase();
+
+  pile->loco.loop([&] {
+    //r3.set_position(pile->loco.get_mouse_position(pile->viewport));
+    //fan::print(r3.get_position());
     pile->loco.get_fps();
   });
 
