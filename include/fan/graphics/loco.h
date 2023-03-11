@@ -797,6 +797,59 @@ public:
   fan::graphics::core::memory_write_queue_t m_write_queue;
   #endif
 
+  #if defined (loco_no_inline)
+
+  protected:
+    #define BLL_set_CPP_ConstructDestruct
+    #define BLL_set_CPP_Node_ConstructDestruct
+    #define BLL_set_AreWeInsideStruct 1
+    #define BLL_set_BaseLibrary 1
+    #define BLL_set_prefix cid_list
+    #define BLL_set_type_node uint32_t
+    #define BLL_set_NodeData fan::graphics::cid_t cid;
+    #define BLL_set_Link 1
+    #define BLL_set_StoreFormat 1
+    #include _FAN_PATH(BLL/BLL.h)
+public:
+
+  struct cid_nr_t : cid_list_NodeReference_t {
+
+    cid_nr_t();
+    ~cid_nr_t();
+    using base_t = cid_list_NodeReference_t;
+
+    bool is_invalid();
+    void invalidate();
+  };
+
+  cid_list_t cid_list;
+
+  #define fan_create_id_declaration(rt, name, ...) rt name(__VA_ARGS__)
+  #define fan_create_id_definition(rt, name, ...) rt loco_t::id_t::name(__VA_ARGS__)
+
+  struct id_t {
+    loco_t::cid_nr_t cid;
+    operator cid_t* ();
+    id_t() { cid.invalidate(); };
+    id_t(const id_t&);
+    id_t(id_t&&);
+    ~id_t();
+    id_t(const auto& properties);
+
+    loco_t::id_t& operator=(const id_t& id);
+    loco_t::id_t& operator=(id_t&& id);
+
+    void erase();
+
+    fan_create_id_declaration(fan::vec3, get_position);
+    fan_create_id_declaration(void, set_position, const fan::vec3&);
+    fan_create_id_declaration(fan::vec2, get_size);
+    fan_create_id_declaration(void, set_size, const fan::vec2&);
+    fan_create_id_declaration(fan::color, get_color);
+    fan_create_id_declaration(void, set_color, const fan::color&);
+  };
+  #endif
+
   #if defined(loco_compute_shader)
     #include _FAN_PATH(graphics/vulkan/compute_shader.h)
   #endif
@@ -1213,6 +1266,9 @@ public:
     #if defined(loco_button)
       *types.get_value<button_t*>() = &button;
     #endif
+    #if defined(loco_text)
+      *types.get_value<text_t*>() = &text;
+    #endif
   }
 
   #if defined(loco_vfi)
@@ -1547,6 +1603,9 @@ public:
     #if defined(loco_button)
     ,button_t*
     #endif
+    #if defined(loco_text)
+    , text_t*
+    #endif
   > types;
 
   struct lighting_t {
@@ -1554,155 +1613,11 @@ public:
     fan::vec3 ambient = fan::vec3(1, 1, 1);
   }lighting;
 
-  #if defined(loco_no_inline)
-
-  protected:
-    #define BLL_set_CPP_ConstructDestruct
-    #define BLL_set_CPP_Node_ConstructDestruct
-    #define BLL_set_AreWeInsideStruct 1
-    #define BLL_set_BaseLibrary 1
-    #define BLL_set_prefix cid_list
-    #define BLL_set_type_node uint32_t
-    #define BLL_set_NodeData fan::graphics::cid_t cid;
-    #define BLL_set_Link 1
-    #define BLL_set_StoreFormat 1
-    #include _FAN_PATH(BLL/BLL.h)
-public:
-
-  struct cid_nr_t : cid_list_NodeReference_t {
-
-    cid_nr_t();
-    ~cid_nr_t();
-    using base_t = cid_list_NodeReference_t;
-
-    bool is_invalid();
-    void invalidate();
-  };
-
-  cid_list_t cid_list;
-
-  #endif
-
   #define make_key_value(type, name) \
       type& name = *key.get_value<decltype(key)::get_index_with_type<type>()>();
 
-  #if defined (loco_no_inline)
-
-  #define make_shape_id(name) \
-    struct name ## _id_t { \
- \
- \
-      struct properties_t { \
-        loco_ ## name ## _vi_t \
-        loco_ ## name ## _bm_properties_t \
-        loco_ ## name ## _ri_t \
-        loco_ ## name ## _properties_t \
-      }; \
- \
- \
-      fan::graphics::cid_t cid; \
- \
- \
-      operator fan::graphics::cid_t* () { \
-        return &cid; \
-      } \
- \
-      name ## _id_t() = default; \
-      name ## _id_t(const properties_t&); \
-      name ## _id_t& operator[](const properties_t&); \
-      ~name ## _id_t(); \
-    };
-
-    #if defined (loco_rectangle)
-      make_shape_id(rectangle);
-    #endif
-
-    #if defined(loco_sprite)
-      struct sprite_id_t {
-
-        struct properties_t {
-          loco_sprite_vi_t
-          loco_sprite_bm_properties_t
-          loco_sprite_ri_t 
-          loco_sprite_properties_t
-
-          loco_t::texturepack_t::ti_t* ti = 0;
-        };
-        fan::graphics::cid_t cid;
-        operator fan::graphics::cid_t* () { 
-          return &cid;
-        }
-
-        sprite_id_t() = default;
-        sprite_id_t(const properties_t& p);
-        sprite_id_t& operator[](const properties_t&);
-        ~sprite_id_t();
-      };
-    #endif
-
-    #if defined(loco_letter)
-      make_shape_id(letter);
-    #endif
-
-    #if defined(loco_text)
-      make_shape_id(text);
-    #endif
-
-    #if defined(loco_button)
-      make_shape_id(button);
-    #endif
-
-    #if defined(loco_text_box)
-      make_shape_id(text_box);
-    #endif
-    
-    #if defined(loco_light)
-      make_shape_id(light);
-    #endif
-
-    struct vfi_id_t {
-      using properties_t = loco_t::vfi_t::properties_t;
-      operator loco_t::vfi_t::shape_id_t* () {
-        return &cid;
-      }
-      vfi_id_t() = default;
-      vfi_id_t(const properties_t&);
-      vfi_id_t& operator[](const properties_t&);
-      ~vfi_id_t();
-
-      loco_t::vfi_t::shape_id_t cid;
-    };
-
-    #endif
-  
-  #if defined (loco_no_inline)
-
-    #define fan_create_id_declaration(rt, name, ...) rt name(__VA_ARGS__)
-    #define fan_create_id_definition(rt, name, ...) rt loco_t::id_t::name(__VA_ARGS__)
-
-  struct id_t {
-    loco_t::cid_nr_t cid;
-    operator cid_t* ();
-    id_t() { cid.invalidate(); };
-    id_t(const id_t&);
-    id_t(id_t&&);
-    ~id_t();
-    id_t(const auto& properties);
-
-    loco_t::id_t& operator=(const id_t& id);
-    loco_t::id_t& operator=(id_t&& id);
-
-    void erase();
-
-    fan_create_id_declaration(fan::vec3, get_position);
-    fan_create_id_declaration(void, set_position, const fan::vec3&);
-    fan_create_id_declaration(fan::vec2, get_size);
-    fan_create_id_declaration(void, set_size, const fan::vec2&);
-  };
-  #endif
-
   template <typename T>
-  void push_shape(cid_t* cid, const T& properties) {
+  void push_shape(cid_t* cid, T properties) {
     (*types.get_value<T::type_t*>())->push_back(cid, properties);
   }
 
@@ -1767,7 +1682,9 @@ public:
   fan_build_set(fan::vec3, position);
   fan_build_get(fan::vec2, size);
   fan_build_set(fan::vec2, size);
-  
+  fan_build_get(fan::color, color);
+  fan_build_set(fan::color, color);
+
 
   make_global_function(get_properties,
     if constexpr (has_get_properties_v<shape_t, loco_t::cid_t*>) {

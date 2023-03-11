@@ -2,8 +2,9 @@ while (off < f.size()) {
   auto shape_type = read_data<loco_t::shape_type_t::_t>(f, off);
   uint32_t instance_count = read_data<uint32_t>(f, off);
 
+  stage->cid_list.resize(instance_count);
+
   for (uint32_t i = 0; i < instance_count; ++i) {
-    auto nr = stage->cid_list.NewNodeLast();
     switch (shape_type) {
       case loco_t::shape_type_t::button: {
         stage_maker_shape_format::shape_button_t data;
@@ -22,8 +23,8 @@ while (off < f.size()) {
         bp.mouse_button_cb = [stage, i](const loco_t::mouse_button_data_t& d) {
           return (stage->*(stage->button_mouse_button_cb_table[i]))(d);
         };
-        (loco_access)->button.push_back(&stage->cid_list[nr].cid, bp);
-        cid_map[std::make_pair(stage, "button_" + data.id)] = &stage->cid_list[nr].cid;
+        stage->cid_list[i] = bp;
+        cid_map[std::make_pair(stage, "button_" + data.id)] = &stage->cid_list[i];
         break;
       }
       case loco_t::shape_type_t::sprite: {
@@ -48,8 +49,8 @@ while (off < f.size()) {
         }
         sp.camera = op.camera;
         sp.viewport = op.viewport;
-        (loco_access)->sprite.push_back(&stage->cid_list[nr].cid, sp);
-        cid_map[std::make_pair(stage, "sprite_" + data.id)] = &stage->cid_list[nr].cid;
+        stage->cid_list[i] = sp;
+        cid_map[std::make_pair(stage, "sprite_" + data.id)] = &stage->cid_list[i];
         break;
       }
       case loco_t::shape_type_t::text: {
@@ -65,9 +66,9 @@ while (off < f.size()) {
         p.position.z += stage->it * op.itToDepthMultiplier;
         p.font_size = data.size;
         p.text = data.text;
-        (loco_access)->text.push_back(&stage->cid_list[nr].cid, p);
+        stage->cid_list[i] = p;
 
-        cid_map[std::make_pair(stage, "text_" + data.id)] = &stage->cid_list[nr].cid;
+        cid_map[std::make_pair(stage, "text_" + data.id)] = &stage->cid_list[i];
         break;
       }
       case loco_t::shape_type_t::hitbox: {
@@ -105,9 +106,9 @@ while (off < f.size()) {
         };
         vfip.ignore_init_move = true;
 
-        (loco_access)->push_back_input_hitbox((loco_t::vfi_t::shape_id_t*)&stage->cid_list[nr].cid, vfip);
+        (loco_access)->push_back_input_hitbox((loco_t::vfi_t::shape_id_t*)&stage->cid_list[i], vfip);
 
-        cid_map[std::make_pair(stage, "hitbox_" + data.id)] = &stage->cid_list[nr].cid;
+        cid_map[std::make_pair(stage, "hitbox_" + data.id)] = &stage->cid_list[i];
 
         break;
       }
@@ -116,6 +117,5 @@ while (off < f.size()) {
         break;
       }
     }
-    stage->cid_list[nr].type = shape_type;
   }
 }

@@ -1,6 +1,6 @@
 struct button_t {
 
-  static constexpr typename loco_t::shape_type_t::_t shape_type = 0;
+  static constexpr typename loco_t::shape_type_t::_t shape_type = loco_t::shape_type_t::button;
 
   static constexpr f32_t released = 1.0;
   static constexpr f32_t hovered = 1.2;

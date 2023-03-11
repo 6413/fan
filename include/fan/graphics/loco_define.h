@@ -18,70 +18,6 @@ void loco_t::cid_nr_t::invalidate() {
   *(base_t*)this = (loco_access)->cid_list.gnric();
 }
 
-#define make_shape_id_define(name) \
-  loco_t::name ## _id_t::name ## _id_t(const properties_t& p) { \
-    (loco_access)->name.push_back(*this, *(loco_t::name ## _t::properties_t*)&p); \
-  } \
-   \
-  loco_t::name ## _id_t& loco_t::name ## _id_t::operator[](const properties_t& p) { \
-    (loco_access)->name.push_back(*this, *(loco_t::name ## _t::properties_t*)&p); \
-    return *this; \
-  } \
-   \
-  loco_t::name ## _id_t::~name##_id_t() { \
-    (loco_access)->name.erase(*this); \
-  }
-
-#if defined(loco_rectangle)
-  make_shape_id_define(rectangle);
-#endif
-
-#if defined(loco_sprite)
-  loco_t::sprite_id_t::sprite_id_t(const properties_t& p) {
-    auto& p2 = *(loco_t::sprite_t::properties_t*)&p;
-    if (p.ti) {
-      p2.load_tp(p.ti);
-    }
-    (loco_access)->sprite.push_back(*this, p2);
-  }
-  loco_t::sprite_id_t& loco_t::sprite_id_t::operator[](const properties_t& p) {
-    auto& p2 = *(loco_t::sprite_t::properties_t*)&p;
-    if (p.ti) {
-      p2.load_tp(p.ti);
-    }
-    (loco_access)->sprite.push_back(*this, p2);
-    return *this;
-  }
-  loco_t::sprite_id_t::~sprite_id_t() {
-    (loco_access)->sprite.erase(*this);
-  }
-
-#endif
-
-#if defined(loco_button)
-  make_shape_id_define(button);
-#endif
-
-#if defined(loco_letter)
-  make_shape_id_define(letter);
-#endif
-
-#if defined(loco_text)
-  make_shape_id_define(text);
-#endif
-
-#if defined(loco_text_box)
-  make_shape_id_define(text_box);
-#endif
-
-#if defined(loco_vfi)
-  make_shape_id_define(vfi);
-#endif
-
-#if defined(loco_light)
-  make_shape_id_define(light);
-#endif
-
 loco_t::id_t::id_t(const auto& properties) {
   (loco_access)->push_shape(*this, properties);
 }
@@ -146,6 +82,12 @@ fan_create_id_definition(fan::vec2, get_size) {
   return (loco_access)->shape_get_size(*this);
 }
 
+fan_create_id_definition(void, set_color, const fan::color& size) {
+  (loco_access)->shape_set_color(*this, size);
+}
+fan_create_id_definition(fan::color, get_color) {
+  return (loco_access)->shape_get_color(*this);
+}
 
 #undef loco_access
 

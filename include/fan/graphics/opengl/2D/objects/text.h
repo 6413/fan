@@ -1,10 +1,14 @@
 struct text_renderer_t {
 
+  static constexpr typename loco_t::shape_type_t::_t shape_type = loco_t::shape_type_t::text;
+
   //using ri_t = loco_t::letter_t::ri_t;
   using vi_t = loco_t::letter_t::vi_t;
   using ri_t = loco_t::letter_t::ri_t;
 
   struct properties_t : vi_t, ri_t{
+    using type_t = text_renderer_t;
+
     loco_text_properties_t
   };
 

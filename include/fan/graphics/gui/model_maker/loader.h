@@ -208,7 +208,7 @@ public:
   void erase(model_id_t id, uint32_t group_id) {
     auto& cids = m_model_list[id].groups[group_id].cids;
     for (auto& i : cids) {
-      loco_var.erase_shape(i.cid.get());
+      loco_var.shape_erase(i.cid.get());
     }
     m_model_list[id].groups.erase(group_id);
   }
@@ -218,7 +218,7 @@ public:
     for (auto it = groups.begin(); it != groups.end(); ) {
       auto& cids = it->second.cids;
       for (auto& i : cids) {
-        loco_var.erase_shape(i.cid.get());
+        loco_var.shape_erase(i.cid.get());
       }
       it = groups.erase(it);
     }

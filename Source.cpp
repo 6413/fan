@@ -16,6 +16,10 @@
 
 #include _FAN_PATH(types/masterpiece.h)
 
+struct a_t : decltype(std::function{ std::declval<decltype([] {struct { int x; }v; return v; }) >() })::result_type {
+
+};
+
 int main() {
 
   fan::masterpiece_t<int, double> m;
