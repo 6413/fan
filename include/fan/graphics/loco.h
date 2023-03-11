@@ -243,6 +243,7 @@ struct loco_t {
 
   struct shape_type_t {
     using _t = uint16_t;
+    static constexpr _t invalid = -1;
     static constexpr _t button = 0;
     static constexpr _t sprite = 1;
     static constexpr _t text = 2;
@@ -1202,6 +1203,16 @@ public:
   #endif
 
     default_texture.create_missing_texture(this);
+
+    #if defined(loco_rectangle)
+      *types.get_value<rectangle_t*>() = &rectangle;
+    #endif
+    #if defined(loco_sprite)
+      *types.get_value<sprite_t*>() = &sprite;
+    #endif
+    #if defined(loco_button)
+      *types.get_value<button_t*>() = &button;
+    #endif
   }
 
   #if defined(loco_vfi)
@@ -1519,10 +1530,58 @@ public:
 
   image_t default_texture;
 
+  struct comma_dummy_t {
+    uint8_t member_pointer;
+    static constexpr typename loco_t::shape_type_t::_t shape_type = -1;
+  };
+
+  // requires shape_type create to shape.h and init in constructor
+  fan::masterpiece_t<
+    comma_dummy_t*
+    #if defined(loco_rectangle)
+    ,rectangle_t*
+    #endif
+    #if defined(loco_sprite)
+    ,sprite_t*
+    #endif
+    #if defined(loco_button)
+    ,button_t*
+    #endif
+  > types;
+
   struct lighting_t {
     static constexpr const char* ambient_name = "lighting_ambient";
     fan::vec3 ambient = fan::vec3(1, 1, 1);
   }lighting;
+
+  #if defined(loco_no_inline)
+
+  protected:
+    #define BLL_set_CPP_ConstructDestruct
+    #define BLL_set_CPP_Node_ConstructDestruct
+    #define BLL_set_AreWeInsideStruct 1
+    #define BLL_set_BaseLibrary 1
+    #define BLL_set_prefix cid_list
+    #define BLL_set_type_node uint32_t
+    #define BLL_set_NodeData fan::graphics::cid_t cid;
+    #define BLL_set_Link 1
+    #define BLL_set_StoreFormat 1
+    #include _FAN_PATH(BLL/BLL.h)
+public:
+
+  struct cid_nr_t : cid_list_NodeReference_t {
+
+    cid_nr_t();
+    ~cid_nr_t();
+    using base_t = cid_list_NodeReference_t;
+
+    bool is_invalid();
+    void invalidate();
+  };
+
+  cid_list_t cid_list;
+
+  #endif
 
   #define make_key_value(type, name) \
       type& name = *key.get_value<decltype(key)::get_index_with_type<type>()>();
@@ -1615,138 +1674,117 @@ public:
     };
 
     #endif
+  
+  #if defined (loco_no_inline)
 
-  void push_shape(cid_t* cid, const auto& properties) {
-    using type_t = std::remove_const_t<std::remove_reference_t<decltype(properties)>>;
-    #if defined(loco_line)
-    if constexpr (std::is_same_v<type_t, loco_t::line_t::properties_t>) {
-      line.push_back(cid, properties);
-    }
-    #endif
-    #if defined(loco_rectangle)
-    if constexpr (std::is_same_v<type_t, loco_t::rectangle_t::properties_t>) {
-      rectangle.push_back(cid, properties);
-    }
-    #endif
-    #if defined(loco_sprite)
-    if constexpr (std::is_same_v<type_t, loco_t::sprite_t::properties_t>) {
-      sprite.push_back(cid, properties);
-    }
-    #endif
-    #if defined(loco_letter)
-    if constexpr (std::is_same_v<type_t, loco_t::letter_t::properties_t>) {
-      letter.push_back(cid, properties);
-    }
-    #endif
-    #if defined(loco_text)
-    if constexpr (std::is_same_v<type_t, loco_t::text_t::properties_t>) {
-      text.push_back(cid, properties);
-    }
-    #endif
-    #if defined(loco_button)
-    if constexpr (std::is_same_v<type_t, loco_t::button_t::properties_t>) {
-      button.push_back(cid, properties);
-    }
-    #endif
-  }
+    #define fan_create_id_declaration(rt, name, ...) rt name(__VA_ARGS__)
+    #define fan_create_id_definition(rt, name, ...) rt loco_t::id_t::name(__VA_ARGS__)
 
-  void erase_shape(cid_t* cid) {
+  struct id_t {
+    loco_t::cid_nr_t cid;
+    operator cid_t* ();
+    id_t() { cid.invalidate(); };
+    id_t(const id_t&);
+    id_t(id_t&&);
+    ~id_t();
+    id_t(const auto& properties);
 
-    switch (cid->shape_type) {
-      case shape_type_t::line: {
-        #if defined(loco_line)
-          line.erase(cid);
-        #endif
-        break;
-      }
-      case shape_type_t::rectangle: {
-        #if defined(loco_rectangle)
-          rectangle.erase(cid);
-        #endif
-        break;
-      }
-      case shape_type_t::sprite: {
-        #if defined(loco_sprite)
-          sprite.erase(cid);
-        #endif
-        break;
-      }
-      case shape_type_t::button: {
-        #if defined(loco_button)
-          button.erase(cid);
-        #endif
-        break;
-      }
-      case shape_type_t::text: {
-        #if defined(loco_text)
-          text.erase(cid);
-        #endif
-        break;
-      }
-      default: {
-        fan::throw_error("invalid cid shape type - either not implemented or bug in code");
-        break;
-      }
-    }
-  }
+    loco_t::id_t& operator=(const id_t& id);
+    loco_t::id_t& operator=(id_t&& id);
 
-  void set_position(fan::graphics::cid_t* cid, const fan::vec3& position) {
-    //switch (cid->shape_type) {
-    //  case shape_type_t::line: {
-    //    #if defined(loco_line)
-    //    line.erase(cid);
-    //    #endif
-    //    break;
-    //  }
-    //  case shape_type_t::rectangle: {
-    //    #if defined(loco_rectangle)
-    //    //rectangle.set(cid, &loco_t::rectangle_t);
-    //    #endif
-    //    break;
-    //  }
-    //  case shape_type_t::sprite: {
-    //    #if defined(loco_sprite)
-    //    sprite.erase(cid);
-    //    #endif
-    //    break;
-    //  }
-    //  case shape_type_t::button: {
-    //    #if defined(loco_button)
-    //    button.erase(cid);
-    //    #endif
-    //    break;
-    //  }
-    //  case shape_type_t::text: {
-    //    #if defined(loco_text)
-    //    text.erase(cid);
-    //    #endif
-    //    break;
-    //  }
-    //  default: {
-    //    fan::throw_error("invalid cid shape type - either not implemented or bug in code");
-    //    break;
-    //  }
-    //}
-  }
+    void erase();
+
+    fan_create_id_declaration(fan::vec3, get_position);
+    fan_create_id_declaration(void, set_position, const fan::vec3&);
+    fan_create_id_declaration(fan::vec2, get_size);
+    fan_create_id_declaration(void, set_size, const fan::vec2&);
+  };
+  #endif
 
   template <typename T>
-  auto get_shape() {
-    #if defined(loco_rectangle)
-    if constexpr (std::is_same_v<T, rectangle_t>) {
-      return &rectangle;
-    }
-    #endif
-    #if defined(loco_sprite)
-    if constexpr (std::is_same_v<T, sprite_t>) {
-      return &sprite;
-    }
-    #endif
-    #if defined(loco_button)
-    if constexpr (std::is_same_v<T, button_t>) {
-      return &button;
-    }
-    #endif
+  void push_shape(cid_t* cid, const T& properties) {
+    (*types.get_value<T::type_t*>())->push_back(cid, properties);
   }
+
+  // skips bm_properties_t init
+  template <typename T>
+  void sb_push_back(cid_t* cid, const T& properties) {
+    (*types.get_value<T::type_t*>())->sb_push_back(cid, properties);
+  }
+
+  #define make_global_function(func_name, content, ...) \
+  fan_has_function_concept(func_name);\
+  void shape_ ## func_name(__VA_ARGS__) { \
+    types.iterate([&]<typename T>(auto shape_index, T shape) { \
+      using shape_t = std::remove_pointer_t<std::remove_pointer_t<T>>; \
+      if (shape_t::shape_type == cid->shape_type) { \
+        content \
+      } \
+    }); \
+  }
+
+  make_global_function(erase,
+    if constexpr (has_erase_v<shape_t, loco_t::cid_t*>) {
+      (*shape)->erase(cid);
+    },
+    cid_t* cid
+  );
+
+  fan_has_function_concept(get);
+  fan_has_function_concept(set);
+
+  #define fan_build_get(rt, name) \
+  fan_has_function_concept(get_##name); \
+  rt shape_get_##name(loco_t::cid_t* cid) { \
+    rt data; \
+    types.iterate([&]<typename T>(auto shape_index, T shape) {\
+      using shape_t = std::remove_pointer_t<std::remove_pointer_t<T>>; \
+      if (shape_t::shape_type == cid->shape_type) {\
+        if constexpr (has_get_##name##_v<shape_t, loco_t::cid_t*, const rt&>) {\
+          data = (*shape)->get_##name(cid);\
+        }\
+        else if constexpr (has_get_v<shape_t, loco_t::cid_t*, decltype(&comma_dummy_t::member_pointer)>) {\
+          data = (*shape)->get(cid, &shape_t::vi_t::name);\
+        }\
+      }\
+    });\
+    return data; \
+  }
+
+  #define fan_build_set(rt, name) \
+  make_global_function(set_##name,\
+    if constexpr (has_set_##name##_v<shape_t, loco_t::cid_t*, const rt&>) { \
+      (*shape)->set_##name(cid, data); \
+    } \
+    else if constexpr (has_set_v<shape_t, loco_t::cid_t*, decltype(&comma_dummy_t::member_pointer), void*>) { \
+      (*shape)->set(cid, &shape_t::vi_t::name, data); \
+    }, \
+    cid_t* cid, \
+    const auto& data \
+  );
+
+  fan_build_get(fan::vec3, position);
+  fan_build_set(fan::vec3, position);
+  fan_build_get(fan::vec2, size);
+  fan_build_set(fan::vec2, size);
+  
+
+  make_global_function(get_properties,
+    if constexpr (has_get_properties_v<shape_t, loco_t::cid_t*>) {
+      lambda((*shape)->get_properties(cid));
+    },
+    cid_t* cid,
+    auto lambda
+  );
+
+  template <typename T>
+  T* get_shape() {
+    return *types.get_value<T*>();
+  }
+
+  #undef make_global_function
+  #undef fan_build_get
+  #undef fan_build_set
 };
 
 #if defined(loco_pixel_format_renderer)

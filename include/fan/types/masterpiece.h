@@ -138,13 +138,18 @@ namespace fan {
     }
 
     template <uint32_t depth = 0>
-    constexpr void iterate(auto lambda) {
+    constexpr auto iterate(auto lambda) {
       if constexpr(depth > count) {
         return;
       }
       else {
-        lambda(std::integral_constant<uint32_t, depth>{}, get_value<depth>());
-        iterate<depth + 1>(lambda);
+        if constexpr (!std::is_same_v<decltype(lambda(std::integral_constant<uint32_t, depth>{}, get_value<depth>())), void>) {
+          return lambda(std::integral_constant<uint32_t, depth>{}, get_value<depth>());
+        }
+        else {
+          lambda(std::integral_constant<uint32_t, depth>{}, get_value<depth>());
+          return iterate<depth + 1>(lambda);
+        }
       }
     }
   };
@@ -162,8 +167,38 @@ namespace fan {
       return &x_;
     }
 
+    template <typename T2>
+    constexpr T* get_value() {
+      static_assert(std::is_same_v<T, T2>);
+      return &x_;
+    }
+
+  protected:
+    template <uint32_t N, typename... Ts>
+    struct get;
+
+    template <uint32_t N, typename T2, typename... Ts>
+    struct get<N, fan::masterpiece_reversed_t<T2, Ts...>>
+    {
+      using type = typename get<N + 1, fan::masterpiece_reversed_t<Ts...>>::type;
+    };
+
+    template <typename T2, typename... Ts>
+    struct get<count, fan::masterpiece_reversed_t<T2, Ts...>>
+    {
+      using type = T2;
+    };
+
+  public:
+
+    template <int N>
+    using get_type = masterpiece_reversed_t<T>;
+
+    template <int N>
+    using get_type_t = T;
+
     constexpr void iterate(auto lambda) {
-      lambda(std::integral_constant<uint32_t, 0>{});
+      lambda(std::integral_constant<uint32_t, 0>{}, get_value<0>());
     }
   };
 
