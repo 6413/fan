@@ -69,8 +69,8 @@ struct button_t {
     vfip.shape.rectangle.viewport = p.viewport;
     vfip.shape.rectangle.position = p.position;
     vfip.shape.rectangle.size = p.size;
-    vfip.flags = p.vfi_flags;
     if (!p.disable_highlight) {
+      fan::print(cid);
       vfip.mouse_move_cb = [this, cb = p.mouse_move_cb, udata = p.udata, cid_ = cid](const loco_t::vfi_t::mouse_move_data_t& mm_d) -> int {
         loco_t* loco = OFFSETLESS(mm_d.vfi, loco_t, vfi_var_name);
         loco_t::mouse_move_data_t mmd = mm_d;
@@ -100,7 +100,7 @@ struct button_t {
             ii_d.flag->ignore_move_focus_check = true;
             loco->vfi.set_focus_keyboard(loco->vfi.get_focus_mouse());
           }
-        }
+        } 
         else if (!loco->button.sb_get_ri(cid_).selected) {
           if (ii_d.button == fan::mouse_left && ii_d.button_state == fan::mouse_state::release) {
             if (ii_d.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside) {
@@ -296,7 +296,7 @@ struct button_t {
   }
 
   // dont edit values
-  const auto& get_text_instance(fan::graphics::cid_t* cid) {
+  auto& get_text_instance(fan::graphics::cid_t* cid) {
     loco_t* loco = get_loco();
     auto& ri = get_ri(cid);
     return loco->text.get_instance(&ri.text_id);
@@ -339,6 +339,16 @@ struct button_t {
     auto& vfi_id = get_instance_properties(cid)->vfi_id;
     get_loco()->vfi.shape_list[vfi_id].shape_data.depth = depth;
     sb_set_depth(cid, depth);
+  }
+
+  properties_t get_properties(loco_t::cid_t* cid) {
+    properties_t p = sb_get_properties(cid);
+    p.camera = get_loco()->camera_list[*p.key.get_value<loco_t::camera_list_NodeReference_t>()].camera_id;
+    //p.theme =  get_loco()->get_context()->theme_list[*p.key.get_values<loco_t::t>()].matrices_id;
+    p.viewport = get_loco()->get_context()->viewport_list[*p.key.get_value<fan::graphics::viewport_list_NodeReference_t>()].viewport_id;
+    p.position = get_text_instance(cid).position;
+    p.text = get_text_instance(cid).text;
+    return p;
   }
 
   #if defined(loco_vulkan)

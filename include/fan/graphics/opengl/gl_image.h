@@ -81,6 +81,7 @@ struct image_t {
   void create_texture(loco_t* loco) {
     auto* context = loco->get_context();
     texture_reference = loco->image_list.NewNode();
+    loco->image_list[texture_reference].image = this;
     context->opengl.call(context->opengl.glGenTextures, 1, get_texture(loco));
   }
   void erase_texture(loco_t* loco) {

@@ -41,8 +41,19 @@ public:
     nr_t stage_id;
     uint32_t it;
 
+  protected:
+    #define BLL_set_CPP_ConstructDestruct
+    #define BLL_set_CPP_Node_ConstructDestruct
+    #define BLL_set_BaseLibrary 1
+    #define BLL_set_prefix cid_list
+    #define BLL_set_type_node uint32_t
+    #define BLL_set_NodeDataType loco_t::id_t
+    #define BLL_set_Link 1
+    #define BLL_set_AreWeInsideStruct 1
+    #include _FAN_PATH(BLL/BLL.h)
+  public:
 
-    std::vector<loco_t::id_t> cid_list;
+    cid_list_t cid_list;
 
     stage_loader_t::nr_t parent_id;
   };
@@ -82,15 +93,18 @@ public:
     }
   };
 
-  using cid_map_t = std::unordered_map<key_t, loco_t::id_t*, pair_hasher_t, pair_equal_t>;
+  using cid_map_t = std::unordered_map<key_t, loco_t::cid_nr_t, pair_hasher_t, pair_equal_t>;
   cid_map_t cid_map;
 
-  loco_t::id_t* get_id(void* stage_ptr, const fan::string id) {
+  loco_t::id_t get_id(void* stage_ptr, const fan::string id) {
     auto found = cid_map.find(std::make_pair(stage_ptr, id));
     if (found == cid_map.end()) {
       return nullptr;
     }
-    return found->second;
+
+    loco_t::id_t idt;
+    idt.cid = found->second;
+    return idt;
   }
 
 	void open(loco_t::texturepack_t* tp) {
@@ -153,9 +167,16 @@ public:
 	void erase_stage(nr_t id) {
     std::visit([&](auto stage) {
       stage->close(*(loco_access));
-      for (auto& it : stage->cid_list) {
+      auto it = stage->cid_list.GetNodeFirst();
+      /*while (it != stage->cid_list.dst) {
+        auto node = 
+        if ((loco_access)->cid_list[it.cid].cid.shape_type == loco_t::shape_type_t::hitbox) {
+          (loco_access)->vfi.erase((loco_t::vfi_t::shape_id_t*)&((loco_access)->cid_list[it.cid].cid));
+          continue;
+        }
         it.erase();
-      }
+        it = it.Next(&stage->cid_list);
+      }*/
       (loco_access)->m_update_callback.unlrec(stage_list[id].update_nr);
       (loco_access)->get_window()->remove_resize_callback(stage_list[id].resize_nr);
       stage_list.unlrec(id);

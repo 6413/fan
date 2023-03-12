@@ -24,7 +24,7 @@ struct sb_sprite_name {
   void push_back(fan::graphics::cid_t* cid, properties_t p) {
 
     get_key_value(uint16_t) = p.position.z;
-    get_key_value(loco_t::textureid_t<0>) = p.image;
+    get_key_value (loco_t::textureid_t<0>) = p.image;
     get_key_value(loco_t::camera_list_NodeReference_t) = p.camera;
     get_key_value(fan::graphics::viewport_list_NodeReference_t) = p.viewport;
 
@@ -128,6 +128,18 @@ struct sb_sprite_name {
 
   #endif
   }
+
+  properties_t get_properties(loco_t::cid_t* cid) {
+    properties_t p = sb_get_properties(cid);
+    p.camera = get_loco()->camera_list[*p.key.get_value<loco_t::camera_list_NodeReference_t>()].camera_id;
+    p.viewport = get_loco()->get_context()->viewport_list[*p.key.get_value<fan::graphics::viewport_list_NodeReference_t>()].viewport_id;
+    //loco_t::image_t image;
+    //image.texture_reference = ;
+    //*
+    p.image = get_loco()->image_list[*p.key.get_value<loco_t::textureid_t<0>>()].image;
+    return p;
+  }
+
   //void set_viewport_value(fan::graphics::cid_t* cid, fan::vec2 p, fan::vec2 s) {
   //  loco_t* loco = get_loco();
   //  auto block = sb_get_block(cid);
