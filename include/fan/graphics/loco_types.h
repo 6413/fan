@@ -146,7 +146,6 @@
   fan::string text; \
   f32_t font_size = 0.1; \
  \
-  loco_t::vfi_t::iflags_t vfi_flags; \
  \
   bool disable_highlight = false; \
  \

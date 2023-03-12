@@ -232,11 +232,11 @@ struct text_renderer_t {
     return loco->letter.get_camera(&node->data.cid);
   }
 
-  const properties_t &get_instance(fan::graphics::cid_t* cid) {
+  properties_t &get_instance(fan::graphics::cid_t* cid) {
     return letter_ids[*(uint32_t*)cid].p;
   }
   void set_text(fan::graphics::cid_t* cid, const fan::string& text) {
-    properties_t p = letter_ids[*(uint32_t*)cid].p;
+    properties_t& p = letter_ids[*(uint32_t*)cid].p;
     erase(cid);
     p.text = text;
 
@@ -244,17 +244,22 @@ struct text_renderer_t {
   }
 
   void set_position(fan::graphics::cid_t* cid, const fan::vec3& position) {
-    properties_t p = letter_ids[*(uint32_t*)cid].p;
+    properties_t& p = letter_ids[*(uint32_t*)cid].p;
     erase(cid);
     p.position = position;
     push_back(cid, p);
   }
 
   void set_font_size(fan::graphics::cid_t* cid, f32_t font_size) {
-    properties_t p = letter_ids[*(uint32_t*)cid].p;
+    properties_t& p = letter_ids[*(uint32_t*)cid].p;
     erase(cid);
     p.font_size = font_size;
     push_back(cid, p);
+  }
+
+
+  properties_t get_properties(loco_t::cid_t* cid) {
+    return letter_ids[*(uint32_t*)cid].p;
   }
 
   struct{

@@ -62,78 +62,78 @@ pile_t* pile = new pile_t;
 
 int main() {
 
-  loco_t::rectangle_id_t rectangle(
-    fan_init_struct(
-      loco_t::rectangle_id_t::properties_t,
-      .position = fan::vec2(0, 0),
-      .size = 0.1,
-      .color = fan::colors::red,
-      .camera = &pile->camera,
-      .viewport = &pile->viewport
-    )
-  );
+  //loco_t::rectangle_id_t rectangle(
+  //  fan_init_struct(
+  //    loco_t::rectangle_id_t::properties_t,
+  //    .position = fan::vec2(0, 0),
+  //    .size = 0.1,
+  //    .color = fan::colors::red,
+  //    .camera = &pile->camera,
+  //    .viewport = &pile->viewport
+  //  )
+  //);
 
   loco_t::image_t image;
   image.load(&pile->loco, "images/brick.webp");
 
-  loco_t::sprite_id_t sprite;
+  //loco_t::sprite_id_t sprite;
 
-  sprite[{
-      .position = fan::vec2(-0.5, 0),
-      .size = 0.2,
-      .image = &image,
-      .camera = &pile->camera,
-      .viewport = &pile->viewport
-  }];
+  //sprite[{
+  //    .position = fan::vec2(-0.5, 0),
+  //    .size = 0.2,
+  //    .image = &image,
+  //    .camera = &pile->camera,
+  //    .viewport = &pile->viewport
+  //}];
 
-  loco_t::letter_id_t letter(
-    fan_init_struct(
-      loco_t::letter_id_t::properties_t,
-      .camera = &pile->camera,
-      .viewport = &pile->viewport,
-      .position = fan::vec2(0.5, 0),
-      .letter_id = 65,
-      .font_size = 0.1
-    )
-  );
+  //loco_t::letter_id_t letter(
+  //  fan_init_struct(
+  //    loco_t::letter_id_t::properties_t,
+  //    .camera = &pile->camera,
+  //    .viewport = &pile->viewport,
+  //    .position = fan::vec2(0.5, 0),
+  //    .letter_id = 65,
+  //    .font_size = 0.1
+  //  )
+  //);
 
-  loco_t::text_id_t text(
-    fan_init_struct(
-      loco_t::text_id_t::properties_t,
-      .camera = &pile->camera,
-      .viewport = &pile->viewport,
-      .position = fan::vec2(0.5, 0.5),
-      .text = "text",
-      .font_size = 0.1
-    )
-  );
+  //loco_t::text_id_t text(
+  //  fan_init_struct(
+  //    loco_t::text_id_t::properties_t,
+  //    .camera = &pile->camera,
+  //    .viewport = &pile->viewport,
+  //    .position = fan::vec2(0.5, 0.5),
+  //    .text = "text",
+  //    .font_size = 0.1
+  //  )
+  //);
 
   loco_t::theme_t t;
   loco_t::theme_t theme = loco_t::themes::gray(0.5);
   theme.open(pile->loco.get_context());
-  loco_t::button_id_t button(
-    fan_init_struct(
-      loco_t::button_id_t::properties_t,
-      .camera = &pile->camera,
-      .viewport = &pile->viewport,
-      .position = fan::vec2(-0.5, 0.5),
-      .size = fan::vec2(.3, .1),
-      .text = "button",
-      .theme = &theme,
-    )
-  );
+  //loco_t::button_id_t button(
+  //  fan_init_struct(
+  //    loco_t::button_id_t::properties_t,
+  //    .camera = &pile->camera,
+  //    .viewport = &pile->viewport,
+  //    .position = fan::vec2(-0.5, 0.5),
+  //    .size = fan::vec2(.3, .1),
+  //    .text = "button",
+  //    .theme = &theme,
+  //  )
+  //);
 
-  loco_t::text_box_id_t text_box(
-    fan_init_struct(
-      loco_t::text_box_id_t::properties_t,
-      .camera = &pile->camera,
-      .viewport = &pile->viewport,
-      .position = fan::vec2(-0.5, -0.5),
-      .size = fan::vec2(.3, .1),
-      .text = "text box",
-      .theme = &theme,
-      )
-  );
+  //loco_t::text_box_id_t text_box(
+  //  fan_init_struct(
+  //    loco_t::text_box_id_t::properties_t,
+  //    .camera = &pile->camera,
+  //    .viewport = &pile->viewport,
+  //    .position = fan::vec2(-0.5, -0.5),
+  //    .size = fan::vec2(.3, .1),
+  //    .text = "text box",
+  //    .theme = &theme,
+  //    )
+  //);
 
   loco_t::vfi_id_t vfi(
     fan_init_struct(
@@ -151,17 +151,17 @@ int main() {
     )
   );
 
-  loco_t::light_id_t light(
-    fan_init_struct(
-      loco_t::light_id_t::properties_t,
-      .position = fan::vec2(0, 0),
-      .size = 0.1,
-      .color = fan::colors::green,
-      // compress this
-      .camera = &pile->camera,
-      .viewport = &pile->viewport
-    )
-  );
+  //loco_t::light_id_t light(
+  //  fan_init_struct(
+  //    loco_t::light_id_t::properties_t,
+  //    .position = fan::vec2(0, 0),
+  //    .size = 0.1,
+  //    .color = fan::colors::green,
+  //    // compress this
+  //    .camera = &pile->camera,
+  //    .viewport = &pile->viewport
+  //  )
+  //);
 
   pile->loco.set_vsync(false);
 
@@ -169,7 +169,7 @@ int main() {
 
   //pile->loco.push_shape(0, loco_t::rectangle_t::properties_t{});
   //pile->loco.erase_shape(rectangle);
-  pile->loco.shape_set_position(rectangle, 0.5);
+  //pile->loco.shape_set_position(rectangle, 0.5);
   //pile->loco.set_position(button, 0.5);
 
  /* loco_t::cid_t cc;
@@ -187,10 +187,10 @@ int main() {
 
   loco_t::id_t r2(
     fan_init_struct(
-      loco_t::rectangle_t::properties_t,
+      loco_t::button_t::properties_t,
       .position = fan::vec2(0, 0),
       .size = 0.1,
-      .color = fan::colors::red,
+      .theme = &theme,
       .camera = &pile->camera,
       .viewport = &pile->viewport
     )
@@ -211,6 +211,15 @@ int main() {
   //r3.set_position(0);
 
   r2.erase();
+
+  r3 = fan_init_struct(
+    loco_t::button_t::properties_t,
+    .position = fan::vec2(0, 0),
+    .size = 0.1,
+    .theme = &theme,
+    .camera = &pile->camera,
+    .viewport = &pile->viewport
+  );
 
   pile->loco.loop([&] {
     //r3.set_position(pile->loco.get_mouse_position(pile->viewport));

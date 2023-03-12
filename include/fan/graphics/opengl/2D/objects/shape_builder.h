@@ -427,7 +427,7 @@ public:
     traverse_draw(root, draw_mode, lambda);
   }
 
-  properties_t get_properties(fan::opengl::cid_t* cid) {
+  properties_t sb_get_properties(fan::opengl::cid_t* cid) {
     loco_t* loco = get_loco();
     auto block = sb_get_block(cid);
     properties_t p;

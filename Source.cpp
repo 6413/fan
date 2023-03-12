@@ -6,33 +6,39 @@
 #include <iostream>
 #include <type_traits>
 
-#define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 
-#ifndef FAN_INCLUDE_PATH
-#define FAN_INCLUDE_PATH C:/libs/fan/include
-#endif
-#define fan_debug 0
-#include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
+#define fan_create_id_declaration(rt, name, ...) rt name(__VA_ARGS__)
+#define fan_create_id_definition(rt, name, ...) rt a_t::name(__VA_ARGS__)
 
-#include _FAN_PATH(types/masterpiece.h)
+#define fan_create_get_set(rt, name) \
+  fan_create_id_declaration(rt, get_##name); \
+  fan_create_id_declaration(void, set_##name, const rt&); \
 
-struct a_t : decltype(std::function{ std::declval<decltype([] {struct { int x; }v; return v; }) >() })::result_type {
+#define fan_create_get_set_define(rt, name) \
+  fan_create_id_definition(rt, get_##name){ return 0;} \
+  fan_create_id_definition(void, set_##name, const rt&){} \
 
+#define make_definitions(...) __VA_ARGS__
+
+struct a_t {
+  void f() {
+
+  }
 };
 
+
+struct b_t {
+  b_t() {
+    get_a().f();
+  }
+  a_t& get_a();
+};
+a_t a;
+
+a_t& b_t::get_a() {
+  return a;
+}
+
 int main() {
-
-  fan::masterpiece_t<int, double> m;
-
-  m.iterate([](auto x, auto y) {
-
-
-
-    if constexpr (x == 1) {
-      return 1;
-    }
-    else {
-      return;
-    }
-  });
+  a_t a;
 }

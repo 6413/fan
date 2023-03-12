@@ -1,8 +1,56 @@
 #pragma once
 
+#define make_shape_id_define(name) \
+  loco_t::name ## _id_t::name ## _id_t(const properties_t& p) { \
+    (loco_access)->name.push_back(*this, *(loco_t::name ## _t::properties_t*)&p); \
+  } \
+   \
+  loco_t::name ## _id_t& loco_t::name ## _id_t::operator[](const properties_t& p) { \
+    (loco_access)->name.push_back(*this, *(loco_t::name ## _t::properties_t*)&p); \
+    return *this; \
+  } \
+   \
+  loco_t::name ## _id_t::~name##_id_t() { \
+    (loco_access)->name.erase(*this); \
+  }
+
+
+#if defined(loco_vfi)
+make_shape_id_define(vfi);
+#endif
+
 loco_t::cid_nr_t::~cid_nr_t() {
   invalidate();
 }
+
+loco_t::cid_nr_t::cid_nr_t(const cid_nr_t& nr) {
+  init();
+}
+
+loco_t::cid_nr_t::cid_nr_t(cid_nr_t&& nr) {
+  NRI = nr.NRI;
+  nr.invalidate();
+}
+
+loco_t::cid_nr_t& loco_t::cid_nr_t::operator=(const cid_nr_t& id) {
+  if (this != &id) {
+    init();
+  }
+  return *this;
+}
+
+loco_t::cid_nr_t& loco_t::cid_nr_t::operator=(cid_nr_t&& id) {
+  if (this != &id) {
+    if (!is_invalid()) {
+      invalidate();
+    }
+    NRI = id.NRI;
+
+    id.invalidate();
+  }
+  return *this;
+}
+
 
 void loco_t::cid_nr_t::init() {
   *(base_t*)this = (loco_access)->cid_list.NewNodeLast();
@@ -25,14 +73,13 @@ loco_t::id_t::id_t(const auto& properties) {
   (loco_access)->push_shape(*this, properties);
 }
 
-inline loco_t::id_t::id_t(const id_t& id) {
+inline loco_t::id_t::id_t(const id_t& id) : cid(id.cid) {
   (loco_access)->shape_get_properties(*(id_t*)&id, [&](const auto& properties) {
     cid.init();
-    (loco_access)->sb_push_back(*this, properties);
+    (loco_access)->push_shape(*this, properties);
   });
 }
-inline loco_t::id_t::id_t(id_t&& id) {
-  cid = id.cid;
+inline loco_t::id_t::id_t(id_t&& id) : cid(std::move(id.cid)) {
   id.cid.invalidate();
 }
 
@@ -47,7 +94,7 @@ loco_t::id_t& loco_t::id_t::operator=(const id_t& id) {
   if (this != &id) {
     (loco_access)->shape_get_properties(*(id_t*)&id, [&](const auto& properties) {
       cid.init();
-      (loco_access)->sb_push_back(*this, properties);
+      (loco_access)->push_shape(*this, properties);
     });
   }
   return *this;
@@ -58,7 +105,7 @@ loco_t::id_t& loco_t::id_t::operator=(id_t&& id) {
     if (!cid.is_invalid()) {
       erase();
     }
-    cid = id.cid;
+    cid = std::move(id.cid);
 
     id.cid.invalidate();
   }
@@ -67,34 +114,19 @@ loco_t::id_t& loco_t::id_t::operator=(id_t&& id) {
 
 
 void loco_t::id_t::erase() {
+  if (cid.is_invalid()) {
+    return;
+  }
   (loco_access)->shape_erase(*this);
+  cid.invalidate();
 }
 
 loco_t::id_t::operator fan::opengl::cid_t *(){
   return &(loco_access)->cid_list[cid].cid;
 }
 
-fan_create_id_definition(fan::vec3, get_position) {
-  return (loco_access)->shape_get_position(*this);
-}
-fan_create_id_definition(void, set_position, const fan::vec3& position) {
-  if (get_position().z != position.z) {
-    (loco_access)->shape_set_depth(*this, position.z);
-  }
-  (loco_access)->shape_set_position(*this, position);
-}
-fan_create_id_definition(void, set_size, const fan::vec2& size) {
-  (loco_access)->shape_set_size(*this, size);
-}
-fan_create_id_definition(fan::vec2, get_size) {
-  return (loco_access)->shape_get_size(*this);
-}
-
-fan_create_id_definition(void, set_color, const fan::color& size) {
-  (loco_access)->shape_set_color(*this, size);
-}
-fan_create_id_definition(fan::color, get_color) {
-  return (loco_access)->shape_get_color(*this);
+loco_t* loco_t::id_t::get_loco() {
+  return loco_access;
 }
 
 #undef loco_access
