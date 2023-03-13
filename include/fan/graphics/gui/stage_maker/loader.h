@@ -5,19 +5,28 @@
 #include _FAN_PATH(graphics/gui/fgm/common.h)
 
 struct stage_loader_t {
-
 protected:
+  #define BLL_set_Link 1
+  #define BLL_set_CPP_ConstructDestruct
+  #define BLL_set_CPP_Node_ConstructDestruct
   #define BLL_set_declare_NodeReference 1
   #define BLL_set_declare_rest 0
   #define BLL_set_BaseLibrary 1
   #define BLL_set_AreWeInsideStruct 1
   #define BLL_set_prefix stage_list
   #define BLL_set_type_node uint16_t
+  #define BLL_set_NodeData \
+  loco_t::update_callback_nr_t update_nr; \
+  fan::window_t::resize_callback_NodeReference_t resize_nr; \
+  stage::variant_t stage;
+
+
   #include _FAN_PATH(BLL/BLL.h)
 public:
   using nr_t = stage_list_NodeReference_t;
 
   struct stage_open_properties_t {
+    
     loco_t::camera_t* camera;
     fan::graphics::viewport_t* viewport;
     loco_t::theme_t* theme;
@@ -33,16 +42,18 @@ public:
 
     stage_common_t_t(auto* loader, auto* loco, const stage_open_properties_t& properties) {
     }
+
     void close(auto* loco) {
       T* stage = (T*)this;
       stage->close(*loco);
     }
 
+
     nr_t stage_id;
     uint32_t it;
 
   protected:
-    #define BLL_set_CPP_ConstructDestruct
+   /* #define BLL_set_CPP_ConstructDestruct
     #define BLL_set_CPP_Node_ConstructDestruct
     #define BLL_set_BaseLibrary 1
     #define BLL_set_prefix cid_list
@@ -50,10 +61,10 @@ public:
     #define BLL_set_NodeDataType loco_t::id_t
     #define BLL_set_Link 1
     #define BLL_set_AreWeInsideStruct 1
-    #include _FAN_PATH(BLL/BLL.h)
+    #include _FAN_PATH(BLL/BLL.h)*/
   public:
 
-    cid_list_t cid_list;
+    std::vector<loco_t::id_t> cid_list;
 
     stage_loader_t::nr_t parent_id;
   };
@@ -152,7 +163,7 @@ public:
     std::construct_at(stage, this, (loco_access), op);
 
     load_fgm(stage, op, stage->stage_name);
-
+    //age_list_NodeData_t
 		stage_list[stage->stage_id].stage = (stage_t*)stage;
     stage_list[stage->stage_id].update_nr = (loco_access)->m_update_callback.NewNodeLast();
     (loco_access)->m_update_callback[stage_list[stage->stage_id].update_nr] = [&, stage](loco_t* loco) {
@@ -165,22 +176,17 @@ public:
 		return stage->stage_id;
 	}
 	void erase_stage(nr_t id) {
+    // ugly
+    void* ptr_to_free;
     std::visit([&](auto stage) {
       stage->close(*(loco_access));
-      auto it = stage->cid_list.GetNodeFirst();
-      /*while (it != stage->cid_list.dst) {
-        auto node = 
-        if ((loco_access)->cid_list[it.cid].cid.shape_type == loco_t::shape_type_t::hitbox) {
-          (loco_access)->vfi.erase((loco_t::vfi_t::shape_id_t*)&((loco_access)->cid_list[it.cid].cid));
-          continue;
-        }
-        it.erase();
-        it = it.Next(&stage->cid_list);
-      }*/
       (loco_access)->m_update_callback.unlrec(stage_list[id].update_nr);
       (loco_access)->get_window()->remove_resize_callback(stage_list[id].resize_nr);
-      stage_list.unlrec(id);
+      std::destroy_at(stage);
+      ptr_to_free = stage;
     }, stage_list[id].stage);
+    stage_list.unlrec(id);
+    std::free(ptr_to_free);
 	}
 
   loco_t::texturepack_t* texturepack = 0;

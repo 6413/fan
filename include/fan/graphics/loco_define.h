@@ -19,10 +19,6 @@
 make_shape_id_define(vfi);
 #endif
 
-loco_t::cid_nr_t::~cid_nr_t() {
-  invalidate();
-}
-
 loco_t::cid_nr_t::cid_nr_t(const cid_nr_t& nr) {
   init();
   (loco_access)->cid_list[*this].cid.shape_type = (loco_access)->cid_list[nr].cid.shape_type;
@@ -89,10 +85,9 @@ inline loco_t::id_t::id_t(id_t&& id) : cid(std::move(id.cid)) {
 }
 
 loco_t::id_t::~id_t() {
-  if (cid.is_invalid()) {
-    return;
-  }
+  //fan::print((uint32_t)cid.NRI);
   erase();
+  cid.invalidate();
 }
 
 loco_t::id_t& loco_t::id_t::operator=(const id_t& id) {

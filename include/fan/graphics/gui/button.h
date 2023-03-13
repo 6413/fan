@@ -70,8 +70,7 @@ struct button_t {
     vfip.shape.rectangle.position = p.position;
     vfip.shape.rectangle.size = p.size;
     if (!p.disable_highlight) {
-      fan::print(cid);
-      vfip.mouse_move_cb = [this, cb = p.mouse_move_cb, udata = p.udata, cid_ = cid](const loco_t::vfi_t::mouse_move_data_t& mm_d) -> int {
+      vfip.mouse_move_cb = [this, udata = p.udata, cid_ = cid](const loco_t::vfi_t::mouse_move_data_t& mm_d) -> int {
         loco_t* loco = OFFSETLESS(mm_d.vfi, loco_t, vfi_var_name);
         loco_t::mouse_move_data_t mmd = mm_d;
         if (mm_d.flag->ignore_move_focus_check == false && !loco->button.sb_get_ri(cid_).selected) {
@@ -89,10 +88,10 @@ struct button_t {
         td.theme = theme;
         theme->mouse_move_cb(td);
 
-        cb(mmd);
+        sb_get_ri(cid_).mouse_move_cb(mmd);
         return 0;
       };
-      vfip.mouse_button_cb = [this, cb = p.mouse_button_cb, udata = p.udata, cid_ = cid](const loco_t::vfi_t::mouse_button_data_t& ii_d) -> int {
+      vfip.mouse_button_cb = [this, udata = p.udata, cid_ = cid](const loco_t::vfi_t::mouse_button_data_t& ii_d) -> int {
         loco_t* loco = OFFSETLESS(ii_d.vfi, loco_t, vfi_var_name);
         if (ii_d.flag->ignore_move_focus_check == false && !loco->button.sb_get_ri(cid_).selected) {
           if (ii_d.button == fan::mouse_left && ii_d.button_state == fan::mouse_state::press) {
@@ -121,11 +120,11 @@ struct button_t {
         td.theme = theme;
         theme->mouse_button_cb(td);
 
-        cb(mid);
+        sb_get_ri(cid_).mouse_button_cb(mid);
 
         return 0;
       };
-      vfip.keyboard_cb = [this, cb = p.keyboard_cb, udata = p.udata, cid_ = cid](const loco_t::vfi_t::keyboard_data_t& kd) -> int {
+      vfip.keyboard_cb = [this, udata = p.udata, cid_ = cid](const loco_t::vfi_t::keyboard_data_t& kd) -> int {
         loco_t* loco = OFFSETLESS(kd.vfi, loco_t, vfi_var_name);
         loco_t::keyboard_data_t kd_ = kd;
         kd_.cid = cid_;
@@ -133,12 +132,12 @@ struct button_t {
         loco_t::theme_t::keyboard_data_t td = (loco_t::theme_t::keyboard_data_t)kd_;
         td.theme = theme;
         theme->keyboard_cb(td);
-        cb(kd_);
+        sb_get_ri(cid_).keyboard_cb(kd_);
         return 0;
       };
 
       // not defined in button
-      //vfip.text_cb = [this, cb = p.text_cb, udata = p.udata, cid_ = cid](const loco_t::vfi_t::text_data_t& kd) -> int {
+      //vfip.text_cb = [this, udata = p.udata, cid_ = cid](const loco_t::vfi_t::text_data_t& kd) -> int {
       //  loco_t* loco = OFFSETLESS(kd.vfi, loco_t, vfi_var_name);
       //  loco_t::text_data_t kd_ = kd;
       //  kd_.cid = cid_;
@@ -146,7 +145,7 @@ struct button_t {
       //  loco_t::theme_t::text_data_t td = *(loco_t::theme_t::text_data_t*)&kd_;
       //  td.theme = theme;
       //  theme->text_cb(td);
-      //  cb(kd_);
+      //  sb_get_ri(cid_).text_cb(kd_);
       //  return 0;
       //};
     }

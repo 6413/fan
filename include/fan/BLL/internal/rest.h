@@ -439,7 +439,11 @@ _BLL_POFTWBIT(_Node_Destruct)
   #ifdef BLL_set_CPP_Node_ConstructDestruct
     /* TODO _ with getnode... or what? */
     _P(Node_t) *n = _BLL_POFTWBIT(GetNodeByReference)(_BLL_PBLLTFFC NodeReference);
+    #if BLL_set_Mark == 1
+    ((_P(NodeData_t)*) & n->data)->~_P(NodeData_t)();
+    #else
     ((_P(NodeData_t) *)&n->data)->~_P(NodeData_t)();
+    #endif
   #endif
 }
 

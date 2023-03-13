@@ -139,7 +139,10 @@
   loco_t::theme_t* theme = 0; \
   fan::graphics::cid_t text_id; \
   loco_t::vfi_t::shape_id_t vfi_id; \
-  uint64_t udata;
+  uint64_t udata; \
+  loco_t::mouse_button_cb_t mouse_button_cb = [](const loco_t::mouse_button_data_t&) -> int { return 0; }; \
+  loco_t::mouse_move_cb_t mouse_move_cb = [](const loco_t::mouse_move_data_t&) -> int { return 0; }; \
+  loco_t::keyboard_cb_t keyboard_cb = [](const loco_t::keyboard_data_t&) -> int { return 0; }; \
 
 #define loco_button_properties_t \
  \
@@ -149,9 +152,6 @@
  \
   bool disable_highlight = false; \
  \
-  loco_t::mouse_button_cb_t mouse_button_cb = [](const loco_t::mouse_button_data_t&) -> int { return 0; }; \
-  loco_t::mouse_move_cb_t mouse_move_cb = [](const loco_t::mouse_move_data_t&) -> int { return 0; }; \
-  loco_t::keyboard_cb_t keyboard_cb = [](const loco_t::keyboard_data_t&) -> int { return 0; }; \
   loco_t::camera_t* camera = 0; \
   fan::graphics::viewport_t* viewport = 0;
 

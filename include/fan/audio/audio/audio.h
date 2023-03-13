@@ -82,12 +82,12 @@ sint32_t Open(piece_t *piece, FS_file_t *file, PieceFlag::t Flag){
       uintptr_t MapAt = FileIsAt - piece->StoreData.nonsimu.m;
       uint64_t MapLeftSize = TotalFileSize - MapAt;
 
-      sintptr_t ptr = IO_mmap(NULL, MapLeftSize, PROT_READ, MAP_SHARED, file_fd.fd, MapAt);
-      printf("pointer is %ld %lu %lu\n", ptr, FileIsAt, MapLeftSize);
-      if(ptr < 0){
-        PR_abort();
-      }
-      piece->SACData = (uint8_t *)(ptr + piece->StoreData.nonsimu.m);
+      //sintptr_t ptr = IO_mmap(NULL, MapLeftSize, PROT_READ, MAP_SHARED, file_fd.fd, MapAt);
+      //printf("pointer is %ld %lu %lu\n", ptr, FileIsAt, MapLeftSize);
+      //if(ptr < 0){
+      //  PR_abort();
+      //}
+      //piece->SACData = (uint8_t *)(ptr + piece->StoreData.nonsimu.m);
     }
     else{
       piece->StoreType = piece_t::StoreType_t::normal;
