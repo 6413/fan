@@ -222,25 +222,46 @@ int main() {
   //  .viewport = &pile->viewport
   //);
 
-  {
-    std::vector< loco_t::id_t> ids;
+  //loco_t::id_t button(fan_init_struct(
+  //  loco_t::button_t::properties_t,
+  //  .position = 0,
+  //  .size = 0.1,
+  //  .theme = &theme,
+  //  .camera = &pile->camera,
+  //  .viewport = &pile->viewport
+  //));
 
-    for (uint32_t i = 0; i < 3; ++i) {
-      ids.push_back(fan_init_struct(
-        loco_t::button_t::properties_t,
-        .position = fan::random::vec2(-1, 1),
-        .size = 0.1,
-        .theme = &theme,
-        .camera = &pile->camera,
-        .viewport = &pile->viewport
-      ));
-    }
-  }
-  
+  loco_t::text_t::properties_t rp;
+  rp.position = 0;
+  rp.color = fan::colors::white;
+  rp.font_size = 0.1;
+  rp.camera = &pile->camera;
+  rp.viewport = &pile->viewport;
+  rp.text = "testi";
+
+  loco_t::id_t text;
+  text = rp;
+
+  fan::print(text.get_position());
+
+  struct a_t {
+    int x;
+  };
+
+
+
+  //auto& l = [] {
+  //  int y = 0;
+  //  int& x = y;
+  //  return x;
+  //};
+
+  //  l();
+  //};
+  //return x;
 
   pile->loco.loop([&] {
-    //r3.set_position(pile->loco.get_mouse_position(pile->viewport));
-    //fan::print(r3.get_position());
+
     pile->loco.get_fps();
   });
 

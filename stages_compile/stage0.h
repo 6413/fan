@@ -1,6 +1,6 @@
 void open(auto& loco) {
   pile_t* l_pile = OFFSETLESS(&loco, pile_t, loco);
-  l_pile->stage_loader.get_id(this, "button_health")->set_text("some button");
+  l_pile->stage_loader.get_id(this, "button_health").set_text("some button");
 }
 
 void close(auto& loco){

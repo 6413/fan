@@ -114,7 +114,7 @@ while (off < f.size()) {
         //(loco_access)->push_back_input_hitbox((loco_t::vfi_t::shape_id_t*)&(loco_access)->cid_list[stage->cid_list.back().cid].cid, vfip);
         //(loco_access)->cid_list[stage->cid_list.back().cid].cid.shape_type = loco_t::shape_type_t::hitbox;
         //cid_map[std::make_pair(stage, "hitbox_" + data.id)] = stage->cid_list.back().cid;
-        assert(0);
+        fan::throw_error("hitbox not implemented");
         break;
       }
       default: {

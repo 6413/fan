@@ -1689,17 +1689,25 @@ public:
   fan_has_function_concept(set);
 
   #define fan_build_get(rt, name) \
+  fan_has_variable_struct(name); \
   fan_has_function_concept(get_##name); \
   rt shape_get_##name(loco_t::cid_t* cid) { \
     rt data; \
     types.iterate([&]<typename T>(auto shape_index, T shape) {\
       using shape_t = std::remove_pointer_t<std::remove_pointer_t<T>>; \
       if (shape_t::shape_type == cid->shape_type) {\
-        if constexpr (has_get_##name##_v<shape_t, loco_t::cid_t*, const rt&>) {\
+        if constexpr (has_get_instance_v<shape_t, loco_t::cid_t*>) { \
+          if constexpr(has_##name##_v<typename shape_t::properties_t>) {\
+            data = (*shape)->get_instance(cid).name; \
+          }\
+        }\
+        else if constexpr (has_get_##name##_v<shape_t, loco_t::cid_t*>) {\
           data = (*shape)->get_##name(cid);\
         }\
         else if constexpr (has_get_v<shape_t, loco_t::cid_t*, decltype(&comma_dummy_t::member_pointer)>) {\
-          data = (*shape)->get(cid, &shape_t::vi_t::name);\
+          if constexpr(has_##name##_v<typename shape_t::properties_t>) {\
+            data = (*shape)->get(cid, &shape_t::vi_t::name); \
+          }\
         }\
       }\
     });\
@@ -1709,11 +1717,14 @@ public:
   #define fan_build_set(rt, name) \
   make_global_function(set_##name,\
     if constexpr (has_set_##name##_v<shape_t, loco_t::cid_t*, const rt&>) { \
-      (*shape)->set_##name(cid, data); \
+      if constexpr(has_##name##_v<typename shape_t::properties_t>) {\
+        (*shape)->set_##name(cid, data); \
+      } \
     } \
     else if constexpr (has_set_v<shape_t, loco_t::cid_t*, decltype(&comma_dummy_t::member_pointer), void*>) { \
-      if constexpr(fan_has_variable(typename shape_t::vi_t, name)) \
+      if constexpr(has_##name##_v<typename shape_t::properties_t>) {\
         (*shape)->set(cid, &shape_t::vi_t::name, data); \
+      }\
     }, \
     cid_t* cid, \
     const auto& data \
@@ -1722,14 +1733,17 @@ public:
   fan_has_function_concept(get_instance);
 
   #define fan_build_get_generic(rt, name) \
+  fan_has_variable_struct(name); \
   fan_has_function_concept(get_##name); \
   rt shape_get_##name(loco_t::cid_t* cid) { \
     rt data; \
     types.iterate([&]<typename T>(auto shape_index, T shape) {\
       using shape_t = std::remove_pointer_t<std::remove_pointer_t<T>>; \
       if (shape_t::shape_type == cid->shape_type) {\
-        if constexpr (has_get_##name##_v<shape_t, loco_t::cid_t*, const rt&>) {\
-          data = (*shape)->get_##name(cid);\
+        if constexpr (has_get_##name##_v<shape_t, loco_t::cid_t*>) {\
+          if constexpr(has_##name##_v<typename shape_t::properties_t>) {\
+            data = (*shape)->get_##name(cid);\
+          }\
         } \
       }\
     });\
