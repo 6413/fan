@@ -38,12 +38,33 @@ typedef _CacheList_NodeReference_t _CacheID_t;
 
 typedef uint32_t _SegmentID_t;
 
+#pragma pack(push, 1)
+
+struct _SACHead_t{
+  uint8_t Sign;
+  uint16_t Checksum;
+  uint8_t ChannelAmount;
+  uint16_t BeginCut;
+  uint16_t EndCut;
+  uint32_t TotalSegments;
+};
+
+struct _SACSegment_t{
+  uint32_t Offset;
+  uint16_t Size;
+  _CacheID_t CacheID;
+};
+
+#pragma pack(pop)
+
 struct piece_t {
   uint8_t ChannelAmount;
   uint16_t BeginCut;
   uint32_t TotalSegments;
-  uint8_t *SACData;
   uint64_t FrameAmount;
+
+  _SACSegment_t *SACSegment;
+  uint8_t *SACData;
 
   uint64_t GetFrameAmount(){
     return FrameAmount - BeginCut;
@@ -66,25 +87,6 @@ struct piece_t {
 struct _DecoderHead_t{
   _CacheID_t CacheID;
 };
-
-#pragma pack(push, 1)
-
-struct _SACHead_t{
-  uint8_t Sign;
-  uint16_t Checksum;
-  uint8_t ChannelAmount;
-  uint16_t BeginCut;
-  uint16_t EndCut;
-  uint32_t TotalSegments;
-};
-
-struct _SACSegment_t{
-  uint32_t Offset;
-  uint16_t Size;
-  _CacheID_t CacheID;
-};
-
-#pragma pack(pop)
 
 struct PropertiesSoundPlay_t {
   uint32_t GroupID;

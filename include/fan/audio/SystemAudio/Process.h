@@ -94,7 +94,7 @@ _CacheID_t _GetCacheID(piece_t *piece, _SegmentID_t SegmentID){
   _CacheID_t clid = this->CacheList.GetNodeLast();
   auto Cache = &this->CacheList[clid];
   if(Cache->SegmentID != (_SegmentID_t)-1){
-    ((_SACSegment_t *)Cache->piece->SACData)[Cache->SegmentID].CacheID = _CacheList_gnric();
+    Cache->piece->SACSegment[Cache->SegmentID].CacheID = _CacheList_gnric();
     _DecoderID_t dlid = Cache->DecoderID;
     if(_DecoderList_inric(dlid) == false){
       _DecoderList_t *dl = &this->DecoderList[Cache->piece->ChannelAmount - 1];
@@ -105,7 +105,7 @@ _CacheID_t _GetCacheID(piece_t *piece, _SegmentID_t SegmentID){
   }
   Cache->piece = piece;
   Cache->SegmentID = SegmentID;
-  ((_SACSegment_t *)piece->SACData)[SegmentID].CacheID = clid;
+  piece->SACSegment[SegmentID].CacheID = clid;
   return clid;
 }
 
@@ -118,7 +118,7 @@ void _WarmUpDecoder(piece_t *piece, _SegmentID_t SegmentID, OpusDecoder *od){
   }
 
   while(fsid != SegmentID){
-    _SACSegment_t *SACSegment = &((_SACSegment_t *)piece->SACData)[fsid];
+    auto SACSegment = &piece->SACSegment[fsid];
 
     f32_t F2_20[_constants::Opus::SegmentFrameAmount20 * 5 * 2];
     sint32_t oerr = opus_decode_float(
@@ -142,7 +142,7 @@ _DecoderID_t _GetDecoderID(piece_t *piece, _SegmentID_t SegmentID){
   _DecoderList_t *DecoderList = &this->DecoderList[piece->ChannelAmount - 1];
 
   if(SegmentID != 0){
-    _CacheID_t pCacheID = ((_SACSegment_t *)piece->SACData)[SegmentID - 1].CacheID;
+    auto pCacheID = piece->SACSegment[SegmentID - 1].CacheID;
     if(_CacheList_inric(pCacheID) == false){
       auto pCache = &this->CacheList[pCacheID];
       _DecoderID_t DecoderID = pCache->DecoderID;
@@ -194,7 +194,7 @@ void _DecodeSegment(piece_t *piece, _SegmentID_t SegmentID){
 
   OpusDecoder *od = (OpusDecoder *)&((_DecoderHead_t *)(*DecoderList)[DecoderID])[1];
 
-  _SACSegment_t *SACSegment = &((_SACSegment_t *)piece->SACData)[SegmentID];
+  auto SACSegment = &piece->SACSegment[SegmentID];
 
   f32_t F2_20[_constants::Opus::SegmentFrameAmount20 * 5 * 2];
   sint32_t oerr = opus_decode_float(
@@ -218,7 +218,7 @@ void _GetFrames(piece_t *piece, uint64_t Offset, f32_t **FramePointer, uint32_t 
   Offset += piece->BeginCut;
   _SegmentID_t SegmentID = Offset / _constants::FrameCacheAmount;
   uint32_t PieceCacheMod = Offset % _constants::FrameCacheAmount;
-  _CacheID_t *CacheID = &((_SACSegment_t *)piece->SACData)[SegmentID].CacheID;
+  auto CacheID = &piece->SACSegment[SegmentID].CacheID;
   if(_CacheList_inric(*CacheID) == true){
     _DecodeSegment(piece, SegmentID);
   }
