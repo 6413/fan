@@ -25,16 +25,18 @@ loco_t::cid_nr_t::~cid_nr_t() {
 
 loco_t::cid_nr_t::cid_nr_t(const cid_nr_t& nr) {
   init();
+  (loco_access)->cid_list[*this].cid.shape_type = (loco_access)->cid_list[nr].cid.shape_type;
 }
 
 loco_t::cid_nr_t::cid_nr_t(cid_nr_t&& nr) {
   NRI = nr.NRI;
-  nr.invalidate();
+  nr.invalidate_soft();
 }
 
 loco_t::cid_nr_t& loco_t::cid_nr_t::operator=(const cid_nr_t& id) {
   if (this != &id) {
     init();
+    (loco_access)->cid_list[*this].cid.shape_type = (loco_access)->cid_list[id].cid.shape_type;
   }
   return *this;
 }
@@ -46,7 +48,7 @@ loco_t::cid_nr_t& loco_t::cid_nr_t::operator=(cid_nr_t&& id) {
     }
     NRI = id.NRI;
 
-    id.invalidate();
+    id.invalidate_soft();
   }
   return *this;
 }
@@ -58,6 +60,10 @@ void loco_t::cid_nr_t::init() {
 
 bool loco_t::cid_nr_t::is_invalid() {
   return cid_list_inric(*this);
+}
+
+void loco_t::cid_nr_t::invalidate_soft() {
+  *(base_t*)this = (loco_access)->cid_list.gnric();
 }
 
 void loco_t::cid_nr_t::invalidate() {
@@ -75,7 +81,6 @@ loco_t::id_t::id_t(const auto& properties) {
 
 inline loco_t::id_t::id_t(const id_t& id) : cid(id.cid) {
   (loco_access)->shape_get_properties(*(id_t*)&id, [&](const auto& properties) {
-    cid.init();
     (loco_access)->push_shape(*this, properties);
   });
 }

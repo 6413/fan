@@ -41,7 +41,7 @@ while (off < f.size()) {
           sp.image = &(loco_access)->default_texture;
         }
         else {
-          auto pd = texturepack->get_pixel_data(ti.pack_id);
+          auto& pd = texturepack->get_pixel_data(ti.pack_id);
           sp.image = &pd.image;
           sp.tc_position = ti.position / pd.image.size;
           sp.tc_size = ti.size / pd.image.size;
