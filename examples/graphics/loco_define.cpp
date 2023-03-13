@@ -222,18 +222,21 @@ int main() {
   //  .viewport = &pile->viewport
   //);
 
-  std::vector< loco_t::id_t> ids;
+  {
+    std::vector< loco_t::id_t> ids;
 
-  for (uint32_t i = 0; i < 3; ++i) {
-    ids.push_back(fan_init_struct(
-      loco_t::button_t::properties_t,
-      .position = fan::random::vec2(-1, 1),
-      .size = 0.1,
-      .theme = &theme,
-      .camera = &pile->camera,
-      .viewport = &pile->viewport
-    ));
+    for (uint32_t i = 0; i < 3; ++i) {
+      ids.push_back(fan_init_struct(
+        loco_t::button_t::properties_t,
+        .position = fan::random::vec2(-1, 1),
+        .size = 0.1,
+        .theme = &theme,
+        .camera = &pile->camera,
+        .viewport = &pile->viewport
+      ));
+    }
   }
+  
 
   pile->loco.loop([&] {
     //r3.set_position(pile->loco.get_mouse_position(pile->viewport));

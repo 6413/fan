@@ -816,7 +816,6 @@ public:
   struct cid_nr_t : cid_list_NodeReference_t {
 
     cid_nr_t() { *(cid_list_NodeReference_t*)this = cid_list_gnric(); }
-    ~cid_nr_t();
     using base_t = cid_list_NodeReference_t;
 
     cid_nr_t(const cid_nr_t&);

@@ -1,3 +1,12 @@
+
+#define _INCLUDE_TOKEN(p0, p1) <p0/p1>
+
+#ifndef FAN_INCLUDE_PATH
+#define FAN_INCLUDE_PATH C:/libs/fan/include
+#endif
+#define fan_debug 0
+#include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
+
 #include <type_traits>
 
 #include <iostream>
@@ -5,6 +14,7 @@
 
 #include <iostream>
 #include <type_traits>
+#include <variant>
 
 
 #define fan_create_id_declaration(rt, name, ...) rt name(__VA_ARGS__)
@@ -21,24 +31,61 @@
 #define make_definitions(...) __VA_ARGS__
 
 struct a_t {
-  void f() {
-
+  a_t() {
+    fan::print("a construct");
+  }
+  ~a_t() {
+    fan::print("a destruct");
   }
 };
-
 
 struct b_t {
   b_t() {
-    get_a().f();
+    fan::print("b construct");
   }
-  a_t& get_a();
+  ~b_t() {
+    fan::print("b destruct");
+  }
 };
-a_t a;
 
-a_t& b_t::get_a() {
-  return a;
-}
+struct e_t{
+  #define BLL_set_declare_NodeReference 1
+  #define BLL_set_declare_rest 0
+  #define BLL_set_BaseLibrary 1
+  #define BLL_set_prefix cid_list
+  #define BLL_set_type_node uint32_t
+  #define BLL_set_AreWeInsideStruct 1
+  #include _FAN_PATH(BLL/BLL.h)
+
+  #define BLL_set_CPP_ConstructDestruct
+  #define BLL_set_CPP_Node_ConstructDestruct
+  #define BLL_set_declare_NodeReference 0
+  #define BLL_set_declare_rest 1
+  #define BLL_set_BaseLibrary 1
+  #define BLL_set_prefix cid_list
+  #define BLL_set_type_node uint32_t
+  #define BLL_set_NodeData a_t a; b_t b; std::variant<a_t, b_t> var;
+  #define BLL_set_Link 1
+  #define BLL_set_AreWeInsideStruct 1
+  #include _FAN_PATH(BLL/BLL.h)
+};
+
+
+
+struct some_struct_t {
+  a_t a;
+  b_t b;
+  std::variant<a_t, b_t> var;
+};
 
 int main() {
-  a_t a;
+  e_t::cid_list_t cid_list;
+  auto nr = cid_list.NewNodeLast();
+  cid_list[nr].var = b_t();
+  cid_list.unlrec(nr);
+  fan::print("\n\n");
+  std::vector<some_struct_t> cd;
+  cd.resize(1);
+  cd[0].var = b_t();
+  cd.erase(cd.begin() + 0);
 }

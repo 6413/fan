@@ -21,7 +21,8 @@ while (off < f.size()) {
         bp.mouse_button_cb = [stage, i](const loco_t::mouse_button_data_t& d) {
           return (stage->*(stage->button_mouse_button_cb_table[i]))(d);
         };
-        auto it = stage->cid_list.NewNodeLast();
+        stage->cid_list.resize(stage->cid_list.size() + 1);
+        auto it = stage->cid_list.size() - 1;
         stage->cid_list[it] = bp;
         cid_map[std::make_pair(stage, "button_" + data.id)] = stage->cid_list[it].cid;
         break;
@@ -49,7 +50,8 @@ while (off < f.size()) {
         sp.camera = op.camera;
         sp.viewport = op.viewport;
 
-        auto it = stage->cid_list.NewNodeLast();
+        stage->cid_list.resize(stage->cid_list.size() + 1);
+        auto it = stage->cid_list.size() - 1;
         stage->cid_list[it] = sp;
         cid_map[std::make_pair(stage, "sprite_" + data.id)] = stage->cid_list[it].cid;
         break;
@@ -68,7 +70,8 @@ while (off < f.size()) {
         p.font_size = data.size;
         p.text = data.text;
 
-        auto it = stage->cid_list.NewNodeLast();
+        stage->cid_list.resize(stage->cid_list.size() + 1);
+        auto it = stage->cid_list.size() - 1;
         stage->cid_list[it] = p;
         cid_map[std::make_pair(stage, "text_" + data.id)] = stage->cid_list[it].cid;
         break;
