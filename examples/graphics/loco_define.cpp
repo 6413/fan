@@ -1,5 +1,6 @@
 // Creates window, opengl context and renders a rectangle
 
+
 #define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 
 #ifndef FAN_INCLUDE_PATH
@@ -185,41 +186,54 @@ int main() {
   pile->loco.rectangle.erase(&cc);*/
 
 
-  loco_t::id_t r2(
-    fan_init_struct(
+  //loco_t::id_t r2(
+  //  fan_init_struct(
+  //    loco_t::button_t::properties_t,
+  //    .position = fan::vec2(0, 0),
+  //    .size = 0.1,
+  //    .theme = &theme,
+  //    .camera = &pile->camera,
+  //    .viewport = &pile->viewport
+  //  )
+  //);
+
+  //r2 = fan_init_struct(
+  //  loco_t::sprite_t::properties_t,
+  //  .position = fan::vec2(0, 0),
+  //  .size = 0.2,
+  //  .image = &image,
+  //  .camera = &pile->camera,
+  //  .viewport = &pile->viewport
+  //);
+
+
+  //loco_t::id_t r3 = r2;
+  //
+  ////r3.set_position(0);
+
+  //r2.erase();
+
+  //r3 = fan_init_struct(
+  //  loco_t::button_t::properties_t,
+  //  .position = fan::vec2(0, 0),
+  //  .size = 0.1,
+  //  .theme = &theme,
+  //  .camera = &pile->camera,
+  //  .viewport = &pile->viewport
+  //);
+
+  std::vector< loco_t::id_t> ids;
+
+  for (uint32_t i = 0; i < 3; ++i) {
+    ids.push_back(fan_init_struct(
       loco_t::button_t::properties_t,
-      .position = fan::vec2(0, 0),
+      .position = fan::random::vec2(-1, 1),
       .size = 0.1,
       .theme = &theme,
       .camera = &pile->camera,
       .viewport = &pile->viewport
-    )
-  );
-
-  r2 = fan_init_struct(
-    loco_t::sprite_t::properties_t,
-    .position = fan::vec2(0, 0),
-    .size = 0.2,
-    .image = &image,
-    .camera = &pile->camera,
-    .viewport = &pile->viewport
-  );
-
-
-  loco_t::id_t r3 = r2;
-  
-  //r3.set_position(0);
-
-  r2.erase();
-
-  r3 = fan_init_struct(
-    loco_t::button_t::properties_t,
-    .position = fan::vec2(0, 0),
-    .size = 0.1,
-    .theme = &theme,
-    .camera = &pile->camera,
-    .viewport = &pile->viewport
-  );
+    ));
+  }
 
   pile->loco.loop([&] {
     //r3.set_position(pile->loco.get_mouse_position(pile->viewport));

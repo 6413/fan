@@ -809,6 +809,7 @@ public:
     #define BLL_set_NodeData fan::graphics::cid_t cid;
     #define BLL_set_Link 1
     #define BLL_set_StoreFormat 1
+    #define BLL_set_Mark 1
     #include _FAN_PATH(BLL/BLL.h)
 public:
 
@@ -827,6 +828,7 @@ public:
     void init();
     bool is_invalid();
     void invalidate();
+    void invalidate_soft();
   };
 
   cid_list_t cid_list;

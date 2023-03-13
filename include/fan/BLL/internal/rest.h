@@ -169,8 +169,11 @@ BLL_StructBegin(_P(t))
     _P(NodeReference_t) c;
     BLL_set_type_node p;
   }e;
-  #if BLL_set_SafeNext
+  #if BLL_set_SafeNext == 1
     _P(NodeReference_t) SafeNext;
+  #elif BLL_set_SafeNext > 1
+    uint8_t SafeNextCount;
+    _P(NodeReference_t) SafeNext[BLL_set_SafeNext];
   #endif
 #if BLL_set_Language == 0
   BLL_StructEnd(_P(t))
@@ -351,11 +354,9 @@ _BLL_POFTWBIT(GetNodeByReference)
   #endif
 ){
   #if BLL_set_debug_InvalidAction == 1
-    #if BLL_set_StoreFormat == 0
-      if(NodeReference >= _BLL_GetList->NodeList.Current){
-        fan::throw_error("");
-      }
-    #endif
+    if(NodeReference >= _BLL_GetList->NodeList.Current){
+      PR_abort();
+    }
   #endif
   #if defined(BLL_set_MultipleType_Sizes)
     _P(Node_t) *Node = _BLL_POFTWBIT(_GetNodeByReference)(_BLL_PBLLTFFC NodeReference, PointerIndex);
@@ -375,7 +376,7 @@ _BLL_POFTWBIT(GetNodeByReference)
         }
       #endif
       if(_BLL_POFTWBIT(IsNodeUnlinked)(_BLL_PBLLTFFC Node)){
-        fan::throw_error("");
+        PR_abort();
       }
     }while(0);
   #endif
@@ -620,7 +621,7 @@ _BLL_POFTWBIT(NewNode)
     _BLL_POFTWBIT(_gln)(_BLL_PBLLTFFC NodeReference)->PrevNodeReference = dstNodeReference;
     _BLL_POFTWBIT(_gln)(_BLL_PBLLTFFC dstNodeReference)->NextNodeReference = NodeReference;
     #if BLL_set_debug_InvalidAction == 1
-      //_BLL_POFTWBIT(_gln)(_BLL_PBLLTFFC dstNodeReference)->PrevNodeReference = 0;
+      _BLL_POFTWBIT(_gln)(_BLL_PBLLTFFC dstNodeReference)->PrevNodeReference = 0;
     #endif
     _BLL_GetList->dst = NodeReference;
     _BLL_POFTWBIT(_Node_Construct)(_BLL_PBLLTFFC dstNodeReference);
@@ -637,7 +638,7 @@ _BLL_POFTWBIT(NewNode)
     _BLL_POFTWBIT(_gln)(_BLL_PBLLTFFC NodeReference)->PrevNodeReference = dstNodeReference;
     _BLL_POFTWBIT(_gln)(_BLL_PBLLTFFC dstNodeReference)->NextNodeReference = NodeReference;
     #if BLL_set_debug_InvalidAction == 1
-      //_BLL_POFTWBIT(_gln)(_BLL_PBLLTFFC dstNodeReference)->PrevNodeReference = 0;
+      _BLL_POFTWBIT(_gln)(_BLL_PBLLTFFC dstNodeReference)->PrevNodeReference = 0;
     #endif
     _BLL_GetList->dst = NodeReference;
     _BLL_POFTWBIT(_Node_Construct)(_BLL_PBLLTFFC dstNodeReference);
@@ -717,21 +718,27 @@ _BLL_POFTWBIT(NewNode)
   ){
     #if BLL_set_debug_InvalidAction >= 1
       if(NodeReference == _BLL_GetList->src){
-        fan::throw_error("");
+        PR_abort();
       }
       if(NodeReference == _BLL_GetList->dst){
-        fan::throw_error("");
+        PR_abort();
       }
     #endif
     _P(Node_t) *Node = _BLL_POFTWBIT(gln)(_BLL_PBLLTFFC NodeReference);
     #if BLL_set_debug_InvalidAction >= 1
       if(_BLL_POFTWBIT(IsNodeUnlinked)(_BLL_PBLLTFFC Node)){
-        fan::throw_error("");
+        PR_abort();
       }
     #endif
-    #if BLL_set_SafeNext
+    #if BLL_set_SafeNext == 1
       if(_BLL_GetList->SafeNext == NodeReference){
         _BLL_GetList->SafeNext = Node->PrevNodeReference;
+      }
+    #elif BLL_set_SafeNext > 1
+      for(uint8_t i = 0; i < _BLL_GetList->SafeNextCount; i++){
+        if(_BLL_GetList->SafeNext[i] == NodeReference){
+          _BLL_GetList->SafeNext[i] = Node->PrevNodeReference;
+        }
       }
     #endif
     _P(NodeReference_t) nextNodeReference = Node->NextNodeReference;
@@ -873,8 +880,10 @@ _BLL_POFTWBIT(Open)
   #endif
   _BLL_POFTWBIT(_AfterInitNodes)(_BLL_PBLLTFF);
 
-  #if BLL_set_SafeNext
+  #if BLL_set_SafeNext == 1
     _BLL_GetList->SafeNext.NRI = (BLL_set_type_node)-1;
+  #elif BLL_set_SafeNext > 1
+    _BLL_GetList->SafeNextCount = 0;
   #endif
 }
 _BLL_SOFTWBIT
@@ -960,7 +969,7 @@ _BLL_POFTWBIT(Clear) /* TODO those 2 numbers in this function needs to be flexib
   }
 #endif
 
-#if BLL_set_SafeNext
+#if BLL_set_SafeNext != 0
   _BLL_SOFTWBIT
   void
   _BLL_POFTWBIT(StartSafeNext)
@@ -969,11 +978,21 @@ _BLL_POFTWBIT(Clear) /* TODO those 2 numbers in this function needs to be flexib
     _P(NodeReference_t) NodeReference
   ){
     #if BLL_set_debug_InvalidAction == 1
-      if(_BLL_GetList->SafeNext.NRI != (BLL_set_type_node)-1){
-        PR_abort();
-      }
+      #if BLL_set_SafeNext == 1
+        if(_BLL_GetList->SafeNext.NRI != (BLL_set_type_node)-1){
+          PR_abort();
+        }
+      #else
+        if(_BLL_GetList->SafeNextCount == BLL_set_SafeNext){
+          PR_abort();
+        }
+      #endif
     #endif
-    _BLL_GetList->SafeNext = NodeReference;
+    #if BLL_set_SafeNext == 1
+      _BLL_GetList->SafeNext = NodeReference;
+    #else
+      _BLL_GetList->SafeNext[_BLL_GetList->SafeNextCount++] = NodeReference;
+    #endif
   }
   _BLL_SOFTWBIT
   _P(NodeReference_t)
@@ -982,16 +1001,53 @@ _BLL_POFTWBIT(Clear) /* TODO those 2 numbers in this function needs to be flexib
     _BLL_DBLLTFF
   ){
     #if BLL_set_debug_InvalidAction == 1
-      if(_BLL_GetList->SafeNext.NRI == (BLL_set_type_node)-1){
-        PR_abort();
-      }
+      #if BLL_set_SafeNext == 1
+        if(_BLL_GetList->SafeNext.NRI == (BLL_set_type_node)-1){
+          PR_abort();
+        }
+      #else
+        if(_BLL_GetList->SafeNextCount == 0){
+          PR_abort();
+        }
+      #endif
+    #endif
+    _P(NodeReference_t) nr;
+    #if BLL_set_SafeNext == 1
+      nr = _BLL_GetList->SafeNext;
+      _BLL_GetList->SafeNext.NRI = (BLL_set_type_node)-1;
+    #else
+      nr = _BLL_GetList->SafeNext[--_BLL_GetList->SafeNextCount];
     #endif
     _P(Node_t) *Node = _BLL_POFTWBIT(GetNodeByReference)(
       _BLL_PBLLTFFC
-      _BLL_GetList->SafeNext
+      nr
     );
-    _BLL_GetList->SafeNext.NRI = (BLL_set_type_node)-1;
     return Node->NextNodeReference;
+  }
+  _BLL_SOFTWBIT
+  _P(NodeReference_t)
+  _BLL_POFTWBIT(CheckSafeNext)
+  (
+    _BLL_DBLLTFFC
+    uint8_t Depth
+  ){
+    ++Depth;
+    #if BLL_set_debug_InvalidAction == 1
+      #if BLL_set_SafeNext == 1
+        if(Depth != 1){
+          PR_abort();
+        }
+      #else
+        if(Depth > _BLL_GetList->SafeNextCount){
+          PR_abort();
+        }
+      #endif
+    #endif
+    #if BLL_set_SafeNext == 1
+      return _BLL_GetList->SafeNext;
+    #else
+      return _BLL_GetList->SafeNext[_BLL_GetList->SafeNextCount - Depth];
+    #endif
   }
 #endif
 
@@ -1050,9 +1106,9 @@ _BLL_POFTWBIT(GetNodeReferenceData)
       #endif
     ){
       Open(
-      #if !defined(_BLL_HaveConstantNodeData) && !defined(BLL_set_MultipleType_Sizes)
-        NodeDataSize
-      #endif
+        #if !defined(_BLL_HaveConstantNodeData) && !defined(BLL_set_MultipleType_Sizes)
+          NodeDataSize
+        #endif
       );
     }
     ~_P(t)(
