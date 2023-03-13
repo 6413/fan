@@ -130,40 +130,41 @@ struct text_renderer_t {
       advance += letter_info.metrics.advance;
       //left += letter_info.metrics.advance;
     }
-    *cid = *(fan::opengl::cid_t*)&id;
+    cid->bm_id = id;
+    cid->shape_type = loco_t::shape_type_t::text;
   }
 
   void erase(fan::graphics::cid_t* cid) {
     loco_t* loco = get_loco();
-    auto it = letter_ids[*(uint32_t*)cid].cid_list.GetNodeFirst();
+    auto it = letter_ids[cid->bm_id].cid_list.GetNodeFirst();
 
-    while (it != letter_ids[*(uint32_t*)cid].cid_list.dst) {
-      auto node = letter_ids[*(uint32_t*)cid].cid_list.GetNodeByReference(it);
+    while (it != letter_ids[cid->bm_id].cid_list.dst) {
+      auto node = letter_ids[cid->bm_id].cid_list.GetNodeByReference(it);
       loco->letter.erase(&node->data.cid);
 
       it = node->NextNodeReference;
     }
-    letter_ids[*(uint32_t*)cid].cid_list.Close();
-    *(uint32_t*)&letter_ids[*(uint32_t*)cid] = e.id0;
-    e.id0 = *(uint32_t*)cid;
+    letter_ids[cid->bm_id].cid_list.Close();
+    *(uint32_t*)&letter_ids[cid->bm_id] = e.id0;
+    e.id0 = cid->bm_id;
     e.amount++;
   }
 
   //template <typename T>
   //T get(fan::graphics::cid_t* cid, T loco_t::letter_t::vi_t::*member) {
   //  loco_t* loco = get_loco();
-  //  return loco->letter.get(*(uint32_t*)cid, member); // ?
+  //  return loco->letter.get(cid->bm_id, member); // ?
   //}
   // do not use with set_position
   void set(fan::graphics::cid_t* cid, auto member, auto value) {
     loco_t* loco = get_loco();
     
-    letter_ids[*(uint32_t*)cid].p.*member = value;
+    letter_ids[cid->bm_id].p.*member = value;
 
-    auto it = letter_ids[*(uint32_t*)cid].cid_list.GetNodeFirst();
+    auto it = letter_ids[cid->bm_id].cid_list.GetNodeFirst();
 
-    while (it != letter_ids[*(uint32_t*)cid].cid_list.dst) {
-      auto node = letter_ids[*(uint32_t*)cid].cid_list.GetNodeByReference(it);
+    while (it != letter_ids[cid->bm_id].cid_list.dst) {
+      auto node = letter_ids[cid->bm_id].cid_list.GetNodeByReference(it);
       loco->letter.set(&node->data.cid, member, value);
       it = node->NextNodeReference;
     }
@@ -172,10 +173,10 @@ struct text_renderer_t {
   void set_camera(fan::graphics::cid_t* cid, loco_t::camera_list_NodeReference_t n) {
     loco_t* loco = get_loco();
 
-    auto it = letter_ids[*(uint32_t*)cid].cid_list.GetNodeFirst();
+    auto it = letter_ids[cid->bm_id].cid_list.GetNodeFirst();
 
-    while (it != letter_ids[*(uint32_t*)cid].cid_list.dst) {
-      auto node = letter_ids[*(uint32_t*)cid].cid_list.GetNodeByReference(it);
+    while (it != letter_ids[cid->bm_id].cid_list.dst) {
+      auto node = letter_ids[cid->bm_id].cid_list.GetNodeByReference(it);
       loco->letter.set_camera(&node->data.cid, n);
       it = node->NextNodeReference;
     }
@@ -184,10 +185,10 @@ struct text_renderer_t {
   void set_viewport(fan::graphics::cid_t* cid, fan::graphics::viewport_list_NodeReference_t n) {
     loco_t* loco = get_loco();
 
-    auto it = letter_ids[*(uint32_t*)cid].cid_list.GetNodeFirst();
+    auto it = letter_ids[cid->bm_id].cid_list.GetNodeFirst();
 
-    while (it != letter_ids[*(uint32_t*)cid].cid_list.dst) {
-      auto node = letter_ids[*(uint32_t*)cid].cid_list.GetNodeByReference(it);
+    while (it != letter_ids[cid->bm_id].cid_list.dst) {
+      auto node = letter_ids[cid->bm_id].cid_list.GetNodeByReference(it);
       loco->letter.set_viewport(&node->data.cid, n);
       it = node->NextNodeReference;
     }
@@ -196,10 +197,10 @@ struct text_renderer_t {
   void set_depth(fan::graphics::cid_t* cid, f32_t depth) {
     loco_t* loco = get_loco();
 
-    auto it = letter_ids[*(uint32_t*)cid].cid_list.GetNodeFirst();
+    auto it = letter_ids[cid->bm_id].cid_list.GetNodeFirst();
 
-    while (it != letter_ids[*(uint32_t*)cid].cid_list.dst) {
-      auto node = letter_ids[*(uint32_t*)cid].cid_list.GetNodeByReference(it);
+    while (it != letter_ids[cid->bm_id].cid_list.dst) {
+      auto node = letter_ids[cid->bm_id].cid_list.GetNodeByReference(it);
       loco->letter.sb_set_depth(&node->data.cid, depth);
       it = node->NextNodeReference;
     }
@@ -220,23 +221,23 @@ struct text_renderer_t {
 
   f32_t get_font_size(fan::graphics::cid_t* cid) {
     auto loco = get_loco();
-    auto it = letter_ids[*(uint32_t*)cid].cid_list.GetNodeFirst();
-    auto node = letter_ids[*(uint32_t*)cid].cid_list.GetNodeByReference(it);
+    auto it = letter_ids[cid->bm_id].cid_list.GetNodeFirst();
+    auto node = letter_ids[cid->bm_id].cid_list.GetNodeByReference(it);
     return loco->letter.sb_get_ri(&node->data.cid).font_size;
   }
 
   auto get_camera(fan::graphics::cid_t* cid) {
     auto loco = get_loco();
-    auto it = letter_ids[*(uint32_t*)cid].cid_list.GetNodeFirst();
-    auto node = letter_ids[*(uint32_t*)cid].cid_list.GetNodeByReference(it);
+    auto it = letter_ids[cid->bm_id].cid_list.GetNodeFirst();
+    auto node = letter_ids[cid->bm_id].cid_list.GetNodeByReference(it);
     return loco->letter.get_camera(&node->data.cid);
   }
 
   properties_t &get_instance(fan::graphics::cid_t* cid) {
-    return letter_ids[*(uint32_t*)cid].p;
+    return letter_ids[cid->bm_id].p;
   }
   void set_text(fan::graphics::cid_t* cid, const fan::string& text) {
-    properties_t& p = letter_ids[*(uint32_t*)cid].p;
+    properties_t& p = letter_ids[cid->bm_id].p;
     erase(cid);
     p.text = text;
 
@@ -244,14 +245,14 @@ struct text_renderer_t {
   }
 
   void set_position(fan::graphics::cid_t* cid, const fan::vec3& position) {
-    properties_t& p = letter_ids[*(uint32_t*)cid].p;
+    properties_t& p = letter_ids[cid->bm_id].p;
     erase(cid);
     p.position = position;
     push_back(cid, p);
   }
 
   void set_font_size(fan::graphics::cid_t* cid, f32_t font_size) {
-    properties_t& p = letter_ids[*(uint32_t*)cid].p;
+    properties_t& p = letter_ids[cid->bm_id].p;
     erase(cid);
     p.font_size = font_size;
     push_back(cid, p);
@@ -259,7 +260,7 @@ struct text_renderer_t {
 
 
   properties_t get_properties(loco_t::cid_t* cid) {
-    return letter_ids[*(uint32_t*)cid].p;
+    return letter_ids[cid->bm_id].p;
   }
 
   struct{

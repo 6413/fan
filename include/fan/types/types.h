@@ -571,12 +571,28 @@ namespace fan {
   template <typename C, typename Ret, typename... Args>
   struct has_function<C, Ret(Args...), std::void_t<decltype(std::declval<C>().operator()(std::declval<Args>()...))>> : std::is_convertible<decltype(std::declval<C>().operator()(std::declval<Args>()...)), Ret>::type {};
 
-  #define fan_has_variable(type, var_name) [](type p = type())constexpr{ return requires{p.var_name;}; }()
+
+
+  //#define fan_has_variable(type, var_name) [&](type p = type())constexpr{ return requires{p.var_name;}; }()
 
   //template <typename T>
   //constexpr bool has_variable() {
 
   //}
+  #define fan_has_variable_struct(var_name) \
+  template <typename T> \
+  struct CONCAT(has_,var_name) { \
+    template <typename U> \
+    static auto test(int) -> decltype(std::declval<U>().var_name, std::true_type()); \
+ \
+    template <typename> \
+    static auto test(...) -> std::false_type; \
+ \
+    static constexpr bool value = decltype(test<T>(0))::value; \
+  }; \
+  template <typename U> \
+  static constexpr bool CONCAT(CONCAT(has_,var_name), _v) = CONCAT(has_, var_name)<U>::value;
+
 
   #define fan_has_function_concept(func_name) \
    template<typename U, typename... Args> \

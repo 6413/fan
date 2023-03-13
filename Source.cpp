@@ -70,22 +70,17 @@ struct e_t{
   #include _FAN_PATH(BLL/BLL.h)
 };
 
+struct a_t {
 
-
-struct some_struct_t {
-  a_t a;
-  b_t b;
-  std::variant<a_t, b_t> var;
 };
 
+fan_has_variable_struct(x);
+
 int main() {
-  e_t::cid_list_t cid_list;
-  auto nr = cid_list.NewNodeLast();
-  cid_list[nr].var = b_t();
-  cid_list.unlrec(nr);
-  fan::print("\n\n");
-  std::vector<some_struct_t> cd;
-  cd.resize(1);
-  cd[0].var = b_t();
-  cd.erase(cd.begin() + 0);
+
+  if constexpr (has_x<a_t>::value) {
+    return 1;
+  }
+
+  return 0;
 }
