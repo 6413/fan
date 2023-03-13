@@ -57,6 +57,11 @@ struct _SACSegment_t{
 
 #pragma pack(pop)
 
+struct PieceFlag{
+  using t = uint32_t;
+  static constexpr t nonsimu = 0x00000001;
+};
+
 struct piece_t {
   uint8_t ChannelAmount;
   uint16_t BeginCut;
@@ -65,6 +70,21 @@ struct piece_t {
 
   _SACSegment_t *SACSegment;
   uint8_t *SACData;
+
+  enum class StoreType_t : uint8_t{
+    normal,
+    nonsimu
+  }StoreType;
+  union{
+    struct{
+
+    }normal;
+    struct{
+      /* file offset % page size */
+      uintptr_t m;
+
+    }nonsimu;
+  }StoreData;
 
   uint64_t GetFrameAmount(){
     return FrameAmount - BeginCut;

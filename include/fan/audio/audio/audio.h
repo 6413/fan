@@ -6,6 +6,7 @@ using _SACHead_t = system_audio_t::_SACHead_t;
 using _SACSegment_t = system_audio_t::_SACSegment_t;
 using _Message_t = system_audio_t::_Message_t;
 using _MessageType_t = system_audio_t::_MessageType_t;
+using PieceFlag = system_audio_t::PieceFlag;
 
 system_audio_t *system_audio;
 
@@ -16,11 +17,7 @@ void unbind(){
 
 }
 
-struct PieceFlag{
-  static constexpr uint32_t nonsimu = 0x00000001;
-};
-
-sint32_t Open(piece_t *piece, FS_file_t *file, uint32_t Flag){
+sint32_t Open(piece_t *piece, FS_file_t *file, PieceFlag::t Flag){
   IO_fd_t file_fd;
   FS_file_getfd(file, &file_fd);
 
@@ -72,15 +69,29 @@ sint32_t Open(piece_t *piece, FS_file_t *file, uint32_t Flag){
     IO_off_t TotalFileSize; TotalFileSize = IO_stat_GetSizeInBytes(&s);
     IO_off_t FileIsAt; FileIsAt = sizeof(_SACHead_t) + SACHead.TotalSegments;
 
-    if(Flag & PieceFlag::nonsimu){
+    uint64_t LeftSize; LeftSize = TotalFileSize - FileIsAt;
+    if(TotalOfSACSegmentSizes != LeftSize){
+      err = -1;
+      goto gt_r1;
+    }
 
+    if(Flag & PieceFlag::nonsimu){
+      piece->StoreType = piece_t::StoreType_t::nonsimu;
+      piece->StoreData.nonsimu.m = FileIsAt % PAGE_SIZE;
+
+      uintptr_t MapAt = FileIsAt - piece->StoreData.nonsimu.m;
+      uint64_t MapLeftSize = TotalFileSize - MapAt;
+
+      sintptr_t ptr = IO_mmap(NULL, MapLeftSize, PROT_READ, MAP_SHARED, file_fd.fd, MapAt);
+      printf("pointer is %ld %lu %lu\n", ptr, FileIsAt, MapLeftSize);
+      if(ptr < 0){
+        PR_abort();
+      }
+      piece->SACData = (uint8_t *)(ptr + piece->StoreData.nonsimu.m);
     }
     else{
-      uint64_t LeftSize = TotalFileSize - FileIsAt;
-      if(TotalOfSACSegmentSizes != LeftSize){
-        err = -1;
-        goto gt_r1;
-      }
+      piece->StoreType = piece_t::StoreType_t::normal;
+
       piece->SACData = A_resize(0, LeftSize);
       if(FS_file_read(file, piece->SACData, LeftSize) != LeftSize){
         A_resize(piece->SACData, 0);
