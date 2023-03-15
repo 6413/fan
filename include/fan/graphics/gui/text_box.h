@@ -255,7 +255,7 @@ struct text_box_t {
     cursor = fan_init_struct(
       loco_t::rectangle_t::properties_t,
       .position.z = tp.position.z + 1,
-      .size = cursor_properties::size,
+      .size = cursor_properties::size * (loco->get_camera_view_size(*p.camera) / 2),
       .size.y = p.font_size,
       .camera = p.camera,
       .viewport = p.viewport,
@@ -277,8 +277,15 @@ struct text_box_t {
     auto& ri = sb_get_ri(cid);
     wed_t::CursorInformation_t ci;
     auto& fed = ri.fed;
+    cursor.set_camera(get_properties(cid).camera);
+    cursor.set_viewport(get_properties(cid).viewport);
     fed.m_wed.GetCursorInformation(fed.m_cr, &ci);
-    fan::vec3 p = cursor.get_position();
+    fan::vec3 p = get_properties(cid).position;
+    p.z += 1;
+
+    ri.fed.set_font_size(ci.FreeStyle.LineReference, get_properties(cid).font_size);
+    // set_font_size invalidates ci so need to refetch it
+    fed.m_wed.GetCursorInformation(fed.m_cr, &ci);
     switch (ci.type) {
       case wed_t::CursorType::FreeStyle: {
         uint32_t line_index = fed.m_wed.GetLineIndexByLineReference(ci.FreeStyle.LineReference);
@@ -386,7 +393,7 @@ struct text_box_t {
   void set_position(fan::graphics::cid_t* cid, const fan::vec3& position) {
     loco_t* loco = get_loco();
     auto& ri = sb_get_ri(cid);
-    loco->text.set_position(&ri.text_id, position + fan::vec3(0, 0, 0.5));
+    loco->text.set_position(&ri.text_id, position + fan::vec3(0, 0, 1));
     set_button(cid, &vi_t::position, position);
     loco->vfi.set_rectangle(
       ri.vfi_id,
@@ -474,14 +481,15 @@ struct text_box_t {
         return center;
       }
     }
-
+    //fan::print(width);
     fan::vec3 p = get_text_left_position(cid);
     const fan::string& text = loco->text.get_instance(id).text;
-    f32_t font_size = loco->text.letter_ids[cid->bm_id].p.font_size;
+    f32_t font_size = get_properties(cid).font_size;
+    fan::string measured_string;
     for (uint32_t i = 0; i < width; ++i) {
-      auto letter = loco->font.info.get_letter_info(text.get_utf8(i), font_size);
-      p.x += letter.metrics.advance;
+      measured_string += text.get_utf8(i);
     }
+    p.x += loco->text.get_text_size(measured_string, font_size).x;
     p.y = get_button(cid, &text_box_t::vi_t::position).y;
     return p;
   }
@@ -529,6 +537,24 @@ struct text_box_t {
     if (ri.vfi_id == get_loco()->vfi.get_focus_text()) {
       get_loco()->vfi.invalidate_focus_text();
     }
+  }
+
+  // dont edit values
+  loco_t::text_t::properties_t& get_text_instance(fan::graphics::cid_t* cid) {
+    loco_t* loco = get_loco();
+    auto& ri = sb_get_ri(cid);
+    return loco->text.get_instance(&ri.text_id);
+  }
+
+  // can be incomplete
+  properties_t get_properties(loco_t::cid_t* cid) {
+    properties_t p = sb_get_properties(cid);
+    p.camera = get_loco()->camera_list[*p.key.get_value<loco_t::camera_list_NodeReference_t>()].camera_id;
+    //p.theme =  get_loco()->get_context()->theme_list[*p.key.get_values<loco_t::t>()].matrices_id;
+    p.viewport = get_loco()->get_context()->viewport_list[*p.key.get_value<fan::graphics::viewport_list_NodeReference_t>()].viewport_id;
+    p.position = get_text_instance(cid).position;
+    p.text = get_text_instance(cid).text;
+    return p;
   }
 
   #if defined(loco_vulkan)
