@@ -12,6 +12,9 @@
 #ifdef BLL_set_node_data
   #error outdated setting. use BLL_set_NodeData
 #endif
+#ifdef BLL_set_IsNodeUnlinked
+  #error outdated setting. now there is only BLL_set_IsNodeRecycled
+#endif
 
 /* --- outdated --- */
 
@@ -66,11 +69,11 @@
 #ifndef BLL_set_debug_InvalidAction
   #define BLL_set_debug_InvalidAction 0
 #endif
-#ifndef BLL_set_IsNodeUnlinked
+#ifndef BLL_set_IsNodeRecycled
   #if BLL_set_debug_InvalidAction == 1
-    #define BLL_set_IsNodeUnlinked 1
+    #define BLL_set_IsNodeRecycled 1
   #else
-    #define BLL_set_IsNodeUnlinked 0
+    #define BLL_set_IsNodeRecycled 0
   #endif
 #endif
 #ifndef BLL_set_SafeNext
@@ -103,14 +106,14 @@
   #if BLL_set_SafeNext != 0
     #error SafeNext is not possible when there is not linking.
   #endif
-  #if BLL_set_IsNodeUnlinked != 0
-    #error (IsNodeUnlinked != 0) is not available with (Link == 0) yet.
+  #if BLL_set_IsNodeRecycled != 0
+    #error (IsNodeRecycled != 0) is not available with (Link == 0) yet.
   #endif
 #endif
 
 #if BLL_set_debug_InvalidAction == 1
-  #if BLL_set_IsNodeUnlinked == 0
-    #error BLL_set_IsNodeUnlinked cant be 0 when BLL_set_debug_InvalidAction is 1
+  #if BLL_set_IsNodeRecycled == 0
+    #error BLL_set_IsNodeRecycled cant be 0 when BLL_set_debug_InvalidAction is 1
   #endif
   #ifndef BLL_set_debug_InvalidAction_srcAccess
     #define BLL_set_debug_InvalidAction_srcAccess 1
@@ -124,12 +127,6 @@
   #endif
   #ifndef BLL_set_debug_InvalidAction_dstAccess
     #define BLL_set_debug_InvalidAction_dstAccess 0
-  #endif
-#endif
-
-#if BLL_set_IsNodeUnlinked == 1
-  #if BLL_set_Link == 0
-    #error ?
   #endif
 #endif
 
@@ -196,7 +193,7 @@
 #undef BLL_set_UseUninitialisedValues
 #undef BLL_set_ResizeListAfterClear
 #undef BLL_set_SafeNext
-#undef BLL_set_IsNodeUnlinked
+#undef BLL_set_IsNodeRecycled
 #undef BLL_set_debug_InvalidAction
 #undef BLL_set_PreferNextFirst
 #undef BLL_set_declare_rest
