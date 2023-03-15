@@ -126,6 +126,13 @@ struct button_t {
         auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[get_fgm()->properties_nrs[3]];
         instance->id = pile->loco.text_box.get_text(&it.cid);
 
+        auto stage_name = get_fgm()->get_stage_maker()->get_selected_name(
+          get_fgm()->get_stage_maker()->instances[stage_maker_t::stage_t::stage_instance].menu_id
+        );
+        auto file_name = get_fgm()->get_stage_maker()->get_file_fullpath(stage_name);
+
+        write_stage_functions(get_fgm(), this, file_name, stage_name, "button", button_t::cb_names);
+
         return 0;
       };
       get_fgm()->properties_nrs.push_back(get_fgm()->text_box_menu.push_back(nr, p));

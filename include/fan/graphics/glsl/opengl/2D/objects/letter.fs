@@ -33,11 +33,11 @@ void main() {
 
 
   float distance = texture(_t00, texture_coordinate).r;
-  float smoothing = 1.0 / (log(render_size * 100) * 2);
-  float width = 0.2;
+  float smoothing = 1.0 / (render_size * 100 * 2);
+  float width = 0.1;
   float alpha = smoothstep(width, width + smoothing, distance);
 
-  float border_width = 0.3;
+  float border_width = 0.1;
   float border_edge =  0.5;
 
   float outline_alpha = smoothstep(border_width, border_width + border_edge, distance);

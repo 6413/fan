@@ -10,7 +10,7 @@
 
 //#define loco_vulkan
 
-#define loco_framebuffer
+#define loco_no_inline
 
 #define loco_window
 #define loco_context
@@ -21,13 +21,13 @@
 
 struct pile_t {
 
-  void open() {
+  pile_t() {
     fan::vec2 window_size = loco.get_window()->get_size();
     fan::vec2 ratio = window_size / window_size.max();
     loco.open_camera(
       &camera,
-      fan::vec2(-1, 1),
-      fan::vec2(-1, 1)
+      fan::vec2(0, 800),
+      fan::vec2(0, 800)
     );
     loco.get_window()->add_resize_callback([&](const fan::window_t::resize_cb_data_t& d) {
       fan::vec2 window_size = d.window->get_size();
@@ -49,21 +49,23 @@ struct pile_t {
   fan::graphics::viewport_t viewport;
 };
 
+pile_t* pile = new pile_t;
+
+#define loco_access &pile->loco
+#include _FAN_PATH(graphics/loco_define.h)
+
 int main() {
 
-  pile_t pile;
-  pile.open();
-
   loco_t::button_t::properties_t tp;
-  tp.camera = &pile.camera;
+  tp.camera = &pile->camera;
 
-  tp.viewport = &pile.viewport;
+  tp.viewport = &pile->viewport;
  // tp.position = 400;
   tp.position = fan::vec3(0, 0, 0);
   //tp.position.y = 0;
  // tp.position.z = 50;
-  tp.font_size = 0.1;
-  tp.size = fan::vec2(0.3, 0.1);
+  tp.font_size = 32;
+  tp.size = fan::vec2(300, 100);
   tp.text = "$€ fan";
   //tp.font_size = 32;
   tp.mouse_move_cb = [] (const loco_t::mouse_move_data_t& mm_d) -> int {
@@ -80,14 +82,12 @@ int main() {
     return 0;
   };
 
-  loco_t::theme_t theme(pile.loco.get_context(), loco_t::themes::deep_red());
+  loco_t::theme_t theme(pile->loco.get_context(), loco_t::themes::deep_red());
   tp.theme = &theme;
-  constexpr auto count = 10;
-  fan::graphics::cid_t cids[count];
-  pile.loco.button.push_back(&cids[0], tp);
-  //pile.loco.get_context()->opengl.glPolygonMode(fan::opengl::GL_FRONT_AND_BACK, fan::opengl::GL_LINE);
-  pile.loco.loop([&] {
-
+  loco_t::id_t button = tp;
+  
+  pile->loco.loop([&] {
+    button.set_position(pile->loco.get_mouse_position());
   });
 
   return 0;

@@ -51,17 +51,17 @@ struct text_renderer_t {
       auto letter = loco->font.info.get_letter_info(text.get_utf8(i), font_size);
 
       //auto p = letter_info.metrics.offset.x + letter_info.metrics.size.x / 2 + letter_info.metrics.offset.x;
-
-      text_size.x += letter.metrics.size.x + letter.metrics.offset.x;
-      if (i + 1 != text.size()) {
-        text_size.x += letter.metrics.offset.x;
-      }
+      text_size.x += letter.metrics.advance;
+      //text_size.x += letter.metrics.size.x + letter.metrics.offset.x;
+      //if (i + 1 != text.size()) {
+      //  text_size.x += letter.metrics.offset.x;
+      //}
     }
 
     return text_size;
   }
-  fan::vec2 get_text_size(fan::graphics::cid_t* id) {
-    return get_text_size(letter_ids[*(uint32_t*)id].p.text, letter_ids[*(uint32_t*)id].p.font_size);
+  fan::vec2 get_text_size(fan::graphics::cid_t* cid) {
+    return get_text_size(letter_ids[cid->bm_id].p.text, letter_ids[cid->bm_id].p.font_size);
    /* loco_t* loco = get_loco();
     fan::vec2 text_size = 0;
 
@@ -110,15 +110,10 @@ struct text_renderer_t {
     for (uint32_t i = 0; i < properties.text.utf8_size(); i++) {
       p.letter_id = properties.text.get_utf8(i);
       auto letter_info = loco->font.info.get_letter_info(p.letter_id, properties.font_size);
-
-      //uint8_t t = properties.text[i];
-      //properties.text[i] = 0;
       p.position = fan::vec2(
         left + advance + letter_info.metrics.size.x / 2,
         properties.position.y + (properties.font_size - letter_info.metrics.size.y) / 2 - letter_info.metrics.offset.y
       );
-      //fan::print(letter_info.metrics.size.x, letter_info.metrics.offset.x, left, get_text_size(&properties.text[0], properties.font_size).x, p.position.x);
-      //properties.text[i] = t;
       p.position.z = properties.position.z;
 
       /*if (i == 0) {
