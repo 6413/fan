@@ -313,6 +313,9 @@ void _DataCallback(f32_t *Output) {
           if(PlayInfoList.IsNRSentienel(nr) == true){
             break;
           }
+          if(PlayInfoList.IsNodeReferenceRecycled(nr) == true){
+            break;
+          }
           auto &node = PlayInfoList[nr];
           if(node.unique != SoundPlayID.unique){
             break;
