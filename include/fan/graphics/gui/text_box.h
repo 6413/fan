@@ -254,7 +254,7 @@ struct text_box_t {
 
     cursor = fan_init_struct(
       loco_t::rectangle_t::properties_t,
-      .position.z = tp.position.z,
+      .position.z = tp.position.z + 1,
       .size = cursor_properties::size,
       .size.y = p.font_size,
       .camera = p.camera,
@@ -286,7 +286,7 @@ struct text_box_t {
           ci.FreeStyle.LineReference,
           ci.FreeStyle.CharacterReference
         );
-        p = get_character_position(cid, line_index, character_index);
+        p = fan::vec3(*(fan::vec2*)&get_character_position(cid, line_index, character_index), p.z);
         break;
       }
       case wed_t::CursorType::Selection: {
@@ -477,7 +477,7 @@ struct text_box_t {
 
     fan::vec3 p = get_text_left_position(cid);
     const fan::string& text = loco->text.get_instance(id).text;
-    f32_t font_size = loco->text.letter_ids[*(uint32_t*)id].p.font_size;
+    f32_t font_size = loco->text.letter_ids[cid->bm_id].p.font_size;
     for (uint32_t i = 0; i < width; ++i) {
       auto letter = loco->font.info.get_letter_info(text.get_utf8(i), font_size);
       p.x += letter.metrics.advance;

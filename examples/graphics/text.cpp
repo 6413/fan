@@ -1,5 +1,3 @@
-// Creates window, opengl context and renders a rectangle
-
 #define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 
 #define FAN_INCLUDE_PATH C:/libs/fan/include
@@ -11,11 +9,10 @@
 #define loco_window
 #define loco_context
 
+#define loco_no_inline
 #define loco_letter
 #define loco_text
 #include _FAN_PATH(graphics/loco.h)
-
-constexpr uint32_t count = 1;
 
 struct pile_t {
 
@@ -45,38 +42,32 @@ struct pile_t {
   loco_t loco;
   loco_t::camera_t camera;
   fan::graphics::viewport_t viewport;
-  fan::graphics::cid_t cid[count];
 };
+
+pile_t* pile = new pile_t;
+
+#define loco_access &pile->loco
+#include _FAN_PATH(graphics/loco_define.h)
 
 int main() {
 
-  pile_t* pile = new pile_t;
-
   loco_t::text_t::properties_t p;
+
+  p.position = 0;
 
   p.camera = &pile->camera;
   p.viewport = &pile->viewport;
 
   p.font_size = 0.05;
   p.text = "01234";
-  for (uint32_t i = 0; i < count; i++) {
-    if (!i) {
-      p.color = fan::colors::red;
-    }
-    else {
-      p.color = fan::colors::white;
-    }
-    p.position = fan::random::vec2(-1, 1);
-    //p.text = fan::random::string(5);
-    
-    pile->loco.text.push_back(&pile->cid[i], p);
-  }
-  pile->loco.text.erase(&pile->cid[0]);
-  p.text = "56789";
-  pile->loco.text.push_back(&pile->cid[0], p);
-  pile->loco.text.set_text(&pile->cid[0], "56789");
+  p.color = fan::colors::white;
 
-  pile->loco.text.set(&pile->cid[0], &loco_t::text_t::vi_t::color, fan::color(1, 0, 0, 0.3));
+  loco_t::id_t text0 = p;
+  text0.erase();
+  p.text = "56789";
+  loco_t::id_t text1 = p;
+  text1.set_text("56789");
+  text1.set_color(fan::color(1, 0, 0, 0.7));
 
   pile->loco.set_vsync(false);
 

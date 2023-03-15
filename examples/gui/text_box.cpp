@@ -11,7 +11,7 @@
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
 //#define loco_vulkan
-
+#define loco_no_inline
 #define loco_window
 #define loco_context
 
@@ -55,13 +55,17 @@ struct pile_t {
   fan::graphics::viewport_t viewport;
 };
 
+
+pile_t* pile = new pile_t;
+
+#define loco_access &pile->loco
+#include _FAN_PATH(graphics/loco_define.h)
+
 int main() {
 
-  pile_t pile;
-
   loco_t::text_box_t::properties_t tp;
-  tp.camera = &pile.camera;
-  tp.viewport = &pile.viewport;
+  tp.camera = &pile->camera;
+  tp.viewport = &pile->viewport;
   // tp.position = 400;
   tp.position = fan::vec2(-0.2);
   //tp.position.y = 0;
@@ -83,23 +87,28 @@ int main() {
      }*/
     return 0;
   };
-  loco_t::theme_t gray_theme = loco_t::themes::deep_red();
-  gray_theme.open(pile.loco.get_context());
+  loco_t::theme_t gray_theme = loco_t::themes::gray();
+  gray_theme.open(pile->loco.get_context());
+  gray_theme.button.text_color.r /= 1.1;
+  gray_theme.button.text_color.g /= 1.1;
+  gray_theme.button.text_color.b /= 1.1;
+  //((loco_t::theme_t*)pile->loco.get_context()->theme_list[gray_theme.theme_reference].theme_id)->
+  
   tp.theme = &gray_theme;
   constexpr auto count = 10;
   fan::graphics::cid_t cids[count];
-  pile.loco.text_box.push_back(&cids[0], tp);
+  pile->loco.text_box.push_back(&cids[0], tp);
   tp.position = fan::vec2(0.2);
   tp.text = "test";
-  pile.loco.text_box.push_back(&cids[1], tp);
+  pile->loco.text_box.push_back(&cids[1], tp);
 
-  //pile.loco.button.set_theme(&cids[0], &gray_theme, 0.1);
+  //pile->loco.button.set_theme(&cids[0], &gray_theme, 0.1);
 
-  pile.loco.set_vsync(false);
+  pile->loco.set_vsync(false);
 
-  pile.loco.loop([&] {
-    pile.loco.get_fps();
-    //pile.loco.button.set(&cids[0], &loco_t::button_t::instance_t::position, fan::vec2(-0.5, .5));
+  pile->loco.loop([&] {
+    pile->loco.get_fps();
+    //pile->loco.button.set(&cids[0], &loco_t::button_t::instance_t::position, fan::vec2(-0.5, .5));
   });
 
   return 0;

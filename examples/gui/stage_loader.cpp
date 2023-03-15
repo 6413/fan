@@ -89,8 +89,6 @@ int main(int argc, char** argv) {
 	op.viewport = &pile->viewport;
 	op.theme = &pile->theme;
 
-	//auto nr = pile->stage_loader.push_and_open_stage<sl::stage::stage0_t>(&pile->loco, op);
-
   auto it = pile->stage_loader.push_and_open_stage<sl::stage::stage0_t>(op);
   
 	pile->loco.loop([&] {
