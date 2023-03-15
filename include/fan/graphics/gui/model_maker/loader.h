@@ -202,7 +202,7 @@ public:
         }
         }, i.second.type);
     }
-
+    //set_position(nr, mp.position);
     return nr;
   }
   void erase(model_id_t id, uint32_t group_id) {

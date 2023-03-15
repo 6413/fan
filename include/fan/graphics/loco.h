@@ -877,6 +877,9 @@ public:
     fan_create_get_set_define(fan::color, color);
     fan_create_get_set_define(f32_t, angle);
     fan_create_get_set_define(fan::string, text);
+
+    fan_create_set_define(loco_t::camera_list_NodeReference_t, camera);
+    fan_create_set_define(fan::graphics::viewport_list_NodeReference_t, viewport);
   };
   #endif
 
@@ -1771,6 +1774,9 @@ public:
   fan_build_get_set(fan::color, color);
   fan_build_get_set(f32_t, angle);
 
+  fan_build_get_set_generic(loco_t::camera_list_NodeReference_t, camera);
+  fan_build_get_set_generic(fan::graphics::viewport_list_NodeReference_t, viewport);
+
   fan_build_get_set_generic(fan::string, text);
 
   fan_has_function_concept(sb_set_depth);
@@ -1814,6 +1820,13 @@ public:
   template <typename T>
   T* get_shape() {
     return *types.get_value<T*>();
+  }
+
+  fan::vec2 get_camera_view_size(loco_t::camera_t camera) {
+    return fan::vec2(
+      camera.coordinates.right - camera.coordinates.left,
+      camera.coordinates.down - camera.coordinates.up
+    );
   }
 
   #undef make_global_function

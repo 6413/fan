@@ -19,83 +19,16 @@ struct pile_t;
 #define loco_button
 #include _FAN_PATH(graphics/loco.h)
 
-struct pile_t {
-  loco_t loco;
+std::variant<int, char, double, bool, std::string> v;
 
-  static constexpr fan::vec2 ortho_x = fan::vec2(-1, 1);
-  static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
-
-  pile_t() {
-    fan::vec2 window_size = loco.get_window()->get_size();
-    loco.open_camera(
-      &camera,
-      ortho_x,
-      ortho_y
-    );
-    loco.get_window()->add_resize_callback([&](const fan::window_t::resize_cb_data_t& d) {
-      fan::vec2 window_size = d.size;
-      // keep aspect ratio
-      fan::vec2 ratio = window_size / window_size.max();
-      camera.set_ortho(
-        &loco,
-        ortho_x * ratio.x,
-        ortho_y * ratio.y
-      );
-      viewport.set(loco.get_context(), 0, window_size, window_size);
-      });
-    viewport.open(loco.get_context());
-    viewport.set(loco.get_context(), 0, window_size, window_size);
-    theme = loco_t::themes::gray();
-    theme.open(loco.get_context());
-  }
-
-  ~pile_t() {
-
-  }
-
-  loco_t::theme_t theme;
-  loco_t::camera_t camera;
-  fan::graphics::viewport_t viewport;
-
-  #define loco_access &OFFSETLESS(this, pile_t, stage_loader)->loco
-  #define stage_loader_path .
-  #include _FAN_PATH(graphics/gui/stage_maker/loader.h)
-  stage_loader_t stage_loader;
-  const char* path[2];
-  const char* context[2];
-};
-
-pile_t* pile = new pile_t;
-
-#define loco_access &pile->loco
-#include _FAN_PATH(graphics/loco_define.h)
+template<typename... Ts>
+auto getValue(std::variant<Ts...>& v)
+{
+  using R = std::common_type_t<decltype(Ts::x)...>;
+  return std::visit([](auto& obj) {return static_cast<R>(obj.x); }, v);
+}
 
 int main(int argc, char** argv) {
-  if (argc < 4) {
-    fan::throw_error("usage .exe path context path context");
-  }
 
-  pile->path[0] = argv[1];
-  pile->context[0] = argv[2];
-
-  pile->path[1] = argv[3];
-  pile->context[1] = argv[4];
-
-  loco_t::texturepack_t tp;
-  tp.open_compiled(&pile->loco, "TexturePack");
-  pile->stage_loader.open(&tp);
-
-  using sl = pile_t::stage_loader_t;
-
-  sl::stage_open_properties_t op;
-  op.camera = &pile->camera;
-  op.viewport = &pile->viewport;
-  op.theme = &pile->theme;
-
-  auto it = pile->stage_loader.push_and_open_stage<sl::stage::stage0_t>(op);
-
-  pile->loco.loop([&] {
-
-  });
-
+  //fan::print(typeid(k).name());
 }

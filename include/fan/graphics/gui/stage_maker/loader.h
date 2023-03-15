@@ -5,6 +5,7 @@
 #include _FAN_PATH(graphics/gui/fgm/common.h)
 
 struct stage_loader_t {
+
 protected:
   #define BLL_set_Link 1
   #define BLL_set_CPP_ConstructDestruct
@@ -15,12 +16,11 @@ protected:
   #define BLL_set_AreWeInsideStruct 1
   #define BLL_set_prefix stage_list
   #define BLL_set_type_node uint16_t
+  #define BLL_set_StoreFormat 1
   #define BLL_set_NodeData \
   loco_t::update_callback_nr_t update_nr; \
   fan::window_t::resize_callback_NodeReference_t resize_nr; \
   stage::variant_t stage;
-
-
   #include _FAN_PATH(BLL/BLL.h)
 public:
   using nr_t = stage_list_NodeReference_t;
@@ -35,6 +35,20 @@ public:
     uint32_t itToDepthMultiplier = 0x100;
   };
 
+protected:
+  #define BLL_set_CPP_ConstructDestruct
+  #define BLL_set_CPP_Node_ConstructDestruct
+  #define BLL_set_BaseLibrary 1
+  #define BLL_set_prefix cid_list
+  #define BLL_set_type_node uint32_t
+  #define BLL_set_NodeDataType loco_t::id_t
+  #define BLL_set_Link 1
+  #define BLL_set_AreWeInsideStruct 1
+  // for safety for getting reference to id_t in get_id()
+  #define BLL_set_StoreFormat 1
+  #include _FAN_PATH(BLL/BLL.h)
+public:
+
   template <typename T>
   struct stage_common_t_t {
 
@@ -47,27 +61,23 @@ public:
       T* stage = (T*)this;
       stage->close(*loco);
     }
-
+    ~stage_common_t_t() {
+      auto it = cid_list.GetNodeFirst();
+      while (it != cid_list.dst) {
+        std::destroy_at(&cid_list[it]);
+        it = it.Next(&cid_list);
+      }
+    }
 
     nr_t stage_id;
     uint32_t it;
 
-  protected:
-   /* #define BLL_set_CPP_ConstructDestruct
-    #define BLL_set_CPP_Node_ConstructDestruct
-    #define BLL_set_BaseLibrary 1
-    #define BLL_set_prefix cid_list
-    #define BLL_set_type_node uint32_t
-    #define BLL_set_NodeDataType loco_t::id_t
-    #define BLL_set_Link 1
-    #define BLL_set_AreWeInsideStruct 1
-    #include _FAN_PATH(BLL/BLL.h)*/
-  public:
-
-    std::vector<loco_t::id_t> cid_list;
+    cid_list_t cid_list;
 
     stage_loader_t::nr_t parent_id;
   };
+
+  using cid_nr_t = cid_list_NodeReference_t;
 
   #include _PATH_QUOTE(stage_loader_path/stages_compile/stage.h)
 
@@ -104,18 +114,22 @@ public:
     }
   };
 
-  using cid_map_t = std::unordered_map<key_t, loco_t::cid_nr_t, pair_hasher_t, pair_equal_t>;
+  // cid_list to bll and use bll nr as key to get 
+  // nr = newnodelast()
+  // list[nr] = p
+  // map[name] = nr
+  // in get_id
+  // return reference to list[map[name]]
+  using cid_map_t = std::unordered_map<key_t, cid_nr_t, pair_hasher_t, pair_equal_t>;
   cid_map_t cid_map;
 
-  loco_t::id_t get_id(void* stage_ptr, const fan::string id) {
+  loco_t::id_t& get_id(auto* stage_ptr, const fan::string id) {
     auto found = cid_map.find(std::make_pair(stage_ptr, id));
     if (found == cid_map.end()) {
-      return nullptr;
+      fan::throw_error("invalid fetch for id - usage shape_{id}", id);
     }
 
-    loco_t::id_t idt;
-    idt.cid = found->second;
-    return idt;
+    return stage_ptr->cid_list[found->second];
   }
 
 	void open(loco_t::texturepack_t* tp) {

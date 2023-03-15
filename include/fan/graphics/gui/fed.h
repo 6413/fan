@@ -37,11 +37,28 @@ struct fed_t {
     if (found == loco->font.info.characters.end()) {
       return;
     }
-
+    //m_wed.set
 		auto letter = loco->font.info.get_letter_info(character, m_font_size);
-
 		m_wed.AddCharacterToCursor(m_cr, character, letter.metrics.advance * character_width_multiplier);
 	}
+
+  void set_font_size(wed_t::LineReference_t line_id, f32_t font_size) {
+    
+    auto text = get_text(line_id);
+    clear_text(line_id);
+    m_font_size = font_size;
+    push_text(text);
+  }
+
+  void clear_text(wed_t::LineReference_t line_id) {
+    auto cursor_info = freestyle_get_cursor_position().FreeStyle;
+    freestyle_move_line_end();
+    auto text = get_text(line_id);
+    for (const auto& i : text) {
+      freestyle_erase_character();
+    }
+    //m_wed.
+  }
 
 	void freestyle_erase_character() {
 		m_wed.DeleteCharacterFromCursor(m_cr);
@@ -61,6 +78,12 @@ struct fed_t {
 	void freestyle_move_right() {
 		m_wed.MoveCursorFreeStyleToRight(m_cr);
 	}
+
+  wed_t::CursorInformation_t freestyle_get_cursor_position() {
+    wed_t::CursorInformation_t cursor_info;
+    m_wed.GetCursorInformation(m_cr, &cursor_info);
+    return cursor_info;
+  }
 
 	void set_mouse_position(const fan::vec2& src, const fan::vec2& dst) {
 		wed_t::LineReference_t FirstLineReference = m_wed.GetFirstLineID();

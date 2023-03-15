@@ -25,8 +25,8 @@ struct pile_t {
     fan::vec2 ratio = window_size / window_size.max();
     loco.open_camera(
       &camera,
-      fan::vec2(-1, 1) * ratio.x,
-      fan::vec2(-1, 1) * ratio.y
+      fan::vec2(0, 800) * ratio.x,
+      fan::vec2(0, 800) * ratio.y
     );
     loco.get_window()->add_resize_callback([&](const fan::window_t::resize_cb_data_t& d) {
       fan::vec2 window_size = d.window->get_size();
@@ -35,8 +35,8 @@ struct pile_t {
       //pile_t* pile = (pile_t*)userptr;
       camera.set_ortho(
         &loco,
-        fan::vec2(-1, 1) * ratio.x,
-        fan::vec2(-1, 1) * ratio.y
+        fan::vec2(0, 800) * ratio.x,
+        fan::vec2(0, 800) * ratio.y
       );
       viewport.set(loco.get_context(), 0, loco.get_window()->get_size(), loco.get_window()->get_size());
     });
@@ -67,13 +67,14 @@ int main() {
   tp.camera = &pile->camera;
   tp.viewport = &pile->viewport;
   // tp.position = 400;
-  tp.position = fan::vec2(-0.2);
+  tp.position = fan::vec2(200, 200);
   //tp.position.y = 0;
  // tp.position.z = 50;
-  tp.size = fan::vec2(0.3, 0.1)
+  tp.size = fan::vec2(300, 100)
     //* 300
     ;
   tp.text = "W||||W";
+  tp.font_size = 32;
   //tp.font_size = 32;
   tp.mouse_move_cb = [](const loco_t::mouse_move_data_t& mm_d) -> int {
     return 0;
@@ -98,7 +99,7 @@ int main() {
   constexpr auto count = 10;
   fan::graphics::cid_t cids[count];
   pile->loco.text_box.push_back(&cids[0], tp);
-  tp.position = fan::vec2(0.2);
+  tp.position = fan::vec2(600, 600);
   tp.text = "test";
   pile->loco.text_box.push_back(&cids[1], tp);
 
