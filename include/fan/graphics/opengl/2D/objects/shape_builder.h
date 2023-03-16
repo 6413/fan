@@ -45,10 +45,10 @@ protected:
 
   bll_block_t blocks;
 
-  #define BLL_set_CPP_Node_ConstructDestruct
   #define BLL_set_AreWeInsideStruct 1
   #define BLL_set_prefix shape_bm
   #define BLL_set_BaseLibrary 1
+  #define BLL_set_IsNodeRecycled 0
   #define BLL_set_Link 0
   #define BLL_set_type_node uint16_t
   #define BLL_set_NodeData \

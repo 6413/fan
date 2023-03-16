@@ -93,6 +93,7 @@ struct model_list_t {
       fan::vec3 position = 0;
       fan::vec2 size = 0;
       f32_t angle = 0;
+      fan::vec2 rotation_point = 0;
       fan::string id;
     };
 
@@ -202,7 +203,7 @@ public:
         }
         }, i.second.type);
     }
-    //set_position(nr, mp.position);
+    set_position(nr, mp.position);
     return nr;
   }
   void erase(model_id_t id, uint32_t group_id) {
@@ -262,8 +263,9 @@ public:
 
   void iterate_marks(model_id_t model_id, uint32_t group_id, auto lambda) {
     for (auto& i : m_model_list[model_id].cm.instances) {
-      std::visit([&]<typename T>(T && o) {
-        if constexpr (std::is_same_v<T, model_loader_t::mark_t>) {
+      std::visit([&](auto && o) {
+        //fan::print(typeid(T).name(), "\n", typeid(model_loader_t::mark_t).name());
+        if (std::is_same_v<std::remove_reference_t<decltype(o)>, model_loader_t::mark_t>) {
           if (o.group_id != group_id) {
             return;
           }
@@ -292,6 +294,9 @@ public:
 
   void set_position(model_id_t model_id, const fan::vec3& position) {
     iterate_cids(model_id, [&]<typename shape_t>(auto* shape, auto& object, auto& group_info) {
+      if (object.position.z != position.z) {
+        shape->sb_set_depth(object.cid.get(), m_model_list[model_id].position.z + object.position.z);
+      }
       shape->set(object.cid.get(), &shape_t::vi_t::position, position + object.position);
     });
     m_model_list[model_id].position = position;
@@ -329,7 +334,7 @@ public:
   void set_size(model_id_t model_id, const fan::vec2& size) {
     iterate_cids(model_id, [&]<typename shape_t>(auto * shape, auto & object, auto & group_info) {
       object.position *= size;
-      shape->set(object.cid.get(), &shape_t::vi_t::position, object.position);
+      shape->set(object.cid.get(), &shape_t::vi_t::position, m_model_list[model_id].position + object.position);
       shape->set(object.cid.get(), &shape_t::vi_t::size, size * object.size);
     });
     m_model_list[model_id].size = size;
@@ -364,13 +369,25 @@ public:
       // iterate per object in group x
       [&]<typename shape_t>(auto * shape, auto & object, auto & group_info) {
       shape->set(object.cid.get(), &shape_t::vi_t::angle, object.angle + angle);
-      shape->set(object.cid.get(), &shape_t::vi_t::rotation_point, 0);
+      shape->set(object.cid.get(), &shape_t::vi_t::rotation_point, object.rotation_point);
     },
       // iterate group
       [&](auto& model_info) {
       model_info.angle = angle;
     }
     );
+  }
+
+  void set_rotation_point(model_id_t model_id, uint32_t group_id, const fan::vec2& rotation_point) {
+    iterate_cids(model_id,
+      group_id,
+      // iterate per object in group x
+      [&]<typename shape_t>(auto * shape, auto & object, auto & group_info) {
+      object.rotation_point = rotation_point * m_model_list[model_id].size;
+
+      //                                                            might be wrong
+      shape->set(object.cid.get(), &shape_t::vi_t::rotation_point, object.rotation_point);
+    });
   }
 
   void rotate_sprite(model_id_t model_id, uint32_t group_id, f32_t angle) {
