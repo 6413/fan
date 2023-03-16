@@ -424,7 +424,7 @@ public:
     m_shader.set_int(loco->get_context(), "_t00", 0);
     m_shader.set_int(loco->get_context(), "_t01", 1);
     m_shader.set_int(loco->get_context(), "_t02", 2);
-    traverse_draw(root, draw_mode, lambda);
+    //traverse_draw(root, draw_mode, lambda);
   }
 
   properties_t sb_get_properties(fan::opengl::cid_t* cid) {
