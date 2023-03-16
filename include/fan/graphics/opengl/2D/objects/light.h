@@ -1,5 +1,7 @@
 struct sb_shape_name {
 
+  static constexpr typename loco_t::shape_type_t::_t shape_type = loco_t::shape_type_t::light;
+
   struct vi_t {
     loco_light_vi_t
   };
@@ -23,6 +25,7 @@ struct sb_shape_name {
     type& name = *key.get_value<decltype(key)::get_index_with_type<type>()>();
 
   struct properties_t : vi_t, ri_t {
+    using type_t = light_t;
     loco_light_properties_t
   };
 

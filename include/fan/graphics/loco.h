@@ -251,6 +251,7 @@ struct loco_t {
     static constexpr _t line = 4;
     static constexpr _t mark = 5;
     static constexpr _t rectangle = 6;
+    static constexpr _t light = 7;
   };
 
   struct draw_t {
@@ -877,6 +878,10 @@ public:
     fan_create_get_set_define(fan::color, color);
     fan_create_get_set_define(f32_t, angle);
     fan_create_get_set_define(fan::string, text);
+    fan_create_get_set_define(fan::vec2, rotation_point);
+    fan_create_get_set_define(f32_t, font_size);
+
+    fan_create_set_define(f32_t, depth);
 
     fan_create_set_define(loco_t::camera_list_NodeReference_t, camera);
     fan_create_set_define(fan::graphics::viewport_list_NodeReference_t, viewport);
@@ -1302,6 +1307,9 @@ public:
     #if defined(loco_text)
       *types.get_value<text_t*>() = &text;
     #endif
+    #if defined(loco_light)
+      *types.get_value<light_t*>() = &light;
+    #endif
   }
 
   #if defined(loco_vfi)
@@ -1624,7 +1632,7 @@ public:
     static constexpr typename loco_t::shape_type_t::_t shape_type = -1;
   };
 
-  // requires shape_type create to shape.h and init in constructor
+  // requires shape_type create to shape.h, init in constructor, add type_t to properties
   fan::masterpiece_t<
     comma_dummy_t*
     #if defined(loco_rectangle)
@@ -1638,6 +1646,9 @@ public:
     #endif
     #if defined(loco_text)
     , text_t*
+    #endif
+    #if defined(loco_light)
+    , light_t*
     #endif
   > types;
 
@@ -1773,7 +1784,9 @@ public:
   fan_build_get_set(fan::vec2, size);
   fan_build_get_set(fan::color, color);
   fan_build_get_set(f32_t, angle);
+  fan_build_get_set(fan::vec2, rotation_point);
 
+  fan_build_get_set_generic(f32_t, font_size);
   fan_build_get_set_generic(loco_t::camera_list_NodeReference_t, camera);
   fan_build_get_set_generic(fan::graphics::viewport_list_NodeReference_t, viewport);
 

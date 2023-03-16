@@ -1,5 +1,7 @@
 using Stage_t = stage2_t;
 
+game::pile_t::StageList_t::stage_loader_t::nr_t stage_hud_id;
+
 uint8_t KeyTable[0x100];
 uint8_t KeyTableIndex = 0;
 void key_add(uint8_t key){
@@ -686,6 +688,9 @@ void InitializeBCOL() {
 fan::graphics::cid_t LightCids[10];
 
 void open(auto& loco) {
+
+  stage_hud_id = game::pile->StageList.Add<game::pile_t::stage_hud_t>();
+
   engine::loco.vfi.set_focus_keyboard(*vfiBaseID);
 
   // game::pile->stage_data.sortie.image_light.create(&game::pile->engine.context, 0, 0); TODO
@@ -838,6 +843,8 @@ void close(auto& loco){
   engine::audio.StopGroup((uint32_t)game::SoundGroups_t::sortie);
 
   this->bcol.Close();
+
+  game::pile->StageList.Remove(stage_hud_id);
 }
 
 void window_resize_callback(auto& loco){
