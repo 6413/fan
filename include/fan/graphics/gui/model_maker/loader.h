@@ -89,7 +89,7 @@ struct model_list_t {
     struct id_t {
       using type_t = T;
       type_t internal_;
-      std::shared_ptr<loco_t::cid_t> cid;
+      loco_t::id_t shape;
       fan::vec3 position = 0;
       fan::vec2 size = 0;
       f32_t angle = 0;
@@ -211,19 +211,12 @@ public:
   }
   void erase(model_id_t id, uint32_t group_id) {
     auto& cids = m_model_list[id].groups[group_id].cids;
-    for (auto& i : cids) {
-      loco_var.shape_erase(i.cid.get());
-    }
     m_model_list[id].groups.erase(group_id);
   }
 
   void erase(model_id_t id) {
     auto& groups = m_model_list[id].groups;
     for (auto it = groups.begin(); it != groups.end(); ) {
-      auto& cids = it->second.cids;
-      for (auto& i : cids) {
-        loco_var.shape_erase(i.cid.get());
-      }
       it = groups.erase(it);
     }
   }
@@ -232,20 +225,26 @@ public:
   fan_has_variable_struct(rotation_point);
 
   template <typename T>
-  loco_t::cid_t* push_shape(model_id_t model_id, uint32_t group_id, const T& properties, const auto& internal_properties) {
+  void push_shape(model_id_t model_id, uint32_t group_id, const T& properties, const auto& internal_properties) {
     auto& cids = m_model_list[model_id].groups[group_id].cids;
     typename std::remove_reference_t<decltype(cids)>::value_type p;
     p.internal_ = (typename T::type_t*)0;
-    p.cid = std::make_shared<loco_t::cid_t>();
     p.position = properties.position;
-    p.size = properties.size;
+    if constexpr (std::is_same_v<T, loco_t::text_t::properties_t>) {
+      p.size = properties.font_size;
+    }
+    else {
+      p.size = properties.size;
+    }
+
     if constexpr (has_angle_v<T>) {
       p.angle = properties.angle;
     }
     p.id = internal_properties.id;
-    cids.emplace_back(p);
-    loco_var.push_shape(cids.back().cid.get(), properties);
-    return cids.back().cid.get();
+    p.shape = decltype(p.shape)();
+    p.shape.cid.init();
+    cids.push_back(p);
+    cids.back().shape = properties;
   }
 
   void iterate(model_id_t model_id, auto lambda) {
@@ -303,18 +302,18 @@ public:
   void set_position(model_id_t model_id, const fan::vec3& position) {
     iterate_cids(model_id, [&]<typename shape_t>(auto * shape, auto & object, auto & group_info) {
       if (object.position.z != position.z) {
-        shape->sb_set_depth(object.cid.get(), m_model_list[model_id].position.z + object.position.z);
+        object.shape.set_depth(m_model_list[model_id].position.z + object.position.z);
       }
-      shape->set(object.cid.get(), &shape_t::vi_t::position, position + object.position);
+      object.shape.set_position(position + object.position);
     });
     m_model_list[model_id].position = position;
   }
   void set_position(model_id_t model_id, const fan::vec2& position) {
     iterate_cids(model_id, [&]<typename shape_t>(auto * shape, auto & object, auto & group_info) {
       if (object.position.z != m_model_list[model_id].position.z) {
-        shape->sb_set_depth(object.cid.get(), m_model_list[model_id].position.z + object.position.z);
+        object.shape.set_depth(m_model_list[model_id].position.z + object.position.z);
       }
-      shape->set(object.cid.get(), &shape_t::vi_t::position, fan::vec3(position, m_model_list[model_id].position.z) + object.position);
+      object.shape.set_position(fan::vec3(position, m_model_list[model_id].position.z) + object.position);
     });
     m_model_list[model_id].position.x = position.x;
     m_model_list[model_id].position.y = position.y;
@@ -342,8 +341,13 @@ public:
   void set_size(model_id_t model_id, const fan::vec2& size) {
     iterate_cids(model_id, [&]<typename shape_t>(auto * shape, auto & object, auto & group_info) {
       object.position *= size;
-      shape->set(object.cid.get(), &shape_t::vi_t::position, m_model_list[model_id].position + object.position);
-      shape->set(object.cid.get(), &shape_t::vi_t::size, size * object.size);
+      object.shape.set_position(m_model_list[model_id].position + object.position);
+      if constexpr (std::is_same_v <shape_t, loco_t::text_t>) {
+        object.shape.set_font_size((size * object.size).x);
+      }
+      else {
+        object.shape.set_size(size * object.size);
+      }
     });
     m_model_list[model_id].size = size;
   }
@@ -353,12 +357,8 @@ public:
     iterate_cids(model_id,
       // iterate per object in group x
       [&]<typename shape_t>(auto * shape, auto & object, auto & group_info) {
-      if constexpr (has_angle_v<typename shape_t::vi_t>) {
-        shape->set(object.cid.get(), &shape_t::vi_t::angle, object.angle + angle);
-      }
-      if constexpr (has_rotation_point_v<typename shape_t::vi_t>) {
-        shape->set(object.cid.get(), &shape_t::vi_t::rotation_point, object.position);
-      }
+      object.shape.set_angle(object.angle + angle);
+      object.shape.set_rotation_point(object.position);
       /*fan::vec3 center = m_model_list[model_id].position;
        if (object.position == center + object.position) {
         return;
@@ -380,12 +380,8 @@ public:
       group_id,
       // iterate per object in group x
       [&]<typename shape_t>(auto * shape, auto & object, auto & group_info) {
-      if constexpr (has_angle_v<typename shape_t::vi_t>) {
-        shape->set(object.cid.get(), &shape_t::vi_t::angle, object.angle + angle);
-      }
-      if constexpr (has_rotation_point_v<typename shape_t::vi_t>) {
-        shape->set(object.cid.get(), &shape_t::vi_t::rotation_point, object.rotation_point);
-      }
+      object.shape.set_angle(object.angle + angle);
+      object.shape.set_rotation_point(object.rotation_point);
     },
       // iterate group
       [&](auto& model_info) {
@@ -400,11 +396,8 @@ public:
       // iterate per object in group x
       [&]<typename shape_t>(auto * shape, auto & object, auto & group_info) {
       object.rotation_point = rotation_point * m_model_list[model_id].size;
-
       //                                                            might be wrong
-      if constexpr (has_rotation_point_v<typename shape_t::vi_t>) {
-        shape->set(object.cid.get(), &shape_t::vi_t::rotation_point, object.rotation_point);
-      }
+      object.shape.set_rotation_point(object.rotation_point);
     });
   }
 
@@ -413,10 +406,9 @@ public:
       group_id,
       // iterate per object in group x
       [&]<typename shape_t>(auto * shape, auto & object, auto & group_info) {
-      fan::print(typeid(object).name());
       if constexpr (std::is_same_v<std::remove_reference_t<decltype(object)>, loco_t::sprite_t*>) {
-        shape->set(object.cid.get(), &shape_t::vi_t::rotation_point, 0);
-        shape->set(object.cid.get(), &shape_t::vi_t::angle, object.angle + angle);
+        object.shape.set_angle(object.angle + angle);
+        object.shape.set_rotation_point(0);
       }
     },
       // iterate group
