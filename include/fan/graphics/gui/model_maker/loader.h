@@ -251,7 +251,7 @@ public:
     for (auto& it2 : m_model_list[model_id].groups) {
       for (auto& i : it2.second.cids) {
         std::visit([&](auto&& o) {
-          lambda.template operator() < std::remove_reference_t<decltype(o)> > (it2.first, i.cid, i);
+          lambda.template operator() < std::remove_reference_t<decltype(o)> > (it2.first, i.shape, i);
           }, i.internal_);
       }
     }
