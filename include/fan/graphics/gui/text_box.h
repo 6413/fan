@@ -2,8 +2,8 @@ struct text_box_t {
 
   struct cursor_properties {
     static constexpr uint64_t speed = 5e+8;
-    static constexpr fan::vec2 size = fan::vec2(0.002, 0.015);
-    static constexpr fan::color color = fan::colors::white;
+    static constexpr fan::vec2 size = fan::vec2(0.0015, 0.015);
+    static constexpr fan::color color = fan::color(1, 1, 1, 0.8);
   };
 
   static constexpr f32_t released = 1.0;
@@ -283,7 +283,10 @@ struct text_box_t {
     fan::vec3 p = get_properties(cid).position;
     p.z += 1;
 
-    ri.fed.set_font_size(ci.FreeStyle.LineReference, get_properties(cid).font_size);
+    fan::graphics::cid_t* id = &sb_get_ri(cid).text_id;
+    f32_t font_size = loco->text.letter_ids[id->bm_id].p.font_size;
+
+    ri.fed.set_font_size(ci.FreeStyle.LineReference, font_size);
     // set_font_size invalidates ci so need to refetch it
     fed.m_wed.GetCursorInformation(fed.m_cr, &ci);
     switch (ci.type) {
@@ -303,6 +306,7 @@ struct text_box_t {
       }
     }
     cursor.set_position(p);
+    cursor.set_size(cursor_properties::size * (loco->get_camera_view_size(*get_properties(cid).camera) * 2));
     loco->ev_timer.stop(&timer);
     render_cursor = true;
     fan::ev_timer_t::cb_data_t d;
@@ -484,7 +488,7 @@ struct text_box_t {
     //fan::print(width);
     fan::vec3 p = get_text_left_position(cid);
     const fan::string& text = loco->text.get_instance(id).text;
-    f32_t font_size = get_properties(cid).font_size;
+    f32_t font_size = loco->text.letter_ids[id->bm_id].p.font_size;
     fan::string measured_string;
     for (uint32_t i = 0; i < width; ++i) {
       measured_string += text.get_utf8(i);

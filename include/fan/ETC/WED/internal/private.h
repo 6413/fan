@@ -61,7 +61,7 @@ void _MoveCursorFreeStyle(
   srcCharacter->CursorReference.sic();
   if(dstCharacter->CursorReference.iic() == false){
     /* there is already cursor what should we do? */
-    ETC_WED_set_Abort();
+    fan::throw_error("");
   }
   dstCharacter->CursorReference = CursorReference;
   Cursor->FreeStyle.LineReference = dstLineReference;
@@ -77,7 +77,7 @@ void _MoveCursor_NoCleaning(
 ){
   if(dstCharacter->CursorReference.iic() == false){
     /* there is already cursor what should we do? */
-    ETC_WED_set_Abort();
+    fan::throw_error("");
   }
   dstCharacter->CursorReference = CursorReference;
   *srcLineReference = dstLineReference;
@@ -121,7 +121,7 @@ void _MoveAllCursors(
   srcCharacter->CursorReference.sic();
   if(dstCharacter->CursorReference.iic() == false){
     /* there is already cursor what should we do? */
-    ETC_WED_set_Abort();
+    fan::throw_error("");
   }
   dstCharacter->CursorReference = CursorReference;
   Cursor_t *Cursor = &this->CursorList[CursorReference];
@@ -612,7 +612,7 @@ void _CursorConvertFreeStyleToSelection(
   Cursor->Selection.CharacterReference[1] = CharacterReference;
   if(Character->CursorReference.iic() == false){
     /* what will happen to cursor? */
-    ETC_WED_set_Abort();
+    fan::throw_error("");
   }
   Character->CursorReference = CursorReference;
 }

@@ -1824,8 +1824,8 @@ public:
 
   fan::vec2 get_camera_view_size(loco_t::camera_t camera) {
     return fan::vec2(
-      camera.coordinates.right - camera.coordinates.left,
-      camera.coordinates.down - camera.coordinates.up
+      std::abs(camera.coordinates.right) + std::abs(camera.coordinates.left),
+      std::abs(camera.coordinates.down) + std::abs(camera.coordinates.up)
     );
   }
 

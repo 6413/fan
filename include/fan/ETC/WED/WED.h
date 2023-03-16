@@ -19,11 +19,11 @@
 #endif
 
 #ifndef ETC_WED_set_Abort
-  #define ETC_WED_set_Abort() fan::assert_test(0)
+  #define ETC_WED_set_Abort() assert(0)
 #endif
 
 #ifndef ETC_WED_set_DataType
-  #define ETC_WED_set_DataType uint32_t
+  #define ETC_WED_set_DataType wchar_t
 #endif
 
 #if ETC_WED_set_BaseLibrary == 0

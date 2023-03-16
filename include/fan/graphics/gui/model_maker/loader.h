@@ -42,10 +42,10 @@ struct model_loader_t {
       for (uint32_t i = 0; i < instance_count; ++i) {
         d.iterate_masterpiece([&](auto& o) {
           o = fan::read_data<std::remove_reference_t<decltype(o)>>(f, offset);
-        });
+          });
         lambda(d);
       }
-    });
+      });
   }
 };
 
@@ -64,7 +64,7 @@ struct model_list_t {
       loco_t::texturepack_t::ti_t ti;
       loader.load(tp, path, [&](const auto& data) {
         instances[std::make_pair(data.group_id, data.id)].type = data;
-      });
+        });
     }
 
     using key_t = std::pair<uint32_t, std::string>;
@@ -106,6 +106,9 @@ struct model_list_t {
         #endif
         #if defined(loco_button)
         , loco_t::button_t*
+        #endif
+        #if defined(loco_text)
+        , loco_t::text_t*
         #endif
         >
         >> cids;
@@ -225,6 +228,9 @@ public:
     }
   }
 
+  fan_has_variable_struct(angle);
+  fan_has_variable_struct(rotation_point);
+
   template <typename T>
   loco_t::cid_t* push_shape(model_id_t model_id, uint32_t group_id, const T& properties, const auto& internal_properties) {
     auto& cids = m_model_list[model_id].groups[group_id].cids;
@@ -233,7 +239,9 @@ public:
     p.cid = std::make_shared<loco_t::cid_t>();
     p.position = properties.position;
     p.size = properties.size;
-    p.angle = properties.angle;
+    if constexpr (has_angle_v<T>) {
+      p.angle = properties.angle;
+    }
     p.id = internal_properties.id;
     cids.emplace_back(p);
     loco_var.push_shape(cids.back().cid.get(), properties);
@@ -244,7 +252,7 @@ public:
     for (auto& it2 : m_model_list[model_id].groups) {
       for (auto& i : it2.second.cids) {
         std::visit([&](auto&& o) {
-          lambda.template operator() < std::remove_reference_t<decltype(o)>>(it2.first, i.cid, i);
+          lambda.template operator() < std::remove_reference_t<decltype(o)> > (it2.first, i.cid, i);
           }, i.internal_);
       }
     }
@@ -256,14 +264,14 @@ public:
         if (o.group_id != group_id) {
           return;
         }
-        lambda.template operator()<std::remove_reference_t<decltype(o)>>(i.first, o);
+        lambda.template operator() < std::remove_reference_t<decltype(o)> > (i.first, o);
         }, i.second.type);
     }
   }
 
   void iterate_marks(model_id_t model_id, uint32_t group_id, auto lambda) {
     for (auto& i : m_model_list[model_id].cm.instances) {
-      std::visit([&](auto && o) {
+      std::visit([&](auto&& o) {
         //fan::print(typeid(T).name(), "\n", typeid(model_loader_t::mark_t).name());
         if (std::is_same_v<std::remove_reference_t<decltype(o)>, model_loader_t::mark_t>) {
           if (o.group_id != group_id) {
@@ -271,11 +279,11 @@ public:
           }
           lambda.template operator() < std::remove_reference_t<decltype(o)> > (i.first, o);
         }
-      }, i.second.type);
-      }
+        }, i.second.type);
+    }
   }
 
-  void iterate_cids(model_id_t model_id, auto lambda, fan::function_t<void(model_id_data_t::model_t&)> group_lambda = [](model_id_data_t::model_t&){}) {
+  void iterate_cids(model_id_t model_id, auto lambda, fan::function_t<void(model_id_data_t::model_t&)> group_lambda = [](model_id_data_t::model_t&) {}) {
     for (auto& it : m_model_list[model_id].groups) {
       iterate_cids(model_id, it.first, lambda, group_lambda);
     }
@@ -287,13 +295,13 @@ public:
       std::visit([&](auto&& o) {
         using shape_t = std::remove_pointer_t<std::remove_reference_t<decltype(o)>>;
         lambda.template operator() < shape_t > (loco_var.get_shape<shape_t>(), j, group);
-      }, j.internal_);
+        }, j.internal_);
     }
     group_lambda(group);
   }
 
   void set_position(model_id_t model_id, const fan::vec3& position) {
-    iterate_cids(model_id, [&]<typename shape_t>(auto* shape, auto& object, auto& group_info) {
+    iterate_cids(model_id, [&]<typename shape_t>(auto * shape, auto & object, auto & group_info) {
       if (object.position.z != position.z) {
         shape->sb_set_depth(object.cid.get(), m_model_list[model_id].position.z + object.position.z);
       }
@@ -302,7 +310,7 @@ public:
     m_model_list[model_id].position = position;
   }
   void set_position(model_id_t model_id, const fan::vec2& position) {
-    iterate_cids(model_id, [&]<typename shape_t>(auto* shape, auto& object, auto& group_info) {
+    iterate_cids(model_id, [&]<typename shape_t>(auto * shape, auto & object, auto & group_info) {
       if (object.position.z != m_model_list[model_id].position.z) {
         shape->sb_set_depth(object.cid.get(), m_model_list[model_id].position.z + object.position.z);
       }
@@ -322,7 +330,7 @@ public:
     fan::vec3 offset;
     std::visit([&](auto&& o) {
       offset = o.position;
-    }, found->second.type);
+      }, found->second.type);
 
     return offset;
   }
@@ -341,12 +349,16 @@ public:
   }
 
   void set_angle(model_id_t model_id, f32_t angle) {
-    
-    iterate_cids(model_id, 
+
+    iterate_cids(model_id,
       // iterate per object in group x
-    [&]<typename shape_t>(auto* shape, auto& object, auto& group_info) {
-      shape->set(object.cid.get(), &shape_t::vi_t::angle, object.angle + angle);
-      shape->set(object.cid.get(), &shape_t::vi_t::rotation_point, object.position);
+      [&]<typename shape_t>(auto * shape, auto & object, auto & group_info) {
+      if constexpr (has_angle_v<typename shape_t::vi_t>) {
+        shape->set(object.cid.get(), &shape_t::vi_t::angle, object.angle + angle);
+      }
+      if constexpr (has_rotation_point_v<typename shape_t::vi_t>) {
+        shape->set(object.cid.get(), &shape_t::vi_t::rotation_point, object.position);
+      }
       /*fan::vec3 center = m_model_list[model_id].position;
        if (object.position == center + object.position) {
         return;
@@ -357,10 +369,10 @@ public:
       double y_tire = center.y + r * sin(-angle);
       shape->set(object.cid.get(), &shape_t::vi_t::position, object.position + fan::vec2(x_tire, y_tire));*/
     },
-    // iterate group
-    [&](auto& model_info) {
-      model_info.angle = angle;
-    }
+      // iterate group
+      [&](auto& model_info) {
+        model_info.angle = angle;
+      }
     );
   }
   void set_angle(model_id_t model_id, uint32_t group_id, f32_t angle) {
@@ -368,13 +380,17 @@ public:
       group_id,
       // iterate per object in group x
       [&]<typename shape_t>(auto * shape, auto & object, auto & group_info) {
-      shape->set(object.cid.get(), &shape_t::vi_t::angle, object.angle + angle);
-      shape->set(object.cid.get(), &shape_t::vi_t::rotation_point, object.rotation_point);
+      if constexpr (has_angle_v<typename shape_t::vi_t>) {
+        shape->set(object.cid.get(), &shape_t::vi_t::angle, object.angle + angle);
+      }
+      if constexpr (has_rotation_point_v<typename shape_t::vi_t>) {
+        shape->set(object.cid.get(), &shape_t::vi_t::rotation_point, object.rotation_point);
+      }
     },
       // iterate group
       [&](auto& model_info) {
-      model_info.angle = angle;
-    }
+        model_info.angle = angle;
+      }
     );
   }
 
@@ -386,7 +402,9 @@ public:
       object.rotation_point = rotation_point * m_model_list[model_id].size;
 
       //                                                            might be wrong
-      shape->set(object.cid.get(), &shape_t::vi_t::rotation_point, object.rotation_point);
+      if constexpr (has_rotation_point_v<typename shape_t::vi_t>) {
+        shape->set(object.cid.get(), &shape_t::vi_t::rotation_point, object.rotation_point);
+      }
     });
   }
 
@@ -403,8 +421,8 @@ public:
     },
       // iterate group
       [&](auto& model_info) {
-      model_info.angle = angle;
-    }
+        model_info.angle = angle;
+      }
     );
   }
 
