@@ -61,13 +61,6 @@ public:
       T* stage = (T*)this;
       stage->close(*loco);
     }
-    ~stage_common_t_t() {
-      auto it = cid_list.GetNodeFirst();
-      while (it != cid_list.dst) {
-        std::destroy_at(&cid_list[it]);
-        it = it.Next(&cid_list);
-      }
-    }
 
     nr_t stage_id;
     uint32_t it;

@@ -70,7 +70,7 @@
   #define BLL_set_debug_InvalidAction 0
 #endif
 #ifndef BLL_set_IsNodeRecycled
-  #if BLL_set_debug_InvalidAction == 1
+  #if BLL_set_debug_InvalidAction == 1 || defined(BLL_set_CPP_Node_ConstructDestruct)
     #define BLL_set_IsNodeRecycled 1
   #else
     #define BLL_set_IsNodeRecycled 0
