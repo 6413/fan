@@ -189,7 +189,7 @@ struct text_renderer_t {
     }
   }
 
-  void set_depth(fan::graphics::cid_t* cid, f32_t depth) {
+  void sb_set_depth(fan::graphics::cid_t* cid, f32_t depth) {
     loco_t* loco = get_loco();
 
     auto it = letter_ids[cid->bm_id].cid_list.GetNodeFirst();
@@ -199,6 +199,10 @@ struct text_renderer_t {
       loco->letter.sb_set_depth(&node->data.cid, depth);
       it = node->NextNodeReference;
     }
+  }
+
+  void set_depth(fan::graphics::cid_t* cid, f32_t depth) {
+    sb_set_depth(cid, depth);
   }
 
   //void set_position(loco_t* loco, uint32_t id, const fan::vec2& position) {

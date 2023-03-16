@@ -620,7 +620,12 @@ void MoveCursorSelectionToDown(CursorReference_t CursorReference){
   }
 }
 
-void AddCharacterToCursor(CursorReference_t CursorReference, CharacterData_t data, uint16_t width){
+void
+AddCharacterToCursor(
+  CursorReference_t CursorReference,
+  CharacterData_t data,
+  uint16_t width
+){
   Cursor_t *Cursor = &this->CursorList[CursorReference];
   _CursorIsTriggered(Cursor);
   switch(Cursor->type){
@@ -792,7 +797,7 @@ void MoveCursorFreeStyleToBeginOfLine(CursorReference_t CursorReference){
   _Character_t *BeginCharacter = &Line->CharacterList[BeginCharacterReference];
   if(BeginCharacter->CursorReference.iic() == false){
     /* there is already cursor there */
-    ETC_WED_set_Abort();
+    fan::throw_error("");
   }
   BeginCharacter->CursorReference = CursorReference;
   Cursor->FreeStyle.CharacterReference = BeginCharacterReference;
@@ -816,7 +821,7 @@ void MoveCursorFreeStyleToEndOfLine(CursorReference_t CursorReference){
   _Character_t *EndCharacter = &Line->CharacterList[EndCharacterReference];
   if(EndCharacter->CursorReference.iic() == false){
     /* there is already cursor there */
-    ETC_WED_set_Abort();
+    fan::throw_error("");
   }
   EndCharacter->CursorReference = CursorReference;
   Cursor->FreeStyle.CharacterReference = EndCharacterReference;
@@ -1040,7 +1045,7 @@ cursor_open(
   Cursor->FreeStyle.PreferredWidth = -1;
   Cursor->FreeStyle.CharacterReference = Line->CharacterList.src;
   if(Character->CursorReference.iic() == false){
-    ETC_WED_set_Abort();
+    fan::throw_error("");
   }
   Character->CursorReference = CursorReference;
   return CursorReference;
@@ -1051,13 +1056,9 @@ void cursor_close(CursorReference_t CursorReference){
   this->CursorList.unlrec(CursorReference);
 }
 
-void SetLineWidth(uint32_t LineWidth){
-  if(LineWidth == this->LineWidth){
-    return;
-  }
-  bool wib = LineWidth < this->LineWidth;
-  this->LineWidth = LineWidth;
-  if(wib){
+/* triggers width change for all lines */
+void NowAllCharacterSizesAre(bool Smaller){
+  if(Smaller){
     LineReference_t LineReference = this->LineList.GetNodeFirst();
     while(LineReference != this->LineList.dst){
       _LineList_Node_t *LineNode = this->LineList.GetNodeByReference(LineReference);
@@ -1076,23 +1077,25 @@ void SetLineWidth(uint32_t LineWidth){
       LineReference_t PrevLineReference = LineNode->PrevNodeReference;
       _LineIsDecreased(LineReference, LineNode);
 
-      /* both way is same */
-      #if set_debug_InvalidLineAccess == 1
-        if(this->LineList.IsNodeUnlinked(LineNode)){
-          LineReference = PrevLineReference;
-          LineNode = this->LineList.GetNodeByReference(LineReference);
-        }
-      #else
-        _LineList_Node_t *PrevLineNode = this->LineList.GetNodeByReference(PrevLineReference);
-        if(PrevLineNode->NextNodeReference != LineReference){
-          LineReference = PrevLineReference;
-          LineNode = PrevLineNode;
-        }
-      #endif
+      /* TODO this is old code. are you sure about current line can be erased from _LineIsDecreased() ? */
+      /* since we start looping from first line it should be imposible */
+      _LineList_Node_t *PrevLineNode = this->LineList.GetNodeByReference(PrevLineReference);
+      if(PrevLineNode->NextNodeReference != LineReference){
+        LineNode = PrevLineNode;
+      }
 
       LineReference = LineNode->NextNodeReference;
     }
   }
+}
+
+void SetLineWidth(uint32_t LineWidth){
+  if(LineWidth == this->LineWidth){
+    return;
+  }
+  bool wib = LineWidth < this->LineWidth;
+  this->LineWidth = LineWidth;
+  NowAllCharacterSizesAre(wib);
 }
 
 struct CursorInformation_t{
@@ -1162,19 +1165,59 @@ GetDataOfCharacter(
   LineReference_t LineReference,
   CharacterReference_t CharacterReference
 ){
-  _Line_t *Line = &this->LineList[LineReference];
+  _Line_t *Line = &LineList[LineReference];
   return &Line->CharacterList[CharacterReference].data;
 }
 
-LineReference_t
-GetFirstLineID
-(
-){
-  return this->LineList.GetNodeFirst();
+LineReference_t GetFirstLineID(){
+  return LineList.GetNodeFirst();
 }
-LineReference_t
-GetLastLineID
-(
-){
-  return this->LineList.GetNodeLast();
+LineReference_t GetLastLineID(){
+  return LineList.GetNodeLast();
 }
+
+/* doesnt check rules */
+void
+SetCharacterWidth_Silent(
+  LineReference_t LineID,
+  CharacterReference_t CharacterID,
+  uint16_t Width
+){
+  _Line_t *Line = &LineList[LineID];
+  Line->TotalWidth -= Line->CharacterList[CharacterID].width;
+  Line->TotalWidth += Line->CharacterList[CharacterID].width = Width;
+}
+
+/* line iterate */
+struct li_t{
+  _ETC_WED_P(t) *wed;
+  LineReference_t id;
+
+  li_t(_ETC_WED_P(t) *p_wed){
+    wed = p_wed;
+    id = wed->LineList.GetNodeFirst();
+  }
+  bool operator()(){
+    return id != wed->LineList.dst;
+  }
+  void it(){
+    id = id.Next(&wed->LineList);
+  }
+};
+
+/* character iterate */
+struct ci_t{
+  CharacterReference_t id;
+  _Line_t *Line;
+
+  ci_t(_ETC_WED_P(t) *wed, LineReference_t LineID){
+    Line = &wed->LineList[LineID];
+    id = Line->CharacterList.GetNodeFirst();
+  }
+  bool operator()(){
+    return id != Line->CharacterList.dst;
+  }
+  void it(){
+    id = id.Next(&Line->CharacterList);
+  }
+};

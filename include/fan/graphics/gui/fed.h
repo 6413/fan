@@ -1,5 +1,5 @@
 struct fed_t {
-	static constexpr uint32_t character_width_multiplier = 100;
+	static constexpr uint32_t character_width_multiplier = 10000;
 
 	struct properties_t {
 		uint32_t line_height = -1;
@@ -43,11 +43,16 @@ struct fed_t {
 	}
 
   void set_font_size(wed_t::LineReference_t line_id, f32_t font_size) {
-    
-    auto text = get_text(line_id);
-    clear_text(line_id);
+    bool smaller = font_size < m_font_size;
     m_font_size = font_size;
-    push_text(text);
+    for (wed_t::li_t li(&m_wed); li(); li.it()) {
+      for (wed_t::ci_t ci(&m_wed, li.id); ci(); ci.it()) {
+        wed_t::CharacterData_t* cd = m_wed.GetDataOfCharacter(li.id, ci.id);
+        auto letter = loco->font.info.get_letter_info(*cd, m_font_size);
+        m_wed.SetCharacterWidth_Silent(li.id, ci.id, letter.metrics.advance * character_width_multiplier);
+      }
+    }
+    m_wed.NowAllCharacterSizesAre(smaller);
   }
 
   void clear_text(wed_t::LineReference_t line_id) {
