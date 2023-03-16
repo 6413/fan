@@ -387,7 +387,7 @@ public:
       loco->m_draw_queue.insert(loco_t::draw_t{
         (uint64_t)zdepth,
         std::vector<fan::function_t<void()>>(draw_queue_helper.begin(), draw_queue_helper.end())
-        });
+      });
 
       draw_queue_helper.clear();
       #endif
@@ -424,7 +424,7 @@ public:
     m_shader.set_int(loco->get_context(), "_t00", 0);
     m_shader.set_int(loco->get_context(), "_t01", 1);
     m_shader.set_int(loco->get_context(), "_t02", 2);
-    //traverse_draw(root, draw_mode, lambda);
+    traverse_draw(root, draw_mode, lambda);
   }
 
   properties_t sb_get_properties(fan::opengl::cid_t* cid) {
