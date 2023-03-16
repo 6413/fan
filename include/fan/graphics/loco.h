@@ -1341,98 +1341,98 @@ public:
 
   void process_frame() {
 
-    #if defined(loco_opengl)
-    #if defined(loco_framebuffer)
-    get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
-    color_buffers[0].bind_texture(this);
+    //#if defined(loco_opengl)
+    //#if defined(loco_framebuffer)
+    //get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
+    //color_buffers[0].bind_texture(this);
 
-    get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
-    color_buffers[1].bind_texture(this);
+    //get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
+    //color_buffers[1].bind_texture(this);
 
-    get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE2);
-    color_buffers[2].bind_texture(this);
+    //get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE2);
+    //color_buffers[2].bind_texture(this);
 
 
-    #endif
-    #endif
+    //#endif
+    //#endif
 
-    #if defined(loco_opengl)
-    #if defined(loco_framebuffer)
-    m_framebuffer.bind(get_context());
-    //float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-    //auto buffers = fan::opengl::GL_COLOR_ATTACHMENT0 + 2;
-    //get_context()->opengl.glClearBufferfv(fan::opengl::GL_COLOR, 0, clearColor);
-    //get_context()->opengl.glClearBufferfv(fan::opengl::GL_COLOR, 1, clearColor);
-    //get_context()->opengl.glClearBufferfv(fan::opengl::GL_COLOR, 2, clearColor);
-    get_context()->opengl.glDrawBuffer(fan::opengl::GL_COLOR_ATTACHMENT2);
-    get_context()->opengl.glClearColor(0, 0, 0, 1);
-    get_context()->opengl.glClear(fan::opengl::GL_COLOR_BUFFER_BIT);
-    get_context()->opengl.glDrawBuffer(fan::opengl::GL_COLOR_ATTACHMENT0);
-    #endif
-    get_context()->opengl.call(get_context()->opengl.glClearColor, 0, 0, 0, 1);
-    get_context()->opengl.call(get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
-    #endif
+    //#if defined(loco_opengl)
+    //#if defined(loco_framebuffer)
+    //m_framebuffer.bind(get_context());
+    ////float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+    ////auto buffers = fan::opengl::GL_COLOR_ATTACHMENT0 + 2;
+    ////get_context()->opengl.glClearBufferfv(fan::opengl::GL_COLOR, 0, clearColor);
+    ////get_context()->opengl.glClearBufferfv(fan::opengl::GL_COLOR, 1, clearColor);
+    ////get_context()->opengl.glClearBufferfv(fan::opengl::GL_COLOR, 2, clearColor);
+    //get_context()->opengl.glDrawBuffer(fan::opengl::GL_COLOR_ATTACHMENT2);
+    //get_context()->opengl.glClearColor(0, 0, 0, 1);
+    //get_context()->opengl.glClear(fan::opengl::GL_COLOR_BUFFER_BIT);
+    //get_context()->opengl.glDrawBuffer(fan::opengl::GL_COLOR_ATTACHMENT0);
+    //#endif
+    //get_context()->opengl.call(get_context()->opengl.glClearColor, 0, 0, 0, 1);
+    //get_context()->opengl.call(get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
+    //#endif
 
-    #ifdef loco_post_process
-    post_process.start_capture();
-    #endif
+    //#ifdef loco_post_process
+    //post_process.start_capture();
+    //#endif
 
-    auto it = m_update_callback.GetNodeFirst();
+    //auto it = m_update_callback.GetNodeFirst();
 
-    while (it != m_update_callback.dst) {
-      m_update_callback[it](this);
-      it = it.Next(&m_update_callback);
-    }
+    //while (it != m_update_callback.dst) {
+    //  m_update_callback[it](this);
+    //  it = it.Next(&m_update_callback);
+    //}
 
-    m_write_queue.process(get_context());
+    //m_write_queue.process(get_context());
 
-    #ifdef loco_window
-      #if defined(loco_opengl)
+    //#ifdef loco_window
+    //  #if defined(loco_opengl)
 
-      #include "draw_shapes.h"
-    
-    #if defined(loco_framebuffer)
-      //m_flag_map_fbo.unbind(get_context());
+    //  #include "draw_shapes.h"
+    //
+    //#if defined(loco_framebuffer)
+    //  //m_flag_map_fbo.unbind(get_context());
 
-      m_framebuffer.unbind(get_context());
+    //  m_framebuffer.unbind(get_context());
 
-      get_context()->opengl.call(get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
-      //float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-      fan::vec2 window_size = get_window()->get_size();
-      fan::opengl::viewport_t::set_viewport(get_context(), 0, window_size, window_size);
+    //  get_context()->opengl.call(get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
+    //  //float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+    //  fan::vec2 window_size = get_window()->get_size();
+    //  fan::opengl::viewport_t::set_viewport(get_context(), 0, window_size, window_size);
 
-      m_fbo_final_shader.use(get_context());
-      m_fbo_final_shader.set_int(get_context(), "_t00", 0);
-      m_fbo_final_shader.set_int(get_context(), "_t01", 1);
-      m_fbo_final_shader.set_int(get_context(), "_t02", 2);
+    //  m_fbo_final_shader.use(get_context());
+    //  m_fbo_final_shader.set_int(get_context(), "_t00", 0);
+    //  m_fbo_final_shader.set_int(get_context(), "_t01", 1);
+    //  m_fbo_final_shader.set_int(get_context(), "_t02", 2);
 
-      get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
-      color_buffers[0].bind_texture(this);
-     
-      get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
-	    color_buffers[1].bind_texture(this);
+    //  get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
+    //  color_buffers[0].bind_texture(this);
+    // 
+    //  get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
+	   // color_buffers[1].bind_texture(this);
 
-      get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE2);
-      color_buffers[2].bind_texture(this);
+    //  get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE2);
+    //  color_buffers[2].bind_texture(this);
 
-      unsigned int attachments[sizeof(color_buffers) / sizeof(color_buffers[0])];
-      for (uint8_t i = 0; i < std::size(color_buffers); ++i) {
-        attachments[i] = fan::opengl::GL_COLOR_ATTACHMENT0 + i;
-      }
+    //  unsigned int attachments[sizeof(color_buffers) / sizeof(color_buffers[0])];
+    //  for (uint8_t i = 0; i < std::size(color_buffers); ++i) {
+    //    attachments[i] = fan::opengl::GL_COLOR_ATTACHMENT0 + i;
+    //  }
 
-      //get_context()->opengl.call(get_context()->opengl.glDrawBuffers, std::size(attachments), attachments);
+    //  //get_context()->opengl.call(get_context()->opengl.glDrawBuffers, std::size(attachments), attachments);
 
-      renderQuad();
-      #endif
+    //  renderQuad();
+    //  #endif
       get_context()->render(get_window());
-      #elif defined(loco_vulkan)
+   /*   #elif defined(loco_vulkan)
         get_context()->begin_render(get_window());
         draw_queue();
         #include "draw_shapes.h"
       get_context()->end_render(get_window());
 
       #endif
-    #endif
+    #endif*/
   }
   #if defined(loco_window)
   bool window_open(uint32_t event) {
