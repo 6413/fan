@@ -1,5 +1,5 @@
 #define _INCLUDE_TOKEN(p0, p1) <p0/p1>
-
+#define sb_inline_draw
 #ifndef FAN_INCLUDE_PATH
 #define FAN_INCLUDE_PATH C:/libs/fan/include
 #endif
