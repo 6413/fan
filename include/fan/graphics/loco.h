@@ -1097,27 +1097,14 @@ public:
 	  ii.data = nullptr;
     ii.size = get_window()->get_size();
 
-    lp.internal_format = fan::opengl::GL_R8UI;
-    lp.format = fan::opengl::GL_RED_INTEGER; // GL_RGB_INTEGER for vec3
-    lp.min_filter = fan::opengl::GL_NEAREST;
-    lp.mag_filter = fan::opengl::GL_NEAREST;
-    lp.type = fan::opengl::GL_UNSIGNED_BYTE;
-
-    color_buffers[1].load(this, ii, lp);
-
-    color_buffers[1].bind_texture(this);
-    fan::opengl::core::framebuffer_t::bind_to_texture(
-      get_context(),
-      *color_buffers[1].get_texture(this),
-      fan::opengl::GL_COLOR_ATTACHMENT1
-    );
     lp.internal_format = fan::opengl::GL_RGBA;
     lp.format = fan::opengl::GL_RGBA;
+    lp.min_filter = fan::opengl::GL_LINEAR_MIPMAP_LINEAR;
+    lp.mag_filter = fan::opengl::GL_LINEAR_MIPMAP_LINEAR;
     lp.type = fan::opengl::GL_FLOAT;
-    lp.min_filter = fan::opengl::GL_LINEAR;
-    lp.mag_filter = fan::opengl::GL_LINEAR;
 
     color_buffers[0].load(this, ii, lp);
+    get_context()->opengl.call(get_context()->opengl.glGenerateMipmap, fan::opengl::GL_TEXTURE_2D);
 
     color_buffers[0].bind_texture(this);
     fan::opengl::core::framebuffer_t::bind_to_texture(
@@ -1129,14 +1116,16 @@ public:
     lp.internal_format = fan::opengl::GL_RGBA16F;
     lp.format = fan::opengl::GL_RGBA;
 
-    color_buffers[2].load(this, ii, lp);
+    color_buffers[1].load(this, ii, lp);
 
-    color_buffers[2].bind_texture(this);
+    color_buffers[1].bind_texture(this);
     fan::opengl::core::framebuffer_t::bind_to_texture(
       get_context(),
-      *color_buffers[2].get_texture(this),
-      fan::opengl::GL_COLOR_ATTACHMENT2
+      *color_buffers[1].get_texture(this),
+      fan::opengl::GL_COLOR_ATTACHMENT1
     );
+
+    get_context()->opengl.call(get_context()->opengl.glGenerateMipmap, fan::opengl::GL_TEXTURE_2D);
 
     get_window()->add_resize_callback([this](const auto& d) {
       loco_t::image_t::load_properties_t lp;
@@ -1146,25 +1135,11 @@ public:
 	    ii.data = nullptr;
       ii.size = get_window()->get_size();
 
-      lp.internal_format = fan::opengl::GL_R8UI;
-      lp.format = fan::opengl::GL_RED_INTEGER; // GL_RGB_INTEGER for vec3
-      lp.min_filter = fan::opengl::GL_NEAREST;
-      lp.mag_filter = fan::opengl::GL_NEAREST;
-      lp.type = fan::opengl::GL_UNSIGNED_BYTE;
-
-      color_buffers[1].reload_pixels(this, ii, lp);
-
-      color_buffers[1].bind_texture(this);
-      fan::opengl::core::framebuffer_t::bind_to_texture(
-        get_context(),
-        *color_buffers[1].get_texture(this),
-        fan::opengl::GL_COLOR_ATTACHMENT1
-      );
       lp.internal_format = fan::opengl::GL_RGBA;
       lp.format = fan::opengl::GL_RGBA;
       lp.type = fan::opengl::GL_FLOAT;
-      lp.min_filter = fan::opengl::GL_LINEAR;
-      lp.mag_filter = fan::opengl::GL_LINEAR;
+      lp.min_filter = fan::opengl::GL_LINEAR_MIPMAP_LINEAR;
+      lp.mag_filter = fan::opengl::GL_LINEAR_MIPMAP_LINEAR;
 
       color_buffers[0].reload_pixels(this, ii, lp);
 
@@ -1175,14 +1150,18 @@ public:
         fan::opengl::GL_COLOR_ATTACHMENT0
       );
 
-      color_buffers[2].reload_pixels(this, ii, lp);
+      get_context()->opengl.call(get_context()->opengl.glGenerateMipmap, fan::opengl::GL_TEXTURE_2D);
 
-      color_buffers[2].bind_texture(this);
+      color_buffers[1].reload_pixels(this, ii, lp);
+
+      color_buffers[1].bind_texture(this);
       fan::opengl::core::framebuffer_t::bind_to_texture(
         get_context(),
-        *color_buffers[2].get_texture(this),
-        fan::opengl::GL_COLOR_ATTACHMENT2
+        *color_buffers[1].get_texture(this),
+        fan::opengl::GL_COLOR_ATTACHMENT1
       );
+
+      get_context()->opengl.call(get_context()->opengl.glGenerateMipmap, fan::opengl::GL_TEXTURE_2D);
 
       fan::opengl::core::renderbuffer_t::properties_t rp;
       m_framebuffer.bind(get_context());
@@ -1349,9 +1328,6 @@ public:
     get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
     color_buffers[1].bind_texture(this);
 
-    get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE2);
-    color_buffers[2].bind_texture(this);
-
 
     #endif
     #endif
@@ -1364,7 +1340,7 @@ public:
     //get_context()->opengl.glClearBufferfv(fan::opengl::GL_COLOR, 0, clearColor);
     //get_context()->opengl.glClearBufferfv(fan::opengl::GL_COLOR, 1, clearColor);
     //get_context()->opengl.glClearBufferfv(fan::opengl::GL_COLOR, 2, clearColor);
-    get_context()->opengl.glDrawBuffer(fan::opengl::GL_COLOR_ATTACHMENT2);
+    get_context()->opengl.glDrawBuffer(fan::opengl::GL_COLOR_ATTACHMENT1);
     get_context()->opengl.glClearColor(0, 0, 0, 1);
     get_context()->opengl.glClear(fan::opengl::GL_COLOR_BUFFER_BIT);
     get_context()->opengl.glDrawBuffer(fan::opengl::GL_COLOR_ATTACHMENT0);
@@ -1404,16 +1380,12 @@ public:
       m_fbo_final_shader.use(get_context());
       m_fbo_final_shader.set_int(get_context(), "_t00", 0);
       m_fbo_final_shader.set_int(get_context(), "_t01", 1);
-      m_fbo_final_shader.set_int(get_context(), "_t02", 2);
 
       get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
       color_buffers[0].bind_texture(this);
      
       get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
-	    color_buffers[1].bind_texture(this);
-
-      get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE2);
-      color_buffers[2].bind_texture(this);
+      color_buffers[1].bind_texture(this);
 
       unsigned int attachments[sizeof(color_buffers) / sizeof(color_buffers[0])];
       for (uint8_t i = 0; i < std::size(color_buffers); ++i) {
@@ -1486,7 +1458,7 @@ public:
   
   fan::opengl::core::framebuffer_t m_framebuffer;
   fan::opengl::core::renderbuffer_t m_rbo;
-  loco_t::image_t color_buffers[3];
+  loco_t::image_t color_buffers[2];
   fan::opengl::shader_t m_fbo_final_shader;
 
 #elif defined(loco_vulkan)

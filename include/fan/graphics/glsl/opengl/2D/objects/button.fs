@@ -2,7 +2,6 @@ R"(
   #version 330
 
   layout (location = 0) out vec4 o_attachment0;
-  layout (location = 1) out uint o_attachment1;
 
   uniform mat4 view;
   uniform mat4 projection;
