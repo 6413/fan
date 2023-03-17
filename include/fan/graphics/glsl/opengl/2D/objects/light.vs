@@ -3,8 +3,6 @@ R"(
 
 #define get_instance() instance[gl_VertexID / 6]
 
-layout (location = 1) in vec2 aTexCoord;
-
 out vec4 instance_color;
 out vec3 instance_position;
 out vec2 instance_size;
@@ -53,8 +51,6 @@ void main() {
 
 	float x = rp.x * c - rp.y * s;
 	float y = rp.x * s + rp.y * c;
-
-  texture_coordinate = aTexCoord;
 
   instance_position = get_instance().position;
   instance_size = get_instance().size;

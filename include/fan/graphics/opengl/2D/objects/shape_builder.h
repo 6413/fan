@@ -423,7 +423,6 @@ public:
     m_shader.use(loco->get_context());
     m_shader.set_int(loco->get_context(), "_t00", 0);
     m_shader.set_int(loco->get_context(), "_t01", 1);
-    m_shader.set_int(loco->get_context(), "_t02", 2);
     traverse_draw(root, draw_mode, lambda);
   }
 
