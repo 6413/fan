@@ -10,18 +10,19 @@ in vec3 frag_position;
 in vec2 texture_coordinate;
 
 void main() {
-  o_attachment2 = instance_color;
-  float distance = length(frag_position - instance_position);
-  float radius = instance_size.x;
-  float smooth_edge = radius;
-  float intensity = 1.0 - max(smoothstep(radius / 3 -smooth_edge, radius, distance), 0);
-  float intensity2 = intensity;
-  float salsa = frag_position.y / 20;
-  salsa = max(salsa, 1);
-  intensity /= salsa;
-  intensity += 1.0 - max(smoothstep(radius / 3 -smooth_edge, radius, distance) * 2, 0);
-  o_attachment2.rgb *= intensity;
-  o_attachment2.rgb = clamp(o_attachment2.rgb, vec3(0), vec3(1));
+  //o_attachment2 = instance_color;
+  //float distance = length(frag_position - instance_position);
+  //float radius = instance_size.x;
+  //float smooth_edge = radius;
+  //float intensity = 1.0 - max(smoothstep(radius / 3 -smooth_edge, radius, distance), 0);
+  //float intensity2 = intensity;
+  //float salsa = frag_position.y / 20;
+  //salsa = max(salsa, 1);
+  //intensity /= salsa;
+  //intensity += 1.0 - max(smoothstep(radius / 3 -smooth_edge, radius, distance) * 2, 0);
+  //o_attachment2.rgb *= intensity;
+  //o_attachment2.rgb = clamp(o_attachment2.rgb, vec3(0), vec3(1));
+  o_attachment2.rgb = vec3(1, 1, 1);
   o_attachment2.a = 1;
 }
 )"
