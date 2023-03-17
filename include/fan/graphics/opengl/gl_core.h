@@ -137,7 +137,7 @@ namespace fan {
 
       struct properties_t {
         properties_t() {
-          samples = 1;
+          samples = 0;
           major = 3;
           minor = 2;
 
