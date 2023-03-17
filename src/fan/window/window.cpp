@@ -1,5 +1,5 @@
 #ifndef FAN_INCLUDE_PATH
-  #define FAN_INCLUDE_PATH C:/libs/fan/include
+#define FAN_INCLUDE_PATH C:/libs/fan/include
 #endif
 
 #define _INCLUDE_TOKEN(p0, p1) <p0/p1>
@@ -57,7 +57,7 @@ static constexpr const char* shared_library = "libGL.so.1";
 fan::window_t* fan::get_window_by_id(fan::window_handle_t wid) {
 
   uint32_t it = window_id_storage.begin();
-  while(it != window_id_storage.end()) {
+  while (it != window_id_storage.end()) {
     if (window_id_storage[it].window_handle == wid) {
       return window_id_storage[it].window_ptr;
     }
@@ -68,13 +68,13 @@ fan::window_t* fan::get_window_by_id(fan::window_handle_t wid) {
 }
 
 void fan::set_window_by_id(fan::window_handle_t wid, fan::window_t* window) {
-  window_id_storage.push_back({wid, window});
+  window_id_storage.push_back({ wid, window });
 }
 
 void fan::erase_window_id(fan::window_handle_t wid)
 {
   uint32_t it = window_id_storage.begin();
-  while(it != window_id_storage.end()) {
+  while (it != window_id_storage.end()) {
     if (window_id_storage[it].window_handle == wid) {
       window_id_storage.erase(it);
       return;
@@ -251,11 +251,11 @@ void fan::window_t::set_windowed_full_screen(const fan::vec2i& size)
   if (GetMonitorInfo(MonitorFromWindow(m_window_handle, MONITOR_DEFAULTTOPRIMARY), &mi)) {
     SetWindowLong(m_window_handle, GWL_STYLE, dwStyle & ~WS_OVERLAPPEDWINDOW);
     SetWindowPos(
-        m_window_handle, HWND_TOP,
-        mi.rcMonitor.left, mi.rcMonitor.top,
-        new_size.x,
-        new_size.y,
-        SWP_NOOWNERZORDER | SWP_FRAMECHANGED
+      m_window_handle, HWND_TOP,
+      mi.rcMonitor.left, mi.rcMonitor.top,
+      new_size.x,
+      new_size.y,
+      SWP_NOOWNERZORDER | SWP_FRAMECHANGED
     );
   }
 
@@ -287,7 +287,7 @@ void fan::window_t::set_windowed_full_screen(const fan::vec2i& size)
   hints.functions = 0;
   hints.decorations = 0;
   XChangeProperty(fan::sys::m_display, m_window_handle, mwmHintsProperty, mwmHintsProperty, 32,
-      PropModeReplace, (unsigned char*)&hints, 5);
+    PropModeReplace, (unsigned char*)&hints, 5);
 
   XMoveResizeWindow(fan::sys::m_display, m_window_handle, 0, 0, size.x, size.y);
 
@@ -318,13 +318,13 @@ void fan::window_t::set_windowed(const fan::vec2i& size)
   SetWindowLongPtr(m_window_handle, GWL_STYLE, WS_OVERLAPPEDWINDOW | WS_VISIBLE);
 
   SetWindowPos(
-      m_window_handle,
-      0,
-      position.x,
-      position.y,
-      new_size.x,
-      new_size.y,
-      SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED
+    m_window_handle,
+    0,
+    position.x,
+    position.y,
+    new_size.x,
+    new_size.y,
+    SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED
   );
 
   #elif defined(fan_platform_unix)
@@ -514,11 +514,11 @@ uintptr_t fan::window_t::get_fps(uint32_t frame_update, bool window_name, bool p
       fps = (1.0 / time_diff) * m_fps_counter;
       frame_time = time_diff / m_fps_counter;
       fps_info.append(
-          fan::string("fps: ") +
-          fan::to_string(fps) +
-          fan::string(" frame time: ") +
-          fan::to_string(frame_time) +
-          fan::string(" ms")
+        fan::string("fps: ") +
+        fan::to_string(fps) +
+        fan::string(" frame time: ") +
+        fan::to_string(frame_time) +
+        fan::string(" ms")
       );
       m_last_frame = m_current_frame;
       m_fps_counter = 0;
@@ -595,28 +595,28 @@ bool fan::window_t::focused() const
 
 #if defined(fan_platform_unix)
 int cleanupHandler(Display* display) {
-    XUngrabPointer(display, CurrentTime);
-    return 0;
+  XUngrabPointer(display, CurrentTime);
+  return 0;
 }
 #endif
 
-void fan::window_t::destroy_window_internal(){
+void fan::window_t::destroy_window_internal() {
   fan::erase_window_id(this->m_window_handle);
 
   #if defined(fan_platform_windows)
 
   if (!m_window_handle || !m_hdc
-#if fan_renderer == fan_renderer_opengl
-      || !m_context
-#endif
-      ) {
+    #if fan_renderer == fan_renderer_opengl
+    || !m_context
+    #endif
+    ) {
     return;
   }
 
   PostQuitMessage(0);
 
   #if fan_renderer == fan_renderer_opengl
-    wglMakeCurrent(m_hdc, 0);
+  wglMakeCurrent(m_hdc, 0);
   #endif
 
   ReleaseDC(m_window_handle, m_hdc);
@@ -757,7 +757,7 @@ void fan::window_t::window_input_up(fan::window_handle_t window, uint16_t key)
       it = fwindow->m_key_callback.EndSafeNext();
       continue;
     }
-    
+
     keyboard_key_cb_data_t cbd;
     cbd.window = fwindow;
     cbd.key = key;
@@ -813,8 +813,8 @@ LRESULT fan::window_t::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lp
       }
 
       window->m_position = fan::vec2i(
-          static_cast<int>(static_cast<short>(LOWORD(lparam))),
-          static_cast<int>(static_cast<short>(HIWORD(lparam)))
+        static_cast<int>(static_cast<short>(LOWORD(lparam))),
+        static_cast<int>(static_cast<short>(HIWORD(lparam)))
       );
 
       auto it = window->m_move_callback.GetNodeFirst();
@@ -846,7 +846,7 @@ LRESULT fan::window_t::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lp
       auto it = fwindow->m_resize_callback.GetNodeFirst();
 
       while (it != fwindow->m_resize_callback.dst) {
-        
+
         resize_cb_data_t cbd;
         cbd.window = fwindow;
         cbd.size = fwindow->m_size;
@@ -998,16 +998,16 @@ static bool isExtensionSupported(const char* extList, const char* extension) {
 
 std::string string_to_hex(const std::string& input)
 {
-    static const char hex_digits[] = "0123456789ABCDEF";
+  static const char hex_digits[] = "0123456789ABCDEF";
 
-    std::string output;
-    output.reserve(input.length() * 2);
-    for (unsigned char c : input)
-    {
-        output.push_back(hex_digits[c >> 4]);
-        output.push_back(hex_digits[c & 15]);
-    }
-    return output;
+  std::string output;
+  output.reserve(input.length() * 2);
+  for (unsigned char c : input)
+  {
+    output.push_back(hex_digits[c >> 4]);
+    output.push_back(hex_digits[c & 15]);
+  }
+  return output;
 }
 
 
@@ -1044,9 +1044,9 @@ void fan::window_t::generate_keycode_to_scancode_table() {
       {"CAPS", 0x3a}, {"LFSH", 0x2a}, {"RTSH", 0x36}, {"LCTL", 0x1d}, {"LALT", 0x38}, {"RALT", 0xe038}, {"LWIN", 0xe05b},
       {"RWIN", 0xe05c}, {"LSGT", 0x33}, {"RSGT", 0x34}, {"COMP", 0xe05d}, {"SPCE", 0x39}, {"RTRN", 0x1c }, {"FK01", 0x3b},
       {"FK02", 0x3c}, {"FK03", 0x3d}, {"FK04", 0x3e}, {"FK05", 0x3f}, {"FK06", 0x40}, {"FK07", 0x41}, {"FK08", 0x42},
-      {"FK09", 0x43}, {"FK10", 0x44}, {"LEFT", 0xe04b}, {"RGHT", 0xe04d}, {"UP", 0xe048}, {"DOWN", 0xe050}, {"PGUP", 0xe049}, 
-      {"PGDN", 0xe051}, {"HOME", 0xe047}, {"END", 0xe04f}, {"INS", 0x52}, {"DELE", 0xe053}, {"SCLK", 0x46}, {"KP0", 0x52}, {"KP1", 0x4f}, 
-      {"KP2", 0x50}, {"KP3", 0x51}, {"KP4", 0x4b}, {"KP5", 0x4c}, {"KP6", 0x4d}, {"KP7", 0x47}, {"KP8", 0x48}, {"KP9", 0x49}, 
+      {"FK09", 0x43}, {"FK10", 0x44}, {"LEFT", 0xe04b}, {"RGHT", 0xe04d}, {"UP", 0xe048}, {"DOWN", 0xe050}, {"PGUP", 0xe049},
+      {"PGDN", 0xe051}, {"HOME", 0xe047}, {"END", 0xe04f}, {"INS", 0x52}, {"DELE", 0xe053}, {"SCLK", 0x46}, {"KP0", 0x52}, {"KP1", 0x4f},
+      {"KP2", 0x50}, {"KP3", 0x51}, {"KP4", 0x4b}, {"KP5", 0x4c}, {"KP6", 0x4d}, {"KP7", 0x47}, {"KP8", 0x48}, {"KP9", 0x49},
       {"KPEN", 0xe01c}, {"RCTL", 0xe01d}, {"BKSP", 0x0e}, {"NMLK", 0x45 }, {"KPDL", 0x53}, {"KPAD", 0x4e},
       {"KPDV", 0xe035}, {"KPMU", 0x37}, {"KPSU", 0x4a}, {"KPAD", 0x4e}
     };
@@ -1101,11 +1101,11 @@ void fan::window_t::initialize_window(const fan::string& name, const fan::vec2i&
   }
 
   m_window_handle = CreateWindow(str.c_str(), name.c_str(),
-      (flag_values.m_no_resize ? ((full_screen || borderless ? WS_POPUP : (WS_OVERLAPPED | WS_MINIMIZEBOX | WS_SYSMENU)) | WS_SYSMENU) :
-    (full_screen || borderless ? WS_POPUP : WS_OVERLAPPEDWINDOW)) | WS_VISIBLE,
-      position.x, position.y,
-      rect.right - rect.left, rect.bottom - rect.top,
-      0, 0, 0, 0);
+    (flag_values.m_no_resize ? ((full_screen || borderless ? WS_POPUP : (WS_OVERLAPPED | WS_MINIMIZEBOX | WS_SYSMENU)) | WS_SYSMENU) :
+      (full_screen || borderless ? WS_POPUP : WS_OVERLAPPEDWINDOW)) | WS_VISIBLE,
+    position.x, position.y,
+    rect.right - rect.left, rect.bottom - rect.top,
+    0, 0, 0, 0);
 
   if (!m_window_handle) {
     fan::throw_error("failed to initialize window:" + fan::to_string(GetLastError()));
@@ -1118,9 +1118,9 @@ void fan::window_t::initialize_window(const fan::string& name, const fan::vec2i&
   r_id[0].hwndTarget = m_window_handle;
 
   r_id[1].usUsagePage = HID_USAGE_PAGE_GENERIC;
-	r_id[1].usUsage = HID_USAGE_GENERIC_KEYBOARD;
-	r_id[1].dwFlags = RIDEV_INPUTSINK;
-	r_id[1].hwndTarget = m_window_handle;
+  r_id[1].usUsage = HID_USAGE_GENERIC_KEYBOARD;
+  r_id[1].dwFlags = RIDEV_INPUTSINK;
+  r_id[1].hwndTarget = m_window_handle;
 
   BOOL result = RegisterRawInputDevices(r_id, 2, sizeof(RAWINPUTDEVICE));
 
@@ -1179,6 +1179,9 @@ void fan::window_t::initialize_window(const fan::string& name, const fan::vec2i&
   static fan::opengl::glx::PFNGLXCREATENEWCONTEXTPROC glXCreateNewContext = (decltype(glXCreateNewContext))glXGetProcAddress((const fan::opengl::GLubyte*)"glXCreateNewContext");
   static fan::opengl::glx::PFNGLXCREATECONTEXTATTRIBSARBPROC glXCreateContextAttribsARB = (decltype(glXCreateContextAttribsARB))glXGetProcAddress((const fan::opengl::GLubyte*)"glXCreateContextAttribsARB");
 
+  if (!glXGetFBConfigAttrib) {
+    fan::throw_error("failed to glXGetFBConfigAttrib");
+  }
 
   int minor_glx = 0, major_glx = 0;
   glXQueryVersion(fan::sys::m_display, &major_glx, &minor_glx);
@@ -1206,48 +1209,46 @@ void fan::window_t::initialize_window(const fan::string& name, const fan::vec2i&
     GLX_DEPTH_SIZE, 24,
     GLX_STENCIL_SIZE, 8,
     GLX_DOUBLEBUFFER, True,
-    GLX_SAMPLE_BUFFERS, 1,
-    GLX_SAMPLES, samples,
+    GLX_SAMPLE_BUFFERS, samples ? 1 : 0,
+    GLX_SAMPLES, samples ? samples : 0,
     None
   };
 
-  if (!samples) {
-    // set back to zero to disable antialising
-    for (int i = 0; i < 4; i++) {
-      pixel_format_attribs[22 + i] = 0;
-    }
-  }
-
   int fbcount;
-
   auto fbc = glXChooseFBConfig(fan::sys::m_display, fan::sys::m_screen, pixel_format_attribs, &fbcount);
 
-  if (!fbc) {
-    fan::print("fan window error: failed to retreive framebuffer");
-    XCloseDisplay(fan::sys::m_display);
-    exit(1);
-  }
-
-  int best_fbc = -1, worst_fbc = -1, best_num_samp = -1, worst_num_samp = 999;
+  int best_fbc = -1;
   for (int i = 0; i < fbcount; ++i) {
     XVisualInfo* vi = glXGetVisualFromFBConfig(fan::sys::m_display, fbc[i]);
-    if (vi != 0) {
-      int samp_buf, samples;
-      if (!glXGetFBConfigAttrib) {
-        exit(1);
-      }
-      glXGetFBConfigAttrib(fan::sys::m_display, fbc[i], GLX_SAMPLE_BUFFERS, &samp_buf);
-      glXGetFBConfigAttrib(fan::sys::m_display, fbc[i], GLX_SAMPLES, &samples);
-
-      if (best_fbc < 0 || (samp_buf && samples > best_num_samp)) {
-        best_fbc = i;
-        best_num_samp = samples;
-      }
-      if (worst_fbc < 0 || !samp_buf || samples < worst_num_samp)
-        worst_fbc = i;
-      worst_num_samp = samples;
+    if (vi == NULL) {
+      continue;
     }
+
+    int fb_samples, samp_buf;
+
+    int r;
+    r = glXGetFBConfigAttrib(fan::sys::m_display, fbc[i], GLX_SAMPLES, &fb_samples);
+    if (r != 0) {
+      fan::print("glXGetFBConfigAttrib returned", r);
+      continue;
+    }
+    r = glXGetFBConfigAttrib(fan::sys::m_display, fbc[i], GLX_SAMPLE_BUFFERS, &samp_buf);
+    if (r != 0) {
+      fan::print("glXGetFBConfigAttrib returned", r);
+      continue;
+    }
+
+    fan::print(fb_samples, samp_buf);
+    if (samples == fb_samples) {
+      best_fbc = i;
+    }
+
     XFree(vi);
+  }
+  best_fbc = 0;
+
+  if (best_fbc == -1) {
+    fan::throw_error("adviced framebuffer not found");
   }
 
   fan::opengl::glx::GLXFBConfig bestFbc = fbc[best_fbc];
@@ -1270,8 +1271,6 @@ void fan::window_t::initialize_window(const fan::string& name, const fan::vec2i&
 
   std::memset(&m_window_attribs, 0, sizeof(m_window_attribs));
 
-  std::memset(&m_window_attribs, 0, sizeof(m_window_attribs));
-
   m_window_attribs.border_pixel = BlackPixel(fan::sys::m_display, fan::sys::m_screen);
   m_window_attribs.background_pixel = WhitePixel(fan::sys::m_display, fan::sys::m_screen);
   m_window_attribs.override_redirect = True;
@@ -1286,18 +1285,18 @@ void fan::window_t::initialize_window(const fan::string& name, const fan::vec2i&
   const fan::vec2i position = fan::sys::get_screen_resolution() / 2 - window_size / 2;
 
   m_window_handle = XCreateWindow(
-      fan::sys::m_display,
-      RootWindow(fan::sys::m_display, fan::sys::m_screen),
-      position.x,
-      position.y,
-      window_size.x,
-      window_size.y,
-      0,
-      m_visual->depth,
-      InputOutput,
-      m_visual->visual,
-      CWBackPixel | CWColormap | CWBorderPixel | CWEventMask | CWCursor,
-      &m_window_attribs
+    fan::sys::m_display,
+    RootWindow(fan::sys::m_display, fan::sys::m_screen),
+    position.x,
+    position.y,
+    window_size.x,
+    window_size.y,
+    0,
+    m_visual->depth,
+    InputOutput,
+    m_visual->visual,
+    CWBackPixel | CWColormap | CWBorderPixel | CWEventMask | CWCursor,
+    &m_window_attribs
   );
 
   if (flags & fan::window_t::flags::no_resize) {
@@ -1357,10 +1356,10 @@ void fan::window_t::initialize_window(const fan::string& name, const fan::vec2i&
   }
 
   m_xic = XCreateIC(m_xim,
-      XNInputStyle, XIMPreeditNothing | XIMStatusNothing,
-      XNClientWindow, m_window_handle,
-      XNFocusWindow, m_window_handle,
-      NULL);
+    XNInputStyle, XIMPreeditNothing | XIMStatusNothing,
+    XNClientWindow, m_window_handle,
+    XNFocusWindow, m_window_handle,
+    NULL);
 
   XSetICFocus(m_xic);
 
@@ -1512,7 +1511,7 @@ uint32_t fan::window_t::handle_events() {
             if (!found) {
 
               auto src = msg.wParam + (window->m_reserved_flags << 8);
-              
+
               UINT u = VkKeyScan(src);
               UINT high_byte = HIBYTE(u);
               UINT low_byte = LOBYTE(u);
@@ -1546,15 +1545,15 @@ uint32_t fan::window_t::handle_events() {
               window->m_keymap[fan::key_alt] = high_byte & 0x4;
               window->m_keymap[fan::window_input::convert_scancode_to_fan(low_byte)] = true;
               m_prev_text = src;
-              
-             // UTF-8
-             // auto utf8_str = fan::utf16_to_utf8((wchar_t*)&src);
 
-             /* uint32_t value = 0;
+              // UTF-8
+              // auto utf8_str = fan::utf16_to_utf8((wchar_t*)&src);
 
-              for (int i = 0, j = 0; i < utf8_str.size(); i++, j += 0x08) {
-                value |= (uint8_t)utf8_str[i] << j;
-              }*/
+              /* uint32_t value = 0;
+
+               for (int i = 0, j = 0; i < utf8_str.size(); i++, j += 0x08) {
+                 value |= (uint8_t)utf8_str[i] << j;
+               }*/
 
               auto it = window->m_text_callback.GetNodeFirst();
 
@@ -1739,7 +1738,7 @@ uint32_t fan::window_t::handle_events() {
         static bool allow_outside = false;
 
         const auto cursor_in_range = [](const fan::vec2i& position, const fan::vec2& window_size) {
-          return position.x >= 0 && position.x < window_size.x&&
+          return position.x >= 0 && position.x < window_size.x &&
             position.y >= 0 && position.y < window_size.y;
         };
 
@@ -1761,9 +1760,9 @@ uint32_t fan::window_t::handle_events() {
           }
 
           if (fan::is_flag(raw->data.mouse.usButtonFlags, RI_MOUSE_LEFT_BUTTON_DOWN) ||
-              fan::is_flag(raw->data.mouse.usButtonFlags, RI_MOUSE_MIDDLE_BUTTON_DOWN) ||
-              fan::is_flag(raw->data.mouse.usButtonFlags, RI_MOUSE_RIGHT_BUTTON_DOWN)
-              ) {
+            fan::is_flag(raw->data.mouse.usButtonFlags, RI_MOUSE_MIDDLE_BUTTON_DOWN) ||
+            fan::is_flag(raw->data.mouse.usButtonFlags, RI_MOUSE_RIGHT_BUTTON_DOWN)
+            ) {
 
             const fan::vec2i position(get_cursor_position());
 
@@ -1947,9 +1946,9 @@ uint32_t fan::window_t::handle_events() {
         }
 
         uint16_t key = fan::window_input::convert_scancode_to_fan(keycode_to_scancode_table[event.xkey.keycode]);
-        
+
         fan::window_t::window_input_action(window->m_window_handle, key);
-        
+
         bool repeat = window->m_keycode_action_map[event.xkey.keycode];
 
         keyboard_keys_cb_data_t cdb{};
@@ -1960,7 +1959,7 @@ uint32_t fan::window_t::handle_events() {
           cdb.scancode = keycode_to_scancode_table[event.xkey.keycode];
         }
         window->m_keycode_action_map[event.xkey.keycode] = true;
-        
+
         window->m_scancode_action_map[(cdb.scancode & 0x7f) | ((!!(cdb.scancode >> 8)) << 8)] = true;
 
         //fan::print(xcb_get_scancode_name(event.xkey.keycode));
@@ -2049,7 +2048,7 @@ uint32_t fan::window_t::handle_events() {
           XPeekEvent(fan::sys::m_display, &nev);
 
           if (nev.type == KeyPress && nev.xkey.time == event.xkey.time &&
-              nev.xkey.keycode == event.xkey.keycode) {
+            nev.xkey.keycode == event.xkey.keycode) {
             break;
           }
         }
@@ -2113,22 +2112,22 @@ uint32_t fan::window_t::handle_events() {
 
         /* TODO temp fix said by dürüm */
         uint16_t button;
-        if(event.xbutton.button == Button1){
+        if (event.xbutton.button == Button1) {
           button = mouse_left;
         }
-        else if(event.xbutton.button == Button2){
+        else if (event.xbutton.button == Button2) {
           button = mouse_middle;
         }
-        else if(event.xbutton.button == Button3){
+        else if (event.xbutton.button == Button3) {
           button = mouse_right;
         }
-        else if(event.xbutton.button == Button4){
+        else if (event.xbutton.button == Button4) {
           button = mouse_scroll_up;
         }
-        else if(event.xbutton.button == Button5){
+        else if (event.xbutton.button == Button5) {
           button = mouse_scroll_down;
         }
-        else{
+        else {
           break;
         }
 
@@ -2163,29 +2162,29 @@ uint32_t fan::window_t::handle_events() {
           XPeekEvent(fan::sys::m_display, &nev);
 
           if (nev.type == ButtonPress && nev.xbutton.time == event.xbutton.time &&
-              nev.xbutton.button == event.xbutton.button) {
+            nev.xbutton.button == event.xbutton.button) {
             break;
           }
         }
 
         /* TODO temp fix said by dürüm */
         uint16_t button;
-        if(event.xbutton.button == Button1){
+        if (event.xbutton.button == Button1) {
           button = mouse_left;
         }
-        else if(event.xbutton.button == Button2){
+        else if (event.xbutton.button == Button2) {
           button = mouse_middle;
         }
-        else if(event.xbutton.button == Button3){
+        else if (event.xbutton.button == Button3) {
           button = mouse_right;
         }
-        else if(event.xbutton.button == Button4){
+        else if (event.xbutton.button == Button4) {
           button = mouse_scroll_up;
         }
-        else if(event.xbutton.button == Button5){
+        else if (event.xbutton.button == Button5) {
           button = mouse_scroll_down;
         }
-        else{
+        else {
           break;
         }
 
@@ -2213,7 +2212,7 @@ uint32_t fan::window_t::handle_events() {
           break;
         }
 
-        std::memset(fwindow->m_scancode_action_map,  0, sizeof(fwindow->m_scancode_action_map));
+        std::memset(fwindow->m_scancode_action_map, 0, sizeof(fwindow->m_scancode_action_map));
 
         for (uint16_t i = 0; i < 255; ++i) {
           auto fkey = fan::window_input::convert_scancode_to_fan(keycode_to_scancode_table[i]);
