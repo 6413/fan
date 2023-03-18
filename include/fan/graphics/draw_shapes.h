@@ -41,7 +41,7 @@
 
 
 for (auto it = m_draw_queue.rbegin(); it != m_draw_queue.rend(); ++it) {
-  for (auto it2 = it->f.rbegin(); it2 != it->f.rend(); ++it2) {
+  for (auto it2 = it->f.begin(); it2 != it->f.end(); ++it2) {
     (*it2)();
   }
 }
