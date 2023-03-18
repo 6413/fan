@@ -444,10 +444,10 @@ inline fan::opengl::context_t::context_t(fan::window_t* window, const properties
 
   #endif
 
-  opengl.call(opengl.glEnable, fan::opengl::GL_BLEND);
-  opengl.call(opengl.glBlendFunc, fan::opengl::GL_SRC_ALPHA, fan::opengl::GL_ONE_MINUS_SRC_ALPHA);
+  //opengl.call(opengl.glEnable, fan::opengl::GL_BLEND);
+  //opengl.call(opengl.glBlendFunc, fan::opengl::GL_SRC_ALPHA, fan::opengl::GL_ONE_MINUS_SRC_ALPHA);
 
-  set_depth_test(false);
+  set_depth_test(true);
   
   //opengl.call(opengl.glFrontFace, fan::opengl::GL_CCW);
   //opengl.glEnable(fan::opengl::GL_CULL_FACE);;

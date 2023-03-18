@@ -1,11 +1,3 @@
-#if defined(loco_light)
-light.draw();
-#endif
-
-#if defined(loco_light_sun)
-light_sun.draw();
-#endif
-
 #if defined(loco_rectangle)
   rectangle.draw();
 #endif
@@ -39,10 +31,18 @@ light_sun.draw();
   post_process.draw();
 #endif
 
+  #if defined(loco_light)
+  light.draw();
+  #endif
 
-for (auto it = m_draw_queue.begin(); it != m_draw_queue.end(); ++it) {
-  for (const auto& f : it->f) {
-    f();
+  #if defined(loco_light_sun)
+  light_sun.draw();
+  #endif
+
+
+for (auto it = m_draw_queue.rbegin(); it != m_draw_queue.rend(); ++it) {
+  for (auto it2 = it->f.rbegin(); it2 != it->f.rend(); ++it2) {
+    (*it2)();
   }
 }
 
