@@ -36,12 +36,11 @@ sint32_t Open() {
     dl->Open(size);
     for(uint32_t i = 0; i < _constants::Opus::CacheDecoderPerChannel; i++){
       _DecoderList_NodeReference_t r = dl->NewNodeLast_alloc();
-      uint8_t *dld = (uint8_t *)(*dl)[r];
 
-      _DecoderHead_t *DecoderHead = (_DecoderHead_t *)dld;
+      auto DecoderHead = (_DecoderHead_t *)(*dl)[r];
       DecoderHead->CacheID = _CacheList_gnric();
 
-      OpusDecoder *od = (OpusDecoder *)&dld[sizeof(_DecoderHead_t)];
+      OpusDecoder *od = (OpusDecoder *)&DecoderHead[1];
       int re = opus_decoder_init(od, 48000, Channel + 1);
       if(re != OPUS_OK){
         fan::throw_error("opus_decoder_init");
@@ -52,9 +51,9 @@ sint32_t Open() {
   this->CacheList.Open();
   for(uint32_t i = 0; i < _constants::Opus::CacheSegmentAmount; i++){
     _CacheList_NodeReference_t r = this->CacheList.NewNodeLast_alloc();
-    auto Data = &this->CacheList[r];
-    Data->SegmentID = (_SegmentID_t)-1;
-    Data->DecoderID = _DecoderList_gnric();
+    auto Cache = &this->CacheList[r];
+    Cache->SegmentID = (_SegmentID_t)-1;
+    Cache->DecoderID.sic();
   }
 
   return 0;
@@ -90,26 +89,26 @@ void _DecodeCopy(
   }
 }
 
-_CacheID_t _GetCacheID(piece_t *piece, _SegmentID_t SegmentID){
+_CacheID_t _GetCacheID(_piece_t *_piece, _SegmentID_t SegmentID){
   _CacheID_t clid = this->CacheList.GetNodeLast();
   auto Cache = &this->CacheList[clid];
   if(Cache->SegmentID != (_SegmentID_t)-1){
-    Cache->piece->SACSegment[Cache->SegmentID].CacheID = _CacheList_gnric();
+    Cache->_piece->SACSegment[Cache->SegmentID].CacheID = _CacheList_gnric();
     _DecoderID_t dlid = Cache->DecoderID;
     if(_DecoderList_inric(dlid) == false){
-      _DecoderList_t *dl = &this->DecoderList[Cache->piece->ChannelAmount - 1];
+      _DecoderList_t *dl = &this->DecoderList[Cache->_piece->ChannelAmount - 1];
       _DecoderHead_t *DecoderHead = (_DecoderHead_t *)(*dl)[dlid];
       DecoderHead->CacheID = _CacheList_gnric();
       dl->ReLinkAsLast(dlid);
     }
   }
-  Cache->piece = piece;
+  Cache->_piece = _piece;
   Cache->SegmentID = SegmentID;
-  piece->SACSegment[SegmentID].CacheID = clid;
+  _piece->SACSegment[SegmentID].CacheID = clid;
   return clid;
 }
 
-void _WarmUpDecoder(piece_t *piece, _SegmentID_t SegmentID, OpusDecoder *od){
+void _WarmUpDecoder(_piece_t *_piece, _SegmentID_t SegmentID, OpusDecoder *od){
   opus_decoder_ctl(od, OPUS_RESET_STATE);
 
   _SegmentID_t fsid = SegmentID - _constants::Opus::DecoderWarmUpAmount;
@@ -118,12 +117,12 @@ void _WarmUpDecoder(piece_t *piece, _SegmentID_t SegmentID, OpusDecoder *od){
   }
 
   while(fsid != SegmentID){
-    auto SACSegment = &piece->SACSegment[fsid];
+    auto SACSegment = &_piece->SACSegment[fsid];
 
     f32_t F2_20[_constants::Opus::SegmentFrameAmount20 * 5 * 2];
     sint32_t oerr = opus_decode_float(
       od,
-      &piece->SACData[SACSegment->Offset],
+      &_piece->SACData[SACSegment->Offset],
       SACSegment->Size,
       F2_20,
       _constants::Opus::SegmentFrameAmount20 * 5,
@@ -138,11 +137,11 @@ void _WarmUpDecoder(piece_t *piece, _SegmentID_t SegmentID, OpusDecoder *od){
   }
 }
 
-_DecoderID_t _GetDecoderID(piece_t *piece, _SegmentID_t SegmentID){
-  _DecoderList_t *DecoderList = &this->DecoderList[piece->ChannelAmount - 1];
+_DecoderID_t _GetDecoderID(_piece_t *_piece, _SegmentID_t SegmentID){
+  _DecoderList_t *DecoderList = &this->DecoderList[_piece->ChannelAmount - 1];
 
   if(SegmentID != 0){
-    auto pCacheID = piece->SACSegment[SegmentID - 1].CacheID;
+    auto pCacheID = _piece->SACSegment[SegmentID - 1].CacheID;
     if(_CacheList_inric(pCacheID) == false){
       auto pCache = &this->CacheList[pCacheID];
       _DecoderID_t DecoderID = pCache->DecoderID;
@@ -165,7 +164,7 @@ _DecoderID_t _GetDecoderID(piece_t *piece, _SegmentID_t SegmentID){
 
   OpusDecoder *od = (OpusDecoder *)&DecoderHead[1];
 
-  this->_WarmUpDecoder(piece, SegmentID, od);
+  this->_WarmUpDecoder(_piece, SegmentID, od);
 
   return DecoderID;
 }
@@ -182,24 +181,24 @@ _LinkDecoderCache(
   Cache->DecoderID = DecoderID;
 }
 
-void _DecodeSegment(piece_t *piece, _SegmentID_t SegmentID){
-  _DecoderList_t *DecoderList = &this->DecoderList[piece->ChannelAmount - 1];
+void _DecodeSegment(_piece_t *_piece, _SegmentID_t SegmentID){
+  _DecoderList_t *DecoderList = &this->DecoderList[_piece->ChannelAmount - 1];
 
-  _DecoderID_t DecoderID = this->_GetDecoderID(piece, SegmentID);
+  _DecoderID_t DecoderID = this->_GetDecoderID(_piece, SegmentID);
   DecoderList->ReLinkAsFirst(DecoderID);
 
-  _CacheID_t CacheID = this->_GetCacheID(piece, SegmentID);
+  _CacheID_t CacheID = this->_GetCacheID(_piece, SegmentID);
 
   this->_LinkDecoderCache(DecoderList, DecoderID, CacheID);
 
   OpusDecoder *od = (OpusDecoder *)&((_DecoderHead_t *)(*DecoderList)[DecoderID])[1];
 
-  auto SACSegment = &piece->SACSegment[SegmentID];
+  auto SACSegment = &_piece->SACSegment[SegmentID];
 
   f32_t F2_20[_constants::Opus::SegmentFrameAmount20 * 5 * 2];
   sint32_t oerr = opus_decode_float(
     od,
-    &piece->SACData[SACSegment->Offset],
+    &_piece->SACData[SACSegment->Offset],
     SACSegment->Size,
     F2_20,
     _constants::Opus::SegmentFrameAmount20 * 5,
@@ -211,16 +210,16 @@ void _DecodeSegment(piece_t *piece, _SegmentID_t SegmentID){
   }
 
   auto Cache = &this->CacheList[CacheID];
-  _DecodeCopy(piece->ChannelAmount, F2_20, Cache->Samples);
+  _DecodeCopy(_piece->ChannelAmount, F2_20, Cache->Samples);
 }
 
-void _GetFrames(piece_t *piece, uint64_t Offset, f32_t **FramePointer, uint32_t *FrameAmount) {
-  Offset += piece->BeginCut;
+void _GetFrames(_piece_t *_piece, uint64_t Offset, f32_t **FramePointer, uint32_t *FrameAmount) {
+  Offset += _piece->BeginCut;
   _SegmentID_t SegmentID = Offset / _constants::FrameCacheAmount;
   uint32_t PieceCacheMod = Offset % _constants::FrameCacheAmount;
-  auto CacheID = &piece->SACSegment[SegmentID].CacheID;
-  if(_CacheList_inric(*CacheID) == true){
-    _DecodeSegment(piece, SegmentID);
+  auto CacheID = &_piece->SACSegment[SegmentID].CacheID;
+  if(CacheID->iic() == true){
+    _DecodeSegment(_piece, SegmentID);
   }
   this->CacheList.ReLinkAsFirst(*CacheID);
   auto Cache = &this->CacheList[*CacheID];
@@ -228,10 +227,43 @@ void _GetFrames(piece_t *piece, uint64_t Offset, f32_t **FramePointer, uint32_t 
   *FrameAmount = _constants::FrameCacheAmount - PieceCacheMod;
 }
 
+void _ClosePiece(_piece_t *_piece){
+  for(uint32_t i = 0; i < _piece->TotalSegments; i++){
+    auto SACSegment = &_piece->SACSegment[i];
+    if(SACSegment->CacheID.iic() == true){
+      continue;
+    }
+    auto Cache = &CacheList[SACSegment->CacheID];
+    Cache->SegmentID = (_SegmentID_t)-1;
+    _DecoderID_t dlid = Cache->DecoderID;
+    Cache->DecoderID.sic();
+    CacheList.ReLinkAsLast(SACSegment->CacheID);
+    if(dlid.iic() == true){
+      continue;
+    }
+    _DecoderList_t *dl = &DecoderList[_piece->ChannelAmount - 1];
+    auto DecoderHead = (_DecoderHead_t *)(*dl)[dlid];
+    DecoderHead->CacheID.sic();
+    dl->ReLinkAsLast(dlid);
+  }
+  A_resize(_piece->SACSegment, 0);
+  switch(_piece->StoreType){
+    case _piece_t::StoreType_t::normal:{
+      A_resize(_piece->SACData, 0);
+      break;
+    }
+    case _piece_t::StoreType_t::nonsimu:{
+      // IO_munmap TODO
+      break;
+    }
+  }
+  delete _piece;
+}
+
 void _AddSoundToPlay(_PlayInfoList_NodeReference_t PlayInfoReference) {
   VEC_handle0(&this->PlayList, 1);
   uint32_t PlayID = this->PlayList.Current - 1;
-  _Play_t *Play = &((_Play_t *)this->PlayList.ptr)[PlayID];
+  auto Play = &((_Play_t *)this->PlayList.ptr)[PlayID];
   Play->Reference = PlayInfoReference;
   auto PlayInfo = &this->PlayInfoList[PlayInfoReference];
   #if fan_debug >= 0
@@ -261,15 +293,13 @@ _RemoveFromPlayInfoList
   _PlayInfoList_NodeReference_t PlayInfoReference,
   const PropertiesSoundStop_t *Properties
 ){
-  auto PlayInfo = &this->PlayInfoList[PlayInfoReference];
+  auto PlayInfo = &PlayInfoList[PlayInfoReference];
   if (PlayInfo->PlayID == (uint32_t)-1) {
     /* properties are ignored */
-    TH_lock(&this->PlayInfoListMutex);
-    this->PlayInfoList.unlrec(PlayInfoReference);
-    TH_unlock(&this->PlayInfoListMutex);
+    goto gt_RemovePlayInfo;
   }
   else {
-    auto PlayInfo = &this->PlayInfoList[PlayInfoReference];
+    auto PlayInfo = &PlayInfoList[PlayInfoReference];
     if (Properties->FadeOutTo != 0) {
       PropertiesSoundPlay_t* PropertiesPlay = &PlayInfo->properties;
       if (PropertiesPlay->Flags.FadeIn) {
@@ -286,12 +316,20 @@ _RemoveFromPlayInfoList
       }
     }
     else {
-      this->_RemoveFromPlayList(PlayInfo->PlayID);
-      TH_lock(&this->PlayInfoListMutex);
-      this->PlayInfoList.unlrec(PlayInfoReference);
-      TH_unlock(&this->PlayInfoListMutex);
+      _RemoveFromPlayList(PlayInfo->PlayID);
+      goto gt_RemovePlayInfo;
     }
   }
+  return;
+  gt_RemovePlayInfo:
+  if(--PlayInfo->_piece->ReferenceCount == 0){
+    if(PlayInfo->_piece->WantClose == true){
+      _ClosePiece(PlayInfo->_piece);
+    }
+  }
+  TH_lock(&PlayInfoListMutex);
+  PlayInfoList.unlrec(PlayInfoReference);
+  TH_unlock(&PlayInfoListMutex);
 }
 
 void _DataCallback(f32_t *Output) {
@@ -301,6 +339,8 @@ void _DataCallback(f32_t *Output) {
       _Message_t* Message = &((_Message_t*)this->MessageQueueList.ptr)[i];
       switch (Message->Type) {
         case _MessageType_t::SoundPlay: {
+          auto PlayInfo = &PlayInfoList[Message->Data.SoundPlay.PlayInfoReference];
+          ++PlayInfo->_piece->ReferenceCount;
           this->_AddSoundToPlay(Message->Data.SoundPlay.PlayInfoReference);
           break;
         }
@@ -369,6 +409,17 @@ void _DataCallback(f32_t *Output) {
             PlayInfoReference = PlayInfoNode->NextNodeReference;
           }
           TH_unlock(&this->PlayInfoListMutex);
+          break;
+        }
+        case _MessageType_t::ClosePiece: {
+          auto _piece = Message->Data.ClosePiece._piece;
+          if(_piece->ReferenceCount != 0){
+            _piece->WantClose = true;
+          }
+          else{
+            _ClosePiece(_piece);
+          }
+          break;
         }
       }
     }
@@ -379,7 +430,7 @@ void _DataCallback(f32_t *Output) {
     _Play_t *Play = &((_Play_t *)this->PlayList.ptr)[PlayID];
     _PlayInfoList_NodeReference_t PlayInfoReference = Play->Reference;
     auto PlayInfo = &this->PlayInfoList[PlayInfoReference];
-    piece_t *piece = PlayInfo->piece;
+    auto _piece = PlayInfo->_piece;
     PropertiesSoundPlay_t *Properties = &PlayInfo->properties;
     uint32_t OutputIndex = 0;
     uint32_t CanBeReadFrameCount;
@@ -387,7 +438,7 @@ void _DataCallback(f32_t *Output) {
       f32_t FadePerFrame;
     }CalculatedVariables;
     gt_ReOffset:
-    CanBeReadFrameCount = piece->GetFrameAmount() - PlayInfo->offset;
+    CanBeReadFrameCount = _piece->GetFrameAmount() - PlayInfo->offset;
     if (CanBeReadFrameCount > _constants::CallFrameCount - OutputIndex) {
       CanBeReadFrameCount = _constants::CallFrameCount - OutputIndex;
     }
@@ -413,7 +464,7 @@ void _DataCallback(f32_t *Output) {
       f32_t* FrameCachePointer;
       uint32_t FrameCacheAmount;
       this->_GetFrames(
-        piece,
+        _piece,
         PlayInfo->offset,
         &FrameCachePointer,
         &FrameCacheAmount);
@@ -457,7 +508,7 @@ void _DataCallback(f32_t *Output) {
     #define JumpIfNeeded() \
       if(OutputIndex != _constants::CallFrameCount) { goto gt_ReOffset; }
 
-    if (PlayInfo->offset == piece->GetFrameAmount()) {
+    if (PlayInfo->offset == _piece->GetFrameAmount()) {
       if (Properties->Flags.Loop == true) {
         PlayInfo->offset = 0;
       }
@@ -477,7 +528,7 @@ void _DataCallback(f32_t *Output) {
       JumpIfNeeded();
     }
     else{
-      if (PlayInfo->offset == piece->GetFrameAmount()) {
+      if (PlayInfo->offset == _piece->GetFrameAmount()) {
         PropertiesSoundStop_t PropertiesSoundStop;
         this->_RemoveFromPlayInfoList(PlayInfoReference, &PropertiesSoundStop);
         continue;

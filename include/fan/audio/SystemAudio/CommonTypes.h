@@ -62,7 +62,7 @@ struct PieceFlag{
   static constexpr t nonsimu = 0x00000001;
 };
 
-struct piece_t {
+struct _piece_t{
   uint8_t ChannelAmount;
   uint16_t BeginCut;
   uint32_t TotalSegments;
@@ -86,9 +86,15 @@ struct piece_t {
     }nonsimu;
   }StoreData;
 
+  uint32_t ReferenceCount = 0;
+  bool WantClose = false;
+
   uint64_t GetFrameAmount(){
     return FrameAmount - BeginCut;
   }
+};
+struct piece_t {
+  _piece_t *_piece;
 };
 
 #define BLL_set_BaseLibrary 1
@@ -98,7 +104,7 @@ struct piece_t {
 #define BLL_set_NodeData \
   f32_t Samples[_constants::FrameCacheAmount * _constants::ChannelAmount]; \
   _DecoderID_t DecoderID; \
-  piece_t *piece; \
+  _piece_t *_piece; \
   _SegmentID_t SegmentID;
 #define BLL_set_declare_NodeReference 0
 #define BLL_set_declare_rest 1
@@ -132,7 +138,7 @@ typedef uint32_t SoundPlayUnique_t;
 #define BLL_set_prefix _PlayInfoList
 #define BLL_set_type_node uint32_t
 #define BLL_set_NodeData \
-  piece_t *piece; \
+  _piece_t *_piece; \
   uint32_t GroupID; \
   uint32_t PlayID; \
   PropertiesSoundPlay_t properties; \
@@ -150,7 +156,8 @@ enum class _MessageType_t {
   SoundStop,
   PauseGroup,
   ResumeGroup,
-  StopGroup
+  StopGroup,
+  ClosePiece
 };
 struct _Message_t {
   _MessageType_t Type;
@@ -171,6 +178,9 @@ struct _Message_t {
     struct {
       uint32_t GroupID;
     }StopGroup;
+    struct {
+      _piece_t *_piece;
+    }ClosePiece;
   }Data;
 };
 

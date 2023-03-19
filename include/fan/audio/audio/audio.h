@@ -26,103 +26,117 @@ sint32_t Open(piece_t *piece, FS_file_t *file, PieceFlag::t Flag){
   _SACHead_t SACHead;
   if(FS_file_read(file, &SACHead, sizeof(_SACHead_t)) != sizeof(_SACHead_t)){
     err = -1;
-    goto gt_r0;
+    goto gt_r0_0;
   }
 
   if(SACHead.Sign != 0xff){
     err = -1;
-    goto gt_r0;
+    goto gt_r0_0;
   }
 
-  piece->ChannelAmount = SACHead.ChannelAmount;
-  piece->BeginCut = SACHead.BeginCut;
+  piece->_piece = new system_audio_t::_piece_t;
+  system_audio_t::_piece_t  *_piece; _piece = piece->_piece;
+
+  _piece->ChannelAmount = SACHead.ChannelAmount;
+  _piece->BeginCut = SACHead.BeginCut;
+
+  uint8_t *SACSegmentSizes; SACSegmentSizes = (uint8_t *)A_resize(0, SACHead.TotalSegments);
+  if(FS_file_read(file, SACSegmentSizes, SACHead.TotalSegments) != SACHead.TotalSegments){
+    err = -1;
+    goto gt_r0_2;
+  }
+
+  _piece->TotalSegments = 0;
+  uint64_t TotalOfSACSegmentSizes; TotalOfSACSegmentSizes = 0;
+  for(uint32_t i = 0; i < SACHead.TotalSegments; i++){
+    TotalOfSACSegmentSizes += SACSegmentSizes[i];
+    if(SACSegmentSizes[i] == 0xff){
+      continue;
+    }
+    _piece->TotalSegments++;
+  }
+
+  _piece->FrameAmount = (uint64_t)_piece->TotalSegments * system_audio_t::_constants::Opus::SegmentFrameAmount20;
+  if(SACHead.EndCut >= _piece->FrameAmount){
+    err = -1;
+    goto gt_r0_2;
+  }
+  _piece->FrameAmount -= SACHead.EndCut;
+
+  IO_stat_t s;
+  err = IO_fstat(&file_fd, &s);
+  if(err != 0){
+    goto gt_r0_2;
+  }
+
+  IO_off_t TotalFileSize; TotalFileSize = IO_stat_GetSizeInBytes(&s);
+  IO_off_t FileIsAt; FileIsAt = sizeof(_SACHead_t) + SACHead.TotalSegments;
+
+  uint64_t LeftSize; LeftSize = TotalFileSize - FileIsAt;
+  if(TotalOfSACSegmentSizes != LeftSize){
+    err = -1;
+    goto gt_r0_2;
+  }
+
+  if(Flag & PieceFlag::nonsimu){
+    _piece->StoreType = system_audio_t::_piece_t::StoreType_t::nonsimu;
+    _piece->StoreData.nonsimu.m = FileIsAt % PAGE_SIZE;
+
+    uintptr_t MapAt = FileIsAt - _piece->StoreData.nonsimu.m;
+    uint64_t MapLeftSize = TotalFileSize - MapAt;
+
+    //sintptr_t ptr = IO_mmap(NULL, MapLeftSize, PROT_READ, MAP_SHARED, file_fd.fd, MapAt);
+    //printf("pointer is %ld %lu %lu\n", ptr, FileIsAt, MapLeftSize);
+    //if(ptr < 0){
+    //  err = ptr;
+    //  goto gt_r0_2;
+    //}
+    //_piece->SACData = (uint8_t *)(ptr + _piece->StoreData.nonsimu.m);
+  }
+  else{
+    _piece->StoreType = system_audio_t::_piece_t::StoreType_t::normal;
+
+    _piece->SACData = A_resize(0, LeftSize);
+    if(FS_file_read(file, _piece->SACData, LeftSize) != LeftSize){
+      err = -1;
+      goto gt_r0_3;
+    }
+  }
 
   {
-    auto SACSegmentSizes = (uint8_t *)A_resize(0, SACHead.TotalSegments);
-    if(FS_file_read(file, SACSegmentSizes, SACHead.TotalSegments) != SACHead.TotalSegments){
-      err = -1;
-      goto gt_r1;
-    }
-
-    piece->TotalSegments = 0;
-    uint64_t TotalOfSACSegmentSizes; TotalOfSACSegmentSizes = 0;
+    uint16_t BeforeSum = 0;
+    uint32_t psi = 0;
+    uint32_t DataOffset = 0;
+    _piece->SACSegment = (_SACSegment_t *)A_resize(0, _piece->TotalSegments * sizeof(_SACSegment_t));
     for(uint32_t i = 0; i < SACHead.TotalSegments; i++){
-      TotalOfSACSegmentSizes += SACSegmentSizes[i];
+      BeforeSum += SACSegmentSizes[i];
       if(SACSegmentSizes[i] == 0xff){
         continue;
       }
-      piece->TotalSegments++;
+      _piece->SACSegment[psi].Offset = DataOffset;
+      _piece->SACSegment[psi].Size = BeforeSum;
+      _piece->SACSegment[psi].CacheID.sic();
+      DataOffset += BeforeSum;
+      BeforeSum = 0;
+      psi++;
     }
-
-    piece->FrameAmount = (uint64_t)piece->TotalSegments * system_audio_t::_constants::Opus::SegmentFrameAmount20;
-    if(SACHead.EndCut >= piece->FrameAmount){
-      goto gt_r1;
-    }
-    piece->FrameAmount -= SACHead.EndCut;
-
-    IO_stat_t s;
-    err = IO_fstat(&file_fd, &s);
-    if(err != 0){
-      goto gt_r1;
-    }
-
-    IO_off_t TotalFileSize; TotalFileSize = IO_stat_GetSizeInBytes(&s);
-    IO_off_t FileIsAt; FileIsAt = sizeof(_SACHead_t) + SACHead.TotalSegments;
-
-    uint64_t LeftSize; LeftSize = TotalFileSize - FileIsAt;
-    if(TotalOfSACSegmentSizes != LeftSize){
-      err = -1;
-      goto gt_r1;
-    }
-
-    if(Flag & PieceFlag::nonsimu){
-      piece->StoreType = piece_t::StoreType_t::nonsimu;
-      piece->StoreData.nonsimu.m = FileIsAt % PAGE_SIZE;
-
-      uintptr_t MapAt = FileIsAt - piece->StoreData.nonsimu.m;
-      uint64_t MapLeftSize = TotalFileSize - MapAt;
-
-      //sintptr_t ptr = IO_mmap(NULL, MapLeftSize, PROT_READ, MAP_SHARED, file_fd.fd, MapAt);
-      //printf("pointer is %ld %lu %lu\n", ptr, FileIsAt, MapLeftSize);
-      //if(ptr < 0){
-      //  PR_abort();
-      //}
-      //piece->SACData = (uint8_t *)(ptr + piece->StoreData.nonsimu.m);
-    }
-    else{
-      piece->StoreType = piece_t::StoreType_t::normal;
-
-      piece->SACData = A_resize(0, LeftSize);
-      if(FS_file_read(file, piece->SACData, LeftSize) != LeftSize){
-        A_resize(piece->SACData, 0);
-        err = -1;
-        goto gt_r1;
-      }
-    }
-
-    {
-      uint16_t BeforeSum = 0;
-      uint32_t psi = 0;
-      uint32_t DataOffset = 0;
-      piece->SACSegment = (_SACSegment_t *)A_resize(0, piece->TotalSegments * sizeof(_SACSegment_t));
-      for(uint32_t i = 0; i < SACHead.TotalSegments; i++){
-        BeforeSum += SACSegmentSizes[i];
-        if(SACSegmentSizes[i] == 0xff){
-          continue;
-        }
-        piece->SACSegment[psi].Offset = DataOffset;
-        piece->SACSegment[psi].Size = BeforeSum;
-        piece->SACSegment[psi].CacheID = system_audio_t::_CacheList_gnric();
-        DataOffset += BeforeSum;
-        BeforeSum = 0;
-        psi++;
-      }
-    }
-
-    gt_r1:
-    A_resize(SACSegmentSizes, 0);
   }
-  gt_r0:
+
+  A_resize(SACSegmentSizes, 0);
+  return 0;
+
+  A_resize(_piece->SACSegment, 0);
+  gt_r0_3:
+  if(Flag & PieceFlag::nonsimu){
+    // IO_unmap() TODO
+  }
+  else{
+    A_resize(_piece->SACData, 0);
+  }
+  gt_r0_2:
+  A_resize(SACSegmentSizes, 0);
+  delete _piece;
+  gt_r0_0:
   return err;
 }
 
@@ -142,7 +156,12 @@ sint32_t Open(piece_t *piece, const fan::string &path, uint32_t Flag) {
   return err;
 }
 void Close(piece_t *piece){
-  A_resize(piece->SACData, 0);
+  TH_lock(&system_audio->Process.MessageQueueListMutex);
+  VEC_handle0(&system_audio->Process.MessageQueueList, 1);
+  _Message_t* Message = &((_Message_t *)system_audio->Process.MessageQueueList.ptr)[system_audio->Process.MessageQueueList.Current - 1];
+  Message->Type = _MessageType_t::ClosePiece;
+  Message->Data.ClosePiece._piece = piece->_piece;
+  TH_unlock(&system_audio->Process.MessageQueueListMutex);
 }
 
 SoundPlayID_t SoundPlay(piece_t *piece, const PropertiesSoundPlay_t *Properties) {
@@ -159,7 +178,7 @@ SoundPlayID_t SoundPlay(piece_t *piece, const PropertiesSoundPlay_t *Properties)
   }
   auto pnr = system_audio->Process.PlayInfoList.NewNode();
   auto PlayInfo = &system_audio->Process.PlayInfoList[pnr];
-  PlayInfo->piece = piece;
+  PlayInfo->_piece = piece->_piece;
   PlayInfo->GroupID = Properties->GroupID;
   PlayInfo->PlayID = (uint32_t)-1;
   PlayInfo->properties = *Properties;
