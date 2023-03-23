@@ -59,8 +59,6 @@ void main() {
 
   gl_Position = projection * view * vec4(vec2(x, y) * get_instance().size + get_instance().position.xy, get_instance().position.z, 1);
 
-  gl_Position.z = 4096;
-
 	instance_color = get_instance().color;
 }
 )"
