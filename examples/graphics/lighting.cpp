@@ -50,7 +50,7 @@ struct pile_t {
 int main() {
   pile_t* pile = new pile_t;
 
-  pile->loco.lighting.ambient = fan::vec3(1, 1, 1);
+  pile->loco.lighting.ambient = fan::vec3(0.3, 0.3, 0.3);
 
   loco_t::sprite_t::properties_t p;
 
@@ -74,13 +74,13 @@ int main() {
   p.image = &image2;
   pile->loco.sprite.push_back(&pile->cid[1], p);
 
-  loco_t::light_sun_t::properties_t lp;
+  loco_t::light_t::properties_t lp;
   lp.camera = &pile->camera;
   lp.viewport = &pile->viewport;
-  lp.position = fan::vec3(0, 0, 2);
-  lp.size = 0.4;
+  lp.position = fan::vec3(0, 0, 0);
+  lp.size = 1;
   lp.color = fan::colors::yellow * 10;
-  pile->loco.light_sun.push_back(&pile->cid[0], lp);
+  pile->loco.light.push_back(&pile->cid[0], lp);
 
   //for (uint32_t i = 0; i < 1000; i++) {
   //  lp.position = fan::random::vec2(-1, 1);
@@ -117,7 +117,7 @@ int main() {
   }*/
 
   #if 1
-  pile->loco.light_sun.set(&pile->cid[0], &loco_t::light_sun_t::vi_t::position, pile->loco.get_mouse_position(pile->viewport));
+//  pile->loco.light.set(&pile->cid[0], &loco_t::light_t::vi_t::position, pile->loco.get_mouse_position(pile->viewport));
   #else
   #endif
   #if 0
