@@ -331,7 +331,7 @@ public:
       #if defined(loco_framebuffer)
       #if defined(sb_is_light)
       loco->get_context()->opengl.call(loco->get_context()->opengl.glEnable, fan::opengl::GL_BLEND);
-      loco->get_context()->opengl.call(loco->get_context()->opengl.glBlendFunc, fan::opengl::GL_SRC_ALPHA, fan::opengl::GL_ONE_MINUS_SRC_ALPHA);
+      //loco->get_context()->opengl.call(loco->get_context()->opengl.glBlendFunc, fan::opengl::GL_SRC_ALPHA, fan::opengl::GL_ONE_MINUS_SRC_ALPHA);
       loco->get_context()->set_depth_test(false);
       if constexpr (std::is_same<std::remove_pointer_t<decltype(this)>, loco_t::sb_shape_name>::value) {
         loco->get_context()->opengl.call(loco->get_context()->opengl.glBlendFunc, fan::opengl::GL_ONE, fan::opengl::GL_ONE);
