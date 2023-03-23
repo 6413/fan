@@ -13,7 +13,7 @@ uniform vec2 window_size;
 
 void main() {
   o_attachment0 = texture(_t00, texture_coordinate) * instance_color;
-  if (o_attachment0.a <= 0.5) {
+  if (o_attachment0.a <= 0.1) {
     discard;
   }
   vec4 t = vec4(texture(_t01, gl_FragCoord.xy / window_size).rgb, 1);
