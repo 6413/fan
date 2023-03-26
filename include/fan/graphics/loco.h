@@ -236,6 +236,8 @@ namespace fan {
 
 struct loco_t {
 
+  std::vector<fan::function_t<void()>> m_draw_queue_light;
+
   using cid_t = fan::graphics::cid_t;
 
   #define get_key_value(type) \

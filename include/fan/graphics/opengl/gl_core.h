@@ -449,6 +449,7 @@ inline fan::opengl::context_t::context_t(fan::window_t* window, const properties
 
   set_depth_test(true);
   
+  // no need for 2d
   //opengl.call(opengl.glFrontFace, fan::opengl::GL_CCW);
   //opengl.glEnable(fan::opengl::GL_CULL_FACE);;
   //opengl.glCullFace(fan::opengl::GL_FRONT);
