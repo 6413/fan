@@ -58,6 +58,7 @@ extern "C" {
 #endif
 #if defined(loco_sprite)
   #define loco_texture_pack
+  #define loco_unlit_sprite
 #endif
 
 #if defined(loco_text_box)
@@ -254,6 +255,7 @@ struct loco_t {
     static constexpr _t mark = 5;
     static constexpr _t rectangle = 6;
     static constexpr _t light = 7;
+    static constexpr _t unlit_sprite = 8;
   };
 
   struct draw_t {
@@ -943,6 +945,16 @@ public:
     sprite_t sb_shape_var_name;
     #undef sb_shape_var_name
   #endif
+  #if defined(loco_unlit_sprite)
+    #define sb_shape_var_name unlit_sprite
+    #define sb_sprite_name unlit_sprite_t
+    #define sb_custom_shape_type loco_t::shape_type_t::unlit_sprite
+    #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/objects/unlit_sprite.fs)
+    #include _FAN_PATH(graphics/opengl/2D/objects/sprite.h)
+    unlit_sprite_t unlit_sprite;
+    #undef sb_shape_var_name
+    #undef sb_custom_shape_type
+  #endif
   #if defined(loco_light)
     #define sb_shape_name light_t
     #define sb_shape_var_name light
@@ -1370,6 +1382,9 @@ public:
     #endif
     #if defined(loco_sprite)
     ,sprite_t*
+    #endif
+    #if defined(loco_unlit_sprite)
+    ,unlit_sprite_t*
     #endif
     #if defined(loco_button)
     ,button_t*
