@@ -25,7 +25,7 @@ struct sb_shape_name {
     type& name = *key.get_value<decltype(key)::get_index_with_type<type>()>();
 
   struct properties_t : vi_t, ri_t {
-    using type_t = light_t;
+    using type_t = sb_shape_name;
     loco_light_properties_t
   };
 

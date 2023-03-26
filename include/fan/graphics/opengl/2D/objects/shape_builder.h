@@ -91,7 +91,11 @@ public:
     );
     m_shader.set_fragment(
       loco->get_context(),
-      #include sb_shader_fragment_path
+      #ifndef sb_shader_fragment_string
+        #include sb_shader_fragment_path
+      #else
+        sb_shader_fragment_string
+      #endif
     );
     m_shader.compile(loco->get_context());
   }
@@ -333,7 +337,7 @@ public:
       loco->get_context()->opengl.call(loco->get_context()->opengl.glEnable, fan::opengl::GL_BLEND);
       //loco->get_context()->opengl.call(loco->get_context()->opengl.glBlendFunc, fan::opengl::GL_SRC_ALPHA, fan::opengl::GL_ONE_MINUS_SRC_ALPHA);
       loco->get_context()->set_depth_test(false);
-      if constexpr (std::is_same<std::remove_pointer_t<decltype(this)>, loco_t::sb_shape_name>::value) {
+      if constexpr (std::is_same<std::remove_pointer_t<decltype(this)>, sb_shape_name>::value) {
         loco->get_context()->opengl.call(loco->get_context()->opengl.glBlendFunc, fan::opengl::GL_ONE, fan::opengl::GL_ONE);
 
         unsigned int attachments[sizeof(loco->color_buffers) / sizeof(loco->color_buffers[0])];
@@ -372,7 +376,7 @@ public:
       #if defined(sb_is_light)
       loco->get_context()->opengl.call(loco->get_context()->opengl.glDisable, fan::opengl::GL_BLEND);
       loco->get_context()->set_depth_test(true);
-      if constexpr (std::is_same<std::remove_pointer_t<decltype(this)>, loco_t::sb_shape_name>::value) {
+      if constexpr (std::is_same<std::remove_pointer_t<decltype(this)>, sb_shape_name>::value) {
         loco->get_context()->opengl.call(loco->get_context()->opengl.glBlendFunc, fan::opengl::GL_SRC_ALPHA, fan::opengl::GL_ONE_MINUS_SRC_ALPHA);
         unsigned int attachments[sizeof(loco->color_buffers) / sizeof(loco->color_buffers[0])];
 
@@ -486,3 +490,4 @@ public:
   #undef sb_shader_fragment_path
   #undef sb_vertex_count
   #undef sb_get_loco
+  #undef sb_shader_fragment_string

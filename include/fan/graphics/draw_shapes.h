@@ -6,6 +6,10 @@ light.draw();
 light_sun.draw();
 #endif
 
+for (auto& i : m_draw_queue_light) {
+  i();
+}
+
 for (auto it = m_draw_queue.rbegin(); it != m_draw_queue.rend(); ++it) {
   for (auto it2 = it->f.begin(); it2 != it->f.end(); ++it2) {
     (*it2)();
