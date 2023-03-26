@@ -16,8 +16,9 @@ struct pile_t;
 #define loco_no_inline
 
 struct light_rectangle_t;
+struct light_rectangle_fade_t;
 
-#define loco_t_id_t_types light_rectangle_t*
+#define loco_t_id_t_types light_rectangle_t*, light_rectangle_fade_t*
 
 #define loco_light
 #define loco_sprite
@@ -91,11 +92,51 @@ pile_t* pile = new pile_t;
     }
 
     properties_t get_properties(loco_t::cid_t* cid) {
-      return (properties_t)_light_rectangle_t::get_properties(cid);
+      auto p = _light_rectangle_t::get_properties(cid);
+      return *(properties_t*)&p;
     }
   }light_rectangle;
 
-#define loco_t_id_t_ptrs &light_rectangle
+  #define sb_shape_name _light_rectangle_fade_t
+  #define sb_shader_fragment_string R"(
+    #version 330
+
+    layout (location = 1) out vec4 o_attachment1;
+
+    in vec4 instance_color;
+    in vec3 instance_position;
+    in vec2 instance_size;
+    in vec3 frag_position;
+
+    void main() {
+      o_attachment1 = instance_color;
+    }
+  )"
+  #define sb_get_loco \
+    loco_t* get_loco() { \
+      return &pile->loco; \
+    }
+  #define sb_is_light
+  #include _FAN_PATH(graphics/opengl/2D/objects/light.h)
+  
+  struct light_rectangle_fade_t : _light_rectangle_fade_t {
+    struct properties_t : _light_rectangle_fade_t::properties_t {
+      using type_t = light_rectangle_fade_t;
+    };
+    light_rectangle_fade_t() {
+      pile->loco.m_draw_queue_light.push_back([&] {
+        draw();
+      });
+    }
+
+    properties_t get_properties(loco_t::cid_t* cid) {
+      auto p = _light_rectangle_fade_t::get_properties(cid);
+      return *(properties_t*)&p;
+    }
+  }light_rectangle_fade;
+
+
+#define loco_t_id_t_ptrs &light_rectangle, &light_rectangle_fade
 #define loco_access &pile->loco
 #include _FAN_PATH(graphics/loco_define.h)
 

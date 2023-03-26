@@ -1379,7 +1379,7 @@ public:
     #endif
     #if defined(loco_light)
     , light_t*
-    #endif,
+    #endif
     #if defined(loco_t_id_t_types)
     , loco_t_id_t_types
     #endif
