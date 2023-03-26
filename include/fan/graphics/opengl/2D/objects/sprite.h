@@ -1,6 +1,10 @@
 struct sb_sprite_name {
 
+  #ifndef sb_custom_shape_type
   static constexpr typename loco_t::shape_type_t::_t shape_type = loco_t::shape_type_t::sprite;
+  #else
+  static constexpr typename loco_t::shape_type_t::_t shape_type = sb_custom_shape_type;
+  #endif
 
   struct vi_t {
     loco_sprite_vi_t

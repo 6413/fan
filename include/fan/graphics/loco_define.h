@@ -255,6 +255,9 @@ loco_t::loco_t(loco_t::properties_t p)
     #if defined(loco_sprite)
       *types.get_value<sprite_t*>() = &sprite;
     #endif
+    #if defined(loco_unlit_sprite)
+      *types.get_value<unlit_sprite_t*>() = &unlit_sprite;
+    #endif
     #if defined(loco_button)
       *types.get_value<button_t*>() = &button;
     #endif

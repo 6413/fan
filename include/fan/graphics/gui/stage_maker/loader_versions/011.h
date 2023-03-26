@@ -31,7 +31,7 @@ while (off < f.size()) {
         data.iterate_masterpiece([&f, &off](auto& o) {
           o = fan::read_data<std::remove_reference_t<decltype(o)>>(f, off);
         });
-        loco_t::sprite_t::properties_t sp;
+        loco_t::unlit_sprite_t::properties_t sp;
         sp.position = data.position;
         sp.position.z += stage->it * op.itToDepthMultiplier;
         sp.size = data.size;

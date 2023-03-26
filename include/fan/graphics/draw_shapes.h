@@ -31,6 +31,10 @@ m_draw_queue.clear();
   // can be moved
   sprite.draw();
 #endif
+#if defined(loco_unlit_sprite)
+  // can be moved
+  unlit_sprite.draw();
+#endif
   #if defined(loco_line)
   line.draw();
   #endif
