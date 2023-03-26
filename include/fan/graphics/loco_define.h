@@ -275,12 +275,35 @@ loco_t::loco_t(loco_t::properties_t p)
     #endif
   }
 
+
+
+fan_create_get_set_define_extra(fan::vec3, position,  
+  if (get_position().z != data.z) {
+    get_loco()->shape_set_depth(*this, data.z);
+  }
+, ;);
+fan_create_set_define_custom(fan::vec2, position, 
+  get_loco()->shape_set_position(*this, fan::vec3(data, get_position().z));
+);
+fan_create_get_set_define(fan::vec2, size);
+fan_create_get_set_define(fan::color, color);
+fan_create_get_set_define(f32_t, angle);
+fan_create_get_set_define(fan::string, text);
+fan_create_get_set_define(fan::vec2, rotation_point);
+fan_create_get_set_define(f32_t, font_size);
+
+fan_create_set_define(f32_t, depth);
+                   
+fan_create_set_define(loco_t::camera_list_NodeReference_t, camera);
+fan_create_set_define(fan::graphics::viewport_list_NodeReference_t, viewport);
+
+//
+
 fan_build_get_set_define(fan::vec3, position);
 fan_build_get_set_define(fan::vec2, size);
 fan_build_get_set_define(fan::color, color);
 fan_build_get_set_define(f32_t, angle);
 fan_build_get_set_define(fan::vec2, rotation_point);
-
 
 make_global_function_define(erase,
   if constexpr (has_erase_v<shape_t, loco_t::cid_t*>) {
@@ -307,18 +330,6 @@ make_global_function_define(set_depth,
   loco_t::cid_t* cid, 
   const auto& data 
 );
-
-fan_create_get_set_define(fan::vec2, size);
-fan_create_get_set_define(fan::color, color);
-fan_create_get_set_define(f32_t, angle);
-fan_create_get_set_define(fan::string, text);
-fan_create_get_set_define(fan::vec2, rotation_point);
-fan_create_get_set_define(f32_t, font_size);
-
-fan_create_set_define(f32_t, depth);
-                   
-fan_create_set_define(loco_t::camera_list_NodeReference_t, camera);
-fan_create_set_define(fan::graphics::viewport_list_NodeReference_t, viewport);
 
 
 #define make_shape_id_define(name) \

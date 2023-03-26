@@ -61,8 +61,13 @@ struct pile_t {
 
 pile_t* pile = new pile_t;
 
+#define loco_access &pile->loco
+#include _FAN_PATH(graphics/loco_define.h)
+
 #define loco_var pile->loco
 #include _FAN_PATH(graphics/gui/model_maker/loader.h)
+
+
 
 int main(int argc, char** argv) {
   if (argc < 2) {

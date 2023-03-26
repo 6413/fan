@@ -122,7 +122,7 @@ int main() {
   lp.type = 0;
 
   loco_t::id_t id = lp;
-
+  id.set_position(fan::vec2());
   pile->loco.loop([&] {
 
 	});
