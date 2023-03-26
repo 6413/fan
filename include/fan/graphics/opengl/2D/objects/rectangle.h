@@ -25,16 +25,6 @@ struct rectangle_t {
     get_key_value(uint16_t) = p.position.z;
     get_key_value(loco_t::camera_list_NodeReference_t) = p.camera;
     get_key_value(fan::graphics::viewport_list_NodeReference_t) = p.viewport;
-
-    #if defined(loco_vulkan)
-    auto loco = get_loco();
-    auto& camera = loco->camera_list[p.camera];
-    if (camera.camera_index.rectangle == (decltype(camera.camera_index.rectangle))-1) {
-      camera.camera_index.rectangle = m_camera_index++;
-      m_shader.set_camera(loco, camera.camera_id, camera.camera_index.rectangle);
-    }
-    #endif
-
     sb_push_back(cid, p);
   }
   void erase(fan::graphics::cid_t* cid) {
