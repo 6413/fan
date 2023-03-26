@@ -81,7 +81,7 @@ int main() {
   lp.size = 1;
   lp.color = fan::colors::yellow * 10;
   pile->loco.light.push_back(&pile->cid[0], lp);
-
+  
   //for (uint32_t i = 0; i < 1000; i++) {
   //  lp.position = fan::random::vec2(-1, 1);
   //  lp.color = fan::random::color();
