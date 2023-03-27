@@ -165,8 +165,8 @@ struct sb_sprite_name {
     sb_erase(cid);
   }
 
-  void draw() {
-    sb_draw();
+  void draw(bool blending = false) {
+    sb_draw(root);
   }
 
   void reload(fan::graphics::cid_t* cid, void** data, const fan::vec2& image_size) {

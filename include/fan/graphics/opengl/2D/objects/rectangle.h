@@ -31,8 +31,8 @@ struct rectangle_t {
     sb_erase(cid);
   }
 
-  void draw() {
-    sb_draw();
+  void draw(bool blending = false) {
+    sb_draw(root);
   }
 
   static constexpr uint32_t max_instance_size = fan::min(256, 4096 / (sizeof(vi_t) / 4));

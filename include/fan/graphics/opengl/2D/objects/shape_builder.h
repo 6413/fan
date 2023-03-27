@@ -117,11 +117,14 @@ public:
 
   struct block_t;
 
-  // STRUCT MANUAL PADDING IS REQUIRED (32 BIT)
   block_t* sb_push_back(fan::opengl::cid_t* cid, auto& p) {
+    return sb_push_back(cid, p, root);
+  }
+
+  // STRUCT MANUAL PADDING IS REQUIRED (32 BIT)                                 key root
+  block_t* sb_push_back(fan::opengl::cid_t* cid, auto& p, loco_bdbt_NodeReference_t nr) {
 
     loco_t* loco = get_loco();
-    loco_bdbt_NodeReference_t nr = root;
     loco_bdbt_Key_t<sizeof(bm_properties_t::key_t) * 8> k;
     typename decltype(k)::KeySize_t ki;
     //printf("%08x\n", *(uint32_t*)&p.key);
@@ -179,6 +182,9 @@ public:
     return block;
   }
   void sb_erase(fan::opengl::cid_t* cid) {
+    sb_erase(cid, root);
+  }
+  void sb_erase(fan::opengl::cid_t* cid, loco_bdbt_NodeReference_t key_root) {
     loco_t* loco = get_loco();
     auto bm_id = *(shape_bm_NodeReference_t*)&cid->bm_id;
     auto bm_node = bm_list.GetNodeByReference(bm_id);
@@ -202,7 +208,7 @@ public:
         if (last_block_id == bm_node->data.first_block) {
           loco_bdbt_Key_t<sizeof(bm_properties_t::key_t) * 8> k;
           typename decltype(k)::KeySize_t ki;
-          k.Remove(&loco->bdbt, &bm_node->data.instance_properties.key, root);
+          k.Remove(&loco->bdbt, &bm_node->data.instance_properties.key, key_root);
           bm_list.Recycle(bm_id);
         }
         else {
@@ -313,7 +319,7 @@ public:
   static inline uint16_t zdepth = 0;
 
   template <uint32_t depth = 0>
-  void traverse_draw(auto nr, uint32_t draw_mode, auto lambda) {
+  void traverse_draw(loco_bdbt_NodeReference_t nr, uint32_t draw_mode, auto lambda) {
     loco_t* loco = get_loco();
     if constexpr (depth == bm_properties_t::key_t::count + 1) {
       auto bmn = bm_list.GetNodeByReference(*(shape_bm_NodeReference_t*)&nr);
@@ -321,6 +327,7 @@ public:
       #ifndef sb_inline_draw
       draw_queue_helper.push_back([this, loco, draw_mode, bmn, bnr, lambda]() mutable {
         #endif
+
         m_shader.use(loco->get_context());
       #if defined(loco_opengl)
       #if defined (loco_letter)
@@ -427,12 +434,12 @@ public:
     }
   }
 
-  void sb_draw(uint32_t draw_mode = fan::opengl::GL_TRIANGLES, fan::function_t<void(fan::graphics::cid_t** cids)> lambda = [](fan::graphics::cid_t** cids) {}) {
+  void sb_draw(loco_bdbt_NodeReference_t nr, uint32_t draw_mode = fan::opengl::GL_TRIANGLES, fan::function_t<void(fan::graphics::cid_t** cids)> lambda = [](fan::graphics::cid_t** cids) {}) {
     loco_t* loco = get_loco();
     m_shader.use(loco->get_context());
     m_shader.set_int(loco->get_context(), "_t00", 0);
     m_shader.set_int(loco->get_context(), "_t01", 1);
-    traverse_draw(root, draw_mode, lambda);
+    traverse_draw(nr, draw_mode, lambda);
   }
 
   properties_t sb_get_properties(fan::opengl::cid_t* cid) {

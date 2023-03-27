@@ -63,8 +63,8 @@ struct letter_t {
     sb_erase(cid);
   }
 
-  void draw() {
-    sb_draw();
+  void draw(bool blending = false) {
+    sb_draw(root);
   }
 
    #if defined(loco_opengl)

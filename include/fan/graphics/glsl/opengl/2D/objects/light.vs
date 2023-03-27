@@ -10,14 +10,13 @@ out vec3 frag_position;
 
 out vec2 texture_coordinate;
 
-flat out uint instance_light_type;
 
 uniform mat4 view;
 uniform mat4 projection;
 
 struct block_instance_t{
 	vec3 position;
-  uint light_type;
+  float parallax_factor;
 	vec2 size;
 	vec2 rotation_point;
 	vec4 color;
@@ -54,10 +53,18 @@ void main() {
 
   instance_position = get_instance().position;
   instance_size = get_instance().size;
-  frag_position = vec4(vec4(vec2(x, y) * get_instance().size + get_instance().position.xy, get_instance().position.z, 1)).xyz;
-  instance_light_type = get_instance().light_type;
 
-  gl_Position = projection * view * vec4(vec2(x, y) * get_instance().size + get_instance().position.xy, get_instance().position.z, 1);
+  mat4 view_mat = view;
+
+  view_mat[3].xy *= 1 - get_instance().parallax_factor;
+
+  vec2 p = get_instance().position.xy * (1 - get_instance().parallax_factor);
+
+  vec4 fs = vec4(vec4(vec2(x, y) * get_instance().size + p, get_instance().position.z, 1));
+
+  frag_position = fs.xyz;
+
+  gl_Position = projection * view * fs;
 
 	instance_color = get_instance().color;
 }

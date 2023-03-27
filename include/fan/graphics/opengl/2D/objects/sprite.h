@@ -54,14 +54,39 @@ struct sb_sprite_name {
         m_shader.set_camera(loco, camera.camera_id, camera.camera_index.sprite);
       }
     #endif
-    sb_push_back(cid, p);
+    loco_bdbt_NodeReference_t key_root = root;
+    {
+      uint8_t key_blending = p.blending;
+      loco_bdbt_Key_t<8> k;
+      typename decltype(k)::KeySize_t ki;
+      k.Query(&get_loco()->bdbt, &key_blending, &ki, &key_root);
+      if (ki != 8) {
+        auto sub_root = key_root;
+        key_root = loco_bdbt_NewNode(&get_loco()->bdbt);
+        k.InFrom(&get_loco()->bdbt, &key_blending, ki, sub_root, key_root);
+      }
+    }
+    sb_push_back(cid, p, key_root);
   }
   void erase(fan::graphics::cid_t* cid) {
-    sb_erase(cid);
+    loco_bdbt_NodeReference_t key_root = root;
+    uint8_t key_blending = sb_get_ri(cid).blending;
+    loco_bdbt_Key_t<8> k;
+    typename decltype(k)::KeySize_t ki;
+    k.Query(&get_loco()->bdbt, &key_blending , &ki, &key_root);
+    sb_erase(cid, key_root);
   }
 
-  void draw() {
-    sb_draw();
+  void draw(bool blending) {
+    loco_bdbt_NodeReference_t key_root = root;
+    uint8_t key_blending = blending;
+    loco_bdbt_Key_t<8> k;
+    typename decltype(k)::KeySize_t ki;
+    k.Query(&get_loco()->bdbt, &key_blending, &ki, &key_root);
+    if (ki != 8) {
+      return;
+    }
+    sb_draw(key_root);
   }
 
   // can be bigger with vulkan

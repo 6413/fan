@@ -130,8 +130,8 @@ struct sb_pfr_name {
     sb_erase(cid);
   }
 
-  void draw() {
-    sb_draw();
+  void draw(bool blending = false) {
+    sb_draw(root);
   }
 
   void reload(fan::graphics::cid_t* cid, void** data, const fan::vec2& image_size, uint32_t filter = fan::opengl::GL_LINEAR) {

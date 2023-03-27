@@ -955,6 +955,16 @@ public:
     #undef sb_shape_var_name
     #undef sb_custom_shape_type
   #endif
+  #if defined(loco_blended_sprite)
+    #define sb_shape_var_name blended_sprite
+    #define sb_sprite_name blended_sprite_t
+    #define sb_custom_shape_type loco_t::shape_type_t::blended_sprite
+    #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/objects/blended_sprite.fs)
+    #include _FAN_PATH(graphics/opengl/2D/objects/sprite.h)
+    unlit_sprite_t blended_sprite;
+    #undef sb_shape_var_name
+    #undef sb_custom_shape_type
+  #endif
   #if defined(loco_light)
     #define sb_shape_name light_t
     #define sb_shape_var_name light
