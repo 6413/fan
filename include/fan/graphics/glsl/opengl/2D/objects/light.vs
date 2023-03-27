@@ -60,11 +60,12 @@ void main() {
 
   vec2 p = get_instance().position.xy * (1 - get_instance().parallax_factor);
 
-  vec4 fs = vec4(vec4(vec2(x, y) * get_instance().size + p, get_instance().position.z, 1));
+  vec4 fs = vec4(vec4(vec2(x, y) * get_instance().size + get_instance().position.xy, get_instance().position.z, 1));
+  vec4 fs2 = vec4(vec4(vec2(x, y) * get_instance().size + p, get_instance().position.z, 1));
 
   frag_position = fs.xyz;
 
-  gl_Position = projection * view * fs;
+  gl_Position = projection * view_mat * fs2;
 
 	instance_color = get_instance().color;
 }
