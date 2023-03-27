@@ -319,8 +319,8 @@ struct text_box_t {
     return &sb_get_ri(cid);
   }
 
-  void draw() {
-    sb_draw();
+  void draw(bool blending = false) {
+    sb_draw(root);
   }
 
   #if defined(loco_opengl)

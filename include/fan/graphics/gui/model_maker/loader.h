@@ -45,7 +45,7 @@ struct model_loader_t {
           });
         lambda(d);
       }
-      });
+    });
   }
 };
 

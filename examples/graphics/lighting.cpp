@@ -17,6 +17,7 @@
 #define loco_light
 #define loco_light_sun
 #define loco_sprite
+#define loco_no_inline
 #include _FAN_PATH(graphics/loco.h)
 
 struct pile_t {
@@ -47,8 +48,12 @@ struct pile_t {
   fan::graphics::cid_t cid[10];
 };
 
+pile_t* pile = new pile_t;
+#define loco_access &pile->loco
+#include _FAN_PATH(graphics/loco_define.h)
+
+
 int main() {
-  pile_t* pile = new pile_t;
 
   pile->loco.lighting.ambient = fan::vec3(0.3, 0.3, 0.3);
 

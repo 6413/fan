@@ -12,7 +12,7 @@
 
 #define loco_window
 #define loco_context
-
+#define loco_no_inline
 //#define loco_rectangle
 #define loco_sprite
 #include _FAN_PATH(graphics/loco.h)
@@ -49,9 +49,11 @@ struct pile_t {
   fan::graphics::cid_t cid[(unsigned long long)1e+7];
 };
 
-int main() {
+pile_t* pile = new pile_t;
+#define loco_access &pile->loco
+#include _FAN_PATH(graphics/loco_define.h)
 
-  pile_t* pile = new pile_t;
+int main() {
 
   loco_t::sprite_t::properties_t p;
 
@@ -60,10 +62,9 @@ int main() {
   p.viewport = &pile->viewport;
 
   loco_t::image_t image;
-  image.load(&pile->loco, "images/brick.webp");
-  loco_t::image_t image2;
-  image2.load(&pile->loco, "images/brick.webp");
+  image.load(&pile->loco, "images/1.WEBP");
   p.image = &image;
+  p.blending = false;
   p.position = fan::vec2(0, 0);
   pile->loco.sprite.push_back(&pile->cid[0], p);
   pile->loco.set_vsync(false);
