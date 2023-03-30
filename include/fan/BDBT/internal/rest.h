@@ -22,6 +22,12 @@ BDBT_StructEnd(_BDBT_P(Node_t))
   #pragma pack(pop)
 #endif
 
+#define BVEC_set_BaseLibrary BDBT_set_BaseLibrary
+#define BVEC_set_prefix _BDBT_P(_NodeList)
+#define BVEC_set_NodeType BDBT_set_type_node
+#define BVEC_set_NodeData _BDBT_P(Node_t)
+#include _BDBT_INCLUDE(BVEC/BVEC.h)
+
 #ifdef BDBT_set_CPP_ConstructDestruct
   struct _BDBT_P(t);
   static void _BDBT_P(Open)(_BDBT_P(t) *list);
@@ -30,11 +36,7 @@ BDBT_StructEnd(_BDBT_P(Node_t))
 
 BDBT_StructBegin(_BDBT_P(t))
   #if BDBT_set_StoreFormat == 0
-    #if BDBT_set_BaseLibrary == 0
-      VEC_t nodes;
-    #elif BDBT_set_BaseLibrary == 1
-      fan::hector_t<_BDBT_P(Node_t)> nodes;
-    #endif
+    _BDBT_P(_NodeList_t) NodeList;
   #endif
   struct{
     _BDBT_P(NodeReference_t) c;
@@ -58,11 +60,7 @@ _BDBT_P(IsNodeReferenceInvalid)
   _BDBT_P(t) *list,
   _BDBT_P(NodeReference_t) NodeReference
 ){
-  #if BDBT_set_BaseLibrary == 0
-    return NodeReference >= list->nodes.Current;
-  #elif BDBT_set_BaseLibrary == 1
-    return NodeReference >= list->nodes.size();
-  #endif
+  return NodeReference >= list->NodeList.Current;
 }
 
 static
@@ -106,7 +104,7 @@ _BDBT_P(_GetNodeByReference)
   _BDBT_P(t) *list,
   _BDBT_P(NodeReference_t) NodeReference
 ){
-  return &((_BDBT_P(Node_t) *)&list->nodes.ptr[0])[NodeReference];
+  return &((_BDBT_P(Node_t) *)&list->NodeList.ptr[0])[NodeReference];
 }
 
 static
@@ -139,11 +137,7 @@ _BDBT_P(GetNodeByReference)
   (
     _BDBT_P(t) *list
   ){
-    #if BDBT_set_BaseLibrary == 0
-      return list->nodes.Current - list->e.p;
-    #elif BDBT_set_BaseLibrary == 1
-      return list->nodes.size() - list->e.p;
-    #endif
+    return list->NodeList.Current - list->e.p;
   }
 #else
   /* pain */
@@ -166,12 +160,8 @@ _BDBT_P(NewNode_alloc)
 (
   _BDBT_P(t) *list
 ){
-  #if BDBT_set_BaseLibrary == 0
-    VEC_handle(&list->nodes);
-    return list->nodes.Current++;
-  #elif BDBT_set_BaseLibrary == 1
-    return list->nodes.push_back({});
-  #endif
+  _BDBT_P(_NodeList_AddEmpty)(&list->NodeList, 1);
+  return list->NodeList.Current - 1;
 }
 static
 _BDBT_P(NodeReference_t)
@@ -191,6 +181,32 @@ _BDBT_P(NewNode)
     _BDBT_P(Node_t) *Node = _BDBT_P(_GetNodeByReference)(list, NodeReference);
     for(_BDBT_P(NodeEIT_t) i = 0; i < _BDBT_set_ElementPerNode; i++){
       Node->n[i] = _BDBT_P(GetNotValidNodeReference)(list);
+    }
+  }
+
+  fan::print("new", NodeReference);
+
+  return NodeReference;
+}
+static
+_BDBT_P(NodeReference_t)
+_BDBT_P(NewNodeBranchly)
+(
+  _BDBT_P(t) *list,
+  _BDBT_P(NodeReference_t) *BNR /* branch node references */
+){
+  _BDBT_P(NodeReference_t) NodeReference;
+  if(list->e.p){
+    NodeReference = _BDBT_P(NewNode_empty)(list);
+  }
+  else{
+    NodeReference = _BDBT_P(NewNode_alloc)(list);
+  }
+
+  {
+    _BDBT_P(Node_t) *Node = _BDBT_P(_GetNodeByReference)(list, NodeReference);
+    for(_BDBT_P(NodeEIT_t) i = 0; i < _BDBT_set_ElementPerNode; i++){
+      Node->n[i] = BNR[i];
     }
   }
 
@@ -216,11 +232,7 @@ _BDBT_P(Open)
     list->e.c = 0;
   #endif
 
-  #if BDBT_set_BaseLibrary == 0
-    VEC_init(&list->nodes, sizeof(_BDBT_P(Node_t)), A_resize);
-  #elif BDBT_set_BaseLibrary == 1
-    list->nodes.open();
-  #endif
+  _BDBT_P(_NodeList_Open)(&list->NodeList);
   _BDBT_P(_AfterInitNodes)(list);
 }
 static
@@ -229,11 +241,7 @@ _BDBT_P(Close)
 (
   _BDBT_P(t) *list
 ){
-  #if BDBT_set_BaseLibrary == 0
-    VEC_free(&list->nodes);
-  #elif BDBT_set_BaseLibrary == 1
-    list->nodes.close();
-  #endif
+  _BDBT_P(_NodeList_Close)(&list->NodeList);
 }
 static
 void
@@ -276,11 +284,7 @@ _BDBT_P(PreAllocateNodes)
   _BDBT_P(t) *list,
   _BDBT_P(NodeReference_t) Amount
 ){
-  #if BDBT_set_BaseLibrary == 0
-    VEC_reserve(&list->nodes, Amount);
-  #elif BDBT_set_BaseLibrary == 1
-    list->nodes.reserve(Amount);
-  #endif
+  _BDBT_P(_NodeList_Reserve)(&list->NodeList, Amount);
 }
 
 #ifdef BDBT_set_namespace

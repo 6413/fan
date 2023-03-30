@@ -149,6 +149,7 @@ struct _BDBT_P(Key_t){
           uint8_t k = Byte & _BDBT_set_ElementPerNode - 1;
           tna[KeyIndex + i] = cnr;
           tka[KeyIndex + i] = k;
+          fan::print("remove", cnr);
           _BDBT_BP(Node_t) *Node = _BDBT_BP(GetNodeByReference)(list, cnr);
           cnr = Node->n[k];
           for(_BDBT_BP(NodeEIT_t) ki = 0; ki < _BDBT_set_ElementPerNode; ki++){
@@ -185,6 +186,7 @@ struct _BDBT_P(Key_t){
 
     _BDBT_BP(NodeReference_t) Output;
 
+    constexpr
     void
     init
     (
@@ -195,6 +197,7 @@ struct _BDBT_P(Key_t){
       this->tka[this->Current] = 0;
     }
 
+    constexpr
     bool
     Traverse
     (
