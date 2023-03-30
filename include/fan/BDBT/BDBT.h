@@ -90,12 +90,6 @@
   #define _BDBT_INCLUDE _FAN_PATH
 #endif
 
-#if BDBT_set_BaseLibrary == 0
-  #include _BDBT_INCLUDE(VEC/VEC.h)
-#elif BDBT_set_BaseLibrary == 1
-  #include _BDBT_INCLUDE(types/memory.h)
-#endif
-
 #ifdef BDBT_set_base_prefix
   #define _BDBT_BP(p0) CONCAT3(BDBT_set_base_prefix, _, p0)
 #else

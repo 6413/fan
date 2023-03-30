@@ -1,7 +1,5 @@
 #pragma once
 
-#include _FAN_PATH(types/types.h)
-
 #include <functional>
 
 #include <cmath>

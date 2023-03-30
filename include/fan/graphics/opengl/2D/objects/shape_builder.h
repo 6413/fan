@@ -208,6 +208,7 @@ public:
         if (last_block_id == bm_node->data.first_block) {
           loco_bdbt_Key_t<sizeof(bm_properties_t::key_t) * 8> k;
           typename decltype(k)::KeySize_t ki;
+          fan::print("key_root", key_root);
           k.Remove(&loco->bdbt, &bm_node->data.instance_properties.key, key_root);
           bm_list.Recycle(bm_id);
         }
@@ -461,8 +462,37 @@ public:
     *(vi_t*)&p = *block->uniform_buffer.get_instance(loco->get_context(), cid->instance_id);
     *(ri_t*)&p = block->p[cid->instance_id];
     *p.key.get_value<i>() = value;
-    sb_erase(cid);
-    sb_push_back(cid, p);
+
+    // eternally temporary
+    loco_bdbt_NodeReference_t key_root = root;
+    if constexpr (std::is_same<std::remove_pointer_t<decltype(this)>, loco_t::sprite_t>::value ||
+      std::is_same<std::remove_pointer_t<decltype(this)>, loco_t::unlit_sprite_t>::value) {
+      uint8_t key_blending = sb_get_ri(cid).blending;
+      loco_bdbt_Key_t<8> k;
+      typename decltype(k)::KeySize_t ki;
+      k.Query(&get_loco()->bdbt, &key_blending , &ki, &key_root);
+      if (ki != 8) {
+        exit(0);
+      }
+    }
+
+
+    sb_erase(cid, key_root);
+    if constexpr (std::is_same<std::remove_pointer_t<decltype(p)>, loco_t::sprite_t::properties_t>::value ||
+      std::is_same<std::remove_pointer_t<decltype(p)>, loco_t::unlit_sprite_t::properties_t>::value) {
+      // temp
+      uint8_t key_blending = ((loco_t::sprite_t::properties_t*)&p)->blending;
+      loco_bdbt_Key_t<8> k;
+      typename decltype(k)::KeySize_t ki;
+      k.Query(&get_loco()->bdbt, &key_blending, &ki, &key_root);
+      if (ki != 8) {
+        auto sub_root = key_root;
+        key_root = loco_bdbt_NewNode(&get_loco()->bdbt);
+        k.InFrom(&get_loco()->bdbt, &key_blending, ki, sub_root, key_root);
+      }
+    }
+
+    sb_push_back(cid, p, key_root);
   }
 
   void sb_set_depth(fan::opengl::cid_t* cid, f32_t depth) {
