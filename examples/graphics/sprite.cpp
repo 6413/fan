@@ -69,6 +69,8 @@ int main() {
   pile->loco.sprite.push_back(&pile->cid[0], p);
   pile->loco.set_vsync(false);
 
+  pile->loco.sprite.sb_set_depth(&pile->cid[0], 3);
+
   pile->loco.loop([&] {
     pile->loco.get_fps(); 
   });
