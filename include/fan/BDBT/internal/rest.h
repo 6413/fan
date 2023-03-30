@@ -184,8 +184,6 @@ _BDBT_P(NewNode)
     }
   }
 
-  fan::print("new", NodeReference);
-
   return NodeReference;
 }
 static

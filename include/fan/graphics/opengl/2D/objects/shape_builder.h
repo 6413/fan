@@ -467,7 +467,7 @@ public:
     loco_bdbt_NodeReference_t key_root = root;
     if constexpr (std::is_same<std::remove_pointer_t<decltype(this)>, loco_t::sprite_t>::value ||
       std::is_same<std::remove_pointer_t<decltype(this)>, loco_t::unlit_sprite_t>::value) {
-      uint8_t key_blending = sb_get_ri(cid).blending;
+      uint8_t key_blending = ((loco_t::sprite_t*)(this))->sb_get_ri(cid).blending;
       loco_bdbt_Key_t<8> k;
       typename decltype(k)::KeySize_t ki;
       k.Query(&get_loco()->bdbt, &key_blending , &ki, &key_root);
