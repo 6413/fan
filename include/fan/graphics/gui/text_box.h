@@ -296,7 +296,8 @@ struct text_box_t {
           ci.FreeStyle.LineReference,
           ci.FreeStyle.CharacterReference
         );
-        p = fan::vec3(*(fan::vec2*)&get_character_position(cid, line_index, character_index), p.z);
+        auto cp = get_character_position(cid, line_index, character_index);
+        p = fan::vec3(*(fan::vec2*)&cp, p.z);
         break;
       }
       case wed_t::CursorType::Selection: {
