@@ -137,6 +137,7 @@ public:
       blocks[ln->first_block].block.open(loco, this);
       ln->last_block = ln->first_block;
       ln->instance_properties = *(bm_properties_t*)&p;
+      //printf("push backed infrom %p %u %u %u\n", &loco->bdbt, nr, ki, lnr.NRI);
       k.InFrom(&loco->bdbt, &p.key, ki, nr, lnr.NRI);
       nr = lnr.NRI;
     }
@@ -208,7 +209,6 @@ public:
         if (last_block_id == bm_node->data.first_block) {
           loco_bdbt_Key_t<sizeof(bm_properties_t::key_t) * 8> k;
           typename decltype(k)::KeySize_t ki;
-          fan::print("key_root", key_root);
           k.Remove(&loco->bdbt, &bm_node->data.instance_properties.key, key_root);
           bm_list.Recycle(bm_id);
         }
@@ -478,19 +478,6 @@ public:
 
 
     sb_erase(cid, key_root);
-    if constexpr (std::is_same<std::remove_pointer_t<decltype(p)>, loco_t::sprite_t::properties_t>::value ||
-      std::is_same<std::remove_pointer_t<decltype(p)>, loco_t::unlit_sprite_t::properties_t>::value) {
-      // temp
-      uint8_t key_blending = ((loco_t::sprite_t::properties_t*)&p)->blending;
-      loco_bdbt_Key_t<8> k;
-      typename decltype(k)::KeySize_t ki;
-      k.Query(&get_loco()->bdbt, &key_blending, &ki, &key_root);
-      if (ki != 8) {
-        auto sub_root = key_root;
-        key_root = loco_bdbt_NewNode(&get_loco()->bdbt);
-        k.InFrom(&get_loco()->bdbt, &key_blending, ki, sub_root, key_root);
-      }
-    }
 
     sb_push_back(cid, p, key_root);
   }
