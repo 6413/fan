@@ -30,7 +30,7 @@ else
   BASE_PATH += lib/fan/
   FAN_OBJECT_FOLDER += $(BASE_PATH)
   CFLAGS += -I /usr/local/include -lX11 -lXrandr -L /usr/local/lib -lopus -lGL -lwebp -ldl
-  CFLAGS += -DFAN_INCLUDE_PATH=/mnt/c/libs/fan/include
+  CFLAGS += -DFAN_INCLUDE_PATH=/usr/include/
 	FAN_LIB += fan
 endif
 
