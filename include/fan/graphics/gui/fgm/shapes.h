@@ -666,7 +666,7 @@ struct sprite_t {
       data.iterate_masterpiece([&f, &off](auto& o) {
         o = fan::read_data<std::remove_reference_t<decltype(o)>>(f, off);
       });
-      loco_t::unlit_sprite_t::properties_t sp;
+      sprite_t::properties_t sp;
       sp.position = data.position;
       sp.size = data.size;
       sp.parallax_factor = data.parallax_factor;
