@@ -8,7 +8,7 @@ GPP = clang++ -I C:\libs -Dstage_loader_path=. -I include/nvidia
 CFLAGS = -ferror-limit=1000 -w -I .  -std=c++2a -I include #-O3 -march=native -mtune=native \
   #-fsanitize=address -fno-omit-frame-pointer
 
-MAIN = examples/graphics/custom_id_shape.cpp
+MAIN = examples/graphics/sprite.cpp
 
 TARGET = a.out
 
@@ -34,7 +34,11 @@ else
 	FAN_LIB += fan
 endif
 
-_:
+debug:
 	$(GPP) $(CFLAGS) $(MAIN) $(FAN_OBJECT_FOLDER)$(FAN_LIB).a
+
+release:
+	$(GPP) $(CFLAGS) $(MAIN) $(FAN_OBJECT_FOLDER)$(FAN_LIB).a -s -O3
+
 clean:
 	rm -f a.out
