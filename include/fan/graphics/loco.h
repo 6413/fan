@@ -254,6 +254,10 @@ inline struct global_loco_t {
 
 struct loco_t {
 
+  void use() {
+    global_loco.set_loco(this);
+  }
+
   std::vector<fan::function_t<void()>> m_draw_queue_light;
 
   using cid_t = fan::graphics::cid_t;
@@ -1840,7 +1844,7 @@ public:
 
   #define make_global_function_define(func_name, content, ...) \
   fan_has_function_concept(func_name);\
-  void loco_t::shape_ ## func_name(__VA_ARGS__) { \
+  void shape_ ## func_name(__VA_ARGS__) { \
     types.iterate([&]<typename T>(auto shape_index, T shape) { \
       using shape_t = std::remove_pointer_t<std::remove_pointer_t<T>>; \
       if (shape_t::shape_type == cid->shape_type) { \
@@ -1867,7 +1871,7 @@ public:
   #define fan_build_get_define(rt, name) \
   fan_has_variable_struct(name); \
   fan_has_function_concept(get_##name); \
-  rt loco_t::shape_get_##name(loco_t::cid_t* cid) { \
+  rt shape_get_##name(loco_t::cid_t* cid) { \
     rt data; \
     types.iterate([&]<typename T>(auto shape_index, T shape) {\
       using shape_t = std::remove_pointer_t<std::remove_pointer_t<T>>; \
@@ -1930,10 +1934,11 @@ public:
   fan_has_function_concept(get_##name); \
   rt shape_get_##name(loco_t::cid_t* cid);
 
+  // NOTE for including in c/.h need to add loco_t:: infront of function
   #define fan_build_get_generic_define(rt, name) \
   fan_has_variable_struct(name); \
   fan_has_function_concept(get_##name); \
-  rt loco_t::shape_get_##name(loco_t::cid_t* cid) { \
+  rt shape_get_##name(loco_t::cid_t* cid) { \
     rt data; \
     types.iterate([&]<typename T>(auto shape_index, T shape) {\
       using shape_t = std::remove_pointer_t<std::remove_pointer_t<T>>; \
