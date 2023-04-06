@@ -29,6 +29,10 @@ for (uint8_t i = 0; i < 2; i++) {
     unlit_sprite.draw_queue_helper.push_back([&]() {
       get_context()->opengl.call(get_context()->opengl.glDisable, fan::opengl::GL_BLEND);
     });
+    #if defined(loco_unlit_sprite)
+  // can be moved
+  unlit_sprite.draw(false);
+#endif
   }
   else {
     sprite.draw_queue_helper.push_back([&]() {
@@ -54,36 +58,50 @@ for (uint8_t i = 0; i < 2; i++) {
     // can be moved
     sprite.draw(i);
   #endif
-  #if defined(loco_unlit_sprite)
-    // can be moved
-    unlit_sprite.draw(i);
-  #endif
   #if defined(loco_line)
     line.draw(i);
-  #endif
-  #if defined(loco_letter)
-    // loco_t::text gets drawn here as well as it uses letter
-    letter.draw(i);
-  #endif
-  #if defined(loco_text_box)
-    text_box.draw(i);
-  #endif
-  #if defined(loco_button)
-    button.draw(i);
   #endif
   #if defined(loco_model_3d)
     model.draw(i);
   #endif
+
+  for (auto it = m_draw_queue.rbegin(); it != m_draw_queue.rend(); ++it) {
+    for (auto it2 = it->f.begin(); it2 != it->f.end(); ++it2) {
+      (*it2)();
+    }
+  }
+
+  m_draw_queue.clear();
 }
 
-#if defined(loco_post_process)
-  post_process.draw();
+
+get_context()->opengl.call(get_context()->opengl.glEnable, fan::opengl::GL_BLEND);
+get_context()->opengl.call(get_context()->opengl.glBlendFunc, fan::opengl::GL_SRC_ALPHA, fan::opengl::GL_ONE_MINUS_SRC_ALPHA);
+
+#if defined(loco_letter)
+  // loco_t::text gets drawn here as well as it uses letter
+  letter.draw(true);
+#endif
+#if defined(loco_text_box)
+  text_box.draw(true);
+#endif
+#if defined(loco_button)
+  button.draw(true);
 #endif
 
-for (auto it = m_draw_queue.rbegin(); it != m_draw_queue.rend(); ++it) {
+  #if defined(loco_unlit_sprite)
+  // can be moved
+  unlit_sprite.draw(true);
+#endif
+
+for (auto it = m_draw_queue.begin(); it != m_draw_queue.end(); ++it) {
   for (auto it2 = it->f.begin(); it2 != it->f.end(); ++it2) {
     (*it2)();
   }
 }
 
-m_draw_queue.clear();
+  m_draw_queue.clear();
+
+#if defined(loco_post_process)
+  post_process.draw();
+#endif

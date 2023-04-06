@@ -194,7 +194,7 @@ public:
       std::visit([&](auto&& o) {
         if constexpr (std::is_same_v<std::remove_reference_t<decltype(o)>, model_loader_t::sprite_t>) {
           loco_t::unlit_sprite_t::properties_t p;
-          p.blending = false;
+          p.blending = true;
           p.camera = mp.camera;
           p.viewport = mp.viewport;
           p.position = o.position;
