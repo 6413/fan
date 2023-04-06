@@ -86,6 +86,12 @@ struct sb_sprite_name {
     if (ki != 8) {
       return;
     }
+    if (blending) {
+      m_current_shader = &m_blending_shader;
+    }
+    else {
+      m_current_shader = &m_shader;
+    }
     sb_draw(key_root);
   }
 

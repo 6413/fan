@@ -46,30 +46,47 @@ struct pile_t {
   loco_t loco;
   loco_t::camera_t camera;
   fan::graphics::viewport_t viewport;
-  fan::graphics::cid_t cid[(unsigned long long)1e+7];
+  fan::graphics::cid_t cid[1];
 };
 
 pile_t* pile = new pile_t;
-#define loco_access &pile->loco
-#include _FAN_PATH(graphics/loco_define.h)
 
 int main() {
 
-  loco_t::sprite_t::properties_t p;
+    loco_t::image_t image;
+  image.load(&pile->loco, "images/1.WEBP");
+
+  loco_t::unlit_sprite_t::properties_t p;
+  loco_t::sprite_t::properties_t pp;
 
   p.size = fan::vec2(1);
   p.camera = &pile->camera;
   p.viewport = &pile->viewport;
 
-  loco_t::image_t image;
-  image.load(&pile->loco, "images/1.WEBP");
+  pp.size = fan::vec2(1);
+  pp.camera = &pile->camera;
+  pp.viewport = &pile->viewport;
+  pp.image = &image;
+  
+    pp.position = fan::vec2(0.75, 0.75);
+  pp.size = 0.25;
+  pp.blending = false;
+  loco_t::id_t id3 = pp;
+
   p.image = &image;
-  p.blending = false;
-  p.position = fan::vec2(0, 0);
-  pile->loco.sprite.push_back(&pile->cid[0], p);
+  p.blending = true;
+  p.size = 0.5;
+  p.position = fan::vec2(-0.5, -0.5);
+  loco_t::id_t id = p;
   pile->loco.set_vsync(false);
 
-  pile->loco.sprite.sb_set_depth(&pile->cid[0], 3);
+
+  p.position = fan::vec2(0.25, 0.25);
+  p.size = 0.25;
+  p.blending = false;
+  loco_t::id_t id2 = p;
+
+  id2.erase();
 
   pile->loco.loop([&] {
     pile->loco.get_fps(); 

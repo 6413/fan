@@ -194,6 +194,7 @@ public:
       std::visit([&](auto&& o) {
         if constexpr (std::is_same_v<std::remove_reference_t<decltype(o)>, model_loader_t::sprite_t>) {
           loco_t::unlit_sprite_t::properties_t p;
+          p.blending = false;
           p.camera = mp.camera;
           p.viewport = mp.viewport;
           p.position = o.position;
@@ -231,6 +232,7 @@ public:
     typename std::remove_reference_t<decltype(cids)>::value_type p;
     p.internal_ = (typename T::type_t*)0;
     p.position = properties.position;
+
     if constexpr (std::is_same_v<T, loco_t::text_t::properties_t>) {
       p.size = properties.font_size;
     }

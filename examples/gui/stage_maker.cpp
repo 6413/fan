@@ -21,6 +21,7 @@
 #define loco_menu_maker_button
 #define loco_menu_maker_text_box
 #define loco_var_name loco
+
 #include _FAN_PATH(graphics/loco.h)
 
 struct pile_t {
@@ -28,9 +29,6 @@ struct pile_t {
 };
 
 pile_t* pile = new pile_t;
-
-#define loco_access &pile->loco
-#include _FAN_PATH(graphics/loco_define.h)
 
 #define stage_maker_var_name stage_maker
 #define fgm_build_stage_maker
