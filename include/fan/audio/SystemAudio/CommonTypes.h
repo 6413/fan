@@ -94,7 +94,7 @@ struct _piece_t{
   }
 };
 struct piece_t {
-  _piece_t *_piece;
+  _piece_t *_piece = 0;
 };
 
 #define BLL_set_BaseLibrary 1

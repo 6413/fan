@@ -1,3 +1,5 @@
+get_context()->opengl.call(get_context()->opengl.glDisable, fan::opengl::GL_BLEND);
+
 #if defined(loco_light)
 light.draw();
 #endif
@@ -23,9 +25,18 @@ for (uint8_t i = 0; i < 2; i++) {
     sprite.draw_queue_helper.push_back([&]() {
       get_context()->opengl.call(get_context()->opengl.glDisable, fan::opengl::GL_BLEND);
     });
+
+    unlit_sprite.draw_queue_helper.push_back([&]() {
+      get_context()->opengl.call(get_context()->opengl.glDisable, fan::opengl::GL_BLEND);
+    });
   }
   else {
     sprite.draw_queue_helper.push_back([&]() {
+      get_context()->opengl.call(get_context()->opengl.glEnable, fan::opengl::GL_BLEND);
+      get_context()->opengl.call(get_context()->opengl.glBlendFunc, fan::opengl::GL_SRC_ALPHA, fan::opengl::GL_ONE_MINUS_SRC_ALPHA);
+    });
+
+    unlit_sprite.draw_queue_helper.push_back([&]() {
       get_context()->opengl.call(get_context()->opengl.glEnable, fan::opengl::GL_BLEND);
       get_context()->opengl.call(get_context()->opengl.glBlendFunc, fan::opengl::GL_SRC_ALPHA, fan::opengl::GL_ONE_MINUS_SRC_ALPHA);
     });

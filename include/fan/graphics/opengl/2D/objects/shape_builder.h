@@ -98,6 +98,31 @@ public:
       #endif
     );
     m_shader.compile(loco->get_context());
+
+    m_blending_shader.open(loco->get_context());
+    m_blending_shader.set_vertex(
+      loco->get_context(),
+      #include sb_shader_vertex_path
+    );
+    fan::string str = 
+      #ifndef sb_shader_fragment_string
+        #include sb_shader_fragment_path
+      #else
+        sb_shader_fragment_string
+      #endif
+    ;
+
+    auto found = str.find("discard;");
+    if (found != fan::string::npos) {
+      str.erase(found, std::string_view("discard;").size());
+    }
+    m_blending_shader.set_fragment(
+      loco->get_context(),
+      str
+    );
+    m_blending_shader.compile(loco->get_context());
+
+    m_current_shader = &m_shader;
   }
   void sb_close() {
     loco_t* loco = get_loco();
@@ -109,6 +134,7 @@ public:
     //loco_bdbt_close(&loco->bdbt);
 
     m_shader.close(loco->get_context());
+    m_blending_shader.close(loco->get_context());
 
     //for (uint32_t i = 0; i < blocks.size(); i++) {
     //  blocks[i].uniform_buffer.close(loco->get_context());
@@ -305,15 +331,15 @@ public:
 
   void set_vertex(const fan::string& str) {
     loco_t* loco = get_loco();
-    m_shader.set_vertex(loco->get_context(), str);
+    m_current_shader->set_vertex(loco->get_context(), str);
   }
   void set_fragment(const fan::string& str) {
     loco_t* loco = get_loco();
-    m_shader.set_fragment(loco->get_context(), str);
+    m_current_shader->set_fragment(loco->get_context(), str);
   }
   void compile() {
     loco_t* loco = get_loco();
-    m_shader.compile(loco->get_context());
+    m_current_shader->compile(loco->get_context());
   }
 
   static inline std::vector<fan::function_t<void()>> draw_queue_helper;
@@ -329,7 +355,7 @@ public:
       draw_queue_helper.push_back([this, loco, draw_mode, bmn, bnr, lambda]() mutable {
         #endif
 
-        m_shader.use(loco->get_context());
+        m_current_shader->use(loco->get_context());
       #if defined(loco_opengl)
       #if defined (loco_letter)
       if constexpr (std::is_same<std::remove_pointer_t<decltype(this)>, loco_t::letter_t>::value) {
@@ -338,7 +364,7 @@ public:
       #endif
       #endif
 
-      m_shader.set_vec3(loco->get_context(), loco_t::lighting_t::ambient_name, loco->lighting.ambient);
+      m_current_shader->set_vec3(loco->get_context(), loco_t::lighting_t::ambient_name, loco->lighting.ambient);
 
       #if defined(loco_framebuffer)
       #if defined(sb_is_light)
@@ -360,7 +386,7 @@ public:
       #endif
       #endif
 
-      m_shader.set_vec2(loco->get_context(), "window_size", loco->get_window()->get_size());
+      m_current_shader->set_vec2(loco->get_context(), "window_size", loco->get_window()->get_size());
 
       while (1) {
         auto node = blocks.GetNodeByReference(bnr);
@@ -425,7 +451,7 @@ public:
         #ifndef sb_inline_draw
         draw_queue_helper.push_back([this, loco, o, kt, draw_mode]() {
           #endif
-          m_shader.use(loco->get_context());
+          m_current_shader->use(loco->get_context());
         loco->process_block_properties_element(this, o);
         #ifndef sb_inline_draw
           });
@@ -437,9 +463,9 @@ public:
 
   void sb_draw(loco_bdbt_NodeReference_t nr, uint32_t draw_mode = fan::opengl::GL_TRIANGLES, fan::function_t<void(fan::graphics::cid_t** cids)> lambda = [](fan::graphics::cid_t** cids) {}) {
     loco_t* loco = get_loco();
-    m_shader.use(loco->get_context());
-    m_shader.set_int(loco->get_context(), "_t00", 0);
-    m_shader.set_int(loco->get_context(), "_t01", 1);
+    m_current_shader->use(loco->get_context());
+    m_current_shader->set_int(loco->get_context(), "_t00", 0);
+    m_current_shader->set_int(loco->get_context(), "_t01", 1);
     traverse_draw(nr, draw_mode, lambda);
   }
 
@@ -471,9 +497,6 @@ public:
       loco_bdbt_Key_t<8> k;
       typename decltype(k)::KeySize_t ki;
       k.Query(&get_loco()->bdbt, &key_blending , &ki, &key_root);
-      if (ki != 8) {
-        exit(0);
-      }
     }
 
 
@@ -487,6 +510,8 @@ public:
   }
 
   fan::opengl::shader_t m_shader;
+  fan::opengl::shader_t m_blending_shader;
+  fan::opengl::shader_t* m_current_shader = nullptr;
 
   vi_t& sb_get_vi(fan::graphics::cid_t* cid) {
     auto loco = get_loco();
