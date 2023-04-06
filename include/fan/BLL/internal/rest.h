@@ -108,9 +108,9 @@ BLL_StructEnd(_P(Node_t))
   #elif defined(_BLL_HaveConstantNodeData)
     #define BVEC_set_NodeData _P(Node_t)
   #endif
-  #define BVEC_set_alloc_open BLL_set_StoreFormat0_alloc_open
-  #define BVEC_set_alloc_resize BLL_set_StoreFormat0_alloc_resize
-  #define BVEC_set_alloc_close BLL_set_StoreFormat0_alloc_close
+  #define BVEC_set_alloc_open BLL_set_alloc_open
+  #define BVEC_set_alloc_resize BLL_set_alloc_resize
+  #define BVEC_set_alloc_close BLL_set_alloc_close
   #include _BLL_INCLUDE(BVEC/BVEC.h)
 #elif BLL_set_StoreFormat == 1
   #define BVEC_set_BaseLibrary BLL_set_BaseLibrary
@@ -123,8 +123,8 @@ BLL_StructEnd(_P(Node_t))
   #define BVEC_set_prefix _P(_BlockList)
   #define BVEC_set_NodeType BLL_set_type_node
   #define BVEC_set_NodeData _P(Node_t) *
-  #define BVEC_set_alloc_open BLL_set_StoreFormat1_alloc_open
-  #define BVEC_set_alloc_close BLL_set_StoreFormat1_alloc_close
+  #define BVEC_set_alloc_open BLL_set_alloc_open
+  #define BVEC_set_alloc_close BLL_set_alloc_close
   #include _BLL_INCLUDE(BVEC/BVEC.h)
 #endif
 
@@ -336,7 +336,7 @@ _BLL_POFTWBIT(GetNodeByReference)
 ){
   #if BLL_set_debug_InvalidAction == 1
     if(NodeReference >= _BLL_GetList->NodeList.Current){
-      PR_abort();
+      __abort();
     }
   #endif
   #if defined(BLL_set_MultipleType_Sizes)
@@ -389,7 +389,7 @@ _BLL_POFTWBIT(Usage)
   (
     _BLL_DBLLTFF
   ){
-    _P(Node_t) *n = (_P(Node_t) *)BLL_set_StoreFormat1_alloc_open(
+    _P(Node_t) *n = (_P(Node_t) *)BLL_set_alloc_open(
       sizeof(_P(Node_t)) * BLL_set_StoreFormat1_ElementPerBlock);
     _P(_BlockList_Add)(&_BLL_GetList->BlockList, &n);
   }
@@ -423,12 +423,11 @@ _BLL_POFTWBIT(_Node_Destruct)
 
 _BLL_SOFTWBIT
 void
-_BLL_POFTWBIT(Recycle)
+_BLL_POFTWBIT(_Recycle)
 (
   _BLL_DBLLTFFC
   _P(NodeReference_t) NodeReference
 ){
-  _BLL_POFTWBIT(_Node_Destruct)(_BLL_PBLLTFFC NodeReference);
   _P(NodeReference_t) *NextRecycled = _BLL_POFTWBIT(_grecnrofnr)(_BLL_PBLLTFFC NodeReference);
 
   *NextRecycled = _BLL_GetList->e.c;
@@ -438,6 +437,29 @@ _BLL_POFTWBIT(Recycle)
   _BLL_GetList->e.c = NodeReference;
   _BLL_GetList->e.p++;
 }
+
+_BLL_SOFTWBIT
+void
+_BLL_POFTWBIT(Recycle)
+(
+  _BLL_DBLLTFFC
+  _P(NodeReference_t) NodeReference
+){
+  _BLL_POFTWBIT(_Node_Destruct)(_BLL_PBLLTFFC NodeReference);
+  _BLL_POFTWBIT(_Recycle)(_BLL_PBLLTFFC NodeReference);
+}
+
+#ifdef BLL_set_CPP_Node_ConstructDestruct
+  _BLL_SOFTWBIT
+  void
+  _BLL_POFTWBIT(Recycle_NoDestruct)
+  (
+    _BLL_DBLLTFFC
+    _P(NodeReference_t) NodeReference
+  ){
+    _BLL_POFTWBIT(_Recycle)(_BLL_PBLLTFFC NodeReference);
+  }
+#endif
 
 _BLL_SOFTWBIT
 _P(NodeReference_t)
@@ -694,10 +716,10 @@ _BLL_POFTWBIT(NewNode)
   ){
     #if BLL_set_debug_InvalidAction >= 1
       if(_BLL_POFTWBIT(IsNRSentienel)(_BLL_PBLLTFFC NodeReference) == 1){
-        PR_abort();
+        __abort();
       }
       if(_BLL_POFTWBIT(IsNodeReferenceUnlinked)(_BLL_PBLLTFFC NodeReference) == 1){
-        PR_abort();
+        __abort();
       }
     #endif
 
@@ -785,7 +807,7 @@ _BLL_POFTWBIT(NewNode)
     for(_P(BlockIndex_t) i = 0; i < BlockAmount; i++){
       /* TODO looks ugly cast */
       void *p = (void *)((_P(Node_t) **)&_BLL_GetList->BlockList.ptr[0])[i];
-      BLL_set_StoreFormat1_alloc_close(p);
+      BLL_set_alloc_close(p);
     }
   }
 #endif
@@ -828,16 +850,33 @@ _BLL_POFTWBIT(_DestructAllNodes)
       _BLL_POFTWBIT(_GetNRTHOfNR)(_BLL_PBLLTFFC _BLL_GetList->src, 1)->NRI = (BLL_set_type_node)-1;
       _BLL_POFTWBIT(_GetNRTHOfNR)(_BLL_PBLLTFFC _BLL_GetList->dst, 1)->NRI = (BLL_set_type_node)-1;
     #endif
+
+    BLL_set_type_node count;
     #if BLL_set_StoreFormat == 0
-      for(BLL_set_type_node i = 0; i < _BLL_GetList->NodeList.Current; i++){
-        _P(NodeReference_t) nr;
-        nr.NRI = i;
-        if(_BLL_POFTWBIT(IsNodeReferenceRecycled)(_BLL_PBLLTFFC nr) == 0){
-          _BLL_POFTWBIT(_Node_Destruct)(_BLL_PBLLTFFC nr);
+      count = _BLL_GetList->NodeList.Current;
+    #elif BLL_set_StoreFormat == 1
+      count = _BLL_GetList->NodeCurrent;
+    #else
+      #error ?
+    #endif
+
+    #if BLL_set_IsNodeRecycled == 0
+      uintptr_t size = count * sizeof(uint8_t);
+      uint8_t *RecycledArray = (uint8_t *)BLL_set_alloc_open(size);
+      __MemorySet(0, RecycledArray, size);
+      _P(NodeReference_t) cnr = _BLL_GetList->e.c;
+      for(BLL_set_type_node i = _BLL_GetList->e.p; i != 0; --i){
+        RecycledArray[cnr.NRI] = 1;
+        cnr = *_BLL_POFTWBIT(_grecnrofnr)(_BLL_PBLLTFFC cnr);
+      }
+      for(cnr.NRI = 0; cnr.NRI < count; ++cnr.NRI){
+        if(RecycledArray[cnr.NRI] == 0){
+          _BLL_POFTWBIT(_Node_Destruct)(_BLL_PBLLTFFC cnr);
         }
       }
-    #elif BLL_set_StoreFormat == 1
-      for(BLL_set_type_node i = 0; i < _BLL_GetList->NodeCurrent; i++){
+      BLL_set_alloc_close(RecycledArray);
+    #elif BLL_set_IsNodeRecycled == 1
+      for(BLL_set_type_node i = 0; i < count; i++){
         _P(NodeReference_t) nr;
         nr.NRI = i;
         if(_BLL_POFTWBIT(IsNodeReferenceRecycled)(_BLL_PBLLTFFC nr) == 0){
@@ -989,11 +1028,11 @@ _BLL_POFTWBIT(Clear) /* TODO those 2 numbers in this function needs to be flexib
     #if BLL_set_debug_InvalidAction == 1
       #if BLL_set_SafeNext == 1
         if(_BLL_GetList->SafeNext.NRI != (BLL_set_type_node)-1){
-          PR_abort();
+          __abort();
         }
       #else
         if(_BLL_GetList->SafeNextCount == BLL_set_SafeNext){
-          PR_abort();
+          __abort();
         }
       #endif
     #endif
@@ -1012,11 +1051,11 @@ _BLL_POFTWBIT(Clear) /* TODO those 2 numbers in this function needs to be flexib
     #if BLL_set_debug_InvalidAction == 1
       #if BLL_set_SafeNext == 1
         if(_BLL_GetList->SafeNext.NRI == (BLL_set_type_node)-1){
-          PR_abort();
+          __abort();
         }
       #else
         if(_BLL_GetList->SafeNextCount == 0){
-          PR_abort();
+          __abort();
         }
       #endif
     #endif
@@ -1044,11 +1083,11 @@ _BLL_POFTWBIT(Clear) /* TODO those 2 numbers in this function needs to be flexib
     #if BLL_set_debug_InvalidAction == 1
       #if BLL_set_SafeNext == 1
         if(Depth != 1){
-          PR_abort();
+          __abort();
         }
       #else
         if(Depth > _BLL_GetList->SafeNextCount){
-          PR_abort();
+          __abort();
         }
       #endif
     #endif

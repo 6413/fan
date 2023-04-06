@@ -15,6 +15,15 @@
 #ifdef BLL_set_IsNodeUnlinked
   #error outdated setting. now there is only BLL_set_IsNodeRecycled
 #endif
+#if defined(BLL_set_StoreFormat0_alloc_open) || defined(BLL_set_StoreFormat1_alloc_open)
+  #error outdated setting. now it's BLL_set_alloc_open
+#endif
+#if defined(BLL_set_StoreFormat0_alloc_resize)
+  #error outdated setting. now it's BLL_set_alloc_resize
+#endif
+#if defined(BLL_set_StoreFormat0_alloc_close) || defined(BLL_set_StoreFormat1_alloc_close)
+  #error outdated setting. now it's BLL_set_alloc_close
+#endif
 
 /* --- outdated --- */
 
@@ -69,13 +78,6 @@
 #ifndef BLL_set_debug_InvalidAction
   #define BLL_set_debug_InvalidAction 0
 #endif
-#ifndef BLL_set_IsNodeRecycled
-  #if BLL_set_debug_InvalidAction == 1 || defined(BLL_set_CPP_Node_ConstructDestruct)
-    #define BLL_set_IsNodeRecycled 1
-  #else
-    #define BLL_set_IsNodeRecycled 0
-  #endif
-#endif
 #ifndef BLL_set_SafeNext
   #define BLL_set_SafeNext 0
 #endif
@@ -102,12 +104,20 @@
   #define BLL_set_NodeSizeType uint32_t
 #endif
 
+#ifndef BLL_set_IsNodeRecycled
+  #if (BLL_set_debug_InvalidAction == 1 || defined(BLL_set_CPP_Node_ConstructDestruct)) && BLL_set_Link == 1
+    #define BLL_set_IsNodeRecycled 1
+  #else
+    #define BLL_set_IsNodeRecycled 0
+  #endif
+#endif
+
 #if BLL_set_Link == 0
   #if BLL_set_SafeNext != 0
     #error SafeNext is not possible when there is not linking.
   #endif
-  #if BLL_set_IsNodeRecycled != 0
-    #error (IsNodeRecycled != 0) is not available with (Link == 0) yet.
+  #if BLL_set_IsNodeRecycled == 1
+    #error BLL_set_IsNodeRecycled requires BLL_set_Link 1
   #endif
 #endif
 
@@ -130,23 +140,17 @@
   #endif
 #endif
 
+#ifndef BLL_set_alloc_open
+  #define BLL_set_alloc_open malloc
+#endif
+#ifndef BLL_set_alloc_resize
+  #define BLL_set_alloc_resize realloc
+#endif
+#ifndef BLL_set_alloc_close
+  #define BLL_set_alloc_close free
+#endif
 #if BLL_set_StoreFormat == 0
-  #ifndef BLL_set_StoreFormat0_alloc_open
-    #define BLL_set_StoreFormat0_alloc_open malloc
-  #endif
-  #ifndef BLL_set_StoreFormat0_alloc_resize
-    #define BLL_set_StoreFormat0_alloc_resize realloc
-  #endif
-  #ifndef BLL_set_StoreFormat0_alloc_close
-    #define BLL_set_StoreFormat0_alloc_close free
-  #endif
 #elif BLL_set_StoreFormat == 1
-  #ifndef BLL_set_StoreFormat1_alloc_open
-    #define BLL_set_StoreFormat1_alloc_open malloc
-  #endif
-  #ifndef BLL_set_StoreFormat1_alloc_close
-    #define BLL_set_StoreFormat1_alloc_close free
-  #endif
   #ifndef BLL_set_StoreFormat1_ElementPerBlock
     #define BLL_set_StoreFormat1_ElementPerBlock 1
   #endif
@@ -184,6 +188,11 @@
 #ifdef BLL_set_MultipleType_Sizes
   #undef BLL_set_MultipleType_Sizes
 #endif
+
+#undef BLL_set_alloc_close
+#undef BLL_set_alloc_resize
+#undef BLL_set_alloc_open
+
 #undef BLL_set_debug_InvalidAction_dstAccess
 #undef BLL_set_debug_InvalidAction_srcAccess
 #undef BLL_set_NodeSizeType

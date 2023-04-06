@@ -1807,9 +1807,16 @@ public:
       return &cid;
     }
     vfi_id_t() = default;
-    vfi_id_t(const properties_t&);
-    vfi_id_t& operator[](const properties_t&);
-    ~vfi_id_t();
+    vfi_id_t(const properties_t& p) {
+      global_loco.get_loco()->vfi.push_back(*this, *(properties_t*)&p);
+    }
+    vfi_id_t& operator[](const properties_t& p) {
+      global_loco.get_loco()->vfi.push_back(*this, *(properties_t*)&p);
+      return *this;
+    }
+    ~vfi_id_t() {
+      global_loco.get_loco()->vfi.erase(*this);
+    }
 
     loco_t::vfi_t::shape_id_t cid;
   };
