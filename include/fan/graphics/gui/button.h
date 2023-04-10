@@ -164,8 +164,14 @@ struct button_t {
     return sb_get_ri(cid);
   }
 
-  void draw(bool blending = false) {
-    sb_draw(root);
+  void draw(const redraw_key_t &redraw_key, loco_bdbt_NodeReference_t key_root) {
+    if (redraw_key.blending) {
+      m_current_shader = &m_blending_shader;
+    }
+    else {
+      m_current_shader = &m_shader;
+    }
+    sb_draw(key_root);
   }
 
   #if defined(loco_opengl)

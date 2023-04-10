@@ -62,15 +62,15 @@ int main() {
   p.size = fan::vec2(1);
   p.camera = &pile->camera;
   p.viewport = &pile->viewport;
-
+  
   pp.size = fan::vec2(1);
   pp.camera = &pile->camera;
-  pp.viewport = &pile->viewport;
+  pp.viewport = &pile->viewport;  
   pp.image = &image;
   
-    pp.position = fan::vec2(0.75, 0.75);
+  pp.position = fan::vec2(0.75, 0.75);
   pp.size = 0.25;
-  pp.blending = false;
+  pp.blending = true;
   loco_t::id_t id3 = pp;
 
   p.image = &image;
@@ -86,8 +86,11 @@ int main() {
   p.blending = false;
   loco_t::id_t id2 = p;
 
-  id2.erase();
+  //id2.erase();
+  //id3.erase();
+  //id.erase();
 
+  //pile->loco.process_loop([] {});
   pile->loco.loop([&] {
     pile->loco.get_fps(); 
   });

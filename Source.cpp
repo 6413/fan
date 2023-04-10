@@ -18,22 +18,15 @@ struct pile_t;
 #define loco_sprite
 #define loco_button
 
-#include _FAN_PATH(graphics/loco.h)
+//#include _FAN_PATH(graphics/loco.h)
+#include <fan/types/masterpiece.h>
 
-struct pile_t {
-  loco_t loco;
-}*pile;
-
-struct pile2_t {
-  loco_t loco;
-}*pile2;
-
-#include _FAN_PATH(graphics/loco_define.h)
 
 int main() {
-  loco_t::id_t id;
-	/*pile->loco.loop([&] {
+  
+  fan::masterpiece_t<int, double> x;
+  x.iterate([] (const auto&d, const auto&x) {
 
-	});
-	*/
+    fan::print("a");
+  });
 }

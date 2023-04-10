@@ -1,5 +1,7 @@
 struct text_box_t {
 
+  static constexpr typename loco_t::shape_type_t::_t shape_type = loco_t::shape_type_t::text_box;
+
   struct cursor_properties {
     static constexpr uint64_t speed = 5e+8;
     static constexpr fan::vec2 size = fan::vec2(0.0015, 0.015);
@@ -37,7 +39,6 @@ struct text_box_t {
 
   void push_back(fan::graphics::cid_t* cid, properties_t& p) {
 
-    get_key_value(uint16_t) = p.position.z;
     get_key_value(loco_t::camera_list_NodeReference_t) = p.camera;
     get_key_value(fan::graphics::viewport_list_NodeReference_t) = p.viewport;
 
@@ -320,8 +321,14 @@ struct text_box_t {
     return &sb_get_ri(cid);
   }
 
-  void draw(bool blending = false) {
-    sb_draw(root);
+  void draw(const redraw_key_t &redraw_key, loco_bdbt_NodeReference_t key_root) {
+    if (redraw_key.blending) {
+      m_current_shader = &m_blending_shader;
+    }
+    else {
+      m_current_shader = &m_shader;
+    }
+    sb_draw(key_root);
   }
 
   #if defined(loco_opengl)

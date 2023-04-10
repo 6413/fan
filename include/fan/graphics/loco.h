@@ -277,6 +277,13 @@ struct loco_t {
     static constexpr _t rectangle = 6;
     static constexpr _t light = 7;
     static constexpr _t unlit_sprite = 8;
+    static constexpr _t letter = 9;
+    static constexpr _t text_box = 10;
+
+  };
+
+  struct redraw_key_t {
+    uint8_t blending;
   };
 
   struct draw_t {
@@ -287,6 +294,16 @@ struct loco_t {
       return id < b.id;
     }
   };
+
+  struct lighting_t {
+    static constexpr const char* ambient_name = "lighting_ambient";
+    fan::vec3 ambient = fan::vec3(1, 1, 1);
+
+    //void set_ambient() {
+
+    //  //m_current_shader->set_vec3(loco->get_context(), loco_t::lighting_t::ambient_name, loco->lighting.ambient);
+    //}
+  }lighting;
 
   // maybe can be set
   std::multiset<draw_t> m_draw_queue;
@@ -816,6 +833,7 @@ public:
   #endif
 
   loco_bdbt_t bdbt;
+  loco_bdbt_NodeReference_t root;
 
   fan::ev_timer_t ev_timer;
 
@@ -1020,6 +1038,7 @@ public:
   #endif
 
   #if defined(loco_line)
+    #define sb_depth_var src
     #define sb_shape_var_name line
     #include _FAN_PATH(graphics/opengl/2D/objects/line.h)
     line_t sb_shape_var_name;
@@ -1193,6 +1212,8 @@ public:
     #endif
   {
     #if defined(loco_window)
+
+    root = loco_bdbt_NewNode(&bdbt);
 
    // set_vsync(p.vsync);
 
@@ -1436,6 +1457,9 @@ public:
     #endif
     #if defined(loco_button)
       *types.get_value<button_t*>() = &button;
+    #endif
+    #if defined(loco_letter)
+      *types.get_value<letter_t*>() = &letter;
     #endif
     #if defined(loco_text)
       *types.get_value<text_t*>() = &text;
@@ -1786,6 +1810,9 @@ public:
     ,button_t*
     #endif
     #if defined(loco_text)
+    , letter_t*
+    #endif
+    #if defined(loco_text)
     , text_t*
     #endif
     #if defined(loco_light)
@@ -1795,11 +1822,6 @@ public:
     , loco_t_id_t_types
     #endif
   > types;
-
-  struct lighting_t {
-    static constexpr const char* ambient_name = "lighting_ambient";
-    fan::vec3 ambient = fan::vec3(1, 1, 1);
-  }lighting;
 
   struct vfi_id_t {
     using properties_t = loco_t::vfi_t::properties_t;
@@ -1855,6 +1877,17 @@ public:
     types.iterate([&]<typename T>(auto shape_index, T shape) { \
       using shape_t = std::remove_pointer_t<std::remove_pointer_t<T>>; \
       if (shape_t::shape_type == cid->shape_type) { \
+        content \
+      } \
+    }); \
+  }
+
+  #define make_global_function_define_custom_shape(func_name, content, ...) \
+  fan_has_function_concept(func_name);\
+  void shape_ ## func_name(__VA_ARGS__) { \
+    types.iterate([&]<typename T>(auto shape_index, T shape) { \
+      using shape_t = std::remove_pointer_t<std::remove_pointer_t<T>>; \
+      if (shape_t::shape_type == shape_type) { \
         content \
       } \
     }); \
@@ -2017,6 +2050,15 @@ public:
     }, 
     loco_t::cid_t* cid, 
     const auto& data 
+  );
+
+  make_global_function_define_custom_shape(draw,
+    if constexpr (has_draw_v<shape_t, const redraw_key_t &, loco_bdbt_NodeReference_t>) {
+      (*shape)->draw(redraw_key, nr); 
+    }, 
+    shape_type_t::_t shape_type,
+    const redraw_key_t& redraw_key,
+    loco_bdbt_NodeReference_t nr
   );
 
   fan_has_function_concept(sb_get_properties);

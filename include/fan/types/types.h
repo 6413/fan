@@ -767,3 +767,29 @@ static uint8_t __clz(uintptr_t p0) {
   __FAN__FOREACH(__FAN__INSERTVARNAME, __VA_ARGS__); \
   return var__; \
 }()
+
+#ifndef ENDIAN
+  #if defined(__BYTE_ORDER)
+    #if __BYTE_ORDER == __BIG_ENDIAN
+      #define ENDIAN 0
+    #elif __BYTE_ORDER == __LITTLE_ENDIAN
+      #define ENDIAN 1
+    #else
+      #error ?
+    #endif
+  #elif defined(__BYTE_ORDER__)
+    #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+      #define ENDIAN 0
+    #elif __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+      #define ENDIAN 1
+    #else
+      #error ?
+    #endif
+  #elif defined(__x86_64__) && __x86_64__ == 1
+    #define ENDIAN 1
+  #elif defined(fan_platform_windows)
+    #define ENDIAN 1
+  #else
+    #error ?
+  #endif
+#endif

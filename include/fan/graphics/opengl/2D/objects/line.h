@@ -1,5 +1,7 @@
 struct line_t {
 
+  static constexpr typename loco_t::shape_type_t::_t shape_type = loco_t::shape_type_t::line;
+
   struct vi_t {
     fan::color color;
     fan::vec3 src;
@@ -25,6 +27,7 @@ struct line_t {
 
 	struct ri_t : bm_properties_t {
 		cid_t* cid;
+    bool blending = false;
 	};
 
   struct properties_t : vi_t, ri_t {
@@ -56,12 +59,14 @@ struct line_t {
     sb_erase(cid);
   }
 
-  void draw(bool blending = false) {
-    sb_draw(root,
-      #if defined (loco_opengl)
-        fan::opengl::GL_LINES
-      #endif
-    );
+  void draw(const redraw_key_t &redraw_key, loco_bdbt_NodeReference_t key_root) {
+    if (redraw_key.blending) {
+      m_current_shader = &m_blending_shader;
+    }
+    else {
+      m_current_shader = &m_shader;
+    }
+    sb_draw(key_root);
   }
 
   static constexpr uint32_t max_instance_size = fan::min(256ull, 4096 / (sizeof(vi_t) / 4));
