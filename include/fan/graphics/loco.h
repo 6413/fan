@@ -1102,18 +1102,6 @@ public:
     #undef sb_shape_name
     #undef sb_is_light
   #endif
-  #if defined(loco_light_sun)
-    #define sb_shape_name light_sun_t
-    #define sb_shape_var_name light_sun
-    #define sb_fragment_shader light_sun.fs
-    #define sb_is_light
-    #include _FAN_PATH(graphics/opengl/2D/objects/light.h)
-    sb_shape_name sb_shape_var_name;
-    #undef sb_shape_var_name
-    #undef sb_fragment_shader
-    #undef sb_shape_name
-    #undef sb_is_light
-  #endif
   #if defined(loco_sprite_sheet)
     #define sb_shape_var_name sprite_sheet;
     #define sb_sprite_sheet_name sprite_sheet_t
