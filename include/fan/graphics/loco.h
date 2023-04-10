@@ -305,8 +305,6 @@ struct loco_t {
     //}
   }lighting;
 
-  // maybe can be set
-  std::multiset<draw_t> m_draw_queue;
 protected:
 
 
