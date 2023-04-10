@@ -22,7 +22,6 @@ struct rectangle_t {
   };
 
   void push_back(fan::graphics::cid_t* cid, properties_t p) {
-    get_key_value(uint16_t) = p.position.z;
     get_key_value(loco_t::camera_list_NodeReference_t) = p.camera;
     get_key_value(fan::graphics::viewport_list_NodeReference_t) = p.viewport;
     sb_push_back(cid, p);
@@ -31,8 +30,14 @@ struct rectangle_t {
     sb_erase(cid);
   }
 
-  void draw(bool blending = false) {
-    sb_draw(root);
+  void draw(const redraw_key_t &redraw_key, loco_bdbt_NodeReference_t key_root) {
+    if (redraw_key.blending) {
+      m_current_shader = &m_blending_shader;
+    }
+    else {
+      m_current_shader = &m_shader;
+    }
+    sb_draw(key_root);
   }
 
   static constexpr uint32_t max_instance_size = fan::min(256, 4096 / (sizeof(vi_t) / 4));

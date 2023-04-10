@@ -27,66 +27,18 @@ struct sb_sprite_name {
 
   void push_back(fan::graphics::cid_t* cid, properties_t p) {
 
-    get_key_value(uint16_t) = p.position.z;
     get_key_value (loco_t::textureid_t<0>) = p.image;
     get_key_value(loco_t::camera_list_NodeReference_t) = p.camera;
     get_key_value(fan::graphics::viewport_list_NodeReference_t) = p.viewport;
 
-    #if defined(loco_vulkan)
-      auto loco = get_loco();
-      VkDescriptorImageInfo imageInfo{};
-      imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-      auto& img = loco->image_list[p.image];
-      imageInfo.imageView = img.image_view;
-      imageInfo.sampler = img.sampler;
-      if (img.texture_index.sprite == (decltype(img.texture_index.sprite))-1) {
-        img.texture_index.sprite = m_texture_index++;
-        if (m_texture_index > fan::vulkan::max_textures) {
-          fan::throw_error("too many textures max:" + fan::vulkan::max_textures);
-        }
-        m_ssbo.m_descriptor.m_properties[2].image_infos[img.texture_index.sprite] = imageInfo;
-        m_ssbo.m_descriptor.update(loco->get_context(), 1, 2);
-      }
-
-      auto& camera = loco->camera_list[p.camera];
-      if (camera.camera_index.sprite == (decltype(camera.camera_index.sprite))-1) {
-        camera.camera_index.sprite = m_camera_index++;
-        m_shader.set_camera(loco, camera.camera_id, camera.camera_index.sprite);
-      }
-    #endif
-    loco_bdbt_NodeReference_t key_root = root;
-    {
-      uint8_t key_blending = p.blending;
-      loco_bdbt_Key_t<8> k;
-      typename decltype(k)::KeySize_t ki;
-      k.Query(&get_loco()->bdbt, &key_blending, &ki, &key_root);
-      if (ki != 8) {
-        auto sub_root = key_root;
-        key_root = loco_bdbt_NewNode(&get_loco()->bdbt);
-        k.InFrom(&get_loco()->bdbt, &key_blending, ki, sub_root, key_root);
-      }
-    }
-    sb_push_back(cid, p, key_root);
+    sb_push_back(cid, p);
   }
   void erase(fan::graphics::cid_t* cid) {
-    loco_bdbt_NodeReference_t key_root = root;
-    uint8_t key_blending = sb_get_ri(cid).blending;
-    loco_bdbt_Key_t<8> k;
-    typename decltype(k)::KeySize_t ki;
-    k.Query(&get_loco()->bdbt, &key_blending , &ki, &key_root);
-    sb_erase(cid, key_root);
+    sb_erase(cid);
   }
 
-  void draw(bool blending) {
-    loco_bdbt_NodeReference_t key_root = root;
-    uint8_t key_blending = blending;
-    loco_bdbt_Key_t<8> k;
-    typename decltype(k)::KeySize_t ki;
-    k.Query(&get_loco()->bdbt, &key_blending, &ki, &key_root);
-    if (ki != 8) {
-      return;
-    }
-    if (blending) {
+  void draw(const redraw_key_t &redraw_key, loco_bdbt_NodeReference_t key_root) {
+    if (redraw_key.blending) {
       m_current_shader = &m_blending_shader;
     }
     else {

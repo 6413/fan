@@ -1,5 +1,7 @@
 struct letter_t {
 
+  static constexpr typename loco_t::shape_type_t::_t shape_type = loco_t::shape_type_t::letter;
+
   struct vi_t {
     loco_letter_vi_t
   };
@@ -17,12 +19,12 @@ struct letter_t {
   };
 
   struct properties_t : vi_t, ri_t {
+    using type_t = letter_t;
     loco_letter_properties_t
   };
 
   void push_back(fan::graphics::cid_t* cid, properties_t& p) {
 
-    get_key_value(uint16_t) = p.position.z;
     get_key_value(loco_t::camera_list_NodeReference_t) = p.camera;
     get_key_value(fan::graphics::viewport_list_NodeReference_t) = p.viewport;
 
@@ -63,8 +65,15 @@ struct letter_t {
     sb_erase(cid);
   }
 
-  void draw(bool blending = false) {
-    sb_draw(root);
+  void draw(const redraw_key_t &redraw_key, loco_bdbt_NodeReference_t key_root) {
+    if (redraw_key.blending) {
+      m_current_shader = &m_blending_shader;
+    }
+    else {
+      m_current_shader = &m_shader;
+    }
+    get_loco()->process_block_properties_element<0>(this, &get_loco()->font.image);
+    sb_draw(key_root);
   }
 
    #if defined(loco_opengl)

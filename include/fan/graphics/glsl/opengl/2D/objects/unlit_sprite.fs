@@ -8,8 +8,6 @@ in vec4 instance_color;
 
 uniform sampler2D _t00;
 uniform sampler2D _t01;
-uniform vec3 lighting_ambient;
-uniform vec2 window_size;
 
 void main() {
   o_attachment0 = texture(_t00, texture_coordinate) * instance_color;

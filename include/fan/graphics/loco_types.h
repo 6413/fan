@@ -14,14 +14,14 @@
 
 #define loco_rectangle_bm_properties_t \
   using parsed_masterpiece_t = fan::masterpiece_t< \
-    uint16_t, \
     loco_t::camera_list_NodeReference_t, \
     fan::graphics::viewport_list_NodeReference_t \
   >; \
   struct key_t : parsed_masterpiece_t {}key;
 
 #define loco_rectangle_ri_t \
-  loco_t::rectangle_t::cid_t* cid;
+  loco_t::rectangle_t::cid_t* cid; \
+  bool blending = false;
 
 #define loco_rectangle_properties_t \
   loco_t::camera_t* camera = 0; \
@@ -44,7 +44,6 @@
 
 #define loco_sprite_bm_properties_t \
     using parsed_masterpiece_t = fan::masterpiece_t< \
-      uint16_t, \
       loco_t::textureid_t<0>, \
       loco_t::camera_list_NodeReference_t, \
       fan::graphics::viewport_list_NodeReference_t \
@@ -85,7 +84,6 @@
 
   #define loco_letter_bm_properties_t \
       using parsed_masterpiece_t = fan::masterpiece_t< \
-        uint16_t, \
         loco_t::camera_list_NodeReference_t, \
         fan::graphics::viewport_list_NodeReference_t \
       >; \
@@ -94,7 +92,8 @@
   #define loco_letter_ri_t \
     loco_t::letter_t::cid_t* cid; \
     f32_t font_size; \
-    uint32_t letter_id; 
+    uint32_t letter_id; \
+    bool blending = true;
 
   #define loco_letter_properties_t \
     loco_t::camera_t* camera = 0; \
@@ -144,7 +143,7 @@
   loco_t::mouse_button_cb_t mouse_button_cb = [](const loco_t::mouse_button_data_t&) -> int { return 0; }; \
   loco_t::mouse_move_cb_t mouse_move_cb = [](const loco_t::mouse_move_data_t&) -> int { return 0; }; \
   loco_t::keyboard_cb_t keyboard_cb = [](const loco_t::keyboard_data_t&) -> int { return 0; }; \
-
+  bool blending = false;
 #define loco_button_properties_t \
  \
   fan::string text; \
@@ -154,7 +153,7 @@
   bool disable_highlight = false; \
  \
   loco_t::camera_t* camera = 0; \
-  fan::graphics::viewport_t* viewport = 0;
+  fan::graphics::viewport_t* viewport = 0; 
 
 #endif
 
@@ -171,7 +170,6 @@
 
   #define loco_text_box_bm_properties_t \
     using parsed_masterpiece_t = fan::masterpiece_t< \
-      uint16_t, \
       loco_t::camera_list_NodeReference_t, \
       fan::graphics::viewport_list_NodeReference_t \
     >; \
@@ -185,7 +183,8 @@
     uint64_t udata; \
  \
     fan::graphics::cid_t text_id; \
-    fed_t fed;
+    fed_t fed; \
+    bool blending = false;
 
 #define loco_text_box_properties_t \
     loco_t::camera_t* camera = 0; \
@@ -200,7 +199,8 @@
     loco_t::mouse_button_cb_t mouse_button_cb = [](const loco_t::mouse_button_data_t&) -> int { return 0; }; \
     loco_t::mouse_move_cb_t mouse_move_cb = [](const loco_t::mouse_move_data_t&) -> int { return 0; }; \
     loco_t::keyboard_cb_t keyboard_cb = [](const loco_t::keyboard_data_t&) -> int { return 0; }; \
-    loco_t::text_cb_t text_cb = [](const loco_t::text_data_t&) -> int { return 0; };
+    loco_t::text_cb_t text_cb = [](const loco_t::text_data_t&) -> int { return 0; }; \
+    bool blending = false;
 
 #endif
 
@@ -216,14 +216,14 @@
 
 #define loco_light_bm_properties_t \
   using parsed_masterpiece_t = fan::masterpiece_t< \
-    uint16_t, \
     loco_t::camera_list_NodeReference_t, \
     fan::graphics::viewport_list_NodeReference_t \
   >; \
   struct key_t : parsed_masterpiece_t {}key;
 
 #define loco_light_ri_t \
-  loco_t::light_t::cid_t* cid;
+  loco_t::light_t::cid_t* cid; \
+  bool blending = true;
 
 #define loco_light_properties_t \
   loco_t::camera_t* camera = 0; \

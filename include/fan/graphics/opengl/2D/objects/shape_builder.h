@@ -1,3 +1,7 @@
+#ifndef sb_depth_var
+  #define sb_depth_var position
+#endif
+
 #ifndef sb_get_loco
 #define sb_get_loco \
   loco_t* get_loco() { \
@@ -28,8 +32,6 @@ struct block_t {
 
 protected:
 
-  loco_bdbt_NodeReference_t root;
-
   #define BLL_set_CPP_Node_ConstructDestruct
   #define BLL_set_AreWeInsideStruct 1
   #define BLL_set_prefix bll_block
@@ -59,6 +61,17 @@ protected:
 
   shape_bm_t bm_list;
 
+  fan::window_t::resize_callback_NodeReference_t resize_nr;
+
+  #pragma pack(push, 1)
+  struct key_pack_t {
+    loco_t::redraw_key_t redraw_key;
+    uint16_t depth;
+    loco_t::shape_type_t::_t shape_type;
+    bm_properties_t::key_t shape_key;
+  };
+  #pragma pack(pop)
+
 public:
 
   struct cid_t {
@@ -80,7 +93,6 @@ public:
 
   void sb_open() {
     loco_t* loco = get_loco();
-    root = loco_bdbt_NewNode(&loco->bdbt);
     blocks.Open();
     bm_list.Open();
 
@@ -123,9 +135,28 @@ public:
     m_blending_shader.compile(loco->get_context());
 
     m_current_shader = &m_shader;
+
+    m_shader.use(loco->get_context());
+    m_shader.set_vec2(loco->get_context(), "window_size", loco->get_window()->get_size());
+    m_blending_shader.use(loco->get_context());
+    m_blending_shader.set_vec2(loco->get_context(), "window_size", loco->get_window()->get_size());
+
+    m_shader.use(loco->get_context());
+    m_shader.set_vec3(loco->get_context(), loco_t::lighting_t::ambient_name, loco->lighting.ambient);
+    m_blending_shader.use(loco->get_context());
+    m_blending_shader.set_vec3(loco->get_context(), loco_t::lighting_t::ambient_name, loco->lighting.ambient);
+
+    resize_nr = loco->get_window()->add_resize_callback([this, loco](const auto& d) {
+      m_shader.use(loco->get_context());
+      m_shader.set_vec2(loco->get_context(), "window_size", loco->get_window()->get_size());
+      m_blending_shader.use(loco->get_context());
+      m_blending_shader.set_vec2(loco->get_context(), "window_size", loco->get_window()->get_size());
+    });
   }
   void sb_close() {
     loco_t* loco = get_loco();
+
+    loco->get_window()->remove_resize_callback(resize_nr);
 
     blocks.Close();
     bm_list.Close();
@@ -143,33 +174,46 @@ public:
 
   struct block_t;
 
-  block_t* sb_push_back(fan::opengl::cid_t* cid, auto& p) {
-    return sb_push_back(cid, p, root);
+  shape_bm_NodeReference_t push_new_bm(properties_t& p) {
+    auto lnr = bm_list.NewNode();
+    auto ln = &bm_list[lnr];
+    ln->first_block = blocks.NewNodeLast();
+    blocks[ln->first_block].block.open(get_loco(), this);
+    ln->last_block = ln->first_block;
+    ln->instance_properties = *(bm_properties_t*)&p;
+    return lnr;
   }
 
-  // STRUCT MANUAL PADDING IS REQUIRED (32 BIT)                                 key root
-  block_t* sb_push_back(fan::opengl::cid_t* cid, auto& p, loco_bdbt_NodeReference_t nr) {
+  // STRUCT MANUAL PADDING IS REQUIRED (32 BIT)
+  block_t* sb_push_back(fan::opengl::cid_t* cid, properties_t& p) {
 
     loco_t* loco = get_loco();
-    loco_bdbt_Key_t<sizeof(bm_properties_t::key_t) * 8> k;
-    typename decltype(k)::KeySize_t ki;
-    //printf("%08x\n", *(uint32_t*)&p.key);
-    k.Query(&loco->bdbt, &p.key, &ki, &nr);
 
-    if (ki != sizeof(bm_properties_t::key_t) * 8) {
-      auto lnr = bm_list.NewNode();
-      auto ln = &bm_list[lnr];
-      ln->first_block = blocks.NewNodeLast();
-      blocks[ln->first_block].block.open(loco, this);
-      ln->last_block = ln->first_block;
-      ln->instance_properties = *(bm_properties_t*)&p;
-      //printf("push backed infrom %p %u %u %u\n", &loco->bdbt, nr, ki, lnr.NRI);
-      k.InFrom(&loco->bdbt, &p.key, ki, nr, lnr.NRI);
-      nr = lnr.NRI;
-    }
+    shape_bm_NodeReference_t bm_id;
+
+    {
+      loco_bdbt_NodeReference_t key_root = loco->root;
+
+      key_pack_t key_pack;
+      key_pack.redraw_key.blending = p.blending;
+      key_pack.depth = p.sb_depth_var.z;
+      key_pack.shape_type = shape_type;
+      key_pack.shape_key = p.key;
+
+      loco_bdbt_Key_t<sizeof(key_pack_t) * 8> k;
+      typename decltype(k)::KeySize_t ki;
+      k.q(&loco->bdbt, &key_pack, &ki, &key_root);
+      if(ki != sizeof(key_pack_t) * 8){
+        bm_id = push_new_bm(p);
+        k.a(&loco->bdbt, &key_pack, ki, key_root, bm_id.NRI);
+      }
+      else {
+        bm_id.NRI = key_root;
+      }
+    };
 
     vi_t it = p;
-    shape_bm_Node_t* bmn = bm_list.GetNodeByReference(*(shape_bm_NodeReference_t*)&nr);
+    shape_bm_Node_t* bmn = bm_list.GetNodeByReference(bm_id);
     block_t* last_block = &blocks[bmn->data.last_block].block;
 
     if (last_block->uniform_buffer.size() == max_instance_size) {
@@ -193,7 +237,7 @@ public:
       instance_id * sizeof(vi_t) + sizeof(vi_t)
     );
 
-    cid->bm_id = ((shape_bm_NodeReference_t*)&nr)->NRI;
+    cid->bm_id = bm_id.NRI;
     cid->block_id = bmn->data.last_block.NRI;
     cid->instance_id = instance_id;
     cid->shape_type = -1;
@@ -209,9 +253,6 @@ public:
     return block;
   }
   void sb_erase(fan::opengl::cid_t* cid) {
-    sb_erase(cid, root);
-  }
-  void sb_erase(fan::opengl::cid_t* cid, loco_bdbt_NodeReference_t key_root) {
     loco_t* loco = get_loco();
     auto bm_id = *(shape_bm_NodeReference_t*)&cid->bm_id;
     auto bm_node = bm_list.GetNodeByReference(bm_id);
@@ -229,19 +270,24 @@ public:
       block->uniform_buffer.m_size -= sizeof(vi_t);
       if (block->uniform_buffer.size() == 0) {
         auto lpnr = block_node->PrevNodeReference;
-        block->close(loco);
-        blocks.Unlink(block_id);
-        blocks.Recycle(block_id);
         if (last_block_id == bm_node->data.first_block) {
-          loco_bdbt_Key_t<sizeof(bm_properties_t::key_t) * 8> k;
+          key_pack_t key_pack;
+          key_pack.redraw_key.blending = sb_get_ri(cid).blending;
+          key_pack.depth = sb_get_vi(cid).sb_depth_var.z;
+          key_pack.shape_type = shape_type;
+          key_pack.shape_key = bm_node->data.instance_properties.key;
+          loco_bdbt_Key_t<sizeof(key_pack) * 8> k;
           typename decltype(k)::KeySize_t ki;
-          k.Remove(&loco->bdbt, &bm_node->data.instance_properties.key, key_root);
+          k.r(&loco->bdbt, &key_pack, loco->root);
           bm_list.Recycle(bm_id);
         }
         else {
           //fan::print("here");
           last_block_id = lpnr;
         }
+        block->close(loco);
+        blocks.Unlink(block_id);
+        blocks.Recycle(block_id);
       }
       cid->bm_id = 0;
       cid->block_id = 0;
@@ -343,50 +389,13 @@ public:
   }
 
   static inline std::vector<fan::function_t<void()>> draw_queue_helper;
-  static inline uint16_t zdepth = 0;
 
   template <uint32_t depth = 0>
-  void traverse_draw(loco_bdbt_NodeReference_t nr, uint32_t draw_mode, auto lambda) {
+  void traverse_draw(loco_bdbt_NodeReference_t nr, uint32_t draw_mode) {
     loco_t* loco = get_loco();
     if constexpr (depth == bm_properties_t::key_t::count + 1) {
       auto bmn = bm_list.GetNodeByReference(*(shape_bm_NodeReference_t*)&nr);
       auto bnr = bmn->data.first_block;
-      #ifndef sb_inline_draw
-      draw_queue_helper.push_back([this, loco, draw_mode, bmn, bnr, lambda]() mutable {
-        #endif
-
-        m_current_shader->use(loco->get_context());
-      #if defined(loco_opengl)
-      #if defined (loco_letter)
-      if constexpr (std::is_same<std::remove_pointer_t<decltype(this)>, loco_t::letter_t>::value) {
-        loco->process_block_properties_element<0>(this, &loco->font.image);
-      }
-      #endif
-      #endif
-
-      m_current_shader->set_vec3(loco->get_context(), loco_t::lighting_t::ambient_name, loco->lighting.ambient);
-
-      #if defined(loco_framebuffer)
-      #if defined(sb_is_light)
-      loco->get_context()->opengl.call(loco->get_context()->opengl.glEnable, fan::opengl::GL_BLEND);
-      //loco->get_context()->opengl.call(loco->get_context()->opengl.glBlendFunc, fan::opengl::GL_SRC_ALPHA, fan::opengl::GL_ONE_MINUS_SRC_ALPHA);
-      loco->get_context()->set_depth_test(false);
-      if constexpr (std::is_same<std::remove_pointer_t<decltype(this)>, sb_shape_name>::value) {
-        loco->get_context()->opengl.call(loco->get_context()->opengl.glBlendFunc, fan::opengl::GL_ONE, fan::opengl::GL_ONE);
-
-        unsigned int attachments[sizeof(loco->color_buffers) / sizeof(loco->color_buffers[0])];
-
-        for (uint8_t i = 0; i < std::size(loco->color_buffers); ++i) {
-          attachments[i] = fan::opengl::GL_COLOR_ATTACHMENT0 + i;
-        }
-
-        loco->get_context()->opengl.call(loco->get_context()->opengl.glDrawBuffers, std::size(attachments), attachments);
-
-      }
-      #endif
-      #endif
-
-      m_current_shader->set_vec2(loco->get_context(), "window_size", loco->get_window()->get_size());
 
       while (1) {
         auto node = blocks.GetNodeByReference(bnr);
@@ -406,67 +415,25 @@ public:
         }
         bnr = node->NextNodeReference;
       }
-      #if defined(loco_framebuffer)
-      #if defined(sb_is_light)
-      loco->get_context()->opengl.call(loco->get_context()->opengl.glDisable, fan::opengl::GL_BLEND);
-      loco->get_context()->set_depth_test(true);
-      if constexpr (std::is_same<std::remove_pointer_t<decltype(this)>, sb_shape_name>::value) {
-        loco->get_context()->opengl.call(loco->get_context()->opengl.glBlendFunc, fan::opengl::GL_SRC_ALPHA, fan::opengl::GL_ONE_MINUS_SRC_ALPHA);
-        unsigned int attachments[sizeof(loco->color_buffers) / sizeof(loco->color_buffers[0])];
-
-        for (uint8_t i = 0; i < std::size(loco->color_buffers); ++i) {
-          attachments[i] = fan::opengl::GL_COLOR_ATTACHMENT0 + i;
-        }
-
-        loco->get_context()->opengl.call(loco->get_context()->opengl.glDrawBuffers, 1, attachments);
-      }
-      #endif
-      #endif
-      #ifndef sb_inline_draw
-        });
-      #endif
-
-      #ifndef sb_inline_draw
-      loco->m_draw_queue.insert(loco_t::draw_t{
-        (uint64_t)zdepth,
-        std::vector<fan::function_t<void()>>(draw_queue_helper.begin(), draw_queue_helper.end())
-      });
-
-      draw_queue_helper.clear();
-      #endif
     }
     else {
-      //loco_bdbt_Key_t<sizeof(typename instance_properties_t::key_t::get_type<depth>::type) * 8> k;
       typename loco_bdbt_Key_t<sizeof(typename bm_properties_t::key_t::get_type<depth>::type) * 8>::Traverse_t kt;
-      kt.init(nr);
+      kt.i(nr);
       typename bm_properties_t::key_t::get_type<depth>::type o;
-      #if fan_use_uninitialized == 0
-      memset(&o, 0, sizeof(o));
-      #endif
-      while (kt.Traverse(&loco->bdbt, &o)) {
-        // update zdepth here if changes
-        if constexpr (std::is_same_v<decltype(o), uint16_t>) {
-          zdepth = o;
-        }
-        #ifndef sb_inline_draw
-        draw_queue_helper.push_back([this, loco, o, kt, draw_mode]() {
-          #endif
-          m_current_shader->use(loco->get_context());
+      while (kt.t(&loco->bdbt, &o)) {
         loco->process_block_properties_element(this, o);
-        #ifndef sb_inline_draw
-          });
-        #endif
-        traverse_draw<depth + 1>(kt.Output, draw_mode, lambda);
+        traverse_draw<depth + 1>(kt.Output, draw_mode);
       }
     }
   }
 
-  void sb_draw(loco_bdbt_NodeReference_t nr, uint32_t draw_mode = fan::opengl::GL_TRIANGLES, fan::function_t<void(fan::graphics::cid_t** cids)> lambda = [](fan::graphics::cid_t** cids) {}) {
+  void sb_draw(loco_bdbt_NodeReference_t key_root, uint32_t draw_mode = fan::opengl::GL_TRIANGLES) {
     loco_t* loco = get_loco();
     m_current_shader->use(loco->get_context());
+    m_current_shader->set_vec3(loco->get_context(), loco_t::lighting_t::ambient_name, loco->lighting.ambient);
     m_current_shader->set_int(loco->get_context(), "_t00", 0);
     m_current_shader->set_int(loco->get_context(), "_t01", 1);
-    traverse_draw(nr, draw_mode, lambda);
+    traverse_draw(key_root, draw_mode);
   }
 
   properties_t sb_get_properties(fan::opengl::cid_t* cid) {
@@ -489,24 +456,20 @@ public:
     *(ri_t*)&p = block->p[cid->instance_id];
     *p.key.get_value<i>() = value;
 
-    // eternally temporary
-    loco_bdbt_NodeReference_t key_root = root;
-    if constexpr (std::is_same<std::remove_pointer_t<decltype(this)>, loco_t::sprite_t>::value ||
-      std::is_same<std::remove_pointer_t<decltype(this)>, loco_t::unlit_sprite_t>::value) {
-      uint8_t key_blending = ((loco_t::sprite_t*)(this))->sb_get_ri(cid).blending;
-      loco_bdbt_Key_t<8> k;
-      typename decltype(k)::KeySize_t ki;
-      k.Query(&get_loco()->bdbt, &key_blending , &ki, &key_root);
-    }
+    sb_erase(cid);
 
-
-    sb_erase(cid, key_root);
-
-    sb_push_back(cid, p, key_root);
+    sb_push_back(cid, p);
   }
 
   void sb_set_depth(fan::opengl::cid_t* cid, f32_t depth) {
-    sb_set_key<bm_properties_t::key_t::get_index_with_type<uint16_t>()>(cid, depth);
+    loco_t* loco = get_loco();
+    auto block = sb_get_block(cid);
+    properties_t p;
+    *(vi_t*)&p = *block->uniform_buffer.get_instance(loco->get_context(), cid->instance_id);
+    *(ri_t*)&p = block->p[cid->instance_id];
+    p.sb_depth_var.z = depth;
+    sb_erase(cid);
+    sb_push_back(cid, p);
   }
 
   fan::opengl::shader_t m_shader;
@@ -540,3 +503,4 @@ public:
   #undef sb_vertex_count
   #undef sb_get_loco
   #undef sb_shader_fragment_string
+  #undef sb_depth_var

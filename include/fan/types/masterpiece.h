@@ -143,13 +143,16 @@ namespace fan {
         return;
       }
       else {
-        if constexpr (!std::is_same_v<decltype(lambda(std::integral_constant<uint32_t, depth>{}, get_value<depth>())), void>) {
-          return lambda(std::integral_constant<uint32_t, depth>{}, get_value<depth>());
+        using ReturnType = decltype(lambda(std::integral_constant<uint32_t, depth>{}, get_value<depth>()));
+        if constexpr (std::is_same_v<ReturnType, bool>) {
+          if (!lambda(std::integral_constant<uint32_t, depth>{}, get_value<depth>())) {
+            return;
+          }
         }
         else {
           lambda(std::integral_constant<uint32_t, depth>{}, get_value<depth>());
-          return iterate<depth + 1>(lambda);
         }
+        return iterate<depth + 1>(lambda);
       }
     }
   };
