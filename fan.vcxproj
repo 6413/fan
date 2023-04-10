@@ -289,7 +289,6 @@
     <None Include="include\fan\graphics\glsl\opengl\2D\effects\loco_fbo.vs" />
     <None Include="include\fan\graphics\glsl\opengl\2D\objects\circle.fs" />
     <None Include="include\fan\graphics\glsl\opengl\2D\objects\circle.vs" />
-    <None Include="include\fan\graphics\glsl\opengl\2D\objects\light_sun.fs" />
     <None Include="include\fan\graphics\glsl\opengl\2D\objects\pixel_format_renderer.vs" />
     <None Include="src\dav1d\ext\x86\x86inc.asm" />
     <None Include="src\dav1d\x86\cdef16_avx2.asm" />
