@@ -63,7 +63,7 @@ int main() {
  // tp.position.z = 50;
   tp.font_size = 32;
   tp.size = fan::vec2(300, 100);
-  tp.text = "$€ fan";
+  tp.text = "abcd";
   //tp.font_size = 32;
   tp.mouse_move_cb = [] (const loco_t::mouse_move_data_t& mm_d) -> int {
     //fan::print(mm_d.position, (int)mm_d.mouse_stage);
