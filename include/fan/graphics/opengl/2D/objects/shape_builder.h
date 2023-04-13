@@ -198,20 +198,20 @@ public:
       loco_bdbt_Key_t<sizeof(bm_properties_t::key_t) * 8> k3;
       typename decltype(k3)::KeySize_t ki3;
 
-      loco_bdbt_Key_t<sizeof(shape_type_t::_t) * 8> k2;
+      loco_bdbt_Key_t<sizeof(loco_t::shape_type_t::_t) * 8> k2;
       typename decltype(k2)::KeySize_t ki2;
 
       uint16_t depth = p.position.z;
       loco_bdbt_Key_t<sizeof(uint16_t) * 8, true> k1;
       typename decltype(k1)::KeySize_t ki1;
 
-      redraw_key_t redraw_key;
+      loco_t::redraw_key_t redraw_key;
       redraw_key.blending = p.blending;
-      loco_bdbt_Key_t<sizeof(redraw_key_t) * 8> k0;
+      loco_bdbt_Key_t<sizeof(loco_t::redraw_key_t) * 8> k0;
       typename decltype(k0)::KeySize_t ki0;
 
       k0.q(&loco->bdbt, &redraw_key, &ki0, &nr);
-      if (ki0 != sizeof(redraw_key_t) * 8) {
+      if (ki0 != sizeof(loco_t::redraw_key_t) * 8) {
         auto o0 = loco_bdbt_NewNode(&loco->bdbt);
         k0.a(&loco->bdbt, &redraw_key, ki0, nr, o0);
 
@@ -242,7 +242,7 @@ public:
       }
 
       k2.q(&loco->bdbt, &shape_type, &ki2, &nr);
-      if (ki2 != sizeof(shape_type_t::_t)) {
+      if (ki2 != sizeof(loco_t::shape_type_t::_t)) {
         auto o2 = loco_bdbt_NewNode(&loco->bdbt);
         k2.a(&loco->bdbt, &shape_type, ki2, nr, o2);
 
@@ -330,53 +330,63 @@ public:
           loco_bdbt_Key_t<sizeof(bm_properties_t::key_t) * 8> k3;
           typename decltype(k3)::KeySize_t ki3;
 
-          loco_bdbt_Key_t<sizeof(shape_type_t::_t) * 8> k2;
+          loco_bdbt_Key_t<sizeof(loco_t::shape_type_t::_t) * 8> k2;
           typename decltype(k2)::KeySize_t ki2;
 
-          uint16_t depth = p.position.z;
+          uint16_t depth = sb_get_vi(cid).sb_depth_var.z;
           loco_bdbt_Key_t<sizeof(uint16_t) * 8, true> k1;
           typename decltype(k1)::KeySize_t ki1;
 
-          redraw_key_t redraw_key;
-          redraw_key.blending = p.blending;
-          loco_bdbt_Key_t<sizeof(redraw_key_t) * 8> k0;
+          loco_t::redraw_key_t redraw_key;
+          redraw_key.blending = sb_get_ri(cid).blending;
+          loco_bdbt_Key_t<sizeof(loco_t::redraw_key_t) * 8> k0;
           typename decltype(k0)::KeySize_t ki0;
 
           auto key_root0 = key_root;
           k0.q(&loco->bdbt, &redraw_key, &ki0, &key_root);
-          if (ki0 != sizeof(redraw_key_t) * 8) {
-            #if fan_debug >= 2
+          #if fan_debug >= 2
+            if (ki0 != sizeof(redraw_key_t) * 8) {
               __abort();
-            #endif
-          }
-          k0.r(&loco->bdbt, &redraw_key, key_root);
+            }
+          #endif
 
           auto key_root1 = key_root;
           k1.q(&loco->bdbt, &depth, &ki1, &key_root);
-          if (ki1 != sizeof(uint16_t) * 8) {
-            #if fan_debug >= 2
+          #if fan_debug >= 2
+            if (ki1 != sizeof(uint16_t) * 8) {
               __abort();
-            #endif
-          }
-          k1.r(&loco->bdbt, &depth, key_root);
+            }
+          #endif
 
           auto key_root2 = key_root;
           k2.q(&loco->bdbt, &shape_type, &ki2, &key_root);
-          if (ki2 != sizeof(shape_type_t::_t)) {
-            #if fan_debug >= 2
+          #if fan_debug >= 2
+            if (ki2 != sizeof(shape_type_t::_t)) {
               __abort();
-            #endif
-          }
-          k2.r(&loco->bdbt, &shape_type, key_root);
+            }
+          #endif
 
           auto key_root3 = key_root;
-          k3.q(&loco->bdbt, &p.key, &ki3, &nr);
-          if (ki3 != sizeof(bm_properties_t::key_t) * 8) {
-            #if fan_debug >= 2
+          k3.q(&loco->bdbt, &bm_node->data.instance_properties.key, &ki3, &key_root);
+          #if fan_debug >= 2
+            if (ki3 != sizeof(bm_properties_t::key_t) * 8) {
               __abort();
-            #endif
+            }
+          #endif
+
+          k3.r(&loco->bdbt, &bm_node->data.instance_properties.key, key_root3);
+          if(loco_bdbt_inrhc(&loco->bdbt, key_root3) == false){
+            loco_bdbt_Recycle(&loco->bdbt, key_root3);
+            k2.r(&loco->bdbt, (void *)&shape_type, key_root2);
+            if(loco_bdbt_inrhc(&loco->bdbt, key_root2) == false){
+              loco_bdbt_Recycle(&loco->bdbt, key_root2);
+              k1.r(&loco->bdbt, &depth, key_root1);
+              if(loco_bdbt_inrhc(&loco->bdbt, key_root1) == false){
+                loco_bdbt_Recycle(&loco->bdbt, key_root1);
+                k0.r(&loco->bdbt, &redraw_key, key_root0);
+              }
+            }
           }
-          k3.r(&loco->bdbt, &p.key, key_root);
 
           bm_list.Recycle(bm_id);
         }
