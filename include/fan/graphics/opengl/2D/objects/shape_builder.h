@@ -198,6 +198,7 @@ public:
       loco_bdbt_Key_t<sizeof(bm_properties_t::key_t) * 8> k3;
       typename decltype(k3)::KeySize_t ki3;
 
+      loco_t::shape_type_t::_t st = shape_type;
       loco_bdbt_Key_t<sizeof(loco_t::shape_type_t::_t) * 8> k2;
       typename decltype(k2)::KeySize_t ki2;
 
@@ -219,7 +220,7 @@ public:
         k1.a(&loco->bdbt, &depth, 0, o0, o1);
 
         auto o2 = loco_bdbt_NewNode(&loco->bdbt);
-        k2.a(&loco->bdbt, &shape_type, 0, o1, o2);
+        k2.a(&loco->bdbt, &st, 0, o1, o2);
 
         bm_id = push_new_bm(p);
         k3.a(&loco->bdbt, &p.key, 0, o2, bm_id.NRI);
@@ -233,7 +234,7 @@ public:
         k1.a(&loco->bdbt, &depth, ki1, nr, o1);
 
         auto o2 = loco_bdbt_NewNode(&loco->bdbt);
-        k2.a(&loco->bdbt, &shape_type, 0, o1, o2);
+        k2.a(&loco->bdbt, &st, 0, o1, o2);
 
         bm_id = push_new_bm(p);
         k3.a(&loco->bdbt, &p.key, 0, o2, bm_id.NRI);
@@ -241,10 +242,10 @@ public:
         break;
       }
 
-      k2.q(&loco->bdbt, &shape_type, &ki2, &nr);
-      if (ki2 != sizeof(loco_t::shape_type_t::_t)) {
+      k2.q(&loco->bdbt, &st, &ki2, &nr);
+      if (ki2 != sizeof(loco_t::shape_type_t::_t) * 8) {
         auto o2 = loco_bdbt_NewNode(&loco->bdbt);
-        k2.a(&loco->bdbt, &shape_type, ki2, nr, o2);
+        k2.a(&loco->bdbt, &st, ki2, nr, o2);
 
         bm_id = push_new_bm(p);
         k3.a(&loco->bdbt, &p.key, 0, o2, bm_id.NRI);
@@ -503,6 +504,11 @@ public:
   void traverse_draw(loco_bdbt_NodeReference_t nr, uint32_t draw_mode) {
     loco_t* loco = get_loco();
     if constexpr (depth == bm_properties_t::key_t::count + 1) {
+      #if fan_debug >= 2
+        if(nr >= bm_list.NodeList.Current){
+          __abort();
+        }
+      #endif
       auto bmn = bm_list.GetNodeByReference(*(shape_bm_NodeReference_t*)&nr);
       auto bnr = bmn->data.first_block;
 
