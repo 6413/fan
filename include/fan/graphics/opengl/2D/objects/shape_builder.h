@@ -191,26 +191,80 @@ public:
 
     shape_bm_NodeReference_t bm_id;
 
-    {
-      loco_bdbt_NodeReference_t key_root = loco->root;
+    // todo compress 
+    do{
+      loco_bdbt_NodeReference_t nr = loco->root;
 
-      key_pack_t key_pack;
-      key_pack.redraw_key.blending = p.blending;
-      key_pack.depth = p.sb_depth_var.z;
-      key_pack.shape_type = shape_type;
-      key_pack.shape_key = p.key;
+      loco_bdbt_Key_t<sizeof(bm_properties_t::key_t) * 8> k3;
+      typename decltype(k3)::KeySize_t ki3;
 
-      loco_bdbt_Key_t<sizeof(key_pack_t) * 8> k;
-      typename decltype(k)::KeySize_t ki;
-      k.q(&loco->bdbt, &key_pack, &ki, &key_root);
-      if(ki != sizeof(key_pack_t) * 8){
+      loco_bdbt_Key_t<sizeof(shape_type_t::_t) * 8> k2;
+      typename decltype(k2)::KeySize_t ki2;
+
+      uint16_t depth = p.position.z;
+      loco_bdbt_Key_t<sizeof(uint16_t) * 8, true> k1;
+      typename decltype(k1)::KeySize_t ki1;
+
+      redraw_key_t redraw_key;
+      redraw_key.blending = p.blending;
+      loco_bdbt_Key_t<sizeof(redraw_key_t) * 8> k0;
+      typename decltype(k0)::KeySize_t ki0;
+
+      k0.q(&loco->bdbt, &redraw_key, &ki0, &nr);
+      if (ki0 != sizeof(redraw_key_t) * 8) {
+        auto o0 = loco_bdbt_NewNode(&loco->bdbt);
+        k0.a(&loco->bdbt, &redraw_key, ki0, nr, o0);
+
+        auto o1 = loco_bdbt_NewNode(&loco->bdbt);
+        k1.a(&loco->bdbt, &depth, 0, o0, o1);
+
+        auto o2 = loco_bdbt_NewNode(&loco->bdbt);
+        k2.a(&loco->bdbt, &shape_type, 0, o1, o2);
+
         bm_id = push_new_bm(p);
-        k.a(&loco->bdbt, &key_pack, ki, key_root, bm_id.NRI);
+        k3.a(&loco->bdbt, &p.key, 0, o2, bm_id.NRI);
+
+        break;
       }
-      else {
-        bm_id.NRI = key_root;
+
+      k1.q(&loco->bdbt, &depth, &ki1, &nr);
+      if (ki1 != sizeof(uint16_t) * 8) {
+        auto o1 = loco_bdbt_NewNode(&loco->bdbt);
+        k1.a(&loco->bdbt, &depth, ki1, nr, o1);
+
+        auto o2 = loco_bdbt_NewNode(&loco->bdbt);
+        k2.a(&loco->bdbt, &shape_type, 0, o1, o2);
+
+        bm_id = push_new_bm(p);
+        k3.a(&loco->bdbt, &p.key, 0, o2, bm_id.NRI);
+
+        break;
       }
-    };
+
+      k2.q(&loco->bdbt, &shape_type, &ki2, &nr);
+      if (ki2 != sizeof(shape_type_t::_t)) {
+        auto o2 = loco_bdbt_NewNode(&loco->bdbt);
+        k2.a(&loco->bdbt, &shape_type, ki2, nr, o2);
+
+        bm_id = push_new_bm(p);
+        k3.a(&loco->bdbt, &p.key, 0, o2, bm_id.NRI);
+
+        break;
+      }
+
+      {
+        k3.q(&loco->bdbt, &p.key, &ki3, &nr);
+
+        if (ki3 != sizeof(bm_properties_t::key_t) * 8) {
+          bm_id = push_new_bm(p);
+          k3.a(&loco->bdbt, &p.key, ki3, nr, bm_id.NRI);
+        }
+        else {
+          bm_id = *(shape_bm_NodeReference_t*)&nr;
+        }
+      }
+
+    }while (0);
 
     vi_t it = p;
     shape_bm_Node_t* bmn = bm_list.GetNodeByReference(bm_id);
@@ -271,14 +325,59 @@ public:
       if (block->uniform_buffer.size() == 0) {
         auto lpnr = block_node->PrevNodeReference;
         if (last_block_id == bm_node->data.first_block) {
-          key_pack_t key_pack;
-          key_pack.redraw_key.blending = sb_get_ri(cid).blending;
-          key_pack.depth = sb_get_vi(cid).sb_depth_var.z;
-          key_pack.shape_type = shape_type;
-          key_pack.shape_key = bm_node->data.instance_properties.key;
-          loco_bdbt_Key_t<sizeof(key_pack) * 8> k;
-          typename decltype(k)::KeySize_t ki;
-          k.r(&loco->bdbt, &key_pack, loco->root);
+          loco_bdbt_NodeReference_t key_root = loco->root;
+
+          loco_bdbt_Key_t<sizeof(bm_properties_t::key_t) * 8> k3;
+          typename decltype(k3)::KeySize_t ki3;
+
+          loco_bdbt_Key_t<sizeof(shape_type_t::_t) * 8> k2;
+          typename decltype(k2)::KeySize_t ki2;
+
+          uint16_t depth = p.position.z;
+          loco_bdbt_Key_t<sizeof(uint16_t) * 8, true> k1;
+          typename decltype(k1)::KeySize_t ki1;
+
+          redraw_key_t redraw_key;
+          redraw_key.blending = p.blending;
+          loco_bdbt_Key_t<sizeof(redraw_key_t) * 8> k0;
+          typename decltype(k0)::KeySize_t ki0;
+
+          auto key_root0 = key_root;
+          k0.q(&loco->bdbt, &redraw_key, &ki0, &key_root);
+          if (ki0 != sizeof(redraw_key_t) * 8) {
+            #if fan_debug >= 2
+              __abort();
+            #endif
+          }
+          k0.r(&loco->bdbt, &redraw_key, key_root);
+
+          auto key_root1 = key_root;
+          k1.q(&loco->bdbt, &depth, &ki1, &key_root);
+          if (ki1 != sizeof(uint16_t) * 8) {
+            #if fan_debug >= 2
+              __abort();
+            #endif
+          }
+          k1.r(&loco->bdbt, &depth, key_root);
+
+          auto key_root2 = key_root;
+          k2.q(&loco->bdbt, &shape_type, &ki2, &key_root);
+          if (ki2 != sizeof(shape_type_t::_t)) {
+            #if fan_debug >= 2
+              __abort();
+            #endif
+          }
+          k2.r(&loco->bdbt, &shape_type, key_root);
+
+          auto key_root3 = key_root;
+          k3.q(&loco->bdbt, &p.key, &ki3, &nr);
+          if (ki3 != sizeof(bm_properties_t::key_t) * 8) {
+            #if fan_debug >= 2
+              __abort();
+            #endif
+          }
+          k3.r(&loco->bdbt, &p.key, key_root);
+
           bm_list.Recycle(bm_id);
         }
         else {

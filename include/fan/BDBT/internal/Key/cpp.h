@@ -76,12 +76,7 @@ struct _BDBT_P(Key_t){
   }
 
   /* give 0 if you want to sort from low, 1 for high. */
-  template<uint8_t LowHigh = 2>
   struct Traverse_t{
-    static_assert(
-      !(LowHigh != 2 && BitOrderMatters == false),
-      "LowHigh cant be described while BitOrderMatters is false.");
-
     KeySize_t Current;
     struct{
       _BDBT_BP(NodeReference_t) n;
@@ -91,6 +86,7 @@ struct _BDBT_P(Key_t){
     _BDBT_BP(NodeReference_t) Output;
 
     /* init */
+		template <uint8_t LowHigh = 2>
     void
     i
     (
@@ -100,8 +96,25 @@ struct _BDBT_P(Key_t){
       ta[0].k = LowHigh == 1 ? _BDBT_set_ElementPerNode - 1 : 0;
       ta[0].n = rnr;
     }
+    void
+    i0
+    (
+      _BDBT_BP(NodeReference_t) rnr,
+			uint8_t LowHigh = 2
+    ){
+			if(LowHigh == 0){
+				return i<0>(rnr);
+			}
+			else if(LowHigh == 1){
+				return i<1>(rnr);
+			}
+			else{
+				return i<>(rnr);
+			}
+    }
 
     /* traverse */
+		template <uint8_t LowHigh = 2>
     bool
     t
     (
@@ -110,5 +123,22 @@ struct _BDBT_P(Key_t){
     ){
       #include "cpp/t.h"
     }
+		
+		bool
+		t0(
+			_BDBT_BP(t) *list,
+			void *Key,
+			uint8_t LowHigh = 2
+		){
+			if(LowHigh == 0){
+				return t<0>(list, Key);
+			}
+			else if(LowHigh == 1){
+				return t<1>(list, Key);
+			}
+			else{
+				return t<>(list, Key);
+			}
+		}
   };
 };
