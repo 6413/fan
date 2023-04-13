@@ -86,9 +86,9 @@ int main() {
   p.blending = false;
   loco_t::id_t id2 = p;
 
-  //id2.erase();
-  //id3.erase();
-  //id.erase();
+  id2.erase();
+  id3.erase();
+  id.erase();
 
   //pile->loco.process_loop([] {});
   pile->loco.loop([&] {

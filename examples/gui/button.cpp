@@ -51,9 +51,6 @@ struct pile_t {
 
 pile_t* pile = new pile_t;
 
-#define loco_access &pile->loco
-#include _FAN_PATH(graphics/loco_define.h)
-
 int main() {
 
   loco_t::button_t::properties_t tp;
@@ -87,7 +84,7 @@ int main() {
   loco_t::id_t button = tp;
   
   pile->loco.loop([&] {
-    button.set_position(pile->loco.get_mouse_position());
+    //button.set_position(pile->loco.get_mouse_position());
   });
 
   return 0;

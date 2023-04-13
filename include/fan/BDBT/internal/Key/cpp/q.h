@@ -20,7 +20,7 @@
       uint8_t k = Byte & _BDBT_set_ElementPerNode - 1;
       _BDBT_BP(Node_t) *Node = _BDBT_BP(GetNodeByReference)(list, *cnr);
       _BDBT_BP(NodeReference_t) nnr = Node->n[k];
-      if(nnr == _BDBT_BP(GetNotValidNodeReference)(list)){
+      if(_BDBT_BP(inric)(list, nnr) == true){
         *KeyIndex += i;
         return;
       }

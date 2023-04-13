@@ -31,7 +31,7 @@ KeySize_t From = 0;
         if(ki == k){
           continue;
         }
-        if(Node->n[ki] != _BDBT_BP(GetNotValidNodeReference)(list)){
+        if(_BDBT_BP(inric)(list, Node->n[ki]) == false){
           From = KeyIndex + i;
           break;
         }
@@ -50,7 +50,7 @@ KeySize_t From = 0;
 
 {
   _BDBT_BP(Node_t) *Node = _BDBT_BP(GetNodeByReference)(list, tna[From]);
-  Node->n[tka[From]] = _BDBT_BP(GetNotValidNodeReference)(list);
+  Node->n[tka[From]] = _BDBT_BP(gnric)(list);
   ++From;
 }
 

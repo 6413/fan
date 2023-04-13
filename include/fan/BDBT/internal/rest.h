@@ -4,7 +4,7 @@
 
 typedef BDBT_set_type_node _BDBT_P(NodeReference_t);
 
-#if _BDBT_set_ElementPerNode <= 0xff
+#if _BDBT_set_ElementPerNode < 0xff
   typedef uint8_t _BDBT_P(NodeEIT_t);
 #elif _BDBT_set_ElementPerNode < 0xffff
   typedef uint16_t _BDBT_P(NodeEIT_t);
@@ -53,9 +53,10 @@ BDBT_StructBegin(_BDBT_P(t))
   #endif
 BDBT_StructEnd(_BDBT_P(t))
 
+/* is node reference invalid */
 static
 bool
-_BDBT_P(IsNodeReferenceInvalid)
+_BDBT_P(inri)
 (
   _BDBT_P(t) *list,
   _BDBT_P(NodeReference_t) NodeReference
@@ -63,9 +64,21 @@ _BDBT_P(IsNodeReferenceInvalid)
   return NodeReference >= list->NodeList.Current;
 }
 
+/* is node reference invalid constant */
+static
+bool
+_BDBT_P(inric)
+(
+  _BDBT_P(t) *list,
+  _BDBT_P(NodeReference_t) NodeReference
+){
+  return NodeReference == (_BDBT_P(NodeReference_t))-1;
+}
+
+/* get node reference invalid constant */
 static
 _BDBT_P(NodeReference_t)
-_BDBT_P(GetNotValidNodeReference)
+_BDBT_P(gnric)
 (
   _BDBT_P(t) *list
 ){
@@ -80,7 +93,7 @@ _BDBT_P(GetNotValidNodeReference)
     _BDBT_P(t) *list,
     _BDBT_P(Node_t) *Node
   ){
-    if(Node->n[1] == _BDBT_P(NodeReference_t)-1){
+    if(Node->n[1] == (_BDBT_P(NodeReference_t))-1){
       return 1;
     }
     return 0;
@@ -140,6 +153,7 @@ _BDBT_P(GetNodeByReference)
     return list->NodeList.Current - list->e.p;
   }
 #else
+  #error ?
   /* pain */
 #endif
 
@@ -180,7 +194,7 @@ _BDBT_P(NewNode)
   {
     _BDBT_P(Node_t) *Node = _BDBT_P(_GetNodeByReference)(list, NodeReference);
     for(_BDBT_P(NodeEIT_t) i = 0; i < _BDBT_set_ElementPerNode; i++){
-      Node->n[i] = _BDBT_P(GetNotValidNodeReference)(list);
+      Node->n[i] = _BDBT_P(gnric)(list);
     }
   }
 
@@ -283,6 +297,23 @@ _BDBT_P(PreAllocateNodes)
   _BDBT_P(NodeReference_t) Amount
 ){
   _BDBT_P(_NodeList_Reserve)(&list->NodeList, Amount);
+}
+
+/* is node reference has child */
+static
+bool
+_BDBT_P(inrhc)
+(
+  _BDBT_P(t) *list,
+  _BDBT_P(NodeReference_t) nr
+){
+  _BDBT_P(Node_t) *n = _BDBT_P(GetNodeByReference)(list, nr);
+  for(_BDBT_P(NodeEIT_t) i = 0; i < _BDBT_set_ElementPerNode; i++){
+    if(_BDBT_P(inric)(list, n->n[i]) == 0){
+      return 1;
+    }
+  }
+  return 0;
 }
 
 #ifdef BDBT_set_namespace

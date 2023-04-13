@@ -86,7 +86,7 @@ struct _BDBT_P(Key_t){
     _BDBT_BP(NodeReference_t) Output;
 
     /* init */
-		template <uint8_t LowHigh = 2>
+    template <uint8_t LowHigh = 2>
     void
     i
     (
@@ -100,21 +100,21 @@ struct _BDBT_P(Key_t){
     i0
     (
       _BDBT_BP(NodeReference_t) rnr,
-			uint8_t LowHigh = 2
+      uint8_t LowHigh = 2
     ){
-			if(LowHigh == 0){
-				return i<0>(rnr);
-			}
-			else if(LowHigh == 1){
-				return i<1>(rnr);
-			}
-			else{
-				return i<>(rnr);
-			}
+      if(LowHigh == 0){
+        return i<0>(rnr);
+      }
+      else if(LowHigh == 1){
+        return i<1>(rnr);
+      }
+      else{
+        return i<>(rnr);
+      }
     }
 
     /* traverse */
-		template <uint8_t LowHigh = 2>
+    template <uint8_t LowHigh = 2>
     bool
     t
     (
@@ -123,22 +123,22 @@ struct _BDBT_P(Key_t){
     ){
       #include "cpp/t.h"
     }
-		
-		bool
-		t0(
-			_BDBT_BP(t) *list,
-			void *Key,
-			uint8_t LowHigh = 2
-		){
-			if(LowHigh == 0){
-				return t<0>(list, Key);
-			}
-			else if(LowHigh == 1){
-				return t<1>(list, Key);
-			}
-			else{
-				return t<>(list, Key);
-			}
-		}
+
+    bool
+    t0(
+      _BDBT_BP(t) *list,
+      void *Key,
+      uint8_t LowHigh = 2
+    ){
+      if(LowHigh == 0){
+        return t<0>(list, Key);
+      }
+      else if(LowHigh == 1){
+        return t<1>(list, Key);
+      }
+      else{
+        return t<>(list, Key);
+      }
+    }
   };
 };
