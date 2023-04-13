@@ -11,7 +11,7 @@ while(
   LowHigh == 1 ? --tp->k : ++tp->k;
 
   _BDBT_BP(NodeReference_t) nnr = Node->n[tk];
-  if(nnr == _BDBT_BP(GetNotValidNodeReference)(list)){
+  if(_BDBT_BP(inric)(list, nnr) == true){
     continue;
   }
 
