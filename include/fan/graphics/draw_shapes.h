@@ -22,10 +22,10 @@ while(t0.t(&bdbt, &redraw_key)) {
     get_context()->opengl.call(get_context()->opengl.glBlendFunc, fan::opengl::GL_SRC_ALPHA, fan::opengl::GL_ONE_MINUS_SRC_ALPHA);
   }
 
-  typename loco_bdbt_Key_t<sizeof(uint16_t) * 8>::Traverse_t t1;
-  t1.i(t0.Output);
+  typename loco_bdbt_Key_t<sizeof(uint16_t) * 8, true>::Traverse_t t1;
+  t1.i0(t0.Output, redraw_key.blending == false);
   uint16_t depth;
-  while (t1.t(&bdbt, &depth)) {
+  while (t1.t0(&bdbt, &depth, redraw_key.blending == false)) {
     typename loco_bdbt_Key_t<sizeof(shape_type_t::_t) * 8>::Traverse_t t2;
     t2.i(t1.Output);
     shape_type_t::_t shape_type;
