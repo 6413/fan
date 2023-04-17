@@ -11,6 +11,7 @@ struct _constants {
   static constexpr f32_t OneSampleTime = (f32_t)1 / opus_decode_sample_rate;
 
   static constexpr uint32_t CallFrameCount = 480;
+  static constexpr f32_t DataCallbackTime = (f32_t)CallFrameCount / opus_decode_sample_rate;
   static constexpr uint32_t ChannelAmount = 2;
   static constexpr uint32_t FrameCacheAmount = Opus::SegmentFrameAmount20;
   static constexpr uint64_t FrameCacheTime = opus_decode_sample_rate / CallFrameCount * 1; // 1 second

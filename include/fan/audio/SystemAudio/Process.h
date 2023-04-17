@@ -20,6 +20,18 @@ _DecoderList_t DecoderList[_constants::Opus::SupportedChannels];
 
 _CacheList_t CacheList;
 
+/* noise induced hearing loss */
+struct nihl_t{
+  f32_t LossDivision = 1;
+  f32_t LossDivisionMax = 1;
+  f32_t LossTime = 0;
+  static constexpr f32_t MaxLossTime = 1;
+  void c(){ // calculate
+    f32_t n = LossTime / MaxLossTime;
+    LossDivision = (LossDivisionMax - 1) * n + 1;
+  }
+}nihl;
+
 sint32_t Open() {
   TH_mutex_init(&this->PlayInfoListMutex);
   this->PlayInfoList.Open();
@@ -539,5 +551,25 @@ void _DataCallback(f32_t *Output) {
     #undef JumpIfNeeded
 
     PlayID++;
+  }
+
+  {
+    f32_t biggest = 0;
+    for(uint32_t i = 0; i < _constants::CallFrameCount * _constants::ChannelAmount; i++){
+      f32_t s = abs(Output[i]);
+      if(s > biggest){
+        biggest = s;
+      }
+    }
+    nihl.c();
+    if(biggest >= nihl.LossDivision){
+      nihl.LossDivisionMax = biggest;
+      nihl.LossTime = nihl.MaxLossTime;
+      nihl.c();
+    }
+    nihl.LossTime = max(nihl.LossTime - _constants::DataCallbackTime, 0);
+    for(uint32_t i = 0; i < _constants::CallFrameCount * _constants::ChannelAmount; i++){
+      Output[i] /= nihl.LossDivision;
+    }
   }
 }
