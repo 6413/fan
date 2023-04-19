@@ -297,7 +297,7 @@ struct button_t {
   }
 
   // dont edit values
-  auto& get_text_instance(loco_t::cid_nt_t& id) {
+  auto get_text_instance(loco_t::cid_nt_t& id) {
     
     auto& ri = get_ri(id);
     return gloco->text.get_instance(ri.text_id);
