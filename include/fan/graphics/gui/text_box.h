@@ -535,7 +535,7 @@ struct text_box_t {
   }
 
   // dont edit values
-  loco_t::text_t::properties_t& get_text_instance(loco_t::cid_nt_t& id) {
+  loco_t::text_t::properties_t get_text_instance(loco_t::cid_nt_t& id) {
     auto& ri = sb_get_ri(id);
     return gloco->text.get_instance(ri.text_id);
   }
