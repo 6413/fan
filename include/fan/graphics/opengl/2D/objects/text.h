@@ -191,6 +191,7 @@ struct text_renderer_t {
   void set_position(loco_t::cid_nt_t& id, const fan::vec3& position) {
     auto internal_id = *(tlist_NodeReference_t *)id.gdp4();
     properties_t p = tlist[internal_id].p;
+    fan::print(p.text);
     erase(id);
     p.position = position;
     push_back(id, p);

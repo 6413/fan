@@ -59,16 +59,17 @@ int main() {
   p.color = fan::colors::white;
 
   loco_t::id_t text0 = p;
-  text0.erase();
+  //text0.erase();
   p.text = "56789";
   loco_t::id_t text1 = p;
   //text1.set_text("56789");
-  text1.set_color(fan::color(1, 0, 0, 0.2));
+  text1.set_color(fan::color(1, 0, 0, 1));
 
   pile->loco.set_vsync(false);
 
-  text1.set_position(fan::vec2(0.5));
   pile->loco.loop([&] {
+    text0.set_position(pile->loco.get_mouse_position(pile->viewport));
+    text1.set_position(pile->loco.get_mouse_position(pile->viewport) + 0.3);
     pile->loco.get_fps();
   });
 
