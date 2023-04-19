@@ -181,7 +181,7 @@ struct text_renderer_t {
   }
   void set_text(loco_t::cid_nt_t& id, const fan::string& text) {
     auto internal_id = *(tlist_NodeReference_t *)id.gdp4();
-    properties_t& p = tlist[internal_id].p;
+    properties_t p = tlist[internal_id].p;
     erase(id);
     p.text = text;
 
