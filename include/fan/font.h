@@ -66,7 +66,6 @@ namespace fan {
 				return font_size / this->size;
 			}
 			fan::font::character_info_t get_letter_info(uint32_t c, f32_t font_size) const {
-
         auto found = characters.find(c);
 				#if fan_debug >= fan_debug_low
 					if (found == characters.end()) {
