@@ -312,6 +312,11 @@ struct loco_t {
 
 protected:
 
+  struct gloco_priority_init_t {
+    gloco_priority_init_t(loco_t* l) {
+      gloco = l;
+    }
+  }gloco_dummy;
 
   #ifdef loco_window
   fan::window_t window;
@@ -923,12 +928,6 @@ public:
 
   #endif
 
-  struct gloco_priority_init_t {
-    gloco_priority_init_t(loco_t* l) {
-      gloco = l;
-    }
-  }gloco_dummy;
-
   loco_bdbt_t bdbt;
   loco_bdbt_NodeReference_t root;
 
@@ -1032,12 +1031,6 @@ public:
 
     operator fan::opengl::cid_t *(){
       return &gloco->cid_list[*this].cid;
-    }
-    operator loco_t::cid_nr_t() {
-      return *this;
-    }
-    operator loco_t::cid_nt_t() {
-      return *this;
     }
 
     loco_t* get_loco() {
