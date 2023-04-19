@@ -175,7 +175,7 @@ struct text_renderer_t {
     return gloco->letter.get_camera(node->data.shape);
   }
 
-  properties_t &get_instance(loco_t::cid_nt_t& id) {
+  properties_t get_instance(loco_t::cid_nt_t& id) {
     auto internal_id = *(tlist_NodeReference_t *)id.gdp4();
     return tlist[internal_id].p;
   }

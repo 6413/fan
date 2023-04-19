@@ -61,16 +61,17 @@ int main() {
   p.color = fan::colors::white;
 
   std::vector<loco_t::id_t> ids;
+  ids.reserve(10000);
   for (uint32_t i = 0; i < 1000; i++){
     ids.push_back(p);
-    ids[rand() % ids.size()].set_position(fan::vec2(2, 3));
+    ids[0].set_position(fan::vec2(2, 3));
   }
-  for (uint32_t i = 0; i < 1000; i++) {
-    ids.erase(ids.begin() + rand() % ids.size());
-    if (ids.size()) {
-      ids[rand() % ids.size()].set_position(fan::vec2(2, 3));
-    }
-  }
+  //for (uint32_t i = 0; i < 1000; i++) {
+  //  ids.erase(ids.begin() + rand() % ids.size());
+  //  if (ids.size()) {
+  //    ids[rand() % ids.size()].set_position(fan::vec2(2, 3));
+  //  }
+  //}
 
   loco_t::id_t text0 = p;
   //text0.erase();
