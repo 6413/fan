@@ -32,7 +32,7 @@ struct button_t {
 
   #undef make_key_value
 
-  void push_back(fan::graphics::cid_t* cid, properties_t& p) {
+  void push_back(loco_t::cid_nr_raw_t& cid, properties_t& p) {
     get_key_value(uint16_t) = p.position.z;
     get_key_value(loco_t::camera_list_NodeReference_t) = p.camera;
     get_key_value(fan::graphics::viewport_list_NodeReference_t) = p.viewport;

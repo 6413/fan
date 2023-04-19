@@ -23,7 +23,7 @@
 //#define loco_sprite
 #include _FAN_PATH(graphics/loco.h)
 
-constexpr uint32_t count = 5000;
+constexpr uint32_t count = 2;
 
 struct pile_t {
 
@@ -48,7 +48,7 @@ struct pile_t {
   loco_t loco;
   loco_t::camera_t camera;
   fan::graphics::viewport_t viewport[2];
-  fan::graphics::cid_t cids[count];
+  loco_t::id_t ids[count];
 };
 
 int main() {
@@ -65,19 +65,16 @@ int main() {
   p.color.a = 1;
 
   p.position = fan::vec3(0, 0, 0);
-  pile->loco.rectangle.push_back(&pile->cids[0], p);
-  p.position = fan::vec3(0.01, 0, 1);
+  pile->ids[0] = p;
+  p.position = fan::vec3(0.1, 0, 1);
   p.color = fan::colors::blue;
   p.color.a = 1;
-  //p.viewport = &pile->viewport[1];
-  pile->loco.rectangle.push_back(&pile->cids[0], p);
+  pile->ids[1] = p;
 
   pile->loco.set_vsync(false);
   
 
   pile->loco.loop([&] {
-
-    pile->loco.rectangle.set(&pile->cids[0], &loco_t::rectangle_t::vi_t::size, fan::vec2(1, 0));
 
     pile->loco.get_fps();
 

@@ -46,14 +46,13 @@ struct pile_t {
   loco_t loco;
   loco_t::camera_t camera;
   fan::graphics::viewport_t viewport;
-  fan::graphics::cid_t cid[1];
 };
 
 pile_t* pile = new pile_t;
 
 int main() {
 
-    loco_t::image_t image;
+  loco_t::image_t image;
   image.load(&pile->loco, "images/1.WEBP");
 
   loco_t::unlit_sprite_t::properties_t p;
@@ -72,13 +71,14 @@ int main() {
   pp.size = 0.25;
   pp.blending = true;
   loco_t::id_t id3 = pp;
+  
 
   p.image = &image;
   p.blending = true;
   p.size = 0.5;
   p.position = fan::vec2(-0.5, -0.5);
   loco_t::id_t id = p;
-  pile->loco.set_vsync(false);
+  //pile->loco.set_vsync(false);
 
 
   p.position = fan::vec2(0.25, 0.25);
@@ -86,9 +86,10 @@ int main() {
   p.blending = false;
   loco_t::id_t id2 = p;
 
-  id2.erase();
-  id3.erase();
-  id.erase();
+  //id2.erase();
+  //id3.erase();
+  //id.erase();
+  id2.set_depth(3);
 
   //pile->loco.process_loop([] {});
   pile->loco.loop([&] {

@@ -2,11 +2,11 @@
 
 //fan_create_get_set_define_extra(fan::vec3, position,  
 //  if (get_position().z != data.z) {
-//    global_loco.get_loco()->shape_set_depth(*this, data.z);
+//    gloco->shape_set_depth(*this, data.z);
 //  }
 //, ;);
 //fan_create_set_define_custom(fan::vec2, position, 
-//  global_loco.get_loco()shape_set_position(*this, fan::vec3(data, get_position().z));
+//  glocoshape_set_position(*this, fan::vec3(data, get_position().z));
 //);
 //fan_create_get_set_define(fan::vec2, size);
 //fan_create_get_set_define(fan::color, color);
@@ -57,16 +57,16 @@ make_global_function_define(set_depth,
 
 #define make_shape_id_define(name) \
   loco_t::name ## _id_t::name ## _id_t(const properties_t& p) { \
-    global_loco.get_loco()->name.push_back(*this, *(loco_t::name ## _t::properties_t*)&p); \
+    gloco->name.push_back(*this, *(loco_t::name ## _t::properties_t*)&p); \
   } \
    \
   loco_t::name ## _id_t& loco_t::name ## _id_t::operator[](const properties_t& p) { \
-    global_loco.get_loco()->name.push_back(*this, *(loco_t::name ## _t::properties_t*)&p); \
+    gloco->name.push_back(*this, *(loco_t::name ## _t::properties_t*)&p); \
     return *this; \
   } \
    \
   loco_t::name ## _id_t::~name##_id_t() { \
-    global_loco.get_loco()->name.erase(*this); \
+    gloco->name.erase(*this); \
   }
 
 

@@ -1,5 +1,3 @@
-// Creates window, opengl context and renders a rectangle
-
 #define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 
 #ifndef FAN_INCLUDE_PATH
@@ -46,25 +44,20 @@ struct pile_t {
   loco_t loco;
   loco_t::camera_t camera;
   fan::graphics::viewport_t viewport;
-  fan::graphics::cid_t cid[5];
 };
 
 int main() {
 
-  fan::time::clock c;
-  c.start();
-
   pile_t* pile = new pile_t;
 
-  loco_t::circle_t::properties_t p;
-
-  p.radius = 0.5;
-  p.camera = &pile->camera;
-  p.viewport = &pile->viewport;
-  p.color = fan::colors::white;
-
-  p.position = fan::vec2(0, 0);
-  pile->loco.circle.push_back(&pile->cid[0], p);
+  loco_t::id_t circle = fan_init_struct(
+    loco_t::circle_t::properties_t,
+    .camera = &pile->camera,
+    .viewport = &pile->viewport,
+    .position = fan::vec2(0, 0),
+    .radius = 0.5,
+    .color = fan::colors::white
+  );
 
   pile->loco.set_vsync(false);
 

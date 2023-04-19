@@ -21,13 +21,13 @@ struct rectangle_t {
     loco_rectangle_properties_t
   };
 
-  void push_back(fan::graphics::cid_t* cid, properties_t p) {
+  void push_back(loco_t::cid_nt_t& id, properties_t p) {
     get_key_value(loco_t::camera_list_NodeReference_t) = p.camera;
     get_key_value(fan::graphics::viewport_list_NodeReference_t) = p.viewport;
-    sb_push_back(cid, p);
+    sb_push_back(id, p);
   }
-  void erase(fan::graphics::cid_t* cid) {
-    sb_erase(cid);
+  void erase(loco_t::cid_nt_t& id) {
+    sb_erase(id);
   }
 
   void draw(const redraw_key_t &redraw_key, loco_bdbt_NodeReference_t key_root) {
@@ -101,16 +101,16 @@ struct rectangle_t {
     sb_close();
   }
 
-  void set_camera(fan::graphics::cid_t* cid, loco_t::camera_list_NodeReference_t n) {
-    sb_set_key<bm_properties_t::key_t::get_index_with_type<decltype(n)>()>(cid, n);
+  void set_camera(loco_t::cid_nt_t& id, loco_t::camera_list_NodeReference_t n) {
+    sb_set_key<bm_properties_t::key_t::get_index_with_type<decltype(n)>()>(id, n);
   }
 
-  void set_viewport(fan::graphics::cid_t* cid, fan::graphics::viewport_list_NodeReference_t n) {
-    sb_set_key<bm_properties_t::key_t::get_index_with_type<decltype(n)>()>(cid, n);
+  void set_viewport(loco_t::cid_nt_t& id, fan::graphics::viewport_list_NodeReference_t n) {
+    sb_set_key<bm_properties_t::key_t::get_index_with_type<decltype(n)>()>(id, n);
   }
 
-  properties_t get_properties(loco_t::cid_t* cid) {
-    properties_t p = sb_get_properties(cid);
+  properties_t get_properties(loco_t::cid_nt_t& id) {
+    properties_t p = sb_get_properties(id);
     p.camera = get_loco()->camera_list[*p.key.get_value<loco_t::camera_list_NodeReference_t>()].camera_id;
     p.viewport = get_loco()->get_context()->viewport_list[*p.key.get_value<fan::graphics::viewport_list_NodeReference_t>()].viewport_id;
     return p;

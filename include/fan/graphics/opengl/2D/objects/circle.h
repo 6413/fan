@@ -1,5 +1,7 @@
 struct circle_t {
 
+  static constexpr typename loco_t::shape_type_t::_t shape_type = loco_t::shape_type_t::circle;
+
   struct vi_t {
     fan::vec3 position = 0;
     f32_t radius = 0;
@@ -25,6 +27,7 @@ struct circle_t {
 
   struct ri_t : bm_properties_t {
     cid_t* cid;
+    bool blending = false;
   };
 
   #define make_key_value(type, name) \
@@ -32,18 +35,15 @@ struct circle_t {
 
   struct properties_t : vi_t, ri_t {
 
-    make_key_value(uint16_t, depth);
-    make_key_value(loco_t::camera_list_NodeReference_t, camera);
-    make_key_value(fan::graphics::viewport_list_NodeReference_t, viewport);
+    using type_t = circle_t;
 
-    properties_t() = default;
-    properties_t(const vi_t& i) : vi_t(i) {}
-    properties_t(const ri_t& p) : ri_t(p) {}
+    loco_t::camera_t* camera = 0;
+    fan::graphics::viewport_t* viewport = 0;
   };
 
   #undef make_key_value
 
-  void push_back(fan::graphics::cid_t* cid, properties_t& p) {
+  void push_back(loco_t::cid_nt_t& id, properties_t& p) {
     #if defined(loco_vulkan)
     auto loco = get_loco();
     auto& camera = loco->camera_list[p.camera];
@@ -53,14 +53,23 @@ struct circle_t {
     }
     #endif
 
-    sb_push_back(cid, p);
+    get_key_value(loco_t::camera_list_NodeReference_t) = p.camera;
+    get_key_value(fan::graphics::viewport_list_NodeReference_t) = p.viewport;
+
+    sb_push_back(id, p);
   }
-  void erase(fan::graphics::cid_t* cid) {
-    sb_erase(cid);
+  void erase(loco_t::cid_nt_t& id) {
+    sb_erase(id);
   }
 
-  void draw(bool blending = false) {
-    sb_draw(root);
+ void draw(const redraw_key_t &redraw_key, loco_bdbt_NodeReference_t key_root) {
+    if (redraw_key.blending) {
+      m_current_shader = &m_blending_shader;
+    }
+    else {
+      m_current_shader = &m_shader;
+    }
+    sb_draw(key_root);
   }
 
   static constexpr uint32_t max_instance_size = fan::min(256, 4096 / (sizeof(vi_t) / 4));
@@ -124,12 +133,20 @@ struct circle_t {
     sb_close();
   }
 
-  void set_camera(fan::graphics::cid_t* cid, loco_t::camera_list_NodeReference_t n) {
-    sb_set_key<bm_properties_t::key_t::get_index_with_type<decltype(n)>()>(cid, n);
+  void set_camera(loco_t::cid_nt_t& id, loco_t::camera_list_NodeReference_t n) {
+    sb_set_key<bm_properties_t::key_t::get_index_with_type<decltype(n)>()>(id, n);
   }
 
-  void set_viewport(fan::graphics::cid_t* cid, fan::graphics::viewport_list_NodeReference_t n) {
-    sb_set_key<bm_properties_t::key_t::get_index_with_type<decltype(n)>()>(cid, n);
+  void set_viewport(loco_t::cid_nt_t& id, fan::graphics::viewport_list_NodeReference_t n) {
+    sb_set_key<bm_properties_t::key_t::get_index_with_type<decltype(n)>()>(id, n);
+  }
+
+  
+  properties_t get_properties(loco_t::cid_nt_t& id) {
+    properties_t p = sb_get_properties(id);
+    p.camera = gloco->camera_list[*p.key.get_value<loco_t::camera_list_NodeReference_t>()].camera_id;
+    p.viewport = gloco->get_context()->viewport_list[*p.key.get_value<fan::graphics::viewport_list_NodeReference_t>()].viewport_id;
+    return p;
   }
 
   #if defined(loco_vulkan)

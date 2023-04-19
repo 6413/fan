@@ -34,19 +34,21 @@ struct pile_t {
       fan::vec2 ratio = window_size / window_size.max();
       //std::swap(ratio.x, ratio.y);
       //pile_t* pile = (pile_t*)userptr;
-      camera.set_ortho(
-        &loco,
-        fan::vec2(-1, 1) * ratio.x,
-        fan::vec2(-1, 1) * ratio.y
-      );
+      //camera.set_ortho(
+      //  &loco,
+      //  fan::vec2(-1, 1) * ratio.x,
+      //  fan::vec2(-1, 1) * ratio.y
+      //);
 
      });
-    loco.open_viewport(&viewport, 0, loco.get_window()->get_size());
+    loco.open_viewport(&viewport, 0, loco.get_window()->get_size() / 2);
+    loco.open_viewport(&viewport2, 400, loco.get_window()->get_size() / 2);
   }
 
   loco_t loco;
   loco_t::camera_t camera;
   fan::graphics::viewport_t viewport;
+  fan::graphics::viewport_t viewport2;
 };
 
 pile_t* pile = new pile_t;
@@ -80,8 +82,12 @@ int main() {
   };
 
   loco_t::theme_t theme(pile->loco.get_context(), loco_t::themes::deep_red());
+  tp.viewport = &pile->viewport2;
   tp.theme = &theme;
   loco_t::id_t button = tp;
+  tp.viewport = &pile->viewport;
+  loco_t::id_t button2 = tp;
+  //button.erase();
   
   pile->loco.loop([&] {
     //button.set_position(pile->loco.get_mouse_position());

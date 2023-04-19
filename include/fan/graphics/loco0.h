@@ -35,7 +35,7 @@ struct loco_t {
   using cid_t = fan::graphics::cid_t;
 
   loco_t() :window(fan::vec2(800, 800)), context(get_window()){
-    global_loco = (loco_t*)this;
+    gloco = (loco_t*)this;
   }
 
   struct camera_t;
