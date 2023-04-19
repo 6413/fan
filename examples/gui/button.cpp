@@ -10,8 +10,6 @@
 
 //#define loco_vulkan
 
-#define loco_no_inline
-
 #define loco_window
 #define loco_context
 

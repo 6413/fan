@@ -15,6 +15,10 @@ namespace fan_2d {
       // size is half
 			constexpr bool point_inside_no_rotation(const fan::vec2& point, const fan::vec2& position, const fan::vec2& size) {
         return
+          
+         /* fan::math::abs(point.x - position.x) <= size.x &&
+          fan::math::abs(point.y - position.y) <= size.y;*/
+          
           point.x >= position.x - size.x &&
           point.x <= position.x + size.x &&
           point.y >= position.y - size.y &&

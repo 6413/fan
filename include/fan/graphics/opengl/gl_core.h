@@ -1,5 +1,6 @@
 #pragma once
 
+#include _FAN_PATH(types/vector.h)
 #include _FAN_PATH(types/color.h)
 #include _FAN_PATH(types/memory.h)
 
@@ -109,7 +110,11 @@ namespace fan {
       static void set_viewport(fan::opengl::context_t* context, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size);
 
       bool inside(const fan::vec2& position) const {
-        return fan_2d::collision::rectangle::point_inside_no_rotation(position, viewport_position - viewport_size / 2, viewport_size * 2);
+        return fan_2d::collision::rectangle::point_inside_no_rotation(position, viewport_position + viewport_size / 2, viewport_size / 2);
+      }
+
+      bool inside_wir(const fan::vec2& position) const {
+        return fan_2d::collision::rectangle::point_inside_no_rotation(position, viewport_size / 2, viewport_size / 2);
       }
 
       fan::vec2 viewport_position;

@@ -90,7 +90,7 @@ struct model_t {
 
 		sb_close();
 
-		get_loco()->get_context()->opengl.glDeleteBuffers(1, &m_model_instance.m_ebo);
+		gloco->get_context()->opengl.glDeleteBuffers(1, &m_model_instance.m_ebo);
 		m_model_instance.m_indices.close();
 	}
 
@@ -152,7 +152,7 @@ struct model_t {
 	}
 
 	void draw() {
-		auto context = get_loco()->get_context();
+		auto context = gloco->get_context();
 
 		context->set_depth_test(true);
 
@@ -253,7 +253,7 @@ protected:
 			//fan::print("no diffuse map");
 			//return textures;
 			//fan::throw_error("no diffuse map");
-			textures.diffuse.load(get_loco()->get_context(), "models/color_map.webp");
+			textures.diffuse.load(gloco->get_context(), "models/color_map.webp");
 		}
 		else {
 			fan::string diffuse_path = mesh->materials->map_Kd.path;

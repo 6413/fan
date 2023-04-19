@@ -9,7 +9,6 @@
 #define loco_window
 #define loco_context
 
-#define loco_no_inline
 #define loco_letter
 #define loco_text
 #include _FAN_PATH(graphics/loco.h)
@@ -44,12 +43,9 @@ struct pile_t {
   fan::graphics::viewport_t viewport;
 };
 
-pile_t* pile = new pile_t;
-
-#define loco_access &pile->loco
-#include _FAN_PATH(graphics/loco_define.h)
 
 int main() {
+  pile_t* pile = new pile_t;
 
   loco_t::text_t::properties_t p;
 
@@ -66,11 +62,12 @@ int main() {
   text0.erase();
   p.text = "56789";
   loco_t::id_t text1 = p;
-  text1.set_text("56789");
-  text1.set_color(fan::color(1, 0, 0, 0.7));
+  //text1.set_text("56789");
+  text1.set_color(fan::color(1, 0, 0, 0.2));
 
   pile->loco.set_vsync(false);
 
+  text1.set_position(fan::vec2(0.5));
   pile->loco.loop([&] {
     pile->loco.get_fps();
   });

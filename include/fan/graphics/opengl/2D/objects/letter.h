@@ -23,17 +23,16 @@ struct letter_t {
     loco_letter_properties_t
   };
 
-  void push_back(fan::graphics::cid_t* cid, properties_t& p) {
+  void push_back(loco_t::cid_nt_t& id, properties_t& p) {
 
     get_key_value(loco_t::camera_list_NodeReference_t) = p.camera;
     get_key_value(fan::graphics::viewport_list_NodeReference_t) = p.viewport;
 
-    loco_t* loco = get_loco();
-    fan::font::character_info_t si = loco->font.info.get_letter_info(p.letter_id, p.font_size);
+    fan::font::character_info_t si = gloco->font.info.get_letter_info(p.letter_id, p.font_size);
 
-    p.tc_position = si.glyph.position / loco->font.image.size;
-    p.tc_size.x = si.glyph.size.x / loco->font.image.size.x;
-    p.tc_size.y = si.glyph.size.y / loco->font.image.size.y;
+    p.tc_position = si.glyph.position / gloco->font.image.size;
+    p.tc_size.x = si.glyph.size.x / gloco->font.image.size.x;
+    p.tc_size.y = si.glyph.size.y / gloco->font.image.size.y;
 
     p.size = si.metrics.size / 2;
 
@@ -59,10 +58,10 @@ struct letter_t {
       }
     #endif
 
-    sb_push_back(cid, p);
+    sb_push_back(id, p);
   }
-  void erase(fan::graphics::cid_t* cid) {
-    sb_erase(cid);
+  void erase(loco_t::cid_nt_t& id) {
+    sb_erase(id);
   }
 
   void draw(const redraw_key_t &redraw_key, loco_bdbt_NodeReference_t key_root) {
@@ -72,7 +71,7 @@ struct letter_t {
     else {
       m_current_shader = &m_shader;
     }
-    get_loco()->process_block_properties_element<0>(this, &get_loco()->font.image);
+    gloco->process_block_properties_element<0>(this, &gloco->font.image);
     sb_draw(key_root);
   }
 
@@ -97,18 +96,18 @@ struct letter_t {
     sb_close();
   }
 
-  void set_camera(fan::graphics::cid_t* cid, loco_t::camera_list_NodeReference_t n) {
-    sb_set_key<bm_properties_t::key_t::get_index_with_type<decltype(n)>()>(cid, n);
+  void set_camera(loco_t::cid_nt_t& id, loco_t::camera_list_NodeReference_t n) {
+    sb_set_key<bm_properties_t::key_t::get_index_with_type<decltype(n)>()>(id, n);
   }
 
-  void set_viewport(fan::graphics::cid_t* cid, fan::graphics::viewport_list_NodeReference_t n) {
-    sb_set_key<bm_properties_t::key_t::get_index_with_type<decltype(n)>()>(cid, n);
+  void set_viewport(loco_t::cid_nt_t& id, fan::graphics::viewport_list_NodeReference_t n) {
+    sb_set_key<bm_properties_t::key_t::get_index_with_type<decltype(n)>()>(id, n);
   }
 
-  properties_t get_properties(loco_t::cid_t* cid) {
-    properties_t p = sb_get_properties(cid);
-    p.camera = get_loco()->camera_list[*p.key.get_value<loco_t::camera_list_NodeReference_t>()].camera_id;
-    p.viewport = get_loco()->get_context()->viewport_list[*p.key.get_value<fan::graphics::viewport_list_NodeReference_t>()].viewport_id;
+  properties_t get_properties(loco_t::cid_nt_t& id) {
+    properties_t p = sb_get_properties(id);
+    p.camera = gloco->camera_list[*p.key.get_value<loco_t::camera_list_NodeReference_t>()].camera_id;
+    p.viewport = gloco->get_context()->viewport_list[*p.key.get_value<fan::graphics::viewport_list_NodeReference_t>()].viewport_id;
     
     return p;
   }

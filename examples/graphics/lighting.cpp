@@ -17,7 +17,6 @@
 #define loco_light
 #define loco_light_sun
 #define loco_sprite
-#define loco_no_inline
 #include _FAN_PATH(graphics/loco.h)
 
 struct pile_t {
@@ -45,7 +44,6 @@ struct pile_t {
   loco_t loco;
   loco_t::camera_t camera;
   fan::graphics::viewport_t viewport;
-  fan::graphics::cid_t cid[10];
 };
 
 pile_t* pile = new pile_t;
@@ -68,13 +66,13 @@ int main() {
   p.image = &image;
   p.position = fan::vec3(0, 0, 0);
   p.color.a = 1;
-  pile->loco.sprite.push_back(&pile->cid[0], p);
+  loco_t::id_t s0 = p;
   p.position.x += 0.4;
   p.size = 0.2;
   p.position.z += 2;
   p.color.a = 1;
   p.image = &image2;
-  pile->loco.sprite.push_back(&pile->cid[1], p);
+  loco_t::id_t s1 = p;
 
   loco_t::light_t::properties_t lp;
   lp.camera = &pile->camera;
@@ -82,7 +80,7 @@ int main() {
   lp.position = fan::vec3(0, 0, 0);
   lp.size = 1;
   lp.color = fan::colors::yellow * 10;
-  pile->loco.light.push_back(&pile->cid[0], lp);
+  loco_t::id_t l0 = lp;
   
   //for (uint32_t i = 0; i < 1000; i++) {
   //  lp.position = fan::random::vec2(-1, 1);

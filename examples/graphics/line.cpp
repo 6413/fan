@@ -9,7 +9,6 @@
 
 #define loco_window
 #define loco_context
-#define loco_no_inline
 
 #define loco_line
 #include _FAN_PATH(graphics/loco.h)

@@ -11,6 +11,10 @@ namespace fan {
 	class color {
 	public:
 
+    color(const fan::vec4& v) {
+      *(fan::vec4*)this = v;
+    }
+
 		using value_type = cf_t;
 
 		// returns rgb from hsv

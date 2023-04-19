@@ -8,7 +8,7 @@ struct sb_menu_maker_type_name {
   #define BLL_set_prefix instance
   #define BLL_set_type_node uint16_t
   #define BLL_set_NodeData \
-        fan::graphics::cid_t cid; \
+        loco_t::cid_nt_t id; \
         fan::string text; \
         fan::vec3 position; \
         loco_t::theme_t theme; \
@@ -56,16 +56,16 @@ struct sb_menu_maker_type_name {
     return instances[selected_id].text;
   }
 
-  void set_selected(loco_t* loco, fan::graphics::cid_t* cid) {
-    selected = cid;
-    if (selected == nullptr) {
+  void set_selected(loco_t* loco, loco_t::cid_nt_t& id) {
+    selected = id;
+    if (selected.is_invalid()) {
       selected_id.NRI = fan::uninitialized;
       return;
     }
     loco->sb_menu_maker_shape.set_theme(selected, loco->sb_menu_maker_shape.get_theme(selected), loco_t::button_t::pressed);
   }
   void set_selected(loco_t* loco, instance_NodeReference_t id) {
-    selected = &instances[id].cid;
+    selected = instances[id].id;
     selected_id = id;
     //loco->sb_menu_maker_shape.set_theme(selected, loco->sb_menu_maker_shape.get_theme(selected), loco_t::button_t::press);
   }
@@ -74,51 +74,17 @@ struct sb_menu_maker_type_name {
     instances.Open();
     global = op;
     global.offset = 0;
-    selected = nullptr;
+    selected.invalidate();
     selected_id = instances.gnric();
-    //loco_t::vfi_t::properties_t vfip;
-    //vfip.shape_type = loco_t::vfi_t::shape_t::always;
-    //vfip.shape.always.z = op.position.z;
-
-    //vfip.mouse_move_cb = [](const loco_t::vfi_t::mouse_move_data_t& ii_d) -> int { return 0; };
-    //vfip.mouse_button_cb = [this, cb = op.select_cb](const loco_t::vfi_t::mouse_button_data_t& mb) -> int {
-
-    //  if (selected == nullptr) {
-    //    return 0;
-    //  }
-
-    //  if (mb.button != fan::mouse_left) {
-    //    return 0;
-    //  }
-
-    //  if (mb.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside) {
-    //    if (selected && mb.button_state != fan::keyboard_state::press) {
-    //      select_data_t sd;
-    //      sd.vfi = mb.vfi;
-    //      sd.selected = false;
-    //      if (cb(sd)) {
-    //        return 1;
-    //      }
-    //      selected = nullptr;
-    //      //loco->sb_menu_maker_shape.set_theme(selected, loco->sb_menu_maker_shape.get_theme(selected), loco_t::button_t::inactive);
-    //    }
-    //  }
-
-    //  return 0;
-    //};
-    //vfip.keyboard_cb = [](const loco_t::vfi_t::keyboard_data_t& kd) -> int {
-    //  return 0;
-    //};
-
-    //empty_click_id = loco->vfi.push_shape(vfip);
   }
   void soft_close(loco_t* loco) {
 
     auto it = instances.GetNodeFirst();
     while (it != instances.dst) {
       instances.StartSafeNext(it);
-      loco->sb_menu_maker_shape.erase(&instances[it].cid);
-      ((loco_t::button_t::cid_t*)&instances[it].cid)->block_id.NRI = fan::uninitialized;
+      loco->sb_menu_maker_shape.erase(instances[it].id);
+      // TODO?
+      //((loco_t::button_t::cid_t*)&instances[it].id)->block_id.NRI = fan::uninitialized;
       it = instances.EndSafeNext();
     }
     //loco->vfi.erase(empty_click_id);
@@ -128,7 +94,7 @@ struct sb_menu_maker_type_name {
     auto it = instances.GetNodeFirst();
     while (it != instances.dst) {
       instances.StartSafeNext(it);
-      loco->sb_menu_maker_shape.erase(&instances[it].cid);
+      loco->sb_menu_maker_shape.erase(instances[it].id);
       it = instances.EndSafeNext();
     }
     instances.Close();
@@ -151,8 +117,8 @@ struct sb_menu_maker_type_name {
     bp.text = instances[id].text;
 
     bp.mouse_move_cb = [this, loco, id](const loco_t::mouse_move_data_t& d) -> int {
-      if (selected == d.cid) {
-        loco->sb_menu_maker_shape.set_theme(d.cid, loco->sb_menu_maker_shape.get_theme(d.cid), loco_t::button_t::pressed);
+      if (selected == d.id) {
+        loco->sb_menu_maker_shape.set_theme(d.id, loco->sb_menu_maker_shape.get_theme(d.id), loco_t::button_t::pressed);
       }
       else {
         return instances[id].mouse_move_cb(d);
@@ -165,15 +131,15 @@ struct sb_menu_maker_type_name {
         return 0;
       }
 
-      if (selected == &instances[id].cid && d.button_state == fan::mouse_state::release) {
+      if (selected == instances[id].id && d.button_state == fan::mouse_state::release) {
         goto g_mb_skip;
       }
 
       if (d.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside && d.button_state == fan::mouse_state::release) {
-        if (selected != nullptr) {
+        if (selected.is_invalid()) {
           loco->sb_menu_maker_shape.set_theme(selected, loco->sb_menu_maker_shape.get_theme(selected), loco_t::button_t::released);
         }
-        selected = &instances[id].cid;
+        selected = instances[id].id;
         selected_id = id;
       }
     g_mb_skip:
@@ -190,8 +156,8 @@ struct sb_menu_maker_type_name {
           return 1;
         }
       }
-      if (selected == d.cid && d.button_state == fan::mouse_state::release) {
-        loco->sb_menu_maker_shape.set_theme(d.cid, loco->sb_menu_maker_shape.get_theme(d.cid), loco_t::button_t::pressed);
+      if (selected == d.id && d.button_state == fan::mouse_state::release) {
+        loco->sb_menu_maker_shape.set_theme(d.id, loco->sb_menu_maker_shape.get_theme(d.id), loco_t::button_t::pressed);
       }
 
       return 0;
@@ -200,7 +166,7 @@ struct sb_menu_maker_type_name {
       return instances[id].keyboard_cb(d);
     };
 
-    loco->sb_menu_maker_shape.push_back(&instances[id].cid, bp);
+    loco->sb_menu_maker_shape.push_back(instances[id].id, bp);
 
     return id;
   }
@@ -228,17 +194,20 @@ struct sb_menu_maker_type_name {
   }
 
   void erase_soft(loco_t* loco, instance_NodeReference_t id) {
-    loco->sb_menu_maker_shape.erase(&instances[id].cid);
-    ((loco_t::button_t::cid_t*)&instances[id].cid)->block_id.NRI = fan::uninitialized;
+    loco->sb_menu_maker_shape.erase(instances[id].id);
+    //TODO?
+    //((loco_t::button_t::cid_t*)&instances[id].id)->block_id.NRI = fan::uninitialized;
   }
   void erase(loco_t* loco, instance_NodeReference_t id) {
-    loco->sb_menu_maker_shape.erase(&instances[id].cid);
+    loco->sb_menu_maker_shape.erase(instances[id].id);
     instances.Unlink(id);
     instances.Recycle(id);
   }
 
   bool is_visually_valid(instance_NodeReference_t id) {
-    return ((loco_t::button_t::cid_t*)&instances[id].cid)->block_id != decltype(((loco_t::button_t::cid_t*)&instances[id].cid)->block_id){(uint16_t)fan::uninitialized};
+    // TODO ?
+    //return ((loco_t::button_t::cid_t*)&instances[id].id)->block_id != decltype(((loco_t::button_t::cid_t*)&instances[id].id)->block_id){(uint16_t)fan::uninitialized};
+    return true;
   }
 
   struct global_t : open_properties_t{
@@ -251,7 +220,7 @@ struct sb_menu_maker_type_name {
     fan::vec2 offset;
   }global;
 
-  fan::graphics::cid_t* selected;
+  loco_t::cid_nr_t selected;
   nr_t selected_id;
 };
 

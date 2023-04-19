@@ -204,7 +204,7 @@ struct vfi_t {
     }
     shape_list.unlrec(*id);
 
-    //feed_mouse_move(get_loco()->get_mouse_position());
+    //feed_mouse_move(gloco->get_mouse_position());
   }
   template <typename T>
   void set_always(shape_id_t id, auto T::*member, auto value) {
@@ -248,6 +248,9 @@ struct vfi_t {
           data->shape.rectangle.position,
           size
         );
+       /* if (!loco->get_context()->viewport_list[data->shape.rectangle.viewport].viewport_id->inside_wir(p)) {
+          return mouse_stage_e::outside;
+        }*/
         return in ? mouse_stage_e::inside : mouse_stage_e::outside;
       }
       default: {

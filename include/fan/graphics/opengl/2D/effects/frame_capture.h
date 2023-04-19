@@ -254,8 +254,8 @@ struct frame_capture_t {
 		//	sp.viewport = viewport;
 		//	sp.camera = camera;
 		//	sp.image = &capture.mips[0].image;
-		//	sp.position =  get_loco()->get_window()->get_size() / 2;
-		//	sp.size = get_loco()->get_window()->get_size() / 2;
+		//	sp.position =  gloco->get_window()->get_size() / 2;
+		//	sp.size = gloco->get_window()->get_size() / 2;
 		//	sprite.push_back(&cid, sp);
 		//}
 	}

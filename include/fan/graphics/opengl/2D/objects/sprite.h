@@ -118,12 +118,12 @@ struct sb_sprite_name {
 
   properties_t get_properties(loco_t::cid_nt_t& id) {
     properties_t p = sb_get_properties(id);
-    p.camera = get_loco()->camera_list[*p.key.get_value<loco_t::camera_list_NodeReference_t>()].camera_id;
-    p.viewport = get_loco()->get_context()->viewport_list[*p.key.get_value<fan::graphics::viewport_list_NodeReference_t>()].viewport_id;
+    p.camera = gloco->camera_list[*p.key.get_value<loco_t::camera_list_NodeReference_t>()].camera_id;
+    p.viewport = gloco->get_context()->viewport_list[*p.key.get_value<fan::graphics::viewport_list_NodeReference_t>()].viewport_id;
     //loco_t::image_t image;
     //image.texture_reference = ;
     //*
-    p.image = get_loco()->image_list[*p.key.get_value<loco_t::textureid_t<0>>()].image;
+    p.image = gloco->image_list[*p.key.get_value<loco_t::textureid_t<0>>()].image;
     return p;
   }
 

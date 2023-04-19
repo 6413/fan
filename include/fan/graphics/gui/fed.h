@@ -7,19 +7,17 @@ struct fed_t {
 		uint32_t line_limit = -1;
 		uint32_t line_character_limit = -1;
 		f32_t font_size;
-		loco_t* loco = nullptr;
 	};
 
 	void open(const properties_t& p) {
 		#if fan_debug >= fan_debug_medium
-			if (p.loco == nullptr) {
-				fan::throw_error("set loco in fed");
+			if (p.gloco == nullptr) {
+				fan::throw_error("set gloco in fed");
 			}
 		#endif
 		m_wed.open(p.line_height, p.line_width, p.line_limit, p.line_character_limit);
 		m_cr = m_wed.cursor_open();
 		m_font_size = p.font_size;
-		loco = p.loco;
 	}
 
 	void close() {
@@ -33,12 +31,12 @@ struct fed_t {
 	}
 
 	void add_character(wed_t::CharacterData_t character) {
-    auto found = loco->font.info.characters.find(character);
-    if (found == loco->font.info.characters.end()) {
+    auto found = gloco->font.info.characters.find(character);
+    if (found == gloco->font.info.characters.end()) {
       return;
     }
     //m_wed.set
-		auto letter = loco->font.info.get_letter_info(character, m_font_size);
+		auto letter = gloco->font.info.get_letter_info(character, m_font_size);
 		m_wed.AddCharacterToCursor(m_cr, character, letter.metrics.advance * character_width_multiplier);
 	}
 
@@ -48,7 +46,7 @@ struct fed_t {
     for (wed_t::li_t li(&m_wed); li(); li.it()) {
       for (wed_t::ci_t ci(&m_wed, li.id); ci(); ci.it()) {
         wed_t::CharacterData_t* cd = m_wed.GetDataOfCharacter(li.id, ci.id);
-        auto letter = loco->font.info.get_letter_info(*cd, m_font_size);
+        auto letter = gloco->font.info.get_letter_info(*cd, m_font_size);
         m_wed.SetCharacterWidth_Silent(li.id, ci.id, letter.metrics.advance * character_width_multiplier);
       }
     }
@@ -121,5 +119,4 @@ struct fed_t {
 	wed_t::CursorReference_t m_cr;
 	wed_t m_wed;
 	f32_t m_font_size;
-	loco_t* loco;
 };

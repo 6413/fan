@@ -13,8 +13,6 @@ struct pile_t;
 #define loco_window
 #define loco_context
 
-#define loco_no_inline
-
 #define loco_rectangle
 #define loco_sprite
 #define loco_button
@@ -61,8 +59,6 @@ struct pile_t {
 
 pile_t* pile = new pile_t;
 
-#define loco_access &pile->loco
-#include _FAN_PATH(graphics/loco_define.h)
 
 #define loco_var pile->loco
 #include _FAN_PATH(graphics/gui/model_maker/loader.h)

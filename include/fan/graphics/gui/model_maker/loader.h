@@ -245,7 +245,7 @@ public:
     }
     p.id = internal_properties.id;
     p.shape = decltype(p.shape)();
-    p.shape.cid.init();
+    p.shape.init();
     cids.push_back(p);
     cids.back().shape = properties;
   }
