@@ -11,7 +11,6 @@
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
 //#define loco_vulkan
-#define loco_no_inline
 #define loco_window
 #define loco_context
 
@@ -58,9 +57,6 @@ struct pile_t {
 
 pile_t* pile = new pile_t;
 
-#define loco_access &pile->loco
-#include _FAN_PATH(graphics/loco_define.h)
-
 int main() {
 
   loco_t::text_box_t::properties_t tp;
@@ -97,11 +93,11 @@ int main() {
   
   tp.theme = &gray_theme;
   constexpr auto count = 10;
-  fan::graphics::cid_t cids[count];
-  pile->loco.text_box.push_back(&cids[0], tp);
+  
+  loco_t::id_t tb0 = tp;
   tp.position = fan::vec2(600, 600);
   tp.text = "test";
-  pile->loco.text_box.push_back(&cids[1], tp);
+  loco_t::id_t tb1 = tp;
 
   //pile->loco.button.set_theme(&cids[0], &gray_theme, 0.1);
 

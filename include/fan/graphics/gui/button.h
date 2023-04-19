@@ -32,15 +32,13 @@ struct button_t {
 
   #undef make_key_value
 
-  void push_back(loco_t::cid_nr_raw_t& cid, properties_t& p) {
+  void push_back(loco_t::cid_nt_t& id, properties_t& p) {
     get_key_value(uint16_t) = p.position.z;
     get_key_value(loco_t::camera_list_NodeReference_t) = p.camera;
     get_key_value(fan::graphics::viewport_list_NodeReference_t) = p.viewport;
 
-    loco_t* loco = get_loco();
-
     #if defined(loco_vulkan)
-      auto& camera = loco->camera_list[p.camera];
+      auto& camera = gloco->camera_list[p.camera];
       if (camera.camera_index.button == (decltype(camera.camera_index.button))-1) {
         camera.camera_index.button = m_camera_index++;
         m_shader.set_camera(loco, camera.camera_id, camera.camera_index.button);
@@ -57,11 +55,11 @@ struct button_t {
     tp.viewport = p.viewport;
     tp.camera = p.camera;
 
-    sb_push_back(cid, p);
+    sb_push_back(id, p);
 
-    loco->text.push_back(&sb_get_ri(cid).text_id, tp);
+    sb_get_ri(id).text_id = tp;
 
-    set_theme(cid, theme, released);
+    set_theme(id, theme, released);
 
     loco_t::vfi_t::properties_t vfip;
     vfip.shape_type = loco_t::vfi_t::shape_t::rectangle;
@@ -70,98 +68,98 @@ struct button_t {
     vfip.shape.rectangle.position = p.position;
     vfip.shape.rectangle.size = p.size;
     if (!p.disable_highlight) {
-      vfip.mouse_move_cb = [this, udata = p.udata, cid_ = cid](const loco_t::vfi_t::mouse_move_data_t& mm_d) -> int {
+      vfip.mouse_move_cb = [this, udata = p.udata, id_ = id](const loco_t::vfi_t::mouse_move_data_t& mm_d) mutable -> int {
         loco_t* loco = OFFSETLESS(mm_d.vfi, loco_t, vfi_var_name);
         loco_t::mouse_move_data_t mmd = mm_d;
-        if (mm_d.flag->ignore_move_focus_check == false && !loco->button.sb_get_ri(cid_).selected) {
+        if (mm_d.flag->ignore_move_focus_check == false && !gloco->button.sb_get_ri(id_).selected) {
           if (mm_d.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside) {
-            loco->button.set_theme(cid_, loco->button.get_theme(cid_), hovered);
+            gloco->button.set_theme(id_, gloco->button.get_theme(id_), hovered);
           }
           else {
-            loco->button.set_theme(cid_, loco->button.get_theme(cid_), released);
+            gloco->button.set_theme(id_, gloco->button.get_theme(id_), released);
           }
         }
-        mmd.cid = cid_;
+        mmd.id = id_;
 
-        auto theme = get_theme(cid_);
+        auto theme = get_theme(id_);
         loco_t::theme_t::mouse_move_data_t td = (loco_t::theme_t::mouse_move_data_t)mmd;
         td.theme = theme;
         theme->mouse_move_cb(td);
 
-        sb_get_ri(cid_).mouse_move_cb(mmd);
+        sb_get_ri(id_).mouse_move_cb(mmd);
         return 0;
       };
-      vfip.mouse_button_cb = [this, udata = p.udata, cid_ = cid](const loco_t::vfi_t::mouse_button_data_t& ii_d) -> int {
+      vfip.mouse_button_cb = [this, udata = p.udata, id_ = id](const loco_t::vfi_t::mouse_button_data_t& ii_d) mutable -> int {
         loco_t* loco = OFFSETLESS(ii_d.vfi, loco_t, vfi_var_name);
-        if (ii_d.flag->ignore_move_focus_check == false && !loco->button.sb_get_ri(cid_).selected) {
+        if (ii_d.flag->ignore_move_focus_check == false && !gloco->button.sb_get_ri(id_).selected) {
           if (ii_d.button == fan::mouse_left && ii_d.button_state == fan::mouse_state::press) {
-            loco->button.set_theme(cid_, loco->button.get_theme(cid_), pressed);
+            gloco->button.set_theme(id_, gloco->button.get_theme(id_), pressed);
             ii_d.flag->ignore_move_focus_check = true;
-            loco->vfi.set_focus_keyboard(loco->vfi.get_focus_mouse());
+            gloco->vfi.set_focus_keyboard(gloco->vfi.get_focus_mouse());
           }
         } 
-        else if (!loco->button.sb_get_ri(cid_).selected) {
+        else if (!gloco->button.sb_get_ri(id_).selected) {
           if (ii_d.button == fan::mouse_left && ii_d.button_state == fan::mouse_state::release) {
             if (ii_d.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside) {
-              loco->button.set_theme(cid_, loco->button.get_theme(cid_), hovered);
+              gloco->button.set_theme(id_, gloco->button.get_theme(id_), hovered);
             }
             else {
-              loco->button.set_theme(cid_, loco->button.get_theme(cid_), released);
+              gloco->button.set_theme(id_, gloco->button.get_theme(id_), released);
             }
             ii_d.flag->ignore_move_focus_check = false;
           }
         }
 
         loco_t::mouse_button_data_t mid = ii_d;
-        mid.cid = cid_;
+        mid.id = id_;
 
-        auto theme = get_theme(cid_);
+        auto theme = get_theme(id_);
         loco_t::theme_t::mouse_button_data_t td = (loco_t::theme_t::mouse_button_data_t)mid;
         td.theme = theme;
         theme->mouse_button_cb(td);
 
-        sb_get_ri(cid_).mouse_button_cb(mid);
+        sb_get_ri(id_).mouse_button_cb(mid);
 
         return 0;
       };
-      vfip.keyboard_cb = [this, udata = p.udata, cid_ = cid](const loco_t::vfi_t::keyboard_data_t& kd) -> int {
+      vfip.keyboard_cb = [this, udata = p.udata, id_ = id](const loco_t::vfi_t::keyboard_data_t& kd) mutable -> int {
         loco_t* loco = OFFSETLESS(kd.vfi, loco_t, vfi_var_name);
         loco_t::keyboard_data_t kd_ = kd;
-        kd_.cid = cid_;
-        auto theme = get_theme(cid_);
+        kd_.id = id_;
+        auto theme = get_theme(id_);
         loco_t::theme_t::keyboard_data_t td = (loco_t::theme_t::keyboard_data_t)kd_;
         td.theme = theme;
         theme->keyboard_cb(td);
-        sb_get_ri(cid_).keyboard_cb(kd_);
+        sb_get_ri(id_).keyboard_cb(kd_);
         return 0;
       };
 
       // not defined in button
-      //vfip.text_cb = [this, udata = p.udata, cid_ = cid](const loco_t::vfi_t::text_data_t& kd) -> int {
+      //vfip.text_cb = [this, udata = p.udata, id_ = cid](const loco_t::vfi_t::text_data_t& kd) -> int {
       //  loco_t* loco = OFFSETLESS(kd.vfi, loco_t, vfi_var_name);
       //  loco_t::text_data_t kd_ = kd;
-      //  kd_.cid = cid_;
-      //  auto theme = get_theme(cid_);
+      //  kd_.cid = id_;
+      //  auto theme = get_theme(id_);
       //  loco_t::theme_t::text_data_t td = *(loco_t::theme_t::text_data_t*)&kd_;
       //  td.theme = theme;
       //  theme->text_cb(td);
-      //  sb_get_ri(cid_).text_cb(kd_);
+      //  sb_get_ri(id_).text_cb(kd_);
       //  return 0;
       //};
     }
 
-    loco->vfi.push_back(&sb_get_ri(cid).vfi_id, vfip);
+    gloco->vfi.push_back(&sb_get_ri(id).vfi_id, vfip);
   }
-  void erase(fan::graphics::cid_t* cid) {
-    loco_t* loco = get_loco();
-    auto& ri = sb_get_ri(cid);
-    loco->text.erase(&ri.text_id);
-    loco->vfi.erase(&ri.vfi_id);
-    sb_erase(cid);
+  void erase(loco_t::cid_nt_t& id) {
+    
+    auto& ri = sb_get_ri(id);
+    ri.text_id.erase();
+    gloco->vfi.erase(&ri.vfi_id);
+    sb_erase(id);
   }
 
-  auto& get_ri(fan::graphics::cid_t* cid) {
-    return sb_get_ri(cid);
+  auto& get_ri(loco_t::cid_nt_t& id) {
+    return sb_get_ri(id);
   }
 
   void draw(const redraw_key_t &redraw_key, loco_bdbt_NodeReference_t key_root) {
@@ -194,165 +192,163 @@ struct button_t {
   }
 
   loco_t::theme_t* get_theme(fan::graphics::theme_list_NodeReference_t nr) {
-    loco_t* loco = get_loco();
-    return (loco_t::theme_t*)loco->get_context()->theme_list[nr].theme_id;
+    
+    return (loco_t::theme_t*)gloco->get_context()->theme_list[nr].theme_id;
   }
-  loco_t::theme_t* get_theme(fan::graphics::cid_t* cid) {
-    return get_theme(get_ri(cid).theme);
+  loco_t::theme_t* get_theme(loco_t::cid_nt_t& id) {
+    return get_theme(get_ri(id).theme);
   }
-  void set_theme(fan::graphics::cid_t* cid, loco_t::theme_t* theme, f32_t intensity) {
-    loco_t* loco = get_loco();
+  void set_theme(loco_t::cid_nt_t& id, loco_t::theme_t* theme, f32_t intensity) {
+    
     loco_t::theme_t t = *theme;
     t = t * intensity;
     
-    set(cid, &vi_t::color, t.button.color);
-    set(cid, &vi_t::outline_color, t.button.outline_color);
-    set(cid, &vi_t::outline_size, t.button.outline_size);
-    auto& ri = get_ri(cid);
+    set(id, &vi_t::color, t.button.color);
+    set(id, &vi_t::outline_color, t.button.outline_color);
+    set(id, &vi_t::outline_size, t.button.outline_size);
+    auto& ri = get_ri(id);
     ri.theme = theme;
-    loco->text.set(&ri.text_id, 
-      &loco_t::letter_t::vi_t::outline_color, t.button.text_outline_color);
-    loco->text.set(&ri.text_id, 
-      &loco_t::letter_t::vi_t::outline_size, t.button.text_outline_size);
+    ri.text_id.set_outline_color(t.button.text_outline_color);
+    ri.text_id.set_outline_size(t.button.text_outline_size);
   }
 
   template <typename T>
-  auto get_button(fan::graphics::cid_t* cid, auto T::* member) {
-    loco_t* loco = get_loco();
-    return loco->button.get(cid, member);
+  auto get_button(loco_t::cid_nt_t& id, auto T::* member) {
+    
+    return gloco->button.get(id, member);
   }
   template <typename T, typename T2>
-  void set_button(fan::graphics::cid_t* cid, auto T::*member, const T2& value) {
-    loco_t* loco = get_loco();
-    loco->button.set(cid, member, value);
+  void set_button(loco_t::cid_nt_t& id, auto T::*member, const T2& value) {
+    
+    gloco->button.set(id, member, value);
   }
 
   //template <typename T>
-  //T get_text_renderer(fan::graphics::cid_t* cid, auto T::* member) {
-  //  loco_t* loco = get_loco();
-  //  auto block = sb_get_block(cid);
-  //  return loco->text.get(block->p[cid->instance_id].text_id, member);
+  //T get_text_renderer(loco_t::cid_nt_t& id, auto T::* member) {
+  //  
+  //  auto block = sb_get_block(id);
+  //  return gloco->text.get(block->p[cid->instance_id].text_id, member);
   //}
   template <typename T, typename T2>
-  void set_text_renderer(fan::graphics::cid_t* cid, auto T::*member, const T2& value) {
-    loco_t* loco = get_loco();
-    auto block = sb_get_block(cid);
-    loco->text.set(block->p[cid->instance_id].text_id, member, value);
+  void set_text_renderer(loco_t::cid_nt_t& id, auto T::*member, const T2& value) {
+    
+    auto block = sb_get_block(id);
+    gloco->text.set(block->p[id->instance_id].text_id, member, value);
   }
 
-  void set_position(fan::graphics::cid_t* cid, const fan::vec3& position) {
-    loco_t* loco = get_loco();
-    auto& ri = get_ri(cid);
-    loco->text.set_position(&ri.text_id, position + fan::vec3(0, 0, 1));
-    set_button(cid, &vi_t::position, position);
-    loco->vfi.set_rectangle(
+  void set_position(loco_t::cid_nt_t& id, const fan::vec3& position) {
+    
+    auto& ri = get_ri(id);
+    ri.text_id.set_position(position + fan::vec3(0, 0, 1));
+    set_button(id, &vi_t::position, position);
+    gloco->vfi.set_rectangle(
       ri.vfi_id,
       &loco_t::vfi_t::set_rectangle_t::position,
       position
     );
   }
-  void set_size(fan::graphics::cid_t* cid, const fan::vec3& size) {
-    loco_t* loco = get_loco();
-    auto& ri = get_ri(cid);
-    set_button(cid, &vi_t::size, size);
-    loco->vfi.set_rectangle(
+  void set_size(loco_t::cid_nt_t& id, const fan::vec3& size) {
+    
+    auto& ri = get_ri(id);
+    set_button(id, &vi_t::size, size);
+    gloco->vfi.set_rectangle(
       ri.vfi_id,
       &loco_t::vfi_t::set_rectangle_t::size,
       size
     );
   }
 
-  //void set_camera(fan::graphics::cid_t* cid, loco_t::camera_list_NodeReference_t n) {
+  //void set_camera(loco_t::cid_nt_t& id, loco_t::camera_list_NodeReference_t n) {
   //  sb_set_key<bm_properties_t::key_t::get_index_with_type<decltype(n)>()>(cid, n);
-  //  loco_t* loco = get_loco();
-  //  auto block = sb_get_block(cid);
-  //  loco->text.set_camera(block->p[cid->instance_id].text_id, n);
+  //  
+  //  auto block = sb_get_block(id);
+  //  gloco->text.set_camera(block->p[cid->instance_id].text_id, n);
   //}
 
-  //fan::graphics::viewport_t* get_viewport(fan::graphics::cid_t* cid) {
-  //  loco_t* loco = get_loco();
-  //  auto block = sb_get_block(cid);
-  //  return loco->get_context()->viewport_list[*block->p[cid->instance_id].key.get_value<1>()].viewport_id;
+  //fan::graphics::viewport_t* get_viewport(loco_t::cid_nt_t& id) {
+  //  
+  //  auto block = sb_get_block(id);
+  //  return gloco->get_context()->viewport_list[*block->p[cid->instance_id].key.get_value<1>()].viewport_id;
   //}
-  /*void set_viewport(fan::graphics::cid_t* cid, fan::graphics::viewport_list_NodeReference_t n) {
-    loco_t* loco = get_loco();
+  /*void set_viewport(loco_t::cid_nt_t& id, fan::graphics::viewport_list_NodeReference_t n) {
+    
     sb_set_key<instance_properties_t::key_t::get_index_with_type<decltype(n)>()>(cid, n);
-    auto block = sb_get_block(cid);
-    loco->text.set_viewport(block->p[cid->instance_id].text_id, n);
+    auto block = sb_get_block(id);
+    gloco->text.set_viewport(block->p[cid->instance_id].text_id, n);
   }*/
 
-  void set_theme(fan::graphics::cid_t* cid, f32_t state) {
-    loco_t* loco = get_loco();
-    loco->button.set_theme(cid, loco->button.get_theme(cid), state);
+  void set_theme(loco_t::cid_nt_t& id, f32_t state) {
+    
+    gloco->button.set_theme(id, gloco->button.get_theme(id), state);
   }
 
     // gets udata from current focus
   /*uint64_t get_id_udata(loco_t::vfi_t::shape_id_t id) {
-    loco_t* loco = get_loco();
-    auto udata = loco->vfi.get_id_udata(id);
+    
+    auto udata = gloco->vfi.get_id_udata(id);
     fan::opengl::cid_t* cid = (fan::opengl::cid_t*)udata;
-    auto block = sb_get_block(cid);
+    auto block = sb_get_block(id);
     return block->p[cid->instance_id].udata;
   }*/
 
-  void set_selected(fan::graphics::cid_t* cid, bool flag) {
-    auto& ri = get_ri(cid);
+  void set_selected(loco_t::cid_nt_t& id, bool flag) {
+    auto& ri = get_ri(id);
     ri.selected = flag;
   }
 
   // dont edit values
-  auto& get_text_instance(fan::graphics::cid_t* cid) {
-    loco_t* loco = get_loco();
-    auto& ri = get_ri(cid);
-    return loco->text.get_instance(&ri.text_id);
+  auto& get_text_instance(loco_t::cid_nt_t& id) {
+    
+    auto& ri = get_ri(id);
+    return gloco->text.get_instance(ri.text_id);
   }
 
-  fan::string get_text(fan::graphics::cid_t* cid) {
-    loco_t* loco = get_loco();
-    auto& ri = get_ri(cid);
-    return loco->text.get_instance(&ri.text_id).text;
+  fan::string get_text(loco_t::cid_nt_t& id) {
+    
+    auto& ri = get_ri(id);
+    return gloco->text.get_instance(ri.text_id).text;
   }
-  void set_text(fan::graphics::cid_t* cid, const fan::string& text) {
-    loco_t* loco = get_loco();
-    auto& ri = get_ri(cid);
-    loco->text.set_text(&ri.text_id, text);
-  }
-
-  ri_t* get_instance_properties(fan::graphics::cid_t* cid) {
-    return &sb_get_ri(cid);
+  void set_text(loco_t::cid_nt_t& id, const fan::string& text) {
+    
+    auto& ri = get_ri(id);
+    gloco->text.set_text(ri.text_id, text);
   }
 
-  void set_focus_mouse(fan::graphics::cid_t* cid) {
-    get_loco()->vfi.set_focus_mouse(get_instance_properties(cid)->vfi_id);
+  ri_t* get_instance_properties(loco_t::cid_nt_t& id) {
+    return &sb_get_ri(id);
   }
 
-  void set_focus_keyboard(fan::graphics::cid_t* cid) {
-    get_loco()->vfi.set_focus_keyboard(get_instance_properties(cid)->vfi_id);
+  void set_focus_mouse(loco_t::cid_nt_t& id) {
+    gloco->vfi.set_focus_mouse(get_instance_properties(id)->vfi_id);
   }
 
-  void set_focus_text(fan::graphics::cid_t* cid) {
-    get_loco()->vfi.set_focus_text(get_instance_properties(cid)->vfi_id);
+  void set_focus_keyboard(loco_t::cid_nt_t& id) {
+    gloco->vfi.set_focus_keyboard(get_instance_properties(id)->vfi_id);
   }
 
-  void set_focus(fan::graphics::cid_t* cid) {
-    set_focus_mouse(cid);
-    set_focus_keyboard(cid);
-    set_focus_text(cid);
+  void set_focus_text(loco_t::cid_nt_t& id) {
+    gloco->vfi.set_focus_text(get_instance_properties(id)->vfi_id);
   }
 
-  void set_depth(fan::opengl::cid_t* cid, f32_t depth) {
-    auto& vfi_id = get_instance_properties(cid)->vfi_id;
-    get_loco()->vfi.shape_list[vfi_id].shape_data.depth = depth;
-    sb_set_depth(cid, depth);
+  void set_focus(loco_t::cid_nt_t& id) {
+    set_focus_mouse(id);
+    set_focus_keyboard(id);
+    set_focus_text(id);
   }
 
-  properties_t get_properties(loco_t::cid_t* cid) {
-    properties_t p = sb_get_properties(cid);
-    p.camera = get_loco()->camera_list[*p.key.get_value<loco_t::camera_list_NodeReference_t>()].camera_id;
-    //p.theme =  get_loco()->get_context()->theme_list[*p.key.get_values<loco_t::t>()].matrices_id;
-    p.viewport = get_loco()->get_context()->viewport_list[*p.key.get_value<fan::graphics::viewport_list_NodeReference_t>()].viewport_id;
-    p.position = get_text_instance(cid).position;
-    p.text = get_text_instance(cid).text;
+  void set_depth(loco_t::cid_nt_t& id, f32_t depth) {
+    auto& vfi_id = get_instance_properties(id)->vfi_id;
+    gloco->vfi.shape_list[vfi_id].shape_data.depth = depth;
+    sb_set_depth(id, depth);
+  }
+
+  properties_t get_properties(loco_t::cid_nt_t& id) {
+    properties_t p = sb_get_properties(id);
+    p.camera = gloco->camera_list[*p.key.get_value<loco_t::camera_list_NodeReference_t>()].camera_id;
+    //p.theme =  gloco->get_context()->theme_list[*p.key.get_values<loco_t::t>()].matrices_id;
+    p.viewport = gloco->get_context()->viewport_list[*p.key.get_value<fan::graphics::viewport_list_NodeReference_t>()].viewport_id;
+    p.position = get_text_instance(id).position;
+    p.text = get_text_instance(id).text;
     return p;
   }
 

@@ -12,7 +12,6 @@
 
 #define loco_window
 #define loco_context
-#define loco_no_inline
 //#define loco_rectangle
 #define loco_sprite
 #include _FAN_PATH(graphics/loco.h)

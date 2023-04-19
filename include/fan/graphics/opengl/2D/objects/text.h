@@ -17,38 +17,22 @@ struct text_renderer_t {
     return loco;
   }
 
-  /* struct nr_t{
-    nr_t(fan::opengl::cid_t* cid) {
-      block = cid->id / letter_t::max_instance_size;
-      instance = cid->id % letter_t::max_instance_size;
-    }
-    uint32_t block;
-    uint32_t instance;
-  };*/
-
   text_renderer_t() {
-    e.amount = 0;
-  }
-  ~text_renderer_t() {
-    for (uint32_t i = 0; i < letter_ids.size(); i++) {
-      letter_ids[i].cid_list.Close();
-    }
+
   }
 
   f32_t convert_font_size(f32_t font_size) {
-    loco_t* loco = get_loco();
-    return font_size / loco->font.info.size;
+    return font_size / gloco->font.info.size;
   }
 
   fan::vec2 get_text_size(const fan::string& text, f32_t font_size) {
-    loco_t* loco = get_loco();
     fan::vec2 text_size = 0;
 
-    text_size.y = loco->font.info.get_line_height(font_size);
+    text_size.y = gloco->font.info.get_line_height(font_size);
 
 
     for (int i = 0; i < text.utf8_size(); i++) {
-      auto letter = loco->font.info.get_letter_info(text.get_utf8(i), font_size);
+      auto letter = gloco->font.info.get_letter_info(text.get_utf8(i), font_size);
 
       //auto p = letter_info.metrics.offset.x + letter_info.metrics.size.x / 2 + letter_info.metrics.offset.x;
       text_size.x += letter.metrics.advance;
@@ -60,30 +44,12 @@ struct text_renderer_t {
 
     return text_size;
   }
-  fan::vec2 get_text_size(fan::graphics::cid_t* cid) {
-    return get_text_size(letter_ids[cid->bm_id].p.text, letter_ids[cid->bm_id].p.font_size);
-   /* loco_t* loco = get_loco();
-    fan::vec2 text_size = 0;
-
-    text_size.y = loco->font.info.line_height;
-
-    f32_t font_size = 0;
-
-    for (uint32_t i = 0; i < letter_ids[id].p.text.size(); i++) {
-      font_size = letter_ids[id].p.font_size;
-      auto letter = loco->font.info.get_letter_info(loco->font.decode_letter(letter_ids[id].p.text[i]), font_size);
-
-      text_size.x += letter.metrics.size.x + letter.metrics.offset.x;
-      if (i + 1 != letter_ids[id].p.text.size()) {
-        text_size.x += letter.metrics.offset.x;
-      }
-    }
-
-    return text_size;*/
+  fan::vec2 get_text_size(loco_t::cid_nt_t& id) {
+    auto internal_id = *(tlist_NodeReference_t *)id.gdp4();
+    return get_text_size(tlist[internal_id].p.text, tlist[internal_id].p.font_size);
   }
 
-  void push_back(fan::graphics::cid_t* cid, properties_t properties) {
-    loco_t* loco = get_loco();
+  void push_back(loco_t::cid_nt_t& id, properties_t properties) {
     typename loco_t::letter_t::properties_t p;
     p.color = properties.color;
     p.font_size = properties.font_size;
@@ -91,25 +57,15 @@ struct text_renderer_t {
     p.camera = properties.camera;
     p.outline_color = properties.outline_color;
     p.outline_size = properties.outline_size;
-    uint32_t id;
-    if (e.amount != 0) {
-      id = e.id0;
-      e.id0 = *(uint32_t*)&letter_ids[e.id0];
-      e.amount--;
-    }
-    else {
-      letter_ids.resize(letter_ids.size() + 1);
-      id = letter_ids.size() - 1;
-    }
-    letter_ids[id].cid_list.Open();
-    letter_ids[id].p = properties;
+    tlist_NodeReference_t internal_id = tlist.NewNodeLast();
+    tlist[internal_id].p = properties;
 
     fan::vec2 text_size = get_text_size(properties.text, properties.font_size);
     f32_t left = properties.position.x - text_size.x / 2;
     f32_t advance = 0;
     for (uint32_t i = 0; i < properties.text.utf8_size(); i++) {
       p.letter_id = properties.text.get_utf8(i);
-      auto letter_info = loco->font.info.get_letter_info(p.letter_id, properties.font_size);
+      auto letter_info = gloco->font.info.get_letter_info(p.letter_id, properties.font_size);
       p.position = fan::vec2(
         left + advance + letter_info.metrics.size.x / 2,
         properties.position.y + (properties.font_size - letter_info.metrics.size.y) / 2 - letter_info.metrics.offset.y
@@ -119,167 +75,162 @@ struct text_renderer_t {
       /*if (i == 0) {
         p.position.x -= letter_info.metrics.size.x;
       }*/
-      auto nr = letter_ids[id].cid_list.NewNodeLast();
-      auto n = letter_ids[id].cid_list.GetNodeByReference(nr);
-      loco->letter.push_back(&n->data.cid, p);
+      auto nr = tlist[internal_id].cid_list.NewNodeLast();
+      auto n = tlist[internal_id].cid_list.GetNodeByReference(nr);
+      n->data.shape = p;
+      
       advance += letter_info.metrics.advance;
       //left += letter_info.metrics.advance;
     }
-    cid->bm_id = id;
-    cid->shape_type = loco_t::shape_type_t::text;
+    id->shape_type = loco_t::shape_type_t::text;
+    *id.gdp4() = internal_id.NRI;
   }
 
-  void erase(fan::graphics::cid_t* cid) {
-    loco_t* loco = get_loco();
-    auto it = letter_ids[cid->bm_id].cid_list.GetNodeFirst();
-
-    while (it != letter_ids[cid->bm_id].cid_list.dst) {
-      auto node = letter_ids[cid->bm_id].cid_list.GetNodeByReference(it);
-      loco->letter.erase(&node->data.cid);
-
-      it = node->NextNodeReference;
-    }
-    letter_ids[cid->bm_id].cid_list.Close();
-    *(uint32_t*)&letter_ids[cid->bm_id] = e.id0;
-    e.id0 = cid->bm_id;
-    e.amount++;
+  void erase(loco_t::cid_nt_t& id) {
+    auto internal_id = *(tlist_NodeReference_t *)id.gdp4();
+    tlist.unlrec(internal_id);
   }
 
   //template <typename T>
   //T get(fan::graphics::cid_t* cid, T loco_t::letter_t::vi_t::*member) {
   //  loco_t* loco = get_loco();
-  //  return loco->letter.get(cid->bm_id, member); // ?
+  //  return loco->letter.get(internal_id, member); // ?
   //}
   // do not use with set_position
-  void set(fan::graphics::cid_t* cid, auto member, auto value) {
-    loco_t* loco = get_loco();
-    
-    letter_ids[cid->bm_id].p.*member = value;
+  void set(loco_t::cid_nt_t& id, auto member, auto value) {
+    auto internal_id = *(tlist_NodeReference_t *)id.gdp4();
 
-    auto it = letter_ids[cid->bm_id].cid_list.GetNodeFirst();
+    tlist[internal_id].p.*member = value;
 
-    while (it != letter_ids[cid->bm_id].cid_list.dst) {
-      auto node = letter_ids[cid->bm_id].cid_list.GetNodeByReference(it);
-      loco->letter.set(&node->data.cid, member, value);
+    auto it = tlist[internal_id].cid_list.GetNodeFirst();
+
+    while (it != tlist[internal_id].cid_list.dst) {
+      auto node = tlist[internal_id].cid_list.GetNodeByReference(it);
+      gloco->letter.set(node->data.shape, member, value);
       it = node->NextNodeReference;
     }
   }
 
-  void set_camera(fan::graphics::cid_t* cid, loco_t::camera_list_NodeReference_t n) {
-    loco_t* loco = get_loco();
+  void set_camera(loco_t::cid_nt_t& id, loco_t::camera_list_NodeReference_t n) {
+    auto internal_id = *(tlist_NodeReference_t *)id.gdp4();
+    auto it = tlist[internal_id].cid_list.GetNodeFirst();
 
-    auto it = letter_ids[cid->bm_id].cid_list.GetNodeFirst();
-
-    while (it != letter_ids[cid->bm_id].cid_list.dst) {
-      auto node = letter_ids[cid->bm_id].cid_list.GetNodeByReference(it);
-      loco->letter.set_camera(&node->data.cid, n);
+    while (it != tlist[internal_id].cid_list.dst) {
+      auto node = tlist[internal_id].cid_list.GetNodeByReference(it);
+      gloco->letter.set_camera(node->data.shape, n);
       it = node->NextNodeReference;
     }
   }
 
-  void set_viewport(fan::graphics::cid_t* cid, fan::graphics::viewport_list_NodeReference_t n) {
-    loco_t* loco = get_loco();
+  void set_viewport(loco_t::cid_nt_t& id, fan::graphics::viewport_list_NodeReference_t n) {
+    auto internal_id = *(tlist_NodeReference_t *)id.gdp4();
+    auto it = tlist[internal_id].cid_list.GetNodeFirst();
 
-    auto it = letter_ids[cid->bm_id].cid_list.GetNodeFirst();
-
-    while (it != letter_ids[cid->bm_id].cid_list.dst) {
-      auto node = letter_ids[cid->bm_id].cid_list.GetNodeByReference(it);
-      loco->letter.set_viewport(&node->data.cid, n);
+    while (it != tlist[internal_id].cid_list.dst) {
+      auto node = tlist[internal_id].cid_list.GetNodeByReference(it);
+      gloco->letter.set_viewport(node->data.shape, n);
       it = node->NextNodeReference;
     }
   }
 
-  void sb_set_depth(fan::graphics::cid_t* cid, f32_t depth) {
-    loco_t* loco = get_loco();
+  void sb_set_depth(loco_t::cid_nt_t& id, f32_t depth) {
+    auto internal_id = *(tlist_NodeReference_t *)id.gdp4();
+    auto it = tlist[internal_id].cid_list.GetNodeFirst();
 
-    auto it = letter_ids[cid->bm_id].cid_list.GetNodeFirst();
-
-    while (it != letter_ids[cid->bm_id].cid_list.dst) {
-      auto node = letter_ids[cid->bm_id].cid_list.GetNodeByReference(it);
-      loco->letter.sb_set_depth(&node->data.cid, depth);
+    while (it != tlist[internal_id].cid_list.dst) {
+      auto node = tlist[internal_id].cid_list.GetNodeByReference(it);
+      gloco->letter.sb_set_depth(node->data.shape, depth);
       it = node->NextNodeReference;
     }
   }
 
-  void set_depth(fan::graphics::cid_t* cid, f32_t depth) {
-    sb_set_depth(cid, depth);
+  void set_depth(loco_t::cid_nt_t& id, f32_t depth) {
+    sb_set_depth(id, depth);
   }
 
   //void set_position(loco_t* loco, uint32_t id, const fan::vec2& position) {
-  //  for (uint32_t i = 0; i < letter_ids[id].size(); i++) {
-  //    auto p = loco->letter.get_instance(loco, &letter_ids[id][i]);
-  //    loco->letter.erase(loco, &letter_ids[id][i]);
+  //  for (uint32_t i = 0; i < tlist[id].size(); i++) {
+  //    auto p = loco->letter.get_instance(loco, &tlist[id][i]);
+  //    loco->letter.erase(loco, &tlist[id][i]);
   //    auto letter_info = loco->font.info.get_letter_info(p.letter_id, p.font_size);
 
   //    p.position = fan::vec2(left - letter_info.metrics.offset.x, properties.position.y) + (fan::vec2(letter_info.metrics.size.x, properties.font_size - letter_info.metrics.size.y) / 2 + fan::vec2(letter_info.metrics.offset.x, -letter_info.metrics.offset.y));
   //    p.position.z = properties.position.z;
   //    p.*member = value;
-  //    push_back(loco, p, &letter_ids[id][i]);
+  //    push_back(loco, p, &tlist[id][i]);
   //  }
   //}
 
-  f32_t get_font_size(fan::graphics::cid_t* cid) {
-    auto loco = get_loco();
-    auto it = letter_ids[cid->bm_id].cid_list.GetNodeFirst();
-    auto node = letter_ids[cid->bm_id].cid_list.GetNodeByReference(it);
-    return loco->letter.sb_get_ri(&node->data.cid).font_size;
+  f32_t get_font_size(loco_t::cid_nt_t& id) {
+    auto internal_id = *(tlist_NodeReference_t *)id.gdp4();
+    auto it = tlist[internal_id].cid_list.GetNodeFirst();
+    auto node = tlist[internal_id].cid_list.GetNodeByReference(it);
+    return gloco->letter.sb_get_ri(node->data.shape).font_size;
   }
 
-  auto get_camera(fan::graphics::cid_t* cid) {
-    auto loco = get_loco();
-    auto it = letter_ids[cid->bm_id].cid_list.GetNodeFirst();
-    auto node = letter_ids[cid->bm_id].cid_list.GetNodeByReference(it);
-    return loco->letter.get_camera(&node->data.cid);
+  auto get_camera(loco_t::cid_nt_t& id) {
+    auto internal_id = *(tlist_NodeReference_t *)id.gdp4();
+    auto it = tlist[internal_id].cid_list.GetNodeFirst();
+    auto node = tlist[internal_id].cid_list.GetNodeByReference(it);
+    return gloco->letter.get_camera(node->data.shape);
   }
 
-  properties_t &get_instance(fan::graphics::cid_t* cid) {
-    return letter_ids[cid->bm_id].p;
+  properties_t &get_instance(loco_t::cid_nt_t& id) {
+    auto internal_id = *(tlist_NodeReference_t *)id.gdp4();
+    return tlist[internal_id].p;
   }
-  void set_text(fan::graphics::cid_t* cid, const fan::string& text) {
-    properties_t& p = letter_ids[cid->bm_id].p;
-    erase(cid);
+  void set_text(loco_t::cid_nt_t& id, const fan::string& text) {
+    auto internal_id = *(tlist_NodeReference_t *)id.gdp4();
+    properties_t& p = tlist[internal_id].p;
+    erase(id);
     p.text = text;
 
-    push_back(cid, p);
+    push_back(id, p);
   }
 
-  void set_position(fan::graphics::cid_t* cid, const fan::vec3& position) {
-    properties_t& p = letter_ids[cid->bm_id].p;
-    erase(cid);
+  void set_position(loco_t::cid_nt_t& id, const fan::vec3& position) {
+    auto internal_id = *(tlist_NodeReference_t *)id.gdp4();
+    properties_t p = tlist[internal_id].p;
+    erase(id);
     p.position = position;
-    push_back(cid, p);
+    push_back(id, p);
   }
 
-  void set_font_size(fan::graphics::cid_t* cid, f32_t font_size) {
-    properties_t& p = letter_ids[cid->bm_id].p;
-    erase(cid);
+  void set_font_size(loco_t::cid_nt_t& id, f32_t font_size) {
+    auto internal_id = *(tlist_NodeReference_t *)id.gdp4();
+    properties_t p = tlist[internal_id].p;
+    erase(id);
     p.font_size = font_size;
-    push_back(cid, p);
+    push_back(id, p);
   }
 
 
-  properties_t get_properties(loco_t::cid_t* cid) {
-    return letter_ids[cid->bm_id].p;
+  properties_t get_properties(loco_t::cid_nt_t& id) {
+    auto internal_id = *(tlist_NodeReference_t *)id.gdp4();
+    return tlist[internal_id].p;
   }
 
-  struct{
-    uint32_t id0;
-    uint32_t amount;
-  }e;
-
+  #define BLL_set_CPP_ConstructDestruct
+  #define BLL_set_CPP_Node_ConstructDestruct
   #define BLL_set_AreWeInsideStruct 1
   #define BLL_set_BaseLibrary 1
   #define BLL_set_prefix cid_list
   #define BLL_set_type_node uint32_t
-  #define BLL_set_NodeData fan::graphics::cid_t cid;
+  #define BLL_set_NodeData loco_t::id_t shape;
   #define BLL_set_Link 1
-  #define BLL_set_StoreFormat 1
   #include _FAN_PATH(BLL/BLL.h)
 
-  struct instance_t {
-    cid_list_t cid_list;
+  #define BLL_set_CPP_ConstructDestruct
+  #define BLL_set_CPP_Node_ConstructDestruct
+  #define BLL_set_AreWeInsideStruct 1
+  #define BLL_set_BaseLibrary 1
+  #define BLL_set_prefix tlist
+  #define BLL_set_type_node uint32_t
+  #define BLL_set_NodeData \
+    cid_list_t cid_list; \
     properties_t p;
-  };
+  #define BLL_set_Link 1
+  #include _FAN_PATH(BLL/BLL.h)
 
-  std::vector<instance_t> letter_ids;
+  tlist_t tlist;
 };

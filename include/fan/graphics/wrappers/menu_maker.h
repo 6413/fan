@@ -35,10 +35,10 @@ struct sb_menu_maker_name {
 
 	}
 
-	id_t get_instance_id(nr_t id, fan::graphics::cid_t* cid) {
+	id_t get_instance_id(nr_t id, loco_t::cid_nt_t& nr) {
 		auto it = instances[id].base.instances.GetNodeFirst();
 		while (it != instances[id].base.instances.dst) {
-			if (&instances[id].base.instances[it].cid == cid) {
+			if (instances[id].base.instances[it].id == nr) {
 				return it;
 			}
 		}
@@ -55,13 +55,13 @@ struct sb_menu_maker_name {
 
 	void erase_button_soft(instance_NodeReference_t nr, sb_menu_maker_type_name::instance_NodeReference_t id) {
 		if (id == instances[nr].base.selected_id) {
-			set_selected(nr, nullptr);
+      invalidate_selected(nr);
 		}
 		instances[nr].base.erase_soft(get_loco(), id);
 	}
 	void erase_button(instance_NodeReference_t nr, sb_menu_maker_type_name::instance_NodeReference_t id) {
 		if (id == instances[nr].base.selected_id) {
-			set_selected(nr, nullptr);
+			invalidate_selected(nr);
 		}
 		instances[nr].base.erase(get_loco(), id);
 	}
@@ -81,8 +81,11 @@ struct sb_menu_maker_name {
 	auto push_back(nr_t nr, const properties_t& properties) {
 		return instances[nr].base.push_back(get_loco(), properties, nr);
 	}
-	void set_selected(nr_t nr, fan::graphics::cid_t* cid) {
-		instances[nr].base.set_selected(get_loco(), cid);
+  void invalidate_selected(nr_t nr) {
+    instances[nr].base.selected.invalidate();
+  }
+	void set_selected(nr_t nr, loco_t::cid_nt_t& id) {
+		instances[nr].base.set_selected(get_loco(), id);
 	}
 	void set_selected(nr_t nr, sb_menu_maker_type_name::instance_NodeReference_t id) {
 		instances[nr].base.set_selected(get_loco(), id);
@@ -90,7 +93,7 @@ struct sb_menu_maker_name {
 	auto get_selected_text(nr_t nr) {
 		return instances[nr].base.get_selected_text(get_loco());
 	}
-	fan::graphics::cid_t* get_selected(nr_t nr) {
+	loco_t::cid_nt_t& get_selected(nr_t nr) {
 		return instances[nr].base.selected;
 	}
 	sb_menu_maker_type_name::instance_NodeReference_t get_selected_id(nr_t nr) {
@@ -108,7 +111,7 @@ struct sb_menu_maker_name {
 	void erase_and_update(nr_t nr, sb_menu_maker_type_name::instance_NodeReference_t id) {
 		auto loco = get_loco();
 		fan::vec2 previous_button_size = loco->sb_menu_maker_shape.get_button(
-			&loco->sb_menu_maker_var_name.instances[nr].base.instances[id].cid,
+			&loco->sb_menu_maker_var_name.instances[nr].base.instances[id].id,
 			&loco_t::CONCAT(sb_menu_maker_shape, _t)::vi_t::size
 		);
 		auto it = id;
@@ -118,16 +121,16 @@ struct sb_menu_maker_name {
 
 		while (it != instances[nr].base.instances.dst) {
 			auto b_position = loco->sb_menu_maker_shape.get_button(
-				&instances[nr].base.instances[it].cid,
+				instances[nr].base.instances[it].id,
 				&loco_t::CONCAT(sb_menu_maker_shape, _t)::vi_t::position
 			);
 			auto b_size = loco->sb_menu_maker_shape.get_button(
-				&instances[nr].base.instances[it].cid,
+				instances[nr].base.instances[it].id,
 				&loco_t::CONCAT(sb_menu_maker_shape, _t)::vi_t::size
 			);
 			b_position.y -= b_size.y * 2;
 			loco->sb_menu_maker_shape.set_position(
-				&instances[nr].base.instances[it].cid,
+				instances[nr].base.instances[it].id,
 				b_position
 			);
 			instances[nr].base.instances[it].position = b_position;
@@ -137,7 +140,7 @@ struct sb_menu_maker_name {
 
   void set_text(nr_t nr, id_t id, const fan::string& text) {
     instances[nr].base.instances[id].text = text;
-    get_loco()->sb_menu_maker_shape.set_text(&instances[nr].base.instances[id].cid, text);
+    gloco->sb_menu_maker_shape.set_text(&instances[nr].base.instances[id].id, text);
   }
 
 	fan::vec2 get_button_measurements(nr_t nr) {

@@ -13,8 +13,6 @@
 #define loco_window
 #define loco_context
 
-#define loco_no_inline
-
 #define loco_line
 #define loco_button
 #define loco_sprite
@@ -35,9 +33,6 @@ struct pile_t {
 pile_t* pile = new pile_t;
 
 #include _FAN_PATH(graphics/gui/model_maker/maker.h)
-
-#define loco_access &pile->loco
-#include _FAN_PATH(graphics/loco_define.h)
 
 int main(int argc, char** argv) {
   if (argc < 2) {

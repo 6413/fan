@@ -64,17 +64,17 @@ struct sb_pfr_name {
   void set_fragment(uint8_t format) {
     switch (format) {
       case fan::pixel_format::yuv420p: {
-        m_shader.set_fragment(get_loco()->get_context(), 
+        m_shader.set_fragment(gloco->get_context(), 
           #include _FAN_PATH(graphics/glsl/opengl/2D/objects/yuv420p.fs)
         );
-        m_shader.compile(get_loco()->get_context());
+        m_shader.compile(gloco->get_context());
         break;
       }
       case fan::pixel_format::nv12: {
-        m_shader.set_fragment(get_loco()->get_context(), 
+        m_shader.set_fragment(gloco->get_context(), 
           #include _FAN_PATH(graphics/glsl/opengl/2D/objects/nv12.fs)
         );
-        m_shader.compile(get_loco()->get_context());
+        m_shader.compile(gloco->get_context());
         break;
       }
     }
@@ -140,7 +140,7 @@ struct sb_pfr_name {
         #include _FAN_PATH(graphics/glsl/opengl/2D/objects/pixel_format_renderer.vs)
       );
       set_fragment(format);
-      m_shader.use(get_loco()->get_context());
+      m_shader.use(gloco->get_context());
 
       auto image_count_old = fan::pixel_format::get_texture_amount(ri->format);
       if (image_count_new < image_count_old) {

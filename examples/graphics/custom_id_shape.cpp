@@ -13,8 +13,6 @@ struct pile_t;
 #define loco_window
 #define loco_context
 
-#define loco_no_inline
-
 struct light_rectangle_t;
 struct light_rectangle_fade_t;
 
@@ -134,11 +132,6 @@ pile_t* pile = new pile_t;
       return *(properties_t*)&p;
     }
   }light_rectangle_fade;
-
-
-#define loco_t_id_t_ptrs &light_rectangle, &light_rectangle_fade
-#define loco_access &pile->loco
-#include _FAN_PATH(graphics/loco_define.h)
 
 int main() {
   

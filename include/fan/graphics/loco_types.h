@@ -133,7 +133,7 @@
 #define loco_button_ri_t \
   uint8_t selected = 0; \
   loco_t::theme_t* theme = 0; \
-  fan::graphics::cid_t text_id; \
+  loco_t::id_t text_id; \
   loco_t::vfi_t::shape_id_t vfi_id; \
   uint64_t udata; \
   loco_t::mouse_button_cb_t mouse_button_cb = [](const loco_t::mouse_button_data_t&) -> int { return 0; }; \
@@ -177,7 +177,7 @@
     loco_t::vfi_t::shape_id_t vfi_id; \
     uint64_t udata; \
  \
-    fan::graphics::cid_t text_id; \
+    loco_t::id_t text_id; \
     fed_t fed; \
     bool blending = false;
 
