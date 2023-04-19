@@ -65,7 +65,9 @@ int main() {
   }
   for (uint32_t i = 0; i < 1000; i++) {
     ids.erase(ids.begin() + rand() % ids.size());
-    ids[rand() % ids.size()].set_position(fan::vec2(2, 3));
+    if (ids.size()) {
+      ids[rand() % ids.size()].set_position(fan::vec2(2, 3));
+    }
   }
 
   loco_t::id_t text0 = p;
