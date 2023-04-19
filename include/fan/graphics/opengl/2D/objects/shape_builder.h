@@ -348,7 +348,7 @@ public:
           auto key_root2 = key_root;
           k2.q(&gloco->bdbt, &shape_type, &ki2, &key_root);
           #if fan_debug >= 2
-            if (ki2 != sizeof(loco_t::shape_type_t::_t)) {
+            if (ki2 != sizeof(loco_t::shape_type_t::_t) * 8) {
               __abort();
             }
           #endif
