@@ -4,6 +4,8 @@
 
 #include <set>
 
+#define loco_no_inline
+
 #include _FAN_PATH(types/types.h)
 
 #include _FAN_PATH(types/color.h)
@@ -243,19 +245,23 @@ inline struct global_loco_t {
 
   loco_t* loco = nullptr;
 
-  loco_t* get_loco() {
+  operator loco_t* () {
     return loco;
   }
-  void set_loco(loco_t* l) {
+  global_loco_t& operator=(loco_t* l) {
     loco = l;
+    return *this;
   }
-}global_loco;
+  loco_t* operator->() {
+    return loco;
+  }
+}gloco;
 #endif
 
 struct loco_t {
 
   void use() {
-    global_loco.set_loco(this);
+    gloco = this;
   }
 
   std::vector<fan::function_t<void()>> m_draw_queue_light;
@@ -279,7 +285,7 @@ struct loco_t {
     static constexpr _t unlit_sprite = 8;
     static constexpr _t letter = 9;
     static constexpr _t text_box = 10;
-
+    static constexpr _t circle = 11;
   };
 
   struct redraw_key_t {
@@ -626,6 +632,83 @@ public:
   }descriptor_pool;
   #endif
 
+  #if defined(loco_no_inline)
+  protected:
+    #define BLL_set_CPP_ConstructDestruct
+    #define BLL_set_CPP_Node_ConstructDestruct
+    #define BLL_set_AreWeInsideStruct 1
+    #define BLL_set_BaseLibrary 1
+    #define BLL_set_prefix cid_list
+    #define BLL_set_type_node uint32_t
+    #define BLL_set_NodeData fan::graphics::cid_t cid;
+    #define BLL_set_Link 0
+    #define BLL_set_StoreFormat 1
+    #include _FAN_PATH(BLL/BLL.h)
+  public:
+
+  struct cid_nt_t : cid_list_NodeReference_t {
+    loco_t::cid_t* operator->() {
+      return &gloco->cid_list[*(cid_list_NodeReference_t*)(this)].cid;
+    }
+    using base_t = cid_list_NodeReference_t;
+    void init() {
+      *(base_t*)this = gloco->cid_list.NewNode();
+    }
+
+    bool is_invalid() {
+      return cid_list_inric(*this);
+    }
+
+    void invalidate_soft() {
+      *(base_t*)this = gloco->cid_list.gnric();
+    }
+
+    void invalidate() {
+      if (is_invalid()) {
+        return;
+      }
+      gloco->cid_list.Recycle(*this);
+      *(base_t*)this = gloco->cid_list.gnric();
+    }
+  };
+
+  struct cid_nr_t : cid_nt_t {
+
+    cid_nr_t() { *(cid_list_NodeReference_t*)this = cid_list_gnric(); }
+
+    cid_nr_t(const cid_nr_t& nr) {
+      init();
+      gloco->cid_list[*this].cid.shape_type = gloco->cid_list[nr].cid.shape_type;
+    }
+
+    cid_nr_t(cid_nr_t&& nr) {
+      NRI = nr.NRI;
+      nr.invalidate_soft();
+    }
+
+    loco_t::cid_nr_t& operator=(const cid_nr_t& id) {
+      if (this != &id) {
+        init();
+        gloco->cid_list[*this].cid.shape_type = gloco->cid_list[id].cid.shape_type;
+      }
+      return *this;
+    }
+
+    loco_t::cid_nr_t& operator=(cid_nr_t&& id) {
+      if (this != &id) {
+        if (!is_invalid()) {
+          invalidate();
+        }
+        NRI = id.NRI;
+
+        id.invalidate_soft();
+      }
+      return *this;
+    }
+  };
+
+  #endif
+
   #if defined(loco_vfi)
 
   #define vfi_var_name vfi
@@ -636,21 +719,21 @@ public:
 
     }
 
-    fan::graphics::cid_t* cid;
+    loco_t::cid_nt_t cid;
   };
   struct mouse_button_data_t : vfi_t::mouse_button_data_t {
     mouse_button_data_t(const vfi_t::mouse_button_data_t& mm) : vfi_t::mouse_button_data_t(mm) {
 
     }
 
-    fan::graphics::cid_t* cid;
+    loco_t::cid_nt_t cid;
   };
   struct keyboard_data_t : vfi_t::keyboard_data_t {
     keyboard_data_t(const vfi_t::keyboard_data_t& mm) : vfi_t::keyboard_data_t(mm) {
 
     }
 
-    fan::graphics::cid_t* cid;
+    loco_t::cid_nt_t cid;
   };
 
   struct text_data_t : vfi_t::text_data_t {
@@ -658,7 +741,7 @@ public:
 
     }
 
-    fan::graphics::cid_t* cid;
+    loco_t::cid_nt_t cid;
   };
 
   using mouse_move_cb_t = fan::function_t<int(const mouse_move_data_t&)>;
@@ -830,6 +913,12 @@ public:
 
   #endif
 
+  struct gloco_priority_init_t {
+    gloco_priority_init_t(loco_t* l) {
+      gloco = l;
+    }
+  }gloco_dummy;
+
   loco_bdbt_t bdbt;
   loco_bdbt_NodeReference_t root;
 
@@ -840,78 +929,6 @@ public:
   #endif
 
   #if defined (loco_no_inline)
-
-  protected:
-    #define BLL_set_CPP_ConstructDestruct
-    #define BLL_set_CPP_Node_ConstructDestruct
-    #define BLL_set_AreWeInsideStruct 1
-    #define BLL_set_BaseLibrary 1
-    #define BLL_set_prefix cid_list
-    #define BLL_set_type_node uint32_t
-    #define BLL_set_NodeData fan::graphics::cid_t cid;
-    #define BLL_set_Link 1
-    #define BLL_set_StoreFormat 1
-    #define BLL_set_Mark 1
-    #include _FAN_PATH(BLL/BLL.h)
-public:
-
-  struct cid_nr_t : cid_list_NodeReference_t {
-
-    cid_nr_t() { *(cid_list_NodeReference_t*)this = cid_list_gnric(); }
-    using base_t = cid_list_NodeReference_t;
-
-    cid_nr_t(const cid_nr_t& nr) {
-      init();
-      global_loco.get_loco()->cid_list[*this].cid.shape_type = global_loco.get_loco()->cid_list[nr].cid.shape_type;
-    }
-
-    cid_nr_t(cid_nr_t&& nr) {
-      NRI = nr.NRI;
-      nr.invalidate_soft();
-    }
-
-    loco_t::cid_nr_t& operator=(const cid_nr_t& id) {
-      if (this != &id) {
-        init();
-        global_loco.get_loco()->cid_list[*this].cid.shape_type = global_loco.get_loco()->cid_list[id].cid.shape_type;
-      }
-      return *this;
-    }
-
-    loco_t::cid_nr_t& operator=(cid_nr_t&& id) {
-      if (this != &id) {
-        if (!is_invalid()) {
-          invalidate();
-        }
-        NRI = id.NRI;
-
-        id.invalidate_soft();
-      }
-      return *this;
-    }
-
-
-    void init() {
-      *(base_t*)this = global_loco.get_loco()->cid_list.NewNodeLast();
-    }
-
-    bool is_invalid() {
-      return cid_list_inric(*this);
-    }
-
-    void invalidate_soft() {
-      *(base_t*)this = global_loco.get_loco()->cid_list.gnric();
-    }
-
-    void invalidate() {
-      if (is_invalid()) {
-        return;
-      }
-      global_loco.get_loco()->cid_list.unlrec(*this);
-      *(base_t*)this = global_loco.get_loco()->cid_list.gnric();
-    }
-
-  };
 
   cid_list_t cid_list;
 
@@ -933,48 +950,45 @@ public:
     fan_create_id_definition_declare(void, set_##name, const rt& data);
 
   #define fan_create_set_define(rt, name) \
-        fan_create_id_definition_define(void, set_##name, const rt& data){ global_loco.get_loco()->shape_##set_##name(*this, data); }
+        fan_create_id_definition_define(void, set_##name, const rt& data){ gloco->shape_##set_##name(*this, data); }
 
   #define fan_create_set_define_custom(rt, name, custom) \
         fan_create_id_definition_define(void, set_##name, const rt& data){ custom }
 
   #define fan_create_get_set_define(rt, name) \
-    fan_create_id_definition_define(rt, get_##name){ return global_loco.get_loco()->shape_##get_##name(*this);} \
+    fan_create_id_definition_define(rt, get_##name){ return gloco->shape_##get_##name(*this);} \
     fan_create_set_define(rt, name)
 
-  #define fan_create_get_set_define_extra(rt, name, set_extra, get_extra) \
-    fan_create_id_definition_define(rt, get_##name){ get_extra return global_loco.get_loco()->shape_##get_##name(*this);} \
-    fan_create_id_definition_define(void, set_##name, const rt& data){ set_extra global_loco.get_loco()->shape_##set_##name(*this, data); }
+    #define fan_create_get_define(rt, name) \
+    fan_create_id_definition_define(rt, get_##name){ return gloco->shape_##get_##name(*this);} \
 
-  struct id_t {
-    loco_t::cid_nr_t cid;
+  #define fan_create_get_set_define_extra(rt, name, set_extra, get_extra) \
+    fan_create_id_definition_define(rt, get_##name){ get_extra return gloco->shape_##get_##name(*this);} \
+    fan_create_id_definition_define(void, set_##name, const rt& data){ set_extra gloco->shape_##set_##name(*this, data); }
+
+ 
+  struct id_t : cid_nr_t {
+    using inherit_t = cid_nr_t;
 
     id_t() { };
     id_t(const auto& properties) {
-      cid.init();
-      global_loco.get_loco()->push_shape(*this, properties);
+      inherit_t::init();
+      gloco->push_shape(*this, properties);
     }
 
-    inline id_t(const id_t& id) : cid(id.cid) {
-      global_loco.get_loco()->shape_get_properties(*(id_t*)&id, [&](const auto& properties) {
-        global_loco.get_loco()->push_shape(*this, properties);
+    inline id_t(const id_t& id) : inherit_t(id) {
+      gloco->shape_get_properties(*(id_t*)&id, [&](const auto& properties) {
+        gloco->push_shape(*this, properties);
       });
     }
-    inline id_t(id_t&& id) : cid(std::move(id.cid)) {
-      id.cid.invalidate();
+    inline id_t(id_t&& id) : inherit_t(std::move(id)) {
+      inherit_t::invalidate();
     }
-
-    ~id_t() {
-      //fan::print((uint32_t)cid.NRI);
-      erase();
-      cid.invalidate();
-    }
-
     loco_t::id_t& operator=(const id_t& id) {
       if (this != &id) {
-        global_loco.get_loco()->shape_get_properties(*(id_t*)&id, [&](const auto& properties) {
-          cid.init();
-          global_loco.get_loco()->push_shape(*this, properties);
+        gloco->shape_get_properties(*(id_t*)&id, [&](const auto& properties) {
+          init();
+          gloco->push_shape(*this, properties);
         });
       }
       return *this;
@@ -982,31 +996,35 @@ public:
 
     loco_t::id_t& operator=(id_t&& id) {
       if (this != &id) {
-        if (!cid.is_invalid()) {
+        if (!is_invalid()) {
           erase();
         }
-        cid = std::move(id.cid);
 
-        id.cid.invalidate();
+        inherit_t::invalidate();
       }
       return *this;
     }
 
+    ~id_t() {
+      //fan::print((uint32_t)cid.NRI);
+      erase();
+      inherit_t::invalidate();
+    }
 
     void erase() {
-      if (cid.is_invalid()) {
+      if (is_invalid()) {
         return;
       }
-      global_loco.get_loco()->shape_erase(*this);
-      cid.invalidate();
+      gloco->shape_erase(*this);
+      invalidate();
     }
 
     operator fan::opengl::cid_t *(){
-      return &global_loco.get_loco()->cid_list[cid].cid;
+      return &gloco->cid_list[*this].cid;
     }
 
     loco_t* get_loco() {
-      return global_loco.get_loco();
+      return gloco;
     }
 
     fan_create_get_set_define_extra(fan::vec3, position,  
@@ -1028,6 +1046,14 @@ public:
                    
     fan_create_set_define(loco_t::camera_list_NodeReference_t, camera);
     fan_create_set_define(fan::graphics::viewport_list_NodeReference_t, viewport);
+
+    
+    bool get_blending() {
+      return gloco->shape_get_blending(*(id_t*)this);
+    }
+    auto get_ri() {
+      return gloco->shape_get_ri(*(id_t*)this);
+    }
   };
   #endif
 
@@ -1184,6 +1210,7 @@ public:
   loco_t(properties_t p = properties_t{ true }) 
     #ifdef loco_window
     :
+    gloco_dummy(this),
     window(fan::vec2(800, 800)),
     #endif
     #if defined(loco_context)
@@ -1432,6 +1459,9 @@ public:
 
     default_texture.create_missing_texture(this);
 
+    #if defined(loco_line)
+      *types.get_value<line_t*>() = &line;
+    #endif
     #if defined(loco_rectangle)
       *types.get_value<rectangle_t*>() = &rectangle;
     #endif
@@ -1440,6 +1470,9 @@ public:
     #endif
     #if defined(loco_unlit_sprite)
       *types.get_value<unlit_sprite_t*>() = &unlit_sprite;
+    #endif
+    #if defined(loco_circle)
+      *types.get_value<circle_t*>() = &circle;
     #endif
     #if defined(loco_button)
       *types.get_value<button_t*>() = &button;
@@ -1462,8 +1495,6 @@ public:
       }, std::tuple<loco_t_id_t_types>{ loco_t_id_t_ptrs });
       #endif
     #endif
-
-    global_loco.set_loco(this);
   }
 
   #if defined(loco_vfi)
@@ -1807,6 +1838,12 @@ public:
     #if defined(loco_t_id_t_types)
     , loco_t_id_t_types
     #endif
+    #if defined(loco_line)
+    , line_t*
+    #endif
+    #if defined(loco_circle)
+    , circle_t*
+    #endif
   > types;
 
   struct vfi_id_t {
@@ -1816,14 +1853,14 @@ public:
     }
     vfi_id_t() = default;
     vfi_id_t(const properties_t& p) {
-      global_loco.get_loco()->vfi.push_back(*this, *(properties_t*)&p);
+      gloco->vfi.push_back(*this, *(properties_t*)&p);
     }
     vfi_id_t& operator[](const properties_t& p) {
-      global_loco.get_loco()->vfi.push_back(*this, *(properties_t*)&p);
+      gloco->vfi.push_back(*this, *(properties_t*)&p);
       return *this;
     }
     ~vfi_id_t() {
-      global_loco.get_loco()->vfi.erase(*this);
+      gloco->vfi.erase(*this);
     }
 
     loco_t::vfi_t::shape_id_t cid;
@@ -1833,24 +1870,50 @@ public:
       type& name = *key.get_value<decltype(key)::get_index_with_type<type>()>();
 
   template <typename T>
-  void push_shape(cid_t* cid, T properties) {
+  void push_shape(loco_t::cid_nt_t& id, T properties) {
     if constexpr(!std::is_same_v<std::nullptr_t, T>){
-      (*types.get_value<typename T::type_t*>())->push_back(cid, properties);
+      (*types.get_value<typename T::type_t*>())->push_back(id, properties);
     }
   }
 
-  void shape_get_properties(loco_t::cid_t* cid, auto lambda) {
+  void shape_get_properties(loco_t::cid_nt_t& id, auto lambda) {
     types.iterate([&]<typename T>(auto shape_index, T shape) {
       using shape_t = std::remove_pointer_t<std::remove_pointer_t<T>>;
-      if (shape_t::shape_type == cid->shape_type) {
-        if constexpr (has_get_properties_v<shape_t, loco_t::cid_t*>) {
-            lambda((*shape)->get_properties(cid));
+      if (shape_t::shape_type == id->shape_type) {
+        if constexpr (has_get_properties_v<shape_t, loco_t::cid_nt_t&>) {
+            lambda((*shape)->get_properties(id));
         }
-        else if constexpr (has_sb_get_properties_v<shape_t, loco_t::cid_t*>) {
-            lambda((*shape)->sb_get_properties(cid));
+        else if constexpr (has_sb_get_properties_v<shape_t, loco_t::cid_nt_t&>) {
+            lambda((*shape)->sb_get_properties(id));
         }
       }
     }); 
+  }
+
+  bool shape_get_blending(loco_t::cid_nt_t& id) {
+    bool blending = false;
+    types.iterate([&]<typename T>(auto shape_index, T shape) {
+      using shape_t = std::remove_pointer_t<std::remove_pointer_t<T>>;
+      if (shape_t::shape_type == id->shape_type) {
+        if constexpr (has_sb_get_ri_v<shape_t, loco_t::cid_nt_t>) {
+           blending = (*shape)->sb_get_ri(id).blending;
+        }
+      }
+    }); 
+    return blending;
+  }
+  std::pair<void*, uint16_t> shape_get_ri(loco_t::cid_nt_t& id) {
+    std::pair<void*, uint16_t> ret;
+    types.iterate([&]<typename T>(auto shape_index, T shape) {
+      using shape_t = std::remove_pointer_t<std::remove_pointer_t<T>>;
+      if (shape_t::shape_type == id->shape_type) {
+        if constexpr (has_sb_get_ri_v<shape_t, loco_t::cid_nt_t&>) {
+          ret.second = sizeof((*shape)->sb_get_ri(id));
+          memcpy(ret.first, &(*shape)->sb_get_ri(id), ret.second);
+        }
+      }
+    }); 
+    return ret;
   }
 
   #define make_global_function_declare(func_name, content, ...) \
@@ -2049,6 +2112,8 @@ public:
 
   fan_has_function_concept(sb_get_properties);
   fan_has_function_concept(get_properties);
+  fan_has_function_concept(sb_get_ri);
+  fan_has_function_concept(get_ri);
 
   //make_global_function(get_properties,
   //  if constexpr (has_get_properties_v<shape_t, loco_t::cid_t*>) {
@@ -2143,3 +2208,5 @@ fan::opengl::theme_list_NodeReference_t::theme_list_NodeReference_t(auto* theme)
   #undef loco_button
   #undef loco_wboit*/
 #endif
+
+#define loco_make_shape(type, ...) fan_init_struct(type, __VA_ARGS__)

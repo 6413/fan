@@ -42,6 +42,10 @@
   };
 #endif
 
+#ifndef __MemorySet
+  #define __MemorySet(src, dst, size) memset(dst, src, size)
+#endif
+
 template <typename T>
 struct address_wrapper_t {
   using value_type = T;

@@ -1,11 +1,5 @@
 struct sb_pfr_name {
 
-  #define sb_get_loco \
-  loco_t* get_loco() { \
-    loco_t* loco = OFFSETLESS(this, loco_t, sb_pfr_var_name); \
-    return loco; \
-  }
-
   struct vi_t {
     fan::vec3 position = 0;
   private:

@@ -105,6 +105,14 @@ struct letter_t {
     sb_set_key<bm_properties_t::key_t::get_index_with_type<decltype(n)>()>(cid, n);
   }
 
+  properties_t get_properties(loco_t::cid_t* cid) {
+    properties_t p = sb_get_properties(cid);
+    p.camera = get_loco()->camera_list[*p.key.get_value<loco_t::camera_list_NodeReference_t>()].camera_id;
+    p.viewport = get_loco()->get_context()->viewport_list[*p.key.get_value<fan::graphics::viewport_list_NodeReference_t>()].viewport_id;
+    
+    return p;
+  }
+
   #if defined(loco_vulkan)
     uint32_t m_texture_index = 0;
     uint32_t m_camera_index = 0;

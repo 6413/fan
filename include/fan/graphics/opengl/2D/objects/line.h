@@ -38,7 +38,7 @@ struct line_t {
 
   #undef make_key_value
   
-  void push_back(fan::graphics::cid_t* cid, properties_t& p) {
+  void push_back(loco_t::cid_nt_t& id, properties_t& p) {
     
     get_key_value(uint16_t) = p.src.z;
     get_key_value(loco_t::camera_list_NodeReference_t) = p.camera;
@@ -53,10 +53,10 @@ struct line_t {
       }
     #endif
 
-    sb_push_back(cid, p);
+    sb_push_back(id, p);
   }
-  void erase(fan::graphics::cid_t* cid) {
-    sb_erase(cid);
+  void erase(loco_t::cid_nt_t& id) {
+    sb_erase(id);
   }
 
   void draw(const redraw_key_t &redraw_key, loco_bdbt_NodeReference_t key_root) {
@@ -66,7 +66,7 @@ struct line_t {
     else {
       m_current_shader = &m_shader;
     }
-    sb_draw(key_root);
+    sb_draw(key_root, fan::opengl::GL_LINES);
   }
 
   static constexpr uint32_t max_instance_size = fan::min(256ull, 4096 / (sizeof(vi_t) / 4));
@@ -97,13 +97,20 @@ struct line_t {
     sb_close();
   }
 
-  void set_line(fan::graphics::cid_t* cid, const fan::vec3& src, const fan::vec3& dst) {
-    auto v = sb_get_vi(cid);
+  void set_line(loco_t::cid_nt_t& id, const fan::vec3& src, const fan::vec3& dst) {
+    auto v = sb_get_vi(id);
     if (v.src.z != src.z) {
-      sb_set_depth(cid, src.z);
+      sb_set_depth(id, src.z);
     }
-    set(cid, &vi_t::src, src);
-    set(cid, &vi_t::dst, dst);
+    set(id, &vi_t::src, src);
+    set(id, &vi_t::dst, dst);
+  }
+
+  properties_t get_properties(loco_t::cid_nt_t& id) {
+    properties_t p = sb_get_properties(id);
+    p.camera = get_loco()->camera_list[*p.key.get_value<loco_t::camera_list_NodeReference_t>()].camera_id;
+    p.viewport = get_loco()->get_context()->viewport_list[*p.key.get_value<fan::graphics::viewport_list_NodeReference_t>()].viewport_id;
+    return p;
   }
 
   #if defined(loco_vulkan)

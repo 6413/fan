@@ -20,7 +20,6 @@
   struct key_t : parsed_masterpiece_t {}key;
 
 #define loco_rectangle_ri_t \
-  loco_t::rectangle_t::cid_t* cid; \
   bool blending = false;
 
 #define loco_rectangle_properties_t \
@@ -51,7 +50,6 @@
     struct key_t : parsed_masterpiece_t {}key;
 
 #define loco_sprite_ri_t \
-  loco_t::sprite_t::cid_t* cid; \
     bool blending = false;
 
 #define loco_sprite_properties_t \
@@ -90,7 +88,6 @@
       struct key_t : parsed_masterpiece_t {}key;
 
   #define loco_letter_ri_t \
-    loco_t::letter_t::cid_t* cid; \
     f32_t font_size; \
     uint32_t letter_id; \
     bool blending = true;
@@ -134,7 +131,6 @@
     struct key_t : parsed_masterpiece_t {}key;
 
 #define loco_button_ri_t \
-  loco_t::button_t::cid_t* cid; \
   uint8_t selected = 0; \
   loco_t::theme_t* theme = 0; \
   fan::graphics::cid_t text_id; \
@@ -176,7 +172,6 @@
     struct key_t : parsed_masterpiece_t {}key;
 
 #define loco_text_box_ri_t \
-    loco_t::text_box_t::cid_t* cid; \
     uint8_t selected = 0; \
     fan::graphics::theme_list_NodeReference_t theme; \
     loco_t::vfi_t::shape_id_t vfi_id; \
@@ -222,7 +217,6 @@
   struct key_t : parsed_masterpiece_t {}key;
 
 #define loco_light_ri_t \
-  loco_t::light_t::cid_t* cid; \
   bool blending = true;
 
 #define loco_light_properties_t \
