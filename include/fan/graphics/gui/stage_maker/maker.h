@@ -287,12 +287,8 @@ void update(auto& loco){
       use_key_lambda(fan::mouse_left, fan::mouse_state::release);
 
       // if switching stage while renaming
-      auto tb_cid = (loco_t::text_box_t::cid_t*)&rename_cid;
-      if (tb_cid->bm_id.NRI != 0 || tb_cid->block_id.NRI != 0 || tb_cid->instance_id != 0) {
-        pile->loco.text_box.erase(&rename_cid);
-      }
+      rename_textbox.erase();
 
-      fan::graphics::cid_t* cid = mb.cid;
       if (mb.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside) {
 
         for (auto& i : options_ids) {
@@ -400,12 +396,6 @@ void update(auto& loco){
     auto stage_path = fan::string(stage_compile_folder_name) + "/stage.h";
     bool data_exists = fan::io::file::exists(stage_path);
 
-    auto* tb_cid = (loco_t::text_box_t::cid_t*)&rename_cid;
-
-    tb_cid->bm_id.NRI = 0;
-    tb_cid->block_id.NRI = 0;
-    tb_cid->instance_id = 0;
-
     stage_h.open(stage_path);
 
   if (!data_exists) {
@@ -506,7 +496,7 @@ void update(auto& loco){
 
 	std::vector<loco_t::menu_maker_button_t::base_type_t::instance_NodeReference_t> options_ids;
 
-  fan::graphics::cid_t rename_cid;
+  loco_t::id_t rename_textbox;
 
   fan::window_t::keys_callback_NodeReference_t keys_callback_nr;
 

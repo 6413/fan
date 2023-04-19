@@ -21,8 +21,7 @@ struct button_t {
   #define fgm_shape_name button
   #define fgm_shape_manual_properties
   #define fgm_shape_instance_data \
-    fan::graphics::cid_t cid; \
-    uint16_t shape; \
+    loco_t::id_t id; \
     loco_t::theme_t theme; \
     fan::string id;
   #include "shape_builder.h"
@@ -334,7 +333,6 @@ struct sprite_t {
     #define fgm_shape_instance_data \
       fan::graphics::cid_t cid; \
       loco_t::vfi_t::shape_id_t vfi_id; \
-      uint16_t shape; \
       fan::string texturepack_name; \
       fan::string id;
   #endif
@@ -713,7 +711,6 @@ struct text_t {
   #define fgm_shape_instance_data \
     fan::graphics::cid_t cid; \
     loco_t::vfi_t::shape_id_t vfi_id; \
-    uint16_t shape; \
     fan::string texturepack_name; \
     fan::string id;
   #include "shape_builder.h"
@@ -1030,7 +1027,6 @@ struct hitbox_t {
   #define fgm_shape_instance_data \
     fan::graphics::cid_t cid; \
     loco_t::vfi_t::shape_id_t vfi_id; \
-    uint16_t shape; \
     fan::string id; \
     loco_t::vfi_t::shape_type_t shape_type;
   #include "shape_builder.h"
@@ -1348,7 +1344,6 @@ struct mark_t {
     #define fgm_shape_instance_data \
         fan::graphics::cid_t cid; \
         loco_t::vfi_t::shape_id_t vfi_id; \
-        uint16_t shape; \
         fan::string id; \
         loco_t::vfi_t::shape_type_t shape_type; \
         uint32_t group_id;

@@ -4,7 +4,7 @@
 
 if (!pile->loco.vfi.get_focus_text().is_invalid()) {
 
-  pile->loco.menu_maker_button.set_selected(instances[stage_t::stage_options].menu_id, nullptr);
+  pile->loco.menu_maker_button.invalidate_selected(instances[stage_t::stage_options].menu_id);
   return return_value;
 }
 
@@ -37,10 +37,10 @@ tp.keyboard_cb = [this, selected_id](const loco_t::keyboard_data_t& d) -> int {
   switch (d.key) {
 
     case fan::key_enter: {
-      const auto& new_name = pile->loco.text_box.get_text(d.cid);
+      auto new_name = pile->loco.text_box.get_text(d.id);
       if (!does_stage_exist(new_name)) {
         do {
-          const auto& old_name = get_selected_name(instances[stage_t::stage_instance].menu_id);
+          auto old_name = get_selected_name(instances[stage_t::stage_instance].menu_id);
 
           #if defined(fan_platform_windows)
             static std::regex windows_filename_regex(R"([^\\/:*?"<>|\r\n]+(?!\\)$)");
@@ -77,15 +77,16 @@ tp.keyboard_cb = [this, selected_id](const loco_t::keyboard_data_t& d) -> int {
       else {
         fan::print("stage name already exists");
       }
-      pile->loco.text_box.erase(&rename_cid);
+      rename_textbox.erase();
       return 1;
     }
   }
   return 0;
 };
 
-pile->loco.text_box.push_back(&rename_cid, tp);
-pile->loco.menu_maker_button.set_selected(instances[stage_t::stage_options].menu_id, nullptr);
-pile->loco.text_box.set_focus(&rename_cid);
+rename_textbox = tp;
+pile->loco.menu_maker_button.invalidate_selected(instances[stage_t::stage_options].menu_id);
+//rename_textbox.
+rename_textbox.set_focus();
 
 #undef return_value
