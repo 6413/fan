@@ -58,6 +58,12 @@ int main() {
   p.text = "01234";
   p.color = fan::colors::white;
 
+  std::vector<loco_t::id_t> ids;
+  for (uint32_t i = 0; i < 1; i++){
+    ids.push_back(p);
+  }
+  ids.clear();
+
   loco_t::id_t text0 = p;
   //text0.erase();
   p.text = "56789";

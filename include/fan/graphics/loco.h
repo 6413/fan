@@ -994,7 +994,7 @@ public:
       });
     }
     inline id_t(id_t&& id) : inherit_t(std::move(id)) {
-      inherit_t::invalidate();
+
     }
     loco_t::id_t& operator=(const id_t& id) {
       if (this != &id) {
