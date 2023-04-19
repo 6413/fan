@@ -332,7 +332,7 @@ public:
           auto key_root0 = key_root;
           k0.q(&gloco->bdbt, &redraw_key, &ki0, &key_root);
           #if fan_debug >= 2
-            if (ki0 != sizeof(redraw_key_t) * 8) {
+            if (ki0 != sizeof(loco_t::redraw_key_t) * 8) {
               __abort();
             }
           #endif
@@ -348,7 +348,7 @@ public:
           auto key_root2 = key_root;
           k2.q(&gloco->bdbt, &shape_type, &ki2, &key_root);
           #if fan_debug >= 2
-            if (ki2 != sizeof(shape_type_t::_t)) {
+            if (ki2 != sizeof(loco_t::shape_type_t::_t)) {
               __abort();
             }
           #endif
