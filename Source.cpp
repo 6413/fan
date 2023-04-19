@@ -8,48 +8,36 @@ struct pile_t;
 #define fan_debug 0
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
-#define loco_opengl
-
-#define loco_window
-#define loco_context
-
-#define loco_no_inline
-
-#define loco_sprite
-#define loco_button
-
 struct a_t {
-  int cid;
+  a_t() {
+    fan::print("a_t()");
+  }
+  a_t(const a_t&) {
+    fan::print("copy");
+  }
+  a_t(a_t&&) {
+    fan::print("move");
+  }
+  a_t& operator=(const a_t&) {
+    fan::print("acopy");
+    return *this;
+  }
+  a_t& operator=(a_t&&) {
+    fan::print("amove");
+    return *this;
+  }
 };
-
-struct b_t {
-  a_t a;
-  operator a_t&() {
-    return a;
-  }
-  operator a_t*() {
-    return &a/*something long here*/;
-  }
-  a_t* operator->() {
-    return &a;
-  }
-  //b_t* operator->() {
-  //  return &a;
-  //}
-};
-
-void f(a_t& a) {
-
-}
 
 int main() {
-  b_t b;
-  f(b);
-  //a_t* c = b;
-  //c>
-  //;
-  //b->bm_id = 5;
-  
-  //(&b)->x;
-  //b->
+  //std::vector<a_t> a;
+  a_t a;
+  a_t* b = (a_t*)malloc(sizeof(a_t));
+  new (b) a_t(a);
+  //std::construct_at(b, a);
+  //new (b) a_t(a);
+  //a = b;
+  //a = std::move(b);
+  /*for (uint32_t i = 0; i < 2; ++i) {
+    a.push_back(a_t());
+  }*/
 }

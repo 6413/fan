@@ -961,6 +961,9 @@ public:
   #define fan_create_set_define(rt, name) \
         fan_create_id_definition_define(void, set_##name, const rt& data){ gloco->shape_##set_##name(*this, data); }
 
+  #define fan_create_set_dataless_define(name) \
+      fan_create_id_definition_define(void, set_##name){ gloco->shape_##set_##name(*this); }
+
   #define fan_create_set_define_custom(rt, name, custom) \
         fan_create_id_definition_define(void, set_##name, const rt& data){ custom }
 
@@ -1059,6 +1062,8 @@ public:
 
     fan_create_set_define(f32_t, depth);
                    
+    fan_create_set_dataless_define(focus);
+
     fan_create_set_define(loco_t::camera_list_NodeReference_t, camera);
     fan_create_set_define(fan::graphics::viewport_list_NodeReference_t, viewport);
 
@@ -2079,6 +2084,14 @@ public:
     const auto& data \
   );
 
+  #define fan_build_set_generic_dataless_define(name) \
+  make_global_function_define(set_##name,\
+    if constexpr (has_set_##name##_v<shape_t, loco_t::cid_nt_t&>) { \
+      (*shape)->set_##name(id); \
+    }, \
+    loco_t::cid_nt_t& id \
+  );
+
   #define fan_build_get_set_generic_declare( rt, name) \
     fan_build_get_generic_declare(rt, name); \
     fan_build_set_generic_declare(rt, name);
@@ -2106,6 +2119,7 @@ public:
   fan_build_get_set_generic_define(fan::graphics::viewport_list_NodeReference_t, viewport);
 
   fan_build_get_set_generic_define(fan::vec2, text_size);
+  fan_build_set_generic_dataless_define(focus);
   
   fan_build_get_set_generic_define(fan::string, text);
 

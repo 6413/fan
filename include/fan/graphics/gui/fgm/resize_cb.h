@@ -72,7 +72,7 @@ auto resize_cb() {
 	dst.y = src.y;
 
 	pile->loco.line.set_line(
-		&line.instances[0]->cid,
+		line.instances[0].id,
 		src,
 		dst
 	);
@@ -81,7 +81,7 @@ auto resize_cb() {
 	dst.y = editor_position.y + editor_size.y;
 
 	pile->loco.line.set_line(
-		&line.instances[1]->cid,
+		line.instances[1].id,
 		src,
 		dst
 	);
@@ -90,7 +90,7 @@ auto resize_cb() {
 	dst.x = editor_position.x - editor_size.x;
 
 	pile->loco.line.set_line(
-		&line.instances[2]->cid,
+		line.instances[2]->id,
 		src,
 		dst
 	);
@@ -99,7 +99,7 @@ auto resize_cb() {
 	dst.y = editor_position.y - editor_size.y;
 
 	pile->loco.line.set_line(
-		&line.instances[3]->cid,
+		line.instances[3]->id,
 		src,
 		dst
 	);
@@ -111,7 +111,7 @@ auto resize_cb() {
 	dst.y = camera[viewport_area::global].coordinates.down;
 
 	pile->loco.line.set_line(
-		&line.instances[4]->cid,
+		line.instances[4]->id,
 		src,
 		dst
 	);
@@ -125,7 +125,7 @@ auto resize_cb() {
 	), dst.z);
 
 	pile->loco.line.set_line(
-		&line.instances[5]->cid,
+		line.instances[5]->id,
 		src,
 		dst
 	);

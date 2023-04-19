@@ -14,16 +14,12 @@ void shape_builder_push_back() {
   #if !defined(fgm_dont_init_shape)
     instances.resize(instances.size() + 1);
     uint32_t i = instances.size() - 1;
-    instances[i] = new instance_t;
-    instances[i]->shape = loco_t::shape_type_t::fgm_shape_loco_name;
   #else
     instances.resize(instances.size() + 1);
-    uint32_t i = instances.size() - 1;
-    instances[i] = new instance_t;
   #endif
 }
 
-std::vector<instance_t*> instances;
+std::vector<instance_t> instances;
 
 fgm_t* get_fgm() {
   return OFFSETLESS(this, fgm_t, fgm_shape_name);

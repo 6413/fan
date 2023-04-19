@@ -143,14 +143,14 @@ struct line_t {
   #define fgm_no_gui_properties
   #define fgm_shape_non_moveable_or_resizeable
   #define fgm_shape_instance_data \
-    fan::graphics::cid_t cid; \
+    loco_t::id_t id; \
     uint16_t shape;
   #include "shape_builder.h"
 
 	void push_back(properties_t& p) {
     shape_builder_push_back();
     uint32_t i = instances.size() - 1;
-		pile->loco.line.push_back(&instances[i]->cid, p);
+    instances[i].id = p;
 	}
 
   fgm_make_clear_f(
@@ -167,16 +167,14 @@ struct global_button_t {
   #define fgm_shape_non_moveable_or_resizeable
   #define fgm_shape_loco_name button
   #define fgm_shape_instance_data \
-    fan::graphics::cid_t cid; \
+    loco_t::id_t id; \
     uint16_t shape;
   #include "shape_builder.h"
 
 	void push_back(properties_t& p) {
 		instances.resize(instances.size() + 1);
 		uint32_t i = instances.size() - 1;
-		instances[i] = new instance_t;
-		instances[i]->shape = loco_t::shape_type_t::button;
-    pile->loco.button.push_back(&instances[i]->cid, p);
+    instances[i].id = p;
 	}
   fgm_make_clear_f(
     pile->loco.button.erase(&it->cid);
@@ -202,8 +200,8 @@ struct button_menu_t {
 	loco_t::menu_maker_button_t::instance_NodeReference_t push_menu(const open_properties_t& op) {
     shape_builder_push_back();
     uint32_t i = instances.size() - 1;
-		instances[i]->nr = pile->loco.menu_maker_button.push_menu(op);
-		return instances[i]->nr;
+		instances[i].nr = pile->loco.menu_maker_button.push_menu(op);
+		return instances[i].nr;
 	}
 	loco_t::menu_maker_button_t::base_type_t::instance_NodeReference_t push_back(loco_t::menu_maker_button_t::instance_NodeReference_t id, const properties_t& properties) {
 		return pile->loco.menu_maker_button.instances[id].base.push_back(&pile->loco, properties, id);
@@ -212,7 +210,7 @@ struct button_menu_t {
 	void erase(loco_t::menu_maker_button_t::instance_NodeReference_t id) {
 		pile->loco.menu_maker_button.erase_menu(id);
 		for (uint32_t i = 0; i < instances.size(); i++) {
-			if (id == instances[i]->nr) {
+			if (id == instances[i].nr) {
 				instances.erase(instances.begin() + i);
 				break;
 			}
@@ -245,8 +243,8 @@ struct text_box_menu_t {
   type_t::instance_NodeReference_t push_menu(const open_properties_t& op) {
     shape_builder_push_back();
     uint32_t i = instances.size() - 1;
-    instances[i]->nr = pile->loco.menu_maker_text_box.push_menu(op);
-    return instances[i]->nr;
+    instances[i].nr = pile->loco.menu_maker_text_box.push_menu(op);
+    return instances[i].nr;
   }
   type_t::base_type_t::instance_NodeReference_t push_back(type_t::instance_NodeReference_t id, const properties_t& properties) {
     return pile->loco.menu_maker_text_box.instances[id].base.push_back(&pile->loco, properties, id);
@@ -255,8 +253,7 @@ struct text_box_menu_t {
   void erase(type_t::instance_NodeReference_t id) {
     pile->loco.menu_maker_text_box.erase_menu(id);
     for (uint32_t i = 0; i < instances.size(); i++) {
-      if (id == instances[i]->nr) {
-        delete instances[i];
+      if (id == instances[i].nr) {
         instances.erase(instances.begin() + i);
         break;
       }

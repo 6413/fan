@@ -140,7 +140,7 @@ struct sb_menu_maker_name {
 
   void set_text(nr_t nr, id_t id, const fan::string& text) {
     instances[nr].base.instances[id].text = text;
-    gloco->sb_menu_maker_shape.set_text(&instances[nr].base.instances[id].id, text);
+    gloco->sb_menu_maker_shape.set_text(instances[nr].base.instances[id].id, text);
   }
 
 	fan::vec2 get_button_measurements(nr_t nr) {

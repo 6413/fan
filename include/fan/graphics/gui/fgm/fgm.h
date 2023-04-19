@@ -355,7 +355,7 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
             sp.text = "text";
             text.push_back(sp);
             auto& instance = text.instances[text.instances.size() - 1];
-            text.open_properties(instance);
+            text.open_properties(&instance);
 
             invalidate_right_click_menu();
 
@@ -518,7 +518,7 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
         }
 
         auto& it = pile->loco.menu_maker_text_box.instances[global_menu_nr].base.instances[global_menu_ids[0]];
-        auto text = pile->loco.text_box.get_text(&it.cid);
+        auto text = pile->loco.text_box.get_text(it.id);
 
         fan::vec4 size = fan::string_to<fan::vec4>(text);
         editor_viewport = size;
