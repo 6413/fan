@@ -10,12 +10,12 @@
 
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
-#define loco_vulkan
+//#define loco_vulkan
 
 #define loco_window
 #define loco_context
 
-#define loco_menu_maker
+#define loco_menu_maker_button
 #include _FAN_PATH(graphics/loco.h)
 
 struct pile_t {
@@ -57,23 +57,21 @@ int main() {
 
   loco_t::dropdown_t::nr_t ids[2];
 
+  loco_t::theme_t theme = loco_t::themes::gray();
+  theme.open(pile->loco.get_context());
+
   loco_t::dropdown_t::open_properties_t op;
   op.camera = &pile->camera;
   op.viewport = &pile->viewport;
-  loco_t::theme_t theme = loco_t::themes::gray();
-  theme.open(pile->loco.get_context());
   op.theme = &theme;
-  op.gui_size = 0.05;
-  //op.position = fan::vec2(-1.0 + op.gui_size * 5, -1.0 + op.gui_size * 1);
+  op.gui_size = 0.15;
   op.position = 0;
-  op.position.z = 0;
   ids[0] = pile->loco.dropdown.push_menu(op);
-  op.gui_size *= 3;
-  op.position = fan::vec2(op.gui_size * (5.0 / 3), -1.0 + op.gui_size);
-  ids[1] = pile->loco.dropdown.push_menu(op);
+
   loco_t::dropdown_t::properties_t p;
-  p.text = L"dropdown";
+  p.text = "dropdown";
   p.mouse_button_cb = [&](const loco_t::mouse_button_data_t& mb) -> int {
+
     if (mb.button != fan::mouse_left) {
       return 0;
     }
@@ -82,19 +80,10 @@ int main() {
     }
     return 0;
   };
-
-  p.items.push_back(L"apples");
-  p.items.push_back(L"grapes");
+  p.items.push_back("apples");
+  p.items.push_back("grapes");
 
   pile->loco.dropdown.push_back(ids[0], p);
-  //fan::wstring x = std::move("test");
-
-  p.items.clear();
-
-  p.items.push_back(L"test");
-  p.items.push_back(L"button");
-
-  pile->loco.dropdown.push_back(ids[1], p);
 
   pile->loco.get_context()->set_vsync(pile->loco.get_window(), 0);
 

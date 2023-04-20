@@ -15,6 +15,10 @@
   #define BVEC_set_MemoryCopy __MemoryCopy
 #endif
 
+#ifndef BVEC_set_HandleAllocate
+  #define BVEC_set_HandleAllocate 1
+#endif
+
 #ifndef BVEC_set_BufferingFormat
   #define BVEC_set_BufferingFormat 1
 #endif
@@ -67,6 +71,10 @@
 #undef BVEC_set_alloc_close
 #undef BVEC_set_alloc_resize
 #undef BVEC_set_alloc_open
+
+#undef BVEC_set_BufferingFormat
+
+#undef BVEC_set_HandleAllocate
 
 #undef BVEC_set_MemoryCopy
 #ifdef BVEC_set_NodeData

@@ -31,7 +31,7 @@
   /* _BLL_PBLLTFFC; _BLL_PBLLTFF but with comma */
   /* _BLL_DBLLTFF; declare bll type for functon */
   /* _BLL_DBLLTFFC; _BLL_DBLLTFF but with comma */
-  /* _BLL_OCIBLLTFFE; only comma if bll type for function exists */
+  /* _BLL_PIL0; pass if language 0 */
   #if BLL_set_Language == 0
     #define _BLL_POFTWBIT(p0) _P(p0)
     #define _BLL_SOFTWBIT static
@@ -40,7 +40,7 @@
     #define _BLL_DBLLTFF _P(t) *_BLL_PBLLTFF
     #define _BLL_DBLLTFFC _BLL_DBLLTFF,
     #define _BLL_GetList _BLL_PBLLTFF
-    #define _BLL_OCIBLLTFFE ,
+    #define _BLL_PIL0(p0) p0
   #elif BLL_set_Language == 1
     #define _BLL_POFTWBIT(p0) p0
     #define _BLL_SOFTWBIT
@@ -49,7 +49,9 @@
     #define _BLL_DBLLTFF
     #define _BLL_DBLLTFFC
     #define _BLL_GetList this
-    #define _BLL_OCIBLLTFFE
+    #define _BLL_PIL0(p0)
+  #else
+    #error ?
   #endif
 
   #include "rest.h"
@@ -61,7 +63,7 @@
   #undef _BLL_DBLLTFF
   #undef _BLL_DBLLTFFC
   #undef _BLL_GetList
-  #undef _BLL_OCIBLLTFFE
+  #undef _BLL_PIL0
 #endif
 
 #undef BLL_StructBegin

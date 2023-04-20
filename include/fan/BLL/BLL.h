@@ -151,6 +151,9 @@
 #endif
 #if BLL_set_StoreFormat == 0
 #elif BLL_set_StoreFormat == 1
+  #if defined(BLL_set_CPP_CopyAtPointerChange)
+    #error StoreFormat 1 doesn't change pointers.
+  #endif
   #ifndef BLL_set_StoreFormat1_ElementPerBlock
     #define BLL_set_StoreFormat1_ElementPerBlock 1
   #endif
@@ -167,6 +170,10 @@
 
 #ifdef BLL_set_StoreFormat1_ElementPerBlock
   #undef BLL_set_StoreFormat1_ElementPerBlock
+#endif
+
+#ifdef BLL_set_CPP_CopyAtPointerChange
+  #undef BLL_set_CPP_CopyAtPointerChange
 #endif
 #ifdef BLL_set_CPP_ConstructDestruct
   #undef BLL_set_CPP_ConstructDestruct
