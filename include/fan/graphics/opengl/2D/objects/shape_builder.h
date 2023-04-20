@@ -10,6 +10,7 @@ struct block_t {
   void open(loco_t* loco, auto* shape) {
     uniform_buffer.open(gloco->get_context());
     uniform_buffer.init_uniform_block(gloco->get_context(), shape->m_shader.id, "instance_t");
+    uniform_buffer.init_uniform_block(gloco->get_context(), shape->m_blending_shader.id, "instance_t");
   }
   void close(loco_t* loco) {
     uniform_buffer.close(gloco->get_context(), &gloco->m_write_queue);
@@ -123,7 +124,7 @@ public:
     );
     m_blending_shader.compile(gloco->get_context());
 
-    m_current_shader = &m_shader;
+    m_current_shader = &m_blending_shader;
 
     m_shader.use(gloco->get_context());
     m_shader.set_vec2(gloco->get_context(), "window_size", gloco->get_window()->get_size());
