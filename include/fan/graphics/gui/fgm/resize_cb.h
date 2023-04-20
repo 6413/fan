@@ -1,5 +1,5 @@
 auto resize_cb() {
-  if (line.instances.empty()) {
+  if (line.instances.Usage()) {
     return;
   }
   fan::vec2 window_size = pile->loco.get_window()->get_size();
@@ -71,38 +71,48 @@ auto resize_cb() {
 	dst.x = editor_position.x + editor_size.x;
 	dst.y = src.y;
 
+  auto nr_it = line.instances.GetNodeFirst();
+
 	pile->loco.line.set_line(
-		line.instances[0].id,
+		line.instances[nr_it].id,
 		src,
 		dst
 	);
+
+  nr_it.Next(&line.instances);
 
 	src = dst;
 	dst.y = editor_position.y + editor_size.y;
 
 	pile->loco.line.set_line(
-		line.instances[1].id,
+		line.instances[nr_it].id,
 		src,
 		dst
 	);
+
+  nr_it.Next(&line.instances);
 
 	src = dst;
 	dst.x = editor_position.x - editor_size.x;
 
 	pile->loco.line.set_line(
-		line.instances[2]->id,
+		line.instances[nr_it].id,
 		src,
 		dst
 	);
+
+  nr_it.Next(&line.instances);
 
 	src = dst;
 	dst.y = editor_position.y - editor_size.y;
 
 	pile->loco.line.set_line(
-		line.instances[3]->id,
+		line.instances[nr_it].id,
 		src,
 		dst
 	);
+
+  nr_it.Next(&line.instances);
 
 	src = fan::vec3(translate_to_global(
 		viewport[viewport_area::types].get_position()
@@ -111,10 +121,13 @@ auto resize_cb() {
 	dst.y = camera[viewport_area::global].coordinates.down;
 
 	pile->loco.line.set_line(
-		line.instances[4]->id,
+		line.instances[nr_it].id,
 		src,
 		dst
 	);
+
+  nr_it.Next(&line.instances);
+
 	src = fan::vec3(translate_to_global(
 		viewport[viewport_area::types].get_position() +
 		fan::vec2(0, viewport[viewport_area::types].get_size().y)
@@ -125,7 +138,7 @@ auto resize_cb() {
 	), dst.z);
 
 	pile->loco.line.set_line(
-		line.instances[5]->id,
+		line.instances[nr_it].id,
 		src,
 		dst
 	);

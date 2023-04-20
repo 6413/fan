@@ -21,7 +21,7 @@ struct button_t {
   #define fgm_shape_name button
   #define fgm_shape_manual_properties
   #define fgm_shape_instance_data \
-    loco_t::id_t id; \
+    loco_t::id_t shape; \
     loco_t::theme_t theme; \
     fan::string id;
   #include "shape_builder.h"
@@ -34,7 +34,7 @@ struct button_t {
     }
   }
 
-  void open_properties(button_t::instance_t* instance) {
+  void open_properties(nr_t shape_nr) {
 
     close_properties();
 
@@ -48,13 +48,13 @@ struct button_t {
     auto nr = get_fgm()->text_box_menu.push_menu(menup);
     get_fgm()->properties_nr = nr;
     text_box_menu_t::properties_t p;
-    auto position = pile->loco.button.get_button(&instance->cid, &loco_t::button_t::vi_t::position);
+    auto position = pile->loco.button.get_button(instances[shape_nr].shape, &loco_t::button_t::vi_t::position);
     p.text = fan::format("{:.2f}, {:.2f}, {:.2f}", position.x, position.y, position.z);
     p.text_value = "add cbs";
-    p.mouse_button_cb = [this, instance](const loco_t::mouse_button_data_t& mb) -> int {
+    p.mouse_button_cb = [this, shape_nr](const loco_t::mouse_button_data_t& mb) -> int {
       return 0;
     };
-    p.keyboard_cb = [this, instance, nr](const loco_t::keyboard_data_t& d) -> int {
+    p.keyboard_cb = [this, shape_nr, nr](const loco_t::keyboard_data_t& d) -> int {
       if (d.key != fan::key_enter) {
         return 0;
       }
@@ -63,20 +63,20 @@ struct button_t {
       }
 
       auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[get_fgm()->properties_nrs[0]];
-      auto text = pile->loco.text_box.get_text(&it.cid);
+      auto text = pile->loco.text_box.get_text(it.id);
       fan::vec3 position = fan::string_to<fan::vec3>(text);
 
-      pile->loco.button.set_position(&instance->cid, position);
-      pile->loco.button.set_depth(&instance->cid, position.z);
+      pile->loco.button.set_position(instances[shape_nr].shape, position);
+      pile->loco.button.set_depth(instances[shape_nr].shape, position.z);
 
       return 0;
     };
     get_fgm()->properties_nrs.push_back(get_fgm()->text_box_menu.push_back(nr, p));
 
-    auto size = pile->loco.button.get_button(&instance->cid, &loco_t::button_t::vi_t::size);
+    auto size = pile->loco.button.get_button(instances[shape_nr].shape, &loco_t::button_t::vi_t::size);
     p.text = fan::format("{:.2f}, {:.2f}", size.x, size.y);
     p.text_value = "add cbs";
-    p.keyboard_cb = [this, instance, nr](const loco_t::keyboard_data_t& d) -> int {
+    p.keyboard_cb = [this, shape_nr, nr](const loco_t::keyboard_data_t& d) -> int {
       if (d.key != fan::key_enter) {
         return 0;
       }
@@ -85,19 +85,19 @@ struct button_t {
       }
 
       auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[get_fgm()->properties_nrs[1]];
-      auto text = pile->loco.text_box.get_text(&it.cid);
+      auto text = pile->loco.text_box.get_text(it.id);
       fan::vec2 size = fan::string_to<fan::vec2>(text);
 
-      pile->loco.button.set(&instance->cid, &loco_t::button_t::vi_t::size, size);
+      pile->loco.button.set(instances[shape_nr].shape, &loco_t::button_t::vi_t::size, size);
 
       return 0;
     };
     get_fgm()->properties_nrs.push_back(get_fgm()->text_box_menu.push_back(nr, p));
 
-    const auto& text = pile->loco.button.get_text(&instance->cid);
+    const auto& text = pile->loco.button.get_text(instances[shape_nr].shape);
     p.text = text;
     p.text_value = "text";
-    p.keyboard_cb = [this, instance, nr](const loco_t::keyboard_data_t& d) -> int {
+    p.keyboard_cb = [this, shape_nr, nr](const loco_t::keyboard_data_t& d) -> int {
       if (d.key != fan::key_enter) {
         return 0;
       }
@@ -106,15 +106,15 @@ struct button_t {
       }
 
       auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[get_fgm()->properties_nrs[2]];
-      auto text = pile->loco.text_box.get_text(&it.cid);
-      pile->loco.button.set_text(&instance->cid, text);
+      auto text = pile->loco.text_box.get_text(it.id);
+      pile->loco.button.set_text(instances[shape_nr].shape, text);
 
       return 0;
     };
     get_fgm()->properties_nrs.push_back(get_fgm()->text_box_menu.push_back(nr, p));
     {
-      p.text = instance->id;
-      p.keyboard_cb = [this, instance, nr](const loco_t::keyboard_data_t& d) -> int {
+      p.text = instances[shape_nr].id;
+      p.keyboard_cb = [this, shape_nr, nr](const loco_t::keyboard_data_t& d) -> int {
         if (d.key != fan::key_enter) {
           return 0;
         }
@@ -123,7 +123,7 @@ struct button_t {
         }
 
         auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[get_fgm()->properties_nrs[3]];
-        instance->id = pile->loco.text_box.get_text(&it.cid);
+        instances[shape_nr].id = pile->loco.text_box.get_text(it.id);
 
         auto stage_name = get_fgm()->get_stage_maker()->get_selected_name(
           get_fgm()->get_stage_maker()->instances[stage_maker_t::stage_t::stage_instance].menu_id
@@ -138,38 +138,37 @@ struct button_t {
     }
   }
   void push_back(properties_t& p) {
-    shape_builder_push_back();
-    uint32_t i = instances.size() - 1;
+    auto shape_nr = shape_builder_push_back();
     if (p.id.empty()) {
       static uint32_t id = 0;
       while (does_id_exist(this, std::to_string(id))) { ++id; }
-      instances[i]->id = std::to_string(id);
+      instances[shape_nr].id = std::to_string(id);
     }
     else {
-      instances[i]->id = p.id;
+      instances[shape_nr].id = p.id;
     }
 
-    instances[i]->theme = *(loco_t::theme_t*)pile->loco.get_context()->theme_list[p.theme].theme_id;
-    p.mouse_button_cb = [this, instance = instances[i]](const loco_t::mouse_button_data_t& ii_d) -> int {
+    instances[shape_nr].theme = *(loco_t::theme_t*)pile->loco.get_context()->theme_list[p.theme].theme_id;
+    p.mouse_button_cb = [this, shape_nr](const loco_t::mouse_button_data_t& ii_d) -> int {
       switch (ii_d.button) {
         case fan::mouse_scroll_up: {
           if (get_fgm()->action_flag & action::move) {
-            fan::vec3 ps = pile->loco.button.get_button(&instance->cid, &loco_t::button_t::vi_t::position);
+            fan::vec3 ps = pile->loco.button.get_button(instances[shape_nr].shape, &loco_t::button_t::vi_t::position);
             ps.z += 1;
-            pile->loco.button.set_position(&instance->cid, ps);
-            pile->loco.button.set_depth(&instance->cid, ps.z);
-            get_fgm()->button.open_properties(instance);
+            pile->loco.button.set_position(instances[shape_nr].shape, ps);
+            pile->loco.button.set_depth(instances[shape_nr].shape, ps.z);
+            get_fgm()->button.open_properties(shape_nr);
           }
           return 0;
         }
         case fan::mouse_scroll_down: {
           if (get_fgm()->action_flag & action::move) {
-            fan::vec3 ps = pile->loco.button.get_button(&instance->cid, &loco_t::button_t::vi_t::position);
+            fan::vec3 ps = pile->loco.button.get_button(instances[shape_nr].shape, &loco_t::button_t::vi_t::position);
             ps.z -= 1;
             ps.z = fan::clamp((f32_t)ps.z, (f32_t)0.f, (f32_t)ps.z);
-            pile->loco.button.set_position(&instance->cid, ps);
-            pile->loco.button.set_depth(&instance->cid, ps.z);
-            get_fgm()->button.open_properties(instance);
+            pile->loco.button.set_position(instances[shape_nr].shape, ps);
+            pile->loco.button.set_depth(instances[shape_nr].shape, ps.z);
+            get_fgm()->button.open_properties(shape_nr);
           }
           return 0;
         }
@@ -184,7 +183,7 @@ struct button_t {
         get_fgm()->button.release();
         // TODO FIX, erases in near bottom
         if (!get_fgm()->viewport[viewport_area::editor].inside(pile->loco.get_mouse_position()) && !holding_special_key) {
-          get_fgm()->button.erase(instance);
+          instances[shape_nr].shape.erase();
         }
         return 0;
       }
@@ -192,32 +191,31 @@ struct button_t {
         return 0;
       }
       get_fgm()->action_flag |= action::move;
-      auto viewport = pile->loco.button.get_viewport(&instance->cid);
+      auto viewport = pile->loco.button.get_viewport(instances[shape_nr].shape);
       get_fgm()->click_position = ii_d.position;
-      get_fgm()->move_offset = fan::vec2(pile->loco.button.get_button(&instance->cid, &loco_t::button_t::vi_t::position)) - get_fgm()->click_position;
+      get_fgm()->move_offset = fan::vec2(pile->loco.button.get_button(instances[shape_nr].shape, &loco_t::button_t::vi_t::position)) - get_fgm()->click_position;
       get_fgm()->resize_offset = get_fgm()->click_position;
-      fan::vec3 rp = pile->loco.button.get_button(&instance->cid, &loco_t::button_t::vi_t::position);
-      fan::vec3 rs = pile->loco.button.get_button(&instance->cid, &loco_t::button_t::vi_t::size);
+      fan::vec3 rp = pile->loco.button.get_button(instances[shape_nr].shape, &loco_t::button_t::vi_t::position);
+      fan::vec3 rs = pile->loco.button.get_button(instances[shape_nr].shape, &loco_t::button_t::vi_t::size);
       get_fgm()->resize_side = fan_2d::collision::rectangle::get_side_collision(ii_d.position, rp, rs);
-      get_fgm()->button.open_properties(instance);
+      get_fgm()->button.open_properties(shape_nr);
       return 0;
     };
-    p.mouse_move_cb = [this, instance = instances[i]](const loco_t::mouse_move_data_t& ii_d) -> int {
-      create_shape_move_resize(instance, ii_d);
+    p.mouse_move_cb = [this, shape_nr](const loco_t::mouse_move_data_t& ii_d) -> int {
+      create_shape_move_resize(shape_nr, ii_d);
 
       return 0;
     };
-    p.keyboard_cb = keyboard_cb(instances[i]);
-    pile->loco.button.push_back(&instances[i]->cid, p);
-    pile->loco.button.set_theme(&instances[i]->cid, loco_t::button_t::released);
-    auto builder_cid = &instances[i]->cid;
-    auto ri = pile->loco.button.get_ri(builder_cid);
+    p.keyboard_cb = keyboard_cb(shape_nr);
+    pile->loco.button.push_back(instances[shape_nr].shape, p);
+    pile->loco.button.set_theme(instances[shape_nr].shape, loco_t::button_t::released);
+    auto ri = pile->loco.button.get_ri(instances[shape_nr].shape);
     pile->loco.vfi.set_focus_mouse(ri.vfi_id);
   }
-  void erase(instance_t* instance) {
+  void erase(nr_t shape_nr) {
     close_properties();
 
-    pile->loco.button.erase(&instance->cid);
+    pile->loco.button.erase(instances[shape_nr].shape);
 
     #if defined(fgm_build_stage_maker)
     auto stage_name = get_fgm()->get_stage_maker()->get_selected_name(
@@ -225,52 +223,63 @@ struct button_t {
     );
     auto file_name = get_fgm()->get_stage_maker()->get_file_fullpath(stage_name);
 
-    get_fgm()->erase_cbs(file_name, stage_name, "button", instance, cb_names);
+    get_fgm()->erase_cbs(file_name, stage_name, "button", &instances[shape_nr], cb_names);
     #endif
 
-    for (uint32_t i = 0; i < instances.size(); i++) {
-      if (&instances[i]->cid == &instance->cid) {
-        instances.erase(instances.begin() + i);
+    auto it = instances.GetNodeFirst();
+
+    while (it != instances.dst) {
+      if (instances[shape_nr].shape == instances[it].shape) {
+        instances.unlrec(it);
         break;
       }
+      it = it.Next(&instances);
     }
+
     release();
   }
 
   fgm_make_clear_f(
-    pile->loco.button.erase(&it->cid);
+    instances[it].shape.erase();
   );
 
-  fan::vec2 get_size(instance_t* instance) {
-    return pile->loco.button.get(&instance->cid, &loco_t::button_t::vi_t::size);
+  fan::vec2 get_size(auto* instance) {
+    return pile->loco.button.get(instance->shape, &loco_t::button_t::vi_t::size);
   }
-  void set_size(instance_t* instance, const fan::vec2& size) {
-    pile->loco.button.set_size(&instance->cid, size);
-  }
-
-  fan::vec3 get_position(instance_t* instance) {
-    return pile->loco.button.get(&instance->cid, &loco_t::button_t::vi_t::position);
-  }
-  void set_position(instance_t* instance, const fan::vec3& position) {
-    pile->loco.button.set_position(&instance->cid, position);
+  void set_size(auto* instance, const fan::vec2& size) {
+    pile->loco.button.set_size(instance->shape, size);
   }
 
-  fan::string to_string() const {
+  fan::vec3 get_position(auto* instance) {
+    return pile->loco.button.get(instance->shape, &loco_t::button_t::vi_t::position);
+  }
+  void set_position(auto* instance, const fan::vec3& position) {
+    pile->loco.button.set_position(instance->shape, position);
+  }
+
+  fan::string to_string() {
     fan::string f;
-    uint32_t instances_count = instances.size();
+    uint32_t instances_count = instances.Usage();
     fan::write_to_string(f, loco_t::shape_type_t::button);
     fan::write_to_string(f, instances_count);
-    for (auto it : instances) {
+
+    auto it = instances.GetNodeFirst();
+
+    while (it != instances.dst) {
+
       stage_maker_shape_format::shape_button_t data;
-      data.position = pile->loco.button.get(&it->cid, &loco_t::button_t::vi_t::position);
-      data.size = pile->loco.button.get(&it->cid, &loco_t::button_t::vi_t::size);
+      data.position = pile->loco.button.get(instances[it].shape, &loco_t::button_t::vi_t::position);
+      data.size = pile->loco.button.get(instances[it].shape, &loco_t::button_t::vi_t::size);
       data.font_size = pile->loco.text.get_instance(
-        &pile->loco.button.get_ri(&it->cid).text_id
+        pile->loco.button.get_ri(instances[it].shape).text_id
       ).font_size;
-      data.text = pile->loco.button.get_text(&it->cid);
-      data.id = it->id;
+      data.text = pile->loco.button.get_text(instances[it].shape);
+      data.id = instances[it].id;
       f += shape_to_string(data);
+
+      it = it.Next(&instances);
     }
+
     return f;
   }
   uint64_t from_string(const fan::string& f) {
@@ -331,7 +340,7 @@ struct sprite_t {
       uint32_t group_id;
   #else
     #define fgm_shape_instance_data \
-      fan::graphics::cid_t cid; \
+      loco_t::id_t shape; \
       loco_t::vfi_t::shape_id_t vfi_id; \
       fan::string texturepack_name; \
       fan::string id;
@@ -347,7 +356,7 @@ struct sprite_t {
     }
   }
 
-  void open_properties(instance_t* instance) {
+  void open_properties(nr_t shape_nr) {
     close_properties();
     get_fgm()->properties_open = true;
 
@@ -360,16 +369,16 @@ struct sprite_t {
     auto nr = get_fgm()->text_box_menu.push_menu(menup);
     get_fgm()->properties_nr = nr;
     text_box_menu_t::properties_t p;
-    auto position = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::position);
+    auto position = pile->loco.sprite.get(instances[shape_nr].shape, &loco_t::sprite_t::vi_t::position);
     p.text = fan::format("{:.2f}, {:.2f}, {:.2f}", position.x, position.y, position.z);
     p.text_value = "add cbs";
-    p.mouse_button_cb = [this, instance](const loco_t::mouse_button_data_t& mb) -> int {
+    p.mouse_button_cb = [this, shape_nr](const loco_t::mouse_button_data_t& mb) -> int {
       use_key_lambda(fan::mouse_left, fan::mouse_state::release);
       // open cb here
 
       return 0;
     };
-    p.keyboard_cb = [this, instance, nr](const loco_t::keyboard_data_t& d) -> int {
+    p.keyboard_cb = [this, shape_nr, nr](const loco_t::keyboard_data_t& d) -> int {
       if (d.key != fan::key_enter) {
         return 0;
       }
@@ -378,24 +387,24 @@ struct sprite_t {
       }
 
       auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[get_fgm()->properties_nrs[0]];
-      auto text = pile->loco.text_box.get_text(&it.cid);
+      auto text = pile->loco.text_box.get_text(it.id);
 
       fan::vec3 position = fan::string_to<fan::vec3>(text);
 
       //f32_t parallax_factor = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::parallax_factor);
       // EDIT PARALAX HERE
-      pile->loco.vfi.shape_list[instance->vfi_id].shape_data.shape.rectangle.position = position /* (1 - parallax_factor)*/;
-      pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::position, position);
-      pile->loco.sprite.sb_set_depth(&instance->cid, position.z);
+      pile->loco.vfi.shape_list[instances[shape_nr].vfi_id].shape_data.shape.rectangle.position = position /* (1 - parallax_factor)*/;
+      pile->loco.sprite.set(instances[shape_nr].shape, &loco_t::sprite_t::vi_t::position, position);
+      pile->loco.sprite.sb_set_depth(instances[shape_nr].shape, position.z);
 
       return 0;
     };
     get_fgm()->properties_nrs.push_back(get_fgm()->text_box_menu.push_back(nr, p));
 
-    auto size = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::size);
+    auto size = pile->loco.sprite.get(instances[shape_nr].shape, &loco_t::sprite_t::vi_t::size);
     p.text = fan::format("{:.2f}, {:.2f}", size.x, size.y);
     p.text_value = "";
-    p.keyboard_cb = [this, instance, nr](const loco_t::keyboard_data_t& d) -> int {
+    p.keyboard_cb = [this, shape_nr, nr](const loco_t::keyboard_data_t& d) -> int {
       if (d.key != fan::key_enter) {
         return 0;
       }
@@ -404,19 +413,19 @@ struct sprite_t {
       }
 
       auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[get_fgm()->properties_nrs[1]];
-      auto text = pile->loco.text_box.get_text(&it.cid);
+      auto text = pile->loco.text_box.get_text(it.id);
 
       fan::vec2 size = fan::string_to<fan::vec2>(text);
 
-      pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::size, size);
-      pile->loco.vfi.shape_list[instance->vfi_id].shape_data.shape.rectangle.size = size;
+      pile->loco.sprite.set(instances[shape_nr].shape, &loco_t::sprite_t::vi_t::size, size);
+      pile->loco.vfi.shape_list[instances[shape_nr].vfi_id].shape_data.shape.rectangle.size = size;
 
       return 0;
     };
     get_fgm()->properties_nrs.push_back(get_fgm()->text_box_menu.push_back(nr, p));
 
-    p.text = instance->texturepack_name;
-    p.keyboard_cb = [this, instance, nr](const loco_t::keyboard_data_t& d) -> int {
+    p.text = instances[shape_nr].texturepack_name;
+    p.keyboard_cb = [this, shape_nr, nr](const loco_t::keyboard_data_t& d) -> int {
       if (d.key != fan::key_enter) {
         return 0;
       }
@@ -425,7 +434,7 @@ struct sprite_t {
       }
 
       auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[get_fgm()->properties_nrs[2]];
-      auto text = pile->loco.text_box.get_text(&it.cid);
+      auto text = pile->loco.text_box.get_text(it.id);
 
       loco_t::texturepack_t::ti_t ti;
       if (get_fgm()->texturepack.qti(text, &ti)) {
@@ -433,17 +442,17 @@ struct sprite_t {
         return 0;
       }
       auto& data = get_fgm()->texturepack.get_pixel_data(ti.pack_id);
-      pile->loco.sprite.set_image(&instance->cid, &data.image);
-      pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::tc_position, ti.position / data.image.size);
-      pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::tc_size, ti.size / data.image.size);
-      instance->texturepack_name = text;
+      pile->loco.sprite.set_image(instances[shape_nr].shape, &data.image);
+      pile->loco.sprite.set(instances[shape_nr].shape, &loco_t::sprite_t::vi_t::tc_position, ti.position / data.image.size);
+      pile->loco.sprite.set(instances[shape_nr].shape, &loco_t::sprite_t::vi_t::tc_size, ti.size / data.image.size);
+      instances[shape_nr].texturepack_name = text;
       return 0;
     };
     get_fgm()->properties_nrs.push_back(get_fgm()->text_box_menu.push_back(nr, p));
 
-    auto parallax_factor = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::parallax_factor);
+    auto parallax_factor = pile->loco.sprite.get(instances[shape_nr].shape, &loco_t::sprite_t::vi_t::parallax_factor);
     p.text = fan::format("{:.2f}", parallax_factor);
-    p.keyboard_cb = [this, instance, nr](const loco_t::keyboard_data_t& d) -> int {
+    p.keyboard_cb = [this, shape_nr, nr](const loco_t::keyboard_data_t& d) -> int {
       if (d.key != fan::key_enter) {
         return 0;
       }
@@ -452,17 +461,17 @@ struct sprite_t {
       }
 
       auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[get_fgm()->properties_nrs[3]];
-      auto text = pile->loco.text_box.get_text(&it.cid);
+      auto text = pile->loco.text_box.get_text(it.id);
 
       f32_t parallax = fan::string_to<f32_t>(text);
 
-      pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::parallax_factor, parallax);
+      pile->loco.sprite.set(instances[shape_nr].shape, &loco_t::sprite_t::vi_t::parallax_factor, parallax);
       return 0;
     };
     get_fgm()->properties_nrs.push_back(get_fgm()->text_box_menu.push_back(nr, p));
 
-    p.text = instance->id;
-    p.keyboard_cb = [this, instance, nr](const loco_t::keyboard_data_t& d) -> int {
+    p.text = instances[shape_nr].id;
+    p.keyboard_cb = [this, shape_nr, nr](const loco_t::keyboard_data_t& d) -> int {
       if (d.key != fan::key_enter) {
         return 0;
       }
@@ -478,7 +487,7 @@ struct sprite_t {
         return 0;
       }
 
-      instance->id = text;
+      instances[shape_nr].id = text;
 
       return 0;
     };
@@ -505,17 +514,16 @@ struct sprite_t {
     #endif
   }
   void push_back(properties_t& p) {
-    shape_builder_push_back();
-    uint32_t i = instances.size() - 1;
-    instances[i]->texturepack_name = p.texturepack_name;
+    auto shape_nr = shape_builder_push_back();
+    instances[shape_nr].texturepack_name = p.texturepack_name;
 
     if (p.id.empty()) {
       static uint32_t id = 0;
       while (does_id_exist(this, std::to_string(id))) { ++id; }
-      instances[i]->id = std::to_string(id);
+      instances[shape_nr].id = std::to_string(id);
     }
     else {
-      instances[i]->id = p.id;
+      instances[shape_nr].id = p.id;
     }
 
     #if defined(fgm_build_model_maker)
@@ -524,7 +532,7 @@ struct sprite_t {
 
 
     loco_t::vfi_t::properties_t vfip;
-    vfip.mouse_button_cb = [this, instance = instances[i]](const loco_t::mouse_button_data_t& ii_d) -> int {
+    vfip.mouse_button_cb = [this, shape_nr](const loco_t::mouse_button_data_t& ii_d) -> int {
       switch (ii_d.button) {
         case fan::mouse_scroll_up: {
           if (get_fgm()->action_flag & action::move) {
@@ -539,13 +547,13 @@ struct sprite_t {
         }
         case fan::mouse_scroll_down: {
           if (get_fgm()->action_flag & action::move) {
-            fan::vec3 ps = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::position);
+            fan::vec3 ps = pile->loco.sprite.get(instances[shape_nr].shape, &loco_t::sprite_t::vi_t::position);
             ps.z -= 1;
             ps.z = fan::clamp((f32_t)ps.z, (f32_t)0.f, (f32_t)ps.z);
-            pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::position, ps);
-            pile->loco.sprite.sb_set_depth(&instance->cid, ps.z);
-            pile->loco.vfi.shape_list[instance->vfi_id].shape_data.depth = ps.z;
-            open_properties(instance);
+            pile->loco.sprite.set(instances[shape_nr].shape, &loco_t::sprite_t::vi_t::position, ps);
+            pile->loco.sprite.sb_set_depth(instances[shape_nr].shape, ps.z);
+            pile->loco.vfi.shape_list[instances[shape_nr].vfi_id].shape_data.depth = ps.z;
+            open_properties(shape_nr);
           }
           return 0;
         }
@@ -568,7 +576,7 @@ struct sprite_t {
         release();
         // TODO FIX, erases in near bottom
         if (!get_fgm()->viewport[viewport_area::editor].inside(pile->loco.get_mouse_position()) && !holding_special_key) {
-          erase(instance);
+          erase(&instances[shape_nr]);
         }
         return 0;
       }
@@ -576,78 +584,87 @@ struct sprite_t {
         return 0;
       }
       get_fgm()->action_flag |= action::move;
-      auto viewport = pile->loco.sprite.get_viewport(&instance->cid);
+      auto viewport = pile->loco.sprite.get_viewport(instances[shape_nr].shape);
       get_fgm()->click_position = ii_d.position;
-      get_fgm()->move_offset = fan::vec2(pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::position)) - get_fgm()->click_position;
+      get_fgm()->move_offset = fan::vec2(pile->loco.sprite.get(instances[shape_nr].shape, &loco_t::sprite_t::vi_t::position)) - get_fgm()->click_position;
       get_fgm()->resize_offset = get_fgm()->click_position;
-      fan::vec3 rp = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::position);
-      fan::vec3 rs = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::size);
+      fan::vec3 rp = pile->loco.sprite.get(instances[shape_nr].shape, &loco_t::sprite_t::vi_t::position);
+      fan::vec3 rs = pile->loco.sprite.get(instances[shape_nr].shape, &loco_t::sprite_t::vi_t::size);
       get_fgm()->resize_side = fan_2d::collision::rectangle::get_side_collision(ii_d.position, rp, rs);
-      open_properties(instance);
+      open_properties(shape_nr);
       return 0;
     };
-    vfip.mouse_move_cb = [this, instance = instances[i]](const loco_t::mouse_move_data_t& ii_d) -> int {
-      create_shape_move_resize(instance, ii_d);
+    vfip.mouse_move_cb = [this, shape_nr](const loco_t::mouse_move_data_t& ii_d) -> int {
+      create_shape_move_resize(&instances[shape_nr], ii_d);
       return 0;
     };
-    vfip.keyboard_cb = keyboard_cb(instances[i]);
+    vfip.keyboard_cb = keyboard_cb(&instances[shape_nr]);
     vfip.shape_type = loco_t::vfi_t::shape_t::rectangle;
     vfip.shape.rectangle.position = p.position;
     vfip.shape.rectangle.size = p.size;
     vfip.shape.rectangle.camera = p.camera;
     vfip.shape.rectangle.viewport = p.viewport;
-    pile->loco.push_back_input_hitbox(&instances[i]->vfi_id, vfip);
-    pile->loco.sprite.push_back(&instances[i]->cid, p);
+    pile->loco.push_back_input_hitbox(&instances[shape_nr].vfi_id, vfip);
+    instances[shape_nr].shape = p;
   }
-  void erase(instance_t* instance) {
+  void erase(auto* instance) {
     close_properties();
-    pile->loco.sprite.erase(&instance->cid);
-    for (uint32_t i = 0; i < instances.size(); i++) {
-      if (&instances[i]->cid == &instance->cid) {
-        instances.erase(instances.begin() + i);
+    pile->loco.sprite.erase(&instance->shape);
+
+    auto it = instances.GetNodeFirst();
+
+    while (it != instances.dst) {
+      if (instance->shape == instances[it].shape) {
+        instances.unlrec(it);
         break;
       }
+      it = it.Next(&instances);
     }
     release();
   }
 
   fgm_make_clear_f(
-    pile->loco.sprite.erase(&it->cid);
-  pile->loco.vfi.erase(&it->vfi_id);
+    instances[it].shape.erase();
+    pile->loco.vfi.erase(&instances[it].vfi_id);
   );
 
-  fan::vec3 get_position(instance_t* instance) {
+  fan::vec3 get_position(auto* instance) {
     return pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::position);
   }
-  void set_position(instance_t* instance, const fan::vec3& position) {
+  void set_position(auto* instance, const fan::vec3& position) {
     pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::position, position);
     pile->loco.vfi.set_rectangle(instance->vfi_id, &loco_t::vfi_t::shape_data_rectangle_t::position, position);
   }
 
-  fan::vec2 get_size(instance_t* instance) {
+  fan::vec2 get_size(auto* instance) {
     return pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::size);
   }
-  void set_size(instance_t* instance, const fan::vec2& size) {
+  void set_size(auto* instance, const fan::vec2& size) {
     pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::size, size);
     pile->loco.vfi.set_rectangle(instance->vfi_id, &loco_t::vfi_t::shape_data_rectangle_t::size, size);
   }
 
-  fan::string to_string() const {
+  fan::string to_string() {
     fan::string f;
-    uint32_t instances_count = instances.size();
+    uint32_t instances_count = instances.Usage();
     fan::write_to_string(f, loco_t::shape_type_t::sprite);
     fan::write_to_string(f, instances_count);
-    for (auto it : instances) {
+
+    auto it = instances.GetNodeFirst();
+
+    while (it != instances.dst) {
       stage_maker_shape_format::shape_sprite_t data;
-      data.position = pile->loco.sprite.get(&it->cid, &loco_t::sprite_t::vi_t::position);
-      data.size = pile->loco.sprite.get(&it->cid, &loco_t::sprite_t::vi_t::size);
-      data.parallax_factor = pile->loco.sprite.get(&it->cid, &loco_t::sprite_t::vi_t::parallax_factor);
-      data.texturepack_name = it->texturepack_name;
-      data.id = it->id;
+      data.position = pile->loco.sprite.get(instances[it].shape, &loco_t::sprite_t::vi_t::position);
+      data.size = pile->loco.sprite.get(instances[it].shape, &loco_t::sprite_t::vi_t::size);
+      data.parallax_factor = pile->loco.sprite.get(instances[it].shape, &loco_t::sprite_t::vi_t::parallax_factor);
+      data.texturepack_name = instances[it].texturepack_name;
+      data.id = instances[it].id;
       #if defined(fgm_build_model_maker)
       data.group_id = it->group_id;
       #endif
       f += shape_to_string(data);
+
+      it = it.Next(&instances);
     }
     return f;
   }
@@ -709,7 +726,7 @@ struct text_t {
   #define fgm_shape_name text
   #define fgm_shape_manual_properties
   #define fgm_shape_instance_data \
-    fan::graphics::cid_t cid; \
+    loco_t::id_t shape; \
     loco_t::vfi_t::shape_id_t vfi_id; \
     fan::string texturepack_name; \
     fan::string id;
@@ -834,43 +851,40 @@ struct text_t {
   }
 
   void push_back(properties_t& p) {
-    instances.resize(instances.size() + 1);
-    uint32_t i = instances.size() - 1;
-    instances[i] = new instance_t;
-    instances[i]->shape = loco_t::shape_type_t::text;
+    auto shape_nr = shape_builder_push_back();
 
     if (p.id.empty()) {
       static uint32_t id = 0;
       while (does_id_exist(this, std::to_string(id))) { ++id; }
-      instances[i]->id = std::to_string(id);
+      instances[shape_nr].id = std::to_string(id);
     }
     else {
-      instances[i]->id = p.id;
+      instances[shape_nr].id = p.id;
     }
 
     loco_t::vfi_t::properties_t vfip;
-    vfip.mouse_button_cb = [this, instance = instances[i]](const loco_t::mouse_button_data_t& ii_d) -> int {
+    vfip.mouse_button_cb = [this, shape_nr](const loco_t::mouse_button_data_t& ii_d) -> int {
       switch (ii_d.button) {
         case fan::mouse_scroll_up: {
           if (get_fgm()->action_flag & action::move) {
-            fan::vec3 ps = pile->loco.text.get_instance(&instance->cid).position;
+            fan::vec3 ps = pile->loco.text.get_instance(instances[shape_nr].shape).position;
             ps.z += 1;
-            pile->loco.text.set_position(&instance->cid, ps);
-            pile->loco.text.set_depth(&instance->cid, ps.z);
-            pile->loco.vfi.shape_list[instance->vfi_id].shape_data.depth = ps.z;
-            open_properties(instance);
+            pile->loco.text.set_position(instances[shape_nr].shape, ps);
+            pile->loco.text.set_depth(instances[shape_nr].shape, ps.z);
+            pile->loco.vfi.shape_list[instances[shape_nr].vfi_id].shape_data.depth = ps.z;
+            open_properties(&instances[shape_nr]);
           }
           return 0;
         }
         case fan::mouse_scroll_down: {
           if (get_fgm()->action_flag & action::move) {
-            fan::vec3 ps = pile->loco.text.get_instance(&instance->cid).position;
+            fan::vec3 ps = pile->loco.text.get_instance(instances[shape_nr].shape).position;
             ps.z -= 1;
             ps.z = fan::clamp((f32_t)ps.z, (f32_t)0.f, (f32_t)ps.z);
-            pile->loco.text.set_position(&instance->cid, ps);
-            pile->loco.text.set_depth(&instance->cid, ps.z);
-            pile->loco.vfi.shape_list[instance->vfi_id].shape_data.depth = ps.z;
-            get_fgm()->text.open_properties(instance);
+            pile->loco.text.set_position(instances[shape_nr].shape, ps);
+            pile->loco.text.set_depth(instances[shape_nr].shape, ps.z);
+            pile->loco.vfi.shape_list[instances[shape_nr].vfi_id].shape_data.depth = ps.z;
+            get_fgm()->text.open_properties(&instances[shape_nr]);
           }
           return 0;
         }
@@ -893,7 +907,7 @@ struct text_t {
         get_fgm()->text.release();
         // TODO FIX, erases in near bottom
         if (!get_fgm()->viewport[viewport_area::editor].inside(pile->loco.get_mouse_position()) && !holding_special_key) {
-          get_fgm()->text.erase(instance);
+          instances[shape_nr].shape.erase();
         }
         return 0;
       }
@@ -902,28 +916,28 @@ struct text_t {
       }
       get_fgm()->action_flag |= action::move;
       get_fgm()->click_position = ii_d.position;
-      get_fgm()->move_offset = fan::vec2(pile->loco.text.get_instance(&instance->cid).position) - get_fgm()->click_position;
+      get_fgm()->move_offset = fan::vec2(pile->loco.text.get_instance(instances[shape_nr].shape).position) - get_fgm()->click_position;
       get_fgm()->resize_offset = get_fgm()->click_position;
-      fan::vec3 rp = pile->loco.text.get_instance(&instance->cid).position;
-      f32_t rs = pile->loco.text.get_font_size(&instance->cid);
+      fan::vec3 rp = pile->loco.text.get_instance(instances[shape_nr].shape).position;
+      f32_t rs = pile->loco.text.get_font_size(instances[shape_nr].shape);
       get_fgm()->resize_side = fan_2d::collision::rectangle::get_side_collision(ii_d.position, rp, rs);
-      get_fgm()->text.open_properties(instance);
+      get_fgm()->text.open_properties(&instances[shape_nr]);
       return 0;
     };
-    vfip.mouse_move_cb = [this, instance = instances[i]](const loco_t::mouse_move_data_t& ii_d) -> int {
-      create_shape_move_resize(instance, ii_d);
+    vfip.mouse_move_cb = [this, shape_nr](const loco_t::mouse_move_data_t& ii_d) -> int {
+      create_shape_move_resize(&instances[shape_nr], ii_d);
       return 0;
     };
-    vfip.keyboard_cb = keyboard_cb(instances[i]);
-    pile->loco.text.push_back(&instances[i]->cid, p);
+    vfip.keyboard_cb = keyboard_cb(&instances[shape_nr]);
+    pile->loco.text.push_back(instances[shape_nr].shape, p);
     vfip.shape_type = loco_t::vfi_t::shape_t::rectangle;
     vfip.shape.rectangle.position = p.position;
-    vfip.shape.rectangle.size = pile->loco.text.get_text_size(&instances[i]->cid);
+    vfip.shape.rectangle.size = pile->loco.text.get_text_size(instances[shape_nr].shape);
     vfip.shape.rectangle.camera = p.camera;
     vfip.shape.rectangle.viewport = p.viewport;
-    pile->loco.push_back_input_hitbox(&instances[i]->vfi_id, vfip);
+    pile->loco.push_back_input_hitbox(&instances[shape_nr].vfi_id, vfip);
   }
-  void erase(instance_t* instance) {
+  void erase(auto* instance) {
     close_properties();
     pile->loco.text.erase(&instance->cid);
     for (uint32_t i = 0; i < instances.size(); i++) {
@@ -936,27 +950,27 @@ struct text_t {
   }
 
   fgm_make_clear_f(
-    pile->loco.text.erase(&it->cid);
-  pile->loco.vfi.erase(&it->vfi_id);
+    instances[it].erase();
+    pile->loco.vfi.erase(instances[it].vfi_id);
   );
 
-  fan::vec3 get_position(instance_t* instance) {
+  fan::vec3 get_position(auto* instance) {
     return pile->loco.text.get_instance(&instance->cid).position;
   }
 
-  fan::vec2 get_size(instance_t* instance) const {
+  fan::vec2 get_size(auto* instance) const {
     return pile->loco.text.get_instance(&instance->cid).font_size;
   }
-  void set_size(instance_t* instance, const fan::vec2& size) {
+  void set_size(auto* instance, const fan::vec2& size) {
     get_fgm()->text.set_font_size(instance, size.x);
     pile->loco.vfi.set_rectangle(instance->vfi_id, &loco_t::vfi_t::shape_data_rectangle_t::size, size);
   }
 
-  void set_position(instance_t* instance, const fan::vec3& position) {
+  void set_position(auto* instance, const fan::vec3& position) {
     pile->loco.text.set_position(&instance->cid, position);
     pile->loco.vfi.set_rectangle(instance->vfi_id, &loco_t::vfi_t::shape_data_rectangle_t::position, position);
   }
-  void set_font_size(instance_t* instance, f32_t font_size) {
+  void set_font_size(auto* instance, f32_t font_size) {
     pile->loco.text.set_font_size(&instance->cid, font_size);
     pile->loco.vfi.set_rectangle(instance->vfi_id, &loco_t::vfi_t::shape_data_rectangle_t::size, pile->loco.text.get_text_size(&instance->cid));
   }
@@ -1025,7 +1039,7 @@ struct hitbox_t {
   #define fgm_shape_name hitbox
   #define fgm_shape_manual_properties
   #define fgm_shape_instance_data \
-    fan::graphics::cid_t cid; \
+    loco_t::id_t shape; \
     loco_t::vfi_t::shape_id_t vfi_id; \
     fan::string id; \
     loco_t::vfi_t::shape_type_t shape_type;
@@ -1039,7 +1053,7 @@ struct hitbox_t {
     }
   }
 
-  void open_properties(instance_t* instance) {
+  void open_properties(nr_t shape_nr) {
     close_properties();
     get_fgm()->properties_open = true;
 
@@ -1052,17 +1066,17 @@ struct hitbox_t {
     auto nr = get_fgm()->text_box_menu.push_menu(menup);
     get_fgm()->properties_nr = nr;
     text_box_menu_t::properties_t p;
-    auto position = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::position);
+    auto position = pile->loco.sprite.get(instances[shape_nr].shape, &loco_t::sprite_t::vi_t::position);
     p.text = fan::format("{:.2f}, {:.2f}, {:.2f}", position.x, position.y, position.z);
     p.text_value = "add cbs";
-    p.mouse_button_cb = [this, instance](const loco_t::mouse_button_data_t& mb) -> int {
+    p.mouse_button_cb = [this, shape_nr](const loco_t::mouse_button_data_t& mb) -> int {
       use_key_lambda(fan::mouse_left, fan::mouse_state::release);
 
       // open cb here
 
       return 0;
     };
-    p.keyboard_cb = [this, instance, nr](const loco_t::keyboard_data_t& d) -> int {
+    p.keyboard_cb = [this, shape_nr, nr](const loco_t::keyboard_data_t& d) -> int {
       if (d.key != fan::key_enter) {
         return 0;
       }
@@ -1071,22 +1085,22 @@ struct hitbox_t {
       }
 
       auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[get_fgm()->properties_nrs[0]];
-      auto text = pile->loco.text_box.get_text(&it.cid);
+      auto text = pile->loco.text_box.get_text(it.id);
 
       fan::vec3 position = fan::string_to<fan::vec3>(text);
 
-      pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::position, position);
-      pile->loco.sprite.sb_set_depth(&instance->cid, position.z);
-      pile->loco.vfi.shape_list[instance->vfi_id].shape_data.depth = position.z;
+      pile->loco.sprite.set(instances[shape_nr].shape, &loco_t::sprite_t::vi_t::position, position);
+      pile->loco.sprite.sb_set_depth(instances[shape_nr].shape, position.z);
+      pile->loco.vfi.shape_list[instances[shape_nr].vfi_id].shape_data.depth = position.z;
 
       return 0;
     };
     get_fgm()->properties_nrs.push_back(get_fgm()->text_box_menu.push_back(nr, p));
 
-    auto size = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::size);
+    auto size = pile->loco.sprite.get(instances[shape_nr].shape, &loco_t::sprite_t::vi_t::size);
     p.text = fan::format("{:.2f}, {:.2f}", size.x, size.y);
     p.text_value = "";
-    p.keyboard_cb = [this, instance, nr](const loco_t::keyboard_data_t& d) -> int {
+    p.keyboard_cb = [this, shape_nr, nr](const loco_t::keyboard_data_t& d) -> int {
       if (d.key != fan::key_enter) {
         return 0;
       }
@@ -1095,20 +1109,20 @@ struct hitbox_t {
       }
 
       auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[get_fgm()->properties_nrs[1]];
-      auto text = pile->loco.text_box.get_text(&it.cid);
+      auto text = pile->loco.text_box.get_text(it.id);
 
       fan::vec2 size = fan::string_to<fan::vec2>(text);
 
-      pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::size, size);
+      pile->loco.sprite.set(instances[shape_nr].shape, &loco_t::sprite_t::vi_t::size, size);
 
 
       return 0;
     };
     get_fgm()->properties_nrs.push_back(get_fgm()->text_box_menu.push_back(nr, p));
 
-    p.text = fan::to_string(instance->shape_type);
+    p.text = fan::to_string(instances[shape_nr].shape->shape_type);
     p.text_value = "";
-    p.keyboard_cb = [this, instance, nr](const loco_t::keyboard_data_t& d) -> int {
+    p.keyboard_cb = [this, shape_nr, nr](const loco_t::keyboard_data_t& d) -> int {
       if (d.key != fan::key_enter) {
         return 0;
       }
@@ -1117,53 +1131,52 @@ struct hitbox_t {
       }
 
       auto& it = pile->loco.menu_maker_text_box.instances[nr].base.instances[get_fgm()->properties_nrs[2]];
-      auto text = pile->loco.text_box.get_text(&it.cid);
+      auto text = pile->loco.text_box.get_text(it.id);
 
       uint32_t shape_type = fan::string_to<uint32_t>(text);
-
-      instance->shape_type = shape_type;
+      // suspicious
+      instances[shape_nr].shape_type = shape_type;
 
       return 0;
     };
     get_fgm()->properties_nrs.push_back(get_fgm()->text_box_menu.push_back(nr, p));
   }
   void push_back(properties_t& p) {
-    shape_builder_push_back();
-    uint32_t i = instances.size() - 1;
-    instances[i]->shape_type = p.vfi_type;
+    auto shape_nr = shape_builder_push_back();
+    instances[shape_nr].shape_type = p.vfi_type;
 
     if (p.id.empty()) {
       static uint32_t id = 0;
       while (does_id_exist(this, std::to_string(id))) { ++id; }
-      instances[i]->id = std::to_string(id);
+      instances[shape_nr].id = std::to_string(id);
     }
     else {
-      instances[i]->id = p.id;
+      instances[shape_nr].id = p.id;
     }
 
     loco_t::vfi_t::properties_t vfip;
-    vfip.mouse_button_cb = [this, instance = instances[i]](const loco_t::mouse_button_data_t& ii_d) -> int {
+    vfip.mouse_button_cb = [this, shape_nr](const loco_t::mouse_button_data_t& ii_d) -> int {
       switch (ii_d.button) {
         case fan::mouse_scroll_up: {
           if (get_fgm()->action_flag & action::move) {
-            fan::vec3 ps = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::position);
+            fan::vec3 ps = pile->loco.sprite.get(instances[shape_nr].shape, &loco_t::sprite_t::vi_t::position);
             ps.z += 1;
-            pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::position, ps);
-            pile->loco.sprite.sb_set_depth(&instance->cid, ps.z);
-            pile->loco.vfi.shape_list[instance->vfi_id].shape_data.depth = ps.z;
+            pile->loco.sprite.set(instances[shape_nr].shape, &loco_t::sprite_t::vi_t::position, ps);
+            pile->loco.sprite.sb_set_depth(instances[shape_nr].shape, ps.z);
+            pile->loco.vfi.shape_list[instances[shape_nr].vfi_id].shape_data.depth = ps.z;
             open_properties(instance);
           }
           return 0;
         }
         case fan::mouse_scroll_down: {
           if (get_fgm()->action_flag & action::move) {
-            fan::vec3 ps = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::position);
+            fan::vec3 ps = pile->loco.sprite.get(instances[shape_nr].shape, &loco_t::sprite_t::vi_t::position);
             ps.z -= 1;
             ps.z = fan::clamp((f32_t)ps.z, (f32_t)0.f, (f32_t)ps.z);
-            pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::position, ps);
-            pile->loco.sprite.sb_set_depth(&instance->cid, ps.z);
-            pile->loco.vfi.shape_list[instance->vfi_id].shape_data.depth = ps.z;
-            open_properties(instance);
+            pile->loco.sprite.set(instances[shape_nr].shape, &loco_t::sprite_t::vi_t::position, ps);
+            pile->loco.sprite.sb_set_depth(instances[shape_nr].shape, ps.z);
+            pile->loco.vfi.shape_list[instances[shape_nr].vfi_id].shape_data.depth = ps.z;
+            open_properties(shape_nr);
           }
           return 0;
         }
@@ -1194,31 +1207,31 @@ struct hitbox_t {
         return 0;
       }
       get_fgm()->action_flag |= action::move;
-      auto viewport = pile->loco.sprite.get_viewport(&instance->cid);
+      auto viewport = pile->loco.sprite.get_viewport(instances[shape_nr].shape);
       get_fgm()->click_position = ii_d.position;
-      get_fgm()->move_offset = fan::vec2(pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::position)) - get_fgm()->click_position;
+      get_fgm()->move_offset = fan::vec2(pile->loco.sprite.get(instances[shape_nr].shape, &loco_t::sprite_t::vi_t::position)) - get_fgm()->click_position;
       get_fgm()->resize_offset = get_fgm()->click_position;
-      fan::vec3 rp = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::position);
-      fan::vec3 rs = pile->loco.sprite.get(&instance->cid, &loco_t::sprite_t::vi_t::size);
+      fan::vec3 rp = pile->loco.sprite.get(instances[shape_nr].shape, &loco_t::sprite_t::vi_t::position);
+      fan::vec3 rs = pile->loco.sprite.get(instances[shape_nr].shape, &loco_t::sprite_t::vi_t::size);
       get_fgm()->resize_side = fan_2d::collision::rectangle::get_side_collision(ii_d.position, rp, rs);
       open_properties(instance);
       return 0;
     };
-    vfip.mouse_move_cb = [this, instance = instances[i]](const loco_t::mouse_move_data_t& ii_d) -> int {
-      create_shape_move_resize(instance, ii_d);
+    vfip.mouse_move_cb = [this, shape_nr](const loco_t::mouse_move_data_t& ii_d) -> int {
+      create_shape_move_resize(&instances[shape_nr], ii_d);
       return 0;
     };
-    vfip.keyboard_cb = keyboard_cb(instances[i]);
+    vfip.keyboard_cb = keyboard_cb(&instances[shape_nr]);
     vfip.shape_type = loco_t::vfi_t::shape_t::rectangle;
     vfip.shape.rectangle.position = p.position;
     vfip.shape.rectangle.size = p.size;
     vfip.shape.rectangle.camera = p.camera;
     vfip.shape.rectangle.viewport = p.viewport;
-    pile->loco.push_back_input_hitbox(&instances[i]->vfi_id, vfip);
-    pile->loco.sprite.push_back(&instances[i]->cid, p);
+    pile->loco.push_back_input_hitbox(&instances[shape_nr].vfi_id, vfip);
+    instances[shape_nr].shape = p;
   }
   // erases even the code generated by fgm
-  void erase(instance_t* instance) {
+  void erase(auto* instance) {
     close_properties();
 
     #if defined(fgm_build_stage_maker)
@@ -1230,20 +1243,24 @@ struct hitbox_t {
     get_fgm()->erase_cbs(file_name, stage_name, "hitbox", instance, cb_names);
     #endif
 
-    pile->loco.sprite.erase(&instance->cid);
+    pile->loco.sprite.erase(&instance->shape);
 
-    for (uint32_t i = 0; i < instances.size(); i++) {
-      if (&instances[i]->cid == &instance->cid) {
-        instances.erase(instances.begin() + i);
+    auto it = instances.GetNodeFirst();
+
+    while (it != instances.dst) {
+      if (instance->shape == instances[it].shape) {
+        instances.unlrec(it);
         break;
       }
+      it = it.Next(&instances);
     }
+
     release();
   }
 
   fgm_make_clear_f(
-    pile->loco.sprite.erase(&it->cid);
-  pile->loco.vfi.erase(&it->vfi_id);
+    instances[it].erase();
+    pile->loco.vfi.erase(&instances[it].vfi_id);
   );
 
   fan::vec3 get_position(instance_t* instance) {
@@ -1262,30 +1279,38 @@ struct hitbox_t {
     pile->loco.vfi.set_rectangle(instance->vfi_id, &loco_t::vfi_t::shape_data_rectangle_t::size, size);
   }
 
-  fan::string to_string() const {
+  fan::string to_string() {
     fan::string f;
-    uint32_t instances_count = instances.size();
+    uint32_t instances_count = instances.Usage();
     fan::write_to_string(f, loco_t::shape_type_t::hitbox);
     fan::write_to_string(f, instances_count);
-    for (auto it : instances) {
+
+    auto it = instances.GetNodeFirst();
+
+    while (it != instances.dst) {
+
       stage_maker_shape_format::shape_hitbox_t data;
-      auto& shape = pile->loco.vfi.shape_list[it->vfi_id];
+      auto& shape = pile->loco.vfi.shape_list[instances[it].vfi_id];
       auto& shape_data = shape.shape_data;
       switch (it->shape_type) {
         case loco_t::vfi_t::shape_t::always: {
-          data.position = fan::vec3(fan::vec2(pile->loco.sprite.get(&it->cid, &loco_t::sprite_t::vi_t::position)), shape_data.depth);
-          data.size = pile->loco.sprite.get(&it->cid, &loco_t::sprite_t::vi_t::size);
+          data.position = fan::vec3(fan::vec2(pile->loco.sprite.get(instances[it].shape, &loco_t::sprite_t::vi_t::position)), shape_data.depth);
+          data.size = pile->loco.sprite.get(instances[it].shape, &loco_t::sprite_t::vi_t::size);
           break;
         }
         case loco_t::vfi_t::shape_t::rectangle: {
-          data.position = pile->loco.sprite.get(&it->cid, &loco_t::sprite_t::vi_t::position);
-          data.size = pile->loco.sprite.get(&it->cid, &loco_t::sprite_t::vi_t::size);
+          data.position = pile->loco.sprite.get(instances[it].shape, &loco_t::sprite_t::vi_t::position);
+          data.size = pile->loco.sprite.get(instances[it].shape, &loco_t::sprite_t::vi_t::size);
         }
       }
-      data.id = it->id;
+      data.id = instances[it].id;
       data.vfi_type = it->shape_type;
       f += shape_to_string(data);
+
+      it = it.Next(&instances);
     }
+
+
     return f;
   }
 

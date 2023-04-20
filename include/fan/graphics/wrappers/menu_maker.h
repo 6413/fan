@@ -84,9 +84,9 @@ struct sb_menu_maker_name {
   void invalidate_selected(nr_t nr) {
     instances[nr].base.selected.invalidate();
   }
-	void set_selected(nr_t nr, loco_t::cid_nt_t& id) {
+	/*void set_selected(nr_t nr, loco_t::cid_nt_t& id) {
 		instances[nr].base.set_selected(get_loco(), id);
-	}
+	}*/
 	void set_selected(nr_t nr, sb_menu_maker_type_name::instance_NodeReference_t id) {
 		instances[nr].base.set_selected(get_loco(), id);
 	}
@@ -111,7 +111,7 @@ struct sb_menu_maker_name {
 	void erase_and_update(nr_t nr, sb_menu_maker_type_name::instance_NodeReference_t id) {
 		auto loco = get_loco();
 		fan::vec2 previous_button_size = loco->sb_menu_maker_shape.get_button(
-			&loco->sb_menu_maker_var_name.instances[nr].base.instances[id].id,
+			loco->sb_menu_maker_var_name.instances[nr].base.instances[id].id,
 			&loco_t::CONCAT(sb_menu_maker_shape, _t)::vi_t::size
 		);
 		auto it = id;
@@ -150,7 +150,9 @@ struct sb_menu_maker_name {
 		return sb_menu_maker_type_name::get_button_measurements(gui_size);
 	}
 
-
+  properties_t get_properties(loco_t::cid_nt_t& id) {
+    return gloco->sb_menu_maker_var_name.get_properties(id);
+  }
 
 	instance_t instances;
 

@@ -46,6 +46,10 @@
   #define __MemorySet(src, dst, size) memset(dst, src, size)
 #endif
 
+#ifndef __abort
+  #define __abort() fan::throw_error("")
+#endif
+
 template <typename T>
 struct address_wrapper_t {
   using value_type = T;
