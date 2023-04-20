@@ -130,10 +130,13 @@ struct fgm_t {
     fan::string format;
 
     for (uint32_t k = 0; k < std::size(cb_names); ++k) {
-      format += fan::format(R"(    {3}_{0}_cb_table_t {3}_{1}_cb_table[{2}] = {{)", cb_names[k], cb_names[k], shape->instances.size(), shape_name);
+      format += fan::format(R"(    {3}_{0}_cb_table_t {3}_{1}_cb_table[{2}] = {{)", cb_names[k], cb_names[k], shape->instances.Usage(), shape_name);
 
-      for (std::size_t j = 0; j < shape->instances.size(); ++j) {
-        format += fan::format("&{0}_t::{3}{1}_{2}_cb,", stage_name.c_str(), shape->instances[j]->id, cb_names[k], shape_name);
+      auto it = shape->instances.GetNodeFirst();
+
+      while (it != shape->instances.dst) {
+        format += fan::format("&{0}_t::{3}{1}_{2}_cb,", stage_name.c_str(), shape->instances[it].id, cb_names[k], shape_name);
+        it = it.Next(&shape->instances);
       }
 
       format += "};";
@@ -144,13 +147,15 @@ struct fgm_t {
 
 		fgm->get_stage_maker()->stage_h_str.insert(src, format);
 
-    for (std::size_t j = 0; j < shape->instances.size(); ++j) {
-      for (uint32_t k = 0; k < std::size(cb_names); ++k) {
+    auto it = shape->instances.GetNodeFirst();
+
+    while (it != shape->instances.dst) {
+ for (uint32_t k = 0; k < std::size(cb_names); ++k) {
         auto cbs_text = fan::format(R"(
 int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
   return 0;
 }}
-)", fan::to_string(shape->instances[j]->id), cb_names[k], shape_name);
+)", fan::to_string(shape->instances[it].id), cb_names[k], shape_name);
         if (str.find(cbs_text) != fan::string::npos) {
           continue;
         }
@@ -161,8 +166,9 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
     fan::io::file::write(file_name, str, std::ios_base::binary);
 
 		fgm->get_stage_maker()->write_stage();
+      it = it.Next(&shape->instances);
+    }
 
-  }
 	#endif
 
 	void open_editor_properties() {
@@ -274,12 +280,12 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
 			      bbp.font_size = scale_object_with_viewport(fan::vec2(0.2), &viewport[viewport_area::types], &viewport[viewport_area::editor]).x;
 			      button.push_back(bbp);
 			
-            auto it = button.instances[button.instances.size() - 1];
-			      auto builder_cid = &it->cid;
-			      auto ri = pile->loco.button.get_ri(builder_cid);
+            auto shape_nr = button.instances.GetNodeLast();
+            auto& it = button.instances[shape_nr];
+			      auto ri = pile->loco.button.get_ri(it.shape);
 			      //pile->loco.vfi.set_focus_mouse(ri.vfi_id);
 			      //pile->loco.vfi.feed_mouse_button(fan::button_left, fan::button_state::press);
-			      button.open_properties(it);
+			      button.open_properties(shape_nr);
 			
 						#if defined(fgm_build_stage_maker)
 							auto stage_name = get_stage_maker()->get_selected_name(
@@ -323,8 +329,9 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
           	sp.size = size / 10;
           	sp.image = &pile->loco.default_texture;
           	sprite.push_back(sp);
-          	auto& instance = sprite.instances[sprite.instances.size() - 1];
-          	sprite.open_properties(instance);
+            auto shape_nr = sprite.instances.GetNodeLast();
+          	auto& instance = sprite.instances[shape_nr];
+          	sprite.open_properties(shape_nr);
 
             invalidate_right_click_menu();
 
@@ -354,7 +361,7 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
             sp.font_size = 0.1;
             sp.text = "text";
             text.push_back(sp);
-            auto& instance = text.instances[text.instances.size() - 1];
+            auto& instance = text.instances[text.instances.GetNodeLast()];
             text.open_properties(&instance);
 
             invalidate_right_click_menu();
@@ -386,8 +393,8 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
           	sp.size = fan::vec2(0.1, 0.1);
           	sp.image = &hitbox_image;
           	hitbox.push_back(sp);
-          	auto& instance = hitbox.instances[hitbox.instances.size() - 1];
-          	hitbox.open_properties(instance);
+          	auto& instance = hitbox.instances[hitbox.instances.GetNodeLast()];
+          	hitbox.open_properties(&instance);
 
 						#if defined(fgm_build_stage_maker)
 							auto stage_name = get_stage_maker()->get_selected_name(
@@ -695,7 +702,7 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
     // header
     fan::write_to_string(f, stage_maker_format_version);
 
-    iterate_masterpiece([&f](const auto& shape) {
+    iterate_masterpiece([&f](auto& shape) {
       f += shape.to_string();
     });
    

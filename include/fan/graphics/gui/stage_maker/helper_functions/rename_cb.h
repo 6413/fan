@@ -37,7 +37,8 @@ tp.keyboard_cb = [this, selected_id](const loco_t::keyboard_data_t& d) -> int {
   switch (d.key) {
 
     case fan::key_enter: {
-      auto new_name = pile->loco.text_box.get_text(d.id);
+      auto temp_id = d.id;
+      auto new_name = pile->loco.text_box.get_text(temp_id);
       if (!does_stage_exist(new_name)) {
         do {
           auto old_name = get_selected_name(instances[stage_t::stage_instance].menu_id);

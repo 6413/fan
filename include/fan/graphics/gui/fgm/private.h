@@ -124,16 +124,21 @@ void move_shape(auto* shape, auto* instance, const fan::vec2& offset) {
   set_position(shape, instance, p);
 }
 
-void erase_shape(auto* shape, auto* instance) {
-  shape->erase(instance);
+void erase_shape(auto* shape, auto shape_nr) {
+  shape->erase(shape_nr);
 }
 
 static bool does_id_exist(auto* shape, const fan::string& id) {
-  for (const auto& it : shape->instances) {
-    if (it->id == id) {
+
+  auto it = shape->instances.GetNodeFirst();
+
+  while (it != shape->instances.dst) {
+    if (shape->instances[it].id == id) {
       return true;
     }
+    it = it.Next(&shape->instances);
   }
+
   return false;
 }
 
@@ -148,13 +153,11 @@ struct line_t {
   #include "shape_builder.h"
 
 	void push_back(properties_t& p) {
-    shape_builder_push_back();
-    uint32_t i = instances.size() - 1;
-    instances[i].id = p;
+    auto nr = shape_builder_push_back();
+    instances[nr].id = p;
 	}
 
   fgm_make_clear_f(
-    pile->loco.line.erase(&it->cid);
   );
 
   #include "shape_builder_close.h"
@@ -172,12 +175,10 @@ struct global_button_t {
   #include "shape_builder.h"
 
 	void push_back(properties_t& p) {
-		instances.resize(instances.size() + 1);
-		uint32_t i = instances.size() - 1;
-    instances[i].id = p;
+    auto nr = shape_builder_push_back();
+    instances[nr].id = p;
 	}
   fgm_make_clear_f(
-    pile->loco.button.erase(&it->cid);
   );
 
   #include "shape_builder_close.h"
@@ -198,10 +199,9 @@ struct button_menu_t {
 	using open_properties_t = loco_t::menu_maker_button_t::open_properties_t;
 
 	loco_t::menu_maker_button_t::instance_NodeReference_t push_menu(const open_properties_t& op) {
-    shape_builder_push_back();
-    uint32_t i = instances.size() - 1;
-		instances[i].nr = pile->loco.menu_maker_button.push_menu(op);
-		return instances[i].nr;
+    auto nr = shape_builder_push_back();
+		instances[nr].nr = pile->loco.menu_maker_button.push_menu(op);
+		return instances[nr].nr;
 	}
 	loco_t::menu_maker_button_t::base_type_t::instance_NodeReference_t push_back(loco_t::menu_maker_button_t::instance_NodeReference_t id, const properties_t& properties) {
 		return pile->loco.menu_maker_button.instances[id].base.push_back(&pile->loco, properties, id);
@@ -209,16 +209,19 @@ struct button_menu_t {
 
 	void erase(loco_t::menu_maker_button_t::instance_NodeReference_t id) {
 		pile->loco.menu_maker_button.erase_menu(id);
-		for (uint32_t i = 0; i < instances.size(); i++) {
-			if (id == instances[i].nr) {
-				instances.erase(instances.begin() + i);
+    auto it = instances.GetNodeFirst();
+
+    while (it != instances.dst) {
+      if (id == instances[it].nr) {
+        instances.unlrec(it);
 				break;
 			}
-		}
+      it = it.Next(&instances);
+    }
 	}
 
   fgm_make_clear_f(
-    pile->loco.menu_maker_button.erase_menu(it->nr);
+    pile->loco.menu_maker_button.erase_menu(instances[it].nr);
   );
 
   #include "shape_builder_close.h"
@@ -241,10 +244,9 @@ struct text_box_menu_t {
   #include "shape_builder.h"
 
   type_t::instance_NodeReference_t push_menu(const open_properties_t& op) {
-    shape_builder_push_back();
-    uint32_t i = instances.size() - 1;
-    instances[i].nr = pile->loco.menu_maker_text_box.push_menu(op);
-    return instances[i].nr;
+    auto nr = shape_builder_push_back();
+    instances[nr].nr = pile->loco.menu_maker_text_box.push_menu(op);
+    return instances[nr].nr;
   }
   type_t::base_type_t::instance_NodeReference_t push_back(type_t::instance_NodeReference_t id, const properties_t& properties) {
     return pile->loco.menu_maker_text_box.instances[id].base.push_back(&pile->loco, properties, id);
@@ -252,16 +254,19 @@ struct text_box_menu_t {
 
   void erase(type_t::instance_NodeReference_t id) {
     pile->loco.menu_maker_text_box.erase_menu(id);
-    for (uint32_t i = 0; i < instances.size(); i++) {
-      if (id == instances[i].nr) {
-        instances.erase(instances.begin() + i);
-        break;
-      }
+    auto it = instances.GetNodeFirst();
+
+    while (it != instances.dst) {
+      if (id == instances[it].nr) {
+        instances.unlrec(it);
+				break;
+			}
+      it = it.Next(&instances);
     }
   }
 
   fgm_make_clear_f(
-    pile->loco.menu_maker_text_box.erase_menu(it->nr);
+    pile->loco.menu_maker_text_box.erase_menu(instances[it].nr);
   );
 
   #include "shape_builder_close.h"

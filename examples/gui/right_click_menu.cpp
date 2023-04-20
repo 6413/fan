@@ -12,6 +12,7 @@
 #define loco_window
 #define loco_context
 
+#define loco_menu_maker_text_box
 #define loco_menu_maker 
 #include _FAN_PATH(graphics/loco.h)
 

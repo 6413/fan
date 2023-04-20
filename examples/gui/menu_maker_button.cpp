@@ -1,5 +1,7 @@
 // rectangle text button using loco
 
+#define fan_debug 3
+
 #define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 
 #ifndef FAN_INCLUDE_PATH
@@ -46,20 +48,20 @@ struct pile_t {
   fan::graphics::viewport_t viewport;
 };
 
-{
-
-  pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco);
-
-  using sl = loco_t::stage_loader_t;
-
-  sl::stage_open_properties_t op;
-  op.camera = &pile->camera;
-  op.viewport = &pile->viewport;
-  op.theme = &pile->theme;
-  pile->loco.stage_loader.push_and_open_stage<sl::stage::stage1_t>(op);
-
-  return 0;
-}
+//{
+//
+//  pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco);
+//
+//  using sl = loco_t::stage_loader_t;
+//
+//  sl::stage_open_properties_t op;
+//  op.camera = &pile->camera;
+//  op.viewport = &pile->viewport;
+//  op.theme = &pile->theme;
+//  pile->loco.stage_loader.push_and_open_stage<sl::stage::stage1_t>(op);
+//
+//  return 0;
+//}
 
 int main() {
 
@@ -81,7 +83,7 @@ int main() {
   op.position = fan::vec2(op.gui_size * (5.0 / 3), -1.0 + op.gui_size);
   ids[1] = pile->loco.menu_maker_button.push_menu(op);
   loco_t::menu_maker_button_t::properties_t p;
-  p.text = L"Create New Stage";
+  p.text = "Create New Stage";
   p.mouse_button_cb = [&](const loco_t::mouse_button_data_t& mb) -> int {
     if (mb.button != fan::mouse_left) {
       return 0;
@@ -92,7 +94,7 @@ int main() {
     pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco);
     loco_t::menu_maker_button_t::properties_t p;
     static int x = 0;
-     p.text = fan::string(L"Stage") + fan::to_string(x++);
+     p.text = fan::string("Stage") + fan::to_string(x++);
      p.mouse_button_cb = [](const loco_t::mouse_button_data_t& mb) -> int {
        if (mb.button != fan::mouse_left) {
          return 0;
@@ -101,12 +103,12 @@ int main() {
          return 0;
        }
        pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco);
-       fan::graphics::cid_t* cid = mb.cid;
+       auto id = mb.id;
        if (mb.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside) {
-         pile->loco.button.set_theme(cid, pile->loco.button.get_theme(cid), loco_t::button_t::press);
+         pile->loco.button.set_theme(id, pile->loco.button.get_theme(id), loco_t::button_t::pressed);
        }
        else {
-         pile->loco.button.set_theme(cid, pile->loco.button.get_theme(cid), loco_t::button_t::inactive);
+         pile->loco.button.set_theme(id, pile->loco.button.get_theme(id), loco_t::button_t::released);
        }
        return 0;
      };
