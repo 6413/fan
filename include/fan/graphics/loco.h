@@ -811,7 +811,7 @@ public:
   #if defined(loco_window)
   void process_block_properties_element(auto* shape, loco_t::camera_list_NodeReference_t camera_id) {
     #if defined(loco_opengl)
-    shape->m_shader.set_camera(get_context(), camera_list[camera_id].camera_id, &m_write_queue);
+    shape->m_current_shader->set_camera(get_context(), camera_list[camera_id].camera_id, &m_write_queue);
     #elif defined(loco_vulkan)
     auto& camera = camera_list[camera_id];
     auto context = get_context();
@@ -883,8 +883,8 @@ public:
     if (tid.NRI == (decltype(tid.NRI))-1) {
       return;
     }
-    shape->m_shader.use(get_context());
-    shape->m_shader.set_int(get_context(), tid.name, n);
+    shape->m_current_shader->use(get_context());
+    shape->m_current_shader->set_int(get_context(), tid.name, n);
     get_context()->opengl.call(get_context()->opengl.glActiveTexture, fan::opengl::GL_TEXTURE0 + n);
     get_context()->opengl.call(get_context()->opengl.glBindTexture, fan::opengl::GL_TEXTURE_2D, image_list[tid].texture_id);
     #elif defined(loco_vulkan)
