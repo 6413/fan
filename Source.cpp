@@ -9,35 +9,33 @@ struct pile_t;
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
 struct a_t {
-  a_t() {
-    fan::print("a_t()");
+  int x;
+};
+
+struct b_t {
+
+};
+
+struct my_functor {
+  a_t& a;
+  my_functor(a_t& a) : a(a) {}
+  void operator()() {
+    a.x = 5;
   }
-  a_t(const a_t&) {
-    fan::print("copy");
-  }
-  a_t(a_t&&) {
-    fan::print("move");
-  }
-  a_t& operator=(const a_t&) {
-    fan::print("acopy");
-    return *this;
-  }
-  a_t& operator=(a_t&&) {
-    fan::print("amove");
-    return *this;
+};
+
+template <typename T>
+struct gt {
+  T l;
+  gt(T l) : l(l) {}
+  void f() {
+    l();
   }
 };
 
 int main() {
-  //std::vector<a_t> a;
   a_t a;
-  a_t* b = (a_t*)malloc(sizeof(a_t));
-  new (b) a_t(a);
-  //std::construct_at(b, a);
-  //new (b) a_t(a);
-  //a = b;
-  //a = std::move(b);
-  /*for (uint32_t i = 0; i < 2; ++i) {
-    a.push_back(a_t());
-  }*/
+  my_functor f(a);
+  gt<my_functor> g(f);
+  g.f();
 }

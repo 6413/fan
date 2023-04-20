@@ -1196,7 +1196,7 @@ public:
     #define sb_menu_maker_name menu_maker_text_box_t
     #include "wrappers/menu_maker.h"
   #endif
-  #if defined(loco_menu_maker)
+  #if defined(loco_menu_maker_button)
     #include "wrappers/dropdown.h"
   #endif
   #if defined(loco_model_3d)

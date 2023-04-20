@@ -96,12 +96,14 @@ _BVEC_P(Close)
 (
   _BVEC_P(t) *List
 ){
-  #if defined(BVEC_set_MultipleType)
-    for(uintptr_t i = 0; i < _BVEC_MultipleType_Amount; i++){
-      BVEC_set_alloc_close(List->ptr[i]);
-    }
-  #else
-    BVEC_set_alloc_close(List->ptr);
+  #if BVEC_set_HandleAllocate == 1
+    #if defined(BVEC_set_MultipleType)
+      for(uintptr_t i = 0; i < _BVEC_MultipleType_Amount; i++){
+        BVEC_set_alloc_close(List->ptr[i]);
+      }
+    #else
+      BVEC_set_alloc_close(List->ptr);
+    #endif
   #endif
 }
 static
@@ -122,7 +124,7 @@ _BVEC_P(Open)
       List->ptr[i] = NULL;
     }
   #else
-    List->ptr = 0;
+    List->ptr = NULL;
     #ifndef BVEC_set_NodeData
       List->NodeSize = NodeSize;
       #if BVEC_set_BufferingFormat == 0
@@ -142,14 +144,17 @@ _BVEC_P(Clear)
 ){
   List->Current = 0;
 }
+
 static
 void
 _BVEC_P(ClearWithBuffer)
 (
   _BVEC_P(t) *List
 ){
-  /* alot shorter to call this */
-  _BVEC_P(Close)(List);
+  #if BVEC_set_HandleAllocate == 1
+    /* alot shorter to call this */
+    _BVEC_P(Close)(List);
+  #endif
 
   List->Current = 0;
   List->Possible = 0;
@@ -158,78 +163,96 @@ _BVEC_P(ClearWithBuffer)
       List->ptr[i] = NULL;
     }
   #else
-    List->ptr = 0;
+    List->ptr = NULL;
+  #endif
+}
+
+static
+BVEC_set_NodeType
+_BVEC_P(GetBufferAmount0)(
+  _BVEC_P(t) *List,
+  BVEC_set_NodeType Size
+){
+  #if BVEC_set_BufferingFormat == 0
+    return Size + _BVEC_P(GetBufferAmount)(List);
+  #elif BVEC_set_BufferingFormat == 1
+    return ((uintptr_t)2 << sizeof(uintptr_t) * 8 - __clz(Size | 1)) - 1;
+  #else
+    #error ?
   #endif
 }
 
 static
 void
-_BVEC_P(_Resize)(
-  _BVEC_P(t) *List
+_BVEC_P(SetPointer)(
+  _BVEC_P(t) *List,
+  void *Pointer
 ){
-  #if defined(BVEC_set_MultipleType)
-    for(uintptr_t i = 0; i < _BVEC_MultipleType_Amount; i++){
+  List->ptr = (_BVEC_P(Node_t) *)Pointer;
+}
+
+#if BVEC_set_HandleAllocate == 1
+  static
+  void
+  _BVEC_P(_Resize)(
+    _BVEC_P(t) *List
+  ){
+    #if defined(BVEC_set_MultipleType)
+      for(uintptr_t i = 0; i < _BVEC_MultipleType_Amount; i++){
+        for(uint32_t iRetry = 0; iRetry < BVEC_set_alloc_RetryAmount; iRetry++){
+          void *np = BVEC_set_alloc_resize(List->ptr[i], (uintptr_t)List->Possible * _BVEC_P(_MultipleType_Sizes)[i]);
+          if(np == NULL){
+            continue;
+          }
+          List->ptr[i] = (uint8_t *)np;
+          goto gt_NextType;
+        }
+        BVEC_set_abort
+        gt_NextType:;
+      }
+    #else
       for(uint32_t iRetry = 0; iRetry < BVEC_set_alloc_RetryAmount; iRetry++){
-        void *np = BVEC_set_alloc_resize(List->ptr[i], (uintptr_t)List->Possible * _BVEC_P(_MultipleType_Sizes)[i]);
+        void *np = BVEC_set_alloc_resize(List->ptr, (uintptr_t)List->Possible * _BVEC_P(GetNodeSize)(List));
         if(np == NULL){
           continue;
         }
-        List->ptr[i] = (uint8_t *)np;
-        goto gt_NextType;
+        List->ptr = (_BVEC_P(Node_t) *)np;
+        return;
       }
       BVEC_set_abort
-      gt_NextType:;
-    }
-  #else
-    for(uint32_t iRetry = 0; iRetry < BVEC_set_alloc_RetryAmount; iRetry++){
-      void *np = BVEC_set_alloc_resize(List->ptr, (uintptr_t)List->Possible * _BVEC_P(GetNodeSize)(List));
-      if(np == NULL){
-        continue;
-      }
-      List->ptr = (_BVEC_P(Node_t) *)np;
-      return;
-    }
-    BVEC_set_abort
-  #endif
-}
+    #endif
+  }
 
-static
-void
-_BVEC_P(Reserve)
-(
-  _BVEC_P(t) *List,
-  BVEC_set_NodeType Amount
-){
-  List->Possible = Amount;
-  _BVEC_P(_Resize)(List);
-}
+  static
+  void
+  _BVEC_P(Reserve)
+  (
+    _BVEC_P(t) *List,
+    BVEC_set_NodeType Amount
+  ){
+    List->Possible = Amount;
+    _BVEC_P(_Resize)(List);
+  }
 
-static
-void
-_BVEC_P(_AllocateBuffer)
-(
-  _BVEC_P(t) *List
-){
-  #if BVEC_set_BufferingFormat == 0
-    List->Possible += _BVEC_P(GetBufferAmount)(List);
-  #elif BVEC_set_BufferingFormat == 1
-    List->Possible = ((uintptr_t)2 << sizeof(uintptr_t) * 8 - __clz(List->Possible | 1)) - 1;
-  #endif
-  _BVEC_P(_Resize)(List);
-}
-static
-void
-_BVEC_P(_AllocateBufferFromCurrent)
-(
-  _BVEC_P(t) *List
-){
-  #if BVEC_set_BufferingFormat == 0
-    List->Possible = List->Current + _BVEC_P(GetBufferAmount)(List);
-  #elif BVEC_set_BufferingFormat == 1
-    List->Possible = ((uintptr_t)2 << sizeof(uintptr_t) * 8 - __clz(List->Current | 1)) - 1;
-  #endif
-  _BVEC_P(_Resize)(List);
-}
+  static
+  void
+  _BVEC_P(_AllocateBuffer)
+  (
+    _BVEC_P(t) *List
+  ){
+    List->Possible = _BVEC_P(GetBufferAmount0)(List, List->Possible);
+    _BVEC_P(_Resize)(List);
+  }
+  static
+  void
+  _BVEC_P(_AllocateBufferFromCurrent)
+  (
+    _BVEC_P(t) *List
+  ){
+    List->Possible = _BVEC_P(GetBufferAmount0)(List, List->Current);
+    _BVEC_P(_Resize)(List);
+  }
+#endif
 
 #if !defined(BVEC_set_MultipleType)
   static
@@ -239,9 +262,11 @@ _BVEC_P(_AllocateBufferFromCurrent)
     _BVEC_P(t) *List,
     _BVEC_P(Node_t) *Node
   ){
-    if(List->Current == List->Possible){
-      _BVEC_P(_AllocateBuffer)(List);
-    }
+    #if BVEC_set_HandleAllocate == 1
+      if(List->Current == List->Possible){
+        _BVEC_P(_AllocateBuffer)(List);
+      }
+    #endif
 
     #ifdef BVEC_set_NodeData
       List->ptr[List->Current] = *Node;
@@ -260,9 +285,11 @@ _BVEC_P(AddEmpty)
   BVEC_set_NodeType Amount
 ){
   List->Current += Amount;
-  if(List->Current >= List->Possible){
-    _BVEC_P(_AllocateBufferFromCurrent)(List);
-  }
+  #if BVEC_set_HandleAllocate == 1
+    if(List->Current >= List->Possible){
+      _BVEC_P(_AllocateBufferFromCurrent)(List);
+    }
+  #endif
 }
 
 #if defined(BVEC_set_MultipleType)

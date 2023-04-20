@@ -220,6 +220,7 @@ struct text_renderer_t {
   #define BLL_set_Link 1
   #include _FAN_PATH(BLL/BLL.h)
 
+  #define BLL_set_CPP_CopyAtPointerChange
   #define BLL_set_CPP_ConstructDestruct
   #define BLL_set_CPP_Node_ConstructDestruct
   #define BLL_set_AreWeInsideStruct 1
