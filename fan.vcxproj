@@ -335,7 +335,6 @@
     <None Include="src\dav1d\x86\refmvs.asm" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\WITCH\BLL\BLL.h" />
     <ClInclude Include="..\WITCH\BLL\internal\NodeReference.h" />
     <ClInclude Include="..\WITCH\BLL\internal\rest.h" />
     <ClInclude Include="include\fan\graphics\gui\fgm\shapes.h" />
