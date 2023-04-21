@@ -259,17 +259,32 @@ inline struct global_loco_t {
 
 struct loco_t {
 
-  struct position2_t : fan::vec2 {
-    using fan::vec2::vec2;
+  struct position2_t : public  fan::vec2 {
+    //using fan::vec2::vec2;
   };
 
-  struct position3_t : fan::vec3 {
+  struct position3_t : public fan::vec3 {
     using fan::vec3::vec3;
-    position3_t(const fan::vec3& v) : fan::vec3(v) {}
-    position3_t& operator=(const fan::vec2& v) {
+    using fan::vec3::operator=;
+    position3_t& operator=(const position3_t& p) { 
+      fan::vec3::operator=(p); 
+      return *this; 
+    }
+    //using fan::vec3::vec3;
+    //position3_t(const fan::vec3& v) : fan::vec3(v) {}
+    //position3_t& operator=(const fan::vec2& v) = default;
+    /*
+    {
       *(fan::vec3*)this = fan::vec3::operator=(v);
       return *this;
     }
+    */
+    /*position3_t& operator=(const fan::vec3& v) {
+      *(fan::vec3*)this = fan::vec3::operator=(v);
+      return *this;
+    }*/
+ // private:
+   // using fan::vec3::operator=;
   };
 
   void use() {
