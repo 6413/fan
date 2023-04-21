@@ -4,7 +4,7 @@
 
 #if defined(loco_rectangle)
 #define loco_rectangle_vi_t \
-  fan::vec3 position = 0; \
+  loco_t::position3_t position = 0; \
   f32_t pad[1]; \
   fan::vec2 size = 0; \
   fan::vec2 rotation_point = 0; \
@@ -30,7 +30,7 @@
 
 #if defined(loco_sprite)
 #define loco_sprite_vi_t \
-    fan::vec3 position = 0; \
+    loco_t::position3_t position = 0; \
     f32_t parallax_factor = 0; \
     fan::vec2 size = 0; \
     fan::vec2 rotation_point = 0; \
@@ -71,7 +71,7 @@
 
 #if defined(loco_letter)
   #define loco_letter_vi_t \
-    fan::vec3 position; \
+    loco_t::position3_t position; \
     f32_t outline_size;\
     fan::vec2 size;\
     fan::vec2 tc_position;\
@@ -112,7 +112,7 @@
 
 #if defined(loco_button)
 #define loco_button_vi_t \
-    fan::vec3 position = 0; \
+    loco_t::position3_t position = 0; \
     f32_t angle = 0; \
     fan::vec2 size = 0; \
     fan::vec2 rotation_point = 0; \
@@ -155,7 +155,7 @@
 
 #if defined(loco_text_box)
   #define loco_text_box_vi_t \
-    fan::vec3 position = 0; \
+    loco_t::position3_t position = 0; \
     f32_t angle = 0; \
     fan::vec2 size = 0; \
     fan::vec2 rotation_point = 0; \
@@ -201,7 +201,7 @@
 
 #if defined(loco_light)
 #define loco_light_vi_t \
-  fan::vec3 position = 0; \
+  loco_t::position3_t position = 0; \
   f32_t parallax_factor = 0; \
   fan::vec2 size = 0; \
   fan::vec2 rotation_point = 0; \
