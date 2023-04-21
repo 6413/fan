@@ -438,8 +438,15 @@ public:
     auto block = sb_get_block(id);
     return block->uniform_buffer.get_instance(gloco->get_context(), id->instance_id)->*member;
   }
-  template <typename T, typename T2>
-  void set(loco_t::cid_nt_t& id, T T2::* member, const auto& value) {
+  template <typename T, typename T2, typename T3>
+  void set(loco_t::cid_nt_t& id, T T2::* member, const T3& value) {
+    if constexpr (std::is_same_v<T, loco_t::position3_t>) {
+      if constexpr(std::is_same_v<T3, fan::vec3>)
+      if (value.z != get(id, member).z) {
+        sb_set_depth(id, value.z);
+      }
+    }
+
     auto block = sb_get_block(id);
 
     block->uniform_buffer.edit_instance(gloco->get_context(), &gloco->m_write_queue, id->instance_id, member, value);

@@ -33,7 +33,10 @@ namespace fan {
 
 		constexpr _vec2() = default;
 		constexpr _vec2(_Ty value) : x(value), y(value) {}
-		constexpr _vec2(_Ty x_, _Ty y_) : x(x_), y(y_) {}
+		constexpr _vec2(_Ty x_, _Ty y_) {
+      x = x_;
+      y = y_;
+    }
 
 		template <typename T>
 		constexpr _vec2(const _vec2<T>& vec) : x(vec.x), y(vec.y) {}
@@ -369,8 +372,12 @@ namespace fan {
 		template <typename type_t>
 		constexpr _vec3(const _vec2<type_t>& vec) : x(vec.x), y(vec.y), z(0) {}
 
-		template <typename type_t>
-		constexpr _vec3(_vec2<type_t>&& vec) : x(std::move(vec.x)), y(std::move(vec.y)), z(0) {}
+    template <typename type_t>
+    _vec3& operator=(const _vec2<type_t>& vec) {
+      x = vec.x;
+      y = vec.y;
+      return *this;
+    }
 
 		template <typename type_t>
 		constexpr _vec3(const std::array<type_t, 3>& array) : x(array[0]), y(array[1]), z(array[2]) {}
