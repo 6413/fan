@@ -41,10 +41,10 @@ protected:
   #define BLL_set_BaseLibrary 1
   #define BLL_set_prefix cid_list
   #define BLL_set_type_node uint32_t
-  #define BLL_set_NodeDataType loco_t::id_t
+  #define BLL_set_NodeDataType loco_t::shape_t
   #define BLL_set_Link 1
   #define BLL_set_AreWeInsideStruct 1
-  // for safety for getting reference to id_t in get_id()
+  // for safety for getting reference to shape_t in get_id()
   #define BLL_set_StoreFormat 1
   #include _FAN_PATH(BLL/BLL.h)
 public:
@@ -116,7 +116,7 @@ public:
   using cid_map_t = std::unordered_map<key_t, cid_nr_t, pair_hasher_t, pair_equal_t>;
   cid_map_t cid_map;
 
-  loco_t::id_t& get_id(auto* stage_ptr, const fan::string id) {
+  loco_t::shape_t& get_id(auto* stage_ptr, const fan::string id) {
     auto found = cid_map.find(std::make_pair(stage_ptr, id));
     if (found == cid_map.end()) {
       fan::throw_error("invalid fetch for id - usage shape_{id}", id);

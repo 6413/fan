@@ -60,7 +60,7 @@ int main() {
   p.text = "01234";
   p.color = fan::colors::white;
 
-  std::vector<loco_t::id_t> ids;
+  std::vector<loco_t::shape_t> ids;
   ids.reserve(10000);
   for (uint32_t i = 0; i < 1000; i++){
     ids.push_back(p);
@@ -73,10 +73,10 @@ int main() {
   //  }
   //}
 
-  loco_t::id_t text0 = p;
+  loco_t::shape_t text0 = p;
   //text0.erase();
   p.text = "56789";
-  loco_t::id_t text1 = p;
+  loco_t::shape_t text1 = p;
   //text1.set_text("56789");
   text1.set_color(fan::color(1, 0, 0, 1));
 

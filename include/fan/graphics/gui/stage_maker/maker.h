@@ -496,7 +496,7 @@ void update(auto& loco){
 
 	std::vector<loco_t::menu_maker_button_t::base_type_t::instance_NodeReference_t> options_ids;
 
-  loco_t::id_t rename_textbox;
+  loco_t::shape_t rename_textbox;
 
   fan::window_t::keys_callback_NodeReference_t keys_callback_nr;
 

@@ -1006,29 +1006,29 @@ public:
     fan_create_id_definition_define(void, set_##name, const rt& data){ set_extra gloco->shape_##set_##name(*this, data); }
 
  
-  struct id_t : cid_nr_t {
+  struct shape_t : cid_nr_t {
     using inherit_t = cid_nr_t;
 
-    id_t() { };
-    id_t(const auto& properties) {
+    shape_t() { };
+    shape_t(const auto& properties) {
       inherit_t::init();
       gloco->push_shape(*this, properties);
     }
 
-    inline id_t(const id_t& id) : inherit_t(id) {
+    inline shape_t(const shape_t& id) : inherit_t(id) {
       if (id.is_invalid()) {
         return;
       }
-      gloco->shape_get_properties(*(id_t*)&id, [&](const auto& properties) {
+      gloco->shape_get_properties(*(shape_t*)&id, [&](const auto& properties) {
         gloco->push_shape(*this, properties);
       });
     }
-    inline id_t(id_t&& id) : inherit_t(std::move(id)) {
+    inline shape_t(shape_t&& id) : inherit_t(std::move(id)) {
 
     }
-    loco_t::id_t& operator=(const id_t& id) {
+    loco_t::shape_t& operator=(const shape_t& id) {
       if (this != &id) {
-        gloco->shape_get_properties(*(id_t*)&id, [&](const auto& properties) {
+        gloco->shape_get_properties(*(shape_t*)&id, [&](const auto& properties) {
           init();
           gloco->push_shape(*this, properties);
         });
@@ -1036,7 +1036,7 @@ public:
       return *this;
     }
 
-    loco_t::id_t& operator=(id_t&& id) {
+    loco_t::shape_t& operator=(shape_t&& id) {
       if (this != &id) {
         if (!is_invalid()) {
           erase();
@@ -1047,7 +1047,7 @@ public:
       return *this;
     }
 
-    ~id_t() {
+    ~shape_t() {
       erase();
     }
 
@@ -1096,10 +1096,10 @@ public:
 
     
     bool get_blending() {
-      return gloco->shape_get_blending(*(id_t*)this);
+      return gloco->shape_get_blending(*(shape_t*)this);
     }
     auto get_ri() {
-      return gloco->shape_get_ri(*(id_t*)this);
+      return gloco->shape_get_ri(*(shape_t*)this);
     }
   };
   #endif
@@ -1680,6 +1680,8 @@ public:
     return position / window_size * 2 - 1;
   }
 
+  using viewport_t = fan::graphics::viewport_t;
+
   fan::vec2 get_mouse_position() {
     // not custom ortho friendly - made for -1 1
     //return transform_matrix(get_window()->get_mouse_position());
@@ -1702,6 +1704,15 @@ public:
   fan::vec2 get_mouse_position(const fan::graphics::viewport_t& viewport) {
     return transform_position(get_mouse_position(), viewport);
   }
+
+  fan::vec2 get_mouse_position(const loco_t::camera_t& camera, const loco_t::viewport_t& viewport) {
+    fan::vec2 mouse_pos = get_mouse_position();
+    fan::vec2 translated_pos;
+    translated_pos.x = fan::math::map(mouse_pos.x, viewport.get_position().x, viewport.get_position().x + viewport.get_size().x, camera.coordinates.left, camera.coordinates.right);
+    translated_pos.y = fan::math::map(mouse_pos.y, viewport.get_position().y, viewport.get_position().y + viewport.get_size().y, camera.coordinates.up, camera.coordinates.down);
+    return translated_pos;
+  }
+
 
 #if defined(loco_vulkan)
   fan::vulkan::shader_t render_fullscreen_shader;

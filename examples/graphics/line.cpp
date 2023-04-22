@@ -47,7 +47,7 @@ int main() {
   pile_t* pile = new pile_t;
   pile->open();
 
-  loco_t::id_t line = fan_init_struct(
+  loco_t::shape_t line = fan_init_struct(
     loco_t::line_t::properties_t,
     .camera = &pile->camera,
     .viewport = &pile->viewport,

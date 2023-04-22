@@ -8,7 +8,7 @@ struct sb_menu_maker_type_name {
   #define BLL_set_prefix instance
   #define BLL_set_type_node uint16_t
   #define BLL_set_NodeData \
-        loco_t::id_t id; \
+        loco_t::shape_t id; \
         fan::string text; \
         fan::vec3 position; \
         loco_t::theme_t theme; \

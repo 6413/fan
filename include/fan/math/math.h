@@ -114,6 +114,10 @@ namespace fan {
 
 	namespace math {
 
+    constexpr f32_t map(f32_t value, f32_t start1, f32_t stop1, f32_t start2, f32_t stop2) {
+      return start2 + (stop2 - start2) * ((value - start1) / (stop1 - start1));
+    }
+
 		constexpr f_t inf = INFINITY;
 		constexpr f_t infinite = inf;
 		constexpr f_t infinity = infinite;

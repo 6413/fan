@@ -148,7 +148,7 @@ struct line_t {
   #define fgm_no_gui_properties
   #define fgm_shape_non_moveable_or_resizeable
   #define fgm_shape_instance_data \
-    loco_t::id_t id; \
+    loco_t::shape_t id; \
     uint16_t shape;
   #include "shape_builder.h"
 
@@ -170,7 +170,7 @@ struct global_button_t {
   #define fgm_shape_non_moveable_or_resizeable
   #define fgm_shape_loco_name button
   #define fgm_shape_instance_data \
-    loco_t::id_t id; \
+    loco_t::shape_t id; \
     uint16_t shape;
   #include "shape_builder.h"
 
