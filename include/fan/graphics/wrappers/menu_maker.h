@@ -24,7 +24,7 @@ struct sb_menu_maker_name {
 	#include _FAN_PATH(BLL/BLL.h)
 
 	using nr_t = instance_NodeReference_t;
-	using id_t = sb_menu_maker_type_name::instance_NodeReference_t;
+	using shape_t = sb_menu_maker_type_name::instance_NodeReference_t;
 
 	loco_t* get_loco() {
 		loco_t* loco = OFFSETLESS(this, loco_t, sb_menu_maker_var_name);
@@ -35,7 +35,7 @@ struct sb_menu_maker_name {
 
 	}
 
-	id_t get_instance_id(nr_t id, loco_t::cid_nt_t& nr) {
+	shape_t get_instance_id(nr_t id, loco_t::cid_nt_t& nr) {
 		auto it = instances[id].base.instances.GetNodeFirst();
 		while (it != instances[id].base.instances.dst) {
 			if (instances[id].base.instances[it].id == nr) {
@@ -138,7 +138,7 @@ struct sb_menu_maker_name {
 		}
 	}
 
-  void set_text(nr_t nr, id_t id, const fan::string& text) {
+  void set_text(nr_t nr, shape_t id, const fan::string& text) {
     instances[nr].base.instances[id].text = text;
     gloco->sb_menu_maker_shape.set_text(instances[nr].base.instances[id].id, text);
   }

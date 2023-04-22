@@ -113,9 +113,9 @@ void push_things() {
         }
         p.blending = true;
 
-        loco_t::id_t* id = new loco_t::id_t(p);
+        loco_t::shape_t* id = new loco_t::shape_t(p);
         uint32_t key = id->cid.NRI;
-        //std::construct_at((loco_t::id_t*)&key, std::move(id));
+        //std::construct_at((loco_t::shape_t*)&key, std::move(id));
 
         if (idlist.find(key) != idlist.end()) {
           fan::throw_error(__LINE__);
@@ -144,7 +144,7 @@ void ResetInfo(){
 void QueryAll() {
   fan::print(idlist.size());
   for(auto& i : idlist){
-    loco_t::id_t* id = (loco_t::id_t *) & i.first;
+    loco_t::shape_t* id = (loco_t::shape_t *) & i.first;
     //id.cid.NRI = i.first;
     //auto* id = ()i.first;
     if (id->get_blending() != i.second.key.blending) {

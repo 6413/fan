@@ -70,21 +70,21 @@ int main() {
   pp.size = 0.25;
   pp.color.a = 0.49;
   pp.blending = true;
-  loco_t::id_t id3 = pp;
+  loco_t::shape_t id3 = pp;
   
 
   //p.image = &image;
   //p.blending = true;
   //p.size = 0.5;
   //p.position = fan::vec2(-0.5, -0.5);
-  //loco_t::id_t id = p;
+  //loco_t::shape_t id = p;
   //pile->loco.set_vsync(false);
 
 
   //p.position = fan::vec2(0.25, 0.25);
   //p.size = 0.25;
   //p.blending = false;
-  //loco_t::id_t id2 = p;
+  //loco_t::shape_t id2 = p;
 
   ////id2.erase();
   ////id3.erase();

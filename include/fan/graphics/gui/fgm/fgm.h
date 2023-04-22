@@ -748,7 +748,7 @@ int {2}{0}_{1}_cb(const loco_t::{1}_data_t& mb){{
 
 	loco_t::menu_maker_button_t::nr_t right_click_menu_nr;
   loco_t::menu_maker_text_box_t::nr_t global_menu_nr;
-  std::vector< loco_t::menu_maker_text_box_t::id_t> global_menu_ids;
+  std::vector< loco_t::menu_maker_text_box_t::shape_t> global_menu_ids;
   loco_t::vfi_t::shape_id_t vfi_id;
 
   loco_t::image_t hitbox_image;

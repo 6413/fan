@@ -21,7 +21,7 @@ struct button_t {
   #define fgm_shape_name button
   #define fgm_shape_manual_properties
   #define fgm_shape_instance_data \
-    loco_t::id_t shape; \
+    loco_t::shape_t shape; \
     loco_t::theme_t theme; \
     fan::string id;
   #include "shape_builder.h"
@@ -340,7 +340,7 @@ struct sprite_t {
       uint32_t group_id;
   #else
     #define fgm_shape_instance_data \
-      loco_t::id_t shape; \
+      loco_t::shape_t shape; \
       loco_t::vfi_t::shape_id_t vfi_id; \
       fan::string texturepack_name; \
       fan::string id;
@@ -726,7 +726,7 @@ struct text_t {
   #define fgm_shape_name text
   #define fgm_shape_manual_properties
   #define fgm_shape_instance_data \
-    loco_t::id_t shape; \
+    loco_t::shape_t shape; \
     loco_t::vfi_t::shape_id_t vfi_id; \
     fan::string texturepack_name; \
     fan::string id;
@@ -1039,7 +1039,7 @@ struct hitbox_t {
   #define fgm_shape_name hitbox
   #define fgm_shape_manual_properties
   #define fgm_shape_instance_data \
-    loco_t::id_t shape; \
+    loco_t::shape_t shape; \
     loco_t::vfi_t::shape_id_t vfi_id; \
     fan::string id; \
     loco_t::vfi_t::shape_type_t shape_type;

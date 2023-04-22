@@ -66,13 +66,13 @@ int main() {
   p.image = &image;
   p.position = fan::vec3(0, 0, 0);
   p.color.a = 1;
-  loco_t::id_t s0 = p;
+  loco_t::shape_t s0 = p;
   p.position.x += 0.4;
   p.size = 0.2;
   p.position.z += 2;
   p.color.a = 1;
   p.image = &image2;
-  loco_t::id_t s1 = p;
+  loco_t::shape_t s1 = p;
 
   loco_t::light_t::properties_t lp;
   lp.camera = &pile->camera;
@@ -80,7 +80,7 @@ int main() {
   lp.position = fan::vec3(0, 0, 0);
   lp.size = 1;
   lp.color = fan::colors::yellow * 10;
-  loco_t::id_t l0 = lp;
+  loco_t::shape_t l0 = lp;
   
   //for (uint32_t i = 0; i < 1000; i++) {
   //  lp.position = fan::random::vec2(-1, 1);

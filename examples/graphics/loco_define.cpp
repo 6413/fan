@@ -180,7 +180,7 @@ int main() {
   pile->loco.rectangle.erase(&cc);*/
 
 
-  //loco_t::id_t r2(
+  //loco_t::shape_t r2(
   //  fan_init_struct(
   //    loco_t::button_t::properties_t,
   //    .position = fan::vec2(0, 0),
@@ -201,7 +201,7 @@ int main() {
   //);
 
 
-  //loco_t::id_t r3 = r2;
+  //loco_t::shape_t r3 = r2;
   //
   ////r3.set_position(0);
 
@@ -216,7 +216,7 @@ int main() {
   //  .viewport = &pile->viewport
   //);
 
-  //loco_t::id_t button(fan_init_struct(
+  //loco_t::shape_t button(fan_init_struct(
   //  loco_t::button_t::properties_t,
   //  .position = 0,
   //  .size = 0.1,
@@ -233,7 +233,7 @@ int main() {
   rp.viewport = &pile->viewport;
   rp.text = "testi";
 
-  loco_t::id_t text;
+  loco_t::shape_t text;
   text = rp;
 
   fan::print(text.get_position());

@@ -343,7 +343,7 @@ struct text_box_t {
   #include _FAN_PATH(graphics/shape_builder.h)
 
   void invalidate_cursor() {
-    cursor.~id_t();
+    cursor.~shape_t();
     gloco->ev_timer.stop(&timer);
   }
 
@@ -499,7 +499,7 @@ struct text_box_t {
     render_cursor = !render_cursor;
     c.ev_timer->start(c.timer, cursor_properties::speed);
   });
-  loco_t::id_t cursor;
+  loco_t::shape_t cursor;
   bool render_cursor = true;
 
   void set_focus_mouse(loco_t::cid_nt_t& id) {

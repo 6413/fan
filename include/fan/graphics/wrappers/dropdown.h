@@ -8,7 +8,7 @@ struct dropdown_t {
 	};
 
 	using nr_t = loco_t::menu_maker_button_t::nr_t;
-	using id_t = loco_t::menu_maker_button_t::id_t;
+	using shape_t = loco_t::menu_maker_button_t::shape_t;
 
 	loco_t* get_loco() {
 		loco_t* loco = OFFSETLESS(this, loco_t, dropdown);
@@ -82,7 +82,7 @@ struct dropdown_t {
 		return -1;
 	}
 
-	id_t push_back(nr_t nr, properties_t& p) {
+	shape_t push_back(nr_t nr, properties_t& p) {
 		auto loco = get_loco();
 		instances[get_i(nr)].items = p.items;
 		p.mouse_button_cb = [this, nr](const loco_t::mouse_button_data_t& mb) -> int {

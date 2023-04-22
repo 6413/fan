@@ -145,7 +145,7 @@ int main() {
   image.load(&pile->loco, "images/brick.webp");
   p.image = &image;
   p.position = fan::vec2(0, 0);
-  loco_t::id_t id2 = p;
+  loco_t::shape_t id2 = p;
 
   light_rectangle_t::properties_t lp;
   lp.camera = &pile->camera;
@@ -155,7 +155,7 @@ int main() {
   lp.color = fan::color(0, 0, 1, 1) * 5;
   lp.type = 0;
 
-  loco_t::id_t id = lp;
+  loco_t::shape_t id = lp;
   id.set_position(fan::vec2());
   pile->loco.loop([&] {
 

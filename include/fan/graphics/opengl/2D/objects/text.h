@@ -216,7 +216,7 @@ struct text_renderer_t {
   #define BLL_set_BaseLibrary 1
   #define BLL_set_prefix cid_list
   #define BLL_set_type_node uint32_t
-  #define BLL_set_NodeData loco_t::id_t shape;
+  #define BLL_set_NodeData loco_t::shape_t shape;
   #define BLL_set_Link 1
   #include _FAN_PATH(BLL/BLL.h)
 

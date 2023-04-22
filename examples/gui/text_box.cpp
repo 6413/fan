@@ -94,10 +94,10 @@ int main() {
   tp.theme = &gray_theme;
   constexpr auto count = 10;
   
-  loco_t::id_t tb0 = tp;
+  loco_t::shape_t tb0 = tp;
   tp.position = fan::vec2(600, 600);
   tp.text = "test";
-  loco_t::id_t tb1 = tp;
+  loco_t::shape_t tb1 = tp;
 
   //pile->loco.button.set_theme(&cids[0], &gray_theme, 0.1);
 

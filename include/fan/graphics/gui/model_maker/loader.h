@@ -86,10 +86,10 @@ struct model_list_t {
   // compiled model
   struct model_id_data_t {
     template <typename T>
-    struct id_t {
+    struct shape_t {
       using type_t = T;
       type_t internal_;
-      loco_t::id_t shape;
+      loco_t::shape_t shape;
       fan::vec3 position = 0;
       fan::vec2 size = 0;
       f32_t angle = 0;
@@ -98,7 +98,7 @@ struct model_list_t {
     };
 
     struct model_t {
-      std::vector<id_t<
+      std::vector<shape_t<
         std::variant<
         loco_t::sprite_t*
         ,loco_t::unlit_sprite_t*
