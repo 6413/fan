@@ -150,6 +150,13 @@ typedef uint32_t SoundPlayUnique_t;
 struct SoundPlayID_t{
   _PlayInfoList_NodeReference_t nr;
   SoundPlayUnique_t unique;
+
+  void sic(){
+    nr.sic();
+  }
+  bool iic(){
+    return nr.iic();
+  }
 };
 
 enum class _MessageType_t {
