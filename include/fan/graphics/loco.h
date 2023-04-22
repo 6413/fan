@@ -356,6 +356,8 @@ protected:
 
 #if defined(loco_opengl) && defined(loco_context)
 
+  using viewport_t = fan::graphics::viewport_t;
+
   unsigned int quadVAO = 0;
   unsigned int quadVBO;
   void renderQuad()
@@ -1210,21 +1212,7 @@ public:
     text_box_t sb_shape_var_name;
     #undef sb_shape_var_name
   #endif
-  #if defined (loco_menu_maker_button)
-    #define sb_menu_maker_shape button
-    #define sb_menu_maker_var_name menu_maker_button
-    #define sb_menu_maker_type_name menu_maker_button_base_t
-    #define sb_menu_maker_name menu_maker_button_t
-    #include "wrappers/menu_maker.h"
-  #endif
-  #if defined (loco_menu_maker_text_box)
-    #define sb_menu_maker_shape text_box
-    #define sb_menu_maker_var_name menu_maker_text_box
-    #define sb_menu_maker_type_name menu_maker_text_box_base_t
-    #define sb_menu_maker_name menu_maker_text_box_t
-    #include "wrappers/menu_maker.h"
-  #endif
-  #if defined(loco_menu_maker_button)
+  #if defined(loco_dropdown)
     #include "wrappers/dropdown.h"
   #endif
   #if defined(loco_model_3d)
@@ -1679,8 +1667,6 @@ public:
     // not custom ortho friendly - made for -1 1
     return position / window_size * 2 - 1;
   }
-
-  using viewport_t = fan::graphics::viewport_t;
 
   fan::vec2 get_mouse_position() {
     // not custom ortho friendly - made for -1 1

@@ -77,17 +77,17 @@ struct theme_t {
 	#endif
 
 	theme_t() = default;
-  theme_t(fan::graphics::context_t* context, const auto& theme) {
+  theme_t(const auto& theme) {
     *this = theme;
-    open(context);
+    open();
   }
-	void open(auto* context){
-		theme_reference = context->theme_list.NewNode();
-		context->theme_list[theme_reference].theme_id = this;
+	void open(){
+		theme_reference = gloco->get_context()->theme_list.NewNode();
+		gloco->get_context()->theme_list[theme_reference].theme_id = this;
 	}
 
-	void close(auto* context){
-		context->theme_list.Recycle(theme_reference);
+	void close(){
+		gloco->get_context()->theme_list.Recycle(theme_reference);
 	}
 
 	template <typename T>

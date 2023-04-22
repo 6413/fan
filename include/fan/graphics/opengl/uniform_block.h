@@ -186,13 +186,13 @@ namespace fan {
           #if fan_debug >= 2
             std::remove_reference_t<decltype(((type_t*)buffer)[i].*member)> _d = ((type_t*)buffer)[i].*member;
             _d = value;
-            sintptr_t im = sizeof(_d);
+            int64_t im = sizeof(_d);
             while(im--){
               if (((uint8_t*)&_d)[im] != ((uint8_t*)&(((type_t*)buffer)[i].*member))[im]) {
                 break;
               }
             }
-            if (im >= (sintptr_t)sizeof(value)) {
+            if (im >= (int64_t)sizeof(value)) {
               fan::throw_error("invalid edit_instance");
             }
           #endif

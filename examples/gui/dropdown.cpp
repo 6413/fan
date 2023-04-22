@@ -15,7 +15,7 @@
 #define loco_window
 #define loco_context
 
-#define loco_menu_maker_button
+#define loco_dropdown
 #include _FAN_PATH(graphics/loco.h)
 
 struct pile_t {
@@ -55,10 +55,7 @@ int main() {
   pile_t* pile = new pile_t;
   pile->open();
 
-  loco_t::dropdown_t::nr_t ids[2];
-
   loco_t::theme_t theme = loco_t::themes::gray();
-  theme.open(pile->loco.get_context());
 
   loco_t::dropdown_t::open_properties_t op;
   op.camera = &pile->camera;
@@ -66,26 +63,28 @@ int main() {
   op.theme = &theme;
   op.gui_size = 0.15;
   op.position = 0;
-  ids[0] = pile->loco.dropdown.push_menu(op);
+  loco_t::dropdown_t::menu_id_t menu0 = op;
 
-  loco_t::dropdown_t::properties_t p;
-  p.text = "dropdown";
-  p.mouse_button_cb = [&](const loco_t::mouse_button_data_t& mb) -> int {
+  //ids[0] = pile->loco.dropdown.push_menu(op);
 
-    if (mb.button != fan::mouse_left) {
-      return 0;
-    }
-    if (mb.button_state != fan::mouse_state::release) {
-      return 0;
-    }
-    return 0;
-  };
-  p.items.push_back("apples");
-  p.items.push_back("grapes");
+  //loco_t::dropdown_t::properties_t p;
+  //p.text = "dropdown";
+  //p.mouse_button_cb = [&](const loco_t::mouse_button_data_t& mb) -> int {
 
-  pile->loco.dropdown.push_back(ids[0], p);
+  //  if (mb.button != fan::mouse_left) {
+  //    return 0;
+  //  }
+  //  if (mb.button_state != fan::mouse_state::release) {
+  //    return 0;
+  //  }
+  //  return 0;
+  //};
+  //p.items.push_back("apples");
+  //p.items.push_back("grapes");
 
-  pile->loco.get_context()->set_vsync(pile->loco.get_window(), 0);
+  //pile->loco.dropdown.push_back(ids[0], p);
+
+  //pile->loco.get_context()->set_vsync(pile->loco.get_window(), 0);
 
   pile->loco.loop([&] {
     pile->loco.get_fps();
