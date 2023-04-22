@@ -43,26 +43,22 @@ int main() {
   p.camera = &pile->camera;
   p.viewport = &pile->viewport;
 
-  p.size = fan::vec2(0.05);
-
-  p.color = fan::colors::red;
-  p.color.a = 1;
-
   p.position = fan::vec3(0, 0, 0);
+  p.size = fan::vec2(0.05);
+  p.color = fan::colors::red;
+
   loco_t::shape_t r0 = p;
   p.position = fan::vec3(0.1, 0, 1);
   p.color = fan::colors::blue;
-  p.color.a = 1;
+
   loco_t::shape_t r1 = p;
 
   pile->loco.set_vsync(false);
   
   pile->loco.loop([&] {
-
-    r0.set_position(pile->loco.get_mouse_position(pile->camera, pile->viewport));
-
     pile->loco.get_fps();
 
+    r0.set_position(pile->loco.get_mouse_position(pile->camera, pile->viewport));
   });
 
   return 0;
