@@ -1,6 +1,6 @@
 struct stage {
 
-  struct _t : stage_common_t_t<stage0_t> {
+  struct stage0_t : stage_common_t_t<stage0_t> {
 
     using stage_common_t_t::stage_common_t_t;
 
@@ -132,5 +132,9 @@ struct stage {
     #include _PATH_QUOTE(stage_loader_path/stages_compile/stage3.h)
   };
 
-  using variant_t = std::variant<stage0_t*,stage1_t*,stage2_t*,stage3_t*>;
+  using variant_t = std::variant<stage0_t*,stage1_t*,stage2_t*,stage3_t*
+    #if defined(custom_stages)
+    , custom_stages
+    #endif
+  >;
 };

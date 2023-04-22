@@ -42,6 +42,10 @@
   };
 #endif
 
+#ifndef __MemoryCopy
+  #define __MemoryCopy(src, dst, size) memcpy(dst, src, size);
+#endif
+
 #ifndef __MemorySet
   #define __MemorySet(src, dst, size) memset(dst, src, size)
 #endif
