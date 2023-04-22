@@ -76,11 +76,31 @@ struct theme_t {
 		#define ns fan::vulkan
 	#endif
 
-	theme_t() = default;
-  theme_t(const auto& theme) {
-    *this = theme;
+  theme_t() {
     open();
   }
+  theme_t(const theme_t& theme) {
+    button = theme.button;
+    open();
+  }
+  theme_t(theme_t&& theme) {
+    this->button = theme.button;
+    theme.theme_reference.NRI = -1;
+  }
+  theme_t& operator=(const theme_t& t) {
+    button = t.button;
+    open();
+    return *this;
+  }
+  theme_t& operator=(theme_t&& t) {
+    button = t.button;
+    t.theme_reference.NRI = -1;
+    return *this;
+  }
+  ~theme_t() {
+    close();
+  }
+
 	void open(){
 		theme_reference = gloco->get_context()->theme_list.NewNode();
 		gloco->get_context()->theme_list[theme_reference].theme_id = this;
