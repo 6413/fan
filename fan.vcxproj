@@ -106,7 +106,7 @@
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <WholeProgramOptimization>false</WholeProgramOptimization>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)include\opus;$(SolutionDIr)include\dav1d;$(SolutionDir)include\vpx;$(SolutionDir)src\libwebp\src;C:\libs;$(SolutionDir)include\shaderc;$(SolutionDir)include\nvidia</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)src\libwebp\src;C:\libs;$(SolutionDir)include\nvidia</AdditionalIncludeDirectories>
       <Optimization>Disabled</Optimization>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -122,7 +122,7 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>C:\libs\fan\lib\opus;C:\libs\fan\lib\ogg;C:\libs\fan\lib\libwebp;C:\libs\fan\lib\shaderc;C:\libs\fan\lib\nvidia</AdditionalLibraryDirectories>
-      <AdditionalDependencies>libwebp.lib;libwebp.a;libogg.lib;opus.lib;opusfile.lib;cuda.lib;cudart.lib;nvencodeapi.lib;nvcuvid.lib</AdditionalDependencies>
+      <AdditionalDependencies>libwebp.lib;libwebp.a;cuda.lib;cudart.lib;nvencodeapi.lib;nvcuvid.lib</AdditionalDependencies>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
@@ -151,7 +151,7 @@
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)include\opus;$(SolutionDIr)include\dav1d;$(SolutionDir)include\vpx;$(SolutionDir)src\libwebp\src;C:\libs;$(SolutionDir)include\shaderc;$(SolutionDir)include\nvidia</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)src\libwebp\src;C:\libs;$(SolutionDir)include\nvidia</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <WholeProgramOptimization>false</WholeProgramOptimization>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -171,7 +171,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>C:\libs\fan\lib\opus;C:\libs\fan\lib\ogg;C:\libs\fan\lib\libwebp;C:\libs\fan\lib\shaderc;C:\libs\fan\lib\nvidia</AdditionalLibraryDirectories>
-      <AdditionalDependencies>libwebp.lib;libwebp.a;libogg.lib;opus.lib;opusfile.lib;cuda.lib;cudart.lib;nvencodeapi.lib;nvcuvid.lib</AdditionalDependencies>
+      <AdditionalDependencies>libwebp.lib;libwebp.a;cuda.lib;cudart.lib;nvencodeapi.lib;nvcuvid.lib</AdditionalDependencies>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <SubSystem>Console</SubSystem>
     </Link>
@@ -199,7 +199,7 @@
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <WholeProgramOptimization>false</WholeProgramOptimization>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)include\opus;$(SolutionDIr)include\dav1d;$(SolutionDir)include\vpx;$(SolutionDir)src\libwebp\src;C:\libs;$(SolutionDir)include\shaderc;$(SolutionDir)include\nvidia</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)src\libwebp\src;C:\libs;$(SolutionDir)include\nvidia</AdditionalIncludeDirectories>
       <Optimization>Disabled</Optimization>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -215,7 +215,7 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>C:\libs\fan\lib\opus;C:\libs\fan\lib\ogg;C:\libs\fan\lib\libwebp;C:\libs\fan\lib\shaderc;C:\libs\fan\lib\nvidia</AdditionalLibraryDirectories>
-      <AdditionalDependencies>libwebp.lib;libwebp.a;libogg.lib;opus.lib;opusfile.lib;cuda.lib;cudart.lib;nvencodeapi.lib;nvcuvid.lib</AdditionalDependencies>
+      <AdditionalDependencies>libwebp.lib;libwebp.a;cuda.lib;cudart.lib;nvencodeapi.lib;nvcuvid.lib</AdditionalDependencies>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
@@ -244,7 +244,7 @@
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)include\opus;$(SolutionDIr)include\dav1d;$(SolutionDir)include\vpx;$(SolutionDir)src\libwebp\src;C:\libs;$(SolutionDir)include\shaderc;$(SolutionDir)include\nvidia</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)src\libwebp\src;C:\libs;$(SolutionDir)include\nvidia</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <WholeProgramOptimization>false</WholeProgramOptimization>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -265,7 +265,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>C:\libs\fan\lib\opus;C:\libs\fan\lib\ogg;C:\libs\fan\lib\libwebp;C:\libs\fan\lib\shaderc;C:\libs\fan\lib\nvidia</AdditionalLibraryDirectories>
-      <AdditionalDependencies>libwebp.lib;libwebp.a;libogg.lib;opus.lib;opusfile.lib;cuda.lib;cudart.lib;nvencodeapi.lib;nvcuvid.lib</AdditionalDependencies>
+      <AdditionalDependencies>libwebp.lib;libwebp.a;cuda.lib;cudart.lib;nvencodeapi.lib;nvcuvid.lib</AdditionalDependencies>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <SubSystem>Console</SubSystem>
     </Link>
@@ -279,7 +279,7 @@
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="examples\graphics\rectangle.cpp" />
+    <ClCompile Include="examples\gui\stage_loader.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
   </ItemGroup>
   <ItemGroup>

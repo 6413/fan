@@ -169,7 +169,10 @@ public:
 
     std::construct_at(stage, this, (loco_access), op);
 
-    load_fgm(stage, op, stage->stage_name);
+    // for custom stages which dont have runtime
+    if (!fan::string(stage->stage_name).empty()) {
+      load_fgm(stage, op, stage->stage_name);
+    }
     //age_list_NodeData_t
 		stage_list[stage->stage_id].stage = (stage_t*)stage;
     stage_list[stage->stage_id].update_nr = (loco_access)->m_update_callback.NewNodeLast();
