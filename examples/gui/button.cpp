@@ -51,6 +51,14 @@ struct pile_t {
 
 pile_t* pile = new pile_t;
 
+struct some_data_t {
+  loco_t::camera_t camera;
+};
+
+struct test_t : loco_t::shape_t, some_data_t {
+  using loco_t::shape_t::shape_t;
+};
+
 int main() {
 
   loco_t::button_t::properties_t tp;
@@ -62,7 +70,7 @@ int main() {
   //tp.position.y = 0;
  // tp.position.z = 50;
   tp.font_size = 32;
-  tp.size = fan::vec2(300, 100);
+  tp.size = fan::vec2(300, 100) / 2;
   tp.text = "abcd";
   //tp.font_size = 32;
   tp.mouse_move_cb = [] (const loco_t::mouse_move_data_t& mm_d) -> int {
@@ -80,15 +88,33 @@ int main() {
   };
 
   loco_t::theme_t theme = loco_t::themes::deep_red();
-  tp.viewport = &pile->viewport2;
-  tp.theme = &theme;
-  loco_t::shape_t button = tp;
   tp.viewport = &pile->viewport;
-//  loco_t::shape_t button2 = tp;
-  //button.erase();
-  
+  tp.theme = &theme;
+  tp.text = "aadsfgad";
+  tp.position = 200;
+  test_t b0 = tp;
+  tp.viewport = &pile->viewport;
+
+  uint64_t fps = 0;
+
+  test_t b1;
+  test_t b2;
   pile->loco.loop([&] {
-    //button.set_position(pile->loco.get_mouse_position());
+    if (fps % 100 == 0) {
+      tp.position = 200;
+      tp.position += 100;
+      tp.text = "bgasdgads";
+      b1 = tp;
+      tp.text = "chgfdgfhd";
+      tp.position += 100;
+      b2 = tp;
+    }
+    else {
+      b0.erase();
+      //b1.erase();
+      //b2.erase();
+    }
+    fps++;
   });
 
   return 0;
