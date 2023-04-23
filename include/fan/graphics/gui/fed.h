@@ -10,11 +10,6 @@ struct fed_t {
 	};
 
 	void open(const properties_t& p) {
-		#if fan_debug >= fan_debug_medium
-			if (p.gloco == nullptr) {
-				fan::throw_error("set gloco in fed");
-			}
-		#endif
 		m_wed.open(p.line_height, p.line_width, p.line_limit, p.line_character_limit);
 		m_cr = m_wed.cursor_open();
 		m_font_size = p.font_size;

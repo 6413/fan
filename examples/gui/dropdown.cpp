@@ -65,6 +65,17 @@ int main() {
   op.position = 0;
   loco_t::dropdown_t::menu_id_t menu0 = op;
 
+  {
+    loco_t::dropdown_t::element_properties_t p;
+
+    //p.mouse_button_cb = ...;
+    p.text = "element0";
+    menu0.add(p);
+    //p.mouse_button_cb = ...;
+    p.text = "element1";
+    menu0.add(p);
+  }
+
   //ids[0] = pile->loco.dropdown.push_menu(op);
 
   //loco_t::dropdown_t::properties_t p;

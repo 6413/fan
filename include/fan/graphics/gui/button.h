@@ -69,7 +69,6 @@ struct button_t {
     vfip.shape.rectangle.size = p.size;
     if (!p.disable_highlight) {
       vfip.mouse_move_cb = [this, udata = p.udata, id_ = id](const loco_t::vfi_t::mouse_move_data_t& mm_d) mutable -> int {
-        loco_t* loco = OFFSETLESS(mm_d.vfi, loco_t, vfi_var_name);
         loco_t::mouse_move_data_t mmd = mm_d;
         if (mm_d.flag->ignore_move_focus_check == false && !gloco->button.sb_get_ri(id_).selected) {
           if (mm_d.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside) {
@@ -90,7 +89,6 @@ struct button_t {
         return 0;
       };
       vfip.mouse_button_cb = [this, udata = p.udata, id_ = id](const loco_t::vfi_t::mouse_button_data_t& ii_d) mutable -> int {
-        loco_t* loco = OFFSETLESS(ii_d.vfi, loco_t, vfi_var_name);
         if (ii_d.flag->ignore_move_focus_check == false && !gloco->button.sb_get_ri(id_).selected) {
           if (ii_d.button == fan::mouse_left && ii_d.button_state == fan::mouse_state::press) {
             gloco->button.set_theme(id_, gloco->button.get_theme(id_), pressed);
@@ -123,7 +121,6 @@ struct button_t {
         return 0;
       };
       vfip.keyboard_cb = [this, udata = p.udata, id_ = id](const loco_t::vfi_t::keyboard_data_t& kd) mutable -> int {
-        loco_t* loco = OFFSETLESS(kd.vfi, loco_t, vfi_var_name);
         loco_t::keyboard_data_t kd_ = kd;
         kd_.id = id_;
         auto theme = get_theme(id_);
@@ -192,7 +189,6 @@ struct button_t {
   }
 
   loco_t::theme_t* get_theme(fan::graphics::theme_list_NodeReference_t nr) {
-    
     return (loco_t::theme_t*)gloco->get_context()->theme_list[nr].theme_id;
   }
   loco_t::theme_t* get_theme(loco_t::cid_nt_t& id) {
