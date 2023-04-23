@@ -85,7 +85,9 @@ struct theme_t {
   }
   theme_t(theme_t&& theme) {
     this->button = theme.button;
-    theme.theme_reference.NRI = -1;
+    theme_reference = theme.theme_reference;
+    gloco->get_context()->theme_list[theme_reference].theme_id = this;
+    theme.theme_reference.sic();
   }
   theme_t& operator=(const theme_t& t) {
     button = t.button;
@@ -93,11 +95,16 @@ struct theme_t {
     return *this;
   }
   theme_t& operator=(theme_t&& t) {
+    theme_reference = t.theme_reference;
     button = t.button;
-    t.theme_reference.NRI = -1;
+    gloco->get_context()->theme_list[theme_reference].theme_id = this;
+    t.theme_reference.sic();
     return *this;
   }
   ~theme_t() {
+    if (theme_reference.iic()) {
+      return;
+    }
     close();
   }
 

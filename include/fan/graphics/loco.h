@@ -74,15 +74,7 @@ extern "C" {
 #if defined(loco_menu_maker)
   #error
 #endif
-
-#if defined(loco_menu_maker_button)
-  #define loco_rectangle
-  #define loco_letter
-  #define loco_text
-  #define loco_button
-#endif
-
-#if defined(loco_menu_maker_text_box)
+#if defined(loco_dropdown)
   #define loco_rectangle
   #define loco_letter
   #define loco_text

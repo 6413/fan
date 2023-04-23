@@ -615,6 +615,23 @@ namespace fan {
     }; \
     template <typename U, typename... Args> \
     static constexpr bool CONCAT(CONCAT(has_,func_name), _v) = CONCAT(has_, func_name)<U, Args...>::value;
+
+  template<typename T, typename... Ts>
+  concept same_as_any = (std::is_same_v<T, Ts> || ...);
+
+  #define __create_assign_operators(...) \
+    template <typename T> \
+    requires fan::same_as_any<T, __VA_ARGS__> \
+    auto& operator=(const T& arg) { \
+      T::operator=(arg); \
+      return *this; \
+    }
+
+  template <typename... bases_t>
+  struct assign_wrapper_t : public bases_t... {
+    using bases_t::bases_t...;
+    __create_assign_operators(bases_t...)
+  };
 }
 
 
@@ -805,3 +822,6 @@ static uint8_t __clz(uintptr_t p0) {
     #error ?
   #endif
 #endif
+
+template <typename ...T>
+using __nameless_type_t = fan::assign_wrapper_t<T...>;

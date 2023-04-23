@@ -79,12 +79,12 @@ int main() {
     return 0;
   };
 
-  loco_t::theme_t theme(pile->loco.get_context(), loco_t::themes::deep_red());
+  loco_t::theme_t theme = loco_t::themes::deep_red();
   tp.viewport = &pile->viewport2;
   tp.theme = &theme;
   loco_t::shape_t button = tp;
   tp.viewport = &pile->viewport;
-  loco_t::shape_t button2 = tp;
+//  loco_t::shape_t button2 = tp;
   //button.erase();
   
   pile->loco.loop([&] {
