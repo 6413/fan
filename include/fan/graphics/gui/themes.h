@@ -90,15 +90,22 @@ struct theme_t {
     theme.theme_reference.sic();
   }
   theme_t& operator=(const theme_t& t) {
-    button = t.button;
-    open();
+    if (this != &t) {
+      button = t.button;
+      open();
+    }
     return *this;
   }
   theme_t& operator=(theme_t&& t) {
-    theme_reference = t.theme_reference;
-    button = t.button;
-    gloco->get_context()->theme_list[theme_reference].theme_id = this;
-    t.theme_reference.sic();
+    if (this != &t) {
+      if (!theme_reference.iic()) {
+        close();
+      }
+      theme_reference = t.theme_reference;
+      button = t.button;
+      gloco->get_context()->theme_list[theme_reference].theme_id = this;
+      t.theme_reference.sic();
+    }
     return *this;
   }
   ~theme_t() {

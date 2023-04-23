@@ -58,6 +58,7 @@ struct button_t {
     sb_push_back(id, p);
 
     sb_get_ri(id).text_id = tp;
+    fan::print("+", &sb_get_block(id)->p[0], (uint32_t)id->instance_id, &sb_get_ri(id), (uint16_t)sb_get_ri(id).text_id.NRI, (uint16_t)id.NRI);
 
     set_theme(id, theme, released);
 
@@ -150,6 +151,7 @@ struct button_t {
   void erase(loco_t::cid_nt_t& id) {
     
     auto& ri = sb_get_ri(id);
+    fan::print("-", &sb_get_block(id)->p[0], (uint32_t)id->instance_id, &sb_get_ri(id), (uint16_t)ri.text_id.NRI, (uint16_t)id.NRI);
     ri.text_id.erase();
     gloco->vfi.erase(&ri.vfi_id);
     sb_erase(id);

@@ -6,7 +6,7 @@
 #define FAN_INCLUDE_PATH C:/libs/fan/include
 #endif
 
-#define fan_debug 3
+#define fan_debug 1
 
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
@@ -61,8 +61,10 @@ int main() {
   op.camera = &pile->camera;
   op.viewport = &pile->viewport;
   op.theme = &theme;
-  op.gui_size = 0.15;
+  op.gui_size = 0.05;
   op.position = 0;
+  op.titleable = true;
+  
   loco_t::dropdown_t::menu_id_t menu0 = op;
 
   {
@@ -73,6 +75,10 @@ int main() {
     menu0.add(p);
     //p.mouse_button_cb = ...;
     p.text = "element1";
+    menu0.add(p);
+    p.text = "element2";
+    menu0.add(p);
+    p.text = "element3";
     menu0.add(p);
   }
 
