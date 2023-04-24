@@ -8,10 +8,38 @@
 
 #include <fan/types/vector.h>
 
+struct Config {
+  static constexpr bool hasX = false;
+  static constexpr bool hasY = false;
+  static constexpr bool hasZ = false;
+};
+
+struct make_x {
+  int x;
+};
+struct empty_t {
+
+};
+
+template <typename C>
+struct bll_maker  {
+  //int salsa;
+
+  template <typename T = C, typename = std::enable_if_t<T::hasY >>
+  void f(){
+    // Function body
+    salsa = 5;
+  }
+
+  using temp = C;
+};
+
+struct ConfigB : Config {
+  static constexpr bool hasY = false;
+};
+using B_t = bll_maker<ConfigB>;
+
 int main() {
-  fan::vec3 x(0, 1, 2);
-  fan::vec3 y = x;
-  fan::vec2 v(5, 6);
-  x = std::move(v);
-  fan::print(x);
+  B_t b;
+  b.f();
 }
