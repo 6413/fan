@@ -279,7 +279,7 @@
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="examples\gui\stage_maker.cpp" />
+    <ClCompile Include="examples\gui\fgm.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -368,7 +368,6 @@
     <ClInclude Include="include\fan\graphics\gui\select_box.h" />
     <ClInclude Include="include\fan\graphics\gui\fgm\common.h" />
     <ClInclude Include="include\fan\graphics\gui\fgm\fgm.h" />
-    <ClInclude Include="include\fan\graphics\gui\fgm\resize_cb.h" />
     <ClInclude Include="include\fan\graphics\gui\fgm\shape_builder.h" />
     <ClInclude Include="include\fan\graphics\gui\fgm\private.h" />
     <ClInclude Include="include\fan\graphics\gui\stage_maker\loader.h" />

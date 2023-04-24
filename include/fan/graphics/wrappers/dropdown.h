@@ -100,11 +100,16 @@ public:
   }
 
   struct menu_id_t : menu_nr_t{
+    menu_id_t() = default;
+
     void add(element_properties_t ep) {
-      auto& instance = gloco->dropdown.menu_list[*this];
+      auto instance_nr = *this;
+      auto& instance = gloco->dropdown.menu_list[instance_nr];
       // idk if i need this anywhere
       auto nr = instance.NewNodeLast();
-      ep.mouse_button_cb = [this, nr, cb = ep.mouse_button_cb, count = instance.Usage()](const auto& d) -> int {
+
+      // dont use pointer inside lambda
+      ep.mouse_button_cb = [&, instance_nr, nr, cb = ep.mouse_button_cb, count = instance.Usage()](const auto& d) -> int {
         if (d.button != fan::mouse_left) {
           return 0;
         }
@@ -112,7 +117,7 @@ public:
           return 0;
         }
 
-        auto& instance = gloco->dropdown.menu_list[*this];
+        auto& instance = gloco->dropdown.menu_list[instance_nr];
         instance.selected_id = nr;
         if (instance.flags.titleable == true) {
           uint32_t index = 1;
@@ -139,7 +144,6 @@ public:
               instance[inr].set_text(((loco_t::shape_t*)&(*(loco_t::cid_nr_t*)&d.id))->get_text());
               auto dst_element = loco_t::dropdown_t::find_element_from_button(instance, d.id);
               instance.selected_id = dst_element;
-              fan::print(dst_element.NRI);
             }
             inr = inr.Next(&instance);
             while (inr != instance.dst) {

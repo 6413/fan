@@ -58,63 +58,63 @@ struct image_t {
   image_t() {
     texture_reference.NRI = -1;
   }
-  image_t(loco_t* loco) {
-    fan::webp::image_info_t image_info;
-    image_info.data = 0;
-    image_info.size = 0;
-    load_properties_t p;
-    load(loco, image_info, p);
+  //image_t() {
+  //  fan::webp::image_info_t image_info;
+  //  image_info.data = 0;
+  //  image_info.size = 0;
+  //  load_properties_t p;
+  //  load(image_info, p);
+  //}
+
+  image_t(const fan::webp::image_info_t image_info) {
+    load(image_info, load_properties_t());
   }
 
-  image_t(loco_t* loco, const fan::webp::image_info_t image_info) {
-    load(loco, image_info, load_properties_t());
-  }
-
-  image_t(loco_t* loco, const fan::webp::image_info_t image_info, load_properties_t p) {
-    load(loco, image_info, p);
+  image_t(const fan::webp::image_info_t image_info, load_properties_t p) {
+    load(image_info, p);
   }
 
   bool is_invalid() const {
     return texture_reference.NRI == (decltype(texture_reference.NRI))-1;
   }
 
-  void create_texture(loco_t* loco) {
-    auto* context = loco->get_context();
-    texture_reference = loco->image_list.NewNode();
-    loco->image_list[texture_reference].image = this;
-    context->opengl.call(context->opengl.glGenTextures, 1, get_texture(loco));
+  void create_texture() {
+    auto* context = gloco->get_context();
+    texture_reference = gloco->image_list.NewNode();
+    gloco->image_list[texture_reference].image = this;
+    context->opengl.call(context->opengl.glGenTextures, 1, get_texture());
   }
-  void erase_texture(loco_t* loco) {
-    auto* context = loco->get_context();
-    context->opengl.glDeleteTextures(1, get_texture(loco));
-    loco->image_list.Recycle(texture_reference);
+  void erase_texture() {
+    auto* context = gloco->get_context();
+    context->opengl.glDeleteTextures(1, get_texture());
+    gloco->image_list.Recycle(texture_reference);
     texture_reference.NRI = -1;
   }
 
-  void bind_texture(loco_t* loco) {
-    auto* context = loco->get_context();
-    context->opengl.call(context->opengl.glBindTexture, fan::opengl::GL_TEXTURE_2D, *get_texture(loco));
+  void bind_texture() {
+    auto* context = gloco->get_context();
+    context->opengl.call(context->opengl.glBindTexture, fan::opengl::GL_TEXTURE_2D, *get_texture());
   }
 
-  void unbind_texture(loco_t* loco) {
-    auto* context = loco->get_context();
+  void unbind_texture() {
+    auto* context = gloco->get_context();
     context->opengl.call(context->opengl.glBindTexture, fan::opengl::GL_TEXTURE_2D, 0);
   }
 
-  fan::opengl::GLuint* get_texture(loco_t* loco) {
-    return &loco->image_list[texture_reference].texture_id;
+  fan::opengl::GLuint* get_texture() {
+    return &gloco->image_list[texture_reference].texture_id;
   }
 
-  bool load(loco_t* loco, fan::webp::image_info_t image_info) {
-    return load(loco, image_info, load_properties_t());
+  bool load(fan::webp::image_info_t image_info) {
+    return load(image_info, load_properties_t());
   }
 
-  bool load(loco_t* loco, fan::webp::image_info_t image_info, load_properties_t p) {
+  bool load(fan::webp::image_info_t image_info, load_properties_t p) {
 
-    auto* context = loco->get_context();
+    auto* context = gloco->get_context();
 
-    create_texture(loco);
-    bind_texture(loco);
+    create_texture();
+    bind_texture();
     
     context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_S, p.visual_output);
     context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_T, p.visual_output);
@@ -138,11 +138,11 @@ struct image_t {
     return 0;
   }
 
-  bool load(loco_t* loco, const fan::string& path) {
-    return load(loco, path, load_properties_t());
+  bool load(const fan::string& path) {
+    return load(path, load_properties_t());
   }
 
-  bool load(loco_t* loco, const fan::string& path, const load_properties_t& p) {
+  bool load(const fan::string& path, const load_properties_t& p) {
 
     #if fan_assert_if_same_path_loaded_multiple_times
     
@@ -160,21 +160,21 @@ struct image_t {
     if (fan::webp::load(path, &image_info)) {
       return true;
     }
-    bool ret = load(loco, image_info, p);
+    bool ret = load(image_info, p);
     fan::webp::free_image(image_info.data);
     return ret;
   }
 
-  bool load(loco_t* loco, fan::color* colors, const fan::vec2ui& size_) {
-    return load(loco, colors, size_, load_properties_t());
+  bool load(fan::color* colors, const fan::vec2ui& size_) {
+    return load( colors, size_, load_properties_t());
   }
 
-  bool load(loco_t* loco, fan::color* colors, const fan::vec2ui& size_, load_properties_t p) {
+  bool load(fan::color* colors, const fan::vec2ui& size_, load_properties_t p) {
 
-    auto* context = loco->get_context();
+    auto* context = gloco->get_context();
 
-    create_texture(loco);
-    bind_texture(loco);
+    create_texture();
+    bind_texture();
 
     context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_S, p.visual_output);
     context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_T, p.visual_output);
@@ -188,15 +188,15 @@ struct image_t {
     return 0;
   }
 
-  void reload_pixels(loco_t* loco, const fan::webp::image_info_t& image_info) {
-    reload_pixels(loco, image_info, load_properties_t());
+  void reload_pixels(const fan::webp::image_info_t& image_info) {
+    reload_pixels(image_info, load_properties_t());
   }
 
-  void reload_pixels(loco_t* loco, const fan::webp::image_info_t& image_info, const load_properties_t& p) {
+  void reload_pixels(const fan::webp::image_info_t& image_info, const load_properties_t& p) {
 
-    auto* context = loco->get_context();
+    auto* context = gloco->get_context();
 
-    bind_texture(loco);
+    bind_texture();
 
     context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_S, p.visual_output);
     context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_T, p.visual_output);
@@ -208,17 +208,17 @@ struct image_t {
     
   }
 
-  void unload(loco_t* loco) {
-    erase_texture(loco);
+  void unload() {
+    erase_texture();
   }
 
-  void create(loco_t* loco, const fan::color& color, const fan::vec2& size_) {
-    create(loco, color, size_, load_properties_t());
+  void create(const fan::color& color, const fan::vec2& size_) {
+    create(color, size_, load_properties_t());
   }
 
   // creates single colored text size.x*size.y sized
-  void create(loco_t* loco, const fan::color& color, const fan::vec2& size_, load_properties_t p) {
-    auto* context = loco->get_context();
+  void create(const fan::color& color, const fan::vec2& size_, load_properties_t p) {
+    auto* context = gloco->get_context();
 
 
     size = size_;
@@ -235,8 +235,8 @@ struct image_t {
 
     pixels -= (int)size.x * (int)size.y * fan::color::size();
 
-    create_texture(loco);
-    bind_texture(loco);
+    create_texture();
+    bind_texture();
 
     context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_S, p.visual_output);
     context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_T, p.visual_output);
@@ -250,12 +250,12 @@ struct image_t {
     context->opengl.call(context->opengl.glGenerateMipmap, fan::opengl::GL_TEXTURE_2D);
   }
 
-  void create_missing_texture(loco_t* loco) {
-    create_missing_texture(loco, load_properties_t());
+  void create_missing_texture() {
+    create_missing_texture(load_properties_t());
   }
 
-  void create_missing_texture(loco_t* loco, load_properties_t p) {
-    auto* context = loco->get_context();
+  void create_missing_texture(load_properties_t p) {
+    auto* context = gloco->get_context();
 
     uint8_t* pixels = (uint8_t*)malloc(sizeof(uint8_t) * (2 * 2 * fan::color::size()));
     uint32_t pixel = 0;
@@ -282,8 +282,8 @@ struct image_t {
 
     p.visual_output = fan::opengl::GL_REPEAT;
 
-    create_texture(loco);
-    bind_texture(loco);
+    create_texture();
+    bind_texture();
 
     context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_S, p.visual_output);
     context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_T, p.visual_output);
@@ -322,10 +322,10 @@ struct image_t {
     return tc;
   }
 
-  void get_pixel_data(loco_t* loco, void* data, fan::opengl::GLenum format) {
-    auto* context = loco->get_context();
+  void get_pixel_data(void* data, fan::opengl::GLenum format) {
+    auto* context = gloco->get_context();
 
-    bind_texture(loco);
+    bind_texture();
 
     context->opengl.call(
       context->opengl.glGetTexImage, 
