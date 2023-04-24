@@ -102,7 +102,7 @@ struct address_wrapper_t {
 	#define fan_std23
 #endif
 
-#undef fan_std23
+//#undef fan_std23
 
 #if defined(fan_std23)
 	#include <stacktrace>

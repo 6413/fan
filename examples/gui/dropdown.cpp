@@ -64,7 +64,7 @@ int main() {
   op.gui_size = 0.05;
   op.position = 0;
   op.title = "test";
-  op.titleable = false;
+  op.titleable = true;
   
   loco_t::dropdown_t::menu_id_t menu0 = op;
 
@@ -89,7 +89,8 @@ int main() {
     menu0.add(p);
   }
 
-  op.position -= 0.2;
+  op.position -= 0.4;
+  op.titleable = false;
   loco_t::dropdown_t::menu_id_t menu1 = op;
 
   {
