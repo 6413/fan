@@ -8,6 +8,7 @@ struct dropdown_t {
     f32_t gui_size = 0;
 
     bool titleable = true;
+    fan::string title;
 
     open_properties_t() = default;
   };
@@ -33,6 +34,7 @@ struct dropdown_t {
       p.camera = instance.camera;
       p.viewport = instance.viewport;
       p.theme = instance.theme;
+//      fan::print(instance.gui_size);
       p.size = fan::vec2(instance.gui_size * 5, instance.gui_size);
       p.position = instance.position + fan::vec3(0, p.size.y * 2 * index, 0);
       p.text = ep.text;
@@ -83,8 +85,19 @@ public:
 
   using menu_nr_t = menu_list_NodeReference_t;
  
-  element_list_t element_list;
   menu_list_t menu_list;
+
+  static element_list_nr_t find_element_from_button(auto& instance, const loco_t::cid_nt_t& id) {
+    auto nr = instance.GetNodeFirst();
+    while (nr != instance.dst) {
+      if (id == instance[nr]) {
+        return nr;
+      }
+      nr = nr.Next(&instance);
+    }
+    __abort();
+    return nr;
+  }
 
   struct menu_id_t : menu_nr_t{
     void add(element_properties_t ep) {
@@ -122,6 +135,12 @@ public:
             if (inr == instance.dst) {
               goto gt_end_expanded1;
             }
+            if (instance[inr] != d.id) {
+              instance[inr].set_text(((loco_t::shape_t*)&(*(loco_t::cid_nr_t*)&d.id))->get_text());
+              auto dst_element = loco_t::dropdown_t::find_element_from_button(instance, d.id);
+              instance.selected_id = dst_element;
+              fan::print(dst_element.NRI);
+            }
             inr = inr.Next(&instance);
             while (inr != instance.dst) {
               auto& ii = instance[inr];
@@ -136,6 +155,7 @@ public:
         else {
           return cb(d);
         }
+        return 0;
       };
       instance[nr].ep = ep;
       
@@ -150,13 +170,13 @@ public:
       instance = op;
       menu_data_t menu_data;
       menu_data.flags.titleable = op.titleable;
-      menu_data.flags.expanded = false;
+      menu_data.flags.expanded = menu_data.flags.titleable == false;  
 
       instance = menu_data;
 
       if (menu_data.flags.titleable == true) {
         element_properties_t p;
-        p.text = "daram";
+        p.text = op.title;
         add(p);
       }
     }

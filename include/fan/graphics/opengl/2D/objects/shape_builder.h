@@ -405,7 +405,7 @@ public:
 
     last_block->uniform_buffer.m_size -= sizeof(vi_t);
 
-    block->p[id->instance_id] = last_block->p[last_instance_id];
+    block->p[id->instance_id] = std::move(last_block->p[last_instance_id]);
 
     block->id[id->instance_id] = last_block->id[last_instance_id];
     block->id[id->instance_id]->block_id = block_id.NRI;

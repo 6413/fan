@@ -12,14 +12,11 @@
 
 #define loco_window
 #define loco_context
-
+#define loco_var_name loco
 #define loco_line
 #define loco_button
 #define loco_sprite
-#define loco_menu_maker_button
-#define loco_menu_maker_text_box
-#define loco_var_name loco
-
+#define loco_dropdown
 #include _FAN_PATH(graphics/loco.h)
 
 struct pile_t {
