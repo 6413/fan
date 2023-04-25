@@ -12,11 +12,6 @@ struct text_renderer_t {
     loco_text_properties_t
   };
 
-  loco_t* get_loco() {
-    loco_t* loco = OFFSETLESS(this, loco_t, sb_shape_var_name);
-    return loco;
-  }
-
   text_renderer_t() {
 
   }
@@ -228,7 +223,7 @@ struct text_renderer_t {
   #define BLL_set_prefix tlist
   #define BLL_set_type_node uint32_t
   #define BLL_set_NodeData \
-    cid_list_t cid_list; \
+    text_renderer_t::cid_list_t cid_list; \
     properties_t p;
   #define BLL_set_Link 1
   #include _FAN_PATH(BLL/BLL.h)

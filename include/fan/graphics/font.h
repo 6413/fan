@@ -1,6 +1,6 @@
 struct font_t {
 
-  void open(loco_t* loco, const fan::string& image_path) {
+  void open(const fan::string& image_path) {
     loco_t::image_t::load_properties_t lp;
     #if defined(loco_opengl)
       lp.min_filter = fan::opengl::GL_LINEAR;
@@ -8,11 +8,11 @@ struct font_t {
     #elif defined(loco_vulkan)
       // fill here
     #endif
-    image.load(loco, image_path + ".webp", lp);
+    image.load(image_path + ".webp", lp);
     info = fan::font::parse_font(image_path + "_metrics.txt");
   }
-  void close(loco_t* loco) {
-    image.unload(loco);
+  void close() {
+    image.unload();
   }
 
   //uint16_t decode_letter(uint16_t c) const {

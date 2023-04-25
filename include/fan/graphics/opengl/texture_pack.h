@@ -83,7 +83,7 @@ struct texturepack_t {
       lp.visual_output = loco_t::image_t::sampler_address_mode::clamp_to_border;//(decltype(lp.visual_output))visual_output;
       lp.min_filter = (decltype(lp.min_filter))min_filter;
       lp.mag_filter = (decltype(lp.mag_filter))mag_filter;
-      pixel_data_list[i].image.load(loco, image_info, lp);
+      pixel_data_list[i].image.load(image_info, lp);
       WebPFree(image_info.data);
     }
 
@@ -134,7 +134,7 @@ struct texturepack_t {
 			data_index += sizeof(uint32_t);
 			uint32_t filter = *(uint32_t*)&data[data_index];
 			data_index += sizeof(uint32_t);
-			pixel_data_list[i].image.load(loco, image_info, lp);
+			pixel_data_list[i].image.load(image_info, lp);
 			WebPFree(image_info.data);
 		}
 	}

@@ -97,7 +97,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>set_durums_pc;_CRT_SECURE_NO_WARNINGS;_DISABLE_VECTOR_ANNOTATION</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -108,7 +108,7 @@
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)src\libwebp\src;C:\libs;$(SolutionDir)include\nvidia</AdditionalIncludeDirectories>
       <Optimization>Disabled</Optimization>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
       <TreatSpecificWarningsAsErrors>
@@ -145,7 +145,7 @@
       <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>set_durums_pc;_CRT_SECURE_NO_WARNINGS;_DISABLE_VECTOR_ANNOTATION</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <Optimization>Disabled</Optimization>
       <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
@@ -154,7 +154,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)src\libwebp\src;C:\libs;$(SolutionDir)include\nvidia</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
@@ -190,7 +190,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>set_durums_pc;_CRT_SECURE_NO_WARNINGS;_DISABLE_VECTOR_ANNOTATION;BX_CONFIG_DEBUG=1</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -201,7 +201,7 @@
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)src\libwebp\src;C:\libs;$(SolutionDir)include\nvidia</AdditionalIncludeDirectories>
       <Optimization>Disabled</Optimization>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
       <TreatSpecificWarningsAsErrors>
@@ -238,7 +238,7 @@
       <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>set_durums_pc;_CRT_SECURE_NO_WARNINGS;_DISABLE_VECTOR_ANNOTATION;BX_CONFIG_DEBUG=1</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <Optimization>Disabled</Optimization>
       <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
@@ -247,7 +247,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)src\libwebp\src;C:\libs;$(SolutionDir)include\nvidia</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
@@ -279,7 +279,7 @@
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="examples\gui\dropdown.cpp" />
+    <ClCompile Include="examples\gui\fgm.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -368,7 +368,6 @@
     <ClInclude Include="include\fan\graphics\gui\select_box.h" />
     <ClInclude Include="include\fan\graphics\gui\fgm\common.h" />
     <ClInclude Include="include\fan\graphics\gui\fgm\fgm.h" />
-    <ClInclude Include="include\fan\graphics\gui\fgm\resize_cb.h" />
     <ClInclude Include="include\fan\graphics\gui\fgm\shape_builder.h" />
     <ClInclude Include="include\fan\graphics\gui\fgm\private.h" />
     <ClInclude Include="include\fan\graphics\gui\stage_maker\loader.h" />

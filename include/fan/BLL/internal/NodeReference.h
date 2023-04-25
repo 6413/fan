@@ -17,10 +17,10 @@ BLL_StructBegin(_P(NodeReference_t))
   BLL_set_type_node NRI;
 
   #if BLL_set_Language == 1
-    bool operator==(_P(NodeReference_t) nr) {
+    bool operator==(_P(NodeReference_t) nr) const {
       return NRI == nr.NRI;
     }
-    bool operator!=(_P(NodeReference_t) nr) {
+    bool operator!=(_P(NodeReference_t) nr) const {
       return NRI != nr.NRI;
     }
 

@@ -346,6 +346,7 @@ struct button_t {
 
     p.position = get_text_instance(id).position;
     p.text = get_text_instance(id).text;
+    p.font_size = get_text_instance(id).font_size;
     return p;
   }
 
