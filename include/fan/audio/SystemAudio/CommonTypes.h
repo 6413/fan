@@ -20,13 +20,13 @@ struct _constants {
 typedef uint8_t _DecoderID_Size_t;
 typedef uint16_t _CacheID_Size_t;
 
-#define BLL_set_BaseLibrary 1
+#define BLL_set_Language 1
 #define BLL_set_AreWeInsideStruct 1
 #define BLL_set_prefix _DecoderList
 #define BLL_set_type_node _DecoderID_Size_t
 #include _WITCH_PATH(BLL/BLL.h)
 
-#define BLL_set_BaseLibrary 1
+#define BLL_set_Language 1
 #define BLL_set_AreWeInsideStruct 1
 #define BLL_set_prefix _CacheList
 #define BLL_set_type_node _CacheID_Size_t
@@ -98,7 +98,7 @@ struct piece_t {
   _piece_t *_piece = 0;
 };
 
-#define BLL_set_BaseLibrary 1
+#define BLL_set_Language 1
 #define BLL_set_AreWeInsideStruct 1
 #define BLL_set_prefix _CacheList
 #define BLL_set_type_node _CacheID_Size_t
@@ -131,7 +131,7 @@ struct PropertiesSoundStop_t {
 
 typedef uint32_t SoundPlayUnique_t;
 
-#define BLL_set_BaseLibrary 1
+#define BLL_set_Language 1
 #define BLL_set_AreWeInsideStruct 1
 #define BLL_set_StoreFormat 1
 #define BLL_set_IsNodeRecycled 1
