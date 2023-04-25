@@ -322,6 +322,9 @@ namespace fan {
   namespace vulkan {
 
     struct viewport_t {
+      viewport_t() {
+        viewport_reference.sic();
+      }
 
       void open(fan::vulkan::context_t* context);
       void close(fan::vulkan::context_t* context);

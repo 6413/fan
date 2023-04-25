@@ -4,11 +4,13 @@ struct dropdown_t {
     loco_t::viewport_t* viewport = 0;
     loco_t::theme_t* theme = 0;
 
-    fan::vec3 position;
-    f32_t gui_size = 0;
+    fan::vec3 position = 0;
+    fan::vec2 gui_size = 0;
 
     bool titleable = true;
     fan::string title;
+
+    fan::vec2 direction = fan::vec2(0, 1);
 
     open_properties_t() = default;
   };
@@ -35,10 +37,10 @@ struct dropdown_t {
       p.viewport = instance.viewport;
       p.theme = instance.theme;
 //      fan::print(instance.gui_size);
-      p.size = fan::vec2(instance.gui_size * 5, instance.gui_size);
-      p.position = instance.position + fan::vec3(0, p.size.y * 2 * index, 0);
+      p.size = instance.gui_size;
+      p.position = instance.position + fan::vec3(p.size * 2 * instance.direction, 0) * index;
       p.text = ep.text;
-      p.font_size = instance.gui_size;
+      p.font_size = instance.gui_size.y;
       p.mouse_button_cb = ep.mouse_button_cb;
       p.mouse_move_cb = ep.mouse_move_cb;
       p.keyboard_cb = ep.keyboard_cb;
@@ -100,10 +102,23 @@ public:
   }
 
   struct menu_id_t : menu_nr_t{
-    menu_id_t() = default;
+
+    void clear() {
+      if (iic()) {
+        return;
+      }
+      gloco->dropdown.menu_list[*this].Clear();
+    }
+
+    menu_id_t() {
+      sic();
+    }
+    ~menu_id_t() {
+      clear();
+    }
 
     void add(element_properties_t ep) {
-      auto instance_nr = *this;
+      menu_nr_t instance_nr = *this;
       auto& instance = gloco->dropdown.menu_list[instance_nr];
       // idk if i need this anywhere
       auto nr = instance.NewNodeLast();
@@ -169,6 +184,7 @@ public:
     }
     menu_id_t(const open_properties_t& op) : 
       menu_nr_t(gloco->dropdown.menu_list.NewNodeLast()) {
+
       auto& instance = gloco->dropdown.menu_list[*this];
 
       instance = op;

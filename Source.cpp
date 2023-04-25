@@ -1,45 +1,67 @@
-#define _INCLUDE_TOKEN(p0, p1) <p0/p1>
+#include <cstdio>
+#include <iostream>
 
-#ifndef FAN_INCLUDE_PATH
-#define FAN_INCLUDE_PATH C:/libs/fan/include
+	#define OFFSETLESS(ptr_m, t_m, d_m) \
+		((t_m *)((uint8_t *)(ptr_m) - offsetof(t_m, d_m)))
+
+#define _CONCAT(_0_m, _1_m) _0_m ## _1_m
+#define CONCAT(_0_m, _1_m) _CONCAT(_0_m, _1_m)
+
+#ifndef lstd_defastruct
+  using lstd_current_type = void;
+
+  #define lstd_defastruct(name, inside) \
+    struct CONCAT(name,_t){ \
+      using lstd_parent_type = lstd_current_type; \
+      using lstd_current_type = CONCAT(name,_t); \
+      struct lstd_parent_t{ \
+        auto* operator->(){ \
+          auto current = OFFSETLESS(this, CONCAT(name,_t), lstd_parent); \
+          return OFFSETLESS(current, lstd_parent_type, name); \
+        } \
+      }lstd_parent; \
+      inside \
+    }name;
 #endif
-#define fan_debug 0
-#include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
-#include <fan/types/vector.h>
-
-struct Config {
-  static constexpr bool hasX = false;
-  static constexpr bool hasY = false;
-  static constexpr bool hasZ = false;
+struct ship_t
+{
+  using lstd_current_type = ship_t;
+  uint32_t salsa;
+  struct Fuel_t
+  {
+    using lstd_parent_type = lstd_current_type;
+    using lstd_current_type = Fuel_t;
+    struct lstd_parent_t
+    {
+     inline lstd_parent_type * operator->()
+      {
+        ship_t::Fuel_t * current = (reinterpret_cast<ship_t::Fuel_t *>((reinterpret_cast<unsigned char *>((this)) - offsetof(ship_t::Fuel_t, lstd_parent))));
+        return (reinterpret_cast<ship_t *>((reinterpret_cast<unsigned char *>((current)) - offsetof(ship_t, Fuel))));
+      }
+      
+      // inline constexpr lstd_parent_t() noexcept = default;
+    };
+    
+    struct lstd_parent_t lstd_parent;
+    inline void f()
+    {
+      this->lstd_parent.operator->()->salsa = 5;
+    }
+    
+    uint32_t x;
+    // inline constexpr Fuel_t() noexcept = default;
+  };
+  
+  struct Fuel_t Fuel;
+  // inline constexpr ship_t() noexcept = default;
 };
 
-struct make_x {
-  int x;
-};
-struct empty_t {
 
-};
 
-template <typename C>
-struct bll_maker  {
-  //int salsa;
-
-  template <typename T = C, typename = std::enable_if_t<T::hasY >>
-  void f(){
-    // Function body
-    salsa = 5;
-  }
-
-  using temp = C;
-};
-
-struct ConfigB : Config {
-  static constexpr bool hasY = false;
-};
-using B_t = bll_maker<ConfigB>;
-
-int main() {
-  B_t b;
-  b.f();
+int main()
+{
+  ship_t ship = ship_t();
+  ship.Fuel.f();
+  return 0;
 }
