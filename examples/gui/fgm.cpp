@@ -44,13 +44,9 @@ struct pile_t {
   loco_t loco_var_name;
 };
 
-pile_t* pile;
-
 #include _FAN_PATH(graphics/gui/fgm/fgm.h)
 
-//struct fork_t : fgm_t {
-//
-//};
+pile_t* pile;
 
 int main(int argc, char** argv) {
   if (argc < 2) {
@@ -68,7 +64,7 @@ int main(int argc, char** argv) {
   //pile->loco.get_window()->set_max_fps(5);
   pile->loco.loop([&] {
 
-    });
+  });
 
 
   // pile->close();

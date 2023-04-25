@@ -6,7 +6,7 @@
 #define FAN_INCLUDE_PATH C:/libs/fan/include
 #endif
 
-#define fan_debug 3
+#define fan_debug 1
 
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
@@ -61,19 +61,57 @@ int main() {
   op.camera = &pile->camera;
   op.viewport = &pile->viewport;
   op.theme = &theme;
-  op.gui_size = 0.15;
+  op.gui_size = 0.05;
   op.position = 0;
+  op.title = "test";
+  op.titleable = true;
+  
   loco_t::dropdown_t::menu_id_t menu0 = op;
 
   {
     loco_t::dropdown_t::element_properties_t p;
 
     //p.mouse_button_cb = ...;
-    p.text = "element0";
+    p.text = "0";
     menu0.add(p);
     //p.mouse_button_cb = ...;
-    p.text = "element1";
+    p.text = "1";
     menu0.add(p);
+        p.text = "t";
+    menu0.add(p);
+        p.text = "1";
+    menu0.add(p);
+        p.text = "1";
+    menu0.add(p);
+        p.text = "1";
+    menu0.add(p);
+        p.text = "1";
+    menu0.add(p);
+  }
+
+  op.position -= 0.4;
+  op.titleable = false;
+  loco_t::dropdown_t::menu_id_t menu1 = op;
+
+  {
+    loco_t::dropdown_t::element_properties_t p;
+
+    //p.mouse_button_cb = ...;
+    p.text = "1";
+    menu1.add(p);
+    //p.mouse_button_cb = ...;
+    p.text = "3";
+    menu1.add(p);
+        p.text = "5";
+    menu1.add(p);
+        p.text = "2";
+    menu1.add(p);
+        p.text = "6";
+    menu1.add(p);
+        p.text = "7";
+    menu1.add(p);
+        p.text = "9";
+    menu1.add(p);
   }
 
   //ids[0] = pile->loco.dropdown.push_menu(op);
@@ -98,7 +136,7 @@ int main() {
   //pile->loco.get_context()->set_vsync(pile->loco.get_window(), 0);
 
   pile->loco.loop([&] {
-    pile->loco.get_fps();
+   // pile->loco.get_fps();
   });
 
   return 0;

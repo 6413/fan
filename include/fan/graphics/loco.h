@@ -6,6 +6,27 @@
 
 #define loco_no_inline
 
+struct loco_t;
+
+#ifdef loco_no_inline
+// doesnt support different kind of builds of loco
+inline struct global_loco_t {
+
+  loco_t* loco = nullptr;
+
+  operator loco_t* () {
+    return loco;
+  }
+  global_loco_t& operator=(loco_t* l) {
+    loco = l;
+    return *this;
+  }
+  loco_t* operator->() {
+    return loco;
+  }
+}gloco;
+#endif
+
 #include _FAN_PATH(types/types.h)
 
 
@@ -74,6 +95,7 @@ extern "C" {
 #if defined(loco_menu_maker)
   #error
 #endif
+
 #if defined(loco_dropdown)
   #define loco_rectangle
   #define loco_letter
@@ -228,27 +250,6 @@ namespace fan {
 }
 #endif
 
-struct loco_t;
-
-#ifdef loco_no_inline
-// doesnt support different kind of builds of loco
-inline struct global_loco_t {
-
-  loco_t* loco = nullptr;
-
-  operator loco_t* () {
-    return loco;
-  }
-  global_loco_t& operator=(loco_t* l) {
-    loco = l;
-    return *this;
-  }
-  loco_t* operator->() {
-    return loco;
-  }
-}gloco;
-#endif
-
 struct loco_t {
 
   struct position2_t : public  fan::vec2 {
@@ -348,7 +349,9 @@ protected:
 
 #if defined(loco_opengl) && defined(loco_context)
 
+public:
   using viewport_t = fan::graphics::viewport_t;
+protected:
 
   unsigned int quadVAO = 0;
   unsigned int quadVBO;
@@ -435,20 +438,20 @@ public:
   struct camera_t {
     static constexpr f32_t znearfar = 0xffff;
 
-    void open(loco_t* loco) {
-      auto* context = loco->get_context();
+    void open() {
+      auto* context = gloco->get_context();
       m_view = fan::mat4(1);
       camera_position = 0;
-      camera_reference = loco->camera_list.NewNode();
-      loco->camera_list[camera_reference].camera_id = this;
+      camera_reference = gloco->camera_list.NewNode();
+      gloco->camera_list[camera_reference].camera_id = this;
     }
-    void close(loco_t* loco) {
-      loco->camera_list.Recycle(camera_reference);
+    void close() {
+      gloco->camera_list.Recycle(camera_reference);
     }
 
-    void open_camera(loco_t* loco, loco_t::camera_t* camera, const fan::vec2& x, const fan::vec2& y) {
-      camera->open(loco);
-      camera->set_ortho(loco, fan::vec2(x.x, x.y), fan::vec2(y.x, y.y));
+    void open_camera(loco_t::camera_t* camera, const fan::vec2& x, const fan::vec2& y) {
+      camera->open();
+      camera->set_ortho(fan::vec2(x.x, x.y), fan::vec2(y.x, y.y));
     }
 
     fan::vec3 get_camera_position() const {
@@ -467,7 +470,7 @@ public:
       m_view = fan::math::look_at_left<fan::mat4>(position, position + front, fan::camera::world_up);
     }
 
-    void set_ortho(loco_t* loco, const fan::vec2& x, const fan::vec2& y) {
+    void set_ortho(const fan::vec2& x, const fan::vec2& y) {
       m_projection = fan::math::ortho<fan::mat4>(
         x.x,
         x.y,
@@ -572,17 +575,17 @@ public:
   };
 
   void open_camera(camera_t* camera, const fan::vec2& x, const fan::vec2& y) {
-    camera->open(this);
-    camera->set_ortho(this, x, y);
+    camera->open();
+    camera->set_ortho(x, y);
   }
 
   void open_viewport(fan::graphics::viewport_t* viewport, const fan::vec2& viewport_position, const fan::vec2& viewport_size) {
-    viewport->open(get_context());
-    viewport->set(get_context(), viewport_position, viewport_size, get_window()->get_size());
+    viewport->open();
+    viewport->set(viewport_position, viewport_size, get_window()->get_size());
   }
 
   void set_viewport(fan::graphics::viewport_t* viewport, const fan::vec2& viewport_position, const fan::vec2& viewport_size) {
-    viewport->set(get_context(), viewport_position, viewport_size, get_window()->get_size());
+    viewport->set(viewport_position, viewport_size, get_window()->get_size());
   }
 
   #define BLL_set_declare_NodeReference 0
@@ -892,7 +895,6 @@ public:
   void process_block_properties_element(auto* shape, fan::graphics::viewport_list_NodeReference_t viewport_id) {
     auto data = &get_context()->viewport_list[viewport_id];
     data->viewport_id->set(
-      get_context(),
       data->viewport_id->get_position(),
       data->viewport_id->get_size(),
       get_window()->get_size()
@@ -1088,7 +1090,10 @@ public:
     fan_create_set_define(loco_t::camera_list_NodeReference_t, camera);
     fan_create_set_define(fan::graphics::viewport_list_NodeReference_t, viewport);
 
-    
+    void set_line(const fan::vec3& src, const fan::vec3& dst) {
+      gloco->shape_set_line(*this, src, dst);
+    }
+
     bool get_blending() {
       return gloco->shape_get_blending(*(shape_t*)this);
     }
@@ -1248,7 +1253,7 @@ public:
     )
     #endif
     #if defined(loco_window)
-    , unloaded_image(this, fan::webp::image_info_t{ (void*)pixel_data, 1 })
+    , unloaded_image(fan::webp::image_info_t{ (void*)pixel_data, 1 })
     #endif
   {
     #if defined(loco_window)
@@ -1281,7 +1286,7 @@ public:
     #endif
 
     #if defined(loco_letter)
-    font.open(this, loco_font);
+    font.open(loco_font);
     #endif
 
     #if defined(loco_post_process)
@@ -1315,25 +1320,25 @@ public:
     lp.mag_filter = fan::opengl::GL_LINEAR_MIPMAP_LINEAR;
     lp.type = fan::opengl::GL_FLOAT;
 
-    color_buffers[0].load(this, ii, lp);
+    color_buffers[0].load(ii, lp);
     get_context()->opengl.call(get_context()->opengl.glGenerateMipmap, fan::opengl::GL_TEXTURE_2D);
 
-    color_buffers[0].bind_texture(this);
+    color_buffers[0].bind_texture();
     fan::opengl::core::framebuffer_t::bind_to_texture(
       get_context(),
-      *color_buffers[0].get_texture(this),
+      *color_buffers[0].get_texture(),
       fan::opengl::GL_COLOR_ATTACHMENT0
     );
 
     lp.internal_format = fan::opengl::GL_RGBA16F;
     lp.format = fan::opengl::GL_RGBA;
 
-    color_buffers[1].load(this, ii, lp);
+    color_buffers[1].load(ii, lp);
 
-    color_buffers[1].bind_texture(this);
+    color_buffers[1].bind_texture();
     fan::opengl::core::framebuffer_t::bind_to_texture(
       get_context(),
-      *color_buffers[1].get_texture(this),
+      *color_buffers[1].get_texture(),
       fan::opengl::GL_COLOR_ATTACHMENT1
     );
 
@@ -1353,23 +1358,23 @@ public:
       lp.min_filter = fan::opengl::GL_LINEAR_MIPMAP_LINEAR;
       lp.mag_filter = fan::opengl::GL_LINEAR_MIPMAP_LINEAR;
 
-      color_buffers[0].reload_pixels(this, ii, lp);
+      color_buffers[0].reload_pixels(ii, lp);
 
-      color_buffers[0].bind_texture(this);
+      color_buffers[0].bind_texture();
       fan::opengl::core::framebuffer_t::bind_to_texture(
         get_context(),
-        *color_buffers[0].get_texture(this),
+        *color_buffers[0].get_texture(),
         fan::opengl::GL_COLOR_ATTACHMENT0
       );
 
       get_context()->opengl.call(get_context()->opengl.glGenerateMipmap, fan::opengl::GL_TEXTURE_2D);
 
-      color_buffers[1].reload_pixels(this, ii, lp);
+      color_buffers[1].reload_pixels(ii, lp);
 
-      color_buffers[1].bind_texture(this);
+      color_buffers[1].bind_texture();
       fan::opengl::core::framebuffer_t::bind_to_texture(
         get_context(),
-        *color_buffers[1].get_texture(this),
+        *color_buffers[1].get_texture(),
         fan::opengl::GL_COLOR_ATTACHMENT1
       );
 
@@ -1484,7 +1489,7 @@ public:
     context->render_fullscreen_pl.open(context, pipeline_p);
   #endif
 
-    default_texture.create_missing_texture(this);
+    default_texture.create_missing_texture();
 
     #if defined(loco_line)
       *types.get_value<line_t*>() = &line;
@@ -1559,10 +1564,10 @@ public:
     #if defined(loco_opengl)
     #if defined(loco_framebuffer)
     get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
-    color_buffers[0].bind_texture(this);
+    color_buffers[0].bind_texture();
 
     get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
-    color_buffers[1].bind_texture(this);
+    color_buffers[1].bind_texture();
 
 
     #endif
@@ -1611,17 +1616,17 @@ public:
       get_context()->opengl.call(get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
       //float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
       fan::vec2 window_size = get_window()->get_size();
-      fan::opengl::viewport_t::set_viewport(get_context(), 0, window_size, window_size);
+      fan::opengl::viewport_t::set_viewport(0, window_size, window_size);
 
       m_fbo_final_shader.use(get_context());
       m_fbo_final_shader.set_int(get_context(), "_t00", 0);
       m_fbo_final_shader.set_int(get_context(), "_t01", 1);
 
       get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
-      color_buffers[0].bind_texture(this);
+      color_buffers[0].bind_texture();
      
       get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
-      color_buffers[1].bind_texture(this);
+      color_buffers[1].bind_texture();
 
       unsigned int attachments[sizeof(color_buffers) / sizeof(color_buffers[0])];
       for (uint8_t i = 0; i < std::size(color_buffers); ++i) {
@@ -2142,8 +2147,16 @@ public:
   fan_build_get_set_define(fan::color, outline_color);
   fan_build_get_set_define(f32_t, outline_size);
 
-  fan_has_function_concept(sb_set_depth);
+  make_global_function_define(set_line,
+    if constexpr (has_set_line_v<shape_t, loco_t::cid_nt_t&, const fan::vec3&, const fan::vec3&>) {
+      (*shape)->set_line(id, src, dst);
+    },
+    loco_t::cid_nt_t& id,
+    const fan::vec3& src, 
+    const fan::vec3& dst
+  );
 
+  fan_has_function_concept(sb_set_depth);
   make_global_function_define(set_depth,
     if constexpr (has_set_depth_v<shape_t, loco_t::cid_nt_t&, f32_t>) { 
       (*shape)->set_depth(id, data); 
@@ -2264,3 +2277,32 @@ fan::opengl::theme_list_NodeReference_t::theme_list_NodeReference_t(auto* theme)
 #endif
 
 #define loco_make_shape(type, ...) fan_init_struct(type, __VA_ARGS__)
+
+inline void fan::opengl::viewport_t::open() {
+  viewport_reference = gloco->get_context()->viewport_list.NewNode();
+  gloco->get_context()->viewport_list[viewport_reference].viewport_id = this;
+}
+
+inline void fan::opengl::viewport_t::close() {
+  gloco->get_context()->viewport_list.Recycle(viewport_reference);
+}
+
+void fan::opengl::viewport_t::set(const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size)  {
+  viewport_position = viewport_position_;
+  viewport_size = viewport_size_;
+
+  gloco->get_context()->opengl.call(
+    gloco->get_context()->opengl.glViewport, 
+    viewport_position.x, window_size.y - viewport_size.y - viewport_position.y,
+    viewport_size.x, viewport_size.y
+  );
+}
+
+inline void fan::opengl::viewport_t::set_viewport(const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size) {
+  gloco->get_context()->opengl.call(
+    gloco->get_context()->opengl.glViewport,
+    viewport_position_.x,
+    window_size.y - viewport_size_.y - viewport_position_.y,
+    viewport_size_.x, viewport_size_.y
+  );
+}

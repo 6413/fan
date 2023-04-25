@@ -93,8 +93,8 @@ namespace fan {
 
     struct viewport_t {
 
-      void open(fan::opengl::context_t* context);
-      void close(fan::opengl::context_t* context);
+      void open();
+      void close();
 
       fan::vec2 get_position() const
       {
@@ -106,8 +106,8 @@ namespace fan {
         return viewport_size;
       }
 
-      void set(fan::opengl::context_t* context, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size);
-      static void set_viewport(fan::opengl::context_t* context, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size);
+      void set(const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size);
+      static void set_viewport(const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size);
 
       bool inside(const fan::vec2& position) const {
         return fan_2d::collision::rectangle::point_inside_no_rotation(position, viewport_position + viewport_size / 2, viewport_size / 2);
@@ -525,35 +525,6 @@ inline void fan::opengl::context_t::unset_current()
   #elif defined(fan_platform_unix)
     opengl.internal.glXMakeCurrent(fan::sys::m_display, 0, 0);
   #endif
-}
-
-inline void fan::opengl::viewport_t::open(fan::opengl::context_t * context) {
-  viewport_reference = context->viewport_list.NewNode();
-  context->viewport_list[viewport_reference].viewport_id = this;
-}
-
-inline void fan::opengl::viewport_t::close(fan::opengl::context_t * context) {
-  context->viewport_list.Recycle(viewport_reference);
-}
-
-void fan::opengl::viewport_t::set(fan::opengl::context_t* context, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size)  {
-  viewport_position = viewport_position_;
-  viewport_size = viewport_size_;
-
-  context->opengl.call(
-    context->opengl.glViewport, 
-    viewport_position.x, window_size.y - viewport_size.y - viewport_position.y,
-    viewport_size.x, viewport_size.y
-  );
-}
-
-inline void fan::opengl::viewport_t::set_viewport(fan::opengl::context_t* context, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size) {
-  context->opengl.call(
-    context->opengl.glViewport,
-    viewport_position_.x,
-    window_size.y - viewport_size_.y - viewport_position_.y,
-    viewport_size_.x, viewport_size_.y
-  );
 }
 
 #include _FAN_PATH(graphics/opengl/uniform_block.h)

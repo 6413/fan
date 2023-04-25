@@ -12,14 +12,11 @@
 
 #define loco_window
 #define loco_context
-
+#define loco_var_name loco
 #define loco_line
 #define loco_button
 #define loco_sprite
-#define loco_menu_maker_button
-#define loco_menu_maker_text_box
-#define loco_var_name loco
-
+#define loco_dropdown
 #include _FAN_PATH(graphics/loco.h)
 
 struct pile_t {
@@ -28,25 +25,21 @@ struct pile_t {
 
 pile_t* pile = new pile_t;
 
-#define stage_maker_var_name stage_maker
 #define fgm_build_stage_maker
 #include _FAN_PATH(graphics/gui/stage_maker/maker.h)
-stage_maker_t* stage_maker_var_name;
 
 int main(int argc, char** argv) {
   if (argc < 2) {
     fan::throw_error("usage: TexturePackCompiled");
   }
 
-  stage_maker = new stage_maker_t;
-
-  stage_maker->open(argv[1]);
+  stage_maker_t stage_maker(argv[1]);
 
   pile->loco.set_vsync(false);
   //pile->loco.get_window()->set_max_fps(165);
   //pile->loco.get_window()->set_max_fps(5);
   pile->loco.loop([&] {
-    pile->loco.get_fps();
+  //  pile->loco.get_fps();
     //fan::print(pile->loco.menu_maker.get_selected(pile->stage_maker.instances[pile_t::stage_maker_t::stage_t::state_instance].menu_id));
   });
 
