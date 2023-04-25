@@ -4,10 +4,6 @@
 
 struct vfi_t {
 
-  loco_t* get_loco() {
-    return OFFSETLESS(this, loco_t, vfi_var_name);
-  }
-
   vfi_t() {
     focus.mouse.invalidate();
     focus.keyboard.invalidate();
@@ -180,13 +176,11 @@ struct vfi_t {
         break;
       }
     }
-    
-    auto loco = get_loco();
 
-    fan::vec2 mouse_position = loco->get_mouse_position();
+    fan::vec2 mouse_position = gloco->get_mouse_position();
     fan::vec2 tp = transform(mouse_position, p.shape_type, &instance.shape_data);
     if (focus.mouse.is_invalid()) {
-      if (!p.ignore_init_move && inside(loco, p.shape_type, &instance.shape_data, tp) == mouse_stage_e::inside) {
+      if (!p.ignore_init_move && inside(p.shape_type, &instance.shape_data, tp) == mouse_stage_e::inside) {
         feed_mouse_move(mouse_position);
       }
     }
@@ -236,7 +230,7 @@ struct vfi_t {
     return tp;
   }
 
-  mouse_stage_e inside(loco_t* loco, shape_type_t shape_type, common_shape_data_t* data, const fan::vec2& p) {
+  mouse_stage_e inside(shape_type_t shape_type, common_shape_data_t* data, const fan::vec2& p) {
     switch(shape_type) {
       case shape_t::always: {
         return mouse_stage_e::inside;
@@ -261,7 +255,6 @@ struct vfi_t {
   };
 
   fan::vec2 transform(const fan::vec2& v, shape_type_t shape_type, common_shape_data_t* shape_data) {
-    loco_t* loco = get_loco();
     switch (shape_type) {
       case shape_t::always: {
         return v;
@@ -269,9 +262,9 @@ struct vfi_t {
       case shape_t::rectangle: {
         return transform_position(
           v,
-          loco->get_context()->viewport_list[shape_data->shape.rectangle.viewport].viewport_id,
-          loco->camera_list[shape_data->shape.rectangle.camera].camera_id
-        ) + fan::vec2(loco->camera_list[shape_data->shape.rectangle.camera].camera_id->camera_position);
+          gloco->get_context()->viewport_list[shape_data->shape.rectangle.viewport].viewport_id,
+          gloco->camera_list[shape_data->shape.rectangle.camera].camera_id
+        ) + fan::vec2(gloco->camera_list[shape_data->shape.rectangle.camera].camera_id->camera_position);
         break;
       }
       default: {
@@ -317,7 +310,6 @@ struct vfi_t {
   }
 
   void feed_mouse_move(const fan::vec2& position) {
-    loco_t* loco = get_loco();
     focus.method.mouse.position = position;
     mouse_move_data_t mouse_move_data;
     mouse_move_data.vfi = this;
@@ -325,14 +317,14 @@ struct vfi_t {
     if (!focus.mouse.is_invalid()) {
       auto& data = shape_list[focus.mouse];
       fan::vec2 tp = transform(position, data.shape_type, &data.shape_data);
-      mouse_move_data.mouse_stage = inside(loco, data.shape_type, &data.shape_data, tp);
+      mouse_move_data.mouse_stage = inside(data.shape_type, &data.shape_data, tp);
       mouse_move_data.position = tp;
       shape_id_t bcbfm = focus.mouse;
       data.shape_data.mouse_move_cb(mouse_move_data);
       if (bcbfm != focus.mouse) {
         data = shape_list[focus.mouse];
         tp = transform(position, data.shape_type, &data.shape_data);
-        mouse_move_data.mouse_stage = inside(loco, data.shape_type, &data.shape_data, tp);
+        mouse_move_data.mouse_stage = inside(data.shape_type, &data.shape_data, tp);
       }
       if (focus.method.mouse.flags.ignore_move_focus_check == true) {
         return;
@@ -346,7 +338,7 @@ struct vfi_t {
     while(it != shape_list.dst) {
       auto& data = shape_list[it];
       fan::vec2 tp = transform(position, data.shape_type, &data.shape_data);
-      mouse_move_data.mouse_stage = inside(loco, data.shape_type, &data.shape_data, tp);
+      mouse_move_data.mouse_stage = inside(data.shape_type, &data.shape_data, tp);
       if (mouse_move_data.mouse_stage == mouse_stage_e::inside) {
         if (data.shape_data.depth > closest_z) {
           closest_z = data.shape_data.depth;
@@ -359,7 +351,7 @@ struct vfi_t {
       auto* data = &shape_list[closest_z_nr];
       fan::vec2 tp = transform(position, data->shape_type, &data->shape_data);
       mouse_move_data.position = tp;
-      mouse_move_data.mouse_stage = inside(loco, data->shape_type, &data->shape_data, tp);
+      mouse_move_data.mouse_stage = inside(data->shape_type, &data->shape_data, tp);
       set_focus_mouse(closest_z_nr);
       data->shape_data.mouse_move_cb(mouse_move_data);
       return;
@@ -369,7 +361,6 @@ struct vfi_t {
   }
 
   void feed_mouse_button(uint16_t button, fan::mouse_state state) {
-    loco_t* loco = get_loco();
     mouse_button_data_t mouse_button_data;
     mouse_button_data.vfi = this;
     if (focus.mouse.is_invalid()) {
@@ -382,7 +373,7 @@ struct vfi_t {
     auto* data = &shape_list[focus.mouse];
 
     mouse_button_data.position = transform(focus.method.mouse.position, data->shape_type, &data->shape_data);
-    mouse_button_data.mouse_stage = inside(loco, data->shape_type, &data->shape_data, mouse_button_data.position);
+    mouse_button_data.mouse_stage = inside(data->shape_type, &data->shape_data, mouse_button_data.position);
     mouse_button_data.flag = &focus.method.mouse.flags;
     shape_id_t bcbfm = focus.mouse;
 
@@ -394,7 +385,7 @@ struct vfi_t {
       }
       data = &shape_list[focus.mouse];
       mouse_button_data.position = transform(focus.method.mouse.position, data->shape_type, &data->shape_data);
-      mouse_button_data.mouse_stage = inside(loco, data->shape_type, &data->shape_data, mouse_button_data.position);
+      mouse_button_data.mouse_stage = inside(data->shape_type, &data->shape_data, mouse_button_data.position);
     }
 
     if (mouse_button_data.mouse_stage == mouse_stage_e::outside) {

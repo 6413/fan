@@ -13,6 +13,8 @@
 #define loco_window
 #define loco_context
 
+#define loco_dropdown
+
 #define loco_line
 #define loco_button
 #define loco_sprite
@@ -46,23 +48,22 @@ struct pile_t {
 
 #include _FAN_PATH(graphics/gui/fgm/fgm.h)
 
-pile_t* pile;
-
 int main(int argc, char** argv) {
   if (argc < 2) {
     fan::throw_error("usage: TexturePackCompiled");
   }
 
-  pile = new pile_t;
+  pile_t pile;
 
   fgm_t fgm;
+  
   fgm.open(argv[1]);
   fgm.load();
 
-  pile->loco.set_vsync(false);
-  pile->loco.get_window()->set_max_fps(165);
+  pile.loco.set_vsync(false);
+  pile.loco.get_window()->set_max_fps(165);
   //pile->loco.get_window()->set_max_fps(5);
-  pile->loco.loop([&] {
+  pile.loco.loop([&] {
 
   });
 

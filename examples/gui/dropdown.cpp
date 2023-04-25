@@ -34,15 +34,14 @@ struct pile_t {
       fan::vec2 ratio = window_size / window_size.max();
       //std::swap(ratio.x, ratio.y);
       camera.set_ortho(
-        &loco,
         fan::vec2(-1, 1) * ratio.x,
         fan::vec2(-1, 1) * ratio.y
       );
-      viewport.set(loco.get_context(), 0, d.size, d.size);
+      viewport.set(0, d.size, d.size);
       });
 
-    viewport.open(loco.get_context());
-    viewport.set(loco.get_context(), 0, window_size, window_size);
+    viewport.open();
+    viewport.set(0, window_size, window_size);
   }
 
   loco_t loco;
@@ -52,16 +51,18 @@ struct pile_t {
 
 int main() {
 
-  pile_t* pile = new pile_t;
-  pile->open();
+  pile_t pile;
+  pile.open();
 
   loco_t::theme_t theme = loco_t::themes::gray();
 
   loco_t::dropdown_t::open_properties_t op;
-  op.camera = &pile->camera;
-  op.viewport = &pile->viewport;
+  op.camera = &pile.camera;
+  op.viewport = &pile.viewport;
   op.theme = &theme;
-  op.gui_size = 0.05;
+  op.gui_size = fan::vec2(0.05 * 5, 0.05);
+  op.direction.x = 1;
+  op.direction.y = 1;
   op.position = 0;
   op.title = "test";
   op.titleable = true;
@@ -91,6 +92,8 @@ int main() {
 
   op.position -= 0.4;
   op.titleable = false;
+  op.direction = fan::vec2(1, 1);
+  op.gui_size = fan::vec2(0.05, 0.05);
   loco_t::dropdown_t::menu_id_t menu1 = op;
 
   {
@@ -135,7 +138,7 @@ int main() {
 
   //pile->loco.get_context()->set_vsync(pile->loco.get_window(), 0);
 
-  pile->loco.loop([&] {
+  pile.loco.loop([&] {
    // pile->loco.get_fps();
   });
 

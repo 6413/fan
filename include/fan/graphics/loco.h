@@ -436,6 +436,10 @@ public:
   #include _FAN_PATH(BLL/BLL.h)
 
   struct camera_t {
+    camera_t() {
+      camera_reference.sic();
+    }
+
     static constexpr f32_t znearfar = 0xffff;
 
     void open() {
@@ -1669,23 +1673,6 @@ public:
     // not custom ortho friendly - made for -1 1
     //return transform_matrix(get_window()->get_mouse_position());
     return get_window()->get_mouse_position();
-  }
-  fan::vec2 get_mouse_position(const fan::vec2& viewport_position, const fan::vec2& viewport_size) {
-    fan::vec2 x;
-    x.x = (get_mouse_position().x - viewport_position.x - viewport_size.x / 2) / (viewport_size.x / 2);
-    x.y = (get_mouse_position().y - viewport_position.y - viewport_size.y / 2) / (viewport_size.y / 2) + (viewport_position.y / viewport_size.y) * 2;
-    return x;
-  }
-
-  fan::vec2 transform_position(const fan::vec2& p, const fan::graphics::viewport_t& viewport) {
-    fan::vec2 x;
-    x.x = (p.x - viewport.viewport_position.x - viewport.viewport_size.x / 2) / (viewport.viewport_size.x / 2);
-    x.y = ((p.y - viewport.viewport_position.y - viewport.viewport_size.y / 2) / (viewport.viewport_size.y / 2) + (viewport.viewport_position.y / viewport.viewport_size.y) * 2);
-    return x;
-  }
-
-  fan::vec2 get_mouse_position(const fan::graphics::viewport_t& viewport) {
-    return transform_position(get_mouse_position(), viewport);
   }
 
   fan::vec2 get_mouse_position(const loco_t::camera_t& camera, const loco_t::viewport_t& viewport) {

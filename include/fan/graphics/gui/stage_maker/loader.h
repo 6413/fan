@@ -6,6 +6,8 @@
 
 struct stage_loader_t {
 
+  inline static void* current_stage = nullptr;
+
 protected:
   #define BLL_set_Link 1
   #define BLL_set_CPP_ConstructDestruct
@@ -177,19 +179,28 @@ public:
 		stage_list[stage->stage_id].stage = (stage_t*)stage;
     stage_list[stage->stage_id].update_nr = (loco_access)->m_update_callback.NewNodeLast();
     (loco_access)->m_update_callback[stage_list[stage->stage_id].update_nr] = [&, stage](loco_t* loco) {
+      current_stage = stage;
       stage->update(*(loco_access));
     };
     stage_list[stage->stage_id].resize_nr = (loco_access)->get_window()->add_resize_callback([&, stage](const auto&) {
+      current_stage = stage;
       stage->window_resize_callback(*(loco_access));
     });
+
+    auto old = current_stage;
+    current_stage = stage;
     stage->open(*(loco_access));
+    current_stage = old;
 		return stage->stage_id;
 	}
 	void erase_stage(nr_t id) {
     // ugly
     void* ptr_to_free;
+    auto old = current_stage;
     std::visit([&](auto stage) {
+      current_stage = stage;
       stage->close(*(loco_access));
+      current_stage = old;
       (loco_access)->m_update_callback.unlrec(stage_list[id].update_nr);
       (loco_access)->get_window()->remove_resize_callback(stage_list[id].resize_nr);
       std::destroy_at(stage);
