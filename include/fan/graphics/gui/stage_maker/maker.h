@@ -348,7 +348,7 @@ void update(auto& loco){
 
     loco_t::dropdown_t::open_properties_t op;
     op.gui_size = gui_size;
-    op.position = fan::vec2(1.0 - op.gui_size * 5, -1.0 + op.gui_size);
+    op.position = fan::vec2(1.0 - op.gui_size.x * 5, -1.0 + op.gui_size.y);
     op.camera = &camera;
     op.viewport = &viewport;
     op.theme = &theme;

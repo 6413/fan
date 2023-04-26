@@ -12,6 +12,9 @@ struct dropdown_t {
 
     fan::vec2 direction = fan::vec2(0, 1);
 
+    // todo remove and use only text box for everything
+    bool text_box = false;
+
     open_properties_t() = default;
   };
 
@@ -32,20 +35,36 @@ struct dropdown_t {
       erase();
     }
     void enable_draw(auto& instance, uint32_t index) {
-      loco_t::button_t::properties_t p;
-      p.camera = instance.camera;
-      p.viewport = instance.viewport;
-      p.theme = instance.theme;
-//      fan::print(instance.gui_size);
-      p.size = instance.gui_size;
-      p.position = instance.position + fan::vec3(p.size * 2 * instance.direction, 0) * index;
-      p.text = ep.text;
-      p.font_size = instance.gui_size.y;
-      p.mouse_button_cb = ep.mouse_button_cb;
-      p.mouse_move_cb = ep.mouse_move_cb;
-      p.keyboard_cb = ep.keyboard_cb;
-
-      *(loco_t::shape_t*)this = p;
+      if (instance.text_box) {
+        loco_t::text_box_t::properties_t p;
+        p.camera = instance.camera;
+        p.viewport = instance.viewport;
+        p.theme = instance.theme;
+  //      fan::print(instance.gui_size);
+        p.size = instance.gui_size;
+        p.position = instance.position + fan::vec3(p.size * 2 * instance.direction, 0) * index;
+        p.text = ep.text;
+        p.font_size = instance.gui_size.y;
+        p.mouse_button_cb = ep.mouse_button_cb;
+        p.mouse_move_cb = ep.mouse_move_cb;
+        p.keyboard_cb = ep.keyboard_cb;
+        *(loco_t::shape_t*)this = p;
+      }
+      else {
+        loco_t::button_t::properties_t p;
+        p.camera = instance.camera;
+        p.viewport = instance.viewport;
+        p.theme = instance.theme;
+  //      fan::print(instance.gui_size);
+        p.size = instance.gui_size;
+        p.position = instance.position + fan::vec3(p.size * 2 * instance.direction, 0) * index;
+        p.text = ep.text;
+        p.font_size = instance.gui_size.y;
+        p.mouse_button_cb = ep.mouse_button_cb;
+        p.mouse_move_cb = ep.mouse_move_cb;
+        p.keyboard_cb = ep.keyboard_cb;
+        *(loco_t::shape_t*)this = p;
+      }
     }
   };
 

@@ -1082,6 +1082,8 @@ public:
     fan_create_get_set_define(fan::vec2, rotation_point);
     fan_create_get_set_define(f32_t, font_size);
 
+    fan_create_get_set_define(loco_t::textureid_t<0>, image);
+
     fan_create_get_set_define(fan::vec2, text_size);
 
     fan_create_get_set_define(fan::color, outline_color);
@@ -2122,6 +2124,8 @@ public:
   fan_build_get_set_define(f32_t, angle);
   fan_build_get_set_define(fan::vec2, rotation_point);
 
+  fan_build_get_set_generic_define(loco_t::textureid_t<0>, image);
+
   fan_build_get_set_generic_define(f32_t, font_size);
   fan_build_get_set_generic_define(loco_t::camera_list_NodeReference_t, camera);
   fan_build_get_set_generic_define(fan::graphics::viewport_list_NodeReference_t, viewport);
@@ -2133,6 +2137,7 @@ public:
 
   fan_build_get_set_define(fan::color, outline_color);
   fan_build_get_set_define(f32_t, outline_size);
+
 
   make_global_function_define(set_line,
     if constexpr (has_set_line_v<shape_t, loco_t::cid_nt_t&, const fan::vec3&, const fan::vec3&>) {

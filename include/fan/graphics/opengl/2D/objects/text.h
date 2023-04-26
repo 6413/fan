@@ -20,6 +20,10 @@ struct text_renderer_t {
     return font_size / gloco->font.info.size;
   }
 
+  fan::string get_text(loco_t::cid_nt_t& id) {
+    return get_properties(id).text;
+  }
+
   fan::vec2 get_text_size(const fan::string& text, f32_t font_size) {
     fan::vec2 text_size = 0;
 
@@ -159,6 +163,11 @@ struct text_renderer_t {
   f32_t get_font_size(loco_t::cid_nt_t& id) {
     auto internal_id = *(tlist_NodeReference_t *)id.gdp4();
     auto it = tlist[internal_id].cid_list.GetNodeFirst();
+    #if fan_debug >= 2
+    if (it == tlist[internal_id].cid_list.dst) {
+      fan::throw_error("empty string");
+    }
+    #endif
     auto node = tlist[internal_id].cid_list.GetNodeByReference(it);
     return gloco->letter.sb_get_ri(node->data.shape).font_size;
   }
@@ -166,6 +175,11 @@ struct text_renderer_t {
   auto get_camera(loco_t::cid_nt_t& id) {
     auto internal_id = *(tlist_NodeReference_t *)id.gdp4();
     auto it = tlist[internal_id].cid_list.GetNodeFirst();
+    #if fan_debug >= 2
+    if (it == tlist[internal_id].cid_list.dst) {
+      fan::throw_error("empty string");
+    }
+    #endif
     auto node = tlist[internal_id].cid_list.GetNodeByReference(it);
     return gloco->letter.get_camera(node->data.shape);
   }

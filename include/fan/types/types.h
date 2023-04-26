@@ -195,12 +195,37 @@ namespace fan {
 
     static constexpr bool value = test<T>(0);
   };
+
+
+  template <typename T>
+  auto to_string(const T a_value, const int n = 2);
+
+  template <typename T>
+	constexpr T clamp(T value, T min, T max) {
+		if (value < min) {
+			return min;
+		}
+		if (value > max) {
+			return max;
+		}
+		return value;
+	}
+
+	template <typename T, typename T2>
+	constexpr T min(T x, T2 y) {
+		return x < y ? x : y;
+	}
+	template <typename T, typename T2>
+	constexpr T max(T x, T2 y) {
+		return x > y ? x : y;
+	}
 }
 
 
 #include _FAN_PATH(types/function.h)
 #include _FAN_PATH(types/fstring.h)
 #include _FAN_PATH(time/time.h)
+#include _FAN_PATH(types/vector.h)
 
 namespace fan {
 
@@ -224,9 +249,31 @@ namespace fan {
 		((std::cout << args << ' '), ...) << '\n';
 	}
 
+  template <typename T>
+  struct is_fan_vec3 : std::false_type {};
+
+  template <>
+  struct is_fan_vec3<fan::vec3> : std::true_type {};
+
+  template <typename T>
+  FMT_INLINE auto convert_if_fan_vec3(T&& arg) -> decltype(std::forward<T>(arg)) {
+    return std::forward<T>(arg);
+  }
+
+  FMT_INLINE const char* convert_if_fan_vec3(fan::vec3&& arg) {
+    return arg.to_string().c_str();
+  }
+
+
+  template <typename... T>
+  static FMT_INLINE auto format(fmt::format_string<T...> fmt, T&&... args)
+    -> fan::string {
+    return fmt::vformat(fmt, fmt::make_format_args(args...));
+  }
+
   template <typename... T>
   static FMT_INLINE auto print_format(fmt::format_string<T...> fmt, T&&... args) {
-    fan::print(fmt::vformat(fmt, fmt::make_format_args(args...)));
+    //fan::print(fmt::vformat(fmt, fmt::make_format_args(args...)));
   }
 
 	template <typename ...Args>
@@ -271,12 +318,11 @@ namespace fan {
 	}
 
 	template <typename T>
-	fan::string to_string(const T a_value, const int n = 2)
-	{
+  auto to_string(const T a_value, const int n) {
 		std::ostringstream out;
 		out.precision(n);
 		out << std::fixed << a_value;
-		return out.str().c_str();
+		return out.str();
 	}
 	//template <typename T>
 	//fan::wstring to_wstring(const T a_value, const int n = 2)
@@ -315,26 +361,6 @@ namespace fan {
 
 	// prints warning if value is -1
 #define fan_validate_value(value, text) if (value == (decltype(value))fan::uninitialized) { fan::throw_error(text); }
-
-	template <typename T>
-	constexpr T clamp(T value, T min, T max) {
-		if (value < min) {
-			return min;
-		}
-		if (value > max) {
-			return max;
-		}
-		return value;
-	}
-
-	template <typename T, typename T2>
-	constexpr T min(T x, T2 y) {
-		return x < y ? x : y;
-	}
-	template <typename T, typename T2>
-	constexpr T max(T x, T2 y) {
-		return x > y ? x : y;
-	}
 
 	template <typename T, uint32_t duplicate_id = 0>
 	class class_duplicator : public T {

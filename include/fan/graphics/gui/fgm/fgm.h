@@ -37,6 +37,31 @@ struct fgm_t {
 
   static inline f32_t z_depth = 1;
 
+  bool recreate_sidepanel_mod() {
+    loco_t::dropdown_t::open_properties_t op;
+    op.gui_size = gui_size;
+    op.position = fan::vec2(-0.25 + op.gui_size.x, -0.5);
+    op.camera = &cameras[viewport_area::sidepanel];
+    op.viewport = &viewports[viewport_area::sidepanel];
+    op.theme = &theme;
+    op.titleable = false;
+    op.direction = fan::vec2(0, 1);
+    op.text_box = true;
+
+
+    sidepanel_menu.clear();
+    sidepanel_menu = op;
+
+    if (selected_shape_nr.iic()) {
+      return 1;
+    }
+
+    std::visit([&](auto&& x) {
+      x.create_properties(this);
+    }, shape_list[selected_shape_nr]);
+    return 0;
+  }
+
   struct interact_hitbox_t {
     loco_t::vfi_t::shape_id_t vfi_id;
     interact_hitbox_t() {
@@ -49,49 +74,131 @@ struct fgm_t {
       gloco->vfi.erase(&vfi_id);
       vfi_id.sic();
     }
-    void create_hitbox(fgm_t* fgm, auto* shape, const fan::vec3& position) {
-      loco_t::vfi_t::properties_t vfip;
+    void create_hitbox(fgm_t* fgm, auto* shape, const fan::vec3& position, const fan::vec2& size) {
+       loco_t::vfi_t::properties_t vfip;
       vfip.shape_type = loco_t::vfi_t::shape_t::rectangle;
       vfip.shape.rectangle.viewport = &fgm->viewports[viewport_area::editor];
       vfip.shape.rectangle.camera = &fgm->cameras[viewport_area::editor];
       vfip.shape.rectangle.position = position;
-      vfip.shape.rectangle.size = shape->get_size();
-      // shape pointer might die
-      vfip.mouse_button_cb = [fgm](const auto& d) -> int{
+      vfip.shape.rectangle.size = size;
+      vfip.mouse_button_cb = [fgm, snr = shape->nr](const auto& d) -> int{
         if (fgm->editor_mode != fgm_t::editor_modes_e::mod) {
           return 0;
         }
 
         if (d.button_state == fan::mouse_state::press) {
+          d.flag->ignore_move_focus_check = true;
           fgm->shape_mode = fgm_t::shape_mode_e::move;
+          fgm->selected_shape_nr = snr;
+          fgm->recreate_sidepanel_mod();
         }
         else if (d.button_state == fan::mouse_state::release) {
+          d.flag->ignore_move_focus_check = false;
           fgm->shape_mode = fgm_t::shape_mode_e::idle;
         }
         return 0;
       };
-      // shape pointer might die
-      vfip.mouse_move_cb = [fgm, cid_nt = *(loco_t::cid_nt_t*)shape](const auto& d) -> int {
+      vfip.mouse_move_cb = [fgm, snr = shape->nr](const auto& d) -> int {
+
+        if (fgm->selected_shape_nr != snr) {
+          return 0;
+        }
+
         switch (fgm->shape_mode) {
           case fgm_t::shape_mode_e::move: {
             gloco->vfi.shape_list[gloco->vfi.focus.mouse].shape_data.shape.rectangle.position = d.position;
-            loco_t::shape_t* shape = (loco_t::shape_t*)&cid_nt;
-            shape->set_position(d.position);
+            auto* s = &std::get<std::remove_pointer_t<decltype(shape)>>(fgm->shape_list[snr]);
+            s->set_position(d.position);
             break;
           }
           case fgm_t::shape_mode_e::resize: {
             // todo
             break;
           }
+          default: {
+            return 0;
+          }
         }
+
+        fgm->recreate_sidepanel_mod();
         return 0;
       };
       gloco->vfi.push_back(&vfi_id, vfip);
     }
+    void create_hitbox(fgm_t* fgm, auto* shape, const fan::vec3& position) {
+      create_hitbox(fgm, shape, position, shape->get_size());
+    }
+    void set_hitbox_position(const fan::vec3& p) {
+      auto& rectangle = gloco->vfi.shape_list[vfi_id].shape_data;
+      rectangle.shape.rectangle.position = *(fan::vec2*)&p;
+      rectangle.depth = p.z;
+    }
+    void set_hitbox_size(const fan::vec2& p) {
+      auto& rectangle = gloco->vfi.shape_list[vfi_id].shape_data;
+      rectangle.shape.rectangle.size = p;
+    }
   };
 
+  #define BLL_set_declare_NodeReference 1
+  #define BLL_set_declare_rest 0
+  #define BLL_set_CPP_ConstructDestruct
+  #define BLL_set_CPP_Node_ConstructDestruct
+  #define BLL_set_AreWeInsideStruct 1
+  #define BLL_set_BaseLibrary 1
+  #define BLL_set_prefix shape_list
+  #define BLL_set_type_node uint32_t
+  #define BLL_set_NodeDataType std::variant<sprite_t, text_t, hitbox_t, mark_t>
+  #define BLL_set_Link 1
+  #include _FAN_PATH(BLL/BLL.h)
+  using shape_list_nr_t = shape_list_NodeReference_t;
+
+  #define create_keyboard_cb(code) \
+      ep.keyboard_cb = [fgm, snr = nr](const loco_t::keyboard_data_t& d) {  \
+      if (d.key != fan::key_enter) {  \
+        return 0;  \
+      }  \
+      if (d.keyboard_state != fan::keyboard_state::press) {  \
+        return 0;  \
+      } \
+      auto shape = &std::get<std::remove_reference_t<decltype(*this)>>(fgm->shape_list[snr]); \
+      code \
+      return 0; \
+    };
+
+  
+  bool does_id_exist(const fan::string& id) {
+
+    auto it = shape_list.GetNodeFirst();
+
+    bool exists = false;
+    while (it != shape_list.dst) {
+      std::visit([&](auto&& shape) {
+        if (shape.id == id) {
+          exists = true;
+        }
+      }, shape_list[it]);
+      if (exists) {
+        return true;
+      };
+      it = it.Next(&shape_list);
+    }
+
+    return false;
+  }
+
+  inline static uint64_t id_maker = 0;
+  fan::string make_unqiue_id() {
+    while (does_id_exist(std::to_string(id_maker))) ++id_maker;
+    return std::to_string(id_maker);
+  }
+
   struct sprite_t : loco_t::shape_t, interact_hitbox_t{
-    void create_shape(fgm_t* fgm, const fan::vec2& position) {
+
+    shape_list_nr_t nr;
+
+    void create_shape(fgm_t* fgm, shape_list_nr_t shape_nr, const fan::vec2& position) {
+      nr = shape_nr;
+
       loco_t::sprite_t::properties_t p;
       p.viewport = &fgm->viewports[viewport_area::editor];
       p.camera = &fgm->cameras[viewport_area::editor];
@@ -101,12 +208,83 @@ struct fgm_t {
       p.image = &gloco->default_texture;
       *(loco_t::shape_t*)this = p;
 
+      id = fgm->make_unqiue_id();
+
       create_hitbox(fgm, this, p.position);
     }
+    void create_properties(fgm_t* fgm) {
+      loco_t::dropdown_t::element_properties_t ep;
+      ep.text = fan::format("{}", get_position().to_string().c_str());
+      create_keyboard_cb(
+        fan::vec3 position = fan::string_to<fan::vec3>(shape->get_text());
+        shape->set_position(position);
+        shape->set_hitbox_position(position);
+      );
+      fgm->sidepanel_menu.add(ep);
+      ep.text = fan::format("{}", get_size().to_string().c_str());
+      create_keyboard_cb(
+        auto size = fan::string_to<fan::vec2>(shape->get_text());
+        shape->set_size(size);
+        shape->set_hitbox_size(size);
+      );
+      fgm->sidepanel_menu.add(ep);
+      ep.text = fan::format("{}", texturepack_name);
+      create_keyboard_cb(
+        loco_t::texturepack_t::ti_t ti;
+        if (fgm->texturepack.qti(shape->get_text(), &ti)) {
+          fan::print_no_space("failed to load texture:", fan::string(shape->get_text()).c_str());
+          return 0;
+        }
+
+        shape->texturepack_name = shape->get_text();
+
+        auto& data = fgm->texturepack.get_pixel_data(ti.pack_id);
+        shape->set_image(&data.image);
+        gloco->sprite.set(*shape, &loco_t::sprite_t::vi_t::tc_position, ti.position / data.image.size);
+        gloco->sprite.set(*shape, &loco_t::sprite_t::vi_t::tc_size, ti.size / data.image.size);
+      );
+      fgm->sidepanel_menu.add(ep);
+
+      ep.text = fan::format("{}", id);
+      create_keyboard_cb(
+        if (fgm->does_id_exist(shape->get_text())) {
+          fan::print("id already exists, skipping...");
+          return 0;
+        }
+        shape->id = shape->get_text();
+      );
+      fgm->sidepanel_menu.add(ep);
+    }
+
+    fan::string to_string() {
+      fan::string f;
+      fan::write_to_string(f, loco_t::shape_type_t::sprite);
+      stage_maker_shape_format::shape_sprite_t data;
+      data.position = get_position();
+      data.size = get_size();
+      data.texturepack_name = texturepack_name;
+      data.id = id;
+      #if defined(fgm_build_model_maker)
+      data.group_id = group_id;
+      #endif
+      f += shape_to_string(data);
+      return f;
+    }
+
+    fan::string id;
+    fan::string texturepack_name;
+
+    #if defined(fgm_build_model_maker)
+    uint32_t group_id = 0;
+    #endif
   };
 
   struct text_t : loco_t::shape_t, interact_hitbox_t{
-    void create_shape(fgm_t* fgm, const fan::vec2& position) {
+    shape_list_nr_t nr;
+
+    void create_shape(fgm_t* fgm, shape_list_nr_t shape_nr,const fan::vec2& position) {
+      nr = shape_nr;
+
       loco_t::text_t::properties_t p;
       p.viewport = &fgm->viewports[viewport_area::editor];
       p.camera = &fgm->cameras[viewport_area::editor];
@@ -116,12 +294,30 @@ struct fgm_t {
       p.text = "text";
       *(loco_t::shape_t*)this = p;
 
-      create_hitbox(fgm, this, p.position);
+      id = fgm->make_unqiue_id();
+
+      create_hitbox(fgm, this, p.position, get_text_size());
     }
+    void create_properties(fgm_t* fgm) {
+      loco_t::dropdown_t::element_properties_t ep;
+      ep.text = fan::format("position {}", get_position().to_string().c_str());
+      create_keyboard_cb(
+        fan::vec3 position = fan::string_to<fan::vec3>(shape->get_text());
+        shape->set_position(position);
+        shape->set_hitbox_position(position);
+      );
+      fgm->sidepanel_menu.add(ep);
+    }
+
+    fan::string id;
   };
 
   struct hitbox_t : loco_t::shape_t, interact_hitbox_t{
-    void create_shape(fgm_t* fgm, const fan::vec2& position) {
+    shape_list_nr_t nr;
+
+    void create_shape(fgm_t* fgm, shape_list_nr_t shape_nr,const fan::vec2& position) {
+      nr = shape_nr;
+
       loco_t::sprite_t::properties_t p;
       p.viewport = &fgm->viewports[viewport_area::editor];
       p.camera = &fgm->cameras[viewport_area::editor];
@@ -131,12 +327,32 @@ struct fgm_t {
       p.image = &fgm->hitbox_image;
       *(loco_t::shape_t*)this = p;
 
+      id = fgm->make_unqiue_id();
+
       create_hitbox(fgm, this, p.position);
     }
+    void create_properties(fgm_t* fgm) {
+      loco_t::dropdown_t::element_properties_t ep;
+      ep.text = fan::format("position {}", get_position().to_string().c_str());
+      create_keyboard_cb(
+        fan::vec3 position = fan::string_to<fan::vec3>(shape->get_text());
+        shape->set_position(position);
+        shape->set_hitbox_position(position);
+      );
+      fgm->sidepanel_menu.add(ep);
+    }
+    fan::string id;
+    loco_t::vfi_t::shape_type_t vfi_type = loco_t::vfi_t::shape_t::rectangle;
   };
 
   struct mark_t : loco_t::shape_t, interact_hitbox_t{
-    void create_shape(fgm_t* fgm, const fan::vec2& position) {
+
+    shape_list_nr_t nr;
+
+    void create_shape(fgm_t* fgm, shape_list_nr_t shape_nr, const fan::vec2& position) {
+
+      nr = shape_nr;
+
       loco_t::sprite_t::properties_t p;
       p.viewport = &fgm->viewports[viewport_area::editor];
       p.camera = &fgm->cameras[viewport_area::editor];
@@ -146,12 +362,39 @@ struct fgm_t {
       p.image = &fgm->mark_image;
       *(loco_t::shape_t*)this = p;
 
+      id = fgm->make_unqiue_id();
+
       create_hitbox(fgm, this, p.position);
     }
+    void create_properties(fgm_t* fgm) {
+      loco_t::dropdown_t::element_properties_t ep;
+      ep.text = fan::format("position {}", get_position().c_str());
+      create_keyboard_cb(
+        fan::vec3 position = fan::string_to<fan::vec3>(shape->get_text());
+        shape->set_position(position);
+        shape->set_hitbox_position(position);
+      );
+      fgm->sidepanel_menu.add(ep);
+
+      ep.text = fan::format("size {}", get_size().c_str());
+      create_keyboard_cb(
+        shape->set_size(fan::string_to<fan::vec3>(shape->get_text()));
+      );
+      fgm->sidepanel_menu.add(ep);
+    }
+    fan::string id;
+    //loco_t::vfi_t::shape_type_t vfi_type = loco_t::vfi_t::shape_t::rectangle;
+    #if defined(fgm_build_model_maker)
+    uint32_t group_id = 0;
+    #endif
   };
+
+  #undef create_keyboard_cb
 
 protected:
   //#define BLL_set_CPP_CopyAtPointerChange
+  #define BLL_set_declare_NodeReference 0
+  #define BLL_set_declare_rest 1
   #define BLL_set_CPP_ConstructDestruct
   #define BLL_set_CPP_Node_ConstructDestruct
   #define BLL_set_AreWeInsideStruct 1
@@ -163,7 +406,7 @@ protected:
   #include _FAN_PATH(BLL/BLL.h)
 public:
 
-  using shape_list_nr_t = shape_list_NodeReference_t;
+
   shape_list_t shape_list;
 
 	void load() {
@@ -253,10 +496,10 @@ public:
               break;
             }
           }
-          fan::print("push");
           std::visit([&](auto&& x) { 
-            x.create_shape(this, gloco->get_mouse_position(cameras[viewport_area::editor], viewports[viewport_area::editor]));
-            }, shape_list[nr]);
+            x.create_shape(this, nr, gloco->get_mouse_position(cameras[viewport_area::editor], viewports[viewport_area::editor]));
+          }, shape_list[nr]);
+          selected_shape_nr = nr;
           break;
         };
         case editor_modes_e::mod: {
@@ -479,6 +722,7 @@ public:
 
       sidepanel_menu.clear();
       sidepanel_menu = op;
+
       loco_t::dropdown_t::element_properties_t ep;
       ep.text = "sprite";
       ep.mouse_button_cb = [this](const auto& d) -> int {
@@ -513,17 +757,10 @@ public:
     ep.mouse_button_cb = [this] (const auto& d) -> int {
       editor_mode = editor_modes_e::mod;
 
-      loco_t::dropdown_t::open_properties_t op;
-      op.gui_size = gui_size;
-      op.position = fan::vec2(-0.25 + op.gui_size.x, -0.5);
-      op.camera = &cameras[viewport_area::sidepanel];
-      op.viewport = &viewports[viewport_area::sidepanel];
-      op.theme = &theme;
-      op.titleable = false;
-      op.direction = fan::vec2(0, 1);
+      if (recreate_sidepanel_mod()) {
+        return 0;
+      }
 
-      sidepanel_menu.clear();
-      sidepanel_menu = op;
       return 0;
     };
     settings_menu.add(ep);
@@ -543,6 +780,9 @@ public:
     static constexpr uint8_t make = 0;
     static constexpr uint8_t mod = 1;
   };
+
+  // to make code shorter
+  shape_list_nr_t selected_shape_nr;
 
   uint8_t editor_mode = editor_modes_e::make;
   uint16_t editor_shape = loco_t::shape_type_t::invalid;

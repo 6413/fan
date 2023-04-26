@@ -282,10 +282,10 @@ struct text_box_t {
     fed.m_wed.GetCursorInformation(fed.m_cr, &ci);
     fan::vec3 p = get_properties(id).position;
     p.z += 1;
-;
-    f32_t font_size = sb_get_ri(id).text_id.get_font_size();
-
-    ri.fed.set_font_size(ci.FreeStyle.LineReference, font_size);
+    if (!sb_get_ri(id).text_id.get_text().empty()) {
+      f32_t font_size = sb_get_ri(id).text_id.get_font_size();
+      ri.fed.set_font_size(ci.FreeStyle.LineReference, font_size);
+    }
     // set_font_size invalidates ci so need to refetch it
     fed.m_wed.GetCursorInformation(fed.m_cr, &ci);
     switch (ci.type) {
@@ -548,6 +548,7 @@ struct text_box_t {
     p.viewport = gloco->get_context()->viewport_list[*p.key.get_value<fan::graphics::viewport_list_NodeReference_t>()].viewport_id;
     p.position = get_text_instance(id).position;
     p.text = get_text_instance(id).text;
+    p.font_size = get_text_instance(id).font_size;
     return p;
   }
 

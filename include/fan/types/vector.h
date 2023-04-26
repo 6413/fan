@@ -343,6 +343,9 @@ namespace fan {
 		fan::string to_string(int precision = 2) const {
 			return fan::string(fan::to_string(this->x, precision) + ' '+ fan::to_string(this->y, precision));
 		}
+    std::string c_str(int precision = 2) const {
+			return to_string();
+		}
 
     auto hypotenuse() const {
       return std::sqrt(x * x +  y * y);
@@ -676,6 +679,9 @@ namespace fan {
 
 		fan::string to_string(int precision = 2) const {
 			return fan::string(fan::to_string(this->x, precision) + ' '+ fan::to_string(this->y, precision) + ' '+ fan::to_string(this->z, precision));
+		}
+    std::string c_str(int precision = 2) const {
+			return to_string();
 		}
 	};
 

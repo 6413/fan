@@ -36,10 +36,10 @@ struct pile_t {
       //  ortho_x * ratio.x, 
       //  ortho_y * ratio.y
       //);
-      viewport.set(loco.get_context(), 0, d.size, d.size);
+      viewport.set(0, d.size, d.size);
     });
-    viewport.open(loco.get_context());
-    viewport.set(loco.get_context(), 0, window_size, window_size);
+    viewport.open();
+    viewport.set(0, window_size, window_size);
   }
 
   loco_t loco;
@@ -52,7 +52,7 @@ pile_t* pile = new pile_t;
 int main() {
 
   loco_t::image_t image;
-  image.load(&pile->loco, "images/1.WEBP");
+  image.load("images/1.WEBP");
 
   loco_t::unlit_sprite_t::properties_t p;
   loco_t::sprite_t::properties_t pp;
@@ -70,7 +70,7 @@ int main() {
   pp.size = 0.25;
   pp.color.a = 0.49;
   pp.blending = true;
-  loco_t::shape_t id3 = pp;
+
   
 
   //p.image = &image;
@@ -93,6 +93,7 @@ int main() {
 
   //pile->loco.process_loop([] {});
   pile->loco.loop([&] {
+      loco_t::shape_t id3 = pp;
     pile->loco.get_fps(); 
   });
 
