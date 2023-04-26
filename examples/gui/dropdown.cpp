@@ -92,8 +92,9 @@ int main() {
 
   op.position -= 0.4;
   op.titleable = false;
-  op.direction = fan::vec2(1, 1);
+  op.direction = fan::vec2(1, 0);
   op.gui_size = fan::vec2(0.05, 0.05);
+  op.text_box = true;
   loco_t::dropdown_t::menu_id_t menu1 = op;
 
   {

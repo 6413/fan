@@ -504,12 +504,6 @@ namespace fan {
 	//	using basic_string::basic_string;
 	//};
 
-  template <typename... T>
-  static FMT_INLINE auto format(fmt::format_string<T...> fmt, T&&... args)
-    -> fan::string {
-    return fmt::vformat(fmt, fmt::make_format_args(args...));
-  }
-
   //template <typename... T>
   //static FMT_INLINE auto format(fmt::wformat_string<T...> fmt, T&&... args)
   //  -> fan::wstring {
