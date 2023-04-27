@@ -140,7 +140,7 @@ struct fgm_t {
       rectangle.shape.rectangle.size = p;
     }
   };
-
+protected:
   #define BLL_set_declare_NodeReference 1
   #define BLL_set_declare_rest 0
   #define BLL_set_CPP_ConstructDestruct
@@ -152,6 +152,7 @@ struct fgm_t {
   #define BLL_set_NodeDataType std::variant<button_t, sprite_t, text_t, hitbox_t, mark_t>
   #define BLL_set_Link 1
   #include _FAN_PATH(BLL/BLL.h)
+public:
   using shape_list_nr_t = shape_list_NodeReference_t;
 
   #define create_keyboard_cb(code) \
