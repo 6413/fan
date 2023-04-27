@@ -113,7 +113,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 For more information, please refer to <http://unlicense.org/>
  */
  // despite that it would be nice if you give credit to Malte Skarupke
-
+#if 0
 #pragma once
 #include <utility>
 #include <type_traits>
@@ -718,3 +718,10 @@ namespace std
 #undef FUNC_FORWARD
 #undef FUNC_MOVE
 #undef FUNC_CONSTEXPR
+
+#endif
+
+namespace fan {
+  template <typename T>
+  using function_t = std::function<T>;
+}

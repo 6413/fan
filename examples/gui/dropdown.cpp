@@ -61,13 +61,14 @@ int main() {
   op.viewport = &pile.viewport;
   op.theme = &theme;
   op.gui_size = fan::vec2(0.05 * 5, 0.05);
-  op.direction.x = 1;
+  op.direction.x = 0;
   op.direction.y = 1;
   op.position = 0;
   op.title = "test";
   op.titleable = true;
   
-  loco_t::dropdown_t::menu_id_t menu0 = op;
+  loco_t::dropdown_t::menu_id_t menu0;
+  menu0.open(op);
 
   {
     loco_t::dropdown_t::element_properties_t p;
@@ -95,7 +96,8 @@ int main() {
   op.direction = fan::vec2(1, 0);
   op.gui_size = fan::vec2(0.05, 0.05);
   op.text_box = true;
-  loco_t::dropdown_t::menu_id_t menu1 = op;
+  loco_t::dropdown_t::menu_id_t menu1;
+  menu1.open(op);
 
   {
     loco_t::dropdown_t::element_properties_t p;

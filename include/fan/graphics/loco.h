@@ -715,11 +715,11 @@ public:
 
     }
 
-    cid_nr_t(const cid_nr_t& nr) {
-      init();
+    cid_nr_t(const cid_nr_t& nr) : cid_nr_t() {
       if (nr.is_invalid()) {
         return;
       }
+      init();
       gloco->cid_list[*this].cid.shape_type = gloco->cid_list[nr].cid.shape_type;
     }
 
@@ -729,6 +729,13 @@ public:
     }
 
     loco_t::cid_nr_t& operator=(const cid_nr_t& id) {
+      if (!is_invalid()) {
+        invalidate();
+      }
+      if (id.is_invalid()) {
+        return *this;
+      }
+
       if (this != &id) {
         init();
         gloco->cid_list[*this].cid.shape_type = gloco->cid_list[id].cid.shape_type;
@@ -737,6 +744,13 @@ public:
     }
 
     loco_t::cid_nr_t& operator=(cid_nr_t&& id) {
+      if (!is_invalid()) {
+        invalidate();
+      }
+      if (id.is_invalid()) {
+        return *this;
+      }
+
       if (this != &id) {
         if (!is_invalid()) {
           invalidate();
@@ -1009,8 +1023,9 @@ public:
   struct shape_t : cid_nr_t {
     using inherit_t = cid_nr_t;
 
-    shape_t() { };
-    shape_t(const auto& properties) {
+    shape_t() { sic(); };
+    template <typename T>
+    shape_t(const T& properties) {
       inherit_t::init();
       gloco->push_shape(*this, properties);
     }
@@ -1027,6 +1042,12 @@ public:
 
     }
     loco_t::shape_t& operator=(const shape_t& id) {
+      if (!is_invalid()) {
+        erase();
+      }
+      if (id.is_invalid()) {
+        return *this;
+      }
       if (this != &id) {
         gloco->shape_get_properties(*(shape_t*)&id, [&](const auto& properties) {
           init();
@@ -1037,6 +1058,12 @@ public:
     }
 
     loco_t::shape_t& operator=(shape_t&& id) {
+      if (!is_invalid()) {
+        erase();
+      }
+      if (id.is_invalid()) {
+        return *this;
+      }
       if (this != &id) {
         if (!is_invalid()) {
           erase();

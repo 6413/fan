@@ -20,6 +20,8 @@ struct dropdown_t {
 
   struct element_properties_t {
     fan::string text;
+    
+    loco_t::mouse_button_cb_t internal_mouse_button_cb = [](const loco_t::mouse_button_data_t&) -> int { return 0; };
     loco_t::mouse_button_cb_t mouse_button_cb = [](const loco_t::mouse_button_data_t&) -> int { return 0; };
     loco_t::mouse_move_cb_t mouse_move_cb = [](const loco_t::mouse_move_data_t&) -> int { return 0; };
     loco_t::keyboard_cb_t keyboard_cb = [](const loco_t::keyboard_data_t&) -> int { return 0; };
@@ -45,7 +47,7 @@ struct dropdown_t {
         p.position = instance.position + fan::vec3(p.size * 2 * instance.direction, 0) * index;
         p.text = ep.text;
         p.font_size = instance.gui_size.y;
-        p.mouse_button_cb = ep.mouse_button_cb;
+        p.mouse_button_cb = ep.internal_mouse_button_cb;
         p.mouse_move_cb = ep.mouse_move_cb;
         p.keyboard_cb = ep.keyboard_cb;
         *(loco_t::shape_t*)this = p;
@@ -60,7 +62,7 @@ struct dropdown_t {
         p.position = instance.position + fan::vec3(p.size * 2 * instance.direction, 0) * index;
         p.text = ep.text;
         p.font_size = instance.gui_size.y;
-        p.mouse_button_cb = ep.mouse_button_cb;
+        p.mouse_button_cb = ep.internal_mouse_button_cb;
         p.mouse_move_cb = ep.mouse_move_cb;
         p.keyboard_cb = ep.keyboard_cb;
         *(loco_t::shape_t*)this = p;
@@ -69,6 +71,8 @@ struct dropdown_t {
   };
 
 protected:
+  //#define BLL_set_StoreFormat 1
+  //#define BLL_set_debug_InvalidAction 1
   #define BLL_set_CPP_CopyAtPointerChange
   #define BLL_set_CPP_ConstructDestruct
   #define BLL_set_CPP_Node_ConstructDestruct
@@ -92,6 +96,7 @@ protected:
     }
   };
 
+  //  #define BLL_set_debug_InvalidAction 1
   #define BLL_set_CPP_CopyAtPointerChange
   #define BLL_set_CPP_ConstructDestruct
   #define BLL_set_CPP_Node_ConstructDestruct
@@ -126,7 +131,9 @@ public:
       if (iic()) {
         return;
       }
-      gloco->dropdown.menu_list[*this].Clear();
+      fan::print("-", NRI);
+      gloco->dropdown.menu_list.unlrec(*this);
+      sic();
     }
 
     menu_id_t() {
@@ -136,14 +143,13 @@ public:
       clear();
     }
 
-    void add(element_properties_t ep) {
+    auto add(element_properties_t ep) {
       menu_nr_t instance_nr = *this;
       auto& instance = gloco->dropdown.menu_list[instance_nr];
       // idk if i need this anywhere
-      auto nr = instance.NewNodeLast();
-
+      auto element_nr = instance.NewNodeLast();
       // dont use pointer inside lambda
-      ep.mouse_button_cb = [&, instance_nr, nr, cb = ep.mouse_button_cb, count = instance.Usage()](const auto& d) -> int {
+      ep.internal_mouse_button_cb = [this, instance_nr, element_nr, count = instance.Usage()](const auto& d) -> int {
         if (d.button != fan::mouse_left) {
           return 0;
         }
@@ -152,7 +158,7 @@ public:
         }
 
         auto& instance = gloco->dropdown.menu_list[instance_nr];
-        instance.selected_id = nr;
+        instance.selected_id = element_nr;
         if (instance.flags.titleable == true) {
           uint32_t index = 1;
           if (instance.flags.expanded == false) {
@@ -183,28 +189,33 @@ public:
             while (inr != instance.dst) {
               auto& ii = instance[inr];
               ii.disable_draw();
+              //if (inr == element_nr) {
+
+              //}
               inr = inr.Next(&instance);
             }
             gt_end_expanded1:;
           }
           instance.flags.expanded ^= 1;
-          return 0;
         }
-        else {
-          return cb(d);
+        auto user_r = instance[element_nr].ep.mouse_button_cb(d);
+        if (user_r != 0) {
+          return user_r;
         }
-        return 0;
+        return instance[element_nr].iic() == true;
       };
-      instance[nr].ep = ep;
+      instance[element_nr].ep = ep;
       
       if (instance.flags.expanded == true || instance.Usage() == 1) {
-        instance[nr].enable_draw(instance, instance.Usage() - 1);
+        instance[element_nr].enable_draw(instance, instance.Usage() - 1);
       }
-    }
-    menu_id_t(const open_properties_t& op) : 
-      menu_nr_t(gloco->dropdown.menu_list.NewNodeLast()) {
 
+      return element_nr;
+    }
+    void open(const open_properties_t& op) {
+      *(menu_nr_t*)this = gloco->dropdown.menu_list.NewNodeLast();
       auto& instance = gloco->dropdown.menu_list[*this];
+      fan::print("+", NRI);
 
       instance = op;
       menu_data_t menu_data;
@@ -218,6 +229,19 @@ public:
         p.text = op.title;
         add(p);
       }
+    }
+    element_properties_t get_element_properties() {
+      auto& selected_id = gloco->dropdown.menu_list[*this].selected_id;
+      if (selected_id.iic()) {
+        fan::throw_error("invalid selection");
+      }
+      return gloco->dropdown.menu_list[*this][selected_id].ep;
+    }
+    void set_selected(element_list_nr_t element) {
+      auto& instance = gloco->dropdown.menu_list[*this];
+      auto title_id = instance.GetNodeFirst();
+      instance.selected_id = element;
+      instance[title_id].set_text(instance[element].ep.text);
     }
   };
 
