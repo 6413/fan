@@ -638,6 +638,16 @@ public:
 
 	void load() {
     loaded = true;
+
+    loco_t::line_t::properties_t lp;
+		lp.viewport = &viewports[viewport_area::global];
+		lp.camera = &cameras[viewport_area::global];
+		lp.color = fan::colors::white;
+
+    for (auto& i : lines) {
+      i = lp;
+    }
+
 		resize_cb();
 
     #if defined(fgm_build_stage_maker)
