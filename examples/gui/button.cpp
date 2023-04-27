@@ -92,29 +92,31 @@ int main() {
   tp.theme = &theme;
   tp.text = "aadsfgad";
   tp.position = 200;
-  test_t b0 = tp;
+  loco_t::shape_t b0 = tp;
   tp.viewport = &pile->viewport;
 
   uint64_t fps = 0;
 
-  test_t b1;
-  test_t b2;
+  loco_t::shape_t b1;
+  loco_t::shape_t b2;
+    b1 = b0;
+    b1.set_position(fan::vec3(400, 400, 10));
   pile->loco.loop([&] {
-    if (fps % 100 == 0) {
-      tp.position = 200;
-      tp.position += 100;
-      tp.text = "bgasdgads";
-      b1 = tp;
-      tp.text = "chgfdgfhd";
-      tp.position += 100;
-      b2 = tp;
-    }
-    else {
-      b0.erase();
-      //b1.erase();
-      //b2.erase();
-    }
-    fps++;
+    //if (fps % 100 == 0) {
+    //  tp.position = 200;
+    //  tp.position += 100;
+    //  tp.text = "bgasdgads";
+    //  b1 = tp;
+    //  tp.text = "chgfdgfhd";
+    //  tp.position += 100;
+    //  b2 = tp;
+    //}
+    //else {
+    //  b0.erase();
+    //  //b1.erase();
+    //  //b2.erase();
+    //}
+    //fps++;
   });
 
   return 0;

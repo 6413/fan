@@ -187,7 +187,8 @@ struct vfi_t {
     *id = nr;
   }
   void erase(shape_id_t* id) {
-    if (focus.mouse == *id) {
+    bool fm = focus.mouse == *id;
+    if (fm) {
       focus.mouse.invalidate();
     }
     if (focus.keyboard == *id) {
@@ -197,8 +198,9 @@ struct vfi_t {
       focus.text.invalidate();
     }
     shape_list.unlrec(*id);
-
-    //feed_mouse_move(gloco->get_mouse_position());
+    if (fm) {
+      feed_mouse_move(gloco->get_mouse_position());
+    }
   }
   template <typename T>
   void set_always(shape_id_t id, auto T::*member, auto value) {

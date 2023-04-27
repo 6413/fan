@@ -1,29 +1,21 @@
-struct stage_maker_shape_format_0_1_0 {
-  struct shape_button_t {
-    fan::vec3 position;
-    fan::vec2 size;
-    f32_t font_size;
-    uint32_t id;
-  };
-  struct shape_sprite_t {
-    fan::vec3 position;
-    fan::vec2 size;
-    f32_t parallax_factor;
-  };
-  struct shape_text_t {
-    fan::vec3 position;
-    f32_t size;
-  };
-  struct shape_hitbox_t {
-    fan::vec3 position;
-    fan::vec2 size;
-    loco_t::vfi_t::shape_type_t shape_type;
-    uint32_t id;
-  };
-};
-
 struct stage_maker_shape_format_0_1_1 {
+
   struct shape_button_t {
+    loco_t::button_t::properties_t get_properties(
+      loco_t::viewport_t& viewport,
+      loco_t::camera_t& camera,
+      loco_t::theme_t& theme
+      ) {
+      loco_t::button_t::properties_t p;
+      p.viewport = &viewport;
+      p.camera = &camera;
+      p.position = position;
+      p.font_size = font_size;
+      p.text = text;
+      p.theme = &theme;
+      return p;
+    }
+
     fan_masterpiece_make(
       (fan::vec3) position,
       (fan::vec2) size,
@@ -33,6 +25,31 @@ struct stage_maker_shape_format_0_1_1 {
     )
   };
   struct shape_sprite_t {
+
+    loco_t::sprite_t::properties_t get_properties(
+      loco_t::viewport_t& viewport,
+      loco_t::camera_t& camera,
+      loco_t::texturepack_t& texturepack
+      ) {
+      loco_t::sprite_t::properties_t p;
+      p.viewport = &viewport;
+      p.camera = &camera;
+      p.position = position;
+      p.size = size;
+
+      loco_t::texturepack_t::ti_t ti;
+      if (texturepack.qti(texturepack_name, &ti)) {
+        p.image = &gloco->default_texture;
+      }
+      else {
+        auto& pd = texturepack.get_pixel_data(ti.pack_id);
+        p.image = &pd.image;
+        p.tc_position = ti.position / pd.image.size;
+        p.tc_size = ti.size / pd.image.size;
+      }
+      return p;
+    }
+
     #if defined(fgm_build_model_maker)
     fan_masterpiece_make(
       (fan::vec3) position,
@@ -53,6 +70,20 @@ struct stage_maker_shape_format_0_1_1 {
     #endif
   };
   struct shape_text_t {
+
+    loco_t::text_t::properties_t get_properties(
+      loco_t::viewport_t& viewport,
+      loco_t::camera_t& camera
+      ) {
+      loco_t::text_t::properties_t p;
+      p.viewport = &viewport;
+      p.camera = &camera;
+      p.position = position;
+      p.font_size = size;
+      p.text = text;
+      return p;
+    }
+
     fan_masterpiece_make(
       (fan::vec3) position,
       (f32_t) size,
@@ -61,6 +92,21 @@ struct stage_maker_shape_format_0_1_1 {
     );
   };
   struct shape_hitbox_t {
+
+    loco_t::sprite_t::properties_t get_properties(
+      loco_t::viewport_t& viewport,
+      loco_t::camera_t& camera,
+      loco_t::image_t* image
+      ) {
+      loco_t::sprite_t::properties_t p;
+      p.viewport = &viewport;
+      p.camera = &camera;
+      p.position = position;
+      p.size = size;
+      p.image = image;
+      return p;
+    }
+
     fan_masterpiece_make(
       (fan::vec3) position,
       (fan::vec2) size,
@@ -69,6 +115,20 @@ struct stage_maker_shape_format_0_1_1 {
     )
   };
   struct shape_mark_t {
+
+    loco_t::sprite_t::properties_t get_properties(
+      loco_t::viewport_t& viewport,
+      loco_t::camera_t& camera,
+      loco_t::image_t* image
+      ) {
+      loco_t::sprite_t::properties_t p;
+      p.viewport = &viewport;
+      p.camera = &camera;
+      p.position = position;
+      p.image = image;
+      return p;
+    }
+
     #if defined(fgm_build_model_maker)
     fan_masterpiece_make(
       (fan::vec3)position,

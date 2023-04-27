@@ -116,7 +116,9 @@ struct button_t {
         td.theme = theme;
         theme->mouse_button_cb(td);
 
-        sb_get_ri(id_).mouse_button_cb(mid);
+        if (sb_get_ri(id_).mouse_button_cb(mid)) {
+          return 1;
+        }
 
         return 0;
       };

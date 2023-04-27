@@ -338,7 +338,7 @@ _BLL_POFTWBIT(GetNodeByReference)
   #endif
 ){
   #if BLL_set_debug_InvalidAction == 1
-    if(NodeReference >= _BLL_GetList->NodeList.Current){
+    if(NodeReference.NRI >= _BLL_GetList->NodeList.Current){
       __abort();
     }
   #endif
@@ -349,14 +349,14 @@ _BLL_POFTWBIT(GetNodeByReference)
   #endif
   #if BLL_set_debug_InvalidAction == 1
     do{
-      #if BLL_set_debug_InvalidAction_srcAccess == 0
+      #if BLL_set_debug_InvalidAction_srcAccess == 1
         if(NodeReference == _BLL_GetList->src){
-          break;
+          __abort();
         }
       #endif
-      #if BLL_set_debug_InvalidAction_dstAccess == 0
+      #if BLL_set_debug_InvalidAction_dstAccess == 1
         if(NodeReference == _BLL_GetList->dst){
-          break;
+          __abort();
         }
       #endif
     }while(0);
@@ -787,9 +787,6 @@ _BLL_POFTWBIT(NewNode)
     _P(NodeReference_t) dstNodeReference = _BLL_GetList->dst;
     _BLL_POFTWBIT(_gln)(_BLL_PBLLTFFC NodeReference)->PrevNodeReference = dstNodeReference;
     _BLL_POFTWBIT(_gln)(_BLL_PBLLTFFC dstNodeReference)->NextNodeReference = NodeReference;
-    #if BLL_set_debug_InvalidAction == 1
-      _BLL_POFTWBIT(_gln)(_BLL_PBLLTFFC dstNodeReference)->PrevNodeReference = 0;
-    #endif
     _BLL_GetList->dst = NodeReference;
     _BLL_POFTWBIT(_Node_Construct)(_BLL_PBLLTFFC dstNodeReference);
     return dstNodeReference;
@@ -804,9 +801,6 @@ _BLL_POFTWBIT(NewNode)
     _P(NodeReference_t) dstNodeReference = _BLL_GetList->dst;
     _BLL_POFTWBIT(_gln)(_BLL_PBLLTFFC NodeReference)->PrevNodeReference = dstNodeReference;
     _BLL_POFTWBIT(_gln)(_BLL_PBLLTFFC dstNodeReference)->NextNodeReference = NodeReference;
-    #if BLL_set_debug_InvalidAction == 1
-      _BLL_POFTWBIT(_gln)(_BLL_PBLLTFFC dstNodeReference)->PrevNodeReference = 0;
-    #endif
     _BLL_GetList->dst = NodeReference;
     _BLL_POFTWBIT(_Node_Construct)(_BLL_PBLLTFFC dstNodeReference);
     return dstNodeReference;
@@ -887,7 +881,7 @@ _BLL_POFTWBIT(NewNode)
       if(_BLL_POFTWBIT(IsNRSentienel)(_BLL_PBLLTFFC NodeReference) == 1){
         __abort();
       }
-      if(_BLL_POFTWBIT(IsNodeReferenceUnlinked)(_BLL_PBLLTFFC NodeReference) == 1){
+      if(_BLL_POFTWBIT(IsNodeReferenceRecycled)(_BLL_PBLLTFFC NodeReference) == 1){
         __abort();
       }
     #endif

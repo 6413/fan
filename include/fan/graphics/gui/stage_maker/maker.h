@@ -217,18 +217,107 @@ void update(auto& loco){
   void create_stage(const fan::string& stage_name){
     loco_t::dropdown_t::element_properties_t ep;
     ep.text = stage_name;
+    ep.mouse_button_cb = [this](const auto& d) -> int {
+      if (d.button != fan::mouse_left) {
+        return 0;
+      }
+      if (d.button_state != fan::mouse_state::release) {
+        return 0;
+      }
+      stage_str = stage_menu.get_element_properties().text;
+      return 0;
+    };
     stage_menu.add(ep);
   };
 
+  void open_stage_menu() {
+    loco_t::dropdown_t::open_properties_t op;
+    op.gui_size = gui_size;
+    op.position = fan::vec2(1.0 - op.gui_size.x * 5, -1.0 + op.gui_size.y);
+    op.camera = &camera;
+    op.viewport = &viewport;
+    op.theme = &theme;
+    op.title = "stage";
+    op.titleable = true;
+    op.gui_size.x *= 4;
+    stage_menu.open(op);
+
+    fan::io::iterate_directory(stage_compile_folder_name, [this](const fan::string& path) {
+
+      fan::string p = path;
+      auto len = strlen(fan::string(fan::string(stage_compile_folder_name) + "/").c_str());
+      p = p.substr(len, p.size() - len);
+
+      if (p == "stage.h") {
+        return;
+      }
+      p.pop_back();
+      p.pop_back();
+      create_stage(p);
+      if (stage_str.empty()) {
+        stage_str = p;
+      }
+    });
+    
+    auto& instance = gloco->dropdown.menu_list[stage_menu];
+    auto it = instance.GetNodeFirst();
+    while (it != instance.dst) {
+      if (instance[it].ep.text == stage_str) {
+        stage_menu.set_selected(it);
+        break;
+      }
+      it = it.Next(&instance);
+    }
+  }
+
 	void open_options_menu() {
+    loco_t::dropdown_t::open_properties_t op;
+    op.gui_size = gui_size;
+    op.position = fan::vec2(1.0 - op.gui_size.x * 5, -1.0 + op.gui_size.y);
+    op.camera = &camera;
+    op.viewport = &viewport;
+    op.theme = &theme;
+    op.title = "stage";
+    op.titleable = true;
+    op.gui_size.x *= 4;
+    op.position.x = -op.position.x;
+    op.titleable = false;
+    options_menu.open(op);
+
     loco_t::dropdown_t::element_properties_t ep;
     ep.text = "create stage";
     options_menu.add(ep);
 
     ep.text = "gui stage";
+    ep.mouse_button_cb = [this](const auto& d) {
+      if (d.button != fan::mouse_left) {
+        return 0;
+      }
+      if (d.button_state != fan::mouse_state::release) {
+        return 0;
+      }
+
+      fgm.load();
+      stage_menu.clear();
+      options_menu.clear();
+
+      return 1;
+    };
     options_menu.add(ep);
 
     ep.text = "function stage";
+    ep.mouse_button_cb = [this](const auto& d) {
+      if (d.button != fan::mouse_left) {
+        return 0;
+      }
+      if (d.button_state != fan::mouse_state::release) {
+        return 0;
+      }
+
+      open_file_gui(get_file_fullpath(stage_menu.get_element_properties().text));
+
+      return 1;
+    };
     options_menu.add(ep);
 	}
 
@@ -312,6 +401,8 @@ void update(auto& loco){
 //
 	void open(const char* texturepack_name) {
 		
+    fgm.open(texturepack_name);
+
     fan::io::create_directory("stages_compile");
     fan::io::create_directory("stages_runtime");
 
@@ -346,37 +437,10 @@ void update(auto& loco){
 		);
     pile->loco.open_viewport(&viewport, 0, window_size);
 
-    loco_t::dropdown_t::open_properties_t op;
-    op.gui_size = gui_size;
-    op.position = fan::vec2(1.0 - op.gui_size.x * 5, -1.0 + op.gui_size.y);
-    op.camera = &camera;
-    op.viewport = &viewport;
-    op.theme = &theme;
-    op.title = "stage";
-    op.titleable = true;
-    stage_menu = op;
-
-    op.position.x = -op.position.x;
-    op.titleable = false;
-
-    options_menu = op;
-
 		open_stage(stage_t::main);
+
+    open_stage_menu();
 		open_options_menu();
-
-    fan::io::iterate_directory(stage_compile_folder_name, [this](const fan::string& path) {
-
-      fan::string p = path;
-      auto len = strlen(fan::string(fan::string(stage_compile_folder_name) + "/").c_str());
-      p = p.substr(len, p.size() - len);
-
-      if (p == "stage.h") {
-        return;
-      }
-      p.pop_back();
-      p.pop_back();
-      create_stage(p);
-    });
    
     keys_callback_nr = pile->loco.get_window()->add_keys_callback([this](const auto& d) {
       if (d.state != fan::keyboard_state::press) {
@@ -394,6 +458,8 @@ void update(auto& loco){
 	void close() {
     pile->loco.get_window()->remove_keys_callback(keys_callback_nr);
 	}
+
+  fan::string stage_str;
 
 	uint8_t current_stage;
 
@@ -413,6 +479,11 @@ void update(auto& loco){
   
   loco_t::dropdown_t::menu_id_t stage_menu;
   loco_t::dropdown_t::menu_id_t options_menu;
+
+  #if defined(fgm_build_stage_maker)
+  #include _FAN_PATH(graphics/gui/fgm/fgm.h)
+  fgm_t fgm;
+  #endif
 };
 
 #undef use_key_lambda

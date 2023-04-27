@@ -25,10 +25,10 @@ struct pile_t {
       ortho_y
     );
     loco.get_window()->add_resize_callback([&](const fan::window_t::resize_cb_data_t& d) {
-      viewport.set(loco.get_context(), 0, d.size, d.size);
+      viewport.set(0, d.size, d.size);
     });
-    viewport.open(loco.get_context());
-    viewport.set(loco.get_context(), 0, loco.get_window()->get_size(), loco.get_window()->get_size());
+    viewport.open();
+    viewport.set(0, loco.get_window()->get_size(), loco.get_window()->get_size());
   }
 
   loco_t loco;
@@ -52,13 +52,16 @@ int main() {
   p.color = fan::colors::blue;
 
   loco_t::shape_t r1 = p;
+  loco_t::shape_t r2;
 
   pile->loco.set_vsync(false);
   
   pile->loco.loop([&] {
+
+    r2 = r1;
     pile->loco.get_fps();
 
-    r0.set_position(pile->loco.get_mouse_position(pile->camera, pile->viewport));
+    //r0.set_position(pile->loco.get_mouse_position(pile->camera, pile->viewport));
   });
 
   return 0;

@@ -1,5 +1,6 @@
 #define BLL_set_BaseLibrary 1
 //#define BLL_set_namespace
+#define BLL_set_CPP_CopyAtPointerChange
 #define BLL_set_SafeNext 1
 #define BLL_set_CPP_Node_ConstructDestruct
 #define BLL_set_CPP_ConstructDestruct
