@@ -637,10 +637,6 @@ public:
   shape_list_t shape_list;
 
 	void load() {
-    loco_t::line_t::properties_t lp;
-		lp.viewport = &viewports[viewport_area::global];
-		lp.camera = &cameras[viewport_area::global];
-		lp.color = fan::colors::white;
 
 		resize_cb();
 
@@ -823,6 +819,11 @@ public:
     }
 
     editor_viewport = fan::vec4(-1, 1, -1, 1);
+
+    loco_t::line_t::properties_t lp;
+		lp.viewport = &viewports[viewport_area::global];
+		lp.camera = &cameras[viewport_area::global];
+		lp.color = fan::colors::white;
 
     for (auto& i : lines) {
       i = lp;
