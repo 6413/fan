@@ -642,10 +642,6 @@ public:
 		lp.camera = &cameras[viewport_area::global];
 		lp.color = fan::colors::white;
 
-    for (auto& i : lines) {
-      i = lp;
-    }
-
 		resize_cb();
 
     #if defined(fgm_build_stage_maker)
@@ -827,6 +823,10 @@ public:
     }
 
     editor_viewport = fan::vec4(-1, 1, -1, 1);
+
+    for (auto& i : lines) {
+      i = lp;
+    }
 	}
 	void close() {
 		clear();
