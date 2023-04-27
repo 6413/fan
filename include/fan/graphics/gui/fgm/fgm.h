@@ -637,7 +637,7 @@ public:
   shape_list_t shape_list;
 
 	void load() {
-
+    loaded = true;
 		resize_cb();
 
     #if defined(fgm_build_stage_maker)
@@ -675,6 +675,7 @@ public:
       }*/
       shape_list.Clear();
       return_button.erase();
+      loaded = false;
 
       return 1;
     };
@@ -713,6 +714,9 @@ public:
     mark_image.load((fan::color*)mark_image_pixels, 1);
 
 		gloco->get_window()->add_resize_callback([this](const fan::window_t::resize_cb_data_t& d) {
+      if (!loaded) {
+        return;
+      }
 			resize_cb();
 		});
 		//pile->loco.get_window()->add_mouse_move_callback([this](const auto& d) {
@@ -971,6 +975,7 @@ public:
     op.titleable = false;
     op.direction = fan::vec2(1, 0);
 
+    settings_menu.clear();
     settings_menu.open(op);
 
     loco_t::dropdown_t::element_properties_t ep;
@@ -1093,6 +1098,7 @@ public:
 	f32_t line_y_offset_between_types_and_properties;
 
 	loco_t::texturepack_t texturepack;
+  bool loaded = false;
 
   loco_t::image_t hitbox_image;
   loco_t::image_t mark_image;
