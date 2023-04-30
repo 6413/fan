@@ -2033,6 +2033,11 @@ public:
             data = (*shape)->get_instance(id).name; \
           }\
         }\
+        else if constexpr (has_get_properties_v<shape_t, loco_t::cid_nt_t&>) { \
+          if constexpr(has_##name##_v<typename shape_t::properties_t>) {\
+            data = (*shape)->get_properties(id).name; \
+          }\
+        }\
         else if constexpr (has_get_##name##_v<shape_t, loco_t::cid_nt_t&>) {\
           data = (*shape)->get_##name(id);\
         }\
@@ -2045,7 +2050,6 @@ public:
     });\
     return data; \
   }
-
 
   #define fan_build_set_declare(rt, name) \
   make_global_function_declare(set_##name,\
@@ -2098,6 +2102,11 @@ public:
         if constexpr (has_get_##name##_v<shape_t, loco_t::cid_nt_t&>) {\
             data = (*shape)->get_##name(id);\
         } \
+        else if constexpr (has_get_properties_v<shape_t, loco_t::cid_nt_t&>) { \
+          if constexpr(has_##name##_v<typename shape_t::properties_t>) {\
+            data = (*shape)->get_properties(id).name; \
+          }\
+        }\
       }\
     });\
     return data; \

@@ -33,6 +33,10 @@ struct dropdown_t {
 
     element_properties_t ep;
 
+    fan::string get_text() const {
+      return ep.text;
+    }
+
     void disable_draw() {
       erase();
     }
@@ -131,7 +135,6 @@ public:
       if (iic()) {
         return;
       }
-      fan::print("-", NRI);
       gloco->dropdown.menu_list.unlrec(*this);
       sic();
     }
@@ -189,9 +192,6 @@ public:
             while (inr != instance.dst) {
               auto& ii = instance[inr];
               ii.disable_draw();
-              //if (inr == element_nr) {
-
-              //}
               inr = inr.Next(&instance);
             }
             gt_end_expanded1:;
@@ -215,7 +215,6 @@ public:
     void open(const open_properties_t& op) {
       *(menu_nr_t*)this = gloco->dropdown.menu_list.NewNodeLast();
       auto& instance = gloco->dropdown.menu_list[*this];
-      fan::print("+", NRI);
 
       instance = op;
       menu_data_t menu_data;

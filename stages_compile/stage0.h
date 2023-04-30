@@ -1,15 +1,15 @@
-void open(auto& loco) {
+void open() {
   
 }
 
-void close(auto& loco){
+void close() {
 		
 }
 
-void window_resize_callback(auto& loco){
+void window_resize_callback(){
 		
 }
 
-void update(auto& loco){
+void update(){
 	
 }

@@ -10,6 +10,7 @@ struct stage_maker_shape_format_0_1_1 {
       p.viewport = &viewport;
       p.camera = &camera;
       p.position = position;
+      p.size = size;
       p.font_size = font_size;
       p.text = text;
       p.theme = &theme;
@@ -125,6 +126,7 @@ struct stage_maker_shape_format_0_1_1 {
       p.viewport = &viewport;
       p.camera = &camera;
       p.position = position;
+      p.size = 0.1;
       p.image = image;
       return p;
     }
