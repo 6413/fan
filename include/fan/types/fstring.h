@@ -328,14 +328,13 @@ namespace fan {
       return count;
     }
 
-    void replace_all(const basic_string& search, const basic_string& replace) {
-      for (size_t pos = 0; ; pos += replace.size()) {
-        // Locate the substring to replace
-        pos = find(search, pos);
-        if (pos == basic_string::npos) break;
-        // Replace by erasing and inserting
-        erase(pos, search.size());
-        insert(pos, replace);
+    void replace_all(const std::string& from, const std::string& to) {
+      if(from.empty())
+          return;
+      size_t start_pos = 0;
+      while((start_pos = find(from, start_pos)) != std::string::npos) {
+          replace(start_pos, from.length(), to);
+          start_pos += to.length();
       }
     }
 

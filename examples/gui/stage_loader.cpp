@@ -18,28 +18,10 @@ struct pile_t;
 #include _FAN_PATH(graphics/loco.h)
 
 // in stagex.h getting pile from mouse cb
-// pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, loco);
+// pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, gloco);
 
-struct test_t {
-
-  void open(auto& loco) {
-    fan::print("open");
-  }
-
-  void close(auto& loco){
-		
-  }
-
-  void window_resize_callback(auto& loco){
-		
-  }
-
-  void update(auto& loco){
-	
-  }
-
-  int x;
-};
+#define stage_loader_path .
+#include _FAN_PATH(graphics/gui/stage_maker/loader.h)
 
 struct pile_t {
   loco_t loco;
@@ -71,15 +53,10 @@ struct pile_t {
     // requires manual open with compiled texture pack name
   }
 
-  ~pile_t() {
-
-  }
-
   loco_t::theme_t theme;
   loco_t::camera_t camera;
   fan::graphics::viewport_t viewport;
 
-  #define loco_access &OFFSETLESS(this, pile_t, stage_loader)->loco
   #define custom_stages fan::return_type_of_t<decltype([]{struct a: public test_t, stage_common_t_t<test_t>{ \
     using stage_common_t_t::stage_common_t_t; \
     const char* stage_name = ""; \
@@ -87,40 +64,28 @@ struct pile_t {
 		      test_t::close(loco);\
       } \
    }*v; return *v;})>*
-  #define stage_loader_path .
-  #include _FAN_PATH(graphics/gui/stage_maker/loader.h)
   stage_loader_t stage_loader;
 };
 
-pile_t* pile = new pile_t;
-//
-//  #define some_type fan::return_type_of_t<decltype([]{struct a: public test_t, pile_t::stage_loader_t::stage_common_t_t<test_t>{ \
-//    using stage_common_t_t::stage_common_t_t; \
-//    const char* stage_name = ""; \
-//      void close(auto& loco){ \
-//		      test_t::close(loco);\
-//      } \
-//   }*v; return *v;})>
-//
-//using abc_t = some_type;
-
 int main(int argc, char** argv) {
+  
   if (argc < 2) {
     fan::throw_error("usage: TexturePackCompiled");
   }
+
+  pile_t* pile = new pile_t;
 
   loco_t::texturepack_t tp;
   tp.open_compiled(&pile->loco, argv[1]);
   pile->stage_loader.open(&tp);
 
-	using sl = pile_t::stage_loader_t;
-  
-	sl::stage_open_properties_t op;
+	stage_loader_t::stage_open_properties_t op;
 	op.camera = &pile->camera;
 	op.viewport = &pile->viewport;
 	op.theme = &pile->theme;
 
-  //auto it = pile->stage_loader.push_and_open_stage<abc_t>(op);
+  
+  stage_loader_t::nr_t it2 = stage_loader_t::stage::stage1_t(op);
   
 	pile->loco.loop([&] {
 
