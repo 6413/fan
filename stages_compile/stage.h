@@ -18,5 +18,11 @@ struct stage {
     #include _PATH_QUOTE(stage_loader_path/stages_compile/stage2.h)
   };
 
-  using variant_t = std::variant<stage0_t*,stage1_t*,stage2_t*>;
+  struct stage_hud_t : stage_common_t_t<stage_hud_t> {
+    using stage_common_t_t::stage_common_t_t;
+    static constexpr auto stage_name = "stage_hud";
+    #include _PATH_QUOTE(stage_loader_path/stages_compile/stage_hud.h)
+  };
+
+  using variant_t = std::variant<stage0_t*,stage1_t*,stage2_t*,stage_hud_t*>;
 };

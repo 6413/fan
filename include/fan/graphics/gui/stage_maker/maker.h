@@ -320,7 +320,81 @@ void update(){
 
       switch(d.key) {
         case fan::key_f2: {
-          #include "helper_functions/rename_cb.h"
+          if (!pile->loco.vfi.get_focus_text().is_invalid()) {
+            return;
+          }
+          loco_t::text_box_t::properties_t tp;
+          auto& active_element = stage_menu.get_active_element();
+          if (active_element.get_text_shape() == "stage") {
+            return;
+          }
+          tp.camera = &camera;
+          tp.viewport = &viewport;
+          tp.theme = &theme;
+          tp.position = active_element.get_position();
+          tp.position.z += 5;
+          tp.size = active_element.get_size();
+          tp.text = active_element.get_text_shape();
+          tp.font_size = active_element.get_font_size();
+          tp.keyboard_cb = [this, &active_element](const loco_t::keyboard_data_t& d) -> int {
+            if (d.keyboard_state != fan::keyboard_state::press) {
+
+              return 0;
+            }
+            switch (d.key) {
+
+              case fan::key_enter: {
+                auto temp_id = d.id;
+                auto new_name = pile->loco.text_box.get_text(temp_id);
+                if (!does_stage_exist(new_name)) {
+                  do {
+                    auto old_name = active_element.get_text_shape();
+
+                    #if defined(fan_platform_windows)
+                      static std::regex windows_filename_regex(R"([^\\/:*?"<>|\r\n]+(?!\\)$)");
+                    #elif defined(fan_platform_unix)
+                      static std::regex unix_filename_regex("[^/]+$");
+                    #endif
+
+                    if (new_name.empty() || 
+                      #if defined(fan_platform_windows)
+                        !std::regex_match(new_name, windows_filename_regex)
+                      #elif defined(fan_platform_unix)
+                        !std::regex_match(new_name, unix_filename_regex)
+                      #endif
+                      ) {
+                      fan::print("invalid stage name");
+                      break;
+                    }
+
+                    if (fan::io::file::rename(get_file_fullpath(old_name), get_file_fullpath(new_name)) ||
+                        fan::io::file::rename(get_file_fullpath_runtime(old_name), get_file_fullpath_runtime(new_name))) {
+
+                      fan::print_format("failed to rename file from:{} - to:{}", old_name, new_name);
+                      break;
+                    }
+                    if (old_name == new_name) {
+                      break;
+                    }
+                    std::regex rg(fan::format(R"(\b{0}(_t)?\b)", old_name));
+                    stage_h_str = std::regex_replace(stage_h_str, rg, new_name + R"($1)");
+                    write_stage();
+                    active_element.set_text(new_name);
+                  } while (0);
+                }
+                else {
+                  fan::print("stage name already exists");
+                }
+                rename_textbox.erase();
+                return 1;
+              }
+            }
+            return 0;
+          };
+
+          rename_textbox = tp;
+          rename_textbox.set_focus();
+
           break;
         }
       }
