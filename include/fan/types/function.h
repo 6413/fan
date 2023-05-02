@@ -113,7 +113,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 For more information, please refer to <http://unlicense.org/>
  */
  // despite that it would be nice if you give credit to Malte Skarupke
-#if 0
+#if 1
 #pragma once
 #include <utility>
 #include <type_traits>
@@ -721,7 +721,7 @@ namespace std
 
 #endif
 
-namespace fan {
-  template <typename T>
-  using function_t = std::function<T>;
-}
+//namespace fan {
+//  template <typename T>
+//  using function_t = std::function<T>;
+//}

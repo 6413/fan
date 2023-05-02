@@ -8,15 +8,15 @@ while (off < f.size()) {
         });
       loco_t::button_t::properties_t bp;
       bp.position = data.position;
-      bp.position.z += stage->it * op.itToDepthMultiplier;
+      bp.position.z += stage->stage_common.it * op.itToDepthMultiplier;
       bp.size = data.size;
       bp.font_size = data.font_size;
       bp.text = data.text;
       bp.theme = op.theme;
       bp.camera = op.camera;
       bp.viewport = op.viewport;
-      auto it = stage->cid_list.NewNodeLast();
-      stage->cid_list[it] = bp;
+      auto it = stage->stage_common.cid_list.NewNodeLast();
+      stage->stage_common.cid_list[it] = bp;
       cid_map[std::make_pair(stage, "button_" + data.id)] = it;
       break;
     }
@@ -27,7 +27,7 @@ while (off < f.size()) {
         });
       loco_t::unlit_sprite_t::properties_t sp;
       sp.position = data.position;
-      sp.position.z += stage->it * op.itToDepthMultiplier;
+      sp.position.z += stage->stage_common.it * op.itToDepthMultiplier;
       sp.size = data.size;
       sp.parallax_factor = data.parallax_factor;
       loco_t::texturepack_t::ti_t ti;
@@ -43,8 +43,8 @@ while (off < f.size()) {
       sp.camera = op.camera;
       sp.viewport = op.viewport;
 
-      auto it = stage->cid_list.NewNodeLast();
-      stage->cid_list[it] = sp;
+      auto it = stage->stage_common.cid_list.NewNodeLast();
+      stage->stage_common.cid_list[it] = sp;
       cid_map[std::make_pair(stage, "sprite_" + data.id)] = it;
       break;
     }
@@ -58,12 +58,12 @@ while (off < f.size()) {
       p.viewport = op.viewport;
 
       p.position = data.position;
-      p.position.z += stage->it * op.itToDepthMultiplier;
+      p.position.z += stage->stage_common.it * op.itToDepthMultiplier;
       p.font_size = data.size;
       p.text = data.text;
 
-      auto it = stage->cid_list.NewNodeLast();
-      stage->cid_list[it] = p;
+      auto it = stage->stage_common.cid_list.NewNodeLast();
+      stage->stage_common.cid_list[it] = p;
       cid_map[std::make_pair(stage, "text_" + data.id)] = it;
       break;
     }
