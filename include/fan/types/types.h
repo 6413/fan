@@ -851,3 +851,9 @@ static uint8_t __clz(uintptr_t p0) {
 
 template <typename ...T>
 using __nameless_type_t = fan::assign_wrapper_t<T...>;
+
+#ifndef lstd_defstruct
+  #define lstd_defstruct(type_name) \
+    struct type_name{ \
+      using lstd_current_type = type_name;
+#endif

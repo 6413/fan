@@ -84,9 +84,10 @@ int main(int argc, char** argv) {
 	op.viewport = &pile->viewport;
 	op.theme = &pile->theme;
 
+  stage_loader_t::nr_t it2 = stage_loader_t::open_stage<stage_loader_t::stage::stage0_t>(op);
   
-  stage_loader_t::nr_t it2 = stage_loader_t::stage::stage1_t(op);
   
+
 	pile->loco.loop([&] {
 
 	});
