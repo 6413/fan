@@ -8,7 +8,7 @@ struct stage_loader_t;
 
 static inline struct gstage_t {
 
-  stage_loader_t* loader = nullptr;
+  stage_loader_t* loader;
 
   operator stage_loader_t* () {
     return loader;
