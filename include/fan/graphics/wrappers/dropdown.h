@@ -37,6 +37,10 @@ struct dropdown_t {
       return ep.text;
     }
 
+    fan::string get_text_shape() {
+      return loco_t::shape_t::get_text();
+    }
+
     void disable_draw() {
       erase();
     }
@@ -235,6 +239,10 @@ public:
         fan::throw_error("invalid selection");
       }
       return gloco->dropdown.menu_list[*this][selected_id].ep;
+    }
+    // node pointer can change
+    dropdown_t::element_t& get_active_element() {
+      return gloco->dropdown.menu_list[*this][gloco->dropdown.menu_list[*this].GetNodeFirst()];
     }
     void set_selected(element_list_nr_t element) {
       auto& instance = gloco->dropdown.menu_list[*this];
