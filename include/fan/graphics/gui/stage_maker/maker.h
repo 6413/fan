@@ -380,6 +380,7 @@ void update(){
                     stage_h_str = std::regex_replace(stage_h_str, rg, new_name + R"($1)");
                     write_stage();
                     active_element.set_text(new_name);
+                    stage_str = new_name;
                   } while (0);
                 }
                 else {

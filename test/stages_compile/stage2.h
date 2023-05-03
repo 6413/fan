@@ -6,7 +6,7 @@ void close(auto& loco){
 		
 }
 
-void window_resize_callback(auto& loco){
+void window_resize(auto& loco){
 		
 }
 

@@ -5,7 +5,7 @@ struct pile_t;
 #ifndef FAN_INCLUDE_PATH
   #define FAN_INCLUDE_PATH C:/libs/fan/include
 #endif
-#define fan_debug 0
+#define fan_debug 2
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
 #define loco_opengl
@@ -85,7 +85,7 @@ int main(int argc, char** argv) {
 	op.theme = &pile->theme;
 
   stage_loader_t::nr_t it2 = stage_loader_t::open_stage<stage_loader_t::stage::stage0_t>(op);
-  
+  //it2.erase();
   
 
 	pile->loco.loop([&] {

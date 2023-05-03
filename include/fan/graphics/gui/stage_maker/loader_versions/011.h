@@ -1,47 +1,36 @@
 while (off < f.size()) {
-  auto shape_type = read_data<loco_t::shape_type_t::_t>(f, off);
+  auto shape_type = *(loco_t::shape_type_t::_t*)&f[off];
+  off += sizeof(loco_t::shape_type_t::_t);
   switch (shape_type) {
     case loco_t::shape_type_t::button: {
       stage_maker_shape_format::shape_button_t data;
       data.iterate_masterpiece([&f, &off](auto& o) {
         o = fan::read_data<std::remove_reference_t<decltype(o)>>(f, off);
-        });
-      loco_t::button_t::properties_t bp;
-      bp.position = data.position;
+      });
+      loco_t::button_t::properties_t bp = data.get_properties(
+        *op.viewport,
+        *op.camera,
+        *op.theme
+      );
       bp.position.z += stage->stage_common.it * op.itToDepthMultiplier;
-      bp.size = data.size;
-      bp.font_size = data.font_size;
-      bp.text = data.text;
-      bp.theme = op.theme;
-      bp.camera = op.camera;
-      bp.viewport = op.viewport;
+
       auto it = stage->stage_common.cid_list.NewNodeLast();
       stage->stage_common.cid_list[it] = bp;
       cid_map[std::make_pair(stage, "button_" + data.id)] = it;
       break;
     }
     case loco_t::shape_type_t::sprite: {
+
       stage_maker_shape_format::shape_sprite_t data;
       data.iterate_masterpiece([&f, &off](auto& o) {
         o = fan::read_data<std::remove_reference_t<decltype(o)>>(f, off);
-        });
-      loco_t::unlit_sprite_t::properties_t sp;
-      sp.position = data.position;
+      });
+       loco_t::sprite_t::properties_t sp = data.get_properties(
+        *op.viewport,
+        *op.camera,
+        *texturepack
+      );
       sp.position.z += stage->stage_common.it * op.itToDepthMultiplier;
-      sp.size = data.size;
-      sp.parallax_factor = data.parallax_factor;
-      loco_t::texturepack_t::ti_t ti;
-      if (texturepack->qti(data.texturepack_name, &ti)) {
-        sp.image = &gloco->default_texture;
-      }
-      else {
-        auto& pd = texturepack->get_pixel_data(ti.pack_id);
-        sp.image = &pd.image;
-        sp.tc_position = ti.position / pd.image.size;
-        sp.tc_size = ti.size / pd.image.size;
-      }
-      sp.camera = op.camera;
-      sp.viewport = op.viewport;
 
       auto it = stage->stage_common.cid_list.NewNodeLast();
       stage->stage_common.cid_list[it] = sp;
@@ -49,18 +38,16 @@ while (off < f.size()) {
       break;
     }
     case loco_t::shape_type_t::text: {
+
       stage_maker_shape_format::shape_text_t data;
       data.iterate_masterpiece([&f, &off](auto& o) {
         o = fan::read_data<std::remove_reference_t<decltype(o)>>(f, off);
-        });
-      loco_t::text_t::properties_t p;
-      p.camera = op.camera;
-      p.viewport = op.viewport;
-
-      p.position = data.position;
+      });
+      loco_t::text_t::properties_t p = data.get_properties(
+        *op.viewport,
+        *op.camera
+      );
       p.position.z += stage->stage_common.it * op.itToDepthMultiplier;
-      p.font_size = data.size;
-      p.text = data.text;
 
       auto it = stage->stage_common.cid_list.NewNodeLast();
       stage->stage_common.cid_list[it] = p;
@@ -71,7 +58,7 @@ while (off < f.size()) {
       stage_maker_shape_format::shape_hitbox_t data;
       data.iterate_masterpiece([&f, &off](auto& o) {
         o = fan::read_data<std::remove_reference_t<decltype(o)>>(f, off);
-        });
+      });
       /*loco_t::vfi_t::properties_t vfip;
       switch (data.vfi_type) {
         case loco_t::vfi_t::shape_t::always: {
@@ -106,6 +93,13 @@ while (off < f.size()) {
       //(loco_access)->cid_list[stage->cid_list.back().cid].cid.shape_type = loco_t::shape_type_t::hitbox;
       //cid_map[std::make_pair(stage, "hitbox_" + data.id)] = stage->cid_list.back().cid;
       fan::throw_error("hitbox not implemented");
+      break;
+    }
+    case loco_t::shape_type_t::mark: {
+      stage_maker_shape_format::shape_mark_t data;
+      data.iterate_masterpiece([&f, &off](auto& o) {
+        o = fan::read_data<std::remove_reference_t<decltype(o)>>(f, off);
+      });
       break;
     }
     default: {
