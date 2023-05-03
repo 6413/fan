@@ -29,13 +29,12 @@ struct structor_t{
     outside->stage_common.stage_id = nr;
     outside->stage_common.parent_id = op.parent_id;
     gstage->stage_list[nr].stage = outside;
-    //if (stage->stage_common.stage_id.Prev(&gstage->stage_list) != gstage->stage_list.src) {
-    //  //std::visit([&](auto o) { stage->it = o->it + 1; }, gstage->stage_list[stage->stage_id.Prev(&gstage->stage_list)].stage);
-    //  //stage->stage_common.it = ((stage_common_t *)stage_list[stage->stage_common.stage_id.Prev(&gstage->stage_list)].stage)->stage_common.it + 1;
-    //}
-    //else {
-    //  stage->stage_common.it = 0;
-    //}
+    if (outside->stage_common.stage_id.Prev(&gstage->stage_list) != gstage->stage_list.src) {
+      outside->stage_common.it = ((stage_common_t *)gstage->stage_list[outside->stage_common.stage_id.Prev(&gstage->stage_list)].stage)->it + 1;
+    }
+    else {
+      outside->stage_common.it = 0;
+    }
 
     gstage->load_fgm(outside, op, lstd_current_type::stage_name);
     gstage->stage_list[outside->stage_common.stage_id].update_nr = gloco->m_update_callback.NewNodeLast();
