@@ -13,6 +13,7 @@ struct pile_t;
 #define loco_window
 #define loco_context
 
+#define loco_rectangle
 #define loco_sprite
 #define loco_button
 #include _FAN_PATH(graphics/loco.h)
@@ -66,6 +67,41 @@ struct pile_t {
    }*v; return *v;})>*
   stage_loader_t stage_loader;
 };
+pile_t* pile = new pile_t;
+
+fan_make_custom_stage(custom_t)
+  loco_t::shape_t l;
+  void open() {
+    loco_t::rectangle_t::properties_t p;
+    p.camera = &pile->camera;
+    p.viewport = &pile->viewport;
+    p.position = 0;
+    p.position.z = 10;
+    p.size = 0.2;
+    p.color = fan::random::color();
+    l = p;
+  }
+
+  void close() {
+		
+  }
+
+  void window_resize(){
+		
+  }
+
+  void update(){
+	
+  }
+
+};
+
+//struct custom_t : stage_loader_t::custom_base_t{
+//  using custom_base_t::custom_base_t;
+//  void open() {
+//    fan::print("a");
+//  }
+//};
 
 int main(int argc, char** argv) {
   
@@ -73,7 +109,6 @@ int main(int argc, char** argv) {
     fan::throw_error("usage: TexturePackCompiled");
   }
 
-  pile_t* pile = new pile_t;
 
   loco_t::texturepack_t tp;
   tp.open_compiled(&pile->loco, argv[1]);
@@ -85,6 +120,7 @@ int main(int argc, char** argv) {
 	op.theme = &pile->theme;
 
   stage_loader_t::nr_t it2 = stage_loader_t::open_stage<stage_loader_t::stage::stage0_t>(op);
+  stage_loader_t::nr_t it3 = stage_loader_t::open_stage<custom_t>(op);
   //it2.erase();
   
 
