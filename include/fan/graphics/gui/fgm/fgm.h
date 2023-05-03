@@ -419,6 +419,16 @@ struct fgm_t {
         shape->set_hitbox_position(position);
       );
       fgm->sidepanel_menu.add(ep);
+
+      ep.text = fan::format("{}", id);
+      create_keyboard_cb(
+        if (fgm->does_id_exist(text_box->get_text())) {
+          fan::print("id already exists, skipping...");
+          return 0;
+        }
+        shape->id = text_box->get_text();
+      );
+      fgm->sidepanel_menu.add(ep);
     }
 
 
@@ -579,6 +589,16 @@ struct fgm_t {
       ep.text = fan::format("size {}", get_size().c_str());
       create_keyboard_cb(
         shape->set_size(fan::string_to<fan::vec3>(text_box->get_text()));
+      );
+      fgm->sidepanel_menu.add(ep);
+
+      ep.text = fan::format("{}", id);
+      create_keyboard_cb(
+        if (fgm->does_id_exist(text_box->get_text())) {
+          fan::print("id already exists, skipping...");
+          return 0;
+        }
+        shape->id = text_box->get_text();
       );
       fgm->sidepanel_menu.add(ep);
     }

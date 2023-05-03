@@ -76,10 +76,7 @@ public:
     using base_nr_t::base_nr_t;
 
     nr_t() = default;
-    nr_t(const base_nr_t& nr) : base_nr_t(nr) {}
-
-    template <typename T>
-    nr_t(const T& stage) requires(!std::is_same_v<T, nr_t>) : base_nr_t(stage.stage_id) {}
+    nr_t(base_nr_t nr) : base_nr_t(nr) {}
 
     void erase() {
       #if fan_debug >= 2
@@ -122,32 +119,9 @@ public:
 
   template <typename T>
   static stage_list_NodeReference_t open_stage(const stage_open_properties_t& op) {
-
-    auto nr = gstage->stage_list.NewNodeLast();
-    T* stage = (T*)malloc(sizeof(T));
-    stage->stage_common.stage_id = nr;
-    gstage->stage_list[nr].stage = stage;
-    if (stage->stage_common.stage_id.Prev(&gstage->stage_list) != gstage->stage_list.src) {
-      //std::visit([&](auto o) { stage->it = o->it + 1; }, gstage->stage_list[stage->stage_id.Prev(&gstage->stage_list)].stage);
-      //stage->stage_common.it = ((stage_common_t *)stage_list[stage->stage_common.stage_id.Prev(&gstage->stage_list)].stage)->stage_common.it + 1;
-    }
-    else {
-      stage->stage_common.it = 0;
-    }
-    stage->stage_common.parent_id = op.parent_id;
-    std::construct_at(stage);
-
-    // if constexpr type stage_name exists something
-    gstage->load_fgm(stage, op, stage->stage_name);
-    gstage->stage_list[stage->stage_common.stage_id].update_nr = gloco->m_update_callback.NewNodeLast();
-    gloco->m_update_callback[gstage->stage_list[stage->stage_common.stage_id].update_nr] = [&, stage](loco_t* loco) {
-      stage->update();
-    };
-    gstage->stage_list[stage->stage_common.stage_id].resize_nr = gloco->get_window()->add_resize_callback([&, stage](const auto&) {
-      stage->window_resize();
-    });
-    stage->open();
-    return nr;
+    T* stage = new T{ .structor{op} };
+    T::_stage_open(stage);
+    return stage->stage_common.stage_id;
   }
 
   #include _PATH_QUOTE(stage_loader_path/stages_compile/stage.h)
@@ -200,7 +174,7 @@ public:
       fan::throw_error("invalid fetch for id - usage shape_{id}", id);
     }
 
-    return stage_ptr->cid_list[found->second];
+    return stage_ptr->stage_common.cid_list[found->second];
   }
 
 	void open(loco_t::texturepack_t* tp) {
@@ -239,10 +213,10 @@ public:
 	//}
 	void erase_stage(nr_t id) {
     auto* sc = (stage_common_t*)stage_list[id].stage;
-    sc->close(stage_list[id].stage);
-    //stage->close();
     gloco->m_update_callback.unlrec(stage_list[id].update_nr);
     gloco->get_window()->remove_resize_callback(stage_list[id].resize_nr);
+    sc->close(stage_list[id].stage);
+    //stage->close();
    // std::destroy_at(stage);
 	}
 
