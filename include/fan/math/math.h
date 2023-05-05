@@ -349,7 +349,7 @@ namespace fan {
 		{
 			return vector_t(
 				std::sin(angle),
-				std::cos(angle)
+				-std::cos(angle)
 			);
 		}
 

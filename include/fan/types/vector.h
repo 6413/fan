@@ -333,6 +333,10 @@ namespace fan {
 		constexpr auto angle() const {
 			return atan2(y, x);
 		}
+		// coordinate system angle. TODO need rename to something meaningful
+		constexpr auto csangle() const {
+			return atan2(x, -y);
+		}
 
 		template <typename T>
 		friend std::ostream& operator<<(std::ostream& os, const _vec2<T>& vector);
