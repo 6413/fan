@@ -97,10 +97,12 @@ public:
 
     stage_loader_t::nr_t parent_id;
     uint32_t itToDepthMultiplier = 0x100;
+
+    void *sod; // stage open data
   };
 
   struct stage_common_t {
-    using open_t = void(*)(void *);
+    using open_t = void(*)(void *, void *);
     open_t open;
     using close_t = void(*)(void *);
     close_t close;
@@ -120,7 +122,7 @@ public:
   template <typename T>
   static stage_list_NodeReference_t open_stage(const stage_open_properties_t& op) {
     T* stage = new T{ .structor{op} };
-    T::_stage_open(stage);
+    T::_stage_open(stage, op.sod);
     return stage->stage_common.stage_id;
   }
 
@@ -228,7 +230,7 @@ public:
     
     static constexpr auto stage_name = "";
 
-    void open() {
+    void open(void *sod) {
   
     }
 
@@ -258,8 +260,8 @@ public:
     .update = _stage_update \
   }; \
    \
-  static void _stage_open(void* ptr) { \
-    ((lstd_current_type*)ptr)->open(); \
+  static void _stage_open(void* ptr, void *sod) { \
+    ((lstd_current_type*)ptr)->open(sod); \
   } \
    \
   static void _stage_close(void* ptr) { \
