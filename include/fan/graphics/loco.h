@@ -1628,10 +1628,10 @@ public:
     #endif
 
     auto it = m_update_callback.GetNodeFirst();
-
     while (it != m_update_callback.dst) {
+      m_update_callback.StartSafeNext(it);
       m_update_callback[it](this);
-      it = it.Next(&m_update_callback);
+      it = m_update_callback.EndSafeNext();
     }
 
     m_write_queue.process(get_context());
@@ -1850,6 +1850,7 @@ public:
 protected:
   #define BLL_set_CPP_ConstructDestruct
   #define BLL_set_CPP_Node_ConstructDestruct
+  #define BLL_set_SafeNext 1
   #define BLL_set_AreWeInsideStruct 1
   #define BLL_set_prefix update_callback
   #define BLL_set_BaseLibrary 1
