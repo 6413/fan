@@ -5,8 +5,8 @@ stage_common_t stage_common = {
   .update = _stage_update
 };
 
-static void _stage_open(void* ptr) {
-  ((lstd_current_type*)ptr)->open();
+static void _stage_open(void* ptr, void *sod) {
+  ((lstd_current_type*)ptr)->open(sod);
 }
 
 static void _stage_close(void* ptr) {
