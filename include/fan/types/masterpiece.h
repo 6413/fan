@@ -143,7 +143,7 @@ namespace fan {
       }
       else {
         if (lambda(std::integral_constant<uint32_t, depth>{}, get_value<depth>())) {
-          return 1;
+          return depth;
         }
         return iterate_ret<depth + 1>(lambda);
       }

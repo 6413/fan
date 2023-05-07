@@ -1022,6 +1022,7 @@ static void forEachType(std::variant<Types...>& variant, Func&& func) {
     lines[3].set_line(src, dst);
 
     src = fan::vec3(translate_to_global(viewports[viewport_area::sidepanel].get_position()), line_z_depth);
+    src.z = line_z_depth;
     dst.x = src.x;
     dst.y = cameras[viewport_area::global].coordinates.down;
     lines[4].set_line(src, dst);
@@ -1041,7 +1042,7 @@ static void forEachType(std::variant<Types...>& variant, Func&& func) {
 
 
     set_viewport_and_camera(viewport_area::global, fan::vec2(-1), fan::vec2(1));
-    set_viewport_and_camera(viewport_area::editor, editor_position - editor_size, editor_size);
+    set_viewport_and_camera(viewport_area::editor, editor_position - editor_size, editor_size / 2);
     set_viewport_and_camera(viewport_area::sidepanel, fan::vec2(sidepanel_line_position.x, -1),
       fan::vec2(-0.5, 1)
     );

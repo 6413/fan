@@ -28,7 +28,23 @@ pile_t* pile = new pile_t;
 #define fgm_build_stage_maker
 #include _FAN_PATH(graphics/gui/stage_maker/maker.h)
 
+  fan::masterpiece_t<int, double, int> m;
+
+
+
+
 int main(int argc, char** argv) {
+
+  int x = m.iterate_ret([]<typename T>(const auto& i, const T& e) -> int {
+    fan::print(i);
+    if (i.value == 1) {
+      return 1;
+    }
+    return 0;
+  });
+
+  return x;
+
   if (argc < 2) {
     fan::throw_error("usage: TexturePackCompiled");
   }
