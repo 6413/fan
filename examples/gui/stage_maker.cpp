@@ -34,17 +34,6 @@ pile_t* pile = new pile_t;
 
 
 int main(int argc, char** argv) {
-
-  int x = m.iterate_ret([]<typename T>(const auto& i, const T& e) -> int {
-    fan::print(i);
-    if (i.value == 1) {
-      return 1;
-    }
-    return 0;
-  });
-
-  return x;
-
   if (argc < 2) {
     fan::throw_error("usage: TexturePackCompiled");
   }

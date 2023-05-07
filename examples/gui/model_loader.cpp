@@ -39,14 +39,13 @@ struct pile_t {
     // keep aspect ratio
     fan::vec2 ratio = window_size / window_size.max();
     camera.set_ortho(
-      &loco,
       ortho_x * ratio.x,
       ortho_y * ratio.y
     );
-    viewport.set(loco.get_context(), 0, window_size, window_size);
+    viewport.set(0, window_size, window_size);
       });
-    viewport.open(loco.get_context());
-    viewport.set(loco.get_context(), 0, window_size, window_size);
+    viewport.open();
+    viewport.set(0, window_size, window_size);
 
     // requires manual open with compiled texture pack name
   }
@@ -125,7 +124,7 @@ int main(int argc, char** argv) {
   m.set_size(model_id, 0.3);
 
   pile->loco.loop([&] {
-    m.set_position(model_id, pile->loco.get_mouse_position(pile->viewport));
+    m.set_position(model_id, pile->loco.get_mouse_position(pile->camera, pile->viewport));
     m.set_angle(model_id, angle);
     angle += pile->loco.get_delta_time() * 2;
   });

@@ -88,39 +88,25 @@ void update(){
 			return;
 		}
 
-		static constexpr const char* find_end_str("\n  using variant_t = std::variant<");
-    auto struct_stage_end = stage_h_str.find(find_end_str);
+		static constexpr const char find_end_str[]("\n};");
+    auto struct_stage_end = stage_h_str.find_last_of(find_end_str);
 
 		if (struct_stage_end == fan::string::npos) {
 			fan::throw_error("corrupted stage.h");
 		}
 
+    struct_stage_end -= sizeof(find_end_str) - 2;
+
     auto append_struct = fmt::format(R"(
-  struct {0}_t : stage_common_t_t<{0}_t> {{
-    using stage_common_t_t::stage_common_t_t;
+  struct lstd_defstruct({0}_t) {{
+    #include _FAN_PATH(graphics/gui/stage_maker/preset.h)
+
     static constexpr auto stage_name = "{0}";
     #include _PATH_QUOTE(stage_loader_path/{1})
-  }};
-)", 
+  }};)", 
     stage_name,
     get_file_fullpath(stage_name));
 		stage_h_str.insert(struct_stage_end, append_struct);
-
-    static constexpr auto variant_str = "std::variant<";
-    auto found = stage_h_str.find(variant_str);
-    if (found == fan::string::npos) {
-      fan::throw_error("corrupted stage.h");
-    }
-    found += strlen(variant_str);
-    found = stage_h_str.find(">;", found);
-    if (found == fan::string::npos) {
-      fan::throw_error("corrupted stage.h");
-    }
-    if (stage_h_str[found - 1] != '<') {
-      stage_h_str.insert(found, ",");
-      found += 1;
-    }
-    stage_h_str.insert(found, stage_name + "_t*");
 	};
 
 	auto write_stage_instance(const fan::string& stage_name) {
@@ -284,8 +270,6 @@ void update(){
 
   if (!data_exists) {
     stage_h_str = R"(struct stage {
-
-  using variant_t = std::variant<>;
 };)";
     write_stage();
   }

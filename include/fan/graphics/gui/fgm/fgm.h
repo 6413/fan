@@ -32,7 +32,7 @@ struct fgm_t {
 
   static constexpr f32_t gui_size = 0.1;
 
-  static constexpr f32_t line_z_depth = 50;
+  static constexpr f32_t line_z_depth = 0xfff;
   static constexpr f32_t right_click_z_depth = 11;
 
   static inline f32_t z_depth = 1;
@@ -236,9 +236,6 @@ struct fgm_t {
       data.font_size = get_font_size();
       data.text = get_text();
       data.id = id;
-      #if defined(fgm_build_model_maker)
-      data.group_id = group_id;
-      #endif
       f += shape_to_string(data);
       return f;
     }
@@ -440,9 +437,6 @@ struct fgm_t {
       data.size = get_font_size();
       data.text = get_text();
       data.id = id;
-      #if defined(fgm_build_model_maker)
-      data.group_id = group_id;
-      #endif
       f += shape_to_string(data);
       return f;
     }
@@ -515,9 +509,6 @@ struct fgm_t {
       data.size = get_size();
       data.vfi_type = vfi_type;
       data.id = id;
-      #if defined(fgm_build_model_maker)
-      data.group_id = group_id;
-      #endif
       f += shape_to_string(data);
       return f;
     }
@@ -909,13 +900,16 @@ template <typename... Types, typename Func>
 static void forEachType(std::variant<Types...>& variant, Func&& func) {
     (func(Types{}), ...);
 }
-	#if defined(fgm_build_stage_maker)
   void read_from_file(const fan::string& stage_name) {
+    #if defined(fgm_build_stage_maker)
     fan::string path = get_fgm_full_path(stage_name);
-    fan::string f;
+    #else
+    fan::string path = stage_name;
+    #endif
     if (!fan::io::file::exists(path)) {
       return;
     }
+    fan::string f;
     fan::io::file::read(path, &f);
 
     if (f.empty()) {
@@ -974,18 +968,15 @@ static void forEachType(std::variant<Types...>& variant, Func&& func) {
     }
 
     fan::io::file::write(
+      #if defined(fgm_build_stage_maker)
       get_fgm_full_path(stage_name),
+      #else
+      stage_name,
+      #endif
       f,
       std::ios_base::binary
     );
-
-    auto offset = get_stage_maker()->stage_h_str.find(stage_name);
-
-    if (offset == fan::string::npos) {
-      fan::throw_error("corrupted stage.h");
-    }
   }
-  #endif
 
   fan::vec2 translate_viewport_position(const fan::vec2& value) {
     fan::vec2 window_size = gloco->get_window()->get_size();

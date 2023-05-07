@@ -159,6 +159,9 @@ namespace fan {
         return iterate<depth + 1>(lambda);
       }
     }
+    static constexpr size_t size() {
+      return count + 1;
+    }
   };
 
   template <typename T>
@@ -204,8 +207,20 @@ namespace fan {
     template <int N>
     using get_type_t = T;
 
+    static constexpr size_t size() {
+      return 1;
+    }
+
     constexpr void iterate(auto lambda) {
       lambda(std::integral_constant<uint32_t, 0>{}, get_value<0>());
+    }
+
+    template <uint32_t depth = 0>
+    constexpr int iterate_ret(auto lambda){
+      if (lambda(std::integral_constant<uint32_t, depth>{}, get_value<depth>())) {
+        return depth;
+      }
+      return 0;
     }
   };
 
