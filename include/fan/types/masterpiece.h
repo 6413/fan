@@ -139,7 +139,7 @@ namespace fan {
     template <uint32_t depth = 0>
     constexpr int iterate_ret(auto lambda){
       if constexpr(depth > count) {
-        return 0;
+        return depth;
       }
       else {
         if (lambda(std::integral_constant<uint32_t, depth>{}, get_value<depth>())) {
@@ -147,7 +147,7 @@ namespace fan {
         }
         return iterate_ret<depth + 1>(lambda);
       }
-      return 0;
+      return depth;
     }
     template <uint32_t depth = 0>
     constexpr void iterate(auto lambda) {
@@ -220,7 +220,7 @@ namespace fan {
       if (lambda(std::integral_constant<uint32_t, depth>{}, get_value<depth>())) {
         return depth;
       }
-      return 0;
+      return count;
     }
   };
 

@@ -45,6 +45,7 @@ struct model_maker_t : fgm_t {
     // read header
     uint32_t header = fan::read_data<uint32_t>(f, offset);
 
+    read_from_file(path);
 
    /* fgm_t::iterate_masterpiece([&](auto& d) {
       while (offset < f.size()) {
