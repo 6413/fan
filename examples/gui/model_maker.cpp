@@ -34,7 +34,6 @@ pile_t* pile = new pile_t;
 #include _FAN_PATH(graphics/gui/model_maker/maker.h)
 
 int main(int argc, char** argv) {
-  //return fan::masterpiece_t<int>::size();
   if (argc < 2) {
     fan::throw_error("usage: TexturePackCompiled");
   }
