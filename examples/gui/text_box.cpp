@@ -33,11 +33,10 @@ struct pile_t {
       //std::swap(ratio.x, ratio.y);
       //pile_t* pile = (pile_t*)userptr;
       camera.set_ortho(
-        &loco,
         fan::vec2(0, 800) * ratio.x,
         fan::vec2(0, 800) * ratio.y
       );
-      viewport.set(loco.get_context(), 0, loco.get_window()->get_size(), loco.get_window()->get_size());
+      viewport.set(0, loco.get_window()->get_size(), loco.get_window()->get_size());
     });
 
     fan::vec2 position = 0;
@@ -45,8 +44,8 @@ struct pile_t {
     //position.y -= 200;
     //position.y += size.y / 2;
     //size.y /= 2;
-    viewport.open(loco.get_context());
-    viewport.set(loco.get_context(), position, size, loco.get_window()->get_size());
+    viewport.open();
+    viewport.set(position, size, loco.get_window()->get_size());
   }
 
   loco_t loco;
@@ -57,8 +56,27 @@ struct pile_t {
 
 pile_t* pile = new pile_t;
 
+template <typename T>
+struct at {
+  using type_t = fan::return_type_of_t<T>;
+};
+
 int main() {
 
+  //at<decltype([]() -> int{ return 0; }) > ::type_t;
+
+  fan::masterpiece_t<int, double, int> m;
+
+
+  int x = m.iterate_ret([]<typename T>(const auto& i, const T& e) -> int {
+    fan::print(i);
+    if (i.value == 2) {
+      return 0;
+    }
+    return 0;
+  });
+
+  return x;
   loco_t::text_box_t::properties_t tp;
   tp.camera = &pile->camera;
   tp.viewport = &pile->viewport;
@@ -85,7 +103,7 @@ int main() {
     return 0;
   };
   loco_t::theme_t gray_theme = loco_t::themes::gray();
-  gray_theme.open(pile->loco.get_context());
+  gray_theme.open();
   gray_theme.button.text_color.r /= 1.1;
   gray_theme.button.text_color.g /= 1.1;
   gray_theme.button.text_color.b /= 1.1;

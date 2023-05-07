@@ -136,22 +136,26 @@ namespace fan {
       // to remove warning
       return 0;
     }
-
     template <uint32_t depth = 0>
-    constexpr auto iterate(auto lambda) {
+    constexpr int iterate_ret(auto lambda){
+      if constexpr(depth > count) {
+        return 0;
+      }
+      else {
+        if (lambda(std::integral_constant<uint32_t, depth>{}, get_value<depth>())) {
+          return 1;
+        }
+        return iterate_ret<depth + 1>(lambda);
+      }
+      return 0;
+    }
+    template <uint32_t depth = 0>
+    constexpr void iterate(auto lambda) {
       if constexpr(depth > count) {
         return;
       }
       else {
-        using ReturnType = decltype(lambda(std::integral_constant<uint32_t, depth>{}, get_value<depth>()));
-        if constexpr (std::is_same_v<ReturnType, bool>) {
-          if (!lambda(std::integral_constant<uint32_t, depth>{}, get_value<depth>())) {
-            return;
-          }
-        }
-        else {
-          lambda(std::integral_constant<uint32_t, depth>{}, get_value<depth>());
-        }
+        lambda(std::integral_constant<uint32_t, depth>{}, get_value<depth>());
         return iterate<depth + 1>(lambda);
       }
     }
