@@ -16,8 +16,7 @@
 #define loco_line
 #define loco_button
 #define loco_sprite
-#define loco_menu_maker_button
-#define loco_menu_maker_text_box
+#define loco_dropdown
 #define loco_var_name loco
 #include _FAN_PATH(graphics/loco.h)
 
@@ -35,6 +34,7 @@ pile_t* pile = new pile_t;
 #include _FAN_PATH(graphics/gui/model_maker/maker.h)
 
 int main(int argc, char** argv) {
+  //return fan::masterpiece_t<int>::size();
   if (argc < 2) {
     fan::throw_error("usage: TexturePackCompiled");
   }

@@ -15,7 +15,7 @@ struct model_maker_t : fgm_t {
             break;
           }
 
-          write_to_file();
+          fgm_t::write_to_file(filename_out);
           fan::print("file saved to", filename_out);
           break;
         }
@@ -44,24 +44,15 @@ struct model_maker_t : fgm_t {
 
     // read header
     uint32_t header = fan::read_data<uint32_t>(f, offset);
-    fgm_t::iterate_masterpiece([&](auto& d) {
+
+
+   /* fgm_t::iterate_masterpiece([&](auto& d) {
       while (offset < f.size()) {
         iterate_masterpiece([&f, &offset](auto& o) {
           offset += o.from_string(f.substr(offset));
         });
       }
-    });
-  }
-
-  void write_to_file() {
-    fan::string f;
-    fan::write_to_string(f, stage_maker_format_version);
-
-    iterate_masterpiece([&f](const auto& shape) {
-      f += shape.to_string();
-      });
-
-    fan::io::file::write(filename_out, f, std::ios_base::binary);
+    });*/
   }
   fan::window_t::keys_callback_NodeReference_t keys_nr;
 };
