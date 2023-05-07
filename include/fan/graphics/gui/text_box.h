@@ -489,6 +489,26 @@ struct text_box_t {
     return p;
   }
 
+  void set_append_letter(loco_t::cid_nt_t& id, wchar_t wc){
+    auto& ri = gloco->text_box.sb_get_ri(id);
+
+    ri.fed.add_character(wc);
+    wed_t::CursorInformation_t ci;
+    auto& fed = sb_get_ri(id).fed;
+    fed.m_wed.GetCursorInformation(fed.m_cr, &ci);
+    switch (ci.type) {
+      case wed_t::CursorType::FreeStyle: {
+        gloco->text_box.set_text(id, ri.fed.get_text(ci.FreeStyle.LineReference));
+        break;
+      }
+      case wed_t::CursorType::Selection: {
+        fan::assert_test(0);
+        break;
+      }
+    }
+    update_cursor(id);
+  }
+
   fan::ev_timer_t::timer_t timer = fan::function_t<void(const fan::ev_timer_t::cb_data_t&)>([this](const fan::ev_timer_t::cb_data_t& c) {
     if (!render_cursor) {
       cursor.set_color(fan::colors::transparent);

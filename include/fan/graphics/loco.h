@@ -1123,6 +1123,8 @@ public:
     fan_create_set_define(loco_t::camera_list_NodeReference_t, camera);
     fan_create_set_define(fan::graphics::viewport_list_NodeReference_t, viewport);
 
+    fan_create_set_define(wchar_t, append_letter);
+
     void set_line(const fan::vec3& src, const fan::vec3& dst) {
       gloco->shape_set_line(*this, src, dst);
     }
@@ -2174,6 +2176,8 @@ public:
 
   fan_build_get_set_define(fan::color, outline_color);
   fan_build_get_set_define(f32_t, outline_size);
+
+  fan_build_set_generic_define(wchar_t, append_letter);
 
 
   make_global_function_define(set_line,
