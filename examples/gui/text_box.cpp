@@ -56,27 +56,8 @@ struct pile_t {
 
 pile_t* pile = new pile_t;
 
-template <typename T>
-struct at {
-  using type_t = fan::return_type_of_t<T>;
-};
-
 int main() {
 
-  //at<decltype([]() -> int{ return 0; }) > ::type_t;
-
-  fan::masterpiece_t<int, double, int> m;
-
-
-  int x = m.iterate_ret([]<typename T>(const auto& i, const T& e) -> int {
-    fan::print(i);
-    if (i.value == 2) {
-      return 0;
-    }
-    return 0;
-  });
-
-  return x;
   loco_t::text_box_t::properties_t tp;
   tp.camera = &pile->camera;
   tp.viewport = &pile->viewport;

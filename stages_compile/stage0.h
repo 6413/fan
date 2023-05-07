@@ -6,7 +6,7 @@ void close() {
 		
 }
 
-void window_resize(){
+void window_resize_callback(){
 		
 }
 
