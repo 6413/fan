@@ -86,6 +86,7 @@ int main() {
   pile->loco.set_vsync(false);
 
   tb1.set_text("abc");
+  tb1.set_font_size(64);
 
   pile->loco.loop([&] {
     pile->loco.get_fps();

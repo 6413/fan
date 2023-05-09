@@ -92,6 +92,8 @@ int main() {
   //id2.set_depth(3);
 
   //pile->loco.process_loop([] {});
+
+
   pile->loco.loop([&] {
       loco_t::shape_t id3 = pp;
     pile->loco.get_fps(); 

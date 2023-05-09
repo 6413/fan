@@ -127,6 +127,19 @@ struct sb_sprite_name {
     return p;
   }
 
+  bool load_tp(loco_t::shape_t& id, loco_t::texturepack_t::ti_t* ti) { 
+    auto& im = *ti->image;
+
+    properties_t p = sb_get_properties(id);
+    
+    gloco->image_list[*p.key.get_value<loco_t::textureid_t<0>>()].image = &im;
+    
+    set(id, &loco_t::sprite_t::vi_t::tc_position, ti->position / im.size);
+    set(id, &loco_t::sprite_t::vi_t::tc_size, ti->size / im.size);
+
+    return 0; 
+  }
+
   //void set_viewport_value(loco_t::cid_nt_t& id, fan::vec2 p, fan::vec2 s) {
   //  loco_t* loco = get_loco();
   //  auto block = sb_get_block(cid);

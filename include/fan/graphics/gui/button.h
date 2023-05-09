@@ -340,6 +340,10 @@ struct button_t {
     sb_set_depth(id, depth);
   }
 
+  void set_font_size(loco_t::cid_nt_t& id, f32_t font_size) {
+    gloco->text.set_font_size(sb_get_ri(id).text_id, font_size);
+  }
+
   properties_t get_properties(loco_t::cid_nt_t& id) {
     properties_t p = sb_get_properties(id);
     p.camera = gloco->camera_list[*p.key.get_value<loco_t::camera_list_NodeReference_t>()].camera_id;

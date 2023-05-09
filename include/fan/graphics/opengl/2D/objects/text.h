@@ -213,7 +213,6 @@ struct text_renderer_t {
     push_back(id, p);
   }
 
-
   properties_t get_properties(loco_t::cid_nt_t& id) {
     auto internal_id = *(tlist_NodeReference_t *)id.gdp4();
     return tlist[internal_id].p;
