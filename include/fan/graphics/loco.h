@@ -435,7 +435,39 @@ public:
   #endif
   #include _FAN_PATH(BLL/BLL.h)
 
+  struct viewport_resize_cb_data_t {
+		camera_t* camera;
+    fan::vec3 position;
+		fan::vec2 size;
+	};
+	using viewport_resize_cb_t = fan::function_t<void(const viewport_resize_cb_data_t&)>;
+
+  #define BLL_set_CPP_ConstructDestruct
+  #define BLL_set_CPP_Node_ConstructDestruct
+  #define BLL_set_prefix viewport_resize_callback
+	#define BLL_set_NodeData viewport_resize_cb_t data;
+	#include _FAN_PATH(window/cb_list_builder_settings.h)
+	#include _FAN_PATH(BLL/BLL.h)
+
+  viewport_resize_callback_t m_viewport_resize_callback;
+
   struct camera_t {
+
+    using resize_cb_data_t = loco_t::viewport_resize_cb_data_t;
+    using resize_cb_t = loco_t::viewport_resize_cb_t;
+    using resize_callback_NodeReference_t = loco_t::viewport_resize_callback_NodeReference_t;
+
+    resize_callback_NodeReference_t add_resize_callback(resize_cb_t function) {
+      auto nr = gloco->m_viewport_resize_callback.NewNodeLast();
+      gloco->m_viewport_resize_callback[nr].data = function;
+      return nr;
+    }
+
+    void remove_resize_callback(resize_callback_NodeReference_t id) {
+      gloco->m_viewport_resize_callback.Unlink(id);
+      gloco->m_viewport_resize_callback.Recycle(id);
+    }
+
     camera_t() {
       camera_reference.sic();
     }
@@ -472,6 +504,10 @@ public:
       constexpr fan::vec3 front(0, 0, 1);
 
       m_view = fan::math::look_at_left<fan::mat4>(position, position + front, fan::camera::world_up);
+    }
+
+    fan::vec2 get_camera_size() const {
+      return fan::vec2(std::abs(coordinates.right - coordinates.left), std::abs(coordinates.down - coordinates.up));
     }
 
     void set_ortho(const fan::vec2& x, const fan::vec2& y) {
@@ -557,6 +593,19 @@ public:
       }
       #endif
       #endif
+
+      auto it = gloco->m_viewport_resize_callback.GetNodeFirst();
+
+      while (it != gloco->m_viewport_resize_callback.dst) {
+
+        resize_cb_data_t cbd;
+        cbd.camera = this;
+        cbd.position = get_camera_position();
+        cbd.size = get_camera_size();
+        gloco->m_viewport_resize_callback[it].data(cbd);
+
+        it = it.Next(&gloco->m_viewport_resize_callback);
+      }
     }
 
     fan::mat4 m_projection;
