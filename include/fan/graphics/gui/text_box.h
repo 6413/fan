@@ -125,7 +125,6 @@ struct text_box_t {
             src.x = fan::clamp(src.x, (f32_t)0, src.x);
             fan::vec2 dst = src;
 
-            fan::print(src, dst, fan::vec2(ii_d.position), fan::vec2(get_text_left_position(id_)));
             ri.fed.set_mouse_position(src, dst);
             update_cursor(id_);
           }
