@@ -1,5 +1,5 @@
 struct fed_t {
-	static constexpr uint32_t character_width_multiplier = 10000;
+	static constexpr uint32_t character_width_multiplier = 100;
 
 	struct properties_t {
 		uint32_t line_height = -1;
@@ -20,6 +20,15 @@ struct fed_t {
 	}
 
 	void push_text(const fan::string& str) {
+		for (const auto& i : str) {
+			add_character(i);
+		}
+	}
+
+  void set_text(const fan::string& str) {
+    wed_t::CursorInformation_t ci;
+    m_wed.GetCursorInformation(m_cr, &ci);
+    clear_text(ci.FreeStyle.LineReference);
 		for (const auto& i : str) {
 			add_character(i);
 		}
