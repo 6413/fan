@@ -101,6 +101,8 @@ int main() {
   loco_t::shape_t b2;
     b1 = b0;
     b1.set_position(fan::vec3(400, 400, 10));
+
+    b1.set_font_size(128);
   pile->loco.loop([&] {
     //if (fps % 100 == 0) {
     //  tp.position = 200;

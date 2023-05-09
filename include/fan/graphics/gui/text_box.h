@@ -414,6 +414,10 @@ struct text_box_t {
     );
   }
 
+  void set_font_size(loco_t::cid_nt_t& id, f32_t font_size) {
+    gloco->text.set_font_size(sb_get_ri(id).text_id, font_size);
+  }
+
  /* loco_t::camera_t* get_camera(loco_t::cid_nt_t& id) {
     loco_t* loco = get_loco();
     return loco->camera_list[*block->p[cid->instance_id].key.get_value<0>()].camera_id;
