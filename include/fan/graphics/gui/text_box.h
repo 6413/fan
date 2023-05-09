@@ -125,6 +125,7 @@ struct text_box_t {
             src.x = fan::clamp(src.x, (f32_t)0, src.x);
             fan::vec2 dst = src;
 
+            fan::print(src, dst, fan::vec2(ii_d.position), fan::vec2(get_text_left_position(id_)));
             ri.fed.set_mouse_position(src, dst);
             update_cursor(id_);
           }
@@ -458,7 +459,9 @@ struct text_box_t {
     return gloco->text.get_instance(sb_get_ri(id).text_id).text;
   }
   void set_text(loco_t::cid_nt_t& id, const fan::string& text) {
-    gloco->text.set_text(sb_get_ri(id).text_id, text);
+    auto& ri = sb_get_ri(id);
+    gloco->text.set_text(ri.text_id, text);
+    ri.fed.set_text(text);
   }
 
   fan::vec3 get_text_left_position(loco_t::cid_nt_t& id) {
@@ -479,7 +482,7 @@ struct text_box_t {
     //fan::print(width);
     fan::vec3 p = get_text_left_position(id);
     const fan::string& text = gloco->text.get_instance(sb_get_ri(id).text_id).text;
-    f32_t font_size = sb_get_ri(id).text_id.get_font_size();
+    f32_t font_size = gloco->text.get_instance(sb_get_ri(id).text_id).font_size;
     fan::string measured_string;
     for (uint32_t i = 0; i < width; ++i) {
       measured_string += text.get_utf8(i);

@@ -22,30 +22,24 @@ struct pile_t {
   pile_t() {
     fan::vec2 window_size = loco.get_window()->get_size();
     fan::vec2 ratio = window_size / window_size.max();
+    // wed will be inaccurate with low float multiplier with ndc
     loco.open_camera(
       &camera,
       fan::vec2(0, 800) * ratio.x,
       fan::vec2(0, 800) * ratio.y
     );
+    loco.open_viewport(&viewport, 0, loco.get_window()->get_size());
     loco.get_window()->add_resize_callback([&](const fan::window_t::resize_cb_data_t& d) {
       fan::vec2 window_size = d.window->get_size();
       fan::vec2 ratio = window_size / window_size.max();
       //std::swap(ratio.x, ratio.y);
       //pile_t* pile = (pile_t*)userptr;
       camera.set_ortho(
-        fan::vec2(0, 800) * ratio.x,
-        fan::vec2(0, 800) * ratio.y
+        fan::vec2(0, window_size.x) * ratio.x,
+        fan::vec2(0, window_size.y) * ratio.y
       );
       viewport.set(0, loco.get_window()->get_size(), loco.get_window()->get_size());
     });
-
-    fan::vec2 position = 0;
-    fan::vec2 size = loco.get_window()->get_size();
-    //position.y -= 200;
-    //position.y += size.y / 2;
-    //size.y /= 2;
-    viewport.open();
-    viewport.set(position, size, loco.get_window()->get_size());
   }
 
   loco_t loco;
@@ -61,13 +55,9 @@ int main() {
   loco_t::text_box_t::properties_t tp;
   tp.camera = &pile->camera;
   tp.viewport = &pile->viewport;
-  // tp.position = 400;
   tp.position = fan::vec2(200, 200);
-  //tp.position.y = 0;
- // tp.position.z = 50;
-  tp.size = fan::vec2(300, 100)
-    //* 300
-    ;
+  tp.size = fan::vec2(300, 100);
+
   tp.text = "W||||W";
   tp.font_size = 32;
   //tp.font_size = 32;
@@ -83,12 +73,7 @@ int main() {
      }*/
     return 0;
   };
-  loco_t::theme_t gray_theme = loco_t::themes::gray();
-  gray_theme.open();
-  gray_theme.button.text_color.r /= 1.1;
-  gray_theme.button.text_color.g /= 1.1;
-  gray_theme.button.text_color.b /= 1.1;
-  //((loco_t::theme_t*)pile->loco.get_context()->theme_list[gray_theme.theme_reference].theme_id)->
+  loco_t::theme_t gray_theme = loco_t::themes::deep_red();
   
   tp.theme = &gray_theme;
   constexpr auto count = 10;
@@ -98,9 +83,9 @@ int main() {
   tp.text = "test";
   loco_t::shape_t tb1 = tp;
 
-  //pile->loco.button.set_theme(&cids[0], &gray_theme, 0.1);
-
   pile->loco.set_vsync(false);
+
+  tb1.set_text("abc");
 
   pile->loco.loop([&] {
     pile->loco.get_fps();
