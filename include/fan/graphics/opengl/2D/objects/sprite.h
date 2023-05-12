@@ -134,10 +134,10 @@ struct sb_sprite_name {
     
     gloco->image_list[*p.key.get_value<loco_t::textureid_t<0>>()].image = &im;
     
-    set(id, &loco_t::sb_sprite_name::vi_t::tc_position, ti->position / im.size);
-    set(id, &loco_t::sb_sprite_name::vi_t::tc_size, ti->size / im.size);
+    set(id, &vi_t::tc_position, ti->position / im.size);
+    set(id, &vi_t::tc_size, ti->size / im.size);
 
-    return 0; 
+    return 0;
   }
 
   //void set_viewport_value(loco_t::cid_nt_t& id, fan::vec2 p, fan::vec2 s) {

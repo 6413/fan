@@ -80,13 +80,13 @@ int main() {
   
   loco_t::shape_t tb0 = tp;
   tp.position = fan::vec2(600, 600);
-  tp.text = "test";
+  tp.text = "abcdefghijlmnopqrstuvxyz";
   loco_t::shape_t tb1 = tp;
 
   pile->loco.set_vsync(false);
 
-  tb1.set_text("abc");
-  tb1.set_font_size(64);
+  //tb1.set_text("abc");
+  //tb1.set_font_size(64);
 
   pile->loco.loop([&] {
     pile->loco.get_fps();

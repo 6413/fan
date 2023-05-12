@@ -1313,6 +1313,10 @@ public:
   #include _FAN_PATH(graphics/font.h)
   font_t font;
   #endif
+  #if defined(loco_responsive_text)
+    #include _FAN_PATH(graphics/gui/responsive_text.h)
+    responsive_text_t responsive_text;
+  #endif
 
   static constexpr uint8_t pixel_data[] = {
     1, 0, 0, 1,
