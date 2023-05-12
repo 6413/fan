@@ -29,7 +29,6 @@ struct letter_t {
     get_key_value(fan::graphics::viewport_list_NodeReference_t) = p.viewport;
 
     fan::font::character_info_t si = gloco->font.info.get_letter_info(p.letter_id, p.font_size);
-
     p.tc_position = si.glyph.position / gloco->font.image.size;
     p.tc_size.x = si.glyph.size.x / gloco->font.image.size.x;
     p.tc_size.y = si.glyph.size.y / gloco->font.image.size.y;

@@ -32,11 +32,17 @@ namespace fan {
 			mapping_t mapping;
 			metrics_info_t metrics;
 			glyph_info_t glyph;
+      metrics_info_t original_metrics;
 		};
 
 		using characters_t = std::unordered_map<uint32_t, character_info_t>;
 
 		struct font_t {
+
+      f32_t top;
+      f32_t bottom;
+
+      f32_t height;
 
 			f32_t size;
 			characters_t characters;
@@ -78,6 +84,7 @@ namespace fan {
 				font_info.metrics.size = found->second.metrics.size * converted_size;
 				font_info.metrics.offset = found->second.metrics.offset * converted_size;
 				font_info.metrics.advance = font_info.metrics.size.x;
+        font_info.original_metrics = found->second.original_metrics;
 
 				font_info.glyph = found->second.glyph;
 				font_info.mapping = found->second.mapping;
@@ -274,6 +281,8 @@ namespace fan {
 				auto line = parse_line(&reverse_mapping, lines[iline], stage);
 
 				font.characters[line.utf8].metrics = line.font_info.metrics;
+        font.characters[line.utf8].original_metrics = font.characters[line.utf8].metrics;
+        
 
 				iline++;
 			}
@@ -293,6 +302,27 @@ namespace fan {
 					for (auto& i : font.characters) {
 						i.second.metrics.size = i.second.glyph.size;
 					}
+
+          f32_t uppest = 100000;
+          f32_t downest = -100000;
+          for (auto& i : font.characters) {
+
+            auto letter_info = font.get_letter_info(i.first, font.size);
+            f32_t height = (font.size - letter_info.metrics.size.y) / 2 - letter_info.metrics.offset.y;
+            if (uppest > height - letter_info.metrics.size.y / 2) {
+              uppest = height - letter_info.metrics.size.y / 2;
+              fan::print(height, letter_info.metrics.size.y / 2);
+            }
+            if (downest < height + letter_info.metrics.size.y / 2) {
+              downest = height + letter_info.metrics.size.y / 2;
+            }
+            if (i.first == 'j') {
+              fan::print("az");
+            }
+          }
+          font.top = uppest;
+          font.bottom = downest;
+          font.height = std::max(std::abs(font.top), std::abs(font.bottom)) * 2;
 
 					return font;
 				}
