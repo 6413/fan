@@ -311,13 +311,9 @@ namespace fan {
             f32_t height = (font.size - letter_info.metrics.size.y) / 2 - letter_info.metrics.offset.y;
             if (uppest > height - letter_info.metrics.size.y / 2) {
               uppest = height - letter_info.metrics.size.y / 2;
-              fan::print(height, letter_info.metrics.size.y / 2);
             }
             if (downest < height + letter_info.metrics.size.y / 2) {
               downest = height + letter_info.metrics.size.y / 2;
-            }
-            if (i.first == 'j') {
-              fan::print("az");
             }
           }
           font.top = uppest;

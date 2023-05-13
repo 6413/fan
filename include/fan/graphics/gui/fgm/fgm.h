@@ -77,10 +77,10 @@ struct fgm_t {
     void create_hitbox(fgm_t* fgm, auto* shape, const fan::vec3& position, const fan::vec2& size) {
       loco_t::vfi_t::properties_t vfip;
       vfip.shape_type = loco_t::vfi_t::shape_t::rectangle;
-      vfip.shape.rectangle.viewport = &fgm->viewports[viewport_area::editor];
-      vfip.shape.rectangle.camera = &fgm->cameras[viewport_area::editor];
-      vfip.shape.rectangle.position = position;
-      vfip.shape.rectangle.size = size;
+      vfip.shape.rectangle->viewport = &fgm->viewports[viewport_area::editor];
+      vfip.shape.rectangle->camera = &fgm->cameras[viewport_area::editor];
+      vfip.shape.rectangle->position = position;
+      vfip.shape.rectangle->size = size;
       vfip.mouse_button_cb = [fgm, snr = shape->nr](const auto& d) -> int{
         if (fgm->editor_mode != fgm_t::editor_modes_e::mod) {
           return 0;
@@ -106,7 +106,7 @@ struct fgm_t {
 
         switch (fgm->shape_mode) {
           case fgm_t::shape_mode_e::move: {
-            gloco->vfi.shape_list[gloco->vfi.focus.mouse].shape_data.shape.rectangle.position = d.position;
+            gloco->vfi.shape_list[gloco->vfi.focus.mouse].shape_data.shape.rectangle->position = d.position;
             auto* s = &std::get<std::remove_pointer_t<decltype(shape)>>(fgm->shape_list[snr]);
             s->set_position(d.position);
             break;
@@ -130,12 +130,12 @@ struct fgm_t {
     }
     void set_hitbox_position(const fan::vec3& p) {
       auto& rectangle = gloco->vfi.shape_list[vfi_id].shape_data;
-      rectangle.shape.rectangle.position = *(fan::vec2*)&p;
+      rectangle.shape.rectangle->position = *(fan::vec2*)&p;
       rectangle.depth = p.z;
     }
     void set_hitbox_size(const fan::vec2& p) {
       auto& rectangle = gloco->vfi.shape_list[vfi_id].shape_data;
-      rectangle.shape.rectangle.size = p;
+      rectangle.shape.rectangle->size = p;
     }
   };
 //protected:
