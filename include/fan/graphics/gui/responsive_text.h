@@ -5,6 +5,11 @@ struct responsive_text_t : loco_t::shape_t {
     T shape_info;
   };
 
+  //bool does_text_fit(const fan::string& text) {
+  //  f32_t text_width = m_text.get_text_size().x;
+  //  return 
+  //}
+
   template <typename T>
   responsive_text_t(const properties_t<T>& properties) 
     : shape_t(properties.shape_info){
@@ -15,9 +20,15 @@ struct responsive_text_t : loco_t::shape_t {
     p.position.z += 1;
 
     current_font_size = properties.font_size;
-    f32_t scaler = properties.shape_info.size.y * 2 / gloco->font.info.height;
-    p.font_size = gloco->font.info.size * scaler * current_font_size;
-    m_text = p;
+
+    m_text_lines.resize(1.0 / current_font_size);
+
+    for (uint32_t i = 0; i < m_text_lines.size(); ++i) {
+      p.position = *(fan::vec2*)&properties.shape_info.position + fan::vec2(0, current_font_size * i * properties.shape_info.size.y * 2 - properties.shape_info.size.y / 2);
+      m_text_lines[i] = p;
+    }
+
+    set_size(properties.shape_info.size);
   }
   responsive_text_t() {
 
@@ -26,12 +37,51 @@ struct responsive_text_t : loco_t::shape_t {
 
   }
 
-  void set_size(const fan::vec2& size) {
+  bool does_text_fit(const fan::string& text) {
+    fan::vec2 size = get_size();
+    f32_t font_size = m_text_lines[line_index].get_font_size();
+    f32_t line0_width = gloco->text.get_text_size(m_text_lines[line_index].get_text(), font_size).x;
+    f32_t line1_width = gloco->text.get_text_size(text, font_size).x;
+    f32_t total = line0_width + line1_width;
+    if (total <= size.x) {
+      max_line_width = std::max(total, max_line_width);
+      return true;
+    }
+    if (line_index + 1 < uint32_t(1.0 / current_font_size)) {
+      ++line_index;
+      max_line_width = std::max(total, max_line_width);
+      return true;
+    }
+    return false;
+  }
+
+  void calculate_font_size() {
+
+    fan::vec2 size = get_size();
     f32_t scaler = size.y * 2 / gloco->font.info.height;
+    for (uint32_t i = 0; i < uint32_t(1.0 / current_font_size); ++i) {
+      f32_t new_font_size = gloco->font.info.size * scaler * current_font_size;
+      f32_t text_width = gloco->text.get_text_size(m_text_lines[i].get_text(), new_font_size).x / 2;
+      new_font_size *= std::min(1.f, size.x / text_width);
+      m_text_lines[i].set_font_size(new_font_size);
+    }
+  }
+
+  void set_size(const fan::vec2& size) {
     shape_t::set_size(size);
-    fan::print(current_font_size, gloco->font.info.size * scaler * current_font_size);
-    m_text.set_font_size(gloco->font.info.size * scaler * current_font_size);
-    //p.font_size = ;
+    calculate_font_size();
+  }
+
+  // todo remake add push_letter to text renderer
+  void push_letter(wchar_t wc) {
+    std::wstring ws(&wc, &wc + 1);
+    fan::string utf8(ws.begin(), ws.end());
+    push_back(utf8);
+   // calculate_font_size();
+  }
+
+  void push_back(const fan::string& text) {
+    m_text_lines[line_index].set_text(m_text_lines[line_index].get_text() + text);
   }
 
   template <typename T>
@@ -39,5 +89,7 @@ struct responsive_text_t : loco_t::shape_t {
       return responsive_text_t::properties_t<T>{tp, shape_info};
   }
   f32_t current_font_size = 0;
-  loco_t::shape_t m_text;
+  std::vector<loco_t::shape_t> m_text_lines;
+  uint32_t line_index = 0;
+  f32_t max_line_width = 0;
 };

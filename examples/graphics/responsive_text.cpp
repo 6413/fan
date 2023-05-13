@@ -53,7 +53,7 @@ int main() {
   pp.image = &image;
   
   pp.position = fan::vec2(400, 400);
-  pp.size = fan::vec2(300, 100);
+  pp.size = fan::vec2(100, 100);
   pp.color.a = 1;
   pp.blending = true;
 
@@ -75,21 +75,29 @@ int main() {
   //pile->loco.set_vsync(false);
   
   loco_t::text_t::properties_t tp;
-  tp.text = "jw)"; // 
-  tp.text.insert(tp.text.begin() + 1, 96);
-  tp.font_size = 1;
+  tp.font_size = 0.49;
   auto p = loco_t::responsive_text_t::make_properties(pp, tp);
   loco_t::responsive_text_t responsive_box = p;
 
+  {
+    uint32_t i = 0;
+    while (responsive_box.does_text_fit(std::to_string(i))) {
+      responsive_box.push_back(std::to_string(i));
+      i++;
+    }
+  }
+
+
   //fan::vec2
+//  responsive_box.set_size(fan::vec2(1, 100));
 
   gloco->get_window()->add_keys_callback([&](const auto& d) {
     if (d.key == fan::key_up) {
-      pp.size += 1;
+      pp.size.x += 1;
       responsive_box.set_size(pp.size);
     }
     if (d.key == fan::key_down) {
-      pp.size -= 1;
+      pp.size.x -= 1;
       responsive_box.set_size(pp.size);
     }
   });
