@@ -39,6 +39,7 @@ struct loco_t;
 #include _FAN_PATH(font.h)
 #include _FAN_PATH(physics/collision/circle.h)
 #include _FAN_PATH(io/directory.h)
+#include _FAN_PATH(event/event.h)
 
 #include <variant>
 

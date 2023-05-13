@@ -33,19 +33,23 @@ struct model_loader_t {
     iterator_t iterator;
 
     uint64_t offset = 0;
-    // read header
+
     uint32_t header = fan::read_data<uint32_t>(f, offset);
-    iterator.iterate_masterpiece([&](auto& d) {
-      // read the type
-      auto type = fan::read_data<loco_t::shape_type_t::_t>(f, offset);
-      uint32_t instance_count = fan::read_data<uint32_t>(f, offset);
-      for (uint32_t i = 0; i < instance_count; ++i) {
+
+    while (offset < f.size()) {
+      iterator.iterate_masterpiece([&]<typename T>(T& d) {
+        // read the type
+        auto type = *(loco_t::shape_type_t::_t*)&f[offset];
+        if (type != T::shape_type) {
+          return;
+        }
+        offset += sizeof(loco_t::shape_type_t::_t);
         d.iterate_masterpiece([&](auto& o) {
           o = fan::read_data<std::remove_reference_t<decltype(o)>>(f, offset);
-          });
+        });
         lambda(d);
-      }
-    });
+      });
+    }
   }
 };
 
@@ -64,7 +68,7 @@ struct model_list_t {
       loco_t::texturepack_t::ti_t ti;
       loader.load(tp, path, [&](const auto& data) {
         instances[std::make_pair(data.group_id, data.id)].type = data;
-        });
+      });
     }
 
     using key_t = std::pair<uint32_t, std::string>;
@@ -304,18 +308,12 @@ public:
 
   void set_position(model_id_t model_id, const fan::vec3& position) {
     iterate_cids(model_id, [&]<typename shape_t>(auto * shape, auto & object, auto & group_info) {
-      if (object.position.z != position.z) {
-        object.shape.set_depth(m_model_list[model_id].position.z + object.position.z);
-      }
       object.shape.set_position(position + object.position);
     });
     m_model_list[model_id].position = position;
   }
   void set_position(model_id_t model_id, const fan::vec2& position) {
     iterate_cids(model_id, [&]<typename shape_t>(auto * shape, auto & object, auto & group_info) {
-      if (object.position.z != m_model_list[model_id].position.z) {
-        object.shape.set_depth(m_model_list[model_id].position.z + object.position.z);
-      }
       object.shape.set_position(fan::vec3(position, m_model_list[model_id].position.z) + object.position);
     });
     m_model_list[model_id].position.x = position.x;

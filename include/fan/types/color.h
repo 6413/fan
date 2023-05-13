@@ -99,7 +99,10 @@ namespace fan {
 		constexpr bool operator==(const color& color_) const {
 			return r == color_.r && g == color_.g && b == color_.b && a == color_.a;
 		}
-		constexpr cf_t operator[](size_t x) const {
+		constexpr cf_t& operator[](size_t x) {
+			return !x ? this->r : x == 1 ? this->g : x == 2 ? this->b : x == 3 ? this->a : this->a;
+		}
+    constexpr cf_t operator[](size_t x) const {
 			return !x ? this->r : x == 1 ? this->g : x == 2 ? this->b : x == 3 ? this->a : this->a;
 		}
 		constexpr color operator-=(const color& color_) {

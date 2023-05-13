@@ -73,7 +73,7 @@ int main(int argc, char** argv) {
   model_list_t m;
 
   model_list_t::cm_t cm;
-  cm.import_from("model.fmm", &tp);
+  cm.import_from("entity_ship.fmm", &tp);
 
   model_list_t::properties_t p;
   p.camera = &pile->camera;
@@ -109,7 +109,7 @@ int main(int argc, char** argv) {
           p.size = 0.1;
           loco_t::texturepack_t::ti_t ti;
           if (ti.qti(&tp, "tire")) {
-            fan::throw_error("invalid textureapack name");
+            fan::throw_error("invalid texturepack name");
           }
           p.load_tp(&ti);
           m.push_shape(model_id, group_id, p, properties);

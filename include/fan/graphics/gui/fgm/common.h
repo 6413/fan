@@ -1,5 +1,7 @@
 struct stage_maker_shape_format_0_1_1 {
 
+  static constexpr typename loco_t::shape_type_t::_t shape_type = loco_t::shape_type_t::button;
+
   struct shape_button_t {
     loco_t::button_t::properties_t get_properties(
       loco_t::viewport_t& viewport,
@@ -26,6 +28,8 @@ struct stage_maker_shape_format_0_1_1 {
     )
   };
   struct shape_sprite_t {
+
+    static constexpr typename loco_t::shape_type_t::_t shape_type = loco_t::shape_type_t::sprite;
 
     loco_t::sprite_t::properties_t get_properties(
       loco_t::viewport_t& viewport,
@@ -72,6 +76,8 @@ struct stage_maker_shape_format_0_1_1 {
   };
   struct shape_text_t {
 
+    static constexpr typename loco_t::shape_type_t::_t shape_type = loco_t::shape_type_t::text;
+
     loco_t::text_t::properties_t get_properties(
       loco_t::viewport_t& viewport,
       loco_t::camera_t& camera
@@ -93,6 +99,8 @@ struct stage_maker_shape_format_0_1_1 {
     );
   };
   struct shape_hitbox_t {
+
+    static constexpr typename loco_t::shape_type_t::_t shape_type = loco_t::shape_type_t::hitbox;
 
     loco_t::sprite_t::properties_t get_properties(
       loco_t::viewport_t& viewport,
@@ -116,6 +124,8 @@ struct stage_maker_shape_format_0_1_1 {
     )
   };
   struct shape_mark_t {
+
+    static constexpr typename loco_t::shape_type_t::_t shape_type = loco_t::shape_type_t::mark;
 
     loco_t::sprite_t::properties_t get_properties(
       loco_t::viewport_t& viewport,
