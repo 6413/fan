@@ -331,6 +331,12 @@ struct fgm_t {
         shape->id = text_box->get_text();
       );
       fgm->sidepanel_menu.add(ep);
+
+      ep.text = fan::format("{}", group_id);
+      create_keyboard_cb(
+        shape->group_id = std::stoul(text_box->get_text());
+      );
+      fgm->sidepanel_menu.add(ep);
     }
 
     fan::string to_string() {
@@ -340,6 +346,7 @@ struct fgm_t {
       data.position = get_position();
       data.size = get_size();
       data.texturepack_name = texturepack_name;
+      data.parallax_factor = parallax_factor;
       data.id = id;
       #if defined(fgm_build_model_maker)
       data.group_id = group_id;
@@ -382,6 +389,7 @@ struct fgm_t {
 
     fan::string id;
     fan::string texturepack_name;
+    f32_t parallax_factor = 0;
 
     #if defined(fgm_build_model_maker)
     uint32_t group_id = 0;
@@ -417,6 +425,21 @@ struct fgm_t {
       );
       fgm->sidepanel_menu.add(ep);
 
+      ep.text = fan::format("{}", get_text());
+      create_keyboard_cb(
+        shape->set_text(text_box->get_text());
+      );
+      fgm->sidepanel_menu.add(ep);
+
+      {
+        fan::color c = get_color();
+        ep.text = fan::format("{}", ((fan::vec4*)&c)->to_string().c_str());
+        create_keyboard_cb(
+          shape->set_color(fan::string_to<fan::color>(text_box->get_text()));
+        );
+        fgm->sidepanel_menu.add(ep);
+
+      }
       ep.text = fan::format("{}", id);
       create_keyboard_cb(
         if (fgm->does_id_exist(text_box->get_text())) {
@@ -590,6 +613,12 @@ struct fgm_t {
           return 0;
         }
         shape->id = text_box->get_text();
+      );
+      fgm->sidepanel_menu.add(ep);
+
+      ep.text = fan::format("{}", group_id);
+      create_keyboard_cb(
+        shape->group_id = std::stoul(text_box->get_text());
       );
       fgm->sidepanel_menu.add(ep);
     }
@@ -849,6 +878,18 @@ struct fgm_t {
           }
           camera_position = fan::vec3(0, 0, 0);
           cameras[viewport_area::editor].set_camera_position(camera_position);
+          break;
+        }
+        case fan::key_delete: {
+          if (d.state != fan::keyboard_state::press) {
+            return;
+          }
+          if (selected_shape_nr.iic()) {
+            return;
+          }
+          shape_list.unlrec(selected_shape_nr);
+          selected_shape_nr.sic();
+
           break;
         }
       }

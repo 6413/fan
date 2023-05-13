@@ -44,7 +44,7 @@ int main(int argc, char** argv) {
     mm.load(argv[2]);
   }
   else{
-    mm.load("model.fmm");
+    mm.load("entity_ship.fmm");
   }
   loco_t::sprite_t::properties_t p;
 

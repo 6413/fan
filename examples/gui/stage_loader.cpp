@@ -69,9 +69,12 @@ struct pile_t {
 };
 pile_t* pile = new pile_t;
 
-fan_make_custom_stage(custom_t)
+lstd_defstruct(custom_t)
+  #include _FAN_PATH(graphics/gui/stage_maker/preset.h)
+    
+  static constexpr auto stage_name = "";
   loco_t::shape_t l;
-  void open() {
+  void open(auto sod) {
     loco_t::rectangle_t::properties_t p;
     p.camera = &pile->camera;
     p.viewport = &pile->viewport;
@@ -119,8 +122,8 @@ int main(int argc, char** argv) {
 	op.viewport = &pile->viewport;
 	op.theme = &pile->theme;
 
-  stage_loader_t::nr_t it2 = stage_loader_t::open_stage<stage_loader_t::stage::stage0_t>(op);
   stage_loader_t::nr_t it3 = stage_loader_t::open_stage<custom_t>(op);
+  it3 = stage_loader_t::open_stage<custom_t>(op);
   //it2.erase();
   
 
