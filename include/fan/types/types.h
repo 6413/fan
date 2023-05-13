@@ -43,7 +43,7 @@
 #endif
 
 #ifndef __MemoryCopy
-  #define __MemoryCopy(src, dst, size) memcpy(dst, src, size);
+  #define __MemoryCopy(src, dst, size) memcpy(dst, src, size)
 #endif
 
 #ifndef __MemorySet
@@ -52,6 +52,10 @@
 
 #ifndef __abort
   #define __abort() fan::throw_error("")
+#endif
+
+#ifndef __cta
+  #define __cta(x) static_assert(x)
 #endif
 
 template <typename T>

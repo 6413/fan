@@ -462,6 +462,19 @@ public:
       using inherit_t = viewport_resize_callback_NodeReference_t;
       resize_callback_id_t() : loco_t::viewport_resize_callback_NodeReference_t() {}
       resize_callback_id_t(const inherit_t& i) : inherit_t(i) {}
+      resize_callback_id_t(resize_callback_id_t&& i) : inherit_t(i){
+        i.sic();
+      }
+
+      resize_callback_id_t& operator=(const resize_callback_id_t& i) = delete;
+
+      resize_callback_id_t& operator=(resize_callback_id_t&& i) {
+        if (this != &i) {
+          *(inherit_t*)this = *(inherit_t*)&i;
+          i.sic();
+        }
+        return *this;
+      }
 
       operator loco_t::viewport_resize_callback_NodeReference_t() {
         return *(loco_t::viewport_resize_callback_NodeReference_t*)this;
@@ -611,9 +624,8 @@ public:
       #endif
       #endif
 
-      fan::print("a");
       auto it = gloco->m_viewport_resize_callback.GetNodeFirst();
-      fan::print(it.NRI);
+
       while (it != gloco->m_viewport_resize_callback.dst) {
 
         gloco->m_viewport_resize_callback.StartSafeNext(it);
@@ -625,8 +637,6 @@ public:
         gloco->m_viewport_resize_callback[it].data(cbd);
 
         it = gloco->m_viewport_resize_callback.EndSafeNext();
-        static int x = 0;
-        fan::print(x++);
       }
     }
 

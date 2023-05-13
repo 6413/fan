@@ -246,7 +246,10 @@ struct vfi_t {
       }
       case shape_t::rectangle:{
         instance.shape_data.depth = p.shape.rectangle->position.z;
-        memcpy(&instance.shape_data.shape.rectangle, &p.shape.rectangle, sizeof(instance.shape_data.shape.rectangle));
+        instance.shape_data.shape.rectangle->camera = p.shape.rectangle->camera;
+        instance.shape_data.shape.rectangle->viewport = p.shape.rectangle->viewport;
+        instance.shape_data.shape.rectangle->position = p.shape.rectangle->position;
+        instance.shape_data.shape.rectangle->size = p.shape.rectangle->size;
         break;
       }
     }
