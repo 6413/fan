@@ -358,9 +358,6 @@ namespace fan {
 }
 
 inline fan::opengl::context_t::context_t() {
-  theme_list.Open();
-  viewport_list.Open();
-
   opengl.open();
 
   m_flags = 0;
@@ -464,8 +461,6 @@ inline fan::opengl::context_t::context_t(fan::window_t* window, const properties
 }
 
 inline fan::opengl::context_t::~context_t() {
-  theme_list.Close();
-  viewport_list.Close();
 }
 
 inline void fan::opengl::context_t::render(fan::window_t* window) {

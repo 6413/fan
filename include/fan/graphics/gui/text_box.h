@@ -71,10 +71,10 @@ struct text_box_t {
 
     loco_t::vfi_t::properties_t vfip;
     vfip.shape_type = loco_t::vfi_t::shape_t::rectangle;
-    vfip.shape.rectangle.camera = p.camera;
-    vfip.shape.rectangle.viewport = p.viewport;
-    vfip.shape.rectangle.position = p.position;
-    vfip.shape.rectangle.size = p.size;
+    vfip.shape.rectangle->camera = p.camera;
+    vfip.shape.rectangle->viewport = p.viewport;
+    vfip.shape.rectangle->position = p.position;
+    vfip.shape.rectangle->size = p.size;
     vfip.flags = p.vfi_flags;
     fed_t::properties_t fp;
     fp.font_size = p.font_size;

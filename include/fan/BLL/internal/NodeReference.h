@@ -17,17 +17,25 @@ BLL_StructBegin(_P(NodeReference_t))
   BLL_set_type_node NRI;
 
   #if BLL_set_Language == 1
-    bool operator==(_P(NodeReference_t) nr) const {
+    bool operator==(_P(NodeReference_t) nr) const{
       return NRI == nr.NRI;
     }
-    bool operator!=(_P(NodeReference_t) nr) const {
+    bool operator!=(_P(NodeReference_t) nr) const{
       return NRI != nr.NRI;
     }
 
     /* set invalid constant */
-    void sic(){
-      *this = _P(gnric)();
-    }
+    struct sic_t{
+      void operator()(){
+        auto nr = OFFSETLESS(this, _P(NodeReference_t), sic);
+        nr->NRI = (BLL_set_type_node)-1;
+      }
+      #if BLL_set_CPP_nrsic == 1
+        sic_t(){
+          (*this)();
+        }
+      #endif
+    }sic;
     /* is invalid constant */
     /* check _BLL_POFTWBIT(inric) at rest.h for more info */
     bool iic(){
