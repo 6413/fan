@@ -91,11 +91,6 @@ struct text_renderer_t {
     tlist.unlrec(internal_id);
   }
 
-  //template <typename T>
-  //T get(fan::graphics::cid_t* cid, T loco_t::letter_t::vi_t::*member) {
-  //  loco_t* loco = get_loco();
-  //  return loco->letter.get(internal_id, member); // ?
-  //}
   // do not use with set_position
   void set(loco_t::cid_nt_t& id, auto member, auto value) {
     auto internal_id = *(tlist_NodeReference_t *)id.gdp4();
@@ -148,29 +143,8 @@ struct text_renderer_t {
     sb_set_depth(id, depth);
   }
 
-  //void set_position(loco_t* loco, uint32_t id, const fan::vec2& position) {
-  //  for (uint32_t i = 0; i < tlist[id].size(); i++) {
-  //    auto p = loco->letter.get_instance(loco, &tlist[id][i]);
-  //    loco->letter.erase(loco, &tlist[id][i]);
-  //    auto letter_info = loco->font.info.get_letter_info(p.letter_id, p.font_size);
-
-  //    p.position = fan::vec2(left - letter_info.metrics.offset.x, properties.position.y) + (fan::vec2(letter_info.metrics.size.x, properties.font_size - letter_info.metrics.size.y) / 2 + fan::vec2(letter_info.metrics.offset.x, -letter_info.metrics.offset.y));
-  //    p.position.z = properties.position.z;
-  //    p.*member = value;
-  //    push_back(loco, p, &tlist[id][i]);
-  //  }
-  //}
-
   f32_t get_font_size(loco_t::cid_nt_t& id) {
-    auto internal_id = *(tlist_NodeReference_t *)id.gdp4();
-    auto it = tlist[internal_id].cid_list.GetNodeFirst();
-    #if fan_debug >= 2
-    if (it == tlist[internal_id].cid_list.dst) {
-      fan::throw_error("empty string");
-    }
-    #endif
-    auto node = tlist[internal_id].cid_list.GetNodeByReference(it);
-    return gloco->letter.sb_get_ri(node->data.shape).font_size;
+    return get_instance(id).font_size;
   }
 
   auto get_camera(loco_t::cid_nt_t& id) {
