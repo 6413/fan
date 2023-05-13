@@ -443,10 +443,12 @@ public:
 	};
 	using viewport_resize_cb_t = fan::function_t<void(const viewport_resize_cb_data_t&)>;
 
+  #define BLL_set_Mark 2
   #define BLL_set_CPP_ConstructDestruct
   #define BLL_set_CPP_Node_ConstructDestruct
   #define BLL_set_prefix viewport_resize_callback
 	#define BLL_set_NodeData viewport_resize_cb_t data;
+  #define BLL_set_CPP_nrsic 1
 	#include _FAN_PATH(window/cb_list_builder_settings.h)
 	#include _FAN_PATH(BLL/BLL.h)
 
@@ -456,18 +458,32 @@ public:
 
     using resize_cb_data_t = loco_t::viewport_resize_cb_data_t;
     using resize_cb_t = loco_t::viewport_resize_cb_t;
-    using resize_callback_NodeReference_t = loco_t::viewport_resize_callback_NodeReference_t;
+    struct resize_callback_id_t : loco_t::viewport_resize_callback_NodeReference_t {
+      using inherit_t = viewport_resize_callback_NodeReference_t;
+      resize_callback_id_t() : loco_t::viewport_resize_callback_NodeReference_t() {}
+      resize_callback_id_t(const inherit_t& i) : inherit_t(i) {}
 
-    resize_callback_NodeReference_t add_resize_callback(resize_cb_t function) {
+      operator loco_t::viewport_resize_callback_NodeReference_t() {
+        return *(loco_t::viewport_resize_callback_NodeReference_t*)this;
+      }
+      ~resize_callback_id_t() {
+        if (iic()) {
+          return;
+        }
+        gloco->m_viewport_resize_callback.unlrec(*this);
+        sic();
+      }
+    };
+
+    resize_callback_id_t add_resize_callback(resize_cb_t function) {
       auto nr = gloco->m_viewport_resize_callback.NewNodeLast();
       gloco->m_viewport_resize_callback[nr].data = function;
-      return nr;
+      return resize_callback_id_t(nr);
     }
 
-    void remove_resize_callback(resize_callback_NodeReference_t id) {
-      gloco->m_viewport_resize_callback.Unlink(id);
-      gloco->m_viewport_resize_callback.Recycle(id);
-    }
+    //void remove_resize_callback(resize_callback_id_t id) {
+    //  gloco->m_viewport_resize_callback.Unlink(id);
+    //}
 
     camera_t() {
       camera_reference.sic();
@@ -595,9 +611,12 @@ public:
       #endif
       #endif
 
+      fan::print("a");
       auto it = gloco->m_viewport_resize_callback.GetNodeFirst();
-
+      fan::print(it.NRI);
       while (it != gloco->m_viewport_resize_callback.dst) {
+
+        gloco->m_viewport_resize_callback.StartSafeNext(it);
 
         resize_cb_data_t cbd;
         cbd.camera = this;
@@ -605,7 +624,9 @@ public:
         cbd.size = get_camera_size();
         gloco->m_viewport_resize_callback[it].data(cbd);
 
-        it = it.Next(&gloco->m_viewport_resize_callback);
+        it = gloco->m_viewport_resize_callback.EndSafeNext();
+        static int x = 0;
+        fan::print(x++);
       }
     }
 

@@ -8,10 +8,8 @@ struct vfi_t {
     focus.mouse.invalidate();
     focus.keyboard.invalidate();
     focus.text.invalidate();
-    shape_list.Open();
   }
   ~vfi_t() {
-    shape_list.Close();
   }
 
   typedef uint16_t shape_type_t;
@@ -106,8 +104,46 @@ struct vfi_t {
     text_cb_t text_cb = [](const text_data_t&) -> int { return 0; };
     f32_t depth;
     union{
-      shape_data_always_t always; 
-      shape_data_rectangle_t rectangle; 
+      struct always_t {
+        always_t() = default;
+        using base_t = shape_data_always_t;
+        always_t(shape_data_always_t& b) {
+          memcpy(data, &b, sizeof(base_t));
+        }
+        operator shape_data_always_t&() {
+          return *(shape_data_always_t*)data;
+        }
+        operator shape_data_always_t&() const {
+          return *(shape_data_always_t*)data;
+        }
+        auto* operator->() {
+          return &operator shape_data_always_t&();
+        }
+        auto* operator->() const {
+          return &operator shape_data_always_t&();
+        }
+        uint8_t data[sizeof(shape_data_always_t)];
+      }always;
+      struct rectangle_t {
+        rectangle_t() = default;
+        using base_t = shape_data_rectangle_t;
+        rectangle_t(shape_data_rectangle_t& b) {
+          memcpy(data, &b, sizeof(shape_data_rectangle_t));
+        }
+        operator shape_data_rectangle_t&() {
+          return *(shape_data_rectangle_t*)data;
+        }
+        operator shape_data_rectangle_t&() const {
+          return *(shape_data_rectangle_t*)data;
+        }
+        auto* operator->() {
+          return &operator shape_data_rectangle_t&();
+        }
+        auto* operator->() const {
+          return &operator shape_data_rectangle_t&();
+        }
+        uint8_t data[sizeof(shape_data_rectangle_t)];
+      }rectangle;
     }shape;
   }; 
 
@@ -117,16 +153,54 @@ struct vfi_t {
     mouse_move_cb_t mouse_move_cb = [](const mouse_move_data_t&) -> int { return 0; };
     keyboard_cb_t keyboard_cb = [](const keyboard_data_t&) -> int { return 0; };
     text_cb_t text_cb = [](const text_data_t&) -> int { return 0; };
-    union {
-      shape_properties_always_t always; 
-      shape_properties_rectangle_t rectangle; 
+    struct {
+      struct always_t {
+        always_t() = default;
+        using base_t = shape_properties_always_t;
+        always_t(shape_properties_always_t& b) {
+          memcpy(data, &b, sizeof(base_t));
+        }
+        operator shape_properties_always_t&() {
+          return *(shape_properties_always_t*)data;
+        }
+        operator shape_properties_always_t&() const {
+          return *(shape_properties_always_t*)data;
+        }
+        auto* operator->() {
+          return &operator shape_properties_always_t&();
+        }
+        auto* operator->() const {
+          return &operator shape_properties_always_t&();
+        }
+        uint8_t data[sizeof(shape_properties_always_t)];
+      }always;
+      struct rectangle_t {
+        rectangle_t() = default;
+        using base_t = shape_properties_rectangle_t;
+        rectangle_t(shape_properties_rectangle_t& b) {
+          memcpy(data, &b, sizeof(shape_properties_rectangle_t));
+        }
+        operator shape_properties_rectangle_t&() {
+          return *(shape_properties_rectangle_t*)data;
+        }
+        operator shape_properties_rectangle_t&() const {
+          return *(shape_properties_rectangle_t*)data;
+        }
+        auto* operator->() const {
+          return &operator shape_properties_rectangle_t&();
+        }
+        auto* operator->() {
+          return &operator shape_properties_rectangle_t&();
+        }
+        uint8_t data[sizeof(shape_properties_rectangle_t)];
+      }rectangle;
     }shape;
     iflags_t flags;
     bool ignore_init_move = false;
   }; 
 
   using set_shape_t = decltype(common_shape_data_t::shape);
-  using set_rectangle_t = decltype(set_shape_t::rectangle);
+  using set_rectangle_t = decltype(set_shape_t::rectangle)::base_t;
 
   #include "vfi_shape_list_settings.h"
   #include _FAN_PATH(BLL/BLL.h)
@@ -167,12 +241,12 @@ struct vfi_t {
     instance.shape_data.text_cb = p.text_cb;
     switch(p.shape_type) {
       case shape_t::always:{
-        instance.shape_data.depth = p.shape.always.z;
+        instance.shape_data.depth = p.shape.always->z;
         break;
       }
       case shape_t::rectangle:{
-        instance.shape_data.depth = p.shape.rectangle.position.z;
-        instance.shape_data.shape.rectangle = p.shape.rectangle;
+        instance.shape_data.depth = p.shape.rectangle->position.z;
+        memcpy(&instance.shape_data.shape.rectangle, &p.shape.rectangle, sizeof(instance.shape_data.shape.rectangle));
         break;
       }
     }
@@ -204,11 +278,11 @@ struct vfi_t {
   }
   template <typename T>
   void set_always(shape_id_t id, auto T::*member, auto value) {
-    shape_list[id].shape_data.shape.always.*member = value;
+    shape_list[id].shape_data.shape.always->*member = value;
   }
   template <typename T>
   void set_rectangle(shape_id_t id, auto T::*member, auto value) {
-    shape_list[id].shape_data.shape.rectangle.*member = value;
+    ((T*)&shape_list[id].shape_data.shape.rectangle)->*member = value;
   }
 
   void set_common_data(shape_id_t id, auto common_shape_data_t::*member, auto value) {
@@ -238,10 +312,10 @@ struct vfi_t {
         return mouse_stage_e::inside;
       }
       case shape_t::rectangle: {
-        fan::vec2 size = data->shape.rectangle.size;
+        fan::vec2 size = data->shape.rectangle->size;
         bool in = fan_2d::collision::rectangle::point_inside_no_rotation(
           p,
-          data->shape.rectangle.position,
+          data->shape.rectangle->position,
           size
         );
        /* if (!loco->get_context()->viewport_list[data->shape.rectangle.viewport].viewport_id->inside_wir(p)) {
@@ -264,9 +338,9 @@ struct vfi_t {
       case shape_t::rectangle: {
         return transform_position(
           v,
-          gloco->get_context()->viewport_list[shape_data->shape.rectangle.viewport].viewport_id,
-          gloco->camera_list[shape_data->shape.rectangle.camera].camera_id
-        ) + fan::vec2(gloco->camera_list[shape_data->shape.rectangle.camera].camera_id->camera_position);
+          gloco->get_context()->viewport_list[shape_data->shape.rectangle->viewport].viewport_id,
+          gloco->camera_list[shape_data->shape.rectangle->camera].camera_id
+        ) + fan::vec2(gloco->camera_list[shape_data->shape.rectangle->camera].camera_id->camera_position);
         break;
       }
       default: {

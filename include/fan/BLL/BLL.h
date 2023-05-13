@@ -40,10 +40,25 @@
   #if BLL_set_BaseLibrary == 0
     #define BLL_set_Language 0
   #elif BLL_set_BaseLibrary == 1
-    #define BLL_set_Language 1
+    #ifndef BLL_set_Language
+      #define BLL_set_Language 1
+    #endif
+    #ifndef BLL_set_CPP_ConstructDestruct
+      #define BLL_set_CPP_ConstructDestruct
+    #endif
+    #ifndef BLL_set_CPP_Node_ConstructDestruct
+      #define BLL_set_CPP_Node_ConstructDestruct
+    #endif
+    #ifndef BLL_set_CPP_nrsic
+      #define BLL_set_CPP_nrsic 1
+    #endif
   #else
     #error ?
   #endif
+#endif
+
+#ifndef BLL_set_CPP_nrsic
+  #define BLL_set_CPP_nrsic 0
 #endif
 
 #ifndef BLL_set_AreWeInsideStruct
@@ -172,6 +187,9 @@
   #undef BLL_set_StoreFormat1_ElementPerBlock
 #endif
 
+#ifdef BLL_set_CPP_nrsic
+  #undef BLL_set_CPP_nrsic
+#endif
 #ifdef BLL_set_CPP_CopyAtPointerChange
   #undef BLL_set_CPP_CopyAtPointerChange
 #endif

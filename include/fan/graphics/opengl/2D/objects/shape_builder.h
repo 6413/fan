@@ -84,8 +84,6 @@ public:
   };
 
   void sb_open() {
-    blocks.Open();
-    bm_list.Open();
 
     m_shader.open(gloco->get_context());
     m_shader.set_vertex(
@@ -148,8 +146,6 @@ public:
 
     gloco->get_window()->remove_resize_callback(resize_nr);
 
-    blocks.Close();
-    bm_list.Close();
 
     //assert(0);
     //loco_bdbt_close(&gloco->bdbt);

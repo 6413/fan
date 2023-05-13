@@ -50,7 +50,7 @@ BLL_StructBegin(_P(Node_t))
       #if BLL_set_Link == 0
         uint8_t _PaddingForNextRecycled[
           sizeof(_P(NodeData_t)) < sizeof(_P(NodeReference_t)) ?
-            sizeof(_P(NodeData_t)) - sizeof(_P(NodeReference_t)) :
+            sizeof(_P(NodeReference_t)) - sizeof(_P(NodeData_t)) :
             0
         ];
       #endif
@@ -332,30 +332,30 @@ _P(Node_t) *
 _BLL_POFTWBIT(GetNodeByReference)
 (
   _BLL_DBLLTFFC
-  _P(NodeReference_t) NodeReference
+  _P(NodeReference_t) nr
   #if defined(BLL_set_MultipleType_Sizes)
     , uintptr_t PointerIndex
   #endif
 ){
   #if BLL_set_debug_InvalidAction == 1
-    if(NodeReference.NRI >= _BLL_GetList->NodeList.Current){
+    if(nr.NRI >= _BLL_GetList->NodeList.Current){
       __abort();
     }
   #endif
   #if defined(BLL_set_MultipleType_Sizes)
-    _P(Node_t) *Node = _BLL_POFTWBIT(_GetNodeByReference)(_BLL_PBLLTFFC NodeReference, PointerIndex);
+    _P(Node_t) *Node = _BLL_POFTWBIT(_GetNodeByReference)(_BLL_PBLLTFFC nr, PointerIndex);
   #else
-    _P(Node_t) *Node = _BLL_POFTWBIT(_GetNodeByReference)(_BLL_PBLLTFFC NodeReference);
+    _P(Node_t) *Node = _BLL_POFTWBIT(_GetNodeByReference)(_BLL_PBLLTFFC nr);
   #endif
   #if BLL_set_debug_InvalidAction == 1
     do{
       #if BLL_set_debug_InvalidAction_srcAccess == 1
-        if(NodeReference == _BLL_GetList->src){
+        if(nr.NRI == _BLL_GetList->src.NRI){
           __abort();
         }
       #endif
       #if BLL_set_debug_InvalidAction_dstAccess == 1
-        if(NodeReference == _BLL_GetList->dst){
+        if(nr.NRI == _BLL_GetList->dst.NRI){
           __abort();
         }
       #endif
