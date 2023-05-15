@@ -30,7 +30,7 @@ struct fgm_t {
 
   #include "common.h"
 
-  static constexpr f32_t gui_size = 0.1;
+  static constexpr fan::vec2 gui_size = fan::vec2(0.3, 0.1);
 
   static constexpr f32_t line_z_depth = 0xfff;
   static constexpr f32_t right_click_z_depth = 11;
@@ -332,11 +332,14 @@ struct fgm_t {
       );
       fgm->sidepanel_menu.add(ep);
 
+      #if defined(fgm_build_model_maker)
       ep.text = fan::format("{}", group_id);
+      
       create_keyboard_cb(
         shape->group_id = std::stoul(text_box->get_text());
       );
       fgm->sidepanel_menu.add(ep);
+      #endif
     }
 
     fan::string to_string() {
@@ -616,11 +619,13 @@ struct fgm_t {
       );
       fgm->sidepanel_menu.add(ep);
 
+      #if defined(fgm_build_model_maker)
       ep.text = fan::format("{}", group_id);
       create_keyboard_cb(
         shape->group_id = std::stoul(text_box->get_text());
       );
       fgm->sidepanel_menu.add(ep);
+      #endif
     }
 
     fan::string to_string() {
@@ -629,6 +634,9 @@ struct fgm_t {
       stage_maker_shape_format::shape_mark_t data;
       data.position = get_position();
       data.id = id;
+      #if defined(fgm_build_model_maker)
+      data.group_id = group_id;
+      #endif
       f += shape_to_string(data);
       return f;
     }
@@ -655,6 +663,9 @@ struct fgm_t {
 
       nr = shape_nr;
 
+      #if defined(fgm_build_model_maker)
+      group_id = data.group_id;
+      #endif
       id = data.id;
       create_hitbox(fgm, this, p.position);
 

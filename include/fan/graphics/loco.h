@@ -73,9 +73,6 @@ extern "C" {
 
 // automatically gets necessary macros for shapes
 
-#if defined(loco_text)
-  #define loco_letter
-#endif
 #if defined(loco_sprite_sheet)
   #define loco_sprite
 #endif
@@ -103,6 +100,11 @@ extern "C" {
   #define loco_text
   #define loco_button
   #define loco_text_box
+#endif
+
+#if defined(loco_text)
+  #define loco_letter
+  #define loco_responsive_text
 #endif
 
 #if defined(loco_wboit)
@@ -1312,6 +1314,10 @@ public:
     text_t sb_shape_var_name;
     #undef sb_shape_var_name
   #endif
+  #if defined(loco_responsive_text)
+    #include _FAN_PATH(graphics/gui/responsive_text.h)
+    responsive_text_t responsive_text;
+  #endif
   #if defined(loco_button)
     #define sb_shape_var_name button
     #include _FAN_PATH(graphics/gui/button.h)
@@ -1344,10 +1350,6 @@ public:
   #if defined(loco_letter)
   #include _FAN_PATH(graphics/font.h)
   font_t font;
-  #endif
-  #if defined(loco_responsive_text)
-    #include _FAN_PATH(graphics/gui/responsive_text.h)
-    responsive_text_t responsive_text;
   #endif
 
   static constexpr uint8_t pixel_data[] = {

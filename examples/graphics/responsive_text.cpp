@@ -75,17 +75,18 @@ int main() {
   //pile->loco.set_vsync(false);
   
   loco_t::text_t::properties_t tp;
+  tp.text = "test";
   tp.font_size = 0.49;
   auto p = loco_t::responsive_text_t::make_properties(pp, tp);
   loco_t::responsive_text_t responsive_box = p;
 
-  {
+  /*{
     uint32_t i = 0;
     while (responsive_box.does_text_fit(std::to_string(i))) {
       responsive_box.push_back(std::to_string(i));
       i++;
     }
-  }
+  }*/
 
 
   //fan::vec2
