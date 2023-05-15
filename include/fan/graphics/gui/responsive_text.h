@@ -23,17 +23,14 @@ struct responsive_text_t : loco_t::shape_t {
 
     m_text_lines.resize(1.0 / current_font_size);
 
-    for (uint32_t i = 0; i < m_text_lines.size(); ++i) {
-      p.position = *(fan::vec2*)&properties.shape_info.position + fan::vec2(0, current_font_size * i * properties.shape_info.size.y * 2 - properties.shape_info.size.y / 2);
+    for (uint32_t i = 0; i < m_text_lines.size(); ++i) { //                                                                                   fix when font size 1
+      p.position = *(fan::vec2*)&properties.shape_info.position + fan::vec2(0, current_font_size * i * properties.shape_info.size.y * 2 /*- properties.shape_info.size.y / 2*/);
       m_text_lines[i] = p;
     }
 
     set_size(properties.shape_info.size);
   }
   responsive_text_t() {
-
-  }
-  ~responsive_text_t() {
 
   }
 
@@ -82,6 +79,11 @@ struct responsive_text_t : loco_t::shape_t {
 
   void push_back(const fan::string& text) {
     m_text_lines[line_index].set_text(m_text_lines[line_index].get_text() + text);
+  }
+
+  void erase() {
+    shape_t::erase();
+    m_text_lines.clear();
   }
 
   template <typename T>

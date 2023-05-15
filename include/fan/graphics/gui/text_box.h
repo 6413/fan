@@ -46,7 +46,7 @@ struct text_box_t {
     auto theme = gloco->text_box.get_theme(p.theme);
     loco_t::text_t::properties_t tp;
     tp.color = theme->button.text_color;
-    tp.font_size = p.font_size;
+    tp.font_size = 1;
     tp.position = p.position;
     tp.text = p.text;
     tp.position.z += p.position.z + 1;
@@ -64,8 +64,18 @@ struct text_box_t {
     sb_push_back(id, p);
     auto& ri = sb_get_ri(id);
 
-    ri.text_id = tp;
+    loco_t::rectangle_t::properties_t rrp;
+    rrp.camera = p.camera;
+    rrp.viewport = p.viewport;
+    rrp.position = p.position;
+    rrp.size = p.size;
+    rrp.blending = true;
+    rrp.color = fan::colors::red;
+    rrp.color.a = 0;
+    // todo remove
 
+    auto rp = loco_t::responsive_text_t::make_properties(rrp, tp);
+    ri.text_id = rp;
 
     set_theme(id, theme, released);
 
@@ -459,11 +469,11 @@ struct text_box_t {
   }
 
   fan::string get_text(loco_t::cid_nt_t& id) {
-    return gloco->text.get_instance(sb_get_ri(id).text_id).text;
+    return gloco->text.get_instance(sb_get_ri(id).text_id.m_text_lines[0]).text;
   }
   void set_text(loco_t::cid_nt_t& id, const fan::string& text) {
     auto& ri = sb_get_ri(id);
-    gloco->text.set_text(ri.text_id, text);
+    gloco->text.set_text(ri.text_id.m_text_lines[0], text);
     ri.fed.set_text(text);
   }
 
@@ -478,14 +488,14 @@ struct text_box_t {
     fan::vec3 center = get_button(id, &text_box_t::vi_t::position);
     if (width == 0) {
       
-      if (gloco->text.get_instance(sb_get_ri(id).text_id).text.empty()) {
+      if (gloco->text.get_instance(sb_get_ri(id).text_id.m_text_lines[0]).text.empty()) {
         return center;
       }
     }
     //fan::print(width);
     fan::vec3 p = get_text_left_position(id);
-    const fan::string& text = gloco->text.get_instance(sb_get_ri(id).text_id).text;
-    f32_t font_size = gloco->text.get_instance(sb_get_ri(id).text_id).font_size;
+    const fan::string& text = gloco->text.get_instance(sb_get_ri(id).text_id.m_text_lines[0]).text;
+    f32_t font_size = gloco->text.get_instance(sb_get_ri(id).text_id.m_text_lines[0]).font_size;
     fan::string measured_string;
     for (uint32_t i = 0; i < width; ++i) {
       measured_string += text.get_utf8(i);
@@ -563,7 +573,7 @@ struct text_box_t {
   // dont edit values
   loco_t::text_t::properties_t get_text_instance(loco_t::cid_nt_t& id) {
     auto& ri = sb_get_ri(id);
-    return gloco->text.get_instance(ri.text_id);
+    return gloco->text.get_instance(ri.text_id.m_text_lines[0]);
   }
 
   // can be incomplete

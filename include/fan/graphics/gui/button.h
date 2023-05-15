@@ -48,7 +48,7 @@ struct button_t {
     auto theme = p.theme;
     loco_t::text_t::properties_t tp;
     tp.color = theme->button.text_color;
-    tp.font_size = p.font_size;
+    tp.font_size = 1;
     tp.position = p.position;
     tp.text = p.text;
     tp.position.z = p.position.z + 1;
@@ -57,7 +57,17 @@ struct button_t {
 
     sb_push_back(id, p);
 
-    sb_get_ri(id).text_id = tp;
+    loco_t::rectangle_t::properties_t rrp;
+    rrp.camera = p.camera;
+    rrp.viewport = p.viewport;
+    rrp.position = p.position;
+    rrp.size = p.size;
+    rrp.blending = true;
+    rrp.color = fan::colors::red;
+    rrp.color.a = 0;
+    // todo remove
+    auto rp = loco_t::responsive_text_t::make_properties(rrp, tp);
+    sb_get_ri(id).text_id = rp;
 
     set_theme(id, theme, released);
 
@@ -206,8 +216,8 @@ struct button_t {
     set(id, &vi_t::outline_size, t.button.outline_size);
     auto& ri = get_ri(id);
     ri.theme = theme;
-    ri.text_id.set_outline_color(t.button.text_outline_color);
-    ri.text_id.set_outline_size(t.button.text_outline_size);
+    ri.text_id.m_text_lines[0].set_outline_color(t.button.text_outline_color);
+    ri.text_id.m_text_lines[0].set_outline_size(t.button.text_outline_size);
   }
 
   template <typename T>
@@ -237,7 +247,7 @@ struct button_t {
   void set_position(loco_t::cid_nt_t& id, const fan::vec3& position) {
     
     auto& ri = get_ri(id);
-    ri.text_id.set_position(position + fan::vec3(0, 0, 1));
+    ri.text_id.m_text_lines[0].set_position(position + fan::vec3(0, 0, 1));
     set_button(id, &vi_t::position, position);
     gloco->vfi.set_rectangle(
       ri.vfi_id,
@@ -298,18 +308,18 @@ struct button_t {
   auto get_text_instance(loco_t::cid_nt_t& id) {
     
     auto& ri = get_ri(id);
-    return gloco->text.get_instance(ri.text_id);
+    return gloco->text.get_instance(ri.text_id.m_text_lines[0]);
   }
 
   fan::string get_text(loco_t::cid_nt_t& id) {
     
     auto& ri = get_ri(id);
-    return gloco->text.get_instance(ri.text_id).text;
+    return gloco->text.get_instance(ri.text_id.m_text_lines[0]).text;
   }
   void set_text(loco_t::cid_nt_t& id, const fan::string& text) {
     
     auto& ri = get_ri(id);
-    gloco->text.set_text(ri.text_id, text);
+    gloco->text.set_text(ri.text_id.m_text_lines[0], text);
   }
 
   ri_t* get_instance_properties(loco_t::cid_nt_t& id) {
@@ -341,7 +351,8 @@ struct button_t {
   }
 
   void set_font_size(loco_t::cid_nt_t& id, f32_t font_size) {
-    gloco->text.set_font_size(sb_get_ri(id).text_id, font_size);
+    auto& ri = sb_get_ri(id);
+    gloco->text.set_font_size(ri.text_id.m_text_lines[0], font_size);
   }
 
   properties_t get_properties(loco_t::cid_nt_t& id) {
