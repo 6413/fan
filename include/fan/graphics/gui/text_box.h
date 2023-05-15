@@ -496,7 +496,7 @@ struct text_box_t {
     return p;
   }
 
-  void set_append_letter(loco_t::cid_nt_t& id, wchar_t wc){
+  void append_letter(loco_t::cid_nt_t& id, wchar_t wc){
     auto& ri = gloco->text_box.sb_get_ri(id);
 
     ri.fed.add_character(wc);
