@@ -69,10 +69,11 @@ int main() {
   tp.position = fan::vec3(0, 0, 0);
   //tp.position.y = 0;
  // tp.position.z = 50;
-  tp.font_size = 32;
+  // font size is 0-1
+  tp.font_size = 1;
   tp.size = fan::vec2(300, 100) / 2;
   tp.text = "abcd";
-  //tp.font_size = 32;
+
   tp.mouse_move_cb = [] (const loco_t::mouse_move_data_t& mm_d) -> int {
     //fan::print(mm_d.position, (int)mm_d.mouse_stage);
     return 0;
@@ -90,35 +91,13 @@ int main() {
   loco_t::theme_t theme = loco_t::themes::deep_red();
   tp.viewport = &pile->viewport;
   tp.theme = &theme;
-  tp.text = "aadsfgad";
-  tp.position = 200;
+  tp.text = "hello world";
+  tp.position = 400;
   loco_t::shape_t b0 = tp;
   tp.viewport = &pile->viewport;
 
-  uint64_t fps = 0;
-
-  loco_t::shape_t b1;
-  loco_t::shape_t b2;
-    b1 = b0;
-    b1.set_position(fan::vec3(400, 400, 10));
-
-    b1.set_font_size(128);
   pile->loco.loop([&] {
-    //if (fps % 100 == 0) {
-    //  tp.position = 200;
-    //  tp.position += 100;
-    //  tp.text = "bgasdgads";
-    //  b1 = tp;
-    //  tp.text = "chgfdgfhd";
-    //  tp.position += 100;
-    //  b2 = tp;
-    //}
-    //else {
-    //  b0.erase();
-    //  //b1.erase();
-    //  //b2.erase();
-    //}
-    //fps++;
+
   });
 
   return 0;

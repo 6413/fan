@@ -77,8 +77,8 @@ int main() {
   loco_t::text_t::properties_t tp;
   tp.text = "test";
   tp.font_size = 0.49;
-  auto p = loco_t::responsive_text_t::make_properties(pp, tp);
-  loco_t::responsive_text_t responsive_box = p;
+  auto p = loco_t::responsive_text_custom_t::make_properties(pp, tp);
+  loco_t::responsive_text_custom_t responsive_box = p;
 
   /*{
     uint32_t i = 0;

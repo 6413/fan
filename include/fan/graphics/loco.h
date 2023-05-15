@@ -309,6 +309,7 @@ struct loco_t {
     static constexpr _t letter = 9;
     static constexpr _t text_box = 10;
     static constexpr _t circle = 11;
+    static constexpr _t pixel_format_renderer = 12;
   };
 
   struct redraw_key_t {
@@ -1643,6 +1644,10 @@ public:
     #if defined(loco_text_box)
       *types.get_value<text_box_t*>() = &text_box;
     #endif
+    #if defined(loco_pixel_format_renderer)
+      *types.get_value<pixel_format_renderer_t*>() = &pixel_format_renderer;
+    #endif
+      
     #if defined(loco_t_id_t_types)
       #if !defined(loco_t_id_t_ptrs)
         #error loco_t_id_t_ptrs not defined
@@ -1858,22 +1863,22 @@ public:
     }
     ~cuda_textures_t() {
     }
-    void close(loco_t* loco, fan::graphics::cid_t *cid) {
+    void close(loco_t* loco, loco_t::shape_t &cid) {
       uint8_t image_amount = fan::pixel_format::get_texture_amount(loco->pixel_format_renderer.sb_get_ri(cid).format);
       auto& ri = loco->pixel_format_renderer.sb_get_ri(cid);
       for (uint32_t i = 0; i < image_amount; ++i) {
         wresources[i].close();
-        ri.images[i].unload(loco);
+        ri.images[i].unload();
       }
     }
 
-    void resize(loco_t* loco, fan::graphics::cid_t* cid, uint8_t format, fan::vec2ui size, uint32_t filter = loco_t::image_t::filter::linear) {
-      auto& ri = loco->pixel_format_renderer.sb_get_ri(cid);
+    void resize(loco_t* loco, loco_t::cid_nt_t& id, uint8_t format, fan::vec2ui size, uint32_t filter = loco_t::image_t::filter::linear) {
+      auto& ri = loco->pixel_format_renderer.sb_get_ri(id);
       uint8_t image_amount = fan::pixel_format::get_texture_amount(format);
       if (inited == false) {
         // purge cid's images here
         // update cids images
-        loco->pixel_format_renderer.reload(cid, format, size, filter);
+        loco->pixel_format_renderer.reload(id, format, size, filter);
         for (uint32_t i = 0; i < image_amount; ++i) {
           wresources[i].open(loco->image_list[ri.images[i].texture_reference].texture_id);
         }
@@ -1890,7 +1895,7 @@ public:
           wresources[i].close();
         }
 
-        loco->pixel_format_renderer.reload(cid, format, size, filter);
+        loco->pixel_format_renderer.reload(id, format, size, filter);
 
         for (uint32_t i = 0; i < image_amount; ++i) {
           wresources[i].open(loco->image_list[ri.images[i].texture_reference].texture_id);
@@ -1996,6 +2001,9 @@ public:
     #endif
     #if defined(loco_text_box)
     , text_box_t*
+    #endif
+    #if defined(loco_pixel_format_renderer)
+    , pixel_format_renderer_t*
     #endif
   > types;
 

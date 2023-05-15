@@ -1,5 +1,7 @@
 struct sb_pfr_name {
 
+  static constexpr typename loco_t::shape_type_t::_t shape_type = loco_t::shape_type_t::pixel_format_renderer;
+
   struct vi_t {
     fan::vec3 position = 0;
   private:
@@ -32,9 +34,12 @@ struct sb_pfr_name {
     loco_t::image_t images[4];
     uint8_t format = fan::pixel_format::undefined;
     cid_t* cid;
+    bool blending = false;
   };
 
   struct properties_t : vi_t, ri_t {
+
+    using type_t = sb_pfr_name;
 
     loco_t::camera_t* camera = 0;
     fan::graphics::viewport_t* viewport = 0;
@@ -51,6 +56,7 @@ struct sb_pfr_name {
   #endif
   #endif
 
+  #define sb_no_blending
   #include _FAN_PATH(graphics/shape_builder.h)
 
   
@@ -80,14 +86,13 @@ struct sb_pfr_name {
     }
   }
 
-  void push_back(fan::graphics::cid_t* cid, properties_t p) {
-    auto loco = get_loco();
+  void push_back(loco_t::cid_nt_t& id, properties_t p) {
     get_key_value(uint16_t) = p.position.z;
 
-    get_key_value(loco_t::textureid_t<0>) = &loco->unloaded_image;
-    get_key_value(loco_t::textureid_t<1>) = &loco->unloaded_image;
-    get_key_value(loco_t::textureid_t<2>) = &loco->unloaded_image;
-    get_key_value(loco_t::textureid_t<3>) = &loco->unloaded_image;
+    get_key_value(loco_t::textureid_t<0>) = &gloco->unloaded_image;
+    get_key_value(loco_t::textureid_t<1>) = &gloco->unloaded_image;
+    get_key_value(loco_t::textureid_t<2>) = &gloco->unloaded_image;
+    get_key_value(loco_t::textureid_t<3>) = &gloco->unloaded_image;
 
    /* if (p.images[0].is_invalid()) {
       get_key_value(loco_t::textureid_t<0>) = &loco.;
@@ -104,7 +109,7 @@ struct sb_pfr_name {
     
     get_key_value(loco_t::camera_list_NodeReference_t) = p.camera;
     get_key_value(fan::graphics::viewport_list_NodeReference_t) = p.viewport;
-    sb_push_back(cid, p);
+    sb_push_back(id, p);
     //auto* ri = &sb_get_ri(cid);
     //sb_set_key<bm_properties_t::key_t::get_index_with_type<loco_t::textureid_t<0>>()>(cid, &ri->images[0]);
     //ri = &sb_get_ri(cid);
@@ -115,25 +120,25 @@ struct sb_pfr_name {
     //sb_set_key<bm_properties_t::key_t::get_index_with_type<loco_t::textureid_t<3>>()>(cid, &ri->images[3]);
   }
 
-  void erase(fan::graphics::cid_t* cid) {
-    auto& ri = sb_get_ri(cid);
+  void erase(loco_t::cid_nt_t& id) {
+    auto& ri = sb_get_ri(id);
     uint32_t TextureAmount = fan::pixel_format::get_texture_amount(ri.format);
     for (uint32_t i = 0; i < TextureAmount; ++i) {
-      ri.images[i].unload(get_loco());
+      ri.images[i].unload();
     }
-    sb_erase(cid);
+    sb_erase(id);
   }
 
-  void draw(bool blending = false) {
-    sb_draw(root);
+  void draw(const redraw_key_t &redraw_key, loco_bdbt_NodeReference_t key_root) {
+    sb_draw(key_root);
   }
 
-  void reload(fan::graphics::cid_t* cid, void** data, const fan::vec2& image_size, uint32_t filter = fan::opengl::GL_LINEAR) {
-    reload(cid, sb_get_ri(cid).format, data, image_size, filter);
+  void reload(loco_t::cid_nt_t& id, void** data, const fan::vec2& image_size, uint32_t filter = fan::opengl::GL_LINEAR) {
+    reload(id, sb_get_ri(id).format, data, image_size, filter);
   }
 
-  void reload(fan::graphics::cid_t* cid, uint8_t format, void** data, const fan::vec2& image_size, uint32_t filter = fan::opengl::GL_LINEAR) {
-    auto* ri = &sb_get_ri(cid);
+  void reload(loco_t::cid_nt_t& id, uint8_t format, void** data, const fan::vec2& image_size, uint32_t filter = fan::opengl::GL_LINEAR) {
+    auto* ri = &sb_get_ri(id);
     auto image_count_new = fan::pixel_format::get_texture_amount(format);
     if (format != ri->format) {
       set_vertex(
@@ -146,32 +151,32 @@ struct sb_pfr_name {
       if (image_count_new < image_count_old) {
         // deallocate some texture
         for (uint32_t i = image_count_new; i < image_count_old; ++i) {
-          ri->images[i].unload(get_loco());
+          ri->images[i].unload();
         }
       }
       else if (image_count_new > image_count_old) {
         // allocate more texture
         for (uint32_t i = image_count_old; i < image_count_new; ++i) {
-          ri->images[i].create_texture(get_loco());
+          ri->images[i].create_texture();
           switch (i) {
           case 0: {
-            sb_set_key<bm_properties_t::key_t::get_index_with_type<loco_t::textureid_t<0>>()>(cid, &ri->images[0]);
+            sb_set_key<bm_properties_t::key_t::get_index_with_type<loco_t::textureid_t<0>>()>(id, &ri->images[0]);
             break;
           }
           case 1: {
-            sb_set_key<bm_properties_t::key_t::get_index_with_type<loco_t::textureid_t<1>>()>(cid, &ri->images[1]);
+            sb_set_key<bm_properties_t::key_t::get_index_with_type<loco_t::textureid_t<1>>()>(id, &ri->images[1]);
             break;
           }
           case 2: {
-            sb_set_key<bm_properties_t::key_t::get_index_with_type<loco_t::textureid_t<2>>()>(cid, &ri->images[2]);
+            sb_set_key<bm_properties_t::key_t::get_index_with_type<loco_t::textureid_t<2>>()>(id, &ri->images[2]);
             break;
           }
           case 3: {
-            sb_set_key<bm_properties_t::key_t::get_index_with_type<loco_t::textureid_t<3>>()>(cid, &ri->images[3]);
+            sb_set_key<bm_properties_t::key_t::get_index_with_type<loco_t::textureid_t<3>>()>(id, &ri->images[3]);
             break;
           }
           }
-          ri = &sb_get_ri(cid);
+          ri = &sb_get_ri(id);
         }
       }
     }
@@ -184,15 +189,15 @@ struct sb_pfr_name {
         lp.min_filter = filter;
         lp.mag_filter = filter;
         if (1) {
-          ri->images[i].reload_pixels(get_loco(), image_info, lp);
+          ri->images[i].reload_pixels(image_info, lp);
         }
       }
 
     ri->format = format;
   }
 
-  void reload(fan::graphics::cid_t* cid, uint8_t format, const fan::vec2& image_size, uint32_t filter = fan::opengl::GL_LINEAR) {
+  void reload(loco_t::cid_nt_t& id, uint8_t format, const fan::vec2& image_size, uint32_t filter = fan::opengl::GL_LINEAR) {
     void* data[4]{};
-    reload(cid, format, data, image_size, filter);
+    reload(id, format, data, image_size, filter);
   }
 };
