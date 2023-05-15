@@ -10,7 +10,9 @@ struct block_t {
   void open(loco_t* loco, auto* shape) {
     uniform_buffer.open(gloco->get_context());
     uniform_buffer.init_uniform_block(gloco->get_context(), shape->m_shader.id, "instance_t");
+    #ifndef sb_no_blending
     uniform_buffer.init_uniform_block(gloco->get_context(), shape->m_blending_shader.id, "instance_t");
+    #endif
   }
   void close(loco_t* loco) {
     uniform_buffer.close(gloco->get_context(), &gloco->m_write_queue);
@@ -100,11 +102,13 @@ public:
     );
     m_shader.compile(gloco->get_context());
 
+    #ifndef sb_no_blending
     m_blending_shader.open(gloco->get_context());
     m_blending_shader.set_vertex(
       gloco->get_context(),
       #include sb_shader_vertex_path
     );
+    #endif
     fan::string str = 
       #ifndef sb_shader_fragment_string
         #include sb_shader_fragment_path
@@ -117,6 +121,7 @@ public:
     if (found != fan::string::npos) {
       str.erase(found, std::string_view("discard;").size());
     }
+    #ifndef sb_no_blending
     m_blending_shader.set_fragment(
       gloco->get_context(),
       str
@@ -124,22 +129,31 @@ public:
     m_blending_shader.compile(gloco->get_context());
 
     m_current_shader = &m_blending_shader;
+    #else
+    m_current_shader = &m_shader;
+    #endif
 
     m_shader.use(gloco->get_context());
     m_shader.set_vec2(gloco->get_context(), "window_size", gloco->get_window()->get_size());
+    #ifndef sb_no_blending
     m_blending_shader.use(gloco->get_context());
     m_blending_shader.set_vec2(gloco->get_context(), "window_size", gloco->get_window()->get_size());
+    #endif
 
     m_shader.use(gloco->get_context());
     m_shader.set_vec3(gloco->get_context(), loco_t::lighting_t::ambient_name, gloco->lighting.ambient);
+    #ifndef sb_no_blending
     m_blending_shader.use(gloco->get_context());
     m_blending_shader.set_vec3(gloco->get_context(), loco_t::lighting_t::ambient_name, gloco->lighting.ambient);
+    #endif
 
     resize_nr = gloco->get_window()->add_resize_callback([this](const auto& d) {
       m_shader.use(gloco->get_context());
       m_shader.set_vec2(gloco->get_context(), "window_size", gloco->get_window()->get_size());
+      #ifndef sb_no_blending
       m_blending_shader.use(gloco->get_context());
       m_blending_shader.set_vec2(gloco->get_context(), "window_size", gloco->get_window()->get_size());
+      #endif
     });
   }
   void sb_close() {
@@ -151,7 +165,9 @@ public:
     //loco_bdbt_close(&gloco->bdbt);
 
     m_shader.close(gloco->get_context());
+    #ifndef sb_no_blending
     m_blending_shader.close(gloco->get_context());
+    #endif
 
     //for (uint32_t i = 0; i < blocks.size(); i++) {
     //  blocks[i].uniform_buffer.close(gloco->get_context());
@@ -575,7 +591,9 @@ public:
   }
 
   fan::opengl::shader_t m_shader;
+  #ifndef sb_no_blending
   fan::opengl::shader_t m_blending_shader;
+  #endif
   fan::opengl::shader_t* m_current_shader = nullptr;
 
   vi_t& sb_get_vi(loco_t::cid_nt_t& cid) {
@@ -602,3 +620,4 @@ public:
   #undef sb_vertex_count
   #undef sb_shader_fragment_string
   #undef sb_depth_var
+  #undef sb_no_blending

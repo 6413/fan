@@ -44,7 +44,8 @@ struct text_box_t {
     get_key_value(fan::graphics::viewport_list_NodeReference_t) = p.viewport;
 
     auto theme = gloco->text_box.get_theme(p.theme);
-    loco_t::text_t::properties_t tp;
+    loco_t::responsive_text_t::properties_t tp;
+    tp.boundary = p.size;
     tp.color = theme->button.text_color;
     tp.font_size = 1;
     tp.position = p.position;
@@ -64,18 +65,7 @@ struct text_box_t {
     sb_push_back(id, p);
     auto& ri = sb_get_ri(id);
 
-    loco_t::rectangle_t::properties_t rrp;
-    rrp.camera = p.camera;
-    rrp.viewport = p.viewport;
-    rrp.position = p.position;
-    rrp.size = p.size;
-    rrp.blending = true;
-    rrp.color = fan::colors::red;
-    rrp.color.a = 0;
-    // todo remove
-
-    auto rp = loco_t::responsive_text_t::make_properties(rrp, tp);
-    ri.text_id = rp;
+    ri.text_id = tp;
 
     set_theme(id, theme, released);
 
@@ -292,8 +282,8 @@ struct text_box_t {
     fed.m_wed.GetCursorInformation(fed.m_cr, &ci);
     fan::vec3 p = get_properties(id).position;
     p.z += 1;
-    if (!sb_get_ri(id).text_id.get_text().empty()) {
-      f32_t font_size = sb_get_ri(id).text_id.get_font_size();
+    if (!sb_get_ri(id).text_id.m_text_lines[0].get_text().empty()) {
+      f32_t font_size = sb_get_ri(id).text_id.m_text_lines[0].get_font_size();
       ri.fed.set_font_size(ci.FreeStyle.LineReference, font_size);
     }
     // set_font_size invalidates ci so need to refetch it
@@ -381,8 +371,8 @@ struct text_box_t {
     set(id, &vi_t::outline_size, t.button.outline_size);
     auto& ri = sb_get_ri(id);
     ri.theme = theme;
-    sb_get_ri(id).text_id.set_outline_color(t.button.text_outline_color);
-    sb_get_ri(id).text_id.set_outline_size(t.button.text_outline_size);
+    sb_get_ri(id).text_id.m_text_lines[0].set_outline_color(t.button.text_outline_color);
+    sb_get_ri(id).text_id.m_text_lines[0].set_outline_size(t.button.text_outline_size);
   }
 
   template <typename T>
@@ -414,7 +404,7 @@ struct text_box_t {
       position
     );
   }
-  void set_size(loco_t::cid_nt_t& id, const fan::vec3& size) {
+  void set_size(loco_t::cid_nt_t& id, const fan::vec2& size) {
     auto& ri = sb_get_ri(id);
     set_button(id, &vi_t::size, size);
     gloco->vfi.set_rectangle(
@@ -422,10 +412,11 @@ struct text_box_t {
       &loco_t::vfi_t::set_rectangle_t::size,
       size
     );
+    ri.text_id.set_size(size);
   }
 
   void set_font_size(loco_t::cid_nt_t& id, f32_t font_size) {
-    gloco->text.set_font_size(sb_get_ri(id).text_id, font_size);
+    gloco->text.set_font_size(sb_get_ri(id).text_id.m_text_lines[0], font_size);
   }
 
  /* loco_t::camera_t* get_camera(loco_t::cid_nt_t& id) {
@@ -478,7 +469,7 @@ struct text_box_t {
   }
 
   fan::vec3 get_text_left_position(loco_t::cid_nt_t& id) {
-    f32_t text_length = sb_get_ri(id).text_id.get_text_size().x;
+    f32_t text_length = sb_get_ri(id).text_id.m_text_lines[0].get_text_size().x;
     fan::vec3 center = get_button(id, &text_box_t::vi_t::position);
     center.x -= text_length * 0.5;
     return center;

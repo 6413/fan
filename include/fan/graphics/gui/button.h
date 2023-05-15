@@ -46,7 +46,8 @@ struct button_t {
     #endif
 
     auto theme = p.theme;
-    loco_t::text_t::properties_t tp;
+    loco_t::responsive_text_t::properties_t tp;
+    tp.boundary = p.size;
     tp.color = theme->button.text_color;
     tp.font_size = 1;
     tp.position = p.position;
@@ -57,17 +58,9 @@ struct button_t {
 
     sb_push_back(id, p);
 
-    loco_t::rectangle_t::properties_t rrp;
-    rrp.camera = p.camera;
-    rrp.viewport = p.viewport;
-    rrp.position = p.position;
-    rrp.size = p.size;
-    rrp.blending = true;
-    rrp.color = fan::colors::red;
-    rrp.color.a = 0;
+
     // todo remove
-    auto rp = loco_t::responsive_text_t::make_properties(rrp, tp);
-    sb_get_ri(id).text_id = rp;
+    sb_get_ri(id).text_id = tp;
 
     set_theme(id, theme, released);
 
@@ -264,6 +257,7 @@ struct button_t {
       &loco_t::vfi_t::set_rectangle_t::size,
       size
     );
+    ri.text_id.set_size(size);
   }
 
   //void set_camera(loco_t::cid_nt_t& id, loco_t::camera_list_NodeReference_t n) {
