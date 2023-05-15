@@ -1169,6 +1169,9 @@ public:
       gloco->shape_erase(*this);
       inherit_t::invalidate();
     }
+    void append_letter(wchar_t wc) {
+      gloco->shape_append_letter(*this, wc);
+    }
 
     operator fan::opengl::cid_t *(){
       return &gloco->cid_list[*this].cid;
@@ -1206,8 +1209,6 @@ public:
 
     fan_create_set_define(loco_t::camera_list_NodeReference_t, camera);
     fan_create_set_define(fan::graphics::viewport_list_NodeReference_t, viewport);
-
-    fan_create_set_define(wchar_t, append_letter);
 
     void set_line(const fan::vec3& src, const fan::vec3& dst) {
       gloco->shape_set_line(*this, src, dst);
@@ -2110,6 +2111,14 @@ public:
     loco_t::cid_nt_t& id
   );
 
+  make_global_function_define(append_letter,
+    if constexpr (has_append_letter_v<shape_t, loco_t::cid_nt_t&, wchar_t>) {
+      (*shape)->append_letter(id, wc);
+    },
+    loco_t::cid_nt_t& id,
+    wchar_t wc
+  );
+
   fan_has_function_concept(get);
   fan_has_function_concept(set);
 
@@ -2271,9 +2280,6 @@ public:
 
   fan_build_get_set_define(fan::color, outline_color);
   fan_build_get_set_define(f32_t, outline_size);
-
-  fan_build_set_generic_define(wchar_t, append_letter);
-
 
   make_global_function_define(set_line,
     if constexpr (has_set_line_v<shape_t, loco_t::cid_nt_t&, const fan::vec3&, const fan::vec3&>) {
