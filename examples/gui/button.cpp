@@ -17,6 +17,8 @@
 #define loco_button
 #include _FAN_PATH(graphics/loco.h)
 
+loco_t::shape_t b0;
+
 struct pile_t {
 
   pile_t() {
@@ -30,6 +32,8 @@ struct pile_t {
     loco.get_window()->add_resize_callback([&](const fan::window_t::resize_cb_data_t& d) {
       fan::vec2 window_size = d.window->get_size();
       fan::vec2 ratio = window_size / window_size.max();
+      b0.set_size(d.size / 4);
+      b0.set_position(fan::vec2(d.size / 2));
       //std::swap(ratio.x, ratio.y);
       //pile_t* pile = (pile_t*)userptr;
       //camera.set_ortho(
@@ -39,24 +43,18 @@ struct pile_t {
       //);
 
      });
-    loco.open_viewport(&viewport, 0, loco.get_window()->get_size() / 2);
-    loco.open_viewport(&viewport2, 400, loco.get_window()->get_size() / 2);
+    loco.open_viewport(&viewport, 0, loco.get_window()->get_size());
   }
 
   loco_t loco;
   loco_t::camera_t camera;
   fan::graphics::viewport_t viewport;
-  fan::graphics::viewport_t viewport2;
 };
 
 pile_t* pile = new pile_t;
 
 struct some_data_t {
   loco_t::camera_t camera;
-};
-
-struct test_t : loco_t::shape_t, some_data_t {
-  using loco_t::shape_t::shape_t;
 };
 
 int main() {
@@ -89,12 +87,10 @@ int main() {
   };
 
   loco_t::theme_t theme = loco_t::themes::deep_red();
-  tp.viewport = &pile->viewport;
   tp.theme = &theme;
   tp.text = "hello world";
   tp.position = 400;
-  loco_t::shape_t b0 = tp;
-  tp.viewport = &pile->viewport;
+  b0 = tp;
 
   pile->loco.loop([&] {
 
