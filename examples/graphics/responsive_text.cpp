@@ -39,6 +39,28 @@ struct pile_t {
   loco_t::viewport_t viewport;
 };
 
+struct sprite_responsive_t : loco_t::responsive_text_t {
+  using responsive_text_t::responsive_text_t;
+
+  sprite_responsive_t(const loco_t::text_t::properties_t& tp, const loco_t::sprite_t::properties_t& p) {
+    loco_t::responsive_text_t::properties_t rp;
+    *(loco_t::text_t::properties_t *)&rp = tp;
+    rp.position = p.position;
+    rp.boundary = p.size;
+    rp.camera = p.camera;
+    rp.viewport = p.viewport;
+    *(loco_t::responsive_text_t*)this = rp;
+    base = p;
+  }
+
+  void set_size(const fan::vec2& s) {
+    base.set_size(s);
+    responsive_text_t::set_size(s);
+  }
+
+  loco_t::shape_t base;
+};
+
 int main() {
   pile_t* pile = new pile_t;
 
@@ -64,21 +86,12 @@ int main() {
   rp.position = fan::vec3(400, 400, 0);
   rp.size = fan::vec2(100);
   rp.color = fan::colors::red;
-
-  //loco_t::shape_t r0 = p;
-  //p.position = fan::vec3(0.1, 0, 1);
-  //p.color = fan::colors::blue;
-
-  //loco_t::shape_t r1 = p;
-  //loco_t::shape_t r2;
-
-  //pile->loco.set_vsync(false);
   
   loco_t::text_t::properties_t tp;
-  tp.text = "test";
-  tp.font_size = 0.49;
-  auto p = loco_t::responsive_text_custom_t::make_properties(pp, tp);
-  loco_t::responsive_text_custom_t responsive_box = p;
+  tp.text = "WWiWWWWWWWWWWWWWWWWWWWWWWWW";
+  for (uint32_t i = 1; i--;) tp.text += tp.text;
+  tp.font_size = 1;
+  sprite_responsive_t responsive_box(tp, pp);
 
   /*{
     uint32_t i = 0;

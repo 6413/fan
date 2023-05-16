@@ -301,7 +301,7 @@ namespace fan {
     using char_type = std::string::value_type;
 
     constexpr uint32_t get_utf8(std::size_t i) const {
-      std::u8string_view sv = (char8_t*)c_str();
+      const std::u8string_view& sv = (char8_t*)c_str();
       uint32_t code = 0;
       uint32_t offset = 0;
       for (uint32_t k = 0; k <= i; k++) {

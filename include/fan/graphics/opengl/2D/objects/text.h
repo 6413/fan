@@ -12,6 +12,33 @@ struct text_renderer_t {
     loco_text_properties_t
   };
 
+  #define BLL_set_CPP_ConstructDestruct
+  #define BLL_set_CPP_Node_ConstructDestruct
+  #define BLL_set_AreWeInsideStruct 1
+  #define BLL_set_BaseLibrary 1
+  #define BLL_set_prefix cid_list
+  #define BLL_set_type_node uint32_t
+  #define BLL_set_NodeData loco_t::shape_t shape;
+  #define BLL_set_Link 1
+  #include _FAN_PATH(BLL/BLL.h)
+
+  #define BLL_set_CPP_CopyAtPointerChange
+  #define BLL_set_CPP_ConstructDestruct
+  #define BLL_set_CPP_Node_ConstructDestruct
+  #define BLL_set_AreWeInsideStruct 1
+  #define BLL_set_BaseLibrary 1
+  #define BLL_set_prefix tlist
+  #define BLL_set_type_node uint32_t
+  #define BLL_set_NodeData \
+    text_renderer_t::cid_list_t cid_list; \
+    properties_t p;
+    
+    
+  #define BLL_set_Link 1
+  #include _FAN_PATH(BLL/BLL.h)
+
+  tlist_t tlist;
+
   text_renderer_t() {
 
   }
@@ -32,7 +59,7 @@ struct text_renderer_t {
 
     for (int i = 0; i < text.utf8_size(); i++) {
       auto letter = gloco->font.info.get_letter_info(text.get_utf8(i), font_size);
-
+      
       //auto p = letter_info.metrics.offset.x + letter_info.metrics.size.x / 2 + letter_info.metrics.offset.x;
       text_size.x += letter.metrics.advance;
       //text_size.x += letter.metrics.size.x + letter.metrics.offset.x;
@@ -49,13 +76,7 @@ struct text_renderer_t {
   }
 
   void push_back(loco_t::cid_nt_t& id, properties_t properties) {
-    typename loco_t::letter_t::properties_t p;
-    p.color = properties.color;
-    p.font_size = properties.font_size;
-    p.viewport = properties.viewport;
-    p.camera = properties.camera;
-    p.outline_color = properties.outline_color;
-    p.outline_size = properties.outline_size;
+   
     tlist_NodeReference_t internal_id = tlist.NewNodeLast();
     tlist[internal_id].p = properties;
 
@@ -63,23 +84,8 @@ struct text_renderer_t {
     f32_t left = properties.position.x - text_size.x / 2;
     f32_t advance = 0;
     for (uint32_t i = 0; i < properties.text.utf8_size(); i++) {
-      p.letter_id = properties.text.get_utf8(i);
-      auto letter_info = gloco->font.info.get_letter_info(p.letter_id, properties.font_size);
-      p.position = fan::vec2(
-        left + advance + letter_info.metrics.size.x / 2,
-        properties.position.y + (properties.font_size - letter_info.metrics.size.y) / 2 - letter_info.metrics.offset.y
-        //properties.position.y - letter_info.metrics.offset.y
-      );
-      p.position.z = properties.position.z;
-
-      /*if (i == 0) {
-        p.position.x -= letter_info.metrics.size.x;
-      }*/
-      auto nr = tlist[internal_id].cid_list.NewNodeLast();
-      auto n = tlist[internal_id].cid_list.GetNodeByReference(nr);
-      n->data.shape = p;
-      
-      advance += letter_info.metrics.advance;
+    
+      append_letter(id, properties.text.get_utf8(i), internal_id, left, advance);
       //left += letter_info.metrics.advance;
     }
     id->shape_type = loco_t::shape_type_t::text;
@@ -89,6 +95,36 @@ struct text_renderer_t {
   void erase(loco_t::cid_nt_t& id) {
     auto internal_id = *(tlist_NodeReference_t *)id.gdp4();
     tlist.unlrec(internal_id);
+  }
+
+  void append_letter(loco_t::cid_nt_t& id, uint32_t letter, tlist_NodeReference_t internal_id, f32_t left, f32_t& advance){
+
+    const auto& instance_properties = tlist[internal_id].p;
+
+    typename loco_t::letter_t::properties_t p;
+    p.color = instance_properties.color;
+    p.font_size = instance_properties.font_size;
+    p.viewport = instance_properties.viewport;
+    p.camera = instance_properties.camera;
+    p.outline_color = instance_properties.outline_color;
+    p.outline_size = instance_properties.outline_size;
+
+    p.letter_id = letter;
+    auto letter_info = gloco->font.info.get_letter_info(p.letter_id, instance_properties.font_size);
+    p.position = fan::vec2(
+      left + advance + letter_info.metrics.size.x / 2,
+      instance_properties.position.y + (instance_properties.font_size - letter_info.metrics.size.y) / 2 - letter_info.metrics.offset.y
+      //properties.position.y - letter_info.metrics.offset.y
+    );
+    p.position.z = instance_properties.position.z;
+
+    /*if (i == 0) {
+      p.position.x -= letter_info.metrics.size.x;
+    }*/
+    auto nr = tlist[internal_id].cid_list.NewNodeLast();
+    auto n = tlist[internal_id].cid_list.GetNodeByReference(nr);
+    n->data.shape = p;
+    advance += letter_info.metrics.advance;
   }
 
   // do not use with set_position
@@ -137,6 +173,10 @@ struct text_renderer_t {
       gloco->letter.sb_set_depth(node->data.shape, depth);
       it = node->NextNodeReference;
     }
+  }
+
+  tlist_NodeReference_t get_internal_id(loco_t::cid_nt_t& id) {
+    return *(tlist_NodeReference_t *)id.gdp4();
   }
 
   void set_depth(loco_t::cid_nt_t& id, f32_t depth) {
@@ -192,29 +232,4 @@ struct text_renderer_t {
     auto internal_id = *(tlist_NodeReference_t *)id.gdp4();
     return tlist[internal_id].p;
   }
-
-  #define BLL_set_CPP_ConstructDestruct
-  #define BLL_set_CPP_Node_ConstructDestruct
-  #define BLL_set_AreWeInsideStruct 1
-  #define BLL_set_BaseLibrary 1
-  #define BLL_set_prefix cid_list
-  #define BLL_set_type_node uint32_t
-  #define BLL_set_NodeData loco_t::shape_t shape;
-  #define BLL_set_Link 1
-  #include _FAN_PATH(BLL/BLL.h)
-
-  #define BLL_set_CPP_CopyAtPointerChange
-  #define BLL_set_CPP_ConstructDestruct
-  #define BLL_set_CPP_Node_ConstructDestruct
-  #define BLL_set_AreWeInsideStruct 1
-  #define BLL_set_BaseLibrary 1
-  #define BLL_set_prefix tlist
-  #define BLL_set_type_node uint32_t
-  #define BLL_set_NodeData \
-    text_renderer_t::cid_list_t cid_list; \
-    properties_t p;
-  #define BLL_set_Link 1
-  #include _FAN_PATH(BLL/BLL.h)
-
-  tlist_t tlist;
 };

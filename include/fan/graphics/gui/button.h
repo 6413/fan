@@ -47,7 +47,7 @@ struct button_t {
 
     auto theme = p.theme;
     loco_t::responsive_text_t::properties_t tp;
-    tp.boundary = p.size;
+    tp.boundary = p.size / 2; // padding
     tp.color = theme->button.text_color;
     tp.font_size = 1;
     tp.position = p.position;
@@ -240,7 +240,7 @@ struct button_t {
   void set_position(loco_t::cid_nt_t& id, const fan::vec3& position) {
     
     auto& ri = get_ri(id);
-    ri.text_id.m_text_lines[0].set_position(position + fan::vec3(0, 0, 1));
+    ri.text_id.set_position(position + fan::vec3(0, 0, 1));
     set_button(id, &vi_t::position, position);
     gloco->vfi.set_rectangle(
       ri.vfi_id,
@@ -257,7 +257,7 @@ struct button_t {
       &loco_t::vfi_t::set_rectangle_t::size,
       size
     );
-    ri.text_id.set_size(size);
+    ri.text_id.set_size(size / 2); // pad
   }
 
   //void set_camera(loco_t::cid_nt_t& id, loco_t::camera_list_NodeReference_t n) {
