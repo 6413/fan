@@ -45,7 +45,7 @@ struct text_box_t {
 
     auto theme = gloco->text_box.get_theme(p.theme);
     loco_t::responsive_text_t::properties_t tp;
-    tp.boundary = p.size;
+    tp.boundary = p.size / 2; // pad
     tp.color = theme->button.text_color;
     tp.font_size = 1;
     tp.position = p.position;
@@ -412,7 +412,7 @@ struct text_box_t {
       &loco_t::vfi_t::set_rectangle_t::size,
       size
     );
-    ri.text_id.set_size(size);
+    ri.text_id.set_size(size / 2); // pad
   }
 
   void set_font_size(loco_t::cid_nt_t& id, f32_t font_size) {
