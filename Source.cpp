@@ -8,108 +8,137 @@
 #define fan_debug 0
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
-//#define loco_vulkan
-
 #define loco_window
 #define loco_context
+
+#define loco_line
 #define loco_rectangle
 #include _FAN_PATH(graphics/loco.h)
 
+constexpr fan::vec2 f(const fan::vec2& p1, const fan::vec2& p2, const fan::vec2& p3, f32_t t) {
+  if (p1 == p2 || p2 == p3 || p3 == p1) {
+    fan::throw_error("");
+  }
 
+  auto f = [&] (f32_t x) {
+    f32_t a = (p3.x * (p2.y - p1.y) + p2.x * (p1.y - p3.y) + p1.x * (p3.y - p2.y)) / ((p1.x - p2.x) * (p1.x - p3.x) * (p2.x - p3.x));
+    f32_t b = (((p1.x * p1.x) * (p2.y - p3.y) + (p3.x * p3.x) * (p1.y - p2.y) + (p2.x * p2.x) * (p3.y - p1.y)) / ((p1.x - p2.x) * (p1.x - p3.x) * (p2.x - p3.x)));
+    f32_t c = ((p2.x * p2.x) * (p3.x * p1.y - p1.x * p3.y) + p2.x * ((p1.x * p1.x) * p3.y - (p3.x * p3.x) * p1.y) + p1.x * p3.x*(p3.x - p1.x) * p2.y) / ((p1.x - p2.x) * (p1.x - p3.x) * (p2.x - p3.x));
+
+    return a * (x * x) + b * x + c;
+  };
+  t *= (p3.x - p1.x) + p1.x;
+  return fan::vec2(t, f(t));
+}
+
+constexpr fan::vec2 f2(const fan::vec2& p1, const fan::vec2& p2, const fan::vec2& p3, f32_t t) {
+  f32_t u = 1 - t;
+  f32_t tt = t * t;
+  f32_t uu = u * u;
+  f32_t ut = u * t;
+
+  fan::vec2 p;
+  p.x = uu * p1.x + 2 * ut * p2.x + tt * p3.x;
+  p.y = uu * p1.y + 2 * ut * p2.y + tt * p3.y;
+
+  return p;
+}
 
 struct pile_t {
 
-  static constexpr fan::vec2 ortho_x = fan::vec2(-1, 1);
-  static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
-
   pile_t() {
+    auto window_size = loco.get_window()->get_size();
     loco.open_camera(
       &camera,
-      ortho_x,
-      ortho_y
+      fan::vec2(0, window_size.x),
+      fan::vec2(0, window_size.y)
     );
-    loco.open_viewport(
-      &viewport,
-      0,
-      loco.get_window()->get_size()
-    );
+    /* loco.get_window()->add_resize_callback(this, [](fan::window_t* window, const fan::vec2i& size, void* userptr) {
+       fan::vec2 window_size = window->get_size();
+       fan::vec2 ratio = window_size / window_size.max();
+       pile_t* pile = (pile_t*)userptr;
+       pile->camera.set_ortho(
+         fan::vec2(0, window_size.x) * ratio.x,
+         fan::vec2(0, window_size.y) * ratio.y
+       );
+       pile->viewport.set(pile->loco.get_context(), 0, size, size);
+     });*/
+    viewport.open();
+    viewport.set(0, window_size, window_size);
   }
 
   loco_t loco;
   loco_t::camera_t camera;
-  loco_t::viewport_t viewport;
-};
-
-bool isBlackKey(int key) {
-  // black keys are the keys that are not part of the C major scale
-  int keyInOctave = (key + 8) % 12;
-  return keyInOctave == 1 || keyInOctave == 3 || keyInOctave == 6 || keyInOctave == 8 || keyInOctave == 10;
-}
+  fan::graphics::viewport_t viewport;
+}*pile = new pile_t;
 
 int main() {
+  fan::vec2 p0(0, 0);
+  fan::vec2 p1(300, 300);
+  fan::vec2 p2(600, 0);
+  p0.y += 300;
+  p1.y += 300;
+  p2.y += 300;
 
-  pile_t pile;
+  loco_t::rectangle_t::properties_t p;
+  p.camera = &pile->camera;
+  p.viewport = &pile->viewport;
 
-  loco_t::rectangle_t::properties_t rp;
-  rp.camera = &pile.camera;
-  rp.viewport = &pile.viewport;
-  rp.position = fan::vec2(-1, 0);
-  rp.color = fan::colors::white;
-  
+  p.position = fan::vec3(0, 0, 0);
+  p.size = fan::vec2(5);
+  p.color = fan::colors::red;
 
-  constexpr int keys = 89;
-  double pos = -1.0;
-  loco_t::shape_t piano_keys[keys];
-  for (int i = 0; i < keys; i++) {
-    rp.size = fan::vec2(0.01, 0.2);
-    if (isBlackKey(i)) {
-      rp.color = fan::colors::green;
-      rp.size = fan::vec2(0.01, 0.1);
-      rp.position = fan::vec2(pos, -rp.size.y);
+  loco_t::shape_t r0;
+
+  loco_t::shape_t r1;
+  loco_t::shape_t r2;
+  loco_t::shape_t r3;
+
+  loco_t::line_t::properties_t lp;
+  lp.camera = &pile->camera;
+  lp.viewport = &pile->viewport;
+  lp.src = fan::vec2(0, 0);
+  lp.dst = fan::vec2(800, 800);
+  lp.color = fan::colors::white;
+
+  f32_t count = 50;
+  std::vector<loco_t::shape_t> curve(count);
+  for (uint32_t i = 0; i < count; ++i) {
+    lp.src = f(p0, p1, p2, i / count);
+    lp.dst = f(p0, p1, p2, (i + 1) / count);
+    if (i == 0) {
+      p.color = fan::colors::red;
+      p.position = p0;
+      p.position.z = 1;
+      r1 = p;
     }
-    else {
-      rp.color = fan::colors::white;
-      rp.position = fan::vec2(pos, 0);
+    if (i == count / 2) {
+      p.color = fan::colors::green;
+      p.position = p1;
+      p.position.z = 1;
+      r2 = p;
     }
-    piano_keys[i] = rp;
-    pos += rp.size.x * 2.1;
-
+    if (i == count - 1) {
+      p.color = fan::colors::blue;
+      p.position = p2;
+      p.position.z = 1;
+      r3 = p;
+    }
+    curve[i] = lp;
   }
 
-  // key hertz
-  auto f = [](float n) {
-    return pow(2, (n - 49) / 12) * 440;
-  };
+  //fan::print(f(p0, p1, p2, 0));
+  //fan::print(f2(p0, p1, p2, 0));
 
-  pile.loco.get_window()->add_buttons_callback([&](const auto& data) {
-    if (data.button != fan::mouse_left) {
-      return;
-    }
-    if (data.state != fan::mouse_state::press) {
-      return;
-    }
-    for (int i = 0; i < keys; i++) {
-      bool mouse_collides = fan_2d::collision::rectangle::point_inside_no_rotation(
-        pile.loco.get_mouse_position(pile.camera, pile.viewport),
-        piano_keys[i].get_position(),
-        piano_keys[i].get_size()
-      );
-      if (mouse_collides) {
-        Beep(f(i), 250);
-        fan::print(f(i));
-      }
-    }
-    });
+  //fan::print(f(p0, p1, p2, 0.5));
+  //fan::print(f2(p0, p1, p2, 0.5));
 
-  //shape.set_position(fan::vec2(0, 0));
-  //shape.set_size(fan::vec2(1, 1));
+  //fan::print(f(p0, p1, p2, 1));
+  //fan::print(f2(p0, p1, p2, 1));
 
+  pile->loco.loop([] {
 
-
-
-  pile.loco.loop([] {
-
-    });
+  });
 
   return 0;
 }
