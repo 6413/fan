@@ -16,7 +16,7 @@
 #include _FAN_PATH(graphics/loco.h)
 
 constexpr fan::vec2 f(const fan::vec2& p1, const fan::vec2& p2, const fan::vec2& p3, f32_t t) {
-  if (p1 == p2 || p2 == p3 || p3 == p1) {
+  if (p1.x == p2.x || p2.x == p3.x || p3.x == p1.x) {
     fan::throw_error("");
   }
 
@@ -102,7 +102,7 @@ int main() {
   lp.color = fan::colors::white;
 
   f32_t count = 50;
-  std::vector<loco_t::shape_t> curve(count);
+  std::vector<loco_t::shape_t> curve;
   for (uint32_t i = 0; i < count; ++i) {
     lp.src = f(p0, p1, p2, i / count);
     lp.dst = f(p0, p1, p2, (i + 1) / count);
@@ -124,7 +124,7 @@ int main() {
       p.position.z = 1;
       r3 = p;
     }
-    curve[i] = lp;
+    curve.push_back(lp);
   }
 
   //fan::print(f(p0, p1, p2, 0));
