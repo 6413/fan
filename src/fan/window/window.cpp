@@ -1959,7 +1959,6 @@ uint32_t fan::window_t::handle_events() {
           cdb.scancode = keycode_to_scancode_table[event.xkey.keycode];
         }
         window->m_keycode_action_map[event.xkey.keycode] = true;
-
         window->m_scancode_action_map[(cdb.scancode & 0x7f) | ((!!(cdb.scancode >> 8)) << 8)] = true;
 
         //fan::print(xcb_get_scancode_name(event.xkey.keycode));
