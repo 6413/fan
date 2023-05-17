@@ -1073,7 +1073,7 @@ static void forEachType(std::variant<Types...>& variant, Func&& func) {
 
   void resize_cb() {
     fan::vec2 window_size = gloco->get_window()->get_size();
-    auto get_m = [&] (f32_t scaler) {
+    auto get_m = [&](f32_t scaler) {
       fan::vec2 n = window_size.square_normalize();
       n *= 0.666666;
       return fan::vec2(n.y, n.x);
@@ -1085,7 +1085,16 @@ static void forEachType(std::variant<Types...>& variant, Func&& func) {
 
 
     set_viewport_and_camera(viewport_area::global, fan::vec2(-1), fan::vec2(1));
-    set_viewport_and_camera(viewport_area::editor, editor_position - editor_size, editor_size / 2);
+
+    {
+      fan::vec2 window_size = gloco->get_window()->get_size();
+      fan::vec2 viewport_position = translate_viewport_position(editor_position);
+      fan::vec2 ed = editor_size * window_size;
+      viewports[viewport_area::editor].set(viewport_position - ed / 2, ed, window_size);
+      cameras[viewport_area::editor].set_ortho(fan::vec2(-1, 1), fan::vec2(-1, 1));
+
+    }
+
     set_viewport_and_camera(viewport_area::sidepanel, fan::vec2(sidepanel_line_position.x, -1),
       fan::vec2(-0.5, 1)
     );

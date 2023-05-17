@@ -58,7 +58,7 @@ struct responsive_text_t {
     f32_t scaler = get_scaler();
     fan::vec2 size = get_size() * 2;
     f32_t font_size = gloco->font.info.size * scaler;
-    f32_t line0_width = gloco->text.get_text_size(m_text_lines[line_index].get_text(), 
+    f32_t line0_width = gloco->text.get_text_size(m_text_lines[line_index].get_text(),
       font_size).x;
     f32_t line1_width = gloco->font.info.get_letter_info(wc, font_size).metrics.size.x;
     f32_t total = line0_width + line1_width;
@@ -121,7 +121,7 @@ struct responsive_text_t {
 
   void set_position(const fan::vec3& v) {
     m_position = v;
-    
+
     calculate_text_positions();
   }
   fan::vec2 get_size() const {
