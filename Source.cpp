@@ -103,30 +103,34 @@ int main() {
 
   f32_t count = 50;
   std::vector<loco_t::shape_t> curve;
-  for (uint32_t i = 0; i < count; ++i) {
-    lp.src = f(p0, p1, p2, i / count);
-    lp.dst = f(p0, p1, p2, (i + 1) / count);
-    if (i == 0) {
-      p.color = fan::colors::red;
-      p.position = p0;
-      p.position.z = 1;
-      r1 = p;
+  auto make_lines = [&]() {
+    curve.clear();
+    for (uint32_t i = 0; i < count; ++i) {
+      lp.src = f(p0, p1, p2, i / count);
+      lp.dst = f(p0, p1, p2, (i + 1) / count);
+      if (i == 0) {
+        p.color = fan::colors::red;
+        p.position = p0;
+        p.position.z = 1;
+        r1 = p;
+      }
+      if (i == count / 2) {
+        p.color = fan::colors::green;
+        p.position = p1;
+        p.position.z = 1;
+        r2 = p;
+      }
+      if (i == count - 1) {
+        p.color = fan::colors::blue;
+        p.position = p2;
+        p.position.z = 1;
+        r3 = p;
+      }
+      curve.push_back(lp);
     }
-    if (i == count / 2) {
-      p.color = fan::colors::green;
-      p.position = p1;
-      p.position.z = 1;
-      r2 = p;
-    }
-    if (i == count - 1) {
-      p.color = fan::colors::blue;
-      p.position = p2;
-      p.position.z = 1;
-      r3 = p;
-    }
-    curve.push_back(lp);
-  }
+  };
 
+  make_lines();
   //fan::print(f(p0, p1, p2, 0));
   //fan::print(f2(p0, p1, p2, 0));
 
@@ -136,8 +140,19 @@ int main() {
   //fan::print(f(p0, p1, p2, 1));
   //fan::print(f2(p0, p1, p2, 1));
 
-  pile->loco.loop([] {
-
+  pile->loco.loop([&] {
+    if (pile->loco.get_window()->key_pressed(fan::key_a)) {
+      p0 = pile->loco.get_mouse_position(pile->camera, pile->viewport);
+      make_lines();
+    }
+    if (pile->loco.get_window()->key_pressed(fan::key_s)) {
+      p1 = pile->loco.get_mouse_position(pile->camera, pile->viewport);
+      make_lines();
+    }
+    if (pile->loco.get_window()->key_pressed(fan::key_d)) {
+      p2 = pile->loco.get_mouse_position(pile->camera, pile->viewport);
+      make_lines();
+    }
   });
 
   return 0;
