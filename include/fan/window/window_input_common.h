@@ -353,7 +353,6 @@ static uint16_t convert_fan_to_scancode(uint16_t key) {
 
 #elif defined(fan_platform_unix)
 
-switch (input) {
   case fan::input::key_escape: { return 0x01; }
   case fan::input::key_1: { return 0x02; }
   case fan::input::key_2: { return 0x03; }
