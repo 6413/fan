@@ -72,7 +72,15 @@ struct text_renderer_t {
   }
   fan::vec2 get_text_size(loco_t::cid_nt_t& id) {
     auto internal_id = *(tlist_NodeReference_t *)id.gdp4();
-    return get_text_size(tlist[internal_id].p.text, tlist[internal_id].p.font_size);
+    auto& instance = tlist[internal_id];
+    if (!instance.cid_list.Usage()) {
+      return 0;
+    }
+    auto& src_id = instance.cid_list[instance.cid_list.GetNodeFirst()].shape;
+    auto& dst_id = instance.cid_list[instance.cid_list.GetNodeLast()].shape;
+    fan::vec2 src = src_id.get_position();
+    fan::vec2 dst = dst_id.get_position();
+    return (dst + dst_id.get_size()) - (src - src_id.get_size());
   }
 
   void push_back(loco_t::cid_nt_t& id, properties_t properties) {

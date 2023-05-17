@@ -88,8 +88,7 @@ int main() {
   rp.color = fan::colors::red;
   
   loco_t::text_t::properties_t tp;
-  tp.text = "WWiWWWWWWWWWWWWWWWWWWWWWWWW";
-  for (uint32_t i = 1; i--;) tp.text += tp.text;
+  tp.text = "WWiWWWWWWWWWWWWWWWWWWWWWWWWWWWWW";
   tp.font_size = 1;
   sprite_responsive_t responsive_box(tp, pp);
 

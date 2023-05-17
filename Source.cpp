@@ -108,8 +108,8 @@ int main() {
   auto make_lines = [&]() {
     curve.clear();
     for (uint32_t i = 0; i < count; ++i) {
-      lp.src = f(p0, p1, p2, i / count);
-      lp.dst = f(p0, p1, p2, (i + 1) / count);
+      lp.src = f2(p0, p1, p2, i / count);
+      lp.dst = f2(p0, p1, p2, (i + 1) / count);
       if (i == 0) {
         p.color = fan::colors::red;
         p.position = p0;
@@ -129,7 +129,6 @@ int main() {
         r3 = p;
       }
       curve.push_back(lp);
-      fan::print(curve[0]->shape_type);
     }
   };
 
