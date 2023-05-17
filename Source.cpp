@@ -98,7 +98,9 @@ int main() {
   lp.camera = &pile->camera;
   lp.viewport = &pile->viewport;
   lp.src = fan::vec2(0, 0);
+  lp.src.z = 0;
   lp.dst = fan::vec2(800, 800);
+  lp.dst.z = 0;
   lp.color = fan::colors::white;
 
   f32_t count = 50;
@@ -127,6 +129,7 @@ int main() {
         r3 = p;
       }
       curve.push_back(lp);
+      fan::print(curve[0]->shape_type);
     }
   };
 
