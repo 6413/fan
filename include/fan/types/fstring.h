@@ -300,6 +300,38 @@ namespace fan {
 
     using char_type = std::string::value_type;
 
+    static constexpr uint8_t UTF8_SizeOfCharacter(uint8_t byte) {
+      if (byte < 0x80) {
+        return 1;
+      }
+      if (byte < 0xc0) {
+        fan::throw_error("invalid byte");
+        /* error */
+        return 1;
+      }
+      if (byte < 0xe0) {
+        return 2;
+      }
+      if (byte < 0xf0) {
+        return 3;
+      }
+      if (byte <= 0xf7) {
+        return 4;
+      }
+      fan::throw_error("invalid byte");
+      /* error */
+      return 1;
+    }
+
+    constexpr uint32_t get_utf8_character(uintptr_t offset, uint8_t size) const {
+      uint32_t code = 0;
+      for (int j = 0; j < size; j++) {
+        code <<= 8;
+        code |= (*this)[offset + j];
+      }
+      return code;
+    }
+
     constexpr uint32_t get_utf8(std::size_t i) const {
       const std::u8string_view& sv = (char8_t*)c_str();
       uint32_t code = 0;
@@ -317,6 +349,9 @@ namespace fan {
         }
       }
       return code;
+    }
+    constexpr auto utf8_size(std::size_t i) const {
+      return UTF8_SizeOfCharacter((*this)[i]);
     }
     constexpr auto utf8_size() const {
       std::size_t count = 0;

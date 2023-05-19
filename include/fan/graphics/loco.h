@@ -310,6 +310,7 @@ struct loco_t {
     static constexpr _t text_box = 10;
     static constexpr _t circle = 11;
     static constexpr _t pixel_format_renderer = 12;
+    static constexpr _t responsive_text = 13;
   };
 
   struct redraw_key_t {
@@ -1169,8 +1170,8 @@ public:
       gloco->shape_erase(*this);
       inherit_t::invalidate();
     }
-    void append_letter(wchar_t wc) {
-      gloco->shape_append_letter(*this, wc);
+    bool append_letter(wchar_t wc, bool force = false) {
+      return gloco->shape_append_letter(*this, wc, force);
     }
 
     operator fan::opengl::cid_t *(){
@@ -1639,6 +1640,9 @@ public:
     #if defined(loco_text)
       *types.get_value<text_t*>() = &text;
     #endif
+    #if defined(loco_responsive_text)
+      *types.get_value<responsive_text_t*>() = &responsive_text;
+    #endif
     #if defined(loco_light)
       *types.get_value<light_t*>() = &light;
     #endif
@@ -1988,6 +1992,9 @@ public:
     #if defined(loco_text)
     , text_t*
     #endif
+    #if defined(loco_responsive_text)
+    , responsive_text_t*
+    #endif
     #if defined(loco_light)
     , light_t*
     #endif
@@ -2082,6 +2089,19 @@ public:
   fan_has_function_concept(func_name);\
   void shape_ ## func_name(__VA_ARGS__);
 
+  #define make_global_function_ret_define(ret, func_name, content, ...) \
+  fan_has_function_concept(func_name);\
+  ret shape_ ## func_name(__VA_ARGS__) { \
+    ret data; \
+    types.iterate([&]<typename T>(auto shape_index, T shape) { \
+      using shape_t = std::remove_pointer_t<std::remove_pointer_t<T>>; \
+      if (shape_t::shape_type == id->shape_type) { \
+        content \
+      } \
+    }); \
+    return data; \
+  }
+
   #define make_global_function_define(func_name, content, ...) \
   fan_has_function_concept(func_name);\
   void shape_ ## func_name(__VA_ARGS__) { \
@@ -2111,12 +2131,13 @@ public:
     loco_t::cid_nt_t& id
   );
 
-  make_global_function_define(append_letter,
+  make_global_function_ret_define(bool, append_letter,
     if constexpr (has_append_letter_v<shape_t, loco_t::cid_nt_t&, wchar_t>) {
-      (*shape)->append_letter(id, wc);
+      data = (*shape)->append_letter(id, wc, force);
     },
     loco_t::cid_nt_t& id,
-    wchar_t wc
+    wchar_t wc,
+    bool force = false
   );
 
   fan_has_function_concept(get);

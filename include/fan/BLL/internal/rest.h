@@ -424,164 +424,6 @@ _BLL_POFTWBIT(_Node_Destruct)
   #endif
 }
 
-BLL_StructBegin(_P(nrtra_t))
-  _P(NodeReference_t) nr;
-  #if BLL_set_IsNodeRecycled == 0
-    uint8_t *_RecycledArray;
-  #endif
-
-  #if BLL_set_Language == 0
-    BLL_StructEnd(_P(t))
-  #endif
-
-  #if BLL_set_StoreFormat == 0
-    #define _BLL_nrtra_count _pList->NodeList.Current
-  #elif BLL_set_StoreFormat == 1
-    #define _BLL_nrtra_count _pList->NodeCurrent
-  #endif
-
-  /*
-    FN; function name
-    PT; parameter type
-    PTC; parameter type comma
-    G; get
-    AP; access parent
-  */
-  #if BLL_set_Language == 0
-    #define _BLL_nrtra_FN(p0) CONCAT2(nrtra_,_BLL_POFTWBIT(p0))
-    #define _BLL_nrtra_PT _P(nrtra_t) *nrtra
-    #define _BLL_nrtra_PTC ,
-    #define _BLL_nrtra_G nrtra
-    #define _BLL_nrtra_AP(p0) _BLL_POFTWBIT(p0)
-  #elif BLL_set_Language == 1
-    #define _BLL_nrtra_FN(p0) _BLL_POFTWBIT(p0)
-    #define _BLL_nrtra_PT
-    #define _BLL_nrtra_PTC
-    #define _BLL_nrtra_G this
-    #define _BLL_nrtra_AP(p0) _pList->p0
-  #else
-    #error
-  #endif
-
-  _BLL_SOFTWBIT
-  void
-  _BLL_nrtra_FN(Open)
-  (
-    _P(t) *_pList _BLL_nrtra_PTC
-    _BLL_nrtra_PT
-  ){
-    #if BLL_set_IsNodeRecycled == 0
-      uintptr_t size = _BLL_nrtra_count * sizeof(uint8_t);
-      _BLL_nrtra_G->_RecycledArray = (uint8_t *)BLL_set_alloc_open(size);
-      __MemorySet(0, _BLL_nrtra_G->_RecycledArray, size);
-      _P(NodeReference_t) cnr = _pList->e.c;
-      for(BLL_set_type_node i = _pList->e.p; i != 0; --i){
-        _BLL_nrtra_G->_RecycledArray[cnr.NRI] = 1;
-        cnr = *_BLL_nrtra_AP(_grecnrofnr)(_BLL_PIL0(_pList __ca__) cnr);
-      }
-    #endif
-    _BLL_nrtra_G->nr.NRI = (BLL_set_type_node)-1;
-  }
-  _BLL_SOFTWBIT
-  void
-  _BLL_nrtra_FN(Close)
-  (
-    _P(t) *_pList _BLL_nrtra_PTC
-    _BLL_nrtra_PT
-  ){
-    #if BLL_set_IsNodeRecycled == 0
-      BLL_set_alloc_close(_BLL_nrtra_G->_RecycledArray);
-    #endif
-  }
-
-  _BLL_SOFTWBIT
-  bool
-  _BLL_nrtra_FN(Loop)
-  (
-    _P(t) *_pList _BLL_nrtra_PTC
-    _BLL_nrtra_PT
-  ){
-    ++_BLL_nrtra_G->nr.NRI;
-    for(; _BLL_nrtra_G->nr.NRI < _BLL_nrtra_count; ++_BLL_nrtra_G->nr.NRI){
-      #if BLL_set_IsNodeRecycled == 0
-        if(_BLL_nrtra_G->_RecycledArray[_BLL_nrtra_G->nr.NRI] == 1){
-          continue;
-        }
-      #elif BLL_set_IsNodeRecycled == 1
-        if(_BLL_nrtra_AP(IsNodeReferenceRecycled)(_BLL_PIL0(_pList __ca__) _BLL_nrtra_G->nr) == true){
-          continue;
-        }
-      #else
-        #error ?
-      #endif
-
-      #if BLL_set_Link == 1
-        if(_BLL_nrtra_AP(IsNRSentienel)(_BLL_PIL0(_pList __ca__) _BLL_nrtra_G->nr) == true){
-          continue;
-        }
-      #endif
-
-      return 1;
-    }
-    return 0;
-  }
-
-  #undef _BLL_nrtra_FN
-  #undef _BLL_nrtra_PT
-  #undef _BLL_nrtra_PTC
-  #undef _BLL_nrtra_G
-  #undef _BLL_nrtra_AP
-
-  #undef _BLL_nrtra_count
-
-#if BLL_set_Language == 1
-  BLL_StructEnd(_P(nrtra_t))
-#endif
-
-#ifdef BLL_set_CPP_CopyAtPointerChange
-  #if !defined(_BLL_HaveConstantNodeData)
-    #error those who trigger this, will burn in hell
-  #endif
-
-  _BLL_SOFTWBIT
-  void
-  _BLL_POFTWBIT(AllocateNewBuffer)
-  (
-    _BLL_DBLLTFFC
-    BLL_set_type_node Amount
-  ){
-    NodeList.Possible = _P(_NodeList_GetBufferAmount0)(&_BLL_GetList->NodeList, Amount);
-    void *np = BLL_set_alloc_open(NodeList.Possible * sizeof(_P(Node_t)));
-    __MemoryCopy(NodeList.ptr, np, NodeList.Current * sizeof(_P(Node_t)));
-
-    _P(nrtra_t) nrtra;
-    nrtra.Open(_BLL_GetList);
-    while(nrtra.Loop(_BLL_GetList) == true){
-      new (&((_P(Node_t) *)np)[nrtra.nr.NRI].data) _P(NodeData_t)(((_P(Node_t) *)NodeList.ptr)[nrtra.nr.NRI].data);
-    }
-    nrtra.Close(_BLL_GetList);
-
-    BLL_set_alloc_close(NodeList.ptr);
-    _P(_NodeList_SetPointer)(&_BLL_GetList->NodeList, np);
-  }
-#endif
-
-_BLL_SOFTWBIT
-void
-_BLL_POFTWBIT(_DestructAllNodes)
-(
-  _BLL_DBLLTFF
-){
-  #ifdef BLL_set_CPP_Node_ConstructDestruct
-    _P(nrtra_t) nrtra;
-    nrtra.Open(_BLL_GetList);
-    while(nrtra.Loop(_BLL_GetList) == true){
-      _BLL_POFTWBIT(_Node_Destruct)(_BLL_PBLLTFFC nrtra.nr);
-    }
-    nrtra.Close(_BLL_GetList);
-  #endif
-}
-
 _BLL_SOFTWBIT
 void
 _BLL_POFTWBIT(_Recycle)
@@ -958,6 +800,164 @@ _BLL_POFTWBIT(NewNode)
     _BLL_POFTWBIT(LinkAsLast)(_BLL_PBLLTFFC NodeReference);
   }
 #endif
+
+BLL_StructBegin(_P(nrtra_t))
+  _P(NodeReference_t) nr;
+  #if BLL_set_IsNodeRecycled == 0
+    uint8_t *_RecycledArray;
+  #endif
+
+  #if BLL_set_Language == 0
+    BLL_StructEnd(_P(nrtra_t))
+  #endif
+
+  #if BLL_set_StoreFormat == 0
+    #define _BLL_nrtra_count _pList->NodeList.Current
+  #elif BLL_set_StoreFormat == 1
+    #define _BLL_nrtra_count _pList->NodeCurrent
+  #endif
+
+  /*
+    FN; function name
+    PT; parameter type
+    PTC; parameter type comma
+    G; get
+    AP; access parent
+  */
+  #if BLL_set_Language == 0
+    #define _BLL_nrtra_FN(p0) CONCAT2(nrtra_,_BLL_POFTWBIT(p0))
+    #define _BLL_nrtra_PT _P(nrtra_t) *nrtra
+    #define _BLL_nrtra_PTC ,
+    #define _BLL_nrtra_G nrtra
+    #define _BLL_nrtra_AP(p0) _BLL_POFTWBIT(p0)
+  #elif BLL_set_Language == 1
+    #define _BLL_nrtra_FN(p0) _BLL_POFTWBIT(p0)
+    #define _BLL_nrtra_PT
+    #define _BLL_nrtra_PTC
+    #define _BLL_nrtra_G this
+    #define _BLL_nrtra_AP(p0) _pList->p0
+  #else
+    #error
+  #endif
+
+  _BLL_SOFTWBIT
+  void
+  _BLL_nrtra_FN(Open)
+  (
+    _P(t) *_pList _BLL_nrtra_PTC
+    _BLL_nrtra_PT
+  ){
+    #if BLL_set_IsNodeRecycled == 0
+      uintptr_t size = _BLL_nrtra_count * sizeof(uint8_t);
+      _BLL_nrtra_G->_RecycledArray = (uint8_t *)BLL_set_alloc_open(size);
+      __MemorySet(0, _BLL_nrtra_G->_RecycledArray, size);
+      _P(NodeReference_t) cnr = _pList->e.c;
+      for(BLL_set_type_node i = _pList->e.p; i != 0; --i){
+        _BLL_nrtra_G->_RecycledArray[cnr.NRI] = 1;
+        cnr = *_BLL_nrtra_AP(_grecnrofnr)(_BLL_PIL0(_pList __ca__) cnr);
+      }
+    #endif
+    _BLL_nrtra_G->nr.NRI = (BLL_set_type_node)-1;
+  }
+  _BLL_SOFTWBIT
+  void
+  _BLL_nrtra_FN(Close)
+  (
+    _P(t) *_pList _BLL_nrtra_PTC
+    _BLL_nrtra_PT
+  ){
+    #if BLL_set_IsNodeRecycled == 0
+      BLL_set_alloc_close(_BLL_nrtra_G->_RecycledArray);
+    #endif
+  }
+
+  _BLL_SOFTWBIT
+  bool
+  _BLL_nrtra_FN(Loop)
+  (
+    _P(t) *_pList _BLL_nrtra_PTC
+    _BLL_nrtra_PT
+  ){
+    ++_BLL_nrtra_G->nr.NRI;
+    for(; _BLL_nrtra_G->nr.NRI < _BLL_nrtra_count; ++_BLL_nrtra_G->nr.NRI){
+      #if BLL_set_IsNodeRecycled == 0
+        if(_BLL_nrtra_G->_RecycledArray[_BLL_nrtra_G->nr.NRI] == 1){
+          continue;
+        }
+      #elif BLL_set_IsNodeRecycled == 1
+        if(_BLL_nrtra_AP(IsNodeReferenceRecycled)(_BLL_PIL0(_pList __ca__) _BLL_nrtra_G->nr) == true){
+          continue;
+        }
+      #else
+        #error ?
+      #endif
+
+      #if BLL_set_Link == 1
+        if(_BLL_nrtra_AP(IsNRSentienel)(_BLL_PIL0(_pList __ca__) _BLL_nrtra_G->nr) == true){
+          continue;
+        }
+      #endif
+
+      return 1;
+    }
+    return 0;
+  }
+
+  #undef _BLL_nrtra_FN
+  #undef _BLL_nrtra_PT
+  #undef _BLL_nrtra_PTC
+  #undef _BLL_nrtra_G
+  #undef _BLL_nrtra_AP
+
+  #undef _BLL_nrtra_count
+
+#if BLL_set_Language == 1
+  BLL_StructEnd(_P(nrtra_t))
+#endif
+
+#ifdef BLL_set_CPP_CopyAtPointerChange
+  #if !defined(_BLL_HaveConstantNodeData)
+    #error those who trigger this, will burn in hell
+  #endif
+
+  _BLL_SOFTWBIT
+  void
+  _BLL_POFTWBIT(AllocateNewBuffer)
+  (
+    _BLL_DBLLTFFC
+    BLL_set_type_node Amount
+  ){
+    NodeList.Possible = _P(_NodeList_GetBufferAmount0)(&_BLL_GetList->NodeList, Amount);
+    void *np = BLL_set_alloc_open(NodeList.Possible * sizeof(_P(Node_t)));
+    __MemoryCopy(NodeList.ptr, np, NodeList.Current * sizeof(_P(Node_t)));
+
+    _P(nrtra_t) nrtra;
+    nrtra.Open(_BLL_GetList);
+    while(nrtra.Loop(_BLL_GetList) == true){
+      new (&((_P(Node_t) *)np)[nrtra.nr.NRI].data) _P(NodeData_t)(((_P(Node_t) *)NodeList.ptr)[nrtra.nr.NRI].data);
+    }
+    nrtra.Close(_BLL_GetList);
+
+    BLL_set_alloc_close(NodeList.ptr);
+    _P(_NodeList_SetPointer)(&_BLL_GetList->NodeList, np);
+  }
+#endif
+
+_BLL_SOFTWBIT
+void
+_BLL_POFTWBIT(_DestructAllNodes)
+(
+  _BLL_DBLLTFF
+){
+  #ifdef BLL_set_CPP_Node_ConstructDestruct
+    _P(nrtra_t) nrtra;
+    nrtra.Open(_BLL_GetList);
+    while(nrtra.Loop(_BLL_GetList) == true){
+      _BLL_POFTWBIT(_Node_Destruct)(_BLL_PBLLTFFC nrtra.nr);
+    }
+    nrtra.Close(_BLL_GetList);
+  #endif
+}
 
 #if BLL_set_StoreFormat == 1
   _BLL_SOFTWBIT

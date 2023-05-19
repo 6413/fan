@@ -33,9 +33,23 @@ namespace fan {
 			metrics_info_t metrics;
 			glyph_info_t glyph;
       metrics_info_t original_metrics;
+      uint32_t utf8_character;
 		};
 
-		using characters_t = std::unordered_map<uint32_t, character_info_t>;
+    #define BLL_set_CPP_ConstructDestruct
+    #define BLL_set_CPP_Node_ConstructDestruct
+    #define BLL_set_AreWeInsideStruct 0
+    #define BLL_set_BaseLibrary 1
+    #define BLL_set_prefix character_info_list
+    #define BLL_set_type_node uint16_t
+    #define BLL_set_NodeDataType character_info_t
+    #define BLL_set_Link 0
+    #include _FAN_PATH(BLL/BLL.h)
+
+
+    using character_info_nr_t = character_info_list_NodeReference_t;
+
+		using characters_t = std::unordered_map<uint32_t, character_info_nr_t>;
 
 		struct font_t {
 
@@ -45,6 +59,7 @@ namespace fan {
       f32_t height;
 
 			f32_t size;
+      character_info_list_t character_info_list;
 			characters_t characters;
 			f32_t line_height;
 
@@ -71,7 +86,7 @@ namespace fan {
 			f32_t convert_font_size(f32_t font_size) const {
 				return font_size / this->size;
 			}
-			fan::font::character_info_t get_letter_info(uint32_t c, f32_t font_size) const {
+			fan::font::character_info_t get_letter_info(uint32_t c, f32_t font_size) {
 
         auto found = characters.find(c);
         
@@ -84,51 +99,68 @@ namespace fan {
 
 				f32_t converted_size = convert_font_size(font_size);
 				fan::font::character_info_t font_info;
-				font_info.metrics.size = found->second.metrics.size * converted_size;
-				font_info.metrics.offset = found->second.metrics.offset * converted_size;
-				font_info.metrics.advance = font_info.metrics.size.x;
-        font_info.original_metrics = found->second.original_metrics;
+        auto& character_info = character_info_list[found->second];
+				font_info.metrics.size = character_info.metrics.size * converted_size;
+				font_info.metrics.offset = character_info.metrics.offset * converted_size;
+				font_info.metrics.advance = character_info.metrics.size.x * converted_size;
+        font_info.original_metrics = character_info.original_metrics;
 
-				font_info.glyph = found->second.glyph;
-				font_info.mapping = found->second.mapping;
+				font_info.glyph = character_info.glyph;
+				font_info.mapping = character_info.mapping;
 
 				return font_info;
 			}
+      fan::font::character_info_t get_letter_info(character_info_nr_t char_internal_id, f32_t font_size) {
+
+        auto& ci = character_info_list[char_internal_id];
+
+        f32_t converted_size = convert_font_size(font_size);
+        fan::font::character_info_t font_info;
+        font_info.metrics.size = ci.metrics.size * converted_size;
+        font_info.metrics.offset = ci.metrics.offset * converted_size;
+        font_info.metrics.advance = ci.metrics.size.x * converted_size;
+        font_info.original_metrics = ci.original_metrics;
+
+        font_info.glyph = ci.glyph;
+        font_info.mapping = ci.mapping;
+
+        return font_info;
+      }
 			f32_t get_line_height(f32_t font_size) const {
 				return line_height * convert_font_size(font_size);
 			}
-			fan::vec2 get_text_size(const char* str, f32_t font_size) {
-				fan::vec2 text_size = 0;
+			//fan::vec2 get_text_size(const char* str, f32_t font_size) {
+			//	fan::vec2 text_size = 0;
 
-				text_size.y = line_height;
+			//	text_size.y = line_height;
 
-				f32_t width = 0;
+			//	f32_t width = 0;
 
-				for (int i = 0; str[i] != 0; i++) {
+			//	for (int i = 0; str[i] != 0; i++) {
 
-					switch (str[i]) {
-					case '\n': {
-						text_size.x = std::max(width, text_size.x);
-						text_size.y += line_height;
-						width = 0;
-						continue;
-					}
-					}
+			//		switch (str[i]) {
+			//		case '\n': {
+			//			text_size.x = std::max(width, text_size.x);
+			//			text_size.y += line_height;
+			//			width = 0;
+			//			continue;
+			//		}
+			//		}
 
-					auto letter = characters[str[i]];
+			//		auto letter = characters[str[i]];
 
-					if (str[i + 1] == 0) {
-						width += letter.glyph.size.x;
-					}
-					else {
-						width += letter.metrics.advance;
-					}
-				}
+			//		if (str[i + 1] == 0) {
+			//			width += letter.glyph.size.x;
+			//		}
+			//		else {
+			//			width += letter.metrics.advance;
+			//		}
+			//	}
 
-				text_size.x = std::max(width, text_size.x);
+			//	text_size.x = std::max(width, text_size.x);
 
-				return text_size * convert_font_size(font_size);
-			}
+			//	return text_size * convert_font_size(font_size);
+			//}
 		};
 
 		enum class parse_stage_e {
@@ -218,7 +250,7 @@ namespace fan {
 			}
 		}
 
-		static font_t parse_font(const fan::string& path) {
+		static void parse_font(font_t &font, const fan::string& path) {
 			if (!fan::io::file::exists(path)) {
 				fan::throw_error(fan::string("font not found") + path);
 			}
@@ -238,8 +270,6 @@ namespace fan {
 			f32_t lowest = 0, highest = 0;
 
 			std::size_t iline = 0;
-
-			font_t font;
 
 			while (lines[iline].substr(0, 4) != "font") {
 				iline++;
@@ -261,14 +291,20 @@ namespace fan {
 
 			std::unordered_multimap<uint32_t, uint32_t> reverse_mapping;
 
-			while (1) {
-				if (lines[iline].empty()) {
-					stage = parse_stage_e::metrics_info;
-					break;
-				}
+      while (1) {
+        if (lines[iline].empty()) {
+          stage = parse_stage_e::metrics_info;
+          break;
+        }
 
-				auto line = parse_line(&reverse_mapping, lines[iline], stage);
-				font.characters[line.utf8].mapping = line.font_info.mapping;
+        auto line = parse_line(&reverse_mapping, lines[iline], stage);
+        {
+          auto cilnr = font.character_info_list.NewNode();
+          font.characters[line.utf8] = cilnr;
+          auto& ci = font.character_info_list[cilnr];
+          ci.mapping = line.font_info.mapping;
+        }
+
 
 				iline++;
 			}
@@ -282,11 +318,11 @@ namespace fan {
 				}
 
 				auto line = parse_line(&reverse_mapping, lines[iline], stage);
+        auto& character_info = font.character_info_list[font.characters[line.utf8]];
 
-				font.characters[line.utf8].metrics = line.font_info.metrics;
-        font.characters[line.utf8].original_metrics = font.characters[line.utf8].metrics;
+				character_info.metrics = line.font_info.metrics;
+        character_info.original_metrics = character_info.metrics;
         
-
 				iline++;
 			}
 
@@ -296,14 +332,22 @@ namespace fan {
 
 				if (lines[iline].empty()) {
 
-					font.characters[L'\n'].glyph.position = 0;
-					font.characters[L'\n'].glyph.size = 0;
-					font.characters[L'\n'].metrics.advance = 0;
-					font.characters[L'\n'].metrics.offset = 0;
-					font.characters[L'\n'].metrics.size = 0;
+          {
+            auto cilnr = font.character_info_list.NewNode();
+            font.characters[L'\n'] = cilnr;
+            auto& ci = font.character_info_list[cilnr];
+            ci.utf8_character = L'\n';
+            ci.glyph.position = 0;
+            ci.glyph.size = 0;
+            ci.metrics.advance = 0;
+            ci.metrics.offset = 0;
+            ci.metrics.size = 0;
+          }
+
 
 					for (auto& i : font.characters) {
-						i.second.metrics.size = i.second.glyph.size;
+            auto& character_info = font.character_info_list[i.second];
+            character_info.metrics.size = character_info.glyph.size;
 					}
 
           f32_t uppest = 100000;
@@ -322,13 +366,14 @@ namespace fan {
           font.top = uppest;
           font.bottom = downest;
           font.height = std::max(std::abs(font.top), std::abs(font.bottom)) * 2;
-
-					return font;
+          return;
 				}
 
-				auto line = parse_line(&reverse_mapping, lines[iline], stage);
+        auto line = parse_line(&reverse_mapping, lines[iline], stage);
 
-				font.characters[line.utf8].glyph = line.font_info.glyph;
+        auto& character_info = font.character_info_list[font.characters[line.utf8]];
+        character_info.glyph = line.font_info.glyph;
+        character_info.utf8_character = line.utf8;
 
 				iline++;
 			}
