@@ -1092,7 +1092,6 @@ static void forEachType(std::variant<Types...>& variant, Func&& func) {
       fan::vec2 ed = editor_size * window_size;
       viewports[viewport_area::editor].set(viewport_position - ed / 2, ed, window_size);
       cameras[viewport_area::editor].set_ortho(fan::vec2(-1, 1), fan::vec2(-1, 1));
-
     }
 
     set_viewport_and_camera(viewport_area::sidepanel, fan::vec2(sidepanel_line_position.x, -1),

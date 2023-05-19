@@ -39,23 +39,23 @@ struct pile_t {
   loco_t::viewport_t viewport;
 };
 
-struct sprite_responsive_t : loco_t::responsive_text_t {
-  using responsive_text_t::responsive_text_t;
+struct sprite_responsive_t : loco_t::shape_t {
+  using properties_t = loco_t::responsive_text_t::properties_t;
 
-  sprite_responsive_t(const loco_t::text_t::properties_t& tp, const loco_t::sprite_t::properties_t& p) {
-    loco_t::responsive_text_t::properties_t rp;
-    *(loco_t::text_t::properties_t *)&rp = tp;
+  sprite_responsive_t(loco_t::responsive_text_t::properties_t rp, const loco_t::sprite_t::properties_t& p) {
     rp.position = p.position;
+    rp.position.z += 1;
     rp.boundary = p.size;
     rp.camera = p.camera;
     rp.viewport = p.viewport;
-    *(loco_t::responsive_text_t*)this = rp;
+    *(loco_t::shape_t*)this = rp;
     base = p;
   }
 
-  void set_size(const fan::vec2& s) {
+  void set_boundary(const fan::vec2& s) {
     base.set_size(s);
-    responsive_text_t::set_size(s);
+    gloco->responsive_text.set_boundary(*this, s);
+   // responsive_text.set_size(s);
   }
 
   loco_t::shape_t base;
@@ -87,10 +87,29 @@ int main() {
   rp.size = fan::vec2(100);
   rp.color = fan::colors::red;
   
-  loco_t::text_t::properties_t tp;
-  tp.text = "WWiWWWWWWWWWWWWWWWWWWWWWWWWWWWWW";
-  tp.font_size = 1;
-  sprite_responsive_t responsive_box(tp, pp);
+  sprite_responsive_t::properties_t rtp;
+  rtp.camera = &pile->camera;
+  rtp.viewport = &pile->viewport;
+  rtp.position = fan::vec3(400, 400, 0);
+  rtp.text = "";
+  rtp.font_size = 32;
+  rtp.boundary = fan::vec2(100, 100);
+  sprite_responsive_t shape(rtp, pp);
+  
+  fan::time::clock c;
+  c.start();
+  f32_t advance = 0;
+  
+  while (shape.append_letter(L'2')) {
+
+  }
+  
+//  fan::print("durumssalsa", gloco->responsive_text.line_list[gloco->responsive_text.tlist[shape.gdp4()].LineStartNR].total_width);
+
+  fan::print(c.elapsed());
+
+
+  //sprite_responsive_t responsive_box(tp, pp);
 
   /*{
     uint32_t i = 0;
@@ -104,7 +123,7 @@ int main() {
   //fan::vec2
 //  responsive_box.set_size(fan::vec2(1, 100));
 
-  gloco->get_window()->add_keys_callback([&](const auto& d) {
+ /* gloco->get_window()->add_keys_callback([&](const auto& d) {
     if (d.key == fan::key_up) {
       pp.size.x += 1;
       responsive_box.set_size(pp.size);
@@ -113,11 +132,12 @@ int main() {
       pp.size.x -= 1;
       responsive_box.set_size(pp.size);
     }
-  });
+  });*/
 
+  f32_t deltaer = 0;
   pile->loco.loop([&] {
-    pile->loco.get_fps();
-
+    deltaer += pile->loco.get_delta_time() * 2;
+    shape.set_boundary(fan::vec2(std::abs(sin(deltaer)) * 100 + 25));
     //r0.set_position(pile->loco.get_mouse_position(pile->camera, pile->viewport));
   });
 

@@ -122,13 +122,8 @@ struct text_renderer_t {
     p.position = fan::vec2(
       left + advance + letter_info.metrics.size.x / 2,
       instance_properties.position.y + (instance_properties.font_size - letter_info.metrics.size.y) / 2 - letter_info.metrics.offset.y
-      //properties.position.y - letter_info.metrics.offset.y
     );
     p.position.z = instance_properties.position.z;
-
-    /*if (i == 0) {
-      p.position.x -= letter_info.metrics.size.x;
-    }*/
     auto nr = tlist[internal_id].cid_list.NewNodeLast();
     auto n = tlist[internal_id].cid_list.GetNodeByReference(nr);
     n->data.shape = p;

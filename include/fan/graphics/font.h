@@ -9,7 +9,7 @@ struct font_t {
       // fill here
     #endif
     image.load(image_path + ".webp", lp);
-    info = fan::font::parse_font(image_path + "_metrics.txt");
+    fan::font::parse_font(info, image_path + "_metrics.txt");
   }
   void close() {
     image.unload();
