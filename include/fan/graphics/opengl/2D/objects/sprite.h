@@ -132,7 +132,7 @@ struct sb_sprite_name {
 
     properties_t p = sb_get_properties(id);
     
-    gloco->image_list[*p.key.get_value<loco_t::textureid_t<0>>()].image = &im;
+    set_image(id, &im);
     
     set(id, &vi_t::tc_position, ti->position / im.size);
     set(id, &vi_t::tc_size, ti->size / im.size);
