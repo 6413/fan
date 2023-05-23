@@ -59,23 +59,23 @@ while (off < f.size()) {
       data.iterate_masterpiece([&f, &off](auto& o) {
         o = fan::read_data<std::remove_reference_t<decltype(o)>>(f, off);
       });
-      /*loco_t::vfi_t::properties_t vfip;
+      loco_t::vfi_t::properties_t vfip;
       switch (data.vfi_type) {
         case loco_t::vfi_t::shape_t::always: {
           vfip.shape_type = loco_t::vfi_t::shape_t::always;
-          vfip.shape.always.z = data.position.z;
+          vfip.shape.always->z = data.position.z;
           break;
         }
         case loco_t::vfi_t::shape_t::rectangle: {
           vfip.shape_type = loco_t::vfi_t::shape_t::rectangle;
-          vfip.shape.rectangle.position = data.position;
-          vfip.shape.rectangle.size = data.size;
-          vfip.shape.rectangle.camera = op.camera;
-          vfip.shape.rectangle.viewport = op.viewport;
+          vfip.shape.rectangle->position = data.position;
+          vfip.shape.rectangle->size = data.size;
+          vfip.shape.rectangle->camera = op.camera;
+          vfip.shape.rectangle->viewport = op.viewport;
           break;
         }
       }
-      vfip.mouse_button_cb = [stage, i](const loco_t::mouse_button_data_t& d) {
+      /*vfip.mouse_button_cb = [stage, i](const loco_t::mouse_button_data_t& d) {
         return (stage->*(stage->hitbox_mouse_button_cb_table[i]))(d);
       };
       vfip.mouse_move_cb = [stage, i](const loco_t::mouse_move_data_t& d) {
@@ -86,13 +86,17 @@ while (off < f.size()) {
       };
       vfip.text_cb = [stage, i](const loco_t::text_data_t& d) {
         return (stage->*(stage->hitbox_text_cb_table[i]))(d);
-      };
-      vfip.ignore_init_move = true;*/
+      };*/
+      vfip.ignore_init_move = true;
       //stage->cid_list.push_back({});
       //(loco_access)->push_back_input_hitbox((loco_t::vfi_t::shape_id_t*)&(loco_access)->cid_list[stage->cid_list.back().cid].cid, vfip);
       //(loco_access)->cid_list[stage->cid_list.back().cid].cid.shape_type = loco_t::shape_type_t::hitbox;
       //cid_map[std::make_pair(stage, "hitbox_" + data.id)] = stage->cid_list.back().cid;
-      fan::throw_error("hitbox not implemented");
+      auto it = stage->stage_common.cid_list.NewNodeLast();
+      stage->stage_common.cid_list[it] = vfip;
+      cid_map[std::make_pair(stage, "hitbox_" + data.id)] = it;
+
+      //fan::throw_error("hitbox not implemented");
       break;
     }
     case loco_t::shape_type_t::mark: {

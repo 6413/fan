@@ -54,10 +54,6 @@ void close() {
 		
 }
 
-void window_resize_callback(){
-		
-}
-
 void update(){
 	
 }
@@ -98,7 +94,7 @@ void update(){
     struct_stage_end -= sizeof(find_end_str) - 2;
 
     auto append_struct = fmt::format(R"(
-  struct lstd_defstruct({0}_t) {{
+  lstd_defstruct({0}_t)
     #include _FAN_PATH(graphics/gui/stage_maker/preset.h)
 
     static constexpr auto stage_name = "{0}";
