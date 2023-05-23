@@ -54,7 +54,7 @@ struct sprite_responsive_t : loco_t::shape_t {
 
   void set_boundary(const fan::vec2& s) {
     base.set_size(s);
-    gloco->responsive_text.set_boundary(s);
+    gloco->responsive_text.set_boundary(*(loco_t::shape_t*)this, s);
    // responsive_text.set_size(s);
   }
 
@@ -92,14 +92,15 @@ int main() {
   rtp.viewport = &pile->viewport;
   rtp.position = fan::vec3(400, 400, 0);
   rtp.text = "";
-  rtp.font_size = 32;
+  rtp.font_size = 1;
   rtp.boundary = fan::vec2(100, 100);
   sprite_responsive_t shape(rtp, pp);
   
   fan::time::clock c;
   c.start();
   f32_t advance = 0;
-  
+  shape.append_letter(L'g');
+  //shape.append_letter(L')');
   while (shape.append_letter(L'2')) {
 
   }
@@ -136,7 +137,7 @@ int main() {
 
   f32_t deltaer = 0;
   pile->loco.loop([&] {
-    deltaer += pile->loco.get_delta_time() * 2;
+    deltaer += pile->loco.get_delta_time() * 0.2    ;
     shape.set_boundary(fan::vec2(std::abs(sin(deltaer)) * 100 + 25));
     //r0.set_position(pile->loco.get_mouse_position(pile->camera, pile->viewport));
   });

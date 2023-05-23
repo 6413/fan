@@ -22,8 +22,8 @@ struct pile_t {
       ortho_x,
       ortho_y
     );
-    viewport.open(loco.get_context());
-    viewport.set(loco.get_context(), 0, loco.get_window()->get_size(), loco.get_window()->get_size());
+    viewport.open();
+    viewport.set(0, loco.get_window()->get_size(), loco.get_window()->get_size());
   }
 
   loco_t::camera_t camera;
@@ -37,12 +37,12 @@ int main() {
   pile.open();
 
   loco_t::texturepack_t texturepack;
-  texturepack.open_compiled(&pile.loco, "TexturePackCompiled");
+  texturepack.open_compiled(&pile.loco, "TexturePack");
 
   loco_t::sprite_t::properties_t p;
 
   loco_t::texturepack_t::ti_t ti;
-  if (texturepack.qti("building0", &ti)) {
+  if (texturepack.qti("entity_ship", &ti)) {
     return 1;
   }
   p.load_tp(&ti);
@@ -52,8 +52,9 @@ int main() {
   p.viewport = &pile.viewport;
   p.size = 0.5;
   p.position = 0;
-  fan::graphics::cid_t cid;
-  pile.loco.sprite.push_back(&cid, p);
+  loco_t::cid_nr_t cid;
+  cid.init();
+  pile.loco.sprite.push_back(cid, p);
   
   pile.loco.loop([&] {
 
