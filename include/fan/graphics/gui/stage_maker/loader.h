@@ -49,7 +49,6 @@ protected:
   #define BLL_set_StoreFormat 1
   #define BLL_set_NodeData \
   loco_t::update_callback_nr_t update_nr; \
-  fan::window_t::resize_callback_NodeReference_t resize_nr; \
   void *stage;
   #include _FAN_PATH(BLL/BLL.h)
 public:
@@ -138,7 +137,6 @@ protected:
   #define BLL_set_type_node uint16_t
   #define BLL_set_NodeData \
   loco_t::update_callback_nr_t update_nr; \
-  fan::window_t::resize_callback_NodeReference_t resize_nr; \
   void *stage;
   #define BLL_set_Link 1
   #define BLL_set_AreWeInsideStruct 1
@@ -216,7 +214,6 @@ public:
 	void erase_stage(nr_t id) {
     auto* sc = (stage_common_t*)stage_list[id].stage;
     gloco->m_update_callback.unlrec(stage_list[id].update_nr);
-    gloco->get_window()->remove_resize_callback(stage_list[id].resize_nr);
     sc->close(stage_list[id].stage);
     stage_list.unlrec(id);
     //stage->close();

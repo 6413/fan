@@ -4,6 +4,8 @@
 
 struct vfi_t {
 
+  static constexpr typename loco_t::shape_type_t::_t shape_type = loco_t::shape_type_t::hitbox;
+
   vfi_t() {
     focus.mouse.invalidate();
     focus.keyboard.invalidate();
@@ -148,6 +150,8 @@ struct vfi_t {
   }; 
 
   struct common_shape_properties_t {
+    using type_t = vfi_t;
+
     shape_type_t shape_type;
     mouse_button_cb_t mouse_button_cb = [](const mouse_button_data_t&) -> int { return 0; };
     mouse_move_cb_t mouse_move_cb = [](const mouse_move_data_t&) -> int { return 0; };

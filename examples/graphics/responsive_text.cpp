@@ -54,7 +54,7 @@ struct sprite_responsive_t : loco_t::shape_t {
 
   void set_boundary(const fan::vec2& s) {
     base.set_size(s);
-    gloco->responsive_text.set_boundary(*this, s);
+    gloco->responsive_text.set_boundary(s);
    // responsive_text.set_size(s);
   }
 

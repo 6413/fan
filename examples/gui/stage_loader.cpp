@@ -56,15 +56,8 @@ struct pile_t {
 
   loco_t::theme_t theme;
   loco_t::camera_t camera;
-  fan::graphics::viewport_t viewport;
+  loco_t::viewport_t viewport;
 
-  #define custom_stages fan::return_type_of_t<decltype([]{struct a: public test_t, stage_common_t_t<test_t>{ \
-    using stage_common_t_t::stage_common_t_t; \
-    const char* stage_name = ""; \
-      void close(auto& loco){ \
-		      test_t::close(loco);\
-      } \
-   }*v; return *v;})>*
   stage_loader_t stage_loader;
 };
 pile_t* pile = new pile_t;
@@ -99,13 +92,6 @@ lstd_defstruct(custom_t)
 
 };
 
-//struct custom_t : stage_loader_t::custom_base_t{
-//  using custom_base_t::custom_base_t;
-//  void open() {
-//    fan::print("a");
-//  }
-//};
-
 int main(int argc, char** argv) {
   
   if (argc < 2) {
@@ -122,8 +108,9 @@ int main(int argc, char** argv) {
 	op.viewport = &pile->viewport;
 	op.theme = &pile->theme;
 
-  stage_loader_t::nr_t it3 = stage_loader_t::open_stage<custom_t>(op);
-  it3 = stage_loader_t::open_stage<custom_t>(op);
+  //stage_loader_t::nr_t it3 = stage_loader_t::open_stage<custom_t>(op);
+  //it3 = stage_loader_t::open_stage<custom_t>(op);
+  stage_loader_t::nr_t it3 = stage_loader_t::open_stage<stage_loader_t::stage::stage_fuel_station_t>(op);
   //it2.erase();
   
 

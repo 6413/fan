@@ -74,96 +74,96 @@ extern "C" {
 // automatically gets necessary macros for shapes
 
 #if defined(loco_sprite_sheet)
-  #define loco_sprite
+#define loco_sprite
 #endif
 #if defined(loco_sprite)
-  #define loco_texture_pack
-  #define loco_unlit_sprite
+#define loco_texture_pack
+#define loco_unlit_sprite
 #endif
 
 #if defined(loco_text_box)
-  #define loco_rectangle
-  #define loco_letter
-  #define loco_text
+#define loco_rectangle
+#define loco_letter
+#define loco_text
 #endif
 #if defined(loco_button)
-  #define loco_letter
-  #define loco_text
+#define loco_letter
+#define loco_text
 #endif
 #if defined(loco_menu_maker)
-  #error
+#error
 #endif
 
 #if defined(loco_dropdown)
-  #define loco_rectangle
-  #define loco_letter
-  #define loco_text
-  #define loco_button
-  #define loco_text_box
+#define loco_rectangle
+#define loco_letter
+#define loco_text
+#define loco_button
+#define loco_text_box
 #endif
 
 #if defined(loco_text)
-  #define loco_letter
-  #define loco_responsive_text
+#define loco_letter
+#define loco_responsive_text
 #endif
 
 #if defined(loco_wboit)
-  #define loco_vulkan_descriptor_image_sampler
+#define loco_vulkan_descriptor_image_sampler
 #endif
 
 #ifdef loco_vulkan
-  #ifdef loco_line 
-    #ifndef loco_vulkan_descriptor_ssbo
-      #define loco_vulkan_descriptor_ssbo
-    #endif
-    #ifndef loco_vulkan_descriptor_uniform_block
-      #define loco_vulkan_descriptor_uniform_block
-    #endif
-  #endif
-  #ifdef loco_rectangle 
-    #ifndef loco_vulkan_descriptor_ssbo
-      #define loco_vulkan_descriptor_ssbo
-    #endif
-    #ifndef loco_vulkan_descriptor_uniform_block
-      #define loco_vulkan_descriptor_uniform_block
-    #endif
-  #endif
-  #ifdef loco_sprite
-    #ifndef loco_vulkan_descriptor_ssbo
-      #define loco_vulkan_descriptor_ssbo
-    #endif
-    #ifndef loco_vulkan_descriptor_uniform_block
-      #define loco_vulkan_descriptor_uniform_block
-    #endif
-    #ifndef loco_vulkan_descriptor_image_sampler
-      #define loco_vulkan_descriptor_image_sampler
-    #endif
-  #endif
-  #ifdef loco_yuv420p
-    #ifndef loco_vulkan_descriptor_ssbo
-      #define loco_vulkan_descriptor_ssbo
-    #endif
-    #ifndef loco_vulkan_descriptor_uniform_block
-      #define loco_vulkan_descriptor_uniform_block
-    #endif
-    #ifndef loco_vulkan_descriptor_image_sampler
-      #define loco_vulkan_descriptor_image_sampler
-    #endif
-  #endif
-  #ifdef loco_letter
-    #ifndef loco_vulkan_descriptor_ssbo
-      #define loco_vulkan_descriptor_ssbo
-    #endif
-    #ifndef loco_vulkan_descriptor_uniform_block
-      #define loco_vulkan_descriptor_uniform_block
-    #endif
-    #ifndef loco_vulkan_descriptor_image_sampler
-      #define loco_vulkan_descriptor_image_sampler
-    #endif
-  #endif
-  #if defined loco_compute_shader
-    #define loco_vulkan_descriptor_ssbo
-  #endif
+#ifdef loco_line 
+#ifndef loco_vulkan_descriptor_ssbo
+#define loco_vulkan_descriptor_ssbo
+#endif
+#ifndef loco_vulkan_descriptor_uniform_block
+#define loco_vulkan_descriptor_uniform_block
+#endif
+#endif
+#ifdef loco_rectangle 
+#ifndef loco_vulkan_descriptor_ssbo
+#define loco_vulkan_descriptor_ssbo
+#endif
+#ifndef loco_vulkan_descriptor_uniform_block
+#define loco_vulkan_descriptor_uniform_block
+#endif
+#endif
+#ifdef loco_sprite
+#ifndef loco_vulkan_descriptor_ssbo
+#define loco_vulkan_descriptor_ssbo
+#endif
+#ifndef loco_vulkan_descriptor_uniform_block
+#define loco_vulkan_descriptor_uniform_block
+#endif
+#ifndef loco_vulkan_descriptor_image_sampler
+#define loco_vulkan_descriptor_image_sampler
+#endif
+#endif
+#ifdef loco_yuv420p
+#ifndef loco_vulkan_descriptor_ssbo
+#define loco_vulkan_descriptor_ssbo
+#endif
+#ifndef loco_vulkan_descriptor_uniform_block
+#define loco_vulkan_descriptor_uniform_block
+#endif
+#ifndef loco_vulkan_descriptor_image_sampler
+#define loco_vulkan_descriptor_image_sampler
+#endif
+#endif
+#ifdef loco_letter
+#ifndef loco_vulkan_descriptor_ssbo
+#define loco_vulkan_descriptor_ssbo
+#endif
+#ifndef loco_vulkan_descriptor_uniform_block
+#define loco_vulkan_descriptor_uniform_block
+#endif
+#ifndef loco_vulkan_descriptor_image_sampler
+#define loco_vulkan_descriptor_image_sampler
+#endif
+#endif
+#if defined loco_compute_shader
+#define loco_vulkan_descriptor_ssbo
+#endif
 #endif
 
 #define BDBT_set_prefix loco_bdbt
@@ -191,9 +191,9 @@ extern "C" {
 #endif
 
 #if defined(loco_text_box)
-  #define ETC_WED_set_BaseLibrary 1
-  #define ETC_WED_set_Prefix wed
-  #include _FAN_PATH(ETC/WED/WED.h)
+#define ETC_WED_set_BaseLibrary 1
+#define ETC_WED_set_Prefix wed
+#include _FAN_PATH(ETC/WED/WED.h)
 #endif
 
 #if defined(loco_model_3d)
@@ -201,7 +201,7 @@ extern "C" {
   #define FAST_OBJ_IMPLEMENTATION
   #include _FAN_PATH(graphics/fast_obj/fast_obj.h)
 }
-  #include _FAN_PATH(graphics/transform_interpolator.h)
+#include _FAN_PATH(graphics/transform_interpolator.h)
 #endif
 
 #include "loco_types.h"
@@ -235,16 +235,16 @@ namespace fan {
     }
     constexpr static std::array<fan::vec2ui, 4> get_image_sizes(uint8_t format, const fan::vec2ui& image_size) {
       switch (format) {
-      case yuv420p: {
-        return std::array<fan::vec2ui, 4>{image_size, image_size / 2, image_size / 2};
-      }
-      case nv12: {
-        return std::array<fan::vec2ui, 4>{image_size, fan::vec2ui{ image_size.x, image_size.y }};
-      }
-      default: {
-        fan::throw_error("invalid format");
-        return std::array<fan::vec2ui, 4>{};
-      }
+        case yuv420p: {
+          return std::array<fan::vec2ui, 4>{image_size, image_size / 2, image_size / 2};
+        }
+        case nv12: {
+          return std::array<fan::vec2ui, 4>{image_size, fan::vec2ui{ image_size.x, image_size.y }};
+        }
+        default: {
+          fan::throw_error("invalid format");
+          return std::array<fan::vec2ui, 4>{};
+        }
       }
     }
     template <typename T>
@@ -262,9 +262,9 @@ struct loco_t {
   struct position3_t : public fan::vec3 {
     using fan::vec3::vec3;
     using fan::vec3::operator=;
-    position3_t& operator=(const position3_t& p) { 
-      fan::vec3::operator=(p); 
-      return *this; 
+    position3_t& operator=(const position3_t& p) {
+      fan::vec3::operator=(p);
+      return *this;
     }
     //using fan::vec3::vec3;
     //position3_t(const fan::vec3& v) : fan::vec3(v) {}
@@ -279,8 +279,8 @@ struct loco_t {
       *(fan::vec3*)this = fan::vec3::operator=(v);
       return *this;
     }*/
- // private:
-   // using fan::vec3::operator=;
+    // private:
+      // using fan::vec3::operator=;
   };
 
   void use() {
@@ -310,7 +310,6 @@ struct loco_t {
     static constexpr _t text_box = 10;
     static constexpr _t circle = 11;
     static constexpr _t pixel_format_renderer = 12;
-    static constexpr _t responsive_text = 13;
   };
 
   struct redraw_key_t {
@@ -352,7 +351,7 @@ protected:
   fan::graphics::context_t context;
   #endif
 
-#if defined(loco_opengl) && defined(loco_context)
+  #if defined(loco_opengl) && defined(loco_context)
 
 public:
   using viewport_t = fan::graphics::viewport_t;
@@ -387,7 +386,7 @@ protected:
     get_context()->opengl.glBindVertexArray(0);
   }
 
-#endif
+  #endif
 
 public:
   struct image_t;
@@ -395,9 +394,9 @@ public:
   #if defined(loco_window)
 
   #if defined(loco_opengl)
-    #include _FAN_PATH(graphics/opengl/image_list_builder_settings.h)
+  #include _FAN_PATH(graphics/opengl/image_list_builder_settings.h)
   #elif defined(loco_vulkan)
-    #include _FAN_PATH(graphics/vulkan/image_list_builder_settings.h)
+  #include _FAN_PATH(graphics/vulkan/image_list_builder_settings.h)
   #endif
   #include _FAN_PATH(BLL/BLL.h)
 
@@ -441,20 +440,20 @@ public:
   #include _FAN_PATH(BLL/BLL.h)
 
   struct viewport_resize_cb_data_t {
-		camera_t* camera;
+    camera_t* camera;
     fan::vec3 position;
-		fan::vec2 size;
-	};
-	using viewport_resize_cb_t = fan::function_t<void(const viewport_resize_cb_data_t&)>;
+    fan::vec2 size;
+  };
+  using viewport_resize_cb_t = fan::function_t<void(const viewport_resize_cb_data_t&)>;
 
   #define BLL_set_Mark 2
   #define BLL_set_CPP_ConstructDestruct
   #define BLL_set_CPP_Node_ConstructDestruct
   #define BLL_set_prefix viewport_resize_callback
-	#define BLL_set_NodeData viewport_resize_cb_t data;
+  #define BLL_set_NodeData viewport_resize_cb_t data;
   #define BLL_set_CPP_nrsic 1
-	#include _FAN_PATH(window/cb_list_builder_settings.h)
-	#include _FAN_PATH(BLL/BLL.h)
+  #include _FAN_PATH(window/cb_list_builder_settings.h)
+  #include _FAN_PATH(BLL/BLL.h)
 
   viewport_resize_callback_t m_viewport_resize_callback;
 
@@ -466,7 +465,7 @@ public:
       using inherit_t = viewport_resize_callback_NodeReference_t;
       resize_callback_id_t() : loco_t::viewport_resize_callback_NodeReference_t() {}
       resize_callback_id_t(const inherit_t& i) : inherit_t(i) {}
-      resize_callback_id_t(resize_callback_id_t&& i) : inherit_t(i){
+      resize_callback_id_t(resize_callback_id_t&& i) : inherit_t(i) {
         i.sic();
       }
 
@@ -563,7 +562,7 @@ public:
         #endif
 
 
-        );
+      );
       coordinates.left = x.x;
       coordinates.right = x.y;
       coordinates.down = y.y;
@@ -679,11 +678,11 @@ public:
 
   #define BLL_set_declare_NodeReference 0
   #define BLL_set_declare_rest 1
-    #if defined(loco_opengl)
-      #include _FAN_PATH(graphics/opengl/camera_list_builder_settings.h)
-    #elif defined(loco_vulkan)
-      #include _FAN_PATH(graphics/vulkan/camera_list_builder_settings.h)
-    #endif
+  #if defined(loco_opengl)
+  #include _FAN_PATH(graphics/opengl/camera_list_builder_settings.h)
+  #elif defined(loco_vulkan)
+  #include _FAN_PATH(graphics/vulkan/camera_list_builder_settings.h)
+  #endif
   #include _FAN_PATH(BLL/BLL.h)
 
   camera_list_t camera_list;
@@ -751,17 +750,17 @@ public:
   #endif
 
   #if defined(loco_no_inline)
-  protected:
-    #define BLL_set_CPP_ConstructDestruct
-    #define BLL_set_CPP_Node_ConstructDestruct
-    #define BLL_set_AreWeInsideStruct 1
-    #define BLL_set_BaseLibrary 1
-    #define BLL_set_prefix cid_list
-    #define BLL_set_type_node uint32_t
-    #define BLL_set_NodeData fan::graphics::cid_t cid;
-    #define BLL_set_Link 0
-    #include _FAN_PATH(BLL/BLL.h)
-  public:
+protected:
+  #define BLL_set_CPP_ConstructDestruct
+  #define BLL_set_CPP_Node_ConstructDestruct
+  #define BLL_set_AreWeInsideStruct 1
+  #define BLL_set_BaseLibrary 1
+  #define BLL_set_prefix cid_list
+  #define BLL_set_type_node uint32_t
+  #define BLL_set_NodeData fan::graphics::cid_t cid;
+  #define BLL_set_Link 0
+  #include _FAN_PATH(BLL/BLL.h)
+public:
 
   struct cid_nt_t : cid_list_NodeReference_t {
     loco_t::cid_t* operator->() {
@@ -1097,14 +1096,14 @@ public:
     fan_create_id_definition_define(rt, get_##name){ return gloco->shape_##get_##name(*this);} \
     fan_create_set_define(rt, name)
 
-    #define fan_create_get_define(rt, name) \
+  #define fan_create_get_define(rt, name) \
     fan_create_id_definition_define(rt, get_##name){ return gloco->shape_##get_##name(*this);} \
 
   #define fan_create_get_set_define_extra(rt, name, set_extra, get_extra) \
     fan_create_id_definition_define(rt, get_##name){ get_extra return gloco->shape_##get_##name(*this);} \
     fan_create_id_definition_define(void, set_##name, const rt& data){ set_extra gloco->shape_##set_##name(*this, data); }
 
- 
+
   struct shape_t : cid_nr_t {
     using inherit_t = cid_nr_t;
 
@@ -1121,7 +1120,7 @@ public:
       }
       gloco->shape_get_properties(*(shape_t*)&id, [&](const auto& properties) {
         gloco->push_shape(*this, properties);
-      });
+        });
     }
     inline shape_t(shape_t&& id) : inherit_t(std::move(id)) {
 
@@ -1137,7 +1136,7 @@ public:
         gloco->shape_get_properties(*(shape_t*)&id, [&](const auto& properties) {
           init();
           gloco->push_shape(*this, properties);
-        });
+          });
       }
       return *this;
     }
@@ -1170,11 +1169,11 @@ public:
       gloco->shape_erase(*this);
       inherit_t::invalidate();
     }
-    bool append_letter(wchar_t wc, bool force = false) {
-      return gloco->shape_append_letter(*this, wc, force);
+    void append_letter(wchar_t wc) {
+      gloco->shape_append_letter(*this, wc);
     }
 
-    operator fan::opengl::cid_t *(){
+    operator fan::opengl::cid_t* () {
       return &gloco->cid_list[*this].cid;
     }
 
@@ -1182,12 +1181,12 @@ public:
       return gloco;
     }
 
-    fan_create_get_set_define_extra(fan::vec3, position,  
+    fan_create_get_set_define_extra(fan::vec3, position,
       if (get_position().z != data.z) {
         gloco->shape_set_depth(*this, data.z);
       }
-      , ;);
-    fan_create_set_define_custom(fan::vec2, position, 
+    , ;);
+    fan_create_set_define_custom(fan::vec2, position,
       gloco->shape_set_position(*this, fan::vec3(data, get_position().z));
     );
     fan_create_get_set_define(fan::vec2, size);
@@ -1205,7 +1204,7 @@ public:
     fan_create_get_set_define(f32_t, outline_size);
 
     fan_create_set_define(f32_t, depth);
-                   
+
     fan_create_set_dataless_define(focus);
 
     fan_create_set_define(loco_t::camera_list_NodeReference_t, camera);
@@ -1225,123 +1224,123 @@ public:
   #endif
 
   #if defined(loco_compute_shader)
-    #include _FAN_PATH(graphics/vulkan/compute_shader.h)
+  #include _FAN_PATH(graphics/vulkan/compute_shader.h)
   #endif
 
   #if defined(loco_line)
-    #define sb_depth_var src
-    #define sb_shape_var_name line
-    #include _FAN_PATH(graphics/opengl/2D/objects/line.h)
-    line_t sb_shape_var_name;
-    #undef sb_shape_var_name
+  #define sb_depth_var src
+  #define sb_shape_var_name line
+  #include _FAN_PATH(graphics/opengl/2D/objects/line.h)
+  line_t sb_shape_var_name;
+  #undef sb_shape_var_name
   #endif
   #if defined(loco_rectangle)
-    #define vk_shape_wboit
-    #define sb_shape_var_name rectangle
-    #include _FAN_PATH(graphics/opengl/2D/objects/rectangle.h)
-    rectangle_t sb_shape_var_name;
-    #undef sb_shape_var_name
+  #define vk_shape_wboit
+  #define sb_shape_var_name rectangle
+  #include _FAN_PATH(graphics/opengl/2D/objects/rectangle.h)
+  rectangle_t sb_shape_var_name;
+  #undef sb_shape_var_name
   #endif
   #if defined(loco_circle)
-    #define sb_shape_var_name circle
-    #include _FAN_PATH(graphics/opengl/2D/objects/circle.h)
-    circle_t sb_shape_var_name;
-    #undef sb_shape_var_name
+  #define sb_shape_var_name circle
+  #include _FAN_PATH(graphics/opengl/2D/objects/circle.h)
+  circle_t sb_shape_var_name;
+  #undef sb_shape_var_name
   #endif
   #if defined(loco_pixel_format_renderer)
-    #define sb_pfr_var_name pixel_format_renderer
-    #define sb_pfr_name pixel_format_renderer_t
-    #include _FAN_PATH(graphics/opengl/2D/objects/pixel_format_renderer.h)
-    pixel_format_renderer_t sb_pfr_var_name;
-   // #undef sb_pfr_name
-   // #undef sb_pfr_var_name
+  #define sb_pfr_var_name pixel_format_renderer
+  #define sb_pfr_name pixel_format_renderer_t
+  #include _FAN_PATH(graphics/opengl/2D/objects/pixel_format_renderer.h)
+  pixel_format_renderer_t sb_pfr_var_name;
+  // #undef sb_pfr_name
+  // #undef sb_pfr_var_name
   #endif
   #if defined(loco_sprite)
-    #define sb_shape_var_name sprite
-    #define sb_sprite_name sprite_t
-    #include _FAN_PATH(graphics/opengl/2D/objects/sprite.h)
-    sprite_t sb_shape_var_name;
-    #undef sb_shape_var_name
+  #define sb_shape_var_name sprite
+  #define sb_sprite_name sprite_t
+  #include _FAN_PATH(graphics/opengl/2D/objects/sprite.h)
+  sprite_t sb_shape_var_name;
+  #undef sb_shape_var_name
   #endif
   #if defined(loco_unlit_sprite)
-    #define sb_shape_var_name unlit_sprite
-    #define sb_sprite_name unlit_sprite_t
-    #define sb_custom_shape_type loco_t::shape_type_t::unlit_sprite
-    #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/objects/unlit_sprite.fs)
-    #include _FAN_PATH(graphics/opengl/2D/objects/sprite.h)
-    unlit_sprite_t unlit_sprite;
-    #undef sb_shape_var_name
-    #undef sb_custom_shape_type
+  #define sb_shape_var_name unlit_sprite
+  #define sb_sprite_name unlit_sprite_t
+  #define sb_custom_shape_type loco_t::shape_type_t::unlit_sprite
+  #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/objects/unlit_sprite.fs)
+  #include _FAN_PATH(graphics/opengl/2D/objects/sprite.h)
+  unlit_sprite_t unlit_sprite;
+  #undef sb_shape_var_name
+  #undef sb_custom_shape_type
   #endif
   #if defined(loco_blended_sprite)
-    #define sb_shape_var_name blended_sprite
-    #define sb_sprite_name blended_sprite_t
-    #define sb_custom_shape_type loco_t::shape_type_t::blended_sprite
-    #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/objects/blended_sprite.fs)
-    #include _FAN_PATH(graphics/opengl/2D/objects/sprite.h)
-    unlit_sprite_t blended_sprite;
-    #undef sb_shape_var_name
-    #undef sb_custom_shape_type
+  #define sb_shape_var_name blended_sprite
+  #define sb_sprite_name blended_sprite_t
+  #define sb_custom_shape_type loco_t::shape_type_t::blended_sprite
+  #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/objects/blended_sprite.fs)
+  #include _FAN_PATH(graphics/opengl/2D/objects/sprite.h)
+  unlit_sprite_t blended_sprite;
+  #undef sb_shape_var_name
+  #undef sb_custom_shape_type
   #endif
   #if defined(loco_light)
-    #define sb_shape_name light_t
-    #define sb_shape_var_name light
-    #define sb_fragment_shader light.fs
-    #define sb_is_light
-    #include _FAN_PATH(graphics/opengl/2D/objects/light.h)
-    sb_shape_name sb_shape_var_name;
-    #undef sb_shape_var_name
-    #undef sb_fragment_shader
-    #undef sb_shape_name
-    #undef sb_is_light
+  #define sb_shape_name light_t
+  #define sb_shape_var_name light
+  #define sb_fragment_shader light.fs
+  #define sb_is_light
+  #include _FAN_PATH(graphics/opengl/2D/objects/light.h)
+  sb_shape_name sb_shape_var_name;
+  #undef sb_shape_var_name
+  #undef sb_fragment_shader
+  #undef sb_shape_name
+  #undef sb_is_light
   #endif
   #if defined(loco_sprite_sheet)
-    #define sb_shape_var_name sprite_sheet;
-    #define sb_sprite_sheet_name sprite_sheet_t
-    #include _FAN_PATH(graphics/sprite_sheet.h)
-    sb_sprite_sheet_name sb_shape_var_name;
+  #define sb_shape_var_name sprite_sheet;
+  #define sb_sprite_sheet_name sprite_sheet_t
+  #include _FAN_PATH(graphics/sprite_sheet.h)
+  sb_sprite_sheet_name sb_shape_var_name;
   #endif
   #if defined(loco_letter)
-    #if !defined(loco_font)
-    #define loco_font "fonts/bitter"
-    #endif
-    #define sb_shape_var_name letter
-    #include _FAN_PATH(graphics/opengl/2D/objects/letter.h)
-    letter_t sb_shape_var_name;
-    #undef sb_shape_var_name
+  #if !defined(loco_font)
+  #define loco_font "fonts/bitter"
+  #endif
+  #define sb_shape_var_name letter
+  #include _FAN_PATH(graphics/opengl/2D/objects/letter.h)
+  letter_t sb_shape_var_name;
+  #undef sb_shape_var_name
   #endif
   #if defined(loco_text)
-    #define sb_shape_var_name text
-    #include _FAN_PATH(graphics/opengl/2D/objects/text.h)
-    using text_t = text_renderer_t;
-    text_t sb_shape_var_name;
-    #undef sb_shape_var_name
+  #define sb_shape_var_name text
+  #include _FAN_PATH(graphics/opengl/2D/objects/text.h)
+  using text_t = text_renderer_t;
+  text_t sb_shape_var_name;
+  #undef sb_shape_var_name
   #endif
   #if defined(loco_responsive_text)
-    #include _FAN_PATH(graphics/gui/responsive_text.h)
-    responsive_text_t responsive_text;
+  #include _FAN_PATH(graphics/gui/responsive_text.h)
+  responsive_text_t responsive_text;
   #endif
   #if defined(loco_button)
-    #define sb_shape_var_name button
-    #include _FAN_PATH(graphics/gui/button.h)
-    button_t sb_shape_var_name;
-    #undef sb_shape_var_name
+  #define sb_shape_var_name button
+  #include _FAN_PATH(graphics/gui/button.h)
+  button_t sb_shape_var_name;
+  #undef sb_shape_var_name
   #endif
   #if defined(loco_text_box)
-    #include _FAN_PATH(graphics/gui/fed.h)
-    #define sb_shape_var_name text_box
-    #include _FAN_PATH(graphics/gui/text_box.h)
-    text_box_t sb_shape_var_name;
-    #undef sb_shape_var_name
+  #include _FAN_PATH(graphics/gui/fed.h)
+  #define sb_shape_var_name text_box
+  #include _FAN_PATH(graphics/gui/text_box.h)
+  text_box_t sb_shape_var_name;
+  #undef sb_shape_var_name
   #endif
   #if defined(loco_dropdown)
-    #include "wrappers/dropdown.h"
+  #include "wrappers/dropdown.h"
   #endif
   #if defined(loco_model_3d)
-    #define sb_shape_var_name model
-    #include _FAN_PATH(graphics/opengl/3D/objects/model.h)
-    model_t sb_shape_var_name;
-    #undef sb_shape_var_name
+  #define sb_shape_var_name model
+  #include _FAN_PATH(graphics/opengl/3D/objects/model.h)
+  model_t sb_shape_var_name;
+  #undef sb_shape_var_name
   #endif
   #if defined(loco_post_process)
   #define sb_post_process_var_name post_process
@@ -1361,13 +1360,13 @@ public:
   };
 
   #if defined(loco_custom_id_t_types)
-    using custom_id_t_types_t = std::tuple<loco_custom_id_t_types>;
+  using custom_id_t_types_t = std::tuple<loco_custom_id_t_types>;
   #endif
 
-  loco_t(properties_t p = properties_t{ true }) 
+  loco_t(properties_t p = properties_t{ true })
     #ifdef loco_window
     :
-    gloco_dummy(this),
+  gloco_dummy(this),
     window(fan::vec2(800, 800)),
     #endif
     #if defined(loco_context)
@@ -1385,11 +1384,11 @@ public:
 
     root = loco_bdbt_NewNode(&bdbt);
 
-   // set_vsync(p.vsync);
+    // set_vsync(p.vsync);
 
     get_window()->add_buttons_callback([this](const mouse_buttons_cb_data_t& d) {
       fan::vec2 window_size = get_window()->get_size();
-    feed_mouse_button(d.button, d.state, get_mouse_position());
+      feed_mouse_button(d.button, d.state, get_mouse_position());
       });
 
     get_window()->add_keys_callback([&](const keyboard_keys_cb_data_t& d) {
@@ -1422,21 +1421,21 @@ public:
     }
     #endif
 
-  #if defined(loco_opengl)
+    #if defined(loco_opengl)
     loco_t::image_t::load_properties_t lp;
     lp.visual_output = fan::opengl::GL_CLAMP_TO_EDGE;
-  #if defined(loco_framebuffer)
+    #if defined(loco_framebuffer)
     m_framebuffer.open(get_context());
     m_framebuffer.bind(get_context());
-  #endif
-  #endif
+    #endif
+    #endif
 
-  #if defined(loco_opengl)
+    #if defined(loco_opengl)
 
-  #if defined(loco_framebuffer)
+    #if defined(loco_framebuffer)
 
-	  fan::webp::image_info_t ii;
-	  ii.data = nullptr;
+    fan::webp::image_info_t ii;
+    ii.data = nullptr;
     ii.size = get_window()->get_size();
 
     lp.internal_format = fan::opengl::GL_RGBA;
@@ -1474,7 +1473,7 @@ public:
       lp.visual_output = fan::opengl::GL_CLAMP_TO_EDGE;
 
       fan::webp::image_info_t ii;
-	    ii.data = nullptr;
+      ii.data = nullptr;
       ii.size = get_window()->get_size();
 
       lp.internal_format = fan::opengl::GL_RGBA;
@@ -1510,7 +1509,7 @@ public:
       rp.size = ii.size;
       rp.internalformat = fan::opengl::GL_DEPTH_COMPONENT;
       m_rbo.set_storage(get_context(), rp);
-    });
+      });
 
     fan::opengl::core::renderbuffer_t::properties_t rp;
     m_framebuffer.bind(get_context());
@@ -1545,123 +1544,123 @@ public:
       #include _FAN_PATH(graphics/glsl/opengl/2D/effects/loco_fbo.fs)
     );
     m_fbo_final_shader.compile(get_context());
-  #endif
-  #endif
+    #endif
+    #endif
 
-  #if defined(loco_vulkan) && defined(loco_window)
+    #if defined(loco_vulkan) && defined(loco_window)
     fan::vulkan::pipeline_t::properties_t pipeline_p;
 
     auto context = get_context();
 
     render_fullscreen_shader.open(context, &m_write_queue);
     render_fullscreen_shader.set_vertex(
-      context, 
-      "graphics/glsl/vulkan/2D/objects/loco_fbo.vert", 
+      context,
+      "graphics/glsl/vulkan/2D/objects/loco_fbo.vert",
       #include _FAN_PATH(graphics/glsl/vulkan/2D/objects/loco_fbo.vert))
-    );
-    render_fullscreen_shader.set_fragment(
-      context, 
-      "graphics/glsl/vulkan/2D/objects/loco_fbo.frag", 
-      #include _FAN_PATH(graphics/glsl/vulkan/2D/objects/loco_fbo.frag))
-    );
-    VkDescriptorSetLayout layouts[] = {
-    #if defined(loco_line)
-      line.m_ssbo.m_descriptor.m_layout,
-    #endif
-    #if defined(loco_rectangle)
-      rectangle.m_ssbo.m_descriptor.m_layout,
-    #endif
-    #if defined(loco_sprite)
-      sprite.m_ssbo.m_descriptor.m_layout,
-    #endif
-    #if defined(loco_letter)
-      letter.m_ssbo.m_descriptor.m_layout,
-    #endif
-    #if defined(loco_button)
-      button.m_ssbo.m_descriptor.m_layout,
-    #endif
-    #if defined(loco_text_box)
-      text_box.m_ssbo.m_descriptor.m_layout,
-    #endif
-    #if defined(loco_yuv420p)
-      yuv420p.m_ssbo.m_descriptor.m_layout,
-    #endif
-    };
-    pipeline_p.descriptor_layout_count = 1;
-    pipeline_p.descriptor_layout = layouts;
-    pipeline_p.shader = &render_fullscreen_shader;
-    pipeline_p.push_constants_size = sizeof(loco_t::push_constants_t);
-    pipeline_p.subpass = 1;
-    VkDescriptorImageInfo imageInfo{};
+      );
+      render_fullscreen_shader.set_fragment(
+        context,
+        "graphics/glsl/vulkan/2D/objects/loco_fbo.frag",
+        #include _FAN_PATH(graphics/glsl/vulkan/2D/objects/loco_fbo.frag))
+        );
+        VkDescriptorSetLayout layouts[] = {
+        #if defined(loco_line)
+          line.m_ssbo.m_descriptor.m_layout,
+        #endif
+        #if defined(loco_rectangle)
+          rectangle.m_ssbo.m_descriptor.m_layout,
+        #endif
+        #if defined(loco_sprite)
+          sprite.m_ssbo.m_descriptor.m_layout,
+        #endif
+        #if defined(loco_letter)
+          letter.m_ssbo.m_descriptor.m_layout,
+        #endif
+        #if defined(loco_button)
+          button.m_ssbo.m_descriptor.m_layout,
+        #endif
+        #if defined(loco_text_box)
+          text_box.m_ssbo.m_descriptor.m_layout,
+        #endif
+        #if defined(loco_yuv420p)
+          yuv420p.m_ssbo.m_descriptor.m_layout,
+        #endif
+        };
+        pipeline_p.descriptor_layout_count = 1;
+        pipeline_p.descriptor_layout = layouts;
+        pipeline_p.shader = &render_fullscreen_shader;
+        pipeline_p.push_constants_size = sizeof(loco_t::push_constants_t);
+        pipeline_p.subpass = 1;
+        VkDescriptorImageInfo imageInfo{};
 
-    VkPipelineColorBlendAttachmentState color_blend_attachment[1]{};
-    color_blend_attachment[0].colorWriteMask =
-			VK_COLOR_COMPONENT_R_BIT |
-			VK_COLOR_COMPONENT_G_BIT |
-			VK_COLOR_COMPONENT_B_BIT |
-			VK_COLOR_COMPONENT_A_BIT
-		;
-    color_blend_attachment[0].blendEnable = VK_TRUE;
-    color_blend_attachment[0].srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-    color_blend_attachment[0].dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-    color_blend_attachment[0].colorBlendOp = VK_BLEND_OP_ADD;
-    color_blend_attachment[0].srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-    color_blend_attachment[0].dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-    color_blend_attachment[0].alphaBlendOp = VK_BLEND_OP_ADD;
-    pipeline_p.color_blend_attachment_count = std::size(color_blend_attachment);
-    pipeline_p.color_blend_attachment = color_blend_attachment;
-    pipeline_p.enable_depth_test = false;
-    context->render_fullscreen_pl.open(context, pipeline_p);
-  #endif
+        VkPipelineColorBlendAttachmentState color_blend_attachment[1]{};
+        color_blend_attachment[0].colorWriteMask =
+          VK_COLOR_COMPONENT_R_BIT |
+          VK_COLOR_COMPONENT_G_BIT |
+          VK_COLOR_COMPONENT_B_BIT |
+          VK_COLOR_COMPONENT_A_BIT
+          ;
+        color_blend_attachment[0].blendEnable = VK_TRUE;
+        color_blend_attachment[0].srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+        color_blend_attachment[0].dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        color_blend_attachment[0].colorBlendOp = VK_BLEND_OP_ADD;
+        color_blend_attachment[0].srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+        color_blend_attachment[0].dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        color_blend_attachment[0].alphaBlendOp = VK_BLEND_OP_ADD;
+        pipeline_p.color_blend_attachment_count = std::size(color_blend_attachment);
+        pipeline_p.color_blend_attachment = color_blend_attachment;
+        pipeline_p.enable_depth_test = false;
+        context->render_fullscreen_pl.open(context, pipeline_p);
+        #endif
 
-    default_texture.create_missing_texture();
+        default_texture.create_missing_texture();
 
-    #if defined(loco_line)
-      *types.get_value<line_t*>() = &line;
-    #endif
-    #if defined(loco_rectangle)
-      *types.get_value<rectangle_t*>() = &rectangle;
-    #endif
-    #if defined(loco_sprite)
-      *types.get_value<sprite_t*>() = &sprite;
-    #endif
-    #if defined(loco_unlit_sprite)
-      *types.get_value<unlit_sprite_t*>() = &unlit_sprite;
-    #endif
-    #if defined(loco_circle)
-      *types.get_value<circle_t*>() = &circle;
-    #endif
-    #if defined(loco_button)
-      *types.get_value<button_t*>() = &button;
-    #endif
-    #if defined(loco_letter)
-      *types.get_value<letter_t*>() = &letter;
-    #endif
-    #if defined(loco_text)
-      *types.get_value<text_t*>() = &text;
-    #endif
-    #if defined(loco_responsive_text)
-      *types.get_value<responsive_text_t*>() = &responsive_text;
-    #endif
-    #if defined(loco_light)
-      *types.get_value<light_t*>() = &light;
-    #endif
-    #if defined(loco_text_box)
-      *types.get_value<text_box_t*>() = &text_box;
-    #endif
-    #if defined(loco_pixel_format_renderer)
-      *types.get_value<pixel_format_renderer_t*>() = &pixel_format_renderer;
-    #endif
-      
-    #if defined(loco_t_id_t_types)
-      #if !defined(loco_t_id_t_ptrs)
+        #if defined(loco_line)
+        *types.get_value<line_t*>() = &line;
+        #endif
+        #if defined(loco_rectangle)
+        *types.get_value<rectangle_t*>() = &rectangle;
+        #endif
+        #if defined(loco_sprite)
+        *types.get_value<sprite_t*>() = &sprite;
+        #endif
+        #if defined(loco_unlit_sprite)
+        *types.get_value<unlit_sprite_t*>() = &unlit_sprite;
+        #endif
+        #if defined(loco_circle)
+        *types.get_value<circle_t*>() = &circle;
+        #endif
+        #if defined(loco_button)
+        *types.get_value<button_t*>() = &button;
+        #endif
+        #if defined(loco_letter)
+        *types.get_value<letter_t*>() = &letter;
+        #endif
+        #if defined(loco_text)
+        *types.get_value<text_t*>() = &text;
+        #endif
+        #if defined(loco_light)
+        *types.get_value<light_t*>() = &light;
+        #endif
+        #if defined(loco_text_box)
+        *types.get_value<text_box_t*>() = &text_box;
+        #endif
+        #if defined(loco_vfi)
+        *types.get_value<vfi_t*>() = &vfi;
+        #endif
+        #if defined(loco_pixel_format_renderer)
+        *types.get_value<pixel_format_renderer_t*>() = &pixel_format_renderer;
+        #endif
+
+        #if defined(loco_t_id_t_types)
+        #if !defined(loco_t_id_t_ptrs)
         #error loco_t_id_t_ptrs not defined
-      #else
-      std::apply([&](const auto&... args) {
-        ((*types.get_value<std::remove_const_t<std::remove_reference_t<decltype(args)>>>() = args), ...);
-      }, std::tuple<loco_t_id_t_types>{ loco_t_id_t_ptrs });
-      #endif
-    #endif
+        #else
+        std::apply([&](const auto&... args) {
+          ((*types.get_value<std::remove_const_t<std::remove_reference_t<decltype(args)>>>() = args), ...);
+          }, std::tuple<loco_t_id_t_types>{ loco_t_id_t_ptrs });
+        #endif
+        #endif
   }
 
   #if defined(loco_vfi)
@@ -1736,47 +1735,47 @@ public:
     m_write_queue.process(get_context());
 
     #ifdef loco_window
-      #if defined(loco_opengl)
+    #if defined(loco_opengl)
 
-      #include "draw_shapes.h"
-    
+    #include "draw_shapes.h"
+
     #if defined(loco_framebuffer)
-      //m_flag_map_fbo.unbind(get_context());
+    //m_flag_map_fbo.unbind(get_context());
 
-      m_framebuffer.unbind(get_context());
+    m_framebuffer.unbind(get_context());
 
-      get_context()->opengl.call(get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
-      //float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-      fan::vec2 window_size = get_window()->get_size();
-      fan::opengl::viewport_t::set_viewport(0, window_size, window_size);
+    get_context()->opengl.call(get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
+    //float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+    fan::vec2 window_size = get_window()->get_size();
+    fan::opengl::viewport_t::set_viewport(0, window_size, window_size);
 
-      m_fbo_final_shader.use(get_context());
-      m_fbo_final_shader.set_int(get_context(), "_t00", 0);
-      m_fbo_final_shader.set_int(get_context(), "_t01", 1);
+    m_fbo_final_shader.use(get_context());
+    m_fbo_final_shader.set_int(get_context(), "_t00", 0);
+    m_fbo_final_shader.set_int(get_context(), "_t01", 1);
 
-      get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
-      color_buffers[0].bind_texture();
-     
-      get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
-      color_buffers[1].bind_texture();
+    get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
+    color_buffers[0].bind_texture();
 
-      unsigned int attachments[sizeof(color_buffers) / sizeof(color_buffers[0])];
-      for (uint8_t i = 0; i < std::size(color_buffers); ++i) {
-        attachments[i] = fan::opengl::GL_COLOR_ATTACHMENT0 + i;
-      }
+    get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
+    color_buffers[1].bind_texture();
 
-      //get_context()->opengl.call(get_context()->opengl.glDrawBuffers, std::size(attachments), attachments);
+    unsigned int attachments[sizeof(color_buffers) / sizeof(color_buffers[0])];
+    for (uint8_t i = 0; i < std::size(color_buffers); ++i) {
+      attachments[i] = fan::opengl::GL_COLOR_ATTACHMENT0 + i;
+    }
 
-      renderQuad();
-      #endif
-      get_context()->render(get_window());
-      #elif defined(loco_vulkan)
-        get_context()->begin_render(get_window());
-        draw_queue();
-        #include "draw_shapes.h"
-      get_context()->end_render(get_window());
+    //get_context()->opengl.call(get_context()->opengl.glDrawBuffers, std::size(attachments), attachments);
 
-      #endif
+    renderQuad();
+    #endif
+    get_context()->render(get_window());
+    #elif defined(loco_vulkan)
+    get_context()->begin_render(get_window());
+    draw_queue();
+    #include "draw_shapes.h"
+    get_context()->end_render(get_window());
+
+    #endif
     #endif
   }
   #if defined(loco_window)
@@ -1812,25 +1811,25 @@ public:
   }
 
 
-#if defined(loco_vulkan)
+  #if defined(loco_vulkan)
   fan::vulkan::shader_t render_fullscreen_shader;
-#endif
+  #endif
 
-#if defined(loco_framebuffer)
+  #if defined(loco_framebuffer)
 
-#if defined(loco_opengl)
+  #if defined(loco_opengl)
   fan::opengl::core::framebuffer_t m_flag_map_fbo;
-  
+
   fan::opengl::core::framebuffer_t m_framebuffer;
   fan::opengl::core::renderbuffer_t m_rbo;
   loco_t::image_t color_buffers[2];
   fan::opengl::shader_t m_fbo_final_shader;
 
-#elif defined(loco_vulkan)
+  #elif defined(loco_vulkan)
 
-#endif
+  #endif
 
-#endif
+  #endif
 
   bool process_loop(const auto& lambda) {
     uint32_t window_event = get_window()->handle_events();
@@ -1863,12 +1862,12 @@ public:
 
   struct cuda_textures_t {
 
-    cuda_textures_t(){
+    cuda_textures_t() {
       inited = false;
     }
     ~cuda_textures_t() {
     }
-    void close(loco_t* loco, loco_t::shape_t &cid) {
+    void close(loco_t* loco, loco_t::shape_t& cid) {
       uint8_t image_amount = fan::pixel_format::get_texture_amount(loco->pixel_format_renderer.sb_get_ri(cid).format);
       auto& ri = loco->pixel_format_renderer.sb_get_ri(cid);
       for (uint32_t i = 0; i < image_amount; ++i) {
@@ -1918,7 +1917,7 @@ public:
         map();
       }
       void close() {
-       unmap();
+        unmap();
         fan::cuda::check_error(cudaGraphicsUnregisterResource(resource));
         resource = nullptr;
       }
@@ -1972,28 +1971,25 @@ public:
 
   // requires shape_type create to shape.h, init in constructor, add type_t to properties
   // make get_properties for custom type
-  fan::masterpiece_t<
+  fan::masterpiece_t <
     comma_dummy_t*
     #if defined(loco_rectangle)
-    ,rectangle_t*
+    , rectangle_t*
     #endif
     #if defined(loco_sprite)
-    ,sprite_t*
+    , sprite_t*
     #endif
     #if defined(loco_unlit_sprite)
-    ,unlit_sprite_t*
+    , unlit_sprite_t*
     #endif
     #if defined(loco_button)
-    ,button_t*
+    , button_t*
     #endif
     #if defined(loco_text)
     , letter_t*
     #endif
     #if defined(loco_text)
     , text_t*
-    #endif
-    #if defined(loco_responsive_text)
-    , responsive_text_t*
     #endif
     #if defined(loco_light)
     , light_t*
@@ -2012,6 +2008,9 @@ public:
     #endif
     #if defined(loco_pixel_format_renderer)
     , pixel_format_renderer_t*
+    #endif
+    #if defined(loco_vfi)
+    , vfi_t*
     #endif
   > types;
 
@@ -2040,7 +2039,10 @@ public:
 
   template <typename T>
   void push_shape(loco_t::cid_nt_t& id, T properties) {
-    if constexpr(!std::is_same_v<std::nullptr_t, T>){
+    if constexpr (std::is_same_v<loco_t::vfi_t::properties_t, T>) {
+      (*types.get_value<typename T::type_t*>())->push_back((loco_t::vfi_t::shape_id_t*)&id, properties);
+    }
+    else if constexpr (!std::is_same_v<std::nullptr_t, T>) {
       (*types.get_value<typename T::type_t*>())->push_back(id, properties);
     }
   }
@@ -2050,13 +2052,13 @@ public:
       using shape_t = std::remove_pointer_t<std::remove_pointer_t<T>>;
       if (shape_t::shape_type == id->shape_type) {
         if constexpr (has_get_properties_v<shape_t, loco_t::cid_nt_t&>) {
-            lambda((*shape)->get_properties(id));
+          lambda((*shape)->get_properties(id));
         }
         else if constexpr (has_sb_get_properties_v<shape_t, loco_t::cid_nt_t&>) {
-            lambda((*shape)->sb_get_properties(id));
+          lambda((*shape)->sb_get_properties(id));
         }
       }
-    }); 
+    });
   }
 
   bool shape_get_blending(loco_t::cid_nt_t& id) {
@@ -2065,10 +2067,10 @@ public:
       using shape_t = std::remove_pointer_t<std::remove_pointer_t<T>>;
       if (shape_t::shape_type == id->shape_type) {
         if constexpr (has_sb_get_ri_v<shape_t, loco_t::cid_nt_t>) {
-           blending = (*shape)->sb_get_ri(id).blending;
+          blending = (*shape)->sb_get_ri(id).blending;
         }
       }
-    }); 
+    });
     return blending;
   }
   std::pair<void*, uint16_t> shape_get_ri(loco_t::cid_nt_t& id) {
@@ -2081,26 +2083,13 @@ public:
           memcpy(ret.first, &(*shape)->sb_get_ri(id), ret.second);
         }
       }
-    }); 
+    });
     return ret;
   }
 
   #define make_global_function_declare(func_name, content, ...) \
   fan_has_function_concept(func_name);\
   void shape_ ## func_name(__VA_ARGS__);
-
-  #define make_global_function_ret_define(ret, func_name, content, ...) \
-  fan_has_function_concept(func_name);\
-  ret shape_ ## func_name(__VA_ARGS__) { \
-    ret data; \
-    types.iterate([&]<typename T>(auto shape_index, T shape) { \
-      using shape_t = std::remove_pointer_t<std::remove_pointer_t<T>>; \
-      if (shape_t::shape_type == id->shape_type) { \
-        content \
-      } \
-    }); \
-    return data; \
-  }
 
   #define make_global_function_define(func_name, content, ...) \
   fan_has_function_concept(func_name);\
@@ -2128,17 +2117,16 @@ public:
     if constexpr (has_erase_v<shape_t, loco_t::cid_nt_t&>) {
       (*shape)->erase(id);
     },
-    loco_t::cid_nt_t& id
-  );
+      loco_t::cid_nt_t& id
+      );
 
-  make_global_function_ret_define(bool, append_letter,
+  make_global_function_define(append_letter,
     if constexpr (has_append_letter_v<shape_t, loco_t::cid_nt_t&, wchar_t>) {
-      data = (*shape)->append_letter(id, wc, force);
+      (*shape)->append_letter(id, wc);
     },
-    loco_t::cid_nt_t& id,
-    wchar_t wc,
-    bool force = false
-  );
+      loco_t::cid_nt_t& id,
+      wchar_t wc
+      );
 
   fan_has_function_concept(get);
   fan_has_function_concept(set);
@@ -2278,7 +2266,7 @@ public:
     fan_build_get_declare(rt, name); \
     fan_build_set_declare(rt, name);
 
-    #define fan_build_get_set_define(rt, name) \
+  #define fan_build_get_set_define(rt, name) \
     fan_build_get_define(rt, name); \
     fan_build_set_define(rt, name);
 
@@ -2296,7 +2284,7 @@ public:
 
   fan_build_get_set_generic_define(fan::vec2, text_size);
   fan_build_set_generic_dataless_define(focus);
-  
+
   fan_build_get_set_generic_define(fan::string, text);
 
   fan_build_get_set_define(fan::color, outline_color);
@@ -2306,31 +2294,31 @@ public:
     if constexpr (has_set_line_v<shape_t, loco_t::cid_nt_t&, const fan::vec3&, const fan::vec3&>) {
       (*shape)->set_line(id, src, dst);
     },
-    loco_t::cid_nt_t& id,
-    const fan::vec3& src, 
-    const fan::vec3& dst
-  );
+      loco_t::cid_nt_t& id,
+      const fan::vec3& src,
+      const fan::vec3& dst
+      );
 
   fan_has_function_concept(sb_set_depth);
   make_global_function_define(set_depth,
-    if constexpr (has_set_depth_v<shape_t, loco_t::cid_nt_t&, f32_t>) { 
-      (*shape)->set_depth(id, data); 
-    } 
-    else if constexpr (has_sb_set_depth_v<shape_t, loco_t::cid_nt_t&, f32_t>) { 
-      (*shape)->sb_set_depth(id, data); 
-    }, 
-    loco_t::cid_nt_t& id, 
-    const auto& data 
-  );
+    if constexpr (has_set_depth_v<shape_t, loco_t::cid_nt_t&, f32_t>) {
+      (*shape)->set_depth(id, data);
+    }
+    else if constexpr (has_sb_set_depth_v<shape_t, loco_t::cid_nt_t&, f32_t>) {
+      (*shape)->sb_set_depth(id, data);
+    },
+      loco_t::cid_nt_t& id,
+      const auto& data
+      );
 
   make_global_function_define_custom_shape(draw,
-    if constexpr (has_draw_v<shape_t, const redraw_key_t &, loco_bdbt_NodeReference_t>) {
-      (*shape)->draw(redraw_key, nr); 
-    }, 
-    shape_type_t::_t shape_type,
-    const redraw_key_t& redraw_key,
-    loco_bdbt_NodeReference_t nr
-  );
+    if constexpr (has_draw_v<shape_t, const redraw_key_t&, loco_bdbt_NodeReference_t>) {
+      (*shape)->draw(redraw_key, nr);
+    },
+      shape_type_t::_t shape_type,
+      const redraw_key_t& redraw_key,
+      loco_bdbt_NodeReference_t nr
+      );
 
   fan_has_function_concept(sb_get_properties);
   fan_has_function_concept(get_properties);
@@ -2366,38 +2354,38 @@ public:
 template <typename T>
 constexpr std::array<T, 4> fan::pixel_format::get_image_properties(uint8_t format) {
   switch (format) {
-  case yuv420p: {
-    return std::array<loco_t::image_t::load_properties_t, 4>{
-      loco_t::image_t::load_properties_t{
-        .internal_format = loco_t::image_t::format::r8_unorm,
-        .format = loco_t::image_t::format::r8_unorm
-      },
-      loco_t::image_t::load_properties_t{
-        .internal_format = loco_t::image_t::format::r8_unorm,
-        .format = loco_t::image_t::format::r8_unorm
-      },
-      loco_t::image_t::load_properties_t{
-        .internal_format = loco_t::image_t::format::r8_unorm,
-        .format = loco_t::image_t::format::r8_unorm
-      }
-    };
-  }
-  case nv12: {
-    return std::array<loco_t::image_t::load_properties_t, 4>{
-      loco_t::image_t::load_properties_t{
-        .internal_format = loco_t::image_t::format::r8_unorm,
-        .format = loco_t::image_t::format::r8_unorm
-      },
-      loco_t::image_t::load_properties_t{
-        .internal_format = loco_t::image_t::format::rg8_unorm,
-        .format = loco_t::image_t::format::rg8_unorm
-      }
-    };
-  }
-  default: {
-    fan::throw_error("invalid format");
-    return std::array<loco_t::image_t::load_properties_t, 4>{};
-  }
+    case yuv420p: {
+      return std::array<loco_t::image_t::load_properties_t, 4>{
+        loco_t::image_t::load_properties_t{
+          .internal_format = loco_t::image_t::format::r8_unorm,
+          .format = loco_t::image_t::format::r8_unorm
+        },
+          loco_t::image_t::load_properties_t{
+            .internal_format = loco_t::image_t::format::r8_unorm,
+            .format = loco_t::image_t::format::r8_unorm
+        },
+          loco_t::image_t::load_properties_t{
+            .internal_format = loco_t::image_t::format::r8_unorm,
+            .format = loco_t::image_t::format::r8_unorm
+        }
+      };
+    }
+    case nv12: {
+      return std::array<loco_t::image_t::load_properties_t, 4>{
+        loco_t::image_t::load_properties_t{
+          .internal_format = loco_t::image_t::format::r8_unorm,
+          .format = loco_t::image_t::format::r8_unorm
+        },
+          loco_t::image_t::load_properties_t{
+            .internal_format = loco_t::image_t::format::rg8_unorm,
+            .format = loco_t::image_t::format::rg8_unorm
+        }
+      };
+    }
+    default: {
+      fan::throw_error("invalid format");
+      return std::array<loco_t::image_t::load_properties_t, 4>{};
+    }
   }
 }
 
@@ -2420,15 +2408,15 @@ fan::opengl::theme_list_NodeReference_t::theme_list_NodeReference_t(auto* theme)
 #endif
 
 #ifndef loco_no_inline
-  #undef loco_rectangle_vi_t
+#undef loco_rectangle_vi_t
 
- /* #undef loco_rectangle
-  #undef loco_sprite
-  #undef loco_letter
-  #undef loco_text
-  #undef loco_text_box
-  #undef loco_button
-  #undef loco_wboit*/
+/* #undef loco_rectangle
+ #undef loco_sprite
+ #undef loco_letter
+ #undef loco_text
+ #undef loco_text_box
+ #undef loco_button
+ #undef loco_wboit*/
 #endif
 
 #define loco_make_shape(type, ...) fan_init_struct(type, __VA_ARGS__)
@@ -2442,12 +2430,12 @@ inline void fan::opengl::viewport_t::close() {
   gloco->get_context()->viewport_list.Recycle(viewport_reference);
 }
 
-void fan::opengl::viewport_t::set(const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size)  {
+void fan::opengl::viewport_t::set(const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size) {
   viewport_position = viewport_position_;
   viewport_size = viewport_size_;
 
   gloco->get_context()->opengl.call(
-    gloco->get_context()->opengl.glViewport, 
+    gloco->get_context()->opengl.glViewport,
     viewport_position.x, window_size.y - viewport_size.y - viewport_position.y,
     viewport_size.x, viewport_size.y
   );
