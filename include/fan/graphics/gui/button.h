@@ -1,7 +1,9 @@
 struct button_t {
 
+
   static constexpr typename loco_t::shape_type_t::_t shape_type = loco_t::shape_type_t::button;
 
+  static constexpr f32_t boundary_multiplier = 0.99;
   static constexpr f32_t released = 1.0;
   static constexpr f32_t hovered = 1.2;
   static constexpr f32_t pressed = 1.4;
@@ -47,7 +49,7 @@ struct button_t {
 
     auto theme = p.theme;
     loco_t::responsive_text_t::properties_t tp;
-    tp.boundary = p.size / 2; // padding
+    tp.size = p.size * boundary_multiplier; // padding
     tp.color = theme->button.text_color;
     tp.font_size = 1;
     tp.position = p.position;
@@ -209,8 +211,8 @@ struct button_t {
     set(id, &vi_t::outline_size, t.button.outline_size);
     auto& ri = get_ri(id);
     ri.theme = theme;
-    ri.text_id.m_text_lines[0].set_outline_color(t.button.text_outline_color);
-    ri.text_id.m_text_lines[0].set_outline_size(t.button.text_outline_size);
+    ri.text_id.set_outline_color(t.button.text_outline_color);
+    ri.text_id.set_outline_size(t.button.text_outline_size);
   }
 
   template <typename T>
@@ -257,7 +259,7 @@ struct button_t {
       &loco_t::vfi_t::set_rectangle_t::size,
       size
     );
-    ri.text_id.set_size(size / 2); // pad
+    ri.text_id.set_size(size * boundary_multiplier); // pad
   }
 
   //void set_camera(loco_t::cid_nt_t& id, loco_t::camera_list_NodeReference_t n) {
@@ -302,18 +304,18 @@ struct button_t {
   auto get_text_instance(loco_t::cid_nt_t& id) {
     
     auto& ri = get_ri(id);
-    return gloco->text.get_instance(ri.text_id.m_text_lines[0]);
+    return gloco->responsive_text.get_instance(ri.text_id);
   }
 
   fan::string get_text(loco_t::cid_nt_t& id) {
     
     auto& ri = get_ri(id);
-    return gloco->text.get_instance(ri.text_id.m_text_lines[0]).text;
+    return gloco->responsive_text.get_text(ri.text_id);
   }
   void set_text(loco_t::cid_nt_t& id, const fan::string& text) {
     
     auto& ri = get_ri(id);
-    gloco->text.set_text(ri.text_id.m_text_lines[0], text);
+    gloco->responsive_text.set_text(ri.text_id, text);
   }
 
   ri_t* get_instance_properties(loco_t::cid_nt_t& id) {
@@ -344,11 +346,6 @@ struct button_t {
     sb_set_depth(id, depth);
   }
 
-  void set_font_size(loco_t::cid_nt_t& id, f32_t font_size) {
-    auto& ri = sb_get_ri(id);
-    gloco->text.set_font_size(ri.text_id.m_text_lines[0], font_size);
-  }
-
   properties_t get_properties(loco_t::cid_nt_t& id) {
     properties_t p = sb_get_properties(id);
     p.camera = gloco->camera_list[*p.key.get_value<loco_t::camera_list_NodeReference_t>()].camera_id;
@@ -356,7 +353,7 @@ struct button_t {
     p.viewport = gloco->get_context()->viewport_list[*p.key.get_value<fan::graphics::viewport_list_NodeReference_t>()].viewport_id;
 
     p.position = get_text_instance(id).position;
-    p.text = get_text_instance(id).text;
+    p.text = gloco->responsive_text.get_text(sb_get_ri(id).text_id);
     p.font_size = get_text_instance(id).font_size;
     return p;
   }

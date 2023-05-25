@@ -45,16 +45,16 @@ struct sprite_responsive_t : loco_t::shape_t {
   sprite_responsive_t(loco_t::responsive_text_t::properties_t rp, const loco_t::sprite_t::properties_t& p) {
     rp.position = p.position;
     rp.position.z += 1;
-    rp.boundary = p.size;
+    rp.size = p.size;
     rp.camera = p.camera;
     rp.viewport = p.viewport;
     *(loco_t::shape_t*)this = rp;
     base = p;
   }
 
-  void set_boundary(const fan::vec2& s) {
+  void set_size(const fan::vec2& s) {
     base.set_size(s);
-    gloco->responsive_text.set_boundary(*(loco_t::shape_t*)this, s);
+    gloco->responsive_text.set_size(*(loco_t::shape_t*)this, s);
    // responsive_text.set_size(s);
   }
 
@@ -75,35 +75,30 @@ int main() {
   pp.image = &image;
   
   pp.position = fan::vec2(400, 400);
-  pp.size = fan::vec2(100, 100);
+  pp.size = fan::vec2(300, 100);
   pp.color.a = 1;
   pp.blending = true;
 
-  loco_t::rectangle_t::properties_t rp;
-  rp.camera = &pile->camera;
-  rp.viewport = &pile->viewport;
-
-  rp.position = fan::vec3(400, 400, 0);
-  rp.size = fan::vec2(100);
-  rp.color = fan::colors::red;
-  
   sprite_responsive_t::properties_t rtp;
   rtp.camera = &pile->camera;
   rtp.viewport = &pile->viewport;
   rtp.position = fan::vec3(400, 400, 0);
-  rtp.text = "";
+  rtp.text = "g";
   rtp.font_size = 1;
-  rtp.boundary = fan::vec2(100, 100);
+  rtp.size = fan::vec2(300, 100);
   sprite_responsive_t shape(rtp, pp);
   
   fan::time::clock c;
   c.start();
   f32_t advance = 0;
-  shape.append_letter(L'g');
+  //shape.append_letter(L'g', true);
+  //shape.append_letter(L'g', true);
+  //shape.append_letter(L'g', true);
+  //shape.append_letter(L'2');
   //shape.append_letter(L')');
-  while (shape.append_letter(L'2')) {
+  //while (shape.append_letter(L'2')) {
 
-  }
+  //}
   
 //  fan::print("durumssalsa", gloco->responsive_text.line_list[gloco->responsive_text.tlist[shape.gdp4()].LineStartNR].total_width);
 
@@ -138,7 +133,7 @@ int main() {
   f32_t deltaer = 0;
   pile->loco.loop([&] {
     deltaer += pile->loco.get_delta_time() * 0.2    ;
-    shape.set_boundary(fan::vec2(std::abs(sin(deltaer)) * 100 + 25));
+    //shape.set_size(fan::vec2(std::abs(sin(deltaer)) * 100 + 25));
     //r0.set_position(pile->loco.get_mouse_position(pile->camera, pile->viewport));
   });
 

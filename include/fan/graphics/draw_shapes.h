@@ -1,4 +1,5 @@
-// <redraw key> <depth> <shape type> <rest of keys> == block manager
+// <redraw key> <depth> <shape type> <context key> == block manager
+// <redraw key, depth, shape type, context key> == block manager - problem is that depth needs order and other keys doesnt need
 
 /*
 * TODO light draw
@@ -7,10 +8,6 @@
 for (auto& i : m_draw_queue_light) {
   i();
 }
-
-#if defined(loco_light)
-light.draw();
-#endif
 
 typename loco_bdbt_Key_t<sizeof(redraw_key_t) * 8>::Traverse_t t0;
 t0.i(root);

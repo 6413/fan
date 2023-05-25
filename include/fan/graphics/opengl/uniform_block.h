@@ -170,14 +170,14 @@ namespace fan {
           m_size += sizeof(type_t);
         }
 
-        type_t* get_instance(fan::opengl::context_t* context, uint32_t i) {
+        type_t* get_instance(fan::opengl::context_t* context, uintptr_t i) {
           return (type_t*)&buffer[i * sizeof(type_t)];
         }
-        void get_vram_instance(fan::opengl::context_t* context, type_t* data, uint32_t i) {
+        void get_vram_instance(fan::opengl::context_t* context, type_t* data, uintptr_t i) {
           fan::opengl::core::get_glbuffer(context, data, common.m_vbo, sizeof(type_t), i * sizeof(type_t), op.target);
         }
         template <typename T>
-        void edit_instance(fan::opengl::context_t* context, memory_write_queue_t* wq, uint32_t i, T member, auto value) {
+        void edit_instance(fan::opengl::context_t* context, memory_write_queue_t* wq, uintptr_t i, T member, auto value) {
           #if fan_debug >= fan_debug_low
          /* if (i * sizeof(type_t) >= common.m_size) {
             fan::throw_error("uninitialized access");

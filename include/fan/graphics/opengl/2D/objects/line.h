@@ -97,11 +97,12 @@ struct line_t {
 
   void set_line(loco_t::cid_nt_t& id, const fan::vec3& src, const fan::vec3& dst) {
     auto v = sb_get_vi(id);
-    if (v.src.z != src.z) {
-      sb_set_depth(id, src.z);
-    }
     set(id, &vi_t::src, src);
     set(id, &vi_t::dst, dst);
+  }
+
+  fan::vec3 get_position(loco_t::cid_nt_t& id) {
+    return sb_get_vi(id).src;
   }
 
   properties_t get_properties(loco_t::cid_nt_t& id) {

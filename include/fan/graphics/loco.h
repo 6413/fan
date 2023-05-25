@@ -313,17 +313,18 @@ struct loco_t {
     static constexpr _t responsive_text = 13;
   };
 
+#pragma pack(push, 1)
+  template <typename T, bool order_matters = false>
+  struct make_key_t {
+    T data;
+    using key_t = loco_bdbt_Key_t<sizeof(decltype(data)) * 8, order_matters>;
+    typename key_t::KeySize_t key_size;
+    loco_bdbt_NodeReference_t key_nr;
+  };
+#pragma pack(pop)
+
   struct redraw_key_t {
     uint8_t blending;
-  };
-
-  struct draw_t {
-    uint64_t id;
-    std::vector<fan::function_t<void()>> f;
-    bool operator<(const draw_t& b) const
-    {
-      return id < b.id;
-    }
   };
 
   struct lighting_t {
@@ -1126,6 +1127,7 @@ public:
     inline shape_t(shape_t&& id) : inherit_t(std::move(id)) {
 
     }
+    
     loco_t::shape_t& operator=(const shape_t& id) {
       if (!is_invalid()) {
         erase();
@@ -1137,10 +1139,11 @@ public:
         gloco->shape_get_properties(*(shape_t*)&id, [&](const auto& properties) {
           init();
           gloco->push_shape(*this, properties);
-          });
+        });
       }
       return *this;
     }
+    
 
     loco_t::shape_t& operator=(shape_t&& id) {
       if (!is_invalid()) {
@@ -1328,6 +1331,7 @@ public:
   #undef sb_shape_var_name
   #endif
   #if defined(loco_text_box)
+  #define sb_mark 1
   #include _FAN_PATH(graphics/gui/fed.h)
   #define sb_shape_var_name text_box
   #include _FAN_PATH(graphics/gui/text_box.h)
@@ -1648,6 +1652,9 @@ public:
         #endif
         #if defined(loco_text_box)
         *types.get_value<text_box_t*>() = &text_box;
+        #endif
+        #if defined(loco_vfi)
+        *types.get_value<vfi_t*>() = &vfi;
         #endif
         #if defined(loco_pixel_format_renderer)
         *types.get_value<pixel_format_renderer_t*>() = &pixel_format_renderer;
@@ -1986,7 +1993,7 @@ public:
     #if defined(loco_button)
     , button_t*
     #endif
-    #if defined(loco_text)
+    #if defined(loco_letter)
     , letter_t*
     #endif
     #if defined(loco_text)
@@ -2012,6 +2019,9 @@ public:
     #endif
     #if defined(loco_pixel_format_renderer)
     , pixel_format_renderer_t*
+    #endif
+    #if defined(loco_vfi)
+    , vfi_t*
     #endif
   > types;
 
@@ -2040,7 +2050,7 @@ public:
 
   template <typename T>
   void push_shape(loco_t::cid_nt_t& id, T properties) {
-    if constexpr (std::is_same_v<loco_t::vfi_t::properties_t, T>) {
+    if constexpr (std::is_same_v<loco_t::vfi_t, typename T::type_t>) {
       loco_t::vfi_t::shape_id_t shape_id;
       (*types.get_value<typename T::type_t*>())->push_back(&shape_id, properties);
       id->shape_type = loco_t::shape_type_t::hitbox;
@@ -2167,13 +2177,8 @@ public:
       using shape_t = std::remove_pointer_t<std::remove_pointer_t<T>>; \
       if (shape_t::shape_type == id->shape_type) {\
         if constexpr (has_get_instance_v<shape_t, loco_t::cid_nt_t&>) { \
-          if constexpr(has_##name##_v<typename shape_t::properties_t>) {\
+          if constexpr(has_##name##_v<decltype((*shape)->get_instance(id))>) {\
             data = (*shape)->get_instance(id).name; \
-          }\
-        }\
-        else if constexpr (has_get_properties_v<shape_t, loco_t::cid_nt_t&>) { \
-          if constexpr(has_##name##_v<typename shape_t::properties_t>) {\
-            data = (*shape)->get_properties(id).name; \
           }\
         }\
         else if constexpr (has_get_##name##_v<shape_t, loco_t::cid_nt_t&>) {\
@@ -2182,6 +2187,11 @@ public:
         else if constexpr (has_get_v<shape_t, loco_t::cid_nt_t&, decltype(&comma_dummy_t::member_pointer)>) {\
           if constexpr(has_##name##_v<typename shape_t::properties_t>) {\
             data = (*shape)->get(id, &shape_t::vi_t::name); \
+          }\
+        }\
+        else if constexpr (has_get_properties_v<shape_t, loco_t::cid_nt_t&>) { \
+          if constexpr(has_##name##_v<typename shape_t::properties_t>) {\
+            data = (*shape)->get_properties(id).name; \
           }\
         }\
       }\
