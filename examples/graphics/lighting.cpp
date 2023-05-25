@@ -35,10 +35,10 @@ struct pile_t {
         fan::vec2 window_size = d.size;
       //fan::vec2 ratio = window_size / window_size.max();
       //std::swap(ratio.x, ratio.y);
-      viewport.set(loco.get_context(), 0, d.size, d.size);
+      viewport.set(0, d.size, d.size);
     });
-    viewport.open(loco.get_context());
-    viewport.set(loco.get_context(), 0, window_size, window_size);
+    viewport.open();
+    viewport.set(0, window_size, window_size);
   }
 
   loco_t loco;
@@ -59,10 +59,10 @@ int main() {
   p.viewport = &pile->viewport;
 
   loco_t::image_t image;
-  image.load(&pile->loco, "images/lighting.webp");
+  image.load("images/lighting.webp");
 
   loco_t::image_t image2;
-  image2.load(&pile->loco, "images/brick.webp");
+  image2.load("images/brick.webp");
   p.image = &image;
   p.position = fan::vec3(0, 0, 0);
   p.color.a = 1;
@@ -97,7 +97,7 @@ int main() {
 
   pile->loco.get_window()->add_keys_callback([&](const auto& d) {
     if (d.key == fan::key_left) {
-      camerapos.x -= 100;
+      camerapos.x -= 0.1;
       pile->camera.set_camera_position(camerapos);
     }
   if (d.key == fan::key_right) {

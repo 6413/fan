@@ -159,6 +159,29 @@ namespace fan {
         return iterate<depth + 1>(lambda);
       }
     }
+    template <uint32_t depth = count>
+    constexpr int reverse_iterate_ret(auto lambda) {
+      if constexpr (depth == 0) {
+        return depth;
+      }
+      else {
+        if (lambda(std::integral_constant<uint32_t, depth>{}, get_value<depth>())) {
+          return depth;
+        }
+        return reverse_iterate_ret<depth - 1>(lambda);
+      }
+      return depth;
+    }
+    template <uint32_t depth = count>
+    constexpr void reverse_iterate(auto lambda) {
+      if constexpr (depth == 0) {
+        return;
+      }
+      else {
+        lambda(std::integral_constant<uint32_t, depth>{}, get_value<depth>());
+        return reverse_iterate<depth - 1>(lambda);
+      }
+    }
     static constexpr size_t size() {
       return count + 1;
     }
@@ -222,6 +245,29 @@ namespace fan {
       }
       return count;
     }
+    template <uint32_t depth = count>
+    constexpr int reverse_iterate_ret(auto lambda) {
+      if constexpr (depth == 0) {
+        return depth;
+      }
+      else {
+        if (lambda(std::integral_constant<uint32_t, depth>{}, get_value<depth>())) {
+          return depth;
+        }
+        return reverse_iterate_ret<depth - 1>(lambda);
+      }
+      return depth;
+    }
+    template <uint32_t depth = count>
+    constexpr void reverse_iterate(auto lambda) {
+      if constexpr (depth == 0) {
+        return;
+      }
+      else {
+        lambda(std::integral_constant<uint32_t, depth>{}, get_value<depth>());
+        return reverse_iterate<depth - 1>(lambda);
+      }
+    }
   };
 
   template <typename... args>
@@ -229,11 +275,6 @@ namespace fan {
 
   #pragma pack(pop)
 }
-
-#include <iostream>
-#include <string>
-#include <tuple>
-#include <type_traits>
 
 #define fan_EVAL(...) __VA_ARGS__
 #define fan_EAT(...)

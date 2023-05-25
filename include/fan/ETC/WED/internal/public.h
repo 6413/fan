@@ -84,7 +84,7 @@ GetCharacterIndexByCharacterReference(
   return GetCharacterIndexByCharacterReference(
     LineReference,
     CharacterReference,
-    this->LineList[LineReference].CharacterList.src);
+    this->LineList[LineReference].CharacterList.GetNodeFirst());
 }
 
 void

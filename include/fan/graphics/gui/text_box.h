@@ -8,6 +8,7 @@ struct text_box_t {
     static constexpr fan::color color = fan::color(1, 1, 1, 0.8);
   };
 
+  static constexpr f32_t boundary_multiplier = 0.99;
   static constexpr f32_t released = 1.0;
   static constexpr f32_t hovered = 1.2;
   static constexpr f32_t pressed = 1.4;
@@ -45,7 +46,7 @@ struct text_box_t {
 
     auto theme = gloco->text_box.get_theme(p.theme);
     loco_t::responsive_text_t::properties_t tp;
-    tp.boundary = p.size / 2; // pad
+    tp.size = p.size * boundary_multiplier; // pad
     tp.color = theme->button.text_color;
     tp.font_size = 1;
     tp.position = p.position;
@@ -277,13 +278,15 @@ struct text_box_t {
     auto& ri = sb_get_ri(id);
     wed_t::CursorInformation_t ci;
     auto& fed = ri.fed;
-    cursor.set_camera(get_properties(id).camera);
-    cursor.set_viewport(get_properties(id).viewport);
+    auto properties = get_properties(id);
+    fan::time::clock c;
+    c.start();
     fed.m_wed.GetCursorInformation(fed.m_cr, &ci);
-    fan::vec3 p = get_properties(id).position;
+    fan::vec3 p = properties.position;
     p.z += 1;
-    if (!sb_get_ri(id).text_id.m_text_lines[0].get_text().empty()) {
-      f32_t font_size = sb_get_ri(id).text_id.m_text_lines[0].get_font_size();
+    fan::print(c.elapsed());
+    if (!gloco->responsive_text.get_text(sb_get_ri(id).text_id).empty()) {
+      f32_t font_size = gloco->responsive_text.get_instance(sb_get_ri(id).text_id).font_size;
       ri.fed.set_font_size(ci.FreeStyle.LineReference, font_size);
     }
     // set_font_size invalidates ci so need to refetch it
@@ -306,7 +309,7 @@ struct text_box_t {
       }
     }
     cursor.set_position(p);
-    cursor.set_size(cursor_properties::size * (gloco->get_camera_view_size(*get_properties(id).camera) * 2));
+    cursor.set_size(cursor_properties::size * (gloco->get_camera_view_size(*properties.camera) * 2));
     gloco->ev_timer.stop(&timer);
     render_cursor = true;
     fan::ev_timer_t::cb_data_t d;
@@ -371,8 +374,8 @@ struct text_box_t {
     set(id, &vi_t::outline_size, t.button.outline_size);
     auto& ri = sb_get_ri(id);
     ri.theme = theme;
-    sb_get_ri(id).text_id.m_text_lines[0].set_outline_color(t.button.text_outline_color);
-    sb_get_ri(id).text_id.m_text_lines[0].set_outline_size(t.button.text_outline_size);
+    sb_get_ri(id).text_id.set_outline_color(t.button.text_outline_color);
+    sb_get_ri(id).text_id.set_outline_size(t.button.text_outline_size);
   }
 
   template <typename T>
@@ -389,10 +392,10 @@ struct text_box_t {
   //  loco_t* loco = get_loco();
   //  return loco->text.get(sb_get_ri(id).text_id, member);
   //}
-  template <typename T, typename T2>
-  void set_text_renderer(loco_t::cid_nt_t& id, T loco_t::letter_t::vi_t::* member, const T2& value) {
-    gloco->text.set(sb_get_ri(id).text_id, member, value);
-  }
+  //template <typename T, typename T2>
+  //void set_text_renderer(loco_t::cid_nt_t& id, T loco_t::letter_t::vi_t::* member, const T2& value) {
+  //  gloco->text.set(sb_get_ri(id).text_id, member, value);
+  //}
 
   void set_position(loco_t::cid_nt_t& id, const fan::vec3& position) {
     auto& ri = sb_get_ri(id);
@@ -412,11 +415,7 @@ struct text_box_t {
       &loco_t::vfi_t::set_rectangle_t::size,
       size
     );
-    ri.text_id.set_size(size / 2); // pad
-  }
-
-  void set_font_size(loco_t::cid_nt_t& id, f32_t font_size) {
-    gloco->text.set_font_size(sb_get_ri(id).text_id.m_text_lines[0], font_size);
+    ri.text_id.set_size(size * boundary_multiplier); // pad
   }
 
  /* loco_t::camera_t* get_camera(loco_t::cid_nt_t& id) {
@@ -460,33 +459,36 @@ struct text_box_t {
   }
 
   fan::string get_text(loco_t::cid_nt_t& id) {
-    return gloco->text.get_instance(sb_get_ri(id).text_id.m_text_lines[0]).text;
+    return gloco->responsive_text.get_text(sb_get_ri(id).text_id);
   }
   void set_text(loco_t::cid_nt_t& id, const fan::string& text) {
     auto& ri = sb_get_ri(id);
-    gloco->text.set_text(ri.text_id.m_text_lines[0], text);
+    gloco->responsive_text.set_text(ri.text_id, text);
     ri.fed.set_text(text);
   }
 
   fan::vec3 get_text_left_position(loco_t::cid_nt_t& id) {
-    f32_t text_length = sb_get_ri(id).text_id.m_text_lines[0].get_text_size().x;
-    fan::vec3 center = get_button(id, &text_box_t::vi_t::position);
-    center.x -= text_length * 0.5;
-    return center;
+    //f32_t text_length = sb_get_ri(id).text_id.m_text_lines[0].get_text_size().x;
+//    fan::vec3 center = get_button(id, &text_box_t::vi_t::position);
+  //  center.x -= text_length * 0.5;
+    ///return center;
+    return gloco->responsive_text.get_text_left_position(sb_get_ri(id).text_id);
   }
 
   fan::vec3 get_character_position(loco_t::cid_nt_t& id, uint32_t line, uint32_t width) {
     fan::vec3 center = get_button(id, &text_box_t::vi_t::position);
     if (width == 0) {
       
-      if (gloco->text.get_instance(sb_get_ri(id).text_id.m_text_lines[0]).text.empty()) {
+      if (gloco->responsive_text.get_text(sb_get_ri(id).text_id).empty()) {
         return center;
       }
     }
-    //fan::print(width);
     fan::vec3 p = get_text_left_position(id);
-    const fan::string& text = gloco->text.get_instance(sb_get_ri(id).text_id.m_text_lines[0]).text;
-    f32_t font_size = gloco->text.get_instance(sb_get_ri(id).text_id.m_text_lines[0]).font_size;
+    const fan::string& text = gloco->responsive_text.get_text(sb_get_ri(id).text_id);
+    wed_t::CursorInformation_t ci;
+    auto& fed = sb_get_ri(id).fed;
+    fed.m_wed.GetCursorInformation(fed.m_cr, &ci);
+    f32_t font_size = gloco->responsive_text.get_instance(sb_get_ri(id).text_id).font_size;
     fan::string measured_string;
     for (uint32_t i = 0; i < width; ++i) {
       measured_string += text.get_utf8(i);
@@ -496,16 +498,21 @@ struct text_box_t {
     return p;
   }
 
-  void append_letter(loco_t::cid_nt_t& id, wchar_t wc){
+  bool append_letter(loco_t::cid_nt_t& id, wchar_t wc, bool force = true){
+
     auto& ri = gloco->text_box.sb_get_ri(id);
 
+    ri.fed.freestyle_move_line_end();
     ri.fed.add_character(wc);
     wed_t::CursorInformation_t ci;
     auto& fed = sb_get_ri(id).fed;
     fed.m_wed.GetCursorInformation(fed.m_cr, &ci);
+
     switch (ci.type) {
       case wed_t::CursorType::FreeStyle: {
-        gloco->text_box.set_text(id, ri.fed.get_text(ci.FreeStyle.LineReference));
+
+        ri.text_id.append_letter(wc, true);
+
         break;
       }
       case wed_t::CursorType::Selection: {
@@ -513,7 +520,10 @@ struct text_box_t {
         break;
       }
     }
+
     update_cursor(id);
+
+    return true;
   }
 
   fan::ev_timer_t::timer_t timer = fan::function_t<void(const fan::ev_timer_t::cb_data_t&)>([this](const fan::ev_timer_t::cb_data_t& c) {
@@ -561,23 +571,24 @@ struct text_box_t {
     }
   }
 
-  // dont edit values
-  loco_t::text_t::properties_t get_text_instance(loco_t::cid_nt_t& id) {
+  auto get_text_instance(loco_t::cid_nt_t& id) {
     auto& ri = sb_get_ri(id);
-    return gloco->text.get_instance(ri.text_id.m_text_lines[0]);
+    return gloco->responsive_text.get_instance(ri.text_id);
   }
 
   // can be incomplete
+  /*
   properties_t get_properties(loco_t::cid_nt_t& id) {
     properties_t p = sb_get_properties(id);
     p.camera = gloco->camera_list[*p.key.get_value<loco_t::camera_list_NodeReference_t>()].camera_id;
     //p.theme =  gloco->get_context()->theme_list[*p.key.get_values<loco_t::t>()].matrices_id;
     p.viewport = gloco->get_context()->viewport_list[*p.key.get_value<fan::graphics::viewport_list_NodeReference_t>()].viewport_id;
     p.position = get_text_instance(id).position;
-    p.text = get_text_instance(id).text;
+    p.text = gloco->responsive_text.get_text(sb_get_ri(id).text_id);
     p.font_size = get_text_instance(id).font_size;
     return p;
   }
+  */
 
   #if defined(loco_vulkan)
     uint32_t m_camera_index = 0;

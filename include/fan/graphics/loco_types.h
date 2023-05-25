@@ -130,10 +130,11 @@
 \
     struct key_t : parsed_masterpiece_t {}key;
 
+// todo make text_id raw nr to prevent hard copy in ri_t copy
 #define loco_button_ri_t \
   uint8_t selected = 0; \
   loco_t::theme_t* theme = 0; \
-  loco_t::responsive_text_t text_id; \
+  loco_t::shape_t text_id; \
   loco_t::vfi_t::shape_id_t vfi_id; \
   uint64_t udata; \
   loco_t::mouse_button_cb_t mouse_button_cb = [](const loco_t::mouse_button_data_t&) -> int { return 0; }; \
@@ -171,13 +172,14 @@
     >; \
     struct key_t : parsed_masterpiece_t {}key;
 
+// todo make text_id raw nr to prevent hard copy in ri_t copy
 #define loco_text_box_ri_t \
     uint8_t selected = 0; \
     fan::graphics::theme_list_NodeReference_t theme; \
     loco_t::vfi_t::shape_id_t vfi_id; \
     uint64_t udata; \
  \
-    loco_t::responsive_text_t text_id; \
+    loco_t::shape_t text_id; \
     fed_t fed; \
     bool blending = false;
 
