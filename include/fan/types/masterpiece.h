@@ -114,15 +114,34 @@ namespace fan {
 
     template <uint32_t i, typename _Ty = masterpiece_reversed_t<T, Rest...>, uint32_t depth = count>
     constexpr auto get_value(_Ty* a = nullptr) const {
-      if constexpr (depth == count) {
-        a = this;
-      }
-      if constexpr (i == depth) {
-        return &a->x_;
-      }
-      if constexpr (depth > i) {
-        return get_value<i, typename _Ty::base, depth - 1>(a);
-      }
+      return get_value<i, _Ty>(a);
+    }
+
+    T* get_single() {
+      return &x_;
+    }
+
+    template<size_t ...Is>
+    constexpr void internal_get_runtime_value(std::index_sequence<Is...>, size_t i, const auto& lambda) {
+      ((void)(Is == i && (lambda(get_value<Is>()), true)), ...);
+    }
+
+    template<size_t ...Is>
+    constexpr auto internal_get_runtime_value(std::index_sequence<Is...>, size_t i) {
+      auto lambda = [](const auto& d) ->int {
+        return d;
+      };
+      ((void)(Is == i && ( lambda(get_value<Is>()), true)), ...);
+    }
+    
+    constexpr void get_value(size_t idx, const auto& lambda)
+    {
+      internal_get_runtime_value(std::make_index_sequence<size()>{}, idx, lambda);
+    }
+
+    constexpr auto get_value(size_t idx)
+    {
+      return internal_get_runtime_value(std::make_index_sequence<size()>{}, idx);
     }
 
     template <typename get_type, typename _Ty = masterpiece_reversed_t<T, Rest...>, uint32_t depth = count>

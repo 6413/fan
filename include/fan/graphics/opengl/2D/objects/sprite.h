@@ -10,19 +10,20 @@ struct sb_sprite_name {
     loco_sprite_vi_t
   };
 
-  struct bm_properties_t {
+  struct context_key_t {
     loco_sprite_bm_properties_t
   };
   
   struct cid_t;
 
-  struct ri_t : bm_properties_t {
+  struct ri_t {
     loco_sprite_ri_t
   };
 
   struct properties_t : vi_t, ri_t {
     using type_t = sb_sprite_name;
     loco_sprite_properties_t
+    loco_sprite_bm_properties_t
   };
 
   void push_back(loco_t::cid_nt_t& id, properties_t p) {
@@ -105,7 +106,7 @@ struct sb_sprite_name {
 
   void set_image(loco_t::cid_nt_t& id, loco_t::textureid_t<0> n) {
   #if defined(loco_opengl)
-    sb_set_key<bm_properties_t::key_t::get_index_with_type<loco_t::textureid_t<0>>()>(id, n);
+    sb_set_context_key<context_key_t::key_t::get_index_with_type<loco_t::textureid_t<0>>()>(id, n);
   #else
     auto loco = get_loco();
     auto& img = loco->image_list[n];
@@ -118,12 +119,6 @@ struct sb_sprite_name {
 
   properties_t get_properties(loco_t::cid_nt_t& id) {
     properties_t p = sb_get_properties(id);
-    p.camera = gloco->camera_list[*p.key.get_value<loco_t::camera_list_NodeReference_t>()].camera_id;
-    p.viewport = gloco->get_context()->viewport_list[*p.key.get_value<fan::graphics::viewport_list_NodeReference_t>()].viewport_id;
-    //loco_t::image_t image;
-    //image.texture_reference = ;
-    //*
-    p.image = gloco->image_list[*p.key.get_value<loco_t::textureid_t<0>>()].image;
     return p;
   }
 

@@ -260,7 +260,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="examples\graphics\unit_test.cpp" />
+    <ClCompile Include="Source.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -316,8 +316,18 @@
     <None Include="src\dav1d\x86\refmvs.asm" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\WITCH\BDBT\internal\Key\cpp\q.h" />
     <ClInclude Include="..\WITCH\BLL\internal\NodeReference.h" />
     <ClInclude Include="..\WITCH\BLL\internal\rest.h" />
+    <ClInclude Include="include\fan\BDBT\BDBT.h" />
+    <ClInclude Include="include\fan\BDBT\internal\Key\cpp.h" />
+    <ClInclude Include="include\fan\BDBT\internal\Key\cpp\a.h" />
+    <ClInclude Include="include\fan\BDBT\internal\Key\cpp\q.h" />
+    <ClInclude Include="include\fan\BDBT\internal\Key\cpp\r.h" />
+    <ClInclude Include="include\fan\BDBT\internal\Key\cpp\t.h" />
+    <ClInclude Include="include\fan\BDBT\internal\Key\Key.h" />
+    <ClInclude Include="include\fan\BDBT\internal\Key\rest.h" />
+    <ClInclude Include="include\fan\BDBT\internal\rest.h" />
     <ClInclude Include="include\fan\event\event.h" />
     <ClInclude Include="include\fan\graphics\gui\fgm\shapes.h" />
     <ClInclude Include="include\fan\graphics\gui\model_maker\loader.h" />

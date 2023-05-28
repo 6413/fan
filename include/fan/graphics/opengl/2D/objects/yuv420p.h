@@ -14,7 +14,7 @@ struct sb_sprite_name {
     fan::vec2 tc_size = 1;
   };
 
-   struct bm_properties_t {
+   struct context_key_t {
     using parsed_masterpiece_t = fan::masterpiece_t<
       uint16_t,
       loco_t::textureid_t<0>,
@@ -30,7 +30,7 @@ struct sb_sprite_name {
 
   #define sb_cid sb_pfr_name::cid_t
 
-  struct ri_t : bm_properties_t {
+  struct ri_t {
     cid_t* cid;
   };
 
@@ -38,6 +38,17 @@ struct sb_sprite_name {
     type& name = *key.get_value<decltype(key)::get_index_with_type<type>()>();
 
   struct properties_t : vi_t, ri_t {
+
+    /*todo cloned from context_key_t - make define*/
+    using parsed_masterpiece_t = fan::masterpiece_t<
+      uint16_t,
+      loco_t::textureid_t<0>,
+      loco_t::textureid_t<1>,
+      loco_t::textureid_t<2>,
+      loco_t::camera_list_NodeReference_t,
+      fan::graphics::viewport_list_NodeReference_t
+    >;
+    struct key_t : parsed_masterpiece_t {}key;
 
     loco_t::image_t* y = 0;
     loco_t::image_t* u = 0;

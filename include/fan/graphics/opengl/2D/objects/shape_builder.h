@@ -19,6 +19,27 @@
   loco_bdbt_NodeReference_t key_root;
 #endif
 
+using key_t = fan::masterpiece_t <
+  #if sb_ignore_3_key == 0
+  loco_t::redraw_key_t,
+  uint16_t,
+  loco_t::shape_type_t::_t,
+  #endif
+  context_key_t
+>;
+static constexpr bool key_equality_assert = fan::assert_equality_v<sizeof(key_t), (
+  sizeof(context_key_t) +
+  sizeof(loco_t::shape_type_t::_t) * (sb_ignore_3_key == 0) +
+  sizeof(uint16_t) * (sb_ignore_3_key == 0) +
+  sizeof(loco_t::redraw_key_t) * (sb_ignore_3_key == 0)
+)>;
+
+struct block_element_t {
+  key_t key;
+  uint8_t vi[sizeof(vi_t)];
+  ri_t ri;
+};
+
 struct block_t {
   void open(loco_t* loco, auto* shape) {
     uniform_buffer.open(gloco->get_context());
@@ -33,7 +54,7 @@ struct block_t {
 
   fan::opengl::core::uniform_block_t<vi_t, max_instance_size> uniform_buffer;
   loco_t::cid_nt_t id[max_instance_size];
-  ri_t p[max_instance_size];
+  ri_t ri[max_instance_size];
 };
 
 protected:
@@ -48,8 +69,7 @@ protected:
   //#define BLL_set_StoreFormat1_alloc_open malloc
   //#define BLL_set_StoreFormat1_alloc_close free
   #define BLL_set_type_node uint16_t
-  #define BLL_set_NodeData \
-    block_t block;
+  #define BLL_set_NodeDataType block_t
   #include _FAN_PATH(BLL/BLL.h)
 
   bll_block_t blocks;
@@ -63,7 +83,7 @@ protected:
   #define BLL_set_NodeData \
     bll_block_NodeReference_t first_block; \
     bll_block_NodeReference_t last_block; \
-    bm_properties_t instance_properties;
+    key_t key;
   #include _FAN_PATH(BLL/BLL.h)
 
   shape_bm_t bm_list;
@@ -75,11 +95,191 @@ protected:
     loco_t::redraw_key_t redraw_key;
     uint16_t depth;
     loco_t::shape_type_t::_t shape_type;
-    bm_properties_t::key_t shape_key;
+    context_key_t::key_t shape_key;
   };
   #pragma pack(pop)
 
 public:
+
+  void suck_block_element(loco_t::cid_nt_t& id, auto&&... suckers) {
+
+    auto bm_id = *(shape_bm_NodeReference_t*)&id->bm_id;
+    auto bm_node = bm_list.GetNodeByReference(bm_id);
+
+    auto block_id = *(bll_block_NodeReference_t*)&id->block_id;
+    auto block_node = blocks.GetNodeByReference(block_id);
+    auto block = &block_node->data;
+
+    auto instance_id = id->instance_id;
+
+    auto& last_block_id = bm_node->data.last_block;
+    auto* last_block_node = blocks.GetNodeByReference(last_block_id);
+    block_t* last_block = &last_block_node->data;
+    uint32_t last_instance_id = last_block->uniform_buffer.size() - 1;
+
+    if constexpr (sizeof...(suckers)) {
+
+      block_element_t* block_element = fan::get_variadic_element<0>(suckers...);
+
+      vi_t* current_vi = &((vi_t*)block->uniform_buffer.buffer)[instance_id];
+      ri_t* current_ri = &block->ri[instance_id];
+
+      block_element->key = bm_node->data.key;
+
+      std::memcpy(
+        &block_element->vi,
+        current_vi,
+        sizeof(fan::get_variadic_element<0>(suckers...)->vi)
+      );
+      std::memcpy(
+        &block_element->ri,
+        current_ri,
+        sizeof(fan::get_variadic_element<0>(suckers...)->ri)
+      );
+    }
+
+    if (block_id == last_block_id && instance_id == block->uniform_buffer.size() - 1) {
+      block->uniform_buffer.m_size -= sizeof(vi_t);
+      if (block->uniform_buffer.size() == 0) {
+        auto lpnr = block_node->PrevNodeReference;
+        if (last_block_id == bm_node->data.first_block) {
+          if constexpr (sizeof...(suckers)) {
+            sb_erase_key_from(id, suckers...);
+          }
+          else {
+            sb_erase_key_from(id);
+          }
+
+          bm_list.Recycle(bm_id);
+        }
+        else {
+          last_block_id = lpnr;
+        }
+        block->close(gloco);
+        blocks.Unlink(block_id);
+        blocks.Recycle(block_id);
+      }
+    }
+    else {
+      vi_t* last_instance_data = last_block->uniform_buffer.get_instance(gloco->get_context(), last_instance_id);
+
+      block->uniform_buffer.copy_instance(
+        gloco->get_context(),
+        &gloco->m_write_queue,
+        instance_id,
+        last_instance_data
+      );
+
+      last_block->uniform_buffer.m_size -= sizeof(vi_t);
+
+      block->ri[instance_id] = std::move(last_block->ri[last_instance_id]);
+
+      block->id[instance_id] = last_block->id[last_instance_id];
+      block->id[instance_id]->block_id = block_id.NRI;
+      block->id[instance_id]->instance_id = instance_id;
+
+      if (last_block->uniform_buffer.size() == 0) {
+        auto lpnr = last_block_node->PrevNodeReference;
+
+        last_block->close(gloco);
+        blocks.Unlink(last_block_id);
+        blocks.Recycle(last_block_id);
+
+        bm_node->data.last_block = lpnr;
+      }
+    }
+  }
+
+  void get_block_id_from_push(
+    shape_bm_NodeReference_t &bm_id,
+    bll_block_NodeReference_t& block_id,
+    auto& key/*,
+    uint32_t key_index = 0,
+    loco_bdbt_NodeReference_t key_nr(1),
+    uint32_t key_type_index = 0*/
+  ) {
+    using key_t = std::remove_reference_t<decltype(key)>;
+    do{
+      loco_bdbt_NodeReference_t key_nr =
+        #if sb_has_own_key_root == 1
+          key_root
+        #else
+          gloco->root
+        #endif
+      ;
+
+      key.iterate_ret([&]<typename T>(const auto & i, const T & data) -> int {
+        typename decltype(data->k)::KeySize_t ki;
+        data->k.q(&gloco->bdbt, &data->data, &ki, &key_nr);
+        if constexpr (i.value == key_t::size() - 1) {
+          if (ki != sizeof(decltype(data->data)) * 8) {
+            bm_id = push_new_bm(key);
+            data->k.a(&gloco->bdbt, &data->data, ki, key_nr, bm_id.NRI);
+          }
+          else {
+            bm_id.NRI = key_nr;
+          }
+        }
+        else {
+          if (ki != sizeof(decltype(data->data)) * 8) {
+            auto o0 = loco_bdbt_NewNode(&gloco->bdbt);
+            data->k.a(&gloco->bdbt, &data->data, ki, key_nr, o0);
+            iterate_keys<key_t::size(), i.value + 1>(key, bm_id, i, o0);
+            return 1;
+          }
+        }
+        return 0;
+      });
+
+    }while (0);
+
+    auto& bm = bm_list[bm_id];
+    block_id = bm.last_block;
+    auto block = &blocks[block_id];
+
+    if (block->uniform_buffer.size() == max_instance_size) {
+      block_id = blocks.NewNode();
+      blocks.linkNext(bm.last_block, block_id);
+      bm.last_block = block_id;
+      block = &blocks[block_id];
+      block->open(gloco, this);
+    }
+  }
+
+  //void unsuck_block_element(
+  //  loco_t::cid_nt_t& id,
+  //  block_element_t& block_element,
+  //  uint32_t& key_size,
+  //  loco_bdbt_NodeReference_t& key_nr,
+  //  uint32_t& key_type_index
+  //) {
+
+  //  shape_bm_NodeReference_t bm_id;
+  //  bll_block_NodeReference_t block_id;
+  //  get_block_id_from_push(bm_id, block_id/*, key, key_size, key_nr, key_type_index*/);
+
+  //  auto block = &blocks[block_id];
+  //  block->uniform_buffer.push_ram_instance(gloco->get_context(), *(vi_t*)block_element.vi);
+
+  //  const uint32_t instance_id = block->uniform_buffer.size() - 1;
+
+  //  block->id[instance_id] = id;
+
+  //  block->uniform_buffer.common.edit(
+  //    gloco->get_context(),
+  //    &gloco->m_write_queue,
+  //    instance_id * sizeof(vi_t),
+  //    instance_id * sizeof(vi_t) + sizeof(vi_t)
+  //  );
+
+
+  //  id->bm_id = bm_id.NRI;
+  //  id->block_id = block_id.NRI;
+  //  id->instance_id = instance_id;
+  //  id->shape_type = shape_type;
+
+  //  block->ri[instance_id] = std::move(block_element.ri);
+  //}
 
   struct cid_t {
     union {
@@ -193,117 +393,70 @@ public:
 
   struct block_t;
 
-  shape_bm_NodeReference_t push_new_bm(const properties_t& p) {
+  /*
+  using key_t = fan::masterpiece_t <
+  #if sb_ignore_3_key == 0
+  loco_t::redraw_key_t,
+  uint16_t,
+  loco_t::shape_type_t::_t,
+  #endif
+  context_key_t
+>;
+  */
+
+  shape_bm_NodeReference_t push_new_bm(auto& key) {
     auto lnr = bm_list.NewNode();
     auto ln = &bm_list[lnr];
     ln->first_block = blocks.NewNodeLast();
-    blocks[ln->first_block].block.open(gloco, this);
+    blocks[ln->first_block].open(gloco, this);
     ln->last_block = ln->first_block;
-    ln->instance_properties = *(bm_properties_t*)&p;
+    ln->key.iterate([&](const auto& i, const auto& data) {
+      *data = key.template get_value<i.value>()->data;
+    });
     return lnr;
   }
+
+  template <uint16_t max_depth, uint16_t depth = 0>
+  constexpr void iterate_keys(auto& key, auto& bm_id, auto & i, auto old_o) {
+    if constexpr (depth == max_depth) {
+      return;
+    }
+    if constexpr (depth != max_depth - 1) {
+      auto o = loco_bdbt_NewNode(&gloco->bdbt);
+      key.template get_value<depth>()->k.a(&gloco->bdbt, &key.template get_value<depth>()->data, 0, old_o, o);
+      iterate_keys<max_depth, depth + 1>(key, bm_id, i, o);
+    }
+    else {
+      bm_id = push_new_bm(key);
+      key.template get_value<depth>()->k.a(&gloco->bdbt, &key.template get_value<depth>()->data, 0, old_o, bm_id.NRI);
+    }
+  };
 
   // STRUCT MANUAL PADDING IS REQUIRED (32 BIT)
   block_t* sb_push_back(loco_t::cid_nt_t& id, const properties_t& p) {
 
-    shape_bm_NodeReference_t bm_id;
-
-    // todo compress 
-    do{
-      loco_bdbt_NodeReference_t key_nr =
-        #if sb_has_own_key_root == 1
-          key_root
-        #else
-          gloco->root
-        #endif
-      ;
-
-      loco_bdbt_Key_t<sizeof(bm_properties_t::key_t) * 8> k3;
-      typename decltype(k3)::KeySize_t ki3;
-
+    fan::masterpiece_t <
       #if sb_ignore_3_key == 0
-        loco_t::shape_type_t::_t st = shape_type;
-        loco_bdbt_Key_t<sizeof(loco_t::shape_type_t::_t) * 8> k2;
-        typename decltype(k2)::KeySize_t ki2;
-
-        uint16_t depth = p.sb_depth_var.z;
-        loco_bdbt_Key_t<sizeof(uint16_t) * 8, true> k1;
-        typename decltype(k1)::KeySize_t ki1;
-
-        loco_t::redraw_key_t redraw_key;
-        redraw_key.blending = p.blending;
-        loco_bdbt_Key_t<sizeof(loco_t::redraw_key_t) * 8> k0;
-        typename decltype(k0)::KeySize_t ki0;
+      loco_t::make_push_key_t<loco_t::redraw_key_t>,
+      loco_t::make_push_key_t<uint16_t, true>,
+      loco_t::make_push_key_t<loco_t::shape_type_t::_t>,
       #endif
+      loco_t::make_push_key_t<context_key_t>
+    >key{
+    #if sb_ignore_3_key == 0
+      loco_t::make_push_key_t<loco_t::redraw_key_t>{.data = {.blending = p.blending}},
+      loco_t::make_push_key_t<uint16_t, true>{.data = (uint16_t)p.sb_depth_var.z},
+      {.data = shape_type },
+    #endif
+      {.data = p.key}
+    };
 
-      #if sb_ignore_3_key == 0
-        k0.q(&gloco->bdbt, &redraw_key, &ki0, &key_nr);
-        if (ki0 != sizeof(loco_t::redraw_key_t) * 8) {
-          auto o0 = loco_bdbt_NewNode(&gloco->bdbt);
-          k0.a(&gloco->bdbt, &redraw_key, ki0, key_nr, o0);
+		shape_bm_NodeReference_t bm_id;
+		bll_block_NodeReference_t block_id;
+		get_block_id_from_push(bm_id, block_id, key);
 
-          auto o1 = loco_bdbt_NewNode(&gloco->bdbt);
-          k1.a(&gloco->bdbt, &depth, 0, o0, o1);
-
-          auto o2 = loco_bdbt_NewNode(&gloco->bdbt);
-          k2.a(&gloco->bdbt, &st, 0, o1, o2);
-
-          bm_id = push_new_bm(p);
-          k3.a(&gloco->bdbt, &p.key, 0, o2, bm_id.NRI);
-
-          break;
-        }
-
-        k1.q(&gloco->bdbt, &depth, &ki1, &key_nr);
-        if (ki1 != sizeof(uint16_t) * 8) {
-          auto o1 = loco_bdbt_NewNode(&gloco->bdbt);
-          k1.a(&gloco->bdbt, &depth, ki1, key_nr, o1);
-
-          auto o2 = loco_bdbt_NewNode(&gloco->bdbt);
-          k2.a(&gloco->bdbt, &st, 0, o1, o2);
-
-          bm_id = push_new_bm(p);
-          k3.a(&gloco->bdbt, &p.key, 0, o2, bm_id.NRI);
-
-          break;
-        }
-
-        k2.q(&gloco->bdbt, &st, &ki2, &key_nr);
-        if (ki2 != sizeof(loco_t::shape_type_t::_t) * 8) {
-          auto o2 = loco_bdbt_NewNode(&gloco->bdbt);
-          k2.a(&gloco->bdbt, &st, ki2, key_nr, o2);
-
-          bm_id = push_new_bm(p);
-          k3.a(&gloco->bdbt, &p.key, 0, o2, bm_id.NRI);
-
-          break;
-        }
-      #endif
-
-      k3.q(&gloco->bdbt, &p.key, &ki3, &key_nr);
-      if (ki3 != sizeof(bm_properties_t::key_t) * 8) {
-        bm_id = push_new_bm(p);
-        k3.a(&gloco->bdbt, &p.key, ki3, key_nr, bm_id.NRI);
-      }
-      else {
-        bm_id.NRI = key_nr;
-      }
-
-    }while (0);
-
-    vi_t it = p;
-    shape_bm_Node_t* bmn = bm_list.GetNodeByReference(bm_id);
-    block_t* last_block = &blocks[bmn->data.last_block].block;
-
-    if (last_block->uniform_buffer.size() == max_instance_size) {
-      auto nnr = blocks.NewNode();
-      blocks.linkNext(bmn->data.last_block, nnr);
-      bmn->data.last_block = nnr;
-      last_block = &blocks[bmn->data.last_block].block;
-      last_block->open(gloco, this);
-    }
-    block_t* block = last_block;
-    block->uniform_buffer.push_ram_instance(gloco->get_context(), it);
+    auto block = &blocks[block_id];
+    block->uniform_buffer.push_ram_instance(gloco->get_context(), *dynamic_cast<const vi_t*>(&p));
 
     const uint32_t instance_id = block->uniform_buffer.size() - 1;
 
@@ -318,47 +471,43 @@ public:
 
 
     id->bm_id = bm_id.NRI;
-    id->block_id = bmn->data.last_block.NRI;
+    id->block_id = block_id.NRI;
     id->instance_id = instance_id;
-    id->shape_type = -1;
+    id->shape_type = shape_type;
 
-    gloco->types.iterate([&]<typename T>(auto shape_index, T shape) {
-      using shape_t = std::remove_pointer_t<std::remove_pointer_t<T>>;
-      if constexpr (std::is_same_v<shape_t, std::remove_reference_t<decltype(*this)>>) {
-        id->shape_type = shape_t::shape_type;
-      }
-    });
-
-    block->p[instance_id] = *(ri_t*)&p;
+    block->ri[instance_id] = std::move(*(ri_t*)&p);
     return block;
   }
 
-  void sb_erase_key_from(loco_t::cid_nt_t& id, shape_bm_Node_t* bm_node) {
+  void sb_erase_key_from(loco_t::cid_nt_t& id, auto&& ...suckers) {
+    auto bm_id = *(shape_bm_NodeReference_t*)&id->bm_id;
+    auto bm_node = bm_list.GetNodeByReference(bm_id);
+
     loco_bdbt_NodeReference_t key_nr =
       #if sb_has_own_key_root == 1
-      key_root
+        key_root
       #else
-      gloco->root
+        gloco->root
       #endif
-      ;
+    ;
 
     fan::masterpiece_t <
       #if sb_ignore_3_key == 0
-      loco_t::make_key_t<loco_t::redraw_key_t>,
-      loco_t::make_key_t<uint16_t, true>,
-      loco_t::make_key_t<loco_t::shape_type_t::_t>,
+      loco_t::make_erase_key_t<loco_t::redraw_key_t>,
+      loco_t::make_erase_key_t<uint16_t, true>,
+      loco_t::make_erase_key_t<loco_t::shape_type_t::_t>,
       #endif
-      loco_t::make_key_t<bm_properties_t::key_t>
-    > iterator{
+      loco_t::make_erase_key_t<context_key_t::key_t>
+    > key{
     #if sb_ignore_3_key == 0
-      loco_t::make_key_t<loco_t::redraw_key_t>{.data = {.blending = sb_get_ri(id).blending}},
-      loco_t::make_key_t<uint16_t, true>{.data = (uint16_t)sb_get_vi(id).sb_depth_var.z},
+      loco_t::make_erase_key_t<loco_t::redraw_key_t>{.data = {.blending = sb_get_ri(id).blending}},
+      loco_t::make_erase_key_t<uint16_t, true>{.data = (uint16_t)sb_get_vi(id).sb_depth_var.z},
       {.data = shape_type },
     #endif
-      {.data = bm_node->data.instance_properties.key}
+      {.data = bm_node->data.key.get_value<context_key_t>()->key}
     };
 
-    iterator.iterate([&]<typename T>(const auto & i, const T & data) {
+    key.iterate([&]<typename T>(const auto & i, const T & data) {
       data->key_nr = key_nr;
       typename std::remove_pointer_t<T>::key_t k;
       k.q(&gloco->bdbt, &data->data, &data->key_size, &key_nr);
@@ -369,90 +518,47 @@ public:
       #endif
     });
 
-    iterator.reverse_iterate_ret([&]<typename T>(const auto & i, const T & data) -> int {
+    loco_bdbt_NodeReference_t last_key_nr;
+
+    int depth = key.reverse_iterate_ret([&]<typename T>(const auto & i, const T & data) -> int {
       typename std::remove_pointer_t<T>::key_t k;
-      k.r(&gloco->bdbt, &data->data, data->key_nr);
+      if constexpr (sizeof...(suckers)) {
+        last_key_nr = data->key_nr;
+        *fan::get_variadic_element<1>(suckers...) = k.rwi(&gloco->bdbt, &data->data, &last_key_nr);
+      }
+      else {
+        k.r(&gloco->bdbt, &data->data, data->key_nr);
+      }
+
       if (loco_bdbt_inrhc(&gloco->bdbt, data->key_nr) == true) {
         return 1;
       }
-      if constexpr (i.value != 0) {
+      if constexpr (i.value != 0) { // if its not last to iterate
         loco_bdbt_Recycle(&gloco->bdbt, data->key_nr);
       }
       return 0;
     });
+
+    if constexpr (sizeof...(suckers)) {
+      *fan::get_variadic_element<3>(suckers...) = depth;
+    }
+
+    if constexpr (sizeof...(suckers)) {
+      *fan::get_variadic_element<2>(suckers...) = last_key_nr;
+    }
   }
 
   void sb_erase(loco_t::cid_nt_t& id) {
-    auto bm_id = *(shape_bm_NodeReference_t*)&id->bm_id;
-    auto bm_node = bm_list.GetNodeByReference(bm_id);
+    suck_block_element(id);
 
-    auto block_id = *(bll_block_NodeReference_t*)&id->block_id;
-    auto block_node = blocks.GetNodeByReference(*(bll_block_NodeReference_t*)&id->block_id);
-    auto block = &block_node->data.block;
-
-    auto& last_block_id = bm_node->data.last_block;
-    auto* last_block_node = blocks.GetNodeByReference(last_block_id);
-    block_t* last_block = &last_block_node->data.block;
-    uint32_t last_instance_id = last_block->uniform_buffer.size() - 1;
-
-    if (block_id == last_block_id && id->instance_id == block->uniform_buffer.size() - 1) {
-      block->uniform_buffer.m_size -= sizeof(vi_t);
-      if (block->uniform_buffer.size() == 0) {
-        auto lpnr = block_node->PrevNodeReference;
-        if (last_block_id == bm_node->data.first_block) {
-          sb_erase_key_from(id, bm_node);
-
-          bm_list.Recycle(bm_id);
-        }
-        else {
-          //fan::print("here");
-          last_block_id = lpnr;
-        }
-        block->close(gloco);
-        blocks.Unlink(block_id);
-        blocks.Recycle(block_id);
-      }
-      id->bm_id = 0;
-      id->block_id = 0;
-      id->instance_id = 0;
-      id->instance_id = -1;
-      return;
-    }
-
-    vi_t* last_instance_data = last_block->uniform_buffer.get_instance(gloco->get_context(), last_instance_id);
-
-    block->uniform_buffer.copy_instance(
-      gloco->get_context(),
-      &gloco->m_write_queue,
-      id->instance_id,
-      last_instance_data
-    );
-
-    last_block->uniform_buffer.m_size -= sizeof(vi_t);
-
-    block->p[id->instance_id] = std::move(last_block->p[last_instance_id]);
-
-    block->id[id->instance_id] = last_block->id[last_instance_id];
-    block->id[id->instance_id]->block_id = block_id.NRI;
-    block->id[id->instance_id]->instance_id = id->instance_id;
-
-    if (last_block->uniform_buffer.size() == 0) {
-      auto lpnr = last_block_node->PrevNodeReference;
-
-      last_block->close(gloco);
-      blocks.Unlink(last_block_id);
-      blocks.Recycle(last_block_id);
-
-      bm_node->data.last_block = lpnr;
-    }
-    id->bm_id = 0;
-    id->block_id = 0;
-    id->instance_id = 0;
+  #if fan_debug >= 2
+    id.sic();
+  #endif
   }
 
   block_t* sb_get_block(loco_t::cid_nt_t& id) {
     auto& block_node = blocks[*(bll_block_NodeReference_t*)&id->block_id];
-    return &block_node.block;
+    return &block_node;
   }
 
   //ri_t& sb_get_ri() {
@@ -484,20 +590,29 @@ public:
     );
   }
 
-  template <typename T = void>
-  loco_t::camera_t* get_camera(loco_t::cid_nt_t& id) requires fan::has_camera_t<properties_t> {
-    auto ri = sb_get_ri(id);
-    return gloco->camera_list[*ri.key.get_value<
-      bm_properties_t::key_t::get_index_with_type<loco_t::camera_list_NodeReference_t>()
-    >()].camera_id;
+  key_t& get_bm_key(loco_t::cid_nt_t& id) {
+    auto bm_id = *(shape_bm_NodeReference_t*)&id->bm_id;
+    auto bm_node = bm_list.GetNodeByReference(bm_id);
+    return bm_node->data.key;
+  }
+
+  context_key_t& get_context_key(loco_t::cid_nt_t& id) {
+    return *get_bm_key(id).get_value<context_key_t>();
   }
 
   template <typename T = void>
-  fan::graphics::viewport_t* get_viewport(loco_t::cid_nt_t& id) requires fan::has_viewport_t<properties_t> {
-    auto ri = sb_get_ri(id);
-    return gloco->get_context()->viewport_list[*ri.key.get_value<
-      bm_properties_t::key_t::get_index_with_type<fan::graphics::viewport_list_NodeReference_t>()
-    >()].viewport_id;
+  loco_t::camera_t* get_camera(loco_t::cid_nt_t& id) requires fan::has_camera_t<properties_t> {
+    return gloco->camera_list[*get_context_key(id).key.get_value<loco_t::camera_list_NodeReference_t>()].camera_id;
+  }
+
+  template <typename T = void>
+  loco_t::viewport_t* get_viewport(loco_t::cid_nt_t& id) requires fan::has_viewport_t<properties_t> {
+    return gloco->get_context()->viewport_list[*get_context_key(id).key.get_value<fan::graphics::viewport_list_NodeReference_t>()].viewport_id;
+  }
+
+  template <typename T = void>
+  loco_t::image_t* get_image(loco_t::cid_nt_t& id) requires fan::has_image_t<properties_t> {
+    return gloco->image_list[*get_context_key(id).key.get_value<loco_t::textureid_t<0>>()].image;
   }
 
   void set_vertex(const fan::string& str) {
@@ -514,47 +629,47 @@ public:
 
   template <uint32_t depth = 0>
   void traverse_draw(loco_bdbt_NodeReference_t nr, uint32_t draw_mode) {
-    if constexpr (depth == bm_properties_t::key_t::count + 1) {
+    if constexpr (depth == context_key_t::key_t::count + 1) {
 
       #if fan_debug >= 2
         if(nr >= bm_list.NodeList.Current){
           __abort();
         }
       #endif
-      auto bmn = bm_list.GetNodeByReference(*(shape_bm_NodeReference_t*)&nr);
-      auto bnr = bmn->data.first_block;
+      auto& bm = bm_list[*(shape_bm_NodeReference_t*)&nr];
+      auto block_id = bm.first_block;
 
       while (1) {
-        auto node = blocks.GetNodeByReference(bnr);
+        auto block_node = blocks.GetNodeByReference(block_id);
         #ifdef fan_unit_test
-          for (uint32_t i = 0; i < node->data.block.uniform_buffer.size(); i++) {
-            if (idlist.find(*(uint32_t*)&node->data.block.id[i]) == idlist.end()) {
+          for (uint32_t i = 0; i < block_node->data.uniform_buffer.size(); i++) {
+            if (idlist.find(*(uint32_t*)&block_node->data.id[i]) == idlist.end()) {
               fan::throw_error(__LINE__);
             }
-            idlist[(uint32_t)node->data.block.id[i].NRI].TraverseFound = true;
+            idlist[(uint32_t)block_node->data.id[i].NRI].TraverseFound = true;
           }
         #endif
-        node->data.block.uniform_buffer.bind_buffer_range(
+          block_node->data.uniform_buffer.bind_buffer_range(
           gloco->get_context(),
-          node->data.block.uniform_buffer.size()
+          block_node->data.uniform_buffer.size()
         );
 
-        node->data.block.uniform_buffer.draw(
+        block_node->data.uniform_buffer.draw(
           gloco->get_context(),
           0 * sb_vertex_count,
-          node->data.block.uniform_buffer.size() * sb_vertex_count,
+          block_node->data.uniform_buffer.size() * sb_vertex_count,
           draw_mode
         );
-        if (bnr == bmn->data.last_block) {
+        if (block_id == bm.last_block) {
           break;
         }
-        bnr = node->NextNodeReference;
+        block_id = block_node->NextNodeReference;
       }
     }
     else {
-      typename loco_bdbt_Key_t<sizeof(typename bm_properties_t::key_t::get_type<depth>::type) * 8>::Traverse_t kt;
+      typename loco_bdbt_Key_t<sizeof(typename context_key_t::key_t::get_type<depth>::type) * 8>::Traverse_t kt;
       kt.i(nr);
-      typename bm_properties_t::key_t::get_type<depth>::type o;
+      typename context_key_t::key_t::get_type<depth>::type o;
       while (kt.t(&gloco->bdbt, &o)) {
         gloco->process_block_properties_element(this, o);
         traverse_draw<depth + 1>(kt.Output, draw_mode);
@@ -574,10 +689,27 @@ public:
   properties_t sb_get_properties(loco_t::cid_nt_t& id) {
     auto block = sb_get_block(id);
     properties_t p;
-    auto& something = bm_list[*(shape_bm_NodeReference_t*)&id->bm_id];
-    *(bm_properties_t*)&p = something.instance_properties;
+    *(context_key_t*)&p = get_context_key(id);
     *(vi_t*)&p = *block->uniform_buffer.get_instance(gloco->get_context(), id->instance_id);
-    *(ri_t*)&p = block->p[id->instance_id];
+    *(ri_t*)&p = block->ri[id->instance_id];
+
+    [&id] <typename T>(T & p, auto * This) {
+      if constexpr (fan::has_camera_t<T>) {
+        p.camera = This->get_camera(id);
+      }
+    }(p, this);
+
+    [&id] <typename T>(T& p, auto* This) {
+      if constexpr (fan::has_viewport_t<T>) {
+        p.viewport = This->get_viewport(id);
+      }
+    }(p, this);
+
+    [&id]<typename T>(T& p, auto* This) {
+      if constexpr (fan::has_image_t<T>) {
+        p.image = This->get_image(id);
+      } 
+    }(p, this);
     return p;
   }
 
@@ -586,7 +718,7 @@ public:
     auto block = sb_get_block(id);
     properties_t p;
     *(vi_t*)&p = *block->uniform_buffer.get_instance(gloco->get_context(), id->instance_id);
-    *(ri_t*)&p = block->p[id->instance_id];
+    *(ri_t*)&p = block->ri[id->instance_id];
     *p.key.get_value<i>() = value;
 
     sb_erase(id);
@@ -605,6 +737,13 @@ public:
       (uintptr_t)buffer_index * sizeof(vi_t) + start_byte,
       (uintptr_t)buffer_index * sizeof(vi_t) + start_byte + sizeof(loco_t::position3_t::z)
     );
+
+    block_element_t block_element;
+    uint32_t key_size;
+    loco_bdbt_NodeReference_t key_nr;
+    uint32_t key_type_index;
+    suck_block_element(id, &block_element, &key_size, &key_nr, &key_type_index);
+    //unsuck_block_element(id, block_element, key_size, key_nr, key_type_index);
   }
 
   fan::opengl::shader_t m_shader;
@@ -625,7 +764,7 @@ public:
   }
 
   ri_t& sb_get_ri(loco_t::cid_nt_t& cid) {
-    return sb_get_block(cid)->p[cid->instance_id];
+    return sb_get_block(cid)->ri[cid->instance_id];
   }
   template <typename T>
   void sb_set_ri(loco_t::cid_nt_t& cid, auto T::* member, auto value) {

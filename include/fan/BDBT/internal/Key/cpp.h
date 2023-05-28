@@ -65,6 +65,15 @@ struct _BDBT_P(Key_t){
     #include "cpp/q.h"
   }
 
+  KeySize_t
+  _r
+  (
+    _BDBT_BP(t) *list,
+    void *Key,
+    _BDBT_BP(NodeReference_t) *cnr
+  ){
+    #include "cpp/r.h"
+  }
   void
   r
   (
@@ -72,7 +81,17 @@ struct _BDBT_P(Key_t){
     void *Key,
     _BDBT_BP(NodeReference_t) cnr
   ){
-    #include "cpp/r.h"
+    _r(list, Key, &cnr);
+  }
+  /* remove with info */
+  KeySize_t
+  rwi
+  (
+    _BDBT_BP(t) *list,
+    void *Key,
+    _BDBT_BP(NodeReference_t) *cnr
+  ){
+    return _r(list, Key, cnr);
   }
 
   /* give 0 if you want to sort from low, 1 for high. */

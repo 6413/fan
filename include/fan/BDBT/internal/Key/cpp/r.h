@@ -23,10 +23,10 @@ KeySize_t From = 0;
     }
     for(uint8_t i = 0; i < 8 / BDBT_set_BitPerNode; i++){
       uint8_t k = Byte & _BDBT_set_ElementPerNode - 1;
-      tna[KeyIndex + i] = cnr;
+      tna[KeyIndex + i] = *cnr;
       tka[KeyIndex + i] = k;
-      _BDBT_BP(Node_t) *Node = _BDBT_BP(GetNodeByReference)(list, cnr);
-      cnr = Node->n[k];
+      _BDBT_BP(Node_t) *Node = _BDBT_BP(GetNodeByReference)(list, *cnr);
+      *cnr = Node->n[k];
       for(_BDBT_BP(NodeEIT_t) ki = 0; ki < _BDBT_set_ElementPerNode; ki++){
         if(ki == k){
           continue;
@@ -57,3 +57,5 @@ KeySize_t From = 0;
 for(KeySize_t i = From; i < KeySize / BDBT_set_BitPerNode; i++){
   _BDBT_BP(Recycle)(list, tna[i]);
 }
+
+return From * BDBT_set_BitPerNode;

@@ -26,7 +26,7 @@ std::unordered_map<uint32_t, idlist_output_t> idlist;
 #define loco_circle
 #define loco_line
 #define loco_letter
-//#define loco_button
+////#define loco_button
 #define loco_sprite
 #include _FAN_PATH(graphics/loco.h)
 
@@ -73,7 +73,7 @@ fan_has_variable_struct(letter_id);
 loco_t::theme_t theme{ loco_t::themes::deep_red() };
 
 void push_things() {
-  while (idlist.size() < 1) {
+  while (idlist.size() < 2) {
      pile->loco.types.iterate([&]<typename T>(const auto & i, const T & o) {
       using type_t = std::remove_pointer_t<std::remove_pointer_t<T>>;
       if constexpr (
@@ -98,7 +98,7 @@ void push_things() {
 
         if constexpr (has_src_v<decltype(p)>) {
           p.src = fan::random::vec2(-1, 1);
-          p.src.z = fan::random::value_i64(1, 0xffff);
+          p.src.z = rand() % 0xfffe + 1;//fan::random::value_i64(1, 0xffff);
           output.key.depth = p.src.z;
         }
         if constexpr (has_dst_v<decltype(p)>) {
@@ -106,7 +106,7 @@ void push_things() {
         }
         if constexpr (has_position_v<decltype(p)>) {
           p.position = fan::random::vec2(-1, 1);
-          p.position.z = fan::random::value_i64(1, 0xffff);
+          p.position.z = rand() % 0xfffe + 1;//fan::random::value_i64(1, 0xffff);
           output.key.depth = p.position.z;
         }
         if constexpr (has_size_v<decltype(p)>) {
@@ -126,7 +126,15 @@ void push_things() {
         }
       #endif
         p.blending = true;
+        if (idlist.size() != 0) {
+          uint32_t nri = 0;
+          fan::print("salsas0", ((loco_t::shape_t*)&nri)->get_position().z);
+        }
         loco_t::shape_t* id = new loco_t::shape_t(p);
+        if (idlist.size() != 0) {
+          uint32_t nri = 0;
+          fan::print("salsas1", ((loco_t::shape_t*)&nri)->get_position().z);
+        }
         uint32_t key = id->NRI;
         //std::construct_at((loco_t::shape_t*)&key, std::move(id));
 
@@ -155,7 +163,7 @@ void ResetInfo(){
 
 void QueryAll() {
   for(auto& i : idlist){
-    loco_t::shape_t* id = (loco_t::shape_t *) & i.first;
+    loco_t::shape_t* id = (loco_t::shape_t *)&i.first;
     //id.cid.NRI = i.first;
     //auto* id = ()i.first;
     if (id->get_blending() != i.second.key.blending) {
@@ -195,16 +203,24 @@ int main() {
   CheckAll();
 
 
+  //auto it = idlist.end();
+  //while (idlist.size()) {
+  //  idlist.erase(it);
+  //  std::advance(it, -1);
+  //}
+
   //// erase
   for (uint32_t i = 0; i < idlist.size(); ++i) {
     auto it = idlist.begin();
-    std::advance(it, fan::random::value_i64(0, idlist.size() - 1));
+    loco_t::shape_t* id = (loco_t::shape_t*)&it->first;
+    id->erase();
     idlist.erase(it);
-    if (!idlist.empty()) {
+    //std::advance(it, 1/*fan::random::value_i64(0, idlist.size() - 1)*/);
+    /*if (!idlist.empty()) {
       auto it2 = idlist.begin();
       std::advance(it2, fan::random::value_i64(0, idlist.size() - 1));
       ((loco_t::shape_t*)&it2->first)->set_depth(rand() % 0xffff);
-    }
+    }*/
   }
 
   //// erase

@@ -72,7 +72,7 @@ while(t0.t(&bdbt, &redraw_key)) {
 //template <uint32_t depth = 0>
 //void traverse_draw(loco_bdbt_NodeReference_t nr, uint32_t draw_mode, auto lambda) {
 //  loco_t* loco = get_loco();
-//  if constexpr (depth == bm_properties_t::key_t::count + 1) {
+//  if constexpr (depth == context_key_t::key_t::count + 1) {
 //    auto bmn = bm_list.GetNodeByReference(*(shape_bm_NodeReference_t*)&nr);
 //    auto bnr = bmn->data.first_block;
 //    #ifndef sb_inline_draw
@@ -161,9 +161,9 @@ while(t0.t(&bdbt, &redraw_key)) {
 //  }
 //  else {
 //    //loco_bdbt_Key_t<sizeof(typename instance_properties_t::key_t::get_type<depth>::type) * 8> k;
-//    typename loco_bdbt_Key_t<sizeof(typename bm_properties_t::key_t::get_type<depth>::type) * 8>::Traverse_t kt;
+//    typename loco_bdbt_Key_t<sizeof(typename context_key_t::key_t::get_type<depth>::type) * 8>::Traverse_t kt;
 //    kt.init(nr);
-//    typename bm_properties_t::key_t::get_type<depth>::type o;
+//    typename context_key_t::key_t::get_type<depth>::type o;
 //    #if fan_use_uninitialized == 0
 //    memset(&o, 0, sizeof(o));
 //    #endif

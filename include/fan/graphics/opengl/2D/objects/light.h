@@ -6,7 +6,7 @@ struct sb_shape_name {
     loco_light_vi_t
   };
 
-  struct bm_properties_t {
+  struct context_key_t {
     using parsed_masterpiece_t = fan::masterpiece_t<
       uint16_t,
       loco_t::camera_list_NodeReference_t,
@@ -17,7 +17,7 @@ struct sb_shape_name {
 
   struct cid_t;
 
-  struct ri_t : bm_properties_t {
+  struct ri_t {
     loco_light_ri_t
   };
 
@@ -25,6 +25,14 @@ struct sb_shape_name {
     type& name = *key.get_value<decltype(key)::get_index_with_type<type>()>();
 
   struct properties_t : vi_t, ri_t {
+    /*todo cloned from context_key_t - make define*/
+    using parsed_masterpiece_t = fan::masterpiece_t<
+      uint16_t,
+      loco_t::camera_list_NodeReference_t,
+      fan::graphics::viewport_list_NodeReference_t
+    >;
+    struct key_t : parsed_masterpiece_t {}key;
+
     using type_t = sb_shape_name;
     loco_light_properties_t
   };
@@ -168,17 +176,15 @@ struct sb_shape_name {
   }
 
   void set_camera(loco_t::cid_nt_t& id, loco_t::camera_list_NodeReference_t n) {
-    sb_set_key<bm_properties_t::key_t::get_index_with_type<decltype(n)>()>(id, n);
+    sb_set_context_key<context_key_t::key_t::get_index_with_type<decltype(n)>()>(id, n);
   }
 
   void set_viewport(loco_t::cid_nt_t& id, fan::graphics::viewport_list_NodeReference_t n) {
-    sb_set_key<bm_properties_t::key_t::get_index_with_type<decltype(n)>()>(id, n);
+    sb_set_context_key<context_key_t::key_t::get_index_with_type<decltype(n)>()>(id, n);
   }
 
   properties_t get_properties(loco_t::cid_nt_t& id) {
     properties_t p = sb_get_properties(id);
-    p.camera = gloco->camera_list[*p.key.get_value<loco_t::camera_list_NodeReference_t>()].camera_id;
-    p.viewport = gloco->get_context()->viewport_list[*p.key.get_value<fan::graphics::viewport_list_NodeReference_t>()].viewport_id;
     return p;
   }
 

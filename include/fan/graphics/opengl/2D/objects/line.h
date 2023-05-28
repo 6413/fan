@@ -13,7 +13,7 @@ struct line_t {
     f32_t pad2[1];
   };
 
-  struct bm_properties_t {
+  struct context_key_t {
      using parsed_masterpiece_t = fan::masterpiece_t<
       uint16_t,
       loco_t::camera_list_NodeReference_t,
@@ -25,12 +25,21 @@ struct line_t {
 
   struct cid_t;
 
-	struct ri_t : bm_properties_t {
+	struct ri_t {
 		cid_t* cid;
     bool blending = false;
 	};
 
   struct properties_t : vi_t, ri_t {
+    /*todo cloned from context_key_t - make define*/
+    using parsed_masterpiece_t = fan::masterpiece_t<
+      uint16_t,
+      loco_t::camera_list_NodeReference_t,
+      fan::graphics::viewport_list_NodeReference_t
+    >;
+    struct key_t : parsed_masterpiece_t {
+    }key;
+
     using type_t = line_t;
     loco_t::camera_t* camera = 0;
     fan::graphics::viewport_t* viewport = 0;
@@ -107,8 +116,6 @@ struct line_t {
 
   properties_t get_properties(loco_t::cid_nt_t& id) {
     properties_t p = sb_get_properties(id);
-    p.camera = gloco->camera_list[*p.key.get_value<loco_t::camera_list_NodeReference_t>()].camera_id;
-    p.viewport = gloco->get_context()->viewport_list[*p.key.get_value<fan::graphics::viewport_list_NodeReference_t>()].viewport_id;
     return p;
   }
 

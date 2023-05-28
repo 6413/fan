@@ -297,6 +297,12 @@ namespace fan {
     //exit(1);
   }
 
+
+  template<std::size_t I, typename... Args>
+  constexpr decltype(auto) get_variadic_element(Args&&... args) {
+    return std::get<I>(std::forward_as_tuple(args...));
+  }
+
   template <typename ...Args>
   static void throw_error(const Args&... args) {
     fan::print(args...);
@@ -861,3 +867,15 @@ using __nameless_type_t = fan::assign_wrapper_t<T...>;
     struct type_name{ \
       using lstd_current_type = type_name;
 #endif
+
+namespace fan {
+  #define temporary_struct_maker(data) __return_type_of<decltype([]{ struct {data}v; return v; })>
+
+  template<size_t a, size_t b> struct assert_equality {
+    static_assert(a == b, "Not equal");
+    static constexpr bool result = (a == b);
+  };
+
+  template <size_t a, size_t b>
+  constexpr bool assert_equality_v = assert_equality<a, b>::result;
+}

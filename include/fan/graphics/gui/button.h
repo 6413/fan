@@ -14,13 +14,13 @@ struct button_t {
 
   static constexpr uint32_t max_instance_size = fan::min(256, 4096 / (sizeof(vi_t) / 4));
 
-  struct bm_properties_t {
+  struct context_key_t {
     loco_button_bm_properties_t
   };
 
   struct cid_t;
 
-  struct ri_t : bm_properties_t {
+  struct ri_t {
     loco_button_ri_t
   };
 
@@ -30,6 +30,7 @@ struct button_t {
   struct properties_t : vi_t, ri_t {
     using type_t = button_t;
     loco_button_properties_t
+    loco_button_bm_properties_t
   };
 
   #undef make_key_value
@@ -232,12 +233,12 @@ struct button_t {
   //  auto block = sb_get_block(id);
   //  return gloco->text.get(block->p[cid->instance_id].text_id, member);
   //}
-  template <typename T, typename T2>
-  void set_text_renderer(loco_t::cid_nt_t& id, auto T::*member, const T2& value) {
-    
-    auto block = sb_get_block(id);
-    gloco->text.set(block->p[id->instance_id].text_id, member, value);
-  }
+  //template <typename T, typename T2>
+  //void set_text_renderer(loco_t::cid_nt_t& id, auto T::*member, const T2& value) {
+  //  
+  //  auto block = sb_get_block(id);
+  //  gloco->text.set(block->p[id->instance_id].text_id, member, value);
+  //}
 
   void set_position(loco_t::cid_nt_t& id, const fan::vec3& position) {
     
@@ -263,7 +264,7 @@ struct button_t {
   }
 
   //void set_camera(loco_t::cid_nt_t& id, loco_t::camera_list_NodeReference_t n) {
-  //  sb_set_key<bm_properties_t::key_t::get_index_with_type<decltype(n)>()>(cid, n);
+  //  sb_set_key<context_key_t::key_t::get_index_with_type<decltype(n)>()>(cid, n);
   //  
   //  auto block = sb_get_block(id);
   //  gloco->text.set_camera(block->p[cid->instance_id].text_id, n);
@@ -348,9 +349,7 @@ struct button_t {
 
   properties_t get_properties(loco_t::cid_nt_t& id) {
     properties_t p = sb_get_properties(id);
-    p.camera = gloco->camera_list[*p.key.get_value<loco_t::camera_list_NodeReference_t>()].camera_id;
     p.theme =  get_theme(id);
-    p.viewport = gloco->get_context()->viewport_list[*p.key.get_value<fan::graphics::viewport_list_NodeReference_t>()].viewport_id;
 
     p.position = get_text_instance(id).position;
     p.text = gloco->responsive_text.get_text(sb_get_ri(id).text_id);

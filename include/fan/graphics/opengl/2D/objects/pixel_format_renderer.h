@@ -15,7 +15,7 @@ struct sb_pfr_name {
   public:
   };
 
-   struct bm_properties_t {
+   struct context_key_t {
     using parsed_masterpiece_t = fan::masterpiece_t<
       uint16_t,
       loco_t::textureid_t<0>,
@@ -30,7 +30,7 @@ struct sb_pfr_name {
 
   struct cid_t;
 
-  struct ri_t : bm_properties_t {
+  struct ri_t {
     loco_t::image_t images[4];
     uint8_t format = fan::pixel_format::undefined;
     cid_t* cid;
@@ -38,6 +38,18 @@ struct sb_pfr_name {
   };
 
   struct properties_t : vi_t, ri_t {
+
+    /*todo cloned from context_key_t - make define*/
+    using parsed_masterpiece_t = fan::masterpiece_t<
+      uint16_t,
+      loco_t::textureid_t<0>,
+      loco_t::textureid_t<1>,
+      loco_t::textureid_t<2>,
+      loco_t::textureid_t<3>,
+      loco_t::camera_list_NodeReference_t,
+      fan::graphics::viewport_list_NodeReference_t
+    >;
+    struct key_t : parsed_masterpiece_t {}key;
 
     using type_t = sb_pfr_name;
 
@@ -111,13 +123,13 @@ struct sb_pfr_name {
     get_key_value(fan::graphics::viewport_list_NodeReference_t) = p.viewport;
     sb_push_back(id, p);
     //auto* ri = &sb_get_ri(cid);
-    //sb_set_key<bm_properties_t::key_t::get_index_with_type<loco_t::textureid_t<0>>()>(cid, &ri->images[0]);
+    //sb_set_key<context_key_t::key_t::get_index_with_type<loco_t::textureid_t<0>>()>(cid, &ri->images[0]);
     //ri = &sb_get_ri(cid);
-    //sb_set_key<bm_properties_t::key_t::get_index_with_type<loco_t::textureid_t<1>>()>(cid, &ri->images[1]);
+    //sb_set_key<context_key_t::key_t::get_index_with_type<loco_t::textureid_t<1>>()>(cid, &ri->images[1]);
     //ri = &sb_get_ri(cid);
-    //sb_set_key<bm_properties_t::key_t::get_index_with_type<loco_t::textureid_t<2>>()>(cid, &ri->images[2]);
+    //sb_set_key<context_key_t::key_t::get_index_with_type<loco_t::textureid_t<2>>()>(cid, &ri->images[2]);
     //ri = &sb_get_ri(cid);
-    //sb_set_key<bm_properties_t::key_t::get_index_with_type<loco_t::textureid_t<3>>()>(cid, &ri->images[3]);
+    //sb_set_key<context_key_t::key_t::get_index_with_type<loco_t::textureid_t<3>>()>(cid, &ri->images[3]);
   }
 
   void erase(loco_t::cid_nt_t& id) {
@@ -160,19 +172,19 @@ struct sb_pfr_name {
           ri->images[i].create_texture();
           switch (i) {
           case 0: {
-            sb_set_key<bm_properties_t::key_t::get_index_with_type<loco_t::textureid_t<0>>()>(id, &ri->images[0]);
+            sb_set_key<context_key_t::key_t::get_index_with_type<loco_t::textureid_t<0>>()>(id, &ri->images[0]);
             break;
           }
           case 1: {
-            sb_set_key<bm_properties_t::key_t::get_index_with_type<loco_t::textureid_t<1>>()>(id, &ri->images[1]);
+            sb_set_key<context_key_t::key_t::get_index_with_type<loco_t::textureid_t<1>>()>(id, &ri->images[1]);
             break;
           }
           case 2: {
-            sb_set_key<bm_properties_t::key_t::get_index_with_type<loco_t::textureid_t<2>>()>(id, &ri->images[2]);
+            sb_set_key<context_key_t::key_t::get_index_with_type<loco_t::textureid_t<2>>()>(id, &ri->images[2]);
             break;
           }
           case 3: {
-            sb_set_key<bm_properties_t::key_t::get_index_with_type<loco_t::textureid_t<3>>()>(id, &ri->images[3]);
+            sb_set_key<context_key_t::key_t::get_index_with_type<loco_t::textureid_t<3>>()>(id, &ri->images[3]);
             break;
           }
           }
