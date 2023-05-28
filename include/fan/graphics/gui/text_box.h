@@ -19,13 +19,13 @@ struct text_box_t {
 
   static constexpr uint32_t max_instance_size = fan::min(256, 4096 / (sizeof(vi_t) / 4));
 
-  struct bm_properties_t {
+  struct context_key_t {
     loco_text_box_bm_properties_t
   };
 
   struct cid_t;
 
-  struct ri_t : bm_properties_t {
+  struct ri_t {
     loco_text_box_ri_t
   };
 
@@ -35,6 +35,7 @@ struct text_box_t {
   struct properties_t : vi_t, ri_t {
     using type_t = text_box_t;
     loco_text_box_properties_t
+    loco_text_box_bm_properties_t
   };
 
   #undef make_key_value
@@ -423,7 +424,7 @@ struct text_box_t {
     return loco->camera_list[*block->p[cid->instance_id].key.get_value<0>()].camera_id;
   }
   void set_camera(loco_t::cid_nt_t& id, loco_t::camera_list_NodeReference_t n) {
-    sb_set_key<bm_properties_t::key_t::get_index_with_type<decltype(n)>()>(cid, n);
+    sb_set_key<context_key_t::key_t::get_index_with_type<decltype(n)>()>(cid, n);
     loco_t* loco = get_loco();
     auto block = sb_get_block(id);
     loco->text.set_camera(block->p[cid->instance_id].text_id, n);
@@ -436,7 +437,7 @@ struct text_box_t {
   }
   void set_viewport(loco_t::cid_nt_t& id, fan::graphics::viewport_list_NodeReference_t n) {
     loco_t* loco = get_loco();
-    sb_set_key<bm_properties_t::key_t::get_index_with_type<decltype(n)>()>(cid, n);
+    sb_set_key<context_key_t::key_t::get_index_with_type<decltype(n)>()>(cid, n);
     auto block = sb_get_block(id);
     loco->text.set_viewport(block->p[cid->instance_id].text_id, n);
   }*/
@@ -577,7 +578,7 @@ struct text_box_t {
   }
 
   // can be incomplete
-  /*
+  
   properties_t get_properties(loco_t::cid_nt_t& id) {
     properties_t p = sb_get_properties(id);
     p.camera = gloco->camera_list[*p.key.get_value<loco_t::camera_list_NodeReference_t>()].camera_id;
@@ -588,7 +589,7 @@ struct text_box_t {
     p.font_size = get_text_instance(id).font_size;
     return p;
   }
-  */
+  
 
   #if defined(loco_vulkan)
     uint32_t m_camera_index = 0;

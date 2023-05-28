@@ -26,7 +26,7 @@ struct sb_sprite_sheet_name {
   #define make_key_value(type, name) \
     type& name = *key.get_value<decltype(key)::get_index_with_type<type>()>();
 
-  struct properties_t : loco_t::sprite_t::bm_properties_t {
+  struct properties_t : loco_t::sprite_t::context_key_t {
     fan::vec2 position;
     fan::vec2 size;
 

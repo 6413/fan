@@ -29,7 +29,7 @@ loco_bdbt_NodeReference_t root;
 #define BLL_set_NodeData \
   ssbo_t::nr_t first_ssbo_nr; \
   ssbo_t::nr_t last_ssbo_nr; \
-  bm_properties_t bm_properties; \
+  context_key_t bm_properties; \
   uint32_t total_instances;
 #include _FAN_PATH(BLL/BLL.h)
 
@@ -202,17 +202,17 @@ void sb_push_back(fan::vulkan::cid_t* fcid, auto p) {
 
   loco_bdbt_NodeReference_t nr = root;
   shape_bm_NodeReference_t& bmID = *(shape_bm_NodeReference_t*)&nr;
-  loco_bdbt_Key_t<sizeof(bm_properties_t::key_t) * 8> k;
+  loco_bdbt_Key_t<sizeof(context_key_t::key_t) * 8> k;
   typename decltype(k)::KeySize_t ki;
   k.Query(&loco->bdbt, &p.key, &ki, &nr);
   
-  if (ki != sizeof(bm_properties_t::key_t) * 8) {
+  if (ki != sizeof(context_key_t::key_t) * 8) {
     auto lnr = bm_list.NewNode();
     auto ln = &bm_list[lnr];
     ln->first_ssbo_nr = m_ssbo.add(loco->get_context(), &loco->m_write_queue);
     m_ssbo.instance_list.LinkAsLast(ln->first_ssbo_nr);
     ln->last_ssbo_nr = ln->first_ssbo_nr;
-    ln->bm_properties = *(bm_properties_t*)&p;
+    ln->bm_properties = *(context_key_t*)&p;
     ln->total_instances = 0;
     k.InFrom(&loco->bdbt, &p.key, ki, nr, lnr.NRI);
 
@@ -268,7 +268,7 @@ void sb_erase(fan::graphics::cid_t* fcid) {
 			)->PrevNodeReference;
       m_ssbo.instance_list.unlrec(block_id);
       if (bm->first_ssbo_nr == bm->last_ssbo_nr) {
-				loco_bdbt_Key_t<sizeof(bm_properties_t::key_t) * 8> k;
+				loco_bdbt_Key_t<sizeof(context_key_t::key_t) * 8> k;
 				typename decltype(k)::KeySize_t ki;
 				k.Remove(&loco->bdbt, &bm->bm_properties.key, root);
 				bm_list.Recycle(bm_id);
@@ -394,7 +394,7 @@ loco_t::camera_t* get_camera(fan::graphics::cid_t* cid) requires fan::has_camera
   auto ri = sb_get_ri(cid);
   loco_t* loco = get_loco();
   return loco->camera_list[*ri.key.get_value<
-    bm_properties_t::key_t::get_index_with_type<loco_t::camera_list_NodeReference_t>()
+    context_key_t::key_t::get_index_with_type<loco_t::camera_list_NodeReference_t>()
   >()].camera_id;
 }
 template <typename T = void>
@@ -402,7 +402,7 @@ fan::graphics::viewport_t* get_viewport(fan::graphics::cid_t* cid) requires fan:
   auto ri = sb_get_ri(cid);
   loco_t* loco = get_loco();
   auto idx = *ri.key.get_value<
-    bm_properties_t::key_t::get_index_with_type<fan::graphics::viewport_list_NodeReference_t>()
+    context_key_t::key_t::get_index_with_type<fan::graphics::viewport_list_NodeReference_t>()
   >();
   return loco->get_context()->viewport_list[idx].viewport_id;
 }
@@ -420,7 +420,7 @@ template <uint32_t depth = 0>
 void traverse_draw(auto nr) {
   loco_t* loco = get_loco();
   auto context = loco->get_context();
-  if constexpr (depth == bm_properties_t::key_t::count + 1) {
+  if constexpr (depth == context_key_t::key_t::count + 1) {
     auto bmn = bm_list.GetNodeByReference(*(shape_bm_NodeReference_t*)&nr);
     auto bnr = bmn->data.first_ssbo_nr;
 
@@ -451,9 +451,9 @@ void traverse_draw(auto nr) {
   }
   else {
     //loco_bdbt_Key_t<sizeof(typename instance_properties_t::key_t::get_type<depth>::type) * 8> k;
-    typename loco_bdbt_Key_t<sizeof(typename bm_properties_t::key_t::get_type<depth>::type) * 8>::Traverse_t kt;
+    typename loco_bdbt_Key_t<sizeof(typename context_key_t::key_t::get_type<depth>::type) * 8>::Traverse_t kt;
     kt.init(nr);
-    typename bm_properties_t::key_t::get_type<depth>::type o;
+    typename context_key_t::key_t::get_type<depth>::type o;
     #if fan_use_uninitialized == 0
     memset(&o, 0, sizeof(o));
     #endif

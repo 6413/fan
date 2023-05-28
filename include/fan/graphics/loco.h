@@ -313,9 +313,19 @@ struct loco_t {
     static constexpr _t responsive_text = 13;
   };
 
+
 #pragma pack(push, 1)
   template <typename T, bool order_matters = false>
-  struct make_key_t {
+  struct make_push_key_t {
+    T data;
+    using key_t = loco_bdbt_Key_t<sizeof(decltype(data)) * 8, order_matters>;
+    key_t k;
+  };
+  #pragma pack(pop)
+
+#pragma pack(push, 1)
+  template <typename T, bool order_matters = false>
+  struct make_erase_key_t {
     T data;
     using key_t = loco_bdbt_Key_t<sizeof(decltype(data)) * 8, order_matters>;
     typename key_t::KeySize_t key_size;
@@ -1122,7 +1132,7 @@ public:
       }
       gloco->shape_get_properties(*(shape_t*)&id, [&](const auto& properties) {
         gloco->push_shape(*this, properties);
-        });
+      });
     }
     inline shape_t(shape_t&& id) : inherit_t(std::move(id)) {
 
@@ -2121,11 +2131,13 @@ public:
   #define make_global_function_define(func_name, content, ...) \
   fan_has_function_concept(func_name);\
   void shape_ ## func_name(__VA_ARGS__) { \
-    types.iterate([&]<typename T>(auto shape_index, T shape) { \
+    types.iterate_ret([&]<typename T>(auto shape_index, T shape) -> int{ \
       using shape_t = std::remove_pointer_t<std::remove_pointer_t<T>>; \
       if (shape_t::shape_type == id->shape_type) { \
         content \
+        return 1; \
       } \
+      return 0; \
     }); \
   }
 

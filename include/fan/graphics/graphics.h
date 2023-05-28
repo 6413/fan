@@ -15,29 +15,19 @@
 #endif
 
 namespace fan {
-	template <typename T, typename = int>
-	struct _has_camera_t : std::false_type { };
-	template <typename T>
-	struct _has_camera_t <T, decltype((void) T::camera, 0)> : std::true_type { };
-	template <typename T>
-	concept has_camera_t = _has_camera_t<T>::value;
+  #define make_has_type(name) \
+	  template <typename T, typename = int> \
+    struct _has_##name##_t : std::false_type { }; \
+	  template <typename T> \
+    struct _has_##name##_t <T, decltype((void) T::name, 0)> : std::true_type { }; \
+	  template <typename T> \
+    concept has_##name##_t = _has_##name##_t<T>::value;
 
-	template <typename T, typename = int>
-	struct _has_viewport_t : std::false_type { };
-	template <typename T>
-	struct _has_viewport_t <T, decltype((void) T::viewport, 0)> : std::true_type { };
-	template <typename T>
-	concept has_viewport_t = _has_viewport_t<T>::value;
-
-	template <typename T, typename = int>
-	struct _has_camera_id_t : std::false_type { };
-	template <typename T>
-	struct _has_camera_id_t <T, decltype((void) T::m_camera_index, 0)> : std::true_type { };
-
-	template <typename T, typename = int>
-	struct _has_texture_id_t : std::false_type { };
-	template <typename T>
-	struct _has_texture_id_t <T, decltype((void) T::m_texture_index, 0)> : std::true_type { };
+  make_has_type(camera);
+  make_has_type(viewport);
+  make_has_type(camera_id);
+  make_has_type(texture_id);
+  make_has_type(image);
 
 	namespace graphics {
 

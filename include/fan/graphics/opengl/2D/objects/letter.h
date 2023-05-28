@@ -8,19 +8,20 @@ struct letter_t {
 
   static constexpr uint32_t max_instance_size = fan::min(256ull, 4096 / (sizeof(vi_t) / 4));
 
-  struct bm_properties_t {
+  struct context_key_t {
     loco_letter_bm_properties_t
   };
 
   struct cid_t;
 
-  struct ri_t : bm_properties_t {
+  struct ri_t {
     loco_letter_ri_t
   };
 
   struct properties_t : vi_t, ri_t {
     using type_t = letter_t;
     loco_letter_properties_t
+    loco_letter_bm_properties_t
   };
 
   void push_back(loco_t::cid_nt_t& id, properties_t& p) {
@@ -96,18 +97,15 @@ struct letter_t {
   }
 
   void set_camera(loco_t::cid_nt_t& id, loco_t::camera_list_NodeReference_t n) {
-    sb_set_key<bm_properties_t::key_t::get_index_with_type<decltype(n)>()>(id, n);
+    sb_set_context_key<context_key_t::key_t::get_index_with_type<decltype(n)>()>(id, n);
   }
 
   void set_viewport(loco_t::cid_nt_t& id, fan::graphics::viewport_list_NodeReference_t n) {
-    sb_set_key<bm_properties_t::key_t::get_index_with_type<decltype(n)>()>(id, n);
+    sb_set_context_key<context_key_t::key_t::get_index_with_type<decltype(n)>()>(id, n);
   }
 
   properties_t get_properties(loco_t::cid_nt_t& id) {
-    properties_t p = sb_get_properties(id);
-    p.camera = gloco->camera_list[*p.key.get_value<loco_t::camera_list_NodeReference_t>()].camera_id;
-    p.viewport = gloco->get_context()->viewport_list[*p.key.get_value<fan::graphics::viewport_list_NodeReference_t>()].viewport_id;
-    
+    properties_t p = sb_get_properties(id);    
     return p;
   }
 
