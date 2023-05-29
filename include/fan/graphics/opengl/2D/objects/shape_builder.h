@@ -278,7 +278,7 @@ public:
 
     push_key_t key;
     key.iterate([&](const auto& i, const auto& data) {
-      *data = { .data = *block_element.key.get_value<i.value>() };
+      *data = { .data = *block_element.key.template get_value<i.value>() };
     });
 
     get_block_id_from_push(bm_id, block_id, key, key_size, key_nr, key_type_index);
