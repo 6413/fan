@@ -277,7 +277,7 @@ public:
     bll_block_NodeReference_t block_id;
 
     push_key_t key;
-    key.iterate([&](const auto& i, const auto& data) {
+    key.iterate([&](auto i, const auto& data) {
       *data = { .data = *block_element.key.template get_value<i.value>() };
     });
 
