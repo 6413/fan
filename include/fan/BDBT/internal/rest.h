@@ -284,9 +284,6 @@ _BDBT_P(Recycle)
 ){
   _BDBT_P(Node_t) *Node = _BDBT_P(GetNodeByReference)(list, NodeReference);
 
-  if (NodeReference == 11) {
-    fan::print("salsa");
-  }
   Node->n[0] = list->e.c;
   #if BDBT_set_IsNodeUnlinked == 1
     Node->n[1] = _BDBT_P(NodeReference_t)-1;

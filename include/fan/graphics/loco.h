@@ -1508,6 +1508,9 @@ public:
 
       get_context()->opengl.call(get_context()->opengl.glGenerateMipmap, fan::opengl::GL_TEXTURE_2D);
 
+      lp.internal_format = fan::opengl::GL_RGBA16F;
+      lp.format = fan::opengl::GL_RGBA;
+
       color_buffers[1].reload_pixels(ii, lp);
 
       color_buffers[1].bind_texture();
