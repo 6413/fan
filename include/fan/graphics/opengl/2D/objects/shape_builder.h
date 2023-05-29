@@ -423,7 +423,7 @@ public:
     ln->first_block = blocks.NewNodeLast();
     blocks[ln->first_block].open(gloco, this);
     ln->last_block = ln->first_block;
-    ln->key.iterate([&](const auto& i, const auto& data) {
+    ln->key.iterate([&](auto i, const auto& data) {
       *data = key.template get_value<i.value>()->data;
     });
     return lnr;
