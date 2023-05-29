@@ -529,7 +529,7 @@ public:
 
     loco_bdbt_NodeReference_t last_key_nr;
 
-    int depth = key.reverse_iterate_ret([&]<typename T>(const auto & i, const T & data) -> int {
+    int depth = key.reverse_iterate_ret([&]<typename T>(auto i, const T & data) -> int {
       typename std::remove_pointer_t<T>::key_t k;
       if constexpr (sizeof...(suckers)) {
         last_key_nr = data->key_nr;
