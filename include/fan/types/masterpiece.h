@@ -112,10 +112,10 @@ namespace fan {
       }
     }
 
-    template <uint32_t i, typename _Ty = masterpiece_reversed_t<T, Rest...>, uint32_t depth = count>
-    constexpr auto get_value(_Ty* a = nullptr) const {
-      return get_value<i, _Ty>(a);
-    }
+    //template <uint32_t i, typename _Ty = masterpiece_reversed_t<T, Rest...>, uint32_t depth = count>
+    //constexpr auto get_value(_Ty* a = nullptr) const {
+    //  return get_value<i, _Ty>(a);
+    //}
 
     T* get_single() {
       return &x_;
