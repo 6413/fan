@@ -277,7 +277,17 @@ namespace fan {
 
   template <typename... T>
   static FMT_INLINE auto print_format(fmt::format_string<T...> fmt, T&&... args) {
-    //fan::print(fmt::vformat(fmt, fmt::make_format_args(args...)));
+    fan::print(fmt::vformat(fmt, fmt::make_format_args(args...)));
+  }
+  
+  template <typename T>
+  static FMT_INLINE void print_data_one(fmt::format_string<fmt::join_view<uint8_t*, uint8_t*, char>> fmt, T arg) {
+    fan::print(fmt::format(fmt, fmt::join((uint8_t*)&arg,
+      (uint8_t*)&arg + sizeof(std::remove_pointer_t<T>), " ")));
+  }
+
+  static FMT_INLINE void print_data(fmt::format_string<fmt::join_view<uint8_t*, uint8_t*, char>> fmt, auto&&... args) {
+    ((print_data_one(fmt, args)), ...);
   }
 
 	template <typename ...Args>

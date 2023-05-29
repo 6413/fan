@@ -288,7 +288,7 @@ struct responsive_text_t {
     auto& instance = tlist[instance_id];
 
     f32_t scaler = instance.size.x * 2 / instance.max_sizes.x;
-    //fan::print("salsa", scaler, instance.size.y * 2 / gloco->font.info.height);
+
     scaler = std::min(scaler, instance.size.y * 2 / gloco->font.info.height);
     instance.font_size = scaler;
     reset_position_size(instance_id, true);

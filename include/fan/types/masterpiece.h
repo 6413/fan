@@ -125,23 +125,10 @@ namespace fan {
     constexpr void internal_get_runtime_value(std::index_sequence<Is...>, size_t i, const auto& lambda) {
       ((void)(Is == i && (lambda(get_value<Is>()), true)), ...);
     }
-
-    template<size_t ...Is>
-    constexpr auto internal_get_runtime_value(std::index_sequence<Is...>, size_t i) {
-      auto lambda = [](const auto& d) ->int {
-        return d;
-      };
-      ((void)(Is == i && ( lambda(get_value<Is>()), true)), ...);
-    }
     
     constexpr void get_value(size_t idx, const auto& lambda)
     {
       internal_get_runtime_value(std::make_index_sequence<size()>{}, idx, lambda);
-    }
-
-    constexpr auto get_value(size_t idx)
-    {
-      return internal_get_runtime_value(std::make_index_sequence<size()>{}, idx);
     }
 
     template <typename get_type, typename _Ty = masterpiece_reversed_t<T, Rest...>, uint32_t depth = count>
@@ -180,7 +167,7 @@ namespace fan {
     }
     template <uint32_t depth = count>
     constexpr int reverse_iterate_ret(auto lambda) {
-      if constexpr (depth == 0) {
+      if constexpr (depth == (uint32_t)-1) {
         return depth;
       }
       else {
@@ -193,7 +180,7 @@ namespace fan {
     }
     template <uint32_t depth = count>
     constexpr void reverse_iterate(auto lambda) {
-      if constexpr (depth == 0) {
+      if constexpr (depth == (uint32_t)-1) {
         return;
       }
       else {
@@ -225,6 +212,21 @@ namespace fan {
       return &x_;
     }
 
+    static constexpr size_t size() {
+      return count;
+    }
+
+    template<size_t ...Is>
+    constexpr void internal_get_runtime_value(std::index_sequence<Is...>, size_t i, const auto& lambda) {
+      ((void)(Is == i && (lambda(get_value<Is>()), true)), ...);
+    }
+
+    constexpr void get_value(size_t idx, const auto& lambda)
+    {
+      internal_get_runtime_value(std::make_index_sequence<size()>{}, idx, lambda);
+    }
+
+
   protected:
     template <uint32_t N, typename... Ts>
     struct get;
@@ -249,10 +251,6 @@ namespace fan {
     template <int N>
     using get_type_t = T;
 
-    static constexpr size_t size() {
-      return 1;
-    }
-
     constexpr void iterate(auto lambda) {
       lambda(std::integral_constant<uint32_t, 0>{}, get_value<0>());
     }
@@ -266,7 +264,7 @@ namespace fan {
     }
     template <uint32_t depth = count>
     constexpr int reverse_iterate_ret(auto lambda) {
-      if constexpr (depth == 0) {
+      if constexpr (depth == (uint32_t)-1) {
         return depth;
       }
       else {
@@ -279,7 +277,7 @@ namespace fan {
     }
     template <uint32_t depth = count>
     constexpr void reverse_iterate(auto lambda) {
-      if constexpr (depth == 0) {
+      if constexpr (depth == (uint32_t)-1) {
         return;
       }
       else {

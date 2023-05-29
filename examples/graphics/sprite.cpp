@@ -92,10 +92,15 @@ int main() {
   //id2.set_depth(3);
 
   //pile->loco.process_loop([] {});
-
+  fan::print(loco_bdbt_usage(&gloco->bdbt));
+  loco_t::shape_t id3 = pp;
+  id3.erase();
+  fan::print(loco_bdbt_usage(&gloco->bdbt));
+  id3 = pp;
+  id3.erase();
+  fan::print(loco_bdbt_usage(&gloco->bdbt));
 
   pile->loco.loop([&] {
-      loco_t::shape_t id3 = pp;
     pile->loco.get_fps(); 
   });
 

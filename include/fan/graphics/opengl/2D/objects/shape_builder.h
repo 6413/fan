@@ -152,12 +152,7 @@ public:
       if (block->uniform_buffer.size() == 0) {
         auto lpnr = block_node->PrevNodeReference;
         if (last_block_id == bm_node->data.first_block) {
-          if constexpr (sizeof...(suckers)) {
-            sb_erase_key_from(id, suckers...);
-          }
-          else {
-            sb_erase_key_from(id);
-          }
+          sb_erase_key_from(id);
 
           bm_list.Recycle(bm_id);
         }
@@ -202,26 +197,17 @@ public:
   void get_block_id_from_push(
     shape_bm_NodeReference_t &bm_id,
     bll_block_NodeReference_t& block_id,
-    auto& key,
-    uint32_t key_index = 0,
-    loco_bdbt_NodeReference_t key_nr = { (loco_bdbt_NodeReference_t)-1},
-    uint32_t key_type_index = 0
+    auto& key
   ) {
     using key_t = std::remove_reference_t<decltype(key)>;
 
-    if (key_index != 0) {
-      iterate_keys(key_t::size(), key_type_index, key, bm_id, key_nr);
-      goto after_key_gt;
-    }
-    if (key_nr == (loco_bdbt_NodeReference_t)-1) {
-      key_nr =
-        #if sb_has_own_key_root == 1
-          key_root
-        #else
-          gloco->root
-        #endif
-      ;
-    }
+    auto key_nr =
+      #if sb_has_own_key_root == 1
+        key_root
+      #else
+        gloco->root
+      #endif
+    ;
 
     for (uint32_t i = 0; i < key.size(); ++i) {
       bool do_break = false;
@@ -251,8 +237,6 @@ public:
       }
     }
 
-    after_key_gt:;
-
     auto& bm = bm_list[bm_id];
     block_id = bm.last_block;
     auto block = &blocks[block_id];
@@ -268,10 +252,7 @@ public:
 
   void unsuck_block_element(
     loco_t::cid_nt_t& id,
-    block_element_t& block_element,
-    uint32_t& key_size,
-    loco_bdbt_NodeReference_t& key_nr,
-    uint32_t& key_type_index
+    block_element_t& block_element
   ) {
     shape_bm_NodeReference_t bm_id;
     bll_block_NodeReference_t block_id;
@@ -281,7 +262,7 @@ public:
       *data = { .data = *block_element.key.template get_value<i.value>() };
     });
 
-    get_block_id_from_push(bm_id, block_id, key, key_size, key_nr, key_type_index);
+    get_block_id_from_push(bm_id, block_id, key);
 
     auto block = &blocks[block_id];
     block->uniform_buffer.push_ram_instance(gloco->get_context(), *(vi_t*)block_element.vi);
@@ -488,7 +469,7 @@ public:
     return block;
   }
 
-  void sb_erase_key_from(loco_t::cid_nt_t& id, auto&& ...suckers) {
+  void sb_erase_key_from(loco_t::cid_nt_t& id) {
     auto bm_id = *(shape_bm_NodeReference_t*)&id->bm_id;
     auto bm_node = bm_list.GetNodeByReference(bm_id);
 
@@ -527,17 +508,9 @@ public:
       #endif
     });
 
-    loco_bdbt_NodeReference_t last_key_nr;
-
-    int depth = key.reverse_iterate_ret([&]<typename T>(auto i, const T & data) -> int {
+    key.reverse_iterate_ret([&]<typename T>(auto i, const T & data) -> int {
       typename std::remove_pointer_t<T>::key_t k;
-      if constexpr (sizeof...(suckers)) {
-        last_key_nr = data->key_nr;
-        *fan::get_variadic_element<1>(suckers...) = k.rwi(&gloco->bdbt, &data->data, &last_key_nr);
-      }
-      else {
-        k.r(&gloco->bdbt, &data->data, data->key_nr);
-      }
+      k.r(&gloco->bdbt, &data->data, data->key_nr);
 
       if (loco_bdbt_inrhc(&gloco->bdbt, data->key_nr) == true) {
         return 1;
@@ -547,14 +520,6 @@ public:
       }
       return 0;
     });
-
-    if constexpr (sizeof...(suckers)) {
-      *fan::get_variadic_element<3>(suckers...) = depth;
-    }
-
-    if constexpr (sizeof...(suckers)) {
-      *fan::get_variadic_element<2>(suckers...) = last_key_nr;
-    }
   }
 
   void sb_erase(loco_t::cid_nt_t& id) {
@@ -736,14 +701,13 @@ public:
   }
 
   void sb_set_depth(loco_t::cid_nt_t& id, f32_t depth) {
+#if sb_ignore_3_key == 0
     block_element_t block_element;
-    uint32_t key_size;
-    loco_bdbt_NodeReference_t key_nr;
-    uint32_t key_type_index;
-    suck_block_element(id, &block_element, &key_size, &key_nr, &key_type_index);
+    suck_block_element(id, &block_element);
     ((vi_t*)block_element.vi)->sb_depth_var.z = depth;
-    *block_element.key.get_value<1>() = depth;
-    unsuck_block_element(id, block_element, key_size, key_nr, key_type_index);
+    *block_element.key.get_value<1>() = (uint16_t)depth;
+    unsuck_block_element(id, block_element);
+#endif
   }
 
  /* void sb_set_depth(loco_t::cid_nt_t& id, f32_t depth) {
