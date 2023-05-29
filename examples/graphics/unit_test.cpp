@@ -22,11 +22,11 @@ std::unordered_map<uint32_t, idlist_output_t> idlist;
 
 #define loco_window
 #define loco_context
-#define loco_rectangle
-#define loco_circle
-#define loco_line
-#define loco_letter
-////#define loco_button
+//#define loco_rectangle
+//#define loco_circle
+//#define loco_line
+//#define loco_letter
+//#define loco_button
 #define loco_sprite
 #include _FAN_PATH(graphics/loco.h)
 
@@ -73,7 +73,7 @@ fan_has_variable_struct(letter_id);
 loco_t::theme_t theme{ loco_t::themes::deep_red() };
 
 void push_things() {
-  while (idlist.size() < 2) {
+  while (idlist.size() < 1) {
      pile->loco.types.iterate([&]<typename T>(const auto & i, const T & o) {
       using type_t = std::remove_pointer_t<std::remove_pointer_t<T>>;
       if constexpr (
@@ -213,6 +213,7 @@ int main() {
   for (uint32_t i = 0; i < idlist.size(); ++i) {
     auto it = idlist.begin();
     loco_t::shape_t* id = (loco_t::shape_t*)&it->first;
+    id->set_depth(rand() % 0xffff);
     id->erase();
     idlist.erase(it);
     //std::advance(it, 1/*fan::random::value_i64(0, idlist.size() - 1)*/);
