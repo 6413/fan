@@ -206,7 +206,6 @@ struct responsive_text_t {
       return false;
     }
 
-
     {
       letter_list_NodeReference_t letter_nr;
       if (instance.LetterStartNR.iic()) {
@@ -264,6 +263,7 @@ struct responsive_text_t {
       }
       nr = nr.Next(&letter_list);
     }while(1);
+
     return true;
   }
 
@@ -337,20 +337,18 @@ struct responsive_text_t {
   void free_letters(tlist_NodeReference_t internal_id){
     auto& instance = tlist[internal_id];
 
-    {
-      auto nr = instance.LetterStartNR;
-      if(nr.iic()){
-        return;
-      }
-      do {
-        auto nnr = nr.Next(&letter_list);
-        letter_list.unlrec(nr);
-        if (nr == instance.LetterEndNR) {
-          break;
-        }
-        nr = nnr;
-      }while(1);
+    auto nr = instance.LetterStartNR;
+    if(nr.iic()){
+      return;
     }
+    do {
+      auto nnr = nr.Next(&letter_list);
+      letter_list.unlrec(nr);
+      if (nr == instance.LetterEndNR) {
+        break;
+      }
+      nr = nnr;
+    }while(1);
   }
   void set_text(loco_t::cid_nt_t& id, const fan::string& text) {
     auto internal_id = *(tlist_NodeReference_t*)id.gdp4();
@@ -371,11 +369,6 @@ struct responsive_text_t {
 
       i += letter_size;
     }
-  }
-
-  auto& get_instance(loco_t::cid_nt_t& id) {
-    auto internal_id = *(tlist_NodeReference_t*)id.gdp4();
-    return tlist[internal_id];
   }
 
   fan::string get_text(loco_t::cid_nt_t& id) {
@@ -407,9 +400,9 @@ struct responsive_text_t {
   properties_t get_properties(loco_t::cid_nt_t& id) {
     auto internal_id = *(tlist_NodeReference_t*)id.gdp4();
     auto& instance = tlist[internal_id];
+
     properties_t p;
     p.camera = instance.camera;
-    //p.theme =  gloco->get_context()->theme_list[*p.key.get_values<loco_t::t>()].matrices_id;
     p.viewport = instance.viewport;
     p.position = instance.position;
     p.color = instance.color;
@@ -487,11 +480,23 @@ struct responsive_text_t {
   //  }
   //}
 
-  //void set_position(const fan::vec3& v) {
-  //  m_position = v;
+  void set_position(loco_t::cid_nt_t& id, const fan::vec3& v) {
+    auto instance_id = *(tlist_NodeReference_t*)id.gdp4();
+    auto& instance = tlist[instance_id];
 
-  //  calculate_text_positions();
-  //}
+    instance.position = v;
+
+    reset_position_size(instance_id, true); // TODO need only position change
+  }
+  void set_position(loco_t::cid_nt_t& id, const fan::vec2& v) {
+    auto instance_id = *(tlist_NodeReference_t*)id.gdp4();
+    auto& instance = tlist[instance_id];
+
+    instance.position.x = v.x;
+    instance.position.y = v.y;
+
+    reset_position_size(instance_id, true); // TODO need only position change
+  }
   //fan::vec2 get_size() const {
   //  return m_size;
   //}
