@@ -287,7 +287,7 @@ struct text_box_t {
     p.z += 1;
     fan::print(c.elapsed());
     if (!gloco->responsive_text.get_text(sb_get_ri(id).text_id).empty()) {
-      f32_t font_size = gloco->responsive_text.get_instance(sb_get_ri(id).text_id).font_size;
+      f32_t font_size = 1; // TODO
       ri.fed.set_font_size(ci.FreeStyle.LineReference, font_size);
     }
     // set_font_size invalidates ci so need to refetch it
@@ -489,7 +489,7 @@ struct text_box_t {
     wed_t::CursorInformation_t ci;
     auto& fed = sb_get_ri(id).fed;
     fed.m_wed.GetCursorInformation(fed.m_cr, &ci);
-    f32_t font_size = gloco->responsive_text.get_instance(sb_get_ri(id).text_id).font_size;
+    f32_t font_size = 1; // TODO
     fan::string measured_string;
     for (uint32_t i = 0; i < width; ++i) {
       measured_string += text.get_utf8(i);
@@ -572,18 +572,13 @@ struct text_box_t {
     }
   }
 
-  auto get_text_instance(loco_t::cid_nt_t& id) {
-    auto& ri = sb_get_ri(id);
-    return gloco->responsive_text.get_instance(ri.text_id);
-  }
-
   // can be incomplete
   
   properties_t get_properties(loco_t::cid_nt_t& id) {
     properties_t p = sb_get_properties(id);
-    p.position = get_text_instance(id).position;
+    p.position = sb_get_vi(id).position;
     p.text = gloco->responsive_text.get_text(sb_get_ri(id).text_id);
-    p.font_size = get_text_instance(id).font_size;
+    p.font_size = 1; // TODO
     return p;
   }
   

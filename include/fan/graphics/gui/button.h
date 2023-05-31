@@ -301,13 +301,6 @@ struct button_t {
     ri.selected = flag;
   }
 
-  // dont edit values
-  auto get_text_instance(loco_t::cid_nt_t& id) {
-    
-    auto& ri = get_ri(id);
-    return gloco->responsive_text.get_instance(ri.text_id);
-  }
-
   fan::string get_text(loco_t::cid_nt_t& id) {
     
     auto& ri = get_ri(id);
@@ -349,11 +342,11 @@ struct button_t {
 
   properties_t get_properties(loco_t::cid_nt_t& id) {
     properties_t p = sb_get_properties(id);
-    p.theme =  get_theme(id);
+    p.theme = get_theme(id);
 
-    p.position = get_text_instance(id).position;
+    p.position = sb_get_vi(id).position;
     p.text = gloco->responsive_text.get_text(sb_get_ri(id).text_id);
-    p.font_size = get_text_instance(id).font_size;
+    p.font_size = 1; // TODO
     return p;
   }
 
