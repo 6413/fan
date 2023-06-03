@@ -139,6 +139,10 @@ namespace fan
 
         return font_info;
       }
+      fan::font::character_info_t get_letter_info(character_info_nr_t char_internal_id)
+      {
+        return get_letter_info(char_internal_id, this->size);
+      }
       f32_t get_line_height(f32_t font_size) const
       {
         return line_height * convert_font_size(font_size);
