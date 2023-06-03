@@ -267,8 +267,8 @@ struct responsive_text_t {
         fan::vec3 position;
         get_next_letter_position(instance_id, character_info, position, letter_id.Prev(&letter_list), letter_id == line.LetterStartNR);
 
-        position *= instance.font_size;
-        position += instance.position - fan::vec3(instance.size.x, 0, 0);
+        position *= fan::vec3(instance.font_size, instance.font_size, 1);
+        position += fan::vec2(instance.position) - fan::vec2(instance.size.x, 0);
         letter_list[letter_id].shape.set_position(position);
 
         if (letter_id == line.LetterEndNR) {
@@ -299,8 +299,8 @@ struct responsive_text_t {
         fan::vec3 position;
         get_next_letter_position(instance_id, character_info, position, letter_id.Prev(&letter_list), letter_id == line.LetterStartNR);
 
-        position *= instance.font_size;
-        position += instance.position - fan::vec3(instance.size.x, 0, 0);
+        position *= fan::vec3(instance.font_size, instance.font_size, 1);
+        position += fan::vec2(instance.position) - fan::vec2(instance.size.x, 0);
         letter_list[letter_id].shape.set_position(position);
         auto new_character_info = gloco->font.info.get_letter_info(char_internal_id);
         letter_list[letter_id].shape.set_size(new_character_info.metrics.size / 2 * instance.font_size);
