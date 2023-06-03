@@ -44,7 +44,9 @@ struct responsive_text_t {
   #define BLL_set_prefix line_list
   #define BLL_set_type_node uint32_t
   #define BLL_set_NodeData \
-    f32_t total_width = 0;
+    f32_t total_width = 0; /* used for optimization */\
+    letter_list_NodeReference_t LetterStartNR{true}; \
+    letter_list_NodeReference_t LetterEndNR;
   #include _FAN_PATH(BLL/BLL.h)
   line_list_t line_list;
 
@@ -58,10 +60,9 @@ struct responsive_text_t {
   #define BLL_set_Link 0
   #define BLL_set_type_node uint32_t
   #define BLL_set_NodeData \
-    letter_list_NodeReference_t LetterStartNR{true}; \
-    letter_list_NodeReference_t LetterEndNR; \
-    line_list_NodeReference_t LineStartNR; /* TODO need reinit at reset */ \
-    uint32_t LineCount = 1; /* TODO need reinit at reset */ \
+    line_list_NodeReference_t LineStartNR; \
+    line_list_NodeReference_t LineEndNR; \
+    uint32_t LineCount = 1; \
     loco_t::camera_t* camera = 0; \
     loco_t::viewport_t* viewport = 0; \
     fan::vec3 position; \
@@ -72,7 +73,7 @@ struct responsive_text_t {
     align_e alignment; \
     fan::vec2 size = 0; \
     fan::vec2 max_sizes = 0; \
-    line_list_NodeReference_t max_x_sized_line{true}; /* TODO does it really need sic? */
+    line_list_NodeReference_t max_x_sized_line{true}; // TODO this is used nowhere. do we really need this?
   #include _FAN_PATH(BLL/BLL.h)
   tlist_t tlist;
 
@@ -98,6 +99,7 @@ struct responsive_text_t {
       instance.outline_size = properties.outline_size;
       instance.size = properties.size;
       instance.LineStartNR = line_list.NewNodeLast();
+      instance.LineEndNR = instance.LineStartNR;
     }
 
     // todo use aligment
@@ -121,21 +123,11 @@ struct responsive_text_t {
   }
 
   void erase(loco_t::cid_nt_t& id) {
-    //auto internal_id = *(tlist_NodeReference_t*)id.gdp4();
-    //__abort();
-    //tlist.unlrec(internal_id);
     auto internal_id = *(tlist_NodeReference_t*)id.gdp4();
     auto& instance = tlist[internal_id];
-    free_letters(internal_id);
 
-    {
-      auto lnr = instance.LineStartNR;
-      for(auto i = instance.LineCount; i--;){
-        auto nlnr = lnr.Next(&line_list);
-        line_list.unlrec(lnr);
-        lnr = nlnr;
-      }
-    }
+    free_lines_keep_1(internal_id);
+    line_list.unlrec(instance.LineStartNR);
 
     tlist.Recycle(internal_id);
   }
@@ -152,11 +144,14 @@ struct responsive_text_t {
     return internal_append_letter(instance_id, found->second, force);
   }
 
-  // also calculates total_width
-  bool get_letter_position(tlist_NodeReference_t instance_id, fan::font::character_info_nr_t char_internal_id, fan::vec3& position, bool force, auto working_letter_nr, bool is_first) {
+  void get_next_letter_position(
+    tlist_NodeReference_t instance_id,
+    const fan::font::character_info_t character_info,
+    fan::vec3& position,
+    auto working_letter_nr,
+    bool is_first
+  ){
     auto& instance = tlist[instance_id];
-
-    auto new_character_info = gloco->font.info.get_letter_info(char_internal_id, gloco->font.info.size);
 
     static auto calculate_letter_position = [&](const auto& character_info, const fan::vec3& p) {
       return fan::vec3(
@@ -164,27 +159,48 @@ struct responsive_text_t {
         p.y + (gloco->font.info.size  - character_info.metrics.size.y) / 2 - character_info.metrics.offset.y,
         0
       );
-      };
+    };
 
     if (is_first) {
       position = 0;
-      position = calculate_letter_position(new_character_info, position);
+      position = calculate_letter_position(character_info, position);
       position.z = instance.position.z;
     }
     else {
       auto& old_letter = letter_list[working_letter_nr];
-      auto old_character_info = gloco->font.info.get_letter_info(old_letter.internal_id, gloco->font.info.size );
+      auto old_character_info = gloco->font.info.get_letter_info(old_letter.internal_id);
       fan::vec3 o_pos = old_letter.position;
       position = o_pos;
       position -= calculate_letter_position(old_character_info, 0);
-      position = calculate_letter_position(new_character_info, position);
+      position = calculate_letter_position(character_info, position);
       position.x += old_character_info.metrics.advance;
       position.z = instance.position.z;
     }
-    if ((position.x + new_character_info.metrics.size.x / 2) * instance.font_size > instance.size.x * 2 && force == false) {
-      return false;
+  }
+
+  bool get_new_letter_position(tlist_NodeReference_t instance_id, fan::font::character_info_nr_t char_internal_id, fan::vec3& position, bool force) {
+    auto& instance = tlist[instance_id];
+
+    auto character_info = gloco->font.info.get_letter_info(char_internal_id);
+
+    letter_list_NodeReference_t working_letter_nr = line_list[instance.LineEndNR].LetterEndNR;
+    bool is_first = line_list[instance.LineEndNR].LetterStartNR.iic();
+
+    gt_re:;
+
+    get_next_letter_position(instance_id, character_info, position, working_letter_nr, is_first);
+
+    if(force == true){}
+    else if((position.x + character_info.metrics.size.x / 2) * instance.font_size <= instance.size.x * 2){}
+    else{
+      auto lnr = line_list.NewNode();
+      line_list.linkNext(instance.LineEndNR, lnr);
+      instance.LineEndNR = lnr;
+      is_first = true;
+      goto gt_re;
     }
-    line_list[instance.LineStartNR].total_width = position.x + new_character_info.metrics.size.x / 2;
+
+    line_list[instance.LineStartNR].total_width = position.x + character_info.metrics.size.x / 2;
     return true;
   }
 
@@ -202,28 +218,28 @@ struct responsive_text_t {
  
     p.letter_id = gloco->font.info.character_info_list[char_internal_id].utf8_character;
 
-    if (!get_letter_position(instance_id, char_internal_id, p.position, force, instance.LetterEndNR, instance.LetterStartNR.iic())) {
+    if (!get_new_letter_position(instance_id, char_internal_id, p.position, force)) {
       return false;
     }
 
     {
       letter_list_NodeReference_t letter_nr;
-      if (instance.LetterStartNR.iic()) {
+      if (line_list[instance.LineEndNR].LetterStartNR.iic()) {
         letter_nr = letter_list.NewNodeLast();
-        instance.LetterStartNR = letter_nr;
-        instance.LetterEndNR = letter_nr;
+        line_list[instance.LineEndNR].LetterStartNR = letter_nr;
+        line_list[instance.LineEndNR].LetterEndNR = letter_nr;
       }
       else {
         letter_nr = letter_list.NewNode();
-        letter_list.linkNext(instance.LetterEndNR, letter_nr);
-        instance.LetterEndNR = letter_nr;
+        letter_list.linkNext(line_list[instance.LineEndNR].LetterEndNR, letter_nr);
+        line_list[instance.LineEndNR].LetterEndNR = letter_nr;
       }
       auto& letter = letter_list[letter_nr];
       letter.position = p.position;
       letter.internal_id = char_internal_id;
 
-      p.position *= instance.font_size;
-      p.position += instance.position - fan::vec3(instance.size.x, 0, 0);
+      p.position *= fan::vec3(instance.font_size, instance.font_size, 1);
+      p.position += fan::vec2(instance.position) - fan::vec2(instance.size.x, 0);
       letter.shape = p;
     }
 
@@ -236,35 +252,70 @@ struct responsive_text_t {
     return true;
   }
 
-
-  bool reset_position_size(tlist_NodeReference_t instance_id, bool force = false) {
-
+  void reinit_letter_positions(tlist_NodeReference_t instance_id) {
     auto& instance = tlist[instance_id];
 
-    auto nr = instance.LetterStartNR;
-    if(nr.iic()){
-      return false; // is it false
-    }
-    fan::vec3 position = 0;
+    auto line_id = instance.LineStartNR;
     do{
-      fan::font::character_info_nr_t char_internal_id = letter_list[nr].internal_id;
+      auto& line = line_list[line_id];
 
-      if (!get_letter_position(instance_id, char_internal_id, position, force, nr.Prev(&letter_list), nr == instance.LetterStartNR)) {
-        return false;
-      }
-      position *= instance.font_size;
-      position += instance.position - fan::vec3(instance.size.x, 0, 0);
-      letter_list[nr].shape.set_position(position);
-      auto new_character_info = gloco->font.info.get_letter_info(char_internal_id, gloco->font.info.size);
-      letter_list[nr].shape.set_size(new_character_info.metrics.size / 2 * instance.font_size);
+      auto letter_id = line.LetterStartNR;
+      if(letter_id.iic() == false) do{
+        fan::font::character_info_nr_t char_internal_id = letter_list[letter_id].internal_id;
+        auto character_info = gloco->font.info.get_letter_info(char_internal_id);
 
-      if (nr == instance.LetterEndNR) {
+        fan::vec3 position;
+        get_next_letter_position(instance_id, character_info, position, letter_id.Prev(&letter_list), letter_id == line.LetterStartNR);
+
+        position *= instance.font_size;
+        position += instance.position - fan::vec3(instance.size.x, 0, 0);
+        letter_list[letter_id].shape.set_position(position);
+
+        if (letter_id == line.LetterEndNR) {
+          break;
+        }
+        letter_id = letter_id.Next(&letter_list);
+      }while(1);
+
+      if(line_id == instance.LineEndNR){
         break;
       }
-      nr = nr.Next(&letter_list);
+      line_id = line_id.Next(&line_list);
     }while(1);
+  }
 
-    return true;
+  void reset_position_size(tlist_NodeReference_t instance_id) {
+    auto& instance = tlist[instance_id];
+
+    auto line_id = instance.LineStartNR;
+    do{
+      auto& line = line_list[line_id];
+
+      auto letter_id = line.LetterStartNR;
+      if(letter_id.iic() == false) do{
+        fan::font::character_info_nr_t char_internal_id = letter_list[letter_id].internal_id;
+        auto character_info = gloco->font.info.get_letter_info(char_internal_id);
+
+        fan::vec3 position;
+        get_next_letter_position(instance_id, character_info, position, letter_id.Prev(&letter_list), letter_id == line.LetterStartNR);
+
+        position *= instance.font_size;
+        position += instance.position - fan::vec3(instance.size.x, 0, 0);
+        letter_list[letter_id].shape.set_position(position);
+        auto new_character_info = gloco->font.info.get_letter_info(char_internal_id);
+        letter_list[letter_id].shape.set_size(new_character_info.metrics.size / 2 * instance.font_size);
+
+        if (letter_id == line.LetterEndNR) {
+          break;
+        }
+        letter_id = letter_id.Next(&letter_list);
+      }while(1);
+
+      if(line_id == instance.LineEndNR){
+        break;
+      }
+      line_id = line_id.Next(&line_list);
+    }while(1);
   }
 
   void update_max_sizes(tlist_NodeReference_t instance_id) {
@@ -272,16 +323,19 @@ struct responsive_text_t {
 
     instance.max_sizes = fan::vec2(0, instance.size.y);
 
-    auto nr = instance.LineStartNR;
-    for (uint32_t i = instance.LineCount; i--;) {
-      auto& line = line_list[nr];
+    auto line_id = instance.LineStartNR;
+    do{
+      auto& line = line_list[line_id];
       if (line.total_width > instance.max_sizes.x) {
-        instance.max_x_sized_line = nr;
+        instance.max_x_sized_line = line_id;
       }
       instance.max_sizes.x = std::max(instance.max_sizes.x, line.total_width);
-      nr = nr.Next(&line_list);
-    }
 
+      if(line_id == instance.LineEndNR){
+        break;
+      }
+      line_id = line_id.Next(&line_list);
+    }while(1);
   }
 
   void update_characters_with_max_size(tlist_NodeReference_t instance_id) {
@@ -291,7 +345,7 @@ struct responsive_text_t {
 
     scaler = std::min(scaler, instance.size.y * 2 / gloco->font.info.height);
     instance.font_size = scaler;
-    reset_position_size(instance_id, true);
+    reset_position_size(instance_id);
   }
 
   void set_size(loco_t::cid_nt_t& id, const fan::vec2& new_size) {
@@ -307,56 +361,91 @@ struct responsive_text_t {
   void set_outline_color(loco_t::cid_nt_t& id, const fan::color& color) {
     auto internal_id = *(tlist_NodeReference_t*)id.gdp4();
     auto& instance = tlist[internal_id];
-    auto nr = instance.LetterStartNR;
-    if(nr.iic()){
-      return;
-    }
-    do {
-      letter_list[nr].shape.set_outline_color(color);
-      if (nr == instance.LetterEndNR) {
+
+    auto line_id = instance.LineStartNR;
+    do{
+      auto& line = line_list[line_id];
+
+      auto letter_id = line.LetterStartNR;
+      if(letter_id.iic() == false) do{
+        letter_list[letter_id].shape.set_outline_color(color);
+        if (letter_id == line.LetterEndNR) {
+          break;
+        }
+        letter_id = letter_id.Next(&letter_list);
+      } while (1);
+
+      if(line_id == instance.LineEndNR){
         break;
       }
-      nr = nr.Next(&letter_list);
-    } while (1);
+      line_id = line_id.Next(&line_list);
+    }while(1);
   }
   void set_outline_size(loco_t::cid_nt_t& id, f32_t size) {
     auto internal_id = *(tlist_NodeReference_t*)id.gdp4();
     auto& instance = tlist[internal_id];
-    auto nr = instance.LetterStartNR;
-    if(nr.iic()){
-      return;
-    }
-    do {
-      letter_list[nr].shape.set_outline_size(size);
-      if (nr == instance.LetterEndNR) {
-        break;
-      }
-      nr = nr.Next(&letter_list);
-    } while (1);
-  }
-  void free_letters(tlist_NodeReference_t internal_id){
-    auto& instance = tlist[internal_id];
 
-    auto nr = instance.LetterStartNR;
-    if(nr.iic()){
-      return;
-    }
-    do {
-      auto nnr = nr.Next(&letter_list);
-      letter_list.unlrec(nr);
-      if (nr == instance.LetterEndNR) {
+    auto line_id = instance.LineStartNR;
+    do{
+      auto& line = line_list[line_id];
+
+      auto letter_id = line.LetterStartNR;
+      if(letter_id.iic() == false) do {
+        letter_list[letter_id].shape.set_outline_size(size);
+        if (letter_id == line.LetterEndNR) {
+          break;
+        }
+        letter_id = letter_id.Next(&letter_list);
+      } while (1);
+
+      if(line_id == instance.LineEndNR){
         break;
       }
-      nr = nnr;
+      line_id = line_id.Next(&line_list);
     }while(1);
+  }
+  void free_lines_keep_1(tlist_NodeReference_t instance_id){
+    auto& instance = tlist[instance_id];
+
+    auto line_id = instance.LineEndNR;
+    do{
+      auto& line = line_list[line_id];
+
+      auto letter_id = line.LetterStartNR;
+      if(letter_id.iic() == false) do {
+        auto next_letter_id = letter_id.Next(&letter_list);
+        letter_list.unlrec(letter_id);
+        if (letter_id == line.LetterEndNR) {
+          break;
+        }
+        letter_id = next_letter_id;
+      }while(1);
+
+      if(line_id == instance.LineStartNR){
+        break;
+      }
+      auto prev_line_id = line_id.Prev(&line_list);
+      line_list.unlrec(line_id);
+      line_id = prev_line_id;
+    }while(1);
+
+    instance.LineEndNR = instance.LineStartNR;
+
+    auto& line = line_list[instance.LineStartNR];
+    line.LetterStartNR.sic();
+    line.total_width = 0;
+  }
+  void clear_text(tlist_NodeReference_t instance_id){
+    auto& instance = tlist[instance_id];
+
+    free_lines_keep_1(instance_id);
+    instance.max_sizes = 0;
   }
   void set_text(loco_t::cid_nt_t& id, const fan::string& text) {
     auto internal_id = *(tlist_NodeReference_t*)id.gdp4();
     auto& instance = tlist[internal_id];
-    free_letters(internal_id);
 
-    instance.max_sizes = 0;
-    instance.LetterStartNR.sic();
+    clear_text(internal_id);
 
     for (uintptr_t i = 0; i != text.size();) {
       uint8_t letter_size = text.utf8_size(i);
@@ -376,17 +465,25 @@ struct responsive_text_t {
     auto& instance = tlist[internal_id];
 
     fan::string r;
-    auto nr = instance.LetterStartNR;
-    if(nr.iic()){
-      return "";
-    }
-    do {
-      r += gloco->font.info.character_info_list[letter_list[nr].internal_id].utf8_character;
-      if (nr == instance.LetterEndNR) {
+
+    auto line_id = instance.LineStartNR;
+    do{
+      auto& line = line_list[line_id];
+
+      auto letter_id = line.LetterStartNR;
+      if(letter_id.iic() == false) do {
+        r += gloco->font.info.character_info_list[letter_list[letter_id].internal_id].utf8_character;
+        if (letter_id == line.LetterEndNR) {
+          break;
+        }
+        letter_id = letter_id.Next(&letter_list);
+      } while (1);
+
+      if(line_id == instance.LineEndNR){
         break;
       }
-      nr = nr.Next(&letter_list);
-    } while (1);
+      line_id = line_id.Next(&line_list);
+    }while(1);
 
     return r;
   }
@@ -486,7 +583,7 @@ struct responsive_text_t {
 
     instance.position = v;
 
-    reset_position_size(instance_id, true); // TODO need only position change
+    reinit_letter_positions(instance_id);
   }
   void set_position(loco_t::cid_nt_t& id, const fan::vec2& v) {
     auto instance_id = *(tlist_NodeReference_t*)id.gdp4();
@@ -495,7 +592,7 @@ struct responsive_text_t {
     instance.position.x = v.x;
     instance.position.y = v.y;
 
-    reset_position_size(instance_id, true); // TODO need only position change
+    reinit_letter_positions(instance_id);
   }
   //fan::vec2 get_size() const {
   //  return m_size;
