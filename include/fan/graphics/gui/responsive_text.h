@@ -200,7 +200,7 @@ struct responsive_text_t {
       goto gt_re;
     }
 
-    line_list[instance.LineStartNR].total_width = position.x + character_info.metrics.size.x / 2;
+    line_list[instance.LineEndNR].total_width = position.x + character_info.metrics.size.x / 2;
     return true;
   }
 
@@ -243,9 +243,9 @@ struct responsive_text_t {
       letter.shape = p;
     }
 
-    if (line_list[instance.LineStartNR].total_width > instance.max_sizes.x) {
-      instance.max_sizes.x = line_list[instance.LineStartNR].total_width;
-      instance.max_x_sized_line = instance.LineStartNR;
+    if (line_list[instance.LineEndNR].total_width > instance.max_sizes.x) {
+      instance.max_sizes.x = line_list[instance.LineEndNR].total_width;
+      instance.max_x_sized_line = instance.LineEndNR;
       update_characters_with_max_size(instance_id);
     }
 
