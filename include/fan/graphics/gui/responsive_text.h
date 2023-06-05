@@ -184,6 +184,10 @@ struct responsive_text_t {
     }
   }
 
+  void new_line_is_added(tlist_NodeReference_t instance_id){
+    update_characters_with_max_size(instance_id);
+  }
+
   bool get_new_letter_position(tlist_NodeReference_t instance_id, const fan::font::character_info_t character_info, fan::vec3& position, fan::vec2 &size, bool force) {
     auto& instance = tlist[instance_id];
 
@@ -207,6 +211,9 @@ struct responsive_text_t {
       line_list.linkNext(instance.LineEndNR, lnr);
       instance.LineEndNR = lnr;
       instance.LineCount++;
+
+      new_line_is_added(instance_id);
+
       is_first = true;
       goto gt_re;
     }
@@ -368,8 +375,14 @@ struct responsive_text_t {
   void update_characters_with_max_size(tlist_NodeReference_t instance_id) {
     auto& instance = tlist[instance_id];
 
-    f32_t scaler = instance.size.x * 2 / instance.max_sizes.x;
-    scaler = std::min(scaler, instance.size.y * 2 * instance.letter_size_y_multipler / gloco->font.info.height);
+    f32_t scaler_x = instance.size.x * 2 / instance.max_sizes.x;
+
+    f32_t y_multipler = instance.letter_size_y_multipler;
+    y_multipler = std::min(y_multipler, (f32_t)1 / instance.LineCount);
+    f32_t scaler_y = instance.size.y * 2 * y_multipler / gloco->font.info.height;
+
+    f32_t scaler = std::min(scaler_x, scaler_y);
+
     instance.font_size = scaler;
     reset_position_size(instance_id);
   }
