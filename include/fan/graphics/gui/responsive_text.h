@@ -16,6 +16,8 @@ struct responsive_text_t {
     using type_t = responsive_text_t;
 
     align_e alignment;
+    uint32_t line_limit = (uint32_t)-1;
+    f32_t letter_size_y_multipler = 1;
 
     loco_text_properties_t
   };
@@ -72,6 +74,8 @@ struct responsive_text_t {
     f32_t outline_size; \
     align_e alignment; \
     fan::vec2 size = 0; \
+    f32_t letter_size_y_multipler; \
+    uint32_t line_limit; \
     fan::vec2 max_sizes = 0; \
     line_list_NodeReference_t max_x_sized_line{true}; // TODO this is used nowhere. do we really need this?
   #include _FAN_PATH(BLL/BLL.h)
@@ -98,6 +102,8 @@ struct responsive_text_t {
       instance.outline_color = properties.outline_color;
       instance.outline_size = properties.outline_size;
       instance.size = properties.size;
+      instance.letter_size_y_multipler = properties.letter_size_y_multipler;
+      instance.line_limit = properties.line_limit;
       instance.LineStartNR = line_list.NewNodeLast();
       instance.LineEndNR = instance.LineStartNR;
     }
@@ -178,34 +184,48 @@ struct responsive_text_t {
     }
   }
 
-  bool get_new_letter_position(tlist_NodeReference_t instance_id, fan::font::character_info_nr_t char_internal_id, fan::vec3& position, bool force) {
+  bool get_new_letter_position(tlist_NodeReference_t instance_id, const fan::font::character_info_t character_info, fan::vec3& position, fan::vec2 &size, bool force) {
     auto& instance = tlist[instance_id];
-
-    auto character_info = gloco->font.info.get_letter_info(char_internal_id);
 
     letter_list_NodeReference_t working_letter_nr = line_list[instance.LineEndNR].LetterEndNR;
     bool is_first = line_list[instance.LineEndNR].LetterStartNR.iic();
+
+    size = character_info.metrics.size / 2;
 
     gt_re:;
 
     get_next_letter_position(instance_id, character_info, position, working_letter_nr, is_first);
 
     if(force == true){}
-    else if((position.x + character_info.metrics.size.x / 2) * instance.font_size <= instance.size.x * 2){}
+    else if((position.x + size.x) * instance.font_size <= instance.size.x * 2){}
     else{
+      if(instance.LineCount == instance.line_limit){
+        return false;
+      }
+
       auto lnr = line_list.NewNode();
       line_list.linkNext(instance.LineEndNR, lnr);
       instance.LineEndNR = lnr;
+      instance.LineCount++;
       is_first = true;
       goto gt_re;
     }
 
-    line_list[instance.LineEndNR].total_width = position.x + character_info.metrics.size.x / 2;
+    line_list[instance.LineEndNR].total_width = position.x + size.x;
     return true;
   }
 
-  bool internal_append_letter(tlist_NodeReference_t instance_id, fan::font::character_info_nr_t char_internal_id, bool force = false) {
+  void _lpos_to_visual(tlist_NodeReference_t instance_id, fan::vec3 &position, uint32_t cl, const fan::font::character_info_t character_info){
+    auto& instance = tlist[instance_id];
 
+    position *= fan::vec3(instance.font_size, instance.font_size, 1);
+    position += fan::vec2(instance.position) - fan::vec2(instance.size.x, instance.size.y);
+    f32_t line_y_size = instance.font_size * gloco->font.info.height / 2;
+    position.y += line_y_size;
+    position.y += line_y_size * 2 * cl;
+  }
+
+  bool internal_append_letter(tlist_NodeReference_t instance_id, fan::font::character_info_nr_t char_internal_id, bool force = false) {
     auto& instance = tlist[instance_id];
 
     typename loco_t::letter_t::properties_t p;
@@ -215,10 +235,13 @@ struct responsive_text_t {
     p.viewport = instance.viewport;
     p.outline_color = instance.outline_color;
     p.outline_size = instance.outline_size;
- 
-    p.letter_id = gloco->font.info.character_info_list[char_internal_id].utf8_character;
 
-    if (!get_new_letter_position(instance_id, char_internal_id, p.position, force)) {
+    auto character_info = gloco->font.info.get_letter_info(char_internal_id);
+
+    p.letter_id = character_info.utf8_character;
+
+    fan::vec2 size;
+    if (!get_new_letter_position(instance_id, character_info, p.position, size, force)) {
       return false;
     }
 
@@ -238,9 +261,11 @@ struct responsive_text_t {
       letter.position = p.position;
       letter.internal_id = char_internal_id;
 
-      p.position *= fan::vec3(instance.font_size, instance.font_size, 1);
-      p.position += fan::vec2(instance.position) - fan::vec2(instance.size.x, 0);
+      _lpos_to_visual(instance_id, p.position, instance.LineCount - 1, character_info);
+      size *= instance.font_size;
+
       letter.shape = p;
+      letter.shape.set_size(size); // TODO needs to be part of p
     }
 
     if (line_list[instance.LineEndNR].total_width > instance.max_sizes.x) {
@@ -255,6 +280,7 @@ struct responsive_text_t {
   void reinit_letter_positions(tlist_NodeReference_t instance_id) {
     auto& instance = tlist[instance_id];
 
+    uint32_t cl = 0; // current line
     auto line_id = instance.LineStartNR;
     do{
       auto& line = line_list[line_id];
@@ -267,8 +293,7 @@ struct responsive_text_t {
         fan::vec3 position;
         get_next_letter_position(instance_id, character_info, position, letter_id.Prev(&letter_list), letter_id == line.LetterStartNR);
 
-        position *= fan::vec3(instance.font_size, instance.font_size, 1);
-        position += fan::vec2(instance.position) - fan::vec2(instance.size.x, 0);
+        _lpos_to_visual(instance_id, position, cl, character_info);
         letter_list[letter_id].shape.set_position(position);
 
         if (letter_id == line.LetterEndNR) {
@@ -281,12 +306,14 @@ struct responsive_text_t {
         break;
       }
       line_id = line_id.Next(&line_list);
+      cl++;
     }while(1);
   }
 
   void reset_position_size(tlist_NodeReference_t instance_id) {
     auto& instance = tlist[instance_id];
 
+    uint32_t cl = 0; // current line
     auto line_id = instance.LineStartNR;
     do{
       auto& line = line_list[line_id];
@@ -299,8 +326,7 @@ struct responsive_text_t {
         fan::vec3 position;
         get_next_letter_position(instance_id, character_info, position, letter_id.Prev(&letter_list), letter_id == line.LetterStartNR);
 
-        position *= fan::vec3(instance.font_size, instance.font_size, 1);
-        position += fan::vec2(instance.position) - fan::vec2(instance.size.x, 0);
+        _lpos_to_visual(instance_id, position, cl, character_info);
         letter_list[letter_id].shape.set_position(position);
         auto new_character_info = gloco->font.info.get_letter_info(char_internal_id);
         letter_list[letter_id].shape.set_size(new_character_info.metrics.size / 2 * instance.font_size);
@@ -315,6 +341,7 @@ struct responsive_text_t {
         break;
       }
       line_id = line_id.Next(&line_list);
+      cl++;
     }while(1);
   }
 
@@ -342,8 +369,7 @@ struct responsive_text_t {
     auto& instance = tlist[instance_id];
 
     f32_t scaler = instance.size.x * 2 / instance.max_sizes.x;
-
-    scaler = std::min(scaler, instance.size.y * 2 / gloco->font.info.height);
+    scaler = std::min(scaler, instance.size.y * 2 * instance.letter_size_y_multipler / gloco->font.info.height);
     instance.font_size = scaler;
     reset_position_size(instance_id);
   }
@@ -430,6 +456,7 @@ struct responsive_text_t {
     }while(1);
 
     instance.LineEndNR = instance.LineStartNR;
+    instance.LineCount = 1;
 
     auto& line = line_list[instance.LineStartNR];
     line.LetterStartNR.sic();

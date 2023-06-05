@@ -109,16 +109,19 @@ namespace fan
         }
 #endif
 
+        auto &ci = character_info_list[found->second];
+
         f32_t converted_size = convert_font_size(font_size);
         fan::font::character_info_t font_info;
-        auto &character_info = character_info_list[found->second];
-        font_info.metrics.size = character_info.metrics.size * converted_size;
-        font_info.metrics.offset = character_info.metrics.offset * converted_size;
-        font_info.metrics.advance = character_info.metrics.size.x * converted_size;
-        font_info.original_metrics = character_info.original_metrics;
+        font_info.metrics.size = ci.metrics.size * converted_size;
+        font_info.metrics.offset = ci.metrics.offset * converted_size;
+        font_info.metrics.advance = ci.metrics.size.x * converted_size;
+        font_info.original_metrics = ci.original_metrics;
 
-        font_info.glyph = character_info.glyph;
-        font_info.mapping = character_info.mapping;
+        font_info.glyph = ci.glyph;
+        font_info.mapping = ci.mapping;
+
+        font_info.utf8_character = ci.utf8_character;
 
         return font_info;
       }
@@ -136,6 +139,8 @@ namespace fan
 
         font_info.glyph = ci.glyph;
         font_info.mapping = ci.mapping;
+
+        font_info.utf8_character = ci.utf8_character;
 
         return font_info;
       }
