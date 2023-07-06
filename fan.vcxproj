@@ -57,8 +57,8 @@
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
-    <EnableASAN>true</EnableASAN>
-    <EnableFuzzer>true</EnableFuzzer>
+    <EnableASAN>false</EnableASAN>
+    <EnableFuzzer>false</EnableFuzzer>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="Shared">
@@ -219,19 +219,19 @@
     <ClCompile>
       <WarningLevel>Level1</WarningLevel>
       <FunctionLevelLinking>false</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <IntrinsicFunctions>false</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>WITCH_INCLUDE_PATH=C:/libs/WITCH;set_durums_pc;_CRT_SECURE_NO_WARNINGS;_DISABLE_VECTOR_ANNOTATION;BX_CONFIG_DEBUG=1</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <Optimization>Disabled</Optimization>
       <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
-      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <OmitFramePointers>true</OmitFramePointers>
-      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
+      <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
+      <OmitFramePointers>false</OmitFramePointers>
+      <EnableFiberSafeOptimizations>false</EnableFiberSafeOptimizations>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)src\libwebp\src;C:\libs;$(SolutionDir)include\nvidia</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -260,11 +260,12 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="examples\graphics\sprite.cpp" />
+    <ClCompile Include="examples\graphics\yuv420p.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />
+    <None Include="helloworld.js" />
     <None Include="include\fan\graphics\glsl\opengl\2D\effects\frame_capture.fs" />
     <None Include="include\fan\graphics\glsl\opengl\2D\effects\loco_fbo.fs" />
     <None Include="include\fan\graphics\glsl\opengl\2D\effects\loco_fbo.vs" />
@@ -460,6 +461,7 @@
     <ClInclude Include="include\fan\window\window_input.h" />
     <ClInclude Include="include\fan\window\window_input_common.h" />
     <ClInclude Include="stages_compile\stage_fuel_station.h" />
+    <ClInclude Include="vector.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

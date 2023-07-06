@@ -254,6 +254,7 @@ public:
     loco_t::cid_nt_t& id,
     block_element_t& block_element
   ) {
+    fan::print((uint16_t)block_element.key.get_value<redraw_key_t>()->blending);
     shape_bm_NodeReference_t bm_id;
     bll_block_NodeReference_t block_id;
 
@@ -431,6 +432,33 @@ public:
 
   // STRUCT MANUAL PADDING IS REQUIRED (32 BIT)
   block_t* sb_push_back(loco_t::cid_nt_t& id, const properties_t& p) {
+
+    #if fan_debug >= 2
+    [&id] <typename T>(T & p, auto * This) {
+      if constexpr (fan::has_camera_t<T>) {
+        if (p.camera == nullptr) {
+          fan::throw_error("invalid camera");
+        }
+      }
+    }(p, this);
+
+    [&id] <typename T>(T& p, auto* This) {
+      if constexpr (fan::has_viewport_t<T>) {
+        if (p.viewport == nullptr) {
+          fan::throw_error("invalid viewport");
+        }
+      }
+    }(p, this);
+
+    [&id] <typename T>(T& p, auto* This) {
+      if constexpr (fan::has_image_t<T>) {
+        if (p.image == nullptr) {
+          fan::throw_error("invalid image");
+        }
+      }
+    }(p, this);
+
+    #endif
 
     push_key_t key{
     #if sb_ignore_3_key == 0
@@ -690,9 +718,16 @@ public:
     return p;
   }
 
-  template <uint32_t i>
+  template <typename T>
   void sb_set_context_key(loco_t::cid_nt_t& id, auto value) {
-    auto block = sb_get_block(id);
+    block_element_t block_element;
+    suck_block_element(id, &block_element);
+    fan::print((uint16_t)block_element.key.get_value<redraw_key_t>()->blending);
+    fan::print(typeid(T).name(), std::is_same_v<T, uint8_t>);
+    *block_element.key.get_value<context_key_t>()->key.get_value<T>() = value;
+    unsuck_block_element(id, block_element);
+
+    /*auto block = sb_get_block(id);
     properties_t p;
     *(vi_t*)&p = *block->uniform_buffer.get_instance(gloco->get_context(), id->instance_id);
     *(ri_t*)&p = block->ri[id->instance_id];
@@ -700,7 +735,7 @@ public:
 
     sb_erase(id);
 
-    sb_push_back(id, p);
+    sb_push_back(id, p);*/
   }
 
   void sb_set_depth(loco_t::cid_nt_t& id, f32_t depth) {

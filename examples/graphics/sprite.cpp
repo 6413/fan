@@ -52,55 +52,40 @@ pile_t* pile = new pile_t;
 int main() {
 
   loco_t::image_t image;
-  image.load("images/1.WEBP");
+  image.load("images/tire.webp");
 
   loco_t::unlit_sprite_t::properties_t p;
-  loco_t::sprite_t::properties_t pp;
 
-  p.size = fan::vec2(1);
+  p.size = fan::vec2(0.1);
   p.camera = &pile->camera;
   p.viewport = &pile->viewport;
-  
-  pp.size = fan::vec2(1);
-  pp.camera = &pile->camera;
-  pp.viewport = &pile->viewport;  
-  pp.image = &image;
-  
-  pp.position = fan::vec2(0.75, 0.75);
-  pp.size = 0.25;
-  pp.color.a = 0.49;
-  pp.blending = true;
-
-  
-
-  //p.image = &image;
-  //p.blending = true;
-  //p.size = 0.5;
-  //p.position = fan::vec2(-0.5, -0.5);
-  //loco_t::shape_t id = p;
-  //pile->loco.set_vsync(false);
+  p.image = &image;
 
 
-  //p.position = fan::vec2(0.25, 0.25);
-  //p.size = 0.25;
-  //p.blending = false;
-  //loco_t::shape_t id2 = p;
+  loco_t::shape_t id3[100];
+  p.position = -1;
+  for (uint32_t i = 0; i < 100; ++i) {
+    p.position = fan::random::vec2(-1, 1);
+    id3[i] = p;
+  }
 
-  ////id2.erase();
-  ////id3.erase();
-  ////id.erase();
-  //id2.set_depth(3);
+  fan::vec2 v(-1, -1);
 
-  //pile->loco.process_loop([] {});
-  fan::print(loco_bdbt_usage(&gloco->bdbt));
-  loco_t::shape_t id3 = pp;
-  id3.erase();
-  fan::print(loco_bdbt_usage(&gloco->bdbt));
-  id3 = pp;
-  id3.erase();
-  fan::print(loco_bdbt_usage(&gloco->bdbt));
+  f32_t angle = 0;
+
+  id3->set_image((loco_t::image_t*)0);
 
   pile->loco.loop([&] {
+    angle += pile->loco.get_delta_time() * 2;
+    for (uint32_t i = 0; i < 100; ++i) {
+      id3[i].set_angle(angle);
+    }
+    //v = v + 0.1 * pile->loco.get_window()->get_delta_time();
+    //id3.set_position(v);
+    //id3.set_angle(angle);
+
+    //id3.set_position(pile->loco.get_mouse_position(pile->camera, pile->viewport));
+
     pile->loco.get_fps(); 
   });
 

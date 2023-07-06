@@ -136,11 +136,13 @@ namespace fan {
       if constexpr (std::is_same<get_type, typename _Ty::value_type>::value) {
         return depth;
       }
-      if constexpr (depth > 0) {
+      else if constexpr (depth > 0) {
         return get_index_with_type<get_type, typename _Ty::base, depth - 1>();
       }
-      // to remove warning
-      return 0;
+      else {
+      //  static_assert("failed to find index");
+      }
+      return -1;
     }
     template <uint32_t depth = 0>
     constexpr int iterate_ret(auto lambda){

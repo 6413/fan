@@ -15,8 +15,8 @@
 
 struct pile_t {
 
-  static constexpr fan::vec2 ortho_x = fan::vec2(-1, 1);
-  static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
+  static constexpr fan::vec2 ortho_x = fan::vec2(0, 800);
+  static constexpr fan::vec2 ortho_y = fan::vec2(0, 800);
 
   pile_t() {
     loco.open_camera(
@@ -39,29 +39,26 @@ struct pile_t {
 int main() {
   pile_t* pile = new pile_t;
 
-  loco_t::rectangle_t::properties_t p;
-  p.camera = &pile->camera;
-  p.viewport = &pile->viewport;
+  loco_t::rectangle_t::properties_t rectangle_properties;
+  rectangle_properties.camera = &pile->camera;
+  rectangle_properties.viewport = &pile->viewport;
 
-  p.position = fan::vec3(0, 0, 0);
-  p.size = fan::vec2(0.05);
-  p.color = fan::colors::red;
+  rectangle_properties.position = fan::vec3(400, 400, 0);
+  rectangle_properties.size = fan::vec2(100, 100);
+  rectangle_properties.color = fan::colors::red;
 
-  loco_t::shape_t r0 = p;
-  p.position = fan::vec3(0.1, 0, 1);
-  p.color = fan::colors::blue;
-
-  loco_t::shape_t r1 = p;
-  loco_t::shape_t r2;
+  loco_t::shape_t rectangle = rectangle_properties;
 
   pile->loco.set_vsync(false);
   
+  f32_t angle = 0;
+
   pile->loco.loop([&] {
-
-    r2 = r1;
     pile->loco.get_fps();
-
-    //r0.set_position(pile->loco.get_mouse_position(pile->camera, pile->viewport));
+    //fan::vec3 p = pile->loco.get_window()->get_mouse_position();
+    //rectangle.set_position(p);
+    //rectangle.set_angle(angle);
+    //angle += pile->loco.get_delta_time();
   });
 
   return 0;

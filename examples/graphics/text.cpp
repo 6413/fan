@@ -56,7 +56,7 @@ int main() {
   p.viewport = &pile->viewport;
 
   p.font_size = 0.1;
-  p.text = "01234j^";
+  p.text = "hello";
   p.color = fan::colors::white;
 
   //std::vector<loco_t::shape_t> ids;
@@ -73,17 +73,15 @@ int main() {
   ////}
 
   loco_t::shape_t text0 = p;
-  //text0.erase();
-  //p.text = "56789";
-  //loco_t::shape_t text1 = p;
-  //text1.set_text("56789");
-  //text1.set_color(fan::color(1, 0, 0, 1));
 
   pile->loco.set_vsync(false);
 
+  f32_t x = 0;
+
   pile->loco.loop([&] {
-    /*text0.set_position(pile->loco.get_mouse_position(pile->viewport));
-    text1.set_position(pile->loco.get_mouse_position(pile->viewport) + 0.3);*/
+    text0.set_text(fan::random::string(10));
+    //text0.set_font_size(sin(x) * 10);
+    //x += pile->loco.get_delta_time() / 100;
     pile->loco.get_fps();
   });
 

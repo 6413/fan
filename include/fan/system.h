@@ -238,13 +238,14 @@ namespace fan {
           INPUT input;
 
           input.type = INPUT_KEYBOARD;
-          input.ki.wScan = 0;
+          //input.ki.wScan = 0;
           input.ki.time = 0;
           input.ki.dwExtraInfo = 0;
+          input.ki.wVk = 0;
 
-          input.ki.wVk = fan::window_input::convert_fan_to_scancode(key);
+          input.ki.wScan = fan::window_input::convert_fan_to_scancode(key);
 
-          input.ki.dwFlags = (state == fan::keyboard_state::press ? 0 : KEYEVENTF_KEYUP);
+          input.ki.dwFlags = (state == fan::keyboard_state::press ? 0 : KEYEVENTF_KEYUP) | KEYEVENTF_SCANCODE;
 
           if (SendInput(1, &input, sizeof(input)) != 1) {
             fan::throw_error("");
@@ -341,9 +342,9 @@ namespace fan {
             }
 
 
-            if (str[i] >= 65 && str[i] <= 90) {
-              fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::keyboard_state::press);
-            }
+            //if (str[i] >= 65 && str[i] <= 90) {
+            //  fan::sys::input::send_keyboard_event(fan::key_left_shift, fan::keyboard_state::press);
+            //}
 
             auto send_press = [](uint32_t key, uint32_t delay) {
               fan::sys::input::send_keyboard_event(key, fan::keyboard_state::press);

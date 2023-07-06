@@ -175,13 +175,13 @@ struct sb_shape_name {
     sb_close();
   }
 
-  void set_camera(loco_t::cid_nt_t& id, loco_t::camera_list_NodeReference_t n) {
-    sb_set_context_key<context_key_t::key_t::get_index_with_type<decltype(n)>()>(id, n);
-  }
+  //void set_camera(loco_t::cid_nt_t& id, loco_t::camera_list_NodeReference_t n) {
+  //  sb_set_context_key<loco_t::camera_list_NodeReference_t>(id, n);
+  //}
 
-  void set_viewport(loco_t::cid_nt_t& id, fan::graphics::viewport_list_NodeReference_t n) {
-    sb_set_context_key<context_key_t::key_t::get_index_with_type<decltype(n)>()>(id, n);
-  }
+  //void set_viewport(loco_t::cid_nt_t& id, fan::graphics::viewport_list_NodeReference_t n) {
+  //  sb_set_context_key<fan::graphics::viewport_list_NodeReference_t>(id, n);
+  //}
 
   properties_t get_properties(loco_t::cid_nt_t& id) {
     properties_t p = sb_get_properties(id);

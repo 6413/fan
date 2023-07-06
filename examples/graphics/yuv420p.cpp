@@ -100,14 +100,9 @@ int main() {
   auto data = str.data();
   //auto data2 = str2.data();
 
-
-
-
-  pile->loco.loop([&] {
-    pile->loco.get_fps();
-
+  {
     void* d = str.data();
-    
+
     void* datas[3];
     uint64_t offset = 0;
     datas[0] = d;
@@ -115,6 +110,14 @@ int main() {
     datas[2] = (uint8_t*)d + (offset += image_size.multiply() / 4);
 
     pile->loco.pixel_format_renderer.reload(shape_nr, fan::pixel_format::yuv420p, datas, image_size);
+  }
+  
+
+
+  pile->loco.loop([&] {
+    pile->loco.get_fps();
+
+
     //pile->loco.pixel_format_renderer.set_position(&pile->cids[0], pile->loco.get_mouse_position(pile->viewport));
   });
 
