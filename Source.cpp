@@ -8,13 +8,25 @@
 #define fan_debug 0
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
-#include _FAN_PATH(types/masterpiece.h)
+#include _FAN_PATH(system.h)
+
 
 int main() {
-  fan::masterpiece_t<int, double, float> v;
-  for (uint32_t i = 0; i < v.size(); i++) {
-    v.get_value(i, [&] (const auto& d) {
-      fan::print(typeid(d).name());
-    });
-  }
+
+  fan::sys::input input;
+  input.listen_keyboard([&](uint16_t key, fan::keyboard_state state, bool somethign) {
+    switch (key) {
+      case fan::key_f4: {
+        if (!somethign) {
+          return;
+        }
+        fan::sys::input::send_string("hello", 1);
+        break;
+      }
+    }
+  });
+
+  input.thread_loop();
+
+  //
 }

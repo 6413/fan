@@ -44,6 +44,6 @@ void main() {
 
   vec3 final_color = mix(outline_color.rgb, text_color.rgb, outline_alpha);
 
-  o_attachment0 = vec4(final_color.rgb, alpha - 1 + text_color.a + 0.5);
+  o_attachment0 = vec4(final_color.rgb, alpha - 1 + text_color.a);
 }
 )"

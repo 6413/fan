@@ -1469,7 +1469,7 @@ public:
       fan::opengl::GL_COLOR_ATTACHMENT0
     );
 
-    lp.internal_format = fan::opengl::GL_RGBA16F;
+    lp.internal_format = fan::opengl::GL_RGBA;
     lp.format = fan::opengl::GL_RGBA;
 
     color_buffers[1].load(ii, lp);
@@ -1508,7 +1508,7 @@ public:
 
       get_context()->opengl.call(get_context()->opengl.glGenerateMipmap, fan::opengl::GL_TEXTURE_2D);
 
-      lp.internal_format = fan::opengl::GL_RGBA16F;
+      lp.internal_format = fan::opengl::GL_RGBA;
       lp.format = fan::opengl::GL_RGBA;
 
       color_buffers[1].reload_pixels(ii, lp);

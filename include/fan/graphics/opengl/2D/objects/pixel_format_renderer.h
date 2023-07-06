@@ -172,19 +172,19 @@ struct sb_pfr_name {
           ri->images[i].create_texture();
           switch (i) {
           case 0: {
-            sb_set_key<context_key_t::key_t::get_index_with_type<loco_t::textureid_t<0>>()>(id, &ri->images[0]);
+            sb_set_context_key<loco_t::textureid_t<0>>(id, &ri->images[0]);
             break;
           }
           case 1: {
-            sb_set_key<context_key_t::key_t::get_index_with_type<loco_t::textureid_t<1>>()>(id, &ri->images[1]);
+            sb_set_context_key<loco_t::textureid_t<1>>(id, &ri->images[1]);
             break;
           }
           case 2: {
-            sb_set_key<context_key_t::key_t::get_index_with_type<loco_t::textureid_t<2>>()>(id, &ri->images[2]);
+            sb_set_context_key<loco_t::textureid_t<2>>(id, &ri->images[2]);
             break;
           }
           case 3: {
-            sb_set_key<context_key_t::key_t::get_index_with_type<loco_t::textureid_t<3>>()>(id, &ri->images[3]);
+            sb_set_context_key<loco_t::textureid_t<3>>(id, &ri->images[3]);
             break;
           }
           }

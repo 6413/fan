@@ -106,7 +106,7 @@ struct sb_sprite_name {
 
   void set_image(loco_t::cid_nt_t& id, loco_t::textureid_t<0> n) {
   #if defined(loco_opengl)
-    sb_set_context_key<context_key_t::key_t::get_index_with_type<loco_t::textureid_t<0>>()>(id, n);
+    sb_set_context_key<loco_t::textureid_t<0>>(id, n);
   #else
     auto loco = get_loco();
     auto& img = loco->image_list[n];

@@ -141,11 +141,11 @@ struct circle_t {
   }
 
   void set_camera(loco_t::cid_nt_t& id, loco_t::camera_list_NodeReference_t n) {
-    sb_set_context_key<context_key_t::key_t::get_index_with_type<decltype(n)>()>(id, n);
+    sb_set_context_key<decltype(n)>(id, n);
   }
 
   void set_viewport(loco_t::cid_nt_t& id, fan::graphics::viewport_list_NodeReference_t n) {
-    sb_set_context_key<context_key_t::key_t::get_index_with_type<decltype(n)>()>(id, n);
+    sb_set_context_key<decltype(n)>(id, n);
   }
 
   

@@ -77,18 +77,23 @@ int main() {
     return 0;
   };
   tp.mouse_button_cb = [](const loco_t::mouse_button_data_t& ii_d) -> int {
+    if (ii_d.button_state != fan::mouse_state::press) {
+      return 0;
+    }
    /* if (ii_d.button_state == fan::key_state::press) {
       ii_d.flag->ignore_move_focus_check = true;
     }
     else {
       ii_d.flag->ignore_move_focus_check = false;
     }*/
+    system("start chrome.exe");
+//    fan::print("moi");
     return 0;
   };
 
   loco_t::theme_t theme = loco_t::themes::deep_red();
   tp.theme = &theme;
-  tp.text = "hello world";
+  tp.text = "open chrome";
   tp.position = 400;
   b0 = tp;
 
