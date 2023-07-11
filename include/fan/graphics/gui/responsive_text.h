@@ -116,12 +116,11 @@ struct responsive_text_t {
       if (found == gloco->font.info.characters.end()) {
         fan::throw_error("invalid utf8 letter");
       }
-      internal_append_letter(instance_id, found->second, true);
+      internal_append_letter(instance_id, found->second, true, true);
       /*
-
-            append_letter(id, properties.text[i]);
-      uint8_t letter_size = properties.text.utf8_size(0);
-      i += letter_size;
+        append_letter(id, properties.text[i]);
+        uint8_t letter_size = properties.text.utf8_size(0);
+        i += letter_size;
       */
 
       i += letter_size;
@@ -139,6 +138,8 @@ struct responsive_text_t {
   }
 
   bool append_letter(loco_t::cid_nt_t& id, wchar_t wc, bool force = false) {
+    auto instance_id = *(tlist_NodeReference_t*)id.gdp4();
+
     fan::string utf8(&wc, &wc + 1);
     uint8_t letter_size = utf8.utf8_size(0);
     uint32_t utf8_letter = utf8.get_utf8_character(0, letter_size);
@@ -146,8 +147,8 @@ struct responsive_text_t {
     if (found == gloco->font.info.characters.end()) {
       fan::throw_error("invalid utf8 letter");
     }
-    auto instance_id = *(tlist_NodeReference_t*)id.gdp4();
-    return internal_append_letter(instance_id, found->second, force);
+
+    return internal_append_letter(instance_id, found->second, force, true);
   }
 
   void get_next_letter_position(
@@ -184,11 +185,26 @@ struct responsive_text_t {
     }
   }
 
-  void new_line_is_added(tlist_NodeReference_t instance_id){
+  void add_new_line(tlist_NodeReference_t instance_id){
+    auto& instance = tlist[instance_id];
+
+    auto lnr = line_list.NewNode();
+    line_list.linkNext(instance.LineEndNR, lnr);
+    instance.LineEndNR = lnr;
+    instance.LineCount++;
+
     update_characters_with_max_size(instance_id);
   }
 
-  bool get_new_letter_position(tlist_NodeReference_t instance_id, const fan::font::character_info_t character_info, fan::vec3& position, fan::vec2 &size, bool force) {
+  bool
+  get_new_letter_position(
+    tlist_NodeReference_t instance_id,
+    const fan::font::character_info_t character_info,
+    fan::vec3& position,
+    fan::vec2& size,
+    bool force,
+    bool new_line_allowed
+  ){
     auto& instance = tlist[instance_id];
 
     letter_list_NodeReference_t working_letter_nr = line_list[instance.LineEndNR].LetterEndNR;
@@ -202,24 +218,36 @@ struct responsive_text_t {
 
     if(force == true){}
     else if((position.x + size.x) * instance.font_size <= instance.size.x * 2){}
-    else{
-      if(instance.LineCount == instance.line_limit){
+    else if(new_line_allowed == true){
+      if(instance.LineCount >= instance.line_limit){
         return false;
       }
 
-      auto lnr = line_list.NewNode();
-      line_list.linkNext(instance.LineEndNR, lnr);
-      instance.LineEndNR = lnr;
-      instance.LineCount++;
-
-      new_line_is_added(instance_id);
+      add_new_line(instance_id);
 
       is_first = true;
       goto gt_re;
     }
+    else{
+      return false;
+    }
 
-    line_list[instance.LineEndNR].total_width = position.x + size.x;
     return true;
+  }
+
+  void _recalculate_line_width(tlist_NodeReference_t instance_id, line_list_NodeReference_t line_id){
+    auto& instance = tlist[instance_id];
+
+    auto& line = line_list[line_id];
+
+    if(line.LetterStartNR.iic() == true){
+      line.total_width = 0;
+    }
+    else{
+      auto& letter = letter_list[line.LetterEndNR];
+      auto letter_info = gloco->font.info.get_letter_info(letter.internal_id);
+      line.total_width = letter.position.x + letter_info.metrics.size.x / 2;
+    }
   }
 
   void _lpos_to_visual(tlist_NodeReference_t instance_id, fan::vec3 &position, uint32_t cl, const fan::font::character_info_t character_info){
@@ -232,7 +260,13 @@ struct responsive_text_t {
     position.y += line_y_size * 2 * cl;
   }
 
-  bool internal_append_letter(tlist_NodeReference_t instance_id, fan::font::character_info_nr_t char_internal_id, bool force = false) {
+  bool
+  internal_append_letter(
+    tlist_NodeReference_t instance_id,
+    fan::font::character_info_nr_t char_internal_id,
+    bool force,
+    bool new_line_allowed
+  ){
     auto& instance = tlist[instance_id];
 
     typename loco_t::letter_t::properties_t p;
@@ -248,9 +282,11 @@ struct responsive_text_t {
     p.letter_id = character_info.utf8_character;
 
     fan::vec2 size;
-    if (!get_new_letter_position(instance_id, character_info, p.position, size, force)) {
+    if (!get_new_letter_position(instance_id, character_info, p.position, size, force, new_line_allowed)) {
       return false;
     }
+
+    line_list[instance.LineEndNR].total_width = p.position.x + size.x;
 
     {
       letter_list_NodeReference_t letter_nr;
@@ -283,6 +319,99 @@ struct responsive_text_t {
 
     return true;
   }
+
+  void delete_last_empty_line(tlist_NodeReference_t instance_id){
+    auto& instance = tlist[instance_id];
+
+    if(instance.LineCount == 1){ // we cant delete because its last line
+      return;
+    }
+
+    auto prev_line_nr = instance.LineEndNR.Prev(&line_list);
+    line_list.unlrec(instance.LineEndNR);
+    instance.LineEndNR = prev_line_nr;
+
+    instance.LineCount--;
+  }
+
+  void erase_letter(loco_t::cid_nt_t& id){
+    auto instance_id = *(tlist_NodeReference_t*)id.gdp4();
+    auto& instance = tlist[instance_id];
+
+    auto& line = line_list[instance.LineEndNR];
+    if(line.LetterStartNR.iic() == true){ // no any letter, lets delete line
+      delete_last_empty_line(instance_id);
+    }
+    else{
+      auto prev_letter_nr = line.LetterEndNR.Prev(&letter_list);
+      letter_list.unlrec(line.LetterEndNR);
+
+      auto line_width = line.total_width;
+
+      if(line.LetterStartNR == line.LetterEndNR){
+        line.LetterStartNR.sic();
+      }
+      else{
+        line.LetterEndNR = prev_letter_nr;
+      }
+      _recalculate_line_width(instance_id, instance.LineEndNR);
+
+      if(line_width == instance.max_sizes.x){
+        update_max_sizes(instance_id);
+        update_characters_with_max_size(instance_id);
+      }
+    }
+  }
+
+  bool try_prepare_text_to_fit(loco_t::cid_nt_t& id, const fan::string &str, bool force = false){
+    auto instance_id = *(tlist_NodeReference_t*)id.gdp4();
+    auto& instance = tlist[instance_id];
+
+    bool r = true;
+    bool line_is_newly_opened = false;
+
+    gt_re:;
+    uintptr_t letters_added; letters_added = 0;
+    for(uintptr_t i = 0; i < str.size();){
+      auto letter_size = str.utf8_size(i);
+      uint32_t utf8_letter = str.get_utf8_character(i, letter_size);
+      auto found = gloco->font.info.characters.find(utf8_letter);
+      if (found == gloco->font.info.characters.end()) {
+        fan::throw_error("invalid utf8 letter");
+      }
+      if(internal_append_letter(instance_id, found->second, force, false) == false){
+        r = false;
+        break;
+      }
+
+      ++letters_added;
+      i += letter_size;
+    }
+
+    while(letters_added--){
+      erase_letter(id);
+    }
+
+    if(r == false){
+      if(line_is_newly_opened == true){
+        return true;
+      }
+      if(instance.LineCount >= instance.line_limit){
+        return false;
+      }
+      add_new_line(instance_id);
+      line_is_newly_opened = true;
+      r = true;
+      goto gt_re;
+    }
+
+    return true;
+  }
+
+  /* someone needs to implement this. it pretty much copy of `try_prepare_text_to_fit`
+  bool append_text(loco_t::cid_nt_t& id, const fan::string &str, bool force = false){
+  }
+  */
 
   void reinit_letter_positions(tlist_NodeReference_t instance_id) {
     auto& instance = tlist[instance_id];
@@ -494,7 +623,7 @@ struct responsive_text_t {
       if (found == gloco->font.info.characters.end()) {
         fan::throw_error("invalid utf8 letter");
       }
-      internal_append_letter(internal_id, found->second);
+      internal_append_letter(internal_id, found->second, false, true);
 
       i += letter_size;
     }
