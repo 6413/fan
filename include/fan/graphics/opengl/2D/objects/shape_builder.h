@@ -619,7 +619,7 @@ public:
       if constexpr (fan::has_image_t<T>) {
         auto nr = This->get_context_key(id).key.get_value<loco_t::textureid_t<0>>();
         if constexpr (std::is_same_v< std::remove_reference_t<decltype(*nr)>, loco_t::textureid_t<0>>) {
-          return gloco->image_list[*(loco_t::textureid_t<0>*)nr].image;
+          ptr = gloco->image_list[*(loco_t::textureid_t<0>*)nr].image;
         }
       }
     }(p, this);
