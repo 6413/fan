@@ -613,14 +613,17 @@ public:
 
   template <typename T = void>
   loco_t::image_t* get_image(loco_t::cid_nt_t& id) requires fan::has_image_t<properties_t> {
-    // clang
-    if constexpr (!std::is_void_v<decltype(get_context_key(id).key.get_value<loco_t::textureid_t<0>>())>) {
-      auto nr = get_context_key(id).key.get_value<loco_t::textureid_t<0>>();
-      if constexpr (std::is_same_v< std::remove_reference_t<decltype(*nr)>, loco_t::textureid_t<0>>) {
-        return gloco->image_list[*(loco_t::textureid_t<0>*)nr].image;
+    properties_t p;
+    loco_t::image_t* ptr = nullptr;
+    [&id] <typename T>(T & p, auto * This) {
+      if constexpr (fan::has_image_t<T>) {
+        auto nr = This->get_context_key(id).key.get_value<loco_t::textureid_t<0>>();
+        if constexpr (std::is_same_v< std::remove_reference_t<decltype(*nr)>, loco_t::textureid_t<0>>) {
+          return gloco->image_list[*(loco_t::textureid_t<0>*)nr].image;
+        }
       }
-    }
-    return nullptr;
+    }(p, this);
+    return ptr;
   }
 
   void set_vertex(const fan::string& str) {
