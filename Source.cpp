@@ -13,20 +13,33 @@
 
 int main() {
 
+  bool press = false;
+
   fan::sys::input input;
-  input.listen_keyboard([&](uint16_t key, fan::keyboard_state state, bool somethign) {
+
+  input.listen_keyboard([&](uint16_t key, fan::keyboard_state state, bool) {
+    if (state != fan::keyboard_state::press) {
+      return;
+    }
     switch (key) {
       case fan::key_f4: {
-        if (!somethign) {
-          return;
-        }
-        fan::sys::input::send_string("hello", 1);
+    
+        //if (state == fan::keyboard_state::release) {
+        //  press = false;
+        //  return;
+        //}
+        fan::sys::input::send_string("hello", 0);
         break;
       }
     }
   });
 
-  input.thread_loop();
+  input.thread_loop([&] {
+    if (press) {
+      
+
+    }
+  });
 
   //
 }

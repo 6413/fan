@@ -433,7 +433,7 @@ namespace fan {
 
       //private:
 
-        static DWORD WINAPI thread_loop() {
+        static DWORD WINAPI thread_loop(auto l) {
 
           HINSTANCE hInstance = GetModuleHandle(NULL);
 
@@ -448,19 +448,19 @@ namespace fan {
 
           MSG message;
 
-          int x = 0;
-
-          while ((x = GetMessage(&message, NULL, 0, 0)))
+          while (1)
           {
-            if (x == -1)
+            int ret = GetMessage(&message, NULL, 0, 0);
+            
+            if (ret == -1)
             {
-              fan::print("error");
-              // handle the error and possibly exit
+              fan::print("failed to get message");
             }
             else
             {
               TranslateMessage(&message);
               DispatchMessage(&message);
+            l();
             }
           }
 
@@ -515,7 +515,7 @@ namespace fan {
 
               case WM_MOUSEWHEEL: { return fan::input::mouse_scroll_up; } // ?
               case WM_MOUSEHWHEEL: { return fan::input::mouse_scroll_down; } // ?
-              default: fan::throw_error(""); return fan::input::mouse_scroll_down;
+              default: return fan::input::mouse_scroll_down;
             }
           };
 

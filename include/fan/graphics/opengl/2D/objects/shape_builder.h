@@ -254,7 +254,6 @@ public:
     loco_t::cid_nt_t& id,
     block_element_t& block_element
   ) {
-    fan::print((uint16_t)block_element.key.get_value<redraw_key_t>()->blending);
     shape_bm_NodeReference_t bm_id;
     bll_block_NodeReference_t block_id;
 
@@ -614,9 +613,12 @@ public:
 
   template <typename T = void>
   loco_t::image_t* get_image(loco_t::cid_nt_t& id) requires fan::has_image_t<properties_t> {
-    auto nr = *get_context_key(id).key.get_value<loco_t::textureid_t<0>>();
-    if constexpr (std::is_same_v<decltype(nr), loco_t::textureid_t<0>>) {
-      return gloco->image_list[*(loco_t::textureid_t<0>*)&nr].image;
+    auto nr = get_context_key(id).key.get_value<loco_t::textureid_t<0>>();
+    if constexpr (std::is_same_v< std::remove_reference_t<decltype(*nr)>, loco_t::textureid_t<0>>) {
+      return gloco->image_list[*(loco_t::textureid_t<0>*)nr].image;
+    }
+    else {
+      return nullptr;
     }
   }
 
@@ -722,8 +724,6 @@ public:
   void sb_set_context_key(loco_t::cid_nt_t& id, auto value) {
     block_element_t block_element;
     suck_block_element(id, &block_element);
-    fan::print((uint16_t)block_element.key.get_value<redraw_key_t>()->blending);
-    fan::print(typeid(T).name(), std::is_same_v<T, uint8_t>);
     *block_element.key.get_value<context_key_t>()->key.get_value<T>() = value;
     unsuck_block_element(id, block_element);
 
