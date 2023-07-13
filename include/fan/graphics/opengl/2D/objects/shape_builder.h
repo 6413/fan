@@ -615,9 +615,9 @@ public:
   loco_t::image_t* get_image(loco_t::cid_nt_t& id) requires fan::has_image_t<properties_t> {
     properties_t p;
     loco_t::image_t* ptr = nullptr;
-    [&id, ptr] <typename T>(T & p, auto * This) {
-      if constexpr (fan::has_image_t<T>) {
-        auto nr = This->get_context_key(id).key.get_value<loco_t::textureid_t<0>>();
+    [&id, ptr] <typename T2>(T2 & p, auto * This) mutable {
+      if constexpr (fan::has_image_t<T2>) {
+        auto nr = This->get_context_key(id).key.template get_value<loco_t::textureid_t<0>>();
         if constexpr (std::is_same_v< std::remove_reference_t<decltype(*nr)>, loco_t::textureid_t<0>>) {
           ptr = gloco->image_list[*(loco_t::textureid_t<0>*)nr].image;
         }
