@@ -219,22 +219,22 @@
     <ClCompile>
       <WarningLevel>Level1</WarningLevel>
       <FunctionLevelLinking>false</FunctionLevelLinking>
-      <IntrinsicFunctions>false</IntrinsicFunctions>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>WITCH_INCLUDE_PATH=C:/libs/WITCH;set_durums_pc;_CRT_SECURE_NO_WARNINGS;_DISABLE_VECTOR_ANNOTATION;BX_CONFIG_DEBUG=1</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <Optimization>Disabled</Optimization>
-      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
-      <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
-      <OmitFramePointers>false</OmitFramePointers>
-      <EnableFiberSafeOptimizations>false</EnableFiberSafeOptimizations>
+      <Optimization>MaxSpeed</Optimization>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <OmitFramePointers>true</OmitFramePointers>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)src\libwebp\src;C:\libs;$(SolutionDir)include\nvidia</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <WholeProgramOptimization>false</WholeProgramOptimization>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
       <TreatSpecificWarningsAsErrors>
       </TreatSpecificWarningsAsErrors>
@@ -260,7 +260,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Source.cpp" />
+    <ClCompile Include="examples\io\sys.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
   </ItemGroup>
   <ItemGroup>
