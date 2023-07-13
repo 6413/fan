@@ -119,7 +119,7 @@ struct sb_sprite_name {
 
   properties_t get_properties(loco_t::cid_nt_t& id) {
     properties_t p = sb_get_properties(id);
-    return p;
+    return p; 
   }
 
   bool load_tp(loco_t::shape_t& id, loco_t::texturepack_t::ti_t* ti) { 

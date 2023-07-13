@@ -8,27 +8,42 @@
 #include <thread>
 
 int main() {
-	printf("enter loop time in seconds:");
-	uint64_t time;
-	std::cin >> time;
+
+  std::vector<fan::vec2> p;
+
+  fan::string filename;
+  printf("type preset name (leave empty if none):");
+  std::getline(std::cin, filename);
+  uint64_t time;
+  if (!filename.empty()) {
+    std::fstream f(filename);
+    fan::string line;
+    while (std::getline(f, line)) {
+      if (line.empty()) {
+        continue;
+      }
+      p.push_back(fan::string_to<fan::vec2i>(line));
+    }    
+    fan::print("preset.txt loaded");
+  }
+
+  printf("enter loop time in seconds:");
+  std::cin >> time;
 
 	fan::sys::input input;
-
-	std::vector<fan::vec2> click_position;
 
 	bool direction = false;
 
 	fan::print("press f2 to initialize clicking position");
 	fan::print("press f4 start loop");
+  fan::print("press f7 to save preset");
 	fan::print("press f9 quit loop");
-
-	std::vector<fan::vec2> p;
 
 	volatile bool quit = 0;
 
-	input.listen([&](uint16_t key, fan::key_state state, bool action, std::any data) {
+	input.listen_keyboard([&](uint16_t key, fan::keyboard_state state, bool action) {
 
-		if (state != fan::key_state::press) {
+		if (state != fan::keyboard_state::press) {
 			return;
 		}
 
@@ -58,9 +73,9 @@ int main() {
 								return;
 							}
 							fan::sys::input::set_mouse_position(p[i]);
-							fan::sys::input::send_mouse_event(fan::mouse_left, fan::key_state::press);
+							fan::sys::input::send_mouse_event(fan::mouse_left, fan::mouse_state::press);
 							fan::delay(fan::time::nanoseconds(0.05e+9));
-							fan::sys::input::send_mouse_event(fan::mouse_left, fan::key_state::release);
+							fan::sys::input::send_mouse_event(fan::mouse_left, fan::mouse_state::release);
 							fan::print("clicked position", p[i]);
 							fan::delay(fan::time::nanoseconds(1.5e+9));
 						}
@@ -74,6 +89,27 @@ int main() {
 
 				break;
 			}
+      case fan::key_f7: {
+        auto f = [&] {
+          if (fan::io::file::exists("preset.txt")) {
+            fan::print("preset.txt already exists - rename or delete it");
+            return;
+          }
+          std::ofstream f;
+          f.open("preset.txt");
+          for (int i = 0; i < p.size(); ++i) {
+            f << p[i].x << ' ' << p[i].y << '\n';
+          }
+          fan::io::file::write("preset.txt", p);
+          fan::print("preset saved to preset.txt");
+        };
+
+        std::thread t(f);
+
+        t.detach();
+
+        break;
+      }
 			case fan::key_f9: {
 				quit = 1;
 				break;
@@ -81,4 +117,6 @@ int main() {
 		}
 
 	});
+  input.thread_loop([]{});
+  std::cin.get();
 }
