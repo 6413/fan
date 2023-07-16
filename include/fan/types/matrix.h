@@ -382,6 +382,9 @@ namespace fan {
 
   template <typename data_t = f32_t>
   struct runtime_matrix2d {
+
+    using value_type = data_t;
+
     uint32_t rows;
     uint32_t columns;
     data_t** data = nullptr;
@@ -406,10 +409,12 @@ namespace fan {
 
     runtime_matrix2d& operator=(const runtime_matrix2d& other) {
       if (this != &other) {
-        for (uint32_t i = 0; i < rows; ++i) {
-          delete[] data[i];
+        if (data) {
+          for (uint32_t i = 0; i < rows; ++i) {
+            delete[] data[i];
+          }
+          delete[] data;
         }
-        delete[] data;
         rows = other.rows;
         columns = other.columns;
         data = new data_t * [rows];
