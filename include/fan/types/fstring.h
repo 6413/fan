@@ -297,6 +297,12 @@ namespace fan {
     using type_t::basic_string;
 
     string(const std::string& str) : type_t(str) {}
+    template <typename T>
+    string(const std::vector<T>& vector) {
+      for (uint32_t i = 0; i < vector.size() * sizeof(T); ++i) {
+        append((uint8_t*)&vector[i], (uint8_t*)&vector[i] + sizeof(T));
+      }
+    }
 
     using char_type = std::string::value_type;
 

@@ -14,7 +14,7 @@
 
 static constexpr uint32_t batch_size = 20;
 
-std::vector<fan::runtime_matrix2d<f32_t>> train_input, train_output;
+std::vector<fan::runtime_matrix2d<f64_t>> train_input, train_output;
 
 // 784 neurons, there are 28*28 pixels so 784, learning rate 1.0
 neural_network_t net({784, 20, 10}, 1.0);
@@ -45,7 +45,7 @@ void parse_training_data() {
     fan::throw_error("invalid file path");
   }
 
-  fan::runtime_matrix2d<f32_t> input(1, 784), output(1, 10);
+  fan::runtime_matrix2d<f64_t> input(1, 784), output(1, 10);
   std::vector<int> v;
 
   train_input.reserve(42000);
@@ -79,15 +79,15 @@ void train() {
 
   std::vector<int> index;
 
-  std::vector<fan::runtime_matrix2d<>>inputs, outputs;
+  std::vector<fan::runtime_matrix2d<f64_t>>inputs, outputs;
 
-  fan::runtime_matrix2d<> current_output;
+  fan::runtime_matrix2d<f64_t> current_output;
 
   for (uint32_t i = 0; i < 42000; ++i) {
     index.push_back(i);
   }
 
-  for (uint32_t epoch = 1; epoch <= 10; ++epoch) {
+  for (uint32_t epoch = 1; epoch <= 1; ++epoch) {
     fan::print(epoch, "starting");
 
     double error = 0;
@@ -118,6 +118,7 @@ void train() {
     fan::print("epoch", epoch, "finished");
     fan::print("error rate:", error);
   }
+  net.write_to_file("train_data/brains");
 }
 
 void test() {
@@ -125,7 +126,7 @@ void test() {
   std::ofstream out("train_data/ans.csv");
   fan::string trash;
 
-  fan::runtime_matrix2d current_input(1, 784), current_output;
+  fan::runtime_matrix2d<f64_t> current_input(1, 784), current_output;
 
   int index;
 
@@ -156,8 +157,11 @@ void test() {
 }
 
 int main() {
-  parse_training_data();
-  train();
-
+  net.read_from_file("train_data/brains");
   test();
+  //net.
+  //parse_training_data();
+  //train();
+
+ // test();
 }

@@ -1,11 +1,10 @@
 #pragma once
 
 #include _FAN_PATH(types/types.h)
-#include _FAN_PATH(types/utf_string.h)
 
 #ifdef fan_platform_windows
 	#define WIN32_LEAN_AND_MEAN
-	#include <Windows.h)
+	#include <Windows.h>
 	#undef min
 	#undef max
 #endif
