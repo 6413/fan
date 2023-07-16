@@ -16,7 +16,7 @@ static constexpr uint32_t batch_size = 20;
 
 std::vector<fan::runtime_matrix2d<f32_t>> train_input, train_output;
 
-// 784 neurons, learning rate 1.0
+// 784 neurons, there are 28*28 pixels so 784, learning rate 1.0
 neural_network_t net({784, 20, 10}, 1.0);
 
 std::vector<int> split(const fan::string& s) {

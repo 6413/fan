@@ -5,7 +5,6 @@
 
 struct neural_network_t {
   uint32_t layer_count;
-  std::vector<int> sizes_of_layer;
   // weight matrices, bias matrices
   std::vector<fan::runtime_matrix2d<f32_t>> w, b, delta_w, delta_b;
 
@@ -18,7 +17,6 @@ struct neural_network_t {
   // alpha learning rate
   neural_network_t(std::vector<int> sizes_of_layers, f64_t alpha) {
     layer_count = sizes_of_layers.size();
-    sizes_of_layer = sizes_of_layers;
 
     // weight matrices
     w.resize(layer_count - 1);
