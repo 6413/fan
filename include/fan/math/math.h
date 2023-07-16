@@ -114,6 +114,14 @@ namespace fan {
 
 	namespace math {
 
+    static double sigmoid(double x) {
+      return 1.0 / (1 + exp(-x));
+    }
+
+    static constexpr double sigmoid_derivative(double x) {
+      return x * (1 - x);
+    }
+
     constexpr f32_t map(f32_t value, f32_t start1, f32_t stop1, f32_t start2, f32_t stop2) {
       return start2 + (stop2 - start2) * ((value - start1) / (stop1 - start1));
     }

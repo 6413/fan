@@ -2,6 +2,7 @@
 
 #include _FAN_PATH(types/vector.h)
 #include _FAN_PATH(types/quaternion.h)
+#include _FAN_PATH(math/random.h)
 
 #include <type_traits>
 
@@ -243,6 +244,310 @@ namespace fan {
   protected:
     std::array<fan::vec4, 4> m_array;
   };
+
+  template <uint32_t _i, uint32_t _j, typename data_t = f32_t>
+  struct matrix2d {
+
+    static constexpr auto rows = _i;
+    static constexpr auto columns = _j;
+
+    std::array<std::array<data_t, columns>, rows> data;
+
+    constexpr matrix2d() : data{ 0 } {
+
+    }
+
+    template <typename... Args>
+    requires (sizeof...(Args) > 1)
+    constexpr matrix2d(Args&&... args) : data{ static_cast<data_t>(std::forward<Args>(args))... } {}
+
+    constexpr matrix2d(data_t value) : matrix2d() {
+      for (uint32_t i = 0; i < _i; ++i) {
+        data[i][i] = value;
+      }
+    }
+
+    constexpr auto& operator[](const uintptr_t i) {
+      return data[i];
+    }
+
+    constexpr auto operator[](const uintptr_t i) const {
+      return data[i];
+    }
+
+    friend std::ostream& operator<<(std::ostream& os, const matrix2d& matrix)
+    {
+      for (uintptr_t i = 0; i < matrix.rows; i++) {
+        for (uintptr_t j = 0; j < matrix.columns; j++) {
+          os << matrix[i][j] << ' ';
+        }
+        os << '\n';
+      }
+      return os;
+    }
+
+    constexpr matrix2d operator+(const matrix2d& matrix) const {
+      matrix2d<_i, _j, data_t> ret;
+      for (uint32_t i = 0; i < _i; ++i) {
+        for (uint32_t j = 0; j < _j; ++j) {
+          ret[i][j] = (*this)[i][j] + matrix[i][j];
+        }
+      }
+      return ret;
+    }
+
+    constexpr void operator+=(const matrix2d& matrix) {
+      *this = operator+(matrix);
+    }
+
+    constexpr matrix2d operator-(const matrix2d& matrix) const {
+      matrix2d<_i, _j, data_t> ret;
+      for (uint32_t i = 0; i < _i; ++i) {
+        for (uint32_t j = 0; j < _j; ++j) {
+          ret[i][j] = (*this)[i][j] - matrix[i][j];
+        }
+      }
+      return ret;
+    }
+
+    template <uint32_t _i2, uint32_t _j2, typename T>
+    constexpr matrix2d operator*(const matrix2d<_i2, _j2, T>& matrix) const {
+      matrix2d ret;
+      for (uint32_t i = 0; i < _i; ++i) {
+        for (uint32_t j = 0; j < _j2; ++j) {
+          for (uint32_t k = 0; k < _j; ++k) {
+            ret[i][j] += (*this)[i][k] * matrix[k][j];
+          }
+        }
+      }
+      return ret;
+    }
+
+    constexpr matrix2d transpose() const {
+      matrix2d ret;
+      for (uint32_t i = 0; i < _i; ++i) {
+        for (uint32_t j = 0; j < _j; ++j) {
+          ret[j][i] = (*this)[i][j];
+        }
+      }
+      return ret;
+    }
+
+    constexpr matrix2d randomize() {
+      for (uint32_t i = 0; i < _i; ++i) {
+        for (uint32_t j = 0; j < _j; ++j) {
+          (*this)[i][j] = fan::random::value_f32(-1, 1);
+        }
+      }
+    }
+
+    // term by term
+    constexpr matrix2d hadamard(const matrix2d& matrix) const {
+      matrix2d ret;
+      for (uint32_t i = 0; i < _i; ++i) {
+        for (uint32_t j = 0; j < _j; ++j) {
+          ret[i][j] = (*this)[i][j] * matrix[i][j];
+        }
+      }
+      return ret;
+    }
+
+    constexpr matrix2d sigmoid() const {
+      matrix2d ret;
+      for (uint32_t i = 0; i < _i; ++i) {
+        for (uint32_t j = 0; j < _j; ++j) {
+          ret[i][j] = fan::math::sigmoid((*this)[i][j]);
+        }
+      }
+      return ret;
+    }
+    constexpr matrix2d sigmoid_derivative() const {
+      matrix2d ret;
+      for (uint32_t i = 0; i < _i; ++i) {
+        for (uint32_t j = 0; j < _j; ++j) {
+          ret[i][j] = fan::math::sigmoid_derivative((*this)[i][j]);
+        }
+      }
+      return ret;
+    }
+
+    constexpr void zero() {
+      for (uint32_t i = 0; i < rows; ++i) {
+        for (uint32_t j = 0; j < columns; ++j) {
+          (*this)[i][j] = 0;
+        }
+      }
+    }
+  };
+
+  template <typename data_t = f32_t>
+  struct runtime_matrix2d {
+    uint32_t rows;
+    uint32_t columns;
+    data_t** data = nullptr;
+
+    runtime_matrix2d() = default;
+
+    runtime_matrix2d(uint32_t rows, uint32_t columns) : rows(rows), columns(columns) {
+      data = new data_t*[rows];
+      for (uint32_t i = 0; i < rows; ++i) {
+        data[i] = new data_t[columns];
+        std::fill(data[i], data[i] + columns, 0);
+      }
+    }
+
+    runtime_matrix2d(const runtime_matrix2d& other) : rows(other.rows), columns(other.columns) {
+      data = new data_t * [rows];
+      for (uint32_t i = 0; i < rows; ++i) {
+        data[i] = new data_t[columns];
+        std::copy(other.data[i], other.data[i] + columns, data[i]);
+      }
+    }
+
+    runtime_matrix2d& operator=(const runtime_matrix2d& other) {
+      if (this != &other) {
+        for (uint32_t i = 0; i < rows; ++i) {
+          delete[] data[i];
+        }
+        delete[] data;
+        rows = other.rows;
+        columns = other.columns;
+        data = new data_t * [rows];
+        for (uint32_t i = 0; i < rows; ++i) {
+          data[i] = new data_t[columns];
+          std::copy(other.data[i], other.data[i] + columns, data[i]);
+        }
+      }
+      return *this;
+    }
+
+    ~runtime_matrix2d() {
+      for (uint32_t i = 0; i < rows; ++i) {
+        delete[] data[i];
+      }
+      delete[] data;
+      data = nullptr;
+    }
+
+    runtime_matrix2d(uint32_t rows, uint32_t columns, data_t value) : runtime_matrix2d(rows, columns) {
+      for (uint32_t i = 0; i < std::min(rows, columns); ++i) {
+        (*this)[i][i] = value;
+      }
+    }
+
+    data_t* operator[](uint32_t i) {
+      return data[i];
+    }
+
+    const data_t* operator[](uint32_t i) const {
+      return data[i];
+    }
+
+    friend std::ostream& operator<<(std::ostream& os, const runtime_matrix2d& matrix)
+    {
+      for (uintptr_t i = 0; i < matrix.rows; i++) {
+        for (uintptr_t j = 0; j < matrix.columns; j++) {
+          os << matrix[i][j] << ' ';
+        }
+        os << '\n';
+      }
+      return os;
+    }
+
+    constexpr runtime_matrix2d operator+(const runtime_matrix2d& matrix) const {
+      runtime_matrix2d<data_t> ret(rows, columns);
+      for (uint32_t i = 0; i < rows; ++i) {
+        for (uint32_t j = 0; j < columns; ++j) {
+          ret[i][j] = (*this)[i][j] + matrix[i][j];
+        }
+      }
+      return ret;
+    }
+
+    constexpr void operator+=(const runtime_matrix2d& matrix) {
+      *this = operator+(matrix);
+    }
+
+    constexpr runtime_matrix2d operator-(const runtime_matrix2d& matrix) const {
+      runtime_matrix2d<data_t> ret(rows, columns);
+      for (uint32_t i = 0; i < rows; ++i) {
+        for (uint32_t j = 0; j < columns; ++j) {
+          ret[i][j] = (*this)[i][j] - matrix[i][j];
+        }
+      }
+      return ret;
+    }
+
+    template <typename T>
+    constexpr runtime_matrix2d operator*(const runtime_matrix2d<T>& matrix) const {
+      runtime_matrix2d ret(rows, matrix.columns);
+      for (uint32_t i = 0; i < rows; ++i) {
+        for (uint32_t j = 0; j < matrix.columns; ++j) {
+          for (uint32_t k = 0; k < columns; ++k) {
+            ret[i][j] += (*this)[i][k] * matrix[k][j];
+          }
+        }
+      }
+      return ret;
+    }
+
+    constexpr runtime_matrix2d transpose() const {
+      runtime_matrix2d ret(columns, rows);
+      for (uint32_t i = 0; i < rows; ++i) {
+        for (uint32_t j = 0; j < columns; ++j) {
+          ret[j][i] = (*this)[i][j];
+        }
+      }
+      return ret;
+    }
+
+    constexpr void randomize() {
+      for (uint32_t i = 0; i < rows; ++i) {
+        for (uint32_t j = 0; j < columns; ++j) {
+          (*this)[i][j] = fan::random::value_f32(-1, 1);
+        }
+      }
+    }
+
+    // term by term
+    constexpr runtime_matrix2d hadamard(const runtime_matrix2d& matrix) const {
+      runtime_matrix2d ret(rows, columns);
+      for (uint32_t i = 0; i < rows; ++i) {
+        for (uint32_t j = 0; j < columns; ++j) {
+          ret[i][j] = (*this)[i][j] * matrix[i][j];
+        }
+      }
+      return ret;
+    }
+
+    constexpr runtime_matrix2d sigmoid() const {
+      runtime_matrix2d ret(rows, columns);
+      for (uint32_t i = 0; i < rows; ++i) {
+        for (uint32_t j = 0; j < columns; ++j) {
+          ret[i][j] = fan::math::sigmoid((*this)[i][j]);
+        }
+      }
+      return ret;
+    }
+    constexpr runtime_matrix2d sigmoid_derivative() const {
+      runtime_matrix2d ret(rows, columns);
+      for (uint32_t i = 0; i < rows; ++i) {
+        for (uint32_t j = 0; j < columns; ++j) {
+          ret[i][j] = fan::math::sigmoid_derivative((*this)[i][j]);
+        }
+      }
+      return ret;
+    }
+
+    constexpr void zero() {
+      for (uint32_t i = 0; i < rows; ++i) {
+        for (uint32_t j = 0; j < columns; ++j) {
+          (*this)[i][j] = 0;
+        }
+      }
+    }
+  };
+  
 
   using matrix4x4 = _matrix4x4<cf_t>;
   using matrix4x4ui = _matrix4x4<uintptr_t>;
