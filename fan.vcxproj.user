@@ -19,8 +19,8 @@
     <LocalDebuggerCommandArguments>TexturePack</LocalDebuggerCommandArguments>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LocalDebuggerEnvironment>PATH=%PATH%;$(SolutionDir)lib\al;$(SolutionDir)lib\assimp;$(SolutionDir)lib\glew;$(SolutionDir)lib\av;$(SolutionDir)lib\box2d;$(SolutionDir)lib\WITCH\uv</LocalDebuggerEnvironment>
+    <LocalDebuggerEnvironment>PATH=%PATH%;$(SolutionDir)lib\al;$(SolutionDir)lib\assimp;$(SolutionDir)lib\glew;$(SolutionDir)lib\av;$(SolutionDir)lib\box2d;$(SolutionDir)lib\WITCH\uv;$(SolutionDir)lib\opencv</LocalDebuggerEnvironment>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerCommandArguments>TexturePack</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>images/src.jpg images/search.jpg images/search1.jpg</LocalDebuggerCommandArguments>
   </PropertyGroup>
 </Project>

@@ -45,7 +45,6 @@ struct neural_network_t {
     for (uint32_t i = 0; i < layer_count - 1; ++i) {
       input = (input * w[i] + b[i]).sigmoid();
     }
-    // output
     return input;
   }
 
@@ -54,7 +53,7 @@ struct neural_network_t {
 
     layers.push_back(input);
     for (uint32_t i = 0; i < layer_count - 1; ++i) {
-      input = (input * w[i] + b[i]).sigmoid();
+      input = ((input * w[i]) + b[i]).sigmoid();
       layers.push_back(input);
     }
 
@@ -92,7 +91,7 @@ struct neural_network_t {
         }
       }
 
-      for (uint32_t j = 0; j < delta_b[i].rows; ++i) {
+      for (uint32_t j = 0; j < delta_b[i].rows; ++j) {
         for (uint32_t z = 0; z < delta_b[i].columns; ++z) {
           delta_b[i][j][z] /= (double)inputs.size();
           b[i][j][z] -= learning_rate * delta_b[i][j][z];
@@ -156,6 +155,6 @@ struct neural_network_t {
     out += data_to_string(w);
     out += data_to_string(b);
 
-    fan::io::file::write(path, out);
+    fan::io::file::write(path, out, std::ios_base::binary);
   }
 };

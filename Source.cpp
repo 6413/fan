@@ -1,218 +1,182 @@
-// Creates window, opengl context and renders a rectangle
-
 #define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 
-#ifndef FAN_INCLUDE_PATH
+
 #define FAN_INCLUDE_PATH C:/libs/fan/include
-#endif
 #define fan_debug 0
-
-#include _INCLUDE_TOKEN(WITCH_INCLUDE_PATH,WITCH.h)
-
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
-//#define loco_vulkan
+#include _FAN_PATH(system.h)
 
 #define loco_window
 #define loco_context
-#define loco_rectangle
-#define loco_sprite
 #include _FAN_PATH(graphics/loco.h)
 
-constexpr static f32_t BCOLStepTime = 0.01;
-#define ETC_BCOL_set_prefix BCOL
-#define ETC_BCOL_set_DynamicDeltaFunction \
-  ObjectData0->Velocity.y += delta * 2;
-#define ETC_BCOL_set_StoreExtraDataInsideObject 1
-#define ETC_BCOL_set_ExtraDataInsideObject \
-  bool IsItPipe;
-#include _WITCH_PATH(ETC/BCOL/BCOL.h)
+#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
+#include <iostream>
+#include <stdio.h>
 
-struct pile_t {
+using namespace cv;
 
-  static constexpr fan::vec2 ortho_x = fan::vec2(-1, 1);
-  static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
+/// Global Variables
+Mat img; Mat templ, templ2; Mat result;
+const char* image_window = "Source Image";
+const char* result_window = "Result window";
 
-  pile_t() {
-    fan::vec2 window_size = loco.get_window()->get_size();
-    loco.open_camera(&camera, ortho_x, ortho_y);
-    loco.open_viewport(&viewport, 0, window_size);
+int match_method = TM_SQDIFF;
+int max_Trackbar = 5;
+
+Mat hwnd2mat(HWND hwnd)
+{
+  HDC hwindowDC, hwindowCompatibleDC;
+
+  int height, width, srcheight, srcwidth;
+  HBITMAP hbwindow;
+  Mat src;
+  BITMAPINFOHEADER  bi;
+
+  hwindowDC = GetDC(hwnd);
+  hwindowCompatibleDC = CreateCompatibleDC(hwindowDC);
+  SetStretchBltMode(hwindowCompatibleDC, COLORONCOLOR);
+
+  RECT windowsize;
+  GetClientRect(hwnd, &windowsize);
+
+  srcheight = windowsize.bottom;
+  srcwidth = windowsize.right;
+  height = windowsize.bottom / 1;
+  width = windowsize.right / 1;
+
+  src.create(height, width, CV_8UC4);
+
+  // create a bitmap
+  hbwindow = CreateCompatibleBitmap(hwindowDC, width, height);
+  bi.biSize = sizeof(BITMAPINFOHEADER);
+  bi.biWidth = width;
+  bi.biHeight = -height;
+  bi.biPlanes = 1;
+  bi.biBitCount = 32;
+  bi.biCompression = BI_RGB;
+  bi.biSizeImage = 0;
+  bi.biXPelsPerMeter = 0;
+  bi.biYPelsPerMeter = 0;
+  bi.biClrUsed = 0;
+  bi.biClrImportant = 0;
+
+  SelectObject(hwindowCompatibleDC, hbwindow);
+  StretchBlt(hwindowCompatibleDC, 0, 0, width, height, hwindowDC, 0, 0, srcwidth, srcheight, SRCCOPY);
+  GetDIBits(hwindowCompatibleDC, hbwindow, 0, height, src.data, (BITMAPINFO*)&bi, DIB_RGB_COLORS);
+
+  DeleteObject(hbwindow);
+  DeleteDC(hwindowCompatibleDC);
+  ReleaseDC(hwnd, hwindowDC);
+
+  return src;
+}
+
+fan::vec2i get_result(cv::Mat& tmp) {
+  cv::Mat img_gray, templ_gray;
+  cv::cvtColor(img, img_gray, cv::COLOR_BGRA2RGB);
+  matchTemplate(img_gray, tmp, result, match_method);
+
+  normalize(result, result, 0, 1, NORM_MINMAX, -1, Mat());
+
+  double minVal; double maxVal; Point minLoc; Point maxLoc;
+  Point matchLoc;
+
+  minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc, Mat());
+
+  if (match_method == TM_SQDIFF || match_method == TM_SQDIFF_NORMED)
+  {
+    matchLoc = minLoc;
+  }
+  else
+  {
+    matchLoc = maxLoc;
+  }
+  return *(fan::vec2i*)&matchLoc;
+}
+
+void MatchingMethod() {
+  Mat img_display;
+  img.copyTo(img_display);
+
+  int result_cols = img.cols - templ.cols + 1;
+  int result_rows = img.rows - templ.rows + 1;
+
+  result.create(result_rows, result_cols, CV_32FC1);
+
+  /// Do the Matching and Normalize
+ 
+  bool do_skip = false;
+
+  fan::vec2i click_src = get_result(templ);
+
+  if (click_src != 0) {
+    fan::sys::input::set_mouse_position(click_src + templ.cols / 2);
+    uint64_t random_delay = fan::random::value_i64(1e+9, 5e+9);
+    fan::delay(fan::time::nanoseconds(random_delay));
+    fan::sys::input::send_mouse_event(fan::mouse_left, fan::mouse_state::press);
+    fan::delay(fan::time::nanoseconds(0.05e+9));
+    fan::sys::input::send_mouse_event(fan::mouse_left, fan::mouse_state::release);
+    do_skip = true;
   }
 
-  loco_t loco;
-  loco_t::camera_t camera;
-  fan::graphics::viewport_t viewport;
-};
+  fan::sys::input::set_mouse_position(fan::vec2i(1872, 570));
+  uint64_t random_delay = fan::random::value_i64(1e+9, 5e+9);
+  fan::delay(fan::time::nanoseconds(random_delay));
+  fan::sys::input::send_mouse_event(fan::mouse_left, fan::mouse_state::press);
+  fan::delay(fan::time::nanoseconds(0.05e+9));
+  fan::sys::input::send_mouse_event(fan::mouse_left, fan::mouse_state::release);
 
-bool dead = false;
+  return;
+}
 
-pile_t* pile = new pile_t;
-f32_t BCOLDelta = 0;
+int main(int argc, char** argv) {
+  templ = imread("search.jpg", 1);
+  templ2 = imread("search1.jpg", 1);
+  fan::sys::input input;
 
-BCOL_t bcol;
+  HWND hwndDesktop = GetDesktopWindow();
 
-static constexpr fan::vec2 pipe_size = fan::vec2(0.1, 100);
+  fan::print("press f2 to start");
+  fan::print("press f9 force quit");
 
-int main() {
+  input.listen_keyboard([&](uint16_t key, fan::keyboard_state state, bool action) {
 
-  {
-    BCOL_t::OpenProperties_t OpenProperties;
+    if (state != fan::keyboard_state::press) {
+      return;
+    }
 
-    OpenProperties.PreSolve_Shape_cb =
-      [](
-        BCOL_t* bcol,
-        const BCOL_t::ShapeInfoPack_t* sip0,
-        const BCOL_t::ShapeInfoPack_t* sip1,
-        BCOL_t::Contact_Shape_t* Contact
-        ) {
-          auto ed = bcol->GetObjectExtraData(sip0->ObjectID);
-          if (!ed->IsItPipe) {
-            bcol->Contact_Shape_DisableContact(Contact);
-            dead = true;
+    if (!action) {
+      return;
+    }
+
+    switch (key) {
+      case fan::key_f2: {
+        auto f = [&] {
+          while (1) {
+            img = hwnd2mat(hwndDesktop);
+            MatchingMethod();
+            fan::delay(fan::time::nanoseconds(.5e+9));
           }
         };
 
-    bcol.Open(&OpenProperties);
-  }
+        std::thread t(f);
 
+        t.detach();
 
-  static constexpr auto gap_size = 1;
-
-  //loco_t::shape_t pipes[1000];
-  struct pipe_t{
-    BCOL_t::ObjectID_t oid[2];
-    loco_t::shape_t shape[2];
-    void push_back(f32_t xpos) {
-
-      f32_t r = fan::random::value_f32(0.5, 1);
-
-      for (uint32_t i = 0; i < 2; ++i) {
-
-        BCOL_t::ObjectProperties_t p;
-        p.Position = xpos;
-        p.Position.y = -1 - pipe_size.y + r;
-        if (i == 1) {
-          p.Position.y += pipe_size.y * 2 + gap_size;
-        }
-
-        p.ExtraData.IsItPipe = true;
-        oid[i] = bcol.NewObject(&p, BCOL_t::ObjectFlag::Constant);
-
-        BCOL_t::ShapeProperties_Rectangle_t sp;
-        sp.Position = 0;
-        sp.Size = pipe_size;
-        bcol.NewShape_Rectangle(oid[i], &sp);
-
-        loco_t::rectangle_t::properties_t pipe_properties;
-
-        pipe_properties.position = p.Position;
-        pipe_properties.size = sp.Size;
-        pipe_properties.camera = &pile->camera;
-        pipe_properties.viewport = &pile->viewport;
-        pipe_properties.color = fan::colors::green;
-
-        shape[i] = pipe_properties;
+        break;
       }
-    }
-  };
-  std::vector<pipe_t> pipes;
-
-  
-  struct {
-    BCOL_t::ObjectID_t oid;
-    loco_t::shape_t shape;
-  }player;
-
-  {
-    BCOL_t::ObjectProperties_t p;
-    p.Position = 0;
-    p.ExtraData.IsItPipe = false;
-    player.oid = bcol.NewObject(&p, 0);
-    bcol.SetObject_Velocity(player.oid, fan::vec2(.5, 0));
-
-    BCOL_t::ShapeProperties_Circle_t sp;
-    sp.Position = 0;
-    sp.Size = 0.05;
-    bcol.NewShape_Circle(player.oid, &sp);
-
-    loco_t::rectangle_t::properties_t player_properties;
-    player_properties.position.x = bcol.GetObject_Position(player.oid).x;
-    player_properties.position.y = bcol.GetObject_Position(player.oid).y;
-    player_properties.position.z = 1;
-    player_properties.size = sp.Size;
-    player_properties.camera = &pile->camera;
-    player_properties.viewport = &pile->viewport;
-    player_properties.color = fan::colors::yellow;
-
-    player.shape = player_properties;
-  }
-
-  f32_t last_pipe_x = bcol.GetObject_Position(player.oid).x + 1;
-
-  pile->loco.get_window()->add_keys_callback([&](const auto& data) {
-    if (data.key != fan::key_space) {
-      return;
-    }
-    if (data.state != fan::keyboard_state::press) {
-      return;
-    }
-    bcol.SetObject_Velocity(player.oid, fan::vec2(0.5, -1));
-  });
-
-  pile->loco.loop([&] {
-    pile->loco.get_fps();
-
-
-    {
-      const f32_t BCOLDeltaMax = 2;
-
-      {
-        auto d = pile->loco.get_delta_time();
-        BCOLDelta += d;
-      }
-
-      if (BCOLDelta > BCOLDeltaMax) {
-        BCOLDelta = BCOLDeltaMax;
-      }
-
-      while (BCOLDelta >= BCOLStepTime) {
-        bcol.Step(BCOLStepTime);
-
-        if (dead) {
-          bcol.SetObject_Velocity(player.oid, fan::vec2(.5, 0));
-          bcol.SetObject_Position(player.oid, 0);
-          last_pipe_x = bcol.GetObject_Position(player.oid).x + 1;
-          dead = false;
-        }
-
-        BCOLDelta -= BCOLStepTime;
+      case fan::key_f9: {
+        exit(0);
       }
     }
 
-    fan::vec2 player_position = bcol.GetObject_Position(player.oid);
+    });
 
-    pile->camera.set_camera_position(player_position);
+  input.thread_loop([] {});
 
-    player.shape.set_position(player_position);
-
-
-    if (last_pipe_x < player_position.x + 2 + pipe_size.x) {
-      pipes.resize(pipes.size() + 1);
-      pipes[pipes.size() - 1].push_back(last_pipe_x);
-
-      last_pipe_x += 1;
-    }
-    for (uint32_t i = 0; i < pipes.size(); ++i) {
-      if (pipes[i].shape[0].get_position().x < player_position.x - 1) {
-        bcol.UnlinkObject(pipes[i].oid[0]);
-        bcol.RecycleObject(pipes[i].oid[0]);
-        bcol.UnlinkObject(pipes[i].oid[1]);
-        bcol.RecycleObject(pipes[i].oid[1]);
-        pipes.erase(pipes.begin() + i);
-        continue;
-      }
-    }
-  });
 
   return 0;
 }

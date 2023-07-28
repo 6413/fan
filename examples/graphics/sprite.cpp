@@ -1,5 +1,3 @@
-// Creates window, opengl context and renders a rectangle
-
 #define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 
 #ifndef FAN_INCLUDE_PATH
@@ -15,6 +13,8 @@
 //#define loco_rectangle
 #define loco_sprite
 #include _FAN_PATH(graphics/loco.h)
+
+#include <>
 
 struct pile_t {
 
@@ -52,34 +52,28 @@ pile_t* pile = new pile_t;
 int main() {
 
   loco_t::image_t image;
-  image.load("images/tire.webp");
+  image.load("images/2.webp");
 
   loco_t::unlit_sprite_t::properties_t p;
 
-  p.size = fan::vec2(0.1);
+  p.size = fan::vec2(1);
   p.camera = &pile->camera;
   p.viewport = &pile->viewport;
   p.image = &image;
 
+  loco_t::shape_t shape = p;
 
-  loco_t::shape_t id3[100];
-  p.position = -1;
-  for (uint32_t i = 0; i < 100; ++i) {
-    p.position = fan::random::vec2(-1, 1);
-    id3[i] = p;
-  }
+  //loco_t::shape_t id3[100];
+  //p.position = -1;
+  //for (uint32_t i = 0; i < 100; ++i) {
+  //  p.position = fan::random::vec2(-1, 1);
+  //  id3[i] = p;
+  //}
 
-  fan::vec2 v(-1, -1);
-
-  f32_t angle = 0;
-
-  id3->set_image((loco_t::image_t*)0);
+  //fan::vec2 v(-1, -1);
 
   pile->loco.loop([&] {
-    angle += pile->loco.get_delta_time() * 2;
-    for (uint32_t i = 0; i < 100; ++i) {
-      id3[i].set_angle(angle);
-    }
+    //angle += pile->loco.get_delta_time() * 2;
     //v = v + 0.1 * pile->loco.get_window()->get_delta_time();
     //id3.set_position(v);
     //id3.set_angle(angle);
