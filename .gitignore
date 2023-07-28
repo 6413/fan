@@ -29,3 +29,5 @@
 .vs/fan/v17/HierarchyCache.v1.txt
 .vscode/settings.json
 *.TMP
+include/opencv2
+lib/opencv

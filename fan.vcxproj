@@ -250,8 +250,8 @@
       <EnableCOMDATFolding>false</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\libs\fan\lib\opus;C:\libs\fan\lib\ogg;C:\libs\fan\lib\libwebp;C:\libs\fan\lib\shaderc;C:\libs\fan\lib\nvidia</AdditionalLibraryDirectories>
-      <AdditionalDependencies>libwebp.lib;libwebp.a;cuda.lib;cudart.lib;nvencodeapi.lib;nvcuvid.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\libs\fan\lib\opus;C:\libs\fan\lib\ogg;C:\libs\fan\lib\libwebp;C:\libs\fan\lib\shaderc;C:\libs\fan\lib\nvidia;C:\libs\fan\lib\opencv</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libwebp.lib;libwebp.a;cuda.lib;cudart.lib;nvencodeapi.lib;nvcuvid.lib;opencv_world480.lib</AdditionalDependencies>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <SubSystem>Console</SubSystem>
     </Link>
@@ -260,7 +260,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="examples\cpp\digit_recognizer.cpp" />
+    <ClCompile Include="examples\cpp\ig_like.cpp" />
     <ClCompile Include="src\fan\window\window.cpp" />
   </ItemGroup>
   <ItemGroup>

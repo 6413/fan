@@ -440,7 +440,7 @@ namespace fan {
       }
     }
 
-    data_t* operator[](uint32_t i) {
+    data_t*& operator[](uint32_t i) {
       return data[i];
     }
 

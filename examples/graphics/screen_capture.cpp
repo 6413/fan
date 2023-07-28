@@ -1,5 +1,3 @@
-// Creates window, opengl context and renders a rectangle
-
 #define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 
 #define FAN_INCLUDE_PATH C:/libs/fan/include
@@ -30,8 +28,8 @@ struct pile_t {
     /*loco.get_window()->add_resize_callback([&](fan::window_t*, const fan::vec2i& size) {
       viewport.set(loco.get_context(), 0, size, size);
     });*/
-    viewport.open(loco.get_context());
-    viewport.set(loco.get_context(), 0, loco.get_window()->get_size(), loco.get_window()->get_size());
+    viewport.open();
+    viewport.set(0, loco.get_window()->get_size(), loco.get_window()->get_size());
   }
 
   loco_t loco;
@@ -44,6 +42,10 @@ int main() {
 
   fan::sys::MD_SCR_t md;
   
+  pile_t* pile = new pile_t;
+  pile->open();
+
+  wglMakeCurrent(pile->loco.get_window()->m_hdc, pile->loco.get_window()->m_context);
   int i = 0;
   while (i < 1) {
       fan::sys::MD_SCR_open(&md);
@@ -52,8 +54,6 @@ int main() {
         fan::print(i);
   }
 
-  pile_t* pile = new pile_t;
-  pile->open();
 
   loco_t::sprite_t::properties_t p;
 
@@ -65,6 +65,10 @@ int main() {
   
   fan::sys::MD_SCR_open(&md);
   uint8_t* ptr = fan::sys::MD_SCR_read(&md);
+  ptr = fan::sys::MD_SCR_read(&md);
+  while (!ptr) {
+    ptr = fan::sys::MD_SCR_read(&md);
+  }
   if (ptr == nullptr) {
     return 1;
   }
@@ -76,29 +80,29 @@ int main() {
   loco_t::image_t::load_properties_t lp;
   lp.format = fan::opengl::GL_BGRA;
   lp.internal_format = fan::opengl::GL_RGBA;
-  //image.load(&pile->loco, ii, lp);
-  //p.image = &image;
+  image.load(ii, lp);
+  p.image = &image;
   //p.position = fan::vec2(0, 0);
   p.position.z = 0;
   //p.tc_size = fan::vec2(4, 1);
   //p.color = 10;
   // p.color = fan::color((f32_t)i / count, (f32_t)i / count + 00.1, (f32_t)i / count);
-  pile->loco.sprite.push_back(&pile->cids[0], p);
+  loco_t::shape_t shape = p;
 
 
   pile->loco.set_vsync(false);
   uint32_t x = 0;
   pile->loco.loop([&] {
-    ptr = fan::sys::MD_SCR_read(&md);
-    if (ptr) {
-      //ii.size = fan::vec2(1792, 992);
-      ii.data = ptr;
-      //if (!*ptr) {
-      //  fan::print("aa");
-      //}
-      image.unload(&pile->loco);
-      image.load(&pile->loco, ii, lp);
-    }
+    //ptr = fan::sys::MD_SCR_read(&md);
+    //if (ptr) {
+    //  //ii.size = fan::vec2(1792, 992);
+    //  ii.data = ptr;
+    //  //if (!*ptr) {
+    //  //  fan::print("aa");
+    //  //}
+    //  image.unload();
+    //  image.load(ii, lp);
+    //}
 
     ////pile->loco.sprite.set(&pile->cids[0], &image);
     //pile->loco.get_fps();

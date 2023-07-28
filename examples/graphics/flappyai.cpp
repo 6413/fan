@@ -1,5 +1,3 @@
-// Creates window, opengl context and renders a rectangle
-
 #define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 
 #ifndef FAN_INCLUDE_PATH
@@ -469,7 +467,7 @@ int main() {
       pipes.resize(pipes.size() + 1);
       pipes[pipes.size() - 1].push_back(last_pipe_x);
 
-      last_pipe_x += .7;
+      last_pipe_x += .9;
     }
     for (uint32_t i = 0; i < pipes.size(); ++i) {
       if (pipes[i].shape[0].get_position().x < player_position.x - 1) {
