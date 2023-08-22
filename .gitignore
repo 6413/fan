@@ -31,3 +31,7 @@
 *.TMP
 include/opencv2
 lib/opencv
+include/dpp
+lib/dpp
+lib/cmake
+*.dll
