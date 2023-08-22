@@ -53,10 +53,6 @@ int main() {
 
   pile->loco.loop([&] {
     pile->loco.get_fps();
-    //fan::vec3 p = pile->loco.get_window()->get_mouse_position();
-    //rectangle.set_position(p);
-    //rectangle.set_angle(angle);
-    //angle += pile->loco.get_delta_time();
   });
 
   return 0;

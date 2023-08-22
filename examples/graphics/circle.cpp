@@ -29,16 +29,16 @@ struct pile_t {
     );
     loco.get_window()->add_resize_callback([&](const fan::window_t::resize_cb_data_t& d) {
       fan::vec2 window_size = d.size;
-    fan::vec2 ratio = window_size / window_size.max();
-    std::swap(ratio.x, ratio.y);
+    //fan::vec2 ratio = window_size / window_size.max();
+   // std::swap(ratio.x, ratio.y);
     //camera.set_ortho(
     //  ortho_x * ratio.x, 
     //  ortho_y * ratio.y
     //);
-    viewport.set(loco.get_context(), 0, d.size, d.size);
+   // viewport.set(d.size, d.size);
       });
-    viewport.open(loco.get_context());
-    viewport.set(loco.get_context(), 0, window_size, window_size);
+    viewport.open();
+    viewport.set(0, window_size, window_size);
   }
 
   loco_t loco;

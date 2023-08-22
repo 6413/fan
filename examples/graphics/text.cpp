@@ -59,19 +59,6 @@ int main() {
   p.text = "hello";
   p.color = fan::colors::white;
 
-  //std::vector<loco_t::shape_t> ids;
-  //ids.reserve(10000);
-  //for (uint32_t i = 0; i < 1000; i++){
-  //  ids.push_back(p);
-  //  ids[0].set_position(fan::vec2(2, 3));
-  //}
-  ////for (uint32_t i = 0; i < 1000; i++) {
-  ////  ids.erase(ids.begin() + rand() % ids.size());
-  ////  if (ids.size()) {
-  ////    ids[rand() % ids.size()].set_position(fan::vec2(2, 3));
-  ////  }
-  ////}
-
   loco_t::shape_t text0 = p;
 
   pile->loco.set_vsync(false);
@@ -79,9 +66,9 @@ int main() {
   f32_t x = 0;
 
   pile->loco.loop([&] {
-    text0.set_text(fan::random::string(10));
-    //text0.set_font_size(sin(x) * 10);
-    //x += pile->loco.get_delta_time() / 100;
+    //text0.set_text(fan::random::string(10));
+    text0.set_font_size(sin(x) * 5);
+    x += pile->loco.get_delta_time();
     pile->loco.get_fps();
   });
 
