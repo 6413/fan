@@ -1094,15 +1094,26 @@ static void forEachType(std::variant<Types...>& variant, Func&& func) {
       cameras[viewport_area::editor].set_ortho(fan::vec2(-1, 1), fan::vec2(-1, 1));
     }
 
-    set_viewport_and_camera(viewport_area::sidepanel, fan::vec2(sidepanel_line_position.x, -1),
-      fan::vec2(-0.5, 1)
-    );
+    {
+      fan::vec2 window_size = gloco->get_window()->get_size();
+      fan::vec2 viewport_position = translate_viewport_position(fan::vec2(sidepanel_line_position.x, -1));
+      fan::vec2 viewport_size = translate_viewport_position(fan::vec2(-0.5, 1));
+      viewports[viewport_area::sidepanel].set(viewport_position, viewport_size, window_size);
 
+      //viewport_size /= 100;
+      //fan::vec2 aspect_ratio = viewport_size / viewport_size.max();
+
+      fan::vec2 ortho = viewport_size;
+
+      //cameras[viewport_area::sidepanel].set_ortho(fan::vec2(-1, 1) * aspect_ratio.x, fan::vec2(-1, 1) * aspect_ratio.y);
+      cameras[viewport_area::sidepanel].set_ortho(fan::vec2(0, ortho.x), fan::vec2(0, ortho.y));
+      //fan::print(fan::vec2(-1, 1) * aspect_ratio.x, fan::vec2(-1, 1) * aspect_ratio.y);
+    }
     create_lines();
 
     loco_t::dropdown_t::open_properties_t op;
-    op.gui_size = gui_size;
-    op.position = fan::vec2(-0.25 + op.gui_size.x, -0.7);
+    op.gui_size = gui_size * 100;
+    op.position = fan::vec2(100, 0);
     op.camera = &cameras[viewport_area::sidepanel];
     op.viewport = &viewports[viewport_area::sidepanel];
     op.theme = &theme;
@@ -1125,8 +1136,8 @@ static void forEachType(std::variant<Types...>& variant, Func&& func) {
       editor_mode = editor_modes_e::make;
 
       loco_t::dropdown_t::open_properties_t op;
-      op.gui_size = gui_size;
-      op.position = fan::vec2(-0.25 + op.gui_size.x, -0.5);
+      op.gui_size = gui_size * 100;
+      op.position = fan::vec2(0, 0);
       op.camera = &cameras[viewport_area::sidepanel];
       op.viewport = &viewports[viewport_area::sidepanel];
       op.theme = &theme;

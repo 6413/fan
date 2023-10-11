@@ -25,7 +25,7 @@ namespace fan {
 				fan::throw_error("invalid handle value " + std::to_string(GetLastError()));
 			}
 
-			fan::utf16_string str;
+			std::wstring str;
 			
 			// cant read more than std::size(buffer)
 			if(!ReadConsoleW(handle, buffer, std::size(buffer), &read, NULL)) {

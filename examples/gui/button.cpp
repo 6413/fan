@@ -19,31 +19,40 @@
 
 loco_t::shape_t b0;
 
+fan::vec2 original_position;
+fan::vec2 original_size;
+
 struct pile_t {
 
   pile_t() {
-    fan::vec2 window_size = loco.get_window()->get_size();
-    fan::vec2 ratio = window_size / window_size.max();
+    fan::vec2 ws = loco.get_window()->get_size();
+
+    auto viewport_size = fan::vec2(ws.x, ws.y / 2);
+    viewport.set(fan::vec2(0, 0), viewport_size, ws);
+
+    fan::vec2 ratio = viewport_size / viewport_size.max();
     loco.open_camera(
       &camera,
-      fan::vec2(0, 800),
-      fan::vec2(0, 800)
+      fan::vec2(-1, 1) * ratio.x,
+      fan::vec2(-1, 1) * ratio.y
     );
-    loco.get_window()->add_resize_callback([&](const fan::window_t::resize_cb_data_t& d) {
-      fan::vec2 window_size = d.window->get_size();
-      fan::vec2 ratio = window_size / window_size.max();
-      b0.set_size(d.size / 4);
-      b0.set_position(fan::vec2(d.size / 2));
-      //std::swap(ratio.x, ratio.y);
-      //pile_t* pile = (pile_t*)userptr;
-      //camera.set_ortho(
-      //  &loco,
-      //  fan::vec2(-1, 1) * ratio.x,
-      //  fan::vec2(-1, 1) * ratio.y
-      //);
+    loco.get_window()->add_resize_callback([this](const fan::window_t::resize_cb_data_t& d) {
+      fan::vec2 ws = d.size;
+      auto vs = fan::vec2(ws.x, ws.y / 2);
+      viewport.set(fan::vec2(0, 0), vs, ws);
 
+      fan::vec2 ratio = vs / ws.max();
+
+      camera.set_ortho(
+        fan::vec2(-1, 1) * ratio.x,
+        fan::vec2(-1, 1) * ratio.y
+      );
+
+      // Corrected button position and size calculation
+      b0.set_position(original_position * ratio);
+      b0.set_size(original_size * ratio.min());
      });
-    loco.open_viewport(&viewport, 0, loco.get_window()->get_size());
+    loco.open_viewport(&viewport, fan::vec2(0, 0), viewport_size);
   }
 
   loco_t loco;
@@ -64,13 +73,11 @@ int main() {
 
   tp.viewport = &pile->viewport;
  // tp.position = 400;
-  tp.position = fan::vec3(0, 0, 0);
+  tp.position = fan::vec3(0.5, 0, 0);
   //tp.position.y = 0;
  // tp.position.z = 50;
   // font size is 0-1
-  tp.font_size = 1;
-  tp.size = fan::vec2(300, 100) / 2;
-  tp.text = "abcd";
+  tp.size = fan::vec2(0.3, 0.1);
 
   tp.mouse_move_cb = [] (const loco_t::mouse_move_data_t& mm_d) -> int {
     //fan::print(mm_d.position, (int)mm_d.mouse_stage);
@@ -94,8 +101,19 @@ int main() {
   loco_t::theme_t theme = loco_t::themes::deep_red();
   tp.theme = &theme;
   tp.text = "open chrome";
-  tp.position = 400;
+  //tp.position = 400;
   b0 = tp;
+  original_size = tp.size;
+  original_position = tp.position;
+
+  fan::vec2 ws = pile->loco.get_window()->get_size();
+
+  auto vs = fan::vec2(ws.x, ws.y / 2);
+
+  fan::vec2 ratio = vs / ws.max();
+
+  b0.set_position(original_position * ratio);
+  b0.set_size(original_size * ratio.min());
 
   pile->loco.loop([&] {
 
