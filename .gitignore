@@ -35,3 +35,4 @@ include/dpp
 lib/dpp
 lib/cmake
 *.dll
+x64/Debug

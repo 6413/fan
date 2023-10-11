@@ -20,16 +20,19 @@ struct pile_t {
   static constexpr fan::vec2 ortho_y = fan::vec2(0, 800);
 
   pile_t() {
+    auto ws = loco.get_window()->get_size();
+    auto viewport_size = fan::vec2(ws.x, ws.y / 4);
+    fan::vec2 ratio = viewport_size / viewport_size.max();
+   // std::swap(ratio.x, ratio.y);
     loco.open_camera(
       &camera,
-      ortho_x,
-      ortho_y
+      ortho_x * ratio.x,
+      ortho_y * ratio.y
     );
     loco.get_window()->add_resize_callback([&](const fan::window_t::resize_cb_data_t& d) {
-      viewport.set(0, d.size, d.size);
+      viewport.set(0, fan::vec2(d.size.x, d.size.y / 4), d.size);
     });
-    viewport.open();
-    viewport.set(0, loco.get_window()->get_size(), loco.get_window()->get_size());
+    loco.open_viewport(&viewport, fan::vec2(0, 0), viewport_size);
   }
 
   loco_t loco;
@@ -72,7 +75,7 @@ int main() {
   pp.viewport = &pile->viewport;  
   pp.image = &image;
   
-  pp.position = fan::vec2(400, 400);
+  pp.position = fan::vec2(400, 100);
   pp.size = fan::vec2(300, 100);
   pp.color.a = 1;
   pp.blending = true;
@@ -80,23 +83,28 @@ int main() {
   sprite_responsive_t::properties_t rtp;
   rtp.camera = &pile->camera;
   rtp.viewport = &pile->viewport;
-  rtp.position = fan::vec3(400, 400, 0);
-  rtp.text = "g";
-  rtp.font_size = 1;
+  //rtp.alignment.alignment = loco_t::responsive_text_t::align_e::center;
+  
+  rtp.position = fan::vec3(400, 400, 100);
+  rtp.text = "222";
+  rtp.line_limit = 1;
+  rtp.letter_size_y_multipler = 1.f / 1;
   rtp.size = fan::vec2(300, 100);
+
+  //rtp.
   sprite_responsive_t shape(rtp, pp);
   
   fan::time::clock c;
   c.start();
   f32_t advance = 0;
-  //shape.append_letter(L'g', true);
-  //shape.append_letter(L'g', true);
-  //shape.append_letter(L'g', true);
-  //shape.append_letter(L'2');
-  //shape.append_letter(L')');
-  //while (shape.append_letter(L'2')) {
+ /* shape.append_letter(L'g', true);
+  shape.append_letter(L'g', true);
+  shape.append_letter(L'g', true);
+  shape.append_letter(L'2');
+  shape.append_letter(L')');*/
+  /*while (shape.append_letter(L'2')) {
 
-  //}
+  }*/
   
 //  fan::print("durumssalsa", gloco->responsive_text.line_list[gloco->responsive_text.tlist[shape.gdp4()].LineStartNR].total_width);
 
@@ -131,7 +139,7 @@ int main() {
   f32_t deltaer = 0;
   pile->loco.loop([&] {
     deltaer += pile->loco.get_delta_time() * 0.2    ;
-    //shape.set_size(fan::vec2(std::abs(sin(deltaer)) * 100 + 25));
+    shape.set_size(fan::vec2(std::abs(sin(deltaer)) * 100 + 25));
     //r0.set_position(pile->loco.get_mouse_position(pile->camera, pile->viewport));
   });
 

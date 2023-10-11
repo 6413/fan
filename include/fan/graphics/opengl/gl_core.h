@@ -140,6 +140,10 @@ namespace fan {
 
     struct context_t {
 
+      void print_version() {
+        fan::print("opengl version supported:", opengl.glGetString(fan::opengl::GL_VERSION));
+      }
+
       struct properties_t {
         properties_t() {
           samples = 0;
