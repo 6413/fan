@@ -632,7 +632,12 @@ namespace fan {
 		constexpr vec_t round() const { return vec_t(std::round(x), std::round(y), std::round(z)); }
 
 		constexpr _Ty min() const { return std::min({ x, y, z }); }
+    constexpr _Ty min(const vec_t& v) const { return std::min({ std::min(x, v.x), std::min(y, v.y), std::min(z, v.z)}); }
 		constexpr _Ty max() const { return std::max({ x, y, z }); }
+    constexpr _Ty max(const vec_t& v) const {
+      return std::max({ std::max(x, v.x), std::max(y, v.y), std::max(z, v.z) });
+    }
+
 		constexpr vec_t abs() const { return vec_t(fan::math::abs(x), fan::math::abs(y), fan::math::abs(z)); }
 		constexpr vec_t clamp(_Ty min, _Ty max) const {
 			return vec_t(std::clamp(x, min, max), std::clamp(y, min, max), std::clamp(z, min, max));

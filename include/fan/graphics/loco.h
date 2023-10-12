@@ -1224,6 +1224,7 @@ public:
     fan_create_get_set_define(fan::vec2, size_ar);
 
     fan_create_get_set_define(loco_t::viewport_t*, viewport);
+    fan_create_get_set_define(loco_t::camera_t*, camera);
 
     fan_create_get_set_define(fan::vec2, size);
     fan_create_get_set_define(fan::color, color);
@@ -1594,14 +1595,39 @@ public:
       switch ((*((loco_t::cid_nt_t*)shape_ptr))->shape_type) {
         case loco_t::shape_type_t::button:
         case loco_t::shape_type_t::text_box: {
+          
           fan::vec2 ratio = shape_ptr->get_viewport()->get_size() / fan::vec2(gloco->get_window()->get_size()).max();
+
           fan::vec3 position = shape_ptr->get_position();
+          fan::vec2 size = shape_ptr->get_size() * ratio.y;
+
           *(fan::vec2*)&position *= ratio.y;
+
+          auto* camera = shape_ptr->get_camera();
+
+          // can be bad
+          if (position.x - size.x < camera->coordinates.left) {
+            fan::vec3 cp = camera->get_camera_position();
+            cp.x = (position.x - size.x) - camera->coordinates.left;
+            camera->set_camera_position(cp);
+          }
+          if (position.y - size.y < camera->coordinates.up) {
+            fan::vec3 cp = camera->get_camera_position();
+            cp.y = (position.y - size.y) - camera->coordinates.up;
+            camera->set_camera_position(cp);
+          }
+          /*
+          else {
+            fan::vec3 cp = 0;
+            camera->set_camera_position(cp);
+          }*/
+
           shape_ptr->set_position_ar(position);
-          shape_ptr->set_size_ar(shape_ptr->get_size() * ratio.y);
+          shape_ptr->set_size_ar(size);
           break;
         }
       }
+
       it = it.Next(&cid_list);
     }
   };
@@ -1797,8 +1823,6 @@ public:
       it = m_update_callback.EndSafeNext();
     }
 
-    loco_update_aspect_ratios_cb();
-
     m_write_queue.process(get_context());
 
     #ifdef loco_window
@@ -1900,8 +1924,9 @@ public:
 
   bool process_loop(const auto& lambda) {
 
-    auto it = get_window()->add_resize_callback([this](const auto& d) {
+    auto it = get_window()->add_resize_callback([this, &lambda](const auto& d) {
       loco_update_aspect_ratios_cb();
+      gloco->process_loop(lambda);
     });
 
     uint32_t window_event = get_window()->handle_events();
@@ -2374,6 +2399,7 @@ public:
   fan_build_get_set_generic_define(fan::vec2, size_ar);
 
   fan_build_get_set_generic_define(loco_t::viewport_t*, viewport);
+  fan_build_get_set_generic_define(loco_t::camera_t*, camera);
 
   fan_build_get_set_define(fan::vec3, position);
   fan_build_get_set_define(fan::vec2, size);
@@ -2384,7 +2410,7 @@ public:
   fan_build_get_set_generic_define(loco_t::textureid_t<0>, image);
 
   fan_build_get_set_generic_define(f32_t, font_size);
-  fan_build_get_set_generic_define(loco_t::camera_list_NodeReference_t, camera);
+  //fan_build_get_set_generic_define(loco_t::camera_list_NodeReference_t, camera);
   //fan_build_get_set_generic_define(fan::graphics::viewport_list_NodeReference_t, viewport);
 
   fan_build_get_set_generic_define(fan::vec2, text_size);

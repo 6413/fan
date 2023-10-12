@@ -28,12 +28,12 @@ struct pile_t {
     );
     loco.get_window()->add_resize_callback([&](const fan::window_t::resize_cb_data_t& d) {
       fan::vec2 window_size = d.size;
-      fan::vec2 ratio = window_size / window_size.max();
-      camera.set_ortho(
-        ortho_x * ratio.x, 
-        ortho_y * ratio.y
-      );
       viewport.set(0, window_size, window_size);
+      camera.set_ortho(
+        ortho_x, 
+        ortho_y,
+        &viewport
+      );
     });
     viewport.open();
     viewport.set(0, loco.get_window()->get_size(), loco.get_window()->get_size());
@@ -67,8 +67,8 @@ int main() {
 
   pile->loco.loop([&] {
     //text0.set_text(fan::random::string(10));
-    text0.set_font_size(sin(x) * 5);
-    x += pile->loco.get_delta_time();
+   // text0.set_font_size(sin(x) * 5);
+   // x += pile->loco.get_delta_time();
     pile->loco.get_fps();
   });
 

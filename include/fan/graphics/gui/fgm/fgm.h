@@ -59,6 +59,8 @@ struct fgm_t {
     std::visit([&](auto&& x) {
       x.create_properties(this);
       }, shape_list[selected_shape_nr]);
+
+    gloco->loco_update_aspect_ratios_cb();
     return 0;
   }
 
@@ -806,7 +808,7 @@ struct fgm_t {
       ep.text = "mark";
       sidepanel_menu.add(ep);
 
-     // gloco->loco_update_aspect_ratios_cb();
+      gloco->loco_update_aspect_ratios_cb();
       return 0;
   };
     settings_menu.add(ep);
@@ -1218,10 +1220,7 @@ struct fgm_t {
       cameras[viewport_area::sidepanel].set_ortho(fan::vec2(-1, 1), fan::vec2(-1, 1), &viewports[viewport_area::sidepanel]);
     }
 
-
-
     create_lines();
-
 
     auto nr = shape_list.GetNodeFirst();
     while (nr != shape_list.dst) {
