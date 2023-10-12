@@ -60,6 +60,7 @@ int main(int argc, char** argv) {
   fgm.open(argv[1]);
   fgm.load();
 
+
   pile.loco.set_vsync(false);
   pile.loco.get_window()->set_max_fps(165);
   //pile->loco.get_window()->set_max_fps(5);

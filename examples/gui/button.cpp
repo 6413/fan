@@ -44,7 +44,6 @@ struct pile_t {
       );
      });
     loco.open_viewport(&viewport, fan::vec2(0, 0), viewport_size);
-    viewport.original_viewport_size = viewport_size;
   }
 
   loco_t loco;
@@ -111,7 +110,7 @@ int main() {
   //b0.set_size(original_size * ratio.min());
 
   pile->loco.loop([&] {
-
+    //pile->loco.get_fps();
   });
 
   return 0;
