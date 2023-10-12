@@ -1187,7 +1187,7 @@ void fan::window_t::initialize_window(const fan::string& name, const fan::vec2i&
   glXQueryVersion(fan::sys::m_display, &major_glx, &minor_glx);
 
   constexpr auto major = 3;
-  constexpr auto minor = 1;
+  constexpr auto minor = 2;
 
   if (minor_glx < minor && major_glx <= major) {
     fan::print("fan window error: too low glx version");

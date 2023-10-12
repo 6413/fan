@@ -63,7 +63,11 @@ struct button_t {
 
 
     // todo remove
-    sb_get_ri(id).text_id = tp;
+    auto& ri = sb_get_ri(id);
+    ri.text_id = tp;
+
+    ri.original_position = p.position;
+    ri.original_size = p.size;
 
     set_theme(id, theme, released);
 
@@ -223,7 +227,6 @@ struct button_t {
   }
   template <typename T, typename T2>
   void set_button(loco_t::cid_nt_t& id, auto T::*member, const T2& value) {
-    
     gloco->button.set(id, member, value);
   }
 
@@ -244,6 +247,18 @@ struct button_t {
     
     auto& ri = get_ri(id);
     ri.text_id.set_position(position + fan::vec3(0, 0, 1));
+    ri.original_position = position;
+    set_button(id, &vi_t::position, position);
+    gloco->vfi.set_rectangle(
+      ri.vfi_id,
+      &loco_t::vfi_t::set_rectangle_t::position,  
+      position
+    );
+  }
+  void set_position_ar(loco_t::cid_nt_t& id, const fan::vec3& position) {
+
+    auto& ri = get_ri(id);
+    ri.text_id.set_position(position + fan::vec3(0, 0, 1));
     set_button(id, &vi_t::position, position);
     gloco->vfi.set_rectangle(
       ri.vfi_id,
@@ -251,9 +266,21 @@ struct button_t {
       position
     );
   }
-  void set_size(loco_t::cid_nt_t& id, const fan::vec3& size) {
+  void set_size(loco_t::cid_nt_t& id, const fan::vec2& size) {
     
     auto& ri = get_ri(id);
+    ri.original_size = size;
+    set_button(id, &vi_t::size, size);
+    gloco->vfi.set_rectangle(
+      ri.vfi_id,
+      &loco_t::vfi_t::set_rectangle_t::size,
+      size
+    );
+    ri.text_id.set_size(size * boundary_multiplier); // pad
+  }
+  void set_size_ar(loco_t::cid_nt_t& id, const fan::vec2& size) {
+    auto& ri = get_ri(id);
+    //ri.original_size = size;
     set_button(id, &vi_t::size, size);
     gloco->vfi.set_rectangle(
       ri.vfi_id,
@@ -348,6 +375,23 @@ struct button_t {
     p.text = gloco->responsive_text.get_text(sb_get_ri(id).text_id);
     p.font_size = 1; // TODO
     return p;
+  }
+
+  fan::vec3 get_position(loco_t::cid_nt_t& id) {
+    auto& ri = get_ri(id);
+    return ri.original_position;
+  }
+
+  fan::vec3 get_position_ar(loco_t::cid_nt_t& id) {
+    return sb_get_vi(id).position;
+  }
+  fan::vec2 get_size_ar(loco_t::cid_nt_t& id) {
+    return sb_get_vi(id).size;
+  }
+
+  fan::vec2 get_size(loco_t::cid_nt_t& id) {
+    auto& ri = get_ri(id);
+    return ri.original_size;
   }
 
   #if defined(loco_vulkan)

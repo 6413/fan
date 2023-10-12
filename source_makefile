@@ -8,7 +8,7 @@ GPP = clang++ -I C:\libs -Dstage_loader_path=. -I include/nvidia
 CFLAGS = -ferror-limit=3 -w -I .  -std=c++2a -I include #-O3 -march=native -mtune=native \
   #-fsanitize=address -fno-omit-frame-pointer
 
-MAIN = examples/graphics/lighting.cpp
+MAIN = examples/graphics/rectangle.cpp
 
 TARGET = a.out
 
@@ -29,7 +29,7 @@ ifeq ($(OS),Windows_NT)
 else
   BASE_PATH += lib/fan/
   FAN_OBJECT_FOLDER += $(BASE_PATH)
-  CFLAGS += -I /usr/local/include -lX11 -lXrandr -L /usr/local/lib -lopus -lGL -lwebp -ldl
+  CFLAGS += -I /usr/local/include -lX11 -lXrandr -L /usr/local/lib -lopus -L/usr/lib/x86_64-linux-gnu/libGL.so.1 -lwebp -ldl
   CFLAGS += -DFAN_INCLUDE_PATH=/usr/include/
 	FAN_LIB += fan
 endif

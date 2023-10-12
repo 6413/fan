@@ -74,6 +74,7 @@ struct dropdown_t {
         p.mouse_move_cb = ep.mouse_move_cb;
         p.keyboard_cb = ep.keyboard_cb;
         *(loco_t::shape_t*)this = p;
+        fan::print("pushed", p.text, (int)((loco_t::shape_t*)this)->NRI);
       }
     }
   };
