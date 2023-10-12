@@ -140,7 +140,11 @@
   loco_t::mouse_button_cb_t mouse_button_cb = [](const loco_t::mouse_button_data_t&) -> int { return 0; }; \
   loco_t::mouse_move_cb_t mouse_move_cb = [](const loco_t::mouse_move_data_t&) -> int { return 0; }; \
   loco_t::keyboard_cb_t keyboard_cb = [](const loco_t::keyboard_data_t&) -> int { return 0; }; \
-  bool blending = false;
+  bool blending = false; \
+  fan::vec3 original_position; \
+  fan::vec2 original_size;
+
+
 #define loco_button_properties_t \
  \
   fan::string text; \
@@ -150,7 +154,7 @@
   bool disable_highlight = false; \
  \
   loco_t::camera_t* camera = 0; \
-  fan::graphics::viewport_t* viewport = 0; 
+  fan::graphics::viewport_t* viewport = 0;
 
 #endif
 
@@ -181,7 +185,9 @@
  \
     loco_t::shape_t text_id; \
     fed_t fed; \
-    bool blending = false;
+    bool blending = false;  \
+    fan::vec3 original_position; \
+    fan::vec2 original_size;
 
 #define loco_text_box_properties_t \
     loco_t::camera_t* camera = 0; \

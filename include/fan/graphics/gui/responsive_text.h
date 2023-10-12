@@ -662,6 +662,13 @@ struct responsive_text_t {
     return instance.position - fan::vec3(instance.size, 0);
   }
 
+  loco_t::viewport_t* get_viewport(loco_t::cid_nt_t& id) {
+    auto internal_id = *(tlist_NodeReference_t*)id.gdp4();
+    auto& instance = tlist[internal_id];
+
+    return instance.viewport;
+  }
+
   // maybe internal variables need copy? such as letterstartnr
   properties_t get_properties(loco_t::cid_nt_t& id) {
     auto internal_id = *(tlist_NodeReference_t*)id.gdp4();

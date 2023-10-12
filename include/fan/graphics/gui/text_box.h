@@ -67,6 +67,9 @@ struct text_box_t {
     sb_push_back(id, p);
     auto& ri = sb_get_ri(id);
 
+    ri.original_position = p.position;
+    ri.original_size = p.size;
+
     ri.text_id = tp;
 
     set_theme(id, theme, released);
@@ -401,6 +404,7 @@ struct text_box_t {
   void set_position(loco_t::cid_nt_t& id, const fan::vec3& position) {
     auto& ri = sb_get_ri(id);
     ri.text_id.set_position(position + fan::vec3(0, 0, 1));
+    ri.original_position = position;
     set_button(id, &vi_t::position, position);
     gloco->vfi.set_rectangle(
       ri.vfi_id,
@@ -408,7 +412,31 @@ struct text_box_t {
       position
     );
   }
+
+  void set_position_ar(loco_t::cid_nt_t& id, const fan::vec3& position) {
+    auto& ri = sb_get_ri(id);
+    ri.text_id.set_position(position + fan::vec3(0, 0, 1));
+    set_button(id, &vi_t::position, position);
+    gloco->vfi.set_rectangle(
+      ri.vfi_id,
+      &loco_t::vfi_t::set_rectangle_t::position,
+      position
+    );
+  }
+
   void set_size(loco_t::cid_nt_t& id, const fan::vec2& size) {
+    auto& ri = sb_get_ri(id);
+    set_button(id, &vi_t::size, size);
+    ri.original_size = size;
+    gloco->vfi.set_rectangle(
+      ri.vfi_id,
+      &loco_t::vfi_t::set_rectangle_t::size,
+      size
+    );
+    ri.text_id.set_size(size * boundary_multiplier); // pad
+  }
+
+  void set_size_ar(loco_t::cid_nt_t& id, const fan::vec2& size) {
     auto& ri = sb_get_ri(id);
     set_button(id, &vi_t::size, size);
     gloco->vfi.set_rectangle(
@@ -582,6 +610,22 @@ struct text_box_t {
     return p;
   }
   
+  fan::vec3 get_position(loco_t::cid_nt_t& id) {
+    auto& ri = sb_get_ri(id);
+    return ri.original_position;
+  }
+
+  fan::vec3 get_position_ar(loco_t::cid_nt_t& id) {
+    return sb_get_vi(id).position;
+  }
+  fan::vec2 get_size_ar(loco_t::cid_nt_t& id) {
+    return sb_get_vi(id).size;
+  }
+
+  fan::vec2 get_size(loco_t::cid_nt_t& id) {
+    auto& ri = sb_get_ri(id);
+    return ri.original_size;
+  }
 
   #if defined(loco_vulkan)
     uint32_t m_camera_index = 0;

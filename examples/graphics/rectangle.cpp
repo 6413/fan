@@ -37,6 +37,8 @@ struct pile_t {
 int main() {
   pile_t* pile = new pile_t;
 
+  pile->loco.get_context()->print_version();
+
   loco_t::rectangle_t::properties_t rectangle_properties;
   rectangle_properties.camera = &pile->camera;
   rectangle_properties.viewport = &pile->viewport;

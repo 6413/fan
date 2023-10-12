@@ -289,6 +289,8 @@ struct loco_t {
 
   std::vector<fan::function_t<void()>> m_draw_queue_light;
 
+  fan::function_t<void()> loco_update_aspect_ratios_cb;
+
   using cid_t = fan::graphics::cid_t;
 
   #define get_key_value(type) \
@@ -555,7 +557,17 @@ public:
       return fan::vec2(std::abs(coordinates.right - coordinates.left), std::abs(coordinates.down - coordinates.up));
     }
 
-    void set_ortho(const fan::vec2& x, const fan::vec2& y) {
+    bool calculate_aspect_ratio = false;
+
+    void set_ortho(fan::vec2 x, fan::vec2 y, loco_t::viewport_t* aspect_ratio_viewport = nullptr) {
+
+      if (aspect_ratio_viewport) {
+        fan::vec2 ratio = aspect_ratio_viewport->get_size() / fan::vec2(gloco->get_window()->get_size()).max();
+        x *= ratio.x;
+        y *= ratio.y;
+        calculate_aspect_ratio = true;
+      }
+
       m_projection = fan::math::ortho<fan::mat4>(
         x.x,
         x.y,
@@ -770,7 +782,7 @@ protected:
   #define BLL_set_prefix cid_list
   #define BLL_set_type_node uint32_t
   #define BLL_set_NodeData fan::graphics::cid_t cid;
-  #define BLL_set_Link 0
+  #define BLL_set_Link 1
   #include _FAN_PATH(BLL/BLL.h)
 public:
 
@@ -780,7 +792,7 @@ public:
     }
     using base_t = cid_list_NodeReference_t;
     void init() {
-      *(base_t*)this = gloco->cid_list.NewNode();
+      *(base_t*)this = gloco->cid_list.NewNodeLast();
     }
 
     bool is_invalid() const {
@@ -795,7 +807,7 @@ public:
       if (is_invalid()) {
         return;
       }
-      gloco->cid_list.Recycle(*this);
+      gloco->cid_list.unlrec(*this);
       *(base_t*)this = gloco->cid_list.gnric();
     }
 
@@ -1126,15 +1138,19 @@ public:
       gloco->push_shape(*this, properties);
     }
 
-    inline shape_t(const shape_t& id) : inherit_t(id) {
+    inline shape_t(const shape_t& id) : 
+      inherit_t(id)
+    {
       if (id.is_invalid()) {
         return;
       }
-      gloco->shape_get_properties(*(shape_t*)&id, [&](const auto& properties) {
+      gloco->shape_get_properties(*(shape_t*)&id, [&]<typename T>(const T& properties) {
         gloco->push_shape(*this, properties);
       });
     }
-    inline shape_t(shape_t&& id) : inherit_t(std::move(id)) {
+    inline shape_t(shape_t&& id) : 
+      inherit_t(std::move(id))
+    {
 
     }
     
@@ -1146,7 +1162,7 @@ public:
         return *this;
       }
       if (this != &id) {
-        gloco->shape_get_properties(*(shape_t*)&id, [&](const auto& properties) {
+        gloco->shape_get_properties(*(shape_t*)&id, [&]<typename T>(const T& properties) {
           init();
           gloco->push_shape(*this, properties);
         });
@@ -1203,6 +1219,12 @@ public:
     fan_create_set_define_custom(fan::vec2, position,
       gloco->shape_set_position(*this, fan::vec3(data, get_position().z));
     );
+
+    fan_create_get_set_define(fan::vec3, position_ar);
+    fan_create_get_set_define(fan::vec2, size_ar);
+
+    fan_create_get_set_define(loco_t::viewport_t*, viewport);
+
     fan_create_get_set_define(fan::vec2, size);
     fan_create_get_set_define(fan::color, color);
     fan_create_get_set_define(f32_t, angle);
@@ -1527,41 +1549,63 @@ public:
       rp.size = ii.size;
       rp.internalformat = fan::opengl::GL_DEPTH_COMPONENT;
       m_rbo.set_storage(get_context(), rp);
-      });
+    });
 
-    fan::opengl::core::renderbuffer_t::properties_t rp;
-    m_framebuffer.bind(get_context());
-    rp.size = ii.size;
-    rp.internalformat = fan::opengl::GL_DEPTH_COMPONENT;
-    m_rbo.open(get_context());
-    m_rbo.set_storage(get_context(), rp);
-    rp.internalformat = fan::opengl::GL_DEPTH_ATTACHMENT;
-    m_rbo.bind_to_renderbuffer(get_context(), rp);
+  fan::opengl::core::renderbuffer_t::properties_t rp;
+  m_framebuffer.bind(get_context());
+  rp.size = ii.size;
+  rp.internalformat = fan::opengl::GL_DEPTH_COMPONENT;
+  m_rbo.open(get_context());
+  m_rbo.set_storage(get_context(), rp);
+  rp.internalformat = fan::opengl::GL_DEPTH_ATTACHMENT;
+  m_rbo.bind_to_renderbuffer(get_context(), rp);
 
-    unsigned int attachments[sizeof(color_buffers) / sizeof(color_buffers[0])];
+  unsigned int attachments[sizeof(color_buffers) / sizeof(color_buffers[0])];
 
-    for (uint8_t i = 0; i < std::size(color_buffers); ++i) {
-      attachments[i] = fan::opengl::GL_COLOR_ATTACHMENT0 + i;
+  for (uint8_t i = 0; i < std::size(color_buffers); ++i) {
+    attachments[i] = fan::opengl::GL_COLOR_ATTACHMENT0 + i;
+  }
+
+  get_context()->opengl.call(get_context()->opengl.glDrawBuffers, std::size(attachments), attachments);
+  // finally check if framebuffer is complete
+  if (!m_framebuffer.ready(get_context())) {
+    fan::throw_error("framebuffer not ready");
+  }
+
+  m_framebuffer.unbind(get_context());
+
+  m_fbo_final_shader.open(get_context());
+  m_fbo_final_shader.set_vertex(
+    get_context(),
+    #include _FAN_PATH(graphics/glsl/opengl/2D/effects/loco_fbo.vs)
+  );
+  m_fbo_final_shader.set_fragment(
+    get_context(),
+    #include _FAN_PATH(graphics/glsl/opengl/2D/effects/loco_fbo.fs)
+  );
+  m_fbo_final_shader.compile(get_context());
+
+
+  loco_update_aspect_ratios_cb = [this] {
+    auto it = cid_list.GetNodeFirst();
+    while (it != cid_list.dst) {
+      auto* shape_ptr = (loco_t::shape_t*)&it;
+
+      switch ((*((loco_t::cid_nt_t*)shape_ptr))->shape_type) {
+        case loco_t::shape_type_t::button:
+        case loco_t::shape_type_t::text_box: {
+          fan::vec2 ratio = shape_ptr->get_viewport()->get_size() / fan::vec2(gloco->get_window()->get_size()).max();
+          fan::vec3 position = shape_ptr->get_position();
+          *(fan::vec2*)&position *= ratio.y;
+          shape_ptr->set_position_ar(position);
+          shape_ptr->set_size_ar(shape_ptr->get_size() * ratio.y);
+          break;
+        }
+      }
+      it = it.Next(&cid_list);
     }
+  };
 
-    get_context()->opengl.call(get_context()->opengl.glDrawBuffers, std::size(attachments), attachments);
-    // finally check if framebuffer is complete
-    if (!m_framebuffer.ready(get_context())) {
-      fan::throw_error("framebuffer not ready");
-    }
-
-    m_framebuffer.unbind(get_context());
-
-    m_fbo_final_shader.open(get_context());
-    m_fbo_final_shader.set_vertex(
-      get_context(),
-      #include _FAN_PATH(graphics/glsl/opengl/2D/effects/loco_fbo.vs)
-    );
-    m_fbo_final_shader.set_fragment(
-      get_context(),
-      #include _FAN_PATH(graphics/glsl/opengl/2D/effects/loco_fbo.fs)
-    );
-    m_fbo_final_shader.compile(get_context());
     #endif
     #endif
 
@@ -1753,6 +1797,8 @@ public:
       it = m_update_callback.EndSafeNext();
     }
 
+    loco_update_aspect_ratios_cb();
+
     m_write_queue.process(get_context());
 
     #ifdef loco_window
@@ -1853,11 +1899,18 @@ public:
   #endif
 
   bool process_loop(const auto& lambda) {
+
+    auto it = get_window()->add_resize_callback([this](const auto& d) {
+      loco_update_aspect_ratios_cb();
+    });
+
     uint32_t window_event = get_window()->handle_events();
     if (window_event & fan::window_t::events::close) {
       get_window()->destroy_window();
       return 1;
     }
+
+    get_window()->remove_resize_callback(it);
 
     lambda();
 
@@ -2317,6 +2370,11 @@ public:
     fan_build_get_define(rt, name); \
     fan_build_set_define(rt, name);
 
+  fan_build_get_set_generic_define(fan::vec3, position_ar);
+  fan_build_get_set_generic_define(fan::vec2, size_ar);
+
+  fan_build_get_set_generic_define(loco_t::viewport_t*, viewport);
+
   fan_build_get_set_define(fan::vec3, position);
   fan_build_get_set_define(fan::vec2, size);
   fan_build_get_set_define(fan::color, color);
@@ -2327,7 +2385,7 @@ public:
 
   fan_build_get_set_generic_define(f32_t, font_size);
   fan_build_get_set_generic_define(loco_t::camera_list_NodeReference_t, camera);
-  fan_build_get_set_generic_define(fan::graphics::viewport_list_NodeReference_t, viewport);
+  //fan_build_get_set_generic_define(fan::graphics::viewport_list_NodeReference_t, viewport);
 
   fan_build_get_set_generic_define(fan::vec2, text_size);
   fan_build_set_generic_dataless_define(focus);

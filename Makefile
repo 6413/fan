@@ -1,5 +1,5 @@
 #release
-GPP = clang++
+GPP = clang++ -static
 #debug for address sanitizer
 #GPP = clang-cl /std:c++latest -v -g -fsanitize=address -fsanitize=address /MD "C:\Program Files\LLVM\lib\clang\14.0.0\lib\windows\clang_rt.asan_cxx-x86_64.lib"
 

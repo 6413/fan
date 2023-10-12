@@ -15,6 +15,7 @@
 #define loco_window
 #define loco_context
 
+#define loco_line
 #define loco_dropdown
 #include _FAN_PATH(graphics/loco.h)
 
