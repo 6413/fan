@@ -688,6 +688,8 @@ struct responsive_text_t {
     return p;
   }
 
+
+
   //bool does_letter_fit(uint32_t wc, bool force = false) {
   //  f32_t scaler = get_scaler();
   //  fan::vec2 size = get_size() * 2;
@@ -770,9 +772,10 @@ struct responsive_text_t {
 
     reinit_letter_positions(instance_id);
   }
-  //fan::vec2 get_size() const {
-  //  return m_size;
-  //}
+  fan::vec2 get_size(loco_t::cid_nt_t& id) {
+    auto instance_id = *(tlist_NodeReference_t*)id.gdp4();
+    return tlist[instance_id].size;
+  }
   //void set_size(const fan::vec2& size) {
   //  m_size = size;
   //  calculate_font_size();

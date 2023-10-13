@@ -50,7 +50,7 @@ int main() {
 
   loco_t::text_t::properties_t p;
 
-  p.position = 0;
+  p.position = fan::vec2(-0.7, 0);
 
   p.camera = &pile->camera;
   p.viewport = &pile->viewport;
