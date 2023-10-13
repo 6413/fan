@@ -235,4 +235,10 @@ struct text_renderer_t {
     auto internal_id = *(tlist_NodeReference_t *)id.gdp4();
     return tlist[internal_id].p;
   }
+
+  fan::vec2 get_size(loco_t::cid_nt_t& id) {
+    return gloco->text.get_text_size(id) / 2;
+  }
+  
+
 };

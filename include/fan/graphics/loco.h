@@ -1550,7 +1550,15 @@ public:
       rp.size = ii.size;
       rp.internalformat = fan::opengl::GL_DEPTH_COMPONENT;
       m_rbo.set_storage(get_context(), rp);
-    });
+
+
+      default_viewport.set(fan::vec2(0, 0), d.size, d.size);
+      default_camera.set_ortho(
+        fan::vec2(-1, 1),
+        fan::vec2(-1, 1),
+        &default_viewport
+      );
+  });
 
   fan::opengl::core::renderbuffer_t::properties_t rp;
   m_framebuffer.bind(get_context());
@@ -1599,10 +1607,11 @@ public:
           fan::vec2 ratio = shape_ptr->get_viewport()->get_size() / fan::vec2(gloco->get_window()->get_size()).max();
 
           fan::vec3 position = shape_ptr->get_position();
+          
           fan::vec2 size = shape_ptr->get_size() * ratio.y;
 
           *(fan::vec2*)&position *= ratio.y;
-
+          
           auto* camera = shape_ptr->get_camera();
 
           // can be bad
@@ -1624,6 +1633,25 @@ public:
 
           shape_ptr->set_position_ar(position);
           shape_ptr->set_size_ar(size);
+          break;
+        }
+        // should be optional to viewport
+        case loco_t::shape_type_t::responsive_text:
+        case loco_t::shape_type_t::text: {
+
+          fan::vec3 position = shape_ptr->get_position();
+          fan::vec2 size = shape_ptr->get_size();
+          auto* camera = shape_ptr->get_camera();
+          if (position.x - size.x < camera->coordinates.left) {
+            fan::vec3 cp = camera->get_camera_position();
+            cp.x = (position.x - size.x) - camera->coordinates.left;
+            camera->set_camera_position(cp);
+          }
+          if (position.y - size.y < camera->coordinates.up) {
+            fan::vec3 cp = camera->get_camera_position();
+            cp.y = (position.y - size.y) - camera->coordinates.up;
+            camera->set_camera_position(cp);
+          }
           break;
         }
       }
@@ -1752,6 +1780,13 @@ public:
           }, std::tuple<loco_t_id_t_types>{ loco_t_id_t_ptrs });
         #endif
         #endif
+
+    fan::vec2 window_size = get_window()->get_size();
+    open_viewport(&default_viewport, fan::vec2(0, 0), window_size);
+    open_camera(&default_camera,
+      fan::vec2(-1, 1),
+      fan::vec2(-1, 1)
+    );
   }
 
   #if defined(loco_vfi)
@@ -2475,6 +2510,58 @@ public:
       std::abs(camera.coordinates.down) + std::abs(camera.coordinates.up)
     );
   }
+
+  loco_t::theme_t theme_deep_red = loco_t::themes::deep_red();
+  loco_t::camera_t default_camera;
+  loco_t::viewport_t default_viewport;
+
+
+  struct text_properties_t {
+    loco_t::camera_t* camera = &gloco->default_camera;
+    loco_t::viewport_t* viewport = &gloco->default_viewport;
+    std::string text = "";
+    fan::vec3 position = fan::vec3(fan::math::inf, -0.9, 0);
+  };
+
+  struct simple_text_t : loco_t::shape_t {
+    simple_text_t(text_properties_t p = text_properties_t()) {
+      *(loco_t::shape_t*)this = loco_t::shape_t(
+        fan_init_struct(
+          loco_t::responsive_text_t::properties_t,
+          .camera = p.camera,
+          .viewport = p.viewport,
+          .position = p.position.x == fan::math::inf ? fan::vec3(-1 + 0.025 * p.text.size(), -0.9, 0) : p.position,
+          .text = p.text,
+          .line_limit = 1,
+          .letter_size_y_multipler = 1,
+          .size = fan::vec2(0.025 * p.text.size(), 0.1)
+        ));
+    }
+  };
+
+  struct button_properties_t {
+    loco_t::theme_t* theme = &gloco->theme_deep_red;
+    loco_t::camera_t* camera = &gloco->default_camera;
+    loco_t::viewport_t* viewport = &gloco->default_viewport;
+    fan::vec3 position = fan::vec3(0, 0, 0);
+    fan::vec2 size = fan::vec2(0.1, 0.1);
+    std::string text = "button";
+    loco_t::mouse_button_cb_t mouse_button_cb = [](const loco_t::mouse_button_data_t&) -> int { return 0; };
+  };
+
+  struct simple_button_t : loco_t::shape_t {
+    simple_button_t(button_properties_t p = button_properties_t()) : loco_t::shape_t(
+      fan_init_struct(
+        loco_t::button_t::properties_t,
+        .theme = p.theme,
+        .camera = p.camera,
+        .viewport = p.viewport,
+        .position = p.position,
+        .size = p.size,
+        .text = p.text,
+        .mouse_button_cb = p.mouse_button_cb
+      )) {}
+  };
 
   #undef make_global_function
   #undef fan_build_get
