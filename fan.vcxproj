@@ -265,7 +265,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />
-    <None Include="helloworld.js" />
     <None Include="include\fan\graphics\glsl\opengl\2D\effects\frame_capture.fs" />
     <None Include="include\fan\graphics\glsl\opengl\2D\effects\loco_fbo.fs" />
     <None Include="include\fan\graphics\glsl\opengl\2D\effects\loco_fbo.vs" />

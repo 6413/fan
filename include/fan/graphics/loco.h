@@ -289,8 +289,6 @@ struct loco_t {
 
   std::vector<fan::function_t<void()>> m_draw_queue_light;
 
-  fan::function_t<void()> loco_update_aspect_ratios_cb;
-
   using cid_t = fan::graphics::cid_t;
 
   #define get_key_value(type) \
@@ -559,12 +557,58 @@ public:
 
     bool calculate_aspect_ratio = false;
 
+    fan::vec2 some_function(fan::vec2 d, fan::vec2 c) {
+      return c / (c / d).min();
+    }
+
     void set_ortho(fan::vec2 x, fan::vec2 y, loco_t::viewport_t* aspect_ratio_viewport = nullptr) {
 
       if (aspect_ratio_viewport) {
-        fan::vec2 ratio = aspect_ratio_viewport->get_size() / fan::vec2(gloco->get_window()->get_size()).max();
-        x *= ratio.x;
-        y *= ratio.y;
+        //fan::vec2 ratio = aspect_ratio_viewport->get_size().square_normalize();
+        //fan::vec2 desired_ratio(1, 1);
+        //fan::print(ratio);
+        //// Calculate the orthographic projection matrix
+        //fan::vec2 ortho = desired_ratio * ratio;
+        //ortho *= fan::vec2(9.f / 16.f, 1) / ortho.min();
+
+        //fan::vec2 ws = aspect_ratio_viewport->get_size();
+        //f32_t windowWidth = ws.x;
+        //f32_t windowHeight = ws.y;
+
+        //float aspectRatio = windowWidth / windowHeight;
+
+        //// Define the desired aspect ratio (16:9)
+        //float desiredAspectRatio = 16.0f / 9.0f;
+
+        //// Calculate the scaling factors
+        //float xScale = 1.0f;
+        //float yScale = 1.0f;
+
+        //if (aspectRatio > desiredAspectRatio) {
+        //  // The window is wider than 16:9
+        //  xScale = aspectRatio / desiredAspectRatio;
+        //}
+        //else {
+        //  // The window is taller than 16:9
+        //  yScale = desiredAspectRatio / aspectRatio;
+        //}
+
+
+        //x = { -8.0f * xScale, 8.0f * xScale };
+        //y = { -4.5f * yScale, 4.5f * yScale };
+
+        //x /= 4.5f;
+        //y /= 4.5f;
+
+        fan::vec2 desired_res = { 1, 1 };
+        fan::vec2 current_res = aspect_ratio_viewport->get_size();
+
+        auto ortho = some_function(desired_res, current_res);
+        fan::print(ortho);
+
+        x = { -ortho.x, +ortho.x };
+        y = { -ortho.y, +ortho.y };
+
         calculate_aspect_ratio = true;
       }
 
@@ -1551,8 +1595,13 @@ public:
       rp.internalformat = fan::opengl::GL_DEPTH_COMPONENT;
       m_rbo.set_storage(get_context(), rp);
 
+      fan::vec2 window_size = gloco->get_window()->get_size();
 
       default_viewport.set(fan::vec2(0, 0), d.size, d.size);
+
+      fan::vec2 ratio = window_size.square_normalize();
+      //fan::vec2 ortho = fan::vec2(1, 1) * ratio;
+      //ortho *= 1.f / ortho.min();
       default_camera.set_ortho(
         fan::vec2(-1, 1),
         fan::vec2(-1, 1),
@@ -1595,70 +1644,70 @@ public:
   m_fbo_final_shader.compile(get_context());
 
 
-  loco_update_aspect_ratios_cb = [this] {
-    auto it = cid_list.GetNodeFirst();
-    while (it != cid_list.dst) {
-      auto* shape_ptr = (loco_t::shape_t*)&it;
+  //loco_update_aspect_ratios_cb = [this] {
+  //  auto it = cid_list.GetNodeFirst();
+  //  while (it != cid_list.dst) {
+  //    auto* shape_ptr = (loco_t::shape_t*)&it;
 
-      switch ((*((loco_t::cid_nt_t*)shape_ptr))->shape_type) {
-        case loco_t::shape_type_t::button:
-        case loco_t::shape_type_t::text_box: {
-          
-          fan::vec2 ratio = shape_ptr->get_viewport()->get_size() / fan::vec2(gloco->get_window()->get_size()).max();
+  //    switch ((*((loco_t::cid_nt_t*)shape_ptr))->shape_type) {
+  //      case loco_t::shape_type_t::button:
+  //      case loco_t::shape_type_t::text_box: {
+  //        
+  //        //fan::vec2 ratio = shape_ptr->get_viewport()->get_size() / fan::vec2(gloco->get_window()->get_size()).max();
 
-          fan::vec3 position = shape_ptr->get_position();
-          
-          fan::vec2 size = shape_ptr->get_size() * ratio.y;
+  //        //fan::vec3 position = shape_ptr->get_position();
+  //        //
+  //        //fan::vec2 size = shape_ptr->get_size() * ratio.y;
 
-          *(fan::vec2*)&position *= ratio.y;
-          
-          auto* camera = shape_ptr->get_camera();
+  //        //*(fan::vec2*)&position *= ratio.y;
+  //        //
+  //        //auto* camera = shape_ptr->get_camera();
 
-          // can be bad
-          if (position.x - size.x < camera->coordinates.left) {
-            fan::vec3 cp = camera->get_camera_position();
-            cp.x = (position.x - size.x) - camera->coordinates.left;
-            camera->set_camera_position(cp);
-          }
-          if (position.y - size.y < camera->coordinates.up) {
-            fan::vec3 cp = camera->get_camera_position();
-            cp.y = (position.y - size.y) - camera->coordinates.up;
-            camera->set_camera_position(cp);
-          }
-          /*
-          else {
-            fan::vec3 cp = 0;
-            camera->set_camera_position(cp);
-          }*/
+  //        //// can be bad
+  //        //if (position.x - size.x < camera->coordinates.left) {
+  //        //  fan::vec3 cp = camera->get_camera_position();
+  //        //  cp.x = (position.x - size.x) - camera->coordinates.left;
+  //        //  camera->set_camera_position(cp);
+  //        //}
+  //        //if (position.y - size.y < camera->coordinates.up) {
+  //        //  fan::vec3 cp = camera->get_camera_position();
+  //        //  cp.y = (position.y - size.y) - camera->coordinates.up;
+  //        //  camera->set_camera_position(cp);
+  //        //}
+  //        /*
+  //        else {
+  //          fan::vec3 cp = 0;
+  //          camera->set_camera_position(cp);
+  //        }*/
 
-          shape_ptr->set_position_ar(position);
-          shape_ptr->set_size_ar(size);
-          break;
-        }
-        // should be optional to viewport
-        case loco_t::shape_type_t::responsive_text:
-        case loco_t::shape_type_t::text: {
+  //        //shape_ptr->set_position_ar(position);
+  //        //shape_ptr->set_size_ar(size);
+  //        break;
+  //      }
+  //      // should be optional to viewport
+  //      case loco_t::shape_type_t::responsive_text:
+  //      case loco_t::shape_type_t::text: {
 
-          fan::vec3 position = shape_ptr->get_position();
-          fan::vec2 size = shape_ptr->get_size();
-          auto* camera = shape_ptr->get_camera();
-          if (position.x - size.x < camera->coordinates.left) {
-            fan::vec3 cp = camera->get_camera_position();
-            cp.x = (position.x - size.x) - camera->coordinates.left;
-            camera->set_camera_position(cp);
-          }
-          if (position.y - size.y < camera->coordinates.up) {
-            fan::vec3 cp = camera->get_camera_position();
-            cp.y = (position.y - size.y) - camera->coordinates.up;
-            camera->set_camera_position(cp);
-          }
-          break;
-        }
-      }
+  //        fan::vec3 position = shape_ptr->get_position();
+  //        fan::vec2 size = shape_ptr->get_size();
+  //        auto* camera = shape_ptr->get_camera();
+  //       /* if (position.x - size.x < camera->coordinates.left) {
+  //          fan::vec3 cp = camera->get_camera_position();
+  //          cp.x = (position.x - size.x) - camera->coordinates.left;
+  //          camera->set_camera_position(cp);
+  //        }
+  //        if (position.y - size.y < camera->coordinates.up) {
+  //          fan::vec3 cp = camera->get_camera_position();
+  //          cp.y = (position.y - size.y) - camera->coordinates.up;
+  //          camera->set_camera_position(cp);
+  //        }*/
+  //        break;
+  //      }
+  //    }
 
-      it = it.Next(&cid_list);
-    }
-  };
+  //    it = it.Next(&cid_list);
+  //  }
+  //};
 
     #endif
     #endif
@@ -1960,7 +2009,6 @@ public:
   bool process_loop(const auto& lambda) {
 
     auto it = get_window()->add_resize_callback([this, &lambda](const auto& d) {
-      loco_update_aspect_ratios_cb();
       gloco->process_loop(lambda);
     });
 
@@ -2515,6 +2563,145 @@ public:
   loco_t::camera_t default_camera;
   loco_t::viewport_t default_viewport;
 
+  struct viewport_divider_t {
+
+  protected:
+    #define BLL_set_CPP_ConstructDestruct
+    #define BLL_set_CPP_Node_ConstructDestruct
+    #define BLL_set_AreWeInsideStruct 1
+    #define BLL_set_BaseLibrary 1
+    #define BLL_set_prefix viewport_list
+    #define BLL_set_type_node uint32_t
+    #define BLL_set_NodeData \
+    fan::vec2 position; \
+    fan::vec2 size; \
+    uint32_t grid_index;
+    #define BLL_set_Link 1
+    #include _FAN_PATH(BLL/BLL.h)
+
+  public:
+    viewport_list_t viewport_list;
+
+    using viewport_nr_t = viewport_list_NodeReference_t;
+    using viewport_data_t = viewport_list_NodeData_t;
+
+    fan::vec2 window_size;
+
+    viewport_divider_t(const fan::vec2& window_size_) :
+      window_size(window_size_)
+    {
+
+    }
+
+    enum class division_mode {
+      left,
+      right,
+      up,
+      down
+    };
+
+    division_mode division_direction = division_mode::right;
+
+    viewport_nr_t add() {
+      auto nr = viewport_list.NewNodeLast();
+      // move and divide viewports to left by width
+      f32_t count = viewport_list.Usage();
+        
+      f32_t size_x = window_size.x / count / 2 / window_size.x;
+      f32_t size_y = window_size.y / 2 / window_size.y;
+
+      {
+        auto& current_viewport = viewport_list[nr];
+        switch (division_direction) {
+          case division_mode::left: {
+            current_viewport.grid_index = 0;
+            break;
+          }
+          case division_mode::right: {
+            current_viewport.grid_index = count - 1;
+            break;
+          }
+        }
+      }
+      auto it = viewport_list.GetNodeFirst();
+      while (it != viewport_list.dst) {
+        auto& current_viewport = viewport_list[it];
+        current_viewport.position.x = size_x * (2 * current_viewport.grid_index + 1);
+        current_viewport.position.y = size_y;
+        current_viewport.size = fan::vec2(size_x, size_y);
+        if (division_direction == division_mode::left) {
+          current_viewport.grid_index++;
+        }
+        it = it.Next(&viewport_list);
+      }
+      return nr;
+    }
+
+
+    viewport_data_t get(viewport_nr_t nr) {
+      return viewport_list[nr];
+    }
+
+    //int add_to(int id, Side side) {
+    //  viewports.push_back(viewport_t());
+    //  int new_id = viewports.size() - 1;
+
+    //  // Calculate the size and position of the new viewport
+    //  if (side == RIGHTSIDE) {
+    //    viewports[new_id].size.x = viewports[id].size.x / 2;
+    //    viewports[new_id].size.y = viewports[id].size.y;
+    //    viewports[new_id].position.x = viewports[id].position.x + viewports[id].size.x / 2;
+    //    viewports[new_id].position.y = viewports[id].position.y;
+    //  }
+    //  else if (side == DOWNSIDE) {
+    //    viewports[new_id].size.x = viewports[id].size.x;
+    //    viewports[new_id].size.y = viewports[id].size.y / 2;
+    //    viewports[new_id].position.x = viewports[id].position.x;
+    //    viewports[new_id].position.y = viewports[id].position.y + viewports[id].size.y / 2;
+    //  }
+
+    //  // Update the size of the existing viewport
+    //  viewports[id].size = viewports[new_id].size;
+
+    //  return new_id;
+    //}
+
+    //void resize(int id, Side side, float ratio) {
+    //  // Resize the specified viewport according to the ratio
+    //  if (side == TORIGHT) {
+    //    viewports[id].size.x *= ratio;
+    //  }
+    //  else if (side == DOWNSIDE) {
+    //    viewports[id].size.y *= ratio;
+    //  }
+    //}
+
+    //std::vector<viewport_t> viewports;
+  };
+
+  struct rectangle_properties_t {
+    loco_t::camera_t* camera = &gloco->default_camera;
+    loco_t::viewport_t* viewport = &gloco->default_viewport;
+    fan::vec3 position = fan::vec3(0, 0, 0);
+    fan::vec2 size = fan::vec2(0.1, 0.1);
+    fan::color color = fan::color(1, 1, 1, 1);
+    bool blending = false;
+  };
+
+  struct simple_rectangle_t : loco_t::shape_t {
+    simple_rectangle_t(rectangle_properties_t p = rectangle_properties_t()) {
+      *(loco_t::shape_t*)this = loco_t::shape_t(
+        fan_init_struct(
+          loco_t::rectangle_t::properties_t,
+          .camera = p.camera,
+          .viewport = p.viewport,
+          .position = p.position,
+          .size = p.size,
+          .color = p.color,
+          .blending = p.blending
+        ));
+    }
+  };
 
   struct text_properties_t {
     loco_t::camera_t* camera = &gloco->default_camera;

@@ -60,7 +60,6 @@ struct fgm_t {
       x.create_properties(this);
       }, shape_list[selected_shape_nr]);
 
-    gloco->loco_update_aspect_ratios_cb();
     return 0;
   }
 
@@ -81,7 +80,6 @@ struct fgm_t {
       vfip.shape_type = loco_t::vfi_t::shape_t::rectangle;
       vfip.shape.rectangle->viewport = &fgm->viewports[viewport_area::editor];
       vfip.shape.rectangle->camera = &fgm->cameras[viewport_area::editor];
-      fan::vec2 ratio = fgm->viewports[viewport_area::editor].get_size() / fan::vec2(gloco->get_window()->get_size()).max();
 
       /*
         
@@ -94,8 +92,6 @@ struct fgm_t {
       */
 
       vfip.shape.rectangle->position = position;
-      *(fan::vec2*)&vfip.shape.rectangle->position *= ratio.y;
-      vfip.shape.rectangle->size = size * ratio.y;
       vfip.mouse_button_cb = [fgm, snr = shape->nr](const auto& d) -> int {
         if (fgm->editor_mode != fgm_t::editor_modes_e::mod) {
           return 0;
@@ -121,12 +117,11 @@ struct fgm_t {
 
         switch (fgm->shape_mode) {
           case fgm_t::shape_mode_e::move: {
-            fan::vec2 p = d.position;
+            fan::vec2 p = d.position;/*
             fan::vec2 ratio = gloco->get_context()->viewport_list[gloco->vfi.shape_list[gloco->vfi.focus.mouse].shape_data.shape.rectangle->viewport].viewport_id->get_size() / fan::vec2(gloco->get_window()->get_size()).max();
-            p /= ratio.y;
+            p /= ratio.y;*/
             auto* s = &std::get<std::remove_pointer_t<decltype(shape)>>(fgm->shape_list[snr]);
-            s->set_position(p);
-            gloco->loco_update_aspect_ratios_cb();
+            s->set_position(d.position);
             gloco->vfi.shape_list[gloco->vfi.focus.mouse].shape_data.shape.rectangle->position = 
               gloco->button.get_position_ar(*s);
             gloco->vfi.shape_list[gloco->vfi.focus.mouse].shape_data.shape.rectangle->size =
@@ -739,7 +734,7 @@ struct fgm_t {
 
     loco_t::dropdown_t::open_properties_t op;
     op.gui_size = gui_size;
-    op.position = fan::vec2(-0.25 + op.gui_size.x, -0.7);
+    op.position = fan::vec2(-0.9, -0.9) + op.gui_size;
 
     op.camera = &cameras[viewport_area::sidepanel];
     op.viewport = &viewports[viewport_area::sidepanel];
@@ -807,8 +802,6 @@ struct fgm_t {
         };
       ep.text = "mark";
       sidepanel_menu.add(ep);
-
-      gloco->loco_update_aspect_ratios_cb();
       return 0;
   };
     settings_menu.add(ep);
@@ -917,19 +910,13 @@ struct fgm_t {
               break;
             }
           }
-          fan::vec2 ratio = viewports[viewport_area::editor].get_size() / fan::vec2(gloco->get_window()->get_size()).max();
+          /*fan::vec2 ratio = viewports[viewport_area::editor].get_size() / fan::vec2(gloco->get_window()->get_size()).max();*/
           std::visit([&](auto&& x) {
-            x.create_shape(this, nr, gloco->get_mouse_position(cameras[viewport_area::editor], viewports[viewport_area::editor]) / ratio);
+            x.create_shape(this, nr, gloco->get_mouse_position(cameras[viewport_area::editor], viewports[viewport_area::editor])/* / ratio*/);
+            x.set_hitbox_position(x.get_position());
+            x.set_hitbox_size(x.get_size());
             }, shape_list[nr]);
           selected_shape_nr = nr;
-          gloco->loco_update_aspect_ratios_cb();
-          std::visit([&](auto&& x) {
-            fan::vec3 p = x.get_position();
-            *(fan::vec2*)&p *= ratio.y;
-            p.z++;
-            x.set_hitbox_position(p);
-            x.set_hitbox_size(x.get_size() * ratio.y);
-          }, shape_list[nr]);
           break;
         };
         case editor_modes_e::mod: {
