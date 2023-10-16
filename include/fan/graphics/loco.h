@@ -41,6 +41,8 @@ struct loco_t;
 #include _FAN_PATH(io/directory.h)
 #include _FAN_PATH(event/event.h)
 
+#include _FAN_PATH(trees/quad_tree.h)
+
 #include <variant>
 
 #if defined(loco_cuda)
@@ -2562,122 +2564,6 @@ public:
   loco_t::theme_t theme_deep_red = loco_t::themes::deep_red();
   loco_t::camera_t default_camera;
   loco_t::viewport_t default_viewport;
-
-  struct viewport_divider_t {
-
-  protected:
-    #define BLL_set_CPP_ConstructDestruct
-    #define BLL_set_CPP_Node_ConstructDestruct
-    #define BLL_set_AreWeInsideStruct 1
-    #define BLL_set_BaseLibrary 1
-    #define BLL_set_prefix viewport_list
-    #define BLL_set_type_node uint32_t
-    #define BLL_set_NodeData \
-    fan::vec2 position; \
-    fan::vec2 size; \
-    uint32_t grid_index;
-    #define BLL_set_Link 1
-    #include _FAN_PATH(BLL/BLL.h)
-
-  public:
-    viewport_list_t viewport_list;
-
-    using viewport_nr_t = viewport_list_NodeReference_t;
-    using viewport_data_t = viewport_list_NodeData_t;
-
-    fan::vec2 window_size;
-
-    viewport_divider_t(const fan::vec2& window_size_) :
-      window_size(window_size_)
-    {
-
-    }
-
-    enum class division_mode {
-      left,
-      right,
-      up,
-      down
-    };
-
-    division_mode division_direction = division_mode::right;
-
-    viewport_nr_t add() {
-      auto nr = viewport_list.NewNodeLast();
-      // move and divide viewports to left by width
-      f32_t count = viewport_list.Usage();
-        
-      f32_t size_x = window_size.x / count / 2 / window_size.x;
-      f32_t size_y = window_size.y / 2 / window_size.y;
-
-      {
-        auto& current_viewport = viewport_list[nr];
-        switch (division_direction) {
-          case division_mode::left: {
-            current_viewport.grid_index = 0;
-            break;
-          }
-          case division_mode::right: {
-            current_viewport.grid_index = count - 1;
-            break;
-          }
-        }
-      }
-      auto it = viewport_list.GetNodeFirst();
-      while (it != viewport_list.dst) {
-        auto& current_viewport = viewport_list[it];
-        current_viewport.position.x = size_x * (2 * current_viewport.grid_index + 1);
-        current_viewport.position.y = size_y;
-        current_viewport.size = fan::vec2(size_x, size_y);
-        if (division_direction == division_mode::left) {
-          current_viewport.grid_index++;
-        }
-        it = it.Next(&viewport_list);
-      }
-      return nr;
-    }
-
-
-    viewport_data_t get(viewport_nr_t nr) {
-      return viewport_list[nr];
-    }
-
-    //int add_to(int id, Side side) {
-    //  viewports.push_back(viewport_t());
-    //  int new_id = viewports.size() - 1;
-
-    //  // Calculate the size and position of the new viewport
-    //  if (side == RIGHTSIDE) {
-    //    viewports[new_id].size.x = viewports[id].size.x / 2;
-    //    viewports[new_id].size.y = viewports[id].size.y;
-    //    viewports[new_id].position.x = viewports[id].position.x + viewports[id].size.x / 2;
-    //    viewports[new_id].position.y = viewports[id].position.y;
-    //  }
-    //  else if (side == DOWNSIDE) {
-    //    viewports[new_id].size.x = viewports[id].size.x;
-    //    viewports[new_id].size.y = viewports[id].size.y / 2;
-    //    viewports[new_id].position.x = viewports[id].position.x;
-    //    viewports[new_id].position.y = viewports[id].position.y + viewports[id].size.y / 2;
-    //  }
-
-    //  // Update the size of the existing viewport
-    //  viewports[id].size = viewports[new_id].size;
-
-    //  return new_id;
-    //}
-
-    //void resize(int id, Side side, float ratio) {
-    //  // Resize the specified viewport according to the ratio
-    //  if (side == TORIGHT) {
-    //    viewports[id].size.x *= ratio;
-    //  }
-    //  else if (side == DOWNSIDE) {
-    //    viewports[id].size.y *= ratio;
-    //  }
-    //}
-
-    //std::vector<viewport_t> viewports;
-  };
 
   struct rectangle_properties_t {
     loco_t::camera_t* camera = &gloco->default_camera;

@@ -1,4 +1,5 @@
 // rectangle text button using loco
+#include <WITCH/WITCH.h>
 
 #define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 
@@ -19,53 +20,52 @@
 #include _FAN_PATH(graphics/loco.h)
 
 int main() {
+  fan::trees::quad_tree_t qt(0.5, 0.5, 2);
+  static constexpr f32_t n = 15;
+  for (int i = 0; i < n; ++i) {
+    fan::vec2 p = fan::random::vec2(0, 1);
+    fan::vec2 a, b;
+    qt.insert(p, a, b);
+  }
 
   loco_t loco;
 
-  loco_t::viewport_divider_t vd(loco.get_window()->get_size());
+  std::vector<loco_t::simple_rectangle_t> rectangles;
+  std::vector<loco_t::simple_rectangle_t> points;
 
-  struct viewport_t {
-    loco_t::viewport_divider_t::viewport_nr_t nr;
-    loco_t::simple_rectangle_t rectangle;
-  };
+  fan::trees::quad_tree_t* qtp = &qt;
 
-  std::vector<viewport_t> viewports;
- 
-
-  f32_t max_viewports = 1;
-
-  auto it = loco.get_window()->add_buttons_callback([&](const auto& d) {
-    if (d.button == fan::mouse_left && d.state == fan::mouse_state::press) {
-      vd.division_direction = loco_t::viewport_divider_t::division_mode::right;
-      viewports.push_back({ vd.add() });
-      //for (int i = 0; i < max_viewports; ++i) {
-      //  viewports.push_back({ vd.add() });
-      //  for (int j = 0; j < viewports.size(); ++j) {
-      //    auto viewport = vd.get(viewports[j].nr);
-      //    // fan::print((int)viewports[j].nr.NRI, viewport.position, viewport.size);
-      //  }
-      //  //fan::print("\n\n");
-      //  //vd.division_direction = (loco_t::viewport_divider_t::division_mode)(fan::random::value_i64(0, 1));
-      //}
-      for (int i = 0; i < viewports.size(); ++i) {
-        auto viewport = vd.get(viewports[i].nr);
-
-        viewports[i].rectangle = loco_t::simple_rectangle_t{ {
-            .position = fan::vec3(viewport.position * 2 - 1/*(1.f / viewports.size()) * i * 2 - 1 + (1.f / viewports.size()), 0*/, i),
-            .size = viewport.size * 2, // because coordinate is -1 -> 1 so * 2 when viewport size is 0-1
-            .color = /*fan::random::color() - fan::vec4(0, 0, 0, 0.5)*/
-              fan::color::hsv(i * 10, 100, 100),
-            .blending = true
-        } };
-      }
+  int index = 0;
+  auto l = [&rectangles, &index, &points](this const auto& l, fan::trees::quad_tree_t* qtp) -> void {
+    rectangles.push_back(loco_t::simple_rectangle_t{ {
+      .position = fan::vec3(qtp->position * 2 - 1, index++),
+      .size = qtp->boundary * 2, // because coordinate is -1 -> 1 so * 2 when viewport size is 0-1
+      .color = fan::random::color() - fan::vec4(0, 0, 0, 0.5)
+      /*fan::color::hsv((float)index / n * 360.f, 100, 100)*/,
+    .blending = true
+  } });
+    if (qtp->divided) {
+      l(qtp->north_west);
+      l(qtp->north_east);
+      l(qtp->south_west);
+      l(qtp->south_east);
     }
-  });
+    for (auto& i : qtp->points) {
+      points.push_back(loco_t::simple_rectangle_t{ {
+          .position = fan::vec3(i * 2 - 1, index),
+          .size = fan::vec2(0.003), // because coordinate is -1 -> 1 so * 2 when viewport size is 0-1
+          .color = fan::colors::white
+          /*fan::color::hsv((float)index / n * 360.f, 100, 100)*/,
+        .blending = true
+      } });
+    }
+    };
 
-  loco.get_window()->m_buttons_callback[it].data({.button = fan::mouse_left, .state = fan::mouse_state::press});
+  l(qtp);
 
   loco.loop([&] {
 
-  });
+    });
 
   return 0;
 }

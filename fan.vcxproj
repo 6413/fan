@@ -223,7 +223,7 @@
       <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>WITCH_INCLUDE_PATH=C:/libs/WITCH;set_durums_pc;_CRT_SECURE_NO_WARNINGS;_DISABLE_VECTOR_ANNOTATION;BX_CONFIG_DEBUG=1</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
       <Optimization>Disabled</Optimization>
       <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
@@ -338,9 +338,11 @@
     <ClInclude Include="include\fan\graphics\gui\stage_maker\loader_versions\011.h" />
     <ClInclude Include="include\fan\graphics\gui\stage_maker\helper_functions\rename_cb.h" />
     <ClInclude Include="include\fan\graphics\gui\stage_maker\preset.h" />
+    <ClInclude Include="include\fan\graphics\loco.h" />
     <ClInclude Include="include\fan\graphics\loco0.h" />
     <ClInclude Include="include\fan\graphics\loco0_define.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\objects\pixel_format_renderer.h" />
+    <ClInclude Include="include\fan\trees\quad_tree.h" />
     <ClInclude Include="include\fan\video\base_enc.h" />
     <ClInclude Include="include\fan\video\nvec_cuda.h" />
     <ClInclude Include="include\fan\bll.h" />
@@ -371,7 +373,6 @@
     <ClInclude Include="include\fan\graphics\gui\themes.h" />
     <ClInclude Include="include\fan\graphics\gui\vfi.h" />
     <ClInclude Include="include\fan\graphics\gui\vfi_shape_list_settings.h" />
-    <ClInclude Include="include\fan\graphics\loco.h" />
     <ClInclude Include="include\fan\graphics\loco_define.h" />
     <ClInclude Include="include\fan\graphics\loco_types.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\effects\frame_capture.h" />

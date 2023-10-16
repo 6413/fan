@@ -36,3 +36,6 @@ lib/dpp
 lib/cmake
 *.dll
 x64/Debug
+*.json
+*.command
+*.ifc
