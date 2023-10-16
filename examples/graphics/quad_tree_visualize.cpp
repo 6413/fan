@@ -45,10 +45,8 @@ int main() {
     .blending = true
   } });
     if (qtp->divided) {
-      l(qtp->north_west);
-      l(qtp->north_east);
-      l(qtp->south_west);
-      l(qtp->south_east);
+      l(qtp->top);
+      l(qtp->bottom);
     }
     for (auto& i : qtp->points) {
       points.push_back(loco_t::simple_rectangle_t{ {
@@ -65,7 +63,7 @@ int main() {
 
   loco.loop([&] {
 
-    });
+  });
 
   return 0;
 }
