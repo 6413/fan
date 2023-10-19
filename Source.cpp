@@ -6,10 +6,14 @@
 #define fan_debug 0
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
-using namespace fan;
+struct luokka {
+  int a = 1;
+  int b = 2;
+  float c = 3;
+};
+
 
 int main() {
-  for (int i = 0; i < 2; ++i) {
-    print(int(int16_t(65535 + i)), (65535 + i) % 65536);
-  }
+
+  return 0;
 }

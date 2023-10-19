@@ -2565,6 +2565,7 @@ public:
   loco_t::camera_t default_camera;
   loco_t::viewport_t default_viewport;
 
+  // fix for clang rectangle_properties_t() {}
   struct rectangle_properties_t {
     loco_t::camera_t* camera = &gloco->default_camera;
     loco_t::viewport_t* viewport = &gloco->default_viewport;
@@ -2589,6 +2590,7 @@ public:
     }
   };
 
+#if defined(loco_text)
   struct text_properties_t {
     loco_t::camera_t* camera = &gloco->default_camera;
     loco_t::viewport_t* viewport = &gloco->default_viewport;
@@ -2600,7 +2602,7 @@ public:
     simple_text_t(text_properties_t p = text_properties_t()) {
       *(loco_t::shape_t*)this = loco_t::shape_t(
         fan_init_struct(
-          loco_t::responsive_text_t::properties_t,
+          typename loco_t::responsive_text_t::properties_t,
           .camera = p.camera,
           .viewport = p.viewport,
           .position = p.position.x == fan::math::inf ? fan::vec3(-1 + 0.025 * p.text.size(), -0.9, 0) : p.position,
@@ -2611,7 +2613,9 @@ public:
         ));
     }
   };
+#endif
 
+#if defined(loco_button)
   struct button_properties_t {
     loco_t::theme_t* theme = &gloco->theme_deep_red;
     loco_t::camera_t* camera = &gloco->default_camera;
@@ -2635,6 +2639,7 @@ public:
         .mouse_button_cb = p.mouse_button_cb
       )) {}
   };
+#endif
 
   #undef make_global_function
   #undef fan_build_get
@@ -2697,6 +2702,7 @@ fan::opengl::theme_list_NodeReference_t::theme_list_NodeReference_t(auto* theme)
 }
 
 #endif
+
 
 #ifndef loco_no_inline
 #undef loco_rectangle_vi_t

@@ -1,5 +1,5 @@
 #release
-GPP = clang++ -I C:\libs -Dstage_loader_path=. -I include/nvidia
+GPP = clang++ -ftime-trace -I C:\libs -Dstage_loader_path=. -I include/nvidia
 #debug for address sanitizer
 #GPP = clang-cl /MT -fsanitize=address  /std:c++latest
 
@@ -8,7 +8,7 @@ GPP = clang++ -I C:\libs -Dstage_loader_path=. -I include/nvidia
 CFLAGS = -ferror-limit=3 -w -I .  -std=c++2a -I include #-O3 -march=native -mtune=native \
   #-fsanitize=address -fno-omit-frame-pointer
 
-MAIN = examples/graphics/rectangle.cpp
+MAIN = Source.cpp
 
 TARGET = a.out
 
