@@ -32,6 +32,7 @@
 #include <cstdint>
 #include <regex>
 #include <charconv>
+#include <tuple>
 
 #pragma pack(push, 1)
 
@@ -174,7 +175,7 @@ namespace fan {
 	constexpr void wprint_no_endline(const Args&... args);
 
 	template <typename ...Args>
-	void print(const Args&... args);
+	constexpr void print(const Args&... args);
 
 	template <typename ...Args>
 	constexpr void wprint(const Args&... args);
@@ -231,7 +232,263 @@ namespace fan {
 #include _FAN_PATH(time/time.h)
 #include _FAN_PATH(types/vector.h)
 
+#define __FAN__FOREACH_1(f, x) f(x)
+#define __FAN__FOREACH_2(f, x, ...)  f(x); __FAN__FOREACH_1(f, __VA_ARGS__)
+#define __FAN__FOREACH_3(f, x, ...)  f(x); __FAN__FOREACH_2(f, __VA_ARGS__)
+#define __FAN__FOREACH_4(f, x, ...)  f(x); __FAN__FOREACH_3(f, __VA_ARGS__)
+#define __FAN__FOREACH_5(f, x, ...)  f(x); __FAN__FOREACH_4(f, __VA_ARGS__)
+#define __FAN__FOREACH_6(f, x, ...)  f(x); __FAN__FOREACH_5(f, __VA_ARGS__)
+#define __FAN__FOREACH_7(f, x, ...)  f(x); __FAN__FOREACH_6(f, __VA_ARGS__)
+#define __FAN__FOREACH_8(f, x, ...)  f(x); __FAN__FOREACH_7(f, __VA_ARGS__)
+#define __FAN__FOREACH_9(f, x, ...)  f(x); __FAN__FOREACH_8(f, __VA_ARGS__)
+#define __FAN__FOREACH_10(f, x, ...)  f(x); __FAN__FOREACH_9(f, __VA_ARGS__)
+#define __FAN__FOREACH_11(f, x, ...)  f(x); __FAN__FOREACH_10(f, __VA_ARGS__)
+#define __FAN__FOREACH_12(f, x, ...)  f(x); __FAN__FOREACH_11(f, __VA_ARGS__)
+#define __FAN__FOREACH_13(f, x, ...)  f(x); __FAN__FOREACH_12(f, __VA_ARGS__)
+#define __FAN__FOREACH_14(f, x, ...)  f(x); __FAN__FOREACH_13(f, __VA_ARGS__)
+#define __FAN__FOREACH_15(f, x, ...)  f(x); __FAN__FOREACH_14(f, __VA_ARGS__)
+#define __FAN__FOREACH_16(f, x, ...)  f(x); __FAN__FOREACH_15(f, __VA_ARGS__)
+#define __FAN__FOREACH_17(f, x, ...)  f(x); __FAN__FOREACH_16(f, __VA_ARGS__)
+#define __FAN__FOREACH_18(f, x, ...)  f(x); __FAN__FOREACH_17(f, __VA_ARGS__)
+#define __FAN__FOREACH_19(f, x, ...)  f(x); __FAN__FOREACH_18(f, __VA_ARGS__)
+#define __FAN__FOREACH_20(f, x, ...)  f(x); __FAN__FOREACH_19(f, __VA_ARGS__)
+#define __FAN__FOREACH_21(f, x, ...)  f(x); __FAN__FOREACH_20(f, __VA_ARGS__)
+#define __FAN__FOREACH_22(f, x, ...)  f(x); __FAN__FOREACH_21(f, __VA_ARGS__)
+#define __FAN__FOREACH_23(f, x, ...)  f(x); __FAN__FOREACH_22(f, __VA_ARGS__)
+#define __FAN__FOREACH_24(f, x, ...)  f(x); __FAN__FOREACH_23(f, __VA_ARGS__)
+#define __FAN__FOREACH_25(f, x, ...)  f(x); __FAN__FOREACH_24(f, __VA_ARGS__)
+#define __FAN__FOREACH_26(f, x, ...)  f(x); __FAN__FOREACH_25(f, __VA_ARGS__)
+#define __FAN__FOREACH_27(f, x, ...)  f(x); __FAN__FOREACH_26(f, __VA_ARGS__)
+#define __FAN__FOREACH_28(f, x, ...)  f(x); __FAN__FOREACH_27(f, __VA_ARGS__)
+#define __FAN__FOREACH_29(f, x, ...)  f(x); __FAN__FOREACH_28(f, __VA_ARGS__)
+#define __FAN__FOREACH_30(f, x, ...)  f(x); __FAN__FOREACH_29(f, __VA_ARGS__)
+
+
+#define __FAN__FOREACH_N(n, ...) __FAN__FOREACH_##n
+#define __FAN__FOREACH_N(_30,_29,_28,_27,_26,_25,_24,_23,_22,_21,_20,_19,_18,_17,_16,_15,_14,_13,_12,_11,_10,_9,_8,_7,_6,_5,_4,_3,_2,_1,N,...) __FAN__FOREACH_##N
+
+#define __FAN__FOREACH_NS_1(f, x) f(x)
+#define __FAN__FOREACH_NS_2(f, x, ...)   f(x), __FAN__FOREACH_NS_1(f, __VA_ARGS__)
+#define __FAN__FOREACH_NS_3(f, x, ...)   f(x), __FAN__FOREACH_NS_2(f, __VA_ARGS__)
+#define __FAN__FOREACH_NS_4(f, x, ...)   f(x), __FAN__FOREACH_NS_3(f, __VA_ARGS__)
+#define __FAN__FOREACH_NS_5(f, x, ...)   f(x), __FAN__FOREACH_NS_4(f, __VA_ARGS__)
+#define __FAN__FOREACH_NS_6(f, x, ...)   f(x), __FAN__FOREACH_NS_5(f, __VA_ARGS__)
+#define __FAN__FOREACH_NS_7(f, x, ...)   f(x), __FAN__FOREACH_NS_6(f, __VA_ARGS__)
+#define __FAN__FOREACH_NS_8(f, x, ...)   f(x), __FAN__FOREACH_NS_7(f, __VA_ARGS__)
+#define __FAN__FOREACH_NS_9(f, x, ...)   f(x), __FAN__FOREACH_NS_8(f, __VA_ARGS__)
+#define __FAN__FOREACH_NS_10(f, x, ...)  f(x), __FAN__FOREACH_NS_9(f, __VA_ARGS__)
+#define __FAN__FOREACH_NS_11(f, x, ...)  f(x), __FAN__FOREACH_NS_10(f, __VA_ARGS__)
+#define __FAN__FOREACH_NS_12(f, x, ...)  f(x), __FAN__FOREACH_NS_11(f, __VA_ARGS__)
+#define __FAN__FOREACH_NS_13(f, x, ...)  f(x), __FAN__FOREACH_NS_12(f, __VA_ARGS__)
+#define __FAN__FOREACH_NS_14(f, x, ...)  f(x), __FAN__FOREACH_NS_13(f, __VA_ARGS__)
+#define __FAN__FOREACH_NS_15(f, x, ...)  f(x), __FAN__FOREACH_NS_14(f, __VA_ARGS__)
+#define __FAN__FOREACH_NS_16(f, x, ...)  f(x), __FAN__FOREACH_NS_15(f, __VA_ARGS__)
+#define __FAN__FOREACH_NS_17(f, x, ...)  f(x), __FAN__FOREACH_NS_16(f, __VA_ARGS__)
+#define __FAN__FOREACH_NS_18(f, x, ...)  f(x), __FAN__FOREACH_NS_17(f, __VA_ARGS__)
+#define __FAN__FOREACH_NS_19(f, x, ...)  f(x), __FAN__FOREACH_NS_18(f, __VA_ARGS__)
+#define __FAN__FOREACH_NS_20(f, x, ...)  f(x), __FAN__FOREACH_NS_19(f, __VA_ARGS__)
+#define __FAN__FOREACH_NS_21(f, x, ...)  f(x), __FAN__FOREACH_NS_20(f, __VA_ARGS__)
+#define __FAN__FOREACH_NS_22(f, x, ...)  f(x), __FAN__FOREACH_NS_21(f, __VA_ARGS__)
+#define __FAN__FOREACH_NS_23(f, x, ...)  f(x), __FAN__FOREACH_NS_22(f, __VA_ARGS__)
+#define __FAN__FOREACH_NS_24(f, x, ...)  f(x), __FAN__FOREACH_NS_23(f, __VA_ARGS__)
+#define __FAN__FOREACH_NS_25(f, x, ...)  f(x), __FAN__FOREACH_NS_24(f, __VA_ARGS__)
+#define __FAN__FOREACH_NS_26(f, x, ...)  f(x), __FAN__FOREACH_NS_25(f, __VA_ARGS__)
+#define __FAN__FOREACH_NS_27(f, x, ...)  f(x), __FAN__FOREACH_NS_26(f, __VA_ARGS__)
+#define __FAN__FOREACH_NS_28(f, x, ...)  f(x), __FAN__FOREACH_NS_27(f, __VA_ARGS__)
+#define __FAN__FOREACH_NS_29(f, x, ...)  f(x), __FAN__FOREACH_NS_28(f, __VA_ARGS__)
+#define __FAN__FOREACH_NS_30(f, x, ...)  f(x), __FAN__FOREACH_NS_29(f, __VA_ARGS__)
+
+#define __FAN__FOREACH_NS_N(n, ...) __FAN__FOREACH_NS_##n
+#define __FAN__FOREACH_NS_N(_30,_29,_28,_27,_26,_25,_24,_23,_22,_21,_20,_19,_18,_17,_16,_15,_14,_13,_12,_11,_10,_9,_8,_7,_6,_5,_4,_3,_2,_1,N,...) __FAN__FOREACH_NS_##N
+
+
+#define __FAN__FOREACH(f, ...) __FAN__FOREACH_N(__VA_ARGS__,30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1)(f, __VA_ARGS__)
+
+#define __FAN__FOREACH_NS(f, ...) __FAN__FOREACH_NS_N(__VA_ARGS__,30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1)(f, __VA_ARGS__)
+
 namespace fan {
+
+  template <class T>
+  constexpr T unsafe_declval() noexcept {
+    typename std::remove_reference<T>::type* ptr = nullptr;
+    return static_cast<T>(*ptr);
+  }
+
+  struct lref_constructor_t {
+    template <class Type> constexpr operator Type& () const&& {
+      return unsafe_declval<Type&>();
+    }
+    std::size_t pad;
+  };
+
+  template <std::size_t Index>
+  using sintegral_constant_t = std::integral_constant<std::size_t, Index>;
+
+  template <class T, std::size_t... I>
+    requires std::copy_constructible<T>
+  constexpr auto enable_if_constructible_helper(std::index_sequence<I...>)
+    -> typename std::add_pointer<decltype(T{ lref_constructor_t{I}... }) > ::type;
+
+  template <class T, std::size_t N>
+    requires requires {
+    enable_if_constructible_helper<T>(std::make_index_sequence<N>());
+  }
+  using enable_if_constructible_helper_t = std::size_t;
+
+  template <std::size_t Begin, std::size_t Last>
+  using is_one_element_range = std::integral_constant<bool, Begin == Last>;
+
+  template <class T, std::size_t Begin, std::size_t Middle>
+  constexpr std::size_t detect_fields_count(std::true_type, long) {
+    static_assert(Begin == Middle, "error");
+    return Begin;
+  }
+
+  template <class T, std::size_t Begin, std::size_t Middle>
+  constexpr std::size_t detect_fields_count(std::false_type, int);
+
+  template <class T, std::size_t Begin, std::size_t Middle>
+  constexpr auto detect_fields_count(std::false_type, long)
+    -> enable_if_constructible_helper_t<T, Middle> {
+    constexpr std::size_t next_v = Middle + (Middle - Begin + 1) / 2;
+    return detect_fields_count<T, Middle, next_v>(is_one_element_range<Middle, next_v>{}, 1L);
+  }
+
+  template <class T, std::size_t Begin, std::size_t Middle>
+  constexpr std::size_t detect_fields_count(std::false_type, int) {
+    constexpr std::size_t next_v = Begin + (Middle - Begin) / 2;
+    return detect_fields_count<T, Begin, next_v>(is_one_element_range<Begin, next_v>{}, 1L);
+  }
+
+  template <class T, std::size_t N>
+  constexpr auto detect_fields_count_dispatch(sintegral_constant_t<N>, long, int)
+    -> decltype(sizeof(T{}))
+  {
+    constexpr std::size_t middle = N / 2 + 1;
+    return detect_fields_count<T, 0, middle>(std::false_type{}, 1L);
+  }
+
+  template <class T>
+  constexpr std::size_t count_struct_members() {
+    static_assert(std::is_aggregate<T>::value || std::is_scalar<T>::value,
+      "type must not have custom constructor"
+      );
+
+    return detect_fields_count_dispatch<T>(sintegral_constant_t<sizeof(T) * 8>{}, 1L, 1L);
+  }
+
+
+  #define __FAN_REF_EACH(x) std::ref(x)
+  #define __FAN_NREF_EACH(x) x
+  #define GENERATE_CALL_F(count, ...) \
+template <std::size_t n, typename T> \
+requires (count == n) \
+auto generate_variable_list_ref(T& struct_value) { \
+    auto& [__VA_ARGS__] = struct_value; \
+    return std::make_tuple(__FAN__FOREACH_NS(__FAN_REF_EACH, __VA_ARGS__)); \
+}\
+template <std::size_t n, typename T> \
+requires (count == n) \
+auto generate_variable_list_nref(T struct_value) { \
+  \
+    auto [__VA_ARGS__] = struct_value; \
+    return std::make_tuple(__FAN__FOREACH_NS(__FAN_NREF_EACH, __VA_ARGS__)); \
+}
+
+  GENERATE_CALL_F(1, a)
+  GENERATE_CALL_F(2, a, b)
+  GENERATE_CALL_F(3, a, b, c)
+  GENERATE_CALL_F(4, a, b, c, d)
+  GENERATE_CALL_F(5, a, b, c, d, e)
+  GENERATE_CALL_F(6, a, b, c, d, e, f)
+  GENERATE_CALL_F(7, a, b, c, d, e, f, g)
+  GENERATE_CALL_F(8, a, b, c, d, e, f, g, h)
+  GENERATE_CALL_F(9, a, b, c, d, e, f, g, h, i)
+  GENERATE_CALL_F(10, a, b, c, d, e, f, g, h, i, j)
+  GENERATE_CALL_F(11, a, b, c, d, e, f, g, h, i, j, k)
+  GENERATE_CALL_F(12, a, b, c, d, e, f, g, h, i, j, k, l)
+  GENERATE_CALL_F(13, a, b, c, d, e, f, g, h, i, j, k, l, m)
+  GENERATE_CALL_F(14, a, b, c, d, e, f, g, h, i, j, k, l, m, n)
+  GENERATE_CALL_F(15, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o)
+  GENERATE_CALL_F(16, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p)
+  GENERATE_CALL_F(17, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q)
+  GENERATE_CALL_F(18, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r)
+  GENERATE_CALL_F(19, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s)
+  GENERATE_CALL_F(20, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t)
+  GENERATE_CALL_F(21, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u)
+  GENERATE_CALL_F(22, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v)
+  GENERATE_CALL_F(23, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w)
+  GENERATE_CALL_F(24, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x)
+  GENERATE_CALL_F(25, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y)
+  GENERATE_CALL_F(26, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z)
+  GENERATE_CALL_F(27, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z, aa)
+  GENERATE_CALL_F(28, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z, aa, ab)
+  GENERATE_CALL_F(29, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z, aa, ab, ac)
+  GENERATE_CALL_F(30, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z, aa, ab, ac, ad)
+
+  template <typename T>
+  constexpr auto make_struct_tuple_ref(T& st) {
+    return generate_variable_list_ref<count_struct_members<T>()>(st);
+  }
+
+  //template <typename T>
+  //constexpr auto make_struct_tuple_ref(T&& st) {
+  //  T s;
+  //  return generate_variable_list_ref<count_struct_members<T>()>(s);
+  //}
+  //template <typename T>
+  //constexpr auto make_struct_tuple_ref(const T& st) {
+  //  T s;
+  //  return generate_variable_list_ref<count_struct_members<T>()>(s);
+  //}
+
+  template <typename T>
+  constexpr auto make_struct_tuple(const T& st) {
+    T s;
+    return generate_variable_list_nref<count_struct_members<T>()>(s);
+  }
+
+  template <typename T, typename F, std::size_t... I>
+  void iterate_struct_impl(const T& st, F lambda, std::index_sequence<I...>) {
+    auto tuple = make_struct_tuple_ref(st);
+    std::apply([&lambda](const auto&...args) {
+      (lambda.template operator() < I > (std::forward<decltype(args)>(args)), ...);
+      }, tuple);
+  }
+
+  template <typename T, typename F, std::size_t... I>
+  void iterate_struct_impl(T& st, F lambda, std::index_sequence<I...>) {
+    auto tuple = make_struct_tuple_ref(st);
+    std::apply([&lambda](auto&...args) {
+      (lambda.template operator() < I > (std::forward<decltype(args)>(args)), ...);
+      }, tuple);
+  }
+
+  template <typename T>
+  void iterate_struct(const T& st, auto lambda) {
+    iterate_struct_impl(st, lambda, std::make_index_sequence<count_struct_members<T>()>{});
+  }
+
+  template <typename T>
+  void iterate_struct(T& st, auto lambda) {
+    iterate_struct_impl(st, lambda, std::make_index_sequence<count_struct_members<T>()>{});
+  }
+
+  template <typename T>
+  struct is_printable {
+  private:
+    template <typename U>
+    static auto test(int) -> decltype(std::declval<std::ostream&>() << std::declval<U>(), std::true_type());
+
+    template <typename>
+    static auto test(...) -> std::false_type;
+
+  public:
+    static constexpr bool value = decltype(test<T>(0))::value;
+  };
+
+  template <typename T>
+  constexpr bool is_printable_v = is_printable<T>::value;
 
 	template <typename ...Args>
 	constexpr void print_no_space(const Args&... args) {
@@ -248,10 +505,45 @@ namespace fan {
 		((std::wcout << args << ' '), ...);
 	}
 
-	template <typename ...Args>
-	void print(const Args&... args) {
-		((std::cout << args << ' '), ...) << '\n';
-	}
+  template <typename T>
+  constexpr fan::string struct_to_string(const T& st) {
+    fan::string formatted_string = "{";
+    iterate_struct(st, [&formatted_string]<auto i>(auto & v) {
+      formatted_string += std::format("\n  Iteration {}:\n    Type:{}\n    Value:{}",
+        i, typeid(std::remove_reference_t<decltype(v)>).name(), v
+      );
+      formatted_string += "\n";
+      if constexpr (i + 1 != count_struct_members<T>()) {
+        formatted_string += "\n";
+      }
+    });
+    formatted_string += "}";
+    return formatted_string;
+  }
+
+  template <typename T>
+  constexpr bool is_aggregate_and_scalar() {
+    return std::is_aggregate_v<T> || std::is_scalar_v<T>;
+  }
+
+  #define fan_ternary_void(f0, f1) [&]{ f0;}() : [&]{f1;}()
+
+  template <typename ...Args>
+  constexpr void print(const Args&... args) {
+    (([&]<typename T = Args>(const T & v) {
+      if constexpr (is_printable_v<T>) {
+        std::cout << v << ' ';
+      }
+      else {
+        if constexpr (std::is_aggregate_v<T>) {
+          if constexpr (count_struct_members<T>() < 30) {
+            std::cout << '\n' + struct_to_string(v) << ' ';
+          }
+        }
+      }
+    }(args)), ...);
+    std::cout << '\n';
+  }
 
   template <typename T>
   struct is_fan_vec3 : std::false_type {};
@@ -268,16 +560,15 @@ namespace fan {
     return arg.to_string().c_str();
   }
 
-
   template <typename... T>
   static FMT_INLINE auto format(fmt::format_string<T...> fmt, T&&... args)
     -> fan::string {
     return fmt::vformat(fmt, fmt::make_format_args(args...));
   }
 
-  template <typename... T>
-  static FMT_INLINE auto print_format(fmt::format_string<T...> fmt, T&&... args) {
-    fan::print(fmt::vformat(fmt, fmt::make_format_args(args...)));
+  template <typename... args_t>
+  constexpr static auto print_format(std::format_string<args_t...> fmt, args_t&&... args) {
+    fan::print(std::format(fmt, std::forward<args_t>(args)...));
   }
   
   template <typename T>
@@ -311,6 +602,12 @@ namespace fan {
   template<std::size_t I, typename... Args>
   constexpr decltype(auto) get_variadic_element(Args&&... args) {
     return std::get<I>(std::forward_as_tuple(args...));
+  }
+
+  template <typename T>
+  constexpr void print_struct(const T& st) {
+    static_assert(count_struct_members<T>() <= 30, "limited to 30 members");
+    fan::print(struct_to_string(st));
   }
 
   template <typename ...Args>
@@ -771,41 +1068,6 @@ static uint8_t __clz(uintptr_t p0) {
 #endif
 
 #define __FAN__INSERTVARNAME(x) var__ x
-
-#define __FAN__FOREACH_1(f, x) f(x)
-#define __FAN__FOREACH_2(f, x, ...)  f(x); __FAN__FOREACH_1(f, __VA_ARGS__)
-#define __FAN__FOREACH_3(f, x, ...)  f(x); __FAN__FOREACH_2(f, __VA_ARGS__)
-#define __FAN__FOREACH_4(f, x, ...)  f(x); __FAN__FOREACH_3(f, __VA_ARGS__)
-#define __FAN__FOREACH_5(f, x, ...)  f(x); __FAN__FOREACH_4(f, __VA_ARGS__)
-#define __FAN__FOREACH_6(f, x, ...)  f(x); __FAN__FOREACH_5(f, __VA_ARGS__)
-#define __FAN__FOREACH_7(f, x, ...)  f(x); __FAN__FOREACH_6(f, __VA_ARGS__)
-#define __FAN__FOREACH_8(f, x, ...)  f(x); __FAN__FOREACH_7(f, __VA_ARGS__)
-#define __FAN__FOREACH_9(f, x, ...)  f(x); __FAN__FOREACH_8(f, __VA_ARGS__)
-#define __FAN__FOREACH_10(f, x, ...)  f(x); __FAN__FOREACH_9(f, __VA_ARGS__)
-#define __FAN__FOREACH_11(f, x, ...)  f(x); __FAN__FOREACH_10(f, __VA_ARGS__)
-#define __FAN__FOREACH_12(f, x, ...)  f(x); __FAN__FOREACH_11(f, __VA_ARGS__)
-#define __FAN__FOREACH_13(f, x, ...)  f(x); __FAN__FOREACH_12(f, __VA_ARGS__)
-#define __FAN__FOREACH_14(f, x, ...)  f(x); __FAN__FOREACH_13(f, __VA_ARGS__)
-#define __FAN__FOREACH_15(f, x, ...)  f(x); __FAN__FOREACH_14(f, __VA_ARGS__)
-#define __FAN__FOREACH_16(f, x, ...)  f(x); __FAN__FOREACH_15(f, __VA_ARGS__)
-#define __FAN__FOREACH_17(f, x, ...)  f(x); __FAN__FOREACH_16(f, __VA_ARGS__)
-#define __FAN__FOREACH_18(f, x, ...)  f(x); __FAN__FOREACH_17(f, __VA_ARGS__)
-#define __FAN__FOREACH_19(f, x, ...)  f(x); __FAN__FOREACH_18(f, __VA_ARGS__)
-#define __FAN__FOREACH_20(f, x, ...)  f(x); __FAN__FOREACH_19(f, __VA_ARGS__)
-#define __FAN__FOREACH_21(f, x, ...)  f(x); __FAN__FOREACH_20(f, __VA_ARGS__)
-#define __FAN__FOREACH_22(f, x, ...)  f(x); __FAN__FOREACH_21(f, __VA_ARGS__)
-#define __FAN__FOREACH_23(f, x, ...)  f(x); __FAN__FOREACH_22(f, __VA_ARGS__)
-#define __FAN__FOREACH_24(f, x, ...)  f(x); __FAN__FOREACH_23(f, __VA_ARGS__)
-#define __FAN__FOREACH_25(f, x, ...)  f(x); __FAN__FOREACH_24(f, __VA_ARGS__)
-#define __FAN__FOREACH_26(f, x, ...)  f(x); __FAN__FOREACH_25(f, __VA_ARGS__)
-#define __FAN__FOREACH_27(f, x, ...)  f(x); __FAN__FOREACH_26(f, __VA_ARGS__)
-#define __FAN__FOREACH_28(f, x, ...)  f(x); __FAN__FOREACH_27(f, __VA_ARGS__)
-#define __FAN__FOREACH_29(f, x, ...)  f(x); __FAN__FOREACH_28(f, __VA_ARGS__)
-#define __FAN__FOREACH_30(f, x, ...)  f(x); __FAN__FOREACH_29(f, __VA_ARGS__)
-
-#define __FAN__FOREACH_N(n, ...) __FAN__FOREACH_##n
-#define __FAN__FOREACH_N(_30,_29,_28,_27,_26,_25,_24,_23,_22,_21,_20,_19,_18,_17,_16,_15,_14,_13,_12,_11,_10,_9,_8,_7,_6,_5,_4,_3,_2,_1,N,...) __FAN__FOREACH_##N
-#define __FAN__FOREACH(f, ...) __FAN__FOREACH_N(__VA_ARGS__,30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1)(f, __VA_ARGS__)
 
 // requires /Zc:preprocessor in msvc commandline properties
 

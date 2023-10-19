@@ -5,9 +5,11 @@
 #include <numeric>
 #include <array>
 #include <string>
+#include <format>
 
 #include _FAN_PATH(types/types.h)
 #include _FAN_PATH(math/math.h)
+
 
 namespace fan {
 
@@ -344,9 +346,13 @@ namespace fan {
 		template <typename T>
 		friend std::ofstream& operator<<(std::ofstream& os, const _vec2<T>& vector);
 
-		fan::string to_string(int precision = 2) const {
-			return fan::string(fan::to_string(this->x, precision) + ' '+ fan::to_string(this->y, precision));
-		}
+    std::string to_string(int precision = 2) const {
+      return std::format(
+        "{{ {1:.{0}f}, {2:.{0}f} }}", 
+        precision, x, y
+      );
+    }
+
     std::string c_str(int precision = 2) const {
 			return to_string();
 		}
@@ -686,9 +692,12 @@ namespace fan {
 		template <typename T>
 		friend std::ostream& operator<<(std::ostream& os, const _vec3<T>& vector);
 
-		fan::string to_string(int precision = 2) const {
-			return fan::string(fan::to_string(this->x, precision) + ' '+ fan::to_string(this->y, precision) + ' '+ fan::to_string(this->z, precision));
-		}
+    std::string to_string(int precision = 2) const {
+      return std::format(
+        "{{ {1:.{0}f}, {2:.{0}f}, {3:.{0}f} }}",
+        precision, x, y, z
+      );
+    }
     std::string c_str(int precision = 2) const {
 			return to_string();
 		}
@@ -921,19 +930,15 @@ namespace fan {
 
 		constexpr _Ty max() const { return std::max({ x, y, z, w }); }
 
-		constexpr void print() const { std::cout << x << " " << y << " " << z << " " << w << std::endl; }
-
-		template <typename T>
+    template <typename T>
 		friend std::ostream& operator<<(std::ostream& os, const _vec4<T>& vector);
 
-		fan::string to_string(int precision = 2) const {
-			return fan::string(
-				fan::to_string(this->x, precision) + ' ' + 
-				fan::to_string(this->y, precision) + ' ' + 
-				fan::to_string(this->z, precision) + ' ' + 
-				fan::to_string(this->w, precision) 
-			);
-		}
+    std::string to_string(int precision = 2) const {
+      return std::format(
+        "{{ {1:.{0}f}, {2:.{0}f}, {3:.{0}f} {4:.{0}f} }}",
+        precision, x, y, z, w
+      );
+    }
 	};
 
 	template <typename T>
@@ -947,7 +952,7 @@ namespace fan {
 	template <typename T>
 	std::ostream& operator<<(std::ostream& os, const _vec2<T>& vector)
 	{
-		os << '{' << vector.x << ", " << vector.y << '}';
+		os << vector.to_string();
 		return os;
 	}
 
@@ -955,14 +960,14 @@ namespace fan {
 	template <typename T>
 	std::ostream& operator<<(std::ostream& os, const _vec3<T>& vector)
 	{
-		os << '{' << vector.x << ", " << vector.y << ", " << vector.z << '}';
+		os << vector.to_string();
 		return os;
 	}
 
 	template <typename T>
 	std::ostream& operator<<(std::ostream& os, const _vec4<T>& vector)
 	{
-		os << '{' << vector.x << ", " << vector.y << ", " << vector.z << ", " << vector.w << '}';
+		os << vector.to_string();
 		return os;
 	}
 
@@ -1031,4 +1036,35 @@ namespace fan {
       return fan::vec2( k.x * Multipler, k.y * Multipler);
     }
   }
+
+  template<typename T>
+  struct std::formatter<fan::_vec2<T>> {
+    auto parse(std::format_parse_context& ctx) {
+      return ctx.end();
+    }
+    auto format(const fan::_vec2<T> & obj, std::format_context& ctx) {
+
+      return std::format_to(ctx.out(), "{}", obj.to_string());
+    }
+  };
+  template<typename T>
+  struct std::formatter<fan::_vec3<T>> {
+    auto parse(std::format_parse_context& ctx) {
+      return ctx.end();
+    }
+    auto format(const fan::_vec3<T>& obj, std::format_context& ctx) {
+
+      return std::format_to(ctx.out(), "{}", obj.to_string());
+    }
+  };
+  template<typename T>
+  struct std::formatter<fan::_vec4<T>> {
+    auto parse(std::format_parse_context& ctx) {
+      return ctx.end();
+    }
+    auto format(const fan::_vec4<T>& obj, std::format_context& ctx) {
+
+      return std::format_to(ctx.out(), "{}", obj.to_string());
+    }
+  };
 }

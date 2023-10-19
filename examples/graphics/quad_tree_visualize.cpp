@@ -20,8 +20,8 @@
 #include _FAN_PATH(graphics/loco.h)
 
 int main() {
-  fan::trees::quad_tree_t qt(0.5, 0.5, 2);
-  static constexpr f32_t n = 15;
+  fan::trees::quad_tree_t qt(0.5, 0.5, 1);
+  static constexpr f32_t n = 500;
   for (int i = 0; i < n; ++i) {
     fan::vec2 p = fan::random::vec2(0, 1);
     fan::vec2 a, b;
@@ -37,6 +37,7 @@ int main() {
 
   int index = 0;
   auto l = [&rectangles, &index, &points](this const auto& l, fan::trees::quad_tree_t* qtp) -> void {
+    // put this inside else divided 
     rectangles.push_back(loco_t::simple_rectangle_t{ {
       .position = fan::vec3(qtp->position * 2 - 1, index++),
       .size = qtp->boundary * 2, // because coordinate is -1 -> 1 so * 2 when viewport size is 0-1
@@ -45,8 +46,10 @@ int main() {
     .blending = true
   } });
     if (qtp->divided) {
-      l(qtp->top);
-      l(qtp->bottom);
+      l(qtp->north_west);
+      l(qtp->north_east);
+      l(qtp->south_west);
+      l(qtp->south_east);
     }
     for (auto& i : qtp->points) {
       points.push_back(loco_t::simple_rectangle_t{ {
@@ -63,7 +66,7 @@ int main() {
 
   loco.loop([&] {
 
-  });
+    });
 
   return 0;
 }

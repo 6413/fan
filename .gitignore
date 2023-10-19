@@ -39,3 +39,6 @@ x64/Debug
 *.json
 *.command
 *.ifc
+a.out
+.vs/fan/v17/HierarchyCache.v1.txt
+.vs/fan/v17/fileList.bin
