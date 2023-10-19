@@ -1,6 +1,5 @@
 #pragma once
 
-#include _FAN_PATH(types/types.h)
 #include _FAN_PATH(window/window_input.h)
 
 #include _FAN_PATH(types/vector.h)

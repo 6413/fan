@@ -1,6 +1,5 @@
 #pragma once
 
-#include _FAN_PATH(types/types.h)
 #include _FAN_PATH(types/matrix.h)
 
 namespace fan {

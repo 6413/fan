@@ -1,7 +1,5 @@
 #pragma once
 
-#include _FAN_PATH(types/types.h)
-
 #include <unordered_map>
 
 #ifdef fan_platform_windows

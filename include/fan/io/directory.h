@@ -1,6 +1,5 @@
 #pragma once
 
-#include _FAN_PATH(types/types.h)
 #include _FAN_PATH(types/vector.h)
 
 #include _FAN_PATH(graphics/webp.h)

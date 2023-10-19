@@ -131,10 +131,6 @@ namespace fan {
 #define BLL_set_declare_rest 1
 #include _FAN_PATH(BLL/BLL.h)
 
-fan::opengl::viewport_list_NodeReference_t::viewport_list_NodeReference_t(fan::opengl::viewport_t* viewport) {
-  NRI = viewport->viewport_reference.NRI;
-}
-
 namespace fan {
   namespace opengl {
 

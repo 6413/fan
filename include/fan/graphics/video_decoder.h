@@ -2,7 +2,6 @@
 
 // compile with MD
 
-#include _FAN_PATH(types/types.h)
 
 #include _FAN_PATH(graphics/graphics.h)
 

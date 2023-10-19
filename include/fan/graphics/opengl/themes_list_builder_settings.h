@@ -7,4 +7,4 @@
 #define BLL_set_IsNodeRecycled 0
 #define BLL_set_AreWeInsideStruct 0
 #define BLL_set_NodeReference_Overload_Declare \
-  theme_list_NodeReference_t(auto*);
+  theme_list_NodeReference_t(void*);

@@ -1,7 +1,5 @@
 #pragma once
 
-#include _FAN_PATH(types/types.h)
-
 namespace fan {
   namespace opengl {
     static constexpr uint32_t GL_ACCUM = 0x0100;
