@@ -1,12 +1,10 @@
 #pragma once
 
-#include _FAN_PATH(types/types.h)
-
 #ifndef fan_platform_android
 
 #include _FAN_PATH(system.h)
 
-#ifdef fan_compiler_visual_studio
+#ifdef fan_compiler_msvc
 	#define _CRT_SECURE_NO_WARNINGS
 #endif
 

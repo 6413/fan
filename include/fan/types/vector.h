@@ -5,9 +5,7 @@
 #include <numeric>
 #include <array>
 #include <string>
-#include <format>
 
-#include _FAN_PATH(types/types.h)
 #include _FAN_PATH(math/math.h)
 
 
@@ -347,7 +345,7 @@ namespace fan {
 		friend std::ofstream& operator<<(std::ofstream& os, const _vec2<T>& vector);
 
     std::string to_string(int precision = 2) const {
-      return std::format(
+      return fmt::format(
         "{{ {1:.{0}f}, {2:.{0}f} }}", 
         precision, x, y
       );
@@ -693,7 +691,7 @@ namespace fan {
 		friend std::ostream& operator<<(std::ostream& os, const _vec3<T>& vector);
 
     std::string to_string(int precision = 2) const {
-      return std::format(
+      return fmt::format(
         "{{ {1:.{0}f}, {2:.{0}f}, {3:.{0}f} }}",
         precision, x, y, z
       );
@@ -934,7 +932,7 @@ namespace fan {
 		friend std::ostream& operator<<(std::ostream& os, const _vec4<T>& vector);
 
     std::string to_string(int precision = 2) const {
-      return std::format(
+      return fmt::format(
         "{{ {1:.{0}f}, {2:.{0}f}, {3:.{0}f} {4:.{0}f} }}",
         precision, x, y, z, w
       );
@@ -1036,35 +1034,37 @@ namespace fan {
       return fan::vec2( k.x * Multipler, k.y * Multipler);
     }
   }
+}
 
+namespace fmt {
   template<typename T>
-  struct std::formatter<fan::_vec2<T>> {
-    auto parse(std::format_parse_context& ctx) {
+  struct fmt::formatter<fan::_vec2<T>> {
+    auto parse(fmt::format_parse_context& ctx) {
       return ctx.end();
     }
-    auto format(const fan::_vec2<T> & obj, std::format_context& ctx) {
+    auto format(const fan::_vec2<T>& obj, fmt::format_context& ctx) {
 
-      return std::format_to(ctx.out(), "{}", obj.to_string());
+      return fmt::format_to(ctx.out(), "{}", obj.to_string());
     }
   };
   template<typename T>
-  struct std::formatter<fan::_vec3<T>> {
-    auto parse(std::format_parse_context& ctx) {
+  struct fmt::formatter<fan::_vec3<T>> {
+    auto parse(fmt::format_parse_context& ctx) {
       return ctx.end();
     }
-    auto format(const fan::_vec3<T>& obj, std::format_context& ctx) {
+    auto format(const fan::_vec3<T>& obj, fmt::format_context& ctx) {
 
-      return std::format_to(ctx.out(), "{}", obj.to_string());
+      return fmt::format_to(ctx.out(), "{}", obj.to_string());
     }
   };
   template<typename T>
-  struct std::formatter<fan::_vec4<T>> {
-    auto parse(std::format_parse_context& ctx) {
+  struct fmt::formatter<fan::_vec4<T>> {
+    auto parse(fmt::format_parse_context& ctx) {
       return ctx.end();
     }
-    auto format(const fan::_vec4<T>& obj, std::format_context& ctx) {
+    auto format(const fan::_vec4<T>& obj, fmt::format_context& ctx) {
 
-      return std::format_to(ctx.out(), "{}", obj.to_string());
+      return fmt::format_to(ctx.out(), "{}", obj.to_string());
     }
   };
 }

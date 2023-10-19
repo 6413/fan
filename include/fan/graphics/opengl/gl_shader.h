@@ -1,8 +1,5 @@
 #pragma once
 
-#include _FAN_PATH(types/types.h)
-
-#include _FAN_PATH(types/types.h)
 #include _FAN_PATH(io/file.h)
 #include _FAN_PATH(types/matrix.h)
 #include _FAN_PATH(time/time.h)

@@ -1,30 +1,18 @@
-// rectangle text button using loco
-#include <WITCH/WITCH.h>
-
-#define _INCLUDE_TOKEN(p0, p1) <p0/p1>
-
-#ifndef FAN_INCLUDE_PATH
-#define FAN_INCLUDE_PATH C:/libs/fan/include
-#endif
-#define fan_debug 1
-#include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
-
-//#define loco_vulkan
-
 #define loco_window
 #define loco_context
 
 //#define loco_post_process
 #define loco_rectangle
 #define loco_button
-#include _FAN_PATH(graphics/loco.h)
+#include <global_pch.h>
+
 
 int main() {
   fan::trees::split_tree_t qt;
   qt.open(0.5, 0.5, 1);
   static constexpr f32_t n = 3;
   std::vector<fan::trees::split_tree_t::path_t> filler;
-
+  ////
   enum direction_e{
     horizontal,
     vertical
@@ -68,8 +56,8 @@ int main() {
 
   loco_t loco;
 
-  std::vector<loco_t::simple_rectangle_t> rectangles;
-  std::vector<loco_t::simple_rectangle_t> points;
+  std::vector<fan::graphics::rectangle_t> rectangles;
+  std::vector<fan::graphics::rectangle_t> points;
 
   fan::trees::split_tree_t* qtp = &qt;
 
@@ -112,7 +100,7 @@ int main() {
 
   //  }
   //  };
-
+  ////
   {
     auto l2 = [&rectangles, &index, &points, &width_count, &height_count](const auto& l, int dir, int side, fan::trees::split_tree_t* qtp, fan::trees::split_tree_t* other_node, fan::trees::split_tree_t* prev, int tree_depth, int vertical_depth, int horizontal_depth) -> void {
       if (!qtp) {
@@ -168,15 +156,16 @@ int main() {
           sumx = -1;
         }
       }
-
-      fan::print_struct(*qtp);
+      //fan::struct_to_string(*qtp);
+      //fan::print("count", fan::count_struct_members<fan::trees::split_tree_t>());
+      fan::print(*qtp);
       float sectionSizex = 800.f / width_count;
       float centerPosx = ((tree_depth - 1) * sectionSizex) + (sectionSizex / 2);
 
       float sectionSizey = 800.f / (horizontal_depth + 1);
       float centerPosy = ((side) * sectionSizey) + (sectionSizey / 2);
 
-      rectangles.push_back(loco_t::simple_rectangle_t{ {
+      rectangles.push_back(fan::graphics::rectangle_t{ {
         .position = fan::vec3((fan::vec2(centerPosx, p.y) / 800.f) * 2 - 1, index++),
         .size = fan::vec2(sectionSizex / 2, qtp->boundary.y * 800) / 800.f * 2, // because coordinate is -1 -> 1 so * 2 when viewport size is 0-1
         .color = fan::random::color() - fan::vec4(0, 0, 0, 0.5)
@@ -192,8 +181,6 @@ int main() {
 
 
   fan::print(width_count, height_count);
-  
-  std::cout << std::format("{}, {}", 4, 3);
 
  /* std::ostringstream oss;
   oss << fan::vec2();

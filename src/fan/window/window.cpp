@@ -1,3 +1,5 @@
+#include <global_pch.h>
+
 #ifndef FAN_INCLUDE_PATH
 #define FAN_INCLUDE_PATH C:/libs/fan/include
 #endif

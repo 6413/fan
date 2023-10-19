@@ -1,8 +1,6 @@
 #pragma once
 #include <iostream>
 
-#include _FAN_PATH(types/types.h)
-
 #include <cmath>
 
 namespace fan {

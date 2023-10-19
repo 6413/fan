@@ -105,7 +105,7 @@ namespace fan
 #if fan_debug >= fan_debug_low
         if (found == characters.end())
         {
-          throw std::runtime_error(fan::format("failed to find character:{:x}", c));
+          throw std::runtime_error(fmt::format("failed to find character:{:x}", c));
         }
 #endif
 

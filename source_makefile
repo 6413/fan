@@ -8,7 +8,7 @@ GPP = clang++ -ftime-trace -I C:\libs -Dstage_loader_path=. -I include/nvidia
 CFLAGS = -ferror-limit=3 -w -I .  -std=c++2a -I include #-O3 -march=native -mtune=native \
   #-fsanitize=address -fno-omit-frame-pointer
 
-MAIN = Source.cpp
+MAIN = examples/gui/simple_gui_test.cpp
 
 TARGET = a.out
 

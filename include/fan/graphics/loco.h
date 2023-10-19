@@ -27,8 +27,6 @@ inline struct global_loco_t {
 }gloco;
 #endif
 
-#include _FAN_PATH(types/types.h)
-
 
 struct loco_t;
 
@@ -2565,82 +2563,6 @@ public:
   loco_t::camera_t default_camera;
   loco_t::viewport_t default_viewport;
 
-  // fix for clang rectangle_properties_t() {}
-  struct rectangle_properties_t {
-    loco_t::camera_t* camera = &gloco->default_camera;
-    loco_t::viewport_t* viewport = &gloco->default_viewport;
-    fan::vec3 position = fan::vec3(0, 0, 0);
-    fan::vec2 size = fan::vec2(0.1, 0.1);
-    fan::color color = fan::color(1, 1, 1, 1);
-    bool blending = false;
-  };
-
-  struct simple_rectangle_t : loco_t::shape_t {
-    simple_rectangle_t(rectangle_properties_t p = rectangle_properties_t()) {
-      *(loco_t::shape_t*)this = loco_t::shape_t(
-        fan_init_struct(
-          loco_t::rectangle_t::properties_t,
-          .camera = p.camera,
-          .viewport = p.viewport,
-          .position = p.position,
-          .size = p.size,
-          .color = p.color,
-          .blending = p.blending
-        ));
-    }
-  };
-
-#if defined(loco_text)
-  struct text_properties_t {
-    loco_t::camera_t* camera = &gloco->default_camera;
-    loco_t::viewport_t* viewport = &gloco->default_viewport;
-    std::string text = "";
-    fan::vec3 position = fan::vec3(fan::math::inf, -0.9, 0);
-  };
-
-  struct simple_text_t : loco_t::shape_t {
-    simple_text_t(text_properties_t p = text_properties_t()) {
-      *(loco_t::shape_t*)this = loco_t::shape_t(
-        fan_init_struct(
-          typename loco_t::responsive_text_t::properties_t,
-          .camera = p.camera,
-          .viewport = p.viewport,
-          .position = p.position.x == fan::math::inf ? fan::vec3(-1 + 0.025 * p.text.size(), -0.9, 0) : p.position,
-          .text = p.text,
-          .line_limit = 1,
-          .letter_size_y_multipler = 1,
-          .size = fan::vec2(0.025 * p.text.size(), 0.1)
-        ));
-    }
-  };
-#endif
-
-#if defined(loco_button)
-  struct button_properties_t {
-    loco_t::theme_t* theme = &gloco->theme_deep_red;
-    loco_t::camera_t* camera = &gloco->default_camera;
-    loco_t::viewport_t* viewport = &gloco->default_viewport;
-    fan::vec3 position = fan::vec3(0, 0, 0);
-    fan::vec2 size = fan::vec2(0.1, 0.1);
-    std::string text = "button";
-    loco_t::mouse_button_cb_t mouse_button_cb = [](const loco_t::mouse_button_data_t&) -> int { return 0; };
-  };
-
-  struct simple_button_t : loco_t::shape_t {
-    simple_button_t(button_properties_t p = button_properties_t()) : loco_t::shape_t(
-      fan_init_struct(
-        loco_t::button_t::properties_t,
-        .theme = p.theme,
-        .camera = p.camera,
-        .viewport = p.viewport,
-        .position = p.position,
-        .size = p.size,
-        .text = p.text,
-        .mouse_button_cb = p.mouse_button_cb
-      )) {}
-  };
-#endif
-
   #undef make_global_function
   #undef fan_build_get
   #undef fan_build_set
@@ -2687,22 +2609,6 @@ constexpr std::array<T, 4> fan::pixel_format::get_image_properties(uint8_t forma
 
 #endif
 
-#if defined(loco_window)
-loco_t::image_list_NodeReference_t::image_list_NodeReference_t(loco_t::image_t* image) {
-  NRI = image->texture_reference.NRI;
-}
-
-loco_t::camera_list_NodeReference_t::camera_list_NodeReference_t(loco_t::camera_t* camera) {
-  NRI = camera->camera_reference.NRI;
-}
-
-fan::opengl::theme_list_NodeReference_t::theme_list_NodeReference_t(auto* theme) {
-  static_assert(std::is_same_v<decltype(theme), loco_t::theme_t*>, "invalid parameter passed to theme");
-  NRI = theme->theme_reference.NRI;
-}
-
-#endif
-
 
 #ifndef loco_no_inline
 #undef loco_rectangle_vi_t
@@ -2727,17 +2633,6 @@ inline void fan::opengl::viewport_t::close() {
   gloco->get_context()->viewport_list.Recycle(viewport_reference);
 }
 
-void fan::opengl::viewport_t::set(const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size) {
-  viewport_position = viewport_position_;
-  viewport_size = viewport_size_;
-
-  gloco->get_context()->opengl.call(
-    gloco->get_context()->opengl.glViewport,
-    viewport_position.x, window_size.y - viewport_size.y - viewport_position.y,
-    viewport_size.x, viewport_size.y
-  );
-}
-
 inline void fan::opengl::viewport_t::set_viewport(const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size) {
   gloco->get_context()->opengl.call(
     gloco->get_context()->opengl.glViewport,
@@ -2745,4 +2640,83 @@ inline void fan::opengl::viewport_t::set_viewport(const fan::vec2& viewport_posi
     window_size.y - viewport_size_.y - viewport_position_.y,
     viewport_size_.x, viewport_size_.y
   );
+}
+
+namespace fan {
+  namespace graphics {
+    struct rectangle_properties_t {
+      loco_t::camera_t* camera = &gloco->default_camera;
+      loco_t::viewport_t* viewport = &gloco->default_viewport;
+      fan::vec3 position = fan::vec3(0, 0, 0);
+      fan::vec2 size = fan::vec2(0.1, 0.1);
+      fan::color color = fan::color(1, 1, 1, 1);
+      bool blending = false;
+    };
+
+    struct rectangle_t : loco_t::shape_t {
+      rectangle_t(rectangle_properties_t p = rectangle_properties_t()) {
+        *(loco_t::shape_t*)this = loco_t::shape_t(
+          fan_init_struct(
+            loco_t::rectangle_t::properties_t,
+            .camera = p.camera,
+            .viewport = p.viewport,
+            .position = p.position,
+            .size = p.size,
+            .color = p.color,
+            .blending = p.blending
+          ));
+      }
+    };
+
+    #if defined(loco_text)
+    struct text_properties_t {
+      loco_t::camera_t* camera = &gloco->default_camera;
+      loco_t::viewport_t* viewport = &gloco->default_viewport;
+      std::string text = "";
+      fan::vec3 position = fan::vec3(fan::math::inf, -0.9, 0);
+    };
+
+    struct text_t : loco_t::shape_t {
+      text_t(text_properties_t p = text_properties_t()) {
+        *(loco_t::shape_t*)this = loco_t::shape_t(
+          fan_init_struct(
+            typename loco_t::responsive_text_t::properties_t,
+            .camera = p.camera,
+            .viewport = p.viewport,
+            .position = p.position.x == fan::math::inf ? fan::vec3(-1 + 0.025 * p.text.size(), -0.9, 0) : p.position,
+            .text = p.text,
+            .line_limit = 1,
+            .letter_size_y_multipler = 1,
+            .size = fan::vec2(0.025 * p.text.size(), 0.1)
+          ));
+      }
+    };
+    #endif
+
+    #if defined(loco_button)
+    struct button_properties_t {
+      loco_t::theme_t* theme = &gloco->theme_deep_red;
+      loco_t::camera_t* camera = &gloco->default_camera;
+      loco_t::viewport_t* viewport = &gloco->default_viewport;
+      fan::vec3 position = fan::vec3(0, 0, 0);
+      fan::vec2 size = fan::vec2(0.1, 0.1);
+      std::string text = "button";
+      loco_t::mouse_button_cb_t mouse_button_cb = [](const loco_t::mouse_button_data_t&) -> int { return 0; };
+    };
+
+    struct button_t : loco_t::shape_t {
+      button_t(button_properties_t p = button_properties_t()) : loco_t::shape_t(
+        fan_init_struct(
+          loco_t::button_t::properties_t,
+          .theme = p.theme,
+          .camera = p.camera,
+          .viewport = p.viewport,
+          .position = p.position,
+          .size = p.size,
+          .text = p.text,
+          .mouse_button_cb = p.mouse_button_cb
+        )) {}
+    };
+    #endif
+  }
 }

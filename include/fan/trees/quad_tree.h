@@ -89,12 +89,16 @@ namespace fan {
       void subdivide(int side) {
         // todo free these
         if (side == 0) {
-          horizontal[0] = new split_tree_t(fan::vec2(position.x, position.y - boundary.y / 2), fan::vec2(boundary.x, boundary.y / 2), capacity);
-          horizontal[1] = new split_tree_t(fan::vec2(position.x, position.y + boundary.y / 2), fan::vec2(boundary.x, boundary.y / 2), capacity);
+          horizontal[0] = new split_tree_t;
+          horizontal[0]->open(fan::vec2(position.x, position.y - boundary.y / 2), fan::vec2(boundary.x, boundary.y / 2), capacity);
+          horizontal[1] = new split_tree_t;
+          horizontal[1]->open(fan::vec2(position.x, position.y + boundary.y / 2), fan::vec2(boundary.x, boundary.y / 2), capacity);
         }
         else {
-          vertical[0] = new split_tree_t(fan::vec2(position.x - boundary.x / 2, position.y), fan::vec2(boundary.x / 2, boundary.y), capacity);
-          vertical[1] = new split_tree_t(fan::vec2(position.x + boundary.x / 2, position.y), fan::vec2(boundary.x / 2, boundary.y), capacity);
+          vertical[0] = new split_tree_t;
+          vertical[0]->open(fan::vec2(position.x - boundary.x / 2, position.y), fan::vec2(boundary.x / 2, boundary.y), capacity);
+          vertical[1] = new split_tree_t;
+          vertical[1]->open(fan::vec2(position.x + boundary.x / 2, position.y), fan::vec2(boundary.x / 2, boundary.y), capacity);
         }
         divided = true;
       }

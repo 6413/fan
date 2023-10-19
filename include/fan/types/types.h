@@ -79,7 +79,7 @@ struct address_wrapper_t {
 #if defined(__clang__)
 	#define fan_compiler_clang
 #elif defined(_MSC_VER)
-	#define fan_compiler_visual_studio
+	#define fan_compiler_msvc
 #elif defined(__GNUC__)
 	#define fan_compiler_gcc
 #endif
@@ -103,7 +103,7 @@ struct address_wrapper_t {
 #endif
 
 // TBD
-#if __cplusplus >= 202004L && defined(fan_compiler_visual_studio) && !defined(fan_compiler_clang)
+#if __cplusplus >= 202004L && defined(fan_compiler_msvc) && !defined(fan_compiler_clang)
 	#define fan_std23
 #endif
 
@@ -308,88 +308,56 @@ namespace fan {
 
 namespace fan {
 
-  template <class T>
-  constexpr T unsafe_declval() noexcept {
-    typename std::remove_reference<T>::type* ptr = nullptr;
-    return static_cast<T>(*ptr);
-  }
-
-  struct lref_constructor_t {
-    template <class Type> constexpr operator Type& () const&& {
-      return unsafe_declval<Type&>();
-    }
-    std::size_t pad;
+  template<size_t a, size_t b> struct assert_equality {
+    static_assert(a == b, "Not equal");
+    static constexpr bool result = (a == b);
   };
 
-  template <std::size_t Index>
-  using sintegral_constant_t = std::integral_constant<std::size_t, Index>;
+  template <size_t a, size_t b>
+  constexpr bool assert_equality_v = assert_equality<a, b>::result;
 
-  template <class T, std::size_t... I>
-    requires std::copy_constructible<T>
-  constexpr auto enable_if_constructible_helper(std::index_sequence<I...>)
-    -> typename std::add_pointer<decltype(T{ lref_constructor_t{I}... }) > ::type;
+  namespace impl {
+    struct universal_type_t {
+      template <typename T>
+      operator T
+      // known to be needed with msvc only
+      #if defined(fan_compiler_msvc)
+        &
+      #endif
+      ();
+    };
 
-  template <class T, std::size_t N>
-    requires requires {
-    enable_if_constructible_helper<T>(std::make_index_sequence<N>());
-  }
-  using enable_if_constructible_helper_t = std::size_t;
+    template <typename T, typename... Args>
+    consteval auto member_count() {
+      //static_assert(std::is_aggregate_v<std::remove_cvref_t<T>>);
 
-  template <std::size_t Begin, std::size_t Last>
-  using is_one_element_range = std::integral_constant<bool, Begin == Last>;
-
-  template <class T, std::size_t Begin, std::size_t Middle>
-  constexpr std::size_t detect_fields_count(std::true_type, long) {
-    static_assert(Begin == Middle, "error");
-    return Begin;
-  }
-
-  template <class T, std::size_t Begin, std::size_t Middle>
-  constexpr std::size_t detect_fields_count(std::false_type, int);
-
-  template <class T, std::size_t Begin, std::size_t Middle>
-  constexpr auto detect_fields_count(std::false_type, long)
-    -> enable_if_constructible_helper_t<T, Middle> {
-    constexpr std::size_t next_v = Middle + (Middle - Begin + 1) / 2;
-    return detect_fields_count<T, Middle, next_v>(is_one_element_range<Middle, next_v>{}, 1L);
-  }
-
-  template <class T, std::size_t Begin, std::size_t Middle>
-  constexpr std::size_t detect_fields_count(std::false_type, int) {
-    constexpr std::size_t next_v = Begin + (Middle - Begin) / 2;
-    return detect_fields_count<T, Begin, next_v>(is_one_element_range<Begin, next_v>{}, 1L);
-  }
-
-  template <class T, std::size_t N>
-  constexpr auto detect_fields_count_dispatch(sintegral_constant_t<N>, long, int)
-    -> decltype(sizeof(T{}))
-  {
-    constexpr std::size_t middle = N / 2 + 1;
-    return detect_fields_count<T, 0, middle>(std::false_type{}, 1L);
+      if constexpr (requires {T{{Args{}}..., {universal_type_t{}}}; } == false) {
+        return sizeof...(Args);
+      }
+      else {
+        return member_count<T, Args..., universal_type_t>();
+      }
+    }
   }
 
   template <class T>
   constexpr std::size_t count_struct_members() {
-    static_assert(std::is_aggregate<T>::value || std::is_scalar<T>::value,
-      "type must not have custom constructor"
-      );
-
-    return detect_fields_count_dispatch<T>(sintegral_constant_t<sizeof(T) * 8>{}, 1L, 1L);
+    return impl::member_count<T>();
   }
 
 
   #define __FAN_REF_EACH(x) std::ref(x)
   #define __FAN_NREF_EACH(x) x
   #define GENERATE_CALL_F(count, ...) \
-template <std::size_t n, typename T> \
-requires (count == n) \
+template <std::size_t _N, typename T> \
+requires (count == _N) \
 auto generate_variable_list_ref(T& struct_value) { \
     auto& [__VA_ARGS__] = struct_value; \
     return std::make_tuple(__FAN__FOREACH_NS(__FAN_REF_EACH, __VA_ARGS__)); \
 }\
-template <std::size_t n, typename T> \
-requires (count == n) \
-auto generate_variable_list_nref(T struct_value) { \
+template <std::size_t _N, typename T> \
+requires (count == _N) \
+auto generate_variable_list_nref(const T& struct_value) { \
   \
     auto [__VA_ARGS__] = struct_value; \
     return std::make_tuple(__FAN__FOREACH_NS(__FAN_NREF_EACH, __VA_ARGS__)); \
@@ -428,6 +396,7 @@ auto generate_variable_list_nref(T struct_value) { \
 
   template <typename T>
   constexpr auto make_struct_tuple_ref(T& st) {
+    static_assert(count_struct_members<T>() <= 30, "struct limited to 30");
     return generate_variable_list_ref<count_struct_members<T>()>(st);
   }
 
@@ -442,19 +411,19 @@ auto generate_variable_list_nref(T struct_value) { \
   //  return generate_variable_list_ref<count_struct_members<T>()>(s);
   //}
 
-  template <typename T>
+ /* template <typename T>
   constexpr auto make_struct_tuple(const T& st) {
-    T s;
-    return generate_variable_list_nref<count_struct_members<T>()>(s);
+    fan::assert_equality_v< count_struct_members<T>(), 3>();
+    return generate_variable_list_nref<count_struct_members<T>()>(st);
   }
 
   template <typename T, typename F, std::size_t... I>
   void iterate_struct_impl(const T& st, F lambda, std::index_sequence<I...>) {
-    auto tuple = make_struct_tuple_ref(st);
+    auto tuple = make_struct_tuple(st);
     std::apply([&lambda](const auto&...args) {
       (lambda.template operator() < I > (std::forward<decltype(args)>(args)), ...);
       }, tuple);
-  }
+  }*/
 
   template <typename T, typename F, std::size_t... I>
   void iterate_struct_impl(T& st, F lambda, std::index_sequence<I...>) {
@@ -506,11 +475,13 @@ auto generate_variable_list_nref(T struct_value) { \
 	}
 
   template <typename T>
-  constexpr fan::string struct_to_string(const T& st) {
+  constexpr fan::string struct_to_string(T& st) {
     fan::string formatted_string = "{";
-    iterate_struct(st, [&formatted_string]<auto i>(auto & v) {
-      formatted_string += std::format("\n  Iteration {}:\n    Type:{}\n    Value:{}",
-        i, typeid(std::remove_reference_t<decltype(v)>).name(), v
+    iterate_struct(st, [&formatted_string]<std::size_t i>(auto & v) {
+      std::ostringstream os;
+      os << v;
+      formatted_string += fmt::format("\n  Iteration {}:\n    Type:{}\n    Value:{}",
+        i, typeid(std::remove_reference_t<decltype(v)>).name(), os.str()
       );
       formatted_string += "\n";
       if constexpr (i + 1 != count_struct_members<T>()) {
@@ -551,52 +522,15 @@ auto generate_variable_list_nref(T struct_value) { \
   template <>
   struct is_fan_vec3<fan::vec3> : std::true_type {};
 
-  template <typename T>
-  FMT_INLINE auto convert_if_fan_vec3(T&& arg) -> decltype(std::forward<T>(arg)) {
-    return std::forward<T>(arg);
-  }
-
-  FMT_INLINE const char* convert_if_fan_vec3(fan::vec3&& arg) {
-    return arg.to_string().c_str();
-  }
-
-  template <typename... T>
-  static FMT_INLINE auto format(fmt::format_string<T...> fmt, T&&... args)
-    -> fan::string {
-    return fmt::vformat(fmt, fmt::make_format_args(args...));
-  }
-
   template <typename... args_t>
-  constexpr static auto print_format(std::format_string<args_t...> fmt, args_t&&... args) {
-    fan::print(std::format(fmt, std::forward<args_t>(args)...));
+  constexpr static auto print_format(fmt::format_string<args_t...> fmt, args_t&&... args) {
+    fan::print(fmt::format(fmt, std::forward<args_t>(args)...));
   }
   
-  template <typename T>
-  static FMT_INLINE void print_data_one(fmt::format_string<fmt::join_view<uint8_t*, uint8_t*, char>> fmt, T arg) {
-    fan::print(fmt::format(fmt, fmt::join((uint8_t*)&arg,
-      (uint8_t*)&arg + sizeof(std::remove_pointer_t<T>), " ")));
-  }
-
-  static FMT_INLINE void print_data(fmt::format_string<fmt::join_view<uint8_t*, uint8_t*, char>> fmt, auto&&... args) {
-    ((print_data_one(fmt, args)), ...);
-  }
-
 	template <typename ...Args>
 	constexpr void wprint(const Args&... args) {
 		((std::wcout << args << " "), ...) << '\n';
 	}
-
-  template <typename... T>
-  static void throw_error_format(fmt::format_string<T...> fmt, T&&... args) {
-    fan::print_format(fmt, args...);
-    #ifdef fan_compiler_visual_studio
-    system("pause");
-    #endif
-    #if __cpp_exceptions
-    throw std::runtime_error("");
-    #endif
-    //exit(1);
-  }
 
 
   template<std::size_t I, typename... Args>
@@ -613,7 +547,7 @@ auto generate_variable_list_nref(T struct_value) { \
   template <typename ...Args>
   static void throw_error(const Args&... args) {
     fan::print(args...);
-    #ifdef fan_compiler_visual_studio
+    #ifdef fan_compiler_msvc
     system("pause");
     #endif
     #if __cpp_exceptions
@@ -1142,12 +1076,4 @@ using __nameless_type_t = fan::assign_wrapper_t<T...>;
 
 namespace fan {
   #define temporary_struct_maker(data) __return_type_of<decltype([]{ struct {data}v; return v; })>
-
-  template<size_t a, size_t b> struct assert_equality {
-    static_assert(a == b, "Not equal");
-    static constexpr bool result = (a == b);
-  };
-
-  template <size_t a, size_t b>
-  constexpr bool assert_equality_v = assert_equality<a, b>::result;
 }
