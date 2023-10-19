@@ -42,3 +42,4 @@ x64/Debug
 a.out
 .vs/fan/v17/HierarchyCache.v1.txt
 .vs/fan/v17/fileList.bin
+*.pch
