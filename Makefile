@@ -1,44 +1,49 @@
 #release
-GPP = clang++ -static
+GPP = clang++ -I C:\libs -Dstage_loader_path=. -I include/nvidia -I .
 #debug for address sanitizer
-#GPP = clang-cl /std:c++latest -v -g -fsanitize=address -fsanitize=address /MD "C:\Program Files\LLVM\lib\clang\14.0.0\lib\windows\clang_rt.asan_cxx-x86_64.lib"
+#GPP = clang-cl /MT -fsanitize=address  /std:c++latest
 
+#-Wall -Wextra -Wshadow -Wconversion -Wpedantic -Werror
 
-DEBUGFLAGS = 
-RELEASEFLAGS = -s -fdata-sections -ffunction-sections -Wl -mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -O3 -Os #-fno-exceptions -fno-rtti -flto -fno-unroll-loops -mllvm --enable-merge-functions 
+CFLAGS = -ferror-limit=3 -w -I .  -std=c++2a -I include #-O3 -march=native -mtune=native \
+  #-fsanitize=address -fno-omit-frame-pointer
 
-#-Wall -Wextra -Wshadow -Wpedantic -Werror -Wno-nested-anon-types
+MAIN = Source.cpp
 
-CFLAGS = -g -w -std=c++2a -I include #$(RELEASEFLAGS) #-Wl #-fPIE  
-   
+TARGET = a.out
 
-BASE_PATH =
+FAN_OBJECT_FOLDER = 
 
-FAN_OBJECT_FOLDER=
+LIBS =
+
+BASE_PATH = 
+
+FAN_LIB =
 
 ifeq ($(OS),Windows_NT)
-	AR = llvm-ar
-	RM = del 
-	LIBNAME = fan_windows_clang.a
-  BASE_PATH +=C:/libs/fan/lib/fan/
+  BASE_PATH += lib/fan/
+    #                        magic - replace / with \ thanks to windows
   FAN_OBJECT_FOLDER = $(subst /,\,$(BASE_PATH))
+	FAN_INCLUDE_PATH = C:/libs/fan/include
+	FAN_LIB += fan_windows_clang
+  CFLAGS += -I C:/libs/fan/src/libwebp -I C:/libs/fan/src/libwebp/src C:/libs/fan/lib/libwebp/libwebp.a C:/libs/fan/lib/opus/libopus.a
+	CFLAGS += -DFAN_INCLUDE_PATH=$(FAN_INCLUDE_PATH)
 else
   BASE_PATH += lib/fan/
-	CFLAGS += -DFAN_INCLUDE_PATH=/usr/include -I /usr/local/include
-	AR = ar
-	RM = rm -f
-	LIBNAME = fan.a
-  FAN_OBJECT_FOLDER = $(BASE_PATH)
+  FAN_OBJECT_FOLDER += $(BASE_PATH)
+  CFLAGS += -lX11 -lXrandr -L /usr/local/lib -lopus -L/usr/lib/x86_64-linux-gnu/libGL.so.1 -lwebp -ldl
+  CFLAGS += -DFAN_INCLUDE_PATH=/usr/include/
+	FAN_LIB += fan
 endif
 
-all: fan_window.o run
+PCH_PATH = pch.h
+CFLAGS += -Dfan_pch=\"$(PCH_PATH)\"
 
-LIBS = $(FAN_OBJECT_FOLDER)fan_window.o
+debug:
+	$(GPP) $(CFLAGS) -include-pch $(PCH_PATH).gch $(MAIN)
 
-fan_window.o:  src/fan/window/window.cpp
-	$(GPP) $(CFLAGS) -c src/fan/window/window.cpp -o $(FAN_OBJECT_FOLDER)fan_window.o
+release:
+	$(GPP) $(CFLAGS) -include-pch $(PCH_PATH).gch $(MAIN) -s -O3
+
 clean:
-	$(RM) $(FAN_OBJECT_FOLDER)fan_*.o
-
-run:	$(LIBS)
-	$(AR) rvs $(FAN_OBJECT_FOLDER)$(LIBNAME) $(LIBS)
+	rm -f a.out

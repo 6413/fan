@@ -4,20 +4,7 @@
   #define FAN_INCLUDE_PATH C:/libs/fan/include
 #endif
 #define fan_debug 1
-#include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
-
-#define fan_windows_subsystem fan_windows_subsystem_windows
-
-//#define loco_vulkan
-
-#define loco_window
-#define loco_context
-#define loco_var_name loco
-#define loco_line
-#define loco_button
-#define loco_sprite
-#define loco_dropdown
-#include _FAN_PATH(graphics/loco.h)
+#include fan_pch
 
 struct pile_t {
   loco_t loco_var_name;

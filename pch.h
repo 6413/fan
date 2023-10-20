@@ -18,10 +18,15 @@
 #define loco_window
 #define loco_context
 
-#define loco_window
-#define loco_context
 #define loco_line
 #define loco_button
 #define loco_sprite
 #define loco_dropdown
+
+/*
+#define loco_cuda
+#define loco_nv12
+#define loco_pixel_format_renderer
+*/
+
 #include _FAN_PATH(graphics/loco.h)

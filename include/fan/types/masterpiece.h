@@ -459,7 +459,7 @@ namespace fan {
       return &std::get<0>(get_tuple());
     }
     constexpr auto end() {
-      static constexpr std::size_t n = std::tuple_size_v<decltype(get_tuple())>;
+      constexpr std::size_t n = std::tuple_size_v<decltype(get_tuple())>;
       return begin() + sizeof(T) - sizeof(decltype(std::get<n - 1>(get_tuple())));
     }
 
@@ -474,7 +474,7 @@ namespace fan {
 
     constexpr void get_value(size_t idx, const auto& lambda)
     {
-      static constexpr std::size_t n = std::tuple_size_v<decltype(get_tuple())>;
+      constexpr std::size_t n = std::tuple_size_v<decltype(get_tuple())>;
       internal_get_runtime_value(std::make_index_sequence<n>{}, idx, lambda);
     }
 

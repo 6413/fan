@@ -8,12 +8,12 @@ namespace fan_2d {
 
 		namespace rectangle {
 
-			constexpr bool point_inside(const fan::vec2& p1, const fan::vec2& p2, const fan::vec2& p3, const fan::vec2& p4, const fan::vec2& point) {
+      static constexpr bool point_inside(const fan::vec2& p1, const fan::vec2& p2, const fan::vec2& p3, const fan::vec2& p4, const fan::vec2& point) {
 				return fan_2d::collision::triangle::point_inside(p1, p2, p4, point) || fan_2d::collision::triangle::point_inside(p1, p3, p4, point);
 			}
 
       // size is half
-			constexpr bool point_inside_no_rotation(const fan::vec2& point, const fan::vec2& position, const fan::vec2& size) {
+			static constexpr bool point_inside_no_rotation(const fan::vec2& point, const fan::vec2& position, const fan::vec2& size) {
         return
           
          /* fan::math::abs(point.x - position.x) <= size.x &&
@@ -40,7 +40,7 @@ namespace fan_2d {
 					 | x | x |
 			     |---|---|
 			*/
-			uint8_t get_side_collision(const fan::vec2& point, const fan::vec2& p, const fan::vec2& s) {
+      static uint8_t get_side_collision(const fan::vec2& point, const fan::vec2& p, const fan::vec2& s) {
 				if (point.x <= p.x && point.y <= p.y) {
 					return sides_e::top_left;
 				}

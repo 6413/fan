@@ -1,12 +1,7 @@
-#define _INCLUDE_TOKEN(p0, p1) <p0/p1>
-
-#ifndef FAN_INCLUDE_PATH
-#define FAN_INCLUDE_PATH C:/libs/fan/include
-#endif
-#define fan_debug 2
-#include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
-
+#include fan_pch
+// todo add this to pch if needed
 #define fan_unit_test
+
 
 struct idlist_output_t {
   struct {
@@ -20,15 +15,6 @@ struct idlist_output_t {
 
 std::unordered_map<uint32_t, idlist_output_t> idlist;
 
-#define loco_window
-#define loco_context
-#define loco_rectangle
-#define loco_circle
-#define loco_line
-#define loco_letter
-//#define loco_button
-#define loco_sprite
-#include _FAN_PATH(graphics/loco.h)
 
 struct pile_t {
 

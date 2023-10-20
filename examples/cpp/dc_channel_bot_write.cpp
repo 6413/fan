@@ -1,3 +1,5 @@
+#include fan_pch
+
 #include <WITCH/WITCH.h>
 
 #include <WITCH/PR/PR.h>
@@ -25,12 +27,6 @@ void print(const char* format, ...) {
 
 #include <WITCH/STR/psu.h>
 #include <WITCH/STR/pss.h>
-
-#define _INCLUDE_TOKEN(p0, p1) <p0/p1>
-
-#define FAN_INCLUDE_PATH C:/libs/fan/include
-#define fan_debug 0
-#include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
 
 typedef struct {
   NET_TCP_t* tcp;

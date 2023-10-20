@@ -72,18 +72,20 @@ struct address_wrapper_t {
 // override to utf-8 - if file already utf8 it breaks somehow, probably msvc bug
 #pragma execution_character_set("utf-8")
 
+#if defined(__clang__)
+  #define fan_compiler_clang
+#elif defined(__GNUC__)
+  #define fan_compiler_gcc
+#endif
+
 #if defined(_WIN32) || defined(_WIN64)
 
 //constexpr platform_t platform = platform_t::windows;
-#define fan_platform_windows
+  #define fan_platform_windows
 
-#if defined(__clang__)
-	#define fan_compiler_clang
-#elif defined(_MSC_VER)
-	#define fan_compiler_msvc
-#elif defined(__GNUC__)
-	#define fan_compiler_gcc
-#endif
+  #if defined(_MSC_VER)
+	  #define fan_compiler_msvc
+  #endif
 #elif defined(__ANDROID__ )
 	#define fan_platform_android
 #elif defined(__linux__)

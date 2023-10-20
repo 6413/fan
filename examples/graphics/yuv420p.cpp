@@ -1,21 +1,4 @@
-#define _INCLUDE_TOKEN(p0, p1) <p0/p1>
-
-#define FAN_INCLUDE_PATH C:/libs/fan/include
-#define fan_debug 2
-#include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
-
-//#define loco_vulkan
-
-#define loco_window
-#define loco_context
-
-
-#define loco_sprite
-#define loco_yuv420p
-//#define loco_nv12
-//#define loco_cuda
-#define loco_pixel_format_renderer
-#include _FAN_PATH(graphics/loco.h)
+#include fan_pch
 
 constexpr uint32_t count = 1;
 

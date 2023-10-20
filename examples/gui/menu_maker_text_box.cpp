@@ -1,19 +1,4 @@
-// rectangle text button using loco
-
-#define _INCLUDE_TOKEN(p0, p1) <p0/p1>
-
-#ifndef FAN_INCLUDE_PATH
-  #define FAN_INCLUDE_PATH C:/libs/fan/include
-#endif
-#include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
-
-//#define loco_vulkan
-
-#define loco_window
-#define loco_context
-
-#define loco_menu_maker_text_box
-#include _FAN_PATH(graphics/loco.h)
+#include fan_pch
 
 struct pile_t {
 

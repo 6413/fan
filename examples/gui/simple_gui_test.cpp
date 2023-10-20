@@ -1,11 +1,4 @@
-#define loco_window
-#define loco_context
-
-//#define loco_post_process
-#define loco_rectangle
-#define loco_button
-#include <global_pch.h>
-
+#include fan_pch
 
 int main() {
   fan::trees::split_tree_t qt;
