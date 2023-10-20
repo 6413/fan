@@ -33,6 +33,7 @@
 #include <regex>
 #include <charconv>
 #include <tuple>
+#include <ranges>
 
 #pragma pack(push, 1)
 
@@ -411,11 +412,11 @@ auto generate_variable_list_nref(const T& struct_value) { \
   //  return generate_variable_list_ref<count_struct_members<T>()>(s);
   //}
 
- /* template <typename T>
+  template <typename T>
   constexpr auto make_struct_tuple(const T& st) {
-    fan::assert_equality_v< count_struct_members<T>(), 3>();
     return generate_variable_list_nref<count_struct_members<T>()>(st);
   }
+  /*
 
   template <typename T, typename F, std::size_t... I>
   void iterate_struct_impl(const T& st, F lambda, std::index_sequence<I...>) {
@@ -476,16 +477,28 @@ auto generate_variable_list_nref(const T& struct_value) { \
 
   template <typename T>
   constexpr fan::string struct_to_string(T& st) {
-    fan::string formatted_string = "{";
-    iterate_struct(st, [&formatted_string]<std::size_t i>(auto & v) {
-      std::ostringstream os;
-      os << v;
-      formatted_string += fmt::format("\n  Iteration {}:\n    Type:{}\n    Value:{}",
-        i, typeid(std::remove_reference_t<decltype(v)>).name(), os.str()
-      );
-      formatted_string += "\n";
-      if constexpr (i + 1 != count_struct_members<T>()) {
+    fan::string formatted_string = "{\n";
+    iterate_struct(st, [&formatted_string, &st]<std::size_t i, typename T2>(T2& v) {
+     // static_assert(is_printable_v<T2>, "struct member missing operator<< or not printable");
+      if constexpr (!is_printable_v<T2>) {
+        auto f = struct_to_string(v);
+        std::string indented;
+        for (auto&& r : f | std::views::split('\n')) {
+          std::string_view line(&*r.begin(), std::ranges::distance(r));
+          indented += "  " + std::string(line) + '\n';
+        }
+        formatted_string += indented;
+      }
+      else {
+        std::ostringstream os;
+        os << v;
+        formatted_string += fmt::format("  Iteration {}: {{\n    Type:{}\n    Value:{}\n  }}",
+          i, typeid(T2).name(), os.str()
+        );
         formatted_string += "\n";
+        if constexpr (i + 1 != count_struct_members<T>()) {
+          formatted_string += "\n";
+        }
       }
     });
     formatted_string += "}";

@@ -156,9 +156,7 @@ int main() {
           sumx = -1;
         }
       }
-      //fan::struct_to_string(*qtp);
-      //fan::print("count", fan::count_struct_members<fan::trees::split_tree_t>());
-      fan::print(*qtp);
+
       float sectionSizex = 800.f / width_count;
       float centerPosx = ((tree_depth - 1) * sectionSizex) + (sectionSizex / 2);
 
