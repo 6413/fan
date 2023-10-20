@@ -1,19 +1,4 @@
-// Creates window, opengl context
-
-#define _INCLUDE_TOKEN(p0, p1) <p0/p1>
-
-#ifndef FAN_INCLUDE_PATH
-  #define FAN_INCLUDE_PATH C:/libs/fan/include
-#endif
-#define fan_debug 0
-#include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
-
-//#define loco_vulkan
-
-#define loco_window
-#define loco_context
-#include _FAN_PATH(graphics/loco.h)
-
+#include fan_pch
 struct pile_t {
   static constexpr fan::vec2 ortho_x = fan::vec2(-1, 1);
   static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);

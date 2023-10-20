@@ -1,8 +1,8 @@
-#include <global_pch.h>
+#include fan_pch
 
 int main() {
-  loco_t loco;
 
+  loco_t loco;
 
   fan::graphics::rectangle_t r{{
     .position = fan::vec2{0.2, 0.2},

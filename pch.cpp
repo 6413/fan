@@ -1,5 +1,12 @@
-#include "global_pch.h"
+#define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 
+#ifndef FAN_INCLUDE_PATH
+#define FAN_INCLUDE_PATH C:/libs/fan/include
+#endif
+#define fan_debug 0
+#include "pch.h"
+
+#if defined(loco_window)
 void fan::opengl::viewport_t::set(const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size) {
   viewport_position = viewport_position_;
   viewport_size = viewport_size_;
@@ -32,4 +39,5 @@ fan::opengl::viewport_list_NodeReference_t::viewport_list_NodeReference_t(fan::o
   NRI = viewport->viewport_reference.NRI;
 }
 
+#endif
 #endif

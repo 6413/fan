@@ -1,22 +1,4 @@
-#define _INCLUDE_TOKEN(p0, p1) <p0/p1>
-
-struct pile_t;
-
-#ifndef FAN_INCLUDE_PATH
-  #define FAN_INCLUDE_PATH C:/libs/fan/include
-#endif
-#define fan_debug 2
-#include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
-
-#define loco_opengl
-
-#define loco_window
-#define loco_context
-
-#define loco_rectangle
-#define loco_sprite
-#define loco_button
-#include _FAN_PATH(graphics/loco.h)
+#include fan_pch
 
 // in stagex.h getting pile from mouse cb
 // pile_t* pile = OFFSETLESS(OFFSETLESS(mb.vfi, loco_t, vfi), pile_t, gloco);
