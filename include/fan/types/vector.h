@@ -345,10 +345,10 @@ namespace fan {
 		friend std::ofstream& operator<<(std::ofstream& os, const _vec2<T>& vector);
 
     std::string to_string(int precision = 2) const {
-      return fmt::format(
-        "{{ {1:.{0}f}, {2:.{0}f} }}", 
-        precision, x, y
-      );
+      return "{" + 
+        fan::to_string(x, precision) + ", " + 
+        fan::to_string(y, precision) + 
+        "}";
     }
 
     std::string c_str(int precision = 2) const {
@@ -691,10 +691,11 @@ namespace fan {
 		friend std::ostream& operator<<(std::ostream& os, const _vec3<T>& vector);
 
     std::string to_string(int precision = 2) const {
-      return fmt::format(
-        "{{ {1:.{0}f}, {2:.{0}f}, {3:.{0}f} }}",
-        precision, x, y, z
-      );
+      return "{" +
+        fan::to_string(x, precision) + ", " +
+        fan::to_string(y, precision) + ", " +
+        fan::to_string(z, precision) +
+      "}";
     }
     std::string c_str(int precision = 2) const {
 			return to_string();
@@ -932,10 +933,12 @@ namespace fan {
 		friend std::ostream& operator<<(std::ostream& os, const _vec4<T>& vector);
 
     std::string to_string(int precision = 2) const {
-      return fmt::format(
-        "{{ {1:.{0}f}, {2:.{0}f}, {3:.{0}f} {4:.{0}f} }}",
-        precision, x, y, z, w
-      );
+      return "{" +
+        fan::to_string(x, precision) + ", " +
+        fan::to_string(y, precision) + ", " +
+        fan::to_string(z, precision) + ", " +
+        fan::to_string(w, precision) +
+        "}";
     }
 	};
 

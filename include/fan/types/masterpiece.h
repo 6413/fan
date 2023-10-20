@@ -420,3 +420,68 @@ namespace fan {
 //  static constexpr const char* object_name() { \
 //    return #obj; \
 //  }
+
+namespace fan {
+  template <typename T>
+  struct mp_t : T {
+    using type_t = T;
+
+    constexpr auto get_tuple() {
+      return fan::make_struct_tuple_ref(*(T*)this);
+    }
+    constexpr auto get_tuple() const {
+      return fan::make_struct_tuple(T());
+    }
+
+    template <std::size_t n>
+    constexpr auto& get() {
+      return std::get<n>(get_tuple());
+    }
+
+    constexpr type_t& get() {
+      return *(T*)this;
+    }
+
+    constexpr operator type_t() {
+      return *(T*)this;
+    }
+
+    constexpr operator auto() {
+      return get_tuple();
+    }
+
+    // []<auto i>(auto& v){}
+    constexpr void iterate(auto l) {
+      fan::iterate_struct(*(T*)this, l);
+    }
+
+    constexpr auto begin() {
+      return &std::get<0>(get_tuple());
+    }
+    constexpr auto end() {
+      static constexpr std::size_t n = std::tuple_size_v<decltype(get_tuple())>;
+      return begin() + sizeof(T) - sizeof(decltype(std::get<n - 1>(get_tuple())));
+    }
+
+    template<size_t ...Is>
+    constexpr void internal_get_runtime_value(std::index_sequence<Is...>, size_t i, const auto& lambda) {
+      ((void)(Is == i && (lambda(get<Is>()), true)), ...);
+    }
+
+    constexpr std::size_t size() const {
+      return std::tuple_size_v<decltype(get_tuple())>;
+    }
+
+    constexpr void get_value(size_t idx, const auto& lambda)
+    {
+      static constexpr std::size_t n = std::tuple_size_v<decltype(get_tuple())>;
+      internal_get_runtime_value(std::make_index_sequence<n>{}, idx, lambda);
+    }
+
+    friend std::ostream& operator<<(std::ostream& os, const mp_t<T>& m) {
+      os << fan::struct_to_string(*(T*)(&m));
+      return os;
+    }
+
+  };
+}
