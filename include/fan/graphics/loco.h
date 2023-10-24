@@ -2644,6 +2644,32 @@ inline void fan::opengl::viewport_t::set_viewport(const fan::vec2& viewport_posi
 
 namespace fan {
   namespace graphics {
+
+
+    struct line_properties_t {
+      loco_t::camera_t* camera = &gloco->default_camera;
+      loco_t::viewport_t* viewport = &gloco->default_viewport;
+      fan::vec3 src = fan::vec3(0, 0, 0);
+      fan::vec2 dst = fan::vec2(1, 1);
+      fan::color color = fan::color(1, 1, 1, 1);
+      bool blending = false;
+    };
+
+    struct line_t : loco_t::shape_t {
+      line_t(line_properties_t p = line_properties_t()) {
+        *(loco_t::shape_t*)this = loco_t::shape_t(
+          fan_init_struct(
+            loco_t::line_t::properties_t,
+            .camera = p.camera,
+            .viewport = p.viewport,
+            .src = p.src,
+            .dst = p.dst,
+            .color = p.color,
+            .blending = p.blending
+          ));
+      }
+    };
+
     struct rectangle_properties_t {
       loco_t::camera_t* camera = &gloco->default_camera;
       loco_t::viewport_t* viewport = &gloco->default_viewport;

@@ -5,7 +5,7 @@ namespace fan {
     struct quad_tree_t {
       fan::vec2 position;
       fan::vec2 boundary;
-      // how often to split
+
       uint32_t capacity;
       std::vector<fan::vec2> points;
 
@@ -66,89 +66,148 @@ namespace fan {
     };
 
     struct split_tree_t {
-      fan::vec2 position;
-      fan::vec2 boundary;
 
-      int direction = -1;
-      int split_side = -1;
+      enum class direction_e {
+        invalid = -1,
+        left,
+        right,
+        up,
+        down
+      };
 
-      uint32_t capacity;
-      std::vector<fan::vec2> points;
+      enum class split_side_e {
+        invalid = -1,
+        vertical,
+        horizontal,
+      };
 
-      split_tree_t* vertical[2]{ nullptr };
-      split_tree_t* horizontal[2]{ nullptr };
+      struct road_t {
+        uint32_t depth;
+        direction_e direction = direction_e::invalid;
+        split_side_e split_side = split_side_e::invalid;
+        bool root = false;
+      };
 
-      bool divided = false;
+      struct path_t : std::vector<road_t>{
 
-      void open(fan::vec2 position, fan::vec2 boundary, uint32_t n) {
-        this->position = position;
-        this->boundary = boundary;
-        this->capacity = n;
+      };
+
+      bool valid() const {
+        return depth != -1;
       }
 
-      void subdivide(int side) {
-        // todo free these
-        if (side == 0) {
-          horizontal[0] = new split_tree_t;
-          horizontal[0]->open(fan::vec2(position.x, position.y - boundary.y / 2), fan::vec2(boundary.x, boundary.y / 2), capacity);
-          horizontal[1] = new split_tree_t;
-          horizontal[1]->open(fan::vec2(position.x, position.y + boundary.y / 2), fan::vec2(boundary.x, boundary.y / 2), capacity);
+      void open(fan::vec2 position, fan::vec2 size, uint32_t n) {
+        this->position = position;
+        this->size = size;
+        this->capacity = n;
+        this->direction = direction_e::invalid;
+        this->divided = false;
+        depth = 0;
+      }
+
+      std::pair<fan::vec2, fan::vec2> get_position_size(const fan::vec2& p, direction_e direction) {
+        fan::vec2 new_size = size * 2;
+        switch (direction){
+          case direction_e::left: {
+            return {fan::vec2(p.x - new_size.x, p.y), fan::vec2(size.x, size.y)};
+          }
+          case direction_e::right:{
+            return {fan::vec2(p.x + new_size.x, p.y), fan::vec2(size.x, size.y)};
+          }
+          case direction_e::up: {
+            return {fan::vec2(p.x, p.y - new_size.y), fan::vec2(size.x, size.y)};
+          }
+          case direction_e::down: {
+            return {fan::vec2(p.x, p.y + new_size.y), fan::vec2(size.x, size.y)};
+          }
+        }
+      }
+
+      void subdivide(direction_e new_direction) {
+        if (new_direction != direction_e::invalid && !directions.empty()) {
+          fan::throw_error();
         }
         else {
-          vertical[0] = new split_tree_t;
-          vertical[0]->open(fan::vec2(position.x - boundary.x / 2, position.y), fan::vec2(boundary.x / 2, boundary.y), capacity);
-          vertical[1] = new split_tree_t;
-          vertical[1]->open(fan::vec2(position.x + boundary.x / 2, position.y), fan::vec2(boundary.x / 2, boundary.y), capacity);
+          directions.resize(4);
+        }
+        for (int i = 0; i < node_count; ++i) {
+          directions[i].size = size;
         }
         divided = true;
+        if (new_direction == direction_e::invalid) {
+          return;
+        }
+        auto pns = get_position_size(position, new_direction);
+        directions[(int)new_direction].open(pns.first, pns.second, capacity);
       }
 
-      int size = 0;
-
-      struct path_t {
-        uint32_t depth;
-        int dir;
-        int split_side;
-      };
-      // split side which side you want to get returned
-      std::vector<path_t> insert(std::vector<path_t>& path, int direction, int split_side, uint32_t depth = 0) {
+      path_t insert_impl(path_t& path, direction_e direction, split_side_e split_side, bool root, uint32_t depth_ = 0) {
 
         if (!divided) {
-          this->direction = direction;
-          this->split_side = split_side;
           subdivide(direction);
-          path.push_back({ path_t{depth, direction, -1} });
+          if (direction == direction_e::invalid) {
+            return {};
+          }
+          directions[(int)direction].direction = direction;
+          directions[(int)direction].depth = depth_;
+          // always insert to center
+          auto psn = get_position_size(fan::vec2(0, 0), direction);
+          directions[(int)direction].position = psn.first;
+          directions[(int)direction].size = psn.second;
+          path.push_back({ road_t{depth_, direction, split_side, root} });
           return path;
         }
-        else if (path.size() <= depth) {
-          subdivide(split_side);
-          divided = true;
-          this->split_side = split_side;
-          path.push_back({ path_t{depth, direction, -1} });
-          return path;
+        // follow path
+        else if (depth_ < path.size()) {
+          return directions[(int)path[depth_].direction].insert_impl(path, direction, split_side, root, depth_ + 1);
         }
-        else if (!path.empty()) {
-          if (path[depth].dir == 0) {
-            if (path[depth].split_side == (uint32_t)-1) {
-              path[depth].split_side = split_side;
-              horizontal[split_side]->insert(path, direction, split_side, depth + 1);
-            }
-            else {
-              horizontal[path[depth].split_side]->insert(path, direction, split_side, depth + 1);
-            }
+        // insert to current node
+        else {
+          int idirection = (int)direction;
+          // insert to center
+          auto psn = get_position_size(fan::vec2(0, 0), direction);
+          if (!directions[idirection].valid()) {
+            directions[idirection].open(psn.first, psn.second, capacity);
           }
-          else if (path[depth].dir == 1) {
-            if (path[depth].split_side == (uint32_t)-1) {
-              path[depth].split_side = split_side;
-              vertical[split_side]->insert(path, direction, split_side, depth + 1);
-            }
-            else {
-              vertical[path[depth].split_side]->insert(path, direction, split_side, depth + 1);
-            }
-          }
+          directions[idirection].direction = direction;
+          directions[idirection].depth = depth_;
+          path.push_back({road_t{depth_, direction, split_side, root}});
           return path;
         }
       }
+
+      path_t insert(const path_t& path, direction_e direction, bool root, uint32_t depth_ = 0) {
+        path_t p = path;
+        split_side_e ss;
+        switch (direction) {
+          case direction_e::left: 
+          case direction_e::right: {
+            ss = split_tree_t::split_side_e::vertical;
+            break;
+          }
+          case direction_e::up:
+          case direction_e::down: {
+            ss = split_tree_t::split_side_e::horizontal;
+            break;
+          }
+        }
+        return insert_impl(p, direction, ss, root, depth_);
+      }
+      int32_t depth = -1;
+      fan::vec2 position;
+      fan::vec2 size;
+
+      direction_e direction;
+
+      uint32_t capacity;
+
+      std::vector<fan::vec2> points;
+
+      static constexpr uint8_t node_count = 4;
+
+      std::vector<split_tree_t> directions;
+
+      bool divided;
     };
   }
 }
