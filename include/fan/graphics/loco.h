@@ -40,6 +40,7 @@ struct loco_t;
 #include _FAN_PATH(event/event.h)
 
 #include _FAN_PATH(trees/quad_tree.h)
+#include _FAN_PATH(graphics/divider.h)
 
 #include <variant>
 
@@ -604,7 +605,7 @@ public:
         fan::vec2 current_res = aspect_ratio_viewport->get_size();
 
         auto ortho = some_function(desired_res, current_res);
-        fan::print(ortho);
+        //fan::print(ortho);
 
         x = { -ortho.x, +ortho.x };
         y = { -ortho.y, +ortho.y };
