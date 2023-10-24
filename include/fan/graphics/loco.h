@@ -254,6 +254,15 @@ namespace fan {
 }
 #endif
 
+namespace fan {
+  namespace graphics {
+    using direction_e = fan::graphics::viewport_divider_t::direction_e;
+    struct camera_t;
+    static camera_t* add_camera(fan::graphics::direction_e split_direction);
+    inline camera_t* default_camera;
+  }
+}
+
 struct loco_t {
 
   struct position2_t : public  fan::vec2 {
@@ -1837,6 +1846,8 @@ public:
       fan::vec2(-1, 1),
       fan::vec2(-1, 1)
     );
+
+    fan::graphics::default_camera = fan::graphics::add_camera(fan::graphics::direction_e::right);
   }
 
   #if defined(loco_vfi)
@@ -2564,6 +2575,8 @@ public:
   loco_t::camera_t default_camera;
   loco_t::viewport_t default_viewport;
 
+  fan::graphics::viewport_divider_t viewport_divider;
+
   #undef make_global_function
   #undef fan_build_get
   #undef fan_build_set
@@ -2645,7 +2658,36 @@ inline void fan::opengl::viewport_t::set_viewport(const fan::vec2& viewport_posi
 
 namespace fan {
   namespace graphics {
+    struct camera_t {
 
+      camera_t() = default;
+      camera_t(fan::graphics::direction_e split_direction) {
+        fan::graphics::viewport_divider_t::iterator_t it = gloco->viewport_divider.insert(split_direction);
+        fan::vec2 p = it.parent->position;
+        fan::vec2 s = it.parent->size;
+
+        fan::vec2 window_size = gloco->get_window()->get_size();
+        gloco->open_viewport(&viewport, (p - s / 2) * window_size, (s)*window_size);
+        gloco->open_camera(&camera, fan::vec2(-1, 1), fan::vec2(-1, 1));
+      }
+      loco_t::camera_t camera;
+      loco_t::viewport_t viewport;
+    };
+    // use bll to avoid 'new'
+    inline std::vector<camera_t*> viewport_handler;
+    static camera_t* add_camera(fan::graphics::direction_e split_direction) {
+      viewport_handler.push_back(new camera_t(split_direction));
+      int index = 0;
+      fan::vec2 window_size = gloco->get_window()->get_size();
+      gloco->viewport_divider.iterate([&index, window_size](auto& node) {
+        viewport_handler[index]->viewport.set(
+          (node.position - node.size / 2) * window_size,
+          ((node.size) * window_size), window_size
+        );
+        index++;
+      });
+      return viewport_handler.back();
+    }
 
     struct line_properties_t {
       loco_t::camera_t* camera = &gloco->default_camera;
@@ -2672,8 +2714,7 @@ namespace fan {
     };
 
     struct rectangle_properties_t {
-      loco_t::camera_t* camera = &gloco->default_camera;
-      loco_t::viewport_t* viewport = &gloco->default_viewport;
+      fan::graphics::camera_t* camera = default_camera;
       fan::vec3 position = fan::vec3(0, 0, 0);
       fan::vec2 size = fan::vec2(0.1, 0.1);
       fan::color color = fan::color(1, 1, 1, 1);
@@ -2685,8 +2726,8 @@ namespace fan {
         *(loco_t::shape_t*)this = loco_t::shape_t(
           fan_init_struct(
             loco_t::rectangle_t::properties_t,
-            .camera = p.camera,
-            .viewport = p.viewport,
+            .camera = &p.camera->camera,
+            .viewport = &p.camera->viewport,
             .position = p.position,
             .size = p.size,
             .color = p.color,
