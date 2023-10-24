@@ -9,7 +9,7 @@ struct divider_t {
   struct window_t {
     fan::vec2d position = 0.5;
     fan::vec2d size = 1;
-    int vert_or_hori = 0;
+    direction_e direction = direction_e::right;
     int root_change_iterator = -1;
     std::vector<window_t> child;
   };
@@ -17,272 +17,156 @@ struct divider_t {
   struct iterator_t {
     std::size_t parent = -1;
     std::size_t child = -1;
-    int vert_or_hori = 0;
+    direction_e direction = direction_e::right;
   };
+
+  void insert_to_non_parent(direction_e direction) {
+    int idx = (int)direction;
+    f64_t width_height = 1.0 / (windows.empty() ? 1 : 2);
+    for (auto& i : windows) {
+      i.size[idx] /= 2;
+      i.position[idx] /= 2;
+      for (auto& j : i.child) {
+        j.size[idx] /= 2;
+        j.position[idx] /= 2;
+      }
+    }
+    windows.push_back({
+      .position = {0.5, 0.5}, 
+      .size = {1, 1}, 
+      .direction = direction
+    });
+    windows.back().position[idx] = 1.0 - width_height / 2;
+    windows.back().size[idx] = width_height;
+    ++size[idx];
+  }
+
+  iterator_t insert_to_non_child(direction_e direction, iterator_t it) {
+    divider_t::window_t* root = &windows[it.parent];
+
+    int idx = (int)direction;
+
+    f64_t rows_size = (1 + root->child.size());
+    f64_t width = 1.0 / (rows_size + 1);
+    if (!root->child.size()) {
+      root->size[idx] -= (width / rows_size * root->size[idx]);
+      root->position[idx] -= root->size[idx] / 2;
+    }
+
+    fan::vec2 parent_pos = root->position;
+    fan::vec2 parent_size = root->size;
+    for (auto& j : root->child) {
+      j.size[idx] -= width / rows_size * j.size[idx];
+      j.position[idx] -= j.size[idx] / 2;
+    }
+    if (root->child.size()) {
+      parent_size[idx] = root->child.back().size[idx];
+      parent_pos[idx] = root->child.back().position[idx] + parent_size[idx];
+    }
+    root->child.push_back({});
+
+    root->child.back().position[idx] = parent_pos[idx] + parent_size[idx];
+    root->child.back().position[(idx + 1) & 1] = parent_pos[(idx + 1) & 1];
+    root->child.back().size = parent_size;
+    root->child.back().direction = direction;
+
+    iterator_t ret;
+    ret.parent = it.parent;
+    ret.child = root->child.size() - 1;
+    ret.direction = direction;
+    return ret;
+  }
+
+  iterator_t insert_to_child(direction_e direction, iterator_t it) {
+    divider_t::window_t* root = &windows[it.parent];
+
+    int idx = (int)direction;
+    f64_t count = 0;
+    int root_idx = 0;
+    for (int j = windows[it.parent].child.size(); j--; ) {
+      if (root_idx == 0 && windows[it.parent].child[j].root_change_iterator != -1) {
+        root_idx = windows[it.parent].child[j].root_change_iterator;
+      }
+      if (root->child[j].direction == (direction_e)((idx + 1) & 1)) {
+        continue;
+      }
+      ++count;
+    }
+
+    f64_t rows_size = (1 + count);
+    f64_t width = 1.0 / (rows_size + 1);
+
+    if (root_idx == 0 && root->direction == direction) {
+      ++count;
+    }
+
+    if (root->child.size()) {
+      if (it.child == 0) {
+        if (root->direction != direction) {
+          root->direction = direction;
+        }
+      }
+      if (root->child[it.child].direction != direction) {
+        root_idx = it.child;
+        root->child[root_idx].root_change_iterator = root_idx;
+        root->child[root_idx].direction = direction;
+        ++count;
+      }
+    }
+    auto& current = root->child[root_idx];
+    divider_t::window_t* prev;
+    if (root_idx - 1 == -1) {
+      prev = root;
+    }
+    else {
+      prev = &root->child[root_idx - 1];
+    }
+    auto old_size = current.size[idx];
+    count = std::max(count, 1.0) + ((idx + 1) & 1);//+ idx
+    current.size[idx] = prev->size[idx] / count;
+    current.position[idx] -= (old_size - current.size[idx]) / 2;
+    root_idx += 1;
+    for (int j = root_idx; j < root->child.size(); ++j) {
+      auto& current = windows[it.parent].child[j];
+      current.size[idx] = root->child[root_idx - 1].size[idx];
+      current.position[idx] = root->child[j - 1].position[idx] + current.size[idx];
+    }
+    fan::vec2 parent_pos = root->child[it.child].position;
+    fan::vec2 parent_size = root->child[it.child].size;
+    root->child.push_back({});
+    root->child.back().position[idx] = parent_pos[idx] + parent_size[idx];
+    root->child.back().position[(idx + 1) & 1] = parent_pos[(idx + 1) & 1];
+    root->child.back().size = parent_size;
+    root->child.back().direction = direction;
+    iterator_t ret;
+    ret.parent = it.parent;
+    ret.child = root->child.size() - 1;
+    ret.direction = direction;
+    if (it.direction != ret.direction) {
+      root->child.back().root_change_iterator = root->child.size() - 2;
+    }
+    return ret;
+  }
 
   iterator_t insert(direction_e direction, iterator_t it = iterator_t()) {
     bool is_parent = it.parent != (std::size_t)-1;
     bool is_child = it.child != (std::size_t)-1;
-    if (direction == direction_e::right) {
-      if (!is_parent) {
-        f64_t width = 1.0 / (windows.empty() ? 1 : 2);
-        for (auto& i : windows) {
-          i.size.x /= 2;
-          i.position.x /= 2;
-          for (auto& j : i.child) {
-            j.size.x /= 2;
-            j.position.x /= 2;
-          }
-        }
-        windows.push_back({.position = {1.0 - width / 2, 0.5}, .size = {width, 1.0}, .vert_or_hori = 0});
-        ++size.x;
+
+    if (!is_parent) {
+      insert_to_non_parent(direction);
+    }
+    else {
+      if (!is_child) {
+        return insert_to_non_child(direction, it);
       }
       else {
-        if (!is_child) {
-          divider_t::window_t* root = &windows[it.parent];
-
-          f64_t rows_size = (1 + root->child.size());
-          f64_t width = 1.0 / (rows_size + 1);
-          if (!root->child.size()) {
-            root->size.x -= (width / rows_size * root->size.x);
-            root->position.x -= root->size.x / 2;
-          }
-
-          fan::vec2 parent_pos = root->position;
-          fan::vec2 parent_size = root->size;
-          for (auto& j : root->child) {
-            j.size.x -= width / rows_size * j.size.x;
-            j.position.x -= j.size.x / 2;
-          }
-          if (root->child.size()) {
-            parent_size.x = root->child[root->child.size() - 1].size.x;
-            parent_pos.x = root->child[root->child.size() - 1].position.x + parent_size.x;
-          }
-          //root->child.push_back({{parent_pos.x + parent_size.x / 2 - width / 2, 0.5}, {width, parent_size.y}});
-          root->child.push_back({
-            .position = {parent_pos.x + parent_size.x, parent_pos.y},
-            .size = {parent_size.x, parent_size.y},
-            .vert_or_hori = 0
-          });
-          iterator_t ret;
-          ret.parent = it.parent;
-          ret.child = root->child.size() - 1;
-          ret.vert_or_hori = 0;
-          return ret;
-        }
-        else {
-          divider_t::window_t* root = &windows[it.parent];
-
-          f64_t count_x = 0;
-          int root_y = 0;
-          bool has_split = false;
-          for (int j = windows[it.parent].child.size(); j--; ) {
-            if (root_y == 0 && windows[it.parent].child[j].root_change_iterator != -1) {
-              root_y = windows[it.parent].child[j].root_change_iterator;
-              has_split = true;
-            }
-            if (root->child[j].vert_or_hori == 1) {
-              continue;
-            }
-            ++count_x;
-          }
-
-          f64_t rows_size = (1 + count_x);
-          f64_t width = 1.0 / (rows_size + 1);
-
-          if (root_y == 0 && root->vert_or_hori == 0) {
-            ++count_x;
-          }
-
-          if (root->child.size()) {
-            if (it.child == 0) {
-              if (root->vert_or_hori != (int)direction) {
-                root->vert_or_hori = 0;
-              }
-            }
-            if (root->child[it.child].vert_or_hori != (int)direction) {
-              root_y = it.child;
-              root->child[root_y].root_change_iterator = root_y;
-              root->child[root_y].vert_or_hori = 0;
-              ++count_x;
-            }
-          }
-          auto& current = root->child[root_y];
-          divider_t::window_t* prev;
-          if (root_y - 1 == -1) {
-            prev = root;
-          }
-          else {
-            prev = &root->child[root_y - 1];
-          }
-          auto old_size = current.size.x;
-          count_x = std::max(count_x, 1.0) + 1;
-          current.size.x = prev->size.x / count_x;
-          current.position.x -= (old_size - current.size.x) / 2;
-          root_y += 1;
-          for (int j = root_y; j < root->child.size(); ++j) {
-            auto& current = windows[it.parent].child[j];
-            current.size.x = root->child[root_y - 1].size.x;
-            current.position.x = root->child[j - 1].position.x + current.size.x;
-          }
-          fan::vec2 parent_pos = root->child[it.child].position;
-          fan::vec2 parent_size = root->child[it.child].size;
-          root->child.push_back({
-            .position = {parent_pos.x + parent_size.x, parent_pos.y},
-            .size = {parent_size.x, parent_size.y},
-            .vert_or_hori = 0
-          });
-          iterator_t ret;
-          ret.parent = it.parent;
-          ret.child = root->child.size() - 1;
-          ret.vert_or_hori = 0;
-          if (it.vert_or_hori != ret.vert_or_hori) {
-            root->child[root->child.size() - 1].root_change_iterator = root->child.size() - 2;
-          }
-          return ret;
-        }
+        return insert_to_child(direction, it);
       }
-      iterator_t ret;
-      ret.vert_or_hori = 0;
-      ret.parent = windows.size() - 1;
-      return ret;
     }
-    if (direction == direction_e::down) {
-      if (!is_parent) {
-
-        f64_t height = 1.0 / (windows.empty() ? 1 : 2);
-        for (auto& i : windows) {
-          i.size.y /= 2;
-          i.position.y /= 2;
-          for (auto& j : i.child) {
-            j.size.y /= 2;
-            j.position.y /= 2;
-          }
-        }
-        windows.push_back({
-          .position = {0.5, 1.0 - height / 2},
-          .size = {1.0, height},
-          .vert_or_hori = 1
-        });
-        ++size.y;
-      }
-      else {
-        // doesnt support erase yet, use bll to support erase
-
-        // parent + children size
-        // ?
-
-        if (!is_child) {
-          divider_t::window_t* root = &windows[it.parent];
-
-          f64_t rows_size = (1 + root->child.size());
-          f64_t width = 1.0 / (rows_size + 1);
-          if (!root->child.size()) {
-            root->size.y -= (width / rows_size * root->size.y);
-            root->position.y -= root->size.y / 2;
-          }
-
-          fan::vec2 parent_pos = root->position;
-          fan::vec2 parent_size = root->size;
-          for (auto& j : root->child) {
-            j.size.y -= width / rows_size * j.size.y;
-            j.position.y -= j.size.y / 2;
-          }
-          if (root->child.size()) {
-            parent_size.y = root->child[root->child.size() - 1].size.y;
-            parent_pos.y = root->child[root->child.size() - 1].position.y + parent_size.y;
-          }
-          //root->child.push_back({{parent_pos.x + parent_size.x / 2 - width / 2, 0.5}, {width, parent_size.y}});
-          root->child.push_back({
-            .position = {parent_pos.x, parent_pos.y + parent_size.y},
-            .size = {parent_size.x, parent_size.y},
-            .vert_or_hori = 1
-          });
-          iterator_t ret;
-          ret.parent = it.parent;
-          ret.child = root->child.size() - 1;
-          ret.vert_or_hori = 1;
-          return ret;
-        }
-        else {
-          divider_t::window_t* root = &windows[it.parent];
-
-          f64_t count_y = 0;
-          int root_x = 0;
-          bool has_split = false;
-          for (int j = windows[it.parent].child.size(); j--;) {
-            if (j == -1) {
-              break;
-            }
-            if (root_x == 0 && windows[it.parent].child[j].root_change_iterator != -1) {
-              root_x = windows[it.parent].child[j].root_change_iterator;
-            }
-            if (root->child[j].vert_or_hori == 0) {
-              continue;
-            }
-            ++count_y;
-          }
-
-          f64_t columns_size = (1 + count_y);
-          f64_t height = 1.0 / (columns_size + 1);
-
-          if (root_x == 0 && root->vert_or_hori == 1) {
-            ++count_y;
-          }
-
-          if (root->child.size()) {
-            if (it.child == 0) {
-              if (root->vert_or_hori != (int)direction) {
-                root->vert_or_hori = 1;
-              }
-            }
-            if (root->child[it.child].vert_or_hori != (int)direction) {
-              root_x = it.child;
-              root->child[root_x].root_change_iterator = root_x;
-              root->child[root_x].vert_or_hori = 1;
-              //--count_y;
-            }
-          }
-          auto& current = root->child[root_x];
-          divider_t::window_t* prev;
-          if (root_x - 1 == -1) {
-            prev = root;
-          }
-          else {
-            prev = &root->child[root_x - 1];
-          }
-          auto old_size = current.size.y;
-          count_y = std::max(count_y, 1.0);
-          current.size.y = prev->size.y / count_y;
-          current.position.y -= (old_size - current.size.y) / 2;
-          root_x += 1;
-          for (int j = root_x; j < root->child.size(); ++j) {
-            auto& current = windows[it.parent].child[j];
-            current.size.y = root->child[root_x - 1].size.y;
-            current.position.y = root->child[j - 1].position.y + current.size.y;
-          }
-          fan::vec2 parent_pos = root->child[it.child].position;
-          fan::vec2 parent_size = root->child[it.child].size;
-          root->child.push_back({
-            .position = {parent_pos.x, parent_pos.y + parent_size.y},
-            .size = {parent_size.x, parent_size.y},
-            .vert_or_hori = 1
-          });
-          iterator_t ret;
-          ret.parent = it.parent;
-          ret.child = root->child.size() - 1;
-          ret.vert_or_hori = 1;
-          if (it.vert_or_hori != ret.vert_or_hori) {
-            root->child[root->child.size() - 1].root_change_iterator = root->child.size() - 2;
-          }
-          return ret;
-        }
-      }
-      iterator_t ret;
-      ret.parent = windows.size() - 1;
-      ret.vert_or_hori = 1;
-      return ret;
-    }
+    iterator_t ret;
+    ret.direction = direction;
+    ret.parent = windows.size() - 1;
+    return ret;
   }
 
   std::vector<window_t> windows;
@@ -300,16 +184,16 @@ int main() {
   };
 
   std::vector<node_t> nodes;
-  struct a_t {
-    divider_t::direction_e dir;
-    bool child = false;
-  };
 
-  std::vector<a_t> directions;
+  //auto it0 = d.insert(divider_t::direction_e::down);
+  //auto it1 = d.insert(divider_t::direction_e::down, it0);
+  //d.insert(divider_t::direction_e::down, it1);
+  //d.insert(divider_t::direction_e::right, it2);
+  //d.insert(divider_t::direction_e::right);
+  //d.insert(divider_t::direction_e::down, it2);
 
   auto i0 = d.insert(divider_t::direction_e::right);
   auto ii = d.insert(divider_t::direction_e::right, i0);
-  //d.insert(divider_t::direction_e::right, ii);
   d.insert(divider_t::direction_e::down);
   auto i1 = d.insert(divider_t::direction_e::down);
   auto i2 = d.insert(divider_t::direction_e::right, i1);
