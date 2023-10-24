@@ -347,6 +347,7 @@
     <ClInclude Include="include\fan\BDBT\internal\Key\rest.h" />
     <ClInclude Include="include\fan\BDBT\internal\rest.h" />
     <ClInclude Include="include\fan\event\event.h" />
+    <ClInclude Include="include\fan\graphics\divider.h" />
     <ClInclude Include="include\fan\graphics\gui\fgm\shapes.h" />
     <ClInclude Include="include\fan\graphics\gui\model_maker\loader.h" />
     <ClInclude Include="include\fan\graphics\gui\model_maker\maker.h" />
