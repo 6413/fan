@@ -11,6 +11,7 @@ struct divider_t {
     fan::vec2d size = 1;
     direction_e direction = direction_e::right;
     int root_change_iterator = -1;
+    fan::vec2 count = 0;
     std::vector<window_t> child;
   };
 
@@ -20,7 +21,7 @@ struct divider_t {
     direction_e direction = direction_e::right;
   };
 
-  void insert_to_non_parent(direction_e direction) {
+  void insert_to_root(direction_e direction) {
     int idx = (int)direction;
     f64_t width_height = 1.0 / (windows.empty() ? 1 : 2);
     for (auto& i : windows) {
@@ -38,10 +39,32 @@ struct divider_t {
     });
     windows.back().position[idx] = 1.0 - width_height / 2;
     windows.back().size[idx] = width_height;
-    ++size[idx];
+    ++windows.back().count[idx];
   }
 
-  iterator_t insert_to_non_child(direction_e direction, iterator_t it) {
+  iterator_t push_child(
+    divider_t::window_t* root, 
+    direction_e direction, 
+    iterator_t it, 
+    const fan::vec2& parent_pos, 
+    const fan::vec2& parent_size
+  ) {
+    int idx = (int)direction;
+    root->child.push_back({});
+
+    root->child.back().position[idx] = parent_pos[idx] + parent_size[idx];
+    root->child.back().position[(idx + 1) & 1] = parent_pos[(idx + 1) & 1];
+    root->child.back().size = parent_size;
+    root->child.back().direction = direction;
+
+    iterator_t ret;
+    ret.parent = it.parent;
+    ret.child = root->child.size() - 1;
+    ret.direction = direction;
+    return ret;
+  }
+
+  iterator_t insert_to_parent(direction_e direction, iterator_t it) {
     divider_t::window_t* root = &windows[it.parent];
 
     int idx = (int)direction;
@@ -63,18 +86,8 @@ struct divider_t {
       parent_size[idx] = root->child.back().size[idx];
       parent_pos[idx] = root->child.back().position[idx] + parent_size[idx];
     }
-    root->child.push_back({});
 
-    root->child.back().position[idx] = parent_pos[idx] + parent_size[idx];
-    root->child.back().position[(idx + 1) & 1] = parent_pos[(idx + 1) & 1];
-    root->child.back().size = parent_size;
-    root->child.back().direction = direction;
-
-    iterator_t ret;
-    ret.parent = it.parent;
-    ret.child = root->child.size() - 1;
-    ret.direction = direction;
-    return ret;
+    return push_child(root, direction, it, parent_pos, parent_size);
   }
 
   iterator_t insert_to_child(direction_e direction, iterator_t it) {
@@ -133,18 +146,13 @@ struct divider_t {
     }
     fan::vec2 parent_pos = root->child[it.child].position;
     fan::vec2 parent_size = root->child[it.child].size;
-    root->child.push_back({});
-    root->child.back().position[idx] = parent_pos[idx] + parent_size[idx];
-    root->child.back().position[(idx + 1) & 1] = parent_pos[(idx + 1) & 1];
-    root->child.back().size = parent_size;
-    root->child.back().direction = direction;
-    iterator_t ret;
-    ret.parent = it.parent;
-    ret.child = root->child.size() - 1;
-    ret.direction = direction;
-    if (it.direction != ret.direction) {
+  
+    auto ret = push_child(root, direction, it, parent_pos, parent_size);
+
+    if (it.direction != direction) {
       root->child.back().root_change_iterator = root->child.size() - 2;
     }
+
     return ret;
   }
 
@@ -153,11 +161,11 @@ struct divider_t {
     bool is_child = it.child != (std::size_t)-1;
 
     if (!is_parent) {
-      insert_to_non_parent(direction);
+      insert_to_root(direction);
     }
     else {
       if (!is_child) {
-        return insert_to_non_child(direction, it);
+        return insert_to_parent(direction, it);
       }
       else {
         return insert_to_child(direction, it);
@@ -170,7 +178,6 @@ struct divider_t {
   }
 
   std::vector<window_t> windows;
-  fan::vec2 size = 0;
 };
 
 int main() {
