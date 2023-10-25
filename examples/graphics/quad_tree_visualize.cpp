@@ -12,15 +12,16 @@ int main() {
 
   loco_t loco;
 
-  std::vector<loco_t::simple_rectangle_t> rectangles;
-  std::vector<loco_t::simple_rectangle_t> points;
+  std::vector<fan::graphics::rectangle_t> rectangles;
+  std::vector<fan::graphics::rectangle_t> points;
 
   fan::trees::quad_tree_t* qtp = &qt;
 
   int index = 0;
-  auto l = [&rectangles, &index, &points](this const auto& l, fan::trees::quad_tree_t* qtp) -> void {
+  fan::function_t<void(fan::trees::quad_tree_t* qtp)> l;
+  l = [&l, &rectangles, &index, &points](fan::trees::quad_tree_t* qtp) -> void {
     // put this inside else divided 
-    rectangles.push_back(loco_t::simple_rectangle_t{ {
+    rectangles.push_back(fan::graphics::rectangle_t{ {
       .position = fan::vec3(qtp->position * 2 - 1, index++),
       .size = qtp->boundary * 2, // because coordinate is -1 -> 1 so * 2 when viewport size is 0-1
       .color = fan::random::color() - fan::vec4(0, 0, 0, 0.5)
@@ -34,7 +35,7 @@ int main() {
       l(qtp->south_east);
     }
     for (auto& i : qtp->points) {
-      points.push_back(loco_t::simple_rectangle_t{ {
+      points.push_back(fan::graphics::rectangle_t{ {
           .position = fan::vec3(i * 2 - 1, index),
           .size = fan::vec2(0.003), // because coordinate is -1 -> 1 so * 2 when viewport size is 0-1
           .color = fan::colors::white
@@ -48,7 +49,7 @@ int main() {
 
   loco.loop([&] {
 
-    });
+  });
 
   return 0;
 }

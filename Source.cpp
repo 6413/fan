@@ -1,43 +1,57 @@
 #include fan_pch
 
+#include <algorithm>
+
+std::vector<int> f(std::vector<int>& v, int desired) {
+  std::vector<int> v2 = v;
+  int total = std::accumulate(v.begin(), v.end(), 0);
+  int num_elements = v.size();
+
+  if (total == desired) {
+    return v;
+  }
+
+  int average = desired / num_elements;
+  int remainder = desired % num_elements;
+
+  for (int& num : v) {
+    if (num > average) {
+      num = average;
+    }
+    else if (remainder > 0 && num == average) {
+      num++;
+      remainder--;
+    }
+  }
+
+  int sum = 0;
+  int i = 0;
+  while (sum != desired) {
+    sum = 0;
+    for (int i = 0; i < v.size(); ++i) {
+      if (v2[i] > v[i]) {
+        v[i]++;
+      }
+      sum += v[i];
+    }
+  }
+
+  return v;
+}
+
 
 int main() {
-  //system("make -f make_pch");
-  //"C:\Program Files\Microsoft Visual Studio\2000\VC\Tools\MSVC\14.37.32705\bin\Hostx64\x64\cl.exe"
-  // assumes pch is built
-  fan::string copy_str = "copy \"a.exe\" \"test/here.exe\"";
-  fan::string make_str = "make -f build_projects";
-  //
-  //system();
-  fan::string prev_copy = "here";
-  int x = 0;
-  auto extract_file_name = [](const fan::string& path) -> fan::string {
-    auto found = path.find(".cpp");
-    if (found == fan::string::npos) {
-      return "";
-    }
-    //found += strlen(".cpp");
-    fan::string file_name;
-    std::size_t off = path.rfind("/", found);
-    off += 1;
-    file_name = path.substr(off, found - off);
-    return file_name;
-  };
-
-  fan::io::iterate_directory("examples/graphics", [&](const fan::string path) {
-    
-    fan::string file;
-    fan::io::file::read("build_projects", &file);
-    fan::string file_name = extract_file_name(path);
-    fan::string file_make_name = extract_file_name(file);
-    file.replace_all(file_make_name, file_name);
-    fan::io::file::write("build_projects", file, std::ios_base::binary);
-    system(make_str.c_str());
-    fan::string temp = file_name;
-    copy_str.replace_all(prev_copy, temp);
-    system(copy_str.c_str());
-    prev_copy = file_name;
-    system("del a.exe");
-    //system("make -f build_projects");
-  });
+  int desired = 100;
+  std::vector<int> input{45, 2, 88};
+  fan::print("desired:", desired);
+  fan::print_no_endline("input:");
+  for (auto i : input) {
+    fan::print_no_endline(i);
+  }
+  auto o = f(input, desired);
+  fan::print("");
+  fan::print_no_endline("output:");
+  for (auto i : o) {
+    fan::print_no_endline(i);
+  }
 }
