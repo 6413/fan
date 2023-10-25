@@ -19,9 +19,11 @@
 #define loco_context
 
 #define loco_line
+#define loco_circle
 #define loco_button
 #define loco_sprite
 #define loco_dropdown
+#define loco_pixel_format_renderer
 
 /*
 #define loco_cuda

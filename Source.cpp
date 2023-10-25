@@ -1,13 +1,8 @@
 #include fan_pch
 
+
 int main() {
+  fan::io::iterate_directory("examples/graphics.cpp", [](const fan::string path) {
 
-  loco_t loco;
-
-  fan::graphics::rectangle_t r{{
-    .position = fan::vec2{0.2, 0.2},
-    .size = 0.3
-  }};
-
-  loco.loop([] {});
+  });
 }

@@ -36,7 +36,7 @@ int main() {
   pile_t* pile = new pile_t;
 
   loco_t::shape_t circle = fan_init_struct(
-    loco_t::circle_t::properties_t,
+    typename loco_t::circle_t::properties_t,
     .camera = &pile->camera,
     .viewport = &pile->viewport,
     .position = fan::vec2(0, 0),
