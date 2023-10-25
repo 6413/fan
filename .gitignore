@@ -44,3 +44,5 @@ a.out
 .vs/fan/v17/fileList.bin
 *.pch
 *.gch
+a.exp
+a.lib

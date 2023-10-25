@@ -22,10 +22,10 @@ int main() {
     off += 1;
     file_name = path.substr(off, found - off);
     return file_name;
-  };
+    };
 
   fan::io::iterate_directory("examples/graphics", [&](const fan::string path) {
-    
+
     fan::string file;
     fan::io::file::read("build_projects", &file);
     fan::string file_name = extract_file_name(path);
