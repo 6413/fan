@@ -1033,8 +1033,8 @@ namespace fan {
   namespace math {
     fan::vec2 reflect(const auto& Direction, const auto& Normal) {
       auto k = fan::math::cross(fan::vec3{ Normal.x, Normal.y, 0 }, fan::vec3{ 0, 0, -1 });
-      f32_t Multipler = k.dot(fan::vec3{ Direction.x, Direction.y, 0 });
-      return fan::vec2( k.x * Multipler, k.y * Multipler);
+      f32_t multiplier = k.dot(fan::vec3{ Direction.x, Direction.y, 0 });
+      return fan::vec2( k.x * multiplier, k.y * multiplier);
     }
   }
 }

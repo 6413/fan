@@ -148,6 +148,9 @@ struct circle_t {
     sb_set_context_key<decltype(n)>(id, n);
   }
 
+  fan::vec2 get_size(loco_t::cid_nt_t& id) {
+    return sb_get_vi(id).radius;
+  }
   
   properties_t get_properties(loco_t::cid_nt_t& id) {
     properties_t p = sb_get_properties(id);

@@ -283,15 +283,16 @@ struct text_box_t {
     wed_t::CursorInformation_t ci;
     auto& fed = ri.fed;
     auto properties = get_properties(id);
-    fan::time::clock c;
-    c.start();
     fed.m_wed.GetCursorInformation(fed.m_cr, &ci);
     fan::vec3 p = properties.position;
     p.z += 1;
-    fan::print(c.elapsed());
-    if (!gloco->responsive_text.get_text(sb_get_ri(id).text_id).empty()) {
-      f32_t font_size = 1; // TODO
+    auto text = gloco->responsive_text.get_text(sb_get_ri(id).text_id);
+    if (!text.empty()) {
+      f32_t font_size = gloco->responsive_text.get_font_size(sb_get_ri(id).text_id);
       ri.fed.set_font_size(ci.FreeStyle.LineReference, font_size);
+    }
+    else {
+      return;
     }
     // set_font_size invalidates ci so need to refetch it
     fed.m_wed.GetCursorInformation(fed.m_cr, &ci);
@@ -506,18 +507,19 @@ struct text_box_t {
 
   fan::vec3 get_character_position(loco_t::cid_nt_t& id, uint32_t line, uint32_t width) {
     fan::vec3 center = get_button(id, &text_box_t::vi_t::position);
+    auto& text_id = sb_get_ri(id).text_id;
     if (width == 0) {
       
-      if (gloco->responsive_text.get_text(sb_get_ri(id).text_id).empty()) {
+      if (gloco->responsive_text.get_text(text_id).empty()) {
         return center;
       }
     }
     fan::vec3 p = get_text_left_position(id);
-    const fan::string& text = gloco->responsive_text.get_text(sb_get_ri(id).text_id);
+    const fan::string& text = gloco->responsive_text.get_text(text_id);
     wed_t::CursorInformation_t ci;
     auto& fed = sb_get_ri(id).fed;
     fed.m_wed.GetCursorInformation(fed.m_cr, &ci);
-    f32_t font_size = 1; // TODO
+    f32_t font_size = gloco->responsive_text.get_font_size(text_id);
     fan::string measured_string;
     for (uint32_t i = 0; i < width; ++i) {
       measured_string += text.get_utf8(i);

@@ -259,6 +259,9 @@ namespace fan {
 
 namespace fan {
   namespace graphics {
+  #if defined(loco_physics)
+    void open_bcol();
+  #endif
     using direction_e = fan::graphics::viewport_divider_t::direction_e;
     struct camera_t;
     static camera_t* add_camera(fan::graphics::direction_e split_direction);
@@ -1851,6 +1854,9 @@ public:
     );
 
     fan::graphics::default_camera = fan::graphics::add_camera(fan::graphics::direction_e::right);
+  #if defined(loco_physics)
+    fan::graphics::open_bcol();
+  #endif
   }
 
   #if defined(loco_vfi)
@@ -2741,6 +2747,29 @@ namespace fan {
       }
     };
 
+    struct circle_properties_t {
+      fan::graphics::camera_t* camera = default_camera;
+      fan::vec3 position = fan::vec3(0, 0, 0);
+      f32_t radius = 0.1;
+      fan::color color = fan::color(1, 1, 1, 1);
+      bool blending = false;
+    };
+
+    struct circle_t : loco_t::shape_t {
+      circle_t(circle_properties_t p = circle_properties_t()) {
+        *(loco_t::shape_t*)this = loco_t::shape_t(
+          fan_init_struct(
+            loco_t::circle_t::properties_t,
+            .camera = &p.camera->camera,
+            .viewport = &p.camera->viewport,
+            .position = p.position,
+            .radius = p.radius,
+            .color = p.color,
+            .blending = p.blending
+          ));
+      }
+    };
+
     struct sprite_properties_t {
       fan::graphics::camera_t* camera = default_camera;
       fan::vec3 position = fan::vec3(0, 0, 0);
@@ -2801,6 +2830,7 @@ namespace fan {
       fan::vec3 position = fan::vec3(0, 0, 0);
       fan::vec2 size = fan::vec2(0.1, 0.1);
       std::string text = "button";
+      loco_t::mouse_move_cb_t mouse_move_cb = [](const loco_t::mouse_move_data_t&) -> int { return 0; };
       loco_t::mouse_button_cb_t mouse_button_cb = [](const loco_t::mouse_button_data_t&) -> int { return 0; };
     };
 
@@ -2854,3 +2884,5 @@ fan::opengl::viewport_list_NodeReference_t::viewport_list_NodeReference_t(fan::o
   NRI = viewport->viewport_reference.NRI;
 }
 #endif
+
+#include _FAN_PATH(graphics/collider.h)

@@ -26,6 +26,8 @@
 #define loco_dropdown
 #define loco_pixel_format_renderer
 #define loco_tp
+// 
+#define loco_physics
 
 /*
 #define loco_cuda

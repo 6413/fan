@@ -400,6 +400,33 @@ namespace fan {
 			);
 		}
 
+    // calculate reflection velocity from wall from a point
+    // takes half size of rect
+    template <typename T>
+    auto reflection_no_rot(const T& velocity, const T& point, const T& wall, const T& wall_size) {
+      T vector = {wall.x - point.x, wall.y - point.y};
+      T normal;
+      if (point.y < wall.y - wall_size.y) {
+        normal = {0, -1};
+      }
+      else if (point.y > wall.y + wall_size.y) {
+        normal = {0, 1};
+      }
+      else if (point.x < wall.x - wall_size.x) {
+        normal = {-1, 0};
+      }
+      else if (point.x > wall.x + wall_size.x) {
+        normal = {1, 0};
+      }
+
+      auto dot = velocity.dot(normal);
+
+      T reflection;
+      reflection.x = velocity.x - 2 * dot * normal.x;
+      reflection.y = velocity.y - 2 * dot * normal.y;
+      return reflection;
+    }
+
 		// z up
 		//inline vec3 direction_vector(f32_t alpha, f32_t beta)
 		//{
