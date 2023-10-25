@@ -167,8 +167,11 @@ extern "C" {
 #endif
 #endif
 
+// increase this to increase shape limit
+using bdbt_key_type_t = uint16_t;
+
 #define BDBT_set_prefix loco_bdbt
-#define BDBT_set_type_node uint16_t
+#define BDBT_set_type_node bdbt_key_type_t
 #define BDBT_set_BitPerNode 2
 #define BDBT_set_declare_rest 1
 #define BDBT_set_declare_Key 0
@@ -177,7 +180,7 @@ extern "C" {
 #include _FAN_PATH(BDBT/BDBT.h)
 
 #define BDBT_set_prefix loco_bdbt
-#define BDBT_set_type_node uint16_t
+#define BDBT_set_type_node bdbt_key_type_t
 #define BDBT_set_KeySize 0
 #define BDBT_set_BitPerNode 2
 #define BDBT_set_declare_rest 0 
@@ -2658,6 +2661,9 @@ inline void fan::opengl::viewport_t::set_viewport(const fan::vec2& viewport_posi
 
 namespace fan {
   namespace graphics {
+    inline fan::vec2 default_camera_ortho_x{-1, 1};
+    inline fan::vec2 default_camera_ortho_y{-1, 1};
+
     struct camera_t {
 
       camera_t() = default;
@@ -2668,7 +2674,7 @@ namespace fan {
 
         fan::vec2 window_size = gloco->get_window()->get_size();
         gloco->open_viewport(&viewport, (p - s / 2) * window_size, (s)*window_size);
-        gloco->open_camera(&camera, fan::vec2(-1, 1), fan::vec2(-1, 1));
+        gloco->open_camera(&camera, default_camera_ortho_x, default_camera_ortho_y);
       }
       loco_t::camera_t camera;
       loco_t::viewport_t viewport;
@@ -2690,8 +2696,7 @@ namespace fan {
     }
 
     struct line_properties_t {
-      loco_t::camera_t* camera = &gloco->default_camera;
-      loco_t::viewport_t* viewport = &gloco->default_viewport;
+      fan::graphics::camera_t* camera = fan::graphics::default_camera;
       fan::vec3 src = fan::vec3(0, 0, 0);
       fan::vec2 dst = fan::vec2(1, 1);
       fan::color color = fan::color(1, 1, 1, 1);
@@ -2703,8 +2708,8 @@ namespace fan {
         *(loco_t::shape_t*)this = loco_t::shape_t(
           fan_init_struct(
             loco_t::line_t::properties_t,
-            .camera = p.camera,
-            .viewport = p.viewport,
+            .camera = &p.camera->camera,
+            .viewport = &p.camera->viewport,
             .src = p.src,
             .dst = p.dst,
             .color = p.color,
@@ -2736,11 +2741,37 @@ namespace fan {
       }
     };
 
+    struct sprite_properties_t {
+      fan::graphics::camera_t* camera = default_camera;
+      fan::vec3 position = fan::vec3(0, 0, 0);
+      fan::vec2 size = fan::vec2(0.1, 0.1);
+      fan::color color = fan::color(1, 1, 1, 1);
+      loco_t::image_t* image = 0;
+      bool blending = false;
+    };
+
+    struct sprite_t : loco_t::shape_t {
+      sprite_t(sprite_properties_t p = sprite_properties_t()) {
+        *(loco_t::shape_t*)this = loco_t::shape_t(
+          fan_init_struct(
+            loco_t::sprite_t::properties_t,
+            .camera = &p.camera->camera,
+            .viewport = &p.camera->viewport,
+            .position = p.position,
+            .size = p.size,
+            .image = p.image,
+            .color = p.color,
+            .blending = p.blending
+          ));
+      }
+    };
+
     #if defined(loco_text)
     struct text_properties_t {
       loco_t::camera_t* camera = &gloco->default_camera;
       loco_t::viewport_t* viewport = &gloco->default_viewport;
       std::string text = "";
+      fan::color color = fan::colors::white;
       fan::vec3 position = fan::vec3(fan::math::inf, -0.9, 0);
     };
 
@@ -2755,7 +2786,8 @@ namespace fan {
             .text = p.text,
             .line_limit = 1,
             .letter_size_y_multipler = 1,
-            .size = fan::vec2(0.025 * p.text.size(), 0.1)
+            .size = fan::vec2(0.025 * p.text.size(), 0.1),
+            .color = p.color
           ));
       }
     };

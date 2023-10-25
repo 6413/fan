@@ -1,22 +1,5 @@
 #include fan_pch
 
-//struct pile_t {
-//
-//  void open() {
-//    auto window_size = loco.get_window()->get_size();
-//    loco.open_camera(
-//      &camera,
-//      fan::vec2(0, window_size.x),
-//      fan::vec2(0, window_size.y)
-//    );
-//    viewport.open(loco.get_context());
-//    viewport.set(loco.get_context(), 0, window_size, window_size);
-//  } 
-//  loco_t::camera_t camera;
-//  fan::graphics::viewport_t viewport;
-//};
-
-
 int main() {
 
   loco_t loco;

@@ -29,7 +29,7 @@ struct pile_t {
 };
 
 f64_t f(f64_t x) {
-  return (int64_t)(sin(x) * 10);
+  return (sin(x / 10));
 }
 
 int main() {
@@ -46,7 +46,7 @@ int main() {
     .color = fan::colors::white
   );
 
-  f32_t accuracy = 300;
+  f32_t accuracy = 100;
 
   std::vector<loco_t::shape_t> positive_lines(accuracy, line);
   std::vector<loco_t::shape_t> negative_lines(accuracy, line);

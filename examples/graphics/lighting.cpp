@@ -1,43 +1,16 @@
 #include fan_pch
 
-struct pile_t {
-
-  static constexpr fan::vec2 ortho_x = fan::vec2(-1, 1);
-  static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
-
-  pile_t() {
-    fan::vec2 window_size = loco.get_window()->get_size();
-    loco.open_camera(
-      &camera,
-      ortho_x,
-      ortho_y
-    );
-    loco.get_window()->add_resize_callback([&](const fan::window_t::resize_cb_data_t& d) {
-        fan::vec2 window_size = d.size;
-      //fan::vec2 ratio = window_size / window_size.max();
-      //std::swap(ratio.x, ratio.y);
-      viewport.set(0, d.size, d.size);
-    });
-    viewport.open();
-    viewport.set(0, window_size, window_size);
-  }
-
-  loco_t loco;
-  loco_t::camera_t camera;
-  fan::graphics::viewport_t viewport;
-};
-
-pile_t* pile = new pile_t;
-
 int main() {
 
-  pile->loco.lighting.ambient = fan::vec3(0.3, 0.3, 0.3);
+  loco_t loco;
+
+  loco.lighting.ambient = fan::vec3(0.3, 0.3, 0.3);
 
   loco_t::sprite_t::properties_t p;
 
   p.size = fan::vec2(1);
-  p.camera = &pile->camera;
-  p.viewport = &pile->viewport;
+  p.camera = &fan::graphics::default_camera->camera;
+  p.viewport = &fan::graphics::default_camera->viewport;
 
   loco_t::image_t image;
   image.load("images/lighting.webp");
@@ -56,8 +29,8 @@ int main() {
   loco_t::shape_t s1 = p;
 
   loco_t::light_t::properties_t lp;
-  lp.camera = &pile->camera;
-  lp.viewport = &pile->viewport;
+  lp.camera = &fan::graphics::default_camera->camera;
+  lp.viewport = &fan::graphics::default_camera->viewport;
   lp.position = fan::vec3(0, 0, 0);
   lp.size = 1;
   lp.color = fan::colors::yellow * 10;
@@ -71,24 +44,23 @@ int main() {
   //}
 
   //offset = vec4(view * vec4(vec2(tc[id] * get_instance().tc_size + get_instance().tc_position), 0, 1)).xy * 2;
-  pile->loco.set_vsync(false);
 
   fan::vec3 camerapos = 0;
 
 
-  pile->loco.get_window()->add_keys_callback([&](const auto& d) {
+  loco.get_window()->add_keys_callback([&](const auto& d) {
     if (d.key == fan::key_left) {
       camerapos.x -= 0.1;
-      pile->camera.set_camera_position(camerapos);
+      fan::graphics::default_camera->camera.set_camera_position(camerapos);
     }
   if (d.key == fan::key_right) {
     camerapos.x += 0.1;
-    pile->camera.set_camera_position(camerapos);
+    fan::graphics::default_camera->camera.set_camera_position(camerapos);
   }
     });
 
-  pile->loco.loop([&] {
-    pile->loco.get_fps();
+  loco.loop([&] {
+    loco.get_fps();
   /*if (c.finished()) {
     lp.color = fan::random::color();
       lp.size = 0.2;

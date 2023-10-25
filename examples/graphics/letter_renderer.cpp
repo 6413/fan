@@ -1,63 +1,32 @@
 #include fan_pch
 
-constexpr uint32_t count = 10000;
-
-struct pile_t {
-
-  static constexpr fan::vec2 ortho_x = fan::vec2(-1, 1);
-  static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
-
-  void open() {
-    loco.open_camera(
-      &camera,
-      ortho_x,
-      ortho_y
-    );
-    loco.get_window()->add_resize_callback([&](const fan::window_t::resize_cb_data_t& d) {
-      fan::vec2 window_size = d.size;
-      fan::vec2 ratio = window_size / window_size.max();
-      camera.set_ortho(
-        &loco,
-        ortho_x * ratio.x, 
-        ortho_y * ratio.y
-      );
-      viewport.set(loco.get_context(), 0, d.size, d.size );
-    });
-    viewport.open(loco.get_context());
-    viewport.set(loco.get_context(), 0, loco.get_window()->get_size(), loco.get_window()->get_size());
-  }
-
-  loco_t loco;
-  loco_t::camera_t camera;
-  fan::graphics::viewport_t viewport;
-  fan::graphics::cid_t cids[count];
-};
+constexpr uint32_t count = 1000;
 
 int main() {
 
-  pile_t* pile = new pile_t;
-  pile->open();
+  fan::time::clock c;
+  loco_t loco;
 
   loco_t::letter_t::properties_t p;
 
-  p.camera = &pile->camera;
-  p.viewport = &pile->viewport;
+  p.camera = &fan::graphics::default_camera->camera;
+  p.viewport = &fan::graphics::default_camera->viewport;
 
+  std::vector<loco_t::shape_t> letters;
+  letters.reserve(count);
   for (uint32_t i = 0; i < count; i++) {
-    p.position = fan::vec2(fan::random::value_f32(-1, 1), fan::random::value_f32(-1, 1));
+    p.position = fan::vec3(fan::random::value_f32(-1, 1), fan::random::value_f32(-1, 1), i);
     p.color = fan::color(1, 0, f32_t(i) / count, 1);
-    p.font_size = 0.1;
     fan::string str = fan::random::string(1);
-    std::wstring w(str.begin(), str.end());
-    p.letter_id = pile->loco.font.decode_letter(w[0]);
-
-    pile->loco.letter.push_back(&pile->cids[i], p);
+    p.letter_id = str.get_utf8(0);
+    p.font_size = 0.1;
+    
+    letters.push_back(p);
   }
 
-  pile->loco.set_vsync(false);
-
-  pile->loco.loop([&] {
-    pile->loco.get_fps();
+  
+  loco.loop([&] {
+    loco.get_fps();
   });
 
   return 0;

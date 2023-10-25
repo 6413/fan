@@ -1,3 +1,4 @@
+#error legacy
 #include fan_pch
 
 struct pile_t {

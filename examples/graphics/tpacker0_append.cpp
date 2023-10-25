@@ -14,7 +14,8 @@ int main() {
   }
   loco_t::texture_packe0::texture_properties_t texture_properties;
   texture_properties.visual_output = fan::opengl::GL_CLAMP_TO_EDGE;
-  texture_properties.filter = fan::opengl::GL_NEAREST;
+  texture_properties.min_filter = fan::opengl::GL_NEAREST;
+  texture_properties.mag_filter = fan::opengl::GL_NEAREST;
   texture_properties.group_id = 0;
   fan::io::iterate_directory_by_image_size("../images_out", [&](fan::string path) {
     if (std::size_t found = path.find("block") == std::string::npos) {
