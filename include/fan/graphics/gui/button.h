@@ -3,7 +3,7 @@ struct button_t {
 
   static constexpr typename loco_t::shape_type_t::_t shape_type = loco_t::shape_type_t::button;
 
-  static constexpr f32_t boundary_multiplier = 0.99;
+  static constexpr f32_t boundary_multiplier = 0.9;
   static constexpr f32_t released = 1.0;
   static constexpr f32_t hovered = 1.2;
   static constexpr f32_t pressed = 1.4;
@@ -52,12 +52,13 @@ struct button_t {
     loco_t::responsive_text_t::properties_t tp;
     tp.size = p.size * boundary_multiplier; // padding
     tp.color = theme->button.text_color;
-    tp.font_size = 1;
     tp.position = p.position;
     tp.text = p.text;
     tp.position.z = p.position.z + 1;
     tp.viewport = p.viewport;
     tp.camera = p.camera;
+    tp.line_limit = 1;
+    tp.letter_size_y_multipler = 1;
 
     sb_push_back(id, p);
 

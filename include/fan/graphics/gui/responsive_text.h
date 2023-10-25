@@ -776,6 +776,10 @@ struct responsive_text_t {
     auto instance_id = *(tlist_NodeReference_t*)id.gdp4();
     return tlist[instance_id].size;
   }
+  f32_t get_font_size(loco_t::cid_nt_t& id) {
+    auto instance_id = *(tlist_NodeReference_t*)id.gdp4();
+    return tlist[instance_id].font_size;
+  }
   //void set_size(const fan::vec2& size) {
   //  m_size = size;
   //  calculate_font_size();

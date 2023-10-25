@@ -82,7 +82,7 @@ struct dropdown_t {
 protected:
   //#define BLL_set_StoreFormat 1
   //#define BLL_set_debug_InvalidAction 1
-  #define BLL_set_CPP_CopyAtPointerChange
+  //#define BLL_set_CPP_CopyAtPointerChange
   #define BLL_set_CPP_ConstructDestruct
   #define BLL_set_CPP_Node_ConstructDestruct
   #define BLL_set_AreWeInsideStruct 1
@@ -106,7 +106,7 @@ protected:
   };
 
   //  #define BLL_set_debug_InvalidAction 1
-  #define BLL_set_CPP_CopyAtPointerChange
+  //#define BLL_set_CPP_CopyAtPointerChange
   #define BLL_set_CPP_ConstructDestruct
   #define BLL_set_CPP_Node_ConstructDestruct
   #define BLL_set_AreWeInsideStruct 1
@@ -189,7 +189,9 @@ public:
               goto gt_end_expanded1;
             }
             if (instance[inr] != d.id) {
-              instance[inr].set_text(((loco_t::shape_t*)&(*(loco_t::cid_nr_t*)&d.id))->get_text());
+              auto text = ((loco_t::shape_t*)&(*(loco_t::cid_nr_t*)&d.id))->get_text();
+              instance[inr].set_text(text);
+              instance[inr].ep.text = text;
               auto dst_element = loco_t::dropdown_t::find_element_from_button(instance, d.id);
               instance.selected_id = dst_element;
             }
@@ -199,10 +201,13 @@ public:
               ii.disable_draw();
               inr = inr.Next(&instance);
             }
-            gt_end_expanded1:;
+          gt_end_expanded1:;
+            instance.flags.expanded ^= 1;
+            return 1;
           }
           instance.flags.expanded ^= 1;
         }
+
         auto user_r = instance[element_nr].ep.mouse_button_cb(d);
         if (user_r != 0) {
           return user_r;
