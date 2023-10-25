@@ -623,7 +623,7 @@ struct responsive_text_t {
       if (found == gloco->font.info.characters.end()) {
         fan::throw_error("invalid utf8 letter");
       }
-      internal_append_letter(internal_id, found->second, false, true);
+      internal_append_letter(internal_id, found->second, true, true);
 
       i += letter_size;
     }
@@ -779,6 +779,9 @@ struct responsive_text_t {
   f32_t get_font_size(loco_t::cid_nt_t& id) {
     auto instance_id = *(tlist_NodeReference_t*)id.gdp4();
     return tlist[instance_id].font_size;
+  }
+  void set_color(loco_t::cid_nt_t& id, const fan::color& color) {
+
   }
   //void set_size(const fan::vec2& size) {
   //  m_size = size;
