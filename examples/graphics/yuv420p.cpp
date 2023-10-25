@@ -42,7 +42,7 @@ int main() {
   constexpr fan::vec2ui image_size = fan::vec2ui(1920, 1080);
 
   fan::string str;
-  fan::io::file::read("test/output1920.yuv", &str);
+  fan::io::file::read("output1920.yuv", &str);
 
   //fan::string str2;
   //fan::io::file::read("output1920.yuv", &str2);
