@@ -972,6 +972,7 @@ namespace fan {
 		// when finished getting fps returns fps otherwise 0
 		// ms
 		uintptr_t get_fps(uint32_t frame_update = 1, bool window_title = true, bool print = true) {
+      int temp_fps = m_fps_counter;
       auto time_diff = (m_current_frame - m_last_frame) / 1e+9;
       if (time_diff >= 1.0 / frame_update) {
         fan::string fps_info;
@@ -995,7 +996,7 @@ namespace fan {
         if (print) {
           fan::print(fps_info);
         }
-        return m_fps_counter;
+        return temp_fps;
       }
 
       m_fps_counter++;

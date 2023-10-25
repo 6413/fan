@@ -22,14 +22,14 @@ int main() {
 
 
   std::vector<fan::graphics::collider_dynamic_t> balls;
-  static constexpr int ball_count = 100;
+  static constexpr int ball_count = 500;
   balls.reserve(ball_count);
   for (int i = 0; i < ball_count; ++i) {
-    balls.push_back(fan::graphics::circle_t{{
-        .position = fan::vec3(fan::random::vec2(-0.8, 0.8), i),
-        .radius = 0.05,
+    balls.push_back(fan::graphics::letter_t{{
         .color = fan::random::color(),
-        .blending = true
+        .position = fan::vec3(fan::random::vec2(-0.8, 0.8), i),
+        .font_size = 0.1,
+        .letter_id = fan::random::string(1).get_utf8(0)
     }});
     balls.back().set_velocity(fan::random::vec2_direction(-1, 1) * 2);
   }
@@ -60,9 +60,13 @@ int main() {
 
   loco.set_vsync(false);
 
+  f32_t angle = 0;
   loco.loop([&] {
+    int idx = 0;
     for (auto& i : balls) {
       i.set_position(i.get_collider_position());
+      i.set_angle(angle + idx);
     }
+    angle += loco.get_delta_time();
   });
 }

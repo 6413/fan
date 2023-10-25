@@ -1913,7 +1913,7 @@ public:
     get_context()->opengl.glClear(fan::opengl::GL_COLOR_BUFFER_BIT);
     get_context()->opengl.glDrawBuffer(fan::opengl::GL_COLOR_ATTACHMENT0);
     #endif
-    get_context()->opengl.call(get_context()->opengl.glClearColor, 0, 0, 0, 1);
+    get_context()->opengl.glClearColor(0.051f, 0.067f, 0.122f, 1.0f);
     get_context()->opengl.call(get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
     #endif
 
@@ -1941,7 +1941,6 @@ public:
     m_framebuffer.unbind(get_context());
 
     get_context()->opengl.call(get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
-    //float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
     fan::vec2 window_size = get_window()->get_size();
     fan::opengl::viewport_t::set_viewport(0, window_size, window_size);
 
@@ -2796,6 +2795,31 @@ namespace fan {
     };
 
     #if defined(loco_text)
+
+    struct letter_properties_t {
+      loco_t::camera_t* camera = &gloco->default_camera;
+      loco_t::viewport_t* viewport = &gloco->default_viewport;
+      fan::color color = fan::colors::white;
+      fan::vec3 position = fan::vec3(0, 0, 0);
+      f32_t font_size = 1;
+      uint32_t letter_id;
+    };
+
+    struct letter_t : loco_t::shape_t {
+      letter_t(letter_properties_t p = letter_properties_t()) {
+        *(loco_t::shape_t*)this = loco_t::shape_t(
+          fan_init_struct(
+            typename loco_t::letter_t::properties_t,
+            .camera = p.camera,
+            .viewport = p.viewport,
+            .position = p.position,
+            .font_size = p.font_size,
+            .letter_id = p.letter_id,
+            .color = p.color
+          ));
+      }
+    };
+
     struct text_properties_t {
       loco_t::camera_t* camera = &gloco->default_camera;
       loco_t::viewport_t* viewport = &gloco->default_viewport;

@@ -78,7 +78,8 @@
     fan::color color = fan::colors::white;\
     fan::color outline_color;\
     fan::vec2 tc_size;\
-    f32_t pad[2];
+    f32_t angle; \
+    f32_t pad[1];
 
   #define loco_letter_bm_properties_t \
       using parsed_masterpiece_t = fan::masterpiece_t< \
