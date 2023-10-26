@@ -1,3 +1,4 @@
+#include fan_pch
 #include <Windows.h>
 #include <mmsystem.h>
 #include <mmdeviceapi.h>
