@@ -32,7 +32,7 @@ int main() {
   lp.camera = &fan::graphics::default_camera->camera;
   lp.viewport = &fan::graphics::default_camera->viewport;
   lp.position = fan::vec3(0, 0, 0);
-  lp.size = 1;
+  lp.size = 0.5;
   lp.color = fan::colors::yellow * 10;
   loco_t::shape_t l0 = lp;
   
@@ -59,8 +59,12 @@ int main() {
   }
     });
 
+  f32_t x = 0;
   loco.loop([&] {
     loco.get_fps();
+    l0.set_position(loco.get_mouse_position(fan::graphics::default_camera->camera, fan::graphics::default_camera->viewport));
+    //l0.set_color(fan::color::hsv(x, 100, 100) * 10);
+    //x += loco.get_delta_time() * 100;
   /*if (c.finished()) {
     lp.color = fan::random::color();
       lp.size = 0.2;

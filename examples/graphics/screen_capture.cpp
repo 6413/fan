@@ -83,16 +83,16 @@ int main() {
   pile->loco.set_vsync(false);
   uint32_t x = 0;
   pile->loco.loop([&] {
-    //ptr = fan::sys::MD_SCR_read(&md);
-    //if (ptr) {
-    //  //ii.size = fan::vec2(1792, 992);
-    //  ii.data = ptr;
-    //  //if (!*ptr) {
-    //  //  fan::print("aa");
-    //  //}
-    //  image.unload();
-    //  image.load(ii, lp);
-    //}
+    ptr = fan::sys::MD_SCR_read(&md);
+    if (ptr) {
+      //ii.size = fan::vec2(1792, 992);
+      ii.data = ptr;
+      //if (!*ptr) {
+      //  fan::print("aa");
+      //}
+      image.unload();
+      image.load(ii, lp);
+    }
 
     ////pile->loco.sprite.set(&pile->cids[0], &image);
     //pile->loco.get_fps();

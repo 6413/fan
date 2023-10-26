@@ -2,42 +2,58 @@
 
 #include <algorithm>
 
-std::vector<int> f(std::vector<int>& v, int desired) {
-  std::vector<int> v2 = v;
-  int total = std::accumulate(v.begin(), v.end(), 0);
-  int num_elements = v.size();
+int compare(const void* a, const void* b) {
+  return (*(int*)b - *(int*)a);
+}
 
-  if (total == desired) {
-    return v;
-  }
+int* f(int* v, int size, int desired) {
+  int total = 0;
 
-  int average = desired / num_elements;
-  int remainder = desired % num_elements;
+  // Create a max heap
+  qsort(v, size, sizeof(int), compare);
 
-  for (int& num : v) {
-    if (num > average) {
-      num = average;
-    }
-    else if (remainder > 0 && num == average) {
-      num++;
-      remainder--;
-    }
-  }
+  while (total != desired) {
+    // Remove the current maximum value from the heap
+    int max_val = v[0];
+    total -= max_val;
+    v[0]--;
 
-  int sum = 0;
-  int i = 0;
-  while (sum != desired) {
-    sum = 0;
-    for (int i = 0; i < v.size(); ++i) {
-      if (v2[i] > v[i]) {
-        v[i]++;
+    // Restore the heap property
+    int i = 0;
+    int left, right, largest;
+    while (1) {
+      largest = i;
+      left = 2 * i + 1;
+      right = 2 * i + 2;
+
+      if (left < size && v[left] > v[largest]) {
+        largest = left;
       }
-      sum += v[i];
+
+      if (right < size && v[right] > v[largest]) {
+        largest = right;
+      }
+
+      if (largest != i) {
+        // Swap v[i] and v[largest]
+        int temp = v[i];
+        v[i] = v[largest];
+        v[largest] = temp;
+        i = largest;
+      }
+      else {
+        break;
+      }
     }
+
+    // Add the updated maximum value back to the heap
+    total += max_val;
   }
 
   return v;
 }
+
+
 
 
 int main() {
@@ -48,10 +64,10 @@ int main() {
   for (auto i : input) {
     fan::print_no_endline(i);
   }
-  auto o = f(input, desired);
+  auto o = f(input.data(), input.size(), desired);
   fan::print("");
   fan::print_no_endline("output:");
-  for (auto i : o) {
+  for (auto i : std::vector<int>(o, o + input.size())) {
     fan::print_no_endline(i);
   }
 }
