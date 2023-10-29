@@ -1,0 +1,21 @@
+# Compiler settings
+GPP = clang++ -w
+CFLAGS = -I . -std=c++2a -I include
+
+# ImGui library files
+IMGUI_SRC = $(wildcard include/fan/imgui/*.cpp)
+IMGUI_OBJ = $(IMGUI_SRC:.cpp=.o)
+IMGUI_LIB = libimgui.a
+
+PCH_PATH = pch.h
+CFLAGS += -Dfan_pch=\"$(PCH_PATH)\" -I C	:\libs\fan\include\baseclasses -I C:/libs/fan/include/imgui -I C:/libs/fan/src/libwebp -I C:/libs/fan/src/libwebp/src C:/libs/fan/lib/libwebp/libwebp.a C:/libs/fan/lib/opus/libopus.a
+CFLAGS += -DFAN_INCLUDE_PATH=$(FAN_INCLUDE_PATH) -DWITCH_INCLUDE_PATH=C:/libs/WITCH
+
+$(IMGUI_LIB): $(IMGUI_OBJ)
+	llvm-ar rcs $@ $(wildcard include/imgui/*.o)
+
+$(IMGUI_OBJ): $(IMGUI_SRC)
+	$(GPP) -c $< -o $@ $(CFLAGS)
+
+clean:
+	rm -f $(IMGUI_OBJ) $(IMGUI_LIB)

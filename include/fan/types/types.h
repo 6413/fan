@@ -323,8 +323,8 @@ namespace fan {
     struct universal_type_t {
       template <typename T>
       operator T
-      // known to be needed with msvc only
-      #if defined(fan_compiler_msvc)
+      // known to be needed with msvc only - special check for clang needed because in windows clang its using msvc somehow
+      #if defined(fan_compiler_msvc) && !defined(fan_compiler_clang)
         &
       #endif
       ();
@@ -403,6 +403,11 @@ auto generate_variable_list_nref(const T& struct_value) { \
     return generate_variable_list_ref<count_struct_members<T>()>(st);
   }
 
+  template <typename T>
+  constexpr auto make_struct_tuple(const T& st) {
+    return generate_variable_list_nref<count_struct_members<T>()>(st);
+  }
+
   //template <typename T>
   //constexpr auto make_struct_tuple_ref(T&& st) {
   //  T s;
@@ -413,11 +418,6 @@ auto generate_variable_list_nref(const T& struct_value) { \
   //  T s;
   //  return generate_variable_list_ref<count_struct_members<T>()>(s);
   //}
-
-  template <typename T>
-  constexpr auto make_struct_tuple(const T& st) {
-    return generate_variable_list_nref<count_struct_members<T>()>(st);
-  }
   /*
 
   template <typename T, typename F, std::size_t... I>
